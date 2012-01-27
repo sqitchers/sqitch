@@ -47,5 +47,5 @@ the same terms as Perl itself.
 
 * Get a list of all commits and changes in `sql/deploy`:
 
-        git log -p --format='[%H%d]' --name-status --reverse
+        git log -p --format='[%H%d]' --name-status --reverse --decorate=full
 
