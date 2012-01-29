@@ -49,3 +49,17 @@ the same terms as Perl itself.
 
         git log -p --format='[%H%d]' --name-status --reverse --decorate=full
 
+* Get the contents of a file at a particular revision:
+
+        git show ecd46ef74a36283d81bdabeb70b4193386d19ea9:sql/deploy/add_widget.sql
+
+* Get the contents of a file at a particular tag:
+
+        git show beta:sql/deploy/add_widget.sql
+
+* Get the contents of a file just prior to a particular revision or tag:
+
+        git show `git log --format='%H' beta^ -1`:sql/deploy/add_widget.sql
+
+
+
