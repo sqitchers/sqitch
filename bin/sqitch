@@ -1,0 +1,9 @@
+#!/usr/bin/perl -w
+
+use App::Sqitch;
+
+App::Sqitch->go;
+
+=head1 Name
+
+sqitch - SQL Change Management
