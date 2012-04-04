@@ -6,6 +6,8 @@ change management. The philosophy and functionality is covered over a series
 of blog posts published in January, 2012:
 
 * [Simple SQL Change Management](http://justatheory.com/computers/databases/simple-sql-change-management.html)
+* [VCS-Enabled SQL Change Management](http://justatheory.com/computers/databases/vcs-sql-change-management.html)
+* [SQL Change Management Sans Duplication](http://justatheory.com/computers/databases/sql-change-management-sans-redundancy.html)
 
 Installation
 ------------
