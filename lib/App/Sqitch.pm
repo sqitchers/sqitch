@@ -15,6 +15,7 @@ sub _getopt {
         'sql-dir=s'              => \$opts{sql_dir},
         'deploy-dir=s'           => \$opts{deploy_dir},
         'revert-dir=s'           => \$opts{revert_dir},
+        'test-dir=s'             => \$opts{test_dir},
         'dry-run'                => \$opts{dry_run},
         'verbose|v+'             => \$opts{verbose},
         'help|H'                 => \$opts{help},
@@ -71,6 +72,7 @@ Sqitch is a VCS-aware SQL change managmeent application.
      --sql-dir    DIR   Path to directory with deploy and revert scripts.
      --deploy-dir DIR   Path to directory with SQL deployment scripts.
      --revert-dir DIR   Path to directory with SQL reversion scripts.
+     --test-dir   DIR   Path to directory with SQL test scripts.
      --dry-run          Execute command without making any changes.
   -v --verbose          Increment verbosity.
   -V --version          Print the version number and exit.
@@ -150,8 +152,9 @@ system is in place, an exception will be thrown.
   sqitch --sql-dir migrations/
 
 Path to directory containing deployment and reversion SQL scripts. It should
-contain subdirectories named C<deploy> and C<revert>. Thes may be overridden
-by C<--deploy-dir> and C<--revert-dir>. Defaults to C<./sql>.
+contain subdirectories named C<deploy>, C<revert>, and (optionally) C<test>.
+Thes may be overridden by C<--deploy-dir> and C<--revert-dir>. Defaults to
+C<./sql>.
 
 =item C<--deploy-dir>
 
@@ -166,6 +169,13 @@ implied by C<--sql-dir>.
 
 Path to a directory containing SQL reversion scripts. Overrides the value
 implied by C<--sql-dir>.
+
+=item C<--test-dir>
+
+  sqitch --test-dir db/t
+
+Path to a directory containing SQL test scripts. Overrides the value implied
+by C<--sql-dir>.
 
 =item C<--dry-run>
 
@@ -223,11 +233,76 @@ Outputs the program name and version and exits.
 
 Initialize the database and create deployment script directories.
 
+=item C<status>
+
+Output information about the current status of the deployment, including a
+list of tags, deployments, and dates in chronological order. If any deploy
+scripts are not currently deployed, they will be listed separately.
+
+=item C<check>
+
+Sanity check the deployment scripts. Checks include:
+
+=over
+
+=item *
+
+Make sure all deployment scripts have complementery reversion scripts.
+
+=item *
+
+Make sure no deployment script appears more than once in the plan file.
+
+=back
+
 =item C<deploy>
+
+Deploy changes. Options:
+
+=over
+
+=item C<--to>
+
+Tag to deploy up to. Defaults to the latest tag or to the VCS C<HEAD> commit.
+
+=back
 
 =item C<revert>
 
-=item C<bundle>
+Revert changes. Options:
+
+=over
+
+=item C<--to>
+
+Tag to revert to. Defaults to reverting all changes.
+
+=back
+
+=item C<test>
+
+Test changes. All SQL scripts in C<--test-dir> will be run.
+[XXX Not sure whether to have subdirectories for tests and expected output and
+to diff them, or to use some other approach.]
+
+=item C<package>
+
+Package up all deployment and reversion scripts and write out a plan file.
+Options:
+
+=over
+
+=item C<--tags-only>
+
+Write the plan file with deployment targets listed under VCS tags, rather than
+individual commits.
+
+=item C<--destdir>
+
+Specify a desintation directory. The plan file and C<deploy>, C<revert>, and
+C<test> directories will be written to it. Defaults to "package".
+
+=back
 
 =back
 
