@@ -10,8 +10,13 @@ sub _getopt {
     my %opts;
     Getopt::Long::Configure (qw(bundling pass_through));
     Getopt::Long::GetOptions(
-        'plan-file|p=s'          => \$opts{plan_file},
-        'connect-to|connect|c=s' => \$opts{sql_dir},
+        'plan-file=s'            => \$opts{plan_file},
+        'engine|e=s',            => \$opts{engine},
+        'client|c=s'             => \$opts{client},
+        'db-name|d=s',           => \$opts{db_name},
+        'username|user|u=s',     => \$opts{username},
+        'host|h=s',              => \$opts{host},
+        'port|n=i',              => \$opts{port},
         'sql-dir=s'              => \$opts{sql_dir},
         'deploy-dir=s'           => \$opts{deploy_dir},
         'revert-dir=s'           => \$opts{revert_dir},
@@ -35,7 +40,6 @@ sub _getopt {
         print $fn, ' (', __PACKAGE__, ') ', __PACKAGE__->VERSION, $/;
         exit;
     }
-
 }
 
 sub _pod2usage {
@@ -112,75 +116,27 @@ applies reversion scripts for all steps to return the state to an earlier tag.
 
 =head1 Options
 
-  -p --plan-file  FILE  Path to a deployment plan file.
-  -c --connect-to URI   URI to use to connect to the database.
-     --sql-dir    DIR   Path to directory with deploy and revert scripts.
-     --deploy-dir DIR   Path to directory with SQL deployment scripts.
-     --revert-dir DIR   Path to directory with SQL reversion scripts.
-     --test-dir   DIR   Path to directory with SQL test scripts.
-     --extension  EXT   SQL script file name extension.
-     --dry-run          Execute command without making any changes.
-  -v --verbose          Increment verbosity.
-  -V --version          Print the version number and exit.
-  -H --help             Print a usage statement and exit.
-  -M --man              Print the complete documentation and exit.
+  -p --plan-file  FILE    Path to a deployment plan file.
+  -e --engine     ENGINE  Database engine.
+  -c --client     PATH    Path to the engine command-line client.
+  -d --db-name    NAME    Database name.
+  -u --username   USER    Database user name.
+  -h --host       HOST    Database server host name.
+  -n --port       PORT    Database server port number.
+     --sql-dir    DIR     Path to directory with deploy and revert scripts.
+     --deploy-dir DIR     Path to directory with SQL deployment scripts.
+     --revert-dir DIR     Path to directory with SQL reversion scripts.
+     --test-dir   DIR     Path to directory with SQL test scripts.
+     --extension  EXT     SQL script file name extension.
+     --dry-run            Execute command without making any changes.
+  -v --verbose            Increment verbosity.
+  -V --version            Print the version number and exit.
+  -H --help               Print a usage statement and exit.
+  -M --man                Print the complete documentation and exit.
 
 =head1 Options Details
 
 =over
-
-=item C<-c>
-
-=item C<--connect>
-
-=item C<--connect-to>
-
-  sqitch --connect-to pg:postgres@localhost/mydb
-  sqitch --connect sqlite:/tmp/widgets.db
-  sqitch -c mysql:root@db.example.com:7777/bricolage
-
-URI of the database to which to connect. For some RDBMSes, such as
-L<PostgreSQL|http://postgresql.org/> and L<MySQL|http://mysql.org/>, the
-database must already exist. For others, such as L<SQLite|http://sqlite.org/>,
-the database will be automatically created on first connect.
-
-The format of the URI as as follows:
-
-  $rdbms:$user@$host:$port/$db
-
-=over
-
-=item C<$rdbms>
-
-The RDBMS flavor. Required. Supported flavors include:
-
-=over
-
-=item * C<pg> - L<PostgreSQL|http://postgresql.org/>
-
-=item * C<mysql> - L<MySQL|http://mysql.org/>
-
-=item * C<sqlite> - L<SQLite|http://sqlite.org/>
-
-=back
-
-=item C<$user>
-
-User name to use when connecting to the database. Optional.
-
-=item C<$host>
-
-RDBMS host name. Optional.
-
-=item C<$port>
-
-RDBMS port. Optional.
-
-=item C<$db>
-
-Name of the database. Required.
-
-=back
 
 =item C<-p>
 
@@ -193,6 +149,66 @@ Path to the deployment plan file. Defaults to F<./sqitch.plan>. If this file
 is not present, Sqitch will attempt to read from VCS files. If no supported
 VCS system is in place, an exception will be thrown. See L</Plan File> for a
 description of its structure.
+
+=item C<-e>
+
+=item C<--engine>
+
+  sqitch --engine pg
+  sqitch -e sqlite
+
+The database engine to use. Supported engines include:
+
+=over
+
+=item * C<pg> - L<PostgreSQL|http://postgresql.org/>
+
+=item * C<mysql> - L<MySQL|http://mysql.org/>
+
+=item * C<sqlite> - L<SQLite|http://sqlite.org/>
+
+=back
+
+=item C<-c>
+
+=item C<--client>
+
+  sqitch --client /usr/local/pgsql/bin/psql
+  sqitch -c /usr/bin/sqlite3
+
+Path to the command-line client for the database engine. Defaults to a client
+in the current path named appropriately for the specified engine.
+
+=item C<-d>
+
+=item C<--db-name>
+
+Name of the database. For some engines, such as
+L<PostgreSQL|http://postgresql.org/> and L<MySQL|http://mysql.org/>, the
+database must already exist. For others, such as L<SQLite|http://sqlite.org/>,
+the database will be automatically created on first connect.
+
+=item C<-u>
+
+=item C<--user>
+
+=item C<--username>
+
+User name to use when connecting to the database. Does not apply to all engines.
+
+=item C<-h>
+
+=item C<--host>
+
+Host name to use when conneting to the database. Does not apply to all engines.
+
+=item C<-n>
+
+=item C<--port>
+
+Port number to connect to. Does not apply to all engines.
+
+=back
 
 =item C<--sql-dir>
 
@@ -412,6 +428,127 @@ Specify a destination directory. The plan file and C<deploy>, C<revert>, and
 C<test> directories will be written to it. Defaults to "package".
 
 =back
+
+=back
+
+=head1 Configuration
+
+Sqitch configuration information is stored in standard INI files. The C<#> and
+C<;> characters begin comments to the end of line, blank lines are ignored.
+
+The file consists of sections and properties. A section begins with the name
+of the section in square brackets and continues until the next section begins.
+Section names are not case sensitive. Only alphanumeric characters, C<-> and
+C<.> are allowed in section names. Each property must belong to some section,
+which means that there must be a section header before the first setting of a
+property.
+
+All the other lines (and the remainder of the line after the section header)
+are recognized as setting properties, in the form C<name = value>. Leading and
+trailing whitespace in a property value is discarded. Internal whitespace
+within a property value is retained verbatim.
+
+All sections are named for commands except for one, named "core", which
+contains core configuration properties.
+
+Here's an example of a configuration file that might be useful checked into a
+VCS for a project that deploys to PostgreSQL and stores its deployment scripts
+with the extension F<ddl> under the C<migrations> directory. It also wants
+packages to be created in the directory F<_build/sql>, and to deploy starting
+with the "gamma" tag:
+
+  [core]
+      engine    = pg
+      db        = widgetopolis
+      sql_dir   = migrations
+      extension = ddl
+
+  [revert]
+      to        = gamma
+
+  [package]
+      from      = gamma
+      tags_only = yes
+      dest_dir  = _build/sql
+
+=head2 Core Properties
+
+This is the list of core variables, which much appear under the C<[core]>
+section. See the documentation for indvidual commands for their configuration
+options.
+
+=over
+
+=item C<plan_file>
+
+The plan file to use. Defaults to F<sqitch.ini> or, if that does not exist,
+uses the VCS history, if available.
+
+=item C<engine>
+
+The database engine to use. Supported engines include:
+
+=over
+
+=item * C<pg> - L<PostgreSQL|http://postgresql.org/>
+
+=item * C<mysql> - L<MySQL|http://mysql.org/>
+
+=item * C<sqlite> - L<SQLite|http://sqlite.org/>
+
+=back
+
+=item C<client>
+
+Path to the command-line client for the database engine. Defaults to a client
+in the current path named appropriately for the specified engine.
+
+=item C<db_name>
+
+Name of the database.
+
+=item C<username>
+
+User name to use when connecting to the database. Does not apply to all engines.
+
+=item C<password>
+
+Password to use when connecting to the database. Does not apply to all engines.
+
+=item C<host>
+
+Host name to use when conneting to the database. Does not apply to all engines.
+
+=item C<port>
+
+Port number to connect to. Does not apply to all engines.
+
+=item C<sql_dir>
+
+Path to directory containing deployment, reversion, and test SQL scripts. It
+should contain subdirectories named C<deploy>, C<revert>, and (optionally)
+C<test>. These may be overridden by C<deploy_dir>, C<revert_dir>, and
+C<test_dir>. Defaults to C<./sql>.
+
+=item C<deploy_dir>
+
+Path to a directory containing SQL deployment scripts. Overrides the value
+implied by C<sql_dir>.
+
+=item C<revert_dir>
+
+Path to a directory containing SQL reversion scripts. Overrides the value
+implied by C<sql_dir>.
+
+=item C<test_dir>
+
+Path to a directory containing SQL test scripts. Overrides the value implied
+by C<sql_dir>.
+
+=item C<extension>
+
+The file name extension on deployment, reversion, and test SQL scripts.
+Defaults to C<sql>.
 
 =back
 
