@@ -674,6 +674,26 @@ Here is the EBNF Grammar for the plan file:
   white-space = ? white space characters ? ;
   string      = ? non-EOL characters ? ;
 
+=head1 See Also
+
+The original design for Sqitch was sketched out in a number of blog posts:
+
+=over
+
+=item *
+
+L<Simple SQL Change Management|http://justatheory.com/computers/databases/simple-sql-change-management.html>
+
+=item *
+
+L<VCS-Enabled SQL Change Management|http://justatheory.com/computers/databases/vcs-sql-change-management.html>
+
+=item *
+
+L<SQL Change Management Sans Duplication|http://justatheory.com/computers/databases/sql-change-management-sans-redundancy.html>
+
+=back
+
 =head1 Author
 
 David E. Wheeler <david@justatheory.com>
