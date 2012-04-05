@@ -66,6 +66,50 @@ sqitch - VCS-powered SQL Change Management
 
 Sqitch is a VCS-aware SQL change management application.
 
+=head2 Terminology
+
+=over
+
+=item C<step>
+
+A named unit of change. A step name must be used in the file names of its
+corresponding deployment and a reversion scripts. It may also be used in a
+test script file name.
+
+=item C<tag>
+
+A known deployment state with a list one or more steps that define the tag. A
+tag also implies that steps from previous tags in the plan have been applied.
+Think of it is a version number or VCS revision. A given point in the plan may
+have one or more tags.
+
+=item C<state>
+
+The current state of the database. This is represented by the most recent tag
+or tags deployed. If the state of the database is the same as the most recent
+tag, then it is considered "up-to-date".
+
+=item C<plan>
+
+A list of one or more tags and associated steps that define the order of
+deployment execution. Sqitch reads the plan to determine what steps to execute
+to change the database from one state to another. The plan may be represented
+by a L<Plan File> or by VCS history.
+
+=item C<deploy>
+
+The act of deploying database changes to reach a tagged deployment point.
+Sqitch reads the plan, checks the current state of the database, and applies
+all the steps necessary to change the state to the specified tag.
+
+=item C<revert>
+
+The act of reverting database changes to reach an earlier tagged deployment
+point. Sqitch checks the current state of the database, reads the plan, and
+applies reversion scripts for all steps to return the state to an earlier tag.
+
+=back
+
 =head1 Options
 
   -p --plan-file  FILE  Path to a deployment plan file.
@@ -316,6 +360,10 @@ C<test> directories will be written to it. Defaults to "package".
 =back
 
 =back
+
+=head1 Plan File
+
+A plan file describes the deployment tags and scripts to be run against a database.
 
 =head1 Author
 
