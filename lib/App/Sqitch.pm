@@ -64,7 +64,7 @@ sqitch - VCS-powered SQL Change Management
 
 =head1 Description
 
-Sqitch is a VCS-aware SQL change managmeent application.
+Sqitch is a VCS-aware SQL change management application.
 
 =head1 Options
 
@@ -95,7 +95,7 @@ Sqitch is a VCS-aware SQL change managmeent application.
   sqitch --connect sqlite:/tmp/widgets.db
   sqitch -c mysql:root@db.example.com:7777/bricolage
 
-URI of the database to which to connect. For some RDBMSs, such as
+URI of the database to which to connect. For some RDBMSes, such as
 L<PostgreSQL|http://postgresql.org/> and L<MySQL|http://mysql.org/>, the
 database must already exist. For others, such as L<SQLite|http://sqlite.org/>,
 the database will be automatically created on first connect.
@@ -108,7 +108,7 @@ The format of the URI as as follows:
 
 =item C<$rdbms>
 
-The RDBMs flavor. Required. Supported flavors include:
+The RDBMS flavor. Required. Supported flavors include:
 
 =over
 
@@ -122,7 +122,7 @@ The RDBMs flavor. Required. Supported flavors include:
 
 =item C<$user>
 
-Username to use when connecting to the database. Optional.
+User name to use when connecting to the database. Optional.
 
 =item C<$host>
 
@@ -146,8 +146,8 @@ Name of the database. Required.
   sqitch -p sql/deploy.conf
 
 Path to the deployment plan file. Defaults to F<./sqitch.plan>. If this file
-is not prsent, Sqitch will attempt to read from VCS files. If no supported VCS
-system is in place, an exception will be thrown. See L</Plan File> for a
+is not present, Sqitch will attempt to read from VCS files. If no supported
+VCS system is in place, an exception will be thrown. See L</Plan File> for a
 description of its structure.
 
 =item C<--sql-dir>
@@ -258,7 +258,7 @@ Sanity check the deployment scripts. Checks include:
 
 =item *
 
-Make sure all deployment scripts have complementery reversion scripts.
+Make sure all deployment scripts have complementary reversion scripts.
 
 =item *
 
@@ -310,7 +310,7 @@ individual commits.
 
 =item C<--destdir>
 
-Specify a desintation directory. The plan file and C<deploy>, C<revert>, and
+Specify a destination directory. The plan file and C<deploy>, C<revert>, and
 C<test> directories will be written to it. Defaults to "package".
 
 =back
