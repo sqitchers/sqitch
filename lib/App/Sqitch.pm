@@ -60,7 +60,7 @@ __END__
 
 =head1 Name
 
-sqitch - VCS-powered SQL Change Management
+Sqitch - VCS-powered SQL change management
 
 =head1 Synopsis
 
@@ -200,15 +200,14 @@ User name to use when connecting to the database. Does not apply to all engines.
 
 =item C<--host>
 
-Host name to use when conneting to the database. Does not apply to all engines.
+Host name to use when connecting to the database. Does not apply to all
+engines.
 
 =item C<-n>
 
 =item C<--port>
 
 Port number to connect to. Does not apply to all engines.
-
-=back
 
 =item C<--sql-dir>
 
@@ -301,7 +300,7 @@ Outputs the program name and version and exits.
 
 =item C<init>
 
-Initialize the database and create deployment script directories if the do
+Initialize the database and create deployment script directories if they do
 not already exist.
 
 =item C<status>
@@ -328,25 +327,37 @@ Make sure no deployment script appears more than once in the plan file.
 
 =item C<deploy>
 
-Deploy changes. Options:
+Deploy changes. Configuration properties may be specified under the
+C<[deploy]> section of the configuration file, or via C<sqitch config>:
+
+  sqitch config deploy.$property $value
+
+Options and configuration properties:
 
 =over
 
 =item C<--to>
 
 Tag to deploy up to. Defaults to the latest tag or to the VCS C<HEAD> commit.
+Property name: C<deploy.to>.
 
 =back
 
 =item C<revert>
 
-Revert changes. Options:
+Revert changes. Configuration properties may be specified under the
+C<[revert]> section of the configuration file, or via C<sqitch config>:
+
+  sqitch config revert.$property $value
+
+Options and configuration properties:
 
 =over
 
 =item C<--to>
 
-Tag to revert to. Defaults to reverting all changes.
+Tag to revert to. Defaults to reverting all changes. Property name:
+C<revert.to>.
 
 =back
 
@@ -400,7 +411,9 @@ Use the given config file.
 =item C<package>
 
 Package up all deployment and reversion scripts and write out a plan file.
-Options:
+Configuration properties may be specified under the C<[package]> section of
+the configuration file, or via C<sqitch config package.$property $value>
+command. Options and configuration properties:
 
 =over
 
@@ -409,23 +422,25 @@ Options:
 Tag to start the plan from. All tags and steps prior to that tag will not be
 included in the plan, and their change scripts Will be omitted from the
 package directory. Useful if you've rejiggered your deployment steps to start
-from a point later in your VCS history than the beginning of time.
+from a point later in your VCS history than the beginning of time. Property
+name: C<package.from>.
 
 =item C<--to>
 
 Tag with which to end the plan. No steps or tags after that tag will be
 included in the plan, and their change scripts will be omitted from the
-package directory.
+package directory. Property name: C<package.to>.
 
 =item C<--tags-only>
 
 Write the plan file with deployment targets listed under VCS tags, rather than
-individual commits.
+individual commits. Property name: C<package.tags_only>.
 
 =item C<--destdir>
 
 Specify a destination directory. The plan file and C<deploy>, C<revert>, and
-C<test> directories will be written to it. Defaults to "package".
+C<test> directories will be written to it. Defaults to "package". Property
+name: C<package.destdir>.
 
 =back
 
@@ -433,8 +448,9 @@ C<test> directories will be written to it. Defaults to "package".
 
 =head1 Configuration
 
-Sqitch configuration information is stored in standard INI files. The C<#> and
-C<;> characters begin comments to the end of line, blank lines are ignored.
+Sqitch configuration information is stored in standard C<INI> files. The C<#>
+and C<;> characters begin comments to the end of line, blank lines are
+ignored.
 
 The file consists of sections and properties. A section begins with the name
 of the section in square brackets and continues until the next section begins.
@@ -474,7 +490,7 @@ with the "gamma" tag:
 =head2 Core Properties
 
 This is the list of core variables, which much appear under the C<[core]>
-section. See the documentation for indvidual commands for their configuration
+section. See the documentation for individual commands for their configuration
 options.
 
 =over
@@ -517,7 +533,8 @@ Password to use when connecting to the database. Does not apply to all engines.
 
 =item C<host>
 
-Host name to use when conneting to the database. Does not apply to all engines.
+Host name to use when connecting to the database. Does not apply to all
+engines.
 
 =item C<port>
 
