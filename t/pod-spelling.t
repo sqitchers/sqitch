@@ -18,3 +18,6 @@ sqitch
 VCS
 sublicense
 subdirectories
+EBNF
+UTF
+ftw

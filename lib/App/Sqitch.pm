@@ -417,7 +417,108 @@ C<test> directories will be written to it. Defaults to "package".
 
 =head1 Plan File
 
-A plan file describes the deployment tags and scripts to be run against a database.
+A plan file describes the deployment tags and scripts to be run against a
+database. In general, if you use a VCS, you probably won't need a plan file,
+since your VCS history should be able to provide all the information necessary
+to derive a deployment plan. However, if you really do need to maintain a plan
+file by hand, or just want to better understand the file as output by the
+C<package> command, read on.
+
+=head2 Format
+
+The contents of the plan file are plain text encoded as UTF-8. It is divided
+up into sections that denote deployment states. Each state has a bracketed,
+space-delimited list of one or more tags to identify it, followed by any
+number of deployment steps. Here's an example of a plan file with a single
+state and a single step:
+
+ [alpha]
+ users_table
+
+The state has one tag, named "alpha", and one step, named "users_table".
+A state may of course have many steps. Here's an expansion:
+
+ [root alpha]
+ users_table
+ insert_user
+ update_user
+ delete_user
+
+This state has two tags, "root" and "alpha", and four steps, "users_table",
+"insert_user", "update_user", and "delete_user".
+
+Most plans will have multiple states. Here's a longer example with three
+states:
+
+ [root alpha]
+ users_table
+ insert_user
+ update_user
+ delete_user
+
+ [beta]
+ widgets_table
+ list_widgets
+
+ [gamma]
+ ftw
+
+Using this plan, to deploy to the "beta" tag, the "root"/"alpha" state steps
+must be deployed, as must the "beta" steps. To then deploy to the "gamma" tag,
+the "ftw" step must be deployed. If you then choose to revert to the "alpha"
+tag, then the "gamma" step ("ftw") and all of the "beta" steps will be
+reverted in reverse order.
+
+Using this model, steps cannot be repeated between states. One can repeat
+them, however, if the contents for a file in a given tag can be retrieved from
+a VCS. An example:
+
+ [alpha]
+ users_table
+
+ [beta]
+ add_widget
+ widgets_table
+
+ [gamma]
+ add_user
+
+ [44ba615b7813531f0acb6810cbf679791fe57bf2]
+ widgets_created_at
+
+ [HEAD epsilon master]
+ add_widget
+
+This example is derived from a Git log history. Note that the "add_widget"
+step is repeated under the state tagged "beta" and under the last state.
+Sqitch will notice the repetition when it parses this file, and then, if it is
+applying all changes, will fetch the version of the file as of the "beta" tag
+and apply it at that step, and then, when it gets to the last tag, retrieve
+the deployment file as of its tags and apply it. This works in reverse, as
+well, as long as the changes in this file are always
+L<idempotent|http://en.wikipedia.org/wiki/Idempotence>.
+
+=head2 Grammar
+
+Here is the EBNF Grammar for the plan file:
+
+  plan-file   = { <state> | <empty-line> | <comment> }* ;
+
+  state       = <tags> <steps> ;
+
+  tags        = "[" <taglist> "]" <line-ending> ;
+  taglist     = <name> | <name> <white-space> <taglist> ;
+
+  steps       = { <step> | <empty-line> | <line-ending> }* ;
+  step        = <name> <line-ending> ;
+
+  empty-line  = [ <white-space> ] <line-ending> ;
+  line-ending = [ <comment> ] <EOL> ;
+  comment     = [ <white-space> ] "#" [ <string> ] ;
+
+  name        = ? non-white space characters ? ;
+  white-space = ? white space characters ? ;
+  string      = ? non-EOL characters ? ;
 
 =head1 Author
 
