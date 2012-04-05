@@ -16,6 +16,7 @@ sub _getopt {
         'deploy-dir=s'           => \$opts{deploy_dir},
         'revert-dir=s'           => \$opts{revert_dir},
         'test-dir=s'             => \$opts{test_dir},
+        'extension=s'            => \$opts{extension},
         'dry-run'                => \$opts{dry_run},
         'verbose|v+'             => \$opts{verbose},
         'help|H'                 => \$opts{help},
@@ -73,6 +74,7 @@ Sqitch is a VCS-aware SQL change managmeent application.
      --deploy-dir DIR   Path to directory with SQL deployment scripts.
      --revert-dir DIR   Path to directory with SQL reversion scripts.
      --test-dir   DIR   Path to directory with SQL test scripts.
+     --extension  EXT   SQL script file name extension.
      --dry-run          Execute command without making any changes.
   -v --verbose          Increment verbosity.
   -V --version          Print the version number and exit.
@@ -106,7 +108,7 @@ The format of the URI as as follows:
 
 =item C<$rdbms>
 
-The RDBMs. Required. Supported RDSMSes include:
+The RDBMs flavor. Required. Supported flavors include:
 
 =over
 
@@ -145,16 +147,17 @@ Name of the database. Required.
 
 Path to the deployment plan file. Defaults to F<./sqitch.plan>. If this file
 is not prsent, Sqitch will attempt to read from VCS files. If no supported VCS
-system is in place, an exception will be thrown.
+system is in place, an exception will be thrown. See L</Plan File> for a
+description of its structure.
 
 =item C<--sql-dir>
 
   sqitch --sql-dir migrations/
 
-Path to directory containing deployment and reversion SQL scripts. It should
-contain subdirectories named C<deploy>, C<revert>, and (optionally) C<test>.
-Thes may be overridden by C<--deploy-dir> and C<--revert-dir>. Defaults to
-C<./sql>.
+Path to directory containing deployment, reversion, and test SQL scripts. It
+should contain subdirectories named C<deploy>, C<revert>, and (optionally)
+C<test>. These may be overridden by C<--deploy-dir>, C<--revert-dir>, and
+C<--test-dir>. Defaults to C<./sql>.
 
 =item C<--deploy-dir>
 
@@ -177,13 +180,20 @@ implied by C<--sql-dir>.
 Path to a directory containing SQL test scripts. Overrides the value implied
 by C<--sql-dir>.
 
+=item C<--extension>
+
+  sqitch --extension ddl
+
+The file name extension on deployment, reversion, and test SQL scripts.
+Defaults to C<sql>.
+
 =item C<--dry-run>
 
   sqitch --dry-run
 
 Execute the Sqitch command without making any actual changes. This allows you
 to see what Sqitch would actually do, without doing it. Implies a verbosity
-level of 1; add extra C<--verbose> options for greater verbosity.
+level of 1; add extra C<--verbose>s for greater verbosity.
 
 =item C<-v>
 
@@ -231,7 +241,8 @@ Outputs the program name and version and exits.
 
 =item C<init>
 
-Initialize the database and create deployment script directories.
+Initialize the database and create deployment script directories if the do
+not already exist.
 
 =item C<status>
 
