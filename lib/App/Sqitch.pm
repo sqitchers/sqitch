@@ -340,12 +340,66 @@ Test changes. All SQL scripts in C<--test-dir> will be run.
 [XXX Not sure whether to have subdirectories for tests and expected output and
 to diff them, or to use some other approach.]
 
+=item C<config>
+
+Set configuration options. By default, the options will be written to the
+local configuration file, F<sqitch.ini>. Options:
+
+=over
+
+=item C<--get>
+
+Get the value for a given key. Returns error code 1.
+
+=item C<--unset>
+
+Remove the line matching the key from config file.
+
+=item C<--list>
+
+List all variables set in config file.
+
+=item C<--global>
+
+For writing options: write to global F<~/.sqitch/config.ini> file rather than
+the local F<sqitch.ini>.
+
+For reading options: read only from global F<~/.sqitch/config.ini> rather
+than from all available files.
+
+=item C<--system>
+
+For writing options: write to system-wide F<$prefix/etc/sqitch.ini> file
+rather than the local F<sqitch.ini>.
+
+For reading options: read only from system-wide F<$prefix/etc/sqitch.ini>
+rather than from all available files.
+
+=item C<--config-file>
+
+Use the given config file.
+
+=back
+
 =item C<package>
 
 Package up all deployment and reversion scripts and write out a plan file.
 Options:
 
 =over
+
+=item C<--from>
+
+Tag to start the plan from. All tags and steps prior to that tag will not be
+included in the plan, and their change scripts Will be omitted from the
+package directory. Useful if you've rejiggered your deployment steps to start
+from a point later in your VCS history than the beginning of time.
+
+=item C<--to>
+
+Tag with which to end the plan. No steps or tags after that tag will be
+included in the plan, and their change scripts will be omitted from the
+package directory.
 
 =item C<--tags-only>
 
