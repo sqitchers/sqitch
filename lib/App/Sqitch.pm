@@ -537,6 +537,12 @@ C<.> are allowed in section names. Each property must belong to some section,
 which means that there must be a section header before the first setting of a
 property.
 
+Sections can be further divided into subsections. To begin a subsection, put
+its after the section name, separated by a C<.>, in the section header, like
+in this example:
+
+  [core.pg]
+
 All the other lines (and the remainder of the line after the section header)
 are recognized as setting properties, in the form C<name = value>. Leading and
 trailing whitespace in a property value is discarded. Internal whitespace
@@ -565,6 +571,20 @@ with the "gamma" tag:
       tags_only = yes
       dest_dir  = _build/sql
 
+And here's an example of useful configuration in F<~/.sqitch/config.ini>, to
+point to system-specific engine information:
+
+  [core.pg]
+      client    = /usr/local/pgsql/bin/psql
+      username  = theory
+
+  [core.mysql]
+      client    = /usr/local/mysql/bin/mysql
+      username  = root
+
+  [core.sqlite]
+      client    = /usr/local/bin/sqlite3
+
 =head2 Core Properties
 
 This is the list of core variables, which much appear under the C<[core]>
@@ -592,32 +612,6 @@ The database engine to use. Supported engines include:
 
 =back
 
-=item C<client>
-
-Path to the command-line client for the database engine. Defaults to a client
-in the current path named appropriately for the specified engine.
-
-=item C<db_name>
-
-Name of the database.
-
-=item C<username>
-
-User name to use when connecting to the database. Does not apply to all engines.
-
-=item C<password>
-
-Password to use when connecting to the database. Does not apply to all engines.
-
-=item C<host>
-
-Host name to use when connecting to the database. Does not apply to all
-engines.
-
-=item C<port>
-
-Port number to connect to. Does not apply to all engines.
-
 =item C<sql_dir>
 
 Path to directory containing deployment, reversion, and test SQL scripts. It
@@ -644,6 +638,91 @@ by C<sql_dir>.
 
 The file name extension on deployment, reversion, and test SQL scripts.
 Defaults to C<sql>.
+
+=back
+
+=head3 C<core.pg>
+
+=over
+
+=item C<client>
+
+Path to the C<psql> command-line client. Defaults to the first instance
+found in the path.
+
+=item C<username>
+
+User name to use when connecting to the PostgreSQL database. Defaults to the
+contents of the C<$PGUSER> environment variable or to the current system user
+name.
+
+=item C<password>
+
+Password to use when connecting to the PostgreSQL database. Defaults to the
+contents of the C<$PGPASSWORD> environment variable or to the relevant line in
+F<~/.pgpass>, if available.
+
+=item C<db_name>
+
+Name of the PostgreSQL database. Defaults to the same as C<username>
+or to the contents of the C<PGDATABASE> environment variable.
+
+=item C<host>
+
+Host name to use when connecting to the database. Defaults to the contents of
+the C<$PGHOST> environment variable.
+
+=item C<port>
+
+Port number to connect to. Does not apply to all engines. Defaults to the
+contents of the C<$PGPORT> environment variable.
+
+=back
+
+=head3 C<core.mysql>
+
+Configuration settings for the MySQL engine. All except C<client> can also be
+set via the L<MySQL options
+file|http://dev.mysql.com/doc/refman/5.6/en/option-files.html>
+
+=over
+
+=item C<client>
+
+Path to the C<mysql> command-line client. Defaults to the first instance found
+in the path.
+
+=item C<username>
+
+User name to use when connecting to the MySQL database.
+
+=item C<password>
+
+Password to use when connecting to the MySQL database.
+
+=item C<db_name>
+
+Name of the MySQL database.
+
+=item C<host>
+
+Host name to use when connecting to the database.
+
+=item C<port>
+
+Port number to connect to. Does not apply to all engines.
+
+=back
+
+=head3 C<core.sqlite>
+
+Configuration settings for the SQLite engine.
+
+=over
+
+=item C<db_name>
+
+Path to the SQLite database file.
 
 =back
 
