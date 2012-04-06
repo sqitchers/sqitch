@@ -593,12 +593,12 @@ options.
 
 =over
 
-=item C<plan_file>
+=item C<core.plan_file>
 
 The plan file to use. Defaults to F<sqitch.ini> or, if that does not exist,
 uses the VCS history, if available.
 
-=item C<engine>
+=item C<core.engine>
 
 The database engine to use. Supported engines include:
 
@@ -612,29 +612,29 @@ The database engine to use. Supported engines include:
 
 =back
 
-=item C<sql_dir>
+=item C<core.sql_dir>
 
 Path to directory containing deployment, reversion, and test SQL scripts. It
 should contain subdirectories named C<deploy>, C<revert>, and (optionally)
 C<test>. These may be overridden by C<deploy_dir>, C<revert_dir>, and
 C<test_dir>. Defaults to C<./sql>.
 
-=item C<deploy_dir>
+=item C<core.deploy_dir>
 
 Path to a directory containing SQL deployment scripts. Overrides the value
-implied by C<sql_dir>.
+implied by C<core.sql_dir>.
 
-=item C<revert_dir>
+=item C<core.revert_dir>
 
 Path to a directory containing SQL reversion scripts. Overrides the value
-implied by C<sql_dir>.
+implied by C<core.sql_dir>.
 
-=item C<test_dir>
+=item C<core.test_dir>
 
 Path to a directory containing SQL test scripts. Overrides the value implied
-by C<sql_dir>.
+by C<core.sql_dir>.
 
-=item C<extension>
+=item C<core.extension>
 
 The file name extension on deployment, reversion, and test SQL scripts.
 Defaults to C<sql>.
@@ -643,36 +643,38 @@ Defaults to C<sql>.
 
 =head3 C<core.pg>
 
+Configuration settings for the PostgreSQL engine.
+
 =over
 
-=item C<client>
+=item C<core.pg.client>
 
 Path to the C<psql> command-line client. Defaults to the first instance
 found in the path.
 
-=item C<username>
+=item C<core.pg.username>
 
 User name to use when connecting to the PostgreSQL database. Defaults to the
 contents of the C<$PGUSER> environment variable or to the current system user
 name.
 
-=item C<password>
+=item C<core.pg.password>
 
 Password to use when connecting to the PostgreSQL database. Defaults to the
 contents of the C<$PGPASSWORD> environment variable or to the relevant line in
 F<~/.pgpass>, if available.
 
-=item C<db_name>
+=item C<core.pg.db_name>
 
 Name of the PostgreSQL database. Defaults to the same as C<username>
 or to the contents of the C<PGDATABASE> environment variable.
 
-=item C<host>
+=item C<core.pg.host>
 
 Host name to use when connecting to the database. Defaults to the contents of
 the C<$PGHOST> environment variable.
 
-=item C<port>
+=item C<core.pg.port>
 
 Port number to connect to. Does not apply to all engines. Defaults to the
 contents of the C<$PGPORT> environment variable.
@@ -687,28 +689,28 @@ file|http://dev.mysql.com/doc/refman/5.6/en/option-files.html>
 
 =over
 
-=item C<client>
+=item C<core.mysql.client>
 
 Path to the C<mysql> command-line client. Defaults to the first instance found
 in the path.
 
-=item C<username>
+=item C<core.mysql.username>
 
 User name to use when connecting to the MySQL database.
 
-=item C<password>
+=item C<core.mysql.password>
 
 Password to use when connecting to the MySQL database.
 
-=item C<db_name>
+=item C<core.mysql.db_name>
 
 Name of the MySQL database.
 
-=item C<host>
+=item C<core.mysql.host>
 
 Host name to use when connecting to the database.
 
-=item C<port>
+=item C<core.mysql.port>
 
 Port number to connect to. Does not apply to all engines.
 
@@ -720,7 +722,7 @@ Configuration settings for the SQLite engine.
 
 =over
 
-=item C<db_name>
+=item C<core.sqlite.db_name>
 
 Path to the SQLite database file.
 
