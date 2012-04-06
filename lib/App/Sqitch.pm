@@ -776,7 +776,7 @@ system. Does not support reversion.
 
 Numbered migrations in pure SQL.
 
-=item C<Versioning|http://www.depesz.com/2010/08/22/versioning/>
+=item L<Versioning|http://www.depesz.com/2010/08/22/versioning/>
 
 PostgreSQL-specific dependency-tracking solution by
 L<depesz|http://www.depesz.com/>.
