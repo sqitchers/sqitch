@@ -1,0 +1,69 @@
+=head1 Name
+
+sqitchtutorial - A tutorial introduction to Sqitch
+
+=head1 Synopsis
+
+  sqitch *
+
+=head1 Description
+
+This tutorial explains how to create a sqitch-enabled project, use a VCS for
+deployment planning, and work with other developers to make sure changes
+remain in sync and in the proper order.
+
+We'll start with a new project, from scratch, a fictional antisocial
+networking site called Flipr. All examples use L<Git|http://git-scm.com/> as
+the VCS and L<PostgreSQL|http://www.postgresql.org/> as the storage engine,
+but for the most part you can substitute other VCSes and database engines in
+the examples as appropriate.
+
+=head1 Starting a New Project
+
+Usually the first thing to do when starting a new project is to create a
+source code repository. So let's do that with Git:
+
+  > mkdir flipr
+  > cd flipr 
+  > git init .
+  Initialized empty Git repository in /flipr/.git/
+  > touch README.md
+  > git add .
+  > git commit -am 'Fist post!'
+
+If you're a Git user and want to follow along the history, the repository
+used in these examples is L<on GitHub|https://github.com/theory/sqitch-intro>.
+
+Now that we have a repository, let's get started with Sqitch.
+
+  > sqitch init --engine pg
+  Created sqitch.ini
+  Created sql/deploy
+  Created sql/revert
+
+Let's have a look at F<sqitch.ini>:
+
+  [core]
+      engine      = pg
+      # sql_dir   = sql
+      # extension = sql
+
+Pretty simple. It picked up on the fact that we're creating changes for the
+PostgreSQL engine, thanks to the C<--engine pg> option, and saved it to the
+file. By default, Sqitch will read F<sqitch.ini> in the current directory for
+settings. But it will also read F<~/.sqitch/config.ini> for global settings.
+Since PostgreSQL's C<psql> client is not in the path on my system, let's go
+ahead an tell it globally where to find the client:
+
+  sqitch config --global core.pg.client /var/lib/pgsql/bin/psql
+
+Have a look at F<~/.sqitch/config.ini> and you'll see this:
+
+  [core.pg]
+      client = /var/lib/pgsql/bin/psql
+
+Back to the repository. Let's commit these changes and start creating the
+database changes.
+
+  git add .
+  git commit -am 'Initialize Sqitch configuration.'

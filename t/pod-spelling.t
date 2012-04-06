@@ -25,4 +25,9 @@ MySQL
 ORM
 blog
 depesz
-
+Flipr
+GitHub
+PostgreSQL's
+sqitchtutorial
+VCSes
+Versioning
