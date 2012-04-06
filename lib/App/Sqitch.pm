@@ -70,7 +70,14 @@ Sqitch - VCS-powered SQL change management
 
 Sqitch is a VCS-aware SQL change management application. What makes it
 different from your typical
-L<migration|Module::Build::DB>-L<style|DBIx::Migration> approaches?
+L<migration|Module::Build::DB>-L<style|DBIx::Migration> approaches? A few
+things:
+
+=begin comment
+
+Eventually move to L<sqitchabout>.
+
+=end comment
 
 =over
 
@@ -121,6 +128,12 @@ L<idempotent|http://en.wikipedia.org/wiki/Idempotence>, you can change
 your code directly, and Sqitch will know it needs to be updated.
 
 =back
+
+=begin comment
+
+Eventually move to L<sqitchtutorial> or L<sqitchintro> or some such.
+
+=end comment
 
 =head2 Terminology
 
