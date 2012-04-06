@@ -248,6 +248,9 @@ in the current path named appropriately for the specified engine.
 
 =item C<--db-name>
 
+  sqitch --db-name widgets
+  sqitch -d bricolage
+
 Name of the database. For some engines, such as
 L<PostgreSQL|http://postgresql.org/> and L<MySQL|http://mysql.com/>, the
 database must already exist. For others, such as L<SQLite|http://sqlite.org/>,
@@ -259,11 +262,18 @@ the database will be automatically created on first connect.
 
 =item C<--username>
 
+  sqitch --username root
+  sqitch --user postgres
+  sqitch -u Mom
+
 User name to use when connecting to the database. Does not apply to all engines.
 
 =item C<-h>
 
 =item C<--host>
+
+  sqitch --host db.example.com
+  sqitch -h localhost
 
 Host name to use when connecting to the database. Does not apply to all
 engines.
@@ -271,6 +281,9 @@ engines.
 =item C<-n>
 
 =item C<--port>
+
+  sqitch --port 7654
+  sqitch -p 2222
 
 Port number to connect to. Does not apply to all engines.
 
