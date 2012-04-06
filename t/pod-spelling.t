@@ -21,3 +21,8 @@ subdirectories
 EBNF
 UTF
 ftw
+MySQL
+ORM
+blog
+depesz
+

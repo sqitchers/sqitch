@@ -68,7 +68,59 @@ Sqitch - VCS-powered SQL change management
 
 =head1 Description
 
-Sqitch is a VCS-aware SQL change management application.
+Sqitch is a VCS-aware SQL change management application. What makes it
+different from your typical
+L<migration|Module::Build::DB>-L<style|DBIx::Migration> approaches?
+
+=over
+
+=item No opinions
+
+Sqitch is not integrated with any framework, ORM, or platform. Rather, it is a
+standalone change management system with no opinions on your database or
+development choices.
+
+=item Native scripting
+
+Changes are implemented as scripts native to your selected database engine.
+Writing a L<PostgreSQL|http://postgresql.org/> application? Write SQL scripts
+for L<C<psql>|http://www.postgresql.org/docs/current/static/app-psql.html>.
+Writing a L<MySQL|http://mysql.com/>-backed app? Write SQL scripts for
+L<C<mysql>|http://dev.mysql.com/doc/refman/5.6/en/mysql.html>.
+
+=item VCS integration
+
+Sqitch likes to use your VCS history to determine in what order to execute
+changes. No need to keep track of execution order, your VCS already tracks
+information sufficient for Sqitch to figure it out for you.
+
+=item Dependency resolution
+
+Deployment steps can declare dependencies on other deployment steps. This
+ensures proper order of execution, even when you've committed changes to your
+VCS out-of-order.
+
+=item No numbering
+
+Change deployment is managed either by maintaining a plan file or, more
+usefully, your VCS history. As such, there is no need to number your changes,
+although you can if you want. Sqitch does not care what you name your changes.
+
+=item Packaging
+
+Using your VCS history for deployment but need to ship a tarball or RPM? Easy,
+just have Sqitch read your VCS history and write out a plan file with your
+change scripts. Once deployed, Sqitch can use the plan file to deploy the
+changes in the proper order.
+
+=item Reduced Duplication
+
+If you're using a VCS to track your changes, you don't have to duplicate
+entire change scripts for simple changes. As long as the changes are
+L<idempotent|http://en.wikipedia.org/wiki/Idempotence>, you can change
+your code directly, and Sqitch will know it needs to be updated.
+
+=back
 
 =head2 Terminology
 
@@ -163,7 +215,7 @@ The database engine to use. Supported engines include:
 
 =item * C<pg> - L<PostgreSQL|http://postgresql.org/>
 
-=item * C<mysql> - L<MySQL|http://mysql.org/>
+=item * C<mysql> - L<MySQL|http://mysql.com/>
 
 =item * C<sqlite> - L<SQLite|http://sqlite.org/>
 
@@ -184,7 +236,7 @@ in the current path named appropriately for the specified engine.
 =item C<--db-name>
 
 Name of the database. For some engines, such as
-L<PostgreSQL|http://postgresql.org/> and L<MySQL|http://mysql.org/>, the
+L<PostgreSQL|http://postgresql.org/> and L<MySQL|http://mysql.com/>, the
 database must already exist. For others, such as L<SQLite|http://sqlite.org/>,
 the database will be automatically created on first connect.
 
@@ -508,7 +560,7 @@ The database engine to use. Supported engines include:
 
 =item * C<pg> - L<PostgreSQL|http://postgresql.org/>
 
-=item * C<mysql> - L<MySQL|http://mysql.org/>
+=item * C<mysql> - L<MySQL|http://mysql.com/>
 
 =item * C<sqlite> - L<SQLite|http://sqlite.org/>
 
@@ -691,6 +743,30 @@ L<VCS-Enabled SQL Change Management|http://justatheory.com/computers/databases/v
 =item *
 
 L<SQL Change Management Sans Duplication|http://justatheory.com/computers/databases/sql-change-management-sans-redundancy.html>
+
+=back
+
+Other tools that do database change management include:
+
+=over
+
+=item L<Rails migrations|http://guides.rubyonrails.org/migrations.html>
+
+Numbered migrations for L<Ruby on Rails|http://rubyonrails.org/>.
+
+=item L<Module::Build::DB>
+
+Numbered changes in pure SQL, integrated with Perl's L<Module::Build> build
+system. Does not support reversion.
+
+=item L<DBIx::Migration>
+
+Numbered migrations in pure SQL.
+
+=item C<Versioning|http://www.depesz.com/2010/08/22/versioning/>
+
+PostgreSQL-specific dependency-tracking solution by
+L<depesz|http://www.depesz.com/>.
 
 =back
 
