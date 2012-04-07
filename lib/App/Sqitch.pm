@@ -403,6 +403,22 @@ Make sure no deployment script appears more than once in the plan file.
 
 =back
 
+=item C<add-step>
+
+Add a new step. The named step will create the corresponding files in the
+deploy and revert directories. Options:
+
+=over
+
+=item C<-n>
+
+=item C<--named>
+
+The name of the step. Must be a valid step name. This option may actually be
+passed without a C<-n> or C<--named>.
+
+=back
+
 =item C<deploy>
 
 Deploy changes. Configuration properties may be specified under the
