@@ -678,11 +678,17 @@ by C<core.sql_dir>.
 The file name extension on deployment, reversion, and test SQL scripts.
 Defaults to C<sql>.
 
+=item C<core.verbosity>
+
+An integer determining how verbose Sqitch should be. Defaults to 1. Set to 0
+to silence status messages and to 2 or three to increase verbosity. Error
+message output will not be affected by this property.
+
 =back
 
 =head3 C<core.pg>
 
-Configuration settings for the PostgreSQL engine.
+Configuration properties for the PostgreSQL engine.
 
 =over
 
@@ -727,8 +733,8 @@ should be stored in this schema. Defaults to C<sqitch>.
 
 =head3 C<core.mysql>
 
-Configuration settings for the MySQL engine. All except C<client> can also be
-set via the L<MySQL options
+Configuration properties for the MySQL engine. All except C<client> can also
+be set via the L<MySQL options
 file|http://dev.mysql.com/doc/refman/5.6/en/option-files.html>
 
 =over
@@ -766,7 +772,7 @@ Prefix to use for Sqitch metadata tables. Defaults to C<sqitch>.
 
 =head3 C<core.sqlite>
 
-Configuration settings for the SQLite engine.
+Configuration properties for the SQLite engine.
 
 =over
 
