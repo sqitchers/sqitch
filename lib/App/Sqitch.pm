@@ -398,6 +398,70 @@ Output information about the current status of the deployment, including a
 list of tags, deployments, and dates in chronological order. If any deploy
 scripts are not currently deployed, they will be listed separately.
 
+=item C<log>
+
+Output the complete change history in reverse chronological order. Options:
+
+=over *
+
+=item C<-t>
+
+=item C<--tag>
+
+Show only changes for the specified tag. This option may be passed without a
+C<-t> or C<--tag>.
+
+=item C<-s>
+
+=item C<--step>
+
+Show only chagnes for the specifed step.
+
+=item C<-n>
+
+=item C<--max-count>
+
+Limit the number of changes to show.
+
+=item C<--skip>
+
+Skip the specified number changes before starting to show the log output.
+
+=item C<--since>
+
+Show changes more recent than a specific date.
+
+=item C<--until>
+
+Show changes older than a specific date.
+
+=item C<--user>
+
+Limit the changes output to ones where the user name matches the specified
+pattern (regular expression).
+
+=item C<--reverse>
+
+Output the chanes in reverse sort order.
+
+=item C<--format>
+
+The format to use. The options may be any one of:
+
+=over
+
+=item C<short>
+
+=item C<oneline>
+
+=item C<full>
+
+=item C<table>
+
+=back
+
+=back
+
 =item C<check>
 
 Sanity check the deployment scripts. Checks include:
@@ -425,8 +489,8 @@ deploy and revert directories. Options:
 
 =item C<--named>
 
-The name of the step. Must be a valid step name. This option may actually be
-passed without a C<-n> or C<--named>.
+The name of the step. Must be a valid step name. This option may be passed
+without a C<-n> or C<--named>.
 
 =item C<-r>
 
@@ -455,16 +519,16 @@ Options and configuration properties:
 
 =item C<--to>
 
-Tag to deploy up to. Defaults to the latest tag or to the VCS C<HEAD> commit.
-Property name: C<deploy.to>.
+Step or tag to deploy up to. Defaults to the latest tag or to the VCS C<HEAD>
+commit. Property name: C<deploy.to>.
 
 =item C<-a>
 
-=item C<--added>
+=item C<--untracked>
 
 Also deploy any steps that have been added to the F<deploy> directory but have
-not yet been added to the plan (or committed to the VCS). Useful when
-developing new deployment steps but have not yet committed them.
+not yet been added to the plan or committed to the VCS. Useful when developing
+new deployment steps but have not yet committed them.
 
 =back
 
