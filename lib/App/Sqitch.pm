@@ -458,6 +458,14 @@ Options and configuration properties:
 Tag to deploy up to. Defaults to the latest tag or to the VCS C<HEAD> commit.
 Property name: C<deploy.to>.
 
+=item C<-a>
+
+=item C<--added>
+
+Also deploy any steps that have been added to the F<deploy> directory but have
+not yet been added to the plan (or committed to the VCS). Useful when
+developing new deployment steps but have not yet committed them.
+
 =back
 
 =item C<revert>
