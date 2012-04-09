@@ -33,4 +33,5 @@ VCSes
 Versioning
 metadata
 namespace
-
+DDLs
+SHA

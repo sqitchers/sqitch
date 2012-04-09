@@ -108,9 +108,9 @@ prefix). But if you connect to the database, you'll be able to see the role:
 And we can also see how the deployment was recorded in the C<sqitch.state> table:
 
   > psql -d flipr_test -c 'SELECT * FROM sqitch.state'
-   deployed_by |  step   | tags | requires | conflicts |          deployed_at          
-  -------------+---------+------+----------+-----------+-------------------------------
-   david       | appuser | {}   | {}       | {}        | 2012-04-09 18:43:45.814606+00
+   step    | deployed_by | tags | requires | conflicts |          deployed_at          
+  ---------+-------------+------+----------+-----------+-------------------------------
+   appuser | david       | {}   | {}       | {}        | 2012-04-09 18:43:45.814606+00
 
 Let's make sure that we can revert the change, as well:
 
@@ -129,17 +129,157 @@ And now the user should be gone:
 And the C<appuser> state should be removed from the state, as well:
 
   > psql -d flipr_test -c 'SELECT * FROM sqitch.state'
-   deployed_by | step | tags | requires | conflicts | deployed_at 
-  -------------+------+------+----------+-----------+-------------
+   step | deployed_by | tags | requires | conflicts | deployed_at 
+  ------+-------------+------+----------+-----------+-------------
 
 Great, no records. We still have a record that it happened, though, in the
 C<sqitch.history> table:
 
   > psql -d flipr_test -c 'SELECT * FROM sqitch.history ORDER BY taken_at'
-   action | taken_by |  step   | tags | requires | conflicts |           taken_at            
-  --------+----------+---------+------+----------+-----------+-------------------------------
-   deploy | david    | appuser | {}   | {}       | {}        | 2012-04-09 18:43:45.814606+00
-   revert | david    | appuser | {}   | {}       | {}        | 2012-04-09 18:45:47.705876+00
+   action |  step   | taken_by | tags | requires | conflicts |           taken_at            
+  --------+---------+----------+------+----------+-----------+-------------------------------
+   deploy | appuser | david    | {}   | {}       | {}        | 2012-04-09 18:43:45.814606+00
+   revert | appuser | david    | {}   | {}       | {}        | 2012-04-09 18:45:47.705876+00
 
 Awesome. So we have a complete record of our changes. This might be useful for
 auditing purposes.
+
+Now let's commit it.
+
+  > git add .
+  > git commit -m 'Add app user.'
+  [master 36acafd] Add app user.
+   2 files changed, 2 insertions(+)
+   create mode 100644 sql/deploy/appuser.sql
+   create mode 100644 sql/revert/appuser.sql
+
+And then deploy again:
+
+  > sqitch --db-name flipr_test deploy
+  Deploying to flipr_test
+    - appuser
+
+Notice we no longer need the C<--added> option. That's because we've committed
+the step to Git, so Sqitch can read it from the Git history. And now the user
+should be back:
+
+  > psql -d flipr_test -c '\du'
+                                  List of roles
+     Role name    |                   Attributes                   | Member of 
+  ----------------+------------------------------------------------+-----------
+   flipr          |                                                | {}
+   postgres       | Superuser, Create role, Create DB, Replication | {}
+
+When we look at the state, the deployment is tagged with the SHA1 of the
+commit:
+
+  > psql -d flipr_test -c 'SELECT * FROM sqitch.state'
+    step   | deployed_by |   tags    | requires | conflicts |          deployed_at          
+  ---------+-------------+-----------+----------+-----------+-------------------------------
+   appuser | david       | {36acafd} | {}       | {}        | 2012-04-09 19:04:50.115235+00
+
+=head1 Add a Table
+
+Let's add another deployment, this time to create a table. Our app will need
+users, of course, so let's create a table for them. First, add the new step:
+
+  > sqitch add-step users
+  Adding sql/deploy/users.sql
+  Adding sql/revert/users.sql
+
+Now edit the scripts. In C<sql/deploy/users.sql>, we put:
+
+  -- requires: appuser
+  BEGIN;
+  SET client_min_messages = 'warning';
+
+  CREATE TABLE users (
+      nickname  TEXT        PRIMARY KEY,
+      password  TEXT        NOT NULL,
+      timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  );
+
+  GRANT SELECT ON users TO flipr;
+  COMMIT;
+
+A few things to notice here. On the first line, we've declared a dependency on
+the C<appuser> step. Although the step has already been added and committed,
+so it should always be applied before the C<users> step, it's a good idea to
+always be explicit about dependencies on other steps. This becomes especially
+important when committing a number of steps at one time, such as when merging
+a patch or a branch.
+
+The syntax of the dependency declaration is simple: Before any other lines,
+create an SQL C<--> comment that simply uses the word "requires" followed by a
+colon and then a comma-delimited list of required steps. The requirements may
+also be listed on separate lines, providing they all start with
+C<-- requires:>.
+
+Notice that all of the SQL code is wrapped in a transaction. This is handy for
+PostgreSQL deployments, because DDLs are transactional. The upshot is that if
+any part of the deployment fails, it all fails. Such may work less-well for
+database engines that don't support transactional DDLs.
+
+Just before the commit, the C<GRANT> command grant C<SELECT> access on the
+table to the C<flipr> user created in the C<appuser> step. This is why we
+declare the dependency.
+
+Now for the revert script. Add this to C<sql/revert/users.sql>:
+
+  DROP TABLE users;
+
+Couldn't be much simpler, right? Let's deploy this bad boy:
+
+  > sqitch --db-name flipr_test deploy --added
+  Creating metadata schema on flipr_test to HEAD+
+  Deploying to flipr_test
+    - users
+
+The C<users> table should have been created:
+
+  > psql -d flipr_test -c '\d users'
+                       Table "public.users"
+    Column   |           Type           |       Modifiers        
+  -----------+--------------------------+------------------------
+   nickname  | text                     | not null
+   password  | text                     | not null
+   timestamp | timestamp with time zone | not null default now()
+  Indexes:
+      "users_pkey" PRIMARY KEY, btree (nickname)
+
+Now have a look at the state:
+
+  > psql -d flipr_test -c 'SELECT * FROM sqitch.state ORDER BY deployed_at'
+    step   | deployed_by |   tags    | requires  | conflicts |          deployed_at          
+  ---------+-------------+-----------+-----------+-----------+-------------------------------
+   appuser | david       | {36acafd} | {}        | {}        | 2012-04-09 19:04:50.115235+00
+   users   | david       | {}        | {appuser} | {}        | 2012-04-09 20:41:31.932729+00
+
+Note that is has properly recorded the dependency on the C<appuser> state. But
+there are no tags because the deployment has not yet been committed to Git. In
+general, we want tags, so let's revert the change, commit, and deploy again:
+
+  > sqitch --db-name flipr_test revert --to appuser
+  Revererting from flipr_test
+  - users
+
+  > git add .
+  > git commit -am 'Add users table.'
+  [master fa650af] Add users table.
+   2 files changed, 16 insertions(+)
+   create mode 100644 sql/deploy/users.sql
+   create mode 100644 sql/revert/users.sql
+  > sqitch -d flipr_test deploy
+  Deploying to flipr_test
+    - users
+
+  > psql -d flipr_test -c 'SELECT * FROM sqitch.state ORDER BY deployed_at'
+    step   | deployed_by |   tags    | requires  | conflicts |          deployed_at          
+  ---------+-------------+-----------+-----------+-----------+-------------------------------
+   appuser | david       | {36acafd} | {}        | {}        | 2012-04-09 19:04:50.115235+00
+   users   | david       | {fa650af} | {appuser} | {}        | 2012-04-09 20:41:31.932729+00
+
+Looking good. Let's add a few more deployments that add functions for managing
+users.
+
+    > sqitch add-step insert_user
