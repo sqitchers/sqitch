@@ -502,39 +502,39 @@ Use the given config file.
 
 =back
 
-=item C<package>
+=item C<bundle>
 
-Package up all deployment and reversion scripts and write out a plan file.
-Configuration properties may be specified under the C<[package]> section of
-the configuration file, or via C<sqitch config package.$property $value>
-command. Options and configuration properties:
+Bundle up deployment and reversion scripts and write out a plan file.
+Configuration properties may be specified under the C<[bundle]> section of the
+configuration file, or via C<sqitch config bundle.$property $value> command.
+Options and configuration properties:
 
 =over
 
 =item C<--from>
 
 Tag to start the plan from. All tags and steps prior to that tag will not be
-included in the plan, and their change scripts Will be omitted from the
-package directory. Useful if you've rejiggered your deployment steps to start
-from a point later in your VCS history than the beginning of time. Property
-name: C<package.from>.
+included in the plan, and their change scripts Will be omitted from the bundle
+directory. Useful if you've rejiggered your deployment steps to start from a
+point later in your VCS history than the beginning of time. Property name:
+C<bundle.from>.
 
 =item C<--to>
 
 Tag with which to end the plan. No steps or tags after that tag will be
-included in the plan, and their change scripts will be omitted from the
-package directory. Property name: C<package.to>.
+included in the plan, and their change scripts will be omitted from the bundle
+directory. Property name: C<bundle.to>.
 
 =item C<--tags-only>
 
 Write the plan file with deployment targets listed under VCS tags, rather than
-individual commits. Property name: C<package.tags_only>.
+individual commits. Property name: C<bundle.tags_only>.
 
 =item C<--destdir>
 
 Specify a destination directory. The plan file and C<deploy>, C<revert>, and
-C<test> directories will be written to it. Defaults to "package". Property
-name: C<package.destdir>.
+C<test> directories will be written to it. Defaults to "bundle". Property
+name: C<bundle.destdir>.
 
 =back
 
@@ -570,7 +570,7 @@ contains core configuration properties.
 Here's an example of a configuration file that might be useful checked into a
 VCS for a project that deploys to PostgreSQL and stores its deployment scripts
 with the extension F<ddl> under the C<migrations> directory. It also wants
-packages to be created in the directory F<_build/sql>, and to deploy starting
+bundle to be created in the F<_build/sql> directory, and to deploy starting
 with the "gamma" tag:
 
   [core]
@@ -582,7 +582,7 @@ with the "gamma" tag:
   [revert]
       to        = gamma
 
-  [package]
+  [bundle]
       from      = gamma
       tags_only = yes
       dest_dir  = _build/sql
@@ -764,7 +764,7 @@ database. In general, if you use a VCS, you probably won't need a plan file,
 since your VCS history should be able to provide all the information necessary
 to derive a deployment plan. However, if you really do need to maintain a plan
 file by hand, or just want to better understand the file as output by the
-C<package> command, read on.
+C<bundle> command, read on.
 
 =head2 Format
 
