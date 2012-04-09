@@ -88,15 +88,15 @@ The C<revert> script should drop the user, like so:
 
 Now we can try deploying this change:
 
-  > sqitch --db-name flipr_test deploy --added
-  Creating metadata schema on flipr_test to HEAD+
-  Deploying to flipr_test
+  > sqitch --db-name flipr_test deploy --untracked
+  Adding metadata schema to flipr_test
+  Deploying HEAD+ to flipr_test
     - appuser
 
 First Sqitch created the metadata schema it uses to track database changes.
 The structure and name of the metadata may vary between databases (PostgreSQL
-uses a schema to namespace its metadata; MySQL and SQLite use a object name
-prefix). But if you connect to the database, you'll be able to see the role:
+uses a schema to namespace its metadata; MySQL and SQLite use a prefix). But
+if you connect to the database, you'll be able to see the role:
 
   > psql -d flipr_test -c '\du'
                                   List of roles
@@ -110,12 +110,22 @@ And we can also see how the deployment was recorded in the C<sqitch.state> table
   > psql -d flipr_test -c 'SELECT * FROM sqitch.state'
    step    | deployed_by | tags | requires | conflicts |          deployed_at          
   ---------+-------------+------+----------+-----------+-------------------------------
-   appuser | david       | {}   | {}       | {}        | 2012-04-09 18:43:45.814606+00
+   appuser | david       | {""} | {}       | {}        | 2012-04-09 18:43:45.814606+00
+
+Note the empty string for the tag. That's there because the step is untracked
+-- that is, not yet committed to our repository or added to a plan file. (More
+on plan files later.) The C<status> command will show similar informtion:
+
+  > sqitch -d flipr_test status
+  # Deployed to "".
+  # Last step deployed 2012-04-09 18:43:45: "appuser".
+  #
+  Nothing to deploy (up-to-date)
 
 Let's make sure that we can revert the change, as well:
 
   > sqitch --db-name flipr_test revert
-  Revererting from flipr_test
+  Reverting all changes from flipr_test
   - appuser
 
 And now the user should be gone:
@@ -132,19 +142,39 @@ And the C<appuser> state should be removed from the state, as well:
    step | deployed_by | tags | requires | conflicts | deployed_at 
   ------+-------------+------+----------+-----------+-------------
 
-Great, no records. We still have a record that it happened, though, in the
-C<sqitch.history> table:
+Great, no records. The status message should reflect as much:
+
+  > sqitch -d flipr_test status
+  # Nothing deployed.
+  #
+  # Changes not yet deployed:
+  # * HEAD+
+  #   appuser
+  #
+  Use "sqitch deploy" to deploy these changes
+
+We still have a record that it happened, though, in the C<sqitch.history>
+table:
 
   > psql -d flipr_test -c 'SELECT * FROM sqitch.history ORDER BY taken_at'
    action |  step   | taken_by | tags | requires | conflicts |           taken_at            
   --------+---------+----------+------+----------+-----------+-------------------------------
-   deploy | appuser | david    | {}   | {}       | {}        | 2012-04-09 18:43:45.814606+00
-   revert | appuser | david    | {}   | {}       | {}        | 2012-04-09 18:45:47.705876+00
+   deploy | appuser | david    | {""} | {}       | {}        | 2012-04-09 18:43:45.814606+00
+   revert | appuser | david    | {""} | {}       | {}        | 2012-04-09 18:45:47.705876+00
 
 Awesome. So we have a complete record of our changes. This might be useful for
-auditing purposes.
+auditing purposes. The C<log> command shows similar information:
 
-Now let's commit it.
+  > sqitch -d flipr_test log
+  step appuser reverted
+  By: david
+  At: 2012-04-09 18:45:47
+
+  step appuser deployed
+  By: david
+  At: 2012-04-09 18:43:45
+
+Cool. Now let's commit it.
 
   > git add .
   > git commit -m 'Add app user.'
@@ -156,10 +186,10 @@ Now let's commit it.
 And then deploy again:
 
   > sqitch --db-name flipr_test deploy
-  Deploying to flipr_test
+  Deploying 36acafd to flipr_test
     - appuser
 
-Notice we no longer need the C<--added> option. That's because we've committed
+Notice we no longer need the C<--untracked> option. That's because we've committed
 the step to Git, so Sqitch can read it from the Git history. And now the user
 should be back:
 
@@ -178,7 +208,7 @@ commit:
   ---------+-------------+-----------+----------+-----------+-------------------------------
    appuser | david       | {36acafd} | {}       | {}        | 2012-04-09 19:04:50.115235+00
 
-=head1 Add a Table
+=head1 Deploy with Dependency
 
 Let's add another deployment, this time to create a table. Our app will need
 users, of course, so let's create a table for them. First, add the new step:
@@ -204,10 +234,10 @@ Now edit the scripts. In C<sql/deploy/users.sql>, we put:
 
 A few things to notice here. On the first line, we've declared a dependency on
 the C<appuser> step. Although the step has already been added and committed,
-so it should always be applied before the C<users> step, it's a good idea to
-always be explicit about dependencies on other steps. This becomes especially
-important when committing a number of steps at one time, such as when merging
-a patch or a branch.
+and therefore should always be applied before the C<users> step, it's a good
+idea to always be explicit about dependencies on other steps. This becomes
+especially important when committing a number of steps at one time, such as
+when merging a patch or a branch.
 
 The syntax of the dependency declaration is simple: Before any other lines,
 create an SQL C<--> comment that simply uses the word "requires" followed by a
@@ -217,12 +247,12 @@ C<-- requires:>.
 
 Notice that all of the SQL code is wrapped in a transaction. This is handy for
 PostgreSQL deployments, because DDLs are transactional. The upshot is that if
-any part of the deployment fails, it all fails. Such may work less-well for
-database engines that don't support transactional DDLs.
+any part of the deployment fails, the whole step fails. Such may work
+less-well for database engines that don't support transactional DDLs.
 
-Just before the commit, the C<GRANT> command grant C<SELECT> access on the
+Just before the commit, the C<GRANT> command grants C<SELECT> access on the
 table to the C<flipr> user created in the C<appuser> step. This is why we
-declare the dependency.
+needed to declare the dependency.
 
 Now for the revert script. Add this to C<sql/revert/users.sql>:
 
@@ -230,9 +260,8 @@ Now for the revert script. Add this to C<sql/revert/users.sql>:
 
 Couldn't be much simpler, right? Let's deploy this bad boy:
 
-  > sqitch --db-name flipr_test deploy --added
-  Creating metadata schema on flipr_test to HEAD+
-  Deploying to flipr_test
+  > sqitch --db-name flipr_test deploy --untracked
+  Deploying HEAD+ to flipr_test
     - users
 
 The C<users> table should have been created:
@@ -253,17 +282,17 @@ Now have a look at the state:
     step   | deployed_by |   tags    | requires  | conflicts |          deployed_at          
   ---------+-------------+-----------+-----------+-----------+-------------------------------
    appuser | david       | {36acafd} | {}        | {}        | 2012-04-09 19:04:50.115235+00
-   users   | david       | {}        | {appuser} | {}        | 2012-04-09 20:41:31.932729+00
+   users   | david       | {""}      | {appuser} | {}        | 2012-04-09 20:41:31.932729+00
 
-Note that is has properly recorded the dependency on the C<appuser> state. But
-there are no tags because the deployment has not yet been committed to Git. In
+Note that it has properly recorded the dependency on the C<appuser> state. But
+the tag is empty because the deployment has not yet been committed to Git. In
 general, we want tags, so let's revert the change:
 
-  > sqitch --db-name flipr_test revert --to appuser
-  Revererting from flipr_test
+  > sqitch --db-name flipr_test revert --to 36acafd
+  Reverting HEAD+ from flipr_test
   - users
 
-Note that I've used the C<--to> option to revert only to the C<appuser> step.
+Note that we've used the C<--to> option to revert only to the C<36acafd> tag.
 Now commit and deploy again:
 
   > git add .
@@ -282,8 +311,11 @@ Now commit and deploy again:
    appuser | david       | {36acafd} | {}        | {}        | 2012-04-09 19:04:50.115235+00
    users   | david       | {fa650af} | {appuser} | {}        | 2012-04-09 20:45:23.848563+00
 
-Looking good. Let's add a few more deployments that add functions for managing
-users.
+Looking good!
+
+=head1 Add Two at Once
+
+Let's add a few more deployments that add functions for managing users.
 
   > sqitch add-step insert_user --requires users --requires appuser
   Adding sql/deploy/insert_user.sql
@@ -295,25 +327,29 @@ users.
          -- requires: users, appuser
   Adding sql/revert/change_pass.sql
 
-Here I've taken advantage of the C<--requires> option to have Sqitch write the
-deploy file with the C<-- requires:> line already filled in. Have a look:
+Here we've taken advantage of the C<--requires> option to have Sqitch write
+the deploy file with the C<-- requires:> line already filled in. Have a look:
 
   > cat sql/deploy/insert_user.sql
   -- requires: users, appuser
   
 
 Nice, huh? Yeah, okay, so it's a little thing. Little things matter, no? Let's
-write the code now. Here's what C<sql/deploy/insert_user.sql> should look
-like:
+write the code. Here's what C<sql/deploy/insert_user.sql> should look like:
 
   -- requires: users, appuser
   
+  BEGIN;
+
   CREATE OR REPLACE FUNCTION insert_user(
       nickname TEXT,
       password TEXT
-  ) RETURNS VOID LANGUAGE SQL AS $$
+  ) RETURNS VOID LANGUAGE SQL SECURITY DEFINER AS $$
       INSERT INTO users values($1, md5($2));
   $$;
+
+  GRANT EXECUTE ON insert_user(TEXT, TEXT) to flipr;
+  COMMIT;
 
 And C<sql/revert/insert_user.sql> should look something like this:
 
@@ -322,6 +358,8 @@ And C<sql/revert/insert_user.sql> should look something like this:
 Now for C<change_pass>; C<sql/deploy/change_pass.sql> might look like this:
 
   -- requires: users, appuser
+
+  BEGIN;
 
   CREATE OR REPLACE FUNCTION change_pass(
       nick    TEXT,
@@ -337,6 +375,9 @@ Now for C<change_pass>; C<sql/deploy/change_pass.sql> might look like this:
   END;
   $$;
 
+  GRANT EXECUTE ON chnage_pass(TEXT, TEXT, TEXT) to flipr;
+  COMMIT;
+
 And of course, its reversion script, C<sql/revert/change_pass.sql> should look
 something like:
 
@@ -344,8 +385,8 @@ something like:
 
 Test em out!
 
-  > sqitch --db-name flipr_test deploy --added
-  Deploying to flipr_test
+  > sqitch --db-name flipr_test deploy --untracked
+  Deploying HEAD+ to flipr_test
     - change_pass
     - insert_user
 
@@ -365,19 +406,20 @@ Is the state set properly?
   -------------+-------------+-----------+-----------------+-----------+-------------------------------
    appuser     | david       | {36acafd} | {}              | {}        | 2012-04-09 19:04:50.115235+00
    users       | david       | {fa650af} | {appuser}       | {}        | 2012-04-09 20:45:23.848563+00
-   change_pass | david       | {}        | {appuser,users} | {}        | 2012-04-09 21:31:41.952779+00
-   insert_user | david       | {}        | {appuser,users} | {}        | 2012-04-09 21:31:42.137245+00
+   change_pass | david       | {""}      | {appuser,users} | {}        | 2012-04-09 21:31:41.952779+00
+   insert_user | david       | {""}      | {appuser,users} | {}        | 2012-04-09 21:31:42.137245+00
 
 Looks good. Let's revert, commit, and re-deploy, as usual.
 
-  > sqitch --db-name flipr_test revert --to ^^
-  Revererting from flipr_test
+  > sqitch --db-name flipr_test revert --to ^
+  Reverting HEAD+ from flipr_test
     - insert_user
     - change_pass
 
-Note the use of C<--to ^^> to revert two steps. We also could have used C<--to
-fa650af> to revert to the tag for the C<users> step, or just used C<--to
-users> to revert to that step. Let's do the commit and re-deploy dance:
+Note the use of C<--to ^> to revert one tag. We also could have explicitly
+used C<--to fa650af> to revert to that tag, but C<^> is a nice shortcut.
+(Technially, it's actually C<""^>, which means "before the C<""> tag." But
+don't let that bother you.). Let's do the commit and re-deploy dance:
 
   > git add .
   > git ci -m 'Add `insert_user()` and `change_pass()`.'
@@ -389,7 +431,7 @@ users> to revert to that step. Let's do the commit and re-deploy dance:
    create mode 100644 sql/revert/insert_user.sql
 
   > sqitch --db-name flipr_test deploy
-  Deploying to flipr_test
+  Deploying 803e6b8 to flipr_test
     - change_pass
     - insert_user
 
@@ -412,9 +454,11 @@ We can test deployment to make sure the tag gets picked up like so:
 
   > createdb flipr_dev
   > sqitch --db-name flipr_dev deploy
-  Deploying to flipr_dev
+  Deploying 36acafd/v1.0.0-dev1 to flipr_dev
     - appuser
+  Deploying fa650af/v1.0.0-dev1 to flipr_dev
     - users
+  Deploying 803e6b8/v1.0.0-dev1 to flipr_dev
     - insert_user
     - change_pass
 
@@ -433,11 +477,12 @@ C<v1.0.0-dev1> tag. This is great, because now we can tie all the steps to the
 release via the tag. So let's bundle it up.
 
   > sqitch bundle --tags-only
-  Bundling in bundle
-    - appuser at v1.0.0-dev1
-    - users at v1.0.0-dev1
-    - change_pass at v1.0.0-dev1
-    - insert_user at v1.0.0-dev1
+  Writint to in bundle/
+  Bundling v1.0.0-dev1
+    - appuser
+    - users
+    - change_pass
+    - insert_user
   Plan written to bundle/sqitch.plan
 
 Now you can package up the C<bundle> directory and distribute it. When it gets
@@ -454,7 +499,7 @@ file to figure things out. Let's have a look at it:
   insert_user
 
 Pretty simple. It shows the tag being deployed and the steps that constitute
-it as a simple list. Notice that the SHA1's for each step are not present; the
+it as a simple list. Notice that the SHA1s for each step are not present; the
 C<--tags-only> option to the C<bundle> command limits the plan only to tags.
 
 Let's test deploying it:
@@ -462,7 +507,7 @@ Let's test deploying it:
   > cd bundle
   > createdb flipr_prod
   > sqitch --db-name flipr_prod deploy
-  Deploying to flipr_prod
+  Deploying v1.0.0-dev1 to flipr_prod
     - appuser
     - users
     - insert_user
