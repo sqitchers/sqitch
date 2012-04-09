@@ -23,6 +23,7 @@ sub _getopt {
         'test-dir=s'             => \$opts{test_dir},
         'extension=s'            => \$opts{extension},
         'dry-run'                => \$opts{dry_run},
+        'quiet|q'                => \$opts{quiet},
         'verbose|v+'             => \$opts{verbose},
         'help|H'                 => \$opts{help},
         'man|M'                  => \$opts{man},
@@ -40,6 +41,8 @@ sub _getopt {
         print $fn, ' (', __PACKAGE__, ') ', __PACKAGE__->VERSION, $/;
         exit;
     }
+
+    $opts{verbose} = 0 if $opts{quiet};
 }
 
 sub _pod2usage {
@@ -194,6 +197,7 @@ applies reversion scripts for all steps to return the state to an earlier tag.
      --test-dir   DIR     Path to directory with SQL test scripts.
      --extension  EXT     SQL script file name extension.
      --dry-run            Execute command without making any changes.
+  -q --quiet              Quiet mode with non-error output suppressed.
   -v --verbose            Increment verbosity.
   -V --version            Print the version number and exit.
   -H --help               Print a usage statement and exit.
@@ -332,16 +336,23 @@ Execute the Sqitch command without making any actual changes. This allows you
 to see what Sqitch would actually do, without doing it. Implies a verbosity
 level of 1; add extra C<--verbose>s for greater verbosity.
 
+=item C<-q>
+
+=item C<--quiet>
+
+Suppress normal output messages. Error messages will still be emitted to
+C<STDERR>. Overrides any value specified by C<--verbose>.
+
 =item C<-v>
 
 =item C<--verbose>
 
   sqitch --verbose -v
 
-A value between 0 and 3 specifying how verbose Sqitch should be. The default
-is 0, meaning that Sqitch will be silent. A value of 1 causes Sqitch to output
-some information about what it's doing, while 2 and 3 each cause greater
-verbosity.
+A value between 0 and 3 specifying how verbose Sqitch should be. Unless
+C<--quiet> is specified, the default is 1, meaning that Sqitch will output
+basic status messages as it does its thing. Values of 2 and 3 each cause
+greater verbosity. Ignored if C<--quiet> is specified.
 
 =item C<-H>
 
@@ -416,6 +427,18 @@ deploy and revert directories. Options:
 
 The name of the step. Must be a valid step name. This option may actually be
 passed without a C<-n> or C<--named>.
+
+=item C<-r>
+
+=item C<--requires>
+
+Name of a step that is required by the new step.
+
+=item C<-c>
+
+=item C<--conflicts>
+
+Name of a step that conflicts with the new step.
 
 =back
 
