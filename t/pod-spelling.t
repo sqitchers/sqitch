@@ -31,3 +31,6 @@ PostgreSQL's
 sqitchtutorial
 VCSes
 Versioning
+metadata
+namespace
+

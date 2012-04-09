@@ -65,5 +65,81 @@ Have a look at F<~/.sqitch/config.ini> and you'll see this:
 Back to the repository. Let's commit these changes and start creating the
 database changes.
 
-  git add .
-  git commit -am 'Initialize Sqitch configuration.'
+  > git add .
+  > git commit -am 'Initialize Sqitch configuration.'
+
+=head1 Your First Deployment
+
+First, our project will need a database user. This is the application user,
+who will have only limited access to objects in the database. Run this command:
+
+  > sqitch add-step appuser
+  Adding sql/deploy/appuser.sql
+  Adding sql/revert/appuser.sql
+
+Now we can edit these files. The C<deploy> script should create the user. So add
+this to the file:
+
+  CREATE ROLE flipr WITH LOGIN;
+
+The C<revert> script should drop the user, like so:
+
+  DROP ROLE flipr;
+
+Now we can try deploying this change:
+
+  > sqitch --db-name flipr_test deploy --added
+  Creating metadata schema on flipr_test to HEAD+
+  Deploying to flipr_test
+    - appuser
+
+First Sqitch created the metadata schema it uses to track database changes.
+The structure and name of the metadata may vary between databases (PostgreSQL
+uses a schema to namespace its metadata; MySQL and SQLite use a object name
+prefix). But if you connect to the database, you'll be able to see the role:
+
+  > psql -d flipr_test -c '\du'
+                                  List of roles
+     Role name    |                   Attributes                   | Member of 
+  ----------------+------------------------------------------------+-----------
+   flipr          |                                                | {}
+   postgres       | Superuser, Create role, Create DB, Replication | {}
+
+And we can also see how the deployment was recorded in the C<sqitch.state> table:
+
+  > psql -d flipr_test -c 'SELECT * FROM sqitch.state'
+   deployed_by |  step   | tags | requires | conflicts |          deployed_at          
+  -------------+---------+------+----------+-----------+-------------------------------
+   david       | appuser | {}   | {}       | {}        | 2012-04-09 18:43:45.814606+00
+
+Let's make sure that we can revert the change, as well:
+
+  > sqitch --db-name flipr_test revert
+  Revererting from flipr_test
+  - appuser
+
+And now the user should be gone:
+
+  > psql -d flipr_test -c '\du'
+                                  List of roles
+     Role name    |                   Attributes                   | Member of 
+  ----------------+------------------------------------------------+-----------
+   postgres       | Superuser, Create role, Create DB, Replication | {}
+
+And the C<appuser> state should be removed from the state, as well:
+
+  > psql -d flipr_test -c 'SELECT * FROM sqitch.state'
+   deployed_by | step | tags | requires | conflicts | deployed_at 
+  -------------+------+------+----------+-----------+-------------
+
+Great, no records. We still have a record that it happened, though, in the
+C<sqitch.history> table:
+
+  > psql -d flipr_test -c 'SELECT * FROM sqitch.history ORDER BY taken_at'
+   action | taken_by |  step   | tags | requires | conflicts |           taken_at            
+  --------+----------+---------+------+----------+-----------+-------------------------------
+   deploy | david    | appuser | {}   | {}       | {}        | 2012-04-09 18:43:45.814606+00
+   revert | david    | appuser | {}   | {}       | {}        | 2012-04-09 18:45:47.705876+00
+
+Awesome. So we have a complete record of our changes. This might be useful for
+auditing purposes.
