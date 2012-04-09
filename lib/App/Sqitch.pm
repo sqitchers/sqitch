@@ -695,6 +695,11 @@ the C<$PGHOST> environment variable.
 Port number to connect to. Does not apply to all engines. Defaults to the
 contents of the C<$PGPORT> environment variable.
 
+=item C<core.pg.sqitch_schema>
+
+The name of the schema in which Sqitch metadata will be stored. No other data
+should be stored in this schema. Defaults to C<sqitch>.
+
 =back
 
 =head3 C<core.mysql>
@@ -730,6 +735,10 @@ Host name to use when connecting to the database.
 
 Port number to connect to. Does not apply to all engines.
 
+=item C<core.mysql.sqitch_prefix>
+
+Prefix to use for Sqitch metadata tables. Defaults to C<sqitch>.
+
 =back
 
 =head3 C<core.sqlite>
@@ -741,6 +750,10 @@ Configuration settings for the SQLite engine.
 =item C<core.sqlite.db_name>
 
 Path to the SQLite database file.
+
+=item C<core.sqlite.sqitch_prefix>
+
+Prefix to use for Sqitch metadata tables. Defaults to C<sqitch>.
 
 =back
 
