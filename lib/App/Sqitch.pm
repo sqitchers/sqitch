@@ -396,7 +396,47 @@ not already exist.
 
 Output information about the current status of the deployment, including a
 list of tags, deployments, and dates in chronological order. If any deploy
-scripts are not currently deployed, they will be listed separately.
+scripts are not currently deployed, they will be listed separately. Options:
+
+=over
+
+=item C<-s>
+
+=item C<--show>
+
+How much information to show. This option may be passed without a C<-s> or
+C<--show>. Possible values include:
+
+=over
+
+=item C<latest>
+
+Show only the latest change. This is the default.
+
+=item C<tags>
+
+Show a list of all deployed tags.
+
+=item C<steps>
+
+Show a list of all deployed steps.
+
+=back
+
+=item C<format>
+
+The format to use to display tags or steps, if either are specified via the
+C<--show> option. The value may be any one of:
+
+=over
+
+=item C<oneline>
+
+=item C<table>
+
+=back
+
+=back
 
 =item C<log>
 
@@ -446,7 +486,7 @@ Output the chanes in reverse sort order.
 
 =item C<--format>
 
-The format to use. The options may be any one of:
+The format to use. The value may be any one of:
 
 =over
 

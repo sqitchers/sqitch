@@ -301,14 +301,19 @@ C<sqitch log>). Now commit and deploy again:
 
 Looks good. Check the status:
 
-  > sqitch status
+  > sqitch status --show tags
   # Deployed to fa650af
   # Step: users
   # Date: 012-04-09 20:45:23
   #
+  # Tags:
+  #    fa650af - 2012-04-09 20:45:23 - david
+  #    36acafd - 2012-04-09 19:04:50 - david
+  #
   Nothing to deploy (up-to-date)
 
-Success!
+Note the use of C<--show tags>, which adds the "Tags" section to the output,
+so that we can se a list of what tags were deployed, when, and by whom.
 
 =head1 Add Two at Once
 
