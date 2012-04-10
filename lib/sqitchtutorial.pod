@@ -149,9 +149,9 @@ And the status message should reflect as much:
   Use "sqitch deploy" to deploy these changes
 
 We've again used the C<--untracked> option, otherwise the C<appuser> step would
-not appeare in the list of undeployed changes.
+not appear in the list of undeployed changes.
 
-We still have a record that the chnage happened, visible via the C<log>
+We still have a record that the change happened, visible via the C<log>
 command:
 
   > sqitch -d flipr_test log
@@ -278,7 +278,7 @@ Now have a look at the status:
   #
   Nothing to deploy (up-to-date)
 
-Success! However, we've once again deplyed an untracked change with no tags.
+Success! However, we've once again deployed an untracked change with no tags.
 In general, we want tags, so let's revert the change:
 
   > sqitch --db-name flipr_test revert --to 36acafd
