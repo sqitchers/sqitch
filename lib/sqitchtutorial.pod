@@ -77,12 +77,13 @@ who will have only limited access to objects in the database. Run this command:
   Adding sql/deploy/appuser.sql
   Adding sql/revert/appuser.sql
 
-Now we can edit these files. The C<deploy> script should create the user. So add
-this to the file:
+Now we can edit these files. The C<deploy> script's job is to create the user.
+So add this to the file:
 
   CREATE ROLE flipr WITH LOGIN;
 
-The C<revert> script should drop the user, like so:
+The C<revert> script's job is to precisely revert the change to the deploy
+script, like so:
 
   DROP ROLE flipr;
 
@@ -95,8 +96,15 @@ Now we can try deploying this change:
 
 First Sqitch created the metadata schema it uses to track database changes.
 The structure and name of the metadata may vary between databases (PostgreSQL
-uses a schema to namespace its metadata; MySQL and SQLite use a prefix). But
-if you connect to the database, you'll be able to see the role:
+uses a schema to namespace its metadata; MySQL and SQLite use a prefix). Then
+it deploys changes. Here it is deploying to something called C<HEAD+>.
+Normally you would see a tag here, but since we've just added the files and
+they are not yet committed to Git, there is no tag. C<HEAD+> is a special tag
+reserved for use by Sqitch. It's enabled only by the use of the C<--untracked>
+option, which allows Sqitch to find an deploy untracked changes.
+
+With this change deployed, if you connect to the database, you'll be able to
+see the role:
 
   > psql -d flipr_test -c '\du'
                                   List of roles
@@ -105,20 +113,13 @@ if you connect to the database, you'll be able to see the role:
    flipr          |                                                | {}
    postgres       | Superuser, Create role, Create DB, Replication | {}
 
-And we can also see how the deployment was recorded in the C<sqitch.state> table:
-
-  > psql -d flipr_test -c 'SELECT * FROM sqitch.state'
-   step    | deployed_by | tags | requires | conflicts |          deployed_at          
-  ---------+-------------+------+----------+-----------+-------------------------------
-   appuser | david       | {""} | {}       | {}        | 2012-04-09 18:43:45.814606+00
-
-Note the empty string for the tag. That's there because the step is untracked
--- that is, not yet committed to our repository or added to a plan file. (More
-on plan files later.) The C<status> command will show similar informtion:
+And we can also see how the deployment was recorded via the C<status> command,
+which reads the metadata tables from the database:
 
   > sqitch -d flipr_test status
-  # Deployed to "".
-  # Last step deployed 2012-04-09 18:43:45: "appuser".
+  # Deployed to HEAD+
+  # Step: appuser
+  # Date: 2012-04-09 18:43:45
   #
   Nothing to deploy (up-to-date)
 
@@ -126,7 +127,7 @@ Let's make sure that we can revert the change, as well:
 
   > sqitch --db-name flipr_test revert
   Reverting all changes from flipr_test
-  - appuser
+    - appuser
 
 And now the user should be gone:
 
@@ -136,15 +137,9 @@ And now the user should be gone:
   ----------------+------------------------------------------------+-----------
    postgres       | Superuser, Create role, Create DB, Replication | {}
 
-And the C<appuser> state should be removed from the state, as well:
+And the status message should reflect as much:
 
-  > psql -d flipr_test -c 'SELECT * FROM sqitch.state'
-   step | deployed_by | tags | requires | conflicts | deployed_at 
-  ------+-------------+------+----------+-----------+-------------
-
-Great, no records. The status message should reflect as much:
-
-  > sqitch -d flipr_test status
+  > sqitch -d flipr_test status --untracked
   # Nothing deployed.
   #
   # Changes not yet deployed:
@@ -153,26 +148,22 @@ Great, no records. The status message should reflect as much:
   #
   Use "sqitch deploy" to deploy these changes
 
-We still have a record that it happened, though, in the C<sqitch.history>
-table:
+We've again used the C<--untracked> option, otherwise the C<appuser> step would
+not appeare in the list of undeployed changes.
 
-  > psql -d flipr_test -c 'SELECT * FROM sqitch.history ORDER BY taken_at'
-   action |  step   | taken_by | tags | requires | conflicts |           taken_at            
-  --------+---------+----------+------+----------+-----------+-------------------------------
-   deploy | appuser | david    | {""} | {}       | {}        | 2012-04-09 18:43:45.814606+00
-   revert | appuser | david    | {""} | {}       | {}        | 2012-04-09 18:45:47.705876+00
-
-Awesome. So we have a complete record of our changes. This might be useful for
-auditing purposes. The C<log> command shows similar information:
+We still have a record that the chnage happened, visible via the C<log>
+command:
 
   > sqitch -d flipr_test log
   step appuser reverted
   By: david
   At: 2012-04-09 18:45:47
+  Tag: HEAD+
 
   step appuser deployed
   By: david
   At: 2012-04-09 18:43:45
+  Tag: HEAD+
 
 Cool. Now let's commit it.
 
@@ -200,18 +191,20 @@ should be back:
    flipr          |                                                | {}
    postgres       | Superuser, Create role, Create DB, Replication | {}
 
-When we look at the state, the deployment is tagged with the SHA1 of the
+When we look at the status, the deployment is tagged with the SHA1 of the
 commit:
 
-  > psql -d flipr_test -c 'SELECT * FROM sqitch.state'
-    step   | deployed_by |   tags    | requires | conflicts |          deployed_at          
-  ---------+-------------+-----------+----------+-----------+-------------------------------
-   appuser | david       | {36acafd} | {}       | {}        | 2012-04-09 19:04:50.115235+00
+  > sqitch -d flipr_test status
+  # Deployed to 36acafd
+  # Step: appuser
+  # Date: 2012-04-09 18:52:42
+  #
+  Nothing to deploy (up-to-date)
 
 =head1 Deploy with Dependency
 
 Let's add another deployment, this time to create a table. Our app will need
-users, of course, so let's create a table for them. First, add the new step:
+users, of course, so we'll create a table for them. First, add the new step:
 
   > sqitch add-step users
   Adding sql/deploy/users.sql
@@ -276,24 +269,25 @@ The C<users> table should have been created:
   Indexes:
       "users_pkey" PRIMARY KEY, btree (nickname)
 
-Now have a look at the state:
+Now have a look at the status:
 
-  > psql -d flipr_test -c 'SELECT * FROM sqitch.state ORDER BY deployed_at'
-    step   | deployed_by |   tags    | requires  | conflicts |          deployed_at          
-  ---------+-------------+-----------+-----------+-----------+-------------------------------
-   appuser | david       | {36acafd} | {}        | {}        | 2012-04-09 19:04:50.115235+00
-   users   | david       | {""}      | {appuser} | {}        | 2012-04-09 20:41:31.932729+00
+  > sqitch -d flipr_test status
+  # Deployed to HEAD+
+  # Step: users
+  # Date: 012-04-09 20:41:31
+  #
+  Nothing to deploy (up-to-date)
 
-Note that it has properly recorded the dependency on the C<appuser> state. But
-the tag is empty because the deployment has not yet been committed to Git. In
-general, we want tags, so let's revert the change:
+Success! However, we've once again deplyed an untracked change with no tags.
+In general, we want tags, so let's revert the change:
 
   > sqitch --db-name flipr_test revert --to 36acafd
   Reverting HEAD+ from flipr_test
   - users
 
-Note that we've used the C<--to> option to revert only to the C<36acafd> tag.
-Now commit and deploy again:
+Note that we've used the C<--to> option to revert only to the C<36acafd> tag,
+which represents the deployment of the C<appuser> step (visible via
+C<sqitch log>). Now commit and deploy again:
 
   > git add .
   > git commit -am 'Add users table.'
@@ -302,16 +296,19 @@ Now commit and deploy again:
    create mode 100644 sql/deploy/users.sql
    create mode 100644 sql/revert/users.sql
   > sqitch -d flipr_test deploy
-  Deploying to flipr_test
+  Deploying fa650af to flipr_test
     - users
 
-  > psql -d flipr_test -c 'SELECT * FROM sqitch.state ORDER BY deployed_at'
-    step   | deployed_by |   tags    | requires  | conflicts |          deployed_at          
-  ---------+-------------+-----------+-----------+-----------+-------------------------------
-   appuser | david       | {36acafd} | {}        | {}        | 2012-04-09 19:04:50.115235+00
-   users   | david       | {fa650af} | {appuser} | {}        | 2012-04-09 20:45:23.848563+00
+Looks good. Check the status:
 
-Looking good!
+  > sqitch status
+  # Deployed to fa650af
+  # Step: users
+  # Date: 012-04-09 20:45:23
+  #
+  Nothing to deploy (up-to-date)
+
+Success!
 
 =head1 Add Two at Once
 
