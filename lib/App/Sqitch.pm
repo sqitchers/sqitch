@@ -455,7 +455,7 @@ C<-t> or C<--tag>.
 
 =item C<--step>
 
-Show only chagnes for the specifed step.
+Show only changes for the specifed step.
 
 =item C<-n>
 
