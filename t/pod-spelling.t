@@ -37,3 +37,4 @@ DDLs
 SHA
 untracked
 yay
+other's

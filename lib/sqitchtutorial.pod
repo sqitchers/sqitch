@@ -728,8 +728,8 @@ And:
   DROP FUNCTION delete_flip(BIGINT);
 
 Check the L<example git repository|https://github.com/theory/sqitch-intro> for
-the complete details. Test deploy and revert, commit, and retag. The status
-should end up looking something like this:
+the complete details. Test C<deploy> and C<revert>, commit, and C<retag>. The
+status should end up looking something like this:
 
   > sqitch status --show tags
   # On database flipr_test
