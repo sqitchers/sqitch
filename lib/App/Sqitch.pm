@@ -121,7 +121,7 @@ changes.
 
 Rely on your VCS history for deployment but have Sqitch bundle up changes for
 distribution. Sqitch can read your VCS history and write out a plan file along
-with the approriate deployment and reversion scripts. Once the bundle is
+with the appropriate deployment and reversion scripts. Once the bundle is
 installed on a new system, Sqitch can use the plan file to deploy or the
 changes in the proper order.
 

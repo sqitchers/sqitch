@@ -36,3 +36,4 @@ namespace
 DDLs
 SHA
 untracked
+yay
