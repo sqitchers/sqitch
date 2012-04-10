@@ -379,7 +379,7 @@ look like:
       INSERT INTO users values($1, md5($2));
   $$;
 
-  GRANT EXECUTE ON insert_user(TEXT, TEXT) to flipr;
+  GRANT EXECUTE ON FUNCTION insert_user(TEXT, TEXT) to flipr;
   COMMIT;
 
 And C<sql/revert/insert_user.sql> should look something like this:
@@ -406,7 +406,7 @@ Now for C<change_pass>; C<sql/deploy/change_pass.sql> might look like this:
   END;
   $$;
 
-  GRANT EXECUTE ON change_pass(TEXT, TEXT, TEXT) to flipr;
+  GRANT EXECUTE ON FUNCTION change_pass(TEXT, TEXT, TEXT) to flipr;
   COMMIT;
 
 And of course, its C<revert> script, C<sql/revert/change_pass.sql>, should look
@@ -577,3 +577,177 @@ Looks much the same as before, eh? But have a look at the status:
   Nothing to deploy (up-to-date)
 
 No commit SHA1s, just C<v1.0.0-dev1>.
+
+=head1 Flip Out
+
+Now that we've got the basics of user management done, let's get to work on
+the core of our product, the "flip." Since other folks are working on other
+tasks in the repository, we'll work on a branch, so we can all stay out of
+each other's way. So let's branch:
+
+  > git checkout -b flips
+  Switched to a new branch 'flips'
+
+Now we can add a new step to create a table for our flips.
+
+  > sqitch add-step flips --requires users
+  Adding sql/deploy/flips.sql
+         -- requires: users
+  Adding sql/revert/flips.sql
+
+You know the drill by now. Edit F<sql/deploy/flips.sql>:
+
+  -- requires: users
+  BEGIN;
+  SET client_min_messages = 'warning';
+
+  CREATE TABLE flips (
+      id        BIGSERIAL   PRIMARY KEY,
+      nickname  TEXT        NOT NULL REFERENCES users(nickname),
+      body      TEXT        NOT NULL DEFAULT '' CHECK ( length(body) <= 180 ),
+      timestamp TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp()
+  );
+
+  GRANT SELECT ON flips TO flipr;
+  COMMIT;
+
+And edit F<sql/revert/flips.sql>:
+
+  DROP TABLE flips;
+
+And give it a whirl:
+
+  > sqitch deploy --untracked
+  Deploying HEAD+ to flipr_test
+    - flips
+
+Look good?
+
+  > sqitch status --show tags
+  # On database flipr_test
+  # Tag:  HEAD+
+  # Step: flips
+  # Date: 2012-04-10 22:30:02
+  #
+  # Tags:
+  #    HEAD+   - 2012-04-10 22:30:02 - david
+  #    803e6b8 - 2012-04-09 21:33:32 - david
+  #    fa650af - 2012-04-09 20:45:23 - david
+  #    36acafd - 2012-04-09 19:04:50 - david
+  #
+  Nothing to deploy (up-to-date)
+
+Yep. Make it so!
+
+  > git add .
+  > git commit -am 'Add flipr table.'
+  [flips 4aa888e] Add flipr table.
+   2 files changed, 18 insertions(+)
+   create mode 100644 sql/deploy/flips.sql
+   create mode 100644 sql/revert/flips.sql
+
+Ooh, but wait, we forgot to revert the change before committing! Well,
+no worries, we can update all the tags.
+
+  > sqitch retag
+  Retagging flipr_test
+    . 36acafd
+    . fa650af
+    . 803e6b8
+    + v1.0.0-dev1
+    - HEAD+
+    + 4aa888e
+  Tags: 4 (1 removed, 1 added).
+
+In the list of tags, C<.> means no change, C<+> means added, and C<-> means
+removed.
+
+Oh, it added the C<v1.0.0-dev1> tag. Recall that we never deployed it to the
+test database before. That's cool, forgot about that. Then it removed the
+C<HEAD+> tag and added C<4aa888e>. Let's examine the status:
+
+  > sqitch status --show tags
+  # On database flipr_test
+  # Tag:  4aa888e
+  # Step: flips
+  # Date: 2012-04-10 22:30:02
+  #
+  # Tags:
+  #    4aa888e              - 2012-04-10 22:30:02 - david
+  #    803e6b8, v1.0.0-dev1 - 2012-04-09 21:33:32 - david
+  #    fa650af              - 2012-04-09 20:45:23 - david
+  #    36acafd              - 2012-04-09 19:04:50 - david
+  #
+  Nothing to deploy (up-to-date)
+
+Great, looks like the tags are all in sync. That's handy. Of course, it's
+still a good idea to test C<sqitch revert> and C<sqitch deploy> a few times,
+just to make sure the changes are always carried out properly, but it's nice
+to know we don't have to take extra steps just to commit untracked changes.
+
+=head1 Wash, Rinse, Repeat
+
+Now comes the time to add functions to manage flips. I'm sure you have things
+nailed down now. Go ahead and add C<insert_flip> and C<delete_flip> steps
+and commit them. The C<insert_flip> deploy script might look something like:
+
+  -- requires: flips, appuser
+  BEGIN;
+  CREATE OR REPLACE FUNCTION insert_flip(
+     nickname TEXT,
+     body     TEXT
+  ) RETURNS BIGINT LANGUAGE sql SECURITY DEFINER AS $$
+      INSERT INTO flips (body, nickname)
+      VALUES ($1, $2)
+      RETURNING id;
+  $$;
+  GRANT EXECUTE ON FUNCTION insert_flip(TEXT, TEXT) to flipr;
+  COMMIT;
+
+And the C<delete_flip> deploy script might look something like:
+
+  -- requires: flips, appuser
+  BEGIN;
+  CREATE OR REPLACE FUNCTION delete_flip(
+     flip_id BIGINT
+  ) RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER AS $$
+  BEGIN
+      DELETE FROM flips WHERE id = flip_id;
+      RETURN FOUND;
+  END;
+  $$;
+  GRANT EXECUTE ON FUNCTION delete_flip(BIGINT) to flipr;
+  COMMIT;
+
+The C<revert> scripts are:
+
+  DROP FUNCTION insert_flip(TEXT, TEXT);
+
+And:
+
+  DROP FUNCTION delete_flip(BIGINT);
+
+Check the L<example git repository|https://github.com/theory/sqitch-intro> for
+the complete details. Test deploy and revert, commit, and retag. The status
+should end up looking something like this:
+
+  > sqitch status --show tags
+  # On database flipr_test
+  # Tag:  74c49ef
+  # Step: insert_flip
+  # Date: 2012-04-10 23:00:29
+  #
+  # Tags:
+  #    74c49ef              - 2012-04-10 23:00:29 - david
+  #    4aa888e              - 2012-04-10 22:30:02 - david
+  #    803e6b8, v1.0.0-dev1 - 2012-04-09 21:33:32 - david
+  #    fa650af              - 2012-04-09 20:45:23 - david
+  #    36acafd              - 2012-04-09 19:04:50 - david
+  #
+  Nothing to deploy (up-to-date)
+
+Good, we've finished this feature. Time to merge back into C<master>.
+
+=head1 Emergency
+
+Let's do it.
