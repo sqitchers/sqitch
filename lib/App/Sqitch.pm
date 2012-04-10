@@ -101,7 +101,7 @@ L<C<mysql>|http://dev.mysql.com/doc/refman/5.6/en/mysql.html>.
 =item VCS integration
 
 Sqitch likes to use your VCS history to determine in what order to execute
-changes. No need to keep track of execution order, your VCS already tracks
+changes. No need to keep track of execution order; your VCS already tracks
 information sufficient for Sqitch to figure it out for you.
 
 =item Dependency resolution
@@ -114,13 +114,15 @@ VCS out-of-order.
 
 Change deployment is managed either by maintaining a plan file or, more
 usefully, your VCS history. As such, there is no need to number your changes,
-although you can if you want. Sqitch does not care what you name your changes.
+although you can if you want. Sqitch doesn't much care what you name your
+changes.
 
-=item Packaging
+=item Bundling
 
-Using your VCS history for deployment but need to ship a tarball or RPM? Easy,
-just have Sqitch read your VCS history and write out a plan file with your
-change scripts. Once deployed, Sqitch can use the plan file to deploy the
+Rely on your VCS history for deployment but have Sqitch bundle up changes for
+distribution. Sqitch can read your VCS history and write out a plan file along
+with the approriate deployment and reversion scripts. Once the bundle is
+installed on a new system, Sqitch can use the plan file to deploy or the
 changes in the proper order.
 
 =item Reduced Duplication
@@ -145,8 +147,8 @@ Eventually move to L<sqitchtutorial> or L<sqitchintro> or some such.
 =item C<step>
 
 A named unit of change. A step name must be used in the file names of its
-corresponding deployment and a reversion scripts. It may also be used in a
-test script file name.
+deployment and a reversion scripts. It may also be used in a test script file
+name.
 
 =item C<tag>
 
@@ -157,9 +159,9 @@ have one or more tags.
 
 =item C<state>
 
-The current state of the database. This is represented by the most recent tag
-or tags deployed. If the state of the database is the same as the most recent
-tag, then it is considered "up-to-date".
+The current state of the database. This is represented by the most
+recently-deployed steps and tags. If the state of the database is the same as
+the most recent tag, then it is considered "up-to-date".
 
 =item C<plan>
 
@@ -178,7 +180,7 @@ all the steps necessary to change the state to the specified tag.
 
 The act of reverting database changes to reach an earlier tagged deployment
 point. Sqitch checks the current state of the database, reads the plan, and
-applies reversion scripts for all steps to return the state to an earlier tag.
+reverts all steps necessary to return the state to an earlier tag.
 
 =back
 
@@ -455,7 +457,7 @@ C<-t> or C<--tag>.
 
 =item C<--step>
 
-Show only changes for the specified step.
+Show only the specified step.
 
 =item C<-n>
 
@@ -520,8 +522,9 @@ Make sure no deployment script appears more than once in the plan file.
 
 =item C<add-step>
 
-Add a new step. The named step will create the corresponding files in the
-deploy and revert directories. Options:
+Add a new step. The specified name will be used to create stub deployment and
+reversion scripts. The contents of these scripts must then be edited to carry
+out the actual changes to the database. Options:
 
 =over
 
