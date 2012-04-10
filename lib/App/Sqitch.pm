@@ -442,7 +442,7 @@ C<--show> option. The value may be any one of:
 
 Output the complete change history in reverse chronological order. Options:
 
-=over *
+=over
 
 =item C<-t>
 
@@ -455,7 +455,7 @@ C<-t> or C<--tag>.
 
 =item C<--step>
 
-Show only changes for the specifed step.
+Show only changes for the specified step.
 
 =item C<-n>
 
@@ -482,7 +482,7 @@ pattern (regular expression).
 
 =item C<--reverse>
 
-Output the chanes in reverse sort order.
+Output the changes in reverse sort order.
 
 =item C<--format>
 

@@ -149,7 +149,7 @@ And the status message should reflect as much:
   Use "sqitch deploy" to deploy these changes
 
 We've again used the C<--untracked> option, otherwise the C<appuser> step would
-not appear in the list of undeployed changes.
+not appear in the list of "Changes not yet deployed."
 
 We still have a record that the change happened, visible via the C<log>
 command:
@@ -313,7 +313,7 @@ Looks good. Check the status:
   Nothing to deploy (up-to-date)
 
 Note the use of C<--show tags>, which adds the "Tags" section to the output,
-so that we can se a list of what tags were deployed, when, and by whom.
+so that we can use a list of what tags were deployed, when, and by whom.
 
 =head1 Add Two at Once
 
@@ -420,7 +420,7 @@ Looks good. Let's revert, commit, and re-deploy, as usual.
 
 Note the use of C<--to ^> to revert one tag. We also could have explicitly
 used C<--to fa650af> to revert to that tag, but C<^> is a nice shortcut.
-(Technially, it's actually C<""^>, which means "before the C<""> tag." But
+(Technically, it's actually C<""^>, which means "before the C<""> tag." But
 don't let that bother you.). Let's do the commit and re-deploy dance:
 
   > git add .
