@@ -750,4 +750,171 @@ Good, we've finished this feature. Time to merge back into C<master>.
 
 =head1 Emergency
 
-Let's do it.
+Let's do it:
+
+  > git checkout master
+  Switched to branch 'master'
+  > git pull
+  Updating 803e6b8..2fae0b3
+  Fast-forward
+   sql/deploy/delete_list.sql |   15 +++++++++++++++
+   sql/deploy/insert_list.sql |   12 ++++++++++++
+   sql/deploy/lists.sql       |   16 ++++++++++++++++
+   sql/revert/delete_list.sql |    1 +
+   sql/revert/insert_list.sql |    1 +
+   sql/revert/lists.sql       |    2 ++
+   12 files changed, 91 insertions(+)
+   create mode 100644 sql/deploy/delete_list.sql
+   create mode 100644 sql/deploy/insert_list.sql
+   create mode 100644 sql/deploy/lists.sql
+   create mode 100644 sql/revert/delete_list.sql
+   create mode 100644 sql/revert/insert_list.sql
+   create mode 100644 sql/revert/lists.sql
+
+Hrm, that's interesting. Looks like someone made some changes to C<master>.
+Looks like some list support was added. Well, let's see what happens when we
+merge our changes.
+
+  > git merge --no-ff flips
+  Merge made by the 'recursive' strategy.
+   sql/deploy/delete_flip.sql |   12 ++++++++++++
+   sql/deploy/flips.sql       |   16 ++++++++++++++++
+   sql/deploy/insert_flip.sql |   12 ++++++++++++
+   sql/revert/delete_flip.sql |    1 +
+   sql/revert/flips.sql       |    2 ++
+   sql/revert/insert_flip.sql |    1 +
+   6 files changed, 44 insertions(+)
+   create mode 100644 sql/deploy/delete_flip.sql
+   create mode 100644 sql/deploy/flips.sql
+   create mode 100644 sql/deploy/insert_flip.sql
+   create mode 100644 sql/revert/delete_flip.sql
+   create mode 100644 sql/revert/flips.sql
+   create mode 100644 sql/revert/insert_flip.sql
+
+Hey, looks good, everything merged cleanly. Let's have a look at our Git history:
+
+  > git log --oneline
+  5e30f38 Merge branch 'flips'
+  2fae0b3 Merge tag 'lists'
+  2a84155 Merge branch 'lists'
+  9703969 Add `insert_flip()` and `delete_flip()`.
+  675f78d Add `insert_list()` and `delete_list()`.
+  faaa4d0 Add flipr table.
+  591e388 Add `lists` table.
+  803e6b8 Add `insert_user()` and `change_pass()`.
+  fa650af Add users table.
+  36acafd Add app user.
+  e076e84 Initialize Sqitch configuration.
+  9ccc485 Add README text.
+  7b8dd19 First post!
+
+Whoah, wait, what? Recall that we left off at commit C<803e6b8>. After that we
+should have our two commits to teh "flips" branch and end with a merge commit.
+But notice here we have some other stuff interleaved. Commit C<591e388> adds a
+"lists" table before our C<faaa4d0> commit adds the "flips" table. Then there
+is another interloper commit, C<675f78d>, which adds some functions to insert
+and delete lists, before our C<9703969> commit adds functions to insert and
+delete flips. And there, second from the top, is the explanation,
+C<2fae0b3 Merge branch 'lists'>. Why, someone else was working on another
+branch and merged stuff into master before we did! Now things are all mixed
+up.
+
+Well, the truth is, we got lazy. Those changes when we pulled master from the
+origin should have raised a red flag. In truth, it's considered a bad practice
+not to look at what's changed in C<master> before merging in a branch. What one
+I<should> do is either:
+
+=over
+
+=item *
+
+Rebase the branch from on master before merging. This "rewinds" the branch
+changes, pulls from C<master>, and then replays the changes back on top of
+C<master>.
+
+=item *
+
+Create a patch and apply I<that> to master. This is the sort of thing you
+might have to do if you're sending changes to another user, especially if the
+VCS is not Git.
+
+=back
+
+So let's restore things to how they were at master:
+
+  > git reset --hard origin/master
+  HEAD is now at 2fae0b3 Merge tag 'lists'
+
+That throws out our merge, which thankfully we have not yet pushed. Now let's
+go back to our branch and rebase it on C<master>:
+
+  > git checkout flips
+  Switched to branch 'flips'
+  > git rebase master
+  First, rewinding head to replay your work on top of it...
+  Applying: Add flipr table.
+  Applying: Add `insert_flip()` and `delete_flip()`.
+
+Notice that it rewinds the changes since we branched from C<master>, pulls
+from C<master>, and then re-applies our commits. Look at the Git log to make
+sure things were applied properly:
+
+  > git log --oneline
+  54d680f Add `insert_flip()` and `delete_flip()`.
+  d07f3dc Add flipr table.
+  2fae0b3 Merge tag 'lists'
+  2a84155 Merge branch 'lists'
+  675f78d Add `insert_list()` and `delete_list()`.
+  591e388 Add `lists` table.
+  803e6b8 Add `insert_user()` and `change_pass()`.
+  fa650af Add users table.
+  36acafd Add app user.
+  e076e84 Initialize Sqitch configuration.
+  9ccc485 Add README text.
+  7b8dd19 Fist post!
+
+Much better. Now all of our "flips" changes come after the "lists" changes.
+But wait, we can't merge into C<master> quite yet. Or, at least, it's not a
+good idea. We need to first make sure that Sqitch deployments still work
+properly.
+
+  XXX Do that.
+
+Now we can merge into C<master>:
+
+  > git checkout master
+  Switched to branch 'master'
+  > git merge --no-ff flips
+  Merge made by the 'recursive' strategy.
+   sql/deploy/delete_flip.sql |   12 ++++++++++++
+   sql/deploy/flips.sql       |   16 ++++++++++++++++
+   sql/deploy/insert_flip.sql |   12 ++++++++++++
+   sql/revert/delete_flip.sql |    1 +
+   sql/revert/flips.sql       |    2 ++
+   sql/revert/insert_flip.sql |    1 +
+   6 files changed, 44 insertions(+)
+   create mode 100644 sql/deploy/delete_flip.sql
+   create mode 100644 sql/deploy/flips.sql
+   create mode 100644 sql/deploy/insert_flip.sql
+   create mode 100644 sql/revert/delete_flip.sql
+   create mode 100644 sql/revert/flips.sql
+   create mode 100644 sql/revert/insert_flip.sql
+
+And double-check our work:
+
+  > git log --oneline
+  e161a90 Merge branch 'flips'
+  54d680f Add `insert_flip()` and `delete_flip()`.
+  d07f3dc Add flipr table.
+  2fae0b3 Merge tag 'lists'
+  2a84155 Merge branch 'lists'
+  675f78d Add `insert_list()` and `delete_list()`.
+  591e388 Add `lists` table.
+  803e6b8 Add `insert_user()` and `change_pass()`.
+  fa650af Add users table.
+  36acafd Add app user.
+  e076e84 Initialize Sqitch configuration.
+  9ccc485 Add README text.
+  7b8dd19 Fist post!
+
+Much much better, all clean now.
