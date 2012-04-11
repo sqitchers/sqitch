@@ -808,8 +808,8 @@ Hey, looks good, everything merged cleanly. Let's have a look at our Git history
   9ccc485 Add README text.
   7b8dd19 First post!
 
-Whoah, wait, what? Recall that we left off at commit C<803e6b8>. After that we
-should have our two commits to teh "flips" branch and end with a merge commit.
+Whoa, wait, what? Recall that we left off at commit C<803e6b8>. After that we
+should have our two commits to the "flips" branch and end with a merge commit.
 But notice here we have some other stuff interleaved. Commit C<591e388> adds a
 "lists" table before our C<faaa4d0> commit adds the "flips" table. Then there
 is another interloper commit, C<675f78d>, which adds some functions to insert
