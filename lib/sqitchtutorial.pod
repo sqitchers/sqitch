@@ -935,7 +935,7 @@ Looks like it made some important updates. Let's see:
 
 Great, now the tag looks right. But we still have undeployed changes. This is
 because the rebase from C<master> added the "lists" branch changes. They come
-I<before> our "flips" changes in the repo history, which means that,
+I<before> our "flips" changes in the repository history, which means that,
 technically, the the "flips" changes have been applied out-of-order.
 Fortunately for us, however, there appear to be no conflicts (no mutual
 dependencies between the "flips" and "lists" changes to muck things up). So we
@@ -960,9 +960,10 @@ So where does that leave us?
 Note that we are still on the C<54d680f> tag but the date has been updated.
 Sqitch has successfully merged the "lists" changes into the database.
 
-What would have happend if there had been a conflict? In that case, we would
+What would have happened if there had been a conflict? In that case, we would
 have had to revert the "flips" changes and deployed again, so that the changes
-could be re-applied in the proper order. The commands to do that would have been:
+could be re-applied in the proper order. The commands to do that would have
+been:
 
   > sqitch revert 54d680f^
   > sqitch deploy

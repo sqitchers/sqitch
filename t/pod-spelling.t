@@ -40,3 +40,5 @@ yay
 other's
 Hrm
 rebase
+rebased
+undeployed
