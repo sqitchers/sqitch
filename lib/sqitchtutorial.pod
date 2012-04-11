@@ -748,7 +748,7 @@ status should end up looking something like this:
 
 Good, we've finished this feature. Time to merge back into C<master>.
 
-=head1 Emergency
+=head2 Emergency
 
 Let's do it:
 
@@ -876,11 +876,112 @@ sure things were applied properly:
 Much better. Now all of our "flips" changes come after the "lists" changes.
 But wait, we can't merge into C<master> quite yet. Or, at least, it's not a
 good idea. We need to first make sure that Sqitch deployments still work
-properly.
+properly. Why? Have a look at this:
 
-  XXX Do that.
+  > sqitch status
+  # On database flipr_test
+  # Tag:  74c49ef (unknown)
+  # Step: insert_flip
+  # Date: 2012-04-10 23:00:29
+  #
+  # Unknown tags:
+  #  (use "sqitch retag" to fix)
+  #    74c49ef
+  #    28df2ve
+  #
+  # Undeployed changes:
+  #   (no conflicts detected; use "sqitch deploy" to deploy the changes)
+  #
+  #    591e388
+  #      - lists
+  #    675f78d
+  #      - insert_list
+  #      - delete_list
 
-Now we can merge into C<master>:
+Uh-oh. First of all, the second line tells us that the current tag, C<74c49ef>,
+is unknown. That's because we rebased from master, so our local commits got
+new SHA1s. Fortunately, we can fix that problem by re-tagging:
+
+  > sqitch retag
+  Retagging flipr_test
+    . 36acafd
+    . fa650af
+    . 803e6b8
+    . v1.0.0-dev1
+    . 4aa888e
+    - 28df2ve
+    + d07f3dc
+    - 74c49ef
+    + 54d680f
+    
+  Tags: 7 (2 removed, 2 added).
+
+Looks like it made some important updates. Let's see:
+
+  > sqitch status
+  # On database flipr_test
+  # Tag:  54d680f
+  # Step: insert_flip
+  # Date: 2012-04-10 23:00:29
+  #
+  # Undeployed changes:
+  #   (no conflicts detected; use "sqitch deploy" to deploy the changes)
+  #
+  #    591e388
+  #      - lists
+  #    675f78d
+  #      - insert_list
+  #      - delete_list
+
+Great, now the tag looks right. But we still have undeployed changes. This is
+because the rebase from C<master> added the "lists" branch changes. They come
+I<before> our "flips" changes in the repo history, which means that,
+technically, the the "flips" changes have been applied out-of-order.
+Fortunately for us, however, there appear to be no conflicts (no mutual
+dependencies between the "flips" and "lists" changes to muck things up). So we
+can just take its advice and run C<sqitch deploy>:
+
+  > sqitch deploy --untracked
+  Deploying 591e388 to flipr_test
+    - lists
+  Deploying 675f78d to flipr_test
+    - delete_list
+    - insert_list
+
+So where does that leave us?
+
+  > sqitch status
+  # On database flipr_test
+  # Tag:  54d680f
+  # Step: insert_flip
+  # Date: 2012-04-10 23:32:43
+  #
+
+Note that we are still on the C<54d680f> tag but the date has been updated.
+Sqitch has successfully merged the "lists" changes into the database.
+
+What would have happend if there had been a conflict? In that case, we would
+have had to revert the "flips" changes and deployed again, so that the changes
+could be re-applied in the proper order. The commands to do that would have been:
+
+  > sqitch revert 54d680f^
+  > sqitch deploy
+
+Note the use of C<^> at the end of C<54d680f^>. That means, "the tag just
+before C<54d680f>", and is a nice shortcut so that we don't have to troll the
+history to find that tag. So it would revert to that tag, and them the call to
+C<sqitch deploy> would have deployed the "lists" changes, followed by the
+"flips" changes, so that everything would be in the proper order
+
+Of course, this is the sort of thing you want to avoid in a production
+context. When doing development, you can muck with your change history in any
+number of ways. But you really want to get things nailed down before you do a
+release, which should have a set plan that does not change -- until the next
+release adds new steps -- but never mixes things in.
+
+=head2 Merges Mastered
+
+And now, finally, we can merge into C<master>:
 
   > git checkout master
   Switched to branch 'master'
@@ -917,4 +1018,9 @@ And double-check our work:
   9ccc485 Add README text.
   7b8dd19 Fist post!
 
-Much much better, all clean now.
+Much much better, a nice clean master now. And because it is now identical to
+the "flips" branch, we can just carry on. Tag it so that we can use real tags
+for bundling a release later:
+
+  > git tag flips -am 'Tag flips merge.'
+
