@@ -1,0 +1,37 @@
+# Avoid version control files.
+\bRCS\b
+\bCVS\b
+,v$
+\B\.git
+
+# Avoid Makemaker generated and utility files.
+\bMakefile$
+\bblib
+\bMakeMaker-\d
+\bpm_to_blib$
+\bblibdirs$
+^MANIFEST\.SKIP$
+
+# Avoid Module::Build generated and utility files.
+\bBuild$
+\b_build
+
+# Avoid temp and backup files.
+~$
+\.tmp$
+\.old$
+\.bak$
+\#$
+\b\.#
+
+# Avoid build files.
+^App-Sqitch
+\b_rpmbuild
+^rpm\.spec$
+^target
+^arco
+
+# Avoid spelling test.
+pod-spelling.t$
+^MYMETA\.yml$
+^MYMETA\.json$
