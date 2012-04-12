@@ -144,7 +144,7 @@ And the status message should reflect as much:
   # On database flipr_test
   # Nothing deployed.
   #
-  # Changes not yet deployed:
+  # Changes not deployed:
   # * HEAD+
   #   appuser
   #
@@ -1039,54 +1039,54 @@ Have a look at this:
    foo      | 9695da4dd567a19f9b92065f240c6725 | 2012-04-11 23:00:02.135612+00
    bar      | 9695da4dd567a19f9b92065f240c6725 | 2012-04-11 23:00:02.135612+00
 
-If user "foo" ever got access to the database, she could immediately see that
-user "bar" has the same password and thus access the account. Not a great
-idea. So we need to modify the C<insert_user()> and C<change_pass()> functions
-to fix that. How? we'll use
+If user "foo" ever got access to the database, she could quickly discover that
+user "bar" has the same password and thus be able to exploit the account. Not
+a great idea. So we need to modify the C<insert_user()> and C<change_pass()>
+functions to fix that. How? we'll use
 L<C<pgcrypto>|http://www.postgresql.org/docs/current/static/pgcrypto.html>'s
 C<crypt()> function to encrypt passwords with a salt, so that they're all
-unique.
+unique. We just add a step to add C<pgcrypto> to the database, and then we can
+use it. The deploy script should be:
 
-Now, normally, doing this sort of thing in database changes is a PITA. You have
-to take steps like these:
+ CREATE EXTENSION pgcrypto;
+
+And the revert script should just C<DROP EXTENSION pgcrypto>. Then we can use
+it. But how to deploy the changes to C<insert_user()> and C<change_pass()>?
+
+Normally, modifying functions in database changes is a PITA. You have to
+take steps like these:
 
 =over
 
 =item 1.
 
-Create a new step to add the
-L<C<pgcrypto>|http://www.postgresql.org/docs/current/static/pgcrypto.html>
-extension.
+Copy F<sql/deploy/insert_user.sql> to F<sql/deploy/insert_user_crypt.sql>.
 
 =item 2.
 
-Copy F<sql/deploy/insert_user.sql> to F<sql/deploy/insert_user_crypt.sql>.
+Edit F<sql/deploy/insert_user_crypt.sql> to switch from C<MD5()> to C<crypt()>
+and to add a dependency on the C<pgcrypto> step.
 
 =item 3.
-
-Edit the function in F<sql/deploy/insert_user_crypt.sql> to switch from
-C<MD5()> to C<crypt()> and to add a dependency on the C<pgcrypto> step.
-
-=item 4.
 
 Copy F<sql/deploy/insert_user.sql> to F<sql/revert/insert_user_crypt.sql>.
 Yes, copy the original change script to the new revert step.
 
+=item 4.
+
+Test the changes to make sure you can deploy and revert the
+C<insert_user_crypt> step.
+
 =item 5.
-
-Test the changes to make sure you can deploy and revert C<insert_user_crypt>.
-
-=item 6.
 
 Now do the same for the C<change_pass> scripts.
 
 =back
 
-That doesn't seem I<too> bad. And you can do it with Sqitch, too, if you
-prefer. But it makes for rather bad VCS management. This is effectively a
-one-line change to the functions, but we're copying their entire contents to
-new files. Hell, the reversion script is I<identical> to the original deploy
-script.
+That doesn't seem I<too> bad. And you can do that with Sqitch, if you want.
+But it makes for rather bad VCS management. This is effectively a one-line
+change to each function, but we're copying their entire contents to new files.
+Hell, the reversion script is I<identical> to the original deploy script.
 
 Perhaps worse, though, is that it's much more difficult to look at changes in
 the VCS. After committing the C<insert_user_crypt> step, what does the diff
@@ -1099,7 +1099,7 @@ look like?
   --- /dev/null
   +++ b/sql/deploy/insert_user_crypt.sql
   @@ -0,0 +1,8 @@
-  +-- requires: users, appuser
+  +-- requires: users, appuser, pgcrypto
   +
   +CREATE OR REPLACE FUNCTION insert_user(
   +    nickname TEXT,
@@ -1125,7 +1125,7 @@ look like?
 Oy. It looks like two new functions were added, not that we just changed one.
 How annoying is that? Of course, if we know the history, we can diff things
 without using the Git history, simply by comparing F<sql/deploy/insert_user.sql>
-to F<sql/deploy/insert_user_crypt.sql>
+to F<sql/deploy/insert_user_crypt.sql>:
 
   > diff -u sql/deploy/insert_user.sql sql/deploy/insert_user_crypt.sql 
   --- sql/deploy/insert_user.sql	2012-04-09 14:15:55.000000000 -0700
@@ -1138,6 +1138,266 @@ to F<sql/deploy/insert_user_crypt.sql>
   +    INSERT INTO users values($1, crypt($2, gen_salt('md5')));
    $$;
 
-That makes much more sense. Wouldn't it be great if we could just make I<that>
-change, commit it to the VCS, and have the deployment and reversion "just
-work"?
+That makes much more sense, but requires special knowledge to realize you
+can't just C<git diff> to see what changed. Wouldn't it be great if we could
+just make the change right in the file, commit it to the VCS, and have the
+deployment and reversion "just work"?
+
+=head2 It's a VCS
+
+Sqitch can. Rather than take all the above steps, you can just modify
+F<sql/deploy/insert_user.sql> and F<sql/deploy/change_padd.sql> I<in place>.
+There is only one requirement for this: All changes to the deployment script,
+including the original version, B<must be
+L<idempotent|http://en.wikipedia.org/wiki/Idempotence>>. That is, the deploy
+script can applied multiple times without changing the result beyond the
+initial application. That's it, the only requirement.
+
+Fortunately, our function deployment scripts are already idempotent, thanks to
+the use of the C<OR REPLACE> expression. No matter how many times a deployment
+script is run, he end result will be the same instance of the function, with
+no duplicates or errors.
+
+As a result, there is no need to explicitly add steps. So go ahead. Modify the
+script to switch to C<crypt()>. Make this change to
+F<sql/deploy/insert_user.sql>:
+
+  @@ -1,8 +1,8 @@
+  --- requires: users, appuser
+  +-- requires: users, appuser, pgcrypto
+ 
+   CREATE OR REPLACE FUNCTION insert_user(
+       nickname TEXT,
+       password TEXT
+   ) RETURNS VOID LANGUAGE SQL AS $$
+  -    INSERT INTO users values($1, md5($2));
+  +    INSERT INTO users values($1, crypt($2, gen_salt('md5')));
+   $$;
+
+And make this change to F<sql/deploy/change_pass.sql>:
+
+  @@ -1,4 +1,4 @@
+  --- requires: users, appuser
+  +-- requires: users, appuser, pgcrypto
+ 
+   CREATE OR REPLACE FUNCTION change_pass(
+       nick    TEXT,
+  @@ -7,9 +7,9 @@ CREATE OR REPLACE FUNCTION change_pass(
+   ) RETURNS BOOLEAN LANGUAGE plpgsql AS $$
+   BEGIN
+       UPDATE users
+  -       SET password = md5($3)
+  +       SET password = crypt($3, gen_salt('md5'))
+        WHERE nickname = $1
+  -       AND password = md5($2);
+  +       AND password = crypt($2, password);
+       RETURN FOUND;
+   END;
+   $$;
+
+And then test deployment:
+
+  > sqitch deploy --untracked
+  Deploying HEAD+ to flipr_test
+    - insert_user
+    - change_pass
+
+So, are the changes deployed?
+
+  > psql -d flipr_test -c "
+      DELETE FROM users;
+      SELECT insert_user('foo', 'secr3t'), insert_user('bar', 'secr3t');
+      SELECT * FROM users;
+  "
+   nickname |              password              |           timestamp           
+  ----------+------------------------------------+-------------------------------
+   foo      | $1$l6OEKyF3$kv5ae7505ROub75d9QKTh/ | 2012-04-12 18:55:43.422211+00
+   bar      | $1$J4NJDgaJ$578i9Lt6b8ohJwi6WhNNO1 | 2012-04-12 18:55:43.422211+00
+
+Awesome, the stored passwords are different now. But can we revert, even
+though we haven't written any reversion scripts?
+
+  > sqitch revert --to HEAD
+  Reverting HEAD+ from flipr_test
+    - change_pass
+    - insert_user
+
+Did that work, are the C<MD5()> passwords back?
+
+  > psql -d flipr_test -c "
+      DELETE FROM users;
+      SELECT insert_user('foo', 'secr3t'), insert_user('bar', 'secr3t');
+      SELECT * FROM users;
+  "
+   nickname |             password             |           timestamp           
+  ----------+----------------------------------+-------------------------------
+   foo      | 9695da4dd567a19f9b92065f240c6725 | 2012-04-12 18:56:03.292423+00
+   bar      | 9695da4dd567a19f9b92065f240c6725 | 2012-04-12 18:56:03.292423+00
+
+Yes, it works! How, you ask? Simple. Because Sqitch uses your VCS history to
+determine what steps to deploy, it can tell that the C<insert_user()> and
+C<change_pass()> scripts have changed, and just deploy the new version. When
+you revert, it simply retrieves the old version from the history and applies
+C<that>, instead. And that should underscore the importance of the idempotence
+of in-place modifications to change scripts. Because if the reversion had
+failed, or left the newer version still in place, it simply would not work.
+
+This is a valuable feature, and certainly keeps the VCS history cleaner, so
+that it's easier to tell what changed in our database functions in a given
+commit. But you do have to use it with care. If you have any doubts about
+changing something in place, or risk orphaning some object, use the
+copy-and-paste approach instead.
+
+So let's go ahead and commit these changes and bring the database up-to-date:
+
+  > git commit -m 'Use pgcrypto to encrypt passwords.'
+  [master eea942d] Use pgcrypto to encrypt passwords.
+   2 files changed, 3 insertions(+), 3 deletions(-)
+
+  > sqitch deploy
+  Deploying eea942d to flipr_test
+    - insert_user
+    - change_pass
+
+  > sqitch -d flipr_test status
+  # On database flipr_test
+  # Tag:  eea942d
+  # Step: change_pass
+  # Date: 2012-04-12 18:59:26
+  #
+  Nothing to deploy (up-to-date)
+
+=head2 What about Bundling?
+
+Of course, this only works if Sqitch is using the VCS history to fetch earlier
+versions of deployment scripts to do reversions. Such are obviously not
+available in a distributed bundle. Or are they? Let's create a new release and
+find out. Let's tag a C<v1.0.0-b1> release and create a new bundle:
+
+  > git tag v1.0.0-b1 -am 'Tag v1.0.0-b1'
+  > sqitch bundle --tags-only
+  Bundling in bundle/
+  Config written to bundle/sqitch.ini
+  Bundling v1.0.0-dev1
+    - appuser
+    - users
+    - change_pass
+    - insert_user
+  Bundling lists
+    - insert_list
+    - delete_list
+  Bundling flips
+    - insert_flip
+    - delete_flip
+  Bundling v1.0.0-b1
+    - change_pass_v2
+    - insert_user_v2
+  Plan written to bundle/sqitch.plan
+
+Hey, look, the C<change_pass> and C<insert_user> steps are listed twice, but
+in the second instance, they have C<_v2> appended to their names. Let's have
+a look at the plan:
+
+  > cd bundle
+  > cat sqitch.plan
+  [v1.0.0-dev1]
+    appuser
+    users
+    change_pass
+    insert_user
+
+  [lists]
+    insert_list
+    delete_list
+
+  [flips]
+    insert_flip
+    delete_flip
+
+  [v1.0.0-b1]
+    change_pass_v2
+    insert_user_v2
+
+Well that looks pretty much just like the output of the bundling. What if we
+deploy it to the C<flip_prod> database, which we built to C<v1.0.0-dev1>
+earlier. Here's what it looks like before we deploy the latest changes:
+
+  > sqitch -d flipr_prod status
+  # On database flipr_prod
+  # Tag:  v1.0.0-dev1
+  # Step: change_pass
+  # Date: 2012-04-09 22:17:38
+  #
+  # Changes not deployed:
+  # * lists
+  #   insert_list
+  #   delete_list
+  # * flips
+  #   insert_flip
+  #   delete_flip
+  # * v1.0.0-b1
+  #   change_pass_v2
+  #   insert_user_v2
+  #
+  Use "sqitch deploy" to deploy these changes
+
+So, let's deploy.
+
+  > sqitch -d flipr_prod deploy
+  Deploying lists to flipr_prod
+    - insert_list
+    - delete_list
+  Deploying flips to flipr_prod
+    - insert_flip
+    - delete_flip
+  Deploying v1.0.0-b1 to flipr_prod
+    - change_pass_v2
+    - insert_user_v2
+
+And now the status is:
+
+  > sqitch -d flipr_prod status
+  # On database flipr_prod
+  # Tag:  v1.0.0-dev1
+  # Step: insert_user_v2
+  # Date: 2012-04-12 19:14:34
+  #
+  Nothing to deploy (up-to-date)
+
+All up-to-date. If necessary, we can also revert:
+
+  > sqitch -d flipr_prod revert --to flips
+  Reverting v1.0.0-b1 from flipr_prod
+    - insert_user_v2
+    - change_pass_v2
+
+  > sqitch -d flipr_prod status
+  # On database flipr_prod
+  # Tag:  flips
+  # Step: delete_flip
+  # Date: 2012-04-12 19:14:29
+  #
+  # Changes not deployed:
+  # * v1.0.0-b1
+  #   change_pass_v2
+  #   insert_user_v2
+  #
+  Use "sqitch deploy" to deploy these changes
+
+Nice, it just works! How? The secret is that, while the VCS history is not
+available when deploying from this plan, it was certainly available when the
+plan was I<written>. When we ran C<sqitch bundle>, Sqitch fetched all versions
+of the deployment scripts from the repository and wrote them out I<as they
+existed at the time of each tag>. In other words,
+F<sql/deploy/insert_user.sql> was written to the bundle as it existed at the
+time of the C<v1.0.0-dev1> tag, and F<sql/deploy/insert_user_v2.sql> was
+written as a copy of F<sql/deploy/insert_user.sql> at the time of the
+C<v1.0.0-b1> tag.
+
+Put another way: when bundling the changes and writing the plan, Sqitch copied
+the entire migration script for each step in time, just as if you had
+duplicated code in new migration scripts the old-fashioned way. So you get the
+benefit of exploiting the VCS history in you development practices, while
+still getting the benefits of explicit, separate steps in the distribution
+you ship.
+
