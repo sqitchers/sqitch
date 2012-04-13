@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 19;
+use Test::More tests => 20;
 #use Test::More 'no_plan';
 use Test::MockModule;
 use Capture::Tiny ':all';
@@ -134,6 +134,17 @@ is_deeply $CLASS->_parse_core_opts([
     verbose      => 2,
     quiet        => 1,
 }, 'Should parse lots of options';
+
+##############################################################################
+# Try short options.
+is_deeply $CLASS->_parse_core_opts([
+  '-d' => 'mydb',
+  '-u' => 'fred',
+]), {
+    %opts,
+    db_name  => 'mydb',
+    username => 'fred',
+}, 'Short options should work';
 
 USAGE: {
     my $mock = Test::MockModule->new('Pod::Usage');
