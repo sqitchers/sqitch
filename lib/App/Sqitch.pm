@@ -2,9 +2,70 @@ package App::Sqitch;
 
 use v5.10;
 use warnings;
+use utf8;
 use Getopt::Long;
+use parent 'Class::Accessor::Fast';
+
+__PACKAGE__->mk_ro_accessors(qw(
+    plan_file
+    engine
+));
 
 our $VERSION = '0.10';
+
+sub go {
+    my $class = shift;
+    my ($core_opts, $cmd, $cmd_opts) = $self->_split_opts(@ARGV);
+}
+
+# 1. Determine command.
+
+sub _core_opts {
+    return qw(
+        plan-file=s
+        engine=s
+        client=s
+        db-name|d=s
+        username|user|u=s
+        host=s
+        port=i
+        sql-dir=s
+        deploy-dir=s
+        revert-dir=s
+        test-dir=s
+        extension=s
+        dry-run
+        quiet
+        verbose
+        help
+        version
+    );
+}
+
+sub _split_opts {
+    my ($self, @args) = @_;
+
+    my $cmd_at  = 0;
+    my $add_one = sub { $cmd_at++ };
+    my $add_two = sub { $cmd_at += 2 };
+
+    Getopt::Long::Configure (qw(bundling));
+    Getopt::Long::GetOptionsFromArray(
+        [@args],
+        # Halt processing on on first non-option, which will be the command.
+        '<>' => sub { die '!FINISH' },
+        # Count how many args we've processed until we die.
+        map { $_ => m/=/ ? $add_two : $add_one } $self->_core_opts
+    ) or $self->_pod2usage;
+
+    # Splice the command and its options out of the arguments.
+    my ($cmd, @cmd_opts) = splice @args, $cmd_at;
+    return \@args, $cmd, \@cmd_opts;
+}
+
+# 2. Parse core options.
+# 3. Parse command options.
+# 4. Instantiate and run command.
 
 sub _getopt {
     my %opts;
@@ -1005,6 +1066,18 @@ Here is the EBNF Grammar for the plan file:
   name        = ? non-white space characters ? ;
   white-space = ? white space characters ? ;
   string      = ? non-EOL characters ? ;
+
+=head1 Interface
+
+=head2 Class Methods
+
+=head3 C<go>
+
+  App::Sqitch->go;
+
+Called from C<sqitch>, this class method parses command-line options and
+arguments in C<@ARGV>, parses the configuration file, constructs an
+App::Sqitch object, constructs a command object, and runs it.
 
 =head1 See Also
 

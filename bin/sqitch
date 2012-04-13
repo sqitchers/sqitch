@@ -2,7 +2,7 @@
 
 use App::Sqitch;
 
-App::Sqitch->go;
+exit App::Sqitch->go;
 
 =head1 Name
 
