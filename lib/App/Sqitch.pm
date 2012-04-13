@@ -113,7 +113,7 @@ __END__
 
 =head1 Name
 
-Sqitch - VCS-powered SQL change management
+App::Sqitch - VCS-powered SQL change management
 
 =head1 Synopsis
 
