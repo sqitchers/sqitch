@@ -10,6 +10,7 @@ use parent 'Class::Accessor::Fast';
 __PACKAGE__->mk_ro_accessors(qw(
     plan_file
     engine
+    verbosity
 ));
 
 our $VERSION = '0.10';
