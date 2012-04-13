@@ -1,6 +1,7 @@
 package App::Sqitch;
 
 use v5.10;
+use strict;
 use warnings;
 use utf8;
 use Getopt::Long;
@@ -15,10 +16,15 @@ our $VERSION = '0.10';
 
 sub go {
     my $class = shift;
-    my ($core_opts, $cmd, $cmd_opts) = $self->_split_opts(@ARGV);
+    # 1. Split command and options.
+    my ($core_args, $cmd, $cmd_args) = $class->_split_args(@ARGV);
+    # 2. Parse core options.
+    my $core_opts = $class->_parse_core_opts($core_args);
+    # 3. Instantiate command.
+    # 3. Parse command options.
+    # 4. Instantiate and run command.
 }
 
-# 1. Determine command.
 
 sub _core_opts {
     return qw(
@@ -36,20 +42,21 @@ sub _core_opts {
         extension=s
         dry-run
         quiet
-        verbose
+        verbose+
         help
+        man
         version
     );
 }
 
-sub _split_opts {
+sub _split_args {
     my ($self, @args) = @_;
 
     my $cmd_at  = 0;
     my $add_one = sub { $cmd_at++ };
     my $add_two = sub { $cmd_at += 2 };
 
-    Getopt::Long::Configure (qw(bundling));
+    Getopt::Long::Configure(qw(bundling));
     Getopt::Long::GetOptionsFromArray(
         [@args],
         # Halt processing on on first non-option, which will be the command.
@@ -63,47 +70,30 @@ sub _split_opts {
     return \@args, $cmd, \@cmd_opts;
 }
 
-# 2. Parse core options.
-# 3. Parse command options.
-# 4. Instantiate and run command.
-
-sub _getopt {
+sub _parse_core_opts {
+    my ($self, $args) = @_;
     my %opts;
-    Getopt::Long::Configure (qw(bundling pass_through));
-    Getopt::Long::GetOptions(
-        'plan-file=s'            => \$opts{plan_file},
-        'engine|e=s',            => \$opts{engine},
-        'client|c=s'             => \$opts{client},
-        'db-name|d=s',           => \$opts{db_name},
-        'username|user|u=s',     => \$opts{username},
-        'host|h=s',              => \$opts{host},
-        'port|n=i',              => \$opts{port},
-        'sql-dir=s'              => \$opts{sql_dir},
-        'deploy-dir=s'           => \$opts{deploy_dir},
-        'revert-dir=s'           => \$opts{revert_dir},
-        'test-dir=s'             => \$opts{test_dir},
-        'extension=s'            => \$opts{extension},
-        'dry-run'                => \$opts{dry_run},
-        'quiet|q'                => \$opts{quiet},
-        'verbose|v+'             => \$opts{verbose},
-        'help|H'                 => \$opts{help},
-        'man|M'                  => \$opts{man},
-        'version|V'              => \$opts{version},
-    ) or $self->_pod2usage;
+    Getopt::Long::Configure(qw(bundling pass_through));
+    Getopt::Long::GetOptionsFromArray($args, map {
+        (my $k = $_) =~ s/[|=+:].*//;
+        $k =~ s/-/_/g;
+        $_ => \$opts{$k},
+    } $self->_core_opts) or $self->_pod2usage;
 
     # Handle documentation requests.
-    $self->_pod2usage(
-        ( $opts{man} ? ( '-sections' => '.+' ) : ()),
-        '-exitval' => 0,
-    ) if $opts{help} or $opts{man};
+    $self->_pod2usage('-exitval' => 0, '-sections' => '.+') if delete $opts{man};
+    $self->_pod2usage('-exitval' => 0)                      if delete $opts{help};
 
     # Handle version request.
-    if ($opts{version}) {
+    if (delete $opts{version}) {
+        require File::Basename;
+        my $fn = File::Basename::basename($0);
         print $fn, ' (', __PACKAGE__, ') ', __PACKAGE__->VERSION, $/;
         exit;
     }
 
-    $opts{verbose} = 0 if $opts{quiet};
+    # Return the options.
+    return \%opts;
 }
 
 sub _pod2usage {
@@ -113,7 +103,6 @@ sub _pod2usage {
         '-verbose'  => 99,
         '-sections' => '(?i:(Usage|Options))',
         '-exitval'  => 1,
-        '-input'    => __FILE__,
         @_
     );
 }
