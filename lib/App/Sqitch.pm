@@ -236,47 +236,41 @@ reverts all steps necessary to return the state to an earlier tag.
 
 =head1 Options
 
-  -p --plan-file  FILE    Path to a deployment plan file.
-  -e --engine     ENGINE  Database engine.
-  -c --client     PATH    Path to the engine command-line client.
+     --plan-file  FILE    Path to a deployment plan file.
+     --engine     ENGINE  Database engine.
+     --client     PATH    Path to the engine command-line client.
   -d --db-name    NAME    Database name.
   -u --username   USER    Database user name.
-  -h --host       HOST    Database server host name.
-  -n --port       PORT    Database server port number.
+     --host       HOST    Database server host name.
+     --port       PORT    Database server port number.
      --sql-dir    DIR     Path to directory with deploy and revert scripts.
      --deploy-dir DIR     Path to directory with SQL deployment scripts.
      --revert-dir DIR     Path to directory with SQL reversion scripts.
      --test-dir   DIR     Path to directory with SQL test scripts.
      --extension  EXT     SQL script file name extension.
      --dry-run            Execute command without making any changes.
-  -q --quiet              Quiet mode with non-error output suppressed.
-  -v --verbose            Increment verbosity.
-  -V --version            Print the version number and exit.
-  -H --help               Print a usage statement and exit.
-  -M --man                Print the complete documentation and exit.
+     --quiet              Quiet mode with non-error output suppressed.
+     --verbose            Increment verbosity.
+     --version            Print the version number and exit.
+     --help               Print a usage statement and exit.
+     --man                Print the complete documentation and exit.
 
 =head1 Options Details
 
 =over
 
-=item C<-p>
-
 =item C<--plan-file>
 
   sqitch --plan-file plan.conf
-  sqitch -p sql/deploy.conf
 
 Path to the deployment plan file. Defaults to F<./sqitch.plan>. If this file
 is not present, Sqitch will attempt to read from VCS files. If no supported
 VCS system is in place, an exception will be thrown. See L</Plan File> for a
 description of its structure.
 
-=item C<-e>
-
 =item C<--engine>
 
   sqitch --engine pg
-  sqitch -e sqlite
 
 The database engine to use. Supported engines include:
 
@@ -290,12 +284,9 @@ The database engine to use. Supported engines include:
 
 =back
 
-=item C<-c>
-
 =item C<--client>
 
   sqitch --client /usr/local/pgsql/bin/psql
-  sqitch -c /usr/bin/sqlite3
 
 Path to the command-line client for the database engine. Defaults to a client
 in the current path named appropriately for the specified engine.
@@ -324,22 +315,16 @@ the database will be automatically created on first connect.
 
 User name to use when connecting to the database. Does not apply to all engines.
 
-=item C<-h>
-
 =item C<--host>
 
   sqitch --host db.example.com
-  sqitch -h localhost
 
 Host name to use when connecting to the database. Does not apply to all
 engines.
 
-=item C<-n>
-
 =item C<--port>
 
   sqitch --port 7654
-  sqitch -p 2222
 
 Port number to connect to. Does not apply to all engines.
 
@@ -388,39 +373,29 @@ Execute the Sqitch command without making any actual changes. This allows you
 to see what Sqitch would actually do, without doing it. Implies a verbosity
 level of 1; add extra C<--verbose>s for greater verbosity.
 
-=item C<-q>
-
 =item C<--quiet>
 
 Suppress normal output messages. Error messages will still be emitted to
 C<STDERR>. Overrides any value specified by C<--verbose>.
 
-=item C<-v>
-
 =item C<--verbose>
 
-  sqitch --verbose -v
+  sqitch --verbose --verbose
 
 A value between 0 and 3 specifying how verbose Sqitch should be. Unless
 C<--quiet> is specified, the default is 1, meaning that Sqitch will output
 basic status messages as it does its thing. Values of 2 and 3 each cause
 greater verbosity. Ignored if C<--quiet> is specified.
 
-=item C<-H>
-
 =item C<--help>
 
   sqitch --help
-  sqitch -H
 
 Outputs a brief description of the options supported by C<sqitch> and exits.
-
-=item C<-M>
 
 =item C<--man>
 
   sqitch --man
-  sqitch -M
 
 Outputs this documentation and exits.
 
@@ -429,7 +404,6 @@ Outputs this documentation and exits.
 =item C<--version>
 
   sqitch --version
-  sqitch -V
 
 Outputs the program name and version and exits.
 
