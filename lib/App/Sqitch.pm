@@ -7,13 +7,24 @@ use utf8;
 use Getopt::Long;
 use parent 'Class::Accessor::Fast';
 
+our $VERSION = '0.10';
+
 __PACKAGE__->mk_ro_accessors(qw(
     plan_file
     engine
+    client
+    db_name
+    username
+    host
+    port
+    sql_dir
+    deploy_dir
+    revert_dir
+    test_dir
+    extension
+    dry_run
     verbosity
 ));
-
-our $VERSION = '0.10';
 
 sub go {
     my $class = shift;
@@ -21,10 +32,36 @@ sub go {
     my ($core_args, $cmd, $cmd_args) = $class->_split_args(@ARGV);
     # 2. Parse core options.
     my $core_opts = $class->_parse_core_opts($core_args);
-    # 3. Instantiate command.
+    # 3. Instantiate Sqitch.
+    my $sqitch = $class->new($core_opts);
     # 3. Parse command options.
     # 4. Instantiate and run command.
 }
+
+sub new {
+    my $class = shift;
+    my %p = %{ +shift || {} };
+    $p{verbosity} //= 0;
+    return $class->SUPER::new(\%p);
+}
+
+# XXX Not sure if I want to standardize these or not, so not yet.
+# sub username {
+#     shift->{username} // $ENV{SQITCH_USER} // $ENV{USER};
+# }
+
+# sub db_name {
+#     my $self = shift;
+#     $self->{db_name} // $ENV{SQITCH_DBNAME} // $self->username;
+# }
+
+# sub host {
+#     shift->{host} // $ENV{SQITCH_HOST};
+# }
+
+# sub port {
+#     shift->{port} // $ENV{SQITCH_PORT};
+# }
 
 sub _core_opts {
     return qw(
@@ -123,8 +160,11 @@ App::Sqitch - VCS-powered SQL change management
 
 =head1 Description
 
-This module provides the implementation for L<sqitch>. You probably want
-to read L<its documentation|sqitch>.
+This module provides the implementation for L<sqitch>. You probably want to
+read L<its documentation|sqitch>, or L<the tutorial|sqitchtutorial>. Unless
+you want to hack on Sqitch itself, or provide support for a new engine or
+L<command|Sqitch::App::Command>. In which case, you will find this API
+documentation useful.
 
 =head1 Interface
 
@@ -137,6 +177,46 @@ to read L<its documentation|sqitch>.
 Called from C<sqitch>, this class method parses command-line options and
 arguments in C<@ARGV>, parses the configuration file, constructs an
 App::Sqitch object, constructs a command object, and runs it.
+
+=head2 Constructor
+
+=head3 C<new>
+
+  my $sqitch = App::Sqitch->new(\%params);
+
+Constructs and returns a new Sqitch object. The supported parameters include:
+
+=over
+
+=item C<plan_file>
+
+=item C<engine>
+
+=item C<client>
+
+=item C<db_name>
+
+=item C<username>
+
+=item C<host>
+
+=item C<port>
+
+=item C<sql_dir>
+
+=item C<deploy_dir>
+
+=item C<revert_dir>
+
+=item C<test_dir>
+
+=item C<extension>
+
+=item C<dry_run>
+
+=item C<verbosity>
+
+=back
 
 =head1 Author
 
