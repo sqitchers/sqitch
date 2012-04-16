@@ -26,7 +26,6 @@ sub go {
     # 4. Instantiate and run command.
 }
 
-
 sub _core_opts {
     return qw(
         plan-file=s
@@ -94,6 +93,7 @@ sub _parse_core_opts {
     }
 
     # Return the options.
+    $opts{verbosity} = delete $opts{verbose};
     return \%opts;
 }
 

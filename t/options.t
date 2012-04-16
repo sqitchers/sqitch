@@ -81,7 +81,7 @@ my %opts = (
     extension  => undef,
     dry_run    => undef,
     quiet      => undef,
-    verbose    => undef,
+    verbosity  => undef,
 );
 
 is_deeply $CLASS->_parse_core_opts([]), \%opts,
@@ -131,7 +131,7 @@ is_deeply $CLASS->_parse_core_opts([
     'test_dir'   => 'tst',
     'extension'  => 'ext',
     'dry_run'    => 1,
-    verbose      => 2,
+    verbosity    => 2,
     quiet        => 1,
 }, 'Should parse lots of options';
 
