@@ -5,6 +5,8 @@ use strict;
 use warnings;
 use utf8;
 use Carp;
+use Try::Tiny;
+use Hash::Merge 'merge';
 use parent 'Class::Accessor::Fast';
 
 __PACKAGE__->mk_ro_accessors(qw(
@@ -12,20 +14,33 @@ __PACKAGE__->mk_ro_accessors(qw(
 ));
 
 sub load {
-    my ($class, $cmd, $params) = @_;
+    my ($class, $p) = @_;
 
     # We should have a command.
-    croak qq{No command name passed to $class->load} unless $cmd;
+    croak qq{No command name passed to $class->load} unless $p->{command};
 
     # Load the command class.
-    my $pkg = __PACKAGE__ . "::$cmd";
-    eval "require $pkg" or do {
-        my $err = $@;
-        die $err unless $err =~ /^Can't locate/;
-        __PACKAGE__->new($params)->help(qq{"$cmd" is not a valid command.})
+    my $pkg = __PACKAGE__ . "::$p->{command}";
+    try {
+        eval "require $pkg" or die $@;
+    } catch {
+        # Just die if something choked.
+        die $_ unless /^Can't locate/;
+
+        # Suggest help if it's not a valid command.
+        __PACKAGE__->new({ sqitch => $p->{sqitch} })->help(
+            qq{"$p->{command}" is not a valid command.}
+        );
     };
 
+    # Merge the command-line options and configuration parameters
+    my $params = Hash::Merge->new->merge(
+        $p->{config},
+        $class->_parse_opts($p->{args}),
+    );
+
     # Instantiate and return the command.
+    $params->{sqitch} = $p->{sqitch};
     return $pkg->new($params);
 }
 
@@ -46,11 +61,29 @@ sub verbosity {
     shift->sqitch->verbosity;
 }
 
+sub _parse_opts {
+    my ($class, $args) = @_;
+    return {};
+}
+
 sub _prepend {
     my $prefix = shift;
     my $msg = join '', map { $_  // '' } @_;
     $msg =~ s/^/$prefix /gms;
     return $msg;
+}
+
+sub execute {
+    my $self = shift;
+    croak(
+        'The execute() method must be called from a subclass of ',
+        __PACKAGE__
+    ) if ref $self eq __PACKAGE__;
+
+    croak(
+        'The execute() method has not been overridden in ',
+        ref $self
+    );
 }
 
 sub trace {
@@ -142,7 +175,16 @@ access its properties in order to manage global state.
 =head2 Instance Methods
 
 These methods are mainly provided as utilities for the command subclasses to
-use.
+use. The exception is C<execute>, which must be overridden in all subclasses.
+
+=head3 C<execute>
+
+  $config->execute;
+
+Executes the command. This is the method that does the work of the command.
+Must be overridden in all subclasses. Dies if the method is not overridden for
+the object on which it is called, or if it is called against a base
+App::Sqitch::Command object.
 
 =head3 C<verbosity>
 

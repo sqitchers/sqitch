@@ -20,7 +20,9 @@ Module::Build->new(
         'File::HomeDir'         => 0,
         'Getopt::Long'          => 0,
         'Hash::Merge'           => 0,
+        'namespace::autoclean'  => 0,
         'Path::Class'           => 0,
+        'Try::Tiny'             => 0,
     },
     recommends         => {
         'Test::Pod'  => '1.41',

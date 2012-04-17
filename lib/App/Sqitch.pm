@@ -5,7 +5,9 @@ use strict;
 use warnings;
 use utf8;
 use Getopt::Long;
-use Hash::Merge;
+use Hash::Merge qw(merge);
+use App::Sqitch::Command;
+use namespace::autoclean;
 use parent 'Class::Accessor::Fast';
 
 our $VERSION = '0.10';
@@ -29,14 +31,29 @@ __PACKAGE__->mk_ro_accessors(qw(
 
 sub go {
     my $class = shift;
+
     # 1. Split command and options.
     my ($core_args, $cmd, $cmd_args) = $class->_split_args(@ARGV);
+
     # 2. Parse core options.
     my $core_opts = $class->_parse_core_opts($core_args);
-    # 3. Instantiate Sqitch.
-    my $sqitch = $class->new($core_opts);
-    # 3. Parse command options.
-    # 4. Instantiate and run command.
+
+    # 3. Load config.
+    my $config = $class->_load_config;
+
+    # 4. Instantiate Sqitch.
+    my $sqitch = $class->new(merge $core_opts, $config->{core});
+
+    # 5. Instantiate the command object.
+    my $command = App::Sqitch::Command->load({
+        sqitch  => $sqitch,
+        command => $cmd,
+        config  => $config->{$cmd},
+        args    => $cmd_args,
+    });
+
+    # 6. Execute command.
+    return $command->execute;
 }
 
 sub new {
@@ -160,7 +177,6 @@ sub _global_config_root {
 
 sub _load_config {
     my $self = shift;
-
     return Hash::Merge->new->merge(
         $self->_read_ini('sqitch.ini'),
         $self->_read_ini( $self->_global_config_root->file('config.ini') )

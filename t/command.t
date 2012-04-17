@@ -4,13 +4,14 @@ use strict;
 use warnings;
 use v5.10;
 use utf8;
+use lib 't/lib';
 
 BEGIN {
     # Stub out exit.
     *CORE::GLOBAL::exit = sub { die 'EXITED: ' . (@_ ? shift : 0); };
 }
 
-use Test::More tests => 30;
+use Test::More tests => 35;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Test::Exception;
@@ -52,21 +53,47 @@ isa_ok $CLASS->new({sqitch => $sqitch}), $CLASS;
 
 ##############################################################################
 # Test load().
-ok my $cmd = $CLASS->load( whu => {sqitch => $sqitch}), 'Load a "whu" command';
+ok my $cmd = $CLASS->load({
+    command => 'whu',
+    sqitch  => $sqitch,
+    config  => {},
+    args    => []
+}), 'Load a "whu" command';
 isa_ok $cmd, 'App::Sqitch::Command::whu';
 is $cmd->sqitch, $sqitch, 'The sqitch attribute should be set';
 
-ok $cmd = $CLASS->load( whu => {sqitch => $sqitch, foo => 'hi'}),
-    'Load a "whu" command with "foo" param';
+ok $cmd = $CLASS->load({
+    command => 'whu',
+    sqitch  => $sqitch,
+    config  => {foo => 'hi'},
+    args    => []
+}), 'Load a "whu" command with "foo" config';
 is $cmd->foo, 'hi', 'The "foo" attribute should be set';
 
 # Test handling of an invalid command.
 $0 = 'sqch';
 is capture_stderr {
-    throws_ok { $CLASS->load(nonexistent => { sqitch => $sqitch } ) }
+    throws_ok { $CLASS->load({ command => 'nonexistent', sqitch => $sqitch }) }
         qr/EXITED: 1/, 'Should exit';
  }, qq{sqch: "nonexistent" is not a valid command. See sqch --help\n},
     'Should get an exception for an invalid command';
+
+# Test handling a bad command implementation.
+throws_ok { $CLASS->load({ command => 'bad', sqitch => $sqitch }) }
+    qr/^LOL BADZ/, 'Should die on bad command module';
+
+##############################################################################
+# Test execute.
+ok $cmd = $CLASS->new({ sqitch => $sqitch }), "Create a $CLASS object";
+throws_ok { $cmd->execute }
+    qr/\QThe execute() method must be called from a subclass of $CLASS/,
+    'Should get an error calling execute on command base class';
+
+ok $cmd = App::Sqitch::Command::whu->new({sqitch => $sqitch}),
+    'Create a subclass command object';
+throws_ok { $cmd->execute }
+    qr/\QThe execute() method has not been overridden in App::Sqitch::Command::whu/,
+    'Should get an error for un-overridden execute() method';
 
 ##############################################################################
 # Test verbosity.
