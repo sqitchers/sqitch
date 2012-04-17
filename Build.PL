@@ -12,6 +12,7 @@ Module::Build->new(
         'Module::Build'        => '0.35',
         'Test::MockModule'     => '0.05',
         'Test::More'           => '0.17',
+        'Test::NoWarnings'     => '0.083',
         'File::Spec'           => 0,
     },
     requires => {

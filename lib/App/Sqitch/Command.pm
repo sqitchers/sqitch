@@ -61,9 +61,24 @@ sub verbosity {
     shift->sqitch->verbosity;
 }
 
+sub options {
+    return;
+}
+
 sub _parse_opts {
     my ($class, $args) = @_;
-    return {};
+    return {} unless $args && @{ $args };
+    my @specs = $class->options or return {};
+
+    my %opts;
+    Getopt::Long::Configure(qw(bundling));
+    Getopt::Long::GetOptionsFromArray($args, map {
+        (my $k = $_) =~ s/[|=+:!].*//;
+        $k =~ s/-/_/g;
+        $_ => \$opts{$k};
+    } @specs) or $class->_pod2usage;
+
+    return \%opts;
 }
 
 sub _prepend {
@@ -172,19 +187,49 @@ use C<init>, instead.
 Returns the L<App::Sqitch> object that instantiated the command. Commands may
 access its properties in order to manage global state.
 
-=head2 Instance Methods
+=head2 Overridable Instance Methods
 
-These methods are mainly provided as utilities for the command subclasses to
-use. The exception is C<execute>, which must be overridden in all subclasses.
+These methods should be overridden by all subclasses.
 
 =head3 C<execute>
 
-  $config->execute;
+  $cmd->execute;
 
 Executes the command. This is the method that does the work of the command.
 Must be overridden in all subclasses. Dies if the method is not overridden for
 the object on which it is called, or if it is called against a base
 App::Sqitch::Command object.
+
+=head3 C<options>
+
+  my @spec = $cmd->options;
+
+Returns a list of L<Getopt::Long> options specifications. When C<load> loads
+the class, any options passed to the command will be parsed using these
+values. The resulting hash will be merged with configuration properties and
+passed to the constructor. They keys in this hash will be the first part of
+each option, with dashes replaced with underscores.
+
+Here's an example excerpted from the C<config> command:
+
+  sub options {
+      return qw(
+          get
+          unset
+          list
+          global
+          system
+          config-file=s
+      );
+  }
+
+This will result in parameters with all the same names except for
+C<config-file=s>, which will be named C<config_file>.
+
+=head2 Utility Instance Methods
+
+These methods are mainly provided as utilities for the command subclasses to
+use.
 
 =head3 C<verbosity>
 

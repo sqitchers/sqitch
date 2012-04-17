@@ -130,9 +130,9 @@ sub _parse_core_opts {
     my %opts;
     Getopt::Long::Configure(qw(bundling pass_through));
     Getopt::Long::GetOptionsFromArray($args, map {
-        (my $k = $_) =~ s/[|=+:].*//;
+        (my $k = $_) =~ s/[|=+:!].*//;
         $k =~ s/-/_/g;
-        $_ => \$opts{$k},
+        $_ => \$opts{$k};
     } $self->_core_opts) or $self->_pod2usage;
 
     # Handle documentation requests.

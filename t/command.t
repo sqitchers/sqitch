@@ -11,10 +11,11 @@ BEGIN {
     *CORE::GLOBAL::exit = sub { die 'EXITED: ' . (@_ ? shift : 0); };
 }
 
-use Test::More tests => 35;
-#use Test::More 'no_plan';
+#use Test::More tests => 35;
+use Test::More 'no_plan';
 use App::Sqitch;
 use Test::Exception;
+use Test::NoWarnings;
 use Capture::Tiny ':all';
 
 my $CLASS;
@@ -32,6 +33,16 @@ COMMAND: {
     use parent 'App::Sqitch::Command';
     __PACKAGE__->mk_accessors('foo');
     $INC{'App/Sqitch/Command/whu.pm'} = __FILE__;
+
+    sub options {
+        return qw(
+            foo
+            hi-there|h
+            icky-foo!
+            feathers=s
+        );
+    }
+
 }
 
 ok my $sqitch = App::Sqitch->new, 'Load a sqitch sqitch object';
@@ -84,6 +95,7 @@ throws_ok { $CLASS->load({ command => 'bad', sqitch => $sqitch }) }
 
 ##############################################################################
 # Test execute.
+can_ok $CLASS, 'execute';
 ok $cmd = $CLASS->new({ sqitch => $sqitch }), "Create a $CLASS object";
 throws_ok { $cmd->execute }
     qr/\QThe execute() method must be called from a subclass of $CLASS/,
@@ -94,6 +106,35 @@ ok $cmd = App::Sqitch::Command::whu->new({sqitch => $sqitch}),
 throws_ok { $cmd->execute }
     qr/\QThe execute() method has not been overridden in App::Sqitch::Command::whu/,
     'Should get an error for un-overridden execute() method';
+
+##############################################################################
+# Test options parsing.
+can_ok $CLASS, 'options', '_parse_opts';
+ok $cmd = $CLASS->new({ sqitch => $sqitch }), "Create a $CLASS object again";
+is_deeply $cmd->_parse_opts, {}, 'Base _parse_opts should return an empty hash';
+
+ok $cmd = App::Sqitch::Command::whu->new({sqitch => $sqitch}),
+    'Create a subclass command object again';
+is_deeply $cmd->_parse_opts, {}, 'Subclass should return an empty hash for no args';
+
+my %opts = (
+    foo      => undef,
+    hi_there => undef,
+    icky_foo => undef,
+    feathers => undef,
+);
+is_deeply $cmd->_parse_opts([1]), \%opts, 'Subclass should use options spec';
+is_deeply $cmd->_parse_opts([qw(
+    --foo
+    --h
+    --no-icky-foo
+    --feathers down
+)]), {
+    foo      => 1,
+    hi_there => 1,
+    icky_foo => 0,
+    feathers => 'down',
+}, 'Subclass should parse options spec';
 
 ##############################################################################
 # Test verbosity.
