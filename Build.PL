@@ -12,10 +12,14 @@ Module::Build->new(
         'Module::Build'        => '0.35',
         'Test::MockModule'     => '0.05',
         'Test::More'           => '0.17',
+        'File::Spec'           => 0,
     },
     requires => {
         'Class::Accessor::Fast' => '0.31',
+        'Config::INI::Reader'   => 0,
+        'File::HomeDir'         => 0,
         'Getopt::Long'          => 0,
+        'Path::Class'           => 0,
     },
     recommends         => {
         'Test::Pod'  => '1.41',

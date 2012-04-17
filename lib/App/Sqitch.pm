@@ -145,6 +145,53 @@ sub _pod2usage {
     );
 }
 
+sub _global_config_root {
+    require Path::Class;
+    return Path::Class::dir($ENV{SQITCH_GLOBAL_CONFIG_ROOT})
+        if $ENV{SQITCH_GLOBAL_CONFIG_ROOT};
+
+    require File::HomeDir;
+    my $homedir = File::HomeDir->my_home
+        or croak("Could not determine home directory");
+
+    return Path::Class::dir($homedir)->subdir('.sqitch');
+}
+
+sub _load_config {
+    my $self = shift;
+
+    # Read the local and global configs.
+    my $local  = $self->_read_ini('sqitch.ini');
+    my $global = $self->_read_ini( $self->_global_config_root->file('config.ini') );
+
+    if ($global && $local) {
+        # Merge them.
+        for my $section (keys %{ $local }) {
+            if ($global->{$section}) {
+                # Merge the section.
+                $global->{$section} = {
+                    %{ $global->{$section} },
+                    %{ $local->{$section}  },
+                };
+            } else {
+                # Copy the section whole-hog.
+                $global->{$section} = $local->{$section};
+            }
+        }
+        return $global;
+    } else {
+        # Return whatever we've got.
+        return $global || $local || {};
+    }
+}
+
+sub _read_ini {
+    my ($self, $file) = @_;
+    return unless -f $file;
+    require Config::INI::Reader;
+    return Config::INI::Reader->read_file($file);
+}
+
 1;
 
 __END__
