@@ -5,6 +5,7 @@ use strict;
 use warnings;
 use utf8;
 use Getopt::Long;
+use Hash::Merge;
 use parent 'Class::Accessor::Fast';
 
 our $VERSION = '0.10';
@@ -160,29 +161,10 @@ sub _global_config_root {
 sub _load_config {
     my $self = shift;
 
-    # Read the local and global configs.
-    my $local  = $self->_read_ini('sqitch.ini');
-    my $global = $self->_read_ini( $self->_global_config_root->file('config.ini') );
-
-    if ($global && $local) {
-        # Merge them.
-        for my $section (keys %{ $local }) {
-            if ($global->{$section}) {
-                # Merge the section.
-                $global->{$section} = {
-                    %{ $global->{$section} },
-                    %{ $local->{$section}  },
-                };
-            } else {
-                # Copy the section whole-hog.
-                $global->{$section} = $local->{$section};
-            }
-        }
-        return $global;
-    } else {
-        # Return whatever we've got.
-        return $global || $local || {};
-    }
+    return Hash::Merge->new->merge(
+        $self->_read_ini('sqitch.ini'),
+        $self->_read_ini( $self->_global_config_root->file('config.ini') )
+    ) || {};
 }
 
 sub _read_ini {

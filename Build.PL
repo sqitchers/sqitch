@@ -19,6 +19,7 @@ Module::Build->new(
         'Config::INI::Reader'   => 0,
         'File::HomeDir'         => 0,
         'Getopt::Long'          => 0,
+        'Hash::Merge'           => 0,
         'Path::Class'           => 0,
     },
     recommends         => {
