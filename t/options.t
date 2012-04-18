@@ -66,25 +66,7 @@ INVALID: {
 # Test _parse_core_opts
 can_ok $CLASS, '_parse_core_opts';
 
-my %opts = (
-    plan_file  => undef,
-    engine     => undef,
-    client     => undef,
-    db_name    => undef,
-    username   => undef,
-    host       => undef,
-    port       => undef,
-    sql_dir    => undef,
-    deploy_dir => undef,
-    revert_dir => undef,
-    test_dir   => undef,
-    extension  => undef,
-    dry_run    => undef,
-    quiet      => undef,
-    verbosity  => undef,
-);
-
-is_deeply $CLASS->_parse_core_opts([]), \%opts,
+is_deeply $CLASS->_parse_core_opts([]), {},
     'Should have default config for no options';
 
 # Make sure we can get help.
@@ -141,7 +123,6 @@ is_deeply $CLASS->_parse_core_opts([
   '-d' => 'mydb',
   '-u' => 'fred',
 ]), {
-    %opts,
     db_name  => 'mydb',
     username => 'fred',
 }, 'Short options should work';

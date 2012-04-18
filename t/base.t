@@ -2,8 +2,9 @@
 
 use strict;
 use warnings;
-#use Test::More tests => 1;
-use Test::More 'no_plan';
+use Test::More tests => 24;
+#use Test::More 'no_plan';
+use Test::MockModule;
 
 my $CLASS;
 BEGIN {
@@ -56,3 +57,22 @@ for my $attr (qw(
 # is $sqitch->db_name, $sqitch->username, 'Default DB should be same as user';
 is $sqitch->verbosity, 0, 'verbosity should be 0';
 
+##############################################################################
+# Test go().
+GO: {
+    my $mock = Test::MockModule->new('App::Sqitch::Command::help');
+    my ($cmd, @params);
+    my $ret = 1;
+    $mock->mock(execute => sub { ($cmd, @params) = @_; $ret });
+    chdir 't';
+    local @ARGV = qw(--engine sqlite help config);
+    is +App::Sqitch->go, 0, 'Should get 0 from go()';
+
+    isa_ok $cmd, 'App::Sqitch::Command::help', 'Command';
+    is_deeply \@params, ['config'], 'Extra args should be passed to execute';
+
+    isa_ok my $sqitch = $cmd->sqitch, 'App::Sqitch';
+    is $sqitch->engine, 'sqlite', 'Engine should be set by option';
+    is $sqitch->db_name, 'widgetopolis', 'db_name should be set by config';
+    is $sqitch->extension, 'ddl', 'ddl should be set by config';
+}

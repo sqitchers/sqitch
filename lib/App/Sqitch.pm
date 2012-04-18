@@ -53,7 +53,7 @@ sub go {
     });
 
     # 6. Execute command.
-    return $command->execute(@{ $cmd_args });
+    return $command->execute(@{ $cmd_args }) ? 0 : 2;
 }
 
 sub new {
@@ -147,8 +147,9 @@ sub _parse_core_opts {
         exit;
     }
 
-    # Return the options.
+    # Normalize the options (remove undefs) and return.
     $opts{verbosity} = delete $opts{verbose};
+    delete $opts{$_} for grep { !defined $opts{$_} } keys %opts;
     return \%opts;
 }
 

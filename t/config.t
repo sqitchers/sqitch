@@ -39,7 +39,7 @@ GLOBAL: {
 
 my $sqitch_ini = {
     "core" => {
-        db        => "widgetopolis",
+        db_name   => "widgetopolis",
         engine    => "pg",
         extension => "ddl",
         sql_dir   => "migrations",
@@ -65,7 +65,7 @@ is_deeply $CLASS->_load_config, $sqitch_ini,
 
 my $both_ini = {
     "core" => {
-        db        => "widgetopolis",
+        db_name   => "widgetopolis",
         engine    => "pg",
         extension => "ddl",
         sql_dir   => "migrations",
