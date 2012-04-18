@@ -172,6 +172,11 @@ sub help {
     exit 1;
 }
 
+sub usage {
+    my $self = shift;
+    $self->_pod2usage('-message' => join '', @_);
+}
+
 1;
 
 __END__
@@ -322,6 +327,14 @@ you can recover from it.
 
 Send a failure message to C<STDERR> and exit. Use if something unexpected
 happened and you cannot recover from it.
+
+=head3 C<usage>
+
+  $cmd->usage('Missing "value" argument');
+
+Sends the specified message to C<STDERR>, followed by the usage sections of
+the command's documentation. Those sections may be named "Name", "Synopsis",
+or "Options". Any or all of those will be shown.
 
 =head3 C<help>
 

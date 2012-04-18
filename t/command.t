@@ -11,7 +11,7 @@ BEGIN {
     *CORE::GLOBAL::exit = sub { die 'EXITED: ' . (@_ ? shift : 0); };
 }
 
-use Test::More tests => 66;
+use Test::More tests => 70;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Test::Exception;
@@ -180,49 +180,60 @@ PARSEOPTSERR: {
 # Test _pod2usage().
 POD2USAGE: {
     my $mock = Test::MockModule->new('Pod::Usage');
-    my @args;
-    $mock->mock(pod2usage => sub { @args = @_} );
+    my %args;
+    $mock->mock(pod2usage => sub { %args = @_} );
     $cmd = $CLASS->new({ sqitch => $sqitch });
     ok $cmd->_pod2usage, 'Call _pod2usage on base object';
-    is_deeply \@args, [
+    is_deeply \%args, {
         '-verbose'  => 99,
         '-sections' => '(?i:(Usage|Synopsis|Options))',
         '-exitval'  => 1,
         '-input'    => Pod::Find::pod_where({'-inc' => 1}, $CLASS),
-    ], 'Default params should be passed to Pod::Usage';
+    }, 'Default params should be passed to Pod::Usage';
 
     $cmd = App::Sqitch::Command::whu->new({ sqitch => $sqitch });
     ok $cmd->_pod2usage, 'Call _pod2usage on "whu" command object';
-    is_deeply \@args, [
+    is_deeply \%args, {
         '-verbose'  => 99,
         '-sections' => '(?i:(Usage|Synopsis|Options))',
         '-exitval'  => 1,
         '-input'    => Pod::Find::pod_where({'-inc' => 1}, $CLASS),
-    ], 'Default params should be passed to Pod::Usage';
+    }, 'Default params should be passed to Pod::Usage';
 
     isa_ok $cmd = App::Sqitch::Command->load({
         command => 'config',
         sqitch  => $sqitch,
     }), 'App::Sqitch::Command::config', 'Config command object';
     ok $cmd->_pod2usage, 'Call _pod2usage on "config" command object';
-    is_deeply \@args, [
+    is_deeply \%args, {
         '-verbose'  => 99,
         '-sections' => '(?i:(Usage|Synopsis|Options))',
         '-exitval'  => 1,
         '-input'    => Pod::Find::pod_where({'-inc' => 1 }, 'sqitch-config'),
-    ], 'Should find sqitch-config docs to pass to Pod::Usage';
+    }, 'Should find sqitch-config docs to pass to Pod::Usage';
 
     isa_ok $cmd = App::Sqitch::Command->load({
         command => 'good',
         sqitch  => $sqitch,
     }), 'App::Sqitch::Command::good', 'Good command object';
     ok $cmd->_pod2usage, 'Call _pod2usage on "good" command object';
-    is_deeply \@args, [
+    is_deeply \%args, {
         '-verbose'  => 99,
         '-sections' => '(?i:(Usage|Synopsis|Options))',
         '-exitval'  => 1,
         '-input'    => Pod::Find::pod_where({'-inc' => 1 }, 'App::Sqitch::Command::good'),
-    ], 'Should find App::Sqitch::Command::good docs to pass to Pod::Usage';
+    }, 'Should find App::Sqitch::Command::good docs to pass to Pod::Usage';
+
+    # Test usage(), too.
+    can_ok $cmd, 'usage';
+    $cmd->usage('Hello ', 'gorgeous');
+    is_deeply \%args, {
+        '-verbose'  => 99,
+        '-sections' => '(?i:(Usage|Synopsis|Options))',
+        '-exitval'  => 1,
+        '-input'    => Pod::Find::pod_where({'-inc' => 1 }, 'App::Sqitch::Command::good'),
+        '-message'  => 'Hello gorgeous',
+    }, 'Should find App::Sqitch::Command::good docs to pass to Pod::Usage';
 }
 
 ##############################################################################
@@ -277,6 +288,13 @@ is capture_stderr {
         qr/EXITED: 1/
 }, "fatal: This that\nfatal: and the other",
     'fail should work';
+
+# Help.
+is capture_stderr {
+    throws_ok { $cmd->help('This ', "that\n", "and the other.") }
+        qr/EXITED: 1/
+}, "sqch: This that\nsqch: and the other. See sqch --help\n",
+    'help should work';
 
 # Help.
 is capture_stderr {
