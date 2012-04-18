@@ -53,7 +53,7 @@ sub go {
     });
 
     # 6. Execute command.
-    return $command->execute;
+    return $command->execute(@{ $cmd_args });
 }
 
 sub new {

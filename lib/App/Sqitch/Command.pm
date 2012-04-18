@@ -44,7 +44,7 @@ sub load {
     # Merge the command-line options and configuration parameters
     my $params = Hash::Merge->new->merge(
         $p->{config},
-        $class->_parse_opts($p->{args}),
+        $pkg->_parse_opts($p->{args}),
     );
 
     # Instantiate and return the command.
@@ -76,15 +76,14 @@ sub options {
 sub _parse_opts {
     my ($class, $args) = @_;
     return {} unless $args && @{ $args };
-    my @specs = $class->options or return {};
 
     my %opts;
-    Getopt::Long::Configure(qw(bundling));
+    Getopt::Long::Configure(qw(bundling no_pass_through));
     Getopt::Long::GetOptionsFromArray($args, map {
         (my $k = $_) =~ s/[|=+:!].*//;
         $k =~ s/-/_/g;
         $_ => \$opts{$k};
-    } @specs) or $class->_pod2usage;
+    } $class->options) or $class->_pod2usage;
 
     return \%opts;
 }

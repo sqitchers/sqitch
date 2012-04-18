@@ -11,7 +11,7 @@ BEGIN {
     *CORE::GLOBAL::exit = sub { die 'EXITED: ' . (@_ ? shift : 0); };
 }
 
-use Test::More tests => 58;
+use Test::More tests => 66;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Test::Exception;
@@ -32,7 +32,7 @@ COMMAND: {
     # Stub out a command.
     package App::Sqitch::Command::whu;
     use parent 'App::Sqitch::Command';
-    __PACKAGE__->mk_accessors('foo');
+    __PACKAGE__->mk_accessors(qw(foo feathers));
     $INC{'App/Sqitch/Command/whu.pm'} = __FILE__;
 
     sub options {
@@ -43,7 +43,6 @@ COMMAND: {
             feathers=s
         );
     }
-
 }
 
 ok my $sqitch = App::Sqitch->new, 'Load a sqitch sqitch object';
@@ -94,6 +93,16 @@ is capture_stderr {
 throws_ok { $CLASS->load({ command => 'bad', sqitch => $sqitch }) }
     qr/^LOL BADZ/, 'Should die on bad command module';
 
+# Test options processing.
+ok $cmd = $CLASS->load({
+    command => 'whu',
+    sqitch  => $sqitch,
+    config  => {foo => 'hi', feathers => 'yes'},
+    args    => ['--feathers' => 'no']
+}), 'Load a "whu" command with "--feathers" optin';
+is $cmd->feathers, 'yes', 'The "feathers" attribute should be set';
+
+
 ##############################################################################
 # Test command and execute.
 can_ok $CLASS, 'execute';
@@ -129,17 +138,43 @@ my %opts = (
     feathers => undef,
 );
 is_deeply $cmd->_parse_opts([1]), \%opts, 'Subclass should use options spec';
-is_deeply $cmd->_parse_opts([qw(
+my $args = [qw(
     --foo
     --h
     --no-icky-foo
     --feathers down
-)]), {
+    whatever
+)];
+is_deeply $cmd->_parse_opts($args), {
     foo      => 1,
     hi_there => 1,
     icky_foo => 0,
     feathers => 'down',
 }, 'Subclass should parse options spec';
+is_deeply $args, ['whatever'], 'Args array should be cleared of options';
+
+PARSEOPTSERR: {
+    # Make sure that invalid options trigger an error.
+    my $mock = Test::MockModule->new($CLASS);
+    my @args;
+    $mock->mock(_pod2usage => sub { @args = @_} );
+    my @warn; local $SIG{__WARN__} = sub { @warn = @_ };
+    $cmd->_parse_opts(['--dont-do-this']);
+    is_deeply \@warn, ["Unknown option: dont-do-this\n"],
+        'Should get warning for unknown option';
+    is_deeply \@args, [$cmd], 'Should call _pod2usage on options parse failure';
+
+    # Try it with a command with no options.
+    @args = @warn = ();
+    isa_ok $cmd = App::Sqitch::Command->load({
+        command => 'good',
+        sqitch  => $sqitch,
+    }), 'App::Sqitch::Command::good', 'Good command object';
+    $cmd->_parse_opts(['--dont-do-this']);
+    is_deeply \@warn, ["Unknown option: dont-do-this\n"],
+        'Should get warning for unknown option when there are no options';
+    is_deeply \@args, [$cmd], 'Should call _pod2usage on no options parse failure';
+}
 
 ##############################################################################
 # Test _pod2usage().
