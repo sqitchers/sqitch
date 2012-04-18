@@ -187,7 +187,7 @@ POD2USAGE: {
     is_deeply \%args, {
         '-verbose'  => 99,
         '-sections' => '(?i:(Usage|Synopsis|Options))',
-        '-exitval'  => 1,
+        '-exitval'  => 2,
         '-input'    => Pod::Find::pod_where({'-inc' => 1}, $CLASS),
     }, 'Default params should be passed to Pod::Usage';
 
@@ -196,7 +196,7 @@ POD2USAGE: {
     is_deeply \%args, {
         '-verbose'  => 99,
         '-sections' => '(?i:(Usage|Synopsis|Options))',
-        '-exitval'  => 1,
+        '-exitval'  => 2,
         '-input'    => Pod::Find::pod_where({'-inc' => 1}, $CLASS),
     }, 'Default params should be passed to Pod::Usage';
 
@@ -208,7 +208,7 @@ POD2USAGE: {
     is_deeply \%args, {
         '-verbose'  => 99,
         '-sections' => '(?i:(Usage|Synopsis|Options))',
-        '-exitval'  => 1,
+        '-exitval'  => 2,
         '-input'    => Pod::Find::pod_where({'-inc' => 1 }, 'sqitch-config'),
     }, 'Should find sqitch-config docs to pass to Pod::Usage';
 
@@ -220,7 +220,7 @@ POD2USAGE: {
     is_deeply \%args, {
         '-verbose'  => 99,
         '-sections' => '(?i:(Usage|Synopsis|Options))',
-        '-exitval'  => 1,
+        '-exitval'  => 2,
         '-input'    => Pod::Find::pod_where({'-inc' => 1 }, 'App::Sqitch::Command::good'),
     }, 'Should find App::Sqitch::Command::good docs to pass to Pod::Usage';
 
@@ -230,7 +230,7 @@ POD2USAGE: {
     is_deeply \%args, {
         '-verbose'  => 99,
         '-sections' => '(?i:(Usage|Synopsis|Options))',
-        '-exitval'  => 1,
+        '-exitval'  => 2,
         '-input'    => Pod::Find::pod_where({'-inc' => 1 }, 'App::Sqitch::Command::good'),
         '-message'  => 'Hello gorgeous',
     }, 'Should find App::Sqitch::Command::good docs to pass to Pod::Usage';

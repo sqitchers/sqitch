@@ -154,7 +154,7 @@ USAGE: {
     is_deeply \@args, [
         '-verbose'  => 99,
         '-sections' => '(?i:(Synopsis|Usage|Options))',
-        '-exitval'  => 1,
+        '-exitval'  => 2,
         'hello'
     ], 'Proper args should have been passed to Pod::Usage';
 }

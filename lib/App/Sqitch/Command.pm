@@ -109,7 +109,7 @@ sub _pod2usage {
     Pod::Usage::pod2usage(
         '-verbose'  => 99,
         '-sections' => '(?i:(Usage|Synopsis|Options))',
-        '-exitval'  => 1,
+        '-exitval'  => 2,
         %params
     );
 }
