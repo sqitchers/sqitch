@@ -136,8 +136,8 @@ sub _parse_core_opts {
     } $self->_core_opts) or $self->_pod2usage;
 
     # Handle documentation requests.
-    $self->_pod2usage('-exitval' => 0, '-sections' => '.+') if delete $opts{man};
-    $self->_pod2usage('-exitval' => 0)                      if delete $opts{help};
+    $self->_pod2usage('-exitval' => 0, '-verbose' => 2) if delete $opts{man};
+    $self->_pod2usage('-exitval' => 0                 ) if delete $opts{help};
 
     # Handle version request.
     if (delete $opts{version}) {

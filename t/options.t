@@ -95,7 +95,7 @@ HELP: {
     ok $CLASS->_parse_core_opts(['--help']), 'Ask for help';
     is_deeply \@args, [ $CLASS, '-exitval', 0 ], 'Should have been helped';
     ok $CLASS->_parse_core_opts(['--man']), 'Ask for man';
-    is_deeply \@args, [ $CLASS, '-exitval', 0, '-sections', '.+' ],
+    is_deeply \@args, [ $CLASS, '-exitval', 0, '-verbose', 2 ],
         'Should have been manned';
 }
 
