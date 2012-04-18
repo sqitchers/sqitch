@@ -1,0 +1,42 @@
+=head1 Name
+
+sqitch-config - Get and set repository or global Sqitch options
+
+=head1 Synopsis
+
+  git config name [value]
+
+=head1 Description
+
+You can query/set/replace/unset Sqitch options with this command. The name is
+actually the section and the key separated by a dot, and the value will be
+escaped.
+
+=head1 Options
+
+=over
+
+=item C<--file>
+
+=back
+
+=head1 Files
+
+If not set explicitly with C<--file>, there are two files where
+C<sqitch config> will search for configuration options:
+
+=over
+
+=item C<./sqitch.ini>
+
+Project-specific configuration file.
+
+=item C<~/.sqitch/config.ini>
+
+User-specific configuration file. Also called "global" configuration file.
+
+=back
+
+=head1 Sqitch
+
+Part of the L<sqitch> suite.

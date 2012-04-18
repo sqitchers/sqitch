@@ -11,11 +11,12 @@ BEGIN {
     *CORE::GLOBAL::exit = sub { die 'EXITED: ' . (@_ ? shift : 0); };
 }
 
-#use Test::More tests => 35;
-use Test::More 'no_plan';
+use Test::More tests => 58;
+#use Test::More 'no_plan';
 use App::Sqitch;
 use Test::Exception;
 use Test::NoWarnings;
+use Test::MockModule;
 use Capture::Tiny ':all';
 
 my $CLASS;
@@ -94,15 +95,19 @@ throws_ok { $CLASS->load({ command => 'bad', sqitch => $sqitch }) }
     qr/^LOL BADZ/, 'Should die on bad command module';
 
 ##############################################################################
-# Test execute.
+# Test command and execute.
 can_ok $CLASS, 'execute';
 ok $cmd = $CLASS->new({ sqitch => $sqitch }), "Create a $CLASS object";
+is $CLASS->command, '', 'Base class command should be ""';
+is $cmd->command, '', 'Base object command should be ""';
 throws_ok { $cmd->execute }
     qr/\QThe execute() method must be called from a subclass of $CLASS/,
     'Should get an error calling execute on command base class';
 
 ok $cmd = App::Sqitch::Command::whu->new({sqitch => $sqitch}),
     'Create a subclass command object';
+is $cmd->command, 'whu', 'Subclass oject command should be "whu"';
+is +App::Sqitch::Command::whu->command, 'whu', 'Subclass class command should be "whu"';
 throws_ok { $cmd->execute }
     qr/\QThe execute() method has not been overridden in App::Sqitch::Command::whu/,
     'Should get an error for un-overridden execute() method';
@@ -135,6 +140,55 @@ is_deeply $cmd->_parse_opts([qw(
     icky_foo => 0,
     feathers => 'down',
 }, 'Subclass should parse options spec';
+
+##############################################################################
+# Test _pod2usage().
+POD2USAGE: {
+    my $mock = Test::MockModule->new('Pod::Usage');
+    my @args;
+    $mock->mock(pod2usage => sub { @args = @_} );
+    $cmd = $CLASS->new({ sqitch => $sqitch });
+    ok $cmd->_pod2usage, 'Call _pod2usage on base object';
+    is_deeply \@args, [
+        '-verbose'  => 99,
+        '-sections' => '(?i:(Usage|Options))',
+        '-exitval'  => 1,
+        '-input'    => Pod::Find::pod_where({'-inc' => 1}, $CLASS),
+    ], 'Default params should be passed to Pod::Usage';
+
+    $cmd = App::Sqitch::Command::whu->new({ sqitch => $sqitch });
+    ok $cmd->_pod2usage, 'Call _pod2usage on "whu" command object';
+    is_deeply \@args, [
+        '-verbose'  => 99,
+        '-sections' => '(?i:(Usage|Options))',
+        '-exitval'  => 1,
+        '-input'    => Pod::Find::pod_where({'-inc' => 1}, $CLASS),
+    ], 'Default params should be passed to Pod::Usage';
+
+    isa_ok $cmd = App::Sqitch::Command->load({
+        command => 'config',
+        sqitch  => $sqitch,
+    }), 'App::Sqitch::Command::config', 'Config command object';
+    ok $cmd->_pod2usage, 'Call _pod2usage on "config" command object';
+    is_deeply \@args, [
+        '-verbose'  => 99,
+        '-sections' => '(?i:(Usage|Options))',
+        '-exitval'  => 1,
+        '-input'    => Pod::Find::pod_where({'-inc' => 1 }, 'sqitch-config'),
+    ], 'Should find sqitch-config docs to pass to Pod::Usage';
+
+    isa_ok $cmd = App::Sqitch::Command->load({
+        command => 'good',
+        sqitch  => $sqitch,
+    }), 'App::Sqitch::Command::good', 'Good command object';
+    ok $cmd->_pod2usage, 'Call _pod2usage on "good" command object';
+    is_deeply \@args, [
+        '-verbose'  => 99,
+        '-sections' => '(?i:(Usage|Options))',
+        '-exitval'  => 1,
+        '-input'    => Pod::Find::pod_where({'-inc' => 1 }, 'App::Sqitch::Command::good'),
+    ], 'Should find App::Sqitch::Command::good docs to pass to Pod::Usage';
+}
 
 ##############################################################################
 # Test verbosity.

@@ -13,6 +13,14 @@ __PACKAGE__->mk_ro_accessors(qw(
     sqitch
 ));
 
+sub command {
+    my $class = ref $_[0] || shift;
+    return '' if $class eq __PACKAGE__;
+    my $pkg = quotemeta __PACKAGE__;
+    $class =~ s/^$pkg\:://;
+    return $class;
+}
+
 sub load {
     my ($class, $p) = @_;
 
@@ -81,6 +89,32 @@ sub _parse_opts {
     return \%opts;
 }
 
+sub _bn {
+    require File::Basename;
+    File::Basename::basename($0);
+}
+
+sub _pod2usage {
+    my $self = shift;
+    my $command = $self->command;
+    require Pod::Find;
+    require Pod::Usage;
+    my $bn = _bn;
+    my $input = Pod::Find::pod_where({'-inc' => 1, '-script' => 1 }, "$bn-$command")
+             || Pod::Find::pod_where({'-inc' => 1, '-script' => 1 }, "sqitch-$command")
+             || Pod::Find::pod_where({'-inc' => 1, '-script' => 1 }, ref $self || $self)
+             || Pod::Find::pod_where({'-inc' => 1, '-script' => 1 }, $bn)
+             || Pod::Find::pod_where({'-inc' => 1, '-script' => 1 }, 'sqitch')
+             || Pod::Find::pod_where({'-inc' => 1, '-script' => 1 }, __PACKAGE__);
+    Pod::Usage::pod2usage(
+        '-verbose'  => 99,
+        '-sections' => '(?i:(Usage|Options))',
+        '-exitval'  => 1,
+        '-input'    => $input,
+        @_
+    );
+}
+
 sub _prepend {
     my $prefix = shift;
     my $msg = join '', map { $_  // '' } @_;
@@ -134,8 +168,7 @@ sub fail {
 
 sub help {
     my $self = shift;
-    use File::Basename;
-    my $bn = File::Basename::basename($0);
+    my $bn = _bn;
     print STDERR _prepend("$bn:", @_), " See $bn --help$/";
     exit 1;
 }
@@ -225,6 +258,14 @@ Here's an example excerpted from the C<config> command:
 
 This will result in parameters with all the same names except for
 C<config-file=s>, which will be named C<config_file>.
+
+=head3 C<command>
+
+  my $command = $cmd->command;
+
+The name of the command. Defaults to the last part of the package name, so as
+a rule you should not need to override it, since it is that string that Sqitch
+uses to find the command class.
 
 =head2 Utility Instance Methods
 
