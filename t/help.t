@@ -30,17 +30,17 @@ $mock->mock(_pod2usage => sub { @args = @_} );
 ok $help->execute, 'Execute help';
 is_deeply \@args, [
     $help,
-    '-input'    => File::Spec->catfile(qw(bin sqitch)),
-    '-exitval'  => 0,
-    '-sections' => '.+',
+    '-input'   => File::Spec->catfile(qw(bin sqitch)),
+    '-verbose' => 2,
+    '-exitval' => 0,
 ], 'Should show sqitch app docs';
 
 ok $help->execute('config'), 'Execute "config" help';
 is_deeply \@args, [
     $help,
-    '-input'    => Pod::Find::pod_where({'-inc' => 1 }, 'sqitch-config'),
-    '-exitval'  => 0,
-    '-sections' => '.+',
+    '-input'   => Pod::Find::pod_where({'-inc' => 1 }, 'sqitch-config'),
+    '-verbose' => 2,
+    '-exitval' => 0,
 ], 'Should show "config" command docs';
 
 my @fail;

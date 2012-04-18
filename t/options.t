@@ -153,7 +153,7 @@ USAGE: {
     ok $CLASS->_pod2usage('hello'), 'Run _pod2usage';
     is_deeply \@args, [
         '-verbose'  => 99,
-        '-sections' => '(?i:(Usage|Options))',
+        '-sections' => '(?i:(Synopsis|Usage|Options))',
         '-exitval'  => 1,
         'hello'
     ], 'Proper args should have been passed to Pod::Usage';

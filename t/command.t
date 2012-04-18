@@ -186,7 +186,7 @@ POD2USAGE: {
     ok $cmd->_pod2usage, 'Call _pod2usage on base object';
     is_deeply \@args, [
         '-verbose'  => 99,
-        '-sections' => '(?i:(Usage|Options))',
+        '-sections' => '(?i:(Usage|Synopsis|Options))',
         '-exitval'  => 1,
         '-input'    => Pod::Find::pod_where({'-inc' => 1}, $CLASS),
     ], 'Default params should be passed to Pod::Usage';
@@ -195,7 +195,7 @@ POD2USAGE: {
     ok $cmd->_pod2usage, 'Call _pod2usage on "whu" command object';
     is_deeply \@args, [
         '-verbose'  => 99,
-        '-sections' => '(?i:(Usage|Options))',
+        '-sections' => '(?i:(Usage|Synopsis|Options))',
         '-exitval'  => 1,
         '-input'    => Pod::Find::pod_where({'-inc' => 1}, $CLASS),
     ], 'Default params should be passed to Pod::Usage';
@@ -207,7 +207,7 @@ POD2USAGE: {
     ok $cmd->_pod2usage, 'Call _pod2usage on "config" command object';
     is_deeply \@args, [
         '-verbose'  => 99,
-        '-sections' => '(?i:(Usage|Options))',
+        '-sections' => '(?i:(Usage|Synopsis|Options))',
         '-exitval'  => 1,
         '-input'    => Pod::Find::pod_where({'-inc' => 1 }, 'sqitch-config'),
     ], 'Should find sqitch-config docs to pass to Pod::Usage';
@@ -219,7 +219,7 @@ POD2USAGE: {
     ok $cmd->_pod2usage, 'Call _pod2usage on "good" command object';
     is_deeply \@args, [
         '-verbose'  => 99,
-        '-sections' => '(?i:(Usage|Options))',
+        '-sections' => '(?i:(Usage|Synopsis|Options))',
         '-exitval'  => 1,
         '-input'    => Pod::Find::pod_where({'-inc' => 1 }, 'App::Sqitch::Command::good'),
     ], 'Should find App::Sqitch::Command::good docs to pass to Pod::Usage';

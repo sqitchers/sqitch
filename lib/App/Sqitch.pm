@@ -157,7 +157,7 @@ sub _pod2usage {
     require Pod::Usage;
     Pod::Usage::pod2usage(
         '-verbose'  => 99,
-        '-sections' => '(?i:(Usage|Options))',
+        '-sections' => '(?i:(Synopsis|Usage|Options))',
         '-exitval'  => 1,
         @_
     );

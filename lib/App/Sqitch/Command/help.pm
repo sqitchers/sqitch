@@ -21,8 +21,8 @@ sub execute {
     ) or $self->fail(qq{No manual entry for $look_for\n});
     $self->_pod2usage(
         '-input'    => $pod,
+        '-verbose'  => 2,
         '-exitval'  => 0,
-        '-sections' => '.+',
     );
 }
 

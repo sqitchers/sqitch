@@ -108,7 +108,7 @@ sub _pod2usage {
              || Pod::Find::pod_where({'-inc' => 1, '-script' => 1 }, __PACKAGE__);
     Pod::Usage::pod2usage(
         '-verbose'  => 99,
-        '-sections' => '(?i:(Usage|Options))',
+        '-sections' => '(?i:(Usage|Synopsis|Options))',
         '-exitval'  => 1,
         %params
     );
