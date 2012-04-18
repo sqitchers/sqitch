@@ -131,13 +131,7 @@ ok $cmd = App::Sqitch::Command::whu->new({sqitch => $sqitch}),
     'Create a subclass command object again';
 is_deeply $cmd->_parse_opts, {}, 'Subclass should return an empty hash for no args';
 
-my %opts = (
-    foo      => undef,
-    hi_there => undef,
-    icky_foo => undef,
-    feathers => undef,
-);
-is_deeply $cmd->_parse_opts([1]), \%opts, 'Subclass should use options spec';
+is_deeply $cmd->_parse_opts([1]), {}, 'Subclass should use options spec';
 my $args = [qw(
     --foo
     --h

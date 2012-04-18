@@ -85,6 +85,7 @@ sub _parse_opts {
         $_ => \$opts{$k};
     } $class->options) or $class->_pod2usage;
 
+    delete $opts{$_} for grep { !defined $opts{$_} } keys %opts;
     return \%opts;
 }
 
