@@ -94,12 +94,13 @@ sub _bn {
 }
 
 sub _pod2usage {
-    my $self = shift;
+    my ($self, %params) = @_;
     my $command = $self->command;
     require Pod::Find;
     require Pod::Usage;
     my $bn = _bn;
-    my $input = Pod::Find::pod_where({'-inc' => 1, '-script' => 1 }, "$bn-$command")
+    $params{'-input'} ||=
+                Pod::Find::pod_where({'-inc' => 1, '-script' => 1 }, "$bn-$command")
              || Pod::Find::pod_where({'-inc' => 1, '-script' => 1 }, "sqitch-$command")
              || Pod::Find::pod_where({'-inc' => 1, '-script' => 1 }, ref $self || $self)
              || Pod::Find::pod_where({'-inc' => 1, '-script' => 1 }, $bn)
@@ -109,8 +110,7 @@ sub _pod2usage {
         '-verbose'  => 99,
         '-sections' => '(?i:(Usage|Options))',
         '-exitval'  => 1,
-        '-input'    => $input,
-        @_
+        %params
     );
 }
 

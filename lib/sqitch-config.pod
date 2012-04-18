@@ -2,7 +2,7 @@
 
 sqitch-config - Get and set repository or global Sqitch options
 
-=head1 Usage
+=head1 Synopsis
 
   git config name [value]
 

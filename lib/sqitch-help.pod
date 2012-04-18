@@ -1,0 +1,17 @@
+=head1 Name
+
+sqitch-help - Display help for Sqitch and Sqitch commands
+
+=head1 Synopsis
+
+  git help name [value]
+
+=head1 Description
+
+With no command given, the L<sqitch documentation|sqitch> is printed to
+standard output. If a sqitch command is named, a manual page for that command
+is brought up.
+
+=head1 Sqitch
+
+Part of the L<sqitch> suite.
