@@ -5,31 +5,62 @@ use strict;
 use warnings;
 use utf8;
 use Carp;
-use Config::INI;
+use List::Util qw(sum first);
 use parent 'App::Sqitch::Command';
 
 our $VERSION = '0.10';
 
 __PACKAGE__->mk_ro_accessors(qw(
-    get
-    user
-    system
-    config_file
-    unset
-    list
-    edit
+    file
+    action
 ));
 
 sub options {
     return qw(
-        get
+        file|config-file|f=s
         user
         system
-        config-file|file|f=s
+
+        get
         unset
         list|l
         edit|e
     );
+}
+
+sub new {
+    my ($class, $p) = @_;
+
+    # Make sure we are accessing only one file.
+    my $file_count = sum map { !!$p->{$_} } qw(user system file);
+    $class->usage('Only one config file at a time.') if $file_count > 1;
+
+    # Make sure we are performing only one action.
+    my $action_count = sum map { !!$p->{$_} } qw(get unset list edit);
+    $class->usage('Only one action at a time.') if $action_count > 1;
+
+    # Get the action.
+    my $action = first { delete $p->{$_} } qw(get unset list edit);
+
+    # Get the file.
+    my $file = $p->{file} || do {
+        require File::Spec;
+        if (delete $p->{system}) {
+            require Config;
+            File::Spec->catfile($Config::Config{prefix}, 'etc', 'sqitch.ini')
+        } else {
+            File::Spec->catfile(
+                delete $p->{user} ? ($p->{sqitch}->_user_config_root, 'config.ini')
+                            : (File::Spec->curdir, 'sqitch.ini')
+            );
+        }
+    };
+
+    return $class->SUPER::new({
+        sqitch => $p->{sqitch},
+        action => $action,
+        file   => $file,
+    });
 }
 
 sub execute {
@@ -39,7 +70,7 @@ sub execute {
 
 sub read_config {
     my $self = shift;
-    my $fn = $self->config_file;
+    my $fn = $self->file;
     return {} unless -f $fn;
     require Config::INI::Reader;
     return Config::INI::Reader->read_file($fn);
@@ -47,22 +78,8 @@ sub read_config {
 
 sub write_config {
     my ($self, $config) = @_;
-}
-
-sub config_file {
-    my $self = shift;
-    return $self->{config_file} ||= do {
-        require File::Spec;
-        if ($self->system) {
-            require Config;
-            File::Spec->catfile($Config::Config{prefix}, 'etc', 'sqitch.ini')
-        } else {
-            File::Spec->catfile(
-                $self->user ? ($self->sqitch->_user_config_root, 'config.ini')
-                            : (File::Spec->curdir, 'sqitch.ini')
-            );
-        }
-    };
+    require Config::INI::Writer;
+    Config::INI::Writer->write_file($config, $self->file);
 }
 
 1;
@@ -122,7 +139,7 @@ Boolean indicating whether to use the user configuration file.
 
 Boolean indicating whether to use the system configuration file.
 
-=item C<config_file>
+=item C<file>
 
 Configuration file to read from and write to.
 
@@ -155,9 +172,9 @@ use.
 Executes the config command. Pass the name of the property and the value to
 be assigned to it, if applicable.
 
-=head3 C<config_file>
+=head3 C<file>
 
-  my $file_name = $config->config_file;
+  my $file_name = $config->file;
 
 Returns the path to the configuration file to be acted upon. If the C<system>
 attribute is true, then the value returned is C<$(prefix)/etc/sqitch.ini>. If
@@ -168,15 +185,14 @@ C<~/.sqitch.config.ini>. Otherwise, the default is F<./sqitch.ini>.
 
   my $config_data = $config->read_config;
 
-Reads the configuration file returned by C<config_file>, parses it into a
-hash, and returns the hash.
+Reads the configuration file returned by C<file>, parses it into a hash, and
+returns the hash.
 
 =head3 C<write_config>
 
   $config->write_config($config_data);
 
-Writes the configuration data to the configuration file returned by
-C<config_file>.
+Writes the configuration data to the configuration file returned by C<file>.
 
 =head1 See Also
 

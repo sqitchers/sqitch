@@ -2,9 +2,10 @@
 
 use strict;
 use warnings;
-use Test::More tests => 15;
-#use Test::More 'no_plan';
+#use Test::More tests => 15;
+use Test::More 'no_plan';
 use File::Spec;
+use Test::MockModule;
 
 my $CLASS;
 BEGIN {
@@ -106,28 +107,77 @@ isa_ok my $cmd = App::Sqitch::Command->load({
 }), 'App::Sqitch::Command::config', 'Config command';
 
 isa_ok $cmd, 'App::Sqitch::Command', 'Config command';
-can_ok $cmd, qw(
-    get
-    user
-    system
-    config_file
-    unset
-    list
-    edit
-);
+can_ok $cmd, qw(file action);
 is_deeply [$cmd->options], [qw(
-    get
+    file|config-file|f=s
     user
     system
-    config-file|file|f=s
+    get
     unset
     list|l
     edit|e
 )], 'Options should be configured';
 
 ##############################################################################
+# Test constructor errors.
+my $mock = Test::MockModule->new('App::Sqitch::Command::config');
+my @usage;
+$mock->mock(usage => sub { shift; @usage = @_ });
+
+# Test for multiple config file specifications.
+ok App::Sqitch::Command::config->new({
+    sqitch  => $sqitch,
+    user    => 1,
+    system  => 1,
+}), 'Construct with user and system';
+is_deeply \@usage, ['Only one config file at a time.'],
+    'Should get error for multiple config files';
+
+ok App::Sqitch::Command::config->new({
+    sqitch => $sqitch,
+    file   => 't/sqitch.ini',
+    system => 1,
+}), 'Construct with file and system';
+is_deeply \@usage, ['Only one config file at a time.'],
+    'Should get another error for multiple config files';
+
+ok App::Sqitch::Command::config->new({
+    sqitch => $sqitch,
+    file   => 't/sqitch.ini',
+    user   => 1,
+}), 'Construct with file and user';
+is_deeply \@usage, ['Only one config file at a time.'],
+    'Should get a third error for multiple config files';
+
+ok App::Sqitch::Command::config->new({
+    sqitch => $sqitch,
+    file   => 't/sqitch.ini',
+    user   => 1,
+    system => 1,
+}), 'Construct with file, system, and user';
+is_deeply \@usage, ['Only one config file at a time.'],
+    'Should get one last error for multiple config files';
+
+# Test for multiple action specifications.
+for my $spec (
+    [qw(get unset)],
+    [qw(get unset edit)],
+    [qw(get unset edit list)],
+    [qw(unset edit)],
+    [qw(unset edit list)],
+    [qw(edit list)],
+) {
+    ok App::Sqitch::Command::config->new({
+        sqitch => $sqitch,
+        map { $_ => 1 } @{ $spec }
+    }), 'Construct with ' . join ' & ' => @{ $spec };
+    is_deeply \@usage, ['Only one action at a time.'],
+        'Should get error for multiple actions';
+}
+
+##############################################################################
 # Test config file name.
-is $cmd->config_file, File::Spec->catfile(File::Spec->curdir, 'sqitch.ini'),
+is $cmd->file, File::Spec->catfile(File::Spec->curdir, 'sqitch.ini'),
     'Default config file should be local config file';
 
 # Test user file name.
@@ -136,7 +186,7 @@ isa_ok $cmd = App::Sqitch::Command::config->new({
     user    => 1,
 }), 'App::Sqitch::Command::config', 'User config command';
 
-is $cmd->config_file, File::Spec->catfile($sqitch->_user_config_root, 'config.ini'),
+is $cmd->file, File::Spec->catfile($sqitch->_user_config_root, 'config.ini'),
     'User config file should be in user config root';
 
 # Test system file name.
@@ -145,7 +195,7 @@ isa_ok $cmd = App::Sqitch::Command::config->new({
     system  => 1,
 }), 'App::Sqitch::Command::config', 'System config command';
 
-is $cmd->config_file, File::Spec->catfile($Config::Config{prefix}, qw(etc sqitch.ini)),
+is $cmd->file, File::Spec->catfile($Config::Config{prefix}, qw(etc sqitch.ini)),
     "System config file should be in $Config::Config{prefix}/etc";
 
 ##############################################################################
