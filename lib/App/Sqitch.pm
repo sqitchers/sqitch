@@ -164,7 +164,7 @@ sub _pod2usage {
     );
 }
 
-sub _global_config_root {
+sub _user_config_root {
     require Path::Class;
     return Path::Class::dir($ENV{SQITCH_GLOBAL_CONFIG_ROOT})
         if $ENV{SQITCH_GLOBAL_CONFIG_ROOT};
@@ -180,7 +180,7 @@ sub _load_config {
     my $self = shift;
     return Hash::Merge->new->merge(
         $self->_read_ini('sqitch.ini'),
-        $self->_read_ini( $self->_global_config_root->file('config.ini') )
+        $self->_read_ini( $self->_user_config_root->file('config.ini') )
     ) || {};
 }
 

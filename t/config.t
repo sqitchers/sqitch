@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 5;
+use Test::More tests => 15;
 #use Test::More 'no_plan';
 use File::Spec;
 
@@ -96,3 +96,56 @@ my $both_ini = {
 $ENV{SQITCH_GLOBAL_CONFIG_ROOT} = File::Spec->curdir;
 is_deeply $CLASS->_load_config, $both_ini,
     'Should merge both ini files with both present';
+
+##############################################################################
+# Test the command.
+ok my $sqitch = App::Sqitch->new, 'Load a sqitch sqitch object';
+isa_ok my $cmd = App::Sqitch::Command->load({
+    sqitch  => $sqitch,
+    command => 'config',
+}), 'App::Sqitch::Command::config', 'Config command';
+
+isa_ok $cmd, 'App::Sqitch::Command', 'Config command';
+can_ok $cmd, qw(
+    get
+    user
+    system
+    config_file
+    unset
+    list
+    edit
+);
+is_deeply [$cmd->options], [qw(
+    get
+    user
+    system
+    config-file|file|f=s
+    unset
+    list|l
+    edit|e
+)], 'Options should be configured';
+
+##############################################################################
+# Test config file name.
+is $cmd->config_file, File::Spec->catfile(File::Spec->curdir, 'sqitch.ini'),
+    'Default config file should be local config file';
+
+# Test user file name.
+isa_ok $cmd = App::Sqitch::Command::config->new({
+    sqitch  => $sqitch,
+    user    => 1,
+}), 'App::Sqitch::Command::config', 'User config command';
+
+is $cmd->config_file, File::Spec->catfile($sqitch->_user_config_root, 'config.ini'),
+    'User config file should be in user config root';
+
+# Test system file name.
+isa_ok $cmd = App::Sqitch::Command::config->new({
+    sqitch  => $sqitch,
+    system  => 1,
+}), 'App::Sqitch::Command::config', 'System config command';
+
+is $cmd->config_file, File::Spec->catfile($Config::Config{prefix}, qw(etc sqitch.ini)),
+    "System config file should be in $Config::Config{prefix}/etc";
+
+##############################################################################
