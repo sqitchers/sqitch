@@ -7,7 +7,6 @@ use utf8;
 use Getopt::Long;
 use Hash::Merge qw(merge);
 use App::Sqitch::Command;
-use namespace::autoclean;
 use parent 'Class::Accessor::Fast';
 
 our $VERSION = '0.10';
