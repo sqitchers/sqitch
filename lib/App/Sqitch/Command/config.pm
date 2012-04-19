@@ -34,14 +34,19 @@ sub options {
 
 sub execute {
     my ($self, $key, $value) = @_;
+
 }
 
 sub read_config {
     my $self = shift;
+    my $fn = $self->config_file;
+    return {} unless -f $fn;
+    require Config::INI::Reader;
+    return Config::INI::Reader->read_file($fn);
 }
 
 sub write_config {
-    my $self = shift;
+    my ($self, $config) = @_;
 }
 
 sub config_file {
