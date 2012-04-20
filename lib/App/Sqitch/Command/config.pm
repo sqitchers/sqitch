@@ -94,6 +94,7 @@ sub set {
     my $config = $self->read_config;
     $config->{$section}{$prop} = $value;
     $self->write_config($config);
+    return $self;
 }
 
 sub unset {
@@ -292,6 +293,28 @@ Help for the C<config> command to the Sqitch command-line client.
 =item L<sqitch>
 
 The Sqitch command-line client.
+
+=back
+
+=head1 To Do
+
+=over
+
+=item * Allow comments to start with C<#>.
+
+=item * Indent values when writing.
+
+=item * Preserve comments, whitespace, order, when writing.
+
+=item * Support multi-value items via C<--add> like git-config.
+
+=item * Add data type support like git-config?
+
+=item * Add C<--get-regexp>.
+
+=item * Add C<--remove-section> and C<--rename-section>.
+
+=item * Add C<--unset-all>.
 
 =back
 

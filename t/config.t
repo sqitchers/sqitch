@@ -503,10 +503,31 @@ CONTEXT: {
     is_deeply \@emit, [], 'Nothing should have been emitted';
 }
 
-
-
 ##############################################################################
 # Test set().
+my $file = 'testconfig.ini';
+$mock->mock(file => $file);
+END { unlink $file }
+
+ok $cmd = App::Sqitch::Command::config->new({
+    sqitch => $sqitch,
+    set    => 1,
+}), 'Create system config set command';
+ok $cmd->execute('core.foo' => 'bar'), 'Write core.foo';
+is_deeply $cmd->read_config, {core => { foo => 'bar' }},
+    'The property should have been written';
+
+# Write another property.
+ok $cmd->execute('core.engine' => 'funky'), 'Write core.engine';
+is_deeply $cmd->read_config, {core => { foo => 'bar', engine => 'funky' }},
+    'Both settings should be saved';
+
+# Write a sub-propery.
+ok $cmd->execute('core.pg.user' => 'theory'), 'Write core.pg.user';
+is_deeply $cmd->read_config, {
+    core => { foo => 'bar', engine => 'funky' },
+    'core.pg' => {user => 'theory' },
+}, 'Both sections should be saved';
 
 ##############################################################################
 # Test unset().
