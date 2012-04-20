@@ -7,6 +7,7 @@ use Test::More 'no_plan';
 use File::Spec;
 use Test::MockModule;
 use Test::Exception;
+use Test::NoWarnings;
 
 my $CLASS;
 BEGIN {
@@ -299,7 +300,7 @@ CONTEXT: {
         'The config for reading should be the system config';
 
     local $ENV{SQITCH_USER_CONFIG_ROOT} = File::Spec->curdir;
-    ok my $cmd = App::Sqitch::Command::config->new({
+    ok $cmd = App::Sqitch::Command::config->new({
         sqitch => $sqitch,
         user => 1,
     }), 'Create user config command';
@@ -350,7 +351,7 @@ CONTEXT: {
     is_deeply \@fail, [], 'Nothing should have been output on failure';
 
     local $ENV{SQITCH_USER_CONFIG_ROOT} = File::Spec->curdir;
-    ok my $cmd = App::Sqitch::Command::config->new({
+    ok $cmd = App::Sqitch::Command::config->new({
         sqitch => $sqitch,
         user   => 1,
         get    => 1,
@@ -381,7 +382,7 @@ CONTEXT: {
     is_deeply \@fail, [], 'Nothing should have been emitted';
 
     local $ENV{SQITCH_USER_CONFIG_ROOT} = 'NONEXISTENT';
-    ok my $cmd = App::Sqitch::Command::config->new({
+    ok $cmd = App::Sqitch::Command::config->new({
         sqitch => $sqitch,
         user => 1,
         get    => 1,
@@ -440,7 +441,7 @@ CONTEXT: {
     @emit = ();
 
     local $ENV{SQITCH_USER_CONFIG_ROOT} = File::Spec->curdir;
-    ok my $cmd = App::Sqitch::Command::config->new({
+    ok $cmd = App::Sqitch::Command::config->new({
         sqitch => $sqitch,
         user => 1,
         list   => 1,
@@ -469,7 +470,7 @@ CONTEXT: {
     is_deeply \@emit, [], 'Nothing should have been emitted';
 
     local $ENV{SQITCH_USER_CONFIG_ROOT} = 'NONEXISTENT';
-    ok my $cmd = App::Sqitch::Command::config->new({
+    ok $cmd = App::Sqitch::Command::config->new({
         sqitch => $sqitch,
         user => 1,
         list   => 1,
@@ -477,6 +478,8 @@ CONTEXT: {
     ok $cmd->execute, 'List the user config';
     is_deeply \@emit, [], 'Nothing should have been emitted';
 }
+
+
 
 ##############################################################################
 # Test set().
