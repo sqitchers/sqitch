@@ -103,6 +103,7 @@ sub unset {
     my $config = $self->read_config;
     delete $config->{$section}{$prop};
     $self->write_config($config);
+    return $self;
 }
 
 sub list {
@@ -306,7 +307,7 @@ The Sqitch command-line client.
 
 =item * Preserve comments, whitespace, order, when writing.
 
-=item * Support multi-value items via C<--add> like git-config.
+=item * Support multiple-value items via C<--add> like git-config.
 
 =item * Add data type support like git-config?
 

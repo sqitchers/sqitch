@@ -531,6 +531,21 @@ is_deeply $cmd->read_config, {
 
 ##############################################################################
 # Test unset().
+ok $cmd = App::Sqitch::Command::config->new({
+    sqitch => $sqitch,
+    unset  => 1,
+}), 'Create system config unset command';
+
+ok $cmd->execute('core.pg.user'), 'Unset core.pg.user';
+is_deeply $cmd->read_config, {
+    core => { foo => 'bar', engine => 'funky' },
+    'core.pg' => {},
+}, 'core.pg.user should be gone';
+ok $cmd->execute('core.foo'), 'Unset core.foo';
+is_deeply $cmd->read_config, {
+    core => { engine => 'funky' },
+    'core.pg' => {},
+}, 'core.foo should have been removed';
 
 ##############################################################################
 # Test edit().
