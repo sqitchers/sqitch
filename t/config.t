@@ -2,8 +2,8 @@
 
 use strict;
 use warnings;
-#use Test::More tests => 15;
-use Test::More 'no_plan';
+use Test::More tests => 133;
+#use Test::More 'no_plan';
 use File::Spec;
 use Test::MockModule;
 use Test::Exception;
@@ -549,3 +549,18 @@ is_deeply $cmd->read_config, {
 
 ##############################################################################
 # Test edit().
+my @sys;
+my $ret = 1;
+$mock->mock(do_system => sub { shift; @sys = @_; return $ret });
+ok $cmd = App::Sqitch::Command::config->new({
+    sqitch => $sqitch,
+    edit   => 1,
+}), 'Create system config edit command';
+ok $cmd->execute, 'Execute the edit comand';
+is_deeply \@sys, [$sqitch->editor, $cmd->file],
+    'The editor should have been run';
+
+$ret = 0;
+throws_ok { $cmd->execute } qr/FAIL/, 'Should fail on system failure';
+is_deeply \@sys, [$sqitch->editor, $cmd->file],
+    'The editor should have been run again';

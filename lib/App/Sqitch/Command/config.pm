@@ -120,7 +120,7 @@ sub list {
 sub edit {
     my $self = shift;
     # Let the editor deal with locking.
-    system $self->sqitch->editor, $self->file;
+    $self->do_system($self->sqitch->editor, $self->file) or $self->fail;
 }
 
 sub read_config {
