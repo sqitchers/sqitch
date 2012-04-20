@@ -204,6 +204,7 @@ sub _read_ini {
     my ($self, $file) = @_;
     return {} unless -f $file;
     require Config::INI::Reader;
+    # XXX Should we get a share lock on the file, first? Probably not...
     return Config::INI::Reader->read_file($file);
 }
 

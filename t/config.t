@@ -249,7 +249,7 @@ is $cmd->file, File::Spec->catfile($Config::Config{prefix}, qw(etc sqitch.ini)),
 ##############################################################################
 # Test property parsing.
 my @fail;
-$mock->mock(fail => sub { shift; @fail = @_; die 'FAIL' });
+$mock->mock(fail => sub { shift; @fail = @_; die "FAIL @_" });
 
 is_deeply [$cmd->_parse_key('foo.bar')], [qw(foo bar)],
     'Parse foo.bar';
@@ -265,6 +265,30 @@ is_deeply \@fail, [qq{Property key does not contain a section: "foo"}],
 throws_ok { $cmd->_parse_key('')} qr/USAGE/, 'Parse nothing';
 is_deeply \@usage, ['Wrong number of arguments'],
     'Should get usage for missing key';
+
+##############################################################################
+# Test file locking.
+LOCKS: {
+    ok my $fh = $cmd->_open_to_read('config.t'), 'Open ourselves';
+    isa_ok $fh, 'GLOB', 'The read file handle';
+    close $fh;
+
+    # Lock it.
+    ok $fh = $cmd->_open_to_write('.locktest'), 'Open .locktest to write';
+    isa_ok $fh, 'GLOB', 'The write file handle';
+
+    # Try to lock it again.
+    throws_ok { $cmd->_open_to_write('.locktest') } qr/^FAIL/,
+        'Should get an exception trying to get a second lock';
+    is_deeply \@fail, ["Cannot lock config file .locktest"],
+        'Should have lock failure error';
+
+    # Try to get a sharelock.
+    throws_ok { $cmd->_open_to_read('.locktest') } qr/^FAIL/,
+        'Should get an exception trying to get a share lock';
+    is_deeply \@fail, ['Config file .locktest locked'],
+        'Should have share lock failure error';
+}
 
 ##############################################################################
 # Test execute().

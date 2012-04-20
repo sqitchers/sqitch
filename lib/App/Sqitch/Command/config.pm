@@ -8,6 +8,7 @@ use Carp;
 use Path::Class ();
 use List::Util qw(sum first);
 use parent 'App::Sqitch::Command';
+use Fcntl ':flock';
 
 our $VERSION = '0.10';
 
@@ -90,7 +91,6 @@ sub get {
 sub set {
     my ($self, $key, $value) = @_;
     my ($section, $prop) = $self->_parse_key($key);
-    $self->lock_config;
     my $config = $self->read_config;
     $config->{$section}{$prop} = $value;
     $self->write_config($config);
@@ -99,7 +99,6 @@ sub set {
 sub unset {
     my ($self, $key) = @_;
     my ($section, $prop) = $self->_parse_key($key);
-    $self->lock_config;
     my $config = $self->read_config;
     delete $config->{$section}{$prop};
     $self->write_config($config);
@@ -118,9 +117,8 @@ sub list {
 
 sub edit {
     my $self = shift;
-    $self->lock_config;
-    my $editor = $self->sqitch->editor;
-    system $editor, $self->file;
+    # Let the editor deal with locking.
+    system $self->sqitch->editor, $self->file;
 }
 
 sub read_config {
@@ -128,16 +126,16 @@ sub read_config {
     my $fn = $self->file;
     return {} unless -f $fn;
     require Config::INI::Reader;
-    return Config::INI::Reader->read_file($fn);
+    return Config::INI::Reader->read_handle($self->_open_to_read($fn));
 }
 
 sub write_config {
     my ($self, $config) = @_;
     require Config::INI::Writer;
-    Config::INI::Writer->write_file($config, $self->file);
-}
-
-sub lock_config {
+    Config::INI::Writer->write_handle(
+        $config,
+        $self->_open_to_write($self->file)
+    );
 }
 
 sub _parse_key {
@@ -148,6 +146,22 @@ sub _parse_key {
     $self->fail(qq{Property key does not contain a section: "$var"})
         unless @parts;
     return join('.' => @parts), $var;
+}
+
+sub _open_to_write {
+    my ($self, $fn) = @_;
+    my $mode = -e $fn ? '+<' : '>>';
+    open my $fh, $mode, $fn or $self->fail("Cannot open config file $fn: $!");
+    flock $fh, LOCK_EX | LOCK_NB or $self->fail("Cannot lock config file $fn");
+    truncate $fh, 0 or $self->fail("Cannot truncate config file $fn: $!\n");
+    return $fh;
+}
+
+sub _open_to_read {
+    my ($self, $fn) = @_;
+    open my $fh, '<', $fn or $self->fail("Cannot open config file $fn: $!");
+    flock $fh, LOCK_SH | LOCK_NB or $self->fail("Config file $fn locked");
+    return $fh;
 }
 
 1;
@@ -266,13 +280,6 @@ returns the hash.
   $config->write_config($config_data);
 
 Writes the configuration data to the configuration file returned by C<file>.
-
-=head3 C<lock_config>
-
-  $config->lock_config;
-
-Reads the configuration file returned by C<file>. If a lock cannot be created,
-the command will exit with a failure message.
 
 =head1 See Also
 
