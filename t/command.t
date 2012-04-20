@@ -11,7 +11,7 @@ BEGIN {
     *CORE::GLOBAL::exit = sub { die 'EXITED: ' . (@_ ? shift : 0); };
 }
 
-use Test::More tests => 74;
+use Test::More tests => 79;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Test::Exception;
@@ -310,3 +310,17 @@ is capture_stderr {
 }, "sqch: This that\nsqch: and the other. See sqch --help\n",
     'help should work';
 
+##############################################################################
+# Test do_system().
+can_ok $CLASS, 'do_system';
+is capture_stdout {
+    ok $cmd->do_system(
+        $^X, File::Spec->catfile(qw(t echo.pl)), qw(hi there)
+    ), 'Should get success back from do_system echo';
+}, "hi there\n", 'The echo script should have run';
+
+is capture_stdout {
+    ok !$cmd->do_system(
+        $^X, File::Spec->catfile(qw(t die.pl)), qw(hi there)
+    ), 'Should get fail back from do_system die';
+}, "hi there\n", 'The die script should have run';

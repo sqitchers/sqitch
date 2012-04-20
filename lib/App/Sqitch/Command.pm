@@ -135,6 +135,18 @@ sub execute {
     );
 }
 
+# Poached from Module::Build.
+sub do_system {
+    my ($self, @cmd) = @_;
+    $self->trace(join ' ' => @cmd);
+    my $status = system @cmd;
+    $self->warn(
+        "'Argument list' was 'too long', env lengths are ",
+        join '' => map { "$_=>" . length($ENV{$_} . '; ') } sort keys %ENV
+    ) if $status and $! =~ /Argument list too long/i;
+    return !$status;
+}
+
 sub trace {
     my $self = shift;
     say _prepend 'trace:', @_ if $self->verbosity > 2
@@ -281,6 +293,15 @@ uses to find the command class.
 
 These methods are mainly provided as utilities for the command subclasses to
 use.
+
+=head3 C<do_system>
+
+  if !($cmd->do_system('echo hello')) {
+      $cmd->fail('Ooops');
+  }
+
+Executes a system command and waits for it to finish. Returns true if the
+command returned without error, and false if it did not.
 
 =head3 C<verbosity>
 
