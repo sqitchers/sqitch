@@ -137,39 +137,44 @@ sub execute {
 
 sub trace {
     my $self = shift;
-    print _prepend 'trace:', @_ if $self->verbosity > 2
+    say _prepend 'trace:', @_ if $self->verbosity > 2
 }
 
 sub debug {
     my $self = shift;
-    print _prepend 'debug:', @_ if $self->verbosity > 1
+    say _prepend 'debug:', @_ if $self->verbosity > 1
 }
 
 sub info {
     my $self = shift;
-    print @_ if $self->verbosity;
+    say @_ if $self->verbosity;
 }
 
 sub comment {
     my $self = shift;
-    print _prepend '#', @_ if $self->verbosity;
+    say _prepend '#', @_ if $self->verbosity;
+}
+
+sub emit {
+    shift;
+    say @_;
 }
 
 sub warn {
     my $self = shift;
-    print STDERR _prepend 'warning:', @_;
+    say STDERR _prepend 'warning:', @_;
 }
 
 sub fail {
     my $self = shift;
-    print STDERR _prepend 'fatal:', @_;
+    say STDERR _prepend 'fatal:', @_ if @_;
     exit 1;
 }
 
 sub help {
     my $self = shift;
     my $bn = _bn;
-    print STDERR _prepend("$bn:", @_), " See $bn --help$/";
+    say STDERR _prepend("$bn:", @_), " See $bn --help";
     exit 1;
 }
 
@@ -314,6 +319,14 @@ normally want to see. If verbosity is lower than 1, nothing will be output.
 Send comments to C<STDOUT> if the verbosity level is 1 or higher, which, by
 default, it is. Comments have C<# > prefixed to every line. If verbosity is
 lower than 1, nothing will be output.
+
+=head3 C<emit>
+
+  $cmd->emit('core.editor=emacs');
+
+Send a message to C<STDOUT>, without regard to the verbosity. Should be used
+only if the user explicitly asks for output, such as for
+C<sqitch config --get core.editor>.
 
 =head3 C<warn>
 

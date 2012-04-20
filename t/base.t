@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 24;
+use Test::More tests => 25;
 #use Test::More 'no_plan';
 use Test::MockModule;
 
@@ -75,4 +75,15 @@ GO: {
     is $sqitch->engine, 'sqlite', 'Engine should be set by option';
     is $sqitch->db_name, 'widgetopolis', 'db_name should be set by config';
     is $sqitch->extension, 'ddl', 'ddl should be set by config';
+    is_deeply $sqitch->config, {
+        "bundle"  => { dest_dir => "_build/sql", from => "gamma", tags_only => "yes" },
+        "core"    => {
+            db_name   => "widgetopolis",
+            engine    => "pg",
+            extension => "ddl",
+            sql_dir   => "migrations",
+        },
+        "core.pg" => { client => "/usr/local/pgsql/bin/psql", username => "theory" },
+        "revert"  => { to => "gamma" },
+    }, 'And the integrated config should be loaded';
 }

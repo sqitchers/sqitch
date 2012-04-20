@@ -6,6 +6,8 @@ use warnings;
 use utf8;
 use Getopt::Long;
 use Hash::Merge qw(merge);
+use Path::Class;
+use Config;
 use App::Sqitch::Command;
 use parent 'Class::Accessor::Fast';
 
@@ -25,6 +27,7 @@ __PACKAGE__->mk_ro_accessors(qw(
     test_dir
     extension
     dry_run
+    config
     verbosity
 ));
 
@@ -42,6 +45,7 @@ sub go {
 
     # 4. Instantiate Sqitch.
     my $sqitch = $class->new(merge $core_opts, $config->{core});
+    $sqitch->{config} = $config;
 
     # 5. Instantiate the command object.
     my $command = App::Sqitch::Command->load({
@@ -164,28 +168,41 @@ sub _pod2usage {
 }
 
 sub _user_config_root {
-    require Path::Class;
-    return Path::Class::dir($ENV{SQITCH_GLOBAL_CONFIG_ROOT})
-        if $ENV{SQITCH_GLOBAL_CONFIG_ROOT};
+    return dir $ENV{SQITCH_USER_CONFIG_ROOT} if $ENV{SQITCH_USER_CONFIG_ROOT};
 
     require File::HomeDir;
     my $homedir = File::HomeDir->my_home
         or croak("Could not determine home directory");
 
-    return Path::Class::dir($homedir)->subdir('.sqitch');
+    return dir($homedir)->subdir('.sqitch');
+}
+
+sub _system_config_root {
+    return dir $ENV{SQITCH_SYSTEM_CONFIG_ROOT} if $ENV{SQITCH_SYSTEM_CONFIG_ROOT};
+    return dir $Config{prefix}, 'etc';
 }
 
 sub _load_config {
     my $self = shift;
-    return Hash::Merge->new->merge(
+    my $hm = Hash::Merge->new;
+    return $hm->merge(
         $self->_read_ini('sqitch.ini'),
-        $self->_read_ini( $self->_user_config_root->file('config.ini') )
-    ) || {};
+        $hm->merge(
+            $self->_read_ini( $self->_user_config_root->file('config.ini') ),
+            $self->_read_ini( $self->_system_config_root->file('sqitch.ini') )
+        )
+    );
+}
+
+sub editor {
+    my $self = shift;
+    return $self->{editor} ||= $ENV{SQITCH_EDITOR} || $ENV{EDITOR}
+        || ($^O eq 'MSWin32' ? 'notepad.exe' : 'vi');
 }
 
 sub _read_ini {
     my ($self, $file) = @_;
-    return unless -f $file;
+    return {} unless -f $file;
     require Config::INI::Reader;
     return Config::INI::Reader->read_file($file);
 }
@@ -259,9 +276,50 @@ Constructs and returns a new Sqitch object. The supported parameters include:
 
 =item C<dry_run>
 
+=item C<editor>
+
 =item C<verbosity>
 
 =back
+
+=head2 Accessors
+
+=head3 C<plan_file>
+
+=head3 C<engine>
+
+=head3 C<client>
+
+=head3 C<db_name>
+
+=head3 C<username>
+
+=head3 C<host>
+
+=head3 C<port>
+
+=head3 C<sql_dir>
+
+=head3 C<deploy_dir>
+
+=head3 C<revert_dir>
+
+=head3 C<test_dir>
+
+=head3 C<extension>
+
+=head3 C<dry_run>
+
+=head3 C<editor>
+
+=head3 C<config>
+
+  my $config = $sqitch->config;
+
+Returns the full configuration, combined from the project, user, and system
+configuration files.
+
+=head3 C<verbosity>
 
 =head1 Author
 

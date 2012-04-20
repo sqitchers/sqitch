@@ -1,6 +1,6 @@
 =head1 Name
 
-sqitch-config - Get and set repository or global Sqitch options
+sqitch-config - Get and set project, user, or system Sqitch options
 
 =head1 Synopsis
 

@@ -5,6 +5,7 @@ use strict;
 use warnings;
 use utf8;
 use Carp;
+use Path::Class ();
 use List::Util qw(sum first);
 use parent 'App::Sqitch::Command';
 
@@ -13,6 +14,7 @@ our $VERSION = '0.10';
 __PACKAGE__->mk_ro_accessors(qw(
     file
     action
+    context
 ));
 
 sub options {
@@ -39,33 +41,86 @@ sub new {
     my $action_count = sum map { !!$p->{$_} } qw(get unset list edit);
     $class->usage('Only one action at a time.') if $action_count > 1;
 
-    # Get the action.
-    my $action = first { delete $p->{$_} } qw(get unset list edit);
-
     # Get the file.
     my $file = $p->{file} || do {
-        require File::Spec;
-        if (delete $p->{system}) {
-            require Config;
-            File::Spec->catfile($Config::Config{prefix}, 'etc', 'sqitch.ini')
+        if ($p->{system}) {
+            Path::Class::file($p->{sqitch}->_system_config_root, 'sqitch.ini');
+        } elsif ($p->{user}) {
+            Path::Class::file($p->{sqitch}->_user_config_root, 'config.ini');
         } else {
-            File::Spec->catfile(
-                delete $p->{user} ? ($p->{sqitch}->_user_config_root, 'config.ini')
-                            : (File::Spec->curdir, 'sqitch.ini')
-            );
+            Path::Class::file(+File::Spec->curdir, 'sqitch.ini');
         }
     };
 
+    # Get the action and context.
+    my $action  = first { $p->{$_} } qw(get unset list edit);
+    my $context = first { $p->{$_} } qw(user system);
+
     return $class->SUPER::new({
-        sqitch => $p->{sqitch},
-        action => $action,
-        file   => $file,
+        sqitch  => $p->{sqitch},
+        action  => $action  || 'set',
+        context => $context || 'project',
+        file    => $file,
     });
 }
 
 sub execute {
-    my ($self, $key, $value) = @_;
+    my $self = shift;
+    my $meth = $self->can($self->action)
+        or die 'No method defined for ', $self->action, ' action';
 
+    return $self->$meth(@_)
+}
+
+sub _config_for_reading {
+    my $self = shift;
+    return $self->sqitch->config if $self->context eq 'project';
+    return $self->read_config;
+}
+
+sub get {
+    my ($self, $key) = @_;
+    my ($section, $prop) = $self->_parse_key($key);
+    my $config = $self->_config_for_reading;
+    $self->fail unless defined $config->{$section}{$prop};
+    $self->emit($config->{$section}{$prop});
+    return $self;
+}
+
+sub set {
+    my ($self, $key, $value) = @_;
+    my ($section, $prop) = $self->_parse_key($key);
+    $self->lock_config;
+    my $config = $self->read_config;
+    $config->{$section}{$prop} = $value;
+    $self->write_config($config);
+}
+
+sub unset {
+    my ($self, $key) = @_;
+    my ($section, $prop) = $self->_parse_key($key);
+    $self->lock_config;
+    my $config = $self->read_config;
+    delete $config->{$section}{$prop};
+    $self->write_config($config);
+}
+
+sub list {
+    my $self = shift;
+    my $config = $self->_config_for_reading;
+    for my $section ( sort keys %{ $config }) {
+        for my $key ( sort keys %{ $config->{$section} } ) {
+            $self->emit("$section.$key=", $config->{$section}{$key});
+        }
+    }
+    return $self;
+}
+
+sub edit {
+    my $self = shift;
+    $self->lock_config;
+    my $editor = $self->sqitch->editor;
+    system $editor, $self->file;
 }
 
 sub read_config {
@@ -82,13 +137,26 @@ sub write_config {
     Config::INI::Writer->write_file($config, $self->file);
 }
 
+sub lock_config {
+}
+
+sub _parse_key {
+    my $self = shift;
+    my $key = shift or $self->usage('Wrong number of arguments');
+    my @parts = split /[.]/ => $key;
+    my $var = pop @parts;
+    $self->fail(qq{Property key does not contain a section: "$var"})
+        unless @parts;
+    return join('.' => @parts), $var;
+}
+
 1;
 
 __END__
 
 =head1 Name
 
-App::Sqitch::Command::config - Get and set project or global Sqitch options
+App::Sqitch::Command::config - Get and set project, user, or system Sqitch options
 
 =head1 Synopsis
 
@@ -130,6 +198,11 @@ The core L<Sqitch|App::Sqitch> object.
 =item C<get>
 
 Boolean indicating whether to get a value.
+
+=item C<set>
+
+Boolean indicating whether to set a value. This is the default action if
+no other action is specified.
 
 =item C<user>
 
@@ -193,6 +266,13 @@ returns the hash.
   $config->write_config($config_data);
 
 Writes the configuration data to the configuration file returned by C<file>.
+
+=head3 C<lock_config>
+
+  $config->lock_config;
+
+Reads the configuration file returned by C<file>. If a lock cannot be created,
+the command will exit with a failure message.
 
 =head1 See Also
 

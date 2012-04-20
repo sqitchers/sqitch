@@ -11,7 +11,7 @@ BEGIN {
     *CORE::GLOBAL::exit = sub { die 'EXITED: ' . (@_ ? shift : 0); };
 }
 
-use Test::More tests => 70;
+use Test::More tests => 74;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Test::Exception;
@@ -240,7 +240,7 @@ is $cmd->verbosity, $sqitch->verbosity, 'Verbosity should change with sqitch';
 ##############################################################################
 # Test message levels. Start with trace.
 is capture_stdout { $cmd->trace('This ', "that\n", 'and the other') },
-    "trace: This that\ntrace: and the other",
+    "trace: This that\ntrace: and the other\n",
     'trace should work';
 $sqitch->{verbosity} = 2;
 is capture_stdout { $cmd->trace('This ', "that\n", 'and the other') },
@@ -248,7 +248,7 @@ is capture_stdout { $cmd->trace('This ', "that\n", 'and the other') },
 
 # Debug.
 is capture_stdout { $cmd->debug('This ', "that\n", 'and the other') },
-    "debug: This that\ndebug: and the other",
+    "debug: This that\ndebug: and the other\n",
     'debug should work';
 $sqitch->{verbosity} = 1;
 is capture_stdout { $cmd->debug('This ', "that\n", 'and the other') },
@@ -256,8 +256,8 @@ is capture_stdout { $cmd->debug('This ', "that\n", 'and the other') },
 
 # Info.
 is capture_stdout { $cmd->info('This ', "that\n", 'and the other') },
-    "This that\nand the other",
-    'should work';
+    "This that\nand the other\n",
+    'info should work';
 $sqitch->{verbosity} = 0;
 is capture_stdout { $cmd->info('This ', "that\n", 'and the other') },
     '', 'Should get no info output for verbosity 0';
@@ -265,23 +265,36 @@ is capture_stdout { $cmd->info('This ', "that\n", 'and the other') },
 # Comment.
 $sqitch->{verbosity} = 1;
 is capture_stdout { $cmd->comment('This ', "that\n", 'and the other') },
-    "# This that\n# and the other",
+    "# This that\n# and the other\n",
     'comment should work';
 $sqitch->{verbosity} = 0;
 is capture_stdout { $cmd->comment('This ', "that\n", 'and the other') },
     '', 'Should get no comment output for verbosity 0';
 
+# Emit.
+is capture_stdout { $cmd->emit('This ', "that\n", 'and the other') },
+    "This that\nand the other\n",
+    'emit should work';
+$sqitch->{verbosity} = 0;
+is capture_stdout { $cmd->emit('This ', "that\n", 'and the other') },
+    "This that\nand the other\n",
+    'emit should work even with verbosity 0';
+
 # Warn.
 is capture_stderr { $cmd->warn('This ', "that\n", 'and the other') },
-    "warning: This that\nwarning: and the other",
+    "warning: This that\nwarning: and the other\n",
     'warn should work';
 
 # Fail.
 is capture_stderr {
     throws_ok { $cmd->fail('This ', "that\n", "and the other") }
         qr/EXITED: 1/
-}, "fatal: This that\nfatal: and the other",
+}, "fatal: This that\nfatal: and the other\n",
     'fail should work';
+
+is capture_stderr {
+    throws_ok { $cmd->fail } qr/EXITED: 1/
+}, '', 'fail print nothing if no args';
 
 # Help.
 is capture_stderr {
