@@ -271,9 +271,9 @@ is_deeply \@usage, ['Wrong number of arguments'],
 LOCKS: {
     ok my $fh = $cmd->_open_to_read('config.t'), 'Open ourselves';
     isa_ok $fh, 'GLOB', 'The read file handle';
-    close $fh;
 
-    # Lock it.
+    # Lock a file.
+    END { unlink '.locktest' };
     ok $fh = $cmd->_open_to_write('.locktest'), 'Open .locktest to write';
     isa_ok $fh, 'GLOB', 'The write file handle';
 
