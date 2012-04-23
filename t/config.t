@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 117;
+use Test::More tests => 129;
 #use Test::More 'no_plan';
 use File::Spec;
 use Test::MockModule;
@@ -31,6 +31,7 @@ is_deeply [$cmd->options], [qw(
     system
     get
     get-all
+    get-regexp
     add
     unset
     unset-all
@@ -88,6 +89,7 @@ for my $spec (
     [qw(edit list)],
     [qw(edit add list)],
     [qw(edit add list get_all)],
+    [qw(edit add list get_regexp)],
     [qw(edit add list unset_all)],
     [qw(edit add list get_all unset_all)],
 ) {
@@ -126,6 +128,8 @@ is $cmd->file, $sqitch->config->system_file, 'System config file should be syste
 # Test execute().
 my @fail;
 $mock->mock(fail => sub { shift; @fail = @_; die "FAIL @_" });
+my @unfound;
+$mock->mock(unfound => sub { shift; @unfound = @_; die "UNFOUND @_" });
 my @set;
 $mock->mock(set => sub { shift; @set = @_; return 1 });
 ok $cmd = App::Sqitch::Command::config->new({
@@ -176,12 +180,12 @@ CONTEXT: {
     ok $cmd->execute('core.pg.client'), 'Get system core.pg.client';
     is_deeply \@emit, [['/usr/local/pgsql/bin/psql']],
         'Should have emitted the system core.pg.client';
-    @emit = @fail = ();
+    @emit = @fail = @unfound = ();
 
-    throws_ok { $cmd->execute('core.pg.host') } qr/FAIL/,
+    throws_ok { $cmd->execute('core.pg.host') } qr/UNFOUND/,
         'Attempt to get core.pg.host should fail';
     is_deeply \@emit, [], 'Nothing should have been emitted';
-    is_deeply \@fail, [], 'Nothing should have been output on failure';
+    is_deeply \@unfound, [], 'Nothing should have been output on failure';
 
     local $ENV{SQITCH_USER_CONFIG} = file qw(t user.conf);
     $sqitch->config->load;
@@ -212,9 +216,9 @@ CONTEXT: {
         get    => 1,
     }), 'Create another system config get command';
     ok !-f $cmd->file, 'There should be no system config file';
-    throws_ok { $cmd->execute('core.engine') } qr/FAIL/,
+    throws_ok { $cmd->execute('core.engine') } qr/UNFOUND/,
         'Should fail when no system config file';
-    is_deeply \@fail, [], 'Nothing should have been emitted';
+    is_deeply \@unfound, [], 'Nothing should have been emitted';
 
     local $ENV{SQITCH_USER_CONFIG} = 'NONEXISTENT';
     ok $cmd = App::Sqitch::Command::config->new({
@@ -223,9 +227,9 @@ CONTEXT: {
         get    => 1,
     }), 'Create another user config get command';
     ok !-f $cmd->file, 'There should be no user config file';
-    throws_ok { $cmd->execute('core.engine') } qr/FAIL/,
+    throws_ok { $cmd->execute('core.engine') } qr/UNFOUND/,
         'Should fail when no user config file';
-    is_deeply \@fail, [], 'Nothing should have been emitted';
+    is_deeply \@unfound, [], 'Nothing should have been emitted';
 }
 
 ##############################################################################
@@ -363,6 +367,48 @@ is_deeply read_config($cmd->file), {
     'core.engine'  => 'funky',
     'core.pg.user' => 'theory',
 }, 'The value should have been added to the property';
+
+##############################################################################
+# Test get_all().
+@emit = ();
+$ENV{SQITCH_USER_CONFIG} = $file;
+$sqitch->config->load;
+ok $cmd = App::Sqitch::Command::config->new({
+    sqitch  => $sqitch,
+    get_all => 1,
+}), 'Create system config get_all command';
+ok $cmd->execute('core.engine'), 'Call get_all on core.engine';
+is_deeply \@emit, [['funky']], 'The engine should have been emitted';
+@emit = ();
+
+ok $cmd->execute('core.foo'), 'Call get_all on core.foo';
+is_deeply \@emit, [["bar\nbaz"]], 'Both foos should have been emitted';
+@emit = ();
+
+##############################################################################
+# Test get_regexp().
+ok $cmd = App::Sqitch::Command::config->new({
+    sqitch  => $sqitch,
+    get_regexp => 1,
+}), 'Create system config get_regexp command';
+ok $cmd->execute('core\\..+'), 'Call get_regexp on core\\..+';
+is_deeply \@emit, [[q{core.db_name=widgetopolis
+core.engine=funky
+core.extension=ddl
+core.foo=[bar, baz]
+core.pg.client=/usr/local/pgsql/bin/psql
+core.pg.user=theory
+core.pg.username=theory
+core.sql_dir=migrations}
+]], 'Should match all core options';
+@emit = ();
+
+ok $cmd->execute('core\\.pg\\..+'), 'Call get_regexp on core\\.pg\\..+';
+is_deeply \@emit, [[q{core.pg.client=/usr/local/pgsql/bin/psql
+core.pg.user=theory
+core.pg.username=theory}
+]], 'Should match all core.pg options';
+@emit = ();
 
 ##############################################################################
 # Test unset().

@@ -177,10 +177,14 @@ sub warn {
     say STDERR _prepend 'warning:', @_;
 }
 
+sub unfound {
+    exit 1;
+}
+
 sub fail {
     my $self = shift;
-    say STDERR _prepend 'fatal:', @_ if @_;
-    exit 1;
+    say STDERR _prepend 'fatal:', @_;
+    exit 2;
 }
 
 sub help {
@@ -356,12 +360,19 @@ C<sqitch config --get core.editor>.
 Send a warning messages to C<STDERR>. Use if something unexpected happened but
 you can recover from it.
 
+=head3 C<unfound>
+
+  $cmd->unfound;
+
+Exit the program with status code 1. Best for use for non-fatal errors,
+such as when something requested was not found.
+
 =head3 C<fail>
 
   $cmd->fail('File or directory "foo" not found.');
 
-Send a failure message to C<STDERR> and exit. Use if something unexpected
-happened and you cannot recover from it.
+Send a failure message to C<STDERR> and exit with status code 2. Use if
+something unexpected happened and you cannot recover from it.
 
 =head3 C<usage>
 

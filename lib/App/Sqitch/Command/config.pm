@@ -25,6 +25,7 @@ sub options {
 
         get
         get-all
+        get-regexp
         add
         unset
         unset-all
@@ -41,7 +42,7 @@ sub new {
     $class->usage('Only one config file at a time.') if $file_count > 1;
 
     # Make sure we are performing only one action.
-    my @action = grep { $p->{$_} } qw(get get_all unset list edit add unset_all);
+    my @action = grep { $p->{$_} } qw(get get_all get_regexp unset list edit add unset_all);
     $class->usage('Only one action at a time.') if @action > 1;
 
     # Get the file.
@@ -81,7 +82,7 @@ sub get {
         $self->fail("Cannot unset key with multiple values") if @vals > 1;
     }
     my $val = $self->sqitch->config->get(key => $key);
-    $self->fail unless defined $val;
+    $self->unfound unless defined $val;
     $self->emit($val);
     return $self;
 }
@@ -89,8 +90,31 @@ sub get {
 sub get_all {
     my ($self, $key) = @_;
     my @vals = $self->sqitch->config->get_all(key => $key);
-    $self->fail unless @vals;
+    $self->unfound unless @vals;
     $self->emit(join $/, @vals);
+    return $self;
+}
+
+sub get_regexp {
+    my ($self, $key) = @_;
+    my $config = $self->sqitch->config;
+    my %vals = $config->get_regexp(key => $key);
+    $self->unfound unless %vals;
+    my @out;
+    for my $key (sort keys %vals) {
+        if (defined $vals{$key}) {
+            if ( $config->is_multiple($key) ) {
+                push @out => "$key=[" . join(', ', @{$vals{$key}}) . ']';
+            }
+            else {
+                push @out => "$key=$vals{$key}";
+            }
+        } else {
+            push @out => $key;
+        }
+    }
+    $self->emit(join $/ => @out);
+
     return $self;
 }
 
@@ -221,6 +245,10 @@ Boolean indicating whether to get a single value.
 
 Boolean indicating whether to get all instances of a multiple value.
 
+=item C<get_regexp>
+
+Boolean indicating whether to get all instances matching a regular expression.
+
 =item C<set>
 
 Boolean indicating whether to set a value. This is the default action if
@@ -250,8 +278,8 @@ the configuration file.
 
 =item C<unset_all>
 
-Boolean indicating that the specified multi-valkue key should be removed from
-the configuration file.
+Boolean indicating that the specified multiple-value key should be removed
+from the configuration file.
 
 =item C<list>
 

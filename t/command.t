@@ -288,13 +288,14 @@ is capture_stderr { $cmd->warn('This ', "that\n", 'and the other') },
 # Fail.
 is capture_stderr {
     throws_ok { $cmd->fail('This ', "that\n", "and the other") }
-        qr/EXITED: 1/
+        qr/EXITED: 2/
 }, "fatal: This that\nfatal: and the other\n",
     'fail should work';
 
+# Unfound
 is capture_stderr {
-    throws_ok { $cmd->fail } qr/EXITED: 1/
-}, '', 'fail print nothing if no args';
+    throws_ok { $cmd->unfound } qr/EXITED: 1/
+}, '', 'unfound print nothing';
 
 # Help.
 is capture_stderr {
