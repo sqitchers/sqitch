@@ -2,8 +2,8 @@
 
 use strict;
 use warnings;
-#use Test::More tests => 133;
-use Test::More 'no_plan';
+use Test::More tests => 113;
+#use Test::More 'no_plan';
 use File::Spec;
 use Test::MockModule;
 use Test::Exception;
@@ -29,7 +29,10 @@ is_deeply [$cmd->options], [qw(
     user
     system
     get
+    get-all
+    add
     unset
+    unset-all
     list|l
     edit|e
 )], 'Options should be configured';
@@ -82,6 +85,10 @@ for my $spec (
     [qw(unset edit)],
     [qw(unset edit list)],
     [qw(edit list)],
+    [qw(edit add list)],
+    [qw(edit add list get_all)],
+    [qw(edit add list unset_all)],
+    [qw(edit add list get_all unset_all)],
 ) {
     throws_ok { App::Sqitch::Command::config->new({
         sqitch => $sqitch,
@@ -344,6 +351,19 @@ is_deeply read_config($cmd->file), {
 }, 'Both sections should be saved';
 
 ##############################################################################
+# Test add().
+ok $cmd = App::Sqitch::Command::config->new({
+    sqitch => $sqitch,
+    add    => 1,
+}), 'Create system config add command';
+ok $cmd->execute('core.foo' => 'baz'), 'Add to core.foo';
+is_deeply read_config($cmd->file), {
+    'core.foo'     => ['bar', 'baz'],
+    'core.engine'  => 'funky',
+    'core.pg.user' => 'theory',
+}, 'The value should have been added to the property';
+
+##############################################################################
 # Test unset().
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch => $sqitch,
@@ -352,13 +372,28 @@ ok $cmd = App::Sqitch::Command::config->new({
 
 ok $cmd->execute('core.pg.user'), 'Unset core.pg.user';
 is_deeply read_config($cmd->file), {
-    'core.foo'    => 'bar',
+    'core.foo'    => ['bar', 'baz'],
     'core.engine' => 'funky',
 }, 'core.pg.user should be gone';
-ok $cmd->execute('core.foo'), 'Unset core.foo';
+ok $cmd->execute('core.engine'), 'Unset core.engine';
 is_deeply read_config($cmd->file), {
-    'core.engine' => 'funky',
+    'core.foo'    => ['bar', 'baz'],
 }, 'core.foo should have been removed';
+
+throws_ok { $cmd->execute('core.foo') } qr/FAIL/,
+    'Should get failure trying to delete multivalue key';
+is_deeply \@fail, ['Cannot unset key with multiple values'],
+    'And it should have show the proper error message';
+
+##############################################################################
+# Test unset().
+ok $cmd = App::Sqitch::Command::config->new({
+    sqitch    => $sqitch,
+    unset_all => 1,
+}), 'Create system config unset-all command';
+
+ok $cmd->execute('core.foo'), 'Unset-all core.foo';
+is_deeply read_config($cmd->file), {}, 'core.foo should have been removed';
 
 ##############################################################################
 # Test edit().

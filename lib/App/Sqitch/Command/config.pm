@@ -24,7 +24,10 @@ sub options {
         system
 
         get
+        get-all
+        add
         unset
+        unset-all
         list|l
         edit|e
     );
@@ -38,8 +41,8 @@ sub new {
     $class->usage('Only one config file at a time.') if $file_count > 1;
 
     # Make sure we are performing only one action.
-    my $action_count = sum map { !!$p->{$_} } qw(get unset list edit);
-    $class->usage('Only one action at a time.') if $action_count > 1;
+    my @action = grep { $p->{$_} } qw(get get_all unset list edit add unset_all);
+    $class->usage('Only one action at a time.') if @action > 1;
 
     # Get the file.
     my $file = $p->{file} || do {
@@ -53,12 +56,11 @@ sub new {
     };
 
     # Get the action and context.
-    my $action  = first { $p->{$_} } qw(get unset list edit);
     my $context = first { $p->{$_} } qw(user system);
 
     return $class->SUPER::new({
         sqitch  => $p->{sqitch},
-        action  => $action  || 'set',
+        action  => $action[0] || 'set',
         context => $context || 'project',
         file    => $file,
     });
@@ -74,40 +76,74 @@ sub execute {
 
 sub get {
     my ($self, $key) = @_;
+    if (my $config = $self->_file_config) {
+        my @vals = $config->get_all(key => $key);
+        $self->fail("Cannot unset key with multiple values") if @vals > 1;
+    }
     my $val = $self->sqitch->config->get(key => $key);
     $self->fail unless defined $val;
     $self->emit($val);
     return $self;
 }
 
-sub set {
-    my ($self, $key, $value) = @_;
+sub get_all {
+    my ($self, $key) = @_;
+    my @vals = $self->sqitch->config->get_all(key => $key);
+    $self->fail unless @vals;
+    $self->emit(join $/, @vals);
+    return $self;
+}
+
+sub set { shift->_set(@_, 0) }
+sub add { shift->_set(@_, 1) }
+
+sub _set {
+    my ($self, $key, $value, $mult) = @_;
     $self->sqitch->config->set(
         key      => $key,
         value    => $value,
         filename => $self->file,
+        multiple => $mult,
     );
     return $self;
 }
 
+sub _file_config {
+    my $file = shift->file;
+    return unless -e $file;
+    my $config = App::Sqitch::Config->new;
+    $config->load_file($file);
+    return $config;
+}
+
 sub unset {
-    my ($self, $key, $value) = @_;
+    my ($self, $key) = @_;
+    my @vals = $self->_file_config->get_all(key => $key);
+    $self->fail("Cannot unset key with multiple values") if @vals > 1;
+
     $self->sqitch->config->set(
         key      => $key,
         filename => $self->file,
+    ) if @vals;
+    return $self;
+}
+
+sub unset_all {
+    my ($self, $key) = @_;
+    $self->sqitch->config->set(
+        key      => $key,
+        filename => $self->file,
+        multiple => 1,
     );
     return $self;
 }
 
 sub list {
     my $self = shift;
-    if ($self->context eq 'project') {
-        $self->emit(scalar $self->sqitch->config->dump);
-    } elsif (-e $self->file) {
-        my $config = App::Sqitch::Config->new;
-        $config->load_file($self->file);
-        $self->emit(scalar $config->dump);
-    }
+    my $config = $self->context eq 'project'
+        ? $self->sqitch->config
+        : $self->_file_config;
+    $self->emit(scalar $config->dump) if $config;
     return $self;
 }
 
@@ -164,12 +200,21 @@ The core L<Sqitch|App::Sqitch> object.
 
 =item C<get>
 
-Boolean indicating whether to get a value.
+Boolean indicating whether to get a single value.
+
+=item C<get_all>
+
+Boolean indicating whether to get all instances of a multiple value.
 
 =item C<set>
 
 Boolean indicating whether to set a value. This is the default action if
 no other action is specified.
+
+=item C<add>
+
+Boolean indicating whether to a new line to the option without altering any
+existing values.
 
 =item C<user>
 
@@ -185,8 +230,13 @@ Configuration file to read from and write to.
 
 =item C<unset>
 
-Boolean indicating that the specified value should be removed from the
-configuration file.
+Boolean indicating that the specified single-value key should be removed from
+the configuration file.
+
+=item C<unset_all>
+
+Boolean indicating that the specified multi-valkue key should be removed from
+the configuration file.
 
 =item C<list>
 
@@ -252,21 +302,11 @@ The Sqitch command-line client.
 
 =over
 
-=item * Allow comments to start with C<#>.
-
-=item * Indent values when writing.
-
-=item * Preserve comments, whitespace, order, when writing.
-
-=item * Support multiple-value items via C<--add> like git-config.
-
 =item * Add data type support like git-config?
 
 =item * Add C<--get-regexp>.
 
 =item * Add C<--remove-section> and C<--rename-section>.
-
-=item * Add C<--unset-all>.
 
 =back
 
