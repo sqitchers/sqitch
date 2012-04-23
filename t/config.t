@@ -2,13 +2,14 @@
 
 use strict;
 use warnings;
-use Test::More tests => 113;
+use Test::More tests => 117;
 #use Test::More 'no_plan';
 use File::Spec;
 use Test::MockModule;
 use Test::Exception;
 use Test::NoWarnings;
 use Path::Class;
+use File::Path qw(remove_tree);
 
 my $CLASS;
 BEGIN {
@@ -386,7 +387,7 @@ is_deeply \@fail, ['Cannot unset key with multiple values'],
     'And it should have show the proper error message';
 
 ##############################################################################
-# Test unset().
+# Test unset_all().
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch    => $sqitch,
     unset_all => 1,
@@ -412,6 +413,21 @@ $ret = 0;
 throws_ok { $cmd->execute } qr/FAIL/, 'Should fail on system failure';
 is_deeply \@sys, [$sqitch->editor, $cmd->file],
     'The editor should have been run again';
+
+##############################################################################
+# Make sure we can write to a file in a directory.
+my $path = file qw(t config.tmp test.conf);
+$mock->mock(file => $path);
+END { remove_tree +File::Spec->catdir(qw(t config.tmp)) }
+ok $sqitch = App::Sqitch->new, 'Load a new sqitch object';
+ok $cmd = App::Sqitch::Command::config->new({
+    sqitch => $sqitch,
+    user   => 1,
+    set    => 1,
+}), 'Create system config set command with subdirectory config file path';
+ok $cmd->execute('my.foo', 'hi'), 'Set "my.foo" in subdirectory config file';
+is_deeply read_config($cmd->file), {'my.foo' => 'hi' },
+    'The file should have been written';
 
 sub read_config {
     my $conf = App::Sqitch::Config->new;

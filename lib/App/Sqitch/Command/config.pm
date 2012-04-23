@@ -99,6 +99,7 @@ sub add { shift->_set(@_, 1) }
 
 sub _set {
     my ($self, $key, $value, $mult) = @_;
+    $self->_touch_dir;
     $self->sqitch->config->set(
         key      => $key,
         value    => $value,
@@ -120,6 +121,7 @@ sub unset {
     my ($self, $key) = @_;
     my @vals = $self->_file_config->get_all(key => $key);
     $self->fail("Cannot unset key with multiple values") if @vals > 1;
+    $self->_touch_dir;
 
     $self->sqitch->config->set(
         key      => $key,
@@ -130,6 +132,7 @@ sub unset {
 
 sub unset_all {
     my ($self, $key) = @_;
+    $self->_touch_dir;
     $self->sqitch->config->set(
         key      => $key,
         filename => $self->file,
@@ -151,6 +154,18 @@ sub edit {
     my $self = shift;
     # Let the editor deal with locking.
     $self->do_system($self->sqitch->editor, $self->file) or $self->fail;
+}
+
+sub _touch_dir {
+    my $self = shift;
+    unless (-e $self->file) {
+        require File::Basename;
+        my $dir = File::Basename::dirname($self->file);
+        unless (-e $dir && -d _) {
+            require File::Path;
+            File::Path::make_path($dir);
+        }
+    }
 }
 
 1;

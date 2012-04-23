@@ -15,6 +15,7 @@ Module::Build->new(
         'Test::More'           => '0.17',
         'Test::NoWarnings'     => '0.083',
         'File::HomeDir'        => 0,
+        'File::Path'           => 0,
         'File::Spec'           => 0,
     },
     requires => {
