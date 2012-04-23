@@ -8,7 +8,6 @@ use Carp;
 use Path::Class ();
 use List::Util qw(sum first);
 use parent 'App::Sqitch::Command';
-use Fcntl ':flock';
 
 our $VERSION = '0.10';
 
@@ -89,11 +88,6 @@ sub set {
         filename => $self->file,
     );
     return $self;
-
-    # my ($section, $prop) = $self->_parse_key($key);
-    # my $config = $self->read_config;
-    # $config->{$section}{$prop} = $value;
-    # $self->write_config($config);
 }
 
 sub unset {
@@ -103,11 +97,6 @@ sub unset {
         filename => $self->file,
     );
     return $self;
-
-    # my ($section, $prop) = $self->_parse_key($key);
-    # my $config = $self->read_config;
-    # delete $config->{$section}{$prop};
-    # $self->write_config($config);
 }
 
 sub list {
