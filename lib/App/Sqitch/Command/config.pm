@@ -45,11 +45,11 @@ sub new {
     # Get the file.
     my $file = $p->{file} || do {
         if ($p->{system}) {
-            Path::Class::file($p->{sqitch}->_system_config_root, 'sqitch.ini');
+            $p->{sqitch}->config->global_file
         } elsif ($p->{user}) {
-            Path::Class::file($p->{sqitch}->_user_config_root, 'config.ini');
+            $p->{sqitch}->config->user_file
         } else {
-            Path::Class::file(+File::Spec->curdir, 'sqitch.ini');
+            $p->{sqitch}->config->dir_file
         }
     };
 
@@ -73,46 +73,51 @@ sub execute {
     return $self->$meth(@_)
 }
 
-sub _config_for_reading {
-    my $self = shift;
-    return $self->sqitch->config if $self->context eq 'project';
-    return $self->read_config;
-}
-
 sub get {
     my ($self, $key) = @_;
-    my ($section, $prop) = $self->_parse_key($key);
-    my $config = $self->_config_for_reading;
-    $self->fail unless defined $config->{$section}{$prop};
-    $self->emit($config->{$section}{$prop});
+    my $val = $self->sqitch->config->get(key => $key);
+    $self->fail unless defined $val;
+    $self->emit($val);
     return $self;
 }
 
 sub set {
     my ($self, $key, $value) = @_;
-    my ($section, $prop) = $self->_parse_key($key);
-    my $config = $self->read_config;
-    $config->{$section}{$prop} = $value;
-    $self->write_config($config);
+    $self->sqitch->config->set(
+        key      => $key,
+        value    => $value,
+        filename => $self->file,
+    );
     return $self;
+
+    # my ($section, $prop) = $self->_parse_key($key);
+    # my $config = $self->read_config;
+    # $config->{$section}{$prop} = $value;
+    # $self->write_config($config);
 }
 
 sub unset {
-    my ($self, $key) = @_;
-    my ($section, $prop) = $self->_parse_key($key);
-    my $config = $self->read_config;
-    delete $config->{$section}{$prop};
-    $self->write_config($config);
+    my ($self, $key, $value) = @_;
+    $self->sqitch->config->set(
+        key      => $key,
+        filename => $self->file,
+    );
     return $self;
+
+    # my ($section, $prop) = $self->_parse_key($key);
+    # my $config = $self->read_config;
+    # delete $config->{$section}{$prop};
+    # $self->write_config($config);
 }
 
 sub list {
     my $self = shift;
-    my $config = $self->_config_for_reading;
-    for my $section ( sort keys %{ $config }) {
-        for my $key ( sort keys %{ $config->{$section} } ) {
-            $self->emit("$section.$key=", $config->{$section}{$key});
-        }
+    if ($self->context eq 'project') {
+        $self->emit(scalar $self->sqitch->config->dump);
+    } elsif (-e $self->file) {
+        my $config = App::Sqitch::Config->new;
+        $config->load_file($self->file);
+        $self->emit(scalar $config->dump);
     }
     return $self;
 }
@@ -121,49 +126,6 @@ sub edit {
     my $self = shift;
     # Let the editor deal with locking.
     $self->do_system($self->sqitch->editor, $self->file) or $self->fail;
-}
-
-sub read_config {
-    my $self = shift;
-    my $fn = $self->file;
-    return {} unless -f $fn;
-    require Config::INI::Reader;
-    return Config::INI::Reader->read_handle($self->_open_to_read($fn));
-}
-
-sub write_config {
-    my ($self, $config) = @_;
-    require Config::INI::Writer;
-    Config::INI::Writer->write_handle(
-        $config,
-        $self->_open_to_write($self->file)
-    );
-}
-
-sub _parse_key {
-    my $self = shift;
-    my $key = shift or $self->usage('Wrong number of arguments');
-    my @parts = split /[.]/ => $key;
-    my $var = pop @parts;
-    $self->fail(qq{Property key does not contain a section: "$var"})
-        unless @parts;
-    return join('.' => @parts), $var;
-}
-
-sub _open_to_write {
-    my ($self, $fn) = @_;
-    my $mode = -e $fn ? '+<' : '>>';
-    open my $fh, $mode, $fn or $self->fail("Cannot open config file $fn: $!");
-    flock $fh, LOCK_EX | LOCK_NB or $self->fail("Cannot lock config file $fn");
-    truncate $fh, 0 or $self->fail("Cannot truncate config file $fn: $!\n");
-    return $fh;
-}
-
-sub _open_to_read {
-    my ($self, $fn) = @_;
-    open my $fh, '<', $fn or $self->fail("Cannot open config file $fn: $!");
-    flock $fh, LOCK_SH | LOCK_NB or $self->fail("Config file $fn locked");
-    return $fh;
 }
 
 1;

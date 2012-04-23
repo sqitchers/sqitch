@@ -2,12 +2,13 @@
 
 use strict;
 use warnings;
-use Test::More tests => 133;
-#use Test::More 'no_plan';
+#use Test::More tests => 133;
+use Test::More 'no_plan';
 use File::Spec;
 use Test::MockModule;
 use Test::Exception;
 use Test::NoWarnings;
+use Path::Class;
 
 my $CLASS;
 BEGIN {
@@ -15,138 +16,7 @@ BEGIN {
     use_ok $CLASS or die;
 }
 
-is_deeply $CLASS->_load_config, {},
-    'Should have no config by default';
-
-my $config_ini = {
-    'core.pg' => {
-        client   => '/opt/local/pgsql/bin/psql',
-        username => 'postgres',
-        host     => 'localhost',
-    },
-    'core.mysql' => {
-        client   => '/opt/local/mysql/bin/mysql',
-        username => 'root',
-    },
-    'core.sqlite' => {
-        client => '/opt/local/bin/sqlite3',
-    }
-};
-
-##############################################################################
-# Test the user config.
-require File::HomeDir;
-my $home = File::HomeDir->my_home;
-is $CLASS->_user_config_root, Path::Class::dir($home)->subdir('.sqitch'),
-    'The default user config root should be correct';
-
-USER: {
-    local $ENV{SQITCH_USER_CONFIG_ROOT} = 't';
-    is $CLASS->_user_config_root, $ENV{SQITCH_USER_CONFIG_ROOT},
-        '_user_config_root should use \$ENV{SQITCH_USER_CONFIG_ROOT}';
-    is_deeply $CLASS->_load_config, $config_ini,
-        'Should load config.ini for user config';
-}
-
-my $sqitch_ini = {
-    "core" => {
-        db_name   => "widgetopolis",
-        engine    => "pg",
-        extension => "ddl",
-        sql_dir   => "migrations",
-    },
-    "core.pg" => {
-        client   => "/usr/local/pgsql/bin/psql",
-        username => "theory",
-    },
-    "revert" => {
-        to => "gamma",
-    },
-    "bundle" => {
-        dest_dir  => "_build/sql",
-        from      => "gamma",
-        tags_only => "yes",
-    },
-};
-
-##############################################################################
-# Test the system config.
-is $CLASS->_system_config_root, Path::Class::dir($Config::Config{prefix}, 'etc'),
-    'The default system config path should be in $prefix/etc';
-SYSTEM: {
-    local $ENV{SQITCH_SYSTEM_CONFIG_ROOT} = 't';
-    is $CLASS->_system_config_root, $ENV{SQITCH_SYSTEM_CONFIG_ROOT},
-        '_system_config_root should use \$ENV{SQITCH_SYSTEM_CONFIG_ROOT}';
-    is_deeply $CLASS->_load_config, $sqitch_ini,
-        'Should load sqitch.ini for system config';
-}
-
-chdir 't';
-# Test loading local file.
-is_deeply $CLASS->_load_config, $sqitch_ini,
-    'Should load sqitch.ini for local config';
-
-my $both_ini = {
-    "core" => {
-        db_name   => "widgetopolis",
-        engine    => "pg",
-        extension => "ddl",
-        sql_dir   => "migrations",
-    },
-    "core.pg" => {
-        client   => "/usr/local/pgsql/bin/psql",
-        username => "theory",
-        host     => 'localhost',
-    },
-    'core.mysql' => {
-        client   => '/opt/local/mysql/bin/mysql',
-        username => 'root',
-    },
-    'core.sqlite' => {
-        client => '/opt/local/bin/sqlite3',
-    },
-    "revert" => {
-        to => "gamma",
-    },
-    "bundle" => {
-        dest_dir  => "_build/sql",
-        from      => "gamma",
-        tags_only => "yes",
-    },
-};
-
-# Test merging.
-$ENV{SQITCH_USER_CONFIG_ROOT} = File::Spec->curdir;
-is_deeply $CLASS->_load_config, $both_ini,
-    'Should merge both ini files with both present';
-
-##############################################################################
-# Test the editor.
-EDITOR: {
-    local $ENV{EDITOR} = 'edd';
-    my $sqitch = App::Sqitch->new({editor => 'emacz' });
-    is $sqitch->editor, 'emacz', 'editor should use use parameter';
-    $sqitch = App::Sqitch->new;
-    is $sqitch->editor, 'edd', 'editor should use $EDITOR';
-
-    local $ENV{SQITCH_EDITOR} = 'vimz';
-    $sqitch = App::Sqitch->new;
-    is $sqitch->editor, 'vimz', 'editor should prefer $SQITCH_EDITOR';
-
-    delete $ENV{SQITCH_EDITOR};
-    delete $ENV{EDITOR};
-    local $^O = 'NotWin32';
-    $sqitch = App::Sqitch->new;
-    is $sqitch->editor, 'vi', 'editor fall back on vi when not Windows';
-
-    $^O = 'MSWin32';
-    $sqitch = App::Sqitch->new;
-    is $sqitch->editor, 'notepad.exe', 'editor fall back on notepad on Windows';
-}
-
-##############################################################################
-# Test the command.
-ok my $sqitch = App::Sqitch->new, 'Load a sqitch sqitch object';
+ok my $sqitch = App::Sqitch->new, 'Load a sqitch object';
 isa_ok my $cmd = App::Sqitch::Command->load({
     sqitch  => $sqitch,
     command => 'config',
@@ -223,7 +93,7 @@ for my $spec (
 
 ##############################################################################
 # Test config file name.
-is $cmd->file, File::Spec->catfile(File::Spec->curdir, 'sqitch.ini'),
+is $cmd->file, $sqitch->config->dir_file,
     'Default config file should be local config file';
 is $cmd->action, 'set', 'Default action should be "set"';
 is $cmd->context, 'project', 'Default context should be "project"';
@@ -234,8 +104,7 @@ isa_ok $cmd = App::Sqitch::Command::config->new({
     user    => 1,
 }), 'App::Sqitch::Command::config', 'User config command';
 
-is $cmd->file, File::Spec->catfile($sqitch->_user_config_root, 'config.ini'),
-    'User config file should be in user config root';
+is $cmd->file, $sqitch->config->user_file, 'User config file should be user';
 
 # Test system file name.
 isa_ok $cmd = App::Sqitch::Command::config->new({
@@ -243,55 +112,12 @@ isa_ok $cmd = App::Sqitch::Command::config->new({
     system  => 1,
 }), 'App::Sqitch::Command::config', 'System config command';
 
-is $cmd->file, File::Spec->catfile($Config::Config{prefix}, qw(etc sqitch.ini)),
-    "System config file should be in $Config::Config{prefix}/etc";
-
-##############################################################################
-# Test property parsing.
-my @fail;
-$mock->mock(fail => sub { shift; @fail = @_; die "FAIL @_" });
-
-is_deeply [$cmd->_parse_key('foo.bar')], [qw(foo bar)],
-    'Parse foo.bar';
-is_deeply [$cmd->_parse_key('foo.bar.baz')], [qw(foo.bar baz)],
-    'Parse foo.bar.baz';
-is_deeply [$cmd->_parse_key('foo.bar.baz.yo')], [qw(foo.bar.baz yo)],
-    'Parse foo.bar.baz.yo';
-
-# Test errors.
-throws_ok { $cmd->_parse_key('foo') } qr/FAIL/, 'Parse foo';
-is_deeply \@fail, [qq{Property key does not contain a section: "foo"}],
-    'Should die for invalid key';
-throws_ok { $cmd->_parse_key('')} qr/USAGE/, 'Parse nothing';
-is_deeply \@usage, ['Wrong number of arguments'],
-    'Should get usage for missing key';
-
-##############################################################################
-# Test file locking.
-LOCKS: {
-    ok my $fh = $cmd->_open_to_read('config.t'), 'Open ourselves';
-    isa_ok $fh, 'GLOB', 'The read file handle';
-
-    # Lock a file.
-    END { unlink '.locktest' };
-    ok $fh = $cmd->_open_to_write('.locktest'), 'Open .locktest to write';
-    isa_ok $fh, 'GLOB', 'The write file handle';
-
-    # Try to lock it again.
-    throws_ok { $cmd->_open_to_write('.locktest') } qr/^FAIL/,
-        'Should get an exception trying to get a second lock';
-    is_deeply \@fail, ["Cannot lock config file .locktest"],
-        'Should have lock failure error';
-
-    # Try to get a sharelock.
-    throws_ok { $cmd->_open_to_read('.locktest') } qr/^FAIL/,
-        'Should get an exception trying to get a share lock';
-    is_deeply \@fail, ['Config file .locktest locked'],
-        'Should have share lock failure error';
-}
+is $cmd->file, $sqitch->config->system_file, 'System config file should be system';
 
 ##############################################################################
 # Test execute().
+my @fail;
+$mock->mock(fail => sub { shift; @fail = @_; die "FAIL @_" });
 my @set;
 $mock->mock(set => sub { shift; @set = @_; return 1 });
 ok $cmd = App::Sqitch::Command::config->new({
@@ -304,36 +130,9 @@ is_deeply \@set, [qw(foo bar)], 'The set method should have been called';
 $mock->unmock('set');
 
 ##############################################################################
-# Test _config_for_reading().
-ok $sqitch = $CLASS->new({ config => $CLASS->_load_config }),
-    'Load config into Sqtich';
-
-ok $cmd = App::Sqitch::Command::config->new({
-    sqitch  => $sqitch,
-}), 'Create default config command';
-is $cmd->_config_for_reading, $sqitch->config,
-    'The config for reading should be the combined config';
-
-CONTEXT: {
-    local $ENV{SQITCH_SYSTEM_CONFIG_ROOT} = File::Spec->curdir;
-    ok my $cmd = App::Sqitch::Command::config->new({
-        sqitch => $sqitch,
-        system => 1,
-    }), 'Create system config command';
-    is_deeply $cmd->_config_for_reading, $cmd->read_config,
-        'The config for reading should be the system config';
-
-    local $ENV{SQITCH_USER_CONFIG_ROOT} = File::Spec->curdir;
-    ok $cmd = App::Sqitch::Command::config->new({
-        sqitch => $sqitch,
-        user => 1,
-    }), 'Create user config command';
-    is_deeply $cmd->_config_for_reading, $cmd->read_config,
-        'The config for reading should be the user config';
-}
-
-##############################################################################
 # Test get().
+chdir 't';
+$ENV{SQITCH_USER_CONFIG} = 'user.conf';
 my @emit;
 $mock->mock(emit => sub { shift; push @emit => [@_] });
 ok $cmd = App::Sqitch::Command::config->new({
@@ -352,9 +151,11 @@ ok $cmd->execute('core.pg.client'), 'Get core.pg.client';
 is_deeply \@emit, [['/usr/local/pgsql/bin/psql']],
     'Should have emitted the merged core.pg.client';
 @emit = ();
+chdir File::Spec->updir;
 
 CONTEXT: {
-    local $ENV{SQITCH_SYSTEM_CONFIG_ROOT} = File::Spec->curdir;
+    local $ENV{SQITCH_SYSTEM_CONFIG} = file qw(t sqitch.conf);
+    $sqitch->config->load;
     ok my $cmd = App::Sqitch::Command::config->new({
         sqitch => $sqitch,
         system => 1,
@@ -374,7 +175,8 @@ CONTEXT: {
     is_deeply \@emit, [], 'Nothing should have been emitted';
     is_deeply \@fail, [], 'Nothing should have been output on failure';
 
-    local $ENV{SQITCH_USER_CONFIG_ROOT} = File::Spec->curdir;
+    local $ENV{SQITCH_USER_CONFIG} = file qw(t user.conf);
+    $sqitch->config->load;
     ok $cmd = App::Sqitch::Command::config->new({
         sqitch => $sqitch,
         user   => 1,
@@ -394,7 +196,8 @@ CONTEXT: {
 
 CONTEXT: {
     # What happens when there is no config file?
-    local $ENV{SQITCH_SYSTEM_CONFIG_ROOT} = 'NONEXISTENT';
+    local $ENV{SQITCH_SYSTEM_CONFIG} = 'NONEXISTENT';
+    $sqitch->config->load;
     ok my $cmd = App::Sqitch::Command::config->new({
         sqitch => $sqitch,
         system => 1,
@@ -405,7 +208,7 @@ CONTEXT: {
         'Should fail when no system config file';
     is_deeply \@fail, [], 'Nothing should have been emitted';
 
-    local $ENV{SQITCH_USER_CONFIG_ROOT} = 'NONEXISTENT';
+    local $ENV{SQITCH_USER_CONFIG} = 'NONEXISTENT';
     ok $cmd = App::Sqitch::Command::config->new({
         sqitch => $sqitch,
         user => 1,
@@ -419,72 +222,82 @@ CONTEXT: {
 
 ##############################################################################
 # Test list().
+local $ENV{SQITCH_SYSTEM_CONFIG} = file qw(t sqitch.conf);
+local $ENV{SQITCH_USER_CONFIG} = file qw(t user.conf);
+$sqitch->config->load;
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
     list    => 1,
 }), 'Create config list command';
 ok $cmd->execute, 'Execute the list action';
-is_deeply \@emit, [
-    [ "bundle.dest_dir="     => "_build/sql" ],
-    [ "bundle.from="         => "gamma" ],
-    [ "bundle.tags_only="    => "yes" ],
-    [ "core.db_name="        => "widgetopolis" ],
-    [ "core.engine="         => "pg" ],
-    [ "core.extension="      => "ddl" ],
-    [ "core.sql_dir="        => "migrations" ],
-    [ "core.mysql.client="   => "/opt/local/mysql/bin/mysql" ],
-    [ "core.mysql.username=" => "root" ],
-    [ "core.pg.client="      => "/usr/local/pgsql/bin/psql" ],
-    [ "core.pg.host="        => "localhost" ],
-    [ "core.pg.username="    => "theory" ],
-    [ "core.sqlite.client="  => "/opt/local/bin/sqlite3" ],
-    [ "revert.to="           => "gamma" ],
-], 'Should have emitted the merged config';
+is_deeply \@emit, [[
+    "bundle.dest_dir=_build/sql
+bundle.from=gamma
+bundle.tags_only=yes
+core.db_name=widgetopolis
+core.engine=pg
+core.extension=ddl
+core.mysql.client=/opt/local/mysql/bin/mysql
+core.mysql.username=root
+core.pg.client=/opt/local/pgsql/bin/psql
+core.pg.host=localhost
+core.pg.username=postgres
+core.sql_dir=migrations
+core.sqlite.client=/opt/local/bin/sqlite3
+revert.to=gamma
+"
+]], 'Should have emitted the merged config';
 @emit = ();
 
 CONTEXT: {
-    local $ENV{SQITCH_SYSTEM_CONFIG_ROOT} = File::Spec->curdir;
+    local $ENV{SQITCH_SYSTEM_CONFIG} = file qw(t sqitch.conf);
+    local $ENV{SQITCH_USER_CONFIG} = undef;
+    $sqitch->config->load;
     ok my $cmd = App::Sqitch::Command::config->new({
         sqitch => $sqitch,
         system => 1,
         list   => 1,
     }), 'Create system config list command';
     ok $cmd->execute, 'List the system config';
-    is_deeply \@emit,[
-        [ "bundle.dest_dir="  => "_build/sql" ],
-        [ "bundle.from="      => "gamma" ],
-        [ "bundle.tags_only=" => "yes" ],
-        [ "core.db_name="     => "widgetopolis" ],
-        [ "core.engine="      => "pg" ],
-        [ "core.extension="   => "ddl" ],
-        [ "core.sql_dir="     => "migrations" ],
-        [ "core.pg.client="   => "/usr/local/pgsql/bin/psql" ],
-        [ "core.pg.username=" => "theory" ],
-        [ "revert.to="        => "gamma" ],
-    ], 'Should have emitted the system config list';
+    is_deeply \@emit, [[
+    "bundle.dest_dir=_build/sql
+bundle.from=gamma
+bundle.tags_only=yes
+core.db_name=widgetopolis
+core.engine=pg
+core.extension=ddl
+core.pg.client=/usr/local/pgsql/bin/psql
+core.pg.username=theory
+core.sql_dir=migrations
+revert.to=gamma
+"
+    ]], 'Should have emitted the system config list';
     @emit = ();
 
-    local $ENV{SQITCH_USER_CONFIG_ROOT} = File::Spec->curdir;
+    $ENV{SQITCH_USER_CONFIG} = file qw(t user.conf);
+    $sqitch->config->load;
     ok $cmd = App::Sqitch::Command::config->new({
         sqitch => $sqitch,
-        user => 1,
+        user   => 1,
         list   => 1,
     }), 'Create user config list command';
     ok $cmd->execute, 'List the user config';
-    is_deeply \@emit, [
-        [ "core.mysql.client="   => "/opt/local/mysql/bin/mysql" ],
-        [ "core.mysql.username=" => "root" ],
-        [ "core.pg.client="      => "/opt/local/pgsql/bin/psql" ],
-        [ "core.pg.host="        => "localhost" ],
-        [ "core.pg.username="    => "postgres" ],
-        [ "core.sqlite.client="  => "/opt/local/bin/sqlite3" ],
-    ],  'Should have emitted the user config list';
+    is_deeply \@emit, [[
+        "core.mysql.client=/opt/local/mysql/bin/mysql
+core.mysql.username=root
+core.pg.client=/opt/local/pgsql/bin/psql
+core.pg.host=localhost
+core.pg.username=postgres
+core.sqlite.client=/opt/local/bin/sqlite3
+"
+    ]],  'Should only have emitted the user config list';
     @emit = ();
 }
 
 CONTEXT: {
     # What happens when there is no config file?
-    local $ENV{SQITCH_SYSTEM_CONFIG_ROOT} = 'NONEXISTENT';
+    local $ENV{SQITCH_SYSTEM_CONFIG} = 'NONEXISTENT';
+    local $ENV{SQITCH_USER_CONFIG} = undef;
     ok my $cmd = App::Sqitch::Command::config->new({
         sqitch => $sqitch,
         system => 1,
@@ -493,7 +306,7 @@ CONTEXT: {
     ok $cmd->execute, 'List the system config';
     is_deeply \@emit, [], 'Nothing should have been emitted';
 
-    local $ENV{SQITCH_USER_CONFIG_ROOT} = 'NONEXISTENT';
+    $ENV{SQITCH_USER_CONFIG} = 'NONEXISTENT';
     ok $cmd = App::Sqitch::Command::config->new({
         sqitch => $sqitch,
         user => 1,
@@ -505,7 +318,7 @@ CONTEXT: {
 
 ##############################################################################
 # Test set().
-my $file = 'testconfig.ini';
+my $file = 'testconfig.conf';
 $mock->mock(file => $file);
 END { unlink $file }
 
@@ -514,19 +327,20 @@ ok $cmd = App::Sqitch::Command::config->new({
     set    => 1,
 }), 'Create system config set command';
 ok $cmd->execute('core.foo' => 'bar'), 'Write core.foo';
-is_deeply $cmd->read_config, {core => { foo => 'bar' }},
+is_deeply read_config($cmd->file), {'core.foo' => 'bar' },
     'The property should have been written';
 
 # Write another property.
 ok $cmd->execute('core.engine' => 'funky'), 'Write core.engine';
-is_deeply $cmd->read_config, {core => { foo => 'bar', engine => 'funky' }},
+is_deeply read_config($cmd->file), {'core.foo' => 'bar', 'core.engine' => 'funky' },
     'Both settings should be saved';
 
 # Write a sub-propery.
 ok $cmd->execute('core.pg.user' => 'theory'), 'Write core.pg.user';
-is_deeply $cmd->read_config, {
-    core => { foo => 'bar', engine => 'funky' },
-    'core.pg' => {user => 'theory' },
+is_deeply read_config($cmd->file), {
+    'core.foo'     => 'bar',
+    'core.engine'  => 'funky',
+    'core.pg.user' => 'theory',
 }, 'Both sections should be saved';
 
 ##############################################################################
@@ -537,14 +351,13 @@ ok $cmd = App::Sqitch::Command::config->new({
 }), 'Create system config unset command';
 
 ok $cmd->execute('core.pg.user'), 'Unset core.pg.user';
-is_deeply $cmd->read_config, {
-    core => { foo => 'bar', engine => 'funky' },
-    'core.pg' => {},
+is_deeply read_config($cmd->file), {
+    'core.foo'    => 'bar',
+    'core.engine' => 'funky',
 }, 'core.pg.user should be gone';
 ok $cmd->execute('core.foo'), 'Unset core.foo';
-is_deeply $cmd->read_config, {
-    core => { engine => 'funky' },
-    'core.pg' => {},
+is_deeply read_config($cmd->file), {
+    'core.engine' => 'funky',
 }, 'core.foo should have been removed';
 
 ##############################################################################
@@ -564,3 +377,9 @@ $ret = 0;
 throws_ok { $cmd->execute } qr/FAIL/, 'Should fail on system failure';
 is_deeply \@sys, [$sqitch->editor, $cmd->file],
     'The editor should have been run again';
+
+sub read_config {
+    my $conf = App::Sqitch::Config->new;
+    $conf->load_file(shift);
+    $conf->data;
+}

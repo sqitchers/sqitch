@@ -8,6 +8,7 @@ use Getopt::Long;
 use Hash::Merge qw(merge);
 use Path::Class;
 use Config;
+use App::Sqitch::Config;
 use App::Sqitch::Command;
 use parent 'Class::Accessor::Fast';
 
@@ -41,17 +42,19 @@ sub go {
     my $core_opts = $class->_parse_core_opts($core_args);
 
     # 3. Load config.
-    my $config = $class->_load_config;
+    my $config = App::Sqitch::Config->new;
 
     # 4. Instantiate Sqitch.
-    my $sqitch = $class->new(merge $core_opts, $config->{core});
+    my $sqitch = $class->new(
+        merge $core_opts, $config->get_section(section => 'core')
+    );
     $sqitch->{config} = $config;
 
     # 5. Instantiate the command object.
     my $command = App::Sqitch::Command->load({
         sqitch  => $sqitch,
         command => $cmd,
-        config  => $config->{$cmd},
+        config  => scalar $config->get_regexp(key => qr/^\Q$cmd./),
         args    => $cmd_args,
     });
 
@@ -167,45 +170,14 @@ sub _pod2usage {
     );
 }
 
-sub _user_config_root {
-    return dir $ENV{SQITCH_USER_CONFIG_ROOT} if $ENV{SQITCH_USER_CONFIG_ROOT};
-
-    require File::HomeDir;
-    my $homedir = File::HomeDir->my_home
-        or croak("Could not determine home directory");
-
-    return dir($homedir)->subdir('.sqitch');
-}
-
-sub _system_config_root {
-    return dir $ENV{SQITCH_SYSTEM_CONFIG_ROOT} if $ENV{SQITCH_SYSTEM_CONFIG_ROOT};
-    return dir $Config{prefix}, 'etc';
-}
-
-sub _load_config {
-    my $self = shift;
-    my $hm = Hash::Merge->new;
-    return $hm->merge(
-        $self->_read_ini('sqitch.ini'),
-        $hm->merge(
-            $self->_read_ini( $self->_user_config_root->file('config.ini') ),
-            $self->_read_ini( $self->_system_config_root->file('sqitch.ini') )
-        )
-    );
+sub config {
+    shift->{config} ||= App::Sqitch::Config->new;
 }
 
 sub editor {
     my $self = shift;
     return $self->{editor} ||= $ENV{SQITCH_EDITOR} || $ENV{EDITOR}
         || ($^O eq 'MSWin32' ? 'notepad.exe' : 'vi');
-}
-
-sub _read_ini {
-    my ($self, $file) = @_;
-    return {} unless -f $file;
-    require Config::INI::Reader;
-    # XXX Should we get a share lock on the file, first? Probably not...
-    return Config::INI::Reader->read_file($file);
 }
 
 1;

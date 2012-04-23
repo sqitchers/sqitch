@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 25;
+use Test::More tests => 32;
 #use Test::More 'no_plan';
 use Test::MockModule;
 
@@ -65,6 +65,7 @@ GO: {
     my $ret = 1;
     $mock->mock(execute => sub { ($cmd, @params) = @_; $ret });
     chdir 't';
+    local $ENV{SQITCH_USER_CONFIG} = 'user.conf';
     local @ARGV = qw(--engine sqlite help config);
     is +App::Sqitch->go, 0, 'Should get 0 from go()';
 
@@ -75,15 +76,33 @@ GO: {
     is $sqitch->engine, 'sqlite', 'Engine should be set by option';
     is $sqitch->db_name, 'widgetopolis', 'db_name should be set by config';
     is $sqitch->extension, 'ddl', 'ddl should be set by config';
-    is_deeply $sqitch->config, {
-        "bundle"  => { dest_dir => "_build/sql", from => "gamma", tags_only => "yes" },
-        "core"    => {
-            db_name   => "widgetopolis",
-            engine    => "pg",
-            extension => "ddl",
-            sql_dir   => "migrations",
-        },
-        "core.pg" => { client => "/usr/local/pgsql/bin/psql", username => "theory" },
-        "revert"  => { to => "gamma" },
-    }, 'And the integrated config should be loaded';
+    ok my $config = $sqitch->config, 'Get the Sqitch config';
+    is $config->get(key => 'core.pg.client'), '/usr/local/pgsql/bin/psql',
+        'Should have local config overriding user';
+    is $config->get(key => 'core.pg.host'), 'localhost',
+        'Should fall back on user config';
+}
+
+##############################################################################
+# Test the editor.
+EDITOR: {
+    local $ENV{EDITOR} = 'edd';
+    my $sqitch = App::Sqitch->new({editor => 'emacz' });
+    is $sqitch->editor, 'emacz', 'editor should use use parameter';
+    $sqitch = App::Sqitch->new;
+    is $sqitch->editor, 'edd', 'editor should use $EDITOR';
+
+    local $ENV{SQITCH_EDITOR} = 'vimz';
+    $sqitch = App::Sqitch->new;
+    is $sqitch->editor, 'vimz', 'editor should prefer $SQITCH_EDITOR';
+
+    delete $ENV{SQITCH_EDITOR};
+    delete $ENV{EDITOR};
+    local $^O = 'NotWin32';
+    $sqitch = App::Sqitch->new;
+    is $sqitch->editor, 'vi', 'editor fall back on vi when not Windows';
+
+    $^O = 'MSWin32';
+    $sqitch = App::Sqitch->new;
+    is $sqitch->editor, 'notepad.exe', 'editor fall back on notepad on Windows';
 }
