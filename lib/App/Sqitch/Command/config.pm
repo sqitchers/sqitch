@@ -42,15 +42,19 @@ sub options {
     );
 }
 
-sub new {
-    my ($class, $p) = @_;
+sub configure {
+    my ($class, $config, $opt) = @_;
 
     # Make sure we are accessing only one file.
-    my $file_count = sum map { !!$p->{$_} } qw(user system file);
-    $class->usage('Only one config file at a time.') if $file_count > 1;
+    my @file = grep { $opt->{$_} }  qw(user system file);
+    $class->usage('Only one config file at a time.') if @file > 1;
+
+    # Make sure we have only one type.
+    my @type = grep { $opt->{$_} } qw(bool int num);
+    $class->usage('Only one type at a time.') if @type > 1;
 
     # Make sure we are performing only one action.
-    my @action = grep { $p->{$_} } qw(
+    my @action = grep { $opt->{$_} } qw(
         get
         get_all
         get_regexp
@@ -64,32 +68,22 @@ sub new {
     );
     $class->usage('Only one action at a time.') if @action > 1;
 
-    # Make sure we have only one type.
-    my @type = grep { $p->{$_} } qw(bool int num);
-    $class->usage('Only one type at a time.') if @type > 1;
-
-
     # Get the file.
-    my $file = $p->{file} || do {
-        if ($p->{system}) {
-            $p->{sqitch}->config->global_file
-        } elsif ($p->{user}) {
-            $p->{sqitch}->config->user_file
-        } else {
-            $p->{sqitch}->config->dir_file
-        }
-    };
+    my $file = $opt->{file}   ? $opt->{file}
+             : $opt->{system} ? $config->global_file
+             : $opt->{user}   ? $config->user_file
+             :                      $config->dir_file;
 
     # Get the action and context.
-    my $context = first { $p->{$_} } qw(user system);
+    my $context = first { $opt->{$_} } qw(user system);
 
-    return $class->SUPER::new({
-        sqitch  => $p->{sqitch},
+    # Make it so.
+    return {
         action  => $action[0] || 'set',
         context => $context || 'project',
         type    => $type[0],
         file    => $file,
-    });
+    };
 }
 
 sub execute {
@@ -329,12 +323,22 @@ escaped.
 
 =head2 Class Methods
 
-=head3 options
+=head3 C<options>
 
   my @opts = App::Sqitch::Command::config->options;
 
 Returns a list of L<Getopt::Long> option specifications for the command-line
 options for the C<config> command.
+
+=head3 C<configure>
+
+  my $params = App::Sqitch::Command::config->configure(
+      $config,
+      $options,
+  );
+
+Processes the configuration and command options and returns a hash suitable
+for the constructor. Exits with an error on option specification errors.
 
 =head2 Constructor
 
@@ -351,82 +355,69 @@ include:
 
 The core L<Sqitch|App::Sqitch> object.
 
-=item C<get>
-
-Boolean indicating whether to get a single value.
-
-=item C<get_all>
-
-Boolean indicating whether to get all instances of a multiple value.
-
-=item C<get_regexp>
-
-Boolean indicating whether to get all instances matching a regular expression.
-
-=item C<set>
-
-Boolean indicating whether to set a value. This is the default action if
-no other action is specified.
-
-=item C<add>
-
-Boolean indicating whether to a new line to the option without altering any
-existing values.
-
-=item C<user>
-
-Boolean indicating whether to use the user configuration file.
-
-=item C<system>
-
-Boolean indicating whether to use the system configuration file.
-
 =item C<file>
 
 Configuration file to read from and write to.
 
-=item C<unset>
+=item C<action>
 
-Boolean indicating that the specified single-value key should be removed from
-the configuration file.
+The action to be executed. Must be one of:
 
-=item C<unset_all>
+=over
 
-Boolean indicating that the specified multiple-value key should be removed
-from the configuration file.
+=item * C<get>
 
-=item C<rename_section>
+=item * C<get_all>
 
-Boolean indicating that we should be running the rename-section command.
+=item * C<get_regexp>
 
-=item C<remove_section>
+=item * C<set>
 
-Boolean indicating that we should be running the remove-section command.
+=item * C<add>
 
-=item C<list>
+=item * C<unset>
 
-Boolean indicating that a list of the settings should be returned from
-the configuration file.
+=item * C<unset_all>
 
-=item C<edit>
+=item * C<list>
 
-Boolean indicating the the configuration file contents should be opened
-in an editor.
+=item * C<edit>
 
-=item C<bool>
+=back
 
-Boolean indicating that the value or values should be set or fetched as
-booleans.
+Defaults to C<set>.
 
-=item C<int>
+=item C<context>
 
-Boolean indicating that the value or values should be set or fetched as
-integers.
+The configuration file context. Must be one of:
 
-=item C<num>
+=over
 
-Boolean indicating that the value or values should be set or fetched as
-numbers.
+=item * C<project>
+
+=item * C<user>
+
+=item * C<system>
+
+=back
+
+Defaults to C<project>.
+
+=item C<type>
+
+The type to cast a value to be set to or fetched as. May be one of:
+
+=over
+
+=item * C<bool>
+
+=item * C<int>
+
+=item * C<num>
+
+=back
+
+If not specified or C<undef>, no casting will be performed.
 
 =back
 
@@ -442,27 +433,102 @@ use.
 Executes the config command. Pass the name of the property and the value to
 be assigned to it, if applicable.
 
+=head3 C<get>
+
+  $config->get($key);
+  $config->get($key, $regex);
+
+Emits the value for the specified key. The optional second argument is a
+regular expression that the value to be returned must match. Exits with an
+error if the is more than one value for the specified key, or if the key does
+not exist.
+
+=head3 C<get_all>
+
+  $config->get_all($key);
+  $config->get_all($key, $regex);
+
+Like C<get()>, but emits all of the values for the given key, rather then
+exiting with an error when there is more than one value.
+
+=head3 C<get_regexp>
+
+  $config->get_regex($key);
+  $config->get_regex($key, $regex);
+
+Like C<get_all()>, but the first parameter is a regular expression that will
+be matched against all keys.
+
+=head3 C<set>
+
+  $config->set($key, $value);
+  $config->set($key, $value, $regex);
+
+Sets the value for a key. Exits with an error if the key already exists and
+has multiple values.
+
+=head3 C<add>
+
+  $config->add($key, $value);
+
+Adds a value for a key. If the key already exist, the value will be added as
+an additional value.
+
+=head3 C<unset>
+
+  $config->unset($key);
+  $config->unset($key, $regex);
+
+Unsets a key. If the optional second argument is passed, the key will be unset
+only if the value matches the regular expression. If the key has multiple
+values, C<unset()> will exit with an error.
+
+=head3 C<unset_all>
+
+  $config->unset_all($key);
+  $config->unset_all($key, $regex);
+
+Like C<unset()>, but will not exit with an error if the key has multiple
+values.
+
+=head3 C<rename_section>
+
+  $config->rename_section($old_name, $new_name);
+
+Renames a section. Exits with an error if the section does not exist or if
+either name is not a valid section name.
+
+=head3 C<remove_section>
+
+  $config->remove_section($section);
+
+Removes a section. Exits with an error if the section does not exist.
+
+=head3 C<list>
+
+  $config->list;
+
+Lists all of the values in the configuration. If the context is C<system> or
+C<user>, only the settings set for that context will be emitted. Otherwise,
+all settings will be listed.
+
+=head3 C<edit>
+
+  $config->edit;
+
+Opens the context-specific configuration file in a text editor for direct
+editing. The editor is determined by L<Sqitch/editor>.
+
+=head2 Instance Accessors
+
 =head3 C<file>
 
   my $file_name = $config->file;
 
-Returns the path to the configuration file to be acted upon. If the C<system>
-attribute is true, then the value returned is C<$(prefix)/etc/sqitch.ini>. If
-the C<user> attribute is true, then the value returned is
-C<~/.sqitch.config.ini>. Otherwise, the default is F<./sqitch.ini>.
-
-=head3 C<read_config>
-
-  my $config_data = $config->read_config;
-
-Reads the configuration file returned by C<file>, parses it into a hash, and
-returns the hash.
-
-=head3 C<write_config>
-
-  $config->write_config($config_data);
-
-Writes the configuration data to the configuration file returned by C<file>.
+Returns the path to the configuration file to be acted upon. If the context is
+C<system>, then the value returned is C<$(prefix)/etc/sqitch.ini>. If the
+context is C<user>, then the value returned is C<~/.sqitch.config.ini>.
+Otherwise, the default is F<./sqitch.ini>.
 
 =head1 See Also
 
