@@ -9,9 +9,10 @@ use lib 't/lib';
 BEGIN {
     # Stub out exit.
     *CORE::GLOBAL::exit = sub { die 'EXITED: ' . (@_ ? shift : 0); };
+    $SIG{__DIE__} = \&Carp::confess;
 }
 
-use Test::More tests => 79;
+use Test::More tests => 82;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Test::Exception;
@@ -26,7 +27,7 @@ BEGIN {
     use_ok $CLASS or die;
 }
 
-can_ok $CLASS, qw(load new);
+can_ok $CLASS, qw(load new options configure command);
 
 COMMAND: {
     # Stub out a command.
@@ -63,20 +64,35 @@ throws_ok { $CLASS->new({ sqitch => 'foo' }) }
 isa_ok $CLASS->new({sqitch => $sqitch}), $CLASS;
 
 ##############################################################################
+# Test configure.
+my $config = App::Sqitch::Config->new;
+my $cmock = Test::MockModule->new('App::Sqitch::Config');
+is_deeply $CLASS->configure($config, {}), {},
+    'Should get empty hash for no config or options';
+$cmock->mock(get_section => {foo => 'hi'});
+is_deeply $CLASS->configure($config, {}), {foo => 'hi'},
+    'Should get config with no options';
+is_deeply $CLASS->configure($config, {foo => 'yo'}), {foo => 'yo'},
+    'Options should override config';
+
+##############################################################################
 # Test load().
+$cmock->mock(get_section => {});
 ok my $cmd = $CLASS->load({
     command => 'whu',
     sqitch  => $sqitch,
-    config  => {},
+    config  => $config,
     args    => []
 }), 'Load a "whu" command';
 isa_ok $cmd, 'App::Sqitch::Command::whu';
 is $cmd->sqitch, $sqitch, 'The sqitch attribute should be set';
 
+$cmock->mock(get_section => {foo => 'hi'});
+
 ok $cmd = $CLASS->load({
     command => 'whu',
     sqitch  => $sqitch,
-    config  => {foo => 'hi'},
+    config  => $config,
     args    => []
 }), 'Load a "whu" command with "foo" config';
 is $cmd->foo, 'hi', 'The "foo" attribute should be set';
@@ -94,14 +110,14 @@ throws_ok { $CLASS->load({ command => 'bad', sqitch => $sqitch }) }
     qr/^LOL BADZ/, 'Should die on bad command module';
 
 # Test options processing.
+$cmock->mock(get_section => {foo => 'hi', feathers => 'yes'});
 ok $cmd = $CLASS->load({
     command => 'whu',
     sqitch  => $sqitch,
-    config  => {foo => 'hi', feathers => 'yes'},
+    config  => $config,
     args    => ['--feathers' => 'no']
 }), 'Load a "whu" command with "--feathers" optin';
-is $cmd->feathers, 'yes', 'The "feathers" attribute should be set';
-
+is $cmd->feathers, 'no', 'The "feathers" attribute should be set';
 
 ##############################################################################
 # Test command and execute.
@@ -163,6 +179,7 @@ PARSEOPTSERR: {
     isa_ok $cmd = App::Sqitch::Command->load({
         command => 'good',
         sqitch  => $sqitch,
+        config  => $config,
     }), 'App::Sqitch::Command::good', 'Good command object';
     $cmd->_parse_opts(['--dont-do-this']);
     is_deeply \@warn, ["Unknown option: dont-do-this\n"],
@@ -197,6 +214,7 @@ POD2USAGE: {
     isa_ok $cmd = App::Sqitch::Command->load({
         command => 'config',
         sqitch  => $sqitch,
+        config  => $config,
     }), 'App::Sqitch::Command::config', 'Config command object';
     ok $cmd->_pod2usage, 'Call _pod2usage on "config" command object';
     is_deeply \%args, {
@@ -209,6 +227,7 @@ POD2USAGE: {
     isa_ok $cmd = App::Sqitch::Command->load({
         command => 'good',
         sqitch  => $sqitch,
+        config  => $config,
     }), 'App::Sqitch::Command::good', 'Good command object';
     ok $cmd->_pod2usage, 'Call _pod2usage on "good" command object';
     is_deeply \%args, {

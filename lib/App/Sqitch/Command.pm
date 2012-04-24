@@ -42,7 +42,7 @@ sub load {
     };
 
     # Merge the command-line options and configuration parameters
-    my $params = Hash::Merge->new->merge(
+    my $params = $pkg->configure(
         $p->{config},
         $pkg->_parse_opts($p->{args}),
     );
@@ -50,6 +50,14 @@ sub load {
     # Instantiate and return the command.
     $params->{sqitch} = $p->{sqitch};
     return $pkg->new($params);
+}
+
+sub configure {
+    my ($class, $config, $options) = @_;
+    return Hash::Merge->new->merge(
+        $options,
+        $config->get_section(section => $class->command),
+    );
 }
 
 sub new {
@@ -218,15 +226,80 @@ App::Sqitch::Command is the base class for all Sqitch commands.
 
 =head1 Interface
 
+=head2 Class Methods
+
+=head3 C<options>
+
+  my @spec = App::Sqitch::Command->options;
+
+Returns a list of L<Getopt::Long> options specifications. When C<load> loads
+the class, any options passed to the command will be parsed using these
+values. They keys in the resulting hash will be the first part of each option,
+with dashes replaced with underscores. This hash will be passed to
+C<configure> along with a L<App::Sqitch::Config> object for munging into
+parameters to be passed to the constructor.
+
+Here's an example excerpted from the C<config> command:
+
+  sub options {
+      return qw(
+          get
+          unset
+          list
+          global
+          system
+          config-file=s
+      );
+  }
+
+This will result in hash keys with the same names as each option except for
+C<config-file=s>, which will be named C<config_file>.
+
+=head3 C<configure>
+
+  my $params = App::Sqitch::Command->configure($config, $options);
+
+Takes two arguments, an L<App::Sqitch::Config> object and the hash of
+command-line options as specified by C<options>. The returned hash should be
+the result of munging these two objects into a hash reference of parameters to
+be passed to the command subclass constructor.
+
+By default, this method simply merges the configuration values with the
+command-line options, with the command-line options taking priority. You may
+wish to override this method to do something different.
+
 =head2 Constructors
 
 =head3 C<load>
 
-  my $cmd = App::Sqitch::Command->load( deploy => \%params );
+  my $cmd = App::Sqitch::Command->load( \%params );
 
-A factory method for instantiating Sqitch commands. It first tries to
-load the subclass for the specified command, then calls its C<new>
-constructor with specified parameters, and then returns it.
+A factory method for instantiating Sqitch commands. It loads the subclass for
+the specified command, uses the options returned by C<options> to parse
+command-line options, calls C<configure> to merge configuration with the
+options, and finally calls C<new> with the resulting hash. Supported parameters
+are:
+
+=over
+
+=item C<sqitch>
+
+The App::Sqitch object driving the whole thing.
+
+=item C<config>
+
+An L<App::Sqitch::Config> representing the current application configuration
+state.
+
+=item C<command>
+
+The name of the command to be executed.
+
+=item C<args>
+
+An array reference of command-line arguments passed to the command.
+
+=back
 
 =head3 C<new>
 
@@ -258,32 +331,6 @@ Executes the command. This is the method that does the work of the command.
 Must be overridden in all subclasses. Dies if the method is not overridden for
 the object on which it is called, or if it is called against a base
 App::Sqitch::Command object.
-
-=head3 C<options>
-
-  my @spec = $cmd->options;
-
-Returns a list of L<Getopt::Long> options specifications. When C<load> loads
-the class, any options passed to the command will be parsed using these
-values. The resulting hash will be merged with configuration properties and
-passed to the constructor. They keys in this hash will be the first part of
-each option, with dashes replaced with underscores.
-
-Here's an example excerpted from the C<config> command:
-
-  sub options {
-      return qw(
-          get
-          unset
-          list
-          global
-          system
-          config-file=s
-      );
-  }
-
-This will result in parameters with all the same names except for
-C<config-file=s>, which will be named C<config_file>.
 
 =head3 C<command>
 

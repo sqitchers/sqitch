@@ -1,6 +1,5 @@
 #!/usr/bin/perl -w
 
-use lib '/Users/david/.cpan/build/Config-GitLike-1.08-tsj7UP/lib';
 use strict;
 use warnings;
 use Test::More tests => 240;
@@ -22,6 +21,7 @@ ok my $sqitch = App::Sqitch->new, 'Load a sqitch object';
 isa_ok my $cmd = App::Sqitch::Command->load({
     sqitch  => $sqitch,
     command => 'config',
+    config  => $sqitch->config,
 }), 'App::Sqitch::Command::config', 'Config command';
 
 isa_ok $cmd, 'App::Sqitch::Command', 'Config command';
@@ -178,6 +178,7 @@ $mock->mock(set => sub { shift; @set = @_; return 1 });
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
     system  => 1,
+    config  => $sqitch->config,
 }), 'Create config set command';
 
 ok $cmd->execute(qw(foo bar)), 'Execute the set command';
@@ -188,6 +189,7 @@ $mock->unmock('set');
 # Test get().
 chdir 't';
 $ENV{SQITCH_USER_CONFIG} = 'user.conf';
+$sqitch->config->load;
 my @emit;
 $mock->mock(emit => sub { shift; push @emit => [@_] });
 ok $cmd = App::Sqitch::Command::config->new({

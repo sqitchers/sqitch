@@ -54,7 +54,7 @@ sub go {
     my $command = App::Sqitch::Command->load({
         sqitch  => $sqitch,
         command => $cmd,
-        config  => scalar $config->get_regexp(key => qr/^\Q$cmd./),
+        config  => $config,
         args    => $cmd_args,
     });
 
