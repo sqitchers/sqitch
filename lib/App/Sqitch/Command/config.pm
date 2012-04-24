@@ -15,7 +15,12 @@ extends 'App::Sqitch::Command';
 
 our $VERSION = '0.10';
 
-has file    => (is => 'ro');
+has file => (is => 'ro', lazy => 1, default => sub {
+    my $self = shift;
+    my $meth = $self->context . '_file';
+    return $self->sqitch->config->$meth;
+});
+
 has action  => (is => 'ro', required => 1, default => 'set', isa => enum([qw(
     get
     get_all
@@ -85,21 +90,15 @@ sub configure {
     );
     $class->usage('Only one action at a time.') if @action > 1;
 
-    # Get the file.
-    my $file = $opt->{file}   ? $opt->{file}
-             : $opt->{system} ? $config->global_file
-             : $opt->{user}   ? $config->user_file
-             :                      $config->dir_file;
-
     # Get the action and context.
     my $context = first { $opt->{$_} } qw(user system);
 
     # Make it so.
     return {
-        ($action[0] ? (action  => $action[0]) : ()),
-        ($type[0]   ? (type    => $type[0])   : ()),
-        ($context   ? (context => $context)   : ()),
-        ($file      ? (file    => $file)      : ()),
+        ($action[0]   ? (action  => $action[0])   : ()),
+        ($type[0]     ? (type    => $type[0])     : ()),
+        ($context     ? (context => $context)     : ()),
+        ($opt->{file} ? (file    => $opt->{file}) : ()),
     };
 }
 
