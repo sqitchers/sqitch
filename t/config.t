@@ -25,7 +25,7 @@ isa_ok my $cmd = App::Sqitch::Command->load({
 }), 'App::Sqitch::Command::config', 'Config command';
 
 isa_ok $cmd, 'App::Sqitch::Command', 'Config command';
-can_ok $cmd, qw(file action context get get_all get_regexp set add unset unset_all list edit);
+can_ok $cmd, qw(file action context get get_all get_regex set add unset unset_all list edit);
 
 is_deeply [$cmd->options], [qw(
     file|config-file|f=s
@@ -36,7 +36,7 @@ is_deeply [$cmd->options], [qw(
     num
     get
     get-all
-    get-regexp
+    get-regex
     add
     unset
     unset-all
@@ -123,7 +123,7 @@ for my $spec (
     [qw(edit list)],
     [qw(edit add list)],
     [qw(edit add list get_all)],
-    [qw(edit add list get_regexp)],
+    [qw(edit add list get_regex)],
     [qw(edit add list unset_all)],
     [qw(edit add list get_all unset_all)],
     [qw(edit list remove_section)],
@@ -616,12 +616,12 @@ is_deeply \@emit, [[$Config::GitLike::VERSION > 1.08 ? 'true' : 1]],
 @emit = ();
 
 ##############################################################################
-# Test get_regexp().
+# Test get_regex().
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
-    action  => 'get_regexp',
-}), 'Create system config get_regexp command';
-ok $cmd->execute('core\\..+'), 'Call get_regexp on core\\..+';
+    action  => 'get_regex',
+}), 'Create system config get_regex command';
+ok $cmd->execute('core\\..+'), 'Call get_regex on core\\..+';
 is_deeply \@emit, [[q{core.db_name=widgetopolis
 core.engine=funky
 core.extension=ddl
@@ -633,7 +633,7 @@ core.sql_dir=migrations}
 ]], 'Should match all core options';
 @emit = ();
 
-ok $cmd->execute('core\\.pg\\..+'), 'Call get_regexp on core\\.pg\\..+';
+ok $cmd->execute('core\\.pg\\..+'), 'Call get_regex on core\\.pg\\..+';
 is_deeply \@emit, [[q{core.pg.client=/usr/local/pgsql/bin/psql
 core.pg.user=theory
 core.pg.username=theory}
@@ -641,31 +641,31 @@ core.pg.username=theory}
 @emit = ();
 
 ok $cmd->execute('core\\.pg\\..+', 'theory$'),
-    'Call get_regexp on core\\.pg\\..+ and value regex';
+    'Call get_regex on core\\.pg\\..+ and value regex';
 is_deeply \@emit, [[q{core.pg.user=theory
 core.pg.username=theory}
 ]], 'Should match all core.pg options that match';
 @emit = ();
 
 throws_ok { $cmd->execute('core\\.pg\\..+', 'x$') } qr/UNFOUND/,
-    'Attempt to get_regexp core.foo with non-matching regex should fail';
+    'Attempt to get_regex core.foo with non-matching regex should fail';
 is_deeply \@emit, [], 'Nothing should have been emitted';
 is_deeply \@unfound, [], 'Nothing should have been output on failure';
 
 # Make sure the key is required.
-throws_ok { $cmd->get_regexp } qr/USAGE/, 'Should get_regexp usage for missing get_regexp key';
+throws_ok { $cmd->get_regex } qr/USAGE/, 'Should get_regex usage for missing get_regex key';
 is_deeply \@usage, ['Wrong number of arguments.'],
-    'And the missing get_regexp key should trigger a usage message';
-throws_ok { $cmd->get_regexp('') } qr/USAGE/, 'Should get_regexp usage for invalid get_regexp key';
+    'And the missing get_regex key should trigger a usage message';
+throws_ok { $cmd->get_regex('') } qr/USAGE/, 'Should get_regex usage for invalid get_regex key';
 is_deeply \@usage, ['Wrong number of arguments.'],
-    'And the invalid get_regexp key should trigger a usage message';
+    'And the invalid get_regex key should trigger a usage message';
 
 # Make sure int data type works.
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
-    action  => 'get_regexp',
+    action  => 'get_regex',
     type    => 'int',
-}), 'Create config get_regexp int command';
+}), 'Create config get_regex int command';
 
 ok $cmd->execute('revert.count'), 'Get revert.count as int';
 is_deeply \@emit, [['revert.count=2']],
@@ -683,9 +683,9 @@ throws_ok { $cmd->execute('bundle.tags_only') } qr/FAIL/,
 # Make sure num data type works.
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
-    action  => 'get_regexp',
+    action  => 'get_regex',
     type    => 'num',
-}), 'Create config get_regexp num command';
+}), 'Create config get_regex num command';
 
 ok $cmd->execute('revert.count'), 'Get revert.count as num';
 is_deeply \@emit, [['revert.count=2']],
@@ -703,9 +703,9 @@ throws_ok { $cmd->execute('bundle.tags_only') } qr/FAIL/,
 # Make sure bool data type works.
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
-    action  => 'get_regexp',
+    action  => 'get_regex',
     type    => 'bool',
-}), 'Create config get_regexp bool command';
+}), 'Create config get_regex bool command';
 
 throws_ok { $cmd->execute('revert.count') } qr/FAIL/,
     'Should get failure for invalid bool int';

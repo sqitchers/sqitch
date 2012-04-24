@@ -24,7 +24,7 @@ has file => (is => 'ro', lazy => 1, default => sub {
 has action  => (is => 'ro', required => 1, default => 'set', isa => enum([qw(
     get
     get_all
-    get_regexp
+    get_regex
     set
     unset
     list
@@ -53,7 +53,7 @@ sub options {
 
         get
         get-all
-        get-regexp
+        get-regex
         add
         unset
         unset-all
@@ -79,7 +79,7 @@ sub configure {
     my @action = grep { $opt->{$_} } qw(
         get
         get_all
-        get_regexp
+        get_regex
         unset
         list
         edit
@@ -151,7 +151,7 @@ sub get_all {
     return $self;
 }
 
-sub get_regexp {
+sub get_regex {
     my ($self, $key, $rx) = @_;
     $self->usage('Wrong number of arguments.') if !defined $key || $key eq '';
 
@@ -402,7 +402,7 @@ The action to be executed. Must be one of:
 
 =item * C<get_all>
 
-=item * C<get_regexp>
+=item * C<get_regex>
 
 =item * C<set>
 
@@ -484,7 +484,7 @@ not exist.
 Like C<get()>, but emits all of the values for the given key, rather then
 exiting with an error when there is more than one value.
 
-=head3 C<get_regexp>
+=head3 C<get_regex>
 
   $config->get_regex($key);
   $config->get_regex($key, $regex);
@@ -582,8 +582,6 @@ The Sqitch command-line client.
 =over
 
 =item * Make exit codes the same as C<git-config>.
-
-=item * C<s/regexp/regex/g>.
 
 =back
 
