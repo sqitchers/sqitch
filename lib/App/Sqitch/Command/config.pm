@@ -112,6 +112,8 @@ sub execute {
 
 sub get {
     my ($self, $key, $rx) = @_;
+    $self->usage('Wrong number of arguments.') if !defined $key || $key eq '';
+
     my $val = try {
         $self->sqitch->config->get(
             key    => $key,
@@ -132,6 +134,8 @@ sub get {
 
 sub get_all {
     my ($self, $key, $rx) = @_;
+    $self->usage('Wrong number of arguments.') if !defined $key || $key eq '';
+
     my @vals = try {
         $self->sqitch->config->get_all(
             key    => $key,
@@ -149,6 +153,8 @@ sub get_all {
 
 sub get_regexp {
     my ($self, $key, $rx) = @_;
+    $self->usage('Wrong number of arguments.') if !defined $key || $key eq '';
+
     my $config = $self->sqitch->config;
     my %vals = try {
         $config->get_regexp(
@@ -181,6 +187,10 @@ sub get_regexp {
 
 sub set {
     my ($self, $key, $value, $rx) = @_;
+    $self->usage('Wrong number of arguments.') if !defined $key || $key eq '';
+    # XXX Should probably happen in execute for no command.
+    return $self->get($key) if !defined $value;
+
     $self->_touch_dir;
     try {
         $self->sqitch->config->set(
@@ -201,6 +211,9 @@ sub set {
 
 sub add {
     my ($self, $key, $value) = @_;
+    $self->usage('Wrong number of arguments.')
+        if !defined $key || $key eq '' || !defined $value;
+
     $self->_touch_dir;
     $self->sqitch->config->set(
         key      => $key,
@@ -222,6 +235,7 @@ sub _file_config {
 
 sub unset {
     my ($self, $key, $rx) = @_;
+    $self->usage('Wrong number of arguments.') if !defined $key || $key eq '';
     $self->_touch_dir;
 
     try {
@@ -241,6 +255,8 @@ sub unset {
 
 sub unset_all {
     my ($self, $key, $rx) = @_;
+    $self->usage('Wrong number of arguments.') if !defined $key || $key eq '';
+
     $self->_touch_dir;
     $self->sqitch->config->set(
         key      => $key,
@@ -272,7 +288,7 @@ sub rename_section {
            defined $old_name && $old_name ne ''
         && defined $new_name && $new_name ne ''
     ) {
-        $self->usage('Wrong number of arguments');
+        $self->usage('Wrong number of arguments.');
     }
 
     try {
@@ -290,7 +306,7 @@ sub rename_section {
 
 sub remove_section {
     my ($self, $section) = @_;
-    $self->usage('Wrong number of arguments')
+    $self->usage('Wrong number of arguments.')
         unless defined $section && $section ne '';
     try {
         $self->sqitch->config->remove_section(
@@ -565,9 +581,9 @@ The Sqitch command-line client.
 
 =over
 
-=item * Add error checks for missing arguments to all actions.
-
 =item * Make exit codes the same as C<git-config>.
+
+=item * C<s/regexp/regex/g>.
 
 =back
 

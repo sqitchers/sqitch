@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-#use Test::More tests => 240;
+#use Test::More tests => 270;
 use Test::More 'no_plan';
 use File::Spec;
 use Test::MockModule;
@@ -198,6 +198,14 @@ ok $cmd->execute('core.pg.client'), 'Get core.pg.client';
 is_deeply \@emit, [['/usr/local/pgsql/bin/psql']],
     'Should have emitted the merged core.pg.client';
 @emit = ();
+
+# Make sure the key is required.
+throws_ok { $cmd->get } qr/USAGE/, 'Should get usage for missing get key';
+is_deeply \@usage, ['Wrong number of arguments.'],
+    'And the missing get key should trigger a usage message';
+throws_ok { $cmd->get('') } qr/USAGE/, 'Should get usage for invalid get key';
+is_deeply \@usage, ['Wrong number of arguments.'],
+    'And the invalid get key should trigger a usage message';
 
 # Make sure int data type works.
 ok $cmd = App::Sqitch::Command::config->new({
@@ -450,6 +458,19 @@ is_deeply read_config($cmd->file), {
     'core.pg.user' => 'theory',
 }, 'Both sections should be saved';
 
+# Make sure the key is required.
+throws_ok { $cmd->set } qr/USAGE/, 'Should set usage for missing set key';
+is_deeply \@usage, ['Wrong number of arguments.'],
+    'And the missing set key should trigger a usage message';
+throws_ok { $cmd->set('') } qr/USAGE/, 'Should set usage for invalid set key';
+is_deeply \@usage, ['Wrong number of arguments.'],
+    'And the invalid set key should trigger a usage message';
+
+# If there is no key, it should dispatch to get(), instead.
+ok $cmd->execute('core.pg.host'), 'Execute get(core.pg.host)';
+is_deeply \@emit, [['localhost']], 'The host name should have been emitted';
+@emit = ();
+
 ##############################################################################
 # Test add().
 ok $cmd = App::Sqitch::Command::config->new({
@@ -462,6 +483,19 @@ is_deeply read_config($cmd->file), {
     'core.engine'  => 'funky',
     'core.pg.user' => 'theory',
 }, 'The value should have been added to the property';
+
+# Make sure the key is required.
+throws_ok { $cmd->add } qr/USAGE/, 'Should add usage for missing add key';
+is_deeply \@usage, ['Wrong number of arguments.'],
+    'And the missing add key should trigger a usage message';
+throws_ok { $cmd->add('') } qr/USAGE/, 'Should add usage for invalid add key';
+is_deeply \@usage, ['Wrong number of arguments.'],
+    'And the invalid add key should trigger a usage message';
+
+# Make sure the value is required.
+throws_ok { $cmd->add('foo.bar') } qr/USAGE/, 'Should add usage for missing add value';
+is_deeply \@usage, ['Wrong number of arguments.'],
+    'And the missing add value should trigger a usage message';
 
 ##############################################################################
 # Test get with regex.
@@ -515,6 +549,14 @@ throws_ok { $cmd->execute('core.foo', 'x$') } qr/UNFOUND/,
     'Attempt to get_all core.foo with non-matching regex should fail';
 is_deeply \@emit, [], 'Nothing should have been emitted';
 is_deeply \@unfound, [], 'Nothing should have been output on failure';
+
+# Make sure the key is required.
+throws_ok { $cmd->get_all } qr/USAGE/, 'Should get_all usage for missing get_all key';
+is_deeply \@usage, ['Wrong number of arguments.'],
+    'And the missing get_all key should trigger a usage message';
+throws_ok { $cmd->get_all('') } qr/USAGE/, 'Should get_all usage for invalid get_all key';
+is_deeply \@usage, ['Wrong number of arguments.'],
+    'And the invalid get_all key should trigger a usage message';
 
 # Make sure int data type works.
 ok $cmd = App::Sqitch::Command::config->new({
@@ -610,6 +652,14 @@ throws_ok { $cmd->execute('core\\.pg\\..+', 'x$') } qr/UNFOUND/,
 is_deeply \@emit, [], 'Nothing should have been emitted';
 is_deeply \@unfound, [], 'Nothing should have been output on failure';
 
+# Make sure the key is required.
+throws_ok { $cmd->get_regexp } qr/USAGE/, 'Should get_regexp usage for missing get_regexp key';
+is_deeply \@usage, ['Wrong number of arguments.'],
+    'And the missing get_regexp key should trigger a usage message';
+throws_ok { $cmd->get_regexp('') } qr/USAGE/, 'Should get_regexp usage for invalid get_regexp key';
+is_deeply \@usage, ['Wrong number of arguments.'],
+    'And the invalid get_regexp key should trigger a usage message';
+
 # Make sure int data type works.
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
@@ -694,6 +744,14 @@ is_deeply read_config($cmd->file), {
     'core.foo' => 'bar',
 }, 'The core.foo "baz" value should have been removed';
 
+# Make sure the key is required.
+throws_ok { $cmd->unset } qr/USAGE/, 'Should unset usage for missing unset key';
+is_deeply \@usage, ['Wrong number of arguments.'],
+    'And the missing unset key should trigger a usage message';
+throws_ok { $cmd->unset('') } qr/USAGE/, 'Should unset usage for invalid unset key';
+is_deeply \@usage, ['Wrong number of arguments.'],
+    'And the invalid unset key should trigger a usage message';
+
 ##############################################################################
 # Test unset_all().
 ok $cmd = App::Sqitch::Command::config->new({
@@ -715,6 +773,13 @@ is_deeply read_config($cmd->file), {
     'core.foo' => 'yo',
 }, 'core.foo should have one value left';
 
+# Make sure the key is required.
+throws_ok { $cmd->unset_all } qr/USAGE/, 'Should unset_all usage for missing unset_all key';
+is_deeply \@usage, ['Wrong number of arguments.'],
+    'And the missing unset_all key should trigger a usage message';
+throws_ok { $cmd->unset_all('') } qr/USAGE/, 'Should unset_all usage for invalid unset_all key';
+is_deeply \@usage, ['Wrong number of arguments.'],
+    'And the invalid unset_all key should trigger a usage message';
 
 ##############################################################################
 # Test rename_section().
@@ -728,15 +793,15 @@ is_deeply read_config($cmd->file), {
 }, 'core.foo should have become funk.foo';
 
 throws_ok { $cmd->execute('foo') } qr/USAGE/, 'Should fail with no new name';
-is_deeply \@usage, ['Wrong number of arguments'],
+is_deeply \@usage, ['Wrong number of arguments.'],
     'Message should be in the usage call';
 
 throws_ok { $cmd->execute('', 'bar') } qr/USAGE/, 'Should fail with bad old name';
-is_deeply \@usage, ['Wrong number of arguments'],
+is_deeply \@usage, ['Wrong number of arguments.'],
     'Message should be in the usage call';
 
 throws_ok { $cmd->execute('baz', '') } qr/USAGE/, 'Should fail with bad new name';
-is_deeply \@usage, ['Wrong number of arguments'],
+is_deeply \@usage, ['Wrong number of arguments.'],
     'Message should be in the usage call';
 
 throws_ok { $cmd->execute('foo', 'bar') } qr/FAIL/, 'Should fail with invalid section';
@@ -754,7 +819,7 @@ is_deeply read_config($cmd->file), {},
     'The "funk" section should be gone';
 
 throws_ok { $cmd->execute() } qr/USAGE/, 'Should fail with no name';
-is_deeply \@usage, ['Wrong number of arguments'],
+is_deeply \@usage, ['Wrong number of arguments.'],
     'Message should be in the usage call';
 
 throws_ok { $cmd->execute('bar') } qr/FAIL/, 'Should fail with invalid name';
