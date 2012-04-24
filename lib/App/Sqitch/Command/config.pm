@@ -76,29 +76,29 @@ sub execute {
 }
 
 sub get {
-    my ($self, $key) = @_;
+    my ($self, $key, $rx) = @_;
     if (my $config = $self->_file_config) {
-        my @vals = $config->get_all(key => $key);
+        my @vals = $config->get_all(key => $key, filter => $rx);
         $self->fail("Cannot unset key with multiple values") if @vals > 1;
     }
-    my $val = $self->sqitch->config->get(key => $key);
+    my $val = $self->sqitch->config->get(key => $key, filter => $rx);
     $self->unfound unless defined $val;
     $self->emit($val);
     return $self;
 }
 
 sub get_all {
-    my ($self, $key) = @_;
-    my @vals = $self->sqitch->config->get_all(key => $key);
+    my ($self, $key, $rx) = @_;
+    my @vals = $self->sqitch->config->get_all(key => $key, filter => $rx);
     $self->unfound unless @vals;
     $self->emit(join $/, @vals);
     return $self;
 }
 
 sub get_regexp {
-    my ($self, $key) = @_;
+    my ($self, $key, $rx) = @_;
     my $config = $self->sqitch->config;
-    my %vals = $config->get_regexp(key => $key);
+    my %vals = $config->get_regexp(key => $key, filter => $rx);
     $self->unfound unless %vals;
     my @out;
     for my $key (sort keys %vals) {
@@ -346,8 +346,6 @@ The Sqitch command-line client.
 =over
 
 =item * Add data type support like git-config?
-
-=item * Add C<--get-regexp>.
 
 =item * Add C<--remove-section> and C<--rename-section>.
 

@@ -1,8 +1,9 @@
 #!/usr/bin/perl -w
 
+use lib '/Users/david/.cpan/build/Config-GitLike-1.08-tsj7UP/lib';
 use strict;
 use warnings;
-use Test::More tests => 129;
+use Test::More tests => 151;
 #use Test::More 'no_plan';
 use File::Spec;
 use Test::MockModule;
@@ -369,10 +370,29 @@ is_deeply read_config($cmd->file), {
 }, 'The value should have been added to the property';
 
 ##############################################################################
-# Test get_all().
-@emit = ();
+# Test get with regex.
 $ENV{SQITCH_USER_CONFIG} = $file;
 $sqitch->config->load;
+ok $cmd = App::Sqitch::Command::config->new({
+    sqitch => $sqitch,
+    get    => 1,
+}), 'Create system config add command';
+ok $cmd->execute('core.engine', 'funk'), 'Get core.engine with regex';
+is_deeply \@emit, [['funky']], 'Should have emitted value';
+@emit = ();
+
+ok $cmd->execute('core.foo', 'z$'), 'Get core.foo with regex';
+is_deeply \@emit, [['baz']], 'Should have emitted value';
+@emit = ();
+
+throws_ok { $cmd->execute('core.foo', 'x$') } qr/UNFOUND/,
+    'Attempt to get core.foo with non-matching regex should fail';
+is_deeply \@emit, [], 'Nothing should have been emitted';
+is_deeply \@unfound, [], 'Nothing should have been output on failure';
+
+##############################################################################
+# Test get_all().
+@emit = ();
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
     get_all => 1,
@@ -381,9 +401,26 @@ ok $cmd->execute('core.engine'), 'Call get_all on core.engine';
 is_deeply \@emit, [['funky']], 'The engine should have been emitted';
 @emit = ();
 
+ok $cmd->execute('core.engine', 'funk'), 'Get all core.engine with regex';
+is_deeply \@emit, [['funky']], 'Should have emitted value';
+@emit = ();
+
 ok $cmd->execute('core.foo'), 'Call get_all on core.foo';
 is_deeply \@emit, [["bar\nbaz"]], 'Both foos should have been emitted';
 @emit = ();
+
+ok $cmd->execute('core.foo', '^ba'), 'Call get_all on core.foo with regex';
+is_deeply \@emit, [["bar\nbaz"]], 'Both foos should have been emitted';
+@emit = ();
+
+ok $cmd->execute('core.foo', 'z$'), 'Call get_all on core.foo with limiting regex';
+is_deeply \@emit, [["baz"]], 'Only the one foo should have been emitted';
+@emit = ();
+
+throws_ok { $cmd->execute('core.foo', 'x$') } qr/UNFOUND/,
+    'Attempt to get_all core.foo with non-matching regex should fail';
+is_deeply \@emit, [], 'Nothing should have been emitted';
+is_deeply \@unfound, [], 'Nothing should have been output on failure';
 
 ##############################################################################
 # Test get_regexp().
@@ -409,6 +446,18 @@ core.pg.user=theory
 core.pg.username=theory}
 ]], 'Should match all core.pg options';
 @emit = ();
+
+ok $cmd->execute('core\\.pg\\..+', 'theory$'),
+    'Call get_regexp on core\\.pg\\..+ and value regex';
+is_deeply \@emit, [[q{core.pg.user=theory
+core.pg.username=theory}
+]], 'Should match all core.pg options that match';
+@emit = ();
+
+throws_ok { $cmd->execute('core\\.pg\\..+', 'x$') } qr/UNFOUND/,
+    'Attempt to get_regexp core.foo with non-matching regex should fail';
+is_deeply \@emit, [], 'Nothing should have been emitted';
+is_deeply \@unfound, [], 'Nothing should have been output on failure';
 
 ##############################################################################
 # Test unset().
