@@ -6,6 +6,7 @@ use warnings;
 use utf8;
 use Carp;
 use Path::Class ();
+use Try::Tiny;
 use List::Util qw(sum first);
 use parent 'App::Sqitch::Command';
 
@@ -29,6 +30,8 @@ sub options {
         add
         unset
         unset-all
+        rename-section
+        remove-section
         list|l
         edit|e
     );
@@ -42,7 +45,18 @@ sub new {
     $class->usage('Only one config file at a time.') if $file_count > 1;
 
     # Make sure we are performing only one action.
-    my @action = grep { $p->{$_} } qw(get get_all get_regexp unset list edit add unset_all);
+    my @action = grep { $p->{$_} } qw(
+        get
+        get_all
+        get_regexp
+        unset
+        list
+        edit
+        add
+        unset_all
+        rename_section
+        remove_section
+    );
     $class->usage('Only one action at a time.') if @action > 1;
 
     # Get the file.
@@ -182,6 +196,44 @@ sub edit {
     $self->do_system($self->sqitch->editor, $self->file) or $self->fail;
 }
 
+sub rename_section {
+    my ($self, $old_name, $new_name) = @_;
+    unless (
+           defined $old_name && $old_name ne ''
+        && defined $new_name && $new_name ne ''
+    ) {
+        $self->usage('Wrong number of arguments');
+    }
+
+    try {
+        $self->sqitch->config->rename_section(
+            from     => $old_name,
+            to       => $new_name,
+            filename => $self->file
+        );
+    } catch {
+        $self->fail('No such section!') if /\Qno such section/i;
+        $self->fail($_);
+    };
+    return $self;
+}
+
+sub remove_section {
+    my ($self, $section) = @_;
+    $self->usage('Wrong number of arguments')
+        unless defined $section && $section ne '';
+    try {
+        $self->sqitch->config->remove_section(
+            section  => $section,
+            filename => $self->file
+        );
+    } catch {
+        $self->fail('No such section!') if /\Qno such section/i;
+        die $_;
+    };
+    return $self;
+}
+
 sub _touch_dir {
     my $self = shift;
     unless (-e $self->file) {
@@ -283,6 +335,14 @@ the configuration file.
 Boolean indicating that the specified multiple-value key should be removed
 from the configuration file.
 
+=item C<rename_section>
+
+Boolean indicating that we should be running the rename-section command.
+
+=item C<remove_section>
+
+Boolean indicating that we should be running the remove-section command.
+
 =item C<list>
 
 Boolean indicating that a list of the settings should be returned from
@@ -347,9 +407,9 @@ The Sqitch command-line client.
 
 =over
 
-=item * Add data type support like C<git-config>.
+=item * Add error checks for missing argumenst to all actions.
 
-=item * Add C<--remove-section> and C<--rename-section>.
+=item * Add data type support like C<git-config>.
 
 =item * Make exit codes the same as C<git-config>.
 

@@ -3,7 +3,7 @@
 use lib '/Users/david/.cpan/build/Config-GitLike-1.08-tsj7UP/lib';
 use strict;
 use warnings;
-use Test::More tests => 155;
+use Test::More tests => 177;
 #use Test::More 'no_plan';
 use File::Spec;
 use Test::MockModule;
@@ -37,6 +37,8 @@ is_deeply [$cmd->options], [qw(
     add
     unset
     unset-all
+    rename-section
+    remove-section
     list|l
     edit|e
 )], 'Options should be configured';
@@ -94,6 +96,8 @@ for my $spec (
     [qw(edit add list get_regexp)],
     [qw(edit add list unset_all)],
     [qw(edit add list get_all unset_all)],
+    [qw(edit list remove_section)],
+    [qw(edit list remove_section rename_section)],
 ) {
     throws_ok { App::Sqitch::Command::config->new({
         sqitch => $sqitch,
@@ -506,6 +510,51 @@ ok $cmd->execute('core.foo', '^ba'), 'Unset-all core.foo with regex';
 is_deeply read_config($cmd->file), {
     'core.foo' => 'yo',
 }, 'core.foo should have one value left';
+
+##############################################################################
+# Test rename_section().
+ok $cmd = App::Sqitch::Command::config->new({
+    sqitch         => $sqitch,
+    rename_section => 1,
+}), 'Create system config rename-section command';
+ok $cmd->execute('core', 'funk'), 'Rename "core" to "funk"';
+is_deeply read_config($cmd->file), {
+    'funk.foo' => 'yo',
+}, 'core.foo should have become funk.foo';
+
+throws_ok { $cmd->execute('foo') } qr/USAGE/, 'Should fail with no new name';
+is_deeply \@usage, ['Wrong number of arguments'],
+    'Message should be in the usage call';
+
+throws_ok { $cmd->execute('', 'bar') } qr/USAGE/, 'Should fail with bad old name';
+is_deeply \@usage, ['Wrong number of arguments'],
+    'Message should be in the usage call';
+
+throws_ok { $cmd->execute('baz', '') } qr/USAGE/, 'Should fail with bad new name';
+is_deeply \@usage, ['Wrong number of arguments'],
+    'Message should be in the usage call';
+
+throws_ok { $cmd->execute('foo', 'bar') } qr/FAIL/, 'Should fail with invalid section';
+is_deeply \@fail, ['No such section!'],
+    'Message should be in the fail call';
+
+##############################################################################
+# Test remove_section().
+ok $cmd = App::Sqitch::Command::config->new({
+    sqitch         => $sqitch,
+    remove_section => 1,
+}), 'Create system config remove-section command';
+ok $cmd->execute('funk'), 'Remove "func" section';
+is_deeply read_config($cmd->file), {},
+    'The "funk" section should be gone';
+
+throws_ok { $cmd->execute() } qr/USAGE/, 'Should fail with no name';
+is_deeply \@usage, ['Wrong number of arguments'],
+    'Message should be in the usage call';
+
+throws_ok { $cmd->execute('bar') } qr/FAIL/, 'Should fail with invalid name';
+is_deeply \@fail, ['No such section!'],
+    'Message should be in the fail call';
 
 ##############################################################################
 # Test edit().
