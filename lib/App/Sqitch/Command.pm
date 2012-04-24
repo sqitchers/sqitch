@@ -8,7 +8,6 @@ use Carp;
 use Try::Tiny;
 use Hash::Merge 'merge';
 use Moose;
-use parent 'Class::Accessor::Fast';
 
 has sqitch => (is => 'ro', isa => 'App::Sqitch', required => 1);
 
