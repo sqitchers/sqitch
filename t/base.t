@@ -5,6 +5,7 @@ use warnings;
 use Test::More tests => 32;
 #use Test::More 'no_plan';
 use Test::MockModule;
+use Path::Class;
 
 my $CLASS;
 BEGIN {
@@ -36,26 +37,24 @@ can_ok $CLASS, qw(
 isa_ok my $sqitch = $CLASS->new, $CLASS, 'A new object';
 
 for my $attr (qw(
-    plan_file
     engine
     client
-    db_name
-    username
     host
     port
-    sql_dir
-    deploy_dir
-    revert_dir
-    test_dir
-    extension
-    dry_run
 )) {
     is $sqitch->$attr, undef, "$attr should be undef";
 }
 
-# is $sqitch->username, $ENV{USER}, 'Default user should be $ENV{USER}';
-# is $sqitch->db_name, $sqitch->username, 'Default DB should be same as user';
-is $sqitch->verbosity, 0, 'verbosity should be 0';
+is $sqitch->username, $ENV{USER}, 'Default user should be $ENV{USER}';
+is $sqitch->db_name, $sqitch->username, 'Default DB should be same as user';
+is $sqitch->plan_file, file('sqitch.plan'), 'Default plan file should be sqitch.plan';
+is $sqitch->verbosity, 1, 'verbosity should be 1';
+is $sqitch->dry_run, 0, 'dry_run should be 0';
+is $sqitch->extension, 'sql', 'Default extension should be sql';
+is $sqitch->sql_dir, dir('sql'), 'Default sql_dir should be ./sql';
+is $sqitch->deploy_dir, dir(qw(sql deploy)), 'Default deploy_dir should be ./sql/deploy';
+is $sqitch->revert_dir, dir(qw(sql revert)), 'Default revert_dir should be ./sql/revert';
+is $sqitch->test_dir, dir(qw(sql test)), 'Default test_dir should be ./sql/test';
 
 ##############################################################################
 # Test go().

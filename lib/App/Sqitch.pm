@@ -10,27 +10,65 @@ use Path::Class;
 use Config;
 use App::Sqitch::Config;
 use App::Sqitch::Command;
-use parent 'Class::Accessor::Fast';
+use Moose;
+use Moose::Util::TypeConstraints;
+use namespace::autoclean;
 
 our $VERSION = '0.10';
 
-__PACKAGE__->mk_ro_accessors(qw(
-    plan_file
-    engine
-    client
-    db_name
-    username
-    host
-    port
-    sql_dir
-    deploy_dir
-    revert_dir
-    test_dir
-    extension
-    dry_run
-    config
-    verbosity
-));
+has plan_file => (is => 'ro', required => 1, default => sub {
+    file 'sqitch.plan';
+});
+
+has engine => (is => 'ro', isa => enum [qw(pg mysql sqlite)]);
+
+has client => (is => 'ro', isa => 'Str');
+
+has db_name => (is => 'ro', isa => 'Str', required => 1, lazy => 1, default => sub {
+    $ENV{SQITCH_DBNAME} // shift->username
+});
+
+has username => (is => 'ro', isa => 'Str', required => 1, lazy => 1, default => sub {
+   $ENV{SQITCH_USER} // $ENV{USER}
+});
+
+has host => (is => 'ro', isa => 'Maybe[Str]', lazy => 1, default => sub {
+    $ENV{SQITCH_HOST};
+});
+
+has port => (is => 'ro', isa => 'Maybe[Int]', lazy => 1, default => sub {
+    $ENV{SQITCH_PORT};
+});
+
+has sql_dir => (is => 'ro', required => 1, lazy => 1, default => sub { dir 'sql' });
+
+has deploy_dir => (is => 'ro', required => 1, lazy => 1, default => sub {
+    shift->sql_dir->subdir('deploy');
+});
+
+has revert_dir => (is => 'ro', required => 1, lazy => 1, default => sub {
+    shift->sql_dir->subdir('revert');
+});
+
+has test_dir => (is => 'ro', required => 1, lazy => 1, default => sub {
+    shift->sql_dir->subdir('test');
+});
+
+has extension => (is => 'ro', isa => 'Str', default => 'sql');
+
+has dry_run => (is => 'ro', isa => 'Bool', required => 1, default => 0);
+
+has verbosity => (is => 'ro', required => 1, default => 1);
+
+has config => (is => 'ro', isa => 'App::Sqitch::Config', lazy => 1, default => sub {
+    App::Sqitch::Config->new
+});
+
+has editor => (is => 'ro', lazy => 1, default => sub {
+    return $ENV{SQITCH_EDITOR} || $ENV{EDITOR} || (
+        $^O eq 'MSWin32' ? 'notepad.exe' : 'vi'
+    );
+});
 
 sub go {
     my $class = shift;
@@ -61,31 +99,6 @@ sub go {
     # 6. Execute command.
     return $command->execute(@{ $cmd_args }) ? 0 : 2;
 }
-
-sub new {
-    my $class = shift;
-    my %p = %{ +shift || {} };
-    $p{verbosity} //= 0;
-    return $class->SUPER::new(\%p);
-}
-
-# XXX Not sure if I want to standardize these or not, so not yet.
-# sub username {
-#     shift->{username} // $ENV{SQITCH_USER} // $ENV{USER};
-# }
-
-# sub db_name {
-#     my $self = shift;
-#     $self->{db_name} // $ENV{SQITCH_DBNAME} // $self->username;
-# }
-
-# sub host {
-#     shift->{host} // $ENV{SQITCH_HOST};
-# }
-
-# sub port {
-#     shift->{port} // $ENV{SQITCH_PORT};
-# }
 
 sub _core_opts {
     return qw(
@@ -170,17 +183,8 @@ sub _pod2usage {
     );
 }
 
-sub config {
-    shift->{config} ||= App::Sqitch::Config->new;
-}
-
-sub editor {
-    my $self = shift;
-    return $self->{editor} ||= $ENV{SQITCH_EDITOR} || $ENV{EDITOR}
-        || ($^O eq 'MSWin32' ? 'notepad.exe' : 'vi');
-}
-
-1;
+__PACKAGE__->meta->make_immutable;
+no Moose;
 
 __END__
 

@@ -19,7 +19,6 @@ Module::Build->new(
         'File::Spec'           => 0,
     },
     requires => {
-        'Class::Accessor::Fast'        => '0.31',
         'Config::GitLike'              => '1.07',
         'File::HomeDir'                => 0,
         'Getopt::Long'                 => 0,
