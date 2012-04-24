@@ -12,7 +12,7 @@ BEGIN {
     $SIG{__DIE__} = \&Carp::confess;
 }
 
-use Test::More tests => 82;
+use Test::More tests => 84;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Test::Exception;
@@ -106,6 +106,16 @@ is capture_stderr {
         qr/EXITED: 1/, 'Should exit';
  }, qq{sqch: "nonexistent" is not a valid command. See sqch --help\n},
     'Should get an exception for an invalid command';
+
+NOCOMMAND: {
+    # Test handling of no command.
+    my $mock = Test::MockModule->new($CLASS);
+    my @args;
+    $mock->mock(usage => sub { @args = @_; die 'USAGE' });
+    throws_ok { $CLASS->load({ command => '', sqitch => $sqitch }) }
+        qr/USAGE/, 'No command should yield usage';
+    is_deeply \@args, [$CLASS], 'No args should be passed to usage';
+}
 
 # Test handling a bad command implementation.
 throws_ok { $CLASS->load({ command => 'bad', sqitch => $sqitch }) }
@@ -201,7 +211,7 @@ POD2USAGE: {
         '-verbose'  => 99,
         '-sections' => '(?i:(Usage|Synopsis|Options))',
         '-exitval'  => 2,
-        '-input'    => Pod::Find::pod_where({'-inc' => 1}, $CLASS),
+        '-input'    => Pod::Find::pod_where({'-inc' => 1}, 'sqitch'),
     }, 'Default params should be passed to Pod::Usage';
 
     $cmd = App::Sqitch::Command::whu->new({ sqitch => $sqitch });
@@ -210,7 +220,7 @@ POD2USAGE: {
         '-verbose'  => 99,
         '-sections' => '(?i:(Usage|Synopsis|Options))',
         '-exitval'  => 2,
-        '-input'    => Pod::Find::pod_where({'-inc' => 1}, $CLASS),
+        '-input'    => Pod::Find::pod_where({'-inc' => 1}, 'sqitch'),
     }, 'Default params should be passed to Pod::Usage';
 
     isa_ok $cmd = App::Sqitch::Command->load({
@@ -236,7 +246,7 @@ POD2USAGE: {
         '-verbose'  => 99,
         '-sections' => '(?i:(Usage|Synopsis|Options))',
         '-exitval'  => 2,
-        '-input'    => Pod::Find::pod_where({'-inc' => 1 }, 'App::Sqitch::Command::good'),
+        '-input'    => Pod::Find::pod_where({'-inc' => 1 }, 'sqitch'),
     }, 'Should find App::Sqitch::Command::good docs to pass to Pod::Usage';
 
     # Test usage(), too.
@@ -246,7 +256,7 @@ POD2USAGE: {
         '-verbose'  => 99,
         '-sections' => '(?i:(Usage|Synopsis|Options))',
         '-exitval'  => 2,
-        '-input'    => Pod::Find::pod_where({'-inc' => 1 }, 'App::Sqitch::Command::good'),
+        '-input'    => Pod::Find::pod_where({'-inc' => 1 }, 'sqitch'),
         '-message'  => 'Hello gorgeous',
     }, 'Should find App::Sqitch::Command::good docs to pass to Pod::Usage';
 }

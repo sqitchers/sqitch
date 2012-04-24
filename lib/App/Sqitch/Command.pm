@@ -24,7 +24,7 @@ sub load {
     my ($class, $p) = @_;
 
     # We should have a command.
-    croak qq{No command name passed to $class->load} unless $p->{command};
+    $class->usage unless $p->{command};
 
     # Load the command class.
     my $pkg = __PACKAGE__ . "::$p->{command}";
@@ -97,9 +97,9 @@ sub _pod2usage {
     $params{'-input'} ||=
                 Pod::Find::pod_where({'-inc' => 1, '-script' => 1 }, "$bn-$command")
              || Pod::Find::pod_where({'-inc' => 1, '-script' => 1 }, "sqitch-$command")
-             || Pod::Find::pod_where({'-inc' => 1, '-script' => 1 }, ref $self || $self)
              || Pod::Find::pod_where({'-inc' => 1, '-script' => 1 }, $bn)
              || Pod::Find::pod_where({'-inc' => 1, '-script' => 1 }, 'sqitch')
+             || Pod::Find::pod_where({'-inc' => 1, '-script' => 1 }, ref $self || $self)
              || Pod::Find::pod_where({'-inc' => 1, '-script' => 1 }, __PACKAGE__);
     Pod::Usage::pod2usage(
         '-verbose'  => 99,

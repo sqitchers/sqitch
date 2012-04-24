@@ -21,10 +21,6 @@ isa_ok my $help = App::Sqitch::Command->load({
     config  => $config,
 }), $CLASS, 'Load help command';
 
-# Make sure the script directory can be found by modifying Config.
-my $perl_config = tied %Config::Config;
-$perl_config->{scriptdir} = 'bin';
-
 my $mock = Test::MockModule->new($CLASS);
 my @args;
 $mock->mock(_pod2usage => sub { @args = @_} );
@@ -32,7 +28,7 @@ $mock->mock(_pod2usage => sub { @args = @_} );
 ok $help->execute, 'Execute help';
 is_deeply \@args, [
     $help,
-    '-input'   => File::Spec->catfile(qw(bin sqitch)),
+    '-input'   => Pod::Find::pod_where({'-inc' => 1 }, 'sqitch'),
     '-verbose' => 2,
     '-exitval' => 0,
 ], 'Should show sqitch app docs';
