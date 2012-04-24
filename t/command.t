@@ -32,8 +32,10 @@ can_ok $CLASS, qw(load new options configure command);
 COMMAND: {
     # Stub out a command.
     package App::Sqitch::Command::whu;
-    use parent 'App::Sqitch::Command';
-    __PACKAGE__->mk_accessors(qw(foo feathers));
+    use Moose;
+    extends 'App::Sqitch::Command';
+    has foo => (is => 'ro');
+    has feathers => (is => 'ro');
     $INC{'App/Sqitch/Command/whu.pm'} = __FILE__;
 
     sub options {
@@ -51,14 +53,14 @@ ok my $sqitch = App::Sqitch->new, 'Load a sqitch sqitch object';
 ##############################################################################
 # Test new().
 throws_ok { $CLASS->new }
-    qr/No "sqitch" parameter passed to App::Sqitch::Command->new/,
+    qr/\QAttribute (sqitch) is required/,
     'Should get an exception for missing sqitch param';
 my $array = [];
 throws_ok { $CLASS->new({ sqitch => $array }) }
-    qr/\Q$array is not an App::Sqitch object/,
+    qr/\QValidation failed for 'App::Sqitch' with value $array/,
     'Should get an exception for array sqitch param';
 throws_ok { $CLASS->new({ sqitch => 'foo' }) }
-    qr/foo is not an App::Sqitch object/,
+    qr/\QValidation failed for 'App::Sqitch' with value foo/,
     'Should get an exception for string sqitch param';
 
 isa_ok $CLASS->new({sqitch => $sqitch}), $CLASS;

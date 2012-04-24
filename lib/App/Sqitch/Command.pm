@@ -7,11 +7,10 @@ use utf8;
 use Carp;
 use Try::Tiny;
 use Hash::Merge 'merge';
+use Moose;
 use parent 'Class::Accessor::Fast';
 
-__PACKAGE__->mk_ro_accessors(qw(
-    sqitch
-));
+has sqitch => (is => 'ro', isa => 'App::Sqitch', required => 1);
 
 sub command {
     my $class = ref $_[0] || shift;
@@ -58,19 +57,6 @@ sub configure {
         $options,
         $config->get_section(section => $class->command),
     );
-}
-
-sub new {
-    my $class = shift;
-    my $self = $class->SUPER::new(@_);
-
-    # We should have a Sqitch object.
-    croak(qq{No "sqitch" parameter passed to $class->new}) unless $self->sqitch;
-    croak $self->sqitch . ' is not an App::Sqitch object'
-        unless eval { $self->sqitch->isa('App::Sqitch' )};
-
-    # We're in good shape.
-    return $self;
 }
 
 sub verbosity {
@@ -207,7 +193,8 @@ sub usage {
     $self->_pod2usage('-message' => join '', @_);
 }
 
-1;
+__PACKAGE__->meta->make_immutable;
+no Moose;
 
 __END__
 

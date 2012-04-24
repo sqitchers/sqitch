@@ -147,9 +147,7 @@ is $cmd->context, 'project', 'Default context should be "project"';
 is_deeply App::Sqitch::Command::config->configure( $sqitch->config, {
     user    => 1,
 }), {
-    action  => 'set',
     context => 'user',
-    type    => undef,
     file    => $sqitch->config->user_file,
 }, 'User config file should be user';
 
@@ -157,9 +155,7 @@ is_deeply App::Sqitch::Command::config->configure( $sqitch->config, {
 is_deeply App::Sqitch::Command::config->configure( $sqitch->config, {
     system    => 1,
 }), {
-    action  => 'set',
     context => 'system',
-    type    => undef,
     file    => $sqitch->config->system_file,
 }, 'System config file should be system';
 
@@ -175,7 +171,6 @@ ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
     context => 'system',
     file    => $sqitch->config->system_file,
-    action  => 'set',
 }), 'Create config set command';
 
 ok $cmd->execute(qw(foo bar)), 'Execute the set command';
@@ -191,7 +186,6 @@ my @emit;
 $mock->mock(emit => sub { shift; push @emit => [@_] });
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
-    context => 'project',
     file    => $sqitch->config->dir_file,
     action  => 'get',
 }), 'Create config get command';
@@ -212,7 +206,6 @@ is_deeply \@emit, [['/usr/local/pgsql/bin/psql']],
 # Make sure int data type works.
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
-    context => 'project',
     file    => $sqitch->config->dir_file,
     action  => 'get',
     type    => 'int',
@@ -234,7 +227,6 @@ throws_ok { $cmd->execute('bundle.tags_only') } qr/FAIL/,
 # Make sure num data type works.
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
-    context => 'project',
     file    => $sqitch->config->dir_file,
     action  => 'get',
     type    => 'num',
@@ -256,7 +248,6 @@ throws_ok { $cmd->execute('bundle.tags_only') } qr/FAIL/,
 # Make sure bool data type works.
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
-    context => 'project',
     file    => $sqitch->config->dir_file,
     action  => 'get',
     type    => 'bool',
@@ -351,7 +342,6 @@ local $ENV{SQITCH_USER_CONFIG} = file qw(t user.conf);
 $sqitch->config->load;
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
-    context => 'project',
     file    => $sqitch->config->dir_file,
     action  => 'list',
 }), 'Create config list command';
@@ -458,9 +448,7 @@ END { unlink $file }
 
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
-    context => 'project',
     file    => $sqitch->config->dir_file,
-    action  => 'set',
 }), 'Create system config set command';
 ok $cmd->execute('core.foo' => 'bar'), 'Write core.foo';
 is_deeply read_config($cmd->file), {'core.foo' => 'bar' },
@@ -483,7 +471,6 @@ is_deeply read_config($cmd->file), {
 # Test add().
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
-    context => 'project',
     file    => $sqitch->config->dir_file,
     action  => 'add',
 }), 'Create system config add command';
@@ -500,7 +487,6 @@ $ENV{SQITCH_USER_CONFIG} = $file;
 $sqitch->config->load;
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
-    context => 'project',
     file    => $sqitch->config->dir_file,
     action  => 'get',
 }), 'Create system config add command';
@@ -522,7 +508,6 @@ is_deeply \@unfound, [], 'Nothing should have been output on failure';
 @emit = ();
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
-    context => 'project',
     file    => $sqitch->config->dir_file,
     action  => 'get_all',
 }), 'Create system config get_all command';
@@ -554,7 +539,6 @@ is_deeply \@unfound, [], 'Nothing should have been output on failure';
 # Make sure int data type works.
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
-    context => 'project',
     file    => $sqitch->config->dir_file,
     action  => 'get_all',
     type    => 'int',
@@ -576,7 +560,6 @@ throws_ok { $cmd->execute('bundle.tags_only') } qr/FAIL/,
 # Make sure num data type works.
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
-    context => 'project',
     file    => $sqitch->config->dir_file,
     action  => 'get_all',
     type    => 'num',
@@ -598,7 +581,6 @@ throws_ok { $cmd->execute('bundle.tags_only') } qr/FAIL/,
 # Make sure bool data type works.
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
-    context => 'project',
     file    => $sqitch->config->dir_file,
     action  => 'get_all',
     type    => 'bool',
@@ -618,7 +600,6 @@ is_deeply \@emit, [[$Config::GitLike::VERSION > 1.08 ? 'true' : 1]],
 # Test get_regexp().
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
-    context => 'project',
     file    => $sqitch->config->dir_file,
     action  => 'get_regexp',
 }), 'Create system config get_regexp command';
@@ -656,7 +637,6 @@ is_deeply \@unfound, [], 'Nothing should have been output on failure';
 # Make sure int data type works.
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
-    context => 'project',
     file    => $sqitch->config->dir_file,
     action  => 'get_regexp',
     type    => 'int',
@@ -678,7 +658,6 @@ throws_ok { $cmd->execute('bundle.tags_only') } qr/FAIL/,
 # Make sure num data type works.
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
-    context => 'project',
     file    => $sqitch->config->dir_file,
     action  => 'get_regexp',
     type    => 'num',
@@ -700,7 +679,6 @@ throws_ok { $cmd->execute('bundle.tags_only') } qr/FAIL/,
 # Make sure bool data type works.
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
-    context => 'project',
     file    => $sqitch->config->dir_file,
     action  => 'get_regexp',
     type    => 'bool',
@@ -720,7 +698,6 @@ is_deeply \@emit, [['bundle.tags_only=' . ($Config::GitLike::VERSION > 1.08 ? 't
 # Test unset().
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
-    context => 'project',
     file    => $sqitch->config->dir_file,
     action  => 'unset',
 }), 'Create system config unset command';
@@ -749,7 +726,6 @@ is_deeply read_config($cmd->file), {
 # Test unset_all().
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
-    context => 'project',
     file    => $sqitch->config->dir_file,
     action  => 'unset_all',
 }), 'Create system config unset-all command';
@@ -773,7 +749,6 @@ is_deeply read_config($cmd->file), {
 # Test rename_section().
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
-    context => 'project',
     file    => $sqitch->config->dir_file,
     action  => 'rename_section',
 }), 'Create system config rename-section command';
@@ -802,7 +777,6 @@ is_deeply \@fail, ['No such section!'],
 # Test remove_section().
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
-    context => 'project',
     file    => $sqitch->config->dir_file,
     action  => 'remove_section',
 }), 'Create system config remove-section command';
@@ -840,7 +814,6 @@ my $ret = 1;
 $mock->mock(do_system => sub { shift; @sys = @_; return $ret });
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
-    context => 'project',
     file    => $sqitch->config->dir_file,
     action  => 'edit',
 }), 'Create system config edit command';
@@ -861,9 +834,7 @@ END { remove_tree +File::Spec->catdir(qw(t config.tmp)) }
 ok $sqitch = App::Sqitch->new, 'Load a new sqitch object';
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
-    context => 'project',
     file    => $sqitch->config->dir_file,
-    action  => 'set',
 }), 'Create system config set command with subdirectory config file path';
 ok $cmd->execute('my.foo', 'hi'), 'Set "my.foo" in subdirectory config file';
 is_deeply read_config($cmd->file), {'my.foo' => 'hi' },

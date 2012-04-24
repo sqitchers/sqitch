@@ -8,16 +8,33 @@ use Carp;
 use Path::Class ();
 use Try::Tiny;
 use List::Util qw(sum first);
-use parent 'App::Sqitch::Command';
+use Moose;
+use Moose::Util::TypeConstraints;
+use namespace::autoclean;
+extends 'App::Sqitch::Command';
 
 our $VERSION = '0.10';
 
-__PACKAGE__->mk_ro_accessors(qw(
-    file
-    action
-    context
-    type
-));
+has file    => (is => 'ro');
+has action  => (is => 'ro', required => 1, default => 'set', isa => enum([qw(
+    get
+    get_all
+    get_regexp
+    set
+    unset
+    list
+    edit
+    add
+    unset_all
+    rename_section
+    remove_section
+)]));
+has context => (is => 'ro', required => 1, default => 'project', isa => enum([qw(
+    project
+    user
+    system
+)]));
+has type => (is => 'ro', isa => enum([qw(int num bool)]));
 
 sub options {
     return qw(
@@ -79,10 +96,10 @@ sub configure {
 
     # Make it so.
     return {
-        action  => $action[0] || 'set',
-        context => $context || 'project',
-        type    => $type[0],
-        file    => $file,
+        ($action[0] ? (action  => $action[0]) : ()),
+        ($type[0]   ? (type    => $type[0])   : ()),
+        ($context   ? (context => $context)   : ()),
+        ($file      ? (file    => $file)      : ()),
     };
 }
 
@@ -300,7 +317,8 @@ sub _touch_dir {
     }
 }
 
-1;
+__PACKAGE__->meta->make_immutable;
+no Moose;
 
 __END__
 
