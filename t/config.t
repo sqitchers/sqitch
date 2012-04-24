@@ -3,7 +3,7 @@
 use lib '/Users/david/.cpan/build/Config-GitLike-1.08-tsj7UP/lib';
 use strict;
 use warnings;
-use Test::More tests => 151;
+use Test::More tests => 155;
 #use Test::More 'no_plan';
 use File::Spec;
 use Test::MockModule;
@@ -25,7 +25,8 @@ isa_ok my $cmd = App::Sqitch::Command->load({
 }), 'App::Sqitch::Command::config', 'Config command';
 
 isa_ok $cmd, 'App::Sqitch::Command', 'Config command';
-can_ok $cmd, qw(file action context get set unset list edit);
+can_ok $cmd, qw(file action context get get_all get_regexp set add unset unset_all list edit);
+
 is_deeply [$cmd->options], [qw(
     file|config-file|f=s
     user
@@ -473,13 +474,19 @@ is_deeply read_config($cmd->file), {
 }, 'core.pg.user should be gone';
 ok $cmd->execute('core.engine'), 'Unset core.engine';
 is_deeply read_config($cmd->file), {
-    'core.foo'    => ['bar', 'baz'],
-}, 'core.foo should have been removed';
+    'core.foo'  => ['bar', 'baz'],
+}, 'core.engine should have been removed';
 
 throws_ok { $cmd->execute('core.foo') } qr/FAIL/,
     'Should get failure trying to delete multivalue key';
 is_deeply \@fail, ['Cannot unset key with multiple values'],
     'And it should have show the proper error message';
+
+ok $cmd->execute('core.foo', 'z$'), 'Unset core.foo with a regex';
+is_deeply read_config($cmd->file), {
+    'core.foo' => 'bar',
+}, 'The core.foo "baz" value should have been removed';
+
 
 ##############################################################################
 # Test unset_all().
@@ -488,8 +495,17 @@ ok $cmd = App::Sqitch::Command::config->new({
     unset_all => 1,
 }), 'Create system config unset-all command';
 
+$cmd->add('core.foo', 'baz');
 ok $cmd->execute('core.foo'), 'Unset-all core.foo';
 is_deeply read_config($cmd->file), {}, 'core.foo should have been removed';
+
+$cmd->add('core.foo', 'bar');
+$cmd->add('core.foo', 'baz');
+$cmd->add('core.foo', 'yo');
+ok $cmd->execute('core.foo', '^ba'), 'Unset-all core.foo with regex';
+is_deeply read_config($cmd->file), {
+    'core.foo' => 'yo',
+}, 'core.foo should have one value left';
 
 ##############################################################################
 # Test edit().

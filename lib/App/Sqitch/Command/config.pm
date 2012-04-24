@@ -142,25 +142,27 @@ sub _file_config {
 }
 
 sub unset {
-    my ($self, $key) = @_;
-    my @vals = $self->_file_config->get_all(key => $key);
+    my ($self, $key, $rx) = @_;
+    my @vals = $self->_file_config->get_all(key => $key, filter => $rx);
     $self->fail("Cannot unset key with multiple values") if @vals > 1;
     $self->_touch_dir;
 
     $self->sqitch->config->set(
         key      => $key,
         filename => $self->file,
+        filter   => $rx,
     ) if @vals;
     return $self;
 }
 
 sub unset_all {
-    my ($self, $key) = @_;
+    my ($self, $key, $rx) = @_;
     $self->_touch_dir;
     $self->sqitch->config->set(
         key      => $key,
         filename => $self->file,
         multiple => 1,
+        filter   => $rx,
     );
     return $self;
 }
@@ -345,9 +347,11 @@ The Sqitch command-line client.
 
 =over
 
-=item * Add data type support like git-config?
+=item * Add data type support like C<git-config>.
 
 =item * Add C<--remove-section> and C<--rename-section>.
+
+=item * Make exit codes the same as C<git-config>.
 
 =back
 
