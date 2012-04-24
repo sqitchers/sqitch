@@ -3,7 +3,7 @@
 use lib '/Users/david/.cpan/build/Config-GitLike-1.08-tsj7UP/lib';
 use strict;
 use warnings;
-use Test::More tests => 177;
+use Test::More tests => 240;
 #use Test::More 'no_plan';
 use File::Spec;
 use Test::MockModule;
@@ -31,6 +31,9 @@ is_deeply [$cmd->options], [qw(
     file|config-file|f=s
     user
     system
+    int
+    bool
+    num
     get
     get-all
     get-regexp
@@ -82,6 +85,40 @@ throws_ok { App::Sqitch::Command::config->new({
 })} qr/USAGE/, 'Construct with file, system, and user';
 is_deeply \@usage, ['Only one config file at a time.'],
     'Should get one last error for multiple config files';
+
+# Test for multiple type specifications.
+throws_ok { App::Sqitch::Command::config->new({
+    sqitch => $sqitch,
+    bool   => 1,
+    num    => 1,
+}) } qr/USAGE/, 'Construct with bool and num';
+is_deeply \@usage, ['Only one type at a time.'],
+    'Should get error for multiple types';
+
+throws_ok { App::Sqitch::Command::config->new({
+    sqitch => $sqitch,
+    int    => 1,
+    num    => 1,
+})} qr/USAGE/, 'Construct with int and num';
+is_deeply \@usage, ['Only one type at a time.'],
+    'Should get another error for multiple types';
+
+throws_ok { App::Sqitch::Command::config->new({
+    sqitch => $sqitch,
+    int    => 1,
+    bool   => 1,
+})} qr/USAGE/, 'Construct with int and bool';
+is_deeply \@usage, ['Only one type at a time.'],
+    'Should get a third error for multiple types';
+
+throws_ok { App::Sqitch::Command::config->new({
+    sqitch => $sqitch,
+    int    => 1,
+    bool   => 1,
+    num    => 1,
+})} qr/USAGE/, 'Construct with int, num, and bool';
+is_deeply \@usage, ['Only one type at a time.'],
+    'Should get one last error for multiple types';
 
 # Test for multiple action specifications.
 for my $spec (
@@ -169,6 +206,63 @@ ok $cmd->execute('core.pg.client'), 'Get core.pg.client';
 is_deeply \@emit, [['/usr/local/pgsql/bin/psql']],
     'Should have emitted the merged core.pg.client';
 @emit = ();
+
+# Make sure int data type works.
+ok $cmd = App::Sqitch::Command::config->new({
+    sqitch  => $sqitch,
+    get     => 1,
+    int     => 1,
+}), 'Create config get int command';
+
+ok $cmd->execute('revert.count'), 'Get revert.count as int';
+is_deeply \@emit, [[2]],
+    'Should have emitted the revert count';
+@emit = ();
+
+ok $cmd->execute('revert.revision'), 'Get revert.revision as int';
+is_deeply \@emit, [[1]],
+    'Should have emitted the revert revision as an int';
+@emit = ();
+
+throws_ok { $cmd->execute('bundle.tags_only') } qr/FAIL/,
+    'Get bundle.tags_only as an int should fail';
+
+# Make sure num data type works.
+ok $cmd = App::Sqitch::Command::config->new({
+    sqitch  => $sqitch,
+    get     => 1,
+    num     => 1,
+}), 'Create config get num command';
+
+ok $cmd->execute('revert.count'), 'Get revert.count as num';
+is_deeply \@emit, [[2]],
+    'Should have emitted the revert count';
+@emit = ();
+
+ok $cmd->execute('revert.revision'), 'Get revert.revision as num';
+is_deeply \@emit, [[1.1]],
+    'Should have emitted the revert revision as an num';
+@emit = ();
+
+throws_ok { $cmd->execute('bundle.tags_only') } qr/FAIL/,
+    'Get bundle.tags_only as an num should fail';
+
+# Make sure bool data type works.
+ok $cmd = App::Sqitch::Command::config->new({
+    sqitch  => $sqitch,
+    get     => 1,
+    bool    => 1,
+}), 'Create config get bool command';
+
+throws_ok { $cmd->execute('revert.count') } qr/FAIL/,
+    'Should get failure for invalid bool int';
+throws_ok { $cmd->execute('revert.revision') } qr/FAIL/,
+    'Should get failure for invalid bool num';
+
+ok $cmd->execute('bundle.tags_only'), 'Get bundle.tags_only as bool';
+is_deeply \@emit, [['true']],
+    'Should have emitted bundle.tags_only a bool';
+@emit = ();
 chdir File::Spec->updir;
 
 CONTEXT: {
@@ -251,7 +345,7 @@ ok $cmd->execute, 'Execute the list action';
 is_deeply \@emit, [[
     "bundle.dest_dir=_build/sql
 bundle.from=gamma
-bundle.tags_only=yes
+bundle.tags_only=true
 core.db_name=widgetopolis
 core.engine=pg
 core.extension=ddl
@@ -262,6 +356,8 @@ core.pg.host=localhost
 core.pg.username=postgres
 core.sql_dir=migrations
 core.sqlite.client=/opt/local/bin/sqlite3
+revert.count=2
+revert.revision=1.1
 revert.to=gamma
 "
 ]], 'Should have emitted the merged config';
@@ -280,13 +376,15 @@ CONTEXT: {
     is_deeply \@emit, [[
     "bundle.dest_dir=_build/sql
 bundle.from=gamma
-bundle.tags_only=yes
+bundle.tags_only=true
 core.db_name=widgetopolis
 core.engine=pg
 core.extension=ddl
 core.pg.client=/usr/local/pgsql/bin/psql
 core.pg.username=theory
 core.sql_dir=migrations
+revert.count=2
+revert.revision=1.1
 revert.to=gamma
 "
     ]], 'Should have emitted the system config list';
@@ -427,6 +525,63 @@ throws_ok { $cmd->execute('core.foo', 'x$') } qr/UNFOUND/,
 is_deeply \@emit, [], 'Nothing should have been emitted';
 is_deeply \@unfound, [], 'Nothing should have been output on failure';
 
+# Make sure int data type works.
+ok $cmd = App::Sqitch::Command::config->new({
+    sqitch  => $sqitch,
+    get_all => 1,
+    int     => 1,
+}), 'Create config get_all int command';
+
+ok $cmd->execute('revert.count'), 'Get revert.count as int';
+is_deeply \@emit, [[2]],
+    'Should have emitted the revert count';
+@emit = ();
+
+ok $cmd->execute('revert.revision'), 'Get revert.revision as int';
+is_deeply \@emit, [[1]],
+    'Should have emitted the revert revision as an int';
+@emit = ();
+
+throws_ok { $cmd->execute('bundle.tags_only') } qr/FAIL/,
+    'Get bundle.tags_only as an int should fail';
+
+# Make sure num data type works.
+ok $cmd = App::Sqitch::Command::config->new({
+    sqitch  => $sqitch,
+    get_all => 1,
+    num     => 1,
+}), 'Create config get_all num command';
+
+ok $cmd->execute('revert.count'), 'Get revert.count as num';
+is_deeply \@emit, [[2]],
+    'Should have emitted the revert count';
+@emit = ();
+
+ok $cmd->execute('revert.revision'), 'Get revert.revision as num';
+is_deeply \@emit, [[1.1]],
+    'Should have emitted the revert revision as an num';
+@emit = ();
+
+throws_ok { $cmd->execute('bundle.tags_only') } qr/FAIL/,
+    'Get bundle.tags_only as an num should fail';
+
+# Make sure bool data type works.
+ok $cmd = App::Sqitch::Command::config->new({
+    sqitch  => $sqitch,
+    get_all => 1,
+    bool    => 1,
+}), 'Create config get_all bool command';
+
+throws_ok { $cmd->execute('revert.count') } qr/FAIL/,
+    'Should get failure for invalid bool int';
+throws_ok { $cmd->execute('revert.revision') } qr/FAIL/,
+    'Should get failure for invalid bool num';
+
+ok $cmd->execute('bundle.tags_only'), 'Get bundle.tags_only as bool';
+is_deeply \@emit, [[$Config::GitLike::VERSION > 1.08 ? 'true' : 1]],
+    'Should have emitted bundle.tags_only a bool';
+@emit = ();
+
 ##############################################################################
 # Test get_regexp().
 ok $cmd = App::Sqitch::Command::config->new({
@@ -464,6 +619,63 @@ throws_ok { $cmd->execute('core\\.pg\\..+', 'x$') } qr/UNFOUND/,
 is_deeply \@emit, [], 'Nothing should have been emitted';
 is_deeply \@unfound, [], 'Nothing should have been output on failure';
 
+# Make sure int data type works.
+ok $cmd = App::Sqitch::Command::config->new({
+    sqitch  => $sqitch,
+    get_regexp => 1,
+    int     => 1,
+}), 'Create config get_regexp int command';
+
+ok $cmd->execute('revert.count'), 'Get revert.count as int';
+is_deeply \@emit, [['revert.count=2']],
+    'Should have emitted the revert count';
+@emit = ();
+
+ok $cmd->execute('revert.revision'), 'Get revert.revision as int';
+is_deeply \@emit, [['revert.revision=1']],
+    'Should have emitted the revert revision as an int';
+@emit = ();
+
+throws_ok { $cmd->execute('bundle.tags_only') } qr/FAIL/,
+    'Get bundle.tags_only as an int should fail';
+
+# Make sure num data type works.
+ok $cmd = App::Sqitch::Command::config->new({
+    sqitch  => $sqitch,
+    get_regexp => 1,
+    num     => 1,
+}), 'Create config get_regexp num command';
+
+ok $cmd->execute('revert.count'), 'Get revert.count as num';
+is_deeply \@emit, [['revert.count=2']],
+    'Should have emitted the revert count';
+@emit = ();
+
+ok $cmd->execute('revert.revision'), 'Get revert.revision as num';
+is_deeply \@emit, [['revert.revision=1.1']],
+    'Should have emitted the revert revision as an num';
+@emit = ();
+
+throws_ok { $cmd->execute('bundle.tags_only') } qr/FAIL/,
+    'Get bundle.tags_only as an num should fail';
+
+# Make sure bool data type works.
+ok $cmd = App::Sqitch::Command::config->new({
+    sqitch  => $sqitch,
+    get_regexp => 1,
+    bool    => 1,
+}), 'Create config get_regexp bool command';
+
+throws_ok { $cmd->execute('revert.count') } qr/FAIL/,
+    'Should get failure for invalid bool int';
+throws_ok { $cmd->execute('revert.revision') } qr/FAIL/,
+    'Should get failure for invalid bool num';
+
+ok $cmd->execute('bundle.tags_only'), 'Get bundle.tags_only as bool';
+is_deeply \@emit, [['bundle.tags_only=' . ($Config::GitLike::VERSION > 1.08 ? 'true' : 1)]],
+    'Should have emitted bundle.tags_only a bool';
+@emit = ();
+
 ##############################################################################
 # Test unset().
 ok $cmd = App::Sqitch::Command::config->new({
@@ -491,7 +703,6 @@ is_deeply read_config($cmd->file), {
     'core.foo' => 'bar',
 }, 'The core.foo "baz" value should have been removed';
 
-
 ##############################################################################
 # Test unset_all().
 ok $cmd = App::Sqitch::Command::config->new({
@@ -503,13 +714,16 @@ $cmd->add('core.foo', 'baz');
 ok $cmd->execute('core.foo'), 'Unset-all core.foo';
 is_deeply read_config($cmd->file), {}, 'core.foo should have been removed';
 
+# Test handling of multiple value.
 $cmd->add('core.foo', 'bar');
 $cmd->add('core.foo', 'baz');
 $cmd->add('core.foo', 'yo');
+
 ok $cmd->execute('core.foo', '^ba'), 'Unset-all core.foo with regex';
 is_deeply read_config($cmd->file), {
     'core.foo' => 'yo',
 }, 'core.foo should have one value left';
+
 
 ##############################################################################
 # Test rename_section().
@@ -555,6 +769,21 @@ is_deeply \@usage, ['Wrong number of arguments'],
 throws_ok { $cmd->execute('bar') } qr/FAIL/, 'Should fail with invalid name';
 is_deeply \@fail, ['No such section!'],
     'Message should be in the fail call';
+
+##############################################################################
+# Test errors with multiple values.
+
+throws_ok { $cmd->get('core.foo', '.') } qr/FAIL/,
+    'Should fail fetching multi-value key';
+is_deeply \@fail, [qq{More then one value for the key "core.foo"}],
+    'The error should be sent to fail()';
+
+$cmd->add('core.foo', 'hi');
+$cmd->add('core.foo', 'bye');
+throws_ok { $cmd->set('core.foo', 'hi') } qr/FAIL/,
+    'Should fail setting multi-value key';
+is_deeply \@fail, ['Cannot overwrite multiple values with a single value'],
+    'The error should be sent to fail()';
 
 ##############################################################################
 # Test edit().

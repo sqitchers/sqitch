@@ -16,6 +16,7 @@ __PACKAGE__->mk_ro_accessors(qw(
     file
     action
     context
+    type
 ));
 
 sub options {
@@ -23,6 +24,10 @@ sub options {
         file|config-file|f=s
         user
         system
+
+        int
+        bool
+        num
 
         get
         get-all
@@ -59,6 +64,11 @@ sub new {
     );
     $class->usage('Only one action at a time.') if @action > 1;
 
+    # Make sure we have only one type.
+    my @type = grep { $p->{$_} } qw(bool int num);
+    $class->usage('Only one type at a time.') if @type > 1;
+
+
     # Get the file.
     my $file = $p->{file} || do {
         if ($p->{system}) {
@@ -77,6 +87,7 @@ sub new {
         sqitch  => $p->{sqitch},
         action  => $action[0] || 'set',
         context => $context || 'project',
+        type    => $type[0],
         file    => $file,
     });
 }
@@ -91,11 +102,19 @@ sub execute {
 
 sub get {
     my ($self, $key, $rx) = @_;
-    if (my $config = $self->_file_config) {
-        my @vals = $config->get_all(key => $key, filter => $rx);
-        $self->fail("Cannot unset key with multiple values") if @vals > 1;
-    }
-    my $val = $self->sqitch->config->get(key => $key, filter => $rx);
+    my $val = try {
+        $self->sqitch->config->get(
+            key    => $key,
+            filter => $rx,
+            as     => $self->type,
+            human  => 1,
+        );
+    } catch {
+        $self->fail(qq{More then one value for the key "$key"})
+            if /^\QMultiple values/i;
+        $self->fail($_);
+    };
+
     $self->unfound unless defined $val;
     $self->emit($val);
     return $self;
@@ -103,7 +122,16 @@ sub get {
 
 sub get_all {
     my ($self, $key, $rx) = @_;
-    my @vals = $self->sqitch->config->get_all(key => $key, filter => $rx);
+    my @vals = try {
+        $self->sqitch->config->get_all(
+            key    => $key,
+            filter => $rx,
+            as     => $self->type,
+            human  => 1,
+        );
+    } catch {
+        $self->fail($_);
+    };
     $self->unfound unless @vals;
     $self->emit(join $/, @vals);
     return $self;
@@ -112,7 +140,16 @@ sub get_all {
 sub get_regexp {
     my ($self, $key, $rx) = @_;
     my $config = $self->sqitch->config;
-    my %vals = $config->get_regexp(key => $key, filter => $rx);
+    my %vals = try {
+        $config->get_regexp(
+            key    => $key,
+            filter => $rx,
+            as     => $self->type,
+            human  => 1,
+        );
+    } catch {
+        $self->fail($_);
+    };
     $self->unfound unless %vals;
     my @out;
     for my $key (sort keys %vals) {
@@ -132,17 +169,35 @@ sub get_regexp {
     return $self;
 }
 
-sub set { shift->_set(@_, 0) }
-sub add { shift->_set(@_, 1) }
+sub set {
+    my ($self, $key, $value, $rx) = @_;
+    $self->_touch_dir;
+    try {
+        $self->sqitch->config->set(
+            key      => $key,
+            value    => $value,
+            filename => $self->file,
+            filter   => $rx,
+            as       => $self->type,
+            multiple => 0,
+        );
+    } catch {
+        $self->fail('Cannot overwrite multiple values with a single value')
+            if /^Multiple occurrences/i;
+        $self->fail($_);
+    };
+    return $self;
+}
 
-sub _set {
-    my ($self, $key, $value, $mult) = @_;
+sub add {
+    my ($self, $key, $value) = @_;
     $self->_touch_dir;
     $self->sqitch->config->set(
         key      => $key,
         value    => $value,
         filename => $self->file,
-        multiple => $mult,
+        as       => $self->type,
+        multiple => 1,
     );
     return $self;
 }
@@ -157,15 +212,20 @@ sub _file_config {
 
 sub unset {
     my ($self, $key, $rx) = @_;
-    my @vals = $self->_file_config->get_all(key => $key, filter => $rx);
-    $self->fail("Cannot unset key with multiple values") if @vals > 1;
     $self->_touch_dir;
 
-    $self->sqitch->config->set(
-        key      => $key,
-        filename => $self->file,
-        filter   => $rx,
-    ) if @vals;
+    try {
+        $self->sqitch->config->set(
+            key      => $key,
+            filename => $self->file,
+            filter   => $rx,
+            multiple => 0,
+        );
+    } catch {
+        $self->fail('Cannot unset key with multiple values')
+            if /^Multiple occurrences/i;
+        $self->fail($_);
+    };
     return $self;
 }
 
@@ -175,8 +235,8 @@ sub unset_all {
     $self->sqitch->config->set(
         key      => $key,
         filename => $self->file,
-        multiple => 1,
         filter   => $rx,
+        multiple => 1,
     );
     return $self;
 }
@@ -353,6 +413,21 @@ the configuration file.
 Boolean indicating the the configuration file contents should be opened
 in an editor.
 
+=item C<bool>
+
+Boolean indicating that the value or values should be set or fetched as
+booleans.
+
+=item C<int>
+
+Boolean indicating that the value or values should be set or fetched as
+integers.
+
+=item C<num>
+
+Boolean indicating that the value or values should be set or fetched as
+numbers.
+
 =back
 
 =head2 Instance Methods
@@ -407,9 +482,7 @@ The Sqitch command-line client.
 
 =over
 
-=item * Add error checks for missing argumenst to all actions.
-
-=item * Add data type support like C<git-config>.
+=item * Add error checks for missing arguments to all actions.
 
 =item * Make exit codes the same as C<git-config>.
 
