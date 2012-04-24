@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 12;
+use Test::More tests => 13;
 #use Test::More 'no_plan';
 use File::Spec;
 use Test::MockModule;
@@ -35,9 +35,10 @@ $ENV{SQITCH_USER_CONFIG} = 'FOO/BAR';
 is $config->user_file, 'FOO/BAR',
     'Should preferably get SQITCH_USER_CONFIG file from user_file';
 
-is $config->dir_file, File::Spec->catfile(
+is $config->project_file, File::Spec->catfile(
     File::Spec->curdir, 'sqitch.conf'
-), 'Directory file should be correct';
+), 'Project file should be correct';
+is $config->dir_file, $config->project_file, 'dir_file should alias project_file';
 
 chdir 't';
 is_deeply $config->get_section(section => 'core'), {
