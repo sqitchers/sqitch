@@ -2,8 +2,8 @@
 
 use strict;
 use warnings;
-#use Test::More tests => 270;
-use Test::More 'no_plan';
+use Test::More tests => 272;
+#use Test::More 'no_plan';
 use File::Spec;
 use Test::MockModule;
 use Test::Exception;
@@ -140,7 +140,7 @@ for my $spec (
 # Test config file name.
 is $cmd->file, $sqitch->config->dir_file,
     'Default config file should be local config file';
-is $cmd->action, 'set', 'Default action should be "set"';
+is $cmd->action, undef, 'Default action should be undefined';
 is $cmd->context, 'project', 'Default context should be "project"';
 
 # Test user file name.
@@ -165,6 +165,8 @@ my @unfound;
 $mock->mock(unfound => sub { shift; @unfound = @_; die "UNFOUND @_" });
 my @set;
 $mock->mock(set => sub { shift; @set = @_; return 1 });
+my @get;
+$mock->mock(get => sub { shift; @get = @_; return 1 });
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
     context => 'system',
@@ -172,7 +174,9 @@ ok $cmd = App::Sqitch::Command::config->new({
 
 ok $cmd->execute(qw(foo bar)), 'Execute the set command';
 is_deeply \@set, [qw(foo bar)], 'The set method should have been called';
-$mock->unmock('set');
+ok $cmd->execute(qw(foo)), 'Execute the get command';
+is_deeply \@get, [qw(foo)], 'The get method should have been called';
+$mock->unmock(qw(set get));
 
 ##############################################################################
 # Test get().
@@ -466,10 +470,10 @@ throws_ok { $cmd->set('') } qr/USAGE/, 'Should set usage for invalid set key';
 is_deeply \@usage, ['Wrong number of arguments.'],
     'And the invalid set key should trigger a usage message';
 
-# If there is no key, it should dispatch to get(), instead.
-ok $cmd->execute('core.pg.host'), 'Execute get(core.pg.host)';
-is_deeply \@emit, [['localhost']], 'The host name should have been emitted';
-@emit = ();
+# Make sure the value is required.
+throws_ok { $cmd->set('foo.bar') } qr/USAGE/, 'Should set usage for missing set value';
+is_deeply \@usage, ['Wrong number of arguments.'],
+    'And the missing set value should trigger a usage message';
 
 ##############################################################################
 # Test add().

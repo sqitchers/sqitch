@@ -21,7 +21,7 @@ has file => (is => 'ro', lazy => 1, default => sub {
     return $self->sqitch->config->$meth;
 });
 
-has action  => (is => 'ro', required => 1, default => 'set', isa => enum([qw(
+has action  => (is => 'ro', isa => enum([qw(
     get
     get_all
     get_regex
@@ -104,7 +104,8 @@ sub configure {
 
 sub execute {
     my $self = shift;
-    my $meth = $self->can($self->action)
+    my $action = $self->action || (@_ > 1 ? 'set' : 'get');
+    my $meth = $self->can($action)
         or die 'No method defined for ', $self->action, ' action';
 
     return $self->$meth(@_)
@@ -187,9 +188,8 @@ sub get_regex {
 
 sub set {
     my ($self, $key, $value, $rx) = @_;
-    $self->usage('Wrong number of arguments.') if !defined $key || $key eq '';
-    # XXX Should probably happen in execute for no command.
-    return $self->get($key) if !defined $value;
+    $self->usage('Wrong number of arguments.')
+        if !defined $key || $key eq '' || !defined $value;
 
     $self->_touch_dir;
     try {
@@ -394,7 +394,7 @@ Configuration file to read from and write to.
 
 =item C<action>
 
-The action to be executed. Must be one of:
+The action to be executed. May be one of:
 
 =over
 
@@ -418,7 +418,9 @@ The action to be executed. Must be one of:
 
 =back
 
-Defaults to C<set>.
+If not specified, the action taken by C<execute()> will depend on the number
+of arguments passed to it. If only one, the action will be C<get>. If two or
+more, the action will be C<set>.
 
 =item C<context>
 
