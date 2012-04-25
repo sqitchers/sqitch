@@ -430,6 +430,8 @@ or "Options". Any or all of those will be shown.
 Sends messages to C<STDERR> and exists with an additional message to "See
 sqitch --help". Use if the user has misused the app.
 
+=head3 C<quit>
+
 =head1 See Also
 
 =over

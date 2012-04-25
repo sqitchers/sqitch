@@ -285,14 +285,10 @@ If you want to know all the values for a multivalue setting, do:
 
   % sqitch config --get-all core.pg.set
 
-=begin comment
-
 If you like to live dangerously, you can replace all C<core.pg.set> with a
 new one with
 
   % sqitch config --replace-all core.pg.set bring=funk
-
-=end comment
 
 However, if you only want to replace the line without "baz", do something like
 this:
