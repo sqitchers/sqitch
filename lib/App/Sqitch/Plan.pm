@@ -27,7 +27,8 @@ App::Sqitch::Plan - Sqitch Deployment Plan
 
 =head1 Description
 
-App::Sqitch::Plan provides the interface for a Sqitch plan.
+App::Sqitch::Plan provides the interface for a Sqitch plan. This is just a
+stub class for now, it doesn't do anything yet.
 
 =head1 Interface
 
