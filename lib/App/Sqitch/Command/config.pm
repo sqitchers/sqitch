@@ -4,7 +4,6 @@ use v5.10;
 use strict;
 use warnings;
 use utf8;
-use Carp;
 use Path::Class ();
 use Try::Tiny;
 use List::Util qw(sum first);
