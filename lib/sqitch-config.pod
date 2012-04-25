@@ -206,6 +206,27 @@ System-wide configuration file.
 
 =back
 
+=head1 Environment
+
+=over
+
+=item C<SQITCH_CONFIG>
+
+Take the project configuration from the given file instead of
+C<./sqitch.conf>.
+
+=item C<SQITCH_USER_CONFIG>
+
+Take the user configuration from the given file instead of
+C<~/.sqitch/sqitch.conf>.
+
+=item C<SQITCH_SYSTEM_CONFIG>
+
+Take the system configuration from the given file instead of
+C<$(prefix)/etc/sqitch.conf>.
+
+=back
+
 =head1 Examples
 
 Given a F<./sqitch.conf> like this:

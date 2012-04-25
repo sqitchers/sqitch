@@ -606,8 +606,6 @@ The Sqitch command-line client.
 
 =item * Implement C<--local>.
 
-=item * Have local config use C<$SQITCH_CONFIG> environment variable.
-
 =back
 
 =head1 Author
