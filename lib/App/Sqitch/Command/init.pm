@@ -5,8 +5,11 @@ use strict;
 use warnings;
 use utf8;
 use Moose;
+use File::Path qw(make_path);
 use Moose::Util::TypeConstraints;
 use namespace::autoclean;
+
+extends 'App::Sqitch::Command';
 
 our $VERSION = '0.11';
 
@@ -19,6 +22,17 @@ sub execute {
 
 sub make_directories {
     my $self = shift;
+    my $sqitch = $self->sqitch;
+    for my $attr (qw(deploy_dir revert_dir test_dir)) {
+        my $dir = $sqitch->$attr;
+        $self->info("Created $dir") if make_path $dir, { error => \my $err };
+        if (my $diag = shift @{ $err }) {
+            my ($path, $msg) = %{ $diag };
+            $self->fail("Error creating $path: $msg") if $path;
+            $self->fail($msg);
+        }
+    }
+    return $self;
 }
 
 sub write_config {
