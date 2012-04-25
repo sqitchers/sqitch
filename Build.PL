@@ -4,6 +4,7 @@ use Module::Build;
 
 Module::Build->new(
     module_name        => 'App::Sqitch',
+    release_status     => 'unstable',
     license            => 'mit',
     requires           => { perl            => '5.10.1' },
     configure_requires => { 'Module::Build' => '0.35'  },
