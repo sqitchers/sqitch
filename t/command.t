@@ -12,7 +12,7 @@ BEGIN {
     $SIG{__DIE__} = \&Carp::confess;
 }
 
-use Test::More tests => 88;
+use Test::More tests => 89;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Test::Exception;
@@ -76,6 +76,8 @@ is_deeply $CLASS->configure($config, {}), {foo => 'hi'},
     'Should get config with no options';
 is_deeply $CLASS->configure($config, {foo => 'yo'}), {foo => 'yo'},
     'Options should override config';
+is_deeply $CLASS->configure($config, {'foo-bar' => 'yo'}), {foo => 'hi', foo_bar => 'yo'},
+    'Options keys should have dashes changed to underscores';
 
 ##############################################################################
 # Test load().

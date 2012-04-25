@@ -52,6 +52,13 @@ sub load {
 
 sub configure {
     my ($class, $config, $options) = @_;
+
+    # Convert option keys with dashes to underscores.
+    for my $k (keys %{ $options }) {
+        next unless (my $nk = $k) =~ s/-/_/g;
+        $options->{$nk} = delete $options->{$k};
+    }
+
     return Hash::Merge->new->merge(
         $options,
         $config->get_section(section => $class->command),
@@ -250,9 +257,10 @@ command-line options as specified by C<options>. The returned hash should be
 the result of munging these two objects into a hash reference of parameters to
 be passed to the command subclass constructor.
 
-By default, this method simply merges the configuration values with the
-command-line options, with the command-line options taking priority. You may
-wish to override this method to do something different.
+By default, this method converts dashes to underscores in command-line options
+keys, and then merges the configuration values with the options, with the
+command-line options taking priority. You may wish to override this method to
+do something different.
 
 =head2 Constructors
 
