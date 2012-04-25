@@ -309,12 +309,12 @@ An array reference of command-line arguments passed to the command.
 
 =head3 C<new>
 
-  my $cmd = App::Sqitch::Command->new(\%params);
+  my $cmd = App::Sqitch::Command->new(%params);
 
-Instantiates and returns a App::Sqitch::Command object. This method is
-designed to be overridden by subclasses, as an instance of the base
-App::Sqitch::Command class is probably useless. Call C<new> on a subclass, or
-use C<init>, instead.
+Instantiates and returns a App::Sqitch::Command object. This method is not
+designed to be overridden by subclasses; they should implement
+L<C<BUILDARGS>|Moose::Manual::Construction/BUILDARGS> or
+L<C<BUILD>|Moose::Manual::Construction/BUILD>, instead.
 
 =head2 Accessors
 
