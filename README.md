@@ -9,6 +9,11 @@ of blog posts published in January, 2012:
 * [VCS-Enabled SQL Change Management](http://justatheory.com/computers/databases/vcs-sql-change-management.html)
 * [SQL Change Management Sans Duplication](http://justatheory.com/computers/databases/sql-change-management-sans-redundancy.html)
 
+But it's not there yet. It's under heavy development. Hopefully it will be
+quasi-usable soon, as there is
+[a deadline](http://www.pgcon.org/2012/schedule/events/479.en.html). Watch
+this space.
+
 Installation
 ------------
 
@@ -18,42 +23,6 @@ To install this module, type the following:
     ./Build
     ./Build test
     ./Build install
-
-Or, if you don't have Module::Build installed, type the following:
-
-    perl Makefile.PL
-    make
-    make test
-    make install
-
-Dependencies
-------------
-
-App::Sqitch requires the following modules:
-
-
-### Git Notes ###
-
-* Get a list of all commits and tags:
-
-        git log --format='[%H%d]' --reverse
-
-* Get a list of all commits and changes in `sql/deploy`:
-
-        git log -p --format='[%H%d]' --name-status --reverse --decorate=full
-
-* Get the contents of a file at a particular revision:
-
-        git show ecd46ef74a36283d81bdabeb70b4193386d19ea9:sql/deploy/add_widget.sql
-
-* Get the contents of a file at a particular tag:
-
-        git show beta:sql/deploy/add_widget.sql
-
-* Get the contents of a file just prior to a particular revision or tag:
-
-        git show `git log --format='%H' beta^ -1`:sql/deploy/add_widget.sql
-
 
 Licence
 -------
