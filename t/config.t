@@ -2,8 +2,8 @@
 
 use strict;
 use warnings;
-use Test::More tests => 272;
-#use Test::More 'no_plan';
+#use Test::More tests => 293;
+use Test::More 'no_plan';
 use File::Spec;
 use Test::MockModule;
 use Test::Exception;
@@ -33,6 +33,7 @@ is_deeply [$cmd->options], [qw(
     system
     int
     bool
+    bool-or-int
     num
     get
     get-all
@@ -265,8 +266,31 @@ throws_ok { $cmd->execute('revert.revision') } qr/FAIL/,
 
 ok $cmd->execute('bundle.tags_only'), 'Get bundle.tags_only as bool';
 is_deeply \@emit, [['true']],
-    'Should have emitted bundle.tags_only a bool';
+    'Should have emitted bundle.tags_only as a bool';
 @emit = ();
+
+# Make sure bool-or-int data type works.
+ok $cmd = App::Sqitch::Command::config->new({
+    sqitch  => $sqitch,
+    action  => 'get',
+    type    => 'bool-or-int',
+}), 'Create config get bool-or-int command';
+
+ok $cmd->execute('revert.count'), 'Get revert.count as bool-or-int';
+is_deeply \@emit, [[2]],
+    'Should have emitted the revert count as an int';
+@emit = ();
+
+ok $cmd->execute('revert.revision'), 'Get revert.revision as bool-or-int';
+is_deeply \@emit, [[1]],
+    'Should have emitted the revert revision as an int';
+@emit = ();
+
+ok $cmd->execute('bundle.tags_only'), 'Get bundle.tags_only as bool-or-int';
+is_deeply \@emit, [['true']],
+    'Should have emitted bundle.tags_only as a bool';
+@emit = ();
+
 chdir File::Spec->updir;
 
 CONTEXT: {
@@ -616,7 +640,29 @@ throws_ok { $cmd->execute('revert.revision') } qr/FAIL/,
 
 ok $cmd->execute('bundle.tags_only'), 'Get bundle.tags_only as bool';
 is_deeply \@emit, [[$Config::GitLike::VERSION > 1.08 ? 'true' : 1]],
-    'Should have emitted bundle.tags_only a bool';
+    'Should have emitted bundle.tags_only as a bool';
+@emit = ();
+
+# Make sure bool-or-int data type works.
+ok $cmd = App::Sqitch::Command::config->new({
+    sqitch  => $sqitch,
+    action  => 'get_all',
+    type    => 'bool-or-int',
+}), 'Create config get_all bool-or-int command';
+
+ok $cmd->execute('revert.count'), 'Get revert.count as bool-or-int';
+is_deeply \@emit, [[2]],
+    'Should have emitted the revert count as an int';
+@emit = ();
+
+ok $cmd->execute('revert.revision'), 'Get revert.revision as bool-or-int';
+is_deeply \@emit, [[1]],
+    'Should have emitted the revert revision as an int';
+@emit = ();
+
+ok $cmd->execute('bundle.tags_only'), 'Get bundle.tags_only as bool-or-int';
+is_deeply \@emit, [[$Config::GitLike::VERSION > 1.08 ? 'true' : 1]],
+    'Should have emitted bundle.tags_only as a bool';
 @emit = ();
 
 ##############################################################################
@@ -718,7 +764,29 @@ throws_ok { $cmd->execute('revert.revision') } qr/FAIL/,
 
 ok $cmd->execute('bundle.tags_only'), 'Get bundle.tags_only as bool';
 is_deeply \@emit, [['bundle.tags_only=' . ($Config::GitLike::VERSION > 1.08 ? 'true' : 1)]],
-    'Should have emitted bundle.tags_only a bool';
+    'Should have emitted bundle.tags_only as a bool';
+@emit = ();
+
+# Make sure int data type works.
+ok $cmd = App::Sqitch::Command::config->new({
+    sqitch  => $sqitch,
+    action  => 'get_regex',
+    type    => 'bool-or-int',
+}), 'Create config get_regex bool-or-int command';
+
+ok $cmd->execute('revert.count'), 'Get revert.count as bool-or-int';
+is_deeply \@emit, [['revert.count=2']],
+    'Should have emitted the revert count as an int';
+@emit = ();
+
+ok $cmd->execute('revert.revision'), 'Get revert.revision as bool-or-int';
+is_deeply \@emit, [['revert.revision=1']],
+    'Should have emitted the revert revision as an int';
+@emit = ();
+
+ok $cmd->execute('bundle.tags_only'), 'Get bundle.tags_only as bool-or-int';
+is_deeply \@emit, [['bundle.tags_only=' . ($Config::GitLike::VERSION > 1.08 ? 'true' : 1)]],
+    'Should have emitted bundle.tags_only as a bool';
 @emit = ();
 
 ##############################################################################

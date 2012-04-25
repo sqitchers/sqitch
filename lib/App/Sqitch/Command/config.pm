@@ -39,7 +39,7 @@ has context => (is => 'ro', required => 1, default => 'project', isa => enum([qw
     user
     system
 )]));
-has type => (is => 'ro', isa => enum([qw(int num bool)]));
+has type => (is => 'ro', isa => enum([qw(int num bool bool-or-int)]));
 
 sub options {
     return qw(
@@ -49,6 +49,7 @@ sub options {
 
         int
         bool
+        bool-or-int
         num
 
         get
@@ -72,7 +73,7 @@ sub configure {
     $class->usage('Only one config file at a time.') if @file > 1;
 
     # Make sure we have only one type.
-    my @type = grep { $opt->{$_} } qw(bool int num);
+    my @type = grep { $opt->{$_} } qw(bool int num bool-or-int);
     $class->usage('Only one type at a time.') if @type > 1;
 
     # Make sure we are performing only one action.
@@ -450,6 +451,8 @@ The type to cast a value to be set to or fetched as. May be one of:
 
 =item * C<num>
 
+=item * C<bool-or-int>
+
 =back
 
 If not specified or C<undef>, no casting will be performed.
@@ -586,8 +589,6 @@ The Sqitch command-line client.
 =item * Make exit codes the same as C<git-config>.
 
 =item * Implement C<--local>.
-
-=item * Implement C<--bool-or-int>.
 
 =item * Implement C<--replace-all>.
 
