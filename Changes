@@ -1,4 +1,6 @@
 Revision history for Perl extension App::Sqitch
 
-0.10  
-      - Initial version.
+0.10  2012-04-25T20:46:59Z
+      - Initial unstable release.
+      - Implemented `help` command.
+      - Impelemented `config` command, very similar to `git-config`.
