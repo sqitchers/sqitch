@@ -27,14 +27,14 @@ Multiple lines can be added to an option by using the C<--add> option. If you
 want to update or unset an option which can occur on multiple lines, a Perl
 regular expression C<value_regex> needs to be given. Only the existing values
 that match the regex will be updated or unset. If you want to handle lines
-that do not match the regex, just prepend a single C<!> (exclamation maark) in
+that do not match the regex, just prepend a single C<!> (exclamation point) in
 front (see L<Examples>).
 
 The C<type> specifier can be C<--int>, C<--num>, or C<--bool>, to ensure that
 the variable(s) are of the given type and convert the value to the canonical
-form (simple integer for int, decimal number for num, a "true" or "false"
-string for bool) If no type specifier is passed, no checks or transformations
-are performed on the value.
+form (simple integer for C<--int>, decimal number for C<--num>, a "true" or
+"false" string for C<--bool>) If no type specifier is passed, no checks or
+transformations are performed on the value.
 
 The C<file-option> can be one of C<--system>, C<--user> or C<--file>, which
 specify where the values will be read from or written to. The default is to
@@ -105,7 +105,7 @@ the same as providing ^$ as the value_regex in C<--replace-all>.
 
 Get the value for a given key (optionally filtered by a regex matching the
 value). Returns error code 1 if the key was not found and error code 2 if
-multiple key values were found.
+multiple values were found.
 
 =item C<--get-all>
 
@@ -257,8 +257,8 @@ You can set the the C<tags_only> setting to true with
 
   % sqitch config bundle.tags_only true
 
-The hypothetical C<set> key in the C<core.pg> section might need to set
-"foo" to "hi" instead of "bar". Here's how to make that chnage:
+The hypothetical C<set> key in the C<core.pg> section might need to set C<foo>
+to "hi" instead of "bar". Here's how to make that change:
 
   % sqitch config core.pg.set foo=bar foo=hi
 
@@ -277,7 +277,7 @@ Or:
 
   % sqitch config core.engine
 
-Or, to query a multivalue settting for only those values that match C</ba/>:
+Or, to query a multivalue setting for only those values that match C</ba/>:
 
   % sqitch config --get core.pg.set ba
 
@@ -290,8 +290,8 @@ new one with
 
   % sqitch config --replace-all core.pg.set bring=funk
 
-However, if you only want to replace the line without "baz", do something like
-this:
+However, if you only want to replace the line without C<baz>, do something
+like this:
 
   % sqitch config core.pg.set = '!baz'
 
@@ -320,7 +320,7 @@ with an alphabetic character. Some variables may appear multiple times.
 
 =head2 Syntax
 
-The syntax is fairly flexible and permissive; whitespaces are mostly ignored.
+The syntax is fairly flexible and permissive; white space is mostly ignored.
 The C<#> and C<;> characters begin comments to the end of line, blank lines
 are ignored.
 
@@ -369,7 +369,7 @@ variable values must be escaped: use C<\"> for C<"> and C<\\> for C<\>.
 The following escape sequences (beside C<\"> and C<\\>) are recognized: C<\n>
 for newline character (NL), C<\t> for horizontal tabulation (HT, TAB) and
 C<\b> for backspace (BS). No other character escape sequence or octal
-chararter sequence is valid.
+character sequence is valid.
 
 Variable values ending in a C<\> are continued on the next line in the
 customary UNIX fashion.
