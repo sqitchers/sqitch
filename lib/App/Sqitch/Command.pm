@@ -200,6 +200,18 @@ sub usage {
     );
 }
 
+sub bail {
+    my ($self, $code) = (shift, shift);
+    if (@_) {
+        if ($code) {
+            say STDERR @_;
+        } else {
+            say STDOUT @_;
+        }
+    }
+    exit $code;
+}
+
 __PACKAGE__->meta->make_immutable;
 no Moose;
 
@@ -430,7 +442,12 @@ or "Options". Any or all of those will be shown.
 Sends messages to C<STDERR> and exists with an additional message to "See
 sqitch --help". Use if the user has misused the app.
 
-=head3 C<quit>
+=head3 C<bail>
+
+  $cmd->bail(3, 'The config file is invalid');
+
+Exits with the specified error code, sending any specified messages to
+C<STDOUT> if the exit code is 0, and to C<STDERR> if it is not 0.
 
 =head1 See Also
 
