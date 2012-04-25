@@ -6,7 +6,7 @@ use warnings;
 use utf8;
 use Path::Class ();
 use Try::Tiny;
-use List::Util qw(sum first);
+use List::Util qw(first);
 use Moose;
 use Moose::Util::TypeConstraints;
 use namespace::autoclean;
