@@ -1,0 +1,33 @@
+=head1 Usage
+
+  sqitch config [options]
+
+=head1 Options
+
+Config file location
+
+    --user                use user config file
+    --system              use system config file
+    --local               use repository config file
+    -f, --file <file>     use given config file
+
+Action
+
+    --get                 get value: name [value-regex]
+    --get-all             get all values: key [value-regex]
+    --get-regexp          get values for regexp: name-regex [value-regex]
+    --replace-all         replace all matching variables: name value [value_regex]
+    --add                 adds a new variable: name value
+    --unset               removes a variable: name [value-regex]
+    --unset-all           removes all matches: name [value-regex]
+    --rename-section      rename section: old-name new-name
+    --remove-section      remove a section: name
+    -l, --list            list all
+    -e, --edit            opens an editor
+
+Type
+
+    --bool                value is "true" or "false"
+    --int                 value is decimal number
+    --num                 value is decimal number
+    --bool-or-int         value is --bool or --int
