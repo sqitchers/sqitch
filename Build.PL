@@ -25,6 +25,7 @@ Module::Build->new(
         'Hash::Merge'                  => 0,
         'Moose'                        => '1.15',
         'Moose::Util::TypeConstraints' => '1.15',
+        'namespace::autoclean'         => '0.11',
         'Path::Class'                  => 0,
         'Try::Tiny'                    => 0,
       },

@@ -585,6 +585,14 @@ The Sqitch command-line client.
 
 =item * Make exit codes the same as C<git-config>.
 
+=item * Implement C<--local>.
+
+=item * Implement C<--bool-or-int>.
+
+=item * Implement C<--replace-all>.
+
+=item * Have local config use C<$SQITCH_CONFIG> environment variable.
+
 =back
 
 =head1 Author

@@ -12,7 +12,7 @@ BEGIN {
     $SIG{__DIE__} = \&Carp::confess;
 }
 
-use Test::More tests => 84;
+use Test::More tests => 88;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Test::Exception;
@@ -342,6 +342,16 @@ is capture_stderr {
 }, "sqch: This that\nsqch: and the other. See sqch --help\n",
     'help should work';
 
+# Usage.
+like capture_stderr {
+    throws_ok { $cmd->usage('Invalid whozit') } qr/EXITED: 2/
+}, qr/Invalid whozit/, 'usage should work';
+
+like capture_stderr {
+    throws_ok { $cmd->usage('Invalid whozit') } qr/EXITED: 2/
+}, qr/\Qsqitch [<options>] <command> [<command-options>] [<args>]/,
+    'usage should prefer sqitch-$command-usage';
+
 ##############################################################################
 # Test do_system().
 can_ok $CLASS, 'do_system';
@@ -356,3 +366,4 @@ is capture_stdout {
         $^X, File::Spec->catfile(qw(t die.pl)), qw(hi there)
     ), 'Should get fail back from do_system die';
 }, "hi there\n", 'The die script should have run';
+

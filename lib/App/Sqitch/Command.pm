@@ -189,7 +189,12 @@ sub help {
 
 sub usage {
     my $self = shift;
-    $self->_pod2usage('-message' => join '', @_);
+    require Pod::Find;
+    my $upod = _bn . '-' . $self->command .  '-usage';
+    $self->_pod2usage(
+        '-input' => Pod::Find::pod_where({'-inc' => 1 }, $upod) || undef,
+        '-message' => join '', @_
+    );
 }
 
 __PACKAGE__->meta->make_immutable;
