@@ -513,7 +513,7 @@ to diff them, or to use some other approach.]
 =item C<config>
 
 Set configuration options. By default, the options will be written to the
-local configuration file, F<sqitch.ini>. Options:
+local configuration file, F<sqitch.conf>. Options:
 
 =over
 
@@ -531,18 +531,18 @@ List all variables set in config file.
 
 =item C<--global>
 
-For writing options: write to global F<~/.sqitch/config.ini> file rather than
-the local F<sqitch.ini>.
+For writing options: write to global F<~/.sqitch/sqitch.conf> file rather than
+the local F<./sqitch.conf>.
 
-For reading options: read only from global F<~/.sqitch/config.ini> rather
+For reading options: read only from global F<~/.sqitch/sqitch.conf> rather
 than from all available files.
 
 =item C<--system>
 
-For writing options: write to system-wide F<$prefix/etc/sqitch.ini> file
-rather than the local F<sqitch.ini>.
+For writing options: write to system-wide F<$prefix/etc/sqitch.conf> file
+rather than the local F<./sqitch.conf>.
 
-For reading options: read only from system-wide F<$prefix/etc/sqitch.ini>
+For reading options: read only from system-wide F<$prefix/etc/sqitch.conf>
 rather than from all available files.
 
 =item C<--config-file>
@@ -636,7 +636,7 @@ with the "gamma" tag:
       tags_only = yes
       dest_dir  = _build/sql
 
-And here's an example of useful configuration in F<~/.sqitch/config.ini>, to
+And here's an example of useful configuration in F<~/.sqitch/sqitch.conf>, to
 point to system-specific engine information:
 
   [core.pg]
@@ -660,7 +660,7 @@ options.
 
 =item C<core.plan_file>
 
-The plan file to use. Defaults to F<sqitch.ini> or, if that does not exist,
+The plan file to use. Defaults to F<./sqitch.plan> or, if that does not exist,
 uses the VCS history, if available.
 
 =item C<core.engine>

@@ -6,6 +6,7 @@ use warnings;
 use utf8;
 use Moose;
 use File::Path qw(make_path);
+use Path::Class;
 use Moose::Util::TypeConstraints;
 use namespace::autoclean;
 
@@ -36,7 +37,44 @@ sub make_directories {
 }
 
 sub write_config {
-    my $self = shift;
+    my $self   = shift;
+    my $sqitch = $self->sqitch;
+    my $meta   = $sqitch->meta;
+    my $config = $sqitch->config;
+    my $file   = $config->project_file;
+    if (-f $file) {
+        # Do nothing? Update config?
+        return $self;
+    }
+
+    for my $name (qw(
+        plan_file
+        sql_dir
+        deploy_dir
+        revert_dir
+        test_dir
+        extension
+        engine
+    )) {
+        # Set core attributes that are not their default values and not
+        # already in user or system config.
+        my $attr = $meta->find_attribute_by_name($name)
+            or die "Cannot find App::Sqitch attribute $name";
+        my $val = $attr->get_value($sqitch);
+        no warnings 'uninitialized';
+        $config->set(
+            key         => "core.$name",
+            value       => $val,
+            filename    => $file,
+            replace_all => 1,
+        ) if $val ne $attr->default($sqitch)
+          && $val ne $config->get(key => "core.$name");
+    }
+
+    # XXX Add core.$engine section.
+
+    $self->info("Created $file");
+    return $self;
 }
 
 __PACKAGE__->meta->make_immutable;

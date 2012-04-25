@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use v5.10;
 use utf8;
-use Test::More tests => 21;
+use Test::More tests => 25;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Path::Class;
@@ -22,18 +22,27 @@ BEGIN {
 }
 
 isa_ok $CLASS, 'App::Sqitch::Command', $CLASS;
-my $sqitch = App::Sqitch->new(sql_dir => dir 'init.sql');
-isa_ok my $init = $CLASS->new(sqitch => $sqitch), $CLASS, 'New init object';
+chdir 't';
+
+
+sub read_config($) {
+    my $conf = App::Sqitch::Config->new;
+    $conf->load_file(shift);
+    $conf->data;
+}
 
 ##############################################################################
 # Test make_directories.
-chdir 't';
+my $sqitch = App::Sqitch->new(sql_dir => dir 'init.mkdir');
+isa_ok my $init = $CLASS->new(sqitch => $sqitch), $CLASS, 'New init object';
+
 can_ok $init, 'make_directories';
 for my $attr (map { "$_\_dir"} qw(sql deploy revert test)) {
     dir_not_exists_ok $sqitch->$attr;
 }
 
-END { remove_tree $sqitch->sql_dir->stringify }
+my $sql_dir = $sqitch->sql_dir->stringify;
+END { remove_tree $sql_dir }
 
 ok $init->make_directories, 'Make the directories';
 for my $attr (map { "$_\_dir"} qw(sql deploy revert test)) {
@@ -56,7 +65,6 @@ is_deeply +MockCommand->get_info, [
 ], 'Should have noted creation of revert dir';
 
 # Handle errors.
-my $sql_dir = $sqitch->sql_dir->stringify;
 remove_tree $sql_dir;
 make_path $sql_dir;
 chmod 0000, $sql_dir;
@@ -65,3 +73,23 @@ throws_ok { $init->make_directories } qr/FAIL/, 'Should fail on permissio issue'
 is_deeply +MockCommand->get_fail, [
     ['Error creating ' . $sqitch->deploy_dir . ': Permission denied'],
 ], 'Failure should have been emitted';
+
+##############################################################################
+# Test write_config().
+can_ok $init, 'write_config';
+
+my $test_dir = 'init.write';
+make_path $test_dir;
+END { remove_tree $test_dir }
+chdir $test_dir;
+END { chdir File::Spec->updir }
+
+# Write config.
+ok $init->write_config, 'Write the config';
+is_deeply read_config $sqitch->config->project_file, {
+    'core.sql_dir' => 'init.mkdir',
+}, 'The configuration should have been written with only one setting';
+is_deeply +MockCommand->get_info, [
+    ['Created ' . $sqitch->config->project_file]
+], 'The creation should be sent to info';
+

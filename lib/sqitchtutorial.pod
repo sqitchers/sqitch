@@ -38,9 +38,9 @@ used in these examples is L<on GitHub|https://github.com/theory/sqitch-intro>.
 Now that we have a repository, let's get started with Sqitch.
 
   > sqitch init --engine pg
-  Created sqitch.ini
   Created sql/deploy
   Created sql/revert
+  Created sqitch.conf
 
 Let's have a look at F<sqitch.ini>:
 
