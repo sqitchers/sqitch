@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 295;
+use Test::More tests => 300;
 #use Test::More 'no_plan';
 use File::Spec;
 use Test::MockModule;
@@ -39,6 +39,7 @@ is_deeply [$cmd->options], [qw(
     get-all
     get-regex
     add
+    replace-all
     unset
     unset-all
     rename-section
@@ -864,6 +865,36 @@ is_deeply \@usage, ['Wrong number of arguments.'],
     'And the invalid unset_all key should trigger a usage message';
 
 ##############################################################################
+# Test replace-all.
+ok $cmd = App::Sqitch::Command::config->new({
+    sqitch  => $sqitch,
+    action  => 'replace-all',
+}), 'Create system config replace-all command';
+
+$cmd->add('core.bar', 'bar');
+$cmd->add('core.bar', 'baz');
+$cmd->add('core.bar', 'yo');
+
+ok $cmd->execute('core.bar', 'hi'), 'Replace all core.bar';
+is_deeply read_config($cmd->file), {
+    'core.bar' => 'hi',
+    'core.foo' => 'yo',
+}, 'core.bar should have all its values with one value';
+
+$cmd->add('core.foo', 'bar');
+$cmd->add('core.foo', 'baz');
+ok $cmd->execute('core.foo', 'ba', '^ba'), 'Replace all core.bar matching /^ba/';
+
+is_deeply read_config($cmd->file), {
+    'core.bar' => 'hi',
+    'core.foo' => ['yo', 'ba'],
+}, 'core.foo should have had the matching values replaced';
+
+# Clean up.
+$cmd->unset_all('core.bar');
+$cmd->unset('core.foo', 'ba');
+
+##############################################################################
 # Test rename_section().
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
@@ -889,6 +920,7 @@ is_deeply \@usage, ['Wrong number of arguments.'],
 throws_ok { $cmd->execute('foo', 'bar') } qr/FAIL/, 'Should fail with invalid section';
 is_deeply \@fail, ['No such section!'],
     'Message should be in the fail call';
+
 
 ##############################################################################
 # Test remove_section().

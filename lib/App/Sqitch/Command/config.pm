@@ -30,6 +30,7 @@ has action  => (is => 'ro', isa => enum([qw(
     list
     edit
     add
+    replace-all
     unset-all
     rename-section
     remove-section
@@ -56,6 +57,7 @@ sub options {
         get-all
         get-regex
         add
+        replace-all
         unset
         unset-all
         rename-section
@@ -85,6 +87,7 @@ sub configure {
         list
         edit
         add
+        replace-all
         unset_all
         rename-section
         remove-section
@@ -190,6 +193,21 @@ sub get_regex {
 
 sub set {
     my ($self, $key, $value, $rx) = @_;
+    $self->_set($key, $value, $rx, multiple => 0);
+}
+
+sub add {
+    my ($self, $key, $value) = @_;
+    $self->_set($key, $value, undef, multiple => 1);
+}
+
+sub replace_all {
+    my ($self, $key, $value, $rx) = @_;
+    $self->_set($key, $value, $rx, multiple => 1, replace_all => 1);
+}
+
+sub _set {
+    my ($self, $key, $value, $rx, @p) = @_;
     $self->usage('Wrong number of arguments.')
         if !defined $key || $key eq '' || !defined $value;
 
@@ -201,29 +219,13 @@ sub set {
             filename => $self->file,
             filter   => $rx,
             as       => $self->type,
-            multiple => 0,
+            @p,
         );
     } catch {
         $self->fail('Cannot overwrite multiple values with a single value')
             if /^Multiple occurrences/i;
         $self->fail($_);
     };
-    return $self;
-}
-
-sub add {
-    my ($self, $key, $value) = @_;
-    $self->usage('Wrong number of arguments.')
-        if !defined $key || $key eq '' || !defined $value;
-
-    $self->_touch_dir;
-    $self->sqitch->config->set(
-        key      => $key,
-        value    => $value,
-        filename => $self->file,
-        as       => $self->type,
-        multiple => 1,
-    );
     return $self;
 }
 
@@ -410,6 +412,8 @@ The action to be executed. May be one of:
 
 =item * C<add>
 
+=item * C<replace-all>
+
 =item * C<unset>
 
 =item * C<unset-all>
@@ -514,8 +518,15 @@ has multiple values.
 
   $config->add($key, $value);
 
-Adds a value for a key. If the key already exist, the value will be added as
+Adds a value for a key. If the key already exists, the value will be added as
 an additional value.
+
+=head3 C<replace_all>
+
+  $config->replace_all($key, $value);
+  $config->replace_all($key, $value, $regex);
+
+Replace all matching values.
 
 =head3 C<unset>
 
@@ -594,8 +605,6 @@ The Sqitch command-line client.
 =item * Make exit codes the same as C<git-config>.
 
 =item * Implement C<--local>.
-
-=item * Implement C<--replace-all>.
 
 =item * Have local config use C<$SQITCH_CONFIG> environment variable.
 
