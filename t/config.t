@@ -2,8 +2,8 @@
 
 use strict;
 use warnings;
-#use Test::More tests => 293;
-use Test::More 'no_plan';
+use Test::More tests => 295;
+#use Test::More 'no_plan';
 use File::Spec;
 use Test::MockModule;
 use Test::Exception;
@@ -168,6 +168,8 @@ my @set;
 $mock->mock(set => sub { shift; @set = @_; return 1 });
 my @get;
 $mock->mock(get => sub { shift; @get = @_; return 1 });
+my @get_all;
+$mock->mock(get_all => sub { shift; @get_all = @_; return 1 });
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
     context => 'system',
@@ -177,7 +179,15 @@ ok $cmd->execute(qw(foo bar)), 'Execute the set command';
 is_deeply \@set, [qw(foo bar)], 'The set method should have been called';
 ok $cmd->execute(qw(foo)), 'Execute the get command';
 is_deeply \@get, [qw(foo)], 'The get method should have been called';
-$mock->unmock(qw(set get));
+
+ok $cmd = App::Sqitch::Command::config->new({
+    sqitch  => $sqitch,
+    action  => 'get-all',
+}), 'Create config get-all command';
+$cmd->execute('boy.howdy');
+is_deeply \@get_all, ['boy.howdy'],
+    'An action with a dash should have triggered a method with an underscore';
+$mock->unmock(qw(set get get_all));
 
 ##############################################################################
 # Test get().
@@ -551,7 +561,7 @@ is_deeply \@unfound, [], 'Nothing should have been output on failure';
 @emit = ();
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
-    action  => 'get_all',
+    action  => 'get-all',
 }), 'Create system config get_all command';
 ok $cmd->execute('core.engine'), 'Call get_all on core.engine';
 is_deeply \@emit, [['funky']], 'The engine should have been emitted';
@@ -589,7 +599,7 @@ is_deeply \@usage, ['Wrong number of arguments.'],
 # Make sure int data type works.
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
-    action  => 'get_all',
+    action  => 'get-all',
     type    => 'int',
 }), 'Create config get_all int command';
 
@@ -609,7 +619,7 @@ throws_ok { $cmd->execute('bundle.tags_only') } qr/FAIL/,
 # Make sure num data type works.
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
-    action  => 'get_all',
+    action  => 'get-all',
     type    => 'num',
 }), 'Create config get_all num command';
 
@@ -629,7 +639,7 @@ throws_ok { $cmd->execute('bundle.tags_only') } qr/FAIL/,
 # Make sure bool data type works.
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
-    action  => 'get_all',
+    action  => 'get-all',
     type    => 'bool',
 }), 'Create config get_all bool command';
 
@@ -646,7 +656,7 @@ is_deeply \@emit, [[$Config::GitLike::VERSION > 1.08 ? 'true' : 1]],
 # Make sure bool-or-int data type works.
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
-    action  => 'get_all',
+    action  => 'get-all',
     type    => 'bool-or-int',
 }), 'Create config get_all bool-or-int command';
 
@@ -669,7 +679,7 @@ is_deeply \@emit, [[$Config::GitLike::VERSION > 1.08 ? 'true' : 1]],
 # Test get_regex().
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
-    action  => 'get_regex',
+    action  => 'get-regex',
 }), 'Create system config get_regex command';
 ok $cmd->execute('core\\..+'), 'Call get_regex on core\\..+';
 is_deeply \@emit, [[q{core.db_name=widgetopolis
@@ -713,7 +723,7 @@ is_deeply \@usage, ['Wrong number of arguments.'],
 # Make sure int data type works.
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
-    action  => 'get_regex',
+    action  => 'get-regex',
     type    => 'int',
 }), 'Create config get_regex int command';
 
@@ -733,7 +743,7 @@ throws_ok { $cmd->execute('bundle.tags_only') } qr/FAIL/,
 # Make sure num data type works.
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
-    action  => 'get_regex',
+    action  => 'get-regex',
     type    => 'num',
 }), 'Create config get_regex num command';
 
@@ -753,7 +763,7 @@ throws_ok { $cmd->execute('bundle.tags_only') } qr/FAIL/,
 # Make sure bool data type works.
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
-    action  => 'get_regex',
+    action  => 'get-regex',
     type    => 'bool',
 }), 'Create config get_regex bool command';
 
@@ -770,7 +780,7 @@ is_deeply \@emit, [['bundle.tags_only=' . ($Config::GitLike::VERSION > 1.08 ? 't
 # Make sure int data type works.
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
-    action  => 'get_regex',
+    action  => 'get-regex',
     type    => 'bool-or-int',
 }), 'Create config get_regex bool-or-int command';
 
@@ -828,7 +838,7 @@ is_deeply \@usage, ['Wrong number of arguments.'],
 # Test unset_all().
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
-    action  => 'unset_all',
+    action  => 'unset-all',
 }), 'Create system config unset-all command';
 
 $cmd->add('core.foo', 'baz');
@@ -857,7 +867,7 @@ is_deeply \@usage, ['Wrong number of arguments.'],
 # Test rename_section().
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
-    action  => 'rename_section',
+    action  => 'rename-section',
 }), 'Create system config rename-section command';
 ok $cmd->execute('core', 'funk'), 'Rename "core" to "funk"';
 is_deeply read_config($cmd->file), {
@@ -884,7 +894,7 @@ is_deeply \@fail, ['No such section!'],
 # Test remove_section().
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
-    action  => 'remove_section',
+    action  => 'remove-section',
 }), 'Create system config remove-section command';
 ok $cmd->execute('funk'), 'Remove "func" section';
 is_deeply read_config($cmd->file), {},

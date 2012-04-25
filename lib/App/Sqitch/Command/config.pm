@@ -23,16 +23,16 @@ has file => (is => 'ro', lazy => 1, default => sub {
 
 has action  => (is => 'ro', isa => enum([qw(
     get
-    get_all
-    get_regex
+    get-all
+    get-regex
     set
     unset
     list
     edit
     add
-    unset_all
-    rename_section
-    remove_section
+    unset-all
+    rename-section
+    remove-section
 )]));
 has context => (is => 'ro', required => 1, default => 'project', isa => enum([qw(
     project
@@ -79,15 +79,15 @@ sub configure {
     # Make sure we are performing only one action.
     my @action = grep { $opt->{$_} } qw(
         get
-        get_all
-        get_regex
+        get-all
+        get-regex
         unset
         list
         edit
         add
         unset_all
-        rename_section
-        remove_section
+        rename-section
+        remove-section
     );
     $class->usage('Only one action at a time.') if @action > 1;
 
@@ -106,6 +106,7 @@ sub configure {
 sub execute {
     my $self = shift;
     my $action = $self->action || (@_ > 1 ? 'set' : 'get');
+    $action =~ s/-/_/g;
     my $meth = $self->can($action)
         or die 'No method defined for ', $self->action, ' action';
 
@@ -401,9 +402,9 @@ The action to be executed. May be one of:
 
 =item * C<get>
 
-=item * C<get_all>
+=item * C<get-all>
 
-=item * C<get_regex>
+=item * C<get-regex>
 
 =item * C<set>
 
@@ -411,11 +412,15 @@ The action to be executed. May be one of:
 
 =item * C<unset>
 
-=item * C<unset_all>
+=item * C<unset-all>
 
 =item * C<list>
 
 =item * C<edit>
+
+=item * C<rename-section>
+
+=item * C<remove-section>
 
 =back
 
