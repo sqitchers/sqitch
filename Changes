@@ -1,5 +1,7 @@
 Revision history for Perl extension App::Sqitch
 
+0.11
+
 0.10  2012-04-25T20:46:59Z
       - Initial unstable release.
       - Implemented `help` command.
