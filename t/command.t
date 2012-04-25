@@ -168,10 +168,10 @@ my $args = [qw(
     whatever
 )];
 is_deeply $cmd->_parse_opts($args), {
-    foo      => 1,
-    hi_there => 1,
-    icky_foo => 0,
-    feathers => 'down',
+    'foo'      => 1,
+    'hi-there' => 1,
+    'icky-foo' => 0,
+    'feathers' => 'down',
 }, 'Subclass should parse options spec';
 is_deeply $args, ['whatever'], 'Args array should be cleared of options';
 

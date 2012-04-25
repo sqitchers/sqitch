@@ -72,13 +72,9 @@ sub _parse_opts {
 
     my %opts;
     Getopt::Long::Configure(qw(bundling no_pass_through));
-    Getopt::Long::GetOptionsFromArray($args, map {
-        (my $k = $_) =~ s/[|=+:!].*//;
-        $k =~ s/-/_/g;
-        $_ => \$opts{$k};
-    } $class->options) or $class->_pod2usage;
+    Getopt::Long::GetOptionsFromArray($args, \%opts, $class->options)
+        or $class->_pod2usage;
 
-    delete $opts{$_} for grep { !defined $opts{$_} } keys %opts;
     return \%opts;
 }
 
@@ -225,10 +221,9 @@ App::Sqitch::Command is the base class for all Sqitch commands.
 
 Returns a list of L<Getopt::Long> options specifications. When C<load> loads
 the class, any options passed to the command will be parsed using these
-values. They keys in the resulting hash will be the first part of each option,
-with dashes replaced with underscores. This hash will be passed to
-C<configure> along with a L<App::Sqitch::Config> object for munging into
-parameters to be passed to the constructor.
+values. The keys in the resulting hash will be the first part of each option.
+This hash will be passed to C<configure> along with a L<App::Sqitch::Config>
+object for munging into parameters to be passed to the constructor.
 
 Here's an example excerpted from the C<config> command:
 
