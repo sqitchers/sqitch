@@ -5,11 +5,12 @@ use warnings;
 use v5.10.1;
 use utf8;
 use Test::More tests => 44;
+use Carp; BEGIN { $SIG{__WARN__} = \&cluck }
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Path::Class;
 use Test::Dir;
-use Test::File;
+use Test::File qw(file_not_exists_ok file_exists_ok);
 use Test::Exception;
 use File::Path qw(remove_tree make_path);
 use lib 't/lib';
