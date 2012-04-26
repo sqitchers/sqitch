@@ -9,6 +9,18 @@ use Moose;
 
 extends 'App::Sqitch::Engine';
 
+sub config_vars {
+    return (
+        client        => 'any',
+        username      => 'any',
+        password      => 'any',
+        db_name       => 'any',
+        host          => 'any',
+        port          => 'int',
+        sqitch_schema => 'any',
+    );
+}
+
 __PACKAGE__->meta->make_immutable;
 no Moose;
 
@@ -25,6 +37,25 @@ App::Sqitch::Engine::pg - Sqitch PostgreSQL Engine
 =head1 Description
 
 App::Sqitch::Engine::pg provides the PostgreSQL storage engine for Sqitch.
+
+=head1 Interface
+
+=head3 Class Methods
+
+=head3 C<config_vars>
+
+  my %vars = App::Sqitch::Engine::pg->config_vars;
+
+Returns a hash of names and types to use for variables in the C<core.pg>
+section of the a Sqitch configuration file. The variables and their types are:
+
+  client        => 'any'
+  username      => 'any'
+  password      => 'any'
+  db_name       => 'any'
+  host          => 'any'
+  port          => 'int'
+  sqitch_schema => 'any'
 
 =head1 Author
 

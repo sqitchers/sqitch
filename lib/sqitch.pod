@@ -802,7 +802,12 @@ Configuration properties for the SQLite engine.
 
 =over
 
-=item C<core.sqlite.db_name>
+=item C<core.sqlite.client>
+
+Path to the C<sqlite3> command-line client. Defaults to the first instance
+found in the path.
+
+=item C<core.sqlite.db_file>
 
 Path to the SQLite database file.
 

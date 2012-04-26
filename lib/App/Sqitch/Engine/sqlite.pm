@@ -9,6 +9,14 @@ use Moose;
 
 extends 'App::Sqitch::Engine';
 
+sub config_vars {
+    return (
+        client        => 'any',
+        db_file       => 'any',
+        sqitch_prefix => 'any',
+    );
+}
+
 __PACKAGE__->meta->make_immutable;
 no Moose;
 
@@ -25,6 +33,21 @@ App::Sqitch::Engine::sqlite - Sqitch SQLite Engine
 =head1 Description
 
 App::Sqitch::Engine::sqlite provides the SQLite storage engine for Sqitch.
+
+=head1 Interface
+
+=head3 Class Methods
+
+=head3 C<config_vars>
+
+  my %vars = App::Sqitch::Engine::sqlite->config_vars;
+
+Returns a hash of names and types to use for variables in the C<core.sqlite>
+section of the a Sqitch configuration file. The variables and their types are:
+
+  client        => 'any'
+  db_file       => 'any'
+  sqitch_prefix => 'any'
 
 =head1 Author
 

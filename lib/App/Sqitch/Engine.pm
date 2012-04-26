@@ -62,10 +62,11 @@ engine. These can be set under the C<core.$engine_name> section in any
 configuration file.
 
 The keys in the returned hash are the names of the variables. The values are
-the data types. C<undef> or empty string values will have no type enforcement.
-Valid data types include:
+the data types. Valid data types include:
 
 =over
+
+=item C<any>
 
 =item C<int>
 
@@ -80,15 +81,16 @@ Valid data types include:
 Values ending in C<+> (a plus sign) may be specified multiple times. Example:
 
   (
-      client  => undef,
-      db_name => undef,
-      host    => undef,
+      client  => 'any',
+      db_name => 'any',
+      host    => 'any',
       port    => 'int',
-      set     => '+',
+      set     => 'any+',
   )
 
 In this example, the C<port> variable will be stored and retrieved as an
-integer. The C<set> variable may be included multiple times.
+integer. The C<set> variable may be of any type and may be included multiple
+times. All the other variables may be of any type.
 
 By default, App::Sqitch::Engine returns an empty list. Subclasses for
 supported engines will return more.
