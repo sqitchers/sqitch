@@ -63,10 +63,9 @@ sub write_config {
         my $val = $attr->get_value($sqitch);
         no warnings 'uninitialized';
         $config->set(
-            key         => "core.$name",
-            value       => $val,
-            filename    => $file,
-            replace_all => 1,
+            key      => "core.$name",
+            value    => $val,
+            filename => $file,
         ) if $val ne $attr->default($sqitch)
           && $val ne $config->get(key => "core.$name");
     }
