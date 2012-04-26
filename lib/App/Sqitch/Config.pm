@@ -1,6 +1,6 @@
 package App::Sqitch::Config;
 
-use v5.10;
+use v5.10.1;
 use Moose;
 use strict;
 use warnings;

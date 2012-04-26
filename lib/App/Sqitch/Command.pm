@@ -1,6 +1,6 @@
 package App::Sqitch::Command;
 
-use v5.10;
+use v5.10.1;
 use strict;
 use warnings;
 use utf8;

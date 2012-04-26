@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use v5.10;
+use v5.10.1;
 use utf8;
 use Test::More tests => 1;
 #use Test::More 'no_plan';
