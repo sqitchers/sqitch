@@ -12,6 +12,7 @@ Module::Build->new(
         'Capture::Tiny'        => '0.12',
         'Module::Build'        => '0.35',
         'Test::Dir'            => 0,
+        'Test::File'           => 0,
         'Test::Exception'      => 0,
         'Test::MockModule'     => '0.05',
         'Test::More'           => '0.17',
