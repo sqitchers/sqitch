@@ -69,14 +69,14 @@ sub write_config {
           && $val ne $config->get(key => "core.$name");
     }
 
-    # XXX Add core.$engine section.
     if (my $engine = $sqitch->engine) {
-        my $ce = $config->get(key => 'core.engine') || '';
         $config->set(
             key      => "core.engine",
             value    => $engine->name,
             filename => $file,
-        ) if $engine ne $ce;
+        );
+
+        # XXX Add core.$engine section.
     }
 
     $self->info("Created $file");
