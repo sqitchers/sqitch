@@ -55,11 +55,40 @@ App::Sqitch::Engine provides the base class for all Sqitch storage engines.
 
 =head3 C<config_vars>
 
-  my @vars = App::Sqitch::Engine->config_vars;
+  my %vars = App::Sqitch::Engine->config_vars;
 
-Returns a list of names to use for configuration variables for the engine.
-These can be set under the C<core.$engine_name> section in any configuration
-file.
+Returns a hash of names and types to use for configuration variables for the
+engine. These can be set under the C<core.$engine_name> section in any
+configuration file.
+
+The keys in the returned hash are the names of the variables. The values are
+the data types. C<undef> or empty string values will have no type enforcement.
+Valid data types include:
+
+=over
+
+=item C<int>
+
+=item C<num>
+
+=item C<bool>
+
+=item C<bool-or-int>
+
+=back
+
+Values ending in C<+> (a plus sign) may be specified multiple times. Example:
+
+  (
+      client  => undef,
+      db_name => undef,
+      host    => undef,
+      port    => 'int',
+      set     => '+',
+  )
+
+In this example, the C<port> variable will be stored and retrieved as an
+integer. The C<set> variable may be included multiple times.
 
 By default, App::Sqitch::Engine returns an empty list. Subclasses for
 supported engines will return more.
