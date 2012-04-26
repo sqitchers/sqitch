@@ -6,7 +6,6 @@ Module::Build->new(
     module_name        => 'App::Sqitch',
     release_status     => 'unstable',
     license            => 'mit',
-    requires           => { perl            => '5.10.1' },
     configure_requires => { 'Module::Build' => '0.35'  },
     build_requires     => {
         'Capture::Tiny'        => '0.12',
@@ -22,6 +21,7 @@ Module::Build->new(
         'File::Spec'           => 0,
     },
     requires => {
+        'perl'                         => '5.10.1',
         'Carp'                         => 0,
         'Config'                       => 0,
         'Config::GitLike'              => '1.07',
