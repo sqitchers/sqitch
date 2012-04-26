@@ -30,6 +30,8 @@ sub name {
     return $class;
 }
 
+sub config_vars { return }
+
 __PACKAGE__->meta->make_immutable;
 no Moose;
 
@@ -48,6 +50,19 @@ App::Sqitch::Engine - Sqitch Deployment Engine
 App::Sqitch::Engine provides the base class for all Sqitch storage engines.
 
 =head1 Interface
+
+=head3 Class Methods
+
+=head3 C<config_vars>
+
+  my @vars = App::Sqitch::Engine->config_vars;
+
+Returns a list of names to use for configuration variables for the engine.
+These can be set under the C<core.$engine_name> section in any configuration
+file.
+
+By default, App::Sqitch::Engine returns an empty list. Subclasses for
+supported engines will return more.
 
 =head2 Constructors
 

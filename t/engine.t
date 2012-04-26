@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 21;
+use Test::More tests => 23;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Test::Exception;
@@ -81,3 +81,10 @@ ok $cmd = App::Sqitch::Engine::whu->new({sqitch => $sqitch}),
     'Create a subclass name object';
 is $cmd->name, 'whu', 'Subclass oject name should be "whu"';
 is +App::Sqitch::Engine::whu->name, 'whu', 'Subclass class name should be "whu"';
+
+##############################################################################
+# Test config_vars.
+can_ok 'App::Sqitch::Engine', 'config_vars';
+is_deeply [App::Sqitch::Engine->config_vars], [],
+    'Should have no config vars in engine base class';
+
