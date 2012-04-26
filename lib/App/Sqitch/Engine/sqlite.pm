@@ -9,6 +9,31 @@ use Moose;
 
 extends 'App::Sqitch::Engine';
 
+has client => (
+    is       => 'ro',
+    isa      => 'Str',
+    lazy     => 1,
+    required => 1,
+    default  => sub {
+        shift->sqitch->client || 'sqlite3' . ($^O eq 'Win32' ? '.exe' : '');
+    },
+);
+
+has db_file => (
+    is       => 'ro',
+    isa      => 'Str',
+    lazy     => 1,
+    required => 1,
+    default  => sub { shift->sqitch->db_name },
+);
+
+has sqitch_prefix => (
+    is       => 'ro',
+    isa      => 'Str',
+    required => 1,
+    default  => 'sqitch',
+);
+
 sub config_vars {
     return (
         client        => 'any',
@@ -48,6 +73,24 @@ section of the a Sqitch configuration file. The variables and their types are:
   client        => 'any'
   db_file       => 'any'
   sqitch_prefix => 'any'
+
+=head2 Accessors
+
+=head3 C<client>
+
+Returns the path to the SQLite client. If C<--client> was passed to L<sqitch>,
+that's what will be returned. Otherwise, it defaults to C<sqlite3> (or
+C<sqlite3.exe> on Windows), which should work if it's in your path.
+
+=head3 C<db_file>
+
+Returns the name of the database file. If C<--db-name> was passed to L<sqitch>
+that's what will be returned.
+
+=head3 C<sqitch_prefix>
+
+Returns the prefix to use for the Sqitch metadata tables. Defaults to
+"sqitch".
 
 =head1 Author
 
