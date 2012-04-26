@@ -70,17 +70,13 @@ sub write_config {
     }
 
     # XXX Add core.$engine section.
-    ENGINE: {
-        if (my $engine = $sqitch->engine) {
-            if (my $ce = $config->get(key => 'core.engine')) {
-                last ENGINE if $ce eq $engine->name;
-            }
-            $config->set(
-                key      => "core.engine",
-                value    => $engine->name,
-                filename => $file,
-            );
-        }
+    if (my $engine = $sqitch->engine) {
+        my $ce = $config->get(key => 'core.engine') || '';
+        $config->set(
+            key      => "core.engine",
+            value    => $engine->name,
+            filename => $file,
+        ) if $engine ne $ce;
     }
 
     $self->info("Created $file");
