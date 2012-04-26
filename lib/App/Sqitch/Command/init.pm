@@ -54,7 +54,6 @@ sub write_config {
         revert_dir
         test_dir
         extension
-        engine
     )) {
         # Set core attributes that are not their default values and not
         # already in user or system config.
@@ -71,6 +70,18 @@ sub write_config {
     }
 
     # XXX Add core.$engine section.
+    ENGINE: {
+        if (my $engine = $sqitch->engine) {
+            if (my $ce = $config->get(key => 'core.engine')) {
+                last ENGINE if $ce eq $engine->name;
+            }
+            $config->set(
+                key      => "core.engine",
+                value    => $engine->name,
+                filename => $file,
+            );
+        }
+    }
 
     $self->info("Created $file");
     return $self;

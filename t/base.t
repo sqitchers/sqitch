@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 32;
+use Test::More tests => 33;
 #use Test::More 'no_plan';
 use Test::MockModule;
 use Path::Class;
@@ -18,6 +18,7 @@ can_ok $CLASS, qw(
     new
     plan_file
     engine
+    _engine
     client
     db_name
     username
@@ -37,6 +38,7 @@ can_ok $CLASS, qw(
 isa_ok my $sqitch = $CLASS->new, $CLASS, 'A new object';
 
 for my $attr (qw(
+    _engine
     engine
     client
     host
@@ -72,7 +74,9 @@ GO: {
     is_deeply \@params, ['config'], 'Extra args should be passed to execute';
 
     isa_ok my $sqitch = $cmd->sqitch, 'App::Sqitch';
-    is $sqitch->engine, 'sqlite', 'Engine should be set by option';
+    is $sqitch->_engine, 'sqlite', 'Engine should be set by option';
+    # isa $sqitch->engine, 'App::Sqitch::Engine::sqlite',
+    #     'Engine object should be constructable';
     is $sqitch->db_name, 'widgetopolis', 'db_name should be set by config';
     is $sqitch->extension, 'ddl', 'ddl should be set by config';
     ok my $config = $sqitch->config, 'Get the Sqitch config';

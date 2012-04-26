@@ -75,7 +75,7 @@ Instantiates and returns a App::Sqitch::Engine object.
 
 =head2 Instance Methods
 
-=head3 C<engine>
+=head3 C<name>
 
   my $name = $engine->name;
 

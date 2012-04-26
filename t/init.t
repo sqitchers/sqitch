@@ -147,7 +147,7 @@ $sqitch = App::Sqitch->new(
     revert_dir => 'rev',
     test_dir   => 'tst',
     extension  => 'ddl',
-    engine     => 'sqlite',
+    _engine    => 'sqlite',
 );
 
 ok $init = $CLASS->new(sqitch => $sqitch),

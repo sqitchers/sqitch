@@ -20,7 +20,13 @@ has plan_file => (is => 'ro', required => 1, default => sub {
     file 'sqitch.plan';
 });
 
-has engine => (is => 'ro', isa => enum [qw(pg mysql sqlite)]);
+has _engine => (is => 'ro', isa => enum [qw(pg mysql sqlite)]);
+has engine => (is => 'ro', isa => 'Maybe[App::Sqitch::Engine]', lazy => 1, default => sub {
+    my $self = shift;
+    my $name = $self->_engine or return;
+    require App::Sqitch::Engine;
+    App::Sqitch::Engine->load({sqitch => $self, engine => $name});
+});
 
 has client => (is => 'ro', isa => 'Str');
 
@@ -83,9 +89,9 @@ sub go {
     my $config = App::Sqitch::Config->new;
 
     # 4. Instantiate Sqitch.
-    my $sqitch = $class->new(
-        merge $core_opts, $config->get_section(section => 'core')
-    );
+    my $params = merge $core_opts, $config->get_section(section => 'core');
+    $params->{_engine} = delete $params->{engine};
+    my $sqitch = $class->new($params);
     $sqitch->{config} = $config;
 
     # 5. Instantiate the command object.
