@@ -47,15 +47,14 @@ sub write_config {
         return $self;
     }
 
-    my @comments;
+    my (@vars, @comments);
     # start with the engine.
     my $engine = $sqitch->engine;
     if ($engine) {
-        $config->set(
+        push @vars => {
             key      => "core.engine",
             value    => $engine->name,
-            filename => $file,
-        );
+        };
     } else {
         push @comments => "\tengine = ";
     }
@@ -79,17 +78,19 @@ sub write_config {
 
         no warnings 'uninitialized';
         if ($val ne $def && $val ne $var) {
-            # It was specified on the command-line, so write it out.
-            $config->set(
+            # It was specified on the command-line, so grab it to write out.
+            push @vars => {
                 key      => "core.$name",
                 value    => $val,
-                filename => $file,
-            );
+            };
         } else {
             $var //= $def // '';
             push @comments => "\t$name = $var";
         }
     }
+
+    # Emit them.
+    $config->group_set($file => \@vars) if @vars;
 
     # Emit the comments.
     $config->add_comment(
@@ -103,7 +104,7 @@ sub write_config {
         my $ekey = 'core.' . $engine->name;
         my %config_vars = $engine->config_vars;
         my $emeta       = $engine->meta;
-        my @ecomments;
+        @comments = @vars = ();
 
         while (my ($key, $type) = each %config_vars) {
             # Was it passed as an option?
@@ -112,13 +113,12 @@ sub write_config {
                     # It was passed as an option, so record that.
                     my $multiple = $type =~ s/[+]$//;
                     $type = undef if $type eq 'any';
-                    $config->set(
+                    push @vars => {
                         key      => "$ekey.$key",
                         value    => $val,
                         as       => $type,
-                        filename => $file,
                         multiple => $multiple,
-                    );
+                    };
                     # We're good on this one.
                     next;
                 }
@@ -130,20 +130,23 @@ sub write_config {
                 my $def = $attr->default($engine)
                     // $config->get(key => "$ekey.$key")
                     // '';
-                push @ecomments => "\t$key = $def";
+                push @comments => "\t$key = $def";
             } else {
                 # Add it as a comment, with the config, if possible.
                 my $val = $config->get(key => "$ekey.$key") // '';
-                push @ecomments => "\t$key = $val";
+                push @comments => "\t$key = $val";
             }
         }
+
+        # Emit them.
+        $config->group_set($file => \@vars) if @vars;
 
         # Emit the comments.
         $config->add_comment(
             filename => $file,
             indented => 1,
-            comment  => join "\n" => @ecomments,
-        ) if @ecomments;
+            comment  => join "\n" => @comments,
+        ) if @comments;
     }
 
     $self->info("Created $file");
