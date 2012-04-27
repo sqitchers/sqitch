@@ -22,7 +22,7 @@ has client => (
     },
 );
 
-has db_file => (
+has db_name => (
     is       => 'ro',
     isa      => 'Str',
     lazy     => 1,
@@ -30,7 +30,7 @@ has db_file => (
     default  => sub {
         my $sqitch = shift->sqitch;
         $sqitch->db_name
-            || $sqitch->config->get(key => 'core.sqlite.db_file');
+            || $sqitch->config->get(key => 'core.sqlite.db_name');
     },
 );
 
@@ -48,7 +48,7 @@ has sqitch_prefix => (
 sub config_vars {
     return (
         client        => 'any',
-        db_file       => 'any',
+        db_name       => 'any',
         sqitch_prefix => 'any',
     );
 }
@@ -82,7 +82,7 @@ Returns a hash of names and types to use for variables in the C<core.sqlite>
 section of the a Sqitch configuration file. The variables and their types are:
 
   client        => 'any'
-  db_file       => 'any'
+  db_name       => 'any'
   sqitch_prefix => 'any'
 
 =head2 Accessors
@@ -94,7 +94,7 @@ that's what will be returned. Otherwise, it uses the C<core.sqlite.client>
 configuration value, or else defaults to C<sqlite3> (or C<sqlite3.exe> on
 Windows), which should work if it's in your path.
 
-=head3 C<db_file>
+=head3 C<db_name>
 
 Returns the name of the database file. If C<--db-name> was passed to L<sqitch>
 that's what will be returned.

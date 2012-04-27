@@ -17,23 +17,23 @@ BEGIN {
 
 is_deeply [$CLASS->config_vars], [
     client        => 'any',
-    db_file       => 'any',
+    db_name       => 'any',
     sqitch_prefix => 'any',
 ], 'config_vars should return three vars';
 
 my $sqitch = App::Sqitch->new;
-isa_ok my $sqlite = $CLASS->new(sqitch => $sqitch, db_file => 'foo'), $CLASS;
+isa_ok my $sqlite = $CLASS->new(sqitch => $sqitch, db_name => 'foo'), $CLASS;
 
 is $sqlite->client, 'sqlite3' . ($^O eq 'Win32' ? '.exe' : ''),
     'client should default to sqlite3';
-is $sqlite->db_file, 'foo', 'db_file should be required';
+is $sqlite->db_name, 'foo', 'db_name should be required';
 is $sqlite->sqitch_prefix, 'sqitch',
     'sqitch_prefix should default to "sqitch"';
 
 # Make sure it falls back on config before defaults, after options.
 my %config = (
     'core.sqlite.client' => '/path/to/sqlite3',
-    'core.sqlite.db_file' => '/path/to/sqlite.db',
+    'core.sqlite.db_name' => '/path/to/sqlite.db',
     'core.sqlite.sqitch_prefix' => 'meta',
 );
 my $mock_config = Test::MockModule->new('App::Sqitch::Config');
@@ -42,8 +42,8 @@ ok $sqlite = $CLASS->new(sqitch => $sqitch),
     'Create another sqlite';
 is $sqlite->client, '/path/to/sqlite3',
     'client should fall back on config';
-is $sqlite->db_file, '/path/to/sqlite.db',
-    'db_file should fall back on config';
+is $sqlite->db_name, '/path/to/sqlite.db',
+    'db_name should fall back on config';
 is $sqlite->sqitch_prefix, 'meta',
     'sqitch_prefix should fall back on config';
 
@@ -52,4 +52,4 @@ $sqitch = App::Sqitch->new(client => 'foo/bar', db_name => 'my.db');
 ok $sqlite = $CLASS->new(sqitch => $sqitch),
     'Create sqlite with sqitch with --client and --db-name';
 is $sqlite->client, 'foo/bar', 'The client should be grabbed from sqitch';
-is $sqlite->db_file, 'my.db', 'The db_file should be grabbed from sqitch';
+is $sqlite->db_name, 'my.db', 'The db_name should be grabbed from sqitch';
