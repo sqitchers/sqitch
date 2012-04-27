@@ -44,14 +44,22 @@ Now that we have a repository, let's get started with Sqitch.
 
 Let's have a look at F<sqitch.conf>:
 
-  [core]
-      engine      = pg
-      # sql_dir   = sql
-      # extension = sql
+  # [core "pg"]
+      # db_name = 
+      # client = psql
+      # sqitch_schema = sqitch
+      # password = 
+      # port = 
+      # host = 
+      # username = 
 
 Pretty simple. It picked up on the fact that we're creating changes for the
 PostgreSQL engine, thanks to the C<--engine pg> option, and saved it to the
-file. By default, Sqitch will read F<sqitch.conf> in the current directory for
+file. It also wrote a commented-out C<[core "pg"]> section with all the
+available PostgreSQL engine-specific settings commented out and ready to be
+edited as appropriate.
+
+By default, Sqitch will read F<sqitch.conf> in the current directory for
 settings. But it will also read F<~/.sqitch/sqitch.conf> for global settings.
 Since PostgreSQL's C<psql> client is not in the path on my system, let's go
 ahead an tell it globally where to find the client:
