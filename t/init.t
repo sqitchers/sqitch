@@ -4,13 +4,14 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 52;
+use Test::More tests => 55;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Path::Class;
 use Test::Dir;
 use Test::File qw(file_not_exists_ok file_exists_ok);
 use Test::Exception;
+use Test::File::Contents;
 use File::Path qw(remove_tree make_path);
 use lib 't/lib';
 use MockCommand;
@@ -189,6 +190,9 @@ is_deeply read_config $conf_file, {
     'core.sqlite.db_name' => 'my.db',
 }, 'The configuration should have been written with sqlite values';
 
+file_contents_like $conf_file, qr/^\t# sqitch_prefix = sqitch\n/m,
+    'sqitch_prefix should be included in a comment';
+
 ##############################################################################
 # Now get it to write core.pg stuff.
 unlink $conf_file;
@@ -216,3 +220,8 @@ is_deeply read_config $conf_file, {
     'core.pg.host'     => 'banana',
     'core.pg.port'     => 93453,
 }, 'The configuration should have been written with pg values';
+
+file_contents_like $conf_file, qr/^\t# sqitch_schema = sqitch\n/m,
+    'sqitch_schema should be included in a comment';
+file_contents_like $conf_file, qr/^\t# password = \n/m,
+    'password should be included in a comment';

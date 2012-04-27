@@ -53,6 +53,33 @@ sub get_section {
     };
 }
 
+# Remove once https://github.com/bestpractical/config-gitlike/pull/4 is merged
+# and released.
+sub add_comment {
+    my $self = shift;
+    my (%args) = (
+        comment     => undef,
+        filename    => undef,
+        indented    => undef,
+        semicolon   => undef,
+        @_
+    );
+
+    my $filename = $args{filename} or die "No filename passed to add_comment()";
+    die "No comment to add\n" unless defined $args{comment};
+
+    # Comment, preserving leading whitespace.
+    my $chars = $args{indented} ? '[[:blank:]]*' : '';
+    my $char  = $args{semicolon} ? ';' : '#';
+    (my $comment = $args{comment}) =~ s/^($chars)/$1$char /mg;
+    $comment .= "\n" if $comment !~ /\n\z/;
+
+    my $c = $self->_read_config($filename);
+    $c = '' unless defined $c;
+
+    return $self->_write_config( $filename, $c . $comment );
+}
+
 __PACKAGE__->meta->make_immutable;
 no Moose;
 
@@ -112,6 +139,10 @@ An alias for C<local_file()> for use by the parent class.
 
 Returns a hash reference containing only the keys within the specified
 section or subsection.
+
+=head3 C<add_comment>
+
+Adds a comment to the configuration file.
 
 =head1 See Also
 

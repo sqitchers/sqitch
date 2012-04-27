@@ -79,6 +79,9 @@ sub write_config {
         # Write out the core.$engine section.
         my $ekey = 'core.' . $engine->name;
         my %config_vars = $engine->config_vars;
+        my $emeta       = $engine->meta;
+        my @comments;
+
         while (my ($key, $type) = each %config_vars) {
             # Was it passed as an option?
             if (my $attr = $meta->find_attribute_by_name($key)) {
@@ -93,9 +96,29 @@ sub write_config {
                         filename => $file,
                         multiple => $multiple,
                     );
+                    # We're good on this one.
+                    next;
                 }
             }
+
+            # No value, but add it as a comment.
+            if (my $attr = $emeta->find_attribute_by_name($key)) {
+                # Add it as a comment, possibly with a default.
+                my $def = $attr->default($engine);
+                $def = '' unless defined $def;
+                push @comments => "\t$key = $def";
+            } else {
+                # Add it as a comment, but we don't know of a default.
+                push @comments => "\t$key = ";
+            }
         }
+
+        # Emit the comments.
+        $config->add_comment(
+            filename => $file,
+            indented => 1,
+            comment  => join "\n" => @comments,
+        ) if @comments;
     }
 
     $self->info("Created $file");
