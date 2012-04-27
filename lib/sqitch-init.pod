@@ -1,0 +1,113 @@
+=head1 Name
+
+sqitch-init - Create a new Sqitch project
+
+=head1 Synopsis
+
+  sqitch [options] init
+
+=head1 Description
+
+This command creates an new Sqitch project -- basically a F<sqitch.conf> file
+and a F<sql> directory with F<deploy>, F<revert>, and F<test> subdirectories.
+
+Running sqitch init in an existing repository is safe. It will not overwrite
+things that are already there.
+
+=head1 Configuration
+
+The most important thing C<sqitch init> does is create the project plan file,
+F<sqitch.conf>. While the C<init> command has no options of its own, it relies
+on several of the options to C<sqitch> to determine what to write to this file:
+
+=over
+
+=item C<--plan-file>
+
+Sets the C<core.plan_file> configuration variable.
+
+=item C<--plan-file>
+
+Sets the C<core.plan_file> configuration variable.
+
+=item C<--sql-dir>
+
+Determines the top-level directory to use when writing the C<core.deploy_dir>,
+C<core.revert_dir>, and C<core.test_dir> variable -- unless they are
+overridden by their more-specific options, detailed below.
+
+=item C<--deploy-dir>
+
+Sets the C<core.deploy_dir> configuration variable.
+
+=item C<--revert-dir>
+
+Sets the C<core.revert_dir> configuration variable.
+
+=item C<--test-dir>
+
+Sets the C<core.test_dir> configuration variable.
+
+=item C<--extension>
+
+Sets the C<core.extension> configuration variable.
+
+=item C<--engine>
+
+Sets the C<core.engine> configuration variable.
+
+=back
+
+These variables will only be written if their corresponding options are
+specified. Variables will not be copied from user or system configuration. As
+a general rule, you like won't need any of them except for C<--engine>, since
+your project can have only one engine at a time, and specifying it on the
+command-line forever after would be annoying.
+
+Relatedly, the engine-specific L<sqitch> options will also be used to
+write variables, as follows:
+
+=over
+
+=item C<--client>
+
+Used to set C<core.pg.client>, C<core.sqlite.client>, or C<core.mysql.client>.
+
+=item C<--db_name>
+
+Used to set C<core.pg.db_name>, C<core.sqlite.db_name>, or
+C<core.mysql.db_name>.
+
+=item C<--username>
+
+Used to set C<core.pg.username>, or C<core.mysql.username>.
+
+=item C<--host>
+
+Used to set C<core.pg.host>, or C<core.mysql.host>.
+
+=item C<--port>
+
+Used to set C<core.pg.port>, or C<core.mysql.port>.
+
+=back
+
+=head1 Examples
+
+Start a new Sqitch project using the SQLite engine, setting the
+default database file to F</var/db/widgets.db>
+
+  sqitch --engine --db-name /var/db/widgets.db sqlite init
+
+Start a new Sqitch project using the PostgreSQL engine, with the default
+database name "widgets", the default user name "postgres", and a
+version-specific client:
+
+  sqitch --engine pg \
+  --db-name widgets \
+  --username postgres \
+  --client /opt/pgsql-9.1/bin/psql init
+
+=head1 Sqitch
+
+Part of the L<sqitch> suite.
