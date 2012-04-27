@@ -79,7 +79,7 @@ sub go {
 
     # 4. Instantiate Sqitch.
     my $params = merge $core_opts, $config->get_section(section => 'core');
-    $params->{_engine} = delete $params->{engine};
+    $params->{_engine} = delete $params->{engine} if $params->{engine};
     my $sqitch = $class->new($params);
     $sqitch->{config} = $config;
 
