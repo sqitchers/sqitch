@@ -4,13 +4,13 @@ sqitch-help - Display help for Sqitch and Sqitch commands
 
 =head1 Synopsis
 
-  git help name [value]
+  git help [command]
 
 =head1 Description
 
 With no command given, the L<sqitch documentation|sqitch> is printed to
-standard output. If a sqitch command is named, a manual page for that command
-is brought up.
+standard output. If a sqitch command is named, the documentation for that
+command will be displayed.
 
 =head1 Sqitch
 
