@@ -9,6 +9,8 @@ use Try::Tiny;
 use Hash::Merge 'merge';
 use Moose;
 
+our $VERSION = '0.12';
+
 has sqitch => (is => 'ro', isa => 'App::Sqitch', required => 1);
 
 sub command {
