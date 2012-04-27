@@ -42,7 +42,7 @@ Now that we have a repository, let's get started with Sqitch.
   Created sql/revert
   Created sqitch.conf
 
-Let's have a look at F<sqitch.ini>:
+Let's have a look at F<sqitch.conf>:
 
   [core]
       engine      = pg
@@ -51,14 +51,14 @@ Let's have a look at F<sqitch.ini>:
 
 Pretty simple. It picked up on the fact that we're creating changes for the
 PostgreSQL engine, thanks to the C<--engine pg> option, and saved it to the
-file. By default, Sqitch will read F<sqitch.ini> in the current directory for
-settings. But it will also read F<~/.sqitch/config.ini> for global settings.
+file. By default, Sqitch will read F<sqitch.conf> in the current directory for
+settings. But it will also read F<~/.sqitch/sqitch.conf> for global settings.
 Since PostgreSQL's C<psql> client is not in the path on my system, let's go
 ahead an tell it globally where to find the client:
 
-  sqitch config --global core.pg.client /var/lib/pgsql/bin/psql
+  sqitch config --user core.pg.client /var/lib/pgsql/bin/psql
 
-Have a look at F<~/.sqitch/config.ini> and you'll see this:
+Have a look at F<~/.sqitch/sqitch.conf> and you'll see this:
 
   [core.pg]
       client = /var/lib/pgsql/bin/psql
