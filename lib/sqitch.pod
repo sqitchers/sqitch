@@ -302,8 +302,8 @@ Outputs the program name and version and exits.
 
 =item C<init>
 
-Initialize the database and create deployment script directories if they do
-not already exist.
+Create the plan file and deployment script directories if they do not already
+exist. This command is useful for starting a new Sqitch project.
 
 =item C<status>
 
