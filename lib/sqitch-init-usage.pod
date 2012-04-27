@@ -1,0 +1,7 @@
+=head1 Name
+
+sqitch-init-usage - Sqitch init usage statement
+
+=head1 Usage
+
+  sqitch init

@@ -49,3 +49,4 @@ command's
 unsets
 NL
 multivalue
+init
