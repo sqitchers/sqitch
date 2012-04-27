@@ -9,6 +9,83 @@ use Moose;
 
 extends 'App::Sqitch::Engine';
 
+has client => (
+    is       => 'ro',
+    isa      => 'Str',
+    lazy     => 1,
+    required => 1,
+    default  => sub {
+        my $sqitch = shift->sqitch;
+        $sqitch->client
+            || $sqitch->config->get(key => 'core.pg.client')
+            || 'psql' . ($^O eq 'Win32' ? '.exe' : '');
+    },
+);
+
+has username => (
+    is       => 'ro',
+    isa      => 'Maybe[Str]',
+    lazy     => 1,
+    required => 0,
+    default  => sub {
+        my $sqitch = shift->sqitch;
+        $sqitch->username || $sqitch->config->get(key => 'core.pg.username');
+    },
+);
+
+has password => (
+    is       => 'ro',
+    isa      => 'Maybe[Str]',
+    lazy     => 1,
+    required => 0,
+    default  => sub {
+        shift->sqitch->config->get(key => 'core.pg.password');
+    },
+);
+
+has db_name => (
+    is       => 'ro',
+    isa      => 'Maybe[Str]',
+    lazy     => 1,
+    required => 0,
+    default  => sub {
+        my $sqitch = shift->sqitch;
+        $sqitch->db_name || $sqitch->config->get(key => 'core.pg.db_name');
+    },
+);
+
+has host => (
+    is       => 'ro',
+    isa      => 'Maybe[Str]',
+    lazy     => 1,
+    required => 0,
+    default  => sub {
+        my $sqitch = shift->sqitch;
+        $sqitch->host || $sqitch->config->get(key => 'core.pg.host');
+    },
+);
+
+has port => (
+    is       => 'ro',
+    isa      => 'Maybe[Int]',
+    lazy     => 1,
+    required => 0,
+    default  => sub {
+        my $sqitch = shift->sqitch;
+        $sqitch->port || $sqitch->config->get(key => 'core.pg.port');
+    },
+);
+
+has sqitch_schema => (
+    is       => 'ro',
+    isa      => 'Str',
+    lazy     => 1,
+    required => 1,
+    default  => sub {
+        shift->sqitch->config->get(key => 'core.pg.sqitch_schema') || 'sqitch';
+    },
+);
+
 sub config_vars {
     return (
         client        => 'any',
