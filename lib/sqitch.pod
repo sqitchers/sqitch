@@ -551,6 +551,11 @@ name: C<bundle.destdir>.
 
 =back
 
+=item L<C<help>|sqitch-help>
+
+Show help for a specific command or, if no command is specified, show the same
+documentation as C<--help>.
+
 =back
 
 =head1 Configuration
