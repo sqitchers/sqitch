@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 77;
+use Test::More tests => 87;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Path::Class;
@@ -225,6 +225,25 @@ is_deeply read_config $conf_file, {
 file_contents_like $conf_file, qr/^\t# sqitch_prefix = sqitch\n/m,
     'sqitch_prefix should be included in a comment';
 
+# Try it with no options.
+unlink $conf_file;
+$sqitch = App::Sqitch->new(_engine => 'sqlite');
+ok $init = $CLASS->new(sqitch => $sqitch),
+    'Create new init with sqitch with default engine attributes';
+ok $init->write_config, 'Write the config with engine attrs';
+is_deeply +MockCommand->get_info, [
+    ['Created ' . $conf_file]
+], 'The creation should be sent to info again again';
+is_deeply read_config $conf_file, {
+    'core.engine'         => 'sqlite',
+}, 'The configuration should have been written with only the engine var';
+
+file_contents_like $conf_file, qr{^\Q# [core "sqlite"]
+	# sqitch_prefix = sqitch
+	# db_name = 
+	# client = sqlite3
+}m, 'Engine section should be present but commented-out';
+
 # Now build it with other config.
 USERCONF: {
     # Delete the file and write with a user config loaded.
@@ -287,6 +306,29 @@ file_contents_like $conf_file, qr/^\t# sqitch_schema = sqitch\n/m,
 file_contents_like $conf_file, qr/^\t# password = \n/m,
     'password should be included in a comment';
 
+# Try it with no config or options.
+unlink $conf_file;
+$sqitch = App::Sqitch->new(_engine => 'pg');
+ok $init = $CLASS->new(sqitch => $sqitch),
+    'Create new init with sqitch with default engine attributes';
+ok $init->write_config, 'Write the config with engine attrs';
+is_deeply +MockCommand->get_info, [
+    ['Created ' . $conf_file]
+], 'The creation should be sent to info again again again';
+is_deeply read_config $conf_file, {
+    'core.engine'         => 'pg',
+}, 'The configuration should have been written with only the engine var';
+
+file_contents_like $conf_file, qr{^\Q# [core "pg"]
+	# db_name = 
+	# client = psql
+	# sqitch_schema = sqitch
+	# password = 
+	# port = 
+	# host = 
+	# username = 
+}m, 'Engine section should be present but commented-out';
+
 USERCONF: {
     # Delete the file and write with a user config loaded.
     unlink $conf_file;
@@ -299,7 +341,6 @@ USERCONF: {
         'Make an init with pg and user config';
     file_not_exists_ok $conf_file;
     ok $init->write_config, 'Write the config with pg config';
-
     is_deeply +MockCommand->get_info, [
         ['Created ' . $conf_file]
     ], 'The pg config creation should be sent to info';

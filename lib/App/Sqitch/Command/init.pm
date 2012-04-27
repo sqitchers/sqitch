@@ -138,8 +138,13 @@ sub write_config {
             }
         }
 
-        # Emit them.
-        $config->group_set($file => \@vars) if @vars;
+        if (@vars) {
+            # Emit them.
+            $config->group_set($file => \@vars) if @vars;
+        } else {
+            # Still want the section, emit it as a comment.
+            unshift @comments => '[core "' . $engine->name . '"]';
+        }
 
         # Emit the comments.
         $config->add_comment(
