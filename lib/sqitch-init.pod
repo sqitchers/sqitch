@@ -58,11 +58,16 @@ Sets the C<core.engine> configuration variable.
 
 =back
 
+As a general rule, you likely won't need any of them except for C<--engine>,
+since your project can have only one engine at a time, and specifying it on
+the command-line forever after would be annoying.
+
 These variables will only be written if their corresponding options are
-specified. Variables will not be copied from user or system configuration. As
-a general rule, you like won't need any of them except for C<--engine>, since
-your project can have only one engine at a time, and specifying it on the
-command-line forever after would be annoying.
+specified. Otherwise, they get written as comments with
+user or system configuration settings, or, failing any values from those
+locations, from their default values. If no defaults are specified, they
+will still be written, commented out, with a bar C<=> and no value. This
+allows one to know what sorts of things are available to edit.
 
 Relatedly, the engine-specific L<sqitch> options will also be used to
 write variables, as follows:
@@ -73,7 +78,7 @@ write variables, as follows:
 
 Used to set C<core.pg.client>, C<core.sqlite.client>, or C<core.mysql.client>.
 
-=item C<--db_name>
+=item C<--db-name>
 
 Used to set C<core.pg.db_name>, C<core.sqlite.db_name>, or
 C<core.mysql.db_name>.
@@ -91,6 +96,10 @@ Used to set C<core.pg.host>, or C<core.mysql.host>.
 Used to set C<core.pg.port>, or C<core.mysql.port>.
 
 =back
+
+Again, if these are no specified, the engine-specific options will still be
+written out, but as comments with values either from user or system
+configuration, or default values.
 
 =head1 Examples
 
