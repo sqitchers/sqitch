@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 33;
+use Test::More tests => 32;
 #use Test::More 'no_plan';
 use Test::MockModule;
 use Path::Class;
@@ -77,7 +77,6 @@ GO: {
     is $sqitch->_engine, 'sqlite', 'Engine should be set by option';
     # isa $sqitch->engine, 'App::Sqitch::Engine::sqlite',
     #     'Engine object should be constructable';
-    is $sqitch->db_name, 'widgetopolis', 'db_name should be set by config';
     is $sqitch->extension, 'ddl', 'ddl should be set by config';
     ok my $config = $sqitch->config, 'Get the Sqitch config';
     is $config->get(key => 'core.pg.client'), '/usr/local/pgsql/bin/psql',

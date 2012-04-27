@@ -429,17 +429,19 @@ is_deeply \@emit, [[
     "bundle.dest_dir=_build/sql
 bundle.from=gamma
 bundle.tags_only=true
-core.db_name=widgetopolis
 core.engine=pg
 core.extension=ddl
 core.mysql.client=/opt/local/mysql/bin/mysql
+core.mysql.sqitch_prefix=meta
 core.mysql.username=root
 core.pg.client=/opt/local/pgsql/bin/psql
 core.pg.db_name=widgets
 core.pg.host=localhost
+core.pg.sqitch_schema=meta
 core.pg.username=postgres
 core.sql_dir=migrations
 core.sqlite.client=/opt/local/bin/sqlite3
+core.sqlite.sqitch_prefix=meta
 revert.count=2
 revert.revision=1.1
 revert.to=gamma
@@ -462,7 +464,6 @@ CONTEXT: {
     "bundle.dest_dir=_build/sql
 bundle.from=gamma
 bundle.tags_only=true
-core.db_name=widgetopolis
 core.engine=pg
 core.extension=ddl
 core.pg.client=/usr/local/pgsql/bin/psql
@@ -485,11 +486,14 @@ revert.to=gamma
     ok $cmd->execute, 'List the user config';
     is_deeply \@emit, [[
         "core.mysql.client=/opt/local/mysql/bin/mysql
+core.mysql.sqitch_prefix=meta
 core.mysql.username=root
 core.pg.client=/opt/local/pgsql/bin/psql
 core.pg.host=localhost
+core.pg.sqitch_schema=meta
 core.pg.username=postgres
 core.sqlite.client=/opt/local/bin/sqlite3
+core.sqlite.sqitch_prefix=meta
 "
     ]],  'Should only have emitted the user config list';
     @emit = ();
@@ -745,8 +749,7 @@ ok $cmd = App::Sqitch::Command::config->new({
     action  => 'get-regex',
 }), 'Create system config get_regex command';
 ok $cmd->execute('core\\..+'), 'Call get_regex on core\\..+';
-is_deeply \@emit, [[q{core.db_name=widgetopolis
-core.engine=funky
+is_deeply \@emit, [[q{core.engine=funky
 core.extension=ddl
 core.foo=[bar, baz]
 core.pg.client=/usr/local/pgsql/bin/psql

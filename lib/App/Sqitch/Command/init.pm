@@ -47,6 +47,20 @@ sub write_config {
         return $self;
     }
 
+    my @comments;
+    # start with the engine.
+    my $engine = $sqitch->engine;
+    if ($engine) {
+        $config->set(
+            key      => "core.engine",
+            value    => $engine->name,
+            filename => $file,
+        );
+    } else {
+        push @comments => "\tengine = ";
+    }
+
+    # Add in the other stuff.
     for my $name (qw(
         plan_file
         sql_dir
@@ -60,27 +74,36 @@ sub write_config {
         my $attr = $meta->find_attribute_by_name($name)
             or die "Cannot find App::Sqitch attribute $name";
         my $val = $attr->get_value($sqitch);
+        my $def = $attr->default($sqitch);
+        my $var = $config->get(key => "core.$name");
+
         no warnings 'uninitialized';
-        $config->set(
-            key      => "core.$name",
-            value    => $val,
-            filename => $file,
-        ) if $val ne $attr->default($sqitch)
-          && $val ne $config->get(key => "core.$name");
+        if ($val ne $def && $val ne $var) {
+            # It was specified on the command-line, so write it out.
+            $config->set(
+                key      => "core.$name",
+                value    => $val,
+                filename => $file,
+            );
+        } else {
+            $var //= $def // '';
+            push @comments => "\t$name = $var";
+        }
     }
 
-    if (my $engine = $sqitch->engine) {
-        $config->set(
-            key      => "core.engine",
-            value    => $engine->name,
-            filename => $file,
-        );
+    # Emit the comments.
+    $config->add_comment(
+        filename => $file,
+        indented => 1,
+        comment  => join "\n" => @comments,
+    ) if @comments;
 
+    if ($engine) {
         # Write out the core.$engine section.
         my $ekey = 'core.' . $engine->name;
         my %config_vars = $engine->config_vars;
         my $emeta       = $engine->meta;
-        my @comments;
+        my @ecomments;
 
         while (my ($key, $type) = each %config_vars) {
             # Was it passed as an option?
@@ -104,12 +127,14 @@ sub write_config {
             # No value, but add it as a comment.
             if (my $attr = $emeta->find_attribute_by_name($key)) {
                 # Add it as a comment, possibly with a default.
-                my $def = $attr->default($engine);
-                $def = '' unless defined $def;
-                push @comments => "\t$key = $def";
+                my $def = $attr->default($engine)
+                    // $config->get(key => "$ekey.$key")
+                    // '';
+                push @ecomments => "\t$key = $def";
             } else {
-                # Add it as a comment, but we don't know of a default.
-                push @comments => "\t$key = ";
+                # Add it as a comment, with the config, if possible.
+                my $val = $config->get(key => "$ekey.$key") // '';
+                push @ecomments => "\t$key = $val";
             }
         }
 
@@ -117,8 +142,8 @@ sub write_config {
         $config->add_comment(
             filename => $file,
             indented => 1,
-            comment  => join "\n" => @comments,
-        ) if @comments;
+            comment  => join "\n" => @ecomments,
+        ) if @ecomments;
     }
 
     $self->info("Created $file");

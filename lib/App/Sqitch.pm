@@ -20,7 +20,9 @@ has plan_file => (is => 'ro', required => 1, default => sub {
     file 'sqitch.plan';
 });
 
-has _engine => (is => 'ro', isa => enum [qw(pg mysql sqlite)]);
+has _engine => (is => 'ro', lazy => 1, isa => maybe_type(enum [qw(pg mysql sqlite)]), default => sub {
+    shift->config->get(key => 'core.engine');
+});
 has engine => (is => 'ro', isa => 'Maybe[App::Sqitch::Engine]', lazy => 1, default => sub {
     my $self = shift;
     my $name = $self->_engine or return;
@@ -35,34 +37,53 @@ has username => (is => 'ro', isa => 'Str');
 has host     => (is => 'ro', isa => 'Str');
 has port     => (is => 'ro', isa => 'Int');
 
-has sql_dir => (is => 'ro', required => 1, lazy => 1, default => sub { dir 'sql' });
+has sql_dir => (is => 'ro', required => 1, lazy => 1, default => sub {
+    dir shift->config->get(key => 'core.sql_dir') || 'sql';
+});
 
 has deploy_dir => (is => 'ro', required => 1, lazy => 1, default => sub {
-    shift->sql_dir->subdir('deploy');
+    my $self = shift;
+    if (my $dir = $self->config->get(key => 'core.deploy_dir')) {
+        return dir $dir;
+    }
+    $self->sql_dir->subdir('deploy');
 });
 
 has revert_dir => (is => 'ro', required => 1, lazy => 1, default => sub {
-    shift->sql_dir->subdir('revert');
+    my $self = shift;
+    if (my $dir = $self->config->get(key => 'core.revert_dir')) {
+        return dir $dir;
+    }
+    $self->sql_dir->subdir('revert');
 });
 
 has test_dir => (is => 'ro', required => 1, lazy => 1, default => sub {
-    shift->sql_dir->subdir('test');
+    my $self = shift;
+    if (my $dir = $self->config->get(key => 'core.test_dir')) {
+        return dir $dir;
+    }
+    $self->sql_dir->subdir('test');
 });
 
-has extension => (is => 'ro', isa => 'Str', default => 'sql');
+has extension => (is => 'ro', isa => 'Str', lazy => 1, default => sub {
+    shift->config->get(key => 'core.extension') || 'sql';
+});
 
 has dry_run => (is => 'ro', isa => 'Bool', required => 1, default => 0);
 
-has verbosity => (is => 'ro', required => 1, default => 1);
+has verbosity => (is => 'ro', required => 1, lazy => 1, default => sub {
+    shift->config->get(key => 'core.verbosity') // 1;
+});
 
 has config => (is => 'ro', isa => 'App::Sqitch::Config', lazy => 1, default => sub {
     App::Sqitch::Config->new
 });
 
 has editor => (is => 'ro', lazy => 1, default => sub {
-    return $ENV{SQITCH_EDITOR} || $ENV{EDITOR} || (
-        $^O eq 'MSWin32' ? 'notepad.exe' : 'vi'
-    );
+    return $ENV{SQITCH_EDITOR} || $ENV{EDITOR}
+        || shift->config->get(key => 'core.editor')
+        || ($^O eq 'MSWin32' ? 'notepad.exe' : 'vi')
+    ;
 });
 
 sub go {
@@ -72,16 +93,15 @@ sub go {
     my ($core_args, $cmd, $cmd_args) = $class->_split_args(@ARGV);
 
     # 2. Parse core options.
-    my $core_opts = $class->_parse_core_opts($core_args);
+    my $opts = $class->_parse_core_opts($core_args);
 
     # 3. Load config.
     my $config = App::Sqitch::Config->new;
 
     # 4. Instantiate Sqitch.
-    my $params = merge $core_opts, $config->get_section(section => 'core');
-    $params->{_engine} = delete $params->{engine} if $params->{engine};
-    my $sqitch = $class->new($params);
-    $sqitch->{config} = $config;
+    $opts->{_engine} = delete $opts->{engine} if $opts->{engine};
+    $opts->{config} = $config;
+    my $sqitch = $class->new($opts);
 
     # 5. Instantiate the command object.
     my $command = App::Sqitch::Command->load({

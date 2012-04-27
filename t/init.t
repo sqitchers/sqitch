@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 55;
+use Test::More tests => 77;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Path::Class;
@@ -90,22 +90,34 @@ chdir $test_dir;
 END { chdir File::Spec->updir }
 my $conf_file = $sqitch->config->local_file;
 
+$sqitch = App::Sqitch->new(extension => 'foo');
+ok $init = $CLASS->new(sqitch => $sqitch), 'Anogher init object';
+
 file_not_exists_ok $conf_file;
 
 # Write config.
 ok $init->write_config, 'Write the config';
 file_exists_ok $conf_file;
 is_deeply read_config $conf_file, {
-    'core.sql_dir' => 'init.mkdir',
+    'core.extension' => 'foo',
 }, 'The configuration should have been written with only one setting';
 is_deeply +MockCommand->get_info, [
     ['Created ' . $conf_file]
 ], 'The creation should be sent to info';
 
+file_contents_like $conf_file, qr{\Q
+	# engine = 
+	# plan_file = sqitch.plan
+	# sql_dir = sql
+	# deploy_dir = sql/deploy
+	# revert_dir = sql/revert
+	# test_dir = sql/test
+}m, 'Other settings should be commented-out';
+
 # Go again.
 ok $init->write_config, 'Write the config again';
 is_deeply read_config $conf_file, {
-    'core.sql_dir' => 'init.mkdir',
+    'core.extension' => 'foo',
 }, 'The configuration should be unchanged';
 is_deeply +MockCommand->get_info, [
 ], 'Nothing should have been sent to info';
@@ -114,30 +126,50 @@ USERCONF: {
     # Delete the file and write with a user config loaded.
     unlink $conf_file;
     local $ENV{SQITCH_USER_CONFIG} = file +File::Spec->updir, 'user.conf';
+    my $sqitch = App::Sqitch->new(extension => 'foo');
+    ok my $init = $CLASS->new(sqitch => $sqitch), 'Make an init object with user config';
     file_not_exists_ok $conf_file;
     ok $init->write_config, 'Write the config with a user conf';
     file_exists_ok $conf_file;
     is_deeply read_config $conf_file, {
-        'core.sql_dir' => 'init.mkdir',
+        'core.extension' => 'foo',
     }, 'The configuration should just have core.sql_dir';
     is_deeply +MockCommand->get_info, [
         ['Created ' . $conf_file]
     ], 'The creation should be sent to info again';
+    file_contents_like $conf_file, qr{\Q
+	# engine = 
+	# plan_file = sqitch.plan
+	# sql_dir = sql
+	# deploy_dir = sql/deploy
+	# revert_dir = sql/revert
+	# test_dir = sql/test
+}m, 'Other settings should be commented-out';
 }
 
 SYSTEMCONF: {
     # Delete the file and write with a system config loaded.
     unlink $conf_file;
-    local $ENV{SQITCH_SYSTEM_CONFIG} = file +File::Spec->updir, 'system.conf';
+    local $ENV{SQITCH_SYSTEM_CONFIG} = file +File::Spec->updir, 'sqitch.conf';
+    my $sqitch = App::Sqitch->new(extension => 'foo');
+    ok my $init = $CLASS->new(sqitch => $sqitch), 'Make an init object with system config';
     file_not_exists_ok $conf_file;
     ok $init->write_config, 'Write the config with a system conf';
     file_exists_ok $conf_file;
     is_deeply read_config $conf_file, {
-        'core.sql_dir' => 'init.mkdir',
+        'core.extension' => 'foo',
+        'core.engine' => 'pg',
     }, 'The configuration should just have core.sql_dir';
     is_deeply +MockCommand->get_info, [
         ['Created ' . $conf_file]
     ], 'The creation should be sent to info again';
+    file_contents_like $conf_file, qr{\Q
+	# plan_file = sqitch.plan
+	# sql_dir = migrations
+	# deploy_dir = migrations/deploy
+	# revert_dir = migrations/revert
+	# test_dir = migrations/test
+}m, 'Other settings should be commented-out';
 }
 
 ##############################################################################
@@ -193,6 +225,35 @@ is_deeply read_config $conf_file, {
 file_contents_like $conf_file, qr/^\t# sqitch_prefix = sqitch\n/m,
     'sqitch_prefix should be included in a comment';
 
+# Now build it with other config.
+USERCONF: {
+    # Delete the file and write with a user config loaded.
+    unlink $conf_file;
+    local $ENV{SQITCH_USER_CONFIG} = file +File::Spec->updir, 'user.conf';
+    my $sqitch = App::Sqitch->new(
+        _engine => 'sqlite',
+        db_name => 'my.db',
+    );
+    ok my $init = $CLASS->new(sqitch => $sqitch),
+        'Make an init with sqlite and user config';
+    file_not_exists_ok $conf_file;
+    ok $init->write_config, 'Write the config with sqlite config';
+    is_deeply +MockCommand->get_info, [
+        ['Created ' . $conf_file]
+    ], 'The creation should be sent to info once more';
+
+    is_deeply read_config $conf_file, {
+        'core.engine'         => 'sqlite',
+        'core.sqlite.db_name' => 'my.db',
+    }, 'New config should have been written with sqlite values';
+
+    file_contents_like $conf_file, qr{^\t# client = /opt/local/bin/sqlite3\E\n}m,
+        'Configured client should be included in a comment';
+
+    file_contents_like $conf_file, qr/^\t# sqitch_prefix = meta\n/m,
+        'Configured sqitch_prefix should be included in a comment';
+}
+
 ##############################################################################
 # Now get it to write core.pg stuff.
 unlink $conf_file;
@@ -225,3 +286,35 @@ file_contents_like $conf_file, qr/^\t# sqitch_schema = sqitch\n/m,
     'sqitch_schema should be included in a comment';
 file_contents_like $conf_file, qr/^\t# password = \n/m,
     'password should be included in a comment';
+
+USERCONF: {
+    # Delete the file and write with a user config loaded.
+    unlink $conf_file;
+    local $ENV{SQITCH_USER_CONFIG} = file +File::Spec->updir, 'user.conf';
+    my $sqitch = App::Sqitch->new(
+        _engine  => 'pg',
+        db_name  => 'thingies',
+    );
+    ok my $init = $CLASS->new(sqitch => $sqitch),
+        'Make an init with pg and user config';
+    file_not_exists_ok $conf_file;
+    ok $init->write_config, 'Write the config with pg config';
+
+    is_deeply +MockCommand->get_info, [
+        ['Created ' . $conf_file]
+    ], 'The pg config creation should be sent to info';
+
+    is_deeply read_config $conf_file, {
+        'core.engine'      => 'pg',
+        'core.pg.db_name'  => 'thingies',
+    }, 'The configuration should have been written with pg options';
+
+    file_contents_like $conf_file, qr/^\t# sqitch_schema = meta\n/m,
+        'Configured sqitch_schema should be in a comment';
+    file_contents_like $conf_file, qr/^\t# password = \n/m,
+        'password should be included in a comment';
+    file_contents_like $conf_file, qr/^\t# username = postgres\n/m,
+        'Configured username should be in a comment';
+    file_contents_like $conf_file, qr/^\t# host = localhost\n/m,
+        'Configured host should be in a comment';
+}

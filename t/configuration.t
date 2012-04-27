@@ -48,7 +48,6 @@ SQITCH_CONFIG: {
 
 chdir 't';
 is_deeply $config->get_section(section => 'core'), {
-    db_name   => "widgetopolis",
     engine    => "pg",
     extension => "ddl",
     sql_dir   => "migrations",
