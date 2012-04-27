@@ -12,7 +12,7 @@ use Moose::Util::TypeConstraints;
 use namespace::autoclean;
 extends 'App::Sqitch::Command';
 
-our $VERSION = '0.11';
+our $VERSION = '0.12';
 
 has file => (is => 'ro', lazy => 1, default => sub {
     my $self = shift;

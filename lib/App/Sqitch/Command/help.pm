@@ -8,7 +8,7 @@ use Carp;
 use Pod::Find;
 use parent 'App::Sqitch::Command';
 
-our $VERSION = '0.11';
+our $VERSION = '0.12';
 
 # XXX Add --all at some point, to output a list of all possible commands.
 

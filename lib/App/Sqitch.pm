@@ -14,7 +14,7 @@ use Moose;
 use Moose::Util::TypeConstraints;
 use namespace::autoclean;
 
-our $VERSION = '0.11';
+our $VERSION = '0.12';
 
 has plan_file => (is => 'ro', required => 1, default => sub {
     file 'sqitch.plan';
