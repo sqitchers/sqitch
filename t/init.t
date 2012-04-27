@@ -4,8 +4,7 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 44;
-use Carp; BEGIN { $SIG{__WARN__} = \&cluck }
+use Test::More tests => 52;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Path::Class;
@@ -140,6 +139,7 @@ SYSTEMCONF: {
     ], 'The creation should be sent to info again';
 }
 
+##############################################################################
 # Now get it to write a bunch of other stuff.
 unlink $conf_file;
 $sqitch = App::Sqitch->new(
@@ -152,7 +152,7 @@ $sqitch = App::Sqitch->new(
 );
 
 ok $init = $CLASS->new(sqitch => $sqitch),
-    'Create new init with sqitch non-default sqitch attributes';
+    'Create new init with sqitch non-default attributes';
 ok $init->write_config, 'Write the config with core attrs';
 is_deeply +MockCommand->get_info, [
     ['Created ' . $conf_file]
@@ -167,3 +167,52 @@ is_deeply read_config $conf_file, {
     'core.engine'     => 'sqlite',
 }, 'The configuration should have been written with all the core values';
 
+##############################################################################
+# Now get it to write core.sqlite stuff.
+unlink $conf_file;
+$sqitch = App::Sqitch->new(
+    _engine => 'sqlite',
+    client  => '/to/sqlite3',
+    db_name => 'my.db',
+);
+
+ok $init = $CLASS->new(sqitch => $sqitch),
+    'Create new init with sqitch with non-default engine attributes';
+ok $init->write_config, 'Write the config with engine attrs';
+is_deeply +MockCommand->get_info, [
+    ['Created ' . $conf_file]
+], 'The creation should be sent to info yet again';
+
+is_deeply read_config $conf_file, {
+    'core.engine'         => 'sqlite',
+    'core.sqlite.client'  => '/to/sqlite3',
+    'core.sqlite.db_name' => 'my.db',
+}, 'The configuration should have been written with sqlite values';
+
+##############################################################################
+# Now get it to write core.pg stuff.
+unlink $conf_file;
+$sqitch = App::Sqitch->new(
+    _engine  => 'pg',
+    client   => '/to/psql',
+    db_name  => 'thingies',
+    username => 'anna',
+    host     => 'banana',
+    port     => 93453,
+);
+
+ok $init = $CLASS->new(sqitch => $sqitch),
+    'Create new init with sqitch with more non-default engine attributes';
+ok $init->write_config, 'Write the config with more engine attrs';
+is_deeply +MockCommand->get_info, [
+    ['Created ' . $conf_file]
+], 'The creation should be sent to info one more time';
+
+is_deeply read_config $conf_file, {
+    'core.engine'      => 'pg',
+    'core.pg.client'   => '/to/psql',
+    'core.pg.db_name'  => 'thingies',
+    'core.pg.username' => 'anna',
+    'core.pg.host'     => 'banana',
+    'core.pg.port'     => 93453,
+}, 'The configuration should have been written with pg values';

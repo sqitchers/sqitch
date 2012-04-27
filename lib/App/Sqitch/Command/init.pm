@@ -76,7 +76,26 @@ sub write_config {
             filename => $file,
         );
 
-        # XXX Add core.$engine section.
+        # Write out the core.$engine section.
+        my $ekey = 'core.' . $engine->name;
+        my %config_vars = $engine->config_vars;
+        while (my ($key, $type) = each %config_vars) {
+            # Was it passed as an option?
+            if (my $attr = $meta->find_attribute_by_name($key)) {
+                if (my $val = $attr->get_value($sqitch)) {
+                    # It was passed as an option, so record that.
+                    my $multiple = $type =~ s/[+]$//;
+                    $type = undef if $type eq 'any';
+                    $config->set(
+                        key      => "$ekey.$key",
+                        value    => $val,
+                        as       => $type,
+                        filename => $file,
+                        multiple => $multiple,
+                    );
+                }
+            }
+        }
     }
 
     $self->info("Created $file");
