@@ -28,23 +28,12 @@ has engine => (is => 'ro', isa => 'Maybe[App::Sqitch::Engine]', lazy => 1, defau
     App::Sqitch::Engine->load({sqitch => $self, engine => $name});
 });
 
-has client => (is => 'ro', isa => 'Str');
-
-has db_name => (is => 'ro', isa => 'Str', required => 1, lazy => 1, default => sub {
-    $ENV{SQITCH_DBNAME} // shift->username
-});
-
-has username => (is => 'ro', isa => 'Str', required => 1, lazy => 1, default => sub {
-   $ENV{SQITCH_USER} // $ENV{USER}
-});
-
-has host => (is => 'ro', isa => 'Maybe[Str]', lazy => 1, default => sub {
-    $ENV{SQITCH_HOST};
-});
-
-has port => (is => 'ro', isa => 'Maybe[Int]', lazy => 1, default => sub {
-    $ENV{SQITCH_PORT};
-});
+# Attributes useful to engines; no defaults.
+has client   => (is => 'ro', isa => 'Str');
+has db_name  => (is => 'ro', isa => 'Str');
+has username => (is => 'ro', isa => 'Str');
+has host     => (is => 'ro', isa => 'Str');
+has port     => (is => 'ro', isa => 'Int');
 
 has sql_dir => (is => 'ro', required => 1, lazy => 1, default => sub { dir 'sql' });
 

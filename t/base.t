@@ -41,14 +41,14 @@ for my $attr (qw(
     _engine
     engine
     client
+    username
+    db_name
     host
     port
 )) {
     is $sqitch->$attr, undef, "$attr should be undef";
 }
 
-is $sqitch->username, $ENV{USER}, 'Default user should be $ENV{USER}';
-is $sqitch->db_name, $sqitch->username, 'Default DB should be same as user';
 is $sqitch->plan_file, file('sqitch.plan'), 'Default plan file should be sqitch.plan';
 is $sqitch->verbosity, 1, 'verbosity should be 1';
 is $sqitch->dry_run, 0, 'dry_run should be 0';

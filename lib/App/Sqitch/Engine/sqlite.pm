@@ -29,13 +29,8 @@ has db_file => (
     required => 1,
     default  => sub {
         my $sqitch = shift->sqitch;
-        # Return the sqitch db_name if it is not the default.
-        my $attr = $sqitch->meta->find_attribute_by_name('db_name');
-        my $sqitch_client = $attr->get_value($sqitch);
-        if ($sqitch_client ne $attr->default($sqitch)) {
-            return $sqitch_client;
-        }
-        return $sqitch->config->get(key => 'core.sqlite.db_file');
+        $sqitch->db_name
+            || $sqitch->config->get(key => 'core.sqlite.db_file');
     },
 );
 
