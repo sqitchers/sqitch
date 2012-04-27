@@ -16,7 +16,7 @@ our $VERSION = '0.12';
 
 has file => (is => 'ro', lazy => 1, default => sub {
     my $self = shift;
-    my $meth = $self->context . '_file';
+    my $meth = ($self->context || 'local') . '_file';
     return $self->sqitch->config->$meth;
 });
 
@@ -34,8 +34,8 @@ has action  => (is => 'ro', isa => enum([qw(
     rename-section
     remove-section
 )]));
-has context => (is => 'ro', required => 1, default => 'project', isa => enum([qw(
-    project
+has context => (is => 'ro', isa => maybe_type enum([qw(
+    local
     user
     system
 )]));
@@ -44,6 +44,7 @@ has type => (is => 'ro', isa => enum([qw(int num bool bool-or-int)]));
 sub options {
     return qw(
         file|config-file|f=s
+        local
         user
         system
 
@@ -70,7 +71,7 @@ sub configure {
     my ($class, $config, $opt) = @_;
 
     # Make sure we are accessing only one file.
-    my @file = grep { $opt->{$_} }  qw(user system file);
+    my @file = grep { $opt->{$_} }  qw(local user system file);
     $class->usage('Only one config file at a time.') if @file > 1;
 
     # Make sure we have only one type.
@@ -94,7 +95,7 @@ sub configure {
     $class->usage('Only one action at a time.') if @action > 1;
 
     # Get the action and context.
-    my $context = first { $opt->{$_} } qw(user system);
+    my $context = first { $opt->{$_} } qw(local user system);
 
     # Make it so.
     return {
@@ -272,9 +273,9 @@ sub unset_all {
 
 sub list {
     my $self = shift;
-    my $config = $self->context eq 'project'
-        ? $self->sqitch->config
-        : $self->_file_config;
+    my $config = $self->context
+        ? $self->_file_config
+        : $self->sqitch->config;
     $self->emit(scalar $config->dump) if $config;
     return $self;
 }
@@ -342,7 +343,7 @@ __END__
 
 =head1 Name
 
-App::Sqitch::Command::config - Get and set project, user, or system Sqitch options
+App::Sqitch::Command::config - Get and set local, user, or system Sqitch options
 
 =head1 Synopsis
 
@@ -437,15 +438,13 @@ The configuration file context. Must be one of:
 
 =over
 
-=item * C<project>
+=item * C<local>
 
 =item * C<user>
 
 =item * C<system>
 
 =back
-
-Defaults to C<project>.
 
 =item C<type>
 
@@ -561,16 +560,17 @@ Removes a section. Exits with an error if the section does not exist.
 
   $config->list;
 
-Lists all of the values in the configuration. If the context is C<system> or
-C<user>, only the settings set for that context will be emitted. Otherwise,
-all settings will be listed.
+Lists all of the values in the configuration. If the context is C<local>,
+C<user>, or C<system>, only the settings set for that context will be emitted.
+Otherwise, all settings will be listed.
 
 =head3 C<edit>
 
   $config->edit;
 
 Opens the context-specific configuration file in a text editor for direct
-editing. The editor is determined by L<Sqitch/editor>.
+editing. If no context is specified, the local config file will be opened. The
+editor is determined by L<Sqitch/editor>.
 
 =head2 Instance Accessors
 
@@ -602,8 +602,6 @@ The Sqitch command-line client.
 =over
 
 =item * Make exit codes the same as C<git-config>.
-
-=item * Implement C<--local>.
 
 =back
 

@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 300;
+use Test::More tests => 315;
 #use Test::More 'no_plan';
 use File::Spec;
 use Test::MockModule;
@@ -29,6 +29,7 @@ can_ok $cmd, qw(file action context get get_all get_regex set add unset unset_al
 
 is_deeply [$cmd->options], [qw(
     file|config-file|f=s
+    local
     user
     system
     int
@@ -59,6 +60,13 @@ throws_ok { App::Sqitch::Command::config->configure( $sqitch->config, {
     user    => 1,
     system  => 1,
 }) } qr/USAGE/, 'Construct with user and system';
+is_deeply \@usage, ['Only one config file at a time.'],
+    'Should get error for multiple config files';
+
+throws_ok { App::Sqitch::Command::config->configure( $sqitch->config, {
+    user  => 1,
+    local => 1,
+}) } qr/USAGE/, 'Construct with user and local';
 is_deeply \@usage, ['Only one config file at a time.'],
     'Should get error for multiple config files';
 
@@ -139,25 +147,32 @@ for my $spec (
 }
 
 ##############################################################################
-# Test config file name.
+# Test context.
 is $cmd->file, $sqitch->config->dir_file,
-    'Default config file should be local config file';
-is $cmd->action, undef, 'Default action should be undefined';
-is $cmd->context, 'project', 'Default context should be "project"';
+    'Default context should be local context';
+is $cmd->action, undef, 'Default action should be undef';
+is $cmd->context, undef, 'Default context should be undef';
+
+# Test local file name.
+is_deeply App::Sqitch::Command::config->configure( $sqitch->config, {
+    local    => 1,
+}), {
+    context => 'local',
+}, 'Local context should be local';
 
 # Test user file name.
 is_deeply App::Sqitch::Command::config->configure( $sqitch->config, {
     user    => 1,
 }), {
     context => 'user',
-}, 'User config file should be user';
+}, 'User context should be user';
 
 # Test system file name.
 is_deeply App::Sqitch::Command::config->configure( $sqitch->config, {
     system    => 1,
 }), {
     context => 'system',
-}, 'System config file should be system';
+}, 'System context should be system';
 
 ##############################################################################
 # Test execute().
@@ -343,6 +358,23 @@ CONTEXT: {
     is_deeply \@emit, [['/opt/local/pgsql/bin/psql']],
         'Should have emitted the user core.pg.client';
     @emit = ();
+
+    local $ENV{SQITCH_CONFIG} = file qw(t local.conf);
+    $sqitch->config->load;
+    ok $cmd = App::Sqitch::Command::config->new({
+        sqitch  => $sqitch,
+        context => 'local',
+        action  => 'get',
+    }), 'Create local config get command';
+    @emit = ();
+
+    ok $cmd->execute('core.pg.db_name'), 'Get local core.pg.db_name';
+    is_deeply \@emit, [['widgets']], 'Should have emitted the local core.pg.db_name';
+    @emit = ();
+
+    ok $cmd->execute('core.engine'), 'Get local core.engine';
+    is_deeply \@emit, [['pg']], 'Should have emitted the local core.engine';
+    @emit = ();
 }
 
 CONTEXT: {
@@ -369,12 +401,24 @@ CONTEXT: {
     throws_ok { $cmd->execute('core.engine') } qr/UNFOUND/,
         'Should fail when no user config file';
     is_deeply \@unfound, [], 'Nothing should have been emitted';
+
+    local $ENV{SQITCH_CONFIG} = 'NONEXISTENT';
+    ok $cmd = App::Sqitch::Command::config->new({
+        sqitch  => $sqitch,
+        context => 'local',
+        action  => 'get',
+    }), 'Create another local config get command';
+    ok !-f $cmd->file, 'There should be no local config file';
+    throws_ok { $cmd->execute('core.engine') } qr/UNFOUND/,
+        'Should fail when no local config file';
+    is_deeply \@unfound, [], 'Nothing should have been emitted';
 }
 
 ##############################################################################
 # Test list().
 local $ENV{SQITCH_SYSTEM_CONFIG} = file qw(t sqitch.conf);
 local $ENV{SQITCH_USER_CONFIG} = file qw(t user.conf);
+local $ENV{SQITCH_CONFIG} = file qw(t local.conf);
 $sqitch->config->load;
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
@@ -391,6 +435,7 @@ core.extension=ddl
 core.mysql.client=/opt/local/mysql/bin/mysql
 core.mysql.username=root
 core.pg.client=/opt/local/pgsql/bin/psql
+core.pg.db_name=widgets
 core.pg.host=localhost
 core.pg.username=postgres
 core.sql_dir=migrations
@@ -405,6 +450,7 @@ revert.to=gamma
 CONTEXT: {
     local $ENV{SQITCH_SYSTEM_CONFIG} = file qw(t sqitch.conf);
     local $ENV{SQITCH_USER_CONFIG} = undef;
+    local $ENV{SQITCH_CONFIG} = undef;
     $sqitch->config->load;
     ok $cmd = App::Sqitch::Command::config->new({
         sqitch  => $sqitch,
@@ -446,6 +492,21 @@ core.pg.username=postgres
 core.sqlite.client=/opt/local/bin/sqlite3
 "
     ]],  'Should only have emitted the user config list';
+    @emit = ();
+
+    $ENV{SQITCH_CONFIG} = file qw(t local.conf);
+    $sqitch->config->load;
+    ok $cmd = App::Sqitch::Command::config->new({
+        sqitch  => $sqitch,
+        context => 'local',
+        action  => 'list',
+    }), 'Create local config list command';
+    ok $cmd->execute, 'List the local config';
+    is_deeply \@emit, [[
+        "core.engine=pg
+core.pg.db_name=widgets
+"
+    ]],  'Should only have emitted the local config list';
     @emit = ();
 }
 
@@ -538,6 +599,7 @@ is_deeply \@usage, ['Wrong number of arguments.'],
 
 ##############################################################################
 # Test get with regex.
+delete $ENV{SQITCH_CONFIG};
 $ENV{SQITCH_USER_CONFIG} = $file;
 $sqitch->config->load;
 ok $cmd = App::Sqitch::Command::config->new({

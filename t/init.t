@@ -87,7 +87,7 @@ make_path $test_dir;
 END { remove_tree $test_dir }
 chdir $test_dir;
 END { chdir File::Spec->updir }
-my $conf_file = $sqitch->config->project_file;
+my $conf_file = $sqitch->config->local_file;
 
 file_not_exists_ok $conf_file;
 

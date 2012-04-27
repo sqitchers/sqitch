@@ -35,14 +35,14 @@ $ENV{SQITCH_USER_CONFIG} = 'FOO/BAR';
 is $config->user_file, 'FOO/BAR',
     'Should preferably get SQITCH_USER_CONFIG file from user_file';
 
-is $config->project_file, File::Spec->catfile(
+is $config->local_file, File::Spec->catfile(
     File::Spec->curdir, 'sqitch.conf'
-), 'Project file should be correct';
-is $config->dir_file, $config->project_file, 'dir_file should alias project_file';
+), 'Local file should be correct';
+is $config->dir_file, $config->local_file, 'dir_file should alias local_file';
 
 SQITCH_CONFIG: {
     local $ENV{SQITCH_CONFIG} = 'sqitch.ini';
-    is $config->project_file, 'sqitch.ini', 'project_file should prefer $SQITCH_CONFIG';
+    is $config->local_file, 'sqitch.ini', 'local_file should prefer $SQITCH_CONFIG';
     is $config->dir_file, 'sqitch.ini', 'And so should dir_file';
 }
 

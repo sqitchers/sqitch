@@ -35,12 +35,12 @@ sub user_file {
     return file $hd, '.sqitch', shift->confname;
 }
 
-sub project_file {
+sub local_file {
     return $ENV{SQITCH_CONFIG} if $ENV{SQITCH_CONFIG};
     return file +File::Spec->curdir, shift->confname;
 }
 
-sub dir_file { shift->project_file }
+sub dir_file { shift->local_file }
 
 sub get_section {
     my ($self, %p) = @_;
@@ -95,15 +95,15 @@ Returns the path to the user configuration file. The value returned will be
 the contents of the C<$SQITCH_USER_CONFIG> environment variable, if it's
 defined, or else C<~/.sqitch/sqitch.conf>.
 
-=head3 C<project_file>
+=head3 C<local_file>
 
-Returns the path to the project configuration file, which is just
+Returns the path to the local configuration file, which is just
 F<./sqitch.conf>, unless C<$SQITCH_CONFIG> is set, in which case its value
 will be returned.
 
 =head3 C<dir_file>
 
-An alias for C<project_file()> for use by the parent class.
+An alias for C<local_file()> for use by the parent class.
 
 =head3 C<get_section>
 

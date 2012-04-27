@@ -41,7 +41,7 @@ sub write_config {
     my $sqitch = $self->sqitch;
     my $meta   = $sqitch->meta;
     my $config = $sqitch->config;
-    my $file   = $config->project_file;
+    my $file   = $config->local_file;
     if (-f $file) {
         # Do nothing? Update config?
         return $self;

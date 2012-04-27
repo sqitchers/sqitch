@@ -1,6 +1,6 @@
 =head1 Name
 
-sqitch-config - Get and set project, user, or system Sqitch options
+sqitch-config - Get and set local, user, or system Sqitch options
 
 =head1 Synopsis
 
@@ -36,10 +36,10 @@ form (simple integer for C<--int>, decimal number for C<--num>, a "true" or
 "false" string for C<--bool>) If no type specifier is passed, no checks or
 transformations are performed on the value.
 
-The C<file-option> can be one of C<--system>, C<--user> or C<--file>, which
-specify where the values will be read from or written to. The default is to
-assume the config file of the current project directory, F<./sqitch.conf>
-(see L<Files>).
+The C<file-option> can be one of C<--local>, C<--user>, C<--system>, or
+C<--file>, which specify where the values will be read from or written to. The
+default is to assume the local config file in the current project directory,
+for editing, and the all files merged for fetching (see L<Files>).
 
 =begin comment
 
@@ -117,6 +117,16 @@ exactly one.
 Like C<--get-all>, but interprets the name as a regular expression and writes
 out the key names and value.
 
+=item C<--local>
+
+For writing options: write to the local F<./sqitch.conf> file. This is
+the default if no file option is specified.
+
+For reading options: read only from the local F<./sqitch.conf> file rather
+than from all available files.
+
+See also L<Files>.
+
 =item C<--user>
 
 For writing options: write to the user F<~/.sqitch/sqitch.conf> file rather
@@ -180,8 +190,9 @@ C<--bool> or C<--int>, as described above.
 
 =item C<-e, --edit>
 
-Opens an editor to modify the specified config file; either C<--system>,
-C<--user>, or repository (default).
+Opens an editor to modify the specified config file; either C<--local>,
+C<--user>, C<--system>, or C<--file>. If none of those options is specified,
+the local file will be opened.
 
 =back
 
@@ -194,7 +205,7 @@ C<sqitch config> will search for configuration options:
 
 =item C<./sqitch.conf>
 
-Project-specific configuration file.
+Local, project-specific configuration file.
 
 =item C<~/.sqitch/sqitch.conf>
 
@@ -212,8 +223,7 @@ System-wide configuration file.
 
 =item C<SQITCH_CONFIG>
 
-Take the project configuration from the given file instead of
-C<./sqitch.conf>.
+Take the local configuration from the given file instead of C<./sqitch.conf>.
 
 =item C<SQITCH_USER_CONFIG>
 
@@ -306,11 +316,12 @@ To add a new setting without altering any of the existing ones, use:
 =head1 Configuration File
 
 The sqitch configuration file contains a number of variables that affect the
-sqitch command's behavior. The F<./sqitch.conf> file in each project is used
-to store the configuration for that project, and F<$HOME/.sqitch/sqitch.conf>
-is used to store a per-user configuration as fallback values for the
-F<./sqitch.conf> file. The file F<$(prefix>/etc/sqitch.conf> can be used to
-store a system-wide default configuration.
+sqitch command's behavior. The F<./sqitch.conf> file local to each project is
+used to store the configuration for that project, and
+F<$HOME/.sqitch/sqitch.conf> is used to store a per-user configuration as
+fallback values for the F<./sqitch.conf> file. The file
+F<$(prefix>/etc/sqitch.conf> can be used to store a system-wide default
+configuration.
 
 The variables are divided into sections, wherein the fully qualified variable
 name of the variable itself is the last dot-separated segment and the section
