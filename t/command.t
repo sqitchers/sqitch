@@ -181,7 +181,7 @@ PARSEOPTSERR: {
     # Make sure that invalid options trigger an error.
     my $mock = Test::MockModule->new($CLASS);
     my @args;
-    $mock->mock(_pod2usage => sub { @args = @_} );
+    $mock->mock(usage => sub { @args = @_; });
     my @warn; local $SIG{__WARN__} = sub { @warn = @_ };
     $cmd->_parse_opts(['--dont-do-this']);
     is_deeply \@warn, ["Unknown option: dont-do-this\n"],
