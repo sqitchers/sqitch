@@ -198,6 +198,78 @@ sub _pod2usage {
     );
 }
 
+sub _bn {
+    require File::Basename;
+    File::Basename::basename($0);
+}
+
+sub _prepend {
+    my $prefix = shift;
+    my $msg = join '', map { $_  // '' } @_;
+    $msg =~ s/^/$prefix /gms;
+    return $msg;
+}
+
+sub trace {
+    my $self = shift;
+    say _prepend 'trace:', @_ if $self->verbosity > 2
+}
+
+sub debug {
+    my $self = shift;
+    say _prepend 'debug:', @_ if $self->verbosity > 1
+}
+
+sub info {
+    my $self = shift;
+    say @_ if $self->verbosity;
+}
+
+sub comment {
+    my $self = shift;
+    say _prepend '#', @_ if $self->verbosity;
+}
+
+sub emit {
+    shift;
+    say @_;
+}
+
+sub warn {
+    my $self = shift;
+    say STDERR _prepend 'warning:', @_;
+}
+
+sub unfound {
+    exit 1;
+}
+
+sub fail {
+    my $self = shift;
+    say STDERR _prepend 'fatal:', @_;
+    exit 2;
+}
+
+sub help {
+    my $self = shift;
+    my $bn = _bn;
+    say STDERR _prepend("$bn:", @_), " See $bn --help";
+    exit 1;
+}
+
+sub bail {
+    my ($self, $code) = (shift, shift);
+    if (@_) {
+        if ($code) {
+            say STDERR @_;
+        } else {
+            say STDOUT @_;
+        }
+    }
+    exit $code;
+}
+
+
 __PACKAGE__->meta->make_immutable;
 no Moose;
 
@@ -312,6 +384,83 @@ Returns the full configuration, combined from the project, user, and system
 configuration files.
 
 =head3 C<verbosity>
+
+=head2 Instance Methods
+
+=head3 C<trace>
+
+  $sqitch->trace('About to fuzzle the wuzzle.');
+
+Send trace information to C<STDOUT> if the verbosity level is 3 or higher.
+Trace messages will have C<TRACE: > prefixed to every line. If it's lower than
+3, nothing will be output.
+
+=head3 C<debug>
+
+  $sqitch->debug('Found snuggle in the crib.');
+
+Send debug information to C<STDOUT> if the verbosity level is 2 or higher.
+Debug messages will have C<DEBUG: > prefixed to every line. If it's lower than
+2, nothing will be output.
+
+=head3 C<info>
+
+  $sqitch->info('Nothing to deploy (up-to-date)');
+
+Send informational message to C<STDOUT> if the verbosity level is 1 or higher,
+which, by default, it is. Should be used for normal messages the user would
+normally want to see. If verbosity is lower than 1, nothing will be output.
+
+=head3 C<comment>
+
+  $sqitch->comment('On database flipr_test');
+
+Send comments to C<STDOUT> if the verbosity level is 1 or higher, which, by
+default, it is. Comments have C<# > prefixed to every line. If verbosity is
+lower than 1, nothing will be output.
+
+=head3 C<emit>
+
+  $sqitch->emit('core.editor=emacs');
+
+Send a message to C<STDOUT>, without regard to the verbosity. Should be used
+only if the user explicitly asks for output, such as for
+C<sqitch config --get core.editor>.
+
+=head3 C<warn>
+
+  $sqitch->warn('Could not find nerble; using nobble instead.');
+
+Send a warning messages to C<STDERR>. Use if something unexpected happened but
+you can recover from it.
+
+=head3 C<unfound>
+
+  $sqitch->unfound;
+
+Exit the program with status code 1. Best for use for non-fatal errors,
+such as when something requested was not found.
+
+=head3 C<fail>
+
+  $sqitch->fail('File or directory "foo" not found.');
+
+Send a failure message to C<STDERR> and exit with status code 2. Use if
+something unexpected happened and you cannot recover from it.
+
+=head3 C<help>
+
+  $sqitch->help('"foo" is not a valid command.');
+
+Sends messages to C<STDERR> and exists with an additional message to "See
+sqitch --help". Use if the user has misused the app.
+
+=head3 C<bail>
+
+  $sqitch->bail(3, 'The config file is invalid');
+
+Exits with the specified error code, sending any specified messages to
+C<STDOUT> if the exit code is 0, and to C<STDERR> if it is not 0.
 
 =head1 Author
 

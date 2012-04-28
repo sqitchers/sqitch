@@ -2,10 +2,18 @@
 
 use strict;
 use warnings;
-use Test::More tests => 32;
+use Test::More tests => 59;
 #use Test::More 'no_plan';
 use Test::MockModule;
 use Path::Class;
+use Test::Exception;
+use Capture::Tiny ':all';
+
+BEGIN {
+    # Stub out exit.
+    *CORE::GLOBAL::exit = sub { die 'EXITED: ' . (@_ ? shift : 0); };
+    $SIG{__DIE__} = \&Carp::confess;
+}
 
 my $CLASS;
 BEGIN {
@@ -108,3 +116,100 @@ EDITOR: {
     $sqitch = App::Sqitch->new;
     is $sqitch->editor, 'notepad.exe', 'editor fall back on notepad on Windows';
 }
+
+##############################################################################
+# Test message levels. Start with trace.
+$sqitch = $CLASS->new(verbosity => 3);
+is capture_stdout { $sqitch->trace('This ', "that\n", 'and the other') },
+    "trace: This that\ntrace: and the other\n",
+    'trace should work';
+$sqitch = $CLASS->new(verbosity => 2);
+is capture_stdout { $sqitch->trace('This ', "that\n", 'and the other') },
+    '', 'Should get no trace output for verbosity 2';
+
+# Debug.
+is capture_stdout { $sqitch->debug('This ', "that\n", 'and the other') },
+    "debug: This that\ndebug: and the other\n",
+    'debug should work';
+$sqitch = $CLASS->new(verbosity => 1);
+is capture_stdout { $sqitch->debug('This ', "that\n", 'and the other') },
+    '', 'Should get no debug output for verbosity 1';
+
+# Info.
+is capture_stdout { $sqitch->info('This ', "that\n", 'and the other') },
+    "This that\nand the other\n",
+    'info should work';
+$sqitch = $CLASS->new(verbosity => 0);
+is capture_stdout { $sqitch->info('This ', "that\n", 'and the other') },
+    '', 'Should get no info output for verbosity 0';
+
+# Comment.
+$sqitch = $CLASS->new(verbosity => 1);
+is capture_stdout { $sqitch->comment('This ', "that\n", 'and the other') },
+    "# This that\n# and the other\n",
+    'comment should work';
+$sqitch = $CLASS->new(verbosity => 0);
+is capture_stdout { $sqitch->comment('This ', "that\n", 'and the other') },
+    '', 'Should get no comment output for verbosity 0';
+
+# Emit.
+is capture_stdout { $sqitch->emit('This ', "that\n", 'and the other') },
+    "This that\nand the other\n",
+    'emit should work';
+$sqitch = $CLASS->new(verbosity => 0);
+is capture_stdout { $sqitch->emit('This ', "that\n", 'and the other') },
+    "This that\nand the other\n",
+    'emit should work even with verbosity 0';
+
+# Warn.
+is capture_stderr { $sqitch->warn('This ', "that\n", 'and the other') },
+    "warning: This that\nwarning: and the other\n",
+    'warn should work';
+
+# Fail.
+is capture_stderr {
+    throws_ok { $sqitch->fail('This ', "that\n", "and the other") }
+        qr/EXITED: 2/
+}, "fatal: This that\nfatal: and the other\n",
+    'fail should work';
+
+# Unfound
+is capture_stderr {
+    throws_ok { $sqitch->unfound } qr/EXITED: 1/
+}, '', 'unfound print nothing';
+
+# Help.
+$0 = 'sqch';
+is capture_stderr {
+    throws_ok { $sqitch->help('This ', "that\n", "and the other.") }
+        qr/EXITED: 1/
+}, "sqch: This that\nsqch: and the other. See sqch --help\n",
+    'help should work';
+
+is capture_stderr {
+    throws_ok { $sqitch->help('This ', "that\n", "and the other.") }
+        qr/EXITED: 1/
+}, "sqch: This that\nsqch: and the other. See sqch --help\n",
+    'help should work';
+
+# Bail.
+is capture_stdout {
+    throws_ok { $sqitch->bail(0, 'This ', "that\n", "and the other") }
+        qr/EXITED: 0/
+}, "This that\nand the other\n",
+    'bail should work with exit code 0';
+
+is capture_stdout {
+    throws_ok { $sqitch->bail(0) } qr/EXITED: 0/
+}, '',  'bail 0 should emit nothing when no messages';
+
+is capture_stderr {
+    throws_ok { $sqitch->bail(1, 'This ', "that\n", "and the other") }
+        qr/EXITED: 1/
+}, "This that\nand the other\n",
+    'bail should work with exit code 1';
+
+is capture_stderr {
+    throws_ok { $sqitch->bail(2) } qr/EXITED: 2/
+}, '',  'bail 2 should emit nothing when no messages';
+
