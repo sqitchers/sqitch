@@ -380,7 +380,25 @@ and you cannot recover from it.
 
 Sends the specified message to C<STDERR>, followed by the usage sections of
 the command's documentation. Those sections may be named "Name", "Synopsis",
-or "Options". Any or all of those will be shown.
+or "Options". Any or all of these will be shown. The doc used to display them
+will be the first found of:
+
+=over
+
+=item C<sqitch-$command-usage>
+
+=item C<sqitch-$command>
+
+=item C<sqitch>
+
+=item C<App::Sqitch::Command::$command>
+
+=item C<App::Sqitch::Command>
+
+=back
+
+For an ideal usage messages, C<sqitch-$command-usage.pod> should be created by
+all command subclasses.
 
 =head3 C<help>
 
