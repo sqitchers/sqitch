@@ -392,7 +392,7 @@ configuration files.
   $sqitch->trace('About to fuzzle the wuzzle.');
 
 Send trace information to C<STDOUT> if the verbosity level is 3 or higher.
-Trace messages will have C<TRACE: > prefixed to every line. If it's lower than
+Trace messages will have C<trace: > prefixed to every line. If it's lower than
 3, nothing will be output.
 
 =head3 C<debug>
@@ -400,7 +400,7 @@ Trace messages will have C<TRACE: > prefixed to every line. If it's lower than
   $sqitch->debug('Found snuggle in the crib.');
 
 Send debug information to C<STDOUT> if the verbosity level is 2 or higher.
-Debug messages will have C<DEBUG: > prefixed to every line. If it's lower than
+Debug messages will have C<debug: > prefixed to every line. If it's lower than
 2, nothing will be output.
 
 =head3 C<info>
@@ -431,8 +431,9 @@ C<sqitch config --get core.editor>.
 
   $sqitch->warn('Could not find nerble; using nobble instead.');
 
-Send a warning messages to C<STDERR>. Use if something unexpected happened but
-you can recover from it.
+Send a warning messages to C<STDERR>. Warnings will have C<warning: > prefixed
+to every line. Use if something unexpected happened but you can recover from
+it.
 
 =head3 C<unfound>
 
@@ -445,15 +446,17 @@ such as when something requested was not found.
 
   $sqitch->fail('File or directory "foo" not found.');
 
-Send a failure message to C<STDERR> and exit with status code 2. Use if
-something unexpected happened and you cannot recover from it.
+Send a failure message to C<STDERR> and exit with status code 2. Failures will
+have C<fatal: > prefixed to every line. Use if something unexpected happened
+and you cannot recover from it.
 
 =head3 C<help>
 
   $sqitch->help('"foo" is not a valid command.');
 
 Sends messages to C<STDERR> and exists with an additional message to "See
-sqitch --help". Use if the user has misused the app.
+sqitch --help". Help messages will have C<sqitch: > prefixed to every line.
+Use if the user has misused the app.
 
 =head3 C<bail>
 
