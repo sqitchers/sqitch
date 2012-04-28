@@ -19,7 +19,7 @@ has '+confname' => (
 
 sub system_file {
     return $ENV{SQITCH_SYSTEM_CONFIG} || file(
-        $Config{prefix}, 'etc', shift->confname
+        $Config{prefix}, 'etc', 'sqitch', shift->confname
     );
 }
 
@@ -110,7 +110,7 @@ Returns the configuration file base name, which is F<sqitch.conf>.
 
 Returns the path to the system configuration file. The value returned will be
 the contents of the C<$SQITCH_SYSTEM_CONFIG> environment variable, if it's
-defined, or else C<$Config{prefix}/etc/sqitch.conf>.
+defined, or else C<$Config{prefix}/etc/sqitch/sqitch.conf>.
 
 =head3 C<global_file>
 

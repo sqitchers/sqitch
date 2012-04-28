@@ -19,7 +19,7 @@ isa_ok my $config = $CLASS->new, $CLASS, 'New config object';
 is $config->confname, 'sqitch.conf', 'confname should be "sqitch.conf"';
 
 is_deeply $config->global_file, File::Spec->catfile(
-    $Config::Config{prefix}, 'etc', 'sqitch.conf'
+    $Config::Config{prefix}, 'etc', 'sqitch', 'sqitch.conf'
 ), 'Defaulg global file name should be correct';
 
 $ENV{SQITCH_SYSTEM_CONFIG} = 'FOO/BAR';
