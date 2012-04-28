@@ -36,10 +36,10 @@ throws_ok { $CLASS->new }
     'Should get an exception for missing sqitch param';
 my $array = [];
 throws_ok { $CLASS->new({ sqitch => $array }) }
-    qr/\QValidation failed for 'App::Sqitch' with value $array/,
+    qr/\QValidation failed for 'App::Sqitch' with value/,
     'Should get an exception for array sqitch param';
 throws_ok { $CLASS->new({ sqitch => 'foo' }) }
-    qr/\QValidation failed for 'App::Sqitch' with value foo/,
+    qr/\QValidation failed for 'App::Sqitch' with value/,
     'Should get an exception for string sqitch param';
 
 isa_ok $CLASS->new({sqitch => $sqitch}), $CLASS;
