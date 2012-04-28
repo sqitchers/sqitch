@@ -1,0 +1,75 @@
+=head1 Name
+
+sqitch-add-step - Add a deployment step
+
+=head1 Synopsis
+
+  git [options] add-step [<template-options>] name
+
+=head1 Description
+
+Add a new deployment step. This will result in the creation of a new script
+files with the C<--extension> extension in the C<--deploy-dir>,
+C<--revert-dir>, and C<--test-dir> directories. The content of these files is
+determined by the evaluation of templates. By default, system templates in
+F<$(prefix)/etc/sqitch/templates> are used. These can be overridden by a
+single user by creating templates in F<~/.sqitch/templates/> See L</Templates>
+for details.
+
+=head1 Options
+
+=over
+
+=item C<-r>
+
+=item C<--requires>
+
+Name of a step that is required by the new step. May be specified multiple
+times.
+
+=item C<-c>
+
+=item C<--conflicts>
+
+Name of a step that conflicts with the new step. May be specified multiple times.
+
+=item C<-s>
+
+=item C<--set>
+
+Set a variable name and value for use in the templates. The format must be
+C<name=value>, e.g., C<--set comment='This one is for you, babe.'>.
+
+=item C<--template-directory>
+
+Location to look for the templates. If none is specified, C<add-step> will
+first look in F<~/.sqitch/templates/> for each template, and fall back on
+F<$(prefix)/etc/sqitch/templates>.
+
+=item C<--deploy-template>
+
+=item C<--revert-template>
+
+=item C<--test-template>
+
+Path to the template for the given step script. Defaults to the individual
+templates found in C<--template-directory>.
+
+=item C<--no-deploy>
+
+=item C<--no-revert>
+
+=item C<--no-test>
+
+Do not generate the named script.
+
+=back
+
+=head1 Templates
+
+Sqitch contains a very simple set of templates for generating the deploy,
+revert, and test scripts.
+
+=head1 Sqitch
+
+Part of the L<sqitch> suite.

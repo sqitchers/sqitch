@@ -39,6 +39,7 @@ Module::Build->new(
         'Path::Class'                  => 0,
         'Pod::Find'                    => 0,
         'Pod::Usage'                   => 0,
+        'Template::Tiny'               => '0.11',
         'Try::Tiny'                    => 0,
       },
     recommends         => {

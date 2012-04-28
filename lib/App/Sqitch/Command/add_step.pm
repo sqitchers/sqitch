@@ -8,8 +8,24 @@ use parent 'App::Sqitch::Command';
 
 our $VERSION = '0.12';
 
+sub options {
+    return qw(
+        requires|r=s
+        conflicts|c=s
+        set|s=s@
+        template-directory=s
+        deploy-template=s
+        revert-template=s
+        test-template=s
+        deploy!
+        revert!
+        test!
+    );
+}
+
 sub execute {
-    my ($self, $command) = @_;
+    my ($self, $command, $name) = @_;
+    $self->usage unless defined $name;
 }
 
 1;
@@ -37,6 +53,13 @@ templates in F<~/sqitch/templates/>.
 
 These methods are mainly provided as utilities for the command subclasses to
 use.
+
+=head3 C<options>
+
+  my @opts = App::Sqitch::Command::add_step->options;
+
+Returns a list of L<Getopt::Long> option specifications for the command-line
+options for the C<add_step> command.
 
 =head3 C<execute>
 
