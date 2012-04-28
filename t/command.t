@@ -12,7 +12,7 @@ BEGIN {
     $SIG{__DIE__} = \&Carp::confess;
 }
 
-use Test::More tests => 97;
+use Test::More tests => 99;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Test::Exception;
@@ -132,6 +132,14 @@ ok $cmd = $CLASS->load({
     args    => ['--feathers' => 'no']
 }), 'Load a "whu" command with "--feathers" optin';
 is $cmd->feathers, 'no', 'The "feathers" attribute should be set';
+
+# Test command with a dash in its name.
+ok $cmd = $CLASS->load({
+    command => 'add-step',
+    sqitch  => $sqitch,
+    config  => $config,
+}), 'Load an "add-step" command';
+isa_ok $cmd, "$CLASS\::add_step", 'It';
 
 ##############################################################################
 # Test command and execute.

@@ -43,9 +43,10 @@ sub load {
 
     # We should have a command.
     $class->usage unless $p->{command};
+    (my $cmd = $p->{command}) =~ s/-/_/g;
 
     # Load the command class.
-    my $pkg = __PACKAGE__ . "::$p->{command}";
+    my $pkg = __PACKAGE__ . "::$cmd";
     try {
         eval "require $pkg" or die $@;
     } catch {
@@ -53,7 +54,7 @@ sub load {
         die $_ unless /^Can't locate/;
 
         # Suggest help if it's not a valid command.
-        $p->{sqitch}->help(qq{"$p->{command}" is not a valid command.});
+        $p->{sqitch}->help(qq{"$cmd" is not a valid command.});
     };
 
     # Merge the command-line options and configuration parameters
