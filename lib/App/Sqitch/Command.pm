@@ -53,9 +53,7 @@ sub load {
         die $_ unless /^Can't locate/;
 
         # Suggest help if it's not a valid command.
-        __PACKAGE__->new({ sqitch => $p->{sqitch} })->help(
-            qq{"$p->{command}" is not a valid command.}
-        );
+        $p->{sqitch}->help(qq{"$p->{command}" is not a valid command.});
     };
 
     # Merge the command-line options and configuration parameters
