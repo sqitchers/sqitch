@@ -35,6 +35,7 @@ Module::Build->new(
         'List::Util'                   => 0,
         'Moose'                        => '1.15',
         'Moose::Util::TypeConstraints' => '1.15',
+        'MooseX::Types::Path::Class'   => '0.05',
         'namespace::autoclean'         => '0.11',
         'Path::Class'                  => 0,
         'Pod::Find'                    => 0,
