@@ -35,6 +35,7 @@ sub command {
     return '' if $class eq __PACKAGE__;
     my $pkg = quotemeta __PACKAGE__;
     $class =~ s/^$pkg\:://;
+    $class =~ s/_/-/g;
     return $class;
 }
 

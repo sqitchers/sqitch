@@ -12,7 +12,7 @@ BEGIN {
     $SIG{__DIE__} = \&Carp::confess;
 }
 
-use Test::More tests => 99;
+use Test::More tests => 100;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Test::Exception;
@@ -140,6 +140,7 @@ ok $cmd = $CLASS->load({
     config  => $config,
 }), 'Load an "add-step" command';
 isa_ok $cmd, "$CLASS\::add_step", 'It';
+is $cmd->command, 'add-step', 'command() should return hyphenated name';
 
 ##############################################################################
 # Test command and execute.
