@@ -1,0 +1,22 @@
+=head1 Name
+
+sqitch-add-step-usage - Sqitch add-step usage statement
+
+=head1 Usage
+
+  sqitch [options] add-step [<step options>] stepname
+
+=head1 Options
+
+    -r --requres              require prerequisite step
+    -c --conflicts            declare conflicting step
+    -s --set                  set a template variable
+
+       --template-directory   path to directory containing templates
+       --deploy-template      path to deploy template
+       --revert-template      path to revert template
+       --test-template        path to test template
+
+       --no-deploy            do not create deploy script
+       --no-revert            do not create revert script
+       --no-test              do not create test script
