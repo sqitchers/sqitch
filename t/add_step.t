@@ -139,13 +139,17 @@ is_deeply $add_step->conflicts, [], 'Conflicts should be an arrayref';
 is_deeply $add_step->variables, {}, 'Varibles should be a hashref';
 is $add_step->template_directory, undef, 'Default dir should be undef';
 
-for my $script (qw(deploy revert test)) {
-    my $with = "with_$script";
-    ok $add_step->$with, "$with should be true by default";
-    my $tmpl = "$script\_template";
-    throws_ok { $add_step->$tmpl } qr/FAIL/, "Should die on $tmpl";
-    is_deeply +MockCommand->get_fail, [["Cannot find $script template"]],
-        "Should get $tmpl failure message";
+MOCKCONFIG: {
+    my $config_mock = Test::MockModule->new('App::Sqitch::Config');
+    $config_mock->mock(system_dir => 'nonexistent');
+    for my $script (qw(deploy revert test)) {
+        my $with = "with_$script";
+        ok $add_step->$with, "$with should be true by default";
+        my $tmpl = "$script\_template";
+        throws_ok { $add_step->$tmpl } qr/FAIL/, "Should die on $tmpl";
+        is_deeply +MockCommand->get_fail, [["Cannot find $script template"]],
+            "Should get $tmpl failure message";
+    }
 }
 
 # Point to a valid template directory.
