@@ -18,16 +18,20 @@ BEGIN {
 isa_ok my $config = $CLASS->new, $CLASS, 'New config object';
 is $config->confname, 'sqitch.conf', 'confname should be "sqitch.conf"';
 
-is $config->system_dir, File::Spec->catfile(
-    $Config::Config{prefix}, 'etc', 'sqitch'
-), 'Default system directory should be correct';
+SKIP: {
+    skip 'System dir can be modified at build time', 1
+        if $INC{'App/Sqitch/Config.pm'} =~ /\bblib\b/;
+    is $config->system_dir, File::Spec->catfile(
+        $Config::Config{prefix}, 'etc', 'sqitch'
+    ), 'Default system directory should be correct';
+}
 
 is $config->user_dir, File::Spec->catfile(
     File::HomeDir->my_home, '.sqitch'
 ), 'Default user directory should be correct';
 
 is $config->global_file, File::Spec->catfile(
-    $Config::Config{prefix}, 'etc', 'sqitch', 'sqitch.conf'
+    $config->system_dir, 'sqitch.conf'
 ), 'Default global file name should be correct';
 
 $ENV{SQITCH_SYSTEM_CONFIG} = 'FOO/BAR';
