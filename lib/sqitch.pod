@@ -136,6 +136,7 @@ reverts all steps necessary to return the state to an earlier tag.
      --test-dir   DIR     Path to directory with SQL test scripts.
      --extension  EXT     SQL script file name extension.
      --dry-run            Execute command without making any changes.
+     --etc-path           Print the path to the etc directory and exit.
      --quiet              Quiet mode with non-error output suppressed.
      --verbose            Increment verbosity.
      --version            Print the version number and exit.
@@ -259,6 +260,14 @@ Defaults to C<sql>.
 Execute the Sqitch command without making any actual changes. This allows you
 to see what Sqitch would actually do, without doing it. Implies a verbosity
 level of 1; add extra C<--verbose>s for greater verbosity.
+
+=item C<--etc-path>
+
+  sqitch --etc-path
+
+Print out the path to the Sqtich F<etc> directory and exit. This is the
+directory where the system-wide configuration file lives, as well as
+deployment script templates.
 
 =item C<--quiet>
 

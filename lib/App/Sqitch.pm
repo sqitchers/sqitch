@@ -130,6 +130,7 @@ sub _core_opts {
         test-dir=s
         extension=s
         dry-run
+        etc-path
         quiet
         verbose+
         help
@@ -178,6 +179,12 @@ sub _parse_core_opts {
         require File::Basename;
         my $fn = File::Basename::basename($0);
         print $fn, ' (', __PACKAGE__, ') ', __PACKAGE__->VERSION, $/;
+        exit;
+    }
+
+    # Handle --etc-path.
+    if ($opts{etc_path}) {
+        say App::Sqitch::Config->system_dir;
         exit;
     }
 
