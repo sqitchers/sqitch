@@ -37,4 +37,20 @@ sub process_etc_files {
     }
 }
 
+sub process_pm_files {
+    my $self = shift;
+    my $ret  = $self->SUPER::process_pm_files(@_);
+    my $pm   = File::Spec->catfile(qw(blib lib App Sqitch Config.pm));
+    my $etc  = $self->_path_to('etc');
+
+    $self->do_system(
+        $self->perl,
+        '-i', '-pe',
+        qq{s{my \\\$SYSTEM_DIR = undef}{my \\\$SYSTEM_DIR = q{$etc}}},
+        $pm,
+    );
+
+    return $ret;
+}
+
 1;

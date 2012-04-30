@@ -141,7 +141,7 @@ is $add_step->template_directory, undef, 'Default dir should be undef';
 
 MOCKCONFIG: {
     my $config_mock = Test::MockModule->new('App::Sqitch::Config');
-    $config_mock->mock(system_dir => 'nonexistent');
+    $config_mock->mock(system_dir => Path::Class::dir('nonexistent'));
     for my $script (qw(deploy revert test)) {
         my $with = "with_$script";
         ok $add_step->$with, "$with should be true by default";

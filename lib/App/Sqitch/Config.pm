@@ -4,7 +4,6 @@ use v5.10.1;
 use Moose;
 use strict;
 use warnings;
-use Config;
 use Path::Class;
 use Carp;
 use utf8;
@@ -17,6 +16,8 @@ has '+confname' => (
     default => 'sqitch.conf',
 );
 
+my $SYSTEM_DIR = undef;
+
 sub user_dir {
     require File::HomeDir;
     my $hd = File::HomeDir->my_home or croak(
@@ -26,7 +27,10 @@ sub user_dir {
 }
 
 sub system_dir {
-    dir $Config{prefix}, 'etc', 'sqitch';
+    dir $SYSTEM_DIR || do {
+        require Config;
+        $Config::Config{prefix}, 'etc', 'sqitch';
+    };
 }
 
 sub system_file {
