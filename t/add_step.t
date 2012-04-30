@@ -3,13 +3,17 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 35;
+use Test::More tests => 56;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Test::NoWarnings;
 use Test::Exception;
+use Test::Dir;
+use Test::File qw(file_not_exists_ok file_exists_ok);
+use Test::File::Contents;
 use lib 't/lib';
 use MockCommand;
+use File::Path qw(make_path remove_tree);
 
 my $CLASS = 'App::Sqitch::Command::add_step';
 
@@ -34,7 +38,10 @@ can_ok $CLASS, qw(
     revert_template
     test_template
     configure
+    execute
     _find
+    _load
+    _add
 );
 
 is_deeply [$CLASS->options], [qw(
@@ -49,6 +56,13 @@ is_deeply [$CLASS->options], [qw(
     revert!
     test!
 )], 'Options should be set up';
+
+sub contents_of ($) {
+    my $file = shift;
+    open my $fh, "<:encoding(UTF-8)", $file or die "cannot open $file: $!";
+    local $/;
+    return <$fh>;
+}
 
 ##############################################################################
 # Test configure().
@@ -171,3 +185,78 @@ MOCKCONFIG: {
     is $add_step->_find('deploy'), Path::Class::file('templates', "deploy.tmpl"),
         '_find should work with system_dir from Config';
 }
+
+##############################################################################
+# Test _load().
+my $tmpl = Path::Class::file(qw(templates deploy.tmpl));
+is $ { $add_step->_load($tmpl)}, contents_of $tmpl,
+    '_load() should load a reference to file contents';
+
+##############################################################################
+# Test _add().
+make_path 'sql';
+END { remove_tree 'sql' };
+my $out = File::Spec->catfile('sql', 'sqitch_step_test.sql');
+file_not_exists_ok $out;
+ok $add_step->_add('sqitch_step_test', $tmpl, Path::Class::dir('sql')),
+    'Write out a script';
+file_exists_ok $out;
+file_contents_is $out, <<EOF, 'The template should have been evaluated';
+-- Deploy sqitch_step_test
+
+BEGIN;
+
+-- XXX Add DDLs here.
+
+COMMIT;
+EOF
+
+# Try with requires and conflicts.
+ok $add_step =  $CLASS->new(
+    sqitch    => $sqitch,
+    requires  => [qw(foo bar)],
+    conflicts => ['baz'],
+), 'Create add_step cmd with requires and conflicts';
+
+$out = File::Spec->catfile('sql', 'another_step_test.sql');
+ok $add_step->_add('another_step_test', $tmpl, Path::Class::dir('sql')),
+    'Write out a script with requires and conflicts';
+file_contents_is $out, <<EOF, 'The template should have been evaluated with requires and conflicts';
+-- Deploy another_step_test
+-- :requires: foo
+-- :requires: bar
+-- :conflicts: baz
+
+BEGIN;
+
+-- XXX Add DDLs here.
+
+COMMIT;
+EOF
+
+##############################################################################
+# Test execute.
+ok $add_step = $CLASS->new(
+    sqitch => $sqitch,
+    template_directory => Path::Class::dir('templates')
+), 'Create another add_step with template_directory';
+
+unlink $out;
+dir_not_exists_ok +File::Spec->catdir('sql', $_) for qw(deploy revert test);
+ok $add_step->execute('widgets_table'), 'Add step "widgets_table"';
+file_exists_ok +File::Spec->catfile('sql', $_, 'widgets_table.sql') for qw(deploy revert test);
+file_contents_like +File::Spec->catfile(qw(sql deploy widgets_table.sql)),
+    qr/^-- Deploy widgets_table/, 'Deploy script should look right';
+file_contents_like +File::Spec->catfile(qw(sql revert widgets_table.sql)),
+    qr/^-- Revert widgets_table/, 'Revert script should look right';
+file_contents_like +File::Spec->catfile(qw(sql test widgets_table.sql)),
+    qr/^-- Test widgets_table/, 'Test script should look right';
+
+# Make sure conflicts are avoided.
+unlink +File::Spec->catfile(qw(sql deploy widgets_table.sql));
+throws_ok { $add_step->execute('widgets_table') } qr/FAIL:/,
+    'Should get exception when trying to create existing step';
+is_deeply +MockCommand->get_fail, [['Step "widgets_table" already exists']],
+    'Failure message should report that the step already exists';
+
+

@@ -8,6 +8,7 @@ use Template::Tiny;
 use Moose;
 use MooseX::Types::Path::Class;
 use Path::Class;
+use File::Path qw(make_path);
 use namespace::autoclean;
 
 extends 'App::Sqitch::Command';
@@ -126,8 +127,71 @@ sub configure {
 }
 
 sub execute {
-    my ($self, $command, $name) = @_;
+    my ($self, $name) = @_;
     $self->usage unless defined $name;
+    my $sqitch = $self->sqitch;
+
+    # Avoid if any of the scripts already exist.
+    my $fn = "$name." . $sqitch->extension;
+    $self->fail(qq{Step "$name" already exists}) if grep { -e $_->file($fn) } (
+        $sqitch->deploy_dir,
+        $sqitch->revert_dir,
+        $sqitch->test_dir,
+    );
+
+    $self->_add(
+        $name,
+        $self->deploy_template,
+        $self->sqitch->deploy_dir,
+    ) if $self->with_deploy;
+
+    $self->_add(
+        $name,
+        $self->revert_template,
+        $self->sqitch->revert_dir,
+    ) if $self->with_revert;
+
+    $self->_add(
+        $name,
+        $self->test_template,
+        $self->sqitch->test_dir,
+    ) if $self->with_test;
+
+    return $self;
+}
+
+sub _add {
+    my ($self, $name, $in, $out_dir) = @_;
+    make_path $out_dir, { error => \my $err };
+    if (my $diag = shift @{ $err }) {
+        my ($path, $msg) = %{ $diag };
+        $self->fail("Error creating $path: $msg") if $path;
+        $self->fail($msg);
+    }
+
+    my $out = $out_dir->file("$name." . $self->sqitch->extension);
+    open my $fh, '>:utf8', $out or $self->fail("Cannot open $out: $!");
+    my $orig_selected = select;
+    select $fh;
+
+    Template::Tiny->new->process($self->_load($in), {
+        %{ $self->variables },
+        step      => $name,
+        requires  => $self->requires,
+        conflicts => $self->conflicts,
+    });
+
+    close $fh or $self->fail("Cannot close $out: $!");
+    select $orig_selected;
+    $self->info("Created $out");
+}
+
+sub _load {
+    my ($self, $tmpl) = @_;
+    open my $fh, "<:encoding(UTF-8)", $tmpl
+        or $self->fail("cannot open $tmpl: $!");
+    local $/;
+    return \<$fh>;
 }
 
 1;

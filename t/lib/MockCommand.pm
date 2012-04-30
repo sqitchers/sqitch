@@ -19,7 +19,7 @@ for my $meth (@mocked) {
         $MOCK->mock($meth => sub {
             shift;
             push @{ $CAPTURED{$meth} } => [@_];
-            die uc $meth;
+            die uc($meth) . ": @_";
         });
     } else {
         $MOCK->mock($meth => sub {
