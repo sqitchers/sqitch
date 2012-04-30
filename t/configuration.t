@@ -2,8 +2,8 @@
 
 use strict;
 use warnings;
-#use Test::More tests => 17;
-use Test::More 'no_plan';
+use Test::More tests => 17;
+#use Test::More 'no_plan';
 use File::Spec;
 use Test::MockModule;
 use Test::Exception;
