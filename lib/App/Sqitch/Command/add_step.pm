@@ -4,15 +4,89 @@ use v5.10.1;
 use strict;
 use warnings;
 use utf8;
-use parent 'App::Sqitch::Command';
+use Template::Tiny;
+use Moose;
+use MooseX::Types::Path::Class;
+use Path::Class;
+use namespace::autoclean;
+
+extends 'App::Sqitch::Command';
 
 our $VERSION = '0.12';
+
+has requires => (
+    is       => 'ro',
+    isa      => 'ArrayRef',
+    required => 1,
+    default  => sub { [] },
+);
+
+has conflicts => (
+    is       => 'ro',
+    isa      => 'ArrayRef',
+    required => 1,
+    default  => sub { [] },
+);
+
+has variables => (
+    is       => 'ro',
+    isa      => 'HashRef',
+    required => 1,
+    lazy     => 1,
+    default  => sub {
+        shift->sqitch->config->get_section(section => 'add-step.variables');
+    },
+);
+
+has template_directory => (
+    is       => 'ro',
+    isa      => 'Maybe[Path::Class::Dir]',
+    lazy     => 1,
+    default => sub {
+        dir shift->sqitch->config->get(key => "add-step.template_directory");
+    }
+);
+
+for my $script (qw(deploy revert test)) {
+    has "with_$script" => (
+        is      => 'ro',
+        isa     => 'Bool',
+        lazy    => 1,
+        default => sub {
+            shift->sqitch->config->get(key => "add-step.with_$script") // 1;
+        }
+    );
+
+    has "$script\_template" => (
+        is      => 'ro',
+        isa     => 'Path::Class::File',
+        lazy    => 1,
+        default => sub { shift->_find($script) },
+    );
+}
+
+sub _find {
+    my ($self, $script) = @_;
+    my $config = $self->sqitch->config;
+    $config->get(key => "add-step.$script\_template") || do {
+        for my $dir (
+            $self->template_directory,
+            $config->user_dir->subdir('templates'),
+            $config->system_dir->subdir('templates'),
+        ) {
+            next unless $dir;
+            my $tmpl = $dir->file("$script.tmpl");
+            return $tmpl if -f $tmpl;
+        }
+        $self->fail("Cannot find $script template");
+    };
+}
 
 sub options {
     return qw(
         requires|r=s
         conflicts|c=s
-        set|s=s@
+        set|s=s%
         template-directory=s
         deploy-template=s
         revert-template=s
@@ -21,6 +95,34 @@ sub options {
         revert!
         test!
     );
+}
+
+sub configure {
+    my ($class, $config, $opt) = @_;
+
+    my %params = (
+        requires => $opt->{requires}   || [],
+        conflicts => $opt->{conflicts} || [],
+    );
+
+    $params{template_directory} = dir $opt->{template_directory}
+        if $opt->{template_directory};
+
+    for my $attr (qw(deploy revert test)) {
+        $params{"with_$attr"} = $opt->{$attr} if exists $opt->{$attr};
+        my $t = "$attr\_template";
+        $params{$t} = file $opt->{$t} if $opt->{$t};
+    }
+
+    if (my $vars = $opt->{set}) {
+        # Merge with config.
+        $params{variables} = {
+            %{ $config->get_section(section => 'add-step.variables') },
+            %{ $vars },
+        };
+    }
+
+    return \%params;
 }
 
 sub execute {
@@ -49,10 +151,7 @@ templates in F<~/sqitch/templates/>.
 
 =head1 Interface
 
-=head2 Instance Methods
-
-These methods are mainly provided as utilities for the command subclasses to
-use.
+=head2 Class Methods
 
 =head3 C<options>
 
@@ -60,6 +159,18 @@ use.
 
 Returns a list of L<Getopt::Long> option specifications for the command-line
 options for the C<add_step> command.
+
+=head3 C<configure>
+
+  my $params = App::Sqitch::Command::add_step->configure(
+      $config,
+      $options,
+  );
+
+Processes the configuration and command options and returns a hash suitable
+for the constructor.
+
+=head2 Instance Methods
 
 =head3 C<execute>
 
