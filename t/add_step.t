@@ -151,18 +151,18 @@ for my $script (qw(deploy revert test)) {
 # Point to a valid template directory.
 ok $add_step = $CLASS->new(
     sqitch => $sqitch,
-    template_directory => Path::Class::dir('templates')
+    template_directory => Path::Class::dir(qw(etc templates))
 ), 'Create add_step with template_directory';
 
 for my $script (qw(deploy revert test)) {
     my $tmpl = "$script\_template";
-    is $add_step->$tmpl, Path::Class::file('templates', "$script.tmpl"),
+    is $add_step->$tmpl, Path::Class::file('etc', 'templates', "$script.tmpl"),
         "Should find $script in templates directory";
 }
 
 ##############################################################################
 # Test find().
-is $add_step->_find('deploy'), Path::Class::file('templates', "deploy.tmpl"),
+is $add_step->_find('deploy'), Path::Class::file(qw(etc templates deploy.tmpl)),
     '_find should work with template_directory';
 
 ok $add_step = $CLASS->new(sqitch => $sqitch),
@@ -171,8 +171,8 @@ ok $add_step = $CLASS->new(sqitch => $sqitch),
 MOCKCONFIG: {
     my $config_mock = Test::MockModule->new('App::Sqitch::Config');
     $config_mock->mock(system_dir => Path::Class::dir('nonexistent'));
-    $config_mock->mock(user_dir => Path::Class::dir('.'));
-    is $add_step->_find('deploy'), Path::Class::file('templates', "deploy.tmpl"),
+    $config_mock->mock(user_dir => Path::Class::dir('etc'));
+    is $add_step->_find('deploy'), Path::Class::file(qw(etc templates deploy.tmpl)),
         '_find should work with user_dir from Config';
 
     $config_mock->unmock('user_dir');
@@ -181,14 +181,14 @@ MOCKCONFIG: {
     is_deeply +MockCommand->get_fail, [["Cannot find test template"]],
         "Should get unfound test template message";
 
-    $config_mock->mock(system_dir => Path::Class::dir('.'));
-    is $add_step->_find('deploy'), Path::Class::file('templates', "deploy.tmpl"),
+    $config_mock->mock(system_dir => Path::Class::dir('etc'));
+    is $add_step->_find('deploy'), Path::Class::file(qw(etc templates deploy.tmpl)),
         '_find should work with system_dir from Config';
 }
 
 ##############################################################################
 # Test _load().
-my $tmpl = Path::Class::file(qw(templates deploy.tmpl));
+my $tmpl = Path::Class::file(qw(etc templates deploy.tmpl));
 is $ { $add_step->_load($tmpl)}, contents_of $tmpl,
     '_load() should load a reference to file contents';
 
@@ -238,7 +238,7 @@ EOF
 # Test execute.
 ok $add_step = $CLASS->new(
     sqitch => $sqitch,
-    template_directory => Path::Class::dir('templates')
+    template_directory => Path::Class::dir(qw(etc templates))
 ), 'Create another add_step with template_directory';
 
 unlink $out;
