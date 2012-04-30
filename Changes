@@ -6,6 +6,12 @@ Revision history for Perl extension App::Sqitch
      - `sqitch init` now writes core and engine config settings with default
        values to the configuration file. This makes it easier for folks to get
        started editing it.
+     - Implemented `add-step` command. Includes support for system-wide or
+       use-specific templates using Template::Tiny.
+     - Added `etc` directory with default templates. This is installed into
+       `$Config{prefix}/etc/skitch`, unless built with `--prefix` or
+       `--install_base`, in which case it will simply be installed into `etc`
+       in that directory.
 
 0.11  2012-04-27T06:44:54Z
      - Implemented `init` command.
@@ -19,4 +25,4 @@ Revision history for Perl extension App::Sqitch
 0.10  2012-04-25T20:46:59Z
       - Initial unstable release.
       - Implemented `help` command.
-      - Impelemented `config` command, very similar to `git-config`.
+      - Implemented `config` command, very similar to `git-config`.
