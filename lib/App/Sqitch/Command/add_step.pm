@@ -209,9 +209,10 @@ App::Sqitch::Command::add_step - Add a new deployment step
 
 =head1 Description
 
-Adds a new deployment step. This will result in the creation of a scripts
-in the deploy, revert, and test directories. The scripts are based on
-templates in F<~/sqitch/templates/>.
+Adds a new deployment step. This will result in the creation of a scripts in
+the deploy, revert, and test directories. The scripts are based on
+L<Template::Tiny> templates in F<~/.sqitch/templates/> or
+C<$(prefix)/etc/sqitch/templates>.
 
 =head1 Interface
 
