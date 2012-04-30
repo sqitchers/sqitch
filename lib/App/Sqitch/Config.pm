@@ -17,22 +17,30 @@ has '+confname' => (
     default => 'sqitch.conf',
 );
 
-sub system_file {
-    return $ENV{SQITCH_SYSTEM_CONFIG} || file(
-        $Config{prefix}, 'etc', 'sqitch', shift->confname
+sub user_dir {
+    require File::HomeDir;
+    my $hd = File::HomeDir->my_home or croak(
+        "Could not determine home directory"
     );
+    return dir $hd, '.sqitch';
+}
+
+sub system_dir {
+    dir $Config{prefix}, 'etc', 'sqitch';
+}
+
+sub system_file {
+    my $self = shift;
+    return file $ENV{SQITCH_SYSTEM_CONFIG}
+        || $self->system_dir->file($self->confname);
 }
 
 sub global_file { shift->system_file }
 
 sub user_file {
-    return $ENV{SQITCH_USER_CONFIG} if $ENV{SQITCH_USER_CONFIG};
-
-    require File::HomeDir;
-    my $hd = File::HomeDir->my_home or croak(
-        "Could not determine home directory"
-    );
-    return file $hd, '.sqitch', shift->confname;
+    my $self = shift;
+    return file $ENV{SQITCH_USER_CONFIG}
+        || $self->user_dir->file($self->confname);
 }
 
 sub local_file {
@@ -105,6 +113,15 @@ module.
 =head3 C<confname>
 
 Returns the configuration file base name, which is F<sqitch.conf>.
+
+=head3 C<system_dir>
+
+Returns the path to the system configuration directory, which is
+C<$Config{prefix}/etc/sqitch/>.
+
+=head3 C<user_dir>
+
+Returns the path to the user configuration directory, which is F<~/.sqitch/>.
 
 =head3 C<system_file>
 
