@@ -1,8 +1,9 @@
 use strict;
 use warnings;
-use Module::Build;
+use lib 'priv';
+use Module::Build::Sqitch;
 
-Module::Build->new(
+Module::Build::Sqitch->new(
     module_name        => 'App::Sqitch',
     release_status     => 'unstable',
     license            => 'mit',
@@ -42,8 +43,9 @@ Module::Build->new(
         'Pod::Usage'                   => 0,
         'Template::Tiny'               => '0.11',
         'Try::Tiny'                    => 0,
-      },
-    recommends         => {
+    },
+    no_index => { directory => ['priv'] },
+    recommends => {
         'Test::Pod'  => '1.41',
     },
     meta_merge => {
