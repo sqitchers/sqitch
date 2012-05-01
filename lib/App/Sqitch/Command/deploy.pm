@@ -1,30 +1,16 @@
-package App::Sqitch::Command::help;
+package App::Sqitch::Command::deploy;
 
 use v5.10.1;
 use strict;
 use warnings;
 use utf8;
-use Carp;
-use Pod::Find;
 use Moose;
 extends 'App::Sqitch::Command';
 
 our $VERSION = '0.30';
 
-# XXX Add --all at some point, to output a list of all possible commands.
-
 sub execute {
-    my ($self, $command) = @_;
-    my $look_for = 'sqitch' . ($command ? "-$command" : '');
-    my $pod = Pod::Find::pod_where(
-        {'-inc' => 1, '-script' => 1 },
-        $look_for,
-    ) or $self->fail(qq{No manual entry for $look_for\n});
-    $self->_pod2usage(
-        '-input'    => $pod,
-        '-verbose'  => 2,
-        '-exitval'  => 0,
-    );
+    my $self = shift;
 }
 
 1;
@@ -33,17 +19,17 @@ __END__
 
 =head1 Name
 
-App::Sqitch::Command::help - Display help information about Sqitch
+App::Sqitch::Command::deploy - Deploy Sqitch changes
 
 =head1 Synopsis
 
-  my $cmd = App::Sqitch::Command::help->new(%params);
+  my $cmd = App::Sqitch::Command::deploy->new(%params);
   $cmd->execute;
 
 =head1 Description
 
-If you want to know how to use the C<help> command, you probably want to be
-reading C<sqitch-help>. But if you really want to know how the C<help> command
+If you want to know how to use the C<deploy> command, you probably want to be
+reading C<sqitch-deploy>. But if you really want to know how the C<deploy> command
 works, read on.
 
 =head1 Interface
@@ -52,19 +38,17 @@ works, read on.
 
 =head3 C<execute>
 
-  $help->execute($command);
+  $deploy->execute;
 
-Executes the help command. If a command is passed, the help for that command will
-be shown. If it cannot be found, Sqitch will throw an error and exit. If no
-command is specified, the the L<Sqitch core documentation|sqitch> will be shown.
+Executes the deploy command.
 
 =head1 See Also
 
 =over
 
-=item L<sqitch-help>
+=item L<sqitch-deploy>
 
-Documentation for the C<help> command to the Sqitch command-line client.
+Documentation for the C<deploy> command to the Sqitch command-line client.
 
 =item L<sqitch>
 
