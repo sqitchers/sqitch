@@ -20,12 +20,6 @@ has steps => (
     required => 1,
 );
 
-has index => (
-    is       => 'ro',
-    isa      => 'Int',
-    required => 1,
-);
-
 __PACKAGE__->meta->make_immutable;
 no Moose;
 
@@ -71,12 +65,6 @@ Returns an array reference of the names of the tag.
   my $steps = $plan->steps;
 
 Returns an array reference of deployment steps.
-
-=head3 C<index>
-
-  my $index = $plan->index;
-
-An integer representing the index of the tag in the plan.
 
 =head1 See Also
 
