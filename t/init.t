@@ -83,10 +83,10 @@ is_deeply +MockCommand->get_fail, [
 # Test write_config().
 can_ok $init, 'write_config';
 
-my $test_dir = 'init.write';
-make_path $test_dir;
-END { remove_tree $test_dir }
-chdir $test_dir;
+my $write_dir = 'init.write';
+make_path $write_dir;
+END { remove_tree $write_dir }
+chdir $write_dir;
 END { chdir File::Spec->updir }
 my $conf_file = $sqitch->config->local_file;
 
@@ -102,13 +102,17 @@ is_deeply read_config $conf_file, {
 is_deeply +MockCommand->get_info, [
     ['Created ' . $conf_file]
 ], 'The creation should be sent to info';
+
+my $deploy_dir = File::Spec->catfile(qw(sql deploy));
+my $revert_dir = File::Spec->catfile(qw(sql revert));
+my $test_dir   = File::Spec->catfile(qw(sql test));
 file_contents_like $conf_file, qr{\Q# [core]
 	# engine = 
 	# plan_file = sqitch.plan
 	# sql_dir = sql
-	# deploy_dir = sql/deploy
-	# revert_dir = sql/revert
-	# test_dir = sql/test
+	# deploy_dir = $deploy_dir
+	# revert_dir = $revert_dir
+	# test_dir = $test_dir
 	# extension = sql
 }m, 'Entire core section should be commented-out';
 unlink $conf_file;
@@ -129,9 +133,9 @@ file_contents_like $conf_file, qr{\Q
 	# engine = 
 	# plan_file = sqitch.plan
 	# sql_dir = sql
-	# deploy_dir = sql/deploy
-	# revert_dir = sql/revert
-	# test_dir = sql/test
+	# deploy_dir = $deploy_dir
+	# revert_dir = $revert_dir
+	# test_dir = $test_dir
 }m, 'Other settings should be commented-out';
 
 # Go again.
@@ -161,9 +165,9 @@ USERCONF: {
 	# engine = 
 	# plan_file = sqitch.plan
 	# sql_dir = sql
-	# deploy_dir = sql/deploy
-	# revert_dir = sql/revert
-	# test_dir = sql/test
+	# deploy_dir = $deploy_dir
+	# revert_dir = $revert_dir
+	# test_dir = $test_dir
 }m, 'Other settings should be commented-out';
 }
 
@@ -183,12 +187,16 @@ SYSTEMCONF: {
     is_deeply +MockCommand->get_info, [
         ['Created ' . $conf_file]
     ], 'The creation should be sent to info again';
+
+    my $deploy_dir = File::Spec->catfile(qw(migrations deploy));
+    my $revert_dir = File::Spec->catfile(qw(migrations revert));
+    my $test_dir   = File::Spec->catfile(qw(migrations test));
     file_contents_like $conf_file, qr{\Q
 	# plan_file = sqitch.plan
 	# sql_dir = migrations
-	# deploy_dir = migrations/deploy
-	# revert_dir = migrations/revert
-	# test_dir = migrations/test
+	# deploy_dir = $deploy_dir
+	# revert_dir = $revert_dir
+	# test_dir = $test_dir
 }m, 'Other settings should be commented-out';
 }
 

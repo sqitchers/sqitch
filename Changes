@@ -5,6 +5,7 @@ Revision history for Perl extension App::Sqitch
        when there are only commented core setttings.
      - The `--requires` and `--conflicts` options to `add-step` now work
        properly.
+     - Fixed anticipated Win32 test failures in `t/init.t`.'
 
 0.20  2012-05-01T02:48:47Z
      - Added `--local` option to `sqitch config`.
