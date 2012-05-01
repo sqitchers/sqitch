@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset='utf-8' />
+    <meta http-equiv="X-UA-Compatible" content="chrome=1" />
+    <meta name="description" content="Sqitch : Simple SQL change management" />
+
+    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
+
+    <title>Sqitch</title>
+  </head>
+
+  <body>
+
+    <!-- HEADER -->
+    <div id="header_wrap" class="outer">
+        <header class="inner">
+          <a id="forkme_banner" href="https://github.com/theory/sqitch">View on GitHub</a>
+
+          <h1 id="project_title">Sqitch</h1>
+          <h2 id="project_tagline">Simple SQL change management</h2>
+
+            <section id="downloads">
+              <a class="zip_download_link" href="https://github.com/theory/sqitch/zipball/master">Download this project as a .zip file</a>
+              <a class="tar_download_link" href="https://github.com/theory/sqitch/tarball/master">Download this project as a tar.gz file</a>
+            </section>
+        </header>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div id="main_content_wrap" class="outer">
+      <section id="main_content" class="inner">
+        <p>Sqitch is a VCS-aware SQL change management application. What makes it
+different from your typical <a href="http://guides.rubyonrails.org/migrations.html">migration</a>-<a href="http://metacpan.org/module/Module::Build::DB">style</a> approaches? A few things:</p>
+
+<dl>
+<dt>No opinions</dt>
+<dd><p>Sqitch is not integrated with any framework, ORM, or platform. Rather, it is a standalone change management system with no opinions on your database or development choices.</p></dd>
+
+<dt>Native scripting</dt>
+<dd><p>Changes are implemented as scripts native to your selected database engine. Writing a <a href="http://postgresql.org/">PostgreSQL</a> application? Write SQL scripts for <a href="http://www.postgresql.org/docs/current/static/app-psql.html"><code>psql</code></a>. Writing a <a href="http://mysql.com/">MySQL</a>-backed app? Write SQL scripts for <a href="http://dev.mysql.com/doc/refman/5.6/en/mysql.html"><code>mysql</code></a>.</p></dd>
+
+<dt>VCS integration</dt>
+<dd><p>Sqitch likes to use your VCS history to determine in what order to execute changes. No need to keep track of execution order; your VCS already tracks information sufficient for Sqitch to figure it out for you.</p></dd>
+
+<dt>Dependency resolution</dt>
+<dd><p>Deployment steps can declare dependencies on other deployment steps. This ensures proper order of execution, even when you’ve committed changes to your VCS out-of-order.</p></dd>
+
+<dt>No numbering</dt>
+<dd><p>Change deployment is managed either by maintaining a plan file or, more usefully, your VCS history. As such, there is no need to number your changes, although you can if you want. Sqitch doesn’t much care what you name your changes.</p></dd>
+
+<dt>Bundling</dt>
+<dd><p>Rely on your VCS history for deployment but have Sqitch bundle up changes for distribution. Sqitch can read your VCS history and write out a plan file along with the appropriate deployment and reversion scripts. Once the bundle is installed on a new system, Sqitch can use the plan file to deploy or the changes in the proper order.</p></dd>
+
+<dt>Reduced Duplication</dt>
+<dd><p>If you’re using a VCS to track your changes, you don’t have to duplicate entire change scripts for simple changes. As long as the changes are <a href="http://en.wikipedia.org/wiki/Idempotence">idempotent</a>, you can change your code directly, and Sqitch will know it needs to be updated.</p></dd>
+</dl><h3>Status</h3>
+
+<p>Sqitch is currently under active development, following the design laid out in these three blog posts:</p>
+
+<ul>
+<li><a href="http://justatheory.com/computers/databases/simple-sql-change-management.html">Simple SQL Change Management</a></li>
+<li><a href="http://justatheory.com/computers/databases/vcs-sql-change-management.html">VCS-Enabled SQL Change Management</a></li>
+<li><a href="http://justatheory.com/computers/databases/sql-change-management-sans-redundancy.html">SQL Change Management Sans Duplication</a></li>
+</ul><p>Want to help out? <a href="https://github.com/theory/sqitch">Fork it</a>!</p>
+      </section>
+    </div>
+
+    <!-- FOOTER  -->
+    <div id="footer_wrap" class="outer">
+      <footer class="inner">
+        <p class="copyright">Sqitch maintained by <a href="https://github.com/theory">theory</a></p>
+        <p>Published with <a href="http://pages.github.com">GitHub Pages</a></p>
+      </footer>
+    </div>
+
+              <script type="text/javascript">
+            var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+            document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+          </script>
+          <script type="text/javascript">
+            try {
+              var pageTracker = _gat._getTracker("UA-31325046-1");
+            pageTracker._trackPageview();
+            } catch(err) {}
+          </script>
+
+
+  </body>
+</html>
