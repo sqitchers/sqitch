@@ -88,8 +88,8 @@ sub _find {
 
 sub options {
     return qw(
-        requires|r=s
-        conflicts|c=s
+        requires|r=s@
+        conflicts|c=s@
         set|s=s%
         template-directory=s
         deploy-template=s

@@ -45,8 +45,8 @@ can_ok $CLASS, qw(
 );
 
 is_deeply [$CLASS->options], [qw(
-    requires|r=s
-    conflicts|c=s
+    requires|r=s@
+    conflicts|c=s@
     set|s=s%
     template-directory=s
     deploy-template=s

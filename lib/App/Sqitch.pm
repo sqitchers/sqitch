@@ -472,6 +472,17 @@ Use if the user has misused the app.
 Exits with the specified error code, sending any specified messages to
 C<STDOUT> if the exit code is 0, and to C<STDERR> if it is not 0.
 
+=head1 To Do
+
+=over
+
+=item *
+
+Add checks to L<sqitch-add-step> to halt if a C<--requires> or C<--conflicts>
+step does not exist.
+
+=back
+
 =head1 Author
 
 David E. Wheeler <david@justatheory.com>
