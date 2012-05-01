@@ -9,7 +9,7 @@ use Moose;
 
 extends 'App::Sqitch::Engine';
 
-our $VERSION = '0.20';
+our $VERSION = '0.30';
 
 has client => (
     is       => 'ro',

@@ -8,7 +8,7 @@ use Path::Class;
 use namespace::autoclean;
 use Moose;
 
-our $VERSION = '0.20';
+our $VERSION = '0.30';
 
 has file => (is => 'ro', required => 1, default => sub {
     file 'sqitch.plan';

@@ -10,7 +10,7 @@ use utf8;
 
 extends 'Config::GitLike';
 
-our $VERSION = '0.20';
+our $VERSION = '0.30';
 
 has '+confname' => (
     default => 'sqitch.conf',
