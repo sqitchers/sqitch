@@ -90,7 +90,11 @@ sub write_config {
     }
 
     # Emit them.
-    $config->group_set($file => \@vars) if @vars;
+    if (@vars) {
+        $config->group_set($file => \@vars);
+    } else {
+        unshift @comments => '[core]';
+    }
 
     # Emit the comments.
     $config->add_comment(

@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 87;
+use Test::More tests => 93;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Path::Class;
@@ -90,12 +90,32 @@ chdir $test_dir;
 END { chdir File::Spec->updir }
 my $conf_file = $sqitch->config->local_file;
 
-$sqitch = App::Sqitch->new(extension => 'foo');
-ok $init = $CLASS->new(sqitch => $sqitch), 'Anogher init object';
-
+$sqitch = App::Sqitch->new;
+ok $init = $CLASS->new(sqitch => $sqitch), 'Another init object';
 file_not_exists_ok $conf_file;
 
-# Write config.
+# Write empty config.
+ok $init->write_config, 'Write the config';
+file_exists_ok $conf_file;
+is_deeply read_config $conf_file, {
+}, 'The configuration file should have no variables';
+is_deeply +MockCommand->get_info, [
+    ['Created ' . $conf_file]
+], 'The creation should be sent to info';
+file_contents_like $conf_file, qr{\Q# [core]
+	# engine = 
+	# plan_file = sqitch.plan
+	# sql_dir = sql
+	# deploy_dir = sql/deploy
+	# revert_dir = sql/revert
+	# test_dir = sql/test
+	# extension = sql
+}m, 'Entire core section should be commented-out';
+unlink $conf_file;
+
+# Set one option.
+$sqitch = App::Sqitch->new(extension => 'foo');
+ok $init = $CLASS->new(sqitch => $sqitch), 'Another init object';
 ok $init->write_config, 'Write the config';
 file_exists_ok $conf_file;
 is_deeply read_config $conf_file, {
