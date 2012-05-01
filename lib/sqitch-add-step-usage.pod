@@ -20,3 +20,6 @@ sqitch-add-step-usage - Sqitch add-step usage statement
        --no-deploy            do not create deploy script
        --no-revert            do not create revert script
        --no-test              do not create test script
+       --deploy               create deploy script
+       --revert               create revert script
+       --test                 create test script

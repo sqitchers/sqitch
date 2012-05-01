@@ -203,15 +203,15 @@ C<sqitch config> will search for configuration options:
 
 =over
 
-=item C<./sqitch.conf>
+=item F<./sqitch.conf>
 
 Local, project-specific configuration file.
 
-=item C<~/.sqitch/sqitch.conf>
+=item F<~/.sqitch/sqitch.conf>
 
 User-specific configuration file.
 
-=item C<$($etc_prefix)/sqitch.conf>
+=item F<$($etc_prefix)/sqitch.conf>
 
 System-wide configuration file.
 

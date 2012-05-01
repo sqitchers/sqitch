@@ -62,12 +62,173 @@ templates found in C<--template-directory>.
 
 Do not generate the named script.
 
+=item C<--deploy>
+
+=item C<--revert>
+
+=item C<--test>
+
+Generate the named script. These are not mutually exclusive.
+
 =back
 
 =head1 Templates
 
 Sqitch contains a very simple set of templates for generating the deploy,
-revert, and test scripts.
+revert, and test scripts. By default, it uses system-wide templates installed
+in F<($etc_path)/templates>; call C<sqitch --etc-path> to find out where,
+exactly. Individual templates may be overridden on a user bases by copying
+templates to F<~/.sqitch/tempates> and making modifications. They may also be
+overridden by using the C<--tmplaet-directory> option, as well as the
+template-specific options.
+
+=head2 Syntax
+
+The syntax of the templates is the very simple but limited language provided
+by L<Template::Tiny>, which is limited to:
+
+=over
+
+=item C<[% %]>
+
+This is the directive syntax. By default, the return value of the expression
+is output:
+
+  -- Deploy [% step %]
+
+You can add C<-> to the immediate start or end of a directive tag to control
+the whitespace chomping options:
+
+  [% IF foo -%]    # remove trailing newline
+  We have foo!
+  [%- END %]       # remove leading newline
+
+=item C<[% IF %]>
+
+=item C<[% IF %] / [% ELSE %]>
+
+=item C<[% UNLESS %]>
+
+Conditional blocks:
+
+  [% IF transactions  %]
+  BEGIN;
+  [% ELSE %]
+  -- No transaction, beware!
+  [% END %]
+
+=item C<[% FOREACH item IN list %]>
+
+Loop over a list of values:
+
+  [% FOREACH item IN requires -%]
+  -- :requires: [% item %]
+  [% END -%]
+
+=back
+
+=head2 Variables
+
+Sqitch defines three variables for all templates. Any number of additional variables
+can be added via the C<--set> option, like so:
+
+  sqitch add-step --set transations=1 --set schema=foo
+
+Any number of variables may be specified in this manner. You may then use
+those variables in custom templates. Variables that appear multiple times will
+be passed to the templates as lists of values for which you will likely want
+to use C<[% FOREACH %]>. If the templates do not reference your variables,
+they will be ignored. Variables may also be specified in a
+C<[add-step "variables]> L<config|sqitch-config> section (see 
+L</Configuration Variables>). Variables specified via C<--set> will override
+configuration variables.
+
+The three core variables are:
+
+=over
+
+=item C<step>
+
+The name of the step being added.
+
+=item C<requires>
+
+A list of prerequisite steps as passed via one or more instances of the
+C<--requiers> option.
+
+=item C<conflicts>
+
+A list of conflicting steps as passed via one or more instances of the
+C<--requiers> option.
+
+=back
+
+=head1 Configuration Variables
+
+=over
+
+=item C<add-step.template_directory>
+
+Directory in which to find the templates which should be named F<deploy.tmpl>,
+F<revert.tmpl>, and F<test.tmpl>. This will override looking for user- or
+system-specific templates, and may in turn be overridden by the
+C<--template-directory>, C<--deploy-template>, C<--revert-template>, and
+C<--test-template> options.
+
+=item C<add-step.with_deploy>
+
+=item C<add-step.with_revert>
+
+=item C<add-step.with_test>
+
+Boolean variable indicating whether or not to generate the specified script
+when adding a step. They are all enabled by default. If you've disabled them
+but wish to create them for a given call to C<add-step>, use the appropriate
+option: C<--deploy>, C<--revert>, or C<--test>.
+
+=item C<add-step.deploy_template>
+
+=item C<add-step.revert_template>
+
+=item C<add-step.test_template>
+
+Location of individual templates. My be overridden by the appropriate option:
+C<--deploy-template>, C<--revert-template>, or C<--test-template>.
+
+=item C<[add-step.variables]>
+
+A section defining template variables. Useful if you've customized templates
+with your own variables and want project-, user-, or system-specific defaults
+for them.
+
+=back
+
+=head1 Files
+
+Unless explicitly told where to find templates via C<--template-directory> or,
+as appropriate, C<--deploy-template>, C<--user-template> or
+C<--test-template>, Sqitch looks in two locations for templates: A system-wide
+location and a user-specific location:
+
+=over
+
+=item F<$(etc_path)/templates/deploy.tmpl>
+
+=item F<$(etc_path)/templates/revert.tmpl>
+
+=item F<$(etc_path)/templates/test.tmpl>
+
+The system-wide templates for creating deploy, revert, and test scripts.
+
+=item F<~/.sqitch/templates/deploy.tmpl>
+
+=item F<~/.sqitch/templates/revert.tmpl>
+
+=item F<~/.sqitch/templates/test.tmpl>
+
+User-specific templates to override the system-wide templates.
+
+=back
 
 =head1 Sqitch
 

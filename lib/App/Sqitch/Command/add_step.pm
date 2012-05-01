@@ -54,7 +54,10 @@ for my $script (qw(deploy revert test)) {
         isa     => 'Bool',
         lazy    => 1,
         default => sub {
-            shift->sqitch->config->get(key => "add-step.with_$script") // 1;
+            shift->sqitch->config->get(
+                key => "add-step.with_$script",
+                as  => 'bool',
+            ) // 1;
         }
     );
 
