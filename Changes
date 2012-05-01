@@ -1,6 +1,6 @@
 Revision history for Perl extension App::Sqitch
 
-0.12
+0.20
      - Added `--local` option to `sqitch config`.
      - Renamed `project_file()` to `--local_file()` in App::Sqitch::Config.
      - `sqitch init` now writes core and engine config settings with default

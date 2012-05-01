@@ -8,7 +8,7 @@ use Try::Tiny;
 use namespace::autoclean;
 use Moose;
 
-our $VERSION = '0.12';
+our $VERSION = '0.20';
 
 has sqitch => (is => 'ro', isa => 'App::Sqitch', required => 1);
 
