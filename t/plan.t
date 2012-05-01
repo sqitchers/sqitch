@@ -20,7 +20,7 @@ BEGIN {
 }
 
 can_ok $CLASS, qw(
-    plan
+    all
     position
     _parse
 );
@@ -71,7 +71,7 @@ $file = file qw(t plans multi.plan);
 $sqitch = App::Sqitch->new(plan_file => $file);
 isa_ok $plan = App::Sqitch::Plan->new(sqitch => $sqitch), $CLASS,
     'Plan with sqitch with plan file';
-is_deeply $plan->plan, [
+is_deeply [$plan->all], [
     tag( [qw(foo)] => [qw(hey you)] ),
     tag( [qw(bar baz)] => [qw(this/rocks hey-there)] ),
 ], 'plan should be parsed from file';
@@ -84,7 +84,6 @@ can_ok $plan, qw(
     next
     current
     peek
-    all
     do
 );
 
@@ -130,7 +129,7 @@ is_deeply +MockOutput->get_fail, [['Cannot find tag "nonesuch" in plan']],
     'And the failure should be sent to output';
 
 # Get all!
-is_deeply [$plan->all], $plan->plan, 'All should return all tags';
+is_deeply [$plan->all], [$tag, $next], 'All should return all tags';
 my @e = ($tag, $next);
 ok $plan->reset, 'Reset the plan again';
 $plan->do(sub {

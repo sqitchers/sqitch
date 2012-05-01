@@ -18,9 +18,10 @@ has sqitch => (
     required => 1,
 );
 
-has plan => (
+has all => (
     is       => 'ro',
     isa      => 'ArrayRef[App::Sqitch::Plan::Tag]',
+    auto_deref => 1,
     lazy     => 1,
     required => 1,
     default  => sub {
@@ -38,7 +39,6 @@ has position => (
     required => 1,
     default  => -1,
 );
-
 
 sub _parse {
     my ($self, $file) = @_;
@@ -97,7 +97,7 @@ sub seek {
     my ($self, $name) = @_;
     # XXX May want to optimize this by indexing tags in _parse().
     my $i = -1;
-    for my $tag (@{ $self->plan }) {
+    for my $tag ($self->all) {
         $i++;
         next unless grep { $_ eq $name} @{ $tag->names };
         $self->position($i);
@@ -124,17 +124,13 @@ sub next {
 
 sub current {
     my $self = shift;
-    return $self->plan->[$self->position] if $self->position >= 0;
+    return ($self->all)[$self->position] if $self->position >= 0;
     return undef;
 }
 
 sub peek {
     my $self = shift;
-    $self->plan->[$self->position + 1];
-}
-
-sub all {
-    @{ shift->plan }
+    ($self->all)[$self->position + 1];
 }
 
 sub do {
@@ -182,12 +178,6 @@ Instantiates and returns a App::Sqitch::Plan object.
   my $sqitch = $cmd->sqitch;
 
 Returns the L<App::Sqitch> object that instantiated the plan.
-
-=head3 C<plan>
-
-  my $plan = $plan->plan;
-
-Returns the plan.
 
 =head3 C<position>
 
