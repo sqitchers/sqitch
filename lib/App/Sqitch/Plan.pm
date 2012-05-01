@@ -5,8 +5,10 @@ use strict;
 use warnings;
 use utf8;
 use IO::File;
+use App::Sqitch::Plan::Tag;
 use namespace::autoclean;
 use Moose;
+use Moose::Meta::TypeConstraint::Parameterizable;
 
 our $VERSION = '0.30';
 
@@ -16,9 +18,9 @@ has sqitch => (
     required => 1,
 );
 
-has _plan => (
+has plan => (
     is       => 'ro',
-    isa      => 'ArrayRef',
+    isa      => 'ArrayRef[App::Sqitch::Plan::Tag]',
     lazy     => 1,
     required => 1,
     default  => sub {
@@ -30,24 +32,17 @@ has _plan => (
     },
 );
 
-has _tags => (
-    is       => 'ro',
-    isa      => 'HashRef',
-    required => 1,
-    default  => sub { {} },
-);
-
 sub _parse {
     my ($self, $file) = @_;
     my $fh = IO::File->new($file, '<:encoding(UTF-8)') or $self->sqitch->fail(
         "Cannot open $file: $!"
     );
 
-    my $tags = $self->_tags;
-    my @plan;
+    my (@plan, @tags, @steps);
     LINE: while (my $line = $fh->getline) {
         # Ignore empty lines and comment-only lines.
         next LINE if $line =~ /\A\s*(?:#|$)/;
+        chomp $line;
 
         # Remove inline comments
         $line =~ s/\s*#.*$//g;
@@ -55,8 +50,13 @@ sub _parse {
 
         # Handle tag headers
         if (my ($names) = $line =~ /^\s*\[\s*(.+?)\s*\]\s*$/) {
-            push @plan => [];
-            $tags->{$_} = $#plan for split /\s+/ => $names;
+            push @plan => App::Sqitch::Plan::Tag->new(
+                names => [@tags],
+                steps => [@steps],
+                index => scalar @plan,
+            ) if @tags;
+            @steps = ();
+            @tags  = split /\s+/ => $names;
             next LINE;
         }
 
@@ -66,9 +66,9 @@ sub _parse {
             $self->sqitch->fail(
                 "Syntax error in $file at line ",
                 $fh->input_line_number, qq{: step "$step" not associated with a tag}
-            ) unless @plan;
+            ) unless @tags;
 
-            push @{ $plan[-1] } => $step;
+            push @steps => $step;
             next LINE;
         }
 
@@ -77,6 +77,12 @@ sub _parse {
             $fh->input_line_number, qq{: "$line"}
         );
     }
+
+    push @plan => App::Sqitch::Plan::Tag->new(
+        names => \@tags,
+        steps => \@steps,
+        index => scalar @plan,
+    ) if @tags;
 
     return \@plan;
 }
