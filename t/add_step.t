@@ -12,7 +12,7 @@ use Test::Dir;
 use Test::File qw(file_not_exists_ok file_exists_ok);
 use Test::File::Contents;
 use lib 't/lib';
-use MockCommand;
+use MockOutput;
 use File::Path qw(make_path remove_tree);
 
 my $CLASS = 'App::Sqitch::Command::add_step';
@@ -147,7 +147,7 @@ MOCKCONFIG: {
         ok $add_step->$with, "$with should be true by default";
         my $tmpl = "$script\_template";
         throws_ok { $add_step->$tmpl } qr/FAIL/, "Should die on $tmpl";
-        is_deeply +MockCommand->get_fail, [["Cannot find $script template"]],
+        is_deeply +MockOutput->get_fail, [["Cannot find $script template"]],
             "Should get $tmpl failure message";
     }
 }
@@ -182,7 +182,7 @@ MOCKCONFIG: {
     $config_mock->unmock('user_dir');
     throws_ok { $add_step->_find('test') } qr/FAIL/,
         "Should die trying to find template";
-    is_deeply +MockCommand->get_fail, [["Cannot find test template"]],
+    is_deeply +MockOutput->get_fail, [["Cannot find test template"]],
         "Should get unfound test template message";
 
     $config_mock->mock(system_dir => Path::Class::dir('etc'));
@@ -260,7 +260,7 @@ file_contents_like +File::Spec->catfile(qw(sql test widgets_table.sql)),
 unlink +File::Spec->catfile(qw(sql deploy widgets_table.sql));
 throws_ok { $add_step->execute('widgets_table') } qr/FAIL:/,
     'Should get exception when trying to create existing step';
-is_deeply +MockCommand->get_fail, [['Step "widgets_table" already exists']],
+is_deeply +MockOutput->get_fail, [['Step "widgets_table" already exists']],
     'Failure message should report that the step already exists';
 
 

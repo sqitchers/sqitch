@@ -4,15 +4,82 @@ use v5.10.1;
 use strict;
 use warnings;
 use utf8;
-use Path::Class;
+use IO::File;
 use namespace::autoclean;
 use Moose;
 
 our $VERSION = '0.30';
 
-has file => (is => 'ro', required => 1, default => sub {
-    file 'sqitch.plan';
-});
+has sqitch => (
+    is       => 'ro',
+    isa      => 'App::Sqitch',
+    required => 1,
+);
+
+has _plan => (
+    is       => 'ro',
+    isa      => 'ArrayRef',
+    lazy     => 1,
+    required => 1,
+    default  => sub {
+        my $self   = shift;
+        my $sqitch = $self->sqitch;
+        my $file   = $sqitch->plan_file;
+        return [] unless -f $file;
+        return $self->_parse($file);
+    },
+);
+
+has _tags => (
+    is       => 'ro',
+    isa      => 'HashRef',
+    required => 1,
+    default  => sub { {} },
+);
+
+sub _parse {
+    my ($self, $file) = @_;
+    my $fh = IO::File->new($file, '<:encoding(UTF-8)') or $self->sqitch->fail(
+        "Cannot open $file: $!"
+    );
+
+    my $tags = $self->_tags;
+    my @plan;
+    LINE: while (my $line = $fh->getline) {
+        # Ignore empty lines and comment-only lines.
+        next LINE if $line =~ /\A\s*(?:#|$)/;
+
+        # Remove inline comments
+        $line =~ s/\s*#.*$//g;
+        chomp $line;
+
+        # Handle tag headers
+        if (my ($names) = $line =~ /^\s*\[\s*(.+?)\s*\]\s*$/) {
+            push @plan => [];
+            $tags->{$_} = $#plan for split /\s+/ => $names;
+            next LINE;
+        }
+
+        # Push the step into the plan.
+        if (my ($step) = $line =~ /^\s*(\S+)$/) {
+            # Fail if we've seen no tags.
+            $self->sqitch->fail(
+                "Syntax error in $file at line ",
+                $fh->input_line_number, qq{: step "$step" not associated with a tag}
+            ) unless @plan;
+
+            push @{ $plan[-1] } => $step;
+            next LINE;
+        }
+
+        $self->sqitch->fail(
+            "Syntax error in $file at line ",
+            $fh->input_line_number, qq{: "$line"}
+        );
+    }
+
+    return \@plan;
+}
 
 __PACKAGE__->meta->make_immutable;
 no Moose;

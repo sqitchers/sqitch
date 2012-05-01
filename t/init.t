@@ -14,7 +14,7 @@ use Test::Exception;
 use Test::File::Contents;
 use File::Path qw(remove_tree make_path);
 use lib 't/lib';
-use MockCommand;
+use MockOutput;
 
 my $CLASS;
 
@@ -53,19 +53,19 @@ ok $init->make_directories, 'Make the directories';
 for my $attr (map { "$_\_dir"} qw(sql deploy revert test)) {
     dir_exists_ok $sqitch->$attr;
 }
-is_deeply +MockCommand->get_info, [
+is_deeply +MockOutput->get_info, [
     map { ["Created " . $sqitch->$_] } map { "$_\_dir" } qw(deploy revert test)
 ], 'Each should have been sent to info';
 
 # Do it again.
 ok $init->make_directories, 'Make the directories again';
-is_deeply +MockCommand->get_info, [], 'Nothing should have been sent to info';
+is_deeply +MockOutput->get_info, [], 'Nothing should have been sent to info';
 
 # Delete one of them.
 remove_tree $sqitch->revert_dir->stringify;
 ok $init->make_directories, 'Make the directories once more';
 dir_exists_ok $sqitch->revert_dir, 'revert dir exists again';
-is_deeply +MockCommand->get_info, [
+is_deeply +MockOutput->get_info, [
     ['Created ' . $sqitch->revert_dir],
 ], 'Should have noted creation of revert dir';
 
@@ -75,7 +75,7 @@ make_path $sql_dir;
 chmod 0000, $sql_dir;
 END { chmod 0400, $sql_dir }
 throws_ok { $init->make_directories } qr/FAIL/, 'Should fail on permissio issue';
-is_deeply +MockCommand->get_fail, [
+is_deeply +MockOutput->get_fail, [
     ['Error creating ' . $sqitch->deploy_dir . ': Permission denied'],
 ], 'Failure should have been emitted';
 
@@ -99,7 +99,7 @@ ok $init->write_config, 'Write the config';
 file_exists_ok $conf_file;
 is_deeply read_config $conf_file, {
 }, 'The configuration file should have no variables';
-is_deeply +MockCommand->get_info, [
+is_deeply +MockOutput->get_info, [
     ['Created ' . $conf_file]
 ], 'The creation should be sent to info';
 
@@ -125,7 +125,7 @@ file_exists_ok $conf_file;
 is_deeply read_config $conf_file, {
     'core.extension' => 'foo',
 }, 'The configuration should have been written with only one setting';
-is_deeply +MockCommand->get_info, [
+is_deeply +MockOutput->get_info, [
     ['Created ' . $conf_file]
 ], 'The creation should be sent to info';
 
@@ -143,7 +143,7 @@ ok $init->write_config, 'Write the config again';
 is_deeply read_config $conf_file, {
     'core.extension' => 'foo',
 }, 'The configuration should be unchanged';
-is_deeply +MockCommand->get_info, [
+is_deeply +MockOutput->get_info, [
 ], 'Nothing should have been sent to info';
 
 USERCONF: {
@@ -158,7 +158,7 @@ USERCONF: {
     is_deeply read_config $conf_file, {
         'core.extension' => 'foo',
     }, 'The configuration should just have core.sql_dir';
-    is_deeply +MockCommand->get_info, [
+    is_deeply +MockOutput->get_info, [
         ['Created ' . $conf_file]
     ], 'The creation should be sent to info again';
     file_contents_like $conf_file, qr{\Q
@@ -184,7 +184,7 @@ SYSTEMCONF: {
         'core.extension' => 'foo',
         'core.engine' => 'pg',
     }, 'The configuration should just have core.sql_dir';
-    is_deeply +MockCommand->get_info, [
+    is_deeply +MockOutput->get_info, [
         ['Created ' . $conf_file]
     ], 'The creation should be sent to info again';
 
@@ -215,7 +215,7 @@ $sqitch = App::Sqitch->new(
 ok $init = $CLASS->new(sqitch => $sqitch),
     'Create new init with sqitch non-default attributes';
 ok $init->write_config, 'Write the config with core attrs';
-is_deeply +MockCommand->get_info, [
+is_deeply +MockOutput->get_info, [
     ['Created ' . $conf_file]
 ], 'The creation should be sent to info once more';
 
@@ -240,7 +240,7 @@ $sqitch = App::Sqitch->new(
 ok $init = $CLASS->new(sqitch => $sqitch),
     'Create new init with sqitch with non-default engine attributes';
 ok $init->write_config, 'Write the config with engine attrs';
-is_deeply +MockCommand->get_info, [
+is_deeply +MockOutput->get_info, [
     ['Created ' . $conf_file]
 ], 'The creation should be sent to info yet again';
 
@@ -259,7 +259,7 @@ $sqitch = App::Sqitch->new(_engine => 'sqlite');
 ok $init = $CLASS->new(sqitch => $sqitch),
     'Create new init with sqitch with default engine attributes';
 ok $init->write_config, 'Write the config with engine attrs';
-is_deeply +MockCommand->get_info, [
+is_deeply +MockOutput->get_info, [
     ['Created ' . $conf_file]
 ], 'The creation should be sent to info again again';
 is_deeply read_config $conf_file, {
@@ -285,7 +285,7 @@ USERCONF: {
         'Make an init with sqlite and user config';
     file_not_exists_ok $conf_file;
     ok $init->write_config, 'Write the config with sqlite config';
-    is_deeply +MockCommand->get_info, [
+    is_deeply +MockOutput->get_info, [
         ['Created ' . $conf_file]
     ], 'The creation should be sent to info once more';
 
@@ -316,7 +316,7 @@ $sqitch = App::Sqitch->new(
 ok $init = $CLASS->new(sqitch => $sqitch),
     'Create new init with sqitch with more non-default engine attributes';
 ok $init->write_config, 'Write the config with more engine attrs';
-is_deeply +MockCommand->get_info, [
+is_deeply +MockOutput->get_info, [
     ['Created ' . $conf_file]
 ], 'The creation should be sent to info one more time';
 
@@ -340,7 +340,7 @@ $sqitch = App::Sqitch->new(_engine => 'pg');
 ok $init = $CLASS->new(sqitch => $sqitch),
     'Create new init with sqitch with default engine attributes';
 ok $init->write_config, 'Write the config with engine attrs';
-is_deeply +MockCommand->get_info, [
+is_deeply +MockOutput->get_info, [
     ['Created ' . $conf_file]
 ], 'The creation should be sent to info again again again';
 is_deeply read_config $conf_file, {
@@ -369,7 +369,7 @@ USERCONF: {
         'Make an init with pg and user config';
     file_not_exists_ok $conf_file;
     ok $init->write_config, 'Write the config with pg config';
-    is_deeply +MockCommand->get_info, [
+    is_deeply +MockOutput->get_info, [
         ['Created ' . $conf_file]
     ], 'The pg config creation should be sent to info';
 

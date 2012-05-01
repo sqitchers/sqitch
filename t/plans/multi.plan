@@ -1,0 +1,13 @@
+# This is a comment
+
+# And there was a blank line.
+
+[foo]
+# look, a tag!
+hey
+you
+
+[bar baz]
+this/rocks
+hey-there # trailing comment!
+
