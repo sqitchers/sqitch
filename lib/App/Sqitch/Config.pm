@@ -49,7 +49,7 @@ sub user_file {
 
 sub local_file {
     return file $ENV{SQITCH_CONFIG} if $ENV{SQITCH_CONFIG};
-    return file +File::Spec->curdir, shift->confname;
+    return file shift->confname;
 }
 
 sub dir_file { shift->local_file }
