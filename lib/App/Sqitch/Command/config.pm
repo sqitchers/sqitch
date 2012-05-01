@@ -579,8 +579,8 @@ editor is determined by L<Sqitch/editor>.
   my $file_name = $config->file;
 
 Returns the path to the configuration file to be acted upon. If the context is
-C<system>, then the value returned is C<$(prefix)/etc/sqitch/sqitch.conf>. If
-the context is C<user>, then the value returned is C<~/.sqitch/sqitch.conf>.
+C<system>, then the value returned is C<$($etc_prefix)/sqitch.conf>. If the
+context is C<user>, then the value returned is C<~/.sqitch/sqitch.conf>.
 Otherwise, the default is F<./sqitch.conf>.
 
 =head1 See Also

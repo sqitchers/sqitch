@@ -12,9 +12,8 @@ Add a new deployment step. This will result in the creation of a new script
 files with the C<--extension> extension in the C<--deploy-dir>,
 C<--revert-dir>, and C<--test-dir> directories. The content of these files is
 determined by the evaluation of templates. By default, system templates in
-F<$(prefix)/etc/sqitch/templates> are used. These can be overridden by a
-single user by creating templates in F<~/.sqitch/templates/> See L</Templates>
-for details.
+F<$(etc_path)/templates> are used. These can be overridden by a single user by
+creating templates in F<~/.sqitch/templates/> See L</Templates> for details.
 
 =head1 Options
 
@@ -44,7 +43,7 @@ C<name=value>, e.g., C<--set comment='This one is for you, babe.'>.
 
 Location to look for the templates. If none is specified, C<add-step> will
 first look in F<~/.sqitch/templates/> for each template, and fall back on
-F<$(prefix)/etc/sqitch/templates>.
+F<$($etc_prefix)/templates>.
 
 =item C<--deploy-template>
 

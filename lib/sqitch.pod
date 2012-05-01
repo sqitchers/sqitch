@@ -265,7 +265,7 @@ level of 1; add extra C<--verbose>s for greater verbosity.
 
   sqitch --etc-path
 
-Print out the path to the Sqtich F<etc> directory and exit. This is the
+Print out the path to the Sqitch F<etc> directory and exit. This is the
 directory where the system-wide configuration file lives, as well as
 deployment script templates.
 

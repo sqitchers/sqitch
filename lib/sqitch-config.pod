@@ -139,11 +139,11 @@ See also L<Files>.
 
 =item C<--system>
 
-For writing options: write to system-wide F<$(prefix)/etc/sqtich/sqitch.conf>
-file rather than the repository F<./sqitch.conf>.
+For writing options: write to system-wide F<$(etc_path)/sqitch.conf> file
+rather than the repository F<./sqitch.conf>.
 
-For reading options: read only from system-wide
-F<$(prefix)/etc/sqitch/sqitch.conf> file rather than from all available files.
+For reading options: read only from system-wide F<$($etc_prefix)/sqitch.conf>
+file rather than from all available files.
 
 See also L<Files>.
 
@@ -211,7 +211,7 @@ Local, project-specific configuration file.
 
 User-specific configuration file.
 
-=item C<$(prefix)/etc/sqitch/sqitch.conf>
+=item C<$($etc_prefix)/sqitch.conf>
 
 System-wide configuration file.
 
@@ -233,7 +233,7 @@ C<~/.sqitch/sqitch.conf>.
 =item C<SQITCH_SYSTEM_CONFIG>
 
 Take the system configuration from the given file instead of
-C<$(prefix)/etc/sqitch/sqitch.conf>.
+C<$($etc_prefix)/sqitch.conf>.
 
 =back
 
@@ -320,7 +320,7 @@ sqitch command's behavior. The F<./sqitch.conf> file local to each project is
 used to store the configuration for that project, and
 F<$HOME/.sqitch/sqitch.conf> is used to store a per-user configuration as
 fallback values for the F<./sqitch.conf> file. The file
-F<$(prefix)/etc/sqitch/sqitch.conf> can be used to store a system-wide default
+F<$($etc_prefix)/sqitch.conf> can be used to store a system-wide default
 configuration.
 
 The variables are divided into sections, wherein the fully qualified variable
