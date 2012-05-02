@@ -4,13 +4,14 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 59;
+use Test::More tests => 74;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Path::Class;
 use Test::Exception;
 use Test::File;
 use Test::File::Contents;
+use File::Path qw(make_path remove_tree);
 use lib 't/lib';
 use MockOutput;
 
@@ -165,3 +166,52 @@ this/rocks
 hey-there
 
 EOF
+##############################################################################
+# Test _find_untracked.
+can_ok $CLASS, '_find_untracked';
+make_path dir(qw(sql deploy stuff))->stringify;
+END { remove_tree 'sql' };
+
+my @tags = (tag ['foo'] => [qw(bar baz)]);
+
+ok $plan->_find_untracked(\@tags), 'Call _find_untracked';
+is_deeply \@tags, [ tag ['foo'] => [qw(bar baz)] ],
+    'Should have found no untracked steps';
+
+# Make sure we have the bar and baz steps.
+file(qw(sql deploy bar.sql))->touch;
+file(qw(sql deploy baz.sql))->touch;
+
+ok $plan->_find_untracked(\@tags), 'Call _find_untracked 2';
+is_deeply \@tags, [ tag ['foo'] => [qw(bar baz)] ],
+    'Still should have found no untracked steps';
+
+# Now add an unknown step.
+file(qw(sql deploy yo.sql))->touch;
+ok $plan->_find_untracked(\@tags), 'Call _find_untracked 3';
+is_deeply \@tags, [
+    tag( ['foo'] => [qw(bar baz)] ),
+    tag( ['HEAD+'] => [qw(yo)] ),
+], 'Should have found an untracked script';
+
+# Put Try adding one to a subdirectory.
+pop @tags;
+file(qw(sql deploy stuff wow.sql))->touch;
+ok $plan->_find_untracked(\@tags), 'Call _find_untracked 4';
+my $exp = [
+    tag( ['foo'] => [qw(bar baz)] ),
+    tag( ['HEAD+'] => [qw(yo stuff/wow)] ),
+];
+is_deeply \@tags, $exp,
+    'Should have found an untracked script in subdirectory';
+
+# Make sure VCS directories are ignored.
+for my $subdir (qw(CVS .git .svn)) {
+    my $dir = dir qw(sql deploy), $subdir;
+    make_path $dir->stringify;
+    $dir->file('whatever.sql')->touch;
+    @tags = ($tags[0]);
+    ok $plan->_find_untracked(\@tags), "Call _find_untracked with $subdir";
+    is_deeply \@tags, $exp, "Files in $subdir should be ignored";
+    remove_tree $dir->stringify;
+}

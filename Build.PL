@@ -14,6 +14,7 @@ Module::Build::Sqitch->new(
         'Config'                                       => 0,
         'Config::GitLike'                              => '1.07',
         'File::Basename'                               => 0,
+        'File::Find::Rule'                             => '0.30',
         'File::HomeDir'                                => 0,
         'File::Path'                                   => 0,
         'File::Spec'                                   => 0,

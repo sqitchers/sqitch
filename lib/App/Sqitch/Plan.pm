@@ -6,6 +6,7 @@ use warnings;
 use utf8;
 use IO::File;
 use App::Sqitch::Plan::Tag;
+use Path::Class;
 use namespace::autoclean;
 use Moose;
 use Moose::Meta::TypeConstraint::Parameterizable;
@@ -117,10 +118,84 @@ sub parse {
 around parse => sub {
     my ($orig, $self) = (shift, shift);
     my $plan = $self->$orig(@_);
-    return $plan unless $self->with_untracked;
-    # XXX Find untracked and add them to the plan.
+    $self->_find_untracked($plan) if $self->with_untracked;
     return $plan;
 };
+
+sub _find_untracked {
+    my ($self, $plan) = @_;
+    my $sqitch = $self->sqitch;
+
+    my %steps = map { map { $_ => 1 } @{ $_->steps } } @{ $plan };
+    my $ext = $sqitch->extension;
+    my $dir = $sqitch->deploy_dir;
+    my $skip = scalar $dir->dir_list;
+    my @untracked;
+
+    # Ignore VCS directories (borrowed from App::Ack).
+    my $ignore_dirs = join '|', map { quotemeta } qw(
+        .bzr
+        .cdv
+        ~.dep
+        ~.dot
+        ~.nib
+        ~.plst
+        .git
+        .hg
+        .pc
+        .svn
+        _MTN
+        blib
+        CVS
+        RCS
+        SCCS
+        _darcs
+        _sgbak
+        autom4te.cache
+        cover_db
+        _build
+    );
+
+    require File::Find::Rule;
+    my $rule = File::Find::Rule->new;
+
+    $rule = $rule->or(
+        # Ignore VCS directories.
+        $rule->new
+             ->directory
+             ->name(qr/^(?:$ignore_dirs)$/)
+             ->prune
+             ->discard,
+        # Find files.
+        $rule->new->file->name( qr/[.]\Q$ext\E$/ )->exec(sub {
+            my $file = pop;
+            if ($skip) {
+                # Remove $skip directories from the file name.
+                my $fobj = file $file;
+                my @dirs = $fobj->dir->dir_list;
+                $file = file(
+                    @dirs[$skip..$#dirs],
+                    $fobj->basename
+                )->stringify;
+            }
+
+            # Add the file if is is not already in the plan.
+            $file =~ s/[.]\Q$ext\E$//;
+            push @untracked => $file if !$steps{$file}++;
+        }),
+    );
+
+    # Find the untracked steps.
+    $rule->in($sqitch->deploy_dir) or  return $self;
+
+    s/[.]\Q$ext\E$// for @untracked;
+    push @{ $plan } => App::Sqitch::Plan::Tag->new(
+        names => ['HEAD+'],
+        steps => \@untracked,
+    );
+
+    return $self;
+}
 
 sub seek {
     my ($self, $name) = @_;

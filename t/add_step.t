@@ -11,9 +11,9 @@ use Test::Exception;
 use Test::Dir;
 use Test::File qw(file_not_exists_ok file_exists_ok);
 use Test::File::Contents;
+use File::Path qw(make_path remove_tree);
 use lib 't/lib';
 use MockOutput;
-use File::Path qw(make_path remove_tree);
 
 my $CLASS = 'App::Sqitch::Command::add_step';
 
