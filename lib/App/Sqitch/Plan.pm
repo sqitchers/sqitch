@@ -18,6 +18,13 @@ has sqitch => (
     required => 1,
 );
 
+has with_untracked => (
+    is       => 'ro',
+    isa      => 'Bool',
+    required => 1,
+    default  => 0,
+);
+
 has all => (
     is       => 'ro',
     isa      => 'ArrayRef[App::Sqitch::Plan::Tag]',
@@ -29,7 +36,7 @@ has all => (
         my $sqitch = $self->sqitch;
         my $file   = $sqitch->plan_file;
         return [] unless -f $file;
-        return $self->_parse($file);
+        return $self->parse($file);
     },
 );
 
@@ -40,15 +47,23 @@ has position => (
     default  => -1,
 );
 
-sub _parse {
+has _tags => (
+    is       => 'ro',
+    isa      => 'HashRef',
+    required => 1,
+    default  => sub { {} },
+);
+
+sub parse {
     my ($self, $file) = @_;
     my $fh = IO::File->new($file, '<:encoding(UTF-8)') or $self->sqitch->fail(
         "Cannot open $file: $!"
     );
 
-    my (@plan, @tags, @steps);
+    my $tags = $self->_tags;
+    my (@plan, @curr_tags, @steps);
     LINE: while (my $line = $fh->getline) {
-        # Ignore empty lines and comment-only lines.
+        # Ignore eampty lines and comment-only lines.
         next LINE if $line =~ /\A\s*(?:#|$)/;
         chomp $line;
 
@@ -58,12 +73,15 @@ sub _parse {
 
         # Handle tag headers
         if (my ($names) = $line =~ /^\s*\[\s*(.+?)\s*\]\s*$/) {
-            push @plan => App::Sqitch::Plan::Tag->new(
-                names => [@tags],
-                steps => [@steps],
-            ) if @tags;
+            if (@curr_tags) {
+                push @plan => App::Sqitch::Plan::Tag->new(
+                    names => [@curr_tags],
+                    steps => [@steps],
+                );
+                $tags->{$_} = $#plan for @curr_tags;
+            }
+            @curr_tags = split /\s+/ => $names;
             @steps = ();
-            @tags  = split /\s+/ => $names;
             next LINE;
         }
 
@@ -73,7 +91,7 @@ sub _parse {
             $self->sqitch->fail(
                 "Syntax error in $file at line ",
                 $fh->input_line_number, qq{: step "$step" not associated with a tag}
-            ) unless @tags;
+            ) unless @curr_tags;
 
             push @steps => $step;
             next LINE;
@@ -85,25 +103,32 @@ sub _parse {
         );
     }
 
-    push @plan => App::Sqitch::Plan::Tag->new(
-        names => \@tags,
-        steps => \@steps,
-    ) if @tags;
+    if (@curr_tags) {
+        push @plan => App::Sqitch::Plan::Tag->new(
+            names => \@curr_tags,
+            steps => \@steps,
+        );
+        $tags->{$_} = $#plan for @curr_tags;
+    }
 
     return \@plan;
 }
 
+around parse => sub {
+    my ($orig, $self) = (shift, shift);
+    my $plan = $self->$orig(@_);
+    return $plan unless $self->with_untracked;
+    # XXX Find untracked and add them to the plan.
+    return $plan;
+};
+
 sub seek {
     my ($self, $name) = @_;
-    # XXX May want to optimize this by indexing tags in _parse().
-    my $i = -1;
-    for my $tag ($self->all) {
-        $i++;
-        next unless grep { $_ eq $name} @{ $tag->names };
-        $self->position($i);
-        return $self;
-    }
-    $self->sqitch->fail(qq{Cannot find tag "$name" in plan});
+    my $index = $self->_tags->{$name};
+    $self->sqitch->fail(qq{Cannot find tag "$name" in plan})
+        unless defined $index;
+    $self->position($index);
+    return $self;
 }
 
 sub reset {
@@ -267,6 +292,11 @@ it to iterate over every item.
 Write the plan to the named file. Comments and white space from the original
 plan are I<not> preserved, so be careful to alert the user when overwriting an
 exiting plan file.
+
+=head3 C<parse>
+
+Called internally to populate C<all> by parsing the plan file. Not intended to
+be used directly, though it may be overridden in subclasses.
 
 =head1 See Also
 

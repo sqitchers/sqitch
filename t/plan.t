@@ -24,7 +24,7 @@ BEGIN {
 can_ok $CLASS, qw(
     all
     position
-    _parse
+    parse
 );
 
 my $sqitch = App::Sqitch->new;
@@ -37,20 +37,20 @@ sub tag {
 ##############################################################################
 # Test parsing.
 my $file = file qw(t plans widgets.plan);
-is_deeply $plan->_parse($file), [
+is_deeply $plan->parse($file), [
     tag [qw(foo)] => [qw(hey you)],
 ], 'Should parse simple "widgets.plan"';
 
 # Plan with multiple tags.
 $file = file qw(t plans multi.plan);
-is_deeply $plan->_parse($file), [
+is_deeply $plan->parse($file), [
     tag( [qw(foo)] => [qw(hey you)] ),
     tag( [qw(bar baz)] => [qw(this/rocks hey-there)] ),
 ], 'Should parse multi-tagged "multi.plan"';
 
 # Try a plan with steps appearing without a tag.
 $file = file qw(t plans steps-only.plan);
-throws_ok { $plan->_parse($file) } qr/FAIL:/,
+throws_ok { $plan->parse($file) } qr/FAIL:/,
     'Should die on plan with steps beore tags';
 is_deeply +MockOutput->get_fail, [[
     "Syntax error in $file at line ",
@@ -60,7 +60,7 @@ is_deeply +MockOutput->get_fail, [[
 
 # Try a plan with a bad step name.
 $file = file qw(t plans bad-step.plan);
-throws_ok { $plan->_parse($file) } qr/FAIL:/,
+throws_ok { $plan->parse($file) } qr/FAIL:/,
     'Should die on plan with bad step name';
 is_deeply +MockOutput->get_fail, [[
     "Syntax error in $file at line ",
