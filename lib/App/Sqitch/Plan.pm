@@ -83,7 +83,12 @@ sub _parse {
                 );
                 $tags->{$_} = $#plan for @curr_tags;
             }
-            @curr_tags = split /\s+/ => $names;
+
+            $self->sqitch->fail(
+                "Syntax error in $file at line ",
+                $fh->input_line_number, qq{: "HEAD+" is a reserved tag name}
+            ) if grep { $_ eq 'HEAD+' } @curr_tags = split /\s+/ => $names;
+
             @steps = ();
             next LINE;
         }

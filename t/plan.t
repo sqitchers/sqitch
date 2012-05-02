@@ -4,8 +4,8 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 77;
-#use Test::More 'no_plan';
+#use Test::More tests => 77;
+use Test::More 'no_plan';
 use App::Sqitch;
 use Path::Class;
 use Test::Exception;
@@ -72,7 +72,17 @@ is_deeply +MockOutput->get_fail, [[
     ': "what what what"',
 ]], 'And the error should have been output';
 
-# Make sure the plan parses the plan.
+# Try a plan with a reserved tag name.
+$file = file qw(t plans reserved-tag.plan);
+throws_ok { $plan->_parse($file) } qr/FAIL:/,
+    'Should die on plan with reserved tag';
+is_deeply +MockOutput->get_fail, [[
+    "Syntax error in $file at line ",
+    4,
+    ': "HEAD+" is a reserved tag name',
+]], 'And the reserved tag error should have been output';
+
+# Make sure that all() loads the plan.
 $file = file qw(t plans multi.plan);
 $sqitch = App::Sqitch->new(plan_file => $file);
 isa_ok $plan = App::Sqitch::Plan->new(sqitch => $sqitch), $CLASS,
