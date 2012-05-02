@@ -32,13 +32,7 @@ has all => (
     auto_deref => 1,
     lazy     => 1,
     required => 1,
-    default  => sub {
-        my $self   = shift;
-        my $sqitch = $self->sqitch;
-        my $file   = $sqitch->plan_file;
-        return [] unless -f $file;
-        return $self->parse($file);
-    },
+    default  => sub { shift->load }
 );
 
 has position => (
@@ -55,7 +49,15 @@ has _tags => (
     default  => sub { {} },
 );
 
-sub parse {
+sub load {
+    my $self = shift;
+    my $file = $self->sqitch->plan_file;
+    my $plan = -f $file ? $self->_parse($file) : [];
+    $self->push_untracked($plan) if $self->with_untracked;
+    return $plan;
+}
+
+sub _parse {
     my ($self, $file) = @_;
     my $fh = IO::File->new($file, '<:encoding(UTF-8)') or $self->sqitch->fail(
         "Cannot open $file: $!"
@@ -115,14 +117,7 @@ sub parse {
     return \@plan;
 }
 
-around parse => sub {
-    my ($orig, $self) = (shift, shift);
-    my $plan = $self->$orig(@_);
-    $self->_find_untracked($plan) if $self->with_untracked;
-    return $plan;
-};
-
-sub _find_untracked {
+sub push_untracked {
     my ($self, $plan) = @_;
     my $sqitch = $self->sqitch;
 

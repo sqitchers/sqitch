@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 74;
+use Test::More tests => 78;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Path::Class;
@@ -25,7 +25,9 @@ BEGIN {
 can_ok $CLASS, qw(
     all
     position
-    parse
+    load
+    push_untracked
+    _parse
 );
 
 my $sqitch = App::Sqitch->new;
@@ -38,20 +40,20 @@ sub tag {
 ##############################################################################
 # Test parsing.
 my $file = file qw(t plans widgets.plan);
-is_deeply $plan->parse($file), [
+is_deeply $plan->_parse($file), [
     tag [qw(foo)] => [qw(hey you)],
 ], 'Should parse simple "widgets.plan"';
 
 # Plan with multiple tags.
 $file = file qw(t plans multi.plan);
-is_deeply $plan->parse($file), [
+is_deeply $plan->_parse($file), [
     tag( [qw(foo)] => [qw(hey you)] ),
     tag( [qw(bar baz)] => [qw(this/rocks hey-there)] ),
 ], 'Should parse multi-tagged "multi.plan"';
 
 # Try a plan with steps appearing without a tag.
 $file = file qw(t plans steps-only.plan);
-throws_ok { $plan->parse($file) } qr/FAIL:/,
+throws_ok { $plan->_parse($file) } qr/FAIL:/,
     'Should die on plan with steps beore tags';
 is_deeply +MockOutput->get_fail, [[
     "Syntax error in $file at line ",
@@ -61,7 +63,7 @@ is_deeply +MockOutput->get_fail, [[
 
 # Try a plan with a bad step name.
 $file = file qw(t plans bad-step.plan);
-throws_ok { $plan->parse($file) } qr/FAIL:/,
+throws_ok { $plan->_parse($file) } qr/FAIL:/,
     'Should die on plan with bad step name';
 is_deeply +MockOutput->get_fail, [[
     "Syntax error in $file at line ",
@@ -78,6 +80,10 @@ is_deeply [$plan->all], [
     tag( [qw(foo)] => [qw(hey you)] ),
     tag( [qw(bar baz)] => [qw(this/rocks hey-there)] ),
 ], 'plan should be parsed from file';
+is_deeply $plan->load, [
+    tag( [qw(foo)] => [qw(hey you)] ),
+    tag( [qw(bar baz)] => [qw(this/rocks hey-there)] ),
+], 'Load should parse plan from file';
 
 ##############################################################################
 # Test the interator interface.
@@ -167,14 +173,14 @@ hey-there
 
 EOF
 ##############################################################################
-# Test _find_untracked.
-can_ok $CLASS, '_find_untracked';
+# Test push_untracked.
+can_ok $CLASS, 'push_untracked';
 make_path dir(qw(sql deploy stuff))->stringify;
 END { remove_tree 'sql' };
 
 my @tags = (tag ['foo'] => [qw(bar baz)]);
 
-ok $plan->_find_untracked(\@tags), 'Call _find_untracked';
+ok $plan->push_untracked(\@tags), 'Call push_untracked';
 is_deeply \@tags, [ tag ['foo'] => [qw(bar baz)] ],
     'Should have found no untracked steps';
 
@@ -182,13 +188,13 @@ is_deeply \@tags, [ tag ['foo'] => [qw(bar baz)] ],
 file(qw(sql deploy bar.sql))->touch;
 file(qw(sql deploy baz.sql))->touch;
 
-ok $plan->_find_untracked(\@tags), 'Call _find_untracked 2';
+ok $plan->push_untracked(\@tags), 'Call push_untracked 2';
 is_deeply \@tags, [ tag ['foo'] => [qw(bar baz)] ],
     'Still should have found no untracked steps';
 
 # Now add an unknown step.
 file(qw(sql deploy yo.sql))->touch;
-ok $plan->_find_untracked(\@tags), 'Call _find_untracked 3';
+ok $plan->push_untracked(\@tags), 'Call push_untracked 3';
 is_deeply \@tags, [
     tag( ['foo'] => [qw(bar baz)] ),
     tag( ['HEAD+'] => [qw(yo)] ),
@@ -197,7 +203,7 @@ is_deeply \@tags, [
 # Put Try adding one to a subdirectory.
 pop @tags;
 file(qw(sql deploy stuff wow.sql))->touch;
-ok $plan->_find_untracked(\@tags), 'Call _find_untracked 4';
+ok $plan->push_untracked(\@tags), 'Call push_untracked 4';
 my $exp = [
     tag( ['foo'] => [qw(bar baz)] ),
     tag( ['HEAD+'] => [qw(yo stuff/wow)] ),
@@ -211,7 +217,24 @@ for my $subdir (qw(CVS .git .svn)) {
     make_path $dir->stringify;
     $dir->file('whatever.sql')->touch;
     @tags = ($tags[0]);
-    ok $plan->_find_untracked(\@tags), "Call _find_untracked with $subdir";
+    ok $plan->push_untracked(\@tags), "Call push_untracked with $subdir";
     is_deeply \@tags, $exp, "Files in $subdir should be ignored";
     remove_tree $dir->stringify;
 }
+
+# So now, make sure that parse() results in the finding of untracked files.
+isa_ok $plan = App::Sqitch::Plan->new(
+    sqitch         => $sqitch,
+    with_untracked => 1,
+), $CLASS,
+    'Plan with with_untracked';
+is_deeply [$plan->all], [
+    tag( [qw(foo)] => [qw(hey you)] ),
+    tag( [qw(bar baz)] => [qw(this/rocks hey-there)] ),
+    tag( ['HEAD+'] => [qw(bar baz yo stuff/wow)] ),
+], 'Plan should include untracked steps';
+is_deeply $plan->load, [
+    tag( [qw(foo)] => [qw(hey you)] ),
+    tag( [qw(bar baz)] => [qw(this/rocks hey-there)] ),
+    tag( ['HEAD+'] => [qw(bar baz yo stuff/wow)] ),
+], 'load should also load untracked steps';
