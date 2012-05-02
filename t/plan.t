@@ -4,8 +4,8 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-#use Test::More tests => 77;
-use Test::More 'no_plan';
+use Test::More tests => 81;
+#use Test::More 'no_plan';
 use App::Sqitch;
 use Path::Class;
 use Test::Exception;
@@ -183,6 +183,7 @@ this/rocks
 hey-there
 
 EOF
+
 ##############################################################################
 # Test load_untracked.
 can_ok $CLASS, 'load_untracked';
@@ -240,3 +241,10 @@ is_deeply $plan->load, [
     tag( [qw(bar baz)] => [qw(this/rocks hey-there)] ),
     tag( ['HEAD+'] => [qw(bar baz yo stuff/wow)] ),
 ], 'load should also load untracked steps';
+
+# Try to write a plan with a reserved tag name.
+throws_ok { $plan->write_to($to) } qr/FAIL:/,
+    'Should get an error writing a plan with untracked steps';
+is_deeply +MockOutput->get_fail, [
+    ['Cannot write plan with reserved tag "HEAD+"']
+], 'Should get error message about writing "HEAD+" tag';
