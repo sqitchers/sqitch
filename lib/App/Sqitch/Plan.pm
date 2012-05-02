@@ -53,7 +53,7 @@ sub load {
     my $self = shift;
     my $file = $self->sqitch->plan_file;
     my $plan = -f $file ? $self->_parse($file) : [];
-    $self->push_untracked($plan) if $self->with_untracked;
+    push @{ $plan } => $self->load_untracked($plan) if $self->with_untracked;
     return $plan;
 }
 
@@ -117,7 +117,7 @@ sub _parse {
     return \@plan;
 }
 
-sub push_untracked {
+sub load_untracked {
     my ($self, $plan) = @_;
     my $sqitch = $self->sqitch;
 
@@ -125,7 +125,7 @@ sub push_untracked {
     my $ext = $sqitch->extension;
     my $dir = $sqitch->deploy_dir;
     my $skip = scalar $dir->dir_list;
-    my @untracked;
+    my @steps;
 
     # Ignore VCS directories (borrowed from App::Ack).
     my $ignore_dirs = join '|', map { quotemeta } qw(
@@ -176,17 +176,16 @@ sub push_untracked {
 
             # Add the file if is is not already in the plan.
             $file =~ s/[.]\Q$ext\E$//;
-            push @untracked => $file if !$steps{$file}++;
+            push @steps => $file if !$steps{$file}++;
         }),
     );
 
     # Find the untracked steps.
-    $rule->in($sqitch->deploy_dir) or  return $self;
+    $rule->in($sqitch->deploy_dir) or return;
 
-    s/[.]\Q$ext\E$// for @untracked;
-    push @{ $plan } => App::Sqitch::Plan::Tag->new(
+    return App::Sqitch::Plan::Tag->new(
         names => ['HEAD+'],
-        steps => \@untracked,
+        steps => \@steps,
     );
 
     return $self;
@@ -367,6 +366,31 @@ exiting plan file.
 
 Called internally to populate C<all> by parsing the plan file. Not intended to
 be used directly, though it may be overridden in subclasses.
+
+=head3 C<load>
+
+  my $tags = $plan->load;
+
+Loads the plan, including untracked steps (if C<with_untracked> is true).
+Called internally, not meant to be called directly, as it parses the plan file
+and searches the file system (if C<with_untracked>) every time it's called. If
+you want the all of the steps, including untracked, call C<all()> instead.
+
+Subclasses should override this method to load the plan from whatever
+resources they deem appropriate.
+
+=head3 C<load_untracked>
+
+  my $tag = $plan->load_untracked($tags);
+
+Loads untracked steps and returns them in a tag object with the single tag
+name C<HEAD+>. Pass in an array reference of tracked tags whose steps should
+be excluded from the returned untracked. Called internally by C<load()> and
+not meant to be called directly, as it will scan the file system on every
+call.
+
+Subclasses may override this method to load a tag with untracked steps from
+whatever resources they deem appropriate.
 
 =head1 See Also
 

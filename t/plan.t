@@ -4,13 +4,14 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 78;
+use Test::More tests => 77;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Path::Class;
 use Test::Exception;
 use Test::File;
 use Test::File::Contents;
+use Test::NoWarnings;
 use File::Path qw(make_path remove_tree);
 use lib 't/lib';
 use MockOutput;
@@ -26,7 +27,7 @@ can_ok $CLASS, qw(
     all
     position
     load
-    push_untracked
+    load_untracked
     _parse
 );
 
@@ -173,56 +174,47 @@ hey-there
 
 EOF
 ##############################################################################
-# Test push_untracked.
-can_ok $CLASS, 'push_untracked';
+# Test load_untracked.
+can_ok $CLASS, 'load_untracked';
 make_path dir(qw(sql deploy stuff))->stringify;
 END { remove_tree 'sql' };
 
 my @tags = (tag ['foo'] => [qw(bar baz)]);
 
-ok $plan->push_untracked(\@tags), 'Call push_untracked';
-is_deeply \@tags, [ tag ['foo'] => [qw(bar baz)] ],
-    'Should have found no untracked steps';
+is $plan->load_untracked(\@tags), undef, 'load_untracked should return undef';
 
 # Make sure we have the bar and baz steps.
 file(qw(sql deploy bar.sql))->touch;
 file(qw(sql deploy baz.sql))->touch;
 
-ok $plan->push_untracked(\@tags), 'Call push_untracked 2';
-is_deeply \@tags, [ tag ['foo'] => [qw(bar baz)] ],
-    'Still should have found no untracked steps';
+is $plan->load_untracked(\@tags), undef,
+    'load_untracked should still return undef';
 
 # Now add an unknown step.
 file(qw(sql deploy yo.sql))->touch;
-ok $plan->push_untracked(\@tags), 'Call push_untracked 3';
-is_deeply \@tags, [
-    tag( ['foo'] => [qw(bar baz)] ),
-    tag( ['HEAD+'] => [qw(yo)] ),
-], 'Should have found an untracked script';
+ok $tag = $plan->load_untracked(\@tags),
+    'load_untracked now should return a tag';
+is $tag->dump, tag( ['HEAD+'] => [qw(yo)] )->dump,
+    'The tag should have the expected name and step';
 
 # Put Try adding one to a subdirectory.
-pop @tags;
 file(qw(sql deploy stuff wow.sql))->touch;
-ok $plan->push_untracked(\@tags), 'Call push_untracked 4';
-my $exp = [
-    tag( ['foo'] => [qw(bar baz)] ),
-    tag( ['HEAD+'] => [qw(yo stuff/wow)] ),
-];
-is_deeply \@tags, $exp,
-    'Should have found an untracked script in subdirectory';
+ok $tag = $plan->load_untracked(\@tags),
+    'load_untracked now should again return a tag';
+my $exp = tag ['HEAD+'] => [qw(yo stuff/wow)];
+is $tag->dump, $exp->dump, 'The tag should have the subdirectory step';
 
 # Make sure VCS directories are ignored.
 for my $subdir (qw(CVS .git .svn)) {
     my $dir = dir qw(sql deploy), $subdir;
     make_path $dir->stringify;
     $dir->file('whatever.sql')->touch;
-    @tags = ($tags[0]);
-    ok $plan->push_untracked(\@tags), "Call push_untracked with $subdir";
-    is_deeply \@tags, $exp, "Files in $subdir should be ignored";
+    ok $tag = $plan->load_untracked(\@tags), "Call load_untracked with $subdir";
+    is $tag->dump, $exp->dump, "Files in $subdir should be ignored";
     remove_tree $dir->stringify;
 }
 
-# So now, make sure that parse() results in the finding of untracked files.
+# So now, make sure that load() results in the finding of untracked files.
 isa_ok $plan = App::Sqitch::Plan->new(
     sqitch         => $sqitch,
     with_untracked => 1,
