@@ -64,6 +64,7 @@ sub _parse {
     );
 
     my $tags = $self->_tags;
+    my %seen;
     my (@plan, @curr_tags, @steps);
     LINE: while (my $line = $fh->getline) {
         # Ignore eampty lines and comment-only lines.
@@ -84,10 +85,22 @@ sub _parse {
                 $tags->{$_} = $#plan for @curr_tags;
             }
 
-            $self->sqitch->fail(
-                "Syntax error in $file at line ",
-                $fh->input_line_number, qq{: "HEAD+" is a reserved tag name}
-            ) if grep { $_ eq 'HEAD+' } @curr_tags = split /\s+/ => $names;
+            @curr_tags = split /\s+/ => $names;
+
+            for my $t (@curr_tags) {
+                # Throw errors for invalid tags.
+                $self->sqitch->fail(
+                    "Syntax error in $file at line ",
+                    $fh->input_line_number, qq{: "HEAD+" is a reserved tag name}
+                ) if $t eq 'HEAD+';
+
+                $self->sqitch->fail(
+                    "Syntax error in $file at line ",
+                    $fh->input_line_number,
+                    qq{: Tag "$t" duplicates earlier declaration on line $seen{$t}}
+                ) if $seen{$t};
+                $seen{$t} = $fh->input_line_number;
+            }
 
             @steps = ();
             next LINE;

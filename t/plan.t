@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 81;
+use Test::More tests => 83;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Path::Class;
@@ -81,6 +81,16 @@ is_deeply +MockOutput->get_fail, [[
     4,
     ': "HEAD+" is a reserved tag name',
 ]], 'And the reserved tag error should have been output';
+
+# Try a plan with a duplicate tag name.
+$file = file qw(t plans dupe-tag.plan);
+throws_ok { $plan->_parse($file) } qr/FAIL:/,
+    'Should die on plan with dupe tag';
+is_deeply +MockOutput->get_fail, [[
+    "Syntax error in $file at line ",
+    9,
+    ': Tag "bar" duplicates earlier declaration on line 4',
+]], 'And the dupe tag error should have been output';
 
 # Make sure that all() loads the plan.
 $file = file qw(t plans multi.plan);
