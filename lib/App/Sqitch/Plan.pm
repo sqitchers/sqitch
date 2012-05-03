@@ -64,8 +64,13 @@ sub _parse {
     );
 
     my $tags = $self->_tags;
-    my %seen;
-    my (@plan, @curr_tags, @steps);
+    my @plan;       # List of tags to return
+    my @curr_tags;  # List of tags in currently-parsing tag section.
+    my @curr_steps; # List of steps in currently-parsing tag section.
+    my %seen_tags;  # Maps tags to line numbers.
+    my %prev_steps; # Maps steps from previous sections to line numbers.
+    my %tag_steps;  # Maps steps in current tag section to line numbers.
+
     LINE: while (my $line = $fh->getline) {
         # Ignore eampty lines and comment-only lines.
         next LINE if $line =~ /\A\s*(?:#|$)/;
@@ -80,41 +85,58 @@ sub _parse {
             if (@curr_tags) {
                 push @plan => App::Sqitch::Plan::Tag->new(
                     names => [@curr_tags],
-                    steps => $self->_sort_steps(\@curr_tags, @steps),
+                    steps => $self->_sort_steps(\@curr_tags, \%prev_steps, @curr_steps),
                 );
                 $tags->{$_} = $#plan for @curr_tags;
+                %prev_steps = (%prev_steps, %tag_steps);
+                @curr_steps = ();
+                %tag_steps = ();
             }
 
             @curr_tags = split /\s+/ => $names;
 
             for my $t (@curr_tags) {
-                # Throw errors for invalid tags.
+                # Fail on invalid tag.
                 $self->sqitch->fail(
                     "Syntax error in $file at line ",
                     $fh->input_line_number, qq{: "HEAD+" is a reserved tag name}
                 ) if $t eq 'HEAD+';
 
+                # Fail on duplicate tag.
                 $self->sqitch->fail(
                     "Syntax error in $file at line ",
                     $fh->input_line_number,
-                    qq{: Tag "$t" duplicates earlier declaration on line $seen{$t}}
-                ) if $seen{$t};
-                $seen{$t} = $fh->input_line_number;
+                    qq{: Tag "$t" duplicates earlier declaration on line $seen_tags{$t}}
+                ) if $seen_tags{$t};
+
+                # We're good.
+                $seen_tags{$t} = $fh->input_line_number;
             }
 
-            @steps = ();
             next LINE;
         }
 
         # Push the step into the plan.
         if (my ($step) = $line =~ /^\s*(\S+)$/) {
+
             # Fail if we've seen no tags.
             $self->sqitch->fail(
                 "Syntax error in $file at line ",
-                $fh->input_line_number, qq{: step "$step" not associated with a tag}
+                $fh->input_line_number, qq{: Step "$step" not associated with a tag}
             ) unless @curr_tags;
 
-            push @steps => $step;
+            # Fail on duplicate step.
+            if (my $line = $tag_steps{$step} || $prev_steps{$step}) {
+                $self->sqitch->fail(
+                    "Syntax error in $file at line ",
+                    $fh->input_line_number,
+                    qq{: Step "$step" duplicates earlier declaration on line $line}
+                );
+            }
+
+            # We're good.
+            $tag_steps{$step} = $fh->input_line_number;
+            push @curr_steps => $step;
             next LINE;
         }
 
@@ -127,7 +149,7 @@ sub _parse {
     if (@curr_tags) {
         push @plan => App::Sqitch::Plan::Tag->new(
             names => \@curr_tags,
-            steps => $self->_sort_steps(\@curr_tags, @steps),
+            steps => $self->_sort_steps(\@curr_tags, \%prev_steps, @curr_steps),
         );
         $tags->{$_} = $#plan for @curr_tags;
     }
@@ -232,7 +254,7 @@ sub _parse_dependencies {
 }
 
 sub _sort_steps {
-    my ($self, $tag_names) = (shift, shift);
+    my ($self, $tag_names, $seen) = (shift, shift, shift);
 
     my %pairs;	# all pairs ($l, $r)
     my %npred;	# number of predecessors
@@ -245,6 +267,8 @@ sub _sort_steps {
         $npred{$step} += 0;
         # XXX Ignoring conflicts for now.
         for my $dep (@{ $deps->{requires} || []}) {
+            # Skip it if it's a step from an earlier tag.
+            next if exists $seen->{$dep};
             $p->{$dep}++;
             $npred{$dep}++;
             push @{$succ{$step}} => $dep;
@@ -260,6 +284,11 @@ sub _sort_steps {
         my $item = pop @list;
         unshift @ret => $item;
         foreach my $child (@{ $succ{$item} }) {
+            unless ($pairs{$child}) {
+                my $sqitch = $self->sqitch;
+                my $file   = $sqitch->deploy_dir->file("$item." . $sqitch->extension);
+                $self->sqitch->fail(qq{Unknown step "$child" required in $file});
+            }
             push @list, $child unless --$npred{$child};
         }
     }

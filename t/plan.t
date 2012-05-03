@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 101;
+use Test::More tests => 109;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Path::Class;
@@ -63,7 +63,7 @@ throws_ok { $plan->_parse($file) } qr/FAIL:/,
 is_deeply +MockOutput->get_fail, [[
     "Syntax error in $file at line ",
     5,
-    ': step "hey" not associated with a tag',
+    ': Step "hey" not associated with a tag',
 ]], 'And the error should have been output';
 
 # Try a plan with a bad step name.
@@ -95,6 +95,26 @@ is_deeply +MockOutput->get_fail, [[
     9,
     ': Tag "bar" duplicates earlier declaration on line 4',
 ]], 'And the dupe tag error should have been output';
+
+# Try a plan with a duplicate step within a tag section.
+$file = file qw(t plans dupe-step.plan);
+throws_ok { $plan->_parse($file) } qr/FAIL:/,
+    'Should die on plan with dupe step';
+is_deeply +MockOutput->get_fail, [[
+    "Syntax error in $file at line ",
+    8,
+    ': Step "greets" duplicates earlier declaration on line 6'
+]], 'And the dupe step error should have been output';
+
+# Try a plan with a duplicate step in different tag sections.
+$file = file qw(t plans dupe-step-diff-tag.plan);
+throws_ok { $plan->_parse($file) } qr/FAIL:/,
+    'Should die on plan with dupe step across tags';
+is_deeply +MockOutput->get_fail, [[
+    "Syntax error in $file at line ",
+    9,
+    ': Step "whatever" duplicates earlier declaration on line 2'
+]], 'And the second dupe step error should have been output';
 
 # Make sure that all() loads the plan.
 $file = file qw(t plans multi.plan);
@@ -311,45 +331,64 @@ $mocker->mock(_parse_dependencies => sub { shift @deps });
 
 # Start with no dependencies.
 @deps = ({}, {}, {});
-is_deeply $plan->_sort_steps(['foo'], qw(this that other)),
+is_deeply $plan->_sort_steps(['foo'], {}, qw(this that other)),
     [qw(this that other)], 'Should get original order when no dependencies';
 
 # Have that require this.
 @deps = ({}, {requires => ['this']}, {});
-is_deeply $plan->_sort_steps(['foo'], qw(this that other)),
+is_deeply $plan->_sort_steps(['foo'], {}, qw(this that other)),
     [qw(this that other)], 'Should get original order when that requires this';
 
 # Have other require that.
 @deps = ({}, {requires => ['this']}, { requires => ['that']});
-is_deeply $plan->_sort_steps(['foo'], qw(this that other)),
+is_deeply $plan->_sort_steps(['foo'], {}, qw(this that other)),
     [qw(this that other)], 'Should get original order when other requires that';
 
 # Have this require other.
 @deps = ({requires => ['other']}, {}, {});
-is_deeply $plan->_sort_steps(['foo'], qw(this that other)),
+is_deeply $plan->_sort_steps(['foo'], {}, qw(this that other)),
     [qw(other this that)], 'Should get other first when this requires it';
 
 # Have other other require taht.
 @deps = ({requires => ['other']}, {}, {requires => ['that']});
-is_deeply $plan->_sort_steps(['foo'], qw(this that other)),
+is_deeply $plan->_sort_steps(['foo'], {}, qw(this that other)),
     [qw(that other this)], 'Should get that, other, this now';
 
 # Have this require other and that.
 @deps = ({requires => ['other', 'that']}, {}, {});
-is_deeply $plan->_sort_steps(['foo'], qw(this that other)),
+is_deeply $plan->_sort_steps(['foo'], {}, qw(this that other)),
     [qw(other that this)], 'Should get other, that, this now';
 
 # Have this require other and that, and other requore that.
 @deps = ({requires => ['other', 'that']}, {}, {requires => ['that']});
-is_deeply $plan->_sort_steps(['foo'], qw(this that other)),
+is_deeply $plan->_sort_steps(['foo'], {}, qw(this that other)),
     [qw(that other this)], 'Should get that, other, this again';
 
 # Add a cycle.
 @deps = ({requires => ['that']}, {requires => ['this']}, {});
-throws_ok { $plan->_sort_steps(['foo'], qw(this that other)) } qr/FAIL:/,
+throws_ok { $plan->_sort_steps(['foo'], {}, qw(this that other)) } qr/FAIL:/,
     'Should get failure for a cycle';
 is_deeply +MockOutput->get_fail, [[
     'Dependency cycle detected beween steps "',
     'this',
     ' and "that"',
 ]], 'The cylce should have been logged';
+
+# Okay, now deal with depedencies from ealier tag sections.
+@deps = ({requires => ['foo']}, {}, {});
+is_deeply $plan->_sort_steps(['foo'], { foo => 1}, qw(this that other)),
+    [qw(this that other)], 'Should get original order with earlier dependency';
+
+# Mix it up.
+@deps = ({requires => ['other', 'that']}, {requires => ['sqitch']}, {});
+is_deeply $plan->_sort_steps(['foo'], {sqitch => 1 }, qw(this that other)),
+    [qw(other that this)], 'Should get other, that, this with earlier dependncy';
+
+# Have a failed dependency.
+# Okay, now deal with depedencies from ealier tag sections.
+@deps = ({requires => ['foo']}, {}, {});
+throws_ok { $plan->_sort_steps(['foo'], {}, qw(this that other)) } qr/FAIL:/,
+    'Should die on unknown dependency';
+is_deeply +MockOutput->get_fail, [[
+    'Unknown step "foo" required in sql/deploy/this.sql'
+]], 'And we should emit an error pointing to the offending script';
