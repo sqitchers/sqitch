@@ -38,6 +38,10 @@ sub tag {
     App::Sqitch::Plan::Tag->new(names => $_[0], steps => $_[1])
 }
 
+my $mocker = Test::MockModule->new($CLASS);
+# Do no sorting for now.
+$mocker->mock(_parse_dependencies => {});
+
 ##############################################################################
 # Test parsing.
 my $file = file qw(t plans widgets.plan);
@@ -289,6 +293,7 @@ is $fh->getline, undef, 'It should be empty';
 
 ##############################################################################
 # Test _parse_dependencies.
+$mocker->unmock('_parse_dependencies');
 can_ok $CLASS, '_parse_dependencies';
 is_deeply $plan->_parse_dependencies([], 'baz'), {},
     'baz.sql should have no dependencies';
@@ -301,43 +306,42 @@ is_deeply $plan->_parse_dependencies([], 'bar'), {
 ##############################################################################
 # Test _sort_steps()
 can_ok $CLASS, '_sort_steps';
-my $mocker = Test::MockModule->new($CLASS);
 my @deps;
 $mocker->mock(_parse_dependencies => sub { shift @deps });
 
 # Start with no dependencies.
 @deps = ({}, {}, {});
-is_deeply [$plan->_sort_steps(['foo'], qw(this that other))],
+is_deeply $plan->_sort_steps(['foo'], qw(this that other)),
     [qw(this that other)], 'Should get original order when no dependencies';
 
 # Have that require this.
 @deps = ({}, {requires => ['this']}, {});
-is_deeply [$plan->_sort_steps(['foo'], qw(this that other))],
+is_deeply $plan->_sort_steps(['foo'], qw(this that other)),
     [qw(this that other)], 'Should get original order when that requires this';
 
 # Have other require that.
 @deps = ({}, {requires => ['this']}, { requires => ['that']});
-is_deeply [$plan->_sort_steps(['foo'], qw(this that other))],
+is_deeply $plan->_sort_steps(['foo'], qw(this that other)),
     [qw(this that other)], 'Should get original order when other requires that';
 
 # Have this require other.
 @deps = ({requires => ['other']}, {}, {});
-is_deeply [$plan->_sort_steps(['foo'], qw(this that other))],
+is_deeply $plan->_sort_steps(['foo'], qw(this that other)),
     [qw(other this that)], 'Should get other first when this requires it';
 
 # Have other other require taht.
 @deps = ({requires => ['other']}, {}, {requires => ['that']});
-is_deeply [$plan->_sort_steps(['foo'], qw(this that other))],
+is_deeply $plan->_sort_steps(['foo'], qw(this that other)),
     [qw(that other this)], 'Should get that, other, this now';
 
 # Have this require other and that.
 @deps = ({requires => ['other', 'that']}, {}, {});
-is_deeply [$plan->_sort_steps(['foo'], qw(this that other))],
+is_deeply $plan->_sort_steps(['foo'], qw(this that other)),
     [qw(other that this)], 'Should get other, that, this now';
 
 # Have this require other and that, and other requore that.
 @deps = ({requires => ['other', 'that']}, {}, {requires => ['that']});
-is_deeply [$plan->_sort_steps(['foo'], qw(this that other))],
+is_deeply $plan->_sort_steps(['foo'], qw(this that other)),
     [qw(that other this)], 'Should get that, other, this again';
 
 # Add a cycle.

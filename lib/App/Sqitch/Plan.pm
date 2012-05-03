@@ -80,7 +80,7 @@ sub _parse {
             if (@curr_tags) {
                 push @plan => App::Sqitch::Plan::Tag->new(
                     names => [@curr_tags],
-                    steps => [@steps],
+                    steps => $self->_sort_steps(\@curr_tags, @steps),
                 );
                 $tags->{$_} = $#plan for @curr_tags;
             }
@@ -127,7 +127,7 @@ sub _parse {
     if (@curr_tags) {
         push @plan => App::Sqitch::Plan::Tag->new(
             names => \@curr_tags,
-            steps => \@steps,
+            steps => $self->_sort_steps(\@curr_tags, @steps),
         );
         $tags->{$_} = $#plan for @curr_tags;
     }
@@ -271,7 +271,7 @@ sub _sort_steps {
             join(", ", @cycles), qq{ and "$last"}
         );
     }
-    return @ret;
+    return \@ret;
 }
 
 sub open_script {
