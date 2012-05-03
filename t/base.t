@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 64;
+use Test::More tests => 67;
 #use Test::More 'no_plan';
 use Test::MockModule;
 use Path::Class;
@@ -228,3 +228,10 @@ is capture_stdout {
     ), 'Should get fail back from do_system die';
 }, "hi there\n", 'The die script should have run';
 
+##############################################################################
+# Test backticks().
+can_ok $CLASS, 'backticks';
+is $sqitch->backticks($^X, 'echo.pl', qw(hi there)),
+    "hi there\n", 'The echo script output should have been returned';
+is $sqitch->backticks($^X, 'die.pl', qw(hi there)),
+    "hi there\n", 'The die script output should have been returned';

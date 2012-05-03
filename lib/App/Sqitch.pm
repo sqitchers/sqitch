@@ -11,6 +11,7 @@ use Config;
 use App::Sqitch::Config;
 use App::Sqitch::Command;
 use Moose;
+use List::Util qw(first);
 use Moose::Util::TypeConstraints;
 use namespace::autoclean;
 
@@ -205,7 +206,8 @@ sub _pod2usage {
     );
 }
 
-# Poached from Module::Build.
+##############################################################################
+# This section poached from Module::Build.
 sub do_system {
     my ($self, @cmd) = @_;
     $self->trace(join ' ' => @cmd);
@@ -216,6 +218,56 @@ sub do_system {
     ) if $status and $! =~ /Argument list too long/i;
     return !$status;
 }
+
+sub backticks {
+    my ($self, @cmd) = @_;
+    if ($self->_have_forkpipe) {
+        my $pid = open my $fh, '-|';
+        if ($pid) {
+            return wantarray ? <$fh> : join '', <$fh>;
+        } else {
+            $self->fail("Cannot execute @cmd: $!") unless defined $pid;
+            exec { $cmd[0] } @cmd or $self->fail("Cannot execute @cmd: $!");
+        }
+    } else {
+        my $cmd = $self->_quote_args(@cmd);
+        return `$cmd`;
+    }
+}
+
+sub _have_forkpipe {
+    return not first { $^O eq $_ } qw(
+        dos
+        MSWin32
+        os2
+        MacOS
+        VMS
+    );
+}
+
+sub _quote_args {
+    # Returns a string that can become [part of] a command line with
+    # proper quoting so that the subprocess sees this same list of args.
+    my $self = shift;
+
+    my @quoted;
+
+    for (@_) {
+        if ( /^[^\s*?!\$<>;\\|'"\[\]\{\}]+$/ ) {
+            # Looks pretty safe
+            push @quoted, $_;
+        } else {
+            # XXX this will obviously have to improve - is there already a
+            # core module lying around that does proper quoting?
+            s/('+)/'"$1"'/g;
+            push @quoted, qq('$_');
+        }
+    }
+
+    return join ' ', @quoted;
+}
+
+##############################################################################
 
 sub _bn {
     require File::Basename;
@@ -408,12 +460,19 @@ configuration files.
 
 =head3 C<do_system>
 
-  if !($cmd->do_system('echo hello')) {
-      $cmd->fail('Ooops');
+  if !($sqitch->do_system('echo hello')) {
+      $sqitch->fail('Ooops');
   }
 
 Executes a system command and waits for it to finish. Returns true if the
 command returned without error, and false if it did not.
+
+=head3 C<backticks>
+
+  my $git_version = $sqitch->backticks(qw(git --version));
+
+Executes a system command and captures its output to C<STDOUT>. Errors are
+igored.
 
 =head3 C<trace>
 

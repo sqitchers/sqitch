@@ -17,6 +17,7 @@ has sqitch => (
     required => 1,
     handles  => [qw(
         do_system
+        backticks
         verbosity
         trace
         debug
@@ -297,6 +298,13 @@ use.
 
 Executes a system command and waits for it to finish. Returns true if the
 command returned without error, and false if it did not.
+
+=head3 C<backticks>
+
+  my $git_version = $cmd->backticks(qw(git --version));
+
+Executes a system command and captures its output to C<STDOUT>. Errors are
+igored.
 
 =head3 C<verbosity>
 
