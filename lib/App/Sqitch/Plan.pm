@@ -209,6 +209,80 @@ sub load_untracked {
     return $self;
 }
 
+sub _parse_dependencies {
+    my ($self, $tag_names, $step) = @_;
+    my $sqitch = $self->sqitch;
+    my $fh     = $self->open_script(
+        step => $step,
+        tags => $tag_names,
+        dir  => $sqitch->deploy_dir,
+    );
+
+    my $comment = qr{#+|--+|/[*]+|;+};
+    my %deps;
+    while (my $line = $fh->getline) {
+        chomp $line;
+        last if $line =~ /\A\s*$/;        # Blank line, no more headers.
+        last if $line !~ /\A\s*$comment/; # Must be a comment line.
+        my ($label, $value) = $line =~ /$comment\s*:(requires|conflicts):\s*(.+)/;
+        push @{ $deps{$label} ||= [] } => split /\s+/ => $value
+            if $label && $value;
+    }
+    return \%deps;
+}
+
+sub _sort_steps {
+    my ($self, $tag_names) = (shift, shift);
+
+    my %pairs;	# all pairs ($l, $r)
+    my %npred;	# number of predecessors
+    my %succ;	# list of successors
+    for my $step (@_) {
+        my $deps = $self->_parse_dependencies($tag_names, $step);
+
+        # Stolen from http://cpansearch.perl.org/src/CWEST/ppt-0.14/bin/tsort.
+        my $p = $pairs{$step} = {};
+        $npred{$step} += 0;
+        # XXX Ignoring conflicts for now.
+        for my $dep (@{ $deps->{requires} || []}) {
+            $p->{$dep}++;
+            $npred{$dep}++;
+            push @{$succ{$step}} => $dep;
+        }
+    }
+
+    # Stolen from http://cpansearch.perl.org/src/CWEST/ppt-0.14/bin/tsort.
+    # Create a list of nodes without predecessors
+    my @list = grep { !$npred{$_} } @_;
+
+    my @ret;
+    while (@list) {
+        my $item = pop @list;
+        unshift @ret => $item;
+        foreach my $child (@{ $succ{$item} }) {
+            push @list, $child unless --$npred{$child};
+        }
+    }
+
+    if (my @cycles = grep { $npred{$_} } @_) {
+        my $last = pop @cycles;
+        $self->sqitch->fail(
+            'Dependency cycle detected beween steps "',
+            join(", ", @cycles), qq{ and "$last"}
+        );
+    }
+    return @ret;
+}
+
+sub open_script {
+    my ($self, %p) = @_;
+    my $sqitch = $self->sqitch;
+    my $file   = $p{dir}->file("$p{step}." . $sqitch->extension);
+    return $file->open('<:encoding(UTF-8)') or $sqitch->fail(
+        "Cannot open $file: $!"
+    );
+}
+
 sub seek {
     my ($self, $name) = @_;
     my $index = $self->_tags->{$name};
@@ -386,6 +460,19 @@ it to iterate over every item.
 Write the plan to the named file. Comments and white space from the original
 plan are I<not> preserved, so be careful to alert the user when overwriting an
 exiting plan file.
+
+=head3 C<open_script>
+
+  my $file_handle = $plan->open_script(
+      step => $step,
+      tags => \@tag_names,
+      dir  => $sqitch->deploy_dir,
+  );
+
+Opens the script corresponding to the named step in the specified directory.
+The C<tags> option is ignored, but may be used in subclasses to open a script
+at a particular point in VCS history. Returns a file handle for reading. The
+script file must be encoded in UTF-8.
 
 =head3 C<parse>
 

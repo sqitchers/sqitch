@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 83;
+use Test::More tests => 101;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Path::Class;
@@ -258,3 +258,94 @@ throws_ok { $plan->write_to($to) } qr/FAIL:/,
 is_deeply +MockOutput->get_fail, [
     ['Cannot write plan with reserved tag "HEAD+"']
 ], 'Should get error message about writing "HEAD+" tag';
+
+##############################################################################
+# Test open_script.
+can_ok $CLASS, 'open_script';
+my $step_file = file qw(sql deploy bar.sql);
+my $fh = $step_file->open('>') or die "Cannot open $step_file: $!\n";
+$fh->say('-- This is a comment');
+$fh->say('# And so is this');
+$fh->say('; and this, wee!');
+$fh->say('/* blah blah blah */');
+$fh->say('-- :requires: foo');
+$fh->say('-- :requires: foo');
+$fh->say('-- :requires:blah blah w00t');
+$fh->say('-- :conflicts: yak');
+$fh->say('-- :conflicts:this that');
+$fh->close;
+ok $fh = $plan->open_script(
+    step => 'bar',
+    dir  => $sqitch->deploy_dir
+), 'Open bar.sql';
+is $fh->getline, "-- This is a comment\n", 'It should be the right file';
+$fh->close;
+
+ok $fh = $plan->open_script(
+    step => 'baz',
+    dir  => $sqitch->deploy_dir
+), 'Open baz.sql';
+is $fh->getline, undef, 'It should be empty';
+
+##############################################################################
+# Test _parse_dependencies.
+can_ok $CLASS, '_parse_dependencies';
+is_deeply $plan->_parse_dependencies([], 'baz'), {},
+    'baz.sql should have no dependencies';
+
+is_deeply $plan->_parse_dependencies([], 'bar'), {
+    requires  => [qw(foo foo blah blah w00t)],
+    conflicts => [qw(yak this that)],
+},  'bar.sql should have a bunch of dependencies';
+
+##############################################################################
+# Test _sort_steps()
+can_ok $CLASS, '_sort_steps';
+my $mocker = Test::MockModule->new($CLASS);
+my @deps;
+$mocker->mock(_parse_dependencies => sub { shift @deps });
+
+# Start with no dependencies.
+@deps = ({}, {}, {});
+is_deeply [$plan->_sort_steps(['foo'], qw(this that other))],
+    [qw(this that other)], 'Should get original order when no dependencies';
+
+# Have that require this.
+@deps = ({}, {requires => ['this']}, {});
+is_deeply [$plan->_sort_steps(['foo'], qw(this that other))],
+    [qw(this that other)], 'Should get original order when that requires this';
+
+# Have other require that.
+@deps = ({}, {requires => ['this']}, { requires => ['that']});
+is_deeply [$plan->_sort_steps(['foo'], qw(this that other))],
+    [qw(this that other)], 'Should get original order when other requires that';
+
+# Have this require other.
+@deps = ({requires => ['other']}, {}, {});
+is_deeply [$plan->_sort_steps(['foo'], qw(this that other))],
+    [qw(other this that)], 'Should get other first when this requires it';
+
+# Have other other require taht.
+@deps = ({requires => ['other']}, {}, {requires => ['that']});
+is_deeply [$plan->_sort_steps(['foo'], qw(this that other))],
+    [qw(that other this)], 'Should get that, other, this now';
+
+# Have this require other and that.
+@deps = ({requires => ['other', 'that']}, {}, {});
+is_deeply [$plan->_sort_steps(['foo'], qw(this that other))],
+    [qw(other that this)], 'Should get other, that, this now';
+
+# Have this require other and that, and other requore that.
+@deps = ({requires => ['other', 'that']}, {}, {requires => ['that']});
+is_deeply [$plan->_sort_steps(['foo'], qw(this that other))],
+    [qw(that other this)], 'Should get that, other, this again';
+
+# Add a cycle.
+@deps = ({requires => ['that']}, {requires => ['this']}, {});
+throws_ok { $plan->_sort_steps(['foo'], qw(this that other)) } qr/FAIL:/,
+    'Should get failure for a cycle';
+is_deeply +MockOutput->get_fail, [[
+    'Dependency cycle detected beween steps "',
+    'this',
+    ' and "that"',
+]], 'The cylce should have been logged';
