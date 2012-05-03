@@ -304,7 +304,7 @@ command returned without error, and false if it did not.
   my $git_version = $cmd->backticks(qw(git --version));
 
 Executes a system command and captures its output to C<STDOUT>. Errors are
-igored.
+ignored.
 
 =head3 C<verbosity>
 
