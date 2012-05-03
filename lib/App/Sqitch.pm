@@ -205,6 +205,18 @@ sub _pod2usage {
     );
 }
 
+# Poached from Module::Build.
+sub do_system {
+    my ($self, @cmd) = @_;
+    $self->trace(join ' ' => @cmd);
+    my $status = system @cmd;
+    $self->warn(
+        "'Argument list' was 'too long', env lengths are ",
+        join '' => map { "$_=>" . length($ENV{$_} . '; ') } sort keys %ENV
+    ) if $status and $! =~ /Argument list too long/i;
+    return !$status;
+}
+
 sub _bn {
     require File::Basename;
     File::Basename::basename($0);
@@ -393,6 +405,15 @@ configuration files.
 =head3 C<verbosity>
 
 =head2 Instance Methods
+
+=head3 C<do_system>
+
+  if !($cmd->do_system('echo hello')) {
+      $cmd->fail('Ooops');
+  }
+
+Executes a system command and waits for it to finish. Returns true if the
+command returned without error, and false if it did not.
 
 =head3 C<trace>
 

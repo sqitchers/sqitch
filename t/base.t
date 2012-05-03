@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 59;
+use Test::More tests => 64;
 #use Test::More 'no_plan';
 use Test::MockModule;
 use Path::Class;
@@ -212,4 +212,19 @@ is capture_stderr {
 is capture_stderr {
     throws_ok { $sqitch->bail(2) } qr/EXITED: 2/
 }, '',  'bail 2 should emit nothing when no messages';
+
+##############################################################################
+# Test do_system().
+can_ok $CLASS, 'do_system';
+is capture_stdout {
+    ok $sqitch->do_system(
+        $^X, 'echo.pl', qw(hi there)
+    ), 'Should get success back from do_system echo';
+}, "hi there\n", 'The echo script should have run';
+
+is capture_stdout {
+    ok !$sqitch->do_system(
+        $^X, 'die.pl', qw(hi there)
+    ), 'Should get fail back from do_system die';
+}, "hi there\n", 'The die script should have run';
 

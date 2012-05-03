@@ -16,6 +16,7 @@ has sqitch => (
     isa      => 'App::Sqitch',
     required => 1,
     handles  => [qw(
+        do_system
         verbosity
         trace
         debug
@@ -137,18 +138,6 @@ sub execute {
         'The execute() method has not been overridden in ',
         ref $self
     );
-}
-
-# Poached from Module::Build.
-sub do_system {
-    my ($self, @cmd) = @_;
-    $self->trace(join ' ' => @cmd);
-    my $status = system @cmd;
-    $self->warn(
-        "'Argument list' was 'too long', env lengths are ",
-        join '' => map { "$_=>" . length($ENV{$_} . '; ') } sort keys %ENV
-    ) if $status and $! =~ /Argument list too long/i;
-    return !$status;
 }
 
 sub usage {
