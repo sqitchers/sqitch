@@ -88,6 +88,28 @@ has sqitch_schema => (
     },
 );
 
+has psql => (
+    is         => 'ro',
+    isa        => 'ArrayRef',
+    lazy       => 1,
+    required   => 1,
+    auto_deref => 1,
+    default  => sub {
+        my $self = shift;
+        my @ret = ($self->client);
+        for my $spec (
+            [username => $self->username],
+            [dbname   => $self->db_name],
+            [host     => $self->host],
+            [port     => $self->port],
+        ) {
+            push @ret, "--$spec->[0]" => $spec->[1] if $spec->[1];
+        }
+
+        return \@ret;
+    },
+);
+
 sub config_vars {
     return (
         client        => 'any',

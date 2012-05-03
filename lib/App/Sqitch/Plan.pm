@@ -27,12 +27,12 @@ has with_untracked => (
 );
 
 has all => (
-    is       => 'ro',
-    isa      => 'ArrayRef[App::Sqitch::Plan::Tag]',
+    is         => 'ro',
+    isa        => 'ArrayRef[App::Sqitch::Plan::Tag]',
     auto_deref => 1,
-    lazy     => 1,
-    required => 1,
-    default  => sub { shift->load }
+    lazy       => 1,
+    required   => 1,
+    default    => sub { shift->load }
 );
 
 has position => (

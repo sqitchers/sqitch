@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use v5.10.1;
-use Test::More tests => 24;
+use Test::More tests => 27;
 #use Test::More 'no_plan';
 use Test::MockModule;
 use App::Sqitch;
@@ -28,12 +28,13 @@ is_deeply [$CLASS->config_vars], [
 my $sqitch = App::Sqitch->new;
 isa_ok my $pg = $CLASS->new(sqitch => $sqitch), $CLASS;
 
-is $pg->client, 'psql' . ($^O eq 'Win32' ? '.exe' : ''),
-    'client should default to psql';
+my $client = 'psql' . ($^O eq 'Win32' ? '.exe' : '');
+is $pg->client, $client, 'client should default to psql';
 is $pg->sqitch_schema, 'sqitch', 'sqitch_schema default should be "sqitch"';
 for my $attr (qw(username password db_name host port)) {
     is $pg->$attr, undef, "$attr default should be undef";
 }
+is_deeply [$pg->psql], [$client], 'psql command should be client-only';
 
 ##############################################################################
 # Make sure config settings override defaults.
@@ -56,6 +57,13 @@ is $pg->password, 's3cr3t', 'password should be as configured';
 is $pg->host, 'db.example.com', 'host should be as configured';
 is $pg->port, 1234, 'port should be as configured';
 is $pg->sqitch_schema, 'meta', 'sqitch_schema should be as configured';
+is_deeply [$pg->psql], [qw(
+    /path/to/psql
+    --username freddy
+    --dbname   widgets
+    --host     db.example.com
+    --port     1234
+)], 'psql command should be configured';
 
 ##############################################################################
 # Now make sure that Sqitch options override configurations.
@@ -75,3 +83,10 @@ is $pg->password, 's3cr3t', 'password should still be as configured';
 is $pg->host, 'foo.com', 'host should be as optioned';
 is $pg->port, 98760, 'port should be as optioned';
 is $pg->sqitch_schema, 'meta', 'sqitch_schema should still be as configured';
+is_deeply [$pg->psql], [qw(
+    /some/other/psql
+    --username anna
+    --dbname   widgets_dev
+    --host     foo.com
+    --port     98760
+)], 'psql command should be as optioned';
