@@ -11,7 +11,6 @@ use Config;
 use App::Sqitch::Config;
 use App::Sqitch::Command;
 use Moose;
-use Try::Tiny;
 use List::Util qw(first);
 use IPC::System::Simple qw(runx capturex $EXITVAL);
 use Moose::Util::TypeConstraints;
