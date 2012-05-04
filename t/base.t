@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 67;
+use Test::More tests => 69;
 #use Test::More 'no_plan';
 use Test::MockModule;
 use Path::Class;
@@ -235,3 +235,9 @@ is $sqitch->backticks($^X, 'echo.pl', qw(hi there)),
     "hi there\n", 'The echo script output should have been returned';
 is $sqitch->backticks($^X, 'die.pl', qw(hi there)),
     "hi there\n", 'The die script output should have been returned';
+
+##############################################################################
+# Test probe().
+can_ok $CLASS, 'probe';
+is $sqitch->probe($^X, 'echo.pl', qw(hi there), "\nyo"),
+    "hi there ", 'Should have just chomped first line of output';

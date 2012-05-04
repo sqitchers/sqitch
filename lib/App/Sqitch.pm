@@ -235,6 +235,12 @@ sub backticks {
     }
 }
 
+sub probe {
+    my ($ret) = shift->backticks(@_);
+    chomp $ret;
+    return $ret;
+}
+
 sub _have_forkpipe {
     return not first { $^O eq $_ } qw(
         dos
@@ -469,10 +475,17 @@ command returned without error, and false if it did not.
 
 =head3 C<backticks>
 
+  my @files = $sqitch->backticks(qw(ls -lah));
+
+Executes a system command and captures its output to C<STDOUT>. Returns the
+output lines in list context and the concatenatio of the lines in scalar
+context. Errors are ignored.
+
+=head3 C<probe>
+
   my $git_version = $sqitch->backticks(qw(git --version));
 
-Executes a system command and captures its output to C<STDOUT>. Errors are
-ignored.
+Like C<backticks>, but returns just the C<chomp>ed first line of output.
 
 =head3 C<trace>
 
