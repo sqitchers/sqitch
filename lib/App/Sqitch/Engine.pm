@@ -34,6 +34,11 @@ sub name {
 
 sub config_vars { return }
 
+sub initialized {
+    require Carp;
+    Carp::confess(ref $_[0] || $_[0] . ' has not implemented initialized()');
+}
+
 sub initialize {
     require Carp;
     Carp::confess(ref $_[0] || $_[0] . ' has not implemented initialize()');
@@ -135,6 +140,13 @@ Instantiates and returns a App::Sqitch::Engine object.
 The name of the engine. Defaults to the last part of the package name, so as a
 rule you should not need to override it, since it is that string that Sqitch
 uses to find the engine class.
+
+=head3 C<initialized>
+
+  $engine->initialize unless $engine->initialized;
+
+Returns true if the database has been initialized for Sqitch, and false if it
+has not.
 
 =head3 C<initialize>
 

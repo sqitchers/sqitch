@@ -7,6 +7,7 @@ use base 'Module::Build';
 sub new {
     my $self = shift->SUPER::new(@_);
     $self->add_build_element('etc');
+    $self->add_build_element('sql');
     return $self;
 }
 

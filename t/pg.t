@@ -3,9 +3,10 @@
 use strict;
 use warnings;
 use v5.10.1;
-#use Test::More tests => 27;
-use Test::More 'no_plan';
+use Test::More;
 use Test::MockModule;
+use Capture::Tiny qw(:all);
+use Try::Tiny;
 use App::Sqitch;
 
 my $CLASS;
@@ -159,8 +160,39 @@ is_deeply \@cap, [$pg->psql, qw(hi there)],
 # Can we do live tests?
 $mock_sqitch->unmock_all;
 $mock_config->unmock_all;
+can_ok $CLASS, qw(initialized initialize);
 
-$sqitch = App::Sqitch->new( 'username' => 'postgres');
-ok $pg = $CLASS->new(sqitch => $sqitch), 'Create a pg with postgres user';
-# if ($pg->_run()) {
-# }
+my @cleanup;
+END {
+    $pg->_run(
+        '--command' => "SET client_min_messages=warning; $_"
+    ) for @cleanup;
+}
+
+subtest 'live database' => sub {
+    $sqitch = App::Sqitch->new('username' => 'postgres');
+    ok $pg = $CLASS->new(sqitch => $sqitch), 'Create a pg with postgres user';
+    try {
+        capture_stderr { $pg->_run('--command', 'SELECT TRUE WHERE FALSE' ) }
+    } catch {
+        plan skip_all => 'Unable to connect to a database for testing';
+    };
+
+    plan 'no_plan';
+
+    ok !$pg->initialized, 'Database should not yet be initialized';
+    ok $pg->initialize, 'Initialize the database';
+    push @cleanup, 'DROP SCHEMA ' . $pg->sqitch_schema . ' CASCADE';
+    ok $pg->initialized, 'Database should now be initialized';
+
+    # Try it with a different schema name.
+    my $mock_pg = Test::MockModule->new($CLASS);
+    $mock_pg->mock(sqitch_schema => '__sqitchtest');
+    ok !$pg->initialized, 'Database should no longer seem initialized';
+    ok $pg->initialize, 'Initialize the database again';
+    push @cleanup, 'DROP SCHEMA __sqitchtest CASCADE';
+    ok $pg->initialized, 'Database should be initialized again';
+
+};
+
+done_testing;

@@ -42,7 +42,7 @@ Module::Build::Sqitch->new(
         'Test::File::Contents' => '0.05',
         'Test::Exception'      => 0,
         'Test::MockModule'     => '0.05',
-        'Test::More'           => '0.17',
+        'Test::More'           => '0.94',
         'Test::NoWarnings'     => '0.083',
         'File::HomeDir'        => 0,
         'File::Path'           => 0,

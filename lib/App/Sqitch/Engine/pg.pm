@@ -131,57 +131,51 @@ sub config_vars {
     );
 }
 
-sub initialize {
-    my $self = shift;
-    $self->sqitch->bail(
-        1, 'Sqitch schema "', $self->sqitch_schema, '" already exists'
-    ) if $self->_has_sqitch;
-
-    my $file = file(__FILE__)->dir->file('pg.sql');
-    return $self->_run(
-        '--file' => $file,
-        '--set'  => 'schema=' . $self->sqitch_schema
-    ) or $self->sqitch->fail('Cannot create ', $self->sqitch_schema);
-}
-
-sub _has_sqitch {
+sub initialized {
     my $self = shift;
     (my $ns = $self->sqitch_schema) =~ s/'/''/g;
-    return $self->_probe(qq{
+    return $self->_probe('--command' => qq{
         SELECT EXISTS(
             SELECT TRUE FROM pg_catalog.pg_namespace WHERE nspname = '$ns'
         )::int
     });
 }
 
-sub _run {
+sub initialize {
     my $self = shift;
-    my $pass = $self->password or return $self->sqitch->run(
-        $self->psql,
-        @_
+    $self->sqitch->bail(
+        1, 'Sqitch schema "', $self->sqitch_schema, '" already exists'
+    ) if $self->initialized;
+
+    my $file = file(__FILE__)->dir->file('pg.sql');
+    return $self->_run(
+        '--file' => $file,
+        '--set'  => 'sqitch_schema=' . $self->sqitch_schema
     );
+}
+
+sub _run {
+    my $self   = shift;
+    my $sqitch = $self->sqitch;
+    my $pass  = $self->password or return $sqitch->run($self->psql, @_);
     local $ENV{PGPASSWORD} = $pass;
-    return $self->sqitch->run($self->psql, @_);
+    return $sqitch->run($self->psql, @_);
 }
 
 sub _cap {
-    my $self = shift;
-    my $pass = $self->password or return $self->sqitch->capture(
-        $self->psql,
-        @_
-    );
+    my $self   = shift;
+    my $sqitch = $self->sqitch;
+    my $pass   = $self->password or return $sqitch->capture($self->psql, @_);
     local $ENV{PGPASSWORD} = $pass;
-    return $self->sqitch->capture($self->psql, @_);
+    return $sqitch->capture($self->psql, @_);
 }
 
 sub _probe {
-    my $self = shift;
-    my $pass = $self->password or return $self->sqitch->probe(
-        $self->psql,
-        @_
-    );
+    my $self   = shift;
+    my $sqitch = $self->sqitch;
+    my $pass   = $self->password or return $sqitch->probe($self->psql, @_);
     local $ENV{PGPASSWORD} = $pass;
-    return $self->sqitch->probe($self->psql, @_);
+    return $sqitch->probe($self->psql, @_);
 }
 
 __PACKAGE__->meta->make_immutable;
@@ -222,9 +216,16 @@ section of the a Sqitch configuration file. The variables and their types are:
 
 =head2 Instance Methods
 
+=head3 C<initialized>
+
+  $pg->initialize unless $pg->initialized;
+
+Returns true if the database has been initialized for Sqitch, and false if it
+has not.
+
 =head3 C<initialize>
 
-  $engine->initialize;
+  $pg->initialize;
 
 Initializes a database for Sqitch by installing the Sqitch metadata schema.
 
