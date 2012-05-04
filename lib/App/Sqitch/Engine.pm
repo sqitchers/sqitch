@@ -34,6 +34,11 @@ sub name {
 
 sub config_vars { return }
 
+sub initialize {
+    require Carp;
+    Carp::confess(ref $_[0] || $_[0] . ' has not implemented initialize()');
+}
+
 __PACKAGE__->meta->make_immutable;
 no Moose;
 
@@ -130,6 +135,14 @@ Instantiates and returns a App::Sqitch::Engine object.
 The name of the engine. Defaults to the last part of the package name, so as a
 rule you should not need to override it, since it is that string that Sqitch
 uses to find the engine class.
+
+=head3 C<initialize>
+
+  $engine->initialize;
+
+Initializes a database for Sqitch by installing the Sqitch metadata schema
+and/or tables. Should be overridden by subclasses. This implementation throws
+an exception
 
 =head1 See Also
 

@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 315;
+use Test::More tests => 313;
 #use Test::More 'no_plan';
 use File::Spec;
 use Test::MockModule;
@@ -1022,21 +1022,16 @@ is_deeply \@fail, ['Cannot overwrite multiple values with a single value'],
 
 ##############################################################################
 # Test edit().
-my @sys;
+my @run;
 my $ret = 1;
-$mock->mock(do_system => sub { shift; @sys = @_; return $ret });
+$mock->mock(run => sub { shift; @run = @_; return $ret });
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
     action  => 'edit',
 }), 'Create system config edit command';
 ok $cmd->execute, 'Execute the edit comand';
-is_deeply \@sys, [$sqitch->editor, $cmd->file],
+is_deeply \@run, [$sqitch->editor, $cmd->file],
     'The editor should have been run';
-
-$ret = 0;
-throws_ok { $cmd->execute } qr/FAIL/, 'Should fail on system failure';
-is_deeply \@sys, [$sqitch->editor, $cmd->file],
-    'The editor should have been run again';
 
 ##############################################################################
 # Make sure we can write to a file in a directory.

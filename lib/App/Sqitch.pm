@@ -11,7 +11,9 @@ use Config;
 use App::Sqitch::Config;
 use App::Sqitch::Command;
 use Moose;
+use Try::Tiny;
 use List::Util qw(first);
+use IPC::System::Simple qw(runx capturex $EXITVAL);
 use Moose::Util::TypeConstraints;
 use namespace::autoclean;
 
@@ -206,74 +208,30 @@ sub _pod2usage {
     );
 }
 
-##############################################################################
-# This section poached from Module::Build.
-sub do_system {
-    my ($self, @cmd) = @_;
-    $self->trace(join ' ' => @cmd);
-    my $status = system @cmd;
-    $self->warn(
-        "'Argument list' was 'too long', env lengths are ",
-        join '' => map { "$_=>" . length($ENV{$_} . '; ') } sort keys %ENV
-    ) if $status and $! =~ /Argument list too long/i;
-    return !$status;
+sub run {
+    my $self = shift;
+    local $SIG{__DIE__} = sub {
+        (my $msg = shift) =~ s/\s+at\s+.+//ms;
+        $self->bail($EXITVAL, $msg);
+    };
+    runx @_;
+    return $self;
 }
 
-sub backticks {
-    my ($self, @cmd) = @_;
-    if ($self->_have_forkpipe) {
-        my $pid = open my $fh, '-|';
-        if ($pid) {
-            return wantarray ? <$fh> : join '', <$fh>;
-        } else {
-            $self->fail("Cannot execute @cmd: $!") unless defined $pid;
-            exec { $cmd[0] } @cmd or $self->fail("Cannot execute @cmd: $!");
-        }
-    } else {
-        my $cmd = $self->_quote_args(@cmd);
-        return `$cmd`;
-    }
+sub capture {
+    my $self = shift;
+    local $SIG{__DIE__} = sub {
+        (my $msg = shift) =~ s/\s+at\s+.+//ms;
+        $self->bail($EXITVAL, $msg);
+    };
+    capturex @_;
 }
 
 sub probe {
-    my ($ret) = shift->backticks(@_);
+    my ($ret) = shift->capture(@_);
     chomp $ret;
     return $ret;
 }
-
-sub _have_forkpipe {
-    return not first { $^O eq $_ } qw(
-        dos
-        MSWin32
-        os2
-        MacOS
-        VMS
-    );
-}
-
-sub _quote_args {
-    # Returns a string that can become [part of] a command line with
-    # proper quoting so that the subprocess sees this same list of args.
-    my $self = shift;
-
-    my @quoted;
-
-    for (@_) {
-        if ( /^[^\s*?!\$<>;\\|'"\[\]\{\}]+$/ ) {
-            # Looks pretty safe
-            push @quoted, $_;
-        } else {
-            # XXX this will obviously have to improve - is there already a
-            # core module lying around that does proper quoting?
-            s/('+)/'"$1"'/g;
-            push @quoted, qq('$_');
-        }
-    }
-
-    return join ' ', @quoted;
-}
-
-##############################################################################
 
 sub _bn {
     require File::Basename;
@@ -464,28 +422,25 @@ configuration files.
 
 =head2 Instance Methods
 
-=head3 C<do_system>
+=head3 C<run>
 
-  if !($sqitch->do_system('echo hello')) {
-      $sqitch->fail('Ooops');
-  }
+  $sqitch->run('echo hello');
 
-Executes a system command and waits for it to finish. Returns true if the
-command returned without error, and false if it did not.
+Runs a system command and waits for it to finish. Bails on error.
 
-=head3 C<backticks>
+=head3 C<capture>
 
-  my @files = $sqitch->backticks(qw(ls -lah));
+  my @files = $sqitch->capture(qw(ls -lah));
 
-Executes a system command and captures its output to C<STDOUT>. Returns the
-output lines in list context and the concatenatio of the lines in scalar
-context. Errors are ignored.
+Runs a system command and captures its output to C<STDOUT>. Returns the output
+lines in list context and the concatenation of the lines in scalar context.
+Bails on error.
 
 =head3 C<probe>
 
-  my $git_version = $sqitch->backticks(qw(git --version));
+  my $git_version = $sqitch->capture(qw(git --version));
 
-Like C<backticks>, but returns just the C<chomp>ed first line of output.
+Like C<capture>, but returns just the C<chomp>ed first line of output.
 
 =head3 C<trace>
 

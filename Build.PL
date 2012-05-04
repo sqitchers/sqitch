@@ -21,6 +21,7 @@ Module::Build::Sqitch->new(
         'Getopt::Long'                                 => 0,
         'Hash::Merge'                                  => 0,
         'IO::File'                                     => 0,
+        'IPC::System::Simple'                          => '1.17',
         'List::Util'                                   => 0,
         'Moose'                                        => '1.15',
         'Moose::Util::TypeConstraints'                 => '1.15',

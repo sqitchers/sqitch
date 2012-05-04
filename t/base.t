@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 69;
+use Test::More tests => 73;
 #use Test::More 'no_plan';
 use Test::MockModule;
 use Path::Class;
@@ -214,27 +214,41 @@ is capture_stderr {
 }, '',  'bail 2 should emit nothing when no messages';
 
 ##############################################################################
-# Test do_system().
-can_ok $CLASS, 'do_system';
-is capture_stdout {
-    ok $sqitch->do_system(
-        $^X, 'echo.pl', qw(hi there)
-    ), 'Should get success back from do_system echo';
-}, "hi there\n", 'The echo script should have run';
+# Test run().
+my $mock = Test::MockModule->new($CLASS);
+my @bail;
+$mock->mock(bail => sub { shift; @bail = @_; die "BAILED: @_" });
 
-is capture_stdout {
-    ok !$sqitch->do_system(
-        $^X, 'die.pl', qw(hi there)
-    ), 'Should get fail back from do_system die';
-}, "hi there\n", 'The die script should have run';
+can_ok $CLASS, 'run';
+my ($stdout, $stderr) = capture {
+    ok $sqitch->run(
+        $^X, 'echo.pl', qw(hi there)
+    ), 'Should get success back from run echo';
+};
+
+is $stdout, "hi there\n", 'The echo script should have run';
+is $stderr, '', 'Nothign should have gone to STDERR';
+
+($stdout, $stderr) = capture {
+    throws_ok {
+        $sqitch->run( $^X, 'die.pl', qw(hi there))
+    } qr/BAILED:/, 'run die should, well, die';
+};
+
+is $stdout, "hi there\n", 'The die script should have its STDOUT ummolested';
+like $stderr, qr/OMGWTF/, 'The die script should have its STDERR unmolested';
 
 ##############################################################################
-# Test backticks().
-can_ok $CLASS, 'backticks';
-is $sqitch->backticks($^X, 'echo.pl', qw(hi there)),
+# Test capture().
+can_ok $CLASS, 'capture';
+is $sqitch->capture($^X, 'echo.pl', qw(hi there)),
     "hi there\n", 'The echo script output should have been returned';
-is $sqitch->backticks($^X, 'die.pl', qw(hi there)),
-    "hi there\n", 'The die script output should have been returned';
+like capture_stderr {
+    throws_ok { $sqitch->capture($^X, 'die.pl', qw(hi there)) } qr/BAILED:/,
+        'Should get an error if the command errors out';
+}, qr/OMGWTF/m, 'The die script STDERR should have passed through';
+is_deeply \@bail, [$? >> 8, qq{"$^X" unexpectedly returned exit value 255}],
+    'The failure should have been sent to bail()';
 
 ##############################################################################
 # Test probe().

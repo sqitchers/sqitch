@@ -283,7 +283,7 @@ sub list {
 sub edit {
     my $self = shift;
     # Let the editor deal with locking.
-    $self->do_system($self->sqitch->editor, $self->file) or $self->fail;
+    $self->run($self->sqitch->editor, $self->file);
 }
 
 sub rename_section {

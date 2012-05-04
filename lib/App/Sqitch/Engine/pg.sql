@@ -3,7 +3,7 @@ BEGIN;
 SET client_min_messages = warning;
 CREATE SCHEMA :sqitch_schema;
 
-COMMENT ON SCHEMA :sqitch_schema IS 'Maintains metadata about Sqitch database deployment.';
+COMMENT ON SCHEMA :sqitch_schema IS 'Sqitch database deployment metadata v1.0.';
 
 CREATE TABLE :sqitch_schema.tags (
     tag        TEXT        PRIMARY KEY,

@@ -16,8 +16,9 @@ has sqitch => (
     isa      => 'App::Sqitch',
     required => 1,
     handles  => [qw(
-        do_system
-        backticks
+        run
+        capture
+        probe
         verbosity
         trace
         debug
@@ -290,21 +291,25 @@ uses to find the command class.
 These methods are mainly provided as utilities for the command subclasses to
 use.
 
-=head3 C<do_system>
+=head3 C<run>
 
-  if !($cmd->do_system('echo hello')) {
-      $cmd->fail('Ooops');
-  }
+  $cmd->run('echo hello');
 
-Executes a system command and waits for it to finish. Returns true if the
-command returned without error, and false if it did not.
+Runs a system command and waits for it to finish. Bails on error.
 
-=head3 C<backticks>
+=head3 C<capture>
 
-  my $git_version = $cmd->backticks(qw(git --version));
+  my @files = $cmd->capture(qw(ls -lah));
 
-Executes a system command and captures its output to C<STDOUT>. Errors are
-ignored.
+Runs a system command and captures its output to C<STDOUT>. Returns the output
+lines in list context and the concatenation of the lines in scalar context.
+Bails on error.
+
+=head3 C<probe>
+
+  my $git_version = $cmd->capture(qw(git --version));
+
+Like C<capture>, but returns just the C<chomp>ed first line of output.
 
 =head3 C<verbosity>
 
