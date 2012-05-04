@@ -295,7 +295,8 @@ use.
 
   $cmd->run('echo hello');
 
-Runs a system command and waits for it to finish. Bails on error.
+Runs a system command and waits for it to finish. Throws an exception on
+error.
 
 =head3 C<capture>
 
@@ -303,7 +304,7 @@ Runs a system command and waits for it to finish. Bails on error.
 
 Runs a system command and captures its output to C<STDOUT>. Returns the output
 lines in list context and the concatenation of the lines in scalar context.
-Bails on error.
+Throws an exception on error.
 
 =head3 C<probe>
 

@@ -210,8 +210,8 @@ sub _pod2usage {
 sub run {
     my $self = shift;
     local $SIG{__DIE__} = sub {
-        (my $msg = shift) =~ s/\s+at\s+.+//ms;
-        $self->bail($EXITVAL, $msg);
+        (my $msg = shift) =~ s/\s+at\s+.+/\n/ms;
+        die $msg;
     };
     runx @_;
     return $self;
@@ -220,8 +220,8 @@ sub run {
 sub capture {
     my $self = shift;
     local $SIG{__DIE__} = sub {
-        (my $msg = shift) =~ s/\s+at\s+.+//ms;
-        $self->bail($EXITVAL, $msg);
+        (my $msg = shift) =~ s/\s+at\s+.+/\n/ms;
+        die $msg;
     };
     capturex @_;
 }
@@ -425,7 +425,8 @@ configuration files.
 
   $sqitch->run('echo hello');
 
-Runs a system command and waits for it to finish. Bails on error.
+Runs a system command and waits for it to finish. Throws an exception on
+error.
 
 =head3 C<capture>
 
@@ -433,7 +434,7 @@ Runs a system command and waits for it to finish. Bails on error.
 
 Runs a system command and captures its output to C<STDOUT>. Returns the output
 lines in list context and the concatenation of the lines in scalar context.
-Bails on error.
+Throws an exception on error.
 
 =head3 C<probe>
 

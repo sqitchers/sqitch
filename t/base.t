@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 73;
+use Test::More tests => 72;
 #use Test::More 'no_plan';
 use Test::MockModule;
 use Path::Class;
@@ -232,7 +232,7 @@ is $stderr, '', 'Nothign should have gone to STDERR';
 ($stdout, $stderr) = capture {
     throws_ok {
         $sqitch->run( $^X, 'die.pl', qw(hi there))
-    } qr/BAILED:/, 'run die should, well, die';
+    } qr/unexpectedly returned/, 'run die should, well, die';
 };
 
 is $stdout, "hi there\n", 'The die script should have its STDOUT ummolested';
@@ -244,11 +244,10 @@ can_ok $CLASS, 'capture';
 is $sqitch->capture($^X, 'echo.pl', qw(hi there)),
     "hi there\n", 'The echo script output should have been returned';
 like capture_stderr {
-    throws_ok { $sqitch->capture($^X, 'die.pl', qw(hi there)) } qr/BAILED:/,
+    throws_ok { $sqitch->capture($^X, 'die.pl', qw(hi there)) }
+        qr/unexpectedly returned/,
         'Should get an error if the command errors out';
 }, qr/OMGWTF/m, 'The die script STDERR should have passed through';
-is_deeply \@bail, [$? >> 8, qq{"$^X" unexpectedly returned exit value 255}],
-    'The failure should have been sent to bail()';
 
 ##############################################################################
 # Test probe().
