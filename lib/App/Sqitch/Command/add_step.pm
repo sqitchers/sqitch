@@ -35,16 +35,17 @@ has variables => (
     required => 1,
     lazy     => 1,
     default  => sub {
-        shift->sqitch->config->get_section(section => 'add-step.variables');
+        shift->sqitch->config->get_section( section => 'add-step.variables' );
     },
 );
 
 has template_directory => (
-    is       => 'ro',
-    isa      => 'Maybe[Path::Class::Dir]',
-    lazy     => 1,
+    is      => 'ro',
+    isa     => 'Maybe[Path::Class::Dir]',
+    lazy    => 1,
     default => sub {
-        dir shift->sqitch->config->get(key => "add-step.template_directory");
+        dir
+          shift->sqitch->config->get( key => "add-step.template_directory" );
     }
 );
 
@@ -70,14 +71,15 @@ for my $script (qw(deploy revert test)) {
 }
 
 sub _find {
-    my ($self, $script) = @_;
+    my ( $self, $script ) = @_;
     my $config = $self->sqitch->config;
-    $config->get(key => "add-step.$script\_template") || do {
+    $config->get( key => "add-step.$script\_template" ) || do {
         for my $dir (
             $self->template_directory,
             $config->user_dir->subdir('templates'),
             $config->system_dir->subdir('templates'),
-        ) {
+          )
+        {
             next unless $dir;
             my $tmpl = $dir->file("$script.tmpl");
             return $tmpl if -f $tmpl;
@@ -88,29 +90,29 @@ sub _find {
 
 sub options {
     return qw(
-        requires|r=s@
-        conflicts|c=s@
-        set|s=s%
-        template-directory=s
-        deploy-template=s
-        revert-template=s
-        test-template=s
-        deploy!
-        revert!
-        test!
+      requires|r=s@
+      conflicts|c=s@
+      set|s=s%
+      template-directory=s
+      deploy-template=s
+      revert-template=s
+      test-template=s
+      deploy!
+      revert!
+      test!
     );
 }
 
 sub configure {
-    my ($class, $config, $opt) = @_;
+    my ( $class, $config, $opt ) = @_;
 
     my %params = (
-        requires => $opt->{requires}   || [],
+        requires  => $opt->{requires}  || [],
         conflicts => $opt->{conflicts} || [],
     );
 
     $params{template_directory} = dir $opt->{template_directory}
-        if $opt->{template_directory};
+      if $opt->{template_directory};
 
     for my $attr (qw(deploy revert test)) {
         $params{"with_$attr"} = $opt->{$attr} if exists $opt->{$attr};
@@ -118,11 +120,12 @@ sub configure {
         $params{$t} = file $opt->{$t} if $opt->{$t};
     }
 
-    if (my $vars = $opt->{set}) {
+    if ( my $vars = $opt->{set} ) {
+
         # Merge with config.
         $params{variables} = {
-            %{ $config->get_section(section => 'add-step.variables') },
-            %{ $vars },
+            %{ $config->get_section( section => 'add-step.variables' ) },
+            %{$vars},
         };
     }
 
@@ -130,59 +133,51 @@ sub configure {
 }
 
 sub execute {
-    my ($self, $name) = @_;
+    my ( $self, $name ) = @_;
     $self->usage unless defined $name;
     my $sqitch = $self->sqitch;
 
     # Avoid if any of the scripts already exist.
     my $fn = "$name." . $sqitch->extension;
-    $self->fail(qq{Step "$name" already exists}) if grep { -e $_->file($fn) } (
-        $sqitch->deploy_dir,
-        $sqitch->revert_dir,
-        $sqitch->test_dir,
-    );
+    $self->fail(qq{Step "$name" already exists})
+      if grep { -e $_->file($fn) }
+          ( $sqitch->deploy_dir, $sqitch->revert_dir, $sqitch->test_dir, );
 
-    $self->_add(
-        $name,
-        $self->deploy_template,
-        $self->sqitch->deploy_dir,
-    ) if $self->with_deploy;
+    $self->_add( $name, $self->deploy_template, $self->sqitch->deploy_dir, )
+      if $self->with_deploy;
 
-    $self->_add(
-        $name,
-        $self->revert_template,
-        $self->sqitch->revert_dir,
-    ) if $self->with_revert;
+    $self->_add( $name, $self->revert_template, $self->sqitch->revert_dir, )
+      if $self->with_revert;
 
-    $self->_add(
-        $name,
-        $self->test_template,
-        $self->sqitch->test_dir,
-    ) if $self->with_test;
+    $self->_add( $name, $self->test_template, $self->sqitch->test_dir, )
+      if $self->with_test;
 
     return $self;
 }
 
 sub _add {
-    my ($self, $name, $in, $out_dir) = @_;
+    my ( $self, $name, $in, $out_dir ) = @_;
     make_path $out_dir, { error => \my $err };
-    if (my $diag = shift @{ $err }) {
-        my ($path, $msg) = %{ $diag };
+    if ( my $diag = shift @{$err} ) {
+        my ( $path, $msg ) = %{$diag};
         $self->fail("Error creating $path: $msg") if $path;
         $self->fail($msg);
     }
 
-    my $out = $out_dir->file("$name." . $self->sqitch->extension);
+    my $out = $out_dir->file( "$name." . $self->sqitch->extension );
     open my $fh, '>:utf8', $out or $self->fail("Cannot open $out: $!");
     my $orig_selected = select;
     select $fh;
 
-    Template::Tiny->new->process($self->_load($in), {
-        %{ $self->variables },
-        step      => $name,
-        requires  => $self->requires,
-        conflicts => $self->conflicts,
-    });
+    Template::Tiny->new->process(
+        $self->_load($in),
+        {
+            %{ $self->variables },
+            step      => $name,
+            requires  => $self->requires,
+            conflicts => $self->conflicts,
+        }
+    );
 
     close $fh or $self->fail("Cannot close $out: $!");
     select $orig_selected;
@@ -190,9 +185,9 @@ sub _add {
 }
 
 sub _load {
-    my ($self, $tmpl) = @_;
+    my ( $self, $tmpl ) = @_;
     open my $fh, "<:encoding(UTF-8)", $tmpl
-        or $self->fail("cannot open $tmpl: $!");
+      or $self->fail("cannot open $tmpl: $!");
     local $/;
     return \<$fh>;
 }
@@ -275,8 +270,8 @@ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,

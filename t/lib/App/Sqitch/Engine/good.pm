@@ -1,4 +1,4 @@
-<>package App::Sqitch::Engine::good;
+<> package App::Sqitch::Engine::good;
 use parent 'App::Sqitch::Engine';
 1;
 

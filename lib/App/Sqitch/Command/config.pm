@@ -14,64 +14,82 @@ extends 'App::Sqitch::Command';
 
 our $VERSION = '0.30';
 
-has file => (is => 'ro', lazy => 1, default => sub {
-    my $self = shift;
-    my $meth = ($self->context || 'local') . '_file';
-    return $self->sqitch->config->$meth;
-});
+has file => (
+    is      => 'ro',
+    lazy    => 1,
+    default => sub {
+        my $self = shift;
+        my $meth = ( $self->context || 'local' ) . '_file';
+        return $self->sqitch->config->$meth;
+    }
+);
 
-has action  => (is => 'ro', isa => enum([qw(
-    get
-    get-all
-    get-regex
-    set
-    unset
-    list
-    edit
-    add
-    replace-all
-    unset-all
-    rename-section
-    remove-section
-)]));
-has context => (is => 'ro', isa => maybe_type enum([qw(
-    local
-    user
-    system
-)]));
-has type => (is => 'ro', isa => enum([qw(int num bool bool-or-int)]));
+has action => (
+    is  => 'ro',
+    isa => enum(
+        [
+            qw(
+              get
+              get-all
+              get-regex
+              set
+              unset
+              list
+              edit
+              add
+              replace-all
+              unset-all
+              rename-section
+              remove-section
+              )
+        ]
+    )
+);
+has context => (
+    is  => 'ro',
+    isa => maybe_type enum(
+        [
+            qw(
+              local
+              user
+              system
+              )
+        ]
+    )
+);
+has type => ( is => 'ro', isa => enum( [qw(int num bool bool-or-int)] ) );
 
 sub options {
     return qw(
-        file|config-file|f=s
-        local
-        user
-        system
+      file|config-file|f=s
+      local
+      user
+      system
 
-        int
-        bool
-        bool-or-int
-        num
+      int
+      bool
+      bool-or-int
+      num
 
-        get
-        get-all
-        get-regex
-        add
-        replace-all
-        unset
-        unset-all
-        rename-section
-        remove-section
-        list|l
-        edit|e
+      get
+      get-all
+      get-regex
+      add
+      replace-all
+      unset
+      unset-all
+      rename-section
+      remove-section
+      list|l
+      edit|e
     );
 }
 
 sub configure {
-    my ($class, $config, $opt) = @_;
+    my ( $class, $config, $opt ) = @_;
 
     # Make sure we are accessing only one file.
-    my @file = grep { $opt->{$_} }  qw(local user system file);
+    my @file = grep { $opt->{$_} } qw(local user system file);
     $class->usage('Only one config file at a time.') if @file > 1;
 
     # Make sure we have only one type.
@@ -80,17 +98,17 @@ sub configure {
 
     # Make sure we are performing only one action.
     my @action = grep { $opt->{$_} } qw(
-        get
-        get-all
-        get-regex
-        unset
-        list
-        edit
-        add
-        replace-all
-        unset_all
-        rename-section
-        remove-section
+      get
+      get-all
+      get-regex
+      unset
+      list
+      edit
+      add
+      replace-all
+      unset_all
+      rename-section
+      remove-section
     );
     $class->usage('Only one action at a time.') if @action > 1;
 
@@ -99,25 +117,25 @@ sub configure {
 
     # Make it so.
     return {
-        ($action[0]   ? (action  => $action[0])   : ()),
-        ($type[0]     ? (type    => $type[0])     : ()),
-        ($context     ? (context => $context)     : ()),
-        ($opt->{file} ? (file    => $opt->{file}) : ()),
+        ( $action[0]   ? ( action  => $action[0] )   : () ),
+        ( $type[0]     ? ( type    => $type[0] )     : () ),
+        ( $context     ? ( context => $context )     : () ),
+        ( $opt->{file} ? ( file    => $opt->{file} ) : () ),
     };
 }
 
 sub execute {
     my $self = shift;
-    my $action = $self->action || (@_ > 1 ? 'set' : 'get');
+    my $action = $self->action || ( @_ > 1 ? 'set' : 'get' );
     $action =~ s/-/_/g;
     my $meth = $self->can($action)
-        or die 'No method defined for ', $self->action, ' action';
+      or die 'No method defined for ', $self->action, ' action';
 
-    return $self->$meth(@_)
+    return $self->$meth(@_);
 }
 
 sub get {
-    my ($self, $key, $rx) = @_;
+    my ( $self, $key, $rx ) = @_;
     $self->usage('Wrong number of arguments.') if !defined $key || $key eq '';
 
     my $val = try {
@@ -127,9 +145,10 @@ sub get {
             as     => $self->type,
             human  => 1,
         );
-    } catch {
+    }
+    catch {
         $self->fail(qq{More then one value for the key "$key"})
-            if /^\QMultiple values/i;
+          if /^\QMultiple values/i;
         $self->fail($_);
     };
 
@@ -139,7 +158,7 @@ sub get {
 }
 
 sub get_all {
-    my ($self, $key, $rx) = @_;
+    my ( $self, $key, $rx ) = @_;
     $self->usage('Wrong number of arguments.') if !defined $key || $key eq '';
 
     my @vals = try {
@@ -149,67 +168,70 @@ sub get_all {
             as     => $self->type,
             human  => 1,
         );
-    } catch {
+    }
+    catch {
         $self->fail($_);
     };
     $self->unfound unless @vals;
-    $self->emit(join $/, @vals);
+    $self->emit( join $/, @vals );
     return $self;
 }
 
 sub get_regex {
-    my ($self, $key, $rx) = @_;
+    my ( $self, $key, $rx ) = @_;
     $self->usage('Wrong number of arguments.') if !defined $key || $key eq '';
 
     my $config = $self->sqitch->config;
-    my %vals = try {
+    my %vals   = try {
         $config->get_regexp(
             key    => $key,
             filter => $rx,
             as     => $self->type,
             human  => 1,
         );
-    } catch {
+    }
+    catch {
         $self->fail($_);
     };
     $self->unfound unless %vals;
     my @out;
-    for my $key (sort keys %vals) {
-        if (defined $vals{$key}) {
+    for my $key ( sort keys %vals ) {
+        if ( defined $vals{$key} ) {
             if ( $config->is_multiple($key) ) {
-                push @out => "$key=[" . join(', ', @{$vals{$key}}) . ']';
+                push @out => "$key=[" . join( ', ', @{ $vals{$key} } ) . ']';
             }
             else {
                 push @out => "$key=$vals{$key}";
             }
-        } else {
+        }
+        else {
             push @out => $key;
         }
     }
-    $self->emit(join $/ => @out);
+    $self->emit( join $/ => @out );
 
     return $self;
 }
 
 sub set {
-    my ($self, $key, $value, $rx) = @_;
-    $self->_set($key, $value, $rx, multiple => 0);
+    my ( $self, $key, $value, $rx ) = @_;
+    $self->_set( $key, $value, $rx, multiple => 0 );
 }
 
 sub add {
-    my ($self, $key, $value) = @_;
-    $self->_set($key, $value, undef, multiple => 1);
+    my ( $self, $key, $value ) = @_;
+    $self->_set( $key, $value, undef, multiple => 1 );
 }
 
 sub replace_all {
-    my ($self, $key, $value, $rx) = @_;
-    $self->_set($key, $value, $rx, multiple => 1, replace_all => 1);
+    my ( $self, $key, $value, $rx ) = @_;
+    $self->_set( $key, $value, $rx, multiple => 1, replace_all => 1 );
 }
 
 sub _set {
-    my ($self, $key, $value, $rx, @p) = @_;
+    my ( $self, $key, $value, $rx, @p ) = @_;
     $self->usage('Wrong number of arguments.')
-        if !defined $key || $key eq '' || !defined $value;
+      if !defined $key || $key eq '' || !defined $value;
 
     $self->_touch_dir;
     try {
@@ -221,9 +243,10 @@ sub _set {
             as       => $self->type,
             @p,
         );
-    } catch {
+    }
+    catch {
         $self->fail('Cannot overwrite multiple values with a single value')
-            if /^Multiple occurrences/i;
+          if /^Multiple occurrences/i;
         $self->fail($_);
     };
     return $self;
@@ -238,7 +261,7 @@ sub _file_config {
 }
 
 sub unset {
-    my ($self, $key, $rx) = @_;
+    my ( $self, $key, $rx ) = @_;
     $self->usage('Wrong number of arguments.') if !defined $key || $key eq '';
     $self->_touch_dir;
 
@@ -249,16 +272,17 @@ sub unset {
             filter   => $rx,
             multiple => 0,
         );
-    } catch {
+    }
+    catch {
         $self->fail('Cannot unset key with multiple values')
-            if /^Multiple occurrences/i;
+          if /^Multiple occurrences/i;
         $self->fail($_);
     };
     return $self;
 }
 
 sub unset_all {
-    my ($self, $key, $rx) = @_;
+    my ( $self, $key, $rx ) = @_;
     $self->usage('Wrong number of arguments.') if !defined $key || $key eq '';
 
     $self->_touch_dir;
@@ -273,25 +297,28 @@ sub unset_all {
 
 sub list {
     my $self = shift;
-    my $config = $self->context
-        ? $self->_file_config
-        : $self->sqitch->config;
-    $self->emit(scalar $config->dump) if $config;
+    my $config =
+        $self->context
+      ? $self->_file_config
+      : $self->sqitch->config;
+    $self->emit( scalar $config->dump ) if $config;
     return $self;
 }
 
 sub edit {
     my $self = shift;
+
     # Let the editor deal with locking.
-    $self->run($self->sqitch->editor, $self->file);
+    $self->run( $self->sqitch->editor, $self->file );
 }
 
 sub rename_section {
-    my ($self, $old_name, $new_name) = @_;
-    unless (
-           defined $old_name && $old_name ne ''
-        && defined $new_name && $new_name ne ''
-    ) {
+    my ( $self, $old_name, $new_name ) = @_;
+    unless ( defined $old_name
+        && $old_name ne ''
+        && defined $new_name
+        && $new_name ne '' )
+    {
         $self->usage('Wrong number of arguments.');
     }
 
@@ -301,7 +328,8 @@ sub rename_section {
             to       => $new_name,
             filename => $self->file
         );
-    } catch {
+    }
+    catch {
         $self->fail('No such section!') if /\Qno such section/i;
         $self->fail($_);
     };
@@ -309,15 +337,16 @@ sub rename_section {
 }
 
 sub remove_section {
-    my ($self, $section) = @_;
+    my ( $self, $section ) = @_;
     $self->usage('Wrong number of arguments.')
-        unless defined $section && $section ne '';
+      unless defined $section && $section ne '';
     try {
         $self->sqitch->config->remove_section(
             section  => $section,
             filename => $self->file
         );
-    } catch {
+    }
+    catch {
         $self->fail('No such section!') if /\Qno such section/i;
         die $_;
     };
@@ -326,10 +355,10 @@ sub remove_section {
 
 sub _touch_dir {
     my $self = shift;
-    unless (-e $self->file) {
+    unless ( -e $self->file ) {
         require File::Basename;
-        my $dir = File::Basename::dirname($self->file);
-        unless (-e $dir && -d _) {
+        my $dir = File::Basename::dirname( $self->file );
+        unless ( -e $dir && -d _ ) {
             require File::Path;
             File::Path::make_path($dir);
         }
@@ -343,7 +372,8 @@ __END__
 
 =head1 Name
 
-App::Sqitch::Command::config - Get and set local, user, or system Sqitch options
+App::Sqitch::Command::config - Get and set local, user, or system Sqitch
+options
 
 =head1 Synopsis
 
@@ -531,9 +561,9 @@ Replace all matching values.
   $config->unset($key);
   $config->unset($key, $regex);
 
-Unsets a key. If the optional second argument is passed, the key will be unset
-only if the value matches the regular expression. If the key has multiple
-values, C<unset()> will exit with an error.
+Unsets a key. If the optional second argument is passed, the key will be
+unset only if the value matches the regular expression. If the key has
+multiple values, C<unset()> will exit with an error.
 
 =head3 C<unset_all>
 
@@ -561,16 +591,16 @@ Removes a section. Exits with an error if the section does not exist.
   $config->list;
 
 Lists all of the values in the configuration. If the context is C<local>,
-C<user>, or C<system>, only the settings set for that context will be emitted.
-Otherwise, all settings will be listed.
+C<user>, or C<system>, only the settings set for that context will be
+emitted. Otherwise, all settings will be listed.
 
 =head3 C<edit>
 
   $config->edit;
 
 Opens the context-specific configuration file in a text editor for direct
-editing. If no context is specified, the local config file will be opened. The
-editor is determined by L<Sqitch/editor>.
+editing. If no context is specified, the local config file will be opened.
+The editor is determined by L<Sqitch/editor>.
 
 =head2 Instance Accessors
 
@@ -578,9 +608,9 @@ editor is determined by L<Sqitch/editor>.
 
   my $file_name = $config->file;
 
-Returns the path to the configuration file to be acted upon. If the context is
-C<system>, then the value returned is C<$($etc_prefix)/sqitch.conf>. If the
-context is C<user>, then the value returned is C<~/.sqitch/sqitch.conf>.
+Returns the path to the configuration file to be acted upon. If the context
+is C<system>, then the value returned is C<$($etc_prefix)/sqitch.conf>. If
+the context is C<user>, then the value returned is C<~/.sqitch/sqitch.conf>.
 Otherwise, the default is F<./sqitch.conf>.
 
 =head1 See Also
@@ -620,8 +650,8 @@ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,

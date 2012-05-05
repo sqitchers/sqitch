@@ -15,3 +15,4 @@ command will be displayed.
 =head1 Sqitch
 
 Part of the L<sqitch> suite.
+

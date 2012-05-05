@@ -23,8 +23,8 @@ Eventually move to L<sqitchintro>?
 
 =item No opinions
 
-Sqitch is not integrated with any framework, ORM, or platform. Rather, it is a
-standalone change management system with no opinions on your database or
+Sqitch is not integrated with any framework, ORM, or platform. Rather, it is
+a standalone change management system with no opinions on your database or
 development choices.
 
 =item Native scripting
@@ -57,17 +57,17 @@ changes.
 =item Bundling
 
 Rely on your VCS history for deployment but have Sqitch bundle up changes for
-distribution. Sqitch can read your VCS history and write out a plan file along
-with the appropriate deployment and reversion scripts. Once the bundle is
-installed on a new system, Sqitch can use the plan file to deploy or the
+distribution. Sqitch can read your VCS history and write out a plan file
+along with the appropriate deployment and reversion scripts. Once the bundle
+is installed on a new system, Sqitch can use the plan file to deploy or the
 changes in the proper order.
 
 =item Reduced Duplication
 
 If you're using a VCS to track your changes, you don't have to duplicate
 entire change scripts for simple changes. As long as the changes are
-L<idempotent|http://en.wikipedia.org/wiki/Idempotence>, you can change
-your code directly, and Sqitch will know it needs to be updated.
+L<idempotent|http://en.wikipedia.org/wiki/Idempotence>, you can change your
+code directly, and Sqitch will know it needs to be updated.
 
 =back
 
@@ -91,8 +91,8 @@ name.
 
 A known deployment state with a list one or more steps that define the tag. A
 tag also implies that steps from previous tags in the plan have been applied.
-Think of it is a version number or VCS revision. A given point in the plan may
-have one or more tags.
+Think of it is a version number or VCS revision. A given point in the plan
+may have one or more tags.
 
 =item C<state>
 
@@ -103,9 +103,9 @@ the most recent tag, then it is considered "up-to-date".
 =item C<plan>
 
 A list of one or more tags and associated steps that define the order of
-deployment execution. Sqitch reads the plan to determine what steps to execute
-to change the database from one state to another. The plan may be represented
-by a L<Plan File> or by VCS history.
+deployment execution. Sqitch reads the plan to determine what steps to
+execute to change the database from one state to another. The plan may be
+represented by a L<Plan File> or by VCS history.
 
 =item C<deploy>
 
@@ -188,8 +188,9 @@ in the current path named appropriately for the specified engine.
 
 Name of the database. For some engines, such as
 L<PostgreSQL|http://postgresql.org/> and L<MySQL|http://mysql.com/>, the
-database must already exist. For others, such as L<SQLite|http://sqlite.org/>,
-the database will be automatically created on first connect.
+database must already exist. For others, such as
+L<SQLite|http://sqlite.org/>, the database will be automatically created on
+first connect.
 
 =item C<-u>
 
@@ -201,7 +202,8 @@ the database will be automatically created on first connect.
   sqitch --user postgres
   sqitch -u Mom
 
-User name to use when connecting to the database. Does not apply to all engines.
+User name to use when connecting to the database. Does not apply to all
+engines.
 
 =item C<--host>
 
@@ -489,9 +491,9 @@ commit. Property name: C<deploy.to>.
 
 =item C<--untracked>
 
-Also deploy any steps that have been added to the F<deploy> directory but have
-not yet been added to the plan or committed to the VCS. Useful when developing
-new deployment steps but have not yet committed them.
+Also deploy any steps that have been added to the F<deploy> directory but
+have not yet been added to the plan or committed to the VCS. Useful when
+developing new deployment steps but have not yet committed them.
 
 =back
 
@@ -515,9 +517,9 @@ C<revert.to>.
 
 =item C<test>
 
-Test changes. All SQL scripts in C<--test-dir> will be run.
-[XXX Not sure whether to have subdirectories for tests and expected output and
-to diff them, or to use some other approach.]
+Test changes. All SQL scripts in C<--test-dir> will be run. [XXX Not sure
+whether to have subdirectories for tests and expected output and to diff
+them, or to use some other approach.]
 
 =item L<C<config>|sqitch-config>
 
@@ -527,30 +529,30 @@ will be written to the local configuration file, F<sqitch.conf>
 =item C<bundle>
 
 Bundle up deployment and reversion scripts and write out a plan file.
-Configuration properties may be specified under the C<[bundle]> section of the
-configuration file, or via C<sqitch config bundle.$property $value> command.
-Options and configuration properties:
+Configuration properties may be specified under the C<[bundle]> section of
+the configuration file, or via C<sqitch config bundle.$property $value>
+command. Options and configuration properties:
 
 =over
 
 =item C<--from>
 
 Tag to start the plan from. All tags and steps prior to that tag will not be
-included in the plan, and their change scripts Will be omitted from the bundle
-directory. Useful if you've rejiggered your deployment steps to start from a
-point later in your VCS history than the beginning of time. Property name:
-C<bundle.from>.
+included in the plan, and their change scripts Will be omitted from the
+bundle directory. Useful if you've rejiggered your deployment steps to start
+from a point later in your VCS history than the beginning of time. Property
+name: C<bundle.from>.
 
 =item C<--to>
 
 Tag with which to end the plan. No steps or tags after that tag will be
-included in the plan, and their change scripts will be omitted from the bundle
-directory. Property name: C<bundle.to>.
+included in the plan, and their change scripts will be omitted from the
+bundle directory. Property name: C<bundle.to>.
 
 =item C<--tags-only>
 
-Write the plan file with deployment targets listed under VCS tags, rather than
-individual commits. Property name: C<bundle.tags_only>.
+Write the plan file with deployment targets listed under VCS tags, rather
+than individual commits. Property name: C<bundle.tags_only>.
 
 =item C<--destdir>
 
@@ -562,22 +564,22 @@ name: C<bundle.destdir>.
 
 =item L<C<help>|sqitch-help>
 
-Show help for a specific command or, if no command is specified, show the same
-documentation as C<--help>.
+Show help for a specific command or, if no command is specified, show the
+same documentation as C<--help>.
 
 =back
 
 =head1 Configuration
 
 Sqitch configuration can be set up on a project, user, or system-wide basis.
-The format of the configuration file, named F<sqitch.conf>, is the same as for
-L<git>.
+The format of the configuration file, named F<sqitch.conf>, is the same as
+for L<git>.
 
 Here's an example of a configuration file that might be useful checked into a
-VCS for a project that deploys to PostgreSQL and stores its deployment scripts
-with the extension F<ddl> under the C<migrations> directory. It also wants
-bundle to be created in the F<_build/sql> directory, and to deploy starting
-with the "gamma" tag:
+VCS for a project that deploys to PostgreSQL and stores its deployment
+scripts with the extension F<ddl> under the C<migrations> directory. It also
+wants bundle to be created in the F<_build/sql> directory, and to deploy
+starting with the "gamma" tag:
 
   [core]
       engine    = pg
@@ -614,10 +616,10 @@ accordingly. See L<sqitch-config> for a list.
 
 A plan file describes the deployment tags and scripts to be run against a
 database. In general, if you use a VCS, you probably won't need a plan file,
-since your VCS history should be able to provide all the information necessary
-to derive a deployment plan. However, if you really do need to maintain a plan
-file by hand, or just want to better understand the file as output by the
-C<bundle> command, read on.
+since your VCS history should be able to provide all the information
+necessary to derive a deployment plan. However, if you really do need to
+maintain a plan file by hand, or just want to better understand the file as
+output by the C<bundle> command, read on.
 
 =head2 Format
 
@@ -630,8 +632,8 @@ state and a single step:
  [alpha]
  users_table
 
-The state has one tag, named "alpha", and one step, named "users_table".
-A state may of course have many steps. Here's an expansion:
+The state has one tag, named "alpha", and one step, named "users_table". A
+state may of course have many steps. Here's an expansion:
 
  [root alpha]
  users_table
@@ -659,14 +661,14 @@ states:
  ftw
 
 Using this plan, to deploy to the "beta" tag, the "root"/"alpha" state steps
-must be deployed, as must the "beta" steps. To then deploy to the "gamma" tag,
-the "ftw" step must be deployed. If you then choose to revert to the "alpha"
-tag, then the "gamma" step ("ftw") and all of the "beta" steps will be
-reverted in reverse order.
+must be deployed, as must the "beta" steps. To then deploy to the "gamma"
+tag, the "ftw" step must be deployed. If you then choose to revert to the
+"alpha" tag, then the "gamma" step ("ftw") and all of the "beta" steps will
+be reverted in reverse order.
 
 Using this model, steps cannot be repeated between states. One can repeat
-them, however, if the contents for a file in a given tag can be retrieved from
-a VCS. An example:
+them, however, if the contents for a file in a given tag can be retrieved
+from a VCS. An example:
 
  [alpha]
  users_table
@@ -686,11 +688,11 @@ a VCS. An example:
 
 This example is derived from a Git log history. Note that the "add_widget"
 step is repeated under the state tagged "beta" and under the last state.
-Sqitch will notice the repetition when it parses this file, and then, if it is
-applying all changes, will fetch the version of the file as of the "beta" tag
-and apply it at that step, and then, when it gets to the last tag, retrieve
-the deployment file as of its tags and apply it. This works in reverse, as
-well, as long as the changes in this file are always
+Sqitch will notice the repetition when it parses this file, and then, if it
+is applying all changes, will fetch the version of the file as of the "beta"
+tag and apply it at that step, and then, when it gets to the last tag,
+retrieve the deployment file as of its tags and apply it. This works in
+reverse, as well, as long as the changes in this file are always
 L<idempotent|http://en.wikipedia.org/wiki/Idempotence>.
 
 =head2 Grammar
@@ -723,15 +725,18 @@ The original design for Sqitch was sketched out in a number of blog posts:
 
 =item *
 
-L<Simple SQL Change Management|http://justatheory.com/computers/databases/simple-sql-change-management.html>
+L<Simple SQL Change
+Management|http://justatheory.com/computers/databases/simple-sql-change-management.html>
 
 =item *
 
-L<VCS-Enabled SQL Change Management|http://justatheory.com/computers/databases/vcs-sql-change-management.html>
+L<VCS-Enabled SQL Change
+Management|http://justatheory.com/computers/databases/vcs-sql-change-management.html>
 
 =item *
 
-L<SQL Change Management Sans Duplication|http://justatheory.com/computers/databases/sql-change-management-sans-redundancy.html>
+L<SQL Change Management Sans
+Duplication|http://justatheory.com/computers/databases/sql-change-management-sans-redundancy.html>
 
 =back
 
@@ -774,8 +779,8 @@ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,

@@ -14,16 +14,15 @@ our $VERSION = '0.30';
 # XXX Add --all at some point, to output a list of all possible commands.
 
 sub execute {
-    my ($self, $command) = @_;
-    my $look_for = 'sqitch' . ($command ? "-$command" : '');
-    my $pod = Pod::Find::pod_where(
-        {'-inc' => 1, '-script' => 1 },
-        $look_for,
-    ) or $self->fail(qq{No manual entry for $look_for\n});
+    my ( $self, $command ) = @_;
+    my $look_for = 'sqitch' . ( $command ? "-$command" : '' );
+    my $pod =
+      Pod::Find::pod_where( { '-inc' => 1, '-script' => 1 }, $look_for, )
+      or $self->fail(qq{No manual entry for $look_for\n});
     $self->_pod2usage(
-        '-input'    => $pod,
-        '-verbose'  => 2,
-        '-exitval'  => 0,
+        '-input'   => $pod,
+        '-verbose' => 2,
+        '-exitval' => 0,
     );
 }
 
@@ -43,8 +42,8 @@ App::Sqitch::Command::help - Display help information about Sqitch
 =head1 Description
 
 If you want to know how to use the C<help> command, you probably want to be
-reading C<sqitch-help>. But if you really want to know how the C<help> command
-works, read on.
+reading C<sqitch-help>. But if you really want to know how the C<help>
+command works, read on.
 
 =head1 Interface
 
@@ -54,9 +53,10 @@ works, read on.
 
   $help->execute($command);
 
-Executes the help command. If a command is passed, the help for that command will
-be shown. If it cannot be found, Sqitch will throw an error and exit. If no
-command is specified, the the L<Sqitch core documentation|sqitch> will be shown.
+Executes the help command. If a command is passed, the help for that command
+will be shown. If it cannot be found, Sqitch will throw an error and exit. If
+no command is specified, the the L<Sqitch core documentation|sqitch> will be
+shown.
 
 =head1 See Also
 
@@ -87,8 +87,8 @@ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
