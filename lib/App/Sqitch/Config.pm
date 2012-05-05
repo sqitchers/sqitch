@@ -12,17 +12,14 @@ extends 'Config::GitLike';
 
 our $VERSION = '0.30';
 
-has '+confname' => (
-    default => 'sqitch.conf',
-);
+has '+confname' => ( default => 'sqitch.conf', );
 
 my $SYSTEM_DIR = undef;
 
 sub user_dir {
     require File::HomeDir;
-    my $hd = File::HomeDir->my_home or croak(
-        "Could not determine home directory"
-    );
+    my $hd = File::HomeDir->my_home
+      or croak( "Could not determine home directory" );
     return dir $hd, '.sqitch';
 }
 
@@ -36,7 +33,7 @@ sub system_dir {
 sub system_file {
     my $self = shift;
     return file $ENV{SQITCH_SYSTEM_CONFIG}
-        || $self->system_dir->file($self->confname);
+      || $self->system_dir->file( $self->confname );
 }
 
 sub global_file { shift->system_file }
@@ -44,7 +41,7 @@ sub global_file { shift->system_file }
 sub user_file {
     my $self = shift;
     return file $ENV{SQITCH_USER_CONFIG}
-        || $self->user_dir->file($self->confname);
+      || $self->user_dir->file( $self->confname );
 }
 
 sub local_file {
@@ -55,13 +52,13 @@ sub local_file {
 sub dir_file { shift->local_file }
 
 sub get_section {
-    my ($self, %p) = @_;
+    my ( $self, %p ) = @_;
     $self->load unless $self->is_loaded;
     my $section = $p{section} // '';
-    my $data    = $self->data;
+    my $data = $self->data;
     return {
-        map  { $_ => $data->{"$section.$_"} }
-        grep { s{^\Q$section.\E([^.]+)$}{$1} } keys %{ $data }
+        map { $_ => $data->{"$section.$_"} }
+        grep { s{^\Q$section.\E([^.]+)$}{$1} } keys %{$data}
     };
 }
 
@@ -70,10 +67,10 @@ sub get_section {
 sub add_comment {
     my $self = shift;
     my (%args) = (
-        comment     => undef,
-        filename    => undef,
-        indented    => undef,
-        semicolon   => undef,
+        comment   => undef,
+        filename  => undef,
+        indented  => undef,
+        semicolon => undef,
         @_
     );
 
@@ -81,9 +78,9 @@ sub add_comment {
     die "No comment to add\n" unless defined $args{comment};
 
     # Comment, preserving leading whitespace.
-    my $chars = $args{indented} ? '[[:blank:]]*' : '';
-    my $char  = $args{semicolon} ? ';' : '#';
-    (my $comment = $args{comment}) =~ s/^($chars)/$1$char /mg;
+    my $chars = $args{indented}  ? '[[:blank:]]*' : '';
+    my $char  = $args{semicolon} ? ';'            : '#';
+    ( my $comment = $args{comment} ) =~ s/^($chars)/$1$char /mg;
     $comment .= "\n" if $comment !~ /\n\z/;
 
     my $c = $self->_read_config($filename);
@@ -106,9 +103,9 @@ App::Sqitch::Config - Sqitch configuration management
 
 =head1 Description
 
-This class provides the interface to Sqitch configuration. It inherits from
-L<Config::GitLike>, and therefore provides the complete interface of that
-module.
+This class provides the interface to Sqitch configuration. It inherits
+from L<Config::GitLike>, and therefore provides the complete interface
+of that module.
 
 =head1 Interface
 
@@ -125,13 +122,15 @@ C<$Config{prefix}/etc/sqitch/>.
 
 =head3 C<user_dir>
 
-Returns the path to the user configuration directory, which is F<~/.sqitch/>.
+Returns the path to the user configuration directory, which is
+F<~/.sqitch/>.
 
 =head3 C<system_file>
 
-Returns the path to the system configuration file. The value returned will be
-the contents of the C<$SQITCH_SYSTEM_CONFIG> environment variable, if it's
-defined, or else C<$Config{prefix}/etc/sqitch/sqitch.conf>.
+Returns the path to the system configuration file. The value returned
+will be the contents of the C<$SQITCH_SYSTEM_CONFIG> environment
+variable, if it's defined, or else
+C<$Config{prefix}/etc/sqitch/sqitch.conf>.
 
 =head3 C<global_file>
 
@@ -139,15 +138,15 @@ An alias for C<system_file()> for use by the parent class.
 
 =head3 C<user_file>
 
-Returns the path to the user configuration file. The value returned will be
-the contents of the C<$SQITCH_USER_CONFIG> environment variable, if it's
-defined, or else C<~/.sqitch/sqitch.conf>.
+Returns the path to the user configuration file. The value returned
+will be the contents of the C<$SQITCH_USER_CONFIG> environment
+variable, if it's defined, or else C<~/.sqitch/sqitch.conf>.
 
 =head3 C<local_file>
 
 Returns the path to the local configuration file, which is just
-F<./sqitch.conf>, unless C<$SQITCH_CONFIG> is set, in which case its value
-will be returned.
+F<./sqitch.conf>, unless C<$SQITCH_CONFIG> is set, in which case its
+value will be returned.
 
 =head3 C<dir_file>
 
@@ -185,23 +184,24 @@ David E. Wheeler <david@justatheory.com>
 
 Copyright (c) 2012 iovation Inc.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+Permission is hereby granted, free of charge, to any person obtaining a
+copy of this software and associated documentation files (the
+"Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+The above copyright notice and this permission notice shall be included
+in all copies or substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 =cut
 
