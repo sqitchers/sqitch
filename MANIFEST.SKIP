@@ -23,6 +23,8 @@
 \.bak$
 \#$
 \b\.#
+\.swp$
+\.swo$
 
 # Avoid build files.
 ^App-Sqitch
