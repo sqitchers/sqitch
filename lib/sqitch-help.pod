@@ -4,7 +4,7 @@ sqitch-help - Display help for Sqitch and Sqitch commands
 
 =head1 Synopsis
 
-  git help [command]
+  sqitch help [command]
 
 =head1 Description
 
