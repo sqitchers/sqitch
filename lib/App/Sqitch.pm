@@ -14,6 +14,7 @@ use Moose;
 use List::Util qw(first);
 use IPC::System::Simple qw(runx capturex $EXITVAL);
 use Moose::Util::TypeConstraints;
+use MooseX::Types::Path::Class;
 use namespace::autoclean;
 
 our $VERSION = '0.30';
@@ -39,33 +40,55 @@ has username => (is => 'ro', isa => 'Str');
 has host     => (is => 'ro', isa => 'Str');
 has port     => (is => 'ro', isa => 'Int');
 
-has sql_dir => (is => 'ro', required => 1, lazy => 1, default => sub {
-    dir shift->config->get(key => 'core.sql_dir') || 'sql';
-});
+has sql_dir => (
+    is       => 'ro',
+    isa      => 'Maybe[Path::Class::Dir]',
+    required => 1,
+    lazy     => 1,
+    default => sub { dir shift->config->get( key => 'core.sql_dir' ) || 'sql' },
+);
 
-has deploy_dir => (is => 'ro', required => 1, lazy => 1, default => sub {
-    my $self = shift;
-    if (my $dir = $self->config->get(key => 'core.deploy_dir')) {
-        return dir $dir;
-    }
-    $self->sql_dir->subdir('deploy');
-});
+has deploy_dir => (
+    is       => 'ro',
+    isa      => 'Path::Class::Dir',
+    required => 1,
+    lazy     => 1,
+    default  => sub {
+        my $self = shift;
+        if (my $dir = $self->config->get(key => 'core.deploy_dir')) {
+            return dir $dir;
+        }
+        $self->sql_dir->subdir('deploy');
+    },
+);
 
-has revert_dir => (is => 'ro', required => 1, lazy => 1, default => sub {
-    my $self = shift;
-    if (my $dir = $self->config->get(key => 'core.revert_dir')) {
-        return dir $dir;
-    }
-    $self->sql_dir->subdir('revert');
-});
+has revert_dir => (
+    is       => 'ro',
+    isa      => 'Path::Class::Dir',
+    required => 1,
+    lazy     => 1,
+    default  => sub {
+        my $self = shift;
+        if (my $dir = $self->config->get(key => 'core.revert_dir')) {
+            return dir $dir;
+        }
+        $self->sql_dir->subdir('revert');
+    },
+);
 
-has test_dir => (is => 'ro', required => 1, lazy => 1, default => sub {
-    my $self = shift;
-    if (my $dir = $self->config->get(key => 'core.test_dir')) {
-        return dir $dir;
-    }
-    $self->sql_dir->subdir('test');
-});
+has test_dir => (
+    is       => 'ro',
+    isa      => 'Path::Class::Dir',
+    required => 1,
+    lazy     => 1,
+    default  => sub {
+        my $self = shift;
+        if (my $dir = $self->config->get(key => 'core.test_dir')) {
+            return dir $dir;
+        }
+        $self->sql_dir->subdir('test');
+    },
+);
 
 has extension => (is => 'ro', isa => 'Str', lazy => 1, default => sub {
     shift->config->get(key => 'core.extension') || 'sql';

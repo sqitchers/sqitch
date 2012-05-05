@@ -205,9 +205,9 @@ SYSTEMCONF: {
 unlink $conf_file;
 $sqitch = App::Sqitch->new(
     plan_file  => 'my.plan',
-    deploy_dir => 'dep',
-    revert_dir => 'rev',
-    test_dir   => 'tst',
+    deploy_dir => dir('dep'),
+    revert_dir => dir('rev'),
+    test_dir   => dir('tst'),
     extension  => 'ddl',
     _engine    => 'sqlite',
 );
