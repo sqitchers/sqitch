@@ -22,16 +22,14 @@ for my $meth (@mocked) {
                 shift;
                 push @{ $CAPTURED{$meth} } => [@_];
                 die uc($meth) . ": @_";
-            }
-        );
+            } );
     }
     else {
         $MOCK->mock(
             $meth => sub {
                 shift;
                 push @{ $CAPTURED{$meth} } => [@_];
-            }
-        );
+            } );
     }
 
     my $get = sub {

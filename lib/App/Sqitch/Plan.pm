@@ -32,8 +32,7 @@ has all => (
     auto_deref => 1,
     lazy       => 1,
     required   => 1,
-    default    => sub { shift->load }
-);
+    default    => sub { shift->load } );
 
 has position => (
     is       => 'rw',

@@ -35,8 +35,7 @@ sub process_etc_files {
             : $file;
         $self->copy_if_modified(
             from => $file,
-            to   => File::Spec->catfile( $self->blib, $dest )
-        );
+            to   => File::Spec->catfile( $self->blib, $dest ) );
     }
 }
 

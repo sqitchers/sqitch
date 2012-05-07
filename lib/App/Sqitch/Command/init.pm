@@ -70,8 +70,7 @@ sub write_config {
         revert_dir
         test_dir
         extension
-        )
-        )
+        ) )
     {
 
         # Set core attributes that are not their default values and not

@@ -69,8 +69,7 @@ throws_ok {
         {
             user   => 1,
             system => 1,
-        }
-    );
+        } );
 }
 qr/USAGE/, 'Construct with user and system';
 is_deeply \@usage, ['Only one config file at a time.'],
@@ -82,8 +81,7 @@ throws_ok {
         {
             user  => 1,
             local => 1,
-        }
-    );
+        } );
 }
 qr/USAGE/, 'Construct with user and local';
 is_deeply \@usage, ['Only one config file at a time.'],
@@ -95,8 +93,7 @@ throws_ok {
         {
             file   => 't/sqitch.ini',
             system => 1,
-        }
-    );
+        } );
 }
 qr/USAGE/, 'Construct with file and system';
 is_deeply \@usage, ['Only one config file at a time.'],
@@ -108,8 +105,7 @@ throws_ok {
         {
             file => 't/sqitch.ini',
             user => 1,
-        }
-    );
+        } );
 }
 qr/USAGE/, 'Construct with file and user';
 is_deeply \@usage, ['Only one config file at a time.'],
@@ -122,8 +118,7 @@ throws_ok {
             file   => 't/sqitch.ini',
             user   => 1,
             system => 1,
-        }
-    );
+        } );
 }
 qr/USAGE/, 'Construct with file, system, and user';
 is_deeply \@usage, ['Only one config file at a time.'],
@@ -136,8 +131,7 @@ throws_ok {
         {
             bool => 1,
             num  => 1,
-        }
-    );
+        } );
 }
 qr/USAGE/, 'Construct with bool and num';
 is_deeply \@usage, ['Only one type at a time.'],
@@ -150,8 +144,7 @@ throws_ok {
             sqitch => $sqitch,
             int    => 1,
             num    => 1,
-        }
-    );
+        } );
 }
 qr/USAGE/, 'Construct with int and num';
 is_deeply \@usage, ['Only one type at a time.'],
@@ -163,8 +156,7 @@ throws_ok {
         {
             int  => 1,
             bool => 1,
-        }
-    );
+        } );
 }
 qr/USAGE/, 'Construct with int and bool';
 is_deeply \@usage, ['Only one type at a time.'],
@@ -177,8 +169,7 @@ throws_ok {
             int  => 1,
             bool => 1,
             num  => 1,
-        }
-    );
+        } );
 }
 qr/USAGE/, 'Construct with int, num, and bool';
 is_deeply \@usage, ['Only one type at a time.'],

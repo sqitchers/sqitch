@@ -21,8 +21,7 @@ has file => (
         my $self = shift;
         my $meth = ( $self->context || 'local' ) . '_file';
         return $self->sqitch->config->$meth;
-    }
-);
+    } );
 
 has action => (
     is  => 'ro',
@@ -41,9 +40,7 @@ has action => (
                 rename-section
                 remove-section
                 )
-        ]
-    )
-);
+        ] ) );
 has context => (
     is  => 'ro',
     isa => maybe_type enum(
@@ -52,9 +49,7 @@ has context => (
                 user
                 system
                 )
-        ]
-    )
-);
+        ] ) );
 has type => ( is => 'ro', isa => enum( [qw(int num bool bool-or-int)] ) );
 
 sub options {

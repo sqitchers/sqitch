@@ -40,8 +40,7 @@ is_deeply [
             foo
             help
             --foo
-            )
-    )
+            ) )
     ],
     [
     [ '--plan-file', 'foo' ],

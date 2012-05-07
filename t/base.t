@@ -56,8 +56,7 @@ for my $attr ( qw(
     db_name
     host
     port
-    )
-    )
+    ) )
 {
     is $sqitch->$attr, undef, "$attr should be undef";
 }

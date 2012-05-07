@@ -47,8 +47,7 @@ has template_directory => (
         dir
             shift->sqitch->config->get(
             key => "add-step.template_directory" );
-    }
-);
+    } );
 
 for my $script (qw(deploy revert test)) {
     has "with_$script" => (
@@ -60,8 +59,7 @@ for my $script (qw(deploy revert test)) {
                 key => "add-step.with_$script",
                 as  => 'bool',
             ) // 1;
-        }
-    );
+        } );
 
     has "$script\_template" => (
         is      => 'ro',
@@ -177,8 +175,7 @@ sub _add {
             step      => $name,
             requires  => $self->requires,
             conflicts => $self->conflicts,
-        }
-    );
+        } );
 
     close $fh or $self->fail("Cannot close $out: $!");
     select $orig_selected;

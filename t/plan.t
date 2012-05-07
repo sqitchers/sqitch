@@ -215,8 +215,7 @@ $plan->do(
         is $_, $e[0],
             'Tag ' . $e[0]->names->[0] . ' should be the topic in do sub';
         shift @e;
-    }
-);
+    } );
 
 # There should be no more to iterate over.
 $plan->do( sub { fail 'Should not get anything passed to do()' } );

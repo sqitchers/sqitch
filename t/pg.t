@@ -125,8 +125,7 @@ $mock_sqitch->mock(
         else {
             ok !exists $ENV{PGPASSWORD}, 'PGPASSWORD should not exist';
         }
-    }
-);
+    } );
 my @cap;
 $mock_sqitch->mock(
     capture => sub {
@@ -139,8 +138,7 @@ $mock_sqitch->mock(
         else {
             ok !exists $ENV{PGPASSWORD}, 'PGPASSWORD should not exist';
         }
-    }
-);
+    } );
 
 $exp_pass = 's3cr3t';
 ok $pg->_run(qw(foo bar baz)), 'Call _run';

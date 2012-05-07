@@ -24,8 +24,7 @@ has plan_file => (
     required => 1,
     default  => sub {
         file 'sqitch.plan';
-    }
-);
+    } );
 
 has _engine => (
     is      => 'ro',
@@ -33,8 +32,7 @@ has _engine => (
     isa     => maybe_type( enum [qw(pg mysql sqlite)] ),
     default => sub {
         shift->config->get( key => 'core.engine' );
-    }
-);
+    } );
 has engine => (
     is      => 'ro',
     isa     => 'Maybe[App::Sqitch::Engine]',
@@ -44,8 +42,7 @@ has engine => (
         my $name = $self->_engine or return;
         require App::Sqitch::Engine;
         App::Sqitch::Engine->load( { sqitch => $self, engine => $name } );
-    }
-);
+    } );
 
 # Attributes useful to engines; no defaults.
 has client   => ( is => 'ro', isa => 'Str' );
@@ -111,8 +108,7 @@ has extension => (
     lazy    => 1,
     default => sub {
         shift->config->get( key => 'core.extension' ) || 'sql';
-    }
-);
+    } );
 
 has dry_run => ( is => 'ro', isa => 'Bool', required => 1, default => 0 );
 
@@ -122,8 +118,7 @@ has verbosity => (
     lazy     => 1,
     default  => sub {
         shift->config->get( key => 'core.verbosity' ) // 1;
-    }
-);
+    } );
 
 has config => (
     is      => 'ro',
@@ -131,8 +126,7 @@ has config => (
     lazy    => 1,
     default => sub {
         App::Sqitch::Config->new;
-    }
-);
+    } );
 
 has editor => (
     is      => 'ro',
@@ -143,8 +137,7 @@ has editor => (
             || $ENV{EDITOR}
             || shift->config->get( key => 'core.editor' )
             || ( $^O eq 'MSWin32' ? 'notepad.exe' : 'vi' );
-    }
-);
+    } );
 
 sub go {
     my $class = shift;
@@ -169,8 +162,7 @@ sub go {
             command => $cmd,
             config  => $config,
             args    => $cmd_args,
-        }
-    );
+    } );
 
     # 6. Execute command.
     return $command->execute( @{$cmd_args} ) ? 0 : 2;
