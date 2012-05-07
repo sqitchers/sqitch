@@ -27,8 +27,8 @@ Multiple lines can be added to an option by using the C<--add> option. If you
 want to update or unset an option which can occur on multiple lines, a Perl
 regular expression C<value_regex> needs to be given. Only the existing values
 that match the regex will be updated or unset. If you want to handle lines
-that do not match the regex, just prepend a single C<!> (exclamation point) in
-front (see L<Examples>).
+that do not match the regex, just prepend a single C<!> (exclamation point)
+in front (see L<Examples>).
 
 The C<type> specifier can be C<--int>, C<--num>, or C<--bool>, to ensure that
 the variable(s) are of the given type and convert the value to the canonical
@@ -37,9 +37,9 @@ form (simple integer for C<--int>, decimal number for C<--num>, a "true" or
 transformations are performed on the value.
 
 The C<file-option> can be one of C<--local>, C<--user>, C<--system>, or
-C<--file>, which specify where the values will be read from or written to. The
-default is to assume the local config file in the current project directory,
-for editing, and the all files merged for fetching (see L<Files>).
+C<--file>, which specify where the values will be read from or written to.
+The default is to assume the local config file in the current project
+directory, for editing, and the all files merged for fetching (see L<Files>).
 
 =begin comment
 
@@ -119,8 +119,8 @@ out the key names and value.
 
 =item C<--local>
 
-For writing options: write to the local F<./sqitch.conf> file. This is
-the default if no file option is specified.
+For writing options: write to the local F<./sqitch.conf> file. This is the
+default if no file option is specified.
 
 For reading options: read only from the local F<./sqitch.conf> file rather
 than from all available files.
@@ -198,8 +198,8 @@ the local file will be opened.
 
 =head1 Files
 
-If not set explicitly with C<--file>, there are three files in which
-C<sqitch config> will search for configuration options:
+If not set explicitly with C<--file>, there are three files in which C<sqitch
+config> will search for configuration options:
 
 =over
 
@@ -267,8 +267,8 @@ You can set the the C<tags_only> setting to true with
 
   % sqitch config bundle.tags_only true
 
-The hypothetical C<set> key in the C<core.pg> section might need to set C<foo>
-to "hi" instead of "bar". Here's how to make that change:
+The hypothetical C<set> key in the C<core.pg> section might need to set
+C<foo> to "hi" instead of "bar". Here's how to make that change:
 
   % sqitch config core.pg.set foo=bar foo=hi
 
@@ -276,8 +276,8 @@ To delete the entry for C<bundle.from>, do
 
   % sqitch config --unset bundle.from
 
-If you want to delete an entry for a multivalue setting (like C<core.pg.set>),
-provide a regex matching the value of exactly one line.
+If you want to delete an entry for a multivalue setting (like
+C<core.pg.set>), provide a regex matching the value of exactly one line.
 
 To query the value for a given key, do:
 
@@ -335,12 +335,12 @@ The syntax is fairly flexible and permissive; white space is mostly ignored.
 The C<#> and C<;> characters begin comments to the end of line, blank lines
 are ignored.
 
-The file consists of sections and variables. A section begins with the name of
-the section in square brackets and continues until the next section begins.
-Section names are not case sensitive. Only alphanumeric characters, C<-> and
-C<.> are allowed in section names. Each variable must belong to some section,
-which means that there must be a section header before the first setting of a
-variable.
+The file consists of sections and variables. A section begins with the name
+of the section in square brackets and continues until the next section
+begins. Section names are not case sensitive. Only alphanumeric characters,
+C<-> and C<.> are allowed in section names. Each variable must belong to some
+section, which means that there must be a section header before the first
+setting of a variable.
 
 Sections can be further divided into subsections. To begin a subsection put
 its name in double quotes, separated by space from the section name, in the
@@ -358,9 +358,9 @@ All the other lines (and the remainder of the line after the section header)
 are recognized as setting variables, in the form C<name = value>. If there is
 no equal sign on the line, the entire line is taken as name and the variable
 is recognized as boolean C<true>. The variable names are case-insensitive,
-allow only alphanumeric characters and C<->, and must start with an alphabetic
-character. There can be more than one value for a given variable; we say then
-that the variable is multivalued.
+allow only alphanumeric characters and C<->, and must start with an
+alphabetic character. There can be more than one value for a given variable;
+we say then that the variable is multivalued.
 
 Leading and trailing whitespace in a variable value is discarded. Internal
 whitespace within a variable value is retained verbatim.
@@ -371,11 +371,12 @@ yes/no, 1/0, true/false or on/off. Case is not significant in boolean values,
 when converting value to the canonical form using the C<--bool> type
 specifier; C<sqitch config> will ensure that the output is "true" or "false".
 
-String values may be entirely or partially enclosed in double quotes. You need
-to enclose variable values in double quotes if you want to preserve leading or
-trailing whitespace, or if the variable value contains comment characters
-(i.e. it contains C<#> or C<;>). Double quote and backslash characters in
-variable values must be escaped: use C<\"> for C<"> and C<\\> for C<\>.
+String values may be entirely or partially enclosed in double quotes. You
+need to enclose variable values in double quotes if you want to preserve
+leading or trailing whitespace, or if the variable value contains comment
+characters (i.e. it contains C<#> or C<;>). Double quote and backslash
+characters in variable values must be escaped: use C<\"> for C<"> and C<\\>
+for C<\>.
 
 The following escape sequences (beside C<\"> and C<\\>) are recognized: C<\n>
 for newline character (NL), C<\t> for horizontal tabulation (HT, TAB) and
@@ -414,8 +415,8 @@ appropriate manual page.
 
 =item C<core.plan_file>
 
-The plan file to use. Defaults to F<./sqitch.plan> or, if that does not exist,
-uses the VCS history, if available.
+The plan file to use. Defaults to F<./sqitch.plan> or, if that does not
+exist, uses the VCS history, if available.
 
 =item C<core.engine>
 
@@ -474,8 +475,8 @@ Configuration properties for the PostgreSQL engine.
 
 =item C<core.pg.client>
 
-Path to the C<psql> command-line client. Defaults to the first instance
-found in the path.
+Path to the C<psql> command-line client. Defaults to the first instance found
+in the path.
 
 =item C<core.pg.username>
 
@@ -486,13 +487,13 @@ name.
 =item C<core.pg.password>
 
 Password to use when connecting to the PostgreSQL database. Defaults to the
-contents of the C<$PGPASSWORD> environment variable or to the relevant line in
-F<~/.pgpass>, if available.
+contents of the C<$PGPASSWORD> environment variable or to the relevant line
+in F<~/.pgpass>, if available.
 
 =item C<core.pg.db_name>
 
-Name of the PostgreSQL database. Defaults to the same as C<username>
-or to the contents of the C<PGDATABASE> environment variable.
+Name of the PostgreSQL database. Defaults to the same as C<username> or to
+the contents of the C<PGDATABASE> environment variable.
 
 =item C<core.pg.host>
 
@@ -521,8 +522,8 @@ file|http://dev.mysql.com/doc/refman/5.6/en/option-files.html>
 
 =item C<core.mysql.client>
 
-Path to the C<mysql> command-line client. Defaults to the first instance found
-in the path.
+Path to the C<mysql> command-line client. Defaults to the first instance
+found in the path.
 
 =item C<core.mysql.username>
 
@@ -574,3 +575,4 @@ Prefix to use for Sqitch metadata tables. Defaults to C<sqitch>.
 =head1 Sqitch
 
 Part of the L<sqitch> suite.
+

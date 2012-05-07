@@ -15,22 +15,23 @@ has sqitch => (
     is       => 'ro',
     isa      => 'App::Sqitch',
     required => 1,
-    handles  => [qw(
-        run
-        capture
-        probe
-        verbosity
-        trace
-        debug
-        info
-        comment
-        emit
-        warn
-        unfound
-        fail
-        help
-        bail
-    )],
+    handles  => [ qw(
+            run
+            capture
+            probe
+            verbosity
+            trace
+            debug
+            info
+            comment
+            emit
+            warn
+            unfound
+            fail
+            help
+            bail
+            )
+    ],
 );
 
 sub command {
@@ -43,17 +44,19 @@ sub command {
 }
 
 sub load {
-    my ($class, $p) = @_;
+    my ( $class, $p ) = @_;
 
     # We should have a command.
     $class->usage unless $p->{command};
-    (my $cmd = $p->{command}) =~ s/-/_/g;
+    ( my $cmd = $p->{command} ) =~ s/-/_/g;
 
     # Load the command class.
     my $pkg = __PACKAGE__ . "::$cmd";
     try {
         eval "require $pkg" or die $@;
-    } catch {
+    }
+    catch {
+
         # Just die if something choked.
         die $_ unless /^Can't locate/;
 
@@ -62,10 +65,8 @@ sub load {
     };
 
     # Merge the command-line options and configuration parameters
-    my $params = $pkg->configure(
-        $p->{config},
-        $pkg->_parse_opts($p->{args}),
-    );
+    my $params =
+        $pkg->configure( $p->{config}, $pkg->_parse_opts( $p->{args} ), );
 
     # Instantiate and return the command.
     $params->{sqitch} = $p->{sqitch};
@@ -73,17 +74,16 @@ sub load {
 }
 
 sub configure {
-    my ($class, $config, $options) = @_;
+    my ( $class, $config, $options ) = @_;
 
     # Convert option keys with dashes to underscores.
-    for my $k (keys %{ $options }) {
-        next unless (my $nk = $k) =~ s/-/_/g;
+    for my $k ( keys %{$options} ) {
+        next unless ( my $nk = $k ) =~ s/-/_/g;
         $options->{$nk} = delete $options->{$k};
     }
 
-    return Hash::Merge->new->merge(
-        $options,
-        $config->get_section(section => $class->command),
+    return Hash::Merge->new->merge( $options,
+        $config->get_section( section => $class->command ),
     );
 }
 
@@ -92,12 +92,12 @@ sub options {
 }
 
 sub _parse_opts {
-    my ($class, $args) = @_;
-    return {} unless $args && @{ $args };
+    my ( $class, $args ) = @_;
+    return {} unless $args && @{$args};
 
     my %opts;
     Getopt::Long::Configure(qw(bundling no_pass_through));
-    Getopt::Long::GetOptionsFromArray($args, \%opts, $class->options)
+    Getopt::Long::GetOptionsFromArray( $args, \%opts, $class->options )
         or $class->usage;
 
     return \%opts;
@@ -109,18 +109,22 @@ sub _bn {
 }
 
 sub _pod2usage {
-    my ($self, %params) = @_;
+    my ( $self, %params ) = @_;
     my $command = $self->command;
     require Pod::Find;
     require Pod::Usage;
     my $bn = _bn;
     $params{'-input'} ||=
-                Pod::Find::pod_where({'-inc' => 1, '-script' => 1 }, "$bn-$command")
-             || Pod::Find::pod_where({'-inc' => 1, '-script' => 1 }, "sqitch-$command")
-             || Pod::Find::pod_where({'-inc' => 1, '-script' => 1 }, $bn)
-             || Pod::Find::pod_where({'-inc' => 1, '-script' => 1 }, 'sqitch')
-             || Pod::Find::pod_where({'-inc' => 1, '-script' => 1 }, ref $self || $self)
-             || Pod::Find::pod_where({'-inc' => 1, '-script' => 1 }, __PACKAGE__);
+        Pod::Find::pod_where( { '-inc' => 1, '-script' => 1 },
+        "$bn-$command" )
+        || Pod::Find::pod_where( { '-inc' => 1, '-script' => 1 },
+        "sqitch-$command" )
+        || Pod::Find::pod_where( { '-inc' => 1, '-script' => 1 }, $bn )
+        || Pod::Find::pod_where( { '-inc' => 1, '-script' => 1 }, 'sqitch' )
+        || Pod::Find::pod_where( { '-inc' => 1, '-script' => 1 },
+        ref $self || $self )
+        || Pod::Find::pod_where( { '-inc' => 1, '-script' => 1 },
+        __PACKAGE__ );
     Pod::Usage::pod2usage(
         '-verbose'  => 99,
         '-sections' => '(?i:(Usage|Synopsis|Options))',
@@ -131,24 +135,21 @@ sub _pod2usage {
 
 sub execute {
     my $self = shift;
-    croak(
-        'The execute() method must be called from a subclass of ',
-        __PACKAGE__
-    ) if ref $self eq __PACKAGE__;
+    croak( 'The execute() method must be called from a subclass of ',
+        __PACKAGE__ )
+        if ref $self eq __PACKAGE__;
 
-    croak(
-        'The execute() method has not been overridden in ',
-        ref $self
-    );
+    croak( 'The execute() method has not been overridden in ', ref $self );
 }
 
 sub usage {
     my $self = shift;
     require Pod::Find;
-    my $upod = _bn . '-' . $self->command .  '-usage';
+    my $upod = _bn . '-' . $self->command . '-usage';
     $self->_pod2usage(
-        '-input' => Pod::Find::pod_where({'-inc' => 1 }, $upod) || undef,
-        '-message' => join '', @_
+        '-input' => Pod::Find::pod_where( { '-inc' => 1 }, $upod ) || undef,
+        '-message' => join '',
+        @_
     );
 }
 
@@ -206,13 +207,13 @@ C<config-file=s>, which will be named C<config_file>.
 
 Takes two arguments, an L<App::Sqitch::Config> object and the hash of
 command-line options as specified by C<options>. The returned hash should be
-the result of munging these two objects into a hash reference of parameters to
-be passed to the command subclass constructor.
+the result of munging these two objects into a hash reference of parameters
+to be passed to the command subclass constructor.
 
-By default, this method converts dashes to underscores in command-line options
-keys, and then merges the configuration values with the options, with the
-command-line options taking priority. You may wish to override this method to
-do something different.
+By default, this method converts dashes to underscores in command-line
+options keys, and then merges the configuration values with the options, with
+the command-line options taking priority. You may wish to override this
+method to do something different.
 
 =head2 Constructors
 
@@ -223,8 +224,8 @@ do something different.
 A factory method for instantiating Sqitch commands. It loads the subclass for
 the specified command, uses the options returned by C<options> to parse
 command-line options, calls C<configure> to merge configuration with the
-options, and finally calls C<new> with the resulting hash. Supported parameters
-are:
+options, and finally calls C<new> with the resulting hash. Supported
+parameters are:
 
 =over
 
@@ -274,8 +275,8 @@ These methods should be overridden by all subclasses.
   $cmd->execute;
 
 Executes the command. This is the method that does the work of the command.
-Must be overridden in all subclasses. Dies if the method is not overridden for
-the object on which it is called, or if it is called against a base
+Must be overridden in all subclasses. Dies if the method is not overridden
+for the object on which it is called, or if it is called against a base
 App::Sqitch::Command object.
 
 =head3 C<command>
@@ -283,8 +284,8 @@ App::Sqitch::Command object.
   my $command = $cmd->command;
 
 The name of the command. Defaults to the last part of the package name, so as
-a rule you should not need to override it, since it is that string that Sqitch
-uses to find the command class.
+a rule you should not need to override it, since it is that string that
+Sqitch uses to find the command class.
 
 =head2 Utility Instance Methods
 
@@ -302,9 +303,9 @@ error.
 
   my @files = $cmd->capture(qw(ls -lah));
 
-Runs a system command and captures its output to C<STDOUT>. Returns the output
-lines in list context and the concatenation of the lines in scalar context.
-Throws an exception on error.
+Runs a system command and captures its output to C<STDOUT>. Returns the
+output lines in list context and the concatenation of the lines in scalar
+context. Throws an exception on error.
 
 =head3 C<probe>
 
@@ -321,24 +322,25 @@ Returns the verbosity level.
 =head3 C<trace>
 
 Send trace information to C<STDOUT> if the verbosity level is 3 or higher.
-Trace messages will have C<trace: > prefixed to every line. If it's lower than
-3, nothing will be output.
+Trace messages will have C<trace: > prefixed to every line. If it's lower
+than 3, nothing will be output.
 
 =head3 C<debug>
 
   $cmd->debug('Found snuggle in the crib.');
 
 Send debug information to C<STDOUT> if the verbosity level is 2 or higher.
-Debug messages will have C<debug: > prefixed to every line. If it's lower than
-2, nothing will be output.
+Debug messages will have C<debug: > prefixed to every line. If it's lower
+than 2, nothing will be output.
 
 =head3 C<info>
 
   $cmd->info('Nothing to deploy (up-to-date)');
 
-Send informational message to C<STDOUT> if the verbosity level is 1 or higher,
-which, by default, it is. Should be used for normal messages the user would
-normally want to see. If verbosity is lower than 1, nothing will be output.
+Send informational message to C<STDOUT> if the verbosity level is 1 or
+higher, which, by default, it is. Should be used for normal messages the user
+would normally want to see. If verbosity is lower than 1, nothing will be
+output.
 
 =head3 C<comment>
 
@@ -353,31 +355,31 @@ lower than 1, nothing will be output.
   $cmd->emit('core.editor=emacs');
 
 Send a message to C<STDOUT>, without regard to the verbosity. Should be used
-only if the user explicitly asks for output, such as for
-C<sqitch config --get core.editor>.
+only if the user explicitly asks for output, such as for C<sqitch config
+--get core.editor>.
 
 =head3 C<warn>
 
   $cmd->warn('Could not find nerble; using nobble instead.');
 
-Send a warning messages to C<STDERR>. Warnings will have C<warning: > prefixed
-to every line. Use if something unexpected happened but you can recover from
-it.
+Send a warning messages to C<STDERR>. Warnings will have C<warning: >
+prefixed to every line. Use if something unexpected happened but you can
+recover from it.
 
 =head3 C<unfound>
 
   $cmd->unfound;
 
-Exit the program with status code 1. Best for use for non-fatal errors,
-such as when something requested was not found.
+Exit the program with status code 1. Best for use for non-fatal errors, such
+as when something requested was not found.
 
 =head3 C<fail>
 
   $cmd->fail('File or directory "foo" not found.');
 
-Send a failure message to C<STDERR> and exit with status code 2. Failures will
-have C<fatal: > prefixed to every line. Use if something unexpected happened
-and you cannot recover from it.
+Send a failure message to C<STDERR> and exit with status code 2. Failures
+will have C<fatal: > prefixed to every line. Use if something unexpected
+happened and you cannot recover from it.
 
 =head3 C<usage>
 
@@ -402,8 +404,8 @@ will be the first found of:
 
 =back
 
-For an ideal usage messages, C<sqitch-$command-usage.pod> should be created by
-all command subclasses.
+For an ideal usage messages, C<sqitch-$command-usage.pod> should be created
+by all command subclasses.
 
 =head3 C<help>
 
@@ -445,8 +447,8 @@ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,

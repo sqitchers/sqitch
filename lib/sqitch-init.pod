@@ -17,8 +17,9 @@ things that are already there.
 =head1 Configuration
 
 The most important thing C<sqitch init> does is create the project plan file,
-F<sqitch.conf>. While the C<init> command has no options of its own, it relies
-on several of the options to C<sqitch> to determine what to write to this file:
+F<sqitch.conf>. While the C<init> command has no options of its own, it
+relies on several of the options to C<sqitch> to determine what to write to
+this file:
 
 =over
 
@@ -32,9 +33,9 @@ Sets the C<core.plan_file> configuration variable.
 
 =item C<--sql-dir>
 
-Determines the top-level directory to use when writing the C<core.deploy_dir>,
-C<core.revert_dir>, and C<core.test_dir> variable -- unless they are
-overridden by their more-specific options, detailed below.
+Determines the top-level directory to use when writing the
+C<core.deploy_dir>, C<core.revert_dir>, and C<core.test_dir> variable --
+unless they are overridden by their more-specific options, detailed below.
 
 =item C<--deploy-dir>
 
@@ -63,20 +64,21 @@ since your project can have only one engine at a time, and specifying it on
 the command-line forever after would be annoying.
 
 These variables will only be written if their corresponding options are
-specified. Otherwise, they get written as comments with
-user or system configuration settings, or, failing any values from those
-locations, from their default values. If no defaults are specified, they
-will still be written, commented out, with a bar C<=> and no value. This
-allows one to know what sorts of things are available to edit.
+specified. Otherwise, they get written as comments with user or system
+configuration settings, or, failing any values from those locations, from
+their default values. If no defaults are specified, they will still be
+written, commented out, with a bar C<=> and no value. This allows one to know
+what sorts of things are available to edit.
 
-Relatedly, the engine-specific L<sqitch> options will also be used to
-write variables, as follows:
+Relatedly, the engine-specific L<sqitch> options will also be used to write
+variables, as follows:
 
 =over
 
 =item C<--client>
 
-Used to set C<core.pg.client>, C<core.sqlite.client>, or C<core.mysql.client>.
+Used to set C<core.pg.client>, C<core.sqlite.client>, or
+C<core.mysql.client>.
 
 =item C<--db-name>
 
@@ -103,8 +105,8 @@ configuration, or default values.
 
 =head1 Examples
 
-Start a new Sqitch project using the SQLite engine, setting the
-default database file to F</var/db/widgets.db>
+Start a new Sqitch project using the SQLite engine, setting the default
+database file to F</var/db/widgets.db>
 
   sqitch --engine --db-name /var/db/widgets.db sqlite init
 
@@ -120,3 +122,4 @@ version-specific client:
 =head1 Sqitch
 
 Part of the L<sqitch> suite.
+

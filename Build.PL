@@ -7,7 +7,7 @@ Module::Build::Sqitch->new(
     module_name        => 'App::Sqitch',
     release_status     => 'unstable',
     license            => 'mit',
-    configure_requires => { 'Module::Build' => '0.35'  },
+    configure_requires => { 'Module::Build' => '0.35' },
     requires           => {
         'perl'                                         => '5.10.1',
         'Carp'                                         => 0,
@@ -48,15 +48,13 @@ Module::Build::Sqitch->new(
         'File::Path'           => 0,
         'File::Spec'           => 0,
     },
-    no_index => { directory => ['priv'] },
-    recommends => {
-        'Test::Pod'  => '1.41',
-    },
+    no_index   => { directory   => ['priv'] },
+    recommends => { 'Test::Pod' => '1.41', },
     meta_merge => {
         resources => {
-            homepage    => 'http://sqitch.org/',
-            bugtracker  => 'http://github.com/theory/sqitch/issues/',
-            repository  => 'http://github.com/theory/sqitch/',
+            homepage   => 'http://sqitch.org/',
+            bugtracker => 'http://github.com/theory/sqitch/issues/',
+            repository => 'http://github.com/theory/sqitch/',
         }
     },
 )->create_build_script;

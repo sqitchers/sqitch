@@ -12,8 +12,9 @@ Add a new deployment step. This will result in the creation of a new script
 files with the C<--extension> extension in the C<--deploy-dir>,
 C<--revert-dir>, and C<--test-dir> directories. The content of these files is
 determined by the evaluation of templates. By default, system templates in
-F<$(etc_path)/templates> are used. These can be overridden by a single user by
-creating templates in F<~/.sqitch/templates/> See L</Templates> for details.
+F<$(etc_path)/templates> are used. These can be overridden by a single user
+by creating templates in F<~/.sqitch/templates/> See L</Templates> for
+details.
 
 =head1 Options
 
@@ -30,7 +31,8 @@ times.
 
 =item C<--conflicts>
 
-Name of a step that conflicts with the new step. May be specified multiple times.
+Name of a step that conflicts with the new step. May be specified multiple
+times.
 
 =item C<-s>
 
@@ -129,16 +131,16 @@ Loop over a list of values:
 
 =head2 Variables
 
-Sqitch defines three variables for all templates. Any number of additional variables
-can be added via the C<--set> option, like so:
+Sqitch defines three variables for all templates. Any number of additional
+variables can be added via the C<--set> option, like so:
 
   sqitch add-step --set transations=1 --set schema=foo
 
 Any number of variables may be specified in this manner. You may then use
-those variables in custom templates. Variables that appear multiple times will
-be passed to the templates as lists of values for which you will likely want
-to use C<[% FOREACH %]>. If the templates do not reference your variables,
-they will be ignored. Variables may also be specified in a
+those variables in custom templates. Variables that appear multiple times
+will be passed to the templates as lists of values for which you will likely
+want to use C<[% FOREACH %]>. If the templates do not reference your
+variables, they will be ignored. Variables may also be specified in a
 C<[add-step "variables]> L<config|sqitch-config> section (see 
 L</Configuration Variables>). Variables specified via C<--set> will override
 configuration variables.
@@ -169,9 +171,9 @@ C<--requiers> option.
 
 =item C<add-step.template_directory>
 
-Directory in which to find the templates which should be named F<deploy.tmpl>,
-F<revert.tmpl>, and F<test.tmpl>. This will override looking for user- or
-system-specific templates, and may in turn be overridden by the
+Directory in which to find the templates which should be named
+F<deploy.tmpl>, F<revert.tmpl>, and F<test.tmpl>. This will override looking
+for user- or system-specific templates, and may in turn be overridden by the
 C<--template-directory>, C<--deploy-template>, C<--revert-template>, and
 C<--test-template> options.
 
@@ -205,10 +207,10 @@ for them.
 
 =head1 Files
 
-Unless explicitly told where to find templates via C<--template-directory> or,
-as appropriate, C<--deploy-template>, C<--user-template> or
-C<--test-template>, Sqitch looks in two locations for templates: A system-wide
-location and a user-specific location:
+Unless explicitly told where to find templates via C<--template-directory>
+or, as appropriate, C<--deploy-template>, C<--user-template> or
+C<--test-template>, Sqitch looks in two locations for templates: A
+system-wide location and a user-specific location:
 
 =over
 
@@ -233,3 +235,4 @@ User-specific templates to override the system-wide templates.
 =head1 Sqitch
 
 Part of the L<sqitch> suite.
+
