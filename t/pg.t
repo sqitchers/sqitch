@@ -1,5 +1,3 @@
-#!/usr/bin/perl -w
-
 use strict;
 use warnings;
 use v5.10.1;
@@ -16,7 +14,8 @@ BEGIN {
     require_ok $CLASS or die;
 }
 
-is_deeply [$CLASS->config_vars], [
+is_deeply [ $CLASS->config_vars ],
+  [
     client        => 'any',
     username      => 'any',
     password      => 'any',
@@ -24,12 +23,13 @@ is_deeply [$CLASS->config_vars], [
     host          => 'any',
     port          => 'int',
     sqitch_schema => 'any',
-], 'config_vars should return three vars';
+  ],
+  'config_vars should return three vars';
 
 my $sqitch = App::Sqitch->new;
-isa_ok my $pg = $CLASS->new(sqitch => $sqitch), $CLASS;
+isa_ok my $pg = $CLASS->new( sqitch => $sqitch ), $CLASS;
 
-my $client = 'psql' . ($^O eq 'Win32' ? '.exe' : '');
+my $client = 'psql' . ( $^O eq 'Win32' ? '.exe' : '' );
 is $pg->client, $client, 'client should default to psql';
 is $pg->sqitch_schema, 'sqitch', 'sqitch_schema default should be "sqitch"';
 for my $attr (qw(username password db_name host port)) {
@@ -44,8 +44,8 @@ my @std_opts = (
     '--set' => 'ON_ERROR_ROLLBACK=1',
     '--set' => 'ON_ERROR_STOP=1',
 );
-is_deeply [$pg->psql], [$client, @std_opts],
-    'psql command should be std opts-only';
+is_deeply [ $pg->psql ], [ $client, @std_opts ],
+  'psql command should be std opts-only';
 
 ##############################################################################
 # Make sure config settings override defaults.
@@ -59,102 +59,117 @@ my %config = (
     'core.pg.sqitch_schema' => 'meta',
 );
 my $mock_config = Test::MockModule->new('App::Sqitch::Config');
-$mock_config->mock(get => sub { $config{ $_[2] } });
-ok $pg = $CLASS->new(sqitch => $sqitch), 'Create another pg';
+$mock_config->mock( get => sub { $config{ $_[2] } } );
+ok $pg = $CLASS->new( sqitch => $sqitch ), 'Create another pg';
 
-is $pg->client, '/path/to/psql', 'client should be as configured';
-is $pg->username, 'freddy', 'username should be as configured';
-is $pg->password, 's3cr3t', 'password should be as configured';
-is $pg->host, 'db.example.com', 'host should be as configured';
-is $pg->port, 1234, 'port should be as configured';
+is $pg->client,   '/path/to/psql',  'client should be as configured';
+is $pg->username, 'freddy',         'username should be as configured';
+is $pg->password, 's3cr3t',         'password should be as configured';
+is $pg->host,     'db.example.com', 'host should be as configured';
+is $pg->port,     1234,             'port should be as configured';
 is $pg->sqitch_schema, 'meta', 'sqitch_schema should be as configured';
-is_deeply [$pg->psql], [qw(
-    /path/to/psql
-    --username freddy
-    --dbname   widgets
-    --host     db.example.com
-    --port     1234
-), @std_opts], 'psql command should be configured';
+is_deeply [ $pg->psql ], [
+    qw(
+      /path/to/psql
+      --username freddy
+      --dbname   widgets
+      --host     db.example.com
+      --port     1234
+      ), @std_opts
+  ],
+  'psql command should be configured';
 
 ##############################################################################
 # Now make sure that Sqitch options override configurations.
 $sqitch = App::Sqitch->new(
-    'client'        => '/some/other/psql',
-    'username'      => 'anna',
-    'db_name'       => 'widgets_dev',
-    'host'          => 'foo.com',
-    'port'          => 98760,
+    'client'   => '/some/other/psql',
+    'username' => 'anna',
+    'db_name'  => 'widgets_dev',
+    'host'     => 'foo.com',
+    'port'     => 98760,
 );
 
-ok $pg = $CLASS->new(sqitch => $sqitch), 'Create a pg with sqitch with options';
+ok $pg = $CLASS->new( sqitch => $sqitch ),
+  'Create a pg with sqitch with options';
 
-is $pg->client, '/some/other/psql', 'client should be as optioned';
-is $pg->username, 'anna', 'username should be as optioned';
-is $pg->password, 's3cr3t', 'password should still be as configured';
-is $pg->host, 'foo.com', 'host should be as optioned';
-is $pg->port, 98760, 'port should be as optioned';
+is $pg->client,   '/some/other/psql', 'client should be as optioned';
+is $pg->username, 'anna',             'username should be as optioned';
+is $pg->password, 's3cr3t',           'password should still be as configured';
+is $pg->host,     'foo.com',          'host should be as optioned';
+is $pg->port,     98760,              'port should be as optioned';
 is $pg->sqitch_schema, 'meta', 'sqitch_schema should still be as configured';
-is_deeply [$pg->psql], [qw(
-    /some/other/psql
-    --username anna
-    --dbname   widgets_dev
-    --host     foo.com
-    --port     98760
-), @std_opts], 'psql command should be as optioned';
+is_deeply [ $pg->psql ], [
+    qw(
+      /some/other/psql
+      --username anna
+      --dbname   widgets_dev
+      --host     foo.com
+      --port     98760
+      ), @std_opts
+  ],
+  'psql command should be as optioned';
 
 ##############################################################################
 # Test _run() and _cap().
 can_ok $pg, qw(_run _cap);
 my $mock_sqitch = Test::MockModule->new('App::Sqitch');
-my (@run, $exp_pass);
-$mock_sqitch->mock(run => sub {
-    shift;
-    @run = @_;
-    if (defined $exp_pass) {
-        is $ENV{PGPASSWORD}, $exp_pass, qq{PGPASSWORD should be "$exp_pass"};
-    } else {
-        ok !exists $ENV{PGPASSWORD}, 'PGPASSWORD should not exist';
+my ( @run, $exp_pass );
+$mock_sqitch->mock(
+    run => sub {
+        shift;
+        @run = @_;
+        if ( defined $exp_pass ) {
+            is $ENV{PGPASSWORD}, $exp_pass,
+              qq{PGPASSWORD should be "$exp_pass"};
+        }
+        else {
+            ok !exists $ENV{PGPASSWORD}, 'PGPASSWORD should not exist';
+        }
     }
-});
+);
 my @cap;
-$mock_sqitch->mock(capture => sub {
-    shift;
-    @cap = @_;
-    if (defined $exp_pass) {
-        is $ENV{PGPASSWORD}, $exp_pass, qq{PGPASSWORD should be "$exp_pass"};
-    } else {
-        ok !exists $ENV{PGPASSWORD}, 'PGPASSWORD should not exist';
+$mock_sqitch->mock(
+    capture => sub {
+        shift;
+        @cap = @_;
+        if ( defined $exp_pass ) {
+            is $ENV{PGPASSWORD}, $exp_pass,
+              qq{PGPASSWORD should be "$exp_pass"};
+        }
+        else {
+            ok !exists $ENV{PGPASSWORD}, 'PGPASSWORD should not exist';
+        }
     }
-});
+);
 
 $exp_pass = 's3cr3t';
 ok $pg->_run(qw(foo bar baz)), 'Call _run';
-is_deeply \@run, [$pg->psql, qw(foo bar baz)],
-    'Command should be passed to run()';
+is_deeply \@run, [ $pg->psql, qw(foo bar baz) ],
+  'Command should be passed to run()';
 
 ok $pg->_cap(qw(hi there)), 'Call _cap';
-is_deeply \@cap, [$pg->psql, qw(hi there)],
-    'Command should be passed to capture()';
+is_deeply \@cap, [ $pg->psql, qw(hi there) ],
+  'Command should be passed to capture()';
 
 ok $pg->_probe(qw(hi there)), 'Call _probe';
-is_deeply \@cap, [$pg->psql, qw(hi there)],
-    'Command should be passed to capture()';
+is_deeply \@cap, [ $pg->psql, qw(hi there) ],
+  'Command should be passed to capture()';
 
 # Remove the password.
 delete $config{'core.pg.password'};
-ok $pg = $CLASS->new(sqitch => $sqitch), 'Create a pg with sqitch with no pw';
+ok $pg = $CLASS->new( sqitch => $sqitch ), 'Create a pg with sqitch with no pw';
 $exp_pass = undef;
 ok $pg->_run(qw(foo bar baz)), 'Call _run again';
-is_deeply \@run, [$pg->psql, qw(foo bar baz)],
-    'Command should be passed to run() again';
+is_deeply \@run, [ $pg->psql, qw(foo bar baz) ],
+  'Command should be passed to run() again';
 
 ok $pg->_cap(qw(hi there)), 'Call _cap again';
-is_deeply \@cap, [$pg->psql, qw(hi there)],
-    'Command should be passed to capture() again';
+is_deeply \@cap, [ $pg->psql, qw(hi there) ],
+  'Command should be passed to capture() again';
 
 ok $pg->_probe(qw(hi there)), 'Call _probe again';
-is_deeply \@cap, [$pg->psql, qw(hi there)],
-    'Command should be passed to capture() again';
+is_deeply \@cap, [ $pg->psql, qw(hi there) ],
+  'Command should be passed to capture() again';
 
 ##############################################################################
 # Can we do live tests?
@@ -163,18 +178,19 @@ $mock_config->unmock_all;
 can_ok $CLASS, qw(initialized initialize);
 
 my @cleanup;
+
 END {
-    $pg->_run(
-        '--command' => "SET client_min_messages=warning; $_"
-    ) for @cleanup;
+    $pg->_run( '--command' => "SET client_min_messages=warning; $_" )
+      for @cleanup;
 }
 
 subtest 'live database' => sub {
-    $sqitch = App::Sqitch->new('username' => 'postgres');
-    ok $pg = $CLASS->new(sqitch => $sqitch), 'Create a pg with postgres user';
+    $sqitch = App::Sqitch->new( 'username' => 'postgres' );
+    ok $pg = $CLASS->new( sqitch => $sqitch ), 'Create a pg with postgres user';
     try {
-        capture_stderr { $pg->_run('--command', 'SELECT TRUE WHERE FALSE' ) }
-    } catch {
+        capture_stderr { $pg->_run( '--command', 'SELECT TRUE WHERE FALSE' ) };
+    }
+    catch {
         plan skip_all => 'Unable to connect to a database for testing';
     };
 
@@ -187,7 +203,7 @@ subtest 'live database' => sub {
 
     # Try it with a different schema name.
     my $mock_pg = Test::MockModule->new($CLASS);
-    $mock_pg->mock(sqitch_schema => '__sqitchtest');
+    $mock_pg->mock( sqitch_schema => '__sqitchtest' );
     ok !$pg->initialized, 'Database should no longer seem initialized';
     ok $pg->initialize, 'Initialize the database again';
     push @cleanup, 'DROP SCHEMA __sqitchtest CASCADE';

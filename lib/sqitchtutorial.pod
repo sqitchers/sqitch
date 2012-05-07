@@ -8,21 +8,21 @@ sqitchtutorial - A tutorial introduction to Sqitch
 
 =head1 Description
 
-This tutorial explains how to create a sqitch-enabled project, use a VCS for
-deployment planning, and work with other developers to make sure changes
-remain in sync and in the proper order.
+This tutorial explains how to create a sqitch-enabled project, use a
+VCS for deployment planning, and work with other developers to make
+sure changes remain in sync and in the proper order.
 
-We'll start by creating new project from scratch, the database for a fictional
-antisocial networking site called Flipr. All examples use
+We'll start by creating new project from scratch, the database for a
+fictional antisocial networking site called Flipr. All examples use
 L<Git|http://git-scm.com/> as the VCS and
-L<PostgreSQL|http://www.postgresql.org/> as the storage engine, but for the
-most part you can substitute other VCSes and database engines in the examples
-as appropriate.
+L<PostgreSQL|http://www.postgresql.org/> as the storage engine, but for
+the most part you can substitute other VCSes and database engines in
+the examples as appropriate.
 
 =head1 Starting a New Project
 
-Usually the first thing to do when starting a new project is to create a
-source code repository. So let's do that with Git:
+Usually the first thing to do when starting a new project is to create
+a source code repository. So let's do that with Git:
 
   > mkdir flipr
   > cd flipr 
@@ -32,8 +32,9 @@ source code repository. So let's do that with Git:
   > git add .
   > git commit -am 'Fist post!'
 
-If you're a Git user and want to follow along the history, the repository
-used in these examples is L<on GitHub|https://github.com/theory/sqitch-intro>.
+If you're a Git user and want to follow along the history, the
+repository used in these examples is L<on
+GitHub|https://github.com/theory/sqitch-intro>.
 
 Now that we have a repository, let's get started with Sqitch.
 
@@ -53,16 +54,16 @@ Let's have a look at F<sqitch.conf>:
       # host = 
       # username = 
 
-Pretty simple. It picked up on the fact that we're creating changes for the
-PostgreSQL engine, thanks to the C<--engine pg> option, and saved it to the
-file. It also wrote a commented-out C<[core "pg"]> section with all the
-available PostgreSQL engine-specific settings commented out and ready to be
-edited as appropriate.
+Pretty simple. It picked up on the fact that we're creating changes for
+the PostgreSQL engine, thanks to the C<--engine pg> option, and saved
+it to the file. It also wrote a commented-out C<[core "pg"]> section
+with all the available PostgreSQL engine-specific settings commented
+out and ready to be edited as appropriate.
 
-By default, Sqitch will read F<sqitch.conf> in the current directory for
-settings. But it will also read F<~/.sqitch/sqitch.conf> for global settings.
-Since PostgreSQL's C<psql> client is not in the path on my system, let's go
-ahead an tell it globally where to find the client:
+By default, Sqitch will read F<sqitch.conf> in the current directory
+for settings. But it will also read F<~/.sqitch/sqitch.conf> for global
+settings. Since PostgreSQL's C<psql> client is not in the path on my
+system, let's go ahead an tell it globally where to find the client:
 
   sqitch config --user core.pg.client /var/lib/pgsql/bin/psql
 
@@ -71,29 +72,31 @@ Have a look at F<~/.sqitch/sqitch.conf> and you'll see this:
   [core.pg]
       client = /var/lib/pgsql/bin/psql
 
-Back to the repository. Let's commit these changes and start creating the
-database changes.
+Back to the repository. Let's commit these changes and start creating
+the database changes.
 
   > git add .
   > git commit -am 'Initialize Sqitch configuration.'
 
 =head1 Our First Deployment
 
-First, our project will need a database user. This is the application user,
-who will have only limited access to objects in the database. Run this command:
+First, our project will need a database user. This is the application
+user, who will have only limited access to objects in the database. Run
+this command:
 
   > sqitch add-step appuser
   Adding sql/deploy/appuser.sql
   Adding sql/revert/appuser.sql
 
-The C<add-step> command creates deploy and revert scripts that represent a new
-change step. Now we edit these files. The C<deploy> script's job is to create
-the user. So we add this to F<sql/deploy/appuser.sql>:
+The C<add-step> command creates deploy and revert scripts that
+represent a new change step. Now we edit these files. The C<deploy>
+script's job is to create the user. So we add this to
+F<sql/deploy/appuser.sql>:
 
   CREATE ROLE flipr WITH LOGIN;
 
-The C<revert> script's job is to precisely revert the change to the deploy
-script, so we add this to F<sql/revert/appuser.sql>:
+The C<revert> script's job is to precisely revert the change to the
+deploy script, so we add this to F<sql/revert/appuser.sql>:
 
   DROP ROLE flipr;
 
@@ -104,17 +107,18 @@ Now we can try deploying this change:
   Deploying HEAD+ to flipr_test
     - appuser
 
-First Sqitch created the metadata tables used to track database changes. The
-structure and name of the metadata tables varies between databases (PostgreSQL
-uses a schema to namespace its metadata; MySQL and SQLite use a prefix). Next,
-Sqitch deploys changes. Here it is deploying something called C<HEAD+>.
-Normally you would see a tag here, but since we've just added the files and
-they are not yet committed to Git, there is no tag. C<HEAD+> is a special tag
-reserved for use by Sqitch. It's enabled only by the use of the C<--untracked>
-option, which allows Sqitch to find an deploy untracked changes.
+First Sqitch created the metadata tables used to track database
+changes. The structure and name of the metadata tables varies between
+databases (PostgreSQL uses a schema to namespace its metadata; MySQL
+and SQLite use a prefix). Next, Sqitch deploys changes. Here it is
+deploying something called C<HEAD+>. Normally you would see a tag here,
+but since we've just added the files and they are not yet committed to
+Git, there is no tag. C<HEAD+> is a special tag reserved for use by
+Sqitch. It's enabled only by the use of the C<--untracked> option,
+which allows Sqitch to find an deploy untracked changes.
 
-With this change deployed, if you connect to the database, you'll be able to
-see the role:
+With this change deployed, if you connect to the database, you'll be
+able to see the role:
 
   > psql -d flipr_test -c '\du flipr'
              List of roles
@@ -122,8 +126,8 @@ see the role:
   -----------+------------+-----------
    flipr     |            | {}
 
-And we can also see how the deployment was recorded via the C<status> command,
-which reads the metadata tables from the database:
+And we can also see how the deployment was recorded via the C<status>
+command, which reads the metadata tables from the database:
 
   > sqitch -d flipr_test status
   # On database flipr_test
@@ -158,8 +162,8 @@ And the status message should reflect as much:
   #
   Use "sqitch deploy --untracked" to deploy these changes
 
-We've again used the C<--untracked> option, otherwise the C<appuser> step would
-not appear in the list of "Changes not yet deployed."
+We've again used the C<--untracked> option, otherwise the C<appuser>
+step would not appear in the list of "Changes not yet deployed."
 
 We still have a record that the change happened, visible via the C<log>
 command:
@@ -190,9 +194,9 @@ And then deploy again:
   Deploying 36acafd to flipr_test
     - appuser
 
-Notice we no longer need the C<--untracked> option. That's because we've
-committed the step to Git, so Sqitch can read it from the Git history. And now
-the user should be back:
+Notice we no longer need the C<--untracked> option. That's because
+we've committed the step to Git, so Sqitch can read it from the Git
+history. And now the user should be back:
 
   > psql -d flipr_test -c '\du flipr'
              List of roles
@@ -200,8 +204,8 @@ the user should be back:
   -----------+------------+-----------
    flipr     |            | {}
 
-When we look at the status, the deployment is tagged with the SHA1 of the
-commit:
+When we look at the status, the deployment is tagged with the SHA1 of
+the commit:
 
   > sqitch -d flipr_test status
   # On database flipr_test
@@ -213,14 +217,14 @@ commit:
 
 =head1 More Configuration
 
-I'm getting a little tired of always having to type C<--db-name flipr_test>,
-aren't you? Let's just make that the default, shall we?
+I'm getting a little tired of always having to type C<--db-name
+flipr_test>, aren't you? Let's just make that the default, shall we?
 
   sqitch config core.pg.db_name flipr_test
 
-Now we can leave it out, unless we need to deploy to another database. Which
-we will, eventually, but at least our examples will be simpler from here on
-in, e.g.:
+Now we can leave it out, unless we need to deploy to another database.
+Which we will, eventually, but at least our examples will be simpler
+from here on in, e.g.:
 
   > sqitch status
   # On database flipr_test
@@ -230,13 +234,14 @@ in, e.g.:
   #
   Nothing to deploy (up-to-date)
 
-Yay, that allows things to be a little more concise. Let's make some more
-changes!
+Yay, that allows things to be a little more concise. Let's make some
+more changes!
 
 =head1 Deploy with Dependency
 
-Let's add another deployment, this time to create a table. Our app will need
-users, of course, so we'll create a table for them. First, add the new step:
+Let's add another deployment, this time to create a table. Our app will
+need users, of course, so we'll create a table for them. First, add the
+new step:
 
   > sqitch add-step users
   Adding sql/deploy/users.sql
@@ -257,27 +262,28 @@ Now edit the scripts. In C<sql/deploy/users.sql>, we put:
   GRANT SELECT ON users TO flipr;
   COMMIT;
 
-A few things to notice here. On the first line, we've declared a dependency on
-the C<appuser> step. Although that step has already been added and committed,
-and therefore should always be applied before the C<users> step, it's a good
-idea to be explicit about dependencies. This becomes especially important when
-committing a number of steps at one time, such as when merging a patch or a
-branch.
+A few things to notice here. On the first line, we've declared a
+dependency on the C<appuser> step. Although that step has already been
+added and committed, and therefore should always be applied before the
+C<users> step, it's a good idea to be explicit about dependencies. This
+becomes especially important when committing a number of steps at one
+time, such as when merging a patch or a branch.
 
-The syntax of the dependency declaration is simple: Before any other lines,
-create an SQL C<--> comment that simply uses the word "requires" followed by a
-colon and then a comma-delimited list of required steps. The requirements may
-also be listed on separate lines, providing they all start with
-C<-- requires:>.
+The syntax of the dependency declaration is simple: Before any other
+lines, create an SQL C<--> comment that simply uses the word "requires"
+followed by a colon and then a comma-delimited list of required steps.
+The requirements may also be listed on separate lines, providing they
+all start with C<-- requires:>.
 
-Notice that all of the SQL code is wrapped in a transaction. This is handy for
-PostgreSQL deployments, because DDLs are transactional. The upshot is that if
-any part of the deployment fails, the whole step fails. Such may work
-less-well for database engines that don't support transactional DDLs.
+Notice that all of the SQL code is wrapped in a transaction. This is
+handy for PostgreSQL deployments, because DDLs are transactional. The
+upshot is that if any part of the deployment fails, the whole step
+fails. Such may work less-well for database engines that don't support
+transactional DDLs.
 
-Just before the commit, the C<GRANT> command grants C<SELECT> access on the
-table to the C<flipr> user created by the C<appuser> step. This is why we
-need the dependency.
+Just before the commit, the C<GRANT> command grants C<SELECT> access on
+the table to the C<flipr> user created by the C<appuser> step. This is
+why we need the dependency.
 
 Now for the revert script. Add this to C<sql/revert/users.sql>:
 
@@ -311,17 +317,17 @@ Now have a look at the status:
   #
   Nothing to deploy (up-to-date)
 
-Success! However, we've once again deployed an untracked change with no tags.
-In general, we want tags, so let's revert the change:
+Success! However, we've once again deployed an untracked change with no
+tags. In general, we want tags, so let's revert the change:
 
   > sqitch revert --to 36acafd
   Reverting HEAD+ from flipr_test
   - users
 
-Note that we've used the C<--to> option to revert only to the C<36acafd> tag,
-which represents the deployment of the C<appuser> step. (You can see this tag
-by running C<sqitch log>, in case you don't have your SHA1 hashes memorized).
-Now commit and deploy again:
+Note that we've used the C<--to> option to revert only to the
+C<36acafd> tag, which represents the deployment of the C<appuser> step.
+(You can see this tag by running C<sqitch log>, in case you don't have
+your SHA1 hashes memorized). Now commit and deploy again:
 
   > git add .
   > git commit -am 'Add users table.'
@@ -347,8 +353,9 @@ Looks good. Check the status:
   #
   Nothing to deploy (up-to-date)
 
-Note the use of C<--show tags>, which adds the "Tags" section to the output,
-so that we can use a list of what tags were deployed, when, and by whom.
+Note the use of C<--show tags>, which adds the "Tags" section to the
+output, so that we can use a list of what tags were deployed, when, and
+by whom.
 
 =head1 Add Two at Once
 
@@ -364,17 +371,17 @@ Let's add a couple more steps to add functions for managing users.
          -- requires: users, appuser
   Adding sql/revert/change_pass.sql
 
-Here we've taken advantage of the C<--requires> option to have Sqitch write
-the stubbed C<deploy> file with the C<-- requires:> line already filled in.
-Have a look:
+Here we've taken advantage of the C<--requires> option to have Sqitch
+write the stubbed C<deploy> file with the C<-- requires:> line already
+filled in. Have a look:
 
   > cat sql/deploy/insert_user.sql
   -- requires: users, appuser
   
 
-Nice, huh? Yeah, okay, so it's a little thing. Little things matter, am I
-right? Let's write the code. Here's what C<sql/deploy/insert_user.sql> should
-look like:
+Nice, huh? Yeah, okay, so it's a little thing. Little things matter, am
+I right? Let's write the code. Here's what
+C<sql/deploy/insert_user.sql> should look like:
 
   -- requires: users, appuser
   
@@ -394,7 +401,8 @@ And C<sql/revert/insert_user.sql> should look something like this:
 
   DROP FUNCTION insert_user(TEXT, TEXT);
 
-Now for C<change_pass>; C<sql/deploy/change_pass.sql> might look like this:
+Now for C<change_pass>; C<sql/deploy/change_pass.sql> might look like
+this:
 
   -- requires: users, appuser
 
@@ -417,8 +425,8 @@ Now for C<change_pass>; C<sql/deploy/change_pass.sql> might look like this:
   GRANT EXECUTE ON FUNCTION change_pass(TEXT, TEXT, TEXT) to flipr;
   COMMIT;
 
-And of course, its C<revert> script, C<sql/revert/change_pass.sql>, should look
-something like:
+And of course, its C<revert> script, C<sql/revert/change_pass.sql>,
+should look something like:
 
   DROP FUNCTION change_pass(TEXT, TEXT, TEXT);
 
@@ -460,9 +468,9 @@ Looks good. Let's revert, commit, and re-deploy, as usual.
     - insert_user
     - change_pass
 
-Note the use of C<--to HEAD> to revert untracked changes. We also could have
-explicitly used C<--to fa650af> to revert to that tag, but C<HEAD> is a nice
-shortcut. Let's do the commit and re-deploy dance:
+Note the use of C<--to HEAD> to revert untracked changes. We also could
+have explicitly used C<--to fa650af> to revert to that tag, but C<HEAD>
+is a nice shortcut. Let's do the commit and re-deploy dance:
 
   > git add .
   > git ci -m 'Add `insert_user()` and `change_pass()`.'
@@ -495,8 +503,9 @@ Great, we're fully up-to-date!
 
 =head1 Ship It!
 
-Let's do a first release of our app. Let's call it C<1.0.0-dev1> Since we want
-to have it go out with deployments tied to the release, let's tag it:
+Let's do a first release of our app. Let's call it C<1.0.0-dev1> Since
+we want to have it go out with deployments tied to the release, let's
+tag it:
 
   > git tag v1.0.0-dev1 -am 'Tag v1.0.0-dev1'
 
@@ -527,11 +536,11 @@ All four steps were deployed, great! Let's have a look at the state:
   #
   Nothing to deploy (up-to-date)
 
-Note that all the tags are included, and that the two tags C<803e6b8> and
-C<v1.0.0-dev1> actually represent the same point in time. This is handy for
-development, but is a bit over-the-top for production deployments. We can get
-around this by bundling up all the steps with the explicit tag, leaving out
-the individual commit SHA1s:
+Note that all the tags are included, and that the two tags C<803e6b8>
+and C<v1.0.0-dev1> actually represent the same point in time. This is
+handy for development, but is a bit over-the-top for production
+deployments. We can get around this by bundling up all the steps with
+the explicit tag, leaving out the individual commit SHA1s:
 
   > sqitch bundle --tags-only
   Bundling in bundle/
@@ -543,10 +552,11 @@ the individual commit SHA1s:
     - insert_user
   Plan written to bundle/sqitch.plan
 
-Now we can package up the C<bundle> directory and distribute it. When it gets
-installed somewhere, users can use Sqitch to deploy to the database. Of
-course, the Git history is no longer available, so Sqitch will use the
-C<sqitch.plan> file to figure things out. Let's have a look at it:
+Now we can package up the C<bundle> directory and distribute it. When
+it gets installed somewhere, users can use Sqitch to deploy to the
+database. Of course, the Git history is no longer available, so Sqitch
+will use the C<sqitch.plan> file to figure things out. Let's have a
+look at it:
 
   cat bundle/sqitch.plan
 
@@ -556,9 +566,10 @@ C<sqitch.plan> file to figure things out. Let's have a look at it:
   change_pass
   insert_user
 
-Pretty simple. It shows the tag being deployed and the steps that constitute
-it as a simple list. Notice that the SHA1s for each step are not present; the
-C<--tags-only> option to the C<bundle> command limits the plan only to tags.
+Pretty simple. It shows the tag being deployed and the steps that
+constitute it as a simple list. Notice that the SHA1s for each step are
+not present; the C<--tags-only> option to the C<bundle> command limits
+the plan only to tags.
 
 Let's test deploying it:
 
@@ -588,10 +599,10 @@ No commit SHA1s, just C<v1.0.0-dev1>.
 
 =head1 Flip Out
 
-Now that we've got the basics of user management done, let's get to work on
-the core of our product, the "flip." Since other folks are working on other
-tasks in the repository, we'll work on a branch, so we can all stay out of
-each other's way. So let's branch:
+Now that we've got the basics of user management done, let's get to
+work on the core of our product, the "flip." Since other folks are
+working on other tasks in the repository, we'll work on a branch, so we
+can all stay out of each other's way. So let's branch:
 
   > git checkout -b flips
   Switched to a new branch 'flips'
@@ -667,12 +678,13 @@ no worries, we can update all the tags.
     + 4aa888e
   Tags: 4 (1 removed, 1 added).
 
-In the list of tags, C<.> means no change, C<+> means added, and C<-> means
-removed.
+In the list of tags, C<.> means no change, C<+> means added, and C<->
+means removed.
 
-Oh, it added the C<v1.0.0-dev1> tag. Recall that we never deployed it to the
-test database before. That's cool, forgot about that. Then it removed the
-C<HEAD+> tag and added C<4aa888e>. Let's examine the status:
+Oh, it added the C<v1.0.0-dev1> tag. Recall that we never deployed it
+to the test database before. That's cool, forgot about that. Then it
+removed the C<HEAD+> tag and added C<4aa888e>. Let's examine the
+status:
 
   > sqitch status --show tags
   # On database flipr_test
@@ -688,16 +700,18 @@ C<HEAD+> tag and added C<4aa888e>. Let's examine the status:
   #
   Nothing to deploy (up-to-date)
 
-Great, looks like the tags are all in sync. That's handy. Of course, it's
-still a good idea to test C<sqitch revert> and C<sqitch deploy> a few times,
-just to make sure the changes are always carried out properly, but it's nice
-to know we don't have to take extra steps just to commit untracked changes.
+Great, looks like the tags are all in sync. That's handy. Of course,
+it's still a good idea to test C<sqitch revert> and C<sqitch deploy> a
+few times, just to make sure the changes are always carried out
+properly, but it's nice to know we don't have to take extra steps just
+to commit untracked changes.
 
 =head1 Wash, Rinse, Repeat
 
-Now comes the time to add functions to manage flips. I'm sure you have things
-nailed down now. Go ahead and add C<insert_flip> and C<delete_flip> steps
-and commit them. The C<insert_flip> deploy script might look something like:
+Now comes the time to add functions to manage flips. I'm sure you have
+things nailed down now. Go ahead and add C<insert_flip> and
+C<delete_flip> steps and commit them. The C<insert_flip> deploy script
+might look something like:
 
   -- requires: flips, appuser
   BEGIN;
@@ -735,9 +749,10 @@ And:
 
   DROP FUNCTION delete_flip(BIGINT);
 
-Check the L<example git repository|https://github.com/theory/sqitch-intro> for
-the complete details. Test C<deploy> and C<revert>, commit, and C<retag>. The
-status should end up looking something like this:
+Check the L<example git
+repository|https://github.com/theory/sqitch-intro> for the complete
+details. Test C<deploy> and C<revert>, commit, and C<retag>. The status
+should end up looking something like this:
 
   > sqitch status --show tags
   # On database flipr_test
@@ -779,9 +794,9 @@ Let's do it:
    create mode 100644 sql/revert/insert_list.sql
    create mode 100644 sql/revert/lists.sql
 
-Hrm, that's interesting. Looks like someone made some changes to C<master>.
-Looks like some list support was added. Well, let's see what happens when we
-merge our changes.
+Hrm, that's interesting. Looks like someone made some changes to
+C<master>. Looks like some list support was added. Well, let's see what
+happens when we merge our changes.
 
   > git merge --no-ff flips
   Merge made by the 'recursive' strategy.
@@ -799,7 +814,8 @@ merge our changes.
    create mode 100644 sql/revert/flips.sql
    create mode 100644 sql/revert/insert_flip.sql
 
-Hey, looks good, everything merged cleanly. Let's have a look at our Git history:
+Hey, looks good, everything merged cleanly. Let's have a look at our
+Git history:
 
   > git log --oneline
   5e30f38 Merge branch 'flips'
@@ -816,35 +832,35 @@ Hey, looks good, everything merged cleanly. Let's have a look at our Git history
   9ccc485 Add README text.
   7b8dd19 First post!
 
-Whoa, wait, what? Recall that we left off at commit C<803e6b8>. After that we
-should have our two commits to the "flips" branch and end with a merge commit.
-But notice here we have some other stuff interleaved. Commit C<591e388> adds a
-"lists" table before our C<faaa4d0> commit adds the "flips" table. Then there
-is another interloper commit, C<675f78d>, which adds some functions to insert
-and delete lists, before our C<9703969> commit adds functions to insert and
-delete flips. And there, second from the top, is the explanation,
-C<2fae0b3 Merge branch 'lists'>. Why, someone else was working on another
-branch and merged stuff into master before we did! Now things are all mixed
-up.
+Whoa, wait, what? Recall that we left off at commit C<803e6b8>. After
+that we should have our two commits to the "flips" branch and end with
+a merge commit. But notice here we have some other stuff interleaved.
+Commit C<591e388> adds a "lists" table before our C<faaa4d0> commit
+adds the "flips" table. Then there is another interloper commit,
+C<675f78d>, which adds some functions to insert and delete lists,
+before our C<9703969> commit adds functions to insert and delete flips.
+And there, second from the top, is the explanation, C<2fae0b3 Merge
+branch 'lists'>. Why, someone else was working on another branch and
+merged stuff into master before we did! Now things are all mixed up.
 
-Well, the truth is, we got lazy. Those changes when we pulled master from the
-origin should have raised a red flag. In truth, it's considered a bad practice
-not to look at what's changed in C<master> before merging in a branch. What one
-I<should> do is either:
+Well, the truth is, we got lazy. Those changes when we pulled master
+from the origin should have raised a red flag. In truth, it's
+considered a bad practice not to look at what's changed in C<master>
+before merging in a branch. What one I<should> do is either:
 
 =over
 
 =item *
 
-Rebase the branch from on master before merging. This "rewinds" the branch
-changes, pulls from C<master>, and then replays the changes back on top of
-C<master>.
+Rebase the branch from on master before merging. This "rewinds" the
+branch changes, pulls from C<master>, and then replays the changes back
+on top of C<master>.
 
 =item *
 
-Create a patch and apply I<that> to master. This is the sort of thing you
-might have to do if you're sending changes to another user, especially if the
-VCS is not Git.
+Create a patch and apply I<that> to master. This is the sort of thing
+you might have to do if you're sending changes to another user,
+especially if the VCS is not Git.
 
 =back
 
@@ -853,8 +869,8 @@ So let's restore things to how they were at master:
   > git reset --hard origin/master
   HEAD is now at 2fae0b3 Merge tag 'lists'
 
-That throws out our merge, which thankfully we have not yet pushed. Now let's
-go back to our branch and rebase it on C<master>:
+That throws out our merge, which thankfully we have not yet pushed. Now
+let's go back to our branch and rebase it on C<master>:
 
   > git checkout flips
   Switched to branch 'flips'
@@ -863,9 +879,9 @@ go back to our branch and rebase it on C<master>:
   Applying: Add flipr table.
   Applying: Add `insert_flip()` and `delete_flip()`.
 
-Notice that it rewinds the changes since we branched from C<master>, pulls
-from C<master>, and then re-applies our commits. Look at the Git log to make
-sure things were applied properly:
+Notice that it rewinds the changes since we branched from C<master>,
+pulls from C<master>, and then re-applies our commits. Look at the Git
+log to make sure things were applied properly:
 
   > git log --oneline
   54d680f Add `insert_flip()` and `delete_flip()`.
@@ -881,10 +897,10 @@ sure things were applied properly:
   9ccc485 Add README text.
   7b8dd19 Fist post!
 
-Much better. Now all of our "flips" changes come after the "lists" changes.
-But wait, we can't merge into C<master> quite yet. Or, at least, it's not a
-good idea. We need to first make sure that Sqitch deployments still work
-properly. Why? Have a look at this:
+Much better. Now all of our "flips" changes come after the "lists"
+changes. But wait, we can't merge into C<master> quite yet. Or, at
+least, it's not a good idea. We need to first make sure that Sqitch
+deployments still work properly. Why? Have a look at this:
 
   > sqitch status
   # On database flipr_test
@@ -906,9 +922,10 @@ properly. Why? Have a look at this:
   #      - insert_list
   #      - delete_list
 
-Uh-oh. First of all, the second line tells us that the current tag, C<74c49ef>,
-is unknown. That's because we rebased from master, so our local commits got
-new SHA1s. Fortunately, we can fix that problem by re-tagging:
+Uh-oh. First of all, the second line tells us that the current tag,
+C<74c49ef>, is unknown. That's because we rebased from master, so our
+local commits got new SHA1s. Fortunately, we can fix that problem by
+re-tagging:
 
   > sqitch retag
   Retagging flipr_test
@@ -941,13 +958,14 @@ Looks like it made some important updates. Let's see:
   #      - insert_list
   #      - delete_list
 
-Great, now the tag looks right. But we still have undeployed changes. This is
-because the rebase from C<master> added the "lists" branch changes. They come
-I<before> our "flips" changes in the repository history, which means that,
-technically, the the "flips" changes have been applied out-of-order.
-Fortunately for us, however, there appear to be no conflicts (no mutual
-dependencies between the "flips" and "lists" changes to muck things up). So we
-can just take its advice and run C<sqitch deploy>:
+Great, now the tag looks right. But we still have undeployed changes.
+This is because the rebase from C<master> added the "lists" branch
+changes. They come I<before> our "flips" changes in the repository
+history, which means that, technically, the the "flips" changes have
+been applied out-of-order. Fortunately for us, however, there appear to
+be no conflicts (no mutual dependencies between the "flips" and "lists"
+changes to muck things up). So we can just take its advice and run
+C<sqitch deploy>:
 
   > sqitch deploy --untracked
   Deploying 591e388 to flipr_test
@@ -965,28 +983,31 @@ So where does that leave us?
   # Date: 2012-04-10 23:32:43
   #
 
-Note that we are still on the C<54d680f> tag but the date has been updated.
-Sqitch has successfully merged the "lists" changes into the database.
+Note that we are still on the C<54d680f> tag but the date has been
+updated. Sqitch has successfully merged the "lists" changes into the
+database.
 
-What would have happened if there had been a conflict? In that case, we would
-have had to revert the "flips" changes and deployed again, so that the changes
-could be re-applied in the proper order. The commands to do that would have
-been:
+What would have happened if there had been a conflict? In that case, we
+would have had to revert the "flips" changes and deployed again, so
+that the changes could be re-applied in the proper order. The commands
+to do that would have been:
 
   > sqitch revert 54d680f^
   > sqitch deploy
 
-Note the use of C<^> at the end of C<54d680f^>. That means, "the tag just
-before C<54d680f>", and is a nice shortcut so that we don't have to troll the
-history to find that tag. So it would revert to that tag, and them the call to
-C<sqitch deploy> would have deployed the "lists" changes, followed by the
-"flips" changes, so that everything would be in the proper order
+Note the use of C<^> at the end of C<54d680f^>. That means, "the tag
+just before C<54d680f>", and is a nice shortcut so that we don't have
+to troll the history to find that tag. So it would revert to that tag,
+and them the call to C<sqitch deploy> would have deployed the "lists"
+changes, followed by the "flips" changes, so that everything would be
+in the proper order
 
 Of course, this is the sort of thing you want to avoid in a production
-context. When doing development, you can muck with your change history in any
-number of ways. But you really want to get things nailed down before you do a
-release, which should have a set plan that does not change -- until the next
-release adds new steps -- but never mixes things in.
+context. When doing development, you can muck with your change history
+in any number of ways. But you really want to get things nailed down
+before you do a release, which should have a set plan that does not
+change -- until the next release adds new steps -- but never mixes
+things in.
 
 =head2 Merges Mastered
 
@@ -1027,16 +1048,16 @@ And double-check our work:
   9ccc485 Add README text.
   7b8dd19 Fist post!
 
-Much much better, a nice clean master now. And because it is now identical to
-the "flips" branch, we can just carry on. Tag it so that we can use real tags
-for bundling a release later:
+Much much better, a nice clean master now. And because it is now
+identical to the "flips" branch, we can just carry on. Tag it so that
+we can use real tags for bundling a release later:
 
   > git tag flips -am 'Tag flips merge.'
 
 =head1 In Place Changes
 
-Uh-oh, someone just noticed that MD5 hashing is not particularly secure. Why?
-Have a look at this:
+Uh-oh, someone just noticed that MD5 hashing is not particularly
+secure. Why? Have a look at this:
 
   > psql -d flipr_test -c "
       SELECT insert_user('foo', 'secr3t'), insert_user('bar', 'secr3t');
@@ -1047,38 +1068,42 @@ Have a look at this:
    foo      | 9695da4dd567a19f9b92065f240c6725 | 2012-04-11 23:00:02.135612+00
    bar      | 9695da4dd567a19f9b92065f240c6725 | 2012-04-11 23:00:02.135612+00
 
-If user "foo" ever got access to the database, she could quickly discover that
-user "bar" has the same password and thus be able to exploit the account. Not
-a great idea. So we need to modify the C<insert_user()> and C<change_pass()>
-functions to fix that. How? we'll use
+If user "foo" ever got access to the database, she could quickly
+discover that user "bar" has the same password and thus be able to
+exploit the account. Not a great idea. So we need to modify the
+C<insert_user()> and C<change_pass()> functions to fix that. How? we'll
+use
 L<C<pgcrypto>|http://www.postgresql.org/docs/current/static/pgcrypto.html>'s
-C<crypt()> function to encrypt passwords with a salt, so that they're all
-unique. We just add a step to add C<pgcrypto> to the database, and then we can
-use it. The deploy script should be:
+C<crypt()> function to encrypt passwords with a salt, so that they're
+all unique. We just add a step to add C<pgcrypto> to the database, and
+then we can use it. The deploy script should be:
 
  CREATE EXTENSION pgcrypto;
 
-And the revert script should just C<DROP EXTENSION pgcrypto>. Then we can use
-it. But how to deploy the changes to C<insert_user()> and C<change_pass()>?
+And the revert script should just C<DROP EXTENSION pgcrypto>. Then we
+can use it. But how to deploy the changes to C<insert_user()> and
+C<change_pass()>?
 
-Normally, modifying functions in database changes is a PITA. You have to
-take steps like these:
+Normally, modifying functions in database changes is a PITA. You have
+to take steps like these:
 
 =over
 
 =item 1.
 
-Copy F<sql/deploy/insert_user.sql> to F<sql/deploy/insert_user_crypt.sql>.
+Copy F<sql/deploy/insert_user.sql> to
+F<sql/deploy/insert_user_crypt.sql>.
 
 =item 2.
 
-Edit F<sql/deploy/insert_user_crypt.sql> to switch from C<MD5()> to C<crypt()>
-and to add a dependency on the C<pgcrypto> step.
+Edit F<sql/deploy/insert_user_crypt.sql> to switch from C<MD5()> to
+C<crypt()> and to add a dependency on the C<pgcrypto> step.
 
 =item 3.
 
-Copy F<sql/deploy/insert_user.sql> to F<sql/revert/insert_user_crypt.sql>.
-Yes, copy the original change script to the new revert step.
+Copy F<sql/deploy/insert_user.sql> to
+F<sql/revert/insert_user_crypt.sql>. Yes, copy the original change
+script to the new revert step.
 
 =item 4.
 
@@ -1091,14 +1116,15 @@ Now do the same for the C<change_pass> scripts.
 
 =back
 
-That doesn't seem I<too> bad. And you can do that with Sqitch, if you want.
-But it makes for rather bad VCS management. This is effectively a one-line
-change to each function, but we're copying their entire contents to new files.
-Hell, the reversion script is I<identical> to the original deploy script.
+That doesn't seem I<too> bad. And you can do that with Sqitch, if you
+want. But it makes for rather bad VCS management. This is effectively a
+one-line change to each function, but we're copying their entire
+contents to new files. Hell, the reversion script is I<identical> to
+the original deploy script.
 
-Perhaps worse, though, is that it's much more difficult to look at changes in
-the VCS. After committing the C<insert_user_crypt> step, what does the diff
-look like?
+Perhaps worse, though, is that it's much more difficult to look at
+changes in the VCS. After committing the C<insert_user_crypt> step,
+what does the diff look like?
 
   > git diff HEAD^
   diff --git a/sql/deploy/insert_user_crypt.sql b/sql/deploy/insert_user_crypt.sql
@@ -1130,10 +1156,10 @@ look like?
   +    INSERT INTO users values($1, md5($2));
   +$$;
 
-Oy. It looks like two new functions were added, not that we just changed one.
-How annoying is that? Of course, if we know the history, we can diff things
-without using the Git history, simply by comparing F<sql/deploy/insert_user.sql>
-to F<sql/deploy/insert_user_crypt.sql>:
+Oy. It looks like two new functions were added, not that we just
+changed one. How annoying is that? Of course, if we know the history,
+we can diff things without using the Git history, simply by comparing
+F<sql/deploy/insert_user.sql> to F<sql/deploy/insert_user_crypt.sql>:
 
   > diff -u sql/deploy/insert_user.sql sql/deploy/insert_user_crypt.sql 
   --- sql/deploy/insert_user.sql	2012-04-09 14:15:55.000000000 -0700
@@ -1146,28 +1172,28 @@ to F<sql/deploy/insert_user_crypt.sql>:
   +    INSERT INTO users values($1, crypt($2, gen_salt('md5')));
    $$;
 
-That makes much more sense, but requires special knowledge to realize you
-can't just C<git diff> to see what changed. Wouldn't it be great if we could
-just make the change right in the file, commit it to the VCS, and have the
-deployment and reversion "just work"?
+That makes much more sense, but requires special knowledge to realize
+you can't just C<git diff> to see what changed. Wouldn't it be great if
+we could just make the change right in the file, commit it to the VCS,
+and have the deployment and reversion "just work"?
 
 =head2 It's a VCS
 
 Sqitch can. Rather than take all the above steps, you can just modify
-F<sql/deploy/insert_user.sql> and F<sql/deploy/change_padd.sql> I<in place>.
-There is only one requirement for this: All changes to the deployment script,
-including the original version, B<must be
-L<idempotent|http://en.wikipedia.org/wiki/Idempotence>>. That is, the deploy
-script can applied multiple times without changing the result beyond the
-initial application. That's it, the only requirement.
+F<sql/deploy/insert_user.sql> and F<sql/deploy/change_padd.sql> I<in
+place>. There is only one requirement for this: All changes to the
+deployment script, including the original version, B<must be
+L<idempotent|http://en.wikipedia.org/wiki/Idempotence>>. That is, the
+deploy script can applied multiple times without changing the result
+beyond the initial application. That's it, the only requirement.
 
-Fortunately, our function deployment scripts are already idempotent, thanks to
-the use of the C<OR REPLACE> expression. No matter how many times a deployment
-script is run, he end result will be the same instance of the function, with
-no duplicates or errors.
+Fortunately, our function deployment scripts are already idempotent,
+thanks to the use of the C<OR REPLACE> expression. No matter how many
+times a deployment script is run, he end result will be the same
+instance of the function, with no duplicates or errors.
 
-As a result, there is no need to explicitly add steps. So go ahead. Modify the
-script to switch to C<crypt()>. Make this change to
+As a result, there is no need to explicitly add steps. So go ahead.
+Modify the script to switch to C<crypt()>. Make this change to
 F<sql/deploy/insert_user.sql>:
 
   @@ -1,8 +1,8 @@
@@ -1222,8 +1248,8 @@ So, are the changes deployed?
    foo      | $1$l6OEKyF3$kv5ae7505ROub75d9QKTh/ | 2012-04-12 18:55:43.422211+00
    bar      | $1$J4NJDgaJ$578i9Lt6b8ohJwi6WhNNO1 | 2012-04-12 18:55:43.422211+00
 
-Awesome, the stored passwords are different now. But can we revert, even
-though we haven't written any reversion scripts?
+Awesome, the stored passwords are different now. But can we revert,
+even though we haven't written any reversion scripts?
 
   > sqitch revert --to HEAD
   Reverting HEAD+ from flipr_test
@@ -1242,21 +1268,23 @@ Did that work, are the C<MD5()> passwords back?
    foo      | 9695da4dd567a19f9b92065f240c6725 | 2012-04-12 18:56:03.292423+00
    bar      | 9695da4dd567a19f9b92065f240c6725 | 2012-04-12 18:56:03.292423+00
 
-Yes, it works! How, you ask? Simple. Because Sqitch uses your VCS history to
-determine what steps to deploy, it can tell that the C<insert_user()> and
-C<change_pass()> scripts have changed, and just deploy the new version. When
-you revert, it simply retrieves the old version from the history and applies
-C<that>, instead. And that should underscore the importance of the idempotence
-of in-place modifications to change scripts. Because if the reversion had
-failed, or left the newer version still in place, it simply would not work.
+Yes, it works! How, you ask? Simple. Because Sqitch uses your VCS
+history to determine what steps to deploy, it can tell that the
+C<insert_user()> and C<change_pass()> scripts have changed, and just
+deploy the new version. When you revert, it simply retrieves the old
+version from the history and applies C<that>, instead. And that should
+underscore the importance of the idempotence of in-place modifications
+to change scripts. Because if the reversion had failed, or left the
+newer version still in place, it simply would not work.
 
-This is a valuable feature, and certainly keeps the VCS history cleaner, so
-that it's easier to tell what changed in our database functions in a given
-commit. But you do have to use it with care. If you have any doubts about
-changing something in place, or risk orphaning some object, use the
-copy-and-paste approach instead.
+This is a valuable feature, and certainly keeps the VCS history
+cleaner, so that it's easier to tell what changed in our database
+functions in a given commit. But you do have to use it with care. If
+you have any doubts about changing something in place, or risk
+orphaning some object, use the copy-and-paste approach instead.
 
-So let's go ahead and commit these changes and bring the database up-to-date:
+So let's go ahead and commit these changes and bring the database
+up-to-date:
 
   > git commit -m 'Use pgcrypto to encrypt passwords.'
   [master eea942d] Use pgcrypto to encrypt passwords.
@@ -1277,10 +1305,11 @@ So let's go ahead and commit these changes and bring the database up-to-date:
 
 =head2 What about Bundling?
 
-Of course, this only works if Sqitch is using the VCS history to fetch earlier
-versions of deployment scripts to do reversions. Such are obviously not
-available in a distributed bundle. Or are they? Let's create a new release and
-find out. Let's tag a C<v1.0.0-b1> release and create a new bundle:
+Of course, this only works if Sqitch is using the VCS history to fetch
+earlier versions of deployment scripts to do reversions. Such are
+obviously not available in a distributed bundle. Or are they? Let's
+create a new release and find out. Let's tag a C<v1.0.0-b1> release and
+create a new bundle:
 
   > git tag v1.0.0-b1 -am 'Tag v1.0.0-b1'
   > sqitch bundle --tags-only
@@ -1302,9 +1331,9 @@ find out. Let's tag a C<v1.0.0-b1> release and create a new bundle:
     - insert_user_v2
   Plan written to bundle/sqitch.plan
 
-Hey, look, the C<change_pass> and C<insert_user> steps are listed twice, but
-in the second instance, they have C<_v2> appended to their names. Let's have
-a look at the plan:
+Hey, look, the C<change_pass> and C<insert_user> steps are listed
+twice, but in the second instance, they have C<_v2> appended to their
+names. Let's have a look at the plan:
 
   > cd bundle
   > cat sqitch.plan
@@ -1326,9 +1355,10 @@ a look at the plan:
     change_pass_v2
     insert_user_v2
 
-Well that looks pretty much just like the output of the bundling. What if we
-deploy it to the C<flip_prod> database, which we built to C<v1.0.0-dev1>
-earlier. Here's what it looks like before we deploy the latest changes:
+Well that looks pretty much just like the output of the bundling. What
+if we deploy it to the C<flip_prod> database, which we built to
+C<v1.0.0-dev1> earlier. Here's what it looks like before we deploy the
+latest changes:
 
   > sqitch -d flipr_prod status
   # On database flipr_prod
@@ -1392,20 +1422,20 @@ All up-to-date. If necessary, we can also revert:
   #
   Use "sqitch deploy" to deploy these changes
 
-Nice, it just works! How? The secret is that, while the VCS history is not
-available when deploying from this plan, it was certainly available when the
-plan was I<written>. When we ran C<sqitch bundle>, Sqitch fetched all versions
-of the deployment scripts from the repository and wrote them out I<as they
-existed at the time of each tag>. In other words,
-F<sql/deploy/insert_user.sql> was written to the bundle as it existed at the
-time of the C<v1.0.0-dev1> tag, and F<sql/deploy/insert_user_v2.sql> was
-written as a copy of F<sql/deploy/insert_user.sql> at the time of the
-C<v1.0.0-b1> tag.
+Nice, it just works! How? The secret is that, while the VCS history is
+not available when deploying from this plan, it was certainly available
+when the plan was I<written>. When we ran C<sqitch bundle>, Sqitch
+fetched all versions of the deployment scripts from the repository and
+wrote them out I<as they existed at the time of each tag>. In other
+words, F<sql/deploy/insert_user.sql> was written to the bundle as it
+existed at the time of the C<v1.0.0-dev1> tag, and
+F<sql/deploy/insert_user_v2.sql> was written as a copy of
+F<sql/deploy/insert_user.sql> at the time of the C<v1.0.0-b1> tag.
 
-Put another way: when bundling the changes and writing the plan, Sqitch copied
-the entire migration script for each step in time, just as if you had
-duplicated code in new migration scripts the old-fashioned way. So you get the
-benefit of exploiting the VCS history in you development practices, while
-still getting the benefits of explicit, separate steps in the distribution
-you ship.
+Put another way: when bundling the changes and writing the plan, Sqitch
+copied the entire migration script for each step in time, just as if
+you had duplicated code in new migration scripts the old-fashioned way.
+So you get the benefit of exploiting the VCS history in you development
+practices, while still getting the benefits of explicit, separate steps
+in the distribution you ship.
 

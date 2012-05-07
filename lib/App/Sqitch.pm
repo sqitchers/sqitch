@@ -19,26 +19,40 @@ use namespace::autoclean;
 
 our $VERSION = '0.30';
 
-has plan_file => (is => 'ro', required => 1, default => sub {
-    file 'sqitch.plan';
-});
+has plan_file => (
+    is       => 'ro',
+    required => 1,
+    default  => sub {
+        file 'sqitch.plan';
+    }
+);
 
-has _engine => (is => 'ro', lazy => 1, isa => maybe_type(enum [qw(pg mysql sqlite)]), default => sub {
-    shift->config->get(key => 'core.engine');
-});
-has engine => (is => 'ro', isa => 'Maybe[App::Sqitch::Engine]', lazy => 1, default => sub {
-    my $self = shift;
-    my $name = $self->_engine or return;
-    require App::Sqitch::Engine;
-    App::Sqitch::Engine->load({sqitch => $self, engine => $name});
-});
+has _engine => (
+    is      => 'ro',
+    lazy    => 1,
+    isa     => maybe_type( enum [qw(pg mysql sqlite)] ),
+    default => sub {
+        shift->config->get( key => 'core.engine' );
+    }
+);
+has engine => (
+    is      => 'ro',
+    isa     => 'Maybe[App::Sqitch::Engine]',
+    lazy    => 1,
+    default => sub {
+        my $self = shift;
+        my $name = $self->_engine or return;
+        require App::Sqitch::Engine;
+        App::Sqitch::Engine->load( { sqitch => $self, engine => $name } );
+    }
+);
 
 # Attributes useful to engines; no defaults.
-has client   => (is => 'ro', isa => 'Str');
-has db_name  => (is => 'ro', isa => 'Str');
-has username => (is => 'ro', isa => 'Str');
-has host     => (is => 'ro', isa => 'Str');
-has port     => (is => 'ro', isa => 'Int');
+has client   => ( is => 'ro', isa => 'Str' );
+has db_name  => ( is => 'ro', isa => 'Str' );
+has username => ( is => 'ro', isa => 'Str' );
+has host     => ( is => 'ro', isa => 'Str' );
+has port     => ( is => 'ro', isa => 'Int' );
 
 has sql_dir => (
     is       => 'ro',
@@ -55,7 +69,7 @@ has deploy_dir => (
     lazy     => 1,
     default  => sub {
         my $self = shift;
-        if (my $dir = $self->config->get(key => 'core.deploy_dir')) {
+        if ( my $dir = $self->config->get( key => 'core.deploy_dir' ) ) {
             return dir $dir;
         }
         $self->sql_dir->subdir('deploy');
@@ -69,7 +83,7 @@ has revert_dir => (
     lazy     => 1,
     default  => sub {
         my $self = shift;
-        if (my $dir = $self->config->get(key => 'core.revert_dir')) {
+        if ( my $dir = $self->config->get( key => 'core.revert_dir' ) ) {
             return dir $dir;
         }
         $self->sql_dir->subdir('revert');
@@ -83,39 +97,59 @@ has test_dir => (
     lazy     => 1,
     default  => sub {
         my $self = shift;
-        if (my $dir = $self->config->get(key => 'core.test_dir')) {
+        if ( my $dir = $self->config->get( key => 'core.test_dir' ) ) {
             return dir $dir;
         }
         $self->sql_dir->subdir('test');
     },
 );
 
-has extension => (is => 'ro', isa => 'Str', lazy => 1, default => sub {
-    shift->config->get(key => 'core.extension') || 'sql';
-});
+has extension => (
+    is      => 'ro',
+    isa     => 'Str',
+    lazy    => 1,
+    default => sub {
+        shift->config->get( key => 'core.extension' ) || 'sql';
+    }
+);
 
-has dry_run => (is => 'ro', isa => 'Bool', required => 1, default => 0);
+has dry_run => ( is => 'ro', isa => 'Bool', required => 1, default => 0 );
 
-has verbosity => (is => 'ro', required => 1, lazy => 1, default => sub {
-    shift->config->get(key => 'core.verbosity') // 1;
-});
+has verbosity => (
+    is       => 'ro',
+    required => 1,
+    lazy     => 1,
+    default  => sub {
+        shift->config->get( key => 'core.verbosity' ) // 1;
+    }
+);
 
-has config => (is => 'ro', isa => 'App::Sqitch::Config', lazy => 1, default => sub {
-    App::Sqitch::Config->new
-});
+has config => (
+    is      => 'ro',
+    isa     => 'App::Sqitch::Config',
+    lazy    => 1,
+    default => sub {
+        App::Sqitch::Config->new;
+    }
+);
 
-has editor => (is => 'ro', lazy => 1, default => sub {
-    return $ENV{SQITCH_EDITOR} || $ENV{EDITOR}
-        || shift->config->get(key => 'core.editor')
-        || ($^O eq 'MSWin32' ? 'notepad.exe' : 'vi')
-    ;
-});
+has editor => (
+    is      => 'ro',
+    lazy    => 1,
+    default => sub {
+        return
+             $ENV{SQITCH_EDITOR}
+          || $ENV{EDITOR}
+          || shift->config->get( key => 'core.editor' )
+          || ( $^O eq 'MSWin32' ? 'notepad.exe' : 'vi' );
+    }
+);
 
 sub go {
     my $class = shift;
 
     # 1. Split command and options.
-    my ($core_args, $cmd, $cmd_args) = $class->_split_args(@ARGV);
+    my ( $core_args, $cmd, $cmd_args ) = $class->_split_args(@ARGV);
 
     # 2. Parse core options.
     my $opts = $class->_parse_core_opts($core_args);
@@ -129,43 +163,45 @@ sub go {
     my $sqitch = $class->new($opts);
 
     # 5. Instantiate the command object.
-    my $command = App::Sqitch::Command->load({
-        sqitch  => $sqitch,
-        command => $cmd,
-        config  => $config,
-        args    => $cmd_args,
-    });
+    my $command = App::Sqitch::Command->load(
+        {
+            sqitch  => $sqitch,
+            command => $cmd,
+            config  => $config,
+            args    => $cmd_args,
+        }
+    );
 
     # 6. Execute command.
-    return $command->execute(@{ $cmd_args }) ? 0 : 2;
+    return $command->execute( @{$cmd_args} ) ? 0 : 2;
 }
 
 sub _core_opts {
     return qw(
-        plan-file=s
-        engine=s
-        client=s
-        db-name|d=s
-        username|user|u=s
-        host=s
-        port=i
-        sql-dir=s
-        deploy-dir=s
-        revert-dir=s
-        test-dir=s
-        extension=s
-        dry-run
-        etc-path
-        quiet
-        verbose+
-        help
-        man
-        version
+      plan-file=s
+      engine=s
+      client=s
+      db-name|d=s
+      username|user|u=s
+      host=s
+      port=i
+      sql-dir=s
+      deploy-dir=s
+      revert-dir=s
+      test-dir=s
+      extension=s
+      dry-run
+      etc-path
+      quiet
+      verbose+
+      help
+      man
+      version
     );
 }
 
 sub _split_args {
-    my ($self, @args) = @_;
+    my ( $self, @args ) = @_;
 
     my $cmd_at  = 0;
     my $add_one = sub { $cmd_at++ };
@@ -174,33 +210,38 @@ sub _split_args {
     Getopt::Long::Configure(qw(bundling));
     Getopt::Long::GetOptionsFromArray(
         [@args],
+
         # Halt processing on on first non-option, which will be the command.
         '<>' => sub { die '!FINISH' },
+
         # Count how many args we've processed until we die.
         map { $_ => m/=/ ? $add_two : $add_one } $self->_core_opts
     ) or $self->_pod2usage;
 
     # Splice the command and its options out of the arguments.
-    my ($cmd, @cmd_opts) = splice @args, $cmd_at;
+    my ( $cmd, @cmd_opts ) = splice @args, $cmd_at;
     return \@args, $cmd, \@cmd_opts;
 }
 
 sub _parse_core_opts {
-    my ($self, $args) = @_;
+    my ( $self, $args ) = @_;
     my %opts;
     Getopt::Long::Configure(qw(bundling pass_through));
-    Getopt::Long::GetOptionsFromArray($args, map {
-        (my $k = $_) =~ s/[|=+:!].*//;
-        $k =~ s/-/_/g;
-        $_ => \$opts{$k};
-    } $self->_core_opts) or $self->_pod2usage;
+    Getopt::Long::GetOptionsFromArray(
+        $args,
+        map {
+            ( my $k = $_ ) =~ s/[|=+:!].*//;
+            $k =~ s/-/_/g;
+            $_ => \$opts{$k};
+          } $self->_core_opts
+    ) or $self->_pod2usage;
 
     # Handle documentation requests.
-    $self->_pod2usage('-exitval' => 0, '-verbose' => 2) if delete $opts{man};
-    $self->_pod2usage('-exitval' => 0                 ) if delete $opts{help};
+    $self->_pod2usage( '-exitval' => 0, '-verbose' => 2 ) if delete $opts{man};
+    $self->_pod2usage( '-exitval' => 0 ) if delete $opts{help};
 
     # Handle version request.
-    if (delete $opts{version}) {
+    if ( delete $opts{version} ) {
         require File::Basename;
         my $fn = File::Basename::basename($0);
         print $fn, ' (', __PACKAGE__, ') ', __PACKAGE__->VERSION, $/;
@@ -208,7 +249,7 @@ sub _parse_core_opts {
     }
 
     # Handle --etc-path.
-    if ($opts{etc_path}) {
+    if ( $opts{etc_path} ) {
         say App::Sqitch::Config->system_dir;
         exit;
     }
@@ -233,7 +274,7 @@ sub _pod2usage {
 sub run {
     my $self = shift;
     local $SIG{__DIE__} = sub {
-        (my $msg = shift) =~ s/\s+at\s+.+/\n/ms;
+        ( my $msg = shift ) =~ s/\s+at\s+.+/\n/ms;
         die $msg;
     };
     runx @_;
@@ -243,7 +284,7 @@ sub run {
 sub capture {
     my $self = shift;
     local $SIG{__DIE__} = sub {
-        (my $msg = shift) =~ s/\s+at\s+.+/\n/ms;
+        ( my $msg = shift ) =~ s/\s+at\s+.+/\n/ms;
         die $msg;
     };
     capturex @_;
@@ -262,19 +303,19 @@ sub _bn {
 
 sub _prepend {
     my $prefix = shift;
-    my $msg = join '', map { $_  // '' } @_;
+    my $msg = join '', map { $_ // '' } @_;
     $msg =~ s/^/$prefix /gms;
     return $msg;
 }
 
 sub trace {
     my $self = shift;
-    say _prepend 'trace:', @_ if $self->verbosity > 2
+    say _prepend 'trace:', @_ if $self->verbosity > 2;
 }
 
 sub debug {
     my $self = shift;
-    say _prepend 'debug:', @_ if $self->verbosity > 1
+    say _prepend 'debug:', @_ if $self->verbosity > 1;
 }
 
 sub info {
@@ -309,23 +350,23 @@ sub fail {
 
 sub help {
     my $self = shift;
-    my $bn = _bn;
-    say STDERR _prepend("$bn:", @_), " See $bn --help";
+    my $bn   = _bn;
+    say STDERR _prepend( "$bn:", @_ ), " See $bn --help";
     exit 1;
 }
 
 sub bail {
-    my ($self, $code) = (shift, shift);
+    my ( $self, $code ) = ( shift, shift );
     if (@_) {
         if ($code) {
             say STDERR @_;
-        } else {
+        }
+        else {
             say STDOUT @_;
         }
     }
     exit $code;
 }
-
 
 __PACKAGE__->meta->make_immutable;
 no Moose;
@@ -343,11 +384,11 @@ App::Sqitch - VCS-powered SQL change management
 
 =head1 Description
 
-This module provides the implementation for L<sqitch>. You probably want to
-read L<its documentation|sqitch>, or L<the tutorial|sqitchtutorial>. Unless
-you want to hack on Sqitch itself, or provide support for a new engine or
-L<command|Sqitch::App::Command>. In which case, you will find this API
-documentation useful.
+This module provides the implementation for L<sqitch>. You probably
+want to read L<its documentation|sqitch>, or L<the
+tutorial|sqitchtutorial>. Unless you want to hack on Sqitch itself, or
+provide support for a new engine or L<command|Sqitch::App::Command>. In
+which case, you will find this API documentation useful.
 
 =head1 Interface
 
@@ -357,8 +398,8 @@ documentation useful.
 
   App::Sqitch->go;
 
-Called from C<sqitch>, this class method parses command-line options and
-arguments in C<@ARGV>, parses the configuration file, constructs an
+Called from C<sqitch>, this class method parses command-line options
+and arguments in C<@ARGV>, parses the configuration file, constructs an
 App::Sqitch object, constructs a command object, and runs it.
 
 =head2 Constructor
@@ -367,7 +408,8 @@ App::Sqitch object, constructs a command object, and runs it.
 
   my $sqitch = App::Sqitch->new(\%params);
 
-Constructs and returns a new Sqitch object. The supported parameters include:
+Constructs and returns a new Sqitch object. The supported parameters
+include:
 
 =over
 
@@ -437,8 +479,8 @@ Constructs and returns a new Sqitch object. The supported parameters include:
 
   my $config = $sqitch->config;
 
-Returns the full configuration, combined from the project, user, and system
-configuration files.
+Returns the full configuration, combined from the project, user, and
+system configuration files.
 
 =head3 C<verbosity>
 
@@ -448,16 +490,16 @@ configuration files.
 
   $sqitch->run('echo hello');
 
-Runs a system command and waits for it to finish. Throws an exception on
-error.
+Runs a system command and waits for it to finish. Throws an exception
+on error.
 
 =head3 C<capture>
 
   my @files = $sqitch->capture(qw(ls -lah));
 
-Runs a system command and captures its output to C<STDOUT>. Returns the output
-lines in list context and the concatenation of the lines in scalar context.
-Throws an exception on error.
+Runs a system command and captures its output to C<STDOUT>. Returns the
+output lines in list context and the concatenation of the lines in
+scalar context. Throws an exception on error.
 
 =head3 C<probe>
 
@@ -469,49 +511,50 @@ Like C<capture>, but returns just the C<chomp>ed first line of output.
 
   $sqitch->trace('About to fuzzle the wuzzle.');
 
-Send trace information to C<STDOUT> if the verbosity level is 3 or higher.
-Trace messages will have C<trace: > prefixed to every line. If it's lower than
-3, nothing will be output.
+Send trace information to C<STDOUT> if the verbosity level is 3 or
+higher. Trace messages will have C<trace: > prefixed to every line. If
+it's lower than 3, nothing will be output.
 
 =head3 C<debug>
 
   $sqitch->debug('Found snuggle in the crib.');
 
-Send debug information to C<STDOUT> if the verbosity level is 2 or higher.
-Debug messages will have C<debug: > prefixed to every line. If it's lower than
-2, nothing will be output.
+Send debug information to C<STDOUT> if the verbosity level is 2 or
+higher. Debug messages will have C<debug: > prefixed to every line. If
+it's lower than 2, nothing will be output.
 
 =head3 C<info>
 
   $sqitch->info('Nothing to deploy (up-to-date)');
 
-Send informational message to C<STDOUT> if the verbosity level is 1 or higher,
-which, by default, it is. Should be used for normal messages the user would
-normally want to see. If verbosity is lower than 1, nothing will be output.
+Send informational message to C<STDOUT> if the verbosity level is 1 or
+higher, which, by default, it is. Should be used for normal messages
+the user would normally want to see. If verbosity is lower than 1,
+nothing will be output.
 
 =head3 C<comment>
 
   $sqitch->comment('On database flipr_test');
 
-Send comments to C<STDOUT> if the verbosity level is 1 or higher, which, by
-default, it is. Comments have C<# > prefixed to every line. If verbosity is
-lower than 1, nothing will be output.
+Send comments to C<STDOUT> if the verbosity level is 1 or higher,
+which, by default, it is. Comments have C<# > prefixed to every line.
+If verbosity is lower than 1, nothing will be output.
 
 =head3 C<emit>
 
   $sqitch->emit('core.editor=emacs');
 
-Send a message to C<STDOUT>, without regard to the verbosity. Should be used
-only if the user explicitly asks for output, such as for
-C<sqitch config --get core.editor>.
+Send a message to C<STDOUT>, without regard to the verbosity. Should be
+used only if the user explicitly asks for output, such as for C<sqitch
+config --get core.editor>.
 
 =head3 C<warn>
 
   $sqitch->warn('Could not find nerble; using nobble instead.');
 
-Send a warning messages to C<STDERR>. Warnings will have C<warning: > prefixed
-to every line. Use if something unexpected happened but you can recover from
-it.
+Send a warning messages to C<STDERR>. Warnings will have C<warning: >
+prefixed to every line. Use if something unexpected happened but you
+can recover from it.
 
 =head3 C<unfound>
 
@@ -524,17 +567,17 @@ such as when something requested was not found.
 
   $sqitch->fail('File or directory "foo" not found.');
 
-Send a failure message to C<STDERR> and exit with status code 2. Failures will
-have C<fatal: > prefixed to every line. Use if something unexpected happened
-and you cannot recover from it.
+Send a failure message to C<STDERR> and exit with status code 2.
+Failures will have C<fatal: > prefixed to every line. Use if something
+unexpected happened and you cannot recover from it.
 
 =head3 C<help>
 
   $sqitch->help('"foo" is not a valid command.');
 
-Sends messages to C<STDERR> and exists with an additional message to "See
-sqitch --help". Help messages will have C<sqitch: > prefixed to every line.
-Use if the user has misused the app.
+Sends messages to C<STDERR> and exists with an additional message to
+"See sqitch --help". Help messages will have C<sqitch: > prefixed to
+every line. Use if the user has misused the app.
 
 =head3 C<bail>
 
@@ -549,8 +592,8 @@ C<STDOUT> if the exit code is 0, and to C<STDERR> if it is not 0.
 
 =item *
 
-Add checks to L<sqitch-add-step> to halt if a C<--requires> or C<--conflicts>
-step does not exist.
+Add checks to L<sqitch-add-step> to halt if a C<--requires> or
+C<--conflicts> step does not exist.
 
 =back
 
@@ -562,22 +605,23 @@ David E. Wheeler <david@justatheory.com>
 
 Copyright (c) 2012 iovation Inc.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+Permission is hereby granted, free of charge, to any person obtaining a
+copy of this software and associated documentation files (the
+"Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+The above copyright notice and this permission notice shall be included
+in all copies or substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 =cut

@@ -1,5 +1,3 @@
-#!/usr/bin/perl -w
-
 use strict;
 use Test::More;
 eval "use Test::Spelling";

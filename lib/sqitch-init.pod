@@ -8,17 +8,19 @@ sqitch-init - Create a new Sqitch project
 
 =head1 Description
 
-This command creates an new Sqitch project -- basically a F<sqitch.conf> file
-and a F<sql> directory with F<deploy>, F<revert>, and F<test> subdirectories.
+This command creates an new Sqitch project -- basically a
+F<sqitch.conf> file and a F<sql> directory with F<deploy>, F<revert>,
+and F<test> subdirectories.
 
-Running sqitch init in an existing repository is safe. It will not overwrite
-things that are already there.
+Running sqitch init in an existing repository is safe. It will not
+overwrite things that are already there.
 
 =head1 Configuration
 
-The most important thing C<sqitch init> does is create the project plan file,
-F<sqitch.conf>. While the C<init> command has no options of its own, it relies
-on several of the options to C<sqitch> to determine what to write to this file:
+The most important thing C<sqitch init> does is create the project plan
+file, F<sqitch.conf>. While the C<init> command has no options of its
+own, it relies on several of the options to C<sqitch> to determine what
+to write to this file:
 
 =over
 
@@ -32,9 +34,10 @@ Sets the C<core.plan_file> configuration variable.
 
 =item C<--sql-dir>
 
-Determines the top-level directory to use when writing the C<core.deploy_dir>,
-C<core.revert_dir>, and C<core.test_dir> variable -- unless they are
-overridden by their more-specific options, detailed below.
+Determines the top-level directory to use when writing the
+C<core.deploy_dir>, C<core.revert_dir>, and C<core.test_dir> variable
+-- unless they are overridden by their more-specific options, detailed
+below.
 
 =item C<--deploy-dir>
 
@@ -58,15 +61,15 @@ Sets the C<core.engine> configuration variable.
 
 =back
 
-As a general rule, you likely won't need any of them except for C<--engine>,
-since your project can have only one engine at a time, and specifying it on
-the command-line forever after would be annoying.
+As a general rule, you likely won't need any of them except for
+C<--engine>, since your project can have only one engine at a time, and
+specifying it on the command-line forever after would be annoying.
 
 These variables will only be written if their corresponding options are
-specified. Otherwise, they get written as comments with
-user or system configuration settings, or, failing any values from those
-locations, from their default values. If no defaults are specified, they
-will still be written, commented out, with a bar C<=> and no value. This
+specified. Otherwise, they get written as comments with user or system
+configuration settings, or, failing any values from those locations,
+from their default values. If no defaults are specified, they will
+still be written, commented out, with a bar C<=> and no value. This
 allows one to know what sorts of things are available to edit.
 
 Relatedly, the engine-specific L<sqitch> options will also be used to
@@ -76,7 +79,8 @@ write variables, as follows:
 
 =item C<--client>
 
-Used to set C<core.pg.client>, C<core.sqlite.client>, or C<core.mysql.client>.
+Used to set C<core.pg.client>, C<core.sqlite.client>, or
+C<core.mysql.client>.
 
 =item C<--db-name>
 
@@ -97,20 +101,20 @@ Used to set C<core.pg.port>, or C<core.mysql.port>.
 
 =back
 
-Again, if these are no specified, the engine-specific options will still be
-written out, but as comments with values either from user or system
-configuration, or default values.
+Again, if these are no specified, the engine-specific options will
+still be written out, but as comments with values either from user or
+system configuration, or default values.
 
 =head1 Examples
 
-Start a new Sqitch project using the SQLite engine, setting the
-default database file to F</var/db/widgets.db>
+Start a new Sqitch project using the SQLite engine, setting the default
+database file to F</var/db/widgets.db>
 
   sqitch --engine --db-name /var/db/widgets.db sqlite init
 
-Start a new Sqitch project using the PostgreSQL engine, with the default
-database name "widgets", the default user name "postgres", and a
-version-specific client:
+Start a new Sqitch project using the PostgreSQL engine, with the
+default database name "widgets", the default user name "postgres", and
+a version-specific client:
 
   sqitch --engine pg \
   --db-name widgets \
@@ -120,3 +124,4 @@ version-specific client:
 =head1 Sqitch
 
 Part of the L<sqitch> suite.
+

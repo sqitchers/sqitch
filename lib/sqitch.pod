@@ -10,8 +10,8 @@ sqitch - SQL Change Management
 
 Sqitch is a VCS-aware SQL change management application. What makes it
 different from your typical
-L<migration|Module::Build::DB>-L<style|DBIx::Migration> approaches? A few
-things:
+L<migration|Module::Build::DB>-L<style|DBIx::Migration> approaches? A
+few things:
 
 =begin comment
 
@@ -23,51 +23,54 @@ Eventually move to L<sqitchintro>?
 
 =item No opinions
 
-Sqitch is not integrated with any framework, ORM, or platform. Rather, it is a
-standalone change management system with no opinions on your database or
-development choices.
+Sqitch is not integrated with any framework, ORM, or platform. Rather,
+it is a standalone change management system with no opinions on your
+database or development choices.
 
 =item Native scripting
 
-Changes are implemented as scripts native to your selected database engine.
-Writing a L<PostgreSQL|http://postgresql.org/> application? Write SQL scripts
-for L<C<psql>|http://www.postgresql.org/docs/current/static/app-psql.html>.
+Changes are implemented as scripts native to your selected database
+engine. Writing a L<PostgreSQL|http://postgresql.org/> application?
+Write SQL scripts for
+L<C<psql>|http://www.postgresql.org/docs/current/static/app-psql.html>.
 Writing a L<MySQL|http://mysql.com/>-backed app? Write SQL scripts for
 L<C<mysql>|http://dev.mysql.com/doc/refman/5.6/en/mysql.html>.
 
 =item VCS integration
 
-Sqitch likes to use your VCS history to determine in what order to execute
-changes. No need to keep track of execution order; your VCS already tracks
-information sufficient for Sqitch to figure it out for you.
+Sqitch likes to use your VCS history to determine in what order to
+execute changes. No need to keep track of execution order; your VCS
+already tracks information sufficient for Sqitch to figure it out for
+you.
 
 =item Dependency resolution
 
-Deployment steps can declare dependencies on other deployment steps. This
-ensures proper order of execution, even when you've committed changes to your
-VCS out-of-order.
+Deployment steps can declare dependencies on other deployment steps.
+This ensures proper order of execution, even when you've committed
+changes to your VCS out-of-order.
 
 =item No numbering
 
 Change deployment is managed either by maintaining a plan file or, more
-usefully, your VCS history. As such, there is no need to number your changes,
-although you can if you want. Sqitch doesn't much care what you name your
-changes.
+usefully, your VCS history. As such, there is no need to number your
+changes, although you can if you want. Sqitch doesn't much care what
+you name your changes.
 
 =item Bundling
 
-Rely on your VCS history for deployment but have Sqitch bundle up changes for
-distribution. Sqitch can read your VCS history and write out a plan file along
-with the appropriate deployment and reversion scripts. Once the bundle is
-installed on a new system, Sqitch can use the plan file to deploy or the
-changes in the proper order.
+Rely on your VCS history for deployment but have Sqitch bundle up
+changes for distribution. Sqitch can read your VCS history and write
+out a plan file along with the appropriate deployment and reversion
+scripts. Once the bundle is installed on a new system, Sqitch can use
+the plan file to deploy or the changes in the proper order.
 
 =item Reduced Duplication
 
-If you're using a VCS to track your changes, you don't have to duplicate
-entire change scripts for simple changes. As long as the changes are
-L<idempotent|http://en.wikipedia.org/wiki/Idempotence>, you can change
-your code directly, and Sqitch will know it needs to be updated.
+If you're using a VCS to track your changes, you don't have to
+duplicate entire change scripts for simple changes. As long as the
+changes are L<idempotent|http://en.wikipedia.org/wiki/Idempotence>, you
+can change your code directly, and Sqitch will know it needs to be
+updated.
 
 =back
 
@@ -83,41 +86,43 @@ Eventually move to L<sqitchtutorial> or L<sqitchintro> or some such.
 
 =item C<step>
 
-A named unit of change. A step name must be used in the file names of its
-deployment and a reversion scripts. It may also be used in a test script file
-name.
+A named unit of change. A step name must be used in the file names of
+its deployment and a reversion scripts. It may also be used in a test
+script file name.
 
 =item C<tag>
 
-A known deployment state with a list one or more steps that define the tag. A
-tag also implies that steps from previous tags in the plan have been applied.
-Think of it is a version number or VCS revision. A given point in the plan may
-have one or more tags.
+A known deployment state with a list one or more steps that define the
+tag. A tag also implies that steps from previous tags in the plan have
+been applied. Think of it is a version number or VCS revision. A given
+point in the plan may have one or more tags.
 
 =item C<state>
 
 The current state of the database. This is represented by the most
-recently-deployed steps and tags. If the state of the database is the same as
-the most recent tag, then it is considered "up-to-date".
+recently-deployed steps and tags. If the state of the database is the
+same as the most recent tag, then it is considered "up-to-date".
 
 =item C<plan>
 
-A list of one or more tags and associated steps that define the order of
-deployment execution. Sqitch reads the plan to determine what steps to execute
-to change the database from one state to another. The plan may be represented
-by a L<Plan File> or by VCS history.
+A list of one or more tags and associated steps that define the order
+of deployment execution. Sqitch reads the plan to determine what steps
+to execute to change the database from one state to another. The plan
+may be represented by a L<Plan File> or by VCS history.
 
 =item C<deploy>
 
-The act of deploying database changes to reach a tagged deployment point.
-Sqitch reads the plan, checks the current state of the database, and applies
-all the steps necessary to change the state to the specified tag.
+The act of deploying database changes to reach a tagged deployment
+point. Sqitch reads the plan, checks the current state of the database,
+and applies all the steps necessary to change the state to the
+specified tag.
 
 =item C<revert>
 
-The act of reverting database changes to reach an earlier tagged deployment
-point. Sqitch checks the current state of the database, reads the plan, and
-reverts all steps necessary to return the state to an earlier tag.
+The act of reverting database changes to reach an earlier tagged
+deployment point. Sqitch checks the current state of the database,
+reads the plan, and reverts all steps necessary to return the state to
+an earlier tag.
 
 =back
 
@@ -151,10 +156,10 @@ reverts all steps necessary to return the state to an earlier tag.
 
   sqitch --plan-file plan.conf
 
-Path to the deployment plan file. Defaults to F<./sqitch.plan>. If this file
-is not present, Sqitch will attempt to read from VCS files. If no supported
-VCS system is in place, an exception will be thrown. See L</Plan File> for a
-description of its structure.
+Path to the deployment plan file. Defaults to F<./sqitch.plan>. If this
+file is not present, Sqitch will attempt to read from VCS files. If no
+supported VCS system is in place, an exception will be thrown. See
+L</Plan File> for a description of its structure.
 
 =item C<--engine>
 
@@ -176,8 +181,9 @@ The database engine to use. Supported engines include:
 
   sqitch --client /usr/local/pgsql/bin/psql
 
-Path to the command-line client for the database engine. Defaults to a client
-in the current path named appropriately for the specified engine.
+Path to the command-line client for the database engine. Defaults to a
+client in the current path named appropriately for the specified
+engine.
 
 =item C<-d>
 
@@ -187,9 +193,10 @@ in the current path named appropriately for the specified engine.
   sqitch -d bricolage
 
 Name of the database. For some engines, such as
-L<PostgreSQL|http://postgresql.org/> and L<MySQL|http://mysql.com/>, the
-database must already exist. For others, such as L<SQLite|http://sqlite.org/>,
-the database will be automatically created on first connect.
+L<PostgreSQL|http://postgresql.org/> and L<MySQL|http://mysql.com/>,
+the database must already exist. For others, such as
+L<SQLite|http://sqlite.org/>, the database will be automatically
+created on first connect.
 
 =item C<-u>
 
@@ -201,7 +208,8 @@ the database will be automatically created on first connect.
   sqitch --user postgres
   sqitch -u Mom
 
-User name to use when connecting to the database. Does not apply to all engines.
+User name to use when connecting to the database. Does not apply to all
+engines.
 
 =item C<--host>
 
@@ -220,31 +228,31 @@ Port number to connect to. Does not apply to all engines.
 
   sqitch --sql-dir migrations/
 
-Path to directory containing deployment, reversion, and test SQL scripts. It
-should contain subdirectories named C<deploy>, C<revert>, and (optionally)
-C<test>. These may be overridden by C<--deploy-dir>, C<--revert-dir>, and
-C<--test-dir>. Defaults to C<./sql>.
+Path to directory containing deployment, reversion, and test SQL
+scripts. It should contain subdirectories named C<deploy>, C<revert>,
+and (optionally) C<test>. These may be overridden by C<--deploy-dir>,
+C<--revert-dir>, and C<--test-dir>. Defaults to C<./sql>.
 
 =item C<--deploy-dir>
 
   sqitch --deploy-dir db/up
 
-Path to a directory containing SQL deployment scripts. Overrides the value
-implied by C<--sql-dir>.
+Path to a directory containing SQL deployment scripts. Overrides the
+value implied by C<--sql-dir>.
 
 =item C<--revert-dir>
 
   sqitch --revert-dir db/up
 
-Path to a directory containing SQL reversion scripts. Overrides the value
-implied by C<--sql-dir>.
+Path to a directory containing SQL reversion scripts. Overrides the
+value implied by C<--sql-dir>.
 
 =item C<--test-dir>
 
   sqitch --test-dir db/t
 
-Path to a directory containing SQL test scripts. Overrides the value implied
-by C<--sql-dir>.
+Path to a directory containing SQL test scripts. Overrides the value
+implied by C<--sql-dir>.
 
 =item C<--extension>
 
@@ -257,9 +265,10 @@ Defaults to C<sql>.
 
   sqitch --dry-run
 
-Execute the Sqitch command without making any actual changes. This allows you
-to see what Sqitch would actually do, without doing it. Implies a verbosity
-level of 1; add extra C<--verbose>s for greater verbosity.
+Execute the Sqitch command without making any actual changes. This
+allows you to see what Sqitch would actually do, without doing it.
+Implies a verbosity level of 1; add extra C<--verbose>s for greater
+verbosity.
 
 =item C<--etc-path>
 
@@ -271,23 +280,24 @@ deployment script templates.
 
 =item C<--quiet>
 
-Suppress normal output messages. Error messages will still be emitted to
-C<STDERR>. Overrides any value specified by C<--verbose>.
+Suppress normal output messages. Error messages will still be emitted
+to C<STDERR>. Overrides any value specified by C<--verbose>.
 
 =item C<--verbose>
 
   sqitch --verbose --verbose
 
 A value between 0 and 3 specifying how verbose Sqitch should be. Unless
-C<--quiet> is specified, the default is 1, meaning that Sqitch will output
-basic status messages as it does its thing. Values of 2 and 3 each cause
-greater verbosity. Ignored if C<--quiet> is specified.
+C<--quiet> is specified, the default is 1, meaning that Sqitch will
+output basic status messages as it does its thing. Values of 2 and 3
+each cause greater verbosity. Ignored if C<--quiet> is specified.
 
 =item C<--help>
 
   sqitch --help
 
-Outputs a brief description of the options supported by C<sqitch> and exits.
+Outputs a brief description of the options supported by C<sqitch> and
+exits.
 
 =item C<--man>
 
@@ -311,14 +321,16 @@ Outputs the program name and version and exits.
 
 =item L<C<init>|sqitch-init>
 
-Create the plan file and deployment script directories if they do not already
-exist. This command is useful for starting a new Sqitch project.
+Create the plan file and deployment script directories if they do not
+already exist. This command is useful for starting a new Sqitch
+project.
 
 =item C<status>
 
-Output information about the current status of the deployment, including a
-list of tags, deployments, and dates in chronological order. If any deploy
-scripts are not currently deployed, they will be listed separately. Options:
+Output information about the current status of the deployment,
+including a list of tags, deployments, and dates in chronological
+order. If any deploy scripts are not currently deployed, they will be
+listed separately. Options:
 
 =over
 
@@ -326,8 +338,8 @@ scripts are not currently deployed, they will be listed separately. Options:
 
 =item C<--show>
 
-How much information to show. This option may be passed without a C<-s> or
-C<--show>. Possible values include:
+How much information to show. This option may be passed without a C<-s>
+or C<--show>. Possible values include:
 
 =over
 
@@ -347,8 +359,8 @@ Show a list of all deployed steps.
 
 =item C<format>
 
-The format to use to display tags or steps, if either are specified via the
-C<--show> option. The value may be any one of:
+The format to use to display tags or steps, if either are specified via
+the C<--show> option. The value may be any one of:
 
 =over
 
@@ -362,7 +374,8 @@ C<--show> option. The value may be any one of:
 
 =item C<log>
 
-Output the complete change history in reverse chronological order. Options:
+Output the complete change history in reverse chronological order.
+Options:
 
 =over
 
@@ -370,8 +383,8 @@ Output the complete change history in reverse chronological order. Options:
 
 =item C<--tag>
 
-Show only changes for the specified tag. This option may be passed without a
-C<-t> or C<--tag>.
+Show only changes for the specified tag. This option may be passed
+without a C<-t> or C<--tag>.
 
 =item C<-s>
 
@@ -387,7 +400,8 @@ Limit the number of changes to show.
 
 =item C<--skip>
 
-Skip the specified number changes before starting to show the log output.
+Skip the specified number changes before starting to show the log
+output.
 
 =item C<--since>
 
@@ -399,8 +413,8 @@ Show changes older than a specific date.
 
 =item C<--user>
 
-Limit the changes output to ones where the user name matches the specified
-pattern (regular expression).
+Limit the changes output to ones where the user name matches the
+specified pattern (regular expression).
 
 =item C<--reverse>
 
@@ -442,9 +456,10 @@ Make sure no deployment script appears more than once in the plan file.
 
 =item C<add-step>
 
-Add a new step. The specified name will be used to create stub deployment and
-reversion scripts. The contents of these scripts must then be edited to carry
-out the actual changes to the database. Options:
+Add a new step. The specified name will be used to create stub
+deployment and reversion scripts. The contents of these scripts must
+then be edited to carry out the actual changes to the database.
+Options:
 
 =over
 
@@ -452,8 +467,8 @@ out the actual changes to the database. Options:
 
 =item C<--named>
 
-The name of the step. Must be a valid step name. This option may be passed
-without a C<-n> or C<--named>.
+The name of the step. Must be a valid step name. This option may be
+passed without a C<-n> or C<--named>.
 
 =item C<-r>
 
@@ -482,16 +497,16 @@ Options and configuration properties:
 
 =item C<--to>
 
-Step or tag to deploy up to. Defaults to the latest tag or to the VCS C<HEAD>
-commit. Property name: C<deploy.to>.
+Step or tag to deploy up to. Defaults to the latest tag or to the VCS
+C<HEAD> commit. Property name: C<deploy.to>.
 
 =item C<-a>
 
 =item C<--untracked>
 
-Also deploy any steps that have been added to the F<deploy> directory but have
-not yet been added to the plan or committed to the VCS. Useful when developing
-new deployment steps but have not yet committed them.
+Also deploy any steps that have been added to the F<deploy> directory
+but have not yet been added to the plan or committed to the VCS. Useful
+when developing new deployment steps but have not yet committed them.
 
 =back
 
@@ -515,69 +530,69 @@ C<revert.to>.
 
 =item C<test>
 
-Test changes. All SQL scripts in C<--test-dir> will be run.
-[XXX Not sure whether to have subdirectories for tests and expected output and
+Test changes. All SQL scripts in C<--test-dir> will be run. [XXX Not
+sure whether to have subdirectories for tests and expected output and
 to diff them, or to use some other approach.]
 
 =item L<C<config>|sqitch-config>
 
-Get and set project, user, or system Sqitch options. By default, the options
-will be written to the local configuration file, F<sqitch.conf>
+Get and set project, user, or system Sqitch options. By default, the
+options will be written to the local configuration file, F<sqitch.conf>
 
 =item C<bundle>
 
 Bundle up deployment and reversion scripts and write out a plan file.
-Configuration properties may be specified under the C<[bundle]> section of the
-configuration file, or via C<sqitch config bundle.$property $value> command.
-Options and configuration properties:
+Configuration properties may be specified under the C<[bundle]> section
+of the configuration file, or via C<sqitch config bundle.$property
+$value> command. Options and configuration properties:
 
 =over
 
 =item C<--from>
 
-Tag to start the plan from. All tags and steps prior to that tag will not be
-included in the plan, and their change scripts Will be omitted from the bundle
-directory. Useful if you've rejiggered your deployment steps to start from a
-point later in your VCS history than the beginning of time. Property name:
-C<bundle.from>.
+Tag to start the plan from. All tags and steps prior to that tag will
+not be included in the plan, and their change scripts Will be omitted
+from the bundle directory. Useful if you've rejiggered your deployment
+steps to start from a point later in your VCS history than the
+beginning of time. Property name: C<bundle.from>.
 
 =item C<--to>
 
 Tag with which to end the plan. No steps or tags after that tag will be
-included in the plan, and their change scripts will be omitted from the bundle
-directory. Property name: C<bundle.to>.
+included in the plan, and their change scripts will be omitted from the
+bundle directory. Property name: C<bundle.to>.
 
 =item C<--tags-only>
 
-Write the plan file with deployment targets listed under VCS tags, rather than
-individual commits. Property name: C<bundle.tags_only>.
+Write the plan file with deployment targets listed under VCS tags,
+rather than individual commits. Property name: C<bundle.tags_only>.
 
 =item C<--destdir>
 
-Specify a destination directory. The plan file and C<deploy>, C<revert>, and
-C<test> directories will be written to it. Defaults to "bundle". Property
-name: C<bundle.destdir>.
+Specify a destination directory. The plan file and C<deploy>,
+C<revert>, and C<test> directories will be written to it. Defaults to
+"bundle". Property name: C<bundle.destdir>.
 
 =back
 
 =item L<C<help>|sqitch-help>
 
-Show help for a specific command or, if no command is specified, show the same
-documentation as C<--help>.
+Show help for a specific command or, if no command is specified, show
+the same documentation as C<--help>.
 
 =back
 
 =head1 Configuration
 
-Sqitch configuration can be set up on a project, user, or system-wide basis.
-The format of the configuration file, named F<sqitch.conf>, is the same as for
-L<git>.
+Sqitch configuration can be set up on a project, user, or system-wide
+basis. The format of the configuration file, named F<sqitch.conf>, is
+the same as for L<git>.
 
-Here's an example of a configuration file that might be useful checked into a
-VCS for a project that deploys to PostgreSQL and stores its deployment scripts
-with the extension F<ddl> under the C<migrations> directory. It also wants
-bundle to be created in the F<_build/sql> directory, and to deploy starting
-with the "gamma" tag:
+Here's an example of a configuration file that might be useful checked
+into a VCS for a project that deploys to PostgreSQL and stores its
+deployment scripts with the extension F<ddl> under the C<migrations>
+directory. It also wants bundle to be created in the F<_build/sql>
+directory, and to deploy starting with the "gamma" tag:
 
   [core]
       engine    = pg
@@ -593,8 +608,9 @@ with the "gamma" tag:
       tags_only = yes
       dest_dir  = _build/sql
 
-And here's an example of useful configuration in F<~/.sqitch/sqitch.conf>, to
-point to system-specific engine information:
+And here's an example of useful configuration in
+F<~/.sqitch/sqitch.conf>, to point to system-specific engine
+information:
 
   [core.pg]
       client    = /usr/local/pgsql/bin/psql
@@ -607,31 +623,32 @@ point to system-specific engine information:
   [core.sqlite]
       client    = /usr/local/bin/sqlite3
 
-Various commands read from the configuration file and adjust their operation
-accordingly. See L<sqitch-config> for a list.
+Various commands read from the configuration file and adjust their
+operation accordingly. See L<sqitch-config> for a list.
 
 =head1 Plan File
 
-A plan file describes the deployment tags and scripts to be run against a
-database. In general, if you use a VCS, you probably won't need a plan file,
-since your VCS history should be able to provide all the information necessary
-to derive a deployment plan. However, if you really do need to maintain a plan
-file by hand, or just want to better understand the file as output by the
-C<bundle> command, read on.
+A plan file describes the deployment tags and scripts to be run against
+a database. In general, if you use a VCS, you probably won't need a
+plan file, since your VCS history should be able to provide all the
+information necessary to derive a deployment plan. However, if you
+really do need to maintain a plan file by hand, or just want to better
+understand the file as output by the C<bundle> command, read on.
 
 =head2 Format
 
-The contents of the plan file are plain text encoded as UTF-8. It is divided
-up into sections that denote deployment states. Each state has a bracketed,
-space-delimited list of one or more tags to identify it, followed by any
-number of deployment steps. Here's an example of a plan file with a single
-state and a single step:
+The contents of the plan file are plain text encoded as UTF-8. It is
+divided up into sections that denote deployment states. Each state has
+a bracketed, space-delimited list of one or more tags to identify it,
+followed by any number of deployment steps. Here's an example of a plan
+file with a single state and a single step:
 
  [alpha]
  users_table
 
-The state has one tag, named "alpha", and one step, named "users_table".
-A state may of course have many steps. Here's an expansion:
+The state has one tag, named "alpha", and one step, named
+"users_table". A state may of course have many steps. Here's an
+expansion:
 
  [root alpha]
  users_table
@@ -639,11 +656,11 @@ A state may of course have many steps. Here's an expansion:
  update_user
  delete_user
 
-This state has two tags, "root" and "alpha", and four steps, "users_table",
-"insert_user", "update_user", and "delete_user".
+This state has two tags, "root" and "alpha", and four steps,
+"users_table", "insert_user", "update_user", and "delete_user".
 
-Most plans will have multiple states. Here's a longer example with three
-states:
+Most plans will have multiple states. Here's a longer example with
+three states:
 
  [root alpha]
  users_table
@@ -658,15 +675,15 @@ states:
  [gamma]
  ftw
 
-Using this plan, to deploy to the "beta" tag, the "root"/"alpha" state steps
-must be deployed, as must the "beta" steps. To then deploy to the "gamma" tag,
-the "ftw" step must be deployed. If you then choose to revert to the "alpha"
-tag, then the "gamma" step ("ftw") and all of the "beta" steps will be
-reverted in reverse order.
+Using this plan, to deploy to the "beta" tag, the "root"/"alpha" state
+steps must be deployed, as must the "beta" steps. To then deploy to the
+"gamma" tag, the "ftw" step must be deployed. If you then choose to
+revert to the "alpha" tag, then the "gamma" step ("ftw") and all of the
+"beta" steps will be reverted in reverse order.
 
-Using this model, steps cannot be repeated between states. One can repeat
-them, however, if the contents for a file in a given tag can be retrieved from
-a VCS. An example:
+Using this model, steps cannot be repeated between states. One can
+repeat them, however, if the contents for a file in a given tag can be
+retrieved from a VCS. An example:
 
  [alpha]
  users_table
@@ -684,13 +701,14 @@ a VCS. An example:
  [HEAD epsilon master]
  add_widget
 
-This example is derived from a Git log history. Note that the "add_widget"
-step is repeated under the state tagged "beta" and under the last state.
-Sqitch will notice the repetition when it parses this file, and then, if it is
-applying all changes, will fetch the version of the file as of the "beta" tag
-and apply it at that step, and then, when it gets to the last tag, retrieve
-the deployment file as of its tags and apply it. This works in reverse, as
-well, as long as the changes in this file are always
+This example is derived from a Git log history. Note that the
+"add_widget" step is repeated under the state tagged "beta" and under
+the last state. Sqitch will notice the repetition when it parses this
+file, and then, if it is applying all changes, will fetch the version
+of the file as of the "beta" tag and apply it at that step, and then,
+when it gets to the last tag, retrieve the deployment file as of its
+tags and apply it. This works in reverse, as well, as long as the
+changes in this file are always
 L<idempotent|http://en.wikipedia.org/wiki/Idempotence>.
 
 =head2 Grammar
@@ -717,21 +735,25 @@ Here is the EBNF Grammar for the plan file:
 
 =head1 See Also
 
-The original design for Sqitch was sketched out in a number of blog posts:
+The original design for Sqitch was sketched out in a number of blog
+posts:
 
 =over
 
 =item *
 
-L<Simple SQL Change Management|http://justatheory.com/computers/databases/simple-sql-change-management.html>
+L<Simple SQL Change
+Management|http://justatheory.com/computers/databases/simple-sql-change-management.html>
 
 =item *
 
-L<VCS-Enabled SQL Change Management|http://justatheory.com/computers/databases/vcs-sql-change-management.html>
+L<VCS-Enabled SQL Change
+Management|http://justatheory.com/computers/databases/vcs-sql-change-management.html>
 
 =item *
 
-L<SQL Change Management Sans Duplication|http://justatheory.com/computers/databases/sql-change-management-sans-redundancy.html>
+L<SQL Change Management Sans
+Duplication|http://justatheory.com/computers/databases/sql-change-management-sans-redundancy.html>
 
 =back
 
@@ -745,8 +767,8 @@ Numbered migrations for L<Ruby on Rails|http://rubyonrails.org/>.
 
 =item L<Module::Build::DB>
 
-Numbered changes in pure SQL, integrated with Perl's L<Module::Build> build
-system. Does not support reversion.
+Numbered changes in pure SQL, integrated with Perl's L<Module::Build>
+build system. Does not support reversion.
 
 =item L<DBIx::Migration>
 
@@ -767,22 +789,23 @@ David E. Wheeler <david@justatheory.com>
 
 Copyright (c) 2012 iovation Inc.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+Permission is hereby granted, free of charge, to any person obtaining a
+copy of this software and associated documentation files (the
+"Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+The above copyright notice and this permission notice shall be included
+in all copies or substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 =cut
