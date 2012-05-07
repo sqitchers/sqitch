@@ -69,6 +69,7 @@
 --square-bracket-vertical-tightness-closing=0
 --stack-closing-hash-brace
 --stack-opening-hash-brace
+--stack-opening-paren
 --static-block-comments
 --nostatic-side-comments
 --notabs

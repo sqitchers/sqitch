@@ -70,8 +70,7 @@ is $pg->password, 's3cr3t',         'password should be as configured';
 is $pg->host,     'db.example.com', 'host should be as configured';
 is $pg->port,     1234,             'port should be as configured';
 is $pg->sqitch_schema, 'meta', 'sqitch_schema should be as configured';
-is_deeply [ $pg->psql ], [
-    qw(
+is_deeply [ $pg->psql ], [ qw(
         /path/to/psql
         --username freddy
         --dbname   widgets
@@ -100,8 +99,7 @@ is $pg->password, 's3cr3t',  'password should still be as configured';
 is $pg->host,     'foo.com', 'host should be as optioned';
 is $pg->port,     98760,     'port should be as optioned';
 is $pg->sqitch_schema, 'meta', 'sqitch_schema should still be as configured';
-is_deeply [ $pg->psql ], [
-    qw(
+is_deeply [ $pg->psql ], [ qw(
         /some/other/psql
         --username anna
         --dbname   widgets_dev

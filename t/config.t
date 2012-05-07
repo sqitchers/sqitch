@@ -32,8 +32,7 @@ isa_ok $cmd, 'App::Sqitch::Command', 'Config command';
 can_ok $cmd,
     qw(file action context get get_all get_regex set add unset unset_all list edit);
 
-is_deeply [ $cmd->options ], [
-    qw(
+is_deeply [ $cmd->options ], [ qw(
         file|config-file|f=s
         local
         user

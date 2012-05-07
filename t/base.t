@@ -48,8 +48,7 @@ can_ok $CLASS, qw(
 # Defaults.
 isa_ok my $sqitch = $CLASS->new, $CLASS, 'A new object';
 
-for my $attr (
-    qw(
+for my $attr ( qw(
     _engine
     engine
     client

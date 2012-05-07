@@ -187,8 +187,7 @@ is_deeply $cmd->_parse_opts, {},
     'Subclass should return an empty hash for no args';
 
 is_deeply $cmd->_parse_opts( [1] ), {}, 'Subclass should use options spec';
-my $args = [
-    qw(
+my $args = [ qw(
         --foo
         --h
         --no-icky-foo

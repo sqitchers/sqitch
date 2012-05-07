@@ -27,8 +27,7 @@ has file => (
 has action => (
     is  => 'ro',
     isa => enum(
-        [
-            qw(
+        [ qw(
                 get
                 get-all
                 get-regex
@@ -48,8 +47,7 @@ has action => (
 has context => (
     is  => 'ro',
     isa => maybe_type enum(
-        [
-            qw(
+        [ qw(
                 local
                 user
                 system

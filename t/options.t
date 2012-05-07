@@ -35,8 +35,7 @@ is_deeply [ $CLASS->_split_args( '--plan-file', 'foo', 'help', '--foo' ) ],
     'Option with arg should work';
 
 is_deeply [
-    $CLASS->_split_args(
-        qw(
+    $CLASS->_split_args( qw(
             --plan-file
             foo
             help

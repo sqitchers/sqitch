@@ -15,8 +15,7 @@ has sqitch => (
     is       => 'ro',
     isa      => 'App::Sqitch',
     required => 1,
-    handles  => [
-        qw(
+    handles  => [ qw(
             run
             capture
             probe

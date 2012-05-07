@@ -47,8 +47,7 @@ can_ok $CLASS, qw(
     _add
 );
 
-is_deeply [ $CLASS->options ], [
-    qw(
+is_deeply [ $CLASS->options ], [ qw(
         requires|r=s@
         conflicts|c=s@
         set|s=s%

@@ -63,8 +63,7 @@ sub write_config {
     }
 
     # Add in the other stuff.
-    for my $name (
-        qw(
+    for my $name ( qw(
         plan_file
         sql_dir
         deploy_dir
