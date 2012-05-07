@@ -86,8 +86,7 @@ is_deeply $CLASS->configure( $config, { 'foo-bar' => 'yo' } ),
 ##############################################################################
 # Test load().
 $cmock->mock( get_section => {} );
-ok my $cmd = $CLASS->load(
-    {
+ok my $cmd = $CLASS->load( {
         command => 'whu',
         sqitch  => $sqitch,
         config  => $config,
@@ -100,8 +99,7 @@ is $cmd->sqitch, $sqitch, 'The sqitch attribute should be set';
 
 $cmock->mock( get_section => { foo => 'hi' } );
 
-ok $cmd = $CLASS->load(
-    {
+ok $cmd = $CLASS->load( {
         command => 'whu',
         sqitch  => $sqitch,
         config  => $config,
@@ -138,8 +136,7 @@ qr/^LOL BADZ/, 'Should die on bad command module';
 
 # Test options processing.
 $cmock->mock( get_section => { foo => 'hi', feathers => 'yes' } );
-ok $cmd = $CLASS->load(
-    {
+ok $cmd = $CLASS->load( {
         command => 'whu',
         sqitch  => $sqitch,
         config  => $config,
@@ -150,8 +147,7 @@ ok $cmd = $CLASS->load(
 is $cmd->feathers, 'no', 'The "feathers" attribute should be set';
 
 # Test command with a dash in its name.
-ok $cmd = $CLASS->load(
-    {
+ok $cmd = $CLASS->load( {
         command => 'add-step',
         sqitch  => $sqitch,
         config  => $config,
@@ -229,8 +225,7 @@ PARSEOPTSERR: {
 
     # Try it with a command with no options.
     @args = @warn = ();
-    isa_ok $cmd = App::Sqitch::Command->load(
-        {
+    isa_ok $cmd = App::Sqitch::Command->load( {
             command => 'good',
             sqitch  => $sqitch,
             config  => $config,
@@ -272,8 +267,7 @@ POD2USAGE: {
         },
         'Default params should be passed to Pod::Usage';
 
-    isa_ok $cmd = App::Sqitch::Command->load(
-        {
+    isa_ok $cmd = App::Sqitch::Command->load( {
             command => 'config',
             sqitch  => $sqitch,
             config  => $config,
@@ -290,8 +284,7 @@ POD2USAGE: {
         },
         'Should find sqitch-config docs to pass to Pod::Usage';
 
-    isa_ok $cmd = App::Sqitch::Command->load(
-        {
+    isa_ok $cmd = App::Sqitch::Command->load( {
             command => 'good',
             sqitch  => $sqitch,
             config  => $config,

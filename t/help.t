@@ -16,8 +16,7 @@ my $CLASS = 'App::Sqitch::Command::help';
 
 ok my $sqitch = App::Sqitch->new, 'Load a sqitch sqitch object';
 my $config = App::Sqitch::Config->new;
-isa_ok my $help = App::Sqitch::Command->load(
-    {
+isa_ok my $help = App::Sqitch::Command->load( {
         sqitch  => $sqitch,
         command => 'help',
         config  => $config,

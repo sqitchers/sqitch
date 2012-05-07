@@ -164,8 +164,7 @@ sub go {
     my $sqitch = $class->new($opts);
 
     # 5. Instantiate the command object.
-    my $command = App::Sqitch::Command->load(
-        {
+    my $command = App::Sqitch::Command->load( {
             sqitch  => $sqitch,
             command => $cmd,
             config  => $config,

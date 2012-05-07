@@ -48,8 +48,7 @@ isa_ok $CLASS->new( { sqitch => $sqitch } ), $CLASS;
 
 ##############################################################################
 # Test load().
-ok my $cmd = $CLASS->load(
-    {
+ok my $cmd = $CLASS->load( {
         sqitch => $sqitch,
         engine => 'whu',
     }

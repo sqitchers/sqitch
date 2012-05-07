@@ -20,8 +20,7 @@ my $CLASS = 'App::Sqitch::Command::add_step';
 
 ok my $sqitch = App::Sqitch->new, 'Load a sqitch sqitch object';
 my $config = $sqitch->config;
-isa_ok my $add_step = App::Sqitch::Command->load(
-    {
+isa_ok my $add_step = App::Sqitch::Command->load( {
         sqitch  => $sqitch,
         command => 'add-step',
         config  => $config,
