@@ -19,26 +19,40 @@ use namespace::autoclean;
 
 our $VERSION = '0.30';
 
-has plan_file => (is => 'ro', required => 1, default => sub {
-    file 'sqitch.plan';
-});
+has plan_file => (
+    is       => 'ro',
+    required => 1,
+    default  => sub {
+        file 'sqitch.plan';
+    }
+);
 
-has _engine => (is => 'ro', lazy => 1, isa => maybe_type(enum [qw(pg mysql sqlite)]), default => sub {
-    shift->config->get(key => 'core.engine');
-});
-has engine => (is => 'ro', isa => 'Maybe[App::Sqitch::Engine]', lazy => 1, default => sub {
-    my $self = shift;
-    my $name = $self->_engine or return;
-    require App::Sqitch::Engine;
-    App::Sqitch::Engine->load({sqitch => $self, engine => $name});
-});
+has _engine => (
+    is      => 'ro',
+    lazy    => 1,
+    isa     => maybe_type( enum [qw(pg mysql sqlite)] ),
+    default => sub {
+        shift->config->get( key => 'core.engine' );
+    }
+);
+has engine => (
+    is      => 'ro',
+    isa     => 'Maybe[App::Sqitch::Engine]',
+    lazy    => 1,
+    default => sub {
+        my $self = shift;
+        my $name = $self->_engine or return;
+        require App::Sqitch::Engine;
+        App::Sqitch::Engine->load( { sqitch => $self, engine => $name } );
+    }
+);
 
 # Attributes useful to engines; no defaults.
-has client   => (is => 'ro', isa => 'Str');
-has db_name  => (is => 'ro', isa => 'Str');
-has username => (is => 'ro', isa => 'Str');
-has host     => (is => 'ro', isa => 'Str');
-has port     => (is => 'ro', isa => 'Int');
+has client   => ( is => 'ro', isa => 'Str' );
+has db_name  => ( is => 'ro', isa => 'Str' );
+has username => ( is => 'ro', isa => 'Str' );
+has host     => ( is => 'ro', isa => 'Str' );
+has port     => ( is => 'ro', isa => 'Int' );
 
 has sql_dir => (
     is       => 'ro',
@@ -55,7 +69,7 @@ has deploy_dir => (
     lazy     => 1,
     default  => sub {
         my $self = shift;
-        if (my $dir = $self->config->get(key => 'core.deploy_dir')) {
+        if ( my $dir = $self->config->get( key => 'core.deploy_dir' ) ) {
             return dir $dir;
         }
         $self->sql_dir->subdir('deploy');
@@ -69,7 +83,7 @@ has revert_dir => (
     lazy     => 1,
     default  => sub {
         my $self = shift;
-        if (my $dir = $self->config->get(key => 'core.revert_dir')) {
+        if ( my $dir = $self->config->get( key => 'core.revert_dir' ) ) {
             return dir $dir;
         }
         $self->sql_dir->subdir('revert');
@@ -83,39 +97,59 @@ has test_dir => (
     lazy     => 1,
     default  => sub {
         my $self = shift;
-        if (my $dir = $self->config->get(key => 'core.test_dir')) {
+        if ( my $dir = $self->config->get( key => 'core.test_dir' ) ) {
             return dir $dir;
         }
         $self->sql_dir->subdir('test');
     },
 );
 
-has extension => (is => 'ro', isa => 'Str', lazy => 1, default => sub {
-    shift->config->get(key => 'core.extension') || 'sql';
-});
+has extension => (
+    is      => 'ro',
+    isa     => 'Str',
+    lazy    => 1,
+    default => sub {
+        shift->config->get( key => 'core.extension' ) || 'sql';
+    }
+);
 
-has dry_run => (is => 'ro', isa => 'Bool', required => 1, default => 0);
+has dry_run => ( is => 'ro', isa => 'Bool', required => 1, default => 0 );
 
-has verbosity => (is => 'ro', required => 1, lazy => 1, default => sub {
-    shift->config->get(key => 'core.verbosity') // 1;
-});
+has verbosity => (
+    is       => 'ro',
+    required => 1,
+    lazy     => 1,
+    default  => sub {
+        shift->config->get( key => 'core.verbosity' ) // 1;
+    }
+);
 
-has config => (is => 'ro', isa => 'App::Sqitch::Config', lazy => 1, default => sub {
-    App::Sqitch::Config->new
-});
+has config => (
+    is      => 'ro',
+    isa     => 'App::Sqitch::Config',
+    lazy    => 1,
+    default => sub {
+        App::Sqitch::Config->new;
+    }
+);
 
-has editor => (is => 'ro', lazy => 1, default => sub {
-    return $ENV{SQITCH_EDITOR} || $ENV{EDITOR}
-        || shift->config->get(key => 'core.editor')
-        || ($^O eq 'MSWin32' ? 'notepad.exe' : 'vi')
-    ;
-});
+has editor => (
+    is      => 'ro',
+    lazy    => 1,
+    default => sub {
+        return
+             $ENV{SQITCH_EDITOR}
+          || $ENV{EDITOR}
+          || shift->config->get( key => 'core.editor' )
+          || ( $^O eq 'MSWin32' ? 'notepad.exe' : 'vi' );
+    }
+);
 
 sub go {
     my $class = shift;
 
     # 1. Split command and options.
-    my ($core_args, $cmd, $cmd_args) = $class->_split_args(@ARGV);
+    my ( $core_args, $cmd, $cmd_args ) = $class->_split_args(@ARGV);
 
     # 2. Parse core options.
     my $opts = $class->_parse_core_opts($core_args);
@@ -137,7 +171,7 @@ sub go {
     });
 
     # 6. Execute command.
-    return $command->execute(@{ $cmd_args }) ? 0 : 2;
+    return $command->execute( @{$cmd_args} ) ? 0 : 2;
 }
 
 sub _core_opts {
@@ -165,7 +199,7 @@ sub _core_opts {
 }
 
 sub _split_args {
-    my ($self, @args) = @_;
+    my ( $self, @args ) = @_;
 
     my $cmd_at  = 0;
     my $add_one = sub { $cmd_at++ };
@@ -181,26 +215,29 @@ sub _split_args {
     ) or $self->_pod2usage;
 
     # Splice the command and its options out of the arguments.
-    my ($cmd, @cmd_opts) = splice @args, $cmd_at;
+    my ( $cmd, @cmd_opts ) = splice @args, $cmd_at;
     return \@args, $cmd, \@cmd_opts;
 }
 
 sub _parse_core_opts {
-    my ($self, $args) = @_;
+    my ( $self, $args ) = @_;
     my %opts;
     Getopt::Long::Configure(qw(bundling pass_through));
-    Getopt::Long::GetOptionsFromArray($args, map {
-        (my $k = $_) =~ s/[|=+:!].*//;
-        $k =~ s/-/_/g;
-        $_ => \$opts{$k};
-    } $self->_core_opts) or $self->_pod2usage;
+    Getopt::Long::GetOptionsFromArray(
+        $args,
+        map {
+            ( my $k = $_ ) =~ s/[|=+:!].*//;
+            $k =~ s/-/_/g;
+            $_ => \$opts{$k};
+        } $self->_core_opts
+    ) or $self->_pod2usage;
 
     # Handle documentation requests.
-    $self->_pod2usage('-exitval' => 0, '-verbose' => 2) if delete $opts{man};
-    $self->_pod2usage('-exitval' => 0                 ) if delete $opts{help};
+    $self->_pod2usage( '-exitval' => 0, '-verbose' => 2 ) if delete $opts{man};
+    $self->_pod2usage( '-exitval' => 0                  ) if delete $opts{help};
 
     # Handle version request.
-    if (delete $opts{version}) {
+    if ( delete $opts{version} ) {
         require File::Basename;
         my $fn = File::Basename::basename($0);
         print $fn, ' (', __PACKAGE__, ') ', __PACKAGE__->VERSION, $/;
@@ -208,7 +245,7 @@ sub _parse_core_opts {
     }
 
     # Handle --etc-path.
-    if ($opts{etc_path}) {
+    if ( $opts{etc_path} ) {
         say App::Sqitch::Config->system_dir;
         exit;
     }
@@ -233,7 +270,7 @@ sub _pod2usage {
 sub run {
     my $self = shift;
     local $SIG{__DIE__} = sub {
-        (my $msg = shift) =~ s/\s+at\s+.+/\n/ms;
+        ( my $msg = shift ) =~ s/\s+at\s+.+/\n/ms;
         die $msg;
     };
     runx @_;
@@ -243,7 +280,7 @@ sub run {
 sub capture {
     my $self = shift;
     local $SIG{__DIE__} = sub {
-        (my $msg = shift) =~ s/\s+at\s+.+/\n/ms;
+        ( my $msg = shift ) =~ s/\s+at\s+.+/\n/ms;
         die $msg;
     };
     capturex @_;
@@ -262,19 +299,19 @@ sub _bn {
 
 sub _prepend {
     my $prefix = shift;
-    my $msg = join '', map { $_  // '' } @_;
+    my $msg = join '', map { $_ // '' } @_;
     $msg =~ s/^/$prefix /gms;
     return $msg;
 }
 
 sub trace {
     my $self = shift;
-    say _prepend 'trace:', @_ if $self->verbosity > 2
+    say _prepend 'trace:', @_ if $self->verbosity > 2;
 }
 
 sub debug {
     my $self = shift;
-    say _prepend 'debug:', @_ if $self->verbosity > 1
+    say _prepend 'debug:', @_ if $self->verbosity > 1;
 }
 
 sub info {
@@ -309,23 +346,23 @@ sub fail {
 
 sub help {
     my $self = shift;
-    my $bn = _bn;
-    say STDERR _prepend("$bn:", @_), " See $bn --help";
+    my $bn   = _bn;
+    say STDERR _prepend( "$bn:", @_ ), " See $bn --help";
     exit 1;
 }
 
 sub bail {
-    my ($self, $code) = (shift, shift);
+    my ( $self, $code ) = ( shift, shift );
     if (@_) {
         if ($code) {
             say STDERR @_;
-        } else {
+        }
+        else {
             say STDOUT @_;
         }
     }
     exit $code;
 }
-
 
 __PACKAGE__->meta->make_immutable;
 no Moose;

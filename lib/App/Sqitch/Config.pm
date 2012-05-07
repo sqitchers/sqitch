@@ -12,9 +12,7 @@ extends 'Config::GitLike';
 
 our $VERSION = '0.30';
 
-has '+confname' => (
-    default => 'sqitch.conf',
-);
+has '+confname' => ( default => 'sqitch.conf' );
 
 my $SYSTEM_DIR = undef;
 
@@ -36,7 +34,7 @@ sub system_dir {
 sub system_file {
     my $self = shift;
     return file $ENV{SQITCH_SYSTEM_CONFIG}
-        || $self->system_dir->file($self->confname);
+        || $self->system_dir->file( $self->confname );
 }
 
 sub global_file { shift->system_file }
@@ -44,7 +42,7 @@ sub global_file { shift->system_file }
 sub user_file {
     my $self = shift;
     return file $ENV{SQITCH_USER_CONFIG}
-        || $self->user_dir->file($self->confname);
+        || $self->user_dir->file( $self->confname );
 }
 
 sub local_file {
@@ -55,13 +53,13 @@ sub local_file {
 sub dir_file { shift->local_file }
 
 sub get_section {
-    my ($self, %p) = @_;
+    my ( $self, %p ) = @_;
     $self->load unless $self->is_loaded;
     my $section = $p{section} // '';
     my $data    = $self->data;
     return {
-        map  { $_ => $data->{"$section.$_"} }
-        grep { s{^\Q$section.\E([^.]+)$}{$1} } keys %{ $data }
+        map { $_ => $data->{"$section.$_"} }
+        grep { s{^\Q$section.\E([^.]+)$}{$1} } keys %{$data}
     };
 }
 
@@ -70,10 +68,10 @@ sub get_section {
 sub add_comment {
     my $self = shift;
     my (%args) = (
-        comment     => undef,
-        filename    => undef,
-        indented    => undef,
-        semicolon   => undef,
+        comment   => undef,
+        filename  => undef,
+        indented  => undef,
+        semicolon => undef,
         @_
     );
 
@@ -81,9 +79,9 @@ sub add_comment {
     die "No comment to add\n" unless defined $args{comment};
 
     # Comment, preserving leading whitespace.
-    my $chars = $args{indented} ? '[[:blank:]]*' : '';
-    my $char  = $args{semicolon} ? ';' : '#';
-    (my $comment = $args{comment}) =~ s/^($chars)/$1$char /mg;
+    my $chars = $args{indented}  ? '[[:blank:]]*' : '';
+    my $char  = $args{semicolon} ? ';'            : '#';
+    ( my $comment = $args{comment} ) =~ s/^($chars)/$1$char /mg;
     $comment .= "\n" if $comment !~ /\n\z/;
 
     my $c = $self->_read_config($filename);

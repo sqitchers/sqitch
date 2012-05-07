@@ -14,16 +14,16 @@ our $VERSION = '0.30';
 # XXX Add --all at some point, to output a list of all possible commands.
 
 sub execute {
-    my ($self, $command) = @_;
-    my $look_for = 'sqitch' . ($command ? "-$command" : '');
-    my $pod = Pod::Find::pod_where(
-        {'-inc' => 1, '-script' => 1 },
-        $look_for,
-    ) or $self->fail(qq{No manual entry for $look_for\n});
+    my ( $self, $command ) = @_;
+    my $look_for = 'sqitch' . ( $command ? "-$command" : '' );
+    my $pod = Pod::Find::pod_where({
+        '-inc' => 1,
+        '-script' => 1
+    }, $look_for ) or $self->fail(qq{No manual entry for $look_for\n});
     $self->_pod2usage(
-        '-input'    => $pod,
-        '-verbose'  => 2,
-        '-exitval'  => 0,
+        '-input'   => $pod,
+        '-verbose' => 2,
+        '-exitval' => 0,
     );
 }
 

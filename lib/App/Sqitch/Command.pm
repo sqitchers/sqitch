@@ -43,17 +43,19 @@ sub command {
 }
 
 sub load {
-    my ($class, $p) = @_;
+    my ( $class, $p ) = @_;
 
     # We should have a command.
     $class->usage unless $p->{command};
-    (my $cmd = $p->{command}) =~ s/-/_/g;
+    ( my $cmd = $p->{command} ) =~ s/-/_/g;
 
     # Load the command class.
     my $pkg = __PACKAGE__ . "::$cmd";
     try {
         eval "require $pkg" or die $@;
-    } catch {
+    }
+    catch {
+
         # Just die if something choked.
         die $_ unless /^Can't locate/;
 
@@ -64,7 +66,7 @@ sub load {
     # Merge the command-line options and configuration parameters
     my $params = $pkg->configure(
         $p->{config},
-        $pkg->_parse_opts($p->{args}),
+        $pkg->_parse_opts( $p->{args} )
     );
 
     # Instantiate and return the command.
@@ -73,17 +75,17 @@ sub load {
 }
 
 sub configure {
-    my ($class, $config, $options) = @_;
+    my ( $class, $config, $options ) = @_;
 
     # Convert option keys with dashes to underscores.
-    for my $k (keys %{ $options }) {
-        next unless (my $nk = $k) =~ s/-/_/g;
+    for my $k ( keys %{$options} ) {
+        next unless ( my $nk = $k ) =~ s/-/_/g;
         $options->{$nk} = delete $options->{$k};
     }
 
     return Hash::Merge->new->merge(
         $options,
-        $config->get_section(section => $class->command),
+        $config->get_section( section => $class->command ),
     );
 }
 
@@ -92,12 +94,12 @@ sub options {
 }
 
 sub _parse_opts {
-    my ($class, $args) = @_;
-    return {} unless $args && @{ $args };
+    my ( $class, $args ) = @_;
+    return {} unless $args && @{$args};
 
     my %opts;
     Getopt::Long::Configure(qw(bundling no_pass_through));
-    Getopt::Long::GetOptionsFromArray($args, \%opts, $class->options)
+    Getopt::Long::GetOptionsFromArray( $args, \%opts, $class->options )
         or $class->usage;
 
     return \%opts;
@@ -109,18 +111,20 @@ sub _bn {
 }
 
 sub _pod2usage {
-    my ($self, %params) = @_;
+    my ( $self, %params ) = @_;
     my $command = $self->command;
     require Pod::Find;
     require Pod::Usage;
     my $bn = _bn;
-    $params{'-input'} ||=
-                Pod::Find::pod_where({'-inc' => 1, '-script' => 1 }, "$bn-$command")
-             || Pod::Find::pod_where({'-inc' => 1, '-script' => 1 }, "sqitch-$command")
-             || Pod::Find::pod_where({'-inc' => 1, '-script' => 1 }, $bn)
-             || Pod::Find::pod_where({'-inc' => 1, '-script' => 1 }, 'sqitch')
-             || Pod::Find::pod_where({'-inc' => 1, '-script' => 1 }, ref $self || $self)
-             || Pod::Find::pod_where({'-inc' => 1, '-script' => 1 }, __PACKAGE__);
+    my $find_pod = sub {
+        Pod::Find::pod_where({ '-inc' => 1, '-script' => 1 }, shift );
+    };
+    $params{'-input'} ||= $find_pod->("$bn-$command")
+                      ||  $find_pod->("sqitch-$command")
+                      ||  $find_pod->($bn)
+                      ||  $find_pod->('sqitch')
+                      ||  $find_pod->(ref $self || $self)
+                      ||  $find_pod->(__PACKAGE__);
     Pod::Usage::pod2usage(
         '-verbose'  => 99,
         '-sections' => '(?i:(Usage|Synopsis|Options))',
@@ -136,18 +140,15 @@ sub execute {
         __PACKAGE__
     ) if ref $self eq __PACKAGE__;
 
-    croak(
-        'The execute() method has not been overridden in ',
-        ref $self
-    );
+    croak( 'The execute() method has not been overridden in ', ref $self );
 }
 
 sub usage {
     my $self = shift;
     require Pod::Find;
-    my $upod = _bn . '-' . $self->command .  '-usage';
+    my $upod = _bn . '-' . $self->command . '-usage';
     $self->_pod2usage(
-        '-input' => Pod::Find::pod_where({'-inc' => 1 }, $upod) || undef,
+        '-input' => Pod::Find::pod_where( { '-inc' => 1 }, $upod ) || undef,
         '-message' => join '', @_
     );
 }

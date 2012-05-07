@@ -93,7 +93,8 @@ throws_ok { $plan->_parse($file) } qr/FAIL:/,
 is_deeply +MockOutput->get_fail, [[
     "Syntax error in $file at line ",
     9,
-    ': Tag "bar" duplicates earlier declaration on line 4',
+    ': Tag "bar" duplicates earlier declaration on line ',
+    4,
 ]], 'And the dupe tag error should have been output';
 
 # Try a plan with a duplicate step within a tag section.
@@ -103,7 +104,8 @@ throws_ok { $plan->_parse($file) } qr/FAIL:/,
 is_deeply +MockOutput->get_fail, [[
     "Syntax error in $file at line ",
     8,
-    ': Step "greets" duplicates earlier declaration on line 6'
+    ': Step "greets" duplicates earlier declaration on line ',
+    6,
 ]], 'And the dupe step error should have been output';
 
 # Try a plan with a duplicate step in different tag sections.
@@ -113,7 +115,8 @@ throws_ok { $plan->_parse($file) } qr/FAIL:/,
 is_deeply +MockOutput->get_fail, [[
     "Syntax error in $file at line ",
     9,
-    ': Step "whatever" duplicates earlier declaration on line 2'
+    ': Step "whatever" duplicates earlier declaration on line ',
+    2,
 ]], 'And the second dupe step error should have been output';
 
 # Make sure that all() loads the plan.

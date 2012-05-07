@@ -35,16 +35,16 @@ has variables => (
     required => 1,
     lazy     => 1,
     default  => sub {
-        shift->sqitch->config->get_section(section => 'add-step.variables');
+        shift->sqitch->config->get_section( section => 'add-step.variables' );
     },
 );
 
 has template_directory => (
-    is       => 'ro',
-    isa      => 'Maybe[Path::Class::Dir]',
-    lazy     => 1,
+    is      => 'ro',
+    isa     => 'Maybe[Path::Class::Dir]',
+    lazy    => 1,
     default => sub {
-        dir shift->sqitch->config->get(key => "add-step.template_directory");
+        dir shift->sqitch->config->get( key => "add-step.template_directory" );
     }
 );
 
@@ -70,9 +70,9 @@ for my $script (qw(deploy revert test)) {
 }
 
 sub _find {
-    my ($self, $script) = @_;
+    my ( $self, $script ) = @_;
     my $config = $self->sqitch->config;
-    $config->get(key => "add-step.$script\_template") || do {
+    $config->get( key => "add-step.$script\_template" ) || do {
         for my $dir (
             $self->template_directory,
             $config->user_dir->subdir('templates'),
@@ -102,10 +102,10 @@ sub options {
 }
 
 sub configure {
-    my ($class, $config, $opt) = @_;
+    my ( $class, $config, $opt ) = @_;
 
     my %params = (
-        requires => $opt->{requires}   || [],
+        requires  => $opt->{requires}  || [],
         conflicts => $opt->{conflicts} || [],
     );
 
@@ -118,10 +118,11 @@ sub configure {
         $params{$t} = file $opt->{$t} if $opt->{$t};
     }
 
-    if (my $vars = $opt->{set}) {
+    if ( my $vars = $opt->{set} ) {
+
         # Merge with config.
         $params{variables} = {
-            %{ $config->get_section(section => 'add-step.variables') },
+            %{ $config->get_section( section => 'add-step.variables' ) },
             %{ $vars },
         };
     }
@@ -130,7 +131,7 @@ sub configure {
 }
 
 sub execute {
-    my ($self, $name) = @_;
+    my ( $self, $name ) = @_;
     $self->usage unless defined $name;
     my $sqitch = $self->sqitch;
 
@@ -164,20 +165,20 @@ sub execute {
 }
 
 sub _add {
-    my ($self, $name, $in, $out_dir) = @_;
+    my ( $self, $name, $in, $out_dir ) = @_;
     make_path $out_dir, { error => \my $err };
-    if (my $diag = shift @{ $err }) {
-        my ($path, $msg) = %{ $diag };
+    if ( my $diag = shift @{ $err } ) {
+        my ( $path, $msg ) = %{ $diag };
         $self->fail("Error creating $path: $msg") if $path;
         $self->fail($msg);
     }
 
-    my $out = $out_dir->file("$name." . $self->sqitch->extension);
+    my $out = $out_dir->file( "$name." . $self->sqitch->extension );
     open my $fh, '>:utf8', $out or $self->fail("Cannot open $out: $!");
     my $orig_selected = select;
     select $fh;
 
-    Template::Tiny->new->process($self->_load($in), {
+    Template::Tiny->new->process( $self->_load($in), {
         %{ $self->variables },
         step      => $name,
         requires  => $self->requires,
@@ -190,7 +191,7 @@ sub _add {
 }
 
 sub _load {
-    my ($self, $tmpl) = @_;
+    my ( $self, $tmpl ) = @_;
     open my $fh, "<:encoding(UTF-8)", $tmpl
         or $self->fail("cannot open $tmpl: $!");
     local $/;

@@ -22,13 +22,13 @@ sub execute {
 }
 
 sub make_directories {
-    my $self = shift;
+    my $self   = shift;
     my $sqitch = $self->sqitch;
     for my $attr (qw(deploy_dir revert_dir test_dir)) {
         my $dir = $sqitch->$attr;
         $self->info("Created $dir") if make_path $dir, { error => \my $err };
-        if (my $diag = shift @{ $err }) {
-            my ($path, $msg) = %{ $diag };
+        if ( my $diag = shift @{ $err } ) {
+            my ( $path, $msg ) = %{ $diag };
             $self->fail("Error creating $path: $msg") if $path;
             $self->fail($msg);
         }
@@ -42,20 +42,23 @@ sub write_config {
     my $meta   = $sqitch->meta;
     my $config = $sqitch->config;
     my $file   = $config->local_file;
-    if (-f $file) {
+    if ( -f $file ) {
+
         # Do nothing? Update config?
         return $self;
     }
 
-    my (@vars, @comments);
+    my ( @vars, @comments );
+
     # start with the engine.
     my $engine = $sqitch->engine;
     if ($engine) {
         push @vars => {
-            key      => "core.engine",
-            value    => $engine->name,
+            key   => "core.engine",
+            value => $engine->name,
         };
-    } else {
+    }
+    else {
         push @comments => "\tengine = ";
     }
 
@@ -68,22 +71,25 @@ sub write_config {
         test_dir
         extension
     )) {
+
         # Set core attributes that are not their default values and not
         # already in user or system config.
         my $attr = $meta->find_attribute_by_name($name)
             or die "Cannot find App::Sqitch attribute $name";
         my $val = $attr->get_value($sqitch);
         my $def = $attr->default($sqitch);
-        my $var = $config->get(key => "core.$name");
+        my $var = $config->get( key => "core.$name" );
 
         no warnings 'uninitialized';
-        if ($val ne $def && $val ne $var) {
+        if ( $val ne $def && $val ne $var ) {
+
             # It was specified on the command-line, so grab it to write out.
             push @vars => {
-                key      => "core.$name",
-                value    => $val,
+                key   => "core.$name",
+                value => $val,
             };
-        } else {
+        }
+        else {
             $var //= $def // '';
             push @comments => "\t$name = $var";
         }
@@ -91,8 +97,9 @@ sub write_config {
 
     # Emit them.
     if (@vars) {
-        $config->group_set($file => \@vars);
-    } else {
+        $config->group_set( $file => \@vars );
+    }
+    else {
         unshift @comments => '[core]';
     }
 
@@ -104,16 +111,19 @@ sub write_config {
     ) if @comments;
 
     if ($engine) {
+
         # Write out the core.$engine section.
-        my $ekey = 'core.' . $engine->name;
+        my $ekey        = 'core.' . $engine->name;
         my %config_vars = $engine->config_vars;
         my $emeta       = $engine->meta;
         @comments = @vars = ();
 
-        while (my ($key, $type) = each %config_vars) {
+        while ( my ( $key, $type ) = each %config_vars ) {
+
             # Was it passed as an option?
-            if (my $attr = $meta->find_attribute_by_name($key)) {
-                if (my $val = $attr->get_value($sqitch)) {
+            if ( my $attr = $meta->find_attribute_by_name($key) ) {
+                if ( my $val = $attr->get_value($sqitch) ) {
+
                     # It was passed as an option, so record that.
                     my $multiple = $type =~ s/[+]$//;
                     $type = undef if $type eq 'any';
@@ -123,29 +133,36 @@ sub write_config {
                         as       => $type,
                         multiple => $multiple,
                     };
+
                     # We're good on this one.
                     next;
                 }
             }
 
             # No value, but add it as a comment.
-            if (my $attr = $emeta->find_attribute_by_name($key)) {
+            if ( my $attr = $emeta->find_attribute_by_name($key) ) {
+
                 # Add it as a comment, possibly with a default.
                 my $def = $attr->default($engine)
-                    // $config->get(key => "$ekey.$key")
+                    // $config->get( key => "$ekey.$key" )
                     // '';
                 push @comments => "\t$key = $def";
-            } else {
+            }
+            else {
+
                 # Add it as a comment, with the config, if possible.
-                my $val = $config->get(key => "$ekey.$key") // '';
+                my $val = $config->get( key => "$ekey.$key" ) // '';
                 push @comments => "\t$key = $val";
             }
         }
 
         if (@vars) {
+
             # Emit them.
-            $config->group_set($file => \@vars) if @vars;
-        } else {
+            $config->group_set( $file => \@vars ) if @vars;
+        }
+        else {
+
             # Still want the section, emit it as a comment.
             unshift @comments => '[core "' . $engine->name . '"]';
         }

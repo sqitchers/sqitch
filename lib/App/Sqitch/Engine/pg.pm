@@ -20,8 +20,8 @@ has client => (
     default  => sub {
         my $sqitch = shift->sqitch;
         $sqitch->client
-            || $sqitch->config->get(key => 'core.pg.client')
-            || 'psql' . ($^O eq 'Win32' ? '.exe' : '');
+            || $sqitch->config->get( key => 'core.pg.client' )
+            || 'psql' . ( $^O eq 'Win32' ? '.exe' : '' );
     },
 );
 
@@ -32,7 +32,7 @@ has username => (
     required => 0,
     default  => sub {
         my $sqitch = shift->sqitch;
-        $sqitch->username || $sqitch->config->get(key => 'core.pg.username');
+        $sqitch->username || $sqitch->config->get( key => 'core.pg.username' );
     },
 );
 
@@ -42,7 +42,7 @@ has password => (
     lazy     => 1,
     required => 0,
     default  => sub {
-        shift->sqitch->config->get(key => 'core.pg.password');
+        shift->sqitch->config->get( key => 'core.pg.password' );
     },
 );
 
@@ -53,7 +53,7 @@ has db_name => (
     required => 0,
     default  => sub {
         my $sqitch = shift->sqitch;
-        $sqitch->db_name || $sqitch->config->get(key => 'core.pg.db_name');
+        $sqitch->db_name || $sqitch->config->get( key => 'core.pg.db_name' );
     },
 );
 
@@ -64,7 +64,7 @@ has host => (
     required => 0,
     default  => sub {
         my $sqitch = shift->sqitch;
-        $sqitch->host || $sqitch->config->get(key => 'core.pg.host');
+        $sqitch->host || $sqitch->config->get( key => 'core.pg.host' );
     },
 );
 
@@ -75,7 +75,7 @@ has port => (
     required => 0,
     default  => sub {
         my $sqitch = shift->sqitch;
-        $sqitch->port || $sqitch->config->get(key => 'core.pg.port');
+        $sqitch->port || $sqitch->config->get( key => 'core.pg.port' );
     },
 );
 
@@ -85,7 +85,8 @@ has sqitch_schema => (
     lazy     => 1,
     required => 1,
     default  => sub {
-        shift->sqitch->config->get(key => 'core.pg.sqitch_schema') || 'sqitch';
+        shift->sqitch->config->get( key => 'core.pg.sqitch_schema' )
+            || 'sqitch';
     },
 );
 
@@ -95,15 +96,16 @@ has psql => (
     lazy       => 1,
     required   => 1,
     auto_deref => 1,
-    default  => sub {
+    default    => sub {
         my $self = shift;
-        my @ret = ($self->client);
+        my @ret  = ( $self->client );
         for my $spec (
             [ username => $self->username ],
             [ dbname   => $self->db_name  ],
             [ host     => $self->host     ],
             [ port     => $self->port     ],
-        ) {
+            )
+        {
             push @ret, "--$spec->[0]" => $spec->[1] if $spec->[1];
         }
 
@@ -133,8 +135,8 @@ sub config_vars {
 
 sub initialized {
     my $self = shift;
-    (my $ns = $self->sqitch_schema) =~ s/'/''/g;
-    return $self->_probe('--command' => qq{
+    ( my $ns = $self->sqitch_schema ) =~ s/'/''/g;
+    return $self->_probe( '--command' => qq{
         SELECT EXISTS(
             SELECT TRUE FROM pg_catalog.pg_namespace WHERE nspname = '$ns'
         )::int
@@ -157,25 +159,25 @@ sub initialize {
 sub _run {
     my $self   = shift;
     my $sqitch = $self->sqitch;
-    my $pass  = $self->password or return $sqitch->run($self->psql, @_);
+    my $pass   = $self->password or return $sqitch->run( $self->psql, @_ );
     local $ENV{PGPASSWORD} = $pass;
-    return $sqitch->run($self->psql, @_);
+    return $sqitch->run( $self->psql, @_ );
 }
 
 sub _cap {
     my $self   = shift;
     my $sqitch = $self->sqitch;
-    my $pass   = $self->password or return $sqitch->capture($self->psql, @_);
+    my $pass   = $self->password or return $sqitch->capture( $self->psql, @_ );
     local $ENV{PGPASSWORD} = $pass;
-    return $sqitch->capture($self->psql, @_);
+    return $sqitch->capture( $self->psql, @_ );
 }
 
 sub _probe {
     my $self   = shift;
     my $sqitch = $self->sqitch;
-    my $pass   = $self->password or return $sqitch->probe($self->psql, @_);
+    my $pass   = $self->password or return $sqitch->probe( $self->psql, @_ );
     local $ENV{PGPASSWORD} = $pass;
-    return $sqitch->probe($self->psql, @_);
+    return $sqitch->probe( $self->psql, @_ );
 }
 
 __PACKAGE__->meta->make_immutable;
