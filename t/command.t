@@ -90,8 +90,7 @@ ok my $cmd = $CLASS->load( {
         command => 'whu',
         sqitch  => $sqitch,
         config  => $config,
-        args    => []
-    }
+        args    => [] }
     ),
     'Load a "whu" command';
 isa_ok $cmd, 'App::Sqitch::Command::whu';
@@ -103,8 +102,7 @@ ok $cmd = $CLASS->load( {
         command => 'whu',
         sqitch  => $sqitch,
         config  => $config,
-        args    => []
-    }
+        args    => [] }
     ),
     'Load a "whu" command with "foo" config';
 is $cmd->foo, 'hi', 'The "foo" attribute should be set';
@@ -140,8 +138,7 @@ ok $cmd = $CLASS->load( {
         command => 'whu',
         sqitch  => $sqitch,
         config  => $config,
-        args    => [ '--feathers' => 'no' ]
-    }
+        args    => [ '--feathers' => 'no' ] }
     ),
     'Load a "whu" command with "--feathers" optin';
 is $cmd->feathers, 'no', 'The "feathers" attribute should be set';

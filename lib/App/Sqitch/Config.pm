@@ -58,8 +58,7 @@ sub get_section {
     my $data = $self->data;
     return {
         map { $_ => $data->{"$section.$_"} }
-        grep { s{^\Q$section.\E([^.]+)$}{$1} } keys %{$data}
-    };
+        grep { s{^\Q$section.\E([^.]+)$}{$1} } keys %{$data} };
 }
 
 # Remove once https://github.com/bestpractical/config-gitlike/pull/4 is merged
