@@ -29,10 +29,10 @@ sub process_etc_files {
 
         # Append .default if file already exists at its ultimate destination.
         my $dest =
-          -e File::Spec->catfile( $etc,
+            -e File::Spec->catfile( $etc,
             ( File::Spec->splitpath($file) )[ 1 .. -1 ] )
-          ? "$file.default"
-          : $file;
+            ? "$file.default"
+            : $file;
         $self->copy_if_modified(
             from => $file,
             to   => File::Spec->catfile( $self->blib, $dest )

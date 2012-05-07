@@ -60,7 +60,7 @@ has sql_dir => (
     required => 1,
     lazy     => 1,
     default =>
-      sub { dir shift->config->get( key => 'core.sql_dir' ) || 'sql' },
+        sub { dir shift->config->get( key => 'core.sql_dir' ) || 'sql' },
 );
 
 has deploy_dir => (
@@ -139,10 +139,10 @@ has editor => (
     lazy    => 1,
     default => sub {
         return
-             $ENV{SQITCH_EDITOR}
-          || $ENV{EDITOR}
-          || shift->config->get( key => 'core.editor' )
-          || ( $^O eq 'MSWin32' ? 'notepad.exe' : 'vi' );
+               $ENV{SQITCH_EDITOR}
+            || $ENV{EDITOR}
+            || shift->config->get( key => 'core.editor' )
+            || ( $^O eq 'MSWin32' ? 'notepad.exe' : 'vi' );
     }
 );
 
@@ -179,25 +179,25 @@ sub go {
 
 sub _core_opts {
     return qw(
-      plan-file=s
-      engine=s
-      client=s
-      db-name|d=s
-      username|user|u=s
-      host=s
-      port=i
-      sql-dir=s
-      deploy-dir=s
-      revert-dir=s
-      test-dir=s
-      extension=s
-      dry-run
-      etc-path
-      quiet
-      verbose+
-      help
-      man
-      version
+        plan-file=s
+        engine=s
+        client=s
+        db-name|d=s
+        username|user|u=s
+        host=s
+        port=i
+        sql-dir=s
+        deploy-dir=s
+        revert-dir=s
+        test-dir=s
+        extension=s
+        dry-run
+        etc-path
+        quiet
+        verbose+
+        help
+        man
+        version
     );
 }
 
@@ -234,12 +234,12 @@ sub _parse_core_opts {
             ( my $k = $_ ) =~ s/[|=+:!].*//;
             $k =~ s/-/_/g;
             $_ => \$opts{$k};
-          } $self->_core_opts
+            } $self->_core_opts
     ) or $self->_pod2usage;
 
     # Handle documentation requests.
     $self->_pod2usage( '-exitval' => 0, '-verbose' => 2 )
-      if delete $opts{man};
+        if delete $opts{man};
     $self->_pod2usage( '-exitval' => 0 ) if delete $opts{help};
 
     # Handle version request.

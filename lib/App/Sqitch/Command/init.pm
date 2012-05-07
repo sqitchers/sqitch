@@ -72,13 +72,13 @@ sub write_config {
         test_dir
         extension
         )
-      )
+        )
     {
 
         # Set core attributes that are not their default values and not
         # already in user or system config.
         my $attr = $meta->find_attribute_by_name($name)
-          or die "Cannot find App::Sqitch attribute $name";
+            or die "Cannot find App::Sqitch attribute $name";
         my $val = $attr->get_value($sqitch);
         my $def = $attr->default($sqitch);
         my $var = $config->get( key => "core.$name" );
@@ -147,7 +147,7 @@ sub write_config {
 
                 # Add it as a comment, possibly with a default.
                 my $def = $attr->default($engine)
-                  // $config->get( key => "$ekey.$key" ) // '';
+                    // $config->get( key => "$ekey.$key" ) // '';
                 push @comments => "\t$key = $def";
             }
             else {

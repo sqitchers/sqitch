@@ -17,8 +17,8 @@ sub execute {
     my ( $self, $command ) = @_;
     my $look_for = 'sqitch' . ( $command ? "-$command" : '' );
     my $pod =
-      Pod::Find::pod_where( { '-inc' => 1, '-script' => 1 }, $look_for, )
-      or $self->fail(qq{No manual entry for $look_for\n});
+        Pod::Find::pod_where( { '-inc' => 1, '-script' => 1 }, $look_for, )
+        or $self->fail(qq{No manual entry for $look_for\n});
     $self->_pod2usage(
         '-input'   => $pod,
         '-verbose' => 2,

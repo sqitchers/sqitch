@@ -19,8 +19,8 @@ has client => (
     default  => sub {
         my $sqitch = shift->sqitch;
         $sqitch->client
-          || $sqitch->config->get( key => 'core.sqlite.client' )
-          || 'sqlite3' . ( $^O eq 'Win32' ? '.exe' : '' );
+            || $sqitch->config->get( key => 'core.sqlite.client' )
+            || 'sqlite3' . ( $^O eq 'Win32' ? '.exe' : '' );
     },
 );
 
@@ -32,7 +32,7 @@ has db_name => (
     default  => sub {
         my $sqitch = shift->sqitch;
         $sqitch->db_name
-          || $sqitch->config->get( key => 'core.sqlite.db_name' );
+            || $sqitch->config->get( key => 'core.sqlite.db_name' );
     },
 );
 
@@ -43,7 +43,7 @@ has sqitch_prefix => (
     required => 1,
     default  => sub {
         shift->sqitch->config->get( key => 'core.sqlite.sqitch_prefix' )
-          || 'sqitch';
+            || 'sqitch';
     },
 );
 

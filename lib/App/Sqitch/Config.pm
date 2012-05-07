@@ -19,7 +19,7 @@ my $SYSTEM_DIR = undef;
 sub user_dir {
     require File::HomeDir;
     my $hd = File::HomeDir->my_home
-      or croak("Could not determine home directory");
+        or croak("Could not determine home directory");
     return dir $hd, '.sqitch';
 }
 
@@ -33,7 +33,7 @@ sub system_dir {
 sub system_file {
     my $self = shift;
     return file $ENV{SQITCH_SYSTEM_CONFIG}
-      || $self->system_dir->file( $self->confname );
+        || $self->system_dir->file( $self->confname );
 }
 
 sub global_file { shift->system_file }
@@ -41,7 +41,7 @@ sub global_file { shift->system_file }
 sub user_file {
     my $self = shift;
     return file $ENV{SQITCH_USER_CONFIG}
-      || $self->user_dir->file( $self->confname );
+        || $self->user_dir->file( $self->confname );
 }
 
 sub local_file {
@@ -75,7 +75,7 @@ sub add_comment {
     );
 
     my $filename = $args{filename}
-      or die "No filename passed to add_comment()";
+        or die "No filename passed to add_comment()";
     die "No comment to add\n" unless defined $args{comment};
 
     # Comment, preserving leading whitespace.

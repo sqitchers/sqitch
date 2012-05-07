@@ -43,10 +43,10 @@ COMMAND: {
 
     sub options {
         return qw(
-          foo
-          hi-there|h
-          icky-foo!
-          feathers=s
+            foo
+            hi-there|h
+            icky-foo!
+            feathers=s
         );
     }
 }
@@ -57,14 +57,14 @@ ok my $sqitch = App::Sqitch->new, 'Load a sqitch sqitch object';
 # Test new().
 throws_ok { $CLASS->new }
 qr/\QAttribute (sqitch) is required/,
-  'Should get an exception for missing sqitch param';
+    'Should get an exception for missing sqitch param';
 my $array = [];
 throws_ok { $CLASS->new( { sqitch => $array } ) }
 qr/\QValidation failed for 'App::Sqitch' with value/,
-  'Should get an exception for array sqitch param';
+    'Should get an exception for array sqitch param';
 throws_ok { $CLASS->new( { sqitch => 'foo' } ) }
 qr/\QValidation failed for 'App::Sqitch' with value/,
-  'Should get an exception for string sqitch param';
+    'Should get an exception for string sqitch param';
 
 isa_ok $CLASS->new( { sqitch => $sqitch } ), $CLASS;
 
@@ -73,15 +73,15 @@ isa_ok $CLASS->new( { sqitch => $sqitch } ), $CLASS;
 my $config = App::Sqitch::Config->new;
 my $cmock  = Test::MockModule->new('App::Sqitch::Config');
 is_deeply $CLASS->configure( $config, {} ), {},
-  'Should get empty hash for no config or options';
+    'Should get empty hash for no config or options';
 $cmock->mock( get_section => { foo => 'hi' } );
 is_deeply $CLASS->configure( $config, {} ), { foo => 'hi' },
-  'Should get config with no options';
+    'Should get config with no options';
 is_deeply $CLASS->configure( $config, { foo => 'yo' } ), { foo => 'yo' },
-  'Options should override config';
+    'Options should override config';
 is_deeply $CLASS->configure( $config, { 'foo-bar' => 'yo' } ),
-  { foo => 'hi', foo_bar => 'yo' },
-  'Options keys should have dashes changed to underscores';
+    { foo => 'hi', foo_bar => 'yo' },
+    'Options keys should have dashes changed to underscores';
 
 ##############################################################################
 # Test load().
@@ -93,8 +93,8 @@ ok my $cmd = $CLASS->load(
         config  => $config,
         args    => []
     }
-  ),
-  'Load a "whu" command';
+    ),
+    'Load a "whu" command';
 isa_ok $cmd, 'App::Sqitch::Command::whu';
 is $cmd->sqitch, $sqitch, 'The sqitch attribute should be set';
 
@@ -107,8 +107,8 @@ ok $cmd = $CLASS->load(
         config  => $config,
         args    => []
     }
-  ),
-  'Load a "whu" command with "foo" config';
+    ),
+    'Load a "whu" command with "foo" config';
 is $cmd->foo, 'hi', 'The "foo" attribute should be set';
 
 # Test handling of an invalid command.
@@ -119,7 +119,7 @@ is capture_stderr {
     }
     qr/EXITED: 1/, 'Should exit';
 }, qq{sqch: "nonexistent" is not a valid command. See sqch --help\n},
-  'Should get an exception for an invalid command';
+    'Should get an exception for an invalid command';
 
 NOCOMMAND: {
 
@@ -145,8 +145,8 @@ ok $cmd = $CLASS->load(
         config  => $config,
         args    => [ '--feathers' => 'no' ]
     }
-  ),
-  'Load a "whu" command with "--feathers" optin';
+    ),
+    'Load a "whu" command with "--feathers" optin';
 is $cmd->feathers, 'no', 'The "feathers" attribute should be set';
 
 # Test command with a dash in its name.
@@ -156,8 +156,8 @@ ok $cmd = $CLASS->load(
         sqitch  => $sqitch,
         config  => $config,
     }
-  ),
-  'Load an "add-step" command';
+    ),
+    'Load an "add-step" command';
 isa_ok $cmd, "$CLASS\::add_step", 'It';
 is $cmd->command, 'add-step', 'command() should return hyphenated name';
 
@@ -169,48 +169,48 @@ is $CLASS->command, '', 'Base class command should be ""';
 is $cmd->command,   '', 'Base object command should be ""';
 throws_ok { $cmd->execute }
 qr/\QThe execute() method must be called from a subclass of $CLASS/,
-  'Should get an error calling execute on command base class';
+    'Should get an error calling execute on command base class';
 
 ok $cmd = App::Sqitch::Command::whu->new( { sqitch => $sqitch } ),
-  'Create a subclass command object';
+    'Create a subclass command object';
 is $cmd->command, 'whu', 'Subclass oject command should be "whu"';
 is +App::Sqitch::Command::whu->command, 'whu',
-  'Subclass class command should be "whu"';
+    'Subclass class command should be "whu"';
 throws_ok { $cmd->execute }
 qr/\QThe execute() method has not been overridden in App::Sqitch::Command::whu/,
-  'Should get an error for un-overridden execute() method';
+    'Should get an error for un-overridden execute() method';
 
 ##############################################################################
 # Test options parsing.
 can_ok $CLASS, 'options', '_parse_opts';
 ok $cmd = $CLASS->new( { sqitch => $sqitch } ),
-  "Create a $CLASS object again";
+    "Create a $CLASS object again";
 is_deeply $cmd->_parse_opts, {},
-  'Base _parse_opts should return an empty hash';
+    'Base _parse_opts should return an empty hash';
 
 ok $cmd = App::Sqitch::Command::whu->new( { sqitch => $sqitch } ),
-  'Create a subclass command object again';
+    'Create a subclass command object again';
 is_deeply $cmd->_parse_opts, {},
-  'Subclass should return an empty hash for no args';
+    'Subclass should return an empty hash for no args';
 
 is_deeply $cmd->_parse_opts( [1] ), {}, 'Subclass should use options spec';
 my $args = [
     qw(
-      --foo
-      --h
-      --no-icky-foo
-      --feathers down
-      whatever
-      )
+        --foo
+        --h
+        --no-icky-foo
+        --feathers down
+        whatever
+        )
 ];
 is_deeply $cmd->_parse_opts($args),
-  {
+    {
     'foo'      => 1,
     'hi-there' => 1,
     'icky-foo' => 0,
     'feathers' => 'down',
-  },
-  'Subclass should parse options spec';
+    },
+    'Subclass should parse options spec';
 is_deeply $args, ['whatever'], 'Args array should be cleared of options';
 
 PARSEOPTSERR: {
@@ -223,9 +223,9 @@ PARSEOPTSERR: {
     local $SIG{__WARN__} = sub { @warn = @_ };
     $cmd->_parse_opts( ['--dont-do-this'] );
     is_deeply \@warn, ["Unknown option: dont-do-this\n"],
-      'Should get warning for unknown option';
+        'Should get warning for unknown option';
     is_deeply \@args, [$cmd],
-      'Should call _pod2usage on options parse failure';
+        'Should call _pod2usage on options parse failure';
 
     # Try it with a command with no options.
     @args = @warn = ();
@@ -235,13 +235,13 @@ PARSEOPTSERR: {
             sqitch  => $sqitch,
             config  => $config,
         }
-      ),
-      'App::Sqitch::Command::good', 'Good command object';
+        ),
+        'App::Sqitch::Command::good', 'Good command object';
     $cmd->_parse_opts( ['--dont-do-this'] );
     is_deeply \@warn, ["Unknown option: dont-do-this\n"],
-      'Should get warning for unknown option when there are no options';
+        'Should get warning for unknown option when there are no options';
     is_deeply \@args, [$cmd],
-      'Should call _pod2usage on no options parse failure';
+        'Should call _pod2usage on no options parse failure';
 }
 
 ##############################################################################
@@ -253,24 +253,24 @@ POD2USAGE: {
     $cmd = $CLASS->new( { sqitch => $sqitch } );
     ok $cmd->_pod2usage, 'Call _pod2usage on base object';
     is_deeply \%args,
-      {
+        {
         '-verbose'  => 99,
         '-sections' => '(?i:(Usage|Synopsis|Options))',
         '-exitval'  => 2,
         '-input'    => Pod::Find::pod_where( { '-inc' => 1 }, 'sqitch' ),
-      },
-      'Default params should be passed to Pod::Usage';
+        },
+        'Default params should be passed to Pod::Usage';
 
     $cmd = App::Sqitch::Command::whu->new( { sqitch => $sqitch } );
     ok $cmd->_pod2usage, 'Call _pod2usage on "whu" command object';
     is_deeply \%args,
-      {
+        {
         '-verbose'  => 99,
         '-sections' => '(?i:(Usage|Synopsis|Options))',
         '-exitval'  => 2,
         '-input'    => Pod::Find::pod_where( { '-inc' => 1 }, 'sqitch' ),
-      },
-      'Default params should be passed to Pod::Usage';
+        },
+        'Default params should be passed to Pod::Usage';
 
     isa_ok $cmd = App::Sqitch::Command->load(
         {
@@ -278,17 +278,17 @@ POD2USAGE: {
             sqitch  => $sqitch,
             config  => $config,
         }
-      ),
-      'App::Sqitch::Command::config', 'Config command object';
+        ),
+        'App::Sqitch::Command::config', 'Config command object';
     ok $cmd->_pod2usage, 'Call _pod2usage on "config" command object';
     is_deeply \%args,
-      {
+        {
         '-verbose'  => 99,
         '-sections' => '(?i:(Usage|Synopsis|Options))',
         '-exitval'  => 2,
         '-input' => Pod::Find::pod_where( { '-inc' => 1 }, 'sqitch-config' ),
-      },
-      'Should find sqitch-config docs to pass to Pod::Usage';
+        },
+        'Should find sqitch-config docs to pass to Pod::Usage';
 
     isa_ok $cmd = App::Sqitch::Command->load(
         {
@@ -296,30 +296,30 @@ POD2USAGE: {
             sqitch  => $sqitch,
             config  => $config,
         }
-      ),
-      'App::Sqitch::Command::good', 'Good command object';
+        ),
+        'App::Sqitch::Command::good', 'Good command object';
     ok $cmd->_pod2usage, 'Call _pod2usage on "good" command object';
     is_deeply \%args,
-      {
+        {
         '-verbose'  => 99,
         '-sections' => '(?i:(Usage|Synopsis|Options))',
         '-exitval'  => 2,
         '-input'    => Pod::Find::pod_where( { '-inc' => 1 }, 'sqitch' ),
-      },
-      'Should find App::Sqitch::Command::good docs to pass to Pod::Usage';
+        },
+        'Should find App::Sqitch::Command::good docs to pass to Pod::Usage';
 
     # Test usage(), too.
     can_ok $cmd, 'usage';
     $cmd->usage( 'Hello ', 'gorgeous' );
     is_deeply \%args,
-      {
+        {
         '-verbose'  => 99,
         '-sections' => '(?i:(Usage|Synopsis|Options))',
         '-exitval'  => 2,
         '-input'    => Pod::Find::pod_where( { '-inc' => 1 }, 'sqitch' ),
         '-message'  => 'Hello gorgeous',
-      },
-      'Should find App::Sqitch::Command::good docs to pass to Pod::Usage';
+        },
+        'Should find App::Sqitch::Command::good docs to pass to Pod::Usage';
 }
 
 ##############################################################################
@@ -332,50 +332,50 @@ is $cmd->verbosity, $sqitch->verbosity, 'Verbosity should change with sqitch';
 ##############################################################################
 # Test message levels. Start with trace.
 is capture_stdout { $cmd->trace( 'This ', "that\n", 'and the other' ) },
-  "trace: This that\ntrace: and the other\n",
-  'trace should work';
+    "trace: This that\ntrace: and the other\n",
+    'trace should work';
 $sqitch->{verbosity} = 2;
 is capture_stdout { $cmd->trace( 'This ', "that\n", 'and the other' ) },
-  '', 'Should get no trace output for verbosity 2';
+    '', 'Should get no trace output for verbosity 2';
 
 # Debug.
 is capture_stdout { $cmd->debug( 'This ', "that\n", 'and the other' ) },
-  "debug: This that\ndebug: and the other\n",
-  'debug should work';
+    "debug: This that\ndebug: and the other\n",
+    'debug should work';
 $sqitch->{verbosity} = 1;
 is capture_stdout { $cmd->debug( 'This ', "that\n", 'and the other' ) },
-  '', 'Should get no debug output for verbosity 1';
+    '', 'Should get no debug output for verbosity 1';
 
 # Info.
 is capture_stdout { $cmd->info( 'This ', "that\n", 'and the other' ) },
-  "This that\nand the other\n",
-  'info should work';
+    "This that\nand the other\n",
+    'info should work';
 $sqitch->{verbosity} = 0;
 is capture_stdout { $cmd->info( 'This ', "that\n", 'and the other' ) },
-  '', 'Should get no info output for verbosity 0';
+    '', 'Should get no info output for verbosity 0';
 
 # Comment.
 $sqitch->{verbosity} = 1;
 is capture_stdout { $cmd->comment( 'This ', "that\n", 'and the other' ) },
-  "# This that\n# and the other\n",
-  'comment should work';
+    "# This that\n# and the other\n",
+    'comment should work';
 $sqitch->{verbosity} = 0;
 is capture_stdout { $cmd->comment( 'This ', "that\n", 'and the other' ) },
-  '', 'Should get no comment output for verbosity 0';
+    '', 'Should get no comment output for verbosity 0';
 
 # Emit.
 is capture_stdout { $cmd->emit( 'This ', "that\n", 'and the other' ) },
-  "This that\nand the other\n",
-  'emit should work';
+    "This that\nand the other\n",
+    'emit should work';
 $sqitch->{verbosity} = 0;
 is capture_stdout { $cmd->emit( 'This ', "that\n", 'and the other' ) },
-  "This that\nand the other\n",
-  'emit should work even with verbosity 0';
+    "This that\nand the other\n",
+    'emit should work even with verbosity 0';
 
 # Warn.
 is capture_stderr { $cmd->warn( 'This ', "that\n", 'and the other' ) },
-  "warning: This that\nwarning: and the other\n",
-  'warn should work';
+    "warning: This that\nwarning: and the other\n",
+    'warn should work';
 
 # Fail.
 is capture_stderr {
@@ -393,13 +393,13 @@ is capture_stderr {
     throws_ok { $cmd->help( 'This ', "that\n", "and the other." ) }
     qr/EXITED: 1/;
 }, "sqch: This that\nsqch: and the other. See sqch --help\n",
-  'help should work';
+    'help should work';
 
 is capture_stderr {
     throws_ok { $cmd->help( 'This ', "that\n", "and the other." ) }
     qr/EXITED: 1/;
 }, "sqch: This that\nsqch: and the other. See sqch --help\n",
-  'help should work';
+    'help should work';
 
 # Usage.
 like capture_stderr {
@@ -409,7 +409,7 @@ like capture_stderr {
 like capture_stderr {
     throws_ok { $cmd->usage('Invalid whozit') } qr/EXITED: 2/;
 }, qr/\Qsqitch [<options>] <command> [<command-options>] [<args>]/,
-  'usage should prefer sqitch-$command-usage';
+    'usage should prefer sqitch-$command-usage';
 
 # Bail.
 is capture_stdout {

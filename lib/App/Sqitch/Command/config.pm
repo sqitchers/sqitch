@@ -29,19 +29,19 @@ has action => (
     isa => enum(
         [
             qw(
-              get
-              get-all
-              get-regex
-              set
-              unset
-              list
-              edit
-              add
-              replace-all
-              unset-all
-              rename-section
-              remove-section
-              )
+                get
+                get-all
+                get-regex
+                set
+                unset
+                list
+                edit
+                add
+                replace-all
+                unset-all
+                rename-section
+                remove-section
+                )
         ]
     )
 );
@@ -50,10 +50,10 @@ has context => (
     isa => maybe_type enum(
         [
             qw(
-              local
-              user
-              system
-              )
+                local
+                user
+                system
+                )
         ]
     )
 );
@@ -61,27 +61,27 @@ has type => ( is => 'ro', isa => enum( [qw(int num bool bool-or-int)] ) );
 
 sub options {
     return qw(
-      file|config-file|f=s
-      local
-      user
-      system
+        file|config-file|f=s
+        local
+        user
+        system
 
-      int
-      bool
-      bool-or-int
-      num
+        int
+        bool
+        bool-or-int
+        num
 
-      get
-      get-all
-      get-regex
-      add
-      replace-all
-      unset
-      unset-all
-      rename-section
-      remove-section
-      list|l
-      edit|e
+        get
+        get-all
+        get-regex
+        add
+        replace-all
+        unset
+        unset-all
+        rename-section
+        remove-section
+        list|l
+        edit|e
     );
 }
 
@@ -98,17 +98,17 @@ sub configure {
 
     # Make sure we are performing only one action.
     my @action = grep { $opt->{$_} } qw(
-      get
-      get-all
-      get-regex
-      unset
-      list
-      edit
-      add
-      replace-all
-      unset_all
-      rename-section
-      remove-section
+        get
+        get-all
+        get-regex
+        unset
+        list
+        edit
+        add
+        replace-all
+        unset_all
+        rename-section
+        remove-section
     );
     $class->usage('Only one action at a time.') if @action > 1;
 
@@ -129,7 +129,7 @@ sub execute {
     my $action = $self->action || ( @_ > 1 ? 'set' : 'get' );
     $action =~ s/-/_/g;
     my $meth = $self->can($action)
-      or die 'No method defined for ', $self->action, ' action';
+        or die 'No method defined for ', $self->action, ' action';
 
     return $self->$meth(@_);
 }
@@ -148,7 +148,7 @@ sub get {
     }
     catch {
         $self->fail(qq{More then one value for the key "$key"})
-          if /^\QMultiple values/i;
+            if /^\QMultiple values/i;
         $self->fail($_);
     };
 
@@ -231,7 +231,7 @@ sub replace_all {
 sub _set {
     my ( $self, $key, $value, $rx, @p ) = @_;
     $self->usage('Wrong number of arguments.')
-      if !defined $key || $key eq '' || !defined $value;
+        if !defined $key || $key eq '' || !defined $value;
 
     $self->_touch_dir;
     try {
@@ -246,7 +246,7 @@ sub _set {
     }
     catch {
         $self->fail('Cannot overwrite multiple values with a single value')
-          if /^Multiple occurrences/i;
+            if /^Multiple occurrences/i;
         $self->fail($_);
     };
     return $self;
@@ -275,7 +275,7 @@ sub unset {
     }
     catch {
         $self->fail('Cannot unset key with multiple values')
-          if /^Multiple occurrences/i;
+            if /^Multiple occurrences/i;
         $self->fail($_);
     };
     return $self;
@@ -298,9 +298,9 @@ sub unset_all {
 sub list {
     my $self = shift;
     my $config =
-        $self->context
-      ? $self->_file_config
-      : $self->sqitch->config;
+          $self->context
+        ? $self->_file_config
+        : $self->sqitch->config;
     $self->emit( scalar $config->dump ) if $config;
     return $self;
 }
@@ -339,7 +339,7 @@ sub rename_section {
 sub remove_section {
     my ( $self, $section ) = @_;
     $self->usage('Wrong number of arguments.')
-      unless defined $section && $section ne '';
+        unless defined $section && $section ne '';
     try {
         $self->sqitch->config->remove_section(
             section  => $section,

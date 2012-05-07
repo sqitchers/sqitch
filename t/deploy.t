@@ -12,8 +12,8 @@ require_ok $CLASS or die;
 
 isa_ok $CLASS, 'App::Sqitch::Command';
 can_ok $CLASS, qw(
-  options
-  configure
-  new
-  execute
+    options
+    configure
+    new
+    execute
 );

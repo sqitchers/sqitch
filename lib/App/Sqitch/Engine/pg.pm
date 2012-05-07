@@ -20,8 +20,8 @@ has client => (
     default  => sub {
         my $sqitch = shift->sqitch;
         $sqitch->client
-          || $sqitch->config->get( key => 'core.pg.client' )
-          || 'psql' . ( $^O eq 'Win32' ? '.exe' : '' );
+            || $sqitch->config->get( key => 'core.pg.client' )
+            || 'psql' . ( $^O eq 'Win32' ? '.exe' : '' );
     },
 );
 
@@ -33,7 +33,7 @@ has username => (
     default  => sub {
         my $sqitch = shift->sqitch;
         $sqitch->username
-          || $sqitch->config->get( key => 'core.pg.username' );
+            || $sqitch->config->get( key => 'core.pg.username' );
     },
 );
 
@@ -87,7 +87,7 @@ has sqitch_schema => (
     required => 1,
     default  => sub {
         shift->sqitch->config->get( key => 'core.pg.sqitch_schema' )
-          || 'sqitch';
+            || 'sqitch';
     },
 );
 
@@ -105,7 +105,7 @@ has psql => (
             [ dbname   => $self->db_name ],
             [ host     => $self->host ],
             [ port     => $self->port ],
-          )
+            )
         {
             push @ret, "--$spec->[0]" => $spec->[1] if $spec->[1];
         }
@@ -150,7 +150,7 @@ sub initialize {
     my $self = shift;
     $self->sqitch->bail( 1, 'Sqitch schema "',
         $self->sqitch_schema, '" already exists' )
-      if $self->initialized;
+        if $self->initialized;
 
     my $file = file(__FILE__)->dir->file('pg.sql');
     return $self->_run(

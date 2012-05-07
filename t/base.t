@@ -25,23 +25,23 @@ BEGIN {
 }
 
 can_ok $CLASS, qw(
-  go
-  new
-  plan_file
-  engine
-  _engine
-  client
-  db_name
-  username
-  host
-  port
-  sql_dir
-  deploy_dir
-  revert_dir
-  test_dir
-  extension
-  dry_run
-  verbosity
+    go
+    new
+    plan_file
+    engine
+    _engine
+    client
+    db_name
+    username
+    host
+    port
+    sql_dir
+    deploy_dir
+    revert_dir
+    test_dir
+    extension
+    dry_run
+    verbosity
 );
 
 ##############################################################################
@@ -58,23 +58,23 @@ for my $attr (
     host
     port
     )
-  )
+    )
 {
     is $sqitch->$attr, undef, "$attr should be undef";
 }
 
 is $sqitch->plan_file, file('sqitch.plan'),
-  'Default plan file should be sqitch.plan';
+    'Default plan file should be sqitch.plan';
 is $sqitch->verbosity, 1,     'verbosity should be 1';
 is $sqitch->dry_run,   0,     'dry_run should be 0';
 is $sqitch->extension, 'sql', 'Default extension should be sql';
 is $sqitch->sql_dir, dir('sql'), 'Default sql_dir should be ./sql';
 is $sqitch->deploy_dir, dir(qw(sql deploy)),
-  'Default deploy_dir should be ./sql/deploy';
+    'Default deploy_dir should be ./sql/deploy';
 is $sqitch->revert_dir, dir(qw(sql revert)),
-  'Default revert_dir should be ./sql/revert';
+    'Default revert_dir should be ./sql/revert';
 is $sqitch->test_dir, dir(qw(sql test)),
-  'Default test_dir should be ./sql/test';
+    'Default test_dir should be ./sql/test';
 
 ##############################################################################
 # Test go().
@@ -99,9 +99,9 @@ GO: {
     is $sqitch->extension, 'ddl', 'ddl should be set by config';
     ok my $config = $sqitch->config, 'Get the Sqitch config';
     is $config->get( key => 'core.pg.client' ), '/usr/local/pgsql/bin/psql',
-      'Should have local config overriding user';
+        'Should have local config overriding user';
     is $config->get( key => 'core.pg.host' ), 'localhost',
-      'Should fall back on user config';
+        'Should fall back on user config';
 }
 
 ##############################################################################
@@ -126,57 +126,57 @@ EDITOR: {
     $^O     = 'MSWin32';
     $sqitch = App::Sqitch->new;
     is $sqitch->editor, 'notepad.exe',
-      'editor fall back on notepad on Windows';
+        'editor fall back on notepad on Windows';
 }
 
 ##############################################################################
 # Test message levels. Start with trace.
 $sqitch = $CLASS->new( verbosity => 3 );
 is capture_stdout { $sqitch->trace( 'This ', "that\n", 'and the other' ) },
-  "trace: This that\ntrace: and the other\n",
-  'trace should work';
+    "trace: This that\ntrace: and the other\n",
+    'trace should work';
 $sqitch = $CLASS->new( verbosity => 2 );
 is capture_stdout { $sqitch->trace( 'This ', "that\n", 'and the other' ) },
-  '', 'Should get no trace output for verbosity 2';
+    '', 'Should get no trace output for verbosity 2';
 
 # Debug.
 is capture_stdout { $sqitch->debug( 'This ', "that\n", 'and the other' ) },
-  "debug: This that\ndebug: and the other\n",
-  'debug should work';
+    "debug: This that\ndebug: and the other\n",
+    'debug should work';
 $sqitch = $CLASS->new( verbosity => 1 );
 is capture_stdout { $sqitch->debug( 'This ', "that\n", 'and the other' ) },
-  '', 'Should get no debug output for verbosity 1';
+    '', 'Should get no debug output for verbosity 1';
 
 # Info.
 is capture_stdout { $sqitch->info( 'This ', "that\n", 'and the other' ) },
-  "This that\nand the other\n",
-  'info should work';
+    "This that\nand the other\n",
+    'info should work';
 $sqitch = $CLASS->new( verbosity => 0 );
 is capture_stdout { $sqitch->info( 'This ', "that\n", 'and the other' ) },
-  '', 'Should get no info output for verbosity 0';
+    '', 'Should get no info output for verbosity 0';
 
 # Comment.
 $sqitch = $CLASS->new( verbosity => 1 );
 is capture_stdout { $sqitch->comment( 'This ', "that\n", 'and the other' ) },
-  "# This that\n# and the other\n",
-  'comment should work';
+    "# This that\n# and the other\n",
+    'comment should work';
 $sqitch = $CLASS->new( verbosity => 0 );
 is capture_stdout { $sqitch->comment( 'This ', "that\n", 'and the other' ) },
-  '', 'Should get no comment output for verbosity 0';
+    '', 'Should get no comment output for verbosity 0';
 
 # Emit.
 is capture_stdout { $sqitch->emit( 'This ', "that\n", 'and the other' ) },
-  "This that\nand the other\n",
-  'emit should work';
+    "This that\nand the other\n",
+    'emit should work';
 $sqitch = $CLASS->new( verbosity => 0 );
 is capture_stdout { $sqitch->emit( 'This ', "that\n", 'and the other' ) },
-  "This that\nand the other\n",
-  'emit should work even with verbosity 0';
+    "This that\nand the other\n",
+    'emit should work even with verbosity 0';
 
 # Warn.
 is capture_stderr { $sqitch->warn( 'This ', "that\n", 'and the other' ) },
-  "warning: This that\nwarning: and the other\n",
-  'warn should work';
+    "warning: This that\nwarning: and the other\n",
+    'warn should work';
 
 # Fail.
 is capture_stderr {
@@ -195,13 +195,13 @@ is capture_stderr {
     throws_ok { $sqitch->help( 'This ', "that\n", "and the other." ) }
     qr/EXITED: 1/;
 }, "sqch: This that\nsqch: and the other. See sqch --help\n",
-  'help should work';
+    'help should work';
 
 is capture_stderr {
     throws_ok { $sqitch->help( 'This ', "that\n", "and the other." ) }
     qr/EXITED: 1/;
 }, "sqch: This that\nsqch: and the other. See sqch --help\n",
-  'help should work';
+    'help should work';
 
 # Bail.
 is capture_stdout {
@@ -231,7 +231,7 @@ $mock->mock( bail => sub { shift; @bail = @_; die "BAILED: @_" } );
 can_ok $CLASS, 'run';
 my ( $stdout, $stderr ) = capture {
     ok $sqitch->run( $^X, 'echo.pl', qw(hi there) ),
-      'Should get success back from run echo';
+        'Should get success back from run echo';
 };
 
 is $stdout, "hi there\n", 'The echo script should have run';
@@ -251,15 +251,15 @@ like $stderr, qr/OMGWTF/, 'The die script should have its STDERR unmolested';
 # Test capture().
 can_ok $CLASS, 'capture';
 is $sqitch->capture( $^X, 'echo.pl', qw(hi there) ),
-  "hi there\n", 'The echo script output should have been returned';
+    "hi there\n", 'The echo script output should have been returned';
 like capture_stderr {
     throws_ok { $sqitch->capture( $^X, 'die.pl', qw(hi there) ) }
     qr/unexpectedly returned/,
-      'Should get an error if the command errors out';
+        'Should get an error if the command errors out';
 }, qr/OMGWTF/m, 'The die script STDERR should have passed through';
 
 ##############################################################################
 # Test probe().
 can_ok $CLASS, 'probe';
 is $sqitch->probe( $^X, 'echo.pl', qw(hi there), "\nyo" ),
-  "hi there ", 'Should have just chomped first line of output';
+    "hi there ", 'Should have just chomped first line of output';

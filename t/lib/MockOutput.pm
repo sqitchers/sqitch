@@ -9,7 +9,7 @@ use Test::MockModule;
 our $MOCK = Test::MockModule->new('App::Sqitch');
 
 my @mocked =
-  qw(trace debug info comment emit warn unfound fail help usage bail);
+    qw(trace debug info comment emit warn unfound fail help usage bail);
 
 my %CAPTURED;
 

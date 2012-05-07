@@ -17,21 +17,21 @@ has sqitch => (
     required => 1,
     handles  => [
         qw(
-          run
-          capture
-          probe
-          verbosity
-          trace
-          debug
-          info
-          comment
-          emit
-          warn
-          unfound
-          fail
-          help
-          bail
-          )
+            run
+            capture
+            probe
+            verbosity
+            trace
+            debug
+            info
+            comment
+            emit
+            warn
+            unfound
+            fail
+            help
+            bail
+            )
     ],
 );
 
@@ -67,7 +67,7 @@ sub load {
 
     # Merge the command-line options and configuration parameters
     my $params =
-      $pkg->configure( $p->{config}, $pkg->_parse_opts( $p->{args} ), );
+        $pkg->configure( $p->{config}, $pkg->_parse_opts( $p->{args} ), );
 
     # Instantiate and return the command.
     $params->{sqitch} = $p->{sqitch};
@@ -99,7 +99,7 @@ sub _parse_opts {
     my %opts;
     Getopt::Long::Configure(qw(bundling no_pass_through));
     Getopt::Long::GetOptionsFromArray( $args, \%opts, $class->options )
-      or $class->usage;
+        or $class->usage;
 
     return \%opts;
 }
@@ -116,14 +116,16 @@ sub _pod2usage {
     require Pod::Usage;
     my $bn = _bn;
     $params{'-input'} ||=
-      Pod::Find::pod_where( { '-inc' => 1, '-script' => 1 }, "$bn-$command" )
-      || Pod::Find::pod_where( { '-inc' => 1, '-script' => 1 },
+        Pod::Find::pod_where( { '-inc' => 1, '-script' => 1 },
+        "$bn-$command" )
+        || Pod::Find::pod_where( { '-inc' => 1, '-script' => 1 },
         "sqitch-$command" )
-      || Pod::Find::pod_where( { '-inc' => 1, '-script' => 1 }, $bn )
-      || Pod::Find::pod_where( { '-inc' => 1, '-script' => 1 }, 'sqitch' )
-      || Pod::Find::pod_where( { '-inc' => 1, '-script' => 1 },
+        || Pod::Find::pod_where( { '-inc' => 1, '-script' => 1 }, $bn )
+        || Pod::Find::pod_where( { '-inc' => 1, '-script' => 1 }, 'sqitch' )
+        || Pod::Find::pod_where( { '-inc' => 1, '-script' => 1 },
         ref $self || $self )
-      || Pod::Find::pod_where( { '-inc' => 1, '-script' => 1 }, __PACKAGE__ );
+        || Pod::Find::pod_where( { '-inc' => 1, '-script' => 1 },
+        __PACKAGE__ );
     Pod::Usage::pod2usage(
         '-verbose'  => 99,
         '-sections' => '(?i:(Usage|Synopsis|Options))',
@@ -136,7 +138,7 @@ sub execute {
     my $self = shift;
     croak( 'The execute() method must be called from a subclass of ',
         __PACKAGE__ )
-      if ref $self eq __PACKAGE__;
+        if ref $self eq __PACKAGE__;
 
     croak( 'The execute() method has not been overridden in ', ref $self );
 }

@@ -45,7 +45,8 @@ has template_directory => (
     lazy    => 1,
     default => sub {
         dir
-          shift->sqitch->config->get( key => "add-step.template_directory" );
+            shift->sqitch->config->get(
+            key => "add-step.template_directory" );
     }
 );
 
@@ -78,7 +79,7 @@ sub _find {
             $self->template_directory,
             $config->user_dir->subdir('templates'),
             $config->system_dir->subdir('templates'),
-          )
+            )
         {
             next unless $dir;
             my $tmpl = $dir->file("$script.tmpl");
@@ -90,16 +91,16 @@ sub _find {
 
 sub options {
     return qw(
-      requires|r=s@
-      conflicts|c=s@
-      set|s=s%
-      template-directory=s
-      deploy-template=s
-      revert-template=s
-      test-template=s
-      deploy!
-      revert!
-      test!
+        requires|r=s@
+        conflicts|c=s@
+        set|s=s%
+        template-directory=s
+        deploy-template=s
+        revert-template=s
+        test-template=s
+        deploy!
+        revert!
+        test!
     );
 }
 
@@ -112,7 +113,7 @@ sub configure {
     );
 
     $params{template_directory} = dir $opt->{template_directory}
-      if $opt->{template_directory};
+        if $opt->{template_directory};
 
     for my $attr (qw(deploy revert test)) {
         $params{"with_$attr"} = $opt->{$attr} if exists $opt->{$attr};
@@ -140,17 +141,17 @@ sub execute {
     # Avoid if any of the scripts already exist.
     my $fn = "$name." . $sqitch->extension;
     $self->fail(qq{Step "$name" already exists})
-      if grep { -e $_->file($fn) }
-          ( $sqitch->deploy_dir, $sqitch->revert_dir, $sqitch->test_dir, );
+        if grep { -e $_->file($fn) }
+            ( $sqitch->deploy_dir, $sqitch->revert_dir, $sqitch->test_dir, );
 
     $self->_add( $name, $self->deploy_template, $self->sqitch->deploy_dir, )
-      if $self->with_deploy;
+        if $self->with_deploy;
 
     $self->_add( $name, $self->revert_template, $self->sqitch->revert_dir, )
-      if $self->with_revert;
+        if $self->with_revert;
 
     $self->_add( $name, $self->test_template, $self->sqitch->test_dir, )
-      if $self->with_test;
+        if $self->with_test;
 
     return $self;
 }
@@ -187,7 +188,7 @@ sub _add {
 sub _load {
     my ( $self, $tmpl ) = @_;
     open my $fh, "<:encoding(UTF-8)", $tmpl
-      or $self->fail("cannot open $tmpl: $!");
+        or $self->fail("cannot open $tmpl: $!");
     local $/;
     return \<$fh>;
 }

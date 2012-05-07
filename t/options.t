@@ -21,38 +21,38 @@ BEGIN {
 can_ok $CLASS, '_split_args';
 
 is_deeply [ $CLASS->_split_args('help') ], [ [], 'help', [] ],
-  'Split on command-only';
+    'Split on command-only';
 
 is_deeply [ $CLASS->_split_args( '--help', 'help' ) ],
-  [ ['--help'], 'help', [], ], 'Split on core option plus command';
+    [ ['--help'], 'help', [], ], 'Split on core option plus command';
 
 is_deeply [ $CLASS->_split_args( '--help', 'help', '--foo' ) ],
-  [ ['--help'], 'help', ['--foo'], ],
-  'Split on core option plus command plus command option';
+    [ ['--help'], 'help', ['--foo'], ],
+    'Split on core option plus command plus command option';
 
 is_deeply [ $CLASS->_split_args( '--plan-file', 'foo', 'help', '--foo' ) ],
-  [ [ '--plan-file', 'foo' ], 'help', ['--foo'], ],
-  'Option with arg should work';
+    [ [ '--plan-file', 'foo' ], 'help', ['--foo'], ],
+    'Option with arg should work';
 
 is_deeply [
     $CLASS->_split_args(
         qw(
-          --plan-file
-          foo
-          help
-          --foo
-          )
+            --plan-file
+            foo
+            help
+            --foo
+            )
     )
-  ],
-  [
+    ],
+    [
     [ '--plan-file', 'foo' ],
     'help',
     ['--foo'],
-  ],
-  'Option with arg should work';
+    ],
+    'Option with arg should work';
 
 is_deeply [ $CLASS->_split_args('--help') ], [ ['--help'], undef, [] ],
-  'Should handle no command';
+    'Should handle no command';
 
 # Make sure an invalid option is caught.
 INVALID: {
@@ -68,7 +68,7 @@ INVALID: {
 can_ok $CLASS, '_parse_core_opts';
 
 is_deeply $CLASS->_parse_core_opts( [] ), {},
-  'Should have default config for no options';
+    'Should have default config for no options';
 
 # Make sure we can get help.
 HELP: {
@@ -79,7 +79,7 @@ HELP: {
     is_deeply \@args, [ $CLASS, '-exitval', 0 ], 'Should have been helped';
     ok $CLASS->_parse_core_opts( ['--man'] ), 'Ask for man';
     is_deeply \@args, [ $CLASS, '-exitval', 0, '-verbose', 2 ],
-      'Should have been manned';
+        'Should have been manned';
 }
 
 ##############################################################################
@@ -102,8 +102,8 @@ is_deeply $CLASS->_parse_core_opts(
         '--verbose', '--verbose',
         '--quiet'
     ]
-  ),
-  {
+    ),
+    {
     'plan_file'  => 'plan.txt',
     'engine'     => 'pg',
     'client'     => 'psql',
@@ -119,8 +119,8 @@ is_deeply $CLASS->_parse_core_opts(
     'dry_run'    => 1,
     verbosity    => 2,
     quiet        => 1,
-  },
-  'Should parse lots of options';
+    },
+    'Should parse lots of options';
 
 ##############################################################################
 # Try short options.
@@ -129,12 +129,12 @@ is_deeply $CLASS->_parse_core_opts(
         '-d' => 'mydb',
         '-u' => 'fred',
     ]
-  ),
-  {
+    ),
+    {
     db_name  => 'mydb',
     username => 'fred',
-  },
-  'Short options should work';
+    },
+    'Short options should work';
 
 USAGE: {
     my $mock = Test::MockModule->new('Pod::Usage');
@@ -142,11 +142,11 @@ USAGE: {
     $mock->mock( pod2usage => sub { @args = @_ } );
     ok $CLASS->_pod2usage('hello'), 'Run _pod2usage';
     is_deeply \@args,
-      [
+        [
         '-verbose'  => 99,
         '-sections' => '(?i:(Synopsis|Usage|Options))',
         '-exitval'  => 2,
         'hello'
-      ],
-      'Proper args should have been passed to Pod::Usage';
+        ],
+        'Proper args should have been passed to Pod::Usage';
 }

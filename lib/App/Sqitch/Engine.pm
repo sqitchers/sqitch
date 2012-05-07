@@ -37,7 +37,7 @@ sub config_vars { return }
 sub initialized {
     require Carp;
     Carp::confess( ref $_[0]
-          || $_[0] . ' has not implemented initialized()' );
+            || $_[0] . ' has not implemented initialized()' );
 }
 
 sub initialize {
