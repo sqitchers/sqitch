@@ -38,16 +38,14 @@ has action => (
                 unset-all
                 rename-section
                 remove-section
-                )
-        ] ) );
+                ) ] ) );
 has context => (
     is  => 'ro',
     isa => maybe_type enum( [ qw(
                 local
                 user
                 system
-                )
-        ] ) );
+                ) ] ) );
 has type => ( is => 'ro', isa => enum( [qw(int num bool bool-or-int)] ) );
 
 sub options {

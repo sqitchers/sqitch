@@ -193,8 +193,7 @@ my $args = [ qw(
         --no-icky-foo
         --feathers down
         whatever
-        )
-];
+        ) ];
 is_deeply $cmd->_parse_opts($args),
     {
     'foo'      => 1,

@@ -982,8 +982,7 @@ ok $cmd->execute('bundle.tags_only'), 'Get bundle.tags_only as bool';
 is_deeply \@emit,
     [ [
         'bundle.tags_only='
-            . ( $Config::GitLike::VERSION > 1.08 ? 'true' : 1 )
-    ]
+            . ( $Config::GitLike::VERSION > 1.08 ? 'true' : 1 ) ]
     ],
     'Should have emitted bundle.tags_only as a bool';
 @emit = ();
@@ -1011,8 +1010,7 @@ ok $cmd->execute('bundle.tags_only'), 'Get bundle.tags_only as bool-or-int';
 is_deeply \@emit,
     [ [
         'bundle.tags_only='
-            . ( $Config::GitLike::VERSION > 1.08 ? 'true' : 1 )
-    ]
+            . ( $Config::GitLike::VERSION > 1.08 ? 'true' : 1 ) ]
     ],
     'Should have emitted bundle.tags_only as a bool';
 @emit = ();
