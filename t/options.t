@@ -82,8 +82,7 @@ HELP: {
 
 ##############################################################################
 # Try lots of options.
-is_deeply $CLASS->_parse_core_opts(
-    [
+is_deeply $CLASS->_parse_core_opts( [
         '--plan-file'  => 'plan.txt',
         '--engine'     => 'pg',
         '--client'     => 'psql',
@@ -122,8 +121,7 @@ is_deeply $CLASS->_parse_core_opts(
 
 ##############################################################################
 # Try short options.
-is_deeply $CLASS->_parse_core_opts(
-    [
+is_deeply $CLASS->_parse_core_opts( [
         '-d' => 'mydb',
         '-u' => 'fred',
     ]

@@ -64,8 +64,7 @@ $file = file qw(t plans steps-only.plan);
 throws_ok { $plan->_parse($file) } qr/FAIL:/,
     'Should die on plan with steps beore tags';
 is_deeply +MockOutput->get_fail,
-    [
-    [
+    [ [
         "Syntax error in $file at line ",
         5,
         ': Step "hey" not associated with a tag',
@@ -86,8 +85,7 @@ $file = file qw(t plans reserved-tag.plan);
 throws_ok { $plan->_parse($file) } qr/FAIL:/,
     'Should die on plan with reserved tag';
 is_deeply +MockOutput->get_fail,
-    [
-    [
+    [ [
         "Syntax error in $file at line ",
         4,
         ': "HEAD+" is a reserved tag name',
@@ -100,8 +98,7 @@ $file = file qw(t plans dupe-tag.plan);
 throws_ok { $plan->_parse($file) } qr/FAIL:/,
     'Should die on plan with dupe tag';
 is_deeply +MockOutput->get_fail,
-    [
-    [
+    [ [
         "Syntax error in $file at line ",
         9, ': Tag "bar" duplicates earlier declaration on line 4',
     ]
@@ -113,8 +110,7 @@ $file = file qw(t plans dupe-step.plan);
 throws_ok { $plan->_parse($file) } qr/FAIL:/,
     'Should die on plan with dupe step';
 is_deeply +MockOutput->get_fail,
-    [
-    [
+    [ [
         "Syntax error in $file at line ",
         8, ': Step "greets" duplicates earlier declaration on line 6'
     ]
@@ -126,8 +122,7 @@ $file = file qw(t plans dupe-step-diff-tag.plan);
 throws_ok { $plan->_parse($file) } qr/FAIL:/,
     'Should die on plan with dupe step across tags';
 is_deeply +MockOutput->get_fail,
-    [
-    [
+    [ [
         "Syntax error in $file at line ",
         9, ': Step "whatever" duplicates earlier declaration on line 2'
     ]

@@ -507,8 +507,7 @@ ok $cmd = App::Sqitch::Command::config->new( {
     ),
     'Create config list command';
 ok $cmd->execute, 'Execute the list action';
-is_deeply \@emit, [
-    [
+is_deeply \@emit, [ [
         "bundle.dest_dir=_build/sql
 bundle.from=gamma
 bundle.tags_only=true
@@ -547,8 +546,7 @@ CONTEXT: {
         ),
         'Create system config list command';
     ok $cmd->execute, 'List the system config';
-    is_deeply \@emit, [
-        [
+    is_deeply \@emit, [ [
             "bundle.dest_dir=_build/sql
 bundle.from=gamma
 bundle.tags_only=true
@@ -576,8 +574,7 @@ revert.to=gamma
         ),
         'Create user config list command';
     ok $cmd->execute, 'List the user config';
-    is_deeply \@emit, [
-        [
+    is_deeply \@emit, [ [
             "core.mysql.client=/opt/local/mysql/bin/mysql
 core.mysql.sqitch_prefix=meta
 core.mysql.username=root
@@ -603,8 +600,7 @@ core.sqlite.sqitch_prefix=meta
         ),
         'Create local config list command';
     ok $cmd->execute, 'List the local config';
-    is_deeply \@emit, [
-        [
+    is_deeply \@emit, [ [
             "core.engine=pg
 core.pg.db_name=widgets
 "
@@ -876,8 +872,7 @@ ok $cmd = App::Sqitch::Command::config->new( {
     ),
     'Create system config get_regex command';
 ok $cmd->execute('core\\..+'), 'Call get_regex on core\\..+';
-is_deeply \@emit, [
-    [
+is_deeply \@emit, [ [
         q{core.engine=funky
 core.extension=ddl
 core.foo=[bar, baz]
@@ -891,8 +886,7 @@ core.sql_dir=migrations}
 @emit = ();
 
 ok $cmd->execute('core\\.pg\\..+'), 'Call get_regex on core\\.pg\\..+';
-is_deeply \@emit, [
-    [
+is_deeply \@emit, [ [
         q{core.pg.client=/usr/local/pgsql/bin/psql
 core.pg.user=theory
 core.pg.username=theory}
@@ -903,8 +897,7 @@ core.pg.username=theory}
 
 ok $cmd->execute( 'core\\.pg\\..+', 'theory$' ),
     'Call get_regex on core\\.pg\\..+ and value regex';
-is_deeply \@emit, [
-    [
+is_deeply \@emit, [ [
         q{core.pg.user=theory
 core.pg.username=theory}
     ]
@@ -987,8 +980,7 @@ throws_ok { $cmd->execute('revert.revision') } qr/FAIL/,
 
 ok $cmd->execute('bundle.tags_only'), 'Get bundle.tags_only as bool';
 is_deeply \@emit,
-    [
-    [
+    [ [
         'bundle.tags_only='
             . ( $Config::GitLike::VERSION > 1.08 ? 'true' : 1 )
     ]
@@ -1017,8 +1009,7 @@ is_deeply \@emit, [ ['revert.revision=1'] ],
 
 ok $cmd->execute('bundle.tags_only'), 'Get bundle.tags_only as bool-or-int';
 is_deeply \@emit,
-    [
-    [
+    [ [
         'bundle.tags_only='
             . ( $Config::GitLike::VERSION > 1.08 ? 'true' : 1 )
     ]

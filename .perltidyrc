@@ -71,6 +71,7 @@
 --stack-closing-paren
 --stack-opening-hash-brace
 --stack-opening-paren
+--stack-opening-square-bracket
 --static-block-comments
 --nostatic-side-comments
 --notabs
