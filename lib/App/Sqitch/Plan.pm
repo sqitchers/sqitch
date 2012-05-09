@@ -1,11 +1,9 @@
 package App::Sqitch::Plan;
 
 use v5.10.1;
-use strict;
-use warnings;
 use utf8;
-use IO::File;
 use App::Sqitch::Plan::Tag;
+use App::Sqitch::Plan::Step;
 use Path::Class;
 use namespace::autoclean;
 use Moose;
@@ -53,20 +51,18 @@ sub load {
     my $self = shift;
     my $file = $self->sqitch->plan_file;
     my $plan = -f $file ? $self->_parse($file) : [];
-    push @{$plan} => $self->load_untracked($plan) if $self->with_untracked;
+    push @{ $plan } => $self->load_untracked($plan) if $self->with_untracked;
     return $plan;
 }
 
 sub _parse {
     my ( $self, $file ) = @_;
-    my $fh = IO::File->new(
-        $file, '<:encoding(UTF-8)'
-    )
+    my $fh = $file->open('<:encoding(UTF-8)')
         or $self->sqitch->fail( "Cannot open $file: $!" );
 
     my $tags = $self->_tags;
     my @plan;          # List of tags to return
-    my @curr_tags;     # List of tags in currently-parsing tag section.
+    my $curr_tag;      # Tag object for currently-parsing tag section.
     my @curr_steps;    # List of steps in currently-parsing tag section.
     my %seen_tags;     # Maps tags to line numbers.
     my %prev_steps;    # Maps steps from previous sections to line numbers.
@@ -84,20 +80,20 @@ sub _parse {
 
         # Handle tag headers
         if ( my ($names) = $line =~ /^\s*\[\s*(.+?)\s*\]\s*$/ ) {
-            if (@curr_tags) {
-                push @plan => App::Sqitch::Plan::Tag->new(
-                    names => [@curr_tags],
-                    steps => $self->_sort_steps(
-                        \@curr_tags, \%prev_steps, @curr_steps
-                    ),
+            if ($curr_tag) {
+                push @{ $curr_tag->_steps } => $self->_sort_steps(
+                    $curr_tag, \%prev_steps, @curr_steps
                 );
-                $tags->{$_} = $#plan for @curr_tags;
+                push @plan => $curr_tag;
+
+                $tags->{$_} = $#plan for $curr_tag->names;
+
                 %prev_steps = ( %prev_steps, %tag_steps );
                 @curr_steps = ();
                 %tag_steps  = ();
             }
 
-            @curr_tags = split /\s+/ => $names;
+            my @curr_tags = split /\s+/ => $names;
 
             for my $t (@curr_tags) {
 
@@ -120,6 +116,12 @@ sub _parse {
                 $seen_tags{$t} = $fh->input_line_number;
             }
 
+            $curr_tag = App::Sqitch::Plan::Tag->new(
+                names  => \@curr_tags,
+                plan   => $self,
+                sqitch => $self->sqitch,
+            );
+
             next LINE;
         }
 
@@ -131,7 +133,7 @@ sub _parse {
                 "Syntax error in $file at line ",
                 $fh->input_line_number,
                 qq{: Step "$step" not associated with a tag}
-            ) unless @curr_tags;
+            ) unless $curr_tag;
 
             # Fail on duplicate step.
             if ( my $line = $tag_steps{$step} || $prev_steps{$step} ) {
@@ -145,24 +147,26 @@ sub _parse {
 
             # We're good.
             $tag_steps{$step} = $fh->input_line_number;
-            push @curr_steps => $step;
+            push @curr_steps => App::Sqitch::Plan::Step->new(
+                name => $step,
+                tag  => $curr_tag,
+            );
+
             next LINE;
         }
 
-        $self->sqitch->fail( "Syntax error in $file at line ",
-            $fh->input_line_number, qq{: "$line"} );
+        $self->sqitch->fail(
+            "Syntax error in $file at line ",
+            $fh->input_line_number, qq{: "$line"}
+        );
     }
 
-    if (@curr_tags) {
-        push @plan => App::Sqitch::Plan::Tag->new(
-            names => \@curr_tags,
-            steps => $self->_sort_steps(
-                \@curr_tags,
-                \%prev_steps,
-                @curr_steps
-            ),
+    if ($curr_tag) {
+        push @{ $curr_tag->_steps } => $self->_sort_steps(
+            $curr_tag, \%prev_steps, @curr_steps
         );
-        $tags->{$_} = $#plan for @curr_tags;
+        push @plan => $curr_tag;
+        $tags->{$_} = $#plan for $curr_tag->names;
     }
 
     return \@plan;
@@ -172,7 +176,7 @@ sub load_untracked {
     my ( $self, $plan ) = @_;
     my $sqitch = $self->sqitch;
 
-    my %steps = map { map { $_ => 1 } @{ $_->steps } } @{$plan};
+    my %steps = map { map { $_->name => 1 } $_->steps } @{ $plan };
     my $ext   = $sqitch->extension;
     my $dir   = $sqitch->deploy_dir;
     my $skip  = scalar $dir->dir_list;
@@ -231,84 +235,65 @@ sub load_untracked {
     # Find the untracked steps.
     $rule->in( $sqitch->deploy_dir ) or return;
 
-    return App::Sqitch::Plan::Tag->new(
+    my $tag = App::Sqitch::Plan::Tag->new(
         names => ['HEAD+'],
-        steps => \@steps,
+        plan  => $self,
     );
+    push @{ $tag->_steps } => map { App::Sqitch::Plan::Step->new(
+        name => $_,
+        tag  => $tag,
+    ) } @steps;
 
-    return $self;
-}
-
-sub _parse_dependencies {
-    my ( $self, $tag_names, $step ) = @_;
-    my $sqitch = $self->sqitch;
-    my $fh     = $self->open_script(
-        step => $step,
-        tags => $tag_names,
-        dir  => $sqitch->deploy_dir,
-    );
-
-    my $comment = qr{#+|--+|/[*]+|;+};
-    my %deps;
-    while ( my $line = $fh->getline ) {
-        chomp $line;
-        last if $line =~ /\A\s*$/;         # Blank line, no more headers.
-        last if $line !~ /\A\s*$comment/;  # Must be a comment line.
-        my ( $label, $value ) =
-            $line =~ /$comment\s*:(requires|conflicts):\s*(.+)/;
-        push @{ $deps{$label} ||= [] } => split /\s+/ => $value
-            if $label && $value;
-    }
-    return \%deps;
+    return $tag;
 }
 
 sub _sort_steps {
     my ( $self, $tag_names, $seen ) = ( shift, shift, shift );
 
+    my %obj;             # maps step names to objects.
     my %pairs;           # all pairs ($l, $r)
     my %npred;           # number of predecessors
     my %succ;            # list of successors
     for my $step (@_) {
-        my $deps = $self->_parse_dependencies( $tag_names, $step );
 
         # Stolen from http://cpansearch.perl.org/src/CWEST/ppt-0.14/bin/tsort.
-        my $p = $pairs{$step} = {};
-        $npred{$step} += 0;
+        my $name = $step->name;
+        $obj{$name} = $step;
+        my $p = $pairs{$name} = {};
+        $npred{$name} += 0;
 
         # XXX Ignoring conflicts for now.
-        for my $dep ( @{ $deps->{requires} || [] } ) {
+        for my $dep ( $step->requires ) {
 
             # Skip it if it's a step from an earlier tag.
             next if exists $seen->{$dep};
             $p->{$dep}++;
             $npred{$dep}++;
-            push @{ $succ{$step} } => $dep;
+            push @{ $succ{$name} } => $dep;
         }
     }
 
     # Stolen from http://cpansearch.perl.org/src/CWEST/ppt-0.14/bin/tsort.
     # Create a list of nodes without predecessors
-    my @list = grep { !$npred{$_} } @_;
+    my @list = grep { !$npred{$_->name} } @_;
 
     my @ret;
     while (@list) {
-        my $item = pop @list;
-        unshift @ret => $item;
-        foreach my $child ( @{ $succ{$item} } ) {
+        my $step = pop @list;
+        unshift @ret => $step;
+        foreach my $child ( @{ $succ{$step->name} } ) {
             unless ( $pairs{$child} ) {
                 my $sqitch = $self->sqitch;
-                my $file = $sqitch->deploy_dir->file(
-                    "$item." . $sqitch->extension
-                );
                 $self->sqitch->fail(
-                    qq{Unknown step "$child" required in $file}
+                    qq{Unknown step "$child" required in },
+                    $step->deploy_file,
                 );
             }
-            push @list, $child unless --$npred{$child};
+            push @list, $obj{$child} unless --$npred{$child};
         }
     }
 
-    if ( my @cycles = grep { $npred{$_} } @_ ) {
+    if ( my @cycles = map { $_->name } grep { $npred{$_->name} } @_ ) {
         my $last = pop @cycles;
         $self->sqitch->fail(
             'Dependency cycle detected beween steps "',
@@ -320,10 +305,8 @@ sub _sort_steps {
 }
 
 sub open_script {
-    my ( $self, %p ) = @_;
-    my $sqitch = $self->sqitch;
-    my $file   = $p{dir}->file( "$p{step}." . $sqitch->extension );
-    return $file->open('<:encoding(UTF-8)') or $sqitch->fail(
+    my ( $self, $file ) = @_;
+    return $file->open('<:encoding(UTF-8)') or $self->sqitch->fail(
         "Cannot open $file: $!"
     );
 }
@@ -376,7 +359,7 @@ sub write_to {
 
     # Make sure we have a valid plan for writing.
     my @tags = $self->all;
-    if ( @tags && grep { $_ eq 'HEAD+' } @{ $tags[-1]->names } ) {
+    if ( @tags && grep { $_ eq 'HEAD+' } $tags[-1]->names ) {
         $self->sqitch->fail('Cannot write plan with reserved tag "HEAD+"');
     }
 
@@ -387,8 +370,8 @@ sub write_to {
     $fh->print( '# Generated by Sqitch v', App::Sqitch->VERSION, ".\n#\n\n" );
 
     for my $tag (@tags) {
-        $fh->say( '[', join( ' ', @{ $tag->names } ), ']' );
-        $fh->say($_) for @{ $tag->steps };
+        $fh->say( '[', join( ' ', $tag->names ), ']' );
+        $fh->say($_->name) for $tag->steps;
         $fh->say;
     }
 

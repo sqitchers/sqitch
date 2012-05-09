@@ -1,23 +1,33 @@
 package App::Sqitch::Plan::Tag;
 
 use v5.10.1;
-use strict;
-use warnings;
 use utf8;
 use namespace::autoclean;
 use Moose;
-use Moose::Meta::TypeConstraint::Parameterizable;
+use Moose::Meta::Attribute::Native;
 
-has names => (
+has _names => (
     is       => 'ro',
     isa      => 'ArrayRef[Str]',
+    traits   => ['Array'],
+    init_arg => 'names',
+    handles  => { names => 'elements' },
+);
+
+has plan => (
+    is       => 'ro',
+    isa      => 'App::Sqitch::Plan',
+    weak_ref => 1,
     required => 1,
 );
 
-has steps => (
+has _steps => (
     is       => 'ro',
-    isa      => 'ArrayRef[Str]',
+    isa      => 'ArrayRef[App::Sqitch::Plan::Step]',
+    traits   => ['Array'],
     required => 1,
+    default  => sub { [] },
+    handles  => { steps => 'elements' },
 );
 
 __PACKAGE__->meta->make_immutable;
@@ -31,16 +41,20 @@ App::Sqitch::Plan::Tag - Sqitch deployment plan tag
 
 =head1 Synopsis
 
-  my $plan = App::Sqitch::Plan::Tag->new(
-      names => \@tag_names,
-      steps => \@steps,
-  );
+  my $plan = App::Sqitch::Plan->new( file => $file );
+  while (my $tag = $plan->next) {
+      say "Deploy ", join ' ', $tag->names;
+      say "Steps: ", join ' ', map { $_->name } $tag->steps;
+  }
 
 =head1 Description
 
 A App::Sqitch::Plan::Tag represents a tagged list of deployment steps in a
 Sqitch plan. A tag may have one or more names (as multiple tags can represent
 a single point in time in the plan), and any number of steps.
+
+These objects are created by L<App::Sqitch::Plan> classes and should not
+otherwise be created directly.
 
 =head1 Interface
 
@@ -56,15 +70,22 @@ Instantiates and returns a App::Sqitch::Plan::Tag object.
 
 =head3 C<names>
 
-  my $names = $plan->names;
+  my $names = $tag->names;
 
-Returns an array reference of the names of the tag.
+Returns a list of the names of the tag.
 
-=head3 C<names>
+=head3 C<plan>
+
+  my $plan = $tag->plan;
+
+Returns the plan object with which the tag object is associated.
+
+=head3 C<steps>
 
   my $steps = $plan->steps;
 
-Returns an array reference of deployment steps.
+Returns a list of the deployment steps associated with the tag, in the order
+in which they should be deployed.
 
 =head1 See Also
 

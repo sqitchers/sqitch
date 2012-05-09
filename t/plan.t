@@ -4,14 +4,14 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 109;
+use Test::More tests => 105;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Path::Class;
 use Test::Exception;
 use Test::File;
 use Test::File::Contents;
-use Test::NoWarnings;
+#use Test::NoWarnings;
 use File::Path qw(make_path remove_tree);
 use lib 't/lib';
 use MockOutput;
@@ -35,12 +35,19 @@ my $sqitch = App::Sqitch->new;
 isa_ok my $plan = App::Sqitch::Plan->new(sqitch => $sqitch), $CLASS;
 
 sub tag {
-    App::Sqitch::Plan::Tag->new(names => $_[0], steps => $_[1])
+    my $tag = App::Sqitch::Plan::Tag->new(
+        plan  => $plan,
+        names => $_[0],
+    );
+    push @{ $tag->_steps } => map {
+        App::Sqitch::Plan::Step->new(name => $_, tag => $tag)
+    } @{ $_[1] };
+    return $tag;
 }
 
 my $mocker = Test::MockModule->new($CLASS);
 # Do no sorting for now.
-$mocker->mock(_parse_dependencies => {});
+$mocker->mock(_sort_steps => sub { shift, shift, shift; @_ });
 
 ##############################################################################
 # Test parsing.
@@ -147,11 +154,11 @@ can_ok $plan, qw(
 is $plan->position, -1, 'Position should start at -1';
 is $plan->current, undef, 'Current should be undef';
 ok my $tag = $plan->next, 'Get next tag';
-is $tag->names->[0], 'foo', 'Tag should be the first tag';
+is [$tag->names]->[0], 'foo', 'Tag should be the first tag';
 is $plan->position, 0, 'Position should be at 0';
 is $plan->current, $tag, 'Current should be current';
 ok my $next = $plan->peek, 'Peek to next tag';
-is $next->names->[0], 'bar', 'Peeked tag should be second tag';
+is [$next->names]->[0], 'bar', 'Peeked tag should be second tag';
 is $plan->current, $tag, 'Current should still be current';
 is $plan->peek, $next, 'Peek should still be next';
 is $plan->next, $next, 'Next should be the second tag';
@@ -190,8 +197,8 @@ is_deeply [$plan->all], [$tag, $next], 'All should return all tags';
 my @e = ($tag, $next);
 ok $plan->reset, 'Reset the plan again';
 $plan->do(sub {
-    is shift, $e[0], 'Tag ' . $e[0]->names->[0] . ' should be passed to do sub';
-    is $_, $e[0], 'Tag ' . $e[0]->names->[0] . ' should be the topic in do sub';
+    is shift, $e[0], 'Tag ' . [$e[0]->names]->[0] . ' should be passed to do sub';
+    is $_, $e[0], 'Tag ' . [$e[0]->names]->[0] . ' should be the topic in do sub';
     shift @e;
 });
 
@@ -292,84 +299,68 @@ can_ok $CLASS, 'open_script';
 my $step_file = file qw(sql deploy bar.sql);
 my $fh = $step_file->open('>') or die "Cannot open $step_file: $!\n";
 $fh->say('-- This is a comment');
-$fh->say('# And so is this');
-$fh->say('; and this, wee!');
-$fh->say('/* blah blah blah */');
-$fh->say('-- :requires: foo');
-$fh->say('-- :requires: foo');
-$fh->say('-- :requires:blah blah w00t');
-$fh->say('-- :conflicts: yak');
-$fh->say('-- :conflicts:this that');
 $fh->close;
-ok $fh = $plan->open_script(
-    step => 'bar',
-    dir  => $sqitch->deploy_dir
-), 'Open bar.sql';
+ok $fh = $plan->open_script($step_file), 'Open bar.sql';
 is $fh->getline, "-- This is a comment\n", 'It should be the right file';
 $fh->close;
 
-ok $fh = $plan->open_script(
-    step => 'baz',
-    dir  => $sqitch->deploy_dir
-), 'Open baz.sql';
+ok $fh = $plan->open_script(file qw(sql deploy baz.sql)), 'Open baz.sql';
 is $fh->getline, undef, 'It should be empty';
 
 ##############################################################################
-# Test _parse_dependencies.
-$mocker->unmock('_parse_dependencies');
-can_ok $CLASS, '_parse_dependencies';
-is_deeply $plan->_parse_dependencies([], 'baz'), {},
-    'baz.sql should have no dependencies';
-
-is_deeply $plan->_parse_dependencies([], 'bar'), {
-    requires  => [qw(foo foo blah blah w00t)],
-    conflicts => [qw(yak this that)],
-},  'bar.sql should have a bunch of dependencies';
-
-##############################################################################
 # Test _sort_steps()
+$mocker->unmock('_sort_steps');
 can_ok $CLASS, '_sort_steps';
 my @deps;
-$mocker->mock(_parse_dependencies => sub { shift @deps });
+my $mock_step = Test::MockModule->new('App::Sqitch::Plan::Step');
+$mock_step->mock(_dependencies => sub { shift @deps });
+
+$tag = App::Sqitch::Plan::Tag->new(names => ['foo'], plan => $plan);
+sub steps {
+    map {
+        App::Sqitch::Plan::Step->new(name => $_, tag => $tag)
+    } @_;
+}
 
 # Start with no dependencies.
-@deps = ({}, {}, {});
-is_deeply $plan->_sort_steps(['foo'], {}, qw(this that other)),
-    [qw(this that other)], 'Should get original order when no dependencies';
+my %ddep = ( requires => [], conflicts => [] );
+@deps = ({%ddep}, {%ddep}, {%ddep});
+is_deeply $plan->_sort_steps(['foo'], {}, steps qw(this that other)),
+    [steps qw(this that other)], 'Should get original order when no dependencies';
 
 # Have that require this.
-@deps = ({}, {requires => ['this']}, {});
-is_deeply $plan->_sort_steps(['foo'], {}, qw(this that other)),
-    [qw(this that other)], 'Should get original order when that requires this';
+@deps = ({%ddep}, {%ddep, requires => ['this']}, {%ddep});
+is_deeply $plan->_sort_steps(['foo'], {}, steps qw(this that other)),
+    [steps qw(this that other)], 'Should get original order when that requires this';
 
 # Have other require that.
-@deps = ({}, {requires => ['this']}, { requires => ['that']});
-is_deeply $plan->_sort_steps(['foo'], {}, qw(this that other)),
-    [qw(this that other)], 'Should get original order when other requires that';
+@deps = ({%ddep}, {%ddep, requires => ['this']}, {%ddep, requires => ['that']});
+is_deeply $plan->_sort_steps(['foo'], {}, steps qw(this that other)),
+    [steps qw(this that other)], 'Should get original order when other requires that';
 
 # Have this require other.
-@deps = ({requires => ['other']}, {}, {});
-is_deeply $plan->_sort_steps(['foo'], {}, qw(this that other)),
-    [qw(other this that)], 'Should get other first when this requires it';
+@deps = ({%ddep, requires => ['other']}, {%ddep}, {%ddep});
+is_deeply $plan->_sort_steps(['foo'], {}, steps qw(this that other)),
+    [steps qw(other this that)], 'Should get other first when this requires it';
 
 # Have other other require taht.
-@deps = ({requires => ['other']}, {}, {requires => ['that']});
-is_deeply $plan->_sort_steps(['foo'], {}, qw(this that other)),
-    [qw(that other this)], 'Should get that, other, this now';
+@deps = ({%ddep, requires => ['other']}, {%ddep}, {%ddep, requires => ['that']});
+is_deeply $plan->_sort_steps(['foo'], {}, steps qw(this that other)),
+    [steps qw(that other this)], 'Should get that, other, this now';
 
 # Have this require other and that.
-@deps = ({requires => ['other', 'that']}, {}, {});
-is_deeply $plan->_sort_steps(['foo'], {}, qw(this that other)),
-    [qw(other that this)], 'Should get other, that, this now';
+@deps = ({%ddep, requires => ['other', 'that']}, {%ddep}, {%ddep});
+is_deeply $plan->_sort_steps(['foo'], {}, steps qw(this that other)),
+    [steps qw(other that this)], 'Should get other, that, this now';
 
 # Have this require other and that, and other requore that.
-@deps = ({requires => ['other', 'that']}, {}, {requires => ['that']});
-is_deeply $plan->_sort_steps(['foo'], {}, qw(this that other)),
-    [qw(that other this)], 'Should get that, other, this again';
+@deps = ({%ddep, requires => ['other', 'that']}, {%ddep}, {%ddep, requires => ['that']});
+is_deeply $plan->_sort_steps(['foo'], {}, steps qw(this that other)),
+    [steps qw(that other this)], 'Should get that, other, this again';
 
 # Add a cycle.
-@deps = ({requires => ['that']}, {requires => ['this']}, {});
-throws_ok { $plan->_sort_steps(['foo'], {}, qw(this that other)) } qr/FAIL:/,
+@deps = ({%ddep, requires => ['that']}, {%ddep, requires => ['this']}, {%ddep});
+throws_ok { $plan->_sort_steps(['foo'], {}, steps qw(this that other)) } qr/FAIL:/,
     'Should get failure for a cycle';
 is_deeply +MockOutput->get_fail, [[
     'Dependency cycle detected beween steps "',
@@ -378,20 +369,20 @@ is_deeply +MockOutput->get_fail, [[
 ]], 'The cylce should have been logged';
 
 # Okay, now deal with depedencies from ealier tag sections.
-@deps = ({requires => ['foo']}, {}, {});
-is_deeply $plan->_sort_steps(['foo'], { foo => 1}, qw(this that other)),
-    [qw(this that other)], 'Should get original order with earlier dependency';
+@deps = ({%ddep, requires => ['foo']}, {%ddep}, {%ddep});
+is_deeply $plan->_sort_steps(['foo'], { foo => 1}, steps qw(this that other)),
+    [steps qw(this that other)], 'Should get original order with earlier dependency';
 
 # Mix it up.
-@deps = ({requires => ['other', 'that']}, {requires => ['sqitch']}, {});
-is_deeply $plan->_sort_steps(['foo'], {sqitch => 1 }, qw(this that other)),
-    [qw(other that this)], 'Should get other, that, this with earlier dependncy';
+@deps = ({%ddep, requires => ['other', 'that']}, {%ddep, requires => ['sqitch']}, {%ddep});
+is_deeply $plan->_sort_steps(['foo'], {sqitch => 1 }, steps qw(this that other)),
+    [steps qw(other that this)], 'Should get other, that, this with earlier dependncy';
 
 # Have a failed dependency.
 # Okay, now deal with depedencies from ealier tag sections.
-@deps = ({requires => ['foo']}, {}, {});
-throws_ok { $plan->_sort_steps(['foo'], {}, qw(this that other)) } qr/FAIL:/,
+@deps = ({%ddep, requires => ['foo']}, {%ddep}, {%ddep});
+throws_ok { $plan->_sort_steps(['foo'], {}, steps qw(this that other)) } qr/FAIL:/,
     'Should die on unknown dependency';
 is_deeply +MockOutput->get_fail, [[
-    'Unknown step "foo" required in sql/deploy/this.sql'
+    'Unknown step "foo" required in ', 'sql/deploy/this.sql'
 ]], 'And we should emit an error pointing to the offending script';
