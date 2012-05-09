@@ -21,11 +21,11 @@ has tag => (
 );
 
 has _dependencies => (
-    is         => 'ro',
-    isa        => 'HashRef',
-    required   => 1,
-    lazy       => 1,
-    builder    => '_parse_dependencies',
+    is       => 'ro',
+    isa      => 'HashRef',
+    required => 1,
+    lazy     => 1,
+    builder  => '_parse_dependencies',
 );
 
 has deploy_file => (
@@ -75,8 +75,8 @@ sub _parse_dependencies {
     my %deps = ( requires => [], conflicts => [] );
     while ( my $line = $fh->getline ) {
         chomp $line;
-        last if $line =~ /\A\s*$/;         # Blank line, no more headers.
-        last if $line !~ /\A\s*$comment/;  # Must be a comment line.
+        last if $line =~ /\A\s*$/;           # Blank line, no more headers.
+        last if $line !~ /\A\s*$comment/;    # Must be a comment line.
         my ( $label, $value ) =
             $line =~ /$comment\s*:(requires|conflicts):\s*(.+)/;
         push @{ $deps{$label} ||= [] } => split /\s+/ => $value
