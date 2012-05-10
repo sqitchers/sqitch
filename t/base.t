@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 72;
+use Test::More tests => 79;
 #use Test::More 'no_plan';
 use Test::MockModule;
 use Path::Class;
@@ -166,6 +166,11 @@ is capture_stderr { $sqitch->warn('This ', "that\n", 'and the other') },
     "warning: This that\nwarning: and the other\n",
     'warn should work';
 
+# Vent.
+is capture_stderr { $sqitch->vent('This ', "that\n", 'and the other') },
+    "This that\nand the other\n",
+    'vent should work';
+
 # Fail.
 is capture_stderr {
     throws_ok { $sqitch->fail('This ', "that\n", "and the other") }
@@ -254,3 +259,21 @@ like capture_stderr {
 can_ok $CLASS, 'probe';
 is $sqitch->probe($^X, 'echo.pl', qw(hi there), "\nyo"),
     "hi there ", 'Should have just chomped first line of output';
+
+##############################################################################
+# Test spool().
+can_ok $CLASS, 'spool';
+my $data = "hi\nthere\n";
+open my $fh, '<', \$data;
+is capture_stdout {
+    ok $sqitch->spool($fh, $^X, 'read.pl'), 'Spool to read.pl';
+}, $data, 'Data should have been sent to STDOUT by read.pl';
+like capture_stderr {
+    throws_ok { $sqitch->spool($fh, $^X, 'die.pl') }
+        qr/\Q$^X\E unexpectedly returned exit value /,
+        'Should get error when die.pl dies';
+}, qr/OMGWTF/, 'The die script STDERR should have passed through';
+
+throws_ok { $sqitch->spool($fh, '--nosuchscript.ply--') }
+    qr/\QCannot exec --nosuchscript.ply--: No such file/,
+    'Should get an error for a bad command';

@@ -286,6 +286,18 @@ sub capture {
     capturex @_;
 }
 
+sub spool {
+    my ($self, $fh) = (shift, shift);
+    local $SIG{__WARN__} = sub { }; # Silence warning.
+    open my $pipe, '|-', @_ or die "Cannot exec $_[0]: $!\n";
+    local $SIG{PIPE} = sub { die 'spooler pipe broke' };
+    print {$pipe} <$fh>;
+    close $pipe or die $!
+        ? "Error closing pipe to $_[0]: $!\n"
+        : "$_[0] unexpectedly returned exit value " . ($? >> 8) . "\n";
+    return $self;
+}
+
 sub probe {
     my ($ret) = shift->capture(@_);
     chomp $ret;
@@ -327,6 +339,11 @@ sub comment {
 sub emit {
     shift;
     say @_;
+}
+
+sub vent {
+    shift;
+    say STDERR @_;
 }
 
 sub warn {
@@ -502,6 +519,13 @@ Throws an exception on error.
 
 Like C<capture>, but returns just the C<chomp>ed first line of output.
 
+=head3 C<spool>
+
+  $sqitch->spool($sql_file_handle, 'sqlite3', 'my.db');
+
+Like run, but spools the contents of a file handle to the standard input the
+system command. Returns true on success and throws an exception on failure.
+
 =head3 C<trace>
 
   $sqitch->trace('About to fuzzle the wuzzle.');
@@ -541,6 +565,14 @@ lower than 1, nothing will be output.
 Send a message to C<STDOUT>, without regard to the verbosity. Should be used
 only if the user explicitly asks for output, such as for
 C<sqitch config --get core.editor>.
+
+=head3 C<vent>
+
+  $sqitch->vent('core.editor=emacs');
+
+Send a message to C<STDERR>, without regard to the verbosity. Should be used
+only for error messages to be printed before exiting with an error, such as
+when reverting failed changes.
 
 =head3 C<warn>
 
