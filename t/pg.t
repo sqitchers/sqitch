@@ -127,8 +127,8 @@ is_deeply [$pg->psql], [qw(
 ), @std_opts], 'psql command should be as optioned';
 
 ##############################################################################
-# Test _run() and _cap().
-can_ok $pg, qw(_run _cap);
+# Test _run(), _cap(), _probe(), and _spool().
+can_ok $pg, qw(_run _cap _probe _spool);
 my $mock_sqitch = Test::MockModule->new('App::Sqitch');
 my (@run, $exp_pass);
 $mock_sqitch->mock(run => sub {
@@ -151,6 +151,17 @@ $mock_sqitch->mock(capture => sub {
     }
 });
 
+my @spool;
+$mock_sqitch->mock(spool => sub {
+    shift;
+    @spool = @_;
+    if (defined $exp_pass) {
+        is $ENV{PGPASSWORD}, $exp_pass, qq{PGPASSWORD should be "$exp_pass"};
+    } else {
+        ok !exists $ENV{PGPASSWORD}, 'PGPASSWORD should not exist';
+    }
+});
+
 $exp_pass = 's3cr3t';
 ok $pg->_run(qw(foo bar baz)), 'Call _run';
 is_deeply \@run, [$pg->psql, qw(foo bar baz)],
@@ -159,6 +170,10 @@ is_deeply \@run, [$pg->psql, qw(foo bar baz)],
 ok $pg->_cap(qw(hi there)), 'Call _cap';
 is_deeply \@cap, [$pg->psql, qw(hi there)],
     'Command should be passed to capture()';
+
+ok $pg->_spool('FH'), 'Call _spool';
+is_deeply \@spool, ['FH', $pg->psql],
+    'Command should be passed to spool()';
 
 ok $pg->_probe(qw(hi there)), 'Call _probe';
 is_deeply \@cap, [$pg->psql, qw(hi there)],
@@ -176,9 +191,23 @@ ok $pg->_cap(qw(hi there)), 'Call _cap again';
 is_deeply \@cap, [$pg->psql, qw(hi there)],
     'Command should be passed to capture() again';
 
+ok $pg->_spool('FH'), 'Call _spool again';
+is_deeply \@spool, ['FH', $pg->psql],
+    'Command should be passed to spool() again';
+
 ok $pg->_probe(qw(hi there)), 'Call _probe again';
 is_deeply \@cap, [$pg->psql, qw(hi there)],
     'Command should be passed to capture() again';
+
+##############################################################################
+# Test file and handle running.
+ok $pg->run_file('foo/bar.sql'), 'Run foo/bar.sql';
+is_deeply \@run, [$pg->psql, '--file', 'foo/bar.sql'],
+    'File should be passed to run()';
+
+ok $pg->run_handle('FH'), 'Spool a "file handle"';
+is_deeply \@spool, ['FH', $pg->psql],
+    'Handle should be passed to spool()';
 
 ##############################################################################
 # Test array().
