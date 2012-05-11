@@ -112,17 +112,17 @@ is_deeply [App::Sqitch::Engine->config_vars], [],
 # Test abstract methods.
 ok $engine = $CLASS->new({ sqitch => $sqitch }), "Create a $CLASS object again";
 for my $abs (qw(
-   initialized
-   initialize
-   run_file
-   run_handle
-   log_deploy_step
-   log_revert_step
-   log_deploy_tag
-   log_revert_tag
-   is_deployed_tag
-   is_deployed_step
-   deployed_steps_for
+    initialized
+    initialize
+    run_file
+    run_handle
+    log_deploy_step
+    log_revert_step
+    log_deploy_tag
+    log_revert_tag
+    is_deployed_tag
+    is_deployed_step
+    deployed_steps_for
 )) {
     throws_ok { $engine->$abs } qr/\Q$CLASS has not implemented $abs()/,
         "Should get an unimplemented exception from $abs()"

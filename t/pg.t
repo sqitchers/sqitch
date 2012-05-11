@@ -36,6 +36,9 @@ for my $attr (qw(username password db_name host port)) {
     is $pg->$attr, undef, "$attr default should be undef";
 }
 
+is $pg->target, $ENV{PGDATABASE} || $ENV{PGUSER} || $ENV{USER},
+    'Target should fall back on environment variables';
+
 my @std_opts = (
     '--quiet',
     '--no-psqlrc',
@@ -46,6 +49,23 @@ my @std_opts = (
 );
 is_deeply [$pg->psql], [$client, @std_opts],
     'psql command should be std opts-only';
+
+##############################################################################
+# Test other configs for the target.
+for my $env (qw(PGDATABASE PGUSER USER)) {
+    my $pg = $CLASS->new(sqitch => $sqitch);
+    local $ENV{$env} = "$ENV=whatever";
+    is $pg->target, "$ENV=whatever", "Target should read \$$env";
+}
+
+ENV: {
+    my $pg = $CLASS->new(sqitch => $sqitch, username => 'hi');
+    is $pg->target, 'hi', 'Target shoul read username';
+
+    local $ENV{PGDATABASE} = 'mydb';
+    my $pg = $CLASS->new(sqitch => $sqitch, username => 'hi');
+    is $pg->target, 'mydb', 'Target should prefer $PGDATABASE to username';
+}
 
 ##############################################################################
 # Make sure config settings override defaults.
@@ -65,6 +85,8 @@ ok $pg = $CLASS->new(sqitch => $sqitch), 'Create another pg';
 is $pg->client, '/path/to/psql', 'client should be as configured';
 is $pg->username, 'freddy', 'username should be as configured';
 is $pg->password, 's3cr3t', 'password should be as configured';
+is $pg->db_name, 'widgets', 'db_name should be as configured';
+is $pg->target, 'widgets', 'target should default to db_name';
 is $pg->host, 'db.example.com', 'host should be as configured';
 is $pg->port, 1234, 'port should be as configured';
 is $pg->sqitch_schema, 'meta', 'sqitch_schema should be as configured';
@@ -91,6 +113,8 @@ ok $pg = $CLASS->new(sqitch => $sqitch), 'Create a pg with sqitch with options';
 is $pg->client, '/some/other/psql', 'client should be as optioned';
 is $pg->username, 'anna', 'username should be as optioned';
 is $pg->password, 's3cr3t', 'password should still be as configured';
+is $pg->db_name, 'widgets_dev', 'db_name should be as optioned';
+is $pg->target, 'widgets_dev', 'target should still default to db_name';
 is $pg->host, 'foo.com', 'host should be as optioned';
 is $pg->port, 98760, 'port should be as optioned';
 is $pg->sqitch_schema, 'meta', 'sqitch_schema should still be as configured';
@@ -179,7 +203,19 @@ for my $spec (
 # Can we do live tests?
 $mock_sqitch->unmock_all;
 $mock_config->unmock_all;
-can_ok $CLASS, qw(initialized initialize);
+can_ok $CLASS, qw(
+    initialized
+    initialize
+    run_file
+    run_handle
+    log_deploy_step
+    log_revert_step
+    log_deploy_tag
+    log_revert_tag
+    is_deployed_tag
+    is_deployed_step
+    deployed_steps_for
+);
 
 my @cleanup;
 END {
