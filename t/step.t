@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 16;
+use Test::More tests => 22;
 #use Test::More 'no_plan';
 use Test::NoWarnings;
 use App::Sqitch;
@@ -88,3 +88,24 @@ is_deeply $step->_parse_dependencies([], 'bar'), {
 is_deeply [$step->requires], [qw(foo foo blah blah w00t)],
     'Requires get filled in';
 is_deeply [$step->conflicts], [qw(yak this that)], 'Conflicts get filled in';
+
+##############################################################################
+# Test file handles.
+ok $fh = $step->deploy_handle, 'Get deploy handle';
+is $fh->getline, "-- This is a comment\n", 'It should be the deploy file';
+
+make_path dir(qw(sql revert))->stringify;
+$fh = $step->revert_file->open('>')
+    or die "Cannot open " . $step->revert_file . ": $!\n";
+$fh->say('-- revert it, baby');
+$fh->close;
+ok $fh = $step->revert_handle, 'Get revert handle';
+is $fh->getline, "-- revert it, baby\n", 'It should be the revert file';
+
+make_path dir(qw(sql test))->stringify;
+$fh = $step->test_file->open('>')
+    or die "Cannot open " . $step->test_file . ": $!\n";
+$fh->say('-- test it, baby');
+$fh->close;
+ok $fh = $step->test_handle, 'Get test handle';
+is $fh->getline, "-- test it, baby\n", 'It should be the test file';

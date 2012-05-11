@@ -140,6 +140,33 @@ Instantiates and returns a App::Sqitch::Step::Step object.
 
 Returns an array reference of the names of the tag.
 
+=head3 C<tag>
+
+  my $tag = $step->tag;
+
+Returns the L<App::Sqitch::Plan::Tag> object with which the step is
+associated.
+
+=head3 C<deploy_file>
+
+  my $file = $step->deploy_file;
+
+Returns the path to the deploy script file for the step.
+
+=head3 C<revert_file>
+
+  my $file = $step->revert_file;
+
+Returns the path to the revert script file for the step.
+
+=head3 C<test_file>
+
+  my $file = $step->test_file;
+
+Returns the path to the test script file for the step.
+
+=head2 Instance Methods
+
 =head3 C<names>
 
   my $steps = $step->steps;
@@ -157,6 +184,27 @@ Returns a list of the names of steps required by this step.
   my @conflicts = $step->conflicts;
 
 Returns a list of the names of steps with which this step conflicts.
+
+=head3 C<deploy_handle>
+
+  my $fh = $step->deploy_handle;
+
+Returns an L<IO::File> file handle, opened for reading, for the deploy script
+for the step.
+
+=head3 C<revert_handle>
+
+  my $fh = $step->revert_handle;
+
+Returns an L<IO::File> file handle, opened for reading, for the revert script
+for the step.
+
+=head3 C<test_handle>
+
+  my $fh = $step->test_handle;
+
+Returns an L<IO::File> file handle, opened for reading, for the test script
+for the step.
 
 =head1 See Also
 
