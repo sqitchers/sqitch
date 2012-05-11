@@ -4,12 +4,13 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 22;
+use Test::More tests => 27;
 #use Test::More 'no_plan';
 use Test::NoWarnings;
 use App::Sqitch;
 use App::Sqitch::Plan;
 use App::Sqitch::Plan::Tag;
+use Test::Exception;
 use Path::Class;
 use File::Path qw(make_path remove_tree);
 
@@ -109,3 +110,23 @@ $fh->say('-- test it, baby');
 $fh->close;
 ok $fh = $step->test_handle, 'Get test handle';
 is $fh->getline, "-- test it, baby\n", 'It should be the test file';
+
+##############################################################################
+# Test the requires/conflicts params.
+ok $step = $CLASS->new(
+    name      => 'whatever',
+    tag       => $tag,
+    requires  => [qw(hi there)],
+    conflicts => [],
+), 'Create a step with explicit requires and conflicts';
+is_deeply [$step->requires], [qw(hi there)], 'requires should be set';
+is_deeply [$step->conflicts], [], 'conflicts should be set';
+
+# Make sure that conflicts and requires are mutually requried.
+throws_ok { $CLASS->new( requires => [] ) }
+    qr/\QThe "conflicts" and "requires" parameters must both be required or omitted/,
+    'Should get an error for requires but no conflicts';
+
+throws_ok { $CLASS->new( conflicts => [] ) }
+    qr/\QThe "conflicts" and "requires" parameters must both be required or omitted/,
+    'Should get an error for conflicts but no requires';

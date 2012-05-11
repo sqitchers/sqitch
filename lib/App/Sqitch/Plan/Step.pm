@@ -64,6 +64,24 @@ has test_file => (
     }
 );
 
+sub BUILDARGS {
+    my $class = shift;
+    my $p = @_ == 1 && ref $_[0] ? { %{ +shift } } : { @_ };
+    if ($p->{requires} && $p->{conflicts} ) {
+        $p->{_dependencies} = {
+            requires  => delete $p->{requires},
+            conflicts => delete $p->{conflicts},
+        };
+    } elsif ($p->{conflicts} || $p->{requires}) {
+        require Carp;
+        Carp::confess(
+            'The "conflicts" and "requires" parameters must both be required',
+            ' or omitted'
+        );
+    }
+    return $p;
+}
+
 sub deploy_handle {
     my $self = shift;
     $self->plan->open_script($self->deploy_file);
@@ -130,7 +148,8 @@ a single point in time in the plan), and any number of steps.
 
   my $step = App::Sqitch::Step::Step->new(%params);
 
-Instantiates and returns a App::Sqitch::Step::Step object.
+Instantiates and returns a App::Sqitch::Step::Step object. The C<requires> and
+C<conflicts> attributes must both be present or both be absent.
 
 =head2 Accessors
 
