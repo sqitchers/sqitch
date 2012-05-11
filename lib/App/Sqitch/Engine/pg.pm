@@ -177,11 +177,6 @@ sub run_file {
     $self->_run('--file' => $file);
 }
 
-sub run_handle {
-    my ($self, $fh) = @_;
-    $self->_spool($fh);
-}
-
 sub _array {
     return '{'
         . join(',' => map { s/(["\\])/\\$1/g; /[,{}]/ ? qq{"$_"} : $_ } @_)
@@ -325,7 +320,7 @@ sub _probe {
     return $sqitch->probe( $self->psql, @_ );
 }
 
-sub _spool {
+sub run_handle {
     my $self   = shift;
     my $fh     = shift;
     my $sqitch = $self->sqitch;
