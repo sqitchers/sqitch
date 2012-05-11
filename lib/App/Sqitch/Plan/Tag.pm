@@ -84,10 +84,19 @@ Returns the plan object with which the tag object is associated.
 
 =head3 C<steps>
 
-  my $steps = $plan->steps;
+  my $steps = $tag->steps;
 
 Returns a list of the deployment steps associated with the tag, in the order
 in which they should be deployed.
+
+=head2 Instance Methods
+
+=head3 C<name>
+
+  my $name = $tag->name;
+
+Returns the concatenation of all the tag names, suitable for display in status
+messages.
 
 =head1 See Also
 
