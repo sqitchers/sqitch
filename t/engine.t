@@ -4,8 +4,8 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-#use Test::More tests => 23;
-use Test::More 'no_plan';
+use Test::More tests => 114;
+#use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
 use Test::Exception;
@@ -22,6 +22,7 @@ BEGIN {
 
 can_ok $CLASS, qw(load new name);
 
+my ($is_deployed_tag, $is_deployed_step) = (0, 0);
 ENGINE: {
     # Stub out a engine.
     package App::Sqitch::Engine::whu;
@@ -36,8 +37,8 @@ ENGINE: {
     sub log_revert_step  { push @SEEN => [ log_revert_step  => $_[1] ] }
     sub log_deploy_tag   { push @SEEN => [ log_deploy_tag   => $_[1] ] }
     sub log_revert_tag   { push @SEEN => [ log_revert_tag   => $_[1] ] }
-    sub is_deployed_tag  { push @SEEN => [ is_deployed_tag  => $_[1] ]; 0 }
-    sub is_deployed_step { push @SEEN => [ is_deployed_step => $_[1] ]; 0 }
+    sub is_deployed_tag  { push @SEEN => [ is_deployed_tag  => $_[1] ]; $is_deployed_tag }
+    sub is_deployed_step { push @SEEN => [ is_deployed_step => $_[1] ]; $is_deployed_step }
 
     sub seen { [@SEEN] }
     after seen => sub { @SEEN = () };
@@ -162,14 +163,15 @@ is_deeply $engine->seen, [
 ], 'Should have checked if the tag was already deployed';
 
 # Try a tag that's already "deployed".
-my $mock = Test::MockModule->new(ref $engine, no_auto => 1);
-$mock->mock(is_deployed_tag => 1);
+$is_deployed_tag = 1;
 ok $engine->deploy($tag), 'Deploy a deployed tag';
 is_deeply +MockOutput->get_info, [
     ['Tag ', $tag->name, ' already deployed to ', 'mydb']
 ], 'Should get info that the tag is already deployed';
-is_deeply $engine->seen, [], 'No other methods should have been called';
-$mock->unmock('is_deployed_tag');
+is_deeply $engine->seen, [
+    [is_deployed_tag => $tag],
+], 'Only is_deployed_tag should have been called';
+$is_deployed_tag = 0;
 
 # Add a step to this tag.
 push @{ $tag->_steps } => $step;
@@ -208,8 +210,26 @@ is_deeply $engine->seen, [
     [log_deploy_tag => $tag ],
 ], 'Both steps and the tag should have been deployed and logged';
 
+# Try it with steps already deployed.
+$is_deployed_step = 1;
+ok $engine->deploy($tag), 'Deploy tag with two steps';
+is_deeply +MockOutput->get_info, [
+    ['Deploying ', 'foo', ' to ', 'mydb'],
+    ['    ', $step->name, ' already deployed' ],
+    ['    ', $step2->name, ' already deployed' ],
+], 'Should get info message about steps already deployed';
+is_deeply +MockOutput->get_warn, [], 'Should have no warnings';
+is_deeply $engine->seen, [
+    [is_deployed_tag => $tag ],
+    [is_deployed_step => $step ],
+    [is_deployed_step => $step2 ],
+    [log_deploy_tag => $tag ],
+], 'Steps should not be re-deployed';
+$is_deployed_step = 0;
+
 # Die on the first step.
 my $crash_in = 1;
+my $mock = Test::MockModule->new(ref $engine, no_auto => 1);
 $mock->mock(deploy_step => sub { die 'OMGWTFLOL' if --$crash_in == 0; });
 
 throws_ok { $engine->deploy($tag) } qr/^FAIL\b/, 'Should die';
@@ -293,3 +313,113 @@ is_deeply +MockOutput->get_fail, [
 ], 'Should have the final failure message';
 
 ##############################################################################
+# Test revert.
+can_ok $CLASS, 'revert';
+$engine->seen;
+$is_deployed_tag = 1;
+$is_deployed_step = 1;
+
+# Try a tag with no steps.
+@{ $tag->_steps } = ();
+ok $engine->revert($tag), 'Revert a tag with no steps';
+is_deeply +MockOutput->get_info, [['Reverting ', 'foo', ' from ', 'mydb']],
+    'Should get info message about tag reversion';
+is_deeply $engine->seen, [
+    [is_deployed_tag => $tag],
+    [log_revert_tag  => $tag],
+], 'Should have checked if the tag was deployed and reverted it';
+
+# Try a tag that is not deployed.
+$is_deployed_tag = 0;
+ok $engine->revert($tag), 'Revert an undeployed tag';
+is_deeply +MockOutput->get_info, [['Tag ', 'foo', ' is not deployed to ', 'mydb']],
+    'Should get info message undeployed tag';
+is_deeply $engine->seen, [
+    [is_deployed_tag => $tag],
+], 'Should have checked if the tag was deployed';
+$is_deployed_tag = 1;
+
+# Add a step.
+push @{ $tag->_steps } => $step;
+ok $engine->revert($tag), 'Revert a tag with one step';
+is_deeply +MockOutput->get_info, [
+    ['Reverting ', 'foo', ' from ', 'mydb'],
+    ['  - ', 'foo' ],
+], 'Should get info message about tag and step reversion';
+is_deeply $engine->seen, [
+    [is_deployed_tag => $tag],
+    [is_deployed_step => $step],
+    [run_file => $step->revert_file ],
+    [log_revert_step => $step ],
+    [log_revert_tag  => $tag],
+], 'Should have reverted the step';
+
+# Add a step.
+push @{ $tag->_steps } => $step2;
+ok $engine->revert($tag), 'Revert a tag with two steps';
+is_deeply +MockOutput->get_info, [
+    ['Reverting ', 'foo', ' from ', 'mydb'],
+    ['  - ', 'bar' ],
+    ['  - ', 'foo' ],
+], 'Should revert steps in reverse order';
+is_deeply $engine->seen, [
+    [is_deployed_tag => $tag],
+    [is_deployed_step => $step2],
+    [run_file => $step2->revert_file ],
+    [log_revert_step => $step2 ],
+    [is_deployed_step => $step],
+    [run_file => $step->revert_file ],
+    [log_revert_step => $step ],
+    [log_revert_tag  => $tag],
+], 'Should have reverted both steps';
+
+# Try with the steps not deployed.
+$is_deployed_step = 0;
+ok $engine->revert($tag), 'Revert steps not deployed';
+is_deeply +MockOutput->get_info, [
+    ['Reverting ', 'foo', ' from ', 'mydb'],
+    ['    ', 'bar', ' not deployed' ],
+    ['    ', 'foo', ' not deployed' ],
+], 'Should show steps not deployed';
+is_deeply $engine->seen, [
+    [is_deployed_tag => $tag],
+    [is_deployed_step => $step2],
+    [is_deployed_step => $step],
+    [log_revert_tag  => $tag],
+], 'Should have checked both steps';
+$is_deployed_step = 1;
+
+# Now die on tag reversion.
+$mock->mock( log_revert_tag => sub { die 'OMGWTF' } );
+throws_ok { $engine->revert($tag) } qr/^FAIL\b/,
+    'Should die on tag reversion failure';
+is_deeply +MockOutput->get_info, [
+    ['Reverting ', 'foo', ' from ', 'mydb'],
+    ['  - ', 'bar' ],
+    ['  - ', 'foo' ],
+], 'Should get info message about tag and steps';
+$debug = MockOutput->get_debug;
+is @{ $debug }, 1, 'Should have one debug message';
+like $debug->[0][0], qr/^OMGWTF\b/, 'And it should be the original error';
+is_deeply +MockOutput->get_fail, [
+    ['Error removing tag ', $tag->name ]
+], 'Should have the final failure message';
+$mock->unmock('log_revert_tag');
+
+# Die on the first step reversion.
+$mock->mock( log_revert_step => sub { die 'DONTTAZEME' });
+throws_ok { $engine->revert($tag) } qr/^FAIL\b/,
+    'Should die on step reversion failure';
+is_deeply +MockOutput->get_info, [
+    ['Reverting ', 'foo', ' from ', 'mydb'],
+    ['  - ', 'bar' ],
+], 'Should get info message about tag and first step';
+$debug = MockOutput->get_debug;
+is @{ $debug }, 1, 'Should have one debug message';
+like $debug->[0][0], qr/^DONTTAZEME\b/, 'And it should be the original error';
+is_deeply +MockOutput->get_fail, [
+    [
+        'Error reverting step ', $step2->name, $/,
+        'The schema will need to be manually repaired'
+    ],
+], 'Should have the final failure message';

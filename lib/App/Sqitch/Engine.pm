@@ -124,10 +124,31 @@ sub revert {
     my ($self, $tag) = @_;
     my $sqitch = $self->sqitch;
 
-    return $sqitch->debug('Tag ', $tag->name, ' is not deployed')
-        unless $self->is_deployed_tag($tag);
+    return $sqitch->info(
+        'Tag ', $tag->name, ' is not deployed to ', $self->target
+    ) unless $self->is_deployed_tag($tag);
 
     $sqitch->info('Reverting ', $tag->name, ' from ', $self->target);
+
+    for my $step (reverse $tag->steps) {
+        unless ( $self->is_deployed_step($step) ) {
+            $sqitch->info('    ', $step->name, ' not deployed');
+            next;
+        }
+
+        $sqitch->info('  - ', $step->name);
+        try {
+            $self->revert_step($step);
+        } catch {
+            # Whoops! We're fucked.
+            # XXX do something to mark the state as corrupted.
+            $sqitch->debug($_);
+            $sqitch->fail(
+                "Error reverting step ", $step->name, $/,
+                'The schema will need to be manually repaired'
+            );
+        };
+    }
 
     try {
         $self->log_revert_tag($tag);
@@ -136,20 +157,7 @@ sub revert {
         $sqitch->fail( "Error removing tag ", $tag->name );
     };
 
-    for my $step (reverse $tag->steps) {
-        $sqitch->info('  - ', $step->name);
-        try {
-            $self->revert_step($step);
-        } catch {
-            # Whoops! We're fucked.
-            # XXX do something to mark the state as corrupted.
-            $sqitch->bail(
-                2,
-                "Error reverting step ", $step->name, ":\n", $_,
-                'The schema will need to be manually repaired'
-            );
-        };
-    }
+    return $self;
 }
 
 sub is_deployed {
