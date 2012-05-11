@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 114;
+use Test::More tests => 112;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -23,6 +23,7 @@ BEGIN {
 can_ok $CLASS, qw(load new name);
 
 my ($is_deployed_tag, $is_deployed_step) = (0, 0);
+my @deployed_steps;
 ENGINE: {
     # Stub out a engine.
     package App::Sqitch::Engine::whu;
@@ -39,6 +40,7 @@ ENGINE: {
     sub log_revert_tag   { push @SEEN => [ log_revert_tag   => $_[1] ] }
     sub is_deployed_tag  { push @SEEN => [ is_deployed_tag  => $_[1] ]; $is_deployed_tag }
     sub is_deployed_step { push @SEEN => [ is_deployed_step => $_[1] ]; $is_deployed_step }
+    sub deployed_steps_for { @deployed_steps }
 
     sub seen { [@SEEN] }
     after seen => sub { @SEEN = () };
@@ -120,6 +122,7 @@ for my $abs (qw(
    log_revert_tag
    is_deployed_tag
    is_deployed_step
+   deployed_steps_for
 )) {
     throws_ok { $engine->$abs } qr/\Q$CLASS has not implemented $abs()/,
         "Should get an unimplemented exception from $abs()"
@@ -339,8 +342,8 @@ is_deeply $engine->seen, [
 ], 'Should have checked if the tag was deployed';
 $is_deployed_tag = 1;
 
-# Add a step.
-push @{ $tag->_steps } => $step;
+# Add a step. (Re-create step so is_deeply works).
+push @deployed_steps => $step;
 ok $engine->revert($tag), 'Revert a tag with one step';
 is_deeply +MockOutput->get_info, [
     ['Reverting ', 'foo', ' from ', 'mydb'],
@@ -348,14 +351,14 @@ is_deeply +MockOutput->get_info, [
 ], 'Should get info message about tag and step reversion';
 is_deeply $engine->seen, [
     [is_deployed_tag => $tag],
-    [is_deployed_step => $step],
     [run_file => $step->revert_file ],
     [log_revert_step => $step ],
     [log_revert_tag  => $tag],
 ], 'Should have reverted the step';
 
-# Add a step.
-push @{ $tag->_steps } => $step2;
+# Add another step. (Re-create step so is_deeply works).
+$step2 = ref($step2)->new(name => $step2->name, tag => $tag );
+push @deployed_steps => $step2;
 ok $engine->revert($tag), 'Revert a tag with two steps';
 is_deeply +MockOutput->get_info, [
     ['Reverting ', 'foo', ' from ', 'mydb'],
@@ -364,30 +367,12 @@ is_deeply +MockOutput->get_info, [
 ], 'Should revert steps in reverse order';
 is_deeply $engine->seen, [
     [is_deployed_tag => $tag],
-    [is_deployed_step => $step2],
     [run_file => $step2->revert_file ],
     [log_revert_step => $step2 ],
-    [is_deployed_step => $step],
     [run_file => $step->revert_file ],
     [log_revert_step => $step ],
     [log_revert_tag  => $tag],
 ], 'Should have reverted both steps';
-
-# Try with the steps not deployed.
-$is_deployed_step = 0;
-ok $engine->revert($tag), 'Revert steps not deployed';
-is_deeply +MockOutput->get_info, [
-    ['Reverting ', 'foo', ' from ', 'mydb'],
-    ['    ', 'bar', ' not deployed' ],
-    ['    ', 'foo', ' not deployed' ],
-], 'Should show steps not deployed';
-is_deeply $engine->seen, [
-    [is_deployed_tag => $tag],
-    [is_deployed_step => $step2],
-    [is_deployed_step => $step],
-    [log_revert_tag  => $tag],
-], 'Should have checked both steps';
-$is_deployed_step = 1;
 
 # Now die on tag reversion.
 $mock->mock( log_revert_tag => sub { die 'OMGWTF' } );
@@ -419,7 +404,7 @@ is @{ $debug }, 1, 'Should have one debug message';
 like $debug->[0][0], qr/^DONTTAZEME\b/, 'And it should be the original error';
 is_deeply +MockOutput->get_fail, [
     [
-        'Error reverting step ', $step2->name, $/,
+        'Error reverting step ', 'bar', $/,
         'The schema will need to be manually repaired'
     ],
 ], 'Should have the final failure message';

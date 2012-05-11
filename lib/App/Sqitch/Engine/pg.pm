@@ -238,7 +238,7 @@ sub _log_tag {
 }
 
 sub log_deploy_tag {
-    my ($self, $tag) = @_;
+    my ( $self, $tag ) = @_;
     $self->_log_tag($tag, q{
         INSERT INTO :"sqitch_schema".tags (tag, steps)
         SELECT t FROM UNNEST(:'tags') AS t;
@@ -246,7 +246,7 @@ sub log_deploy_tag {
 }
 
 sub is_deployed_tag {
-    my ($self, $tag) = @_;
+    my ( $self, $tag ) = @_;
     return $self->_probe(
         '--set'     => 'tags=' . _array($tag->names),
         # XXX Not an ideal way to deal with multi-name tags.
@@ -261,7 +261,7 @@ sub is_deployed_tag {
 }
 
 sub is_deployed_step {
-    my ($self, $step) = @_;
+    my ( $self, $step ) = @_;
     return $self->_probe(
         '--set'     => 'step=' . $step->name,
         '--set'     => 'tags=' . _array($step->tag->names),
@@ -277,10 +277,27 @@ sub is_deployed_step {
 }
 
 sub log_revert_tag {
-    my ($self, $tag) = @_;
+    my ( $self, $tag ) = @_;
     $self->_log_tag(
         $tag,
         q{DELETE FROM :"sqitch_schema".tags WHERE tag = ANY(:'tags');},
+    );
+}
+
+sub deployed_steps_for {
+    my ( $self, $tag ) = @_;
+    # XXX Need to sort by dependency order.
+    return map {
+        chomp;
+        App::Sqitch::Plan::Step->new(name => $_, tag => $tag)
+    } $self->_cap(
+        '--set'     => 'tags=' . _array($tag->names),
+        '--command' => q{
+            SELECT step
+              FROM :"sqitch_schema".steps
+             WHERE tags = :'tags'
+             ORDER BY deployed_at
+        },
     );
 }
 

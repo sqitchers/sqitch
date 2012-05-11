@@ -130,12 +130,8 @@ sub revert {
 
     $sqitch->info('Reverting ', $tag->name, ' from ', $self->target);
 
-    for my $step (reverse $tag->steps) {
-        unless ( $self->is_deployed_step($step) ) {
-            $sqitch->info('    ', $step->name, ' not deployed');
-            next;
-        }
-
+    # Revert only depoyed steps.
+    for my $step ( reverse $self->deployed_steps_for($tag) ) {
         $sqitch->info('  - ', $step->name);
         try {
             $self->revert_step($step);
@@ -144,7 +140,7 @@ sub revert {
             # XXX do something to mark the state as corrupted.
             $sqitch->debug($_);
             $sqitch->fail(
-                "Error reverting step ", $step->name, $/,
+                'Error reverting step ', $step->name, $/,
                 'The schema will need to be manually repaired'
             );
         };
@@ -225,6 +221,12 @@ sub is_deployed_step {
     my $class = ref $_[0] || $_[0];
     require Carp;
     Carp::confess( "$class has not implemented is_deployed_step()" );
+}
+
+sub deployed_steps_for {
+    my $class = ref $_[0] || $_[0];
+    require Carp;
+    Carp::confess( "$class has not implemented deployed_steps_for()" );
 }
 
 __PACKAGE__->meta->make_immutable;
@@ -445,6 +447,13 @@ SQL file to run through the engine's native client.
 
 Should execute the commands in the specified file handle. The file handle's
 contents should be piped to the engine's native client.
+
+=head3 C<deployed_steps_for>
+
+  my @steps = $engine->deployed_steps_for($tag);
+
+Should return a list of steps currently deployed to the database for the
+specified tag, in an order appropriate to satisfy dependencies.
 
 =head1 See Also
 
