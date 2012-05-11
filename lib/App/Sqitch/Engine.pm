@@ -243,6 +243,8 @@ App::Sqitch::Engine - Sqitch Deployment Engine
 =head1 Description
 
 App::Sqitch::Engine provides the base class for all Sqitch storage engines.
+Most likely this will not be of much interest to you unless you are hacking on
+the engine code.
 
 =head1 Interface
 
@@ -324,6 +326,55 @@ The name of the engine. Defaults to the last part of the package name, so as a
 rule you should not need to override it, since it is that string that Sqitch
 uses to find the engine class.
 
+=head3 C<target>
+
+  my $target = $engine->target;
+
+Returns the name of the target database. This will usually be the same as the
+configured database name or the value of the C<--db-name> option. Hover,
+subclasses may override it to provide other values, such as when neither of
+the above have values but there is nevertheless a default value assumed by the
+engine. Used internally by C<deploy()> and C<revert()> in status messages.
+
+=head3 C<deploy>
+
+  $engine->deploy($tag);
+
+Deploys the L<App::Sqitch::Plan::Tag> to the database, including all of its
+associated steps.
+
+=head3 C<deploy_step>
+
+  $engine->deploy_step($step);
+
+Used internally by C<deploy()> to deploy an individual step.
+
+=head3 C<revert>
+
+  $engine->revert($tag);
+
+Reverts the L<App::Sqitch::Plan::Tag> from the database, including all of its
+associated steps.
+
+=head3 C<revert_step>
+
+  $engine->revert_step($step);
+
+Used internally by C<revert()> (and, by C<deploy()> when a deploy fails) to
+revert an individual step.
+
+=head3 C<is_deployed>
+
+  say "Tag deployed"  if $engine->is_deployed($tag);
+  say "Step deployed" if $engine->is_deployed($step);
+
+Convenience method that dispatches to C<is_deployed_tag()> or
+C<is_deployed_step()> as appropriate to its argument.
+
+=head2 Abstract Instance Methods
+
+These methods must be overridden in subclasses.
+
 =head3 C<initialized>
 
   $engine->initialize unless $engine->initialized;
@@ -338,6 +389,62 @@ has not.
 Initializes a database for Sqitch by installing the Sqitch metadata schema
 and/or tables. Should be overridden by subclasses. This implementation throws
 an exception
+
+=head3 C<is_deployed_tag>
+
+  say "Tag deployed"  if $engine->is_deployed_tag($tag);
+
+Should return true if the tag has been deployed to the database, and false if
+it has not.
+
+=head3 C<is_deployed_step>
+
+  say "Step deployed"  if $engine->is_deployed_step($step);
+
+Should return true if the step has been deployed to the database, and false if
+it has not.
+
+=head3 C<log_deploy_tag>
+
+  $engine->log_deploy_tag($tag);
+
+Should write to the database metadata and history the records necessary to
+indicate that the tag has been deployed.
+
+=head3 C<log_deploy_step>
+
+  $engine->log_deploy_step($step);
+
+Should write to the database metadata and history the records necessary to
+indicate that the step has been deployed.
+
+=head3 C<log_revert_tag>
+
+  $engine->log_revert_tag($tag);
+
+Should write to and/or remove from the database metadata and history the
+records necessary to indicate that the tag has been reverted.
+
+=head3 C<log_revert_step>
+
+  $engine->log_revert_step($step);
+
+Should write to and/or remove from the database metadata and history the
+records necessary to indicate that the step has been reverted.
+
+=head3 C<run_file>
+
+  $engine->run_file($file);
+
+Should execute the commands in the specified file. This will generally be an
+SQL file to run through the engine's native client.
+
+=head3 C<run_handle>
+
+  $engine->run_handle($file_handle);
+
+Should execute the commands in the specified file handle. The file handle's
+contents should be piped to the engine's native client.
 
 =head1 See Also
 
