@@ -291,7 +291,7 @@ sub spool {
     local $SIG{__WARN__} = sub { }; # Silence warning.
     open my $pipe, '|-', @_ or die "Cannot exec $_[0]: $!\n";
     local $SIG{PIPE} = sub { die 'spooler pipe broke' };
-    print {$pipe} <$fh>;
+    print $pipe $_ while <$fh>;
     close $pipe or die $!
         ? "Error closing pipe to $_[0]: $!\n"
         : "$_[0] unexpectedly returned exit value " . ($? >> 8) . "\n";
