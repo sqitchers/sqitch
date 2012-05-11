@@ -136,9 +136,9 @@ Instantiates and returns a App::Sqitch::Step::Step object.
 
 =head3 C<names>
 
-  my $names = $step->names;
+  my $name = $step->name;
 
-Returns an array reference of the names of the tag.
+Returns the naem of the step.
 
 =head3 C<tag>
 
