@@ -79,6 +79,10 @@ sub deploy {
     my ($self, $tag) = @_;
     my $sqitch = $self->sqitch;
 
+    return $sqitch->info(
+        'Tag ', $tag->name, ' already deployed to ', $self->target
+    ) if $self->is_deployed_tag($tag);
+
     $sqitch->info('Deploying ', $tag->name, ' to ', $self->target);
     unless ($tag->steps) {
         $sqitch->warn('Tag ', $tag->name, ' has no steps; skipping');
@@ -87,6 +91,11 @@ sub deploy {
 
     my @run;
     for my $step ($tag->steps) {
+        if ( $self->is_deployed_step($step) ) {
+            $sqitch->info('    ', $step->name, ' already deployed');
+            next;
+        }
+
         $sqitch->info('  + ', $step->name);
         try {
             $self->deploy_step($step);
@@ -114,12 +123,17 @@ sub deploy {
 sub revert {
     my ($self, $tag) = @_;
     my $sqitch = $self->sqitch;
+
+    return $sqitch->debug('Tag ', $tag->name, ' is not deployed')
+        unless $self->is_deployed_tag($tag);
+
     $sqitch->info('Reverting ', $tag->name, ' from ', $self->target);
 
     try {
         $self->log_revert_tag($tag);
     } catch {
-        $sqitch->fail( "Error removing tag ", $tag->name, ":\n", $_ );
+        $sqitch->debug($_);
+        $sqitch->fail( "Error removing tag ", $tag->name );
     };
 
     for my $step (reverse $tag->steps) {
@@ -136,6 +150,13 @@ sub revert {
             );
         };
     }
+}
+
+sub is_deployed {
+    my ($self, $thing) = @_;
+    return $thing->isa('App::Sqitch::Plan::Tag')
+        ? $self->is_deployed_tag($thing)
+        : $self->is_deployed_step($thing);
 }
 
 sub deploy_step {
@@ -184,6 +205,18 @@ sub log_revert_tag {
     my $class = ref $_[0] || $_[0];
     require Carp;
     Carp::confess( "$class has not implemented log_revert_tag()" );
+}
+
+sub is_deployed_tag {
+    my $class = ref $_[0] || $_[0];
+    require Carp;
+    Carp::confess( "$class has not implemented is_deployed_tag()" );
+}
+
+sub is_deployed_step {
+    my $class = ref $_[0] || $_[0];
+    require Carp;
+    Carp::confess( "$class has not implemented is_deployed_step()" );
 }
 
 __PACKAGE__->meta->make_immutable;

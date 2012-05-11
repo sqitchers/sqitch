@@ -245,6 +245,37 @@ sub log_deploy_tag {
     });
 }
 
+sub is_deployed_tag {
+    my ($self, $tag) = @_;
+    return $self->_probe(
+        '--set'     => 'tags=' . _array($tag->names),
+        # XXX Not an ideal way to deal with multi-name tags.
+        '--command' => q{
+            SELECT EXISTS(
+                SELECT TRUE
+                  FROM :"sqitch_schema".tags
+                 WHERE tag = ANY(:'tags');
+            )
+        },
+    );
+}
+
+sub is_deployed_step {
+    my ($self, $step) = @_;
+    return $self->_probe(
+        '--set'     => 'step=' . $step->name,
+        '--set'     => 'tags=' . _array($step->tag->names),
+        '--command' => q{
+            SELECT EXISTS(
+                SELECT TRUE
+                  FROM :"sqitch_schema".steps
+                 WHERE step = :'step'
+                   AND tags = ANY(:'tags');
+            )
+        },
+    );
+}
+
 sub log_revert_tag {
     my ($self, $tag) = @_;
     $self->_log_tag(

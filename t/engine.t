@@ -30,12 +30,14 @@ ENGINE: {
     $INC{'App/Sqitch/Engine/whu.pm'} = __FILE__;
 
     my @SEEN;
-    sub run_file        { push @SEEN => [ run_file        => $_[1] ] }
-    sub run_handle      { push @SEEN => [ run_handle      => $_[1] ] }
-    sub log_deploy_step { push @SEEN => [ log_deploy_step => $_[1] ] }
-    sub log_revert_step { push @SEEN => [ log_revert_step => $_[1] ] }
-    sub log_deploy_tag  { push @SEEN => [ log_deploy_tag  => $_[1] ] }
-    sub log_revert_tag  { push @SEEN => [ log_revert_tag  => $_[1] ] }
+    sub run_file         { push @SEEN => [ run_file         => $_[1] ] }
+    sub run_handle       { push @SEEN => [ run_handle       => $_[1] ] }
+    sub log_deploy_step  { push @SEEN => [ log_deploy_step  => $_[1] ] }
+    sub log_revert_step  { push @SEEN => [ log_revert_step  => $_[1] ] }
+    sub log_deploy_tag   { push @SEEN => [ log_deploy_tag   => $_[1] ] }
+    sub log_revert_tag   { push @SEEN => [ log_revert_tag   => $_[1] ] }
+    sub is_deployed_tag  { push @SEEN => [ is_deployed_tag  => $_[1] ]; 0 }
+    sub is_deployed_step { push @SEEN => [ is_deployed_step => $_[1] ]; 0 }
 
     sub seen { [@SEEN] }
     after seen => sub { @SEEN = () };
@@ -115,6 +117,8 @@ for my $abs (qw(
    log_revert_step
    log_deploy_tag
    log_revert_tag
+   is_deployed_tag
+   is_deployed_step
 )) {
     throws_ok { $engine->$abs } qr/\Q$CLASS has not implemented $abs()/,
         "Should get an unimplemented exception from $abs()"
@@ -145,12 +149,27 @@ is_deeply $engine->seen, [
 ##############################################################################
 # Test deploy.
 can_ok $CLASS, 'deploy';
+
+# Try a tag with no steps.
 ok $engine->deploy($tag), 'Deploy a tag with no steps';
 is_deeply +MockOutput->get_info, [['Deploying ', 'foo', ' to ', 'mydb']],
     'Should get info message about tag deployment';
 is_deeply +MockOutput->get_warn, [
     ['Tag ', $tag->name, ' has no steps; skipping']
 ], 'Should get warning about no steps';
+is_deeply $engine->seen, [
+    [is_deployed_tag => $tag ],
+], 'Should have checked if the tag was already deployed';
+
+# Try a tag that's already "deployed".
+my $mock = Test::MockModule->new(ref $engine, no_auto => 1);
+$mock->mock(is_deployed_tag => 1);
+ok $engine->deploy($tag), 'Deploy a deployed tag';
+is_deeply +MockOutput->get_info, [
+    ['Tag ', $tag->name, ' already deployed to ', 'mydb']
+], 'Should get info that the tag is already deployed';
+is_deeply $engine->seen, [], 'No other methods should have been called';
+$mock->unmock('is_deployed_tag');
 
 # Add a step to this tag.
 push @{ $tag->_steps } => $step;
@@ -161,6 +180,8 @@ is_deeply +MockOutput->get_info, [
 ], 'Should get info message about tag and step deployment';
 is_deeply +MockOutput->get_warn, [], 'Should have no warnings';
 is_deeply $engine->seen, [
+    [is_deployed_tag => $tag ],
+    [is_deployed_step => $step ],
     [run_file => $step->deploy_file ],
     [log_deploy_step => $step ],
     [log_deploy_tag => $tag ],
@@ -177,8 +198,11 @@ is_deeply +MockOutput->get_info, [
 ], 'Should get info message about tag and both step deployments';
 is_deeply +MockOutput->get_warn, [], 'Should have no warnings';
 is_deeply $engine->seen, [
+    [is_deployed_tag => $tag ],
+    [is_deployed_step => $step ],
     [run_file => $step->deploy_file ],
     [log_deploy_step => $step ],
+    [is_deployed_step => $step2 ],
     [run_file => $step2->deploy_file ],
     [log_deploy_step => $step2 ],
     [log_deploy_tag => $tag ],
@@ -186,7 +210,6 @@ is_deeply $engine->seen, [
 
 # Die on the first step.
 my $crash_in = 1;
-my $mock = Test::MockModule->new(ref $engine, no_auto => 1);
 $mock->mock(deploy_step => sub { die 'OMGWTFLOL' if --$crash_in == 0; });
 
 throws_ok { $engine->deploy($tag) } qr/^FAIL\b/, 'Should die';
@@ -268,3 +291,5 @@ is_deeply +MockOutput->get_vent, [
 is_deeply +MockOutput->get_fail, [
     ['Aborting deployment of ', $tag->name ]
 ], 'Should have the final failure message';
+
+##############################################################################
