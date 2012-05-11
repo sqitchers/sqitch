@@ -10,7 +10,12 @@ use Moose;
 
 our $VERSION = '0.30';
 
-has sqitch => ( is => 'ro', isa => 'App::Sqitch', required => 1 );
+has sqitch => (
+    is       => 'ro',
+    isa      => 'App::Sqitch',
+    required => 1,
+    handles  => { target => 'db_name' },
+);
 
 sub load {
     my ( $class, $p ) = @_;
@@ -35,13 +40,150 @@ sub name {
 sub config_vars { return }
 
 sub initialized {
+    my $class = ref $_[0] || $_[0];
     require Carp;
-    Carp::confess( ref $_[0] || $_[0] . ' has not implemented initialized()' );
+    Carp::confess( "$class has not implemented initialized()" );
 }
 
 sub initialize {
+    my $class = ref $_[0] || $_[0];
     require Carp;
-    Carp::confess( ref $_[0] || $_[0] . ' has not implemented initialize()' );
+    Carp::confess( "$class has not implemented initialize()" );
+}
+
+sub _revert_steps {
+    my $self   = shift;
+    my $tag    = shift;
+    my $sqitch = $self->sqitch;
+    $sqitch->vent('Reverting previous steps for tag ', $tag->name);
+
+    for my $step (reverse @_) {
+        $sqitch->info('  - ', $step->name);
+        try {
+            $self->revert_step($step);
+        } catch {
+            # Sucks when this happens.
+            # XXX Add message about state corruption?
+            $sqitch->debug($_);
+            $sqitch->vent(
+                'Error reverting step ', $step->name, $/,
+                'The schema will need to be manually repaired'
+            );
+            # Damn you Try::Tiny and your code refs!
+            return 0;
+        } or return;
+    }
+}
+
+sub deploy {
+    my ($self, $tag) = @_;
+    my $sqitch = $self->sqitch;
+
+    $sqitch->info('Deploying ', $tag->name, ' to ', $self->target);
+    unless ($tag->steps) {
+        $sqitch->warn('Tag ', $tag->name, ' has no steps; skipping');
+        return $self;
+    }
+
+    my @run;
+    for my $step ($tag->steps) {
+        $sqitch->info('  + ', $step->name);
+        try {
+            $self->deploy_step($step);
+            push @run => $step;
+        } catch {
+            # Whoops! Revert completed steps.
+            $sqitch->debug($_);
+            $self->_revert_steps($tag, @run) if @run;
+            $sqitch->fail( 'Aborting deployment of ', $tag->name );
+        };
+    }
+
+    # Success!
+    try {
+        $self->log_deploy_tag($tag);
+    } catch {
+        # Whoops! Revert completed steps.
+        $sqitch->debug($_);
+        $self->_revert_steps($tag, @run);
+        $sqitch->fail( 'Aborting deployment of ', $tag->name );
+    };
+    return $self;
+}
+
+sub revert {
+    my ($self, $tag) = @_;
+    my $sqitch = $self->sqitch;
+    $sqitch->info('Reverting ', $tag->name, ' from ', $self->target);
+
+    try {
+        $self->log_revert_tag($tag);
+    } catch {
+        $sqitch->fail( "Error removing tag ", $tag->name, ":\n", $_ );
+    };
+
+    for my $step (reverse $tag->steps) {
+        $sqitch->info('  - ', $step->name);
+        try {
+            $self->revert_step($step);
+        } catch {
+            # Whoops! We're fucked.
+            # XXX do something to mark the state as corrupted.
+            $sqitch->bail(
+                2,
+                "Error reverting step ", $step->name, ":\n", $_,
+                'The schema will need to be manually repaired'
+            );
+        };
+    }
+}
+
+sub deploy_step {
+    my ( $self, $step ) = @_;
+    $self->run_file($step->deploy_file);
+    $self->log_deploy_step($step);
+}
+
+sub revert_step {
+    my ( $self, $step ) = @_;
+    $self->run_file($step->revert_file);
+    $self->log_revert_step($step);
+}
+
+sub run_file {
+    my $class = ref $_[0] || $_[0];
+    require Carp;
+    Carp::confess( "$class has not implemented run_file()" );
+}
+
+sub run_handle {
+    my $class = ref $_[0] || $_[0];
+    require Carp;
+    Carp::confess( "$class has not implemented run_handle()" );
+}
+
+sub log_deploy_step {
+    my $class = ref $_[0] || $_[0];
+    require Carp;
+    Carp::confess( "$class has not implemented log_deploy_step()" );
+}
+
+sub log_revert_step {
+    my $class = ref $_[0] || $_[0];
+    require Carp;
+    Carp::confess( "$class has not implemented log_revert_step()" );
+}
+
+sub log_deploy_tag {
+    my $class = ref $_[0] || $_[0];
+    require Carp;
+    Carp::confess( "$class has not implemented log_deploy_tag()" );
+}
+
+sub log_revert_tag {
+    my $class = ref $_[0] || $_[0];
+    require Carp;
+    Carp::confess( "$class has not implemented log_revert_tag()" );
 }
 
 __PACKAGE__->meta->make_immutable;

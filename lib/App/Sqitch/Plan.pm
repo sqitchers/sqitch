@@ -76,7 +76,6 @@ sub _parse {
 
         # Remove inline comments
         $line =~ s/\s*#.*$//g;
-        chomp $line;
 
         # Handle tag headers
         if ( my ($names) = $line =~ /^\s*\[\s*(.+?)\s*\]\s*$/ ) {

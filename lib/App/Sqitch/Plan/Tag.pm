@@ -30,6 +30,8 @@ has _steps => (
     handles  => { steps => 'elements' },
 );
 
+sub name { join '/', shift->names }
+
 __PACKAGE__->meta->make_immutable;
 no Moose;
 

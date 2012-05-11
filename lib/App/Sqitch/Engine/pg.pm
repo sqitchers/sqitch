@@ -52,8 +52,24 @@ has db_name => (
     lazy     => 1,
     required => 0,
     default  => sub {
-        my $sqitch = shift->sqitch;
+        my $self   = shift;
+        my $sqitch = $self->sqitch;
         $sqitch->db_name || $sqitch->config->get( key => 'core.pg.db_name' );
+    },
+);
+
+has target => (
+    is       => 'ro',
+    isa      => 'Str',
+    lazy     => 1,
+    required => 1,
+    default  => sub {
+        my $self = shift;
+        $self->db_name
+            || $ENV{PGDATABASE}
+            || $self->username
+            || $ENV{PGUSER}
+            || $ENV{USER};
     },
 );
 
@@ -156,6 +172,87 @@ sub initialize {
     );
 }
 
+sub run_file {
+    my ($self, $file) = @_;
+    $self->_run('--file' => $file);
+}
+
+sub run_handle {
+    my ($self, $fh) = @_;
+    $self->_spool($fh);
+}
+
+sub _array {
+    return '{'
+        . join(',' => map { s/(["\\])/\\$1/g; /[,{}]/ ? qq{"$_"} : $_ } @_)
+        . '}';
+}
+
+sub _log_step {
+    my ( $self, $step, $query ) = @_;
+    my $sqitch = $self->sqitch;
+    $self->_run(
+        '--single-transaction',
+        '--set'     => 'ON_ERROR_ROLLBACK=1',
+        '--set'     => 'ON_ERROR_STOP=1',
+        '--set'     => 'sqitch_schema=' . $self->sqitch_schema,
+        '--set'     => 'step='          . $step->name,
+        '--set'     => 'tags='          . _array($step->tag->names),
+        '--set'     => 'requires='      . _array($step->requires),
+        '--set'     => 'conflicts='     . _array($step->conflicts),
+        '--command' => $query,
+    );
+}
+
+sub log_revert_step {
+    my ($self, $step) = @_;
+    $self->_log_step($step, q{
+        DELETE FROM :"sqitch_schema".steps where step = :'step' AND tags = :'tags';
+        INSERT INTO :"sqitch_schema".history (action, step, tags, requires, conflicts)
+        VALUES ('revert', :'step', :'tags', :'requires', :'conflicts');
+    });
+}
+
+sub log_deploy_step {
+    my ($self, $step) = @_;
+    $self->_log_step($step, q{
+        INSERT INTO :"sqitch_schema".steps (step, tags, requires, conflicts)
+        VALUES (:'step', :'tags', :'requires', :'conflicts');
+        INSERT INTO :"sqitch_schema".history (action, step, tags, requires, conflicts)
+        VALUES ('deploy', :'step', :'tags', :'requires', :'conflicts');
+    });
+}
+
+sub _log_tag {
+    my ( $self, $tag, $query ) = @_;
+    my $sqitch = $self->sqitch;
+    $self->_run(
+        '--single-transaction',
+        '--set'     => 'ON_ERROR_ROLLBACK=1',
+        '--set'     => 'ON_ERROR_STOP=1',
+        '--set'     => 'sqitch_schema=' . $self->sqitch_schema,
+        '--set'     => 'tags='          . _array($tag->names),
+        '--set'     => 'steps='         . _array(map { $_->name } $tag->steps),
+        '--command' => $query,
+    );
+}
+
+sub log_deploy_tag {
+    my ($self, $tag) = @_;
+    $self->_log_tag($tag, q{
+        INSERT INTO :"sqitch_schema".tags (tag, steps)
+        SELECT t FROM UNNEST(:'tags') AS t;
+    });
+}
+
+sub log_revert_tag {
+    my ($self, $tag) = @_;
+    $self->_log_tag(
+        $tag,
+        q{DELETE FROM :"sqitch_schema".tags WHERE tag = ANY(:'tags');},
+    );
+}
+
 sub _run {
     my $self   = shift;
     my $sqitch = $self->sqitch;
@@ -178,6 +275,15 @@ sub _probe {
     my $pass   = $self->password or return $sqitch->probe( $self->psql, @_ );
     local $ENV{PGPASSWORD} = $pass;
     return $sqitch->probe( $self->psql, @_ );
+}
+
+sub _spool {
+    my $self   = shift;
+    my $fh     = shift;
+    my $sqitch = $self->sqitch;
+    my $pass   = $self->password or return $sqitch->spool( $fh, $self->psql );
+    local $ENV{PGPASSWORD} = $pass;
+    return $sqitch->spool( $fh, $self->psql );
 }
 
 __PACKAGE__->meta->make_immutable;

@@ -64,6 +64,21 @@ has test_file => (
     }
 );
 
+sub deploy_handle {
+    my $self = shift;
+    $self->plan->open_script($self->deploy_file);
+}
+
+sub revert_handle {
+    my $self = shift;
+    $self->plan->open_script($self->revert_file);
+}
+
+sub test_handle {
+    my $self = shift;
+    $self->plan->open_script($self->test_file);
+}
+
 sub requires  { @{ shift->_dependencies->{requires}  } }
 sub conflicts { @{ shift->_dependencies->{conflicts} } }
 

@@ -157,6 +157,25 @@ is_deeply \@cap, [$pg->psql, qw(hi there)],
     'Command should be passed to capture() again';
 
 ##############################################################################
+# Test array().
+ok my $array = $CLASS->can('_array'), "$CLASS->can(_array)";
+
+for my $spec (
+    ['{}'],
+    ['{foo}', 'foo'],
+    ['{foo,bar}', qw(foo bar)],
+    ['{foo,b\\"ar}', qw(foo b"ar)],
+    ['{foo,b\\\\ar}', qw(foo b\\ar)],
+    ['{foo,"b{ar}"}', qw(foo b{ar})],
+    ['{foo,"b,ar"}', 'foo', 'b,ar'],
+    ['{42}', 42 ],
+    ['{42,1243}', 42, 1243 ],
+) {
+    my $exp = shift @{ $spec };
+    is $array->(@{ $spec }), $exp, "Test array $exp";
+}
+
+##############################################################################
 # Can we do live tests?
 $mock_sqitch->unmock_all;
 $mock_config->unmock_all;
