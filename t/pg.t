@@ -127,8 +127,8 @@ is_deeply [$pg->psql], [qw(
 ), @std_opts], 'psql command should be as optioned';
 
 ##############################################################################
-# Test _run(), _cap(), _probe(), and run_handle().
-can_ok $pg, qw(_run _cap _probe run_handle);
+# Test _run(), _cap(), _probe(), and _spool().
+can_ok $pg, qw(_run _cap _probe _spool);
 my $mock_sqitch = Test::MockModule->new('App::Sqitch');
 my (@run, $exp_pass);
 $mock_sqitch->mock(run => sub {
@@ -167,15 +167,11 @@ ok $pg->_run(qw(foo bar baz)), 'Call _run';
 is_deeply \@run, [$pg->psql, qw(foo bar baz)],
     'Command should be passed to run()';
 
-ok $pg->run_file('foo/bar.sql'), 'Run foo/bar.sql';
-is_deeply \@run, [$pg->psql, '--file', 'foo/bar.sql'],
-    'File should be passed to run()';
-
 ok $pg->_cap(qw(hi there)), 'Call _cap';
 is_deeply \@cap, [$pg->psql, qw(hi there)],
     'Command should be passed to capture()';
 
-ok $pg->run_handle('FH'), 'Call run_handle';
+ok $pg->_spool('FH'), 'Call _spool';
 is_deeply \@spool, ['FH', $pg->psql],
     'Command should be passed to spool()';
 
@@ -195,13 +191,23 @@ ok $pg->_cap(qw(hi there)), 'Call _cap again';
 is_deeply \@cap, [$pg->psql, qw(hi there)],
     'Command should be passed to capture() again';
 
-ok $pg->run_handle('FH'), 'Call run_handle again';
+ok $pg->_spool('FH'), 'Call _spool again';
 is_deeply \@spool, ['FH', $pg->psql],
     'Command should be passed to spool() again';
 
 ok $pg->_probe(qw(hi there)), 'Call _probe again';
 is_deeply \@cap, [$pg->psql, qw(hi there)],
     'Command should be passed to capture() again';
+
+##############################################################################
+# Test file and handle running.
+ok $pg->run_file('foo/bar.sql'), 'Run foo/bar.sql';
+is_deeply \@run, [$pg->psql, '--file', 'foo/bar.sql'],
+    'File should be passed to run()';
+
+ok $pg->run_handle('FH'), 'Spool a "file handle"';
+is_deeply \@spool, ['FH', $pg->psql],
+    'Handle should be passed to spool()';
 
 ##############################################################################
 # Test array().

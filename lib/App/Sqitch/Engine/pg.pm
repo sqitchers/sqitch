@@ -177,6 +177,11 @@ sub run_file {
     $self->_run('--file' => $file);
 }
 
+sub run_handle {
+    my ($self, $fh) = @_;
+    $self->_spool($fh);
+}
+
 sub _array {
     return '{'
         . join(',' => map { s/(["\\])/\\$1/g; /[,{}]/ ? qq{"$_"} : $_ } @_)
@@ -320,13 +325,13 @@ sub _probe {
     return $sqitch->probe( $self->psql, @_ );
 }
 
-sub run_handle {
+sub _spool {
     my $self   = shift;
     my $fh     = shift;
     my $sqitch = $self->sqitch;
-    my $pass   = $self->password or return $sqitch->spool( $fh, $self->psql );
+    my $pass   = $self->password or return $sqitch->spool( $fh, $self->psql, @_ );
     local $ENV{PGPASSWORD} = $pass;
-    return $sqitch->spool( $fh, $self->psql );
+    return $sqitch->spool( $fh, $self->psql, @_ );
 }
 
 __PACKAGE__->meta->make_immutable;
