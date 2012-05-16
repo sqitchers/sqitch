@@ -251,8 +251,8 @@ subtest 'live database' => sub {
         tag  => $tag,
     );
 
-    ok $pg->begin_deploy_tag($tag), 'Begin deploying "users" tag';
-    ok $pg->commit_deploy_tag($tag), 'Commit "users" tag';
+    ok $pg->begin_deploy_tag($tag), 'Begin deploying "alpha" tag';
+    ok $pg->commit_deploy_tag($tag), 'Commit "alpha" tag';
     is_deeply $pg->_dbh->selectrow_arrayref(
         'SELECT tag_id, applied_by FROM tags'
     ), [1, $ENV{USER}],
@@ -270,6 +270,48 @@ subtest 'live database' => sub {
     is_deeply $pg->_dbh->selectall_arrayref(
         'SELECT action, step, tags, taken_by, requires, conflicts FROM history'
     ), [], 'No record should have been inserted into the history table';
+
+    # Now revert it.
+    ok $pg->begin_revert_tag($tag), 'Begin reverting "alpha" tag';
+    ok $pg->commit_revert_tag($tag), 'Commit "alpha" reversion';
+
+    is $pg->_dbh->selectrow_arrayref(
+        'SELECT tag_id, applied_by FROM tags'
+    ), undef, 'The record should be removed from the tags table';
+
+    is_deeply $pg->_dbh->selectall_arrayref(
+        'SELECT tag_name, tag_id FROM tag_names'
+    ), [], 'And from the tag_names table, too';
+
+    # Let's have a couple of tag names.
+    $tag = App::Sqitch::Plan::Tag->new(
+        names => [qw(alpha beta)],
+        plan  => $plan,
+    );
+
+    ok $pg->begin_deploy_tag($tag), 'Begin deploying "alpha" tag again';
+    ok $pg->commit_deploy_tag($tag), 'Commit "alpha"/"beta" tag';
+    is_deeply $pg->_dbh->selectrow_arrayref(
+        'SELECT tag_id, applied_by FROM tags'
+    ), [2, $ENV{USER}],
+        'A record should have been inserted into the tags table again';
+
+    is_deeply $pg->_dbh->selectall_arrayref(
+        'SELECT tag_name, tag_id FROM tag_names ORDER BY tag_name'
+    ), [['alpha', 2], ['beta', 2]],
+        'Both names should have been inserted into the tag_names taable';
+
+    # Now revert it.
+    ok $pg->begin_revert_tag($tag), 'Begin reverting "alpha"/"beta" tag';
+    ok $pg->commit_revert_tag($tag), 'Commit "alpha"/"beta" reversion';
+
+    is $pg->_dbh->selectrow_arrayref(
+        'SELECT tag_id, applied_by FROM tags'
+    ), undef, 'The record should be removed from the tags table again';
+
+    is_deeply $pg->_dbh->selectall_arrayref(
+        'SELECT tag_name, tag_id FROM tag_names'
+    ), [], 'And from the tag_names table, too, again';
 };
 
 done_testing;
