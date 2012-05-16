@@ -258,12 +258,8 @@ sub commit_deploy_tag {
     $dbh->commit;
 }
 
-sub commit_revert_tag {
-    my ( $self, $tag ) = @_;
-    my $dbh = $self->_dbh;
-    croak(
-        "Cannot call commit_revert_tag() without first calling begin_revert_tag()"
-    ) if $dbh->{AutoCommit};
+sub _revert_tag {
+    my ( $self, $tag, $dbh ) = @_;
     $dbh->do(q{
         DELETE FROM tags WHERE tag_id IN (
             SELECT tag_id
@@ -272,6 +268,24 @@ sub commit_revert_tag {
         );
     }, undef, [$tag->names]);
     $dbh->commit;
+}
+
+sub rollback_deploy_tag {
+    my ( $self, $tag ) = @_;
+    my $dbh = $self->_dbh;
+    croak(
+        "Cannot call rollback_deploy_tag() without first calling begin_deploy_tag()"
+    ) if $dbh->{AutoRollback};
+    $self->_revert_tag( $tag, $dbh );
+}
+
+sub commit_revert_tag {
+    my ( $self, $tag ) = @_;
+    my $dbh = $self->_dbh;
+    croak(
+        "Cannot call commit_revert_tag() without first calling begin_revert_tag()"
+    ) if $dbh->{AutoCommit};
+    $self->_revert_tag( $tag, $dbh );
 }
 
 sub log_deploy_step {

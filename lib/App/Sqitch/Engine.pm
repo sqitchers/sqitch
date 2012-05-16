@@ -49,28 +49,31 @@ sub initialize {
     Carp::confess( "$class has not implemented initialize()" );
 }
 
-sub _revert_steps {
+sub _rollback_steps {
     my $self   = shift;
     my $tag    = shift;
+    my @steps  = @_;
     my $sqitch = $self->sqitch;
-    $sqitch->vent('Reverting previous steps for tag ', $tag->name);
+    $sqitch->vent('Reverting previous steps for tag ', $tag->name)
+        if @steps;
 
-    for my $step (reverse @_) {
-        $sqitch->info('  - ', $step->name);
-        try {
+    try {
+        for my $step (reverse @steps) {
+            $sqitch->info('  - ', $step->name);
             $self->revert_step($step);
-        } catch {
-            # Sucks when this happens.
-            # XXX Add message about state corruption?
-            $sqitch->debug($_);
-            $sqitch->vent(
-                'Error reverting step ', $step->name, $/,
-                'The schema will need to be manually repaired'
-            );
-            # Damn you Try::Tiny and your code refs!
-            return 0;
-        } or return;
-    }
+        }
+        $self->rollback_deploy_tag($tag);
+    } catch {
+        # Sucks when this happens.
+        # XXX Add message about state corruption?
+        $sqitch->debug($_);
+        $sqitch->vent(
+            'Error rolling back ', $tag->name, $/,
+            'The schema will need to be manually repaired'
+        );
+    };
+
+    return $self;
 }
 
 sub deploy {
@@ -81,11 +84,10 @@ sub deploy {
         'Tag ', $tag->name, ' already deployed to ', $self->target
     ) if $self->is_deployed_tag($tag);
 
+    return $sqitch->warn('Tag ', $tag->name, ' has no steps; skipping')
+        unless $tag->steps;
+
     $sqitch->info('Deploying ', $tag->name, ' to ', $self->target);
-    unless ($tag->steps) {
-        $sqitch->warn('Tag ', $tag->name, ' has no steps; skipping');
-        return $self;
-    }
 
     my @run;
     try {
@@ -104,7 +106,7 @@ sub deploy {
                     "Conflicts with previously deployed step$pl: ",
                     join ' ', @conflicts
                 );
-                $self->_revert_steps($tag, @run) if @run;
+                $self->_rollback_steps($tag, @run);
                 $sqitch->fail( 'Aborting deployment of ', $tag->name );
             }
 
@@ -115,7 +117,7 @@ sub deploy {
                     "Missing required step$pl: ",
                     join ' ', @required
                 );
-                $self->_revert_steps($tag, @run) if @run;
+                $self->_rollback_steps($tag, @run);
                 $sqitch->fail( 'Aborting deployment of ', $tag->name );
             }
 
@@ -127,7 +129,7 @@ sub deploy {
     } catch {
         # Whoops! Revert completed steps.
         $sqitch->debug($_);
-        $self->_revert_steps($tag, @run) if @run;
+        $self->_rollback_steps($tag, @run);
         $sqitch->fail( 'Aborting deployment of ', $tag->name );
     };
 
@@ -230,6 +232,12 @@ sub commit_deploy_tag {
     my $class = ref $_[0] || $_[0];
     require Carp;
     Carp::confess( "$class has not implemented commit_deploy_tag()" );
+}
+
+sub rollback_deploy_tag {
+    my $class = ref $_[0] || $_[0];
+    require Carp;
+    Carp::confess( "$class has not implemented rollback_deploy_tag()" );
 }
 
 sub begin_revert_tag {
@@ -464,6 +472,13 @@ create locks to control the deployment, etc.
 
 Commit a tag deployment. The engine should clean up anything started in
 C<begin_deploy_tag()>.
+
+=head3 C<rollback_deploy_tag>
+
+  $engine->rollback_deploy_tag($tag);
+
+Roll back a tag deployment. The engine should remove the tag record and commit
+its changes.
 
 =head3 C<log_deploy_step>
 

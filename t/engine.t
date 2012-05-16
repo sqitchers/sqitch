@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 116;
+use Test::More tests => 120;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -40,6 +40,7 @@ ENGINE: {
     sub log_revert_step   { push @SEEN => [ log_revert_step   => $_[1] ] }
     sub begin_deploy_tag  { push @SEEN => [ begin_deploy_tag  => $_[1] ] }
     sub commit_deploy_tag { push @SEEN => [ commit_deploy_tag => $_[1] ] }
+    sub rollback_deploy_tag { push @SEEN => [ rollback_deploy_tag => $_[1] ] }
     sub begin_revert_tag  { push @SEEN => [ begin_revert_tag  => $_[1] ] }
     sub commit_revert_tag { push @SEEN => [ commit_revert_tag => $_[1] ] }
     sub is_deployed_tag   { push @SEEN => [ is_deployed_tag   => $_[1] ]; $is_deployed_tag }
@@ -166,8 +167,7 @@ can_ok $CLASS, 'deploy';
 
 # Try a tag with no steps.
 ok $engine->deploy($tag), 'Deploy a tag with no steps';
-is_deeply +MockOutput->get_info, [['Deploying ', 'foo', ' to ', 'mydb']],
-    'Should get info message about tag deployment';
+is_deeply +MockOutput->get_info, [], 'Should get no message';
 is_deeply +MockOutput->get_warn, [
     ['Tag ', $tag->name, ' has no steps; skipping']
 ], 'Should get warning about no steps';
@@ -266,6 +266,14 @@ like $debug->[0][0], qr/^OMGWTFLOL\b/, 'And it should be the original error';
 is_deeply +MockOutput->get_fail, [
     ['Aborting deployment of ', $tag->name ]
 ], 'Should have the final failure message';
+is_deeply $engine->seen, [
+    [is_deployed_tag => $tag ],
+    [begin_deploy_tag => $tag],
+    [is_deployed_step => $step ],
+    [check_conflicts => $step],
+    [check_requires => $step],
+    [rollback_deploy_tag => $tag ],
+], 'The tag should be rolled back';
 
 # Try bailing on the second step.
 $crash_in = 2;
@@ -286,6 +294,19 @@ is_deeply +MockOutput->get_vent, [
 is_deeply +MockOutput->get_fail, [
     ['Aborting deployment of ', $tag->name ]
 ], 'Should have the final failure message';
+is_deeply $engine->seen, [
+    [is_deployed_tag => $tag ],
+    [begin_deploy_tag => $tag],
+    [is_deployed_step => $step ],
+    [check_conflicts => $step],
+    [check_requires => $step],
+    [is_deployed_step => $step2 ],
+    [check_conflicts => $step2],
+    [check_requires => $step2],
+    [run_file => $step->revert_file ],
+    [log_revert_step => $step ],
+    [rollback_deploy_tag => $tag ],
+], 'The first step and the tag should be reverted and rolled back';
 
 # Now choke on a reversion, too (add insult to injury).
 $crash_in = 2;
@@ -304,13 +325,23 @@ like $debug->[0][0], qr/^OMGWTFLOL\b/, 'The first should be the original error';
 like $debug->[1][0], qr/^OWOWOW\b/, 'The second should be the revert error';
 is_deeply +MockOutput->get_vent, [
     [ 'Reverting previous steps for tag ', $tag->name],
-    [ 'Error reverting step ', $step->name, $/,
+    [ 'Error rolling back ', $tag->name, $/,
       'The schema will need to be manually repaired'
     ],
 ], 'The reversion and its failure should have been vented';
 is_deeply +MockOutput->get_fail, [
     ['Aborting deployment of ', $tag->name ]
 ], 'Should have the final failure message';
+is_deeply $engine->seen, [
+    [is_deployed_tag => $tag ],
+    [begin_deploy_tag => $tag],
+    [is_deployed_step => $step ],
+    [check_conflicts => $step],
+    [check_requires => $step],
+    [is_deployed_step => $step2 ],
+    [check_conflicts => $step2],
+    [check_requires => $step2],
+], 'The revert and rollback should not appear';
 
 # Now get all the way through, but choke when tagging.
 $mock->unmock_all;
@@ -333,6 +364,25 @@ is_deeply +MockOutput->get_vent, [
 is_deeply +MockOutput->get_fail, [
     ['Aborting deployment of ', $tag->name ]
 ], 'Should have the final failure message';
+is_deeply $engine->seen, [
+    [is_deployed_tag => $tag ],
+    [begin_deploy_tag => $tag],
+    [is_deployed_step => $step ],
+    [check_conflicts => $step],
+    [check_requires => $step],
+    [run_file => $step->deploy_file],
+    [log_deploy_step => $step],
+    [is_deployed_step => $step2 ],
+    [check_conflicts => $step2],
+    [check_requires => $step2],
+    [run_file => $step2->deploy_file ],
+    [log_deploy_step => $step2],
+    [run_file => $step2->revert_file],
+    [log_revert_step => $step2 ],
+    [run_file => $step->revert_file],
+    [log_revert_step => $step ],
+    [rollback_deploy_tag => $tag ],
+], 'Both steps should be reverted and the tag rolled back';
 
 ##############################################################################
 # Test revert.
