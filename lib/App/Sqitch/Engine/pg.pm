@@ -37,6 +37,15 @@ has username => (
     },
 );
 
+has actor => (
+    is      => 'ro',
+    isa     => 'Str',
+    lazy    => 1,
+    default => sub {
+        $ENV{USER} || shift->username || $ENV{PGUSER};
+    },
+);
+
 has password => (
     is       => 'ro',
     isa      => 'Maybe[Str]',
@@ -232,7 +241,7 @@ sub begin_deploy_tag {
 
     $dbh->do(
         'INSERT INTO tags (applied_by) VALUES(?)',
-        undef, $ENV{USER} || $self->username
+        undef, $self->actor
     );
 
     $dbh->do( q{
@@ -255,6 +264,10 @@ sub commit_deploy_tag {
     croak(
         "Cannot call commit_deploy_tag() without first calling begin_deploy_tag()"
     ) if $dbh->{AutoCommit};
+    $dbh->do(q{
+        INSERT INTO events (event, tags, logged_by)
+        VALUES ('apply', ?, ?);
+    }, undef, [$tag->names], $self->actor);
     $dbh->commit;
 }
 
@@ -286,6 +299,10 @@ sub commit_revert_tag {
         "Cannot call commit_revert_tag() without first calling begin_revert_tag()"
     ) if $dbh->{AutoCommit};
     $self->_revert_tag( $tag, $dbh );
+    $dbh->do(q{
+        INSERT INTO events (event, tags, logged_by)
+        VALUES ('remove', ?, ?);
+    }, undef, [$tag->names], $self->actor);
 }
 
 sub log_deploy_step {
@@ -295,15 +312,21 @@ sub log_deploy_step {
         'Cannot deploy a step without first calling begin_deploy_tag()'
     ) if $dbh->{AutoCommit};
 
-    my ($name, $req, $conf) = ($step->name, [$step->requires], [$step->conflicts]);
+    my ($name, $req, $conf, $actor) = (
+        $step->name,
+        [$step->requires],
+        [$step->conflicts],
+        $self->actor,
+    );
+
     $dbh->do(q{
-        INSERT INTO steps (step, tag_id, requires, conflicts)
-        VALUES (?, lastval(), ?, ?)
-    }, undef, $name, $req, $conf);
+        INSERT INTO steps (step, tag_id, requires, conflicts, deployed_by)
+        VALUES (?, lastval(), ?, ?, ?)
+    }, undef, $name, $req, $conf, $actor);
     $dbh->do(q{
-        INSERT INTO history (action, step, tags, requires, conflicts)
-        VALUES ('deploy', ?, ?, ?, ?);
-    }, undef, $name, [$step->tag->names], $req, $conf);
+        INSERT INTO events (event, step, tags, logged_by)
+        VALUES ('deploy', ?, ?, ?);
+    }, undef, $name, [$step->tag->names], $actor);
 
     return $self;
 }
@@ -316,18 +339,18 @@ sub log_revert_step {
     ) if $dbh->{AutoCommit};
 
     $dbh->do(q{
-        INSERT INTO history (action, step, requires, conflicts, tags)
-        SELECT 'revert', step, requires, conflicts, ARRAY(
-            SELECT tag_name FROM tag_names WHERE tag_id = steps.tag_id
-        ) FROM steps
-         WHERE step = ?
-    }, undef, $step->name);
-
-    $dbh->do(q{
-        DELETE FROM .steps where step = ? AND tag_id = (
+        DELETE FROM steps where step = ? AND tag_id = (
             SELECT tag_id FROM tag_names WHERE tag_name = ?
         );
     }, undef, $step->name, ($step->tags)[0]);
+
+    $dbh->do(q{
+        INSERT INTO events (event, step, logged_by, tags)
+        SELECT 'revert', step, $1, ARRAY(
+            SELECT tag_name FROM tag_names WHERE tag_id = steps.tag_id
+        ) FROM steps
+         WHERE step = $2
+    }, undef, $self->actor, $step->name);
     return $self;
 }
 

@@ -268,8 +268,9 @@ subtest 'live database' => sub {
     ), [], 'No record should have been inserted into the steps table';
 
     is_deeply $pg->_dbh->selectall_arrayref(
-        'SELECT action, step, tags, taken_by, requires, conflicts FROM history'
-    ), [], 'No record should have been inserted into the history table';
+        'SELECT event, step, tags, logged_by FROM events'
+    ), [['apply', '', ['alpha'], $pg->actor]],
+        'The tag application should have been logged';
 
     # Now revert it.
     ok $pg->begin_revert_tag($tag), 'Begin reverting "alpha" tag';
