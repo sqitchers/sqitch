@@ -168,14 +168,20 @@ has _dbh => (
 
         DBI->connect($dsn, $self->username, $self->password, {
             PrintError        => 0,
-            RaiseError        => 0,
+            RaiseError        => 1,
             AutoCommit        => 1,
             pg_enable_utf8    => 1,
             pg_server_prepare => 1,
-            HandleError       => sub {
-                my ($err, $dbh) = @_;
-                $dbh->rollback unless $dbh->{AutoCommit};
-                die $err;
+            # HandleError       => sub {
+            #     my ($err, $dbh) = @_;
+            #     $dbh->rollback unless $dbh->{AutoCommit};
+            #     die $err;
+            # },
+            Callbacks         => {
+                connected => sub {
+                    shift->do('SET search_path = ?', undef, $self->sqitch_schema);
+                    return;
+                },
             },
         });
     }
@@ -203,15 +209,18 @@ sub initialized {
 }
 
 sub initialize {
-    my $self = shift;
-    die 'Sqitch schema "' . $self->sqitch_schema . qq{" already exists\n}
-        if $self->initialized;
+    my $self   = shift;
+    my $schema = $self->sqitch_schema;
+    die qq{Sqitch schema "$schema" already exists\n} if $self->initialized;
 
     my $file = file(__FILE__)->dir->file('pg.sql');
-    return $self->_run(
+    $self->_run(
         '--file' => $file,
-        '--set'  => 'sqitch_schema=' . $self->sqitch_schema
+        '--set'  => "sqitch_schema=$schema",
     );
+
+    $self->_dbh->do('SET search_path = ?', undef, $schema);
+    return $self;
 }
 
 sub run_file {
@@ -230,7 +239,6 @@ sub _begin_tag {
 
     # Start transactiojn and lock tags to allow one tag change at a time.
     $dbh->begin_work;
-    $dbh->do('SET search_path = ?', undef, $self->sqitch_schema);
     $dbh->do('LOCK TABLE tags IN EXCLUSIVE MODE');
     return $dbh;
 }
@@ -288,7 +296,7 @@ sub rollback_deploy_tag {
     my $dbh = $self->_dbh;
     croak(
         "Cannot call rollback_deploy_tag() without first calling begin_deploy_tag()"
-    ) if $dbh->{AutoRollback};
+    ) if $dbh->{AutoCommit};
     $self->_revert_tag( $tag, $dbh );
 }
 
@@ -352,18 +360,19 @@ sub log_revert_step {
     ) if $dbh->{AutoCommit};
 
     $dbh->do(q{
-        DELETE FROM steps where step = ? AND tag_id = (
-            SELECT tag_id FROM tag_names WHERE tag_name = ?
-        );
-    }, undef, $step->name, ($step->tags)[0]);
-
-    $dbh->do(q{
         INSERT INTO events (event, step, logged_by, tags)
         SELECT 'revert', step, $1, ARRAY(
             SELECT tag_name FROM tag_names WHERE tag_id = steps.tag_id
         ) FROM steps
          WHERE step = $2
     }, undef, $self->actor, $step->name);
+
+    $dbh->do(q{
+        DELETE FROM steps where step = ? AND tag_id = (
+            SELECT tag_id FROM tag_names WHERE tag_name = ?
+        );
+    }, undef, $step->name, ($step->tag->names)[0]);
+
     return $self;
 }
 
@@ -391,17 +400,31 @@ sub is_deployed_step {
 
 sub deployed_steps_for {
     my ( $self, $tag ) = @_;
-    # XXX Need to sort by dependency order.
-    return map {
+    my $dbh = $self->_dbh;
+
+    # Find all steps installed before this tag.
+    my %seen = map { $_ => 1 } @{
+        $dbh->selectcol_arrayref(q{
+            SELECT step
+              FROM steps
+             WHERE deployed_at < (
+                SELECT MIN(deployed_at)
+                  FROM steps
+                  JOIN tag_names ON steps.tag_id = tag_names.tag_id
+                 WHERE tag_name = ANY(?)
+             )
+        }, undef, [$tag->names]) || []
+    };
+
+    return @{ $tag->plan->sort_steps(\%seen, map {
         chomp;
         App::Sqitch::Plan::Step->new(name => $_, tag => $tag)
-    } $self->_dbh->selectrow_array(q{
+    } @{ $dbh->selectcol_arrayref(q{
         SELECT DISTINCT step
           FROM steps
-          JOIN tag_names ON steps.tag_id tag_names.tag_id
+          JOIN tag_names ON steps.tag_id = tag_names.tag_id
          WHERE tag_name = ANY(?)
-         ORDER BY deployed_at
-    }, [tag->names]);
+    }, undef, [$tag->names]) || [] } ) };
 }
 
 sub check_conflicts {
@@ -410,11 +433,11 @@ sub check_conflicts {
     # No need to check anything if there are no conflicts.
     return unless $step->conflicts;
 
-    $self->_dbh->selectrow_array(q{
-        SELECT name
+    return @{ $self->_dbh->selectcol_arrayref(q{
+        SELECT step
           FROM steps
-         WHERE name = ANY(?)
-    }, undef, [$step->conflicts]);
+         WHERE step = ANY(?)
+    }, undef, [$step->conflicts]) || [] };
 }
 
 sub check_requires {
@@ -423,11 +446,11 @@ sub check_requires {
     # No need to check anything if there are no requirements.
     return unless $step->requires;
 
-    $self->_dbh->selectrow_array(q{
+    return @{ $self->_dbh->selectcol_arrayref(q{
         SELECT required
-          FROM UNNEST(?) required
-         WHERE required <> ALL(SELECT name FROM steps);
-    }, undef, [$step->requires]);
+          FROM UNNEST(?::text[]) required
+         WHERE required <> ALL(ARRAY(SELECT step FROM steps));
+    }, undef, [$step->requires]) || [] };
 }
 
 sub _run {
