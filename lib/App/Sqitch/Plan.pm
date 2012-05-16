@@ -80,8 +80,8 @@ sub _parse {
         # Handle tag headers
         if ( my ($names) = $line =~ /^\s*\[\s*(.+?)\s*\]\s*$/ ) {
             if ($curr_tag) {
-                push @{ $curr_tag->_steps } => $self->_sort_steps(
-                    $curr_tag, \%prev_steps, @curr_steps
+                push @{ $curr_tag->_steps } => $self->sort_steps(
+                    \%prev_steps, @curr_steps
                 );
                 push @plan => $curr_tag;
 
@@ -161,8 +161,8 @@ sub _parse {
     }
 
     if ($curr_tag) {
-        push @{ $curr_tag->_steps } => $self->_sort_steps(
-            $curr_tag, \%prev_steps, @curr_steps
+        push @{ $curr_tag->_steps } => $self->sort_steps(
+            \%prev_steps, @curr_steps
         );
         push @plan => $curr_tag;
         $tags->{$_} = $#plan for $curr_tag->names;
@@ -246,8 +246,9 @@ sub load_untracked {
     return $tag;
 }
 
-sub _sort_steps {
-    my ( $self, $tag_names, $seen ) = ( shift, shift, shift );
+sub sort_steps {
+    my $self = shift;
+    my $seen = ref $_[0] eq 'HASH' ? shift : {};
 
     my %obj;             # maps step names to objects.
     my %pairs;           # all pairs ($l, $r)
@@ -531,6 +532,16 @@ call.
 
 Subclasses may override this method to load a tag with untracked steps from
 whatever resources they deem appropriate.
+
+=head3 C<sort_steps>
+
+  @steps = $plan->sort_steps(@steps);
+  @steps = $plan->sort_steps(\%seen, @steps);
+
+Sorts the steps passed in in dependency order and returns them. If the first
+argument is a hash reference, it is assumed to contain a list of
+previously-seen steps that can be assumed to be satisfied requirements for the
+succeeding steps.
 
 =head1 See Also
 
