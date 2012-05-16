@@ -311,12 +311,17 @@ sub open_script {
     );
 }
 
-sub seek {
+sub index_of {
     my ( $self, $name ) = @_;
     my $index = $self->_tags->{$name};
     $self->sqitch->fail(qq{Cannot find tag "$name" in plan})
         unless defined $index;
-    $self->position($index);
+    return $index;
+}
+
+sub seek {
+    my ( $self, $name ) = @_;
+    $self->position($self->index_of($name));
     return $self;
 }
 
@@ -345,6 +350,11 @@ sub current {
 sub peek {
     my $self = shift;
     ( $self->all )[ $self->position + 1 ];
+}
+
+sub last {
+    my $self = shift;
+    ( $self->all )[ -1 ];
 }
 
 sub do {

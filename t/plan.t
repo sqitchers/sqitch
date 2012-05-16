@@ -4,8 +4,8 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 106;
-#use Test::More 'no_plan';
+#use Test::More tests => 113;
+use Test::More 'no_plan';
 use App::Sqitch;
 use Path::Class;
 use Test::Exception;
@@ -143,6 +143,7 @@ is_deeply $plan->load, [
 ##############################################################################
 # Test the interator interface.
 can_ok $plan, qw(
+    index_of
     seek
     reset
     next
@@ -159,6 +160,7 @@ is $plan->position, 0, 'Position should be at 0';
 is $plan->current, $tag, 'Current should be current';
 ok my $next = $plan->peek, 'Peek to next tag';
 is [$next->names]->[0], 'bar', 'Peeked tag should be second tag';
+is $plan->last, $next, 'last() should return last tag';
 is $plan->current, $tag, 'Current should still be current';
 is $plan->peek, $next, 'Peek should still be next';
 is $plan->next, $next, 'Next should be the second tag';
@@ -176,15 +178,25 @@ is $plan->current, undef, 'Current should still be undef';
 is $plan->next, $tag, 'Next should return the first tag again';
 is $plan->position, 0, 'Position should be at 0 again';
 is $plan->current, $tag, 'Current should be first tag';
+is $plan->index_of($tag->name), 0, "Index of $tag should be 0";
+is $plan->index_of('bar'), 1, 'Index of bar should be 1';
 ok $plan->seek('bar'), 'Seek to the "bar" tag';
 is $plan->position, 1, 'Position should be at 1 again';
 is $plan->current, $next, 'Current should be second again';
+is $plan->index_of('foo'), 0, 'Index of bar should be 0';
 ok $plan->seek('foo'), 'Seek to the "foo" tag';
 is $plan->position, 0, 'Position should be at 0 again';
 is $plan->current, $tag, 'Current should be first again';
+is $plan->index_of('baz'), 1, 'Index of baz should be 1';
 ok $plan->seek('baz'), 'Seek to the "baz" tag';
 is $plan->position, 1, 'Position should be at 1 again';
 is $plan->current, $next, 'Current should be second again';
+
+# Make sure index_of() chokes on a bad tag name.
+throws_ok { $plan->index_of('nonesuch') } qr/FAIL:/,
+    'Should die finding index of invalid tag';
+is_deeply +MockOutput->get_fail, [['Cannot find tag "nonesuch" in plan']],
+    'And the failure should be sent to output';
 
 # Make sure seek() chokes on a bad tag name.
 throws_ok { $plan->seek('nonesuch') } qr/FAIL:/,
