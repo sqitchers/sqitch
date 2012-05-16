@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 120;
+use Test::More tests => 121;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -37,6 +37,7 @@ ENGINE: {
     sub run_file          { push @SEEN => [ run_file          => $_[1] ] }
     sub run_handle        { push @SEEN => [ run_handle        => $_[1] ] }
     sub log_deploy_step   { push @SEEN => [ log_deploy_step   => $_[1] ] }
+    sub log_fail_step     { push @SEEN => [ log_fail_step     => $_[1] ] }
     sub log_revert_step   { push @SEEN => [ log_revert_step   => $_[1] ] }
     sub begin_deploy_tag  { push @SEEN => [ begin_deploy_tag  => $_[1] ] }
     sub commit_deploy_tag { push @SEEN => [ commit_deploy_tag => $_[1] ] }
@@ -124,6 +125,7 @@ for my $abs (qw(
     run_file
     run_handle
     log_deploy_step
+    log_fail_step
     log_revert_step
     begin_deploy_tag
     commit_deploy_tag
@@ -272,6 +274,7 @@ is_deeply $engine->seen, [
     [is_deployed_step => $step ],
     [check_conflicts => $step],
     [check_requires => $step],
+    [log_fail_step => $step ],
     [rollback_deploy_tag => $tag ],
 ], 'The tag should be rolled back';
 
@@ -303,6 +306,7 @@ is_deeply $engine->seen, [
     [is_deployed_step => $step2 ],
     [check_conflicts => $step2],
     [check_requires => $step2],
+    [log_fail_step => $step2 ],
     [run_file => $step->revert_file ],
     [log_revert_step => $step ],
     [rollback_deploy_tag => $tag ],
@@ -341,6 +345,7 @@ is_deeply $engine->seen, [
     [is_deployed_step => $step2 ],
     [check_conflicts => $step2],
     [check_requires => $step2],
+    [log_fail_step => $step2 ],
 ], 'The revert and rollback should not appear';
 
 # Now get all the way through, but choke when tagging.

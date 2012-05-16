@@ -331,6 +331,19 @@ sub log_deploy_step {
     return $self;
 }
 
+sub log_fail_step {
+    my ( $self, $step ) = @_;
+    my $dbh  = $self->_dbh;
+    croak(
+        'Cannot log a step failure first calling begin_deploy_tag()'
+    ) if $dbh->{AutoCommit};
+    $dbh->do(q{
+        INSERT INTO events (event, step, tags, logged_by)
+        VALUES ('fail', ?, ?, ?);
+    }, undef, $step->name, [$step->tag->names], $self->actor);
+    return $self;
+}
+
 sub log_revert_step {
     my ($self, $step) = @_;
     my $dbh = $self->_dbh;

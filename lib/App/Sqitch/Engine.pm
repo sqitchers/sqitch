@@ -122,8 +122,14 @@ sub deploy {
             }
 
             # Go for it.
-            $self->deploy_step($step);
-            push @run => $step;
+            try {
+                $self->deploy_step($step);
+                push @run => $step;
+            } catch {
+                # Ruh-roh.
+                $self->log_fail_step($step);
+                die $_;
+            };
         }
         $self->commit_deploy_tag($tag);
     } catch {
@@ -214,6 +220,12 @@ sub log_deploy_step {
     my $class = ref $_[0] || $_[0];
     require Carp;
     Carp::confess( "$class has not implemented log_deploy_step()" );
+}
+
+sub log_fail_step {
+    my $class = ref $_[0] || $_[0];
+    require Carp;
+    Carp::confess( "$class has not implemented log_fail_step()" );
 }
 
 sub log_revert_step {
@@ -486,6 +498,13 @@ its changes.
 
 Should write to the database metadata and history the records necessary to
 indicate that the step has been deployed.
+
+=head3 C<log_fail_step>
+
+  $engine->log_fail_step($step);
+
+Should write to the database event history a record reflecting that deployment
+of the step failed.
 
 =head3 C<begin_revert_tag>
 
