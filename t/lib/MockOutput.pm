@@ -32,7 +32,7 @@ for my $meth (@mocked) {
         $MOCK->mock($meth => sub {
             shift;
             push @{ $CAPTURED{$meth} } => [@_];
-            die uc($meth) . ": @_";
+            die uc($meth) . ": " . join '', @_;
         });
     } else {
         $MOCK->mock($meth => sub {

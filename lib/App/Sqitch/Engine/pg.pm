@@ -1,12 +1,13 @@
 package App::Sqitch::Engine::pg;
 
 use v5.10.1;
-use strict;
-use warnings;
+use Moose;
 use utf8;
 use Path::Class;
+use DBI;
+use Carp;
+use App::Sqitch::Plan::Step;
 use namespace::autoclean;
-use Moose;
 
 extends 'App::Sqitch::Engine';
 
@@ -132,9 +133,43 @@ has psql => (
             '--tuples-only',
             '--set' => 'ON_ERROR_ROLLBACK=1',
             '--set' => 'ON_ERROR_STOP=1',
+            '--set' => 'sqitch_schema=' . $self->sqitch_schema,
         );
         return \@ret;
     },
+);
+
+has _dbh => (
+    is      => 'rw',
+    isa     => 'DBI::db',
+    lazy    => 1,
+    default => sub {
+        my $self = shift;
+        eval "require DBD::Pg";
+        die "DBD::Pg module required to manage PostgreSQL\n"
+            if $@;
+
+        my $dsn = 'dbi:Pg:' . join ';' => map {
+            "$_->[0]=$_->[1]"
+        } grep { $_->[1] } (
+            [ dbname   => $self->db_name  ],
+            [ host     => $self->host     ],
+            [ port     => $self->port     ],
+        );
+
+        DBI->connect($dsn, $self->username, $self->password, {
+            PrintError        => 0,
+            RaiseError        => 0,
+            AutoCommit        => 1,
+            pg_enable_utf8    => 1,
+            pg_server_prepare => 1,
+            HandleError       => sub {
+                my ($err, $dbh) = @_;
+                $dbh->rollback unless $dbh->{AutoCommit};
+                die $err;
+            },
+        });
+    }
 );
 
 sub config_vars {
@@ -151,19 +186,17 @@ sub config_vars {
 
 sub initialized {
     my $self = shift;
-    ( my $ns = $self->sqitch_schema ) =~ s/'/''/g;
-    return $self->_probe( '--command' => qq{
+    return $self->_dbh->selectcol_arrayref(q{
         SELECT EXISTS(
-            SELECT TRUE FROM pg_catalog.pg_namespace WHERE nspname = '$ns'
-        )::int
-    });
+            SELECT TRUE FROM pg_catalog.pg_namespace WHERE nspname = ?
+        )
+    }, undef, $self->sqitch_schema)->[0];
 }
 
 sub initialize {
     my $self = shift;
-    $self->sqitch->bail(
-        1, 'Sqitch schema "', $self->sqitch_schema, '" already exists'
-    ) if $self->initialized;
+    die 'Sqitch schema "' . $self->sqitch_schema . qq{" already exists\n}
+        if $self->initialized;
 
     my $file = file(__FILE__)->dir->file('pg.sql');
     return $self->_run(
@@ -182,106 +215,128 @@ sub run_handle {
     $self->_spool($fh);
 }
 
-sub _array {
-    return '{'
-        . join(',' => map { s/(["\\])/\\$1/g; /[,{}]/ ? qq{"$_"} : $_ } @_)
-        . '}';
+sub _begin_tag {
+    my $self = shift;
+    my $dbh  = $self->_dbh;
+
+    # Start transactiojn and lock tags to allow one tag change at a time.
+    $dbh->begin_work;
+    $dbh->do('SET search_path = ?', undef, $self->sqitch_schema);
+    $dbh->do('LOCK TABLE tags IN EXCLUSIVE MODE');
+    return $dbh;
 }
 
-sub _log_step {
-    my ( $self, $step, $query ) = @_;
-    my $sqitch = $self->sqitch;
-    $self->_run(
-        '--single-transaction',
-        '--set'     => 'ON_ERROR_ROLLBACK=1',
-        '--set'     => 'ON_ERROR_STOP=1',
-        '--set'     => 'sqitch_schema=' . $self->sqitch_schema,
-        '--set'     => 'step='          . $step->name,
-        '--set'     => 'tags='          . _array($step->tag->names),
-        '--set'     => 'requires='      . _array($step->requires),
-        '--set'     => 'conflicts='     . _array($step->conflicts),
-        '--command' => $query,
+sub begin_deploy_tag {
+    my ( $self, $tag ) = @_;
+    my $dbh = $self->_begin_tag;
+
+    $dbh->do(
+        'INSERT INTO tags (applied_by) VALUES(?)',
+        undef, $ENV{USER} || $self->username
     );
+
+    $dbh->do( q{
+        INSERT INTO tag_names (tag_id, tag_name)
+        SELECT lastval(), t FROM UNNEST(?::text[]) AS t
+    }, undef, [ $tag->names ] );
+
+    return $self;
 }
 
-sub log_revert_step {
-    my ($self, $step) = @_;
-    $self->_log_step($step, q{
-        DELETE FROM :"sqitch_schema".steps where step = :'step' AND tags = :'tags';
-        INSERT INTO :"sqitch_schema".history (action, step, tags, requires, conflicts)
-        VALUES ('revert', :'step', :'tags', :'requires', :'conflicts');
-    });
+sub begin_revert_tag {
+    my ( $self, $tag ) = @_;
+    $self->_begin_tag;
+    return $self;
+}
+
+sub commit_deploy_tag {
+    my ( $self, $tag ) = @_;
+    my $dbh = $self->_dbh;
+    croak(
+        "Cannot call commit_deploy_tag() without first calling begin_deploy_tag()"
+    ) if $dbh->{AutoCommit};
+    $dbh->commit;
+}
+
+sub commit_revert_tag {
+    my ( $self, $tag ) = @_;
+    my $dbh = $self->_dbh;
+    croak(
+        "Cannot call commit_revert_tag() without first calling begin_revert_tag()"
+    ) if $dbh->{AutoCommit};
+    $dbh->do(q{
+        DELETE FROM tags WHERE tag_id IN (
+            SELECT tag_id
+              FROM tag_names
+             WHERE tag_name = ANY(?)
+        );
+    }, undef, [$tag->names]);
+    $dbh->commit;
 }
 
 sub log_deploy_step {
     my ($self, $step) = @_;
-    $self->_log_step($step, q{
-        INSERT INTO :"sqitch_schema".steps (step, tags, requires, conflicts)
-        VALUES (:'step', :'tags', :'requires', :'conflicts');
-        INSERT INTO :"sqitch_schema".history (action, step, tags, requires, conflicts)
-        VALUES ('deploy', :'step', :'tags', :'requires', :'conflicts');
-    });
+    my $dbh = $self->_dbh;
+    croak(
+        'Cannot deploy a step without first calling begin_deploy_tag()'
+    ) if $dbh->{AutoCommit};
+
+    my ($name, $req, $conf) = ($step->name, [$step->requires], [$step->conflicts]);
+    $dbh->do(q{
+        INSERT INTO steps (step, tag_id, requires, conflicts)
+        VALUES (?, lastval(), ?, ?)
+    }, undef, $name, $req, $conf);
+    $dbh->do(q{
+        INSERT INTO history (action, step, tags, requires, conflicts)
+        VALUES ('deploy', ?, ?, ?, ?);
+    }, undef, $name, [$step->tag->names], $req, $conf);
+
+    return $self;
 }
 
-sub _log_tag {
-    my ( $self, $tag, $query ) = @_;
-    my $sqitch = $self->sqitch;
-    $self->_run(
-        '--single-transaction',
-        '--set'     => 'ON_ERROR_ROLLBACK=1',
-        '--set'     => 'ON_ERROR_STOP=1',
-        '--set'     => 'sqitch_schema=' . $self->sqitch_schema,
-        '--set'     => 'tags='          . _array($tag->names),
-        '--set'     => 'steps='         . _array(map { $_->name } $tag->steps),
-        '--command' => $query,
-    );
-}
+sub log_revert_step {
+    my ($self, $step) = @_;
+    my $dbh = $self->_dbh;
+    croak(
+        'Cannot revert a step without first calling begin_revert_tag()'
+    ) if $dbh->{AutoCommit};
 
-sub log_deploy_tag {
-    my ( $self, $tag ) = @_;
-    $self->_log_tag($tag, q{
-        INSERT INTO :"sqitch_schema".tags (tag, steps)
-        SELECT t FROM UNNEST(:'tags') AS t;
-    });
+    $dbh->do(q{
+        INSERT INTO history (action, step, requires, conflicts, tags)
+        SELECT 'revert', step, requires, conflicts, ARRAY(
+            SELECT tag_name FROM tag_names WHERE tag_id = steps.tag_id
+        ) FROM steps
+         WHERE step = ?
+    }, undef, $step->name);
+
+    $dbh->do(q{
+        DELETE FROM .steps where step = ? AND tag_id = (
+            SELECT tag_id FROM tag_names WHERE tag_name = ?
+        );
+    }, undef, $step->name, ($step->tags)[0]);
+    return $self;
 }
 
 sub is_deployed_tag {
     my ( $self, $tag ) = @_;
-    return $self->_probe(
-        '--set'     => 'tags=' . _array($tag->names),
-        # XXX Not an ideal way to deal with multi-name tags.
-        '--command' => q{
-            SELECT EXISTS(
-                SELECT TRUE
-                  FROM :"sqitch_schema".tags
-                 WHERE tag = ANY(:'tags');
-            )
-        },
-    );
+    return $self->_dbh->selectcol_arrayref(q{
+        SELECT EXISTS(
+            SELECT TRUE
+              FROM tags
+             WHERE tag = ANY(?);
+        )
+    }, undef, [$tag->names])->[0];
 }
 
 sub is_deployed_step {
     my ( $self, $step ) = @_;
-    return $self->_probe(
-        '--set'     => 'step=' . $step->name,
-        '--set'     => 'tags=' . _array($step->tag->names),
-        '--command' => q{
-            SELECT EXISTS(
-                SELECT TRUE
-                  FROM :"sqitch_schema".steps
-                 WHERE step = :'step'
-                   AND tags = ANY(:'tags');
-            )
-        },
-    );
-}
-
-sub log_revert_tag {
-    my ( $self, $tag ) = @_;
-    $self->_log_tag(
-        $tag,
-        q{DELETE FROM :"sqitch_schema".tags WHERE tag = ANY(:'tags');},
-    );
+    $self->_dbh->selectcol_arrayref(q{
+        SELECT EXISTS(
+            SELECT TRUE
+              FROM steps
+             WHERE step = ?
+        )
+    }, undef, $step->name)->[0];
 }
 
 sub deployed_steps_for {
@@ -290,15 +345,39 @@ sub deployed_steps_for {
     return map {
         chomp;
         App::Sqitch::Plan::Step->new(name => $_, tag => $tag)
-    } $self->_cap(
-        '--set'     => 'tags=' . _array($tag->names),
-        '--command' => q{
-            SELECT step
-              FROM :"sqitch_schema".steps
-             WHERE tags = :'tags'
-             ORDER BY deployed_at
-        },
-    );
+    } $self->_dbh->selectrow_array(q{
+        SELECT DISTINCT step
+          FROM steps
+          JOIN tag_names ON steps.tag_id tag_names.tag_id
+         WHERE tag_name = ANY(?)
+         ORDER BY deployed_at
+    }, [tag->names]);
+}
+
+sub check_conflicts {
+    my ( $self, $step ) = @_;
+
+    # No need to check anything if there are no conflicts.
+    return unless $step->conflicts;
+
+    $self->_dbh->selectrow_array(q{
+        SELECT name
+          FROM steps
+         WHERE name = ANY(?)
+    }, undef, [$step->conflicts]);
+}
+
+sub check_requires {
+    my ( $self, $step ) = @_;
+
+    # No need to check anything if there are no requirements.
+    return unless $step->requires;
+
+    $self->_dbh->selectrow_array(q{
+        SELECT required
+          FROM UNNEST(?) required
+         WHERE required <> ALL(SELECT name FROM steps);
+    }, undef, [$step->requires]);
 }
 
 sub _run {
@@ -307,22 +386,6 @@ sub _run {
     my $pass   = $self->password or return $sqitch->run( $self->psql, @_ );
     local $ENV{PGPASSWORD} = $pass;
     return $sqitch->run( $self->psql, @_ );
-}
-
-sub _cap {
-    my $self   = shift;
-    my $sqitch = $self->sqitch;
-    my $pass   = $self->password or return $sqitch->capture( $self->psql, @_ );
-    local $ENV{PGPASSWORD} = $pass;
-    return $sqitch->capture( $self->psql, @_ );
-}
-
-sub _probe {
-    my $self   = shift;
-    my $sqitch = $self->sqitch;
-    my $pass   = $self->password or return $sqitch->probe( $self->psql, @_ );
-    local $ENV{PGPASSWORD} = $pass;
-    return $sqitch->probe( $self->psql, @_ );
 }
 
 sub _spool {

@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 112;
+use Test::More tests => 116;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -24,6 +24,8 @@ can_ok $CLASS, qw(load new name);
 
 my ($is_deployed_tag, $is_deployed_step) = (0, 0);
 my @deployed_steps;
+my @missing_requires;
+my @conflicts;
 ENGINE: {
     # Stub out a engine.
     package App::Sqitch::Engine::whu;
@@ -32,14 +34,18 @@ ENGINE: {
     $INC{'App/Sqitch/Engine/whu.pm'} = __FILE__;
 
     my @SEEN;
-    sub run_file         { push @SEEN => [ run_file         => $_[1] ] }
-    sub run_handle       { push @SEEN => [ run_handle       => $_[1] ] }
-    sub log_deploy_step  { push @SEEN => [ log_deploy_step  => $_[1] ] }
-    sub log_revert_step  { push @SEEN => [ log_revert_step  => $_[1] ] }
-    sub log_deploy_tag   { push @SEEN => [ log_deploy_tag   => $_[1] ] }
-    sub log_revert_tag   { push @SEEN => [ log_revert_tag   => $_[1] ] }
-    sub is_deployed_tag  { push @SEEN => [ is_deployed_tag  => $_[1] ]; $is_deployed_tag }
-    sub is_deployed_step { push @SEEN => [ is_deployed_step => $_[1] ]; $is_deployed_step }
+    sub run_file          { push @SEEN => [ run_file          => $_[1] ] }
+    sub run_handle        { push @SEEN => [ run_handle        => $_[1] ] }
+    sub log_deploy_step   { push @SEEN => [ log_deploy_step   => $_[1] ] }
+    sub log_revert_step   { push @SEEN => [ log_revert_step   => $_[1] ] }
+    sub begin_deploy_tag  { push @SEEN => [ begin_deploy_tag  => $_[1] ] }
+    sub commit_deploy_tag { push @SEEN => [ commit_deploy_tag => $_[1] ] }
+    sub begin_revert_tag  { push @SEEN => [ begin_revert_tag  => $_[1] ] }
+    sub commit_revert_tag { push @SEEN => [ commit_revert_tag => $_[1] ] }
+    sub is_deployed_tag   { push @SEEN => [ is_deployed_tag   => $_[1] ]; $is_deployed_tag }
+    sub is_deployed_step  { push @SEEN => [ is_deployed_step  => $_[1] ]; $is_deployed_step }
+    sub check_requires    { push @SEEN => [ check_requires    => $_[1] ]; @missing_requires }
+    sub check_conflicts   { push @SEEN => [ check_conflicts   => $_[1] ]; @conflicts }
     sub deployed_steps_for { @deployed_steps }
 
     sub seen { [@SEEN] }
@@ -118,8 +124,12 @@ for my $abs (qw(
     run_handle
     log_deploy_step
     log_revert_step
-    log_deploy_tag
-    log_revert_tag
+    begin_deploy_tag
+    commit_deploy_tag
+    begin_revert_tag
+    commit_revert_tag
+    check_requires
+    check_conflicts
     is_deployed_tag
     is_deployed_step
     deployed_steps_for
@@ -186,10 +196,13 @@ is_deeply +MockOutput->get_info, [
 is_deeply +MockOutput->get_warn, [], 'Should have no warnings';
 is_deeply $engine->seen, [
     [is_deployed_tag => $tag ],
+    [begin_deploy_tag => $tag],
     [is_deployed_step => $step ],
+    [check_conflicts => $step],
+    [check_requires => $step],
     [run_file => $step->deploy_file ],
     [log_deploy_step => $step ],
-    [log_deploy_tag => $tag ],
+    [commit_deploy_tag => $tag],
 ], 'The step and tag should have been deployed and logged';
 
 # Add a second step.
@@ -204,13 +217,18 @@ is_deeply +MockOutput->get_info, [
 is_deeply +MockOutput->get_warn, [], 'Should have no warnings';
 is_deeply $engine->seen, [
     [is_deployed_tag => $tag ],
+    [begin_deploy_tag => $tag],
     [is_deployed_step => $step ],
+    [check_conflicts => $step],
+    [check_requires => $step],
     [run_file => $step->deploy_file ],
     [log_deploy_step => $step ],
     [is_deployed_step => $step2 ],
+    [check_conflicts => $step2],
+    [check_requires => $step2],
     [run_file => $step2->deploy_file ],
     [log_deploy_step => $step2 ],
-    [log_deploy_tag => $tag ],
+    [commit_deploy_tag => $tag],
 ], 'Both steps and the tag should have been deployed and logged';
 
 # Try it with steps already deployed.
@@ -224,9 +242,10 @@ is_deeply +MockOutput->get_info, [
 is_deeply +MockOutput->get_warn, [], 'Should have no warnings';
 is_deeply $engine->seen, [
     [is_deployed_tag => $tag ],
+    [begin_deploy_tag => $tag],
     [is_deployed_step => $step ],
     [is_deployed_step => $step2 ],
-    [log_deploy_tag => $tag ],
+    [commit_deploy_tag => $tag ],
 ], 'Steps should not be re-deployed';
 $is_deployed_step = 0;
 
@@ -295,7 +314,7 @@ is_deeply +MockOutput->get_fail, [
 
 # Now get all the way through, but choke when tagging.
 $mock->unmock_all;
-$mock->mock(log_deploy_tag => sub { die 'WHYME!' });
+$mock->mock(commit_deploy_tag => sub { die 'WHYME!' });
 throws_ok { $engine->deploy($tag) } qr/^FAIL\b/, 'Should die on bad tag';
 is_deeply +MockOutput->get_info, [
     ['Deploying ', 'foo', ' to ', 'mydb'],
@@ -329,7 +348,8 @@ is_deeply +MockOutput->get_info, [['Reverting ', 'foo', ' from ', 'mydb']],
     'Should get info message about tag reversion';
 is_deeply $engine->seen, [
     [is_deployed_tag => $tag],
-    [log_revert_tag  => $tag],
+    [begin_revert_tag  => $tag],
+    [commit_revert_tag  => $tag],
 ], 'Should have checked if the tag was deployed and reverted it';
 
 # Try a tag that is not deployed.
@@ -351,9 +371,10 @@ is_deeply +MockOutput->get_info, [
 ], 'Should get info message about tag and step reversion';
 is_deeply $engine->seen, [
     [is_deployed_tag => $tag],
+    [begin_revert_tag  => $tag],
     [run_file => $step->revert_file ],
     [log_revert_step => $step ],
-    [log_revert_tag  => $tag],
+    [commit_revert_tag  => $tag],
 ], 'Should have reverted the step';
 
 # Add another step. (Re-create step so is_deeply works).
@@ -367,15 +388,16 @@ is_deeply +MockOutput->get_info, [
 ], 'Should revert steps in reverse order';
 is_deeply $engine->seen, [
     [is_deployed_tag => $tag],
+    [begin_revert_tag  => $tag],
     [run_file => $step2->revert_file ],
     [log_revert_step => $step2 ],
     [run_file => $step->revert_file ],
     [log_revert_step => $step ],
-    [log_revert_tag  => $tag],
+    [commit_revert_tag  => $tag],
 ], 'Should have reverted both steps';
 
 # Now die on tag reversion.
-$mock->mock( log_revert_tag => sub { die 'OMGWTF' } );
+$mock->mock( commit_revert_tag => sub { die 'OMGWTF' } );
 throws_ok { $engine->revert($tag) } qr/^FAIL\b/,
     'Should die on tag reversion failure';
 is_deeply +MockOutput->get_info, [
@@ -389,7 +411,7 @@ like $debug->[0][0], qr/^OMGWTF\b/, 'And it should be the original error';
 is_deeply +MockOutput->get_fail, [
     ['Error removing tag ', $tag->name ]
 ], 'Should have the final failure message';
-$mock->unmock('log_revert_tag');
+$mock->unmock('commit_revert_tag');
 
 # Die on the first step reversion.
 $mock->mock( log_revert_step => sub { die 'DONTTAZEME' });

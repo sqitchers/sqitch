@@ -13,6 +13,7 @@ Module::Build::Sqitch->new(
         'Carp'                                         => 0,
         'Config'                                       => 0,
         'Config::GitLike'                              => '1.07',
+        'DBI'                                          => 0,
         'File::Basename'                               => 0,
         'File::Find::Rule'                             => '0.30',
         'File::HomeDir'                                => 0,

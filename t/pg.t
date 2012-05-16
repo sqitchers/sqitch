@@ -8,6 +8,7 @@ use Test::MockModule;
 use Capture::Tiny qw(:all);
 use Try::Tiny;
 use App::Sqitch;
+use App::Sqitch::Plan;
 
 my $CLASS;
 
@@ -46,6 +47,7 @@ my @std_opts = (
     '--tuples-only',
     '--set' => 'ON_ERROR_ROLLBACK=1',
     '--set' => 'ON_ERROR_STOP=1',
+    '--set' => 'sqitch_schema=sqitch',
 );
 is_deeply [$pg->psql], [$client, @std_opts],
     'psql command should be std opts-only';
@@ -54,8 +56,8 @@ is_deeply [$pg->psql], [$client, @std_opts],
 # Test other configs for the target.
 for my $env (qw(PGDATABASE PGUSER USER)) {
     my $pg = $CLASS->new(sqitch => $sqitch);
-    local $ENV{$env} = "$ENV=whatever";
-    is $pg->target, "$ENV=whatever", "Target should read \$$env";
+    local $ENV{$env} = "\$ENV=whatever";
+    is $pg->target, "\$ENV=whatever", "Target should read \$$env";
 }
 
 ENV: {
@@ -63,7 +65,7 @@ ENV: {
     is $pg->target, 'hi', 'Target shoul read username';
 
     local $ENV{PGDATABASE} = 'mydb';
-    my $pg = $CLASS->new(sqitch => $sqitch, username => 'hi');
+    $pg = $CLASS->new(sqitch => $sqitch, username => 'hi');
     is $pg->target, 'mydb', 'Target should prefer $PGDATABASE to username';
 }
 
@@ -78,6 +80,7 @@ my %config = (
     'core.pg.port'          => 1234,
     'core.pg.sqitch_schema' => 'meta',
 );
+$std_opts[-1] = 'sqitch_schema=meta';
 my $mock_config = Test::MockModule->new('App::Sqitch::Config');
 $mock_config->mock(get => sub { $config{ $_[2] } });
 ok $pg = $CLASS->new(sqitch => $sqitch), 'Create another pg';
@@ -127,23 +130,13 @@ is_deeply [$pg->psql], [qw(
 ), @std_opts], 'psql command should be as optioned';
 
 ##############################################################################
-# Test _run(), _cap(), _probe(), and _spool().
-can_ok $pg, qw(_run _cap _probe _spool);
+# Test _run() and _spool().
+can_ok $pg, qw(_run _spool);
 my $mock_sqitch = Test::MockModule->new('App::Sqitch');
 my (@run, $exp_pass);
 $mock_sqitch->mock(run => sub {
     shift;
     @run = @_;
-    if (defined $exp_pass) {
-        is $ENV{PGPASSWORD}, $exp_pass, qq{PGPASSWORD should be "$exp_pass"};
-    } else {
-        ok !exists $ENV{PGPASSWORD}, 'PGPASSWORD should not exist';
-    }
-});
-my @cap;
-$mock_sqitch->mock(capture => sub {
-    shift;
-    @cap = @_;
     if (defined $exp_pass) {
         is $ENV{PGPASSWORD}, $exp_pass, qq{PGPASSWORD should be "$exp_pass"};
     } else {
@@ -167,17 +160,9 @@ ok $pg->_run(qw(foo bar baz)), 'Call _run';
 is_deeply \@run, [$pg->psql, qw(foo bar baz)],
     'Command should be passed to run()';
 
-ok $pg->_cap(qw(hi there)), 'Call _cap';
-is_deeply \@cap, [$pg->psql, qw(hi there)],
-    'Command should be passed to capture()';
-
 ok $pg->_spool('FH'), 'Call _spool';
 is_deeply \@spool, ['FH', $pg->psql],
     'Command should be passed to spool()';
-
-ok $pg->_probe(qw(hi there)), 'Call _probe';
-is_deeply \@cap, [$pg->psql, qw(hi there)],
-    'Command should be passed to capture()';
 
 # Remove the password.
 delete $config{'core.pg.password'};
@@ -187,17 +172,9 @@ ok $pg->_run(qw(foo bar baz)), 'Call _run again';
 is_deeply \@run, [$pg->psql, qw(foo bar baz)],
     'Command should be passed to run() again';
 
-ok $pg->_cap(qw(hi there)), 'Call _cap again';
-is_deeply \@cap, [$pg->psql, qw(hi there)],
-    'Command should be passed to capture() again';
-
 ok $pg->_spool('FH'), 'Call _spool again';
 is_deeply \@spool, ['FH', $pg->psql],
     'Command should be passed to spool() again';
-
-ok $pg->_probe(qw(hi there)), 'Call _probe again';
-is_deeply \@cap, [$pg->psql, qw(hi there)],
-    'Command should be passed to capture() again';
 
 ##############################################################################
 # Test file and handle running.
@@ -208,48 +185,33 @@ is_deeply \@run, [$pg->psql, '--file', 'foo/bar.sql'],
 ok $pg->run_handle('FH'), 'Spool a "file handle"';
 is_deeply \@spool, ['FH', $pg->psql],
     'Handle should be passed to spool()';
-
-##############################################################################
-# Test array().
-ok my $array = $CLASS->can('_array'), "$CLASS->can(_array)";
-
-for my $spec (
-    ['{}'],
-    ['{foo}', 'foo'],
-    ['{foo,bar}', qw(foo bar)],
-    ['{foo,b\\"ar}', qw(foo b"ar)],
-    ['{foo,b\\\\ar}', qw(foo b\\ar)],
-    ['{foo,"b{ar}"}', qw(foo b{ar})],
-    ['{foo,"b,ar"}', 'foo', 'b,ar'],
-    ['{42}', 42 ],
-    ['{42,1243}', 42, 1243 ],
-) {
-    my $exp = shift @{ $spec };
-    is $array->(@{ $spec }), $exp, "Test array $exp";
-}
+$mock_sqitch->unmock_all;
+$mock_config->unmock_all;
 
 ##############################################################################
 # Can we do live tests?
-$mock_sqitch->unmock_all;
-$mock_config->unmock_all;
 can_ok $CLASS, qw(
     initialized
     initialize
     run_file
     run_handle
+    begin_deploy_tag
+    commit_deploy_tag
     log_deploy_step
+    begin_revert_tag
+    commit_revert_tag
     log_revert_step
-    log_deploy_tag
-    log_revert_tag
     is_deployed_tag
     is_deployed_step
     deployed_steps_for
+    check_requires
+    check_conflicts
 );
 
 my @cleanup;
 END {
-    $pg->_run(
-        '--command' => "SET client_min_messages=warning; $_"
+    $pg->_dbh->do(
+        "SET client_min_messages=warning; $_"
     ) for @cleanup;
 }
 
@@ -257,7 +219,7 @@ subtest 'live database' => sub {
     $sqitch = App::Sqitch->new('username' => 'postgres');
     ok $pg = $CLASS->new(sqitch => $sqitch), 'Create a pg with postgres user';
     try {
-        capture_stderr { $pg->_run('--command', 'SELECT TRUE WHERE FALSE' ) }
+        $pg->_dbh;
     } catch {
         plan skip_all => 'Unable to connect to a database for testing';
     };
@@ -265,18 +227,49 @@ subtest 'live database' => sub {
     plan 'no_plan';
 
     ok !$pg->initialized, 'Database should not yet be initialized';
-    ok $pg->initialize, 'Initialize the database';
     push @cleanup, 'DROP SCHEMA ' . $pg->sqitch_schema . ' CASCADE';
+    ok $pg->initialize, 'Initialize the database';
     ok $pg->initialized, 'Database should now be initialized';
 
-    # Try it with a different schema name.
+    # # Try it with a different schema name.
     my $mock_pg = Test::MockModule->new($CLASS);
     $mock_pg->mock(sqitch_schema => '__sqitchtest');
     ok !$pg->initialized, 'Database should no longer seem initialized';
-    ok $pg->initialize, 'Initialize the database again';
     push @cleanup, 'DROP SCHEMA __sqitchtest CASCADE';
+    ok $pg->initialize, 'Initialize the database again';
     ok $pg->initialized, 'Database should be initialized again';
 
+    # Test begin_deploy_tag() and commit_deploy_tag().
+    my $sqitch = App::Sqitch->new( sql_dir => Path::Class::dir(qw(t pg)) );
+    my $plan   = App::Sqitch::Plan->new( sqitch => $sqitch );
+    my $tag    = App::Sqitch::Plan::Tag->new(
+        names => ['alpha'],
+        plan  => $plan,
+    );
+    my $step    = App::Sqitch::Plan::Step->new(
+        name => 'users',
+        tag  => $tag,
+    );
+
+    ok $pg->begin_deploy_tag($tag), 'Begin deploying "users" tag';
+    ok $pg->commit_deploy_tag($tag), 'Commit "users" tag';
+    is_deeply $pg->_dbh->selectrow_arrayref(
+        'SELECT tag_id, applied_by FROM tags'
+    ), [1, $ENV{USER}],
+        'A record should have been inserted into the tags table';
+
+    is_deeply $pg->_dbh->selectall_arrayref(
+        'SELECT tag_name, tag_id FROM tag_names'
+    ), [['alpha', 1]],
+        'A record should have been inserted into the tag_names table';
+
+    is_deeply $pg->_dbh->selectall_arrayref(
+        'SELECT step, tag_id, deployed_by, requires, conflicts FROM steps'
+    ), [], 'No record should have been inserted into the steps table';
+
+    is_deeply $pg->_dbh->selectall_arrayref(
+        'SELECT action, step, tags, taken_by, requires, conflicts FROM history'
+    ), [], 'No record should have been inserted into the history table';
 };
 
 done_testing;

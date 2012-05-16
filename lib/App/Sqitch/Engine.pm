@@ -1,12 +1,10 @@
 package App::Sqitch::Engine;
 
 use v5.10.1;
-use strict;
-use warnings;
+use Moose;
 use utf8;
 use Try::Tiny;
 use namespace::autoclean;
-use Moose;
 
 our $VERSION = '0.30';
 
@@ -90,33 +88,49 @@ sub deploy {
     }
 
     my @run;
-    for my $step ($tag->steps) {
-        if ( $self->is_deployed_step($step) ) {
-            $sqitch->info('    ', $step->name, ' already deployed');
-            next;
-        }
+    try {
+        $self->begin_deploy_tag($tag);
+        for my $step ($tag->steps) {
+            if ( $self->is_deployed_step($step) ) {
+                $sqitch->info('    ', $step->name, ' already deployed');
+                next;
+            }
+            $sqitch->info('  + ', $step->name);
 
-        $sqitch->info('  + ', $step->name);
-        try {
+            # Check for conflicts.
+            if (my @conflicts = $self->check_conflicts($step)) {
+                my $pl = @conflicts > 1 ? 's' : '';
+                $sqitch->vent(
+                    "Conflicts with previously deployed step$pl: ",
+                    join ' ', @conflicts
+                );
+                $self->_revert_steps($tag, @run) if @run;
+                $sqitch->fail( 'Aborting deployment of ', $tag->name );
+            }
+
+            # Check for prerequisites.
+            if (my @required = $self->check_requires($step)) {
+                my $pl = @required > 1 ? 's' : '';
+                $sqitch->vent(
+                    "Missing required step$pl: ",
+                    join ' ', @required
+                );
+                $self->_revert_steps($tag, @run) if @run;
+                $sqitch->fail( 'Aborting deployment of ', $tag->name );
+            }
+
+            # Go for it.
             $self->deploy_step($step);
             push @run => $step;
-        } catch {
-            # Whoops! Revert completed steps.
-            $sqitch->debug($_);
-            $self->_revert_steps($tag, @run) if @run;
-            $sqitch->fail( 'Aborting deployment of ', $tag->name );
-        };
-    }
-
-    # Success!
-    try {
-        $self->log_deploy_tag($tag);
+        }
+        $self->commit_deploy_tag($tag);
     } catch {
         # Whoops! Revert completed steps.
         $sqitch->debug($_);
-        $self->_revert_steps($tag, @run);
+        $self->_revert_steps($tag, @run) if @run;
         $sqitch->fail( 'Aborting deployment of ', $tag->name );
     };
+
     return $self;
 }
 
@@ -130,7 +144,14 @@ sub revert {
 
     $sqitch->info('Reverting ', $tag->name, ' from ', $self->target);
 
-    # Revert only depoyed steps.
+    try {
+        $self->begin_revert_tag($tag);
+    } catch {
+        $sqitch->debug($_);
+        $sqitch->fail( 'Aborting reversion of ', $tag->name );
+    };
+
+    # Revert only deployed steps.
     for my $step ( reverse $self->deployed_steps_for($tag) ) {
         $sqitch->info('  - ', $step->name);
         try {
@@ -147,7 +168,7 @@ sub revert {
     }
 
     try {
-        $self->log_revert_tag($tag);
+        $self->commit_revert_tag($tag);
     } catch {
         $sqitch->debug($_);
         $sqitch->fail( "Error removing tag ", $tag->name );
@@ -199,16 +220,28 @@ sub log_revert_step {
     Carp::confess( "$class has not implemented log_revert_step()" );
 }
 
-sub log_deploy_tag {
+sub begin_deploy_tag {
     my $class = ref $_[0] || $_[0];
     require Carp;
-    Carp::confess( "$class has not implemented log_deploy_tag()" );
+    Carp::confess( "$class has not implemented begin_deploy_tag()" );
 }
 
-sub log_revert_tag {
+sub commit_deploy_tag {
     my $class = ref $_[0] || $_[0];
     require Carp;
-    Carp::confess( "$class has not implemented log_revert_tag()" );
+    Carp::confess( "$class has not implemented commit_deploy_tag()" );
+}
+
+sub begin_revert_tag {
+    my $class = ref $_[0] || $_[0];
+    require Carp;
+    Carp::confess( "$class has not implemented begin_revert_tag()" );
+}
+
+sub commit_revert_tag {
+    my $class = ref $_[0] || $_[0];
+    require Carp;
+    Carp::confess( "$class has not implemented commit_revert_tag()" );
 }
 
 sub is_deployed_tag {
@@ -227,6 +260,18 @@ sub deployed_steps_for {
     my $class = ref $_[0] || $_[0];
     require Carp;
     Carp::confess( "$class has not implemented deployed_steps_for()" );
+}
+
+sub check_requires {
+    my $class = ref $_[0] || $_[0];
+    require Carp;
+    Carp::confess( "$class has not implemented check_requires()" );
+}
+
+sub check_conflicts {
+    my $class = ref $_[0] || $_[0];
+    require Carp;
+    Carp::confess( "$class has not implemented check_conflicts()" );
 }
 
 __PACKAGE__->meta->make_immutable;
@@ -406,12 +451,19 @@ it has not.
 Should return true if the step has been deployed to the database, and false if
 it has not.
 
-=head3 C<log_deploy_tag>
+=head3 C<begin_deploy_tag>
 
-  $engine->log_deploy_tag($tag);
+  $engine->begin_deploy_tag($tag);
 
-Should write to the database metadata and history the records necessary to
-indicate that the tag has been deployed.
+Start deploying the tag. The engine may need to write the tag to the database,
+create locks to control the deployment, etc.
+
+=head3 C<commit_deploy_tag>
+
+  $engine->commit_deploy_tag($tag);
+
+Commit a tag deployment. The engine should clean up anything started in
+C<begin_deploy_tag()>.
 
 =head3 C<log_deploy_step>
 
@@ -420,12 +472,19 @@ indicate that the tag has been deployed.
 Should write to the database metadata and history the records necessary to
 indicate that the step has been deployed.
 
-=head3 C<log_revert_tag>
+=head3 C<begin_revert_tag>
 
-  $engine->log_revert_tag($tag);
+  $engine->begin_revert_tag($tag);
 
-Should write to and/or remove from the database metadata and history the
-records necessary to indicate that the tag has been reverted.
+Start reverting the tag. The engine may need to update the database, create
+locks to control the reversion, etc.
+
+=head3 C<commit_revert_tag>
+
+  $engine->commit_revert_tag($tag);
+
+Commit a tag reversion. The engine should clean up anything started in
+C<begin_revert_tag()>.
 
 =head3 C<log_revert_step>
 
@@ -433,6 +492,29 @@ records necessary to indicate that the tag has been reverted.
 
 Should write to and/or remove from the database metadata and history the
 records necessary to indicate that the step has been reverted.
+
+=head3 C<check_requires>
+
+  if ( my @requires = $engine->requires($step) ) {
+      die "Step requires undeployed steps: @requires\n";
+  }
+
+Returns the names of any steps required by the specified step that are not
+currently deployed to the database. If none are returned, the requirements are
+presumed to be satisfied.
+
+=head3 C<check_conflicts>
+
+  if ( my @conflicts = $engine->conflicts($step) ) {
+      die "Step conflicts with previously deployed steps: @conflicts\n";
+  }
+
+Returns the names of any currently-deployed steps that conflict with specified
+step. If none are returned, there are presumed to be no conflicts.
+
+If any of the steps that conflict with the specified step have been deployed
+to the database, their names should be returned by this method. If no names
+are returned, it's because there are no conflicts.
 
 =head3 C<run_file>
 

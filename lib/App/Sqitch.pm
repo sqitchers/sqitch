@@ -43,7 +43,7 @@ has engine => (
         my $self = shift;
         my $name = $self->_engine or return;
         require App::Sqitch::Engine;
-        App::Sqitch::Engine->load( { sqitch => $self, engine => $name } );
+        App::Sqitch::Engine->load({ sqitch => $self, engine => $name });
     }
 );
 
