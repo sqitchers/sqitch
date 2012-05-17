@@ -257,11 +257,14 @@ subtest 'live database' => sub {
     is $pg->current_tag_name, undef, 'Should have no current tag';
     is_deeply [$pg->deployed_steps_for($tag)], [],
         'Should be no deployed steps';
+    ok !$pg->is_deployed_tag($tag), 'The "alpha" tag should not be deployed';
+
     ok $pg->begin_deploy_tag($tag), 'Begin deploying "alpha" tag';
     ok $pg->commit_deploy_tag($tag), 'Commit "alpha" tag';
     is_deeply [$pg->deployed_steps_for($tag)], [],
         'Still should be no deployed steps';
     is $pg->current_tag_name, 'alpha', 'Should get "alpha" as current tag';
+    ok $pg->is_deployed_tag($tag), 'The "alpha" tag should now be deployed';
 
     is_deeply $pg->_dbh->selectrow_arrayref(
         'SELECT tag_id, applied_by FROM tags'
@@ -288,6 +291,7 @@ subtest 'live database' => sub {
     is_deeply [$pg->deployed_steps_for($tag)], [],
         'Still should be no deployed steps';
     is $pg->current_tag_name, undef, 'Should again have no current tag';
+    ok !$pg->is_deployed_tag($tag), 'The "alpha" tag should again not be deployed';
 
     is $pg->_dbh->selectrow_arrayref(
         'SELECT tag_id, applied_by FROM tags'
@@ -312,6 +316,8 @@ subtest 'live database' => sub {
 
     ok $pg->begin_deploy_tag($tag), 'Begin deploying "alpha" tag again';
     ok $pg->commit_deploy_tag($tag), 'Commit "alpha"/"beta" tag';
+    ok $pg->is_deployed_tag($tag), 'The "alpha" tag should again be deployed';
+
     is_deeply [$pg->deployed_steps_for($tag)], [],
         'Still should be no deployed steps';
     like $pg->current_tag_name, qr/^(?:alpha|beta)$/,
@@ -341,6 +347,7 @@ subtest 'live database' => sub {
     is_deeply [$pg->deployed_steps_for($tag)], [],
         'Still should be no deployed steps';
     is $pg->current_tag_name, undef, 'Should again have no current tag';
+    ok !$pg->is_deployed_tag($tag), 'The "alpha" tag should again not be deployed';
 
     is $pg->_dbh->selectrow_arrayref(
         'SELECT tag_id, applied_by FROM tags'
@@ -633,9 +640,13 @@ subtest 'live database' => sub {
         tag  => $tag2,
     );
 
+    ok $pg->is_deployed_tag($tag), 'The "alpha"/"beta" tag should be deployed';
+    ok !$pg->is_deployed_tag($tag2), 'The "gamma" tag should not be deployed';
     ok $pg->begin_deploy_tag($tag2), 'Begin "gamma" tag with "widgets" step';
     ok $pg->deploy_step($step2), 'Deploy "widgets" step once more';
     ok $pg->commit_deploy_tag($tag2), 'Commit "gamma" tag with "widgets" step';
+    ok $pg->is_deployed_tag($tag2), 'The "gamma" tag should now be deployed';
+
     is_deeply [map { $_->name } $pg->deployed_steps_for($tag)], [qw(users)],
         'deployed_steps_for() should return the users step for the first tag';
     is_deeply [map { $_->name } $pg->deployed_steps_for($tag2)], [qw(widgets)],

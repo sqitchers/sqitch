@@ -382,9 +382,9 @@ sub is_deployed_tag {
     return $self->_dbh->selectcol_arrayref(q{
         SELECT EXISTS(
             SELECT TRUE
-              FROM tags
-             WHERE tag = ANY(?);
-        )
+              FROM tag_names
+             WHERE tag_name = ANY(?)
+        );
     }, undef, [$tag->names])->[0];
 }
 
