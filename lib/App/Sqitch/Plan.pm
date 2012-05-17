@@ -57,7 +57,10 @@ sub load {
     my $self = shift;
     my $file = $self->sqitch->plan_file;
     my $plan = -f $file ? $self->_parse($file) : [];
-    push @{ $plan } => $self->load_untracked($plan) if $self->with_untracked;
+    if ( $self->with_untracked ) {
+        push @{ $plan } => $self->load_untracked($plan);
+        $self->_tags->{ $plan->[-1]->name } = @{ $plan } - 1;
+    }
     return $plan;
 }
 

@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 116;
+use Test::More tests => 120;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Path::Class;
@@ -297,6 +297,10 @@ is_deeply $plan->load, [
     tag( [qw(bar baz)] => [qw(this/rocks hey-there)] ),
     tag( ['HEAD+'] => [qw(bar baz yo stuff/wow)] ),
 ], 'load should also load untracked steps';
+is $plan->index_of('foo'), 0, 'Should be able to find tag "foo"';
+is $plan->index_of('bar'), 1, 'Should be able to find tag "bar"';
+is $plan->index_of('baz'), 1, 'Should be able to find tag "baz"';
+is $plan->index_of('HEAD+'), 2, 'Should be able to find HEAD+';
 
 # Try to write a plan with a reserved tag name.
 throws_ok { $plan->write_to($to) } qr/FAIL:/,
