@@ -1,0 +1,15 @@
+=head1 Name
+
+sqitch-help-deplooy - Sqitch deploy usage statement
+
+=head1 Usage
+
+  sqitch [options] deploy [<step options>]
+
+=head1 Options
+
+       --to <tag>         deploy up to tag
+    -u --with-untracked   include untracked steps
+
+
+

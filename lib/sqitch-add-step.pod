@@ -4,7 +4,7 @@ sqitch-add-step - Add a deployment step
 
 =head1 Synopsis
 
-  git [options] add-step [<template-options>] name
+  sqitch [options] add-step [<template-options>] name
 
 =head1 Description
 

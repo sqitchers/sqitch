@@ -1,0 +1,64 @@
+=head1 Name
+
+sqitch-deploy - Deploy changes to a database
+
+=head1 Synopsis
+
+  sqitch [options] deploy [--with-untracked]
+  sqitch [options] deploy [--with-untracked] <tag>
+  sqitch [options] deploy [--with-untracked] --to <tag>
+
+=head1 Description
+
+Deploy changes to the database. Changes will begin from the current deployment
+state. They will run to the latest tag, unless a target tag is specified,
+either via C<--to> or with no option flag, in which case changes will be
+deployed up-to and including that tag.
+
+If the database it up-to-date, no changes will be made. If a tag is specified
+that appears earlier in the plan than the currently-deployed tag, an error
+will be returned, along with a suggestion to instead use L<sqitch-revert>.
+
+=begin comment
+
+This is a to-do.
+
+=head1 Specifying Tags
+
+A C<< <tag> >> option typically, but not necessarily, names a tag object.
+
+=over
+
+=item C<tag>, e.g, C<beta>
+
+A tag name.
+
+=item C<HEAD>
+
+Special symbolic tag for the last tag in the plan. Typically omitted.
+
+=item C<HEAD+>
+
+The last tag in the plan plus any untracked steps.
+
+=item C<< <tag>^ >>, e.g., C<HEAD^^>, C<foo^3>
+
+A suffix C<^> to a symbolic or actual tag name means the tag I<prior> to that
+tag object. Multiple C<^>s indicate multiple prior tags. These can also be
+written as C<< ^<n> >>, where C<< <n> >> represents the number of earlier tags
+to go back.
+
+=item C<< <tag>+ >>, e.g., C<HEAD+>, C<foo++>, C<bar+4>
+
+A suffix C<+> to a symbolic or actual tag names that means the tag I<after>
+that tag object. Multiple C<+>s indicate multiple prior tags. These can also
+be written as C<< +<n> >>, where C<< <n> >> represents the number of later
+tags to go forward.
+
+=back
+
+=end comment
+
+=head1 Sqitch
+
+Part of the L<sqitch> suite.
