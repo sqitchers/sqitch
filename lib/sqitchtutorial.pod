@@ -37,13 +37,22 @@ used in these examples is L<on GitHub|https://github.com/theory/sqitch-intro>.
 
 Now that we have a repository, let's get started with Sqitch.
 
-  > sqitch init --engine pg
+  > sqitch --engine pg init
   Created sql/deploy
   Created sql/revert
+  Created sql/test
   Created sqitch.conf
 
 Let's have a look at F<sqitch.conf>:
 
+  [core]
+      engine = pg
+      # plan_file = sqitch.plan
+      # sql_dir = sql
+      # deploy_dir = sql/deploy
+      # revert_dir = sql/revert
+      # test_dir = sql/test
+      # extension = sql
   # [core "pg"]
       # db_name = 
       # client = psql
@@ -68,7 +77,7 @@ ahead an tell it globally where to find the client:
 
 Have a look at F<~/.sqitch/sqitch.conf> and you'll see this:
 
-  [core.pg]
+  [core "pg"]
       client = /var/lib/pgsql/bin/psql
 
 Back to the repository. Let's commit these changes and start creating the
@@ -76,6 +85,9 @@ database changes.
 
   > git add .
   > git commit -am 'Initialize Sqitch configuration.'
+  [master (root-commit) a22000d] Initialize Sqitch configuration.
+   1 file changed, 16 insertions(+)
+   create mode 100644 sqitch.conf
 
 =head1 Our First Deployment
 
@@ -83,8 +95,9 @@ First, our project will need a database user. This is the application user,
 who will have only limited access to objects in the database. Run this command:
 
   > sqitch add-step appuser
-  Adding sql/deploy/appuser.sql
-  Adding sql/revert/appuser.sql
+  Created sql/deploy/appuser.sql
+  Created sql/revert/appuser.sql
+  Created sql/test/appuser.sql
 
 The C<add-step> command creates deploy and revert scripts that represent a new
 change step. Now we edit these files. The C<deploy> script's job is to create
@@ -99,6 +112,7 @@ script, so we add this to F<sql/revert/appuser.sql>:
 
 Now we can try deploying this change:
 
+  > createdb flipr_test
   > sqitch --db-name flipr_test deploy --untracked
   Adding metadata tables to flipr_test
   Deploying HEAD+ to flipr_test
