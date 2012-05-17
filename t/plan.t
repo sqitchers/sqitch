@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 120;
+use Test::More tests => 121;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Path::Class;
@@ -300,6 +300,7 @@ is_deeply $plan->load, [
 is $plan->index_of('foo'), 0, 'Should be able to find tag "foo"';
 is $plan->index_of('bar'), 1, 'Should be able to find tag "bar"';
 is $plan->index_of('baz'), 1, 'Should be able to find tag "baz"';
+is $plan->index_of('HEAD'), 1, 'Should be able to find HEAD';
 is $plan->index_of('HEAD+'), 2, 'Should be able to find HEAD+';
 
 # Try to write a plan with a reserved tag name.

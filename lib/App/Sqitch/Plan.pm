@@ -59,7 +59,7 @@ sub load {
     my $plan = -f $file ? $self->_parse($file) : [];
     if ( $self->with_untracked ) {
         push @{ $plan } => $self->load_untracked($plan);
-        $self->_tags->{ $plan->[-1]->name } = @{ $plan } - 1;
+        $self->_tags->{ $plan->[-1]->name } = $#$plan;
     }
     return $plan;
 }
@@ -176,6 +176,9 @@ sub _parse {
         push @plan => $curr_tag;
         $tags->{$_} = $#plan for $curr_tag->names;
     }
+
+    # Index HEAD symbolic tag.
+    $tags->{HEAD} = $#plan;
 
     return \@plan;
 }
