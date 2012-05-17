@@ -237,6 +237,8 @@ subtest 'live database' => sub {
         sqitch_schema => '__sqitchtest',
     ), 'Create a pg with postgres user and __sqitchtest schema';
 
+    is $pg->current_tag_name, undef, 'No init, no current tag';
+
     ok !$pg->initialized, 'Database should no longer seem initialized';
     push @cleanup, 'DROP SCHEMA __sqitchtest CASCADE';
     ok $pg->initialize, 'Initialize the database again';

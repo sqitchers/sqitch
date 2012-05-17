@@ -6,6 +6,7 @@ use utf8;
 use Path::Class;
 use DBI;
 use Carp;
+use Try::Tiny;
 use App::Sqitch::Plan::Step;
 use namespace::autoclean;
 
@@ -455,17 +456,22 @@ sub check_requires {
 
 sub current_tag_name {
     my $dbh = shift->_dbh;
-    return $dbh->selectrow_array(q{
-        SELECT tag_name
-          FROM tag_names
-         WHERE tag_id = (
-             SELECT tag_id
-               FROM tags
-              ORDER BY applied_at DESC
-              LIMIT 1
-         )
-         LIMIT 1;
-    });
+    return try {
+        $dbh->selectrow_array(q{
+            SELECT tag_name
+              FROM tag_names
+             WHERE tag_id = (
+                 SELECT tag_id
+                   FROM tags
+                  ORDER BY applied_at DESC
+                  LIMIT 1
+              )
+             LIMIT 1;
+        });
+    } catch {
+        return if $DBI::state eq '42P01'; # undefined_table
+        die $_;
+    };
 }
 
 sub _run {
