@@ -453,6 +453,21 @@ sub check_requires {
     }, undef, [$step->requires]) || [] };
 }
 
+sub current_tag_name {
+    my $dbh = shift->_dbh;
+    return $dbh->selectrow_array(q{
+        SELECT tag_name
+          FROM tag_names
+         WHERE tag_id = (
+             SELECT tag_id
+               FROM tags
+              ORDER BY applied_at DESC
+              LIMIT 1
+         )
+         LIMIT 1;
+    });
+}
+
 sub _run {
     my $self   = shift;
     my $sqitch = $self->sqitch;

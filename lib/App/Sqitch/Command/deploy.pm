@@ -41,7 +41,7 @@ sub execute {
     );
 
     $to = $self->to if defined $self->to;
-    my $curr_tag = $engine->current_tag;
+    my $curr_tag = $engine->current_tag_name;
     my $to_index = $plan->count - 1;
 
     if (defined $to) {

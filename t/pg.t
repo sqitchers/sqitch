@@ -250,12 +250,14 @@ subtest 'live database' => sub {
         plan  => $plan,
     );
 
+    is $pg->current_tag_name, undef, 'Should have no current tag';
     is_deeply [$pg->deployed_steps_for($tag)], [],
         'Should be no deployed steps';
     ok $pg->begin_deploy_tag($tag), 'Begin deploying "alpha" tag';
     ok $pg->commit_deploy_tag($tag), 'Commit "alpha" tag';
     is_deeply [$pg->deployed_steps_for($tag)], [],
         'Still should be no deployed steps';
+    is $pg->current_tag_name, 'alpha', 'Should get "alpha" as current tag';
 
     is_deeply $pg->_dbh->selectrow_arrayref(
         'SELECT tag_id, applied_by FROM tags'
@@ -281,6 +283,7 @@ subtest 'live database' => sub {
     ok $pg->commit_revert_tag($tag), 'Commit "alpha" reversion';
     is_deeply [$pg->deployed_steps_for($tag)], [],
         'Still should be no deployed steps';
+    is $pg->current_tag_name, undef, 'Should again have no current tag';
 
     is $pg->_dbh->selectrow_arrayref(
         'SELECT tag_id, applied_by FROM tags'
@@ -307,6 +310,8 @@ subtest 'live database' => sub {
     ok $pg->commit_deploy_tag($tag), 'Commit "alpha"/"beta" tag';
     is_deeply [$pg->deployed_steps_for($tag)], [],
         'Still should be no deployed steps';
+    like $pg->current_tag_name, qr/^(?:alpha|beta)$/,
+        'Should have "alpha" or "beta" as current tag name';
 
     is_deeply $pg->_dbh->selectrow_arrayref(
         'SELECT tag_id, applied_by FROM tags'
@@ -331,6 +336,7 @@ subtest 'live database' => sub {
     ok $pg->commit_revert_tag($tag), 'Commit "alpha"/"beta" reversion';
     is_deeply [$pg->deployed_steps_for($tag)], [],
         'Still should be no deployed steps';
+    is $pg->current_tag_name, undef, 'Should again have no current tag';
 
     is $pg->_dbh->selectrow_arrayref(
         'SELECT tag_id, applied_by FROM tags'
@@ -364,6 +370,8 @@ subtest 'live database' => sub {
     ok $pg->is_deployed_step($step), 'The "users" step should now be deployed';
     is_deeply [$pg->deployed_steps_for($tag)], [$step],
         'deployed_steps_for() should return the step';
+    like $pg->current_tag_name, qr/^(?:alpha|beta)$/,
+        'Should again have "alpha" or "beta" as current tag name';
 
     is_deeply $pg->_dbh->selectrow_arrayref(
         'SELECT tag_id, applied_by FROM tags'
@@ -412,6 +420,7 @@ subtest 'live database' => sub {
     ok !$pg->is_deployed_step($step), 'The "users" step should no longer be deployed';
     is_deeply [$pg->deployed_steps_for($tag)], [],
         'deployed_steps_for() should again return nothing';
+    is $pg->current_tag_name, undef, 'Should once again have no current tag';
 
     is $pg->_dbh->selectrow_arrayref(
         'SELECT tag_id, applied_by FROM tags'
@@ -467,6 +476,8 @@ subtest 'live database' => sub {
     ok $pg->is_deployed_step($step2), 'The "widgets" step should be deployed';
     is_deeply [map { $_->name } $pg->deployed_steps_for($tag)], [qw(users widgets)],
         'deployed_steps_for() should return both steps in order';
+    like $pg->current_tag_name, qr/^(?:alpha|beta)$/,
+        'Should once again "alpha" or "beta" as current tag name';
 
     is_deeply $pg->_dbh->selectrow_arrayref(
         'SELECT tag_id, applied_by FROM tags'
@@ -523,6 +534,7 @@ subtest 'live database' => sub {
     ok !$pg->is_deployed_step($step2), 'The "widgets" step should not be deployed again';
     is_deeply [$pg->deployed_steps_for($tag)], [],
         'deployed_steps_for should return nothing again';
+    is $pg->current_tag_name, undef, 'Should again have no current tag';
 
     is $pg->_dbh->selectrow_arrayref(
         'SELECT tag_id, applied_by FROM tags'
@@ -575,6 +587,8 @@ subtest 'live database' => sub {
     ok $pg->commit_deploy_tag($tag), 'Commit tag with "users" step';
     is_deeply [map { $_->name } $pg->deployed_steps_for($tag)], [qw(users)],
         'deployed_steps_for() should return the users step';
+    like $pg->current_tag_name, qr/^(?:alpha|beta)$/,
+        'Should once more have "alpha" or "beta" as current tag name';
 
     is_deeply $pg->_dbh->selectrow_arrayref(
         'SELECT tag_id, applied_by FROM tags'
@@ -622,6 +636,7 @@ subtest 'live database' => sub {
         'deployed_steps_for() should return the users step for the first tag';
     is_deeply [map { $_->name } $pg->deployed_steps_for($tag2)], [qw(widgets)],
         'deployed_steps_for() should return the widgets step for the second tag';
+    is $pg->current_tag_name, 'gamma', 'Now "gamma" should be current tag name';
 
     is_deeply $pg->_dbh->selectall_arrayref(
         'SELECT tag_id, applied_by FROM tags ORDER BY applied_at'

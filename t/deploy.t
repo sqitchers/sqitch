@@ -42,7 +42,7 @@ my %called;
 $mock_engine->mock(initialized => sub { $called{initialized} = 1; $init });
 $mock_engine->mock(initialize  => sub { $called{initialize}  = 1; shift });
 $mock_engine->mock(deploy      => sub { push @{ $called{deploy} }, $_[1]; shift });
-$mock_engine->mock(current_tag => sub { $called{current_tag} = 1; $curr_tag });
+$mock_engine->mock(current_tag_name => sub { $called{current_tag} = 1; $curr_tag });
 
 ok $deploy->execute('alpha'), 'Deploy to "alpha"';
 ok delete $called{initialized}, 'Should have called initialized()';

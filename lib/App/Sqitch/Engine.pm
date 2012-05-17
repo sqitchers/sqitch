@@ -294,6 +294,12 @@ sub check_conflicts {
     Carp::confess( "$class has not implemented check_conflicts()" );
 }
 
+sub current_tag_name {
+    my $class = ref $_[0] || $_[0];
+    require Carp;
+    Carp::confess( "$class has not implemented current_tag_name()" );
+}
+
 __PACKAGE__->meta->make_immutable;
 no Moose;
 
@@ -549,6 +555,12 @@ step. If none are returned, there are presumed to be no conflicts.
 If any of the steps that conflict with the specified step have been deployed
 to the database, their names should be returned by this method. If no names
 are returned, it's because there are no conflicts.
+
+=head3 C<current_tag_name>
+
+  my $tag_name $engine->current_tag_name;
+
+Returns one tag name from the most recently deployed tag.
 
 =head3 C<run_file>
 

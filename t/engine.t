@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 121;
+use Test::More tests => 122;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -136,6 +136,7 @@ for my $abs (qw(
     is_deployed_tag
     is_deployed_step
     deployed_steps_for
+    current_tag_name
 )) {
     throws_ok { $engine->$abs } qr/\Q$CLASS has not implemented $abs()/,
         "Should get an unimplemented exception from $abs()"
@@ -485,3 +486,4 @@ is_deeply +MockOutput->get_fail, [
         'The schema will need to be manually repaired'
     ],
 ], 'Should have the final failure message';
+
