@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 121;
+use Test::More tests => 125;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Path::Class;
@@ -92,6 +92,28 @@ is_deeply +MockOutput->get_fail, [[
     4,
     ': "HEAD" is a reserved tag name',
 ]], 'And the reserved tag error should have been output';
+
+# Try a plan with a tag ending in punctuation.
+$file = file qw(t plans ends-in-punct.plan);
+throws_ok { $plan->_parse($file) } qr/FAIL:/,
+    'Should die on plan with tag ending in puntuation';
+is_deeply +MockOutput->get_fail, [[
+    "Syntax error in $file at line ",
+    4,
+    ': Invalid tag "whatever^"; tags must not end in punctuation ',
+    'or a number following punctionation',
+]], 'And the invalid tag error should have been output';
+
+# Try a plan with a tag ending in punctuation + a number.
+$file = file qw(t plans ends-in-punct-num.plan);
+throws_ok { $plan->_parse($file) } qr/FAIL:/,
+    'Should die on plan with tag ending in puntuation + num';
+is_deeply +MockOutput->get_fail, [[
+    "Syntax error in $file at line ",
+    4,
+    ': Invalid tag "whatever+123"; tags must not end in punctuation ',
+    'or a number following punctionation',
+]], 'And the invalid tag error should have been output';
 
 # Try a plan with a duplicate tag name.
 $file = file qw(t plans dupe-tag.plan);

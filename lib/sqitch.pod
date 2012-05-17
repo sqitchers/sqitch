@@ -702,7 +702,9 @@ Here is the EBNF Grammar for the plan file:
   state       = <tags> <steps> ;
 
   tags        = "[" <taglist> "]" <line-ending> ;
-  taglist     = <name> | <name> <white-space> <taglist> ;
+  taglist     = <tag> | <tag> <white-space> <taglist> ;
+  tag         = [ <name> ] -<tagrel> ;
+  tagsuffix   = <punct> [ <num> ] ;
 
   steps       = { <step> | <empty-line> | <line-ending> }* ;
   step        = <name> <line-ending> ;
@@ -711,6 +713,8 @@ Here is the EBNF Grammar for the plan file:
   line-ending = [ <comment> ] <EOL> ;
   comment     = [ <white-space> ] "#" [ <string> ] ;
 
+  punct       = ? a punctuation character ? ;
+  num         = ? numeric charcters ?
   name        = ? non-white space characters ? ;
   white-space = ? white space characters ? ;
   string      = ? non-EOL characters ? ;

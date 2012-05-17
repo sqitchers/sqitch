@@ -109,6 +109,14 @@ sub _parse {
                 $self->sqitch->fail(
                     "Syntax error in $file at line ",
                     $fh->input_line_number,
+                    qq{: Invalid tag "$t"; tags must not end in punctuation },
+                    'or a number following punctionation',
+                ) if $t =~ /\p{PosixPunct}\d*\z/;
+
+                # Fail on reserved symbolic tag.
+                $self->sqitch->fail(
+                    "Syntax error in $file at line ",
+                    $fh->input_line_number,
                     qq{: "HEAD" is a reserved tag name}
                 ) if $t eq 'HEAD';
 
