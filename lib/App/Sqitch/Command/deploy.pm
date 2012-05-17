@@ -42,10 +42,11 @@ sub execute {
 
     $to = $self->to if defined $self->to;
     my $curr_tag = $engine->current_tag;
+    my $to_index = $plan->count - 1;
 
     if (defined $to) {
         # Make sure that $to is later than the current point.
-        my $to_index = $plan->index_of($to);
+        $to_index = $plan->index_of($to);
         if ($curr_tag) {
             $plan->seek($curr_tag);
             $sqitch->fail(
@@ -62,28 +63,23 @@ sub execute {
             $engine->initialize unless $engine->initialized;
         }
 
-        # Deploy!
-        $engine->deploy($plan->next) while $plan->position < $to_index;
-
     } elsif ($curr_tag) {
-        if (first { $_->name eq $curr_tag } $plan->last->names) {
+        # Skip to the current tag.
+        $plan->seek($curr_tag);
+
+        if ($plan->position == $to_index) {
             # We are up-to-date.
             $sqitch->info('Nothing to deploy (up-to-date)');
             return $self;
         }
 
-        # Skip to the current tag.
-        $plan->seek($curr_tag);
-
     } else {
         # Initialize the database, if necessary.
         $engine->initialize unless $engine->initialized;
-
-        # Go all the way to the end.
-        while (my $next_tag = $plan->next) {
-            $engine->deploy($next_tag);
-        }
     }
+
+    # Deploy!
+    $engine->deploy($plan->next) while $plan->position < $to_index;
 
     return $self;
 }
