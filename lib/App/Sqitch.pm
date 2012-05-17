@@ -250,6 +250,12 @@ sub _parse_core_opts {
         exit;
     }
 
+    # Convert files and dirs to objects.
+    for my $dir (qw(sql_dir deploy_dir revert_dir test_dir)) {
+        $opts{$dir} = dir $opts{$dir} if defined $opts{$dir};
+    }
+    $opts{plan_file} = file $opts{plan_file} if defined $opts{plan_file};
+
     # Normalize the options (remove undefs) and return.
     $opts{verbosity} = delete $opts{verbose};
     delete $opts{$_} for grep { !defined $opts{$_} } keys %opts;
