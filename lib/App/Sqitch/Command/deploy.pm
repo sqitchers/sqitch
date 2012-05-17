@@ -41,27 +41,31 @@ sub execute {
     );
 
     $to = $self->to if defined $self->to;
+    my $curr_tag = $engine->current_tag;
 
     if (defined $to) {
         # Make sure that $to is later than the current point.
         my $to_index = $plan->index_of($to);
-        $sqitch->fail(
-            'Cannot deploy to an earlier tag; use "revert" instead'
-        ) if $to_index < $plan->position;
+        if ($curr_tag) {
+            $plan->seek($curr_tag);
+            $sqitch->fail(
+                'Cannot deploy to an earlier tag; use "revert" instead'
+            ) if $to_index < $plan->position;
 
-        # Just return if there is nothing to do.
-        if ($to_index == $plan->position) {
-            $sqitch->info("Nothing to deploy (already at $to)");
-            return $self;
+            # Just return if there is nothing to do.
+            if ($to_index == $plan->position) {
+                $sqitch->info("Nothing to deploy (already at $to)");
+                return $self;
+            }
+        } else {
+            # Initialize the database, if necessary.
+            $engine->initialize unless $engine->initialized;
         }
 
-        # Initialize the database, if necessary.
-        $engine->initialize unless $engine->initialized;
+        # Deploy!
+        $engine->deploy($plan->next) while $plan->position < $to_index;
 
-        $engine->deploy($plan->next)
-            while $plan->position < $to_index;
-
-    } elsif (my $curr_tag = $engine->current_tag) {
+    } elsif ($curr_tag) {
         if (first { $_->name eq $curr_tag } $plan->last->names) {
             # We are up-to-date.
             $sqitch->info('Nothing to deploy (up-to-date)');

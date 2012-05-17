@@ -4,6 +4,7 @@ use v5.10.1;
 use utf8;
 use App::Sqitch::Plan::Tag;
 use App::Sqitch::Plan::Step;
+use Moose::Meta::Attribute::Native;
 use Path::Class;
 use namespace::autoclean;
 use Moose;
@@ -24,13 +25,18 @@ has with_untracked => (
     default  => 0,
 );
 
-has all => (
+has _all => (
     is         => 'ro',
     isa        => 'ArrayRef[App::Sqitch::Plan::Tag]',
-    auto_deref => 1,
+    traits     => ['Array'],
+    builder    => 'load',
+    init_arg   => 'all',
     lazy       => 1,
     required   => 1,
-    default    => sub { shift->load }
+    handles    => {
+        all   => 'elements',
+        count => 'count',
+    },
 );
 
 has position => (
@@ -314,7 +320,7 @@ sub open_script {
 sub index_of {
     my ( $self, $name ) = @_;
     # Make sure the plan is loaded.
-    $self->all;
+    $self->_all;
     return $self->_tags->{$name};
 }
 
