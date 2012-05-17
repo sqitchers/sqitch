@@ -109,8 +109,8 @@ sub _parse {
                 $self->sqitch->fail(
                     "Syntax error in $file at line ",
                     $fh->input_line_number,
-                    qq{: "HEAD+" is a reserved tag name}
-                ) if $t eq 'HEAD+';
+                    qq{: "HEAD" is a reserved tag name}
+                ) if $t eq 'HEAD';
 
                 # Fail on duplicate tag.
                 $self->sqitch->fail(

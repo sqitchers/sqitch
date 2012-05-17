@@ -1,7 +1,7 @@
 [foo]
 hey
 
-[bar HEAD+ whatever]
+[bar HEAD whatever]
 ruh-roh
 
 

@@ -90,7 +90,7 @@ throws_ok { $plan->_parse($file) } qr/FAIL:/,
 is_deeply +MockOutput->get_fail, [[
     "Syntax error in $file at line ",
     4,
-    ': "HEAD+" is a reserved tag name',
+    ': "HEAD" is a reserved tag name',
 ]], 'And the reserved tag error should have been output';
 
 # Try a plan with a duplicate tag name.
