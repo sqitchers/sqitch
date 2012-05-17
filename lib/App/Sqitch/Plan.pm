@@ -313,15 +313,17 @@ sub open_script {
 
 sub index_of {
     my ( $self, $name ) = @_;
-    my $index = $self->_tags->{$name};
-    $self->sqitch->fail(qq{Cannot find tag "$name" in plan})
-        unless defined $index;
-    return $index;
+    # Make sure the plan is loaded.
+    $self->all;
+    return $self->_tags->{$name};
 }
 
 sub seek {
     my ( $self, $name ) = @_;
-    $self->position($self->index_of($name));
+    my $index = $self->index_of($name);
+    $self->sqitch->fail(qq{Cannot find tag "$name" in plan})
+        unless defined $index;
+    $self->position($index);
     return $self;
 }
 
@@ -437,6 +439,12 @@ C<next> returns C<undef>, the value will be the last index in the plan plus 1.
 
 =head2 Instance Methods
 
+=head3 C<index_of>
+
+  my $index = $plan->index_of($tag_name);
+
+Returns the index of the specified tag name.
+
 =head3 C<seek>
 
   $plan->seek($tag_name);
@@ -458,6 +466,12 @@ Resets iteration. Same as C<$plan->position(-1)>, but better.
 
 Returns the next L<App::Sqitch::Plan::Tag> in the plan. Returns C<undef> if
 there are no more tags.
+
+=head3 C<last>
+
+  my $tag = $plan->last;
+
+Returns the last tag in the plan. Does not change the current position.
 
 =head3 C<current>
 

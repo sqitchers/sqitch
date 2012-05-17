@@ -5,12 +5,83 @@ use strict;
 use warnings;
 use utf8;
 use Moose;
+require App::Sqitch::Plan;
+use List::Util qw(first);
+use namespace::autoclean;
 extends 'App::Sqitch::Command';
 
 our $VERSION = '0.30';
 
+has to => (
+    is  => 'ro',
+    isa => 'Str',
+);
+
+has with_untracked => (
+    is       => 'ro',
+    isa      => 'Bool',
+    required => 1,
+    default  => 0,
+);
+
+sub options {
+    return qw(
+        to=s
+        with-untracked|untracked|u
+    );
+}
+
 sub execute {
-    my $self = shift;
+    my ( $self, $to ) = @_;
+    my $sqitch = $self->sqitch;
+    my $engine = $sqitch->engine;
+    my $plan   = App::Sqitch::Plan->new(
+        sqitch         => $sqitch,
+        with_untracked => $self->with_untracked
+    );
+
+    $to = $self->to if defined $self->to;
+
+    if (defined $to) {
+        # Make sure that $to is later than the current point.
+        my $to_index = $plan->index_of($to);
+        $sqitch->fail(
+            'Cannot deploy to an earlier tag; use "revert" instead'
+        ) if $to_index < $plan->position;
+
+        # Just return if there is nothing to do.
+        if ($to_index == $plan->position) {
+            $sqitch->info("Nothing to deploy (already at $to)");
+            return $self;
+        }
+
+        # Initialize the database, if necessary.
+        $engine->initialize unless $engine->initialized;
+
+        $engine->deploy($plan->next)
+            while $plan->position < $to_index;
+
+    } elsif (my $curr_tag = $engine->current_tag) {
+        if (first { $_->name eq $curr_tag } $plan->last->names) {
+            # We are up-to-date.
+            $sqitch->info('Nothing to deploy (up-to-date)');
+            return $self;
+        }
+
+        # Skip to the current tag.
+        $plan->seek($curr_tag);
+
+    } else {
+        # Initialize the database, if necessary.
+        $engine->initialize unless $engine->initialized;
+
+        # Go all the way to the end.
+        while (my $next_tag = $plan->next) {
+            $engine->deploy($next_tag);
+        }
+    }
+
+    return $self;
 }
 
 1;
@@ -33,6 +104,15 @@ reading C<sqitch-deploy>. But if you really want to know how the C<deploy> comma
 works, read on.
 
 =head1 Interface
+
+=head2 Class Methods
+
+=head3 C<options>
+
+  my @opts = App::Sqitch::Command::deploy->options;
+
+Returns a list of L<Getopt::Long> option specifications for the command-line
+options for the C<deploy> command.
 
 =head2 Instance Methods
 

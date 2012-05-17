@@ -485,7 +485,7 @@ Options and configuration properties:
 Step or tag to deploy up to. Defaults to the latest tag or to the VCS C<HEAD>
 commit. Property name: C<deploy.to>.
 
-=item C<-a>
+=item C<-u>
 
 =item C<--untracked>
 

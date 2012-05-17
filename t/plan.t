@@ -4,8 +4,8 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-#use Test::More tests => 113;
-use Test::More 'no_plan';
+use Test::More tests => 111;
+#use Test::More 'no_plan';
 use App::Sqitch;
 use Path::Class;
 use Test::Exception;
@@ -191,12 +191,6 @@ is $plan->index_of('baz'), 1, 'Index of baz should be 1';
 ok $plan->seek('baz'), 'Seek to the "baz" tag';
 is $plan->position, 1, 'Position should be at 1 again';
 is $plan->current, $next, 'Current should be second again';
-
-# Make sure index_of() chokes on a bad tag name.
-throws_ok { $plan->index_of('nonesuch') } qr/FAIL:/,
-    'Should die finding index of invalid tag';
-is_deeply +MockOutput->get_fail, [['Cannot find tag "nonesuch" in plan']],
-    'And the failure should be sent to output';
 
 # Make sure seek() chokes on a bad tag name.
 throws_ok { $plan->seek('nonesuch') } qr/FAIL:/,
