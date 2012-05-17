@@ -238,7 +238,7 @@ sub load_untracked {
     );
 
     # Find the untracked steps.
-    $rule->in( $sqitch->deploy_dir ) or return;
+    $rule->in( $sqitch->deploy_dir );
 
     my $tag = App::Sqitch::Plan::Tag->new(
         names => ['HEAD+'],

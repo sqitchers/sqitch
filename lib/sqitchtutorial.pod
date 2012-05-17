@@ -116,7 +116,7 @@ Now we can try deploying this change:
   > sqitch --db-name flipr_test deploy --untracked
   Adding metadata tables to flipr_test
   Deploying HEAD+ to flipr_test
-    - appuser
+    + appuser
 
 First Sqitch created the metadata tables used to track database changes. The
 structure and name of the metadata tables varies between databases (PostgreSQL

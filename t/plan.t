@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 112;
+use Test::More tests => 116;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Path::Class;
@@ -243,14 +243,19 @@ END { remove_tree 'sql' };
 
 my @tags = (tag ['foo'] => [qw(bar baz)]);
 
-is $plan->load_untracked(\@tags), undef, 'load_untracked should return undef';
+ok $tag = $plan->load_untracked(\@tags),
+    'load_untracked should return a tag';
+is $tag->name, 'HEAD+', 'And it should be HEAD+';
+is_deeply [$tag->steps], [], 'And it should have no steps';
 
 # Make sure we have the bar and baz steps.
 file(qw(sql deploy bar.sql))->touch;
 file(qw(sql deploy baz.sql))->touch;
 
-is $plan->load_untracked(\@tags), undef,
-    'load_untracked should still return undef';
+ok $tag = $plan->load_untracked(\@tags),
+    'load_untracked should again return a tag';
+is $tag->name, 'HEAD+', 'It should also be HEAD+';
+is_deeply [$tag->steps], [], 'And it should also have no steps';
 
 # Now add an unknown step.
 file(qw(sql deploy yo.sql))->touch;
