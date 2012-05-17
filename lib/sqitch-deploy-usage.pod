@@ -1,6 +1,6 @@
 =head1 Name
 
-sqitch-help-deplooy - Sqitch deploy usage statement
+sqitch-deploy-usage - Sqitch deploy usage statement
 
 =head1 Usage
 
