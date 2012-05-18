@@ -6,6 +6,16 @@ Revision history for Perl extension App::Sqitch
      - The `--requires` and `--conflicts` options to `add-step` now work
        properly.
      - Fixed anticipated Win32 test failures in `t/init.t`.'
+     - Fixed the `--plan-file`, `--sql-dir`, and other directory options so
+       that they no longer throw errors, but actually work.
+     - Implemented the plan parser. It's designed to later be subclassed to
+       support VCS integration. Includes dependency parsing and sorting.
+     - Switched to IPC::System::Simple instead for system/capture code.
+     - Implemented Engine interface for deploying and reverting tags.
+     - Implemented PostgreSQL engine. It uses a lock to ensure that only one
+       deployment can run at any time.
+     - Added the `deploy` command. it is now possible to deploy to a
+       PostgreSQL database.
 
 0.20  2012-05-01T02:48:47Z
      - Added `--local` option to `sqitch config`.
