@@ -1,5 +1,7 @@
 Revision history for Perl extension App::Sqitch
 
+0.31
+
 0.30  2012-05-18T15:43:12Z
      - The `init` command now properly writes out the `[core]` section header
        when there are only commented core setttings.
