@@ -12,12 +12,11 @@ This tutorial explains how to create a sqitch-enabled project, use a VCS for
 deployment planning, and work with other developers to make sure changes
 remain in sync and in the proper order.
 
-We'll start by creating new project from scratch, the database for a fictional
-antisocial networking site called Flipr. All examples use
-L<Git|http://git-scm.com/> as the VCS and
-L<PostgreSQL|http://www.postgresql.org/> as the storage engine, but for the
-most part you can substitute other VCSes and database engines in the examples
-as appropriate.
+We'll start by creating new project from scratch, a fictional antisocial
+networking site called Flipr. All examples use L<Git|http://git-scm.com/> as
+the VCS and L<PostgreSQL|http://www.postgresql.org/> as the storage engine,
+but for the most part you can substitute other VCSes and database engines in
+the examples as appropriate.
 
 =head1 Starting a New Project
 
@@ -156,7 +155,7 @@ Let's make sure that we can revert the change:
 And now the user should be gone:
 
   > psql -d flipr_test -c '\du flipr'
-                                  List of roles
+              List of roles
    Role name | Attributes | Member of 
   -----------+------------+-----------
 
@@ -202,7 +201,7 @@ And then deploy again:
 
   > sqitch --db-name flipr_test deploy
   Deploying 36acafd to flipr_test
-    - appuser
+    + appuser
 
 Notice we no longer need the C<--untracked> option. That's because we've
 committed the step to Git, so Sqitch can read it from the Git history. And now
@@ -230,7 +229,7 @@ commit:
 I'm getting a little tired of always having to type C<--db-name flipr_test>,
 aren't you? Let's just make that the default, shall we?
 
-  sqitch config core.pg.db_name flipr_test
+  > sqitch config core.pg.db_name flipr_test
 
 Now we can leave it out, unless we need to deploy to another database. Which
 we will, eventually, but at least our examples will be simpler from here on
@@ -252,9 +251,10 @@ changes!
 Let's add another deployment, this time to create a table. Our app will need
 users, of course, so we'll create a table for them. First, add the new step:
 
-  > sqitch add-step users
-  Adding sql/deploy/users.sql
-  Adding sql/revert/users.sql
+  > sqitch add-step users --requires appuser
+  Created sql/deploy/users.sql
+  Created sql/revert/users.sql
+  Created sql/test/users.sql
 
 Now edit the scripts. In C<sql/deploy/users.sql>, we put:
 
@@ -301,7 +301,7 @@ Couldn't be much simpler, right? Let's deploy this bad boy:
 
   > sqitch deploy --untracked
   Deploying HEAD+ to flipr_test
-    - users
+    + users
 
 The C<users> table should have been created:
 
@@ -317,7 +317,7 @@ The C<users> table should have been created:
 
 Now have a look at the status:
 
-  > sqitch -d flipr_test status
+  > sqitch status
   # On database flipr_test
   # Tag:  HEAD+
   # Step: users
@@ -330,7 +330,7 @@ In general, we want tags, so let's revert the change:
 
   > sqitch revert --to 36acafd
   Reverting HEAD+ from flipr_test
-  - users
+    - users
 
 Note that we've used the C<--to> option to revert only to the C<36acafd> tag,
 which represents the deployment of the C<appuser> step. (You can see this tag
@@ -345,7 +345,7 @@ Now commit and deploy again:
    create mode 100644 sql/revert/users.sql
   > sqitch deploy
   Deploying fa650af to flipr_test
-    - users
+    + users
 
 Looks good. Check the status:
 
@@ -398,10 +398,11 @@ look like:
       nickname TEXT,
       password TEXT
   ) RETURNS VOID LANGUAGE SQL SECURITY DEFINER AS $$
-      INSERT INTO users values($1, md5($2));
+      INSERT INTO users VALUES($1, md5($2));
   $$;
 
-  GRANT EXECUTE ON FUNCTION insert_user(TEXT, TEXT) to flipr;
+  GRANT EXECUTE ON FUNCTION insert_user(TEXT, TEXT) TO flipr;
+
   COMMIT;
 
 And C<sql/revert/insert_user.sql> should look something like this:
@@ -428,7 +429,7 @@ Now for C<change_pass>; C<sql/deploy/change_pass.sql> might look like this:
   END;
   $$;
 
-  GRANT EXECUTE ON FUNCTION change_pass(TEXT, TEXT, TEXT) to flipr;
+  GRANT EXECUTE ON FUNCTION change_pass(TEXT, TEXT, TEXT) TO flipr;
   COMMIT;
 
 And of course, its C<revert> script, C<sql/revert/change_pass.sql>, should look
@@ -440,8 +441,8 @@ Test em out!
 
   > sqitch deploy --untracked
   Deploying HEAD+ to flipr_test
-    - change_pass
-    - insert_user
+    + change_pass
+    + insert_user
 
 Do we have the functions?
 
@@ -479,7 +480,7 @@ explicitly used C<--to fa650af> to revert to that tag, but C<HEAD> is a nice
 shortcut. Let's do the commit and re-deploy dance:
 
   > git add .
-  > git ci -m 'Add `insert_user()` and `change_pass()`.'
+  > git commit -m 'Add `insert_user()` and `change_pass()`.'
   [master 803e6b8] Add `insert_user()` and `change_pass()`.
    4 files changed, 25 insertions(+)
    create mode 100644 sql/deploy/change_pass.sql
@@ -489,8 +490,8 @@ shortcut. Let's do the commit and re-deploy dance:
 
   > sqitch deploy
   Deploying 803e6b8 to flipr_test
-    - change_pass
-    - insert_user
+    + change_pass
+    + insert_user
 
   > sqitch status --show tags
   # On database flipr_test
@@ -519,12 +520,12 @@ We can test deployment to make sure the tag gets picked up like so:
   > createdb flipr_dev
   > sqitch --db-name flipr_dev deploy
   Deploying 36acafd to flipr_dev
-    - appuser
+    + appuser
   Deploying fa650af to flipr_dev
-    - users
-  Deploying 803e6b8/v1.0.0-dev1 to flipr_dev
-    - insert_user
-    - change_pass
+    + users
+  Deploying 803e6b8/v1.0.0+dev1 to flipr_dev
+    + insert_user
+    + change_pass
 
 All four steps were deployed, great! Let's have a look at the state:
 
@@ -549,7 +550,7 @@ the individual commit SHA1s:
 
   > sqitch bundle --tags-only
   Bundling in bundle/
-  Config written to bundle/sqitch.ini
+  Config written to bundle/sqitch.conf
   Bundling v1.0.0-dev1
     - appuser
     - users
@@ -580,10 +581,10 @@ Let's test deploying it:
   > createdb flipr_prod
   > sqitch --db-name flipr_prod deploy
   Deploying v1.0.0-dev1 to flipr_prod
-    - appuser
-    - users
-    - insert_user
-    - change_pass
+    + appuser
+    + users
+    + insert_user
+    + change_pass
 
 Looks much the same as before, eh? But have a look at the status:
 
@@ -641,7 +642,7 @@ And give it a whirl:
 
   > sqitch deploy --untracked
   Deploying HEAD+ to flipr_test
-    - flips
+    + flips
 
 Look good?
 
@@ -965,10 +966,10 @@ can just take its advice and run C<sqitch deploy>:
 
   > sqitch deploy --untracked
   Deploying 591e388 to flipr_test
-    - lists
+    + lists
   Deploying 675f78d to flipr_test
-    - delete_list
-    - insert_list
+    + delete_list
+    + insert_list
 
 So where does that leave us?
 
@@ -1221,8 +1222,8 @@ And then test deployment:
 
   > sqitch deploy --untracked
   Deploying HEAD+ to flipr_test
-    - insert_user
-    - change_pass
+    + insert_user
+    + change_pass
 
 So, are the changes deployed?
 
@@ -1278,8 +1279,8 @@ So let's go ahead and commit these changes and bring the database up-to-date:
 
   > sqitch deploy
   Deploying eea942d to flipr_test
-    - insert_user
-    - change_pass
+    + insert_user
+    + change_pass
 
   > sqitch -d flipr_test status
   # On database flipr_test
@@ -1299,7 +1300,7 @@ find out. Let's tag a C<v1.0.0-b1> release and create a new bundle:
   > git tag v1.0.0-b1 -am 'Tag v1.0.0-b1'
   > sqitch bundle --tags-only
   Bundling in bundle/
-  Config written to bundle/sqitch.ini
+  Config written to bundle/sqitch.plan
   Bundling v1.0.0-dev1
     - appuser
     - users
@@ -1367,14 +1368,14 @@ So, let's deploy.
 
   > sqitch -d flipr_prod deploy
   Deploying lists to flipr_prod
-    - insert_list
-    - delete_list
+    + insert_list
+    + delete_list
   Deploying flips to flipr_prod
-    - insert_flip
-    - delete_flip
-  Deploying v1.0.0-b1 to flipr_prod
-    - change_pass_v2
-    - insert_user_v2
+    + insert_flip
+    + delete_flip
+  Deploying v1.0.0+b1 to flipr_prod
+    + change_pass_v2
+    + insert_user_v2
 
 And now the status is:
 
