@@ -294,7 +294,7 @@ USERCONF: {
         'core.sqlite.db_name' => 'my.db',
     }, 'New config should have been written with sqlite values';
 
-    file_contents_like $conf_file, qr{^\t# client = /opt/local/bin/sqlite3\E\n}m,
+    file_contents_like $conf_file, qr{^\t\Q# client = /opt/local/bin/sqlite3\E\n}m,
         'Configured client should be included in a comment';
 
     file_contents_like $conf_file, qr/^\t# sqitch_prefix = meta\n/m,
