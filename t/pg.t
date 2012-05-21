@@ -219,7 +219,7 @@ END {
 
 subtest 'live database' => sub {
     $sqitch = App::Sqitch->new('username' => 'postgres');
-    ok $pg = $CLASS->new(sqitch => $sqitch), 'Create a pg with postgres user';
+    $pg = $CLASS->new(sqitch => $sqitch);
     try {
         $pg->_dbh;
     } catch {
