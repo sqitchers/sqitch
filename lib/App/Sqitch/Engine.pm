@@ -6,7 +6,7 @@ use utf8;
 use Try::Tiny;
 use namespace::autoclean;
 
-our $VERSION = '0.31';
+our $VERSION = '0.32';
 
 has sqitch => (
     is       => 'ro',

@@ -1,5 +1,7 @@
 Revision history for Perl extension App::Sqitch
 
+0.32
+
 0.31  2012-05-21T22:29:42Z
      - Fixed some typos and failing tests.
 

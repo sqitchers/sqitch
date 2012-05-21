@@ -10,7 +10,7 @@ use namespace::autoclean;
 use Moose;
 use Moose::Meta::TypeConstraint::Parameterizable;
 
-our $VERSION = '0.31';
+our $VERSION = '0.32';
 
 has sqitch => (
     is       => 'ro',

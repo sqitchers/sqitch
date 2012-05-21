@@ -12,7 +12,7 @@ use namespace::autoclean;
 
 extends 'App::Sqitch::Command';
 
-our $VERSION = '0.31';
+our $VERSION = '0.32';
 
 sub execute {
     my $self = shift;
