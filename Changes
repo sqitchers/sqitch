@@ -1,6 +1,7 @@
 Revision history for Perl extension App::Sqitch
 
-0.31
+0.31  2012-05-21T22:29:42Z
+     - Fixed some typos and failing tests.
 
 0.30  2012-05-18T15:43:12Z
      - The `init` command now properly writes out the `[core]` section header
