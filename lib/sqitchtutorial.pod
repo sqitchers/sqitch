@@ -1300,7 +1300,7 @@ find out. Let's tag a C<v1.0.0-b1> release and create a new bundle:
   > git tag v1.0.0-b1 -am 'Tag v1.0.0-b1'
   > sqitch bundle --tags-only
   Bundling in bundle/
-  Config written to bundle/sqitch.plan
+  Config written to bundle/sqitch.conf
   Bundling v1.0.0-dev1
     - appuser
     - users
@@ -1381,7 +1381,7 @@ And now the status is:
 
   > sqitch -d flipr_prod status
   # On database flipr_prod
-  # Tag:  v1.0.0-dev1
+  # Tag:  v1.0.0-b1
   # Step: insert_user_v2
   # Date: 2012-04-12 19:14:34
   #
