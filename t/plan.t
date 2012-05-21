@@ -290,7 +290,7 @@ is $tag->dump, tag( ['HEAD+'] => [qw(yo)] )->dump,
 file(qw(sql deploy stuff wow.sql))->touch;
 ok $tag = $plan->load_untracked(\@tags),
     'load_untracked now should again return a tag';
-my $exp = tag ['HEAD+'] => [qw(yo stuff/wow)];
+my $exp = tag ['HEAD+'] => [qw(stuff/wow yo)];
 is $tag->dump, $exp->dump, 'The tag should have the subdirectory step';
 
 # Make sure VCS directories are ignored.
@@ -312,12 +312,12 @@ isa_ok $plan = App::Sqitch::Plan->new(
 is_deeply [$plan->all], [
     tag( [qw(foo)] => [qw(hey you)] ),
     tag( [qw(bar baz)] => [qw(this/rocks hey-there)] ),
-    tag( ['HEAD+'] => [qw(bar baz yo stuff/wow)] ),
+    tag( ['HEAD+'] => [qw(bar baz stuff/wow yo)] ),
 ], 'Plan should include untracked steps';
 is_deeply $plan->load, [
     tag( [qw(foo)] => [qw(hey you)] ),
     tag( [qw(bar baz)] => [qw(this/rocks hey-there)] ),
-    tag( ['HEAD+'] => [qw(bar baz yo stuff/wow)] ),
+    tag( ['HEAD+'] => [qw(bar baz stuff/wow yo)] ),
 ], 'load should also load untracked steps';
 is $plan->index_of('foo'), 0, 'Should be able to find tag "foo"';
 is $plan->index_of('bar'), 1, 'Should be able to find tag "bar"';

@@ -261,7 +261,7 @@ sub load_untracked {
     push @{ $tag->_steps } => map { App::Sqitch::Plan::Step->new(
         name => $_,
         tag  => $tag,
-    ) } @steps;
+    ) } sort @steps;
 
     return $tag;
 }
