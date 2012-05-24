@@ -70,7 +70,7 @@ sub _parse {
 
         # Grab blank lines first.
         if ($line =~ /\A(?<lspace>\s*)(?:#(?<comment>.+)|$)/) {
-            push @plan = App::Sqitch::Plan::Blank->new(
+            push @plan => App::Sqitch::Plan::Blank->new(
                 plan => $self,
                 map { $_ => $+{$_} // '' } keys %+
             );
@@ -81,7 +81,7 @@ sub _parse {
         my $type = $line =~ /^[@]/ ? 'Tag' : 'Step';
 
         # Remove inline comment.
-        $line =~ s/(?<rspace>\s*)#(?<comment>).*)$//g;
+        $line =~ s/(?<rspace>\s*)#(?<comment>).*$//g;
         my %comment = map { $_ => $+{$_} // '' } keys %+;
 
         my ($name) = $line =~ /
