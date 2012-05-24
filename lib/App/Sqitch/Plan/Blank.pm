@@ -6,6 +6,9 @@ use namespace::autoclean;
 use parent 'App::Sqitch::Plan::Line';
 use Moose;
 
+has '+name' => ( default => '' );
+
+
 sub format_name { '' }
 
 __PACKAGE__->meta->make_immutable;

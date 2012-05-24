@@ -4,13 +4,13 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 125;
-#use Test::More 'no_plan';
+use Test::More;
 use App::Sqitch;
 use Path::Class;
 use Test::Exception;
 use Test::File;
 use Test::File::Contents;
+use Encode;
 #use Test::NoWarnings;
 use File::Path qw(make_path remove_tree);
 use lib 't/lib';
@@ -24,25 +24,45 @@ BEGIN {
 }
 
 can_ok $CLASS, qw(
+    sqitch
     all
     position
     load
-    load_untracked
     _parse
+    sort_steps
+    open_script
 );
 
 my $sqitch = App::Sqitch->new;
 isa_ok my $plan = App::Sqitch::Plan->new(sqitch => $sqitch), $CLASS;
 
-sub tag {
-    my $tag = App::Sqitch::Plan::Tag->new(
-        plan  => $plan,
-        names => $_[0],
+# Set up some some utility functions for creating nodes.
+sub blank {
+    App::Sqitch::Plan::Blank->new(
+        plan    => $plan,
+        lspace  => $_[0] // '',
+        comment => $_[1] // '',
     );
-    push @{ $tag->_steps } => map {
-        App::Sqitch::Plan::Step->new(name => $_, tag => $tag)
-    } @{ $_[1] };
-    return $tag;
+}
+
+sub step {
+    App::Sqitch::Plan::Step->new(
+        plan    => $plan,
+        lspace  => $_[0] // '',
+        name    => $_[1],
+        rspace  => $_[2] // '',
+        comment => $_[3] // '',
+    );
+}
+
+sub tag {
+    App::Sqitch::Plan::Tag->new(
+        plan    => $plan,
+        lspace  => $_[0] // '',
+        name    => $_[1],
+        rspace  => $_[2] // '',
+        comment => $_[3] // '',
+    );
 }
 
 my $mocker = Test::MockModule->new($CLASS);
@@ -52,100 +72,156 @@ $mocker->mock(sort_steps => sub { shift, shift; @_ });
 ##############################################################################
 # Test parsing.
 my $file = file qw(t plans widgets.plan);
-is_deeply $plan->_parse($file), [
-    tag [qw(foo)] => [qw(hey you)],
-], 'Should parse simple "widgets.plan"';
+my $fh = $file->open('<:encoding(UTF-8)');
+is_deeply $plan->_parse($file, $fh), {
+    nodes => [
+        blank('', ' This is a comment'),
+        blank(),
+        blank(' ', ' And there was a blank line.'),
+        blank(),
+        step(  '', 'hey'),
+        step(  '', 'you'),
+        tag(   '', 'foo', ' ', ' look, a tag!'),
+    ]
+}, 'Should parse simple "widgets.plan"';
 
 # Plan with multiple tags.
 $file = file qw(t plans multi.plan);
-is_deeply $plan->_parse($file), [
-    tag( [qw(foo)] => [qw(hey you)] ),
-    tag( [qw(bar baz)] => [qw(this/rocks hey-there)] ),
-], 'Should parse multi-tagged "multi.plan"';
+$fh = $file->open('<:encoding(UTF-8)');
+is_deeply $plan->_parse($file, $fh), {
+    nodes => [
+        blank('', ' This is a comment'),
+        blank(),
+        blank('', ' And there was a blank line.'),
+        blank(),
+        step(  '', 'hey'),
+        step(  '', 'you'),
+        tag(   '', 'foo', ' ', ' look, a tag!'),
+        blank('   '),
+        step(  '', 'this/rocks', '  '),
+        tag(   '', 'hey-there', ' ', ' trailing comment!'),
+        tag(   '', 'bar', ' '),
+        tag(   '', 'baz', ''),
+    ]
+}, 'Should parse multi-tagged "multi.plan"';
 
 # Try a plan with steps appearing without a tag.
 $file = file qw(t plans steps-only.plan);
-throws_ok { $plan->_parse($file) } qr/FAIL:/,
-    'Should die on plan with steps beore tags';
-is_deeply +MockOutput->get_fail, [[
-    "Syntax error in $file at line ",
-    5,
-    ': Step "hey" not associated with a tag',
-]], 'And the error should have been output';
+$fh = $file->open('<:encoding(UTF-8)');
+is_deeply $plan->_parse($file, $fh), {
+    nodes => [
+        blank('', ' This is a comment'),
+        blank(),
+        blank('', ' And there was a blank line.'),
+        blank(),
+        step(  '', 'hey'),
+        step(  '', 'you'),
+        step(  '', 'whatwhatwhat'),
+    ]
+}, 'Should read plan with no tags';
+
 
 # Try a plan with a bad step name.
 $file = file qw(t plans bad-step.plan);
-throws_ok { $plan->_parse($file) } qr/FAIL:/,
+$fh = $file->open('<:encoding(UTF-8)');
+throws_ok { $plan->_parse($file, $fh) } qr/FAIL:/,
     'Should die on plan with bad step name';
 is_deeply +MockOutput->get_fail, [[
     "Syntax error in $file at line ",
     5,
-    ': "what what what"',
+    ': Invalid step "what what what"; steps must not begin or ',
+    'end in punctuation or digits following punctuation'
 ]], 'And the error should have been output';
+
+# Try other invalid step and tag name issues.
+for my $name (
+    '^foo',     # No leading punctuation
+    'foo bar',  # no white space
+    'foo+',     # No trailing punctuation
+    'foo+6',    # No trailing punctuation+digit
+    'foo+666',  # No trailing punctuation+digits
+    '%hi',      # No leading punctuation
+    'hi!',      # No trailing punctuation
+) {
+    for my $line ($name, "\@$name") {
+        my $what = $line =~ /^[@]/ ? 'tag' : 'step';
+        my $fh = IO::File->new(\$line, '<:utf8');
+        throws_ok { $plan->_parse('baditem', $fh) } qr/FAIL:/,
+            qq{Should die on plan with bad name "$line"};
+        is_deeply +MockOutput->get_fail, [[
+            "Syntax error in baditem at line ",
+            1,
+            qq{: Invalid $what "$line"; ${what}s must not begin or },
+            'end in punctuation or digits following punctuation'
+        ]], qq{And "$line" should trigger the appropriate error};
+    }
+}
+
+# Try some valid step and tag names.
+for my $name (
+    'foo',     # alpha
+    '12',      # digits
+    't',       # char
+    '6',       # digit
+    '阱阪阬',   # multibyte
+    'foo/bar', # middle punct
+) {
+    for my $line ($name, "\@$name") {
+        my $fh = IO::File->new(\$line, '<:utf8');
+        my $make = $line =~ /^[@]/ ? \&tag : \&step;
+        is_deeply $plan->_parse('gooditem', $fh), {
+            nodes => [
+                $make->('', $name),
+            ]
+        }, encode_utf8(qq{Should get node for "$line"});
+    }
+}
 
 # Try a plan with a reserved tag name.
 $file = file qw(t plans reserved-tag.plan);
-throws_ok { $plan->_parse($file) } qr/FAIL:/,
+$fh = $file->open('<:encoding(UTF-8)');
+throws_ok { $plan->_parse($file, $fh) } qr/FAIL:/,
     'Should die on plan with reserved tag';
 is_deeply +MockOutput->get_fail, [[
     "Syntax error in $file at line ",
-    4,
-    ': "HEAD" is a reserved tag name',
+    5,
+    ': "HEAD" is a reserved name',
 ]], 'And the reserved tag error should have been output';
-
-# Try a plan with a tag ending in punctuation.
-$file = file qw(t plans ends-in-punct.plan);
-throws_ok { $plan->_parse($file) } qr/FAIL:/,
-    'Should die on plan with tag ending in puntuation';
-is_deeply +MockOutput->get_fail, [[
-    "Syntax error in $file at line ",
-    4,
-    ': Invalid tag "whatever^"; tags must not end in punctuation ',
-    'or a number following punctionation',
-]], 'And the invalid tag error should have been output';
-
-# Try a plan with a tag ending in punctuation + a number.
-$file = file qw(t plans ends-in-punct-num.plan);
-throws_ok { $plan->_parse($file) } qr/FAIL:/,
-    'Should die on plan with tag ending in puntuation + num';
-is_deeply +MockOutput->get_fail, [[
-    "Syntax error in $file at line ",
-    4,
-    ': Invalid tag "whatever+123"; tags must not end in punctuation ',
-    'or a number following punctionation',
-]], 'And the invalid tag error should have been output';
 
 # Try a plan with a duplicate tag name.
 $file = file qw(t plans dupe-tag.plan);
-throws_ok { $plan->_parse($file) } qr/FAIL:/,
+$fh = $file->open('<:encoding(UTF-8)');
+throws_ok { $plan->_parse($file, $fh) } qr/FAIL:/,
     'Should die on plan with dupe tag';
 is_deeply +MockOutput->get_fail, [[
     "Syntax error in $file at line ",
-    9,
+    10,
     ': Tag "bar" duplicates earlier declaration on line ',
     4,
 ]], 'And the dupe tag error should have been output';
 
 # Try a plan with a duplicate step within a tag section.
 $file = file qw(t plans dupe-step.plan);
-throws_ok { $plan->_parse($file) } qr/FAIL:/,
+$fh = $file->open('<:encoding(UTF-8)');
+throws_ok { $plan->_parse($file, $fh) } qr/FAIL:/,
     'Should die on plan with dupe step';
 is_deeply +MockOutput->get_fail, [[
     "Syntax error in $file at line ",
-    8,
+    7,
     ': Step "greets" duplicates earlier declaration on line ',
-    6,
+    5,
 ]], 'And the dupe step error should have been output';
 
 # Try a plan with a duplicate step in different tag sections.
 $file = file qw(t plans dupe-step-diff-tag.plan);
-throws_ok { $plan->_parse($file) } qr/FAIL:/,
+$fh = $file->open('<:encoding(UTF-8)');
+throws_ok { $plan->_parse($file, $fh) } qr/FAIL:/,
     'Should die on plan with dupe step across tags';
 is_deeply +MockOutput->get_fail, [[
     "Syntax error in $file at line ",
-    9,
+    8,
     ': Step "whatever" duplicates earlier declaration on line ',
-    2,
+    1,
 ]], 'And the second dupe step error should have been output';
 
 # Make sure that all() loads the plan.
@@ -154,13 +230,37 @@ $sqitch = App::Sqitch->new(plan_file => $file);
 isa_ok $plan = App::Sqitch::Plan->new(sqitch => $sqitch), $CLASS,
     'Plan with sqitch with plan file';
 is_deeply [$plan->all], [
-    tag( [qw(foo)] => [qw(hey you)] ),
-    tag( [qw(bar baz)] => [qw(this/rocks hey-there)] ),
+        blank('', ' This is a comment'),
+        blank(),
+        blank('', ' And there was a blank line.'),
+        blank(),
+        step(  '', 'hey'),
+        step(  '', 'you'),
+        tag(   '', 'foo', ' ', ' look, a tag!'),
+        blank('   '),
+        step(  '', 'this/rocks', '  '),
+        tag(   '', 'hey-there', ' ', ' trailing comment!'),
+        tag(   '', 'bar', ' '),
+        tag(   '', 'baz', ''),
 ], 'plan should be parsed from file';
-is_deeply $plan->load, [
-    tag( [qw(foo)] => [qw(hey you)] ),
-    tag( [qw(bar baz)] => [qw(this/rocks hey-there)] ),
-], 'Load should parse plan from file';
+is_deeply $plan->load,  {
+    nodes => [
+        blank('', ' This is a comment'),
+        blank(),
+        blank('', ' And there was a blank line.'),
+        blank(),
+        step(  '', 'hey'),
+        step(  '', 'you'),
+        tag(   '', 'foo', ' ', ' look, a tag!'),
+        blank('   '),
+        step(  '', 'this/rocks', '  '),
+        tag(   '', 'hey-there', ' ', ' trailing comment!'),
+        tag(   '', 'bar', ' '),
+        tag(   '', 'baz', ''),
+    ]
+}, 'Load should parse plan from file';
+
+done_testing; exit;
 
 ##############################################################################
 # Test the interator interface.
@@ -336,7 +436,7 @@ is_deeply +MockOutput->get_fail, [
 # Test open_script.
 can_ok $CLASS, 'open_script';
 my $step_file = file qw(sql deploy bar.sql);
-my $fh = $step_file->open('>') or die "Cannot open $step_file: $!\n";
+$fh = $step_file->open('>') or die "Cannot open $step_file: $!\n";
 $fh->say('-- This is a comment');
 $fh->close;
 ok $fh = $plan->open_script($step_file), 'Open bar.sql';

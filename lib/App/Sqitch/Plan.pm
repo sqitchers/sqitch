@@ -19,18 +19,13 @@ has sqitch => (
     required => 1,
 );
 
-has _all => (
+has _plan => (
     is         => 'ro',
-    isa        => 'ArrayRef',
-    traits     => ['Array'],
+    isa        => 'HashRef',
     builder    => 'load',
-    init_arg   => 'all',
+    init_arg   => 'plan',
     lazy       => 1,
     required   => 1,
-    handles    => {
-        all   => 'elements',
-        count => 'count',
-    },
 );
 
 has position => (
@@ -40,79 +35,87 @@ has position => (
     default  => -1,
 );
 
-has _tags => (
-    is       => 'ro',
-    isa      => 'HashRef',
-    required => 1,
-    default  => sub { {} },
-);
-
 sub load {
     my $self = shift;
     my $file = $self->sqitch->plan_file;
-    my $plan = -f $file ? $self->_parse($file) : [];
-    return $plan;
-}
-
-sub _parse {
-    my ( $self, $file ) = @_;
+    return {} unless -f $file;
     my $fh = $file->open('<:encoding(UTF-8)')
         or $self->sqitch->fail( "Cannot open $file: $!" );
+    return $self->_parse($file, $fh);
+}
 
-    my $tags = $self->_tags;
-    my @plan;          # List of nodes to return
-    my %seen_tags;     # Maps tags to line numbers.
-    my %prev_steps;    # Maps steps from previous sections to line numbers.
-    my %tag_steps;     # Maps steps in current tag section to line numbers.
+sub all { @{ shift->_plan->{nodes} } }
+
+sub _parse {
+    my ( $self, $file, $fh ) = @_;
+
+    my @nodes;         # List of nodes.
+    my %seen = (
+        tag  => {},    # Maps tags to line numbers.
+        step => {},    # Maps steps to line numbers.
+    );
 
     LINE: while ( my $line = $fh->getline ) {
         chomp $line;
 
         # Grab blank lines first.
         if ($line =~ /\A(?<lspace>\s*)(?:#(?<comment>.+)|$)/) {
-            push @plan => App::Sqitch::Plan::Blank->new(
-                plan => $self,
-                map { $_ => $+{$_} // '' } keys %+
-            );
+            push @nodes => App::Sqitch::Plan::Blank->new( plan => $self, %+ );
             next LINE;
         }
 
         # Is it a tag or a step?
-        my $type = $line =~ /^[@]/ ? 'Tag' : 'Step';
+        my $type = $line =~ /^[@]/ ? 'tag' : 'step';
 
-        # Remove inline comment.
-        $line =~ s/(?<rspace>\s*)#(?<comment>).*$//g;
-        my %comment = map { $_ => $+{$_} // '' } keys %+;
+        # Grab inline comment.
+        $line =~ s/(?<rspace>[[:blank:]]*)(?:[#](?<comment>.*))?$//;
+        my %params = %+;
 
         my ($name) = $line =~ /
            ^                              # Beginning of line
-           (?<lspace>\s*)?                # Optional leading space
+           (?<lspace>[[:blank:]]*)?       # Optional leading space
            [@]?                           # Optional @
            (?<name>                       # followed by name consisting of...
-               [^[:punct:][:blank:]]      #     not blank or punct
+               [^[:punct:]]               #     not punct
                (?:                        #     followed by...
-                   [^[:blank:]]*?         #         any number blank
+                   [^[:blank:]]*?         #         any number non-blank
                    [^[:punct:][:blank:]]  #         one not blank or punct
                )?                         #     ... optionally
            )                              # ... required
            $                              # end of line
         /x;
+
+        %params = (%params, %+);
+
+        # Make sure we have a valid name.
         $self->sqitch->fail(
             "Syntax error in $file at line ",
             $fh->input_line_number,
-            qq{: Invalid \L$type\E "$line"; \L$type\Es must not begin or },
+            qq{: Invalid $type "$line"; ${type}s must not begin or },
                 'end in punctuation or digits following punctuation',
-        ) if !$+{name} || $+{name} =~ /[[:punct:]][[:digit:]]*\z/;
+        ) if !$params{name} || $params{name} =~ /[[:punct:]][[:digit:]]*\z/;
 
-        my $class = __PACKAGE__ . "::$type";
-        push @plan => $class->new(
-            plan => $self,
-            %comment,
-            map { $_ => $+{$_} // '' } keys %+
-        );
+        # It must not be a reserved name.
+        $self->sqitch->fail(
+            "Syntax error in $file at line ",
+            $fh->input_line_number,
+            ': "HEAD" is a reserved name',
+        ) if $params{name} eq 'HEAD';
+
+        # Fail on duplicate name.
+        $self->sqitch->fail(
+            "Syntax error in $file at line ",
+            $fh->input_line_number,
+            qq{: \u$type "$params{name}" duplicates earlier declaration on line },
+            $seen{$type}{ $params{name} },
+        ) if $seen{$type}{ $params{name} };
+        $seen{$type}{ $params{name} } = $fh->input_line_number;
+
+        my $class = __PACKAGE__ . '::' . ucfirst $type;
+        push @nodes => $class->new( plan => $self, %params );
     }
 
-    return \@plan;
+    return { nodes => \@nodes };
 }
 
 sub sort_steps {

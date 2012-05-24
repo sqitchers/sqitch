@@ -1,9 +1,9 @@
-[foo]
 whatever
+@foo
 
-[bar]
 hi
+@bar
 
-[stink]
 greets
 whatever
+@stink

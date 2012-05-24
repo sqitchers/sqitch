@@ -1,10 +1,12 @@
-[foo]
+@foo
 whatever
 
-[bar]
+@bar
 hi
 
-[stink]
+@stink 
 
-[blah bar w00t]
+@blah
+@bar
+@w00t
 OHNOEZ

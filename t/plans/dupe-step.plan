@@ -1,8 +1,8 @@
-[foo]
 whatever
+@foo
 
-[bar]
 hi
 greets
 tallyho
 greets
+@bar

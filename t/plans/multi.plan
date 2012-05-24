@@ -2,12 +2,11 @@
 
 # And there was a blank line.
 
-[foo]
-# look, a tag!
 hey
 you
-
-[bar baz]
-this/rocks
+@foo # look, a tag!
+   
+this/rocks  
 hey-there # trailing comment!
-
+@bar 
+@baz
