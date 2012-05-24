@@ -1,13 +1,12 @@
-package App::Sqitch::Plan::Tag;
+package App::Sqitch::Plan::Blank;
 
 use v5.10.1;
 use utf8;
 use namespace::autoclean;
 use parent 'App::Sqitch::Plan::Line';
+use Moose;
 
-sub format_name {
-    '@' . shift->name;
-}
+sub format_name { '' }
 
 __PACKAGE__->meta->make_immutable;
 no Moose;
@@ -16,18 +15,18 @@ __END__
 
 =head1 Name
 
-App::Sqitch::Plan::Tag - Sqitch deployment plan tag
+App::Sqitch::Plan::Blank - Sqitch deployment plan tag
 
 =head1 Synopsis
 
   my $plan = App::Sqitch::Plan->new( file => $file );
   while (my $tag = $plan->next) {
-      say "Tag: ", $tag->name;
+      say "Blank: ", $tag->name;
   }
 
 =head1 Description
 
-A App::Sqitch::Plan::Tag represents a tagged list of deployment steps in a
+A App::Sqitch::Plan::Blank represents a tagged list of deployment steps in a
 Sqitch plan. A tag may have one or more names (as multiple tags can represent
 a single point in time in the plan), and any number of steps.
 
@@ -40,9 +39,9 @@ otherwise be created directly.
 
 =head3 C<new>
 
-  my $plan = App::Sqitch::Plan::Tag->new(%params);
+  my $plan = App::Sqitch::Plan::Blank->new(%params);
 
-Instantiates and returns a App::Sqitch::Plan::Tag object.
+Instantiates and returns a App::Sqitch::Plan::Blank object.
 
 =head2 Accessors
 

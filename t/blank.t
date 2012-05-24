@@ -13,7 +13,7 @@ use App::Sqitch::Plan;
 my $CLASS;
 
 BEGIN {
-    $CLASS = 'App::Sqitch::Plan::Tag';
+    $CLASS = 'App::Sqitch::Plan::Blank';
     require_ok $CLASS or die;
 }
 
@@ -33,8 +33,8 @@ isa_ok my $tag = $CLASS->new(
 ), $CLASS;
 isa_ok $tag, 'App::Sqitch::Plan::Line';
 
-is $tag->format_name, '@foo', 'Name should format as "@foo"';
-is $tag->stringify, '@foo', 'Should stringify to "@foo"';
+is $tag->format_name, '', 'Name should format as ""';
+is $tag->stringify, '', 'Should stringify to ""';
 
 ok $tag = $CLASS->new(
     name    => 'howdy',
@@ -44,6 +44,6 @@ ok $tag = $CLASS->new(
     comment => ' blah blah blah',
 ), 'Create tag with more stuff';
 
-is $tag->stringify, "  \@howdy\t# blah blah blah",
+is $tag->stringify, "  \t# blah blah blah",
     'It should stringify correctly';
 

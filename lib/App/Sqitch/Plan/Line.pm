@@ -1,12 +1,60 @@
-package App::Sqitch::Plan::Tag;
+package App::Sqitch::Plan::Line;
 
 use v5.10.1;
 use utf8;
 use namespace::autoclean;
-use parent 'App::Sqitch::Plan::Line';
+use Moose;
+use Moose::Meta::Attribute::Native;
+
+has name => (
+    is       => 'ro',
+    isa      => 'Str',
+    required => 1,
+);
+
+has lspace => (
+    is       => 'ro',
+    isa      => 'Str',
+    required => 1,
+    default  => '',
+);
+
+has rspace => (
+    is       => 'ro',
+    isa      => 'Str',
+    required => 1,
+    default  => '',
+);
+
+has comment => (
+    is       => 'ro',
+    isa      => 'Str',
+    required => 1,
+    default  => '',
+);
+
+has plan => (
+    is       => 'ro',
+    isa      => 'App::Sqitch::Plan',
+    weak_ref => 1,
+    required => 1,
+);
 
 sub format_name {
-    '@' . shift->name;
+    shift->name;
+}
+
+sub format_comment {
+    my $comment = shift->comment;
+    return length $comment ? "#$comment" : '';
+}
+
+sub stringify {
+    my $self = shift;
+    return $self->lspace
+         . $self->format_name
+         . $self->rspace
+         . $self->format_comment;
 }
 
 __PACKAGE__->meta->make_immutable;
@@ -16,18 +64,18 @@ __END__
 
 =head1 Name
 
-App::Sqitch::Plan::Tag - Sqitch deployment plan tag
+App::Sqitch::Plan::Line - Sqitch deployment plan tag
 
 =head1 Synopsis
 
   my $plan = App::Sqitch::Plan->new( file => $file );
   while (my $tag = $plan->next) {
-      say "Tag: ", $tag->name;
+      say "Line: ", $tag->name;
   }
 
 =head1 Description
 
-A App::Sqitch::Plan::Tag represents a tagged list of deployment steps in a
+A App::Sqitch::Plan::Line represents a tagged list of deployment steps in a
 Sqitch plan. A tag may have one or more names (as multiple tags can represent
 a single point in time in the plan), and any number of steps.
 
@@ -40,9 +88,9 @@ otherwise be created directly.
 
 =head3 C<new>
 
-  my $plan = App::Sqitch::Plan::Tag->new(%params);
+  my $plan = App::Sqitch::Plan::Line->new(%params);
 
-Instantiates and returns a App::Sqitch::Plan::Tag object.
+Instantiates and returns a App::Sqitch::Plan::Line object.
 
 =head2 Accessors
 

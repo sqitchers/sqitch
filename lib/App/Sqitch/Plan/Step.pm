@@ -3,22 +3,8 @@ package App::Sqitch::Plan::Step;
 use v5.10.1;
 use utf8;
 use namespace::autoclean;
+use parent 'App::Sqitch::Plan::Line';
 use Moose;
-use MooseX::Types::Path::Class;
-
-has name => (
-    is       => 'ro',
-    isa      => 'Str',
-    required => 1,
-);
-
-has tag => (
-    is       => 'ro',
-    isa      => 'App::Sqitch::Plan::Tag',
-    required => 1,
-    weak_ref => 1,
-    handles  => [qw(plan)],
-);
 
 has _dependencies => (
     is       => 'ro',

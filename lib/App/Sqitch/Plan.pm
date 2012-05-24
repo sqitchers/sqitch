@@ -4,6 +4,7 @@ use v5.10.1;
 use utf8;
 use App::Sqitch::Plan::Tag;
 use App::Sqitch::Plan::Step;
+use App::Sqitch::Plan::Blank;
 use Moose::Meta::Attribute::Native;
 use Path::Class;
 use namespace::autoclean;
@@ -18,16 +19,9 @@ has sqitch => (
     required => 1,
 );
 
-has with_untracked => (
-    is       => 'ro',
-    isa      => 'Bool',
-    required => 1,
-    default  => 0,
-);
-
 has _all => (
     is         => 'ro',
-    isa        => 'ArrayRef[App::Sqitch::Plan::Tag]',
+    isa        => 'ArrayRef',
     traits     => ['Array'],
     builder    => 'load',
     init_arg   => 'all',
@@ -57,10 +51,6 @@ sub load {
     my $self = shift;
     my $file = $self->sqitch->plan_file;
     my $plan = -f $file ? $self->_parse($file) : [];
-    if ( $self->with_untracked ) {
-        push @{ $plan } => $self->load_untracked($plan);
-        $self->_tags->{ $plan->[-1]->name } = $#$plan;
-    }
     return $plan;
 }
 
@@ -70,200 +60,59 @@ sub _parse {
         or $self->sqitch->fail( "Cannot open $file: $!" );
 
     my $tags = $self->_tags;
-    my @plan;          # List of tags to return
-    my $curr_tag;      # Tag object for currently-parsing tag section.
-    my @curr_steps;    # List of steps in currently-parsing tag section.
+    my @plan;          # List of nodes to return
     my %seen_tags;     # Maps tags to line numbers.
     my %prev_steps;    # Maps steps from previous sections to line numbers.
     my %tag_steps;     # Maps steps in current tag section to line numbers.
 
     LINE: while ( my $line = $fh->getline ) {
-
-        # Ignore eampty lines and comment-only lines.
-        next LINE if $line =~ /\A\s*(?:#|$)/;
         chomp $line;
 
-        # Remove inline comments
-        $line =~ s/\s*#.*$//g;
-
-        # Handle tag headers
-        if ( my ($names) = $line =~ /^\s*\[\s*(.+?)\s*\]\s*$/ ) {
-            if ($curr_tag) {
-                push @{ $curr_tag->_steps } => $self->sort_steps(
-                    \%prev_steps, @curr_steps
-                );
-                push @plan => $curr_tag;
-
-                $tags->{$_} = $#plan for $curr_tag->names;
-
-                %prev_steps = ( %prev_steps, %tag_steps );
-                @curr_steps = ();
-                %tag_steps  = ();
-            }
-
-            my @curr_tags = split /\s+/ => $names;
-
-            for my $t (@curr_tags) {
-
-                # Fail on invalid tag.
-                $self->sqitch->fail(
-                    "Syntax error in $file at line ",
-                    $fh->input_line_number,
-                    qq{: Invalid tag "$t"; tags must not end in punctuation },
-                    'or a number following punctionation',
-                ) if $t =~ /\p{PosixPunct}\d*\z/;
-
-                # Fail on reserved symbolic tag.
-                $self->sqitch->fail(
-                    "Syntax error in $file at line ",
-                    $fh->input_line_number,
-                    qq{: "HEAD" is a reserved tag name}
-                ) if $t eq 'HEAD';
-
-                # Fail on duplicate tag.
-                $self->sqitch->fail(
-                    "Syntax error in $file at line ",
-                    $fh->input_line_number,
-                    qq{: Tag "$t" duplicates earlier declaration on line },
-                    $seen_tags{$t},
-                ) if $seen_tags{$t};
-
-                # We're good.
-                $seen_tags{$t} = $fh->input_line_number;
-            }
-
-            $curr_tag = App::Sqitch::Plan::Tag->new(
-                names  => \@curr_tags,
-                plan   => $self,
-                sqitch => $self->sqitch,
+        # Grab blank lines first.
+        if ($line =~ /\A(?<lspace>\s*)(?:#(?<comment>.+)|$)/) {
+            push @plan = App::Sqitch::Plan::Blank->new(
+                plan => $self,
+                map { $_ => $+{$_} // '' } keys %+
             );
-
             next LINE;
         }
 
-        # Push the step into the plan.
-        if ( my ($step) = $line =~ /^\s*(\S+)$/ ) {
+        # Is it a tag or a step?
+        my $type = $line =~ /^[@]/ ? 'Tag' : 'Step';
 
-            # Fail if we've seen no tags.
-            $self->sqitch->fail(
-                "Syntax error in $file at line ",
-                $fh->input_line_number,
-                qq{: Step "$step" not associated with a tag}
-            ) unless $curr_tag;
+        # Remove inline comment.
+        $line =~ s/(?<rspace>\s*)#(?<comment>).*)$//g;
+        my %comment = map { $_ => $+{$_} // '' } keys %+;
 
-            # Fail on duplicate step.
-            if ( my $line = $tag_steps{$step} || $prev_steps{$step} ) {
-                $self->sqitch->fail(
-                    "Syntax error in $file at line ",
-                    $fh->input_line_number,
-                    qq{: Step "$step" duplicates earlier declaration on line },
-                    $line,
-                );
-            }
-
-            # We're good.
-            $tag_steps{$step} = $fh->input_line_number;
-            push @curr_steps => App::Sqitch::Plan::Step->new(
-                name => $step,
-                tag  => $curr_tag,
-            );
-
-            next LINE;
-        }
-
+        my ($name) = $line =~ /
+           ^                              # Beginning of line
+           (?<lspace>\s*)?                # Optional leading space
+           [@]?                           # Optional @
+           (?<name>                       # followed by name consisting of...
+               [^[:punct:][:blank:]]      #     not blank or punct
+               (?:                        #     followed by...
+                   [^[:blank:]]*?         #         any number blank
+                   [^[:punct:][:blank:]]  #         one not blank or punct
+               )?                         #     ... optionally
+           )                              # ... required
+           $                              # end of line
+        /x;
         $self->sqitch->fail(
             "Syntax error in $file at line ",
-            $fh->input_line_number, qq{: "$line"}
+            $fh->input_line_number,
+            qq{: Invalid \L$type\E "$line"; \L$type\Es must not begin or },
+                'end in punctuation or digits following punctuation',
+        ) if !$+{name} || $+{name} =~ /[[:punct:]][[:digit:]]*\z/;
+
+        my $class = __PACKAGE__ . "::$type";
+        push @plan => $class->new(
+            plan => $self,
+            %comment,
+            map { $_ => $+{$_} // '' } keys %+
         );
     }
-
-    if ($curr_tag) {
-        push @{ $curr_tag->_steps } => $self->sort_steps(
-            \%prev_steps, @curr_steps
-        );
-        push @plan => $curr_tag;
-        $tags->{$_} = $#plan for $curr_tag->names;
-    }
-
-    # Index HEAD symbolic tag.
-    $tags->{HEAD} = $#plan;
 
     return \@plan;
-}
-
-sub load_untracked {
-    my ( $self, $plan ) = @_;
-    my $sqitch = $self->sqitch;
-
-    my %steps = map { map { $_->name => 1 } $_->steps } @{ $plan };
-    my $ext   = $sqitch->extension;
-    my $dir   = $sqitch->deploy_dir;
-    my $skip  = scalar $dir->dir_list;
-    my @steps;
-
-    # Ignore VCS directories (borrowed from App::Ack).
-    my $ignore_dirs = join '|', map { quotemeta } qw(
-        .bzr
-        .cdv
-        ~.dep
-        ~.dot
-        ~.nib
-        ~.plst
-        .git
-        .hg
-        .pc
-        .svn
-        _MTN
-        blib
-        CVS
-        RCS
-        SCCS
-        _darcs
-        _sgbak
-        autom4te.cache
-        cover_db
-        _build
-    );
-
-    require File::Find::Rule;
-    my $rule = File::Find::Rule->new;
-
-    $rule = $rule->or(
-
-        # Ignore VCS directories.
-        $rule->new->directory->name(qr/^(?:$ignore_dirs)$/)->prune->discard,
-
-        # Find files.
-        $rule->new->file->name(qr/[.]\Q$ext\E$/)->exec(sub {
-            my $file = pop;
-            if ($skip) {
-                # Remove $skip directories from the file name.
-                my $fobj = file $file;
-                my @dirs = $fobj->dir->dir_list;
-                $file = file(
-                    @dirs[ $skip .. $#dirs ], $fobj->basename
-                )->stringify;
-            }
-
-            # Add the file if is is not already in the plan.
-            $file =~ s/[.]\Q$ext\E$//;
-            push @steps => $file if !$steps{$file}++;
-        }),
-    );
-
-    # Find the untracked steps.
-    $rule->in( $sqitch->deploy_dir );
-
-    my $tag = App::Sqitch::Plan::Tag->new(
-        names => ['HEAD+'],
-        plan  => $self,
-    );
-    push @{ $tag->_steps } => map { App::Sqitch::Plan::Step->new(
-        name => $_,
-        tag  => $tag,
-    ) } sort @steps;
-
-    return $tag;
 }
 
 sub sort_steps {
@@ -556,26 +405,12 @@ be used directly, though it may be overridden in subclasses.
 
   my $tags = $plan->load;
 
-Loads the plan, including untracked steps (if C<with_untracked> is true).
-Called internally, not meant to be called directly, as it parses the plan file
-and searches the file system (if C<with_untracked>) every time it's called. If
-you want the all of the steps, including untracked, call C<all()> instead.
+Loads the plan. Called internally, not meant to be called directly, as it
+parses the plan file and desploy scripts every time it's called. If you want
+the all of the steps, call C<all()> instead.
 
 Subclasses should override this method to load the plan from whatever
 resources they deem appropriate.
-
-=head3 C<load_untracked>
-
-  my $tag = $plan->load_untracked($tags);
-
-Loads untracked steps and returns them in a tag object with the single tag
-name C<HEAD+>. Pass in an array reference of tracked tags whose steps should
-be excluded from the returned untracked. Called internally by C<load()> and
-not meant to be called directly, as it will scan the file system on every
-call.
-
-Subclasses may override this method to load a tag with untracked steps from
-whatever resources they deem appropriate.
 
 =head3 C<sort_steps>
 

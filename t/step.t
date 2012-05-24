@@ -4,12 +4,11 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 27;
+use Test::More tests => 32;
 #use Test::More 'no_plan';
 use Test::NoWarnings;
 use App::Sqitch;
 use App::Sqitch::Plan;
-use App::Sqitch::Plan::Tag;
 use Test::Exception;
 use Path::Class;
 use File::Path qw(make_path remove_tree);
@@ -23,7 +22,10 @@ BEGIN {
 
 can_ok $CLASS, qw(
     name
-    tag
+    lspace
+    rspace
+    comment
+    plan
     deploy_file
     revert_file
     test_file
@@ -33,14 +35,12 @@ can_ok $CLASS, qw(
 
 my $sqitch = App::Sqitch->new;
 my $plan  = App::Sqitch::Plan->new(sqitch => $sqitch);
-my $tag = App::Sqitch::Plan::Tag->new(
-    names  => ['foo'],
-    plan   => $plan,
-);
 isa_ok my $step = $CLASS->new(
     name => 'foo',
-    tag  => $tag,
+    plan => $plan,
 ), $CLASS;
+
+isa_ok $step, 'App::Sqitch::Plan::Line';
 
 is $step->deploy_file, $sqitch->deploy_dir->file('foo.sql'),
     'The deploy file should be correct';
@@ -48,6 +48,20 @@ is $step->revert_file, $sqitch->revert_dir->file('foo.sql'),
     'The revert file should be correct';
 is $step->test_file, $sqitch->test_dir->file('foo.sql'),
     'The test file should be correct';
+
+is $step->format_name, 'foo', 'Name should format as "foo"';
+is $step->stringify, 'foo', 'Should stringify to "foo"';
+
+ok $step = $CLASS->new(
+    name    => 'howdy',
+    plan    => $plan,
+    lspace  => '  ',
+    rspace  => "\t",
+    comment => ' blah blah blah',
+), 'Create step with more stuff';
+
+is $step->stringify, "  howdy\t# blah blah blah",
+    'It should stringify correctly';
 
 ##############################################################################
 # Test _parse_dependencies.
@@ -71,7 +85,7 @@ $fh->say('-- :conflicts: yak');
 $fh->say('-- :conflicts:this that');
 $fh->close;
 
-ok $step = $CLASS->new( name => 'baz', tag  => $tag ),
+ok $step = $CLASS->new( name => 'baz', plan => $plan ),
     'Create step "baz"';
 
 is_deeply $step->_parse_dependencies, { conflicts => [], requires => [] },
@@ -79,7 +93,7 @@ is_deeply $step->_parse_dependencies, { conflicts => [], requires => [] },
 is_deeply [$step->requires], [], 'Requires should be empty';
 is_deeply [$step->conflicts], [], 'Conflicts should be empty';
 
-ok $step = $CLASS->new( name => 'bar', tag  => $tag ),
+ok $step = $CLASS->new( name => 'bar', plan => $plan ),
     'Create step "bar"';
 
 is_deeply $step->_parse_dependencies([], 'bar'), {
@@ -115,7 +129,7 @@ is $fh->getline, "-- test it, baby\n", 'It should be the test file';
 # Test the requires/conflicts params.
 ok $step = $CLASS->new(
     name      => 'whatever',
-    tag       => $tag,
+    plan      => $plan,
     requires  => [qw(hi there)],
     conflicts => [],
 ), 'Create a step with explicit requires and conflicts';
