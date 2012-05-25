@@ -67,7 +67,13 @@ sub tag {
 
 my $mocker = Test::MockModule->new($CLASS);
 # Do no sorting for now.
-$mocker->mock(sort_steps => sub { shift, shift; @_ });
+my $sorted = 0;
+sub sorted () {
+    my $ret = $sorted;
+    $sorted = 0;
+    return $ret;
+}
+$mocker->mock(sort_steps => sub { $sorted++; shift, shift; @_ });
 
 ##############################################################################
 # Test parsing.
@@ -75,6 +81,7 @@ my $file = file qw(t plans widgets.plan);
 my $fh = $file->open('<:encoding(UTF-8)');
 ok my $parsed = $plan->_parse($file, $fh),
     'Should parse simple "widgets.plan"';
+is sorted, 1, 'Should have sorted steps';
 isa_ok $parsed->{nodes}, 'Array::AsHash', 'nodes';
 isa_ok $parsed->{lines}, 'Array::AsHash', 'lines';
 
@@ -94,12 +101,12 @@ is_deeply [$parsed->{lines}->values], [
     tag(   '', 'foo', ' ', ' look, a tag!'),
 ], 'All "widgets.plan" lines should be parsed';
 
-
 # Plan with multiple tags.
 $file = file qw(t plans multi.plan);
 $fh = $file->open('<:encoding(UTF-8)');
-ok $parsed = $plan->_parse($file, $fh), 
+ok $parsed = $plan->_parse($file, $fh),
     'Should parse multi-tagged "multi.plan"';
+is sorted, 2, 'Should have sorted steps twice';
 is_deeply { map { $_ => scalar $parsed->{$_}->values } keys %{ $parsed } }, {
     nodes => [
         step(  '', 'hey'),
@@ -130,6 +137,7 @@ is_deeply { map { $_ => scalar $parsed->{$_}->values } keys %{ $parsed } }, {
 $file = file qw(t plans steps-only.plan);
 $fh = $file->open('<:encoding(UTF-8)');
 ok $parsed = $plan->_parse($file, $fh), 'Should read plan with no tags';
+is sorted, 1, 'Should have sorted steps';
 is_deeply { map { $_ => scalar $parsed->{$_}->values } keys %{ $parsed } }, {
 
     lines => [
@@ -153,6 +161,7 @@ $file = file qw(t plans bad-step.plan);
 $fh = $file->open('<:encoding(UTF-8)');
 throws_ok { $plan->_parse($file, $fh) } qr/FAIL:/,
     'Should die on plan with bad step name';
+is sorted, 0, 'Should not have sorted steps';
 is_deeply +MockOutput->get_fail, [[
     "Syntax error in $file at line ",
     5,
@@ -175,6 +184,7 @@ for my $name (
         my $fh = IO::File->new(\$line, '<:utf8');
         throws_ok { $plan->_parse('baditem', $fh) } qr/FAIL:/,
             qq{Should die on plan with bad name "$line"};
+        is sorted, 0, 'Should not have sorted steps';
         is_deeply +MockOutput->get_fail, [[
             "Syntax error in baditem at line ",
             1,
@@ -204,12 +214,14 @@ for my $name (
         }, encode_utf8(qq{Should have line and node for "$line"});
     }
 }
+is sorted, 6, 'Should have sorted steps six times';
 
 # Try a plan with a reserved tag name.
 $file = file qw(t plans reserved-tag.plan);
 $fh = $file->open('<:encoding(UTF-8)');
 throws_ok { $plan->_parse($file, $fh) } qr/FAIL:/,
     'Should die on plan with reserved tag';
+is sorted, 1, 'Should have sorted steps once';
 is_deeply +MockOutput->get_fail, [[
     "Syntax error in $file at line ",
     5,
@@ -221,11 +233,11 @@ $file = file qw(t plans dupe-tag.plan);
 $fh = $file->open('<:encoding(UTF-8)');
 throws_ok { $plan->_parse($file, $fh) } qr/FAIL:/,
     'Should die on plan with dupe tag';
+is sorted, 2, 'Should have sorted steps twice';
 is_deeply +MockOutput->get_fail, [[
     "Syntax error in $file at line ",
     10,
-    ': Tag "bar" duplicates earlier declaration on line ',
-    4,
+    ': Tag "bar" duplicates earlier declaration on line 4',
 ]], 'And the dupe tag error should have been output';
 
 # Try a plan with a duplicate step within a tag section.
@@ -233,11 +245,11 @@ $file = file qw(t plans dupe-step.plan);
 $fh = $file->open('<:encoding(UTF-8)');
 throws_ok { $plan->_parse($file, $fh) } qr/FAIL:/,
     'Should die on plan with dupe step';
+is sorted, 1, 'Should have sorted steps once';
 is_deeply +MockOutput->get_fail, [[
     "Syntax error in $file at line ",
     7,
-    ': Step "greets" duplicates earlier declaration on line ',
-    5,
+    ': Step "greets" duplicates earlier declaration on line 5',
 ]], 'And the dupe step error should have been output';
 
 # Try a plan with a duplicate step in different tag sections.
@@ -245,11 +257,11 @@ $file = file qw(t plans dupe-step-diff-tag.plan);
 $fh = $file->open('<:encoding(UTF-8)');
 throws_ok { $plan->_parse($file, $fh) } qr/FAIL:/,
     'Should die on plan with dupe step across tags';
+is sorted, 2, 'Should have sorted steps twice';
 is_deeply +MockOutput->get_fail, [[
     "Syntax error in $file at line ",
     8,
-    ': Step "whatever" duplicates earlier declaration on line ',
-    1,
+    ': Step "whatever" duplicates earlier declaration on line 1',
 ]], 'And the second dupe step error should have been output';
 
 # Make sure that all() loads the plan.
@@ -280,6 +292,7 @@ is_deeply [$plan->nodes], [
         tag(   '', 'bar', ' '),
         tag(   '', 'baz', ''),
 ], 'Nodes should be parsed from file';
+is sorted, 2, 'Should have sorted steps twice';
 
 ok $parsed = $plan->load, 'Load should parse plan from file';
 is_deeply { map { $_ => scalar $parsed->{$_}->values } keys %{ $parsed } }, {
@@ -307,6 +320,7 @@ is_deeply { map { $_ => scalar $parsed->{$_}->values } keys %{ $parsed } }, {
         tag(   '', 'baz', ''),
     ],
 }, 'And the parsed file should have lines and nodes';
+is sorted, 2, 'Should have sorted steps twice';
 
 ##############################################################################
 # Test the interator interface.
@@ -499,6 +513,11 @@ is_deeply $plan->sort_steps(steps qw(this that other)),
 is_deeply $plan->sort_steps(steps qw(this that other)),
     [steps qw(that other this)], 'Should get that, other, this again';
 
+# Have that require a tag.
+@deps = ({%ddep}, {%ddep, requires => ['@howdy']}, {%ddep});
+is_deeply $plan->sort_steps({'@howdy' => 2 }, steps qw(this that other)),
+    [steps qw(this that other)], 'Should get original order when requiring a tag';
+
 # Add a cycle.
 @deps = ({%ddep, requires => ['that']}, {%ddep, requires => ['this']}, {%ddep});
 throws_ok { $plan->sort_steps(steps qw(this that other)) } qr/FAIL:/,
@@ -519,13 +538,20 @@ is_deeply $plan->sort_steps({ foo => 1}, steps qw(this that other)),
 is_deeply $plan->sort_steps({sqitch => 1 }, steps qw(this that other)),
     [steps qw(other that this)], 'Should get other, that, this with earlier dependncy';
 
-# Have a failed dependency.
 # Okay, now deal with depedencies from ealier node sections.
 @deps = ({%ddep, requires => ['foo']}, {%ddep}, {%ddep});
 throws_ok { $plan->sort_steps(steps qw(this that other)) } qr/FAIL:/,
     'Should die on unknown dependency';
 is_deeply +MockOutput->get_fail, [[
     'Unknown step "foo" required in ', 'sql/deploy/this.sql'
+]], 'And we should emit an error pointing to the offending script';
+
+# Okay, now deal with depedencies from ealier node sections.
+@deps = ({%ddep, requires => ['@foo']}, {%ddep}, {%ddep});
+throws_ok { $plan->sort_steps(steps qw(this that other)) } qr/FAIL:/,
+    'Should die on unknown dependency';
+is_deeply +MockOutput->get_fail, [[
+    'Unknown tag "@foo" required in ', 'sql/deploy/this.sql'
 ]], 'And we should emit an error pointing to the offending script';
 
 done_testing;

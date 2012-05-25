@@ -49,7 +49,9 @@ sub _parse {
 
     my @lines;         # List of lines.
     my @nodes;         # List of nodes.
+    my @steps;         # List of steps.
     my %seen;          # Maps tags and steps to line numbers.
+    my %tag_steps;     # Maps steps in current tag section to line numbers.
 
     LINE: while ( my $line = $fh->getline ) {
         chomp $line;
@@ -101,18 +103,38 @@ sub _parse {
 
         # Fail on duplicate name.
         my $key = $type eq 'tag' ? '@' . $params{name} : $params{name};
-        $self->sqitch->fail(
-            "Syntax error in $file at line ",
-            $fh->input_line_number,
-            qq{: \u$type "$params{name}" duplicates earlier declaration on line },
-            $seen{$key},
-        ) if $seen{$key};
-        $seen{$key} = $fh->input_line_number;
+        if (my $at = $seen{$key} || $tag_steps{$key}) {
+            $self->sqitch->fail(
+                "Syntax error in $file at line ",
+                $fh->input_line_number,
+                qq{: \u$type "$params{name}" duplicates earlier declaration on line $at},
+            );
+        }
 
-        my $class = __PACKAGE__ . '::' . ucfirst $type;
-        my $node = $class->new( plan => $self, %params );
-        push @nodes, $key  => $node;
-        push @lines, $node => $node;
+        if ($type eq 'tag') {
+            if (@steps) {
+                # Sort all steps up to this tag by their dependencies.
+                @steps = $self->sort_steps(\%seen, @steps);
+                push @nodes, map { $_->name, $_ } @steps;
+                push @lines, map { $_,       $_ } @steps;
+                @steps = ();
+            }
+            my $node = App::Sqitch::Plan::Tag->new( plan => $self, %params );
+            push @nodes, $key  => $node;
+            push @lines, $node => $node;
+            %seen = (%seen, %tag_steps, $key => $fh->input_line_number);
+            %tag_steps = ();
+        } else {
+            $tag_steps{$key} = $fh->input_line_number;
+            push @steps => App::Sqitch::Plan::Step->new( plan => $self, %params );
+        }
+    }
+
+    if (@steps) {
+        # Sort and store any remaining steps.
+        @steps = $self->sort_steps(\%seen, @steps);
+        push @nodes, map { $_->name, $_ } @steps;
+        push @lines, map { $_,       $_ } @steps;
     }
 
     return {
@@ -159,8 +181,9 @@ sub sort_steps {
         foreach my $child ( @{ $succ{$step->name} } ) {
             unless ( $pairs{$child} ) {
                 my $sqitch = $self->sqitch;
+                my $type = $child =~ /^[@]/ ? 'tag' : 'step';
                 $self->sqitch->fail(
-                    qq{Unknown step "$child" required in },
+                    qq{Unknown $type "$child" required in },
                     $step->deploy_file,
                 );
             }
