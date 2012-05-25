@@ -64,23 +64,22 @@ __END__
 
 =head1 Name
 
-App::Sqitch::Plan::Line - Sqitch deployment plan tag
+App::Sqitch::Plan::Line - Sqitch deployment plan line
 
 =head1 Synopsis
 
-  my $plan = App::Sqitch::Plan->new( file => $file );
-  while (my $tag = $plan->next) {
-      say "Line: ", $tag->name;
+  my $plan = App::Sqitch::Plan->new( sqitch => $sqitch );
+  for my $line ($plan->lines) {
+      say $line->stringify;
   }
 
 =head1 Description
 
-A App::Sqitch::Plan::Line represents a tagged list of deployment steps in a
-Sqitch plan. A tag may have one or more names (as multiple tags can represent
-a single point in time in the plan), and any number of steps.
-
-These objects are created by L<App::Sqitch::Plan> classes and should not
-otherwise be created directly.
+An App::Sqitch::Plan::Line represents a single line from a Sqitch plan file.
+Each object managed by an L<App::Sqitch::Plan> object is derived from this
+class. This is actually an abstract base class. See
+L<App::Sqitch::Plan::Step>, L<App::Sqitch::Plan::Tag>, and
+L<App::Sqitch::Plan::Blank> for concrete subclasses.
 
 =head1 Interface
 
@@ -90,37 +89,92 @@ otherwise be created directly.
 
   my $plan = App::Sqitch::Plan::Line->new(%params);
 
-Instantiates and returns a App::Sqitch::Plan::Line object.
+Instantiates and returns a App::Sqitch::Plan::Line object. Parameters:
+
+=over
+
+=item C<plan>
+
+The L<App::Sqitch::Plan> object with which the line is associated.
+
+=item C<name>
+
+The name of the line. Should be empty for blank lines. Tags names should
+not include the leading C<@>.
+
+=item C<lspace>
+
+The white space from the beginning of the line, if any.
+
+=item C<rspace>
+
+The white space after the name until the end of the line or the start of a
+comment.
+
+=item C<comment>
+
+A comment. Does not include the leading C<#>, but does include any white space
+immediate after the C<#> when the plan file is parsed.
+
+=back
 
 =head2 Accessors
 
-=head3 C<names>
-
-  my $names = $tag->names;
-
-Returns a list of the names of the tag.
-
 =head3 C<plan>
 
-  my $plan = $tag->plan;
+  my $plan = $line->plan;
 
-Returns the plan object with which the tag object is associated.
-
-=head3 C<steps>
-
-  my $steps = $tag->steps;
-
-Returns a list of the deployment steps associated with the tag, in the order
-in which they should be deployed.
-
-=head2 Instance Methods
+Returns the plan object with which the line object is associated.
 
 =head3 C<name>
 
-  my $name = $tag->name;
+  my $name = $line->name;
 
-Returns the concatenation of all the tag names, suitable for display in status
-messages.
+Returns the name of the line. Returns an empty string if there is no name.
+
+=head3 C<lspace>
+
+  my $lspace = $line->lspace.
+
+Returns the white space from the beginning of the line, if any.
+
+=head3 C<rspace>
+
+  my $rspace = $line->rspace.
+
+Returns the white space after the name until the end of the line or the start
+of a comment.
+
+=head3 C<comment>
+
+  my $comment = $line->comment.
+
+Returns the comment. Does not include the leading C<#>, but does include any
+white space immediate after the C<#> when the plan file is parsed. Returns the
+empty string if there is no comment.
+
+=head2 Instance Methods
+
+=head3 C<format_name>
+
+  my $formatted_name = $line->format_name;
+
+Returns the name of the line properly formatted for output. For
+L<tags|App::Sqitch::Plan::Tag>, it's the name with a leading C<@>. For all
+other lines, it is simply the name.
+
+=head3 C<format_comment>
+
+  my $comment = $line->format_comment;
+
+Returns the comment formatted for output. That is, with a leading C<#>.
+
+=head3 C<stringify>
+
+  my $string = $line->stringify;
+
+Returns the full stringification of the line, suitable for output to a plan
+file.
 
 =head1 See Also
 

@@ -115,42 +115,23 @@ App::Sqitch::Plan::Step - Sqitch deployment plan tag
 
 =head1 Synopsis
 
-  my $plan = App::Sqitch::Plan::Step->new(
-      names => \@tag_names,
-      steps => \@steps,
-  );
+  my $plan = App::Sqitch::Plan->new( sqitch => $sqitch );
+  for my $line ($plan->lines) {
+      say $line->stringify;
+  }
 
 =head1 Description
 
-A App::Sqitch::Plan::Step represents a tagged list of deployment steps in a
-Sqitch plan. A tag may have one or more names (as multiple tags can represent
-a single point in time in the plan), and any number of steps.
+A App::Sqitch::Plan::Step represents deployment step as parsed from a plan
+file. In addition to the interface inherited from L<App::Sqitch::Plan::Line>,
+it offers interfaces for parsing dependencies from the deploy script, as well
+as for opening the deploy, revert, and test scripts.
 
 =head1 Interface
 
-=head2 Constructors
-
-=head3 C<new>
-
-  my $step = App::Sqitch::Step::Step->new(%params);
-
-Instantiates and returns a App::Sqitch::Step::Step object. The C<requires> and
-C<conflicts> attributes must both be present or both be absent.
+See L<App::Sqitch::Plan::Line> for the basics.
 
 =head2 Accessors
-
-=head3 C<names>
-
-  my $name = $step->name;
-
-Returns the name of the step.
-
-=head3 C<tag>
-
-  my $tag = $step->tag;
-
-Returns the L<App::Sqitch::Plan::Tag> object with which the step is
-associated.
 
 =head3 C<deploy_file>
 
@@ -171,12 +152,6 @@ Returns the path to the revert script file for the step.
 Returns the path to the test script file for the step.
 
 =head2 Instance Methods
-
-=head3 C<names>
-
-  my $steps = $step->steps;
-
-Returns an array reference of deployment steps.
 
 =head3 C<requires>
 
@@ -218,6 +193,10 @@ for the step.
 =item L<App::Sqitch::Plan>
 
 Class representing a plan.
+
+=item L<App::Sqitch::Plan::Line>
+
+Base class from which App::Sqitch::Plan::Step inherits.
 
 =item L<sqitch>
 

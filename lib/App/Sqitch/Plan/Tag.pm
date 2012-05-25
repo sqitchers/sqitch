@@ -20,73 +20,16 @@ App::Sqitch::Plan::Tag - Sqitch deployment plan tag
 
 =head1 Synopsis
 
-  my $plan = App::Sqitch::Plan->new( file => $file );
-  while (my $tag = $plan->next) {
-      say "Tag: ", $tag->name;
+  my $plan = App::Sqitch::Plan->new( sqitch => $sqitch );
+  for my $line ($plan->lines) {
+      say $line->stringify;
   }
 
 =head1 Description
 
-A App::Sqitch::Plan::Tag represents a tagged list of deployment steps in a
-Sqitch plan. A tag may have one or more names (as multiple tags can represent
-a single point in time in the plan), and any number of steps.
-
-These objects are created by L<App::Sqitch::Plan> classes and should not
-otherwise be created directly.
-
-=head1 Interface
-
-=head2 Constructors
-
-=head3 C<new>
-
-  my $plan = App::Sqitch::Plan::Tag->new(%params);
-
-Instantiates and returns a App::Sqitch::Plan::Tag object.
-
-=head2 Accessors
-
-=head3 C<names>
-
-  my $names = $tag->names;
-
-Returns a list of the names of the tag.
-
-=head3 C<plan>
-
-  my $plan = $tag->plan;
-
-Returns the plan object with which the tag object is associated.
-
-=head3 C<steps>
-
-  my $steps = $tag->steps;
-
-Returns a list of the deployment steps associated with the tag, in the order
-in which they should be deployed.
-
-=head2 Instance Methods
-
-=head3 C<name>
-
-  my $name = $tag->name;
-
-Returns the concatenation of all the tag names, suitable for display in status
-messages.
-
-=head1 See Also
-
-=over
-
-=item L<App::Sqitch::Plan>
-
-Class representing a plan.
-
-=item L<sqitch>
-
-The Sqitch command-line client.
-
-=back
+A App::Sqitch::Plan::Tag represents a tag line in the plan file. See
+L<App::Sqitch::Plan::Line> for its interface. The only difference is that the
+C<format_name> returns the name with a leading C<@>.
 
 =head1 Author
 

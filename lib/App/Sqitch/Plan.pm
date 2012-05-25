@@ -294,7 +294,7 @@ App::Sqitch::Plan - Sqitch Deployment Plan
 
 =head1 Synopsis
 
-  my $plan = App::Sqitch::Plan->new( file => $file );
+  my $plan = App::Sqitch::Plan->new( sqitch => $sqitch );
   while (my $node = $plan->next) {
       if ( $node->isa('App::Sqitch::Plan::Tag') ) {
           say "Tag ", $node->format_name;
