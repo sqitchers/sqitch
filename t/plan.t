@@ -82,7 +82,12 @@ is_deeply $plan->_parse($file, $fh), {
         step(  '', 'hey'),
         step(  '', 'you'),
         tag(   '', 'foo', ' ', ' look, a tag!'),
-    ]
+    ],
+    index => {
+        hey => 4,
+        you => 5,
+        '@foo' => 6,
+    }
 }, 'Should parse simple "widgets.plan"';
 
 # Plan with multiple tags.
@@ -99,10 +104,19 @@ is_deeply $plan->_parse($file, $fh), {
         tag(   '', 'foo', ' ', ' look, a tag!'),
         blank('   '),
         step(  '', 'this/rocks', '  '),
-        tag(   '', 'hey-there', ' ', ' trailing comment!'),
+        step(   '', 'hey-there', ' ', ' trailing comment!'),
         tag(   '', 'bar', ' '),
         tag(   '', 'baz', ''),
-    ]
+    ],
+    index => {
+        hey => 4,
+        you => 5,
+        '@foo' => 6,
+        'this/rocks' => 8,
+        'hey-there' => 9,
+        '@bar' => 10,
+        '@baz' => 11,
+    },
 }, 'Should parse multi-tagged "multi.plan"';
 
 # Try a plan with steps appearing without a tag.
@@ -117,9 +131,13 @@ is_deeply $plan->_parse($file, $fh), {
         step(  '', 'hey'),
         step(  '', 'you'),
         step(  '', 'whatwhatwhat'),
-    ]
+    ],
+    index => {
+        hey => 4,
+        you => 5,
+        whatwhatwhat => 6,
+    }
 }, 'Should read plan with no tags';
-
 
 # Try a plan with a bad step name.
 $file = file qw(t plans bad-step.plan);
@@ -170,9 +188,8 @@ for my $name (
         my $fh = IO::File->new(\$line, '<:utf8');
         my $make = $line =~ /^[@]/ ? \&tag : \&step;
         is_deeply $plan->_parse('gooditem', $fh), {
-            nodes => [
-                $make->('', $name),
-            ]
+            nodes => [ $make->('', $name) ],
+            index => { $line => 0 },
         }, encode_utf8(qq{Should get node for "$line"});
     }
 }
@@ -257,11 +274,19 @@ is_deeply $plan->load,  {
         tag(   '', 'hey-there', ' ', ' trailing comment!'),
         tag(   '', 'bar', ' '),
         tag(   '', 'baz', ''),
-    ]
+    ],
+    index => {
+        hey => 4,
+        you => 5,
+        '@foo' => 6,
+        'this/rocks' => 8,
+        'hey-there' => 9,
+        '@bar' => 10,
+        '@baz' => 11,
+    }
 }, 'Load should parse plan from file';
 
 done_testing; exit;
-
 ##############################################################################
 # Test the interator interface.
 can_ok $plan, qw(

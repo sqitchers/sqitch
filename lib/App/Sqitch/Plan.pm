@@ -44,16 +44,12 @@ sub load {
     return $self->_parse($file, $fh);
 }
 
-sub all { @{ shift->_plan->{nodes} } }
-
 sub _parse {
     my ( $self, $file, $fh ) = @_;
 
     my @nodes;         # List of nodes.
-    my %seen = (
-        tag  => {},    # Maps tags to line numbers.
-        step => {},    # Maps steps to line numbers.
-    );
+    my %seen;          # Maps tags and steps to line numbers.
+    my %index;         # Maps nodes to indexes.
 
     LINE: while ( my $line = $fh->getline ) {
         chomp $line;
@@ -103,19 +99,24 @@ sub _parse {
         ) if $params{name} eq 'HEAD';
 
         # Fail on duplicate name.
+        my $key = $type eq 'tag' ? '@' . $params{name} : $params{name};
         $self->sqitch->fail(
             "Syntax error in $file at line ",
             $fh->input_line_number,
             qq{: \u$type "$params{name}" duplicates earlier declaration on line },
-            $seen{$type}{ $params{name} },
-        ) if $seen{$type}{ $params{name} };
-        $seen{$type}{ $params{name} } = $fh->input_line_number;
+            $seen{$key},
+        ) if $seen{$key};
+        $seen{$key} = $fh->input_line_number;
 
         my $class = __PACKAGE__ . '::' . ucfirst $type;
         push @nodes => $class->new( plan => $self, %params );
+        $index{$key} = $#nodes;
     }
 
-    return { nodes => \@nodes };
+    return {
+        nodes => \@nodes,
+        index => \%index,
+    };
 }
 
 sub sort_steps {
@@ -182,6 +183,8 @@ sub open_script {
         "Cannot open $file: $!"
     );
 }
+
+sub all { @{ shift->_plan->{nodes} } }
 
 sub index_of {
     my ( $self, $name ) = @_;
