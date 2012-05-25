@@ -266,6 +266,50 @@ sub do {
     }
 }
 
+sub add_tag {
+    my ( $self, $name ) = @_;
+    my $plan  = $self->_plan;
+    my $nodes = $plan->{nodes};
+    my $key   = "\@$name";
+
+    $self->sqitch->fail(qq{Tag "$key" already exists})
+        if defined $nodes->hindex($key);
+
+    my $tag = App::Sqitch::Plan::Tag->new( plan => $self, name => $name );
+    $nodes->push( $key => $tag );
+    $plan->{lines}->push( $tag => $tag );
+}
+
+sub add_step {
+    my ( $self, $name, $requires, $conflicts ) = @_;
+    my $plan  = $self->_plan;
+    my $nodes = $plan->{nodes};
+
+    $self->sqitch->fail(qq{Step "$name" already exists})
+        if defined $nodes->hindex($name);
+
+    my $step = App::Sqitch::Plan::Step->new(
+        plan      => $self,
+        name      => $name,
+        requires  => $requires  || [],
+        conflicts => $conflicts || [],
+    );
+
+    # Make sure dependencies are specified.
+    for my $req ( $step->requires ) {
+        next if defined $nodes->hindex($req);
+        my $type = $req =~ /^[@]/ ? 'tag' : 'step';
+        $self->sqitch->fail(
+            qq{Cannot add step "$name": },
+            qq{requires uknown $type "$req"}
+        );
+    }
+
+    # We good.
+    $nodes->push( $name => $step );
+    $plan->{lines}->push( $step  => $step );
+}
+
 sub write_to {
     my ( $self, $file ) = @_;
 
@@ -454,6 +498,23 @@ Sorts the steps passed in in dependency order and returns them. If the first
 argument is a hash reference, its keys should be previously-seen step and tag
 names that can be assumed to be satisfied requirements for the succeeding
 steps.
+
+=head3 C<add_tag>
+
+  $plan->add_tag('whee');
+
+Adds a tag to the plan. Exits with a fatal error if the tag already
+exists in the plan.
+
+=head3 C<add_step>
+
+  $plan->add_step( 'whatevs' );
+  $plan->add_step( 'widgerts', [qw(foo bar)], [qw(dr_evil)] );
+
+Adds a step to the plan. The second argument specifies a list of prerequisite
+steps. The third argument specifies a list of conflicting steps. Exits with a
+fatal error if the step already exists, or if the any of the prerequisite
+steps are unknown.
 
 =head1 See Also
 
