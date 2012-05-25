@@ -25,7 +25,7 @@ BEGIN {
 
 can_ok $CLASS, qw(
     sqitch
-    all
+    nodes
     position
     load
     _parse
@@ -73,28 +73,44 @@ $mocker->mock(sort_steps => sub { shift, shift; @_ });
 # Test parsing.
 my $file = file qw(t plans widgets.plan);
 my $fh = $file->open('<:encoding(UTF-8)');
-is_deeply $plan->_parse($file, $fh), {
-    nodes => [
-        blank('', ' This is a comment'),
-        blank(),
-        blank(' ', ' And there was a blank line.'),
-        blank(),
-        step(  '', 'hey'),
-        step(  '', 'you'),
-        tag(   '', 'foo', ' ', ' look, a tag!'),
-    ],
-    index => {
-        hey => 4,
-        you => 5,
-        '@foo' => 6,
-    }
-}, 'Should parse simple "widgets.plan"';
+ok my $parsed = $plan->_parse($file, $fh),
+    'Should parse simple "widgets.plan"';
+isa_ok $parsed->{nodes}, 'Array::AsHash', 'nodes';
+isa_ok $parsed->{lines}, 'Array::AsHash', 'lines';
+
+is_deeply [$parsed->{nodes}->values], [
+    step(  '', 'hey'),
+    step(  '', 'you'),
+    tag(   '', 'foo', ' ', ' look, a tag!'),
+], 'All "widgets.plan" nodes should be parsed';
+
+is_deeply [$parsed->{lines}->values], [
+    blank('', ' This is a comment'),
+    blank(),
+    blank(' ', ' And there was a blank line.'),
+    blank(),
+    step(  '', 'hey'),
+    step(  '', 'you'),
+    tag(   '', 'foo', ' ', ' look, a tag!'),
+], 'All "widgets.plan" lines should be parsed';
+
 
 # Plan with multiple tags.
 $file = file qw(t plans multi.plan);
 $fh = $file->open('<:encoding(UTF-8)');
-is_deeply $plan->_parse($file, $fh), {
+ok $parsed = $plan->_parse($file, $fh), 
+    'Should parse multi-tagged "multi.plan"';
+is_deeply { map { $_ => scalar $parsed->{$_}->values } keys %{ $parsed } }, {
     nodes => [
+        step(  '', 'hey'),
+        step(  '', 'you'),
+        tag(   '', 'foo', ' ', ' look, a tag!'),
+        step(  '', 'this/rocks', '  '),
+        step(   '', 'hey-there', ' ', ' trailing comment!'),
+        tag(   '', 'bar', ' '),
+        tag(   '', 'baz', ''),
+    ],
+    lines => [
         blank('', ' This is a comment'),
         blank(),
         blank('', ' And there was a blank line.'),
@@ -108,22 +124,15 @@ is_deeply $plan->_parse($file, $fh), {
         tag(   '', 'bar', ' '),
         tag(   '', 'baz', ''),
     ],
-    index => {
-        hey => 4,
-        you => 5,
-        '@foo' => 6,
-        'this/rocks' => 8,
-        'hey-there' => 9,
-        '@bar' => 10,
-        '@baz' => 11,
-    },
-}, 'Should parse multi-tagged "multi.plan"';
+}, 'Should have "multi.plan" lines and nodes';
 
 # Try a plan with steps appearing without a tag.
 $file = file qw(t plans steps-only.plan);
 $fh = $file->open('<:encoding(UTF-8)');
-is_deeply $plan->_parse($file, $fh), {
-    nodes => [
+ok $parsed = $plan->_parse($file, $fh), 'Should read plan with no tags';
+is_deeply { map { $_ => scalar $parsed->{$_}->values } keys %{ $parsed } }, {
+
+    lines => [
         blank('', ' This is a comment'),
         blank(),
         blank('', ' And there was a blank line.'),
@@ -132,12 +141,12 @@ is_deeply $plan->_parse($file, $fh), {
         step(  '', 'you'),
         step(  '', 'whatwhatwhat'),
     ],
-    index => {
-        hey => 4,
-        you => 5,
-        whatwhatwhat => 6,
-    }
-}, 'Should read plan with no tags';
+    nodes => [
+        step(  '', 'hey'),
+        step(  '', 'you'),
+        step(  '', 'whatwhatwhat'),
+    ],
+}, 'Should have lines and nodes for tagless plan';
 
 # Try a plan with a bad step name.
 $file = file qw(t plans bad-step.plan);
@@ -187,10 +196,12 @@ for my $name (
     for my $line ($name, "\@$name") {
         my $fh = IO::File->new(\$line, '<:utf8');
         my $make = $line =~ /^[@]/ ? \&tag : \&step;
-        is_deeply $plan->_parse('gooditem', $fh), {
+        ok my $parsed = $plan->_parse('gooditem', $fh),
+            encode_utf8(qq{Should parse "$line"});
+        is_deeply { map { $_ => scalar $parsed->{$_}->values } keys %{ $parsed } }, {
             nodes => [ $make->('', $name) ],
-            index => { $line => 0 },
-        }, encode_utf8(qq{Should get node for "$line"});
+            lines => [ $make->('', $name) ],
+        }, encode_utf8(qq{Should have line and node for "$line"});
     }
 }
 
@@ -246,7 +257,7 @@ $file = file qw(t plans multi.plan);
 $sqitch = App::Sqitch->new(plan_file => $file);
 isa_ok $plan = App::Sqitch::Plan->new(sqitch => $sqitch), $CLASS,
     'Plan with sqitch with plan file';
-is_deeply [$plan->all], [
+is_deeply [$plan->lines], [
         blank('', ' This is a comment'),
         blank(),
         blank('', ' And there was a blank line.'),
@@ -259,9 +270,20 @@ is_deeply [$plan->all], [
         tag(   '', 'hey-there', ' ', ' trailing comment!'),
         tag(   '', 'bar', ' '),
         tag(   '', 'baz', ''),
-], 'plan should be parsed from file';
-is_deeply $plan->load,  {
-    nodes => [
+], 'Lines should be parsed from file';
+is_deeply [$plan->nodes], [
+        step(  '', 'hey'),
+        step(  '', 'you'),
+        tag(   '', 'foo', ' ', ' look, a tag!'),
+        step(  '', 'this/rocks', '  '),
+        tag(   '', 'hey-there', ' ', ' trailing comment!'),
+        tag(   '', 'bar', ' '),
+        tag(   '', 'baz', ''),
+], 'Nodes should be parsed from file';
+
+ok $parsed = $plan->load, 'Load should parse plan from file';
+is_deeply { map { $_ => scalar $parsed->{$_}->values } keys %{ $parsed } }, {
+    lines => [
         blank('', ' This is a comment'),
         blank(),
         blank('', ' And there was a blank line.'),
@@ -275,18 +297,17 @@ is_deeply $plan->load,  {
         tag(   '', 'bar', ' '),
         tag(   '', 'baz', ''),
     ],
-    index => {
-        hey => 4,
-        you => 5,
-        '@foo' => 6,
-        'this/rocks' => 8,
-        'hey-there' => 9,
-        '@bar' => 10,
-        '@baz' => 11,
-    }
-}, 'Load should parse plan from file';
+    nodes => [
+        step(  '', 'hey'),
+        step(  '', 'you'),
+        tag(   '', 'foo', ' ', ' look, a tag!'),
+        step(  '', 'this/rocks', '  '),
+        tag(   '', 'hey-there', ' ', ' trailing comment!'),
+        tag(   '', 'bar', ' '),
+        tag(   '', 'baz', ''),
+    ],
+}, 'And the parsed file should have lines and nodes';
 
-done_testing; exit;
 ##############################################################################
 # Test the interator interface.
 can_ok $plan, qw(
@@ -301,59 +322,92 @@ can_ok $plan, qw(
 
 is $plan->position, -1, 'Position should start at -1';
 is $plan->current, undef, 'Current should be undef';
-ok my $tag = $plan->next, 'Get next tag';
-is [$tag->names]->[0], 'foo', 'Tag should be the first tag';
+ok my $node = $plan->next, 'Get next node';
+isa_ok $node, 'App::Sqitch::Plan::Step', 'First node';
+is $node->name, 'hey', 'It should be the first step';
 is $plan->position, 0, 'Position should be at 0';
-is $plan->count, 2, 'Count should be 2';
-is $plan->current, $tag, 'Current should be current';
-ok my $next = $plan->peek, 'Peek to next tag';
-is [$next->names]->[0], 'bar', 'Peeked tag should be second tag';
-is $plan->last, $next, 'last() should return last tag';
-is $plan->current, $tag, 'Current should still be current';
+is $plan->count, 7, 'Count should be 7';
+is $plan->current, $node, 'Current should be current';
+
+ok my $next = $plan->peek, 'Peek to next node';
+isa_ok $next, 'App::Sqitch::Plan::Step', 'Peeked node';
+is $next->name, 'you', 'Peeked node should be second step';
+is $plan->last->format_name, '@baz', 'last() should return last node';
+is $plan->current, $node, 'Current should still be current';
 is $plan->peek, $next, 'Peek should still be next';
-is $plan->next, $next, 'Next should be the second tag';
+is $plan->next, $next, 'Next should be the second node';
 is $plan->position, 1, 'Position should be at 1';
-is $plan->peek, undef, 'Peek should return undef';
-is $plan->current, $next, 'Current should be the second tag';
-is $plan->next, undef, 'Next should return undef';
+
+ok my $third = $plan->peek, 'Peek should return an object';
+isa_ok $third, 'App::Sqitch::Plan::Tag', 'Third node';
+is $third->name, 'foo', 'It should be the foo tag';
+is $plan->current, $next, 'Current should be the second node';
+is $plan->next, $third, 'Should get third node next';
 is $plan->position, 2, 'Position should be at 2';
-is $plan->current, undef, 'Current should be undef';
-is $plan->next, undef, 'Next should still be undef';
-is $plan->position, 2, 'Position should still be at 2';
+is $plan->current, $third, 'Current should be third node';
+
+ok my $fourth = $plan->next, 'Get fourth node';
+isa_ok $fourth, 'App::Sqitch::Plan::Step', 'Fourth node';
+is $fourth->name, 'this/rocks', 'Fourth node should be "this/rocks"';
+is $plan->position, 3, 'Position should be at 3';
+
+ok my $fifth = $plan->next, 'Get fifth node';
+isa_ok $fifth, 'App::Sqitch::Plan::Step', 'Fifth node';
+is $fifth->name, 'hey-there', 'Fifth node should be "hey-there"';
+is $plan->position, 4, 'Position should be at 4';
+
+ok my $sixth = $plan->next, 'Get sixth node';
+isa_ok $sixth, 'App::Sqitch::Plan::Tag', 'Sixth node';
+is $sixth->name, 'bar', 'Sixth node should be "bar"';
+is $plan->position, 5, 'Position should be at 5';
+
+ok my $seventh = $plan->next, 'Get sevent node';
+isa_ok $seventh, 'App::Sqitch::Plan::Tag', 'Sevent node';
+is $seventh->name, 'baz', 'Sevent node should be "baz"';
+is $plan->position, 6, 'Position should be at 6';
+
+is $plan->peek, undef, 'Peek should return undef';
+is $plan->next, undef, 'Next should return undef';
+is $plan->position, 7, 'Position should be at 7';
+
+is $plan->next, undef, 'Next should still return undef';
+is $plan->position, 7, 'Position should still be at 7';
 ok $plan->reset, 'Reset the plan';
+
 is $plan->position, -1, 'Position should be back at -1';
 is $plan->current, undef, 'Current should still be undef';
-is $plan->next, $tag, 'Next should return the first tag again';
+is $plan->next, $node, 'Next should return the first node again';
 is $plan->position, 0, 'Position should be at 0 again';
-is $plan->current, $tag, 'Current should be first tag';
-is $plan->index_of($tag->name), 0, "Index of $tag should be 0";
-is $plan->index_of('bar'), 1, 'Index of bar should be 1';
-ok $plan->seek('bar'), 'Seek to the "bar" tag';
+is $plan->current, $node, 'Current should be first node';
+is $plan->index_of($node->name), 0, "Index of $node should be 0";
+is $plan->index_of('@bar'), 5, 'Index of @bar should be 5';
+ok $plan->seek('@bar'), 'Seek to the "@bar" node';
+is $plan->position, 5, 'Position should be at 5 again';
+is $plan->current, $sixth, 'Current should be sixth again';
+is $plan->index_of('you'), 1, 'Index of you should be 1';
+ok $plan->seek('you'), 'Seek to the "you" node';
 is $plan->position, 1, 'Position should be at 1 again';
 is $plan->current, $next, 'Current should be second again';
-is $plan->index_of('foo'), 0, 'Index of bar should be 0';
-ok $plan->seek('foo'), 'Seek to the "foo" tag';
-is $plan->position, 0, 'Position should be at 0 again';
-is $plan->current, $tag, 'Current should be first again';
-is $plan->index_of('baz'), 1, 'Index of baz should be 1';
-ok $plan->seek('baz'), 'Seek to the "baz" tag';
-is $plan->position, 1, 'Position should be at 1 again';
-is $plan->current, $next, 'Current should be second again';
+is $plan->index_of('baz'), undef, 'Index of baz should be undef';
+is $plan->index_of('@baz'), 6, 'Index of @baz should be 6';
+ok $plan->seek('@baz'), 'Seek to the "baz" node';
+is $plan->position, 6, 'Position should be at 6 again';
+is $plan->current, $seventh, 'Current should be seventh again';
 
-# Make sure seek() chokes on a bad tag name.
+# Make sure seek() chokes on a bad node name.
 throws_ok { $plan->seek('nonesuch') } qr/FAIL:/,
-    'Should die seeking invalid tag';
-is_deeply +MockOutput->get_fail, [['Cannot find tag "nonesuch" in plan']],
+    'Should die seeking invalid node';
+is_deeply +MockOutput->get_fail, [['Cannot find node "nonesuch" in plan']],
     'And the failure should be sent to output';
 
 # Get all!
-is_deeply [$plan->all], [$tag, $next], 'All should return all tags';
-my @e = ($tag, $next);
+my @nodes = ($node, $next, $third, $fourth, $fifth, $sixth, $seventh);
+is_deeply [$plan->nodes], \@nodes, 'All should return all nodes';
 ok $plan->reset, 'Reset the plan again';
 $plan->do(sub {
-    is shift, $e[0], 'Tag ' . [$e[0]->names]->[0] . ' should be passed to do sub';
-    is $_, $e[0], 'Tag ' . [$e[0]->names]->[0] . ' should be the topic in do sub';
-    shift @e;
+    is shift, $nodes[0], 'Node ' . $nodes[0]->name . ' should be passed to do sub';
+    is $_, $nodes[0], 'Node ' . $nodes[0]->name . ' should be the topic in do sub';
+    shift @nodes;
 });
 
 # There should be no more to iterate over.
@@ -368,97 +422,16 @@ file_not_exists_ok $to;
 ok $plan->write_to($to), 'Write out the file';
 file_exists_ok $to;
 my $v = App::Sqitch->VERSION;
-file_contents_is $to, <<"EOF", 'The contents should look right';
-# Generated by Sqitch v$v.
-#
-
-[foo]
-hey
-you
-
-[bar baz]
-this/rocks
-hey-there
-
-EOF
-
-##############################################################################
-# Test load_untracked.
-can_ok $CLASS, 'load_untracked';
-make_path dir(qw(sql deploy stuff))->stringify;
-END { remove_tree 'sql' };
-
-my @tags = (tag ['foo'] => [qw(bar baz)]);
-
-ok $tag = $plan->load_untracked(\@tags),
-    'load_untracked should return a tag';
-is $tag->name, 'HEAD+', 'And it should be HEAD+';
-is_deeply [$tag->steps], [], 'And it should have no steps';
-
-# Make sure we have the bar and baz steps.
-file(qw(sql deploy bar.sql))->touch;
-file(qw(sql deploy baz.sql))->touch;
-
-ok $tag = $plan->load_untracked(\@tags),
-    'load_untracked should again return a tag';
-is $tag->name, 'HEAD+', 'It should also be HEAD+';
-is_deeply [$tag->steps], [], 'And it should also have no steps';
-
-# Now add an unknown step.
-file(qw(sql deploy yo.sql))->touch;
-ok $tag = $plan->load_untracked(\@tags),
-    'load_untracked now should return a tag';
-is $tag->dump, tag( ['HEAD+'] => [qw(yo)] )->dump,
-    'The tag should have the expected name and step';
-
-# Put Try adding one to a subdirectory.
-file(qw(sql deploy stuff wow.sql))->touch;
-ok $tag = $plan->load_untracked(\@tags),
-    'load_untracked now should again return a tag';
-my $exp = tag ['HEAD+'] => [qw(stuff/wow yo)];
-is $tag->dump, $exp->dump, 'The tag should have the subdirectory step';
-
-# Make sure VCS directories are ignored.
-for my $subdir (qw(CVS .git .svn)) {
-    my $dir = dir qw(sql deploy), $subdir;
-    make_path $dir->stringify;
-    $dir->file('whatever.sql')->touch;
-    ok $tag = $plan->load_untracked(\@tags), "Call load_untracked with $subdir";
-    is $tag->dump, $exp->dump, "Files in $subdir should be ignored";
-    remove_tree $dir->stringify;
-}
-
-# So now, make sure that load() results in the finding of untracked files.
-isa_ok $plan = App::Sqitch::Plan->new(
-    sqitch         => $sqitch,
-    with_untracked => 1,
-), $CLASS,
-    'Plan with with_untracked';
-is_deeply [$plan->all], [
-    tag( [qw(foo)] => [qw(hey you)] ),
-    tag( [qw(bar baz)] => [qw(this/rocks hey-there)] ),
-    tag( ['HEAD+'] => [qw(bar baz stuff/wow yo)] ),
-], 'Plan should include untracked steps';
-is_deeply $plan->load, [
-    tag( [qw(foo)] => [qw(hey you)] ),
-    tag( [qw(bar baz)] => [qw(this/rocks hey-there)] ),
-    tag( ['HEAD+'] => [qw(bar baz stuff/wow yo)] ),
-], 'load should also load untracked steps';
-is $plan->index_of('foo'), 0, 'Should be able to find tag "foo"';
-is $plan->index_of('bar'), 1, 'Should be able to find tag "bar"';
-is $plan->index_of('baz'), 1, 'Should be able to find tag "baz"';
-is $plan->index_of('HEAD'), 1, 'Should be able to find HEAD';
-is $plan->index_of('HEAD+'), 2, 'Should be able to find HEAD+';
-
-# Try to write a plan with a reserved tag name.
-throws_ok { $plan->write_to($to) } qr/FAIL:/,
-    'Should get an error writing a plan with untracked steps';
-is_deeply +MockOutput->get_fail, [
-    ['Cannot write plan with reserved tag "HEAD+"']
-], 'Should get error message about writing "HEAD+" tag';
+file_contents_is $to,
+    qq{# Generated by Sqitch v$v.\n#\n\n}
+    . $file->slurp(iomode => '<:encoding(UTF-8)'),
+    'The contents should look right';
 
 ##############################################################################
 # Test open_script.
+make_path dir(qw(sql deploy stuff))->stringify;
+END { remove_tree 'sql' };
+
 can_ok $CLASS, 'open_script';
 my $step_file = file qw(sql deploy bar.sql);
 $fh = $step_file->open('>') or die "Cannot open $step_file: $!\n";
@@ -468,6 +441,7 @@ ok $fh = $plan->open_script($step_file), 'Open bar.sql';
 is $fh->getline, "-- This is a comment\n", 'It should be the right file';
 $fh->close;
 
+file(qw(sql deploy baz.sql))->touch;
 ok $fh = $plan->open_script(file qw(sql deploy baz.sql)), 'Open baz.sql';
 is $fh->getline, undef, 'It should be empty';
 
@@ -479,10 +453,9 @@ my @deps;
 my $mock_step = Test::MockModule->new('App::Sqitch::Plan::Step');
 $mock_step->mock(_dependencies => sub { shift @deps });
 
-$tag = App::Sqitch::Plan::Tag->new(names => ['foo'], plan => $plan);
 sub steps {
     map {
-        App::Sqitch::Plan::Step->new(name => $_, tag => $tag)
+        step '', $_;
     } @_;
 }
 
@@ -536,7 +509,7 @@ is_deeply +MockOutput->get_fail, [[
     ' and "that"',
 ]], 'The cylce should have been logged';
 
-# Okay, now deal with depedencies from ealier tag sections.
+# Okay, now deal with depedencies from ealier node sections.
 @deps = ({%ddep, requires => ['foo']}, {%ddep}, {%ddep});
 is_deeply $plan->sort_steps({ foo => 1}, steps qw(this that other)),
     [steps qw(this that other)], 'Should get original order with earlier dependency';
@@ -547,10 +520,12 @@ is_deeply $plan->sort_steps({sqitch => 1 }, steps qw(this that other)),
     [steps qw(other that this)], 'Should get other, that, this with earlier dependncy';
 
 # Have a failed dependency.
-# Okay, now deal with depedencies from ealier tag sections.
+# Okay, now deal with depedencies from ealier node sections.
 @deps = ({%ddep, requires => ['foo']}, {%ddep}, {%ddep});
 throws_ok { $plan->sort_steps(steps qw(this that other)) } qr/FAIL:/,
     'Should die on unknown dependency';
 is_deeply +MockOutput->get_fail, [[
     'Unknown step "foo" required in ', 'sql/deploy/this.sql'
 ]], 'And we should emit an error pointing to the offending script';
+
+done_testing;
