@@ -295,8 +295,12 @@ App::Sqitch::Plan - Sqitch Deployment Plan
 =head1 Synopsis
 
   my $plan = App::Sqitch::Plan->new( file => $file );
-  while (my $tag = $plan->next) {
-      say "Deploy ", join' ', @{ $tag->names };
+  while (my $node = $plan->next) {
+      if ( $node->isa('App::Sqitch::Plan::Tag') ) {
+          say "Tag ", $node->format_name;
+      } else {
+          say "Deploy ", $node->format_name;
+      }
   }
 
 =head1 Description
@@ -310,9 +314,10 @@ file and provides an iteration interface for working with the plan.
 
 =head3 C<new>
 
-  my $plan = App::Sqitch::Plan->new(%params);
+  my $plan = App::Sqitch::Plan->new( sqitch => $sqitch );
 
-Instantiates and returns a App::Sqitch::Plan object.
+Instantiates and returns a App::Sqitch::Plan object. Takes a single parameter:
+an L<App::Sqitch> object.
 
 =head2 Accessors
 
@@ -333,117 +338,122 @@ C<next> returns C<undef>, the value will be the last index in the plan plus 1.
 
 =head3 C<index_of>
 
-  my $index = $plan->index_of($tag_name);
+  my $tag_index  = $paln->index_of('@foo');
+  my $step_index = $paln->index_of('bar');
 
-Returns the index of the specified tag name.
+Returns the index of the specified tag or step name. If no such tag or step
+exists, C<undef> will be returned.
 
 =head3 C<seek>
 
-  $plan->seek($tag_name);
+  $plan->seek('@foo');
+  $plan->seek('bar');
 
-Move the plan position to the specified tag. Dies if the tag cannot be found
-in the plan.
+Move the plan position to the specified tag or step. Dies if the tag or step
+cannot be found in the plan.
 
 =head3 C<reset>
 
    $plan->reset;
 
-Resets iteration. Same as C<$plan->position(-1)>, but better.
+Resets iteration. Same as C<< $plan->position(-1) >>, but better.
 
 =head3 C<next>
 
-  while (my $tag = $plan->next) {
-      say "Deploy ", join' ', @{ $tag->names };
+  while (my $node = $plan->next) {
+      if ( $node->isa('App::Sqitch::Plan::Tag') ) {
+          say "Tag ", $node->format_name;
+      } else {
+          say "Deploy ", $node->format_name;
+      }
   }
 
-Returns the next L<App::Sqitch::Plan::Tag> in the plan. Returns C<undef> if
-there are no more tags.
+Returns the next L<App::Sqitch::Plan::Tag> or L<App::Sqitch::Plan::Step> in
+the plan. Returns C<undef> if there are no more nodes.
 
 =head3 C<last>
 
   my $tag = $plan->last;
 
-Returns the last tag in the plan. Does not change the current position.
+Returns the last node in the plan. Does not change the current position.
 
 =head3 C<current>
 
    my $tag = $plan->current;
 
-Returns the same tag as was last returned by C<next()>. Returns undef if
+Returns the same node as was last returned by C<next()>. Returns C<undef> if
 C<next()> has not been called or if the plan has been reset.
 
 =head3 C<peek>
 
    my $tag = $plan->peek;
 
-Returns the next tag in the plan, without incrementing the iterator. Returns
-C<undef> if there are no more tags beyond the current tag.
+Returns the next node in the plan without incrementing the iterator. Returns
+C<undef> if there are no more nodes beyond the current node.
 
-=head3 C<all>
+=head3 C<nodes>
 
-  my @tags = $plan->all;
+  my @nodes = $plan->nodes;
 
-Returns all of the tags in the plan. This constitutes the entire plan.
+Returns all of the nodes in the plan. This constitutes the entire plan.
+
+=head3 C<count>
+
+  my $count = $plan->count;
+
+Returns the number of steps and tags in the plan.
+
+=head3 C<lines>
+
+  my @lines = $plan->lines;
+
+Returns all of the lines in the plan. This includes all nodes as well as
+L<App::Sqitch::Plan::Blank>s, which are lines that are neither steps nor tags.
 
 =head3 C<do>
 
-  $plan->do(sub { say $_[0]->names->[0]; return $_[0]; });
-  $plan->do(sub { say $_->names->[0];    return $_;    });
+  $plan->do(sub { say $_[0]->name; return $_[0]; });
+  $plan->do(sub { say $_->name;    return $_;    });
 
-Pass a code reference to this method to execute it for each tag in the plan.
-Each item will be set to C<$_> before executing the code reference, and will
-also be passed as the sole argument to the code reference. If C<next()> has
-been called prior to the call to C<do()>, then only the remaining items in the
-iterator will passed to the code reference. Iteration terminates when the code
-reference returns false, so be sure to have it return a true value if you want
-it to iterate over every item.
+Pass a code reference to this method to execute it for each node in the plan.
+Each node will be stored in C<$_> before executing the code reference, and
+will also be passed as the sole argument. If C<next()> has been called prior
+to the call to C<do()>, then only the remaining nodes in the iterator will
+passed to the code reference. Iteration terminates when the code reference
+returns false, so be sure to have it return a true value if you want it to
+iterate over every node.
 
 =head3 C<write_to>
 
   $plan->write_to($file);
 
-Write the plan to the named file. Comments and white space from the original
-plan are I<not> preserved, so be careful to alert the user when overwriting an
-exiting plan file.
+Write the plan to the named file, including. comments and white space from the
+original plan file.
 
 =head3 C<open_script>
 
-  my $file_handle = $plan->open_script(
-      step => $step,
-      tags => \@tag_names,
-      dir  => $sqitch->deploy_dir,
-  );
+  my $file_handle = $plan->open_script( $step->deploy_file );
 
-Opens the script corresponding to the named step in the specified directory.
-The C<tags> option is ignored, but may be used in subclasses to open a script
-at a particular point in VCS history. Returns a file handle for reading. The
+Opens the script file passed to it and returns a file handle for reading. The
 script file must be encoded in UTF-8.
-
-=head3 C<parse>
-
-Called internally to populate C<all> by parsing the plan file. Not intended to
-be used directly, though it may be overridden in subclasses.
 
 =head3 C<load>
 
   my $tags = $plan->load;
 
 Loads the plan. Called internally, not meant to be called directly, as it
-parses the plan file and desploy scripts every time it's called. If you want
-the all of the steps, call C<all()> instead.
-
-Subclasses should override this method to load the plan from whatever
-resources they deem appropriate.
+parses the plan file and deploy scripts every time it's called. If you want
+the all of the nodes, call C<nodes()> instead.
 
 =head3 C<sort_steps>
 
   @steps = $plan->sort_steps(@steps);
-  @steps = $plan->sort_steps(\%seen, @steps);
+  @steps = $plan->sort_steps( { '@foo' => 1, 'bar' => 1 }, @steps );
 
 Sorts the steps passed in in dependency order and returns them. If the first
-argument is a hash reference, it is assumed to contain a list of
-previously-seen steps that can be assumed to be satisfied requirements for the
-succeeding steps.
+argument is a hash reference, its keys should be previously-seen step and tag
+names that can be assumed to be satisfied requirements for the succeeding
+steps.
 
 =head1 See Also
 
