@@ -165,12 +165,11 @@ is sorted, 0, 'Should not have sorted steps';
 is_deeply +MockOutput->get_fail, [[
     "Syntax error in $file at line ",
     5,
-    ': Invalid step "what what what"; steps must not begin or ',
-    'end in punctuation or digits following punctuation'
+    ': Invalid step "what what what"; steps must not begin with ',
+    'punctuation or end in punctuation or digits following punctuation'
 ]], 'And the error should have been output';
 
-# Try other invalid step and tag name issues.
-for my $name (
+my @bad_names = (
     '^foo',     # No leading punctuation
     'foo bar',  # no white space
     'foo+',     # No trailing punctuation
@@ -178,7 +177,10 @@ for my $name (
     'foo+666',  # No trailing punctuation+digits
     '%hi',      # No leading punctuation
     'hi!',      # No trailing punctuation
-) {
+);
+
+# Try other invalid step and tag name issues.
+for my $name (@bad_names) {
     for my $line ($name, "\@$name") {
         my $what = $line =~ /^[@]/ ? 'tag' : 'step';
         my $fh = IO::File->new(\$line, '<:utf8');
@@ -188,8 +190,8 @@ for my $name (
         is_deeply +MockOutput->get_fail, [[
             "Syntax error in baditem at line ",
             1,
-            qq{: Invalid $what "$line"; ${what}s must not begin or },
-            'end in punctuation or digits following punctuation'
+            qq{: Invalid $what "$line"; ${what}s must not begin with },
+            'punctuation or end in punctuation or digits following punctuation'
         ]], qq{And "$line" should trigger the appropriate error};
     }
 }
@@ -462,6 +464,16 @@ is_deeply +MockOutput->get_fail, [[
     'Tag "@w00t" already exists'
 ]], 'And the error message should report it as a dupe';
 
+# Should choke on an invalid tag names.
+for my $name (@bad_names) {
+    throws_ok { $plan->add_tag($name) } qr/FAIL:/,
+        qq{Should get error for invalid tag "$name"};
+    is_deeply +MockOutput->get_fail, [[
+        qq{"$name" is invalid: tags must not begin with punctuation },
+        'or end in punctuation or digits following punctuation'
+    ]], qq{And "$name" should trigger the appropriate error};
+}
+
 ##############################################################################
 # Try adding a step.
 ok $plan->add_step('booyah'), 'Add step "booyah"';
@@ -488,6 +500,16 @@ throws_ok { $plan->add_step('blow') } qr/^FAIL\b/,
 is_deeply +MockOutput->get_fail, [[
     'Step "blow" already exists'
 ]], 'And the error message should report it as a dupe';
+
+# Should choke on an invalid step names.
+for my $name (@bad_names) {
+    throws_ok { $plan->add_step($name) } qr/FAIL:/,
+        qq{Should get error for invalid step "$name"};
+    is_deeply +MockOutput->get_fail, [[
+        qq{"$name" is invalid: steps must not begin with punctuation },
+        'or end in punctuation or digits following punctuation'
+    ]], qq{And "$name" should trigger the appropriate error};
+}
 
 # Try an invalid depednency.
 throws_ok { $plan->add_step('whu', ['nonesuch' ] ) } qr/^FAIL\b/,

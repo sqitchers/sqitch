@@ -70,7 +70,7 @@ sub _parse {
         $line =~ s/(?<rspace>[[:blank:]]*)(?:[#](?<comment>.*))?$//;
         my %params = %+;
 
-        my ($name) = $line =~ /
+        $line =~ /
            ^                              # Beginning of line
            (?<lspace>[[:blank:]]*)?       # Optional leading space
            [@]?                           # Optional @
@@ -90,8 +90,8 @@ sub _parse {
         $self->sqitch->fail(
             "Syntax error in $file at line ",
             $fh->input_line_number,
-            qq{: Invalid $type "$line"; ${type}s must not begin or },
-                'end in punctuation or digits following punctuation',
+            qq{: Invalid $type "$line"; ${type}s must not begin with },
+            'punctuation or end in punctuation or digits following punctuation'
         ) if !$params{name} || $params{name} =~ /[[:punct:]][[:digit:]]*\z/;
 
         # It must not be a reserved name.
@@ -268,6 +268,8 @@ sub do {
 
 sub add_tag {
     my ( $self, $name ) = @_;
+    $self->_is_valid(tag => $name);
+
     my $plan  = $self->_plan;
     my $nodes = $plan->{nodes};
     my $key   = "\@$name";
@@ -282,6 +284,8 @@ sub add_tag {
 
 sub add_step {
     my ( $self, $name, $requires, $conflicts ) = @_;
+    $self->_is_valid(step => $name);
+
     my $plan  = $self->_plan;
     my $nodes = $plan->{nodes};
 
@@ -308,6 +312,22 @@ sub add_step {
     # We good.
     $nodes->push( $name => $step );
     $plan->{lines}->push( $step  => $step );
+}
+
+sub _is_valid {
+    my ( $self, $type, $name ) = @_;
+    $self->sqitch->fail(
+        qq{"$name" is invalid: ${type}s must not begin with punctuation },
+        'or end in punctuation or digits following punctuation'
+    ) unless $name =~ /
+        ^                          # Beginning of line
+        [^[:punct:]]               # not punct
+        (?:                        # followed by...
+            [^[:blank:]]*?         #     any number non-blank
+            [^[:punct:][:blank:]]  #     one not blank or punct
+        )?                         # ... optionally
+        $                          # end of line
+    /x && $name !~ /[[:punct:]][[:digit:]]*\z/;
 }
 
 sub write_to {
