@@ -80,6 +80,7 @@ $fh->say('; and this, wee!');
 $fh->say('/* blah blah blah */');
 $fh->say('-- :requires: foo');
 $fh->say('-- :requires: foo');
+$fh->say('-- :requires: @yo');
 $fh->say('-- :requires:blah blah w00t');
 $fh->say('-- :conflicts: yak');
 $fh->say('-- :conflicts:this that');
@@ -97,10 +98,10 @@ ok $step = $CLASS->new( name => 'bar', plan => $plan ),
     'Create step "bar"';
 
 is_deeply $step->_parse_dependencies([], 'bar'), {
-    requires  => [qw(foo foo blah blah w00t)],
+    requires  => [qw(foo foo @yo blah blah w00t)],
     conflicts => [qw(yak this that)],
 },  'bar.sql should have a bunch of dependencies';
-is_deeply [$step->requires], [qw(foo foo blah blah w00t)],
+is_deeply [$step->requires], [qw(foo foo @yo blah blah w00t)],
     'Requires get filled in';
 is_deeply [$step->conflicts], [qw(yak this that)], 'Conflicts get filled in';
 
