@@ -562,46 +562,46 @@ sub steps {
 # Start with no dependencies.
 my %ddep = ( requires => [], conflicts => [] );
 @deps = ({%ddep}, {%ddep}, {%ddep});
-is_deeply $plan->sort_steps({}, steps qw(this that other)),
+is_deeply [$plan->sort_steps({}, steps qw(this that other))],
     [steps qw(this that other)], 'Should get original order when no dependencies';
 
 @deps = ({%ddep}, {%ddep}, {%ddep});
-is_deeply $plan->sort_steps(steps qw(this that other)),
+is_deeply [$plan->sort_steps(steps qw(this that other))],
     [steps qw(this that other)], 'Should get original order when no prepreqs';
 
 # Have that require this.
 @deps = ({%ddep}, {%ddep, requires => ['this']}, {%ddep});
-is_deeply $plan->sort_steps(steps qw(this that other)),
+is_deeply [$plan->sort_steps(steps qw(this that other))],
     [steps qw(this that other)], 'Should get original order when that requires this';
 
 # Have other require that.
 @deps = ({%ddep}, {%ddep, requires => ['this']}, {%ddep, requires => ['that']});
-is_deeply $plan->sort_steps(steps qw(this that other)),
+is_deeply [$plan->sort_steps(steps qw(this that other))],
     [steps qw(this that other)], 'Should get original order when other requires that';
 
 # Have this require other.
 @deps = ({%ddep, requires => ['other']}, {%ddep}, {%ddep});
-is_deeply $plan->sort_steps(steps qw(this that other)),
+is_deeply [$plan->sort_steps(steps qw(this that other))],
     [steps qw(other this that)], 'Should get other first when this requires it';
 
 # Have other other require taht.
 @deps = ({%ddep, requires => ['other']}, {%ddep}, {%ddep, requires => ['that']});
-is_deeply $plan->sort_steps(steps qw(this that other)),
+is_deeply [$plan->sort_steps(steps qw(this that other))],
     [steps qw(that other this)], 'Should get that, other, this now';
 
 # Have this require other and that.
 @deps = ({%ddep, requires => ['other', 'that']}, {%ddep}, {%ddep});
-is_deeply $plan->sort_steps(steps qw(this that other)),
+is_deeply [$plan->sort_steps(steps qw(this that other))],
     [steps qw(other that this)], 'Should get other, that, this now';
 
 # Have this require other and that, and other requore that.
 @deps = ({%ddep, requires => ['other', 'that']}, {%ddep}, {%ddep, requires => ['that']});
-is_deeply $plan->sort_steps(steps qw(this that other)),
+is_deeply [$plan->sort_steps(steps qw(this that other))],
     [steps qw(that other this)], 'Should get that, other, this again';
 
 # Have that require a tag.
 @deps = ({%ddep}, {%ddep, requires => ['@howdy']}, {%ddep});
-is_deeply $plan->sort_steps({'@howdy' => 2 }, steps qw(this that other)),
+is_deeply [$plan->sort_steps({'@howdy' => 2 }, steps qw(this that other))],
     [steps qw(this that other)], 'Should get original order when requiring a tag';
 
 # Add a cycle.
@@ -616,12 +616,12 @@ is_deeply +MockOutput->get_fail, [[
 
 # Okay, now deal with depedencies from ealier node sections.
 @deps = ({%ddep, requires => ['foo']}, {%ddep}, {%ddep});
-is_deeply $plan->sort_steps({ foo => 1}, steps qw(this that other)),
+is_deeply [$plan->sort_steps({ foo => 1}, steps qw(this that other))],
     [steps qw(this that other)], 'Should get original order with earlier dependency';
 
 # Mix it up.
 @deps = ({%ddep, requires => ['other', 'that']}, {%ddep, requires => ['sqitch']}, {%ddep});
-is_deeply $plan->sort_steps({sqitch => 1 }, steps qw(this that other)),
+is_deeply [$plan->sort_steps({sqitch => 1 }, steps qw(this that other))],
     [steps qw(other that this)], 'Should get other, that, this with earlier dependncy';
 
 # Okay, now deal with depedencies from ealier node sections.

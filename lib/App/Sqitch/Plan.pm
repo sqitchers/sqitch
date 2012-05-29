@@ -199,7 +199,7 @@ sub sort_steps {
             qq{ and "$last"}
         );
     }
-    return \@ret;
+    return @ret;
 }
 
 sub open_script {
