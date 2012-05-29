@@ -71,7 +71,20 @@ sub execute {
     }
 
     # Deploy!
-    $engine->deploy($plan->next) while $plan->position < $to_index;
+    while ($plan->position < $to_index) {
+        my $target = $plan->next;
+        if ($target->isa('App::Sqitch::Plan::Step')) {
+            $engine->deploy($target);
+        } elsif ($target->isa('App::Sqitch::Plan::Tag')) {
+            $engine->apply($target);
+        } else {
+            # This should not happen.
+            $sqitch->fail(
+                'Cannot deploy node of type ', ref $target,
+                '; can only deploy steps and apply tags'
+            );
+        }
+    }
 
     return $self;
 }

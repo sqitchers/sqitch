@@ -39,7 +39,8 @@ my $curr_tag = undef;
 my %called;
 $mock_engine->mock(initialized => sub { $called{initialized} = 1; $init });
 $mock_engine->mock(initialize  => sub { $called{initialize}  = 1; shift });
-$mock_engine->mock(deploy      => sub { push @{ $called{deploy} }, $_[1]; shift });
+$mock_engine->mock(deploy      => sub { push @{ $called{deploy} }, $_[1]->name; shift });
+$mock_engine->mock(apply       => sub { push @{ $called{deploy} }, '@' . $_[1]->name; shift });
 $mock_engine->mock(current_tag_name => sub { $called{current_tag} = 1; $curr_tag });
 
 throws_ok { $deploy->execute('alpha') } qr/^FAIL/,
@@ -51,8 +52,8 @@ ok $deploy->execute('@alpha'), 'Deploy to "@alpha"';
 ok delete $called{initialized}, 'Should have called initialized()';
 ok delete $called{initialize},  'Should have called initialize()';
 ok delete $called{current_tag},  'Should have called current_tag()';
-is_deeply [ map { $_->name } @{ delete $called{deploy} } ],
-    [qw(roles users alpha)], 'Alpha steps should have been deployed';
+is_deeply delete $called{deploy}, [qw(roles users @alpha)],
+    'Alpha should have been deployed';
 is_deeply \%called, {}, 'Nothing else should have been called';
 
 # Deploy all.
@@ -60,8 +61,8 @@ ok $deploy->execute(), 'Deploy default';
 ok delete $called{initialized}, 'Should have called initialized()';
 ok delete $called{initialize},  'Should have called initialize()';
 ok delete $called{current_tag},  'Should have called current_tag()';
-is_deeply [ map { $_->name } @{ delete $called{deploy} } ],
-    [qw(roles users alpha widgets beta)], 'Alpha and beta should have been deployed';
+is_deeply delete $called{deploy},
+    [qw(roles users @alpha widgets @beta)], 'Alpha and beta should have been deployed';
 is_deeply \%called, {}, 'Nothing else should have been called';
 
 # Deploy just one step.
@@ -69,7 +70,7 @@ ok $deploy->execute('roles'), 'Deploy "roles"';
 ok delete $called{initialized}, 'Should have called initialized()';
 ok delete $called{initialize},  'Should have called initialize()';
 ok delete $called{current_tag},  'Should have called current_tag()';
-is_deeply [ map { $_->name } @{ delete $called{deploy} } ],
+is_deeply delete $called{deploy},
     [qw(roles)], 'Only "roles" step should have been deployed';
 is_deeply \%called, {}, 'Nothing else should have been called';
 
@@ -79,8 +80,8 @@ ok $deploy->execute(), 'Deploy default again';
 ok !delete $called{initialized}, 'Should not have called initialized()';
 ok !delete $called{initialize},  'Should not have called initialize()';
 ok delete $called{current_tag},  'Should have called current_tag()';
-is_deeply [ map { $_->name } @{ delete $called{deploy} } ],
-    [qw(widgets beta)], 'Only beta step should have been deployed';
+is_deeply delete $called{deploy},
+    [qw(widgets @beta)], 'Only beta step should have been deployed';
 is_deeply \%called, {}, 'Nothing else should have been called';
 
 # Deploy to 'beta', but using it as an attribute.
@@ -89,8 +90,8 @@ ok $deploy->execute(), 'Deploy default again';
 ok !delete $called{initialized}, 'Should not have called initialized()';
 ok !delete $called{initialize},  'Should not have called initialize()';
 ok delete $called{current_tag},  'Should have called current_tag()';
-is_deeply [ map { $_->name } @{ delete $called{deploy} } ],
-    [qw(widgets beta)], 'Only beta step should have been deployed';
+is_deeply delete $called{deploy},
+    [qw(widgets @beta)], 'Only beta step should have been deployed';
 is_deeply \%called, {}, 'Nothing else should have been called';
 
 # Now try deploying just the tag from a step.
@@ -99,8 +100,8 @@ ok $deploy->execute(), 'Deploy default again';
 ok !delete $called{initialized}, 'Should not have called initialized()';
 ok !delete $called{initialize},  'Should not have called initialize()';
 ok delete $called{current_tag},  'Should have called current_tag()';
-is_deeply [ map { $_->name } @{ delete $called{deploy} } ],
-    [qw(beta)], 'Only beta should have been deployed';
+is_deeply delete $called{deploy},
+    [qw(@beta)], 'Only beta should have been deployed';
 is_deeply \%called, {}, 'Nothing else should have been called';
 
 # Now try to deploy to the current tag.
