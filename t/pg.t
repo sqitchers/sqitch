@@ -56,17 +56,21 @@ is_deeply [$pg->psql], [$client, @std_opts],
 
 ##############################################################################
 # Test other configs for the target.
-for my $env (qw(PGDATABASE PGUSER USER)) {
-    my $pg = $CLASS->new(sqitch => $sqitch);
-    local $ENV{$env} = "\$ENV=whatever";
-    is $pg->target, "\$ENV=whatever", "Target should read \$$env";
-}
-
 ENV: {
-    my $pg = $CLASS->new(sqitch => $sqitch, username => 'hi');
-    is $pg->target, 'hi', 'Target shoul read username';
+    # Make sure we override system-set vars.
+    local $ENV{PGDATABASE};
+    local $ENV{PGUSER};
+    local $ENV{USER};
+    for my $env (qw(PGDATABASE PGUSER USER)) {
+        my $pg = $CLASS->new(sqitch => $sqitch);
+        local $ENV{$env} = "\$ENV=whatever";
+        is $pg->target, "\$ENV=whatever", "Target should read \$$env";
+    }
 
-    local $ENV{PGDATABASE} = 'mydb';
+    $pg = $CLASS->new(sqitch => $sqitch, username => 'hi');
+    is $pg->target, 'hi', 'Target should read username';
+
+    $ENV{PGDATABASE} = 'mydb';
     $pg = $CLASS->new(sqitch => $sqitch, username => 'hi');
     is $pg->target, 'mydb', 'Target should prefer $PGDATABASE to username';
 }
