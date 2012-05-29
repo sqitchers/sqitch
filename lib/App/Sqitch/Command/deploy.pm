@@ -17,17 +17,9 @@ has to => (
     isa => 'Str',
 );
 
-has with_untracked => (
-    is       => 'ro',
-    isa      => 'Bool',
-    required => 1,
-    default  => 0,
-);
-
 sub options {
     return qw(
         to=s
-        with-untracked|untracked|u
     );
 }
 
@@ -35,22 +27,22 @@ sub execute {
     my ( $self, $to ) = @_;
     my $sqitch = $self->sqitch;
     my $engine = $sqitch->engine;
-    my $plan   = App::Sqitch::Plan->new(
-        sqitch         => $sqitch,
-        with_untracked => $self->with_untracked
-    );
+    my $plan   = App::Sqitch::Plan->new( sqitch => $sqitch );
 
     $to = $self->to if defined $self->to;
     my $curr_tag = $engine->current_tag_name;
     my $to_index = $plan->count - 1;
 
     if (defined $to) {
-        # Make sure that $to is later than the current point.
-        $to_index = $plan->index_of($to);
+        $to_index = $plan->index_of($to) // $sqitch->fail(
+            qq{Unknown deploy target: "$to"}
+        );
+
         if ($curr_tag) {
+            # Make sure that $to is later than the current point.
             $plan->seek($curr_tag);
             $sqitch->fail(
-                'Cannot deploy to an earlier tag; use "revert" instead'
+                'Cannot deploy to an earlier target; use "revert" instead'
             ) if $to_index < $plan->position;
 
             # Just return if there is nothing to do.

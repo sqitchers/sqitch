@@ -1,7 +1,6 @@
-[alpha]
 roles
 users
+@alpha
 
-[beta]
 widgets
-
+@beta
