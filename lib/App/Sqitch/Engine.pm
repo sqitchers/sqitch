@@ -49,137 +49,63 @@ sub initialize {
     Carp::confess( "$class has not implemented initialize()" );
 }
 
-sub _rollback_steps {
-    my $self   = shift;
-    my $tag    = shift;
-    my @steps  = @_;
+sub deploy {
+    my ($self, $step) = @_;
     my $sqitch = $self->sqitch;
-    $sqitch->vent('Reverting previous steps for tag ', $tag->name)
-        if @steps;
 
-    try {
-        for my $step (reverse @steps) {
-            $sqitch->info('  - ', $step->name);
-            $self->revert_step($step);
-        }
-        $self->rollback_deploy_tag($tag);
-    } catch {
-        # Sucks when this happens.
-        # XXX Add message about state corruption?
-        $sqitch->debug($_);
+    return $sqitch->warn(
+        'Step ', $step->name, ' already deployed to ', $self->target
+    ) if $self->is_deployed_step($step);
+
+    # Check for conflicts.
+    if (my @conflicts = $self->check_conflicts($step)) {
+        my $pl = @conflicts > 1 ? 's' : '';
         $sqitch->vent(
-            'Error rolling back ', $tag->name, $/,
-            'The schema will need to be manually repaired'
+            "Conflicts with previously deployed step$pl: ",
+            join ' ', @conflicts
         );
+        $sqitch->fail( 'Aborting deployment of ', $step->name );
+    }
+
+    # Check for prerequisites.
+    if (my @required = $self->check_requires($step)) {
+        my $pl = @required > 1 ? 's' : '';
+        $sqitch->vent(
+            "Missing required step$pl: ",
+            join ' ', @required
+        );
+        $sqitch->fail( 'Aborting deployment of ', $step->name );
+    }
+
+    # Go for it.
+    try {
+        $self->run_file($step->deploy_file);
+        $self->log_deploy_step($step);
+    } catch {
+        # Ruh-roh.
+        $self->log_fail_step($step);
+        $sqitch->fail( 'Aborting deployment of ', $step->format_name, ":\n$_" );
     };
 
     return $self;
 }
 
-sub deploy {
-    my ($self, $tag) = @_;
+sub apply {
+    my ( $self, $tag ) = @_;
     my $sqitch = $self->sqitch;
 
     return $sqitch->info(
         'Tag ', $tag->name, ' already deployed to ', $self->target
     ) if $self->is_deployed_tag($tag);
 
-    return $sqitch->warn('Tag ', $tag->name, ' has no steps; skipping')
-        unless $tag->steps;
-
-    $sqitch->info('Deploying ', $tag->name, ' to ', $self->target);
-
-    my @run;
+    # Go for it.
     try {
-        $self->begin_deploy_tag($tag);
-        for my $step ($tag->steps) {
-            if ( $self->is_deployed_step($step) ) {
-                $sqitch->info('    ', $step->name, ' already deployed');
-                next;
-            }
-            $sqitch->info('  + ', $step->name);
-
-            # Check for conflicts.
-            if (my @conflicts = $self->check_conflicts($step)) {
-                my $pl = @conflicts > 1 ? 's' : '';
-                $sqitch->vent(
-                    "Conflicts with previously deployed step$pl: ",
-                    join ' ', @conflicts
-                );
-                $self->_rollback_steps($tag, @run);
-                $sqitch->fail( 'Aborting deployment of ', $tag->name );
-            }
-
-            # Check for prerequisites.
-            if (my @required = $self->check_requires($step)) {
-                my $pl = @required > 1 ? 's' : '';
-                $sqitch->vent(
-                    "Missing required step$pl: ",
-                    join ' ', @required
-                );
-                $self->_rollback_steps($tag, @run);
-                $sqitch->fail( 'Aborting deployment of ', $tag->name );
-            }
-
-            # Go for it.
-            try {
-                $self->deploy_step($step);
-                push @run => $step;
-            } catch {
-                # Ruh-roh.
-                $self->log_fail_step($step);
-                die $_;
-            };
-        }
-        $self->commit_deploy_tag($tag);
+        $self->apply_tag($tag);
+        $self->log_deploy_tag($tag);
     } catch {
-        # Whoops! Revert completed steps.
-        $sqitch->debug($_);
-        $self->_rollback_steps($tag, @run);
-        $sqitch->fail( 'Aborting deployment of ', $tag->name );
-    };
-
-    return $self;
-}
-
-sub revert {
-    my ($self, $tag) = @_;
-    my $sqitch = $self->sqitch;
-
-    return $sqitch->info(
-        'Tag ', $tag->name, ' is not deployed to ', $self->target
-    ) unless $self->is_deployed_tag($tag);
-
-    $sqitch->info('Reverting ', $tag->name, ' from ', $self->target);
-
-    try {
-        $self->begin_revert_tag($tag);
-    } catch {
-        $sqitch->debug($_);
-        $sqitch->fail( 'Aborting reversion of ', $tag->name );
-    };
-
-    # Revert only deployed steps.
-    for my $step ( reverse $self->deployed_steps_for($tag) ) {
-        $sqitch->info('  - ', $step->name);
-        try {
-            $self->revert_step($step);
-        } catch {
-            # Whoops! We're fucked.
-            # XXX do something to mark the state as corrupted.
-            $sqitch->debug($_);
-            $sqitch->fail(
-                'Error reverting step ', $step->name, $/,
-                'The schema will need to be manually repaired'
-            );
-        };
-    }
-
-    try {
-        $self->commit_revert_tag($tag);
-    } catch {
-        $sqitch->debug($_);
-        $sqitch->fail( "Error removing tag ", $tag->name );
+        # Ruh-roh.
+        $self->log_fail_tag($tag);
+        $sqitch->fail( 'Aborting application of ', $tag->format_name, ":\n$_" );
     };
 
     return $self;

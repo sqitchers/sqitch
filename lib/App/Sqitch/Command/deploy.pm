@@ -73,6 +73,7 @@ sub execute {
     # Deploy!
     while ($plan->position < $to_index) {
         my $target = $plan->next;
+        $sqitch->info('  + ', $target->format_name);
         if ($target->isa('App::Sqitch::Plan::Step')) {
             $engine->deploy($target);
         } elsif ($target->isa('App::Sqitch::Plan::Tag')) {
