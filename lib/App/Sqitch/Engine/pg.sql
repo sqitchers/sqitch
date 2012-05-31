@@ -6,12 +6,13 @@ CREATE SCHEMA :"sqitch_schema";
 COMMENT ON SCHEMA :"sqitch_schema" IS 'Sqitch database deployment metadata v1.0.';
 
 CREATE TABLE :"sqitch_schema".steps (
-    step_id     SERIAL      PRIMARY KEY,
+    sha1        SERIAL      PRIMARY KEY,
     step        TEXT        NOT NULL,
     deployed_at TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
     deployed_by TEXT        NOT NULL DEFAULT current_user,
     requires    TEXT[]      NOT NULL DEFAULT '{}',
-    conflicts   TEXT[]      NOT NULL DEFAULT '{}'
+    conflicts   TEXT[]      NOT NULL DEFAULT '{}',
+    body        BYTEA       NOT NULL
 );
 
 COMMENT ON TABLE :"sqitch_schema".steps
@@ -25,7 +26,7 @@ COMMENT ON COLUMN :"sqitch_schema".steps.deployed_by IS 'Name of the user who de
 
 CREATE TABLE :"sqitch_schema".tags (
     tag        TEXT        PRIMARY KEY,
-    step_id    INTEGER     NOT NULL REFERENCES :"sqitch_schema".steps(step_id),
+    sha1       INTEGER     NOT NULL REFERENCES :"sqitch_schema".steps(sha1),
     applied_at TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
     applied_by TEXT        NOT NULL DEFAULT current_user
 );
