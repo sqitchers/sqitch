@@ -237,7 +237,7 @@ throws_ok { $plan->_parse($file, $fh) } qr/FAIL:/,
     'Should die on plan with dupe tag';
 is sorted, 2, 'Should have sorted steps twice';
 is_deeply +MockOutput->get_fail, [[
-    "Syntax error in $file at line ",
+    "Error in $file at line ",
     10,
     ': Tag "bar" duplicates earlier declaration on line 4',
 ]], 'And the dupe tag error should have been output';
@@ -249,7 +249,7 @@ throws_ok { $plan->_parse($file, $fh) } qr/FAIL:/,
     'Should die on plan with dupe step';
 is sorted, 1, 'Should have sorted steps once';
 is_deeply +MockOutput->get_fail, [[
-    "Syntax error in $file at line ",
+    "Error in $file at line ",
     7,
     ': Step "greets" duplicates earlier declaration on line 5',
 ]], 'And the dupe step error should have been output';
@@ -257,14 +257,9 @@ is_deeply +MockOutput->get_fail, [[
 # Try a plan with a duplicate step in different tag sections.
 $file = file qw(t plans dupe-step-diff-tag.plan);
 $fh = $file->open('<:encoding(UTF-8)');
-throws_ok { $plan->_parse($file, $fh) } qr/FAIL:/,
+lives_ok { $plan->_parse($file, $fh) }
     'Should die on plan with dupe step across tags';
-is sorted, 2, 'Should have sorted steps twice';
-is_deeply +MockOutput->get_fail, [[
-    "Syntax error in $file at line ",
-    8,
-    ': Step "whatever" duplicates earlier declaration on line 1',
-]], 'And the second dupe step error should have been output';
+is sorted, 3, 'Should have sorted steps three times';
 
 # Make sure that all() loads the plan.
 $file = file qw(t plans multi.plan);

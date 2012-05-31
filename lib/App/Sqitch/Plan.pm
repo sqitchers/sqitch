@@ -103,9 +103,9 @@ sub _parse {
 
         # Fail on duplicate name.
         my $key = $type eq 'tag' ? '@' . $params{name} : $params{name};
-        if (my $at = $seen{$key} || $tag_steps{$key}) {
+        if (my $at = $type eq 'tag' ? $seen{$key} : $tag_steps{$key}) {
             $self->sqitch->fail(
-                "Syntax error in $file at line ",
+                "Error in $file at line ",
                 $fh->input_line_number,
                 qq{: \u$type "$params{name}" duplicates earlier declaration on line $at},
             );
