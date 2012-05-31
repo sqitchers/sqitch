@@ -614,6 +614,20 @@ is_deeply +MockOutput->get_fail, [[
     ' and "that"',
 ]], 'The cylce should have been logged';
 
+# Add an extended cycle.
+@deps = (
+    {%ddep, requires => ['that']},
+    {%ddep, requires => ['other']},
+    {%ddep, requires => ['this']}
+);
+throws_ok { $plan->sort_steps(steps qw(this that other)) } qr/FAIL:/,
+    'Should get failure for a two-hop cycle';
+is_deeply +MockOutput->get_fail, [[
+    'Dependency cycle detected beween steps "',
+    'this, that',
+    ' and "other"',
+]], 'The cylce should have been logged';
+
 # Okay, now deal with depedencies from ealier node sections.
 @deps = ({%ddep, requires => ['foo']}, {%ddep}, {%ddep});
 is_deeply [$plan->sort_steps({ foo => 1}, steps qw(this that other))],
