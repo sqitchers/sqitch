@@ -80,8 +80,8 @@ throws_ok { $nodes->get('yo') } qr/^\QKey "yo" at multiple indexes/,
 throws_ok { $nodes->get('yo@howdy') } qr/^\QUnknown tag: "howdy"/,
     'Should get error looking for invalid tag';
 
-my $hi = ['hi'];
-ok $nodes->append(hi => $hi), 'Push hi';
+my $hi = App::Sqitch::Plan::Step->new(plan => $plan, name => 'hie');
+ok $nodes->append($hi), 'Push hi';
 is $nodes->count, 7, 'Count should now be seven';
 is_deeply [$nodes->items], [$foo, $bar, $yo1, $alpha, $baz, $yo2, $hi],
     'Nodes should be in order with $hi at the end';

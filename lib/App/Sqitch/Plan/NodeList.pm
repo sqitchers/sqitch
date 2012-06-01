@@ -53,10 +53,10 @@ sub get {
 }
 
 sub append {
-    my ($self, $key, $val) = @_;
+    my ($self, $node) = @_;
     my $list = $self->{list};
-    push @{ $list } => $val;
-    my $idx = $self->{lookup}{$key} ||= [];
+    push @{ $list } => $node;
+    my $idx = $self->{lookup}{$node->format_name} ||= [];
     push $idx, $#$list;
 }
 

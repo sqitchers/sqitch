@@ -24,7 +24,7 @@ sub item_at  { shift->{list}->[shift] }
 sub index_of { shift->{lookup}{+shift} }
 
 sub append {
-    my ($self, $line) = @_;
+    my ( $self, $line ) = @_;
     my $list = $self->{list};
     push @{ $list } => $line;
     $self->{lookup}{$line} = $#$list;

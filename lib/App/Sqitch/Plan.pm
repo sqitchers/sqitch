@@ -284,8 +284,8 @@ sub add_tag {
         if defined $nodes->index_of($key);
 
     my $tag = App::Sqitch::Plan::Tag->new( plan => $self, name => $name );
-    $nodes->append( $key => $tag );
-    $plan->{lines}->append( $tag => $tag );
+    $nodes->append( $tag );
+    $plan->{lines}->append( $tag );
 }
 
 sub add_step {
@@ -316,8 +316,8 @@ sub add_step {
     }
 
     # We good.
-    $nodes->append( $name => $step );
-    $plan->{lines}->append( $step => $step );
+    $nodes->append( $step );
+    $plan->{lines}->append( $step );
 }
 
 sub _is_valid {
