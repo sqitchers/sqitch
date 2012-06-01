@@ -724,10 +724,10 @@ Here is the EBNF Grammar for the plan file:
   tag-line     = <tag> ( <eol> | <comment> )
 
   tag          = "@" <name>
-  name         = <non-punct> [ [ ? non-blank characters ? ] <non-punct> ] ;
+  name         = <non-punct> [ [ ? non-blank and not "@" characters ? ] <non-punct> ] ;
   non-punct    = ? non-punctuation, non-blank character ? ;
 
-  comment      =  [ <blanks> ] "#" [ <string> ] <EOL> ;
+  comment      = [ <blanks> ] "#" [ <string> ] <EOL> ;
   eol          = [ <blanks> ] <EOL> ;
 
   blanks       = ? blank characters ? ;
@@ -737,7 +737,7 @@ And written as regular expressions:
 
   my $eol          = qr/[[:blank:]]*$/
   my $comment      = qr/(?:[[:blank:]]+)?[#].+$/;
-  my $name         = qr/[^[:punct:][:blank:]](?:(?:[^[:space:]]+)?[^[:punct:][:blank:]])?/;
+  my $name         = qr/[^[:punct:][:blank:]](?:(?:[^[:space:]@]+)?[^[:punct:][:blank:]])?/;
   my $tag          = qr/[@]$name/;
   my $tag_line     = qr/^$tag(?:$comment|$eol)/;
   my $step_line    = qr/^$name(?:$comment|$eol)/;
