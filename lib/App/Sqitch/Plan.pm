@@ -295,8 +295,13 @@ sub add_step {
     my $plan  = $self->_plan;
     my $nodes = $plan->{nodes};
 
-    $self->sqitch->fail(qq{Step "$name" already exists})
-        if defined $nodes->index_of($name);
+    if (defined( my $idx = $nodes->index_of($name . '@HEAD') )) {
+        # Disallow it unless there is a tag since we last saw it.
+        my $tag_idx = $nodes->index_of_last_tag;
+        $self->sqitch->fail(
+            qq{Step "$name" already exists. Add a tag to modify it.}
+        ) if !defined $tag_idx || $tag_idx < $idx;
+    }
 
     my $step = App::Sqitch::Plan::Step->new(
         plan      => $self,

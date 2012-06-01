@@ -493,8 +493,15 @@ is $plan->last->name, 'blow', 'Last node should be "blow"';
 throws_ok { $plan->add_step('blow') } qr/^FAIL\b/,
     'Should get error trying to add duplicate step';
 is_deeply +MockOutput->get_fail, [[
-    'Step "blow" already exists'
+    'Step "blow" already exists. Add a tag to modify it.'
 ]], 'And the error message should report it as a dupe';
+
+# But if we first add a tag, it should work!
+ok $plan->add_tag('groovy'), 'Add tag "Groovy"';
+ok $plan->add_step('blow'), 'Add step "blow"';
+is $plan->count, 12, 'Should have 12 nodes';
+is $plan->index_of('blow@HEAD'), 11, 'Should find "blow@HEAD at index 11';
+is $plan->last->name, 'blow', 'Last node should be "blow"';
 
 # Should choke on an invalid step names.
 for my $name (@bad_names) {
