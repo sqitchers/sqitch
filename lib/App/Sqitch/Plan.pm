@@ -7,6 +7,7 @@ use App::Sqitch::Plan::Step;
 use App::Sqitch::Plan::Blank;
 use Path::Class;
 use App::Sqitch::Plan::NodeList;
+use App::Sqitch::Plan::LineList;
 use namespace::autoclean;
 use Moose;
 use Moose::Meta::TypeConstraint::Parameterizable;
@@ -59,7 +60,7 @@ sub _parse {
         # Grab blank lines first.
         if ($line =~ /\A(?<lspace>\s*)(?:#(?<comment>.+)|$)/) {
             my $line = App::Sqitch::Plan::Blank->new( plan => $self, %+ );
-            push @lines, $line => $line;
+            push @lines => $line;
             next LINE;
         }
 
@@ -115,13 +116,13 @@ sub _parse {
             if (@steps) {
                 # Sort all steps up to this tag by their dependencies.
                 @steps = $self->sort_steps(\%seen, @steps);
-                push @nodes, map { $_->name, $_ } @steps;
-                push @lines, map { $_,       $_ } @steps;
+                push @nodes => @steps;
+                push @lines => @steps;
                 @steps = ();
             }
             my $node = App::Sqitch::Plan::Tag->new( plan => $self, %params );
-            push @nodes, $key  => $node;
-            push @lines, $node => $node;
+            push @nodes => $node;
+            push @lines => $node;
             %seen = (%seen, %tag_steps, $key => $fh->input_line_number);
             %tag_steps = ();
         } else {
@@ -142,13 +143,13 @@ sub _parse {
     if (@steps) {
         # Sort and store any remaining steps.
         @steps = $self->sort_steps(\%seen, @steps);
-        push @nodes, map { $_->name, $_ } @steps;
-        push @lines, map { $_,       $_ } @steps;
+        push @nodes => @steps;
+        push @lines => @steps;
     }
 
     return {
         nodes => App::Sqitch::Plan::NodeList->new(@nodes),
-        lines => App::Sqitch::Plan::NodeList->new(@lines),
+        lines => App::Sqitch::Plan::LineList->new(@lines),
     };
 }
 
@@ -218,8 +219,8 @@ sub open_script {
     );
 }
 
-sub nodes { shift->_plan->{nodes}->nodes }
-sub lines { shift->_plan->{lines}->nodes }
+sub nodes { shift->_plan->{nodes}->items }
+sub lines { shift->_plan->{lines}->items }
 sub count { shift->_plan->{nodes}->count }
 
 sub index_of {
@@ -256,16 +257,16 @@ sub current {
     my $self = shift;
     my $pos = $self->position;
     return if $pos < 0;
-    $self->_plan->{nodes}->node_at( $pos );
+    $self->_plan->{nodes}->item_at( $pos );
 }
 
 sub peek {
     my $self = shift;
-    $self->_plan->{nodes}->node_at( $self->position + 1 );
+    $self->_plan->{nodes}->item_at( $self->position + 1 );
 }
 
 sub last {
-    shift->_plan->{nodes}->node_at( -1 );
+    shift->_plan->{nodes}->item_at( -1 );
 }
 
 sub do {

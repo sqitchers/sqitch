@@ -6,13 +6,10 @@ use Carp;
 
 sub new {
     my $class = shift;
-    croak 'Uneven number of keys in list' if @_ % 2;
     my (@list, %index);
-
-    for ( my $i = 0; $i < @_; $i += 2 ) {
-        push @list =>, $_[ $i + 1 ];
-        my $idx = $index{$_[$i]} ||= [];
-        push @{ $idx } => $#list;
+    for my $node (@_) {
+        push @list => $node;
+        push @{ $index{ $node->format_name } } => $#list;
     }
 
     return bless {
@@ -22,8 +19,8 @@ sub new {
 }
 
 sub count   { scalar @{ shift->{list} } }
-sub nodes   { @{ shift->{list} } }
-sub node_at { shift->{list}[shift] }
+sub items   { @{ shift->{list} } }
+sub item_at { shift->{list}[shift] }
 
 sub index_of {
     my ($self, $key, $tag) = @_;
@@ -44,8 +41,7 @@ sub index_of {
 
 sub get {
     my $self = shift;
-    my $idx = $self->index_of(@_);
-    return undef unless defined $idx;
+    my $idx = $self->index_of(@_) // return undef;
     return $self->{list}[ $idx ];
 }
 
@@ -68,15 +64,15 @@ App::Sqitch::Plan::NodeList - Sqitch deployment plan node list
 =head1 Synopsis
 
   my $list = App::Sqitch::Plan::NodeList->new(
-      add_roles   => $add_roles,
-      add_users   => $add_users,
-      insert_user => $insert_user,
-      '@alpha'    => $alpha,
-      insert_user => $insert_user2,
+      $add_roles,
+      $add_users,
+      $insert_user,
+      $alpha_tag,
+      $insert_user2,
   );
 
-  my @nodes = $list->nodes;
-  my $add_users = $list->value_at(1);
+  my @nodes = $list->items;
+  my $add_users = $list->item_at(1);
   my $add_users = $list->get('add_users');
 
   my $insert_user1 = $list->get('insert_user', '@alpha');
@@ -94,19 +90,20 @@ for finding nodes relative to tags.
 
 =head3 C<new>
 
-  my $plan = App::Sqitch::Plan::NodeList->new(map { $_->name => @_ } @steps );
+  my $plan = App::Sqitch::Plan::NodeList->new( @nodes );
 
-Instantiates and returns a App::Sqitch::Plan::NodeList object. The paramters
-should be a key/value list of nodes. Keys may be duplicated, as long as a tag
-appears between each instance of a key.
+Instantiates and returns a App::Sqitch::Plan::NodeList object with the list of
+nodes. Each node should be a L<App::Sqitch::Plan::Step> or
+L<App::Sqitch::Plan::Tag> object. Order will be preserved but the location of
+each node will be indexed by its formatted name.
 
 =head2 Instance Methods
 
 =head3 C<count>
 
-=head3 C<nodes>
+=head3 C<items>
 
-=head3 C<node_at>
+=head3 C<item_at>
 
 =head3 C<index_of>
 

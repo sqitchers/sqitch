@@ -83,15 +83,15 @@ ok my $parsed = $plan->_parse($file, $fh),
     'Should parse simple "widgets.plan"';
 is sorted, 1, 'Should have sorted steps';
 isa_ok $parsed->{nodes}, 'App::Sqitch::Plan::NodeList', 'nodes';
-isa_ok $parsed->{lines}, 'App::Sqitch::Plan::NodeList', 'lines';
+isa_ok $parsed->{lines}, 'App::Sqitch::Plan::LineList', 'lines';
 
-is_deeply [$parsed->{nodes}->nodes], [
+is_deeply [$parsed->{nodes}->items], [
     step(  '', 'hey'),
     step(  '', 'you'),
     tag(   '', 'foo', ' ', ' look, a tag!'),
 ], 'All "widgets.plan" nodes should be parsed';
 
-is_deeply [$parsed->{lines}->nodes], [
+is_deeply [$parsed->{lines}->items], [
     blank('', ' This is a comment'),
     blank(),
     blank(' ', ' And there was a blank line.'),
@@ -107,7 +107,7 @@ $fh = $file->open('<:encoding(UTF-8)');
 ok $parsed = $plan->_parse($file, $fh),
     'Should parse multi-tagged "multi.plan"';
 is sorted, 2, 'Should have sorted steps twice';
-is_deeply { map { $_ => [$parsed->{$_}->nodes] } keys %{ $parsed } }, {
+is_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
     nodes => [
         step(  '', 'hey'),
         step(  '', 'you'),
@@ -138,7 +138,7 @@ $file = file qw(t plans steps-only.plan);
 $fh = $file->open('<:encoding(UTF-8)');
 ok $parsed = $plan->_parse($file, $fh), 'Should read plan with no tags';
 is sorted, 1, 'Should have sorted steps';
-is_deeply { map { $_ => [$parsed->{$_}->nodes] } keys %{ $parsed } }, {
+is_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
 
     lines => [
         blank('', ' This is a comment'),
@@ -210,7 +210,7 @@ for my $name (
         my $make = $line =~ /^[@]/ ? \&tag : \&step;
         ok my $parsed = $plan->_parse('gooditem', $fh),
             encode_utf8(qq{Should parse "$line"});
-        is_deeply { map { $_ => [$parsed->{$_}->nodes] } keys %{ $parsed } }, {
+        is_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
             nodes => [ $make->('', $name) ],
             lines => [ $make->('', $name) ],
         }, encode_utf8(qq{Should have line and node for "$line"});
@@ -285,7 +285,7 @@ is_deeply [$plan->nodes], [
 is sorted, 2, 'Should have sorted steps twice';
 
 ok $parsed = $plan->load, 'Load should parse plan from file';
-is_deeply { map { $_ => [$parsed->{$_}->nodes] } keys %{ $parsed } }, {
+is_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
     lines => [
         blank('', ' This is a comment'),
         blank(),

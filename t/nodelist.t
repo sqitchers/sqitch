@@ -7,34 +7,40 @@ use utf8;
 use Test::More tests => 38;
 use Test::NoWarnings;
 use Test::Exception;
+use App::Sqitch;
+use App::Sqitch::Plan;
 
 BEGIN { require_ok 'App::Sqitch::Plan::NodeList' or die }
 
-my $foo = ['foo'];
-my $bar = ['bar'];
-my $baz = ['baz'];
-my $yo1 = ['yo'];
-my $yo2 = ['yo'];
-my $alpha = ['@alpha'];
+my $sqitch = App::Sqitch->new;
+my $plan   = App::Sqitch::Plan->new(sqitch => $sqitch);
+
+my $foo = App::Sqitch::Plan::Step->new(plan => $plan, name => 'foo');
+my $bar = App::Sqitch::Plan::Step->new(plan => $plan, name => 'bar');
+my $baz = App::Sqitch::Plan::Step->new(plan => $plan, name => 'baz');
+my $yo1 = App::Sqitch::Plan::Step->new(plan => $plan, name => 'yo');
+my $yo2 = App::Sqitch::Plan::Step->new(plan => $plan, name => 'yo');
+
+my $alpha = App::Sqitch::Plan::Tag->new(plan => $plan, name => 'alpha');
 
 my $nodes = App::Sqitch::Plan::NodeList->new(
-    foo => $foo,
-    bar => $bar,
-    yo  => $yo1,
-    '@alpha' => $alpha,
-    baz => $baz,
-    yo  => $yo2,
+    $foo,
+    $bar,
+    $yo1,
+    $alpha,
+    $baz,
+    $yo2,
 );
 
 is $nodes->count, 6, 'Count should be six';
-is_deeply [$nodes->nodes], [$foo, $bar, $yo1, $alpha, $baz, $yo2],
+is_deeply [$nodes->items], [$foo, $bar, $yo1, $alpha, $baz, $yo2],
     'Nodes should be in order';
-is $nodes->node_at(0), $foo, 'Should have foo at 0';
-is $nodes->node_at(1), $bar, 'Should have bar at 1';
-is $nodes->node_at(2), $yo1, 'Should have yo1 at 2';
-is $nodes->node_at(3), $alpha, 'Should have @alpha at 3';
-is $nodes->node_at(4), $baz, 'Should have baz at 4';
-is $nodes->node_at(5), $yo2, 'Should have yo2 at 5';
+is $nodes->item_at(0), $foo, 'Should have foo at 0';
+is $nodes->item_at(1), $bar, 'Should have bar at 1';
+is $nodes->item_at(2), $yo1, 'Should have yo1 at 2';
+is $nodes->item_at(3), $alpha, 'Should have @alpha at 3';
+is $nodes->item_at(4), $baz, 'Should have baz at 4';
+is $nodes->item_at(5), $yo2, 'Should have yo2 at 5';
 
 is $nodes->index_of('non'), undef, 'Should not find "non"';
 is $nodes->index_of('foo'), 0, 'Should find foo at 0';
@@ -76,5 +82,5 @@ throws_ok { $nodes->get('yo', '@howdy') } qr/^Unknown tag: "\@howdy"/,
 my $hi = ['hi'];
 ok $nodes->append(hi => $hi), 'Push hi';
 is $nodes->count, 7, 'Count should now be seven';
-is_deeply [$nodes->nodes], [$foo, $bar, $yo1, $alpha, $baz, $yo2, $hi],
+is_deeply [$nodes->items], [$foo, $bar, $yo1, $alpha, $baz, $yo2, $hi],
     'Nodes should be in order with $hi at the end';
