@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 39;
+use Test::More tests => 47;
 use Test::NoWarnings;
 use Test::Exception;
 use App::Sqitch;
@@ -85,3 +85,26 @@ ok $nodes->append($hi), 'Push hi';
 is $nodes->count, 7, 'Count should now be seven';
 is_deeply [$nodes->items], [$foo, $bar, $yo1, $alpha, $baz, $yo2, $hi],
     'Nodes should be in order with $hi at the end';
+
+##############################################################################
+# Test index_of_last_tag().
+is $nodes->index_of_last_tag, 3, 'Should get 3 for last tag index';
+for my $nodes (
+    [0, $alpha],
+    [1, $foo, $alpha],
+    [4, $foo, $alpha, $bar, $baz, $alpha, $yo1],
+    [6, $foo, $alpha, $bar, $baz, $alpha, $yo1, $alpha],
+) {
+    my $exp = shift @{ $nodes };
+    my $n = App::Sqitch::Plan::NodeList->new(@{ $nodes });
+    is $n->index_of_last_tag, $exp, "Should find last node at $exp";
+}
+
+for my $nodes (
+    [],
+    [$foo, $baz],
+    [$foo, $bar, $baz, $yo1, $yo2],
+) {
+    my $n = App::Sqitch::Plan::NodeList->new(@{ $nodes });
+    is $n->index_of_last_tag, undef, 'Should not find tag in ' . scalar @{$nodes} . ' nodes';
+}

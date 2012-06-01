@@ -27,23 +27,36 @@ sub index_of {
     my ( $step, $tag ) = split /@/ => $key, 2;
 
     if ($step eq '') {
+        # Just want the tag.
         my $idx = $self->{lookup}{'@' . $tag} or return undef;
         return $idx->[0];
     }
 
     my $idx = $self->{lookup}{$step} or return undef;
     if (defined $tag) {
+        # Wanted for a step as of a specific tag.
         return $idx->[-1] if $tag eq 'HEAD';
-        my $tag_idx = $self->{lookup}{'@' . $tag} or croak qq{Unknown tag: "$tag"};
+        my $tag_idx = $self->{lookup}{ '@' . $tag }
+            or croak qq{Unknown tag: "$tag"};
         $tag_idx = $tag_idx->[0];
         for my $i (reverse @{ $idx }) {
             return $i if $i < $tag_idx;
         }
         return undef;
     } else {
+        # Just want index for a step name. Fail if there are multiple.
         return $idx->[0] if @{ $idx } < 2;
         croak qq{Key "$key" at multiple indexes};
     }
+}
+
+sub index_of_last_tag {
+    my $self = shift;
+    my $items = $self->{list};
+    for ( my $i = $#$items; $i >= 0; $i-- ) {
+        return $i if $items->[$i]->isa('App::Sqitch::Plan::Tag');
+    }
+    return undef;
 }
 
 sub get {
@@ -113,6 +126,8 @@ each node will be indexed by its formatted name.
 =head3 C<item_at>
 
 =head3 C<index_of>
+
+=head3 C<index_of_last_tag>
 
 =head3 C<get>
 
