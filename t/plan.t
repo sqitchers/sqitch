@@ -454,13 +454,19 @@ is_deeply +MockOutput->get_fail, [[
 
 # Should choke on an invalid tag names.
 for my $name (@bad_names) {
-    throws_ok { $plan->add_tag($name) } qr/FAIL:/,
+    throws_ok { $plan->add_tag($name) } qr/^FAIL:/,
         qq{Should get error for invalid tag "$name"};
     is_deeply +MockOutput->get_fail, [[
         qq{"$name" is invalid: tags must not begin with punctuation },
         'or end in punctuation or digits following punctuation'
     ]], qq{And "$name" should trigger the appropriate error};
 }
+
+throws_ok { $plan->add_tag('HEAD') } qr/^FAIL:/,
+    'Should get error for reserved tag "HEAD"';
+is_deeply +MockOutput->get_fail, [[
+    '"HEAD" is a reserved name'
+]], 'And the reserved name error should be output';
 
 ##############################################################################
 # Try adding a step.
@@ -498,6 +504,13 @@ for my $name (@bad_names) {
         'or end in punctuation or digits following punctuation'
     ]], qq{And "$name" should trigger the appropriate error};
 }
+
+# Try a reserved name.
+throws_ok { $plan->add_step('HEAD') } qr/^FAIL:/,
+    'Should get error for reserved tag "HEAD"';
+is_deeply +MockOutput->get_fail, [[
+    '"HEAD" is a reserved name'
+]], 'And the reserved name error should be output';
 
 # Try an invalid depednency.
 throws_ok { $plan->add_step('whu', ['nonesuch' ] ) } qr/^FAIL\b/,

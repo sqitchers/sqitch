@@ -325,6 +325,8 @@ sub add_step {
 
 sub _is_valid {
     my ( $self, $type, $name ) = @_;
+    $self->sqitch->fail('"HEAD" is a reserved name') if $name eq 'HEAD';
+
     $self->sqitch->fail(
         qq{"$name" is invalid: ${type}s must not begin with punctuation },
         'or end in punctuation or digits following punctuation'
