@@ -537,13 +537,16 @@ is_deeply [ $plan->nodes ], [
     tag(   '', 'foo'),
     step(  '', 'hi'),
     tag(   '', 'bar'),
-        step(  '', 'greets'),
+    step(  '', 'greets'),
     step(  '', 'whatever'),
 ], 'Noes with dupe step should be read from file';
 is sorted, 3, 'Should have sorted steps three times';
 
-# Try to seek to whatever.
-#throws_ok { $plan->seek('whatever') };
+# Try to find whatever.
+throws_ok { $plan->index_of('whatever') } qr/^Key "whatever" at multiple indexes/,
+    'Should get an error trying to find dupe key.';
+is $plan->index_of('whatever', 'HEAD'), 5, 'Should get 5 for whatever@HEAD';
+is $plan->index_of('whatever', '@bar'), 0, 'Should get 0 for whatever@bar';
 
 ##############################################################################
 # Test open_script.

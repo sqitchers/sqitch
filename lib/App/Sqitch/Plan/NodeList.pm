@@ -29,7 +29,7 @@ sub index_of {
     my ($self, $key, $tag) = @_;
     my $idx = $self->{lookup}{$key} or return undef;
     if (defined $tag) {
-        return $idx->[-1] if $tag eq '';
+        return $idx->[-1] if $tag eq 'HEAD';
         my $tag_idx = $self->{lookup}{$tag} or croak qq{Unknown tag: "$tag"};
         $tag_idx = $tag_idx->[0];
         for my $i (reverse @{ $idx }) {
