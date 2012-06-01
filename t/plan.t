@@ -1,4 +1,4 @@
-;#!/usr/bin/perl -w
+#!/usr/bin/perl -w
 
 use strict;
 use warnings;
@@ -254,14 +254,7 @@ is_deeply +MockOutput->get_fail, [[
     ': Step "greets" duplicates earlier declaration on line 5',
 ]], 'And the dupe step error should have been output';
 
-# Try a plan with a duplicate step in different tag sections.
-$file = file qw(t plans dupe-step-diff-tag.plan);
-$fh = $file->open('<:encoding(UTF-8)');
-lives_ok { $plan->_parse($file, $fh) }
-    'Should die on plan with dupe step across tags';
-is sorted, 3, 'Should have sorted steps three times';
-
-# Make sure that all() loads the plan.
+# Make sure that lines() loads the plan.
 $file = file qw(t plans multi.plan);
 $sqitch = App::Sqitch->new(plan_file => $file);
 isa_ok $plan = App::Sqitch::Plan->new(sqitch => $sqitch), $CLASS,
@@ -521,6 +514,36 @@ is_deeply +MockOutput->get_fail, [[
     'Cannot add step "whu": ',
     'requires uknown tag "@nonesuch"'
 ]], 'The tag dependency error should have been emitted';
+
+##############################################################################
+# Try a plan with a duplicate step in different tag sections.
+$file = file qw(t plans dupe-step-diff-tag.plan);
+$sqitch = App::Sqitch->new(plan_file => $file);
+isa_ok $plan = App::Sqitch::Plan->new(sqitch => $sqitch), $CLASS,
+    'Plan shoud work plan with dupe step across tags';
+is_deeply [ $plan->lines ], [
+    step(  '', 'whatever'),
+    tag(   '', 'foo'),
+    blank(),
+    step(  '', 'hi'),
+    tag(   '', 'bar'),
+    blank(),
+    step(  '', 'greets'),
+    step(  '', 'whatever'),
+], 'Lines with dupe step should be read from file';
+
+is_deeply [ $plan->nodes ], [
+    step(  '', 'whatever'),
+    tag(   '', 'foo'),
+    step(  '', 'hi'),
+    tag(   '', 'bar'),
+        step(  '', 'greets'),
+    step(  '', 'whatever'),
+], 'Noes with dupe step should be read from file';
+is sorted, 3, 'Should have sorted steps three times';
+
+# Try to seek to whatever.
+#throws_ok { $plan->seek('whatever') };
 
 ##############################################################################
 # Test open_script.

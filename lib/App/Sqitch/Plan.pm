@@ -101,17 +101,17 @@ sub _parse {
             ': "HEAD" is a reserved name',
         ) if $params{name} eq 'HEAD';
 
-        # Fail on duplicate name.
-        my $key = $type eq 'tag' ? '@' . $params{name} : $params{name};
-        if (my $at = $type eq 'tag' ? $seen{$key} : $tag_steps{$key}) {
-            $self->sqitch->fail(
-                "Error in $file at line ",
-                $fh->input_line_number,
-                qq{: \u$type "$params{name}" duplicates earlier declaration on line $at},
-            );
-        }
-
         if ($type eq 'tag') {
+            # Fail on duplicate tag.
+            my $key = '@' . $params{name};
+            if ( my $at = $seen{$key} ) {
+                $self->sqitch->fail(
+                    "Error in $file at line ",
+                    $fh->input_line_number,
+                    qq{: \u$type "$params{name}" duplicates earlier declaration on line $at},
+                );
+            }
+
             if (@steps) {
                 # Sort all steps up to this tag by their dependencies.
                 @steps = $self->sort_steps(\%seen, @steps);
@@ -125,7 +125,16 @@ sub _parse {
             %seen = (%seen, %tag_steps, $key => $fh->input_line_number);
             %tag_steps = ();
         } else {
-            $tag_steps{$key} = $fh->input_line_number;
+            # Fail on duplicate step since last tag.
+            if ( my $at = $tag_steps{ $params{name} } ) {
+                $self->sqitch->fail(
+                    "Error in $file at line ",
+                    $fh->input_line_number,
+                    qq{: \u$type "$params{name}" duplicates earlier declaration on line $at},
+                );
+            }
+
+            $tag_steps{ $params{name} } = $fh->input_line_number;
             push @steps => App::Sqitch::Plan::Step->new( plan => $self, %params );
         }
     }
