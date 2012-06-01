@@ -177,6 +177,7 @@ my @bad_names = (
     'foo+666',  # No trailing punctuation+digits
     '%hi',      # No leading punctuation
     'hi!',      # No trailing punctuation
+    'foo@bar'   # No @ allowed at all.
 );
 
 # Try other invalid step and tag name issues.

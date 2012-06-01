@@ -78,7 +78,7 @@ sub _parse {
            (?<name>                       # followed by name consisting of...
                [^[:punct:]]               #     not punct
                (?:                        #     followed by...
-                   [^[:blank:]]*?         #         any number non-blank
+                   [^[:blank:]@]*?        #         any number non-blank, non-@
                    [^[:punct:][:blank:]]  #         one not blank or punct
                )?                         #     ... optionally
            )                              # ... required
@@ -331,7 +331,7 @@ sub _is_valid {
         ^                          # Beginning of line
         [^[:punct:]]               # not punct
         (?:                        # followed by...
-            [^[:blank:]]*?         #     any number non-blank
+            [^[:blank:]@]*?        #     any number non-blank, non-@
             [^[:punct:][:blank:]]  #     one not blank or punct
         )?                         # ... optionally
         $                          # end of line
