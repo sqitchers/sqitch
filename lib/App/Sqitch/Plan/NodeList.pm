@@ -27,7 +27,7 @@ sub node_at { shift->{list}[shift] }
 
 sub index_of {
     my ($self, $key, $tag) = @_;
-    my $idx = $self->{lookup}{$key};
+    my $idx = $self->{lookup}{$key} or return undef;
     if (defined $tag) {
         return $idx->[-1] if $tag eq '';
         my $tag_idx = $self->{lookup}{$tag} or croak qq{Unknown tag: "$tag"};

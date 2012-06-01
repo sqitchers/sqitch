@@ -6,7 +6,7 @@ use App::Sqitch::Plan::Tag;
 use App::Sqitch::Plan::Step;
 use App::Sqitch::Plan::Blank;
 use Path::Class;
-use Array::AsHash;
+use App::Sqitch::Plan::NodeList;
 use namespace::autoclean;
 use Moose;
 use Moose::Meta::TypeConstraint::Parameterizable;
@@ -147,8 +147,8 @@ sub _parse {
     }
 
     return {
-        nodes => Array::AsHash->new({ array => \@nodes }),
-        lines => Array::AsHash->new({ array => \@lines }),
+        nodes => App::Sqitch::Plan::NodeList->new(@nodes),
+        lines => App::Sqitch::Plan::NodeList->new(@lines),
     };
 }
 
@@ -218,13 +218,13 @@ sub open_script {
     );
 }
 
-sub nodes { shift->_plan->{nodes}->values }
-sub lines { shift->_plan->{lines}->values }
-sub count { shift->_plan->{nodes}->hcount }
+sub nodes { shift->_plan->{nodes}->nodes }
+sub lines { shift->_plan->{lines}->nodes }
+sub count { shift->_plan->{nodes}->count }
 
 sub index_of {
-    my ( $self, $name ) = @_;
-    return $self->_plan->{nodes}->hindex($name);
+    my $self = shift;
+    return $self->_plan->{nodes}->index_of(@_);
 }
 
 sub seek {
@@ -256,16 +256,16 @@ sub current {
     my $self = shift;
     my $pos = $self->position;
     return if $pos < 0;
-    $self->_plan->{nodes}->value_at( $pos );
+    $self->_plan->{nodes}->node_at( $pos );
 }
 
 sub peek {
     my $self = shift;
-    $self->_plan->{nodes}->value_at( $self->position + 1 );
+    $self->_plan->{nodes}->node_at( $self->position + 1 );
 }
 
 sub last {
-    shift->_plan->{nodes}->value_at( -1 );
+    shift->_plan->{nodes}->node_at( -1 );
 }
 
 sub do {
@@ -284,11 +284,11 @@ sub add_tag {
     my $key   = "\@$name";
 
     $self->sqitch->fail(qq{Tag "$key" already exists})
-        if defined $nodes->hindex($key);
+        if defined $nodes->index_of($key);
 
     my $tag = App::Sqitch::Plan::Tag->new( plan => $self, name => $name );
-    $nodes->push( $key => $tag );
-    $plan->{lines}->push( $tag => $tag );
+    $nodes->append( $key => $tag );
+    $plan->{lines}->append( $tag => $tag );
 }
 
 sub add_step {
@@ -299,7 +299,7 @@ sub add_step {
     my $nodes = $plan->{nodes};
 
     $self->sqitch->fail(qq{Step "$name" already exists})
-        if defined $nodes->hindex($name);
+        if defined $nodes->index_of($name);
 
     my $step = App::Sqitch::Plan::Step->new(
         plan      => $self,
@@ -310,7 +310,7 @@ sub add_step {
 
     # Make sure dependencies are specified.
     for my $req ( $step->requires ) {
-        next if defined $nodes->hindex($req);
+        next if defined $nodes->index_of($req);
         my $type = $req =~ /^[@]/ ? 'tag' : 'step';
         $self->sqitch->fail(
             qq{Cannot add step "$name": },
@@ -319,8 +319,8 @@ sub add_step {
     }
 
     # We good.
-    $nodes->push( $name => $step );
-    $plan->{lines}->push( $step  => $step );
+    $nodes->append( $name => $step );
+    $plan->{lines}->append( $step => $step );
 }
 
 sub _is_valid {

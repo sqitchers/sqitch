@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 37;
+use Test::More tests => 38;
 use Test::NoWarnings;
 use Test::Exception;
 
@@ -36,6 +36,7 @@ is $nodes->node_at(3), $alpha, 'Should have @alpha at 3';
 is $nodes->node_at(4), $baz, 'Should have baz at 4';
 is $nodes->node_at(5), $yo2, 'Should have yo2 at 5';
 
+is $nodes->index_of('non'), undef, 'Should not find "non"';
 is $nodes->index_of('foo'), 0, 'Should find foo at 0';
 is $nodes->index_of('bar'), 1, 'Should find bar at 1';
 is $nodes->index_of('@alpha'), 3, 'Should find @alpha at 3';
