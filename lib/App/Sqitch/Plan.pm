@@ -219,19 +219,15 @@ sub open_script {
     );
 }
 
-sub nodes { shift->_plan->{nodes}->items }
-sub lines { shift->_plan->{lines}->items }
-sub count { shift->_plan->{nodes}->count }
-
-sub index_of {
-    my $self = shift;
-    return $self->_plan->{nodes}->index_of(@_);
-}
+sub nodes    { shift->_plan->{nodes}->items }
+sub lines    { shift->_plan->{lines}->items }
+sub count    { shift->_plan->{nodes}->count }
+sub index_of { shift->_plan->{nodes}->index_of(shift) }
 
 sub seek {
-    my ( $self, $name, $tag ) = @_;
-    my $index = $self->index_of($name, $tag);
-    $self->sqitch->fail(qq{Cannot find node "$name" in plan})
+    my ( $self, $key ) = @_;
+    my $index = $self->index_of($key);
+    $self->sqitch->fail(qq{Cannot find node "$key" in plan})
         unless defined $index;
     $self->position($index);
     return $self;
@@ -416,9 +412,13 @@ C<next> returns C<undef>, the value will be the last index in the plan plus 1.
 
   my $tag_index  = $paln->index_of('@foo');
   my $step_index = $paln->index_of('bar');
+  my $bar1_index  = $plan->index_of('bar@alpha')
+  my $bar2_index = $paln->index_of('bar@HEAD');
 
-Returns the index of the specified tag or step name. If no such tag or step
-exists, C<undef> will be returned.
+Returns the index of the specified node. Tags should be specified with a
+leading C<@>. For steps that are duplicated, specify C<@tag> to disambiguate.
+Use C<@HEAD> to get the latest version of the step. Returns C<undef> if no
+such tag or step exists.
 
 =head3 C<seek>
 

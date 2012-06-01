@@ -23,11 +23,18 @@ sub items   { @{ shift->{list} } }
 sub item_at { shift->{list}[shift] }
 
 sub index_of {
-    my ($self, $key, $tag) = @_;
-    my $idx = $self->{lookup}{$key} or return undef;
+    my ( $self, $key ) = @_;
+    my ( $step, $tag ) = split /@/ => $key, 2;
+
+    if ($step eq '') {
+        my $idx = $self->{lookup}{'@' . $tag} or return undef;
+        return $idx->[0];
+    }
+
+    my $idx = $self->{lookup}{$step} or return undef;
     if (defined $tag) {
-        return $idx->[-1] if $tag eq '@HEAD';
-        my $tag_idx = $self->{lookup}{$tag} or croak qq{Unknown tag: "$tag"};
+        return $idx->[-1] if $tag eq 'HEAD';
+        my $tag_idx = $self->{lookup}{'@' . $tag} or croak qq{Unknown tag: "$tag"};
         $tag_idx = $tag_idx->[0];
         for my $i (reverse @{ $idx }) {
             return $i if $i < $tag_idx;
