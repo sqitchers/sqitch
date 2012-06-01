@@ -228,8 +228,8 @@ sub index_of {
 }
 
 sub seek {
-    my ( $self, $name ) = @_;
-    my $index = $self->index_of($name);
+    my ( $self, $name, $tag ) = @_;
+    my $index = $self->index_of($name, $tag);
     $self->sqitch->fail(qq{Cannot find node "$name" in plan})
         unless defined $index;
     $self->position($index);

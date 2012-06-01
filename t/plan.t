@@ -545,8 +545,16 @@ is sorted, 3, 'Should have sorted steps three times';
 # Try to find whatever.
 throws_ok { $plan->index_of('whatever') } qr/^Key "whatever" at multiple indexes/,
     'Should get an error trying to find dupe key.';
-is $plan->index_of('whatever', 'HEAD'), 5, 'Should get 5 for whatever@HEAD';
+is $plan->index_of('whatever', '@HEAD'), 5, 'Should get 5 for whatever@HEAD';
 is $plan->index_of('whatever', '@bar'), 0, 'Should get 0 for whatever@bar';
+
+# Make sure seek works, too.
+throws_ok { $plan->seek('whatever') } qr/^Key "whatever" at multiple indexes/,
+    'Should get an error seeking dupe key.';
+ok $plan->seek('whatever', '@HEAD'), 'Seek whatever@HEAD';
+is $plan->position, 5, 'Position should be 5';
+ok $plan->seek('whatever', '@bar'), 'Seek whatever@bar';
+is $plan->position, 0, 'Position should be 0';
 
 ##############################################################################
 # Test open_script.
