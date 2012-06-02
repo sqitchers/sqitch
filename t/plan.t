@@ -183,6 +183,7 @@ my @bad_names = (
 # Try other invalid step and tag name issues.
 for my $name (@bad_names) {
     for my $line ($name, "\@$name") {
+        next if $line eq '%hi'; # This would be a directive.
         my $what = $line =~ /^[@]/ ? 'tag' : 'step';
         my $fh = IO::File->new(\$line, '<:utf8');
         throws_ok { $plan->_parse('baditem', $fh) } qr/FAIL:/,
@@ -384,7 +385,7 @@ is $plan->current, undef, 'Current should still be undef';
 is $plan->next, $node, 'Next should return the first node again';
 is $plan->position, 0, 'Position should be at 0 again';
 is $plan->current, $node, 'Current should be first node';
-is $plan->index_of($node->name), 0, "Index of $node should be 0";
+is $plan->index_of($node->name), 0, "Index of node should be 0";
 is $plan->index_of('@bar'), 5, 'Index of @bar should be 5';
 ok $plan->seek('@bar'), 'Seek to the "@bar" node';
 is $plan->position, 5, 'Position should be at 5 again';

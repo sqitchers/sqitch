@@ -58,18 +58,46 @@ sub _parse {
         chomp $line;
 
         # Grab blank lines first.
-        if ($line =~ /\A(?<lspace>\s*)(?:#(?<comment>.+)|$)/) {
+        if ($line =~ /\A(?<lspace>[[:blank:]]*)(?:#(?<comment>.+)|$)/) {
             my $line = App::Sqitch::Plan::Blank->new( plan => $self, %+ );
             push @lines => $line;
             next LINE;
         }
 
-        # Is it a tag or a step?
-        my $type = $line =~ /^[@]/ ? 'tag' : 'step';
-
         # Grab inline comment.
         $line =~ s/(?<rspace>[[:blank:]]*)(?:[#](?<comment>.*))?$//;
         my %params = %+;
+
+        # Grab directives.
+        if ($line =~ /
+           \A                             # Beginning of line
+           (?<lspace>[[:blank:]]*)?       # Optional leading space
+           [%]                            # Required %
+           (?<name>                       # followed by name consisting of...
+               [^[:punct:]]               #     not punct
+               (?:                        #     followed by...
+                   [^[:blank:]=]*?        #         any number non-blank, non-=
+                   [^[:punct:][:blank:]]  #         one not blank or punct
+               )?                         #     ... optionally
+           )                              # ... required
+           (?<rspace>[[:blank:]]*)?       # Optional trailing space
+           (?:                            # followed by value consisting of...
+               (?<op>                     #     followed by op consisting of...
+                   [[:blank:]]*           #         Optional blanks
+                   =                      #         Required =
+                   [[:blank:]]*           #         Optional blanks
+               )                          #     ... required
+              (?<value>.+)                #     String value
+           )?                             # ... optionally
+           $                              # end of line
+        /x) {
+            my $dir = App::Sqitch::Plan::Directive->new( plan => $self, %params, %+ );
+            push @lines => $dir;
+            next LINE;
+        }
+
+        # Is it a tag or a step?
+        my $type = $line =~ /^[@]/ ? 'tag' : 'step';
 
         $line =~ /
            ^                              # Beginning of line

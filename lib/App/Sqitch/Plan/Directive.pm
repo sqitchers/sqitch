@@ -1,4 +1,4 @@
-package App::Sqitch::Plan::Blank;
+package App::Sqitch::Plan::Directive;
 
 use v5.10.1;
 use utf8;
@@ -8,8 +8,44 @@ use Moose;
 
 has '+name' => ( default => '' );
 
+has value => (
+    is       => 'ro',
+    isa      => 'Str',
+    required => 0,
+);
 
-sub format_name { '' }
+has op => (
+    is       => 'ro',
+    isa      => 'Str',
+    required => 0,
+);
+
+sub BUILDARGS {
+    my $class = shift;
+    my $p = @_ == 1 && ref $_[0] ? { %{ +shift } } : { @_ };
+    $p->{value} =~ s/\s+$// if $p->{value};
+    $p->{op} //= '';
+    return $p;
+}
+
+sub format_name {
+    my $self = shift;
+    return '% ' . $self->name;
+}
+
+sub format_value {
+    shift->value // '';
+}
+
+sub stringify {
+    my $self = shift;
+    return $self->lspace
+         . $self->format_name
+         . $self->op
+         . $self->format_value
+         . $self->rspace
+         . $self->format_comment;
+}
 
 __PACKAGE__->meta->make_immutable;
 no Moose;
@@ -18,7 +54,7 @@ __END__
 
 =head1 Name
 
-App::Sqitch::Plan::Blank - Sqitch deployment plan blank line
+App::Sqitch::Plan::Directive.pm - Sqitch deployment plan blank line
 
 =head1 Synopsis
 
@@ -29,9 +65,9 @@ App::Sqitch::Plan::Blank - Sqitch deployment plan blank line
 
 =head1 Description
 
-An App::Sqitch::Plan::Blank represents a blank line or comment-only line in
-the plan file. See L<App::Sqitch::Plan::Line> for its interface. The only
-difference is that the C<name> is always an empty string.
+An App::Sqitch::Plan::Directive represents a plan file directive. See
+L<App::Sqitch::Plan::Line> for its interface. The only difference is that the
+C<name> is always an empty string.
 
 =head1 Author
 
