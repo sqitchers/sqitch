@@ -65,6 +65,19 @@ sub tag {
     );
 }
 
+sub prag {
+    App::Sqitch::Plan::Directive->new(
+        plan    => $plan,
+        lspace  => $_[0] // '',
+        hspace  => $_[1] // '',
+        name    => $_[2],
+        (defined $_[3] ? (op    => $_[3]) : ()),
+        (defined $_[4] ? (value => $_[4]) : ()),
+        rspace  => $_[5] // '',
+        comment => $_[6] // '',
+    );
+}
+
 my $mocker = Test::MockModule->new($CLASS);
 # Do no sorting for now.
 my $sorted = 0;
@@ -256,6 +269,28 @@ is_deeply +MockOutput->get_fail, [[
     ': Step "greets" duplicates earlier declaration on line 5',
 ]], 'And the dupe step error should have been output';
 
+# Try a plan with directives.
+$file = file qw(t plans directives.plan);
+$fh = $file->open('<:encoding(UTF-8)');
+ok $parsed = $plan->_parse($file, $fh),
+    'Should parse plan with directives"';
+is sorted, 1, 'Should have sorted steps once';
+is_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
+    nodes => [
+        step( '', 'hey'),
+        step( '', 'you'),
+    ],
+    lines => [
+        prag( '', ' ', 'sqitch-syntax-version', '=', '1.0.0'),
+        prag( '  ', '', 'foo', ' = ', 'bar', '    ', ' lolz'),
+        blank(),
+        step( '', 'hey'),
+        step( '', 'you'),
+        blank(),
+        prag( '', ' ', 'strict'),
+    ],
+}, 'Should have "multi.plan" lines and nodes';
+
 # Make sure that lines() loads the plan.
 $file = file qw(t plans multi.plan);
 $sqitch = App::Sqitch->new(plan_file => $file);
@@ -313,6 +348,7 @@ is_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
     ],
 }, 'And the parsed file should have lines and nodes';
 is sorted, 2, 'Should have sorted steps twice';
+
 
 ##############################################################################
 # Test the interator interface.

@@ -18,6 +18,13 @@ has op => (
     required => 0,
 );
 
+has hspace => (
+    is       => 'ro',
+    isa      => 'Str',
+    required => 1,
+    default  => '',
+);
+
 sub BUILDARGS {
     my $class = shift;
     my $p = @_ == 1 && ref $_[0] ? { %{ +shift } } : { @_ };
@@ -28,7 +35,7 @@ sub BUILDARGS {
 
 sub format_name {
     my $self = shift;
-    return '% ' . $self->name;
+    return '%' . $self->hspace . $self->name;
 }
 
 sub format_value {

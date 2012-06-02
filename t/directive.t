@@ -21,6 +21,7 @@ can_ok $CLASS, qw(
     name
     lspace
     rspace
+    hspace
     comment
     plan
     value
@@ -34,15 +35,16 @@ isa_ok my $dir = $CLASS->new(
 ), $CLASS;
 isa_ok $dir, 'App::Sqitch::Plan::Line';
 
-is $dir->format_name, '% foo', 'Name should format as "%foo"';
+is $dir->format_name, '%foo', 'Name should format as "%foo"';
 is $dir->format_value, '', 'Value should format as ""';
-is $dir->stringify, '% foo', 'Should stringify to "%foo"';
+is $dir->stringify, '%foo', 'Should stringify to "%foo"';
 
 ok $dir = $CLASS->new(
     name    => 'howdy',
     value   => 'woody',
     plan    => $plan,
     lspace  => '  ',
+    hspace  => ' ',
     rspace  => "\t",
     op      => '   = ',
     comment => ' blah blah blah',

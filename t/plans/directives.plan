@@ -1,0 +1,7 @@
+% sqitch-syntax-version=1.0.0
+  %foo = bar    # lolz
+
+hey
+you
+
+% strict

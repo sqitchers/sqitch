@@ -5,6 +5,7 @@ use utf8;
 use App::Sqitch::Plan::Tag;
 use App::Sqitch::Plan::Step;
 use App::Sqitch::Plan::Blank;
+use App::Sqitch::Plan::Directive;
 use Path::Class;
 use App::Sqitch::Plan::NodeList;
 use App::Sqitch::Plan::LineList;
@@ -73,6 +74,7 @@ sub _parse {
            \A                             # Beginning of line
            (?<lspace>[[:blank:]]*)?       # Optional leading space
            [%]                            # Required %
+           (?<hspace>[[:blank:]]*)?       # Optional space
            (?<name>                       # followed by name consisting of...
                [^[:punct:]]               #     not punct
                (?:                        #     followed by...
@@ -80,7 +82,6 @@ sub _parse {
                    [^[:punct:][:blank:]]  #         one not blank or punct
                )?                         #     ... optionally
            )                              # ... required
-           (?<rspace>[[:blank:]]*)?       # Optional trailing space
            (?:                            # followed by value consisting of...
                (?<op>                     #     followed by op consisting of...
                    [[:blank:]]*           #         Optional blanks
@@ -143,9 +144,7 @@ sub _parse {
 
             if (@steps) {
                 # Sort all steps up to this tag by their dependencies.
-                @steps = $self->sort_steps(\%seen, @steps);
-                push @nodes => @steps;
-                push @lines => @steps;
+                push @nodes => $self->sort_steps(\%seen, @steps);
                 @steps = ();
             }
             my $node = App::Sqitch::Plan::Tag->new( plan => $self, %params );
@@ -165,15 +164,12 @@ sub _parse {
 
             $tag_steps{ $params{name} } = $fh->input_line_number;
             push @steps => App::Sqitch::Plan::Step->new( plan => $self, %params );
+            push @lines => $steps[-1];
         }
     }
 
-    if (@steps) {
-        # Sort and store any remaining steps.
-        @steps = $self->sort_steps(\%seen, @steps);
-        push @nodes => @steps;
-        push @lines => @steps;
-    }
+    # Sort and store any remaining steps.
+    push @nodes => $self->sort_steps(\%seen, @steps) if @steps;
 
     return {
         nodes => App::Sqitch::Plan::NodeList->new(@nodes),
