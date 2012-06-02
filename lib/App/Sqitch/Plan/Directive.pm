@@ -6,8 +6,6 @@ use namespace::autoclean;
 use parent 'App::Sqitch::Plan::Line';
 use Moose;
 
-has '+name' => ( default => '' );
-
 has value => (
     is       => 'ro',
     isa      => 'Str',
@@ -66,8 +64,29 @@ App::Sqitch::Plan::Directive.pm - Sqitch deployment plan blank line
 =head1 Description
 
 An App::Sqitch::Plan::Directive represents a plan file directive. See
-L<App::Sqitch::Plan::Line> for its interface. The only difference is that the
-C<name> is always an empty string.
+L<App::Sqitch::Plan::Line> for its interface.
+
+=head1 Interface
+
+In addition to the interface inherited from L<App::Sqitch::Plan::Line>,
+App::Sqitch::Plan::Line::Directive adds a few methods of its own.
+
+=head2 Accessors
+
+=head3 C<value>
+
+The value of the directive.
+
+=head3 C<op>
+
+The operator, including surrounding white space.
+
+=head2 Instance Methods
+
+=head3 C<format_value>
+
+Formats the value for output. If there is no value, an empty string is
+returned. Otherwise the value is returned as-is.
 
 =head1 Author
 

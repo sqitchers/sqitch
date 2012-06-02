@@ -61,7 +61,7 @@ to the API of L<App::Sqitch::Plan::NodeList>.
 
   my $plan = App::Sqitch::Plan::LineList->new(map { $_->name => @_ } @steps );
 
-Instantiates and returns a App::Sqitch::Plan::LineList object. The paramters
+Instantiates and returns a App::Sqitch::Plan::LineList object. The parameters
 should be a key/value list of lines. Keys may be duplicated, as long as a tag
 appears between each instance of a key.
 
@@ -69,9 +69,9 @@ appears between each instance of a key.
 
 =head3 C<count>
 
-=head3 C<lines>
+=head3 C<items>
 
-=head3 C<line_at>
+=head3 C<item_at>
 
 =head3 C<index_of>
 
