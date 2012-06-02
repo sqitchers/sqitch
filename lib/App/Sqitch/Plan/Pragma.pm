@@ -1,4 +1,4 @@
-package App::Sqitch::Plan::Directive;
+package App::Sqitch::Plan::Pragma;
 
 use v5.10.1;
 use utf8;
@@ -59,7 +59,7 @@ __END__
 
 =head1 Name
 
-App::Sqitch::Plan::Directive.pm - Sqitch deployment plan blank line
+App::Sqitch::Plan::Pragma.pm - Sqitch deployment plan blank line
 
 =head1 Synopsis
 
@@ -70,19 +70,19 @@ App::Sqitch::Plan::Directive.pm - Sqitch deployment plan blank line
 
 =head1 Description
 
-An App::Sqitch::Plan::Directive represents a plan file directive. See
+An App::Sqitch::Plan::Pragma represents a plan file pragma. See
 L<App::Sqitch::Plan::Line> for its interface.
 
 =head1 Interface
 
 In addition to the interface inherited from L<App::Sqitch::Plan::Line>,
-App::Sqitch::Plan::Line::Directive adds a few methods of its own.
+App::Sqitch::Plan::Line::Pragma adds a few methods of its own.
 
 =head2 Accessors
 
 =head3 C<value>
 
-The value of the directive.
+The value of the pragma.
 
 =head3 C<op>
 

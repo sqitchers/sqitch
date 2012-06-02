@@ -13,7 +13,7 @@ use App::Sqitch::Plan;
 my $CLASS;
 
 BEGIN {
-    $CLASS = 'App::Sqitch::Plan::Directive';
+    $CLASS = 'App::Sqitch::Plan::Pragma';
     require_ok $CLASS or die;
 }
 
@@ -48,7 +48,7 @@ ok $dir = $CLASS->new(
     rspace  => "\t",
     op      => '   = ',
     comment => ' blah blah blah',
-), 'Create directive with more stuff';
+), 'Create pragma with more stuff';
 
 is $dir->stringify, "  % howdy   = woody\t# blah blah blah",
     'It should stringify correctly';

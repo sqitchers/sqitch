@@ -5,7 +5,7 @@ use utf8;
 use App::Sqitch::Plan::Tag;
 use App::Sqitch::Plan::Step;
 use App::Sqitch::Plan::Blank;
-use App::Sqitch::Plan::Directive;
+use App::Sqitch::Plan::Pragma;
 use Path::Class;
 use App::Sqitch::Plan::NodeList;
 use App::Sqitch::Plan::LineList;
@@ -69,7 +69,7 @@ sub _parse {
         $line =~ s/(?<rspace>[[:blank:]]*)(?:[#](?<comment>.*))?$//;
         my %params = %+;
 
-        # Grab directives.
+        # Grab pragmas.
         if ($line =~ /
            \A                             # Beginning of line
            (?<lspace>[[:blank:]]*)?       # Optional leading space
@@ -92,8 +92,8 @@ sub _parse {
            )?                             # ... optionally
            $                              # end of line
         /x) {
-            my $dir = App::Sqitch::Plan::Directive->new( plan => $self, %params, %+ );
-            push @lines => $dir;
+            my $prag = App::Sqitch::Plan::Pragma->new( plan => $self, %params, %+ );
+            push @lines => $prag;
             next LINE;
         }
 

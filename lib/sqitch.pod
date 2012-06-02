@@ -716,13 +716,13 @@ L<idempotent|http://en.wikipedia.org/wiki/Idempotence>.
 
 Here is the EBNF Grammar for the plan file:
 
-  plan-file    = { <diretive> | <step-line> | <tag-line> | <comment-line> | <blank-line> }* ;
+  plan-file    = { <pragma> | <step-line> | <tag-line> | <comment-line> | <blank-line> }* ;
 
   blank-line   = [ <blanks> ] <eol>;
   comment-line = <comment> ;
   step-line    = <name> ( <eol> | <comment> ) ;
   tag-line     = <tag> ( <eol> | <comment> ) ;
-  directive    = "%" [ <blanks> ] <name> [ <blanks> ] = [ <blanks> ] <string> ( <eol> | <comment> ) ;
+  pragma       = "%" [ <blanks> ] <name> [ <blanks> ] = [ <blanks> ] <string> ( <eol> | <comment> ) ;
 
   tag          = "@" <name> ;
   name         = <non-punct> [ [ ? non-blank and not "@" characters ? ] <non-punct> ] ;
@@ -745,9 +745,9 @@ And written as regular expressions:
   my $tag_line     = qr/^$tag(?:$comment|$eol)/;
   my $step_line    = qr/^$name(?:$comment|$eol)/;
   my $comment_line = qr/^$comment/;
-  my $directive    = qr/^][[:blank:]]*[%][[:blank:]]*$name[[:blank:]]*=[[:blank:]].+?(?:$comment|$eol)$/;
+  my $pragma    = qr/^][[:blank:]]*[%][[:blank:]]*$name[[:blank:]]*=[[:blank:]].+?(?:$comment|$eol)$/;
   my $blank_line   = qr/^$eol/;
-  my $plan         = qr/(?:$directive|$step_line|$tag_line|$comment_line|$blank_line)+/ms;
+  my $plan         = qr/(?:$pragma|$step_line|$tag_line|$comment_line|$blank_line)+/ms;
 
 =head1 See Also
 

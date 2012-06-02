@@ -66,7 +66,7 @@ sub tag {
 }
 
 sub prag {
-    App::Sqitch::Plan::Directive->new(
+    App::Sqitch::Plan::Pragma->new(
         plan    => $plan,
         lspace  => $_[0] // '',
         hspace  => $_[1] // '',
@@ -196,7 +196,7 @@ my @bad_names = (
 # Try other invalid step and tag name issues.
 for my $name (@bad_names) {
     for my $line ($name, "\@$name") {
-        next if $line eq '%hi'; # This would be a directive.
+        next if $line eq '%hi'; # This would be a pragma.
         my $what = $line =~ /^[@]/ ? 'tag' : 'step';
         my $fh = IO::File->new(\$line, '<:utf8');
         throws_ok { $plan->_parse('baditem', $fh) } qr/FAIL:/,
@@ -269,11 +269,11 @@ is_deeply +MockOutput->get_fail, [[
     ': Step "greets" duplicates earlier declaration on line 5',
 ]], 'And the dupe step error should have been output';
 
-# Try a plan with directives.
-$file = file qw(t plans directives.plan);
+# Try a plan with pragmas.
+$file = file qw(t plans pragmas.plan);
 $fh = $file->open('<:encoding(UTF-8)');
 ok $parsed = $plan->_parse($file, $fh),
-    'Should parse plan with directives"';
+    'Should parse plan with pragmas"';
 is sorted, 1, 'Should have sorted steps once';
 is_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
     nodes => [
