@@ -722,13 +722,12 @@ Here is the EBNF Grammar for the plan file:
   comment-line = <comment> ;
   step-line    = <name> ( <eol> | <comment> ) ;
   tag-line     = <tag> ( <eol> | <comment> ) ;
-  pragma       = "%" [ <blanks> ] <name> [ <blanks> ] = [ <blanks> ] <string> ( <eol> | <comment> ) ;
+  pragma       = "%" [ <blanks> ] <name> [ <blanks> ] = [ <blanks> ] <value> ( <eol> | <comment> ) ;
 
   tag          = "@" <name> ;
-  name         = <non-punct> [ [ ? non-blank and not "@" characters ? ] <non-punct> ] ;
+  name         = <non-punct> [ [ ? non-blank and not "@" or "#" characters ? ] <non-punct> ] ;
   non-punct    = ? non-punctuation, non-blank character ? ;
-
-  
+  value        = ? non-EOL or "#" characters ?
 
   comment      = [ <blanks> ] "#" [ <string> ] <EOL> ;
   eol          = [ <blanks> ] <EOL> ;
