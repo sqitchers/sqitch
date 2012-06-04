@@ -627,6 +627,11 @@ A blank line. May include any amount of white space, which will be ignored.
 Begins with a C<#> and goes to the end of the line. Preceding white space is
 ignored.
 
+=item * A Pragma
+
+Begins with a C<%>, followed by a pramga name, optionally followed by C<=> and
+a value. Currently, the only pragma recognized by Sqitch is C<syntax-version>.
+
 =item * A step.
 
 A named change step. A steps consists of one or more non-whitespace
@@ -644,11 +649,13 @@ the step name will be ignored.
 
 Here's an example of a plan file with a single step and tag:
 
+ %syntax-version=1.0.0
  users_table
  @alpha
 
 There may, of course, be any number of tags and steps. Here's an expansion:
 
+ %syntax-version=1.0.0
  users_table
  insert_user
  update_user
@@ -662,6 +669,7 @@ Here we have four steps -- "users_table", "insert_user", "update_user", and
 Most plans will have many steps and tags. Here's a longer example with three
 tagged deployment points:
 
+ %syntax-version=1.0.0
  users_table
  insert_user
  update_user
@@ -688,6 +696,7 @@ Using this model, steps cannot be repeated between states. One can repeat
 them, however, if the contents for a file in a given tag can be retrieved from
 a VCS. An example:
 
+ %syntax-version=1.0.0
  users_table
  @alpha
 
