@@ -1,4 +1,4 @@
-% sqitch-syntax-version=1.0.0
+% syntax-version=1.0.0
   %foo = bar    # lolz
 
 hey

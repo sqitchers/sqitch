@@ -12,6 +12,7 @@ use App::Sqitch::Plan::LineList;
 use namespace::autoclean;
 use Moose;
 use Moose::Meta::TypeConstraint::Parameterizable;
+use constant SYNTAX_VERSION => '1.0.0-a1';
 
 our $VERSION = '0.32';
 
@@ -54,6 +55,7 @@ sub _parse {
     my @steps;         # List of steps.
     my %seen;          # Maps tags and steps to line numbers.
     my %tag_steps;     # Maps steps in current tag section to line numbers.
+    my $seen_version;  # Have we seen a version pragma?
 
     LINE: while ( my $line = $fh->getline ) {
         chomp $line;
@@ -92,7 +94,14 @@ sub _parse {
            )?                             # ... optionally
            $                              # end of line
         /x) {
-            my $prag = App::Sqitch::Plan::Pragma->new( plan => $self, %params, %+ );
+            if ($+{name} eq 'syntax-version') {
+                # Set explicit version in case we write it out later. In
+                # future releases, may change parsers depending on the
+                # version.
+                $params{value} = SYNTAX_VERSION;
+                $seen_version = 1;
+            }
+            my $prag = App::Sqitch::Plan::Pragma->new( plan => $self, %+, %params );
             push @lines => $prag;
             next LINE;
         }
@@ -170,6 +179,14 @@ sub _parse {
 
     # Sort and store any remaining steps.
     push @nodes => $self->sort_steps(\%seen, @steps) if @steps;
+
+    # We should have a version pragma.
+    unshift @lines => App::Sqitch::Plan::Pragma->new(
+        plan  => $self,
+        name  => 'syntax-version',
+        op    => '=',
+        value => SYNTAX_VERSION,
+      ) unless $seen_version;
 
     return {
         nodes => App::Sqitch::Plan::NodeList->new(@nodes),
