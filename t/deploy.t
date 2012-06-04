@@ -56,6 +56,12 @@ is_deeply delete $called{deploy}, [qw(roles users @alpha)],
     'Alpha should have been deployed';
 is_deeply \%called, {}, 'Nothing else should have been called';
 
+is_deeply +MockOutput->get_info, [
+    [ '  + ', 'roles'],
+    [ '  + ', 'users'],
+    [ '  + ', '@alpha'],
+], 'Should see deployments in info';
+
 # Deploy all.
 ok $deploy->execute(), 'Deploy default';
 ok delete $called{initialized}, 'Should have called initialized()';
@@ -64,6 +70,13 @@ ok delete $called{current_tag},  'Should have called current_tag()';
 is_deeply delete $called{deploy},
     [qw(roles users @alpha widgets @beta)], 'Alpha and beta should have been deployed';
 is_deeply \%called, {}, 'Nothing else should have been called';
+is_deeply +MockOutput->get_info, [
+    [ '  + ', 'roles'],
+    [ '  + ', 'users'],
+    [ '  + ', '@alpha'],
+    [ '  + ', 'widgets'],
+    [ '  + ', '@beta'],
+], 'Should see all deployments in info';
 
 # Deploy just one step.
 ok $deploy->execute('roles'), 'Deploy "roles"';
@@ -73,6 +86,9 @@ ok delete $called{current_tag},  'Should have called current_tag()';
 is_deeply delete $called{deploy},
     [qw(roles)], 'Only "roles" step should have been deployed';
 is_deeply \%called, {}, 'Nothing else should have been called';
+is_deeply +MockOutput->get_info, [
+    [ '  + ', 'roles'],
+], 'Should see one deployed step in info';
 
 # Deploy from alpha.
 $curr_tag = '@alpha';
@@ -83,6 +99,10 @@ ok delete $called{current_tag},  'Should have called current_tag()';
 is_deeply delete $called{deploy},
     [qw(widgets @beta)], 'Only beta step should have been deployed';
 is_deeply \%called, {}, 'Nothing else should have been called';
+is_deeply +MockOutput->get_info, [
+    [ '  + ', 'widgets'],
+    [ '  + ', '@beta'],
+], 'Should see only beta deployments in info';
 
 # Deploy to 'beta', but using it as an attribute.
 isa_ok $deploy = $CLASS->new(sqitch => $sqitch, to => '@beta'), $CLASS;
@@ -93,6 +113,10 @@ ok delete $called{current_tag},  'Should have called current_tag()';
 is_deeply delete $called{deploy},
     [qw(widgets @beta)], 'Only beta step should have been deployed';
 is_deeply \%called, {}, 'Nothing else should have been called';
+is_deeply +MockOutput->get_info, [
+    [ '  + ', 'widgets'],
+    [ '  + ', '@beta'],
+], 'Should see only beta deployments in info';
 
 # Now try deploying just the tag from a step.
 $curr_tag = 'widgets';
@@ -103,6 +127,9 @@ ok delete $called{current_tag},  'Should have called current_tag()';
 is_deeply delete $called{deploy},
     [qw(@beta)], 'Only beta should have been deployed';
 is_deeply \%called, {}, 'Nothing else should have been called';
+is_deeply +MockOutput->get_info, [
+    [ '  + ', '@beta'],
+], 'Should see only beta tag application in info';
 
 # Now try to deploy to the current tag.
 $curr_tag = '@beta';
