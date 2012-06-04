@@ -105,12 +105,18 @@ sub _parse {
         }
 
         # Is it a tag or a step?
-        my $type = $line =~ /^[@]/ ? 'tag' : 'step';
+        my $type = $line =~ /^\s*[@]/ ? 'tag' : 'step';
 
         $line =~ /
            ^                              # Beginning of line
            (?<lspace>[[:blank:]]*)?       # Optional leading space
-           [@]?                           # Optional @
+           (?:                            # followed by...
+               [@]                        #     @ for tag
+           |                              # ...or...
+               (?<lopspace>[[:blank:]]*)  #     Optional blanks
+               (?<operator>[+-])          #     Required + or -
+               (?<ropspace>[[:blank:]]*)  #     Optional blanks
+           )?                             # ... optionally
            (?<name>                       # followed by name consisting of...
                [^[:punct:]]               #     not punct
                (?:                        #     followed by...

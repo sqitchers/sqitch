@@ -38,6 +38,7 @@ Module::Build::Sqitch->new(
         'Capture::Tiny'        => '0.12',
         'Module::Build'        => '0.35',
         'Test::Dir'            => 0,
+        'Test::Deep'           => 0,
         'Test::File'           => 0,
         'Test::File::Contents' => '0.05',
         'Test::Exception'      => 0,
