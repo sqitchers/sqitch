@@ -612,7 +612,7 @@ throws_ok { $plan->add_step('whu', ['nonesuch' ] ) } qr/^FAIL\b/,
     'Should get failure for failed dependency';
 cmp_deeply +MockOutput->get_fail, [[
     'Cannot add step "whu": ',
-    'requires uknown step "nonesuch"'
+    'requires unknown step "nonesuch"'
 ]], 'The dependency error should have been emitted';
 
 # Should choke on an unknown tag, too.
@@ -620,7 +620,7 @@ throws_ok { $plan->add_step('whu', ['@nonesuch' ] ) } qr/^FAIL\b/,
     'Should get failure for failed tag dependency';
 cmp_deeply +MockOutput->get_fail, [[
     'Cannot add step "whu": ',
-    'requires uknown tag "@nonesuch"'
+    'requires unknown tag "@nonesuch"'
 ]], 'The tag dependency error should have been emitted';
 
 ##############################################################################

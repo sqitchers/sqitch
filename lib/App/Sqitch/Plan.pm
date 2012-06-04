@@ -105,7 +105,7 @@ sub _parse {
         }
 
         # Is it a tag or a step?
-        my $type = $line =~ /^\s*[@]/ ? 'tag' : 'step';
+        my $type = $line =~ /^[[:blank:]]*[@]/ ? 'tag' : 'step';
 
         $line =~ /
            ^                              # Beginning of line
@@ -361,7 +361,7 @@ sub add_step {
         my $type = $req =~ /^[@]/ ? 'tag' : 'step';
         $self->sqitch->fail(
             qq{Cannot add step "$name": },
-            qq{requires uknown $type "$req"}
+            qq{requires unknown $type "$req"}
         );
     }
 
