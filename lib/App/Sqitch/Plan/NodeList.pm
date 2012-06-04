@@ -3,6 +3,7 @@ package App::Sqitch::Plan::NodeList;
 use v5.10.1;
 use utf8;
 use Carp;
+use List::Util;
 
 sub new {
     my $class = shift;
@@ -48,6 +49,20 @@ sub index_of {
         return $idx->[0] if @{ $idx } < 2;
         croak qq{Key "$key" at multiple indexes};
     }
+}
+
+sub first_index_of {
+    my ( $self, $step, $tag ) = @_;
+
+    # Just return the first index if no tag.
+    my $idx = $self->{lookup}{$step} or return undef;
+    return $idx->[0] unless defined $tag;
+
+    # Find the tag index.
+    my $tag_index = $self->index_of($tag) or croak qq{Unknown tag: "$tag"};
+
+    # Return the first node after the tag.
+    return List::Util::first { $_ > $tag_index } @{ $idx };
 }
 
 sub index_of_last_tag {
@@ -126,6 +141,8 @@ each node will be indexed by its formatted name.
 =head3 C<item_at>
 
 =head3 C<index_of>
+
+=head3 C<first_index_of>
 
 =head3 C<index_of_last_tag>
 

@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 47;
+use Test::More tests => 54;
 use Test::NoWarnings;
 use Test::Exception;
 use App::Sqitch;
@@ -85,6 +85,17 @@ ok $nodes->append($hi), 'Push hi';
 is $nodes->count, 7, 'Count should now be seven';
 is_deeply [$nodes->items], [$foo, $bar, $yo1, $alpha, $baz, $yo2, $hi],
     'Nodes should be in order with $hi at the end';
+
+# Now try first_index_of().
+is $nodes->first_index_of('non'), undef, 'First index of "non" should be undef';
+is $nodes->first_index_of('foo'), 0, 'First index of "foo" should be 0';
+is $nodes->first_index_of('bar'), 1, 'First index of "bar" should be 1';
+is $nodes->first_index_of('yo'), 2, 'First index of "yo" should be 2';
+is $nodes->first_index_of('baz'), 4, 'First index of "baz" should be 4';
+is $nodes->first_index_of('yo', '@alpha'), 5,
+    'First index of "yo" since "@alpha" should be 5';
+is $nodes->first_index_of('yo', 'baz'), 5,
+    'First index of "yo" since "baz" should be 5';
 
 ##############################################################################
 # Test index_of_last_tag().
