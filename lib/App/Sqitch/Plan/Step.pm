@@ -50,6 +50,18 @@ has test_file => (
     }
 );
 
+sub is_revert {
+    shift->operator eq '-';
+}
+
+sub is_deploy {
+    shift->operator ne '-';
+}
+
+sub action {
+    shift->is_deploy ? 'deploy' : 'revert';
+}
+
 sub BUILDARGS {
     my $class = shift;
     my $p = @_ == 1 && ref $_[0] ? { %{ +shift } } : { @_ };
@@ -164,6 +176,21 @@ Returns a list of the names of steps required by this step.
   my @conflicts = $step->conflicts;
 
 Returns a list of the names of steps with which this step conflicts.
+
+=head3 C<is_deploy>
+
+Returns true if the step is intended to be deployed, and false if it should be
+reverted.
+
+=head3 C<is_revert>
+
+Returns true if the step is intended to be reverted, and false if it should be
+deployed.
+
+=head3 C<action>
+
+Returns "deploy" if the step should be deployed, or "revert" if it should be
+reverted.
 
 =head3 C<deploy_handle>
 

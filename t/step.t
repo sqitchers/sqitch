@@ -4,8 +4,8 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 32;
-#use Test::More 'no_plan';
+#use Test::More tests => 38;
+use Test::More 'no_plan';
 use Test::NoWarnings;
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -41,6 +41,9 @@ isa_ok my $step = $CLASS->new(
 ), $CLASS;
 
 isa_ok $step, 'App::Sqitch::Plan::Line';
+ok $step->is_deploy, 'It should be a deploy step';
+ok !$step->is_revert, 'It should not be a revert step';
+is $step->action, 'deploy', 'And it should say so';
 
 is $step->deploy_file, $sqitch->deploy_dir->file('foo.sql'),
     'The deploy file should be correct';
@@ -56,12 +59,18 @@ ok $step = $CLASS->new(
     name    => 'howdy',
     plan    => $plan,
     lspace  => '  ',
+    operator => '-',
+    ropspace => ' ',
     rspace  => "\t",
     comment => ' blah blah blah',
 ), 'Create step with more stuff';
 
-is $step->stringify, "  howdy\t# blah blah blah",
+is $step->stringify, "  - howdy\t# blah blah blah",
     'It should stringify correctly';
+
+ok !$step->is_deploy, 'It should not be a deploy step';
+ok $step->is_revert, 'It should be a revert step';
+is $step->action, 'revert', 'It should say so';
 
 ##############################################################################
 # Test _parse_dependencies.
