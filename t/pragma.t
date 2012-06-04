@@ -22,6 +22,8 @@ can_ok $CLASS, qw(
     lspace
     rspace
     hspace
+    ropspace
+    lopspace
     comment
     plan
     value
@@ -40,14 +42,16 @@ is $dir->format_value, '', 'Value should format as ""';
 is $dir->stringify, '%foo', 'Should stringify to "%foo"';
 
 ok $dir = $CLASS->new(
-    name    => 'howdy',
-    value   => 'woody',
-    plan    => $plan,
-    lspace  => '  ',
-    hspace  => ' ',
-    rspace  => "\t",
-    op      => '   = ',
-    comment => ' blah blah blah',
+    name     => 'howdy',
+    value    => 'woody',
+    plan     => $plan,
+    lspace   => '  ',
+    hspace   => ' ',
+    rspace   => "\t",
+    lopspace => '   ',
+    operator => '=',
+    ropspace => ' ',
+    comment  => ' blah blah blah',
 ), 'Create pragma with more stuff';
 
 is $dir->stringify, "  % howdy   = woody\t# blah blah blah",

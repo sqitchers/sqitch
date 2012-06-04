@@ -12,6 +12,13 @@ has name => (
     required => 1,
 );
 
+has operator => (
+    is       => 'ro',
+    isa      => 'Str',
+    required => 1,
+    default  => '',
+);
+
 has lspace => (
     is       => 'ro',
     isa      => 'Str',
@@ -20,6 +27,20 @@ has lspace => (
 );
 
 has rspace => (
+    is       => 'ro',
+    isa      => 'Str',
+    required => 1,
+    default  => '',
+);
+
+has lopspace => (
+    is       => 'ro',
+    isa      => 'Str',
+    required => 1,
+    default  => '',
+);
+
+has ropspace => (
     is       => 'ro',
     isa      => 'Str',
     required => 1,
@@ -44,6 +65,16 @@ sub format_name {
     shift->name;
 }
 
+sub format_operator {
+    my $self = shift;
+    join '', $self->lopspace, $self->operator, $self->ropspace;
+}
+
+sub format_content {
+    my $self = shift;
+    join '', $self->format_operator, $self->format_name;
+}
+
 sub format_comment {
     my $comment = shift->comment;
     return length $comment ? "#$comment" : '';
@@ -52,7 +83,7 @@ sub format_comment {
 sub stringify {
     my $self = shift;
     return $self->lspace
-         . $self->format_name
+         . $self->format_content
          . $self->rspace
          . $self->format_comment;
 }
@@ -105,6 +136,18 @@ not include the leading C<@>.
 =item C<lspace>
 
 The white space from the beginning of the line, if any.
+
+=item C<lopspace>
+
+The white space to the left of the operator, if any.
+
+=item C<operator>
+
+An operator, if any.
+
+=item C<ropspace>
+
+The white space to the right of the operator, if any.
 
 =item C<rspace>
 
@@ -162,6 +205,23 @@ empty string if there is no comment.
 Returns the name of the line properly formatted for output. For
 L<tags|App::Sqitch::Plan::Tag>, it's the name with a leading C<@>. For all
 other lines, it is simply the name.
+
+=head3 C<format_operator>
+
+  my $formatted_operator = $line->format_operator;
+
+Returns the formatted representation of the operator. This is just the
+operator an its associated white space. If neither the operator nor its white
+space exists, an empty string is returned. Used internally by C<stringify()>.
+
+=item C<format_content>
+
+  my $formatted_content $line->format_content;
+
+Formats and returns the main content of the line. This consists of an operator
+and its associated white space, if any, followed by the formatted name.
+
+=item C<format_operator>
 
 =head3 C<format_comment>
 

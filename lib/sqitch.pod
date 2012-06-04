@@ -629,7 +629,7 @@ ignored.
 
 =item * A Pragma
 
-Begins with a C<%>, followed by a pramga name, optionally followed by C<=> and
+Begins with a C<%>, followed by a pragma name, optionally followed by C<=> and
 a value. Currently, the only pragma recognized by Sqitch is C<syntax-version>.
 
 =item * A step.

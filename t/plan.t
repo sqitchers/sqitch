@@ -71,10 +71,12 @@ sub prag {
         lspace  => $_[0] // '',
         hspace  => $_[1] // '',
         name    => $_[2],
-        (defined $_[3] ? (op    => $_[3]) : ()),
-        (defined $_[4] ? (value => $_[4]) : ()),
-        rspace  => $_[5] // '',
-        comment => $_[6] // '',
+        (defined $_[3] ? (lopspace => $_[3]) : ()),
+        (defined $_[4] ? (operator => $_[4]) : ()),
+        (defined $_[5] ? (ropspace => $_[5]) : ()),
+        (defined $_[6] ? (value    => $_[6]) : ()),
+        rspace  => $_[7] // '',
+        comment => $_[8] // '',
     );
 }
 
@@ -90,7 +92,7 @@ $mocker->mock(sort_steps => sub { $sorted++; shift, shift; @_ });
 
 sub version () {
     prag(
-        '', '', 'syntax-version', '=', App::Sqitch::Plan::SYNTAX_VERSION
+        '', '', 'syntax-version', '', '=', '', App::Sqitch::Plan::SYNTAX_VERSION
     );
 }
 
@@ -290,8 +292,8 @@ is_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
         step( '', 'you'),
     ],
     lines => [
-        prag( '', ' ', 'syntax-version', '=', App::Sqitch::Plan::SYNTAX_VERSION),
-        prag( '  ', '', 'foo', ' = ', 'bar', '    ', ' lolz'),
+        prag( '', ' ', 'syntax-version', '', '=', '', App::Sqitch::Plan::SYNTAX_VERSION),
+        prag( '  ', '', 'foo', ' ', '=', ' ', 'bar', '    ', ' lolz'),
         blank(),
         step( '', 'hey'),
         step( '', 'you'),

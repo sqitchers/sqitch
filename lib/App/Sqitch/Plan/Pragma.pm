@@ -12,12 +12,6 @@ has value => (
     required => 0,
 );
 
-has op => (
-    is       => 'ro',
-    isa      => 'Str',
-    required => 0,
-);
-
 has hspace => (
     is       => 'ro',
     isa      => 'Str',
@@ -42,12 +36,15 @@ sub format_value {
     shift->value // '';
 }
 
+sub format_content {
+    my $self = shift;
+    join '', $self->format_name, $self->format_operator, $self->format_value;
+}
+
 sub stringify {
     my $self = shift;
     return $self->lspace
-         . $self->format_name
-         . $self->op
-         . $self->format_value
+         . $self->format_content
          . $self->rspace
          . $self->format_comment;
 }

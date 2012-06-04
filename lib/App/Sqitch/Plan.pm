@@ -85,12 +85,10 @@ sub _parse {
                )?                         #     ... optionally
            )                              # ... required
            (?:                            # followed by value consisting of...
-               (?<op>                     #     followed by op consisting of...
-                   [[:blank:]]*           #         Optional blanks
-                   =                      #         Required =
-                   [[:blank:]]*           #         Optional blanks
-               )                          #     ... required
-              (?<value>.+)                #     String value
+               (?<lopspace>[[:blank:]]*)  #     Optional blanks
+               (?<operator>=)             #     Required =
+               (?<ropspace>[[:blank:]]*)  #     Optional blanks
+               (?<value>.+)               #     String value
            )?                             # ... optionally
            $                              # end of line
         /x) {
@@ -182,10 +180,10 @@ sub _parse {
 
     # We should have a version pragma.
     unshift @lines => App::Sqitch::Plan::Pragma->new(
-        plan  => $self,
-        name  => 'syntax-version',
-        op    => '=',
-        value => SYNTAX_VERSION,
+        plan     => $self,
+        name     => 'syntax-version',
+        operator => '=',
+        value    => SYNTAX_VERSION,
       ) unless $seen_version;
 
     return {
