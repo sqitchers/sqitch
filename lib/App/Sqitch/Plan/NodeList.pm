@@ -81,11 +81,14 @@ sub get {
 }
 
 sub append {
-    my ($self, $node) = @_;
+    my $self = shift;
     my $list = $self->{list};
-    push @{ $list } => $node;
-    my $idx = $self->{lookup}{$node->format_name} ||= [];
-    push $idx, $#$list;
+    for my $node (@_) {
+        push @{ $list } => $node;
+        my $idx = $self->{lookup}{$node->format_name} ||= [];
+        push $idx, $#$list;
+    }
+    return $self;
 }
 
 1;
@@ -136,19 +139,92 @@ each node will be indexed by its formatted name.
 
 =head3 C<count>
 
+  my $count = $nodelist->count;
+
+Returns the number of nodes in the list.
+
 =head3 C<items>
+
+  my @nodes = $nodelist->items;
+
+Returns all of the nodes in the list.
 
 =head3 C<item_at>
 
+  my $node = $node_list->item_at(10);
+
+Returns the node at the specified index.
+
 =head3 C<index_of>
+
+  my $index = $nodelist->index_of($node_name);
+
+Returns the index of the named node. The name may be one of these forms:
+
+=over
+
+=item * A step name
+
+  my $index = $nodelist->index_of('users_table');
+
+The name of a step. Will throw an exception if the named step appears more
+than once in the list.
+
+=item * A tag name
+
+  my $index = $nodelist->index_of('@beta1');
+
+The name of a tag, including the leading C<@>.
+
+=item * A tag-qualified step name
+
+  my $index = $nodelist->index_of('users_table@beta1');
+
+The named step as it was last seen in the list before the specified tag.
+
+=back
 
 =head3 C<first_index_of>
 
+  my $index = $nodelist->first_index_of($step_name);
+  my $index = $nodelist->first_index_of($step_name, $node_name);
+
+Returns the index of the first instance of the named step in the list. If a
+second argument is passed, the index of the first instance of the step
+I<after> the the index of the second argument will be returned. This is useful
+for getting the index of a step as it was deployed after a particular tag, for
+example:
+
+  my $index = $nodelist->first_index_of('foo', '@beta');
+  my $index = $nodelist->first_index_of('foo', 'users_table@beta1');
+
+The second argument must unambiguously refer to a single node in the list. As
+such, it should usually be a tag name or tag-qualified step name. Returns
+C<undef> if the step does not appear in the list, or if it does not appear
+after the specified second argument node name.
+
 =head3 C<index_of_last_tag>
+
+  my $index = $nodelist->index_of_last_tag;
+
+Returns the index of the last tag to be appear in the list. Returns C<undef>
+if the list contains no tags.
 
 =head3 C<get>
 
+  my $node = $nodelist->get($node_name);
+
+Returns the named node. The name may be specified as described for
+C<index_of()>. An exception will be thrown if more than one instance of the
+node appears. As such, it is best to specify it as unambiguously as possible:
+as a tag name or a tag-qualified step name.
+
 =head3 C<append>
+
+  $nodelist->append(@nodes);
+
+Append one or more nodes to the list. Does not check for duplicates, so
+use with care.
 
 =head1 See Also
 

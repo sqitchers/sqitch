@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 54;
+use Test::More tests => 57;
 use Test::NoWarnings;
 use Test::Exception;
 use App::Sqitch;
@@ -80,7 +80,7 @@ throws_ok { $nodes->get('yo') } qr/^\QKey "yo" at multiple indexes/,
 throws_ok { $nodes->get('yo@howdy') } qr/^\QUnknown tag: "howdy"/,
     'Should get error looking for invalid tag';
 
-my $hi = App::Sqitch::Plan::Step->new(plan => $plan, name => 'hie');
+my $hi = App::Sqitch::Plan::Step->new(plan => $plan, name => 'hi');
 ok $nodes->append($hi), 'Push hi';
 is $nodes->count, 7, 'Count should now be seven';
 is_deeply [$nodes->items], [$foo, $bar, $yo1, $alpha, $baz, $yo2, $hi],
@@ -96,6 +96,14 @@ is $nodes->first_index_of('yo', '@alpha'), 5,
     'First index of "yo" since "@alpha" should be 5';
 is $nodes->first_index_of('yo', 'baz'), 5,
     'First index of "yo" since "baz" should be 5';
+
+# Try appending a couple more nodes.
+my $so = App::Sqitch::Plan::Step->new(plan => $plan, name => 'so');
+my $fu = App::Sqitch::Plan::Step->new(plan => $plan, name => 'fu');
+ok $nodes->append($so, $fu), 'Push so and fu';
+is $nodes->count, 9, 'Count should now be nine';
+is_deeply [$nodes->items], [$foo, $bar, $yo1, $alpha, $baz, $yo2, $hi, $so, $fu],
+    'Nodes should be in order with $so and $fu at the end';
 
 ##############################################################################
 # Test index_of_last_tag().
