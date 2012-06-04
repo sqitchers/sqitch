@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 93;
+use Test::More tests => 109;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Path::Class;
@@ -387,3 +387,53 @@ USERCONF: {
     file_contents_like $conf_file, qr/^\t# host = localhost\n/m,
         'Configured host should be in a comment';
 }
+
+##############################################################################
+# Test write_plan().
+can_ok $init, 'write_plan';
+my $plan_file = $sqitch->plan_file;
+file_not_exists_ok $plan_file, 'Plan file should not yet exist';
+ok $init->write_plan, 'Write the plan file';
+is_deeply +MockOutput->get_info, [
+    ['Created ' . $plan_file]
+], 'The plan creation should be sent to info';
+file_exists_ok $plan_file, 'Plan file should now exist';
+file_contents_is $plan_file,
+    '%syntax-version=' . App::Sqitch::Plan::SYNTAX_VERSION() . "\n\n",
+ 'The contents should be correct';
+
+# Write more to the plan.
+my $fh = $plan_file->open('>:utf8') or die "Cannot open $plan_file: $!\n";
+$fh->say('# testing 1, 2, 3');
+$fh->close;
+
+# Try writing again.
+ok $init->write_plan, 'Write the plan file again';
+file_contents_like $plan_file, qr/testing 1, 2, 3/,
+    'The file should not be overwritten';
+
+##############################################################################
+# Bring it all together, yo.
+remove_tree $sql_dir;
+unlink $conf_file;
+unlink $plan_file;
+ok $init->execute, 'Execute!';
+
+# Should have directories.
+for my $attr (map { "$_\_dir"} qw(sql deploy revert test)) {
+    dir_exists_ok $sqitch->$attr;
+}
+
+# Should have config and plan.
+file_exists_ok $conf_file;
+file_exists_ok $plan_file;
+
+# Shoudld have the output.
+my @dir_messages = map {
+    ["Created " . $sqitch->$_] } map { "$_\_dir"
+} qw(deploy revert test);
+is_deeply +MockOutput->get_info, [
+    @dir_messages,
+    ['Created ' . $conf_file],
+    ['Created ' . $plan_file],
+], 'Should have status messages';

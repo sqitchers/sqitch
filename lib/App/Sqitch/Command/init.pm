@@ -18,6 +18,7 @@ sub execute {
     my $self = shift;
     $self->make_directories;
     $self->write_config;
+    $self->write_plan;
     return $self;
 }
 
@@ -33,6 +34,21 @@ sub make_directories {
             $self->fail($msg);
         }
     }
+    return $self;
+}
+
+sub write_plan {
+    my $self   = shift;
+    my $sqitch = $self->sqitch;
+    my $file   = $sqitch->plan_file;
+    return $self if -f $file;
+
+    my $fh = $file->open('>:encoding(UTF-8)') or die "Cannot open $file: $!\n";
+    require App::Sqitch::Plan;
+    $fh->print('%syntax-version=', App::Sqitch::Plan::SYNTAX_VERSION(), $/, $/);
+    $fh->close or die "Error closing $file: $!\n";
+
+    $self->info("Created $file");
     return $self;
 }
 
@@ -229,6 +245,12 @@ Creates the deploy and revert directories.
   $init->write_config;
 
 Writes out the configuration file. Called by C<execute()>.
+
+=head3 C<write_plan>
+
+  $init->write_plan;
+
+Writes out the plan file. Called by C<execute()>.
 
 =head1 Author
 

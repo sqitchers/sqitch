@@ -691,11 +691,12 @@ reverted:
 
 Using this plan, to deploy to the "beta" tag, all of the steps up to the
 "root"/"alpha" tags must be deployed, as must steps listed before the "beta"
-tag. To then deploy to the "gamma" tag, the "dr_evil" step must be reveted and
-the "ftw" step must be deployed. If you then choose to revert to the "alpha"
-tag, then the "ftw" step will be reverted, the "dr_evil" step re-deployed, and
-the "gamma" tag removed; then the "list_widgets" must be reverted and the
-associated "beta" tag removed, then the "widgets_table" step must be reverted.
+tag. To then deploy to the "gamma" tag, the "dr_evil" step must be reverted
+and the "ftw" step must be deployed. If you then choose to revert to the
+"alpha" tag, then the "ftw" step will be reverted, the "dr_evil" step
+re-deployed, and the "gamma" tag removed; then the "list_widgets" must be
+reverted and the associated "beta" tag removed, then the "widgets_table" step
+must be reverted.
 
 Using this model, steps cannot be repeated between states. One I<can> repeat
 them, however, if the contents for a file in a given tag can be retrieved from
