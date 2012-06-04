@@ -652,16 +652,16 @@ the step name will be ignored.
 Here's an example of a plan file with a single deploy step and tag:
 
  %syntax-version=1.0.0
- users_table
+ +users_table
  @alpha
 
 There may, of course, be any number of tags and steps. Here's an expansion:
 
  %syntax-version=1.0.0
- users_table
- insert_user
- update_user
- delete_user
+ +users_table
+ +insert_user
+ +update_user
+ +delete_user
  @root
  @alpha
 
@@ -673,20 +673,20 @@ tagged deployment points, as well as a step that is deployed and later
 reverted:
 
  %syntax-version=1.0.0
- users_table
- insert_user
- update_user
- delete_user
- dr_evil
+ +users_table
+ +insert_user
+ +update_user
+ +delete_user
+ +dr_evil
  @root
  @alpha
 
- widgets_table
- list_widgets
+ +widgets_table
+ +list_widgets
  @beta
 
  -dr_evil
- ftw
+ +ftw
  @gamma
 
 Using this plan, to deploy to the "beta" tag, all of the steps up to the
@@ -702,20 +702,20 @@ them, however, if the contents for a file in a given tag can be retrieved from
 a VCS. An example:
 
  %syntax-version=1.0.0
- users_table
+ +users_table
  @alpha
 
- add_widget
- widgets_table
+ +add_widget
+ +widgets_table
  @beta
 
- add_user
+ +add_user
  @gamma
 
- widgets_created_at
+ +widgets_created_at
  @delta
 
- add_widget
+ +add_widget
 
 Note that the "add_widget" step is repeated under the state tagged "beta" and
 at the end. Sqitch will notice the repetition when it parses this file, and
