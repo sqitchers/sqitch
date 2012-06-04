@@ -214,14 +214,12 @@ Returns the formatted representation of the operator. This is just the
 operator an its associated white space. If neither the operator nor its white
 space exists, an empty string is returned. Used internally by C<stringify()>.
 
-=item C<format_content>
+=head3 C<format_content>
 
   my $formatted_content $line->format_content;
 
 Formats and returns the main content of the line. This consists of an operator
 and its associated white space, if any, followed by the formatted name.
-
-=item C<format_operator>
 
 =head3 C<format_comment>
 

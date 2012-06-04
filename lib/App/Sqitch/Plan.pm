@@ -426,6 +426,13 @@ file and provides an iteration interface for working with the plan.
 
 =head1 Interface
 
+=head2 Constants
+
+=head3 C<SYNTAX_VERSION>
+
+Returns the current version of the Sqitch plan syntax. Used for the
+C<%sytax-version> pragma.
+
 =head2 Constructors
 
 =head3 C<new>
