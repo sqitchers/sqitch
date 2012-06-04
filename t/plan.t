@@ -206,7 +206,7 @@ my @bad_names = (
     'foo+666',  # No trailing punctuation+digits
     '%hi',      # No leading punctuation
     'hi!',      # No trailing punctuation
-    'foo@bar'   # No @ allowed at all.
+    'foo@bar',  # No @ allowed at all
 );
 
 # Try other invalid step and tag name issues.
@@ -543,7 +543,7 @@ cmp_deeply +MockOutput->get_fail, [[
 ]], 'And the error message should report it as a dupe';
 
 # Should choke on an invalid tag names.
-for my $name (@bad_names) {
+for my $name (@bad_names, 'foo#bar') {
     throws_ok { $plan->add_tag($name) } qr/^FAIL:/,
         qq{Should get error for invalid tag "$name"};
     cmp_deeply +MockOutput->get_fail, [[

@@ -381,7 +381,7 @@ sub _is_valid {
         ^                          # Beginning of line
         [^[:punct:]]               # not punct
         (?:                        # followed by...
-            [^[:blank:]@]*?        #     any number non-blank, non-@
+            [^[:blank:]@#]*?       #     any number non-blank, non-@, non-#.
             [^[:punct:][:blank:]]  #     one not blank or punct
         )?                         # ... optionally
         $                          # end of line
