@@ -5,7 +5,6 @@ use strict;
 use warnings;
 use utf8;
 use Moose;
-require App::Sqitch::Plan;
 use List::Util qw(first);
 use namespace::autoclean;
 extends 'App::Sqitch::Command';
@@ -24,12 +23,11 @@ sub options {
 }
 
 sub execute {
-    my ( $self, $to ) = @_;
-    my $sqitch = $self->sqitch;
-    my $engine = $sqitch->engine;
-    my $plan   = App::Sqitch::Plan->new( sqitch => $sqitch );
-
-    $to = $self->to if defined $self->to;
+    my $self     = shift;
+    my $to       = $self->to // shift;
+    my $sqitch   = $self->sqitch;
+    my $engine   = $sqitch->engine;
+    my $plan     = $sqitch->plan;
     my $curr_tag = $engine->current_tag_name;
     my $to_index = $plan->count - 1;
 

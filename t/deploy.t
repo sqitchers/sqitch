@@ -63,6 +63,7 @@ is_deeply +MockOutput->get_info, [
 ], 'Should see deployments in info';
 
 # Deploy all.
+$sqitch->plan->reset;
 ok $deploy->execute(), 'Deploy default';
 ok delete $called{initialized}, 'Should have called initialized()';
 ok delete $called{initialize},  'Should have called initialize()';
@@ -79,6 +80,7 @@ is_deeply +MockOutput->get_info, [
 ], 'Should see all deployments in info';
 
 # Deploy just one step.
+$sqitch->plan->reset;
 ok $deploy->execute('roles'), 'Deploy "roles"';
 ok delete $called{initialized}, 'Should have called initialized()';
 ok delete $called{initialize},  'Should have called initialize()';
