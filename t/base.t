@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 79;
+use Test::More tests => 80;
 #use Test::More 'no_plan';
 use Test::MockModule;
 use Path::Class;
@@ -25,6 +25,7 @@ can_ok $CLASS, qw(
     go
     new
     plan_file
+    plan
     engine
     _engine
     client
@@ -65,6 +66,7 @@ is $sqitch->sql_dir, dir('sql'), 'Default sql_dir should be ./sql';
 is $sqitch->deploy_dir, dir(qw(sql deploy)), 'Default deploy_dir should be ./sql/deploy';
 is $sqitch->revert_dir, dir(qw(sql revert)), 'Default revert_dir should be ./sql/revert';
 is $sqitch->test_dir, dir(qw(sql test)), 'Default test_dir should be ./sql/test';
+isa_ok $sqitch->plan, 'App::Sqitch::Plan';
 
 ##############################################################################
 # Test go().

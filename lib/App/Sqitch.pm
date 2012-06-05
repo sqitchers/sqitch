@@ -10,6 +10,7 @@ use Path::Class;
 use Config;
 use App::Sqitch::Config;
 use App::Sqitch::Command;
+use App::Sqitch::Plan;
 use Moose;
 use List::Util qw(first);
 use IPC::System::Simple qw(runx capturex $EXITVAL);
@@ -25,6 +26,16 @@ has plan_file => (
     default  => sub {
         file 'sqitch.plan';
     }
+);
+
+has plan => (
+    is       => 'ro',
+    isa      => 'App::Sqitch::Plan',
+    required => 1,
+    lazy     => 1,
+    default  => sub {
+        App::Sqitch::Plan->new( sqitch => shift );
+    },
 );
 
 has _engine => (
