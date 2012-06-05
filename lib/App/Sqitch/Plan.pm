@@ -20,6 +20,7 @@ has sqitch => (
     is       => 'ro',
     isa      => 'App::Sqitch',
     required => 1,
+    weak_ref => 1,
 );
 
 has _plan => (
