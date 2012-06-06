@@ -19,6 +19,8 @@ can_ok $CLASS, qw(
     options
     configure
     new
+    to
+    mode
     execute
 );
 
@@ -31,17 +33,48 @@ my $sqitch = App::Sqitch->new(
 isa_ok my $deploy = $CLASS->new(sqitch => $sqitch), $CLASS;
 
 is $deploy->to, undef, 'to should be undef';
+is $deploy->mode, 'all', 'mode should be "all"';
 
 # Mock the engine interface.
 my $mock_engine = Test::MockModule->new('App::Sqitch::Engine::sqlite');
-my $init = 0;
-my $curr_tag = undef;
-my %called;
-$mock_engine->mock(initialized => sub { $called{initialized} = 1; $init });
-$mock_engine->mock(initialize  => sub { $called{initialize}  = 1; shift });
-$mock_engine->mock(deploy      => sub { push @{ $called{deploy} }, $_[1]->name; shift });
-$mock_engine->mock(apply       => sub { push @{ $called{deploy} }, '@' . $_[1]->name; shift });
-$mock_engine->mock(current_tag_name => sub { $called{current_tag} = 1; $curr_tag });
+my @args;
+$mock_engine->mock(deploy => sub { shift; @args = @_ });
+
+ok $deploy->execute('@alpha'), 'Execute to "@alpha"';
+is_deeply \@args, ['@alpha', 'all'],
+    '"@alpha" and "all" should be passed to the engine';
+
+@args = ();
+ok $deploy->execute, 'Execute';
+is_deeply \@args, [undef, 'all'],
+    'undef and "all" should be passed to the engine';
+
+isa_ok $deploy = $CLASS->new(
+    sqitch => $sqitch,
+    to     => 'foo',
+    mode   => 'tag',
+), $CLASS, 'Object with to and mode';
+
+
+@args = ();
+ok $deploy->execute, 'Execute again';
+is_deeply \@args, ['foo', 'tag'],
+    '"foo" and "tag" should be passed to the engine';
+
+# Make sure the mode enum works.
+for my $mode (qw(all tag step)) {
+    ok $CLASS->new( sqitch => $sqitch, mode => $mode ),
+        qq{"$mode" should be a valid mode};
+}
+
+for my $bad (qw(foo bad gar)) {
+    throws_ok { $CLASS->new( sqitch => $sqitch, mode => $bad ) } qr/Validation failed/,
+        qq{"$bad" should not be a valid mode};
+}
+
+done_testing;
+
+__END__
 
 throws_ok { $deploy->execute('alpha') } qr/^FAIL/,
     'Should get an error for nonexistent target';

@@ -5,6 +5,7 @@ use strict;
 use warnings;
 use utf8;
 use Moose;
+use Moose::Util::TypeConstraints;
 use List::Util qw(first);
 use namespace::autoclean;
 extends 'App::Sqitch::Command';
@@ -16,75 +17,27 @@ has to => (
     isa => 'Str',
 );
 
+has mode => (
+    is  => 'ro',
+    isa => enum([qw(
+        step
+        tag
+        all
+    )]),
+    default => 'all',
+);
+
 sub options {
     return qw(
         to=s
+        mode=s
     );
 }
 
 sub execute {
-    my $self     = shift;
-    my $to       = $self->to // shift;
-    my $sqitch   = $self->sqitch;
-    my $engine   = $sqitch->engine;
-    my $plan     = $sqitch->plan;
-    my $curr_tag = $engine->current_tag_name;
-    my $to_index = $plan->count - 1;
-
-    if (defined $to) {
-        $to_index = $plan->index_of($to) // $sqitch->fail(
-            qq{Unknown deploy target: "$to"}
-        );
-
-        if ($curr_tag) {
-            # Make sure that $to is later than the current point.
-            $plan->seek($curr_tag);
-            $sqitch->fail(
-                'Cannot deploy to an earlier target; use "revert" instead'
-            ) if $to_index < $plan->position;
-
-            # Just return if there is nothing to do.
-            if ($to_index == $plan->position) {
-                $sqitch->info("Nothing to deploy (already at $to)");
-                return $self;
-            }
-        } else {
-            # Initialize the database, if necessary.
-            $engine->initialize unless $engine->initialized;
-        }
-
-    } elsif ($curr_tag) {
-        # Skip to the current tag.
-        $plan->seek($curr_tag);
-
-        if ($plan->position == $to_index) {
-            # We are up-to-date.
-            $sqitch->info('Nothing to deploy (up-to-date)');
-            return $self;
-        }
-
-    } else {
-        # Initialize the database, if necessary.
-        $engine->initialize unless $engine->initialized;
-    }
-
-    # Deploy!
-    while ($plan->position < $to_index) {
-        my $target = $plan->next;
-        $sqitch->info('  + ', $target->format_name);
-        if ($target->isa('App::Sqitch::Plan::Step')) {
-            $engine->deploy($target);
-        } elsif ($target->isa('App::Sqitch::Plan::Tag')) {
-            $engine->apply($target);
-        } else {
-            # This should not happen.
-            $sqitch->fail(
-                'Cannot deploy node of type ', ref $target,
-                '; can only deploy steps and apply tags'
-            );
-        }
-    }
-
+    my $self   = shift;
+    my $engine = $self->sqitch->engine;
+    $engine->deploy($self->to // shift, $self->mode);
     return $self;
 }
 
