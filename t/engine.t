@@ -8,6 +8,7 @@ use utf8;
 use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
+use Path::Class;
 use Test::Exception;
 use Test::NoWarnings;
 use lib 't/lib';
@@ -18,6 +19,10 @@ my $CLASS;
 BEGIN {
     $CLASS = 'App::Sqitch::Engine';
     use_ok $CLASS or die;
+    delete $ENV{PGDATABASE};
+    delete $ENV{PGUSER};
+    delete $ENV{USER};
+    $ENV{SQITCH_CONFIG} = 'nonexistent.conf';
 }
 
 can_ok $CLASS, qw(load new name);
@@ -27,6 +32,7 @@ my @deployed_steps;
 my @missing_requires;
 my @conflicts;
 my $die = '';
+my ($latest_item, $latest_tag, $latest_step);
 ENGINE: {
     # Stub out a engine.
     package App::Sqitch::Engine::whu;
@@ -53,6 +59,9 @@ ENGINE: {
     sub is_deployed_step  { push @SEEN => [ is_deployed_step  => $_[1] ]; $is_deployed_step }
     sub check_requires    { push @SEEN => [ check_requires    => $_[1] ]; @missing_requires }
     sub check_conflicts   { push @SEEN => [ check_conflicts   => $_[1] ]; @conflicts }
+    sub latest_item       { push @SEEN => [ latest_item       => $_[1] ]; $latest_item }
+    sub latest_tag        { push @SEEN => [ latest_tag        => $_[1] ]; $latest_tag }
+    sub latest_step       { push @SEEN => [ latest_step       => $_[1] ]; $latest_step }
 
     sub seen { [@SEEN] }
     after seen => sub { @SEEN = () };
@@ -137,6 +146,9 @@ for my $abs (qw(
     is_deployed_step
     check_requires
     check_conflicts
+    latest_item
+    latest_tag
+    latest_step
 )) {
     throws_ok { $engine->$abs } qr/\Q$CLASS has not implemented $abs()/,
         "Should get an unimplemented exception from $abs()"
@@ -148,8 +160,7 @@ ok $engine = App::Sqitch::Engine::whu->new( sqitch => $sqitch ),
     'Create a subclass name object again';
 can_ok $engine, 'deploy_step', 'revert_step';
 
-my $plan = App::Sqitch::Plan->new( sqitch => $sqitch );
-my $step = App::Sqitch::Plan::Step->new( name => 'foo', plan => $plan );
+my $step = App::Sqitch::Plan::Step->new( name => 'foo', plan => $sqitch->plan );
 
 ok $engine->deploy_step($step), 'Deploy a step';
 is_deeply $engine->seen, [
@@ -186,7 +197,7 @@ is_deeply +MockOutput->get_info, [[
 # Test apply_tag and remove_tag.
 can_ok $engine, 'apply_tag', 'remove_tag';
 
-my $tag  = App::Sqitch::Plan::Tag->new( name => 'foo', plan => $plan );
+my $tag  = App::Sqitch::Plan::Tag->new( name => 'foo', plan => $sqitch->plan );
 ok $engine->apply_tag($tag), 'Applay a tag';
 is_deeply $engine->seen, [
     [log_apply_tag => $tag ],
@@ -204,8 +215,54 @@ is_deeply +MockOutput->get_info, [[
 ]], 'Output should show tag removal';
 
 ##############################################################################
+# Test _sync_plan()
+can_ok $CLASS, '_sync_plan';
+chdir 't';
+
+my $plan_file = file qw(sql sqitch.plan);
+$sqitch = App::Sqitch->new( plan_file => $plan_file );
+ok $engine = App::Sqitch::Engine::whu->new( sqitch => $sqitch ),
+    'Engine with sqitch with plan file';
+my $plan = $sqitch->plan;
+is $plan->position, -1, 'Plan should start at position -1';
+ok $engine->_sync_plan, 'Sync the plan';
+is $plan->position, -1, 'Plan should still be at position -1';
+$plan->position(4);
+ok $engine->_sync_plan, 'Sync the plan again';
+is $plan->position, -1, 'Plan should again be at position -1';
+
+# Have latest_item return a tag.
+$latest_item = '@alpha';
+ok $engine->_sync_plan, 'Sync the plan to a tag';
+is $plan->position, 2, 'Plan should now be at position 2';
+
+# Have it return a step before any tag.
+$latest_item = 'users';
+ok $engine->_sync_plan, 'Sync the plan to a step with no tags';
+is $plan->position, 1, 'Plan should now be at position 1';
+
+# Have it return a duplicated step.
+$plan->add_step('users');
+$plan->reset;
+ok $engine->_sync_plan, 'Sync the plan to a dupe step with no tags';
+is $plan->position, 1, 'Plan should again be at position 1';
+
+# Have it return a step after a tag.
+$latest_tag = '@beta';
+ok $engine->_sync_plan, 'Sync the plan to a dupe step afer a tag';
+is $plan->position, 5, 'Plan should now be at position 5';
+
+# Try it after an earlier tag.
+$latest_tag = '@alpha';
+ok $engine->_sync_plan, 'Sync the plan to a dupe step afer @alpha';
+is $plan->position, 5, 'Plan should still be at position 5';
+
+
+##############################################################################
 # Test deploy.
 can_ok $CLASS, 'deploy';
+
+
 exit;
 
 # Try a tag with no steps.

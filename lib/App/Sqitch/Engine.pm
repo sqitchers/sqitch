@@ -216,12 +216,19 @@ sub _deploy_all {
 sub _sync_plan {
     my $self = shift;
     my $plan = $self->sqitch->plan;
-    my ($tag, $step) = $self->current_state;
 
-    if (defined $tag || defined $step) {
-        my $current_index = defined $tag && !defined $step
-            ? $plan->index_of($tag)
-            : $plan->first_index_of($step, $tag);
+    if ( defined ( my $latest = $self->latest_item ) ) {
+        my $current_index;
+        if ($latest =~ /^[@]/) {
+            # Just start from the tag.
+            $current_index = $plan->index_of($latest)
+                // die "Cannot find $latest in the plan";
+        } else {
+            # Get the index for the step since the last tag, if any.
+            my $tag = $self->latest_tag;
+            $current_index = $plan->first_index_of($latest, $tag)
+                // die "Canot find $latest" . ($tag // '') . ' in the plan';
+        }
         $plan->position($current_index);
     } else {
         $plan->reset;
@@ -229,13 +236,6 @@ sub _sync_plan {
 
     return $plan;
 }
-
-sub current_state {
-    my $self = shift;
-    # Get last tag and last step. If no tag, return step.
-    # If step after tag, return both. Otherwise just return tag.
-}
-
 
 sub is_deployed {
     my ($self, $thing) = @_;
@@ -339,6 +339,24 @@ sub check_conflicts {
     my $class = ref $_[0] || $_[0];
     require Carp;
     Carp::confess( "$class has not implemented check_conflicts()" );
+}
+
+sub latest_item {
+    my $class = ref $_[0] || $_[0];
+    require Carp;
+    Carp::confess( "$class has not implemented latest_item()" );
+}
+
+sub latest_tag {
+    my $class = ref $_[0] || $_[0];
+    require Carp;
+    Carp::confess("$class has not implemented latest_tag()");
+}
+
+sub latest_step {
+    my $class = ref $_[0] || $_[0];
+    require Carp;
+    Carp::confess( "$class has not implemented latest_step()" );
 }
 
 __PACKAGE__->meta->make_immutable;
