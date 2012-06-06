@@ -265,12 +265,13 @@ sub revert_step {
 
 sub apply_tag {
     my ( $self, $tag ) = @_;
-    $self->sqitch->info($tag->format_name);
+    $self->sqitch->info('+ ', $tag->format_name);
     $self->log_apply_tag($tag);
 }
 
 sub remove_tag {
     my ( $self, $tag ) = @_;
+    $self->sqitch->info('- ', $tag->format_name);
     $self->log_remove_tag($tag);
 }
 

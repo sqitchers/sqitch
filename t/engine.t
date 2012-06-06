@@ -4,8 +4,8 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 122;
-#use Test::More 'no_plan';
+#use Test::More tests => 122;
+use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
 use Test::Exception;
@@ -26,6 +26,7 @@ my ($is_deployed_tag, $is_deployed_step) = (0, 0);
 my @deployed_steps;
 my @missing_requires;
 my @conflicts;
+my $die = '';
 ENGINE: {
     # Stub out a engine.
     package App::Sqitch::Engine::whu;
@@ -34,21 +35,24 @@ ENGINE: {
     $INC{'App/Sqitch/Engine/whu.pm'} = __FILE__;
 
     my @SEEN;
-    sub run_file          { push @SEEN => [ run_file          => $_[1] ] }
-    sub run_handle        { push @SEEN => [ run_handle        => $_[1] ] }
-    sub log_deploy_step   { push @SEEN => [ log_deploy_step   => $_[1] ] }
-    sub log_fail_step     { push @SEEN => [ log_fail_step     => $_[1] ] }
-    sub log_revert_step   { push @SEEN => [ log_revert_step   => $_[1] ] }
-    sub begin_deploy_tag  { push @SEEN => [ begin_deploy_tag  => $_[1] ] }
-    sub commit_deploy_tag { push @SEEN => [ commit_deploy_tag => $_[1] ] }
-    sub rollback_deploy_tag { push @SEEN => [ rollback_deploy_tag => $_[1] ] }
-    sub begin_revert_tag  { push @SEEN => [ begin_revert_tag  => $_[1] ] }
-    sub commit_revert_tag { push @SEEN => [ commit_revert_tag => $_[1] ] }
+    for my $meth (qw(
+        run_file
+        log_deploy_step
+        log_revert_step
+        log_fail_step
+        log_apply_tag
+        log_remove_tag
+    )) {
+        no strict 'refs';
+        *$meth = sub {
+            die 'AAAH!' if $die eq $meth;
+            push @SEEN => [ $meth => $_[1] ];
+        };
+    }
     sub is_deployed_tag   { push @SEEN => [ is_deployed_tag   => $_[1] ]; $is_deployed_tag }
     sub is_deployed_step  { push @SEEN => [ is_deployed_step  => $_[1] ]; $is_deployed_step }
     sub check_requires    { push @SEEN => [ check_requires    => $_[1] ]; @missing_requires }
     sub check_conflicts   { push @SEEN => [ check_conflicts   => $_[1] ]; @conflicts }
-    sub deployed_steps_for { @deployed_steps }
 
     sub seen { [@SEEN] }
     after seen => sub { @SEEN = () };
@@ -127,16 +131,12 @@ for my $abs (qw(
     log_deploy_step
     log_fail_step
     log_revert_step
-    begin_deploy_tag
-    commit_deploy_tag
-    begin_revert_tag
-    commit_revert_tag
-    check_requires
-    check_conflicts
+    log_apply_tag
+    log_remove_tag
     is_deployed_tag
     is_deployed_step
-    deployed_steps_for
-    current_tag_name
+    check_requires
+    check_conflicts
 )) {
     throws_ok { $engine->$abs } qr/\Q$CLASS has not implemented $abs()/,
         "Should get an unimplemented exception from $abs()"
@@ -149,24 +149,64 @@ ok $engine = App::Sqitch::Engine::whu->new( sqitch => $sqitch ),
 can_ok $engine, 'deploy_step', 'revert_step';
 
 my $plan = App::Sqitch::Plan->new( sqitch => $sqitch );
-my $tag  = App::Sqitch::Plan::Tag->new( names  => ['foo'], plan => $plan );
-my $step = App::Sqitch::Plan::Step->new( name => 'foo',  tag  => $tag );
+my $step = App::Sqitch::Plan::Step->new( name => 'foo', plan => $plan );
 
 ok $engine->deploy_step($step), 'Deploy a step';
 is_deeply $engine->seen, [
     [run_file => $step->deploy_file ],
     [log_deploy_step => $step ],
 ], 'deploy_step should have called the proper methods';
+is_deeply +MockOutput->get_info, [[
+    '  + ', 'foo'
+]], 'Output should reflect the deployment';
+
+# Make it fail.
+$die = 'run_file';
+throws_ok { $engine->deploy_step($step) } qr/^AAAH!/,
+    'Deploy step with error';
+is_deeply $engine->seen, [
+    [log_fail_step => $step ],
+], 'Should have logged step failure';
+$die = '';
+is_deeply +MockOutput->get_info, [[
+    '  + ', 'foo'
+]], 'Output should reflect the deployment, even with failure';
 
 ok $engine->revert_step($step), 'Revert a step';
 is_deeply $engine->seen, [
     [run_file => $step->revert_file ],
     [log_revert_step => $step ],
 ], 'revert_step should have called the proper methods';
+is_deeply +MockOutput->get_info, [[
+    '  - ', 'foo'
+]], 'Output should reflect reversion';
+
+
+##############################################################################
+# Test apply_tag and remove_tag.
+can_ok $engine, 'apply_tag', 'remove_tag';
+
+my $tag  = App::Sqitch::Plan::Tag->new( name => 'foo', plan => $plan );
+ok $engine->apply_tag($tag), 'Applay a tag';
+is_deeply $engine->seen, [
+    [log_apply_tag => $tag ],
+], 'Tag should have been applied';
+is_deeply +MockOutput->get_info, [[
+    '+ ', '@foo'
+]], 'Output should show tag application';
+
+ok $engine->remove_tag($tag), 'Remove a tag';
+is_deeply $engine->seen, [
+    [log_remove_tag => $tag ],
+], 'Tag should have been removed';
+is_deeply +MockOutput->get_info, [[
+    '- ', '@foo'
+]], 'Output should show tag removal';
 
 ##############################################################################
 # Test deploy.
 can_ok $CLASS, 'deploy';
+exit;
 
 # Try a tag with no steps.
 ok $engine->deploy($tag), 'Deploy a tag with no steps';
