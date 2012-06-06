@@ -50,66 +50,192 @@ sub initialize {
 }
 
 sub deploy {
-    my ($self, $step) = @_;
+    my ( $self, $to, $mode ) = @_;
+    my $sqitch   = $self->sqitch;
+    my $plan     = $self->_sync_plan;
+    my $to_index = $plan->count - 1;
+
+    if (defined $to) {
+        $to_index = $plan->index_of($to) // $sqitch->fail(
+            qq{Unknown deploy target: "$to"}
+        );
+
+        # Just return if there is nothing to do.
+        if ($to_index == $plan->position) {
+            $sqitch->info("Nothing to deploy (already at $to)");
+            return $self;
+        }
+    }
+
+    if ($plan->position == $to_index) {
+        # We are up-to-date.
+        $sqitch->info('Nothing to deploy (up-to-date)');
+        return $self;
+
+    } elsif ($plan->position == -1) {
+        # Initialize the database, if necessary.
+        $self->initialize unless $self->initialized;
+
+    } else {
+        # Make sure that $to_index is greater than the current point.
+        $sqitch->fail(
+            'Cannot deploy to an earlier target; use "revert" instead'
+        ) if $to_index < $plan->position;
+    }
+
+    $sqitch->info(
+        'Deploying to ', $self->target,
+        defined $to ? ", goal: $to" : ''
+    );
+
+    my $meth = $mode eq 'step' ? '_deploy_by_step'
+             : $mode eq 'tag'  ? '_deploy_by_tag'
+             : $mode eq 'run'  ? '_deploy_all'
+             : $sqitch->fail(qq{Unknown deployment mode: "$mode"})
+    ;
+
+    $self->$meth($plan, $to_index);
+}
+
+sub _deploy_by_step {
+    my ( $self, $plan, $to_index ) = @_;
+
+    # Just deploy each node. If any fails, we just stop.
+    while ($plan->position < $to_index) {
+        my $target = $plan->next;
+        if ($target->isa('App::Sqitch::Plan::Step')) {
+            $self->deploy_step($target);
+        } elsif ($target->isa('App::Sqitch::Plan::Tag')) {
+            $self->apply_tag($target);
+        } else {
+            # This should not happen.
+            die [
+                'Cannot deploy node of type ', ref $target,
+                '; can only deploy steps and apply tags'
+            ];
+        }
+    }
+}
+
+sub _rollback_to_tag {
+    my $self   = shift;
+    my $tag    = shift or return $self->_rollback_run(@_);
+    my @steps  = @_ or return $self;
     my $sqitch = $self->sqitch;
+    $sqitch->vent('Reverting to ', $tag->format_name);
 
-    return $sqitch->warn(
-        'Step ', $step->name, ' already deployed to ', $self->target
-    ) if $self->is_deployed_step($step);
-
-    # Check for conflicts.
-    if (my @conflicts = $self->check_conflicts($step)) {
-        my $pl = @conflicts > 1 ? 's' : '';
-        $sqitch->vent(
-            "Conflicts with previously deployed step$pl: ",
-            join ' ', @conflicts
-        );
-        $sqitch->fail( 'Aborting deployment of ', $step->name );
-    }
-
-    # Check for prerequisites.
-    if (my @required = $self->check_requires($step)) {
-        my $pl = @required > 1 ? 's' : '';
-        $sqitch->vent(
-            "Missing required step$pl: ",
-            join ' ', @required
-        );
-        $sqitch->fail( 'Aborting deployment of ', $step->name );
-    }
-
-    # Go for it.
     try {
-        $self->run_file($step->deploy_file);
-        $self->log_deploy_step($step);
+        $self->revert_step($_) for reverse @steps;
     } catch {
-        # Ruh-roh.
-        $self->log_fail_step($step);
-        $sqitch->fail( 'Aborting deployment of ', $step->format_name, ":\n$_" );
+        # Sucks when this happens.
+        $sqitch->vent($_);
+        $sqitch->vent('The schema will need to be manually repaired');
+    };
+
+    $sqitch->fail( 'Deploy failed' )
+}
+
+sub _rollback_run {
+    my ( $self, @run ) = @_;
+
+    try {
+        for my $target (reverse @run) {
+            if ($target->isa('App::Sqitch::Plan::Step')) {
+                $self->revert_step($target);
+            } else {
+                $self->remove_tag($target);
+            }
+        }
+    } catch {
+        # Sucks when this happens.
+        $self->sqitch->vent($_);
+        $self->sqitch->vent('The schema will need to be manually repaired');
+    };
+
+    $self->sqitch->fail( 'Deploy failed' )
+}
+
+sub deploy_by_tag {
+    my ( $self, $plan, $to_index ) = @_;
+
+    my ($last_tag, @run);
+    try {
+        while ($plan->position < $to_index) {
+            my $target = $plan->next;
+            if ($target->isa('App::Sqitch::Plan::Step')) {
+                $self->deploy_step($target);
+                push @run => $target;
+            } elsif ($target->isa('App::Sqitch::Plan::Tag')) {
+                $self->apply_tag($target);
+                @run = ();
+                $last_tag = $target;
+            } else {
+                # This should not happen.
+                die [
+                    'Cannot deploy node of type ', ref $target,
+                    '; can only deploy steps and apply tags'
+                ];
+            }
+        }
+    } catch {
+        $self->sqitch->vent($_);
+        $self->_rollback_to_tag($last_tag, @run);
     };
 
     return $self;
 }
 
-sub apply {
-    my ( $self, $tag ) = @_;
-    my $sqitch = $self->sqitch;
+sub _deploy_all {
+    my ( $self, $plan, $to_index ) = @_;
 
-    return $sqitch->info(
-        'Tag ', $tag->name, ' already deployed to ', $self->target
-    ) if $self->is_deployed_tag($tag);
-
-    # Go for it.
+    my @run;
     try {
-        $self->apply_tag($tag);
-        $self->log_deploy_tag($tag);
+        while ($plan->position < $to_index) {
+            my $target = $plan->next;
+            if ($target->isa('App::Sqitch::Plan::Step')) {
+                $self->deploy_step($target);
+            } elsif ($target->isa('App::Sqitch::Plan::Tag')) {
+                $self->apply_tag($target);
+            } else {
+                # This should not happen.
+                die [
+                    'Cannot deploy node of type ', ref $target,
+                    '; can only deploy steps and apply tags'
+                ];
+            }
+            push @run => $target;
+        }
     } catch {
-        # Ruh-roh.
-        $self->log_fail_tag($tag);
-        $sqitch->fail( 'Aborting application of ', $tag->format_name, ":\n$_" );
+        $self->sqitch->vent($_);
+        $self->_rollback_run(@run);
     };
 
     return $self;
 }
+
+sub _sync_plan {
+    my $self = shift;
+    my $plan = $self->sqitch->plan;
+    my ($tag, $step) = $self->current_state;
+
+    if (defined $tag || defined $step) {
+        my $current_index = defined $tag && !defined $step
+            ? $plan->index_of($tag)
+            : $plan->first_index_of($step, $tag);
+        $plan->position($current_index);
+    } else {
+        $plan->reset;
+    }
+
+    return $plan;
+}
+
+sub current_state {
+    my $self = shift;
+    # Get last tag and last step. If no tag, return step.
+    # If step after tag, return both. Otherwise just return tag.
+}
+
 
 sub is_deployed {
     my ($self, $thing) = @_;
@@ -120,14 +246,32 @@ sub is_deployed {
 
 sub deploy_step {
     my ( $self, $step ) = @_;
-    $self->run_file($step->deploy_file);
-    $self->log_deploy_step($step);
+    $self->sqitch->info('  + ', $step->format_name);
+    return try {
+        $self->run_file($step->deploy_file);
+        $self->log_deploy_step($step);
+    } catch {
+        $self->log_fail_step($step);
+        die $_;
+    };
 }
 
 sub revert_step {
     my ( $self, $step ) = @_;
+    $self->sqitch->info('  - ', $step->format_name);
     $self->run_file($step->revert_file);
     $self->log_revert_step($step);
+}
+
+sub apply_tag {
+    my ( $self, $tag ) = @_;
+    $self->sqitch->info($tag->format_name);
+    $self->log_apply_tag($tag);
+}
+
+sub remove_tag {
+    my ( $self, $tag ) = @_;
+    $self->log_remove_tag($tag);
 }
 
 sub run_file {
@@ -160,34 +304,16 @@ sub log_revert_step {
     Carp::confess( "$class has not implemented log_revert_step()" );
 }
 
-sub begin_deploy_tag {
+sub log_apply_tag {
     my $class = ref $_[0] || $_[0];
     require Carp;
-    Carp::confess( "$class has not implemented begin_deploy_tag()" );
+    Carp::confess( "$class has not implemented log_apply_tag()" );
 }
 
-sub commit_deploy_tag {
+sub log_remove_tag {
     my $class = ref $_[0] || $_[0];
     require Carp;
-    Carp::confess( "$class has not implemented commit_deploy_tag()" );
-}
-
-sub rollback_deploy_tag {
-    my $class = ref $_[0] || $_[0];
-    require Carp;
-    Carp::confess( "$class has not implemented rollback_deploy_tag()" );
-}
-
-sub begin_revert_tag {
-    my $class = ref $_[0] || $_[0];
-    require Carp;
-    Carp::confess( "$class has not implemented begin_revert_tag()" );
-}
-
-sub commit_revert_tag {
-    my $class = ref $_[0] || $_[0];
-    require Carp;
-    Carp::confess( "$class has not implemented commit_revert_tag()" );
+    Carp::confess( "$class has not implemented log_remove_tag()" );
 }
 
 sub is_deployed_tag {
@@ -202,12 +328,6 @@ sub is_deployed_step {
     Carp::confess( "$class has not implemented is_deployed_step()" );
 }
 
-sub deployed_steps_for {
-    my $class = ref $_[0] || $_[0];
-    require Carp;
-    Carp::confess( "$class has not implemented deployed_steps_for()" );
-}
-
 sub check_requires {
     my $class = ref $_[0] || $_[0];
     require Carp;
@@ -218,12 +338,6 @@ sub check_conflicts {
     my $class = ref $_[0] || $_[0];
     require Carp;
     Carp::confess( "$class has not implemented check_conflicts()" );
-}
-
-sub current_tag_name {
-    my $class = ref $_[0] || $_[0];
-    require Carp;
-    Carp::confess( "$class has not implemented current_tag_name()" );
 }
 
 __PACKAGE__->meta->make_immutable;
