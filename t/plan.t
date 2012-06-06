@@ -339,6 +339,15 @@ cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
     ],
 }, 'Should have "deploy-and-revert.plan" lines and nodes';
 
+# Try a non-existent plan file with load().
+$file = file qw(t hi nonexistent.plan);
+$sqitch = App::Sqitch->new(plan_file => $file);
+isa_ok $plan = App::Sqitch::Plan->new(sqitch => $sqitch), $CLASS,
+    'Plan with sqitch with nonexistent plan file';
+
+cmp_deeply [$plan->lines], [version], 'Should have only the version line';
+cmp_deeply [$plan->nodes], [], 'Should have no nodes';
+
 # Make sure that lines() loads the plan.
 $file = file qw(t plans multi.plan);
 $sqitch = App::Sqitch->new(plan_file => $file);

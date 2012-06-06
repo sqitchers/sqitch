@@ -42,7 +42,13 @@ has position => (
 sub load {
     my $self = shift;
     my $file = $self->sqitch->plan_file;
-    return {} unless -f $file;
+    # XXX Issue a warning if file does not exist?
+    return {
+        nodes => App::Sqitch::Plan::NodeList->new,
+        lines => App::Sqitch::Plan::LineList->new(
+            $self->_version_line,
+        ),
+    } unless -f $file;
     my $fh = $file->open('<:encoding(UTF-8)')
         or $self->sqitch->fail( "Cannot open $file: $!" );
     return $self->_parse($file, $fh);
@@ -186,17 +192,21 @@ sub _parse {
     push @nodes => $self->sort_steps(\%seen, @steps) if @steps;
 
     # We should have a version pragma.
-    unshift @lines => App::Sqitch::Plan::Pragma->new(
-        plan     => $self,
-        name     => 'syntax-version',
-        operator => '=',
-        value    => SYNTAX_VERSION,
-      ) unless $seen_version;
+    unshift @lines => $self->_version_line unless $seen_version;
 
     return {
         nodes => App::Sqitch::Plan::NodeList->new(@nodes),
         lines => App::Sqitch::Plan::LineList->new(@lines),
     };
+}
+
+sub _version_line {
+    App::Sqitch::Plan::Pragma->new(
+        plan     => shift,
+        name     => 'syntax-version',
+        operator => '=',
+        value    => SYNTAX_VERSION,
+    );
 }
 
 sub sort_steps {
