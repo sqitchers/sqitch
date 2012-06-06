@@ -265,10 +265,11 @@ sub open_script {
     );
 }
 
-sub nodes    { shift->_plan->{nodes}->items }
-sub lines    { shift->_plan->{lines}->items }
-sub count    { shift->_plan->{nodes}->count }
-sub index_of { shift->_plan->{nodes}->index_of(shift) }
+sub lines          { shift->_plan->{lines}->items }
+sub nodes          { shift->_plan->{nodes}->items }
+sub count          { shift->_plan->{nodes}->count }
+sub index_of       { shift->_plan->{nodes}->index_of(shift) }
+sub first_index_of { shift->_plan->{nodes}->first_index_of(@_) }
 
 sub seek {
     my ( $self, $key ) = @_;

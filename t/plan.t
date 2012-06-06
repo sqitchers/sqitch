@@ -660,6 +660,12 @@ is $plan->index_of('whatever@bar'), 0, 'Should get 0 for whatever@bar';
 # Make sure seek works, too.
 throws_ok { $plan->seek('whatever') } qr/^Key "whatever" at multiple indexes/,
     'Should get an error seeking dupe key.';
+is $plan->index_of('whatever@HEAD'), 5, 'Should find whatever@HEAD at index 5';
+is $plan->index_of('whatever@bar'), 0, 'Should find whatever@HEAD at index 0';
+is $plan->first_index_of('whatever'), 0,
+    'Should find first instance of whatever at index 0';
+is $plan->first_index_of('whatever', '@bar'), 5,
+    'Should find first instance of whatever after @bar at index 5';
 ok $plan->seek('whatever@HEAD'), 'Seek whatever@HEAD';
 is $plan->position, 5, 'Position should be 5';
 ok $plan->seek('whatever@bar'), 'Seek whatever@bar';
