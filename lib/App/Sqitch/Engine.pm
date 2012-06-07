@@ -249,7 +249,24 @@ sub is_deployed {
 
 sub deploy_step {
     my ( $self, $step ) = @_;
-    $self->sqitch->info('  + ', $step->format_name);
+    my $sqitch = $self->sqitch;
+    $sqitch->info('  + ', $step->format_name);
+
+    # Check for conflicts.
+    if (my @conflicts = $self->check_conflicts($step)) {
+        my $pl = @conflicts > 1 ? 's' : '';
+        die [
+            "Conflicts with previously deployed step$pl: ",
+            join ' ', @conflicts
+        ];
+    }
+
+    # Check for prerequisites.
+    if (my @required = $self->check_requires($step)) {
+        my $pl = @required > 1 ? 's' : '';
+        die [ "Missing required step$pl: " , join ' ', @required ];
+    }
+
     return try {
         $self->run_file($step->deploy_file);
         $self->log_deploy_step($step);

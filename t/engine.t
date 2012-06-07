@@ -98,7 +98,6 @@ isa_ok $engine, 'App::Sqitch::Engine::whu';
 is $engine->sqitch, $sqitch, 'The sqitch attribute should be set';
 
 # Test handling of an invalid engine.
-$0 = 'sqch';
 throws_ok { $CLASS->load({ engine => 'nonexistent', sqitch => $sqitch }) }
     qr/\QCan't locate/, 'Should die on invalid engine';
 
@@ -167,6 +166,8 @@ my $step = App::Sqitch::Plan::Step->new( name => 'foo', plan => $sqitch->plan );
 
 ok $engine->deploy_step($step), 'Deploy a step';
 is_deeply $engine->seen, [
+    [check_conflicts => $step ],
+    [check_requires => $step ],
     [run_file => $step->deploy_file ],
     [log_deploy_step => $step ],
 ], 'deploy_step should have called the proper methods';
@@ -179,6 +180,8 @@ $die = 'run_file';
 throws_ok { $engine->deploy_step($step) } qr/^AAAH!/,
     'Deploy step with error';
 is_deeply $engine->seen, [
+    [check_conflicts => $step ],
+    [check_requires => $step ],
     [log_fail_step => $step ],
 ], 'Should have logged step failure';
 $die = '';
@@ -285,8 +288,12 @@ is_deeply $engine->seen, [
     [latest_item => undef],
     'initialized',
     'initialize',
-    [ run_file => $nodes[0]->deploy_file],
+    [check_conflicts => $nodes[0] ],
+    [check_requires => $nodes[0] ],
+    [run_file => $nodes[0]->deploy_file],
     [log_deploy_step => $nodes[0]],
+    [check_conflicts => $nodes[1] ],
+    [check_requires => $nodes[1] ],
     [run_file => $nodes[1]->deploy_file],
     [log_deploy_step => $nodes[1]],
     [log_apply_tag => $nodes[2]],
@@ -308,8 +315,12 @@ is $plan->position, 2, 'Plan should again be at position 2';
 is_deeply $engine->seen, [
     [latest_item => undef],
     'initialized',
+    [check_conflicts => $nodes[0] ],
+    [check_requires => $nodes[0] ],
     [ run_file => $nodes[0]->deploy_file],
     [log_deploy_step => $nodes[0]],
+    [check_conflicts => $nodes[1] ],
+    [check_requires => $nodes[1] ],
     [run_file => $nodes[1]->deploy_file],
     [log_deploy_step => $nodes[1]],
     [log_apply_tag => $nodes[2]],
@@ -375,14 +386,22 @@ is $plan->position, 5, 'Plan should be at position 5';
 is_deeply $engine->seen, [
     [latest_item => undef],
     'initialized',
-    [ run_file => $nodes[0]->deploy_file],
+    [check_conflicts => $nodes[0] ],
+    [check_requires => $nodes[0] ],
+    [run_file => $nodes[0]->deploy_file],
     [log_deploy_step => $nodes[0]],
+    [check_conflicts => $nodes[1] ],
+    [check_requires => $nodes[1] ],
     [run_file => $nodes[1]->deploy_file],
     [log_deploy_step => $nodes[1]],
     [log_apply_tag => $nodes[2]],
+    [check_conflicts => $nodes[3] ],
+    [check_requires => $nodes[3] ],
     [run_file => $nodes[3]->deploy_file],
     [log_deploy_step => $nodes[3]],
     [log_apply_tag => $nodes[4]],
+    [check_conflicts => $nodes[5] ],
+    [check_requires => $nodes[5] ],
     [run_file => $nodes[5]->deploy_file],
     [log_deploy_step => $nodes[5]],
 ], 'Should have deployed everything';
