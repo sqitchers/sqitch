@@ -85,12 +85,13 @@ sub deploy {
 
     $sqitch->info(
         'Deploying to ', $self->target,
-        defined $to ? ", goal: $to" : ''
+        defined $to ? " through $to" : ''
     );
 
+    $mode //= 'all';
     my $meth = $mode eq 'step' ? '_deploy_by_step'
              : $mode eq 'tag'  ? '_deploy_by_tag'
-             : $mode eq 'run'  ? '_deploy_all'
+             : $mode eq 'all'  ? '_deploy_all'
              : $sqitch->fail(qq{Unknown deployment mode: "$mode"})
     ;
 
@@ -115,6 +116,8 @@ sub _deploy_by_step {
             ];
         }
     }
+
+    return $self;
 }
 
 sub _rollback_to_tag {
@@ -155,7 +158,7 @@ sub _rollback_run {
     $self->sqitch->fail( 'Deploy failed' )
 }
 
-sub deploy_by_tag {
+sub _deploy_by_tag {
     my ( $self, $plan, $to_index ) = @_;
 
     my ($last_tag, @run);

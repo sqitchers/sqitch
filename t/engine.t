@@ -11,6 +11,7 @@ use App::Sqitch::Plan;
 use Path::Class;
 use Test::Exception;
 use Test::NoWarnings;
+use Test::MockModule;
 use lib 't/lib';
 use MockOutput;
 
@@ -32,7 +33,7 @@ my @deployed_steps;
 my @missing_requires;
 my @conflicts;
 my $die = '';
-my ($latest_item, $latest_tag, $latest_step);
+my ($latest_item, $latest_tag, $latest_step, $initialized);
 ENGINE: {
     # Stub out a engine.
     package App::Sqitch::Engine::whu;
@@ -62,6 +63,8 @@ ENGINE: {
     sub latest_item       { push @SEEN => [ latest_item       => $_[1] ]; $latest_item }
     sub latest_tag        { push @SEEN => [ latest_tag        => $_[1] ]; $latest_tag }
     sub latest_step       { push @SEEN => [ latest_step       => $_[1] ]; $latest_step }
+    sub initialized       { push @SEEN => 'initialized'; $initialized }
+    sub initialize        { push @SEEN => 'initialize' }
 
     sub seen { [@SEEN] }
     after seen => sub { @SEEN = () };
@@ -257,11 +260,150 @@ $latest_tag = '@alpha';
 ok $engine->_sync_plan, 'Sync the plan to a dupe step afer @alpha';
 is $plan->position, 5, 'Plan should still be at position 5';
 
-
 ##############################################################################
 # Test deploy.
 can_ok $CLASS, 'deploy';
+$latest_item = $latest_tag = undef;
+$plan->reset;
+$engine->seen;
+my @nodes = $plan->nodes;
 
+# Mock the deploy methods to log which were called.
+my $mock_engine = Test::MockModule->new($CLASS);
+my $deploy_meth;
+for my $meth (qw(_deploy_all _deploy_by_tag _deploy_by_step)) {
+    my $orig = $CLASS->can($meth);
+    $mock_engine->mock($meth => sub {
+        $deploy_meth = $meth;
+        $orig->(@_);
+    });
+}
+
+ok $engine->deploy('@alpha'), 'Deploy to @alpha';
+is $plan->position, 2, 'Plan should be at position 2';
+is_deeply $engine->seen, [
+    [latest_item => undef],
+    'initialized',
+    'initialize',
+    [ run_file => $nodes[0]->deploy_file],
+    [log_deploy_step => $nodes[0]],
+    [run_file => $nodes[1]->deploy_file],
+    [log_deploy_step => $nodes[1]],
+    [log_apply_tag => $nodes[2]],
+], 'Should have deployed through @alpha';
+
+is $deploy_meth, '_deploy_all', 'Should have called _deploy_all()';
+is_deeply +MockOutput->get_info, [
+    ['Deploying to ', $engine->target, ' through @alpha'],
+    ['  + ', 'roles'],
+    ['  + ', 'users'],
+    ['+ ', '@alpha'],
+], 'Should have seen the output of the deploy to @alpha';
+
+# Try with no need to initialize.
+$initialized = 1;
+$plan->reset;
+ok $engine->deploy('@alpha', 'tag'), 'Deploy to @alpha with tag mode';
+is $plan->position, 2, 'Plan should again be at position 2';
+is_deeply $engine->seen, [
+    [latest_item => undef],
+    'initialized',
+    [ run_file => $nodes[0]->deploy_file],
+    [log_deploy_step => $nodes[0]],
+    [run_file => $nodes[1]->deploy_file],
+    [log_deploy_step => $nodes[1]],
+    [log_apply_tag => $nodes[2]],
+], 'Should have deployed through @alpha without initialization';
+
+is $deploy_meth, '_deploy_by_tag', 'Should have called _deploy_by_tag()';
+is_deeply +MockOutput->get_info, [
+    ['Deploying to ', $engine->target, ' through @alpha'],
+    ['  + ', 'roles'],
+    ['  + ', 'users'],
+    ['+ ', '@alpha'],
+], 'Should have seen the output of the deploy to @alpha';
+
+# Try a bogus target.
+throws_ok { $engine->deploy('nonexistent') }
+    qr/\QUnknown deploy target: "nonexistent"/,
+    'Should get an error for an unknown target';
+is_deeply $engine->seen, [
+    [latest_item => undef],
+], 'Only latest_item() should have been called';
+is_deeply +MockOutput->get_fail, [
+    ['Unknown deploy target: "nonexistent"'],
+], 'User should be notified of unknown target';
+
+# Start with @alpha.
+$latest_item = '@alpha';
+ok $engine->deploy('@alpha'), 'Deploy to alpha thrice';
+is_deeply $engine->seen, [
+    [latest_item => undef],
+], 'Only latest_item() should have been called';
+is_deeply +MockOutput->get_info, [
+    ['Nothing to deploy (already at @alpha)'],
+], 'Should notify user that already at @alpha';
+
+# Start with widgets.
+$latest_item = 'widgets';
+throws_ok { $engine->deploy('@alpha') } qr/^FAIL:/,
+    'Should fail targeting older node';
+is_deeply $engine->seen, [
+    [latest_item => undef],
+    [latest_tag => undef],
+], 'Should have called latest_item() and latest_tag()';
+is_deeply +MockOutput->get_fail, [
+    ['Cannot deploy to an earlier target; use "revert" instead']
+], 'User should be notified of failure';
+
+# Deploy to latest.
+$latest_item = 'users';
+$latest_tag = '@beta';
+ok $engine->deploy, 'Deploy to latest target';
+is_deeply $engine->seen, [
+    [latest_item => undef],
+    [latest_tag => undef],
+], 'Again, only latest_item() and latest_tag() should have been called';
+is_deeply +MockOutput->get_info, [
+    ['Nothing to deploy (up-to-date)'],
+], 'Should notify user that already up-to-date';
+
+# Make sure we can deploy everything by step.
+$latest_item = $latest_tag = undef;
+ok $engine->deploy(undef, 'step'), 'Deploy everything by step';
+is $plan->position, 5, 'Plan should be at position 5';
+is_deeply $engine->seen, [
+    [latest_item => undef],
+    'initialized',
+    [ run_file => $nodes[0]->deploy_file],
+    [log_deploy_step => $nodes[0]],
+    [run_file => $nodes[1]->deploy_file],
+    [log_deploy_step => $nodes[1]],
+    [log_apply_tag => $nodes[2]],
+    [run_file => $nodes[3]->deploy_file],
+    [log_deploy_step => $nodes[3]],
+    [log_apply_tag => $nodes[4]],
+    [run_file => $nodes[5]->deploy_file],
+    [log_deploy_step => $nodes[5]],
+], 'Should have deployed everything';
+
+is $deploy_meth, '_deploy_by_step', 'Should have called _deploy_by_step()';
+is_deeply +MockOutput->get_info, [
+    ['Deploying to ', $engine->target, '' ],
+    ['  + ', 'roles'],
+    ['  + ', 'users'],
+    ['+ ', '@alpha'],
+    ['  + ', 'widgets'],
+    ['+ ', '@beta'],
+    ['  + ', 'users'],
+], 'Should have seen the output of the deploy to the end';
+
+# Try invalid mode.
+throws_ok { $engine->deploy(undef, 'evil_mode') } qr/^FAIL:/,
+    'Should fail on invalid mode';
+is_deeply +MockOutput->get_fail, [
+    ['Unknown deployment mode: "evil_mode"'],
+], 'User should be notified of unknown mode';
 
 exit;
 
