@@ -40,7 +40,7 @@ for my $attr (qw(username password db_name host port)) {
 }
 
 is $pg->destination, $ENV{PGDATABASE} || $ENV{PGUSER} || $ENV{USER},
-    'Target should fall back on environment variables';
+    'Destination should fall back on environment variables';
 
 my @std_opts = (
     '--quiet',
@@ -55,7 +55,7 @@ is_deeply [$pg->psql], [$client, @std_opts],
     'psql command should be std opts-only';
 
 ##############################################################################
-# Test other configs for the target.
+# Test other configs for the destination.
 ENV: {
     # Make sure we override system-set vars.
     local $ENV{PGDATABASE};
@@ -64,15 +64,15 @@ ENV: {
     for my $env (qw(PGDATABASE PGUSER USER)) {
         my $pg = $CLASS->new(sqitch => $sqitch);
         local $ENV{$env} = "\$ENV=whatever";
-        is $pg->destination, "\$ENV=whatever", "Target should read \$$env";
+        is $pg->destination, "\$ENV=whatever", "Destination should read \$$env";
     }
 
     $pg = $CLASS->new(sqitch => $sqitch, username => 'hi');
-    is $pg->destination, 'hi', 'Target should read username';
+    is $pg->destination, 'hi', 'Destination should read username';
 
     $ENV{PGDATABASE} = 'mydb';
     $pg = $CLASS->new(sqitch => $sqitch, username => 'hi');
-    is $pg->destination, 'mydb', 'Target should prefer $PGDATABASE to username';
+    is $pg->destination, 'mydb', 'Destination should prefer $PGDATABASE to username';
 }
 
 ##############################################################################
@@ -95,7 +95,7 @@ is $pg->client, '/path/to/psql', 'client should be as configured';
 is $pg->username, 'freddy', 'username should be as configured';
 is $pg->password, 's3cr3t', 'password should be as configured';
 is $pg->db_name, 'widgets', 'db_name should be as configured';
-is $pg->destination, 'widgets', 'target should default to db_name';
+is $pg->destination, 'widgets', 'destination should default to db_name';
 is $pg->host, 'db.example.com', 'host should be as configured';
 is $pg->port, 1234, 'port should be as configured';
 is $pg->sqitch_schema, 'meta', 'sqitch_schema should be as configured';
@@ -123,7 +123,7 @@ is $pg->client, '/some/other/psql', 'client should be as optioned';
 is $pg->username, 'anna', 'username should be as optioned';
 is $pg->password, 's3cr3t', 'password should still be as configured';
 is $pg->db_name, 'widgets_dev', 'db_name should be as optioned';
-is $pg->destination, 'widgets_dev', 'target should still default to db_name';
+is $pg->destination, 'widgets_dev', 'destination should still default to db_name';
 is $pg->host, 'foo.com', 'host should be as optioned';
 is $pg->port, 98760, 'port should be as optioned';
 is $pg->sqitch_schema, 'meta', 'sqitch_schema should still be as configured';
