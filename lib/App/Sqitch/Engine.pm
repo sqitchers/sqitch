@@ -48,20 +48,24 @@ sub deploy {
     hurl plan => __ 'Nothing to deploy (empty plan)' if $to_index < 0;
 
     if (defined $to) {
-        $to_index = $plan->index_of($to) // $sqitch->fail(
-            qq{Unknown deploy target: "$to"}
+        $to_index = $plan->index_of($to) // hurl plan => __x(
+            'Unknown deploy target: "{target}"',
+            target => $to,
         );
 
         # Just return if there is nothing to do.
         if ($to_index == $plan->position) {
-            $sqitch->info("Nothing to deploy (already at $to)");
+            $sqitch->info(__x(
+                'Nothing to deploy (already at "{target}"',
+                target => $to
+            ));
             return $self;
         }
     }
 
     if ($plan->position == $to_index) {
         # We are up-to-date.
-        $sqitch->info('Nothing to deploy (up-to-date)');
+        $sqitch->info(__ 'Nothing to deploy (up-to-date)');
         return $self;
 
     } elsif ($plan->position == -1) {
@@ -70,21 +74,26 @@ sub deploy {
 
     } else {
         # Make sure that $to_index is greater than the current point.
-        $sqitch->fail(
-            'Cannot deploy to an earlier target; use "revert" instead'
-        ) if $to_index < $plan->position;
+        hurl deploy => __ 'Cannot deploy to an earlier target; use "revert" instead'
+            if $to_index < $plan->position;
     }
 
     $sqitch->info(
-        'Deploying to ', $self->destination,
-        defined $to ? " through $to" : ''
+        defined $to ? __x(
+            'Deploying to {destination} through {target}',
+            destination => $self->destination,
+            target      => $to
+        ) : __x(
+            'Deploying to {destination}',
+            destination => $self->destination,
+        )
     );
 
     $mode ||= 'all';
     my $meth = $mode eq 'step' ? '_deploy_by_step'
              : $mode eq 'tag'  ? '_deploy_by_tag'
              : $mode eq 'all'  ? '_deploy_all'
-             : $sqitch->fail(qq{Unknown deployment mode: "$mode"})
+             : hurl deploy => __x 'Unknown deployment mode: "{mode}"', mode => $mode;
     ;
 
     $self->$meth($plan, $to_index);
@@ -115,17 +124,17 @@ sub _rollback_to_tag {
     my $tag    = shift or return $self->_rollback_run(@_);
     my @steps  = @_ or return $self;
     my $sqitch = $self->sqitch;
-    $sqitch->vent('Reverting to ', $tag->format_name);
+    $sqitch->vent(__x 'Reverting to {target}', target => $tag->format_name);
 
     try {
         $self->revert_step($_) for reverse @steps;
     } catch {
         # Sucks when this happens.
         $sqitch->vent($_);
-        $sqitch->vent('The schema will need to be manually repaired');
+        $sqitch->vent(__ 'The schema will need to be manually repaired');
     };
 
-    $sqitch->fail( 'Deploy failed' )
+    $sqitch->fail( __ 'Deploy failed' )
 }
 
 sub _rollback_run {

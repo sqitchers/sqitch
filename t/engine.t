@@ -344,7 +344,10 @@ is_deeply $engine->seen, [
 
 is $deploy_meth, '_deploy_all', 'Should have called _deploy_all()';
 is_deeply +MockOutput->get_info, [
-    ['Deploying to ', $engine->destination, ' through @alpha'],
+    [__x 'Deploying to {destination} through {target}',
+        destination =>  $engine->destination,
+        target      => '@alpha'
+    ],
     ['  + ', 'roles'],
     ['  + ', 'users'],
     ['+ ', '@alpha'],
@@ -371,22 +374,25 @@ is_deeply $engine->seen, [
 
 is $deploy_meth, '_deploy_by_tag', 'Should have called _deploy_by_tag()';
 is_deeply +MockOutput->get_info, [
-    ['Deploying to ', $engine->destination, ' through @alpha'],
+    [__x 'Deploying to {destination} through {target}',
+        destination =>  $engine->destination,
+        target      => '@alpha'
+    ],
     ['  + ', 'roles'],
     ['  + ', 'users'],
     ['+ ', '@alpha'],
 ], 'Should have seen the output of the deploy to @alpha';
 
 # Try a bogus target.
-throws_ok { $engine->deploy('nonexistent') }
-    qr/\QUnknown deploy target: "nonexistent"/,
+throws_ok { $engine->deploy('nonexistent') } 'App::Sqitch::X',
     'Should get an error for an unknown target';
+is $@->message, __x(
+    'Unknown deploy target: "{target}"',
+    target => 'nonexistent',
+), 'The exception should report the unknown target';
 is_deeply $engine->seen, [
     [latest_item => undef],
 ], 'Only latest_item() should have been called';
-is_deeply +MockOutput->get_fail, [
-    ['Unknown deploy target: "nonexistent"'],
-], 'User should be notified of unknown target';
 
 # Start with @alpha.
 $latest_item = '@alpha';
@@ -395,20 +401,20 @@ is_deeply $engine->seen, [
     [latest_item => undef],
 ], 'Only latest_item() should have been called';
 is_deeply +MockOutput->get_info, [
-    ['Nothing to deploy (already at @alpha)'],
+    [__x 'Nothing to deploy (already at "{target}"', target => '@alpha'],
 ], 'Should notify user that already at @alpha';
 
 # Start with widgets.
 $latest_item = 'widgets';
-throws_ok { $engine->deploy('@alpha') } qr/^FAIL:/,
+throws_ok { $engine->deploy('@alpha') } 'App::Sqitch::X',
     'Should fail targeting older node';
+is $@->ident, 'deploy', 'Should be a "deploy" error';
+is $@->message,  __ 'Cannot deploy to an earlier target; use "revert" instead',
+    'It should suggest using "revert"';
 is_deeply $engine->seen, [
     [latest_item => undef],
     [latest_tag => undef],
 ], 'Should have called latest_item() and latest_tag()';
-is_deeply +MockOutput->get_fail, [
-    ['Cannot deploy to an earlier target; use "revert" instead']
-], 'User should be notified of failure';
 
 # Deploy to latest.
 $latest_item = 'users';
@@ -419,7 +425,7 @@ is_deeply $engine->seen, [
     [latest_tag => undef],
 ], 'Again, only latest_item() and latest_tag() should have been called';
 is_deeply +MockOutput->get_info, [
-    ['Nothing to deploy (up-to-date)'],
+    [__ 'Nothing to deploy (up-to-date)'],
 ], 'Should notify user that already up-to-date';
 
 # Make sure we can deploy everything by step.
@@ -451,7 +457,7 @@ is_deeply $engine->seen, [
 
 is $deploy_meth, '_deploy_by_step', 'Should have called _deploy_by_step()';
 is_deeply +MockOutput->get_info, [
-    ['Deploying to ', $engine->destination, '' ],
+    [__x 'Deploying to {destination}', destination =>  $engine->destination ],
     ['  + ', 'roles'],
     ['  + ', 'users'],
     ['+ ', '@alpha'],
@@ -461,11 +467,11 @@ is_deeply +MockOutput->get_info, [
 ], 'Should have seen the output of the deploy to the end';
 
 # Try invalid mode.
-throws_ok { $engine->deploy(undef, 'evil_mode') } qr/^FAIL:/,
+throws_ok { $engine->deploy(undef, 'evil_mode') } 'App::Sqitch::X',
     'Should fail on invalid mode';
-is_deeply +MockOutput->get_fail, [
-    ['Unknown deployment mode: "evil_mode"'],
-], 'User should be notified of unknown mode';
+is $@->ident, 'deploy', 'Should be a "deploy" error';
+is $@->message, __x('Unknown deployment mode: "{mode}"', mode => 'evil_mode'),
+    'And the message should reflect the unknown mode';
 
 # Try a plan with no steps.
 NOSTEPS: {
