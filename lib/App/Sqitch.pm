@@ -409,7 +409,7 @@ App::Sqitch - VCS-powered SQL change management
 
 =head1 Synopsis
 
-  user App::Sqitch;
+  use App::Sqitch;
   exit App::Sqitch->go;
 
 =head1 Description

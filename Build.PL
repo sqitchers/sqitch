@@ -31,7 +31,12 @@ Module::Build::Sqitch->new(
         'Path::Class'                                  => 0,
         'Pod::Find'                                    => 0,
         'Pod::Usage'                                   => 0,
+        'Role::Identifiable::HasIdent'                 => '0.005',
+        'Role::Identifiable::HasTags'                  => '0.005',
+        'StackTrace::Auto'                             => 0,
+        'Sub::Exporter'                                => 0,
         'Template::Tiny'                               => '0.11',
+        'Throwable'                                    => 0,
         'Try::Tiny'                                    => 0,
     },
     build_requires => {
