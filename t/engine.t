@@ -344,7 +344,7 @@ is_deeply $engine->seen, [
 
 is $deploy_meth, '_deploy_all', 'Should have called _deploy_all()';
 is_deeply +MockOutput->get_info, [
-    ['Deploying to ', $engine->target, ' through @alpha'],
+    ['Deploying to ', $engine->destination, ' through @alpha'],
     ['  + ', 'roles'],
     ['  + ', 'users'],
     ['+ ', '@alpha'],
@@ -371,7 +371,7 @@ is_deeply $engine->seen, [
 
 is $deploy_meth, '_deploy_by_tag', 'Should have called _deploy_by_tag()';
 is_deeply +MockOutput->get_info, [
-    ['Deploying to ', $engine->target, ' through @alpha'],
+    ['Deploying to ', $engine->destination, ' through @alpha'],
     ['  + ', 'roles'],
     ['  + ', 'users'],
     ['+ ', '@alpha'],
@@ -451,7 +451,7 @@ is_deeply $engine->seen, [
 
 is $deploy_meth, '_deploy_by_step', 'Should have called _deploy_by_step()';
 is_deeply +MockOutput->get_info, [
-    ['Deploying to ', $engine->target, '' ],
+    ['Deploying to ', $engine->destination, '' ],
     ['  + ', 'roles'],
     ['  + ', 'users'],
     ['+ ', '@alpha'],

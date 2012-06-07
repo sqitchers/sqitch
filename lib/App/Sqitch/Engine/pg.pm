@@ -69,7 +69,7 @@ has db_name => (
     },
 );
 
-has target => (
+has destination => (
     is       => 'ro',
     isa      => 'Str',
     lazy     => 1,

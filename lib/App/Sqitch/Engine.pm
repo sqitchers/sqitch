@@ -14,7 +14,7 @@ has sqitch => (
     is       => 'ro',
     isa      => 'App::Sqitch',
     required => 1,
-    handles  => { target => 'db_name' },
+    handles  => { destination => 'db_name' },
 );
 
 sub load {
@@ -86,7 +86,7 @@ sub deploy {
     }
 
     $sqitch->info(
-        'Deploying to ', $self->target,
+        'Deploying to ', $self->destination,
         defined $to ? " through $to" : ''
     );
 
@@ -484,15 +484,15 @@ The name of the engine. Defaults to the last part of the package name, so as a
 rule you should not need to override it, since it is that string that Sqitch
 uses to find the engine class.
 
-=head3 C<target>
+=head3 C<destination>
 
-  my $target = $engine->target;
+  my $destination = $engine->destination;
 
-Returns the name of the target database. This will usually be the same as the
-configured database name or the value of the C<--db-name> option. Hover,
+Returns the name of the destination database. This will usually be the same as
+the configured database name or the value of the C<--db-name> option. Hover,
 subclasses may override it to provide other values, such as when neither of
 the above have values but there is nevertheless a default value assumed by the
-engine. Used internally by C<deploy()> and C<revert()> in status messages.
+engine. Used internally to name the destination in status messages.
 
 =head3 C<deploy>
 
