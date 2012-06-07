@@ -14,7 +14,12 @@ has message => (
     required => 1,
 );
 
-with qw(Throwable Role::HasMessage StackTrace::Auto Role::Identifiable::HasIdent);
+with qw(
+    Throwable
+    Role::HasMessage
+    Role::Identifiable::HasIdent
+    StackTrace::Auto
+);
 
 sub hurl {
     @_ = (
