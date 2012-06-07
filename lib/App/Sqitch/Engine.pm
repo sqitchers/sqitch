@@ -4,6 +4,8 @@ use v5.10.1;
 use Moose;
 use utf8;
 use Try::Tiny;
+use Locale::TextDomain qw(App-Sqitch);
+use App::Sqitch::X qw(hurl);
 use namespace::autoclean;
 
 our $VERSION = '0.32';
@@ -19,11 +21,11 @@ sub load {
     my ( $class, $p ) = @_;
 
     # We should have a command.
-    die 'Missing "engine" parameter to load()' unless $p->{engine};
+    hurl 'Missing "engine" parameter to load()' unless $p->{engine};
 
     # Load the engine class.
     my $pkg = __PACKAGE__ . "::$p->{engine}";
-    eval "require $pkg" or die $@;
+    eval "require $pkg" or hurl "Unable to load $pkg";
     return $pkg->new( sqitch => $p->{sqitch} );
 }
 
@@ -110,10 +112,8 @@ sub _deploy_by_step {
             $self->apply_tag($target);
         } else {
             # This should not happen.
-            die [
-                'Cannot deploy node of type ', ref $target,
-                '; can only deploy steps and apply tags'
-            ];
+            hurl 'Cannot deploy node of type ' . ref $target
+                . '; can only deploy steps and apply tags';
         }
     }
 
@@ -174,10 +174,8 @@ sub _deploy_by_tag {
                 $last_tag = $target;
             } else {
                 # This should not happen.
-                die [
-                    'Cannot deploy node of type ', ref $target,
-                    '; can only deploy steps and apply tags'
-                ];
+                hurl 'Cannot deploy node of type ' . ref $target
+                    . '; can only deploy steps and apply tags';
             }
         }
     } catch {
@@ -201,10 +199,8 @@ sub _deploy_all {
                 $self->apply_tag($target);
             } else {
                 # This should not happen.
-                die [
-                    'Cannot deploy node of type ', ref $target,
-                    '; can only deploy steps and apply tags'
-                ];
+                hurl 'Cannot deploy node of type ' . ref $target
+                    . '; can only deploy steps and apply tags';
             }
             push @run => $target;
         }
@@ -224,13 +220,18 @@ sub _sync_plan {
         my $current_index;
         if ($latest =~ /^[@]/) {
             # Just start from the tag.
-            $current_index = $plan->index_of($latest)
-                // die "Cannot find $latest in the plan";
+            $current_index = $plan->index_of($latest) // hurl plan => __x(
+                'Cannot find {target} in the plan',
+                target => $latest
+            );
         } else {
             # Get the index for the step since the last tag, if any.
             my $tag = $self->latest_tag;
-            $current_index = $plan->first_index_of($latest, $tag)
-                // die "Canot find $latest" . ($tag // '') . ' in the plan';
+            $current_index = $plan->first_index_of($latest, $tag) // hurl plan => __x(
+                'Cannot find {target} after {tag} in the plan',
+                target => $latest,
+                tag    => $tag,
+            );
         }
         $plan->position($current_index);
     } else {
@@ -254,17 +255,22 @@ sub deploy_step {
 
     # Check for conflicts.
     if (my @conflicts = $self->check_conflicts($step)) {
-        my $pl = @conflicts > 1 ? 's' : '';
-        die [
-            "Conflicts with previously deployed step$pl: ",
-            join ' ', @conflicts
-        ];
+        hurl __nx(
+            'Conflicts with previously deployed step: {steps}',
+            'Conflicts with previously deployed steps: {steps}',
+            scalar @conflicts,
+            steps => join ' ', @conflicts,
+        )
     }
 
     # Check for prerequisites.
     if (my @required = $self->check_requires($step)) {
-        my $pl = @required > 1 ? 's' : '';
-        die [ "Missing required step$pl: " , join ' ', @required ];
+        hurl __nx(
+            'Missing required step: {steps}',
+            'Missing required steps: {steps}',
+            scalar @required,
+            steps => join ' ', @required,
+        );
     }
 
     return try {

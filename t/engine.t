@@ -12,6 +12,7 @@ use Path::Class;
 use Test::Exception;
 use Test::NoWarnings;
 use Test::MockModule;
+use Locale::TextDomain qw(App-Sqitch);
 use lib 't/lib';
 use MockOutput;
 
@@ -99,19 +100,29 @@ is $engine->sqitch, $sqitch, 'The sqitch attribute should be set';
 
 # Test handling of an invalid engine.
 throws_ok { $CLASS->load({ engine => 'nonexistent', sqitch => $sqitch }) }
-    qr/\QCan't locate/, 'Should die on invalid engine';
+    'App::Sqitch::X', 'Should die on invalid engine';
+is $@->message, 'Unable to load App::Sqitch::Engine::nonexistent',
+    'Should get load error message';
+like $@->previous_exception, qr/\QCan't locate/,
+    'Should have relevant previoius exception';
 
 NOENGINE: {
     # Test handling of no engine.
     throws_ok { $CLASS->load({ engine => '', sqitch => $sqitch }) }
-        qr/\QMissing "engine" parameter to load()/,
+        'App::Sqitch::X',
             'No engine should die';
+    is $@->message, 'Missing "engine" parameter to load()',
+        'It should be the expected message';
 }
 
 # Test handling a bad engine implementation.
 use lib 't/lib';
 throws_ok { $CLASS->load({ engine => 'bad', sqitch => $sqitch }) }
-    qr/^LOL BADZ/, 'Should die on bad engine module';
+    'App::Sqitch::X', 'Should die on bad engine module';
+is $@->message, 'Unable to load App::Sqitch::Engine::bad',
+    'Should get another load error message';
+like $@->previous_exception, qr/^LOL BADZ/,
+    'Should have relevant previoius exception from the bad module';
 
 ##############################################################################
 # Test name.
@@ -263,6 +274,38 @@ $latest_tag = '@alpha';
 ok $engine->_sync_plan, 'Sync the plan to a dupe step afer @alpha';
 is $plan->position, 5, 'Plan should still be at position 5';
 
+# Try to find a non-existent tag'.
+$latest_item = '@nonexistent';
+throws_ok { $engine->_sync_plan } 'App::Sqitch::X',
+    'Should get error for nonexistent tag';
+is $@->ident, 'plan', 'Should be a "plan" exception';
+is $@->message, __x(
+    'Cannot find {target} in the plan',
+    target => $latest_item,
+), 'It should inform the user of the error';
+
+# Try to find a non-existent step.
+$latest_item = 'nonexistent';
+throws_ok { $engine->_sync_plan } 'App::Sqitch::X',
+    'Should get error for nonexistent step ';
+is $@->ident, 'plan', 'Should be another "plan" exception';
+is $@->message, __x(
+    'Cannot find {target} after {tag} in the plan',
+    target => $latest_item,
+    tag    => $latest_tag,
+), 'It should inform the user of the nonexistent step';
+
+# Try to find an existing step not found after the current tag.
+$latest_item = 'roles';
+throws_ok { $engine->_sync_plan } 'App::Sqitch::X',
+    'Should get error for misplaced step ';
+is $@->ident, 'plan', 'Should be yet another "plan" exception';
+is $@->message, __x(
+    'Cannot find {target} after {tag} in the plan',
+    target => $latest_item,
+    tag    => $latest_tag,
+), 'It should inform the user of the misplaced step';
+
 ##############################################################################
 # Test deploy.
 can_ok $CLASS, 'deploy';
@@ -317,7 +360,7 @@ is_deeply $engine->seen, [
     'initialized',
     [check_conflicts => $nodes[0] ],
     [check_requires => $nodes[0] ],
-    [ run_file => $nodes[0]->deploy_file],
+    [run_file => $nodes[0]->deploy_file],
     [log_deploy_step => $nodes[0]],
     [check_conflicts => $nodes[1] ],
     [check_requires => $nodes[1] ],

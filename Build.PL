@@ -23,6 +23,7 @@ Module::Build::Sqitch->new(
         'IO::File'                                     => 0,
         'IPC::System::Simple'                          => '1.17',
         'List::Util'                                   => 0,
+        'Locale::TextDomain'                           => '1.20',
         'Moose'                                        => '1.15',
         'Moose::Util::TypeConstraints'                 => '1.15',
         'Moose::Meta::TypeConstraint::Parameterizable' => '1.15',
