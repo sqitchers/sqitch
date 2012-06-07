@@ -467,7 +467,22 @@ is_deeply +MockOutput->get_fail, [
     ['Unknown deployment mode: "evil_mode"'],
 ], 'User should be notified of unknown mode';
 
+# Try a plan with no steps.
+NOSTEPS: {
+    my $plan_file = file qw(nonexistent.plan);
+    $sqitch = App::Sqitch->new( plan_file => $plan_file );
+    ok $engine = App::Sqitch::Engine::whu->new( sqitch => $sqitch ),
+        'Engine with sqitch with no file';
+    throws_ok { $engine->deploy } 'App::Sqitch::X', 'Should die with no steps';
+    is $@->message, __"Nothing to deploy (empty plan)",
+        'Should have the localized message';
+}
+
 exit;
+
+##############################################################################
+# Test _deploy_by_step()
+$mock_engine->unmock('_deploy_by_step');
 
 # Try a tag with no steps.
 ok $engine->deploy($tag), 'Deploy a tag with no steps';

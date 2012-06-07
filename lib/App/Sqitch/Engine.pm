@@ -39,23 +39,13 @@ sub name {
 
 sub config_vars { return }
 
-sub initialized {
-    my $class = ref $_[0] || $_[0];
-    require Carp;
-    Carp::confess( "$class has not implemented initialized()" );
-}
-
-sub initialize {
-    my $class = ref $_[0] || $_[0];
-    require Carp;
-    Carp::confess( "$class has not implemented initialize()" );
-}
-
 sub deploy {
     my ( $self, $to, $mode ) = @_;
     my $sqitch   = $self->sqitch;
     my $plan     = $self->_sync_plan;
     my $to_index = $plan->count - 1;
+
+    hurl plan => __ 'Nothing to deploy (empty plan)' if $to_index < 0;
 
     if (defined $to) {
         $to_index = $plan->index_of($to) // $sqitch->fail(
@@ -90,7 +80,7 @@ sub deploy {
         defined $to ? " through $to" : ''
     );
 
-    $mode //= 'all';
+    $mode ||= 'all';
     my $meth = $mode eq 'step' ? '_deploy_by_step'
              : $mode eq 'tag'  ? '_deploy_by_tag'
              : $mode eq 'all'  ? '_deploy_all'
@@ -299,6 +289,18 @@ sub remove_tag {
     my ( $self, $tag ) = @_;
     $self->sqitch->info('- ', $tag->format_name);
     $self->log_remove_tag($tag);
+}
+
+sub initialized {
+    my $class = ref $_[0] || $_[0];
+    require Carp;
+    Carp::confess( "$class has not implemented initialized()" );
+}
+
+sub initialize {
+    my $class = ref $_[0] || $_[0];
+    require Carp;
+    Carp::confess( "$class has not implemented initialize()" );
 }
 
 sub run_file {
