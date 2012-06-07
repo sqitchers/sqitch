@@ -3,6 +3,7 @@ package App::Sqitch::X;
 use v5.10.1;
 use utf8;
 use Moose;
+use Sub::Exporter::Util ();
 use Sub::Exporter -setup => [qw(hurl)];
 
 our $VERSION = '0.32';
@@ -16,9 +17,11 @@ has message => (
 with qw(Throwable Role::HasMessage StackTrace::Auto Role::Identifiable::HasIdent);
 
 sub hurl {
-    my $throw = __PACKAGE__->can('throw');
-    @_ = (__PACKAGE__, ref $_[0] ? $_[0] : (ident => $_[0], message => $_[1]));
-    goto $throw;
+    @_ = (
+        __PACKAGE__,
+        ref $_[0] ? $_[0] : (ident => $_[0], message => $_[1] // $_[0]),
+    );
+    goto __PACKAGE__->can('throw');
 }
 
 __PACKAGE__->meta->make_immutable(inline_constructor => 0);
@@ -98,6 +101,14 @@ More simply, if all you need to pass are the C<ident> and C<message>
 parameters, you can pass them as the only arguments to C<hurl()>:
 
   open my $fh, '>', 'foo.txt' or hurl io => "Cannot open foo.txt: $!";
+
+In a situation where, for some reason, the C<ident> is not important, you can
+omit it:
+
+  open my $fh, '>', 'foo.txt' or hurl "Cannot open foo.txt: $!";
+
+In this case, the C<ident> will be the same as the message. This is not
+recommended, but again, may be okay if the C<ident> is in no way important.
 
 =head1 Handling Exceptions
 
