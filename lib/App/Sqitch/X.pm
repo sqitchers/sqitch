@@ -21,10 +21,14 @@ with qw(
     StackTrace::Auto
 );
 
+has '+ident' => (default => 'DEV');
+
 sub hurl {
     @_ = (
         __PACKAGE__,
-        ref $_[0] ? $_[0] : (ident => $_[0], message => $_[1] // $_[0]),
+        ref $_[0]     ? $_[0]
+            : @_ == 1 ? (message => $_[0])
+            :           (ident => $_[0],  message => $_[1])
     );
     goto __PACKAGE__->can('throw');
 }
@@ -42,10 +46,11 @@ App::Sqitch::X - Sqitch Exception class
 
 Throw:
 
+  use Locale::TextDomain;
   use App::Sqitch::X;
   open my $fh, '>', 'foo.txt' or App::Sqitch::X->throw(
       ident   => 'io',
-      message => "Cannot open foo.txt: $!"
+      message => __x 'Cannot open {file}: {err}", file => 'foo.txt', err => $!,
   );
 
 Hurl:
@@ -53,10 +58,12 @@ Hurl:
   use App::Sqitch::X qw(hurl);
   open my $fh, '>', 'foo.txt' or hurl {
       ident   => 'io',
-      message => "Cannot open foo.txt: $!"
+      message => __x 'Cannot open {file}: {err}", file => 'foo.txt', err => $!,
   };
 
-  open my $fh, '>', 'foo.txt' or hurl io => "Cannot open foo.txt: $!";
+Developer:
+
+  hurl 'Odd number of arguments passed to burf()' if @_ % 2;
 
 =head1 Description
 
@@ -72,7 +79,7 @@ handled, showing the error message to the user.
 
   open my $fh, '>', 'foo.txt' or App::Sqitch::X->throw(
       ident   => 'io',
-      message => "Cannot open foo.txt: $!"
+      message => __x 'Cannot open {file}: {err}", file => 'foo.txt', err => $!,
   );
 
 Throws an exception. The supported parameters include:
@@ -85,7 +92,7 @@ A non-localized string identifying the type of exception.
 
 =item C<message>
 
-The exception message.
+The exception message. Use L<Locale::TextDomain> to craft localized messages.
 
 =back
 
@@ -99,21 +106,24 @@ parameters as a hash reference, like so:
   use App::Sqitch::X qw(hurl);
   open my $fh, '>', 'foo.txt' or hurl {
       ident   => 'io',
-      message => "Cannot open foo.txt: $!"
+      message => __x 'Cannot open {file}: {err}", file => 'foo.txt', err => $!,
   };
 
 More simply, if all you need to pass are the C<ident> and C<message>
 parameters, you can pass them as the only arguments to C<hurl()>:
 
-  open my $fh, '>', 'foo.txt' or hurl io => "Cannot open foo.txt: $!";
+  open my $fh, '>', 'foo.txt'
+    or hurl io => __x 'Cannot open {file}: {err}", file => 'foo.txt', err => $!
 
-In a situation where, for some reason, the C<ident> is not important, you can
-omit it:
+For errors that should only happen during development (e.g., an invalid
+parameter passed by some other library that should know better), you can omit
+the C<ident>:
 
-  open my $fh, '>', 'foo.txt' or hurl "Cannot open foo.txt: $!";
+  hurl 'Odd number of arguments passed to burf()' if @_ % 2;
 
-In this case, the C<ident> will be the same as the message. This is not
-recommended, but again, may be okay if the C<ident> is in no way important.
+In this case, the C<ident> will be C<DEV>, which you should not otherwise use.
+Sqitch will emit a more detailed error message, including a stack trace, when
+it sees C<DEV> exceptions.
 
 =head1 Handling Exceptions
 
@@ -124,8 +134,13 @@ use L<Try::Tiny> to do exception handling, like so:
       # ...
   } catch {
       die $_ unless eval { $_->isa('App::Sqitch::X') };
-      $sqitch->debug($_->stack_trace->as_string);
-      $sqitch->fail($_->message);
+      $sqitch->vent($_->message);
+      if ($_->ident eq 'DEV') {
+          $sqitch->vent($_->stack_trace->as_string);
+      } else {
+          $sqitch->debug($_->stack_trace->as_string);
+      }
+      $sqitch->bail(2);
   };
 
 Use the C<ident> attribute to determine what category of exception it is, and

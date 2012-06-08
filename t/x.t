@@ -24,6 +24,10 @@ for my $role(qw(
     ok $x->does($role), "X object does $role";
 }
 
+# Make sure default ident works.
+ok $x = $CLASS->new(message => 'whatever'), 'Create X without ident';
+is $x->ident, 'DEV', 'Default ident should be "DEV"';
+
 throws_ok { hurl basic => 'OMFG!' } $CLASS;
 isa_ok $x = $@, $CLASS, 'Thrown object';
 is $x->ident, 'basic', 'Ident should be "basic"';
@@ -34,7 +38,7 @@ is +($x->stack_trace->frames)[0]->filename, __FILE__,
 
 throws_ok { hurl 'OMFG!' } $CLASS;
 isa_ok $x = $@, $CLASS, 'Thrown object';
-is $x->ident, 'OMFG!', 'Ident should be "OMFG!"';
+is $x->ident, 'DEV', 'Ident should be "DEV"';
 is $x->message, 'OMFG!', 'The message should have been passed';
 
 throws_ok { hurl {ident => 'blah', message => 'OMFG!'} } $CLASS;
