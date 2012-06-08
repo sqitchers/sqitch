@@ -39,6 +39,7 @@ ENGINE: {
     # Stub out a engine.
     package App::Sqitch::Engine::whu;
     use Moose;
+    use App::Sqitch::X qw(hurl);
     extends 'App::Sqitch::Engine';
     $INC{'App/Sqitch/Engine/whu.pm'} = __FILE__;
 
@@ -53,7 +54,7 @@ ENGINE: {
     )) {
         no strict 'refs';
         *$meth = sub {
-            die 'AAAH!' if $die eq $meth;
+            hurl 'AAAH!' if $die eq $meth;
             push @SEEN => [ $meth => $_[1] ];
         };
     }
@@ -188,8 +189,9 @@ is_deeply +MockOutput->get_info, [[
 
 # Make it fail.
 $die = 'run_file';
-throws_ok { $engine->deploy_step($step) } qr/^AAAH!/,
+throws_ok { $engine->deploy_step($step) } 'App::Sqitch::X',
     'Deploy step with error';
+is $@->message, 'AAAH!', 'Error should be from run_file';
 is_deeply $engine->seen, [
     [check_conflicts => $step ],
     [check_requires => $step ],
@@ -472,6 +474,13 @@ throws_ok { $engine->deploy(undef, 'evil_mode') } 'App::Sqitch::X',
 is $@->ident, 'deploy', 'Should be a "deploy" error';
 is $@->message, __x('Unknown deployment mode: "{mode}"', mode => 'evil_mode'),
     'And the message should reflect the unknown mode';
+is_deeply $engine->seen, [
+    [latest_item => undef],
+    'initialized',
+], 'It should have check for initialization';
+is_deeply +MockOutput->get_info, [
+    [__x 'Deploying to {destination}', destination =>  $engine->destination ],
+], 'Should have announced destination';
 
 # Try a plan with no steps.
 NOSTEPS: {
@@ -482,13 +491,61 @@ NOSTEPS: {
     throws_ok { $engine->deploy } 'App::Sqitch::X', 'Should die with no steps';
     is $@->message, __"Nothing to deploy (empty plan)",
         'Should have the localized message';
+    is_deeply $engine->seen, [
+        [latest_item => undef],
+    ], 'It should have checked for the latest item';
 }
-
-exit;
 
 ##############################################################################
 # Test _deploy_by_step()
 $mock_engine->unmock('_deploy_by_step');
+ok $engine->_deploy_by_step($plan, 2), 'Deploy stepwise to index 2';
+is_deeply $engine->seen, [
+    [check_conflicts => $nodes[0] ],
+    [check_requires => $nodes[0] ],
+    [run_file => $nodes[0]->deploy_file],
+    [log_deploy_step => $nodes[0]],
+    [check_conflicts => $nodes[1] ],
+    [check_requires => $nodes[1] ],
+    [run_file => $nodes[1]->deploy_file],
+    [log_deploy_step => $nodes[1]],
+    [log_apply_tag => $nodes[2]],
+], 'Should stepwise deploy to index 2';
+is_deeply +MockOutput->get_info, [
+    ['  + ', 'roles'],
+    ['  + ', 'users'],
+    ['+ ', '@alpha'],
+], 'Should have seen output of each node';
+
+ok $engine->_deploy_by_step($plan, 4), 'Deploy stepwise to index 4';
+is_deeply $engine->seen, [
+    [check_conflicts => $nodes[3] ],
+    [check_requires => $nodes[3] ],
+    [run_file => $nodes[3]->deploy_file],
+    [log_deploy_step => $nodes[3]],
+    [log_apply_tag => $nodes[4]],
+], 'Should stepwise deploy to from index 2 to index 4';
+is_deeply +MockOutput->get_info, [
+    ['  + ', 'widgets'],
+    ['+ ', '@beta'],
+], 'Should have seen output of nodes 3-4';
+
+# Make it die.
+$plan->reset;
+$die = 'run_file';
+throws_ok { $engine->_deploy_by_step($plan, 2) } 'App::Sqitch::X',
+    'Die in _deploy_by_step';
+is $@->message, 'AAAH!', 'It should have died in run_file';
+is_deeply $engine->seen, [
+    [check_conflicts => $nodes[0] ],
+    [check_requires => $nodes[0] ],
+    [log_fail_step => $nodes[0] ],
+], 'It should have logged the failure';
+is_deeply +MockOutput->get_info, [
+    ['  + ', 'roles'],
+], 'Should have seen output for first node';
+
+exit;
 
 # Try a tag with no steps.
 ok $engine->deploy($tag), 'Deploy a tag with no steps';
