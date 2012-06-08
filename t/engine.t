@@ -879,3 +879,16 @@ is_deeply +MockOutput->get_vent, [
     ['ROFL'],
     [__x 'Reverting to {target}', target => '@alpha'],
 ], 'Should notifiy user of error and rollback to @alpha';
+
+##############################################################################
+# Test is_deployed().
+$is_deployed_tag = $is_deployed_step = 1;
+ok $engine->is_deployed($tag), 'Test is_deployed(tag)';
+is_deeply $engine->seen, [
+    [is_deployed_tag => $tag],
+], 'It should have called is_deployed_tag()';
+
+ok $engine->is_deployed($step), 'Test is_deployed(step)';
+is_deeply $engine->seen, [
+    [is_deployed_step => $step],
+], 'It should have called is_deployed_step()';
