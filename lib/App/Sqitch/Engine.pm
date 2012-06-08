@@ -119,42 +119,25 @@ sub _deploy_by_step {
     return $self;
 }
 
-sub _rollback_to_tag {
-    my $self   = shift;
-    my $tag    = shift or return $self->_rollback_run(@_);
-    my @steps  = @_ or return $self;
+sub _rollback {
+    my ($self, $tag) = (shift, shift);
+    my @steps  = @_;
     my $sqitch = $self->sqitch;
-    $sqitch->vent(__x 'Reverting to {target}', target => $tag->format_name);
+
+    $sqitch->vent(
+        $tag ? __x('Reverting to {target}', target => $tag->format_name)
+             : __ 'Reverting to previous state'
+    ) if @steps;
 
     try {
         $self->revert_step($_) for reverse @steps;
     } catch {
         # Sucks when this happens.
-        $sqitch->vent($_);
+        $sqitch->vent(eval { $_->message } // $_);
         $sqitch->vent(__ 'The schema will need to be manually repaired');
     };
 
-    $sqitch->fail( __ 'Deploy failed' )
-}
-
-sub _rollback_run {
-    my ( $self, @run ) = @_;
-
-    try {
-        for my $target (reverse @run) {
-            if ($target->isa('App::Sqitch::Plan::Step')) {
-                $self->revert_step($target);
-            } else {
-                $self->remove_tag($target);
-            }
-        }
-    } catch {
-        # Sucks when this happens.
-        $self->sqitch->vent($_);
-        $self->sqitch->vent('The schema will need to be manually repaired');
-    };
-
-    $self->sqitch->fail( 'Deploy failed' )
+    hurl deploy => __ 'Deploy failed';
 }
 
 sub _deploy_by_tag {
@@ -178,8 +161,8 @@ sub _deploy_by_tag {
             }
         }
     } catch {
-        $self->sqitch->vent($_);
-        $self->_rollback_to_tag($last_tag, @run);
+        $self->sqitch->vent(eval { $_->message } // $_);
+        $self->_rollback($last_tag, @run);
     };
 
     return $self;
@@ -204,8 +187,8 @@ sub _deploy_all {
             push @run => $target;
         }
     } catch {
-        $self->sqitch->vent($_);
-        $self->_rollback_run(@run);
+        $self->sqitch->vent(eval { $_->message } // $_);
+        $self->_rollback(undef, @run);
     };
 
     return $self;

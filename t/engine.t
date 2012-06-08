@@ -13,6 +13,7 @@ use Test::Exception;
 use Test::NoWarnings;
 use Test::MockModule;
 use Locale::TextDomain qw(App-Sqitch);
+use App::Sqitch::X qw(hurl);
 use lib 't/lib';
 use MockOutput;
 
@@ -485,7 +486,7 @@ is_deeply +MockOutput->get_info, [
 # Try a plan with no steps.
 NOSTEPS: {
     my $plan_file = file qw(nonexistent.plan);
-    $sqitch = App::Sqitch->new( plan_file => $plan_file );
+    my $sqitch = App::Sqitch->new( plan_file => $plan_file );
     ok $engine = App::Sqitch::Engine::whu->new( sqitch => $sqitch ),
         'Engine with sqitch with no file';
     throws_ok { $engine->deploy } 'App::Sqitch::X', 'Should die with no steps';
@@ -498,6 +499,7 @@ NOSTEPS: {
 
 ##############################################################################
 # Test _deploy_by_step()
+$plan->reset;
 $mock_engine->unmock('_deploy_by_step');
 ok $engine->_deploy_by_step($plan, 2), 'Deploy stepwise to index 2';
 is_deeply $engine->seen, [
@@ -544,7 +546,185 @@ is_deeply $engine->seen, [
 is_deeply +MockOutput->get_info, [
     ['  + ', 'roles'],
 ], 'Should have seen output for first node';
+$die = '';
 
+##############################################################################
+# Test _deploy_by_tag().
+$plan->reset;
+$mock_engine->unmock('_deploy_by_tag');
+ok $engine->_deploy_by_tag($plan, 2), 'Deploy tagwise to index 2';
+
+is_deeply $engine->seen, [
+    [check_conflicts => $nodes[0] ],
+    [check_requires => $nodes[0] ],
+    [run_file => $nodes[0]->deploy_file],
+    [log_deploy_step => $nodes[0]],
+    [check_conflicts => $nodes[1] ],
+    [check_requires => $nodes[1] ],
+    [run_file => $nodes[1]->deploy_file],
+    [log_deploy_step => $nodes[1]],
+    [log_apply_tag => $nodes[2]],
+], 'Should tagwise deploy to index 2';
+is_deeply +MockOutput->get_info, [
+    ['  + ', 'roles'],
+    ['  + ', 'users'],
+    ['+ ', '@alpha'],
+], 'Should have seen output of each node';
+
+ok $engine->_deploy_by_tag($plan, 4), 'Deploy tagwise to index 4';
+is_deeply $engine->seen, [
+    [check_conflicts => $nodes[3] ],
+    [check_requires => $nodes[3] ],
+    [run_file => $nodes[3]->deploy_file],
+    [log_deploy_step => $nodes[3]],
+    [log_apply_tag => $nodes[4]],
+], 'Should tagwise deploy to from index 2 to index 4';
+is_deeply +MockOutput->get_info, [
+    ['  + ', 'widgets'],
+    ['+ ', '@beta'],
+], 'Should have seen output of nodes 3-4';
+
+# Make it die.
+$plan->reset;
+$die = 'log_apply_tag';
+throws_ok { $engine->_deploy_by_tag($plan, 2) } 'App::Sqitch::X',
+    'Die in _deploy_by_tag';
+is $@->message, __('Deploy failed'), 'Should get final deploy failure message';
+is_deeply $engine->seen, [
+    [check_conflicts => $nodes[0] ],
+    [check_requires => $nodes[0] ],
+    [run_file => $nodes[0]->deploy_file],
+    [log_deploy_step => $nodes[0]],
+    [check_conflicts => $nodes[1] ],
+    [check_requires => $nodes[1] ],
+    [run_file => $nodes[1]->deploy_file],
+    [log_deploy_step => $nodes[1]],
+    [run_file => $nodes[1]->revert_file],
+    [log_revert_step => $nodes[1]],
+    [run_file => $nodes[0]->revert_file],
+    [log_revert_step => $nodes[0]],
+], 'It should have logged up to the failure';
+
+is_deeply +MockOutput->get_info, [
+    ['  + ', 'roles'],
+    ['  + ', 'users'],
+    ['+ ', '@alpha'],
+    ['  - ', 'users'],
+    ['  - ', 'roles'],
+], 'Should have seen deploy and revert messages';
+is_deeply +MockOutput->get_vent, [
+    ['AAAH!'],
+    [__ 'Reverting to previous state']
+], 'The original error should have been vented';
+$die = '';
+
+# Now have it fail on a later node, to keep the first tag.
+$plan->reset;
+my $mock_whu = Test::MockModule->new('App::Sqitch::Engine::whu');
+$mock_whu->mock(run_file => sub { die 'ROFL' if $_[1]->basename eq 'widgets.sql' });
+throws_ok { $engine->_deploy_by_tag($plan, $plan->count -1 ) } 'App::Sqitch::X',
+    'Die in _deploy_by_tag again';
+is $@->message, __('Deploy failed'), 'Should again get final deploy failure message';
+is_deeply $engine->seen, [
+    [check_conflicts => $nodes[0] ],
+    [check_requires => $nodes[0] ],
+    [log_deploy_step => $nodes[0]],
+    [check_conflicts => $nodes[1] ],
+    [check_requires => $nodes[1] ],
+    [log_deploy_step => $nodes[1]],
+    [log_apply_tag => $nodes[2]],
+    [check_conflicts => $nodes[3] ],
+    [check_requires => $nodes[3] ],
+    [log_fail_step => $nodes[3]],
+], 'Should have logged deploy and no reverts';
+is_deeply +MockOutput->get_info, [
+    ['  + ', 'roles'],
+    ['  + ', 'users'],
+    ['+ ', '@alpha'],
+    ['  + ', 'widgets'],
+], 'Should have seen deploy messages';
+my $vented = MockOutput->get_vent;
+is @{ $vented }, 1, 'Should have one vented message';
+like $vented->[0][0], qr/^ROFL\b/, 'And it should be the underlying error';
+
+# Add a step and deploy to that, to make sure it rolls back any steps since
+# last tag.
+$plan->add_step('dr_evil');
+@nodes = $plan->nodes;
+$plan->reset;
+$mock_whu->mock(run_file => sub { hurl 'ROFL' if $_[1]->basename eq 'dr_evil.sql' });
+throws_ok { $engine->_deploy_by_tag($plan, $plan->count -1 ) } 'App::Sqitch::X',
+    'Die in _deploy_by_tag yet again';
+is $@->message, __('Deploy failed'), 'Should die "Deploy failed" again';
+is_deeply $engine->seen, [
+    [check_conflicts => $nodes[0] ],
+    [check_requires => $nodes[0] ],
+    [log_deploy_step => $nodes[0]],
+    [check_conflicts => $nodes[1] ],
+    [check_requires => $nodes[1] ],
+    [log_deploy_step => $nodes[1]],
+    [log_apply_tag => $nodes[2]],
+    [check_conflicts => $nodes[3] ],
+    [check_requires => $nodes[3] ],
+    [log_deploy_step => $nodes[3]],
+    [log_apply_tag => $nodes[4]],
+    [check_conflicts => $nodes[5] ],
+    [check_requires => $nodes[5] ],
+    [log_deploy_step => $nodes[5]],
+    [check_conflicts => $nodes[6] ],
+    [check_requires => $nodes[6] ],
+    [log_fail_step => $nodes[6]],
+    [log_revert_step => $nodes[5] ],
+], 'Should have reverted last step';
+
+is_deeply +MockOutput->get_info, [
+    ['  + ', 'roles'],
+    ['  + ', 'users'],
+    ['+ ', '@alpha'],
+    ['  + ', 'widgets'],
+    ['+ ', '@beta'],
+    ['  + ', 'users'],
+    ['  + ', 'dr_evil'],
+    ['  - ', 'users'],
+], 'Should have seen user step reversion message';
+is_deeply +MockOutput->get_vent, [
+    ['ROFL'],
+    [__x 'Reverting to {target}', target => '@beta']
+], 'Should see underlying error and reversion message';
+
+# Make it choke on step reversion.
+$mock_whu->unmock_all;
+$die = 'log_revert_step';
+$plan->reset;
+$mock_whu->mock(log_apply_tag => sub { hurl 'ROFL' });
+throws_ok { $engine->_deploy_by_tag($plan, $plan->count -1 ) } 'App::Sqitch::X',
+    'Die in _deploy_by_tag again';
+is $@->message, __('Deploy failed'), 'Should once again get final deploy failure message';
+is_deeply $engine->seen, [
+    [check_conflicts => $nodes[0] ],
+    [check_requires => $nodes[0] ],
+    [run_file => $nodes[0]->deploy_file ],
+    [log_deploy_step => $nodes[0]],
+    [check_conflicts => $nodes[1] ],
+    [check_requires => $nodes[1] ],
+    [run_file => $nodes[1]->deploy_file ],
+    [log_deploy_step => $nodes[1]],
+    [run_file => $nodes[1]->revert_file],
+], 'Should have tried to revert one step';
+is_deeply +MockOutput->get_info, [
+    ['  + ', 'roles'],
+    ['  + ', 'users'],
+    ['+ ', '@alpha'],
+    ['  - ', 'users'],
+], 'Should have seen revert message';
+is_deeply +MockOutput->get_vent, [
+    ['ROFL'],
+    [__x 'Reverting to previous state'],
+    ['AAAH!'],
+    [__ 'The schema will need to be manually repaired']
+], 'Should get reversion failure message';
+
+$die = '';
 exit;
 
 # Try a tag with no steps.
