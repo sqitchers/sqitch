@@ -17,6 +17,11 @@ has sqitch => (
     handles  => { destination => 'db_name' },
 );
 
+has start_at => (
+    is  => 'rw',
+    isa => 'Str'
+);
+
 sub load {
     my ( $class, $p ) = @_;
 
@@ -121,21 +126,24 @@ sub _deploy_by_step {
 
 sub _rollback {
     my ($self, $tag) = (shift, shift);
-    my @steps  = @_;
     my $sqitch = $self->sqitch;
 
-    $sqitch->vent(
-        $tag ? __x('Reverting to {target}', target => $tag->format_name)
-             : __ 'Reverting to previous state'
-    ) if @steps;
+    if (@_) {
+        my @steps = @_;
+        $tag = $tag ? $tag->format_name : $self->start_at;
+        $sqitch->vent(
+            $tag ? __x('Reverting to {target}', target => $tag)
+                 : __ 'Reverting all changes'
+        );
 
-    try {
-        $self->revert_step($_) for reverse @steps;
-    } catch {
-        # Sucks when this happens.
-        $sqitch->vent(eval { $_->message } // $_);
-        $sqitch->vent(__ 'The schema will need to be manually repaired');
-    };
+        try {
+            $self->revert_step($_) for reverse @steps;
+        } catch {
+            # Sucks when this happens.
+            $sqitch->vent(eval { $_->message } // $_);
+            $sqitch->vent(__ 'The schema will need to be manually repaired');
+        };
+    }
 
     hurl deploy => __ 'Deploy failed';
 }
@@ -199,6 +207,7 @@ sub _sync_plan {
     my $plan = $self->sqitch->plan;
 
     if ( defined ( my $latest = $self->latest_item ) ) {
+        $self->start_at($latest);
         my $current_index;
         if ($latest =~ /^[@]/) {
             # Just start from the tag.

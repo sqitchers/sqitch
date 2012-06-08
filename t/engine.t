@@ -245,37 +245,45 @@ ok $engine = App::Sqitch::Engine::whu->new( sqitch => $sqitch ),
     'Engine with sqitch with plan file';
 my $plan = $sqitch->plan;
 is $plan->position, -1, 'Plan should start at position -1';
+is $engine->start_at, undef, 'start_at should be undef';
 ok $engine->_sync_plan, 'Sync the plan';
 is $plan->position, -1, 'Plan should still be at position -1';
+is $engine->start_at, undef, 'start_at should still be undef';
 $plan->position(4);
 ok $engine->_sync_plan, 'Sync the plan again';
 is $plan->position, -1, 'Plan should again be at position -1';
+is $engine->start_at, undef, 'start_at should again be undef';
 
 # Have latest_item return a tag.
 $latest_item = '@alpha';
 ok $engine->_sync_plan, 'Sync the plan to a tag';
 is $plan->position, 2, 'Plan should now be at position 2';
+is $engine->start_at, $latest_item, 'start_at should now be @alpha';
 
 # Have it return a step before any tag.
 $latest_item = 'users';
 ok $engine->_sync_plan, 'Sync the plan to a step with no tags';
 is $plan->position, 1, 'Plan should now be at position 1';
+is $engine->start_at, $latest_item, 'start_at should now be users';
 
 # Have it return a duplicated step.
 $plan->add_step('users');
 $plan->reset;
 ok $engine->_sync_plan, 'Sync the plan to a dupe step with no tags';
 is $plan->position, 1, 'Plan should again be at position 1';
+is $engine->start_at, $latest_item, 'start_at should again be users';
 
 # Have it return a step after a tag.
 $latest_tag = '@beta';
 ok $engine->_sync_plan, 'Sync the plan to a dupe step afer a tag';
 is $plan->position, 5, 'Plan should now be at position 5';
+is $engine->start_at, $latest_item, 'start_at should now be @beta';
 
 # Try it after an earlier tag.
 $latest_tag = '@alpha';
 ok $engine->_sync_plan, 'Sync the plan to a dupe step afer @alpha';
 is $plan->position, 5, 'Plan should still be at position 5';
+is $engine->start_at, $latest_item, 'start_at should still be @beta';
 
 # Try to find a non-existent tag'.
 $latest_item = '@nonexistent';
@@ -614,7 +622,7 @@ is_deeply +MockOutput->get_info, [
 ], 'Should have seen deploy and revert messages';
 is_deeply +MockOutput->get_vent, [
     ['AAAH!'],
-    [__ 'Reverting to previous state']
+    [__ 'Reverting all changes']
 ], 'The original error should have been vented';
 $die = '';
 
@@ -697,6 +705,7 @@ $mock_whu->unmock_all;
 $die = 'log_revert_step';
 $plan->reset;
 $mock_whu->mock(log_apply_tag => sub { hurl 'ROFL' });
+$mock_whu->mock(start_at => 'whatever');
 throws_ok { $engine->_deploy_by_tag($plan, $plan->count -1 ) } 'App::Sqitch::X',
     'Die in _deploy_by_tag again';
 is $@->message, __('Deploy failed'), 'Should once again get final deploy failure message';
@@ -719,12 +728,21 @@ is_deeply +MockOutput->get_info, [
 ], 'Should have seen revert message';
 is_deeply +MockOutput->get_vent, [
     ['ROFL'],
-    [__x 'Reverting to previous state'],
+    [__x 'Reverting to {target}', target => 'whatever'],
     ['AAAH!'],
     [__ 'The schema will need to be manually repaired']
 ], 'Should get reversion failure message';
 
 $die = '';
+$mock_whu->unmock_all;
+
+
+##############################################################################
+# Test _deploy_all().
+$plan->reset;
+$mock_engine->unmock('_deploy_all');
+ok $engine->_deploy_all($plan, 2), 'Deploy all to index 2';
+
 exit;
 
 # Try a tag with no steps.
