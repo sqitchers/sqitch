@@ -12,6 +12,7 @@ use App::Sqitch::Config;
 use App::Sqitch::Command;
 use App::Sqitch::Plan;
 use Moose;
+use Try::Tiny;
 use List::Util qw(first);
 use IPC::System::Simple qw(runx capturex $EXITVAL);
 use Moose::Util::TypeConstraints;
@@ -182,7 +183,22 @@ sub go {
     });
 
     # 6. Execute command.
-    return $command->execute( @{$cmd_args} ) ? 0 : 2;
+    return try {
+        $command->execute( @{$cmd_args} ) ? 0 : 2;
+    } catch {
+        # Just bail for unknown exceptions.
+        $sqitch->vent($_) && return 2 unless eval { $_->isa('App::Sqitch::X') };
+
+        # It's one of ours. Vent.
+        $sqitch->vent($_->message);
+
+        # Emit the stack trace. DEV errors should be vented; otherwise trace.
+        my $meth = $_->ident eq 'DEV' ? 'vent' : 'trace';
+        $sqitch->$meth($_->stack_trace->as_string);
+
+        # Bail.
+        return 2;
+    };
 }
 
 sub _core_opts {

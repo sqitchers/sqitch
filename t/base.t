@@ -2,12 +2,14 @@
 
 use strict;
 use warnings;
-use Test::More tests => 80;
+use Test::More tests => 90;
 #use Test::More 'no_plan';
 use Test::MockModule;
 use Path::Class;
 use Test::Exception;
+use Test::NoWarnings;
 use Capture::Tiny ':all';
+use App::Sqitch::X 'hurl';
 
 BEGIN {
     # Stub out exit.
@@ -93,6 +95,36 @@ GO: {
         'Should have local config overriding user';
     is $config->get(key => 'core.pg.host'), 'localhost',
         'Should fall back on user config';
+
+    # Now make it die.
+    sub puke { App::Sqitch::X->new(@_) } # Ensures we have trace frames.
+    my $ex = puke(ident => 'ohai', message => 'OMGWTF!');
+    $mock->mock(execute => sub { die $ex });
+    my $sqitch_mock = Test::MockModule->new($CLASS);
+    my @vented;
+    $sqitch_mock->mock(vent => sub { push @vented => $_[1]; });
+    my $traced;
+    $sqitch_mock->mock(trace => sub { $traced = $_[1]; });
+    is $sqitch->go, 2, 'Go should return 2 on Sqitch exception';
+    is_deeply \@vented, ['OMGWTF!'], 'The error should have been vented';
+    is $traced, $ex->stack_trace->as_string,
+        'The stack trace should have been sent to trace';
+
+    # Make it die with a developer exception.
+    @vented = ();
+    $traced = undef;
+    $ex = puke( message => 'OUCH!');
+    is $sqitch->go, 2, 'Go should return 2 on another Sqitch exception';
+    is_deeply \@vented, ['OUCH!', $ex->stack_trace->as_string],
+        'Both the message and the trace should have been vented';
+    is $traced, undef, 'Nothing should have been traced';
+
+    # Make it die without an exception object.
+    $ex = 'LOLZ';
+    @vented = ();
+    is $sqitch->go, 2, 'Go should return 2 on a third Sqitch exception';
+    is @vented, 1, 'Should have one thing vented';
+    like $vented[0], qr/^LOLZ\b/, 'And it should include our message';
 }
 
 ##############################################################################
