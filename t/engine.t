@@ -736,12 +736,150 @@ is_deeply +MockOutput->get_vent, [
 $die = '';
 $mock_whu->unmock_all;
 
-
 ##############################################################################
 # Test _deploy_all().
 $plan->reset;
 $mock_engine->unmock('_deploy_all');
 ok $engine->_deploy_all($plan, 2), 'Deploy all to index 2';
+
+ok $engine->_deploy_all($plan, 2), 'Deploy tagwise to index 2';
+
+is_deeply $engine->seen, [
+    [check_conflicts => $nodes[0] ],
+    [check_requires => $nodes[0] ],
+    [run_file => $nodes[0]->deploy_file],
+    [log_deploy_step => $nodes[0]],
+    [check_conflicts => $nodes[1] ],
+    [check_requires => $nodes[1] ],
+    [run_file => $nodes[1]->deploy_file],
+    [log_deploy_step => $nodes[1]],
+    [log_apply_tag => $nodes[2]],
+], 'Should tagwise deploy to index 2';
+is_deeply +MockOutput->get_info, [
+    ['  + ', 'roles'],
+    ['  + ', 'users'],
+    ['+ ', '@alpha'],
+], 'Should have seen output of each node';
+
+ok $engine->_deploy_all($plan, 4), 'Deploy tagwise to index 4';
+is_deeply $engine->seen, [
+    [check_conflicts => $nodes[3] ],
+    [check_requires => $nodes[3] ],
+    [run_file => $nodes[3]->deploy_file],
+    [log_deploy_step => $nodes[3]],
+    [log_apply_tag => $nodes[4]],
+], 'Should tagwise deploy to from index 2 to index 4';
+is_deeply +MockOutput->get_info, [
+    ['  + ', 'widgets'],
+    ['+ ', '@beta'],
+], 'Should have seen output of nodes 3-4';
+
+# Make it die.
+$plan->reset;
+$die = 'log_apply_tag';
+throws_ok { $engine->_deploy_all($plan, 2) } 'App::Sqitch::X',
+    'Die in _deploy_all';
+is $@->message, __('Deploy failed'), 'Should get final deploy failure message';
+is_deeply $engine->seen, [
+    [check_conflicts => $nodes[0] ],
+    [check_requires => $nodes[0] ],
+    [run_file => $nodes[0]->deploy_file],
+    [log_deploy_step => $nodes[0]],
+    [check_conflicts => $nodes[1] ],
+    [check_requires => $nodes[1] ],
+    [run_file => $nodes[1]->deploy_file],
+    [log_deploy_step => $nodes[1]],
+    [run_file => $nodes[1]->revert_file],
+    [log_revert_step => $nodes[1]],
+    [run_file => $nodes[0]->revert_file],
+    [log_revert_step => $nodes[0]],
+], 'It should have logged up to the failure';
+
+is_deeply +MockOutput->get_info, [
+    ['  + ', 'roles'],
+    ['  + ', 'users'],
+    ['+ ', '@alpha'],
+    ['  - ', 'users'],
+    ['  - ', 'roles'],
+], 'Should have seen deploy and revert messages';
+is_deeply +MockOutput->get_vent, [
+    ['AAAH!'],
+    [__ 'Reverting all changes']
+], 'The original error should have been vented';
+$die = '';
+
+# Now have it fail on a later node, should still go all the way back.
+$plan->reset;
+$mock_whu->mock(run_file => sub { hurl 'ROFL' if $_[1]->basename eq 'widgets.sql' });
+throws_ok { $engine->_deploy_all($plan, $plan->count -1 ) } 'App::Sqitch::X',
+    'Die in _deploy_all again';
+is $@->message, __('Deploy failed'), 'Should again get final deploy failure message';
+is_deeply $engine->seen, [
+    [check_conflicts => $nodes[0] ],
+    [check_requires => $nodes[0] ],
+    [log_deploy_step => $nodes[0]],
+    [check_conflicts => $nodes[1] ],
+    [check_requires => $nodes[1] ],
+    [log_deploy_step => $nodes[1]],
+    [log_apply_tag => $nodes[2]],
+    [check_conflicts => $nodes[3] ],
+    [check_requires => $nodes[3] ],
+    [log_fail_step => $nodes[3]],
+    [log_remove_tag => $nodes[2]],
+    [log_revert_step => $nodes[1]],
+    [log_revert_step => $nodes[0]],
+], 'Should have reveted all steps and tags';
+is_deeply +MockOutput->get_info, [
+    ['  + ', 'roles'],
+    ['  + ', 'users'],
+    ['+ ', '@alpha'],
+    ['  + ', 'widgets'],
+    ['- ', '@alpha'],
+    ['  - ', 'users'],
+    ['  - ', 'roles'],
+], 'Should see all steps revert';
+is_deeply +MockOutput->get_vent, [
+    ['ROFL'],
+    [__ 'Reverting all changes'],
+], 'Should notifiy user of error and rollback';
+
+# Die when starting from a later point.
+$plan->position(2);
+$engine->start_at('@alpha');
+$mock_whu->mock(run_file => sub { hurl 'ROFL' if $_[1]->basename eq 'dr_evil.sql' });
+throws_ok { $engine->_deploy_all($plan, $plan->count -1 ) } 'App::Sqitch::X',
+    'Die in _deploy_all on the last step';
+is $@->message, __('Deploy failed'), 'Should once again get final deploy failure message';
+is_deeply $engine->seen, [
+    [check_conflicts => $nodes[3] ],
+    [check_requires => $nodes[3] ],
+    [log_deploy_step => $nodes[3]],
+    [log_apply_tag => $nodes[4]],
+    [check_conflicts => $nodes[5] ],
+    [check_requires => $nodes[5] ],
+    [log_deploy_step => $nodes[5]],
+    [check_conflicts => $nodes[6] ],
+    [check_requires => $nodes[6] ],
+    [log_fail_step => $nodes[6]],
+    [log_revert_step => $nodes[5]],
+    [log_remove_tag => $nodes[4]],
+    [log_revert_step => $nodes[3]],
+], 'Should have deployed to dr_evil and revered down to @alpha';
+
+is_deeply +MockOutput->get_info, [
+    ['  + ', 'widgets'],
+    ['+ ', '@beta'],
+    ['  + ', 'users'],
+    ['  + ', 'dr_evil'],
+    ['  - ', 'users'],
+    ['- ', '@beta'],
+    ['  - ', 'widgets'],
+], 'Should see nodes revert back to @alpha';
+is_deeply +MockOutput->get_vent, [
+    ['ROFL'],
+    [__x 'Reverting to {target}', target => '@alpha'],
+], 'Should notifiy user of error and rollback to @alpha';
+
 
 exit;
 

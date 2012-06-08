@@ -128,8 +128,7 @@ sub _rollback {
     my ($self, $tag) = (shift, shift);
     my $sqitch = $self->sqitch;
 
-    if (@_) {
-        my @steps = @_;
+    if (my @run = reverse @_) {
         $tag = $tag ? $tag->format_name : $self->start_at;
         $sqitch->vent(
             $tag ? __x('Reverting to {target}', target => $tag)
@@ -137,7 +136,13 @@ sub _rollback {
         );
 
         try {
-            $self->revert_step($_) for reverse @steps;
+            for my $target (@run) {
+                if ($target->isa('App::Sqitch::Plan::Step')) {
+                    $self->revert_step($target);
+                } else {
+                    $self->remove_tag($target);
+                }
+            }
         } catch {
             # Sucks when this happens.
             $sqitch->vent(eval { $_->message } // $_);
