@@ -504,16 +504,41 @@ engine. Used internally to name the destination in status messages.
 
 =head3 C<deploy>
 
-  $engine->deploy($tag);
+  $engine->deploy($to_target);
+  $engine->deploy($to_target, $mode);
 
-Deploys the L<App::Sqitch::Plan::Tag> to the database, including all of its
-associated steps.
+Deploys changes to the destination database, starting with the current
+deployment state, and continuing to C<$to_target>. C<$to_target> must be a
+valid target specification as passable to the C<index_of()> method of
+L<App::Sqitch::Plan>. If C<$to_target> is not specified, all changes will be
+applied.
 
-=head3 C<deploy_step>
+The second argument specifies the reversion mode in the case of deployment
+failure. The allowed values are:
 
-  $engine->deploy_step($step);
+=over
 
-Used internally by C<deploy()> to deploy an individual step.
+=item C<all>
+
+In the event of failure, revert all deployed changes, back to the point at
+which deployment started. This is the default.
+
+=item C<tag>
+
+In the event of failure, revert all deployed changes to the last
+successfully-applied tag. If no tags were applied during this deployment, all
+changes will be reverted to the pint at which deployment began.
+
+=item C<step>
+
+In the event of failure, no changes will be reverted. This is on the
+assumption that a step failure is total, and the step may be applied again.
+
+=back
+
+Note that, in the event of failure, if a reversion fails, the destination
+database B<may be left in a corrupted state>. Write your revert scripts
+carefully!
 
 =head3 C<revert>
 
@@ -522,12 +547,31 @@ Used internally by C<deploy()> to deploy an individual step.
 Reverts the L<App::Sqitch::Plan::Tag> from the database, including all of its
 associated steps.
 
+=head3 C<deploy_step>
+
+  $engine->deploy_step($step);
+
+Used internally by C<deploy()> to deploy an individual step.
+
 =head3 C<revert_step>
 
   $engine->revert_step($step);
 
 Used internally by C<revert()> (and, by C<deploy()> when a deploy fails) to
 revert an individual step.
+
+=head3 C<apply_tag>
+
+  $engine->apply_tag($tag);
+
+Used internally by C<deploy()> to apply an individual tag.
+
+=head3 C<remove_tag>
+
+  $engine->remove_tag($tag);
+
+Used internally by C<revert()> (and, by C<deploy()> when a deploy fails) to
+remove an individual tag.
 
 =head3 C<is_deployed>
 
@@ -570,27 +614,6 @@ it has not.
 Should return true if the step has been deployed to the database, and false if
 it has not.
 
-=head3 C<begin_deploy_tag>
-
-  $engine->begin_deploy_tag($tag);
-
-Start deploying the tag. The engine may need to write the tag to the database,
-create locks to control the deployment, etc.
-
-=head3 C<commit_deploy_tag>
-
-  $engine->commit_deploy_tag($tag);
-
-Commit a tag deployment. The engine should clean up anything started in
-C<begin_deploy_tag()>.
-
-=head3 C<rollback_deploy_tag>
-
-  $engine->rollback_deploy_tag($tag);
-
-Roll back a tag deployment. The engine should remove the tag record and commit
-its changes.
-
 =head3 C<log_deploy_step>
 
   $engine->log_deploy_step($step);
@@ -605,26 +628,26 @@ indicate that the step has been deployed.
 Should write to the database event history a record reflecting that deployment
 of the step failed.
 
-=head3 C<begin_revert_tag>
-
-  $engine->begin_revert_tag($tag);
-
-Start reverting the tag. The engine may need to update the database, create
-locks to control the reversion, etc.
-
-=head3 C<commit_revert_tag>
-
-  $engine->commit_revert_tag($tag);
-
-Commit a tag reversion. The engine should clean up anything started in
-C<begin_revert_tag()>.
-
 =head3 C<log_revert_step>
 
   $engine->log_revert_step($step);
 
 Should write to and/or remove from the database metadata and history the
 records necessary to indicate that the step has been reverted.
+
+=head3 C<log_apply_tag>
+
+  $engine->log_apply_tag($tag);
+
+Should write to the database metadata and history the records necessary to
+indicate that the tag has been applied.
+
+=head3 C<log_remove_tag>
+
+  $engine->log_remove_tag($tag);
+
+Should write to and/or remove from the database metadata and history the
+records necessary to indicate that the tag has been removed.
 
 =head3 C<check_requires>
 
@@ -649,11 +672,23 @@ If any of the steps that conflict with the specified step have been deployed
 to the database, their names should be returned by this method. If no names
 are returned, it's because there are no conflicts.
 
-=head3 C<current_tag_name>
+=head3 C<latest_item>
 
-  my $tag_name $engine->current_tag_name;
+  my $item_name = $engine->latest_item;
 
-Returns one tag name from the most recently deployed tag.
+Returns the name of the most recently applied tag or step.
+
+=head3 C<latest_tag>
+
+  my $tag_name = $engine->latest_tag;
+
+Returns the name of the most recently applied tag.
+
+=head3 C<latest_step>
+
+  my $step_name = $engine->latest_step;
+
+Returns the name of the most recently applied step.
 
 =head3 C<run_file>
 
