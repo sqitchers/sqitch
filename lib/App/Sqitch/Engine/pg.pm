@@ -234,86 +234,6 @@ sub run_handle {
     $self->_spool($fh);
 }
 
-sub _begin_tag {
-    my $self = shift;
-    my $dbh  = $self->_dbh;
-
-    # Start transactiojn and lock tags to allow one tag change at a time.
-    $dbh->begin_work;
-    $dbh->do('LOCK TABLE tags IN EXCLUSIVE MODE');
-    return $dbh;
-}
-
-sub begin_deploy_tag {
-    my ( $self, $tag ) = @_;
-    my $dbh = $self->_begin_tag;
-
-    $dbh->do(
-        'INSERT INTO tags (applied_by) VALUES(?)',
-        undef, $self->actor
-    );
-
-    $dbh->do( q{
-        INSERT INTO tag_names (tag_id, tag_name)
-        SELECT lastval(), t FROM UNNEST(?::text[]) AS t
-    }, undef, [ $tag->names ] );
-
-    return $self;
-}
-
-sub begin_revert_tag {
-    my ( $self, $tag ) = @_;
-    $self->_begin_tag;
-    return $self;
-}
-
-sub commit_deploy_tag {
-    my ( $self, $tag ) = @_;
-    my $dbh = $self->_dbh;
-    croak(
-        "Cannot call commit_deploy_tag() without first calling begin_deploy_tag()"
-    ) if $dbh->{AutoCommit};
-    $dbh->do(q{
-        INSERT INTO events (event, tags, logged_by)
-        VALUES ('apply', ?, ?);
-    }, undef, [$tag->names], $self->actor);
-    $dbh->commit;
-}
-
-sub _revert_tag {
-    my ( $self, $tag, $dbh ) = @_;
-    $dbh->do(q{
-        DELETE FROM tags WHERE tag_id IN (
-            SELECT tag_id
-              FROM tag_names
-             WHERE tag_name = ANY(?)
-        );
-    }, undef, [$tag->names]);
-    $dbh->commit;
-}
-
-sub rollback_deploy_tag {
-    my ( $self, $tag ) = @_;
-    my $dbh = $self->_dbh;
-    croak(
-        "Cannot call rollback_deploy_tag() without first calling begin_deploy_tag()"
-    ) if $dbh->{AutoCommit};
-    $self->_revert_tag( $tag, $dbh );
-}
-
-sub commit_revert_tag {
-    my ( $self, $tag ) = @_;
-    my $dbh = $self->_dbh;
-    croak(
-        "Cannot call commit_revert_tag() without first calling begin_revert_tag()"
-    ) if $dbh->{AutoCommit};
-    $self->_revert_tag( $tag, $dbh );
-    $dbh->do(q{
-        INSERT INTO events (event, tags, logged_by)
-        VALUES ('remove', ?, ?);
-    }, undef, [$tag->names], $self->actor);
-}
-
 sub log_deploy_step {
     my ($self, $step) = @_;
     my $dbh = $self->_dbh;
@@ -452,26 +372,6 @@ sub check_requires {
           FROM UNNEST(?::text[]) required
          WHERE required <> ALL(ARRAY(SELECT step FROM steps));
     }, undef, [$step->requires]) || [] };
-}
-
-sub current_tag_name {
-    my $dbh = shift->_dbh;
-    return try {
-        $dbh->selectrow_array(q{
-            SELECT tag_name
-              FROM tag_names
-             WHERE tag_id = (
-                 SELECT tag_id
-                   FROM tags
-                  ORDER BY applied_at DESC
-                  LIMIT 1
-              )
-             LIMIT 1;
-        });
-    } catch {
-        return if $DBI::state eq '42P01'; # undefined_table
-        die $_;
-    };
 }
 
 sub _run {

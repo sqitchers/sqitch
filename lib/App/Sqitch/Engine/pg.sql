@@ -17,7 +17,7 @@ CREATE TABLE :"sqitch_schema".steps (
 
 COMMENT ON TABLE :"sqitch_schema".steps
 IS 'Tracks the steps currently deployed to the database.';
-COMMENT ON COLUMN :"sqitch_schema".steps.sah1        IS 'Step primary key.';
+COMMENT ON COLUMN :"sqitch_schema".steps.sha1        IS 'Step primary key.';
 COMMENT ON COLUMN :"sqitch_schema".steps.step        IS 'Name of a deployed step.';
 COMMENT ON COLUMN :"sqitch_schema".steps.requires    IS 'Array of the names of prerequisite steps.';
 COMMENT ON COLUMN :"sqitch_schema".steps.conflicts   IS 'Array of the names of conflicting steps.';
