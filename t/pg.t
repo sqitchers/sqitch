@@ -201,11 +201,7 @@ can_ok $CLASS, qw(
     initialize
     run_file
     run_handle
-    begin_deploy_tag
-    commit_deploy_tag
     log_deploy_step
-    begin_revert_tag
-    commit_revert_tag
     log_revert_step
     is_deployed_tag
     is_deployed_step
@@ -236,6 +232,8 @@ subtest 'live database' => sub {
     push @cleanup, 'DROP SCHEMA ' . $pg->sqitch_schema . ' CASCADE';
     ok $pg->initialize, 'Initialize the database';
     ok $pg->initialized, 'Database should now be initialized';
+
+    return; # Pick up from here.
 
     # Try it with a different schema name.
     ok $pg = $CLASS->new(
