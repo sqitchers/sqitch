@@ -476,13 +476,37 @@ C<next> returns C<undef>, the value will be the last index in the plan plus 1.
 
   my $tag_index  = $paln->index_of('@foo');
   my $step_index = $paln->index_of('bar');
-  my $bar1_index  = $plan->index_of('bar@alpha')
+  my $bar1_index = $plan->index_of('bar@alpha')
   my $bar2_index = $paln->index_of('bar@HEAD');
 
 Returns the index of the specified node. Tags should be specified with a
 leading C<@>. For steps that are duplicated, specify C<@tag> to disambiguate.
 Use C<@HEAD> to get the latest version of the step. Returns C<undef> if no
 such tag or step exists.
+
+=head3 C<first_index_of>
+
+  my $index = $plan->first_index_of($step_name);
+  my $index = $plan->first_index_of($step_name, $node_name);
+
+Returns the index of the first instance of the named step in the plan. If a
+second argument is passed, the index of the first instance of the step
+I<after> the the index of the second argument will be returned. This is useful
+for getting the index of a step as it was deployed after a particular tag, for
+example, to get the first index of the F<foo> step since the C<@beta> tag, do
+this:
+
+  my $index = $plan->first_index_of('foo', '@beta');
+
+You can also specify the first instance of a step after another step,
+including such a step at the point of a tag:
+
+  my $index = $plan->first_index_of('foo', 'users_table@beta1');
+
+The second argument must unambiguously refer to a single node in the plan. As
+such, it should usually be a tag name or tag-qualified step name. Returns
+C<undef> if the step does not appear in the plan, or if it does not appear
+after the specified second argument node name.
 
 =head3 C<seek>
 
