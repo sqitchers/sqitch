@@ -4,8 +4,8 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-#use Test::More tests => 122;
-use Test::More 'no_plan';
+use Test::More tests => 229;
+#use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
 use Path::Class;
@@ -879,6 +879,7 @@ is_deeply +MockOutput->get_vent, [
     ['ROFL'],
     [__x 'Reverting to {target}', target => '@alpha'],
 ], 'Should notifiy user of error and rollback to @alpha';
+$mock_whu->unmock_all;
 
 ##############################################################################
 # Test is_deployed().
@@ -892,3 +893,109 @@ ok $engine->is_deployed($step), 'Test is_deployed(step)';
 is_deeply $engine->seen, [
     [is_deployed_step => $step],
 ], 'It should have called is_deployed_step()';
+
+##############################################################################
+# Test deploy_step.
+can_ok $engine, 'deploy_step';
+ok $engine->deploy_step($step), 'Deploy a step';
+is_deeply $engine->seen, [
+    [check_conflicts => $step],
+    [check_requires => $step],
+    [run_file => $step->deploy_file],
+    [log_deploy_step => $step],
+], 'It should have been deployed';
+is_deeply +MockOutput->get_info, [
+    ['  + ', $step->format_name]
+], 'Should have shown step name';
+
+# Die on conflicts.
+@conflicts = qw(foo bar);
+throws_ok { $engine->deploy_step($step) } 'App::Sqitch::X',
+    'Conflict should throw exception';
+is $@->ident, 'deploy', 'Should be a "deploy" error';
+is $@->message, __nx(
+    'Conflicts with previously deployed step: {steps}',
+    'Conflicts with previously deployed steps: {steps}',
+    scalar @conflicts,
+    steps => join ' ', @conflicts,
+), 'Should have localized message about conflicts';
+
+is_deeply $engine->seen, [
+    [check_conflicts => $step],
+], 'No other methods should have been called';
+is_deeply +MockOutput->get_info, [
+    ['  + ', $step->format_name]
+], 'Should again have shown step name';
+@conflicts = ();
+
+# Die on missing prereqs.
+@missing_requires = qw(foo bar);
+throws_ok { $engine->deploy_step($step) } 'App::Sqitch::X',
+    'Missing prereqs should throw exception';
+is $@->ident, 'deploy', 'Should be another "deploy" error';
+is $@->message, __nx(
+    'Missing required step: {steps}',
+    'Missing required steps: {steps}',
+    scalar @missing_requires,
+    steps => join ' ', @missing_requires,
+), 'Should have localized message missing prereqs';
+
+is_deeply $engine->seen, [
+    [check_conflicts => $step],
+    [check_requires => $step],
+], 'Should have called check_requires';
+is_deeply +MockOutput->get_info, [
+    ['  + ', $step->format_name]
+], 'Should again have shown step name';
+@missing_requires = ();
+
+# Now make it die on the actual deploy.
+$die = 'log_deploy_step';
+throws_ok { $engine->deploy_step($step) } 'App::Sqitch::X',
+    'Shuld die on deploy failure';
+is $@->message, 'AAAH!', 'Should be the underlying error';
+is_deeply $engine->seen, [
+    [check_conflicts => $step],
+    [check_requires => $step],
+    [run_file => $step->deploy_file],
+    [log_fail_step => $step],
+], 'It should failed to have been deployed';
+is_deeply +MockOutput->get_info, [
+    ['  + ', $step->format_name]
+], 'Should have shown step name';
+
+$die = '';
+
+##############################################################################
+# Test revert_step().
+can_ok $engine, 'revert_step';
+ok $engine->revert_step($step), 'Revert the step';
+is_deeply $engine->seen, [
+    [run_file => $step->revert_file],
+    [log_revert_step => $step],
+], 'It should have been reverted';
+is_deeply +MockOutput->get_info, [
+    ['  - ', $step->format_name]
+], 'Should have shown reverted step name';
+
+##############################################################################
+# Test apply_tag().
+can_ok $engine, 'apply_tag';
+ok $engine->apply_tag($tag), 'Apply the tag';
+is_deeply $engine->seen, [
+    [log_apply_tag => $tag],
+], 'It should have been applied';
+is_deeply +MockOutput->get_info, [
+    ['+ ', $tag->format_name]
+], 'Should have shown applied tag name';
+
+##############################################################################
+# Test remove_tag().
+can_ok $engine, 'remove_tag';
+ok $engine->remove_tag($tag), 'Remove the tag';
+is_deeply $engine->seen, [
+    [log_remove_tag => $tag],
+], 'It should have been removed';
+is_deeply +MockOutput->get_info, [
+    ['- ', $tag->format_name]
+], 'Should have shown removed tag name';

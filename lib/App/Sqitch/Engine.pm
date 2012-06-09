@@ -251,7 +251,7 @@ sub deploy_step {
 
     # Check for conflicts.
     if (my @conflicts = $self->check_conflicts($step)) {
-        hurl __nx(
+        hurl deploy => __nx(
             'Conflicts with previously deployed step: {steps}',
             'Conflicts with previously deployed steps: {steps}',
             scalar @conflicts,
@@ -261,7 +261,7 @@ sub deploy_step {
 
     # Check for prerequisites.
     if (my @required = $self->check_requires($step)) {
-        hurl __nx(
+        hurl deploy => __nx(
             'Missing required step: {steps}',
             'Missing required steps: {steps}',
             scalar @required,
