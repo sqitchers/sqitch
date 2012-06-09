@@ -12,7 +12,7 @@ extends 'App::Sqitch::Command';
 
 our $VERSION = '0.32';
 
-has to => (
+has to_target => (
     is  => 'ro',
     isa => 'Str',
 );
@@ -29,7 +29,7 @@ has mode => (
 
 sub options {
     return qw(
-        to=s
+        to-target|to|target=s
         mode=s
     );
 }
@@ -37,7 +37,7 @@ sub options {
 sub execute {
     my $self   = shift;
     my $engine = $self->sqitch->engine;
-    $engine->deploy($self->to // shift, $self->mode);
+    $engine->deploy($self->to_target // shift, $self->mode);
     return $self;
 }
 

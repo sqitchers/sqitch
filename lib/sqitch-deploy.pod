@@ -6,7 +6,7 @@ sqitch-deploy - Deploy changes to a database
 
   sqitch [options] deploy
   sqitch [options] deploy <target>
-  sqitch [options] deploy --to <target>
+  sqitch [options] deploy --to-target <target>
 
 =head1 Description
 
@@ -19,6 +19,44 @@ If the database it up-to-date or already deployed to the specified target, no
 changes will be made. If the target appears earlier in the plan than the
 currently-deployed state, an error will be returned, along with a suggestion
 to instead use L<sqitch-revert>.
+
+=head1 Options
+
+=over
+
+=item C<--to-target>
+
+=item C<--target>
+
+=item C<--to>
+
+Specify the deployment target. Defaults to the last point in the plan.
+
+=item C<--mode>
+
+Specify the reversion mode to use in case of failure. Possible values are:
+
+=over
+
+=item C<all>
+
+In the event of failure, revert all deployed changes, back to the point at
+which deployment started. This is the default.
+
+=item C<tag>
+
+In the event of failure, revert all deployed changes to the last
+successfully-applied tag. If no tags were applied during this deployment, all
+changes will be reverted to the pint at which deployment began.
+
+=item C<step>
+
+In the event of failure, no changes will be reverted. This is on the
+assumption that a step failure is total, and the step may be applied again.
+
+=back
+
+=back
 
 =head1 Specifying Targets
 
@@ -33,6 +71,11 @@ A step name.
 =item C<< @<tag> >>, e.g, C<@beta>
 
 A tag name.
+
+=item C<< <step>@<tag> >>, e.g, C<users_table@beta>
+
+A step as of the specified tag. Probably more useful, in general, just to
+deploy to the tag.
 
 =begin comment
 

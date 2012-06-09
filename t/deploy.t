@@ -19,7 +19,7 @@ can_ok $CLASS, qw(
     options
     configure
     new
-    to
+    to_target
     mode
     execute
 );
@@ -32,7 +32,7 @@ my $sqitch = App::Sqitch->new(
 
 isa_ok my $deploy = $CLASS->new(sqitch => $sqitch), $CLASS;
 
-is $deploy->to, undef, 'to should be undef';
+is $deploy->to_target, undef, 'to_target should be undef';
 is $deploy->mode, 'all', 'mode should be "all"';
 
 # Mock the engine interface.
@@ -50,9 +50,9 @@ is_deeply \@args, [undef, 'all'],
     'undef and "all" should be passed to the engine';
 
 isa_ok $deploy = $CLASS->new(
-    sqitch => $sqitch,
-    to     => 'foo',
-    mode   => 'tag',
+    sqitch    => $sqitch,
+    to_target => 'foo',
+    mode      => 'tag',
 ), $CLASS, 'Object with to and mode';
 
 

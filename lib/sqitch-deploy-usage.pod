@@ -8,7 +8,9 @@ sqitch-deploy-usage - Sqitch deploy usage statement
 
 =head1 Options
 
-       --to <tag>    deploy to target
+       --to-target <tag>    deploy to target
+       --mode <mode>        failure reversion mode
+
 
 
 
