@@ -4,8 +4,8 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 11;
-#use Test::More 'no_plan';
+#use Test::More tests => 11;
+use Test::More 'no_plan';
 use Test::NoWarnings;
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -59,6 +59,12 @@ my $step = App::Sqitch::Plan::Step->new( plan => $plan, name => 'roles' );
 $mock_plan->mock(index_of => 1);
 $mock_plan->mock(node_at => $step);
 is $tag->step_id, $step->id, 'Step ID should be correct';
+
+# Make sure it gets the step even if there is a tag in between.
+my @prevs = ($tag, $step);
+$mock_plan->mock(index_of => 8);
+$mock_plan->mock(node_at => sub { shift @prevs });
+is $tag->step_id, $step->id, 'Step ID should be for previous step';
 
 is $tag->id, do {
     my $content = join "\n", (
