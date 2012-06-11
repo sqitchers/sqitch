@@ -11,8 +11,7 @@ CREATE TABLE :"sqitch_schema".steps (
     deployed_at TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
     deployed_by TEXT        NOT NULL DEFAULT current_user,
     requires    TEXT[]      NOT NULL DEFAULT '{}',
-    conflicts   TEXT[]      NOT NULL DEFAULT '{}',
-    body        BYTEA       NOT NULL
+    conflicts   TEXT[]      NOT NULL DEFAULT '{}'
 );
 
 COMMENT ON TABLE :"sqitch_schema".steps

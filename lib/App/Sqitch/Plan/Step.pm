@@ -50,6 +50,19 @@ has test_file => (
     }
 );
 
+has sha1 => (
+    is       => 'ro',
+    isa      => 'Str',
+    lazy     => 1,
+    default  => sub {
+        require Digest::SHA1;
+        my $content = shift->deploy_file->slurp(iomode => '<:raw');
+        return Digest::SHA1->new->add(
+            'blob ' . length $content . "\0" . $content
+        )->hexdigest;
+    }
+);
+
 sub is_revert {
     shift->operator eq '-';
 }

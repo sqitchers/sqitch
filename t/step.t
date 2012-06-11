@@ -4,14 +4,15 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-#use Test::More tests => 38;
-use Test::More 'no_plan';
+use Test::More tests => 40;
+#use Test::More 'no_plan';
 use Test::NoWarnings;
 use App::Sqitch;
 use App::Sqitch::Plan;
 use Test::Exception;
 use Path::Class;
 use File::Path qw(make_path remove_tree);
+use Digest::SHA1;
 
 my $CLASS;
 
@@ -82,10 +83,10 @@ make_path dir(qw(sql deploy))->stringify;
 END { remove_tree 'sql' };
 file(qw(sql deploy baz.sql))->touch;
 my $step_file = file qw(sql deploy bar.sql);
-my $fh = $step_file->open('>') or die "Cannot open $step_file: $!\n";
+my $fh = $step_file->open('>:utf8') or die "Cannot open $step_file: $!\n";
 $fh->say('-- This is a comment');
 $fh->say('# And so is this');
-$fh->say('; and this, wee!');
+$fh->say('; and this, w€€!');
 $fh->say('/* blah blah blah */');
 $fh->say('-- :requires: foo');
 $fh->say('-- :requires: foo');
@@ -97,6 +98,12 @@ $fh->close;
 
 ok $step = $CLASS->new( name => 'baz', plan => $plan ),
     'Create step "baz"';
+is $step->sha1, do {
+    my $content = file(qw(sql deploy baz.sql))->slurp(iomode => '<:raw');
+    Digest::SHA1->new->add(
+        'blob ' . length $content . "\0" . $content
+    )->hexdigest;
+}, 'baz SHA1 should be correct';
 
 is_deeply $step->_parse_dependencies, { conflicts => [], requires => [] },
     'baz.sql should have no dependencies';
@@ -105,6 +112,12 @@ is_deeply [$step->conflicts], [], 'Conflicts should be empty';
 
 ok $step = $CLASS->new( name => 'bar', plan => $plan ),
     'Create step "bar"';
+is $step->sha1, do {
+    my $content = $step_file->slurp(iomode => '<:raw');
+    Digest::SHA1->new->add(
+        'blob ' . length $content . "\0" . $content
+    )->hexdigest;
+}, 'bar SHA1 should be correct';
 
 is_deeply $step->_parse_dependencies([], 'bar'), {
     requires  => [qw(foo foo @yo blah blah w00t)],
