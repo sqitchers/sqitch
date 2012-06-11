@@ -52,7 +52,7 @@ is $tag->stringify, "  \@howdy\t# blah blah blah",
 my $mock_plan = Test::MockModule->new('App::Sqitch::Plan');
 $mock_plan->mock(index_of => 0);
 
-is $tag->sha1, do {
+is $tag->id, do {
     my $content = join "\n", (
         'object 0000000000000000000000000000000000000000',
         'type tag',

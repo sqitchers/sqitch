@@ -10,7 +10,7 @@ sub format_name {
     '@' . shift->name;
 }
 
-has sha1 => (
+has id => (
     is       => 'ro',
     isa      => 'Str',
     lazy     => 1,

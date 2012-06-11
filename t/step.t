@@ -98,7 +98,7 @@ $fh->close;
 
 ok $step = $CLASS->new( name => 'baz', plan => $plan ),
     'Create step "baz"';
-is $step->sha1, do {
+is $step->id, do {
     my $content = file(qw(sql deploy baz.sql))->slurp(iomode => '<:raw');
     Digest::SHA1->new->add(
         'blob ' . length $content . "\0" . $content
@@ -112,7 +112,7 @@ is_deeply [$step->conflicts], [], 'Conflicts should be empty';
 
 ok $step = $CLASS->new( name => 'bar', plan => $plan ),
     'Create step "bar"';
-is $step->sha1, do {
+is $step->id, do {
     my $content = $step_file->slurp(iomode => '<:raw');
     Digest::SHA1->new->add(
         'blob ' . length $content . "\0" . $content
