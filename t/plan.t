@@ -429,6 +429,7 @@ is $node->name, 'hey', 'It should be the first step';
 is $plan->position, 0, 'Position should be at 0';
 is $plan->count, 7, 'Count should be 7';
 is $plan->current, $node, 'Current should be current';
+is $plan->node_at(0), $node, 'Should get first node from node_at(0)';
 
 ok my $next = $plan->peek, 'Peek to next node';
 isa_ok $next, 'App::Sqitch::Plan::Step', 'Peeked node';
@@ -438,6 +439,7 @@ is $plan->current, $node, 'Current should still be current';
 is $plan->peek, $next, 'Peek should still be next';
 is $plan->next, $next, 'Next should be the second node';
 is $plan->position, 1, 'Position should be at 1';
+is $plan->node_at(1), $next, 'Should get second node from node_at(1)';
 
 ok my $third = $plan->peek, 'Peek should return an object';
 isa_ok $third, 'App::Sqitch::Plan::Tag', 'Third node';
@@ -446,6 +448,7 @@ is $plan->current, $next, 'Current should be the second node';
 is $plan->next, $third, 'Should get third node next';
 is $plan->position, 2, 'Position should be at 2';
 is $plan->current, $third, 'Current should be third node';
+is $plan->node_at(2), $third, 'Should get third node from node_at(1)';
 
 ok my $fourth = $plan->next, 'Get fourth node';
 isa_ok $fourth, 'App::Sqitch::Plan::Step', 'Fourth node';
@@ -494,6 +497,10 @@ is $plan->index_of('@baz'), 6, 'Index of @baz should be 6';
 ok $plan->seek('@baz'), 'Seek to the "baz" node';
 is $plan->position, 6, 'Position should be at 6 again';
 is $plan->current, $seventh, 'Current should be seventh again';
+
+is $plan->node_at(0), $node,  'Should still get first node from node_at(0)';
+is $plan->node_at(1), $next,  'Should still get second node from node_at(1)';
+is $plan->node_at(2), $third, 'Should still get third node from node_at(1)';
 
 # Make sure seek() chokes on a bad node name.
 throws_ok { $plan->seek('nonesuch') } qr/FAIL:/,

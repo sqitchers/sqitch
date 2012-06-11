@@ -280,6 +280,7 @@ sub nodes          { shift->_plan->{nodes}->items }
 sub count          { shift->_plan->{nodes}->count }
 sub index_of       { shift->_plan->{nodes}->index_of(shift) }
 sub first_index_of { shift->_plan->{nodes}->first_index_of(@_) }
+sub node_at        { shift->_plan->{nodes}->item_at(shift) }
 
 sub seek {
     my ( $self, $key ) = @_;
@@ -507,6 +508,12 @@ The second argument must unambiguously refer to a single node in the plan. As
 such, it should usually be a tag name or tag-qualified step name. Returns
 C<undef> if the step does not appear in the plan, or if it does not appear
 after the specified second argument node name.
+
+=head3 C<node_at>
+
+  my $node = $plan->node_at($index);
+
+Returns the node at the specified index.
 
 =head3 C<seek>
 

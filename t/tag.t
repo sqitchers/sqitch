@@ -4,11 +4,13 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 9;
+use Test::More tests => 10;
 #use Test::More 'no_plan';
 use Test::NoWarnings;
 use App::Sqitch;
 use App::Sqitch::Plan;
+use Test::MockModule;
+use Digest::SHA1;
 
 my $CLASS;
 
@@ -47,3 +49,16 @@ ok $tag = $CLASS->new(
 is $tag->stringify, "  \@howdy\t# blah blah blah",
     'It should stringify correctly';
 
+my $mock_plan = Test::MockModule->new('App::Sqitch::Plan');
+$mock_plan->mock(index_of => 0);
+
+is $tag->sha1, do {
+    my $content = join "\n", (
+        'object 0000000000000000000000000000000000000000',
+        'type tag',
+        'tag @howdy',
+        );
+    Digest::SHA1->new->add(
+        'tag ' . length $content . "\0" . $content
+    )->hexdigest;
+},'Tag SHA1 should be correct';

@@ -3,11 +3,38 @@ package App::Sqitch::Plan::Tag;
 use v5.10.1;
 use utf8;
 use namespace::autoclean;
+use Moose;
 use parent 'App::Sqitch::Plan::Line';
 
 sub format_name {
     '@' . shift->name;
 }
+
+has sha1 => (
+    is       => 'ro',
+    isa      => 'Str',
+    lazy     => 1,
+    default  => sub {
+        my $self = shift;
+        my $plan = $self->plan;
+        my $index = $plan->index_of($self->format_name);
+        my $prev = $index == 0
+            ? '0000000000000000000000000000000000000000'
+            : $plan->node_at($index - 1)->sha1;
+
+        my $content = join "\n", (
+            "object $prev",
+            'type tag',
+            'tag ' . $self->format_name,
+            # XXX Add tagger and comment?
+        );
+
+        require Digest::SHA1;
+        return Digest::SHA1->new->add(
+            'tag ' . length $content . "\0" . $content
+        )->hexdigest;
+    }
+);
 
 __PACKAGE__->meta->make_immutable;
 no Moose;
