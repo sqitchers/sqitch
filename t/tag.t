@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 10;
+use Test::More tests => 11;
 #use Test::More 'no_plan';
 use Test::NoWarnings;
 use App::Sqitch;
@@ -17,6 +17,10 @@ my $CLASS;
 BEGIN {
     $CLASS = 'App::Sqitch::Plan::Tag';
     require_ok $CLASS or die;
+    delete $ENV{PGDATABASE};
+    delete $ENV{PGUSER};
+    delete $ENV{USER};
+    $ENV{SQITCH_CONFIG} = 'nonexistent.conf';
 }
 
 can_ok $CLASS, qw(
@@ -49,16 +53,22 @@ ok $tag = $CLASS->new(
 is $tag->stringify, "  \@howdy\t# blah blah blah",
     'It should stringify correctly';
 
+chdir 't';
 my $mock_plan = Test::MockModule->new('App::Sqitch::Plan');
-$mock_plan->mock(index_of => 0);
+my $step = App::Sqitch::Plan::Step->new( plan => $plan, name => 'roles' );
+$mock_plan->mock(index_of => 1);
+$mock_plan->mock(node_at => $step);
+is $tag->step_id, $step->id, 'Step ID should be correct';
 
 is $tag->id, do {
     my $content = join "\n", (
-        'object 0000000000000000000000000000000000000000',
+        'object ' . $step->id,
         'type tag',
         'tag @howdy',
-        );
+    );
     Digest::SHA1->new->add(
-        'tag ' . length $content . "\0" . $content
+        'tag ' . length($content) . "\0" . $content
     )->hexdigest;
 },'Tag SHA1 should be correct';
+
+

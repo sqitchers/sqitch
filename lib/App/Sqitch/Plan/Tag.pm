@@ -17,23 +17,37 @@ has id => (
     default  => sub {
         my $self = shift;
         my $plan = $self->plan;
-        my $index = $plan->index_of($self->format_name);
-        my $prev = $index == 0
-            ? '0000000000000000000000000000000000000000'
-            : $plan->node_at($index - 1)->sha1;
 
         my $content = join "\n", (
-            "object $prev",
+            'object ' . $self->step_id,
             'type tag',
             'tag ' . $self->format_name,
-            # XXX Add tagger and comment?
+            # XXX Add tagger name? Timestamp? Comment?
         );
 
         require Digest::SHA1;
         return Digest::SHA1->new->add(
-            'tag ' . length $content . "\0" . $content
+            'tag ' . length($content) . "\0" . $content
         )->hexdigest;
     }
+);
+
+has step_id => (
+    is       => 'ro',
+    isa      => 'Str',
+    lazy     => 1,
+    default  => sub {
+        my $self = shift;
+        my $plan = $self->plan;
+        my $index = $plan->index_of($self->format_name);
+
+        while ($index > 0) {
+            my $prev = $plan->node_at(--$index);
+            return $prev->id if $prev->isa('App::Sqitch::Plan::Step');
+        }
+
+        return '0000000000000000000000000000000000000000';
+    },
 );
 
 __PACKAGE__->meta->make_immutable;
