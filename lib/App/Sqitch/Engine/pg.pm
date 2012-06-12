@@ -352,24 +352,32 @@ sub is_deployed_step {
     }, undef, $step->id)->[0];
 }
 
-sub _get_steps {
-    my $self = shift;
-    return unless @_;
-    return @{ $self->_dbh->selectcol_arrayref(q{
-        SELECT step
-          FROM steps
-         WHERE step = ANY(?)
-    }, undef, \@_) };
-}
-
 sub check_requires {
     my ( $self, $step ) = @_;
-    $self->_get_steps($step->requires);
+
+    # No need to check anything if there are no requirements.
+    return unless $step->requires;
+
+    return @{ $self->_dbh->selectcol_arrayref(q{
+        SELECT required
+          FROM UNNEST(?::text[]) required
+         WHERE required <> ALL(ARRAY(SELECT step FROM steps))
+         ORDER BY required;
+    }, undef, [$step->requires]) || [] };
 }
 
 sub check_conflicts {
     my ( $self, $step ) = @_;
-    $self->_get_steps($step->conflicts);
+
+    # No need to check anything if there are no conflicts.
+    return unless $step->conflicts;
+
+    return @{ $self->_dbh->selectcol_arrayref(q{
+        SELECT step
+          FROM steps
+         WHERE step = ANY(?)
+         ORDER BY step
+    }, undef, [$step->conflicts]) || [] };
 }
 
 sub _fetch_item {

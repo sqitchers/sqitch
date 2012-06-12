@@ -467,8 +467,6 @@ subtest 'live database' => sub {
         ['deploy', $step2->id, 'widgets', $pg->actor],
     ], 'The new step deploy should have been logged';
 
-=begin comment
-
     ##########################################################################
     # Test conflicts and requires.
     is_deeply [$pg->check_conflicts($step)], [], 'Step should have no conflicts';
@@ -476,109 +474,22 @@ subtest 'live database' => sub {
 
     my $step3 = App::Sqitch::Plan::Step->new(
         name      => 'whatever',
-        tag       => $tag,
+        plan      => $plan,
         conflicts => ['users', 'widgets'],
         requires  => ['fred', 'barney', 'widgets'],
     );
     is_deeply [$pg->check_conflicts($step3)], [qw(users widgets)],
         'Should get back list of installed conflicting steps';
-    is_deeply [$pg->check_requires($step3)], [qw(fred barney)],
+    is_deeply [$pg->check_requires($step3)], [qw(barney fred)],
         'Should get back list of missing prereq steps';
 
-    # Revert gamma.
-    ok $pg->begin_revert_tag($tag2), 'Begin reverting "gamma" step';
-    ok $pg->revert_step($step2), 'Revert "gamma"';
-    ok $pg->commit_revert_tag($tag2), 'Commit "gamma" reversion';
-    ok !$pg->is_deployed_step($step2), 'The "widgets" step should no longer be deployed';
-
-    is_deeply $pg->_dbh->selectall_arrayref(
-        'SELECT tag_id, applied_by FROM tags ORDER BY applied_at'
-    ), [
-        [5, $pg->actor],
-    ], 'Should have only the one step record now';
-
-    is_deeply $pg->_dbh->selectall_arrayref(
-        'SELECT tag_name, tag_id FROM tag_names ORDER BY tag_name'
-    ), [['alpha', 5], ['beta', 5]],
-        'Only the alpha tags should be in tag_names';
-
-    is_deeply $pg->_dbh->selectall_arrayref(q{
-        SELECT step, tag_id, deployed_by, requires, conflicts
-          FROM steps
-         ORDER BY deployed_at
-    }), [
-        ['users', 5, $pg->actor, [], []],
-    ], 'Only the "users" step should be in the steps table';
-
-    is_deeply $pg->_dbh->selectall_arrayref(
-        'SELECT event, step, tags, logged_by FROM events ORDER BY logged_at OFFSET 12'
-    ), [
-        ['revert', 'users', ['alpha', 'beta'], $pg->actor],
-        ['remove', '', ['alpha', 'beta'], $pg->actor],
-        ['deploy', 'users', ['alpha', 'beta'], $pg->actor],
-        ['apply', '', ['alpha', 'beta'], $pg->actor],
-        ['deploy', 'widgets', ['gamma'], $pg->actor],
-        ['apply', '', ['gamma'], $pg->actor],
-        ['revert', 'widgets', ['gamma'], $pg->actor],
-        ['remove', '', ['gamma'], $pg->actor],
-    ], 'The revert and removal should have been logged';
-
-    ok $pg->_dbh->selectcol_arrayref(q{
-        SELECT NOT EXISTS(
-            SELECT true
-              FROM pg_catalog.pg_namespace n
-              JOIN pg_catalog.pg_class c ON n.oid = c.relnamespace
-             WHERE c.relkind = 'r'
-               AND n.nspname = '__myapp'
-               AND c.relname = 'widgets'
-        );
-    })->[0], 'The "widgets" revert script should have been run again';
+    # Undeploy widgets.
+    ok $pg->log_revert_step($step2), 'Revert "widgets"';
 
     is_deeply [$pg->check_conflicts($step3)], [qw(users)],
         'Should now see only "users" as a conflict';
-    is_deeply [$pg->check_requires($step3)], [qw(fred barney widgets)],
+    is_deeply [$pg->check_requires($step3)], [qw(barney fred widgets)],
         'Should get back list all three missing prereq steps';
-
-    ##########################################################################
-    # Test failures.
-    ok $pg->begin_deploy_tag($tag2), 'Begin "gamma" tag again';
-
-    is_deeply $pg->_dbh->selectall_arrayref(
-        'SELECT tag_id, applied_by FROM tags ORDER BY applied_at'
-    ), [
-        [5, $pg->actor],
-        [7, $pg->actor],
-    ], 'Should have only both tag records again';
-
-    is_deeply $pg->_dbh->selectall_arrayref(
-        'SELECT tag_name, tag_id FROM tag_names ORDER BY tag_name'
-    ), [['alpha', 5], ['beta', 5], ['gamma', 7]],
-        'Both sets of tag names should be present';
-
-    ok $pg->log_fail_step($step2), 'Log the fail step';
-    ok $pg->rollback_deploy_tag($tag2), 'Roll back "gamma" tag with "widgets" step';
-
-    is_deeply $pg->_dbh->selectall_arrayref(
-        'SELECT tag_id, applied_by FROM tags ORDER BY applied_at'
-    ), [
-        [5, $pg->actor],
-    ], 'Should have only the first tag record again';
-
-    is_deeply $pg->_dbh->selectall_arrayref(
-        'SELECT tag_name, tag_id FROM tag_names ORDER BY tag_name'
-    ), [['alpha', 5], ['beta', 5]],
-        'Should have only the first tag names again';
-
-    is_deeply $pg->_dbh->selectall_arrayref(
-        'SELECT event, step, tags, logged_by FROM events ORDER BY logged_at OFFSET 18'
-    ), [
-        ['revert', 'widgets', ['gamma'], $pg->actor],
-        ['remove', '', ['gamma'], $pg->actor],
-        ['fail', 'widgets', ['gamma'], $pg->actor],
-    ], 'The failure should have been logged';
-
-=cut
-
 };
 
 done_testing;
