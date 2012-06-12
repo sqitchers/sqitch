@@ -358,7 +358,7 @@ subtest 'live database' => sub {
 
     ##########################################################################
     # Test log_apply_tag().
-    my $tag = $plan->node_at(1), 'Get a tag';
+    ok my $tag = $plan->node_at(1), 'Get a tag';
     is $tag->format_name, '@alpha', 'It should be the @alpha tag';
     ok !$pg->is_deployed_tag($tag), 'The tag should not yet be deployed';
 
