@@ -381,7 +381,7 @@ subtest 'live database' => sub {
 
     # Now deploy the tag.
     ok $pg->log_apply_tag($tag), 'Deploy a tag';
-    ok $pg->is_deployed_tag($tag), 'The tag still now be deployed';
+    ok $pg->is_deployed_tag($tag), 'The tag should now be deployed';
     is $pg->latest_item, '@alpha', 'Should now get "@alpha" for latest item';
     is $pg->latest_step, 'users',  'Should still get "users" for latest step';
     is $pg->latest_tag,  '@alpha', 'Should now get "@alpha" for latest tag';
@@ -431,6 +431,41 @@ subtest 'live database' => sub {
         ['remove', $tag->id,  '@alpha', $pg->actor],
     ], 'The remove event should have been logged';
 
+    ##########################################################################
+    # Test a step with prereqs.
+    ok $pg->log_apply_tag($tag),   'Apply the tag again';
+    ok $pg->is_deployed_tag($tag), 'The tag again should be deployed';
+    is $pg->latest_item, '@alpha', 'Should again get "@alpha" for latest item';
+    is $pg->latest_step, 'users',  'Should still get "users" for latest step';
+    is $pg->latest_tag,  '@alpha', 'Should again get "@alpha" for latest tag';
+
+    ok my $step2 = $plan->node_at(2), 'Get the second step';
+    ok $pg->log_deploy_step($step2),  'Deploy second step';
+    is $pg->latest_item, 'widgets',   'Should get "widgets" for latest item';
+    is $pg->latest_step, 'widgets',   'Should  get "widgets" for latest step';
+    is $pg->latest_tag,  '@alpha',    'Should still get "@alpha" for latest tag';
+
+    is_deeply $pg->_dbh->selectall_arrayref(q{
+        SELECT step_id, step, requires, conflicts, deployed_by
+          FROM steps
+         ORDER BY deployed_at
+    }), [
+        [$step->id,  'users', [], [], $pg->actor],
+        [$step2->id, 'widgets', ['users'], ['dr_evil'], $pg->actor],
+    ], 'Should have both steps and requires/conflcits deployed';
+
+    is_deeply $pg->_dbh->selectall_arrayref(
+        'SELECT event, node_id, node, logged_by FROM events ORDER BY logged_at'
+    ), [
+        ['deploy', $step->id,  'users',   $pg->actor],
+        ['revert', $step->id,  'users',   $pg->actor],
+        ['fail',   $step->id,  'users',   $pg->actor],
+        ['deploy', $step->id,  'users',   $pg->actor],
+        ['apply',  $tag->id,   '@alpha',  $pg->actor],
+        ['remove', $tag->id,   '@alpha',  $pg->actor],
+        ['apply',  $tag->id,   '@alpha',  $pg->actor],
+        ['deploy', $step2->id, 'widgets', $pg->actor],
+    ], 'The new step deploy should have been logged';
 
 =begin comment
 
