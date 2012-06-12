@@ -245,7 +245,7 @@ sub log_deploy_step {
 
     my ($id, $name, $req, $conf, $actor) = (
         $step->id,
-        $step->name,
+        $step->format_name,
         [$step->requires],
         [$step->conflicts],
         $self->actor,
@@ -291,15 +291,43 @@ sub log_revert_step {
 }
 
 sub log_apply_tag {
-    my $class = ref $_[0] || $_[0];
-    require Carp;
-    Carp::confess( "$class has not implemented log_apply_tag()" );
+    my ( $self, $tag ) = @_;
+    my $dbh = $self->_dbh;
+
+    my ($id, $name, $step_id, $actor) = (
+        $tag->id,
+        $tag->format_name,
+        $tag->step_id,
+        $self->actor,
+    );
+
+    $dbh->do(q{
+        INSERT INTO tags (tag_id, tag, step_id, applied_by)
+        VALUES (?, ?, ?, ?)
+    }, undef, $id, $name, $step_id, $actor);
+    $dbh->do(q{
+        INSERT INTO events (event, node_id, node, logged_by)
+        VALUES ('apply', ?, ?, ?);
+    }, undef, $id, $name, $actor);
+
+    return $self;
 }
 
 sub log_remove_tag {
-    my $class = ref $_[0] || $_[0];
-    require Carp;
-    Carp::confess( "$class has not implemented log_remove_tag()" );
+    my ($self, $tag) = @_;
+    my $dbh = $self->_dbh;
+
+    $dbh->do(q{
+        INSERT INTO events (event, node_id, node, logged_by)
+        VALUES ('remove', ?, ?, ?);
+    }, undef, $tag->id, $tag->format_name, $self->actor);
+
+    $dbh->do(
+        'DELETE FROM tags where tag_id = ?',
+        undef, $tag->id
+    );
+
+    return $self;
 }
 
 sub is_deployed_tag {
@@ -356,10 +384,12 @@ sub _fetch_item {
 
 sub latest_item {
     shift->_fetch_item(q{
-        SELECT node
-          FROM events
-         WHERE event IN ('deploy', 'apply')
-         ORDER BY logged_at DESC
+        SELECT tag AS node, applied_at AS ts
+          FROM tags
+         UNION
+        SELECT step AS node, deployed_at AS ts
+          FROM steps
+         ORDER BY ts DESC
          LIMIT 1
     });
 }
