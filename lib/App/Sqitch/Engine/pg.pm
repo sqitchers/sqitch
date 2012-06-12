@@ -289,6 +289,18 @@ sub log_revert_step {
     return $self;
 }
 
+sub log_apply_tag {
+    my $class = ref $_[0] || $_[0];
+    require Carp;
+    Carp::confess( "$class has not implemented log_apply_tag()" );
+}
+
+sub log_remove_tag {
+    my $class = ref $_[0] || $_[0];
+    require Carp;
+    Carp::confess( "$class has not implemented log_remove_tag()" );
+}
+
 sub is_deployed_tag {
     my ( $self, $tag ) = @_;
     return $self->_dbh->selectcol_arrayref(q{
@@ -321,14 +333,32 @@ sub _get_steps {
     }, undef, \@_) };
 }
 
+sub check_requires {
+    my ( $self, $step ) = @_;
+    $self->_get_steps($step->requires);
+}
+
 sub check_conflicts {
     my ( $self, $step ) = @_;
     $self->_get_steps($step->conflicts);
 }
 
-sub check_requires {
-    my ( $self, $step ) = @_;
-    $self->_get_steps($step->requires);
+sub latest_item {
+    my $class = ref $_[0] || $_[0];
+    require Carp;
+    Carp::confess( "$class has not implemented latest_item()" );
+}
+
+sub latest_tag {
+    my $class = ref $_[0] || $_[0];
+    require Carp;
+    Carp::confess("$class has not implemented latest_tag()");
+}
+
+sub latest_step {
+    my $class = ref $_[0] || $_[0];
+    require Carp;
+    Carp::confess( "$class has not implemented latest_step()" );
 }
 
 sub _run {
