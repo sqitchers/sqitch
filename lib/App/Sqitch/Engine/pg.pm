@@ -176,7 +176,8 @@ has _dbh => (
             pg_server_prepare => 1,
             HandleError       => sub {
                 my ($err, $dbh) = @_;
-                @_ = ($dbh->state => $dbh->errstr);
+                $@ = $err;
+                @_ = ($dbh->state || 'DEV' => $dbh->errstr);
                 goto &hurl;
             },
             Callbacks         => {
@@ -256,7 +257,7 @@ sub log_deploy_step {
     }, undef, $id, $name, $req, $conf, $actor);
     $dbh->do(q{
         INSERT INTO events (event, node_id, node, logged_by)
-        VALUES ('deploy', ?, ?);
+        VALUES ('deploy', ?, ?, ?);
     }, undef, $id, $name, $actor);
 
     return $self;
@@ -278,11 +279,11 @@ sub log_revert_step {
 
     $dbh->do(q{
         INSERT INTO events (event, node_id, node, logged_by)
-        VALUES ('fail', ?, ?, ?);
+        VALUES ('revert', ?, ?, ?);
     }, undef, $step->id, $step->name, $self->actor);
 
     $dbh->do(
-        'DELETE FROM steps where id = ?',
+        'DELETE FROM steps where step_id = ?',
         undef, $step->id
     );
 
@@ -343,22 +344,42 @@ sub check_conflicts {
     $self->_get_steps($step->conflicts);
 }
 
+sub _fetch_item {
+    my ($self, $sql) = @_;
+    return try {
+        $self->_dbh->selectcol_arrayref($sql)->[0];
+    } catch {
+        return if $DBI::state eq '42P01'; # undefined_table
+        die $_;
+    };
+}
+
 sub latest_item {
-    my $class = ref $_[0] || $_[0];
-    require Carp;
-    Carp::confess( "$class has not implemented latest_item()" );
+    shift->_fetch_item(q{
+        SELECT node
+          FROM events
+         WHERE event IN ('deploy', 'apply')
+         ORDER BY logged_at DESC
+         LIMIT 1
+    });
 }
 
 sub latest_tag {
-    my $class = ref $_[0] || $_[0];
-    require Carp;
-    Carp::confess("$class has not implemented latest_tag()");
+    shift->_fetch_item(q{
+        SELECT tag
+          FROM tags
+         ORDER BY applied_at DESC
+         LIMIT 1
+    });
 }
 
 sub latest_step {
-    my $class = ref $_[0] || $_[0];
-    require Carp;
-    Carp::confess( "$class has not implemented latest_step()" );
+    shift->_fetch_item(q{
+        SELECT step
+          FROM steps
+         ORDER BY deployed_at DESC
+         LIMIT 1
+    });
 }
 
 sub _run {

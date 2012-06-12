@@ -204,7 +204,10 @@ can_ok $CLASS, qw(
     run_file
     run_handle
     log_deploy_step
-    log_revert_step
+    log_fail_step
+    log_deploy_step
+    log_apply_tag
+    log_remove_tag
     is_deployed_tag
     is_deployed_step
     check_requires
@@ -219,7 +222,11 @@ END {
 }
 
 subtest 'live database' => sub {
-    $sqitch = App::Sqitch->new('username' => 'postgres');
+    $sqitch = App::Sqitch->new(
+        username  => 'postgres',
+        sql_dir   => Path::Class::dir(qw(t pg)),
+        plan_file => Path::Class::file(qw(t pg sqitch.plan)),
+    );
     $pg = $CLASS->new(sqitch => $sqitch);
     try {
         $pg->_dbh;
@@ -233,6 +240,8 @@ subtest 'live database' => sub {
     push @cleanup, 'DROP SCHEMA ' . $pg->sqitch_schema . ' CASCADE';
     ok $pg->initialize, 'Initialize the database';
     ok $pg->initialized, 'Database should now be initialized';
+    is $pg->_dbh->selectcol_arrayref('SHOW search_path')->[0], 'sqitch',
+        'The search path should be set';
 
     # Try it with a different schema name.
     ok $pg = $CLASS->new(
@@ -240,13 +249,20 @@ subtest 'live database' => sub {
         sqitch_schema => '__sqitchtest',
     ), 'Create a pg with postgres user and __sqitchtest schema';
 
-    # XXX 
-#    is $pg->latest_item, undef, 'No init, no events';
+    is $pg->latest_item, undef, 'No init, no events';
+    is $pg->latest_tag,  undef, 'No init, no tags';
+    is $pg->latest_step, undef, 'No init, no steps';
 
     ok !$pg->initialized, 'Database should no longer seem initialized';
     push @cleanup, 'DROP SCHEMA __sqitchtest CASCADE';
     ok $pg->initialize, 'Initialize the database again';
     ok $pg->initialized, 'Database should be initialized again';
+    is $pg->_dbh->selectcol_arrayref('SHOW search_path')->[0], '__sqitchtest',
+        'The search path should be set to the new path';
+
+    is $pg->latest_item, undef, 'Still no events';
+    is $pg->latest_tag,  undef, 'Still no tags';
+    is $pg->latest_step, undef, 'Still no steps';
 
     # Make sure a second attempt to initialize dies.
     throws_ok { $pg->initialize } 'App::Sqitch::X',
@@ -261,27 +277,91 @@ subtest 'live database' => sub {
         'Database error should be converted to Sqitch exception';
     is $@->ident, $DBI::state, 'Ident should be SQL error state';
     like $@->message, qr/^ERROR:  /, 'The message should be the PostgreSQL error';
+    like $@->previous_exception, qr/\QDBD::Pg::db do failed: /,
+        'The DBI error should be in preview_exception';
+
+    ##########################################################################
+    # Test log_deploy_step().
+    my $plan = $sqitch->plan;
+    my $step = $plan->node_at(0);
+    is $step->name, 'users', 'Should have "users" step';
+    ok $pg->log_deploy_step($step), 'Deploy "users" step';
+
+    is $pg->latest_item, 'users', 'Should get "users" for latest item';
+    is $pg->latest_step, 'users', 'Should get "users" for latest step';
+    is $pg->latest_tag,   undef,  'Should get undef for latest step';
+
+    is_deeply $pg->_dbh->selectall_arrayref(
+        'SELECT step_id, step, requires, conflicts, deployed_by FROM steps'
+    ), [[$step->id, 'users', [], [], $pg->actor]],
+        'A record should have been inserted into the steps table';
+
+    is_deeply $pg->_dbh->selectall_arrayref(
+        'SELECT event, node_id, node, logged_by FROM events'
+    ), [['deploy', $step->id, 'users', $pg->actor]],
+        'A record should have been inserted into the events table';
+
+    is_deeply $pg->_dbh->selectall_arrayref(
+        'SELECT tag_id, tag, step_id, applied_by FROM tags'
+    ), [], 'No records should have been inserted into the tags table';
+
+    ##########################################################################
+    # Test log_revert_step().
+    ok $pg->log_revert_step($step), 'Revert "users" step';
+    is_deeply $pg->_dbh->selectall_arrayref(
+        'SELECT step_id, step, requires, conflicts, deployed_by FROM steps'
+    ), [], 'The record should have been deleted from the steps table';
+
+    is_deeply $pg->_dbh->selectall_arrayref(
+        'SELECT event, node_id, node, logged_by FROM events ORDER BY logged_at'
+    ), [
+        ['deploy', $step->id, 'users', $pg->actor],
+        ['revert', $step->id, 'users', $pg->actor],
+    ], 'The revert event should have been logged';
+
+    is_deeply $pg->_dbh->selectall_arrayref(
+        'SELECT tag_id, tag, step_id, applied_by FROM tags'
+    ), [], 'Should still have no tag records';
+
+    ##########################################################################
+    # Test log_fail_step().
+    ok $pg->log_fail_step($step), 'Fail "users" step';
+    is_deeply $pg->_dbh->selectall_arrayref(
+        'SELECT step_id, step, requires, conflicts, deployed_by FROM steps'
+    ), [], 'Still should have not steps table record';
+
+    is_deeply $pg->_dbh->selectall_arrayref(
+        'SELECT event, node_id, node, logged_by FROM events ORDER BY logged_at'
+    ), [
+        ['deploy', $step->id, 'users', $pg->actor],
+        ['revert', $step->id, 'users', $pg->actor],
+        ['fail',   $step->id, 'users', $pg->actor],
+    ], 'The fail event should have been logged';
+
+    is_deeply $pg->_dbh->selectall_arrayref(
+        'SELECT tag_id, tag, step_id, applied_by FROM tags'
+    ), [], 'Should still have no tag records';
+
 
     return; # Pick up from here.
 
-    # Test begin_deploy_tag() and commit_deploy_tag().
-    my $sqitch = App::Sqitch->new( sql_dir => Path::Class::dir(qw(t pg)) );
-    my $plan   = App::Sqitch::Plan->new( sqitch => $sqitch );
+=begin comment
+
     my $tag    = App::Sqitch::Plan::Tag->new(
-        names => ['alpha'],
-        plan  => $plan,
+        name => 'alpha',
+        plan => $plan,
     );
 
-    is $pg->current_tag_name, undef, 'Should have no current tag';
+    is $pg->latest_item, undef, 'Should have no current tag';
     is_deeply [$pg->deployed_steps_for($tag)], [],
         'Should be no deployed steps';
     ok !$pg->is_deployed_tag($tag), 'The "alpha" tag should not be deployed';
 
     ok $pg->begin_deploy_tag($tag), 'Begin deploying "alpha" tag';
     ok $pg->commit_deploy_tag($tag), 'Commit "alpha" tag';
-    is_deeply [$pg->deployed_steps_for($tag)], [],
+    is_deeply [$pg-a>deployed_steps_for($tag)], [],
         'Still should be no deployed steps';
-    is $pg->current_tag_name, 'alpha', 'Should get "alpha" as current tag';
+    is $pg->latest_item, 'alpha', 'Should get "alpha" as current tag';
     ok $pg->is_deployed_tag($tag), 'The "alpha" tag should now be deployed';
 
     is_deeply $pg->_dbh->selectrow_arrayref(
@@ -308,7 +388,7 @@ subtest 'live database' => sub {
     ok $pg->commit_revert_tag($tag), 'Commit "alpha" reversion';
     is_deeply [$pg->deployed_steps_for($tag)], [],
         'Still should be no deployed steps';
-    is $pg->current_tag_name, undef, 'Should again have no current tag';
+    is $pg->latest_item, undef, 'Should again have no current tag';
     ok !$pg->is_deployed_tag($tag), 'The "alpha" tag should again not be deployed';
 
     is $pg->_dbh->selectrow_arrayref(
@@ -338,7 +418,7 @@ subtest 'live database' => sub {
 
     is_deeply [$pg->deployed_steps_for($tag)], [],
         'Still should be no deployed steps';
-    like $pg->current_tag_name, qr/^(?:alpha|beta)$/,
+    like $pg->latest_item, qr/^(?:alpha|beta)$/,
         'Should have "alpha" or "beta" as current tag name';
 
     is_deeply $pg->_dbh->selectrow_arrayref(
@@ -364,7 +444,7 @@ subtest 'live database' => sub {
     ok $pg->commit_revert_tag($tag), 'Commit "alpha"/"beta" reversion';
     is_deeply [$pg->deployed_steps_for($tag)], [],
         'Still should be no deployed steps';
-    is $pg->current_tag_name, undef, 'Should again have no current tag';
+    is $pg->latest_item, undef, 'Should again have no current tag';
     ok !$pg->is_deployed_tag($tag), 'The "alpha" tag should again not be deployed';
 
     is $pg->_dbh->selectrow_arrayref(
@@ -399,7 +479,7 @@ subtest 'live database' => sub {
     ok $pg->is_deployed_step($step), 'The "users" step should now be deployed';
     is_deeply [$pg->deployed_steps_for($tag)], [$step],
         'deployed_steps_for() should return the step';
-    like $pg->current_tag_name, qr/^(?:alpha|beta)$/,
+    like $pg->latest_item, qr/^(?:alpha|beta)$/,
         'Should again have "alpha" or "beta" as current tag name';
 
     is_deeply $pg->_dbh->selectrow_arrayref(
@@ -449,7 +529,7 @@ subtest 'live database' => sub {
     ok !$pg->is_deployed_step($step), 'The "users" step should no longer be deployed';
     is_deeply [$pg->deployed_steps_for($tag)], [],
         'deployed_steps_for() should again return nothing';
-    is $pg->current_tag_name, undef, 'Should once again have no current tag';
+    is $pg->latest_item, undef, 'Should once again have no current tag';
 
     is $pg->_dbh->selectrow_arrayref(
         'SELECT tag_id, applied_by FROM tags'
@@ -505,7 +585,7 @@ subtest 'live database' => sub {
     ok $pg->is_deployed_step($step2), 'The "widgets" step should be deployed';
     is_deeply [map { $_->name } $pg->deployed_steps_for($tag)], [qw(users widgets)],
         'deployed_steps_for() should return both steps in order';
-    like $pg->current_tag_name, qr/^(?:alpha|beta)$/,
+    like $pg->latest_item, qr/^(?:alpha|beta)$/,
         'Should once again "alpha" or "beta" as current tag name';
 
     is_deeply $pg->_dbh->selectrow_arrayref(
@@ -563,7 +643,7 @@ subtest 'live database' => sub {
     ok !$pg->is_deployed_step($step2), 'The "widgets" step should not be deployed again';
     is_deeply [$pg->deployed_steps_for($tag)], [],
         'deployed_steps_for should return nothing again';
-    is $pg->current_tag_name, undef, 'Should again have no current tag';
+    is $pg->latest_item, undef, 'Should again have no current tag';
 
     is $pg->_dbh->selectrow_arrayref(
         'SELECT tag_id, applied_by FROM tags'
@@ -616,7 +696,7 @@ subtest 'live database' => sub {
     ok $pg->commit_deploy_tag($tag), 'Commit tag with "users" step';
     is_deeply [map { $_->name } $pg->deployed_steps_for($tag)], [qw(users)],
         'deployed_steps_for() should return the users step';
-    like $pg->current_tag_name, qr/^(?:alpha|beta)$/,
+    like $pg->latest_item, qr/^(?:alpha|beta)$/,
         'Should once more have "alpha" or "beta" as current tag name';
 
     is_deeply $pg->_dbh->selectrow_arrayref(
@@ -669,7 +749,7 @@ subtest 'live database' => sub {
         'deployed_steps_for() should return the users step for the first tag';
     is_deeply [map { $_->name } $pg->deployed_steps_for($tag2)], [qw(widgets)],
         'deployed_steps_for() should return the widgets step for the second tag';
-    is $pg->current_tag_name, 'gamma', 'Now "gamma" should be current tag name';
+    is $pg->latest_item, 'gamma', 'Now "gamma" should be current tag name';
 
     is_deeply $pg->_dbh->selectall_arrayref(
         'SELECT tag_id, applied_by FROM tags ORDER BY applied_at'
@@ -821,6 +901,9 @@ subtest 'live database' => sub {
         ['remove', '', ['gamma'], $pg->actor],
         ['fail', 'widgets', ['gamma'], $pg->actor],
     ], 'The failure should have been logged';
+
+=cut
+
 };
 
 done_testing;
