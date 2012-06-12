@@ -135,6 +135,17 @@ In this case, the C<ident> will be C<DEV>, which you should not otherwise use.
 Sqitch will emit a more detailed error message, including a stack trace, when
 it sees C<DEV> exceptions.
 
+=head2 Methods
+
+=head3 C<stringify>
+
+  my $errstr = $x->stringify;
+
+Returns the stringified representation of the exception. This value is also
+used for string overloading of the exception object, which means it is the
+output shown for uncaught exceptions. Its contents are the concatenation of
+the exception message, the previous exception (if any), and the stack trace.
+
 =head1 Handling Exceptions
 
 use L<Try::Tiny> to do exception handling, like so:
