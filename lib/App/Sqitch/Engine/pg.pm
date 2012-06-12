@@ -170,15 +170,15 @@ has _dbh => (
 
         DBI->connect($dsn, $self->username, $self->password, {
             PrintError        => 0,
-            RaiseError        => 1,
+            RaiseError        => 0,
             AutoCommit        => 1,
             pg_enable_utf8    => 1,
             pg_server_prepare => 1,
-            # HandleError       => sub {
-            #     my ($err, $dbh) = @_;
-            #     $dbh->rollback unless $dbh->{AutoCommit};
-            #     die $err;
-            # },
+            HandleError       => sub {
+                my ($err, $dbh) = @_;
+                @_ = ($dbh->state => $dbh->errstr);
+                goto &hurl;
+            },
             Callbacks         => {
                 connected => sub {
                     shift->do('SET search_path = ?', undef, $self->sqitch_schema);

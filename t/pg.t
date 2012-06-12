@@ -257,6 +257,11 @@ subtest 'live database' => sub {
         schema => '__sqitchtest',
     ), 'And it should show the proper schema in the error message';
 
+    throws_ok { $pg->_dbh->do('INSERT blah INTO __bar_____') } 'App::Sqitch::X',
+        'Database error should be converted to Sqitch exception';
+    is $@->ident, $DBI::state, 'Ident should be SQL error state';
+    like $@->message, qr/^ERROR:  /, 'The message should be the PostgreSQL error';
+
     return; # Pick up from here.
 
     # Test begin_deploy_tag() and commit_deploy_tag().
