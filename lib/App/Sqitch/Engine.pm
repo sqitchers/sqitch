@@ -704,13 +704,6 @@ SQL file to run through the engine's native client.
 Should execute the commands in the specified file handle. The file handle's
 contents should be piped to the engine's native client.
 
-=head3 C<deployed_steps_for>
-
-  my @steps = $engine->deployed_steps_for($tag);
-
-Should return a list of steps currently deployed to the database for the
-specified tag, in an order appropriate to satisfy dependencies.
-
 =head1 See Also
 
 =over

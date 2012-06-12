@@ -205,7 +205,6 @@ can_ok $CLASS, qw(
     log_revert_step
     is_deployed_tag
     is_deployed_step
-    deployed_steps_for
     check_requires
     check_conflicts
 );
@@ -233,20 +232,21 @@ subtest 'live database' => sub {
     ok $pg->initialize, 'Initialize the database';
     ok $pg->initialized, 'Database should now be initialized';
 
-    return; # Pick up from here.
-
     # Try it with a different schema name.
     ok $pg = $CLASS->new(
         sqitch => $sqitch,
         sqitch_schema => '__sqitchtest',
     ), 'Create a pg with postgres user and __sqitchtest schema';
 
-    is $pg->current_tag_name, undef, 'No init, no current tag';
+    # XXX 
+#    is $pg->latest_item, undef, 'No init, no events';
 
     ok !$pg->initialized, 'Database should no longer seem initialized';
     push @cleanup, 'DROP SCHEMA __sqitchtest CASCADE';
     ok $pg->initialize, 'Initialize the database again';
     ok $pg->initialized, 'Database should be initialized again';
+
+    return; # Pick up from here.
 
     # Test begin_deploy_tag() and commit_deploy_tag().
     my $sqitch = App::Sqitch->new( sql_dir => Path::Class::dir(qw(t pg)) );

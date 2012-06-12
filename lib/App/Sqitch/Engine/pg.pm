@@ -237,11 +237,9 @@ sub run_handle {
 sub log_deploy_step {
     my ($self, $step) = @_;
     my $dbh = $self->_dbh;
-    croak(
-        'Cannot deploy a step without first calling begin_deploy_tag()'
-    ) if $dbh->{AutoCommit};
 
-    my ($name, $req, $conf, $actor) = (
+    my ($id, $name, $req, $conf, $actor) = (
+        $step->id,
         $step->name,
         [$step->requires],
         [$step->conflicts],
@@ -249,13 +247,13 @@ sub log_deploy_step {
     );
 
     $dbh->do(q{
-        INSERT INTO steps (step, tag_id, requires, conflicts, deployed_by)
-        VALUES (?, lastval(), ?, ?, ?)
-    }, undef, $name, $req, $conf, $actor);
+        INSERT INTO steps (step_id, step, requires, conflicts, deployed_by)
+        VALUES (?, ?, ?, ?, ?)
+    }, undef, $id, $name, $req, $conf, $actor);
     $dbh->do(q{
-        INSERT INTO events (event, step, tags, logged_by)
-        VALUES ('deploy', ?, ?, ?);
-    }, undef, $name, [$step->tag->names], $actor);
+        INSERT INTO events (event, node_id, node, logged_by)
+        VALUES ('deploy', ?, ?);
+    }, undef, $id, $name, $actor);
 
     return $self;
 }
@@ -263,36 +261,26 @@ sub log_deploy_step {
 sub log_fail_step {
     my ( $self, $step ) = @_;
     my $dbh  = $self->_dbh;
-    croak(
-        'Cannot log a step failure first calling begin_deploy_tag()'
-    ) if $dbh->{AutoCommit};
     $dbh->do(q{
-        INSERT INTO events (event, step, tags, logged_by)
+        INSERT INTO events (event, node_id, node, logged_by)
         VALUES ('fail', ?, ?, ?);
-    }, undef, $step->name, [$step->tag->names], $self->actor);
+    }, undef, $step->id, $step->name, $self->actor);
     return $self;
 }
 
 sub log_revert_step {
     my ($self, $step) = @_;
     my $dbh = $self->_dbh;
-    croak(
-        'Cannot revert a step without first calling begin_revert_tag()'
-    ) if $dbh->{AutoCommit};
 
     $dbh->do(q{
-        INSERT INTO events (event, step, logged_by, tags)
-        SELECT 'revert', step, $1, ARRAY(
-            SELECT tag_name FROM tag_names WHERE tag_id = steps.tag_id
-        ) FROM steps
-         WHERE step = $2
-    }, undef, $self->actor, $step->name);
+        INSERT INTO events (event, node_id, node, logged_by)
+        VALUES ('fail', ?, ?, ?);
+    }, undef, $step->id, $step->name, $self->actor);
 
-    $dbh->do(q{
-        DELETE FROM steps where step = ? AND tag_id = (
-            SELECT tag_id FROM tag_names WHERE tag_name = ?
-        );
-    }, undef, $step->name, ($step->tag->names)[0]);
+    $dbh->do(
+        'DELETE FROM steps where id = ?',
+        undef, $step->id
+    );
 
     return $self;
 }
@@ -302,10 +290,10 @@ sub is_deployed_tag {
     return $self->_dbh->selectcol_arrayref(q{
         SELECT EXISTS(
             SELECT TRUE
-              FROM tag_names
-             WHERE tag_name = ANY(?)
+              FROM tags
+             WHERE tag_id = ?
         );
-    }, undef, [$tag->names])->[0];
+    }, undef, $tag->id)->[0];
 }
 
 sub is_deployed_step {
@@ -314,64 +302,29 @@ sub is_deployed_step {
         SELECT EXISTS(
             SELECT TRUE
               FROM steps
-             WHERE step = ?
+             WHERE tag_id = ?
         )
-    }, undef, $step->name)->[0];
+    }, undef, $step->id)->[0];
 }
 
-sub deployed_steps_for {
-    my ( $self, $tag ) = @_;
-    my $dbh = $self->_dbh;
-
-    # Find all steps installed before this tag.
-    my %seen = map { $_ => 1 } @{
-        $dbh->selectcol_arrayref(q{
-            SELECT step
-              FROM steps
-             WHERE deployed_at < (
-                SELECT MIN(deployed_at)
-                  FROM steps
-                  JOIN tag_names ON steps.tag_id = tag_names.tag_id
-                 WHERE tag_name = ANY(?)
-             )
-        }, undef, [$tag->names]) || []
-    };
-
-    return @{ $tag->plan->sort_steps(\%seen, map {
-        chomp;
-        App::Sqitch::Plan::Step->new(name => $_, tag => $tag)
-    } @{ $dbh->selectcol_arrayref(q{
-        SELECT DISTINCT step
-          FROM steps
-          JOIN tag_names ON steps.tag_id = tag_names.tag_id
-         WHERE tag_name = ANY(?)
-    }, undef, [$tag->names]) || [] } ) };
-}
-
-sub check_conflicts {
-    my ( $self, $step ) = @_;
-
-    # No need to check anything if there are no conflicts.
-    return unless $step->conflicts;
-
+sub _get_steps {
+    my $self = shift;
+    return unless @_;
     return @{ $self->_dbh->selectcol_arrayref(q{
         SELECT step
           FROM steps
          WHERE step = ANY(?)
-    }, undef, [$step->conflicts]) || [] };
+    }, undef, \@_) };
+}
+
+sub check_conflicts {
+    my ( $self, $step ) = @_;
+    $self->_get_steps($step->conflicts);
 }
 
 sub check_requires {
     my ( $self, $step ) = @_;
-
-    # No need to check anything if there are no requirements.
-    return unless $step->requires;
-
-    return @{ $self->_dbh->selectcol_arrayref(q{
-        SELECT required
-          FROM UNNEST(?::text[]) required
-         WHERE required <> ALL(ARRAY(SELECT step FROM steps));
-    }, undef, [$step->requires]) || [] };
+    $self->_get_steps($step->requires);
 }
 
 sub _run {
