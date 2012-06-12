@@ -5,6 +5,7 @@ use utf8;
 use Moose;
 use Sub::Exporter::Util ();
 use Sub::Exporter -setup => [qw(hurl)];
+use overload '""' => 'stringify';
 
 our $VERSION = '0.32';
 
@@ -31,6 +32,15 @@ sub hurl {
             :           (ident => $_[0],  message => $_[1])
     );
     goto __PACKAGE__->can('throw');
+}
+
+sub stringify {
+    my $self = shift;
+    join $/, grep { defined } (
+        $self->message,
+        $self->previous_exception,
+        $self->stack_trace
+    );
 }
 
 __PACKAGE__->meta->make_immutable(inline_constructor => 0);
