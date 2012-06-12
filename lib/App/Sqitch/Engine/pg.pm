@@ -7,6 +7,8 @@ use Path::Class;
 use DBI;
 use Carp;
 use Try::Tiny;
+use App::Sqitch::X qw(hurl);
+use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::Plan::Step;
 use namespace::autoclean;
 
@@ -156,8 +158,7 @@ has _dbh => (
     default => sub {
         my $self = shift;
         eval "require DBD::Pg";
-        die "DBD::Pg module required to manage PostgreSQL\n"
-            if $@;
+        hurl pg => __ 'DBD::Pg module required to manage PostgreSQL' if $@;
 
         my $dsn = 'dbi:Pg:' . join ';' => map {
             "$_->[0]=$_->[1]"
@@ -212,7 +213,10 @@ sub initialized {
 sub initialize {
     my $self   = shift;
     my $schema = $self->sqitch_schema;
-    die qq{Sqitch schema "$schema" already exists\n} if $self->initialized;
+    hurl pg => __x(
+        'Sqitch schema "{schema}" already exists',
+        schema => $schema
+    ) if $self->initialized;
 
     my $file = file(__FILE__)->dir->file('pg.sql');
     $self->_run(

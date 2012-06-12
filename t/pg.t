@@ -5,6 +5,8 @@ use warnings;
 use v5.10.1;
 use Test::More;
 use Test::MockModule;
+use Test::Exception;
+use Locale::TextDomain qw(App-Sqitch);
 use Capture::Tiny qw(:all);
 use Try::Tiny;
 use App::Sqitch;
@@ -245,6 +247,15 @@ subtest 'live database' => sub {
     push @cleanup, 'DROP SCHEMA __sqitchtest CASCADE';
     ok $pg->initialize, 'Initialize the database again';
     ok $pg->initialized, 'Database should be initialized again';
+
+    # Make sure a second attempt to initialize dies.
+    throws_ok { $pg->initialize } 'App::Sqitch::X',
+        'Should die on existing schema';
+    is $@->ident, 'pg', 'Mode should be "pg"';
+    is $@->message, __x(
+        'Sqitch schema "{schema}" already exists',
+        schema => '__sqitchtest',
+    ), 'And it should show the proper schema in the error message';
 
     return; # Pick up from here.
 
