@@ -408,7 +408,7 @@ sub write_to {
         $file,
         '>:encoding(UTF-8)'
     ) or $self->sqitch->fail( "Cannot open $file: $!" );
-    $fh->say($_->stringify) for $self->lines;
+    $fh->say($_->as_string) for $self->lines;
     $fh->close or die "Error closing $file: $!\n";
     return $self;
 }

@@ -34,7 +34,7 @@ isa_ok my $tag = $CLASS->new(
 isa_ok $tag, 'App::Sqitch::Plan::Line';
 
 is $tag->format_name, '', 'Name should format as ""';
-is $tag->stringify, '', 'Should stringify to ""';
+is $tag->as_string, '', 'should stringify to ""';
 
 ok $tag = $CLASS->new(
     name    => 'howdy',
@@ -44,6 +44,6 @@ ok $tag = $CLASS->new(
     comment => ' blah blah blah',
 ), 'Create tag with more stuff';
 
-is $tag->stringify, "  \t# blah blah blah",
+is $tag->as_string, "  \t# blah blah blah",
     'It should stringify correctly';
 

@@ -40,7 +40,7 @@ isa_ok my $tag = $CLASS->new(
 isa_ok $tag, 'App::Sqitch::Plan::Line';
 
 is $tag->format_name, '@foo', 'Name should format as "@foo"';
-is $tag->stringify, '@foo', 'Should stringify to "@foo"';
+is $tag->as_string, '@foo', 'Should as_string to "@foo"';
 
 ok $tag = $CLASS->new(
     name    => 'howdy',
@@ -50,8 +50,8 @@ ok $tag = $CLASS->new(
     comment => ' blah blah blah',
 ), 'Create tag with more stuff';
 
-is $tag->stringify, "  \@howdy\t# blah blah blah",
-    'It should stringify correctly';
+is $tag->as_string, "  \@howdy\t# blah blah blah",
+    'It should as_string correctly';
 
 chdir 't';
 my $mock_plan = Test::MockModule->new('App::Sqitch::Plan');

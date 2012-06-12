@@ -54,7 +54,7 @@ is $step->test_file, $sqitch->test_dir->file('foo.sql'),
     'The test file should be correct';
 
 is $step->format_name, 'foo', 'Name should format as "foo"';
-is $step->stringify, 'foo', 'Should stringify to "foo"';
+is $step->as_string, 'foo', 'should stringify to "foo"';
 
 ok $step = $CLASS->new(
     name    => 'howdy',
@@ -66,7 +66,7 @@ ok $step = $CLASS->new(
     comment => ' blah blah blah',
 ), 'Create step with more stuff';
 
-is $step->stringify, "  - howdy\t# blah blah blah",
+is $step->as_string, "  - howdy\t# blah blah blah",
     'It should stringify correctly';
 
 ok !$step->is_deploy, 'It should not be a deploy step';

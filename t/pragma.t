@@ -39,7 +39,7 @@ isa_ok $dir, 'App::Sqitch::Plan::Line';
 
 is $dir->format_name, '%foo', 'Name should format as "%foo"';
 is $dir->format_value, '', 'Value should format as ""';
-is $dir->stringify, '%foo', 'Should stringify to "%foo"';
+is $dir->as_string, '%foo', 'should stringify to "%foo"';
 
 ok $dir = $CLASS->new(
     name     => 'howdy',
@@ -54,5 +54,5 @@ ok $dir = $CLASS->new(
     comment  => ' blah blah blah',
 ), 'Create pragma with more stuff';
 
-is $dir->stringify, "  % howdy   = woody\t# blah blah blah",
+is $dir->as_string, "  % howdy   = woody\t# blah blah blah",
     'It should stringify correctly';

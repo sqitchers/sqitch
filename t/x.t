@@ -44,13 +44,13 @@ is $x->message, 'OMFG!', 'The message should have been passed';
 throws_ok { hurl {ident => 'blah', message => 'OMFG!'} } $CLASS;
 isa_ok $x = $@, $CLASS, 'Thrown object';
 is $x->message, 'OMFG!', 'The params should have been passed';
-is $x->stringify, join($/, grep { defined }
+is $x->as_string, join($/, grep { defined }
     $x->message,
     $x->previous_exception,
     $x->stack_trace
 ), 'Stringification should work';
 
-is $x->stringify, "$x", 'Stringification should work';
+is $x->as_string, "$x", 'Stringification should work';
 
 # Do some actual exception handling.
 try {

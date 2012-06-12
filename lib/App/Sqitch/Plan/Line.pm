@@ -80,7 +80,7 @@ sub format_comment {
     return length $comment ? "#$comment" : '';
 }
 
-sub stringify {
+sub as_string {
     my $self = shift;
     return $self->lspace
          . $self->format_content
@@ -101,7 +101,7 @@ App::Sqitch::Plan::Line - Sqitch deployment plan line
 
   my $plan = App::Sqitch::Plan->new( sqitch => $sqitch );
   for my $line ($plan->lines) {
-      say $line->stringify;
+      say $line->as_string;
   }
 
 =head1 Description
@@ -212,7 +212,7 @@ other lines, it is simply the name.
 
 Returns the formatted representation of the operator. This is just the
 operator an its associated white space. If neither the operator nor its white
-space exists, an empty string is returned. Used internally by C<stringify()>.
+space exists, an empty string is returned. Used internally by C<as_string()>.
 
 =head3 C<format_content>
 
@@ -227,9 +227,9 @@ and its associated white space, if any, followed by the formatted name.
 
 Returns the comment formatted for output. That is, with a leading C<#>.
 
-=head3 C<stringify>
+=head3 C<as_string>
 
-  my $string = $line->stringify;
+  my $string = $line->as_string;
 
 Returns the full stringification of the line, suitable for output to a plan
 file.

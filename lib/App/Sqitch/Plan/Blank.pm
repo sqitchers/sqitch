@@ -24,7 +24,7 @@ App::Sqitch::Plan::Blank - Sqitch deployment plan blank line
 
   my $plan = App::Sqitch::Plan->new( sqitch => $sqitch );
   for my $line ($plan->lines) {
-      say $line->stringify;
+      say $line->as_string;
   }
 
 =head1 Description

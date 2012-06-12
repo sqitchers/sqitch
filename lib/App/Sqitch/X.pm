@@ -5,7 +5,7 @@ use utf8;
 use Moose;
 use Sub::Exporter::Util ();
 use Sub::Exporter -setup => [qw(hurl)];
-use overload '""' => 'stringify';
+use overload '""' => 'as_string';
 
 our $VERSION = '0.32';
 
@@ -34,7 +34,7 @@ sub hurl {
     goto __PACKAGE__->can('throw');
 }
 
-sub stringify {
+sub as_string {
     my $self = shift;
     join $/, grep { defined } (
         $self->message,
@@ -137,9 +137,9 @@ it sees C<DEV> exceptions.
 
 =head2 Methods
 
-=head3 C<stringify>
+=head3 C<as_string>
 
-  my $errstr = $x->stringify;
+  my $errstr = $x->as_string;
 
 Returns the stringified representation of the exception. This value is also
 used for string overloading of the exception object, which means it is the

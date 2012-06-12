@@ -63,7 +63,7 @@ App::Sqitch::Plan::Tag - Sqitch deployment plan tag
 
   my $plan = App::Sqitch::Plan->new( sqitch => $sqitch );
   for my $line ($plan->lines) {
-      say $line->stringify;
+      say $line->as_string;
   }
 
 =head1 Description
