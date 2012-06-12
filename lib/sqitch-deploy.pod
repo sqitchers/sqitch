@@ -58,6 +58,20 @@ assumption that a step failure is total, and the step may be applied again.
 
 =back
 
+=head1 Configuration Variables
+
+=over
+
+=item C<deploy.to_target>
+
+Target to deploy to. You probably don't want to set this.
+
+=item C<deploy.mode>
+
+Deploy mode. The supported values are the same as for the C<--mode> option.
+
+=back
+
 =head1 Specifying Targets
 
 A C<< <target> >> option typically, but not necessarily, names a target object.
