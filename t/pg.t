@@ -285,7 +285,9 @@ subtest 'live database' => sub {
     my $plan = $sqitch->plan;
     my $step = $plan->node_at(0);
     is $step->name, 'users', 'Should have "users" step';
+    ok !$pg->is_deployed_step($step), 'The step should not be deployed';
     ok $pg->log_deploy_step($step), 'Deploy "users" step';
+    ok $pg->is_deployed_step($step), 'The step should now be deployed';
 
     is $pg->latest_item, 'users', 'Should get "users" for latest item';
     is $pg->latest_step, 'users', 'Should get "users" for latest step';
@@ -308,6 +310,7 @@ subtest 'live database' => sub {
     ##########################################################################
     # Test log_revert_step().
     ok $pg->log_revert_step($step), 'Revert "users" step';
+    ok !$pg->is_deployed_step($step), 'The step should no longer be deployed';
 
     is $pg->latest_item, undef, 'Should get undef for latest item';
     is $pg->latest_step, undef, 'Should get undef for latest step';
@@ -331,6 +334,7 @@ subtest 'live database' => sub {
     ##########################################################################
     # Test log_fail_step().
     ok $pg->log_fail_step($step), 'Fail "users" step';
+    ok !$pg->is_deployed_step($step), 'The step still should not be deployed';
 
     is $pg->latest_item, undef, 'Should still get undef for latest item';
     is $pg->latest_step, undef, 'Should still get undef for latest step';
@@ -356,6 +360,7 @@ subtest 'live database' => sub {
     # Test log_apply_tag().
     my $tag = $plan->node_at(1), 'Get a tag';
     is $tag->format_name, '@alpha', 'It should be the @alpha tag';
+    ok !$pg->is_deployed_tag($tag), 'The tag should not yet be deployed';
 
     throws_ok { $pg->log_apply_tag($tag) } 'App::Sqitch::X',
         'Should get error attempting to apply tag';
@@ -366,6 +371,7 @@ subtest 'live database' => sub {
     is_deeply $pg->_dbh->selectall_arrayref(
         'SELECT tag_id, tag, step_id, applied_by FROM tags'
     ), [], 'Should still have no tag records';
+    ok !$pg->is_deployed_tag($tag), 'The tag still should not be deployed';
 
     # So we need the step.
     ok $pg->log_deploy_step($step), 'Deploy "users" step';
@@ -375,6 +381,7 @@ subtest 'live database' => sub {
 
     # Now deploy the tag.
     ok $pg->log_apply_tag($tag), 'Deploy a tag';
+    ok $pg->is_deployed_tag($tag), 'The tag still now be deployed';
     is $pg->latest_item, '@alpha', 'Should now get "@alpha" for latest item';
     is $pg->latest_step, 'users',  'Should still get "users" for latest step';
     is $pg->latest_tag,  '@alpha', 'Should now get "@alpha" for latest tag';
@@ -404,6 +411,11 @@ subtest 'live database' => sub {
     # Test log_remove_tag().
     ok $pg->log_remove_tag($tag), 'Remove tag';
 
+    ok !$pg->is_deployed_tag($tag), 'The tag should no longer be deployed';
+    is $pg->latest_item, 'users', 'Should once more "users" for latest item';
+    is $pg->latest_step, 'users', 'Should still get "users" for latest step';
+    is $pg->latest_tag,   undef,  'Should onde more undef for latest tag';
+
     is_deeply $pg->_dbh->selectall_arrayref(
         'SELECT tag_id, tag, step_id, applied_by FROM tags'
     ), [], 'The tag should have been removed';
@@ -418,8 +430,6 @@ subtest 'live database' => sub {
         ['apply',  $tag->id,  '@alpha', $pg->actor],
         ['remove', $tag->id,  '@alpha', $pg->actor],
     ], 'The remove event should have been logged';
-
-    return; # Pick up from here.
 
 =begin comment
 

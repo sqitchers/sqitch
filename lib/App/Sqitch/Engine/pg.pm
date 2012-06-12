@@ -347,7 +347,7 @@ sub is_deployed_step {
         SELECT EXISTS(
             SELECT TRUE
               FROM steps
-             WHERE tag_id = ?
+             WHERE step_id = ?
         )
     }, undef, $step->id)->[0];
 }
