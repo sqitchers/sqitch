@@ -2,13 +2,14 @@
 
 use strict;
 use warnings;
-use Test::More tests => 90;
+use Test::More tests => 94;
 #use Test::More 'no_plan';
 use Test::MockModule;
 use Path::Class;
 use Test::Exception;
 use Test::NoWarnings;
 use Capture::Tiny ':all';
+use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X 'hurl';
 
 BEGIN {
@@ -69,6 +70,13 @@ is $sqitch->deploy_dir, dir(qw(sql deploy)), 'Default deploy_dir should be ./sql
 is $sqitch->revert_dir, dir(qw(sql revert)), 'Default revert_dir should be ./sql/revert';
 is $sqitch->test_dir, dir(qw(sql test)), 'Default test_dir should be ./sql/test';
 isa_ok $sqitch->plan, 'App::Sqitch::Plan';
+throws_ok { $sqitch->uri } 'App::Sqitch::X',
+    'Should get error for missing URI';
+is $@->ident, 'core', 'Should be a "core" exception';
+is $@->message, __x(
+    'Missing project URI. Run {command} to add a URI',
+    command => '`sqitch config core.uri URI`'
+), 'Should have localized error message about missing URI';
 
 ##############################################################################
 # Test go().
@@ -95,6 +103,8 @@ GO: {
         'Should have local config overriding user';
     is $config->get(key => 'core.pg.host'), 'localhost',
         'Should fall back on user config';
+    is $sqitch->uri, URI->new('https://github.com/theory/sqitch/'),
+        'Should read URI from config file';
 
     # Now make it die.
     sub puke { App::Sqitch::X->new(@_) } # Ensures we have trace frames.

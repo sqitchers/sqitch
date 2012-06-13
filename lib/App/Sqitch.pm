@@ -11,6 +11,8 @@ use Config;
 use App::Sqitch::Config;
 use App::Sqitch::Command;
 use App::Sqitch::Plan;
+use Locale::TextDomain qw(App-Sqitch);
+use App::Sqitch::X qw(hurl);
 use Moose;
 use Try::Tiny;
 use List::Util qw(first);
@@ -163,8 +165,13 @@ has uri => (
     required => 1,
     lazy     => 1,
     default  => sub {
+        my $uri = shift->config->get( key => 'core.uri' ) or hurl core => __x(
+            'Missing project URI. Run {command} to add a URI',
+            command => '`sqitch config core.uri URI`'
+        );
+
         require URI;
-        URI->new( shift->config->get( key => 'core.uri' ) );
+        return URI->new($uri);
     }
 );
 
