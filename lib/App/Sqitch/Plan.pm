@@ -63,6 +63,7 @@ sub _parse {
     my %seen;          # Maps tags and steps to line numbers.
     my %tag_steps;     # Maps steps in current tag section to line numbers.
     my $seen_version;  # Have we seen a version pragma?
+    my $prev_tag;      # Last seen tag.
 
     LINE: while ( my $line = $fh->getline ) {
         chomp $line;
@@ -167,9 +168,9 @@ sub _parse {
                 push @nodes => $self->sort_steps(\%seen, @steps);
                 @steps = ();
             }
-            my $node = App::Sqitch::Plan::Tag->new( plan => $self, %params );
-            push @nodes => $node;
-            push @lines => $node;
+            $prev_tag = App::Sqitch::Plan::Tag->new( plan => $self, %params );
+            push @nodes => $prev_tag;
+            push @lines => $prev_tag;
             %seen = (%seen, %tag_steps, $key => $fh->input_line_number);
             %tag_steps = ();
         } else {
@@ -183,7 +184,11 @@ sub _parse {
             }
 
             $tag_steps{ $params{name} } = $fh->input_line_number;
-            push @steps => App::Sqitch::Plan::Step->new( plan => $self, %params );
+            push @steps => App::Sqitch::Plan::Step->new(
+                plan => $self,
+                ( $prev_tag ? ( since_tag => $prev_tag ) : () ),
+                %params,
+            );
             push @lines => $steps[-1];
         }
     }
@@ -650,6 +655,39 @@ steps are unknown.
 =item L<sqitch>
 
 The Sqitch command-line client.
+
+=back
+
+=head1 To Do
+
+=over
+
+=item * Eliminate the term "node".
+
+Maybe just "step"? If so, may want to move tags into Step as a simple
+array. They become aliases of the step's ID.
+
+=item * Make step IDs deterministic from something other than file contents.
+
+Because otherwise a step won't be found if the file has changed since the last
+deploy (e.g., to revert while doing development). Instead hash the step name and
+the ID of the tag that precedes it.
+
+=item * How to specify prerequisite as of a tag?
+
+Get the prerequisite step objects and look them up in the database by their
+IDs rather than their names. To find each prerequisite, if it is as-of a tag
+(i.e., C<$step@$tag>), use C<index_of()>. Otherwise, use C<first_index_of()>.
+
+=item * When have duplicate named steps, how to find the correct file?
+
+Add name of first tag after first of the two, and add it to the step object.
+Then VCS-based one will use it for the look up, and base class will use it to
+look for C<$step@$tag>.
+
+=item * Move prerequisite spec into plan file.
+
+Rather than in the deploy scripts.
 
 =back
 

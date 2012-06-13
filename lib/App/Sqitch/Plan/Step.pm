@@ -14,6 +14,12 @@ has _dependencies => (
     builder  => '_parse_dependencies',
 );
 
+has since_tag => (
+    is       => 'ro',
+    isa      => 'App::Sqitch::Plan::Tag',
+    required => 0,
+);
+
 has deploy_file => (
     is       => 'ro',
     isa      => 'Path::Class::File',
@@ -157,6 +163,11 @@ as for opening the deploy, revert, and test scripts.
 See L<App::Sqitch::Plan::Line> for the basics.
 
 =head2 Accessors
+
+=head3 C<since_tag>
+
+An L<App::Sqitch::Plan::Tag> object representing the last tag to appear in the
+plan B<before> the step. May be C<undef>.
 
 =head3 C<deploy_file>
 

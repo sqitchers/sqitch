@@ -4,11 +4,12 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 40;
+use Test::More tests => 42;
 #use Test::More 'no_plan';
 use Test::NoWarnings;
 use App::Sqitch;
 use App::Sqitch::Plan;
+use App::Sqitch::Plan::Tag;
 use Test::Exception;
 use Path::Class;
 use File::Path qw(make_path remove_tree);
@@ -26,6 +27,7 @@ can_ok $CLASS, qw(
     lspace
     rspace
     comment
+    since_tag
     plan
     deploy_file
     revert_file
@@ -55,15 +57,22 @@ is $step->test_file, $sqitch->test_dir->file('foo.sql'),
 
 is $step->format_name, 'foo', 'Name should format as "foo"';
 is $step->as_string, 'foo', 'should stringify to "foo"';
+is $step->since_tag, undef, 'Since tag should be undef';
+
+my $tag = App::Sqitch::Plan::Tag->new(
+    plan => $plan,
+    name => 'alpha',
+);
 
 ok $step = $CLASS->new(
-    name    => 'howdy',
-    plan    => $plan,
-    lspace  => '  ',
-    operator => '-',
-    ropspace => ' ',
-    rspace  => "\t",
-    comment => ' blah blah blah',
+    name      => 'howdy',
+    plan      => $plan,
+    since_tag => $tag,
+    lspace    => '  ',
+    operator  => '-',
+    ropspace  => ' ',
+    rspace    => "\t",
+    comment   => ' blah blah blah',
 ), 'Create step with more stuff';
 
 is $step->as_string, "  - howdy\t# blah blah blah",
@@ -72,6 +81,7 @@ is $step->as_string, "  - howdy\t# blah blah blah",
 ok !$step->is_deploy, 'It should not be a deploy step';
 ok $step->is_revert, 'It should be a revert step';
 is $step->action, 'revert', 'It should say so';
+is $step->since_tag, $tag, 'It should have a since tag';
 
 ##############################################################################
 # Test _parse_dependencies.

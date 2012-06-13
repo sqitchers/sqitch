@@ -22,7 +22,6 @@ has id => (
             'object ' . $self->step_id,
             'type tag',
             'tag ' . $self->format_name,
-            # XXX Add tagger name? Timestamp? Comment?
         );
 
         require Digest::SHA1;

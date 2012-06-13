@@ -46,6 +46,12 @@ sub blank {
     );
 }
 
+my $prev_tag;
+sub clear {
+    undef $prev_tag;
+    return ();
+}
+
 sub step {
     my @op = defined $_[4] ? split /([+-])/, $_[4] : ();
     App::Sqitch::Plan::Step->new(
@@ -57,11 +63,12 @@ sub step {
         lopspace => $op[0] // '',
         operator => $op[1] // '',
         ropspace => $op[2] // '',
+        ($prev_tag ? (since_tag => $prev_tag) : ()),
     );
 }
 
 sub tag {
-    App::Sqitch::Plan::Tag->new(
+    return $prev_tag = App::Sqitch::Plan::Tag->new(
         plan    => $plan,
         lspace  => $_[0] // '',
         name    => $_[1],
@@ -112,12 +119,14 @@ isa_ok $parsed->{nodes}, 'App::Sqitch::Plan::NodeList', 'nodes';
 isa_ok $parsed->{lines}, 'App::Sqitch::Plan::LineList', 'lines';
 
 cmp_deeply [$parsed->{nodes}->items], [
+    clear,
     step(  '', 'hey'),
     step(  '', 'you'),
     tag(   '', 'foo', ' ', ' look, a tag!'),
 ], 'All "widgets.plan" nodes should be parsed';
 
 cmp_deeply [$parsed->{lines}->items], [
+    clear,
     version,
     blank('', ' This is a comment'),
     blank(),
@@ -136,6 +145,7 @@ ok $parsed = $plan->_parse($file, $fh),
 is sorted, 2, 'Should have sorted steps twice';
 cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
     nodes => [
+        clear,
         step(  '', 'hey'),
         step(  '', 'you'),
         tag(   '', 'foo', ' ', ' look, a tag!'),
@@ -145,6 +155,7 @@ cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
         tag(   '', 'baz', ''),
     ],
     lines => [
+        clear,
         version,
         blank('', ' This is a comment'),
         blank(),
@@ -167,8 +178,8 @@ $fh = $file->open('<:encoding(UTF-8)');
 ok $parsed = $plan->_parse($file, $fh), 'Should read plan with no tags';
 is sorted, 1, 'Should have sorted steps';
 cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
-
     lines => [
+        clear,
         version,
         blank('', ' This is a comment'),
         blank(),
@@ -179,6 +190,7 @@ cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
         step(  '', 'whatwhatwhat'),
     ],
     nodes => [
+        clear,
         step(  '', 'hey'),
         step(  '', 'you'),
         step(  '', 'whatwhatwhat'),
@@ -242,8 +254,8 @@ for my $name (
         ok my $parsed = $plan->_parse('gooditem', $fh),
             encode_utf8(qq{Should parse "$line"});
         cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
-            nodes => [ $make->('', $name) ],
-            lines => [ version, $make->('', $name) ],
+            nodes => [ clear, $make->('', $name) ],
+            lines => [ clear, version, $make->('', $name) ],
         }, encode_utf8(qq{Should have line and node for "$line"});
     }
 }
@@ -293,10 +305,12 @@ ok $parsed = $plan->_parse($file, $fh),
 is sorted, 1, 'Should have sorted steps once';
 cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
     nodes => [
+        clear,
         step( '', 'hey'),
         step( '', 'you'),
     ],
     lines => [
+        clear,
         prag( '', ' ', 'syntax-version', '', '=', '', App::Sqitch::Plan::SYNTAX_VERSION),
         prag( '  ', '', 'foo', ' ', '=', ' ', 'bar', '    ', ' lolz'),
         blank(),
@@ -316,6 +330,7 @@ is sorted, 2, 'Should have sorted steps twice';
 
 cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
     nodes => [
+        clear,
         step( '', 'hey', '', '', '+' ),
         step( '', 'you', '', '', '+' ),
         step( ' ', 'dr_evil', '', '', '+  ' ),
@@ -326,6 +341,7 @@ cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
         tag( ' ', 'bar', ' ' ),
     ],
     lines => [
+        clear,
         version,
         step( '', 'hey', '', '', '+' ),
         step( '', 'you', '', '', '+' ),
@@ -354,6 +370,7 @@ $sqitch = App::Sqitch->new(plan_file => $file);
 isa_ok $plan = App::Sqitch::Plan->new(sqitch => $sqitch), $CLASS,
     'Plan with sqitch with plan file';
 cmp_deeply [$plan->lines], [
+        clear,
         version,
         blank('', ' This is a comment'),
         blank(),
@@ -369,6 +386,7 @@ cmp_deeply [$plan->lines], [
         tag(   '', 'baz', ''),
 ], 'Lines should be parsed from file';
 cmp_deeply [$plan->nodes], [
+        clear,
         step(  '', 'hey'),
         step(  '', 'you'),
         tag(   '', 'foo', ' ', ' look, a tag!'),
@@ -382,6 +400,7 @@ is sorted, 2, 'Should have sorted steps twice';
 ok $parsed = $plan->load, 'Load should parse plan from file';
 cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
     lines => [
+        clear,
         version,
         blank('', ' This is a comment'),
         blank(),
@@ -397,6 +416,7 @@ cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
         tag(   '', 'baz', ''),
     ],
     nodes => [
+        clear,
         step(  '', 'hey'),
         step(  '', 'you'),
         tag(   '', 'foo', ' ', ' look, a tag!'),
@@ -407,7 +427,6 @@ cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
     ],
 }, 'And the parsed file should have lines and nodes';
 is sorted, 2, 'Should have sorted steps twice';
-
 
 ##############################################################################
 # Test the interator interface.
@@ -646,6 +665,7 @@ $sqitch = App::Sqitch->new(plan_file => $file);
 isa_ok $plan = App::Sqitch::Plan->new(sqitch => $sqitch), $CLASS,
     'Plan shoud work plan with dupe step across tags';
 cmp_deeply [ $plan->lines ], [
+    clear,
     version,
     step(  '', 'whatever'),
     tag(   '', 'foo'),
@@ -658,6 +678,7 @@ cmp_deeply [ $plan->lines ], [
 ], 'Lines with dupe step should be read from file';
 
 cmp_deeply [ $plan->nodes ], [
+    clear,
     step(  '', 'whatever'),
     tag(   '', 'foo'),
     step(  '', 'hi'),
