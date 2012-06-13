@@ -96,6 +96,7 @@ is_deeply $CLASS->_parse_core_opts([
     '--revert-dir' => 'rev',
     '--test-dir'   => 'tst',
     '--extension'  => 'ext',
+    '--uri'        => 'https://github.com/theory/sqitch/',
     '--dry-run',
     '--verbose', '--verbose',
     '--quiet'
@@ -112,6 +113,7 @@ is_deeply $CLASS->_parse_core_opts([
     'revert_dir' => 'rev',
     'test_dir'   => 'tst',
     'extension'  => 'ext',
+    'uri'        => 'https://github.com/theory/sqitch/',
     'dry_run'    => 1,
     verbosity    => 2,
     quiet        => 1,

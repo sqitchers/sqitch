@@ -7,6 +7,7 @@ use utf8;
 use Moose;
 use File::Path qw(make_path);
 use Path::Class;
+use Try::Tiny;
 use Moose::Util::TypeConstraints;
 use namespace::autoclean;
 
@@ -66,7 +67,19 @@ sub write_config {
 
     my ( @vars, @comments );
 
-    # start with the engine.
+    # Start with a URI.
+    my $uri = try { $sqitch->uri } || do {
+        require UUID::Tiny;
+        URI->new(
+            'urn:uuid:' . UUID::Tiny::create_uuid_as_string(UUID::Tiny::UUID_V4())
+        );
+    };
+    push @vars => {
+        key   => 'core.uri',
+        value => $uri->canonical,
+    };
+
+    # Write the engine.
     my $engine = $sqitch->engine;
     if ($engine) {
         push @vars => {

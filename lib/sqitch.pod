@@ -130,6 +130,7 @@ reverts all steps necessary to return the state to an earlier tag.
   -u --username   USER    Database user name.
      --host       HOST    Database server host name.
      --port       PORT    Database server port number.
+     --uri        URI     Project unique identifier.
      --sql-dir    DIR     Path to directory with deploy and revert scripts.
      --deploy-dir DIR     Path to directory with SQL deployment scripts.
      --revert-dir DIR     Path to directory with SQL reversion scripts.
@@ -215,6 +216,15 @@ engines.
   sqitch --port 7654
 
 Port number to connect to. Does not apply to all engines.
+
+=item C<--uri>
+
+  sqitch --uri https://github.com/theory/sqitch/
+
+A uniform resource identifier that uniquely identifies the project. Used to
+generate unique IDs for project steps, and so should be consistently used in
+the project. Thus it it is probably best set as a local configuration setting
+(C<core.uri>).
 
 =item C<--sql-dir>
 
@@ -580,6 +590,7 @@ bundle to be created in the F<_build/sql> directory, and to deploy starting
 with the "gamma" tag:
 
   [core]
+      uri       = https://github.com/theory/sqitch/
       engine    = pg
       db        = widgetopolis
       sql_dir   = migrations

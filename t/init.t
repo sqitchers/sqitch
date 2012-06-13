@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 109;
+use Test::More tests => 110;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Path::Class;
@@ -90,6 +90,15 @@ chdir $write_dir;
 END { chdir File::Spec->updir }
 my $conf_file = $sqitch->config->local_file;
 
+# Mock UUID::Tiny.
+my $uuid_mock = Test::MockModule->new('UUID::Tiny');
+my $uuid_type;
+$uuid_mock->mock(create_uuid_as_string => sub {
+    $uuid_type = shift;
+    return 'bb70577f-56d6-488c-bbcb-6d093f81de91';
+});
+my $uri = 'urn:uuid:bb70577f-56d6-488c-bbcb-6d093f81de91';
+
 $sqitch = App::Sqitch->new;
 ok $init = $CLASS->new(sqitch => $sqitch), 'Another init object';
 file_not_exists_ok $conf_file;
@@ -98,15 +107,17 @@ file_not_exists_ok $conf_file;
 ok $init->write_config, 'Write the config';
 file_exists_ok $conf_file;
 is_deeply read_config $conf_file, {
-}, 'The configuration file should have no variables';
+    'core.uri' => $uri,
+}, 'The configuration file should have one variable';
 is_deeply +MockOutput->get_info, [
     ['Created ' . $conf_file]
 ], 'The creation should be sent to info';
-
+is $uuid_type, UUID::Tiny::UUID_V4(), 'Should use a V4 UUID';
 my $deploy_dir = File::Spec->catfile(qw(sql deploy));
 my $revert_dir = File::Spec->catfile(qw(sql revert));
 my $test_dir   = File::Spec->catfile(qw(sql test));
-file_contents_like $conf_file, qr{\Q# [core]
+file_contents_like $conf_file, qr{\Q[core]
+	uri = $uri
 	# engine = 
 	# plan_file = sqitch.plan
 	# sql_dir = sql
@@ -114,22 +125,26 @@ file_contents_like $conf_file, qr{\Q# [core]
 	# revert_dir = $revert_dir
 	# test_dir = $test_dir
 	# extension = sql
-}m, 'Entire core section should be commented-out';
+}m, 'All but URI in core section should be commented-out';
 unlink $conf_file;
 
-# Set one option.
-$sqitch = App::Sqitch->new(extension => 'foo');
+# Set two options.
+$sqitch = App::Sqitch->new(
+    extension => 'foo',
+    uri       => URI->new('https://github.com/theory/sqitch/'),
+);
 ok $init = $CLASS->new(sqitch => $sqitch), 'Another init object';
 ok $init->write_config, 'Write the config';
 file_exists_ok $conf_file;
 is_deeply read_config $conf_file, {
+    'core.uri'       => 'https://github.com/theory/sqitch/',
     'core.extension' => 'foo',
-}, 'The configuration should have been written with only one setting';
+}, 'The configuration should have been written with the two settings';
 is_deeply +MockOutput->get_info, [
     ['Created ' . $conf_file]
 ], 'The creation should be sent to info';
 
-file_contents_like $conf_file, qr{\Q
+file_contents_like $conf_file, qr{
 	# engine = 
 	# plan_file = sqitch.plan
 	# sql_dir = sql
@@ -141,6 +156,7 @@ file_contents_like $conf_file, qr{\Q
 # Go again.
 ok $init->write_config, 'Write the config again';
 is_deeply read_config $conf_file, {
+    'core.uri'       => 'https://github.com/theory/sqitch/',
     'core.extension' => 'foo',
 }, 'The configuration should be unchanged';
 is_deeply +MockOutput->get_info, [
@@ -156,8 +172,9 @@ USERCONF: {
     ok $init->write_config, 'Write the config with a user conf';
     file_exists_ok $conf_file;
     is_deeply read_config $conf_file, {
+        'core.uri' => $uri,
         'core.extension' => 'foo',
-    }, 'The configuration should just have core.sql_dir';
+    }, 'The configuration should just have core.uri and core.sql_dir';
     is_deeply +MockOutput->get_info, [
         ['Created ' . $conf_file]
     ], 'The creation should be sent to info again';
@@ -181,9 +198,10 @@ SYSTEMCONF: {
     ok $init->write_config, 'Write the config with a system conf';
     file_exists_ok $conf_file;
     is_deeply read_config $conf_file, {
+        'core.uri' => $uri,
         'core.extension' => 'foo',
         'core.engine' => 'pg',
-    }, 'The configuration should just have core.sql_dir';
+    }, 'The configuration should have local and system config';
     is_deeply +MockOutput->get_info, [
         ['Created ' . $conf_file]
     ], 'The creation should be sent to info again';
@@ -220,6 +238,7 @@ is_deeply +MockOutput->get_info, [
 ], 'The creation should be sent to info once more';
 
 is_deeply read_config $conf_file, {
+    'core.uri'        => $uri,
     'core.plan_file'  => 'my.plan',
     'core.deploy_dir' => 'dep',
     'core.revert_dir' => 'rev',
@@ -245,6 +264,7 @@ is_deeply +MockOutput->get_info, [
 ], 'The creation should be sent to info yet again';
 
 is_deeply read_config $conf_file, {
+    'core.uri'            => $uri,
     'core.engine'         => 'sqlite',
     'core.sqlite.client'  => '/to/sqlite3',
     'core.sqlite.db_name' => 'my.db',
@@ -263,7 +283,8 @@ is_deeply +MockOutput->get_info, [
     ['Created ' . $conf_file]
 ], 'The creation should be sent to info again again';
 is_deeply read_config $conf_file, {
-    'core.engine'         => 'sqlite',
+    'core.uri'    => $uri,
+    'core.engine' => 'sqlite',
 }, 'The configuration should have been written with only the engine var';
 
 file_contents_like $conf_file, qr{^\Q# [core "sqlite"]
@@ -290,6 +311,7 @@ USERCONF: {
     ], 'The creation should be sent to info once more';
 
     is_deeply read_config $conf_file, {
+        'core.uri'            => $uri,
         'core.engine'         => 'sqlite',
         'core.sqlite.db_name' => 'my.db',
     }, 'New config should have been written with sqlite values';
@@ -321,6 +343,7 @@ is_deeply +MockOutput->get_info, [
 ], 'The creation should be sent to info one more time';
 
 is_deeply read_config $conf_file, {
+    'core.uri'         => $uri,
     'core.engine'      => 'pg',
     'core.pg.client'   => '/to/psql',
     'core.pg.db_name'  => 'thingies',
@@ -344,8 +367,9 @@ is_deeply +MockOutput->get_info, [
     ['Created ' . $conf_file]
 ], 'The creation should be sent to info again again again';
 is_deeply read_config $conf_file, {
-    'core.engine'         => 'pg',
-}, 'The configuration should have been written with only the engine var';
+    'core.uri'    => $uri,
+    'core.engine' => 'pg',
+}, 'The configuration should have been written with only the uri & engine vars';
 
 file_contents_like $conf_file, qr{^\Q# [core "pg"]
 	# db_name = 
@@ -374,6 +398,7 @@ USERCONF: {
     ], 'The pg config creation should be sent to info';
 
     is_deeply read_config $conf_file, {
+        'core.uri'         => $uri,
         'core.engine'      => 'pg',
         'core.pg.db_name'  => 'thingies',
     }, 'The configuration should have been written with pg options';

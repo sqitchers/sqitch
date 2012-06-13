@@ -157,6 +157,17 @@ has editor => (
     }
 );
 
+has uri => (
+    is       => 'ro',
+    isa      => 'URI',
+    required => 1,
+    lazy     => 1,
+    default  => sub {
+        require URI;
+        URI->new( shift->config->get( key => 'core.uri' ) );
+    }
+);
+
 sub go {
     my $class = shift;
 
@@ -210,6 +221,7 @@ sub _core_opts {
         username|user|u=s
         host=s
         port=i
+        uri=s
         sql-dir=s
         deploy-dir=s
         revert-dir=s

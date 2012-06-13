@@ -22,6 +22,10 @@ on several of the options to C<sqitch> to determine what to write to this file:
 
 =over
 
+=item C<--uri>
+
+Sets the C<core.uri> configuration variable.
+
 =item C<--plan-file>
 
 Sets the C<core.plan_file> configuration variable.
