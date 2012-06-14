@@ -475,6 +475,7 @@ is sorted, 2, 'Should have sorted steps twice';
 # Test the interator interface.
 can_ok $plan, qw(
     index_of
+    get
     seek
     reset
     next
@@ -546,11 +547,16 @@ is $plan->next, $node, 'Next should return the first node again';
 is $plan->position, 0, 'Position should be at 0 again';
 is $plan->current, $node, 'Current should be first node';
 is $plan->index_of($node->name), 0, "Index of node should be 0";
+is $plan->get($node->name), $node, 'Should be able to get node 0 by name';
+is $plan->get($node->id), $node, 'Should be able to get node 0 by ID';
 is $plan->index_of('@bar'), 5, 'Index of @bar should be 5';
+is $plan->get('@bar'), $sixth, 'Should be able to get @bar by name';
+is $plan->get($sixth->id), $sixth, 'Should be able to get @bar by ID';
 ok $plan->seek('@bar'), 'Seek to the "@bar" node';
 is $plan->position, 5, 'Position should be at 5 again';
 is $plan->current, $sixth, 'Current should be sixth again';
 is $plan->index_of('you'), 1, 'Index of you should be 1';
+is $plan->get('you'), $next, 'Should be able to get node 1 by name';
 ok $plan->seek('you'), 'Seek to the "you" node';
 is $plan->position, 1, 'Position should be at 1 again';
 is $plan->current, $next, 'Current should be second again';

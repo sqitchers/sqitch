@@ -306,6 +306,7 @@ sub lines          { shift->_plan->{lines}->items }
 sub nodes          { shift->_plan->{nodes}->items }
 sub count          { shift->_plan->{nodes}->count }
 sub index_of       { shift->_plan->{nodes}->index_of(shift) }
+sub get            { shift->_plan->{nodes}->get(shift) }
 sub first_index_of { shift->_plan->{nodes}->first_index_of(@_) }
 sub node_at        { shift->_plan->{nodes}->item_at(shift) }
 
@@ -513,15 +514,55 @@ C<next> returns C<undef>, the value will be the last index in the plan plus 1.
 
 =head3 C<index_of>
 
-  my $tag_index  = $paln->index_of('@foo');
-  my $step_index = $paln->index_of('bar');
+  my $index      = $plan->index_of('6c2f28d125aff1deea615f8de774599acf39a7a1');
+  my $tag_index  = $plan->index_of('@foo');
+  my $step_index = $plan->index_of('bar');
   my $bar1_index = $plan->index_of('bar@alpha')
-  my $bar2_index = $paln->index_of('bar@HEAD');
+  my $bar2_index = $plan->index_of('bar@HEAD');
 
-Returns the index of the specified node. Tags should be specified with a
-leading C<@>. For steps that are duplicated, specify C<@tag> to disambiguate.
-Use C<@HEAD> to get the latest version of the step. Returns C<undef> if no
-such tag or step exists.
+Returns the index of the specified node. Returns C<undef> if no such tag or
+step exists. The argument may be any one of:
+
+=over
+
+=item * An ID
+
+  my $index = $plan->index_of('6c2f28d125aff1deea615f8de774599acf39a7a1');
+
+This is the SHA1 hash of a step or tag. Currently, the full 40-character hexed
+hash string must be specified.
+
+=item * A step name
+
+  my $index = $plan->index_of('users_table');
+
+The name of a step. Will throw an exception if the named step appears more
+than once in the list.
+
+=item * A tag name
+
+  my $index = $plan->index_of('@beta1');
+
+The name of a tag, including the leading C<@>.
+
+=item * A tag-qualified step name
+
+  my $index = $plan->index_of('users_table@beta1');
+
+The named step as it was last seen in the list before the specified tag.
+
+=back
+
+=head3 C<get>
+
+  my $node = $plan->get('6c2f28d125aff1deea615f8de774599acf39a7a1');
+  my $tag  = $plan->index_of('@foo');
+  my $step = $plan->index_of('bar');
+  my $bar1 = $plan->index_of('bar@alpha')
+  my $bar2 = $plan->index_of('bar@HEAD');
+
+Returns the node corresponding to the specified ID or name. The argument may
+be in any of the formats described for C<index_of()>.
 
 =head3 C<first_index_of>
 
