@@ -36,9 +36,12 @@ my $sqitch = App::Sqitch->new(
     uri => URI->new('https://github.com/theory/sqitch/'),
 );
 my $plan   = App::Sqitch::Plan->new(sqitch => $sqitch);
+my $step = App::Sqitch::Plan::Step->new( plan => $plan, name => 'roles' );
+
 isa_ok my $tag = $CLASS->new(
     name  => 'foo',
     plan  => $plan,
+    step  => $step,
 ), $CLASS;
 isa_ok $tag, 'App::Sqitch::Plan::Line';
 my $mock_plan = Test::MockModule->new('App::Sqitch::Plan');
@@ -49,11 +52,13 @@ is $tag->as_string, '@foo', 'Should as_string to "@foo"';
 is $tag->info, join("\n",
     'project ' . $sqitch->uri->canonical,
     'tag @foo',
+    'step ' . $step->id,
 ), 'Tag info should be correct';
 
 ok $tag = $CLASS->new(
     name    => 'howdy',
     plan    => $plan,
+    step    => $step,
     lspace  => '  ',
     rspace  => "\t",
     comment => ' blah blah blah',
@@ -62,17 +67,15 @@ ok $tag = $CLASS->new(
 is $tag->as_string, "  \@howdy\t# blah blah blah",
     'It should as_string correctly';
 
-chdir 't';
-my $step = App::Sqitch::Plan::Step->new( plan => $plan, name => 'roles' );
 $mock_plan->mock(index_of => 1);
 $mock_plan->mock(node_at => $step);
-is $tag->step_id, $step->id, 'Step ID should be correct';
+is $tag->step, $step, 'Step should be correct';
 
 # Make sure it gets the step even if there is a tag in between.
 my @prevs = ($tag, $step);
 $mock_plan->mock(index_of => 8);
 $mock_plan->mock(node_at => sub { shift @prevs });
-is $tag->step_id, $step->id, 'Step ID should be for previous step';
+is $tag->step, $step, 'Step should be for previous step';
 
 is $tag->info, join("\n",
     'project ' . $sqitch->uri->canonical,

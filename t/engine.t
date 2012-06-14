@@ -217,7 +217,11 @@ is_deeply +MockOutput->get_info, [[
 # Test apply_tag and remove_tag.
 can_ok $engine, 'apply_tag', 'remove_tag';
 
-my $tag  = App::Sqitch::Plan::Tag->new( name => 'foo', plan => $sqitch->plan );
+my $tag  = App::Sqitch::Plan::Tag->new(
+    name => 'foo',
+    step => $step,
+    plan => $sqitch->plan,
+);
 ok $engine->apply_tag($tag), 'Applay a tag';
 is_deeply $engine->seen, [
     [log_apply_tag => $tag ],

@@ -39,7 +39,7 @@ Module::Build::Sqitch->new(
         'Template::Tiny'                               => '0.11',
         'Throwable'                                    => 0,
         'Try::Tiny'                                    => 0,
-        'UUIDP::Tiny'                                  => '1.02',
+        'UUID::Tiny'                                   => '1.02',
         'URI'                                          => 0,
     },
     build_requires => {

@@ -297,7 +297,7 @@ sub log_apply_tag {
     my ($id, $name, $step_id, $actor) = (
         $tag->id,
         $tag->format_name,
-        $tag->step_id,
+        $tag->step->id,
         $self->actor,
     );
 

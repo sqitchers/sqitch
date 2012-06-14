@@ -4,7 +4,8 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 57;
+use Test::More tests => 77;
+#use Test::More 'no_plan';
 use Test::NoWarnings;
 use Test::Exception;
 use App::Sqitch;
@@ -21,8 +22,11 @@ my $baz = App::Sqitch::Plan::Step->new(plan => $plan, name => 'baz');
 my $yo1 = App::Sqitch::Plan::Step->new(plan => $plan, name => 'yo');
 my $yo2 = App::Sqitch::Plan::Step->new(plan => $plan, name => 'yo');
 
-my $alpha = App::Sqitch::Plan::Tag->new(plan => $plan, name => 'alpha');
-
+my $alpha = App::Sqitch::Plan::Tag->new(
+    plan => $plan,
+    step => $yo1,
+    name => 'alpha',
+);
 my $nodes = App::Sqitch::Plan::NodeList->new(
     $foo,
     $bar,
@@ -106,17 +110,30 @@ is_deeply [$nodes->items], [$foo, $bar, $yo1, $alpha, $baz, $yo2, $hi, $so, $fu]
     'Nodes should be in order with $so and $fu at the end';
 
 ##############################################################################
-# Test index_of_last_tag().
+# Test last_tag(), last_step, index_of_last_tag(), and index_of_last_step().
 is $nodes->index_of_last_tag, 3, 'Should get 3 for last tag index';
+is $nodes->last_tag, $alpha, 'Should find @alpha as last tag';
+is $nodes->index_of_last_step, 8, 'Should get 8 for last step index';
+is $nodes->last_step, $fu, 'Should find fu as last step';
+
 for my $nodes (
     [0, $alpha],
     [1, $foo, $alpha],
     [4, $foo, $alpha, $bar, $baz, $alpha, $yo1],
     [6, $foo, $alpha, $bar, $baz, $alpha, $yo1, $alpha],
 ) {
-    my $exp = shift @{ $nodes };
+    my $tag_index = shift @{ $nodes };
+    my $step_index = $tag_index == $#$nodes ? $#$nodes - 1 : $#$nodes;
     my $n = App::Sqitch::Plan::NodeList->new(@{ $nodes });
-    is $n->index_of_last_tag, $exp, "Should find last node at $exp";
+    is $n->index_of_last_tag, $tag_index, "Should find last tag index at $tag_index";
+    is $n->last_tag, $nodes->[$tag_index], "Should find last tag at $tag_index";
+    if ($tag_index) {
+        is $n->index_of_last_step, $step_index, "Should find last step index at $step_index";
+        is $n->last_step, $nodes->[$step_index], "Should find last step at $step_index";
+    } else {
+        is $n->index_of_last_step, undef, "Should no step index";
+        is $n->last_step, undef, "Should find no step";
+    }
 }
 
 for my $nodes (
@@ -125,5 +142,12 @@ for my $nodes (
     [$foo, $bar, $baz, $yo1, $yo2],
 ) {
     my $n = App::Sqitch::Plan::NodeList->new(@{ $nodes });
-    is $n->index_of_last_tag, undef, 'Should not find tag in ' . scalar @{$nodes} . ' nodes';
+    is $n->index_of_last_tag, undef,
+        'Should not find tag index in ' . scalar @{$nodes} . ' nodes';
+    is $n->last_tag, undef,
+        'Should not find tag in ' . scalar @{$nodes} . ' nodes';
+    if (!@{ $nodes }) {
+        is $n->index_of_last_step, undef, "Should no step index in empty plan";
+        is $n->last_step, undef, "Should find no step in empty plan";
+    }
 }

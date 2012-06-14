@@ -76,6 +76,7 @@ is $step->id, do {
 my $tag = App::Sqitch::Plan::Tag->new(
     plan => $plan,
     name => 'alpha',
+    step => $step,
 );
 
 ok $step = $CLASS->new(

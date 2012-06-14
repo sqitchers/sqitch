@@ -22,7 +22,11 @@ my $yo1 = App::Sqitch::Plan::Step->new(plan => $plan, name => 'yo');
 my $yo2 = App::Sqitch::Plan::Step->new(plan => $plan, name => 'yo');
 
 my $blank = App::Sqitch::Plan::Blank->new(plan => $plan);
-my $alpha = App::Sqitch::Plan::Tag->new(plan => $plan, name => 'alpha');
+my $alpha = App::Sqitch::Plan::Tag->new(
+    plan => $plan,
+    step => $yo1,
+    name => 'alpha',
+);
 
 my $lines = App::Sqitch::Plan::LineList->new(
     $foo,

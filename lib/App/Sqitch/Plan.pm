@@ -64,6 +64,7 @@ sub _parse {
     my %tag_steps;     # Maps steps in current tag section to line numbers.
     my $seen_version;  # Have we seen a version pragma?
     my $prev_tag;      # Last seen tag.
+    my $prev_step;     # Last seen step.
 
     LINE: while ( my $line = $fh->getline ) {
         chomp $line;
@@ -153,22 +154,36 @@ sub _parse {
         ) if $params{name} eq 'HEAD';
 
         if ($type eq 'tag') {
+            # Fail if no steps.
+            unless ($prev_step) {
+                $self->sqitch->fail(
+                    "Error in $file at line ",
+                    $fh->input_line_number,
+                    qq{: \u$type "$params{name}" declared without a preceding step},
+                );
+            }
+
             # Fail on duplicate tag.
             my $key = '@' . $params{name};
             if ( my $at = $seen{$key} ) {
                 $self->sqitch->fail(
-                    "Error in $file at line ",
+                    "Syntax error in $file at line ",
                     $fh->input_line_number,
                     qq{: \u$type "$params{name}" duplicates earlier declaration on line $at},
                 );
             }
+
 
             if (@steps) {
                 # Sort all steps up to this tag by their dependencies.
                 push @nodes => $self->sort_steps(\%seen, @steps);
                 @steps = ();
             }
-            $prev_tag = App::Sqitch::Plan::Tag->new( plan => $self, %params );
+            $prev_tag = App::Sqitch::Plan::Tag->new(
+                plan => $self,
+                step => $prev_step,
+                %params,
+            );
             push @nodes => $prev_tag;
             push @lines => $prev_tag;
             %seen = (%seen, %tag_steps, $key => $fh->input_line_number);
@@ -177,19 +192,19 @@ sub _parse {
             # Fail on duplicate step since last tag.
             if ( my $at = $tag_steps{ $params{name} } ) {
                 $self->sqitch->fail(
-                    "Error in $file at line ",
+                    "Syntax error in $file at line ",
                     $fh->input_line_number,
                     qq{: \u$type "$params{name}" duplicates earlier declaration on line $at},
                 );
             }
 
             $tag_steps{ $params{name} } = $fh->input_line_number;
-            push @steps => App::Sqitch::Plan::Step->new(
+            push @steps => $prev_step = App::Sqitch::Plan::Step->new(
                 plan => $self,
                 ( $prev_tag ? ( since_tag => $prev_tag ) : () ),
                 %params,
             );
-            push @lines => $steps[-1];
+            push @lines => $prev_step;
         }
     }
 
@@ -346,7 +361,15 @@ sub add_tag {
     $self->sqitch->fail(qq{Tag "$key" already exists})
         if defined $nodes->index_of($key);
 
-    my $tag = App::Sqitch::Plan::Tag->new( plan => $self, name => $name );
+    my $step = $self->_plan->{nodes}->last_step or $self->sqitch->fail(
+        qq{Cannot apply tag "$key" to a plan with no steps}
+    );
+
+    my $tag = App::Sqitch::Plan::Tag->new(
+        plan => $self,
+        name => $name,
+        step => $step,
+    );
     $nodes->append( $tag );
     $plan->{lines}->append( $tag );
 }

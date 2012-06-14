@@ -47,14 +47,16 @@ sub blank {
 }
 
 my $prev_tag;
+my $prev_step;
 sub clear {
     undef $prev_tag;
+    undef $prev_step;
     return ();
 }
 
 sub step {
     my @op = defined $_[4] ? split /([+-])/, $_[4] : ();
-    App::Sqitch::Plan::Step->new(
+    return $prev_step = App::Sqitch::Plan::Step->new(
         plan     => $plan,
         lspace   => $_[0] // '',
         name     => $_[1],
@@ -70,6 +72,7 @@ sub step {
 sub tag {
     return $prev_tag = App::Sqitch::Plan::Tag->new(
         plan    => $plan,
+        step    => $prev_step,
         lspace  => $_[0] // '',
         name    => $_[1],
         rspace  => $_[2] // '',
@@ -205,7 +208,7 @@ throws_ok { $plan->_parse($file, $fh) } qr/FAIL:/,
 is sorted, 0, 'Should not have sorted steps';
 cmp_deeply +MockOutput->get_fail, [[
     "Syntax error in $file at line ",
-    5,
+    4,
     ': Invalid step "what what what"; steps must not begin with ',
     'punctuation or end in punctuation or digits following punctuation'
 ]], 'And the error should have been output';
@@ -248,18 +251,27 @@ for my $name (
     '阱阪阬',   # multibyte
     'foo/bar', # middle punct
 ) {
-    for my $line ($name, "\@$name") {
-        my $fh = IO::File->new(\$line, '<:utf8');
-        my $make = $line =~ /^[@]/ ? \&tag : \&step;
-        ok my $parsed = $plan->_parse('gooditem', $fh),
-            encode_utf8(qq{Should parse "$line"});
-        cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
-            nodes => [ clear, $make->('', $name) ],
-            lines => [ clear, version, $make->('', $name) ],
-        }, encode_utf8(qq{Should have line and node for "$line"});
-    }
+    # Test a step name.
+    my $fh = IO::File->new(\$name, '<:utf8');
+    ok my $parsed = $plan->_parse('gooditem', $fh),
+        encode_utf8(qq{Should parse "$name"});
+    cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
+        nodes => [ clear, step('', $name) ],
+        lines => [ clear, version, step('', $name) ],
+    }, encode_utf8(qq{Should have line and node for "$name"});
+
+    # Test a tag name.
+    my $tag = '@' . $name;
+    my $lines = "foo\n$tag";
+    $fh = IO::File->new(\$lines, '<:utf8');
+    ok $parsed = $plan->_parse('gooditem', $fh),
+        encode_utf8(qq{Should parse "$tag"});
+    cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
+        nodes => [ clear, step('', 'foo'), tag('', $name) ],
+        lines => [ clear, version, step('', 'foo'), tag('', $name) ],
+    }, encode_utf8(qq{Should have line and node for "$tag"});
 }
-is sorted, 6, 'Should have sorted steps six times';
+is sorted, 12, 'Should have sorted steps 12 times';
 
 # Try a plan with a reserved tag name.
 $file = file qw(t plans reserved-tag.plan);
@@ -273,6 +285,18 @@ cmp_deeply +MockOutput->get_fail, [[
     ': "HEAD" is a reserved name',
 ]], 'And the reserved tag error should have been output';
 
+# Try a plan with a tag but no step.
+$file = file qw(t plans tag-no-step.plan);
+$fh = IO::File->new(\"\@foo\nbar", '<:utf8');
+throws_ok { $plan->_parse($file, $fh) } qr/FAIL:/,
+    'Should die on plan with tag but no preceding step';
+is sorted, 0, 'Should have sorted steps nonce';
+cmp_deeply +MockOutput->get_fail, [[
+    "Error in $file at line ",
+    1,
+    ': Tag "foo" declared without a preceding step',
+]], 'And the missing step error should have been output';
+
 # Try a plan with a duplicate tag name.
 $file = file qw(t plans dupe-tag.plan);
 $fh = $file->open('<:encoding(UTF-8)');
@@ -280,9 +304,9 @@ throws_ok { $plan->_parse($file, $fh) } qr/FAIL:/,
     'Should die on plan with dupe tag';
 is sorted, 2, 'Should have sorted steps twice';
 cmp_deeply +MockOutput->get_fail, [[
-    "Error in $file at line ",
+    "Syntax error in $file at line ",
     10,
-    ': Tag "bar" duplicates earlier declaration on line 4',
+    ': Tag "bar" duplicates earlier declaration on line 5',
 ]], 'And the dupe tag error should have been output';
 
 # Try a plan with a duplicate step within a tag section.
@@ -292,7 +316,7 @@ throws_ok { $plan->_parse($file, $fh) } qr/FAIL:/,
     'Should die on plan with dupe step';
 is sorted, 1, 'Should have sorted steps once';
 cmp_deeply +MockOutput->get_fail, [[
-    "Error in $file at line ",
+    "Syntax error in $file at line ",
     7,
     ': Step "greets" duplicates earlier declaration on line 5',
 ]], 'And the dupe step error should have been output';

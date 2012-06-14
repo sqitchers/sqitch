@@ -65,13 +65,38 @@ sub first_index_of {
     return List::Util::first { $_ > $tag_index } @{ $idx };
 }
 
-sub index_of_last_tag {
-    my $self = shift;
+sub _index_of_last {
+    my ( $self, $class ) = @_;
     my $items = $self->{list};
     for ( my $i = $#$items; $i >= 0; $i-- ) {
-        return $i if $items->[$i]->isa('App::Sqitch::Plan::Tag');
+        return $i if $items->[$i]->isa($class);
     }
     return undef;
+}
+
+sub index_of_last_tag {
+    shift->_index_of_last('App::Sqitch::Plan::Tag');
+}
+
+sub index_of_last_step {
+    shift->_index_of_last('App::Sqitch::Plan::Step');
+}
+
+sub _last {
+    my ( $self, $class ) = @_;
+    my $items = $self->{list};
+    for ( my $i = $#$items; $i >= 0; $i-- ) {
+        return $items->[$i] if $items->[$i]->isa($class);
+    }
+    return undef;
+}
+
+sub last_tag {
+    shift->_last('App::Sqitch::Plan::Tag');
+}
+
+sub last_step {
+    shift->_last('App::Sqitch::Plan::Step');
 }
 
 sub get {
@@ -203,12 +228,33 @@ such, it should usually be a tag name or tag-qualified step name. Returns
 C<undef> if the step does not appear in the list, or if it does not appear
 after the specified second argument node name.
 
+=head3 C<last_tag>
+
+  my $tag = $nodelist->last_tag;
+
+Returns the last tag to be appear in the list. Returns C<undef> if the list
+contains no tags.
+
+=head3 C<last_step>
+
+  my $step = $nodelist->last_step;
+
+Returns the last step to be appear in the list. Returns C<undef> if the list
+contains no steps.
+
 =head3 C<index_of_last_tag>
 
   my $index = $nodelist->index_of_last_tag;
 
 Returns the index of the last tag to be appear in the list. Returns C<undef>
 if the list contains no tags.
+
+=head3 C<index_of_last_step>
+
+  my $index = $nodelist->index_of_last_step;
+
+Returns the index of the last step to be appear in the list. Returns C<undef>
+if the list contains no steps.
 
 =head3 C<get>
 

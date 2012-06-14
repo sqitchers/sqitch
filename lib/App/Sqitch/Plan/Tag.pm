@@ -18,14 +18,10 @@ has info => (
         my $self = shift;
         my $plan = $self->plan;
 
-        my @step;
-        if (my $step_id = $self->step_id) {
-            @step = ('step ' . $step_id);
-        }
         return join "\n", (
             'project ' . $self->plan->sqitch->uri->canonical,
             'tag '     . $self->format_name,
-            @step,
+            'step '    . $self->step->id,
         );
     }
 );
@@ -43,23 +39,10 @@ has id => (
     }
 );
 
-has step_id => (
+has step => (
     is       => 'ro',
-    isa      => 'Str',
-    lazy     => 1,
-    default  => sub {
-        my $self = shift;
-        my $plan = $self->plan;
-        my $index = $plan->index_of($self->format_name);
-
-        while ($index > 0) {
-            my $prev = $plan->node_at(--$index);
-            return $prev->id if $prev->isa('App::Sqitch::Plan::Step');
-        }
-
-        # Need to make this undef tolerant.
-        return '';
-    },
+    isa      => 'App::Sqitch::Plan::Step',
+    required => 1,
 );
 
 __PACKAGE__->meta->make_immutable;
