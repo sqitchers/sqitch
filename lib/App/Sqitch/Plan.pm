@@ -667,23 +667,11 @@ The Sqitch command-line client.
 Maybe just "step"? If so, may want to move tags into Step as a simple
 array. They become aliases of the step's ID.
 
-=item * Make step IDs deterministic from something other than file contents.
-
-Because otherwise a step won't be found if the file has changed since the last
-deploy (e.g., to revert while doing development). Instead hash the step name and
-the ID of the tag that precedes it.
-
 =item * How to specify prerequisite as of a tag?
 
 Get the prerequisite step objects and look them up in the database by their
 IDs rather than their names. To find each prerequisite, if it is as-of a tag
 (i.e., C<$step@$tag>), use C<index_of()>. Otherwise, use C<first_index_of()>.
-
-=item * When have duplicate named steps, how to find the correct file?
-
-Add name of first tag after first of the two, and add it to the step object.
-Then VCS-based one will use it for the look up, and base class will use it to
-look for C<$step@$tag>.
 
 =item * Move prerequisite spec into plan file.
 
