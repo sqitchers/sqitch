@@ -201,6 +201,7 @@ SYSTEMCONF: {
         'core.uri' => $uri,
         'core.extension' => 'foo',
         'core.engine' => 'pg',
+        'core.uri' => URI->new('https://github.com/theory/sqitch/'),
     }, 'The configuration should have local and system config';
     is_deeply +MockOutput->get_info, [
         ['Created ' . $conf_file]

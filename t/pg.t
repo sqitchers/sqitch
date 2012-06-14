@@ -11,6 +11,7 @@ use Capture::Tiny qw(:all);
 use Try::Tiny;
 use App::Sqitch;
 use App::Sqitch::Plan;
+use URI;
 
 my $CLASS;
 
@@ -31,7 +32,9 @@ is_deeply [$CLASS->config_vars], [
     sqitch_schema => 'any',
 ], 'config_vars should return three vars';
 
-my $sqitch = App::Sqitch->new;
+my $sqitch = App::Sqitch->new(
+    uri => URI->new('https://github.com/theory/sqitch/'),
+);
 isa_ok my $pg = $CLASS->new(sqitch => $sqitch), $CLASS;
 
 my $client = 'psql' . ($^O eq 'Win32' ? '.exe' : '');
@@ -117,6 +120,7 @@ $sqitch = App::Sqitch->new(
     'db_name'       => 'widgets_dev',
     'host'          => 'foo.com',
     'port'          => 98760,
+    uri             => URI->new('https://github.com/theory/sqitch/'),
 );
 
 ok $pg = $CLASS->new(sqitch => $sqitch), 'Create a pg with sqitch with options';
@@ -226,6 +230,7 @@ subtest 'live database' => sub {
         username  => 'postgres',
         sql_dir   => Path::Class::dir(qw(t pg)),
         plan_file => Path::Class::file(qw(t pg sqitch.plan)),
+        uri       => URI->new('https://github.com/theory/sqitch/'),
     );
     $pg = $CLASS->new(sqitch => $sqitch);
     try {

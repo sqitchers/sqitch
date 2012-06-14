@@ -70,6 +70,7 @@ sub write_config {
     # Start with a URI.
     my $uri = try { $sqitch->uri } || do {
         require UUID::Tiny;
+        require URI;
         URI->new(
             'urn:uuid:' . UUID::Tiny::create_uuid_as_string(UUID::Tiny::UUID_V4())
         );

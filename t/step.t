@@ -92,7 +92,7 @@ ok $step = $CLASS->new(
 is $step->as_string, "  - howdy\t# blah blah blah",
     'It should stringify correctly';
 my $mock_plan = Test::MockModule->new(ref $plan);
-$mock_plan->mock(index_of => 0); 
+$mock_plan->mock(index_of => 0);
 
 ok !$step->is_deploy, 'It should not be a deploy step';
 ok $step->is_revert, 'It should be a revert step';
