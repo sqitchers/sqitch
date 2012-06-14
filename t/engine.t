@@ -14,6 +14,7 @@ use Test::NoWarnings;
 use Test::MockModule;
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
+use URI;
 use lib 't/lib';
 use MockOutput;
 
@@ -73,7 +74,8 @@ ENGINE: {
     after seen => sub { @SEEN = () };
 }
 
-ok my $sqitch = App::Sqitch->new(db_name => 'mydb'),
+my $uri = URI->new('https://github.com/theory/sqitch/');
+ok my $sqitch = App::Sqitch->new(db_name => 'mydb', uri => $uri),
     'Load a sqitch sqitch object';
 
 ##############################################################################
@@ -244,7 +246,7 @@ can_ok $CLASS, '_sync_plan';
 chdir 't';
 
 my $plan_file = file qw(sql sqitch.plan);
-$sqitch = App::Sqitch->new( plan_file => $plan_file );
+$sqitch = App::Sqitch->new( plan_file => $plan_file, uri => $uri );
 ok $engine = App::Sqitch::Engine::whu->new( sqitch => $sqitch ),
     'Engine with sqitch with plan file';
 my $plan = $sqitch->plan;
@@ -498,7 +500,7 @@ is_deeply +MockOutput->get_info, [
 # Try a plan with no steps.
 NOSTEPS: {
     my $plan_file = file qw(nonexistent.plan);
-    my $sqitch = App::Sqitch->new( plan_file => $plan_file );
+    my $sqitch = App::Sqitch->new( plan_file => $plan_file, uri => $uri );
     ok $engine = App::Sqitch::Engine::whu->new( sqitch => $sqitch ),
         'Engine with sqitch with no file';
     throws_ok { $engine->deploy } 'App::Sqitch::X', 'Should die with no steps';

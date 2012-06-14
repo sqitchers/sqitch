@@ -153,6 +153,13 @@ sub _parse {
             ': "HEAD" is a reserved name',
         ) if $params{name} eq 'HEAD';
 
+        # It must not loo, like a SHA1 hash.
+        $self->sqitch->fail(
+            "Syntax error in $file at line ",
+            $fh->input_line_number,
+            qq{: "$params{name}" is invalid because it could be confused with a SHA1 ID},
+        ) if $params{name} =~ /^[0-9a-f]{40}/;
+
         if ($type eq 'tag') {
             # Fail if no steps.
             unless ($prev_step) {
@@ -414,6 +421,9 @@ sub add_step {
 sub _is_valid {
     my ( $self, $type, $name ) = @_;
     $self->sqitch->fail('"HEAD" is a reserved name') if $name eq 'HEAD';
+    $self->sqitch->fail(
+        qq{"$name" is invalid because it could be confused with a SHA1 ID}
+    ) if $name =~ /^[0-9a-f]{40}/;
 
     $self->sqitch->fail(
         qq{"$name" is invalid: ${type}s must not begin with punctuation },

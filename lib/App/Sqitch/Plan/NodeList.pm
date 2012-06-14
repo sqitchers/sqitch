@@ -11,6 +11,7 @@ sub new {
     for my $node (@_) {
         push @list => $node;
         push @{ $index{ $node->format_name } } => $#list;
+        push @{ $index{ $node->id } } => $#list;
     }
 
     return bless {
@@ -110,8 +111,9 @@ sub append {
     my $list = $self->{list};
     for my $node (@_) {
         push @{ $list } => $node;
-        my $idx = $self->{lookup}{$node->format_name} ||= [];
+        my $idx = $self->{lookup}{ $node->format_name } ||= [];
         push $idx, $#$list;
+        $self->{lookup}{ $node->id } = [$#$list];
     }
     return $self;
 }
@@ -182,11 +184,20 @@ Returns the node at the specified index.
 
 =head3 C<index_of>
 
+  my $index = $nodelist->index_of($node_id);
   my $index = $nodelist->index_of($node_name);
 
-Returns the index of the named node. The name may be one of these forms:
+Returns the index of the node with the specified ID or name. The value passed
+may be one of these forms:
 
 =over
+
+=item * An ID
+
+  my $index = $nodelist->index_of('6c2f28d125aff1deea615f8de774599acf39a7a1');
+
+This is the SHA1 hash of a step or tag. Currently, the full 40-character hexed
+hash string must be specified.
 
 =item * A step name
 
@@ -258,12 +269,13 @@ if the list contains no steps.
 
 =head3 C<get>
 
+  my $node = $nodelist->get($node_id);
   my $node = $nodelist->get($node_name);
 
-Returns the named node. The name may be specified as described for
-C<index_of()>. An exception will be thrown if more than one instance of the
-node appears. As such, it is best to specify it as unambiguously as possible:
-as a tag name or a tag-qualified step name.
+Returns the node for the specified ID or name. The name may be specified as
+described for C<index_of()>. An exception will be thrown if more than one
+instance of the node appears. As such, it is best to specify it as
+unambiguously as possible: as a tag name or a tag-qualified step name.
 
 =head3 C<append>
 

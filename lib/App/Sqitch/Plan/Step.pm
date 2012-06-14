@@ -4,6 +4,7 @@ use v5.10.1;
 use utf8;
 use namespace::autoclean;
 use parent 'App::Sqitch::Plan::Line';
+use Encode;
 use Moose;
 
 has _dependencies => (
@@ -81,7 +82,7 @@ has id => (
     isa      => 'Str',
     lazy     => 1,
     default  => sub {
-        my $content = shift->info;
+        my $content = encode_utf8 shift->info;
         require Digest::SHA1;
         return Digest::SHA1->new->add(
             'step ' . length($content) . "\0" . $content

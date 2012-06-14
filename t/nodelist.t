@@ -4,16 +4,19 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 77;
+use Test::More tests => 86;
 #use Test::More 'no_plan';
 use Test::NoWarnings;
 use Test::Exception;
 use App::Sqitch;
 use App::Sqitch::Plan;
+use URI;
 
 BEGIN { require_ok 'App::Sqitch::Plan::NodeList' or die }
 
-my $sqitch = App::Sqitch->new;
+my $sqitch = App::Sqitch->new(
+    uri => URI->new('https://github.com/theory/sqitch/'),
+);
 my $plan   = App::Sqitch::Plan->new(sqitch => $sqitch);
 
 my $foo = App::Sqitch::Plan::Step->new(plan => $plan, name => 'foo');
@@ -49,9 +52,13 @@ is $nodes->item_at(5), $yo2, 'Should have yo2 at 5';
 is $nodes->index_of('non'), undef, 'Should not find "non"';
 is $nodes->index_of('@non'), undef, 'Should not find "@non"';
 is $nodes->index_of('foo'), 0, 'Should find foo at 0';
+is $nodes->index_of($foo->id), 0, 'Should find foo by ID at 0';
 is $nodes->index_of('bar'), 1, 'Should find bar at 1';
+is $nodes->index_of($bar->id), 1, 'Should find bar by ID at 1';
 is $nodes->index_of('@alpha'), 3, 'Should find @alpha at 3';
+is $nodes->index_of($alpha->id), 3, 'Should find @alpha by ID at 3';
 is $nodes->index_of('baz'), 4, 'Should find baz at 4';
+is $nodes->index_of($baz->id), 4, 'Should find baz by ID at 4';
 
 throws_ok { $nodes->index_of('yo') } qr/^\QKey "yo" at multiple indexes/,
     'Should get error looking for index of "yo"';
@@ -67,9 +74,12 @@ is $nodes->index_of('baz@alpha'), undef, 'Should get undef for baz@alpha';
 is $nodes->index_of('baz@HEAD'), 4, 'Should get 4 for baz@HEAD';
 
 is $nodes->get('foo'), $foo, 'Should get foo for "foo"';
+is $nodes->get($foo->id), $foo, 'Should get foo by ID';
 is $nodes->get('bar'), $bar, 'Should get bar for "bar"';
-is $nodes->get('@alpha'), $alpha, 'Should get @alpha for "@alpha"';
+is $nodes->get($bar->id), $bar, 'Should get bar by ID';
+is $nodes->get($alpha->id), $alpha, 'Should get @alpha by ID';
 is $nodes->get('baz'), $baz, 'Should get baz for "baz"';
+is $nodes->get($baz->id), $baz, 'Should get baz by ID';
 
 is $nodes->get('yo@alpha'), $yo1, 'Should get yo1 for yo@alpha';
 is $nodes->get('yo@HEAD'), $yo2, 'Should get yo2 for yo@HEAD';
@@ -89,6 +99,8 @@ ok $nodes->append($hi), 'Push hi';
 is $nodes->count, 7, 'Count should now be seven';
 is_deeply [$nodes->items], [$foo, $bar, $yo1, $alpha, $baz, $yo2, $hi],
     'Nodes should be in order with $hi at the end';
+is $nodes->index_of('hi'), 6, 'Should find "hi" at index 8';
+is $nodes->index_of($hi->id), 6, 'Should find "hi" by ID at index 8';
 
 # Now try first_index_of().
 is $nodes->first_index_of('non'), undef, 'First index of "non" should be undef';

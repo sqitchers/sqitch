@@ -14,6 +14,7 @@ use Test::File::Contents;
 use Encode;
 #use Test::NoWarnings;
 use File::Path qw(make_path remove_tree);
+use URI;
 use lib 't/lib';
 use MockOutput;
 
@@ -34,7 +35,8 @@ can_ok $CLASS, qw(
     open_script
 );
 
-my $sqitch = App::Sqitch->new;
+my $uri = URI->new('https://github.com/theory/sqitch/');
+my $sqitch = App::Sqitch->new(uri => $uri);
 isa_ok my $plan = App::Sqitch::Plan->new(sqitch => $sqitch), $CLASS;
 
 # Set up some some utility functions for creating nodes.
@@ -56,7 +58,7 @@ sub clear {
 
 sub step {
     my @op = defined $_[4] ? split /([+-])/, $_[4] : ();
-    return $prev_step = App::Sqitch::Plan::Step->new(
+    $prev_step = App::Sqitch::Plan::Step->new(
         plan     => $plan,
         lspace   => $_[0] // '',
         name     => $_[1],
@@ -67,10 +69,12 @@ sub step {
         ropspace => $op[2] // '',
         ($prev_tag ? (since_tag => $prev_tag) : ()),
     );
+    $prev_step->id;
+    return $prev_step;
 }
 
 sub tag {
-    return $prev_tag = App::Sqitch::Plan::Tag->new(
+    $prev_tag = App::Sqitch::Plan::Tag->new(
         plan    => $plan,
         step    => $prev_step,
         lspace  => $_[0] // '',
@@ -78,6 +82,8 @@ sub tag {
         rspace  => $_[2] // '',
         comment => $_[3] // '',
     );
+    $prev_tag->id;
+    return $prev_tag;
 }
 
 sub prag {
@@ -285,6 +291,19 @@ cmp_deeply +MockOutput->get_fail, [[
     ': "HEAD" is a reserved name',
 ]], 'And the reserved tag error should have been output';
 
+# Try a plan with a step name that looks like a sha1 hash.
+my $sha1 = '6c2f28d125aff1deea615f8de774599acf39a7a1';
+$file = file qw(t plans sha1.plan);
+$fh = IO::File->new(\$sha1, '<:utf8');
+throws_ok { $plan->_parse($file, $fh) } qr/FAIL:/,
+    'Should die on plan with SHA1 step name';
+is sorted, 0, 'Should have sorted steps nonce';
+cmp_deeply +MockOutput->get_fail, [[
+    "Syntax error in $file at line ",
+    1,
+    qq{: "$sha1" is invalid because it could be confused with a SHA1 ID},
+]], 'And the SHA1 name error should have been output';
+
 # Try a plan with a tag but no step.
 $file = file qw(t plans tag-no-step.plan);
 $fh = IO::File->new(\"\@foo\nbar", '<:utf8');
@@ -381,7 +400,7 @@ cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
 
 # Try a non-existent plan file with load().
 $file = file qw(t hi nonexistent.plan);
-$sqitch = App::Sqitch->new(plan_file => $file);
+$sqitch = App::Sqitch->new(plan_file => $file, uri => $uri);
 isa_ok $plan = App::Sqitch::Plan->new(sqitch => $sqitch), $CLASS,
     'Plan with sqitch with nonexistent plan file';
 
@@ -390,7 +409,7 @@ cmp_deeply [$plan->nodes], [], 'Should have no nodes';
 
 # Make sure that lines() loads the plan.
 $file = file qw(t plans multi.plan);
-$sqitch = App::Sqitch->new(plan_file => $file);
+$sqitch = App::Sqitch->new(plan_file => $file, uri => $uri);
 isa_ok $plan = App::Sqitch::Plan->new(sqitch => $sqitch), $CLASS,
     'Plan with sqitch with plan file';
 cmp_deeply [$plan->lines], [
@@ -615,6 +634,12 @@ cmp_deeply +MockOutput->get_fail, [[
     '"HEAD" is a reserved name'
 ]], 'And the reserved name error should be output';
 
+throws_ok { $plan->add_tag($sha1) } qr/^FAIL:/,
+    'Should get error for a SHA1 tag';
+cmp_deeply +MockOutput->get_fail, [[
+    qq{"$sha1" is invalid because it could be confused with a SHA1 ID},
+]], 'And the reserved name error should be output';
+
 ##############################################################################
 # Try adding a step.
 ok $plan->add_step('booyah'), 'Add step "booyah"';
@@ -666,7 +691,7 @@ cmp_deeply +MockOutput->get_fail, [[
     '"HEAD" is a reserved name'
 ]], 'And the reserved name error should be output';
 
-# Try an invalid depednency.
+# Try an invalid dependency.
 throws_ok { $plan->add_step('whu', ['nonesuch' ] ) } qr/^FAIL\b/,
     'Should get failure for failed dependency';
 cmp_deeply +MockOutput->get_fail, [[
@@ -682,10 +707,17 @@ cmp_deeply +MockOutput->get_fail, [[
     'requires unknown tag "@nonesuch"'
 ]], 'The tag dependency error should have been emitted';
 
+# Should choke on a step that looks like a SHA1.
+throws_ok { $plan->add_step($sha1) } qr/^FAIL:/,
+    'Should get error for a SHA1 step';
+cmp_deeply +MockOutput->get_fail, [[
+    qq{"$sha1" is invalid because it could be confused with a SHA1 ID},
+]], 'And the reserved name error should be output';
+
 ##############################################################################
 # Try a plan with a duplicate step in different tag sections.
 $file = file qw(t plans dupe-step-diff-tag.plan);
-$sqitch = App::Sqitch->new(plan_file => $file);
+$sqitch = App::Sqitch->new(plan_file => $file, uri => $uri);
 isa_ok $plan = App::Sqitch::Plan->new(sqitch => $sqitch), $CLASS,
     'Plan shoud work plan with dupe step across tags';
 cmp_deeply [ $plan->lines ], [
