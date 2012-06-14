@@ -302,6 +302,9 @@ sub _parse_core_opts {
     }
     $opts{plan_file} = file $opts{plan_file} if defined $opts{plan_file};
 
+    # Convert URI to URI.
+    $opts{uri} = do { require URI; URI->new($opts{uri}) } if $opts{uri};
+
     # Normalize the options (remove undefs) and return.
     $opts{verbosity} = delete $opts{verbose};
     delete $opts{$_} for grep { !defined $opts{$_} } keys %opts;
