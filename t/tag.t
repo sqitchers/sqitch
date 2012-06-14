@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 14;
+use Test::More tests => 17;
 #use Test::More 'no_plan';
 use Test::NoWarnings;
 use App::Sqitch;
@@ -89,3 +89,23 @@ is $tag->id, do {
         'tag ' . length($content) . "\0" . $content
     )->hexdigest;
 },'Tag ID should be correct';
+
+##############################################################################
+# Test ID for a tag with a UTF-8 name.
+ok $tag = $CLASS->new(
+    name => '阱阪阬',
+    plan => $plan,
+    step  => $step,
+), 'Create tag with UTF-8 name';
+is $tag->info, join("\n",
+    'project ' . $sqitch->uri->canonical,
+    'tag '     . '@阱阪阬',
+    'step '    . $step->id,
+), 'The name should be decoded text';
+
+is $tag->id, do {
+    my $content = Encode::encode_utf8 $tag->info;
+    Digest::SHA1->new->add(
+        'tag ' . length($content) . "\0" . $content
+    )->hexdigest;
+},'Tag ID should be hahsed from encoded UTF-8';

@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 43;
+use Test::More tests => 46;
 #use Test::More 'no_plan';
 use Test::NoWarnings;
 use App::Sqitch;
@@ -185,3 +185,21 @@ throws_ok { $CLASS->new( requires => [] ) }
 throws_ok { $CLASS->new( conflicts => [] ) }
     qr/\QThe "conflicts" and "requires" parameters must both be required or omitted/,
     'Should get an error for conflicts but no requires';
+
+##############################################################################
+# Test ID for a step with a UTF-8 name.
+ok $step = $CLASS->new(
+    name => '阱阪阬',
+    plan => $plan,
+), 'Create step with UTF-8 name';
+is $step->info, join("\n",
+    'project ' . $sqitch->uri->canonical,
+    'step '    . '阱阪阬'
+), 'The name should be decoded text';
+
+is $step->id, do {
+    my $content = Encode::encode_utf8 $step->info;
+    Digest::SHA1->new->add(
+        'step ' . length($content) . "\0" . $content
+    )->hexdigest;
+},'Step ID should be hahsed from encoded UTF-8';
