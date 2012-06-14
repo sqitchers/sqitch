@@ -10,7 +10,7 @@ sub format_name {
     '@' . shift->name;
 }
 
-has id => (
+has info => (
     is       => 'ro',
     isa      => 'Str',
     lazy     => 1,
@@ -18,12 +18,24 @@ has id => (
         my $self = shift;
         my $plan = $self->plan;
 
-        my $content = join "\n", (
-            'object ' . $self->step_id,
-            'type tag',
-            'tag ' . $self->format_name,
+        my @step;
+        if (my $step_id = $self->step_id) {
+            @step = ('step ' . $step_id);
+        }
+        return join "\n", (
+            'project ' . $self->plan->sqitch->uri->canonical,
+            'tag '     . $self->format_name,
+            @step,
         );
+    }
+);
 
+has id => (
+    is       => 'ro',
+    isa      => 'Str',
+    lazy     => 1,
+    default  => sub {
+        my $content = shift->info;
         require Digest::SHA1;
         return Digest::SHA1->new->add(
             'tag ' . length($content) . "\0" . $content
@@ -45,7 +57,8 @@ has step_id => (
             return $prev->id if $prev->isa('App::Sqitch::Plan::Step');
         }
 
-        return '0000000000000000000000000000000000000000';
+        # Need to make this undef tolerant.
+        return '';
     },
 );
 

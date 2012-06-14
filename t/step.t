@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 42;
+use Test::More tests => 43;
 #use Test::More 'no_plan';
 use Test::NoWarnings;
 use App::Sqitch;
@@ -14,6 +14,8 @@ use Test::Exception;
 use Path::Class;
 use File::Path qw(make_path remove_tree);
 use Digest::SHA1;
+use Test::MockModule;
+use URI;
 
 my $CLASS;
 
@@ -36,7 +38,9 @@ can_ok $CLASS, qw(
     conflicts
 );
 
-my $sqitch = App::Sqitch->new;
+my $sqitch = App::Sqitch->new(
+    uri => URI->new('https://github.com/theory/sqitch/'),
+);
 my $plan  = App::Sqitch::Plan->new(sqitch => $sqitch);
 isa_ok my $step = $CLASS->new(
     name => 'foo',
@@ -58,6 +62,16 @@ is $step->test_file, $sqitch->test_dir->file('foo.sql'),
 is $step->format_name, 'foo', 'Name should format as "foo"';
 is $step->as_string, 'foo', 'should stringify to "foo"';
 is $step->since_tag, undef, 'Since tag should be undef';
+is $step->info, join("\n",
+   'project ' . $sqitch->uri->canonical,
+   'step foo',
+), 'Step info should be correct';
+is $step->id, do {
+    my $content = $step->info;
+    Digest::SHA1->new->add(
+        'step ' . length($content) . "\0" . $content
+    )->hexdigest;
+},'Step ID should be correct';
 
 my $tag = App::Sqitch::Plan::Tag->new(
     plan => $plan,
@@ -77,11 +91,18 @@ ok $step = $CLASS->new(
 
 is $step->as_string, "  - howdy\t# blah blah blah",
     'It should stringify correctly';
+my $mock_plan = Test::MockModule->new(ref $plan);
+$mock_plan->mock(index_of => 0); 
 
 ok !$step->is_deploy, 'It should not be a deploy step';
 ok $step->is_revert, 'It should be a revert step';
 is $step->action, 'revert', 'It should say so';
 is $step->since_tag, $tag, 'It should have a since tag';
+is $step->info, join("\n",
+   'project ' . $sqitch->uri->canonical,
+   'step howdy',
+   'since ' . $tag->id,
+), 'Info should include since tag';
 
 ##############################################################################
 # Test _parse_dependencies.
@@ -108,13 +129,6 @@ $fh->close;
 
 ok $step = $CLASS->new( name => 'baz', plan => $plan ),
     'Create step "baz"';
-is $step->id, do {
-    my $content = file(qw(sql deploy baz.sql))->slurp(iomode => '<:raw');
-    Digest::SHA1->new->add(
-        'blob ' . length $content . "\0" . $content
-    )->hexdigest;
-}, 'baz SHA1 should be correct';
-
 is_deeply $step->_parse_dependencies, { conflicts => [], requires => [] },
     'baz.sql should have no dependencies';
 is_deeply [$step->requires], [], 'Requires should be empty';
@@ -122,13 +136,6 @@ is_deeply [$step->conflicts], [], 'Conflicts should be empty';
 
 ok $step = $CLASS->new( name => 'bar', plan => $plan ),
     'Create step "bar"';
-is $step->id, do {
-    my $content = $step_file->slurp(iomode => '<:raw');
-    Digest::SHA1->new->add(
-        'blob ' . length $content . "\0" . $content
-    )->hexdigest;
-}, 'bar SHA1 should be correct';
-
 is_deeply $step->_parse_dependencies([], 'bar'), {
     requires  => [qw(foo foo @yo blah blah w00t)],
     conflicts => [qw(yak this that)],

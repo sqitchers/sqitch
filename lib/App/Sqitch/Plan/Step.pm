@@ -56,15 +56,35 @@ has test_file => (
     }
 );
 
+has info => (
+    is       => 'ro',
+    isa      => 'Str',
+    lazy     => 1,
+    default  => sub {
+        my $self = shift;
+
+        my @since;
+        if (my $tag = $self->since_tag) {
+            @since = ('since ' . $tag->id);
+        }
+
+        return join "\n", (
+            'project ' . $self->plan->sqitch->uri->canonical,
+            'step '    . $self->format_name,
+            @since,
+        );
+    }
+);
+
 has id => (
     is       => 'ro',
     isa      => 'Str',
     lazy     => 1,
     default  => sub {
+        my $content = shift->info;
         require Digest::SHA1;
-        my $content = shift->deploy_file->slurp(iomode => '<:raw');
         return Digest::SHA1->new->add(
-            'blob ' . length $content . "\0" . $content
+            'step ' . length($content) . "\0" . $content
         )->hexdigest;
     }
 );

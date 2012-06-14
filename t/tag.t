@@ -4,13 +4,14 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-#use Test::More tests => 11;
-use Test::More 'no_plan';
+use Test::More tests => 14;
+#use Test::More 'no_plan';
 use Test::NoWarnings;
 use App::Sqitch;
 use App::Sqitch::Plan;
 use Test::MockModule;
 use Digest::SHA1;
+use URI;
 
 my $CLASS;
 
@@ -31,16 +32,24 @@ can_ok $CLASS, qw(
     plan
 );
 
-my $sqitch = App::Sqitch->new;
+my $sqitch = App::Sqitch->new(
+    uri => URI->new('https://github.com/theory/sqitch/'),
+);
 my $plan   = App::Sqitch::Plan->new(sqitch => $sqitch);
 isa_ok my $tag = $CLASS->new(
     name  => 'foo',
     plan  => $plan,
 ), $CLASS;
 isa_ok $tag, 'App::Sqitch::Plan::Line';
+my $mock_plan = Test::MockModule->new('App::Sqitch::Plan');
+$mock_plan->mock(index_of => 0); # no other nodes
 
 is $tag->format_name, '@foo', 'Name should format as "@foo"';
 is $tag->as_string, '@foo', 'Should as_string to "@foo"';
+is $tag->info, join("\n",
+    'project ' . $sqitch->uri->canonical,
+    'tag @foo',
+), 'Tag info should be correct';
 
 ok $tag = $CLASS->new(
     name    => 'howdy',
@@ -54,7 +63,6 @@ is $tag->as_string, "  \@howdy\t# blah blah blah",
     'It should as_string correctly';
 
 chdir 't';
-my $mock_plan = Test::MockModule->new('App::Sqitch::Plan');
 my $step = App::Sqitch::Plan::Step->new( plan => $plan, name => 'roles' );
 $mock_plan->mock(index_of => 1);
 $mock_plan->mock(node_at => $step);
@@ -66,15 +74,15 @@ $mock_plan->mock(index_of => 8);
 $mock_plan->mock(node_at => sub { shift @prevs });
 is $tag->step_id, $step->id, 'Step ID should be for previous step';
 
+is $tag->info, join("\n",
+    'project ' . $sqitch->uri->canonical,
+    'tag @howdy',
+    'step ' . $step->id,
+), 'Tag info should include the step';
+
 is $tag->id, do {
-    my $content = join "\n", (
-        'object ' . $step->id,
-        'type tag',
-        'tag @howdy',
-    );
+    my $content = $tag->info;
     Digest::SHA1->new->add(
         'tag ' . length($content) . "\0" . $content
     )->hexdigest;
-},'Tag SHA1 should be correct';
-
-
+},'Tag ID should be correct';
