@@ -104,6 +104,52 @@ sub deploy {
     $self->$meth($plan, $to_index);
 }
 
+sub revert {
+    my ( $self, $to ) = @_;
+    my $sqitch = $self->sqitch;
+    my $plan   = $self->sqitch->plan;
+
+    my @step_ids;
+
+    if (defined $to) {
+        my $node = $plan->get($to) // plan => __x(
+            'Unknown revert target: "{target}"',
+            target => $to,
+        );
+
+        @step_ids = $self->deployed_step_ids_since($node) or hurl engine => __x(
+            'Target not deployed: "{target}"',
+            target => $to,
+        );
+
+        $sqitch->info(__x(
+            'Reverting from {destination} to {target}',
+            destination => $self->destination,
+            target      => $to
+        ));
+    } else {
+        @step_ids = $self->deployed_step_ids or hurl engine => __(
+            'Nothing to revert (nothing deployed)',
+        );
+        $sqitch->info(__x(
+            'Reverting all changes from {destination}',
+            destination => $self->destination,
+        ));
+    }
+
+    # Get the list of steps to revert before we do actual work.
+    my @steps = map { $plan->get($_) } reverse @step_ids;
+
+    # Do we want to support modes, where failures would re-deploy to previous
+    # tag or all the way back to the starting point? This would be very much
+    # like deploy() mode. I'm thinking not, as a failure on a revert is not
+    # something you generaly want to recover from by deploying back to where
+    # you started. But maybe I'm wrong?
+    $self->revert_step($_) for reverse @steps;
+
+    return $self;
+}
+
 sub _deploy_by_step {
     my ( $self, $plan, $to_index ) = @_;
 
@@ -270,6 +316,7 @@ sub deploy_step {
     }
 
     return try {
+        # XXX Start a transaction and lock the steps table.
         $self->run_file($step->deploy_file);
         $self->log_deploy_step($step);
     } catch {
@@ -281,6 +328,7 @@ sub deploy_step {
 sub revert_step {
     my ( $self, $step ) = @_;
     $self->sqitch->info('  - ', $step->format_name);
+    # XXX Start a transaction and lock the steps table.
     $self->run_file($step->revert_file);
     $self->log_revert_step($step);
 }

@@ -277,15 +277,33 @@ sub log_revert_step {
     my ($self, $step) = @_;
     my $dbh = $self->_dbh;
 
-    $dbh->do(q{
-        INSERT INTO events (event, node_id, node, logged_by)
-        VALUES ('revert', ?, ?, ?);
-    }, undef, $step->id, $step->name, $self->actor);
+    # Delete tags.
+    my $del_tags = $dbh->selectall_arrayref(
+        'DELETE FROM tags WHERE step_id = ? RETURNING tag_id, tag',
+        undef, $step->id
+    );
 
+    if (@{ $del_tags }) {
+        # Log them.
+        $dbh->do(
+            'INSERT INTO events (event, node_id, node, logged_by) VALUES '
+            . join( ', ', ( q{('remove', ?, ?, ?)} ) x @{ $del_tags } ),
+            undef,
+            map { @{ $_ }, $self->actor } @{ $del_tags }
+        );
+    }
+
+    # Delete the step record.
     $dbh->do(
         'DELETE FROM steps where step_id = ?',
         undef, $step->id
     );
+
+    # Log it.
+    $dbh->do(q{
+        INSERT INTO events (event, node_id, node, logged_by)
+        VALUES ('revert', ?, ?, ?);
+    }, undef, $step->id, $step->name, $self->actor);
 
     return $self;
 }
@@ -418,6 +436,27 @@ sub latest_step {
          ORDER BY deployed_at DESC
          LIMIT 1
     });
+}
+
+sub deployed_step_ids {
+    return @{ shift->_dbh->selectcol_arrayref(qq{
+        SELECT step_id AS id
+          FROM steps
+         ORDER BY ts ASC
+    }) };
+}
+
+sub deployed_step_ids_since {
+    my ( $self, $node ) = @_;
+    my $where = $node->isa('App::Sqitch::Plan::Step')
+        ? 'SELECT deployed_at FROM steps WHERE step_id = ?'
+        : 'SELECT applied_at  FROM tags  WHERE tag_id  = ?';
+    return @{ $self->_dbh->selectcol_arrayref(qq{
+        SELECT step_id
+          FROM steps
+         ORDER BY ts ASC
+         WHERE deployed_at > ($where)
+    }, undef, $node->id) };
 }
 
 sub _run {
