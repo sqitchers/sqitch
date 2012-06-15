@@ -11,7 +11,6 @@ use App::Sqitch::Plan::NodeList;
 use App::Sqitch::Plan::LineList;
 use namespace::autoclean;
 use Moose;
-use Moose::Meta::TypeConstraint::Parameterizable;
 use constant SYNTAX_VERSION => '1.0.0-a1';
 
 our $VERSION = '0.32';

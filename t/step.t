@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 46;
+use Test::More tests => 49;
 #use Test::More 'no_plan';
 use Test::NoWarnings;
 use App::Sqitch;
@@ -30,6 +30,8 @@ can_ok $CLASS, qw(
     rspace
     comment
     since_tag
+    tags
+    add_tag
     plan
     deploy_file
     revert_file
@@ -104,6 +106,11 @@ is $step->info, join("\n",
    'step howdy',
    'since ' . $tag->id,
 ), 'Info should include since tag';
+
+# Check tags.
+is_deeply [$step->tags], [], 'Should have no tags';
+ok $step->add_tag($tag), 'Add a tag';
+is_deeply [$step->tags], [$tag], 'Should have the tag';
 
 ##############################################################################
 # Test _parse_dependencies.

@@ -21,6 +21,19 @@ has since_tag => (
     required => 0,
 );
 
+has _tags => (
+    is         => 'ro',
+    traits  => ['Array'],
+    isa        => 'ArrayRef[App::Sqitch::Plan::Tag]',
+    lazy       => 1,
+    required   => 1,
+    default    => sub { [] },
+    handles => {
+        tags    => 'elements',
+        add_tag => 'push',
+    },
+);
+
 has deploy_file => (
     is       => 'ro',
     isa      => 'Path::Class::File',
