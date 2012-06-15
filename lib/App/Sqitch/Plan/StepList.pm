@@ -101,6 +101,15 @@ sub append {
     return $self;
 }
 
+sub index_tag {
+    my ( $self, $index, $tag ) = @_;
+    my $list   = $self->{list};
+    my $lookup = $self->{lookup};
+    $lookup->{ $tag->id } = $lookup->{ $tag->format_name } = [$index];
+    $self->{last_tagged_at} = $index if $index == $#{ $self->{list} };
+    return $self;
+}
+
 1;
 
 __END__
@@ -265,6 +274,15 @@ as possible: as a tag name, a tag-qualified step name, or an ID.
 
 Append one or more steps to the list. Does not check for duplicates, so
 use with care.
+
+=head3 C<index_tag>
+
+  $steplist->index_tag($index, $tag);
+
+Index the tag at the specified index. That is, the tag is assumed to be
+associated with the step at the specified index, and so the internal lookup
+table is updated so that the step at that index can be found via the tag's
+name and ID.
 
 =head1 See Also
 

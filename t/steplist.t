@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 85;
+use Test::More tests => 89;
 #use Test::More 'no_plan';
 use Test::NoWarnings;
 use Test::Exception;
@@ -122,6 +122,18 @@ is $nodes->count, 8, 'Count should now be eight';
 is_deeply [$nodes->steps], [$foo, $bar, $yo1, $baz, $yo2, $hi, $so, $fu],
     'Nodes should be in order with $so and $fu at the end';
 
+# Try indexing a tag.
+my $beta = App::Sqitch::Plan::Tag->new(
+    plan => $plan,
+    step => $yo2,
+    name => 'beta',
+);
+$yo2->add_tag($beta);
+ok $nodes->index_tag(4, $beta), 'Index beta';
+is $nodes->index_of('@beta'), 4, 'Should find @beta at index 4';
+is $nodes->get('@beta'), $yo2, 'Should find yo2 via @beta';
+is $nodes->get($beta->id), $yo2, 'Should find yo2 via @beta ID';
+
 ##############################################################################
 # Test last_tagged(), last_step(), index_of_last_tagged().
 is $nodes->index_of_last_tagged, 2, 'Should get 2 for last tagged index';
@@ -146,7 +158,7 @@ for my $nodes (
 for my $nodes (
     [],
     [$foo, $baz],
-    [$foo, $bar, $baz, $yo2],
+    [$foo, $bar, $baz, $hi],
 ) {
     my $n = App::Sqitch::Plan::StepList->new(@{ $nodes });
     is $n->index_of_last_tagged, undef,
