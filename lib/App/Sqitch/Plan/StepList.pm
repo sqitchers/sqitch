@@ -9,16 +9,16 @@ use List::Util;
 sub new {
     my $class = shift;
     my $self = bless {
-        list        => [],
-        lookup      => {},
-        last_tagged => undef,
+        list           => [],
+        lookup         => {},
+        last_tagged_at => undef,
     } => $class;
     return $self->append(@_);
 }
 
 sub count     { scalar @{ shift->{list} } }
-sub items     { @{ shift->{list} } }
-sub item_at   { shift->{list}[shift] }
+sub steps     { @{ shift->{list} } }
+sub step_at   { shift->{list}[shift] }
 sub last_step { return shift->{list}[ -1 ] }
 
 sub index_of {
@@ -64,13 +64,13 @@ sub first_index_of {
 }
 
 sub index_of_last_tagged {
-    shift->{last_tagged};
+    shift->{last_tagged_at};
 }
 
 sub last_tagged_step {
     my $self = shift;
-    return defined $self->{last_tagged}
-        ? $self->{list}[ $self->{last_tagged} ]
+    return defined $self->{last_tagged_at}
+        ? $self->{list}[ $self->{last_tagged_at} ]
         : undef;
 }
 
@@ -95,7 +95,7 @@ sub append {
             for my $tag ($step->tags) {
                 $lookup->{ $tag->format_name } = $pos;
                 $lookup->{ $tag->id }          = $pos;
-                $self->{last_tagged} = $#$list;
+                $self->{last_tagged_at} = $#$list;
             }
         }
     }
@@ -108,7 +108,7 @@ __END__
 
 =head1 Name
 
-App::Sqitch::Plan::StepList - Sqitch deployment plan node list
+App::Sqitch::Plan::StepList - Sqitch deployment plan step list
 
 =head1 Synopsis
 
@@ -116,22 +116,21 @@ App::Sqitch::Plan::StepList - Sqitch deployment plan node list
       $add_roles,
       $add_users,
       $insert_user,
-      $alpha_tag,
       $insert_user2,
   );
 
-  my @nodes = $list->items;
-  my $add_users = $list->item_at(1);
+  my @steps = $list->steps;
+  my $add_users = $list->step_at(1);
   my $add_users = $list->get('add_users');
 
-  my $insert_user1 = $list->get('insert_user', '@alpha');
-  my $insert_user2 = $list->get('insert_user', '');
+  my $insert_user1 = $list->get('insert_user@alpha');
+  my $insert_user2 = $list->get('insert_user');
 
 =head1 Description
 
-This module is used internally by L<App::Sqitch::Plan> to manage plan nodes.
+This module is used internally by L<App::Sqitch::Plan> to manage plan steps.
 It's modeled on L<Array::AsHash> and L<Hash::MultiValue>, but makes allowances
-for finding nodes relative to tags.
+for finding steps relative to tags.
 
 =head1 Interface
 
@@ -139,66 +138,66 @@ for finding nodes relative to tags.
 
 =head3 C<new>
 
-  my $plan = App::Sqitch::Plan::StepList->new( @nodes );
+  my $plan = App::Sqitch::Plan::StepList->new( @steps );
 
 Instantiates and returns a App::Sqitch::Plan::StepList object with the list of
-nodes. Each node should be a L<App::Sqitch::Plan::Step> or
-L<App::Sqitch::Plan::Tag> object. Order will be preserved but the location of
-each node will be indexed by its formatted name.
+steps. Each step should be a L<App::Sqitch::Plan::Step> object. Order will be
+preserved but the location of each step will be indexed by its name and ID, as
+well as the names and IDs of any associated tags.
 
 =head2 Instance Methods
 
 =head3 C<count>
 
-  my $count = $nodelist->count;
+  my $count = $steplist->count;
 
-Returns the number of nodes in the list.
+Returns the number of steps in the list.
 
-=head3 C<items>
+=head3 C<steps>
 
-  my @nodes = $nodelist->items;
+  my @steps = $steplist->steps;
 
-Returns all of the nodes in the list.
+Returns all of the steps in the list.
 
-=head3 C<item_at>
+=head3 C<step_at>
 
-  my $node = $node_list->item_at(10);
+  my $step = $step_list->step_at(10);
 
-Returns the node at the specified index.
+Returns the step at the specified index.
 
 =head3 C<index_of>
 
-  my $index = $nodelist->index_of($node_id);
-  my $index = $nodelist->index_of($node_name);
+  my $index = $steplist->index_of($step_id);
+  my $index = $steplist->index_of($step_name);
 
-Returns the index of the node with the specified ID or name. The value passed
+Returns the index of the step with the specified ID or name. The value passed
 may be one of these forms:
 
 =over
 
 =item * An ID
 
-  my $index = $nodelist->index_of('6c2f28d125aff1deea615f8de774599acf39a7a1');
+  my $index = $steplist->index_of('6c2f28d125aff1deea615f8de774599acf39a7a1');
 
-This is the SHA1 hash of a step or tag. Currently, the full 40-character hexed
+This is the SHA1 ID of a step or tag. Currently, the full 40-character hexed
 hash string must be specified.
 
 =item * A step name
 
-  my $index = $nodelist->index_of('users_table');
+  my $index = $steplist->index_of('users_table');
 
-The name of a step. Will throw an exception if the named step appears more
-than once in the list.
+The name of a step. Will throw an exception if the more then one step in the
+list goes by that name.
 
 =item * A tag name
 
-  my $index = $nodelist->index_of('@beta1');
+  my $index = $steplist->index_of('@beta1');
 
 The name of a tag, including the leading C<@>.
 
 =item * A tag-qualified step name
 
-  my $index = $nodelist->index_of('users_table@beta1');
+  my $index = $steplist->index_of('users_table@beta1');
 
 The named step as it was last seen in the list before the specified tag.
 
@@ -206,8 +205,8 @@ The named step as it was last seen in the list before the specified tag.
 
 =head3 C<first_index_of>
 
-  my $index = $nodelist->first_index_of($step_name);
-  my $index = $nodelist->first_index_of($step_name, $node_name);
+  my $index = $steplist->first_index_of($step_name);
+  my $index = $steplist->first_index_of($step_name, $name);
 
 Returns the index of the first instance of the named step in the list. If a
 second argument is passed, the index of the first instance of the step
@@ -215,50 +214,51 @@ I<after> the the index of the second argument will be returned. This is useful
 for getting the index of a step as it was deployed after a particular tag, for
 example:
 
-  my $index = $nodelist->first_index_of('foo', '@beta');
-  my $index = $nodelist->first_index_of('foo', 'users_table@beta1');
+  my $index = $steplist->first_index_of('foo', '@beta');
+  my $index = $steplist->first_index_of('foo', 'users_table@beta1');
 
-The second argument must unambiguously refer to a single node in the list. As
+The second argument must unambiguously refer to a single step in the list. As
 such, it should usually be a tag name or tag-qualified step name. Returns
 C<undef> if the step does not appear in the list, or if it does not appear
-after the specified second argument node name.
-
-=head3 C<last_tagged_step>
-
-  my $step = $nodelist->last_tagged_step;
-
-Returns the last tagged step in the list. Returns C<undef> if the list
-contains no tagged steps.
+after the specified second argument step name.
 
 =head3 C<last_step>
 
-  my $step = $nodelist->last_step;
+  my $step = $steplist->last_step;
 
 Returns the last step to be appear in the list. Returns C<undef> if the list
 contains no steps.
 
+=head3 C<last_tagged_step>
+
+  my $step = $steplist->last_tagged_step;
+
+Returns the last tagged step in the list. Returns C<undef> if the list
+contains no tagged steps.
+
 =head3 C<index_of_last_tagged>
 
-  my $index = $nodelist->index_of_last_tagged;
+  my $index = $steplist->index_of_last_tagged;
 
 Returns the index of the last tagged step in the list. Returns C<undef> if the
 list contains no tags.
 
 =head3 C<get>
 
-  my $node = $nodelist->get($node_id);
-  my $node = $nodelist->get($node_name);
+  my $step = $steplist->get($id);
+  my $step = $steplist->get($step_name);
+  my $step = $steplist->get($tag_name);
 
-Returns the node for the specified ID or name. The name may be specified as
-described for C<index_of()>. An exception will be thrown if more than one
-instance of the node appears. As such, it is best to specify it as
-unambiguously as possible: as a tag name or a tag-qualified step name.
+Returns the step for the specified ID or name. The name may be specified as
+described for C<index_of()>. An exception will be thrown if more than one step
+goes by a specified name. As such, it is best to specify it as unambiguously
+as possible: as a tag name, a tag-qualified step name, or an ID.
 
 =head3 C<append>
 
-  $nodelist->append(@nodes);
+  $steplist->append(@steps);
 
-Append one or more nodes to the list. Does not check for duplicates, so
+Append one or more steps to the list. Does not check for duplicates, so
 use with care.
 
 =head1 See Also

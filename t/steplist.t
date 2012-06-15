@@ -40,13 +40,13 @@ my $nodes = App::Sqitch::Plan::StepList->new(
 );
 
 is $nodes->count, 5, 'Count should be six';
-is_deeply [$nodes->items], [$foo, $bar, $yo1, $baz, $yo2],
+is_deeply [$nodes->steps], [$foo, $bar, $yo1, $baz, $yo2],
     'Nodes should be in order';
-is $nodes->item_at(0), $foo, 'Should have foo at 0';
-is $nodes->item_at(1), $bar, 'Should have bar at 1';
-is $nodes->item_at(2), $yo1, 'Should have yo1 at 2';
-is $nodes->item_at(3), $baz, 'Should have baz at 4';
-is $nodes->item_at(4), $yo2, 'Should have yo2 at 5';
+is $nodes->step_at(0), $foo, 'Should have foo at 0';
+is $nodes->step_at(1), $bar, 'Should have bar at 1';
+is $nodes->step_at(2), $yo1, 'Should have yo1 at 2';
+is $nodes->step_at(3), $baz, 'Should have baz at 4';
+is $nodes->step_at(4), $yo2, 'Should have yo2 at 5';
 
 is $nodes->index_of('non'), undef, 'Should not find "non"';
 is $nodes->index_of('@non'), undef, 'Should not find "@non"';
@@ -96,7 +96,7 @@ throws_ok { $nodes->get('yo@howdy') } qr/^\QUnknown tag: "howdy"/,
 my $hi = App::Sqitch::Plan::Step->new(plan => $plan, name => 'hi');
 ok $nodes->append($hi), 'Push hi';
 is $nodes->count, 6, 'Count should now be six';
-is_deeply [$nodes->items], [$foo, $bar, $yo1, $baz, $yo2, $hi],
+is_deeply [$nodes->steps], [$foo, $bar, $yo1, $baz, $yo2, $hi],
     'Nodes should be in order with $hi at the end';
 is $nodes->index_of('hi'), 5, 'Should find "hi" at index 5';
 is $nodes->index_of($hi->id), 5, 'Should find "hi" by ID at index 5';
@@ -117,7 +117,7 @@ my $so = App::Sqitch::Plan::Step->new(plan => $plan, name => 'so');
 my $fu = App::Sqitch::Plan::Step->new(plan => $plan, name => 'fu');
 ok $nodes->append($so, $fu), 'Push so and fu';
 is $nodes->count, 8, 'Count should now be eight';
-is_deeply [$nodes->items], [$foo, $bar, $yo1, $baz, $yo2, $hi, $so, $fu],
+is_deeply [$nodes->steps], [$foo, $bar, $yo1, $baz, $yo2, $hi, $so, $fu],
     'Nodes should be in order with $so and $fu at the end';
 
 ##############################################################################
