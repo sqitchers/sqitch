@@ -2,34 +2,31 @@ package App::Sqitch::Plan::NodeList;
 
 use v5.10.1;
 use utf8;
+use strict;
 use Carp;
 use List::Util;
 
 sub new {
     my $class = shift;
-    my (@list, %index);
-    for my $node (@_) {
-        push @list => $node;
-        push @{ $index{ $node->format_name } } => $#list;
-        push @{ $index{ $node->id } } => $#list;
-    }
-
-    return bless {
-        list   => \@list,
-        lookup => \%index,
-    }
+    my $self = bless {
+        list        => [],
+        lookup      => {},
+        last_tagged => undef,
+    } => $class;
+    return $self->append(@_);
 }
 
-sub count   { scalar @{ shift->{list} } }
-sub items   { @{ shift->{list} } }
-sub item_at { shift->{list}[shift] }
+sub count     { scalar @{ shift->{list} } }
+sub items     { @{ shift->{list} } }
+sub item_at   { shift->{list}[shift] }
+sub last_step { return shift->{list}[ -1 ] }
 
 sub index_of {
     my ( $self, $key ) = @_;
     my ( $step, $tag ) = split /@/ => $key, 2;
 
     if ($step eq '') {
-        # Just want the tag.
+        # Just want the step with the associated tag.
         my $idx = $self->{lookup}{'@' . $tag} or return undef;
         return $idx->[0];
     }
@@ -42,7 +39,7 @@ sub index_of {
             or croak qq{Unknown tag: "$tag"};
         $tag_idx = $tag_idx->[0];
         for my $i (reverse @{ $idx }) {
-            return $i if $i < $tag_idx;
+            return $i if $i <= $tag_idx;
         }
         return undef;
     } else {
@@ -66,38 +63,15 @@ sub first_index_of {
     return List::Util::first { $_ > $tag_index } @{ $idx };
 }
 
-sub _index_of_last {
-    my ( $self, $class ) = @_;
-    my $items = $self->{list};
-    for ( my $i = $#$items; $i >= 0; $i-- ) {
-        return $i if $items->[$i]->isa($class);
-    }
-    return undef;
+sub index_of_last_tagged {
+    shift->{last_tagged};
 }
 
-sub index_of_last_tag {
-    shift->_index_of_last('App::Sqitch::Plan::Tag');
-}
-
-sub index_of_last_step {
-    shift->_index_of_last('App::Sqitch::Plan::Step');
-}
-
-sub _last {
-    my ( $self, $class ) = @_;
-    my $items = $self->{list};
-    for ( my $i = $#$items; $i >= 0; $i-- ) {
-        return $items->[$i] if $items->[$i]->isa($class);
-    }
-    return undef;
-}
-
-sub last_tag {
-    shift->_last('App::Sqitch::Plan::Tag');
-}
-
-sub last_step {
-    shift->_last('App::Sqitch::Plan::Step');
+sub last_tagged_step {
+    my $self = shift;
+    return defined $self->{last_tagged}
+        ? $self->{list}[ $self->{last_tagged} ]
+        : undef;
 }
 
 sub get {
@@ -107,13 +81,23 @@ sub get {
 }
 
 sub append {
-    my $self = shift;
-    my $list = $self->{list};
-    for my $node (@_) {
-        push @{ $list } => $node;
-        my $idx = $self->{lookup}{ $node->format_name } ||= [];
-        push $idx, $#$list;
-        $self->{lookup}{ $node->id } = [$#$list];
+    my $self   = shift;
+    my $list   = $self->{list};
+    my $lookup = $self->{lookup};
+
+    for my $step (@_) {
+        push @{ $list } => $step;
+        push @{ $lookup->{ $step->format_name } } => $#$list;
+        $lookup->{ $step->id } = my $pos = [$#$list];
+
+        if ($step->can('tags')) {
+            # Index on the tags, too.
+            for my $tag ($step->tags) {
+                $lookup->{ $tag->format_name } = $pos;
+                $lookup->{ $tag->id }          = $pos;
+                $self->{last_tagged} = $#$list;
+            }
+        }
     }
     return $self;
 }
@@ -239,12 +223,12 @@ such, it should usually be a tag name or tag-qualified step name. Returns
 C<undef> if the step does not appear in the list, or if it does not appear
 after the specified second argument node name.
 
-=head3 C<last_tag>
+=head3 C<last_tagged_step>
 
-  my $tag = $nodelist->last_tag;
+  my $step = $nodelist->last_tagged_step;
 
-Returns the last tag to be appear in the list. Returns C<undef> if the list
-contains no tags.
+Returns the last tagged step in the list. Returns C<undef> if the list
+contains no tagged steps.
 
 =head3 C<last_step>
 
@@ -253,19 +237,12 @@ contains no tags.
 Returns the last step to be appear in the list. Returns C<undef> if the list
 contains no steps.
 
-=head3 C<index_of_last_tag>
+=head3 C<index_of_last_tagged>
 
-  my $index = $nodelist->index_of_last_tag;
+  my $index = $nodelist->index_of_last_tagged;
 
-Returns the index of the last tag to be appear in the list. Returns C<undef>
-if the list contains no tags.
-
-=head3 C<index_of_last_step>
-
-  my $index = $nodelist->index_of_last_step;
-
-Returns the index of the last step to be appear in the list. Returns C<undef>
-if the list contains no steps.
+Returns the index of the last tagged step in the list. Returns C<undef> if the
+list contains no tags.
 
 =head3 C<get>
 
