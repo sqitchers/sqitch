@@ -12,7 +12,7 @@ use App::Sqitch;
 use App::Sqitch::Plan;
 use URI;
 
-BEGIN { require_ok 'App::Sqitch::Plan::NodeList' or die }
+BEGIN { require_ok 'App::Sqitch::Plan::StepList' or die }
 
 my $sqitch = App::Sqitch->new(
     uri => URI->new('https://github.com/theory/sqitch/'),
@@ -31,7 +31,7 @@ my $alpha = App::Sqitch::Plan::Tag->new(
     name => 'alpha',
 );
 $yo1->add_tag($alpha);
-my $nodes = App::Sqitch::Plan::NodeList->new(
+my $nodes = App::Sqitch::Plan::StepList->new(
     $foo,
     $bar,
     $yo1,
@@ -134,7 +134,7 @@ for my $nodes (
     [5, $foo, $alpha, $bar, $baz, $hi, $yo1],
 ) {
     my $index = shift @{ $nodes };
-    my $n = App::Sqitch::Plan::NodeList->new(@{ $nodes });
+    my $n = App::Sqitch::Plan::StepList->new(@{ $nodes });
     is $n->index_of_last_tagged, $index, "Should find last tagged index at $index";
     is $n->last_tagged_step, $nodes->[$index], "Should find last tagged at $index";
     is $n->count, ($index + 1), "Should get count " . ($index + 1);
@@ -146,7 +146,7 @@ for my $nodes (
     [$foo, $baz],
     [$foo, $bar, $baz, $yo2],
 ) {
-    my $n = App::Sqitch::Plan::NodeList->new(@{ $nodes });
+    my $n = App::Sqitch::Plan::StepList->new(@{ $nodes });
     is $n->index_of_last_tagged, undef,
         'Should not find tag index in ' . scalar @{$nodes} . ' nodes';
     is $n->last_tagged_step, undef,

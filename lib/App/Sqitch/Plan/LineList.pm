@@ -51,7 +51,7 @@ App::Sqitch::Plan::LineList - Sqitch deployment plan line list
 
 This module is used internally by L<App::Sqitch::Plan> to manage plan file
 lines. It's modeled on L<Array::AsHash>, but is much simpler and hews closer
-to the API of L<App::Sqitch::Plan::NodeList>.
+to the API of L<App::Sqitch::Plan::StepList>.
 
 =head1 Interface
 

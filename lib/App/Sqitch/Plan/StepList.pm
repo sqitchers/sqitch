@@ -1,4 +1,4 @@
-package App::Sqitch::Plan::NodeList;
+package App::Sqitch::Plan::StepList;
 
 use v5.10.1;
 use utf8;
@@ -108,11 +108,11 @@ __END__
 
 =head1 Name
 
-App::Sqitch::Plan::NodeList - Sqitch deployment plan node list
+App::Sqitch::Plan::StepList - Sqitch deployment plan node list
 
 =head1 Synopsis
 
-  my $list = App::Sqitch::Plan::NodeList->new(
+  my $list = App::Sqitch::Plan::StepList->new(
       $add_roles,
       $add_users,
       $insert_user,
@@ -139,9 +139,9 @@ for finding nodes relative to tags.
 
 =head3 C<new>
 
-  my $plan = App::Sqitch::Plan::NodeList->new( @nodes );
+  my $plan = App::Sqitch::Plan::StepList->new( @nodes );
 
-Instantiates and returns a App::Sqitch::Plan::NodeList object with the list of
+Instantiates and returns a App::Sqitch::Plan::StepList object with the list of
 nodes. Each node should be a L<App::Sqitch::Plan::Step> or
 L<App::Sqitch::Plan::Tag> object. Order will be preserved but the location of
 each node will be indexed by its formatted name.

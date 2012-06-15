@@ -125,7 +125,7 @@ my $fh = $file->open('<:encoding(UTF-8)');
 ok my $parsed = $plan->_parse($file, $fh),
     'Should parse simple "widgets.plan"';
 is sorted, 1, 'Should have sorted steps';
-isa_ok $parsed->{nodes}, 'App::Sqitch::Plan::NodeList', 'nodes';
+isa_ok $parsed->{nodes}, 'App::Sqitch::Plan::StepList', 'nodes';
 isa_ok $parsed->{lines}, 'App::Sqitch::Plan::LineList', 'lines';
 
 cmp_deeply [$parsed->{nodes}->items], [

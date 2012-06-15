@@ -7,7 +7,7 @@ use App::Sqitch::Plan::Step;
 use App::Sqitch::Plan::Blank;
 use App::Sqitch::Plan::Pragma;
 use Path::Class;
-use App::Sqitch::Plan::NodeList;
+use App::Sqitch::Plan::StepList;
 use App::Sqitch::Plan::LineList;
 use namespace::autoclean;
 use Moose;
@@ -43,7 +43,7 @@ sub load {
     my $file = $self->sqitch->plan_file;
     # XXX Issue a warning if file does not exist?
     return {
-        nodes => App::Sqitch::Plan::NodeList->new,
+        nodes => App::Sqitch::Plan::StepList->new,
         lines => App::Sqitch::Plan::LineList->new(
             $self->_version_line,
         ),
@@ -226,7 +226,7 @@ sub _parse {
     unshift @lines => $self->_version_line unless $seen_version;
 
     return {
-        nodes => App::Sqitch::Plan::NodeList->new(@nodes),
+        nodes => App::Sqitch::Plan::StepList->new(@nodes),
         lines => App::Sqitch::Plan::LineList->new(@lines),
     };
 }
