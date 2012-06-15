@@ -280,7 +280,7 @@ use with care.
   $steplist->index_tag($index, $tag);
 
 Index the tag at the specified index. That is, the tag is assumed to be
-associated with the step at the specified index, and so the internal lookup
+associated with the step at the specified index, and so the internal look up
 table is updated so that the step at that index can be found via the tag's
 name and ID.
 

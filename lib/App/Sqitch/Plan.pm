@@ -192,10 +192,9 @@ sub _parse {
                 step => $prev_step,
                 %params,
             );
-            $prev_step->add_tag($prev_tag);
 
             # Keep track of everything and clean up.
-            push @nodes => $prev_tag;
+            $prev_step->add_tag($prev_tag);
             push @lines => $prev_tag;
             %seen = (%seen, %tag_steps, $key => $fh->input_line_number);
             %tag_steps = ();
@@ -307,12 +306,12 @@ sub open_script {
 }
 
 sub lines          { shift->_plan->{lines}->items }
-sub nodes          { shift->_plan->{nodes}->items }
+sub steps          { shift->_plan->{nodes}->steps }
 sub count          { shift->_plan->{nodes}->count }
 sub index_of       { shift->_plan->{nodes}->index_of(shift) }
 sub get            { shift->_plan->{nodes}->get(shift) }
 sub first_index_of { shift->_plan->{nodes}->first_index_of(@_) }
-sub node_at        { shift->_plan->{nodes}->item_at(shift) }
+sub step_at        { shift->_plan->{nodes}->step_at(shift) }
 
 sub seek {
     my ( $self, $key ) = @_;
@@ -343,16 +342,16 @@ sub current {
     my $self = shift;
     my $pos = $self->position;
     return if $pos < 0;
-    $self->_plan->{nodes}->item_at( $pos );
+    $self->_plan->{nodes}->step_at( $pos );
 }
 
 sub peek {
     my $self = shift;
-    $self->_plan->{nodes}->item_at( $self->position + 1 );
+    $self->_plan->{nodes}->step_at( $self->position + 1 );
 }
 
 sub last {
-    shift->_plan->{nodes}->item_at( -1 );
+    shift->_plan->{nodes}->step_at( -1 );
 }
 
 sub do {
@@ -373,7 +372,7 @@ sub add_tag {
     $self->sqitch->fail(qq{Tag "$key" already exists})
         if defined $nodes->index_of($key);
 
-    my $step = $self->_plan->{nodes}->last_step or $self->sqitch->fail(
+    my $step = $nodes->last_step or $self->sqitch->fail(
         qq{Cannot apply tag "$key" to a plan with no steps}
     );
 
@@ -382,7 +381,9 @@ sub add_tag {
         name => $name,
         step => $step,
     );
-    $nodes->append( $tag );
+
+    $step->add_tag($tag);
+    $nodes->index_tag( $nodes->index_of( $step->id ), $tag );
     $plan->{lines}->append( $tag );
 }
 
@@ -395,7 +396,7 @@ sub add_step {
 
     if (defined( my $idx = $nodes->index_of($name . '@HEAD') )) {
         # Disallow it unless there is a tag since we last saw it.
-        my $tag_idx = $nodes->index_of_last_tag;
+        my $tag_idx = $nodes->index_of_last_tagged;
         $self->sqitch->fail(
             qq{Step "$name" already exists. Add a tag to modify it.}
         ) if !defined $tag_idx || $tag_idx < $idx;
@@ -592,11 +593,11 @@ such, it should usually be a tag name or tag-qualified step name. Returns
 C<undef> if the step does not appear in the plan, or if it does not appear
 after the specified second argument node name.
 
-=head3 C<node_at>
+=head3 C<step_at>
 
-  my $node = $plan->node_at($index);
+  my $node = $plan->step_at($index);
 
-Returns the node at the specified index.
+Returns the step at the specified index.
 
 =head3 C<seek>
 
@@ -645,11 +646,11 @@ C<next()> has not been called or if the plan has been reset.
 Returns the next node in the plan without incrementing the iterator. Returns
 C<undef> if there are no more nodes beyond the current node.
 
-=head3 C<nodes>
+=head3 C<steps>
 
-  my @nodes = $plan->nodes;
+  my @steps = $plan->steps;
 
-Returns all of the nodes in the plan. This constitutes the entire plan.
+Returns all of the steps in the plan. This constitutes the entire plan.
 
 =head3 C<count>
 
