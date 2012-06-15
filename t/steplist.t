@@ -4,8 +4,8 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-#use Test::More tests => 86;
-use Test::More 'no_plan';
+use Test::More tests => 85;
+#use Test::More 'no_plan';
 use Test::NoWarnings;
 use Test::Exception;
 use App::Sqitch;
@@ -42,6 +42,8 @@ my $nodes = App::Sqitch::Plan::StepList->new(
 is $nodes->count, 5, 'Count should be six';
 is_deeply [$nodes->steps], [$foo, $bar, $yo1, $baz, $yo2],
     'Nodes should be in order';
+is_deeply [$nodes->items], [$nodes->steps],
+    'Items should be the same as steps';
 is $nodes->step_at(0), $foo, 'Should have foo at 0';
 is $nodes->step_at(1), $bar, 'Should have bar at 1';
 is $nodes->step_at(2), $yo1, 'Should have yo1 at 2';
@@ -130,8 +132,8 @@ is $nodes->last_step, $fu, 'Should find fu as last step';
 for my $nodes (
     [0, $yo1],
     [1, $foo, $yo1],
-    [4, $foo, $alpha, $bar, $baz, $yo1],
-    [5, $foo, $alpha, $bar, $baz, $hi, $yo1],
+    [3, $foo, $bar, $baz, $yo1],
+    [4, $foo, $bar, $baz, $hi, $yo1],
 ) {
     my $index = shift @{ $nodes };
     my $n = App::Sqitch::Plan::StepList->new(@{ $nodes });

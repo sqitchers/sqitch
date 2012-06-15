@@ -18,6 +18,7 @@ sub new {
 
 sub count     { scalar @{ shift->{list} } }
 sub steps     { @{ shift->{list} } }
+sub items     { @{ shift->{list} } }
 sub step_at   { shift->{list}[shift] }
 sub last_step { return shift->{list}[ -1 ] }
 
@@ -90,13 +91,11 @@ sub append {
         push @{ $lookup->{ $step->format_name } } => $#$list;
         $lookup->{ $step->id } = my $pos = [$#$list];
 
-        if ($step->can('tags')) {
-            # Index on the tags, too.
-            for my $tag ($step->tags) {
-                $lookup->{ $tag->format_name } = $pos;
-                $lookup->{ $tag->id }          = $pos;
-                $self->{last_tagged_at} = $#$list;
-            }
+        # Index on the tags, too.
+        for my $tag ($step->tags) {
+            $lookup->{ $tag->format_name } = $pos;
+            $lookup->{ $tag->id }          = $pos;
+            $self->{last_tagged_at} = $#$list;
         }
     }
     return $self;
@@ -158,6 +157,12 @@ Returns the number of steps in the list.
   my @steps = $steplist->steps;
 
 Returns all of the steps in the list.
+
+=head3 C<items>
+
+  my @steps = $steplist->items;
+
+An alias for C<steps>.
 
 =head3 C<step_at>
 
