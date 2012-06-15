@@ -185,11 +185,16 @@ sub _parse {
                 push @nodes => $self->sort_steps(\%seen, @steps);
                 @steps = ();
             }
+
+            # Create the tag and associate it with the previous step.
             $prev_tag = App::Sqitch::Plan::Tag->new(
                 plan => $self,
                 step => $prev_step,
                 %params,
             );
+            $prev_step->add_tag($prev_tag);
+
+            # Keep track of everything and clean up.
             push @nodes => $prev_tag;
             push @lines => $prev_tag;
             %seen = (%seen, %tag_steps, $key => $fh->input_line_number);

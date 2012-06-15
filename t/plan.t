@@ -82,6 +82,7 @@ sub tag {
         rspace  => $_[2] // '',
         comment => $_[3] // '',
     );
+    $prev_step->add_tag($prev_tag);
     $prev_tag->id;
     return $prev_tag;
 }

@@ -43,6 +43,7 @@ has id => (
 has step => (
     is       => 'ro',
     isa      => 'App::Sqitch::Plan::Step',
+    weak_ref => 1,
     required => 1,
 );
 

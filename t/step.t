@@ -81,7 +81,7 @@ my $tag = App::Sqitch::Plan::Tag->new(
     step => $step,
 );
 
-ok $step = $CLASS->new(
+ok my $step2 = $CLASS->new(
     name      => 'howdy',
     plan      => $plan,
     since_tag => $tag,
@@ -92,25 +92,25 @@ ok $step = $CLASS->new(
     comment   => ' blah blah blah',
 ), 'Create step with more stuff';
 
-is $step->as_string, "  - howdy\t# blah blah blah",
+is $step2->as_string, "  - howdy\t# blah blah blah",
     'It should stringify correctly';
 my $mock_plan = Test::MockModule->new(ref $plan);
 $mock_plan->mock(index_of => 0);
 
-ok !$step->is_deploy, 'It should not be a deploy step';
-ok $step->is_revert, 'It should be a revert step';
-is $step->action, 'revert', 'It should say so';
-is $step->since_tag, $tag, 'It should have a since tag';
-is $step->info, join("\n",
+ok !$step2->is_deploy, 'It should not be a deploy step';
+ok $step2->is_revert, 'It should be a revert step';
+is $step2->action, 'revert', 'It should say so';
+is $step2->since_tag, $tag, 'It should have a since tag';
+is $step2->info, join("\n",
    'project ' . $sqitch->uri->canonical,
    'step howdy',
    'since ' . $tag->id,
 ), 'Info should include since tag';
 
 # Check tags.
-is_deeply [$step->tags], [], 'Should have no tags';
-ok $step->add_tag($tag), 'Add a tag';
-is_deeply [$step->tags], [$tag], 'Should have the tag';
+is_deeply [$step2->tags], [], 'Should have no tags';
+ok $step2->add_tag($tag), 'Add a tag';
+is_deeply [$step2->tags], [$tag], 'Should have the tag';
 
 ##############################################################################
 # Test _parse_dependencies.
@@ -121,8 +121,8 @@ can_ok $CLASS, '_parse_dependencies';
 make_path dir(qw(sql deploy))->stringify;
 END { remove_tree 'sql' };
 file(qw(sql deploy baz.sql))->touch;
-my $step_file = file qw(sql deploy bar.sql);
-my $fh = $step_file->open('>:utf8') or die "Cannot open $step_file: $!\n";
+my $step2_file = file qw(sql deploy bar.sql);
+my $fh = $step2_file->open('>:utf8') or die "Cannot open $step2_file: $!\n";
 $fh->say('-- This is a comment');
 $fh->say('# And so is this');
 $fh->say('; and this, w€€!');
@@ -135,54 +135,54 @@ $fh->say('-- :conflicts: yak');
 $fh->say('-- :conflicts:this that');
 $fh->close;
 
-ok $step = $CLASS->new( name => 'baz', plan => $plan ),
+ok $step2 = $CLASS->new( name => 'baz', plan => $plan ),
     'Create step "baz"';
-is_deeply $step->_parse_dependencies, { conflicts => [], requires => [] },
+is_deeply $step2->_parse_dependencies, { conflicts => [], requires => [] },
     'baz.sql should have no dependencies';
-is_deeply [$step->requires], [], 'Requires should be empty';
-is_deeply [$step->conflicts], [], 'Conflicts should be empty';
+is_deeply [$step2->requires], [], 'Requires should be empty';
+is_deeply [$step2->conflicts], [], 'Conflicts should be empty';
 
-ok $step = $CLASS->new( name => 'bar', plan => $plan ),
+ok $step2 = $CLASS->new( name => 'bar', plan => $plan ),
     'Create step "bar"';
-is_deeply $step->_parse_dependencies([], 'bar'), {
+is_deeply $step2->_parse_dependencies([], 'bar'), {
     requires  => [qw(foo foo @yo blah blah w00t)],
     conflicts => [qw(yak this that)],
 },  'bar.sql should have a bunch of dependencies';
-is_deeply [$step->requires], [qw(foo foo @yo blah blah w00t)],
+is_deeply [$step2->requires], [qw(foo foo @yo blah blah w00t)],
     'Requires get filled in';
-is_deeply [$step->conflicts], [qw(yak this that)], 'Conflicts get filled in';
+is_deeply [$step2->conflicts], [qw(yak this that)], 'Conflicts get filled in';
 
 ##############################################################################
 # Test file handles.
-ok $fh = $step->deploy_handle, 'Get deploy handle';
+ok $fh = $step2->deploy_handle, 'Get deploy handle';
 is $fh->getline, "-- This is a comment\n", 'It should be the deploy file';
 
 make_path dir(qw(sql revert))->stringify;
-$fh = $step->revert_file->open('>')
-    or die "Cannot open " . $step->revert_file . ": $!\n";
+$fh = $step2->revert_file->open('>')
+    or die "Cannot open " . $step2->revert_file . ": $!\n";
 $fh->say('-- revert it, baby');
 $fh->close;
-ok $fh = $step->revert_handle, 'Get revert handle';
+ok $fh = $step2->revert_handle, 'Get revert handle';
 is $fh->getline, "-- revert it, baby\n", 'It should be the revert file';
 
 make_path dir(qw(sql test))->stringify;
-$fh = $step->test_file->open('>')
-    or die "Cannot open " . $step->test_file . ": $!\n";
+$fh = $step2->test_file->open('>')
+    or die "Cannot open " . $step2->test_file . ": $!\n";
 $fh->say('-- test it, baby');
 $fh->close;
-ok $fh = $step->test_handle, 'Get test handle';
+ok $fh = $step2->test_handle, 'Get test handle';
 is $fh->getline, "-- test it, baby\n", 'It should be the test file';
 
 ##############################################################################
 # Test the requires/conflicts params.
-ok $step = $CLASS->new(
+ok $step2 = $CLASS->new(
     name      => 'whatever',
     plan      => $plan,
     requires  => [qw(hi there)],
     conflicts => [],
 ), 'Create a step with explicit requires and conflicts';
-is_deeply [$step->requires], [qw(hi there)], 'requires should be set';
-is_deeply [$step->conflicts], [], 'conflicts should be set';
+is_deeply [$step2->requires], [qw(hi there)], 'requires should be set';
+is_deeply [$step2->conflicts], [], 'conflicts should be set';
 
 # Make sure that conflicts and requires are mutually requried.
 throws_ok { $CLASS->new( requires => [] ) }
@@ -195,17 +195,17 @@ throws_ok { $CLASS->new( conflicts => [] ) }
 
 ##############################################################################
 # Test ID for a step with a UTF-8 name.
-ok $step = $CLASS->new(
+ok $step2 = $CLASS->new(
     name => '阱阪阬',
     plan => $plan,
 ), 'Create step with UTF-8 name';
-is $step->info, join("\n",
+is $step2->info, join("\n",
     'project ' . $sqitch->uri->canonical,
     'step '    . '阱阪阬'
 ), 'The name should be decoded text';
 
-is $step->id, do {
-    my $content = Encode::encode_utf8 $step->info;
+is $step2->id, do {
+    my $content = Encode::encode_utf8 $step2->info;
     Digest::SHA1->new->add(
         'step ' . length($content) . "\0" . $content
     )->hexdigest;
