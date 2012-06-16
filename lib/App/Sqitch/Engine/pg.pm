@@ -278,10 +278,11 @@ sub log_deploy_step {
 sub log_fail_step {
     my ( $self, $step ) = @_;
     my $dbh  = $self->_dbh;
+    my $tags = [ map { $_->format_name } $step->tags ];
     $dbh->do(q{
-        INSERT INTO events (event, node_id, node, logged_by)
-        VALUES ('fail', ?, ?, ?);
-    }, undef, $step->id, $step->name, $self->actor);
+        INSERT INTO events (event, step_id, step, tags, logged_by)
+        VALUES ('fail', ?, ?, ?, ?);
+    }, undef, $step->id, $step->name, $tags, $self->actor);
     return $self;
 }
 
@@ -290,8 +291,8 @@ sub log_revert_step {
     my $dbh = $self->_dbh;
 
     # Delete tags.
-    my $del_tags = $dbh->selectall_arrayref(
-        'DELETE FROM tags WHERE step_id = ? RETURNING tag_id, tag',
+    my $del_tags = $dbh->selectcol_arrayref(
+        'DELETE FROM tags WHERE step_id = ? RETURNING tag',
         undef, $step->id
     ) || [];
 

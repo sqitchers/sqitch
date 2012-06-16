@@ -280,19 +280,17 @@ subtest 'live database' => sub {
     like $@->previous_exception, qr/\QDBD::Pg::db do failed: /,
         'The DBI error should be in preview_exception';
 
-    return; # XXX Pick up here.
     ##########################################################################
     # Test log_deploy_step().
     my $plan = $sqitch->plan;
-    my $step = $plan->node_at(0);
+    my $step = $plan->step_at(0);
+    my ($tag) = $step->tags;
     is $step->name, 'users', 'Should have "users" step';
     ok !$pg->is_deployed_step($step), 'The step should not be deployed';
     ok $pg->log_deploy_step($step), 'Deploy "users" step';
     ok $pg->is_deployed_step($step), 'The step should now be deployed';
 
-    is $pg->latest_item, 'users', 'Should get "users" for latest item';
-    is $pg->latest_step, 'users', 'Should get "users" for latest step';
-    is $pg->latest_tag,   undef,  'Should get undef for latest tag';
+    is $pg->latest_step_id, $step->id, 'Should get users ID for latest step ID';
 
     is_deeply $pg->_dbh->selectall_arrayref(
         'SELECT step_id, step, requires, conflicts, deployed_by FROM steps'
@@ -300,97 +298,9 @@ subtest 'live database' => sub {
         'A record should have been inserted into the steps table';
 
     is_deeply $pg->_dbh->selectall_arrayref(
-        'SELECT event, node_id, node, logged_by FROM events'
-    ), [['deploy', $step->id, 'users', $pg->actor]],
+        'SELECT event, step_id, step, tags, logged_by FROM events'
+    ), [['deploy', $step->id, 'users', ['@alpha'], $pg->actor]],
         'A record should have been inserted into the events table';
-
-    is_deeply $pg->_dbh->selectall_arrayref(
-        'SELECT tag_id, tag, step_id, applied_by FROM tags'
-    ), [], 'No records should have been inserted into the tags table';
-
-    ##########################################################################
-    # Test log_revert_step().
-    ok $pg->log_revert_step($step), 'Revert "users" step';
-    ok !$pg->is_deployed_step($step), 'The step should no longer be deployed';
-
-    is $pg->latest_item, undef, 'Should get undef for latest item';
-    is $pg->latest_step, undef, 'Should get undef for latest step';
-    is $pg->latest_tag,  undef, 'Should get undef for latest tag';
-
-    is_deeply $pg->_dbh->selectall_arrayref(
-        'SELECT step_id, step, requires, conflicts, deployed_by FROM steps'
-    ), [], 'The record should have been deleted from the steps table';
-
-    is_deeply $pg->_dbh->selectall_arrayref(
-        'SELECT event, node_id, node, logged_by FROM events ORDER BY logged_at'
-    ), [
-        ['deploy', $step->id, 'users', $pg->actor],
-        ['revert', $step->id, 'users', $pg->actor],
-    ], 'The revert event should have been logged';
-
-    is_deeply $pg->_dbh->selectall_arrayref(
-        'SELECT tag_id, tag, step_id, applied_by FROM tags'
-    ), [], 'Should still have no tag records';
-
-    ##########################################################################
-    # Test log_fail_step().
-    ok $pg->log_fail_step($step), 'Fail "users" step';
-    ok !$pg->is_deployed_step($step), 'The step still should not be deployed';
-
-    is $pg->latest_item, undef, 'Should still get undef for latest item';
-    is $pg->latest_step, undef, 'Should still get undef for latest step';
-    is $pg->latest_tag,  undef, 'Should still get undef for latest tag';
-
-    is_deeply $pg->_dbh->selectall_arrayref(
-        'SELECT step_id, step, requires, conflicts, deployed_by FROM steps'
-    ), [], 'Still should have not steps table record';
-
-    is_deeply $pg->_dbh->selectall_arrayref(
-        'SELECT event, node_id, node, logged_by FROM events ORDER BY logged_at'
-    ), [
-        ['deploy', $step->id, 'users', $pg->actor],
-        ['revert', $step->id, 'users', $pg->actor],
-        ['fail',   $step->id, 'users', $pg->actor],
-    ], 'The fail event should have been logged';
-
-    is_deeply $pg->_dbh->selectall_arrayref(
-        'SELECT tag_id, tag, step_id, applied_by FROM tags'
-    ), [], 'Should still have no tag records';
-
-    ##########################################################################
-    # Test log_apply_tag().
-    ok my $tag = $plan->node_at(1), 'Get a tag';
-    is $tag->format_name, '@alpha', 'It should be the @alpha tag';
-    ok !$pg->is_deployed_tag($tag), 'The tag should not yet be deployed';
-
-    throws_ok { $pg->log_apply_tag($tag) } 'App::Sqitch::X',
-        'Should get error attempting to apply tag';
-    is $@->ident, '23503', 'Should have a FK violation ident';
-    like $@->message, qr/\btags_step_id_fkey\b/,
-        'Error should mention the FK constraint';
-
-    is_deeply $pg->_dbh->selectall_arrayref(
-        'SELECT tag_id, tag, step_id, applied_by FROM tags'
-    ), [], 'Should still have no tag records';
-    ok !$pg->is_deployed_tag($tag), 'The tag still should not be deployed';
-
-    # So we need the step.
-    ok $pg->log_deploy_step($step), 'Deploy "users" step';
-    is $pg->latest_item, 'users', 'Should again get "users" for latest item';
-    is $pg->latest_step, 'users', 'Should again get "users" for latest step';
-    is $pg->latest_tag,   undef,  'Should still get undef for latest tag';
-
-    # Now deploy the tag.
-    ok $pg->log_apply_tag($tag), 'Deploy a tag';
-    ok $pg->is_deployed_tag($tag), 'The tag should now be deployed';
-    is $pg->latest_item, '@alpha', 'Should now get "@alpha" for latest item';
-    is $pg->latest_step, 'users',  'Should still get "users" for latest step';
-    is $pg->latest_tag,  '@alpha', 'Should now get "@alpha" for latest tag';
-
-    is_deeply $pg->_dbh->selectall_arrayref(
-        'SELECT step_id, step, requires, conflicts, deployed_by FROM steps'
-    ), [[$step->id, 'users', [], [], $pg->actor]],
-        'A new record should have been inserted into the steps table';
 
     is_deeply $pg->_dbh->selectall_arrayref(
         'SELECT tag_id, tag, step_id, applied_by FROM tags'
@@ -398,53 +308,60 @@ subtest 'live database' => sub {
         [$tag->id, '@alpha', $step->id, $pg->actor],
     ], 'The tag should have been logged';
 
-    is_deeply $pg->_dbh->selectall_arrayref(
-        'SELECT event, node_id, node, logged_by FROM events ORDER BY logged_at'
-    ), [
-        ['deploy', $step->id, 'users',  $pg->actor],
-        ['revert', $step->id, 'users',  $pg->actor],
-        ['fail',   $step->id, 'users',  $pg->actor],
-        ['deploy', $step->id, 'users',  $pg->actor],
-        ['apply',  $tag->id,  '@alpha', $pg->actor],
-    ], 'The apply event should have been logged';
-
     ##########################################################################
-    # Test log_remove_tag().
-    ok $pg->log_remove_tag($tag), 'Remove tag';
+    # Test log_revert_step().
+    ok $pg->log_revert_step($step), 'Revert "users" step';
+    ok !$pg->is_deployed_step($step), 'The step should no longer be deployed';
 
-    ok !$pg->is_deployed_tag($tag), 'The tag should no longer be deployed';
-    is $pg->latest_item, 'users', 'Should once more "users" for latest item';
-    is $pg->latest_step, 'users', 'Should still get "users" for latest step';
-    is $pg->latest_tag,   undef,  'Should onde more undef for latest tag';
+    is $pg->latest_step_id, undef, 'Should get undef for latest step';
+
+    is_deeply $pg->_dbh->selectall_arrayref(
+        'SELECT step_id, step, requires, conflicts, deployed_by FROM steps'
+    ), [], 'The record should have been deleted from the steps table';
+
+    is_deeply $pg->_dbh->selectall_arrayref(
+        'SELECT event, step_id, step, tags, logged_by FROM events ORDER BY logged_at'
+    ), [
+        ['deploy', $step->id, 'users', ['@alpha'], $pg->actor],
+        ['revert', $step->id, 'users', ['@alpha'], $pg->actor],
+    ], 'The revert event should have been logged';
 
     is_deeply $pg->_dbh->selectall_arrayref(
         'SELECT tag_id, tag, step_id, applied_by FROM tags'
-    ), [], 'The tag should have been removed';
+    ), [], 'And the tag record should have been remved';
+
+    ##########################################################################
+    # Test log_fail_step().
+    ok $pg->log_fail_step($step), 'Fail "users" step';
+    ok !$pg->is_deployed_step($step), 'The step still should not be deployed';
+
+    is $pg->latest_step_id, undef, 'Should still get undef for latest step';
 
     is_deeply $pg->_dbh->selectall_arrayref(
-        'SELECT event, node_id, node, logged_by FROM events ORDER BY logged_at'
+        'SELECT step_id, step, requires, conflicts, deployed_by FROM steps'
+    ), [], 'Still should have not steps table record';
+
+    is_deeply $pg->_dbh->selectall_arrayref(
+        'SELECT event, step_id, step, tags, logged_by FROM events ORDER BY logged_at'
     ), [
-        ['deploy', $step->id, 'users',  $pg->actor],
-        ['revert', $step->id, 'users',  $pg->actor],
-        ['fail',   $step->id, 'users',  $pg->actor],
-        ['deploy', $step->id, 'users',  $pg->actor],
-        ['apply',  $tag->id,  '@alpha', $pg->actor],
-        ['remove', $tag->id,  '@alpha', $pg->actor],
-    ], 'The remove event should have been logged';
+        ['deploy', $step->id, 'users', ['@alpha'], $pg->actor],
+        ['revert', $step->id, 'users', ['@alpha'], $pg->actor],
+        ['fail',   $step->id, 'users', ['@alpha'], $pg->actor],
+    ], 'The fail event should have been logged';
+
+    is_deeply $pg->_dbh->selectall_arrayref(
+        'SELECT tag_id, tag, step_id, applied_by FROM tags'
+    ), [], 'Should still have no tag records';
 
     ##########################################################################
     # Test a step with prereqs.
-    ok $pg->log_apply_tag($tag),   'Apply the tag again';
-    ok $pg->is_deployed_tag($tag), 'The tag again should be deployed';
-    is $pg->latest_item, '@alpha', 'Should again get "@alpha" for latest item';
-    is $pg->latest_step, 'users',  'Should still get "users" for latest step';
-    is $pg->latest_tag,  '@alpha', 'Should again get "@alpha" for latest tag';
+    ok $pg->log_deploy_step($step),    'Deploy the step again';
+    ok $pg->is_deployed_tag($tag),     'The tag again should be deployed';
+    is $pg->latest_step_id, $step->id, 'Should still get users ID for latest step ID';
 
-    ok my $step2 = $plan->node_at(2), 'Get the second step';
-    ok $pg->log_deploy_step($step2),  'Deploy second step';
-    is $pg->latest_item, 'widgets',   'Should get "widgets" for latest item';
-    is $pg->latest_step, 'widgets',   'Should  get "widgets" for latest step';
-    is $pg->latest_tag,  '@alpha',    'Should still get "@alpha" for latest tag';
+    ok my $step2 = $plan->step_at(1),   'Get the second step';
+    ok $pg->log_deploy_step($step2),    'Deploy second step';
+    is $pg->latest_step_id, $step2->id, 'Should get "widgets" ID for latest step ID';
 
     is_deeply $pg->_dbh->selectall_arrayref(q{
         SELECT step_id, step, requires, conflicts, deployed_by
@@ -456,16 +373,13 @@ subtest 'live database' => sub {
     ], 'Should have both steps and requires/conflcits deployed';
 
     is_deeply $pg->_dbh->selectall_arrayref(
-        'SELECT event, node_id, node, logged_by FROM events ORDER BY logged_at'
+        'SELECT event, step_id, step, tags, logged_by FROM events ORDER BY logged_at'
     ), [
-        ['deploy', $step->id,  'users',   $pg->actor],
-        ['revert', $step->id,  'users',   $pg->actor],
-        ['fail',   $step->id,  'users',   $pg->actor],
-        ['deploy', $step->id,  'users',   $pg->actor],
-        ['apply',  $tag->id,   '@alpha',  $pg->actor],
-        ['remove', $tag->id,   '@alpha',  $pg->actor],
-        ['apply',  $tag->id,   '@alpha',  $pg->actor],
-        ['deploy', $step2->id, 'widgets', $pg->actor],
+        ['deploy', $step->id,  'users',   ['@alpha'], $pg->actor],
+        ['revert', $step->id,  'users',   ['@alpha'], $pg->actor],
+        ['fail',   $step->id,  'users',   ['@alpha'], $pg->actor],
+        ['deploy', $step->id,  'users',   ['@alpha'], $pg->actor],
+        ['deploy', $step2->id, 'widgets', [],         $pg->actor],
     ], 'The new step deploy should have been logged';
 
     ##########################################################################
