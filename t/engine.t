@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 212;
+use Test::More tests => 186;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -36,7 +36,7 @@ my @deployed_steps;
 my @missing_requires;
 my @conflicts;
 my $die = '';
-my ($latest_item, $latest_tag, $latest_step, $initialized);
+my ( $latest_step, $latest_step_id, $initialized );
 ENGINE: {
     # Stub out a engine.
     package App::Sqitch::Engine::whu;
@@ -62,8 +62,7 @@ ENGINE: {
     sub is_deployed_step  { push @SEEN => [ is_deployed_step  => $_[1] ]; $is_deployed_step }
     sub check_requires    { push @SEEN => [ check_requires    => $_[1] ]; @missing_requires }
     sub check_conflicts   { push @SEEN => [ check_conflicts   => $_[1] ]; @conflicts }
-    sub latest_item       { push @SEEN => [ latest_item       => $_[1] ]; $latest_item }
-    sub latest_tag        { push @SEEN => [ latest_tag        => $_[1] ]; $latest_tag }
+    sub latest_step_id    { push @SEEN => [ latest_step_id    => $_[1] ]; $latest_step_id }
     sub latest_step       { push @SEEN => [ latest_step       => $_[1] ]; $latest_step }
     sub initialized       { push @SEEN => 'initialized'; $initialized }
     sub initialize        { push @SEEN => 'initialize' }
@@ -159,9 +158,7 @@ for my $abs (qw(
     is_deployed_step
     check_requires
     check_conflicts
-    latest_item
-    latest_tag
-    latest_step
+    latest_step_id
 )) {
     throws_ok { $engine->$abs } qr/\Q$CLASS has not implemented $abs()/,
         "Should get an unimplemented exception from $abs()"
@@ -221,6 +218,7 @@ $sqitch = App::Sqitch->new( plan_file => $plan_file, uri => $uri );
 ok $engine = App::Sqitch::Engine::whu->new( sqitch => $sqitch ),
     'Engine with sqitch with plan file';
 my $plan = $sqitch->plan;
+my @steps = $plan->steps;
 is $plan->position, -1, 'Plan should start at position -1';
 is $engine->start_at, undef, 'start_at should be undef';
 ok $engine->_sync_plan, 'Sync the plan';
@@ -232,72 +230,15 @@ is $plan->position, -1, 'Plan should again be at position -1';
 is $engine->start_at, undef, 'start_at should again be undef';
 
 # Have latest_item return a tag.
-$latest_item = '@alpha';
+$latest_step_id = $steps[1]->id;
 ok $engine->_sync_plan, 'Sync the plan to a tag';
 is $plan->position, 1, 'Plan should now be at position 1';
-is $engine->start_at, $latest_item, 'start_at should now be @alpha';
-
-# Have it return a step before any tag.
-$latest_item = 'users';
-ok $engine->_sync_plan, 'Sync the plan to a step with no tags';
-is $plan->position, 1, 'Plan should now be at position 1';
-is $engine->start_at, $latest_item, 'start_at should now be users';
-
-# Have it return a duplicated step.
-$plan->add_step('users');
-$plan->reset;
-ok $engine->_sync_plan, 'Sync the plan to a dupe step with no tags';
-is $plan->position, 1, 'Plan should again be at position 1';
-is $engine->start_at, $latest_item, 'start_at should again be users';
-
-# Have it return a step after a tag.
-$latest_tag = '@beta';
-ok $engine->_sync_plan, 'Sync the plan to a dupe step afer a tag';
-is $plan->position, 3, 'Plan should now be at position 2';
-is $engine->start_at, $latest_item, 'start_at should now be @beta';
-
-# Try it after an earlier tag.
-$latest_tag = '@alpha';
-ok $engine->_sync_plan, 'Sync the plan to a dupe step afer @alpha';
-is $plan->position, 3, 'Plan should still be at position 3';
-is $engine->start_at, $latest_item, 'start_at should still be @beta';
-
-# Try to find a non-existent tag'.
-$latest_item = '@nonexistent';
-throws_ok { $engine->_sync_plan } 'App::Sqitch::X',
-    'Should get error for nonexistent tag';
-is $@->ident, 'plan', 'Should be a "plan" exception';
-is $@->message, __x(
-    'Cannot find {target} in the plan',
-    target => $latest_item,
-), 'It should inform the user of the error';
-
-# Try to find a non-existent step.
-$latest_item = 'nonexistent';
-throws_ok { $engine->_sync_plan } 'App::Sqitch::X',
-    'Should get error for nonexistent step ';
-is $@->ident, 'plan', 'Should be another "plan" exception';
-is $@->message, __x(
-    'Cannot find {target} after {tag} in the plan',
-    target => $latest_item,
-    tag    => $latest_tag,
-), 'It should inform the user of the nonexistent step';
-
-# Try to find an existing step not found after the current tag.
-$latest_item = 'roles';
-throws_ok { $engine->_sync_plan } 'App::Sqitch::X',
-    'Should get error for misplaced step ';
-is $@->ident, 'plan', 'Should be yet another "plan" exception';
-is $@->message, __x(
-    'Cannot find {target} after {tag} in the plan',
-    target => $latest_item,
-    tag    => $latest_tag,
-), 'It should inform the user of the misplaced step';
+is $engine->start_at, $steps[1]->name, 'start_at should now be @alpha';
 
 ##############################################################################
 # Test deploy.
 can_ok $CLASS, 'deploy';
-$latest_item = $latest_tag = undef;
+$latest_step_id = $latest_step = undef;
 $plan->reset;
 $engine->seen;
 my @nodes = $plan->steps;
@@ -316,7 +257,7 @@ for my $meth (qw(_deploy_all _deploy_by_tag _deploy_by_step)) {
 ok $engine->deploy('@alpha'), 'Deploy to @alpha';
 is $plan->position, 1, 'Plan should be at position 1';
 is_deeply $engine->seen, [
-    [latest_item => undef],
+    [latest_step_id => undef],
     'initialized',
     'initialize',
     [check_conflicts => $nodes[0] ],
@@ -345,7 +286,7 @@ $plan->reset;
 ok $engine->deploy('@alpha', 'tag'), 'Deploy to @alpha with tag mode';
 is $plan->position, 1, 'Plan should again be at position 1';
 is_deeply $engine->seen, [
-    [latest_item => undef],
+    [latest_step_id => undef],
     'initialized',
     [check_conflicts => $nodes[0] ],
     [check_requires => $nodes[0] ],
@@ -375,49 +316,39 @@ is $@->message, __x(
     target => 'nonexistent',
 ), 'The exception should report the unknown target';
 is_deeply $engine->seen, [
-    [latest_item => undef],
+    [latest_step_id => undef],
 ], 'Only latest_item() should have been called';
 
 # Start with @alpha.
-$latest_item = '@alpha';
+$latest_step_id = ($nodes[1]->tags)[0]->id;
 ok $engine->deploy('@alpha'), 'Deploy to alpha thrice';
 is_deeply $engine->seen, [
-    [latest_item => undef],
+    [latest_step_id => undef],
 ], 'Only latest_item() should have been called';
 is_deeply +MockOutput->get_info, [
     [__x 'Nothing to deploy (already at "{target}"', target => '@alpha'],
 ], 'Should notify user that already at @alpha';
 
 # Start with widgets.
-$latest_item = 'widgets';
+$latest_step_id = $nodes[2]->id;
 throws_ok { $engine->deploy('@alpha') } 'App::Sqitch::X',
     'Should fail targeting older node';
 is $@->ident, 'deploy', 'Should be a "deploy" error';
 is $@->message,  __ 'Cannot deploy to an earlier target; use "revert" instead',
     'It should suggest using "revert"';
 is_deeply $engine->seen, [
-    [latest_item => undef],
-    [latest_tag => undef],
+    [latest_step_id => undef],
 ], 'Should have called latest_item() and latest_tag()';
 
-# Deploy to latest.
-$latest_item = 'users';
-$latest_tag = '@beta';
-ok $engine->deploy, 'Deploy to latest target';
-is_deeply $engine->seen, [
-    [latest_item => undef],
-    [latest_tag => undef],
-], 'Again, only latest_item() and latest_tag() should have been called';
-is_deeply +MockOutput->get_info, [
-    [__ 'Nothing to deploy (up-to-date)'],
-], 'Should notify user that already up-to-date';
-
 # Make sure we can deploy everything by step.
-$latest_item = $latest_tag = undef;
+$latest_step_id = $latest_step = undef;
+$plan->reset;
+$plan->add_step('lolz');
+@nodes = $plan->steps;
 ok $engine->deploy(undef, 'step'), 'Deploy everything by step';
 is $plan->position, 3, 'Plan should be at position 3';
 is_deeply $engine->seen, [
-    [latest_item => undef],
+    [latest_step_id => undef],
     'initialized',
     [check_conflicts => $nodes[0] ],
     [check_requires => $nodes[0] ],
@@ -443,7 +374,7 @@ is_deeply +MockOutput->get_info, [
     ['  + ', 'roles'],
     ['  + ', 'users'],
     ['  + ', 'widgets'],
-    ['  + ', 'users'],
+    ['  + ', 'lolz'],
 ], 'Should have seen the output of the deploy to the end';
 
 # Try invalid mode.
@@ -453,7 +384,7 @@ is $@->ident, 'deploy', 'Should be a "deploy" error';
 is $@->message, __x('Unknown deployment mode: "{mode}"', mode => 'evil_mode'),
     'And the message should reflect the unknown mode';
 is_deeply $engine->seen, [
-    [latest_item => undef],
+    [latest_step_id => undef],
     'initialized',
 ], 'It should have check for initialization';
 is_deeply +MockOutput->get_info, [
@@ -470,7 +401,7 @@ NOSTEPS: {
     is $@->message, __"Nothing to deploy (empty plan)",
         'Should have the localized message';
     is_deeply $engine->seen, [
-        [latest_item => undef],
+        [latest_step_id => undef],
     ], 'It should have checked for the latest item';
 }
 
@@ -507,7 +438,7 @@ is_deeply $engine->seen, [
 ], 'Should stepwise deploy to from index 2 to index 3';
 is_deeply +MockOutput->get_info, [
     ['  + ', 'widgets'],
-    ['  + ', 'users'],
+    ['  + ', 'lolz'],
 ], 'Should have seen output of nodes 2-3';
 
 # Make it die.
@@ -557,10 +488,10 @@ is_deeply $engine->seen, [
     [check_requires => $nodes[3] ],
     [run_file => $nodes[3]->deploy_file],
     [log_deploy_step => $nodes[3]],
-], 'Should tagwise deploy to from index 2 to index 3';
+], 'Should tagwise deploy from index 2 to index 3';
 is_deeply +MockOutput->get_info, [
     ['  + ', 'widgets'],
-    ['  + ', 'users'],
+    ['  + ', 'lolz'],
 ], 'Should have seen output of nodes 3-3';
 
 # Make it die.
@@ -651,9 +582,9 @@ is_deeply +MockOutput->get_info, [
     ['  + ', 'roles'],
     ['  + ', 'users'],
     ['  + ', 'widgets'],
-    ['  + ', 'users'],
+    ['  + ', 'lolz'],
     ['  + ', 'dr_evil'],
-    ['  - ', 'users'],
+    ['  - ', 'lolz'],
 ], 'Should have seen user step reversion message';
 is_deeply +MockOutput->get_vent, [
     ['ROFL'],
@@ -814,9 +745,9 @@ is_deeply $engine->seen, [
 ], 'Should have deployed to dr_evil and revered down to @alpha';
 
 is_deeply +MockOutput->get_info, [
-    ['  + ', 'users'],
+    ['  + ', 'lolz'],
     ['  + ', 'dr_evil'],
-    ['  - ', 'users'],
+    ['  - ', 'lolz'],
 ], 'Should see nodes revert back to @alpha';
 is_deeply +MockOutput->get_vent, [
     ['ROFL'],

@@ -228,29 +228,16 @@ sub _sync_plan {
     my $self = shift;
     my $plan = $self->sqitch->plan;
 
-    if ( defined ( my $latest = $self->latest_item ) ) {
-        $self->start_at($latest);
-        my $current_index;
-        if ($latest =~ /^[@]/) {
-            # Just start from the tag.
-            $current_index = $plan->index_of($latest) // hurl plan => __x(
-                'Cannot find {target} in the plan',
-                target => $latest
-            );
-        } else {
-            # Get the index for the step since the last tag, if any.
-            my $tag = $self->latest_tag;
-            $current_index = $plan->first_index_of($latest, $tag) // hurl plan => __x(
-                'Cannot find {target} after {tag} in the plan',
-                target => $latest,
-                tag    => $tag,
-            );
-        }
-        $plan->position($current_index);
+    if (my $id = $self->latest_step_id) {
+        my $idx = $plan->index_of($id) // hurl plan => __x(
+            'Cannot find {target} in the plan',
+            target => $id
+        );
+        $plan->position($idx);
+        $self->start_at( $plan->get($id)->format_name );
     } else {
         $plan->reset;
     }
-
     return $plan;
 }
 
@@ -302,6 +289,12 @@ sub revert_step {
     # XXX Start a transaction and lock the steps table.
     $self->run_file($step->revert_file);
     $self->log_revert_step($step);
+}
+
+sub latest_step {
+    my $self = shift;
+    my $step_id = $self->latest_step_id;
+    return defined $step_id ? $self->plan->get( $step_id ) : undef;
 }
 
 sub initialized {
@@ -370,22 +363,10 @@ sub check_conflicts {
     Carp::confess( "$class has not implemented check_conflicts()" );
 }
 
-sub latest_item {
+sub latest_step_id {
     my $class = ref $_[0] || $_[0];
     require Carp;
-    Carp::confess( "$class has not implemented latest_item()" );
-}
-
-sub latest_tag {
-    my $class = ref $_[0] || $_[0];
-    require Carp;
-    Carp::confess("$class has not implemented latest_tag()");
-}
-
-sub latest_step {
-    my $class = ref $_[0] || $_[0];
-    require Carp;
-    Carp::confess( "$class has not implemented latest_step()" );
+    Carp::confess( "$class has not implemented latest_step_id()" );
 }
 
 __PACKAGE__->meta->make_immutable;
@@ -640,23 +621,18 @@ If any of the steps that conflict with the specified step have been deployed
 to the database, their names should be returned by this method. If no names
 are returned, it's because there are no conflicts.
 
-=head3 C<latest_item>
+=head3 C<latest_step_id>
 
-  my $item_name = $engine->latest_item;
+  my $step_id = $engine->latest_step_id;
 
-Returns the name of the most recently applied tag or step.
-
-=head3 C<latest_tag>
-
-  my $tag_name = $engine->latest_tag;
-
-Returns the name of the most recently applied tag.
+Returns the ID of the most recently applied step.
 
 =head3 C<latest_step>
 
-  my $step_name = $engine->latest_step;
+  my $step = $engine->latest_step;
 
-Returns the name of the most recently applied step.
+Returns the L<App::Sqitch::Plan::Step> object representing the most recently
+applied step.
 
 =head3 C<run_file>
 
