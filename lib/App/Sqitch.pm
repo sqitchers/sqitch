@@ -215,7 +215,7 @@ sub go {
         $sqitch->$meth($_->stack_trace->as_string);
 
         # Bail.
-        return 2;
+        return $_->exitval;
     };
 }
 

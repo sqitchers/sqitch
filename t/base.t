@@ -123,8 +123,8 @@ GO: {
     # Make it die with a developer exception.
     @vented = ();
     $traced = undef;
-    $ex = puke( message => 'OUCH!');
-    is $sqitch->go, 2, 'Go should return 2 on another Sqitch exception';
+    $ex = puke( message => 'OUCH!', exitval => 4 );
+    is $sqitch->go, 4, 'Go should return exitval on another exception';
     is_deeply \@vented, ['OUCH!', $ex->stack_trace->as_string],
         'Both the message and the trace should have been vented';
     is $traced, undef, 'Nothing should have been traced';
