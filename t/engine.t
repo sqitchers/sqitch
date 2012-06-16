@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 188;
+use Test::More tests => 192;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -385,6 +385,19 @@ is_deeply +MockOutput->get_info, [
     ['  + ', 'widgets @beta'],
     ['  + ', 'lolz'],
 ], 'Should have seen the output of the deploy to the end';
+
+# If we deploy again, it should be up-to-date.
+$latest_step_id = $nodes[-1]->id;
+throws_ok { $engine->deploy } 'App::Sqitch::X',
+    'Should catch exception for attempt to deploy to up-to-date DB';
+is $@->ident, 'deploy', 'Should be a "deploy" error';
+is $@->message, __ 'Nothing to deploy (up-to-date)',
+    'And the message should reflect up-to-dateness';
+is_deeply $engine->seen, [
+    [latest_step_id => undef],
+], 'It should have just fetched the latest step ID';
+
+$latest_step_id = undef;
 
 # Try invalid mode.
 throws_ok { $engine->deploy(undef, 'evil_mode') } 'App::Sqitch::X',

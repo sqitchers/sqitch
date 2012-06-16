@@ -70,8 +70,11 @@ sub deploy {
 
     if ($plan->position == $to_index) {
         # We are up-to-date.
-        $sqitch->info(__ 'Nothing to deploy (up-to-date)');
-        return $self;
+        hurl {
+            ident   => 'deploy',
+            message => __ 'Nothing to deploy (up-to-date)',
+            exitval => 1,
+        };
 
     } elsif ($plan->position == -1) {
         # Initialize the database, if necessary.
