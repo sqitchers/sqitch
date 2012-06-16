@@ -173,13 +173,7 @@ sub _rollback {
         );
 
         try {
-            for my $target (@run) {
-                if ($target->isa('App::Sqitch::Plan::Step')) {
-                    $self->revert_step($target);
-                } else {
-                    $self->remove_tag($target);
-                }
-            }
+            $self->revert_step($_) for @run;
         } catch {
             # Sucks when this happens.
             $sqitch->vent(eval { $_->message } // $_);
@@ -218,17 +212,9 @@ sub _deploy_all {
     my @run;
     try {
         while ($plan->position < $to_index) {
-            my $target = $plan->next;
-            if ($target->isa('App::Sqitch::Plan::Step')) {
-                $self->deploy_step($target);
-            } elsif ($target->isa('App::Sqitch::Plan::Tag')) {
-                $self->apply_tag($target);
-            } else {
-                # This should not happen.
-                hurl 'Cannot deploy node of type ' . ref $target
-                    . '; can only deploy steps and apply tags';
-            }
-            push @run => $target;
+            my $step = $plan->next;
+            $self->deploy_step($step);
+            push @run => $step;
         }
     } catch {
         $self->sqitch->vent(eval { $_->message } // $_);
