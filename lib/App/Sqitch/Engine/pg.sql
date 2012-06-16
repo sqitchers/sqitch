@@ -40,9 +40,10 @@ COMMENT ON COLUMN :"sqitch_schema".tags.applied_at IS 'Date the tag was applied 
 COMMENT ON COLUMN :"sqitch_schema".tags.applied_by IS 'Name  of the user who applied the tag.';
 
 CREATE TABLE :"sqitch_schema".events (
-    event     TEXT        NOT NULL CHECK (event IN ('deploy', 'revert', 'fail', 'apply', 'remove')),
-    node_id   TEXT        NOT NULL,
-    node      TEXT        NOT NULL,
+    event     TEXT        NOT NULL CHECK (event IN ('deploy', 'revert', 'fail')),
+    step_id   TEXT        NOT NULL,
+    step      TEXT        NOT NULL,
+    tags      TEXT[]      NOT NULL DEFAULT '{}',
     logged_at TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
     logged_by TEXT        NOT NULL DEFAULT current_user
 );
@@ -50,8 +51,9 @@ CREATE TABLE :"sqitch_schema".events (
 COMMENT ON TABLE :"sqitch_schema".events
 IS 'Contains full history of all deployment events.';
 COMMENT ON COLUMN :"sqitch_schema".events.event     IS 'Type of event.';
-COMMENT ON COLUMN :"sqitch_schema".events.node_id   IS 'Node identifier.';
-COMMENT ON COLUMN :"sqitch_schema".events.node      IS 'Name of the event node.';
+COMMENT ON COLUMN :"sqitch_schema".events.step_id   IS 'Step ID';
+COMMENT ON COLUMN :"sqitch_schema".events.step      IS 'Step name.';
+COMMENT ON COLUMN :"sqitch_schema".events.tags      IS 'Tags associated with the step';
 COMMENT ON COLUMN :"sqitch_schema".events.logged_at IS 'Date the event.';
 COMMENT ON COLUMN :"sqitch_schema".events.logged_by IS 'Name of the user who logged the event.';
 

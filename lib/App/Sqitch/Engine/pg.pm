@@ -255,10 +255,22 @@ sub log_deploy_step {
         INSERT INTO steps (step_id, step, requires, conflicts, deployed_by)
         VALUES (?, ?, ?, ?, ?)
     }, undef, $id, $name, $req, $conf, $actor);
+
+    my @tags = $step->tags;
+    if (@tags) {
+        $dbh->do(
+            'INSERT INTO tags (tag_id, tag, step_id, applied_by) VALUES '
+            . join( ', ', ( q{(?, ?, ?, ?)} ) x @tags ),
+            undef,
+            map { ($_->id, $_->format_name, $id, $actor) } @tags
+        );
+        @tags = map { $_->format_name } @tags;
+    }
+
     $dbh->do(q{
-        INSERT INTO events (event, node_id, node, logged_by)
-        VALUES ('deploy', ?, ?, ?);
-    }, undef, $id, $name, $actor);
+        INSERT INTO events (event, step_id, step, tags, logged_by)
+        VALUES ('deploy', ?, ?, ?, ?);
+    }, undef, $id, $name, \@tags, $actor);
 
     return $self;
 }
@@ -281,17 +293,7 @@ sub log_revert_step {
     my $del_tags = $dbh->selectall_arrayref(
         'DELETE FROM tags WHERE step_id = ? RETURNING tag_id, tag',
         undef, $step->id
-    );
-
-    if (@{ $del_tags }) {
-        # Log them.
-        $dbh->do(
-            'INSERT INTO events (event, node_id, node, logged_by) VALUES '
-            . join( ', ', ( q{('remove', ?, ?, ?)} ) x @{ $del_tags } ),
-            undef,
-            map { @{ $_ }, $self->actor } @{ $del_tags }
-        );
-    }
+    ) || [];
 
     # Delete the step record.
     $dbh->do(
@@ -301,9 +303,9 @@ sub log_revert_step {
 
     # Log it.
     $dbh->do(q{
-        INSERT INTO events (event, node_id, node, logged_by)
-        VALUES ('revert', ?, ?, ?);
-    }, undef, $step->id, $step->name, $self->actor);
+        INSERT INTO events (event, step_id, step, tags, logged_by)
+        VALUES ('revert', ?, ?, ?, ?);
+    }, undef, $step->id, $step->name, $del_tags,  $self->actor);
 
     return $self;
 }
@@ -368,34 +370,19 @@ sub _fetch_item {
     };
 }
 
-sub latest_item {
-    shift->_fetch_item(q{
-        SELECT tag AS node, applied_at AS ts
-          FROM tags
-         UNION
-        SELECT step AS node, deployed_at AS ts
-          FROM steps
-         ORDER BY ts DESC
-         LIMIT 1
-    });
-}
-
-sub latest_tag {
-    shift->_fetch_item(q{
-        SELECT tag
-          FROM tags
-         ORDER BY applied_at DESC
-         LIMIT 1
-    });
-}
-
-sub latest_step {
-    shift->_fetch_item(q{
-        SELECT step
-          FROM steps
-         ORDER BY deployed_at DESC
-         LIMIT 1
-    });
+sub latest_step_id {
+    my $self = shift;
+    return try {
+        $self->_dbh->selectcol_arrayref(q{
+            SELECT step_id
+              FROM steps
+             ORDER BY deployed_at DESC
+             LIMIT 1
+        })->[0];
+    } catch {
+        return if $DBI::state eq '42P01'; # undefined_table
+        die $_;
+    };
 }
 
 sub deployed_step_ids {
