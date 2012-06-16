@@ -255,6 +255,13 @@ deployed.
 Returns "deploy" if the step should be deployed, or "revert" if it should be
 reverted.
 
+=head3 C<format_name_with_tags>
+
+  my $name_with_tags = $step->format_name_with_tags;
+
+Returns a string formatted with the step name followed by the list of tags, if
+any, assoicated with the step. Used to display a step as it is deployed.
+
 =head3 C<deploy_handle>
 
   my $fh = $step->deploy_handle;
