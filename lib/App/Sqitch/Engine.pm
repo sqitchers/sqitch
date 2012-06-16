@@ -112,12 +112,12 @@ sub revert {
     my @step_ids;
 
     if (defined $to) {
-        my $node = $plan->get($to) // plan => __x(
+        my $step = $plan->get($to) // plan => __x(
             'Unknown revert target: "{target}"',
             target => $to,
         );
 
-        @step_ids = $self->deployed_step_ids_since($node) or hurl engine => __x(
+        @step_ids = $self->deployed_step_ids_since($step) or hurl engine => __x(
             'Target not deployed: "{target}"',
             target => $to,
         );
@@ -155,16 +155,7 @@ sub _deploy_by_step {
 
     # Just deploy each node. If any fails, we just stop.
     while ($plan->position < $to_index) {
-        my $target = $plan->next;
-        if ($target->isa('App::Sqitch::Plan::Step')) {
-            $self->deploy_step($target);
-        } elsif ($target->isa('App::Sqitch::Plan::Tag')) {
-            $self->apply_tag($target);
-        } else {
-            # This should not happen.
-            hurl 'Cannot deploy node of type ' . ref $target
-                . '; can only deploy steps and apply tags';
-        }
+        $self->deploy_step($plan->next);
     }
 
     return $self;
@@ -205,18 +196,12 @@ sub _deploy_by_tag {
     my ($last_tag, @run);
     try {
         while ($plan->position < $to_index) {
-            my $target = $plan->next;
-            if ($target->isa('App::Sqitch::Plan::Step')) {
-                $self->deploy_step($target);
-                push @run => $target;
-            } elsif ($target->isa('App::Sqitch::Plan::Tag')) {
-                $self->apply_tag($target);
+            my $step = $plan->next;
+            $self->deploy_step($step);
+            push @run => $step;
+            if ($step->tags) {
                 @run = ();
-                $last_tag = $target;
-            } else {
-                # This should not happen.
-                hurl 'Cannot deploy node of type ' . ref $target
-                    . '; can only deploy steps and apply tags';
+                ($last_tag) = $step->tags
             }
         }
     } catch {

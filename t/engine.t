@@ -263,7 +263,7 @@ is $engine->start_at, undef, 'start_at should again be undef';
 # Have latest_item return a tag.
 $latest_item = '@alpha';
 ok $engine->_sync_plan, 'Sync the plan to a tag';
-is $plan->position, 2, 'Plan should now be at position 2';
+is $plan->position, 1, 'Plan should now be at position 1';
 is $engine->start_at, $latest_item, 'start_at should now be @alpha';
 
 # Have it return a step before any tag.
@@ -282,13 +282,13 @@ is $engine->start_at, $latest_item, 'start_at should again be users';
 # Have it return a step after a tag.
 $latest_tag = '@beta';
 ok $engine->_sync_plan, 'Sync the plan to a dupe step afer a tag';
-is $plan->position, 5, 'Plan should now be at position 5';
+is $plan->position, 3, 'Plan should now be at position 2';
 is $engine->start_at, $latest_item, 'start_at should now be @beta';
 
 # Try it after an earlier tag.
 $latest_tag = '@alpha';
 ok $engine->_sync_plan, 'Sync the plan to a dupe step afer @alpha';
-is $plan->position, 5, 'Plan should still be at position 5';
+is $plan->position, 3, 'Plan should still be at position 3';
 is $engine->start_at, $latest_item, 'start_at should still be @beta';
 
 # Try to find a non-existent tag'.
@@ -329,7 +329,7 @@ can_ok $CLASS, 'deploy';
 $latest_item = $latest_tag = undef;
 $plan->reset;
 $engine->seen;
-my @nodes = $plan->nodes;
+my @nodes = $plan->steps;
 
 # Mock the deploy methods to log which were called.
 my $mock_engine = Test::MockModule->new($CLASS);
@@ -343,7 +343,7 @@ for my $meth (qw(_deploy_all _deploy_by_tag _deploy_by_step)) {
 }
 
 ok $engine->deploy('@alpha'), 'Deploy to @alpha';
-is $plan->position, 2, 'Plan should be at position 2';
+is $plan->position, 1, 'Plan should be at position 1';
 is_deeply $engine->seen, [
     [latest_item => undef],
     'initialized',
@@ -356,7 +356,6 @@ is_deeply $engine->seen, [
     [check_requires => $nodes[1] ],
     [run_file => $nodes[1]->deploy_file],
     [log_deploy_step => $nodes[1]],
-    [log_apply_tag => $nodes[2]],
 ], 'Should have deployed through @alpha';
 
 is $deploy_meth, '_deploy_all', 'Should have called _deploy_all()';
@@ -367,14 +366,13 @@ is_deeply +MockOutput->get_info, [
     ],
     ['  + ', 'roles'],
     ['  + ', 'users'],
-    ['+ ', '@alpha'],
 ], 'Should have seen the output of the deploy to @alpha';
 
 # Try with no need to initialize.
 $initialized = 1;
 $plan->reset;
 ok $engine->deploy('@alpha', 'tag'), 'Deploy to @alpha with tag mode';
-is $plan->position, 2, 'Plan should again be at position 2';
+is $plan->position, 1, 'Plan should again be at position 1';
 is_deeply $engine->seen, [
     [latest_item => undef],
     'initialized',
@@ -386,7 +384,6 @@ is_deeply $engine->seen, [
     [check_requires => $nodes[1] ],
     [run_file => $nodes[1]->deploy_file],
     [log_deploy_step => $nodes[1]],
-    [log_apply_tag => $nodes[2]],
 ], 'Should have deployed through @alpha without initialization';
 
 is $deploy_meth, '_deploy_by_tag', 'Should have called _deploy_by_tag()';
@@ -397,7 +394,6 @@ is_deeply +MockOutput->get_info, [
     ],
     ['  + ', 'roles'],
     ['  + ', 'users'],
-    ['+ ', '@alpha'],
 ], 'Should have seen the output of the deploy to @alpha';
 
 # Try a bogus target.
@@ -448,7 +444,7 @@ is_deeply +MockOutput->get_info, [
 # Make sure we can deploy everything by step.
 $latest_item = $latest_tag = undef;
 ok $engine->deploy(undef, 'step'), 'Deploy everything by step';
-is $plan->position, 5, 'Plan should be at position 5';
+is $plan->position, 3, 'Plan should be at position 3';
 is_deeply $engine->seen, [
     [latest_item => undef],
     'initialized',
@@ -460,16 +456,14 @@ is_deeply $engine->seen, [
     [check_requires => $nodes[1] ],
     [run_file => $nodes[1]->deploy_file],
     [log_deploy_step => $nodes[1]],
-    [log_apply_tag => $nodes[2]],
+    [check_conflicts => $nodes[2] ],
+    [check_requires => $nodes[2] ],
+    [run_file => $nodes[2]->deploy_file],
+    [log_deploy_step => $nodes[2]],
     [check_conflicts => $nodes[3] ],
     [check_requires => $nodes[3] ],
     [run_file => $nodes[3]->deploy_file],
     [log_deploy_step => $nodes[3]],
-    [log_apply_tag => $nodes[4]],
-    [check_conflicts => $nodes[5] ],
-    [check_requires => $nodes[5] ],
-    [run_file => $nodes[5]->deploy_file],
-    [log_deploy_step => $nodes[5]],
 ], 'Should have deployed everything';
 
 is $deploy_meth, '_deploy_by_step', 'Should have called _deploy_by_step()';
@@ -477,9 +471,7 @@ is_deeply +MockOutput->get_info, [
     [__x 'Deploying to {destination}', destination =>  $engine->destination ],
     ['  + ', 'roles'],
     ['  + ', 'users'],
-    ['+ ', '@alpha'],
     ['  + ', 'widgets'],
-    ['+ ', '@beta'],
     ['  + ', 'users'],
 ], 'Should have seen the output of the deploy to the end';
 
@@ -515,7 +507,7 @@ NOSTEPS: {
 # Test _deploy_by_step()
 $plan->reset;
 $mock_engine->unmock('_deploy_by_step');
-ok $engine->_deploy_by_step($plan, 2), 'Deploy stepwise to index 2';
+ok $engine->_deploy_by_step($plan, 1), 'Deploy stepwise to index 1';
 is_deeply $engine->seen, [
     [check_conflicts => $nodes[0] ],
     [check_requires => $nodes[0] ],
@@ -525,26 +517,27 @@ is_deeply $engine->seen, [
     [check_requires => $nodes[1] ],
     [run_file => $nodes[1]->deploy_file],
     [log_deploy_step => $nodes[1]],
-    [log_apply_tag => $nodes[2]],
 ], 'Should stepwise deploy to index 2';
 is_deeply +MockOutput->get_info, [
     ['  + ', 'roles'],
     ['  + ', 'users'],
-    ['+ ', '@alpha'],
 ], 'Should have seen output of each node';
 
-ok $engine->_deploy_by_step($plan, 4), 'Deploy stepwise to index 4';
+ok $engine->_deploy_by_step($plan, 3), 'Deploy stepwise to index 2';
 is_deeply $engine->seen, [
+    [check_conflicts => $nodes[2] ],
+    [check_requires => $nodes[2] ],
+    [run_file => $nodes[2]->deploy_file],
+    [log_deploy_step => $nodes[2]],
     [check_conflicts => $nodes[3] ],
     [check_requires => $nodes[3] ],
     [run_file => $nodes[3]->deploy_file],
     [log_deploy_step => $nodes[3]],
-    [log_apply_tag => $nodes[4]],
-], 'Should stepwise deploy to from index 2 to index 4';
+], 'Should stepwise deploy to from index 2 to index 3';
 is_deeply +MockOutput->get_info, [
     ['  + ', 'widgets'],
-    ['+ ', '@beta'],
-], 'Should have seen output of nodes 3-4';
+    ['  + ', 'users'],
+], 'Should have seen output of nodes 2-3';
 
 # Make it die.
 $plan->reset;
@@ -566,7 +559,7 @@ $die = '';
 # Test _deploy_by_tag().
 $plan->reset;
 $mock_engine->unmock('_deploy_by_tag');
-ok $engine->_deploy_by_tag($plan, 2), 'Deploy tagwise to index 2';
+ok $engine->_deploy_by_tag($plan, 1), 'Deploy tagwise to index 1';
 
 is_deeply $engine->seen, [
     [check_conflicts => $nodes[0] ],
@@ -577,44 +570,43 @@ is_deeply $engine->seen, [
     [check_requires => $nodes[1] ],
     [run_file => $nodes[1]->deploy_file],
     [log_deploy_step => $nodes[1]],
-    [log_apply_tag => $nodes[2]],
-], 'Should tagwise deploy to index 2';
+], 'Should tagwise deploy to index 1';
 is_deeply +MockOutput->get_info, [
     ['  + ', 'roles'],
     ['  + ', 'users'],
-    ['+ ', '@alpha'],
 ], 'Should have seen output of each node';
 
-ok $engine->_deploy_by_tag($plan, 4), 'Deploy tagwise to index 4';
+ok $engine->_deploy_by_tag($plan, 3), 'Deploy tagwise to index 3';
 is_deeply $engine->seen, [
+    [check_conflicts => $nodes[2] ],
+    [check_requires => $nodes[2] ],
+    [run_file => $nodes[2]->deploy_file],
+    [log_deploy_step => $nodes[2]],
     [check_conflicts => $nodes[3] ],
     [check_requires => $nodes[3] ],
     [run_file => $nodes[3]->deploy_file],
     [log_deploy_step => $nodes[3]],
-    [log_apply_tag => $nodes[4]],
-], 'Should tagwise deploy to from index 2 to index 4';
+], 'Should tagwise deploy to from index 2 to index 3';
 is_deeply +MockOutput->get_info, [
     ['  + ', 'widgets'],
-    ['+ ', '@beta'],
-], 'Should have seen output of nodes 3-4';
+    ['  + ', 'users'],
+], 'Should have seen output of nodes 3-3';
 
 # Make it die.
 $plan->reset;
-$die = 'log_apply_tag';
+my $mock_whu = Test::MockModule->new('App::Sqitch::Engine::whu');
+$mock_whu->mock(log_deploy_step => sub { hurl 'ROFL' if $_[1] eq $nodes[1] });
 throws_ok { $engine->_deploy_by_tag($plan, 2) } 'App::Sqitch::X',
-    'Die in _deploy_by_tag';
+    'Die in log_deploy_step';
 is $@->message, __('Deploy failed'), 'Should get final deploy failure message';
 is_deeply $engine->seen, [
     [check_conflicts => $nodes[0] ],
     [check_requires => $nodes[0] ],
     [run_file => $nodes[0]->deploy_file],
-    [log_deploy_step => $nodes[0]],
     [check_conflicts => $nodes[1] ],
     [check_requires => $nodes[1] ],
     [run_file => $nodes[1]->deploy_file],
-    [log_deploy_step => $nodes[1]],
-    [run_file => $nodes[1]->revert_file],
-    [log_revert_step => $nodes[1]],
+    [log_fail_step => $nodes[1]],
     [run_file => $nodes[0]->revert_file],
     [log_revert_step => $nodes[0]],
 ], 'It should have logged up to the failure';
@@ -622,19 +614,16 @@ is_deeply $engine->seen, [
 is_deeply +MockOutput->get_info, [
     ['  + ', 'roles'],
     ['  + ', 'users'],
-    ['+ ', '@alpha'],
-    ['  - ', 'users'],
     ['  - ', 'roles'],
 ], 'Should have seen deploy and revert messages';
 is_deeply +MockOutput->get_vent, [
-    ['AAAH!'],
+    ['ROFL'],
     [__ 'Reverting all changes']
 ], 'The original error should have been vented';
-$die = '';
+$mock_whu->unmock('log_deploy_step');
 
 # Now have it fail on a later node, to keep the first tag.
 $plan->reset;
-my $mock_whu = Test::MockModule->new('App::Sqitch::Engine::whu');
 $mock_whu->mock(run_file => sub { die 'ROFL' if $_[1]->basename eq 'widgets.sql' });
 throws_ok { $engine->_deploy_by_tag($plan, $plan->count -1 ) } 'App::Sqitch::X',
     'Die in _deploy_by_tag again';
@@ -646,15 +635,13 @@ is_deeply $engine->seen, [
     [check_conflicts => $nodes[1] ],
     [check_requires => $nodes[1] ],
     [log_deploy_step => $nodes[1]],
-    [log_apply_tag => $nodes[2]],
-    [check_conflicts => $nodes[3] ],
-    [check_requires => $nodes[3] ],
-    [log_fail_step => $nodes[3]],
+    [check_conflicts => $nodes[2] ],
+    [check_requires => $nodes[2] ],
+    [log_fail_step => $nodes[2]],
 ], 'Should have logged deploy and no reverts';
 is_deeply +MockOutput->get_info, [
     ['  + ', 'roles'],
     ['  + ', 'users'],
-    ['+ ', '@alpha'],
     ['  + ', 'widgets'],
 ], 'Should have seen deploy messages';
 my $vented = MockOutput->get_vent;
@@ -664,7 +651,7 @@ like $vented->[0][0], qr/^ROFL\b/, 'And it should be the underlying error';
 # Add a step and deploy to that, to make sure it rolls back any steps since
 # last tag.
 $plan->add_step('dr_evil');
-@nodes = $plan->nodes;
+@nodes = $plan->steps;
 $plan->reset;
 $mock_whu->mock(run_file => sub { hurl 'ROFL' if $_[1]->basename eq 'dr_evil.sql' });
 throws_ok { $engine->_deploy_by_tag($plan, $plan->count -1 ) } 'App::Sqitch::X',
@@ -677,26 +664,22 @@ is_deeply $engine->seen, [
     [check_conflicts => $nodes[1] ],
     [check_requires => $nodes[1] ],
     [log_deploy_step => $nodes[1]],
-    [log_apply_tag => $nodes[2]],
+    [check_conflicts => $nodes[2] ],
+    [check_requires => $nodes[2] ],
+    [log_deploy_step => $nodes[2]],
     [check_conflicts => $nodes[3] ],
     [check_requires => $nodes[3] ],
     [log_deploy_step => $nodes[3]],
-    [log_apply_tag => $nodes[4]],
-    [check_conflicts => $nodes[5] ],
-    [check_requires => $nodes[5] ],
-    [log_deploy_step => $nodes[5]],
-    [check_conflicts => $nodes[6] ],
-    [check_requires => $nodes[6] ],
-    [log_fail_step => $nodes[6]],
-    [log_revert_step => $nodes[5] ],
+    [check_conflicts => $nodes[4] ],
+    [check_requires => $nodes[4] ],
+    [log_fail_step => $nodes[4]],
+    [log_revert_step => $nodes[3] ],
 ], 'Should have reverted last step';
 
 is_deeply +MockOutput->get_info, [
     ['  + ', 'roles'],
     ['  + ', 'users'],
-    ['+ ', '@alpha'],
     ['  + ', 'widgets'],
-    ['+ ', '@beta'],
     ['  + ', 'users'],
     ['  + ', 'dr_evil'],
     ['  - ', 'users'],
@@ -710,7 +693,7 @@ is_deeply +MockOutput->get_vent, [
 $mock_whu->unmock_all;
 $die = 'log_revert_step';
 $plan->reset;
-$mock_whu->mock(log_apply_tag => sub { hurl 'ROFL' });
+$mock_whu->mock(log_deploy_step => sub { hurl 'ROFL' if $_[1] eq $nodes[1] });
 $mock_whu->mock(start_at => 'whatever');
 throws_ok { $engine->_deploy_by_tag($plan, $plan->count -1 ) } 'App::Sqitch::X',
     'Die in _deploy_by_tag again';
@@ -719,18 +702,16 @@ is_deeply $engine->seen, [
     [check_conflicts => $nodes[0] ],
     [check_requires => $nodes[0] ],
     [run_file => $nodes[0]->deploy_file ],
-    [log_deploy_step => $nodes[0]],
     [check_conflicts => $nodes[1] ],
     [check_requires => $nodes[1] ],
     [run_file => $nodes[1]->deploy_file ],
-    [log_deploy_step => $nodes[1]],
-    [run_file => $nodes[1]->revert_file],
+    [log_fail_step => $nodes[1] ],
+    [run_file => $nodes[0]->revert_file ],
 ], 'Should have tried to revert one step';
 is_deeply +MockOutput->get_info, [
     ['  + ', 'roles'],
     ['  + ', 'users'],
-    ['+ ', '@alpha'],
-    ['  - ', 'users'],
+    ['  - ', 'roles'],
 ], 'Should have seen revert message';
 is_deeply +MockOutput->get_vent, [
     ['ROFL'],
@@ -746,9 +727,9 @@ $mock_whu->unmock_all;
 # Test _deploy_all().
 $plan->reset;
 $mock_engine->unmock('_deploy_all');
-ok $engine->_deploy_all($plan, 2), 'Deploy all to index 2';
+ok $engine->_deploy_all($plan, 1), 'Deploy all to index 1';
 
-ok $engine->_deploy_all($plan, 2), 'Deploy tagwise to index 2';
+ok $engine->_deploy_all($plan, 1), 'Deploy tagwise to index 1';
 
 is_deeply $engine->seen, [
     [check_conflicts => $nodes[0] ],
@@ -759,42 +740,41 @@ is_deeply $engine->seen, [
     [check_requires => $nodes[1] ],
     [run_file => $nodes[1]->deploy_file],
     [log_deploy_step => $nodes[1]],
-    [log_apply_tag => $nodes[2]],
-], 'Should tagwise deploy to index 2';
+], 'Should tagwise deploy to index 1';
 is_deeply +MockOutput->get_info, [
     ['  + ', 'roles'],
     ['  + ', 'users'],
-    ['+ ', '@alpha'],
 ], 'Should have seen output of each node';
 
-ok $engine->_deploy_all($plan, 4), 'Deploy tagwise to index 4';
+ok $engine->_deploy_all($plan, 2), 'Deploy tagwise to index 2';
 is_deeply $engine->seen, [
-    [check_conflicts => $nodes[3] ],
-    [check_requires => $nodes[3] ],
-    [run_file => $nodes[3]->deploy_file],
-    [log_deploy_step => $nodes[3]],
-    [log_apply_tag => $nodes[4]],
-], 'Should tagwise deploy to from index 2 to index 4';
+    [check_conflicts => $nodes[2] ],
+    [check_requires => $nodes[2] ],
+    [run_file => $nodes[2]->deploy_file],
+    [log_deploy_step => $nodes[2]],
+], 'Should tagwise deploy to from index 1 to index 2';
 is_deeply +MockOutput->get_info, [
     ['  + ', 'widgets'],
-    ['+ ', '@beta'],
 ], 'Should have seen output of nodes 3-4';
 
 # Make it die.
 $plan->reset;
-$die = 'log_apply_tag';
-throws_ok { $engine->_deploy_all($plan, 2) } 'App::Sqitch::X',
+$mock_whu->mock(log_deploy_step => sub { hurl 'ROFL' if $_[1] eq $nodes[2] });
+throws_ok { $engine->_deploy_all($plan, 3) } 'App::Sqitch::X',
     'Die in _deploy_all';
 is $@->message, __('Deploy failed'), 'Should get final deploy failure message';
+$mock_whu->unmock('log_deploy_step');
 is_deeply $engine->seen, [
     [check_conflicts => $nodes[0] ],
     [check_requires => $nodes[0] ],
     [run_file => $nodes[0]->deploy_file],
-    [log_deploy_step => $nodes[0]],
     [check_conflicts => $nodes[1] ],
     [check_requires => $nodes[1] ],
     [run_file => $nodes[1]->deploy_file],
-    [log_deploy_step => $nodes[1]],
+    [check_conflicts => $nodes[2] ],
+    [check_requires => $nodes[2] ],
+    [run_file => $nodes[2]->deploy_file],
+    [log_fail_step => $nodes[2]],
     [run_file => $nodes[1]->revert_file],
     [log_revert_step => $nodes[1]],
     [run_file => $nodes[0]->revert_file],
@@ -804,12 +784,12 @@ is_deeply $engine->seen, [
 is_deeply +MockOutput->get_info, [
     ['  + ', 'roles'],
     ['  + ', 'users'],
-    ['+ ', '@alpha'],
+    ['  + ', 'widgets'],
     ['  - ', 'users'],
     ['  - ', 'roles'],
 ], 'Should have seen deploy and revert messages';
 is_deeply +MockOutput->get_vent, [
-    ['AAAH!'],
+    ['ROFL'],
     [__ 'Reverting all changes']
 ], 'The original error should have been vented';
 $die = '';
@@ -827,20 +807,16 @@ is_deeply $engine->seen, [
     [check_conflicts => $nodes[1] ],
     [check_requires => $nodes[1] ],
     [log_deploy_step => $nodes[1]],
-    [log_apply_tag => $nodes[2]],
-    [check_conflicts => $nodes[3] ],
-    [check_requires => $nodes[3] ],
-    [log_fail_step => $nodes[3]],
-    [log_remove_tag => $nodes[2]],
+    [check_conflicts => $nodes[2] ],
+    [check_requires => $nodes[2] ],
+    [log_fail_step => $nodes[2]],
     [log_revert_step => $nodes[1]],
     [log_revert_step => $nodes[0]],
 ], 'Should have reveted all steps and tags';
 is_deeply +MockOutput->get_info, [
     ['  + ', 'roles'],
     ['  + ', 'users'],
-    ['+ ', '@alpha'],
     ['  + ', 'widgets'],
-    ['- ', '@alpha'],
     ['  - ', 'users'],
     ['  - ', 'roles'],
 ], 'Should see all steps revert';
@@ -860,26 +836,16 @@ is_deeply $engine->seen, [
     [check_conflicts => $nodes[3] ],
     [check_requires => $nodes[3] ],
     [log_deploy_step => $nodes[3]],
-    [log_apply_tag => $nodes[4]],
-    [check_conflicts => $nodes[5] ],
-    [check_requires => $nodes[5] ],
-    [log_deploy_step => $nodes[5]],
-    [check_conflicts => $nodes[6] ],
-    [check_requires => $nodes[6] ],
-    [log_fail_step => $nodes[6]],
-    [log_revert_step => $nodes[5]],
-    [log_remove_tag => $nodes[4]],
+    [check_conflicts => $nodes[4] ],
+    [check_requires => $nodes[4] ],
+    [log_fail_step => $nodes[4]],
     [log_revert_step => $nodes[3]],
 ], 'Should have deployed to dr_evil and revered down to @alpha';
 
 is_deeply +MockOutput->get_info, [
-    ['  + ', 'widgets'],
-    ['+ ', '@beta'],
     ['  + ', 'users'],
     ['  + ', 'dr_evil'],
     ['  - ', 'users'],
-    ['- ', '@beta'],
-    ['  - ', 'widgets'],
 ], 'Should see nodes revert back to @alpha';
 is_deeply +MockOutput->get_vent, [
     ['ROFL'],
