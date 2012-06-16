@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 229;
+use Test::More tests => 212;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -51,8 +51,6 @@ ENGINE: {
         log_deploy_step
         log_revert_step
         log_fail_step
-        log_apply_tag
-        log_remove_tag
     )) {
         no strict 'refs';
         *$meth = sub {
@@ -157,8 +155,6 @@ for my $abs (qw(
     log_deploy_step
     log_fail_step
     log_revert_step
-    log_apply_tag
-    log_remove_tag
     is_deployed_tag
     is_deployed_step
     check_requires
@@ -214,31 +210,6 @@ is_deeply +MockOutput->get_info, [[
     '  - ', 'foo'
 ]], 'Output should reflect reversion';
 
-
-##############################################################################
-# Test apply_tag and remove_tag.
-can_ok $engine, 'apply_tag', 'remove_tag';
-
-my $tag  = App::Sqitch::Plan::Tag->new(
-    name => 'foo',
-    step => $step,
-    plan => $sqitch->plan,
-);
-ok $engine->apply_tag($tag), 'Applay a tag';
-is_deeply $engine->seen, [
-    [log_apply_tag => $tag ],
-], 'Tag should have been applied';
-is_deeply +MockOutput->get_info, [[
-    '+ ', '@foo'
-]], 'Output should show tag application';
-
-ok $engine->remove_tag($tag), 'Remove a tag';
-is_deeply $engine->seen, [
-    [log_remove_tag => $tag ],
-], 'Tag should have been removed';
-is_deeply +MockOutput->get_info, [[
-    '- ', '@foo'
-]], 'Output should show tag removal';
 
 ##############################################################################
 # Test _sync_plan()
@@ -855,6 +826,11 @@ $mock_whu->unmock_all;
 
 ##############################################################################
 # Test is_deployed().
+my $tag  = App::Sqitch::Plan::Tag->new(
+    name => 'foo',
+    step => $step,
+    plan => $sqitch->plan,
+);
 $is_deployed_tag = $is_deployed_step = 1;
 ok $engine->is_deployed($tag), 'Test is_deployed(tag)';
 is_deeply $engine->seen, [
@@ -949,25 +925,3 @@ is_deeply $engine->seen, [
 is_deeply +MockOutput->get_info, [
     ['  - ', $step->format_name]
 ], 'Should have shown reverted step name';
-
-##############################################################################
-# Test apply_tag().
-can_ok $engine, 'apply_tag';
-ok $engine->apply_tag($tag), 'Apply the tag';
-is_deeply $engine->seen, [
-    [log_apply_tag => $tag],
-], 'It should have been applied';
-is_deeply +MockOutput->get_info, [
-    ['+ ', $tag->format_name]
-], 'Should have shown applied tag name';
-
-##############################################################################
-# Test remove_tag().
-can_ok $engine, 'remove_tag';
-ok $engine->remove_tag($tag), 'Remove the tag';
-is_deeply $engine->seen, [
-    [log_remove_tag => $tag],
-], 'It should have been removed';
-is_deeply +MockOutput->get_info, [
-    ['- ', $tag->format_name]
-], 'Should have shown removed tag name';

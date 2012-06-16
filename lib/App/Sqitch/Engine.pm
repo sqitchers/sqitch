@@ -304,18 +304,6 @@ sub revert_step {
     $self->log_revert_step($step);
 }
 
-sub apply_tag {
-    my ( $self, $tag ) = @_;
-    $self->sqitch->info('+ ', $tag->format_name);
-    $self->log_apply_tag($tag);
-}
-
-sub remove_tag {
-    my ( $self, $tag ) = @_;
-    $self->sqitch->info('- ', $tag->format_name);
-    $self->log_remove_tag($tag);
-}
-
 sub initialized {
     my $class = ref $_[0] || $_[0];
     require Carp;
@@ -356,18 +344,6 @@ sub log_revert_step {
     my $class = ref $_[0] || $_[0];
     require Carp;
     Carp::confess( "$class has not implemented log_revert_step()" );
-}
-
-sub log_apply_tag {
-    my $class = ref $_[0] || $_[0];
-    require Carp;
-    Carp::confess( "$class has not implemented log_apply_tag()" );
-}
-
-sub log_remove_tag {
-    my $class = ref $_[0] || $_[0];
-    require Carp;
-    Carp::confess( "$class has not implemented log_remove_tag()" );
 }
 
 sub is_deployed_tag {
@@ -579,19 +555,6 @@ Used internally by C<deploy()> to deploy an individual step.
 Used internally by C<revert()> (and, by C<deploy()> when a deploy fails) to
 revert an individual step.
 
-=head3 C<apply_tag>
-
-  $engine->apply_tag($tag);
-
-Used internally by C<deploy()> to apply an individual tag.
-
-=head3 C<remove_tag>
-
-  $engine->remove_tag($tag);
-
-Used internally by C<revert()> (and, by C<deploy()> when a deploy fails) to
-remove an individual tag.
-
 =head3 C<is_deployed>
 
   say "Tag deployed"  if $engine->is_deployed($tag);
@@ -653,20 +616,6 @@ of the step failed.
 
 Should write to and/or remove from the database metadata and history the
 records necessary to indicate that the step has been reverted.
-
-=head3 C<log_apply_tag>
-
-  $engine->log_apply_tag($tag);
-
-Should write to the database metadata and history the records necessary to
-indicate that the tag has been applied.
-
-=head3 C<log_remove_tag>
-
-  $engine->log_remove_tag($tag);
-
-Should write to and/or remove from the database metadata and history the
-records necessary to indicate that the tag has been removed.
 
 =head3 C<check_requires>
 

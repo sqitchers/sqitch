@@ -308,46 +308,6 @@ sub log_revert_step {
     return $self;
 }
 
-sub log_apply_tag {
-    my ( $self, $tag ) = @_;
-    my $dbh = $self->_dbh;
-
-    my ($id, $name, $step_id, $actor) = (
-        $tag->id,
-        $tag->format_name,
-        $tag->step->id,
-        $self->actor,
-    );
-
-    $dbh->do(q{
-        INSERT INTO tags (tag_id, tag, step_id, applied_by)
-        VALUES (?, ?, ?, ?)
-    }, undef, $id, $name, $step_id, $actor);
-    $dbh->do(q{
-        INSERT INTO events (event, node_id, node, logged_by)
-        VALUES ('apply', ?, ?, ?);
-    }, undef, $id, $name, $actor);
-
-    return $self;
-}
-
-sub log_remove_tag {
-    my ($self, $tag) = @_;
-    my $dbh = $self->_dbh;
-
-    $dbh->do(q{
-        INSERT INTO events (event, node_id, node, logged_by)
-        VALUES ('remove', ?, ?, ?);
-    }, undef, $tag->id, $tag->format_name, $self->actor);
-
-    $dbh->do(
-        'DELETE FROM tags where tag_id = ?',
-        undef, $tag->id
-    );
-
-    return $self;
-}
-
 sub is_deployed_tag {
     my ( $self, $tag ) = @_;
     return $self->_dbh->selectcol_arrayref(q{
