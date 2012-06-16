@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 49;
+use Test::More tests => 51;
 #use Test::More 'no_plan';
 use Test::NoWarnings;
 use App::Sqitch;
@@ -38,6 +38,8 @@ can_ok $CLASS, qw(
     test_file
     requires
     conflicts
+    format_name
+    format_name_with_tags
 );
 
 my $sqitch = App::Sqitch->new(
@@ -62,6 +64,8 @@ is $step->test_file, $sqitch->test_dir->file('foo.sql'),
     'The test file should be correct';
 
 is $step->format_name, 'foo', 'Name should format as "foo"';
+is $step->format_name_with_tags,
+    'foo', 'Name should format with tags as "foo"';
 is $step->as_string, 'foo', 'should stringify to "foo"';
 is $step->since_tag, undef, 'Since tag should be undef';
 is $step->info, join("\n",
@@ -111,6 +115,8 @@ is $step2->info, join("\n",
 is_deeply [$step2->tags], [], 'Should have no tags';
 ok $step2->add_tag($tag), 'Add a tag';
 is_deeply [$step2->tags], [$tag], 'Should have the tag';
+is $step2->format_name_with_tags, 'howdy @alpha',
+    'Should format name with tags';
 
 ##############################################################################
 # Test _parse_dependencies.

@@ -115,6 +115,11 @@ sub action {
     shift->is_deploy ? 'deploy' : 'revert';
 }
 
+sub format_name_with_tags {
+    my $self = shift;
+    return join ' ', $self->format_name, map { $_->format_name } $self->tags;
+}
+
 sub BUILDARGS {
     my $class = shift;
     my $p = @_ == 1 && ref $_[0] ? { %{ +shift } } : { @_ };
