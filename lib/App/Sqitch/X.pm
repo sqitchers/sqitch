@@ -15,6 +15,13 @@ has message => (
     required => 1,
 );
 
+has exitval => (
+    is       => 'ro',
+    isa      => 'Int',
+    required => 1,
+    default  => 2,
+);
+
 with qw(
     Throwable
     Role::HasMessage
@@ -103,6 +110,11 @@ A non-localized string identifying the type of exception.
 =item C<message>
 
 The exception message. Use L<Locale::TextDomain> to craft localized messages.
+
+=item C<exitval>
+
+Suggested exit value to use. Defaults to 2. This will be used if Sqitch
+handles an exception while a command is running.
 
 =back
 

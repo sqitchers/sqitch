@@ -33,6 +33,7 @@ isa_ok $x = $@, $CLASS, 'Thrown object';
 is $x->ident, 'basic', 'Ident should be "basic"';
 is $x->message, 'OMFG!', 'The message should have been passed';
 ok $x->stack_trace->frames, 'It should have a stack trace';
+is $x->exitval, 2, 'Exit val should be 2';
 is +($x->stack_trace->frames)[0]->filename, __FILE__,
     'The trace should start in this file';
 
@@ -40,10 +41,12 @@ throws_ok { hurl 'OMFG!' } $CLASS;
 isa_ok $x = $@, $CLASS, 'Thrown object';
 is $x->ident, 'DEV', 'Ident should be "DEV"';
 is $x->message, 'OMFG!', 'The message should have been passed';
+is $x->exitval, 2, 'Exit val should again be 2';
 
-throws_ok { hurl {ident => 'blah', message => 'OMFG!'} } $CLASS;
+throws_ok { hurl {ident => 'blah', message => 'OMFG!', exitval => 1} } $CLASS;
 isa_ok $x = $@, $CLASS, 'Thrown object';
 is $x->message, 'OMFG!', 'The params should have been passed';
+is $x->exitval, 1, 'Exit val should be 1';
 is $x->as_string, join($/, grep { defined }
     $x->message,
     $x->previous_exception,
