@@ -256,7 +256,7 @@ sub is_deployed {
 sub deploy_step {
     my ( $self, $step ) = @_;
     my $sqitch = $self->sqitch;
-    $sqitch->info('  + ', $step->format_name);
+    $sqitch->info('  + ', $step->format_name_with_tags);
 
     # Check for conflicts.
     if (my @conflicts = $self->check_conflicts($step)) {
@@ -290,7 +290,7 @@ sub deploy_step {
 
 sub revert_step {
     my ( $self, $step ) = @_;
-    $self->sqitch->info('  - ', $step->format_name);
+    $self->sqitch->info('  - ', $step->format_name_with_tags);
     # XXX Start a transaction and lock the steps table.
     $self->run_file($step->revert_file);
     $self->log_revert_step($step);

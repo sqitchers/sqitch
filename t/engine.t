@@ -284,7 +284,7 @@ is_deeply +MockOutput->get_info, [
         target      => '@alpha'
     ],
     ['  + ', 'roles'],
-    ['  + ', 'users'],
+    ['  + ', 'users @alpha'],
 ], 'Should have seen the output of the deploy to @alpha';
 
 # Try with no need to initialize.
@@ -312,7 +312,8 @@ is_deeply +MockOutput->get_info, [
         target      => '@alpha'
     ],
     ['  + ', 'roles'],
-    ['  + ', 'users'],
+    ['  + ', 'users @alpha'],
+
 ], 'Should have seen the output of the deploy to @alpha';
 
 # Try a bogus target.
@@ -379,8 +380,9 @@ is $deploy_meth, '_deploy_by_step', 'Should have called _deploy_by_step()';
 is_deeply +MockOutput->get_info, [
     [__x 'Deploying to {destination}', destination =>  $engine->destination ],
     ['  + ', 'roles'],
-    ['  + ', 'users'],
-    ['  + ', 'widgets'],
+    ['  + ', 'users @alpha'],
+
+    ['  + ', 'widgets @beta'],
     ['  + ', 'lolz'],
 ], 'Should have seen the output of the deploy to the end';
 
@@ -429,7 +431,8 @@ is_deeply $engine->seen, [
 ], 'Should stepwise deploy to index 2';
 is_deeply +MockOutput->get_info, [
     ['  + ', 'roles'],
-    ['  + ', 'users'],
+    ['  + ', 'users @alpha'],
+
 ], 'Should have seen output of each node';
 
 ok $engine->_deploy_by_step($plan, 3), 'Deploy stepwise to index 2';
@@ -444,7 +447,7 @@ is_deeply $engine->seen, [
     [log_deploy_step => $nodes[3]],
 ], 'Should stepwise deploy to from index 2 to index 3';
 is_deeply +MockOutput->get_info, [
-    ['  + ', 'widgets'],
+    ['  + ', 'widgets @beta'],
     ['  + ', 'lolz'],
 ], 'Should have seen output of nodes 2-3';
 
@@ -482,7 +485,8 @@ is_deeply $engine->seen, [
 ], 'Should tagwise deploy to index 1';
 is_deeply +MockOutput->get_info, [
     ['  + ', 'roles'],
-    ['  + ', 'users'],
+    ['  + ', 'users @alpha'],
+
 ], 'Should have seen output of each node';
 
 ok $engine->_deploy_by_tag($plan, 3), 'Deploy tagwise to index 3';
@@ -497,7 +501,7 @@ is_deeply $engine->seen, [
     [log_deploy_step => $nodes[3]],
 ], 'Should tagwise deploy from index 2 to index 3';
 is_deeply +MockOutput->get_info, [
-    ['  + ', 'widgets'],
+    ['  + ', 'widgets @beta'],
     ['  + ', 'lolz'],
 ], 'Should have seen output of nodes 3-3';
 
@@ -522,7 +526,8 @@ is_deeply $engine->seen, [
 
 is_deeply +MockOutput->get_info, [
     ['  + ', 'roles'],
-    ['  + ', 'users'],
+    ['  + ', 'users @alpha'],
+
     ['  - ', 'roles'],
 ], 'Should have seen deploy and revert messages';
 is_deeply +MockOutput->get_vent, [
@@ -550,8 +555,9 @@ is_deeply $engine->seen, [
 ], 'Should have logged deploy and no reverts';
 is_deeply +MockOutput->get_info, [
     ['  + ', 'roles'],
-    ['  + ', 'users'],
-    ['  + ', 'widgets'],
+    ['  + ', 'users @alpha'],
+
+    ['  + ', 'widgets @beta'],
 ], 'Should have seen deploy messages';
 my $vented = MockOutput->get_vent;
 is @{ $vented }, 1, 'Should have one vented message';
@@ -587,8 +593,9 @@ is_deeply $engine->seen, [
 
 is_deeply +MockOutput->get_info, [
     ['  + ', 'roles'],
-    ['  + ', 'users'],
-    ['  + ', 'widgets'],
+    ['  + ', 'users @alpha'],
+
+    ['  + ', 'widgets @beta'],
     ['  + ', 'lolz'],
     ['  + ', 'dr_evil'],
     ['  - ', 'lolz'],
@@ -619,7 +626,8 @@ is_deeply $engine->seen, [
 ], 'Should have tried to revert one step';
 is_deeply +MockOutput->get_info, [
     ['  + ', 'roles'],
-    ['  + ', 'users'],
+    ['  + ', 'users @alpha'],
+
     ['  - ', 'roles'],
 ], 'Should have seen revert message';
 is_deeply +MockOutput->get_vent, [
@@ -652,7 +660,8 @@ is_deeply $engine->seen, [
 ], 'Should tagwise deploy to index 1';
 is_deeply +MockOutput->get_info, [
     ['  + ', 'roles'],
-    ['  + ', 'users'],
+    ['  + ', 'users @alpha'],
+
 ], 'Should have seen output of each node';
 
 ok $engine->_deploy_all($plan, 2), 'Deploy tagwise to index 2';
@@ -663,7 +672,7 @@ is_deeply $engine->seen, [
     [log_deploy_step => $nodes[2]],
 ], 'Should tagwise deploy to from index 1 to index 2';
 is_deeply +MockOutput->get_info, [
-    ['  + ', 'widgets'],
+    ['  + ', 'widgets @beta'],
 ], 'Should have seen output of nodes 3-4';
 
 # Make it die.
@@ -692,9 +701,10 @@ is_deeply $engine->seen, [
 
 is_deeply +MockOutput->get_info, [
     ['  + ', 'roles'],
-    ['  + ', 'users'],
-    ['  + ', 'widgets'],
-    ['  - ', 'users'],
+    ['  + ', 'users @alpha'],
+
+    ['  + ', 'widgets @beta'],
+    ['  - ', 'users @alpha'],
     ['  - ', 'roles'],
 ], 'Should have seen deploy and revert messages';
 is_deeply +MockOutput->get_vent, [
@@ -724,9 +734,10 @@ is_deeply $engine->seen, [
 ], 'Should have reveted all steps and tags';
 is_deeply +MockOutput->get_info, [
     ['  + ', 'roles'],
-    ['  + ', 'users'],
-    ['  + ', 'widgets'],
-    ['  - ', 'users'],
+    ['  + ', 'users @alpha'],
+
+    ['  + ', 'widgets @beta'],
+    ['  - ', 'users @alpha'],
     ['  - ', 'roles'],
 ], 'Should see all steps revert';
 is_deeply +MockOutput->get_vent, [
