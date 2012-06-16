@@ -298,8 +298,8 @@ sub revert_step {
 
 sub latest_step {
     my $self = shift;
-    my $step_id = $self->latest_step_id;
-    return defined $step_id ? $self->plan->get( $step_id ) : undef;
+    my $step_id = $self->latest_step_id // return undef;
+    return $self->sqitch->plan->get( $step_id );
 }
 
 sub initialized {

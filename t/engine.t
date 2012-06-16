@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 186;
+use Test::More tests => 188;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -63,7 +63,6 @@ ENGINE: {
     sub check_requires    { push @SEEN => [ check_requires    => $_[1] ]; @missing_requires }
     sub check_conflicts   { push @SEEN => [ check_conflicts   => $_[1] ]; @conflicts }
     sub latest_step_id    { push @SEEN => [ latest_step_id    => $_[1] ]; $latest_step_id }
-    sub latest_step       { push @SEEN => [ latest_step       => $_[1] ]; $latest_step }
     sub initialized       { push @SEEN => 'initialized'; $initialized }
     sub initialize        { push @SEEN => 'initialize' }
 
@@ -207,18 +206,26 @@ is_deeply +MockOutput->get_info, [[
     '  - ', 'foo'
 ]], 'Output should reflect reversion';
 
-
 ##############################################################################
-# Test _sync_plan()
-can_ok $CLASS, '_sync_plan';
+# Test latest_step().
 chdir 't';
-
 my $plan_file = file qw(sql sqitch.plan);
 $sqitch = App::Sqitch->new( plan_file => $plan_file, uri => $uri );
 ok $engine = App::Sqitch::Engine::whu->new( sqitch => $sqitch ),
     'Engine with sqitch with plan file';
 my $plan = $sqitch->plan;
 my @steps = $plan->steps;
+
+$latest_step_id = $steps[0]->id;
+is $engine->latest_step, $steps[0], 'Should get proper step from latest_step()';
+$latest_step_id = $steps[2]->id;
+is $engine->latest_step, $steps[2], 'Should again get proper step from latest_step()';
+$latest_step_id = undef;
+
+##############################################################################
+# Test _sync_plan()
+can_ok $CLASS, '_sync_plan';
+
 is $plan->position, -1, 'Plan should start at position -1';
 is $engine->start_at, undef, 'start_at should be undef';
 ok $engine->_sync_plan, 'Sync the plan';
