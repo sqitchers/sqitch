@@ -234,7 +234,12 @@ sub _sync_plan {
             target => $id
         );
         $plan->position($idx);
-        $self->start_at( $plan->get($id)->format_name );
+        my $step = $plan->get($id);
+        if (my @tags = $step->tags) {
+            $self->start_at( $step->format_name . $tags[-1]->format_name );
+        } else {
+            $self->start_at( $step->format_name );
+        }
     } else {
         $plan->reset;
     }

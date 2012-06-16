@@ -233,7 +233,7 @@ is $engine->start_at, undef, 'start_at should again be undef';
 $latest_step_id = $steps[1]->id;
 ok $engine->_sync_plan, 'Sync the plan to a tag';
 is $plan->position, 1, 'Plan should now be at position 1';
-is $engine->start_at, $steps[1]->name, 'start_at should now be @alpha';
+is $engine->start_at, 'users@alpha', 'start_at should now be users@alpha';
 
 ##############################################################################
 # Test deploy.
