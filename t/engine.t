@@ -36,6 +36,7 @@ my @deployed_step_ids;
 my @missing_requires;
 my @conflicts;
 my $die = '';
+my $record_work = 1;
 my ( $latest_step, $latest_step_id, $initialized );
 ENGINE: {
     # Stub out a engine.
@@ -67,6 +68,8 @@ ENGINE: {
     sub initialize        { push @SEEN => 'initialize' }
     sub deployed_step_ids { push @SEEN => [ deployed_step_ids => $_[1] ]; @deployed_step_ids }
     sub deployed_step_ids_since { push @SEEN => [ deployed_step_ids_since => $_[1] ]; @deployed_step_ids }
+    sub begin_work        { push @SEEN => ['begin_work']  if $record_work }
+    sub finish_work       { push @SEEN => ['finish_work'] if $record_work }
 
     sub seen { [@SEEN] }
     after seen => sub { @SEEN = () };
@@ -177,10 +180,12 @@ my $step = App::Sqitch::Plan::Step->new( name => 'foo', plan => $sqitch->plan );
 
 ok $engine->deploy_step($step), 'Deploy a step';
 is_deeply $engine->seen, [
+    ['begin_work'],
     [check_conflicts => $step ],
     [check_requires => $step ],
     [run_file => $step->deploy_file ],
     [log_deploy_step => $step ],
+    ['finish_work'],
 ], 'deploy_step should have called the proper methods';
 is_deeply +MockOutput->get_info, [[
     '  + ', 'foo'
@@ -192,9 +197,11 @@ throws_ok { $engine->deploy_step($step) } 'App::Sqitch::X',
     'Deploy step with error';
 is $@->message, 'AAAH!', 'Error should be from run_file';
 is_deeply $engine->seen, [
+    ['begin_work'],
     [check_conflicts => $step ],
     [check_requires => $step ],
     [log_fail_step => $step ],
+    ['finish_work'],
 ], 'Should have logged step failure';
 $die = '';
 is_deeply +MockOutput->get_info, [[
@@ -203,12 +210,15 @@ is_deeply +MockOutput->get_info, [[
 
 ok $engine->revert_step($step), 'Revert a step';
 is_deeply $engine->seen, [
+    ['begin_work'],
     [run_file => $step->revert_file ],
     [log_revert_step => $step ],
+    ['finish_work'],
 ], 'revert_step should have called the proper methods';
 is_deeply +MockOutput->get_info, [[
     '  - ', 'foo'
 ]], 'Output should reflect reversion';
+$record_work = 0;
 
 ##############################################################################
 # Test latest_step().
@@ -648,22 +658,25 @@ is_deeply +MockOutput->get_vent, [
 
 # Make it choke on step reversion.
 $mock_whu->unmock_all;
-$die = 'log_revert_step';
+$die = '';
 $plan->reset;
-$mock_whu->mock(log_deploy_step => sub { hurl 'ROFL' if $_[1] eq $nodes[1] });
+$mock_whu->mock(run_file => sub {
+     hurl 'ROFL' if $_[1] eq $nodes[1]->deploy_file;
+     hurl 'BARF' if $_[1] eq $nodes[0]->revert_file;
+});
 $mock_whu->mock(start_at => 'whatever');
+$ENV{FOO} = 1;
 throws_ok { $engine->_deploy_by_tag($plan, $plan->count -1 ) } 'App::Sqitch::X',
     'Die in _deploy_by_tag again';
+delete $ENV{FOO};
 is $@->message, __('Deploy failed'), 'Should once again get final deploy failure message';
 is_deeply $engine->seen, [
     [check_conflicts => $nodes[0] ],
     [check_requires => $nodes[0] ],
-    [run_file => $nodes[0]->deploy_file ],
+    [log_deploy_step => $nodes[0] ],
     [check_conflicts => $nodes[1] ],
     [check_requires => $nodes[1] ],
-    [run_file => $nodes[1]->deploy_file ],
     [log_fail_step => $nodes[1] ],
-    [run_file => $nodes[0]->revert_file ],
 ], 'Should have tried to revert one step';
 is_deeply +MockOutput->get_info, [
     ['  + ', 'roles'],
@@ -673,11 +686,9 @@ is_deeply +MockOutput->get_info, [
 is_deeply +MockOutput->get_vent, [
     ['ROFL'],
     [__x 'Reverting to {target}', target => 'whatever'],
-    ['AAAH!'],
+    ['BARF'],
     [__ 'The schema will need to be manually repaired']
 ], 'Should get reversion failure message';
-
-$die = '';
 $mock_whu->unmock_all;
 
 ##############################################################################

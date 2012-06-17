@@ -263,6 +263,7 @@ sub deploy_step {
     my ( $self, $step ) = @_;
     my $sqitch = $self->sqitch;
     $sqitch->info('  + ', $step->format_name_with_tags);
+    $self->begin_work;
 
     # Check for conflicts.
     if (my @conflicts = $self->check_conflicts($step)) {
@@ -285,22 +286,32 @@ sub deploy_step {
     }
 
     return try {
-        # XXX Start a transaction and lock the steps table.
         $self->run_file($step->deploy_file);
         $self->log_deploy_step($step);
+    } finally {
+        $self->finish_work;
     } catch {
         $self->log_fail_step($step);
         die $_;
-    };
+    }
 }
 
 sub revert_step {
     my ( $self, $step ) = @_;
     $self->sqitch->info('  - ', $step->format_name_with_tags);
-    # XXX Start a transaction and lock the steps table.
-    $self->run_file($step->revert_file);
-    $self->log_revert_step($step);
+    $self->begin_work;
+    try {
+        $self->run_file($step->revert_file);
+        $self->log_revert_step($step);
+    } finally {
+        $self->finish_work;
+    } catch {
+        die $_;
+    }
 }
+
+sub begin_work  { shift }
+sub finish_work { shift }
 
 sub latest_step {
     my $self = shift;
@@ -577,6 +588,21 @@ applied step.
 =head2 Abstract Instance Methods
 
 These methods must be overridden in subclasses.
+
+=head3 C<begin_work>
+
+  $engine->begin_work;
+
+This method is called just before a step is deployed or reverted. It should
+create a lock to prevent any other processes from making changes to the
+database, to be freed in C<finish_work>.
+
+=head3 C<finish_work>
+
+  $engine->finish_work;
+
+This method is called after a step has been deployed or reverted. It should
+unlock the lock created by C<begin_work>.
 
 =head3 C<initialized>
 
