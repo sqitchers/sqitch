@@ -405,6 +405,23 @@ subtest 'live database' => sub {
         'Should now see only "users" as a conflict';
     is_deeply [$pg->check_requires($step3)], [qw(barney fred widgets)],
         'Should get back list all three missing prereq steps';
+
+    ##########################################################################
+    # Test deployed_step_ids() and deployed_step_ids_since().
+    can_ok $pg, qw(deployed_step_ids deployed_step_ids_since);
+    is_deeply [$pg->deployed_step_ids], [$step->id],
+        'Should have one deployed step ID';
+    is_deeply [$pg->deployed_step_ids_since($step)], [],
+        'Should find none deployed since that one';
+
+    # Add another one.
+    ok $pg->log_deploy_step($step2), 'Log another step';
+    is_deeply [$pg->deployed_step_ids], [$step->id, $step2->id],
+        'Should have both deployed step IDs';
+    is_deeply [$pg->deployed_step_ids_since($step)], [$step2->id],
+        'Should find only the second after the first';
+    is_deeply [$pg->deployed_step_ids_since($step2)], [],
+        'Should find none after the second';
 };
 
 done_testing;

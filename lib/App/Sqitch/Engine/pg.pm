@@ -390,7 +390,7 @@ sub deployed_step_ids {
     return @{ shift->_dbh->selectcol_arrayref(qq{
         SELECT step_id AS id
           FROM steps
-         ORDER BY ts ASC
+         ORDER BY deployed_at ASC
     }) };
 }
 
@@ -399,8 +399,8 @@ sub deployed_step_ids_since {
     return @{ $self->_dbh->selectcol_arrayref(qq{
         SELECT step_id
           FROM steps
-         ORDER BY ts ASC
          WHERE deployed_at > (SELECT deployed_at FROM steps WHERE step_id = ?)
+         ORDER BY deployed_at ASC
     }, undef, $step->id) };
 }
 
