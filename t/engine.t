@@ -313,7 +313,6 @@ is_deeply +MockOutput->get_info, [
     ],
     ['  + ', 'roles'],
     ['  + ', 'users @alpha'],
-
 ], 'Should have seen the output of the deploy to @alpha';
 
 # Try a bogus target.
@@ -381,7 +380,6 @@ is_deeply +MockOutput->get_info, [
     [__x 'Deploying to {destination}', destination =>  $engine->destination ],
     ['  + ', 'roles'],
     ['  + ', 'users @alpha'],
-
     ['  + ', 'widgets @beta'],
     ['  + ', 'lolz'],
 ], 'Should have seen the output of the deploy to the end';
@@ -445,7 +443,6 @@ is_deeply $engine->seen, [
 is_deeply +MockOutput->get_info, [
     ['  + ', 'roles'],
     ['  + ', 'users @alpha'],
-
 ], 'Should have seen output of each node';
 
 ok $engine->_deploy_by_step($plan, 3), 'Deploy stepwise to index 2';
@@ -499,7 +496,6 @@ is_deeply $engine->seen, [
 is_deeply +MockOutput->get_info, [
     ['  + ', 'roles'],
     ['  + ', 'users @alpha'],
-
 ], 'Should have seen output of each node';
 
 ok $engine->_deploy_by_tag($plan, 3), 'Deploy tagwise to index 3';
@@ -699,7 +695,6 @@ is_deeply $engine->seen, [
 is_deeply +MockOutput->get_info, [
     ['  + ', 'roles'],
     ['  + ', 'users @alpha'],
-
 ], 'Should have seen output of each node';
 
 ok $engine->_deploy_all($plan, 2), 'Deploy tagwise to index 2';
@@ -740,7 +735,6 @@ is_deeply $engine->seen, [
 is_deeply +MockOutput->get_info, [
     ['  + ', 'roles'],
     ['  + ', 'users @alpha'],
-
     ['  + ', 'widgets @beta'],
     ['  - ', 'users @alpha'],
     ['  - ', 'roles'],
@@ -773,7 +767,6 @@ is_deeply $engine->seen, [
 is_deeply +MockOutput->get_info, [
     ['  + ', 'roles'],
     ['  + ', 'users @alpha'],
-
     ['  + ', 'widgets @beta'],
     ['  - ', 'users @alpha'],
     ['  - ', 'roles'],
