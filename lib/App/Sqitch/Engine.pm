@@ -165,13 +165,13 @@ sub _deploy_by_step {
 }
 
 sub _rollback {
-    my ($self, $tag) = (shift, shift);
+    my ($self, $tagged) = (shift, shift);
     my $sqitch = $self->sqitch;
 
     if (my @run = reverse @_) {
-        $tag = $tag ? $tag->format_name : $self->start_at;
+        $tagged = $tagged ? $tagged->format_name_with_tags : $self->start_at;
         $sqitch->vent(
-            $tag ? __x('Reverting to {target}', target => $tag)
+            $tagged ? __x('Reverting to {target}', target => $tagged)
                  : __ 'Reverting all changes'
         );
 
@@ -190,7 +190,7 @@ sub _rollback {
 sub _deploy_by_tag {
     my ( $self, $plan, $to_index ) = @_;
 
-    my ($last_tag, @run);
+    my ($last_tagged, @run);
     try {
         while ($plan->position < $to_index) {
             my $step = $plan->next;
@@ -198,12 +198,12 @@ sub _deploy_by_tag {
             push @run => $step;
             if ($step->tags) {
                 @run = ();
-                ($last_tag) = $step->tags
+                $last_tagged = $step;
             }
         }
     } catch {
         $self->sqitch->vent(eval { $_->message } // $_);
-        $self->_rollback($last_tag, @run);
+        $self->_rollback($last_tagged, @run);
     };
 
     return $self;

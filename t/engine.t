@@ -518,40 +518,55 @@ is_deeply +MockOutput->get_info, [
     ['  + ', 'lolz'],
 ], 'Should have seen output of nodes 3-3';
 
+# Add another couple of steps.
+$plan->add_step('tacos');
+$plan->add_step('curry');
+@nodes = $plan->steps;
+
 # Make it die.
-$plan->reset;
+$plan->position(1);
 my $mock_whu = Test::MockModule->new('App::Sqitch::Engine::whu');
-$mock_whu->mock(log_deploy_step => sub { hurl 'ROFL' if $_[1] eq $nodes[1] });
-throws_ok { $engine->_deploy_by_tag($plan, 2) } 'App::Sqitch::X',
+$mock_whu->mock(log_deploy_step => sub { hurl 'ROFL' if $_[1] eq $nodes[-1] });
+throws_ok { $engine->_deploy_by_tag($plan, $#nodes) } 'App::Sqitch::X',
     'Die in log_deploy_step';
 is $@->message, __('Deploy failed'), 'Should get final deploy failure message';
 is_deeply $engine->seen, [
-    [check_conflicts => $nodes[0] ],
-    [check_requires => $nodes[0] ],
-    [run_file => $nodes[0]->deploy_file],
-    [check_conflicts => $nodes[1] ],
-    [check_requires => $nodes[1] ],
-    [run_file => $nodes[1]->deploy_file],
-    [log_fail_step => $nodes[1]],
-    [run_file => $nodes[0]->revert_file],
-    [log_revert_step => $nodes[0]],
-], 'It should have logged up to the failure';
+    [check_conflicts => $nodes[2] ],
+    [check_requires => $nodes[2] ],
+    [run_file => $nodes[2]->deploy_file],
+    [check_conflicts => $nodes[3] ],
+    [check_requires => $nodes[3] ],
+    [run_file => $nodes[3]->deploy_file],
+    [check_conflicts => $nodes[4] ],
+    [check_requires => $nodes[4] ],
+    [run_file => $nodes[4]->deploy_file],
+    [check_conflicts => $nodes[5] ],
+    [check_requires => $nodes[5] ],
+    [run_file => $nodes[5]->deploy_file],
+    [log_fail_step => $nodes[5] ],
+    [run_file => $nodes[4]->revert_file],
+    [log_revert_step => $nodes[4]],
+    [run_file => $nodes[3]->revert_file],
+    [log_revert_step => $nodes[3]],
+], 'It should have reverted back to the last deployed tag';
 
 is_deeply +MockOutput->get_info, [
-    ['  + ', 'roles'],
-    ['  + ', 'users @alpha'],
-
-    ['  - ', 'roles'],
+    ['  + ', 'widgets @beta'],
+    ['  + ', 'lolz'],
+    ['  + ', 'tacos'],
+    ['  + ', 'curry'],
+    ['  - ', 'tacos'],
+    ['  - ', 'lolz'],
 ], 'Should have seen deploy and revert messages';
 is_deeply +MockOutput->get_vent, [
     ['ROFL'],
-    [__ 'Reverting all changes']
+    [__ 'Reverting to widgets @beta']
 ], 'The original error should have been vented';
 $mock_whu->unmock('log_deploy_step');
 
-# Now have it fail on a later node, to keep the first tag.
+# Now have it fail back to the beginning.
 $plan->reset;
-$mock_whu->mock(run_file => sub { die 'ROFL' if $_[1]->basename eq 'widgets.sql' });
+$mock_whu->mock(run_file => sub { die 'ROFL' if $_[1]->basename eq 'users.sql' });
 throws_ok { $engine->_deploy_by_tag($plan, $plan->count -1 ) } 'App::Sqitch::X',
     'Die in _deploy_by_tag again';
 is $@->message, __('Deploy failed'), 'Should again get final deploy failure message';
@@ -561,20 +576,22 @@ is_deeply $engine->seen, [
     [log_deploy_step => $nodes[0]],
     [check_conflicts => $nodes[1] ],
     [check_requires => $nodes[1] ],
-    [log_deploy_step => $nodes[1]],
-    [check_conflicts => $nodes[2] ],
-    [check_requires => $nodes[2] ],
-    [log_fail_step => $nodes[2]],
-], 'Should have logged deploy and no reverts';
+    [log_fail_step => $nodes[1]],
+    [log_revert_step => $nodes[0]],
+], 'Should have logged back to the beginning';
 is_deeply +MockOutput->get_info, [
     ['  + ', 'roles'],
     ['  + ', 'users @alpha'],
-
-    ['  + ', 'widgets @beta'],
-], 'Should have seen deploy messages';
+    ['  - ', 'roles'],
+], 'Should have seen deploy and revert messages';
 my $vented = MockOutput->get_vent;
-is @{ $vented }, 1, 'Should have one vented message';
-like $vented->[0][0], qr/^ROFL\b/, 'And it should be the underlying error';
+is @{ $vented }, 2, 'Should have one vented message';
+my $errmsg = shift @{ $vented->[0] };
+like $errmsg, qr/^ROFL\b/, 'And it should be the underlying error';
+is_deeply $vented, [
+    [],
+    [__ 'Reverting all changes'],
+], 'And it should had notified that all changes were reverted';
 
 # Add a step and deploy to that, to make sure it rolls back any steps since
 # last tag.
@@ -600,22 +617,33 @@ is_deeply $engine->seen, [
     [log_deploy_step => $nodes[3]],
     [check_conflicts => $nodes[4] ],
     [check_requires => $nodes[4] ],
-    [log_fail_step => $nodes[4]],
+    [log_deploy_step => $nodes[4]],
+    [check_conflicts => $nodes[5] ],
+    [check_requires => $nodes[5] ],
+    [log_deploy_step => $nodes[5]],
+    [check_conflicts => $nodes[6] ],
+    [check_requires => $nodes[6] ],
+    [log_fail_step => $nodes[6]],
+    [log_revert_step => $nodes[5] ],
+    [log_revert_step => $nodes[4] ],
     [log_revert_step => $nodes[3] ],
-], 'Should have reverted last step';
+], 'Should have reverted back to last tag';
 
 is_deeply +MockOutput->get_info, [
     ['  + ', 'roles'],
     ['  + ', 'users @alpha'],
-
     ['  + ', 'widgets @beta'],
     ['  + ', 'lolz'],
+    ['  + ', 'tacos'],
+    ['  + ', 'curry'],
     ['  + ', 'dr_evil'],
+    ['  - ', 'curry'],
+    ['  - ', 'tacos'],
     ['  - ', 'lolz'],
-], 'Should have seen user step reversion message';
+], 'Should have user step reversion messages';
 is_deeply +MockOutput->get_vent, [
     ['ROFL'],
-    [__x 'Reverting to {target}', target => '@beta']
+    [__x 'Reverting to {target}', target => 'widgets @beta']
 ], 'Should see underlying error and reversion message';
 
 # Make it choke on step reversion.
@@ -640,7 +668,6 @@ is_deeply $engine->seen, [
 is_deeply +MockOutput->get_info, [
     ['  + ', 'roles'],
     ['  + ', 'users @alpha'],
-
     ['  - ', 'roles'],
 ], 'Should have seen revert message';
 is_deeply +MockOutput->get_vent, [
@@ -658,8 +685,6 @@ $mock_whu->unmock_all;
 $plan->reset;
 $mock_engine->unmock('_deploy_all');
 ok $engine->_deploy_all($plan, 1), 'Deploy all to index 1';
-
-ok $engine->_deploy_all($plan, 1), 'Deploy tagwise to index 1';
 
 is_deeply $engine->seen, [
     [check_conflicts => $nodes[0] ],
@@ -771,13 +796,25 @@ is_deeply $engine->seen, [
     [log_deploy_step => $nodes[3]],
     [check_conflicts => $nodes[4] ],
     [check_requires => $nodes[4] ],
-    [log_fail_step => $nodes[4]],
+    [log_deploy_step => $nodes[4]],
+    [check_conflicts => $nodes[5] ],
+    [check_requires => $nodes[5] ],
+    [log_deploy_step => $nodes[5]],
+    [check_conflicts => $nodes[6] ],
+    [check_requires => $nodes[6] ],
+    [log_fail_step => $nodes[6]],
+    [log_revert_step => $nodes[5]],
+    [log_revert_step => $nodes[4]],
     [log_revert_step => $nodes[3]],
 ], 'Should have deployed to dr_evil and revered down to @alpha';
 
 is_deeply +MockOutput->get_info, [
     ['  + ', 'lolz'],
+    ['  + ', 'tacos'],
+    ['  + ', 'curry'],
     ['  + ', 'dr_evil'],
+    ['  - ', 'curry'],
+    ['  - ', 'tacos'],
     ['  - ', 'lolz'],
 ], 'Should see nodes revert back to @alpha';
 is_deeply +MockOutput->get_vent, [
