@@ -395,16 +395,13 @@ sub deployed_step_ids {
 }
 
 sub deployed_step_ids_since {
-    my ( $self, $node ) = @_;
-    my $where = $node->isa('App::Sqitch::Plan::Step')
-        ? 'SELECT deployed_at FROM steps WHERE step_id = ?'
-        : 'SELECT applied_at  FROM tags  WHERE tag_id  = ?';
+    my ( $self, $step ) = @_;
     return @{ $self->_dbh->selectcol_arrayref(qq{
         SELECT step_id
           FROM steps
          ORDER BY ts ASC
-         WHERE deployed_at > ($where)
-    }, undef, $node->id) };
+         WHERE deployed_at > (SELECT deployed_at FROM steps WHERE step_id = ?)
+    }, undef, $step->id) };
 }
 
 sub _run {

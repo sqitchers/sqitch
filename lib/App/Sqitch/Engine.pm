@@ -2,6 +2,7 @@ package App::Sqitch::Engine;
 
 use v5.10.1;
 use Moose;
+use strict;
 use utf8;
 use Try::Tiny;
 use Locale::TextDomain qw(App-Sqitch);
@@ -115,12 +116,12 @@ sub revert {
     my @step_ids;
 
     if (defined $to) {
-        my $step = $plan->get($to) // plan => __x(
+        my $step = $plan->get($to) // hurl revert => __x(
             'Unknown revert target: "{target}"',
             target => $to,
         );
 
-        @step_ids = $self->deployed_step_ids_since($step) or hurl engine => __x(
+        @step_ids = $self->deployed_step_ids_since($step) or hurl revert => __x(
             'Target not deployed: "{target}"',
             target => $to,
         );
@@ -131,9 +132,11 @@ sub revert {
             target      => $to
         ));
     } else {
-        @step_ids = $self->deployed_step_ids or hurl engine => __(
-            'Nothing to revert (nothing deployed)',
-        );
+        @step_ids = $self->deployed_step_ids or hurl {
+            ident   => 'revert',
+            message => __ 'Nothing to revert (nothing deployed)',
+            exitval => 1,
+        };
         $sqitch->info(__x(
             'Reverting all changes from {destination}',
             destination => $self->destination,
@@ -148,7 +151,7 @@ sub revert {
     # like deploy() mode. I'm thinking not, as a failure on a revert is not
     # something you generaly want to recover from by deploying back to where
     # you started. But maybe I'm wrong?
-    $self->revert_step($_) for reverse @steps;
+    $self->revert_step($_) for @steps;
 
     return $self;
 }
@@ -377,6 +380,18 @@ sub latest_step_id {
     Carp::confess( "$class has not implemented latest_step_id()" );
 }
 
+sub deployed_step_ids {
+    my $class = ref $_[0] || $_[0];
+    require Carp;
+    Carp::confess( "$class has not implemented deployed_step_ids()" );
+}
+
+sub deployed_step_ids_since {
+    my $class = ref $_[0] || $_[0];
+    require Carp;
+    Carp::confess( "$class has not implemented deployed_step_ids_since()" );
+}
+
 __PACKAGE__->meta->make_immutable;
 no Moose;
 
@@ -552,6 +567,13 @@ revert an individual step.
 Convenience method that dispatches to C<is_deployed_tag()> or
 C<is_deployed_step()> as appropriate to its argument.
 
+=head3 C<latest_step>
+
+  my $step = $engine->latest_step;
+
+Returns the L<App::Sqitch::Plan::Step> object representing the most recently
+applied step.
+
 =head2 Abstract Instance Methods
 
 These methods must be overridden in subclasses.
@@ -635,12 +657,17 @@ are returned, it's because there are no conflicts.
 
 Returns the ID of the most recently applied step.
 
-=head3 C<latest_step>
+=head3 C<deployed_step_ids>
 
-  my $step = $engine->latest_step;
+  my @step_ids = $engine->deployed_step_ids;
 
-Returns the L<App::Sqitch::Plan::Step> object representing the most recently
-applied step.
+Returns a list of all deployed step IDs in the order in which they were deployed.
+
+=head3 C<deployed_step_ids_since>
+
+  my @step_ids = $engine->deployed_step_ids_since($step);
+
+Returns a list of step IDs for steps deployed after the specified step.
 
 =head3 C<run_file>
 

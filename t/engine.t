@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 192;
+use Test::More tests => 217;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -32,7 +32,7 @@ BEGIN {
 can_ok $CLASS, qw(load new name);
 
 my ($is_deployed_tag, $is_deployed_step) = (0, 0);
-my @deployed_steps;
+my @deployed_step_ids;
 my @missing_requires;
 my @conflicts;
 my $die = '';
@@ -65,6 +65,8 @@ ENGINE: {
     sub latest_step_id    { push @SEEN => [ latest_step_id    => $_[1] ]; $latest_step_id }
     sub initialized       { push @SEEN => 'initialized'; $initialized }
     sub initialize        { push @SEEN => 'initialize' }
+    sub deployed_step_ids { push @SEEN => [ deployed_step_ids => $_[1] ]; @deployed_step_ids }
+    sub deployed_step_ids_since { push @SEEN => [ deployed_step_ids_since => $_[1] ]; @deployed_step_ids }
 
     sub seen { [@SEEN] }
     after seen => sub { @SEEN = () };
@@ -158,6 +160,8 @@ for my $abs (qw(
     check_requires
     check_conflicts
     latest_step_id
+    deployed_step_ids
+    deployed_step_ids_since
 )) {
     throws_ok { $engine->$abs } qr/\Q$CLASS has not implemented $abs()/,
         "Should get an unimplemented exception from $abs()"
@@ -917,3 +921,91 @@ is_deeply $engine->seen, [
 is_deeply +MockOutput->get_info, [
     ['  - ', $step->format_name]
 ], 'Should have shown reverted step name';
+
+##############################################################################
+# Test revert().
+can_ok $engine, 'revert';
+my $mock_sqitch = Test::MockModule->new('App::Sqitch');
+$mock_sqitch->mock(plan => $plan);
+
+# Start with no deployed IDs.
+@deployed_step_ids = ();
+throws_ok { $engine->revert } 'App::Sqitch::X',
+    'Should get exception for no changes to revert';
+is $@->ident, 'revert', 'Should be a revert exception';
+is $@->message,  __ 'Nothing to revert (nothing deployed)',
+    'Should have notified that there is nothing to revert';
+is $@->exitval, 1, 'Exit val should be 1';
+is_deeply $engine->seen, [
+    [deployed_step_ids => undef],
+], 'It should only have called deployed_step_ids()';
+is_deeply +MockOutput->get_info, [], 'Nothing should have been output';
+
+# Try reverting to an unknown step.
+throws_ok { $engine->revert('nonexistent') } 'App::Sqitch::X',
+    'Revert should die on unknown step';
+is $@->ident, 'revert', 'Should be another "revert" error';
+is $@->message, __x(
+    'Unknown revert target: "{target}"',
+    target => 'nonexistent',
+), 'The message should mention it is an unknown target';
+is_deeply $engine->seen, [], 'No other methods should have been called';
+is_deeply +MockOutput->get_info, [], 'Nothing should have been output';
+
+# Revert an undeployed target.
+throws_ok { $engine->revert('@alpha') } 'App::Sqitch::X',
+    'Revert should die on undeployed step';
+is $@->ident, 'revert', 'Should be another "revert" error';
+is $@->message, __x(
+    'Target not deployed: "{target}"',
+    target => '@alpha',
+), 'The message should mention that the target is not deployed';
+is_deeply $engine->seen, [
+    [deployed_step_ids_since => $plan->get('@alpha')],
+], 'Should have called deployed_step_ids_since';
+is_deeply +MockOutput->get_info, [], 'Nothing should have been output';
+
+# Now revert from a deployed step.
+@deployed_step_ids = map { $nodes[$_]->id } (0..3);
+ok $engine->revert, 'Revert all changes';
+is_deeply $engine->seen, [
+    [deployed_step_ids => undef],
+    [run_file => $nodes[3]->revert_file ],
+    [log_revert_step => $nodes[3] ],
+    [run_file => $nodes[2]->revert_file ],
+    [log_revert_step => $nodes[2] ],
+    [run_file => $nodes[1]->revert_file ],
+    [log_revert_step => $nodes[1] ],
+    [run_file => $nodes[0]->revert_file ],
+    [log_revert_step => $nodes[0] ],
+], 'Should have reverted the steps in reverse order';
+is_deeply +MockOutput->get_info, [
+    [__x(
+        'Reverting all changes from {destination}',
+        destination => $engine->destination,
+    )],
+    ['  - ', 'lolz'],
+    ['  - ', 'widgets @beta'],
+    ['  - ', 'users @alpha'],
+    ['  - ', 'roles'],
+], 'It should have said it was reverting all changes and listed them';
+
+# Now just rever to an earlier step.
+@deployed_step_ids = map { $nodes[$_]->id } (2..3);
+ok $engine->revert('@alpha'), 'Revert to @alpha';
+is_deeply $engine->seen, [
+    [deployed_step_ids_since => $nodes[1]],
+    [run_file => $nodes[3]->revert_file ],
+    [log_revert_step => $nodes[3] ],
+    [run_file => $nodes[2]->revert_file ],
+    [log_revert_step => $nodes[2] ],
+], 'Should have reverted only steps after @alpha';
+is_deeply +MockOutput->get_info, [
+    [__x(
+        'Reverting from {destination} to {target}',
+        destination => $engine->destination,
+        target      => '@alpha',
+    )],
+    ['  - ', 'lolz'],
+    ['  - ', 'widgets @beta'],
+], 'Output should show what it reverts to';
