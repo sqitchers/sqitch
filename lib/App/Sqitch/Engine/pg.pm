@@ -229,6 +229,22 @@ sub initialize {
     return $self;
 }
 
+sub begin_work {
+    my $self = shift;
+    my $dbh = $self->_dbh;
+
+    # Start transaction and lock steps to allow only one change at a time.
+    $dbh->begin_work;
+    $dbh->do('LOCK TABLE steps IN EXCLUSIVE MODE');
+    return $self;
+}
+
+sub finish_work {
+    my $self = shift;
+    $self->_dbh->commit;
+    return $self;
+}
+
 sub run_file {
     my ($self, $file) = @_;
     $self->_run('--file' => $file);

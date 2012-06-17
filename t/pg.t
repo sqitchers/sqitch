@@ -422,6 +422,24 @@ subtest 'live database' => sub {
         'Should find only the second after the first';
     is_deeply [$pg->deployed_step_ids_since($step2)], [],
         'Should find none after the second';
+
+    ##########################################################################
+    # Test begin_work() and finish_work().
+    can_ok $pg, qw(begin_work finish_work);
+    my $mock_dbh = Test::MockModule->new(ref $pg->_dbh, no_auto => 1);
+    my $txn;
+    $mock_dbh->mock(begin_work => sub { $txn = 1 });
+    $mock_dbh->mock(commit     => sub { $txn = 0 });
+    my @do;
+    $mock_dbh->mock(do => sub { shift; @do = @_ });
+    ok $pg->begin_work, 'Begin work';
+    ok $txn, 'Should have started a transaction';
+    is_deeply \@do, [
+        'LOCK TABLE steps IN EXCLUSIVE MODE',
+    ], 'The steps table should have been locked';
+    ok $pg->finish_work, 'Finish work';
+    ok !$txn, 'Should have committed a transaction';
+    $mock_dbh->unmock_all;
 };
 
 done_testing;
