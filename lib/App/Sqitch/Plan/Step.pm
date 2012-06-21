@@ -21,6 +21,13 @@ has since_tag => (
     required => 0,
 );
 
+has is_duped => (
+    is       => 'ro',
+    isa      => 'Bool',
+    required => 1,
+    default  => 0,
+);
+
 has _tags => (
     is         => 'ro',
     traits  => ['Array'],
@@ -34,6 +41,22 @@ has _tags => (
     },
 );
 
+has _fn => (
+    is       => 'ro',
+    isa      => 'Str',
+    required => 1,
+    lazy     => 1,
+    default  => sub {
+        my $self = shift;
+        join '', (
+            $self->name,
+            ($self->is_duped ? $self->since_tag->format_name : ()),
+            '.',
+            $self->plan->sqitch->extension,
+        );
+    },
+);
+
 has deploy_file => (
     is       => 'ro',
     isa      => 'Path::Class::File',
@@ -41,8 +64,7 @@ has deploy_file => (
     lazy     => 1,
     default  => sub {
         my $self   = shift;
-        my $sqitch = $self->plan->sqitch;
-        $sqitch->deploy_dir->file( $self->name . '.' . $sqitch->extension );
+        $self->plan->sqitch->deploy_dir->file( $self->_fn );
     }
 );
 
@@ -53,8 +75,7 @@ has revert_file => (
     lazy     => 1,
     default  => sub {
         my $self   = shift;
-        my $sqitch = $self->plan->sqitch;
-        $sqitch->revert_dir->file( $self->name . '.' . $sqitch->extension );
+        $self->plan->sqitch->revert_dir->file( $self->_fn );
     }
 );
 
@@ -65,8 +86,7 @@ has test_file => (
     lazy     => 1,
     default  => sub {
         my $self   = shift;
-        my $sqitch = $self->plan->sqitch;
-        $sqitch->test_dir->file( $self->name . '.' . $sqitch->extension );
+        $self->plan->sqitch->test_dir->file( $self->_fn );
     }
 );
 

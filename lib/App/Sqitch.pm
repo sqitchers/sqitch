@@ -673,7 +673,7 @@ C<STDOUT> if the exit code is 0, and to C<STDERR> if it is not 0.
 
 =item * Update file names for step name duplication.
 
-When two steps have the same name, the earlie one should look for files named
+When two steps have the same name, the earlier one should look for files named
 F<$step@$tag.sql> instead of just F<$step.sql>.
 
 =item * Rename C<sql_dir> to C<db_dir>.

@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 51;
+use Test::More tests => 54;
 #use Test::More 'no_plan';
 use Test::NoWarnings;
 use App::Sqitch;
@@ -30,6 +30,7 @@ can_ok $CLASS, qw(
     rspace
     comment
     since_tag
+    is_duped
     tags
     add_tag
     plan
@@ -93,6 +94,7 @@ ok my $step2 = $CLASS->new(
     operator  => '-',
     ropspace  => ' ',
     rspace    => "\t",
+    is_duped  => 1,
     comment   => ' blah blah blah',
 ), 'Create step with more stuff';
 
@@ -117,6 +119,14 @@ ok $step2->add_tag($tag), 'Add a tag';
 is_deeply [$step2->tags], [$tag], 'Should have the tag';
 is $step2->format_name_with_tags, 'howdy @alpha',
     'Should format name with tags';
+
+# Check file names.
+is $step2->deploy_file, $sqitch->deploy_dir->file('howdy@alpha.sql'),
+    'The deploy file should ref the since tag';
+is $step2->revert_file, $sqitch->revert_dir->file('howdy@alpha.sql'),
+    'The revert file should ref the since tag';
+is $step2->test_file, $sqitch->test_dir->file('howdy@alpha.sql'),
+    'The test file should ref the since tag';
 
 ##############################################################################
 # Test _parse_dependencies.
