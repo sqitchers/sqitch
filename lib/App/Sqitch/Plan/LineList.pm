@@ -7,9 +7,9 @@ use Carp;
 sub new {
     my $class = shift;
     my (@list, %index);
-    for my $node (@_) {
-        push @list => $node;
-        $index{ $node } = $#list;
+    for my $line (@_) {
+        push @list => $line;
+        $index{ $line } = $#list;
     }
 
     return bless {

@@ -39,7 +39,7 @@ my $uri = URI->new('https://github.com/theory/sqitch/');
 my $sqitch = App::Sqitch->new(uri => $uri);
 isa_ok my $plan = App::Sqitch::Plan->new(sqitch => $sqitch), $CLASS;
 
-# Set up some some utility functions for creating nodes.
+# Set up some some utility functions for creating steps.
 sub blank {
     App::Sqitch::Plan::Blank->new(
         plan    => $plan,
@@ -128,15 +128,15 @@ my $fh = $file->open('<:encoding(UTF-8)');
 ok my $parsed = $plan->_parse($file, $fh),
     'Should parse simple "widgets.plan"';
 is sorted, 1, 'Should have sorted steps';
-isa_ok $parsed->{nodes}, 'App::Sqitch::Plan::StepList', 'nodes';
+isa_ok $parsed->{steps}, 'App::Sqitch::Plan::StepList', 'steps';
 isa_ok $parsed->{lines}, 'App::Sqitch::Plan::LineList', 'lines';
 
-cmp_deeply [$parsed->{nodes}->items], [
+cmp_deeply [$parsed->{steps}->items], [
     clear,
     step(  '', 'hey'),
     step(  '', 'you'),
     tag(0,   '', 'foo', ' ', ' look, a tag!'),
-], 'All "widgets.plan" nodes should be parsed';
+], 'All "widgets.plan" steps should be parsed';
 
 cmp_deeply [$parsed->{lines}->items], [
     clear,
@@ -157,7 +157,7 @@ ok $parsed = $plan->_parse($file, $fh),
     'Should parse multi-tagged "multi.plan"';
 is sorted, 2, 'Should have sorted steps twice';
 cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
-    nodes => [
+    steps => [
         clear,
         step(  '', 'hey'),
         step(  '', 'you'),
@@ -183,7 +183,7 @@ cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
         tag(1,   '', 'bar', ' '),
         tag(1,   '', 'baz', ''),
     ],
-}, 'Should have "multi.plan" lines and nodes';
+}, 'Should have "multi.plan" lines and steps';
 
 # Try a plan with steps appearing without a tag.
 $file = file qw(t plans steps-only.plan);
@@ -202,13 +202,13 @@ cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
         step(  '', 'you'),
         step(  '', 'whatwhatwhat'),
     ],
-    nodes => [
+    steps => [
         clear,
         step(  '', 'hey'),
         step(  '', 'you'),
         step(  '', 'whatwhatwhat'),
     ],
-}, 'Should have lines and nodes for tagless plan';
+}, 'Should have lines and steps for tagless plan';
 
 # Try a plan with a bad step name.
 $file = file qw(t plans bad-step.plan);
@@ -266,9 +266,9 @@ for my $name (
     ok my $parsed = $plan->_parse('gooditem', $fh),
         encode_utf8(qq{Should parse "$name"});
     cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
-        nodes => [ clear, step('', $name) ],
+        steps => [ clear, step('', $name) ],
         lines => [ clear, version, step('', $name) ],
-    }, encode_utf8(qq{Should have line and node for "$name"});
+    }, encode_utf8(qq{Should have line and step for "$name"});
 
     # Test a tag name.
     my $tag = '@' . $name;
@@ -277,9 +277,9 @@ for my $name (
     ok $parsed = $plan->_parse('gooditem', $fh),
         encode_utf8(qq{Should parse "$tag"});
     cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
-        nodes => [ clear, step('', 'foo'), tag(0, '', $name) ],
+        steps => [ clear, step('', 'foo'), tag(0, '', $name) ],
         lines => [ clear, version, step('', 'foo'), tag(1, '', $name) ],
-    }, encode_utf8(qq{Should have line and node for "$tag"});
+    }, encode_utf8(qq{Should have line and step for "$tag"});
 }
 is sorted, 12, 'Should have sorted steps 12 times';
 
@@ -351,7 +351,7 @@ ok $parsed = $plan->_parse($file, $fh),
     'Should parse plan with pragmas"';
 is sorted, 1, 'Should have sorted steps once';
 cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
-    nodes => [
+    steps => [
         clear,
         step( '', 'hey'),
         step( '', 'you'),
@@ -366,7 +366,7 @@ cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
         blank(),
         prag( '', ' ', 'strict'),
     ],
-}, 'Should have "multi.plan" lines and nodes';
+}, 'Should have "multi.plan" lines and steps';
 
 # Try a plan with deploy/revert operators.
 $file = file qw(t plans deploy-and-revert.plan);
@@ -376,7 +376,7 @@ ok $parsed = $plan->_parse($file, $fh),
 is sorted, 2, 'Should have sorted steps twice';
 
 cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
-    nodes => [
+    steps => [
         clear,
         step( '', 'hey', '', '', '+' ),
         step( '', 'you', '', '', '+' ),
@@ -400,7 +400,7 @@ cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
         step( '', 'dr_evil', ' ', ' revert!', '-'),
         tag(1, ' ', 'bar', ' ' ),
     ],
-}, 'Should have "deploy-and-revert.plan" lines and nodes';
+}, 'Should have "deploy-and-revert.plan" lines and steps';
 
 # Try a non-existent plan file with load().
 $file = file qw(t hi nonexistent.plan);
@@ -441,7 +441,7 @@ cmp_deeply [$plan->steps], [
         step(   '', 'hey-there', ' ', ' trailing comment!'),
         tag(0,   '', 'bar', ' '),
         tag(0,   '', 'baz', ''),
-], 'Nodes should be parsed from file';
+], 'Steps should be parsed from file';
 is sorted, 2, 'Should have sorted steps twice';
 
 ok $parsed = $plan->load, 'Load should parse plan from file';
@@ -462,7 +462,7 @@ cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
         tag(1,   '', 'bar', ' '),
         tag(1,   '', 'baz', ''),
     ],
-    nodes => [
+    steps => [
         clear,
         step(  '', 'hey'),
         step(  '', 'you'),
@@ -472,7 +472,7 @@ cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
         tag(0,   '', 'bar', ' '),
         tag(0,   '', 'baz', ''),
     ],
-}, 'And the parsed file should have lines and nodes';
+}, 'And the parsed file should have lines and steps';
 is sorted, 2, 'Should have sorted steps twice';
 
 ##############################################################################
@@ -490,35 +490,35 @@ can_ok $plan, qw(
 
 is $plan->position, -1, 'Position should start at -1';
 is $plan->current, undef, 'Current should be undef';
-ok my $node = $plan->next, 'Get next node';
-isa_ok $node, 'App::Sqitch::Plan::Step', 'First node';
-is $node->name, 'hey', 'It should be the first step';
+ok my $step = $plan->next, 'Get next step';
+isa_ok $step, 'App::Sqitch::Plan::Step', 'First step';
+is $step->name, 'hey', 'It should be the first step';
 is $plan->position, 0, 'Position should be at 0';
 is $plan->count, 4, 'Count should be 4';
-is $plan->current, $node, 'Current should be current';
-is $plan->step_at(0), $node, 'Should get first node from step_at(0)';
+is $plan->current, $step, 'Current should be current';
+is $plan->step_at(0), $step, 'Should get first step from step_at(0)';
 
-ok my $next = $plan->peek, 'Peek to next node';
-isa_ok $next, 'App::Sqitch::Plan::Step', 'Peeked node';
-is $next->name, 'you', 'Peeked node should be second step';
+ok my $next = $plan->peek, 'Peek to next step';
+isa_ok $next, 'App::Sqitch::Plan::Step', 'Peeked step';
+is $next->name, 'you', 'Peeked step should be second step';
 is $plan->last->format_name, 'hey-there', 'last() should return last step';
-is $plan->current, $node, 'Current should still be current';
+is $plan->current, $step, 'Current should still be current';
 is $plan->peek, $next, 'Peek should still be next';
-is $plan->next, $next, 'Next should be the second node';
+is $plan->next, $next, 'Next should be the second step';
 is $plan->position, 1, 'Position should be at 1';
-is $plan->step_at(1), $next, 'Should get second node from step_at(1)';
+is $plan->step_at(1), $next, 'Should get second step from step_at(1)';
 
 ok my $third = $plan->peek, 'Peek should return an object';
-isa_ok $third, 'App::Sqitch::Plan::Step', 'Third node';
+isa_ok $third, 'App::Sqitch::Plan::Step', 'Third step';
 is $third->name, 'this/rocks', 'It should be the foo tag';
-is $plan->current, $next, 'Current should be the second node';
-is $plan->next, $third, 'Should get third node next';
+is $plan->current, $next, 'Current should be the second step';
+is $plan->next, $third, 'Should get third step next';
 is $plan->position, 2, 'Position should be at 2';
-is $plan->current, $third, 'Current should be third node';
-is $plan->step_at(2), $third, 'Should get third node from step_at(1)';
+is $plan->current, $third, 'Current should be third step';
+is $plan->step_at(2), $third, 'Should get third step from step_at(1)';
 
-ok my $fourth = $plan->next, 'Get fourth node';
-isa_ok $fourth, 'App::Sqitch::Plan::Step', 'Fourth node';
+ok my $fourth = $plan->next, 'Get fourth step';
+isa_ok $fourth, 'App::Sqitch::Plan::Step', 'Fourth step';
 is $fourth->name, 'hey-there', 'Fourth step should be "hey-there"';
 is $plan->position, 3, 'Position should be at 3';
 
@@ -532,47 +532,47 @@ ok $plan->reset, 'Reset the plan';
 
 is $plan->position, -1, 'Position should be back at -1';
 is $plan->current, undef, 'Current should still be undef';
-is $plan->next, $node, 'Next should return the first node again';
+is $plan->next, $step, 'Next should return the first step again';
 is $plan->position, 0, 'Position should be at 0 again';
-is $plan->current, $node, 'Current should be first node';
-is $plan->index_of($node->name), 0, "Index of node should be 0";
-is $plan->get($node->name), $node, 'Should be able to get node 0 by name';
-is $plan->get($node->id), $node, 'Should be able to get node 0 by ID';
+is $plan->current, $step, 'Current should be first step';
+is $plan->index_of($step->name), 0, "Index of step should be 0";
+is $plan->get($step->name), $step, 'Should be able to get step 0 by name';
+is $plan->get($step->id), $step, 'Should be able to get step 0 by ID';
 is $plan->index_of('@bar'), 3, 'Index of @bar should be 3';
 is $plan->get('@bar'), $fourth, 'Should be able to get hey-there via @bar';
 is $plan->get($fourth->id), $fourth, 'Should be able to get hey-there via @bar ID';
-ok $plan->seek('@bar'), 'Seek to the "@bar" node';
+ok $plan->seek('@bar'), 'Seek to the "@bar" step';
 is $plan->position, 3, 'Position should be at 3 again';
 is $plan->current, $fourth, 'Current should be fourth again';
 is $plan->index_of('you'), 1, 'Index of you should be 1';
-is $plan->get('you'), $next, 'Should be able to get node 1 by name';
-ok $plan->seek('you'), 'Seek to the "you" node';
+is $plan->get('you'), $next, 'Should be able to get step 1 by name';
+ok $plan->seek('you'), 'Seek to the "you" step';
 is $plan->position, 1, 'Position should be at 1 again';
 is $plan->current, $next, 'Current should be second again';
 is $plan->index_of('baz'), undef, 'Index of baz should be undef';
 is $plan->index_of('@baz'), 3, 'Index of @baz should be 3';
-ok $plan->seek('@baz'), 'Seek to the "baz" node';
+ok $plan->seek('@baz'), 'Seek to the "baz" step';
 is $plan->position, 3, 'Position should be at 3 again';
  is $plan->current, $fourth, 'Current should be fourth again';
 
-is $plan->step_at(0), $node,  'Should still get first node from step_at(0)';
-is $plan->step_at(1), $next,  'Should still get second node from step_at(1)';
-is $plan->step_at(2), $third, 'Should still get third node from step_at(1)';
+is $plan->step_at(0), $step,  'Should still get first step from step_at(0)';
+is $plan->step_at(1), $next,  'Should still get second step from step_at(1)';
+is $plan->step_at(2), $third, 'Should still get third step from step_at(1)';
 
-# Make sure seek() chokes on a bad node name.
+# Make sure seek() chokes on a bad step name.
 throws_ok { $plan->seek('nonesuch') } qr/FAIL:/,
-    'Should die seeking invalid node';
-cmp_deeply +MockOutput->get_fail, [['Cannot find node "nonesuch" in plan']],
+    'Should die seeking invalid step';
+cmp_deeply +MockOutput->get_fail, [['Cannot find step "nonesuch" in plan']],
     'And the failure should be sent to output';
 
 # Get all!
-my @nodes = ($node, $next, $third, $fourth);
-cmp_deeply [$plan->steps], \@nodes, 'All should return all nodes';
+my @steps = ($step, $next, $third, $fourth);
+cmp_deeply [$plan->steps], \@steps, 'All should return all steps';
 ok $plan->reset, 'Reset the plan again';
 $plan->do(sub {
-    is shift, $nodes[0], 'Node ' . $nodes[0]->name . ' should be passed to do sub';
-    is $_, $nodes[0], 'Node ' . $nodes[0]->name . ' should be the topic in do sub';
-    shift @nodes;
+    is shift, $steps[0], 'Step ' . $steps[0]->name . ' should be passed to do sub';
+    is $_, $steps[0], 'Step ' . $steps[0]->name . ' should be the topic in do sub';
+    shift @steps;
 });
 
 # There should be no more to iterate over.
@@ -595,7 +595,7 @@ file_contents_is $to,
 ##############################################################################
 # Try adding a tag.
 ok $plan->add_tag('w00t'), 'Add tag "w00t"';
-is $plan->count, 4, 'Should have 4 nodes';
+is $plan->count, 4, 'Should have 4 steps';
 is $plan->index_of('@w00t'), 3, 'Should find "@w00t at index 3';
 is $plan->last->name, 'hey-there', 'Last step should be "hey-there"';
 
@@ -638,9 +638,9 @@ cmp_deeply +MockOutput->get_fail, [[
 ##############################################################################
 # Try adding a step.
 ok $plan->add_step('booyah'), 'Add step "booyah"';
-is $plan->count, 5, 'Should have 5 nodes';
+is $plan->count, 5, 'Should have 5 steps';
 is $plan->index_of('booyah'), 4, 'Should find "booyah at index 4';
-is $plan->last->name, 'booyah', 'Last node should be "booyah"';
+is $plan->last->name, 'booyah', 'Last step should be "booyah"';
 
 ok $plan->write_to($to), 'Write out the file again';
 file_contents_is $to,
@@ -651,9 +651,9 @@ file_contents_is $to,
 
 # Make sure dependencies are verified.
 ok $plan->add_step('blow', ['booyah']), 'Add step "blow"';
-is $plan->count, 6, 'Should have 6 nodes';
+is $plan->count, 6, 'Should have 6 steps';
 is $plan->index_of('blow'), 5, 'Should find "blow at index 5';
-is $plan->last->name, 'blow', 'Last node should be "blow"';
+is $plan->last->name, 'blow', 'Last step should be "blow"';
 
 # Should choke on a duplicate step.
 throws_ok { $plan->add_step('blow') } qr/^FAIL\b/,
@@ -665,9 +665,9 @@ cmp_deeply +MockOutput->get_fail, [[
 # But if we first add a tag, it should work!
 ok $plan->add_tag('groovy'), 'Add tag "Groovy"';
 ok $plan->add_step('blow'), 'Add step "blow"';
-is $plan->count, 7, 'Should have 7 nodes';
+is $plan->count, 7, 'Should have 7 steps';
 is $plan->index_of('blow@HEAD'), 6, 'Should find "blow@HEAD at index 6';
-is $plan->last->name, 'blow', 'Last node should be "blow"';
+is $plan->last->name, 'blow', 'Last step should be "blow"';
 
 # Should choke on an invalid step names.
 for my $name (@bad_names) {
@@ -860,7 +860,7 @@ cmp_deeply +MockOutput->get_fail, [[
     ' and "other"',
 ]], 'The cylce should have been logged';
 
-# Okay, now deal with depedencies from ealier node sections.
+# Okay, now deal with depedencies from ealier step sections.
 @deps = ({%ddep, requires => ['foo']}, {%ddep}, {%ddep});
 cmp_deeply [$plan->sort_steps({ foo => 1}, steps qw(this that other))],
     [steps qw(this that other)], 'Should get original order with earlier dependency';
@@ -870,7 +870,7 @@ cmp_deeply [$plan->sort_steps({ foo => 1}, steps qw(this that other))],
 cmp_deeply [$plan->sort_steps({sqitch => 1 }, steps qw(this that other))],
     [steps qw(other that this)], 'Should get other, that, this with earlier dependncy';
 
-# Okay, now deal with depedencies from ealier node sections.
+# Okay, now deal with depedencies from ealier step sections.
 @deps = ({%ddep, requires => ['foo']}, {%ddep}, {%ddep});
 throws_ok { $plan->sort_steps(steps qw(this that other)) } qr/FAIL:/,
     'Should die on unknown dependency';
@@ -878,7 +878,7 @@ cmp_deeply +MockOutput->get_fail, [[
     'Unknown step "foo" required in ', file 'sql/deploy/this.sql'
 ]], 'And we should emit an error pointing to the offending script';
 
-# Okay, now deal with depedencies from ealier node sections.
+# Okay, now deal with depedencies from ealier step sections.
 @deps = ({%ddep, requires => ['@foo']}, {%ddep}, {%ddep});
 throws_ok { $plan->sort_steps(steps qw(this that other)) } qr/FAIL:/,
     'Should die on unknown dependency';

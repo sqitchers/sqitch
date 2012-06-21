@@ -43,7 +43,7 @@ sub load {
     my $file = $self->sqitch->plan_file;
     # XXX Issue a warning if file does not exist?
     return {
-        nodes => App::Sqitch::Plan::StepList->new,
+        steps => App::Sqitch::Plan::StepList->new,
         lines => App::Sqitch::Plan::LineList->new(
             $self->_version_line,
         ),
@@ -57,8 +57,8 @@ sub _parse {
     my ( $self, $file, $fh ) = @_;
 
     my @lines;         # List of lines.
-    my @nodes;         # List of nodes.
     my @steps;         # List of steps.
+    my @curr_steps;    # List of steps since last tag.
     my %seen;          # Maps tags and steps to line numbers.
     my %tag_steps;     # Maps steps in current tag section to line numbers.
     my $seen_version;  # Have we seen a version pragma?
@@ -180,10 +180,10 @@ sub _parse {
             }
 
 
-            if (@steps) {
+            if (@curr_steps) {
                 # Sort all steps up to this tag by their dependencies.
-                push @nodes => $self->sort_steps(\%seen, @steps);
-                @steps = ();
+                push @steps => $self->sort_steps(\%seen, @curr_steps);
+                @curr_steps = ();
             }
 
             # Create the tag and associate it with the previous step.
@@ -209,7 +209,7 @@ sub _parse {
             }
 
             $tag_steps{ $params{name} } = $fh->input_line_number;
-            push @steps => $prev_step = App::Sqitch::Plan::Step->new(
+            push @curr_steps => $prev_step = App::Sqitch::Plan::Step->new(
                 plan => $self,
                 ( $prev_tag ? ( since_tag => $prev_tag ) : () ),
                 %params,
@@ -219,13 +219,13 @@ sub _parse {
     }
 
     # Sort and store any remaining steps.
-    push @nodes => $self->sort_steps(\%seen, @steps) if @steps;
+    push @steps => $self->sort_steps(\%seen, @curr_steps) if @curr_steps;
 
     # We should have a version pragma.
     unshift @lines => $self->_version_line unless $seen_version;
 
     return {
-        nodes => App::Sqitch::Plan::StepList->new(@nodes),
+        steps => App::Sqitch::Plan::StepList->new(@steps),
         lines => App::Sqitch::Plan::LineList->new(@lines),
     };
 }
@@ -267,7 +267,7 @@ sub sort_steps {
     }
 
     # Stolen from http://cpansearch.perl.org/src/CWEST/ppt-0.14/bin/tsort.
-    # Create a list of nodes without predecessors
+    # Create a list of steps without predecessors
     my @list = grep { !$npred{$_->name} } @_;
 
     my @ret;
@@ -306,17 +306,17 @@ sub open_script {
 }
 
 sub lines          { shift->_plan->{lines}->items }
-sub steps          { shift->_plan->{nodes}->steps }
-sub count          { shift->_plan->{nodes}->count }
-sub index_of       { shift->_plan->{nodes}->index_of(shift) }
-sub get            { shift->_plan->{nodes}->get(shift) }
-sub first_index_of { shift->_plan->{nodes}->first_index_of(@_) }
-sub step_at        { shift->_plan->{nodes}->step_at(shift) }
+sub steps          { shift->_plan->{steps}->steps }
+sub count          { shift->_plan->{steps}->count }
+sub index_of       { shift->_plan->{steps}->index_of(shift) }
+sub get            { shift->_plan->{steps}->get(shift) }
+sub first_index_of { shift->_plan->{steps}->first_index_of(@_) }
+sub step_at        { shift->_plan->{steps}->step_at(shift) }
 
 sub seek {
     my ( $self, $key ) = @_;
     my $index = $self->index_of($key);
-    $self->sqitch->fail(qq{Cannot find node "$key" in plan})
+    $self->sqitch->fail(qq{Cannot find step "$key" in plan})
         unless defined $index;
     $self->position($index);
     return $self;
@@ -342,16 +342,16 @@ sub current {
     my $self = shift;
     my $pos = $self->position;
     return if $pos < 0;
-    $self->_plan->{nodes}->step_at( $pos );
+    $self->_plan->{steps}->step_at( $pos );
 }
 
 sub peek {
     my $self = shift;
-    $self->_plan->{nodes}->step_at( $self->position + 1 );
+    $self->_plan->{steps}->step_at( $self->position + 1 );
 }
 
 sub last {
-    shift->_plan->{nodes}->step_at( -1 );
+    shift->_plan->{steps}->step_at( -1 );
 }
 
 sub do {
@@ -366,13 +366,13 @@ sub add_tag {
     $self->_is_valid(tag => $name);
 
     my $plan  = $self->_plan;
-    my $nodes = $plan->{nodes};
+    my $steps = $plan->{steps};
     my $key   = "\@$name";
 
     $self->sqitch->fail(qq{Tag "$key" already exists})
-        if defined $nodes->index_of($key);
+        if defined $steps->index_of($key);
 
-    my $step = $nodes->last_step or $self->sqitch->fail(
+    my $step = $steps->last_step or $self->sqitch->fail(
         qq{Cannot apply tag "$key" to a plan with no steps}
     );
 
@@ -383,7 +383,7 @@ sub add_tag {
     );
 
     $step->add_tag($tag);
-    $nodes->index_tag( $nodes->index_of( $step->id ), $tag );
+    $steps->index_tag( $steps->index_of( $step->id ), $tag );
     $plan->{lines}->append( $tag );
 }
 
@@ -392,11 +392,11 @@ sub add_step {
     $self->_is_valid(step => $name);
 
     my $plan  = $self->_plan;
-    my $nodes = $plan->{nodes};
+    my $steps = $plan->{steps};
 
-    if (defined( my $idx = $nodes->index_of($name . '@HEAD') )) {
+    if (defined( my $idx = $steps->index_of($name . '@HEAD') )) {
         # Disallow it unless there is a tag since we last saw it.
-        my $tag_idx = $nodes->index_of_last_tagged;
+        my $tag_idx = $steps->index_of_last_tagged;
         $self->sqitch->fail(
             qq{Step "$name" already exists. Add a tag to modify it.}
         ) if !defined $tag_idx || $tag_idx < $idx;
@@ -411,7 +411,7 @@ sub add_step {
 
     # Make sure dependencies are specified.
     for my $req ( $step->requires ) {
-        next if defined $nodes->index_of($req);
+        next if defined $steps->index_of($req);
         my $type = $req =~ /^[@]/ ? 'tag' : 'step';
         $self->sqitch->fail(
             qq{Cannot add step "$name": },
@@ -420,7 +420,7 @@ sub add_step {
     }
 
     # We good.
-    $nodes->append( $step );
+    $steps->append( $step );
     $plan->{lines}->append( $step );
 }
 
@@ -469,12 +469,8 @@ App::Sqitch::Plan - Sqitch Deployment Plan
 =head1 Synopsis
 
   my $plan = App::Sqitch::Plan->new( sqitch => $sqitch );
-  while (my $node = $plan->next) {
-      if ( $node->isa('App::Sqitch::Plan::Tag') ) {
-          say "Tag ", $node->format_name;
-      } else {
-          say "Deploy ", $node->format_name;
-      }
+  while (my $step = $plan->next) {
+      say "Deploy ", $step->format_name;
   }
 
 =head1 Description
@@ -520,13 +516,13 @@ C<next> returns C<undef>, the value will be the last index in the plan plus 1.
 =head3 C<index_of>
 
   my $index      = $plan->index_of('6c2f28d125aff1deea615f8de774599acf39a7a1');
-  my $tag_index  = $plan->index_of('@foo');
-  my $step_index = $plan->index_of('bar');
+  my $foo_index  = $plan->index_of('@foo');
+  my $bar_index  = $plan->index_of('bar');
   my $bar1_index = $plan->index_of('bar@alpha')
   my $bar2_index = $plan->index_of('bar@HEAD');
 
-Returns the index of the specified node. Returns C<undef> if no such tag or
-step exists. The argument may be any one of:
+Returns the index of the specified step. Returns C<undef> if no such step
+exists. The argument may be any one of:
 
 =over
 
@@ -560,19 +556,19 @@ The named step as it was last seen in the list before the specified tag.
 
 =head3 C<get>
 
-  my $node = $plan->get('6c2f28d125aff1deea615f8de774599acf39a7a1');
-  my $tag  = $plan->index_of('@foo');
-  my $step = $plan->index_of('bar');
+  my $step = $plan->get('6c2f28d125aff1deea615f8de774599acf39a7a1');
+  my $foo  = $plan->index_of('@foo');
+  my $bar  = $plan->index_of('bar');
   my $bar1 = $plan->index_of('bar@alpha')
   my $bar2 = $plan->index_of('bar@HEAD');
 
-Returns the node corresponding to the specified ID or name. The argument may
+Returns the step corresponding to the specified ID or name. The argument may
 be in any of the formats described for C<index_of()>.
 
 =head3 C<first_index_of>
 
   my $index = $plan->first_index_of($step_name);
-  my $index = $plan->first_index_of($step_name, $node_name);
+  my $index = $plan->first_index_of($step_name, $step_or_tag_name);
 
 Returns the index of the first instance of the named step in the plan. If a
 second argument is passed, the index of the first instance of the step
@@ -588,14 +584,14 @@ including such a step at the point of a tag:
 
   my $index = $plan->first_index_of('foo', 'users_table@beta1');
 
-The second argument must unambiguously refer to a single node in the plan. As
+The second argument must unambiguously refer to a single step in the plan. As
 such, it should usually be a tag name or tag-qualified step name. Returns
 C<undef> if the step does not appear in the plan, or if it does not appear
-after the specified second argument node name.
+after the specified second argument step name.
 
 =head3 C<step_at>
 
-  my $node = $plan->step_at($index);
+  my $step = $plan->step_at($index);
 
 Returns the step at the specified index.
 
@@ -604,8 +600,8 @@ Returns the step at the specified index.
   $plan->seek('@foo');
   $plan->seek('bar');
 
-Move the plan position to the specified tag or step. Dies if the tag or step
-cannot be found in the plan.
+Move the plan position to the specified step. Dies if the step cannot be found
+in the plan.
 
 =head3 C<reset>
 
@@ -615,36 +611,32 @@ Resets iteration. Same as C<< $plan->position(-1) >>, but better.
 
 =head3 C<next>
 
-  while (my $node = $plan->next) {
-      if ( $node->isa('App::Sqitch::Plan::Tag') ) {
-          say "Tag ", $node->format_name;
-      } else {
-          say "Deploy ", $node->format_name;
-      }
+  while (my $step = $plan->next) {
+      say "Deploy ", $step->format_name;
   }
 
-Returns the next L<App::Sqitch::Plan::Tag> or L<App::Sqitch::Plan::Step> in
-the plan. Returns C<undef> if there are no more nodes.
+Returns the next L<step|App::Sqitch::Plan::Step> in the plan. Returns C<undef>
+if there are no more steps.
 
 =head3 C<last>
 
-  my $tag = $plan->last;
+  my $step = $plan->last;
 
-Returns the last node in the plan. Does not change the current position.
+Returns the last step in the plan. Does not change the current position.
 
 =head3 C<current>
 
-   my $tag = $plan->current;
+   my $step = $plan->current;
 
-Returns the same node as was last returned by C<next()>. Returns C<undef> if
+Returns the same step as was last returned by C<next()>. Returns C<undef> if
 C<next()> has not been called or if the plan has been reset.
 
 =head3 C<peek>
 
-   my $tag = $plan->peek;
+   my $step = $plan->peek;
 
-Returns the next node in the plan without incrementing the iterator. Returns
-C<undef> if there are no more nodes beyond the current node.
+Returns the next step in the plan without incrementing the iterator. Returns
+C<undef> if there are no more steps beyond the current step.
 
 =head3 C<steps>
 
@@ -656,27 +648,29 @@ Returns all of the steps in the plan. This constitutes the entire plan.
 
   my $count = $plan->count;
 
-Returns the number of steps and tags in the plan.
+Returns the number of steps in the plan.
 
 =head3 C<lines>
 
   my @lines = $plan->lines;
 
-Returns all of the lines in the plan. This includes all nodes as well as
-L<App::Sqitch::Plan::Blank>s, which are lines that are neither steps nor tags.
+Returns all of the lines in the plan. This includes all the
+L<steps|App::Sqitch::Plan::Step>, L<tags|App::Sqitch::Plan::Tag>,
+L<pragmas|App::Sqitch::Plan::Pragma>, and L<blank
+lines|App::Sqitch::Plan::Blank>.
 
 =head3 C<do>
 
   $plan->do(sub { say $_[0]->name; return $_[0]; });
   $plan->do(sub { say $_->name;    return $_;    });
 
-Pass a code reference to this method to execute it for each node in the plan.
-Each node will be stored in C<$_> before executing the code reference, and
+Pass a code reference to this method to execute it for each step in the plan.
+Each step will be stored in C<$_> before executing the code reference, and
 will also be passed as the sole argument. If C<next()> has been called prior
-to the call to C<do()>, then only the remaining nodes in the iterator will
+to the call to C<do()>, then only the remaining steps in the iterator will
 passed to the code reference. Iteration terminates when the code reference
 returns false, so be sure to have it return a true value if you want it to
-iterate over every node.
+iterate over every step.
 
 =head3 C<write_to>
 
@@ -694,18 +688,18 @@ script file must be encoded in UTF-8.
 
 =head3 C<load>
 
-  my $tags = $plan->load;
+  my $plan_data = $plan->load;
 
-Loads the plan. Called internally, not meant to be called directly, as it
+Loads the plan data. Called internally, not meant to be called directly, as it
 parses the plan file and deploy scripts every time it's called. If you want
-the all of the nodes, call C<nodes()> instead.
+the all of the steps, call C<steps()> instead.
 
 =head3 C<sort_steps>
 
   @steps = $plan->sort_steps(@steps);
   @steps = $plan->sort_steps( { '@foo' => 1, 'bar' => 1 }, @steps );
 
-Sorts the steps passed in in dependency order and returns them. If the first
+Sorts a list of steps in dependency order and returns them. If the first
 argument is a hash reference, its keys should be previously-seen step and tag
 names that can be assumed to be satisfied requirements for the succeeding
 steps.
@@ -741,12 +735,7 @@ The Sqitch command-line client.
 
 =over
 
-=item * Eliminate the term "node".
-
-Maybe just "step"? If so, may want to move tags into Step as a simple
-array. They become aliases of the step's ID.
-
-=item * How to specify prerequisite as of a tag?
+=item * How to specify prerequisite as a tag?
 
 Get the prerequisite step objects and look them up in the database by their
 IDs rather than their names. To find each prerequisite, if it is as-of a tag

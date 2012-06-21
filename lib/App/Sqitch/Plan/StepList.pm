@@ -60,7 +60,7 @@ sub first_index_of {
     # Find the tag index.
     my $tag_index = $self->index_of($tag) or croak qq{Unknown tag: "$tag"};
 
-    # Return the first node after the tag.
+    # Return the first step after the tag.
     return List::Util::first { $_ > $tag_index } @{ $idx };
 }
 

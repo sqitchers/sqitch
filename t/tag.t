@@ -45,7 +45,7 @@ isa_ok my $tag = $CLASS->new(
 ), $CLASS;
 isa_ok $tag, 'App::Sqitch::Plan::Line';
 my $mock_plan = Test::MockModule->new('App::Sqitch::Plan');
-$mock_plan->mock(index_of => 0); # no other nodes
+$mock_plan->mock(index_of => 0); # no other steps
 
 is $tag->format_name, '@foo', 'Name should format as "@foo"';
 is $tag->as_string, '@foo', 'Should as_string to "@foo"';
@@ -68,13 +68,13 @@ is $tag->as_string, "  \@howdy\t# blah blah blah",
     'It should as_string correctly';
 
 $mock_plan->mock(index_of => 1);
-$mock_plan->mock(node_at => $step);
+$mock_plan->mock(step_at => $step);
 is $tag->step, $step, 'Step should be correct';
 
 # Make sure it gets the step even if there is a tag in between.
 my @prevs = ($tag, $step);
 $mock_plan->mock(index_of => 8);
-$mock_plan->mock(node_at => sub { shift @prevs });
+$mock_plan->mock(step_at => sub { shift @prevs });
 is $tag->step, $step, 'Step should be for previous step';
 
 is $tag->info, join("\n",

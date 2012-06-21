@@ -159,7 +159,7 @@ sub revert {
 sub _deploy_by_step {
     my ( $self, $plan, $to_index ) = @_;
 
-    # Just deploy each node. If any fails, we just stop.
+    # Just deploy each step. If any fails, we just stop.
     while ($plan->position < $to_index) {
         $self->deploy_step($plan->next);
     }
