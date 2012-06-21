@@ -671,6 +671,26 @@ C<STDOUT> if the exit code is 0, and to C<STDERR> if it is not 0.
 
 =over
 
+=item * Update file names for step name duplication.
+
+When two steps have the same name, the earlie one should look for files named
+F<$step@$tag.sql> instead of just F<$step.sql>.
+
+=item * Rename C<sql_dir> to C<db_dir>.
+
+Maybe. Or script_dir or something. C<changes_dir>? Also, have it default to
+F<.> instead of F<sql>?
+
+=item * How to specify prerequisite as a tag?
+
+Get the prerequisite step objects and look them up in the database by their
+IDs rather than their names. To find each prerequisite, if it is as-of a tag
+(i.e., C<$step@$tag>), use C<index_of()>. Otherwise, use C<first_index_of()>.
+
+=item * Move prerequisite spec into plan file.
+
+Rather than in the deploy scripts.
+
 =item *
 
 Add checks to L<sqitch-add-step> to halt if a C<--requires> or C<--conflicts>

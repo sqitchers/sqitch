@@ -731,22 +731,6 @@ The Sqitch command-line client.
 
 =back
 
-=head1 To Do
-
-=over
-
-=item * How to specify prerequisite as a tag?
-
-Get the prerequisite step objects and look them up in the database by their
-IDs rather than their names. To find each prerequisite, if it is as-of a tag
-(i.e., C<$step@$tag>), use C<index_of()>. Otherwise, use C<first_index_of()>.
-
-=item * Move prerequisite spec into plan file.
-
-Rather than in the deploy scripts.
-
-=back
-
 =head1 Author
 
 David E. Wheeler <david@justatheory.com>
