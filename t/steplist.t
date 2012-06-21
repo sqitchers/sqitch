@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 89;
+use Test::More tests => 102;
 #use Test::More 'no_plan';
 use Test::NoWarnings;
 use Test::Exception;
@@ -71,8 +71,11 @@ is $steps->index_of('yo@alpha'), 2, 'Should get 2 for yo@alpha';
 is $steps->index_of('yo@HEAD'), 4, 'Should get 4 for yo@HEAD';
 is $steps->index_of('foo@alpha'), 0, 'Should get 0 for foo@alpha';
 is $steps->index_of('foo@HEAD'), 0, 'Should get 0 for foo@HEAD';
+is $steps->index_of('foo@ROOT'), 0, 'Should get 0 for foo@ROOT';
 is $steps->index_of('baz@alpha'), undef, 'Should get undef for baz@alpha';
 is $steps->index_of('baz@HEAD'), 3, 'Should get 3 for baz@HEAD';
+is $steps->index_of('@HEAD'), 4, 'Should get 4 for @HEAD';
+is $steps->index_of('@ROOT'), 0, 'Should get 0 for @ROOT';
 
 is $steps->get('foo'), $foo, 'Should get foo for "foo"';
 is $steps->get($foo->id), $foo, 'Should get foo by ID';
@@ -81,6 +84,8 @@ is $steps->get($bar->id), $bar, 'Should get bar by ID';
 is $steps->get($alpha->id), $yo1, 'Should get "yo" by the @alpha tag';
 is $steps->get('baz'), $baz, 'Should get baz for "baz"';
 is $steps->get($baz->id), $baz, 'Should get baz by ID';
+is $steps->get('@HEAD'), $yo2, 'Should get yo2 for "@HEAD"';
+is $steps->get('@ROOT'), $foo, 'Should get foo for "@ROOT"';
 
 is $steps->get('yo@alpha'), $yo1, 'Should get yo1 for yo@alpha';
 is $steps->get('yo@HEAD'), $yo2, 'Should get yo2 for yo@HEAD';
@@ -88,6 +93,8 @@ is $steps->get('foo@alpha'), $foo, 'Should get foo for foo@alpha';
 is $steps->get('foo@HEAD'), $foo, 'Should get foo for foo@HEAD';
 is $steps->get('baz@alpha'), undef, 'Should get undef for baz@alpha';
 is $steps->get('baz@HEAD'), $baz, 'Should get baz for baz@HEAD';
+is $steps->get('yo@HEAD'), $yo2, 'Should get yo2 for "yo@HEAD"';
+is $steps->get('foo@ROOT'), $foo, 'Should get foo for "foo@ROOT"';
 
 throws_ok { $steps->get('yo') } qr/^\QKey "yo" at multiple indexes/,
     'Should get error looking for index of "yo"';
@@ -102,12 +109,16 @@ is_deeply [$steps->steps], [$foo, $bar, $yo1, $baz, $yo2, $hi],
     'Steps should be in order with $hi at the end';
 is $steps->index_of('hi'), 5, 'Should find "hi" at index 5';
 is $steps->index_of($hi->id), 5, 'Should find "hi" by ID at index 5';
+is $steps->index_of('@ROOT'), 0, 'Index of @ROOT should still be 0';
+is $steps->index_of('@HEAD'), 5, 'Index of @HEAD should now be 5';
 
 # Now try first_index_of().
 is $steps->first_index_of('non'), undef, 'First index of "non" should be undef';
 is $steps->first_index_of('foo'), 0, 'First index of "foo" should be 0';
+is $steps->first_index_of('foo', '@ROOT'), undef, 'First index of "foo" since @ROOT should be undef';
 is $steps->first_index_of('bar'), 1, 'First index of "bar" should be 1';
 is $steps->first_index_of('yo'), 2, 'First index of "yo" should be 2';
+is $steps->first_index_of('yo', '@ROOT'), 2, 'First index of "yo" since @ROOT should be 2';
 is $steps->first_index_of('baz'), 3, 'First index of "baz" should be 3';
 is $steps->first_index_of('yo', '@alpha'), 4,
     'First index of "yo" since "@alpha" should be 4';
@@ -119,6 +130,8 @@ my $so = App::Sqitch::Plan::Step->new(plan => $plan, name => 'so');
 my $fu = App::Sqitch::Plan::Step->new(plan => $plan, name => 'fu');
 ok $steps->append($so, $fu), 'Push so and fu';
 is $steps->count, 8, 'Count should now be eight';
+is $steps->index_of('@ROOT'), 0, 'Index of @ROOT should remain 0';
+is $steps->index_of('@HEAD'), 7, 'Index of @HEAD should now be 7';
 is_deeply [$steps->steps], [$foo, $bar, $yo1, $baz, $yo2, $hi, $so, $fu],
     'Steps should be in order with $so and $fu at the end';
 

@@ -99,6 +99,10 @@ These are not yet implemented.
 
 Special symbolic name for the last step in the plan. Typically omitted.
 
+=item C<ROOT>
+
+Special symbolic name for the first step in the plan. Typically omitted.
+
 =item C<< <target>^ >>, e.g., C<HEAD^^>, C<users_table^3>, C<@beta^2>
 
 A suffix C<^> to a symbolic or actual name means the step I<prior> to that
@@ -106,7 +110,7 @@ target. Multiple C<^>s indicate multiple prior steps. These can also be
 written as C<< ^<n> >>, where C<< <n> >> represents the number of steps to go
 back.
 
-=item C<< <target>+ >>, e.g., C<HEAD+>, C<foo++>, C<@bar+4>
+=item C<< <target>+ >>, e.g., C<ROOT+>, C<foo++>, C<@bar+4>
 
 A suffix C<+> to a symbolic or actual target name that means the step I<after>
 that target. Multiple C<+>s indicate multiple prior steps. These can also be

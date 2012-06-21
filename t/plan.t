@@ -50,10 +50,12 @@ sub blank {
 
 my $prev_tag;
 my $prev_step;
+my %seen;
 
 sub clear {
     undef $prev_tag;
     undef $prev_step;
+    %seen = ();
     return ();
 }
 
@@ -69,7 +71,9 @@ sub step {
         operator => $op[1] // '',
         ropspace => $op[2] // '',
         ($prev_tag ? (since_tag => $prev_tag) : ()),
+        is_duped => $seen{$_[1]} ? 1 : 0,
     );
+    $seen{$_[1]} = 1;
     $prev_step->id;
     $prev_step->tags;
     return $prev_step;
@@ -283,16 +287,29 @@ for my $name (
 }
 is sorted, 12, 'Should have sorted steps 12 times';
 
-# Try a plan with a reserved tag name.
+# Try a plan with reserved tag name @HEAD.
 $file = file qw(t plans reserved-tag.plan);
 $fh = $file->open('<:encoding(UTF-8)');
 throws_ok { $plan->_parse($file, $fh) } qr/FAIL:/,
-    'Should die on plan with reserved tag';
+    'Should die on plan with reserved tag "@HEAD"';
 is sorted, 1, 'Should have sorted steps once';
 cmp_deeply +MockOutput->get_fail, [[
     "Syntax error in $file at line ",
     5,
     ': "HEAD" is a reserved name',
+]], 'And the reserved tag error should have been output';
+
+# Try a plan with reserved tag name @ROOT.
+my $root = '@ROOT';
+$file = file qw(t plans root.plan);
+$fh = IO::File->new(\$root, '<:utf8');
+throws_ok { $plan->_parse($file, $fh) } qr/FAIL:/,
+    'Should die on plan with reserved tag "@ROOT"';
+is sorted, 0, 'Should have sorted steps nonce';
+cmp_deeply +MockOutput->get_fail, [[
+    "Syntax error in $file at line ",
+    1,
+    ': "ROOT" is a reserved name',
 ]], 'And the reserved tag error should have been output';
 
 # Try a plan with a step name that looks like a sha1 hash.
@@ -629,6 +646,12 @@ cmp_deeply +MockOutput->get_fail, [[
     '"HEAD" is a reserved name'
 ]], 'And the reserved name error should be output';
 
+throws_ok { $plan->add_tag('ROOT') } qr/^FAIL:/,
+    'Should get error for reserved tag "ROOT"';
+cmp_deeply +MockOutput->get_fail, [[
+    '"ROOT" is a reserved name'
+]], 'And the reserved name error should be output';
+
 throws_ok { $plan->add_tag($sha1) } qr/^FAIL:/,
     'Should get error for a SHA1 tag';
 cmp_deeply +MockOutput->get_fail, [[
@@ -668,6 +691,7 @@ ok $plan->add_step('blow'), 'Add step "blow"';
 is $plan->count, 7, 'Should have 7 steps';
 is $plan->index_of('blow@HEAD'), 6, 'Should find "blow@HEAD at index 6';
 is $plan->last->name, 'blow', 'Last step should be "blow"';
+is $plan->index_of('@ROOT'), 0, 'Index of @ROOT should be 0';
 
 # Should choke on an invalid step names.
 for my $name (@bad_names) {
@@ -684,6 +708,12 @@ throws_ok { $plan->add_step('HEAD') } qr/^FAIL:/,
     'Should get error for reserved tag "HEAD"';
 cmp_deeply +MockOutput->get_fail, [[
     '"HEAD" is a reserved name'
+]], 'And the reserved name error should be output';
+
+throws_ok { $plan->add_step('ROOT') } qr/^FAIL:/,
+    'Should get error for reserved tag "ROOT"';
+cmp_deeply +MockOutput->get_fail, [[
+    '"ROOT" is a reserved name'
 ]], 'And the reserved name error should be output';
 
 # Try an invalid dependency.
@@ -786,6 +816,7 @@ my $mock_step = Test::MockModule->new('App::Sqitch::Plan::Step');
 $mock_step->mock(_dependencies => sub { shift @deps });
 
 sub steps {
+    clear;
     map {
         step '', $_;
     } @_;

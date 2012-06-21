@@ -149,8 +149,8 @@ sub _parse {
         $self->sqitch->fail(
             "Syntax error in $file at line ",
             $fh->input_line_number,
-            ': "HEAD" is a reserved name',
-        ) if $params{name} eq 'HEAD';
+            qq{: "$params{name}" is a reserved name},
+        ) if $params{name} eq 'HEAD' || $params{name} eq 'ROOT';
 
         # It must not loo, like a SHA1 hash.
         $self->sqitch->fail(
@@ -178,7 +178,6 @@ sub _parse {
                     qq{: \u$type "$params{name}" duplicates earlier declaration on line $at},
                 );
             }
-
 
             if (@curr_steps) {
                 # Sort all steps up to this tag by their dependencies.
@@ -212,6 +211,7 @@ sub _parse {
             push @curr_steps => $prev_step = App::Sqitch::Plan::Step->new(
                 plan => $self,
                 ( $prev_tag ? ( since_tag => $prev_tag ) : () ),
+                is_duped => $seen{ $params{name} } ? 1 : 0,
                 %params,
             );
             push @lines => $prev_step;
@@ -426,7 +426,8 @@ sub add_step {
 
 sub _is_valid {
     my ( $self, $type, $name ) = @_;
-    $self->sqitch->fail('"HEAD" is a reserved name') if $name eq 'HEAD';
+    $self->sqitch->fail(qq{"$name" is a reserved name})
+        if $name eq 'HEAD' || $name eq 'ROOT';
     $self->sqitch->fail(
         qq{"$name" is invalid because it could be confused with a SHA1 ID}
     ) if $name =~ /^[0-9a-f]{40}/;

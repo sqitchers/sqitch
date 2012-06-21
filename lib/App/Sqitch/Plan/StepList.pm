@@ -35,7 +35,6 @@ sub index_of {
     my $idx = $self->{lookup}{$step} or return undef;
     if (defined $tag) {
         # Wanted for a step as of a specific tag.
-        return $idx->[-1] if $tag eq 'HEAD';
         my $tag_idx = $self->{lookup}{ '@' . $tag }
             or croak qq{Unknown tag: "$tag"};
         $tag_idx = $tag_idx->[0];
@@ -58,7 +57,7 @@ sub first_index_of {
     return $idx->[0] unless defined $tag;
 
     # Find the tag index.
-    my $tag_index = $self->index_of($tag) or croak qq{Unknown tag: "$tag"};
+    my $tag_index = $self->index_of($tag) // croak qq{Unknown tag: "$tag"};
 
     # Return the first step after the tag.
     return List::Util::first { $_ > $tag_index } @{ $idx };
@@ -98,6 +97,10 @@ sub append {
             $self->{last_tagged_at} = $#$list;
         }
     }
+
+    $lookup->{'@HEAD'} = [$#$list];
+    $lookup->{'@ROOT'} = [0];
+
     return $self;
 }
 
