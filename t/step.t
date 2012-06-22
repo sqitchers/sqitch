@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 54;
+use Test::More tests => 45;
 #use Test::More 'no_plan';
 use Test::NoWarnings;
 use App::Sqitch;
@@ -96,9 +96,12 @@ ok my $step2 = $CLASS->new(
     rspace    => "\t",
     is_duped  => 1,
     comment   => ' blah blah blah',
+    pspace    => '  ',
+    requires  => [qw(foo bar @baz)],
+    conflicts => ['dr_evil'],
 ), 'Create step with more stuff';
 
-is $step2->as_string, "  - howdy\t# blah blah blah",
+is $step2->as_string, "  - howdy  :foo :bar :\@baz !dr_evil\t# blah blah blah",
     'It should stringify correctly';
 my $mock_plan = Test::MockModule->new(ref $plan);
 $mock_plan->mock(index_of => 0);
@@ -129,10 +132,6 @@ is $step2->test_file, $sqitch->test_dir->file('howdy@alpha.sql'),
     'The test file should ref the since tag';
 
 ##############################################################################
-# Test _parse_dependencies.
-can_ok $CLASS, '_parse_dependencies';
-
-##############################################################################
 # Test open_script.
 make_path dir(qw(sql deploy))->stringify;
 END { remove_tree 'sql' };
@@ -153,20 +152,9 @@ $fh->close;
 
 ok $step2 = $CLASS->new( name => 'baz', plan => $plan ),
     'Create step "baz"';
-is_deeply $step2->_parse_dependencies, { conflicts => [], requires => [] },
-    'baz.sql should have no dependencies';
-is_deeply [$step2->requires], [], 'Requires should be empty';
-is_deeply [$step2->conflicts], [], 'Conflicts should be empty';
 
 ok $step2 = $CLASS->new( name => 'bar', plan => $plan ),
     'Create step "bar"';
-is_deeply $step2->_parse_dependencies([], 'bar'), {
-    requires  => [qw(foo foo @yo blah blah w00t)],
-    conflicts => [qw(yak this that)],
-},  'bar.sql should have a bunch of dependencies';
-is_deeply [$step2->requires], [qw(foo foo @yo blah blah w00t)],
-    'Requires get filled in';
-is_deeply [$step2->conflicts], [qw(yak this that)], 'Conflicts get filled in';
 
 ##############################################################################
 # Test file handles.
@@ -199,15 +187,6 @@ ok $step2 = $CLASS->new(
 ), 'Create a step with explicit requires and conflicts';
 is_deeply [$step2->requires], [qw(hi there)], 'requires should be set';
 is_deeply [$step2->conflicts], [], 'conflicts should be set';
-
-# Make sure that conflicts and requires are mutually requried.
-throws_ok { $CLASS->new( requires => [] ) }
-    qr/\QThe "conflicts" and "requires" parameters must both be required or omitted/,
-    'Should get an error for requires but no conflicts';
-
-throws_ok { $CLASS->new( conflicts => [] ) }
-    qr/\QThe "conflicts" and "requires" parameters must both be required or omitted/,
-    'Should get an error for conflicts but no requires';
 
 ##############################################################################
 # Test ID for a step with a UTF-8 name.

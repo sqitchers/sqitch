@@ -7,12 +7,31 @@ use parent 'App::Sqitch::Plan::Line';
 use Encode;
 use Moose;
 
-has _dependencies => (
+has _requires => (
     is       => 'ro',
-    isa      => 'HashRef',
+    isa      => 'ArrayRef[Str]',
+    traits   => ['Array'],
     required => 1,
-    lazy     => 1,
-    builder  => '_parse_dependencies',
+    init_arg => 'requires',
+    default  => sub { [] },
+    handles  => { requires => 'elements' },
+);
+
+has _conflicts => (
+    is       => 'ro',
+    isa      => 'ArrayRef[Str]',
+    traits   => ['Array'],
+    required => 1,
+    init_arg => 'conflicts',
+    default  => sub { [] },
+    handles  => { conflicts => 'elements' },
+);
+
+has pspace => (
+    is       => 'ro',
+    isa      => 'Str',
+    required => 1,
+    default  => '',
 );
 
 has since_tag => (
@@ -140,24 +159,6 @@ sub format_name_with_tags {
     return join ' ', $self->format_name, map { $_->format_name } $self->tags;
 }
 
-sub BUILDARGS {
-    my $class = shift;
-    my $p = @_ == 1 && ref $_[0] ? { %{ +shift } } : { @_ };
-    if ($p->{requires} && $p->{conflicts} ) {
-        $p->{_dependencies} = {
-            requires  => delete $p->{requires},
-            conflicts => delete $p->{conflicts},
-        };
-    } elsif ($p->{conflicts} || $p->{requires}) {
-        require Carp;
-        Carp::confess(
-            'The "conflicts" and "requires" parameters must both be required',
-            ' or omitted'
-        );
-    }
-    return $p;
-}
-
 sub deploy_handle {
     my $self = shift;
     $self->plan->open_script($self->deploy_file);
@@ -173,25 +174,13 @@ sub test_handle {
     $self->plan->open_script($self->test_file);
 }
 
-sub requires  { @{ shift->_dependencies->{requires}  } }
-sub conflicts { @{ shift->_dependencies->{conflicts} } }
-
-sub _parse_dependencies {
+sub format_content {
     my $self = shift;
-    my $fh   = $self->plan->open_script( $self->deploy_file );
-
-    my $comment = qr{#+|--+|/[*]+|;+};
-    my %deps = ( requires => [], conflicts => [] );
-    while ( my $line = $fh->getline ) {
-        chomp $line;
-        last if $line =~ /\A\s*$/;           # Blank line, no more headers.
-        last if $line !~ /\A\s*$comment/;    # Must be a comment line.
-        my ( $label, $value ) =
-            $line =~ /$comment\s*:(requires|conflicts):\s*(.+)/;
-        push @{ $deps{$label} ||= [] } => split /\s+/ => $value
-            if $label && $value;
-    }
-    return \%deps;
+    return $self->SUPER::format_content . $self->pspace . join (
+        ' ',
+        ( map { ":$_" } $self->requires  ),
+        ( map { "!$_" } $self->conflicts ),
+    );
 }
 
 __PACKAGE__->meta->make_immutable;

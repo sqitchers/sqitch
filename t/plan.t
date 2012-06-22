@@ -815,7 +815,7 @@ $mocker->unmock('sort_steps');
 can_ok $CLASS, 'sort_steps';
 my @deps;
 my $mock_step = Test::MockModule->new('App::Sqitch::Plan::Step');
-$mock_step->mock(_dependencies => sub { shift @deps });
+$mock_step->mock(requires => sub { @{ shift(@deps)->{requires} } });
 
 sub steps {
     clear;
