@@ -38,13 +38,6 @@ has position => (
     default  => -1,
 );
 
-has _root_step => (
-    is       => 'rw',
-    weak_ref => 1,
-    isa      => 'App::Sqitch::Plan::Step',
-    required => 0,
-);
-
 sub load {
     my $self = shift;
     my $file = $self->sqitch->plan_file;
@@ -227,10 +220,6 @@ sub _parse {
 
     # Sort and store any remaining steps.
     push @steps => $self->sort_steps(\%seen, @curr_steps) if @curr_steps;
-
-    # Set the root step. I know, side effect, but it is required before
-    # constructing StepList so that IDs are correctly generated.
-    $self->_root_step($steps[0]);
 
     # We should have a version pragma.
     unshift @lines => $self->_version_line unless $seen_version;
