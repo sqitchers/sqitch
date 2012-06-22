@@ -60,6 +60,7 @@ sub _parse {
     my @steps;         # List of steps.
     my @curr_steps;    # List of steps since last tag.
     my %line_no_for;   # Maps tags and steps to line numbers.
+    my %step_named;    # Maps step names to step objects.
     my %tag_steps;     # Maps steps in current tag section to line numbers.
     my $seen_version;  # Have we seen a version pragma?
     my $prev_tag;      # Last seen tag.
@@ -211,10 +212,15 @@ sub _parse {
             push @curr_steps => $prev_step = App::Sqitch::Plan::Step->new(
                 plan => $self,
                 ( $prev_tag ? ( since_tag => $prev_tag ) : () ),
-                is_duped => $line_no_for{ $params{name} } ? 1 : 0,
                 %params,
             );
             push @lines => $prev_step;
+
+            if (my $duped = $step_named{ $params{name} }) {
+                # Mark previously-seen step of same name as duped.
+                $duped->is_duped(1);
+            }
+            $step_named{ $params{name} } = $prev_step;
         }
     }
 

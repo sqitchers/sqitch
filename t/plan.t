@@ -71,9 +71,11 @@ sub step {
         operator => $op[1] // '',
         ropspace => $op[2] // '',
         ($prev_tag ? (since_tag => $prev_tag) : ()),
-        is_duped => $seen{$_[1]} ? 1 : 0,
     );
-    $seen{$_[1]} = 1;
+    if (my $duped = $seen{$_[1]}) {
+        $duped->is_duped(1);
+    }
+    $seen{$_[1]} = $prev_step;
     $prev_step->id;
     $prev_step->tags;
     return $prev_step;

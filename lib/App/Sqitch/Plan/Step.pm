@@ -22,7 +22,7 @@ has since_tag => (
 );
 
 has is_duped => (
-    is       => 'ro',
+    is       => 'rw',
     isa      => 'Bool',
     required => 1,
     default  => 0,
