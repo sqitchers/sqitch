@@ -115,28 +115,47 @@ sub _parse {
 
         # Is it a tag or a step?
         my $type = $line =~ /^[[:blank:]]*[@]/ ? 'tag' : 'step';
-
-        $line =~ /
-           ^                              # Beginning of line
-           (?<lspace>[[:blank:]]*)?       # Optional leading space
-           (?:                            # followed by...
-               [@]                        #     @ for tag
-           |                              # ...or...
-               (?<lopspace>[[:blank:]]*)  #     Optional blanks
-               (?<operator>[+-])          #     Required + or -
-               (?<ropspace>[[:blank:]]*)  #     Optional blanks
-           )?                             # ... optionally
-           (?<name>                       # followed by name consisting of...
-               [^[:punct:]]               #     not punct
-               (?:                        #     followed by...
-                   [^[:blank:]@]*?        #         any number non-blank, non-@
-                   [^[:punct:][:blank:]]  #         one not blank or punct
-               )?                         #     ... optionally
-           )                              # ... required
-           $                              # end of line
+        my $name_re = qr/
+             [^[:punct:]]               #     not punct
+             (?:                        #     followed by...
+                 [^[:blank:]@]*         #         any number non-blank, non-@
+                 [^[:punct:][:blank:]]  #         one not blank or punct
+             )?                         #     ... optionally
         /x;
 
-        %params = (%params, %+);
+        # Not sure why these must be global, but lexical always end up empty.
+        our (@req, @con) = ();
+        use re 'eval';
+        $line =~ /
+           ^                                    # Beginning of line
+           (?<lspace>[[:blank:]]*)?             # Optional leading space
+           (?:                                  # followed by...
+               [@]                              #     @ for tag
+           |                                    # ...or...
+               (?<lopspace>[[:blank:]]*)        #     Optional blanks
+               (?<operator>[+-])                #     Required + or -
+               (?<ropspace>[[:blank:]]*)        #     Optional blanks
+           )?                                   # ... optionally
+           (?<name>$name_re)                    # followed by name
+           (?:                                  # followed by...
+               (?<pspace>[[:blank:]]+)          #     Optional blanks
+               (?:                              #     followed by...
+                   :([@]?$name_re)              #         A requires spec
+                   (?{ push @req, $^N })        #         which we capture
+                   [[:blank:]]*                 #         optional blanks
+               |                                #     ...or...
+                   !([@]?$name_re)              #         A conflicts spec
+                   (?{ push @con, $^N })        #         which we capture
+                   [[:blank:]]*                 #         optional blanks
+               )+                               #     ... one or more times
+           )?                                   # ... optionally
+           $                                    # end of line
+        /x;
+
+        %params = (
+            %params, %+,
+            ( $type eq 'tag' ? () : ( conflicts => [@con], requires => [@req] ) ),
+        );
 
         # Make sure we have a valid name.
         $self->sqitch->fail(
@@ -177,6 +196,15 @@ sub _parse {
                     "Syntax error in $file at line ",
                     $fh->input_line_number,
                     qq{: \u$type "$params{name}" duplicates earlier declaration on line $at},
+                );
+            }
+
+            # Fail on prereqs.
+            if (@req || @con) {
+                $self->sqitch->fail(
+                    "Syntax error in $file at line ",
+                    $fh->input_line_number,
+                    ': Tags may not specify dependencies'
                 );
             }
 

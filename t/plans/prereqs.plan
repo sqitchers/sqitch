@@ -1,0 +1,10 @@
++roles
++users    :roles
++add_user :users  :roles
++dr_evil
+@alpha
+
++users :@alpha
+-dr_evil
++del_user !dr_evil :users
+

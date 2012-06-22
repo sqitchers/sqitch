@@ -665,10 +665,8 @@ $mock_whu->mock(run_file => sub {
      hurl 'BARF' if $_[1] eq $steps[0]->revert_file;
 });
 $mock_whu->mock(start_at => 'whatever');
-$ENV{FOO} = 1;
 throws_ok { $engine->_deploy_by_tag($plan, $plan->count -1 ) } 'App::Sqitch::X',
     'Die in _deploy_by_tag again';
-delete $ENV{FOO};
 is $@->message, __('Deploy failed'), 'Should once again get final deploy failure message';
 is_deeply $engine->seen, [
     [check_conflicts => $steps[0] ],

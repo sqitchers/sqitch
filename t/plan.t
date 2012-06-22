@@ -62,14 +62,17 @@ sub clear {
 sub step {
     my @op = defined $_[4] ? split /([+-])/, $_[4] : ();
     $prev_step = App::Sqitch::Plan::Step->new(
-        plan     => $plan,
-        lspace   => $_[0] // '',
-        name     => $_[1],
-        rspace   => $_[2] // '',
-        comment  => $_[3] // '',
-        lopspace => $op[0] // '',
-        operator => $op[1] // '',
-        ropspace => $op[2] // '',
+        plan      => $plan,
+        lspace    => $_[0] // '',
+        name      => $_[1],
+        rspace    => $_[2] // '',
+        comment   => $_[3] // '',
+        lopspace  => $op[0] // '',
+        operator  => $op[1] // '',
+        ropspace  => $op[2] // '',
+        pspace    => $_[5] // '',
+        requires  => $_[6] // [],
+        conflicts => $_[7] // [],
         ($prev_tag ? (since_tag => $prev_tag) : ()),
     );
     if (my $duped = $seen{$_[1]}) {
@@ -740,6 +743,39 @@ throws_ok { $plan->add_step($sha1) } qr/^FAIL:/,
 cmp_deeply +MockOutput->get_fail, [[
     qq{"$sha1" is invalid because it could be confused with a SHA1 ID},
 ]], 'And the reserved name error should be output';
+
+# Try a plan with prereqs.
+$file = file qw(t plans prereqs.plan);
+$sqitch = App::Sqitch->new(plan_file => $file, uri => $uri);
+isa_ok $plan = App::Sqitch::Plan->new(sqitch => $sqitch), $CLASS,
+    'Plan with sqitch with plan file with prereqs';
+ok $parsed = $plan->load, 'Load plan with prereqs file';
+is_deeply [$parsed->{steps}->steps], [
+    clear,
+    step( '', 'roles', '', '', '+' ),
+    step( '', 'users', '', '', '+', '    ', ['roles'] ),
+    step( '', 'add_user', '', '', '+', ' ', [qw( users roles)] ),
+    step( '', 'dr_evil', '', '', '+' ),
+    tag(0, '', 'alpha'),
+    step( '', 'users', '', '', '+', ' ', ['@alpha'] ),
+    step( '', 'dr_evil', '', '', '-' ),
+    step( '', 'del_user', '', '', '+', ' ' , ['users'], ['dr_evil'] ),
+], 'The steps should include the prereqs';
+is sorted, 2, 'Should have sorted steps twice';
+
+# Should fail with prerequisites on tags.
+$file = file qw(t plans tag_dependencies.plan);
+$fh = IO::File->new(\"foo\n\@bar :foo", '<:utf8');
+$sqitch = App::Sqitch->new(plan_file => $file, uri => $uri);
+isa_ok $plan = App::Sqitch::Plan->new(sqitch => $sqitch), $CLASS,
+    'Plan with sqitch with plan with tag dependencies';
+throws_ok { $plan->_parse($file, $fh) }  qr/^FAIL:/,
+    'Should get an exception for tag with dependencies';
+cmp_deeply +MockOutput->get_fail, [[
+    "Syntax error in $file at line ",
+    2,
+    ': Tags may not specify dependencies',
+]], 'And the message should say that tags do not support dependencies';
 
 ##############################################################################
 # Try a plan with a duplicate step in different tag sections.

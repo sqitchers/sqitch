@@ -682,13 +682,12 @@ Get the prerequisite step objects and look them up in the database by their
 IDs rather than their names. To find each prerequisite, if it is as-of a tag
 (i.e., C<$step@$tag>), use C<index_of()>. Otherwise, use C<first_index_of()>.
 
-=item * Move prerequisite spec into plan file.
+=item * Update C<add_step> and the grammar for dependencies in the spec file.
 
-Rather than in the deploy scripts.
+C<add-step> needs to pass them to C<< Plan->add_step >>, which needs to
+support them. And the grammar needs to document them, of course.
 
-=item *
-
-Add checks to L<sqitch-add-step> to halt if a C<--requires> or C<--conflicts>
+=item * Add checks to L<sqitch-add-step> to halt if a C<--requires> or C<--conflicts>
 step does not exist.
 
 =back
