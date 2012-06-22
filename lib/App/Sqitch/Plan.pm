@@ -59,7 +59,7 @@ sub _parse {
     my @lines;         # List of lines.
     my @steps;         # List of steps.
     my @curr_steps;    # List of steps since last tag.
-    my %seen;          # Maps tags and steps to line numbers.
+    my %line_no_for;   # Maps tags and steps to line numbers.
     my %tag_steps;     # Maps steps in current tag section to line numbers.
     my $seen_version;  # Have we seen a version pragma?
     my $prev_tag;      # Last seen tag.
@@ -171,7 +171,7 @@ sub _parse {
 
             # Fail on duplicate tag.
             my $key = '@' . $params{name};
-            if ( my $at = $seen{$key} ) {
+            if ( my $at = $line_no_for{$key} ) {
                 $self->sqitch->fail(
                     "Syntax error in $file at line ",
                     $fh->input_line_number,
@@ -181,7 +181,7 @@ sub _parse {
 
             if (@curr_steps) {
                 # Sort all steps up to this tag by their dependencies.
-                push @steps => $self->sort_steps(\%seen, @curr_steps);
+                push @steps => $self->sort_steps(\%line_no_for, @curr_steps);
                 @curr_steps = ();
             }
 
@@ -195,7 +195,7 @@ sub _parse {
             # Keep track of everything and clean up.
             $prev_step->add_tag($prev_tag);
             push @lines => $prev_tag;
-            %seen = (%seen, %tag_steps, $key => $fh->input_line_number);
+            %line_no_for = (%line_no_for, %tag_steps, $key => $fh->input_line_number);
             %tag_steps = ();
         } else {
             # Fail on duplicate step since last tag.
@@ -211,7 +211,7 @@ sub _parse {
             push @curr_steps => $prev_step = App::Sqitch::Plan::Step->new(
                 plan => $self,
                 ( $prev_tag ? ( since_tag => $prev_tag ) : () ),
-                is_duped => $seen{ $params{name} } ? 1 : 0,
+                is_duped => $line_no_for{ $params{name} } ? 1 : 0,
                 %params,
             );
             push @lines => $prev_step;
@@ -219,7 +219,7 @@ sub _parse {
     }
 
     # Sort and store any remaining steps.
-    push @steps => $self->sort_steps(\%seen, @curr_steps) if @curr_steps;
+    push @steps => $self->sort_steps(\%line_no_for, @curr_steps) if @curr_steps;
 
     # We should have a version pragma.
     unshift @lines => $self->_version_line unless $seen_version;
