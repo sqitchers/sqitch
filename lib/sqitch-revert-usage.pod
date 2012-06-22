@@ -1,0 +1,17 @@
+=head1 Name
+
+sqitch-revert-usage - Sqitch revert usage statement
+
+=head1 Usage
+
+  sqitch [options] revert [<target options>]
+
+=head1 Options
+
+       --to-target <tag>    revert to target
+
+
+
+
+
+

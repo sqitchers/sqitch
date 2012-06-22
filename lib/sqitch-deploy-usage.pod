@@ -4,7 +4,7 @@ sqitch-deploy-usage - Sqitch deploy usage statement
 
 =head1 Usage
 
-  sqitch [options] deploy [<step options>]
+  sqitch [options] deploy [<target options>]
 
 =head1 Options
 
