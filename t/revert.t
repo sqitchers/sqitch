@@ -59,5 +59,3 @@ is_deeply \@args, ['foo'],
     '"foo" and "tag" should be passed to the engine';
 
 done_testing;
-
-__END__
