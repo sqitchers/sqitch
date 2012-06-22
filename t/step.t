@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 54;
+use Test::More tests => 56;
 #use Test::More 'no_plan';
 use Test::NoWarnings;
 use App::Sqitch;
@@ -47,6 +47,9 @@ my $sqitch = App::Sqitch->new(
     uri => URI->new('https://github.com/theory/sqitch/'),
 );
 my $plan  = App::Sqitch::Plan->new(sqitch => $sqitch);
+my $mock_plan = Test::MockModule->new(ref $plan);
+$mock_plan->mock(index_of => 0);
+
 isa_ok my $step = $CLASS->new(
     name => 'foo',
     plan => $plan,
@@ -100,8 +103,6 @@ ok my $step2 = $CLASS->new(
 
 is $step2->as_string, "  - howdy\t# blah blah blah",
     'It should stringify correctly';
-my $mock_plan = Test::MockModule->new(ref $plan);
-$mock_plan->mock(index_of => 0);
 
 ok !$step2->is_deploy, 'It should not be a deploy step';
 ok $step2->is_revert, 'It should be a revert step';
@@ -127,6 +128,29 @@ is $step2->revert_file, $sqitch->revert_dir->file('howdy@alpha.sql'),
     'The revert file should ref the since tag';
 is $step2->test_file, $sqitch->test_dir->file('howdy@alpha.sql'),
     'The test file should ref the since tag';
+
+# Try it with the implicit @ROOT tag by making it the second step in the plan.
+my $step3 = $CLASS->new(
+    name => 'woot',
+    plan => $plan,
+);
+$mock_plan->mock(_root_step => $step);
+is $step3->info, join("\n",
+   'project ' . $sqitch->uri->canonical,
+   'step woot',
+   'since ' . App::Sqitch::Plan::Tag->new(
+       plan => $plan,
+       step => $step,
+       name => 'ROOT',
+   )->id
+), 'Step info since @ROOT should be correct';
+is $step3->id, do {
+    my $content = $step3->info;
+    Digest::SHA1->new->add(
+        'step ' . length($content) . "\0" . $content
+    )->hexdigest;
+},'Step ID since @ROOT should be correct';
+$mock_plan->unmock('_root_step');
 
 ##############################################################################
 # Test _parse_dependencies.

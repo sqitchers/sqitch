@@ -100,6 +100,12 @@ has info => (
         my @since;
         if (my $tag = $self->since_tag) {
             @since = ('since ' . $tag->id);
+        } elsif (my $root = $self->plan->_root_step) {
+            @since = ('since ' . App::Sqitch::Plan::Tag->new(
+                plan => $self->plan,
+                step => $root,
+                name => 'ROOT',
+            )->id) if $root->name ne $self->name;
         }
 
         return join "\n", (

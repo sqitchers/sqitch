@@ -31,6 +31,7 @@ can_ok $CLASS, qw(
     position
     load
     _parse
+    _root_step
     sort_steps
     open_script
 );
@@ -50,11 +51,13 @@ sub blank {
 
 my $prev_tag;
 my $prev_step;
+my $root_step;
 my %seen;
 
 sub clear {
     undef $prev_tag;
     undef $prev_step;
+    undef $root_step;
     %seen = ();
     return ();
 }
@@ -76,6 +79,7 @@ sub step {
     $seen{$_[1]} = 1;
     $prev_step->id;
     $prev_step->tags;
+    $plan->_root_step($root_step = $prev_step) unless $root_step;
     return $prev_step;
 }
 
@@ -153,6 +157,8 @@ cmp_deeply [$parsed->{lines}->items], [
     step(  '', 'you'),
     tag(1,   '', 'foo', ' ', ' look, a tag!'),
 ], 'All "widgets.plan" lines should be parsed';
+is_deeply $plan->_root_step, step(clear, '', 'hey'),
+    'The root step should be set';
 
 # Plan with multiple tags.
 $file = file qw(t plans multi.plan);
@@ -188,6 +194,8 @@ cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
         tag(1,   '', 'baz', ''),
     ],
 }, 'Should have "multi.plan" lines and steps';
+is_deeply $plan->_root_step, step(clear, '', 'hey'),
+    'The root step should again be set';
 
 # Try a plan with steps appearing without a tag.
 $file = file qw(t plans steps-only.plan);
@@ -817,6 +825,7 @@ $mock_step->mock(_dependencies => sub { shift @deps });
 
 sub steps {
     clear;
+    $root_step = 1; # Fake out to avoid different results for sorting.
     map {
         step '', $_;
     } @_;
