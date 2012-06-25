@@ -123,9 +123,6 @@ sub _parse {
              )?                         #     ... optionally
         /x;
 
-        # Not sure why these must be global, but lexical always end up empty.
-        our (@req, @con) = ();
-        use re 'eval';
         $line =~ /
            ^                                    # Beginning of line
            (?<lspace>[[:blank:]]*)?             # Optional leading space
@@ -139,23 +136,12 @@ sub _parse {
            (?<name>$name_re)                    # followed by name
            (?:                                  # followed by...
                (?<pspace>[[:blank:]]+)          #     Blanks
-               (?:                              #     followed by...
-                   :([@]?$name_re)              #         A requires spec
-                   (?{ push @req, $^N })        #         which we capture
-                   [[:blank:]]*                 #         optional blanks
-               |                                #     ...or...
-                   !([@]?$name_re)              #         A conflicts spec
-                   (?{ push @con, $^N })        #         which we capture
-                   [[:blank:]]*                 #         optional blanks
-               )+                               #     ... one or more times
+               (?<dependencies>.+)              # Other stuff
            )?                                   # ... optionally
            $                                    # end of line
         /x;
 
-        %params = (
-            %params, %+,
-            ( $type eq 'tag' ? () : ( conflicts => [@con], requires => [@req] ) ),
-        );
+        %params = ( %params, %+ );
 
         # Make sure we have a valid name.
         $self->sqitch->fail(
@@ -200,7 +186,7 @@ sub _parse {
             }
 
             # Fail on dependencies.
-            if (@req || @con) {
+            if ($params{dependencies}) {
                 $self->sqitch->fail(
                     "Syntax error in $file at line ",
                     $fh->input_line_number,
@@ -234,6 +220,26 @@ sub _parse {
                     $fh->input_line_number,
                     qq{: \u$type "$params{name}" duplicates earlier declaration on line $at},
                 );
+            }
+
+            # Got dependencies?
+            if (my $deps = $params{dependencies}) {
+                my (@req, @con);
+                for my $dep (split /[[:blank:]]+/, $deps) {
+                    $self->sqitch->fail(
+                        "Syntax error in $file at line ",
+                        $fh->input_line_number,
+                        qq{: "$dep" does not look like a dependency.\n},
+                        qq{Dependencies must begin with ":" or "!" and be valid step names},
+                    ) unless $dep =~ /([:!])([@]?$name_re)/g;
+                    if ($1 eq ':') {
+                        push @req => $2;
+                    } else {
+                        push @con => $2;
+                    }
+                }
+                $params{requires}  = \@req;
+                $params{conflicts} = \@con;
             }
 
             $tag_steps{ $params{name} } = $fh->input_line_number;

@@ -228,13 +228,12 @@ is sorted, 0, 'Should not have sorted steps';
 cmp_deeply +MockOutput->get_fail, [[
     "Syntax error in $file at line ",
     4,
-    ': Invalid step "what what what"; steps must not begin with ',
-    'punctuation or end in punctuation or digits following punctuation'
+    qq{: "what" does not look like a dependency.\n},
+    qq{Dependencies must begin with ":" or "!" and be valid step names},
 ]], 'And the error should have been output';
 
 my @bad_names = (
     '^foo',     # No leading punctuation
-    'foo bar',  # no white space
     'foo+',     # No trailing punctuation
     'foo+6',    # No trailing punctuation+digit
     'foo+666',  # No trailing punctuation+digits
