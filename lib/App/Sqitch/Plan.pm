@@ -429,11 +429,11 @@ sub add_step {
     my $steps = $plan->{steps};
 
     if (defined( my $idx = $steps->index_of($name . '@HEAD') )) {
-        # Disallow it unless there is a tag since we last saw it.
         my $tag_idx = $steps->index_of_last_tagged;
         $self->sqitch->fail(
-            qq{Step "$name" already exists. Add a tag to modify it.}
-        ) if !defined $tag_idx || $tag_idx < $idx;
+            qq{Step "$name" already exists.\n},
+            'Use "sqitch rework" to copy and rework it'
+        );
     }
 
     my $step = App::Sqitch::Plan::Step->new(

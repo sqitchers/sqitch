@@ -687,16 +687,9 @@ is $plan->last->name, 'blow', 'Last step should be "blow"';
 throws_ok { $plan->add_step('blow') } qr/^FAIL\b/,
     'Should get error trying to add duplicate step';
 cmp_deeply +MockOutput->get_fail, [[
-    'Step "blow" already exists. Add a tag to modify it.'
-]], 'And the error message should report it as a dupe';
-
-# But if we first add a tag, it should work!
-ok $plan->add_tag('groovy'), 'Add tag "Groovy"';
-ok $plan->add_step('blow'), 'Add step "blow"';
-is $plan->count, 7, 'Should have 7 steps';
-is $plan->index_of('blow@HEAD'), 6, 'Should find "blow@HEAD at index 6';
-is $plan->last->name, 'blow', 'Last step should be "blow"';
-is $plan->index_of('@ROOT'), 0, 'Index of @ROOT should be 0';
+    qq{Step "blow" already exists.\n},
+    'Use "sqitch rework" to copy and rework it'
+]], 'And the error message should suggest "rework"';
 
 # Should choke on an invalid step names.
 for my $name (@bad_names) {
