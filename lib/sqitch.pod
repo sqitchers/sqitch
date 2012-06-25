@@ -746,11 +746,13 @@ Here is the EBNF Grammar for the plan file:
 
   blank-line   = [ <blanks> ] <eol>;
   comment-line = <comment> ;
-  step-line    = <name> ( <eol> | <comment> ) ;
+  step-line    = <name> [ { <requires> | <conflicts} } ] ( <eol> | <comment> ) ;
   tag-line     = <tag> ( <eol> | <comment> ) ;
   pragma       = "%" [ <blanks> ] <name> [ <blanks> ] = [ <blanks> ] <value> ( <eol> | <comment> ) ;
 
   tag          = "@" <name> ;
+  requires     = ":" <name> ;
+  conflicts    = "!" <name> ;
   name         = <non-punct> [ [ ? non-blank and not "@" or "#" characters ? ] <non-punct> ] ;
   non-punct    = ? non-punctuation, non-blank character ? ;
   value        = ? non-EOL or "#" characters ?
@@ -767,8 +769,10 @@ And written as regular expressions:
   my $comment      = qr/(?:[[:blank:]]+)?[#].+$/;
   my $name         = qr/[^[:punct:][:blank:]](?:(?:[^[:space:]@]+)?[^[:punct:][:blank:]])?/;
   my $tag          = qr/[@]$name/;
+  my $requires     = qr/[:]$name/;
+  my conflicts     = qr/[!]$name/;
   my $tag_line     = qr/^$tag(?:$comment|$eol)/;
-  my $step_line    = qr/^$name(?:$comment|$eol)/;
+  my $step_line    = qr/^$name(?:$requires|$conflicts)*(?:$comment|$eol)/;
   my $comment_line = qr/^$comment/;
   my $pragma    = qr/^][[:blank:]]*[%][[:blank:]]*$name[[:blank:]]*=[[:blank:]].+?(?:$comment|$eol)$/;
   my $blank_line   = qr/^$eol/;
