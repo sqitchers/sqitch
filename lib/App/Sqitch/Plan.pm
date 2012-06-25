@@ -138,7 +138,7 @@ sub _parse {
            )?                                   # ... optionally
            (?<name>$name_re)                    # followed by name
            (?:                                  # followed by...
-               (?<pspace>[[:blank:]]+)          #     Optional blanks
+               (?<pspace>[[:blank:]]+)          #     Blanks
                (?:                              #     followed by...
                    :([@]?$name_re)              #         A requires spec
                    (?{ push @req, $^N })        #         which we capture
@@ -246,7 +246,7 @@ sub _parse {
 
             if (my $duped = $step_named{ $params{name} }) {
                 # Mark previously-seen step of same name as duped.
-                $duped->is_duped(1);
+                $duped->suffix($prev_tag->format_name);
             }
             $step_named{ $params{name} } = $prev_step;
         }
@@ -397,6 +397,7 @@ sub do {
 
 sub add_tag {
     my ( $self, $name ) = @_;
+    $name =~ s/^@//;
     $self->_is_valid(tag => $name);
 
     my $plan  = $self->_plan;
@@ -419,6 +420,7 @@ sub add_tag {
     $step->add_tag($tag);
     $steps->index_tag( $steps->index_of( $step->id ), $tag );
     $plan->{lines}->append( $tag );
+    return $tag;
 }
 
 sub add_step {
@@ -439,23 +441,69 @@ sub add_step {
     my $step = App::Sqitch::Plan::Step->new(
         plan      => $self,
         name      => $name,
-        requires  => $requires  || [],
-        conflicts => $conflicts || [],
+        requires  => $requires  ||= [],
+        conflicts => $conflicts ||= [],
+        (@{ $requires } || @{ $conflicts } ? ( pspace => ' ' ) : ()),
     );
 
     # Make sure dependencies are specified.
-    for my $req ( $step->requires ) {
-        next if defined $steps->index_of($req);
-        my $type = $req =~ /^[@]/ ? 'tag' : 'step';
-        $self->sqitch->fail(
-            qq{Cannot add step "$name": },
-            qq{requires unknown $type "$req"}
-        );
-    }
+    $self->_check_dependencies($step, 'add');
 
     # We good.
     $steps->append( $step );
     $plan->{lines}->append( $step );
+    return $step;
+}
+
+sub rework_step {
+    my ( $self, $name, $requires, $conflicts ) = @_;
+    my $plan  = $self->_plan;
+    my $steps = $plan->{steps};
+    my $idx   = $steps->index_of($name . '@HEAD') // $self->sqitch->fail(
+        qq{Step "$name" does not exist.\n},
+        qq{Use "sqitch add $name" to add it to the plan},
+    );
+
+    my $tag_idx = $steps->index_of_last_tagged;
+    $self->sqitch->fail(
+        qq{Cannot rework "$name" without an intervening tag.\n},
+        'Use "sqitch tag" to create a tag and try again'
+    ) if !defined $tag_idx || $tag_idx < $idx;
+
+    my ($tag) = $steps->step_at($tag_idx)->tags;
+    unshift @{ $requires ||= [] } => $name . $tag->format_name;
+
+    my $orig = $steps->step_at($idx);
+    my $new  = App::Sqitch::Plan::Step->new(
+        plan      => $self,
+        name      => $name,
+        requires  => $requires,
+        conflicts => $conflicts ||= [],
+        (@{ $requires } || @{ $conflicts } ? ( pspace => ' ' ) : ()),
+    );
+
+    # Make sure dependencies are specified.
+    $self->_check_dependencies($new, 'rework');
+
+    # We good.
+    $orig->suffix($tag->format_name);
+    $steps->append( $new );
+    $plan->{lines}->append( $new );
+    return $new;
+}
+
+sub _check_dependencies {
+    my ( $self, $step, $action ) = @_;
+    my $steps = $self->_plan->{steps};
+    for my $req ( $step->requires ) {
+        next if defined $steps->index_of($req =~ /@/ ? $req : $req . '@HEAD');
+        my $name = $step->name;
+        $self->sqitch->fail(
+            qq{Cannot $action step "$name": },
+            qq{requires unknown change "$req"}
+        );
+    }
+    return $self;
 }
 
 sub _is_valid {
@@ -749,12 +797,22 @@ exists in the plan.
 =head3 C<add_step>
 
   $plan->add_step( 'whatevs' );
-  $plan->add_step( 'widgerts', [qw(foo bar)], [qw(dr_evil)] );
+  $plan->add_step( 'widgets', [qw(foo bar)], [qw(dr_evil)] );
 
 Adds a step to the plan. The second argument specifies a list of required
 steps. The third argument specifies a list of conflicting steps. Exits with a
 fatal error if the step already exists, or if the any of the dependencies are
 unknown.
+
+=head3 C<rework_step>
+
+  $plan->rework_step( 'whatevs' );
+  $plan->rework_step( 'widgets', [qw(foo bar)], [qw(dr_evil)] );
+
+Reworks an existing step. Said step must already exist in the plan and be
+tagged or have a tag following it or an exception will be thrown. The previous
+occurrence of the step will have the suffix of the most recent tag added to
+it, and a new tag instance will be added to the list.
 
 =head1 See Also
 

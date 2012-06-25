@@ -40,11 +40,11 @@ has since_tag => (
     required => 0,
 );
 
-has is_duped => (
+has suffix => (
     is       => 'rw',
-    isa      => 'Bool',
+    isa      => 'Str',
     required => 1,
-    default  => 0,
+    default  => '',
 );
 
 has _tags => (
@@ -69,7 +69,7 @@ has _fn => (
         my $self = shift;
         join '', (
             $self->name,
-            ($self->is_duped ? $self->since_tag->format_name : ()),
+            $self->suffix,
             '.',
             $self->plan->sqitch->extension,
         );

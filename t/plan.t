@@ -76,7 +76,7 @@ sub step {
         ($prev_tag ? (since_tag => $prev_tag) : ()),
     );
     if (my $duped = $seen{$_[1]}) {
-        $duped->is_duped(1);
+        $duped->suffix($prev_tag->format_name);
     }
     $seen{$_[1]} = $prev_step;
     $prev_step->id;
@@ -269,6 +269,7 @@ for my $name (
     '6',       # digit
     '阱阪阬',   # multibyte
     'foo/bar', # middle punct
+    'beta1',   # ending digit
 ) {
     # Test a step name.
     my $fh = IO::File->new(\$name, '<:utf8');
@@ -290,7 +291,7 @@ for my $name (
         lines => [ clear, version, step('', 'foo'), tag(1, '', $name) ],
     }, encode_utf8(qq{Should have line and step for "$tag"});
 }
-is sorted, 12, 'Should have sorted steps 12 times';
+is sorted, 14, 'Should have sorted steps 12 times';
 
 # Try a plan with reserved tag name @HEAD.
 $file = file qw(t plans reserved-tag.plan);
@@ -432,6 +433,39 @@ isa_ok $plan = App::Sqitch::Plan->new(sqitch => $sqitch), $CLASS,
 
 cmp_deeply [$plan->lines], [version], 'Should have only the version line';
 cmp_deeply [$plan->steps], [], 'Should have no steps';
+
+# Try a plan with dependencies.
+$file = file qw(t plans dependencies.plan);
+$sqitch = App::Sqitch->new(plan_file => $file, uri => $uri);
+isa_ok $plan = App::Sqitch::Plan->new(sqitch => $sqitch), $CLASS,
+    'Plan with sqitch with plan file with dependencies';
+ok $parsed = $plan->load, 'Load plan with dependencies file';
+is_deeply [$parsed->{steps}->steps], [
+    clear,
+    step( '', 'roles', '', '', '+' ),
+    step( '', 'users', '', '', '+', '    ', ['roles'] ),
+    step( '', 'add_user', '', '', '+', ' ', [qw( users roles)] ),
+    step( '', 'dr_evil', '', '', '+' ),
+    tag(0, '', 'alpha'),
+    step( '', 'users', '', '', '+', ' ', ['@alpha'] ),
+    step( '', 'dr_evil', '', '', '-' ),
+    step( '', 'del_user', '', '', '+', ' ' , ['users'], ['dr_evil'] ),
+], 'The steps should include the dependencies';
+is sorted, 2, 'Should have sorted steps twice';
+
+# Should fail with dependencies on tags.
+$file = file qw(t plans tag_dependencies.plan);
+$fh = IO::File->new(\"foo\n\@bar :foo", '<:utf8');
+$sqitch = App::Sqitch->new(plan_file => $file, uri => $uri);
+isa_ok $plan = App::Sqitch::Plan->new(sqitch => $sqitch), $CLASS,
+    'Plan with sqitch with plan with tag dependencies';
+throws_ok { $plan->_parse($file, $fh) }  qr/^FAIL:/,
+    'Should get an exception for tag with dependencies';
+cmp_deeply +MockOutput->get_fail, [[
+    "Syntax error in $file at line ",
+    2,
+    ': Tags may not specify dependencies',
+]], 'And the message should say that tags do not support dependencies';
 
 # Make sure that lines() loads the plan.
 $file = file qw(t plans multi.plan);
@@ -615,11 +649,43 @@ file_contents_is $to,
     'The contents should look right';
 
 ##############################################################################
+# Test _is_valid.
+can_ok $plan, '_is_valid';
+
+for my $name (@bad_names) {
+    throws_ok { $plan->_is_valid( tag => $name) } qr/^FAIL:/,
+        qq{Should find "$name" invalid};
+    cmp_deeply +MockOutput->get_fail, [[
+        qq{"$name" is invalid: tags must not begin with punctuation },
+        'or end in punctuation or digits following punctuation'
+    ]], qq{And "$name" should trigger the validation error};
+}
+
+# Try some valid names.
+for my $name (
+    'foo',     # alpha
+    '12',      # digits
+    't',       # char
+    '6',       # digit
+    '阱阪阬',   # multibyte
+    'foo/bar', # middle punct
+    'beta1',   # ending digit
+) {
+    my $disp = Encode::encode_utf8($name);
+    ok $plan->_is_valid(step => $name), qq{Name "$disp" sould be valid};
+}
+
+##############################################################################
 # Try adding a tag.
-ok $plan->add_tag('w00t'), 'Add tag "w00t"';
+ok my $tag = $plan->add_tag('w00t'), 'Add tag "w00t"';
 is $plan->count, 4, 'Should have 4 steps';
 is $plan->index_of('@w00t'), 3, 'Should find "@w00t at index 3';
 is $plan->last->name, 'hey-there', 'Last step should be "hey-there"';
+is_deeply [map { $_->name } $plan->last->tags], [qw(bar baz w00t)],
+    'The w00t tag should be on the last step';
+isa_ok $tag, 'App::Sqitch::Plan::Tag';
+is $tag->name, 'w00t', 'The returned tag should be @w00t';
+is $tag->step, $plan->last, 'The @w00t step should be the last step';
 
 ok $plan->write_to($to), 'Write out the file again';
 file_contents_is $to,
@@ -627,6 +693,12 @@ file_contents_is $to,
     . $file->slurp(iomode => '<:encoding(UTF-8)')
     . "\@w00t\n",
     'The contents should include the "w00t" tag';
+
+# Try passing the tag name with a leading @.
+ok $tag = $plan->add_tag('@alpha'), 'Add tag "@alpha"';
+is $plan->index_of('@alpha'), 3, 'Should find "@alpha at index 3';
+is $tag->name, 'alpha', 'The returned tag should be @alpha';
+is $tag->step, $plan->last, 'The @alpha step should be the last step';
 
 # Should choke on a duplicate tag.
 throws_ok { $plan->add_tag('w00t') } qr/^FAIL\b/,
@@ -665,23 +737,30 @@ cmp_deeply +MockOutput->get_fail, [[
 
 ##############################################################################
 # Try adding a step.
-ok $plan->add_step('booyah'), 'Add step "booyah"';
+ok my $new_step = $plan->add_step('booyah'), 'Add step "booyah"';
 is $plan->count, 5, 'Should have 5 steps';
 is $plan->index_of('booyah'), 4, 'Should find "booyah at index 4';
 is $plan->last->name, 'booyah', 'Last step should be "booyah"';
+isa_ok $new_step, 'App::Sqitch::Plan::Step';
+is $new_step->as_string, 'booyah',
+    'Should have plain stringification of "booya"';
 
 ok $plan->write_to($to), 'Write out the file again';
 file_contents_is $to,
     '%syntax-version=' . App::Sqitch::Plan::SYNTAX_VERSION . $/
     . $file->slurp(iomode => '<:encoding(UTF-8)')
-    . "\@w00t\nbooyah\n",
+    . "\@w00t\n\@alpha\nbooyah\n",
     'The contents should include the "booyah" step';
 
 # Make sure dependencies are verified.
-ok $plan->add_step('blow', ['booyah']), 'Add step "blow"';
+ok $new_step = $plan->add_step('blow', ['booyah']), 'Add step "blow"';
 is $plan->count, 6, 'Should have 6 steps';
 is $plan->index_of('blow'), 5, 'Should find "blow at index 5';
 is $plan->last->name, 'blow', 'Last step should be "blow"';
+is $new_step->as_string, 'blow :booyah',
+    'Should have nice stringification of "blow :booyah"';
+is [$plan->lines]->[-1], $new_step,
+    'The new step should have been appended to the lines, too';
 
 # Should choke on a duplicate step.
 throws_ok { $plan->add_step('blow') } qr/^FAIL\b/,
@@ -719,7 +798,7 @@ throws_ok { $plan->add_step('whu', ['nonesuch' ] ) } qr/^FAIL\b/,
     'Should get failure for failed dependency';
 cmp_deeply +MockOutput->get_fail, [[
     'Cannot add step "whu": ',
-    'requires unknown step "nonesuch"'
+    'requires unknown change "nonesuch"'
 ]], 'The dependency error should have been emitted';
 
 # Should choke on an unknown tag, too.
@@ -727,7 +806,7 @@ throws_ok { $plan->add_step('whu', ['@nonesuch' ] ) } qr/^FAIL\b/,
     'Should get failure for failed tag dependency';
 cmp_deeply +MockOutput->get_fail, [[
     'Cannot add step "whu": ',
-    'requires unknown tag "@nonesuch"'
+    'requires unknown change "@nonesuch"'
 ]], 'The tag dependency error should have been emitted';
 
 # Should choke on a step that looks like a SHA1.
@@ -737,38 +816,73 @@ cmp_deeply +MockOutput->get_fail, [[
     qq{"$sha1" is invalid because it could be confused with a SHA1 ID},
 ]], 'And the reserved name error should be output';
 
-# Try a plan with dependencies.
-$file = file qw(t plans dependencies.plan);
-$sqitch = App::Sqitch->new(plan_file => $file, uri => $uri);
-isa_ok $plan = App::Sqitch::Plan->new(sqitch => $sqitch), $CLASS,
-    'Plan with sqitch with plan file with dependencies';
-ok $parsed = $plan->load, 'Load plan with dependencies file';
-is_deeply [$parsed->{steps}->steps], [
-    clear,
-    step( '', 'roles', '', '', '+' ),
-    step( '', 'users', '', '', '+', '    ', ['roles'] ),
-    step( '', 'add_user', '', '', '+', ' ', [qw( users roles)] ),
-    step( '', 'dr_evil', '', '', '+' ),
-    tag(0, '', 'alpha'),
-    step( '', 'users', '', '', '+', ' ', ['@alpha'] ),
-    step( '', 'dr_evil', '', '', '-' ),
-    step( '', 'del_user', '', '', '+', ' ' , ['users'], ['dr_evil'] ),
-], 'The steps should include the dependencies';
-is sorted, 2, 'Should have sorted steps twice';
+##############################################################################
+# Try reworking a step.
+can_ok $plan, 'rework_step';
+ok my $rev_step = $plan->rework_step('you'), 'Rework step "you"';
+isa_ok $rev_step, 'App::Sqitch::Plan::Step';
+is $rev_step->name, 'you', 'Reworked step should be "you"';
+ok my $orig = $plan->step_at($plan->first_index_of('you')),
+    'Get original "you" step';
+is $orig->name, 'you', 'It should also be named "you"';
+is $orig->suffix, '@bar', 'And its suffix should be "@bar"';
+is $orig->deploy_file, $sqitch->deploy_dir->file('you@bar.sql'),
+    'The original file should now be named you@bar.sql';
+is $rev_step->suffix, '', 'But the reworked step should have no suffix';
+is $rev_step->as_string, 'you :you@bar',
+    'It should require the previous "you" step';
+is [$plan->lines]->[-1], $rev_step,
+    'The new "you" should have been appended to the lines, too';
 
-# Should fail with dependencies on tags.
-$file = file qw(t plans tag_dependencies.plan);
-$fh = IO::File->new(\"foo\n\@bar :foo", '<:utf8');
-$sqitch = App::Sqitch->new(plan_file => $file, uri => $uri);
-isa_ok $plan = App::Sqitch::Plan->new(sqitch => $sqitch), $CLASS,
-    'Plan with sqitch with plan with tag dependencies';
-throws_ok { $plan->_parse($file, $fh) }  qr/^FAIL:/,
-    'Should get an exception for tag with dependencies';
+# Make sure it was appended to the plan.
+is $plan->index_of('you@HEAD'), 6, 'It should be at position 6';
+is $plan->count, 7, 'The plan count should be 7';
+
+# Tag and add again, to be sure we can do it multiple times.
+ok $plan->add_tag('@beta1'), 'Tag @beta1';
+ok my $rev_step2 = $plan->rework_step('you'), 'Rework step "you" again';
+isa_ok $rev_step2, 'App::Sqitch::Plan::Step';
+is $rev_step2->name, 'you', 'New reworked step should be "you"';
+ok $orig = $plan->step_at($plan->first_index_of('you')),
+    'Get original "you" step again';
+is $orig->name, 'you', 'It should still be named "you"';
+is $orig->suffix, '@bar', 'And it should still have the suffix "@bar"';
+ok $rev_step = $plan->get('you@beta1'), 'Get you@beta1';
+is $rev_step->name, 'you', 'The second "you" should be named that';
+is $rev_step->suffix, '@beta1', 'And the second step should now have the suffx "@beta1"';
+is $rev_step2->suffix, '', 'But the new reworked step should have no suffix';
+is $rev_step2->as_string, 'you :you@beta1',
+    'It should require the previous "you" step';
+is [$plan->lines]->[-1], $rev_step2,
+    'The new reworking should have been appended to the lines';
+
+# Make sure it was appended to the plan.
+is $plan->index_of('you@HEAD'), 7, 'It should be at position 7';
+is $plan->count, 8, 'The plan count should be 8';
+
+# Try a nonexistent step name.
+throws_ok { $plan->rework_step('nonexistent') } qr/^FAIL:/,
+    'rework_step should die on nonexistent step';
 cmp_deeply +MockOutput->get_fail, [[
-    "Syntax error in $file at line ",
-    2,
-    ': Tags may not specify dependencies',
-]], 'And the message should say that tags do not support dependencies';
+    qq{Step "nonexistent" does not exist.\n},
+    qq{Use "sqitch add nonexistent" to add it to the plan},
+]], 'And the error should suggest "sqitch add"';
+
+# Try reworking without an intervening tag.
+throws_ok { $plan->rework_step('you') } qr/^FAIL:/,
+    'rework_stpe should die on lack of intervening tag';
+cmp_deeply +MockOutput->get_fail, [[
+    qq{Cannot rework "you" without an intervening tag.\n},
+    'Use "sqitch tag" to create a tag and try again'
+]], 'And the error should suggest "sqitch tag"';
+
+# Make sure it checks dependencies.
+throws_ok { $plan->rework_step('booyah', ['nonesuch' ] ) } qr/^FAIL\b/,
+    'rework_step should die on failed dependency';
+cmp_deeply +MockOutput->get_fail, [[
+    'Cannot rework step "booyah": ',
+    'requires unknown change "nonesuch"'
+]], 'The dependency error should have been emitted';
 
 ##############################################################################
 # Try a plan with a duplicate step in different tag sections.
@@ -947,5 +1061,34 @@ throws_ok { $plan->sort_steps(steps qw(this that other)) } qr/FAIL:/,
 cmp_deeply +MockOutput->get_fail, [[
     'Unknown tag "@foo" required in ', file 'sql/deploy/this.sql'
 ]], 'And we should emit an error pointing to the offending script';
+
+##############################################################################
+# Test dependency testing.
+can_ok $plan, '_check_dependencies';
+$mock_step->unmock('requires');
+
+for my $req (qw(hi greets whatever @foo whatever@foo)) {
+    $step = App::Sqitch::Plan::Step->new(
+        plan     => $plan,
+        name     => 'lazy',
+        requires => [$req],
+    );
+    ok $plan->_check_dependencies($step, 'add'),
+        qq{Dependency on "$req" should succeed};
+}
+
+for my $req (qw(wanker @blah greets@foo)) {
+    $step = App::Sqitch::Plan::Step->new(
+        plan     => $plan,
+        name     => 'lazy',
+        requires => [$req],
+    );
+    throws_ok { $plan->_check_dependencies($step, 'bark') } qr/^FAIL\b/,
+        qq{Should get error trying to depend on "$req"};
+    cmp_deeply +MockOutput->get_fail, [[
+        qq{Cannot bark step "lazy": },
+        qq{requires unknown change "$req"},
+    ]], qq{And should get unknown dependency error for "$req"};
+}
 
 done_testing;

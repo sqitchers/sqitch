@@ -30,7 +30,7 @@ can_ok $CLASS, qw(
     rspace
     comment
     since_tag
-    is_duped
+    suffix
     tags
     add_tag
     plan
@@ -94,7 +94,7 @@ ok my $step2 = $CLASS->new(
     operator  => '-',
     ropspace  => ' ',
     rspace    => "\t",
-    is_duped  => 1,
+    suffix    => '@beta',
     comment   => ' blah blah blah',
     pspace    => '  ',
     requires  => [qw(foo bar @baz)],
@@ -124,12 +124,12 @@ is $step2->format_name_with_tags, 'howdy @alpha',
     'Should format name with tags';
 
 # Check file names.
-is $step2->deploy_file, $sqitch->deploy_dir->file('howdy@alpha.sql'),
-    'The deploy file should ref the since tag';
-is $step2->revert_file, $sqitch->revert_dir->file('howdy@alpha.sql'),
-    'The revert file should ref the since tag';
-is $step2->test_file, $sqitch->test_dir->file('howdy@alpha.sql'),
-    'The test file should ref the since tag';
+is $step2->deploy_file, $sqitch->deploy_dir->file('howdy@beta.sql'),
+    'The deploy file should include the suffix';
+is $step2->revert_file, $sqitch->revert_dir->file('howdy@beta.sql'),
+    'The revert file should include the suffix';
+is $step2->test_file, $sqitch->test_dir->file('howdy@beta.sql'),
+    'The test file should include the suffix';
 
 ##############################################################################
 # Test open_script.
