@@ -688,6 +688,10 @@ support them. And the grammar needs to document them, of course.
 =item * Add checks to L<sqitch-add-step> to halt if a C<--requires> or C<--conflicts>
 step does not exist.
 
+=item * Let C</> specify subdirectories platform-independently in step names.
+
+=item * Eliminate use of C<fail()> and localize messages.
+
 =back
 
 =head1 Author
