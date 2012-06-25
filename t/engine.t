@@ -881,17 +881,17 @@ is_deeply +MockOutput->get_info, [
 ], 'Should again have shown step name';
 @conflicts = ();
 
-# Die on missing prereqs.
+# Die on missing dependencies.
 @missing_requires = qw(foo bar);
 throws_ok { $engine->deploy_step($step) } 'App::Sqitch::X',
-    'Missing prereqs should throw exception';
+    'Missing dependencies should throw exception';
 is $@->ident, 'deploy', 'Should be another "deploy" error';
 is $@->message, __nx(
     'Missing required step: {steps}',
     'Missing required steps: {steps}',
     scalar @missing_requires,
     steps => join ' ', @missing_requires,
-), 'Should have localized message missing prereqs';
+), 'Should have localized message missing dependencies';
 
 is_deeply $engine->seen, [
     [check_conflicts => $step],

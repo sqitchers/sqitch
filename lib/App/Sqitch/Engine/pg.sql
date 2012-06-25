@@ -18,7 +18,7 @@ COMMENT ON TABLE :"sqitch_schema".steps
 IS 'Tracks the steps currently deployed to the database.';
 COMMENT ON COLUMN :"sqitch_schema".steps.step_id     IS 'Step primary key.';
 COMMENT ON COLUMN :"sqitch_schema".steps.step        IS 'Name of a deployed step.';
-COMMENT ON COLUMN :"sqitch_schema".steps.requires    IS 'Array of the names of prerequisite steps.';
+COMMENT ON COLUMN :"sqitch_schema".steps.requires    IS 'Array of the names of required steps.';
 COMMENT ON COLUMN :"sqitch_schema".steps.conflicts   IS 'Array of the names of conflicting steps.';
 COMMENT ON COLUMN :"sqitch_schema".steps.deployed_at IS 'Date the step was deployed.';
 COMMENT ON COLUMN :"sqitch_schema".steps.deployed_by IS 'Name of the user who deployed the step';

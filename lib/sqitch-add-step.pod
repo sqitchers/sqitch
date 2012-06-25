@@ -153,7 +153,7 @@ The name of the step being added.
 
 =item C<requires>
 
-A list of prerequisite steps as passed via one or more instances of the
+A list of required steps as passed via one or more instances of the
 C<--requiers> option.
 
 =item C<conflicts>

@@ -275,7 +275,7 @@ sub deploy_step {
         )
     }
 
-    # Check for prerequisites.
+    # Check for dependencies.
     if (my @required = $self->check_requires($step)) {
         hurl deploy => __nx(
             'Missing required step: {steps}',

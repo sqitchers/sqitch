@@ -8,7 +8,7 @@ sqitch-add-step-usage - Sqitch add-step usage statement
 
 =head1 Options
 
-    -r --requres              require prerequisite step
+    -r --requres              require step
     -c --conflicts            declare conflicting step
     -s --set                  set a template variable
 

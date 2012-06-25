@@ -199,7 +199,7 @@ sub _parse {
                 );
             }
 
-            # Fail on prereqs.
+            # Fail on dependencies.
             if (@req || @con) {
                 $self->sqitch->fail(
                     "Syntax error in $file at line ",
@@ -751,10 +751,10 @@ exists in the plan.
   $plan->add_step( 'whatevs' );
   $plan->add_step( 'widgerts', [qw(foo bar)], [qw(dr_evil)] );
 
-Adds a step to the plan. The second argument specifies a list of prerequisite
+Adds a step to the plan. The second argument specifies a list of required
 steps. The third argument specifies a list of conflicting steps. Exits with a
-fatal error if the step already exists, or if the any of the prerequisite
-steps are unknown.
+fatal error if the step already exists, or if the any of the dependencies are
+unknown.
 
 =head1 See Also
 

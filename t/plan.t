@@ -744,12 +744,12 @@ cmp_deeply +MockOutput->get_fail, [[
     qq{"$sha1" is invalid because it could be confused with a SHA1 ID},
 ]], 'And the reserved name error should be output';
 
-# Try a plan with prereqs.
-$file = file qw(t plans prereqs.plan);
+# Try a plan with dependencies.
+$file = file qw(t plans dependencies.plan);
 $sqitch = App::Sqitch->new(plan_file => $file, uri => $uri);
 isa_ok $plan = App::Sqitch::Plan->new(sqitch => $sqitch), $CLASS,
-    'Plan with sqitch with plan file with prereqs';
-ok $parsed = $plan->load, 'Load plan with prereqs file';
+    'Plan with sqitch with plan file with dependencies';
+ok $parsed = $plan->load, 'Load plan with dependencies file';
 is_deeply [$parsed->{steps}->steps], [
     clear,
     step( '', 'roles', '', '', '+' ),
@@ -760,10 +760,10 @@ is_deeply [$parsed->{steps}->steps], [
     step( '', 'users', '', '', '+', ' ', ['@alpha'] ),
     step( '', 'dr_evil', '', '', '-' ),
     step( '', 'del_user', '', '', '+', ' ' , ['users'], ['dr_evil'] ),
-], 'The steps should include the prereqs';
+], 'The steps should include the dependencies';
 is sorted, 2, 'Should have sorted steps twice';
 
-# Should fail with prerequisites on tags.
+# Should fail with dependencies on tags.
 $file = file qw(t plans tag_dependencies.plan);
 $fh = IO::File->new(\"foo\n\@bar :foo", '<:utf8');
 $sqitch = App::Sqitch->new(plan_file => $file, uri => $uri);

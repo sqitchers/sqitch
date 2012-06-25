@@ -354,7 +354,7 @@ subtest 'live database' => sub {
     ), [], 'Should still have no tag records';
 
     ##########################################################################
-    # Test a step with prereqs.
+    # Test a step with dependencies.
     ok $pg->log_deploy_step($step),    'Deploy the step again';
     ok $pg->is_deployed_tag($tag),     'The tag again should be deployed';
     is $pg->latest_step_id, $step->id, 'Should still get users ID for latest step ID';
@@ -385,7 +385,7 @@ subtest 'live database' => sub {
     ##########################################################################
     # Test conflicts and requires.
     is_deeply [$pg->check_conflicts($step)], [], 'Step should have no conflicts';
-    is_deeply [$pg->check_requires($step)], [], 'Step should have no missing prereqs';
+    is_deeply [$pg->check_requires($step)], [], 'Step should have no missing dependencies';
 
     my $step3 = App::Sqitch::Plan::Step->new(
         name      => 'whatever',
@@ -396,7 +396,7 @@ subtest 'live database' => sub {
     is_deeply [$pg->check_conflicts($step3)], [qw(users widgets)],
         'Should get back list of installed conflicting steps';
     is_deeply [$pg->check_requires($step3)], [qw(barney fred)],
-        'Should get back list of missing prereq steps';
+        'Should get back list of missing dependencies';
 
     # Undeploy widgets.
     ok $pg->log_revert_step($step2), 'Revert "widgets"';
@@ -404,7 +404,7 @@ subtest 'live database' => sub {
     is_deeply [$pg->check_conflicts($step3)], [qw(users)],
         'Should now see only "users" as a conflict';
     is_deeply [$pg->check_requires($step3)], [qw(barney fred widgets)],
-        'Should get back list all three missing prereq steps';
+        'Should get back list all three missing dependencies';
 
     ##########################################################################
     # Test deployed_step_ids() and deployed_step_ids_since().
