@@ -1,9 +1,9 @@
 -- Deploy [% change %]
 [% FOREACH item IN requires -%]
--- :requires: [% item %]
+-- requires: [% item %]
 [% END -%]
 [% FOREACH item IN conflicts -%]
--- :conflicts: [% item %]
+-- conflicts: [% item %]
 [% END -%]
 
 BEGIN;

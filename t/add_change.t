@@ -236,9 +236,9 @@ is_deeply +MockOutput->get_info, [["Created $out"]],
     'Info should show $out created';
 file_contents_is $out, <<EOF, 'The template should have been evaluated with requires and conflicts';
 -- Deploy another_change_test
--- :requires: foo
--- :requires: bar
--- :conflicts: baz
+-- requires: foo
+-- requires: bar
+-- conflicts: baz
 
 BEGIN;
 

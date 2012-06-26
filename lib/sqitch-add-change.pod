@@ -122,7 +122,7 @@ Conditional blocks:
 Loop over a list of values:
 
   [% FOREACH item IN requires -%]
-  -- :requires: [% item %]
+  -- requires: [% item %]
   [% END -%]
 
 =back
