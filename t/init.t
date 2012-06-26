@@ -115,13 +115,14 @@ is_deeply +MockOutput->get_info, [
 ], 'The creation should be sent to info';
 is $uuid_type, UUID::Tiny::UUID_V4(), 'Should use a V4 UUID';
 my $top_dir    = File::Spec->curdir;
-my $deploy_dir = File::Spec->catfile(qw(deploy));
-my $revert_dir = File::Spec->catfile(qw(revert));
-my $test_dir   = File::Spec->catfile(qw(test));
+my $deploy_dir = File::Spec->catdir(qw(deploy));
+my $revert_dir = File::Spec->catdir(qw(revert));
+my $test_dir   = File::Spec->catdir(qw(test));
+my $plan_file  = $sqitch->top_dir->file('sqitch.plan')->stringify;
 file_contents_like $conf_file, qr{\Q[core]
 	uri = $uri
 	# engine = 
-	# plan_file = sqitch.plan
+	# plan_file = $plan_file
 	# top_dir = $top_dir
 	# deploy_dir = $deploy_dir
 	# revert_dir = $revert_dir
@@ -148,7 +149,7 @@ is_deeply +MockOutput->get_info, [
 
 file_contents_like $conf_file, qr{
 	# engine = 
-	# plan_file = sqitch.plan
+	# plan_file = $plan_file
 	# top_dir = $top_dir
 	# deploy_dir = $deploy_dir
 	# revert_dir = $revert_dir
@@ -182,7 +183,7 @@ USERCONF: {
     ], 'The creation should be sent to info again';
     file_contents_like $conf_file, qr{\Q
 	# engine = 
-	# plan_file = sqitch.plan
+	# plan_file = $plan_file
 	# top_dir = $top_dir
 	# deploy_dir = $deploy_dir
 	# revert_dir = $revert_dir
@@ -209,11 +210,13 @@ SYSTEMCONF: {
         ['Created ' . $conf_file]
     ], 'The creation should be sent to info again';
 
-    my $deploy_dir = File::Spec->catfile(qw(migrations deploy));
-    my $revert_dir = File::Spec->catfile(qw(migrations revert));
-    my $test_dir   = File::Spec->catfile(qw(migrations test));
+    my $deploy_dir = File::Spec->catdir(qw(migrations deploy));
+    my $revert_dir = File::Spec->catdir(qw(migrations revert));
+    my $test_dir   = File::Spec->catdir(qw(migrations test));
+    my $plan_file  = $sqitch->top_dir->file('sqitch.plan')->stringify;
+
     file_contents_like $conf_file, qr{\Q
-	# plan_file = sqitch.plan
+	# plan_file = $plan_file
 	# top_dir = migrations
 	# deploy_dir = $deploy_dir
 	# revert_dir = $revert_dir
@@ -419,7 +422,7 @@ USERCONF: {
 ##############################################################################
 # Test write_plan().
 can_ok $init, 'write_plan';
-my $plan_file = $sqitch->plan_file;
+$plan_file = $sqitch->plan_file;
 file_not_exists_ok $plan_file, 'Plan file should not yet exist';
 ok $init->write_plan, 'Write the plan file';
 is_deeply +MockOutput->get_info, [

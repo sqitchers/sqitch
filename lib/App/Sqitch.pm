@@ -26,8 +26,9 @@ our $VERSION = '0.32';
 has plan_file => (
     is       => 'ro',
     required => 1,
+    lazy     => 1,
     default  => sub {
-        file 'sqitch.plan';
+        shift->top_dir->file('sqitch.plan');
     }
 );
 
