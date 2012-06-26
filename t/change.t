@@ -146,12 +146,6 @@ $fh->say('-- This is a comment');
 $fh->say('# And so is this');
 $fh->say('; and this, w€€!');
 $fh->say('/* blah blah blah */');
-$fh->say('-- :requires: foo');
-$fh->say('-- :requires: foo');
-$fh->say('-- :requires: @yo');
-$fh->say('-- :requires:blah blah w00t');
-$fh->say('-- :conflicts: yak');
-$fh->say('-- :conflicts:this that');
 $fh->close;
 
 ok $change2 = $CLASS->new( name => 'baz', plan => $plan ),
