@@ -4,7 +4,7 @@
 +dr_evil
 @alpha
 
-+users :@alpha
++users :users@alpha
 -dr_evil
 +del_user !dr_evil :users
 

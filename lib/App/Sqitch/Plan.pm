@@ -231,7 +231,7 @@ sub _parse {
                         $fh->input_line_number,
                         qq{: "$dep" does not look like a dependency.\n},
                         qq{Dependencies must begin with ":" or "!" and be valid step names},
-                    ) unless $dep =~ /([:!])([@]?$name_re)/g;
+                    ) unless $dep =~ /^([:!])((?:(?:$name_re)?[@])?$name_re)$/g;
                     if ($1 eq ':') {
                         push @req => $2;
                     } else {

@@ -446,7 +446,7 @@ is_deeply [$parsed->{steps}->steps], [
     step( '', 'add_user', '', '', '+', ' ', [qw( users roles)] ),
     step( '', 'dr_evil', '', '', '+' ),
     tag(0, '', 'alpha'),
-    step( '', 'users', '', '', '+', ' ', ['@alpha'] ),
+    step( '', 'users', '', '', '+', ' ', ['users@alpha'] ),
     step( '', 'dr_evil', '', '', '-' ),
     step( '', 'del_user', '', '', '+', ' ' , ['users'], ['dr_evil'] ),
 ], 'The steps should include the dependencies';
