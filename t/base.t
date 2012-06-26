@@ -65,10 +65,10 @@ is $sqitch->plan_file, file('sqitch.plan'), 'Default plan file should be sqitch.
 is $sqitch->verbosity, 1, 'verbosity should be 1';
 is $sqitch->dry_run, 0, 'dry_run should be 0';
 is $sqitch->extension, 'sql', 'Default extension should be sql';
-is $sqitch->top_dir, dir('sql'), 'Default top_dir should be ./sql';
-is $sqitch->deploy_dir, dir(qw(sql deploy)), 'Default deploy_dir should be ./sql/deploy';
-is $sqitch->revert_dir, dir(qw(sql revert)), 'Default revert_dir should be ./sql/revert';
-is $sqitch->test_dir, dir(qw(sql test)), 'Default test_dir should be ./sql/test';
+is $sqitch->top_dir, dir(), 'Default top_dir should be .';
+is $sqitch->deploy_dir, dir(qw(deploy)), 'Default deploy_dir should be ./sql/deploy';
+is $sqitch->revert_dir, dir(qw(revert)), 'Default revert_dir should be ./sql/revert';
+is $sqitch->test_dir, dir(qw(test)), 'Default test_dir should be ./sql/test';
 isa_ok $sqitch->plan, 'App::Sqitch::Plan';
 throws_ok { $sqitch->uri } 'App::Sqitch::X',
     'Should get error for missing URI';

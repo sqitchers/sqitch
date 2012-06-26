@@ -17,7 +17,9 @@ use MockOutput;
 
 my $CLASS = 'App::Sqitch::Command::add_step';
 
-ok my $sqitch = App::Sqitch->new, 'Load a sqitch sqitch object';
+ok my $sqitch = App::Sqitch->new(
+    top_dir => Path::Class::Dir->new('sql'),
+), 'Load a sqitch sqitch object';
 my $config = $sqitch->config;
 isa_ok my $add_step = App::Sqitch::Command->load({
     sqitch  => $sqitch,

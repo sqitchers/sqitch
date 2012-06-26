@@ -1055,7 +1055,7 @@ cmp_deeply [$plan->sort_steps({sqitch => 1 }, steps qw(this that other))],
 throws_ok { $plan->sort_steps(steps qw(this that other)) } qr/FAIL:/,
     'Should die on unknown dependency';
 cmp_deeply +MockOutput->get_fail, [[
-    'Unknown step "foo" required in ', file 'sql/deploy/this.sql'
+    'Unknown step "foo" required in ', file 'deploy/this.sql'
 ]], 'And we should emit an error pointing to the offending script';
 
 # Okay, now deal with depedencies from ealier step sections.
@@ -1063,7 +1063,7 @@ cmp_deeply +MockOutput->get_fail, [[
 throws_ok { $plan->sort_steps(steps qw(this that other)) } qr/FAIL:/,
     'Should die on unknown dependency';
 cmp_deeply +MockOutput->get_fail, [[
-    'Unknown tag "@foo" required in ', file 'sql/deploy/this.sql'
+    'Unknown tag "@foo" required in ', file 'deploy/this.sql'
 ]], 'And we should emit an error pointing to the offending script';
 
 ##############################################################################

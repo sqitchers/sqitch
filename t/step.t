@@ -44,7 +44,8 @@ can_ok $CLASS, qw(
 );
 
 my $sqitch = App::Sqitch->new(
-    uri => URI->new('https://github.com/theory/sqitch/'),
+    uri     => URI->new('https://github.com/theory/sqitch/'),
+    top_dir => dir('sql'),
 );
 my $plan  = App::Sqitch::Plan->new(sqitch => $sqitch);
 isa_ok my $step = $CLASS->new(
@@ -182,6 +183,7 @@ is $fh->getline, "-- test it, baby\n", 'It should be the test file';
 my $file = file qw(t plans multi.plan);
 $sqitch = App::Sqitch->new(
     uri       => URI->new('https://github.com/theory/sqitch/'),
+    top_dir   => dir('sql'),
     plan_file => $file,
 );
 $plan = $sqitch->plan;

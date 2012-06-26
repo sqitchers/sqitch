@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 110;
+use Test::More tests => 111;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Path::Class;
@@ -12,6 +12,7 @@ use Test::Dir;
 use Test::File qw(file_not_exists_ok file_exists_ok);
 use Test::Exception;
 use Test::File::Contents;
+use Test::NoWarnings;
 use File::Path qw(remove_tree make_path);
 use lib 't/lib';
 use MockOutput;
@@ -46,8 +47,8 @@ for my $attr (map { "$_\_dir"} qw(top deploy revert test)) {
     dir_not_exists_ok $sqitch->$attr;
 }
 
-my $top_dir = $sqitch->top_dir->stringify;
-END { remove_tree $top_dir }
+my $top_dir_string = $sqitch->top_dir->stringify;
+END { remove_tree $top_dir_string }
 
 ok $init->make_directories, 'Make the directories';
 for my $attr (map { "$_\_dir"} qw(top deploy revert test)) {
@@ -70,10 +71,10 @@ is_deeply +MockOutput->get_info, [
 ], 'Should have noted creation of revert dir';
 
 # Handle errors.
-remove_tree $top_dir;
-make_path $top_dir;
-chmod 0000, $top_dir;
-END { chmod 0400, $top_dir }
+remove_tree $top_dir_string;
+make_path $top_dir_string;
+chmod 0000, $top_dir_string;
+END { chmod 0400, $top_dir_string }
 throws_ok { $init->make_directories } qr/FAIL/, 'Should fail on permissio issue';
 is_deeply +MockOutput->get_fail, [
     ['Error creating ' . $sqitch->deploy_dir . ': Permission denied'],
@@ -113,14 +114,15 @@ is_deeply +MockOutput->get_info, [
     ['Created ' . $conf_file]
 ], 'The creation should be sent to info';
 is $uuid_type, UUID::Tiny::UUID_V4(), 'Should use a V4 UUID';
-my $deploy_dir = File::Spec->catfile(qw(sql deploy));
-my $revert_dir = File::Spec->catfile(qw(sql revert));
-my $test_dir   = File::Spec->catfile(qw(sql test));
+my $top_dir    = File::Spec->curdir;
+my $deploy_dir = File::Spec->catfile(qw(deploy));
+my $revert_dir = File::Spec->catfile(qw(revert));
+my $test_dir   = File::Spec->catfile(qw(test));
 file_contents_like $conf_file, qr{\Q[core]
 	uri = $uri
 	# engine = 
 	# plan_file = sqitch.plan
-	# top_dir = sql
+	# top_dir = $top_dir
 	# deploy_dir = $deploy_dir
 	# revert_dir = $revert_dir
 	# test_dir = $test_dir
@@ -147,7 +149,7 @@ is_deeply +MockOutput->get_info, [
 file_contents_like $conf_file, qr{
 	# engine = 
 	# plan_file = sqitch.plan
-	# top_dir = sql
+	# top_dir = $top_dir
 	# deploy_dir = $deploy_dir
 	# revert_dir = $revert_dir
 	# test_dir = $test_dir
@@ -181,7 +183,7 @@ USERCONF: {
     file_contents_like $conf_file, qr{\Q
 	# engine = 
 	# plan_file = sqitch.plan
-	# top_dir = sql
+	# top_dir = $top_dir
 	# deploy_dir = $deploy_dir
 	# revert_dir = $revert_dir
 	# test_dir = $test_dir
@@ -440,7 +442,6 @@ file_contents_like $plan_file, qr/testing 1, 2, 3/,
 
 ##############################################################################
 # Bring it all together, yo.
-remove_tree $top_dir;
 unlink $conf_file;
 unlink $plan_file;
 ok $init->execute, 'Execute!';

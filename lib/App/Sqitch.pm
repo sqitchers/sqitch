@@ -73,7 +73,7 @@ has top_dir => (
     isa      => 'Maybe[Path::Class::Dir]',
     required => 1,
     lazy     => 1,
-    default => sub { dir shift->config->get( key => 'core.top_dir' ) || 'sql' },
+    default => sub { dir shift->config->get( key => 'core.top_dir' ) || () },
 );
 
 has deploy_dir => (
