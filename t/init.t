@@ -38,19 +38,19 @@ $ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
 
 ##############################################################################
 # Test make_directories.
-my $sqitch = App::Sqitch->new(sql_dir => dir 'init.mkdir');
+my $sqitch = App::Sqitch->new(top_dir => dir 'init.mkdir');
 isa_ok my $init = $CLASS->new(sqitch => $sqitch), $CLASS, 'New init object';
 
 can_ok $init, 'make_directories';
-for my $attr (map { "$_\_dir"} qw(sql deploy revert test)) {
+for my $attr (map { "$_\_dir"} qw(top deploy revert test)) {
     dir_not_exists_ok $sqitch->$attr;
 }
 
-my $sql_dir = $sqitch->sql_dir->stringify;
-END { remove_tree $sql_dir }
+my $top_dir = $sqitch->top_dir->stringify;
+END { remove_tree $top_dir }
 
 ok $init->make_directories, 'Make the directories';
-for my $attr (map { "$_\_dir"} qw(sql deploy revert test)) {
+for my $attr (map { "$_\_dir"} qw(top deploy revert test)) {
     dir_exists_ok $sqitch->$attr;
 }
 is_deeply +MockOutput->get_info, [
@@ -70,10 +70,10 @@ is_deeply +MockOutput->get_info, [
 ], 'Should have noted creation of revert dir';
 
 # Handle errors.
-remove_tree $sql_dir;
-make_path $sql_dir;
-chmod 0000, $sql_dir;
-END { chmod 0400, $sql_dir }
+remove_tree $top_dir;
+make_path $top_dir;
+chmod 0000, $top_dir;
+END { chmod 0400, $top_dir }
 throws_ok { $init->make_directories } qr/FAIL/, 'Should fail on permissio issue';
 is_deeply +MockOutput->get_fail, [
     ['Error creating ' . $sqitch->deploy_dir . ': Permission denied'],
@@ -120,7 +120,7 @@ file_contents_like $conf_file, qr{\Q[core]
 	uri = $uri
 	# engine = 
 	# plan_file = sqitch.plan
-	# sql_dir = sql
+	# top_dir = sql
 	# deploy_dir = $deploy_dir
 	# revert_dir = $revert_dir
 	# test_dir = $test_dir
@@ -147,7 +147,7 @@ is_deeply +MockOutput->get_info, [
 file_contents_like $conf_file, qr{
 	# engine = 
 	# plan_file = sqitch.plan
-	# sql_dir = sql
+	# top_dir = sql
 	# deploy_dir = $deploy_dir
 	# revert_dir = $revert_dir
 	# test_dir = $test_dir
@@ -174,14 +174,14 @@ USERCONF: {
     is_deeply read_config $conf_file, {
         'core.uri' => $uri,
         'core.extension' => 'foo',
-    }, 'The configuration should just have core.uri and core.sql_dir';
+    }, 'The configuration should just have core.uri and core.top_dir';
     is_deeply +MockOutput->get_info, [
         ['Created ' . $conf_file]
     ], 'The creation should be sent to info again';
     file_contents_like $conf_file, qr{\Q
 	# engine = 
 	# plan_file = sqitch.plan
-	# sql_dir = sql
+	# top_dir = sql
 	# deploy_dir = $deploy_dir
 	# revert_dir = $revert_dir
 	# test_dir = $test_dir
@@ -212,7 +212,7 @@ SYSTEMCONF: {
     my $test_dir   = File::Spec->catfile(qw(migrations test));
     file_contents_like $conf_file, qr{\Q
 	# plan_file = sqitch.plan
-	# sql_dir = migrations
+	# top_dir = migrations
 	# deploy_dir = $deploy_dir
 	# revert_dir = $revert_dir
 	# test_dir = $test_dir
@@ -440,13 +440,13 @@ file_contents_like $plan_file, qr/testing 1, 2, 3/,
 
 ##############################################################################
 # Bring it all together, yo.
-remove_tree $sql_dir;
+remove_tree $top_dir;
 unlink $conf_file;
 unlink $plan_file;
 ok $init->execute, 'Execute!';
 
 # Should have directories.
-for my $attr (map { "$_\_dir"} qw(sql deploy revert test)) {
+for my $attr (map { "$_\_dir"} qw(top deploy revert test)) {
     dir_exists_ok $sqitch->$attr;
 }
 

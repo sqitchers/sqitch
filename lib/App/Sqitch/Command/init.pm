@@ -95,7 +95,7 @@ sub write_config {
     # Add in the other stuff.
     for my $name (qw(
         plan_file
-        sql_dir
+        top_dir
         deploy_dir
         revert_dir
         test_dir

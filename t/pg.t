@@ -227,7 +227,7 @@ END {
 subtest 'live database' => sub {
     $sqitch = App::Sqitch->new(
         username  => 'postgres',
-        sql_dir   => Path::Class::dir(qw(t pg)),
+        top_dir   => Path::Class::dir(qw(t pg)),
         plan_file => Path::Class::file(qw(t pg sqitch.plan)),
         uri       => URI->new('https://github.com/theory/sqitch/'),
     );

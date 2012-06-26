@@ -131,10 +131,10 @@ reverts all steps necessary to return the state to an earlier tag.
      --host       HOST    Database server host name.
      --port       PORT    Database server port number.
      --uri        URI     Project unique identifier.
-     --sql-dir    DIR     Path to directory with deploy and revert scripts.
-     --deploy-dir DIR     Path to directory with SQL deployment scripts.
-     --revert-dir DIR     Path to directory with SQL reversion scripts.
-     --test-dir   DIR     Path to directory with SQL test scripts.
+     --top-dir    DIR     Path to directory with plan and scripts.
+     --deploy-dir DIR     Path to directory with deployment scripts.
+     --revert-dir DIR     Path to directory with reversion scripts.
+     --test-dir   DIR     Path to directory with test scripts.
      --extension  EXT     SQL script file name extension.
      --dry-run            Execute command without making any changes.
      --etc-path           Print the path to the etc directory and exit.
@@ -226,9 +226,9 @@ generate unique IDs for project steps, and so should be consistently used in
 the project. Thus it it is probably best set as a local configuration setting
 (C<core.uri>).
 
-=item C<--sql-dir>
+=item C<--top-dir>
 
-  sqitch --sql-dir migrations/
+  sqitch --top-dir migrations/
 
 Path to directory containing deployment, reversion, and test SQL scripts. It
 should contain subdirectories named C<deploy>, C<revert>, and (optionally)
@@ -240,21 +240,21 @@ C<--test-dir>. Defaults to C<./sql>.
   sqitch --deploy-dir db/up
 
 Path to a directory containing SQL deployment scripts. Overrides the value
-implied by C<--sql-dir>.
+implied by C<--top-dir>.
 
 =item C<--revert-dir>
 
   sqitch --revert-dir db/up
 
 Path to a directory containing SQL reversion scripts. Overrides the value
-implied by C<--sql-dir>.
+implied by C<--top-dir>.
 
 =item C<--test-dir>
 
   sqitch --test-dir db/t
 
 Path to a directory containing SQL test scripts. Overrides the value implied
-by C<--sql-dir>.
+by C<--top-dir>.
 
 =item C<--extension>
 
@@ -593,7 +593,7 @@ with the "gamma" tag:
       uri       = https://github.com/theory/sqitch/
       engine    = pg
       db        = widgetopolis
-      sql_dir   = migrations
+      top_dir   = migrations
       extension = ddl
 
   [revert]

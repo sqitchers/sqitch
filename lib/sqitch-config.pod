@@ -395,7 +395,7 @@ Some variables may require a special value format.
       uri       = https://github.com/theory/sqitch/
       engine    = pg
       db        = widgetopolis
-      sql_dir   = migrations
+      top_dir   = migrations
       extension = ddl
 
   [revert]
@@ -441,7 +441,7 @@ The database engine to use. Supported engines include:
 
 =back
 
-=item C<core.sql_dir>
+=item C<core.top_dir>
 
 Path to directory containing deployment, reversion, and test SQL scripts. It
 should contain subdirectories named C<deploy>, C<revert>, and (optionally)
@@ -451,17 +451,17 @@ C<test_dir>. Defaults to C<./sql>.
 =item C<core.deploy_dir>
 
 Path to a directory containing SQL deployment scripts. Overrides the value
-implied by C<core.sql_dir>.
+implied by C<core.top_dir>.
 
 =item C<core.revert_dir>
 
 Path to a directory containing SQL reversion scripts. Overrides the value
-implied by C<core.sql_dir>.
+implied by C<core.top_dir>.
 
 =item C<core.test_dir>
 
 Path to a directory containing SQL test scripts. Overrides the value implied
-by C<core.sql_dir>.
+by C<core.top_dir>.
 
 =item C<core.extension>
 

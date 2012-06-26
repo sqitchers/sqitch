@@ -25,7 +25,7 @@ can_ok $CLASS, qw(
 
 my $sqitch = App::Sqitch->new(
     plan_file => file(qw(t sql sqitch.plan)),
-    sql_dir   => dir(qw(t sql)),
+    top_dir   => dir(qw(t sql)),
     _engine   => 'sqlite',
 );
 

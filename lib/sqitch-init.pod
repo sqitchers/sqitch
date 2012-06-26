@@ -34,11 +34,11 @@ Sets the C<core.plan_file> configuration variable.
 
 Sets the C<core.plan_file> configuration variable.
 
-=item C<--sql-dir>
+=item C<--top-dir>
 
-Determines the top-level directory to use when writing the C<core.deploy_dir>,
-C<core.revert_dir>, and C<core.test_dir> variable -- unless they are
-overridden by their more-specific options, detailed below.
+Determines the top-level directory to use when writing the plan and
+theC<core.deploy_dir>, C<core.revert_dir>, and C<core.test_dir> variables --
+unless they are overridden by their more-specific options, detailed below.
 
 =item C<--deploy-dir>
 

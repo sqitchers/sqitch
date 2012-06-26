@@ -11,7 +11,7 @@ Revision history for Perl extension App::Sqitch
      - The `--requires` and `--conflicts` options to `add-step` now work
        properly.
      - Fixed anticipated Win32 test failures in `t/init.t`.'
-     - Fixed the `--plan-file`, `--sql-dir`, and other directory options so
+     - Fixed the `--plan-file`, `--top-dir`, and other directory options so
        that they no longer throw errors, but actually work.
      - Implemented the plan parser. It's designed to later be subclassed to
        support VCS integration. Includes dependency parsing and sorting.

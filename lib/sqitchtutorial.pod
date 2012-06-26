@@ -47,7 +47,7 @@ Let's have a look at F<sqitch.conf>:
   [core]
       engine = pg
       # plan_file = sqitch.plan
-      # sql_dir = sql
+      # top_dir = sql
       # deploy_dir = sql/deploy
       # revert_dir = sql/revert
       # test_dir = sql/test

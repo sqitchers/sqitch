@@ -68,12 +68,12 @@ has username => ( is => 'ro', isa => 'Str' );
 has host     => ( is => 'ro', isa => 'Str' );
 has port     => ( is => 'ro', isa => 'Int' );
 
-has sql_dir => (
+has top_dir => (
     is       => 'ro',
     isa      => 'Maybe[Path::Class::Dir]',
     required => 1,
     lazy     => 1,
-    default => sub { dir shift->config->get( key => 'core.sql_dir' ) || 'sql' },
+    default => sub { dir shift->config->get( key => 'core.top_dir' ) || 'sql' },
 );
 
 has deploy_dir => (
@@ -86,7 +86,7 @@ has deploy_dir => (
         if ( my $dir = $self->config->get( key => 'core.deploy_dir' ) ) {
             return dir $dir;
         }
-        $self->sql_dir->subdir('deploy');
+        $self->top_dir->subdir('deploy');
     },
 );
 
@@ -100,7 +100,7 @@ has revert_dir => (
         if ( my $dir = $self->config->get( key => 'core.revert_dir' ) ) {
             return dir $dir;
         }
-        $self->sql_dir->subdir('revert');
+        $self->top_dir->subdir('revert');
     },
 );
 
@@ -114,7 +114,7 @@ has test_dir => (
         if ( my $dir = $self->config->get( key => 'core.test_dir' ) ) {
             return dir $dir;
         }
-        $self->sql_dir->subdir('test');
+        $self->top_dir->subdir('test');
     },
 );
 
@@ -229,7 +229,7 @@ sub _core_opts {
         host=s
         port=i
         uri=s
-        sql-dir=s
+        top-dir|dir=s
         deploy-dir=s
         revert-dir=s
         test-dir=s
@@ -297,7 +297,7 @@ sub _parse_core_opts {
     }
 
     # Convert files and dirs to objects.
-    for my $dir (qw(sql_dir deploy_dir revert_dir test_dir)) {
+    for my $dir (qw(top_dir deploy_dir revert_dir test_dir)) {
         $opts{$dir} = dir $opts{$dir} if defined $opts{$dir};
     }
     $opts{plan_file} = file $opts{plan_file} if defined $opts{plan_file};
@@ -494,7 +494,7 @@ Constructs and returns a new Sqitch object. The supported parameters include:
 
 =item C<port>
 
-=item C<sql_dir>
+=item C<top_dir>
 
 =item C<deploy_dir>
 
@@ -528,7 +528,7 @@ Constructs and returns a new Sqitch object. The supported parameters include:
 
 =head3 C<port>
 
-=head3 C<sql_dir>
+=head3 C<top_dir>
 
 =head3 C<deploy_dir>
 
@@ -670,11 +670,6 @@ C<STDOUT> if the exit code is 0, and to C<STDERR> if it is not 0.
 =head1 To Do
 
 =over
-
-=item * Rename C<sql_dir> to C<db_dir>.
-
-Maybe. Or script_dir or something. C<changes_dir>? Also, have it default to
-F<.> instead of F<sql>?
 
 =item * Let C</> specify subdirectories platform-independently in step names.
 
