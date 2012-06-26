@@ -9,7 +9,7 @@ use Carp;
 use Try::Tiny;
 use App::Sqitch::X qw(hurl);
 use Locale::TextDomain qw(App-Sqitch);
-use App::Sqitch::Plan::Step;
+use App::Sqitch::Plan::Change;
 use namespace::autoclean;
 
 extends 'App::Sqitch::Engine';
@@ -233,9 +233,9 @@ sub begin_work {
     my $self = shift;
     my $dbh = $self->_dbh;
 
-    # Start transaction and lock steps to allow only one change at a time.
+    # Start transaction and lock changes to allow only one change at a time.
     $dbh->begin_work;
-    $dbh->do('LOCK TABLE steps IN EXCLUSIVE MODE');
+    $dbh->do('LOCK TABLE changes IN EXCLUSIVE MODE');
     return $self;
 }
 
@@ -255,27 +255,27 @@ sub run_handle {
     $self->_spool($fh);
 }
 
-sub log_deploy_step {
-    my ($self, $step) = @_;
+sub log_deploy_change {
+    my ($self, $change) = @_;
     my $dbh = $self->_dbh;
 
     my ($id, $name, $req, $conf, $actor) = (
-        $step->id,
-        $step->format_name,
-        [$step->requires],
-        [$step->conflicts],
+        $change->id,
+        $change->format_name,
+        [$change->requires],
+        [$change->conflicts],
         $self->actor,
     );
 
     $dbh->do(q{
-        INSERT INTO steps (step_id, step, requires, conflicts, deployed_by)
+        INSERT INTO changes (change_id, change, requires, conflicts, deployed_by)
         VALUES (?, ?, ?, ?, ?)
     }, undef, $id, $name, $req, $conf, $actor);
 
-    my @tags = $step->tags;
+    my @tags = $change->tags;
     if (@tags) {
         $dbh->do(
-            'INSERT INTO tags (tag_id, tag, step_id, applied_by) VALUES '
+            'INSERT INTO tags (tag_id, tag, change_id, applied_by) VALUES '
             . join( ', ', ( q{(?, ?, ?, ?)} ) x @tags ),
             undef,
             map { ($_->id, $_->format_name, $id, $actor) } @tags
@@ -284,45 +284,45 @@ sub log_deploy_step {
     }
 
     $dbh->do(q{
-        INSERT INTO events (event, step_id, step, tags, logged_by)
+        INSERT INTO events (event, change_id, change, tags, logged_by)
         VALUES ('deploy', ?, ?, ?, ?);
     }, undef, $id, $name, \@tags, $actor);
 
     return $self;
 }
 
-sub log_fail_step {
-    my ( $self, $step ) = @_;
+sub log_fail_change {
+    my ( $self, $change ) = @_;
     my $dbh  = $self->_dbh;
-    my $tags = [ map { $_->format_name } $step->tags ];
+    my $tags = [ map { $_->format_name } $change->tags ];
     $dbh->do(q{
-        INSERT INTO events (event, step_id, step, tags, logged_by)
+        INSERT INTO events (event, change_id, change, tags, logged_by)
         VALUES ('fail', ?, ?, ?, ?);
-    }, undef, $step->id, $step->name, $tags, $self->actor);
+    }, undef, $change->id, $change->name, $tags, $self->actor);
     return $self;
 }
 
-sub log_revert_step {
-    my ($self, $step) = @_;
+sub log_revert_change {
+    my ($self, $change) = @_;
     my $dbh = $self->_dbh;
 
     # Delete tags.
     my $del_tags = $dbh->selectcol_arrayref(
-        'DELETE FROM tags WHERE step_id = ? RETURNING tag',
-        undef, $step->id
+        'DELETE FROM tags WHERE change_id = ? RETURNING tag',
+        undef, $change->id
     ) || [];
 
-    # Delete the step record.
+    # Delete the change record.
     $dbh->do(
-        'DELETE FROM steps where step_id = ?',
-        undef, $step->id
+        'DELETE FROM changes where change_id = ?',
+        undef, $change->id
     );
 
     # Log it.
     $dbh->do(q{
-        INSERT INTO events (event, step_id, step, tags, logged_by)
+        INSERT INTO events (event, change_id, change, tags, logged_by)
         VALUES ('revert', ?, ?, ?, ?);
-    }, undef, $step->id, $step->name, $del_tags,  $self->actor);
+    }, undef, $change->id, $change->name, $del_tags,  $self->actor);
 
     return $self;
 }
@@ -338,44 +338,44 @@ sub is_deployed_tag {
     }, undef, $tag->id)->[0];
 }
 
-sub is_deployed_step {
-    my ( $self, $step ) = @_;
+sub is_deployed_change {
+    my ( $self, $change ) = @_;
     $self->_dbh->selectcol_arrayref(q{
         SELECT EXISTS(
             SELECT TRUE
-              FROM steps
-             WHERE step_id = ?
+              FROM changes
+             WHERE change_id = ?
         )
-    }, undef, $step->id)->[0];
+    }, undef, $change->id)->[0];
 }
 
 sub check_requires {
-    my ( $self, $step ) = @_;
+    my ( $self, $change ) = @_;
 
     # No need to check anything if there are no requirements.
-    my @requires = $step->requires_steps or return;
+    my @requires = $change->requires_changes or return;
     my $vals = join ', ', ('(?, ?)') x @requires;
 
     return @{ $self->_dbh->selectcol_arrayref(qq{
         SELECT required.name
           FROM (VALUES $vals) AS required(id, name)
-          LEFT JOIN steps ON required.id = steps.step_id
-         WHERE steps.step_id IS NULL
+          LEFT JOIN changes ON required.id = changes.change_id
+         WHERE changes.change_id IS NULL
          ORDER BY required.name;
     }, undef, map { $_->id, $_->name } @requires) || [] };
 }
 
 sub check_conflicts {
-    my ( $self, $step ) = @_;
+    my ( $self, $change ) = @_;
 
     # No need to check anything if there are no conflicts.
-    my @conflicts = $step->conflicts_steps or return;
+    my @conflicts = $change->conflicts_changes or return;
 
     return @{ $self->_dbh->selectcol_arrayref(q{
-        SELECT step
-          FROM steps
-         WHERE step_id = ANY(?)
-         ORDER BY step
+        SELECT change
+          FROM changes
+         WHERE change_id = ANY(?)
+         ORDER BY change
     }, undef, [map { $_->id } @conflicts ]) || [] };
 }
 
@@ -389,12 +389,12 @@ sub _fetch_item {
     };
 }
 
-sub latest_step_id {
+sub latest_change_id {
     my $self = shift;
     return try {
         $self->_dbh->selectcol_arrayref(q{
-            SELECT step_id
-              FROM steps
+            SELECT change_id
+              FROM changes
              ORDER BY deployed_at DESC
              LIMIT 1
         })->[0];
@@ -404,22 +404,22 @@ sub latest_step_id {
     };
 }
 
-sub deployed_step_ids {
+sub deployed_change_ids {
     return @{ shift->_dbh->selectcol_arrayref(qq{
-        SELECT step_id AS id
-          FROM steps
+        SELECT change_id AS id
+          FROM changes
          ORDER BY deployed_at ASC
     }) };
 }
 
-sub deployed_step_ids_since {
-    my ( $self, $step ) = @_;
+sub deployed_change_ids_since {
+    my ( $self, $change ) = @_;
     return @{ $self->_dbh->selectcol_arrayref(qq{
-        SELECT step_id
-          FROM steps
-         WHERE deployed_at > (SELECT deployed_at FROM steps WHERE step_id = ?)
+        SELECT change_id
+          FROM changes
+         WHERE deployed_at > (SELECT deployed_at FROM changes WHERE change_id = ?)
          ORDER BY deployed_at ASC
-    }, undef, $step->id) };
+    }, undef, $change->id) };
 }
 
 sub _run {

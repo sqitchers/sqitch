@@ -36,29 +36,29 @@ my $sqitch = App::Sqitch->new(
     uri => URI->new('https://github.com/theory/sqitch/'),
 );
 my $plan   = App::Sqitch::Plan->new(sqitch => $sqitch);
-my $step = App::Sqitch::Plan::Step->new( plan => $plan, name => 'roles' );
+my $change = App::Sqitch::Plan::Change->new( plan => $plan, name => 'roles' );
 
 isa_ok my $tag = $CLASS->new(
     name  => 'foo',
     plan  => $plan,
-    step  => $step,
+    change  => $change,
 ), $CLASS;
 isa_ok $tag, 'App::Sqitch::Plan::Line';
 my $mock_plan = Test::MockModule->new('App::Sqitch::Plan');
-$mock_plan->mock(index_of => 0); # no other steps
+$mock_plan->mock(index_of => 0); # no other changes
 
 is $tag->format_name, '@foo', 'Name should format as "@foo"';
 is $tag->as_string, '@foo', 'Should as_string to "@foo"';
 is $tag->info, join("\n",
     'project ' . $sqitch->uri->canonical,
     'tag @foo',
-    'step ' . $step->id,
+    'change ' . $change->id,
 ), 'Tag info should be correct';
 
 ok $tag = $CLASS->new(
     name    => 'howdy',
     plan    => $plan,
-    step    => $step,
+    change    => $change,
     lspace  => '  ',
     rspace  => "\t",
     comment => ' blah blah blah',
@@ -68,20 +68,20 @@ is $tag->as_string, "  \@howdy\t# blah blah blah",
     'It should as_string correctly';
 
 $mock_plan->mock(index_of => 1);
-$mock_plan->mock(step_at => $step);
-is $tag->step, $step, 'Step should be correct';
+$mock_plan->mock(change_at => $change);
+is $tag->change, $change, 'Change should be correct';
 
-# Make sure it gets the step even if there is a tag in between.
-my @prevs = ($tag, $step);
+# Make sure it gets the change even if there is a tag in between.
+my @prevs = ($tag, $change);
 $mock_plan->mock(index_of => 8);
-$mock_plan->mock(step_at => sub { shift @prevs });
-is $tag->step, $step, 'Step should be for previous step';
+$mock_plan->mock(change_at => sub { shift @prevs });
+is $tag->change, $change, 'Change should be for previous change';
 
 is $tag->info, join("\n",
     'project ' . $sqitch->uri->canonical,
     'tag @howdy',
-    'step ' . $step->id,
-), 'Tag info should include the step';
+    'change ' . $change->id,
+), 'Tag info should include the change';
 
 is $tag->id, do {
     my $content = $tag->info;
@@ -95,12 +95,12 @@ is $tag->id, do {
 ok $tag = $CLASS->new(
     name => '阱阪阬',
     plan => $plan,
-    step  => $step,
+    change  => $change,
 ), 'Create tag with UTF-8 name';
 is $tag->info, join("\n",
     'project ' . $sqitch->uri->canonical,
     'tag '     . '@阱阪阬',
-    'step '    . $step->id,
+    'change '    . $change->id,
 ), 'The name should be decoded text';
 
 is $tag->id, do {

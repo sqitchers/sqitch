@@ -109,7 +109,7 @@ App::Sqitch::Plan::Line - Sqitch deployment plan line
 An App::Sqitch::Plan::Line represents a single line from a Sqitch plan file.
 Each object managed by an L<App::Sqitch::Plan> object is derived from this
 class. This is actually an abstract base class. See
-L<App::Sqitch::Plan::Step>, L<App::Sqitch::Plan::Tag>, and
+L<App::Sqitch::Plan::Change>, L<App::Sqitch::Plan::Tag>, and
 L<App::Sqitch::Plan::Blank> for concrete subclasses.
 
 =head1 Interface

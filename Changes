@@ -8,7 +8,7 @@ Revision history for Perl extension App::Sqitch
 0.30  2012-05-18T15:43:12Z
      - The `init` command now properly writes out the `[core]` section header
        when there are only commented core setttings.
-     - The `--requires` and `--conflicts` options to `add-step` now work
+     - The `--requires` and `--conflicts` options to `add-change` now work
        properly.
      - Fixed anticipated Win32 test failures in `t/init.t`.'
      - Fixed the `--plan-file`, `--top-dir`, and other directory options so
@@ -28,7 +28,7 @@ Revision history for Perl extension App::Sqitch
      - `sqitch init` now writes core and engine config settings with default
        values to the configuration file. This makes it easier for folks to get
        started editing it.
-     - Implemented `add-step` command. Includes support for system-wide or
+     - Implemented `add-change` command. Includes support for system-wide or
        use-specific templates using Template::Tiny.
      - Added `etc` directory with default templates. This is installed into
        `$Config{prefix}/etc/skitch`, unless built with `--prefix` or

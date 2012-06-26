@@ -99,7 +99,7 @@ sub deploy {
     );
 
     $mode ||= 'all';
-    my $meth = $mode eq 'step' ? '_deploy_by_step'
+    my $meth = $mode eq 'change' ? '_deploy_by_change'
              : $mode eq 'tag'  ? '_deploy_by_tag'
              : $mode eq 'all'  ? '_deploy_all'
              : hurl deploy => __x 'Unknown deployment mode: "{mode}"', mode => $mode;
@@ -113,15 +113,15 @@ sub revert {
     my $sqitch = $self->sqitch;
     my $plan   = $self->sqitch->plan;
 
-    my @step_ids;
+    my @change_ids;
 
     if (defined $to) {
-        my $step = $plan->get($to) // hurl revert => __x(
+        my $change = $plan->get($to) // hurl revert => __x(
             'Unknown revert target: "{target}"',
             target => $to,
         );
 
-        @step_ids = $self->deployed_step_ids_since($step) or hurl revert => __x(
+        @change_ids = $self->deployed_change_ids_since($change) or hurl revert => __x(
             'Target not deployed: "{target}"',
             target => $to,
         );
@@ -132,7 +132,7 @@ sub revert {
             target      => $to
         ));
     } else {
-        @step_ids = $self->deployed_step_ids or hurl {
+        @change_ids = $self->deployed_change_ids or hurl {
             ident   => 'revert',
             message => __ 'Nothing to revert (nothing deployed)',
             exitval => 1,
@@ -143,25 +143,25 @@ sub revert {
         ));
     }
 
-    # Get the list of steps to revert before we do actual work.
-    my @steps = map { $plan->get($_) } reverse @step_ids;
+    # Get the list of changes to revert before we do actual work.
+    my @changes = map { $plan->get($_) } reverse @change_ids;
 
     # Do we want to support modes, where failures would re-deploy to previous
     # tag or all the way back to the starting point? This would be very much
     # like deploy() mode. I'm thinking not, as a failure on a revert is not
     # something you generaly want to recover from by deploying back to where
     # you started. But maybe I'm wrong?
-    $self->revert_step($_) for @steps;
+    $self->revert_change($_) for @changes;
 
     return $self;
 }
 
-sub _deploy_by_step {
+sub _deploy_by_change {
     my ( $self, $plan, $to_index ) = @_;
 
-    # Just deploy each step. If any fails, we just stop.
+    # Just deploy each change. If any fails, we just stop.
     while ($plan->position < $to_index) {
-        $self->deploy_step($plan->next);
+        $self->deploy_change($plan->next);
     }
 
     return $self;
@@ -179,7 +179,7 @@ sub _rollback {
         );
 
         try {
-            $self->revert_step($_) for @run;
+            $self->revert_change($_) for @run;
         } catch {
             # Sucks when this happens.
             $sqitch->vent(eval { $_->message } // $_);
@@ -196,12 +196,12 @@ sub _deploy_by_tag {
     my ($last_tagged, @run);
     try {
         while ($plan->position < $to_index) {
-            my $step = $plan->next;
-            $self->deploy_step($step);
-            push @run => $step;
-            if ($step->tags) {
+            my $change = $plan->next;
+            $self->deploy_change($change);
+            push @run => $change;
+            if ($change->tags) {
                 @run = ();
-                $last_tagged = $step;
+                $last_tagged = $change;
             }
         }
     } catch {
@@ -218,9 +218,9 @@ sub _deploy_all {
     my @run;
     try {
         while ($plan->position < $to_index) {
-            my $step = $plan->next;
-            $self->deploy_step($step);
-            push @run => $step;
+            my $change = $plan->next;
+            $self->deploy_change($change);
+            push @run => $change;
         }
     } catch {
         $self->sqitch->vent(eval { $_->message } // $_);
@@ -234,17 +234,17 @@ sub _sync_plan {
     my $self = shift;
     my $plan = $self->sqitch->plan;
 
-    if (my $id = $self->latest_step_id) {
+    if (my $id = $self->latest_change_id) {
         my $idx = $plan->index_of($id) // hurl plan => __x(
             'Cannot find {target} in the plan',
             target => $id
         );
         $plan->position($idx);
-        my $step = $plan->get($id);
-        if (my @tags = $step->tags) {
-            $self->start_at( $step->format_name . $tags[-1]->format_name );
+        my $change = $plan->get($id);
+        if (my @tags = $change->tags) {
+            $self->start_at( $change->format_name . $tags[-1]->format_name );
         } else {
-            $self->start_at( $step->format_name );
+            $self->start_at( $change->format_name );
         }
     } else {
         $plan->reset;
@@ -256,53 +256,53 @@ sub is_deployed {
     my ($self, $thing) = @_;
     return $thing->isa('App::Sqitch::Plan::Tag')
         ? $self->is_deployed_tag($thing)
-        : $self->is_deployed_step($thing);
+        : $self->is_deployed_change($thing);
 }
 
-sub deploy_step {
-    my ( $self, $step ) = @_;
+sub deploy_change {
+    my ( $self, $change ) = @_;
     my $sqitch = $self->sqitch;
-    $sqitch->info('  + ', $step->format_name_with_tags);
+    $sqitch->info('  + ', $change->format_name_with_tags);
     $self->begin_work;
 
     # Check for conflicts.
-    if (my @conflicts = $self->check_conflicts($step)) {
+    if (my @conflicts = $self->check_conflicts($change)) {
         hurl deploy => __nx(
-            'Conflicts with previously deployed step: {steps}',
-            'Conflicts with previously deployed steps: {steps}',
+            'Conflicts with previously deployed change: {changes}',
+            'Conflicts with previously deployed changes: {changes}',
             scalar @conflicts,
-            steps => join ' ', @conflicts,
+            changes => join ' ', @conflicts,
         )
     }
 
     # Check for dependencies.
-    if (my @required = $self->check_requires($step)) {
+    if (my @required = $self->check_requires($change)) {
         hurl deploy => __nx(
-            'Missing required step: {steps}',
-            'Missing required steps: {steps}',
+            'Missing required change: {changes}',
+            'Missing required changes: {changes}',
             scalar @required,
-            steps => join ' ', @required,
+            changes => join ' ', @required,
         );
     }
 
     return try {
-        $self->run_file($step->deploy_file);
-        $self->log_deploy_step($step);
+        $self->run_file($change->deploy_file);
+        $self->log_deploy_change($change);
     } finally {
         $self->finish_work;
     } catch {
-        $self->log_fail_step($step);
+        $self->log_fail_change($change);
         die $_;
     }
 }
 
-sub revert_step {
-    my ( $self, $step ) = @_;
-    $self->sqitch->info('  - ', $step->format_name_with_tags);
+sub revert_change {
+    my ( $self, $change ) = @_;
+    $self->sqitch->info('  - ', $change->format_name_with_tags);
     $self->begin_work;
     try {
-        $self->run_file($step->revert_file);
-        $self->log_revert_step($step);
+        $self->run_file($change->revert_file);
+        $self->log_revert_change($change);
     } finally {
         $self->finish_work;
     } catch {
@@ -313,10 +313,10 @@ sub revert_step {
 sub begin_work  { shift }
 sub finish_work { shift }
 
-sub latest_step {
+sub latest_change {
     my $self = shift;
-    my $step_id = $self->latest_step_id // return undef;
-    return $self->sqitch->plan->get( $step_id );
+    my $change_id = $self->latest_change_id // return undef;
+    return $self->sqitch->plan->get( $change_id );
 }
 
 sub initialized {
@@ -343,22 +343,22 @@ sub run_handle {
     Carp::confess( "$class has not implemented run_handle()" );
 }
 
-sub log_deploy_step {
+sub log_deploy_change {
     my $class = ref $_[0] || $_[0];
     require Carp;
-    Carp::confess( "$class has not implemented log_deploy_step()" );
+    Carp::confess( "$class has not implemented log_deploy_change()" );
 }
 
-sub log_fail_step {
+sub log_fail_change {
     my $class = ref $_[0] || $_[0];
     require Carp;
-    Carp::confess( "$class has not implemented log_fail_step()" );
+    Carp::confess( "$class has not implemented log_fail_change()" );
 }
 
-sub log_revert_step {
+sub log_revert_change {
     my $class = ref $_[0] || $_[0];
     require Carp;
-    Carp::confess( "$class has not implemented log_revert_step()" );
+    Carp::confess( "$class has not implemented log_revert_change()" );
 }
 
 sub is_deployed_tag {
@@ -367,10 +367,10 @@ sub is_deployed_tag {
     Carp::confess( "$class has not implemented is_deployed_tag()" );
 }
 
-sub is_deployed_step {
+sub is_deployed_change {
     my $class = ref $_[0] || $_[0];
     require Carp;
-    Carp::confess( "$class has not implemented is_deployed_step()" );
+    Carp::confess( "$class has not implemented is_deployed_change()" );
 }
 
 sub check_requires {
@@ -385,22 +385,22 @@ sub check_conflicts {
     Carp::confess( "$class has not implemented check_conflicts()" );
 }
 
-sub latest_step_id {
+sub latest_change_id {
     my $class = ref $_[0] || $_[0];
     require Carp;
-    Carp::confess( "$class has not implemented latest_step_id()" );
+    Carp::confess( "$class has not implemented latest_change_id()" );
 }
 
-sub deployed_step_ids {
+sub deployed_change_ids {
     my $class = ref $_[0] || $_[0];
     require Carp;
-    Carp::confess( "$class has not implemented deployed_step_ids()" );
+    Carp::confess( "$class has not implemented deployed_change_ids()" );
 }
 
-sub deployed_step_ids_since {
+sub deployed_change_ids_since {
     my $class = ref $_[0] || $_[0];
     require Carp;
-    Carp::confess( "$class has not implemented deployed_step_ids_since()" );
+    Carp::confess( "$class has not implemented deployed_change_ids_since()" );
 }
 
 __PACKAGE__->meta->make_immutable;
@@ -539,10 +539,10 @@ In the event of failure, revert all deployed changes to the last
 successfully-applied tag. If no tags were applied during this deployment, all
 changes will be reverted to the pint at which deployment began.
 
-=item C<step>
+=item C<change>
 
 In the event of failure, no changes will be reverted. This is on the
-assumption that a step failure is total, and the step may be applied again.
+assumption that a change failure is total, and the change may be applied again.
 
 =back
 
@@ -555,35 +555,35 @@ carefully!
   $engine->revert($tag);
 
 Reverts the L<App::Sqitch::Plan::Tag> from the database, including all of its
-associated steps.
+associated changes.
 
-=head3 C<deploy_step>
+=head3 C<deploy_change>
 
-  $engine->deploy_step($step);
+  $engine->deploy_change($change);
 
-Used internally by C<deploy()> to deploy an individual step.
+Used internally by C<deploy()> to deploy an individual change.
 
-=head3 C<revert_step>
+=head3 C<revert_change>
 
-  $engine->revert_step($step);
+  $engine->revert_change($change);
 
 Used internally by C<revert()> (and, by C<deploy()> when a deploy fails) to
-revert an individual step.
+revert an individual change.
 
 =head3 C<is_deployed>
 
   say "Tag deployed"  if $engine->is_deployed($tag);
-  say "Step deployed" if $engine->is_deployed($step);
+  say "Change deployed" if $engine->is_deployed($change);
 
 Convenience method that dispatches to C<is_deployed_tag()> or
-C<is_deployed_step()> as appropriate to its argument.
+C<is_deployed_change()> as appropriate to its argument.
 
-=head3 C<latest_step>
+=head3 C<latest_change>
 
-  my $step = $engine->latest_step;
+  my $change = $engine->latest_change;
 
-Returns the L<App::Sqitch::Plan::Step> object representing the most recently
-applied step.
+Returns the L<App::Sqitch::Plan::Change> object representing the most recently
+applied change.
 
 =head2 Abstract Instance Methods
 
@@ -593,7 +593,7 @@ These methods must be overridden in subclasses.
 
   $engine->begin_work;
 
-This method is called just before a step is deployed or reverted. It should
+This method is called just before a change is deployed or reverted. It should
 create a lock to prevent any other processes from making changes to the
 database, to be freed in C<finish_work>.
 
@@ -601,7 +601,7 @@ database, to be freed in C<finish_work>.
 
   $engine->finish_work;
 
-This method is called after a step has been deployed or reverted. It should
+This method is called after a change has been deployed or reverted. It should
 unlock the lock created by C<begin_work>.
 
 =head3 C<initialized>
@@ -626,76 +626,76 @@ an exception
 Should return true if the tag has been deployed to the database, and false if
 it has not.
 
-=head3 C<is_deployed_step>
+=head3 C<is_deployed_change>
 
-  say "Step deployed"  if $engine->is_deployed_step($step);
+  say "Change deployed"  if $engine->is_deployed_change($change);
 
-Should return true if the step has been deployed to the database, and false if
+Should return true if the change has been deployed to the database, and false if
 it has not.
 
-=head3 C<log_deploy_step>
+=head3 C<log_deploy_change>
 
-  $engine->log_deploy_step($step);
+  $engine->log_deploy_change($change);
 
 Should write to the database metadata and history the records necessary to
-indicate that the step has been deployed.
+indicate that the change has been deployed.
 
-=head3 C<log_fail_step>
+=head3 C<log_fail_change>
 
-  $engine->log_fail_step($step);
+  $engine->log_fail_change($change);
 
 Should write to the database event history a record reflecting that deployment
-of the step failed.
+of the change failed.
 
-=head3 C<log_revert_step>
+=head3 C<log_revert_change>
 
-  $engine->log_revert_step($step);
+  $engine->log_revert_change($change);
 
 Should write to and/or remove from the database metadata and history the
-records necessary to indicate that the step has been reverted.
+records necessary to indicate that the change has been reverted.
 
 =head3 C<check_requires>
 
-  if ( my @requires = $engine->requires($step) ) {
-      die "Step requires undeployed steps: @requires\n";
+  if ( my @requires = $engine->requires($change) ) {
+      die "Change requires undeployed changes: @requires\n";
   }
 
-Returns the names of any steps required by the specified step that are not
+Returns the names of any changes required by the specified change that are not
 currently deployed to the database. If none are returned, the requirements are
-presumed to be satisfied. The engine implementation should compare steps by
+presumed to be satisfied. The engine implementation should compare changes by
 their IDs.
 
 =head3 C<check_conflicts>
 
-  if ( my @conflicts = $engine->conflicts($step) ) {
-      die "Step conflicts with previously deployed steps: @conflicts\n";
+  if ( my @conflicts = $engine->conflicts($change) ) {
+      die "Change conflicts with previously deployed changes: @conflicts\n";
   }
 
-Returns the names of any currently-deployed steps that conflict with specified
-step. If none are returned, there are presumed to be no conflicts.
+Returns the names of any currently-deployed changes that conflict with specified
+change. If none are returned, there are presumed to be no conflicts.
 
-If any of the steps that conflict with the specified step have been deployed
+If any of the changes that conflict with the specified change have been deployed
 to the database, their names should be returned by this method. If no names
 are returned, it's because there are no conflicts. The engine implementation
-should compare steps by their IDs.
+should compare changes by their IDs.
 
-=head3 C<latest_step_id>
+=head3 C<latest_change_id>
 
-  my $step_id = $engine->latest_step_id;
+  my $change_id = $engine->latest_change_id;
 
-Returns the ID of the most recently applied step.
+Returns the ID of the most recently applied change.
 
-=head3 C<deployed_step_ids>
+=head3 C<deployed_change_ids>
 
-  my @step_ids = $engine->deployed_step_ids;
+  my @change_ids = $engine->deployed_change_ids;
 
-Returns a list of all deployed step IDs in the order in which they were deployed.
+Returns a list of all deployed change IDs in the order in which they were deployed.
 
-=head3 C<deployed_step_ids_since>
+=head3 C<deployed_change_ids_since>
 
-  my @step_ids = $engine->deployed_step_ids_since($step);
+  my @change_ids = $engine->deployed_change_ids_since($change);
 
-Returns a list of step IDs for steps deployed after the specified step.
+Returns a list of change IDs for changes deployed after the specified change.
 
 =head3 C<run_file>
 

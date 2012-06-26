@@ -62,7 +62,7 @@ is_deeply \@args, ['foo', 'tag'],
     '"foo" and "tag" should be passed to the engine';
 
 # Make sure the mode enum works.
-for my $mode (qw(all tag step)) {
+for my $mode (qw(all tag change)) {
     ok $CLASS->new( sqitch => $sqitch, mode => $mode ),
         qq{"$mode" should be a valid mode};
 }

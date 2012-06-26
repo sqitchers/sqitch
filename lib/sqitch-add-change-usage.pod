@@ -1,15 +1,15 @@
 =head1 Name
 
-sqitch-add-step-usage - Sqitch add-step usage statement
+sqitch-add-change-usage - Sqitch add-change usage statement
 
 =head1 Usage
 
-  sqitch [options] add-step [<step options>] stepname
+  sqitch [options] add-change [<change options>] changename
 
 =head1 Options
 
-    -r --requres              require step
-    -c --conflicts            declare conflicting step
+    -r --requres              require change
+    -c --conflicts            declare conflicting change
     -s --set                  set a template variable
 
        --template-directory   path to directory containing templates

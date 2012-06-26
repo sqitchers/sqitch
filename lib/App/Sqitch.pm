@@ -672,7 +672,7 @@ C<STDOUT> if the exit code is 0, and to C<STDERR> if it is not 0.
 
 =over
 
-=item * Let C</> specify subdirectories platform-independently in step names.
+=item * Let C</> specify subdirectories platform-independently in change names.
 
 =item * Eliminate use of C<fail()> and localize messages.
 

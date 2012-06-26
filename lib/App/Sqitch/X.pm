@@ -177,7 +177,7 @@ use L<Try::Tiny> to do exception handling, like so:
   };
 
 Use the C<ident> attribute to determine what category of exception it is, and
-take steps as appropriate.
+take changes as appropriate.
 
 =head1 Author
 

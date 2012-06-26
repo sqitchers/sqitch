@@ -43,7 +43,7 @@ information sufficient for Sqitch to figure it out for you.
 
 =item Dependency resolution
 
-Deployment steps can declare dependencies on other deployment steps. This
+Deployment changes can declare dependencies on other deployment changes. This
 ensures proper order of execution, even when you've committed changes to your
 VCS out-of-order.
 
@@ -81,29 +81,29 @@ Eventually move to L<sqitchtutorial> or L<sqitchintro> or some such.
 
 =over
 
-=item C<step>
+=item C<change>
 
-A named unit of change. A step name must be used in the file names of its
+A named unit of change. A change name must be used in the file names of its
 deployment and a reversion scripts. It may also be used in a test script file
 name.
 
 =item C<tag>
 
-A known deployment state with a list one or more steps that define the tag. A
-tag also implies that steps from previous tags in the plan have been applied.
+A known deployment state with a list one or more changes that define the tag. A
+tag also implies that changes from previous tags in the plan have been applied.
 Think of it is a version number or VCS revision. A given point in the plan may
 have one or more tags.
 
 =item C<state>
 
 The current state of the database. This is represented by the most
-recently-deployed steps and tags. If the state of the database is the same as
+recently-deployed changes and tags. If the state of the database is the same as
 the most recent tag, then it is considered "up-to-date".
 
 =item C<plan>
 
-A list of one or more tags and associated steps that define the order of
-deployment execution. Sqitch reads the plan to determine what steps to execute
+A list of one or more tags and associated changes that define the order of
+deployment execution. Sqitch reads the plan to determine what changes to execute
 to change the database from one state to another. The plan may be represented
 by a L<Plan File> or by VCS history.
 
@@ -111,13 +111,13 @@ by a L<Plan File> or by VCS history.
 
 The act of deploying database changes to reach a tagged deployment point.
 Sqitch reads the plan, checks the current state of the database, and applies
-all the steps necessary to change the state to the specified tag.
+all the changes necessary to change the state to the specified tag.
 
 =item C<revert>
 
 The act of reverting database changes to reach an earlier tagged deployment
 point. Sqitch checks the current state of the database, reads the plan, and
-reverts all steps necessary to return the state to an earlier tag.
+reverts all changes necessary to return the state to an earlier tag.
 
 =back
 
@@ -222,7 +222,7 @@ Port number to connect to. Does not apply to all engines.
   sqitch --uri https://github.com/theory/sqitch/
 
 A uniform resource identifier that uniquely identifies the project. Used to
-generate unique IDs for project steps, and so should be consistently used in
+generate unique IDs for project changes, and so should be consistently used in
 the project. Thus it it is probably best set as a local configuration setting
 (C<core.uri>).
 
@@ -349,15 +349,15 @@ Show only the latest change. This is the default.
 
 Show a list of all deployed tags.
 
-=item C<steps>
+=item C<changes>
 
-Show a list of all deployed steps.
+Show a list of all deployed changes.
 
 =back
 
 =item C<format>
 
-The format to use to display tags or steps, if either are specified via the
+The format to use to display tags or changes, if either are specified via the
 C<--show> option. The value may be any one of:
 
 =over
@@ -385,9 +385,9 @@ C<-t> or C<--tag>.
 
 =item C<-s>
 
-=item C<--step>
+=item C<--change>
 
-Show only the specified step.
+Show only the specified change.
 
 =item C<-n>
 
@@ -450,9 +450,9 @@ Make sure no deployment script appears more than once in the plan file.
 
 =back
 
-=item C<add-step>
+=item C<add-change>
 
-Add a new step. The specified name will be used to create stub deployment and
+Add a new change. The specified name will be used to create stub deployment and
 reversion scripts. The contents of these scripts must then be edited to carry
 out the actual changes to the database. Options:
 
@@ -462,20 +462,20 @@ out the actual changes to the database. Options:
 
 =item C<--named>
 
-The name of the step. Must be a valid step name. This option may be passed
+The name of the change. Must be a valid change name. This option may be passed
 without a C<-n> or C<--named>.
 
 =item C<-r>
 
 =item C<--requires>
 
-Name of a step that is required by the new step.
+Name of a change that is required by the new change.
 
 =item C<-c>
 
 =item C<--conflicts>
 
-Name of a step that conflicts with the new step.
+Name of a change that conflicts with the new change.
 
 =back
 
@@ -492,16 +492,16 @@ Options and configuration properties:
 
 =item C<--to>
 
-Step or tag to deploy up to. Defaults to the latest tag or to the VCS C<HEAD>
+Change or tag to deploy up to. Defaults to the latest tag or to the VCS C<HEAD>
 commit. Property name: C<deploy.to>.
 
 =item C<-u>
 
 =item C<--untracked>
 
-Also deploy any steps that have been added to the F<deploy> directory but have
+Also deploy any changes that have been added to the F<deploy> directory but have
 not yet been added to the plan or committed to the VCS. Useful when developing
-new deployment steps but have not yet committed them.
+new deployment changes but have not yet committed them.
 
 =back
 
@@ -545,15 +545,15 @@ Options and configuration properties:
 
 =item C<--from>
 
-Tag to start the plan from. All tags and steps prior to that tag will not be
+Tag to start the plan from. All tags and changes prior to that tag will not be
 included in the plan, and their change scripts Will be omitted from the bundle
-directory. Useful if you've rejiggered your deployment steps to start from a
+directory. Useful if you've rejiggered your deployment changes to start from a
 point later in your VCS history than the beginning of time. Property name:
 C<bundle.from>.
 
 =item C<--to>
 
-Tag with which to end the plan. No steps or tags after that tag will be
+Tag with which to end the plan. No changes or tags after that tag will be
 included in the plan, and their change scripts will be omitted from the bundle
 directory. Property name: C<bundle.to>.
 
@@ -623,7 +623,7 @@ accordingly. See L<sqitch-config> for a list.
 
 =head1 Plan File
 
-A plan file describes the deployment steps to be run against a database. Its
+A plan file describes the deployment changes to be run against a database. Its
 contents must be plain text encoded as UTF-8. Each line of a plan file may be
 one of four things:
 
@@ -643,30 +643,30 @@ ignored.
 Begins with a C<%>, followed by a pragma name, optionally followed by C<=> and
 a value. Currently, the only pragma recognized by Sqitch is C<syntax-version>.
 
-=item * A step.
+=item * A change.
 
-A named change step. A step consists of an optional C<+> or C<-> character
+A named change change. A change consists of an optional C<+> or C<-> character
 followed by one or more non-whitespace characters, of which the first and last
-characters must not be punctuation characters. Steps with a leading C<-> are
-slated to be reverted, while steps with no character or a leading C<+> are to
-be deployed. Comments or white space after the step name will be ignored.
+characters must not be punctuation characters. Changes with a leading C<-> are
+slated to be reverted, while changes with no character or a leading C<+> are to
+be deployed. Comments or white space after the change name will be ignored.
 
 =item * A tag.
 
 A named deployment tag, generally corresponding to a release name. Begins with
 a C<@>, followed by one or more non-whitespace characters. The first and last
 characters must not be punctuation characters. Comments or white space after
-the step name will be ignored.
+the change name will be ignored.
 
 =back
 
-Here's an example of a plan file with a single deploy step and tag:
+Here's an example of a plan file with a single deploy change and tag:
 
  %syntax-version=1.0.0
  +users_table
  @alpha
 
-There may, of course, be any number of tags and steps. Here's an expansion:
+There may, of course, be any number of tags and changes. Here's an expansion:
 
  %syntax-version=1.0.0
  +users_table
@@ -676,11 +676,11 @@ There may, of course, be any number of tags and steps. Here's an expansion:
  @root
  @alpha
 
-Here we have four steps -- "users_table", "insert_user", "update_user", and
+Here we have four changes -- "users_table", "insert_user", "update_user", and
 "delete_user" -- followed by two tags: "root" and "alpha".
 
-Most plans will have many steps and tags. Here's a longer example with three
-tagged deployment points, as well as a step that is deployed and later
+Most plans will have many changes and tags. Here's a longer example with three
+tagged deployment points, as well as a change that is deployed and later
 reverted:
 
  %syntax-version=1.0.0
@@ -700,16 +700,16 @@ reverted:
  +ftw
  @gamma
 
-Using this plan, to deploy to the "beta" tag, all of the steps up to the
-"root"/"alpha" tags must be deployed, as must steps listed before the "beta"
-tag. To then deploy to the "gamma" tag, the "dr_evil" step must be reverted
-and the "ftw" step must be deployed. If you then choose to revert to the
-"alpha" tag, then the "ftw" step will be reverted, the "dr_evil" step
+Using this plan, to deploy to the "beta" tag, all of the changes up to the
+"root"/"alpha" tags must be deployed, as must changes listed before the "beta"
+tag. To then deploy to the "gamma" tag, the "dr_evil" change must be reverted
+and the "ftw" change must be deployed. If you then choose to revert to the
+"alpha" tag, then the "ftw" change will be reverted, the "dr_evil" change
 re-deployed, and the "gamma" tag removed; then the "list_widgets" must be
-reverted and the associated "beta" tag removed, then the "widgets_table" step
+reverted and the associated "beta" tag removed, then the "widgets_table" change
 must be reverted.
 
-Using this model, steps cannot be repeated between states. One I<can> repeat
+Using this model, changes cannot be repeated between states. One I<can> repeat
 them, however, if the contents for a file in a given tag can be retrieved from
 a VCS. An example:
 
@@ -729,11 +729,11 @@ a VCS. An example:
 
  +add_widget
 
-Note that the "add_widget" step is repeated under the state tagged "beta" and
+Note that the "add_widget" change is repeated under the state tagged "beta" and
 at the end. Sqitch will notice the repetition when it parses this file, and
 allow it only if the "beta" tag is present in the VCS. In that case, when
 doing a deployment, Sqitch will fetch the version of the file as of the "beta"
-tag and apply it at that step, and then, when it gets to the last step,
+tag and apply it at that change, and then, when it gets to the last change,
 retrieve the revision of the deployment as it currently exists in the VCS.
 This works in reverse, as well, as long as the changes in this file are always
 L<idempotent|http://en.wikipedia.org/wiki/Idempotence>.
@@ -742,11 +742,11 @@ L<idempotent|http://en.wikipedia.org/wiki/Idempotence>.
 
 Here is the EBNF Grammar for the plan file:
 
-  plan-file    = { <pragma> | <step-line> | <tag-line> | <comment-line> | <blank-line> }* ;
+  plan-file    = { <pragma> | <change-line> | <tag-line> | <comment-line> | <blank-line> }* ;
 
   blank-line   = [ <blanks> ] <eol>;
   comment-line = <comment> ;
-  step-line    = <name> [ { <requires> | <conflicts} } ] ( <eol> | <comment> ) ;
+  change-line    = <name> [ { <requires> | <conflicts} } ] ( <eol> | <comment> ) ;
   tag-line     = <tag> ( <eol> | <comment> ) ;
   pragma       = "%" [ <blanks> ] <name> [ <blanks> ] = [ <blanks> ] <value> ( <eol> | <comment> ) ;
 
@@ -772,11 +772,11 @@ And written as regular expressions:
   my $requires     = qr/[:]$name/;
   my conflicts     = qr/[!]$name/;
   my $tag_line     = qr/^$tag(?:$comment|$eol)/;
-  my $step_line    = qr/^$name(?:$requires|$conflicts)*(?:$comment|$eol)/;
+  my $change_line    = qr/^$name(?:$requires|$conflicts)*(?:$comment|$eol)/;
   my $comment_line = qr/^$comment/;
   my $pragma    = qr/^][[:blank:]]*[%][[:blank:]]*$name[[:blank:]]*=[[:blank:]].+?(?:$comment|$eol)$/;
   my $blank_line   = qr/^$eol/;
-  my $plan         = qr/(?:$pragma|$step_line|$tag_line|$comment_line|$blank_line)+/ms;
+  my $plan         = qr/(?:$pragma|$change_line|$tag_line|$comment_line|$blank_line)+/ms;
 
 =head1 See Also
 

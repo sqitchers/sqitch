@@ -22,7 +22,7 @@ has info => (
         return join "\n", (
             'project ' . $self->plan->sqitch->uri->canonical,
             'tag '     . $self->format_name,
-            'step '    . $self->step->id,
+            'change '    . $self->change->id,
         );
     }
 );
@@ -40,9 +40,9 @@ has id => (
     }
 );
 
-has step => (
+has change => (
     is       => 'ro',
-    isa      => 'App::Sqitch::Plan::Step',
+    isa      => 'App::Sqitch::Plan::Change',
     weak_ref => 1,
     required => 1,
 );

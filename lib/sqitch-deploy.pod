@@ -11,7 +11,7 @@ sqitch-deploy - Deploy changes to a database
 =head1 Description
 
 Deploy changes to the database. Changes will begin from the current deployment
-state. They will run to the latest step, unless a target is specified, either
+state. They will run to the latest change, unless a target is specified, either
 via C<--to> or with no option flag, in which case changes will be deployed
 up-to and including that target.
 
@@ -49,10 +49,10 @@ In the event of failure, revert all deployed changes to the last
 successfully-applied tag. If no tags were applied during this deployment, all
 changes will be reverted to the pint at which deployment began.
 
-=item C<step>
+=item C<change>
 
 In the event of failure, no changes will be reverted. This is on the
-assumption that a step failure is total, and the step may be applied again.
+assumption that a change failure is total, and the change may be applied again.
 
 =back
 
@@ -78,17 +78,17 @@ A C<< <target> >> option typically, but not necessarily, names a target object.
 
 =over
 
-=item C<step>, e.g, C<users_table>
+=item C<change>, e.g, C<users_table>
 
-A step name.
+A change name.
 
 =item C<< @<tag> >>, e.g, C<@beta>
 
 A tag name.
 
-=item C<< <step>@<tag> >>, e.g, C<users_table@beta>
+=item C<< <change>@<tag> >>, e.g, C<users_table@beta>
 
-A step as of the specified tag. Probably more useful, in general, just to
+A change as of the specified tag. Probably more useful, in general, just to
 deploy to the tag.
 
 =begin comment
@@ -97,24 +97,24 @@ These are not yet implemented.
 
 =item C<HEAD>
 
-Special symbolic name for the last step in the plan. Typically omitted.
+Special symbolic name for the last change in the plan. Typically omitted.
 
 =item C<ROOT>
 
-Special symbolic name for the first step in the plan. Typically omitted.
+Special symbolic name for the first change in the plan. Typically omitted.
 
 =item C<< <target>^ >>, e.g., C<HEAD^^>, C<users_table^3>, C<@beta^2>
 
-A suffix C<^> to a symbolic or actual name means the step I<prior> to that
-target. Multiple C<^>s indicate multiple prior steps. These can also be
-written as C<< ^<n> >>, where C<< <n> >> represents the number of steps to go
+A suffix C<^> to a symbolic or actual name means the change I<prior> to that
+target. Multiple C<^>s indicate multiple prior changes. These can also be
+written as C<< ^<n> >>, where C<< <n> >> represents the number of changes to go
 back.
 
 =item C<< <target>+ >>, e.g., C<ROOT+>, C<foo++>, C<@bar+4>
 
-A suffix C<+> to a symbolic or actual target name that means the step I<after>
-that target. Multiple C<+>s indicate multiple prior steps. These can also be
-written as C<< +<n> >>, where C<< <n> >> represents the number of steps to go
+A suffix C<+> to a symbolic or actual target name that means the change I<after>
+that target. Multiple C<+>s indicate multiple prior changes. These can also be
+written as C<< +<n> >>, where C<< <n> >> represents the number of changes to go
 forward.
 
 =end comment

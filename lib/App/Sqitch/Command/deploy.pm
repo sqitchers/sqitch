@@ -20,7 +20,7 @@ has to_target => (
 has mode => (
     is  => 'ro',
     isa => enum([qw(
-        step
+        change
         tag
         all
     )]),

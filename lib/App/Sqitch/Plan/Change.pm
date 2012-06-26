@@ -1,4 +1,4 @@
-package App::Sqitch::Plan::Step;
+package App::Sqitch::Plan::Change;
 
 use v5.10.1;
 use utf8;
@@ -123,7 +123,7 @@ has info => (
 
         return join "\n", (
             'project ' . $self->plan->sqitch->uri->canonical,
-            'step '    . $self->format_name,
+            'change '    . $self->format_name,
             @since,
         );
     }
@@ -137,7 +137,7 @@ has id => (
         my $content = encode_utf8 shift->info;
         require Digest::SHA1;
         return Digest::SHA1->new->add(
-            'step ' . length($content) . "\0" . $content
+            'change ' . length($content) . "\0" . $content
         )->hexdigest;
     }
 );
@@ -183,13 +183,13 @@ sub format_content {
     );
 }
 
-sub requires_steps {
+sub requires_changes {
     my $self = shift;
     my $plan = $self->plan;
     return map { $plan->find($_) } $self->requires;
 }
 
-sub conflicts_steps {
+sub conflicts_changes {
     my $self = shift;
     my $plan = $self->plan;
     return map { $plan->find($_) } $self->conflicts;
@@ -202,7 +202,7 @@ __END__
 
 =head1 Name
 
-App::Sqitch::Plan::Step - Sqitch deployment plan tag
+App::Sqitch::Plan::Change - Sqitch deployment plan tag
 
 =head1 Synopsis
 
@@ -213,7 +213,7 @@ App::Sqitch::Plan::Step - Sqitch deployment plan tag
 
 =head1 Description
 
-A App::Sqitch::Plan::Step represents deployment step as parsed from a plan
+A App::Sqitch::Plan::Change represents deployment change as parsed from a plan
 file. In addition to the interface inherited from L<App::Sqitch::Plan::Line>,
 it offers interfaces for parsing dependencies from the deploy script, as well
 as for opening the deploy, revert, and test scripts.
@@ -227,94 +227,94 @@ See L<App::Sqitch::Plan::Line> for the basics.
 =head3 C<since_tag>
 
 An L<App::Sqitch::Plan::Tag> object representing the last tag to appear in the
-plan B<before> the step. May be C<undef>.
+plan B<before> the change. May be C<undef>.
 
 =head3 C<deploy_file>
 
-  my $file = $step->deploy_file;
+  my $file = $change->deploy_file;
 
-Returns the path to the deploy script file for the step.
+Returns the path to the deploy script file for the change.
 
 =head3 C<revert_file>
 
-  my $file = $step->revert_file;
+  my $file = $change->revert_file;
 
-Returns the path to the revert script file for the step.
+Returns the path to the revert script file for the change.
 
 =head3 C<test_file>
 
-  my $file = $step->test_file;
+  my $file = $change->test_file;
 
-Returns the path to the test script file for the step.
+Returns the path to the test script file for the change.
 
 =head2 Instance Methods
 
 =head3 C<requires>
 
-  my @requires = $step->requires;
+  my @requires = $change->requires;
 
-Returns a list of the names of steps required by this step.
+Returns a list of the names of changes required by this change.
 
-=head3 C<requires_steps>
+=head3 C<requires_changes>
 
-  my @requires_steps = $step->requires_steps;
+  my @requires_changes = $change->requires_changes;
 
-Returns a list of the steps required by this step.
+Returns a list of the changes required by this change.
 
 =head3 C<conflicts>
 
-  my @conflicts = $step->conflicts;
+  my @conflicts = $change->conflicts;
 
-Returns a list of the names of steps with which this step conflicts.
+Returns a list of the names of changes with which this change conflicts.
 
-=head3 C<conflicts_steps>
+=head3 C<conflicts_changes>
 
-  my @conflicts_steps = $step->conflicts_steps;
+  my @conflicts_changes = $change->conflicts_changes;
 
-Returns a list of the steps with which this step conflicts.
+Returns a list of the changes with which this change conflicts.
 
 =head3 C<is_deploy>
 
-Returns true if the step is intended to be deployed, and false if it should be
+Returns true if the change is intended to be deployed, and false if it should be
 reverted.
 
 =head3 C<is_revert>
 
-Returns true if the step is intended to be reverted, and false if it should be
+Returns true if the change is intended to be reverted, and false if it should be
 deployed.
 
 =head3 C<action>
 
-Returns "deploy" if the step should be deployed, or "revert" if it should be
+Returns "deploy" if the change should be deployed, or "revert" if it should be
 reverted.
 
 =head3 C<format_name_with_tags>
 
-  my $name_with_tags = $step->format_name_with_tags;
+  my $name_with_tags = $change->format_name_with_tags;
 
-Returns a string formatted with the step name followed by the list of tags, if
-any, associated with the step. Used to display a step as it is deployed.
+Returns a string formatted with the change name followed by the list of tags, if
+any, associated with the change. Used to display a change as it is deployed.
 
 =head3 C<deploy_handle>
 
-  my $fh = $step->deploy_handle;
+  my $fh = $change->deploy_handle;
 
 Returns an L<IO::File> file handle, opened for reading, for the deploy script
-for the step.
+for the change.
 
 =head3 C<revert_handle>
 
-  my $fh = $step->revert_handle;
+  my $fh = $change->revert_handle;
 
 Returns an L<IO::File> file handle, opened for reading, for the revert script
-for the step.
+for the change.
 
 =head3 C<test_handle>
 
-  my $fh = $step->test_handle;
+  my $fh = $change->test_handle;
 
 Returns an L<IO::File> file handle, opened for reading, for the test script
-for the step.
+for the change.
 
 =head1 See Also
 
@@ -326,7 +326,7 @@ Class representing a plan.
 
 =item L<App::Sqitch::Plan::Line>
 
-Base class from which App::Sqitch::Plan::Step inherits.
+Base class from which App::Sqitch::Plan::Change inherits.
 
 =item L<sqitch>
 

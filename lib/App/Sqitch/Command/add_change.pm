@@ -1,4 +1,4 @@
-package App::Sqitch::Command::add_step;
+package App::Sqitch::Command::add_change;
 
 use v5.10.1;
 use strict;
@@ -35,7 +35,7 @@ has variables => (
     required => 1,
     lazy     => 1,
     default  => sub {
-        shift->sqitch->config->get_section( section => 'add-step.variables' );
+        shift->sqitch->config->get_section( section => 'add-change.variables' );
     },
 );
 
@@ -44,7 +44,7 @@ has template_directory => (
     isa     => 'Maybe[Path::Class::Dir]',
     lazy    => 1,
     default => sub {
-        dir shift->sqitch->config->get( key => "add-step.template_directory" );
+        dir shift->sqitch->config->get( key => "add-change.template_directory" );
     }
 );
 
@@ -55,7 +55,7 @@ for my $script (qw(deploy revert test)) {
         lazy    => 1,
         default => sub {
             shift->sqitch->config->get(
-                key => "add-step.with_$script",
+                key => "add-change.with_$script",
                 as  => 'bool',
             ) // 1;
         }
@@ -72,7 +72,7 @@ for my $script (qw(deploy revert test)) {
 sub _find {
     my ( $self, $script ) = @_;
     my $config = $self->sqitch->config;
-    $config->get( key => "add-step.$script\_template" ) || do {
+    $config->get( key => "add-change.$script\_template" ) || do {
         for my $dir (
             $self->template_directory,
             $config->user_dir->subdir('templates'),
@@ -122,7 +122,7 @@ sub configure {
 
         # Merge with config.
         $params{variables} = {
-            %{ $config->get_section( section => 'add-step.variables' ) },
+            %{ $config->get_section( section => 'add-change.variables' ) },
             %{ $vars },
         };
     }
@@ -137,7 +137,7 @@ sub execute {
 
     # Avoid if any of the scripts already exist.
     my $fn = "$name." . $sqitch->extension;
-    $self->fail(qq{Step "$name" already exists}) if grep { -e $_->file($fn) } (
+    $self->fail(qq{Change "$name" already exists}) if grep { -e $_->file($fn) } (
         $sqitch->deploy_dir,
         $sqitch->revert_dir,
         $sqitch->test_dir,
@@ -180,7 +180,7 @@ sub _add {
 
     Template::Tiny->new->process( $self->_load($in), {
         %{ $self->variables },
-        step      => $name,
+        change      => $name,
         requires  => $self->requires,
         conflicts => $self->conflicts,
     });
@@ -204,16 +204,16 @@ __END__
 
 =head1 Name
 
-App::Sqitch::Command::add_step - Add a new deployment step
+App::Sqitch::Command::add_change - Add a new deployment change
 
 =head1 Synopsis
 
-  my $cmd = App::Sqitch::Command::add_step->new(%params);
+  my $cmd = App::Sqitch::Command::add_change->new(%params);
   $cmd->execute;
 
 =head1 Description
 
-Adds a new deployment step. This will result in the creation of a scripts in
+Adds a new deployment change. This will result in the creation of a scripts in
 the deploy, revert, and test directories. The scripts are based on
 L<Template::Tiny> templates in F<~/.sqitch/templates/> or
 C<$(etc_path)/templates>.
@@ -224,14 +224,14 @@ C<$(etc_path)/templates>.
 
 =head3 C<options>
 
-  my @opts = App::Sqitch::Command::add_step->options;
+  my @opts = App::Sqitch::Command::add_change->options;
 
 Returns a list of L<Getopt::Long> option specifications for the command-line
-options for the C<add_step> command.
+options for the C<add_change> command.
 
 =head3 C<configure>
 
-  my $params = App::Sqitch::Command::add_step->configure(
+  my $params = App::Sqitch::Command::add_change->configure(
       $config,
       $options,
   );
@@ -243,17 +243,17 @@ for the constructor.
 
 =head3 C<execute>
 
-  $add_step->execute($command);
+  $add_change->execute($command);
 
-Executes the C<add-step> command.
+Executes the C<add-change> command.
 
 =head1 See Also
 
 =over
 
-=item L<sqitch-add-step>
+=item L<sqitch-add-change>
 
-Documentation for the C<add-step> command to the Sqitch command-line client.
+Documentation for the C<add-change> command to the Sqitch command-line client.
 
 =item L<sqitch>
 

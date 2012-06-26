@@ -207,12 +207,12 @@ can_ok $CLASS, qw(
     initialize
     run_file
     run_handle
-    log_deploy_step
-    log_fail_step
-    log_revert_step
-    latest_step_id
+    log_deploy_change
+    log_fail_change
+    log_revert_change
+    latest_change_id
     is_deployed_tag
-    is_deployed_step
+    is_deployed_change
     check_requires
     check_conflicts
 );
@@ -253,7 +253,7 @@ subtest 'live database' => sub {
         sqitch_schema => '__sqitchtest',
     ), 'Create a pg with postgres user and __sqitchtest schema';
 
-    is $pg->latest_step_id, undef, 'No init, no steps';
+    is $pg->latest_change_id, undef, 'No init, no changes';
 
     ok !$pg->initialized, 'Database should no longer seem initialized';
     push @cleanup, 'DROP SCHEMA __sqitchtest CASCADE';
@@ -262,7 +262,7 @@ subtest 'live database' => sub {
     is $pg->_dbh->selectcol_arrayref('SHOW search_path')->[0], '__sqitchtest',
         'The search path should be set to the new path';
 
-    is $pg->latest_step_id, undef, 'Still no steps';
+    is $pg->latest_change_id, undef, 'Still no changes';
 
     # Make sure a second attempt to initialize dies.
     throws_ok { $pg->initialize } 'App::Sqitch::X',
@@ -281,149 +281,149 @@ subtest 'live database' => sub {
         'The DBI error should be in preview_exception';
 
     ##########################################################################
-    # Test log_deploy_step().
+    # Test log_deploy_change().
     my $plan = $sqitch->plan;
-    my $step = $plan->step_at(0);
-    my ($tag) = $step->tags;
-    is $step->name, 'users', 'Should have "users" step';
-    ok !$pg->is_deployed_step($step), 'The step should not be deployed';
-    ok $pg->log_deploy_step($step), 'Deploy "users" step';
-    ok $pg->is_deployed_step($step), 'The step should now be deployed';
+    my $change = $plan->change_at(0);
+    my ($tag) = $change->tags;
+    is $change->name, 'users', 'Should have "users" change';
+    ok !$pg->is_deployed_change($change), 'The change should not be deployed';
+    ok $pg->log_deploy_change($change), 'Deploy "users" change';
+    ok $pg->is_deployed_change($change), 'The change should now be deployed';
 
-    is $pg->latest_step_id, $step->id, 'Should get users ID for latest step ID';
-
-    is_deeply $pg->_dbh->selectall_arrayref(
-        'SELECT step_id, step, requires, conflicts, deployed_by FROM steps'
-    ), [[$step->id, 'users', [], [], $pg->actor]],
-        'A record should have been inserted into the steps table';
+    is $pg->latest_change_id, $change->id, 'Should get users ID for latest change ID';
 
     is_deeply $pg->_dbh->selectall_arrayref(
-        'SELECT event, step_id, step, tags, logged_by FROM events'
-    ), [['deploy', $step->id, 'users', ['@alpha'], $pg->actor]],
+        'SELECT change_id, change, requires, conflicts, deployed_by FROM changes'
+    ), [[$change->id, 'users', [], [], $pg->actor]],
+        'A record should have been inserted into the changes table';
+
+    is_deeply $pg->_dbh->selectall_arrayref(
+        'SELECT event, change_id, change, tags, logged_by FROM events'
+    ), [['deploy', $change->id, 'users', ['@alpha'], $pg->actor]],
         'A record should have been inserted into the events table';
 
     is_deeply $pg->_dbh->selectall_arrayref(
-        'SELECT tag_id, tag, step_id, applied_by FROM tags'
+        'SELECT tag_id, tag, change_id, applied_by FROM tags'
     ), [
-        [$tag->id, '@alpha', $step->id, $pg->actor],
+        [$tag->id, '@alpha', $change->id, $pg->actor],
     ], 'The tag should have been logged';
 
     ##########################################################################
-    # Test log_revert_step().
-    ok $pg->log_revert_step($step), 'Revert "users" step';
-    ok !$pg->is_deployed_step($step), 'The step should no longer be deployed';
+    # Test log_revert_change().
+    ok $pg->log_revert_change($change), 'Revert "users" change';
+    ok !$pg->is_deployed_change($change), 'The change should no longer be deployed';
 
-    is $pg->latest_step_id, undef, 'Should get undef for latest step';
-
-    is_deeply $pg->_dbh->selectall_arrayref(
-        'SELECT step_id, step, requires, conflicts, deployed_by FROM steps'
-    ), [], 'The record should have been deleted from the steps table';
+    is $pg->latest_change_id, undef, 'Should get undef for latest change';
 
     is_deeply $pg->_dbh->selectall_arrayref(
-        'SELECT event, step_id, step, tags, logged_by FROM events ORDER BY logged_at'
+        'SELECT change_id, change, requires, conflicts, deployed_by FROM changes'
+    ), [], 'The record should have been deleted from the changes table';
+
+    is_deeply $pg->_dbh->selectall_arrayref(
+        'SELECT event, change_id, change, tags, logged_by FROM events ORDER BY logged_at'
     ), [
-        ['deploy', $step->id, 'users', ['@alpha'], $pg->actor],
-        ['revert', $step->id, 'users', ['@alpha'], $pg->actor],
+        ['deploy', $change->id, 'users', ['@alpha'], $pg->actor],
+        ['revert', $change->id, 'users', ['@alpha'], $pg->actor],
     ], 'The revert event should have been logged';
 
     is_deeply $pg->_dbh->selectall_arrayref(
-        'SELECT tag_id, tag, step_id, applied_by FROM tags'
+        'SELECT tag_id, tag, change_id, applied_by FROM tags'
     ), [], 'And the tag record should have been remved';
 
     ##########################################################################
-    # Test log_fail_step().
-    ok $pg->log_fail_step($step), 'Fail "users" step';
-    ok !$pg->is_deployed_step($step), 'The step still should not be deployed';
+    # Test log_fail_change().
+    ok $pg->log_fail_change($change), 'Fail "users" change';
+    ok !$pg->is_deployed_change($change), 'The change still should not be deployed';
 
-    is $pg->latest_step_id, undef, 'Should still get undef for latest step';
-
-    is_deeply $pg->_dbh->selectall_arrayref(
-        'SELECT step_id, step, requires, conflicts, deployed_by FROM steps'
-    ), [], 'Still should have not steps table record';
+    is $pg->latest_change_id, undef, 'Should still get undef for latest change';
 
     is_deeply $pg->_dbh->selectall_arrayref(
-        'SELECT event, step_id, step, tags, logged_by FROM events ORDER BY logged_at'
+        'SELECT change_id, change, requires, conflicts, deployed_by FROM changes'
+    ), [], 'Still should have not changes table record';
+
+    is_deeply $pg->_dbh->selectall_arrayref(
+        'SELECT event, change_id, change, tags, logged_by FROM events ORDER BY logged_at'
     ), [
-        ['deploy', $step->id, 'users', ['@alpha'], $pg->actor],
-        ['revert', $step->id, 'users', ['@alpha'], $pg->actor],
-        ['fail',   $step->id, 'users', ['@alpha'], $pg->actor],
+        ['deploy', $change->id, 'users', ['@alpha'], $pg->actor],
+        ['revert', $change->id, 'users', ['@alpha'], $pg->actor],
+        ['fail',   $change->id, 'users', ['@alpha'], $pg->actor],
     ], 'The fail event should have been logged';
 
     is_deeply $pg->_dbh->selectall_arrayref(
-        'SELECT tag_id, tag, step_id, applied_by FROM tags'
+        'SELECT tag_id, tag, change_id, applied_by FROM tags'
     ), [], 'Should still have no tag records';
 
     ##########################################################################
-    # Test a step with dependencies.
-    ok $pg->log_deploy_step($step),    'Deploy the step again';
+    # Test a change with dependencies.
+    ok $pg->log_deploy_change($change),    'Deploy the change again';
     ok $pg->is_deployed_tag($tag),     'The tag again should be deployed';
-    is $pg->latest_step_id, $step->id, 'Should still get users ID for latest step ID';
+    is $pg->latest_change_id, $change->id, 'Should still get users ID for latest change ID';
 
-    ok my $step2 = $plan->step_at(1),   'Get the second step';
-    ok $pg->log_deploy_step($step2),    'Deploy second step';
-    is $pg->latest_step_id, $step2->id, 'Should get "widgets" ID for latest step ID';
+    ok my $change2 = $plan->change_at(1),   'Get the second change';
+    ok $pg->log_deploy_change($change2),    'Deploy second change';
+    is $pg->latest_change_id, $change2->id, 'Should get "widgets" ID for latest change ID';
 
     is_deeply $pg->_dbh->selectall_arrayref(q{
-        SELECT step_id, step, requires, conflicts, deployed_by
-          FROM steps
+        SELECT change_id, change, requires, conflicts, deployed_by
+          FROM changes
          ORDER BY deployed_at
     }), [
-        [$step->id,  'users', [], [], $pg->actor],
-        [$step2->id, 'widgets', ['users'], ['dr_evil'], $pg->actor],
-    ], 'Should have both steps and requires/conflcits deployed';
+        [$change->id,  'users', [], [], $pg->actor],
+        [$change2->id, 'widgets', ['users'], ['dr_evil'], $pg->actor],
+    ], 'Should have both changes and requires/conflcits deployed';
 
     is_deeply $pg->_dbh->selectall_arrayref(
-        'SELECT event, step_id, step, tags, logged_by FROM events ORDER BY logged_at'
+        'SELECT event, change_id, change, tags, logged_by FROM events ORDER BY logged_at'
     ), [
-        ['deploy', $step->id,  'users',   ['@alpha'], $pg->actor],
-        ['revert', $step->id,  'users',   ['@alpha'], $pg->actor],
-        ['fail',   $step->id,  'users',   ['@alpha'], $pg->actor],
-        ['deploy', $step->id,  'users',   ['@alpha'], $pg->actor],
-        ['deploy', $step2->id, 'widgets', [],         $pg->actor],
-    ], 'The new step deploy should have been logged';
+        ['deploy', $change->id,  'users',   ['@alpha'], $pg->actor],
+        ['revert', $change->id,  'users',   ['@alpha'], $pg->actor],
+        ['fail',   $change->id,  'users',   ['@alpha'], $pg->actor],
+        ['deploy', $change->id,  'users',   ['@alpha'], $pg->actor],
+        ['deploy', $change2->id, 'widgets', [],         $pg->actor],
+    ], 'The new change deploy should have been logged';
 
     ##########################################################################
     # Test conflicts and requires.
-    is_deeply [$pg->check_conflicts($step)], [], 'Step should have no conflicts';
-    is_deeply [$pg->check_requires($step)], [], 'Step should have no missing dependencies';
+    is_deeply [$pg->check_conflicts($change)], [], 'Change should have no conflicts';
+    is_deeply [$pg->check_requires($change)], [], 'Change should have no missing dependencies';
 
-    my $step3 = App::Sqitch::Plan::Step->new(
+    my $change3 = App::Sqitch::Plan::Change->new(
         name      => 'whatever',
         plan      => $plan,
         conflicts => ['users', 'widgets'],
         requires  => ['fred', 'barney', 'widgets'],
     );
-    $plan->add_step('fred');
-    $plan->add_step('barney');
+    $plan->add_change('fred');
+    $plan->add_change('barney');
 
-    is_deeply [$pg->check_conflicts($step3)], [qw(users widgets)],
-        'Should get back list of installed conflicting steps';
-    is_deeply [$pg->check_requires($step3)], [qw(barney fred)],
+    is_deeply [$pg->check_conflicts($change3)], [qw(users widgets)],
+        'Should get back list of installed conflicting changes';
+    is_deeply [$pg->check_requires($change3)], [qw(barney fred)],
         'Should get back list of missing dependencies';
 
     # Undeploy widgets.
-    ok $pg->log_revert_step($step2), 'Revert "widgets"';
+    ok $pg->log_revert_change($change2), 'Revert "widgets"';
 
-    is_deeply [$pg->check_conflicts($step3)], [qw(users)],
+    is_deeply [$pg->check_conflicts($change3)], [qw(users)],
         'Should now see only "users" as a conflict';
-    is_deeply [$pg->check_requires($step3)], [qw(barney fred widgets)],
+    is_deeply [$pg->check_requires($change3)], [qw(barney fred widgets)],
         'Should get back list all three missing dependencies';
 
     ##########################################################################
-    # Test deployed_step_ids() and deployed_step_ids_since().
-    can_ok $pg, qw(deployed_step_ids deployed_step_ids_since);
-    is_deeply [$pg->deployed_step_ids], [$step->id],
-        'Should have one deployed step ID';
-    is_deeply [$pg->deployed_step_ids_since($step)], [],
+    # Test deployed_change_ids() and deployed_change_ids_since().
+    can_ok $pg, qw(deployed_change_ids deployed_change_ids_since);
+    is_deeply [$pg->deployed_change_ids], [$change->id],
+        'Should have one deployed change ID';
+    is_deeply [$pg->deployed_change_ids_since($change)], [],
         'Should find none deployed since that one';
 
     # Add another one.
-    ok $pg->log_deploy_step($step2), 'Log another step';
-    is_deeply [$pg->deployed_step_ids], [$step->id, $step2->id],
-        'Should have both deployed step IDs';
-    is_deeply [$pg->deployed_step_ids_since($step)], [$step2->id],
+    ok $pg->log_deploy_change($change2), 'Log another change';
+    is_deeply [$pg->deployed_change_ids], [$change->id, $change2->id],
+        'Should have both deployed change IDs';
+    is_deeply [$pg->deployed_change_ids_since($change)], [$change2->id],
         'Should find only the second after the first';
-    is_deeply [$pg->deployed_step_ids_since($step2)], [],
+    is_deeply [$pg->deployed_change_ids_since($change2)], [],
         'Should find none after the second';
 
     ##########################################################################
@@ -438,8 +438,8 @@ subtest 'live database' => sub {
     ok $pg->begin_work, 'Begin work';
     ok $txn, 'Should have started a transaction';
     is_deeply \@do, [
-        'LOCK TABLE steps IN EXCLUSIVE MODE',
-    ], 'The steps table should have been locked';
+        'LOCK TABLE changes IN EXCLUSIVE MODE',
+    ], 'The changes table should have been locked';
     ok $pg->finish_work, 'Finish work';
     ok !$txn, 'Should have committed a transaction';
     $mock_dbh->unmock_all;

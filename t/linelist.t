@@ -15,16 +15,16 @@ BEGIN { require_ok 'App::Sqitch::Plan::LineList' or die }
 my $sqitch = App::Sqitch->new;
 my $plan   = App::Sqitch::Plan->new(sqitch => $sqitch);
 
-my $foo = App::Sqitch::Plan::Step->new(plan => $plan, name => 'foo');
-my $bar = App::Sqitch::Plan::Step->new(plan => $plan, name => 'bar');
-my $baz = App::Sqitch::Plan::Step->new(plan => $plan, name => 'baz');
-my $yo1 = App::Sqitch::Plan::Step->new(plan => $plan, name => 'yo');
-my $yo2 = App::Sqitch::Plan::Step->new(plan => $plan, name => 'yo');
+my $foo = App::Sqitch::Plan::Change->new(plan => $plan, name => 'foo');
+my $bar = App::Sqitch::Plan::Change->new(plan => $plan, name => 'bar');
+my $baz = App::Sqitch::Plan::Change->new(plan => $plan, name => 'baz');
+my $yo1 = App::Sqitch::Plan::Change->new(plan => $plan, name => 'yo');
+my $yo2 = App::Sqitch::Plan::Change->new(plan => $plan, name => 'yo');
 
 my $blank = App::Sqitch::Plan::Blank->new(plan => $plan);
 my $alpha = App::Sqitch::Plan::Tag->new(
     plan => $plan,
-    step => $yo1,
+    change => $yo1,
     name => 'alpha',
 );
 
@@ -58,7 +58,7 @@ is $lines->index_of($blank), 4, 'Should find blank at 4';
 is $lines->index_of($baz), 5, 'Should find baz at 5';
 is $lines->index_of($yo2), 6, 'Should find yo2 at 6';
 
-my $hi = App::Sqitch::Plan::Step->new(plan => $plan, name => 'hi');
+my $hi = App::Sqitch::Plan::Change->new(plan => $plan, name => 'hi');
 ok $lines->append($hi), 'Append hi';
 is $lines->count, 8, 'Count should now be eight';
 is_deeply [$lines->items], [$foo, $bar, $yo1, $alpha, $blank, $baz, $yo2, $hi],

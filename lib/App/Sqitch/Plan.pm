@@ -3,11 +3,11 @@ package App::Sqitch::Plan;
 use v5.10.1;
 use utf8;
 use App::Sqitch::Plan::Tag;
-use App::Sqitch::Plan::Step;
+use App::Sqitch::Plan::Change;
 use App::Sqitch::Plan::Blank;
 use App::Sqitch::Plan::Pragma;
 use Path::Class;
-use App::Sqitch::Plan::StepList;
+use App::Sqitch::Plan::ChangeList;
 use App::Sqitch::Plan::LineList;
 use namespace::autoclean;
 use Moose;
@@ -43,7 +43,7 @@ sub load {
     my $file = $self->sqitch->plan_file;
     # XXX Issue a warning if file does not exist?
     return {
-        steps => App::Sqitch::Plan::StepList->new,
+        changes => App::Sqitch::Plan::ChangeList->new,
         lines => App::Sqitch::Plan::LineList->new(
             $self->_version_line,
         ),
@@ -57,14 +57,14 @@ sub _parse {
     my ( $self, $file, $fh ) = @_;
 
     my @lines;         # List of lines.
-    my @steps;         # List of steps.
-    my @curr_steps;    # List of steps since last tag.
-    my %line_no_for;   # Maps tags and steps to line numbers.
-    my %step_named;    # Maps step names to step objects.
-    my %tag_steps;     # Maps steps in current tag section to line numbers.
+    my @changes;         # List of changes.
+    my @curr_changes;    # List of changes since last tag.
+    my %line_no_for;   # Maps tags and changes to line numbers.
+    my %change_named;    # Maps change names to change objects.
+    my %tag_changes;     # Maps changes in current tag section to line numbers.
     my $seen_version;  # Have we seen a version pragma?
     my $prev_tag;      # Last seen tag.
-    my $prev_step;     # Last seen step.
+    my $prev_change;     # Last seen change.
 
     LINE: while ( my $line = $fh->getline ) {
         chomp $line;
@@ -113,8 +113,8 @@ sub _parse {
             next LINE;
         }
 
-        # Is it a tag or a step?
-        my $type = $line =~ /^[[:blank:]]*[@]/ ? 'tag' : 'step';
+        # Is it a tag or a change?
+        my $type = $line =~ /^[[:blank:]]*[@]/ ? 'tag' : 'change';
         my $name_re = qr/
              [^[:punct:]]               #     not punct
              (?:                        #     followed by...
@@ -166,12 +166,12 @@ sub _parse {
         ) if $params{name} =~ /^[0-9a-f]{40}/;
 
         if ($type eq 'tag') {
-            # Fail if no steps.
-            unless ($prev_step) {
+            # Fail if no changes.
+            unless ($prev_change) {
                 $self->sqitch->fail(
                     "Error in $file at line ",
                     $fh->input_line_number,
-                    qq{: \u$type "$params{name}" declared without a preceding step},
+                    qq{: \u$type "$params{name}" declared without a preceding change},
                 );
             }
 
@@ -194,27 +194,27 @@ sub _parse {
                 );
             }
 
-            if (@curr_steps) {
-                # Sort all steps up to this tag by their dependencies.
-                push @steps => $self->sort_steps(\%line_no_for, @curr_steps);
-                @curr_steps = ();
+            if (@curr_changes) {
+                # Sort all changes up to this tag by their dependencies.
+                push @changes => $self->sort_changes(\%line_no_for, @curr_changes);
+                @curr_changes = ();
             }
 
-            # Create the tag and associate it with the previous step.
+            # Create the tag and associate it with the previous change.
             $prev_tag = App::Sqitch::Plan::Tag->new(
                 plan => $self,
-                step => $prev_step,
+                change => $prev_change,
                 %params,
             );
 
             # Keep track of everything and clean up.
-            $prev_step->add_tag($prev_tag);
+            $prev_change->add_tag($prev_tag);
             push @lines => $prev_tag;
-            %line_no_for = (%line_no_for, %tag_steps, $key => $fh->input_line_number);
-            %tag_steps = ();
+            %line_no_for = (%line_no_for, %tag_changes, $key => $fh->input_line_number);
+            %tag_changes = ();
         } else {
-            # Fail on duplicate step since last tag.
-            if ( my $at = $tag_steps{ $params{name} } ) {
+            # Fail on duplicate change since last tag.
+            if ( my $at = $tag_changes{ $params{name} } ) {
                 $self->sqitch->fail(
                     "Syntax error in $file at line ",
                     $fh->input_line_number,
@@ -230,7 +230,7 @@ sub _parse {
                         "Syntax error in $file at line ",
                         $fh->input_line_number,
                         qq{: "$dep" does not look like a dependency.\n},
-                        qq{Dependencies must begin with ":" or "!" and be valid step names},
+                        qq{Dependencies must begin with ":" or "!" and be valid change names},
                     ) unless $dep =~ /^([:!])((?:(?:$name_re)?[@])?$name_re)$/g;
                     if ($1 eq ':') {
                         push @req => $2;
@@ -242,30 +242,30 @@ sub _parse {
                 $params{conflicts} = \@con;
             }
 
-            $tag_steps{ $params{name} } = $fh->input_line_number;
-            push @curr_steps => $prev_step = App::Sqitch::Plan::Step->new(
+            $tag_changes{ $params{name} } = $fh->input_line_number;
+            push @curr_changes => $prev_change = App::Sqitch::Plan::Change->new(
                 plan => $self,
                 ( $prev_tag ? ( since_tag => $prev_tag ) : () ),
                 %params,
             );
-            push @lines => $prev_step;
+            push @lines => $prev_change;
 
-            if (my $duped = $step_named{ $params{name} }) {
-                # Mark previously-seen step of same name as duped.
+            if (my $duped = $change_named{ $params{name} }) {
+                # Mark previously-seen change of same name as duped.
                 $duped->suffix($prev_tag->format_name);
             }
-            $step_named{ $params{name} } = $prev_step;
+            $change_named{ $params{name} } = $prev_change;
         }
     }
 
-    # Sort and store any remaining steps.
-    push @steps => $self->sort_steps(\%line_no_for, @curr_steps) if @curr_steps;
+    # Sort and store any remaining changes.
+    push @changes => $self->sort_changes(\%line_no_for, @curr_changes) if @curr_changes;
 
     # We should have a version pragma.
     unshift @lines => $self->_version_line unless $seen_version;
 
     return {
-        steps => App::Sqitch::Plan::StepList->new(@steps),
+        changes => App::Sqitch::Plan::ChangeList->new(@changes),
         lines => App::Sqitch::Plan::LineList->new(@lines),
     };
 }
@@ -279,26 +279,26 @@ sub _version_line {
     );
 }
 
-sub sort_steps {
+sub sort_changes {
     my $self = shift;
     my $seen = ref $_[0] eq 'HASH' ? shift : {};
 
-    my %obj;             # maps step names to objects.
+    my %obj;             # maps change names to objects.
     my %pairs;           # all pairs ($l, $r)
     my %npred;           # number of predecessors
     my %succ;            # list of successors
-    for my $step (@_) {
+    for my $change (@_) {
 
         # Stolen from http://cpansearch.perl.org/src/CWEST/ppt-0.14/bin/tsort.
-        my $name = $step->name;
-        $obj{$name} = $step;
+        my $name = $change->name;
+        $obj{$name} = $change;
         my $p = $pairs{$name} = {};
         $npred{$name} += 0;
 
         # XXX Ignoring conflicts for now.
-        for my $dep ( $step->requires ) {
+        for my $dep ( $change->requires ) {
 
-            # Skip it if it's a step from an earlier tag.
+            # Skip it if it's a change from an earlier tag.
             next if exists $seen->{$dep};
             $p->{$dep}++;
             $npred{$dep}++;
@@ -307,20 +307,20 @@ sub sort_steps {
     }
 
     # Stolen from http://cpansearch.perl.org/src/CWEST/ppt-0.14/bin/tsort.
-    # Create a list of steps without predecessors
+    # Create a list of changes without predecessors
     my @list = grep { !$npred{$_->name} } @_;
 
     my @ret;
     while (@list) {
-        my $step = pop @list;
-        unshift @ret => $step;
-        foreach my $child ( @{ $succ{$step->name} } ) {
+        my $change = pop @list;
+        unshift @ret => $change;
+        foreach my $child ( @{ $succ{$change->name} } ) {
             unless ( $pairs{$child} ) {
                 my $sqitch = $self->sqitch;
-                my $type = $child =~ /^[@]/ ? 'tag' : 'step';
+                my $type = $child =~ /^[@]/ ? 'tag' : 'change';
                 $self->sqitch->fail(
                     qq{Unknown $type "$child" required in },
-                    $step->deploy_file,
+                    $change->deploy_file,
                 );
             }
             push @list, $obj{$child} unless --$npred{$child};
@@ -330,7 +330,7 @@ sub sort_steps {
     if ( my @cycles = map { $_->name } grep { $npred{$_->name} } @_ ) {
         my $last = pop @cycles;
         $self->sqitch->fail(
-            'Dependency cycle detected beween steps "',
+            'Dependency cycle detected beween changes "',
             join( ", ", @cycles ),
             qq{ and "$last"}
         );
@@ -346,18 +346,18 @@ sub open_script {
 }
 
 sub lines          { shift->_plan->{lines}->items }
-sub steps          { shift->_plan->{steps}->steps }
-sub count          { shift->_plan->{steps}->count }
-sub index_of       { shift->_plan->{steps}->index_of(shift) }
-sub get            { shift->_plan->{steps}->get(shift) }
-sub find           { shift->_plan->{steps}->find(shift) }
-sub first_index_of { shift->_plan->{steps}->first_index_of(@_) }
-sub step_at        { shift->_plan->{steps}->step_at(shift) }
+sub changes          { shift->_plan->{changes}->changes }
+sub count          { shift->_plan->{changes}->count }
+sub index_of       { shift->_plan->{changes}->index_of(shift) }
+sub get            { shift->_plan->{changes}->get(shift) }
+sub find           { shift->_plan->{changes}->find(shift) }
+sub first_index_of { shift->_plan->{changes}->first_index_of(@_) }
+sub change_at        { shift->_plan->{changes}->change_at(shift) }
 
 sub seek {
     my ( $self, $key ) = @_;
     my $index = $self->index_of($key);
-    $self->sqitch->fail(qq{Cannot find step "$key" in plan})
+    $self->sqitch->fail(qq{Cannot find change "$key" in plan})
         unless defined $index;
     $self->position($index);
     return $self;
@@ -383,16 +383,16 @@ sub current {
     my $self = shift;
     my $pos = $self->position;
     return if $pos < 0;
-    $self->_plan->{steps}->step_at( $pos );
+    $self->_plan->{changes}->change_at( $pos );
 }
 
 sub peek {
     my $self = shift;
-    $self->_plan->{steps}->step_at( $self->position + 1 );
+    $self->_plan->{changes}->change_at( $self->position + 1 );
 }
 
 sub last {
-    shift->_plan->{steps}->step_at( -1 );
+    shift->_plan->{changes}->change_at( -1 );
 }
 
 sub do {
@@ -408,44 +408,44 @@ sub add_tag {
     $self->_is_valid(tag => $name);
 
     my $plan  = $self->_plan;
-    my $steps = $plan->{steps};
+    my $changes = $plan->{changes};
     my $key   = "\@$name";
 
     $self->sqitch->fail(qq{Tag "$key" already exists})
-        if defined $steps->index_of($key);
+        if defined $changes->index_of($key);
 
-    my $step = $steps->last_step or $self->sqitch->fail(
-        qq{Cannot apply tag "$key" to a plan with no steps}
+    my $change = $changes->last_change or $self->sqitch->fail(
+        qq{Cannot apply tag "$key" to a plan with no changes}
     );
 
     my $tag = App::Sqitch::Plan::Tag->new(
         plan => $self,
         name => $name,
-        step => $step,
+        change => $change,
     );
 
-    $step->add_tag($tag);
-    $steps->index_tag( $steps->index_of( $step->id ), $tag );
+    $change->add_tag($tag);
+    $changes->index_tag( $changes->index_of( $change->id ), $tag );
     $plan->{lines}->append( $tag );
     return $tag;
 }
 
-sub add_step {
+sub add_change {
     my ( $self, $name, $requires, $conflicts ) = @_;
-    $self->_is_valid(step => $name);
+    $self->_is_valid(change => $name);
 
     my $plan  = $self->_plan;
-    my $steps = $plan->{steps};
+    my $changes = $plan->{changes};
 
-    if (defined( my $idx = $steps->index_of($name . '@HEAD') )) {
-        my $tag_idx = $steps->index_of_last_tagged;
+    if (defined( my $idx = $changes->index_of($name . '@HEAD') )) {
+        my $tag_idx = $changes->index_of_last_tagged;
         $self->sqitch->fail(
-            qq{Step "$name" already exists.\n},
+            qq{Change "$name" already exists.\n},
             'Use "sqitch rework" to copy and rework it'
         );
     }
 
-    my $step = App::Sqitch::Plan::Step->new(
+    my $change = App::Sqitch::Plan::Change->new(
         plan      => $self,
         name      => $name,
         requires  => $requires  ||= [],
@@ -454,34 +454,34 @@ sub add_step {
     );
 
     # Make sure dependencies are specified.
-    $self->_check_dependencies($step, 'add');
+    $self->_check_dependencies($change, 'add');
 
     # We good.
-    $steps->append( $step );
-    $plan->{lines}->append( $step );
-    return $step;
+    $changes->append( $change );
+    $plan->{lines}->append( $change );
+    return $change;
 }
 
-sub rework_step {
+sub rework_change {
     my ( $self, $name, $requires, $conflicts ) = @_;
     my $plan  = $self->_plan;
-    my $steps = $plan->{steps};
-    my $idx   = $steps->index_of($name . '@HEAD') // $self->sqitch->fail(
-        qq{Step "$name" does not exist.\n},
+    my $changes = $plan->{changes};
+    my $idx   = $changes->index_of($name . '@HEAD') // $self->sqitch->fail(
+        qq{Change "$name" does not exist.\n},
         qq{Use "sqitch add $name" to add it to the plan},
     );
 
-    my $tag_idx = $steps->index_of_last_tagged;
+    my $tag_idx = $changes->index_of_last_tagged;
     $self->sqitch->fail(
         qq{Cannot rework "$name" without an intervening tag.\n},
         'Use "sqitch tag" to create a tag and try again'
     ) if !defined $tag_idx || $tag_idx < $idx;
 
-    my ($tag) = $steps->step_at($tag_idx)->tags;
+    my ($tag) = $changes->change_at($tag_idx)->tags;
     unshift @{ $requires ||= [] } => $name . $tag->format_name;
 
-    my $orig = $steps->step_at($idx);
-    my $new  = App::Sqitch::Plan::Step->new(
+    my $orig = $changes->change_at($idx);
+    my $new  = App::Sqitch::Plan::Change->new(
         plan      => $self,
         name      => $name,
         requires  => $requires,
@@ -494,19 +494,19 @@ sub rework_step {
 
     # We good.
     $orig->suffix($tag->format_name);
-    $steps->append( $new );
+    $changes->append( $new );
     $plan->{lines}->append( $new );
     return $new;
 }
 
 sub _check_dependencies {
-    my ( $self, $step, $action ) = @_;
-    my $steps = $self->_plan->{steps};
-    for my $req ( $step->requires ) {
-        next if defined $steps->index_of($req =~ /@/ ? $req : $req . '@HEAD');
-        my $name = $step->name;
+    my ( $self, $change, $action ) = @_;
+    my $changes = $self->_plan->{changes};
+    for my $req ( $change->requires ) {
+        next if defined $changes->index_of($req =~ /@/ ? $req : $req . '@HEAD');
+        my $name = $change->name;
         $self->sqitch->fail(
-            qq{Cannot $action step "$name": },
+            qq{Cannot $action change "$name": },
             qq{requires unknown change "$req"}
         );
     }
@@ -559,8 +559,8 @@ App::Sqitch::Plan - Sqitch Deployment Plan
 =head1 Synopsis
 
   my $plan = App::Sqitch::Plan->new( sqitch => $sqitch );
-  while (my $step = $plan->next) {
-      say "Deploy ", $step->format_name;
+  while (my $change = $plan->next) {
+      say "Deploy ", $change->format_name;
   }
 
 =head1 Description
@@ -611,7 +611,7 @@ C<next> returns C<undef>, the value will be the last index in the plan plus 1.
   my $bar1_index = $plan->index_of('bar@alpha')
   my $bar2_index = $plan->index_of('bar@HEAD');
 
-Returns the index of the specified step. Returns C<undef> if no such step
+Returns the index of the specified change. Returns C<undef> if no such change
 exists. The argument may be any one of:
 
 =over
@@ -620,14 +620,14 @@ exists. The argument may be any one of:
 
   my $index = $plan->index_of('6c2f28d125aff1deea615f8de774599acf39a7a1');
 
-This is the SHA1 hash of a step or tag. Currently, the full 40-character hexed
+This is the SHA1 hash of a change or tag. Currently, the full 40-character hexed
 hash string must be specified.
 
-=item * A step name
+=item * A change name
 
   my $index = $plan->index_of('users_table');
 
-The name of a step. Will throw an exception if the named step appears more
+The name of a change. Will throw an exception if the named change appears more
 than once in the list.
 
 =item * A tag name
@@ -636,74 +636,74 @@ than once in the list.
 
 The name of a tag, including the leading C<@>.
 
-=item * A tag-qualified step name
+=item * A tag-qualified change name
 
   my $index = $plan->index_of('users_table@beta1');
 
-The named step as it was last seen in the list before the specified tag.
+The named change as it was last seen in the list before the specified tag.
 
 =back
 
 =head3 C<get>
 
-  my $step = $plan->get('6c2f28d125aff1deea615f8de774599acf39a7a1');
+  my $change = $plan->get('6c2f28d125aff1deea615f8de774599acf39a7a1');
   my $foo  = $plan->index_of('@foo');
   my $bar  = $plan->index_of('bar');
   my $bar1 = $plan->index_of('bar@alpha')
   my $bar2 = $plan->index_of('bar@HEAD');
 
-Returns the step corresponding to the specified ID or name. The argument may
+Returns the change corresponding to the specified ID or name. The argument may
 be in any of the formats described for C<index_of()>.
 
 =head3 C<find>
 
-  my $step = $plan->find('6c2f28d125aff1deea615f8de774599acf39a7a1');
+  my $change = $plan->find('6c2f28d125aff1deea615f8de774599acf39a7a1');
   my $foo  = $plan->index_of('@foo');
   my $bar  = $plan->index_of('bar');
   my $bar1 = $plan->index_of('bar@alpha')
   my $bar2 = $plan->index_of('bar@HEAD');
 
-Finds the step corresponding to the specified ID or name. The argument may be
+Finds the change corresponding to the specified ID or name. The argument may be
 in any of the formats described for C<index_of()>. Unlike C<get()>, C<find()>
-will not throw an error if more than one step exists with the specified name,
+will not throw an error if more than one change exists with the specified name,
 but will return the first instance.
 
 =head3 C<first_index_of>
 
-  my $index = $plan->first_index_of($step_name);
-  my $index = $plan->first_index_of($step_name, $step_or_tag_name);
+  my $index = $plan->first_index_of($change_name);
+  my $index = $plan->first_index_of($change_name, $change_or_tag_name);
 
-Returns the index of the first instance of the named step in the plan. If a
-second argument is passed, the index of the first instance of the step
+Returns the index of the first instance of the named change in the plan. If a
+second argument is passed, the index of the first instance of the change
 I<after> the the index of the second argument will be returned. This is useful
-for getting the index of a step as it was deployed after a particular tag, for
-example, to get the first index of the F<foo> step since the C<@beta> tag, do
+for getting the index of a change as it was deployed after a particular tag, for
+example, to get the first index of the F<foo> change since the C<@beta> tag, do
 this:
 
   my $index = $plan->first_index_of('foo', '@beta');
 
-You can also specify the first instance of a step after another step,
-including such a step at the point of a tag:
+You can also specify the first instance of a change after another change,
+including such a change at the point of a tag:
 
   my $index = $plan->first_index_of('foo', 'users_table@beta1');
 
-The second argument must unambiguously refer to a single step in the plan. As
-such, it should usually be a tag name or tag-qualified step name. Returns
-C<undef> if the step does not appear in the plan, or if it does not appear
-after the specified second argument step name.
+The second argument must unambiguously refer to a single change in the plan. As
+such, it should usually be a tag name or tag-qualified change name. Returns
+C<undef> if the change does not appear in the plan, or if it does not appear
+after the specified second argument change name.
 
-=head3 C<step_at>
+=head3 C<change_at>
 
-  my $step = $plan->step_at($index);
+  my $change = $plan->change_at($index);
 
-Returns the step at the specified index.
+Returns the change at the specified index.
 
 =head3 C<seek>
 
   $plan->seek('@foo');
   $plan->seek('bar');
 
-Move the plan position to the specified step. Dies if the step cannot be found
+Move the plan position to the specified change. Dies if the change cannot be found
 in the plan.
 
 =head3 C<reset>
@@ -714,51 +714,51 @@ Resets iteration. Same as C<< $plan->position(-1) >>, but better.
 
 =head3 C<next>
 
-  while (my $step = $plan->next) {
-      say "Deploy ", $step->format_name;
+  while (my $change = $plan->next) {
+      say "Deploy ", $change->format_name;
   }
 
-Returns the next L<step|App::Sqitch::Plan::Step> in the plan. Returns C<undef>
-if there are no more steps.
+Returns the next L<change|App::Sqitch::Plan::Change> in the plan. Returns C<undef>
+if there are no more changes.
 
 =head3 C<last>
 
-  my $step = $plan->last;
+  my $change = $plan->last;
 
-Returns the last step in the plan. Does not change the current position.
+Returns the last change in the plan. Does not change the current position.
 
 =head3 C<current>
 
-   my $step = $plan->current;
+   my $change = $plan->current;
 
-Returns the same step as was last returned by C<next()>. Returns C<undef> if
+Returns the same change as was last returned by C<next()>. Returns C<undef> if
 C<next()> has not been called or if the plan has been reset.
 
 =head3 C<peek>
 
-   my $step = $plan->peek;
+   my $change = $plan->peek;
 
-Returns the next step in the plan without incrementing the iterator. Returns
-C<undef> if there are no more steps beyond the current step.
+Returns the next change in the plan without incrementing the iterator. Returns
+C<undef> if there are no more changes beyond the current change.
 
-=head3 C<steps>
+=head3 C<changes>
 
-  my @steps = $plan->steps;
+  my @changes = $plan->changes;
 
-Returns all of the steps in the plan. This constitutes the entire plan.
+Returns all of the changes in the plan. This constitutes the entire plan.
 
 =head3 C<count>
 
   my $count = $plan->count;
 
-Returns the number of steps in the plan.
+Returns the number of changes in the plan.
 
 =head3 C<lines>
 
   my @lines = $plan->lines;
 
 Returns all of the lines in the plan. This includes all the
-L<steps|App::Sqitch::Plan::Step>, L<tags|App::Sqitch::Plan::Tag>,
+L<changes|App::Sqitch::Plan::Change>, L<tags|App::Sqitch::Plan::Tag>,
 L<pragmas|App::Sqitch::Plan::Pragma>, and L<blank
 lines|App::Sqitch::Plan::Blank>.
 
@@ -767,13 +767,13 @@ lines|App::Sqitch::Plan::Blank>.
   $plan->do(sub { say $_[0]->name; return $_[0]; });
   $plan->do(sub { say $_->name;    return $_;    });
 
-Pass a code reference to this method to execute it for each step in the plan.
-Each step will be stored in C<$_> before executing the code reference, and
+Pass a code reference to this method to execute it for each change in the plan.
+Each change will be stored in C<$_> before executing the code reference, and
 will also be passed as the sole argument. If C<next()> has been called prior
-to the call to C<do()>, then only the remaining steps in the iterator will
+to the call to C<do()>, then only the remaining changes in the iterator will
 passed to the code reference. Iteration terminates when the code reference
 returns false, so be sure to have it return a true value if you want it to
-iterate over every step.
+iterate over every change.
 
 =head3 C<write_to>
 
@@ -784,7 +784,7 @@ original plan file.
 
 =head3 C<open_script>
 
-  my $file_handle = $plan->open_script( $step->deploy_file );
+  my $file_handle = $plan->open_script( $change->deploy_file );
 
 Opens the script file passed to it and returns a file handle for reading. The
 script file must be encoded in UTF-8.
@@ -795,17 +795,17 @@ script file must be encoded in UTF-8.
 
 Loads the plan data. Called internally, not meant to be called directly, as it
 parses the plan file and deploy scripts every time it's called. If you want
-the all of the steps, call C<steps()> instead.
+the all of the changes, call C<changes()> instead.
 
-=head3 C<sort_steps>
+=head3 C<sort_changes>
 
-  @steps = $plan->sort_steps(@steps);
-  @steps = $plan->sort_steps( { '@foo' => 1, 'bar' => 1 }, @steps );
+  @changes = $plan->sort_changes(@changes);
+  @changes = $plan->sort_changes( { '@foo' => 1, 'bar' => 1 }, @changes );
 
-Sorts a list of steps in dependency order and returns them. If the first
-argument is a hash reference, its keys should be previously-seen step and tag
+Sorts a list of changes in dependency order and returns them. If the first
+argument is a hash reference, its keys should be previously-seen change and tag
 names that can be assumed to be satisfied requirements for the succeeding
-steps.
+changes.
 
 =head3 C<add_tag>
 
@@ -814,24 +814,24 @@ steps.
 Adds a tag to the plan. Exits with a fatal error if the tag already
 exists in the plan.
 
-=head3 C<add_step>
+=head3 C<add_change>
 
-  $plan->add_step( 'whatevs' );
-  $plan->add_step( 'widgets', [qw(foo bar)], [qw(dr_evil)] );
+  $plan->add_change( 'whatevs' );
+  $plan->add_change( 'widgets', [qw(foo bar)], [qw(dr_evil)] );
 
-Adds a step to the plan. The second argument specifies a list of required
-steps. The third argument specifies a list of conflicting steps. Exits with a
-fatal error if the step already exists, or if the any of the dependencies are
+Adds a change to the plan. The second argument specifies a list of required
+changes. The third argument specifies a list of conflicting changes. Exits with a
+fatal error if the change already exists, or if the any of the dependencies are
 unknown.
 
-=head3 C<rework_step>
+=head3 C<rework_change>
 
-  $plan->rework_step( 'whatevs' );
-  $plan->rework_step( 'widgets', [qw(foo bar)], [qw(dr_evil)] );
+  $plan->rework_change( 'whatevs' );
+  $plan->rework_change( 'widgets', [qw(foo bar)], [qw(dr_evil)] );
 
-Reworks an existing step. Said step must already exist in the plan and be
+Reworks an existing change. Said change must already exist in the plan and be
 tagged or have a tag following it or an exception will be thrown. The previous
-occurrence of the step will have the suffix of the most recent tag added to
+occurrence of the change will have the suffix of the most recent tag added to
 it, and a new tag instance will be added to the list.
 
 =head1 See Also

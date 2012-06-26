@@ -27,11 +27,11 @@ BEGIN {
 
 can_ok $CLASS, qw(
     sqitch
-    steps
+    changes
     position
     load
     _parse
-    sort_steps
+    sort_changes
     open_script
 );
 
@@ -39,7 +39,7 @@ my $uri = URI->new('https://github.com/theory/sqitch/');
 my $sqitch = App::Sqitch->new(uri => $uri);
 isa_ok my $plan = App::Sqitch::Plan->new(sqitch => $sqitch), $CLASS;
 
-# Set up some some utility functions for creating steps.
+# Set up some some utility functions for creating changes.
 sub blank {
     App::Sqitch::Plan::Blank->new(
         plan    => $plan,
@@ -49,19 +49,19 @@ sub blank {
 }
 
 my $prev_tag;
-my $prev_step;
+my $prev_change;
 my %seen;
 
 sub clear {
     undef $prev_tag;
-    undef $prev_step;
+    undef $prev_change;
     %seen = ();
     return ();
 }
 
-sub step {
+sub change {
     my @op = defined $_[4] ? split /([+-])/, $_[4] : ();
-    $prev_step = App::Sqitch::Plan::Step->new(
+    $prev_change = App::Sqitch::Plan::Change->new(
         plan      => $plan,
         lspace    => $_[0] // '',
         name      => $_[1],
@@ -78,22 +78,22 @@ sub step {
     if (my $duped = $seen{$_[1]}) {
         $duped->suffix($prev_tag->format_name);
     }
-    $seen{$_[1]} = $prev_step;
-    $prev_step->id;
-    $prev_step->tags;
-    return $prev_step;
+    $seen{$_[1]} = $prev_change;
+    $prev_change->id;
+    $prev_change->tags;
+    return $prev_change;
 }
 
 sub tag {
     $prev_tag = App::Sqitch::Plan::Tag->new(
         plan    => $plan,
-        step    => $prev_step,
+        change    => $prev_change,
         lspace  => $_[1] // '',
         name    => $_[2],
         rspace  => $_[3] // '',
         comment => $_[4] // '',
     );
-    $prev_step->add_tag($prev_tag);
+    $prev_change->add_tag($prev_tag);
     $prev_tag->id;
     return () unless $_[0];
     return $prev_tag;
@@ -122,7 +122,7 @@ sub sorted () {
     $sorted = 0;
     return $ret;
 }
-$mocker->mock(sort_steps => sub { $sorted++; shift, shift; @_ });
+$mocker->mock(sort_changes => sub { $sorted++; shift, shift; @_ });
 
 sub version () {
     prag(
@@ -136,16 +136,16 @@ my $file = file qw(t plans widgets.plan);
 my $fh = $file->open('<:encoding(UTF-8)');
 ok my $parsed = $plan->_parse($file, $fh),
     'Should parse simple "widgets.plan"';
-is sorted, 1, 'Should have sorted steps';
-isa_ok $parsed->{steps}, 'App::Sqitch::Plan::StepList', 'steps';
+is sorted, 1, 'Should have sorted changes';
+isa_ok $parsed->{changes}, 'App::Sqitch::Plan::ChangeList', 'changes';
 isa_ok $parsed->{lines}, 'App::Sqitch::Plan::LineList', 'lines';
 
-cmp_deeply [$parsed->{steps}->items], [
+cmp_deeply [$parsed->{changes}->items], [
     clear,
-    step(  '', 'hey'),
-    step(  '', 'you'),
+    change(  '', 'hey'),
+    change(  '', 'you'),
     tag(0,   '', 'foo', ' ', ' look, a tag!'),
-], 'All "widgets.plan" steps should be parsed';
+], 'All "widgets.plan" changes should be parsed';
 
 cmp_deeply [$parsed->{lines}->items], [
     clear,
@@ -154,8 +154,8 @@ cmp_deeply [$parsed->{lines}->items], [
     blank(),
     blank(' ', ' And there was a blank line.'),
     blank(),
-    step(  '', 'hey'),
-    step(  '', 'you'),
+    change(  '', 'hey'),
+    change(  '', 'you'),
     tag(1,   '', 'foo', ' ', ' look, a tag!'),
 ], 'All "widgets.plan" lines should be parsed';
 
@@ -164,15 +164,15 @@ $file = file qw(t plans multi.plan);
 $fh = $file->open('<:encoding(UTF-8)');
 ok $parsed = $plan->_parse($file, $fh),
     'Should parse multi-tagged "multi.plan"';
-is sorted, 2, 'Should have sorted steps twice';
+is sorted, 2, 'Should have sorted changes twice';
 cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
-    steps => [
+    changes => [
         clear,
-        step(  '', 'hey'),
-        step(  '', 'you'),
+        change(  '', 'hey'),
+        change(  '', 'you'),
         tag(0,   '', 'foo', ' ', ' look, a tag!'),
-        step(  '', 'this/rocks', '  '),
-        step(   '', 'hey-there', ' ', ' trailing comment!'),
+        change(  '', 'this/rocks', '  '),
+        change(   '', 'hey-there', ' ', ' trailing comment!'),
         tag(0,   '', 'bar', ' '),
         tag(0,   '', 'baz', ''),
     ],
@@ -183,22 +183,22 @@ cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
         blank(),
         blank('', ' And there was a blank line.'),
         blank(),
-        step(  '', 'hey'),
-        step(  '', 'you'),
+        change(  '', 'hey'),
+        change(  '', 'you'),
         tag(1,   '', 'foo', ' ', ' look, a tag!'),
         blank('   '),
-        step(  '', 'this/rocks', '  '),
-        step(   '', 'hey-there', ' ', ' trailing comment!'),
+        change(  '', 'this/rocks', '  '),
+        change(   '', 'hey-there', ' ', ' trailing comment!'),
         tag(1,   '', 'bar', ' '),
         tag(1,   '', 'baz', ''),
     ],
-}, 'Should have "multi.plan" lines and steps';
+}, 'Should have "multi.plan" lines and changes';
 
-# Try a plan with steps appearing without a tag.
-$file = file qw(t plans steps-only.plan);
+# Try a plan with changes appearing without a tag.
+$file = file qw(t plans changes-only.plan);
 $fh = $file->open('<:encoding(UTF-8)');
 ok $parsed = $plan->_parse($file, $fh), 'Should read plan with no tags';
-is sorted, 1, 'Should have sorted steps';
+is sorted, 1, 'Should have sorted changes';
 cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
     lines => [
         clear,
@@ -207,29 +207,29 @@ cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
         blank(),
         blank('', ' And there was a blank line.'),
         blank(),
-        step(  '', 'hey'),
-        step(  '', 'you'),
-        step(  '', 'whatwhatwhat'),
+        change(  '', 'hey'),
+        change(  '', 'you'),
+        change(  '', 'whatwhatwhat'),
     ],
-    steps => [
+    changes => [
         clear,
-        step(  '', 'hey'),
-        step(  '', 'you'),
-        step(  '', 'whatwhatwhat'),
+        change(  '', 'hey'),
+        change(  '', 'you'),
+        change(  '', 'whatwhatwhat'),
     ],
-}, 'Should have lines and steps for tagless plan';
+}, 'Should have lines and changes for tagless plan';
 
-# Try a plan with a bad step name.
-$file = file qw(t plans bad-step.plan);
+# Try a plan with a bad change name.
+$file = file qw(t plans bad-change.plan);
 $fh = $file->open('<:encoding(UTF-8)');
 throws_ok { $plan->_parse($file, $fh) } qr/FAIL:/,
-    'Should die on plan with bad step name';
-is sorted, 0, 'Should not have sorted steps';
+    'Should die on plan with bad change name';
+is sorted, 0, 'Should not have sorted changes';
 cmp_deeply +MockOutput->get_fail, [[
     "Syntax error in $file at line ",
     4,
     qq{: "what" does not look like a dependency.\n},
-    qq{Dependencies must begin with ":" or "!" and be valid step names},
+    qq{Dependencies must begin with ":" or "!" and be valid change names},
 ]], 'And the error should have been output';
 
 my @bad_names = (
@@ -242,15 +242,15 @@ my @bad_names = (
     'foo@bar',  # No @ allowed at all
 );
 
-# Try other invalid step and tag name issues.
+# Try other invalid change and tag name issues.
 for my $name (@bad_names) {
     for my $line ($name, "\@$name") {
         next if $line eq '%hi'; # This would be a pragma.
-        my $what = $line =~ /^[@]/ ? 'tag' : 'step';
+        my $what = $line =~ /^[@]/ ? 'tag' : 'change';
         my $fh = IO::File->new(\$line, '<:utf8');
         throws_ok { $plan->_parse('baditem', $fh) } qr/FAIL:/,
             qq{Should die on plan with bad name "$line"};
-        is sorted, 0, 'Should not have sorted steps';
+        is sorted, 0, 'Should not have sorted changes';
         cmp_deeply +MockOutput->get_fail, [[
             "Syntax error in baditem at line ",
             1,
@@ -260,7 +260,7 @@ for my $name (@bad_names) {
     }
 }
 
-# Try some valid step and tag names.
+# Try some valid change and tag names.
 for my $name (
     'foo',     # alpha
     '12',      # digits
@@ -270,14 +270,14 @@ for my $name (
     'foo/bar', # middle punct
     'beta1',   # ending digit
 ) {
-    # Test a step name.
+    # Test a change name.
     my $fh = IO::File->new(\$name, '<:utf8');
     ok my $parsed = $plan->_parse('gooditem', $fh),
         encode_utf8(qq{Should parse "$name"});
     cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
-        steps => [ clear, step('', $name) ],
-        lines => [ clear, version, step('', $name) ],
-    }, encode_utf8(qq{Should have line and step for "$name"});
+        changes => [ clear, change('', $name) ],
+        lines => [ clear, version, change('', $name) ],
+    }, encode_utf8(qq{Should have line and change for "$name"});
 
     # Test a tag name.
     my $tag = '@' . $name;
@@ -286,18 +286,18 @@ for my $name (
     ok $parsed = $plan->_parse('gooditem', $fh),
         encode_utf8(qq{Should parse "$tag"});
     cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
-        steps => [ clear, step('', 'foo'), tag(0, '', $name) ],
-        lines => [ clear, version, step('', 'foo'), tag(1, '', $name) ],
-    }, encode_utf8(qq{Should have line and step for "$tag"});
+        changes => [ clear, change('', 'foo'), tag(0, '', $name) ],
+        lines => [ clear, version, change('', 'foo'), tag(1, '', $name) ],
+    }, encode_utf8(qq{Should have line and change for "$tag"});
 }
-is sorted, 14, 'Should have sorted steps 12 times';
+is sorted, 14, 'Should have sorted changes 12 times';
 
 # Try a plan with reserved tag name @HEAD.
 $file = file qw(t plans reserved-tag.plan);
 $fh = $file->open('<:encoding(UTF-8)');
 throws_ok { $plan->_parse($file, $fh) } qr/FAIL:/,
     'Should die on plan with reserved tag "@HEAD"';
-is sorted, 1, 'Should have sorted steps once';
+is sorted, 1, 'Should have sorted changes once';
 cmp_deeply +MockOutput->get_fail, [[
     "Syntax error in $file at line ",
     5,
@@ -310,119 +310,119 @@ $file = file qw(t plans root.plan);
 $fh = IO::File->new(\$root, '<:utf8');
 throws_ok { $plan->_parse($file, $fh) } qr/FAIL:/,
     'Should die on plan with reserved tag "@ROOT"';
-is sorted, 0, 'Should have sorted steps nonce';
+is sorted, 0, 'Should have sorted changes nonce';
 cmp_deeply +MockOutput->get_fail, [[
     "Syntax error in $file at line ",
     1,
     ': "ROOT" is a reserved name',
 ]], 'And the reserved tag error should have been output';
 
-# Try a plan with a step name that looks like a sha1 hash.
+# Try a plan with a change name that looks like a sha1 hash.
 my $sha1 = '6c2f28d125aff1deea615f8de774599acf39a7a1';
 $file = file qw(t plans sha1.plan);
 $fh = IO::File->new(\$sha1, '<:utf8');
 throws_ok { $plan->_parse($file, $fh) } qr/FAIL:/,
-    'Should die on plan with SHA1 step name';
-is sorted, 0, 'Should have sorted steps nonce';
+    'Should die on plan with SHA1 change name';
+is sorted, 0, 'Should have sorted changes nonce';
 cmp_deeply +MockOutput->get_fail, [[
     "Syntax error in $file at line ",
     1,
     qq{: "$sha1" is invalid because it could be confused with a SHA1 ID},
 ]], 'And the SHA1 name error should have been output';
 
-# Try a plan with a tag but no step.
-$file = file qw(t plans tag-no-step.plan);
+# Try a plan with a tag but no change.
+$file = file qw(t plans tag-no-change.plan);
 $fh = IO::File->new(\"\@foo\nbar", '<:utf8');
 throws_ok { $plan->_parse($file, $fh) } qr/FAIL:/,
-    'Should die on plan with tag but no preceding step';
-is sorted, 0, 'Should have sorted steps nonce';
+    'Should die on plan with tag but no preceding change';
+is sorted, 0, 'Should have sorted changes nonce';
 cmp_deeply +MockOutput->get_fail, [[
     "Error in $file at line ",
     1,
-    ': Tag "foo" declared without a preceding step',
-]], 'And the missing step error should have been output';
+    ': Tag "foo" declared without a preceding change',
+]], 'And the missing change error should have been output';
 
 # Try a plan with a duplicate tag name.
 $file = file qw(t plans dupe-tag.plan);
 $fh = $file->open('<:encoding(UTF-8)');
 throws_ok { $plan->_parse($file, $fh) } qr/FAIL:/,
     'Should die on plan with dupe tag';
-is sorted, 2, 'Should have sorted steps twice';
+is sorted, 2, 'Should have sorted changes twice';
 cmp_deeply +MockOutput->get_fail, [[
     "Syntax error in $file at line ",
     10,
     ': Tag "bar" duplicates earlier declaration on line 5',
 ]], 'And the dupe tag error should have been output';
 
-# Try a plan with a duplicate step within a tag section.
-$file = file qw(t plans dupe-step.plan);
+# Try a plan with a duplicate change within a tag section.
+$file = file qw(t plans dupe-change.plan);
 $fh = $file->open('<:encoding(UTF-8)');
 throws_ok { $plan->_parse($file, $fh) } qr/FAIL:/,
-    'Should die on plan with dupe step';
-is sorted, 1, 'Should have sorted steps once';
+    'Should die on plan with dupe change';
+is sorted, 1, 'Should have sorted changes once';
 cmp_deeply +MockOutput->get_fail, [[
     "Syntax error in $file at line ",
     7,
-    ': Step "greets" duplicates earlier declaration on line 5',
-]], 'And the dupe step error should have been output';
+    ': Change "greets" duplicates earlier declaration on line 5',
+]], 'And the dupe change error should have been output';
 
 # Try a plan with pragmas.
 $file = file qw(t plans pragmas.plan);
 $fh = $file->open('<:encoding(UTF-8)');
 ok $parsed = $plan->_parse($file, $fh),
     'Should parse plan with pragmas"';
-is sorted, 1, 'Should have sorted steps once';
+is sorted, 1, 'Should have sorted changes once';
 cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
-    steps => [
+    changes => [
         clear,
-        step( '', 'hey'),
-        step( '', 'you'),
+        change( '', 'hey'),
+        change( '', 'you'),
     ],
     lines => [
         clear,
         prag( '', ' ', 'syntax-version', '', '=', '', App::Sqitch::Plan::SYNTAX_VERSION),
         prag( '  ', '', 'foo', ' ', '=', ' ', 'bar', '    ', ' lolz'),
         blank(),
-        step( '', 'hey'),
-        step( '', 'you'),
+        change( '', 'hey'),
+        change( '', 'you'),
         blank(),
         prag( '', ' ', 'strict'),
     ],
-}, 'Should have "multi.plan" lines and steps';
+}, 'Should have "multi.plan" lines and changes';
 
 # Try a plan with deploy/revert operators.
 $file = file qw(t plans deploy-and-revert.plan);
 $fh = $file->open('<:encoding(UTF-8)');
 ok $parsed = $plan->_parse($file, $fh),
     'Should parse plan with deploy and revert operators';
-is sorted, 2, 'Should have sorted steps twice';
+is sorted, 2, 'Should have sorted changes twice';
 
 cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
-    steps => [
+    changes => [
         clear,
-        step( '', 'hey', '', '', '+' ),
-        step( '', 'you', '', '', '+' ),
-        step( ' ', 'dr_evil', '', '', '+  ' ),
+        change( '', 'hey', '', '', '+' ),
+        change( '', 'you', '', '', '+' ),
+        change( ' ', 'dr_evil', '', '', '+  ' ),
         tag(0, '', 'foo' ),
-        step(  '', 'this/rocks', '  ', '', '+'),
-        step( ' ', 'hey-there' ),
-        step( '', 'dr_evil', ' ', ' revert!', '-'),
+        change(  '', 'this/rocks', '  ', '', '+'),
+        change( ' ', 'hey-there' ),
+        change( '', 'dr_evil', ' ', ' revert!', '-'),
         tag(0, ' ', 'bar', ' ' ),
     ],
     lines => [
         clear,
         version,
-        step( '', 'hey', '', '', '+' ),
-        step( '', 'you', '', '', '+' ),
-        step( ' ', 'dr_evil', '', '', '+  ' ),
+        change( '', 'hey', '', '', '+' ),
+        change( '', 'you', '', '', '+' ),
+        change( ' ', 'dr_evil', '', '', '+  ' ),
         tag(1, '', 'foo' ),
         blank( '   '),
-        step(  '', 'this/rocks', '  ', '', '+'),
-        step( ' ', 'hey-there' ),
-        step( '', 'dr_evil', ' ', ' revert!', '-'),
+        change(  '', 'this/rocks', '  ', '', '+'),
+        change( ' ', 'hey-there' ),
+        change( '', 'dr_evil', ' ', ' revert!', '-'),
         tag(1, ' ', 'bar', ' ' ),
     ],
-}, 'Should have "deploy-and-revert.plan" lines and steps';
+}, 'Should have "deploy-and-revert.plan" lines and changes';
 
 # Try a non-existent plan file with load().
 $file = file qw(t hi nonexistent.plan);
@@ -431,7 +431,7 @@ isa_ok $plan = App::Sqitch::Plan->new(sqitch => $sqitch), $CLASS,
     'Plan with sqitch with nonexistent plan file';
 
 cmp_deeply [$plan->lines], [version], 'Should have only the version line';
-cmp_deeply [$plan->steps], [], 'Should have no steps';
+cmp_deeply [$plan->changes], [], 'Should have no changes';
 
 # Try a plan with dependencies.
 $file = file qw(t plans dependencies.plan);
@@ -439,18 +439,18 @@ $sqitch = App::Sqitch->new(plan_file => $file, uri => $uri);
 isa_ok $plan = App::Sqitch::Plan->new(sqitch => $sqitch), $CLASS,
     'Plan with sqitch with plan file with dependencies';
 ok $parsed = $plan->load, 'Load plan with dependencies file';
-is_deeply [$parsed->{steps}->steps], [
+is_deeply [$parsed->{changes}->changes], [
     clear,
-    step( '', 'roles', '', '', '+' ),
-    step( '', 'users', '', '', '+', '    ', ['roles'] ),
-    step( '', 'add_user', '', '', '+', ' ', [qw( users roles)] ),
-    step( '', 'dr_evil', '', '', '+' ),
+    change( '', 'roles', '', '', '+' ),
+    change( '', 'users', '', '', '+', '    ', ['roles'] ),
+    change( '', 'add_user', '', '', '+', ' ', [qw( users roles)] ),
+    change( '', 'dr_evil', '', '', '+' ),
     tag(0, '', 'alpha'),
-    step( '', 'users', '', '', '+', ' ', ['users@alpha'] ),
-    step( '', 'dr_evil', '', '', '-' ),
-    step( '', 'del_user', '', '', '+', ' ' , ['users'], ['dr_evil'] ),
-], 'The steps should include the dependencies';
-is sorted, 2, 'Should have sorted steps twice';
+    change( '', 'users', '', '', '+', ' ', ['users@alpha'] ),
+    change( '', 'dr_evil', '', '', '-' ),
+    change( '', 'del_user', '', '', '+', ' ' , ['users'], ['dr_evil'] ),
+], 'The changes should include the dependencies';
+is sorted, 2, 'Should have sorted changes twice';
 
 # Should fail with dependencies on tags.
 $file = file qw(t plans tag_dependencies.plan);
@@ -478,26 +478,26 @@ cmp_deeply [$plan->lines], [
         blank(),
         blank('', ' And there was a blank line.'),
         blank(),
-        step(  '', 'hey'),
-        step(  '', 'you'),
+        change(  '', 'hey'),
+        change(  '', 'you'),
         tag(1,   '', 'foo', ' ', ' look, a tag!'),
         blank('   '),
-        step(  '', 'this/rocks', '  '),
-        step(   '', 'hey-there', ' ', ' trailing comment!'),
+        change(  '', 'this/rocks', '  '),
+        change(   '', 'hey-there', ' ', ' trailing comment!'),
         tag(1,   '', 'bar', ' '),
         tag(1,   '', 'baz', ''),
 ], 'Lines should be parsed from file';
-cmp_deeply [$plan->steps], [
+cmp_deeply [$plan->changes], [
         clear,
-        step(  '', 'hey'),
-        step(  '', 'you'),
+        change(  '', 'hey'),
+        change(  '', 'you'),
         tag(0,   '', 'foo', ' ', ' look, a tag!'),
-        step(  '', 'this/rocks', '  '),
-        step(   '', 'hey-there', ' ', ' trailing comment!'),
+        change(  '', 'this/rocks', '  '),
+        change(   '', 'hey-there', ' ', ' trailing comment!'),
         tag(0,   '', 'bar', ' '),
         tag(0,   '', 'baz', ''),
-], 'Steps should be parsed from file';
-is sorted, 2, 'Should have sorted steps twice';
+], 'Changes should be parsed from file';
+is sorted, 2, 'Should have sorted changes twice';
 
 ok $parsed = $plan->load, 'Load should parse plan from file';
 cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
@@ -508,27 +508,27 @@ cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
         blank(),
         blank('', ' And there was a blank line.'),
         blank(),
-        step(  '', 'hey'),
-        step(  '', 'you'),
+        change(  '', 'hey'),
+        change(  '', 'you'),
         tag(1,   '', 'foo', ' ', ' look, a tag!'),
         blank('   '),
-        step(  '', 'this/rocks', '  '),
-        step(   '', 'hey-there', ' ', ' trailing comment!'),
+        change(  '', 'this/rocks', '  '),
+        change(   '', 'hey-there', ' ', ' trailing comment!'),
         tag(1,   '', 'bar', ' '),
         tag(1,   '', 'baz', ''),
     ],
-    steps => [
+    changes => [
         clear,
-        step(  '', 'hey'),
-        step(  '', 'you'),
+        change(  '', 'hey'),
+        change(  '', 'you'),
         tag(0,   '', 'foo', ' ', ' look, a tag!'),
-        step(  '', 'this/rocks', '  '),
-        step(   '', 'hey-there', ' ', ' trailing comment!'),
+        change(  '', 'this/rocks', '  '),
+        change(   '', 'hey-there', ' ', ' trailing comment!'),
         tag(0,   '', 'bar', ' '),
         tag(0,   '', 'baz', ''),
     ],
-}, 'And the parsed file should have lines and steps';
-is sorted, 2, 'Should have sorted steps twice';
+}, 'And the parsed file should have lines and changes';
+is sorted, 2, 'Should have sorted changes twice';
 
 ##############################################################################
 # Test the interator interface.
@@ -545,36 +545,36 @@ can_ok $plan, qw(
 
 is $plan->position, -1, 'Position should start at -1';
 is $plan->current, undef, 'Current should be undef';
-ok my $step = $plan->next, 'Get next step';
-isa_ok $step, 'App::Sqitch::Plan::Step', 'First step';
-is $step->name, 'hey', 'It should be the first step';
+ok my $change = $plan->next, 'Get next change';
+isa_ok $change, 'App::Sqitch::Plan::Change', 'First change';
+is $change->name, 'hey', 'It should be the first change';
 is $plan->position, 0, 'Position should be at 0';
 is $plan->count, 4, 'Count should be 4';
-is $plan->current, $step, 'Current should be current';
-is $plan->step_at(0), $step, 'Should get first step from step_at(0)';
+is $plan->current, $change, 'Current should be current';
+is $plan->change_at(0), $change, 'Should get first change from change_at(0)';
 
-ok my $next = $plan->peek, 'Peek to next step';
-isa_ok $next, 'App::Sqitch::Plan::Step', 'Peeked step';
-is $next->name, 'you', 'Peeked step should be second step';
-is $plan->last->format_name, 'hey-there', 'last() should return last step';
-is $plan->current, $step, 'Current should still be current';
+ok my $next = $plan->peek, 'Peek to next change';
+isa_ok $next, 'App::Sqitch::Plan::Change', 'Peeked change';
+is $next->name, 'you', 'Peeked change should be second change';
+is $plan->last->format_name, 'hey-there', 'last() should return last change';
+is $plan->current, $change, 'Current should still be current';
 is $plan->peek, $next, 'Peek should still be next';
-is $plan->next, $next, 'Next should be the second step';
+is $plan->next, $next, 'Next should be the second change';
 is $plan->position, 1, 'Position should be at 1';
-is $plan->step_at(1), $next, 'Should get second step from step_at(1)';
+is $plan->change_at(1), $next, 'Should get second change from change_at(1)';
 
 ok my $third = $plan->peek, 'Peek should return an object';
-isa_ok $third, 'App::Sqitch::Plan::Step', 'Third step';
+isa_ok $third, 'App::Sqitch::Plan::Change', 'Third change';
 is $third->name, 'this/rocks', 'It should be the foo tag';
-is $plan->current, $next, 'Current should be the second step';
-is $plan->next, $third, 'Should get third step next';
+is $plan->current, $next, 'Current should be the second change';
+is $plan->next, $third, 'Should get third change next';
 is $plan->position, 2, 'Position should be at 2';
-is $plan->current, $third, 'Current should be third step';
-is $plan->step_at(2), $third, 'Should get third step from step_at(1)';
+is $plan->current, $third, 'Current should be third change';
+is $plan->change_at(2), $third, 'Should get third change from change_at(1)';
 
-ok my $fourth = $plan->next, 'Get fourth step';
-isa_ok $fourth, 'App::Sqitch::Plan::Step', 'Fourth step';
-is $fourth->name, 'hey-there', 'Fourth step should be "hey-there"';
+ok my $fourth = $plan->next, 'Get fourth change';
+isa_ok $fourth, 'App::Sqitch::Plan::Change', 'Fourth change';
+is $fourth->name, 'hey-there', 'Fourth change should be "hey-there"';
 is $plan->position, 3, 'Position should be at 3';
 
 is $plan->peek, undef, 'Peek should return undef';
@@ -587,52 +587,52 @@ ok $plan->reset, 'Reset the plan';
 
 is $plan->position, -1, 'Position should be back at -1';
 is $plan->current, undef, 'Current should still be undef';
-is $plan->next, $step, 'Next should return the first step again';
+is $plan->next, $change, 'Next should return the first change again';
 is $plan->position, 0, 'Position should be at 0 again';
-is $plan->current, $step, 'Current should be first step';
-is $plan->index_of($step->name), 0, "Index of step should be 0";
-is $plan->get($step->name), $step, 'Should be able to get step 0 by name';
-is $plan->find($step->name), $step, 'Should be able to find step 0 by name';
-is $plan->get($step->id), $step, 'Should be able to get step 0 by ID';
-is $plan->find($step->id), $step, 'Should be able to find step 0 by ID';
+is $plan->current, $change, 'Current should be first change';
+is $plan->index_of($change->name), 0, "Index of change should be 0";
+is $plan->get($change->name), $change, 'Should be able to get change 0 by name';
+is $plan->find($change->name), $change, 'Should be able to find change 0 by name';
+is $plan->get($change->id), $change, 'Should be able to get change 0 by ID';
+is $plan->find($change->id), $change, 'Should be able to find change 0 by ID';
 is $plan->index_of('@bar'), 3, 'Index of @bar should be 3';
 is $plan->get('@bar'), $fourth, 'Should be able to get hey-there via @bar';
 is $plan->get($fourth->id), $fourth, 'Should be able to get hey-there via @bar ID';
 is $plan->find('@bar'), $fourth, 'Should be able to find hey-there via @bar';
 is $plan->find($fourth->id), $fourth, 'Should be able to find hey-there via @bar ID';
-ok $plan->seek('@bar'), 'Seek to the "@bar" step';
+ok $plan->seek('@bar'), 'Seek to the "@bar" change';
 is $plan->position, 3, 'Position should be at 3 again';
 is $plan->current, $fourth, 'Current should be fourth again';
 is $plan->index_of('you'), 1, 'Index of you should be 1';
-is $plan->get('you'), $next, 'Should be able to get step 1 by name';
-is $plan->find('you'), $next, 'Should be able to find step 1 by name';
-ok $plan->seek('you'), 'Seek to the "you" step';
+is $plan->get('you'), $next, 'Should be able to get change 1 by name';
+is $plan->find('you'), $next, 'Should be able to find change 1 by name';
+ok $plan->seek('you'), 'Seek to the "you" change';
 is $plan->position, 1, 'Position should be at 1 again';
 is $plan->current, $next, 'Current should be second again';
 is $plan->index_of('baz'), undef, 'Index of baz should be undef';
 is $plan->index_of('@baz'), 3, 'Index of @baz should be 3';
-ok $plan->seek('@baz'), 'Seek to the "baz" step';
+ok $plan->seek('@baz'), 'Seek to the "baz" change';
 is $plan->position, 3, 'Position should be at 3 again';
  is $plan->current, $fourth, 'Current should be fourth again';
 
-is $plan->step_at(0), $step,  'Should still get first step from step_at(0)';
-is $plan->step_at(1), $next,  'Should still get second step from step_at(1)';
-is $plan->step_at(2), $third, 'Should still get third step from step_at(1)';
+is $plan->change_at(0), $change,  'Should still get first change from change_at(0)';
+is $plan->change_at(1), $next,  'Should still get second change from change_at(1)';
+is $plan->change_at(2), $third, 'Should still get third change from change_at(1)';
 
-# Make sure seek() chokes on a bad step name.
+# Make sure seek() chokes on a bad change name.
 throws_ok { $plan->seek('nonesuch') } qr/FAIL:/,
-    'Should die seeking invalid step';
-cmp_deeply +MockOutput->get_fail, [['Cannot find step "nonesuch" in plan']],
+    'Should die seeking invalid change';
+cmp_deeply +MockOutput->get_fail, [['Cannot find change "nonesuch" in plan']],
     'And the failure should be sent to output';
 
 # Get all!
-my @steps = ($step, $next, $third, $fourth);
-cmp_deeply [$plan->steps], \@steps, 'All should return all steps';
+my @changes = ($change, $next, $third, $fourth);
+cmp_deeply [$plan->changes], \@changes, 'All should return all changes';
 ok $plan->reset, 'Reset the plan again';
 $plan->do(sub {
-    is shift, $steps[0], 'Step ' . $steps[0]->name . ' should be passed to do sub';
-    is $_, $steps[0], 'Step ' . $steps[0]->name . ' should be the topic in do sub';
-    shift @steps;
+    is shift, $changes[0], 'Change ' . $changes[0]->name . ' should be passed to do sub';
+    is $_, $changes[0], 'Change ' . $changes[0]->name . ' should be the topic in do sub';
+    shift @changes;
 });
 
 # There should be no more to iterate over.
@@ -676,20 +676,20 @@ for my $name (
     'beta1',   # ending digit
 ) {
     my $disp = Encode::encode_utf8($name);
-    ok $plan->_is_valid(step => $name), qq{Name "$disp" sould be valid};
+    ok $plan->_is_valid(change => $name), qq{Name "$disp" sould be valid};
 }
 
 ##############################################################################
 # Try adding a tag.
 ok my $tag = $plan->add_tag('w00t'), 'Add tag "w00t"';
-is $plan->count, 4, 'Should have 4 steps';
+is $plan->count, 4, 'Should have 4 changes';
 is $plan->index_of('@w00t'), 3, 'Should find "@w00t at index 3';
-is $plan->last->name, 'hey-there', 'Last step should be "hey-there"';
+is $plan->last->name, 'hey-there', 'Last change should be "hey-there"';
 is_deeply [map { $_->name } $plan->last->tags], [qw(bar baz w00t)],
-    'The w00t tag should be on the last step';
+    'The w00t tag should be on the last change';
 isa_ok $tag, 'App::Sqitch::Plan::Tag';
 is $tag->name, 'w00t', 'The returned tag should be @w00t';
-is $tag->step, $plan->last, 'The @w00t step should be the last step';
+is $tag->change, $plan->last, 'The @w00t change should be the last change';
 
 ok $plan->write_to($to), 'Write out the file again';
 file_contents_is $to,
@@ -702,7 +702,7 @@ file_contents_is $to,
 ok $tag = $plan->add_tag('@alpha'), 'Add tag "@alpha"';
 is $plan->index_of('@alpha'), 3, 'Should find "@alpha at index 3';
 is $tag->name, 'alpha', 'The returned tag should be @alpha';
-is $tag->step, $plan->last, 'The @alpha step should be the last step';
+is $tag->change, $plan->last, 'The @alpha change should be the last change';
 
 # Should choke on a duplicate tag.
 throws_ok { $plan->add_tag('w00t') } qr/^FAIL\b/,
@@ -740,13 +740,13 @@ cmp_deeply +MockOutput->get_fail, [[
 ]], 'And the reserved name error should be output';
 
 ##############################################################################
-# Try adding a step.
-ok my $new_step = $plan->add_step('booyah'), 'Add step "booyah"';
-is $plan->count, 5, 'Should have 5 steps';
+# Try adding a change.
+ok my $new_change = $plan->add_change('booyah'), 'Add change "booyah"';
+is $plan->count, 5, 'Should have 5 changes';
 is $plan->index_of('booyah'), 4, 'Should find "booyah at index 4';
-is $plan->last->name, 'booyah', 'Last step should be "booyah"';
-isa_ok $new_step, 'App::Sqitch::Plan::Step';
-is $new_step->as_string, 'booyah',
+is $plan->last->name, 'booyah', 'Last change should be "booyah"';
+isa_ok $new_change, 'App::Sqitch::Plan::Change';
+is $new_change->as_string, 'booyah',
     'Should have plain stringification of "booya"';
 
 ok $plan->write_to($to), 'Write out the file again';
@@ -754,88 +754,88 @@ file_contents_is $to,
     '%syntax-version=' . App::Sqitch::Plan::SYNTAX_VERSION . $/
     . $file->slurp(iomode => '<:encoding(UTF-8)')
     . "\@w00t\n\@alpha\nbooyah\n",
-    'The contents should include the "booyah" step';
+    'The contents should include the "booyah" change';
 
 # Make sure dependencies are verified.
-ok $new_step = $plan->add_step('blow', ['booyah']), 'Add step "blow"';
-is $plan->count, 6, 'Should have 6 steps';
+ok $new_change = $plan->add_change('blow', ['booyah']), 'Add change "blow"';
+is $plan->count, 6, 'Should have 6 changes';
 is $plan->index_of('blow'), 5, 'Should find "blow at index 5';
-is $plan->last->name, 'blow', 'Last step should be "blow"';
-is $new_step->as_string, 'blow :booyah',
+is $plan->last->name, 'blow', 'Last change should be "blow"';
+is $new_change->as_string, 'blow :booyah',
     'Should have nice stringification of "blow :booyah"';
-is [$plan->lines]->[-1], $new_step,
-    'The new step should have been appended to the lines, too';
+is [$plan->lines]->[-1], $new_change,
+    'The new change should have been appended to the lines, too';
 
-# Should choke on a duplicate step.
-throws_ok { $plan->add_step('blow') } qr/^FAIL\b/,
-    'Should get error trying to add duplicate step';
+# Should choke on a duplicate change.
+throws_ok { $plan->add_change('blow') } qr/^FAIL\b/,
+    'Should get error trying to add duplicate change';
 cmp_deeply +MockOutput->get_fail, [[
-    qq{Step "blow" already exists.\n},
+    qq{Change "blow" already exists.\n},
     'Use "sqitch rework" to copy and rework it'
 ]], 'And the error message should suggest "rework"';
 
-# Should choke on an invalid step names.
+# Should choke on an invalid change names.
 for my $name (@bad_names) {
-    throws_ok { $plan->add_step($name) } qr/FAIL:/,
-        qq{Should get error for invalid step "$name"};
+    throws_ok { $plan->add_change($name) } qr/FAIL:/,
+        qq{Should get error for invalid change "$name"};
     cmp_deeply +MockOutput->get_fail, [[
-        qq{"$name" is invalid: steps must not begin with punctuation },
+        qq{"$name" is invalid: changes must not begin with punctuation },
         'or end in punctuation or digits following punctuation'
     ]], qq{And "$name" should trigger the appropriate error};
 }
 
 # Try a reserved name.
-throws_ok { $plan->add_step('HEAD') } qr/^FAIL:/,
+throws_ok { $plan->add_change('HEAD') } qr/^FAIL:/,
     'Should get error for reserved tag "HEAD"';
 cmp_deeply +MockOutput->get_fail, [[
     '"HEAD" is a reserved name'
 ]], 'And the reserved name error should be output';
 
-throws_ok { $plan->add_step('ROOT') } qr/^FAIL:/,
+throws_ok { $plan->add_change('ROOT') } qr/^FAIL:/,
     'Should get error for reserved tag "ROOT"';
 cmp_deeply +MockOutput->get_fail, [[
     '"ROOT" is a reserved name'
 ]], 'And the reserved name error should be output';
 
 # Try an invalid dependency.
-throws_ok { $plan->add_step('whu', ['nonesuch' ] ) } qr/^FAIL\b/,
+throws_ok { $plan->add_change('whu', ['nonesuch' ] ) } qr/^FAIL\b/,
     'Should get failure for failed dependency';
 cmp_deeply +MockOutput->get_fail, [[
-    'Cannot add step "whu": ',
+    'Cannot add change "whu": ',
     'requires unknown change "nonesuch"'
 ]], 'The dependency error should have been emitted';
 
 # Should choke on an unknown tag, too.
-throws_ok { $plan->add_step('whu', ['@nonesuch' ] ) } qr/^FAIL\b/,
+throws_ok { $plan->add_change('whu', ['@nonesuch' ] ) } qr/^FAIL\b/,
     'Should get failure for failed tag dependency';
 cmp_deeply +MockOutput->get_fail, [[
-    'Cannot add step "whu": ',
+    'Cannot add change "whu": ',
     'requires unknown change "@nonesuch"'
 ]], 'The tag dependency error should have been emitted';
 
-# Should choke on a step that looks like a SHA1.
-throws_ok { $plan->add_step($sha1) } qr/^FAIL:/,
-    'Should get error for a SHA1 step';
+# Should choke on a change that looks like a SHA1.
+throws_ok { $plan->add_change($sha1) } qr/^FAIL:/,
+    'Should get error for a SHA1 change';
 cmp_deeply +MockOutput->get_fail, [[
     qq{"$sha1" is invalid because it could be confused with a SHA1 ID},
 ]], 'And the reserved name error should be output';
 
 ##############################################################################
-# Try reworking a step.
-can_ok $plan, 'rework_step';
-ok my $rev_step = $plan->rework_step('you'), 'Rework step "you"';
-isa_ok $rev_step, 'App::Sqitch::Plan::Step';
-is $rev_step->name, 'you', 'Reworked step should be "you"';
-ok my $orig = $plan->step_at($plan->first_index_of('you')),
-    'Get original "you" step';
+# Try reworking a change.
+can_ok $plan, 'rework_change';
+ok my $rev_change = $plan->rework_change('you'), 'Rework change "you"';
+isa_ok $rev_change, 'App::Sqitch::Plan::Change';
+is $rev_change->name, 'you', 'Reworked change should be "you"';
+ok my $orig = $plan->change_at($plan->first_index_of('you')),
+    'Get original "you" change';
 is $orig->name, 'you', 'It should also be named "you"';
 is $orig->suffix, '@bar', 'And its suffix should be "@bar"';
 is $orig->deploy_file, $sqitch->deploy_dir->file('you@bar.sql'),
     'The original file should now be named you@bar.sql';
-is $rev_step->suffix, '', 'But the reworked step should have no suffix';
-is $rev_step->as_string, 'you :you@bar',
-    'It should require the previous "you" step';
-is [$plan->lines]->[-1], $rev_step,
+is $rev_change->suffix, '', 'But the reworked change should have no suffix';
+is $rev_change->as_string, 'you :you@bar',
+    'It should require the previous "you" change';
+is [$plan->lines]->[-1], $rev_change,
     'The new "you" should have been appended to the lines, too';
 
 # Make sure it was appended to the plan.
@@ -844,36 +844,36 @@ is $plan->count, 7, 'The plan count should be 7';
 
 # Tag and add again, to be sure we can do it multiple times.
 ok $plan->add_tag('@beta1'), 'Tag @beta1';
-ok my $rev_step2 = $plan->rework_step('you'), 'Rework step "you" again';
-isa_ok $rev_step2, 'App::Sqitch::Plan::Step';
-is $rev_step2->name, 'you', 'New reworked step should be "you"';
-ok $orig = $plan->step_at($plan->first_index_of('you')),
-    'Get original "you" step again';
+ok my $rev_change2 = $plan->rework_change('you'), 'Rework change "you" again';
+isa_ok $rev_change2, 'App::Sqitch::Plan::Change';
+is $rev_change2->name, 'you', 'New reworked change should be "you"';
+ok $orig = $plan->change_at($plan->first_index_of('you')),
+    'Get original "you" change again';
 is $orig->name, 'you', 'It should still be named "you"';
 is $orig->suffix, '@bar', 'And it should still have the suffix "@bar"';
-ok $rev_step = $plan->get('you@beta1'), 'Get you@beta1';
-is $rev_step->name, 'you', 'The second "you" should be named that';
-is $rev_step->suffix, '@beta1', 'And the second step should now have the suffx "@beta1"';
-is $rev_step2->suffix, '', 'But the new reworked step should have no suffix';
-is $rev_step2->as_string, 'you :you@beta1',
-    'It should require the previous "you" step';
-is [$plan->lines]->[-1], $rev_step2,
+ok $rev_change = $plan->get('you@beta1'), 'Get you@beta1';
+is $rev_change->name, 'you', 'The second "you" should be named that';
+is $rev_change->suffix, '@beta1', 'And the second change should now have the suffx "@beta1"';
+is $rev_change2->suffix, '', 'But the new reworked change should have no suffix';
+is $rev_change2->as_string, 'you :you@beta1',
+    'It should require the previous "you" change';
+is [$plan->lines]->[-1], $rev_change2,
     'The new reworking should have been appended to the lines';
 
 # Make sure it was appended to the plan.
 is $plan->index_of('you@HEAD'), 7, 'It should be at position 7';
 is $plan->count, 8, 'The plan count should be 8';
 
-# Try a nonexistent step name.
-throws_ok { $plan->rework_step('nonexistent') } qr/^FAIL:/,
-    'rework_step should die on nonexistent step';
+# Try a nonexistent change name.
+throws_ok { $plan->rework_change('nonexistent') } qr/^FAIL:/,
+    'rework_change should die on nonexistent change';
 cmp_deeply +MockOutput->get_fail, [[
-    qq{Step "nonexistent" does not exist.\n},
+    qq{Change "nonexistent" does not exist.\n},
     qq{Use "sqitch add nonexistent" to add it to the plan},
 ]], 'And the error should suggest "sqitch add"';
 
 # Try reworking without an intervening tag.
-throws_ok { $plan->rework_step('you') } qr/^FAIL:/,
+throws_ok { $plan->rework_change('you') } qr/^FAIL:/,
     'rework_stpe should die on lack of intervening tag';
 cmp_deeply +MockOutput->get_fail, [[
     qq{Cannot rework "you" without an intervening tag.\n},
@@ -881,42 +881,42 @@ cmp_deeply +MockOutput->get_fail, [[
 ]], 'And the error should suggest "sqitch tag"';
 
 # Make sure it checks dependencies.
-throws_ok { $plan->rework_step('booyah', ['nonesuch' ] ) } qr/^FAIL\b/,
-    'rework_step should die on failed dependency';
+throws_ok { $plan->rework_change('booyah', ['nonesuch' ] ) } qr/^FAIL\b/,
+    'rework_change should die on failed dependency';
 cmp_deeply +MockOutput->get_fail, [[
-    'Cannot rework step "booyah": ',
+    'Cannot rework change "booyah": ',
     'requires unknown change "nonesuch"'
 ]], 'The dependency error should have been emitted';
 
 ##############################################################################
-# Try a plan with a duplicate step in different tag sections.
-$file = file qw(t plans dupe-step-diff-tag.plan);
+# Try a plan with a duplicate change in different tag sections.
+$file = file qw(t plans dupe-change-diff-tag.plan);
 $sqitch = App::Sqitch->new(plan_file => $file, uri => $uri);
 isa_ok $plan = App::Sqitch::Plan->new(sqitch => $sqitch), $CLASS,
-    'Plan shoud work plan with dupe step across tags';
+    'Plan shoud work plan with dupe change across tags';
 cmp_deeply [ $plan->lines ], [
     clear,
     version,
-    step(  '', 'whatever'),
+    change(  '', 'whatever'),
     tag(1,   '', 'foo'),
     blank(),
-    step(  '', 'hi'),
+    change(  '', 'hi'),
     tag(1,   '', 'bar'),
     blank(),
-    step(  '', 'greets'),
-    step(  '', 'whatever'),
-], 'Lines with dupe step should be read from file';
+    change(  '', 'greets'),
+    change(  '', 'whatever'),
+], 'Lines with dupe change should be read from file';
 
-cmp_deeply [ $plan->steps ], [
+cmp_deeply [ $plan->changes ], [
     clear,
-    step(  '', 'whatever'),
+    change(  '', 'whatever'),
     tag(0,   '', 'foo'),
-    step(  '', 'hi'),
+    change(  '', 'hi'),
     tag(0,   '', 'bar'),
-    step(  '', 'greets'),
-    step(  '', 'whatever'),
-], 'Noes with dupe step should be read from file';
-is sorted, 3, 'Should have sorted steps three times';
+    change(  '', 'greets'),
+    change(  '', 'whatever'),
+], 'Noes with dupe change should be read from file';
+is sorted, 3, 'Should have sorted changes three times';
 
 # Try to find whatever.
 throws_ok { $plan->index_of('whatever') } qr/^Key "whatever" at multiple indexes/,
@@ -944,11 +944,11 @@ make_path dir(qw(sql deploy stuff))->stringify;
 END { remove_tree 'sql' };
 
 can_ok $CLASS, 'open_script';
-my $step_file = file qw(sql deploy bar.sql);
-$fh = $step_file->open('>') or die "Cannot open $step_file: $!\n";
+my $change_file = file qw(sql deploy bar.sql);
+$fh = $change_file->open('>') or die "Cannot open $change_file: $!\n";
 $fh->say('-- This is a comment');
 $fh->close;
-ok $fh = $plan->open_script($step_file), 'Open bar.sql';
+ok $fh = $plan->open_script($change_file), 'Open bar.sql';
 is $fh->getline, "-- This is a comment\n", 'It should be the right file';
 $fh->close;
 
@@ -957,71 +957,71 @@ ok $fh = $plan->open_script(file qw(sql deploy baz.sql)), 'Open baz.sql';
 is $fh->getline, undef, 'It should be empty';
 
 ##############################################################################
-# Test sort_steps()
-$mocker->unmock('sort_steps');
-can_ok $CLASS, 'sort_steps';
+# Test sort_changes()
+$mocker->unmock('sort_changes');
+can_ok $CLASS, 'sort_changes';
 my @deps;
-my $mock_step = Test::MockModule->new('App::Sqitch::Plan::Step');
-$mock_step->mock(requires => sub { @{ shift(@deps)->{requires} } });
+my $mock_change = Test::MockModule->new('App::Sqitch::Plan::Change');
+$mock_change->mock(requires => sub { @{ shift(@deps)->{requires} } });
 
-sub steps {
+sub changes {
     clear;
     map {
-        step '', $_;
+        change '', $_;
     } @_;
 }
 
 # Start with no dependencies.
 my %ddep = ( requires => [], conflicts => [] );
 @deps = ({%ddep}, {%ddep}, {%ddep});
-cmp_deeply [$plan->sort_steps({}, steps qw(this that other))],
-    [steps qw(this that other)], 'Should get original order when no dependencies';
+cmp_deeply [$plan->sort_changes({}, changes qw(this that other))],
+    [changes qw(this that other)], 'Should get original order when no dependencies';
 
 @deps = ({%ddep}, {%ddep}, {%ddep});
-cmp_deeply [$plan->sort_steps(steps qw(this that other))],
-    [steps qw(this that other)], 'Should get original order when no prepreqs';
+cmp_deeply [$plan->sort_changes(changes qw(this that other))],
+    [changes qw(this that other)], 'Should get original order when no prepreqs';
 
 # Have that require this.
 @deps = ({%ddep}, {%ddep, requires => ['this']}, {%ddep});
-cmp_deeply [$plan->sort_steps(steps qw(this that other))],
-    [steps qw(this that other)], 'Should get original order when that requires this';
+cmp_deeply [$plan->sort_changes(changes qw(this that other))],
+    [changes qw(this that other)], 'Should get original order when that requires this';
 
 # Have other require that.
 @deps = ({%ddep}, {%ddep, requires => ['this']}, {%ddep, requires => ['that']});
-cmp_deeply [$plan->sort_steps(steps qw(this that other))],
-    [steps qw(this that other)], 'Should get original order when other requires that';
+cmp_deeply [$plan->sort_changes(changes qw(this that other))],
+    [changes qw(this that other)], 'Should get original order when other requires that';
 
 # Have this require other.
 @deps = ({%ddep, requires => ['other']}, {%ddep}, {%ddep});
-cmp_deeply [$plan->sort_steps(steps qw(this that other))],
-    [steps qw(other this that)], 'Should get other first when this requires it';
+cmp_deeply [$plan->sort_changes(changes qw(this that other))],
+    [changes qw(other this that)], 'Should get other first when this requires it';
 
 # Have other other require taht.
 @deps = ({%ddep, requires => ['other']}, {%ddep}, {%ddep, requires => ['that']});
-cmp_deeply [$plan->sort_steps(steps qw(this that other))],
-    [steps qw(that other this)], 'Should get that, other, this now';
+cmp_deeply [$plan->sort_changes(changes qw(this that other))],
+    [changes qw(that other this)], 'Should get that, other, this now';
 
 # Have this require other and that.
 @deps = ({%ddep, requires => ['other', 'that']}, {%ddep}, {%ddep});
-cmp_deeply [$plan->sort_steps(steps qw(this that other))],
-    [steps qw(other that this)], 'Should get other, that, this now';
+cmp_deeply [$plan->sort_changes(changes qw(this that other))],
+    [changes qw(other that this)], 'Should get other, that, this now';
 
 # Have this require other and that, and other requore that.
 @deps = ({%ddep, requires => ['other', 'that']}, {%ddep}, {%ddep, requires => ['that']});
-cmp_deeply [$plan->sort_steps(steps qw(this that other))],
-    [steps qw(that other this)], 'Should get that, other, this again';
+cmp_deeply [$plan->sort_changes(changes qw(this that other))],
+    [changes qw(that other this)], 'Should get that, other, this again';
 
 # Have that require a tag.
 @deps = ({%ddep}, {%ddep, requires => ['@howdy']}, {%ddep});
-cmp_deeply [$plan->sort_steps({'@howdy' => 2 }, steps qw(this that other))],
-    [steps qw(this that other)], 'Should get original order when requiring a tag';
+cmp_deeply [$plan->sort_changes({'@howdy' => 2 }, changes qw(this that other))],
+    [changes qw(this that other)], 'Should get original order when requiring a tag';
 
 # Add a cycle.
 @deps = ({%ddep, requires => ['that']}, {%ddep, requires => ['this']}, {%ddep});
-throws_ok { $plan->sort_steps(steps qw(this that other)) } qr/FAIL:/,
+throws_ok { $plan->sort_changes(changes qw(this that other)) } qr/FAIL:/,
     'Should get failure for a cycle';
 cmp_deeply +MockOutput->get_fail, [[
-    'Dependency cycle detected beween steps "',
+    'Dependency cycle detected beween changes "',
     'this',
     ' and "that"',
 ]], 'The cylce should have been logged';
@@ -1032,35 +1032,35 @@ cmp_deeply +MockOutput->get_fail, [[
     {%ddep, requires => ['other']},
     {%ddep, requires => ['this']}
 );
-throws_ok { $plan->sort_steps(steps qw(this that other)) } qr/FAIL:/,
+throws_ok { $plan->sort_changes(changes qw(this that other)) } qr/FAIL:/,
     'Should get failure for a two-hop cycle';
 cmp_deeply +MockOutput->get_fail, [[
-    'Dependency cycle detected beween steps "',
+    'Dependency cycle detected beween changes "',
     'this, that',
     ' and "other"',
 ]], 'The cylce should have been logged';
 
-# Okay, now deal with depedencies from ealier step sections.
+# Okay, now deal with depedencies from ealier change sections.
 @deps = ({%ddep, requires => ['foo']}, {%ddep}, {%ddep});
-cmp_deeply [$plan->sort_steps({ foo => 1}, steps qw(this that other))],
-    [steps qw(this that other)], 'Should get original order with earlier dependency';
+cmp_deeply [$plan->sort_changes({ foo => 1}, changes qw(this that other))],
+    [changes qw(this that other)], 'Should get original order with earlier dependency';
 
 # Mix it up.
 @deps = ({%ddep, requires => ['other', 'that']}, {%ddep, requires => ['sqitch']}, {%ddep});
-cmp_deeply [$plan->sort_steps({sqitch => 1 }, steps qw(this that other))],
-    [steps qw(other that this)], 'Should get other, that, this with earlier dependncy';
+cmp_deeply [$plan->sort_changes({sqitch => 1 }, changes qw(this that other))],
+    [changes qw(other that this)], 'Should get other, that, this with earlier dependncy';
 
-# Okay, now deal with depedencies from ealier step sections.
+# Okay, now deal with depedencies from ealier change sections.
 @deps = ({%ddep, requires => ['foo']}, {%ddep}, {%ddep});
-throws_ok { $plan->sort_steps(steps qw(this that other)) } qr/FAIL:/,
+throws_ok { $plan->sort_changes(changes qw(this that other)) } qr/FAIL:/,
     'Should die on unknown dependency';
 cmp_deeply +MockOutput->get_fail, [[
-    'Unknown step "foo" required in ', file 'deploy/this.sql'
+    'Unknown change "foo" required in ', file 'deploy/this.sql'
 ]], 'And we should emit an error pointing to the offending script';
 
-# Okay, now deal with depedencies from ealier step sections.
+# Okay, now deal with depedencies from ealier change sections.
 @deps = ({%ddep, requires => ['@foo']}, {%ddep}, {%ddep});
-throws_ok { $plan->sort_steps(steps qw(this that other)) } qr/FAIL:/,
+throws_ok { $plan->sort_changes(changes qw(this that other)) } qr/FAIL:/,
     'Should die on unknown dependency';
 cmp_deeply +MockOutput->get_fail, [[
     'Unknown tag "@foo" required in ', file 'deploy/this.sql'
@@ -1069,28 +1069,28 @@ cmp_deeply +MockOutput->get_fail, [[
 ##############################################################################
 # Test dependency testing.
 can_ok $plan, '_check_dependencies';
-$mock_step->unmock('requires');
+$mock_change->unmock('requires');
 
 for my $req (qw(hi greets whatever @foo whatever@foo)) {
-    $step = App::Sqitch::Plan::Step->new(
+    $change = App::Sqitch::Plan::Change->new(
         plan     => $plan,
         name     => 'lazy',
         requires => [$req],
     );
-    ok $plan->_check_dependencies($step, 'add'),
+    ok $plan->_check_dependencies($change, 'add'),
         qq{Dependency on "$req" should succeed};
 }
 
 for my $req (qw(wanker @blah greets@foo)) {
-    $step = App::Sqitch::Plan::Step->new(
+    $change = App::Sqitch::Plan::Change->new(
         plan     => $plan,
         name     => 'lazy',
         requires => [$req],
     );
-    throws_ok { $plan->_check_dependencies($step, 'bark') } qr/^FAIL\b/,
+    throws_ok { $plan->_check_dependencies($change, 'bark') } qr/^FAIL\b/,
         qq{Should get error trying to depend on "$req"};
     cmp_deeply +MockOutput->get_fail, [[
-        qq{Cannot bark step "lazy": },
+        qq{Cannot bark change "lazy": },
         qq{requires unknown change "$req"},
     ]], qq{And should get unknown dependency error for "$req"};
 }

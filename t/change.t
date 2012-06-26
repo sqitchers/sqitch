@@ -20,7 +20,7 @@ use URI;
 my $CLASS;
 
 BEGIN {
-    $CLASS = 'App::Sqitch::Plan::Step';
+    $CLASS = 'App::Sqitch::Plan::Change';
     require_ok $CLASS or die;
 }
 
@@ -48,46 +48,46 @@ my $sqitch = App::Sqitch->new(
     top_dir => dir('sql'),
 );
 my $plan  = App::Sqitch::Plan->new(sqitch => $sqitch);
-isa_ok my $step = $CLASS->new(
+isa_ok my $change = $CLASS->new(
     name => 'foo',
     plan => $plan,
 ), $CLASS;
 
-isa_ok $step, 'App::Sqitch::Plan::Line';
-ok $step->is_deploy, 'It should be a deploy step';
-ok !$step->is_revert, 'It should not be a revert step';
-is $step->action, 'deploy', 'And it should say so';
+isa_ok $change, 'App::Sqitch::Plan::Line';
+ok $change->is_deploy, 'It should be a deploy change';
+ok !$change->is_revert, 'It should not be a revert change';
+is $change->action, 'deploy', 'And it should say so';
 
-is $step->deploy_file, $sqitch->deploy_dir->file('foo.sql'),
+is $change->deploy_file, $sqitch->deploy_dir->file('foo.sql'),
     'The deploy file should be correct';
-is $step->revert_file, $sqitch->revert_dir->file('foo.sql'),
+is $change->revert_file, $sqitch->revert_dir->file('foo.sql'),
     'The revert file should be correct';
-is $step->test_file, $sqitch->test_dir->file('foo.sql'),
+is $change->test_file, $sqitch->test_dir->file('foo.sql'),
     'The test file should be correct';
 
-is $step->format_name, 'foo', 'Name should format as "foo"';
-is $step->format_name_with_tags,
+is $change->format_name, 'foo', 'Name should format as "foo"';
+is $change->format_name_with_tags,
     'foo', 'Name should format with tags as "foo"';
-is $step->as_string, 'foo', 'should stringify to "foo"';
-is $step->since_tag, undef, 'Since tag should be undef';
-is $step->info, join("\n",
+is $change->as_string, 'foo', 'should stringify to "foo"';
+is $change->since_tag, undef, 'Since tag should be undef';
+is $change->info, join("\n",
    'project ' . $sqitch->uri->canonical,
-   'step foo',
-), 'Step info should be correct';
-is $step->id, do {
-    my $content = $step->info;
+   'change foo',
+), 'Change info should be correct';
+is $change->id, do {
+    my $content = $change->info;
     Digest::SHA1->new->add(
-        'step ' . length($content) . "\0" . $content
+        'change ' . length($content) . "\0" . $content
     )->hexdigest;
-},'Step ID should be correct';
+},'Change ID should be correct';
 
 my $tag = App::Sqitch::Plan::Tag->new(
     plan => $plan,
     name => 'alpha',
-    step => $step,
+    change => $change,
 );
 
-ok my $step2 = $CLASS->new(
+ok my $change2 = $CLASS->new(
     name      => 'howdy',
     plan      => $plan,
     since_tag => $tag,
@@ -100,36 +100,36 @@ ok my $step2 = $CLASS->new(
     pspace    => '  ',
     requires  => [qw(foo bar @baz)],
     conflicts => ['dr_evil'],
-), 'Create step with more stuff';
+), 'Create change with more stuff';
 
-is $step2->as_string, "  - howdy  :foo :bar :\@baz !dr_evil\t# blah blah blah",
+is $change2->as_string, "  - howdy  :foo :bar :\@baz !dr_evil\t# blah blah blah",
     'It should stringify correctly';
 my $mock_plan = Test::MockModule->new(ref $plan);
 $mock_plan->mock(index_of => 0);
 
-ok !$step2->is_deploy, 'It should not be a deploy step';
-ok $step2->is_revert, 'It should be a revert step';
-is $step2->action, 'revert', 'It should say so';
-is $step2->since_tag, $tag, 'It should have a since tag';
-is $step2->info, join("\n",
+ok !$change2->is_deploy, 'It should not be a deploy change';
+ok $change2->is_revert, 'It should be a revert change';
+is $change2->action, 'revert', 'It should say so';
+is $change2->since_tag, $tag, 'It should have a since tag';
+is $change2->info, join("\n",
    'project ' . $sqitch->uri->canonical,
-   'step howdy',
+   'change howdy',
    'since ' . $tag->id,
 ), 'Info should include since tag';
 
 # Check tags.
-is_deeply [$step2->tags], [], 'Should have no tags';
-ok $step2->add_tag($tag), 'Add a tag';
-is_deeply [$step2->tags], [$tag], 'Should have the tag';
-is $step2->format_name_with_tags, 'howdy @alpha',
+is_deeply [$change2->tags], [], 'Should have no tags';
+ok $change2->add_tag($tag), 'Add a tag';
+is_deeply [$change2->tags], [$tag], 'Should have the tag';
+is $change2->format_name_with_tags, 'howdy @alpha',
     'Should format name with tags';
 
 # Check file names.
-is $step2->deploy_file, $sqitch->deploy_dir->file('howdy@beta.sql'),
+is $change2->deploy_file, $sqitch->deploy_dir->file('howdy@beta.sql'),
     'The deploy file should include the suffix';
-is $step2->revert_file, $sqitch->revert_dir->file('howdy@beta.sql'),
+is $change2->revert_file, $sqitch->revert_dir->file('howdy@beta.sql'),
     'The revert file should include the suffix';
-is $step2->test_file, $sqitch->test_dir->file('howdy@beta.sql'),
+is $change2->test_file, $sqitch->test_dir->file('howdy@beta.sql'),
     'The test file should include the suffix';
 
 ##############################################################################
@@ -137,8 +137,8 @@ is $step2->test_file, $sqitch->test_dir->file('howdy@beta.sql'),
 make_path dir(qw(sql deploy))->stringify;
 END { remove_tree 'sql' };
 file(qw(sql deploy baz.sql))->touch;
-my $step2_file = file qw(sql deploy bar.sql);
-my $fh = $step2_file->open('>:utf8') or die "Cannot open $step2_file: $!\n";
+my $change2_file = file qw(sql deploy bar.sql);
+my $fh = $change2_file->open('>:utf8') or die "Cannot open $change2_file: $!\n";
 $fh->say('-- This is a comment');
 $fh->say('# And so is this');
 $fh->say('; and this, w€€!');
@@ -151,31 +151,31 @@ $fh->say('-- :conflicts: yak');
 $fh->say('-- :conflicts:this that');
 $fh->close;
 
-ok $step2 = $CLASS->new( name => 'baz', plan => $plan ),
-    'Create step "baz"';
+ok $change2 = $CLASS->new( name => 'baz', plan => $plan ),
+    'Create change "baz"';
 
-ok $step2 = $CLASS->new( name => 'bar', plan => $plan ),
-    'Create step "bar"';
+ok $change2 = $CLASS->new( name => 'bar', plan => $plan ),
+    'Create change "bar"';
 
 ##############################################################################
 # Test file handles.
-ok $fh = $step2->deploy_handle, 'Get deploy handle';
+ok $fh = $change2->deploy_handle, 'Get deploy handle';
 is $fh->getline, "-- This is a comment\n", 'It should be the deploy file';
 
 make_path dir(qw(sql revert))->stringify;
-$fh = $step2->revert_file->open('>')
-    or die "Cannot open " . $step2->revert_file . ": $!\n";
+$fh = $change2->revert_file->open('>')
+    or die "Cannot open " . $change2->revert_file . ": $!\n";
 $fh->say('-- revert it, baby');
 $fh->close;
-ok $fh = $step2->revert_handle, 'Get revert handle';
+ok $fh = $change2->revert_handle, 'Get revert handle';
 is $fh->getline, "-- revert it, baby\n", 'It should be the revert file';
 
 make_path dir(qw(sql test))->stringify;
-$fh = $step2->test_file->open('>')
-    or die "Cannot open " . $step2->test_file . ": $!\n";
+$fh = $change2->test_file->open('>')
+    or die "Cannot open " . $change2->test_file . ": $!\n";
 $fh->say('-- test it, baby');
 $fh->close;
-ok $fh = $step2->test_handle, 'Get test handle';
+ok $fh = $change2->test_handle, 'Get test handle';
 is $fh->getline, "-- test it, baby\n", 'It should be the test file';
 
 ##############################################################################
@@ -187,33 +187,33 @@ $sqitch = App::Sqitch->new(
     plan_file => $file,
 );
 $plan = $sqitch->plan;
-ok $step2 = $CLASS->new(
+ok $change2 = $CLASS->new(
     name      => 'whatever',
     plan      => $plan,
     requires  => [qw(hey you)],
     conflicts => ['hey-there'],
-), 'Create a step with explicit requires and conflicts';
-is_deeply [$step2->requires], [qw(hey you)], 'requires should be set';
-is_deeply [$step2->conflicts], ['hey-there'], 'conflicts should be set';
-is_deeply [$step2->requires_steps], [$plan->get('hey'),  $plan->get('you')],
-    'Should find steps for requires';
-is_deeply [$step2->conflicts_steps], [$plan->get('hey-there')],
-    'Should find steps for conflicts';
+), 'Create a change with explicit requires and conflicts';
+is_deeply [$change2->requires], [qw(hey you)], 'requires should be set';
+is_deeply [$change2->conflicts], ['hey-there'], 'conflicts should be set';
+is_deeply [$change2->requires_changes], [$plan->get('hey'),  $plan->get('you')],
+    'Should find changes for requires';
+is_deeply [$change2->conflicts_changes], [$plan->get('hey-there')],
+    'Should find changes for conflicts';
 
 ##############################################################################
-# Test ID for a step with a UTF-8 name.
-ok $step2 = $CLASS->new(
+# Test ID for a change with a UTF-8 name.
+ok $change2 = $CLASS->new(
     name => '阱阪阬',
     plan => $plan,
-), 'Create step with UTF-8 name';
-is $step2->info, join("\n",
+), 'Create change with UTF-8 name';
+is $change2->info, join("\n",
     'project ' . $sqitch->uri->canonical,
-    'step '    . '阱阪阬'
+    'change '    . '阱阪阬'
 ), 'The name should be decoded text';
 
-is $step2->id, do {
-    my $content = Encode::encode_utf8 $step2->info;
+is $change2->id, do {
+    my $content = Encode::encode_utf8 $change2->info;
     Digest::SHA1->new->add(
-        'step ' . length($content) . "\0" . $content
+        'change ' . length($content) . "\0" . $content
     )->hexdigest;
-},'Step ID should be hahsed from encoded UTF-8';
+},'Change ID should be hahsed from encoded UTF-8';

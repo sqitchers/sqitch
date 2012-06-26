@@ -1,14 +1,14 @@
 =head1 Name
 
-sqitch-add-step - Add a deployment step
+sqitch-add-change - Add a deployment change
 
 =head1 Synopsis
 
-  sqitch [options] add-step [<template-options>] name
+  sqitch [options] add-change [<template-options>] name
 
 =head1 Description
 
-Add a new deployment step. This will result in the creation of a new script
+Add a new deployment change. This will result in the creation of a new script
 files with the C<--extension> extension in the C<--deploy-dir>,
 C<--revert-dir>, and C<--test-dir> directories. The content of these files is
 determined by the evaluation of templates. By default, system templates in
@@ -23,14 +23,14 @@ creating templates in F<~/.sqitch/templates/> See L</Templates> for details.
 
 =item C<--requires>
 
-Name of a step that is required by the new step. May be specified multiple
+Name of a change that is required by the new change. May be specified multiple
 times.
 
 =item C<-c>
 
 =item C<--conflicts>
 
-Name of a step that conflicts with the new step. May be specified multiple times.
+Name of a change that conflicts with the new change. May be specified multiple times.
 
 =item C<-s>
 
@@ -41,7 +41,7 @@ C<name=value>, e.g., C<--set comment='This one is for you, babe.'>.
 
 =item C<--template-directory>
 
-Location to look for the templates. If none is specified, C<add-step> will
+Location to look for the templates. If none is specified, C<add-change> will
 first look in F<~/.sqitch/templates/> for each template, and fall back on
 F<$($etc_prefix)/templates>.
 
@@ -51,7 +51,7 @@ F<$($etc_prefix)/templates>.
 
 =item C<--test-template>
 
-Path to the template for the given step script. Defaults to the individual
+Path to the template for the given change script. Defaults to the individual
 templates found in C<--template-directory>.
 
 =item C<--no-deploy>
@@ -94,7 +94,7 @@ by L<Template::Tiny>, which is limited to:
 This is the directive syntax. By default, the return value of the expression
 is output:
 
-  -- Deploy [% step %]
+  -- Deploy [% change %]
 
 You can add C<-> to the immediate start or end of a directive tag to control
 the whitespace chomping options:
@@ -132,14 +132,14 @@ Loop over a list of values:
 Sqitch defines three variables for all templates. Any number of additional variables
 can be added via the C<--set> option, like so:
 
-  sqitch add-step --set transations=1 --set schema=foo
+  sqitch add-change --set transations=1 --set schema=foo
 
 Any number of variables may be specified in this manner. You may then use
 those variables in custom templates. Variables that appear multiple times will
 be passed to the templates as lists of values for which you will likely want
 to use C<[% FOREACH %]>. If the templates do not reference your variables,
 they will be ignored. Variables may also be specified in a
-C<[add-step "variables]> L<config|sqitch-config> section (see 
+C<[add-change "variables]> L<config|sqitch-config> section (see 
 L</Configuration Variables>). Variables specified via C<--set> will override
 configuration variables.
 
@@ -147,18 +147,18 @@ The three core variables are:
 
 =over
 
-=item C<step>
+=item C<change>
 
-The name of the step being added.
+The name of the change being added.
 
 =item C<requires>
 
-A list of required steps as passed via one or more instances of the
+A list of required changes as passed via one or more instances of the
 C<--requiers> option.
 
 =item C<conflicts>
 
-A list of conflicting steps as passed via one or more instances of the
+A list of conflicting changes as passed via one or more instances of the
 C<--requiers> option.
 
 =back
@@ -167,7 +167,7 @@ C<--requiers> option.
 
 =over
 
-=item C<add-step.template_directory>
+=item C<add-change.template_directory>
 
 Directory in which to find the templates which should be named F<deploy.tmpl>,
 F<revert.tmpl>, and F<test.tmpl>. This will override looking for user- or
@@ -175,27 +175,27 @@ system-specific templates, and may in turn be overridden by the
 C<--template-directory>, C<--deploy-template>, C<--revert-template>, and
 C<--test-template> options.
 
-=item C<add-step.with_deploy>
+=item C<add-change.with_deploy>
 
-=item C<add-step.with_revert>
+=item C<add-change.with_revert>
 
-=item C<add-step.with_test>
+=item C<add-change.with_test>
 
 Boolean variable indicating whether or not to generate the specified script
-when adding a step. They are all enabled by default. If you've disabled them
-but wish to create them for a given call to C<add-step>, use the appropriate
+when adding a change. They are all enabled by default. If you've disabled them
+but wish to create them for a given call to C<add-change>, use the appropriate
 option: C<--deploy>, C<--revert>, or C<--test>.
 
-=item C<add-step.deploy_template>
+=item C<add-change.deploy_template>
 
-=item C<add-step.revert_template>
+=item C<add-change.revert_template>
 
-=item C<add-step.test_template>
+=item C<add-change.test_template>
 
 Location of individual templates. My be overridden by the appropriate option:
 C<--deploy-template>, C<--revert-template>, or C<--test-template>.
 
-=item C<[add-step.variables]>
+=item C<[add-change.variables]>
 
 A section defining template variables. Useful if you've customized templates
 with your own variables and want project-, user-, or system-specific defaults
