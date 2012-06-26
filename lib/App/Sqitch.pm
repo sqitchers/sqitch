@@ -676,18 +676,6 @@ C<STDOUT> if the exit code is 0, and to C<STDERR> if it is not 0.
 Maybe. Or script_dir or something. C<changes_dir>? Also, have it default to
 F<.> instead of F<sql>?
 
-=item * How to specify dependencies as a tag?
-
-A tag is just another name for a step, to require that step.
-
-=item * Update C<add_step> and the grammar for dependencies in the spec file.
-
-C<add-step> needs to pass them to C<< Plan->add_step >>, which needs to
-support them. And the grammar needs to document them, of course.
-
-=item * Add checks to L<sqitch-add-step> to halt if a C<--requires> or C<--conflicts>
-step does not exist.
-
 =item * Let C</> specify subdirectories platform-independently in step names.
 
 =item * Eliminate use of C<fail()> and localize messages.
