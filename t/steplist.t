@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 102;
+use Test::More tests => 108;
 #use Test::More 'no_plan';
 use Test::NoWarnings;
 use Test::Exception;
@@ -95,6 +95,13 @@ is $steps->get('baz@alpha'), undef, 'Should get undef for baz@alpha';
 is $steps->get('baz@HEAD'), $baz, 'Should get baz for baz@HEAD';
 is $steps->get('yo@HEAD'), $yo2, 'Should get yo2 for "yo@HEAD"';
 is $steps->get('foo@ROOT'), $foo, 'Should get foo for "foo@ROOT"';
+
+is $steps->find('yo'), $yo1, 'Should find yo1 with "yo"';
+is $steps->find('yo@alpha'), $yo1, 'Should find yo1 with "yo@alpha"';
+is $steps->find('yo@HEAD'), $yo2, 'Should find yo2 with yo@HEAD';
+is $steps->find('foo'), $foo, 'Should find foo for "foo"';
+is $steps->find('foo@alpha'), $foo, 'Should find foo for "foo@alpha"';
+is $steps->find('foo@HEAD'), $foo, 'Should find foo for "foo@HEAD"';
 
 throws_ok { $steps->get('yo') } qr/^\QKey "yo" at multiple indexes/,
     'Should get error looking for index of "yo"';

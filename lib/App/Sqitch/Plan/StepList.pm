@@ -80,6 +80,14 @@ sub get {
     return $self->{list}[ $idx ];
 }
 
+sub find {
+    my ( $self, $name ) = @_;
+    my $idx   = $name =~ /@/
+        ? $self->index_of($name)
+        : $self->first_index_of($name);
+    return defined $idx ? $self->step_at($idx) : undef;
+}
+
 sub append {
     my $self   = shift;
     my $list   = $self->{list};
@@ -270,6 +278,18 @@ Returns the step for the specified ID or name. The name may be specified as
 described for C<index_of()>. An exception will be thrown if more than one step
 goes by a specified name. As such, it is best to specify it as unambiguously
 as possible: as a tag name, a tag-qualified step name, or an ID.
+
+=head3 C<find>
+
+  my $step = $steplist->find($id);
+  my $step = $steplist->find($step_name);
+  my $step = $steplist->find($tag_name);
+  my $step = $steplist->find("$step_name\@$tag_name");
+
+Tries to find and return a step based on the argument. If no tag is specified,
+finds and returns the first instance of the named step. Otherwise, it returns
+the step as of the specified tag. Unlike C<get()>, it will not throw an error
+if no step can be found, but simply return C<undef>.
 
 =head3 C<append>
 
