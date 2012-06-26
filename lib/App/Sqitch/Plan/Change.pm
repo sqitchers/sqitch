@@ -62,17 +62,19 @@ has _tags => (
 
 has _fn => (
     is       => 'ro',
-    isa      => 'Str',
+    isa      => 'ArrayRef[Str]',
     required => 1,
     lazy     => 1,
     default  => sub {
         my $self = shift;
-        join '', (
-            $self->name,
+        my @path = split m{/} => $self->name;
+        $path[-1] = join '', (
+            $path[-1],
             $self->suffix,
             '.',
             $self->plan->sqitch->extension,
         );
+        return \@path;
     },
 );
 
@@ -83,7 +85,7 @@ has deploy_file => (
     lazy     => 1,
     default  => sub {
         my $self   = shift;
-        $self->plan->sqitch->deploy_dir->file( $self->_fn );
+        $self->plan->sqitch->deploy_dir->file( @{ $self->_fn } );
     }
 );
 
@@ -94,7 +96,7 @@ has revert_file => (
     lazy     => 1,
     default  => sub {
         my $self   = shift;
-        $self->plan->sqitch->revert_dir->file( $self->_fn );
+        $self->plan->sqitch->revert_dir->file( @{ $self->_fn } );
     }
 );
 
@@ -105,7 +107,7 @@ has test_file => (
     lazy     => 1,
     default  => sub {
         my $self   = shift;
-        $self->plan->sqitch->test_dir->file( $self->_fn );
+        $self->plan->sqitch->test_dir->file( @{ $self->_fn } );
     }
 );
 

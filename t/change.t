@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 47;
+use Test::More tests => 49;
 #use Test::More 'no_plan';
 use Test::NoWarnings;
 use App::Sqitch;
@@ -58,6 +58,7 @@ ok $change->is_deploy, 'It should be a deploy change';
 ok !$change->is_revert, 'It should not be a revert change';
 is $change->action, 'deploy', 'And it should say so';
 
+is_deeply $change->_fn, ['foo.sql'], '_fn should have the file name';
 is $change->deploy_file, $sqitch->deploy_dir->file('foo.sql'),
     'The deploy file should be correct';
 is $change->revert_file, $sqitch->revert_dir->file('foo.sql'),
@@ -88,7 +89,7 @@ my $tag = App::Sqitch::Plan::Tag->new(
 );
 
 ok my $change2 = $CLASS->new(
-    name      => 'howdy',
+    name      => 'yo/howdy',
     plan      => $plan,
     since_tag => $tag,
     lspace    => '  ',
@@ -102,7 +103,7 @@ ok my $change2 = $CLASS->new(
     conflicts => ['dr_evil'],
 ), 'Create change with more stuff';
 
-is $change2->as_string, "  - howdy  :foo :bar :\@baz !dr_evil\t# blah blah blah",
+is $change2->as_string, "  - yo/howdy  :foo :bar :\@baz !dr_evil\t# blah blah blah",
     'It should stringify correctly';
 my $mock_plan = Test::MockModule->new(ref $plan);
 $mock_plan->mock(index_of => 0);
@@ -113,7 +114,7 @@ is $change2->action, 'revert', 'It should say so';
 is $change2->since_tag, $tag, 'It should have a since tag';
 is $change2->info, join("\n",
    'project ' . $sqitch->uri->canonical,
-   'change howdy',
+   'change yo/howdy',
    'since ' . $tag->id,
 ), 'Info should include since tag';
 
@@ -121,15 +122,17 @@ is $change2->info, join("\n",
 is_deeply [$change2->tags], [], 'Should have no tags';
 ok $change2->add_tag($tag), 'Add a tag';
 is_deeply [$change2->tags], [$tag], 'Should have the tag';
-is $change2->format_name_with_tags, 'howdy @alpha',
+is $change2->format_name_with_tags, 'yo/howdy @alpha',
     'Should format name with tags';
 
 # Check file names.
-is $change2->deploy_file, $sqitch->deploy_dir->file('howdy@beta.sql'),
+my @fn = ('yo', 'howdy@beta.sql');
+is_deeply $change2->_fn, \@fn, '_fn should separate out directories';
+is $change2->deploy_file, $sqitch->deploy_dir->file(@fn),
     'The deploy file should include the suffix';
-is $change2->revert_file, $sqitch->revert_dir->file('howdy@beta.sql'),
+is $change2->revert_file, $sqitch->revert_dir->file(@fn),
     'The revert file should include the suffix';
-is $change2->test_file, $sqitch->test_dir->file('howdy@beta.sql'),
+is $change2->test_file, $sqitch->test_dir->file(@fn),
     'The test file should include the suffix';
 
 ##############################################################################
