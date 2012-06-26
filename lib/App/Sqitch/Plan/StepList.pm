@@ -289,7 +289,8 @@ as possible: as a tag name, a tag-qualified step name, or an ID.
 Tries to find and return a step based on the argument. If no tag is specified,
 finds and returns the first instance of the named step. Otherwise, it returns
 the step as of the specified tag. Unlike C<get()>, it will not throw an error
-if no step can be found, but simply return C<undef>.
+if more than one step exists with the specified name, but will return the
+first instance.
 
 =head3 C<append>
 

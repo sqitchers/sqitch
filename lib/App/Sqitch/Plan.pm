@@ -655,6 +655,19 @@ The named step as it was last seen in the list before the specified tag.
 Returns the step corresponding to the specified ID or name. The argument may
 be in any of the formats described for C<index_of()>.
 
+=head3 C<find>
+
+  my $step = $plan->find('6c2f28d125aff1deea615f8de774599acf39a7a1');
+  my $foo  = $plan->index_of('@foo');
+  my $bar  = $plan->index_of('bar');
+  my $bar1 = $plan->index_of('bar@alpha')
+  my $bar2 = $plan->index_of('bar@HEAD');
+
+Finds the step corresponding to the specified ID or name. The argument may be
+in any of the formats described for C<index_of()>. Unlike C<get()>, C<find()>
+will not throw an error if more than one step exists with the specified name,
+but will return the first instance.
+
 =head3 C<first_index_of>
 
   my $index = $plan->first_index_of($step_name);
