@@ -393,6 +393,9 @@ subtest 'live database' => sub {
         conflicts => ['users', 'widgets'],
         requires  => ['fred', 'barney', 'widgets'],
     );
+    $plan->add_step('fred');
+    $plan->add_step('barney');
+
     is_deeply [$pg->check_conflicts($step3)], [qw(users widgets)],
         'Should get back list of installed conflicting steps';
     is_deeply [$pg->check_requires($step3)], [qw(barney fred)],

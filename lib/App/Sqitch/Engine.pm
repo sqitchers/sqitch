@@ -662,7 +662,8 @@ records necessary to indicate that the step has been reverted.
 
 Returns the names of any steps required by the specified step that are not
 currently deployed to the database. If none are returned, the requirements are
-presumed to be satisfied.
+presumed to be satisfied. The engine implementation should compare steps by
+their IDs.
 
 =head3 C<check_conflicts>
 
@@ -675,7 +676,8 @@ step. If none are returned, there are presumed to be no conflicts.
 
 If any of the steps that conflict with the specified step have been deployed
 to the database, their names should be returned by this method. If no names
-are returned, it's because there are no conflicts.
+are returned, it's because there are no conflicts. The engine implementation
+should compare steps by their IDs.
 
 =head3 C<latest_step_id>
 

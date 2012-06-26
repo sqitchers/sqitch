@@ -353,28 +353,30 @@ sub check_requires {
     my ( $self, $step ) = @_;
 
     # No need to check anything if there are no requirements.
-    return unless $step->requires;
+    my @requires = $step->requires_steps or return;
+    my $vals = join ', ', ('(?, ?)') x @requires;
 
-    return @{ $self->_dbh->selectcol_arrayref(q{
-        SELECT required
-          FROM UNNEST(?::text[]) required
-         WHERE required <> ALL(ARRAY(SELECT step FROM steps))
-         ORDER BY required;
-    }, undef, [$step->requires]) || [] };
+    return @{ $self->_dbh->selectcol_arrayref(qq{
+        SELECT required.name
+          FROM (VALUES $vals) AS required(id, name)
+          LEFT JOIN steps ON required.id = steps.step_id
+         WHERE steps.step_id IS NULL
+         ORDER BY required.name;
+    }, undef, map { $_->id, $_->name } @requires) || [] };
 }
 
 sub check_conflicts {
     my ( $self, $step ) = @_;
 
     # No need to check anything if there are no conflicts.
-    return unless $step->conflicts;
+    my @conflicts = $step->conflicts_steps or return;
 
     return @{ $self->_dbh->selectcol_arrayref(q{
         SELECT step
           FROM steps
-         WHERE step = ANY(?)
+         WHERE step_id = ANY(?)
          ORDER BY step
-    }, undef, [$step->conflicts]) || [] };
+    }, undef, [map { $_->id } @conflicts ]) || [] };
 }
 
 sub _fetch_item {
