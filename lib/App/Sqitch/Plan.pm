@@ -350,6 +350,7 @@ sub steps          { shift->_plan->{steps}->steps }
 sub count          { shift->_plan->{steps}->count }
 sub index_of       { shift->_plan->{steps}->index_of(shift) }
 sub get            { shift->_plan->{steps}->get(shift) }
+sub find           { shift->_plan->{steps}->find(shift) }
 sub first_index_of { shift->_plan->{steps}->first_index_of(@_) }
 sub step_at        { shift->_plan->{steps}->step_at(shift) }
 
