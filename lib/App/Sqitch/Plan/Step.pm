@@ -183,6 +183,18 @@ sub format_content {
     );
 }
 
+sub requires_steps {
+    my $self = shift;
+    my $plan = $self->plan;
+    return map { $plan->find($_) } $self->requires;
+}
+
+sub conflicts_steps {
+    my $self = shift;
+    my $plan = $self->plan;
+    return map { $plan->find($_) } $self->conflicts;
+}
+
 __PACKAGE__->meta->make_immutable;
 no Moose;
 
@@ -243,11 +255,23 @@ Returns the path to the test script file for the step.
 
 Returns a list of the names of steps required by this step.
 
+=head3 C<requires_steps>
+
+  my @requires_steps = $step->requires_steps;
+
+Returns a list of the steps required by this step.
+
 =head3 C<conflicts>
 
   my @conflicts = $step->conflicts;
 
 Returns a list of the names of steps with which this step conflicts.
+
+=head3 C<conflicts_steps>
+
+  my @conflicts_steps = $step->conflicts_steps;
+
+Returns a list of the steps with which this step conflicts.
 
 =head3 C<is_deploy>
 

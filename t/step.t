@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 45;
+use Test::More tests => 47;
 #use Test::More 'no_plan';
 use Test::NoWarnings;
 use App::Sqitch;
@@ -179,14 +179,24 @@ is $fh->getline, "-- test it, baby\n", 'It should be the test file';
 
 ##############################################################################
 # Test the requires/conflicts params.
+my $file = file qw(t plans multi.plan);
+$sqitch = App::Sqitch->new(
+    uri       => URI->new('https://github.com/theory/sqitch/'),
+    plan_file => $file,
+);
+$plan = $sqitch->plan;
 ok $step2 = $CLASS->new(
     name      => 'whatever',
     plan      => $plan,
-    requires  => [qw(hi there)],
-    conflicts => [],
+    requires  => [qw(hey you)],
+    conflicts => ['hey-there'],
 ), 'Create a step with explicit requires and conflicts';
-is_deeply [$step2->requires], [qw(hi there)], 'requires should be set';
-is_deeply [$step2->conflicts], [], 'conflicts should be set';
+is_deeply [$step2->requires], [qw(hey you)], 'requires should be set';
+is_deeply [$step2->conflicts], ['hey-there'], 'conflicts should be set';
+is_deeply [$step2->requires_steps], [$plan->get('hey'),  $plan->get('you')],
+    'Should find steps for requires';
+is_deeply [$step2->conflicts_steps], [$plan->get('hey-there')],
+    'Should find steps for conflicts';
 
 ##############################################################################
 # Test ID for a step with a UTF-8 name.
