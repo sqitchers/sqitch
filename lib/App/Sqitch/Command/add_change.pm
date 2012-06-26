@@ -134,63 +134,66 @@ sub execute {
     my ( $self, $name ) = @_;
     $self->usage unless defined $name;
     my $sqitch = $self->sqitch;
-
-    # Avoid if any of the scripts already exist.
-    my $fn = "$name." . $sqitch->extension;
-    $self->fail(qq{Change "$name" already exists}) if grep { -e $_->file($fn) } (
-        $sqitch->deploy_dir,
-        $sqitch->revert_dir,
-        $sqitch->test_dir,
+    my $plan   = $sqitch->plan;
+    my $change = $plan->add_change(
+        $name,
+        $self->requires,
+        $self->conflicts,
     );
 
     $self->_add(
         $name,
+        $change->deploy_file,
         $self->deploy_template,
-        $self->sqitch->deploy_dir,
     ) if $self->with_deploy;
 
     $self->_add(
         $name,
+        $change->revert_file,
         $self->revert_template,
-        $self->sqitch->revert_dir,
     ) if $self->with_revert;
 
     $self->_add(
         $name,
+        $change->test_file,
         $self->test_template,
-        $self->sqitch->test_dir,
     ) if $self->with_test;
 
     return $self;
 }
 
 sub _add {
-    my ( $self, $name, $in, $out_dir ) = @_;
-    make_path $out_dir, { error => \my $err };
+    my ( $self, $name, $file, $tmpl ) = @_;
+    if (-e $file) {
+        $self->info("Skipped $file: already exists");
+        return $self;
+    }
+
+    # Create the directory for the file, if it does not exist.
+    make_path $file->dir->stringify, { error => \my $err };
     if ( my $diag = shift @{ $err } ) {
         my ( $path, $msg ) = %{ $diag };
         $self->fail("Error creating $path: $msg") if $path;
         $self->fail($msg);
     }
 
-    my $out = $out_dir->file( "$name." . $self->sqitch->extension );
-    open my $fh, '>:utf8', $out or $self->fail("Cannot open $out: $!");
+    my $fh = $file->open('>:utf8') or $self->fail("Cannot open $file: $!");
     my $orig_selected = select;
     select $fh;
 
-    Template::Tiny->new->process( $self->_load($in), {
+    Template::Tiny->new->process( $self->_slurp($tmpl), {
         %{ $self->variables },
         change      => $name,
         requires  => $self->requires,
         conflicts => $self->conflicts,
     });
 
-    close $fh or $self->fail("Cannot close $out: $!");
+    close $fh or $self->fail("Cannot close $file: $!");
     select $orig_selected;
-    $self->info("Created $out");
+    $self->info("Created $file");
 }
 
-sub _load {
+sub _slurp {
     my ( $self, $tmpl ) = @_;
     open my $fh, "<:encoding(UTF-8)", $tmpl
         or $self->fail("cannot open $tmpl: $!");
