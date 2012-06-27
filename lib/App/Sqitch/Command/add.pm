@@ -163,7 +163,7 @@ sub execute {
     # We good, write the plan file back out.
     $plan->write_to( $sqitch->plan_file );
     $self->info(__x(
-        'Added "{change}" to "{file}"',
+        'Added "{change}" to {file}',
         change => $change->format_content,
         file   => $sqitch->plan_file,
     ));
