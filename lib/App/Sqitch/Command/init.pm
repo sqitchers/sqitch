@@ -26,9 +26,10 @@ sub execute {
 sub make_directories {
     my $self   = shift;
     my $sqitch = $self->sqitch;
+    my $sep    = dir('')->stringify; # OS-specific directory separator.
     for my $attr (qw(deploy_dir revert_dir test_dir)) {
         my $dir = $sqitch->$attr;
-        $self->info("Created $dir") if make_path $dir, { error => \my $err };
+        $self->info("Created $dir$sep") if make_path $dir, { error => \my $err };
         if ( my $diag = shift @{ $err } ) {
             my ( $path, $msg ) = %{ $diag };
             $self->fail("Error creating $path: $msg") if $path;

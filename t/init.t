@@ -54,8 +54,10 @@ ok $init->make_directories, 'Make the directories';
 for my $attr (map { "$_\_dir"} qw(top deploy revert test)) {
     dir_exists_ok $sqitch->$attr;
 }
+my $sep = dir('')->stringify;
 is_deeply +MockOutput->get_info, [
-    map { ["Created " . $sqitch->$_] } map { "$_\_dir" } qw(deploy revert test)
+    map { ["Created " . $sqitch->$_ . $sep] }
+    map { "$_\_dir" } qw(deploy revert test)
 ], 'Each should have been sent to info';
 
 # Do it again.
@@ -67,7 +69,7 @@ remove_tree $sqitch->revert_dir->stringify;
 ok $init->make_directories, 'Make the directories once more';
 dir_exists_ok $sqitch->revert_dir, 'revert dir exists again';
 is_deeply +MockOutput->get_info, [
-    ['Created ' . $sqitch->revert_dir],
+    ['Created ' . $sqitch->revert_dir . $sep],
 ], 'Should have noted creation of revert dir';
 
 # Handle errors.
@@ -118,7 +120,7 @@ my $top_dir    = File::Spec->curdir;
 my $deploy_dir = File::Spec->catdir(qw(deploy));
 my $revert_dir = File::Spec->catdir(qw(revert));
 my $test_dir   = File::Spec->catdir(qw(test));
-my $plan_file  = $sqitch->top_dir->file('sqitch.plan')->stringify;
+my $plan_file  = $sqitch->top_dir->file('sqitch.plan')->cleanup->stringify;
 file_contents_like $conf_file, qr{\Q[core]
 	uri = $uri
 	# engine = 
@@ -460,7 +462,7 @@ file_exists_ok $plan_file;
 
 # Shoudld have the output.
 my @dir_messages = map {
-    ["Created " . $sqitch->$_] } map { "$_\_dir"
+    ['Created ' . $sqitch->$_ . $sep] } map { "$_\_dir"
 } qw(deploy revert test);
 is_deeply +MockOutput->get_info, [
     @dir_messages,
