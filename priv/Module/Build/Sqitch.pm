@@ -27,11 +27,13 @@ sub process_etc_files {
     for my $file ( @{ $self->rscan_dir( 'etc', sub { -f && !/\.\#/ } ) } ) {
         $file = $self->localize_file_path($file);
 
+        # Remove leading `etc/` to get path relative to $etc.
+        my ($vol, $dirs, $fn) = File::Spec->splitpath($file);
+        my (undef, @segs) = File::Spec->splitdir($dirs);
+        my $rel = File::Spec->catpath($vol, File::Spec->catdir(@segs), $fn);
+
         # Append .default if file already exists at its ultimate destination.
-        my $dest = -e File::Spec->catfile(
-            $etc,
-            ( File::Spec->splitpath($file) )[1..-1]
-        ) ? "$file.default" : $file;
+        my $dest = -e File::Spec->catfile($etc, $rel) ? "$file.default" : $file;
 
         $self->copy_if_modified(
             from => $file,
