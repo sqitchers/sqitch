@@ -293,6 +293,9 @@ is_deeply $engine->seen, [
 
 is $deploy_meth, '_deploy_all', 'Should have called _deploy_all()';
 is_deeply +MockOutput->get_info, [
+    [__x 'Adding metadata tables to {destination}',
+        destination => $engine->destination,
+    ],
     [__x 'Deploying to {destination} through {target}',
         destination =>  $engine->destination,
         target      => '@alpha'

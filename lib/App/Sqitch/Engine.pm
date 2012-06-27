@@ -79,7 +79,13 @@ sub deploy {
 
     } elsif ($plan->position == -1) {
         # Initialize the database, if necessary.
-        $self->initialize unless $self->initialized;
+        unless ($self->initialized) {
+            $sqitch->info(__x(
+                'Adding metadata tables to {destination}',
+                destination => $self->destination,
+            ));
+            $self->initialize;
+        }
 
     } else {
         # Make sure that $to_index is greater than the current point.
