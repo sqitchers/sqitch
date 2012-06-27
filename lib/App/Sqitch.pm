@@ -28,7 +28,7 @@ has plan_file => (
     required => 1,
     lazy     => 1,
     default  => sub {
-        shift->top_dir->file('sqitch.plan');
+        shift->top_dir->file('sqitch.plan')->cleanup;
     }
 );
 
@@ -87,7 +87,7 @@ has deploy_dir => (
         if ( my $dir = $self->config->get( key => 'core.deploy_dir' ) ) {
             return dir $dir;
         }
-        $self->top_dir->subdir('deploy');
+        $self->top_dir->subdir('deploy')->cleanup;
     },
 );
 
@@ -101,7 +101,7 @@ has revert_dir => (
         if ( my $dir = $self->config->get( key => 'core.revert_dir' ) ) {
             return dir $dir;
         }
-        $self->top_dir->subdir('revert');
+        $self->top_dir->subdir('revert')->cleanup;
     },
 );
 
@@ -115,7 +115,7 @@ has test_dir => (
         if ( my $dir = $self->config->get( key => 'core.test_dir' ) ) {
             return dir $dir;
         }
-        $self->top_dir->subdir('test');
+        $self->top_dir->subdir('test')->cleanup;
     },
 );
 

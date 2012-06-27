@@ -61,7 +61,7 @@ for my $attr (qw(
     is $sqitch->$attr, undef, "$attr should be undef";
 }
 
-is $sqitch->plan_file, $sqitch->top_dir->file('sqitch.plan'),
+is $sqitch->plan_file, $sqitch->top_dir->file('sqitch.plan')->cleanup,
     'Default plan file should be $top_dir/sqitch.plan';
 is $sqitch->verbosity, 1, 'verbosity should be 1';
 is $sqitch->dry_run, 0, 'dry_run should be 0';
