@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 76;
+use Test::More tests => 77;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Path::Class;
@@ -281,6 +281,11 @@ is_deeply +MockOutput->get_info, [
     ["Created $revert_file"],
     ["Created $test_file"],
 ], 'Info should have reported file creation';
+
+# Relod the plan file to make sure change is written to it.
+$plan->load;
+isa_ok $change = $plan->get('widgets_table'), 'App::Sqitch::Plan::Change',
+    'Added change in reloaded plan';
 
 # Make sure conflicts are avoided and conflicts and requires are respected.
 ok $add = $CLASS->new(

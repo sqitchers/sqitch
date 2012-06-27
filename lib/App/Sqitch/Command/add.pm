@@ -159,6 +159,9 @@ sub execute {
         $self->test_template,
     ) if $self->with_test;
 
+    # We good, write the plan file back out.
+    $plan->write_to( $sqitch->plan_file );
+
     return $self;
 }
 
@@ -183,7 +186,7 @@ sub _add {
 
     Template::Tiny->new->process( $self->_slurp($tmpl), {
         %{ $self->variables },
-        change      => $name,
+        change    => $name,
         requires  => $self->requires,
         conflicts => $self->conflicts,
     });

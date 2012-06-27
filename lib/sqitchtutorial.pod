@@ -102,13 +102,14 @@ First, our project will need a database user. This is the application user,
 who will have only limited access to objects in the database. Run this command:
 
   > sqitch add appuser
-  Created sql/deploy/appuser.sql
-  Created sql/revert/appuser.sql
-  Created sql/test/appuser.sql
+  Created deploy/appuser.sql
+  Created revert/appuser.sql
+  Created test/appuser.sql
 
-The C<add> command creates deploy and revert scripts that represent a new
-change change. Now we edit these files. The C<deploy> script's job is to create
-the user. So we add this to F<sql/deploy/appuser.sql>:
+The C<add> command adds a database change to the plan and writes deploy,
+revert, and test scripts that represent the change. Now we edit these files.
+The C<deploy> script's job is to create the user. So we add this to
+F<deploy/appuser.sql>:
 
   CREATE ROLE flipr WITH LOGIN;
 
