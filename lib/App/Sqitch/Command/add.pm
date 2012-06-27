@@ -1,4 +1,4 @@
-package App::Sqitch::Command::add_change;
+package App::Sqitch::Command::add;
 
 use v5.10.1;
 use strict;
@@ -35,7 +35,7 @@ has variables => (
     required => 1,
     lazy     => 1,
     default  => sub {
-        shift->sqitch->config->get_section( section => 'add-change.variables' );
+        shift->sqitch->config->get_section( section => 'add.variables' );
     },
 );
 
@@ -44,7 +44,7 @@ has template_directory => (
     isa     => 'Maybe[Path::Class::Dir]',
     lazy    => 1,
     default => sub {
-        dir shift->sqitch->config->get( key => "add-change.template_directory" );
+        dir shift->sqitch->config->get( key => "add.template_directory" );
     }
 );
 
@@ -55,7 +55,7 @@ for my $script (qw(deploy revert test)) {
         lazy    => 1,
         default => sub {
             shift->sqitch->config->get(
-                key => "add-change.with_$script",
+                key => "add.with_$script",
                 as  => 'bool',
             ) // 1;
         }
@@ -72,7 +72,7 @@ for my $script (qw(deploy revert test)) {
 sub _find {
     my ( $self, $script ) = @_;
     my $config = $self->sqitch->config;
-    $config->get( key => "add-change.$script\_template" ) || do {
+    $config->get( key => "add.$script\_template" ) || do {
         for my $dir (
             $self->template_directory,
             $config->user_dir->subdir('templates'),
@@ -122,7 +122,7 @@ sub configure {
 
         # Merge with config.
         $params{variables} = {
-            %{ $config->get_section( section => 'add-change.variables' ) },
+            %{ $config->get_section( section => 'add.variables' ) },
             %{ $vars },
         };
     }
@@ -135,7 +135,7 @@ sub execute {
     $self->usage unless defined $name;
     my $sqitch = $self->sqitch;
     my $plan   = $sqitch->plan;
-    my $change = $plan->add_change(
+    my $change = $plan->add(
         $name,
         $self->requires,
         $self->conflicts,
@@ -207,11 +207,11 @@ __END__
 
 =head1 Name
 
-App::Sqitch::Command::add_change - Add a new deployment change
+App::Sqitch::Command::add - Add a new deployment change
 
 =head1 Synopsis
 
-  my $cmd = App::Sqitch::Command::add_change->new(%params);
+  my $cmd = App::Sqitch::Command::add->new(%params);
   $cmd->execute;
 
 =head1 Description
@@ -227,14 +227,14 @@ C<$(etc_path)/templates>.
 
 =head3 C<options>
 
-  my @opts = App::Sqitch::Command::add_change->options;
+  my @opts = App::Sqitch::Command::add->options;
 
 Returns a list of L<Getopt::Long> option specifications for the command-line
-options for the C<add_change> command.
+options for the C<add> command.
 
 =head3 C<configure>
 
-  my $params = App::Sqitch::Command::add_change->configure(
+  my $params = App::Sqitch::Command::add->configure(
       $config,
       $options,
   );
@@ -246,17 +246,17 @@ for the constructor.
 
 =head3 C<execute>
 
-  $add_change->execute($command);
+  $add->execute($command);
 
-Executes the C<add-change> command.
+Executes the C<add> command.
 
 =head1 See Also
 
 =over
 
-=item L<sqitch-add-change>
+=item L<sqitch-add>
 
-Documentation for the C<add-change> command to the Sqitch command-line client.
+Documentation for the C<add> command to the Sqitch command-line client.
 
 =item L<sqitch>
 

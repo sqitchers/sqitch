@@ -450,7 +450,7 @@ Make sure no deployment script appears more than once in the plan file.
 
 =back
 
-=item C<add-change>
+=item C<add>
 
 Add a new change. The specified name will be used to create stub deployment and
 reversion scripts. The contents of these scripts must then be edited to carry

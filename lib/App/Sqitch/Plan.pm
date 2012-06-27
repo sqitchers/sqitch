@@ -430,7 +430,7 @@ sub add_tag {
     return $tag;
 }
 
-sub add_change {
+sub add {
     my ( $self, $name, $requires, $conflicts ) = @_;
     $self->_is_valid(change => $name);
 
@@ -814,10 +814,10 @@ changes.
 Adds a tag to the plan. Exits with a fatal error if the tag already
 exists in the plan.
 
-=head3 C<add_change>
+=head3 C<add>
 
-  $plan->add_change( 'whatevs' );
-  $plan->add_change( 'widgets', [qw(foo bar)], [qw(dr_evil)] );
+  $plan->add( 'whatevs' );
+  $plan->add( 'widgets', [qw(foo bar)], [qw(dr_evil)] );
 
 Adds a change to the plan. The second argument specifies a list of required
 changes. The third argument specifies a list of conflicting changes. Exits with a

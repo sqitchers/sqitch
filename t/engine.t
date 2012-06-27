@@ -364,7 +364,7 @@ is_deeply $engine->seen, [
 # Make sure we can deploy everything by change.
 $latest_change_id = $latest_change = undef;
 $plan->reset;
-$plan->add_change('lolz');
+$plan->add('lolz');
 @changes = $plan->changes;
 ok $engine->deploy(undef, 'change'), 'Deploy everything by change';
 is $plan->position, 3, 'Plan should be at position 3';
@@ -529,8 +529,8 @@ is_deeply +MockOutput->get_info, [
 ], 'Should have seen output of changes 3-3';
 
 # Add another couple of changes.
-$plan->add_change('tacos');
-$plan->add_change('curry');
+$plan->add('tacos');
+$plan->add('curry');
 @changes = $plan->changes;
 
 # Make it die.
@@ -605,7 +605,7 @@ is_deeply $vented, [
 
 # Add a change and deploy to that, to make sure it rolls back any changes since
 # last tag.
-$plan->add_change('dr_evil');
+$plan->add('dr_evil');
 @changes = $plan->changes;
 $plan->reset;
 $mock_whu->mock(run_file => sub { hurl 'ROFL' if $_[1]->basename eq 'dr_evil.sql' });

@@ -741,7 +741,7 @@ cmp_deeply +MockOutput->get_fail, [[
 
 ##############################################################################
 # Try adding a change.
-ok my $new_change = $plan->add_change('booyah'), 'Add change "booyah"';
+ok my $new_change = $plan->add('booyah'), 'Add change "booyah"';
 is $plan->count, 5, 'Should have 5 changes';
 is $plan->index_of('booyah'), 4, 'Should find "booyah at index 4';
 is $plan->last->name, 'booyah', 'Last change should be "booyah"';
@@ -757,7 +757,7 @@ file_contents_is $to,
     'The contents should include the "booyah" change';
 
 # Make sure dependencies are verified.
-ok $new_change = $plan->add_change('blow', ['booyah']), 'Add change "blow"';
+ok $new_change = $plan->add('blow', ['booyah']), 'Add change "blow"';
 is $plan->count, 6, 'Should have 6 changes';
 is $plan->index_of('blow'), 5, 'Should find "blow at index 5';
 is $plan->last->name, 'blow', 'Last change should be "blow"';
@@ -767,7 +767,7 @@ is [$plan->lines]->[-1], $new_change,
     'The new change should have been appended to the lines, too';
 
 # Should choke on a duplicate change.
-throws_ok { $plan->add_change('blow') } qr/^FAIL\b/,
+throws_ok { $plan->add('blow') } qr/^FAIL\b/,
     'Should get error trying to add duplicate change';
 cmp_deeply +MockOutput->get_fail, [[
     qq{Change "blow" already exists.\n},
@@ -776,7 +776,7 @@ cmp_deeply +MockOutput->get_fail, [[
 
 # Should choke on an invalid change names.
 for my $name (@bad_names) {
-    throws_ok { $plan->add_change($name) } qr/FAIL:/,
+    throws_ok { $plan->add($name) } qr/FAIL:/,
         qq{Should get error for invalid change "$name"};
     cmp_deeply +MockOutput->get_fail, [[
         qq{"$name" is invalid: changes must not begin with punctuation },
@@ -785,20 +785,20 @@ for my $name (@bad_names) {
 }
 
 # Try a reserved name.
-throws_ok { $plan->add_change('HEAD') } qr/^FAIL:/,
+throws_ok { $plan->add('HEAD') } qr/^FAIL:/,
     'Should get error for reserved tag "HEAD"';
 cmp_deeply +MockOutput->get_fail, [[
     '"HEAD" is a reserved name'
 ]], 'And the reserved name error should be output';
 
-throws_ok { $plan->add_change('ROOT') } qr/^FAIL:/,
+throws_ok { $plan->add('ROOT') } qr/^FAIL:/,
     'Should get error for reserved tag "ROOT"';
 cmp_deeply +MockOutput->get_fail, [[
     '"ROOT" is a reserved name'
 ]], 'And the reserved name error should be output';
 
 # Try an invalid dependency.
-throws_ok { $plan->add_change('whu', ['nonesuch' ] ) } qr/^FAIL\b/,
+throws_ok { $plan->add('whu', ['nonesuch' ] ) } qr/^FAIL\b/,
     'Should get failure for failed dependency';
 cmp_deeply +MockOutput->get_fail, [[
     'Cannot add change "whu": ',
@@ -806,7 +806,7 @@ cmp_deeply +MockOutput->get_fail, [[
 ]], 'The dependency error should have been emitted';
 
 # Should choke on an unknown tag, too.
-throws_ok { $plan->add_change('whu', ['@nonesuch' ] ) } qr/^FAIL\b/,
+throws_ok { $plan->add('whu', ['@nonesuch' ] ) } qr/^FAIL\b/,
     'Should get failure for failed tag dependency';
 cmp_deeply +MockOutput->get_fail, [[
     'Cannot add change "whu": ',
@@ -814,7 +814,7 @@ cmp_deeply +MockOutput->get_fail, [[
 ]], 'The tag dependency error should have been emitted';
 
 # Should choke on a change that looks like a SHA1.
-throws_ok { $plan->add_change($sha1) } qr/^FAIL:/,
+throws_ok { $plan->add($sha1) } qr/^FAIL:/,
     'Should get error for a SHA1 change';
 cmp_deeply +MockOutput->get_fail, [[
     qq{"$sha1" is invalid because it could be confused with a SHA1 ID},

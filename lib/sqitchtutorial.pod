@@ -34,71 +34,79 @@ source code repository. So let's do that with Git:
 If you're a Git user and want to follow along the history, the repository
 used in these examples is L<on GitHub|https://github.com/theory/sqitch-intro>.
 
-Now that we have a repository, let's get started with Sqitch.
+Now that we have a repository, let's get started with Sqitch. Every Sqitch
+project must have a unique URI associated with it. Sqitch will create a random
+URI for you, but it's nicer to have a formal project URI, so let's specify one
+when we initialize Sqitch:
 
-  > sqitch --engine pg init
-  Created sql/deploy
-  Created sql/revert
-  Created sql/test
+  > sqitch --uri https://github.com/theory/sqitch-intro/ --engine pg init
   Created sqitch.conf
+  Created sqitch.plan
+  Created deploy/
+  Created revert/
+  Created test/
 
 Let's have a look at F<sqitch.conf>:
 
   [core]
+      uri = https://github.com/theory/sqitch-intro/
       engine = pg
       # plan_file = sqitch.plan
-      # top_dir = sql
-      # deploy_dir = sql/deploy
-      # revert_dir = sql/revert
-      # test_dir = sql/test
+      # top_dir = .
+      # deploy_dir = deploy
+      # revert_dir = revert
+      # test_dir = test
       # extension = sql
   # [core "pg"]
       # db_name = 
-      # client = psql
+      # client = /var/lib/pgsql/bin/psql
       # sqitch_schema = sqitch
       # password = 
       # port = 
       # host = 
       # username = 
 
-Pretty simple. It picked up on the fact that we're creating changes for the
-PostgreSQL engine, thanks to the C<--engine pg> option, and saved it to the
-file. It also wrote a commented-out C<[core "pg"]> section with all the
-available PostgreSQL engine-specific settings commented out and ready to be
-edited as appropriate.
+Good, it saved our custom URI. It also picked up on the fact that we're
+creating changes for the PostgreSQL engine, thanks to the C<--engine pg>
+option, and saved it to the file. Furthermore, it wrote a commented-out
+C<[core "pg"]> section with all the available PostgreSQL engine-specific
+settings commented out and ready to be edited as appropriate.
 
 By default, Sqitch will read F<sqitch.conf> in the current directory for
 settings. But it will also read F<~/.sqitch/sqitch.conf> for global settings.
 Since PostgreSQL's C<psql> client is not in the path on my system, let's go
 ahead an tell it globally where to find the client:
 
-  sqitch config --user core.pg.client /var/lib/pgsql/bin/psql
+  > sqitch config --user core.pg.client /usr/local/pgsql/bin/psql
 
 Have a look at F<~/.sqitch/sqitch.conf> and you'll see this:
 
   [core "pg"]
-      client = /var/lib/pgsql/bin/psql
+      client = /usr/local/pgsql/bin/psql
+
+Which means that Sqitch should be able to find C<psql> for any project.
 
 Back to the repository. Let's commit these changes and start creating the
 database changes.
 
   > git add .
   > git commit -am 'Initialize Sqitch configuration.'
-  [master (root-commit) a22000d] Initialize Sqitch configuration.
-   1 file changed, 16 insertions(+)
+  [master ba6eeb8] Initialize Sqitch configuration.
+   2 files changed, 19 insertions(+)
    create mode 100644 sqitch.conf
+   create mode 100644 sqitch.plan
 
 =head1 Our First Deployment
 
 First, our project will need a database user. This is the application user,
 who will have only limited access to objects in the database. Run this command:
 
-  > sqitch add-change appuser
+  > sqitch add appuser
   Created sql/deploy/appuser.sql
   Created sql/revert/appuser.sql
   Created sql/test/appuser.sql
 
-The C<add-change> command creates deploy and revert scripts that represent a new
+The C<add> command creates deploy and revert scripts that represent a new
 change change. Now we edit these files. The C<deploy> script's job is to create
 the user. So we add this to F<sql/deploy/appuser.sql>:
 
@@ -251,7 +259,7 @@ changes!
 Let's add another deployment, this time to create a table. Our app will need
 users, of course, so we'll create a table for them. First, add the new change:
 
-  > sqitch add-change users --requires appuser
+  > sqitch add users --requires appuser
   Created sql/deploy/users.sql
   Created sql/revert/users.sql
   Created sql/test/users.sql
@@ -368,12 +376,12 @@ so that we can use a list of what tags were deployed, when, and by whom.
 
 Let's add a couple more changes to add functions for managing users.
 
-  > sqitch add-change insert_user --requires users --requires appuser
+  > sqitch add insert_user --requires users --requires appuser
   Adding sql/deploy/insert_user.sql
          -- requires: users, appuser
   Adding sql/revert/insert_user.sql
 
-  > sqitch add-change change_pass --requires users --requires appuser
+  > sqitch add change_pass --requires users --requires appuser
   Adding sql/deploy/change_pass.sql
          -- requires: users, appuser
   Adding sql/revert/change_pass.sql
@@ -613,7 +621,7 @@ each other's way. So let's branch:
 
 Now we can add a new change to create a table for our flips.
 
-  > sqitch add-change flips --requires users
+  > sqitch add flips --requires users
   Adding sql/deploy/flips.sql
          -- requires: users
   Adding sql/revert/flips.sql

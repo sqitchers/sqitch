@@ -1,10 +1,10 @@
 =head1 Name
 
-sqitch-add-change-usage - Sqitch add-change usage statement
+sqitch-add-usage - Sqitch add usage statement
 
 =head1 Usage
 
-  sqitch [options] add-change [<change options>] changename
+  sqitch [options] add [<change options>] changename
 
 =head1 Options
 
