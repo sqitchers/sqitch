@@ -123,6 +123,7 @@ Now we can try deploying this change:
 
   > createdb flipr_test
   > sqitch --db-name flipr_test deploy
+  Adding metadata tables to flipr_test
   Deploying to flipr_test
     + appuser
 
