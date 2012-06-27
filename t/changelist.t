@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 108;
+use Test::More tests => 110;
 #use Test::More 'no_plan';
 use Test::NoWarnings;
 use Test::Exception;
@@ -44,6 +44,7 @@ is_deeply [$changes->changes], [$foo, $bar, $yo1, $baz, $yo2],
     'Changes should be in order';
 is_deeply [$changes->items], [$changes->changes],
     'Items should be the same as changes';
+is_deeply [$changes->tags], [$alpha], 'Tags should return the one tag';
 is $changes->change_at(0), $foo, 'Should have foo at 0';
 is $changes->change_at(1), $bar, 'Should have bar at 1';
 is $changes->change_at(2), $yo1, 'Should have yo1 at 2';
@@ -153,6 +154,7 @@ ok $changes->index_tag(4, $beta), 'Index beta';
 is $changes->index_of('@beta'), 4, 'Should find @beta at index 4';
 is $changes->get('@beta'), $yo2, 'Should find yo2 via @beta';
 is $changes->get($beta->id), $yo2, 'Should find yo2 via @beta ID';
+is_deeply [$changes->tags], [$alpha, $beta], 'Tags should return both tags';
 
 ##############################################################################
 # Test last_tagged(), last_change(), index_of_last_tagged().

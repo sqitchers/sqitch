@@ -16,9 +16,10 @@ sub new {
     return $self->append(@_);
 }
 
-sub count     { scalar @{ shift->{list} } }
+sub count       { scalar @{ shift->{list} } }
 sub changes     { @{ shift->{list} } }
-sub items     { @{ shift->{list} } }
+sub tags        { map { $_->tags } @{ shift->{list} } }
+sub items       { @{ shift->{list} } }
 sub change_at   { shift->{list}[shift] }
 sub last_change { return shift->{list}[ -1 ] }
 
@@ -177,6 +178,12 @@ Returns the number of changes in the list.
   my @changes = $changelist->changes;
 
 Returns all of the changes in the list.
+
+=head3 C<tags>
+
+  my @tags = $changelist->tags;
+
+Returns all of the tags associated with changes in the list.
 
 =head3 C<items>
 
