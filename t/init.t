@@ -465,7 +465,7 @@ my @dir_messages = map {
     ['Created ' . $sqitch->$_ . $sep] } map { "$_\_dir"
 } qw(deploy revert test);
 is_deeply +MockOutput->get_info, [
-    @dir_messages,
     ['Created ' . $conf_file],
     ['Created ' . $plan_file],
+    @dir_messages,
 ], 'Should have status messages';

@@ -17,9 +17,9 @@ our $VERSION = '0.50';
 
 sub execute {
     my $self = shift;
-    $self->make_directories;
     $self->write_config;
     $self->write_plan;
+    $self->make_directories;
     return $self;
 }
 
