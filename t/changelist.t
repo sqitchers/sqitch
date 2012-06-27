@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 110;
+use Test::More tests => 111;
 #use Test::More 'no_plan';
 use Test::NoWarnings;
 use Test::Exception;
@@ -132,6 +132,9 @@ is $changes->first_index_of('yo', '@alpha'), 4,
     'First index of "yo" since "@alpha" should be 4';
 is $changes->first_index_of('yo', 'baz'), 4,
     'First index of "yo" since "baz" should be 3';
+throws_ok { $changes->first_index_of('baz', 'nonexistent') }
+    qr/\QUnknown change: "nonexistent"/,
+    'Should get an exception for an uknown step passed to first_index_of()';
 
 # Try appending a couple more changes.
 my $so = App::Sqitch::Plan::Change->new(plan => $plan, name => 'so');

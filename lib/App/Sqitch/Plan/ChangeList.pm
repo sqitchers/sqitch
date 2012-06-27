@@ -51,17 +51,18 @@ sub index_of {
 }
 
 sub first_index_of {
-    my ( $self, $change, $tag ) = @_;
+    my ( $self, $change, $since ) = @_;
 
     # Just return the first index if no tag.
     my $idx = $self->{lookup}{$change} or return undef;
-    return $idx->[0] unless defined $tag;
+    return $idx->[0] unless defined $since;
 
     # Find the tag index.
-    my $tag_index = $self->index_of($tag) // croak qq{Unknown tag: "$tag"};
+    my $since_index = $self->index_of($since)
+        // croak qq{Unknown change: "$since"};
 
     # Return the first change after the tag.
-    return List::Util::first { $_ > $tag_index } @{ $idx };
+    return List::Util::first { $_ > $since_index } @{ $idx };
 }
 
 sub index_of_last_tagged {
