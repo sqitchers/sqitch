@@ -1,0 +1,28 @@
+=head1 Name
+
+sqitch-tag - Create or list tag objects
+
+=head1 Synopsis
+
+  sqitch [options] tag
+  sqitch [options] tag name
+
+=head1 Description
+
+Tag the latest change in the plan, or list the existing tags. This is useful
+for preparing for a release. Tags are also required in order to rework a
+change.
+
+If called with name specified, a list of the current tags will be output.
+
+=head1 Options
+
+None currently.
+
+=head1 Configuration Variables
+
+None currently.
+
+=head1 Sqitch
+
+Part of the L<sqitch> suite.
