@@ -280,6 +280,7 @@ is_deeply +MockOutput->get_info, [
     ["Created $deploy_file"],
     ["Created $revert_file"],
     ["Created $test_file"],
+    [qq{Added "widgets_table" to }, $sqitch->plan_file ],
 ], 'Info should have reported file creation';
 
 # Relod the plan file to make sure change is written to it.
@@ -316,4 +317,5 @@ is_deeply +MockOutput->get_info, [
     ["Skipped $deploy_file: already exists"],
     ["Created $revert_file"],
     ["Created $test_file"],
+    [qq{Added "foo_table" to }, $sqitch->plan_file ],
 ], 'Info should have reported skipping file';

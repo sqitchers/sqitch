@@ -161,7 +161,7 @@ sub execute {
 
     # We good, write the plan file back out.
     $plan->write_to( $sqitch->plan_file );
-
+    $self->info( qq{Added "$name" to }, $sqitch->plan_file );
     return $self;
 }
 
