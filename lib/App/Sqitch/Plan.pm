@@ -346,7 +346,8 @@ sub open_script {
 }
 
 sub lines          { shift->_plan->{lines}->items }
-sub changes          { shift->_plan->{changes}->changes }
+sub changes        { shift->_plan->{changes}->changes }
+sub tags           { shift->_plan->{changes}->tags }
 sub count          { shift->_plan->{changes}->count }
 sub index_of       { shift->_plan->{changes}->index_of(shift) }
 sub get            { shift->_plan->{changes}->get(shift) }
@@ -746,6 +747,12 @@ C<undef> if there are no more changes beyond the current change.
   my @changes = $plan->changes;
 
 Returns all of the changes in the plan. This constitutes the entire plan.
+
+=head3 C<tags>
+
+  my @tags = $plan->tags;
+
+Returns all of the tags in the plan.
 
 =head3 C<count>
 

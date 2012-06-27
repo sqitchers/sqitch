@@ -432,6 +432,7 @@ isa_ok $plan = App::Sqitch::Plan->new(sqitch => $sqitch), $CLASS,
 
 cmp_deeply [$plan->lines], [version], 'Should have only the version line';
 cmp_deeply [$plan->changes], [], 'Should have no changes';
+cmp_deeply [$plan->tags], [], 'Should have no tags';
 
 # Try a plan with dependencies.
 $file = file qw(t plans dependencies.plan);
@@ -497,6 +498,14 @@ cmp_deeply [$plan->changes], [
         tag(0,   '', 'bar', ' '),
         tag(0,   '', 'baz', ''),
 ], 'Changes should be parsed from file';
+clear, change('', 'you');
+my $foo_tag = (tag(1,   '', 'foo', ' ', ' look, a tag!'));
+change(   '', 'hey-there', ' ', ' trailing comment!');
+cmp_deeply [$plan->tags], [
+    $foo_tag,
+    tag(1,   '', 'bar', ' '),
+    tag(1,   '', 'baz', ''),
+], 'Should get all tags from tags()';
 is sorted, 2, 'Should have sorted changes twice';
 
 ok $parsed = $plan->load, 'Load should parse plan from file';
