@@ -5,6 +5,7 @@ use strict;
 use warnings;
 use utf8;
 use Template::Tiny;
+use Locale::TextDomain qw(App-Sqitch);
 use Moose;
 use MooseX::Types::Path::Class;
 use Path::Class;
@@ -161,7 +162,11 @@ sub execute {
 
     # We good, write the plan file back out.
     $plan->write_to( $sqitch->plan_file );
-    $self->info( qq{Added "$name" to }, $sqitch->plan_file );
+    $self->info(__x(
+        'Added "{change}" to "{file}"',
+        change => $change->format_content,
+        file   => $sqitch->plan_file,
+    ));
     return $self;
 }
 

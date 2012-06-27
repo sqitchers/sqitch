@@ -6,6 +6,7 @@ use utf8;
 use Test::More tests => 77;
 #use Test::More 'no_plan';
 use App::Sqitch;
+use Locale::TextDomain qw(App-Sqitch);
 use Path::Class;
 use Test::NoWarnings;
 use Test::Exception;
@@ -280,7 +281,10 @@ is_deeply +MockOutput->get_info, [
     ["Created $deploy_file"],
     ["Created $revert_file"],
     ["Created $test_file"],
-    [qq{Added "widgets_table" to }, $sqitch->plan_file ],
+    [__x 'Added "{change}" to "{file}"',
+        change => 'widgets_table',
+        file   => $sqitch->plan_file,
+    ],
 ], 'Info should have reported file creation';
 
 # Relod the plan file to make sure change is written to it.
@@ -317,5 +321,8 @@ is_deeply +MockOutput->get_info, [
     ["Skipped $deploy_file: already exists"],
     ["Created $revert_file"],
     ["Created $test_file"],
-    [qq{Added "foo_table" to }, $sqitch->plan_file ],
-], 'Info should have reported skipping file';
+    [__x 'Added "{change}" to "{file}"',
+        change => 'foo_table :widgets_table !dr_evil !joker',
+        file   => $sqitch->plan_file,
+    ],
+], 'Info should report skipping file and include dependencies';

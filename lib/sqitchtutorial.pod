@@ -130,11 +130,8 @@ Now we can try deploying this change:
 First Sqitch created the metadata tables used to track database changes. The
 structure and name of the metadata tables varies between databases (PostgreSQL
 uses a schema to namespace its metadata; MySQL and SQLite use a prefix). Next,
-Sqitch deploys changes. Here it is deploying something called C<HEAD+>.
-Normally you would see a tag here, but since we've just added the files and
-they are not yet committed to Git, there is no tag. C<HEAD+> is a special tag
-reserved for use by Sqitch. It's enabled only by the use of the C<--untracked>
-option, which allows Sqitch to find an deploy untracked changes.
+Sqitch deploys changes. We only have one so far; the C<+> reinforces the idea
+that the change is being added to the database.
 
 With this change deployed, if you connect to the database, you'll be able to
 see the role:
@@ -150,7 +147,6 @@ which reads the metadata tables from the database:
 
   > sqitch -d flipr_test status
   # On database flipr_test
-  # Tag:  HEAD+
   # Change: appuser
   # Date: 2012-04-09 18:43:45
   #
@@ -162,6 +158,7 @@ Let's make sure that we can revert the change:
   Reverting all changes from flipr_test
     - appuser
 
+Note the C<-> reinforces that the change is being removed from the database.
 And now the user should be gone:
 
   > psql -d flipr_test -c '\du flipr'
@@ -171,18 +168,14 @@ And now the user should be gone:
 
 And the status message should reflect as much:
 
-  > sqitch -d flipr_test status --untracked
+  > sqitch -d flipr_test status
   # On database flipr_test
   # Nothing deployed.
   #
   # Changes not deployed:
-  # * HEAD+
   #   appuser
   #
   Use "sqitch deploy --untracked" to deploy these changes
-
-We've again used the C<--untracked> option, otherwise the C<appuser> change would
-not appear in the list of "Changes not yet deployed."
 
 We still have a record that the change happened, visible via the C<log>
 command:
@@ -191,31 +184,27 @@ command:
   change appuser reverted
   By:   david
   Date: 2012-04-09 18:45:47
-  Tag:  HEAD+
 
   change appuser deployed
   By:   david
   Date: 2012-04-09 18:43:45
-  Tag:  HEAD+
 
 Cool. Now let's commit it.
 
   > git add .
   > git commit -m 'Add app user.'
-  [master 36acafd] Add app user.
+  [master a29fb74] Add app user.
    2 files changed, 2 insertions(+)
-   create mode 100644 sql/deploy/appuser.sql
-   create mode 100644 sql/revert/appuser.sql
+   create mode 100644 deploy/appuser.sql
+   create mode 100644 revert/appuser.sql
 
 And then deploy again:
 
   > sqitch --db-name flipr_test deploy
-  Deploying 36acafd to flipr_test
+  Deploying changes to flipr_test
     + appuser
 
-Notice we no longer need the C<--untracked> option. That's because we've
-committed the change to Git, so Sqitch can read it from the Git history. And now
-the user should be back:
+And now the user should be back:
 
   > psql -d flipr_test -c '\du flipr'
              List of roles
@@ -223,12 +212,10 @@ the user should be back:
   -----------+------------+-----------
    flipr     |            | {}
 
-When we look at the status, the deployment is tagged with the SHA1 of the
-commit:
+When we look at the status, the deployment will be there:
 
   > sqitch -d flipr_test status
   # On database flipr_test
-  # Tag:  36acafd
   # Change: appuser
   # Date: 2012-04-09 18:52:42
   #
@@ -247,7 +234,6 @@ in, e.g.:
 
   > sqitch status
   # On database flipr_test
-  # Tag:  36acafd
   # Change: appuser
   # Date: 2012-04-09 18:52:42
   #
@@ -262,9 +248,10 @@ Let's add another deployment, this time to create a table. Our app will need
 users, of course, so we'll create a table for them. First, add the new change:
 
   > sqitch add users --requires appuser
-  Created sql/deploy/users.sql
-  Created sql/revert/users.sql
-  Created sql/test/users.sql
+  Created deploy/users.sql
+  Created revert/users.sql
+  Created test/users.sql
+  Added "users :appuser" to sqitch.plan
 
 Now edit the scripts. In C<sql/deploy/users.sql>, we put:
 

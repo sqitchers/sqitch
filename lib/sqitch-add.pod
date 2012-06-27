@@ -1,6 +1,6 @@
 =head1 Name
 
-sqitch-add - Add a deployment change
+sqitch-add - Add a database change to the plan
 
 =head1 Synopsis
 
@@ -8,8 +8,8 @@ sqitch-add - Add a deployment change
 
 =head1 Description
 
-Add a new deployment change. This will result in the creation of a new script
-files with the C<--extension> extension in the C<--deploy-dir>,
+Add a database change to the plan. This will result in the creation of a new
+script files with the C<--extension> extension in the C<--deploy-dir>,
 C<--revert-dir>, and C<--test-dir> directories. The content of these files is
 determined by the evaluation of templates. By default, system templates in
 F<$(etc_path)/templates> are used. These can be overridden by a single user by
