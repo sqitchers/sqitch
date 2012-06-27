@@ -105,6 +105,7 @@ who will have only limited access to objects in the database. Run this command:
   Created deploy/appuser.sql
   Created revert/appuser.sql
   Created test/appuser.sql
+  Added "appuser" to sqitch.plan
 
 The C<add> command adds a database change to the plan and writes deploy,
 revert, and test scripts that represent the change. Now we edit these files.
@@ -121,9 +122,8 @@ script, so we add this to F<sql/revert/appuser.sql>:
 Now we can try deploying this change:
 
   > createdb flipr_test
-  > sqitch --db-name flipr_test deploy --untracked
-  Adding metadata tables to flipr_test
-  Deploying HEAD+ to flipr_test
+  > sqitch --db-name flipr_test deploy
+  Deploying to flipr_test
     + appuser
 
 First Sqitch created the metadata tables used to track database changes. The

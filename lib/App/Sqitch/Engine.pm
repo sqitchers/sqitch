@@ -95,11 +95,11 @@ sub deploy {
 
     $sqitch->info(
         defined $to ? __x(
-            'Deploying to {destination} through {target}',
+            'Deploying changes through {target} to {destination}',
             destination => $self->destination,
             target      => $to
         ) : __x(
-            'Deploying to {destination}',
+            'Deploying changes to {destination}',
             destination => $self->destination,
         )
     );

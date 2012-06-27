@@ -296,7 +296,7 @@ is_deeply +MockOutput->get_info, [
     [__x 'Adding metadata tables to {destination}',
         destination => $engine->destination,
     ],
-    [__x 'Deploying to {destination} through {target}',
+    [__x 'Deploying changes through {target} to {destination}',
         destination =>  $engine->destination,
         target      => '@alpha'
     ],
@@ -324,7 +324,7 @@ is_deeply $engine->seen, [
 
 is $deploy_meth, '_deploy_by_tag', 'Should have called _deploy_by_tag()';
 is_deeply +MockOutput->get_info, [
-    [__x 'Deploying to {destination} through {target}',
+    [__x 'Deploying changes through {target} to {destination}',
         destination =>  $engine->destination,
         target      => '@alpha'
     ],
@@ -394,7 +394,7 @@ is_deeply $engine->seen, [
 
 is $deploy_meth, '_deploy_by_change', 'Should have called _deploy_by_change()';
 is_deeply +MockOutput->get_info, [
-    [__x 'Deploying to {destination}', destination =>  $engine->destination ],
+    [__x 'Deploying changes to {destination}', destination =>  $engine->destination ],
     ['  + ', 'roles'],
     ['  + ', 'users @alpha'],
     ['  + ', 'widgets @beta'],
@@ -425,7 +425,7 @@ is_deeply $engine->seen, [
     'initialized',
 ], 'It should have check for initialization';
 is_deeply +MockOutput->get_info, [
-    [__x 'Deploying to {destination}', destination =>  $engine->destination ],
+    [__x 'Deploying changes to {destination}', destination =>  $engine->destination ],
 ], 'Should have announced destination';
 
 # Try a plan with no changes.
