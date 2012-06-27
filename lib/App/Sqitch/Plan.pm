@@ -463,7 +463,7 @@ sub add {
     return $change;
 }
 
-sub rework_change {
+sub rework {
     my ( $self, $name, $requires, $conflicts ) = @_;
     my $plan  = $self->_plan;
     my $changes = $plan->{changes};
@@ -831,10 +831,10 @@ changes. The third argument specifies a list of conflicting changes. Exits with 
 fatal error if the change already exists, or if the any of the dependencies are
 unknown.
 
-=head3 C<rework_change>
+=head3 C<rework>
 
-  $plan->rework_change( 'whatevs' );
-  $plan->rework_change( 'widgets', [qw(foo bar)], [qw(dr_evil)] );
+  $plan->rework( 'whatevs' );
+  $plan->rework( 'widgets', [qw(foo bar)], [qw(dr_evil)] );
 
 Reworks an existing change. Said change must already exist in the plan and be
 tagged or have a tag following it or an exception will be thrown. The previous

@@ -831,8 +831,8 @@ cmp_deeply +MockOutput->get_fail, [[
 
 ##############################################################################
 # Try reworking a change.
-can_ok $plan, 'rework_change';
-ok my $rev_change = $plan->rework_change('you'), 'Rework change "you"';
+can_ok $plan, 'rework';
+ok my $rev_change = $plan->rework('you'), 'Rework change "you"';
 isa_ok $rev_change, 'App::Sqitch::Plan::Change';
 is $rev_change->name, 'you', 'Reworked change should be "you"';
 ok my $orig = $plan->change_at($plan->first_index_of('you')),
@@ -853,7 +853,7 @@ is $plan->count, 7, 'The plan count should be 7';
 
 # Tag and add again, to be sure we can do it multiple times.
 ok $plan->add_tag('@beta1'), 'Tag @beta1';
-ok my $rev_change2 = $plan->rework_change('you'), 'Rework change "you" again';
+ok my $rev_change2 = $plan->rework('you'), 'Rework change "you" again';
 isa_ok $rev_change2, 'App::Sqitch::Plan::Change';
 is $rev_change2->name, 'you', 'New reworked change should be "you"';
 ok $orig = $plan->change_at($plan->first_index_of('you')),
@@ -874,15 +874,15 @@ is $plan->index_of('you@HEAD'), 7, 'It should be at position 7';
 is $plan->count, 8, 'The plan count should be 8';
 
 # Try a nonexistent change name.
-throws_ok { $plan->rework_change('nonexistent') } qr/^FAIL:/,
-    'rework_change should die on nonexistent change';
+throws_ok { $plan->rework('nonexistent') } qr/^FAIL:/,
+    'rework should die on nonexistent change';
 cmp_deeply +MockOutput->get_fail, [[
     qq{Change "nonexistent" does not exist.\n},
     qq{Use "sqitch add nonexistent" to add it to the plan},
 ]], 'And the error should suggest "sqitch add"';
 
 # Try reworking without an intervening tag.
-throws_ok { $plan->rework_change('you') } qr/^FAIL:/,
+throws_ok { $plan->rework('you') } qr/^FAIL:/,
     'rework_stpe should die on lack of intervening tag';
 cmp_deeply +MockOutput->get_fail, [[
     qq{Cannot rework "you" without an intervening tag.\n},
@@ -890,8 +890,8 @@ cmp_deeply +MockOutput->get_fail, [[
 ]], 'And the error should suggest "sqitch tag"';
 
 # Make sure it checks dependencies.
-throws_ok { $plan->rework_change('booyah', ['nonesuch' ] ) } qr/^FAIL\b/,
-    'rework_change should die on failed dependency';
+throws_ok { $plan->rework('booyah', ['nonesuch' ] ) } qr/^FAIL\b/,
+    'rework should die on failed dependency';
 cmp_deeply +MockOutput->get_fail, [[
     'Cannot rework change "booyah": ',
     'requires unknown change "nonesuch"'
