@@ -1065,7 +1065,7 @@ cmp_deeply [$plan->sort_changes({sqitch => 1 }, changes qw(this that other))],
 throws_ok { $plan->sort_changes(changes qw(this that other)) } qr/FAIL:/,
     'Should die on unknown dependency';
 cmp_deeply +MockOutput->get_fail, [[
-    'Unknown change "foo" required in ', file 'deploy/this.sql'
+    'Unknown change "foo" required by change "this"',
 ]], 'And we should emit an error pointing to the offending script';
 
 # Okay, now deal with depedencies from ealier change sections.
@@ -1073,7 +1073,7 @@ cmp_deeply +MockOutput->get_fail, [[
 throws_ok { $plan->sort_changes(changes qw(this that other)) } qr/FAIL:/,
     'Should die on unknown dependency';
 cmp_deeply +MockOutput->get_fail, [[
-    'Unknown change "@foo" required in ', file 'deploy/this.sql'
+    'Unknown change "@foo" required by change "this"',
 ]], 'And we should emit an error pointing to the offending script';
 
 ##############################################################################

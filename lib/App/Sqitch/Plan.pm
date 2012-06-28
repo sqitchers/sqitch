@@ -317,9 +317,9 @@ sub sort_changes {
         foreach my $child ( @{ $succ{$change->name} } ) {
             unless ( $pairs{$child} ) {
                 my $sqitch = $self->sqitch;
+                my $name = $change->name;
                 $self->sqitch->fail(
-                    qq{Unknown change "$child" required in },
-                    $change->deploy_file,
+                    qq{Unknown change "$child" required by change "$name"}
                 );
             }
             push @list, $obj{$child} unless --$npred{$child};
