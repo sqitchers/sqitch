@@ -47,6 +47,12 @@ has suffix => (
     default  => '',
 );
 
+after suffix => sub {
+    my $self = shift;
+    # Need to reset the file name if a new value is passed.
+    $self->meta->get_attribute('_fn')->clear_value($self) if @_;
+};
+
 has _tags => (
     is         => 'ro',
     traits  => ['Array'],
@@ -76,39 +82,6 @@ has _fn => (
         );
         return \@path;
     },
-);
-
-has deploy_file => (
-    is       => 'ro',
-    isa      => 'Path::Class::File',
-    required => 1,
-    lazy     => 1,
-    default  => sub {
-        my $self   = shift;
-        $self->plan->sqitch->deploy_dir->file( @{ $self->_fn } );
-    }
-);
-
-has revert_file => (
-    is       => 'ro',
-    isa      => 'Path::Class::File',
-    required => 1,
-    lazy     => 1,
-    default  => sub {
-        my $self   = shift;
-        $self->plan->sqitch->revert_dir->file( @{ $self->_fn } );
-    }
-);
-
-has test_file => (
-    is       => 'ro',
-    isa      => 'Path::Class::File',
-    required => 1,
-    lazy     => 1,
-    default  => sub {
-        my $self   = shift;
-        $self->plan->sqitch->test_dir->file( @{ $self->_fn } );
-    }
 );
 
 has info => (
@@ -143,6 +116,21 @@ has id => (
         )->hexdigest;
     }
 );
+
+sub deploy_file {
+    my $self   = shift;
+    $self->plan->sqitch->deploy_dir->file( @{ $self->_fn } );
+}
+
+sub revert_file {
+    my $self   = shift;
+    $self->plan->sqitch->revert_dir->file( @{ $self->_fn } );
+}
+
+sub test_file {
+    my $self   = shift;
+    $self->plan->sqitch->test_dir->file( @{ $self->_fn } );
+}
 
 sub is_revert {
     shift->operator eq '-';
@@ -231,6 +219,8 @@ See L<App::Sqitch::Plan::Line> for the basics.
 An L<App::Sqitch::Plan::Tag> object representing the last tag to appear in the
 plan B<before> the change. May be C<undef>.
 
+=head2 Instance Methods
+
 =head3 C<deploy_file>
 
   my $file = $change->deploy_file;
@@ -248,8 +238,6 @@ Returns the path to the revert script file for the change.
   my $file = $change->test_file;
 
 Returns the path to the test script file for the change.
-
-=head2 Instance Methods
 
 =head3 C<requires>
 

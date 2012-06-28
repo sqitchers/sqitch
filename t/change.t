@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 49;
+use Test::More tests => 51;
 #use Test::More 'no_plan';
 use Test::NoWarnings;
 use App::Sqitch;
@@ -65,6 +65,8 @@ is $change->revert_file, $sqitch->revert_dir->file('foo.sql'),
     'The revert file should be correct';
 is $change->test_file, $sqitch->test_dir->file('foo.sql'),
     'The test file should be correct';
+ok $change->suffix('@foo'), 'Set the suffix';
+is_deeply $change->_fn, ['foo@foo.sql'], '_fn should now include suffix';
 
 is $change->format_name, 'foo', 'Name should format as "foo"';
 is $change->format_name_with_tags,
