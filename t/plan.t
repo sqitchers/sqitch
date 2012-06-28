@@ -946,6 +946,7 @@ ok $plan->seek('whatever@HEAD'), 'Seek whatever@HEAD';
 is $plan->position, 3, 'Position should be 3';
 ok $plan->seek('whatever@bar'), 'Seek whatever@bar';
 is $plan->position, 0, 'Position should be 0';
+is $plan->last_tagged_change->name, 'hi', 'Last tagged change should be "hi"';
 
 ##############################################################################
 # Test open_script.
@@ -1072,7 +1073,7 @@ cmp_deeply +MockOutput->get_fail, [[
 throws_ok { $plan->sort_changes(changes qw(this that other)) } qr/FAIL:/,
     'Should die on unknown dependency';
 cmp_deeply +MockOutput->get_fail, [[
-    'Unknown tag "@foo" required in ', file 'deploy/this.sql'
+    'Unknown change "@foo" required in ', file 'deploy/this.sql'
 ]], 'And we should emit an error pointing to the offending script';
 
 ##############################################################################

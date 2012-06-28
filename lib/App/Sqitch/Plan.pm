@@ -317,9 +317,8 @@ sub sort_changes {
         foreach my $child ( @{ $succ{$change->name} } ) {
             unless ( $pairs{$child} ) {
                 my $sqitch = $self->sqitch;
-                my $type = $child =~ /^[@]/ ? 'tag' : 'change';
                 $self->sqitch->fail(
-                    qq{Unknown $type "$child" required in },
+                    qq{Unknown change "$child" required in },
                     $change->deploy_file,
                 );
             }
@@ -353,7 +352,8 @@ sub index_of       { shift->_plan->{changes}->index_of(shift) }
 sub get            { shift->_plan->{changes}->get(shift) }
 sub find           { shift->_plan->{changes}->find(shift) }
 sub first_index_of { shift->_plan->{changes}->first_index_of(@_) }
-sub change_at        { shift->_plan->{changes}->change_at(shift) }
+sub change_at      { shift->_plan->{changes}->change_at(shift) }
+sub last_tagged_change { shift->_plan->{changes}->last_tagged_change }
 
 sub seek {
     my ( $self, $key ) = @_;
@@ -692,6 +692,13 @@ The second argument must unambiguously refer to a single change in the plan. As
 such, it should usually be a tag name or tag-qualified change name. Returns
 C<undef> if the change does not appear in the plan, or if it does not appear
 after the specified second argument change name.
+
+=head3 C<last_tagged_change>
+
+  my $change = $plan->last_tagged_change;
+
+Returns the last tagged change object. Returns C<undef> if no changes have
+been tagged.
 
 =head3 C<change_at>
 
