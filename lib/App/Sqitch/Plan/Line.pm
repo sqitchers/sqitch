@@ -59,6 +59,7 @@ has plan => (
     isa      => 'App::Sqitch::Plan',
     weak_ref => 1,
     required => 1,
+    handles  => [qw(sqitch)],
 );
 
 sub format_name {

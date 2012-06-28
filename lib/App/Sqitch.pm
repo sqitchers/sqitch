@@ -672,10 +672,6 @@ C<STDOUT> if the exit code is 0, and to C<STDERR> if it is not 0.
 
 =over
 
-=item * Add C<tag> command.
-
-=item * Add C<rework> command.
-
 =item * Eliminate use of C<fail()> and localize messages.
 
 =item * Add support for C<^> and other shortcuts when specifying changes.

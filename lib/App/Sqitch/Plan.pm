@@ -465,7 +465,7 @@ sub add {
         (@{ $requires } || @{ $conflicts } ? ( pspace => ' ' ) : ()),
     );
 
-    # Make sure dependencies are specified.
+    # Make sure dependencies are valid.
     $self->_check_dependencies($change, 'add');
 
     # We good.
@@ -501,7 +501,7 @@ sub rework {
         (@{ $requires } || @{ $conflicts } ? ( pspace => ' ' ) : ()),
     );
 
-    # Make sure dependencies are specified.
+    # Make sure dependencies are valid.
     $self->_check_dependencies($new, 'rework');
 
     # We good.

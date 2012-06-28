@@ -78,7 +78,7 @@ has _fn => (
             $path[-1],
             $self->suffix,
             '.',
-            $self->plan->sqitch->extension,
+            $self->sqitch->extension,
         );
         return \@path;
     },
@@ -97,7 +97,7 @@ has info => (
         }
 
         return join "\n", (
-            'project ' . $self->plan->sqitch->uri->canonical,
+            'project ' . $self->sqitch->uri->canonical,
             'change '    . $self->format_name,
             @since,
         );
@@ -119,17 +119,17 @@ has id => (
 
 sub deploy_file {
     my $self   = shift;
-    $self->plan->sqitch->deploy_dir->file( @{ $self->_fn } );
+    $self->sqitch->deploy_dir->file( @{ $self->_fn } );
 }
 
 sub revert_file {
     my $self   = shift;
-    $self->plan->sqitch->revert_dir->file( @{ $self->_fn } );
+    $self->sqitch->revert_dir->file( @{ $self->_fn } );
 }
 
 sub test_file {
     my $self   = shift;
-    $self->plan->sqitch->test_dir->file( @{ $self->_fn } );
+    $self->sqitch->test_dir->file( @{ $self->_fn } );
 }
 
 sub is_revert {

@@ -224,6 +224,7 @@ $record_work = 0;
 # Test latest_change().
 chdir 't';
 my $plan_file = file qw(sql sqitch.plan);
+my $sqitch_old = $sqitch; # Hang on to this because $change does not retain it.
 $sqitch = App::Sqitch->new( plan_file => $plan_file, uri => $uri );
 ok $engine = App::Sqitch::Engine::whu->new( sqitch => $sqitch ),
     'Engine with sqitch with plan file';
