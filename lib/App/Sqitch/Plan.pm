@@ -299,7 +299,18 @@ sub sort_changes {
         for my $dep ( $change->requires ) {
 
             # Skip it if it's a change from an earlier tag.
-            next if exists $seen->{$dep};
+            if ($dep =~ /.@/) {
+                # Need to look it up before the tag.
+                my ( $change, $tag ) = split /@/ => $dep, 2;
+                if ( my $tag_at = $seen->{"\@$tag"} ) {
+                    if ( my $change_at = $seen->{$change}) {
+                        next if $change_at < $tag_at;
+                    }
+                }
+            } else {
+                next if exists $seen->{$dep};
+            }
+
             $p->{$dep}++;
             $npred{$dep}++;
             push @{ $succ{$name} } => $dep;

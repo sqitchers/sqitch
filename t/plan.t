@@ -1026,6 +1026,20 @@ cmp_deeply [$plan->sort_changes(changes qw(this that other))],
 cmp_deeply [$plan->sort_changes({'@howdy' => 2 }, changes qw(this that other))],
     [changes qw(this that other)], 'Should get original order when requiring a tag';
 
+# Requires a step as of a tag.
+@deps = ({%ddep}, {%ddep, requires => ['foo@howdy']}, {%ddep});
+cmp_deeply [$plan->sort_changes({'foo' => 1, '@howdy' => 2 }, changes qw(this that other))],
+    [changes qw(this that other)],
+    'Should get original order when requiring a step as-of a tag';
+
+# Should die if the step comes *after* the specified tag.
+@deps = ({%ddep}, {%ddep, requires => ['foo@howdy']}, {%ddep});
+throws_ok { $plan->sort_changes({'foo' => 3, '@howdy' => 2 }, changes qw(this that other)) }
+    qr/^FAIL:/, 'Should get failure for a step after a tag';
+cmp_deeply +MockOutput->get_fail, [[
+    'Unknown change "foo@howdy" required by change "that"',
+]], 'And we should emit an error for the unknown change as-of a tag';
+
 # Add a cycle.
 @deps = ({%ddep, requires => ['that']}, {%ddep, requires => ['this']}, {%ddep});
 throws_ok { $plan->sort_changes(changes qw(this that other)) } qr/FAIL:/,
@@ -1060,13 +1074,13 @@ cmp_deeply [$plan->sort_changes({ foo => 1}, changes qw(this that other))],
 cmp_deeply [$plan->sort_changes({sqitch => 1 }, changes qw(this that other))],
     [changes qw(other that this)], 'Should get other, that, this with earlier dependncy';
 
-# Okay, now deal with depedencies from ealier change sections.
+# Make sure it fails on unknown previous dependencies.
 @deps = ({%ddep, requires => ['foo']}, {%ddep}, {%ddep});
 throws_ok { $plan->sort_changes(changes qw(this that other)) } qr/FAIL:/,
     'Should die on unknown dependency';
 cmp_deeply +MockOutput->get_fail, [[
     'Unknown change "foo" required by change "this"',
-]], 'And we should emit an error pointing to the offending script';
+]], 'And we should emit an error pointing to the offending change';
 
 # Okay, now deal with depedencies from ealier change sections.
 @deps = ({%ddep, requires => ['@foo']}, {%ddep}, {%ddep});
@@ -1074,7 +1088,7 @@ throws_ok { $plan->sort_changes(changes qw(this that other)) } qr/FAIL:/,
     'Should die on unknown dependency';
 cmp_deeply +MockOutput->get_fail, [[
     'Unknown change "@foo" required by change "this"',
-]], 'And we should emit an error pointing to the offending script';
+]], 'And we should emit an error pointing to the offending change';
 
 ##############################################################################
 # Test dependency testing.
