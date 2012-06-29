@@ -150,7 +150,14 @@ sub revert {
     }
 
     # Get the list of changes to revert before we do actual work.
-    my @changes = map { $plan->get($_) } reverse @change_ids;
+    my @changes = map {
+        # XXX Add code to look up the change name in the DB for display in the
+        # error message.
+        $plan->get($_) or hurl revert => __x(
+            'Could not find change with ID {id} in the plan',
+            id => $_
+        );
+    } reverse @change_ids;
 
     # Do we want to support modes, where failures would re-deploy to previous
     # tag or all the way back to the starting point? This would be very much

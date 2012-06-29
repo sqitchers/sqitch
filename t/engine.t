@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 217;
+use Test::More tests => 222;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -977,6 +977,25 @@ is_deeply $engine->seen, [
     [deployed_change_ids_since => $plan->get('@alpha')],
 ], 'Should have called deployed_change_ids_since';
 is_deeply +MockOutput->get_info, [], 'Nothing should have been output';
+
+# Revert a change in the database, but not known in the plan.
+@deployed_change_ids = ('this is not an id');
+throws_ok { $engine->revert } 'App::Sqitch::X',
+    'Revert should die on unknown change ID';
+is $@->ident, 'revert', 'Should be yet another "revert" error';
+is $@->message, __x(
+    'Could not find change with ID {id} in the plan',
+    id => 'this is not an id',
+), 'The message should mention the unknown ID';
+is_deeply $engine->seen, [
+    [deployed_change_ids => undef],
+], 'Should have called deployed_change_ids_since';
+is_deeply +MockOutput->get_info, [
+    [__x(
+        'Reverting all changes from {destination}',
+        destination => $engine->destination,
+    )],
+], 'Output should have said it was reverting all changes';
 
 # Now revert from a deployed change.
 @deployed_change_ids = map { $changes[$_]->id } (0..3);
