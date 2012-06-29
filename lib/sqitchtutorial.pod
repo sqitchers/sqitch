@@ -629,8 +629,8 @@ Look good?
   #
   Nothing to deploy (up-to-date)
 
-Note the use of C<--show tags> to show all the deployed tags. But there are none.
-Wha?
+Note the use of C<--show tags> to show all the deployed tags. But there are
+none. Wait, I<what>?
 
 Oh, we added C<@v1.0.0-dev1> since the last deploy to the C<flipr_test>
 database, so of course it's not there. So let's revert down two steps and then
@@ -774,7 +774,7 @@ I<should> do is either:
 
 =item *
 
-Rebase the branch fromq master before merging. This "rewinds" the branch
+Rebase the branch from master before merging. This "rewinds" the branch
 changes, pulls from C<master>, and then replays the changes back on top of
 C<master>.
 
@@ -866,7 +866,7 @@ Ah, that looks a bit better. Let's have a look at the plan:
   delete_flip :flips :appuser
 
 Note that it has appended the changes from the merged "lists" branch, and then
-merged the chagnes from our "flips" branch. Test it to make sure it works as
+merged the changes from our "flips" branch. Test it to make sure it works as
 expected:
 
   > sqitch revert
