@@ -61,8 +61,9 @@ sub execute {
         ),
         $self->_copy(
             $name,
-            $reworked->revert_file,
+            $reworked->deploy_file,
             $prev->revert_file,
+            $reworked->revert_file,
         ),
         $self->_copy(
             $name,
@@ -86,8 +87,9 @@ sub execute {
 }
 
 sub _copy {
-    my ( $self, $name, $src, $dest ) = @_;
-    if (!-e $src) {
+    my ( $self, $name, $src, $dest, $orig ) = @_;
+    $orig ||= $src;
+    if (!-e $orig) {
         $self->debug(__x(
             'Skipped {dest}: {src} does not exist',
             dest => $dest,
@@ -105,7 +107,7 @@ sub _copy {
         dest => $dest,
         src  => $src,
     ));
-    return $src;
+    return $orig;
 }
 
 1;

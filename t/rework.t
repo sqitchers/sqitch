@@ -109,7 +109,7 @@ ok $rework->execute('foo'), 'Rework "foo"';
 file_exists_ok($_) for ($deploy_file, $revert_file, $test_file);
 file_exists_ok($_) for ($deploy_file2, $revert_file2, $test_file2);
 file_contents_identical($deploy_file2, $deploy_file);
-file_contents_identical($revert_file2, $revert_file);
+file_contents_identical($revert_file2, $deploy_file);
 file_contents_identical($test_file2, $test_file);
 
 # The plan file should have been updated.
@@ -140,7 +140,7 @@ is_deeply +MockOutput->get_debug, [
     [__x(
         'Copied {src} to {dest}',
         dest => $revert_file2,
-        src  => $revert_file,
+        src  => $deploy_file,
     )],
     [__x(
         'Copied {src} to {dest}',
@@ -218,7 +218,7 @@ is_deeply +MockOutput->get_debug, [
     [__x(
         'Skipped {dest}: {src} does not exist',
         dest => $revert_file3,
-        src  => $revert_file,
+        src  => $deploy_file,
     )],
     [__x(
         'Skipped {dest}: {src} does not exist',
