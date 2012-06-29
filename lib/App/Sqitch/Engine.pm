@@ -416,6 +416,12 @@ sub deployed_change_ids_since {
     Carp::confess( "$class has not implemented deployed_change_ids_since()" );
 }
 
+sub name_for_change_id {
+    my $class = ref $_[0] || $_[0];
+    require Carp;
+    Carp::confess( "$class has not implemented name_for_change_id()" );
+}
+
 __PACKAGE__->meta->make_immutable;
 no Moose;
 
@@ -709,6 +715,16 @@ Returns a list of all deployed change IDs in the order in which they were deploy
   my @change_ids = $engine->deployed_change_ids_since($change);
 
 Returns a list of change IDs for changes deployed after the specified change.
+
+=head3 C<name_for_change_id>
+
+  my $change_name = $engine->name_for_change_id($change_id);
+
+Returns the name of the change identified by the ID argument. If a tag was
+applied to a change after that change, the name will be returned with the tag
+qualification, e.g., C<app_user@beta>. This value should be suitable for
+uniquely identifying the change, and passing to the C<get> or C<index_of>
+methods of L<App::Sqitch::Plan>.
 
 =head3 C<run_file>
 

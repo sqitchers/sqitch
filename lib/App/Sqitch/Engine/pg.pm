@@ -422,6 +422,21 @@ sub deployed_change_ids_since {
     }, undef, $change->id) };
 }
 
+sub name_for_change_id {
+    my ( $self, $change_id ) = @_;
+    return $self->_dbh->selectcol_arrayref(q{
+        SELECT change || COALESCE((
+            SELECT tag
+              FROM changes c2
+              JOIN tags ON c2.change_id = tags.change_id
+             WHERE c2.deployed_at >= c.deployed_at
+             LIMIT 1
+        ), '')
+          FROM changes c
+         WHERE change_id = ?
+    }, undef, $change_id)->[0];
+}
+
 sub _run {
     my $self   = shift;
     my $sqitch = $self->sqitch;

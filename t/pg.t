@@ -215,6 +215,7 @@ can_ok $CLASS, qw(
     is_deployed_change
     check_requires
     check_conflicts
+    name_for_change_id
 );
 
 my @cleanup;
@@ -308,6 +309,9 @@ subtest 'live database' => sub {
         [$tag->id, '@alpha', $change->id, $pg->actor],
     ], 'The tag should have been logged';
 
+    is $pg->name_for_change_id($change->id), 'users@alpha',
+        'name_for_change_id() should return the change name with tag';
+
     ##########################################################################
     # Test log_revert_change().
     ok $pg->log_revert_change($change), 'Revert "users" change';
@@ -329,6 +333,9 @@ subtest 'live database' => sub {
     is_deeply $pg->_dbh->selectall_arrayref(
         'SELECT tag_id, tag, change_id, applied_by FROM tags'
     ), [], 'And the tag record should have been remved';
+
+    is $pg->name_for_change_id($change->id), undef,
+        'name_for_change_id() should no longer return the change name';
 
     ##########################################################################
     # Test log_fail_change().
@@ -381,6 +388,9 @@ subtest 'live database' => sub {
         ['deploy', $change->id,  'users',   ['@alpha'], $pg->actor],
         ['deploy', $change2->id, 'widgets', [],         $pg->actor],
     ], 'The new change deploy should have been logged';
+
+    is $pg->name_for_change_id($change2->id), 'widgets',
+        'name_for_change_id() should return just the change name';
 
     ##########################################################################
     # Test conflicts and requires.
