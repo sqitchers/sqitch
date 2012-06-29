@@ -151,11 +151,10 @@ sub revert {
 
     # Get the list of changes to revert before we do actual work.
     my @changes = map {
-        # XXX Add code to look up the change name in the DB for display in the
-        # error message.
         $plan->get($_) or hurl revert => __x(
-            'Could not find change with ID {id} in the plan',
-            id => $_
+            'Could not find change "{change}" ({id}) in the plan',
+            change => $self->name_for_change_id($_),
+            id => $_,
         );
     } reverse @change_ids;
 

@@ -73,6 +73,8 @@ ENGINE: {
 
     sub seen { [@SEEN] }
     after seen => sub { @SEEN = () };
+
+    sub name_for_change_id { return 'bugaboo' }
 }
 
 my $uri = URI->new('https://github.com/theory/sqitch/');
@@ -985,7 +987,8 @@ throws_ok { $engine->revert } 'App::Sqitch::X',
     'Revert should die on unknown change ID';
 is $@->ident, 'revert', 'Should be yet another "revert" error';
 is $@->message, __x(
-    'Could not find change with ID {id} in the plan',
+    'Could not find change "{change}" ({id}) in the plan',
+    change => 'bugaboo',
     id => 'this is not an id',
 ), 'The message should mention the unknown ID';
 is_deeply $engine->seen, [
