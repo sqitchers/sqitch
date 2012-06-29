@@ -4,7 +4,7 @@ sqitch-add - Add a database change to the plan
 
 =head1 Synopsis
 
-  sqitch [options] add [<template-options>] name
+  sqitch [options] add [<dependency-options>] [<template-options>] name
 
 =head1 Description
 

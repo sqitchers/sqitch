@@ -514,93 +514,60 @@ Great, we're fully up-to-date!
 Let's do a first release of our app. Let's call it C<1.0.0-dev1> Since we want
 to have it go out with deployments tied to the release, let's tag it:
 
+  > sqitch tag v1.0.0-dev1
+  Tagged "change_pass" with @v1.0.0-dev1
+  > git commit -am 'Tag the database with v1.0.0-dev1.'
   > git tag v1.0.0-dev1 -am 'Tag v1.0.0-dev1'
 
 We can test deployment to make sure the tag gets picked up like so:
 
   > createdb flipr_dev
   > sqitch --db-name flipr_dev deploy
-  Deploying 36acafd to flipr_dev
+  Adding metadata tables to flipr_dev
+  Deploying changes to flipr_dev
     + appuser
-  Deploying fa650af to flipr_dev
     + users
-  Deploying 803e6b8/v1.0.0+dev1 to flipr_dev
     + insert_user
-    + change_pass
+    + change_pass @v1.0.0-dev1
 
-All four changes were deployed, great! Let's have a look at the state:
+Great, all four changes were deployed and C<change_pass> was tagged with
+C<@v1.0.0-dev1>. Let's have a look at the state:
 
-  > sqitch --db-name flipr_dev status --show tags
+  > sqitch --db-name flipr_dev status
   # On database flipr_dev
-  # Tags: 803e6b8, v1.0.0-dev1
+  # Tag: v1.0.0-dev1
   # Change: change_pass
   # Date: 2012-04-09 22:14:00
   #
-  # Tags:
-  #    803e6b8, v1.0.0-dev1 - 2012-04-09 22:14:00 - david
-  #    fa650af              - 2012-04-09 22:13:55 - david
-  #    36acafd              - 2012-04-09 22:13:53 - david
-  #
   Nothing to deploy (up-to-date)
 
-Note that all the tags are included, and that the two tags C<803e6b8> and
-C<v1.0.0-dev1> actually represent the same point in time. This is handy for
-development, but is a bit over-the-top for production deployments. We can get
-around this by bundling up all the changes with the explicit tag, leaving out
-the individual commit SHA1s:
+Note that all the tag is now listed as part of the stats message. Now let's
+bundle everything up for release:
 
-  > sqitch bundle --tags-only
+  > sqitch bundle
   Bundling in bundle/
-  Config written to bundle/sqitch.conf
-  Bundling v1.0.0-dev1
-    - appuser
-    - users
-    - change_pass
-    - insert_user
+    + appuser
+    + users
+    + insert_user
+    + change_pass @v1.0.0-dev1
   Plan written to bundle/sqitch.plan
+  Config written to bundle/sqitch.conf
 
 Now we can package up the C<bundle> directory and distribute it. When it gets
-installed somewhere, users can use Sqitch to deploy to the database. Of
-course, the Git history is no longer available, so Sqitch will use the
-C<sqitch.plan> file to figure things out. Let's have a look at it:
-
-  cat bundle/sqitch.plan
-
-  [v1.0.0-dev1]
-  appuser
-  users
-  change_pass
-  insert_user
-
-Pretty simple. It shows the tag being deployed and the changes that constitute
-it as a simple list. Notice that the SHA1s for each change are not present; the
-C<--tags-only> option to the C<bundle> command limits the plan only to tags.
-
-Let's test deploying it:
+installed somewhere, users can use Sqitch to deploy to the database. Let's test
+deploying it:
 
   > cd bundle
   > createdb flipr_prod
   > sqitch --db-name flipr_prod deploy
-  Deploying v1.0.0-dev1 to flipr_prod
+  Adding metadata tables to flipr_prod
+  Deploying changes to flipr_prod
     + appuser
     + users
     + insert_user
-    + change_pass
+    + change_pass @v1.0.0-dev1
 
-Looks much the same as before, eh? But have a look at the status:
-
-  > sqitch --db-name flipr_prod status --show tags
-  # On database flipr_prod
-  # Tag:  v1.0.0-dev1
-  # Change: change_pass
-  # Date: 2012-04-09 22:17:38
-  #
-  # Tags:
-  #    v1.0.0-dev1 - 2012-04-09 22:17:38 - david
-  #
-  Nothing to deploy (up-to-date)
-
-No commit SHA1s, just C<v1.0.0-dev1>.
+Looks much the same as before, eh? Package it up and ship it!
 
 =head1 Flip Out
 
@@ -615,13 +582,16 @@ each other's way. So let's branch:
 Now we can add a new change to create a table for our flips.
 
   > sqitch add flips --requires users
-  Adding deploy/flips.sql
-         -- requires: users
-  Adding revert/flips.sql
+  Created deploy/flips.sql
+  Created revert/flips.sql
+  Created test/flips.sql
+  Added "flips :users" to sqitch.plan
 
 You know the drill by now. Edit F<deploy/flips.sql>:
 
+  -- Deploy flips
   -- requires: users
+
   BEGIN;
   SET client_min_messages = 'warning';
 
@@ -637,77 +607,62 @@ You know the drill by now. Edit F<deploy/flips.sql>:
 
 And edit F<revert/flips.sql>:
 
+  -- Revert flips
+  BEGIN;
   DROP TABLE flips;
+  COMMIT;
 
 And give it a whirl:
 
-  > sqitch deploy --untracked
-  Deploying HEAD+ to flipr_test
+  > sqitch deploy
+  Deploying changes to flipr_test
     + flips
 
 Look good?
 
   > sqitch status --show tags
   # On database flipr_test
-  # Tag:  HEAD+
   # Change: flips
   # Date: 2012-04-10 22:30:02
   #
-  # Tags:
-  #    HEAD+   - 2012-04-10 22:30:02 - david
-  #    803e6b8 - 2012-04-09 21:33:32 - david
-  #    fa650af - 2012-04-09 20:45:23 - david
-  #    36acafd - 2012-04-09 19:04:50 - david
+  # Tags: None.
   #
   Nothing to deploy (up-to-date)
 
-Yep. Make it so!
+Note the use of C<--show tags> to show all the deployed tags. But there are none.
+Wha?
+
+Oh, we added C<@v1.0.0-dev1> since the last deploy to the C<flipr_test>
+database, so of course it's not there. So let's revert down two steps and then
+deploy again to get it.
+
+  > sqitch revert insert_user
+  Reverting from flipr_test to insert_user
+    - flips
+    - change_pass @v1.0.0-dev1
+  > sqitch deploy
+  Deploying changes to flipr_test
+    + change_pass @v1.0.0-dev1
+    + flips
+  > sqitch status --show tags
+  # On database flipr_test
+  # Change: flips
+  # Date: 2012-04-10 22:32:45
+  #
+  # Tags:
+  #    @v1.0.0-dev1 - 2012-04-09 20:45:23 - david
+  #
+  Nothing to deploy (up-to-date)
+
+Ah, that's more like it. Now make it so:
 
   > git add .
   > git commit -am 'Add flipr table.'
-  [flips 4aa888e] Add flipr table.
-   2 files changed, 18 insertions(+)
+  [flips efca0a9] Add flipr table.
+   4 files changed, 32 insertions(+)
    create mode 100644 deploy/flips.sql
    create mode 100644 revert/flips.sql
-
-Ooh, but wait, we forgot to revert the change before committing! Well,
-no worries, we can update all the tags.
-
-  > sqitch retag
-  Retagging flipr_test
-    . 36acafd
-    . fa650af
-    . 803e6b8
-    + v1.0.0-dev1
-    - HEAD+
-    + 4aa888e
-  Tags: 4 (1 removed, 1 added).
-
-In the list of tags, C<.> means no change, C<+> means added, and C<-> means
-removed.
-
-Oh, it added the C<v1.0.0-dev1> tag. Recall that we never deployed it to the
-test database before. That's cool, forgot about that. Then it removed the
-C<HEAD+> tag and added C<4aa888e>. Let's examine the status:
-
-  > sqitch status --show tags
-  # On database flipr_test
-  # Tag:  4aa888e
-  # Change: flips
-  # Date: 2012-04-10 22:30:02
-  #
-  # Tags:
-  #    4aa888e              - 2012-04-10 22:30:02 - david
-  #    803e6b8, v1.0.0-dev1 - 2012-04-09 21:33:32 - david
-  #    fa650af              - 2012-04-09 20:45:23 - david
-  #    36acafd              - 2012-04-09 19:04:50 - david
-  #
-  Nothing to deploy (up-to-date)
-
-Great, looks like the tags are all in sync. That's handy. Of course, it's
-still a good idea to test C<sqitch revert> and C<sqitch deploy> a few times,
-just to make sure the changes are always carried out properly, but it's nice
-to know we don't have to take extra changes just to commit untracked changes.
+   create mode 100644 test/flips.sql
 
 =head1 Wash, Rinse, Repeat
 
@@ -757,16 +712,11 @@ status should end up looking something like this:
 
   > sqitch status --show tags
   # On database flipr_test
-  # Tag:  74c49ef
-  # Change: insert_flip
-  # Date: 2012-04-10 23:00:29
+  # Change: delete_flip
+  # Date: 2012-04-10 22:45:21
   #
   # Tags:
-  #    74c49ef              - 2012-04-10 23:00:29 - david
-  #    4aa888e              - 2012-04-10 22:30:02 - david
-  #    803e6b8, v1.0.0-dev1 - 2012-04-09 21:33:32 - david
-  #    fa650af              - 2012-04-09 20:45:23 - david
-  #    36acafd              - 2012-04-09 19:04:50 - david
+  #    @v1.0.0-dev1 - 2012-04-09 22:45:18 - david
   #
   Nothing to deploy (up-to-date)
 
@@ -779,80 +729,52 @@ Let's do it:
   > git checkout master
   Switched to branch 'master'
   > git pull
-  Updating 803e6b8..2fae0b3
+  Updating c9473fc..966ba2e
   Fast-forward
-   deploy/delete_list.sql |   15 +++++++++++++++
-   deploy/insert_list.sql |   12 ++++++++++++
-   deploy/lists.sql       |   16 ++++++++++++++++
-   revert/delete_list.sql |    1 +
-   revert/insert_list.sql |    1 +
-   revert/lists.sql       |    2 ++
-   12 files changed, 91 insertions(+)
+   deploy/delete_list.sql |   20 ++++++++++++++++++++
+   deploy/insert_list.sql |   17 +++++++++++++++++
+   deploy/lists.sql       |   18 ++++++++++++++++++
+   revert/delete_list.sql |    7 +++++++
+   revert/insert_list.sql |    7 +++++++
+   revert/lists.sql       |    7 +++++++
+   sqitch.plan            |    3 +++
+   test/delete_list.sql   |    7 +++++++
+   test/insert_list.sql   |    7 +++++++
+   test/lists.sql         |    7 +++++++
+   10 files changed, 100 insertions(+)
    create mode 100644 deploy/delete_list.sql
    create mode 100644 deploy/insert_list.sql
    create mode 100644 deploy/lists.sql
    create mode 100644 revert/delete_list.sql
    create mode 100644 revert/insert_list.sql
    create mode 100644 revert/lists.sql
+   create mode 100644 test/delete_list.sql
+   create mode 100644 test/insert_list.sql
+   create mode 100644 test/lists.sql
 
 Hrm, that's interesting. Looks like someone made some changes to C<master>.
 Looks like some list support was added. Well, let's see what happens when we
 merge our changes.
 
   > git merge --no-ff flips
-  Merge made by the 'recursive' strategy.
-   deploy/delete_flip.sql |   12 ++++++++++++
-   deploy/flips.sql       |   16 ++++++++++++++++
-   deploy/insert_flip.sql |   12 ++++++++++++
-   revert/delete_flip.sql |    1 +
-   revert/flips.sql       |    2 ++
-   revert/insert_flip.sql |    1 +
-   6 files changed, 44 insertions(+)
-   create mode 100644 deploy/delete_flip.sql
-   create mode 100644 deploy/flips.sql
-   create mode 100644 deploy/insert_flip.sql
-   create mode 100644 revert/delete_flip.sql
-   create mode 100644 revert/flips.sql
-   create mode 100644 revert/insert_flip.sql
+  Auto-merging sqitch.plan
+  CONFLICT (content): Merge conflict in sqitch.plan
+  Automatic merge failed; fix conflicts and then commit the result.
 
-Hey, looks good, everything merged cleanly. Let's have a look at our Git history:
+Oh, a conflict in F<sqitch.plan>. Not too surprising, since both the merged
+C<lists> branch and our C<flips> branch added changes to the plan. Let's try a
+different approach.
 
-  > git log --oneline
-  5e30f38 Merge branch 'flips'
-  2fae0b3 Merge tag 'lists'
-  2a84155 Merge branch 'lists'
-  9703969 Add `insert_flip()` and `delete_flip()`.
-  675f78d Add `insert_list()` and `delete_list()`.
-  faaa4d0 Add flipr table.
-  591e388 Add `lists` table.
-  803e6b8 Add `insert_user()` and `change_pass()`.
-  fa650af Add users table.
-  36acafd Add app user.
-  e076e84 Initialize Sqitch configuration.
-  9ccc485 Add README text.
-  7b8dd19 First post!
-
-Whoa, wait, what? Recall that we left off at commit C<803e6b8>. After that we
-should have our two commits to the "flips" branch and end with a merge commit.
-But notice here we have some other stuff interleaved. Commit C<591e388> adds a
-"lists" table before our C<faaa4d0> commit adds the "flips" table. Then there
-is another interloper commit, C<675f78d>, which adds some functions to insert
-and delete lists, before our C<9703969> commit adds functions to insert and
-delete flips. And there, second from the top, is the explanation,
-C<2fae0b3 Merge branch 'lists'>. Why, someone else was working on another
-branch and merged stuff into master before we did! Now things are all mixed
-up.
-
-Well, the truth is, we got lazy. Those changes when we pulled master from the
-origin should have raised a red flag. In truth, it's considered a bad practice
-not to look at what's changed in C<master> before merging in a branch. What one
+The truth is, we got lazy. Those changes when we pulled master from the origin
+should have raised a red flag. In truth, it's considered a bad practice not to
+look at what's changed in C<master> before merging in a branch. What one
 I<should> do is either:
 
 =over
 
 =item *
 
-Rebase the branch from on master before merging. This "rewinds" the branch
+Rebase the branch fromq master before merging. This "rewinds" the branch
 changes, pulls from C<master>, and then replays the changes back on top of
 C<master>.
 
@@ -866,143 +788,117 @@ VCS is not Git.
 
 So let's restore things to how they were at master:
 
-  > git reset --hard origin/master
-  HEAD is now at 2fae0b3 Merge tag 'lists'
+  >  git reset --hard HEAD
+  HEAD is now at 966ba2e Merge branch 'lists'
 
-That throws out our merge, which thankfully we have not yet pushed. Now let's
-go back to our branch and rebase it on C<master>:
+That throws out our botched merge. Now let's go back to our branch and rebase
+it on C<master>:
 
   > git checkout flips
   Switched to branch 'flips'
   > git rebase master
   First, rewinding head to replay your work on top of it...
   Applying: Add flipr table.
+  Using index info to reconstruct a base tree...
+  Falling back to patching base and 3-way merge...
+  Auto-merging sqitch.plan
+  CONFLICT (content): Merge conflict in sqitch.plan
+  Failed to merge in the changes.
+  Patch failed at 0001 Add flipr table.
+
+  When you have resolved this problem run "git rebase --continue".
+  If you would prefer to skip this patch, instead run "git rebase --skip".
+  To check out the original branch and stop rebasing run "git rebase --abort".
+
+Oy, that's kind of a pain. It seems like no matter what we do, we'll need to
+resolve conflicts in that file. Except in Git. Fortunately, we can tell Git to
+resolve conflicts differently in C<sqitch.plan>. Because we only ever append
+lines to the file, we can have it use the "union" merge driver, which,
+according to
+L<its docs|http://git-scm.com/docs/gitattributes#_built-in_merge_drivers>:
+
+=over
+
+Run 3-way file level merge for text files, but take lines from both versions,
+instead of leaving conflict markers. This tends to leave the added lines in
+the resulting file in random order and the user should verify the result. Do
+not use this if you do not understand the implications.
+
+=back
+
+This has the effect of appending lines from all the merging files, which is
+exactly what we need. So let's give it a try. First, back out the botched
+rebase:
+
+  > git rebase --abort
+
+Now add the union merge driver to F<.gitattributes> for F<sqitch.plan>
+and rebase again:
+
+  > echo sqitch.plan merge=union > .gitattributes
+  > git rebase master                            
+  First, rewinding head to replay your work on top of it...
+  Applying: Add flipr table.
+  Using index info to reconstruct a base tree...
+  Falling back to patching base and 3-way merge...
+  Auto-merging sqitch.plan
   Applying: Add `insert_flip()` and `delete_flip()`.
+  Using index info to reconstruct a base tree...
+  Falling back to patching base and 3-way merge...
+  Auto-merging sqitch.plan
 
-Notice that it rewinds the changes since we branched from C<master>, pulls
-from C<master>, and then re-applies our commits. Look at the Git log to make
-sure things were applied properly:
+Ah, that looks a bit better. Let's have a look at the plan:
 
-  > git log --oneline
-  54d680f Add `insert_flip()` and `delete_flip()`.
-  d07f3dc Add flipr table.
-  2fae0b3 Merge tag 'lists'
-  2a84155 Merge branch 'lists'
-  675f78d Add `insert_list()` and `delete_list()`.
-  591e388 Add `lists` table.
-  803e6b8 Add `insert_user()` and `change_pass()`.
-  fa650af Add users table.
-  36acafd Add app user.
-  e076e84 Initialize Sqitch configuration.
-  9ccc485 Add README text.
-  7b8dd19 Fist post!
+  > cat sqitch.plan 
+  %syntax-version=1.0.0-a1
 
-Much better. Now all of our "flips" changes come after the "lists" changes.
-But wait, we can't merge into C<master> quite yet. Or, at least, it's not a
-good idea. We need to first make sure that Sqitch deployments still work
-properly. Why? Have a look at this:
+  appuser
+  users :appuser
+  insert_user :users :appuser
+  change_pass :users :appuser
+  @v1.0.0-dev1
 
-  > sqitch status
-  # On database flipr_test
-  # Tag:  74c49ef (unknown)
-  # Change: insert_flip
-  # Date: 2012-04-10 23:00:29
-  #
-  # Unknown tags:
-  #  (use "sqitch retag" to fix)
-  #    74c49ef
-  #    28df2ve
-  #
-  # Undeployed changes:
-  #   (no conflicts detected; use "sqitch deploy" to deploy the changes)
-  #
-  #    591e388
-  #      - lists
-  #    675f78d
-  #      - insert_list
-  #      - delete_list
+  lists :users :appuser
+  insert_list :lists :appuser
+  delete_list :lists :appuser
+  flips :users
+  insert_flip :flips :appuser
+  delete_flip :flips :appuser
 
-Uh-oh. First of all, the second line tells us that the current tag, C<74c49ef>,
-is unknown. That's because we rebased from master, so our local commits got
-new SHA1s. Fortunately, we can fix that problem by re-tagging:
+Note that it has appended the changes from the merged "lists" branch, and then
+merged the chagnes from our "flips" branch. Test it to make sure it works as
+expected:
 
-  > sqitch retag
-  Retagging flipr_test
-    . 36acafd
-    . fa650af
-    . 803e6b8
-    . v1.0.0-dev1
-    . 4aa888e
-    - 28df2ve
-    + d07f3dc
-    - 74c49ef
-    + 54d680f
-    
-  Tags: 7 (2 removed, 2 added).
-
-Looks like it made some important updates. Let's see:
-
-  > sqitch status
-  # On database flipr_test
-  # Tag:  54d680f
-  # Change: insert_flip
-  # Date: 2012-04-10 23:00:29
-  #
-  # Undeployed changes:
-  #   (no conflicts detected; use "sqitch deploy" to deploy the changes)
-  #
-  #    591e388
-  #      - lists
-  #    675f78d
-  #      - insert_list
-  #      - delete_list
-
-Great, now the tag looks right. But we still have undeployed changes. This is
-because the rebase from C<master> added the "lists" branch changes. They come
-I<before> our "flips" changes in the repository history, which means that,
-technically, the the "flips" changes have been applied out-of-order.
-Fortunately for us, however, there appear to be no conflicts (no mutual
-dependencies between the "flips" and "lists" changes to muck things up). So we
-can just take its advice and run C<sqitch deploy>:
-
-  > sqitch deploy --untracked
-  Deploying 591e388 to flipr_test
-    + lists
-  Deploying 675f78d to flipr_test
-    + delete_list
-    + insert_list
-
-So where does that leave us?
-
-  > sqitch status
-  # On database flipr_test
-  # Tag:  54d680f
-  # Change: insert_flip
-  # Date: 2012-04-10 23:32:43
-  #
-
-Note that we are still on the C<54d680f> tag but the date has been updated.
-Sqitch has successfully merged the "lists" changes into the database.
-
-What would have happened if there had been a conflict? In that case, we would
-have had to revert the "flips" changes and deployed again, so that the changes
-could be re-applied in the proper order. The commands to do that would have
-been:
-
-  > sqitch revert 54d680f^
+  > sqitch revert
+  Reverting all changes from flipr_test
+    - delete_flip
+    - insert_flip
+    - flips
+    - change_pass @v1.0.0-dev1
+    - insert_user
+    - users
+    - appuser
   > sqitch deploy
+  Deploying changes to flipr_test
+    + appuser
+    + users
+    + insert_user
+    + change_pass @v1.0.0-dev1
+    + lists
+    + insert_list
+    + delete_list
+    + flips
+    + insert_flip
+    + delete_flip
 
-Note the use of C<^> at the end of C<54d680f^>. That means, "the tag just
-before C<54d680f>", and is a nice shortcut so that we don't have to troll the
-history to find that tag. So it would revert to that tag, and them the call to
-C<sqitch deploy> would have deployed the "lists" changes, followed by the
-"flips" changes, so that everything would be in the proper order
+Excellent! It correctly reverted our changes, and then deployed them all again
+in the proper order. So let's commit F<.gitattributes>; seems worthwhile to keep
+that change:
 
-Of course, this is the sort of thing you want to avoid in a production
-context. When doing development, you can muck with your change history in any
-number of ways. But you really want to get things nailed down before you do a
-release, which should have a set plan that does not change -- until the next
-release adds new changes -- but never mixes things in.
+  > git ci -m 'Add `.gitattributes` with union merge for `sqitch.plan`.'
+  [flips 691ee81] Add `.gitattributes` with union merge for `sqitch.plan`.
+   1 file changed, 1 insertion(+)
+   create mode 100644 .gitattributes
 
 =head2 Merges Mastered
 
@@ -1012,42 +908,71 @@ And now, finally, we can merge into C<master>:
   Switched to branch 'master'
   > git merge --no-ff flips
   Merge made by the 'recursive' strategy.
-   deploy/delete_flip.sql |   12 ++++++++++++
-   deploy/flips.sql       |   16 ++++++++++++++++
-   deploy/insert_flip.sql |   12 ++++++++++++
-   revert/delete_flip.sql |    1 +
-   revert/flips.sql       |    2 ++
-   revert/insert_flip.sql |    1 +
-   6 files changed, 44 insertions(+)
+   .gitattributes         |    1 +
+   deploy/delete_flip.sql |   17 +++++++++++++++++
+   deploy/flips.sql       |   17 +++++++++++++++++
+   deploy/insert_flip.sql |   17 +++++++++++++++++
+   revert/delete_flip.sql |    7 +++++++
+   revert/flips.sql       |    7 +++++++
+   revert/insert_flip.sql |    7 +++++++
+   sqitch.plan            |    3 +++
+   test/delete_flip.sql   |    7 +++++++
+   test/flips.sql         |    7 +++++++
+   test/insert_flip.sql   |    7 +++++++
+   11 files changed, 97 insertions(+)
+   create mode 100644 .gitattributes
    create mode 100644 deploy/delete_flip.sql
    create mode 100644 deploy/flips.sql
    create mode 100644 deploy/insert_flip.sql
    create mode 100644 revert/delete_flip.sql
    create mode 100644 revert/flips.sql
    create mode 100644 revert/insert_flip.sql
+   create mode 100644 test/delete_flip.sql
+   create mode 100644 test/flips.sql
+   create mode 100644 test/insert_flip.sql
 
 And double-check our work:
 
-  > git log --oneline
-  e161a90 Merge branch 'flips'
-  54d680f Add `insert_flip()` and `delete_flip()`.
-  d07f3dc Add flipr table.
-  2fae0b3 Merge tag 'lists'
-  2a84155 Merge branch 'lists'
-  675f78d Add `insert_list()` and `delete_list()`.
-  591e388 Add `lists` table.
-  803e6b8 Add `insert_user()` and `change_pass()`.
-  fa650af Add users table.
-  36acafd Add app user.
-  e076e84 Initialize Sqitch configuration.
-  9ccc485 Add README text.
-  7b8dd19 Fist post!
+  > cat sqitch.plan 
+  %syntax-version=1.0.0-a1
+
+  appuser
+  users :appuser
+  insert_user :users :appuser
+  change_pass :users :appuser
+  @v1.0.0-dev1
+
+  lists :users :appuser
+  insert_list :lists :appuser
+  delete_list :lists :appuser
+  flips :users
+  insert_flip :flips :appuser
+  delete_flip :flips :appuser
 
 Much much better, a nice clean master now. And because it is now identical to
-the "flips" branch, we can just carry on. Tag it so that we can use real tags
-for bundling a release later:
+the "flips" branch, we can just carry on. Go ahead and tag it, bundle, and
+release:
 
-  > git tag flips -am 'Tag flips merge.'
+  > sqitch tag v1.0.0-dev2
+  Tagged "delete_flip" with @v1.0.0-dev2
+  > git commit -am 'Tag the database with v1.0.0-dev2.'
+  [master 54e2b6c] Tag the database with v1.0.0-dev2.
+   1 file changed, 1 insertion(+)
+  > git tag v1.0.0-dev2 -am 'Tag v1.0.0-dev2'
+  > sqitch bundle
+  Bundling in bundle/
+    + appuser
+    + users
+    + insert_user
+    + change_pass @v1.0.0-dev1
+    + lists
+    + insert_list
+    + delete_list
+    + flips
+    + insert_flip
+    + delete_flip @v1.0.0-dev2
+  Plan written to bundle/sqitch.plan
+  Config written to bundle/sqitch.conf
 
 =head1 In Place Changes
 
@@ -1062,6 +987,7 @@ Have a look at this:
   ----------+----------------------------------+-------------------------------
    foo      | 9695da4dd567a19f9b92065f240c6725 | 2012-04-11 23:00:02.135612+00
    bar      | 9695da4dd567a19f9b92065f240c6725 | 2012-04-11 23:00:02.135612+00
+  "
 
 If user "foo" ever got access to the database, she could quickly discover that
 user "bar" has the same password and thus be able to exploit the account. Not
@@ -1106,6 +1032,48 @@ C<insert_user_crypt> change.
 Now do the same for the C<change_pass> scripts.
 
 =back
+
+But you can have Sqitch do it for you. The only requirement is that a tag
+appear between the two instances of a change we want to modify. In general,
+you're going to make a change like this after a release, which you've tagged
+anyway, right? Well we have, with C<@v1.0.0-dev2> added in the previous
+section. With that, we can let Sqitch do most of the hard work for us, thanks
+to the C<rework> command:
+
+  > sqitch rework insert_user
+  Added "insert_user :insert_user@v1.0.0-dev2" to sqitch.plan. Modify these files:
+  deploy/insert_user.sql
+  revert/insert_user.sql
+  test/insert_user.sql
+
+Oh, so we can edit those files in place. Nice! How does Sqitch do it? Well, in
+point of fact, it has copied the files to stand in for the previous instance
+of the C<insert_user> step, which we can see via C<git status>:
+
+  > git status
+  # On branch master
+  # Changes not staged for commit:
+  #   (use "git add <file>..." to update what will be committed)
+  #   (use "git checkout -- <file>..." to discard changes in working directory)
+  #
+  #	modified:   sqitch.plan
+  #
+  # Untracked files:
+  #   (use "git add <file>..." to include in what will be committed)
+  #
+  #	deploy/insert_user@v1.0.0-dev2.sql
+  #	revert/insert_user@v1.0.0-dev2.sql
+  #	test/insert_user@v1.0.0-dev2.sql
+  no changes added to commit (use "git add" and/or "git commit -a")
+
+The "untracked files" are the ones to note here. They are all named
+C<insert_user@v1.0.0-dev2.sql>. What that means is, "the C<insert_user> step
+as it was implemented as of the C<@v1.0.0-dev2> tag.
+
+=begin comment
+
+XXX Commenting out for now; Sqitch doesn't support Git integration yet. Update
+this section when we come back to it.
 
 That doesn't seem I<too> bad. And you can do that with Sqitch, if you want.
 But it makes for rather bad VCS management. This is effectively a one-line
@@ -1425,3 +1393,33 @@ benefit of exploiting the VCS history in you development practices, while
 still getting the benefits of explicit, separate changes in the distribution
 you ship.
 
+=end comment
+
+
+=head1 Author
+
+David E. Wheeler <david@justatheory.com>
+
+=head1 License
+
+Copyright (c) 2012 iovation Inc.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+=cut

@@ -1,0 +1,69 @@
+=head1 Name
+
+sqitch-rework - Rework a database change
+
+=head1 Synopsis
+
+  sqitch [options] rework [<dependency-options>] name
+
+=head1 Description
+
+This command allows for the reworking of an existing database change. It is
+best used only under the following circumstances:
+
+=over
+
+=item *
+
+There are production deployments, so that you cannot revert to before the
+change, modify it, and then re-deploy. Just reverting, modifying, and
+re-deploying is the thing to do while developing the database, but once it
+has been released and deployed to production, you must not change previous
+change scripts.
+
+=item *
+
+The modifications will be L<idempotent|https://en.wikipedia.org/wiki/Idempotence>.
+In other words, either the earlier instance of the change or the new, reworked
+instance can be run any number of times, and the outcome of each will be the same.
+They must not break each other in case one needs to deploy and revert changes.
+
+=item *
+
+A tag must have been applied to the plan since the previous instance of the
+change. This is required so that Sqitch can disambiguate the two instances of
+the change. It's a good idea to always tag a release anyway. If you haven't,
+see L<sqitch-tag>.
+
+=back
+
+If all of these hold, then feel free to rework an existing change.
+
+In effect, reworking a change is similar to L<adding one|sqitch-add>. However,
+rather than writing new files for the change, the C<rework> command copies the
+files for the existing change. The new files are named with the tag that comes
+between the changes, and serves as the file for the original change. This
+leaves you free to edit the existing files.
+
+=head1 Options
+
+=over
+
+=item C<-r>
+
+=item C<--requires>
+
+Name of a change that is required by the new change. May be specified multiple
+times.
+
+=item C<-c>
+
+=item C<--conflicts>
+
+Name of a change that conflicts with the new change. May be specified multiple times.
+
+=back
+
+=head1 Sqitch
+
+Part of the L<sqitch> suite.
