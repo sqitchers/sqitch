@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 223;
+use Test::More tests => 226;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -989,7 +989,7 @@ is $@->ident, 'revert', 'Should be yet another "revert" error';
 is $@->message, __x(
     'Could not find change "{change}" ({id}) in the plan',
     change => 'bugaboo',
-    id => 'this is not an id',
+    id     => 'this is not an id',
 ), 'The message should mention the unknown ID';
 is_deeply $engine->seen, [
     [deployed_change_ids => undef],
@@ -1045,3 +1045,28 @@ is_deeply +MockOutput->get_info, [
     ['  - ', 'lolz'],
     ['  - ', 'widgets @beta'],
 ], 'Output should show what it reverts to';
+
+# Let it find it via the name.
+my $mock_plan = Test::MockModule->new(ref $plan);
+$mock_plan->mock(get => sub {
+    my ( $self, $name ) = @_;
+    my $get = $mock_plan->original('get');
+    return $self->$get('@alpha') if $name eq 'bugaboo';
+    return $self->$get($name);
+});
+@deployed_change_ids = ('this is not an id');
+ok $engine->revert, 'Revert by name rather than ID';
+is_deeply $engine->seen, [
+    [deployed_change_ids => undef],
+    [run_file => $changes[1]->revert_file ],
+    [log_revert_change => $changes[1] ],
+], 'Should have reverted only @alpha';
+is_deeply +MockOutput->get_info, [
+    [__x(
+        'Reverting all changes from {destination}',
+        destination => $engine->destination,
+    )],
+    ['  - ', 'users @alpha'],
+], 'Output should show reverting all, though really only once, thanks to mocking';
+
+$mock_plan->unmock_all;
