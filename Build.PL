@@ -33,6 +33,7 @@ Module::Build::Sqitch->new(
         'Path::Class'                                  => 0,
         'Pod::Find'                                    => 0,
         'Pod::Usage'                                   => 0,
+        'Role::HasMessage'                             => '0.005',
         'Role::Identifiable::HasIdent'                 => '0.005',
         'Role::Identifiable::HasTags'                  => '0.005',
         'StackTrace::Auto'                             => 0,
