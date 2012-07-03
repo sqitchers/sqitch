@@ -1,6 +1,71 @@
 Revision history for Perl extension App::Sqitch
 
-0.32
+0.50
+     - Require a plan file.
+     - Renamed "steps" to "changes".
+     - New plan file spec.
+       + Tags are just labels on a particular change, no longer a list of
+         changes.
+       + Dependencies now specified in the plan file, not in the deploy
+         script.
+       + Changes can be specified as deploys or reverts, though reverts
+         are not currently supported.
+       + Changes can be specified with an optional leading `+` for deploy or
+         `-` for revert, which will eventually be important for conflict
+         management.
+       + Dependencies can be specified as other change names, tags, or a
+         change as of a tag (e.g., `foo@beta`).
+       + Pragmas can be specified with a leading `%`. Only `%syntax-version`
+         is currently recognized; all others are ignored.
+     - Renamed the `add-step` command to just `add`.
+     - Added the `tag` command.
+     - Added the `revert` command.
+     - Added the `rework` command.
+     - Added exception objects and started using them.
+     - Added localization support and started using it.
+     - Added IDs to steps and tags. These are SHA1s generated from the return
+       value of the new `info` method, which describes the change or tag.
+     - Updated the PostgreSQL engine to comply with the new Engine API.
+     - Updated the PostgreSQL engine to use IDs for tracking changes and tags.
+     - Eliminated the term "node" from the plan implementation and docs.
+     - Updated the engine base class for the new plan API, and to just deploy
+       changes one-at-a-time.
+     - Added many new ways to look for changes in the plan, including:
+       + `change_name`
+       + `@tag_name`
+       + `change_name@tag_name`
+       + `change_id`
+       + `tag_id`
+     - The plan file can now be written out with nearly all white space and
+       comments preserved.
+     - Changed the `add` command to write out the plan file after a new change
+       is added.
+     - Change names can now be duplicated, as long as a tag name appears
+       between them.
+     - Renamed `target` to destination in Engine.
+     - Started referring to the step to deploy or revert to in docs as the
+       "target".
+     - PostgreSQL errors will now be thrown as Sqitch exceptions, for proper
+       handling during command execution.
+     - Added required `core.uri` configuration setting. Used to keep change
+       IDs unique across projects.
+     - Added `--mode` option to `deploy`, to trigger reverts on failure to
+       either:
+       + Not at all: keep the latest successful change.
+       + To the last deployed tag
+       + To the point at which the current deploy started
+     - Added the implicit tags `@ROOT` and `@HEAD` for looking up changes in
+       the plan.
+     - Renamed `sql_dir` to `top_dir` and made it default to the current
+       directory.
+     - Changed the location of the plan file to the top directory. This will
+       make it easier to have plans and scripts for multiple database
+       platforms in a single project.
+     - Fixed a bug in the build process so that template files will be
+       properly written to the `etc` directory.
+     - Rewrote `sqitchtutorial` to reflect the new realities.
+     - Updated `sqitch` documentation, and moved the plan file information to
+       App::Sqitch::Plan.
 
 0.31  2012-05-21T22:29:42Z
      - Fixed some typos and failing tests.
