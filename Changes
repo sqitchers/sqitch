@@ -1,6 +1,8 @@
 Revision history for Perl extension App::Sqitch
 
 0.51
+     - Removed the `--dry-run` option. It was completely ignored. Maybe it
+       will return someday.
 
 0.50  2012-07-03T19:55:20Z
      - Require a plan file.

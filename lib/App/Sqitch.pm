@@ -128,8 +128,6 @@ has extension => (
     }
 );
 
-has dry_run => ( is => 'ro', isa => 'Bool', required => 1, default => 0 );
-
 has verbosity => (
     is       => 'ro',
     required => 1,
@@ -235,7 +233,6 @@ sub _core_opts {
         revert-dir=s
         test-dir=s
         extension=s
-        dry-run
         etc-path
         quiet
         verbose+
@@ -505,8 +502,6 @@ Constructs and returns a new Sqitch object. The supported parameters include:
 
 =item C<extension>
 
-=item C<dry_run>
-
 =item C<editor>
 
 =item C<verbosity>
@@ -538,8 +533,6 @@ Constructs and returns a new Sqitch object. The supported parameters include:
 =head3 C<test_dir>
 
 =head3 C<extension>
-
-=head3 C<dry_run>
 
 =head3 C<editor>
 

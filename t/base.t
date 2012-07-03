@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 94;
+use Test::More tests => 93;
 #use Test::More 'no_plan';
 use Test::MockModule;
 use Path::Class;
@@ -41,7 +41,6 @@ can_ok $CLASS, qw(
     revert_dir
     test_dir
     extension
-    dry_run
     verbosity
 );
 
@@ -64,7 +63,6 @@ for my $attr (qw(
 is $sqitch->plan_file, $sqitch->top_dir->file('sqitch.plan')->cleanup,
     'Default plan file should be $top_dir/sqitch.plan';
 is $sqitch->verbosity, 1, 'verbosity should be 1';
-is $sqitch->dry_run, 0, 'dry_run should be 0';
 is $sqitch->extension, 'sql', 'Default extension should be sql';
 is $sqitch->top_dir, dir(), 'Default top_dir should be .';
 is $sqitch->deploy_dir, dir(qw(deploy)), 'Default deploy_dir should be ./sql/deploy';

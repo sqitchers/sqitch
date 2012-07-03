@@ -97,7 +97,6 @@ my $opts = $CLASS->_parse_core_opts([
     '--test-dir'   => 'tst',
     '--extension'  => 'ext',
     '--uri'        => 'https://github.com/theory/sqitch/',
-    '--dry-run',
     '--verbose', '--verbose',
     '--quiet'
 ]);
@@ -116,7 +115,6 @@ is_deeply $opts, {
     'test_dir'   => 'tst',
     'extension'  => 'ext',
     'uri'        => 'https://github.com/theory/sqitch/',
-    'dry_run'    => 1,
     verbosity    => 2,
     quiet        => 1,
 }, 'Should parse lots of options';

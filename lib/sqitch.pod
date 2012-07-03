@@ -144,7 +144,6 @@ name or tag).
      --revert-dir DIR     Path to directory with reversion scripts.
      --test-dir   DIR     Path to directory with test scripts.
      --extension  EXT     SQL script file name extension.
-     --dry-run            Execute command without making any changes.
      --etc-path           Print the path to the etc directory and exit.
      --quiet              Quiet mode with non-error output suppressed.
      --verbose            Increment verbosity.
@@ -270,14 +269,6 @@ by C<--top-dir>.
 
 The file name extension on deployment, reversion, and test SQL scripts.
 Defaults to C<sql>.
-
-=item C<--dry-run>
-
-  sqitch --dry-run
-
-Execute the Sqitch command without making any actual changes. This allows you
-to see what Sqitch would actually do, without doing it. Implies a verbosity
-level of 1; add extra C<--verbose>s for greater verbosity.
 
 =item C<--etc-path>
 
