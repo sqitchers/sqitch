@@ -13,7 +13,7 @@ use namespace::autoclean;
 use Moose;
 use constant SYNTAX_VERSION => '1.0.0-a1';
 
-our $VERSION = '0.50';
+our $VERSION = '0.51';
 
 has sqitch => (
     is       => 'ro',

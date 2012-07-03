@@ -9,7 +9,7 @@ use Try::Tiny;
 use Hash::Merge 'merge';
 use Moose;
 
-our $VERSION = '0.50';
+our $VERSION = '0.51';
 
 has sqitch => (
     is       => 'ro',
