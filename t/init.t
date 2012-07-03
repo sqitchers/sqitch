@@ -4,9 +4,10 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 111;
+use Test::More tests => 112;
 #use Test::More 'no_plan';
 use App::Sqitch;
+use Locale::TextDomain qw(App-Sqitch);
 use Path::Class;
 use Test::Dir;
 use Test::File qw(file_not_exists_ok file_exists_ok);
@@ -56,7 +57,7 @@ for my $attr (map { "$_\_dir"} qw(top deploy revert test)) {
 }
 my $sep = dir('')->stringify;
 is_deeply +MockOutput->get_info, [
-    map { ["Created " . $sqitch->$_ . $sep] }
+    map { [__x "Created {file}", file => $sqitch->$_ . $sep] }
     map { "$_\_dir" } qw(deploy revert test)
 ], 'Each should have been sent to info';
 
@@ -69,7 +70,7 @@ remove_tree $sqitch->revert_dir->stringify;
 ok $init->make_directories, 'Make the directories once more';
 dir_exists_ok $sqitch->revert_dir, 'revert dir exists again';
 is_deeply +MockOutput->get_info, [
-    ['Created ' . $sqitch->revert_dir . $sep],
+    [__x 'Created {file}', file => $sqitch->revert_dir . $sep],
 ], 'Should have noted creation of revert dir';
 
 # Handle errors.
@@ -77,10 +78,14 @@ remove_tree $top_dir_string;
 make_path $top_dir_string;
 chmod 0000, $top_dir_string;
 END { chmod 0400, $top_dir_string }
-throws_ok { $init->make_directories } qr/FAIL/, 'Should fail on permissio issue';
-is_deeply +MockOutput->get_fail, [
-    ['Error creating ' . $sqitch->deploy_dir . ': Permission denied'],
-], 'Failure should have been emitted';
+throws_ok { $init->make_directories } 'App::Sqitch::X',
+    'Should fail on permission issue';
+is $@->ident, 'init', 'Permission error should have ident "init"';
+is $@->message, __x(
+    'Error creating {path}: {error}',
+    path  => $sqitch->deploy_dir,
+    error => 'Permission denied',
+), 'The permission error should be formatted properly';
 
 ##############################################################################
 # Test write_config().
@@ -113,7 +118,7 @@ is_deeply read_config $conf_file, {
     'core.uri' => $uri,
 }, 'The configuration file should have one variable';
 is_deeply +MockOutput->get_info, [
-    ['Created ' . $conf_file]
+    [__x 'Created {file}', file => $conf_file]
 ], 'The creation should be sent to info';
 is $uuid_type, UUID::Tiny::UUID_V4(), 'Should use a V4 UUID';
 my $top_dir    = File::Spec->curdir;
@@ -146,7 +151,7 @@ is_deeply read_config $conf_file, {
     'core.extension' => 'foo',
 }, 'The configuration should have been written with the two settings';
 is_deeply +MockOutput->get_info, [
-    ['Created ' . $conf_file]
+    [__x 'Created {file}', file => $conf_file]
 ], 'The creation should be sent to info';
 
 file_contents_like $conf_file, qr{
@@ -181,7 +186,7 @@ USERCONF: {
         'core.extension' => 'foo',
     }, 'The configuration should just have core.uri and core.top_dir';
     is_deeply +MockOutput->get_info, [
-        ['Created ' . $conf_file]
+        [__x 'Created {file}', file => $conf_file]
     ], 'The creation should be sent to info again';
     file_contents_like $conf_file, qr{\Q
 	# engine = 
@@ -209,7 +214,7 @@ SYSTEMCONF: {
         'core.uri' => URI->new('https://github.com/theory/sqitch/'),
     }, 'The configuration should have local and system config';
     is_deeply +MockOutput->get_info, [
-        ['Created ' . $conf_file]
+        [__x 'Created {file}', file => $conf_file]
     ], 'The creation should be sent to info again';
 
     my $deploy_dir = File::Spec->catdir(qw(migrations deploy));
@@ -242,7 +247,7 @@ ok $init = $CLASS->new(sqitch => $sqitch),
     'Create new init with sqitch non-default attributes';
 ok $init->write_config, 'Write the config with core attrs';
 is_deeply +MockOutput->get_info, [
-    ['Created ' . $conf_file]
+    [__x 'Created {file}', file => $conf_file]
 ], 'The creation should be sent to info once more';
 
 is_deeply read_config $conf_file, {
@@ -268,7 +273,7 @@ ok $init = $CLASS->new(sqitch => $sqitch),
     'Create new init with sqitch with non-default engine attributes';
 ok $init->write_config, 'Write the config with engine attrs';
 is_deeply +MockOutput->get_info, [
-    ['Created ' . $conf_file]
+    [__x 'Created {file}', file => $conf_file]
 ], 'The creation should be sent to info yet again';
 
 is_deeply read_config $conf_file, {
@@ -288,7 +293,7 @@ ok $init = $CLASS->new(sqitch => $sqitch),
     'Create new init with sqitch with default engine attributes';
 ok $init->write_config, 'Write the config with engine attrs';
 is_deeply +MockOutput->get_info, [
-    ['Created ' . $conf_file]
+    [__x 'Created {file}', file => $conf_file]
 ], 'The creation should be sent to info again again';
 is_deeply read_config $conf_file, {
     'core.uri'    => $uri,
@@ -315,7 +320,7 @@ USERCONF: {
     file_not_exists_ok $conf_file;
     ok $init->write_config, 'Write the config with sqlite config';
     is_deeply +MockOutput->get_info, [
-        ['Created ' . $conf_file]
+        [__x 'Created {file}', file => $conf_file]
     ], 'The creation should be sent to info once more';
 
     is_deeply read_config $conf_file, {
@@ -347,7 +352,7 @@ ok $init = $CLASS->new(sqitch => $sqitch),
     'Create new init with sqitch with more non-default engine attributes';
 ok $init->write_config, 'Write the config with more engine attrs';
 is_deeply +MockOutput->get_info, [
-    ['Created ' . $conf_file]
+    [__x 'Created {file}', file => $conf_file]
 ], 'The creation should be sent to info one more time';
 
 is_deeply read_config $conf_file, {
@@ -372,7 +377,7 @@ ok $init = $CLASS->new(sqitch => $sqitch),
     'Create new init with sqitch with default engine attributes';
 ok $init->write_config, 'Write the config with engine attrs';
 is_deeply +MockOutput->get_info, [
-    ['Created ' . $conf_file]
+    [__x 'Created {file}', file => $conf_file]
 ], 'The creation should be sent to info again again again';
 is_deeply read_config $conf_file, {
     'core.uri'    => $uri,
@@ -402,7 +407,7 @@ USERCONF: {
     file_not_exists_ok $conf_file;
     ok $init->write_config, 'Write the config with pg config';
     is_deeply +MockOutput->get_info, [
-        ['Created ' . $conf_file]
+        [__x 'Created {file}', file => $conf_file]
     ], 'The pg config creation should be sent to info';
 
     is_deeply read_config $conf_file, {
@@ -428,7 +433,7 @@ $plan_file = $sqitch->plan_file;
 file_not_exists_ok $plan_file, 'Plan file should not yet exist';
 ok $init->write_plan, 'Write the plan file';
 is_deeply +MockOutput->get_info, [
-    ['Created ' . $plan_file]
+    [__x 'Created {file}', file => $plan_file]
 ], 'The plan creation should be sent to info';
 file_exists_ok $plan_file, 'Plan file should now exist';
 file_contents_is $plan_file,
@@ -462,10 +467,10 @@ file_exists_ok $plan_file;
 
 # Shoudld have the output.
 my @dir_messages = map {
-    ['Created ' . $sqitch->$_ . $sep] } map { "$_\_dir"
+    [__x 'Created {file}', file => $sqitch->$_ . $sep] } map { "$_\_dir"
 } qw(deploy revert test);
 is_deeply +MockOutput->get_info, [
-    ['Created ' . $conf_file],
-    ['Created ' . $plan_file],
+    [__x 'Created {file}', file => $conf_file],
+    [__x 'Created {file}', file => $plan_file],
     @dir_messages,
 ], 'Should have status messages';

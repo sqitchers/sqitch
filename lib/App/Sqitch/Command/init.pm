@@ -5,6 +5,8 @@ use strict;
 use warnings;
 use utf8;
 use Moose;
+use Locale::TextDomain qw(App-Sqitch);
+use App::Sqitch::X qw(hurl);
 use File::Path qw(make_path);
 use Path::Class;
 use Try::Tiny;
@@ -29,11 +31,18 @@ sub make_directories {
     my $sep    = dir('')->stringify; # OS-specific directory separator.
     for my $attr (qw(deploy_dir revert_dir test_dir)) {
         my $dir = $sqitch->$attr;
-        $self->info("Created $dir$sep") if make_path $dir, { error => \my $err };
+        $self->info(__x(
+            'Created {file}',
+            file => "$dir$sep"
+        )) if make_path $dir, { error => \my $err };
         if ( my $diag = shift @{ $err } ) {
             my ( $path, $msg ) = %{ $diag };
-            $self->fail("Error creating $path: $msg") if $path;
-            $self->fail($msg);
+            hurl init => __x(
+                'Error creating {path}: {error}',
+                path  => $path,
+                error => $msg,
+            ) if $path;
+            hurl init => $msg;
         }
     }
     return $self;
@@ -45,12 +54,20 @@ sub write_plan {
     my $file   = $sqitch->plan_file;
     return $self if -f $file;
 
-    my $fh = $file->open('>:encoding(UTF-8)') or die "Cannot open $file: $!\n";
+    my $fh = $file->open('>:encoding(UTF-8)') or hurl init => __x(
+        'Cannot open {file}: {error}',
+        file => $file,
+        error => $!,
+    );
     require App::Sqitch::Plan;
     $fh->print('%syntax-version=', App::Sqitch::Plan::SYNTAX_VERSION(), $/, $/);
-    $fh->close or die "Error closing $file: $!\n";
+    $fh->close or hurl add => __x(
+        'Error closing {file}: {error}',
+        file  => $file,
+        error => $!
+    );
 
-    $self->info("Created $file");
+    $self->info( __x 'Created {file}', file => $file );
     return $self;
 }
 
@@ -106,7 +123,7 @@ sub write_config {
         # Set core attributes that are not their default values and not
         # already in user or system config.
         my $attr = $meta->find_attribute_by_name($name)
-            or die "Cannot find App::Sqitch attribute $name";
+            or hurl "Cannot find App::Sqitch attribute $name";
         my $val = $attr->get_value($sqitch);
         my $def = $attr->default($sqitch);
         my $var = $config->get( key => "core.$name" );
@@ -206,7 +223,7 @@ sub write_config {
         ) if @comments;
     }
 
-    $self->info("Created $file");
+    $self->info( __x 'Created {file}', file => $file );
     return $self;
 }
 
