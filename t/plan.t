@@ -6,6 +6,7 @@ use v5.10.1;
 use utf8;
 use Test::More;
 use App::Sqitch;
+use Locale::TextDomain qw(App-Sqitch);
 use Path::Class;
 use Test::Exception;
 use Test::File;
@@ -222,15 +223,20 @@ cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
 # Try a plan with a bad change name.
 $file = file qw(t plans bad-change.plan);
 $fh = $file->open('<:encoding(UTF-8)');
-throws_ok { $plan->_parse($file, $fh) } qr/FAIL:/,
+throws_ok { $plan->_parse($file, $fh) } 'App::Sqitch::X',
     'Should die on plan with bad change name';
+is $@->ident, 'plan', 'Bad change name error ident should be "plan"';
+is $@->message, __x(
+    'Syntax error in {file} at line {line}: {error}',
+    file => $file,
+    line => 4,
+    error => __x(
+        qq{"{dep}" does not look like a dependency.\nDependencies must begin with ":" or "!" and be valid change names},
+        dep => 'what',
+    ),
+), 'And the @HEAD error message should be correct';
+
 is sorted, 0, 'Should not have sorted changes';
-cmp_deeply +MockOutput->get_fail, [[
-    "Syntax error in $file at line ",
-    4,
-    qq{: "what" does not look like a dependency.\n},
-    qq{Dependencies must begin with ":" or "!" and be valid change names},
-]], 'And the error should have been output';
 
 my @bad_names = (
     '^foo',     # No leading punctuation
@@ -248,15 +254,19 @@ for my $name (@bad_names) {
         next if $line eq '%hi'; # This would be a pragma.
         my $what = $line =~ /^[@]/ ? 'tag' : 'change';
         my $fh = IO::File->new(\$line, '<:utf8');
-        throws_ok { $plan->_parse('baditem', $fh) } qr/FAIL:/,
+        throws_ok { $plan->_parse('baditem', $fh) } 'App::Sqitch::X',
             qq{Should die on plan with bad name "$line"};
+        is $@->ident, 'plan', 'Exception ident should be "plan"';
+        is $@->message, __x(
+            'Syntax error in {file} at line {line}: {error}',
+            file => 'baditem',
+            line => 1,
+            error => __x(
+                'Invalid name "{name}"; names must not begin or end in punctuation or end in digits following punctuation',
+                name => $line,
+            )
+        ),  qq{And "$line" should trigger the appropriate message};
         is sorted, 0, 'Should not have sorted changes';
-        cmp_deeply +MockOutput->get_fail, [[
-            "Syntax error in baditem at line ",
-            1,
-            qq{: Invalid $what "$line"; ${what}s must not begin with },
-            'punctuation or end in punctuation or digits following punctuation'
-        ]], qq{And "$line" should trigger the appropriate error};
     }
 }
 
@@ -295,76 +305,108 @@ is sorted, 14, 'Should have sorted changes 12 times';
 # Try a plan with reserved tag name @HEAD.
 $file = file qw(t plans reserved-tag.plan);
 $fh = $file->open('<:encoding(UTF-8)');
-throws_ok { $plan->_parse($file, $fh) } qr/FAIL:/,
+throws_ok { $plan->_parse($file, $fh) } 'App::Sqitch::X',
     'Should die on plan with reserved tag "@HEAD"';
+is $@->ident, 'plan', '@HEAD exception should have ident "plan"';
+is $@->message, __x(
+    'Syntax error in {file} at line {line}: {error}',
+    file => $file,
+    line => 5,
+    error => __x(
+        '"{name}" is a reserved name',
+        name => '@HEAD',
+    ),
+), 'And the @HEAD error message should be correct';
 is sorted, 1, 'Should have sorted changes once';
-cmp_deeply +MockOutput->get_fail, [[
-    "Syntax error in $file at line ",
-    5,
-    ': "HEAD" is a reserved name',
-]], 'And the reserved tag error should have been output';
 
 # Try a plan with reserved tag name @ROOT.
 my $root = '@ROOT';
 $file = file qw(t plans root.plan);
 $fh = IO::File->new(\$root, '<:utf8');
-throws_ok { $plan->_parse($file, $fh) } qr/FAIL:/,
+throws_ok { $plan->_parse($file, $fh) } 'App::Sqitch::X',
     'Should die on plan with reserved tag "@ROOT"';
+is $@->ident, 'plan', '@HEAD exception should have ident "plan"';
+is $@->message, __x(
+    'Syntax error in {file} at line {line}: {error}',
+    file => $file,
+    line => 1,
+    error => __x(
+        '"{name}" is a reserved name',
+        name => '@ROOT',
+    ),
+), 'And the @HEAD error message should be correct';
 is sorted, 0, 'Should have sorted changes nonce';
-cmp_deeply +MockOutput->get_fail, [[
-    "Syntax error in $file at line ",
-    1,
-    ': "ROOT" is a reserved name',
-]], 'And the reserved tag error should have been output';
 
 # Try a plan with a change name that looks like a sha1 hash.
 my $sha1 = '6c2f28d125aff1deea615f8de774599acf39a7a1';
 $file = file qw(t plans sha1.plan);
 $fh = IO::File->new(\$sha1, '<:utf8');
-throws_ok { $plan->_parse($file, $fh) } qr/FAIL:/,
+throws_ok { $plan->_parse($file, $fh) } 'App::Sqitch::X',
     'Should die on plan with SHA1 change name';
+is $@->ident, 'plan', 'The SHA1 error ident should be "plan"';
+is $@->message, __x(
+    'Syntax error in {file} at line {line}: {error}',
+    file => $file,
+    line => 1,
+    error => __x(
+        '"{name}" is invalid because it could be confused with a SHA1 ID',
+        name => $sha1,
+    ),
+), 'And the SHA1 error message should be correct';
 is sorted, 0, 'Should have sorted changes nonce';
-cmp_deeply +MockOutput->get_fail, [[
-    "Syntax error in $file at line ",
-    1,
-    qq{: "$sha1" is invalid because it could be confused with a SHA1 ID},
-]], 'And the SHA1 name error should have been output';
 
 # Try a plan with a tag but no change.
 $file = file qw(t plans tag-no-change.plan);
 $fh = IO::File->new(\"\@foo\nbar", '<:utf8');
-throws_ok { $plan->_parse($file, $fh) } qr/FAIL:/,
+throws_ok { $plan->_parse($file, $fh) } 'App::Sqitch::X',
     'Should die on plan with tag but no preceding change';
+is $@->ident, 'plan', 'The missing change error ident should be "plan"';
+is $@->message, __x(
+    'Syntax error in {file} at line {line}: {error}',
+    file => $file,
+    line => 1,
+    error => __x(
+        'Tag "{tag}" declared without a preceding change',
+        tag => 'foo',
+    ),
+), 'And the missing change error message should be correct';
 is sorted, 0, 'Should have sorted changes nonce';
-cmp_deeply +MockOutput->get_fail, [[
-    "Error in $file at line ",
-    1,
-    ': Tag "foo" declared without a preceding change',
-]], 'And the missing change error should have been output';
 
 # Try a plan with a duplicate tag name.
 $file = file qw(t plans dupe-tag.plan);
 $fh = $file->open('<:encoding(UTF-8)');
-throws_ok { $plan->_parse($file, $fh) } qr/FAIL:/,
+throws_ok { $plan->_parse($file, $fh) } 'App::Sqitch::X',
     'Should die on plan with dupe tag';
+is $@->ident, 'plan', 'The dupe tag error ident should be "plan"';
+is $@->message, __x(
+    'Syntax error in {file} at line {line}: {error}',
+    file => $file,
+    line => 10,
+    error => __x(
+        'Tag "{tag}" duplicates earlier declaration on line {line}',
+        tag  => 'bar',
+        line => 5,
+    ),
+), 'And the missing change error message should be correct';
 is sorted, 2, 'Should have sorted changes twice';
-cmp_deeply +MockOutput->get_fail, [[
-    "Syntax error in $file at line ",
-    10,
-    ': Tag "bar" duplicates earlier declaration on line 5',
-]], 'And the dupe tag error should have been output';
 
 # Try a plan with a duplicate change within a tag section.
 $file = file qw(t plans dupe-change.plan);
 $fh = $file->open('<:encoding(UTF-8)');
-throws_ok { $plan->_parse($file, $fh) } qr/FAIL:/,
+throws_ok { $plan->_parse($file, $fh) } 'App::Sqitch::X',
     'Should die on plan with dupe change';
+is $@->ident, 'plan', 'The dupe change error ident should be "plan"';
+is $@->message, __x(
+    'Syntax error in {file} at line {line}: {error}',
+    file => $file,
+    line => 7,
+    error => __x(
+        'Change "{change}" duplicates earlier declaration on line {line}',
+        change  => 'greets',
+        line    => 5,
+    ),
+), 'And the dupe change error message should be correct';
 is sorted, 1, 'Should have sorted changes once';
-cmp_deeply +MockOutput->get_fail, [[
-    "Syntax error in $file at line ",
-    7,
-    ': Change "greets" duplicates earlier declaration on line 5',
-]], 'And the dupe change error should have been output';
 
 # Try a plan with pragmas.
 $file = file qw(t plans pragmas.plan);
@@ -459,13 +501,15 @@ $fh = IO::File->new(\"foo\n\@bar :foo", '<:utf8');
 $sqitch = App::Sqitch->new(plan_file => $file, uri => $uri);
 isa_ok $plan = App::Sqitch::Plan->new(sqitch => $sqitch), $CLASS,
     'Plan with sqitch with plan with tag dependencies';
-throws_ok { $plan->_parse($file, $fh) }  qr/^FAIL:/,
+throws_ok { $plan->_parse($file, $fh) }  'App::Sqitch::X',
     'Should get an exception for tag with dependencies';
-cmp_deeply +MockOutput->get_fail, [[
-    "Syntax error in $file at line ",
-    2,
-    ': Tags may not specify dependencies',
-]], 'And the message should say that tags do not support dependencies';
+is $@->ident, 'plan', 'The tag dependencies error ident should be "plan"';
+is $@->message, __x(
+    'Syntax error in {file} at line {line}: {error}',
+    file => $file,
+    line => 2,
+    error => __ 'Tags may not specify dependencies',
+), 'And the tag dependencies error message should be correct';
 
 # Make sure that lines() loads the plan.
 $file = file qw(t plans multi.plan);

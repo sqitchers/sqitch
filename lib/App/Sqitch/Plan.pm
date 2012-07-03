@@ -9,6 +9,8 @@ use App::Sqitch::Plan::Pragma;
 use Path::Class;
 use App::Sqitch::Plan::ChangeList;
 use App::Sqitch::Plan::LineList;
+use Locale::TextDomain qw(App-Sqitch);
+use App::Sqitch::X qw(hurl);
 use namespace::autoclean;
 use Moose;
 use constant SYNTAX_VERSION => '1.0.0-a1';
@@ -48,8 +50,11 @@ sub load {
             $self->_version_line,
         ),
     } unless -f $file;
-    my $fh = $file->open('<:encoding(UTF-8)')
-        or $self->sqitch->fail( "Cannot open $file: $!" );
+    my $fh = $file->open('<:encoding(UTF-8)') or hurl plan => __x(
+        'Cannot open {file}: {error}',
+        file  => $file,
+        error => $!
+    );
     return $self->_parse($file, $fh);
 }
 
@@ -144,55 +149,56 @@ sub _parse {
         %params = ( %params, %+ );
 
         # Make sure we have a valid name.
-        $self->sqitch->fail(
-            "Syntax error in $file at line ",
-            $fh->input_line_number,
-            qq{: Invalid $type "$line"; ${type}s must not begin with },
-            'punctuation or end in punctuation or digits following punctuation'
-        ) if !$params{name} || $params{name} =~ /[[:punct:]][[:digit:]]*\z/;
+        my $raise_syntax_error = sub {
+            hurl plan => __x(
+                'Syntax error in {file} at line {line}: {error}',
+                file => $file,
+                line => $fh->input_line_number,
+                error => shift
+            );
+        };
+
+        $raise_syntax_error->(__x(
+            'Invalid name "{name}"; names must not begin or end in '
+            . 'punctuation or end in digits following punctuation',
+            name => $line,
+        )) if !$params{name} || $params{name} =~ /[[:punct:]][[:digit:]]*\z/;
 
         # It must not be a reserved name.
-        $self->sqitch->fail(
-            "Syntax error in $file at line ",
-            $fh->input_line_number,
-            qq{: "$params{name}" is a reserved name},
-        ) if $params{name} eq 'HEAD' || $params{name} eq 'ROOT';
+        $raise_syntax_error->(__x(
+            '"{name}" is a reserved name',
+            name => $line,
+        )) if $params{name} eq 'HEAD' || $params{name} eq 'ROOT';
 
-        # It must not loo, like a SHA1 hash.
-        $self->sqitch->fail(
-            "Syntax error in $file at line ",
-            $fh->input_line_number,
-            qq{: "$params{name}" is invalid because it could be confused with a SHA1 ID},
-        ) if $params{name} =~ /^[0-9a-f]{40}/;
+        # It must not look like a SHA1 hash.
+        $raise_syntax_error->(__x(
+            '"{name}" is invalid because it could be confused with a SHA1 ID',
+            name => $params{name},
+        )) if $params{name} =~ /^[0-9a-f]{40}/;
 
         if ($type eq 'tag') {
             # Fail if no changes.
             unless ($prev_change) {
-                $self->sqitch->fail(
-                    "Error in $file at line ",
-                    $fh->input_line_number,
-                    qq{: \u$type "$params{name}" declared without a preceding change},
-                );
+                $raise_syntax_error->(__x(
+                    'Tag "{tag}" declared without a preceding change',
+                    tag => $params{name},
+                ));
             }
 
             # Fail on duplicate tag.
             my $key = '@' . $params{name};
             if ( my $at = $line_no_for{$key} ) {
-                $self->sqitch->fail(
-                    "Syntax error in $file at line ",
-                    $fh->input_line_number,
-                    qq{: \u$type "$params{name}" duplicates earlier declaration on line $at},
-                );
+                $raise_syntax_error->(__x(
+                    'Tag "{tag}" duplicates earlier declaration on line {line}',
+                    tag  => $params{name},
+                    line => $at,
+                ));
             }
 
             # Fail on dependencies.
-            if ($params{dependencies}) {
-                $self->sqitch->fail(
-                    "Syntax error in $file at line ",
-                    $fh->input_line_number,
-                    ': Tags may not specify dependencies'
-                );
-            }
+            $raise_syntax_error->(__x(
+                __ 'Tags may not specify dependencies'
+            )) if $params{dependencies};
 
             if (@curr_changes) {
                 # Sort all changes up to this tag by their dependencies.
@@ -215,23 +221,22 @@ sub _parse {
         } else {
             # Fail on duplicate change since last tag.
             if ( my $at = $tag_changes{ $params{name} } ) {
-                $self->sqitch->fail(
-                    "Syntax error in $file at line ",
-                    $fh->input_line_number,
-                    qq{: \u$type "$params{name}" duplicates earlier declaration on line $at},
-                );
+                $raise_syntax_error->(__x(
+                    'Change "{change}" duplicates earlier declaration on line {line}',
+                    change => $params{name},
+                    line   => $at,
+                ));
             }
 
             # Got dependencies?
             if (my $deps = $params{dependencies}) {
                 my (@req, @con);
                 for my $dep (split /[[:blank:]]+/, $deps) {
-                    $self->sqitch->fail(
-                        "Syntax error in $file at line ",
-                        $fh->input_line_number,
-                        qq{: "$dep" does not look like a dependency.\n},
-                        qq{Dependencies must begin with ":" or "!" and be valid change names},
-                    ) unless $dep =~ /^([:!])((?:(?:$name_re)?[@])?$name_re)$/g;
+                    $raise_syntax_error->(__x(
+                        qq{"{dep}" does not look like a dependency.\n}
+                        . 'Dependencies must begin with ":" or "!" and be valid change names',
+                        dep => $dep,
+                    )) unless $dep =~ /^([:!])((?:(?:$name_re)?[@])?$name_re)$/g;
                     if ($1 eq ':') {
                         push @req => $2;
                     } else {
@@ -555,7 +560,11 @@ sub write_to {
         '>:encoding(UTF-8)'
     ) or $self->sqitch->fail( "Cannot open $file: $!" );
     $fh->say($_->as_string) for $self->lines;
-    $fh->close or die "Error closing $file: $!\n";
+    $fh->close or hurl plan => __x(
+        '"Error closing {file}: {error}',
+        file => $file,
+        error => $!,
+    );
     return $self;
 }
 
