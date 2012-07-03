@@ -633,8 +633,8 @@ Note the use of C<--show tags> to show all the deployed tags. But there are
 none. Wait, I<what>?
 
 Oh, we added C<@v1.0.0-dev1> since the last deploy to the C<flipr_test>
-database, so of course it's not there. So let's revert down two steps and then
-deploy again to get it.
+database, so of course it's not there. So let's revert to C<insert_user> and
+then deploy again to get it.
 
   > sqitch revert insert_user
   Reverting from flipr_test to insert_user
@@ -1050,7 +1050,7 @@ the C<--requires> option:
 
 Oh, so we can edit those files in place. Nice! How does Sqitch do it? Well, in
 point of fact, it has copied the files to stand in for the previous instance
-of the C<insert_user> step, which we can see via C<git status>:
+of the C<insert_user> change, which we can see via C<git status>:
 
   > git status
   # On branch master
@@ -1071,11 +1071,11 @@ of the C<insert_user> step, which we can see via C<git status>:
 
 The "untracked files" part of the output is the first thing to notice. They
 are all named C<insert_user@v1.0.0-dev2.sql>. What that means is, "the
-C<insert_user> step as it was implemented as of the C<@v1.0.0-dev2> tag. These
-are copies of the original scripts, and thereafter Sqitch will find them when
-it needs to run scripts for the first instance of the C<insert_user> change.
-As such, it's important not to change them again. But hey, if you're reworking
-them, you shouldn't need to.
+C<insert_user> change as it was implemented as of the C<@v1.0.0-dev2> tag.
+These are copies of the original scripts, and thereafter Sqitch will find them
+when it needs to run scripts for the first instance of the C<insert_user>
+change. As such, it's important not to change them again. But hey, if you're
+reworking them, you shouldn't need to.
 
 The other thing to notice is that F<revert/insert_user.sql> has changed.
 Sqitch replaced it with The original deploy script. As of now,

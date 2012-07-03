@@ -1,6 +1,6 @@
 =head1 Name
 
-sqitch - SQL Change Management
+sqitch - Simple database change management
 
 =head1 Synopsis
 
@@ -8,16 +8,10 @@ sqitch - SQL Change Management
 
 =head1 Description
 
-Sqitch is a VCS-aware SQL change management application. What makes it
+Sqitch is a VCS-aware database change management application. What makes it
 different from your typical
 L<migration|Module::Build::DB>-L<style|DBIx::Migration> approaches? A few
 things:
-
-=begin comment
-
-Eventually move to L<sqitchintro>?
-
-=end comment
 
 =over
 
@@ -35,24 +29,29 @@ for L<C<psql>|http://www.postgresql.org/docs/current/static/app-psql.html>.
 Writing a L<MySQL|http://mysql.com/>-backed app? Write SQL scripts for
 L<C<mysql>|http://dev.mysql.com/doc/refman/5.6/en/mysql.html>.
 
+=begin comment
+
 =item VCS integration
 
 Sqitch likes to use your VCS history to determine in what order to execute
 changes. No need to keep track of execution order; your VCS already tracks
 information sufficient for Sqitch to figure it out for you.
 
+=end comment
+
 =item Dependency resolution
 
-Deployment changes can declare dependencies on other deployment changes. This
-ensures proper order of execution, even when you've committed changes to your
-VCS out-of-order.
+Database changes may declare dependencies on other changes. This ensures
+proper order of execution, even when you've committed changes to your VCS
+out-of-order.
 
 =item No numbering
 
-Change deployment is managed either by maintaining a plan file or, more
-usefully, your VCS history. As such, there is no need to number your changes,
-although you can if you want. Sqitch doesn't much care what you name your
-changes.
+Change deployment is managed by maintaining a plan file. As such, there is no
+need to number your changes, although you can if you want. Sqitch doesn't much
+care how you name your changes.
+
+=begin comment
 
 =item Bundling
 
@@ -68,6 +67,8 @@ If you're using a VCS to track your changes, you don't have to duplicate
 entire change scripts for simple changes. As long as the changes are
 L<idempotent|http://en.wikipedia.org/wiki/Idempotence>, you can change
 your code directly, and Sqitch will know it needs to be updated.
+
+=end comment
 
 =back
 
@@ -89,35 +90,42 @@ name.
 
 =item C<tag>
 
-A known deployment state with a list one or more changes that define the tag. A
-tag also implies that changes from previous tags in the plan have been applied.
-Think of it is a version number or VCS revision. A given point in the plan may
-have one or more tags.
+A known deployment state, pointing to a single change, typically corresponding
+to a release. Think of it is a version number or VCS revision. A given point
+in the plan may have any number of tags.
 
 =item C<state>
 
 The current state of the database. This is represented by the most
-recently-deployed changes and tags. If the state of the database is the same as
-the most recent tag, then it is considered "up-to-date".
+recently-deployed change. If the state of the database is the same as the most
+recent change, then it is considered "up-to-date".
 
 =item C<plan>
 
-A list of one or more tags and associated changes that define the order of
-deployment execution. Sqitch reads the plan to determine what changes to execute
-to change the database from one state to another. The plan may be represented
-by a L<Plan File> or by VCS history.
+A list of one or more changes and their dependencies that define the order of
+deployment execution. The plan is stored in a "plan file," usually named
+F<sqitch.plan>. Sqitch reads the plan file to determine what changes to
+execute to change the database from one state to another.
+
+=item C<add>
+
+The act of adding a change to the plan. Sqitch will generate scripts for the
+change, which you then may modify with the necessary code (typically DDLs) to
+actually make, revert, and test the change.
 
 =item C<deploy>
 
-The act of deploying database changes to reach a tagged deployment point.
-Sqitch reads the plan, checks the current state of the database, and applies
-all the changes necessary to change the state to the specified tag.
+The act of deploying changes to a database. Sqitch reads the plan, checks the
+current state of the database, and applies all the changes necessary to either
+bring the database up-to-date or to a requested state (a change name or tag).
 
 =item C<revert>
 
-The act of reverting database changes to reach an earlier tagged deployment
-point. Sqitch checks the current state of the database, reads the plan, and
-reverts all changes necessary to return the state to an earlier tag.
+The act of reverting database changes to reach an earlier deployment state.
+Sqitch reads the list of deployed changes from the database and reverts
+them in the reverse of the order in which they were applied. All changes
+may be reverted, or changes may be reverted to a requested state (a change
+name or tag).
 
 =back
 
@@ -321,14 +329,18 @@ Outputs the program name and version and exits.
 
 =item L<C<init>|sqitch-init>
 
-Create the plan file and deployment script directories if they do not already
-exist. This command is useful for starting a new Sqitch project.
+Create the plan file and directories for deploy, revert, and test scripts if
+they do not already exist. This command is useful for starting a new Sqitch
+project.
 
 =item C<status>
 
-Output information about the current status of the deployment, including a
-list of tags, deployments, and dates in chronological order. If any deploy
-scripts are not currently deployed, they will be listed separately. Options:
+*Not yet implemented.
+
+Output information about the current deployment state of a database, including
+the name of the last deployed change, as well as any tags applied to it. If
+any changes in the plan have not been deployed, they will be listed
+separately. Options:
 
 =over
 
@@ -372,22 +384,20 @@ C<--show> option. The value may be any one of:
 
 =item C<log>
 
+*Not yet implemented.
+
 Output the complete change history in reverse chronological order. Options:
 
 =over
 
 =item C<-t>
 
-=item C<--tag>
-
-Show only changes for the specified tag. This option may be passed without a
-C<-t> or C<--tag>.
-
 =item C<-s>
 
 =item C<--change>
 
-Show only the specified change.
+Show only the specified change, which may be provided as a change name, ID, or
+tag.
 
 =item C<-n>
 
@@ -436,94 +446,41 @@ The format to use. The value may be any one of:
 
 =item C<check>
 
+*Not yet implemented.
+
 Sanity check the deployment scripts. Checks include:
 
 =over
 
 =item *
 
-Make sure all deployment scripts have complementary reversion scripts.
-
-=item *
-
-Make sure no deployment script appears more than once in the plan file.
+Make sure all deploy scripts have complementary revert scripts.
 
 =back
 
-=item C<add>
+=item L<C<add>|sqitch-add>
 
-Add a new change. The specified name will be used to create stub deployment and
-reversion scripts. The contents of these scripts must then be edited to carry
-out the actual changes to the database. Options:
+Add a new change.
 
-=over
+=item L<C<tag>|sqitch-tag>
 
-=item C<-n>
+List tags or tag the latest change.
 
-=item C<--named>
+=item L<C<rework>|sqitch-rework>
 
-The name of the change. Must be a valid change name. This option may be passed
-without a C<-n> or C<--named>.
+Rework an existing change.
 
-=item C<-r>
+=item L<C<deploy>|sqitch-deploy>
 
-=item C<--requires>
+Deploy changes.
 
-Name of a change that is required by the new change.
+=item L<C<revert>|sqitch-revert>
 
-=item C<-c>
-
-=item C<--conflicts>
-
-Name of a change that conflicts with the new change.
-
-=back
-
-=item C<deploy>
-
-Deploy changes. Configuration properties may be specified under the
-C<[deploy]> section of the configuration file, or via C<sqitch config>:
-
-  sqitch config deploy.$property $value
-
-Options and configuration properties:
-
-=over
-
-=item C<--to>
-
-Change or tag to deploy up to. Defaults to the latest tag or to the VCS C<HEAD>
-commit. Property name: C<deploy.to>.
-
-=item C<-u>
-
-=item C<--untracked>
-
-Also deploy any changes that have been added to the F<deploy> directory but have
-not yet been added to the plan or committed to the VCS. Useful when developing
-new deployment changes but have not yet committed them.
-
-=back
-
-=item C<revert>
-
-Revert changes. Configuration properties may be specified under the
-C<[revert]> section of the configuration file, or via C<sqitch config>:
-
-  sqitch config revert.$property $value
-
-Options and configuration properties:
-
-=over
-
-=item C<--to>
-
-Tag to revert to. Defaults to reverting all changes. Property name:
-C<revert.to>.
-
-=back
+Revert changes.
 
 =item C<test>
+
+*Not yet implemented.
 
 Test changes. All SQL scripts in C<--test-dir> will be run.
 [XXX Not sure whether to have subdirectories for tests and expected output and
@@ -531,15 +488,16 @@ to diff them, or to use some other approach.]
 
 =item L<C<config>|sqitch-config>
 
-Get and set project, user, or system Sqitch options. By default, the options
-will be written to the local configuration file, F<sqitch.conf>
+Get and set project, user, or system Sqitch options.
 
 =item C<bundle>
 
-Bundle up deployment and reversion scripts and write out a plan file.
-Configuration properties may be specified under the C<[bundle]> section of the
-configuration file, or via C<sqitch config bundle.$property $value> command.
-Options and configuration properties:
+*Not yet implemented.
+
+Bundle up deployment and reversion scripts and write out plan and
+configuration files. Configuration properties may be specified under the
+C<[bundle]> section of the configuration file, or via C<sqitch config
+bundle.$property $value> command. Options and configuration properties:
 
 =over
 
@@ -556,11 +514,6 @@ C<bundle.from>.
 Tag with which to end the plan. No changes or tags after that tag will be
 included in the plan, and their change scripts will be omitted from the bundle
 directory. Property name: C<bundle.to>.
-
-=item C<--tags-only>
-
-Write the plan file with deployment targets listed under VCS tags, rather than
-individual commits. Property name: C<bundle.tags_only>.
 
 =item C<--destdir>
 
@@ -620,163 +573,6 @@ point to system-specific engine information:
 
 Various commands read from the configuration file and adjust their operation
 accordingly. See L<sqitch-config> for a list.
-
-=head1 Plan File
-
-A plan file describes the deployment changes to be run against a database. Its
-contents must be plain text encoded as UTF-8. Each line of a plan file may be
-one of four things:
-
-=over
-
-=item *
-
-A blank line. May include any amount of white space, which will be ignored.
-
-=item * A comment.
-
-Begins with a C<#> and goes to the end of the line. Preceding white space is
-ignored.
-
-=item * A Pragma
-
-Begins with a C<%>, followed by a pragma name, optionally followed by C<=> and
-a value. Currently, the only pragma recognized by Sqitch is C<syntax-version>.
-
-=item * A change.
-
-A named change change. A change consists of an optional C<+> or C<-> character
-followed by one or more non-whitespace characters, of which the first and last
-characters must not be punctuation characters. Changes with a leading C<-> are
-slated to be reverted, while changes with no character or a leading C<+> are to
-be deployed. Comments or white space after the change name will be ignored.
-
-=item * A tag.
-
-A named deployment tag, generally corresponding to a release name. Begins with
-a C<@>, followed by one or more non-whitespace characters. The first and last
-characters must not be punctuation characters. Comments or white space after
-the change name will be ignored.
-
-=back
-
-Here's an example of a plan file with a single deploy change and tag:
-
- %syntax-version=1.0.0
- +users_table
- @alpha
-
-There may, of course, be any number of tags and changes. Here's an expansion:
-
- %syntax-version=1.0.0
- +users_table
- +insert_user
- +update_user
- +delete_user
- @root
- @alpha
-
-Here we have four changes -- "users_table", "insert_user", "update_user", and
-"delete_user" -- followed by two tags: "root" and "alpha".
-
-Most plans will have many changes and tags. Here's a longer example with three
-tagged deployment points, as well as a change that is deployed and later
-reverted:
-
- %syntax-version=1.0.0
- +users_table
- +insert_user
- +update_user
- +delete_user
- +dr_evil
- @root
- @alpha
-
- +widgets_table
- +list_widgets
- @beta
-
- -dr_evil
- +ftw
- @gamma
-
-Using this plan, to deploy to the "beta" tag, all of the changes up to the
-"root"/"alpha" tags must be deployed, as must changes listed before the "beta"
-tag. To then deploy to the "gamma" tag, the "dr_evil" change must be reverted
-and the "ftw" change must be deployed. If you then choose to revert to the
-"alpha" tag, then the "ftw" change will be reverted, the "dr_evil" change
-re-deployed, and the "gamma" tag removed; then the "list_widgets" must be
-reverted and the associated "beta" tag removed, then the "widgets_table" change
-must be reverted.
-
-Using this model, changes cannot be repeated between states. One I<can> repeat
-them, however, if the contents for a file in a given tag can be retrieved from
-a VCS. An example:
-
- %syntax-version=1.0.0
- +users_table
- @alpha
-
- +add_widget
- +widgets_table
- @beta
-
- +add_user
- @gamma
-
- +widgets_created_at
- @delta
-
- +add_widget
-
-Note that the "add_widget" change is repeated under the state tagged "beta" and
-at the end. Sqitch will notice the repetition when it parses this file, and
-allow it only if the "beta" tag is present in the VCS. In that case, when
-doing a deployment, Sqitch will fetch the version of the file as of the "beta"
-tag and apply it at that change, and then, when it gets to the last change,
-retrieve the revision of the deployment as it currently exists in the VCS.
-This works in reverse, as well, as long as the changes in this file are always
-L<idempotent|http://en.wikipedia.org/wiki/Idempotence>.
-
-=head2 Grammar
-
-Here is the EBNF Grammar for the plan file:
-
-  plan-file    = { <pragma> | <change-line> | <tag-line> | <comment-line> | <blank-line> }* ;
-
-  blank-line   = [ <blanks> ] <eol>;
-  comment-line = <comment> ;
-  change-line    = <name> [ { <requires> | <conflicts} } ] ( <eol> | <comment> ) ;
-  tag-line     = <tag> ( <eol> | <comment> ) ;
-  pragma       = "%" [ <blanks> ] <name> [ <blanks> ] = [ <blanks> ] <value> ( <eol> | <comment> ) ;
-
-  tag          = "@" <name> ;
-  requires     = ":" <name> ;
-  conflicts    = "!" <name> ;
-  name         = <non-punct> [ [ ? non-blank and not "@" or "#" characters ? ] <non-punct> ] ;
-  non-punct    = ? non-punctuation, non-blank character ? ;
-  value        = ? non-EOL or "#" characters ?
-
-  comment      = [ <blanks> ] "#" [ <string> ] <EOL> ;
-  eol          = [ <blanks> ] <EOL> ;
-
-  blanks       = ? blank characters ? ;
-  string       = ? non-EOL characters ? ;
-
-And written as regular expressions:
-
-  my $eol          = qr/[[:blank:]]*$/
-  my $comment      = qr/(?:[[:blank:]]+)?[#].+$/;
-  my $name         = qr/[^[:punct:][:blank:]](?:(?:[^[:space:]@]+)?[^[:punct:][:blank:]])?/;
-  my $tag          = qr/[@]$name/;
-  my $requires     = qr/[:]$name/;
-  my conflicts     = qr/[!]$name/;
-  my $tag_line     = qr/^$tag(?:$comment|$eol)/;
-  my $change_line    = qr/^$name(?:$requires|$conflicts)*(?:$comment|$eol)/;
-  my $comment_line = qr/^$comment/;
-  my $pragma    = qr/^][[:blank:]]*[%][[:blank:]]*$name[[:blank:]]*=[[:blank:]].+?(?:$comment|$eol)$/;
-  my $blank_line   = qr/^$eol/;
-  my $plan         = qr/(?:$pragma|$change_line|$tag_line|$comment_line|$blank_line)+/ms;
 
 =head1 See Also
 

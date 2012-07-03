@@ -859,6 +859,167 @@ tagged or have a tag following it or an exception will be thrown. The previous
 occurrence of the change will have the suffix of the most recent tag added to
 it, and a new tag instance will be added to the list.
 
+=head1 Plan File
+
+A plan file describes the deployment changes to be run against a database, and
+is typically maintained using the L<C<add>|sqitch-add> and
+L<C<rework>|sqitch-rework> commands. Its contents must be plain text encoded
+as UTF-8. Each line of a plan file may be one of four things:
+
+=over
+
+=item *
+
+A blank line. May include any amount of white space, which will be ignored.
+
+=item * A Pragma
+
+Begins with a C<%>, followed by a pragma name, optionally followed by C<=> and
+a value. Currently, the only pragma recognized by Sqitch is C<syntax-version>.
+
+=item * A change.
+
+A named change change. A change consists of an optional C<+> or C<-> character
+followed by one or more non-whitespace characters, of which the first and last
+characters must not be punctuation characters. A change may then also contain
+a space-delimited list of dependencies, which are the names of other changes
+or tags prefixed with a colon (C<:>) for required changes or with an
+exclamation point (C<!>) for conflicting changes.
+
+Changes with a leading C<-> are slated to be reverted, while changes with no
+character or a leading C<+> are to be deployed.
+
+=item * A tag.
+
+A named deployment tag, generally corresponding to a release name. Begins with
+a C<@>, followed by one or more non-whitespace characters. The first and last
+characters must not be punctuation characters.
+
+=item * A comment.
+
+Begins with a C<#> and goes to the end of the line. Preceding white space is
+ignored. May appear on a line after a pragma, change, or tag.
+
+=back
+
+Here's an example of a plan file with a single deploy change and tag:
+
+ %syntax-version=1.0.0
+ +users_table
+ @alpha
+
+There may, of course, be any number of tags and changes. Here's an expansion:
+
+ %syntax-version=1.0.0
+ +users_table
+ +insert_user
+ +update_user
+ +delete_user
+ @root
+ @alpha
+
+Here we have four changes -- "users_table", "insert_user", "update_user", and
+"delete_user" -- followed by two tags: "root" and "alpha".
+
+Most plans will have many changes and tags. Here's a longer example with three
+tagged deployment points, as well as a change that is deployed and later
+reverted:
+
+ %syntax-version=1.0.0
+ +users_table
+ +insert_user
+ +update_user
+ +delete_user
+ +dr_evil
+ @root
+ @alpha
+
+ +widgets_table
+ +list_widgets
+ @beta
+
+ -dr_evil
+ +ftw
+ @gamma
+
+Using this plan, to deploy to the "beta" tag, all of the changes up to the
+"root"/"alpha" tags must be deployed, as must changes listed before the "beta"
+tag. To then deploy to the "gamma" tag, the "dr_evil" change must be reverted
+and the "ftw" change must be deployed. If you then choose to revert to the
+"alpha" tag, then the "ftw" change will be reverted, the "dr_evil" change
+re-deployed, and the "gamma" tag removed; then the "list_widgets" must be
+reverted and the associated "beta" tag removed, then the "widgets_table" change
+must be reverted.
+
+Using this model, changes cannot be repeated between states. One I<can> repeat
+them, however, if the contents for a file in a given tag can be retrieved from
+a VCS. An example:
+
+ %syntax-version=1.0.0
+ +users_table
+ @alpha
+
+ +add_widget
+ +widgets_table
+ @beta
+
+ +add_user
+ @gamma
+
+ +widgets_created_at
+ @delta
+
+ +add_widget
+
+Note that the "add_widget" change is repeated under the state tagged "beta" and
+at the end. Sqitch will notice the repetition when it parses this file, and
+allow it only if the "beta" tag is present in the VCS. In that case, when
+doing a deployment, Sqitch will fetch the version of the file as of the "beta"
+tag and apply it at that change, and then, when it gets to the last change,
+retrieve the revision of the deployment as it currently exists in the VCS.
+This works in reverse, as well, as long as the changes in this file are always
+L<idempotent|http://en.wikipedia.org/wiki/Idempotence>.
+
+=head2 Grammar
+
+Here is the EBNF Grammar for the plan file:
+
+  plan-file    = { <pragma> | <change-line> | <tag-line> | <comment-line> | <blank-line> }* ;
+
+  blank-line   = [ <blanks> ] <eol>;
+  comment-line = <comment> ;
+  change-line    = <name> [ { <requires> | <conflicts} } ] ( <eol> | <comment> ) ;
+  tag-line     = <tag> ( <eol> | <comment> ) ;
+  pragma       = "%" [ <blanks> ] <name> [ <blanks> ] = [ <blanks> ] <value> ( <eol> | <comment> ) ;
+
+  tag          = "@" <name> ;
+  requires     = ":" <name> ;
+  conflicts    = "!" <name> ;
+  name         = <non-punct> [ [ ? non-blank and not "@" or "#" characters ? ] <non-punct> ] ;
+  non-punct    = ? non-punctuation, non-blank character ? ;
+  value        = ? non-EOL or "#" characters ?
+
+  comment      = [ <blanks> ] "#" [ <string> ] <EOL> ;
+  eol          = [ <blanks> ] <EOL> ;
+
+  blanks       = ? blank characters ? ;
+  string       = ? non-EOL characters ? ;
+
+And written as regular expressions:
+
+  my $eol          = qr/[[:blank:]]*$/
+  my $comment      = qr/(?:[[:blank:]]+)?[#].+$/;
+  my $name         = qr/[^[:punct:][:blank:]](?:(?:[^[:space:]@]+)?[^[:punct:][:blank:]])?/;
+  my $tag          = qr/[@]$name/;
+  my $requires     = qr/[:]$name/;
+  my conflicts     = qr/[!]$name/;
+  my $tag_line     = qr/^$tag(?:$comment|$eol)/;
+  my $change_line    = qr/^$name(?:$requires|$conflicts)*(?:$comment|$eol)/;
+  my $comment_line = qr/^$comment/;
+  my $pragma    = qr/^][[:blank:]]*[%][[:blank:]]*$name[[:blank:]]*=[[:blank:]].+?(?:$comment|$eol)$/;
+  my $blank_line   = qr/^$eol/;
+  my $plan         = qr/(?:$pragma|$change_line|$tag_line|$comment_line|$blank_line)+/ms;
+
 =head1 See Also
 
 =over
