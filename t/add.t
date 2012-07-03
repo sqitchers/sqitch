@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 77;
+use Test::More tests => 81;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -152,9 +152,12 @@ MOCKCONFIG: {
         my $with = "with_$script";
         ok $add->$with, "$with should be true by default";
         my $tmpl = "$script\_template";
-        throws_ok { $add->$tmpl } qr/FAIL/, "Should die on $tmpl";
-        is_deeply +MockOutput->get_fail, [["Cannot find $script template"]],
-            "Should get $tmpl failure message";
+        throws_ok { $add->$tmpl } 'App::Sqitch::X', "Should die on $tmpl";
+        is $@->ident, 'add', 'Should be an "add" exception';
+        is $@->message, __x(
+            'Cannot find {script} template',
+            script => $script,
+        ), "Should get $tmpl failure message";;
     }
 }
 
@@ -186,10 +189,13 @@ MOCKCONFIG: {
         '_find should work with user_dir from Config';
 
     $config_mock->unmock('user_dir');
-    throws_ok { $add->_find('test') } qr/FAIL/,
+    throws_ok { $add->_find('test') } 'App::Sqitch::X',
         "Should die trying to find template";
-    is_deeply +MockOutput->get_fail, [["Cannot find test template"]],
-        "Should get unfound test template message";
+    is $@->ident, 'add', 'Should be an "add" exception';
+    is $@->message, __x(
+        'Cannot find {script} template',
+        script => 'test',
+    ), "Should get unfound test template message";
 
     $config_mock->mock(system_dir => Path::Class::dir('etc'));
     is $add->_find('deploy'), Path::Class::file(qw(etc templates deploy.tmpl)),
@@ -278,9 +284,9 @@ file_contents_like +File::Spec->catfile(qw(sql revert widgets_table.sql)),
 file_contents_like +File::Spec->catfile(qw(sql test widgets_table.sql)),
     qr/^-- Test widgets_table/, 'Test script should look right';
 is_deeply +MockOutput->get_info, [
-    ["Created $deploy_file"],
-    ["Created $revert_file"],
-    ["Created $test_file"],
+    [__x 'Created {file}', file => $deploy_file],
+    [__x 'Created {file}', file => $revert_file],
+    [__x 'Created {file}', file => $test_file],
     [__x 'Added "{change}" to {file}',
         change => 'widgets_table',
         file   => $sqitch->plan_file,
@@ -318,9 +324,9 @@ is_deeply [$change->requires],  ['widgets_table'], 'It should have requires';
 is_deeply [$change->conflicts], [qw(dr_evil joker)], 'It should have conflicts';
 
 is_deeply +MockOutput->get_info, [
-    ["Skipped $deploy_file: already exists"],
-    ["Created $revert_file"],
-    ["Created $test_file"],
+    [__x 'Skipped {file}: already exists', file => $deploy_file],
+    [__x 'Created {file}', file => $revert_file],
+    [__x 'Created {file}', file => $test_file],
     [__x 'Added "{change}" to {file}',
         change => 'foo_table :widgets_table !dr_evil !joker',
         file   => $sqitch->plan_file,

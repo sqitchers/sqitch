@@ -6,6 +6,7 @@ use warnings;
 use utf8;
 use Template::Tiny;
 use Locale::TextDomain qw(App-Sqitch);
+use App::Sqitch::X qw(hurl);
 use Moose;
 use MooseX::Types::Path::Class;
 use Path::Class;
@@ -83,7 +84,10 @@ sub _find {
             my $tmpl = $dir->file("$script.tmpl");
             return $tmpl if -f $tmpl;
         }
-        $self->fail("Cannot find $script template");
+        hurl add => __x(
+            'Cannot find {script} template',
+            script => $script,
+        );
     };
 }
 
@@ -173,7 +177,10 @@ sub execute {
 sub _add {
     my ( $self, $name, $file, $tmpl ) = @_;
     if (-e $file) {
-        $self->info("Skipped $file: already exists");
+        $self->info(__x(
+            'Skipped {file}: already exists',
+            file => $file,
+        ));
         return $self;
     }
 
@@ -181,11 +188,19 @@ sub _add {
     make_path $file->dir->stringify, { error => \my $err };
     if ( my $diag = shift @{ $err } ) {
         my ( $path, $msg ) = %{ $diag };
-        $self->fail("Error creating $path: $msg") if $path;
-        $self->fail($msg);
+        hurl add => __x(
+            'Error creating {path}: {error}',
+            path  => $path,
+            error => $msg,
+        ) if $path;
+        hurl add => $msg;
     }
 
-    my $fh = $file->open('>:utf8') or $self->fail("Cannot open $file: $!");
+    my $fh = $file->open('>:utf8') or hurl add => __x(
+        'Cannot open {file}: {error}',
+        file  => $file,
+        error => $!
+    );
     my $orig_selected = select;
     select $fh;
 
@@ -196,15 +211,22 @@ sub _add {
         conflicts => $self->conflicts,
     });
 
-    close $fh or $self->fail("Cannot close $file: $!");
+    close $fh or hurl add => __x(
+        'Error closing {file}: {error}',
+        file  => $file,
+        error => $!
+    );
     select $orig_selected;
-    $self->info("Created $file");
+    $self->info(__x 'Created {file}', file => $file);
 }
 
 sub _slurp {
     my ( $self, $tmpl ) = @_;
-    open my $fh, "<:encoding(UTF-8)", $tmpl
-        or $self->fail("cannot open $tmpl: $!");
+    open my $fh, "<:encoding(UTF-8)", $tmpl or hurl add => __x(
+        'Cannot open {file}: {error}',
+        file  => $tmpl,
+        error => $!
+    );
     local $/;
     return \<$fh>;
 }
