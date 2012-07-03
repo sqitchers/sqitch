@@ -1,6 +1,6 @@
 Revision history for Perl extension App::Sqitch
 
-0.50
+0.50  2012-07-03T19:55:20Z
      - Require a plan file.
      - Renamed "steps" to "changes".
      - New plan file spec.
