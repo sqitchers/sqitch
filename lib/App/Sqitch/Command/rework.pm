@@ -52,7 +52,7 @@ sub execute {
         $name . [$plan->last_tagged_change->tags]->[-1]->format_name
     );
 
-    # Copy the files over.
+    # Copy files to the new names for the previous instance of the change.
     my @files = (
         $self->_copy(
             $name,
@@ -61,15 +61,22 @@ sub execute {
         ),
         $self->_copy(
             $name,
-            $reworked->deploy_file,
-            $prev->revert_file,
             $reworked->revert_file,
+            $prev->revert_file,
         ),
         $self->_copy(
             $name,
             $reworked->test_file,
             $prev->test_file,
         ),
+    );
+
+    # Replace the revert file with the previous deploy file.
+    $self->_copy(
+        $name,
+        $reworked->deploy_file,
+        $reworked->revert_file,
+        $prev->revert_file,
     );
 
     # We good, write the plan file back out.
@@ -93,7 +100,7 @@ sub _copy {
         $self->debug(__x(
             'Skipped {dest}: {src} does not exist',
             dest => $dest,
-            src  => $src,
+            src  => $orig,
         ));
         return;
     }

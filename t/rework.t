@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 73;
+use Test::More tests => 74;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -13,7 +13,7 @@ use URI;
 use App::Sqitch::Command::add;
 use Path::Class;
 use Test::File qw(file_not_exists_ok file_exists_ok);
-use Test::File::Contents qw(file_contents_identical);
+use Test::File::Contents qw(file_contents_identical file_contents_is);
 use File::Path qw(make_path remove_tree);
 use lib 't/lib';
 use MockOutput;
@@ -109,8 +109,17 @@ ok $rework->execute('foo'), 'Rework "foo"';
 file_exists_ok($_) for ($deploy_file, $revert_file, $test_file);
 file_exists_ok($_) for ($deploy_file2, $revert_file2, $test_file2);
 file_contents_identical($deploy_file2, $deploy_file);
-file_contents_identical($revert_file2, $deploy_file);
 file_contents_identical($test_file2, $test_file);
+file_contents_identical($revert_file, $deploy_file);
+file_contents_is($revert_file2, <<'EOF', 'New revert should revert');
+-- Revert foo
+
+BEGIN;
+
+-- XXX Add DDLs here.
+
+COMMIT;
+EOF
 
 # The plan file should have been updated.
 ok $plan->load, 'Reload the plan file';
@@ -140,12 +149,17 @@ is_deeply +MockOutput->get_debug, [
     [__x(
         'Copied {src} to {dest}',
         dest => $revert_file2,
-        src  => $deploy_file,
+        src  => $revert_file,
     )],
     [__x(
         'Copied {src} to {dest}',
         dest => $test_file2,
         src  => $test_file,
+    )],
+    [__x(
+        'Copied {src} to {dest}',
+        dest => $revert_file,
+        src  => $deploy_file,
     )],
 ], 'Debug should show file copying';
 
@@ -218,11 +232,16 @@ is_deeply +MockOutput->get_debug, [
     [__x(
         'Skipped {dest}: {src} does not exist',
         dest => $revert_file3,
-        src  => $deploy_file,
+        src  => $revert_file,
     )],
     [__x(
         'Skipped {dest}: {src} does not exist',
         dest => $test_file3,
         src  => $test_file,
+    )],
+    [__x(
+        'Skipped {dest}: {src} does not exist',
+        dest => $revert_file,
+        src  => $revert_file3, # No previous revert, no need for new revert.
     )],
 ], 'Should have debug oputput for missing files';
