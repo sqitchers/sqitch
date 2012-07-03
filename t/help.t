@@ -3,9 +3,11 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 9;
+use Test::More tests => 11;
 #use Test::More 'no_plan';
 use App::Sqitch;
+use Locale::TextDomain qw(App-Sqitch);
+use Test::Exception;
 use Config;
 use File::Spec;
 use Test::MockModule;
@@ -43,6 +45,11 @@ is_deeply \@args, [
 
 my @fail;
 $mock->mock(fail => sub { @fail = @_ });
-ok $help->execute('nonexistent'), 'Execute "nonexistent" help';
-is_deeply \@fail, [$help, qq{No manual entry for sqitch-nonexistent\n}],
-    'Should get failure message for nonexistent command';
+throws_ok { $help->execute('nonexistent') } 'App::Sqitch::X',
+    'Should get an exception for "nonexistent" help';
+is $@->ident, 'help', 'Exception ident should be "help"';
+is $@->message, __x(
+    'No manual entry for {command}',
+    command => 'sqitch-nonexistent',
+), 'Should get failure message for nonexistent command';
+is $@->exitval, 1, 'Exception exit val should be 1';

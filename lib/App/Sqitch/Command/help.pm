@@ -4,7 +4,8 @@ use v5.10.1;
 use strict;
 use warnings;
 use utf8;
-use Carp;
+use Locale::TextDomain qw(App-Sqitch);
+use App::Sqitch::X qw(hurl);
 use Pod::Find;
 use Moose;
 extends 'App::Sqitch::Command';
@@ -19,7 +20,12 @@ sub execute {
     my $pod = Pod::Find::pod_where({
         '-inc' => 1,
         '-script' => 1
-    }, $look_for ) or $self->fail(qq{No manual entry for $look_for\n});
+    }, $look_for ) or hurl {
+        ident   => 'help',
+        message => __x('No manual entry for {command}', command => $look_for),
+        exitval => 1,
+    };
+
     $self->_pod2usage(
         '-input'   => $pod,
         '-verbose' => 2,
