@@ -1040,11 +1040,12 @@ anyway, right? Well we have, with C<@v1.0.0-dev2> added in the previous
 section. With that, we can let Sqitch do most of the hard work for us, thanks
 to the C<rework> command:
 
-  > sqitch rework insert_user
-  Added "insert_user :insert_user@v1.0.0-dev2" to sqitch.plan. Modify these files:
-  deploy/insert_user.sql
-  revert/insert_user.sql
-  test/insert_user.sql
+  > sqitch rework insert_user --requires pgcrypto
+  Added "insert_user :insert_user@v1.0.0-dev2 :pgcrypto" to sqitch.plan.
+  Modify these files as appropriate:
+    * deploy/insert_user.sql
+    * revert/insert_user.sql
+    * test/insert_user.sql
 
 Oh, so we can edit those files in place. Nice! How does Sqitch do it? Well, in
 point of fact, it has copied the files to stand in for the previous instance
@@ -1056,6 +1057,7 @@ of the C<insert_user> step, which we can see via C<git status>:
   #   (use "git add <file>..." to update what will be committed)
   #   (use "git checkout -- <file>..." to discard changes in working directory)
   #
+  #	modified:   revert/insert_user.sql
   #	modified:   sqitch.plan
   #
   # Untracked files:
@@ -1066,88 +1068,30 @@ of the C<insert_user> step, which we can see via C<git status>:
   #	test/insert_user@v1.0.0-dev2.sql
   no changes added to commit (use "git add" and/or "git commit -a")
 
-The "untracked files" are the ones to note here. They are all named
-C<insert_user@v1.0.0-dev2.sql>. What that means is, "the C<insert_user> step
-as it was implemented as of the C<@v1.0.0-dev2> tag.
+The "untracked files" part of the output is the first thing to notice. They
+are all named C<insert_user@v1.0.0-dev2.sql>. What that means is, "the
+C<insert_user> step as it was implemented as of the C<@v1.0.0-dev2> tag. These
+are copies of the original scripts, and thereafter Sqitch will find them when
+it needs to run scripts for the first instance of the C<insert_user> change.
+As such, it's important not to change them again. But hey, if you're reworking
+them, you shouldn't need to.
 
-=begin comment
-
-XXX Commenting out for now; Sqitch doesn't support Git integration yet. Update
-this section when we come back to it.
-
-That doesn't seem I<too> bad. And you can do that with Sqitch, if you want.
-But it makes for rather bad VCS management. This is effectively a one-line
-change to each function, but we're copying their entire contents to new files.
-Hell, the reversion script is I<identical> to the original deploy script.
-
-Perhaps worse, though, is that it's much more difficult to look at changes in
-the VCS. After committing the C<insert_user_crypt> change, what does the diff
-look like?
-
-  > git diff HEAD^
-  diff --git a/deploy/insert_user_crypt.sql b/deploy/insert_user_crypt.sql
-  new file mode 100644
-  index 0000000..fa8d0c6
-  --- /dev/null
-  +++ b/deploy/insert_user_crypt.sql
-  @@ -0,0 +1,8 @@
-  +-- requires: users, appuser, pgcrypto
-  +
-  +CREATE OR REPLACE FUNCTION insert_user(
-  +    nickname TEXT,
-  +    password TEXT
-  +) RETURNS VOID LANGUAGE SQL AS $$
-  +    INSERT INTO users values($1, crypt($2, gen_salt('md5')));
-  +$$;
-  diff --git a/revert/insert_user_crypt.sql b/revert/insert_user_crypt.sql
-  new file mode 100644
-  index 0000000..a7f4e31
-  --- /dev/null
-  +++ b/revert/insert_user_crypt.sql
-  @@ -0,0 +1,8 @@
-  +-- requires: users, appuser
-  +
-  +CREATE OR REPLACE FUNCTION insert_user(
-  +    nickname TEXT,
-  +    password TEXT
-  +) RETURNS VOID LANGUAGE SQL AS $$
-  +    INSERT INTO users values($1, md5($2));
-  +$$;
-
-Oy. It looks like two new functions were added, not that we just changed one.
-How annoying is that? Of course, if we know the history, we can diff things
-without using the Git history, simply by comparing F<deploy/insert_user.sql>
-to F<deploy/insert_user_crypt.sql>:
-
-  > diff -u deploy/insert_user.sql deploy/insert_user_crypt.sql 
-  --- deploy/insert_user.sql	2012-04-09 14:15:55.000000000 -0700
-  +++ deploy/insert_user_crypt.sql	2012-04-11 16:27:18.000000000 -0700
-  @@ -4,5 +4,5 @@
-       nickname TEXT,
-       password TEXT
-   ) RETURNS VOID LANGUAGE SQL AS $$
-  -    INSERT INTO users values($1, md5($2));
-  +    INSERT INTO users values($1, crypt($2, gen_salt('md5')));
-   $$;
-
-That makes much more sense, but requires special knowledge to realize you
-can't just C<git diff> to see what changed. Wouldn't it be great if we could
-just make the change right in the file, commit it to the VCS, and have the
-deployment and reversion "just work"?
-
-=head2 It's a VCS
-
-Sqitch can. Rather than take all the above changes, you can just modify
-F<deploy/insert_user.sql> and F<deploy/change_padd.sql> I<in place>.
-There is only one requirement for this: All changes to the deployment script,
-including the original version, B<must be
-L<idempotent|http://en.wikipedia.org/wiki/Idempotence>>. That is, the deploy
-script can applied multiple times without changing the result beyond the
-initial application. That's it, the only requirement.
+The other thing to notice is that F<revert/insert_user.sql> has changed.
+Sqitch replaced it with The loriginal deploy script. As of now,
+F<deploy/insert_user.sql> and F<revert/insert_user.sql> are identical. This is
+on the assumption that the deploy script will be changed (we're reworking it,
+remember?), and that the revert script should actually change things back to
+how they were before. Of course, the original deploy script may not be
+L<idempotent|http://en.wikipedia.org/wiki/Idempotence> -- that is, able to be
+applied multiple times without changing the result beyond the initial
+application. If it's not, you will likely need to modify it so that it
+properly restores things to how they were after the original deploy script was
+deployed. Or, more simply, it should revert changes back to how they were
+as-of the deployment of F<deploy/insert_user@v1.0.0-dev2.sql>.
 
 Fortunately, our function deployment scripts are already idempotent, thanks to
 the use of the C<OR REPLACE> expression. No matter how many times a deployment
-script is run, he end result will be the same instance of the function, with
+script is run, the end result will be the same instance of the function, with
 no duplicates or errors.
 
 As a result, there is no need to explicitly add changes. So go ahead. Modify the
@@ -1258,6 +1202,81 @@ So let's go ahead and commit these changes and bring the database up-to-date:
   # Date: 2012-04-12 18:59:26
   #
   Nothing to deploy (up-to-date)
+
+=begin comment
+
+XXX Commenting out for now; Sqitch doesn't support Git integration yet. Update
+this section when we come back to it.
+
+That doesn't seem I<too> bad. And you can do that with Sqitch, if you want.
+But it makes for rather bad VCS management. This is effectively a one-line
+change to each function, but we're copying their entire contents to new files.
+Hell, the reversion script is I<identical> to the original deploy script.
+
+Perhaps worse, though, is that it's much more difficult to look at changes in
+the VCS. After committing the C<insert_user_crypt> change, what does the diff
+look like?
+
+  > git diff HEAD^
+  diff --git a/deploy/insert_user_crypt.sql b/deploy/insert_user_crypt.sql
+  new file mode 100644
+  index 0000000..fa8d0c6
+  --- /dev/null
+  +++ b/deploy/insert_user_crypt.sql
+  @@ -0,0 +1,8 @@
+  +-- requires: users, appuser, pgcrypto
+  +
+  +CREATE OR REPLACE FUNCTION insert_user(
+  +    nickname TEXT,
+  +    password TEXT
+  +) RETURNS VOID LANGUAGE SQL AS $$
+  +    INSERT INTO users values($1, crypt($2, gen_salt('md5')));
+  +$$;
+  diff --git a/revert/insert_user_crypt.sql b/revert/insert_user_crypt.sql
+  new file mode 100644
+  index 0000000..a7f4e31
+  --- /dev/null
+  +++ b/revert/insert_user_crypt.sql
+  @@ -0,0 +1,8 @@
+  +-- requires: users, appuser
+  +
+  +CREATE OR REPLACE FUNCTION insert_user(
+  +    nickname TEXT,
+  +    password TEXT
+  +) RETURNS VOID LANGUAGE SQL AS $$
+  +    INSERT INTO users values($1, md5($2));
+  +$$;
+
+Oy. It looks like two new functions were added, not that we just changed one.
+How annoying is that? Of course, if we know the history, we can diff things
+without using the Git history, simply by comparing F<deploy/insert_user.sql>
+to F<deploy/insert_user_crypt.sql>:
+
+  > diff -u deploy/insert_user.sql deploy/insert_user_crypt.sql 
+  --- deploy/insert_user.sql	2012-04-09 14:15:55.000000000 -0700
+  +++ deploy/insert_user_crypt.sql	2012-04-11 16:27:18.000000000 -0700
+  @@ -4,5 +4,5 @@
+       nickname TEXT,
+       password TEXT
+   ) RETURNS VOID LANGUAGE SQL AS $$
+  -    INSERT INTO users values($1, md5($2));
+  +    INSERT INTO users values($1, crypt($2, gen_salt('md5')));
+   $$;
+
+That makes much more sense, but requires special knowledge to realize you
+can't just C<git diff> to see what changed. Wouldn't it be great if we could
+just make the change right in the file, commit it to the VCS, and have the
+deployment and reversion "just work"?
+
+=head2 It's a VCS
+
+Sqitch can. Rather than take all the above changes, you can just modify
+F<deploy/insert_user.sql> and F<deploy/change_padd.sql> I<in place>.
+There is only one requirement for this: All changes to the deployment script,
+including the original version, B<must be
+L<idempotent|http://en.wikipedia.org/wiki/Idempotence>>. That is, the deploy
+script can applied multiple times without changing the result beyond the
+initial application. That's it, the only requirement.
 
 =head2 What about Bundling?
 

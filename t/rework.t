@@ -132,13 +132,18 @@ is_deeply [$steps[1]->requires], ['foo@alpha'],
 
 is_deeply +MockOutput->get_info, [
     [__x(
-        'Added "{change}" to {file}. Modify these files:',
+        'Added "{change}" to {file}.',
         change => 'foo :foo@alpha',
         file   => $sqitch->plan_file,
     )],
-    [$deploy_file],
-    [$revert_file],
-    [$test_file],
+    [__n(
+        'Modify this file as appropriate:',
+        'Modify these files as appropriate:',
+        3,
+    )],
+    ["  * $deploy_file"],
+    ["  * $revert_file"],
+    ["  * $test_file"],
 ], 'And the info message should suggest editing the old files';
 is_deeply +MockOutput->get_debug, [
     [__x(
@@ -216,11 +221,16 @@ is_deeply [$steps[3]->conflicts], ['dr_evil'],
 
 is_deeply +MockOutput->get_info, [
     [__x(
-        'Added "{change}" to {file}. Modify these files:',
+        'Added "{change}" to {file}.',
         change => 'bar :bar@beta :foo !dr_evil',
         file   => $sqitch->plan_file,
     )],
-    [$deploy_file],
+    [__n(
+        'Modify this file as appropriate:',
+        'Modify these files as appropriate:',
+        1,
+    )],
+    ["  * $deploy_file"],
 ], 'And the info message should show only the one file to modify';
 
 is_deeply +MockOutput->get_debug, [

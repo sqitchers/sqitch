@@ -84,11 +84,16 @@ sub execute {
 
     # Let the user knnow what to do.
     $self->info(__x(
-        'Added "{change}" to {file}. Modify these files:',
+        'Added "{change}" to {file}.',
         change => $reworked->format_content,
         file   => $sqitch->plan_file,
     ));
-    $self->info($_) for @files;
+    $self->info(__n(
+        'Modify this file as appropriate:',
+        'Modify these files as appropriate:',
+        scalar @files,
+    ));
+    $self->info("  * $_") for @files;
 
     return $self;
 }
