@@ -167,13 +167,13 @@ use L<Try::Tiny> to do exception handling, like so:
       # ...
   } catch {
       die $_ unless eval { $_->isa('App::Sqitch::X') };
-      $sqitch->vent($_->message);
+      $sqitch->vent($x_->message);
       if ($_->ident eq 'DEV') {
           $sqitch->vent($_->stack_trace->as_string);
       } else {
           $sqitch->debug($_->stack_trace->as_string);
       }
-      $sqitch->bail(2);
+      exit $_->exitval;
   };
 
 Use the C<ident> attribute to determine what category of exception it is, and

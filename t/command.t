@@ -12,7 +12,7 @@ BEGIN {
     $SIG{__DIE__} = \&Carp::confess;
 }
 
-use Test::More tests => 95;
+use Test::More tests => 87;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Test::Exception;
@@ -361,24 +361,3 @@ like capture_stderr {
     throws_ok { $cmd->usage('Invalid whozit') } qr/EXITED: 2/
 }, qr/\Qsqitch [<options>] <command> [<command-options>] [<args>]/,
     'usage should prefer sqitch-$command-usage';
-
-# Bail.
-is capture_stdout {
-    throws_ok { $cmd->bail(0, 'This ', "that\n", "and the other") }
-        qr/EXITED: 0/
-}, "This that\nand the other\n",
-    'bail should work with exit code 0';
-
-is capture_stdout {
-    throws_ok { $cmd->bail(0) } qr/EXITED: 0/
-}, '',  'bail 0 should emit nothing when no messages';
-
-is capture_stderr {
-    throws_ok { $cmd->bail(1, 'This ', "that\n", "and the other") }
-        qr/EXITED: 1/
-}, "This that\nand the other\n",
-    'bail should work with exit code 1';
-
-is capture_stderr {
-    throws_ok { $cmd->bail(2) } qr/EXITED: 2/
-}, '',  'bail 2 should emit nothing when no messages';

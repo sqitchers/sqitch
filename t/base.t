@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 93;
+use Test::More tests => 85;
 #use Test::More 'no_plan';
 use Test::MockModule;
 use Path::Class;
@@ -240,33 +240,8 @@ is capture_stderr {
 }, "sqch: This that\nsqch: and the other. See sqch --help\n",
     'help should work';
 
-# Bail.
-is capture_stdout {
-    throws_ok { $sqitch->bail(0, 'This ', "that\n", "and the other") }
-        qr/EXITED: 0/
-}, "This that\nand the other\n",
-    'bail should work with exit code 0';
-
-is capture_stdout {
-    throws_ok { $sqitch->bail(0) } qr/EXITED: 0/
-}, '',  'bail 0 should emit nothing when no messages';
-
-is capture_stderr {
-    throws_ok { $sqitch->bail(1, 'This ', "that\n", "and the other") }
-        qr/EXITED: 1/
-}, "This that\nand the other\n",
-    'bail should work with exit code 1';
-
-is capture_stderr {
-    throws_ok { $sqitch->bail(2) } qr/EXITED: 2/
-}, '',  'bail 2 should emit nothing when no messages';
-
 ##############################################################################
 # Test run().
-my $mock = Test::MockModule->new($CLASS);
-my @bail;
-$mock->mock(bail => sub { shift; @bail = @_; die "BAILED: @_" });
-
 can_ok $CLASS, 'run';
 my ($stdout, $stderr) = capture {
     ok $sqitch->run(

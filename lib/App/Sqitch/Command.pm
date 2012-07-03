@@ -29,7 +29,6 @@ has sqitch => (
         unfound
         fail
         help
-        bail
     )],
 );
 
@@ -413,13 +412,6 @@ all command subclasses.
 Sends messages to C<STDERR> and exists with an additional message to "See
 sqitch --help". Help messages will have C<sqitch: > prefixed to every line.
 Use if the user has misused the app.
-
-=head3 C<bail>
-
-  $cmd->bail(3, 'The config file is invalid');
-
-Exits with the specified error code, sending any specified messages to
-C<STDOUT> if the exit code is 0, and to C<STDERR> if it is not 0.
 
 =head1 See Also
 
