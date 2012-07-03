@@ -6,6 +6,8 @@ use warnings;
 use utf8;
 use Path::Class ();
 use Try::Tiny;
+use Locale::TextDomain qw(App-Sqitch);
+use App::Sqitch::X qw(hurl);
 use List::Util qw(first);
 use Moose;
 use Moose::Util::TypeConstraints;
@@ -122,9 +124,10 @@ sub execute {
     my $self = shift;
     my $action = $self->action || ( @_ > 1 ? 'set' : 'get' );
     $action =~ s/-/_/g;
-    my $meth = $self->can($action)
-        or die 'No method defined for ', $self->action, ' action';
-
+    my $meth = $self->can($action) or hurl config => __x(
+        'Unknown config action: {action}',
+        action => $action,
+    );
     return $self->$meth(@_);
 }
 
@@ -141,9 +144,11 @@ sub get {
         );
     }
     catch {
-        $self->fail(qq{More then one value for the key "$key"})
-            if /^\QMultiple values/i;
-        $self->fail($_);
+        hurl config => __x(
+            'More then one value for the key "{key}"',
+            key => $key,
+        ) if /^\QMultiple values/i;
+        hurl config => $_;
     };
 
     $self->unfound unless defined $val;
@@ -164,7 +169,7 @@ sub get_all {
         );
     }
     catch {
-        $self->fail($_);
+        hurl config => $_;
     };
     $self->unfound unless @vals;
     $self->emit( join $/, @vals );
@@ -185,7 +190,7 @@ sub get_regex {
         );
     }
     catch {
-        $self->fail($_);
+        hurl config => $_;
     };
     $self->unfound unless %vals;
     my @out;
@@ -239,9 +244,10 @@ sub _set {
         );
     }
     catch {
-        $self->fail('Cannot overwrite multiple values with a single value')
-            if /^Multiple occurrences/i;
-        $self->fail($_);
+        hurl config => __(
+            'Cannot overwrite multiple values with a single value'
+        ) if /^Multiple occurrences/i;
+        hurl config => $_;
     };
     return $self;
 }
@@ -268,9 +274,10 @@ sub unset {
         );
     }
     catch {
-        $self->fail('Cannot unset key with multiple values')
-            if /^Multiple occurrences/i;
-        $self->fail($_);
+        hurl config => __(
+            'Cannot unset key with multiple values'
+        ) if /^Multiple occurrences/i;
+        hurl config => $_;
     };
     return $self;
 }
@@ -319,8 +326,8 @@ sub rename_section {
         );
     }
     catch {
-        $self->fail('No such section!') if /\Qno such section/i;
-        $self->fail($_);
+        hurl config => __ 'No such section!' if /\Qno such section/i;
+        hurl config => $_;
     };
     return $self;
 }
@@ -336,8 +343,8 @@ sub remove_section {
         );
     }
     catch {
-        $self->fail('No such section!') if /\Qno such section/i;
-        die $_;
+        hurl config => __ 'No such section!' if /\Qno such section/i;
+        hurl config => $_;
     };
     return $self;
 }
