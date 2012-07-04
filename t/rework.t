@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 74;
+use Test::More tests => 76;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -66,12 +66,14 @@ make_path 'sql';
 END { remove_tree 'sql' };
 my $plan = $sqitch->plan;
 
-throws_ok { $rework->execute('foo') } qr/^FAIL:/,
+throws_ok { $rework->execute('foo') } 'App::Sqitch::X',
     'Should get an example for nonexistent change';
-is_deeply +MockOutput->get_fail, [[
-    qq{Change "foo" does not exist.\n},
-    qq{Use "sqitch add foo" to add it to the plan},
-]], 'Fail message should say the step does not exist';
+is $@->ident, 'plan', 'Nonexistent change error ident should be "plan"';
+is $@->message, __x(
+    qq{Change "{change}" does not exist.\n}
+    . 'Use "sqitch add {change}" to add it to the plan',
+    change => 'foo',
+), 'Fail message should say the step does not exist';
 
 # Use the add command to create a step.
 my $deploy_file = file qw(sql deploy foo.sql);
@@ -87,12 +89,14 @@ $add->execute('foo');
 file_exists_ok($_) for ($deploy_file, $revert_file, $test_file);
 ok my $foo = $plan->get('foo'), 'Get the "foo" change';
 
-throws_ok { $rework->execute('foo') } qr/^FAIL:/,
+throws_ok { $rework->execute('foo') } 'App::Sqitch::X',
     'Should get an example for duplicate change';
-is_deeply +MockOutput->get_fail, [[
-    qq{Cannot rework "foo" without an intervening tag.\n},
-    'Use "sqitch tag" to create a tag and try again',
-]], 'Fail message should say a tag is needed';
+is $@->ident, 'plan', 'Duplicate change error ident should be "plan"';
+is $@->message, __x(
+    qq{Cannot rework "{change}" without an intervening tag.\n}
+    . 'Use "sqitch tag" to create a tag and try again',
+    change => 'foo',
+), 'Fail message should say a tag is needed';
 
 # Tag it, and *then* it should work.
 ok $plan->add_tag('@alpha'), 'Tag it';

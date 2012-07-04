@@ -673,10 +673,13 @@ is $plan->change_at(1), $next,  'Should still get second change from change_at(1
 is $plan->change_at(2), $third, 'Should still get third change from change_at(1)';
 
 # Make sure seek() chokes on a bad change name.
-throws_ok { $plan->seek('nonesuch') } qr/FAIL:/,
+throws_ok { $plan->seek('nonesuch') } 'App::Sqitch::X',
     'Should die seeking invalid change';
-cmp_deeply +MockOutput->get_fail, [['Cannot find change "nonesuch" in plan']],
-    'And the failure should be sent to output';
+is $@->ident, 'plan', 'Invalid seek change error ident should be "plan"';
+is $@->message, __x(
+    'Cannot find change "{change}" in plan',
+    change => 'nonesuch',
+), 'And the failure message should be correct';
 
 # Get all!
 my @changes = ($change, $next, $third, $fourth);
@@ -710,12 +713,14 @@ file_contents_is $to,
 can_ok $plan, '_is_valid';
 
 for my $name (@bad_names) {
-    throws_ok { $plan->_is_valid( tag => $name) } qr/^FAIL:/,
+    throws_ok { $plan->_is_valid( tag => $name) } 'App::Sqitch::X',
         qq{Should find "$name" invalid};
-    cmp_deeply +MockOutput->get_fail, [[
-        qq{"$name" is invalid: tags must not begin with punctuation },
-        'or end in punctuation or digits following punctuation'
-    ]], qq{And "$name" should trigger the validation error};
+    is $@->ident, 'plan', qq{Invalid name "$name" error ident should be "plan"};
+    is $@->message, __x(
+        qq{"{name}" is invalid: tags must not begin with punctuation }
+        . 'or end in punctuation or digits following punctuation',
+        name => $name,
+    ), qq{And the "$name" error message should be correct};
 }
 
 # Try some valid names.
@@ -758,33 +763,41 @@ is $tag->name, 'alpha', 'The returned tag should be @alpha';
 is $tag->change, $plan->last, 'The @alpha change should be the last change';
 
 # Should choke on a duplicate tag.
-throws_ok { $plan->add_tag('w00t') } qr/^FAIL\b/,
+throws_ok { $plan->add_tag('w00t') } 'App::Sqitch::X',
     'Should get error trying to add duplicate tag';
-cmp_deeply +MockOutput->get_fail, [[
-    'Tag "@w00t" already exists'
-]], 'And the error message should report it as a dupe';
+is $@->ident, 'plan', 'Duplicate tag error ident should be "plan"';
+is $@->message, __x(
+    'Tag "{tag}" already exists',
+    tag => '@w00t',
+), 'And the error message should report it as a dupe';
 
 # Should choke on an invalid tag names.
 for my $name (@bad_names, 'foo#bar') {
-    throws_ok { $plan->add_tag($name) } qr/^FAIL:/,
+    throws_ok { $plan->add_tag($name) } 'App::Sqitch::X',
         qq{Should get error for invalid tag "$name"};
-    cmp_deeply +MockOutput->get_fail, [[
-        qq{"$name" is invalid: tags must not begin with punctuation },
-        'or end in punctuation or digits following punctuation'
-    ]], qq{And "$name" should trigger the appropriate error};
+    is $@->ident, 'plan', qq{Invalid name "$name" error ident should be "plan"};
+    is $@->message, __x(
+        qq{"{name}" is invalid: tags must not begin with punctuation }
+        . 'or end in punctuation or digits following punctuation',
+        name => $name,
+    ), qq{And the "$name" error message should be correct};
 }
 
-throws_ok { $plan->add_tag('HEAD') } qr/^FAIL:/,
+throws_ok { $plan->add_tag('HEAD') } 'App::Sqitch::X',
     'Should get error for reserved tag "HEAD"';
-cmp_deeply +MockOutput->get_fail, [[
-    '"HEAD" is a reserved name'
-]], 'And the reserved name error should be output';
+is $@->ident, 'plan', 'Reserved tag "HEAD" error ident should be "plan"';
+is $@->message, __x(
+    '"{name}" is a reserved name',
+    name => 'HEAD',
+), 'And the reserved tag "HEAD" message should be correct';
 
-throws_ok { $plan->add_tag('ROOT') } qr/^FAIL:/,
+throws_ok { $plan->add_tag('ROOT') } 'App::Sqitch::X',
     'Should get error for reserved tag "ROOT"';
-cmp_deeply +MockOutput->get_fail, [[
-    '"ROOT" is a reserved name'
-]], 'And the reserved name error should be output';
+is $@->ident, 'plan', 'Reserved tag "ROOT" error ident should be "plan"';
+is $@->message, __x(
+    '"{name}" is a reserved name',
+    name => 'ROOT',
+), 'And the reserved tag "ROOT" message should be correct';
 
 throws_ok { $plan->add_tag($sha1) } qr/^FAIL:/,
     'Should get error for a SHA1 tag';
@@ -820,51 +833,61 @@ is [$plan->lines]->[-1], $new_change,
     'The new change should have been appended to the lines, too';
 
 # Should choke on a duplicate change.
-throws_ok { $plan->add('blow') } qr/^FAIL\b/,
+throws_ok { $plan->add('blow') } 'App::Sqitch::X',
     'Should get error trying to add duplicate change';
-cmp_deeply +MockOutput->get_fail, [[
-    qq{Change "blow" already exists.\n},
-    'Use "sqitch rework" to copy and rework it'
-]], 'And the error message should suggest "rework"';
+is $@->ident, 'plan', 'Duplicate change error ident should be "plan"';
+is $@->message, __x(
+    qq{Change "{change}" already exists.\nUse "sqitch rework" to copy and rework it},
+    change => 'blow',
+), 'And the error message should suggest "rework"';
 
 # Should choke on an invalid change names.
 for my $name (@bad_names) {
-    throws_ok { $plan->add($name) } qr/FAIL:/,
+    throws_ok { $plan->add($name) } 'App::Sqitch::X',
         qq{Should get error for invalid change "$name"};
-    cmp_deeply +MockOutput->get_fail, [[
-        qq{"$name" is invalid: changes must not begin with punctuation },
-        'or end in punctuation or digits following punctuation'
-    ]], qq{And "$name" should trigger the appropriate error};
+    is $@->ident, 'plan', qq{Invalid name "$name" error ident should be "plan"};
+    is $@->message, __x(
+        qq{"{name}" is invalid: changes must not begin with punctuation }
+        . 'or end in punctuation or digits following punctuation',
+        name => $name,
+    ), qq{And the "$name" error message should be correct};
 }
 
 # Try a reserved name.
-throws_ok { $plan->add('HEAD') } qr/^FAIL:/,
-    'Should get error for reserved tag "HEAD"';
-cmp_deeply +MockOutput->get_fail, [[
-    '"HEAD" is a reserved name'
-]], 'And the reserved name error should be output';
-
-throws_ok { $plan->add('ROOT') } qr/^FAIL:/,
-    'Should get error for reserved tag "ROOT"';
-cmp_deeply +MockOutput->get_fail, [[
-    '"ROOT" is a reserved name'
-]], 'And the reserved name error should be output';
+throws_ok { $plan->add('HEAD') } 'App::Sqitch::X',
+    'Should get error for reserved name "HEAD"';
+is $@->ident, 'plan', 'Reserved name "HEAD" error ident should be "plan"';
+is $@->message, __x(
+    '"{name}" is a reserved name',
+    name => 'HEAD',
+), 'And the reserved name "HEAD" message should be correct';
+throws_ok { $plan->add('ROOT') } 'App::Sqitch::X',
+    'Should get error for reserved name "ROOT"';
+is $@->ident, 'plan', 'Reserved name "ROOT" error ident should be "plan"';
+is $@->message, __x(
+    '"{name}" is a reserved name',
+    name => 'ROOT',
+), 'And the reserved name "ROOT" message should be correct';
 
 # Try an invalid dependency.
-throws_ok { $plan->add('whu', ['nonesuch' ] ) } qr/^FAIL\b/,
+throws_ok { $plan->add('whu', ['nonesuch' ] ) } 'App::Sqitch::X',
     'Should get failure for failed dependency';
-cmp_deeply +MockOutput->get_fail, [[
-    'Cannot add change "whu": ',
-    'requires unknown change "nonesuch"'
-]], 'The dependency error should have been emitted';
+is $@->ident, 'plan', 'Dependency error ident should be "plan"';
+is $@->message, __x(
+    'Cannot add change "{change}": requires unknown change "{req}"',
+    change => 'whu',
+    req    => 'nonesuch',
+), 'The dependency error should be correct';
 
 # Should choke on an unknown tag, too.
-throws_ok { $plan->add('whu', ['@nonesuch' ] ) } qr/^FAIL\b/,
+throws_ok { $plan->add('whu', ['@nonesuch' ] ) } 'App::Sqitch::X',
     'Should get failure for failed tag dependency';
-cmp_deeply +MockOutput->get_fail, [[
-    'Cannot add change "whu": ',
-    'requires unknown change "@nonesuch"'
-]], 'The tag dependency error should have been emitted';
+is $@->ident, 'plan', 'Tag dependency error ident should be "plan"';
+is $@->message, __x(
+    'Cannot add change "{change}": requires unknown change "{req}"',
+    change => 'whu',
+    req    => '@nonesuch',
+), 'The tag dependency error should be correct';
 
 # Should choke on a change that looks like a SHA1.
 throws_ok { $plan->add($sha1) } qr/^FAIL:/,
@@ -918,28 +941,32 @@ is $plan->index_of('you@HEAD'), 7, 'It should be at position 7';
 is $plan->count, 8, 'The plan count should be 8';
 
 # Try a nonexistent change name.
-throws_ok { $plan->rework('nonexistent') } qr/^FAIL:/,
+throws_ok { $plan->rework('nonexistent') } 'App::Sqitch::X',
     'rework should die on nonexistent change';
-cmp_deeply +MockOutput->get_fail, [[
-    qq{Change "nonexistent" does not exist.\n},
-    qq{Use "sqitch add nonexistent" to add it to the plan},
-]], 'And the error should suggest "sqitch add"';
+is $@->ident, 'plan', 'Nonexistent change error ident should be "plan"';
+is $@->message, __x(
+    qq{Change "{change}" does not exist.\nUse "sqitch add {change}" to add it to the plan},
+    change => 'nonexistent',
+), 'And the error should suggest "sqitch add"';
 
 # Try reworking without an intervening tag.
-throws_ok { $plan->rework('you') } qr/^FAIL:/,
+throws_ok { $plan->rework('you') } 'App::Sqitch::X',
     'rework_stpe should die on lack of intervening tag';
-cmp_deeply +MockOutput->get_fail, [[
-    qq{Cannot rework "you" without an intervening tag.\n},
-    'Use "sqitch tag" to create a tag and try again'
-]], 'And the error should suggest "sqitch tag"';
+is $@->ident, 'plan', 'Missing tag error ident should be "plan"';
+is $@->message, __x(
+    qq{Cannot rework "{change}" without an intervening tag.\nUse "sqitch tag" to create a tag and try again},
+    change => 'you',
+), 'And the error should suggest "sqitch tag"';
 
 # Make sure it checks dependencies.
-throws_ok { $plan->rework('booyah', ['nonesuch' ] ) } qr/^FAIL\b/,
+throws_ok { $plan->rework('booyah', ['nonesuch' ] ) } 'App::Sqitch::X',
     'rework should die on failed dependency';
-cmp_deeply +MockOutput->get_fail, [[
-    'Cannot rework change "booyah": ',
-    'requires unknown change "nonesuch"'
-]], 'The dependency error should have been emitted';
+is $@->ident, 'plan', 'Rework dependency error ident should be "plan"';
+is $@->message, __x(
+    'Cannot rework change "{change}": requires unknown change "{req}"',
+    change => 'booyah',
+    req    => 'nonesuch',
+), 'The rework dependency error should be correct';
 
 ##############################################################################
 # Try a plan with a duplicate change in different tag sections.
@@ -1079,20 +1106,24 @@ cmp_deeply [$plan->sort_changes({'foo' => 1, '@howdy' => 2 }, changes qw(this th
 # Should die if the step comes *after* the specified tag.
 @deps = ({%ddep}, {%ddep, requires => ['foo@howdy']}, {%ddep});
 throws_ok { $plan->sort_changes({'foo' => 3, '@howdy' => 2 }, changes qw(this that other)) }
-    qr/^FAIL:/, 'Should get failure for a step after a tag';
-cmp_deeply +MockOutput->get_fail, [[
-    'Unknown change "foo@howdy" required by change "that"',
-]], 'And we should emit an error for the unknown change as-of a tag';
+    'App::Sqitch::X', 'Should get failure for a step after a tag';
+is $@->ident, 'plan', 'Step after tag error ident should be "plan"';
+is $@->message, __x(
+    'Unknown change "{required}" required by change "{change}"',
+    required => 'foo@howdy',
+    change   => 'that',
+),  'And we the unknown change as-of a tag message should be correct';
 
 # Add a cycle.
 @deps = ({%ddep, requires => ['that']}, {%ddep, requires => ['this']}, {%ddep});
-throws_ok { $plan->sort_changes(changes qw(this that other)) } qr/FAIL:/,
+throws_ok { $plan->sort_changes(changes qw(this that other)) } 'App::Sqitch::X',
     'Should get failure for a cycle';
-cmp_deeply +MockOutput->get_fail, [[
-    'Dependency cycle detected beween changes "',
-    'this',
-    ' and "that"',
-]], 'The cylce should have been logged';
+is $@->ident, 'plan', 'Cycle error ident should be "plan"';
+is $@->message, __x(
+    'Dependency cycle detected beween changes {changes}',
+    changes => __x('"{quoted}"', quoted => 'this')
+             . __ ' and ' . __x('"{quoted}"', quoted => 'that')
+), 'The cycle error message should be correct';
 
 # Add an extended cycle.
 @deps = (
@@ -1100,13 +1131,15 @@ cmp_deeply +MockOutput->get_fail, [[
     {%ddep, requires => ['other']},
     {%ddep, requires => ['this']}
 );
-throws_ok { $plan->sort_changes(changes qw(this that other)) } qr/FAIL:/,
+throws_ok { $plan->sort_changes(changes qw(this that other)) } 'App::Sqitch::X',
     'Should get failure for a two-hop cycle';
-cmp_deeply +MockOutput->get_fail, [[
-    'Dependency cycle detected beween changes "',
-    'this, that',
-    ' and "other"',
-]], 'The cylce should have been logged';
+is $@->ident, 'plan', 'Two-hope cycle error ident should be "plan"';
+is $@->message, __x(
+    'Dependency cycle detected beween changes {changes}',
+    changes => join( __ ', ', map {
+        __x('"{quoted}"', quoted => $_)
+    } qw(this that)) . __ ' and ' . __x('"{quoted}"', quoted => 'other')
+), 'The two-hop cycle error message should be correct';
 
 # Okay, now deal with depedencies from ealier change sections.
 @deps = ({%ddep, requires => ['foo']}, {%ddep}, {%ddep});
@@ -1120,19 +1153,25 @@ cmp_deeply [$plan->sort_changes({sqitch => 1 }, changes qw(this that other))],
 
 # Make sure it fails on unknown previous dependencies.
 @deps = ({%ddep, requires => ['foo']}, {%ddep}, {%ddep});
-throws_ok { $plan->sort_changes(changes qw(this that other)) } qr/FAIL:/,
+throws_ok { $plan->sort_changes(changes qw(this that other)) } 'App::Sqitch::X',
     'Should die on unknown dependency';
-cmp_deeply +MockOutput->get_fail, [[
-    'Unknown change "foo" required by change "this"',
-]], 'And we should emit an error pointing to the offending change';
+is $@->ident, 'plan', 'Unknown dependency error ident should be "plan"';
+is $@->message, __x(
+    'Unknown change "{required}" required by change "{change}"',
+    required => 'foo',
+    change   => 'this',
+), 'And the error should point to the offending change';
 
 # Okay, now deal with depedencies from ealier change sections.
 @deps = ({%ddep, requires => ['@foo']}, {%ddep}, {%ddep});
-throws_ok { $plan->sort_changes(changes qw(this that other)) } qr/FAIL:/,
-    'Should die on unknown dependency';
-cmp_deeply +MockOutput->get_fail, [[
-    'Unknown change "@foo" required by change "this"',
-]], 'And we should emit an error pointing to the offending change';
+throws_ok { $plan->sort_changes(changes qw(this that other)) } 'App::Sqitch::X',
+    'Should die on unknown tag dependency';
+is $@->ident, 'plan', 'Unknown tag dependency error ident should be "plan"';
+is $@->message, __x(
+    'Unknown change "{required}" required by change "{change}"',
+    required => '@foo',
+    change   => 'this',
+), 'And the error should point to the offending change';
 
 ##############################################################################
 # Test dependency testing.
@@ -1155,12 +1194,14 @@ for my $req (qw(wanker @blah greets@foo)) {
         name     => 'lazy',
         requires => [$req],
     );
-    throws_ok { $plan->_check_dependencies($change, 'bark') } qr/^FAIL\b/,
+    throws_ok { $plan->_check_dependencies($change, 'bark') } 'App::Sqitch::X',
         qq{Should get error trying to depend on "$req"};
-    cmp_deeply +MockOutput->get_fail, [[
-        qq{Cannot bark change "lazy": },
-        qq{requires unknown change "$req"},
-    ]], qq{And should get unknown dependency error for "$req"};
+    is $@->ident, 'plan', qq{Dependency "req" error ident should be "plan"};
+    is $@->message, __x(
+        'Cannot rework change "{change}": requires unknown change "{req}"',
+        change => 'lazy',
+        req    => $req,
+    ), qq{And should get unknown dependency message for "$req"};
 }
 
 done_testing;

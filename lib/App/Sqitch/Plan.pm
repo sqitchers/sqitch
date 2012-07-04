@@ -334,8 +334,10 @@ sub sort_changes {
             unless ( $pairs{$child} ) {
                 my $sqitch = $self->sqitch;
                 my $name = $change->name;
-                $self->sqitch->fail(
-                    qq{Unknown change "$child" required by change "$name"}
+                hurl plan => __x(
+                    'Unknown change "{required}" required by change "{change}"',
+                    required => $child,
+                    change   => $name,
                 );
             }
             push @list, $obj{$child} unless --$npred{$child};
@@ -344,10 +346,11 @@ sub sort_changes {
 
     if ( my @cycles = map { $_->name } grep { $npred{$_->name} } @_ ) {
         my $last = pop @cycles;
-        $self->sqitch->fail(
-            'Dependency cycle detected beween changes "',
-            join( ", ", @cycles ),
-            qq{ and "$last"}
+        hurl plan => __x(
+            'Dependency cycle detected beween changes {changes}',
+            changes => join( __ ', ', map {
+                __x('"{quoted}"', quoted => $_)
+            } @cycles) . __ ' and ' . __x('"{quoted}"', quoted => $last)
         );
     }
     return @ret;
@@ -355,8 +358,10 @@ sub sort_changes {
 
 sub open_script {
     my ( $self, $file ) = @_;
-    return $file->open('<:encoding(UTF-8)') or $self->sqitch->fail(
-        "Cannot open $file: $!"
+    return $file->open('<:encoding(UTF-8)') or hurl plan => __x(
+        'Cannot open {file}: {error}',
+        file  => $file,
+        error => $!,
     );
 }
 
@@ -374,8 +379,10 @@ sub last_tagged_change { shift->_plan->{changes}->last_tagged_change }
 sub seek {
     my ( $self, $key ) = @_;
     my $index = $self->index_of($key);
-    $self->sqitch->fail(qq{Cannot find change "$key" in plan})
-        unless defined $index;
+    hurl plan => __x(
+        'Cannot find change "{change}" in plan',
+        change => $key,
+    ) unless defined $index;
     $self->position($index);
     return $self;
 }
@@ -428,11 +435,14 @@ sub add_tag {
     my $changes = $plan->{changes};
     my $key   = "\@$name";
 
-    $self->sqitch->fail(qq{Tag "$key" already exists})
-        if defined $changes->index_of($key);
+    hurl plan => __x(
+        'Tag "{tag}" already exists',
+        tag => $key
+    ) if defined $changes->index_of($key);
 
-    my $change = $changes->last_change or $self->sqitch->fail(
-        qq{Cannot apply tag "$key" to a plan with no changes}
+    my $change = $changes->last_change or hurl plan => __x(
+        'Cannot apply tag "{tag}" to a plan with no changes',
+        tag => $key
     );
 
     my $tag = App::Sqitch::Plan::Tag->new(
@@ -456,9 +466,10 @@ sub add {
 
     if (defined( my $idx = $changes->index_of($name . '@HEAD') )) {
         my $tag_idx = $changes->index_of_last_tagged;
-        $self->sqitch->fail(
-            qq{Change "$name" already exists.\n},
-            'Use "sqitch rework" to copy and rework it'
+        hurl plan => __x(
+            qq{Change "{change}" already exists.\n}
+            . 'Use "sqitch rework" to copy and rework it',
+            change => $name,
         );
     }
 
@@ -483,15 +494,17 @@ sub rework {
     my ( $self, $name, $requires, $conflicts ) = @_;
     my $plan  = $self->_plan;
     my $changes = $plan->{changes};
-    my $idx   = $changes->index_of($name . '@HEAD') // $self->sqitch->fail(
-        qq{Change "$name" does not exist.\n},
-        qq{Use "sqitch add $name" to add it to the plan},
+    my $idx   = $changes->index_of($name . '@HEAD') // hurl plan => __x(
+        qq{Change "{change}" does not exist.\n}
+        . 'Use "sqitch add {change}" to add it to the plan',
+        change => $name,
     );
 
     my $tag_idx = $changes->index_of_last_tagged;
-    $self->sqitch->fail(
-        qq{Cannot rework "$name" without an intervening tag.\n},
-        'Use "sqitch tag" to create a tag and try again'
+    hurl plan => __x(
+        qq{Cannot rework "{change}" without an intervening tag.\n}
+        . 'Use "sqitch tag" to create a tag and try again',
+        change => $name,
     ) if !defined $tag_idx || $tag_idx < $idx;
 
     my ($tag) = $changes->change_at($tag_idx)->tags;
@@ -522,26 +535,34 @@ sub _check_dependencies {
     for my $req ( $change->requires ) {
         next if defined $changes->index_of($req =~ /@/ ? $req : $req . '@HEAD');
         my $name = $change->name;
-        $self->sqitch->fail(
-            qq{Cannot $action change "$name": },
-            qq{requires unknown change "$req"}
-        );
+        if ($action eq 'add') {
+            hurl plan => __x(
+                'Cannot add change "{change}": requires unknown change "{req}"',
+                change => $name,
+                req    => $req,
+            );
+        } else {
+            hurl plan => __x(
+                'Cannot rework change "{change}": requires unknown change "{req}"',
+                change => $name,
+                req    => $req,
+            );
+        }
     }
     return $self;
 }
 
 sub _is_valid {
     my ( $self, $type, $name ) = @_;
-    $self->sqitch->fail(qq{"$name" is a reserved name})
-        if $name eq 'HEAD' || $name eq 'ROOT';
+    hurl plan => __x(
+        '"{name}" is a reserved name',
+        name => $name
+    ) if $name eq 'HEAD' || $name eq 'ROOT';
     $self->sqitch->fail(
         qq{"$name" is invalid because it could be confused with a SHA1 ID}
     ) if $name =~ /^[0-9a-f]{40}/;
 
-    $self->sqitch->fail(
-        qq{"$name" is invalid: ${type}s must not begin with punctuation },
-        'or end in punctuation or digits following punctuation'
-    ) unless $name =~ /
+    unless ($name =~ /
         ^                          # Beginning of line
         [^[:punct:]]               # not punct
         (?:                        # followed by...
@@ -549,16 +570,31 @@ sub _is_valid {
             [^[:punct:][:blank:]]  #     one not blank or punct
         )?                         # ... optionally
         $                          # end of line
-    /x && $name !~ /[[:punct:]][[:digit:]]*\z/;
+    /x && $name !~ /[[:punct:]][[:digit:]]*\z/) {
+        if ($type eq 'change') {
+            hurl plan => __x(
+                qq{"{name}" is invalid: changes must not begin with punctuation }
+                . 'or end in punctuation or digits following punctuation',
+                name => $name,
+            );
+        } else {
+            hurl plan => __x(
+                qq{"{name}" is invalid: tags must not begin with punctuation }
+                . 'or end in punctuation or digits following punctuation',
+                name => $name,
+            );
+        }
+    }
 }
 
 sub write_to {
     my ( $self, $file ) = @_;
 
-    my $fh = IO::File->new(
-        $file,
-        '>:encoding(UTF-8)'
-    ) or $self->sqitch->fail( "Cannot open $file: $!" );
+    my $fh = $file->open('>:encoding(UTF-8)') or hurl plan => __x(
+        'Cannot open {file}: {error}',
+        file  => $file,
+        error => $!
+    );
     $fh->say($_->as_string) for $self->lines;
     $fh->close or hurl plan => __x(
         '"Error closing {file}: {error}',
