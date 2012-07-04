@@ -12,12 +12,6 @@ use Capture::Tiny ':all';
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X 'hurl';
 
-BEGIN {
-    # Stub out exit.
-    *CORE::GLOBAL::exit = sub { die 'EXITED: ' . (@_ ? shift : 0); };
-    $SIG{__DIE__} = \&Carp::confess;
-}
-
 my $CLASS;
 BEGIN {
     $CLASS = 'App::Sqitch';

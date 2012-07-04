@@ -336,92 +336,77 @@ sub latest_change {
 
 sub initialized {
     my $class = ref $_[0] || $_[0];
-    require Carp;
-    Carp::confess( "$class has not implemented initialized()" );
+    hurl "$class has not implemented initialized()";
 }
 
 sub initialize {
     my $class = ref $_[0] || $_[0];
-    require Carp;
-    Carp::confess( "$class has not implemented initialize()" );
+    hurl "$class has not implemented initialize()";
 }
 
 sub run_file {
     my $class = ref $_[0] || $_[0];
-    require Carp;
-    Carp::confess( "$class has not implemented run_file()" );
+    hurl "$class has not implemented run_file()";
 }
 
 sub run_handle {
     my $class = ref $_[0] || $_[0];
-    require Carp;
-    Carp::confess( "$class has not implemented run_handle()" );
+    hurl "$class has not implemented run_handle()";
 }
 
 sub log_deploy_change {
     my $class = ref $_[0] || $_[0];
-    require Carp;
-    Carp::confess( "$class has not implemented log_deploy_change()" );
+    hurl "$class has not implemented log_deploy_change()";
 }
 
 sub log_fail_change {
     my $class = ref $_[0] || $_[0];
-    require Carp;
-    Carp::confess( "$class has not implemented log_fail_change()" );
+    hurl "$class has not implemented log_fail_change()";
 }
 
 sub log_revert_change {
     my $class = ref $_[0] || $_[0];
-    require Carp;
-    Carp::confess( "$class has not implemented log_revert_change()" );
+    hurl "$class has not implemented log_revert_change()";
 }
 
 sub is_deployed_tag {
     my $class = ref $_[0] || $_[0];
-    require Carp;
-    Carp::confess( "$class has not implemented is_deployed_tag()" );
+    hurl "$class has not implemented is_deployed_tag()";
 }
 
 sub is_deployed_change {
     my $class = ref $_[0] || $_[0];
-    require Carp;
-    Carp::confess( "$class has not implemented is_deployed_change()" );
+    hurl "$class has not implemented is_deployed_change()";
 }
 
 sub check_requires {
     my $class = ref $_[0] || $_[0];
-    require Carp;
-    Carp::confess( "$class has not implemented check_requires()" );
+    hurl "$class has not implemented check_requires()";
 }
 
 sub check_conflicts {
     my $class = ref $_[0] || $_[0];
-    require Carp;
-    Carp::confess( "$class has not implemented check_conflicts()" );
+    hurl "$class has not implemented check_conflicts()";
 }
 
 sub latest_change_id {
     my $class = ref $_[0] || $_[0];
-    require Carp;
-    Carp::confess( "$class has not implemented latest_change_id()" );
+    hurl "$class has not implemented latest_change_id()";
 }
 
 sub deployed_change_ids {
     my $class = ref $_[0] || $_[0];
-    require Carp;
-    Carp::confess( "$class has not implemented deployed_change_ids()" );
+    hurl "$class has not implemented deployed_change_ids()";
 }
 
 sub deployed_change_ids_since {
     my $class = ref $_[0] || $_[0];
-    require Carp;
-    Carp::confess( "$class has not implemented deployed_change_ids_since()" );
+    hurl "$class has not implemented deployed_change_ids_since()";
 }
 
 sub name_for_change_id {
     my $class = ref $_[0] || $_[0];
-    require Carp;
-    Carp::confess( "$class has not implemented name_for_change_id()" );
+    hurl "$class has not implemented name_for_change_id()";
 }
 
 __PACKAGE__->meta->make_immutable;

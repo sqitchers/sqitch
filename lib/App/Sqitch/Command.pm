@@ -4,7 +4,6 @@ use v5.10.1;
 use strict;
 use warnings;
 use utf8;
-use Carp;
 use Try::Tiny;
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
@@ -140,12 +139,12 @@ sub _pod2usage {
 
 sub execute {
     my $self = shift;
-    croak(
-        'The execute() method must be called from a subclass of ',
-        __PACKAGE__
+    hurl(
+        'The execute() method must be called from a subclass of '
+        . __PACKAGE__
     ) if ref $self eq __PACKAGE__;
 
-    croak( 'The execute() method has not been overridden in ', ref $self );
+    hurl 'The execute() method has not been overridden in ' . ref $self;
 }
 
 sub usage {

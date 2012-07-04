@@ -8,7 +8,7 @@ Revision history for Perl extension App::Sqitch
        places, instead.
      - Added Role::HasMessage to the list or requirements in `Build.PL`. Was
        an oversight that it was omitted in v0.50.
-     - Localized all exception messages.
+     - Localized all output and exception messages.
 
 0.50  2012-07-03T19:55:20Z
      - Require a plan file.

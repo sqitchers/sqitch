@@ -5,7 +5,6 @@ use Moose;
 use utf8;
 use Path::Class;
 use DBI;
-use Carp;
 use Try::Tiny;
 use App::Sqitch::X qw(hurl);
 use Locale::TextDomain qw(App-Sqitch);

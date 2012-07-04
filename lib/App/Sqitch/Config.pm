@@ -5,7 +5,6 @@ use Moose;
 use strict;
 use warnings;
 use Path::Class;
-use Carp;
 use utf8;
 
 extends 'Config::GitLike';
