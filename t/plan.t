@@ -1003,14 +1003,25 @@ cmp_deeply [ $plan->changes ], [
 is sorted, 3, 'Should have sorted changes three times';
 
 # Try to find whatever.
-throws_ok { $plan->index_of('whatever') } qr/^Key "whatever" at multiple indexes/,
+throws_ok { $plan->index_of('whatever') } 'App::Sqitch::X',
     'Should get an error trying to find dupe key.';
+is $@->ident, 'plan', 'Dupe key error ident should be "plan"';
+is $@->message, __x(
+    'Key {key} at multiple indexes',
+    key => 'whatever',
+), 'Dupe key error message should be correct';
 is $plan->index_of('whatever@HEAD'), 3, 'Should get 3 for whatever@HEAD';
 is $plan->index_of('whatever@bar'), 0, 'Should get 0 for whatever@bar';
 
 # Make sure seek works, too.
-throws_ok { $plan->seek('whatever') } qr/^Key "whatever" at multiple indexes/,
+throws_ok { $plan->seek('whatever') } 'App::Sqitch::X',
     'Should get an error seeking dupe key.';
+is $@->ident, 'plan', 'Dupe key error ident should be "plan"';
+is $@->message, __x(
+    'Key {key} at multiple indexes',
+    key => 'whatever',
+), 'Dupe key error message should be correct';
+
 is $plan->index_of('whatever@HEAD'), 3, 'Should find whatever@HEAD at index 3';
 is $plan->index_of('whatever@bar'), 0, 'Should find whatever@HEAD at index 0';
 is $plan->first_index_of('whatever'), 0,
