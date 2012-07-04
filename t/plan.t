@@ -799,11 +799,13 @@ is $@->message, __x(
     name => 'ROOT',
 ), 'And the reserved tag "ROOT" message should be correct';
 
-throws_ok { $plan->add_tag($sha1) } qr/^FAIL:/,
+throws_ok { $plan->add_tag($sha1) } 'App::Sqitch::X',
     'Should get error for a SHA1 tag';
-cmp_deeply +MockOutput->get_fail, [[
-    qq{"$sha1" is invalid because it could be confused with a SHA1 ID},
-]], 'And the reserved name error should be output';
+is $@->ident, 'plan', 'SHA1 tag error ident should be "plan"';
+is $@->message, __x(
+    '"{name}" is invalid because it could be confused with a SHA1 ID',
+    name => $sha1,,
+), 'And the reserved name error should be output';
 
 ##############################################################################
 # Try adding a change.
@@ -890,11 +892,13 @@ is $@->message, __x(
 ), 'The tag dependency error should be correct';
 
 # Should choke on a change that looks like a SHA1.
-throws_ok { $plan->add($sha1) } qr/^FAIL:/,
+throws_ok { $plan->add($sha1) } 'App::Sqitch::X',
     'Should get error for a SHA1 change';
-cmp_deeply +MockOutput->get_fail, [[
-    qq{"$sha1" is invalid because it could be confused with a SHA1 ID},
-]], 'And the reserved name error should be output';
+is $@->ident, 'plan', 'SHA1 tag error ident should be "plan"';
+is $@->message, __x(
+    '"{name}" is invalid because it could be confused with a SHA1 ID',
+    name => $sha1,,
+), 'And the reserved name error should be output';
 
 ##############################################################################
 # Try reworking a change.

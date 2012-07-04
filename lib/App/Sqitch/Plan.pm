@@ -558,8 +558,9 @@ sub _is_valid {
         '"{name}" is a reserved name',
         name => $name
     ) if $name eq 'HEAD' || $name eq 'ROOT';
-    $self->sqitch->fail(
-        qq{"$name" is invalid because it could be confused with a SHA1 ID}
+    hurl plan => __x(
+        '"{name}" is invalid because it could be confused with a SHA1 ID',
+        name => $name,
     ) if $name =~ /^[0-9a-f]{40}/;
 
     unless ($name =~ /
