@@ -4,12 +4,13 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 111;
+use Test::More tests => 121;
 #use Test::More 'no_plan';
 use Test::NoWarnings;
 use Test::Exception;
 use App::Sqitch;
 use App::Sqitch::Plan;
+use Locale::TextDomain qw(App-Sqitch);
 use URI;
 
 BEGIN { require_ok 'App::Sqitch::Plan::ChangeList' or die }
@@ -62,11 +63,21 @@ is $changes->index_of($alpha->id), 2, 'Should find @alpha by ID at 2';
 is $changes->index_of('baz'), 3, 'Should find baz at 3';
 is $changes->index_of($baz->id), 3, 'Should find baz by ID at 3';
 
-throws_ok { $changes->index_of('yo') } qr/^\QKey "yo" at multiple indexes/,
-    'Should get error looking for index of "yo"';
+throws_ok { $changes->index_of('yo') } 'App::Sqitch::X',
+    'Should get multiple indexes error looking for index of "yo"';
+is $@->ident, 'plan', 'Multiple indexes error ident should be "plan"';
+is $@->message, __x(
+    'Key {key} at multiple indexes',
+    key => 'yo',
+), 'Multiple indexes message should be correct';
 
-throws_ok { $changes->index_of('yo@howdy') } qr/^\QUnknown tag: "howdy"/,
-    'Should get error looking for invalid tag';
+throws_ok { $changes->index_of('yo@howdy') } 'App::Sqitch::X',
+    'Should unknown tag error for invalid tag';
+is $@->ident, 'plan', 'Unknown tag error ident should be "plan"';
+is $@->message, __x(
+    'Unknown tag "{tag}"',
+    tag => '@howdy',
+), 'Unknown taf message should be correct';
 
 is $changes->index_of('yo@alpha'), 2, 'Should get 2 for yo@alpha';
 is $changes->index_of('yo@HEAD'), 4, 'Should get 4 for yo@HEAD';
@@ -104,11 +115,21 @@ is $changes->find('foo'), $foo, 'Should find foo for "foo"';
 is $changes->find('foo@alpha'), $foo, 'Should find foo for "foo@alpha"';
 is $changes->find('foo@HEAD'), $foo, 'Should find foo for "foo@HEAD"';
 
-throws_ok { $changes->get('yo') } qr/^\QKey "yo" at multiple indexes/,
-    'Should get error looking for index of "yo"';
+throws_ok { $changes->get('yo') } 'App::Sqitch::X',
+    'Should get multiple indexes error looking for index of "yo"';
+is $@->ident, 'plan', 'Multiple indexes error ident should be "plan"';
+is $@->message, __x(
+    'Key {key} at multiple indexes',
+    key => 'yo',
+), 'Multiple indexes message should be correct';
 
-throws_ok { $changes->get('yo@howdy') } qr/^\QUnknown tag: "howdy"/,
-    'Should get error looking for invalid tag';
+throws_ok { $changes->get('yo@howdy') } 'App::Sqitch::X',
+    'Should unknown tag error for invalid tag';
+is $@->ident, 'plan', 'Unknown tag error ident should be "plan"';
+is $@->message, __x(
+    'Unknown tag "{tag}"',
+    tag => '@howdy',
+), 'Unknown taf message should be correct';
 
 my $hi = App::Sqitch::Plan::Change->new(plan => $plan, name => 'hi');
 ok $changes->append($hi), 'Push hi';
@@ -132,9 +153,13 @@ is $changes->first_index_of('yo', '@alpha'), 4,
     'First index of "yo" since "@alpha" should be 4';
 is $changes->first_index_of('yo', 'baz'), 4,
     'First index of "yo" since "baz" should be 3';
-throws_ok { $changes->first_index_of('baz', 'nonexistent') }
-    qr/\QUnknown change: "nonexistent"/,
-    'Should get an exception for an uknown step passed to first_index_of()';
+throws_ok { $changes->first_index_of('baz', 'nonexistent') } 'App::Sqitch::X',
+    'Should get an exception for an unknown change passed to first_index_of()';
+is $@->ident, 'plan', 'Unknown change error ident should be "plan"';
+is $@->message, __x(
+    'Unknown change: "{change}"',
+    change => 'nonexistent',
+), 'Unknown change message should be correct';
 
 # Try appending a couple more changes.
 my $so = App::Sqitch::Plan::Change->new(plan => $plan, name => 'so');

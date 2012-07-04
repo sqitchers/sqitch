@@ -1,8 +1,8 @@
 package App::Sqitch::Plan::LineList;
 
 use v5.10.1;
+use strict;
 use utf8;
-use Carp;
 
 sub new {
     my $class = shift;

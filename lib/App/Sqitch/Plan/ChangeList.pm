@@ -3,8 +3,9 @@ package App::Sqitch::Plan::ChangeList;
 use v5.10.1;
 use utf8;
 use strict;
-use Carp;
 use List::Util;
+use Locale::TextDomain qw(App-Sqitch);
+use App::Sqitch::X qw(hurl);
 
 sub new {
     my $class = shift;
@@ -36,8 +37,10 @@ sub index_of {
     my $idx = $self->{lookup}{$change} or return undef;
     if (defined $tag) {
         # Wanted for a change as of a specific tag.
-        my $tag_idx = $self->{lookup}{ '@' . $tag }
-            or croak qq{Unknown tag: "$tag"};
+        my $tag_idx = $self->{lookup}{ '@' . $tag } or hurl plan => __x(
+            'Unknown tag "{tag}"',
+            tag => '@' . $tag,
+        );
         $tag_idx = $tag_idx->[0];
         for my $i (reverse @{ $idx }) {
             return $i if $i <= $tag_idx;
@@ -46,7 +49,10 @@ sub index_of {
     } else {
         # Just want index for a change name. Fail if there are multiple.
         return $idx->[0] if @{ $idx } < 2;
-        croak qq{Key "$key" at multiple indexes};
+        hurl plan => __x(
+            'Key {key} at multiple indexes',
+            key => $key,
+        );
     }
 }
 
@@ -58,8 +64,10 @@ sub first_index_of {
     return $idx->[0] unless defined $since;
 
     # Find the tag index.
-    my $since_index = $self->index_of($since)
-        // croak qq{Unknown change: "$since"};
+    my $since_index = $self->index_of($since) // hurl plan => __x(
+        'Unknown change: "{change}"',
+        change => $since,
+    );
 
     # Return the first change after the tag.
     return List::Util::first { $_ > $since_index } @{ $idx };
