@@ -16,8 +16,6 @@ my @mocked = qw(
     emit
     vent
     warn
-    fail
-    usage
 );
 
 my %CAPTURED;
@@ -25,18 +23,10 @@ my %CAPTURED;
 __PACKAGE__->clear;
 
 for my $meth (@mocked) {
-    if ($meth =~ /fail|usage/) {
-        $MOCK->mock($meth => sub {
-            shift;
-            push @{ $CAPTURED{$meth} } => [@_];
-            die uc($meth) . ": " . join '', @_;
-        });
-    } else {
-        $MOCK->mock($meth => sub {
-            shift;
-            push @{ $CAPTURED{$meth} } => [@_];
-        });
-    }
+    $MOCK->mock($meth => sub {
+        shift;
+        push @{ $CAPTURED{$meth} } => [@_];
+    });
 
     my $get = sub {
         my $ret = $CAPTURED{$meth};
