@@ -342,12 +342,22 @@ sub capture {
 sub spool {
     my ($self, $fh) = (shift, shift);
     local $SIG{__WARN__} = sub { }; # Silence warning.
-    open my $pipe, '|-', @_ or die "Cannot exec $_[0]: $!\n";
+    open my $pipe, '|-', @_ or hurl io => __x(
+        'Cannot exec {command}: {error}',
+        command => $_[0],
+        error   => $!,
+    );
     local $SIG{PIPE} = sub { die 'spooler pipe broke' };
     print $pipe $_ while <$fh>;
-    close $pipe or die $!
-        ? "Error closing pipe to $_[0]: $!\n"
-        : "$_[0] unexpectedly returned exit value " . ($? >> 8) . "\n";
+    close $pipe or hurl io => $! ? __x(
+        'Error closing pipe to {command}: {error}',
+         command => $_[0],
+         errror  => $!,
+    ) : __x(
+        '{command} unexpectedly returned exit value {exitval}',
+        command => $_[0],
+        exitval => ($? >> 8),
+    );
     return $self;
 }
 
