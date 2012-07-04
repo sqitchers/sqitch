@@ -17,7 +17,6 @@ my @mocked = qw(
     vent
     warn
     fail
-    help
     usage
 );
 
@@ -26,7 +25,7 @@ my %CAPTURED;
 __PACKAGE__->clear;
 
 for my $meth (@mocked) {
-    if ($meth =~ /fail|help|usage/) {
+    if ($meth =~ /fail|usage/) {
         $MOCK->mock($meth => sub {
             shift;
             push @{ $CAPTURED{$meth} } => [@_];

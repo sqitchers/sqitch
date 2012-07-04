@@ -410,13 +410,6 @@ sub fail {
     exit 2;
 }
 
-sub help {
-    my $self = shift;
-    my $bn   = _bn;
-    say STDERR _prepend( "$bn:", @_ ), " See $bn --help";
-    exit 1;
-}
-
 __PACKAGE__->meta->make_immutable;
 no Moose;
 
@@ -621,14 +614,6 @@ it.
 Send a failure message to C<STDERR> and exit with status code 2. Failures will
 have C<fatal: > prefixed to every line. Use if something unexpected happened
 and you cannot recover from it.
-
-=head3 C<help>
-
-  $sqitch->help('"foo" is not a valid command.');
-
-Sends messages to C<STDERR> and exists with an additional message to "See
-sqitch --help". Help messages will have C<sqitch: > prefixed to every line.
-Use if the user has misused the app.
 
 =head1 To Do
 

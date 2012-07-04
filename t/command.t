@@ -12,12 +12,13 @@ BEGIN {
     $SIG{__DIE__} = \&Carp::confess;
 }
 
-use Test::More tests => 85;
-#use Test::More 'no_plan';
+#use Test::More tests => 85;
+use Test::More 'no_plan';
 use App::Sqitch;
 use Test::Exception;
 use Test::NoWarnings;
 use Test::MockModule;
+use Locale::TextDomain qw(App-Sqitch);
 use Capture::Tiny ':all';
 
 my $CLASS;
@@ -102,12 +103,14 @@ ok $cmd = $CLASS->load({
 is $cmd->foo, 'hi', 'The "foo" attribute should be set';
 
 # Test handling of an invalid command.
-$0 = 'sqch';
-is capture_stderr {
-    throws_ok { $CLASS->load({ command => 'nonexistent', sqitch => $sqitch }) }
-        qr/EXITED: 1/, 'Should exit';
- }, qq{sqch: "nonexistent" is not a valid command. See sqch --help\n},
-    'Should get an exception for an invalid command';
+throws_ok { $CLASS->load({ command => 'nonexistent', sqitch => $sqitch }) }
+    'App::Sqitch::X', 'Should exit';
+is $@->ident, 'command', 'Invalid command error ident should be "config"';
+is $@->message, __x(
+    '"{command}" is not a valid command',
+    command => 'nonexistent',
+), 'Should get proper mesage for invalid command';
+is $@->exitval, 1, 'Should have exitval of 1';
 
 NOCOMMAND: {
     # Test handling of no command.
@@ -333,19 +336,6 @@ is capture_stderr {
         qr/EXITED: 2/
 }, "fatal: This that\nfatal: and the other\n",
     'fail should work';
-
-# Help.
-is capture_stderr {
-    throws_ok { $cmd->help('This ', "that\n", "and the other.") }
-        qr/EXITED: 1/
-}, "sqch: This that\nsqch: and the other. See sqch --help\n",
-    'help should work';
-
-is capture_stderr {
-    throws_ok { $cmd->help('This ', "that\n", "and the other.") }
-        qr/EXITED: 1/
-}, "sqch: This that\nsqch: and the other. See sqch --help\n",
-    'help should work';
 
 # Usage.
 like capture_stderr {

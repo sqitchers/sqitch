@@ -6,6 +6,8 @@ use warnings;
 use utf8;
 use Carp;
 use Try::Tiny;
+use Locale::TextDomain qw(App-Sqitch);
+use App::Sqitch::X qw(hurl);
 use Hash::Merge 'merge';
 use Moose;
 
@@ -27,7 +29,6 @@ has sqitch => (
         emit
         warn
         fail
-        help
     )],
 );
 
@@ -58,7 +59,14 @@ sub load {
         die $_ unless /^Can't locate/;
 
         # Suggest help if it's not a valid command.
-        $p->{sqitch}->help(qq{"$cmd" is not a valid command.});
+        hurl {
+            ident   => 'command',
+            exitval => 1,
+            message => __x(
+                '"{command}" is not a valid command',
+                command => $cmd,
+            ),
+        };
     };
 
     # Merge the command-line options and configuration parameters
@@ -396,14 +404,6 @@ will be the first found of:
 
 For an ideal usage messages, C<sqitch-$command-usage.pod> should be created by
 all command subclasses.
-
-=head3 C<help>
-
-  $cmd->help('"foo" is not a valid command.');
-
-Sends messages to C<STDERR> and exists with an additional message to "See
-sqitch --help". Help messages will have C<sqitch: > prefixed to every line.
-Use if the user has misused the app.
 
 =head1 See Also
 
