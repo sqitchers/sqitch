@@ -404,10 +404,6 @@ sub warn {
     say STDERR _prepend 'warning:', @_;
 }
 
-sub unfound {
-    exit 1;
-}
-
 sub fail {
     my $self = shift;
     say STDERR _prepend 'fatal:', @_;
@@ -617,13 +613,6 @@ when reverting failed changes.
 Send a warning messages to C<STDERR>. Warnings will have C<warning: > prefixed
 to every line. Use if something unexpected happened but you can recover from
 it.
-
-=head3 C<unfound>
-
-  $sqitch->unfound;
-
-Exit the program with status code 1. Best for use for non-fatal errors,
-such as when something requested was not found.
 
 =head3 C<fail>
 

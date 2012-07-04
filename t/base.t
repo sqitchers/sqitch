@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 85;
+use Test::More tests => 83;
 #use Test::More 'no_plan';
 use Test::MockModule;
 use Path::Class;
@@ -220,11 +220,6 @@ is capture_stderr {
         qr/EXITED: 2/
 }, "fatal: This that\nfatal: and the other\n",
     'fail should work';
-
-# Unfound
-is capture_stderr {
-    throws_ok { $sqitch->unfound } qr/EXITED: 1/
-}, '', 'unfound print nothing';
 
 # Help.
 $0 = 'sqch';

@@ -26,7 +26,6 @@ has sqitch => (
         comment
         emit
         warn
-        unfound
         fail
         help
     )],
@@ -363,13 +362,6 @@ C<sqitch config --get core.editor>.
 Send a warning messages to C<STDERR>. Warnings will have C<warning: > prefixed
 to every line. Use if something unexpected happened but you can recover from
 it.
-
-=head3 C<unfound>
-
-  $cmd->unfound;
-
-Exit the program with status code 1. Best for use for non-fatal errors,
-such as when something requested was not found.
 
 =head3 C<fail>
 

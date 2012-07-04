@@ -151,7 +151,11 @@ sub get {
         hurl config => $_;
     };
 
-    $self->unfound unless defined $val;
+    hurl {
+        ident   => 'config',
+        message => '',
+        exitval => 1,
+    } unless defined $val;
     $self->emit($val);
     return $self;
 }
@@ -171,7 +175,11 @@ sub get_all {
     catch {
         hurl config => $_;
     };
-    $self->unfound unless @vals;
+    hurl {
+        ident   => 'config',
+        message => '',
+        exitval => 1,
+    } unless @vals;
     $self->emit( join $/, @vals );
     return $self;
 }
@@ -192,7 +200,11 @@ sub get_regex {
     catch {
         hurl config => $_;
     };
-    $self->unfound unless %vals;
+    hurl {
+        ident   => 'config',
+        message => '',
+        exitval => 1,
+    } unless %vals;
     my @out;
     for my $key ( sort keys %vals ) {
         if ( defined $vals{$key} ) {

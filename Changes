@@ -3,7 +3,7 @@ Revision history for Perl extension App::Sqitch
 0.51
      - Removed the `--dry-run` option. It was completely ignored. Maybe it
        will return someday.
-     - Removed `bail()`.
+     - Removed `bail()` and `unfound()`.
      - Added Role::HasMessage to the list or requirements in `Build.PL`. Was
        an oversight that it was omitted in v0.50.
 

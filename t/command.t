@@ -12,7 +12,7 @@ BEGIN {
     $SIG{__DIE__} = \&Carp::confess;
 }
 
-use Test::More tests => 87;
+use Test::More tests => 85;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Test::Exception;
@@ -333,11 +333,6 @@ is capture_stderr {
         qr/EXITED: 2/
 }, "fatal: This that\nfatal: and the other\n",
     'fail should work';
-
-# Unfound
-is capture_stderr {
-    throws_ok { $cmd->unfound } qr/EXITED: 1/
-}, '', 'unfound print nothing';
 
 # Help.
 is capture_stderr {
