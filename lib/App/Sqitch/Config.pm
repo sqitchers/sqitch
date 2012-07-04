@@ -5,6 +5,8 @@ use Moose;
 use strict;
 use warnings;
 use Path::Class;
+use Locale::TextDomain qw(App-Sqitch);
+use App::Sqitch::X qw(hurl);
 use utf8;
 
 extends 'Config::GitLike';
@@ -17,7 +19,7 @@ my $SYSTEM_DIR = undef;
 
 sub user_dir {
     require File::HomeDir;
-    my $hd = File::HomeDir->my_home or croak(
+    my $hd = File::HomeDir->my_home or hurl config => __(
         "Could not determine home directory"
     );
     return dir $hd, '.sqitch';
