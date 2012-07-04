@@ -3,11 +3,12 @@ Revision history for Perl extension App::Sqitch
 0.51
      - Removed the `--dry-run` option. It was completely ignored. Maybe it
        will return someday.
-     - Removed `bail()`, `unfound()`, and `help()`. It's better for commands
-       not to exit, so have them throw exceptions in the appropriate places,
-       instead.
+     - Removed `fail()`, `bail()`, `unfound()`, and `help()`. It's better for
+       commands not to exit, so have them throw exceptions in the appropriate
+       places, instead.
      - Added Role::HasMessage to the list or requirements in `Build.PL`. Was
        an oversight that it was omitted in v0.50.
+     - Localized all exception messages.
 
 0.50  2012-07-03T19:55:20Z
      - Require a plan file.

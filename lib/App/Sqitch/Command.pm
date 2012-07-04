@@ -28,7 +28,6 @@ has sqitch => (
         comment
         emit
         warn
-        fail
     )],
 );
 
@@ -370,14 +369,6 @@ C<sqitch config --get core.editor>.
 Send a warning messages to C<STDERR>. Warnings will have C<warning: > prefixed
 to every line. Use if something unexpected happened but you can recover from
 it.
-
-=head3 C<fail>
-
-  $cmd->fail('File or directory "foo" not found.');
-
-Send a failure message to C<STDERR> and exit with status code 2. Failures will
-have C<fatal: > prefixed to every line. Use if something unexpected happened
-and you cannot recover from it.
 
 =head3 C<usage>
 

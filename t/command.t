@@ -12,8 +12,8 @@ BEGIN {
     $SIG{__DIE__} = \&Carp::confess;
 }
 
-#use Test::More tests => 85;
-use Test::More 'no_plan';
+use Test::More tests => 81;
+#use Test::More 'no_plan';
 use App::Sqitch;
 use Test::Exception;
 use Test::NoWarnings;
@@ -329,13 +329,6 @@ is capture_stdout { $cmd->emit('This ', "that\n", 'and the other') },
 is capture_stderr { $cmd->warn('This ', "that\n", 'and the other') },
     "warning: This that\nwarning: and the other\n",
     'warn should work';
-
-# Fail.
-is capture_stderr {
-    throws_ok { $cmd->fail('This ', "that\n", "and the other") }
-        qr/EXITED: 2/
-}, "fatal: This that\nfatal: and the other\n",
-    'fail should work';
 
 # Usage.
 like capture_stderr {

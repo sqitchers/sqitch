@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 79;
+use Test::More tests => 77;
 #use Test::More 'no_plan';
 use Test::MockModule;
 use Path::Class;
@@ -213,13 +213,6 @@ is capture_stderr { $sqitch->warn('This ', "that\n", 'and the other') },
 is capture_stderr { $sqitch->vent('This ', "that\n", 'and the other') },
     "This that\nand the other\n",
     'vent should work';
-
-# Fail.
-is capture_stderr {
-    throws_ok { $sqitch->fail('This ', "that\n", "and the other") }
-        qr/EXITED: 2/
-}, "fatal: This that\nfatal: and the other\n",
-    'fail should work';
 
 ##############################################################################
 # Test run().

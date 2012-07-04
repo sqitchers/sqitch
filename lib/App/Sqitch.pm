@@ -404,12 +404,6 @@ sub warn {
     say STDERR _prepend 'warning:', @_;
 }
 
-sub fail {
-    my $self = shift;
-    say STDERR _prepend 'fatal:', @_;
-    exit 2;
-}
-
 __PACKAGE__->meta->make_immutable;
 no Moose;
 
@@ -606,14 +600,6 @@ when reverting failed changes.
 Send a warning messages to C<STDERR>. Warnings will have C<warning: > prefixed
 to every line. Use if something unexpected happened but you can recover from
 it.
-
-=head3 C<fail>
-
-  $sqitch->fail('File or directory "foo" not found.');
-
-Send a failure message to C<STDERR> and exit with status code 2. Failures will
-have C<fatal: > prefixed to every line. Use if something unexpected happened
-and you cannot recover from it.
 
 =head1 To Do
 
