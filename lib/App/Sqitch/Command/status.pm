@@ -39,7 +39,6 @@ has show_tags => (
 has date_format => (
     is      => 'ro',
     lazy    => 1,
-    default => 'iso',
     isa     => enum([qw(
         full
         long
@@ -50,6 +49,9 @@ has date_format => (
         rfc
         rfc2822
     )]),
+    default => sub {
+        shift->sqitch->config->get( key => 'status.date_format' ) || 'iso'
+    }
 );
 
 sub options {

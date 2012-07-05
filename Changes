@@ -10,6 +10,7 @@ Revision history for Perl extension App::Sqitch
        message saying the command is unknown, rather than a stack trace.
      - Adding a change after a tag now also inserts a blank line into the plan
        between the tag and the new change, for nicer plan file formatting.
+     - Added the `status` command.
 
 0.51  2012-07-04T18:34:07Z
      - Added Role::HasMessage to the list or requirements in `Build.PL`. Was

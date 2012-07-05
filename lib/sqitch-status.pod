@@ -1,0 +1,85 @@
+=head1 Name
+
+sqitch-status - Show the current database deployment status
+
+=head1 Synopsis
+
+  sqitch [options] status [<options>]
+
+=head1 Description
+
+Displays information about the current database deployment status. The most
+recently deployed change information is displayed, as well as any related
+tags. If there are undeployed changes in the plan, they will be listed.
+Otherwise, a message will indicate that the database is up-to-date.
+
+=head1 Options
+
+=over
+
+=item C<--show-changes>
+
+Also display a list of deployed changes.
+
+=item C<--show-tags>
+
+Also display a list of applied tags.
+
+=item C<--date-format>
+
+=item C<--date>
+
+Format to use for timestamps. Defaults to C<iso>. Allowed values:
+
+=over
+
+=item C<iso>
+
+=item C<iso8601>
+
+Shows timestamps in ISO-8601 format.
+
+=item C<rfc>
+
+=item C<rfc2822>
+
+Show timestamps in RFC-2822 format.
+
+=item C<full>
+
+=item C<long>
+
+=item C<medium>
+
+=item C<short>
+
+Show timestamps in the specified format length, using the system locale.
+
+=back
+
+=back
+
+=head1 Configuration Variables
+
+=over
+
+=item C<status.show_changes>
+
+Boolean value indicates whether or not to display changes in the output.
+Defaults to false.
+
+=item C<status.show_tags>
+
+Boolean value indicates whether or not to display tags in the output. Defaults
+to false.
+
+=item C<status.date_format>
+
+Format to use for timestamps. Supports same values as the C<--date-format>
+option.
+
+=back
+
+=head1 Sqitch
+
+Part of the L<sqitch> suite.

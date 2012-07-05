@@ -1,0 +1,13 @@
+=head1 Name
+
+sqitch-status-usage - Sqitch status usage statement
+
+=head1 Usage
+
+  sqitch [<db-options>] status [<options>]
+
+=head1 Options
+
+    --show-changes        include a list of deployed changes
+    --show-tags           include a list of applied tags
+    --date-format FORMAT  display dates using the specified format
