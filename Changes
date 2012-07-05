@@ -1,6 +1,8 @@
 Revision history for Perl extension App::Sqitch
 
 0.52
+     - Removed some discussion of VCS integration, since it is not yet
+       implemented, and it may be a while befor it is.
 
 0.51  2012-07-04T18:34:07Z
      - Added Role::HasMessage to the list or requirements in `Build.PL`. Was

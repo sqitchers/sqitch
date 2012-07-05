@@ -424,8 +424,7 @@ configuration files.
 
 =item C<core.plan_file>
 
-The plan file to use. Defaults to F<./sqitch.plan> or, if that does not exist,
-uses the VCS history, if available.
+The plan file to use. Defaults to F<$top_dir/sqitch.plan>.
 
 =item C<core.engine>
 

@@ -8,10 +8,9 @@ sqitch - Sane database change management
 
 =head1 Description
 
-Sqitch is a VCS-aware database change management application. What makes it
-different from your typical
-L<migration|Module::Build::DB>-L<style|DBIx::Migration> approaches? A few
-things:
+Sqitch is a database change management application. What makes it different
+from your typical L<migration|Module::Build::DB>-L<style|DBIx::Migration>
+approaches? A few things:
 
 =over
 
@@ -159,10 +158,8 @@ name or tag).
 
   sqitch --plan-file plan.txt
 
-Path to the deployment plan file. Defaults to F<./sqitch.plan>. If this file
-is not present, Sqitch will attempt to read from VCS files. If no supported
-VCS system is in place, an exception will be thrown. See L</Plan File> for a
-description of its structure.
+Path to the deployment plan file. Defaults to F<$top_dir/sqitch.plan>. See
+L</Plan File> for a description of its structure.
 
 =item C<--engine>
 
@@ -496,9 +493,7 @@ bundle.$property $value> command. Options and configuration properties:
 
 Tag to start the plan from. All tags and changes prior to that tag will not be
 included in the plan, and their change scripts Will be omitted from the bundle
-directory. Useful if you've rejiggered your deployment changes to start from a
-point later in your VCS history than the beginning of time. Property name:
-C<bundle.from>.
+directory. Property name: C<bundle.from>.
 
 =item C<--to>
 

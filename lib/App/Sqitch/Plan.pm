@@ -965,7 +965,7 @@ There may, of course, be any number of tags and changes. Here's an expansion:
  @alpha
 
 Here we have four changes -- "users_table", "insert_user", "update_user", and
-"delete_user" -- followed by two tags: "root" and "alpha".
+"delete_user" -- followed by two tags: "@root" and "@alpha".
 
 Most plans will have many changes and tags. Here's a longer example with three
 tagged deployment points, as well as a change that is deployed and later
@@ -989,17 +989,16 @@ reverted:
  @gamma
 
 Using this plan, to deploy to the "beta" tag, all of the changes up to the
-"root"/"alpha" tags must be deployed, as must changes listed before the "beta"
-tag. To then deploy to the "gamma" tag, the "dr_evil" change must be reverted
-and the "ftw" change must be deployed. If you then choose to revert to the
-"alpha" tag, then the "ftw" change will be reverted, the "dr_evil" change
-re-deployed, and the "gamma" tag removed; then the "list_widgets" must be
-reverted and the associated "beta" tag removed, then the "widgets_table" change
-must be reverted.
+"@root" and "@alpha" tags must be deployed, as must changes listed before the
+"@beta" tag. To then deploy to the "@gamma" tag, the "dr_evil" change must be
+reverted and the "ftw" change must be deployed. If you then choose to revert
+to "@alpha", then the "ftw" change will be reverted, the "dr_evil" change
+re-deployed, and the "@gamma" tag removed; then "list_widgets" must be
+reverted and the associated "@beta" tag removed, then the "widgets_table"
+change must be reverted.
 
-Using this model, changes cannot be repeated between states. One I<can> repeat
-them, however, if the contents for a file in a given tag can be retrieved from
-a VCS. An example:
+Changes can only be repeated if one or more tags intervene. This allows Sqitch
+to distinguish between them. An example:
 
  %syntax-version=1.0.0
  +users_table
@@ -1017,14 +1016,15 @@ a VCS. An example:
 
  +add_widget
 
-Note that the "add_widget" change is repeated under the state tagged "beta" and
-at the end. Sqitch will notice the repetition when it parses this file, and
-allow it only if the "beta" tag is present in the VCS. In that case, when
-doing a deployment, Sqitch will fetch the version of the file as of the "beta"
-tag and apply it at that change, and then, when it gets to the last change,
-retrieve the revision of the deployment as it currently exists in the VCS.
-This works in reverse, as well, as long as the changes in this file are always
-L<idempotent|http://en.wikipedia.org/wiki/Idempotence>.
+Note that the "add_widget" change is repeated after the "@beta" tag, and at
+the end. Sqitch will notice the repetition when it parses this file, and allow
+it, because at least one tag "@beta" appears between the instances of
+"add_widget". When deploying, Sqitch will fetch the instance of the deploy
+script as of the "@delta" tag and apply it as the first change, and then, when
+it gets to the last change, retrieve the current instance of the deploy
+script. How does it find such files? The first instances files will either be
+named F<add_widget@delta.sql> or (soon) findable in the VCS history as of a
+VCS "delta" tag.
 
 =head2 Grammar
 
