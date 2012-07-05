@@ -157,15 +157,15 @@ sub _format_date {
 
     if ($format ~~ [qw(iso iso8601)]) {
         return join ' ', $dt->ymd('-'), $dt->hms(':'), $dt->strftime('%z')
+    } elsif ($format ~~ [qw(rfc rfc2822)]) {
+        $dt->set( locale => 'en_US' );
+        ( my $rv = $dt->strftime('%a, %d %b %Y %H:%M:%S %z') ) =~ s/\+0000$/-0000/;
+        return $rv;
     } else {
         require POSIX;
-        $dt->set_locale( POSIX::setlocale( POSIX::LC_TIME() ) );
-        if ($format ~~ [qw(rfc rfc2822)]) {
-            return $dt->strftime('%a, %d %b %Y %H:%M:%S %z');
-        } else {
-            my $meth = "datetime_format_$format";
-            return $dt->format_cldr( $dt->locale->$meth );
-        }
+        $dt->set(locale => POSIX::setlocale(POSIX::LC_TIME()) );
+        my $meth = "datetime_format_$format";
+        return $dt->format_cldr( $dt->locale->$meth );
     }
 }
 

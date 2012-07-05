@@ -54,15 +54,34 @@ my $dt = DateTime->new(
     time_zone => 'local',
 );
 
+my $rfc = do {
+    my $clone = $dt->clone;
+    $clone->set( locale => 'en_US' );
+    ( my $rv = $clone->strftime('%a, %d %b %Y %H:%M:%S %z') ) =~ s/\+0000$/-0000/;
+    $rv;
+};
+
+my $iso = do {
+    my $clone = $dt->clone;
+    $clone->set_time_zone('local');
+    join ' ', $clone->ymd('-'), $clone->hms(':'), $clone->strftime('%z')
+};
+
+my $ldt = do {
+    my $clone = $dt->clone;
+    $clone->set(locale => POSIX::setlocale(POSIX::LC_TIME()) );
+    $clone;
+};
+
 for my $spec (
-    [ full    => $dt->format_cldr( $dt->locale->datetime_format_full )],
-    [ long    => $dt->format_cldr( $dt->locale->datetime_format_long )],
-    [ medium  => $dt->format_cldr( $dt->locale->datetime_format_medium )],
-    [ short   => $dt->format_cldr( $dt->locale->datetime_format_short )],
-    [ iso     => join ' ', $dt->ymd('-'), $dt->hms(':'), $dt->strftime('%z')],
-    [ iso8601 => join ' ', $dt->ymd('-'), $dt->hms(':'), $dt->strftime('%z')],
-    [ rfc     => $dt->strftime('%a, %d %b %Y %H:%M:%S %z')],
-    [ rfc2822 => $dt->strftime('%a, %d %b %Y %H:%M:%S %z')],
+    [ full    => $ldt->format_cldr( $ldt->locale->datetime_format_full )],
+    [ long    => $ldt->format_cldr( $ldt->locale->datetime_format_long )],
+    [ medium  => $ldt->format_cldr( $ldt->locale->datetime_format_medium )],
+    [ short   => $ldt->format_cldr( $ldt->locale->datetime_format_short )],
+    [ iso     => $iso ],
+    [ iso8601 => $iso ],
+    [ rfc     => $rfc ],
+    [ rfc2822 => $rfc ],
 ) {
     my $clone = $dt->clone;
     $clone->set_time_zone('UTC');
