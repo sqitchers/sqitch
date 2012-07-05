@@ -16,7 +16,7 @@ our $VERSION = '0.52';
 
 sub execute {
     my ( $self, $command ) = @_;
-    my $look_for = 'sqitch' . ( $command ? "-$command" : '' );
+    my $look_for = 'sqitch' . ( $command ? "-$command" : 'commands' );
     my $pod = Pod::Find::pod_where({
         '-inc' => 1,
         '-script' => 1

@@ -30,7 +30,7 @@ $mock->mock(_pod2usage => sub { @args = @_} );
 ok $help->execute, 'Execute help';
 is_deeply \@args, [
     $help,
-    '-input'   => Pod::Find::pod_where({'-inc' => 1 }, 'sqitch'),
+    '-input'   => Pod::Find::pod_where({'-inc' => 1 }, 'sqitchcommands'),
     '-verbose' => 2,
     '-exitval' => 0,
 ], 'Should show sqitch app docs';
