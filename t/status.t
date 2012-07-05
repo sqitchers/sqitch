@@ -66,7 +66,7 @@ ok $status->emit_state($state), 'Emit the state';
 is_deeply +MockOutput->get_comment, [
     [__x 'Change: {change_id}', change_id => 'someid'],
     [__x 'Name:   {change}',    change    => 'widgets_table'],
-    [__x 'User:   {name}',      user      => 'fred'],
+    [__x 'User:   {name}',      name      => 'fred'],
     [__x 'Date:   {date}',      date      => $ts],
 ], 'The state should have been emitted';
 
@@ -77,7 +77,7 @@ is_deeply +MockOutput->get_comment, [
     [__x 'Change: {change_id}', change_id => 'someid'],
     [__x 'Name:   {change}',    change    => 'widgets_table'],
     [__nx 'Tag:    {tags}', 'Tags:   {tags}', 1, tags => '@alpha'],
-    [__x 'User:   {name}',      user      => 'fred'],
+    [__x 'User:   {name}',      name      => 'fred'],
     [__x 'Date:   {date}',      date      => $ts],
 ], 'The state should have been emitted with a tag';
 
@@ -89,7 +89,7 @@ is_deeply +MockOutput->get_comment, [
     [__x 'Name:   {change}',    change    => 'widgets_table'],
     [__nx 'Tag:    {tags}', 'Tags:   {tags}', 3,
      tags => join(__ ', ', qw(@alpha @beta @gamma))],
-    [__x 'User:   {name}',      user      => 'fred'],
+    [__x 'User:   {name}',      name      => 'fred'],
     [__x 'Date:   {date}',      date      => $ts],
 ], 'The state should have been emitted with multiple tags';
 

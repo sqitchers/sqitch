@@ -46,7 +46,7 @@ sub execute {
     my $self = shift;
     my $engine = $self->engine;
 
-    $self->comment('On database ', $engine->destatination);
+    $self->comment('On database ', $engine->destination);
 
     my $state = $engine->initialized ? $engine->current_state : undef;
 
@@ -82,7 +82,7 @@ sub emit_state {
             tags => join(__ ', ', @tags),
         ));
     }
-    $self->comment(__x 'User:   {name}', user => $state->{deployed_by});
+    $self->comment(__x 'User:   {name}', name => $state->{deployed_by});
     $state->{deployed_at}->set_time_zone('local');
     $self->comment(__x(
         'Date:   {date}',
