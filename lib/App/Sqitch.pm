@@ -191,16 +191,16 @@ sub go {
     $opts->{config} = $config;
     my $sqitch = $class->new($opts);
 
-    # 5. Instantiate the command object.
-    my $command = App::Sqitch::Command->load({
-        sqitch  => $sqitch,
-        command => $cmd,
-        config  => $config,
-        args    => $cmd_args,
-    });
-
-    # 6. Execute command.
     return try {
+        # 5. Instantiate the command object.
+        my $command = App::Sqitch::Command->load({
+            sqitch  => $sqitch,
+            command => $cmd,
+            config  => $config,
+            args    => $cmd_args,
+        });
+
+        # 6. Execute command.
         $command->execute( @{$cmd_args} ) ? 0 : 2;
     } catch {
         # Just bail for unknown exceptions.
