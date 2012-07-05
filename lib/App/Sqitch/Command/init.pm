@@ -234,7 +234,7 @@ __END__
 
 =head1 Name
 
-App::Sqitch::Command::init - Create a new Sqitch project
+App::Sqitch::Command::init - Initialize a Sqitch project
 
 =head1 Synopsis
 

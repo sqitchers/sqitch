@@ -237,7 +237,7 @@ __END__
 
 =head1 Name
 
-App::Sqitch::Command::add - Add a new deployment change
+App::Sqitch::Command::add - Add a new change to a Sqitch plan
 
 =head1 Synopsis
 

@@ -36,7 +36,7 @@ __END__
 
 =head1 Name
 
-App::Sqitch::Command::revert - Revert Sqitch changes
+App::Sqitch::Command::revert - Revert Sqitch changes from a database
 
 =head1 Synopsis
 

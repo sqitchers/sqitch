@@ -132,7 +132,7 @@ __END__
 
 =head1 Name
 
-App::Sqitch::Command::rework - Rework a deployment change
+App::Sqitch::Command::rework - Rework a Sqitch change
 
 =head1 Synopsis
 

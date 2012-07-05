@@ -41,7 +41,7 @@ __END__
 
 =head1 Name
 
-App::Sqitch::Command::tag - Tag a Sqitch change
+App::Sqitch::Command::tag - Add or list tags in a Sqitch plan
 
 =head1 Synopsis
 

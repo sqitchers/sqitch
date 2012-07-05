@@ -1,0 +1,52 @@
+=begin private
+
+Keep private to it's not displayed, but will still be indexed by the CPAN
+toolchain.
+
+=head1 Name
+
+sqitchcommands - List of common sqitch commands
+
+=end private
+
+=head1 Usage
+
+  sqitch [<options>] <command> [<command-options>] [<args>]
+
+=head1 Common Commands
+
+The most commonly used sqitch commands are:
+
+=over
+
+=item L<C<add>|sqitch-add>
+
+Add a new change to the plan
+
+=item L<C<config>|sqitch-config>
+
+Get and set local, user, or system options
+
+=item L<C<deploy>|sqitch-deploy>
+
+Deploy changes to a database
+
+=item L<C<help>|sqitch-help>
+
+Display help information about Sqitch commands
+
+=item L<C<init>|sqitch-init>
+
+Initialize a project
+
+=item L<C<revert>|sqitch-revert>
+
+Revert changes from a database
+
+=item L<C<rework>|sqitch-rework>
+
+Duplicate a change in the plan and revise its scripts
+
+=item L<C<tag>|sqitch-tag>
+
+Add or list tags in the plan

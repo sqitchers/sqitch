@@ -47,7 +47,7 @@ __END__
 
 =head1 Name
 
-App::Sqitch::Command::deploy - Deploy Sqitch changes
+App::Sqitch::Command::deploy - Deploy Sqitch changes to a database
 
 =head1 Synopsis
 
