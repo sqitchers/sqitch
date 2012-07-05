@@ -60,37 +60,37 @@ my $state = {
     tags        => [],
 };
 $dt->set_time_zone('local');
-my $ts = $dt->iso8601;
+my $ts = $dt->ymd('-') . ' ' . $dt->hms(':');
 
 ok $status->emit_state($state), 'Emit the state';
 is_deeply +MockOutput->get_comment, [
-    [__x 'Change: {change_id}', change_id => 'someid'],
-    [__x 'Name:   {change}',    change    => 'widgets_table'],
-    [__x 'User:   {name}',      name      => 'fred'],
-    [__x 'Date:   {date}',      date      => $ts],
+    [__x 'Change:   {change_id}', change_id => 'someid'],
+    [__x 'Name:     {change}',    change    => 'widgets_table'],
+    [__x 'Deployed: {date}',      date      => $ts],
+    [__x 'By:       {name}',      name      => 'fred'],
 ], 'The state should have been emitted';
 
 # Try with a tag.
-$state->{tags} = ['@alpha'];
+$state->  {tags} = ['@alpha'];
 ok $status->emit_state($state), 'Emit the state with a tag';
 is_deeply +MockOutput->get_comment, [
-    [__x 'Change: {change_id}', change_id => 'someid'],
-    [__x 'Name:   {change}',    change    => 'widgets_table'],
-    [__nx 'Tag:    {tags}', 'Tags:   {tags}', 1, tags => '@alpha'],
-    [__x 'User:   {name}',      name      => 'fred'],
-    [__x 'Date:   {date}',      date      => $ts],
+    [__x 'Change:   {change_id}', change_id => 'someid'],
+    [__x 'Name:     {change}',    change    => 'widgets_table'],
+    [__nx 'Tag:      {tags}', 'Tags:     {tags}', 1, tags => '@alpha'],
+    [__x 'Deployed: {date}',      date      => $ts],
+    [__x 'By:       {name}',      name      => 'fred'],
 ], 'The state should have been emitted with a tag';
 
 # Try with mulitple tags.
-$state->{tags} = ['@alpha', '@beta', '@gamma'];
+$state->  {tags} = ['@alpha', '@beta', '@gamma'];
 ok $status->emit_state($state), 'Emit the state with multiple tags';
 is_deeply +MockOutput->get_comment, [
-    [__x 'Change: {change_id}', change_id => 'someid'],
-    [__x 'Name:   {change}',    change    => 'widgets_table'],
-    [__nx 'Tag:    {tags}', 'Tags:   {tags}', 3,
+    [__x 'Change:   {change_id}', change_id => 'someid'],
+    [__x 'Name:     {change}',    change    => 'widgets_table'],
+    [__nx 'Tag:      {tags}', 'Tags:     {tags}', 3,
      tags => join(__ ', ', qw(@alpha @beta @gamma))],
-    [__x 'User:   {name}',      name      => 'fred'],
-    [__x 'Date:   {date}',      date      => $ts],
+    [__x 'Deployed: {date}',      date      => $ts],
+    [__x 'By:       {name}',      name      => 'fred'],
 ], 'The state should have been emitted with multiple tags';
 
 ##############################################################################

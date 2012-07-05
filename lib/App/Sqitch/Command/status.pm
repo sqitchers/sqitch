@@ -6,6 +6,7 @@ use warnings;
 use utf8;
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
+#use POSIX qw(setlocale LC_TIME);
 use Moose;
 extends 'App::Sqitch::Command';
 
@@ -72,22 +73,25 @@ sub execute {
 
 sub emit_state {
     my ( $self, $state ) = @_;
-    $self->comment(__x 'Change: {change_id}', change_id => $state->{change_id});
-    $self->comment(__x 'Name:   {change}',    change    => $state->{change});
+    $self->comment(__x 'Change:   {change_id}', change_id => $state->{change_id});
+    $self->comment(__x 'Name:     {change}',    change    => $state->{change});
     if (my @tags = @{ $state->{tags}} ) {
         $self->comment(__nx(
-            'Tag:    {tags}',
-            'Tags:   {tags}',
+            'Tag:      {tags}',
+            'Tags:     {tags}',
             @tags,
             tags => join(__ ', ', @tags),
         ));
     }
-    $self->comment(__x 'User:   {name}', name => $state->{deployed_by});
-    $state->{deployed_at}->set_time_zone('local');
+    my $dt = $state->{deployed_at};
+    $dt->set_time_zone('local');
+    # $dt->set_locale( setlocale LC_TIME );
     $self->comment(__x(
-        'Date:   {date}',
-        date => $state->{deployed_at}->iso8601
+        'Deployed: {date}',
+        date => $dt->ymd('-') . ' ' . $dt->hms(':'),
+        # date => $dt->format_cldr($dt->locale->datetime_format_long),
     ));
+    $self->comment(__x 'By:       {name}', name => $state->{deployed_by});
     return $self;
 }
 
