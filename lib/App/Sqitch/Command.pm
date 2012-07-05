@@ -17,6 +17,8 @@ has sqitch => (
     isa      => 'App::Sqitch',
     required => 1,
     handles  => [qw(
+        plan
+        engine
         run
         capture
         probe
@@ -26,6 +28,7 @@ has sqitch => (
         info
         comment
         emit
+        vent
         warn
     )],
 );
