@@ -484,7 +484,17 @@ sub add {
     # Make sure dependencies are valid.
     $self->_check_dependencies($change, 'add');
 
-    # We good.
+    # We good. Append a blank line if the previous change has a tag.
+    if ($changes->count) {
+        my $prev = $changes->change_at( $changes->count - 1);
+        if ($prev->tags) {
+            $plan->{lines}->append(App::Sqitch::Plan::Blank->new(
+                plan => $self,
+            ));
+        }
+    }
+
+    # Append the change and return.
     $changes->append( $change );
     $plan->{lines}->append( $change );
     return $change;

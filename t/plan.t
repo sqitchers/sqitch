@@ -821,7 +821,7 @@ ok $plan->write_to($to), 'Write out the file again';
 file_contents_is $to,
     '%syntax-version=' . App::Sqitch::Plan::SYNTAX_VERSION . $/
     . $file->slurp(iomode => '<:encoding(UTF-8)')
-    . "\@w00t\n\@alpha\nbooyah\n",
+    . "\@w00t\n\@alpha\n\nbooyah\n",
     'The contents should include the "booyah" change';
 
 # Make sure dependencies are verified.

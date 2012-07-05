@@ -2,10 +2,14 @@ Revision history for Perl extension App::Sqitch
 
 0.52
      - Removed some discussion of VCS integration, since it is not yet
-       implemented, and it may be a while befor it is.
+       implemented, and it may be a while before it is.
      - Added `sqitchcommands`, documentation of the most common Sqitch
        commands, and fixed `--help` to show it.
      - Fixed `--man` to show the sqitch command documentation.
+     - Fixed error handling for unknown commands, so that it displays a
+       message saying the command is unknown, rather than a stack trace.
+     - Adding a change after a tag now also inserts a blank line into the plan
+       between the tag and the new change, for nicer plan file formatting.
 
 0.51  2012-07-04T18:34:07Z
      - Added Role::HasMessage to the list or requirements in `Build.PL`. Was
