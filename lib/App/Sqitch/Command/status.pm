@@ -66,7 +66,7 @@ sub execute {
     my $self = shift;
     my $engine = $self->engine;
 
-    $self->comment('On database ', $engine->destination);
+    $self->comment(__x 'On database {db}', db => $engine->destination);
 
     my $state = $engine->initialized ? $engine->current_state : undef;
 
