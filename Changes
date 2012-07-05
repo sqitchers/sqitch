@@ -37,7 +37,7 @@ Revision history for Perl extension App::Sqitch
      - Added the `rework` command.
      - Added exception objects and started using them.
      - Added localization support and started using it.
-     - Added IDs to steps and tags. These are SHA1s generated from the return
+     - Added IDs to changes and tags. These are SHA1s generated from the return
        value of the new `info` method, which describes the change or tag.
      - Updated the PostgreSQL engine to comply with the new Engine API.
      - Updated the PostgreSQL engine to use IDs for tracking changes and tags.
@@ -57,7 +57,7 @@ Revision history for Perl extension App::Sqitch
      - Change names can now be duplicated, as long as a tag name appears
        between them.
      - Renamed `target` to destination in Engine.
-     - Started referring to the step to deploy or revert to in docs as the
+     - Started referring to the change to deploy or revert to in docs as the
        "target".
      - PostgreSQL errors will now be thrown as Sqitch exceptions, for proper
        handling during command execution.

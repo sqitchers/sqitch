@@ -1,6 +1,6 @@
 =head1 Name
 
-sqitch - Simple database change management
+sqitch - Sane database change management
 
 =head1 Synopsis
 

@@ -421,7 +421,7 @@ __END__
 
 =head1 Name
 
-App::Sqitch - VCS-powered SQL change management
+App::Sqitch - Sane database change management
 
 =head1 Synopsis
 
