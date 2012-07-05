@@ -75,9 +75,10 @@ HELP: {
     my @args;
     $mock->mock(_pod2usage => sub { @args = @_} );
     ok $CLASS->_parse_core_opts(['--help']), 'Ask for help';
-    is_deeply \@args, [ $CLASS, '-exitval', 0 ], 'Should have been helped';
+    is_deeply \@args, [ $CLASS, 'sqitchcommands', '-exitval', 0, '-verbose', 2 ],
+        'Should have been helped';
     ok $CLASS->_parse_core_opts(['--man']), 'Ask for man';
-    is_deeply \@args, [ $CLASS, '-exitval', 0, '-verbose', 2 ],
+    is_deeply \@args, [ $CLASS, 'sqitch', '-exitval', 0, '-verbose', 2 ],
         'Should have been manned';
 }
 
@@ -138,13 +139,14 @@ is_deeply $CLASS->_parse_core_opts([
 
 USAGE: {
     my $mock = Test::MockModule->new('Pod::Usage');
-    my @args;
-    $mock->mock(pod2usage => sub { @args = @_} );
-    ok $CLASS->_pod2usage('hello'), 'Run _pod2usage';
-    is_deeply \@args, [
-        '-verbose'  => 99,
-        '-sections' => '(?i:(Synopsis|Usage|Options))',
+    my %args;
+    $mock->mock(pod2usage => sub { %args = @_} );
+    ok $CLASS->_pod2usage('sqitch-add', foo => 'bar'), 'Run _pod2usage';
+    is_deeply \%args, {
+        '-sections' => '(?i:(Usage|Synopsis|Options))',
+        '-verbose'  => 2,
+        '-input'    => Pod::Find::pod_where({'-inc' => 1 }, 'sqitch-add'),
         '-exitval'  => 2,
-        'hello'
-    ], 'Proper args should have been passed to Pod::Usage';
+        'foo'       => 'bar',
+    }, 'Proper args should have been passed to Pod::Usage';
 }

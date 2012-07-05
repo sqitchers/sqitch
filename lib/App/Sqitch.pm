@@ -277,8 +277,13 @@ sub _parse_core_opts {
     ) or $self->_pod2usage;
 
     # Handle documentation requests.
-    $self->_pod2usage( '-exitval' => 0, '-verbose' => 2 ) if delete $opts{man};
-    $self->_pod2usage( '-exitval' => 0                  ) if delete $opts{help};
+    if ($opts{help} || $opts{man}) {
+        $self->_pod2usage(
+            $opts{help} ? 'sqitchcommands' : 'sqitch',
+            '-exitval' => 0,
+            '-verbose' => 2,
+        );
+    }
 
     # Handle version request.
     if ( delete $opts{version} ) {
@@ -310,14 +315,11 @@ sub _parse_core_opts {
 }
 
 sub _pod2usage {
-    shift;
-    require Pod::Usage;
-    Pod::Usage::pod2usage(
-        '-verbose'  => 99,
-        '-sections' => '(?i:(Synopsis|Usage|Options))',
-        '-exitval'  => 2,
-        @_
-    );
+    my ( $self, $doc ) = ( shift, shift );
+    require App::Sqitch::Command::help;
+    # Help does not need the Sqitch command; since it's required, fake it.
+    my $help = App::Sqitch::Command::help->new( sqitch => bless {}, $self );
+    $help->find_and_show( $doc || 'sqitch', '-exitval' => 2, @_ );
 }
 
 sub run {
