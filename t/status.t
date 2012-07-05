@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 25;
+use Test::More tests => 34;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -16,6 +16,7 @@ use lib 't/lib';
 use MockOutput;
 
 my $CLASS = 'App::Sqitch::Command::status';
+require_ok $CLASS;
 
 my $uri = URI->new('https://github.com/theory/sqitch/');
 ok my $sqitch = App::Sqitch->new(
@@ -38,10 +39,11 @@ can_ok $status, qw(
     emit_changes
     emit_tags
     emit_status
+    _format_date
 );
 
-#######################################################################################
-# Test emit_state().
+##############################################################################
+# Test _format_date().
 my $dt = DateTime->new(
     year       => 2012,
     month      => 7,
@@ -49,9 +51,31 @@ my $dt = DateTime->new(
     hour       => 16,
     minute     => 12,
     second     => 47,
-    time_zone => 'UTC',
+    time_zone => 'local',
 );
 
+for my $spec (
+    [ full    => $dt->format_cldr( $dt->locale->datetime_format_full )],
+    [ long    => $dt->format_cldr( $dt->locale->datetime_format_long )],
+    [ medium  => $dt->format_cldr( $dt->locale->datetime_format_medium )],
+    [ short   => $dt->format_cldr( $dt->locale->datetime_format_short )],
+    [ iso     => join ' ', $dt->ymd('-'), $dt->hms(':'), $dt->strftime('%z')],
+    [ iso8601 => join ' ', $dt->ymd('-'), $dt->hms(':'), $dt->strftime('%z')],
+    [ rfc     => $dt->strftime('%a, %d %b %Y %H:%M:%S %z')],
+    [ rfc2822 => $dt->strftime('%a, %d %b %Y %H:%M:%S %z')],
+) {
+    my $clone = $dt->clone;
+    $clone->set_time_zone('UTC');
+    my $status = $CLASS->new(
+        sqitch  => $sqitch,
+        date_format => $spec->[0],
+    );
+    is $status->_format_date($clone), $spec->[1],
+        qq{Date format "$spec->[0]" should yield "$spec->[1]"};
+}
+
+#######################################################################################
+# Test emit_state().
 my $state = {
     change_id   => 'someid',
     change      => 'widgets_table',
@@ -60,7 +84,7 @@ my $state = {
     tags        => [],
 };
 $dt->set_time_zone('local');
-my $ts = $dt->ymd('-') . ' ' . $dt->hms(':');
+my $ts = $status->_format_date($dt);
 
 ok $status->emit_state($state), 'Emit the state';
 is_deeply +MockOutput->get_comment, [

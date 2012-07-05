@@ -6,8 +6,8 @@ use warnings;
 use utf8;
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
-#use POSIX qw(setlocale LC_TIME);
 use Moose;
+use Moose::Util::TypeConstraints;
 extends 'App::Sqitch::Command';
 
 our $VERSION = '0.52';
@@ -36,10 +36,27 @@ has show_tags => (
     }
 );
 
+has date_format => (
+    is      => 'ro',
+    lazy    => 1,
+    default => 'iso',
+    isa     => enum([qw(
+        full
+        long
+        medium
+        short
+        iso
+        iso8601
+        rfc
+        rfc2822
+    )]),
+);
+
 sub options {
     return qw(
-        --show-tags
-        --show-changes
+        show-tags
+        show-changes
+        date-format|date=s
     );
 }
 
@@ -83,13 +100,10 @@ sub emit_state {
             tags => join(__ ', ', @tags),
         ));
     }
-    my $dt = $state->{deployed_at};
-    $dt->set_time_zone('local');
-    # $dt->set_locale( setlocale LC_TIME );
+
     $self->comment(__x(
         'Deployed: {date}',
-        date => $dt->ymd('-') . ' ' . $dt->hms(':'),
-        # date => $dt->format_cldr($dt->locale->datetime_format_long),
+        date => $self->_format_date( $state->{deployed_at} ),
     ));
     $self->comment(__x 'By:       {name}', name => $state->{deployed_by});
     return $self;
@@ -134,6 +148,25 @@ sub emit_status {
         }
     }
     return $self;
+}
+
+sub _format_date {
+    my ( $self, $dt ) = @_;
+    my $format = $self->date_format;
+    $dt->set_time_zone('local');
+
+    if ($format ~~ [qw(iso iso8601)]) {
+        return join ' ', $dt->ymd('-'), $dt->hms(':'), $dt->strftime('%z')
+    } else {
+        require POSIX;
+        $dt->set_locale( POSIX::setlocale( POSIX::LC_TIME() ) );
+        if ($format ~~ [qw(rfc rfc2822)]) {
+            return $dt->strftime('%a, %d %b %Y %H:%M:%S %z');
+        } else {
+            my $meth = "datetime_format_$format";
+            return $dt->format_cldr( $dt->locale->$meth );
+        }
+    }
 }
 
 1;
