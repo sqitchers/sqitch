@@ -187,7 +187,8 @@ is capture_stdout { $sqitch->comment('This ', "that\n", 'and the other') },
     'comment should work';
 $sqitch = $CLASS->new(verbosity => 0);
 is capture_stdout { $sqitch->comment('This ', "that\n", 'and the other') },
-    '', 'Should get no comment output for verbosity 0';
+    "# This that\n# and the other\n",
+    'comment should work with verbosity 0';
 
 # Emit.
 is capture_stdout { $sqitch->emit('This ', "that\n", 'and the other') },

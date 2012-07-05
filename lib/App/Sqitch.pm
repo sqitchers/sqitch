@@ -398,7 +398,7 @@ sub info {
 
 sub comment {
     my $self = shift;
-    say _prepend '#', @_ if $self->verbosity;
+    say _prepend '#', @_;
 }
 
 sub emit {
