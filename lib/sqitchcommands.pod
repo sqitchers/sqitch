@@ -47,6 +47,10 @@ Revert changes from a database
 
 Duplicate a change in the plan and revise its scripts
 
+=item L<C<status>|sqitch-status>
+
+Show the current deployment status of a database
+
 =item L<C<tag>|sqitch-tag>
 
 Add or list tags in the plan

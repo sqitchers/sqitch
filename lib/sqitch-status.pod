@@ -1,6 +1,6 @@
 =head1 Name
 
-sqitch-status - Show the current database deployment status
+sqitch-status - Show the current deployment status of a database
 
 =head1 Synopsis
 

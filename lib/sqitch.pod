@@ -321,54 +321,12 @@ Create the plan file and directories for deploy, revert, and test scripts if
 they do not already exist. This command is useful for starting a new Sqitch
 project.
 
-=item C<status>
-
-*Not yet implemented.
+=item L<C<status>|sqitch-status>
 
 Output information about the current deployment state of a database, including
 the name of the last deployed change, as well as any tags applied to it. If
 any changes in the plan have not been deployed, they will be listed
-separately. Options:
-
-=over
-
-=item C<-s>
-
-=item C<--show>
-
-How much information to show. This option may be passed without a C<-s> or
-C<--show>. Possible values include:
-
-=over
-
-=item C<latest>
-
-Show only the latest change. This is the default.
-
-=item C<tags>
-
-Show a list of all deployed tags.
-
-=item C<changes>
-
-Show a list of all deployed changes.
-
-=back
-
-=item C<--format>
-
-The format to use to display tags or changes, if either are specified via the
-C<--show> option. The value may be any one of:
-
-=over
-
-=item C<oneline>
-
-=item C<table>
-
-=back
-
-=back
+separately.
 
 =item C<log>
 
