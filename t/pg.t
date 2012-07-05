@@ -201,6 +201,25 @@ $mock_sqitch->unmock_all;
 $mock_config->unmock_all;
 
 ##############################################################################
+# Test DateTime formatting stuff.
+ok my $ts2char = $CLASS->can('_ts2char'), "$CLASS->can('_ts2char')";
+is $ts2char->('foo'),
+    q{to_char(foo AT TIME ZONE 'UTC', '"year":YYYY:"month":MM:"day":DD:"hour":HH24:"minute":MI:"second":SS:"time_zone":"UTC"')},
+    '_ts2char should work';
+
+ok my $dtfunc = $CLASS->can('_dt'), "$CLASS->can('_dt')";
+isa_ok my $dt = $dtfunc->(
+    'year:2012:month:07:day:05:hour:15:minute:07:second:01:time_zone:UTC'
+), 'DateTime', 'Return value of _dt()';
+is $dt->year, 2012, 'DateTime year should be set';
+is $dt->month,   7, 'DateTime month should be set';
+is $dt->day,     5, 'DateTime day should be set';
+is $dt->hour,   15, 'DateTime hour should be set';
+is $dt->minute,  7, 'DateTime minute should be set';
+is $dt->second,  1, 'DateTime second should be set';
+is $dt->time_zone->name, 'UTC', 'DateTime TZ should be set';
+
+##############################################################################
 # Can we do live tests?
 can_ok $CLASS, qw(
     initialized
@@ -280,6 +299,7 @@ subtest 'live database' => sub {
     like $@->message, qr/^ERROR:  /, 'The message should be the PostgreSQL error';
     like $@->previous_exception, qr/\QDBD::Pg::db do failed: /,
         'The DBI error should be in preview_exception';
+    is $pg->current_state, undef, 'Current state should be undef';
 
     ##########################################################################
     # Test log_deploy_change().
@@ -312,6 +332,16 @@ subtest 'live database' => sub {
     is $pg->name_for_change_id($change->id), 'users@alpha',
         'name_for_change_id() should return the change name with tag';
 
+    ok my $state = $pg->current_state, 'Get the current state';
+    isa_ok my $dt = delete $state->{deployed_at}, 'DateTime', 'depoyed_at value';
+    is $dt->time_zone->name, 'UTC', 'Deployed_at TZ should be UTC';
+    is_deeply $state, {
+        change_id   => $change->id,
+        change      => 'users',
+        deployed_by => $pg->actor,
+        tags        => ['@alpha'],
+    }, 'The rest of the state should look right';
+
     ##########################################################################
     # Test log_revert_change().
     ok $pg->log_revert_change($change), 'Revert "users" change';
@@ -336,6 +366,7 @@ subtest 'live database' => sub {
 
     is $pg->name_for_change_id($change->id), undef,
         'name_for_change_id() should no longer return the change name';
+    is $pg->current_state, undef, 'Current state should be undef again';
 
     ##########################################################################
     # Test log_fail_change().
@@ -359,6 +390,7 @@ subtest 'live database' => sub {
     is_deeply $pg->_dbh->selectall_arrayref(
         'SELECT tag_id, tag, change_id, applied_by FROM tags'
     ), [], 'Should still have no tag records';
+    is $pg->current_state, undef, 'Current state should still be undef';
 
     ##########################################################################
     # Test a change with dependencies.
@@ -391,6 +423,16 @@ subtest 'live database' => sub {
 
     is $pg->name_for_change_id($change2->id), 'widgets',
         'name_for_change_id() should return just the change name';
+
+    ok $state = $pg->current_state, 'Get the current state again';
+    isa_ok $dt = delete $state->{deployed_at}, 'DateTime', 'depoyed_at value';
+    is $dt->time_zone->name, 'UTC', 'Deployed_at TZ should be UTC';
+    is_deeply $state, {
+        change_id   => $change2->id,
+        change      => 'widgets',
+        deployed_by => $pg->actor,
+        tags        => [],
+    }, 'The state should reference new change';
 
     ##########################################################################
     # Test conflicts and requires.
@@ -435,6 +477,16 @@ subtest 'live database' => sub {
         'Should find only the second after the first';
     is_deeply [$pg->deployed_change_ids_since($change2)], [],
         'Should find none after the second';
+
+    ok $state = $pg->current_state, 'Get the current state once more';
+    isa_ok $dt = delete $state->{deployed_at}, 'DateTime', 'depoyed_at value';
+    is $dt->time_zone->name, 'UTC', 'Deployed_at TZ should be UTC';
+    is_deeply $state, {
+        change_id   => $change2->id,
+        change      => 'widgets',
+        deployed_by => $pg->actor,
+        tags        => [],
+    }, 'The new state should reference latest change';
 
     ##########################################################################
     # Test begin_work() and finish_work().

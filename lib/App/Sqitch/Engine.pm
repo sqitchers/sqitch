@@ -409,6 +409,11 @@ sub name_for_change_id {
     hurl "$class has not implemented name_for_change_id()";
 }
 
+sub current_state {
+    my $class = ref $_[0] || $_[0];
+    hurl "$class has not implemented current_state()";
+}
+
 __PACKAGE__->meta->make_immutable;
 no Moose;
 
@@ -712,6 +717,40 @@ applied to a change after that change, the name will be returned with the tag
 qualification, e.g., C<app_user@beta>. This value should be suitable for
 uniquely identifying the change, and passing to the C<get> or C<index_of>
 methods of L<App::Sqitch::Plan>.
+
+=head3 C<current_state>
+
+  my $state = $engine->current_state;
+
+Returns a hash reference representing the current state of the database, or
+C<undef> if the database has no changes deployed. The hash contains
+information about the last successfully deployed change, as well as any
+associated tags. The keys to the hash should include:
+
+=over
+
+=item C<change_id>
+
+The current change ID.
+
+=item C<change>
+
+The current change name.
+
+=item C<deployed_at>
+
+A L<DateTime> object representing the date and time at which the change was
+deployed.
+
+=item C<deployed_by>
+
+Name of the user who deployed the change.
+
+=item C<tags>
+
+An array reference of the names of associated tags.
+
+=back
 
 =head3 C<run_file>
 

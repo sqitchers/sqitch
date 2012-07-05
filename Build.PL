@@ -12,6 +12,7 @@ Module::Build::Sqitch->new(
         'perl'                                         => '5.10.1',
         'Config'                                       => 0,
         'Config::GitLike'                              => '1.07',
+        'DateTime'                                     => 0,
         'DBI'                                          => 0,
         'File::Basename'                               => 0,
         'File::Copy'                                   => 0,

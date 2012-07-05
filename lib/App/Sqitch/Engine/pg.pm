@@ -436,6 +436,38 @@ sub name_for_change_id {
     }, undef, $change_id)->[0];
 }
 
+sub _ts2char($) {
+    my $col = shift;
+    return qq{to_char($col AT TIME ZONE 'UTC', '"year":YYYY:"month":MM:"day":DD:"hour":HH24:"minute":MI:"second":SS:"time_zone":"UTC"')};
+}
+
+sub _dt($) {
+    require DateTime;
+    return DateTime->new(split /:/ => shift);
+}
+
+sub current_state {
+    my $self  = shift;
+    my $dtcol = _ts2char 'deployed_at';
+    my $state = $self->_dbh->selectrow_hashref(qq{
+        SELECT change_id
+             , change
+             , deployed_by
+             , $dtcol AS deployed_at
+             , ARRAY(
+                 SELECT tag
+                   FROM tags
+                  WHERE change_id = changes.change_id
+                  ORDER BY applied_at
+             ) AS tags
+          FROM changes
+         ORDER BY changes.deployed_at DESC
+         LIMIT 1
+    }) or return undef;
+    $state->{deployed_at} = _dt $state->{deployed_at};
+    return $state;
+}
+
 sub _run {
     my $self   = shift;
     my $sqitch = $self->sqitch;

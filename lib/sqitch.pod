@@ -355,7 +355,7 @@ Show a list of all deployed changes.
 
 =back
 
-=item C<format>
+=item C<--format>
 
 The format to use to display tags or changes, if either are specified via the
 C<--show> option. The value may be any one of:
