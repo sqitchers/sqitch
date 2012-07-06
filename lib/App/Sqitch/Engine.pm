@@ -414,6 +414,16 @@ sub current_state {
     hurl "$class has not implemented current_state()";
 }
 
+sub current_changes {
+    my $class = ref $_[0] || $_[0];
+    hurl "$class has not implemented current_changes()";
+}
+
+sub current_tags {
+    my $class = ref $_[0] || $_[0];
+    hurl "$class has not implemented current_tags()";
+}
+
 __PACKAGE__->meta->make_immutable;
 no Moose;
 
@@ -749,6 +759,43 @@ Name of the user who deployed the change.
 =item C<tags>
 
 An array reference of the names of associated tags.
+
+=back
+
+=head3 C<current_changes>
+
+=head3 C<current_tags>
+
+  my @changes = $engine->current_changes;
+  my @tags    = $engine->current_tags;
+
+Returns a list of hash references representing the currently deployed changes
+or applied tags, in reverse chronological order. The keys to each hash should
+include:
+
+=over
+
+=item C<id>
+
+The change or tag ID.
+
+=item C<name>
+
+The name of the change or tag.
+
+=item C<deployed_at>
+
+=item C<applied_at>
+
+An L<App::Sqitch::DateTime> object representing the date and time at which the
+change was deployed (C<deployed_at>) or the tag was applied C<applied_at>).
+
+=item C<deployed_by>
+
+=item C<applied_by>
+
+Name of the user who deployed the change (C<deployed_by>) or applied the tag
+(C<applied_by>).
 
 =back
 

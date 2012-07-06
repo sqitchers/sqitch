@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 227;
+use Test::More tests => 229;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -169,6 +169,8 @@ for my $abs (qw(
     deployed_change_ids_since
     name_for_change_id
     current_state
+    current_changes
+    current_tags
 )) {
     throws_ok { $engine->$abs } qr/\Q$CLASS has not implemented $abs()/,
         "Should get an unimplemented exception from $abs()"
