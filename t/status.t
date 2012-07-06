@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 50;
+use Test::More tests => 42;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -12,7 +12,6 @@ use Test::Exception;
 use Test::MockModule;
 use Path::Class;
 use URI;
-use DateTime;
 use lib 't/lib';
 use MockOutput;
 
@@ -41,9 +40,7 @@ can_ok $status, qw(
     emit_changes
     emit_tags
     emit_status
-    _format_date
 );
-
 
 ##############################################################################
 # Test configure().
@@ -53,7 +50,8 @@ is_deeply $CLASS->configure($config, {}), {},
 $cmock->mock( get => 'nonesuch' );
 throws_ok { $CLASS->configure($config, {}), {} } 'App::Sqitch::X',
     'Should get error for invalid date format in config';
-is $@->ident, 'status', 'Invalid date format error ident should be "status"';
+is $@->ident, 'datetime',
+    'Invalid date format error ident should be "datetime"';
 is $@->message, __x(
     'Unknown date format "{format}"',
     format => 'nonesuch',
@@ -63,65 +61,25 @@ $cmock->unmock_all;
 throws_ok { $CLASS->configure($config, { 'date-format' => 'non'}), {} }
     'App::Sqitch::X',
     'Should get error for invalid date format in optsions';
-is $@->ident, 'status', 'Invalid date format error ident should be "status"';
+is $@->ident, 'datetime',
+    'Invalid date format error ident should be "status"';
 is $@->message, __x(
     'Unknown date format "{format}"',
     format => 'non',
 ), 'Invalid date format error message should be correct';
 
-##############################################################################
-# Test _format_date().
-my $dt = DateTime->new(
+#######################################################################################
+# Test emit_state().
+my $dt = App::Sqitch::DateTime->new(
     year       => 2012,
     month      => 7,
     day        => 5,
     hour       => 16,
     minute     => 12,
     second     => 47,
-    time_zone => 'local',
+    time_zone => 'America/Denver',
 );
 
-my $rfc = do {
-    my $clone = $dt->clone;
-    $clone->set( locale => 'en_US' );
-    ( my $rv = $clone->strftime('%a, %d %b %Y %H:%M:%S %z') ) =~ s/\+0000$/-0000/;
-    $rv;
-};
-
-my $iso = do {
-    my $clone = $dt->clone;
-    $clone->set_time_zone('local');
-    join ' ', $clone->ymd('-'), $clone->hms(':'), $clone->strftime('%z')
-};
-
-my $ldt = do {
-    my $clone = $dt->clone;
-    $clone->set(locale => POSIX::setlocale(POSIX::LC_TIME()) );
-    $clone;
-};
-
-for my $spec (
-    [ full    => $ldt->format_cldr( $ldt->locale->datetime_format_full )],
-    [ long    => $ldt->format_cldr( $ldt->locale->datetime_format_long )],
-    [ medium  => $ldt->format_cldr( $ldt->locale->datetime_format_medium )],
-    [ short   => $ldt->format_cldr( $ldt->locale->datetime_format_short )],
-    [ iso     => $iso ],
-    [ iso8601 => $iso ],
-    [ rfc     => $rfc ],
-    [ rfc2822 => $rfc ],
-) {
-    my $clone = $dt->clone;
-    $clone->set_time_zone('UTC');
-    my $status = $CLASS->new(
-        sqitch  => $sqitch,
-        date_format => $spec->[0],
-    );
-    is $status->_format_date($clone), $spec->[1],
-        qq{Date format "$spec->[0]" should yield "$spec->[1]"};
-}
-
-#######################################################################################
-# Test emit_state().
 my $state = {
     change_id   => 'someid',
     change      => 'widgets_table',
@@ -130,7 +88,7 @@ my $state = {
     tags        => [],
 };
 $dt->set_time_zone('local');
-my $ts = $status->_format_date($dt);
+my $ts = $dt->as_string( format => $status->date_format );
 
 ok $status->emit_state($state), 'Emit the state';
 is_deeply +MockOutput->get_comment, [

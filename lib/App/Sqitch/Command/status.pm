@@ -8,6 +8,7 @@ use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use Moose;
 use Moose::Util::TypeConstraints;
+use App::Sqitch::DateTime;
 extends 'App::Sqitch::Command';
 
 our $VERSION = '0.52';
@@ -39,16 +40,7 @@ has show_tags => (
 has date_format => (
     is      => 'ro',
     lazy    => 1,
-    isa     => enum([qw(
-        full
-        long
-        medium
-        short
-        iso
-        iso8601
-        rfc
-        rfc2822
-    )]),
+    isa     => enum([ App::Sqitch::DateTime->as_string_formats ]),
     default => sub {
         shift->sqitch->config->get( key => 'status.date_format' ) || 'iso'
     }
@@ -97,19 +89,7 @@ sub configure {
     if (my $format = $opt->{'date-format'}
         || $config->get(key => 'status.date_format')
     ) {
-        hurl status => __x(
-            'Unknown date format "{format}"',
-            format => $format
-        ) unless $format ~~ [qw(
-            full
-            long
-            medium
-            short
-            iso
-            iso8601
-            rfc
-            rfc2822
-        )];
+        App::Sqitch::DateTime->validate_as_string_format($format);
     }
 
     return $class->SUPER::configure( $config, $opt );
@@ -136,7 +116,9 @@ sub emit_state {
 
     $self->comment(__x(
         'Deployed: {date}',
-        date => $self->_format_date( $state->{deployed_at} ),
+        date => $state->{deployed_at}->as_string(
+            format => $self->date_format
+        ),
     ));
     $self->comment( __x 'By:       {name}', name => $state->{deployed_by} );
     return $self;
@@ -181,26 +163,6 @@ sub emit_status {
         }
     }
     return $self;
-}
-
-sub _format_date {
-    my ( $self, $dt ) = @_;
-    my $format = $self->date_format;
-    $dt->set_time_zone('local');
-
-    if ( $format ~~ [qw(iso iso8601)] ) {
-        return join ' ', $dt->ymd('-'), $dt->hms(':'), $dt->strftime('%z');
-    } elsif ( $format ~~ [qw(rfc rfc2822)] ) {
-        $dt->set( locale => 'en_US' );
-        ( my $rv = $dt->strftime('%a, %d %b %Y %H:%M:%S %z') ) =~
-            s/\+0000$/-0000/;
-        return $rv;
-    } else {
-        require POSIX;
-        $dt->set( locale => POSIX::setlocale( POSIX::LC_TIME() ) );
-        my $meth = "datetime_format_$format";
-        return $dt->format_cldr( $dt->locale->$meth );
-    }
 }
 
 1;
