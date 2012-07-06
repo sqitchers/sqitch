@@ -63,10 +63,10 @@ sub options {
 }
 
 sub execute {
-    my $self = shift;
+    my $self   = shift;
     my $engine = $self->engine;
 
-    $self->comment(__x 'On database {db}', db => $engine->destination);
+    $self->comment( __x 'On database {db}', db => $engine->destination );
 
     my $state = $engine->initialized ? $engine->current_state : undef;
 
@@ -92,8 +92,14 @@ sub execute {
 
 sub emit_state {
     my ( $self, $state ) = @_;
-    $self->comment(__x 'Change:   {change_id}', change_id => $state->{change_id});
-    $self->comment(__x 'Name:     {change}',    change    => $state->{change});
+    $self->comment(__x(
+        'Change:   {change_id}',
+        change_id => $state->{change_id},
+    ));
+    $self->comment(__x(
+        'Name:     {change}',
+        change    => $state->{change},
+    ));
     if (my @tags = @{ $state->{tags}} ) {
         $self->comment(__nx(
             'Tag:      {tags}',
@@ -107,7 +113,7 @@ sub emit_state {
         'Deployed: {date}',
         date => $self->_format_date( $state->{deployed_at} ),
     ));
-    $self->comment(__x 'By:       {name}', name => $state->{deployed_by});
+    $self->comment( __x 'By:       {name}', name => $state->{deployed_by} );
     return $self;
 }
 
@@ -127,26 +133,26 @@ sub emit_status {
     $self->comment('');
 
     my $idx = $plan->index_of( $state->{change_id} ) // do {
-        # Whoops, cannot find this change in the plan.
         $self->vent(__x(
             'Cannot find this change in {file}',
             file => $self->sqitch->plan_file
         ));
-        hurl status => __ 'Make sure you are connected to the proper database for this project.';
+        hurl status => __ 'Make sure you are connected to the proper '
+                        . 'database for this project.';
     };
 
     # Say something about our current state.
-    if ($idx == $plan->count - 1) {
-        $self->emit(__ 'Nothing to deploy (up-to-date)');
+    if ( $idx == $plan->count - 1 ) {
+        $self->emit( __ 'Nothing to deploy (up-to-date)' );
     } else {
         $self->emit(__n(
             'Undeployed change:',
             'Undeployed changes:',
-            $plan->count - ($idx + 1)
+            $plan->count - ( $idx + 1 )
         ));
         $plan->position($idx);
-        while (my $change = $plan->next) {
-            $self->emit('  * ', $change->format_name_with_tags);
+        while ( my $change = $plan->next ) {
+            $self->emit( '  * ', $change->format_name_with_tags );
         }
     }
     return $self;
@@ -157,15 +163,16 @@ sub _format_date {
     my $format = $self->date_format;
     $dt->set_time_zone('local');
 
-    if ($format ~~ [qw(iso iso8601)]) {
-        return join ' ', $dt->ymd('-'), $dt->hms(':'), $dt->strftime('%z')
-    } elsif ($format ~~ [qw(rfc rfc2822)]) {
+    if ( $format ~~ [qw(iso iso8601)] ) {
+        return join ' ', $dt->ymd('-'), $dt->hms(':'), $dt->strftime('%z');
+    } elsif ( $format ~~ [qw(rfc rfc2822)] ) {
         $dt->set( locale => 'en_US' );
-        ( my $rv = $dt->strftime('%a, %d %b %Y %H:%M:%S %z') ) =~ s/\+0000$/-0000/;
+        ( my $rv = $dt->strftime('%a, %d %b %Y %H:%M:%S %z') ) =~
+            s/\+0000$/-0000/;
         return $rv;
     } else {
         require POSIX;
-        $dt->set(locale => POSIX::setlocale(POSIX::LC_TIME()) );
+        $dt->set( locale => POSIX::setlocale( POSIX::LC_TIME() ) );
         my $meth = "datetime_format_$format";
         return $dt->format_cldr( $dt->locale->$meth );
     }
