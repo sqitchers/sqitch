@@ -483,6 +483,21 @@ sub current_changes {
     };
 }
 
+sub current_tags {
+    my $self  = shift;
+    my $dtcol = _ts2char 'applied_at';
+    return grep { $_->{applied_at} = _dt $_->{applied_at} } @{
+        $self->_dbh->selectall_arrayref(qq{
+            SELECT tag_id
+                 , tag
+                 , applied_by
+                 , $dtcol AS applied_at
+              FROM tags
+             ORDER BY tags.applied_at DESC
+        }, { Slice => {} }) || []
+    };
+}
+
 sub _run {
     my $self   = shift;
     my $sqitch = $self->sqitch;
