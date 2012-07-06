@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 43;
+use Test::More tests => 50;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -36,12 +36,38 @@ can_ok $status, qw(
     show_tags
     options
     execute
+    configure
     emit_state
     emit_changes
     emit_tags
     emit_status
     _format_date
 );
+
+
+##############################################################################
+# Test configure().
+my $cmock = Test::MockModule->new('App::Sqitch::Config');
+is_deeply $CLASS->configure($config, {}), {},
+    'Should get empty hash for no config or options';
+$cmock->mock( get => 'nonesuch' );
+throws_ok { $CLASS->configure($config, {}), {} } 'App::Sqitch::X',
+    'Should get error for invalid date format in config';
+is $@->ident, 'status', 'Invalid date format error ident should be "status"';
+is $@->message, __x(
+    'Uknown date format "{format}"',
+    format => 'nonesuch',
+), 'Invalid date format error message should be correct';
+$cmock->unmock_all;
+
+throws_ok { $CLASS->configure($config, { 'date-format' => 'non'}), {} }
+    'App::Sqitch::X',
+    'Should get error for invalid date format in optsions';
+is $@->ident, 'status', 'Invalid date format error ident should be "status"';
+is $@->message, __x(
+    'Uknown date format "{format}"',
+    format => 'non',
+), 'Invalid date format error message should be correct';
 
 ##############################################################################
 # Test _format_date().

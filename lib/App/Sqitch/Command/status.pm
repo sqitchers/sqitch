@@ -90,6 +90,31 @@ sub execute {
     return $self;
 }
 
+sub configure {
+    my ( $class, $config, $opt ) = @_;
+
+    # Make sure the date format is valid.
+    if (my $format = $opt->{'date-format'}
+        || $config->get(key => 'status.date_format')
+    ) {
+        hurl status => __x(
+            'Uknown date format "{format}"',
+            format => $format
+        ) unless $format ~~ [qw(
+            full
+            long
+            medium
+            short
+            iso
+            iso8601
+            rfc
+            rfc2822
+        )];
+    }
+
+    return $class->SUPER::configure( $config, $opt );
+}
+
 sub emit_state {
     my ( $self, $state ) = @_;
     $self->comment(__x(
