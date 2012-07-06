@@ -132,6 +132,7 @@ sub emit_changes {
 
     # Emit the header.
     my @changes = $self->engine->current_changes;
+    $self->comment('');
     $self->comment(__n 'Change:', 'Changes:', @changes);
 
     # Find the longest change name.
@@ -140,25 +141,23 @@ sub emit_changes {
 
     # Emit each change.
     $self->comment(sprintf(
-        '  * %s%s - %s - %s',
+        '  %s%s - %s - %s',
         $_->{change},
         ((' ') x ($len - length $_->{change})) || '',
         $_->{deployed_at}->as_string( format => $format ),
         $_->{deployed_by},
     )) for @changes;
 
-    # Add a space if we will also be showing tags.
-    $self->comment('') if $self->show_tags;
     return $self;
 }
 
 sub emit_tags {
     my $self = shift;
     return $self unless $self->show_tags;
-    return $self unless $self->show_changes;
 
     # Emit the header.
     my @tags = $self->engine->current_tags;
+    $self->comment('');
     $self->comment(__n 'Tag:', 'Tags:', @tags);
 
     # Find the longest tag name.
@@ -167,7 +166,7 @@ sub emit_tags {
 
     # Emit each tag.
     $self->comment(sprintf(
-        '  * %s%s - %s - %s',
+        '  %s%s - %s - %s',
         $_->{tag},
         ((' ') x ($len - length $_->{tag})) || '',
         $_->{applied_at}->as_string( format => $format ),

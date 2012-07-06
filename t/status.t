@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 60;
+use Test::More tests => 57;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -139,7 +139,7 @@ ok $status = App::Sqitch::Command->load({
     config  => $config,
 }), 'Create status command with an engine';
 
-ok $status->emit_changes, 'Emit changes';
+ok $status->emit_changes, 'Try to emit changes';
 is_deeply +MockOutput->get_comment, [],
     'Should have emitted no changes';
 
@@ -150,8 +150,9 @@ ok $status = App::Sqitch::Command::status->new(
 
 ok $status->emit_changes, 'Emit changes again';
 is_deeply +MockOutput->get_comment, [
+    [''],
     [__n 'Change:', 'Changes:', 1],
-    ["  * foo - $ts - anna"],
+    ["  foo - $ts - anna"],
 ], 'Should have emitted one change';
 
 # Add a couple more changes.
@@ -172,26 +173,12 @@ push @current_changes => (
 
 ok $status->emit_changes, 'Emit changes thrice';
 is_deeply +MockOutput->get_comment, [
-    [__n 'Change:', 'Changes:', 3],
-    ["  * foo       - $ts - anna"],
-    ["  * blech     - $ts - david"],
-    ["  * long_name - $ts - julie"],
-], 'Should have emitted three changes';
-
-# Now set it up to emit tags, too.
-ok $status = App::Sqitch::Command::status->new(
-    sqitch       => $sqitch,
-    show_changes => 1,
-    show_tags    => 1,
-), 'Create change-and-tag-showing status command';
-ok $status->emit_changes, 'Emit changes thrice';
-is_deeply +MockOutput->get_comment, [
-    [__n 'Change:', 'Changes:', 3],
-    ["  * foo       - $ts - anna"],
-    ["  * blech     - $ts - david"],
-    ["  * long_name - $ts - julie"],
     [''],
-], 'Should have emitted three changes and a blank line';
+    [__n 'Change:', 'Changes:', 3],
+    ["  foo       - $ts - anna"],
+    ["  blech     - $ts - david"],
+    ["  long_name - $ts - julie"],
+], 'Should have emitted three changes';
 
 ##############################################################################
 # Test emit_tags().
@@ -204,10 +191,19 @@ $engine_mocker->mock(current_tags => sub { @current_tags });
     applied_at => $dt,
 });
 
+ok $status->emit_tags, 'Try to emit tags';
+is_deeply +MockOutput->get_comment, [], 'No tags should have been emitted';
+
+ok $status = App::Sqitch::Command::status->new(
+    sqitch       => $sqitch,
+    show_tags    => 1,
+), 'Create tag-showing status command';
+
 ok $status->emit_tags, 'Emit tags';
 is_deeply +MockOutput->get_comment, [
+    [''],
     [__n 'Tag:', 'Tags:', 1],
-    ["  * \@alpha - $ts - duncan"],
+    ["  \@alpha - $ts - duncan"],
 ], 'Should have emitted one tag';
 
 # Add a couple more tags.
@@ -228,18 +224,12 @@ push @current_tags => (
 
 ok $status->emit_tags, 'Emit tags again';
 is_deeply +MockOutput->get_comment, [
+    [''],
     [__n 'Tag:', 'Tags:', 3],
-    ["  * \@alpha - $ts - duncan"],
-    ["  * \@beta  - $ts - nick"],
-    ["  * \@gamma - $ts - jacqueline"],
+    ["  \@alpha - $ts - duncan"],
+    ["  \@beta  - $ts - nick"],
+    ["  \@gamma - $ts - jacqueline"],
 ], 'Should have emitted all three tags';
-
-# Turn off tag showing.
-ok $status = App::Sqitch::Command::status->new( sqitch => $sqitch ),
-    'Create now-change-or-tag status command';
-
-ok $status->emit_tags, 'Try to emit tags again';
-is_deeply +MockOutput->get_comment, [], 'No tags should have been emitted';
 
 ##############################################################################
 # Test emit_status().
