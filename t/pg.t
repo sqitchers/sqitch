@@ -300,6 +300,7 @@ subtest 'live database' => sub {
     like $@->previous_exception, qr/\QDBD::Pg::db do failed: /,
         'The DBI error should be in preview_exception';
     is $pg->current_state, undef, 'Current state should be undef';
+    is_deeply [ $pg->current_changes ], [], 'Should have no current changes';
 
     ##########################################################################
     # Test log_deploy_change().
@@ -342,6 +343,14 @@ subtest 'live database' => sub {
         deployed_by => $pg->actor,
         tags        => ['@alpha'],
     }, 'The rest of the state should look right';
+    is_deeply [ $pg->current_changes ], [
+        {
+            change_id   => $change->id,
+            change      => 'users',
+            deployed_by => $pg->actor,
+            deployed_at => $dt,
+        },
+    ], 'Should have one current change';
 
     ##########################################################################
     # Test log_revert_change().
@@ -368,6 +377,8 @@ subtest 'live database' => sub {
     is $pg->name_for_change_id($change->id), undef,
         'name_for_change_id() should no longer return the change name';
     is $pg->current_state, undef, 'Current state should be undef again';
+    is_deeply [ $pg->current_changes ], [],
+        'Should again have no current changes';
 
     ##########################################################################
     # Test log_fail_change().
@@ -392,6 +403,7 @@ subtest 'live database' => sub {
         'SELECT tag_id, tag, change_id, applied_by FROM tags'
     ), [], 'Should still have no tag records';
     is $pg->current_state, undef, 'Current state should still be undef';
+    is_deeply [ $pg->current_changes ], [], 'Should still have no current changes';
 
     ##########################################################################
     # Test a change with dependencies.
@@ -435,6 +447,20 @@ subtest 'live database' => sub {
         deployed_by => $pg->actor,
         tags        => [],
     }, 'The state should reference new change';
+    is_deeply [ $pg->current_changes ], [
+        {
+            change_id   => $change2->id,
+            change      => 'widgets',
+            deployed_by => $pg->actor,
+            deployed_at => $dt,
+        },
+        {
+            change_id   => $change->id,
+            change      => 'users',
+            deployed_by => $pg->actor,
+            deployed_at => dt_for_change( $change->id ),
+        },
+    ], 'Should have two current changes in reverse chronological order';
 
     ##########################################################################
     # Test conflicts and requires.
@@ -490,6 +516,20 @@ subtest 'live database' => sub {
         deployed_by => $pg->actor,
         tags        => [],
     }, 'The new state should reference latest change';
+    is_deeply [ $pg->current_changes ], [
+        {
+            change_id   => $change2->id,
+            change      => 'widgets',
+            deployed_by => $pg->actor,
+            deployed_at => $dt,
+        },
+        {
+            change_id   => $change->id,
+            change      => 'users',
+            deployed_by => $pg->actor,
+            deployed_at => dt_for_change( $change->id ),
+        },
+    ], 'Should still have two current changes in reverse chronological order';
 
     ##########################################################################
     # Test begin_work() and finish_work().
@@ -509,5 +549,13 @@ subtest 'live database' => sub {
     ok !$txn, 'Should have committed a transaction';
     $mock_dbh->unmock_all;
 };
+
+sub dt_for_change {
+    my $col = $ts2char->('deployed_at');
+    $dtfunc->($pg->_dbh->selectcol_arrayref(
+        "SELECT $col FROM changes WHERE change_id = ?",
+        undef, shift
+    )->[0]);
+}
 
 done_testing;

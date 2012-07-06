@@ -468,6 +468,21 @@ sub current_state {
     return $state;
 }
 
+sub current_changes {
+    my $self  = shift;
+    my $dtcol = _ts2char 'deployed_at';
+    return grep { $_->{deployed_at} = _dt $_->{deployed_at} } @{
+        $self->_dbh->selectall_arrayref(qq{
+            SELECT change_id
+                 , change
+                 , deployed_by
+                 , $dtcol AS deployed_at
+              FROM changes
+             ORDER BY changes.deployed_at DESC
+        }, { Slice => {} }) || []
+    };
+}
+
 sub _run {
     my $self   = shift;
     my $sqitch = $self->sqitch;
