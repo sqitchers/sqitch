@@ -764,38 +764,57 @@ An array reference of the names of associated tags.
 
 =head3 C<current_changes>
 
-=head3 C<current_tags>
-
   my @changes = $engine->current_changes;
-  my @tags    = $engine->current_tags;
 
 Returns a list of hash references representing the currently deployed changes
-or applied tags, in reverse chronological order. The keys to each hash should
-include:
+in reverse chronological order. The keys to each hash should include:
 
 =over
 
-=item C<id>
+=item C<change_id>
 
-The change or tag ID.
+The change ID.
 
-=item C<name>
+=item C<change>
 
-The name of the change or tag.
+The name of the change.
 
 =item C<deployed_at>
+
+An L<App::Sqitch::DateTime> object representing the date and time at which the
+change was deployed.
+
+=item C<deployed_by>
+
+Name of the user who deployed the change.
+
+=back
+
+=head3 C<current_tags>
+
+  my @tags = $engine->current_tags;
+
+Returns a list of hash references representing the currently applied tags, in
+reverse chronological order. The keys to each hash should include:
+
+=over
+
+=item C<tag_id>
+
+The tag ID.
+
+=item C<tag>
+
+The name of the tag.
 
 =item C<applied_at>
 
 An L<App::Sqitch::DateTime> object representing the date and time at which the
-change was deployed (C<deployed_at>) or the tag was applied C<applied_at>).
-
-=item C<deployed_by>
+tag was applied.
 
 =item C<applied_by>
 
-Name of the user who deployed the change (C<deployed_by>) or applied the tag
-(C<applied_by>).
+Name of the user who) or applied the tag.
 
 =back
 
