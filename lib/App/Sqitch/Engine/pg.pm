@@ -442,8 +442,8 @@ sub _ts2char($) {
 }
 
 sub _dt($) {
-    require DateTime;
-    return DateTime->new(split /:/ => shift);
+    require App::Sqitch::DateTime;
+    return App::Sqitch::DateTime->new(split /:/ => shift);
 }
 
 sub current_state {

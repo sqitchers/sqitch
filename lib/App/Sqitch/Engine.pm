@@ -739,8 +739,8 @@ The current change name.
 
 =item C<deployed_at>
 
-A L<DateTime> object representing the date and time at which the change was
-deployed.
+An L<App::Sqitch::DateTime> object representing the date and time at which the
+change was deployed.
 
 =item C<deployed_by>
 

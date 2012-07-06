@@ -210,7 +210,7 @@ is $ts2char->('foo'),
 ok my $dtfunc = $CLASS->can('_dt'), "$CLASS->can('_dt')";
 isa_ok my $dt = $dtfunc->(
     'year:2012:month:07:day:05:hour:15:minute:07:second:01:time_zone:UTC'
-), 'DateTime', 'Return value of _dt()';
+), 'App::Sqitch::DateTime', 'Return value of _dt()';
 is $dt->year, 2012, 'DateTime year should be set';
 is $dt->month,   7, 'DateTime month should be set';
 is $dt->day,     5, 'DateTime day should be set';
@@ -333,7 +333,8 @@ subtest 'live database' => sub {
         'name_for_change_id() should return the change name with tag';
 
     ok my $state = $pg->current_state, 'Get the current state';
-    isa_ok my $dt = delete $state->{deployed_at}, 'DateTime', 'depoyed_at value';
+    isa_ok my $dt = delete $state->{deployed_at}, 'App::Sqitch::DateTime',
+        'deployed_at value';
     is $dt->time_zone->name, 'UTC', 'Deployed_at TZ should be UTC';
     is_deeply $state, {
         change_id   => $change->id,
@@ -425,7 +426,8 @@ subtest 'live database' => sub {
         'name_for_change_id() should return just the change name';
 
     ok $state = $pg->current_state, 'Get the current state again';
-    isa_ok $dt = delete $state->{deployed_at}, 'DateTime', 'depoyed_at value';
+    isa_ok $dt = delete $state->{deployed_at}, 'App::Sqitch::DateTime',
+        'deployed_at value';
     is $dt->time_zone->name, 'UTC', 'Deployed_at TZ should be UTC';
     is_deeply $state, {
         change_id   => $change2->id,
@@ -479,7 +481,8 @@ subtest 'live database' => sub {
         'Should find none after the second';
 
     ok $state = $pg->current_state, 'Get the current state once more';
-    isa_ok $dt = delete $state->{deployed_at}, 'DateTime', 'depoyed_at value';
+    isa_ok $dt = delete $state->{deployed_at}, 'App::Sqitch::DateTime',
+        'deployed_at value';
     is $dt->time_zone->name, 'UTC', 'Deployed_at TZ should be UTC';
     is_deeply $state, {
         change_id   => $change2->id,
