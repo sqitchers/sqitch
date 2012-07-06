@@ -98,7 +98,7 @@ sub configure {
         || $config->get(key => 'status.date_format')
     ) {
         hurl status => __x(
-            'Uknown date format "{format}"',
+            'Unknown date format "{format}"',
             format => $format
         ) unless $format ~~ [qw(
             full

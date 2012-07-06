@@ -55,7 +55,7 @@ throws_ok { $CLASS->configure($config, {}), {} } 'App::Sqitch::X',
     'Should get error for invalid date format in config';
 is $@->ident, 'status', 'Invalid date format error ident should be "status"';
 is $@->message, __x(
-    'Uknown date format "{format}"',
+    'Unknown date format "{format}"',
     format => 'nonesuch',
 ), 'Invalid date format error message should be correct';
 $cmock->unmock_all;
@@ -65,7 +65,7 @@ throws_ok { $CLASS->configure($config, { 'date-format' => 'non'}), {} }
     'Should get error for invalid date format in optsions';
 is $@->ident, 'status', 'Invalid date format error ident should be "status"';
 is $@->message, __x(
-    'Uknown date format "{format}"',
+    'Unknown date format "{format}"',
     format => 'non',
 ), 'Invalid date format error message should be correct';
 
