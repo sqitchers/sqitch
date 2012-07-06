@@ -9,6 +9,8 @@ use App::Sqitch::X qw(hurl);
 use Moose;
 use Moose::Util::TypeConstraints;
 use App::Sqitch::DateTime;
+use List::Util qw(max);
+use namespace::autoclean;
 extends 'App::Sqitch::Command';
 
 our $VERSION = '0.52';
@@ -127,6 +129,27 @@ sub emit_state {
 sub emit_changes {
     my $self = shift;
     return $self unless $self->show_changes;
+
+    # Emit the header.
+    my @changes = $self->engine->current_changes;
+    $self->comment(__n 'Change:', 'Changes:', @changes);
+
+    # Find the longest change name.
+    my $len    = max map { length $_->{change} } @changes;
+    my $format = $self->date_format;
+
+    # Emit each change.
+    $self->comment(sprintf(
+        '  * %s%s - %s - %s',
+        $_->{change},
+        ((' ') x ($len - length $_->{change})) || '',
+        $_->{deployed_at}->as_string( format => $format ),
+        $_->{deployed_by},
+    )) for @changes;
+
+    # Add a space if we will also be showing tags.
+    $self->comment('') if $self->show_tags;
+    return $self;
 }
 
 sub emit_tags {

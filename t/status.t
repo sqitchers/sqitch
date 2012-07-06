@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 42;
+use Test::More tests => 53;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -99,7 +99,7 @@ is_deeply +MockOutput->get_comment, [
 ], 'The state should have been emitted';
 
 # Try with a tag.
-$state->  {tags} = ['@alpha'];
+$state-> {tags} = ['@alpha'];
 ok $status->emit_state($state), 'Emit the state with a tag';
 is_deeply +MockOutput->get_comment, [
     [__x 'Change:   {change_id}', change_id => 'someid'],
@@ -110,7 +110,7 @@ is_deeply +MockOutput->get_comment, [
 ], 'The state should have been emitted with a tag';
 
 # Try with mulitple tags.
-$state->  {tags} = ['@alpha', '@beta', '@gamma'];
+$state-> {tags} = ['@alpha', '@beta', '@gamma'];
 ok $status->emit_state($state), 'Emit the state with multiple tags';
 is_deeply +MockOutput->get_comment, [
     [__x 'Change:   {change_id}', change_id => 'someid'],
@@ -120,6 +120,77 @@ is_deeply +MockOutput->get_comment, [
     [__x 'Deployed: {date}',      date      => $ts],
     [__x 'By:       {name}',      name      => 'fred'],
 ], 'The state should have been emitted with multiple tags';
+
+##############################################################################
+# Test emit_changes().
+my $engine_mocker = Test::MockModule->new('App::Sqitch::Engine::sqlite');
+my @current_changes;
+$engine_mocker->mock(current_changes => sub { @current_changes });
+@current_changes = ({
+    change_id   => 'someid',
+    change      => 'foo',
+    deployed_by => 'anna',
+    deployed_at => $dt,
+});
+$sqitch = App::Sqitch->new(uri => $uri, _engine  => 'sqlite');
+ok $status = App::Sqitch::Command->load({
+    sqitch  => $sqitch,
+    command => 'status',
+    config  => $config,
+}), 'Create status command with an engine';
+
+ok $status->emit_changes, 'Emit changes';
+is_deeply +MockOutput->get_comment, [],
+    'Should have emitted no changes';
+
+ok $status = App::Sqitch::Command::status->new(
+    sqitch         => $sqitch,
+    show_changes => 1,
+), 'Create change-showing status command';
+
+ok $status->emit_changes, 'Emit changes again';
+is_deeply +MockOutput->get_comment, [
+    [__n 'Change:', 'Changes:', 1],
+    ["  * foo - $ts - anna"],
+], 'Should have emitted one change';
+
+# Add a couple more changes.
+push @current_changes => (
+    {
+        change_id   => 'anid',
+        change      => 'blech',
+        deployed_by => 'david',
+        deployed_at => $dt,
+    },
+    {
+        change_id   => 'anotherid',
+        change      => 'long_name',
+        deployed_by => 'julie',
+        deployed_at => $dt,
+    },
+);
+ok $status->emit_changes, 'Emit changes thrice';
+is_deeply +MockOutput->get_comment, [
+    [__n 'Change:', 'Changes:', 3],
+    ["  * foo       - $ts - anna"],
+    ["  * blech     - $ts - david"],
+    ["  * long_name - $ts - julie"],
+], 'Should have emitted three changes';
+
+# Now set it up to emit tags, too.
+ok $status = App::Sqitch::Command::status->new(
+    sqitch       => $sqitch,
+    show_changes => 1,
+    show_tags    => 1,
+), 'Create change-and-tag-showing status command';
+ok $status->emit_changes, 'Emit changes thrice';
+is_deeply +MockOutput->get_comment, [
+    [__n 'Change:', 'Changes:', 3],
+    ["  * foo       - $ts - anna"],
+    ["  * blech     - $ts - david"],
+    ["  * long_name - $ts - julie"],
+    [''],
+], 'Should have emitted three changes and a blank line';
 
 ##############################################################################
 # Test emit_status().
@@ -172,7 +243,6 @@ is_deeply +MockOutput->get_vent, [
 ##############################################################################
 # Test execute().
 $state->{change_id} = $changes[1]->id;
-my $engine_mocker = Test::MockModule->new('App::Sqitch::Engine::sqlite');
 $engine_mocker->mock( initialized => 1 );
 $engine_mocker->mock( current_state => $state );
 ok $status->execute, 'Execute';
