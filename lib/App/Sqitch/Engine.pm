@@ -9,7 +9,7 @@ use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use namespace::autoclean;
 
-our $VERSION = '0.52';
+our $VERSION = '0.60';
 
 has sqitch => (
     is       => 'ro',
