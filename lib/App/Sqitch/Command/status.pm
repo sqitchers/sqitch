@@ -155,6 +155,26 @@ sub emit_changes {
 sub emit_tags {
     my $self = shift;
     return $self unless $self->show_tags;
+    return $self unless $self->show_changes;
+
+    # Emit the header.
+    my @tags = $self->engine->current_tags;
+    $self->comment(__n 'Tag:', 'Tags:', @tags);
+
+    # Find the longest tag name.
+    my $len    = max map { length $_->{tag} } @tags;
+    my $format = $self->date_format;
+
+    # Emit each tag.
+    $self->comment(sprintf(
+        '  * %s%s - %s - %s',
+        $_->{tag},
+        ((' ') x ($len - length $_->{tag})) || '',
+        $_->{applied_at}->as_string( format => $format ),
+        $_->{applied_by},
+    )) for @tags;
+
+    return $self;
 }
 
 sub emit_status {

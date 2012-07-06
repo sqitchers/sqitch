@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 53;
+use Test::More tests => 60;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -169,6 +169,7 @@ push @current_changes => (
         deployed_at => $dt,
     },
 );
+
 ok $status->emit_changes, 'Emit changes thrice';
 is_deeply +MockOutput->get_comment, [
     [__n 'Change:', 'Changes:', 3],
@@ -191,6 +192,54 @@ is_deeply +MockOutput->get_comment, [
     ["  * long_name - $ts - julie"],
     [''],
 ], 'Should have emitted three changes and a blank line';
+
+##############################################################################
+# Test emit_tags().
+my @current_tags;
+$engine_mocker->mock(current_tags => sub { @current_tags });
+@current_tags = ({
+    tag_id     => 'tagid',
+    tag        => '@alpha',
+    applied_by => 'duncan',
+    applied_at => $dt,
+});
+
+ok $status->emit_tags, 'Emit tags';
+is_deeply +MockOutput->get_comment, [
+    [__n 'Tag:', 'Tags:', 1],
+    ["  * \@alpha - $ts - duncan"],
+], 'Should have emitted one tag';
+
+# Add a couple more tags.
+push @current_tags => (
+    {
+        tag_id     => 'myid',
+        tag        => '@beta',
+        applied_by => 'nick',
+        applied_at => $dt,
+    },
+    {
+        tag_id     => 'yourid',
+        tag        => '@gamma',
+        applied_by => 'jacqueline',
+        applied_at => $dt,
+    },
+);
+
+ok $status->emit_tags, 'Emit tags again';
+is_deeply +MockOutput->get_comment, [
+    [__n 'Tag:', 'Tags:', 3],
+    ["  * \@alpha - $ts - duncan"],
+    ["  * \@beta  - $ts - nick"],
+    ["  * \@gamma - $ts - jacqueline"],
+], 'Should have emitted all three tags';
+
+# Turn off tag showing.
+ok $status = App::Sqitch::Command::status->new( sqitch => $sqitch ),
+    'Create now-change-or-tag status command';
+
+ok $status->emit_tags, 'Try to emit tags again';
+is_deeply +MockOutput->get_comment, [], 'No tags should have been emitted';
 
 ##############################################################################
 # Test emit_status().
