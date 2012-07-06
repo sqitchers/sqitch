@@ -147,9 +147,11 @@ which reads the metadata tables from the database:
 
   > sqitch -d flipr_test status
   # On database flipr_test
-  # Change: appuser
-  # Date: 2012-04-09 18:43:45
-  #
+  # Change:   9df095ad10d799c3acdd74f7986ee1ed9a75e766
+  # Name:     appuser
+  # Deployed: 2012-07-06 18:59:08 +0200
+  # By:       david
+  # 
   Nothing to deploy (up-to-date)
 
 Let's make sure that we can revert the change:
@@ -170,12 +172,7 @@ And the status message should reflect as much:
 
   > sqitch -d flipr_test status
   # On database flipr_test
-  # Nothing deployed.
-  #
-  # Changes not deployed:
-  #   appuser
-  #
-  Use "sqitch deploy --untracked" to deploy these changes
+  No changes deployed
 
 We still have a record that the change happened, visible via the C<log>
 command:
@@ -183,11 +180,11 @@ command:
   > sqitch -d flipr_test log
   change appuser reverted
   By:   david
-  Date: 2012-04-09 18:45:47
+  Date: 2012-07-06 19:00:23 +0200
 
   change appuser deployed
   By:   david
-  Date: 2012-04-09 18:43:45
+  Date: 2012-07-06 18:59:08 +0200
 
 Cool. Now let's commit it.
 
@@ -216,10 +213,10 @@ When we look at the status, the deployment will be there:
 
   > sqitch -d flipr_test status
   # On database flipr_test
-  # Change: appuser
-  # Date: 2012-04-09 18:52:42
-  #
-  Nothing to deploy (up-to-date)
+  # Change:   9df095ad10d799c3acdd74f7986ee1ed9a75e766
+  # Name:     appuser
+  # Deployed: 2012-07-06 19:01:19 +0200
+  # By:       david
 
 =head1 More Configuration
 
@@ -234,10 +231,10 @@ in, e.g.:
 
   > sqitch status
   # On database flipr_test
-  # Change: appuser
-  # Date: 2012-04-09 18:52:42
-  #
-  Nothing to deploy (up-to-date)
+  # Change:   9df095ad10d799c3acdd74f7986ee1ed9a75e766
+  # Name:     appuser
+  # Deployed: 2012-07-06 19:01:19 +0200
+  # By:       david
 
 Yay, that allows things to be a little more concise. Let's make some more
 changes!
@@ -315,9 +312,11 @@ Now have a look at the status:
 
   > sqitch status
   # On database flipr_test
-  # Change: users
-  # Date: 2012-04-09 20:41:31
-  #
+  # Change:   9d078bbc05a0950e7175c067bd2662de180e17a6
+  # Name:     users
+  # Deployed: 2012-07-06 19:18:17 +0200
+  # By:       david
+  # 
   Nothing to deploy (up-to-date)
 
 Success! Let's make sure we can revert the change, as well:
@@ -353,9 +352,11 @@ Looks good. Check the status:
 
   > sqitch status
   # On database flipr_test
-  # Change: users
-  # Date: 2012-04-09 20:45:23
-  #
+  # Change:   9d078bbc05a0950e7175c067bd2662de180e17a6
+  # Name:     users
+  # Deployed: 2012-07-06 19:19:02 +0200
+  # By:       david
+  # 
   Nothing to deploy (up-to-date)
 
 Excellent. Let's do some more!
@@ -466,9 +467,11 @@ And what's the status?
 
   > sqitch status 
   # On database flipr_test
-  # Change: change_pass
-  # Date: 2012-04-09 20:45:23
-  #
+  # Change:   02c5592d1db6c22c0a8d5e7ff963d5aa5ce065a3
+  # Name:     change_pass
+  # Deployed: 2012-07-06 19:21:34 +0200
+  # By:       david
+  # 
   Nothing to deploy (up-to-date)
 
 Looks good. Let's make sure revert works:
@@ -502,9 +505,11 @@ Looks good. Let's do the commit and re-deploy dance:
 
   > sqitch status
   # On database flipr_test
-  # Change: change_pass
-  # Date: 2012-04-09 20:45:23
-  #
+  # Change:   02c5592d1db6c22c0a8d5e7ff963d5aa5ce065a3
+  # Name:     change_pass
+  # Deployed: 2012-07-06 19:22:52 +0200
+  # By:       david
+  # 
   Nothing to deploy (up-to-date)
 
 Great, we're fully up-to-date!
@@ -534,11 +539,13 @@ Great, all four changes were deployed and C<change_pass> was tagged with
 C<@v1.0.0-dev1>. Let's have a look at the state:
 
   > sqitch --db-name flipr_dev status
-  # On database flipr_dev
-  # Tag: v1.0.0-dev1
-  # Change: change_pass
-  # Date: 2012-04-09 22:14:00
-  #
+  # On database flipr_test
+  # Change:   02c5592d1db6c22c0a8d5e7ff963d5aa5ce065a3
+  # Name:     change_pass
+  # Tag:      @v1.0.0-dev1
+  # Deployed: 2012-07-06 19:24:58 +0200
+  # By:       david
+  # 
   Nothing to deploy (up-to-date)
 
 Note that all the tag is now listed as part of the stats message. Now let's
@@ -622,9 +629,11 @@ Look good?
 
   > sqitch status --show tags
   # On database flipr_test
-  # Change: flips
-  # Date: 2012-04-10 22:30:02
-  #
+  # Change:   540359a3892d1476f9ca6ccf7d3f9993ac383b68
+  # Name:     delete_flip
+  # Deployed: 2012-07-06 19:27:33 +0200
+  # By:       david
+  # 
   # Tags: None.
   #
   Nothing to deploy (up-to-date)
@@ -646,9 +655,11 @@ then deploy again to get it.
     + flips
   > sqitch status --show tags
   # On database flipr_test
-  # Change: flips
-  # Date: 2012-04-10 22:32:45
-  #
+  # Change:   540359a3892d1476f9ca6ccf7d3f9993ac383b68
+  # Name:     delete_flip
+  # Deployed: 2012-07-06 19:28:56 +0200
+  # By:       david
+  # 
   # Tags:
   #    @v1.0.0-dev1 - 2012-04-09 20:45:23 - david
   #
@@ -712,12 +723,14 @@ status should end up looking something like this:
 
   > sqitch status --show tags
   # On database flipr_test
-  # Change: delete_flip
-  # Date: 2012-04-10 22:45:21
-  #
-  # Tags:
-  #    @v1.0.0-dev1 - 2012-04-09 22:45:18 - david
-  #
+  # Change:   540359a3892d1476f9ca6ccf7d3f9993ac383b68
+  # Name:     delete_flip
+  # Deployed: 2012-07-06 19:29:17 +0200
+  # By:       david
+  # 
+  # Tag:
+  #   @v1.0.0-dev1 - 2012-07-06 19:29:17 +0200 - david
+  # 
   Nothing to deploy (up-to-date)
 
 Good, we've finished this feature. Time to merge back into C<master>.
@@ -1211,9 +1224,11 @@ changes and bring the database up-to-date:
 
   > sqitch status
   # On database flipr_test
-  # Change: change_pass
-  # Date: 2012-04-12 18:59:26
-  #
+  # Change:   02c5592d1db6c22c0a8d5e7ff963d5aa5ce065a3
+  # Name:     change_pass
+  # Deployed: 2012-07-06 19:30:45 +0200
+  # By:       david
+  # 
   Nothing to deploy (up-to-date)
 
 =head1 More to Come
