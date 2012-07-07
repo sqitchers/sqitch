@@ -1,0 +1,184 @@
+=head1 Name
+
+sqitch-log - Show the current deployment log of a database
+
+=head1 Synopsis
+
+  sqitch [options] log [<options>]
+
+=head1 Description
+
+Sqitch keeps a record of the deployment, failed deployment, or reversion of
+all changes in a database. Even after a change has been reverted, a log of its
+earlier deployment is retained. The C<log> command is your key to accessing
+it. You can simply list all the events, search for events matching regular
+expressions, and limit the results.
+
+=head1 Options
+
+=over
+
+=item C<--change-pattern>
+
+=item C<--change>
+
+=item C<-c>
+
+A regular expression to match against change names.
+
+=item C<--actor-pattern>
+
+=item C<--actor>
+
+=item C<-a>
+
+A regular expression to match against actor (user) names.
+
+=item C<--format>
+
+=item C<-f>
+
+The format to use. May be one of:
+
+=over
+
+=item C<full>
+
+=item C<long>
+
+=item C<medium>
+
+=item C<short>
+
+=item C<oneline>
+
+=item C<raw>
+
+=item C<< format:<string> >>
+
+=back
+
+See the </Formats> section for details on each format. Defaults to <medium>.
+
+=item C<--date-format>
+
+=item C<--date>
+
+Format to use for timestamps. Defaults to C<iso>. Allowed values:
+
+=over
+
+=item C<iso>
+
+=item C<iso8601>
+
+Shows timestamps in ISO-8601 format.
+
+=item C<rfc>
+
+=item C<rfc2822>
+
+Show timestamps in RFC-2822 format.
+
+=item C<full>
+
+=item C<long>
+
+=item C<medium>
+
+=item C<short>
+
+Show timestamps in the specified format length, using the system locale's
+C<LC_TIME> category.
+
+=back
+
+=item C<--max-count>
+
+=item C<-n>
+
+Limit the number of events to output.
+
+=item C<--skip>
+
+Skip the specified number events before starting to show the event output.
+
+=item C<--reverse>
+
+Output the events in reverse order. 
+
+=item C<--no-reverse>
+
+Do not output the events in reverse order. 
+
+=item C<--abbrev>
+
+Instead of showing the full 40-byte hexadecimal change ID, show only a partial
+prefix the specified number of characters long.
+
+=back
+
+=head1 Configuration Variables
+
+=over
+
+=item C<log.date_format>
+
+Format to use for timestamps. Supports the same values as the C<--date-format>
+option.
+
+=back
+
+=head1 Formats
+
+The format:<string> format allows you to specify which information you want to
+show. It works a little bit like C<printf> format. Like the Git log format,
+you can use C<%n> for a newline, but an actual newline is okay, too.
+
+=over
+
+=item * C<%e>: Event type (deploy, revert, fail)
+
+=item * C<%l>: Localized event type label
+
+=item * C<%H>: change ID
+
+=item * C<%h>: change ID (respects --abbrev option)
+
+=item * C<%($len)h>: abbreviated change of length $len
+
+=item * C<%a>: actor name
+
+=item * C<%d>: date format (respects --date-format option)
+
+=item * C<%{rfc}d>: date, RFC2822 format
+
+=item * C<%{iso}d>: date, ISO-8601 format
+
+=item * C<%{full}d>: date, full format
+
+=item * C<%{long}d>: date, long format
+
+=item * C<%{medium}d>: date, medium format
+
+=item * C<%{short}d>: date, short format
+
+=item * C<%c>: change name
+
+=item * C<%t>: list of tags
+
+=item * C<%{$sep}t>: list of tags separated by $sep
+
+=item * C<%T>: parenthesized list of tags
+
+=item * C<%{$sep}T>: parenthesized list of tags separated by $sep
+
+=item * C<%n> newline
+
+=item * C<%{color}C>: An ANSI color: black red green yellow blue magenta cyan white, reset
+
+=back
+
+=head1 Sqitch
+
+Part of the L<sqitch> suite.

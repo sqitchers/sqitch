@@ -33,6 +33,7 @@ isa_ok my $status = App::Sqitch::Command->load({
 can_ok $status, qw(
     show_changes
     show_tags
+    date_format
     options
     execute
     configure
