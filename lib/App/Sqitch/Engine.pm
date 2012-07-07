@@ -424,6 +424,11 @@ sub current_tags {
     hurl "$class has not implemented current_tags()";
 }
 
+sub search_events {
+    my $class = ref $_[0] || $_[0];
+    hurl "$class has not implemented search_events()";
+}
+
 __PACKAGE__->meta->make_immutable;
 no Moose;
 
@@ -823,6 +828,82 @@ tag was applied.
 =item C<applied_by>
 
 Name of the user who) or applied the tag.
+
+=back
+
+=head3 C<search_events>
+
+  my $iter = $engine->search_events( %params );
+  while (my $change = $iter->()) {
+      say '* $change->{event}ed $change->{change}";
+  }
+
+Searches the deployment event log and returns an iterator code reference with
+the results. If no parameters are provided, a list of all events will be
+returned from the iterator reverse chronological order. The supported parameters
+are:
+
+=over
+
+=item C<name>
+
+Limit the events to those with names matching the specified regular
+expression.
+
+=item C<user>
+
+Limit the events to those logged for user names matching the specified regular
+expression.
+
+=item C<limit>
+
+Limit the number of events to the specified number.
+
+=item C<offset>
+
+Skip the specified number of events.
+
+=item C<direction>
+
+Return the results in the specified order, which must be a value matching
+C</^(:?a|de)sc/i> for "ascending" or "descending".
+
+=back
+
+Each event is represented by a hash reference containing the following keys:
+
+=over
+
+=item C<event>
+
+The type of event, which is one of:
+
+=over
+
+=item C<deploy>
+
+=item C<revert>
+
+=item C<fail>
+
+=back
+
+=item C<change_id>
+
+The change ID.
+
+=item C<change>
+
+The name of the change.
+
+=item C<deployed_at>
+
+An L<App::Sqitch::DateTime> object representing the date and time at which the
+event was logged.
+
+=item C<deployed_by>
+
+Name of the user for whom the event was logged.
 
 =back
 
