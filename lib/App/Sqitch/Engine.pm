@@ -845,15 +845,15 @@ are:
 
 =over
 
-=item C<name>
+=item C<change>
 
-Limit the events to those with names matching the specified regular
+Limit the events to those with changes matching the specified regular
 expression.
 
-=item C<user>
+=item C<actor>
 
-Limit the events to those logged for user names matching the specified regular
-expression.
+Limit the events to those logged by the actors (users) with names matching the
+specified regular expression.
 
 =item C<limit>
 

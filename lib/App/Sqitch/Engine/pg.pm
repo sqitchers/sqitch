@@ -506,6 +506,60 @@ sub current_tags {
     };
 }
 
+sub search_events {
+    my ( $self, %p ) = @_;
+    my $dtcol = _ts2char 'logged_at';
+
+    # Determine order direction.
+    my $dir = 'DESC';
+    if (my $d = delete $p{direction}) {
+        $dir = $d =~ /^ASC/i  ? 'ASC'
+             : $d =~ /^DESC/i ? 'DESC'
+             : hurl 'Search direction must be either "ASC" or "DESC"';
+    }
+
+    # Limit with regular expressions?
+    my (@wheres, @params);
+    for my $spec (
+        [ actor  => 'logged_by' ],
+        [ change => 'change'    ],
+    ) {
+        my $regex = delete $p{ $spec->[0] } // next;
+        push @wheres => "$spec->[1] ~ ?";
+        push @params => $regex;
+    }
+
+    # Assemble the where clause.
+    my $where = @wheres
+        ? "\n         WHERE " . join( "\n               ", @wheres )
+        : '';
+
+    # Handle remaining parameters.
+    push @params, delete @p{ qw(limit offset) };
+    hurl 'Invalid parameters passed to search_events(): '
+        . join ', ', sort keys %p if %p;
+
+    # Prepare, execute, and return.
+    my $sth = $self->_dbh->prepare(qq{
+        SELECT event
+             , change_id
+             , change
+             , tags
+             , logged_by
+             , $dtcol AS logged_at
+          FROM events$where
+         ORDER BY events.logged_at $dir
+         LIMIT COALESCE(?::INT, NULL)
+        OFFSET COALESCE(?::INT, NULL)
+    });
+    $sth->execute(@params);
+    return sub {
+        my $row = $sth->fetchrow_hashref or return;
+        $row->{logged_at} = _dt $row->{logged_at};
+        return $row;
+    };
+}
+
 sub _run {
     my $self   = shift;
     my $sqitch = $self->sqitch;
