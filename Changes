@@ -1,6 +1,6 @@
 Revision history for Perl extension App::Sqitch
 
-0.60
+0.60  2012-07-07T11:12:26Z
      - Removed some discussion of VCS integration, since it is not yet
        implemented, and it may be a while before it is.
      - Added `sqitchcommands`, documentation of the most common Sqitch
