@@ -158,6 +158,13 @@ sub emit_tags {
     # Emit the header.
     my @tags = $self->engine->current_tags;
     $self->comment('');
+
+    # If no tags, say so and return.
+    unless (@tags) {
+        $self->comment(__ 'Tags: None.');
+        return $self;
+    }
+
     $self->comment(__n 'Tag:', 'Tags:', @tags);
 
     # Find the longest tag name.

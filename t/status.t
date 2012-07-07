@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 57;
+use Test::More tests => 59;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -184,12 +184,6 @@ is_deeply +MockOutput->get_comment, [
 # Test emit_tags().
 my @current_tags;
 $engine_mocker->mock(current_tags => sub { @current_tags });
-@current_tags = ({
-    tag_id     => 'tagid',
-    tag        => '@alpha',
-    applied_by => 'duncan',
-    applied_at => $dt,
-});
 
 ok $status->emit_tags, 'Try to emit tags';
 is_deeply +MockOutput->get_comment, [], 'No tags should have been emitted';
@@ -198,6 +192,20 @@ ok $status = App::Sqitch::Command::status->new(
     sqitch       => $sqitch,
     show_tags    => 1,
 ), 'Create tag-showing status command';
+
+# Try with no tags.
+ok $status->emit_tags, 'Try to emit tags again';
+is_deeply +MockOutput->get_comment, [
+    [''],
+    [__ 'Tags: None.'],
+], 'Should have emitted a header for no tags';
+
+@current_tags = ({
+    tag_id     => 'tagid',
+    tag        => '@alpha',
+    applied_by => 'duncan',
+    applied_at => $dt,
+});
 
 ok $status->emit_tags, 'Emit tags';
 is_deeply +MockOutput->get_comment, [
