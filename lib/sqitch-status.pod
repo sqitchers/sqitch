@@ -53,7 +53,8 @@ Show timestamps in RFC-2822 format.
 
 =item C<short>
 
-Show timestamps in the specified format length, using the system locale.
+Show timestamps in the specified format length, using the system locale's
+C<LC_TIME> category.
 
 =back
 
@@ -75,7 +76,7 @@ to false.
 
 =item C<status.date_format>
 
-Format to use for timestamps. Supports same values as the C<--date-format>
+Format to use for timestamps. Supports the same values as the C<--date-format>
 option.
 
 =back
