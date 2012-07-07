@@ -125,7 +125,7 @@ is_deeply +MockOutput->get_comment, [
 # Test emit_changes().
 my $engine_mocker = Test::MockModule->new('App::Sqitch::Engine::sqlite');
 my @current_changes;
-$engine_mocker->mock(current_changes => sub { @current_changes });
+$engine_mocker->mock(current_changes => sub { sub { shift @current_changes } });
 @current_changes = ({
     change_id   => 'someid',
     change      => 'foo',
@@ -156,7 +156,13 @@ is_deeply +MockOutput->get_comment, [
 ], 'Should have emitted one change';
 
 # Add a couple more changes.
-push @current_changes => (
+@current_changes = (
+    {
+        change_id   => 'someid',
+        change      => 'foo',
+        deployed_by => 'anna',
+        deployed_at => $dt,
+    },
     {
         change_id   => 'anid',
         change      => 'blech',
@@ -183,7 +189,7 @@ is_deeply +MockOutput->get_comment, [
 ##############################################################################
 # Test emit_tags().
 my @current_tags;
-$engine_mocker->mock(current_tags => sub { @current_tags });
+$engine_mocker->mock(current_tags => sub { sub { shift @current_tags } });
 
 ok $status->emit_tags, 'Try to emit tags';
 is_deeply +MockOutput->get_comment, [], 'No tags should have been emitted';
@@ -215,7 +221,13 @@ is_deeply +MockOutput->get_comment, [
 ], 'Should have emitted one tag';
 
 # Add a couple more tags.
-push @current_tags => (
+@current_tags = (
+    {
+        tag_id     => 'tagid',
+        tag        => '@alpha',
+        applied_by => 'duncan',
+        applied_at => $dt,
+    },
     {
         tag_id     => 'myid',
         tag        => '@beta',

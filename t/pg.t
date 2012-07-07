@@ -300,8 +300,8 @@ subtest 'live database' => sub {
     like $@->previous_exception, qr/\QDBD::Pg::db do failed: /,
         'The DBI error should be in preview_exception';
     is $pg->current_state, undef, 'Current state should be undef';
-    is_deeply [ $pg->current_changes ], [], 'Should have no current changes';
-    is_deeply [ $pg->current_tags ], [], 'Should have no current tags';
+    is_deeply all( $pg->current_changes ), [], 'Should have no current changes';
+    is_deeply all( $pg->current_tags ), [], 'Should have no current tags';
 
     ##########################################################################
     # Test log_deploy_change().
@@ -344,7 +344,7 @@ subtest 'live database' => sub {
         deployed_by => $pg->actor,
         tags        => ['@alpha'],
     }, 'The rest of the state should look right';
-    is_deeply [ $pg->current_changes ], [
+    is_deeply all( $pg->current_changes ), [
         {
             change_id   => $change->id,
             change      => 'users',
@@ -352,7 +352,7 @@ subtest 'live database' => sub {
             deployed_at => $dt,
         },
     ], 'Should have one current change';
-    is_deeply [ $pg->current_tags ], [
+    is_deeply all( $pg->current_tags ), [
         {
             tag_id     => $tag->id,
             tag        => '@alpha',
@@ -386,9 +386,9 @@ subtest 'live database' => sub {
     is $pg->name_for_change_id($change->id), undef,
         'name_for_change_id() should no longer return the change name';
     is $pg->current_state, undef, 'Current state should be undef again';
-    is_deeply [ $pg->current_changes ], [],
+    is_deeply all( $pg->current_changes ), [],
         'Should again have no current changes';
-    is_deeply [ $pg->current_tags ], [], 'Should again have no current tags';
+    is_deeply all( $pg->current_tags ), [], 'Should again have no current tags';
 
     ##########################################################################
     # Test log_fail_change().
@@ -413,8 +413,8 @@ subtest 'live database' => sub {
         'SELECT tag_id, tag, change_id, applied_by FROM tags'
     ), [], 'Should still have no tag records';
     is $pg->current_state, undef, 'Current state should still be undef';
-    is_deeply [ $pg->current_changes ], [], 'Should still have no current changes';
-    is_deeply [ $pg->current_tags ], [], 'Should still have no current tags';
+    is_deeply all( $pg->current_changes ), [], 'Should still have no current changes';
+    is_deeply all( $pg->current_tags ), [], 'Should still have no current tags';
 
     ##########################################################################
     # Test a change with dependencies.
@@ -458,7 +458,7 @@ subtest 'live database' => sub {
         deployed_by => $pg->actor,
         tags        => [],
     }, 'The state should reference new change';
-    is_deeply [ $pg->current_changes ], [
+    is_deeply all( $pg->current_changes ), [
         {
             change_id   => $change2->id,
             change      => 'widgets',
@@ -472,7 +472,7 @@ subtest 'live database' => sub {
             deployed_at => dt_for_change( $change->id ),
         },
     ], 'Should have two current changes in reverse chronological order';
-    is_deeply [ $pg->current_tags ], [
+    is_deeply all( $pg->current_tags ), [
         {
             tag_id     => $tag->id,
             tag        => '@alpha',
@@ -535,7 +535,7 @@ subtest 'live database' => sub {
         deployed_by => $pg->actor,
         tags        => [],
     }, 'The new state should reference latest change';
-    is_deeply [ $pg->current_changes ], [
+    is_deeply all( $pg->current_changes ), [
         {
             change_id   => $change2->id,
             change      => 'widgets',
@@ -549,7 +549,7 @@ subtest 'live database' => sub {
             deployed_at => dt_for_change( $change->id ),
         },
     ], 'Should still have two current changes in reverse chronological order';
-    is_deeply [ $pg->current_tags ], [
+    is_deeply all( $pg->current_tags ), [
         {
             tag_id     => $tag->id,
             tag        => '@alpha',
@@ -576,7 +576,7 @@ subtest 'live database' => sub {
         tags        => [qw(@beta @gamma)],
     }, 'Barney should be in the current state';
 
-    is_deeply [ $pg->current_changes ], [
+    is_deeply all( $pg->current_changes ), [
         {
             change_id   => $barney->id,
             change      => 'barney',
@@ -604,7 +604,7 @@ subtest 'live database' => sub {
     ], 'Should have all four current changes in reverse chron order';
 
     my ($beta, $gamma) = $barney->tags;
-    is_deeply [ $pg->current_tags ], [
+    is_deeply all( $pg->current_tags ), [
         {
             tag_id     => $gamma->id,
             tag        => '@gamma',
@@ -658,6 +658,15 @@ sub dt_for_tag {
         "SELECT $col FROM tags WHERE tag_id = ?",
         undef, shift
     )->[0]);
+}
+
+sub all {
+    my $iter = shift;
+    my @res;
+    while (my $row = $iter->()) {
+        push @res => $row;
+    }
+    return \@res;
 }
 
 done_testing;

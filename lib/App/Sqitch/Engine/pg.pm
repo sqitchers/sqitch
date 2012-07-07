@@ -471,30 +471,38 @@ sub current_state {
 sub current_changes {
     my $self  = shift;
     my $dtcol = _ts2char 'deployed_at';
-    return grep { $_->{deployed_at} = _dt $_->{deployed_at} } @{
-        $self->_dbh->selectall_arrayref(qq{
-            SELECT change_id
-                 , change
-                 , deployed_by
-                 , $dtcol AS deployed_at
-              FROM changes
-             ORDER BY changes.deployed_at DESC
-        }, { Slice => {} }) || []
+    my $sth   = $self->_dbh->prepare(qq{
+        SELECT change_id
+             , change
+             , deployed_by
+             , $dtcol AS deployed_at
+          FROM changes
+         ORDER BY changes.deployed_at DESC
+    });
+    $sth->execute;
+    return sub {
+        my $row = $sth->fetchrow_hashref or return;
+        $row->{deployed_at} = _dt $row->{deployed_at};
+        return $row;
     };
 }
 
 sub current_tags {
     my $self  = shift;
     my $dtcol = _ts2char 'applied_at';
-    return grep { $_->{applied_at} = _dt $_->{applied_at} } @{
-        $self->_dbh->selectall_arrayref(qq{
-            SELECT tag_id
-                 , tag
-                 , applied_by
-                 , $dtcol AS applied_at
-              FROM tags
-             ORDER BY tags.applied_at DESC
-        }, { Slice => {} }) || []
+    my $sth   = $self->_dbh->prepare(qq{
+        SELECT tag_id
+             , tag
+             , applied_by
+             , $dtcol AS applied_at
+          FROM tags
+         ORDER BY tags.applied_at DESC
+    });
+    $sth->execute;
+    return sub {
+        my $row = $sth->fetchrow_hashref or return;
+        $row->{applied_at} = _dt $row->{applied_at};
+        return $row;
     };
 }
 

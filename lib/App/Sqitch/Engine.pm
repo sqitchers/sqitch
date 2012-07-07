@@ -764,10 +764,14 @@ An array reference of the names of associated tags.
 
 =head3 C<current_changes>
 
-  my @changes = $engine->current_changes;
+  my $iter = $engine->current_changes;
+  while (my $change = $iter->()) {
+      say '* ', $change->{change};
+  }
 
-Returns a list of hash references representing the currently deployed changes
-in reverse chronological order. The keys to each hash should include:
+Returns a code reference that iterates over a list of the currently deployed
+changes in reverse chronological order. Each change is represented by a hash
+reference containing the following keys:
 
 =over
 
@@ -792,10 +796,14 @@ Name of the user who deployed the change.
 
 =head3 C<current_tags>
 
-  my @tags = $engine->current_tags;
+  my $iter = $engine->current_tags;
+  while (my $tag = $iter->()) {
+      say '* ', $tag->{tag};
+  }
 
-Returns a list of hash references representing the currently applied tags, in
-reverse chronological order. The keys to each hash should include:
+Returns a code reference that iterates over a list of the currently deployed
+tags in reverse chronological order. Each tag is represented by a hash
+reference containing the following keys:
 
 =over
 
