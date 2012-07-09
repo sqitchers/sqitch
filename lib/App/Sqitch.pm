@@ -176,9 +176,12 @@ has uri => (
 
 has pager => (
     is       => 'ro',
-    isa      => 'IO::Pager',
     required => 1,
     lazy     => 1,
+    isa      => type('IO::Pager' => where {
+        # IO::Pager annoyingly just returns the file handle if there is no TTY.
+        eval { $_->isa('IO::Pager') } || ref $_ eq 'GLOB'
+    }),
     default  => sub {
         require IO::Pager;
         # https://rt.cpan.org/Ticket/Display.html?id=78270
@@ -189,9 +192,7 @@ has pager => (
             }
         } unless IO::Pager->can('say');
 
-        my $p = IO::Pager->new(*STDOUT);
-        use Data::Dump; ddx $p;
-        $p;
+        IO::Pager->new(\*STDOUT);
     },
 );
 

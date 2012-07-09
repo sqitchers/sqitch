@@ -202,6 +202,7 @@ sub options {
         skip=i
         reverse!
         color=s
+        no-color
         abbrev=i
         format|f=s
         date-format|date=s
@@ -233,6 +234,7 @@ sub configure {
     }
 
     # Turn colors on or off as appropriate.
+    $opt->{color} = 'never' if delete $opt->{'no-color'};
     if ( my $color = $opt->{color} || $config->get(key => 'log.color') ) {
         if ($color eq 'always') {
             delete $ENV{ANSI_COLORS_DISABLED};
