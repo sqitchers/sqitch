@@ -7,6 +7,6 @@ plan skip_all => "Test::Pod::Coverage 1.08 required for testing POD coverage"
   if $@;
 
 all_pod_coverage_ok({
-    also_private   => ['BUILDARGS'],
+    also_private   => [qw(BUILDARGS CAN_OUTPUT_COLOR OUTPUT_TO_PIPE)],
     coverage_class => 'Pod::Coverage::CountParents',
 });

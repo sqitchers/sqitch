@@ -13,6 +13,14 @@ use String::Formatter;
 use namespace::autoclean;
 use Term::ANSIColor qw(color colorvalid);
 extends 'App::Sqitch::Command';
+use constant OUTPUT_TO_PIPE   => not -t *STDOUT;
+use constant CAN_OUTPUT_COLOR => $^O =~ /MSWin32/
+    ? eval { require Win32::Console::ANSI }
+    : not OUTPUT_TO_PIPE;
+
+BEGIN {
+    $ENV{ANSI_COLORS_DISABLED} = 1 unless CAN_OUTPUT_COLOR;
+}
 
 our $VERSION = '0.61';
 
@@ -101,6 +109,16 @@ has date_format => (
     }
 );
 
+has color => (
+    is       => 'ro',
+    isa      => enum([ qw(always never auto) ]),
+    required => 1,
+    lazy     => 1,
+    default  => sub {
+        shift->sqitch->config->get( key => 'log.color' ) || 'auto';
+    },
+);
+
 has formatter => (
     is      => 'ro',
     lazy    => 1,
@@ -183,6 +201,7 @@ sub options {
         max-count|n=i
         skip=i
         reverse!
+        color=s
         abbrev=i
         format|f=s
         date-format|date=s
@@ -210,6 +229,20 @@ sub configure {
                 'Unknown log format "{format}"',
                 format => $format
             );
+        }
+    }
+
+    # Turn colors on or off as appropriate.
+    if ( my $color = $opt->{color} || $config->get(key => 'log.color') ) {
+        if ($color eq 'always') {
+            delete $ENV{ANSI_COLORS_DISABLED};
+        } elsif ($color eq 'never') {
+            $ENV{ANSI_COLORS_DISABLED} = 1;
+        } else {
+            # Die on an invalid value.
+            hurl log => __ 'Option "color" expects "always", "auto", or "never"'
+                if $color ne 'auto';
+            # For auto we do nothing.
         }
     }
 
