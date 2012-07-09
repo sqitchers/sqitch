@@ -42,7 +42,7 @@ has show_tags => (
 has date_format => (
     is      => 'ro',
     lazy    => 1,
-    isa     => enum([ App::Sqitch::DateTime->as_string_formats ]),
+    isa     => 'Str',
     default => sub {
         shift->sqitch->config->get( key => 'status.date_format' ) || 'iso'
     }

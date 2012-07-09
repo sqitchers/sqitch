@@ -103,7 +103,7 @@ has format => (
 has date_format => (
     is      => 'ro',
     lazy    => 1,
-    isa     => enum([ App::Sqitch::DateTime->as_string_formats ]),
+    isa     => 'Str',
     default => sub {
         shift->sqitch->config->get( key => 'log.date_format' ) || 'iso'
     }
