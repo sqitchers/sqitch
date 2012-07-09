@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 27;
+use Test::More tests => 31;
 #use Test::More 'no_plan';
 use Locale::TextDomain qw(App-Sqitch);
 use Test::NoWarnings;
@@ -55,16 +55,15 @@ for my $spec (
     [ iso8601 => $iso ],
     [ rfc     => $rfc ],
     [ rfc2822 => $rfc ],
+    [ q{cldr:HH'h' mm'm'} => $ldt->format_cldr( q{HH'h' mm'm'} ) ],
+    [ 'strftime:%a at %H:%M:%S' => $ldt->strftime('%a at %H:%M:%S') ],
 ) {
     my $clone = $dt->clone;
     $clone->set_time_zone('UTC');
     is $dt->as_string( format => $spec->[0] ), $spec->[1],
         qq{Date format "$spec->[0]" should yield "$spec->[1]"};
-}
-
-for my $format ($dt->as_string_formats) {
-    ok $dt->validate_as_string_format($format),
-        qq{Format "$format" should be valid};
+    ok $dt->validate_as_string_format($spec->[0]),
+        qq{Format "$spec->[0]" should be valid} if $spec->[0];
 }
 
 throws_ok { $dt->validate_as_string_format('nonesuch') } 'App::Sqitch::X',

@@ -33,10 +33,13 @@ isa_ok my $log = App::Sqitch::Command->load({
 can_ok $log, qw(
     change_pattern
     actor_pattern
+    max_count
     skip
     reverse
+    abbrev
     format
     date_format
+    color
     options
     execute
     configure

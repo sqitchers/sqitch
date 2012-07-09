@@ -56,6 +56,17 @@ Show timestamps in RFC-2822 format.
 Show timestamps in the specified format length, using the system locale's
 C<LC_TIME> category.
 
+=item C<strftime:$string>
+
+Show timestamps using an arbitrary C<strftime> pattern. See
+L<DateTime/strftime Paterns> for comprehensive documentation of supported
+patterns.
+
+=item C<cldr:$string>
+
+Show timestamps using an arbitrary C<cldr> pattern. See L<DateTime/CLDR
+Paterns> for comprehensive documentation of supported patterns.
+
 =back
 
 =back

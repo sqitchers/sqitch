@@ -28,7 +28,8 @@ sub validate_as_string_format {
     hurl datetime => __x(
         'Unknown date format "{format}"',
         format => $format
-    ) unless $format ~~ [ $self->as_string_formats ];
+    ) unless $format ~~ [ $self->as_string_formats ]
+          || $format =~ /^(?:cldr|strftime):/;
     return $self;
 }
 
@@ -49,6 +50,8 @@ sub as_string {
     } else {
         require POSIX;
         $dt->set( locale => POSIX::setlocale( POSIX::LC_TIME() ) );
+        return $dt->format_cldr($format) if $format =~ s/^cldr://;
+        return $dt->strftime($format) if $format =~ s/^strftime://;
         my $meth = $dt->locale->can("datetime_format_$format") or hurl(
             datetime => __x(
                 'Unknown date format "{format}"',
@@ -115,6 +118,17 @@ RFC-2822 format.
 =item C<short>
 
 Localized format of the specified length.
+
+=item C<strftime:$string>
+
+Show timestamps using an arbitrary C<strftime> pattern. See
+L<DateTime/strftime Paterns> for comprehensive documentation of supported
+patterns.
+
+=item C<cldr:$string>
+
+Show timestamps using an arbitrary C<cldr> pattern. See L<DateTime/CLDR
+Paterns> for comprehensive documentation of supported patterns.
 
 =back
 
