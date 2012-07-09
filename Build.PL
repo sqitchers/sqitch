@@ -22,6 +22,7 @@ Module::Build::Sqitch->new(
         'Getopt::Long'                                 => 0,
         'Hash::Merge'                                  => 0,
         'IO::File'                                     => 0,
+        'IO::Pager'                                    => 0,
         'IPC::System::Simple'                          => '1.17',
         'List::Util'                                   => 0,
         'Locale::TextDomain'                           => '1.20',

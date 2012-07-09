@@ -174,6 +174,27 @@ has uri => (
     }
 );
 
+has pager => (
+    is       => 'ro',
+    isa      => 'IO::Pager',
+    required => 1,
+    lazy     => 1,
+    default  => sub {
+        require IO::Pager;
+        # https://rt.cpan.org/Ticket/Display.html?id=78270
+        eval q{
+            sub IO::Pager::say {
+                my $self = shift;
+                CORE::say {$self->{real_fh}} @_ or die "Could not print to PAGER: $!\n";
+            }
+        } unless IO::Pager->can('say');
+
+        my $p = IO::Pager->new(*STDOUT);
+        use Data::Dump; ddx $p;
+        $p;
+    },
+);
+
 sub go {
     my $class = shift;
 
@@ -379,6 +400,10 @@ sub _prepend {
     my $msg = join '', map { $_ // '' } @_;
     $msg =~ s/^/$prefix /gms;
     return $msg;
+}
+
+sub page {
+    shift->pager->say(@_);
 }
 
 sub trace {

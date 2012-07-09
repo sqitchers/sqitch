@@ -291,7 +291,7 @@ sub execute {
         hurl log => __x 'Unknown log format code "{code}"', code => $1;
     };
     while ( my $change = $iter->() ) {
-        $self->emit( $changef->format( $format, $change ) );
+        $self->page( $changef->format( $format, $change ) );
     }
 
     return $self;

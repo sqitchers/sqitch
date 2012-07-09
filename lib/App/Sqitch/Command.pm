@@ -30,6 +30,7 @@ has sqitch => (
         emit
         vent
         warn
+        page
     )],
 );
 
