@@ -625,11 +625,26 @@ C<sqitch config --get core.editor>.
 
 =head3 C<vent>
 
-  $sqitch->vent('core.editor=emacs');
+  $sqitch->vent('That was a misage.');
 
 Send a message to C<STDERR>, without regard to the verbosity. Should be used
 only for error messages to be printed before exiting with an error, such as
 when reverting failed changes.
+
+=head3 C<page>
+
+  $sqitch->page('Search results:');
+
+Like C<emit()>, but sends the output to a pager handle rather than C<STDOUT>.
+Unless there is no TTY (such as when output is being piped elsewhere), in
+which case it I<is> sent to C<STDOUT>. Meant to be used to send a lot of data
+to the user at once, such as when display the results of searching the event
+log:
+
+  $iter = $sqitch->engine->search_events;
+  while ( my $change = $iter->() ) {
+      $sqitch->page(join ' - ', @{ $change }{ qw(change_id event change) });
+  }
 
 =head3 C<warn>
 
