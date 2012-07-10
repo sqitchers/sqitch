@@ -18,6 +18,20 @@ expressions, and limit the results.
 
 =over
 
+=item C<--event>
+
+Filter by event type. May be specified more than once. Allowed values are:
+
+=over
+
+=item * C<deploy>
+
+=item * C<revert>
+
+=item * C<fail>
+
+=back
+
 =item C<--change-pattern>
 
 =item C<--change>

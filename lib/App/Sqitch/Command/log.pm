@@ -61,6 +61,11 @@ EOF
 
 $FORMATS{oneline} = '%h %l %c';
 
+has event => (
+    is      => 'ro',
+    isa     => 'ArrayRef',
+);
+
 has change_pattern => (
     is      => 'ro',
     isa     => 'Str',
@@ -196,6 +201,7 @@ has formatter => (
 
 sub options {
     return qw(
+        event=s@
         change-pattern|change|c=s
         actor-pattern|actor|a=s
         max-count|n=i
@@ -278,6 +284,7 @@ sub execute {
 
     # Search the event log.
     $iter = $engine->search_events(
+        event     => $self->event,
         change    => $self->change_pattern,
         actor     => $self->actor_pattern,
         limit     => $self->max_count,
