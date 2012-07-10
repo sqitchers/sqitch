@@ -768,6 +768,24 @@ subtest 'live database' => sub {
         [@events[1, 5..8]],
         'The change param to search_events should return match "(er|re)"';
 
+    is_deeply all( $pg->search_events( event => [qw(deploy)] ) ),
+        [ grep { $_->{event} eq 'deploy' } @events ],
+        'The event param should work with "deploy"';
+    is_deeply all( $pg->search_events( event => [qw(revert)] ) ),
+        [ grep { $_->{event} eq 'revert' } @events ],
+        'The event param should work with "revert"';
+    is_deeply all( $pg->search_events( event => [qw(fail)] ) ),
+        [ grep { $_->{event} eq 'fail' } @events ],
+        'The event param should work with "fail"';
+    is_deeply all( $pg->search_events( event => [qw(revert fail)] ) ),
+        [ grep { $_->{event} ne 'deploy' } @events ],
+        'The event param should work with "revert" and "fail"';
+    is_deeply all( $pg->search_events( event => [qw(deploy revert fail)] ) ),
+        \@events,
+        'The event param should work with "deploy", "revert", and "fail"';
+    is_deeply all( $pg->search_events( event => ['foo'] ) ), [],
+        'The event param should return nothing for "foo"';
+
     throws_ok { $pg->search_events(foo => 1) } 'App::Sqitch::X',
         'Should catch exception for invalid search param';
     is $@->ident, 'DEV', 'Invalid search param error ident should be "DEV"';

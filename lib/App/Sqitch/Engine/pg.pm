@@ -529,6 +529,12 @@ sub search_events {
         push @params => $regex;
     }
 
+    # Match events?
+    if (my $e = delete $p{event} ) {
+        push @wheres => 'event = ANY(?)';
+        push @params => $e;
+    }
+
     # Assemble the where clause.
     my $where = @wheres
         ? "\n         WHERE " . join( "\n               ", @wheres )

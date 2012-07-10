@@ -845,6 +845,11 @@ are:
 
 =over
 
+=item C<event>
+
+An array of the type of event to search for. Allowed values are "deploy",
+"revert", and "fail".
+
 =item C<change>
 
 Limit the events to those with changes matching the specified regular
