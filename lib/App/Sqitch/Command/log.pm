@@ -25,11 +25,11 @@ our $VERSION = '0.61';
 
 my %FORMATS;
 $FORMATS{raw} = <<EOF;
-event    %e
-change   %h%T
-name     %c
-date     %{iso}d
-agent    %a
+event   %e
+change  %h%T
+name    %c
+date    %{iso}d
+agent   %a
 EOF
 
 $FORMATS{full} = <<EOF;
@@ -334,30 +334,6 @@ works, read on.
 
 Executes the log command. The current state of the database will be compared
 to the plan in order to show where things stand.
-
-=head3 C<format_short>
-
-  $log->format_short( $iterator );
-
-Emits all of the events returned by the iterator in short format.
-
-=head3 C<format_full>
-
-  $log->format_full( $iterator );
-
-Emits all of the events returned by the iterator in full format.
-
-=head3 C<format_oneline>
-
-  $log->format_oneline( $iterator );
-
-Emits each event returned by the iterator as a single line.
-
-=head3 C<format_table>
-
-  $log->format_table( $iterator );
-
-Emits all of the events returned by the iterator in table format.
 
 =head1 See Also
 

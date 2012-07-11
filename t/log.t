@@ -11,6 +11,7 @@ use Test::NoWarnings;
 use Test::Exception;
 use Test::MockModule;
 use Path::Class;
+use Term::ANSIColor qw(color);
 use URI;
 use lib 't/lib';
 use MockOutput;
@@ -184,3 +185,71 @@ AUTO: {
 }
 
 $cmock->unmock_all;
+
+###############################################################################
+# Test formats.
+my $dt = App::Sqitch::DateTime->now;
+my $event = {
+    event     => 'deploy',
+    change_id => '000011112222333444',
+    change    => 'lolz',
+    tags      => ['@beta', '@gamma'],
+    logged_by => 'larry',
+    logged_at => $dt,
+};
+
+my $iso = $dt->as_string( format => 'iso' );
+for my $spec (
+    [ raw => "event   deploy\n"
+           . "change  000011112222333444 (\@beta, \@gamma)\n"
+           . "name    lolz\n"
+           . "date    $iso\n"
+           . "agent   larry\n"
+    ],
+    [ full => color('yellow') . __ 'Change:' . ' 000011112222333444'
+        . color('reset') . " (\@beta, \@gamma)\n"
+        . __ 'Event:' . "  deploy\n"
+        . __ 'Name:'  . "   lolz\n"
+        . __ 'Date:'  . "   __DATE__\n"
+        . __ 'By:'    . "     larry\n"
+    ],
+    [ long => color('yellow') . __ 'Deploy' . ' 000011112222333444'
+        . color('reset') . " (\@beta, \@gamma)\n"
+        . __ 'Name:'  . "   lolz\n"
+        . __ 'Date:'  . "   __DATE__\n"
+        . __ 'By:'    . "     larry\n"
+    ],
+    [ medium => color('yellow') . __ 'Deploy' . ' 000011112222333444'
+        . color('reset') . " (\@beta, \@gamma)\n"
+        . __ 'Name:'  . "   lolz\n"
+        . __ 'Date:'  . "   __DATE__\n"
+    ],
+    [ short => color('yellow') . '000011112222333444' . color('reset') . "\n"
+        . $dt->as_string( format => 'short' ) . ' - '
+        . __ 'deploy' . " lolz - larry\n"
+    ],
+    [ oneline => '000011112222333444 deploy lolz' ],
+) {
+    my $format = $CLASS->configure( $config, { format => $spec->[0] } )->{format};
+    ok my $log = $CLASS->new( sqitch => $sqitch, format => $format ),
+        qq{Instantiate with format "$spec->[0]"};
+    (my $exp = $spec->[1]) =~ s/__DATE__/$iso/;
+    is $log->formatter->format( $log->format, $event ), $exp,
+        qq{Format "$spec->[0]" should output correctly};
+
+    if ($spec->[1] =~ /__DATE__/) {
+        # Test different date formats.
+        for my $date_format (qw(rfc long medium)) {
+            ok my $log = $CLASS->new(
+                sqitch => $sqitch,
+                format => $format,
+                date_format => $date_format,
+            ), qq{Instantiate with format "$spec->[0]" and date format "$date_format"};
+            my $date = $dt->as_string( format => $date_format );
+            (my $exp = $spec->[1]) =~ s/__DATE__/$date/;
+            is $log->formatter->format( $log->format, $event ), $exp,
+                qq{Format "$spec->[0]" and date format "$date_format" should output correctly};
+        }
+    }
+
+}
