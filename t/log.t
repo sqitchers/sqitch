@@ -187,7 +187,7 @@ AUTO: {
 $cmock->unmock_all;
 
 ###############################################################################
-# Test formats.
+# Test named formats.
 my $dt = App::Sqitch::DateTime->now;
 my $event = {
     event     => 'deploy',
@@ -252,4 +252,108 @@ for my $spec (
         }
     }
 
+    if ($spec->[1] =~ s/\s+[(]?[@]beta,\s+[@]gamma[)]?//) {
+        # Test without tags.
+        local $event->{tags} = [];
+        (my $exp = $spec->[1]) =~ s/__DATE__/$iso/;
+        is $log->formatter->format( $log->format, $event ), $exp,
+            qq{Format "$spec->[0]" should output correctly without tags};
+    }
 }
+
+###############################################################################
+# Test all formatting characters.
+my $formatter = $log->formatter;
+for my $spec (
+    ['%e', { event => 'deploy' }, 'deploy' ],
+    ['%e', { event => 'revert' }, 'revert' ],
+    ['%e', { event => 'fail' },   'fail' ],
+
+    ['%L', { event => 'deploy' }, __ 'Deploy' ],
+    ['%L', { event => 'revert' }, __ 'Revert' ],
+    ['%L', { event => 'fail' },   __ 'Fail' ],
+
+    ['%l', { event => 'deploy' }, __ 'deploy' ],
+    ['%l', { event => 'revert' }, __ 'revert' ],
+    ['%l', { event => 'fail' },   __ 'fail' ],
+
+    ['%{event}_', {}, __ 'Event: ' ],
+    ['%{change}_', {}, __ 'Change:' ],
+    ['%{actor}_', {}, __ 'Actor: ' ],
+    ['%{by}_', {}, __ 'By:    ' ],
+    ['%{date}_', {}, __ 'Date:  ' ],
+    ['%{name}_', {}, __ 'Name:  ' ],
+
+    ['%H', { change_id => '123456789' }, '123456789' ],
+    ['%h', { change_id => '123456789' }, '123456789' ],
+    ['%{5}h', { change_id => '123456789' }, '12345' ],
+    ['%{7}h', { change_id => '123456789' }, '1234567' ],
+
+    ['%c', { change => 'foo' }, 'foo'],
+    ['%c', { change => 'bar' }, 'bar'],
+
+    ['%a', { logged_by => 'larry'  }, 'larry'],
+    ['%a', { logged_by => 'damian' }, 'damian'],
+
+    ['%t', { tags => [] }, '' ],
+    ['%t', { tags => ['@foo'] }, ' @foo' ],
+    ['%t', { tags => ['@foo', '@bar'] }, ' @foo, @bar' ],
+    ['%{|}t', { tags => [] }, '' ],
+    ['%{|}t', { tags => ['@foo'] }, ' @foo' ],
+    ['%{|}t', { tags => ['@foo', '@bar'] }, ' @foo|@bar' ],
+
+    ['%T', { tags => [] }, '' ],
+    ['%T', { tags => ['@foo'] }, ' (@foo)' ],
+    ['%T', { tags => ['@foo', '@bar'] }, ' (@foo, @bar)' ],
+    ['%{|}T', { tags => [] }, '' ],
+    ['%{|}T', { tags => ['@foo'] }, ' (@foo)' ],
+    ['%{|}T', { tags => ['@foo', '@bar'] }, ' (@foo|@bar)' ],
+
+    ['%n', {}, "\n" ],
+
+    ['%d', { logged_at => $dt }, $dt->as_string( format => 'iso' ) ],
+    ['%{rfc}d', { logged_at => $dt }, $dt->as_string( format => 'rfc' ) ],
+    ['%{long}d', { logged_at => $dt }, $dt->as_string( format => 'long' ) ],
+
+    ['%{yellow}C', {}, '' ],
+) {
+    (my $desc = $spec->[2]) =~ s/\n/[newline]/g;
+    is $formatter->format( $spec->[0], $spec->[1] ), $spec->[2],
+        qq{Format "$spec->[0]" should output "$desc"};
+}
+
+throws_ok { $formatter->format( '%_', {} ) } 'App::Sqitch::X',
+    'Should get exception for format "%_"';
+is $@->ident, 'log', '%_ error ident should be "log"';
+is $@->message, __ 'No label passed to the _ format',
+    '%_ error message should be correct';
+
+ok $log = $CLASS->new( sqitch => $sqitch, abbrev => 4 ),
+    'Instantiate with abbrev => 4';
+is $log->formatter->format( '%h', { change_id => '123456789' } ),
+    '1234', '%h should respect abbrev';
+is $log->formatter->format( '%H', { change_id => '123456789' } ),
+    '123456789', '%H should not respect abbrev';
+
+ok $log = $CLASS->new( sqitch => $sqitch, date_format => 'rfc' ),
+    'Instantiate with date_format => "rfc"';
+is $log->formatter->format( '%d', { logged_at => $dt } ),
+    $dt->as_string( format => 'rfc' ),
+    '%d should respect the date_format attribute';
+is $log->formatter->format( '%{iso}d', { logged_at => $dt } ),
+    $dt->as_string( format => 'iso' ),
+    '%{iso}d should override the date_format attribute';
+
+delete $ENV{ANSI_COLORS_DISABLED};
+for my $color (qw(yellow red blue cyan magenta)) {
+    is $formatter->format( "%{$color}C", {} ), color($color),
+        qq{Format "%{$color}C" should output }
+        . color($color) . $color . color('reset');
+}
+
+throws_ok { $formatter->format( '%{BLUELOLZ}C', {} ) } 'App::Sqitch::X',
+    'Should get an error for an invalid color';
+is $@->ident, 'log', 'Invalid color error ident should be "log"';
+is $@->message, __x(
+    '{color} is not a valid ANSI color', color => 'BLUELOLZ'
+), 'Invalid color error message should be correct';

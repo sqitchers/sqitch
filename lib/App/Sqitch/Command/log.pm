@@ -149,8 +149,6 @@ has formatter => (
                     };
                 },
                 _ => sub {
-                    hurl log => __ 'No label passed to the _ format'
-                        unless $_[1];
                     given ($_[1]) {
                         __ 'Event: ' when 'event';
                         __ 'Change:' when 'change';
@@ -169,11 +167,6 @@ has formatter => (
                     }
                     return $_[0]->{change_id};
                 },
-                i => sub {
-                    $self->abbrev
-                        ? substr $_[0]->{change_id}, 0, $self->abbrev
-                        : $_[0]->{change_id};
-                },
                 c => sub { $_[0]->{change} },
                 a => sub { $_[0]->{logged_by} },
                 t => sub {
@@ -187,10 +180,15 @@ has formatter => (
                         : '';
                 },
                 n => sub { "\n" },
-                d => sub { shift->{logged_at}->as_string(format => shift || $self->date_format) },
+                d => sub {
+                    shift->{logged_at}->as_string(
+                        format => shift || $self->date_format
+                    )
+                },
                 C => sub {
-                    hurl log => __ '{color} is not a valid ANSI color', color => $_[1]
-                        unless $_[1] && colorvalid $_[1];
+                    hurl log => __x(
+                        '{color} is not a valid ANSI color', color => $_[1]
+                    ) unless $_[1] && colorvalid $_[1];
                     color $_[1];
                 },
             },
