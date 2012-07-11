@@ -13,10 +13,9 @@ use String::Formatter;
 use namespace::autoclean;
 use Term::ANSIColor qw(color colorvalid);
 extends 'App::Sqitch::Command';
-use constant OUTPUT_TO_PIPE   => not -t *STDOUT;
 use constant CAN_OUTPUT_COLOR => $^O =~ /MSWin32/
     ? eval { require Win32::Console::ANSI }
-    : not OUTPUT_TO_PIPE;
+    : -t *STDOUT;
 
 BEGIN {
     $ENV{ANSI_COLORS_DISABLED} = 1 unless CAN_OUTPUT_COLOR;

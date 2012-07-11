@@ -45,6 +45,20 @@ can_ok $log, qw(
     configure
 );
 
+is_deeply [$CLASS->options], [qw(
+    event=s@
+    change-pattern|change|c=s
+    actor-pattern|actor|a=s
+    max-count|n=i
+    skip=i
+    reverse!
+    color=s
+    no-color
+    abbrev=i
+    format|f=s
+    date-format|date=s
+)], 'Options should be correct';
+
 ##############################################################################
 # Test configure().
 my $cmock = Test::MockModule->new('App::Sqitch::Config');
@@ -99,3 +113,74 @@ is $@->message, __x(
     format => 'non',
 ), 'Invalid format error message should be correct';
 
+# Test color configuration.
+is_deeply$CLASS->configure( $config, {'no-color', 1 } ), {
+    color => 'never'
+}, 'Configuration should respect --no-color, setting "never"';
+
+my $config_color = 'auto';
+$cmock->mock( get => sub {
+    my ($self, %p) = @_;
+    return $config_color if $p{key} eq 'log.color';
+    return undef;
+});
+
+my $log_config = {};
+$cmock->mock( get_section => sub { $log_config } );
+
+is_deeply $CLASS->configure( $config, {'no-color', 1 } ), {
+    color => 'never'
+}, 'Configuration should respect --no-color even when configure is set';
+
+NEVER: {
+    local $ENV{ANSI_COLORS_DISABLED};
+    $config_color = 'never';
+    $log_config = { color => $config_color };
+    is_deeply $CLASS->configure( $config, $log_config ),  { color => 'never' },
+        'Configuration should respect color option';
+    ok $ENV{ANSI_COLORS_DISABLED}, 'Colors should be disabled for "never"';
+
+    # Try it with config.
+    delete $ENV{ANSI_COLORS_DISABLED};
+    $log_config = { color => $config_color };
+    is_deeply $CLASS->configure( $config, {} ), { color => 'never' },
+        'Configuration should respect color config';
+    ok $ENV{ANSI_COLORS_DISABLED}, 'Colors should be disabled for "never"';
+}
+
+ALWAYS: {
+    local $ENV{ANSI_COLORS_DISABLED};
+    $config_color = 'always';
+    $log_config = { color => $config_color };
+    is_deeply $CLASS->configure( $config, $log_config ),  { color => 'always' },
+        'Configuration should respect color option';
+    ok !$ENV{ANSI_COLORS_DISABLED}, 'Colors should be enabled for "always"';
+
+    # Try it with config.
+    delete $ENV{ANSI_COLORS_DISABLED};
+    $log_config = { color => $config_color };
+    is_deeply $CLASS->configure( $config, {} ), { color => 'always' },
+        'Configuration should respect color config';
+    ok !$ENV{ANSI_COLORS_DISABLED}, 'Colors should be enabled for "always"';
+}
+
+AUTO: {
+    $config_color = 'auto';
+    $log_config = { color => $config_color };
+    for my $enabled (0, 1) {
+        local $ENV{ANSI_COLORS_DISABLED} = $enabled;
+        is_deeply $CLASS->configure( $config, $log_config ),  { color => 'auto' },
+            'Configuration should respect color option';
+        is $ENV{ANSI_COLORS_DISABLED}, $enabled,
+            'Auto color option should change nothing';
+
+        # Try it with config.
+        $log_config = { color => $config_color };
+        is_deeply $CLASS->configure( $config, {} ), { color => 'auto' },
+            'Configuration should respect color config';
+        is $ENV{ANSI_COLORS_DISABLED}, $enabled,
+            'Auto color config should change nothing';
+    }
+}
+
+$cmock->unmock_all;
