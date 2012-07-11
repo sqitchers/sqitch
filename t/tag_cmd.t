@@ -3,8 +3,8 @@
 use strict;
 use warnings;
 use utf8;
-#use Test::More tests => 77;
-use Test::More 'no_plan';
+use Test::More tests => 16;
+#use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
 use Test::NoWarnings;

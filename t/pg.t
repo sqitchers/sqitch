@@ -258,8 +258,6 @@ subtest 'live database' => sub {
         plan skip_all => "Unable to connect to a database for testing: $_";
     };
 
-    plan 'no_plan';
-
     ok !$pg->initialized, 'Database should not yet be initialized';
     push @cleanup, 'DROP SCHEMA ' . $pg->sqitch_schema . ' CASCADE';
     ok $pg->initialize, 'Initialize the database';
