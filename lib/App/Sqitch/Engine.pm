@@ -855,10 +855,10 @@ An array of the type of event to search for. Allowed values are "deploy",
 Limit the events to those with changes matching the specified regular
 expression.
 
-=item C<actor>
+=item C<committer>
 
-Limit the events to those logged by the actors (users) with names matching the
-specified regular expression.
+Limit the events to those logged for the actions of the committers with names
+matching the specified regular expression.
 
 =item C<limit>
 

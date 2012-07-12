@@ -2,6 +2,8 @@ Revision history for Perl extension App::Sqitch
 
 0.71
      - Updated the example `sqitch log` output in `sqitchtutorial`.
+     - Changed the term "actor" to "committer" througought the API, schema,
+       and output.
 
 0.70  2012-07-12T13:24:13Z
      - Changed the `current_changes()` and `current_tags()` Engine methods so
@@ -111,7 +113,7 @@ Revision history for Perl extension App::Sqitch
 
 0.30  2012-05-18T15:43:12Z
      - The `init` command now properly writes out the `[core]` section header
-       when there are only commented core setttings.
+       when there are only commented core settings.
      - The `--requires` and `--conflicts` options to `add` now work
        properly.
      - Fixed anticipated Win32 test failures in `t/init.t`.'

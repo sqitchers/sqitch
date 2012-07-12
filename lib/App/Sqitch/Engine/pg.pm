@@ -39,7 +39,7 @@ has username => (
     },
 );
 
-has actor => (
+has committer => (
     is      => 'ro',
     isa     => 'Str',
     lazy    => 1,
@@ -258,18 +258,18 @@ sub log_deploy_change {
     my ($self, $change) = @_;
     my $dbh = $self->_dbh;
 
-    my ($id, $name, $req, $conf, $actor) = (
+    my ($id, $name, $req, $conf, $committer) = (
         $change->id,
         $change->format_name,
         [$change->requires],
         [$change->conflicts],
-        $self->actor,
+        $self->committer,
     );
 
     $dbh->do(q{
         INSERT INTO changes (change_id, change, requires, conflicts, deployed_by)
         VALUES (?, ?, ?, ?, ?)
-    }, undef, $id, $name, $req, $conf, $actor);
+    }, undef, $id, $name, $req, $conf, $committer);
 
     my @tags = $change->tags;
     if (@tags) {
@@ -277,15 +277,15 @@ sub log_deploy_change {
             'INSERT INTO tags (tag_id, tag, change_id, applied_by) VALUES '
             . join( ', ', ( q{(?, ?, ?, ?)} ) x @tags ),
             undef,
-            map { ($_->id, $_->format_name, $id, $actor) } @tags
+            map { ($_->id, $_->format_name, $id, $committer) } @tags
         );
         @tags = map { $_->format_name } @tags;
     }
 
     $dbh->do(q{
-        INSERT INTO events (event, change_id, change, tags, logged_by)
+        INSERT INTO events (event, change_id, change, tags, committed_by)
         VALUES ('deploy', ?, ?, ?, ?);
-    }, undef, $id, $name, \@tags, $actor);
+    }, undef, $id, $name, \@tags, $committer);
 
     return $self;
 }
@@ -295,9 +295,9 @@ sub log_fail_change {
     my $dbh  = $self->_dbh;
     my $tags = [ map { $_->format_name } $change->tags ];
     $dbh->do(q{
-        INSERT INTO events (event, change_id, change, tags, logged_by)
+        INSERT INTO events (event, change_id, change, tags, committed_by)
         VALUES ('fail', ?, ?, ?, ?);
-    }, undef, $change->id, $change->name, $tags, $self->actor);
+    }, undef, $change->id, $change->name, $tags, $self->committer);
     return $self;
 }
 
@@ -319,9 +319,9 @@ sub log_revert_change {
 
     # Log it.
     $dbh->do(q{
-        INSERT INTO events (event, change_id, change, tags, logged_by)
+        INSERT INTO events (event, change_id, change, tags, committed_by)
         VALUES ('revert', ?, ?, ?, ?);
-    }, undef, $change->id, $change->name, $del_tags,  $self->actor);
+    }, undef, $change->id, $change->name, $del_tags, $self->committer);
 
     return $self;
 }
@@ -508,7 +508,7 @@ sub current_tags {
 
 sub search_events {
     my ( $self, %p ) = @_;
-    my $dtcol = _ts2char 'logged_at';
+    my $dtcol = _ts2char 'committed_at';
 
     # Determine order direction.
     my $dir = 'DESC';
@@ -521,8 +521,8 @@ sub search_events {
     # Limit with regular expressions?
     my (@wheres, @params);
     for my $spec (
-        [ actor  => 'logged_by' ],
-        [ change => 'change'    ],
+        [ committer => 'committed_by' ],
+        [ change    => 'change'    ],
     ) {
         my $regex = delete $p{ $spec->[0] } // next;
         push @wheres => "$spec->[1] ~ ?";
@@ -551,17 +551,17 @@ sub search_events {
              , change_id
              , change
              , tags
-             , logged_by
-             , $dtcol AS logged_at
+             , committed_by
+             , $dtcol AS committed_at
           FROM events$where
-         ORDER BY events.logged_at $dir
+         ORDER BY events.committed_at $dir
          LIMIT COALESCE(?::INT, NULL)
         OFFSET COALESCE(?::INT, NULL)
     });
     $sth->execute(@params);
     return sub {
         my $row = $sth->fetchrow_hashref or return;
-        $row->{logged_at} = _dt $row->{logged_at};
+        $row->{committed_at} = _dt $row->{committed_at};
         return $row;
     };
 }

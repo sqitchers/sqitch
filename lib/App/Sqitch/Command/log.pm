@@ -25,11 +25,11 @@ our $VERSION = '0.71';
 
 my %FORMATS;
 $FORMATS{raw} = <<EOF;
-event   %e
-change  %h%T
-name    %c
-date    %{iso}d
-agent   %a
+event     %e
+change    %h%T
+name      %c
+date      %{iso}d
+committer %a
 EOF
 
 $FORMATS{full} = <<EOF;
@@ -70,7 +70,7 @@ has change_pattern => (
     isa     => 'Str',
 );
 
-has actor_pattern => (
+has committer_pattern => (
     is      => 'ro',
     isa     => 'Str',
 );
@@ -150,12 +150,12 @@ has formatter => (
                 },
                 _ => sub {
                     given ($_[1]) {
-                        __ 'Event: ' when 'event';
-                        __ 'Change:' when 'change';
-                        __ 'Actor: ' when 'actor';
-                        __ 'By:    ' when 'by';
-                        __ 'Date:  ' when 'date';
-                        __ 'Name:  ' when 'name';
+                        __ 'Event:    ' when 'event';
+                        __ 'Change:   ' when 'change';
+                        __ 'Committer:' when 'committer';
+                        __ 'By:       ' when 'by';
+                        __ 'Date:     ' when 'date';
+                        __ 'Name:     ' when 'name';
                         hurl log => __ 'No label passed to the _ format'
                             when undef;
                     };
@@ -168,7 +168,7 @@ has formatter => (
                     return $_[0]->{change_id};
                 },
                 c => sub { $_[0]->{change} },
-                a => sub { $_[0]->{logged_by} },
+                a => sub { $_[0]->{committed_by} },
                 t => sub {
                     @{ $_[0]->{tags} }
                         ? ' ' . join $_[1] || ', ' => @{ $_[0]->{tags} }
@@ -181,7 +181,7 @@ has formatter => (
                 },
                 n => sub { "\n" },
                 d => sub {
-                    shift->{logged_at}->as_string(
+                    shift->{committed_at}->as_string(
                         format => shift || $self->date_format
                     )
                 },
@@ -199,8 +199,8 @@ has formatter => (
 sub options {
     return qw(
         event=s@
-        change-pattern|change|c=s
-        actor-pattern|actor|a=s
+        change-pattern|change=s
+        committer-pattern|committer=s
         format|f=s
         date-format|date=s
         max-count|n=i
@@ -283,7 +283,7 @@ sub execute {
     $iter = $engine->search_events(
         event     => $self->event,
         change    => $self->change_pattern,
-        actor     => $self->actor_pattern,
+        committer => $self->committer_pattern,
         limit     => $self->max_count,
         offset    => $self->skip,
         direction => $self->reverse ? 'ASC' : 'DESC',

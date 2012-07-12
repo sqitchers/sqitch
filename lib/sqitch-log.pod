@@ -36,17 +36,13 @@ Filter by event type. May be specified more than once. Allowed values are:
 
 =item C<--change>
 
-=item C<-c>
-
 A regular expression to match against change names.
 
-=item C<--actor-pattern>
+=item C<--committer-pattern>
 
-=item C<--actor>
+=item C<--committer>
 
-=item C<-a>
-
-A regular expression to match against actor (user) names.
+A regular expression to match against committer names.
 
 =item C<--format>
 
@@ -206,7 +202,7 @@ you can use C<%n> for a newline, but an actual newline is okay, too.
 
 =item * C<%{change}_> Localized label for "change"
 
-=item * C<%{actor}_> Localized label for "actor"
+=item * C<%{committer}_> Localized label for "committer"
 
 =item * C<%{by}_> Localized label for "by"
 
@@ -214,7 +210,7 @@ you can use C<%n> for a newline, but an actual newline is okay, too.
 
 =item * C<%{name}_> Localized label for "name"
 
-=item * C<%a>: Event actor name
+=item * C<%a>: Event committer name
 
 =item * C<%d>: Formatted Event date (respects C<--date-format>)
 

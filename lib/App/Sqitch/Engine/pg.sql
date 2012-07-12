@@ -40,21 +40,21 @@ COMMENT ON COLUMN :"sqitch_schema".tags.applied_at IS 'Date the tag was applied 
 COMMENT ON COLUMN :"sqitch_schema".tags.applied_by IS 'Name  of the user who applied the tag.';
 
 CREATE TABLE :"sqitch_schema".events (
-    event     TEXT        NOT NULL CHECK (event IN ('deploy', 'revert', 'fail')),
-    change_id TEXT        NOT NULL,
-    change    TEXT        NOT NULL,
-    tags      TEXT[]      NOT NULL DEFAULT '{}',
-    logged_at TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
-    logged_by TEXT        NOT NULL DEFAULT current_user
+    event        TEXT        NOT NULL CHECK (event IN ('deploy', 'revert', 'fail')),
+    change_id    TEXT        NOT NULL,
+    change       TEXT        NOT NULL,
+    tags         TEXT[]      NOT NULL DEFAULT '{}',
+    committed_at TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
+    committed_by TEXT        NOT NULL DEFAULT current_user
 );
 
 COMMENT ON TABLE :"sqitch_schema".events
 IS 'Contains full history of all deployment events.';
-COMMENT ON COLUMN :"sqitch_schema".events.event     IS 'Type of event.';
-COMMENT ON COLUMN :"sqitch_schema".events.change_id IS 'Change ID';
-COMMENT ON COLUMN :"sqitch_schema".events.change    IS 'Change name.';
-COMMENT ON COLUMN :"sqitch_schema".events.tags      IS 'Tags associated with the change';
-COMMENT ON COLUMN :"sqitch_schema".events.logged_at IS 'Date the event.';
-COMMENT ON COLUMN :"sqitch_schema".events.logged_by IS 'Name of the user who logged the event.';
+COMMENT ON COLUMN :"sqitch_schema".events.event        IS 'Type of event.';
+COMMENT ON COLUMN :"sqitch_schema".events.change_id    IS 'Change ID';
+COMMENT ON COLUMN :"sqitch_schema".events.change       IS 'Change name.';
+COMMENT ON COLUMN :"sqitch_schema".events.tags         IS 'Tags associated with the change';
+COMMENT ON COLUMN :"sqitch_schema".events.committed_at IS 'Date the event was committed.';
+COMMENT ON COLUMN :"sqitch_schema".events.committed_by IS 'Name of the user who committed the event.';
 
 COMMIT;

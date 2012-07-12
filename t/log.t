@@ -34,7 +34,7 @@ isa_ok my $log = App::Sqitch::Command->load({
 
 can_ok $log, qw(
     change_pattern
-    actor_pattern
+    committer_pattern
     max_count
     skip
     reverse
@@ -49,8 +49,8 @@ can_ok $log, qw(
 
 is_deeply [$CLASS->options], [qw(
     event=s@
-    change-pattern|change|c=s
-    actor-pattern|actor|a=s
+    change-pattern|change=s
+    committer-pattern|committer=s
     format|f=s
     date-format|date=s
     max-count|n=i
@@ -191,39 +191,39 @@ $cmock->unmock_all;
 # Test named formats.
 my $dt = App::Sqitch::DateTime->now;
 my $event = {
-    event     => 'deploy',
-    change_id => '000011112222333444',
-    change    => 'lolz',
-    tags      => ['@beta', '@gamma'],
-    logged_by => 'larry',
-    logged_at => $dt,
+    event        => 'deploy',
+    change_id    => '000011112222333444',
+    change       => 'lolz',
+    tags         => ['@beta', '@gamma'],
+    committed_by => 'larry',
+    committed_at => $dt,
 };
 
 my $iso = $dt->as_string( format => 'iso' );
 for my $spec (
-    [ raw => "event   deploy\n"
-           . "change  000011112222333444 (\@beta, \@gamma)\n"
-           . "name    lolz\n"
-           . "date    $iso\n"
-           . "agent   larry\n"
+    [ raw => "event     deploy\n"
+           . "change    000011112222333444 (\@beta, \@gamma)\n"
+           . "name      lolz\n"
+           . "date      $iso\n"
+           . "committer larry\n"
     ],
-    [ full => color('yellow') . __ 'Change:' . ' 000011112222333444'
+    [ full => color('yellow') . __ 'Change:' . '    000011112222333444'
         . color('reset') . " (\@beta, \@gamma)\n"
-        . __ 'Event:' . "  deploy\n"
-        . __ 'Name:'  . "   lolz\n"
-        . __ 'Date:'  . "   __DATE__\n"
-        . __ 'By:'    . "     larry\n"
+        . __ 'Event:' . "     deploy\n"
+        . __ 'Name:' . "      lolz\n"
+        . __ 'Date:' . "      __DATE__\n"
+        . __ 'By:' . "        larry\n"
     ],
     [ long => color('yellow') . __ 'Deploy' . ' 000011112222333444'
         . color('reset') . " (\@beta, \@gamma)\n"
-        . __ 'Name:'  . "   lolz\n"
-        . __ 'Date:'  . "   __DATE__\n"
-        . __ 'By:'    . "     larry\n"
+        . __ 'Name:' . "      lolz\n"
+        . __ 'Date:' . "      __DATE__\n"
+        . __ 'By:' . "        larry\n"
     ],
     [ medium => color('yellow') . __ 'Deploy' . ' 000011112222333444'
         . color('reset') . " (\@beta, \@gamma)\n"
-        . __ 'Name:'  . "   lolz\n"
-        . __ 'Date:'  . "   __DATE__\n"
+        . __ 'Name:' . "      lolz\n"
+        . __ 'Date:' . "      __DATE__\n"
     ],
     [ short => color('yellow') . '000011112222333444' . color('reset') . "\n"
         . $dt->as_string( format => 'short' ) . ' - '
@@ -278,12 +278,12 @@ for my $spec (
     ['%l', { event => 'revert' }, __ 'revert' ],
     ['%l', { event => 'fail' },   __ 'fail' ],
 
-    ['%{event}_', {}, __ 'Event: ' ],
-    ['%{change}_', {}, __ 'Change:' ],
-    ['%{actor}_', {}, __ 'Actor: ' ],
-    ['%{by}_', {}, __ 'By:    ' ],
-    ['%{date}_', {}, __ 'Date:  ' ],
-    ['%{name}_', {}, __ 'Name:  ' ],
+    ['%{event}_',     {}, __ 'Event:    ' ],
+    ['%{change}_',    {}, __ 'Change:   ' ],
+    ['%{committer}_', {}, __ 'Committer:' ],
+    ['%{by}_',        {}, __ 'By:       ' ],
+    ['%{date}_',      {}, __ 'Date:     ' ],
+    ['%{name}_',      {}, __ 'Name:     ' ],
 
     ['%H', { change_id => '123456789' }, '123456789' ],
     ['%h', { change_id => '123456789' }, '123456789' ],
@@ -293,8 +293,8 @@ for my $spec (
     ['%c', { change => 'foo' }, 'foo'],
     ['%c', { change => 'bar' }, 'bar'],
 
-    ['%a', { logged_by => 'larry'  }, 'larry'],
-    ['%a', { logged_by => 'damian' }, 'damian'],
+    ['%a', { committed_by => 'larry'  }, 'larry'],
+    ['%a', { committed_by => 'damian' }, 'damian'],
 
     ['%t', { tags => [] }, '' ],
     ['%t', { tags => ['@foo'] }, ' @foo' ],
@@ -312,9 +312,9 @@ for my $spec (
 
     ['%n', {}, "\n" ],
 
-    ['%d', { logged_at => $dt }, $dt->as_string( format => 'iso' ) ],
-    ['%{rfc}d', { logged_at => $dt }, $dt->as_string( format => 'rfc' ) ],
-    ['%{long}d', { logged_at => $dt }, $dt->as_string( format => 'long' ) ],
+    ['%d', { committed_at => $dt }, $dt->as_string( format => 'iso' ) ],
+    ['%{rfc}d', { committed_at => $dt }, $dt->as_string( format => 'rfc' ) ],
+    ['%{long}d', { committed_at => $dt }, $dt->as_string( format => 'long' ) ],
 
     ['%{yellow}C', {}, '' ],
 ) {
@@ -338,10 +338,10 @@ is $log->formatter->format( '%H', { change_id => '123456789' } ),
 
 ok $log = $CLASS->new( sqitch => $sqitch, date_format => 'rfc' ),
     'Instantiate with date_format => "rfc"';
-is $log->formatter->format( '%d', { logged_at => $dt } ),
+is $log->formatter->format( '%d', { committed_at => $dt } ),
     $dt->as_string( format => 'rfc' ),
     '%d should respect the date_format attribute';
-is $log->formatter->format( '%{iso}d', { logged_at => $dt } ),
+is $log->formatter->format( '%{iso}d', { committed_at => $dt } ),
     $dt->as_string( format => 'iso' ),
     '%{iso}d should override the date_format attribute';
 
@@ -403,7 +403,7 @@ ok $log->execute, 'Execute log';
 is_deeply $search_args, [
     event     => undef,
     change    => undef,
-    actor     => undef,
+    committer => undef,
     limit     => undef,
     offset    => undef,
     direction => 'DESC'
@@ -416,29 +416,29 @@ is_deeply +MockOutput->get_page, [
 
 # Set attributes and add more events.
 my $event2 = {
-    event     => 'revert',
-    change_id => '84584584359345',
-    change    => 'barf',
-    tags      => [],
-    logged_by => 'theory',
-    logged_at => $dt,
+    event        => 'revert',
+    change_id    => '84584584359345',
+    change       => 'barf',
+    tags         => [],
+    committed_by => 'theory',
+    committed_at => $dt,
 };
 push @events => {}, $event, $event2;
 isa_ok $log = $CLASS->new(
-    sqitch         => $sqitch,
-    event          => [qw(revert fail)],
-    change_pattern => '.+',
-    actor_pattern  => '.+',
-    max_count      => 10,
-    skip           => 5,
-    reverse        => 1,
+    sqitch            => $sqitch,
+    event             => [qw(revert fail)],
+    change_pattern    => '.+',
+    committer_pattern => '.+',
+    max_count         => 10,
+    skip              => 5,
+    reverse           => 1,
 ), $CLASS, 'log with attributes';
 
 ok $log->execute, 'Execute log with attributes';
 is_deeply $search_args, [
     event     => [qw(revert fail)],
     change    => '.+',
-    actor     => '.+',
+    committer => '.+',
     limit     => 10,
     offset    => 5,
     direction => 'ASC'

@@ -316,18 +316,18 @@ subtest 'live database' => sub {
 
     is_deeply $pg->_dbh->selectall_arrayref(
         'SELECT change_id, change, requires, conflicts, deployed_by FROM changes'
-    ), [[$change->id, 'users', [], [], $pg->actor]],
+    ), [[$change->id, 'users', [], [], $pg->committer]],
         'A record should have been inserted into the changes table';
 
     is_deeply $pg->_dbh->selectall_arrayref(
-        'SELECT event, change_id, change, tags, logged_by FROM events'
-    ), [['deploy', $change->id, 'users', ['@alpha'], $pg->actor]],
+        'SELECT event, change_id, change, tags, committed_by FROM events'
+    ), [['deploy', $change->id, 'users', ['@alpha'], $pg->committer]],
         'A record should have been inserted into the events table';
 
     is_deeply $pg->_dbh->selectall_arrayref(
         'SELECT tag_id, tag, change_id, applied_by FROM tags'
     ), [
-        [$tag->id, '@alpha', $change->id, $pg->actor],
+        [$tag->id, '@alpha', $change->id, $pg->committer],
     ], 'The tag should have been logged';
 
     is $pg->name_for_change_id($change->id), 'users@alpha',
@@ -340,14 +340,14 @@ subtest 'live database' => sub {
     is_deeply $state, {
         change_id   => $change->id,
         change      => 'users',
-        deployed_by => $pg->actor,
+        deployed_by => $pg->committer,
         tags        => ['@alpha'],
     }, 'The rest of the state should look right';
     is_deeply all( $pg->current_changes ), [
         {
             change_id   => $change->id,
             change      => 'users',
-            deployed_by => $pg->actor,
+            deployed_by => $pg->committer,
             deployed_at => $dt,
         },
     ], 'Should have one current change';
@@ -356,7 +356,7 @@ subtest 'live database' => sub {
             tag_id     => $tag->id,
             tag        => '@alpha',
             applied_at => dt_for_tag( $tag->id ),
-            applied_by => $pg->actor,
+            applied_by => $pg->committer,
         },
     ], 'Should have one current tags';
     my @events = ({
@@ -364,8 +364,8 @@ subtest 'live database' => sub {
         change_id => $change->id,
         change    => 'users',
         tags      => ['@alpha'],
-        logged_by => $pg->actor,
-        logged_at => dt_for_event(0),
+        committed_by => $pg->committer,
+        committed_at => dt_for_event(0),
     });
     is_deeply all( $pg->search_events ), \@events, 'Should have one event';
 
@@ -381,10 +381,10 @@ subtest 'live database' => sub {
     ), [], 'The record should have been deleted from the changes table';
 
     is_deeply $pg->_dbh->selectall_arrayref(
-        'SELECT event, change_id, change, tags, logged_by FROM events ORDER BY logged_at'
+        'SELECT event, change_id, change, tags, committed_by FROM events ORDER BY committed_at'
     ), [
-        ['deploy', $change->id, 'users', ['@alpha'], $pg->actor],
-        ['revert', $change->id, 'users', ['@alpha'], $pg->actor],
+        ['deploy', $change->id, 'users', ['@alpha'], $pg->committer],
+        ['revert', $change->id, 'users', ['@alpha'], $pg->committer],
     ], 'The revert event should have been logged';
 
     is_deeply $pg->_dbh->selectall_arrayref(
@@ -403,8 +403,8 @@ subtest 'live database' => sub {
         change_id => $change->id,
         change    => 'users',
         tags      => ['@alpha'],
-        logged_by => $pg->actor,
-        logged_at => dt_for_event(1),
+        committed_by => $pg->committer,
+        committed_at => dt_for_event(1),
     };
     is_deeply all( $pg->search_events ), \@events, 'Should have two events';
 
@@ -420,11 +420,11 @@ subtest 'live database' => sub {
     ), [], 'Still should have not changes table record';
 
     is_deeply $pg->_dbh->selectall_arrayref(
-        'SELECT event, change_id, change, tags, logged_by FROM events ORDER BY logged_at'
+        'SELECT event, change_id, change, tags, committed_by FROM events ORDER BY committed_at'
     ), [
-        ['deploy', $change->id, 'users', ['@alpha'], $pg->actor],
-        ['revert', $change->id, 'users', ['@alpha'], $pg->actor],
-        ['fail',   $change->id, 'users', ['@alpha'], $pg->actor],
+        ['deploy', $change->id, 'users', ['@alpha'], $pg->committer],
+        ['revert', $change->id, 'users', ['@alpha'], $pg->committer],
+        ['fail',   $change->id, 'users', ['@alpha'], $pg->committer],
     ], 'The fail event should have been logged';
 
     is_deeply $pg->_dbh->selectall_arrayref(
@@ -439,16 +439,16 @@ subtest 'live database' => sub {
         change_id => $change->id,
         change    => 'users',
         tags      => ['@alpha'],
-        logged_by => $pg->actor,
-        logged_at => dt_for_event(2),
+        committed_by => $pg->committer,
+        committed_at => dt_for_event(2),
     };
     is_deeply all( $pg->search_events ), \@events, 'Should have 3 events';
 
-    # From here on in, use a different actor.
-    my $actor1 = $pg->actor;
-    my $actor2 = "$actor1\_number_2";
+    # From here on in, use a different committer.
+    my $committer1 = $pg->committer;
+    my $committer2 = "$committer1\_number_2";
     my $pg_mocker = Test::MockModule->new($CLASS);
-    $pg_mocker->mock( actor =>  $actor2 );
+    $pg_mocker->mock( committer => $committer2 );
 
     ##########################################################################
     # Test a change with dependencies.
@@ -465,18 +465,18 @@ subtest 'live database' => sub {
           FROM changes
          ORDER BY deployed_at
     }), [
-        [$change->id,  'users', [], [], $pg->actor],
-        [$change2->id, 'widgets', ['users'], ['dr_evil'], $pg->actor],
+        [$change->id,  'users', [], [], $pg->committer],
+        [$change2->id, 'widgets', ['users'], ['dr_evil'], $pg->committer],
     ], 'Should have both changes and requires/conflcits deployed';
 
     is_deeply $pg->_dbh->selectall_arrayref(
-        'SELECT event, change_id, change, tags, logged_by FROM events ORDER BY logged_at'
+        'SELECT event, change_id, change, tags, committed_by FROM events ORDER BY committed_at'
     ), [
-        ['deploy', $change->id,  'users',   ['@alpha'], $actor1],
-        ['revert', $change->id,  'users',   ['@alpha'], $actor1],
-        ['fail',   $change->id,  'users',   ['@alpha'], $actor1],
-        ['deploy', $change->id,  'users',   ['@alpha'], $actor2],
-        ['deploy', $change2->id, 'widgets', [],         $actor2],
+        ['deploy', $change->id,  'users',   ['@alpha'], $committer1],
+        ['revert', $change->id,  'users',   ['@alpha'], $committer1],
+        ['fail',   $change->id,  'users',   ['@alpha'], $committer1],
+        ['deploy', $change->id,  'users',   ['@alpha'], $committer2],
+        ['deploy', $change2->id, 'widgets', [],         $committer2],
     ], 'The new change deploy should have been logged';
 
     is $pg->name_for_change_id($change2->id), 'widgets',
@@ -489,20 +489,20 @@ subtest 'live database' => sub {
     is_deeply $state, {
         change_id   => $change2->id,
         change      => 'widgets',
-        deployed_by => $pg->actor,
+        deployed_by => $pg->committer,
         tags        => [],
     }, 'The state should reference new change';
     is_deeply all( $pg->current_changes ), [
         {
             change_id   => $change2->id,
             change      => 'widgets',
-            deployed_by => $pg->actor,
+            deployed_by => $pg->committer,
             deployed_at => $dt,
         },
         {
             change_id   => $change->id,
             change      => 'users',
-            deployed_by => $pg->actor,
+            deployed_by => $pg->committer,
             deployed_at => dt_for_change( $change->id ),
         },
     ], 'Should have two current changes in reverse chronological order';
@@ -511,7 +511,7 @@ subtest 'live database' => sub {
             tag_id     => $tag->id,
             tag        => '@alpha',
             applied_at => dt_for_tag( $tag->id ),
-            applied_by => $pg->actor,
+            applied_by => $pg->committer,
         },
     ], 'Should again have one current tags';
 
@@ -520,15 +520,15 @@ subtest 'live database' => sub {
         change_id => $change2->id,
         change    => 'widgets',
         tags      => [],
-        logged_by => $actor2,
-        logged_at => dt_for_event(4),
+        committed_by => $committer2,
+        committed_at => dt_for_event(4),
     }, {
         event     => 'deploy',
         change_id => $change->id,
         change    => 'users',
         tags      => ['@alpha'],
-        logged_by => $actor2,
-        logged_at => dt_for_event(3),
+        committed_by => $committer2,
+        committed_at => dt_for_event(3),
     };
     is_deeply all( $pg->search_events ), \@events, 'Should have 5 events';
 
@@ -583,20 +583,20 @@ subtest 'live database' => sub {
     is_deeply $state, {
         change_id   => $change2->id,
         change      => 'widgets',
-        deployed_by => $pg->actor,
+        deployed_by => $pg->committer,
         tags        => [],
     }, 'The new state should reference latest change';
     is_deeply all( $pg->current_changes ), [
         {
             change_id   => $change2->id,
             change      => 'widgets',
-            deployed_by => $pg->actor,
+            deployed_by => $pg->committer,
             deployed_at => $dt,
         },
         {
             change_id   => $change->id,
             change      => 'users',
-            deployed_by => $pg->actor,
+            deployed_by => $pg->committer,
             deployed_at => dt_for_change( $change->id ),
         },
     ], 'Should still have two current changes in reverse chronological order';
@@ -605,7 +605,7 @@ subtest 'live database' => sub {
             tag_id     => $tag->id,
             tag        => '@alpha',
             applied_at => dt_for_tag( $tag->id ),
-            applied_by => $pg->actor,
+            applied_by => $pg->committer,
         },
     ], 'Should still have one current tags';
 
@@ -614,15 +614,15 @@ subtest 'live database' => sub {
         change_id => $change2->id,
         change    => 'widgets',
         tags      => [],
-        logged_by => $actor2,
-        logged_at => dt_for_event(6),
+        committed_by => $committer2,
+        committed_at => dt_for_event(6),
     }, {
         event     => 'revert',
         change_id => $change2->id,
         change    => 'widgets',
         tags      => [],
-        logged_by => $actor2,
-        logged_at => dt_for_event(5),
+        committed_by => $committer2,
+        committed_at => dt_for_event(5),
     };
     is_deeply all( $pg->search_events ), \@events, 'Should have 7 events';
 
@@ -639,7 +639,7 @@ subtest 'live database' => sub {
     is_deeply $pg->current_state, {
         change_id   => $barney->id,
         change      => 'barney',
-        deployed_by => $pg->actor,
+        deployed_by => $pg->committer,
         deployed_at => dt_for_change($barney->id),
         tags        => [qw(@beta @gamma)],
     }, 'Barney should be in the current state';
@@ -648,25 +648,25 @@ subtest 'live database' => sub {
         {
             change_id   => $barney->id,
             change      => 'barney',
-            deployed_by => $pg->actor,
+            deployed_by => $pg->committer,
             deployed_at => dt_for_change( $barney->id ),
         },
         {
             change_id   => $fred->id,
             change      => 'fred',
-            deployed_by => $pg->actor,
+            deployed_by => $pg->committer,
             deployed_at => dt_for_change( $fred->id ),
         },
         {
             change_id   => $change2->id,
             change      => 'widgets',
-            deployed_by => $pg->actor,
+            deployed_by => $pg->committer,
             deployed_at => dt_for_change( $change2->id ),
         },
         {
             change_id   => $change->id,
             change      => 'users',
-            deployed_by => $pg->actor,
+            deployed_by => $pg->committer,
             deployed_at => dt_for_change( $change->id ),
         },
     ], 'Should have all four current changes in reverse chron order';
@@ -677,19 +677,19 @@ subtest 'live database' => sub {
             tag_id     => $gamma->id,
             tag        => '@gamma',
             applied_at => dt_for_tag( $gamma->id ),
-            applied_by => $pg->actor,
+            applied_by => $pg->committer,
         },
         {
             tag_id     => $beta->id,
             tag        => '@beta',
             applied_at => dt_for_tag( $beta->id ),
-            applied_by => $pg->actor,
+            applied_by => $pg->committer,
         },
         {
             tag_id     => $tag->id,
             tag        => '@alpha',
             applied_at => dt_for_tag( $tag->id ),
-            applied_by => $pg->actor,
+            applied_by => $pg->committer,
         },
     ], 'Should now have three current tags in reverse chron order';
 
@@ -698,15 +698,15 @@ subtest 'live database' => sub {
         change_id => $barney->id,
         change    => 'barney',
         tags      => ['@beta', '@gamma'],
-        logged_by => $actor2,
-        logged_at => dt_for_event(8),
+        committed_by => $committer2,
+        committed_at => dt_for_event(8),
     }, {
         event     => 'deploy',
         change_id => $fred->id,
         change    => 'fred',
         tags      => [],
-        logged_by => $actor2,
-        logged_at => dt_for_event(7),
+        committed_by => $committer2,
+        committed_at => dt_for_event(7),
     };
     is_deeply all( $pg->search_events ), \@events, 'Should have 9 events';
 
@@ -743,13 +743,13 @@ subtest 'live database' => sub {
     is $@->message, 'Search direction must be either "ASC" or "DESC"',
         'Search direction error message should be correct';
 
-    is_deeply all( $pg->search_events( actor => $actor1 ) ), \@events,
-        'The actor param to search_events should work';
-    is_deeply all( $pg->search_events( actor => "$actor1\_number" ) ),
+    is_deeply all( $pg->search_events( committer => $committer1 ) ), \@events,
+        'The committer param to search_events should work';
+    is_deeply all( $pg->search_events( committer => "$committer1\_number" ) ),
         [ @events[0..5] ],
-        'The actor param to search_events should work as a regex';
-    is_deeply all( $pg->search_events( actor => "$actor1\_number\$" ) ), [],
-        qq{Actor regex should fail to match with "$actor1\_number\$"};
+        'The committer param to search_events should work as a regex';
+    is_deeply all( $pg->search_events( committer => "$committer1\_number\$" ) ), [],
+        qq{Committer regex should fail to match with "$committer1\_number\$"};
 
     is_deeply all( $pg->search_events( change => 'users' ) ),
         [ @events[5..$#events] ],
@@ -842,9 +842,9 @@ sub all {
 }
 
 sub dt_for_event {
-    my $col = $ts2char->('logged_at');
+    my $col = $ts2char->('committed_at');
     $dtfunc->($pg->_dbh->selectcol_arrayref(
-        "SELECT $col FROM events ORDER BY logged_at DESC OFFSET ? LIMIT 1",
+        "SELECT $col FROM events ORDER BY committed_at DESC OFFSET ? LIMIT 1",
         undef, shift
     )->[0]);
 }

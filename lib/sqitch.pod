@@ -126,6 +126,10 @@ them in the reverse of the order in which they were applied. All changes
 may be reverted, or changes may be reverted to a requested state (a change
 name or tag).
 
+=item C<committer>
+
+User who commits or reverts changes to a database.
+
 =back
 
 =head1 Options
