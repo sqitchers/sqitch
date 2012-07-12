@@ -3,6 +3,10 @@ Revision history for Perl extension App::Sqitch
 0.61
      - Changed the `current_changes()` and `current_tags()` Engine methods so
        that they return iterator code references instead of lists.
+     - Added the `search_events()` Engine method, to search the event log.
+     - Added the `pager` attribute and `page()` methods to App::Sqitch.
+     - Added support for `strftime:` and `cldr:` options to the `status`
+       command's `--date-format` option.
      - Added the `log` command.
      - Added the `strftime:$string` and `cldr:$string` options to
        `--date-format` in the `status` and `log` commands.
