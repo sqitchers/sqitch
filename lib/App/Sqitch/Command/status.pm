@@ -13,7 +13,7 @@ use List::Util qw(max);
 use namespace::autoclean;
 extends 'App::Sqitch::Command';
 
-our $VERSION = '0.71';
+our $VERSION = '0.72';
 
 has show_changes => (
     is      => 'ro',
