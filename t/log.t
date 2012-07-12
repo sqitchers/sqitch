@@ -3,8 +3,8 @@
 use strict;
 use warnings;
 use utf8;
-#use Test::More tests => 59;
-use Test::More 'no_plan';
+use Test::More tests => 148;
+#use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
 use Test::NoWarnings;
@@ -23,6 +23,7 @@ my $uri = URI->new('https://github.com/theory/sqitch/');
 ok my $sqitch = App::Sqitch->new(
     uri     => $uri,
     top_dir => Path::Class::Dir->new('sql'),
+    _engine => 'sqlite',
 ), 'Load a sqitch sqitch object';
 my $config = $sqitch->config;
 isa_ok my $log = App::Sqitch::Command->load({
@@ -357,3 +358,107 @@ is $@->ident, 'log', 'Invalid color error ident should be "log"';
 is $@->message, __x(
     '{color} is not a valid ANSI color', color => 'BLUELOLZ'
 ), 'Invalid color error message should be correct';
+
+##############################################################################
+# Test execute().
+my $emock = Test::MockModule->new('App::Sqitch::Engine::sqlite');
+$emock->mock(destination => 'flipr');
+
+# First test for uninitialized DB.
+my $init = 0;
+$emock->mock(initialized => sub { $init });
+throws_ok { $log->execute } 'App::Sqitch::X',
+    'Should get exception for unititialied db';
+is $@->ident, 'log', 'Uninit db error ident should be "log"';
+is $@->exitval, 1, 'Uninit db exit val should be 1';
+is $@->message, __x(
+    'Database {db} has not been initilized for Sqitch',
+    db => 'flipr',
+), 'Uninit db error message should be correct';
+
+# Next, test for no events.
+$init = 1;
+my @events;
+my $iter = sub { shift @events };
+my $search_args;
+$emock->mock(search_events => sub {
+    shift;
+    $search_args = [@_];
+    return $iter;
+});
+throws_ok { $log->execute } 'App::Sqitch::X',
+    'Should get error for empty event table';
+is $@->ident, 'log', 'no events error ident should be "log"';
+is $@->exitval, 1, 'no events exit val should be 1';
+is $@->message, __x(
+    'No events logged to {db}',
+    db => 'flipr',
+), 'no events error message should be correct';
+is_deeply $search_args, [limit => 1],
+    'Search should have been limited to one row';
+
+# Okay, let's add some events.
+push @events => {}, $event;
+ok $log->execute, 'Execute log';
+is_deeply $search_args, [
+    event     => undef,
+    change    => undef,
+    actor     => undef,
+    limit     => undef,
+    offset    => undef,
+    direction => 'DESC'
+], 'The proper args should have been passed to search_events';
+
+is_deeply +MockOutput->get_page, [
+    [ $log->formatter->format( $log->format, $event ) ],
+], 'The change should have been paged';
+
+# Set attributes and add more events.
+my $event2 = {
+    event     => 'revert',
+    change_id => '84584584359345',
+    change    => 'barf',
+    tags      => [],
+    logged_by => 'theory',
+    logged_at => $dt,
+};
+push @events => {}, $event, $event2;
+isa_ok $log = $CLASS->new(
+    sqitch         => $sqitch,
+    event          => [qw(revert fail)],
+    change_pattern => '.+',
+    actor_pattern  => '.+',
+    max_count      => 10,
+    skip           => 5,
+    reverse        => 1,
+), $CLASS, 'log with attributes';
+
+ok $log->execute, 'Execute log with attributes';
+is_deeply $search_args, [
+    event     => [qw(revert fail)],
+    change    => '.+',
+    actor     => '.+',
+    limit     => 10,
+    offset    => 5,
+    direction => 'ASC'
+], 'All params should have been passed to search_events';
+
+is_deeply +MockOutput->get_page, [
+    [ $log->formatter->format( $log->format, $event ) ],
+    [ $log->formatter->format( $log->format, $event2 ) ],
+], 'Both changes should have been paged';
+
+# Make sure we catch bad format codes.
+isa_ok $log = $CLASS->new(
+    sqitch => $sqitch,
+    format => '%Z',
+), $CLASS, 'log with bad format';
+
+push @events, {}, $event;
+throws_ok { $log->execute } 'App::Sqitch::X',
+    'Should get an exception for a bad format code';
+is $@->ident, 'log',
+    'bad format code format error ident should be "log"';
+is $@->message, __x(
+    'Unknown log format code "{code}"', code => 'Z',
+), 'bad format code format error message should be correct';

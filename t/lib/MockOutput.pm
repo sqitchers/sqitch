@@ -16,6 +16,7 @@ my @mocked = qw(
     emit
     vent
     warn
+    page
 );
 
 my %CAPTURED;
@@ -35,7 +36,7 @@ for my $meth (@mocked) {
     };
 
     no strict 'refs';
-    *{"get\_$meth"} = $get;
+    *{"get_$meth"} = $get;
 }
 
 sub clear {
