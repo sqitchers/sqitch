@@ -178,13 +178,14 @@ We still have a record that the change happened, visible via the C<log>
 command:
 
   > sqitch -d flipr_test log
-  change appuser reverted
-  By:   david
-  Date: 2012-07-06 19:00:23 +0200
+  On database flipr_test
+  Revert 9df095ad10d799c3acdd74f7986ee1ed9a75e766
+  Name:   appuser
+  Date:   2012-07-06 19:00:45 +0200
 
-  change appuser deployed
-  By:   david
-  Date: 2012-07-06 18:59:08 +0200
+  Deploy 9df095ad10d799c3acdd74f7986ee1ed9a75e766
+  Name:   appuser
+  Date:   2012-07-06 18:59:08 +0200
 
 Cool. Now let's commit it.
 

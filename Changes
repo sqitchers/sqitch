@@ -1,6 +1,7 @@
 Revision history for Perl extension App::Sqitch
 
 0.71
+     - Updated the example `sqitch log` output in `sqitchtutorial`.
 
 0.70  2012-07-12T13:24:13Z
      - Changed the `current_changes()` and `current_tags()` Engine methods so
