@@ -410,6 +410,7 @@ is_deeply $search_args, [
 ], 'The proper args should have been passed to search_events';
 
 is_deeply +MockOutput->get_page, [
+    [__x 'On database {db}', db => 'flipr'],
     [ $log->formatter->format( $log->format, $event ) ],
 ], 'The change should have been paged';
 
@@ -444,6 +445,7 @@ is_deeply $search_args, [
 ], 'All params should have been passed to search_events';
 
 is_deeply +MockOutput->get_page, [
+    [__x 'On database {db}', db => 'flipr'],
     [ $log->formatter->format( $log->format, $event ) ],
     [ $log->formatter->format( $log->format, $event2 ) ],
 ], 'Both changes should have been paged';

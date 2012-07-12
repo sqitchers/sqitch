@@ -296,6 +296,7 @@ sub execute {
         die @_ if $_[0] !~ /^Unknown conversion in stringf: (\S+)/;
         hurl log => __x 'Unknown log format code "{code}"', code => $1;
     };
+    $self->page( __x 'On database {db}', db => $engine->destination );
     while ( my $change = $iter->() ) {
         $self->page( $changef->format( $format, $change ) );
     }
