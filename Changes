@@ -1,6 +1,6 @@
 Revision history for Perl extension App::Sqitch
 
-0.61
+0.70
      - Changed the `current_changes()` and `current_tags()` Engine methods so
        that they return iterator code references instead of lists.
      - Added the `search_events()` Engine method, to search the event log.

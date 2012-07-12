@@ -15,7 +15,7 @@ use namespace::autoclean;
 use Moose;
 use constant SYNTAX_VERSION => '1.0.0-a1';
 
-our $VERSION = '0.61';
+our $VERSION = '0.70';
 
 has sqitch => (
     is       => 'ro',
