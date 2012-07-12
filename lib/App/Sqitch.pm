@@ -21,7 +21,7 @@ use Moose::Util::TypeConstraints;
 use MooseX::Types::Path::Class;
 use namespace::autoclean;
 
-our $VERSION = '0.70';
+our $VERSION = '0.71';
 
 has plan_file => (
     is       => 'ro',
