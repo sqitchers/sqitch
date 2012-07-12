@@ -72,7 +72,7 @@ The format to use. May be one of:
 
 =back
 
-See the </Formats> section for details on each format. Defaults to <medium>.
+See L</Formats> for details on each format. Defaults to <medium>.
 
 =item C<--date-format>
 
@@ -136,6 +136,24 @@ Output the events in reverse order.
 
 Do not output the events in reverse order. 
 
+=item C<--color>
+
+Show colored output. The value may be one of:
+
+=over
+
+=item C<auto> (the default)
+
+=item C<always>
+
+=item C<never>
+
+=back
+
+=item C<--no-color>
+
+Turn off colored output. It is the same as C<--color never>.
+
 =item C<--abbrev>
 
 Instead of showing the full 40-byte hexadecimal change ID, show only a partial
@@ -147,10 +165,18 @@ prefix the specified number of characters long.
 
 =over
 
+=item C<log.format>
+
+Output format to use. Supports the same values as C<--format>.
+
 =item C<log.date_format>
 
 Format to use for timestamps. Supports the same values as the C<--date-format>
 option.
+
+=item C<log.color>
+
+Output colors. Supports the same values as the C<--color> option.
 
 =back
 
@@ -164,17 +190,33 @@ you can use C<%n> for a newline, but an actual newline is okay, too.
 
 =item * C<%e>: Event type (deploy, revert, fail)
 
-=item * C<%l>: Localized event type label
+=item * C<%H>: Event change ID
 
-=item * C<%H>: change ID
+=item * C<%h>: Event change ID (respects C<--abbrev>)
 
-=item * C<%h>: change ID (respects --abbrev option)
+=item * C<%c>: Event change name
 
-=item * C<%($len)h>: abbreviated change of length $len
+=item * C<%($len)h>: abbreviated change of length C<$len>
 
-=item * C<%a>: actor name
+=item * C<%l>: Localized lowercase event type label
 
-=item * C<%d>: date format (respects --date-format option)
+=item * C<%L>: Localized title case event type label
+
+=item * C<%{event}_> Localized label for "event"
+
+=item * C<%{change}_> Localized label for "change"
+
+=item * C<%{actor}_> Localized label for "actor"
+
+=item * C<%{by}_> Localized label for "by"
+
+=item * C<%{date}_> Localized label for "date"
+
+=item * C<%{name}_> Localized label for "name"
+
+=item * C<%a>: Event actor name
+
+=item * C<%d>: Formatted Event date (respects C<--date-format>)
 
 =item * C<%{rfc}d>: date, RFC2822 format
 
@@ -188,15 +230,13 @@ you can use C<%n> for a newline, but an actual newline is okay, too.
 
 =item * C<%{short}d>: date, short format
 
-=item * C<%c>: change name
+=item * C<%t>: Comma-delimited list of tags
 
-=item * C<%t>: list of tags
+=item * C<%{$sep}t>: list of tags delimited by C<$sep>
 
-=item * C<%{$sep}t>: list of tags separated by $sep
+=item * C<%T>: Parenthesized list of comma-delimited tags
 
-=item * C<%T>: parenthesized list of tags
-
-=item * C<%{$sep}T>: parenthesized list of tags separated by $sep
+=item * C<%{$sep}T>: Parenthesized list of tags delimited by C<$sep>
 
 =item * C<%n> newline
 

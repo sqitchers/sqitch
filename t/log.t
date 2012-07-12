@@ -51,14 +51,14 @@ is_deeply [$CLASS->options], [qw(
     event=s@
     change-pattern|change|c=s
     actor-pattern|actor|a=s
+    format|f=s
+    date-format|date=s
     max-count|n=i
     skip=i
     reverse!
     color=s
     no-color
     abbrev=i
-    format|f=s
-    date-format|date=s
 )], 'Options should be correct';
 
 ##############################################################################
