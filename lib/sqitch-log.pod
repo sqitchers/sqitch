@@ -1,6 +1,6 @@
 =head1 Name
 
-sqitch-log - Show the current deployment log of a database
+sqitch-log - Show database deployment event history
 
 =head1 Synopsis
 
