@@ -39,6 +39,10 @@ Display help information about Sqitch commands
 
 Initialize a project
 
+=item L<C<log>|sqitch-log>
+
+Show change logs for a database.
+
 =item L<C<revert>|sqitch-revert>
 
 Revert changes from a database

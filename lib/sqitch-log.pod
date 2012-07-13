@@ -1,6 +1,6 @@
 =head1 Name
 
-sqitch-log - Show database deployment event history
+sqitch-log - Show database change logs
 
 =head1 Synopsis
 
@@ -236,7 +236,7 @@ you can use C<%n> for a newline, but an actual newline is okay, too.
 
 =item * C<%n> newline
 
-=item * C<%{color}C>: An ANSI color: black red green yellow blue magenta cyan white, reset
+=item * C<%{color}C>: An ANSI color: black, red, green, yellow, reset, etc.
 
 =back
 
