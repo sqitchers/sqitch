@@ -457,6 +457,8 @@ core.uri=https://github.com/theory/sqitch/
 revert.count=2
 revert.revision=1.1
 revert.to=gamma
+user.email=michael\@example.com
+user.name=Michael Stonebraker
 "
 ]], 'Should have emitted the merged config';
 @emit = ();
@@ -507,6 +509,8 @@ core.pg.sqitch_schema=meta
 core.pg.username=postgres
 core.sqlite.client=/opt/local/bin/sqlite3
 core.sqlite.sqitch_prefix=meta
+user.email=michael\@example.com
+user.name=Michael Stonebraker
 "
     ]],  'Should only have emitted the user config list';
     @emit = ();

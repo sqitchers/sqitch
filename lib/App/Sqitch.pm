@@ -137,6 +137,30 @@ has verbosity => (
     }
 );
 
+has user_name => (
+    is      => 'ro',
+    isa     => 'Str',
+    lazy    => 1,
+    default => sub {
+        shift->config->get( key => 'user.name' ) || do {
+            require User::pwent;
+            (User::pwent::getpwnam(getlogin)->gecos)[0];
+        };
+    }
+);
+
+has user_email => (
+    is      => 'ro',
+    isa     => 'Str',
+    lazy    => 1,
+    default => sub {
+        shift->config->get( key => 'user.email' ) || do {
+            require Sys::Hostname;
+            getlogin . '@' . Sys::Hostname::hostname();
+        };
+    }
+);
+
 has config => (
     is      => 'ro',
     isa     => 'App::Sqitch::Config',
@@ -496,6 +520,10 @@ Constructs and returns a new Sqitch object. The supported parameters include:
 
 =item C<username>
 
+=item C<user_name>
+
+=item C<user_email>
+
 =item C<host>
 
 =item C<port>
@@ -527,6 +555,10 @@ Constructs and returns a new Sqitch object. The supported parameters include:
 =head3 C<db_name>
 
 =head3 C<username>
+
+=head3 C<user_name>
+
+=head3 C<user_email>
 
 =head3 C<host>
 
@@ -658,11 +690,21 @@ it.
 
 =over
 
-=item * Eliminate use of C<fail()> and localize messages.
+=item * Remove URI attribute.
+
+=item * Add time stamp to each change.
+
+=item * Add optional message to each change.
+
+=item * Add user name and email to each change.
+
+=item * Remove preceding tag from info and hashed ID?
+
+=item * Add a project name as a plan pragma.
+
+=item * Add option to `init` to add/change the name pragma.
 
 =item * Add support for C<^> and other shortcuts when specifying changes.
-
-=item * Add an empty line after a new tag in C<Plan::tag()>.
 
 =back
 

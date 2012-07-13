@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 77;
+use Test::More tests => 81;
 #use Test::More 'no_plan';
 use Test::MockModule;
 use Path::Class;
@@ -25,6 +25,8 @@ can_ok $CLASS, qw(
     plan
     engine
     _engine
+    user_name
+    user_email
     client
     db_name
     username
@@ -70,6 +72,14 @@ is $@->message, __x(
     'Missing project URI. Run {command} to add a URI',
     command => '`sqitch config core.uri URI`'
 ), 'Should have localized error message about missing URI';
+is $sqitch->user_name, do {
+    require User::pwent;
+    (User::pwent::getpwnam(getlogin)->gecos)[0];
+}, 'Default user_name should be set from system';
+is $sqitch->user_email, do {
+    require Sys::Hostname;
+    getlogin . '@' . Sys::Hostname::hostname();
+}, 'Default user_email should be set from system';
 
 ##############################################################################
 # Test go().
@@ -98,6 +108,10 @@ GO: {
         'Should fall back on user config';
     is $sqitch->uri, URI->new('https://github.com/theory/sqitch/'),
         'Should read URI from config file';
+    is $sqitch->user_name, 'Michael Stonebraker',
+        'Should have read user name from configuration';
+    is $sqitch->user_email, 'michael@example.com',
+        'Should have read user email from configuration';
 
     # Now make it die.
     sub puke { App::Sqitch::X->new(@_) } # Ensures we have trace frames.
