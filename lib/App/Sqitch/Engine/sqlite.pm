@@ -18,7 +18,7 @@ has client => (
     required => 1,
     default  => sub {
         my $sqitch = shift->sqitch;
-        $sqitch->client
+        $sqitch->db_client
             || $sqitch->config->get( key => 'core.sqlite.client' )
             || 'sqlite3' . ( $^O eq 'Win32' ? '.exe' : '' );
     },
@@ -91,10 +91,10 @@ section of the a Sqitch configuration file. The variables and their types are:
 
 =head3 C<client>
 
-Returns the path to the SQLite client. If C<--client> was passed to L<sqitch>,
-that's what will be returned. Otherwise, it uses the C<core.sqlite.client>
-configuration value, or else defaults to C<sqlite3> (or C<sqlite3.exe> on
-Windows), which should work if it's in your path.
+Returns the path to the SQLite client. If C<--db-client> was passed to
+L<sqitch>, that's what will be returned. Otherwise, it uses the
+C<core.sqlite.client> configuration value, or else defaults to C<sqlite3> (or
+C<sqlite3.exe> on Windows), which should work if it's in your path.
 
 =head3 C<db_name>
 

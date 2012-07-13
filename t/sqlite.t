@@ -48,7 +48,7 @@ is $sqlite->sqitch_prefix, 'meta',
     'sqitch_prefix should fall back on config';
 
 # Make sure the client falls back on the sqitch attributes.
-$sqitch = App::Sqitch->new(client => 'foo/bar', db_name => 'my.db');
+$sqitch = App::Sqitch->new(db_client => 'foo/bar', db_name => 'my.db');
 ok $sqlite = $CLASS->new(sqitch => $sqitch),
     'Create sqlite with sqitch with --client and --db-name';
 is $sqlite->client, 'foo/bar', 'The client should be grabbed from sqitch';

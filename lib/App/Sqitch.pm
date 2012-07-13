@@ -63,11 +63,11 @@ has engine => (
 );
 
 # Attributes useful to engines; no defaults.
-has client   => ( is => 'ro', isa => 'Str' );
-has db_name  => ( is => 'ro', isa => 'Str' );
-has username => ( is => 'ro', isa => 'Str' );
-has host     => ( is => 'ro', isa => 'Str' );
-has port     => ( is => 'ro', isa => 'Int' );
+has db_client   => ( is => 'ro', isa => 'Str' );
+has db_name     => ( is => 'ro', isa => 'Str' );
+has db_username => ( is => 'ro', isa => 'Str' );
+has db_host     => ( is => 'ro', isa => 'Str' );
+has db_port     => ( is => 'ro', isa => 'Int' );
 
 has top_dir => (
     is       => 'ro',
@@ -268,11 +268,11 @@ sub _core_opts {
     return qw(
         plan-file=s
         engine=s
-        client=s
+        db-client=s
         db-name|d=s
-        username|user|u=s
-        host=s
-        port=i
+        db-username|db-user|u=s
+        db-host=s
+        db-port=i
         uri=s
         top-dir|dir=s
         deploy-dir=s
@@ -514,19 +514,19 @@ Constructs and returns a new Sqitch object. The supported parameters include:
 
 =item C<engine>
 
-=item C<client>
+=item C<db_client>
 
 =item C<db_name>
 
-=item C<username>
+=item C<db_username>
 
 =item C<user_name>
 
 =item C<user_email>
 
-=item C<host>
+=item C<db_host>
 
-=item C<port>
+=item C<db_port>
 
 =item C<top_dir>
 
@@ -550,19 +550,19 @@ Constructs and returns a new Sqitch object. The supported parameters include:
 
 =head3 C<engine>
 
-=head3 C<client>
+=head3 C<db_client>
 
 =head3 C<db_name>
 
-=head3 C<username>
+=head3 C<db_username>
 
 =head3 C<user_name>
 
 =head3 C<user_email>
 
-=head3 C<host>
+=head3 C<db_host>
 
-=head3 C<port>
+=head3 C<db_port>
 
 =head3 C<top_dir>
 

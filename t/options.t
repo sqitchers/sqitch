@@ -87,11 +87,11 @@ HELP: {
 my $opts = $CLASS->_parse_core_opts([
     '--plan-file'  => 'plan.txt',
     '--engine'     => 'pg',
-    '--client'     => 'psql',
+    '--db-client'  => 'psql',
     '--db-name'    => 'try',
-    '--username'   => 'bob',
-    '--host'       => 'local',
-    '--port'       => 2020,
+    '--db-user'    => 'bob',
+    '--db-host'    => 'local',
+    '--db-port'    => 2020,
     '--top-dir'    => 'ddl',
     '--deploy-dir' => 'dep',
     '--revert-dir' => 'rev',
@@ -103,21 +103,21 @@ my $opts = $CLASS->_parse_core_opts([
 ]);
 
 is_deeply $opts, {
-    'plan_file'  => 'plan.txt',
-    'engine'     => 'pg',
-    'client'     => 'psql',
-    'db_name'    => 'try',
-    'username'   => 'bob',
-    'host'       => 'local',
-    'port'       => 2020,
-    'top_dir'    => 'ddl',
-    'deploy_dir' => 'dep',
-    'revert_dir' => 'rev',
-    'test_dir'   => 'tst',
-    'extension'  => 'ext',
-    'uri'        => 'https://github.com/theory/sqitch/',
-    verbosity    => 2,
-    quiet        => 1,
+    'plan_file'   => 'plan.txt',
+    'engine'      => 'pg',
+    'db_client'   => 'psql',
+    'db_name'     => 'try',
+    'db_username' => 'bob',
+    'db_host'     => 'local',
+    'db_port'     => 2020,
+    'top_dir'     => 'ddl',
+    'deploy_dir'  => 'dep',
+    'revert_dir'  => 'rev',
+    'test_dir'    => 'tst',
+    'extension'   => 'ext',
+    'uri'         => 'https://github.com/theory/sqitch/',
+    verbosity     => 2,
+    quiet         => 1,
 }, 'Should parse lots of options';
 
 # Make sure objects are created.
@@ -133,8 +133,8 @@ is_deeply $CLASS->_parse_core_opts([
   '-d' => 'mydb',
   '-u' => 'fred',
 ]), {
-    db_name  => 'mydb',
-    username => 'fred',
+    db_name     => 'mydb',
+    db_username => 'fred',
 }, 'Short options should work';
 
 USAGE: {

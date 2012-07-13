@@ -169,7 +169,8 @@ sub write_config {
         while ( my ( $key, $type ) = each %config_vars ) {
 
             # Was it passed as an option?
-            if ( my $attr = $meta->find_attribute_by_name($key) ) {
+            my $core_key = $key =~ /^db_/ ? $key : "db_$key";
+            if ( my $attr = $meta->find_attribute_by_name($core_key) ) {
                 if ( my $val = $attr->get_value($sqitch) ) {
 
                     # It was passed as an option, so record that.

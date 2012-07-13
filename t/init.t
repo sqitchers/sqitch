@@ -264,9 +264,9 @@ is_deeply read_config $conf_file, {
 # Now get it to write core.sqlite stuff.
 unlink $conf_file;
 $sqitch = App::Sqitch->new(
-    _engine => 'sqlite',
-    client  => '/to/sqlite3',
-    db_name => 'my.db',
+    _engine   => 'sqlite',
+    db_client => '/to/sqlite3',
+    db_name   => 'my.db',
 );
 
 ok $init = $CLASS->new(sqitch => $sqitch),
@@ -340,12 +340,12 @@ USERCONF: {
 # Now get it to write core.pg stuff.
 unlink $conf_file;
 $sqitch = App::Sqitch->new(
-    _engine  => 'pg',
-    client   => '/to/psql',
-    db_name  => 'thingies',
-    username => 'anna',
-    host     => 'banana',
-    port     => 93453,
+    _engine     => 'pg',
+    db_client   => '/to/psql',
+    db_name     => 'thingies',
+    db_username => 'anna',
+    db_host     => 'banana',
+    db_port     => 93453,
 );
 
 ok $init = $CLASS->new(sqitch => $sqitch),

@@ -136,11 +136,11 @@ User who commits or reverts changes to a database.
 
      --plan-file  FILE    Path to a deployment plan file.
      --engine     ENGINE  Database engine.
-     --client     PATH    Path to the engine command-line client.
+     --db-client  PATH    Path to the engine command-line client.
   -d --db-name    NAME    Database name.
-  -u --username   USER    Database user name.
-     --host       HOST    Database server host name.
-     --port       PORT    Database server port number.
+  -u --db-user    USER    Database user name.
+     --db-host    HOST    Database server host name.
+     --db-port    PORT    Database server port number.
      --uri        URI     Project unique identifier.
      --top-dir    DIR     Path to directory with plan and scripts.
      --deploy-dir DIR     Path to directory with deployment scripts.
@@ -181,9 +181,9 @@ The database engine to use. Supported engines include:
 
 =back
 
-=item C<--client>
+=item C<--db-client>
 
-  sqitch --client /usr/local/pgsql/bin/psql
+  sqitch --db-client /usr/local/pgsql/bin/psql
 
 Path to the command-line client for the database engine. Defaults to a client
 in the current path named appropriately for the specified engine.
@@ -202,26 +202,26 @@ the database will be automatically created on first connect.
 
 =item C<-u>
 
-=item C<--user>
+=item C<--db-user>
 
-=item C<--username>
+=item C<--db-username>
 
-  sqitch --username root
-  sqitch --user postgres
+  sqitch --db-username root
+  sqitch --db-user postgres
   sqitch -u Mom
 
 User name to use when connecting to the database. Does not apply to all engines.
 
-=item C<--host>
+=item C<--db-host>
 
-  sqitch --host db.example.com
+  sqitch --db-host db.example.com
 
 Host name to use when connecting to the database. Does not apply to all
 engines.
 
-=item C<--port>
+=item C<--db-port>
 
-  sqitch --port 7654
+  sqitch --db-port 7654
 
 Port number to connect to. Does not apply to all engines.
 

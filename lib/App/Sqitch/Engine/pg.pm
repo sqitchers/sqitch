@@ -22,7 +22,7 @@ has client => (
     required => 1,
     default  => sub {
         my $sqitch = shift->sqitch;
-        $sqitch->client
+        $sqitch->db_client
             || $sqitch->config->get( key => 'core.pg.client' )
             || 'psql' . ( $^O eq 'Win32' ? '.exe' : '' );
     },
@@ -35,7 +35,7 @@ has username => (
     required => 0,
     default  => sub {
         my $sqitch = shift->sqitch;
-        $sqitch->username || $sqitch->config->get( key => 'core.pg.username' );
+        $sqitch->db_username || $sqitch->config->get( key => 'core.pg.username' );
     },
 );
 
@@ -92,7 +92,7 @@ has host => (
     required => 0,
     default  => sub {
         my $sqitch = shift->sqitch;
-        $sqitch->host || $sqitch->config->get( key => 'core.pg.host' );
+        $sqitch->db_host || $sqitch->config->get( key => 'core.pg.host' );
     },
 );
 
@@ -103,7 +103,7 @@ has port => (
     required => 0,
     default  => sub {
         my $sqitch = shift->sqitch;
-        $sqitch->port || $sqitch->config->get( key => 'core.pg.port' );
+        $sqitch->db_port || $sqitch->config->get( key => 'core.pg.port' );
     },
 );
 

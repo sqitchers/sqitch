@@ -500,8 +500,8 @@ F<~/.pgpass>, if available.
 
 =item C<core.pg.db_name>
 
-Name of the PostgreSQL database. Defaults to the same as C<username>
-or to the contents of the C<PGDATABASE> environment variable.
+Name of the PostgreSQL database. Defaults to the same as C<--db-user> or to
+the contents of the C<PGDATABASE> environment variable.
 
 =item C<core.pg.host>
 

@@ -27,11 +27,11 @@ can_ok $CLASS, qw(
     _engine
     user_name
     user_email
-    client
+    db_client
     db_name
-    username
-    host
-    port
+    db_username
+    db_host
+    db_port
     top_dir
     deploy_dir
     revert_dir
@@ -47,11 +47,11 @@ isa_ok my $sqitch = $CLASS->new, $CLASS, 'A new object';
 for my $attr (qw(
     _engine
     engine
-    client
-    username
+    db_client
+    db_username
     db_name
-    host
-    port
+    db_host
+    db_port
 )) {
     is $sqitch->$attr, undef, "$attr should be undef";
 }

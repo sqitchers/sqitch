@@ -78,7 +78,7 @@ write variables, as follows:
 
 =over
 
-=item C<--client>
+=item C<--db-client>
 
 Used to set C<core.pg.client>, C<core.sqlite.client>, or C<core.mysql.client>.
 
@@ -87,15 +87,15 @@ Used to set C<core.pg.client>, C<core.sqlite.client>, or C<core.mysql.client>.
 Used to set C<core.pg.db_name>, C<core.sqlite.db_name>, or
 C<core.mysql.db_name>.
 
-=item C<--username>
+=item C<--db-user>
 
 Used to set C<core.pg.username>, or C<core.mysql.username>.
 
-=item C<--host>
+=item C<--db-host>
 
 Used to set C<core.pg.host>, or C<core.mysql.host>.
 
-=item C<--port>
+=item C<--db_port>
 
 Used to set C<core.pg.port>, or C<core.mysql.port>.
 
@@ -117,9 +117,9 @@ database name "widgets", the default user name "postgres", and a
 version-specific client:
 
   sqitch --engine pg \
-  --db-name widgets \
-  --username postgres \
-  --client /opt/pgsql-9.1/bin/psql init
+  --db-name   widgets \
+  --db-user   postgres \
+  --db-client /opt/pgsql-9.1/bin/psql init
 
 =head1 Sqitch
 

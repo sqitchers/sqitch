@@ -115,12 +115,12 @@ is_deeply [$pg->psql], [qw(
 ##############################################################################
 # Now make sure that Sqitch options override configurations.
 $sqitch = App::Sqitch->new(
-    'client'        => '/some/other/psql',
-    'username'      => 'anna',
-    'db_name'       => 'widgets_dev',
-    'host'          => 'foo.com',
-    'port'          => 98760,
-    uri             => URI->new('https://github.com/theory/sqitch/'),
+    db_client   => '/some/other/psql',
+    db_username => 'anna',
+    db_name     => 'widgets_dev',
+    db_host     => 'foo.com',
+    db_port     => 98760,
+    uri         => URI->new('https://github.com/theory/sqitch/'),
 );
 
 ok $pg = $CLASS->new(sqitch => $sqitch), 'Create a pg with sqitch with options';
@@ -246,10 +246,10 @@ END {
 
 subtest 'live database' => sub {
     $sqitch = App::Sqitch->new(
-        username  => 'postgres',
-        top_dir   => Path::Class::dir(qw(t pg)),
-        plan_file => Path::Class::file(qw(t pg sqitch.plan)),
-        uri       => URI->new('https://github.com/theory/sqitch/'),
+        db_username => 'postgres',
+        top_dir     => Path::Class::dir(qw(t pg)),
+        plan_file   => Path::Class::file(qw(t pg sqitch.plan)),
+        uri         => URI->new('https://github.com/theory/sqitch/'),
     );
     $pg = $CLASS->new(sqitch => $sqitch);
     try {
