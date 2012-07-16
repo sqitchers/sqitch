@@ -36,7 +36,7 @@ sub validate_as_string_format {
 
 sub as_string {
     my ( $self, %opts ) = @_;
-    my $format = $opts{format} || 'iso';
+    my $format = $opts{format} || 'raw';
     my $dt     = $self->clone;
 
     if ($format eq 'raw') {
@@ -125,6 +125,10 @@ RFC-2822 format.
 
 Localized format of the specified length.
 
+=item C<raw>
+
+Show timestamps in raw format, which is strict ISO-8601 in the UTC time zone.
+
 =item C<strftime:$string>
 
 Show timestamps using an arbitrary C<strftime> pattern. See
@@ -154,7 +158,7 @@ it's not, and returns if it is.
 
 Returns a string representation using the provided format. The format must be
 one of those listed by C<as_string_formats> or an exception will be thrown. If
-no format is passed, the string will be formatted with the C<iso> format.
+no format is passed, the string will be formatted with the C<raw> format.
 
 =head1 See Also
 
