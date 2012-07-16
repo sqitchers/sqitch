@@ -8,9 +8,6 @@ use Getopt::Long;
 use Hash::Merge qw(merge);
 use Path::Class;
 use Config;
-use App::Sqitch::Config;
-use App::Sqitch::Command;
-use App::Sqitch::Plan;
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use Moose;
@@ -22,6 +19,24 @@ use MooseX::Types::Path::Class;
 use namespace::autoclean;
 
 our $VERSION = '0.72';
+
+BEGIN {
+    # Need to create types before loading other Sqitch classes.
+    subtype 'UserName', as 'Str', where {
+        hurl user => __ 'User name may not contain "<"' if /</;
+        1;
+    };
+
+    subtype 'UserEmail', as 'Str', where {
+        hurl user => __ 'User email may not contain ">"' if />/;
+        1;
+    };
+}
+
+# Okay to loas Sqitch classes now that typess are created.
+use App::Sqitch::Config;
+use App::Sqitch::Command;
+use App::Sqitch::Plan;
 
 has plan_file => (
     is       => 'ro',
@@ -140,10 +155,7 @@ has verbosity => (
 has user_name => (
     is      => 'ro',
     lazy    => 1,
-    isa     => type('UserName' => where {
-        hurl user => __ 'User name may not contain "<"' if /</;
-        1;
-    }),
+    isa     => 'UserName',
     default => sub {
         shift->config->get( key => 'user.name' ) || do {
             require User::pwent;
@@ -155,10 +167,7 @@ has user_name => (
 has user_email => (
     is      => 'ro',
     lazy    => 1,
-    isa     => type('UserEmail' => where {
-        hurl user => __ 'User email may not contain ">"' if />/;
-        1;
-    }),
+    isa     => 'UserEmail',
     default => sub {
         shift->config->get( key => 'user.email' ) || do {
             require Sys::Hostname;
