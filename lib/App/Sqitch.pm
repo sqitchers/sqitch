@@ -139,8 +139,11 @@ has verbosity => (
 
 has user_name => (
     is      => 'ro',
-    isa     => 'Str',
     lazy    => 1,
+    isa     => type('UserName' => where {
+        hurl user => __ 'User name may not contain "<"' if /</;
+        1;
+    }),
     default => sub {
         shift->config->get( key => 'user.name' ) || do {
             require User::pwent;
@@ -151,8 +154,11 @@ has user_name => (
 
 has user_email => (
     is      => 'ro',
-    isa     => 'Str',
     lazy    => 1,
+    isa     => type('UserEmail' => where {
+        hurl user => __ 'User email may not contain ">"' if />/;
+        1;
+    }),
     default => sub {
         shift->config->get( key => 'user.email' ) || do {
             require Sys::Hostname;
@@ -690,13 +696,13 @@ it.
 
 =over
 
-=item * Remove URI attribute.
-
 =item * Add time stamp to each change.
+
+=item * Add user name and email to each change.
 
 =item * Add optional message to each change.
 
-=item * Add user name and email to each change.
+=item * Remove URI attribute.
 
 =item * Remove preceding tag from info and hashed ID?
 
