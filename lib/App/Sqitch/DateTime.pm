@@ -12,6 +12,7 @@ our $VERSION = '0.72';
 
 sub as_string_formats {
     return qw(
+        raw
         iso
         iso8601
         rfc
@@ -37,6 +38,11 @@ sub as_string {
     my ( $self, %opts ) = @_;
     my $format = $opts{format} || 'iso';
     my $dt     = $self->clone;
+
+    if ($format eq 'raw') {
+        $dt->set_time_zone('UTC');
+        return $dt->iso8601 . 'Z';
+    }
 
     $dt->set_time_zone('local');
 

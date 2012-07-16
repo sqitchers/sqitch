@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 31;
+use Test::More tests => 33;
 #use Test::More 'no_plan';
 use Locale::TextDomain qw(App-Sqitch);
 use Test::NoWarnings;
@@ -14,6 +14,7 @@ require_ok $CLASS;
 
 ok my $dt = $CLASS->now, 'Construct a datetime object';
 is_deeply [$dt->as_string_formats], [qw(
+    raw
     iso
     iso8601
     rfc
@@ -45,11 +46,18 @@ my $ldt = do {
     $clone;
 };
 
+my $raw = do {
+    my $clone = $dt->clone;
+    $clone->set_time_zone('UTC');
+    $clone->iso8601 . 'Z';
+};
+
 for my $spec (
     [ full    => $ldt->format_cldr( $ldt->locale->datetime_format_full )],
     [ long    => $ldt->format_cldr( $ldt->locale->datetime_format_long )],
     [ medium  => $ldt->format_cldr( $ldt->locale->datetime_format_medium )],
     [ short   => $ldt->format_cldr( $ldt->locale->datetime_format_short )],
+    [ raw     => $raw ],
     [ iso     => $iso ],
     [ ''      => $iso ],
     [ iso8601 => $iso ],

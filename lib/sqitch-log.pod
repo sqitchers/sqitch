@@ -101,6 +101,10 @@ Show timestamps in RFC-2822 format.
 Show timestamps in the specified format length, using the system locale's
 C<LC_TIME> category.
 
+=item C<raw>
+
+Show timestamps in raw format, which is strict ISO-8601 in the UTC time zone.
+
 =item C<strftime:$string>
 
 Show timestamps using an arbitrary C<strftime> pattern. See
