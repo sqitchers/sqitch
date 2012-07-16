@@ -4,8 +4,8 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 17;
-#use Test::More 'no_plan';
+#use Test::More tests => 17;
+use Test::More 'no_plan';
 use Test::NoWarnings;
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -30,6 +30,10 @@ can_ok $CLASS, qw(
     rspace
     comment
     plan
+    timestamp
+    planner_name
+    planner_email
+    format_planner
 );
 
 my $sqitch = App::Sqitch->new(
@@ -48,28 +52,60 @@ my $mock_plan = Test::MockModule->new('App::Sqitch::Plan');
 $mock_plan->mock(index_of => 0); # no other changes
 
 is $tag->format_name, '@foo', 'Name should format as "@foo"';
-is $tag->as_string, '@foo', 'Should as_string to "@foo"';
+isa_ok $tag->timestamp, 'App::Sqitch::DateTime', 'Timestamp';
+
+is $tag->planner_name, $sqitch->user_name,
+    'Planner name shoudld default to user name';
+is $tag->planner_email, $sqitch->user_email,
+    'Planner email shoudld default to user email';
+is $tag->format_planner, join(
+    ' ',
+    $sqitch->user_name,
+    '<' . $sqitch->user_email . '>'
+), 'Planner name and email should format properly';
+
+my $ts = $change->timestamp->as_string;
+is $tag->as_string, "\@foo $ts ". $tag->format_planner,
+    'Should as_string to "@foo" + timstamp + planner';
 is $tag->info, join("\n",
-    'project ' . $sqitch->uri->canonical,
     'tag @foo',
     'change ' . $change->id,
+    'planner ' . $change->format_planner,
+    'date '    . $ts,
 ), 'Tag info should be correct';
 
+my $date = App::Sqitch::DateTime->new(
+    year   => 2012,
+    month  => 7,
+    day    => 16,
+    hour   => 17,
+    minute => 25,
+    second => 7,
+    time_zone => 'UTC',
+);
+
 ok $tag = $CLASS->new(
-    name    => 'howdy',
-    plan    => $plan,
-    change    => $change,
-    lspace  => '  ',
-    rspace  => "\t",
-    comment => ' blah blah blah',
+    name          => 'howdy',
+    plan          => $plan,
+    change        => $change,
+    lspace        => '  ',
+    rspace        => "\t",
+    comment       => ' blah blah blah',
+    timestamp     => $date,
+    planner_name  => 'Barack Obama',
+    planner_email => 'potus@whitehouse.gov',
 ), 'Create tag with more stuff';
 
-is $tag->as_string, "  \@howdy\t# blah blah blah",
+my $ts2 = '2012-07-16T17:25:07Z';
+is $tag->as_string,
+    "  \@howdy $ts2 Barack Obama <potus\@whitehouse.gov>\t# blah blah blah",
     'It should as_string correctly';
 
 $mock_plan->mock(index_of => 1);
 $mock_plan->mock(change_at => $change);
 is $tag->change, $change, 'Change should be correct';
+is $tag->format_planner, 'Barack Obama <potus@whitehouse.gov>',
+    'Planner name and email should format properly';
 
 # Make sure it gets the change even if there is a tag in between.
 my @prevs = ($tag, $change);
@@ -78,9 +114,10 @@ $mock_plan->mock(change_at => sub { shift @prevs });
 is $tag->change, $change, 'Change should be for previous change';
 
 is $tag->info, join("\n",
-    'project ' . $sqitch->uri->canonical,
     'tag @howdy',
     'change ' . $change->id,
+    'planner Barack Obama <potus@whitehouse.gov>',
+    'date 2012-07-16T17:25:07Z'
 ), 'Tag info should include the change';
 
 is $tag->id, do {
@@ -98,9 +135,10 @@ ok $tag = $CLASS->new(
     change  => $change,
 ), 'Create tag with UTF-8 name';
 is $tag->info, join("\n",
-    'project ' . $sqitch->uri->canonical,
     'tag '     . '@阱阪阬',
-    'change '    . $change->id,
+    'change '  . $change->id,
+    'planner ' . $change->format_planner,
+    'date '    . $change->timestamp->as_string,
 ), 'The name should be decoded text';
 
 is $tag->id, do {

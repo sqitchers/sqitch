@@ -4,8 +4,8 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 51;
-#use Test::More 'no_plan';
+#use Test::More tests => 51;
+use Test::More 'no_plan';
 use Test::NoWarnings;
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -39,8 +39,12 @@ can_ok $CLASS, qw(
     test_file
     requires
     conflicts
+    timestamp
+    planner_name
+    planner_email
     format_name
     format_name_with_tags
+    format_planner
 );
 
 my $sqitch = App::Sqitch->new(
@@ -49,14 +53,16 @@ my $sqitch = App::Sqitch->new(
 );
 my $plan  = App::Sqitch::Plan->new(sqitch => $sqitch);
 isa_ok my $change = $CLASS->new(
-    name => 'foo',
-    plan => $plan,
+    name          => 'foo',
+    plan          => $plan,
+    pspace        => ' ',
 ), $CLASS;
 
 isa_ok $change, 'App::Sqitch::Plan::Line';
 ok $change->is_deploy, 'It should be a deploy change';
 ok !$change->is_revert, 'It should not be a revert change';
 is $change->action, 'deploy', 'And it should say so';
+isa_ok $change->timestamp, 'App::Sqitch::DateTime', 'Timestamp';
 
 is_deeply $change->_fn, ['foo.sql'], '_fn should have the file name';
 is $change->deploy_file, $sqitch->deploy_dir->file('foo.sql'),
@@ -71,11 +77,25 @@ is_deeply $change->_fn, ['foo@foo.sql'], '_fn should now include suffix';
 is $change->format_name, 'foo', 'Name should format as "foo"';
 is $change->format_name_with_tags,
     'foo', 'Name should format with tags as "foo"';
-is $change->as_string, 'foo', 'should stringify to "foo"';
+
+is $change->planner_name, $sqitch->user_name,
+    'Planner name shoudld default to user name';
+is $change->planner_email, $sqitch->user_email,
+    'Planner email shoudld default to user email';
+is $change->format_planner, join(
+    ' ',
+    $sqitch->user_name,
+    '<' . $sqitch->user_email . '>'
+), 'Planner name and email should format properly';
+
+my $ts = $change->timestamp->as_string;
+is $change->as_string, "foo $ts " . $change->format_planner,
+    'should stringify to "foo" + planner';
 is $change->since_tag, undef, 'Since tag should be undef';
 is $change->info, join("\n",
-   'project ' . $sqitch->uri->canonical,
    'change foo',
+   'planner ' . $change->format_planner,
+   'date ' . $change->timestamp->as_string,
 ), 'Change info should be correct';
 is $change->id, do {
     my $content = $change->info;
@@ -88,6 +108,16 @@ my $tag = App::Sqitch::Plan::Tag->new(
     plan => $plan,
     name => 'alpha',
     change => $change,
+);
+
+my $date = App::Sqitch::DateTime->new(
+    year   => 2012,
+    month  => 7,
+    day    => 16,
+    hour   => 17,
+    minute => 25,
+    second => 7,
+    time_zone => 'UTC',
 );
 
 ok my $change2 = $CLASS->new(
@@ -103,9 +133,14 @@ ok my $change2 = $CLASS->new(
     pspace    => '  ',
     requires  => [qw(foo bar @baz)],
     conflicts => ['dr_evil'],
+    timestamp     => $date,
+    planner_name  => 'Barack Obama',
+    planner_email => 'potus@whitehouse.gov',
 ), 'Create change with more stuff';
 
-is $change2->as_string, "  - yo/howdy  :foo :bar :\@baz !dr_evil\t# blah blah blah",
+my $ts2 = '2012-07-16T17:25:07Z';
+is $change2->as_string, "  - yo/howdy  :foo :bar :\@baz !dr_evil "
+    . "$ts2 Barack Obama <potus\@whitehouse.gov>\t# blah blah blah",
     'It should stringify correctly';
 my $mock_plan = Test::MockModule->new(ref $plan);
 $mock_plan->mock(index_of => 0);
@@ -115,9 +150,9 @@ ok $change2->is_revert, 'It should be a revert change';
 is $change2->action, 'revert', 'It should say so';
 is $change2->since_tag, $tag, 'It should have a since tag';
 is $change2->info, join("\n",
-   'project ' . $sqitch->uri->canonical,
    'change yo/howdy',
-   'since ' . $tag->id,
+   'planner Barack Obama <potus@whitehouse.gov>',
+   'date 2012-07-16T17:25:07Z'
 ), 'Info should include since tag';
 
 # Check tags.
@@ -126,6 +161,8 @@ ok $change2->add_tag($tag), 'Add a tag';
 is_deeply [$change2->tags], [$tag], 'Should have the tag';
 is $change2->format_name_with_tags, 'yo/howdy @alpha',
     'Should format name with tags';
+is $change2->format_planner, 'Barack Obama <potus@whitehouse.gov>',
+    'Planner name and email should format properly';
 
 # Check file names.
 my @fn = ('yo', 'howdy@beta.sql');

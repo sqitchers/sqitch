@@ -6,6 +6,7 @@ use namespace::autoclean;
 use Moose;
 use Encode;
 use parent 'App::Sqitch::Plan::Line';
+use DateTime;
 
 sub format_name {
     '@' . shift->name;
@@ -20,9 +21,10 @@ has info => (
         my $plan = $self->plan;
 
         return join "\n", (
-            'project ' . $self->plan->sqitch->uri->canonical,
             'tag '     . $self->format_name,
-            'change '    . $self->change->id,
+            'change '  . $self->change->id,
+            'planner ' . $self->format_planner,
+            'date '    . $self->timestamp->as_string,
         );
     }
 );
@@ -46,6 +48,40 @@ has change => (
     weak_ref => 1,
     required => 1,
 );
+
+has timestamp => (
+    is       => 'ro',
+    isa      => 'App::Sqitch::DateTime',
+    required => 1,
+    default  => sub { App::Sqitch::DateTime->now },
+);
+
+has planner_name => (
+    is       => 'ro',
+    isa      => 'Str',
+    required => 1,
+    default  => sub { shift->sqitch->user_name },
+);
+
+has planner_email => (
+    is       => 'ro',
+    isa      => 'UserEmail',
+    required => 1,
+    default  => sub { shift->sqitch->user_email },
+);
+
+sub format_planner {
+    my $self = shift;
+    return join ' ', $self->planner_name, '<' . $self->planner_email . '>';
+}
+
+sub format_content {
+    my $self = shift;
+    return join ' ',
+        $self->SUPER::format_content,
+        $self->timestamp->as_string,
+        $self->format_planner;
+}
 
 __PACKAGE__->meta->make_immutable;
 no Moose;

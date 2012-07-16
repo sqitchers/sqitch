@@ -6,6 +6,7 @@ use namespace::autoclean;
 use parent 'App::Sqitch::Plan::Line';
 use Encode;
 use Moose;
+use App::Sqitch::DateTime;
 
 has _requires => (
     is       => 'ro',
@@ -91,15 +92,10 @@ has info => (
     default  => sub {
         my $self = shift;
 
-        my @since;
-        if (my $tag = $self->since_tag) {
-            @since = ('since ' . $tag->id);
-        }
-
         return join "\n", (
-            'project ' . $self->sqitch->uri->canonical,
-            'change '    . $self->format_name,
-            @since,
+            'change '  . $self->format_name,
+            'planner ' . $self->format_planner,
+            'date '    . $self->timestamp->as_string,
         );
     }
 );
@@ -115,6 +111,27 @@ has id => (
             'change ' . length($content) . "\0" . $content
         )->hexdigest;
     }
+);
+
+has timestamp => (
+    is       => 'ro',
+    isa      => 'App::Sqitch::DateTime',
+    required => 1,
+    default  => sub { App::Sqitch::DateTime->now },
+);
+
+has planner_name => (
+    is       => 'ro',
+    isa      => 'Str',
+    required => 1,
+    default  => sub { shift->sqitch->user_name },
+);
+
+has planner_email => (
+    is       => 'ro',
+    isa      => 'UserEmail',
+    required => 1,
+    default  => sub { shift->sqitch->user_email },
 );
 
 sub deploy_file {
@@ -149,6 +166,11 @@ sub format_name_with_tags {
     return join ' ', $self->format_name, map { $_->format_name } $self->tags;
 }
 
+sub format_planner {
+    my $self = shift;
+    return join ' ', $self->planner_name, '<' . $self->planner_email . '>';
+}
+
 sub deploy_handle {
     my $self = shift;
     $self->plan->open_script($self->deploy_file);
@@ -170,6 +192,8 @@ sub format_content {
         ' ',
         ( map { ":$_" } $self->requires  ),
         ( map { "!$_" } $self->conflicts ),
+        $self->timestamp->as_string,
+        $self->format_planner
     );
 }
 
