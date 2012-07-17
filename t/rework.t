@@ -3,8 +3,8 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 76;
-#use Test::More 'no_plan';
+#use Test::More tests => 76;
+use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
 use Test::NoWarnings;
@@ -34,12 +34,14 @@ isa_ok my $rework = App::Sqitch::Command->load({
 can_ok $CLASS, qw(
     requires
     conflicts
+    message
     execute
 );
 
 is_deeply [$CLASS->options], [qw(
     requires|r=s@
     conflicts|c=s@
+    message|m=s@
 )], 'Options should be set up';
 
 ##############################################################################
@@ -50,15 +52,18 @@ is_deeply $CLASS->configure($config, {}), {},
 is_deeply $CLASS->configure($config, {
     requires  => [qw(foo bar)],
     conflicts => ['baz'],
+    message   => [qw(hi there)],
 }), {
     requires  => [qw(foo bar)],
     conflicts => ['baz'],
-}, 'Should have get requires and conflicts options';
+    message   => [qw(hi there)],
+}, 'Should have get requires, conflicts, and message options';
 
 ##############################################################################
 # Test attributes.
 is_deeply $rework->requires, [], 'Requires should be an arrayref';
 is_deeply $rework->conflicts, [], 'Conflicts should be an arrayref';
+is_deeply $rework->message, [], 'Message should be an arrayref';
 
 ##############################################################################
 # Test execute().
@@ -199,6 +204,7 @@ isa_ok $rework = App::Sqitch::Command::rework->new(
     command   => 'rework',
     config    => $config,
     requires  => ['foo'],
+    message   => [qw(hi there)],
     conflicts => ['dr_evil'],
 ), $CLASS, 'rework command with requirements and conflicts';
 
@@ -222,6 +228,8 @@ is_deeply [$steps[3]->requires], ['bar@beta', 'foo'],
     'Requires should have been passed to reworked change';
 is_deeply [$steps[3]->conflicts], ['dr_evil'],
     'Conflicts should have been passed to reworked change';
+is $steps[3]->comment, "hi\n\nthere",
+    'Message should have been passed as comment';
 
 is_deeply +MockOutput->get_info, [
     [__x(

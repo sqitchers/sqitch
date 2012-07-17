@@ -4,9 +4,10 @@ sqitch-rework-usage - Sqitch rework usage statement
 
 =head1 Usage
 
-  sqitch [options] rework [<dependency-options>] changename
+  sqitch [options] rework [<change-options>] changename
 
 =head1 Options
 
     -r --requires             require change
     -c --conflicts            declare conflicting change
+    -m --message              set a message describing the reworking
