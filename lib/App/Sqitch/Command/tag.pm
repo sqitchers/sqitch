@@ -12,13 +12,29 @@ extends 'App::Sqitch::Command';
 
 our $VERSION = '0.72';
 
+has message => (
+    is       => 'ro',
+    isa      => 'ArrayRef[Str]',
+    required => 1,
+    default  => sub { [] },
+);
+
+sub options {
+    return qw(
+        message|m=s@
+    );
+}
+
 sub execute {
     my ( $self, $name ) = @_;
     my $sqitch = $self->sqitch;
     my $plan   = $sqitch->plan;
 
     if (defined $name) {
-        my $tag = $plan->tag( name => $name );
+        my $tag = $plan->tag(
+            name    => $name,
+            comment => join "\n\n" => @{ $self->message },
+        );
 
         # We good, write the plan file back out.
         $plan->write_to( $sqitch->plan_file );

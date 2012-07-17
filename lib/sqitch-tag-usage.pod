@@ -8,4 +8,5 @@ sqitch-tag-usage - Sqitch tag usage statement
 
 =head1 Options
 
-None currently.
+    -m --message              set a message describing the tag
+

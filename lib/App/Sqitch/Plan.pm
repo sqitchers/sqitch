@@ -507,6 +507,7 @@ sub tag {
         plan   => $self,
         name   => $name,
         change => $change,
+        rspace => $p{comment} ? ' ' : '',
     );
 
     $change->add_tag($tag);

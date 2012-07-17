@@ -6,6 +6,7 @@ sqitch-tag - Create or list tag objects
 
   sqitch [options] tag
   sqitch [options] tag name
+  sqitch [options] tag [-m MESSAGE] name
 
 =head1 Description
 
@@ -17,7 +18,17 @@ If called with name specified, a list of the current tags will be output.
 
 =head1 Options
 
-None currently.
+=over
+
+=item C<-m>
+
+=item C<--message>
+
+A brief message describing the tag. The message will be attached to the tag as
+a comment. Multiple invocations will be concatenated together as separate
+paragraphs.
+
+=back
 
 =head1 Configuration Variables
 
