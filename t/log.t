@@ -200,11 +200,12 @@ my $event = {
 };
 
 my $iso = $dt->as_string( format => 'iso' );
+my $raw = $dt->as_string( format => 'raw' );
 for my $spec (
     [ raw => "event     deploy\n"
            . "change    000011112222333444 (\@beta, \@gamma)\n"
            . "name      lolz\n"
-           . "date      $iso\n"
+           . "date      $raw\n"
            . "committer larry\n"
     ],
     [ full => color('yellow') . __ 'Change:' . '    000011112222333444'

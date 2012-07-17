@@ -28,7 +28,7 @@ $FORMATS{raw} = <<EOF;
 event     %e
 change    %h%T
 name      %c
-date      %{iso}d
+date      %{raw}d
 committer %a
 EOF
 
