@@ -43,9 +43,9 @@ sub execute {
 
     # Rework it.
     my $reworked = $plan->rework(
-        $name,
-        $self->requires,
-        $self->conflicts,
+        name      => $name,
+        requires  => $self->requires,
+        conflicts => $self->conflicts,
     );
 
     # Get the latest instance of the change.

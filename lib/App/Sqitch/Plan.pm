@@ -551,39 +551,33 @@ sub add {
 }
 
 sub rework {
-    my ( $self, $name, $requires, $conflicts ) = @_;
+    my ( $self, %p ) = @_;
     my $plan  = $self->_plan;
     my $changes = $plan->{changes};
-    my $idx   = $changes->index_of($name . '@HEAD') // hurl plan => __x(
+    my $idx   = $changes->index_of( $p{name} . '@HEAD') // hurl plan => __x(
         qq{Change "{change}" does not exist.\n}
         . 'Use "sqitch add {change}" to add it to the plan',
-        change => $name,
+        change => $p{name},
     );
 
     my $tag_idx = $changes->index_of_last_tagged;
     hurl plan => __x(
         qq{Cannot rework "{change}" without an intervening tag.\n}
         . 'Use "sqitch tag" to create a tag and try again',
-        change => $name,
+        change => $p{name},
     ) if !defined $tag_idx || $tag_idx < $idx;
 
     my ($tag) = $changes->change_at($tag_idx)->tags;
-    unshift @{ $requires ||= [] } => $name . $tag->format_name;
+    unshift @{ $p{requires} ||= [] } => $p{name} . $tag->format_name;
 
     my $orig = $changes->change_at($idx);
-    my $new  = App::Sqitch::Plan::Change->new(
-        plan      => $self,
-        name      => $name,
-        requires  => $requires,
-        conflicts => $conflicts ||= [],
-        (@{ $requires } || @{ $conflicts } ? ( pspace => ' ' ) : ()),
-    );
+    my $new  = App::Sqitch::Plan::Change->new( %p, plan => $self );
 
     # Make sure dependencies are valid.
-    $self->_check_dependencies($new, 'rework');
+    $self->_check_dependencies( $new, 'rework' );
 
     # We good.
-    $orig->suffix($tag->format_name);
+    $orig->suffix( $tag->format_name );
     $changes->append( $new );
     $plan->{lines}->append( $new );
     return $new;

@@ -1071,7 +1071,7 @@ is $@->message, __x(
 ##############################################################################
 # Try reworking a change.
 can_ok $plan, 'rework';
-ok my $rev_change = $plan->rework('you'), 'Rework change "you"';
+ok my $rev_change = $plan->rework( name => 'you' ), 'Rework change "you"';
 isa_ok $rev_change, 'App::Sqitch::Plan::Change';
 is $rev_change->name, 'you', 'Reworked change should be "you"';
 ok my $orig = $plan->change_at($plan->first_index_of('you')),
@@ -1094,7 +1094,8 @@ is $plan->count, 7, 'The plan count should be 7';
 
 # Tag and add again, to be sure we can do it multiple times.
 ok $plan->tag('@beta1'), 'Tag @beta1';
-ok my $rev_change2 = $plan->rework('you'), 'Rework change "you" again';
+ok my $rev_change2 = $plan->rework( name => 'you' ),
+    'Rework change "you" again';
 isa_ok $rev_change2, 'App::Sqitch::Plan::Change';
 is $rev_change2->name, 'you', 'New reworked change should be "you"';
 ok $orig = $plan->change_at($plan->first_index_of('you')),
@@ -1117,7 +1118,7 @@ is $plan->index_of('you@HEAD'), 7, 'It should be at position 7';
 is $plan->count, 8, 'The plan count should be 8';
 
 # Try a nonexistent change name.
-throws_ok { $plan->rework('nonexistent') } 'App::Sqitch::X',
+throws_ok { $plan->rework( name => 'nonexistent' ) } 'App::Sqitch::X',
     'rework should die on nonexistent change';
 is $@->ident, 'plan', 'Nonexistent change error ident should be "plan"';
 is $@->message, __x(
@@ -1126,7 +1127,7 @@ is $@->message, __x(
 ), 'And the error should suggest "sqitch add"';
 
 # Try reworking without an intervening tag.
-throws_ok { $plan->rework('you') } 'App::Sqitch::X',
+throws_ok { $plan->rework( name => 'you' ) } 'App::Sqitch::X',
     'rework_stpe should die on lack of intervening tag';
 is $@->ident, 'plan', 'Missing tag error ident should be "plan"';
 is $@->message, __x(
@@ -1135,7 +1136,8 @@ is $@->message, __x(
 ), 'And the error should suggest "sqitch tag"';
 
 # Make sure it checks dependencies.
-throws_ok { $plan->rework('booyah', ['nonesuch' ] ) } 'App::Sqitch::X',
+throws_ok { $plan->rework( name => 'booyah', requires => ['nonesuch' ] ) }
+    'App::Sqitch::X',
     'rework should die on failed dependency';
 is $@->ident, 'plan', 'Rework dependency error ident should be "plan"';
 is $@->message, __x(
