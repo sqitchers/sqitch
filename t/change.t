@@ -53,9 +53,8 @@ my $sqitch = App::Sqitch->new(
 );
 my $plan  = App::Sqitch::Plan->new(sqitch => $sqitch);
 isa_ok my $change = $CLASS->new(
-    name          => 'foo',
-    plan          => $plan,
-    pspace        => ' ',
+    name => 'foo',
+    plan => $plan,
 ), $CLASS;
 
 isa_ok $change, 'App::Sqitch::Plan::Line';
@@ -243,8 +242,9 @@ ok $change2 = $CLASS->new(
     plan => $plan,
 ), 'Create change with UTF-8 name';
 is $change2->info, join("\n",
-    'project ' . $sqitch->uri->canonical,
-    'change '    . '阱阪阬'
+    'change '  . '阱阪阬',
+    'planner ' . $change2->format_planner,
+    'date '    . $change2->timestamp->as_string,
 ), 'The name should be decoded text';
 
 is $change2->id, do {

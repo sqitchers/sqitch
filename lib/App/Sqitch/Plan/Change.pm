@@ -32,7 +32,7 @@ has pspace => (
     is       => 'ro',
     isa      => 'Str',
     required => 1,
-    default  => '',
+    default  => ' ',
 );
 
 has since_tag => (
