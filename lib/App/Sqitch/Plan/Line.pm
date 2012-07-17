@@ -62,6 +62,21 @@ has plan => (
     handles  => [qw(sqitch)],
 );
 
+my %escape = (
+    "\n" => '\\n',
+    "\r" => '\\r',
+    '\\' => '\\\\',
+);
+
+my %unescape = reverse %escape;
+
+sub BUILDARGS {
+    my $class = shift;
+    my $p = @_ == 1 && ref $_[0] ? { %{ +shift } } : { @_ };
+    $p->{comment} =~ s/(\\[\\nr])/$unescape{$1}/g if $p->{comment};
+    return $p;
+}
+
 sub format_name {
     shift->name;
 }
@@ -78,7 +93,9 @@ sub format_content {
 
 sub format_comment {
     my $comment = shift->comment;
-    return length $comment ? "# $comment" : '';
+    return '' unless length $comment;
+    $comment =~ s/([\r\n\\])/$escape{$1}/g;
+    return "# $comment";
 }
 
 sub as_string {
