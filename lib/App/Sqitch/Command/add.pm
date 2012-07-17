@@ -168,7 +168,7 @@ sub execute {
     $plan->write_to( $sqitch->plan_file );
     $self->info(__x(
         'Added "{change}" to {file}',
-        change => $change->format_content,
+        change => $change->format_op_name_dependencies,
         file   => $sqitch->plan_file,
     ));
     return $self;
