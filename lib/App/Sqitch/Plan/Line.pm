@@ -78,7 +78,7 @@ sub format_content {
 
 sub format_comment {
     my $comment = shift->comment;
-    return length $comment ? "#$comment" : '';
+    return length $comment ? "# $comment" : '';
 }
 
 sub as_string {

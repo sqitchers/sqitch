@@ -41,7 +41,7 @@ ok $tag = $CLASS->new(
     plan    => $plan,
     lspace  => '  ',
     rspace  => "\t",
-    comment => ' blah blah blah',
+    comment => 'blah blah blah',
 ), 'Create tag with more stuff';
 
 is $tag->as_string, "  \t# blah blah blah",

@@ -51,7 +51,7 @@ ok $dir = $CLASS->new(
     lopspace => '   ',
     operator => '=',
     ropspace => ' ',
-    comment  => ' blah blah blah',
+    comment  => 'blah blah blah',
 ), 'Create pragma with more stuff';
 
 is $dir->as_string, "  % howdy   = woody\t# blah blah blah",

@@ -107,14 +107,14 @@ sub _parse {
         chomp $line;
 
         # Grab blank lines first.
-        if ($line =~ /\A(?<lspace>[[:blank:]]*)(?:#(?<comment>.+)|$)/) {
+        if ($line =~ /\A(?<lspace>[[:blank:]]*)(?:#[[:blank:]]*(?<comment>.+)|$)/) {
             my $line = App::Sqitch::Plan::Blank->new( plan => $self, %+ );
             push @lines => $line;
             next LINE;
         }
 
         # Grab inline comment.
-        $line =~ s/(?<rspace>[[:blank:]]*)(?:[#](?<comment>.*))?$//;
+        $line =~ s/(?<rspace>[[:blank:]]*)(?:[#][[:blank:]]*(?<comment>.*))?$//;
         my %params = %+;
 
         # Grab pragmas.
