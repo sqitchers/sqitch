@@ -285,7 +285,7 @@ globally-unique identifier for the change.
 
 =head3 C<timestamp>
 
-Returns the an L<App::Sqitch::DateTime> object reprsenting the time at which
+Returns the an L<App::Sqitch::DateTime> object representing the time at which
 the change was added to the plan.
 
 =head3 C<planner_name>
