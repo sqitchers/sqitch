@@ -23,7 +23,8 @@ our $VERSION = '0.72';
 BEGIN {
     # Need to create types before loading other Sqitch classes.
     subtype 'UserName', as 'Str', where {
-        hurl user => __ 'User name may not contain "<"' if /</;
+        hurl user => __ 'User name may not contain "<" or start with "["'
+            if /^[[]/ || /</;
         1;
     };
 
@@ -705,15 +706,9 @@ it.
 
 =over
 
-=item * Add time stamp to each change.
-
-=item * Add user name and email to each change.
-
 =item * Add optional message to each change.
 
 =item * Remove URI attribute.
-
-=item * Remove preceding tag from info and hashed ID?
 
 =item * Add a project name as a plan pragma.
 

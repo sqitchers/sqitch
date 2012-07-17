@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 87;
+use Test::More tests => 90;
 #use Test::More 'no_plan';
 use Test::MockModule;
 use Path::Class;
@@ -84,12 +84,19 @@ is $sqitch->user_email, do {
 # Test invalid user name and email values.
 throws_ok { $CLASS->new(user_name => 'foo<bar') } 'App::Sqitch::X',
     'Should get error for user name containing "<"';
-is $@->ident, 'user', 'Invalud user name error ident should be "user"';
-is $@->message, __ 'User name may not contain "<"',
+is $@->ident, 'user', 'Invalid user name error ident should be "user"';
+is $@->message, __ 'User name may not contain "<" or start with "["',
     'Invalid user name error message should be correct';
+
+throws_ok { $CLASS->new(user_name => '[foobar]') } 'App::Sqitch::X',
+    'Should get error for user name starting with "["';
+is $@->ident, 'user', 'Second Invalid user name error ident should be "user"';
+is $@->message, __ 'User name may not contain "<" or start with "["',
+    'Second Invalid user name error message should be correct';
+
 throws_ok { $CLASS->new(user_email => 'foo>bar') } 'App::Sqitch::X',
     'Should get error for user email containing ">"';
-is $@->ident, 'user', 'Invalud user email error ident should be "user"';
+is $@->ident, 'user', 'Invalid user email error ident should be "user"';
 is $@->message, __ 'User email may not contain ">"',
     'Invalid user email error message should be correct';
 

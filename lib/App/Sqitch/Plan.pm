@@ -2,6 +2,7 @@ package App::Sqitch::Plan;
 
 use v5.10.1;
 use utf8;
+use App::Sqitch::DateTime;
 use App::Sqitch::Plan::Tag;
 use App::Sqitch::Plan::Change;
 use App::Sqitch::Plan::Blank;
@@ -62,14 +63,45 @@ sub _parse {
     my ( $self, $file, $fh ) = @_;
 
     my @lines;         # List of lines.
-    my @changes;         # List of changes.
-    my @curr_changes;    # List of changes since last tag.
+    my @changes;       # List of changes.
+    my @curr_changes;  # List of changes since last tag.
     my %line_no_for;   # Maps tags and changes to line numbers.
-    my %change_named;    # Maps change names to change objects.
-    my %tag_changes;     # Maps changes in current tag section to line numbers.
+    my %change_named;  # Maps change names to change objects.
+    my %tag_changes;   # Maps changes in current tag section to line numbers.
     my $seen_version;  # Have we seen a version pragma?
     my $prev_tag;      # Last seen tag.
-    my $prev_change;     # Last seen change.
+    my $prev_change;   # Last seen change.
+
+    # Regex to match names.
+    my $name_re = qr/
+         [^[:punct:]]               #  not punct
+         (?:                        #  followed by...
+             [^[:blank:]@]*         #      any number non-blank, non-@
+             [^[:punct:][:blank:]]  #      one not blank or punct
+         )?                         #  ... optionally
+    /x;
+
+    # Regex to match timestamps.
+    my $ts_re = qr/
+        (?<yr>[[:digit:]]{4})  # year
+        -                      # dash
+        (?<mo>[[:digit:]]{2})  # month
+        -                      # dash
+        (?<dy>[[:digit:]]{2})  # day
+        T                      # T
+        (?<hr>[[:digit:]]{2})  # hour
+        :                      # colon
+        (?<mi>[[:digit:]]{2})  # minute
+        :                      # colon
+        (?<sc>[[:digit:]]{2})  # second
+        Z                      # Zulu time
+    /x;
+
+    my $planner_re = qr/
+        (?<planner_name>[^<]+)    # name
+        [[:blank:]]+              # blanks
+        <(?<planner_email>[^>]+)> # email
+    /x;
 
     LINE: while ( my $line = $fh->getline ) {
         chomp $line;
@@ -120,17 +152,10 @@ sub _parse {
 
         # Is it a tag or a change?
         my $type = $line =~ /^[[:blank:]]*[@]/ ? 'tag' : 'change';
-        my $name_re = qr/
-             [^[:punct:]]               #     not punct
-             (?:                        #     followed by...
-                 [^[:blank:]@]*         #         any number non-blank, non-@
-                 [^[:punct:][:blank:]]  #         one not blank or punct
-             )?                         #     ... optionally
-        /x;
-
         $line =~ /
            ^                                    # Beginning of line
            (?<lspace>[[:blank:]]*)?             # Optional leading space
+
            (?:                                  # followed by...
                [@]                              #     @ for tag
            |                                    # ...or...
@@ -138,10 +163,22 @@ sub _parse {
                (?<operator>[+-])                #     Required + or -
                (?<ropspace>[[:blank:]]*)        #     Optional blanks
            )?                                   # ... optionally
+
            (?<name>$name_re)                    # followed by name
+           (?<pspace>[[:blank:]]+)?             #     blanks
+
            (?:                                  # followed by...
-               (?<pspace>[[:blank:]]+)          #     Blanks
-               (?<dependencies>.+)              # Other stuff
+               [[](?<dependencies>[^]]+)[]]     #     dependencies
+               [[:blank:]]*                     #    blanks
+           )?                                   # ... optionally
+
+           (?:                                  # followed by...
+               $ts_re                           #    timestamp
+               [[:blank:]]*                     #    blanks
+           )?                                   # ... optionally
+
+           (?:                                  # followed by
+               $planner_re                      #    planner
            )?                                   # ... optionally
            $                                    # end of line
         /x;
@@ -151,23 +188,32 @@ sub _parse {
         # Make sure we have a valid name.
         my $raise_syntax_error = sub {
             hurl plan => __x(
-                'Syntax error in {file} at line {line}: {error}',
-                file => $file,
-                line => $fh->input_line_number,
-                error => shift
+                'Syntax error in {file} at line {lineno}: {error}',
+                file   => $file,
+                lineno => $fh->input_line_number,
+                error  => shift
             );
         };
 
-        $raise_syntax_error->(__x(
-            'Invalid name "{name}"; names must not begin or end in '
+        # Raise errors for missing data.
+        $raise_syntax_error->(__(
+            'Invalid name; names must not begin or end in '
             . 'punctuation or end in digits following punctuation',
-            name => $line,
-        )) if !$params{name} || $params{name} =~ /[[:punct:]][[:digit:]]*\z/;
+        )) if !$params{name}
+            || $params{name} =~ /[[:punct:]][[:digit:]]*\z/
+            || (!$params{yr} && $line =~ $ts_re);
+
+        $raise_syntax_error->(__ 'Missing timestamp and planner name and email')
+            unless $params{yr} || $params{planner_name};
+        $raise_syntax_error->(__ 'Missing timestamp') unless $params{yr};
+
+        $raise_syntax_error->(__ 'Missing planner name and email')
+            unless $params{planner_name};
 
         # It must not be a reserved name.
         $raise_syntax_error->(__x(
             '"{name}" is a reserved name',
-            name => $line,
+            name => ($type eq 'tag' ? '@' : '') . $params{name},
         )) if $params{name} eq 'HEAD' || $params{name} eq 'ROOT';
 
         # It must not look like a SHA1 hash.
@@ -175,6 +221,17 @@ sub _parse {
             '"{name}" is invalid because it could be confused with a SHA1 ID',
             name => $params{name},
         )) if $params{name} =~ /^[0-9a-f]{40}/;
+
+        # Assemble the timestamp.
+        $params{timestamp} = App::Sqitch::DateTime->new(
+            year      => delete $params{yr},
+            month     => delete $params{mo},
+            day       => delete $params{dy},
+            hour      => delete $params{hr},
+            minute    => delete $params{mi},
+            second    => delete $params{sc},
+            time_zone => 'UTC',
+        );
 
         if ($type eq 'tag') {
             # Fail if no changes.

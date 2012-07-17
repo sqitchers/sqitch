@@ -60,44 +60,68 @@ sub clear {
     return ();
 }
 
-sub change {
-    my @op = defined $_[4] ? split /([+-])/, $_[4] : ();
-    $prev_change = App::Sqitch::Plan::Change->new(
-        plan      => $plan,
-        lspace    => $_[0] // '',
-        name      => $_[1],
-        rspace    => $_[2] // '',
-        comment   => $_[3] // '',
-        lopspace  => $op[0] // '',
-        operator  => $op[1] // '',
-        ropspace  => $op[2] // '',
-        pspace    => $_[5] // '',
-        requires  => $_[6] // [],
-        conflicts => $_[7] // [],
-        ($prev_tag ? (since_tag => $prev_tag) : ()),
+my $ts = App::Sqitch::DateTime->new(
+    year      => 2012,
+    month     => 7,
+    day       => 16,
+    hour      => 17,
+    minute    => 25,
+    second    => 7,
+    time_zone => 'UTC',
+);
+
+sub ts($) {
+    my $str = shift || return $ts;
+    my @parts = split /[-:T]/ => $str;
+    return App::Sqitch::DateTime->new(
+        year      => $parts[0],
+        month     => $parts[1],
+        day       => $parts[2],
+        hour      => $parts[3],
+        minute    => $parts[4],
+        second    => $parts[5],
+        time_zone => 'UTC',
     );
-    if (my $duped = $seen{$_[1]}) {
+}
+
+sub change($) {
+    my $p = shift;
+    if ( my $op = delete $p->{op} ) {
+        @{ $p }{ qw(lopspace operator ropspace) } = split /([+-])/, $op;
+        $p->{$_} //= '' for qw(lopspace ropspace);
+    }
+
+    $prev_change = App::Sqitch::Plan::Change->new(
+        plan          => $plan,
+        timestamp     => ts delete $p->{ts},
+        planner_name  => 'Barack Obama',
+        planner_email => 'potus@whitehouse.gov',
+        ( $prev_tag ? ( since_tag => $prev_tag ) : () ),
+        %{ $p },
+    );
+    if (my $duped = $seen{ $p->{name} }) {
         $duped->suffix($prev_tag->format_name);
     }
-    $seen{$_[1]} = $prev_change;
+    $seen{ $p->{name} } = $prev_change;
     $prev_change->id;
     $prev_change->tags;
     return $prev_change;
 }
 
-sub tag {
+sub tag($) {
+    my $p = shift;
+    my $ret = delete $p->{ret};
     $prev_tag = App::Sqitch::Plan::Tag->new(
-        plan    => $plan,
-        change    => $prev_change,
-        lspace  => $_[1] // '',
-        name    => $_[2],
-        rspace  => $_[3] // '',
-        comment => $_[4] // '',
+        plan          => $plan,
+        change        => $prev_change,
+        timestamp     => ts delete $p->{ts},
+        planner_name  => 'Barack Obama',
+        planner_email => 'potus@whitehouse.gov',
+        %{ $p },
     );
     $prev_change->add_tag($prev_tag);
     $prev_tag->id;
-    return () unless $_[0];
-    return $prev_tag;
+    return $ret ? $prev_tag : ();
 }
 
 sub prag {
@@ -143,9 +167,15 @@ isa_ok $parsed->{lines}, 'App::Sqitch::Plan::LineList', 'lines';
 
 cmp_deeply [$parsed->{changes}->items], [
     clear,
-    change(  '', 'hey'),
-    change(  '', 'you'),
-    tag(0,   '', 'foo', ' ', ' look, a tag!'),
+    change { name => 'hey', ts => '2012-07-16T14:01:20' },
+    change { name => 'you', ts => '2012-07-16T14:01:35' },
+    tag {
+        name    => 'foo',
+        comment => ' look, a tag!',
+        ts      => '2012-07-16T14:02:05',
+        rspace  => ' '
+    },
+,
 ], 'All "widgets.plan" changes should be parsed';
 
 cmp_deeply [$parsed->{lines}->items], [
@@ -155,9 +185,16 @@ cmp_deeply [$parsed->{lines}->items], [
     blank(),
     blank(' ', ' And there was a blank line.'),
     blank(),
-    change(  '', 'hey'),
-    change(  '', 'you'),
-    tag(1,   '', 'foo', ' ', ' look, a tag!'),
+    change { name => 'hey', ts => '2012-07-16T14:01:20' },
+    change { name => 'you', ts => '2012-07-16T14:01:35' },
+
+    tag {
+        ret     => 1,
+        name    => 'foo',
+        comment => ' look, a tag!',
+        ts      => '2012-07-16T14:02:05',
+        rspace  => ' '
+    },
 ], 'All "widgets.plan" lines should be parsed';
 
 # Plan with multiple tags.
@@ -169,13 +206,20 @@ is sorted, 2, 'Should have sorted changes twice';
 cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
     changes => [
         clear,
-        change(  '', 'hey'),
-        change(  '', 'you'),
-        tag(0,   '', 'foo', ' ', ' look, a tag!'),
-        change(  '', 'this/rocks', '  '),
-        change(   '', 'hey-there', ' ', ' trailing comment!'),
-        tag(0,   '', 'bar', ' '),
-        tag(0,   '', 'baz', ''),
+        change { name => 'hey', planner_name => 'theory', planner_email => 't@heo.ry' },
+        change { name => 'you', planner_name => 'anna',   planner_email => 'a@n.na' },
+        tag {
+            name          => 'foo',
+            comment       => ' look, a tag!',
+            ts            => '2012-07-16T17:24:07',
+            rspace        => ' ',
+            planner_name  => 'julie',
+            planner_email => 'j@ul.ie',
+        },
+        change { name => 'this/rocks', pspace => '  ' },
+        change { name => 'hey-there', comment => ' trailing comment!', rspace => ' ' },
+        tag { name =>, 'bar' },
+        tag { name => 'baz' },
     ],
     lines => [
         clear,
@@ -184,14 +228,22 @@ cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
         blank(),
         blank('', ' And there was a blank line.'),
         blank(),
-        change(  '', 'hey'),
-        change(  '', 'you'),
-        tag(1,   '', 'foo', ' ', ' look, a tag!'),
+        change { name => 'hey', planner_name => 'theory', planner_email => 't@heo.ry' },
+        change { name => 'you', planner_name => 'anna',   planner_email => 'a@n.na' },
+        tag {
+            ret           => 1,
+            name          => 'foo',
+            comment       => ' look, a tag!',
+            ts            => '2012-07-16T17:24:07',
+            rspace        => ' ',
+            planner_name  => 'julie',
+            planner_email => 'j@ul.ie',
+        },
         blank('   '),
-        change(  '', 'this/rocks', '  '),
-        change(   '', 'hey-there', ' ', ' trailing comment!'),
-        tag(1,   '', 'bar', ' '),
-        tag(1,   '', 'baz', ''),
+        change { name => 'this/rocks', pspace => '  ' },
+        change { name => 'hey-there', comment => ' trailing comment!', rspace => ' ' },
+        tag { name =>, 'bar', ret => 1 },
+        tag { name => 'baz', ret => 1 },
     ],
 }, 'Should have "multi.plan" lines and changes';
 
@@ -208,15 +260,15 @@ cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
         blank(),
         blank('', ' And there was a blank line.'),
         blank(),
-        change(  '', 'hey'),
-        change(  '', 'you'),
-        change(  '', 'whatwhatwhat'),
+        change { name => 'hey' },
+        change { name => 'you' },
+        change { name => 'whatwhatwhat' },
     ],
     changes => [
         clear,
-        change(  '', 'hey'),
-        change(  '', 'you'),
-        change(  '', 'whatwhatwhat'),
+        change { name => 'hey' },
+        change { name => 'you' },
+        change { name => 'whatwhatwhat' },
     ],
 }, 'Should have lines and changes for tagless plan';
 
@@ -230,11 +282,11 @@ is $@->message, __x(
     'Syntax error in {file} at line {line}: {error}',
     file => $file,
     line => 4,
-    error => __x(
-        qq{"{dep}" does not look like a dependency.\nDependencies must begin with ":" or "!" and be valid change names},
-        dep => 'what',
+    error => __(
+        'Invalid name; names must not begin or end in '
+         . 'punctuation or end in digits following punctuation',
     ),
-), 'And the @HEAD error message should be correct';
+), 'And the bad change name error message should be correct';
 
 is sorted, 0, 'Should not have sorted changes';
 
@@ -261,9 +313,9 @@ for my $name (@bad_names) {
             'Syntax error in {file} at line {line}: {error}',
             file => 'baditem',
             line => 1,
-            error => __x(
-                'Invalid name "{name}"; names must not begin or end in punctuation or end in digits following punctuation',
-                name => $line,
+            error => __(
+                'Invalid name; names must not begin or end in '
+                . 'punctuation or end in digits following punctuation',
             )
         ),  qq{And "$line" should trigger the appropriate message};
         is sorted, 0, 'Should not have sorted changes';
@@ -271,6 +323,7 @@ for my $name (@bad_names) {
 }
 
 # Try some valid change and tag names.
+my $tsnp = '2012-07-16T17:25:07Z Barack Obama <potus@whitehouse.gov>';
 for my $name (
     'foo',     # alpha
     '12',      # digits
@@ -281,23 +334,29 @@ for my $name (
     'beta1',   # ending digit
 ) {
     # Test a change name.
-    my $fh = IO::File->new(\$name, '<:utf8');
+    my $line = "$name $tsnp";
+    my $fh = IO::File->new(\$line, '<:utf8');
     ok my $parsed = $plan->_parse('gooditem', $fh),
         encode_utf8(qq{Should parse "$name"});
     cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
-        changes => [ clear, change('', $name) ],
-        lines => [ clear, version, change('', $name) ],
+        changes => [ clear, change { name => $name } ],
+        lines => [ clear, version, change { name => $name } ],
     }, encode_utf8(qq{Should have line and change for "$name"});
 
     # Test a tag name.
     my $tag = '@' . $name;
-    my $lines = "foo\n$tag";
+    my $lines = "foo $tsnp\n$tag $tsnp";
     $fh = IO::File->new(\$lines, '<:utf8');
     ok $parsed = $plan->_parse('gooditem', $fh),
         encode_utf8(qq{Should parse "$tag"});
     cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
-        changes => [ clear, change('', 'foo'), tag(0, '', $name) ],
-        lines => [ clear, version, change('', 'foo'), tag(1, '', $name) ],
+        changes => [ clear, change { name => 'foo' }, tag { name => $name } ],
+        lines => [
+            clear,
+            version,
+            change { name => 'foo' },
+            tag { name => $name, ret => 1 }
+        ],
     }, encode_utf8(qq{Should have line and change for "$tag"});
 }
 is sorted, 14, 'Should have sorted changes 12 times';
@@ -320,7 +379,7 @@ is $@->message, __x(
 is sorted, 1, 'Should have sorted changes once';
 
 # Try a plan with reserved tag name @ROOT.
-my $root = '@ROOT';
+my $root = '@ROOT ' . $tsnp;
 $file = file qw(t plans root.plan);
 $fh = IO::File->new(\$root, '<:utf8');
 throws_ok { $plan->_parse($file, $fh) } 'App::Sqitch::X',
@@ -340,7 +399,7 @@ is sorted, 0, 'Should have sorted changes nonce';
 # Try a plan with a change name that looks like a sha1 hash.
 my $sha1 = '6c2f28d125aff1deea615f8de774599acf39a7a1';
 $file = file qw(t plans sha1.plan);
-$fh = IO::File->new(\$sha1, '<:utf8');
+$fh = IO::File->new(\"$sha1 $tsnp", '<:utf8');
 throws_ok { $plan->_parse($file, $fh) } 'App::Sqitch::X',
     'Should die on plan with SHA1 change name';
 is $@->ident, 'plan', 'The SHA1 error ident should be "plan"';
@@ -357,7 +416,7 @@ is sorted, 0, 'Should have sorted changes nonce';
 
 # Try a plan with a tag but no change.
 $file = file qw(t plans tag-no-change.plan);
-$fh = IO::File->new(\"\@foo\nbar", '<:utf8');
+$fh = IO::File->new(\"\@foo $tsnp\nbar $tsnp", '<:utf8');
 throws_ok { $plan->_parse($file, $fh) } 'App::Sqitch::X',
     'Should die on plan with tag but no preceding change';
 is $@->ident, 'plan', 'The missing change error ident should be "plan"';
@@ -408,6 +467,48 @@ is $@->message, __x(
 ), 'And the dupe change error message should be correct';
 is sorted, 1, 'Should have sorted changes once';
 
+# Try a plan without a timestamp.
+$file = file qw(t plans no-timestamp.plan);
+$fh = IO::File->new(\'foo hi <t@heo.ry>', '<:utf8');
+throws_ok { $plan->_parse($file, $fh) } 'App::Sqitch::X',
+    'Should die on change with no timestamp';
+is $@->ident, 'plan', 'The missing timestamp error ident should be "plan"';
+is $@->message, __x(
+    'Syntax error in {file} at line {line}: {error}',
+    file => $file,
+    line => 1,
+    error => __ 'Missing timestamp',
+), 'And the missing timestamp error message should be correct';
+is sorted, 0, 'Should have sorted changes nonce';
+
+# Try a plan without a planner.
+$file = file qw(t plans no-planner.plan);
+$fh = IO::File->new(\'foo 2012-07-16T23:12:34Z', '<:utf8');
+throws_ok { $plan->_parse($file, $fh) } 'App::Sqitch::X',
+    'Should die on change with no planner';
+is $@->ident, 'plan', 'The missing planner error ident should be "plan"';
+is $@->message, __x(
+    'Syntax error in {file} at line {line}: {error}',
+    file => $file,
+    line => 1,
+    error => __ 'Missing planner name and email',
+), 'And the missing planner error message should be correct';
+is sorted, 0, 'Should have sorted changes nonce';
+
+# Try a plan with neither timestamp nor planner.
+$file = file qw(t plans no-timestamp-or-planner.plan);
+$fh = IO::File->new(\'foo', '<:utf8');
+throws_ok { $plan->_parse($file, $fh) } 'App::Sqitch::X',
+    'Should die on change with no timestamp or planner';
+is $@->ident, 'plan', 'The missing timestamp or planner error ident should be "plan"';
+is $@->message, __x(
+    'Syntax error in {file} at line {line}: {error}',
+    file => $file,
+    line => 1,
+    error => __ 'Missing timestamp and planner name and email',
+), 'And the missing timestamp or planner error message should be correct';
+is sorted, 0, 'Should have sorted changes nonce';
+
 # Try a plan with pragmas.
 $file = file qw(t plans pragmas.plan);
 $fh = $file->open('<:encoding(UTF-8)');
@@ -417,16 +518,16 @@ is sorted, 1, 'Should have sorted changes once';
 cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
     changes => [
         clear,
-        change( '', 'hey'),
-        change( '', 'you'),
+        change { name => 'hey' },
+        change { name => 'you' },
     ],
     lines => [
         clear,
         prag( '', ' ', 'syntax-version', '', '=', '', App::Sqitch::Plan::SYNTAX_VERSION),
         prag( '  ', '', 'foo', ' ', '=', ' ', 'bar', '    ', ' lolz'),
         blank(),
-        change( '', 'hey'),
-        change( '', 'you'),
+        change { name => 'hey' },
+        change { name => 'you' },
         blank(),
         prag( '', ' ', 'strict'),
     ],
@@ -442,27 +543,39 @@ is sorted, 2, 'Should have sorted changes twice';
 cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
     changes => [
         clear,
-        change( '', 'hey', '', '', '+' ),
-        change( '', 'you', '', '', '+' ),
-        change( ' ', 'dr_evil', '', '', '+  ' ),
-        tag(0, '', 'foo' ),
-        change(  '', 'this/rocks', '  ', '', '+'),
-        change( ' ', 'hey-there' ),
-        change( '', 'dr_evil', ' ', ' revert!', '-'),
-        tag(0, ' ', 'bar', ' ' ),
+        change { name => 'hey', op => '+' },
+        change { name => 'you', op => '+' },
+        change { name => 'dr_evil', op => '+  ', lspace => ' ' },
+        tag    { name => 'foo' },
+        change { name => 'this/rocks', op => '+', pspace => '  ' },
+        change { name => 'hey-there', lspace => ' ' },
+        change {
+            name    => 'dr_evil',
+            comment => ' revert!',
+            op      => '-',
+            rspace  => ' ',
+            pspace  => '  '
+        },
+        tag    { name => 'bar', lspace => ' ' },
     ],
     lines => [
         clear,
         version,
-        change( '', 'hey', '', '', '+' ),
-        change( '', 'you', '', '', '+' ),
-        change( ' ', 'dr_evil', '', '', '+  ' ),
-        tag(1, '', 'foo' ),
+        change { name => 'hey', op => '+' },
+        change { name => 'you', op => '+' },
+        change { name => 'dr_evil', op => '+  ', lspace => ' ' },
+        tag    { name => 'foo', ret => 1 },
         blank( '   '),
-        change(  '', 'this/rocks', '  ', '', '+'),
-        change( ' ', 'hey-there' ),
-        change( '', 'dr_evil', ' ', ' revert!', '-'),
-        tag(1, ' ', 'bar', ' ' ),
+        change { name => 'this/rocks', op => '+', pspace => '  ' },
+        change { name => 'hey-there', lspace => ' ' },
+        change {
+            name    => 'dr_evil',
+            comment => ' revert!',
+            op      => '-',
+            rspace  => ' ',
+            pspace  => '  '
+        },
+        tag    { name => 'bar', lspace => ' ', ret => 1 },
     ],
 }, 'Should have "deploy-and-revert.plan" lines and changes';
 
@@ -484,20 +597,26 @@ isa_ok $plan = App::Sqitch::Plan->new(sqitch => $sqitch), $CLASS,
 ok $parsed = $plan->load, 'Load plan with dependencies file';
 is_deeply [$parsed->{changes}->changes], [
     clear,
-    change( '', 'roles', '', '', '+' ),
-    change( '', 'users', '', '', '+', '    ', ['roles'] ),
-    change( '', 'add_user', '', '', '+', ' ', [qw( users roles)] ),
-    change( '', 'dr_evil', '', '', '+' ),
-    tag(0, '', 'alpha'),
-    change( '', 'users', '', '', '+', ' ', ['users@alpha'] ),
-    change( '', 'dr_evil', '', '', '-' ),
-    change( '', 'del_user', '', '', '+', ' ' , ['users'], ['dr_evil'] ),
+    change { name => 'roles', op => '+' },
+    change { name => 'users', op => '+', pspace => '    ', requires => ['roles'] },
+    change { name => 'add_user', op => '+', pspace => ' ', requires => [qw( users roles)] },
+    change { name => 'dr_evil', op => '+' },
+    tag    { name => 'alpha' },
+    change { name => 'users', op => '+', pspace => ' ', requires => ['users@alpha'] },
+    change { name => 'dr_evil', op => '-' },
+    change {
+        name      => 'del_user',
+        op        => '+',
+        pspace    => ' ',
+        requires  => ['users'],
+        conflicts => ['dr_evil']
+    },
 ], 'The changes should include the dependencies';
 is sorted, 2, 'Should have sorted changes twice';
 
 # Should fail with dependencies on tags.
 $file = file qw(t plans tag_dependencies.plan);
-$fh = IO::File->new(\"foo\n\@bar :foo", '<:utf8');
+$fh = IO::File->new(\"foo $tsnp\n\@bar [:foo] $tsnp", '<:utf8');
 $sqitch = App::Sqitch->new(plan_file => $file, uri => $uri);
 isa_ok $plan = App::Sqitch::Plan->new(sqitch => $sqitch), $CLASS,
     'Plan with sqitch with plan with tag dependencies';
@@ -517,38 +636,64 @@ $sqitch = App::Sqitch->new(plan_file => $file, uri => $uri);
 isa_ok $plan = App::Sqitch::Plan->new(sqitch => $sqitch), $CLASS,
     'Plan with sqitch with plan file';
 cmp_deeply [$plan->lines], [
-        clear,
-        version,
-        blank('', ' This is a comment'),
-        blank(),
-        blank('', ' And there was a blank line.'),
-        blank(),
-        change(  '', 'hey'),
-        change(  '', 'you'),
-        tag(1,   '', 'foo', ' ', ' look, a tag!'),
-        blank('   '),
-        change(  '', 'this/rocks', '  '),
-        change(   '', 'hey-there', ' ', ' trailing comment!'),
-        tag(1,   '', 'bar', ' '),
-        tag(1,   '', 'baz', ''),
+    clear,
+    version,
+    blank('', ' This is a comment'),
+    blank(),
+    blank('', ' And there was a blank line.'),
+    blank(),
+    change { name => 'hey', planner_name => 'theory', planner_email => 't@heo.ry' },
+    change { name => 'you', planner_name => 'anna',   planner_email => 'a@n.na' },
+    tag {
+        ret           => 1,
+        name          => 'foo',
+        comment       => ' look, a tag!',
+        ts            => '2012-07-16T17:24:07',
+        rspace        => ' ',
+        planner_name  => 'julie',
+        planner_email => 'j@ul.ie',
+    },
+    blank('   '),
+    change { name => 'this/rocks', pspace => '  ' },
+    change { name => 'hey-there', comment => ' trailing comment!', rspace => ' ' },
+    tag { name =>, 'bar', ret => 1 },
+    tag { name => 'baz', ret => 1 },
 ], 'Lines should be parsed from file';
+
 cmp_deeply [$plan->changes], [
-        clear,
-        change(  '', 'hey'),
-        change(  '', 'you'),
-        tag(0,   '', 'foo', ' ', ' look, a tag!'),
-        change(  '', 'this/rocks', '  '),
-        change(   '', 'hey-there', ' ', ' trailing comment!'),
-        tag(0,   '', 'bar', ' '),
-        tag(0,   '', 'baz', ''),
+    clear,
+    change { name => 'hey', planner_name => 'theory', planner_email => 't@heo.ry' },
+    change { name => 'you', planner_name => 'anna',   planner_email => 'a@n.na' },
+    tag {
+        name          => 'foo',
+        comment       => ' look, a tag!',
+        ts            => '2012-07-16T17:24:07',
+        rspace        => ' ',
+        planner_name  => 'julie',
+        planner_email => 'j@ul.ie',
+    },
+    change { name => 'this/rocks', pspace => '  ' },
+    change { name => 'hey-there', comment => ' trailing comment!', rspace => ' ' },
+    tag { name =>, 'bar' },
+    tag { name => 'baz' },
 ], 'Changes should be parsed from file';
-clear, change('', 'you');
-my $foo_tag = (tag(1,   '', 'foo', ' ', ' look, a tag!'));
-change(   '', 'hey-there', ' ', ' trailing comment!');
+clear, change { name => 'you', planner_name => 'anna',   planner_email => 'a@n.na' };
+
+my $foo_tag =  tag {
+    ret           => 1,
+    name          => 'foo',
+    comment       => ' look, a tag!',
+    ts            => '2012-07-16T17:24:07',
+    rspace        => ' ',
+    planner_name  => 'julie',
+    planner_email => 'j@ul.ie',
+};
+
+change { name => 'hey-there', rspace => ' ', comment => ' trailing comment!' };
 cmp_deeply [$plan->tags], [
     $foo_tag,
-    tag(1,   '', 'bar', ' '),
-    tag(1,   '', 'baz', ''),
+    tag { name =>, 'bar', ret => 1 },
+    tag { name => 'baz', ret => 1 },
 ], 'Should get all tags from tags()';
 is sorted, 2, 'Should have sorted changes twice';
 
@@ -561,24 +706,39 @@ cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
         blank(),
         blank('', ' And there was a blank line.'),
         blank(),
-        change(  '', 'hey'),
-        change(  '', 'you'),
-        tag(1,   '', 'foo', ' ', ' look, a tag!'),
+        change { name => 'hey', planner_name => 'theory', planner_email => 't@heo.ry' },
+        change { name => 'you', planner_name => 'anna',   planner_email => 'a@n.na' },
+        tag {
+            ret           => 1,
+            name          => 'foo',
+            comment       => ' look, a tag!',
+            ts            => '2012-07-16T17:24:07',
+            rspace        => ' ',
+            planner_name  => 'julie',
+            planner_email => 'j@ul.ie',
+        },
         blank('   '),
-        change(  '', 'this/rocks', '  '),
-        change(   '', 'hey-there', ' ', ' trailing comment!'),
-        tag(1,   '', 'bar', ' '),
-        tag(1,   '', 'baz', ''),
+        change { name => 'this/rocks', pspace => '  ' },
+        change { name => 'hey-there', comment => ' trailing comment!', rspace => ' ' },
+        tag { name =>, 'bar', ret => 1 },
+        tag { name => 'baz', ret => 1 },
     ],
     changes => [
         clear,
-        change(  '', 'hey'),
-        change(  '', 'you'),
-        tag(0,   '', 'foo', ' ', ' look, a tag!'),
-        change(  '', 'this/rocks', '  '),
-        change(   '', 'hey-there', ' ', ' trailing comment!'),
-        tag(0,   '', 'bar', ' '),
-        tag(0,   '', 'baz', ''),
+        change { name => 'hey', planner_name => 'theory', planner_email => 't@heo.ry' },
+        change { name => 'you', planner_name => 'anna',   planner_email => 'a@n.na' },
+        tag {
+            name          => 'foo',
+            comment       => ' look, a tag!',
+            ts            => '2012-07-16T17:24:07',
+            rspace        => ' ',
+            planner_name  => 'julie',
+            planner_email => 'j@ul.ie',
+        },
+        change { name => 'this/rocks', pspace => '  ' },
+        change { name => 'hey-there', comment => ' trailing comment!', rspace => ' ' },
+        tag { name =>, 'bar' },
+        tag { name => 'baz' },
     ],
 }, 'And the parsed file should have lines and changes';
 is sorted, 2, 'Should have sorted changes twice';
@@ -753,14 +913,14 @@ ok $plan->write_to($to), 'Write out the file again';
 file_contents_is $to,
     '%syntax-version=' . App::Sqitch::Plan::SYNTAX_VERSION . $/
     . $file->slurp(iomode => '<:encoding(UTF-8)')
-    . "\@w00t\n",
+    . $tag->as_string . $/,
     'The contents should include the "w00t" tag';
 
 # Try passing the tag name with a leading @.
-ok $tag = $plan->add_tag('@alpha'), 'Add tag "@alpha"';
+ok my $tag2 = $plan->add_tag('@alpha'), 'Add tag "@alpha"';
 is $plan->index_of('@alpha'), 3, 'Should find "@alpha at index 3';
-is $tag->name, 'alpha', 'The returned tag should be @alpha';
-is $tag->change, $plan->last, 'The @alpha change should be the last change';
+is $tag2->name, 'alpha', 'The returned tag should be @alpha';
+is $tag2->change, $plan->last, 'The @alpha change should be the last change';
 
 # Should choke on a duplicate tag.
 throws_ok { $plan->add_tag('w00t') } 'App::Sqitch::X',
@@ -814,14 +974,19 @@ is $plan->count, 5, 'Should have 5 changes';
 is $plan->index_of('booyah'), 4, 'Should find "booyah at index 4';
 is $plan->last->name, 'booyah', 'Last change should be "booyah"';
 isa_ok $new_change, 'App::Sqitch::Plan::Change';
-is $new_change->as_string, 'booyah',
-    'Should have plain stringification of "booya"';
+is $new_change->as_string, join (' ',
+    'booyah',
+    $new_change->timestamp->as_string,
+    $new_change->format_planner,
+), 'Should have plain stringification of "booya"';
 
 ok $plan->write_to($to), 'Write out the file again';
 file_contents_is $to,
     '%syntax-version=' . App::Sqitch::Plan::SYNTAX_VERSION . $/
     . $file->slurp(iomode => '<:encoding(UTF-8)')
-    . "\@w00t\n\@alpha\n\nbooyah\n",
+    . $tag->as_string . "\n"
+    . $tag2->as_string . "\n\n"
+    . $new_change->as_string . $/,
     'The contents should include the "booyah" change';
 
 # Make sure dependencies are verified.
@@ -829,7 +994,9 @@ ok $new_change = $plan->add('blow', ['booyah']), 'Add change "blow"';
 is $plan->count, 6, 'Should have 6 changes';
 is $plan->index_of('blow'), 5, 'Should find "blow at index 5';
 is $plan->last->name, 'blow', 'Last change should be "blow"';
-is $new_change->as_string, 'blow :booyah',
+is $new_change->as_string,
+    'blow [:booyah] ' . $new_change->timestamp->as_string . ' '
+    . $new_change->format_planner,
     'Should have nice stringification of "blow :booyah"';
 is [$plan->lines]->[-1], $new_change,
     'The new change should have been appended to the lines, too';
@@ -913,7 +1080,9 @@ is $orig->suffix, '@bar', 'And its suffix should be "@bar"';
 is $orig->deploy_file, $sqitch->deploy_dir->file('you@bar.sql'),
     'The original file should now be named you@bar.sql';
 is $rev_change->suffix, '', 'But the reworked change should have no suffix';
-is $rev_change->as_string, 'you :you@bar',
+is $rev_change->as_string,
+    'you [:you@bar] ' . $rev_change->timestamp->as_string . ' '
+    . $rev_change->format_planner,
     'It should require the previous "you" change';
 is [$plan->lines]->[-1], $rev_change,
     'The new "you" should have been appended to the lines, too';
@@ -935,7 +1104,9 @@ ok $rev_change = $plan->get('you@beta1'), 'Get you@beta1';
 is $rev_change->name, 'you', 'The second "you" should be named that';
 is $rev_change->suffix, '@beta1', 'And the second change should now have the suffx "@beta1"';
 is $rev_change2->suffix, '', 'But the new reworked change should have no suffix';
-is $rev_change2->as_string, 'you :you@beta1',
+is $rev_change2->as_string,
+    'you [:you@beta1] ' . $rev_change2->timestamp->as_string . ' '
+    . $rev_change2->format_planner,
     'It should require the previous "you" change';
 is [$plan->lines]->[-1], $rev_change2,
     'The new reworking should have been appended to the lines';
@@ -981,24 +1152,24 @@ isa_ok $plan = App::Sqitch::Plan->new(sqitch => $sqitch), $CLASS,
 cmp_deeply [ $plan->lines ], [
     clear,
     version,
-    change(  '', 'whatever'),
-    tag(1,   '', 'foo'),
+    change { name => 'whatever' },
+    tag    { name => 'foo', ret => 1 },
     blank(),
-    change(  '', 'hi'),
-    tag(1,   '', 'bar'),
+    change { name => 'hi' },
+    tag    { name => 'bar', ret => 1 },
     blank(),
-    change(  '', 'greets'),
-    change(  '', 'whatever'),
+    change { name => 'greets' },
+    change { name => 'whatever' },
 ], 'Lines with dupe change should be read from file';
 
 cmp_deeply [ $plan->changes ], [
     clear,
-    change(  '', 'whatever'),
-    tag(0,   '', 'foo'),
-    change(  '', 'hi'),
-    tag(0,   '', 'bar'),
-    change(  '', 'greets'),
-    change(  '', 'whatever'),
+    change { name => 'whatever' },
+    tag    { name => 'foo' },
+    change { name => 'hi' },
+    tag    { name => 'bar' },
+    change { name => 'greets' },
+    change { name => 'whatever' },
 ], 'Noes with dupe change should be read from file';
 is sorted, 3, 'Should have sorted changes three times';
 
@@ -1063,7 +1234,7 @@ $mock_change->mock(requires => sub { @{ shift(@deps)->{requires} } });
 sub changes {
     clear;
     map {
-        change '', $_;
+        change { name => $_ };
     } @_;
 }
 

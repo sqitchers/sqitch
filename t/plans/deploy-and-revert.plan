@@ -1,9 +1,9 @@
-+hey
-+you
- +  dr_evil
-@foo
++hey 2012-07-16T17:25:07Z Barack Obama <potus@whitehouse.gov>
++you 2012-07-16T17:25:07Z Barack Obama <potus@whitehouse.gov>
+ +  dr_evil 2012-07-16T17:25:07Z Barack Obama <potus@whitehouse.gov>
+@foo 2012-07-16T17:25:07Z Barack Obama <potus@whitehouse.gov>
    
-+this/rocks  
- hey-there
--dr_evil # revert!
- @bar 
++this/rocks  2012-07-16T17:25:07Z Barack Obama <potus@whitehouse.gov>
+ hey-there 2012-07-16T17:25:07Z Barack Obama <potus@whitehouse.gov>
+-dr_evil  2012-07-16T17:25:07Z Barack Obama <potus@whitehouse.gov> # revert!
+ @bar  2012-07-16T17:25:07Z Barack Obama <potus@whitehouse.gov>

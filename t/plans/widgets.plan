@@ -2,6 +2,6 @@
 
  # And there was a blank line.
 
-hey
-you
-@foo # look, a tag!
+hey 2012-07-16T14:01:20Z Barack Obama <potus@whitehouse.gov>
+you 2012-07-16T14:01:35Z Barack Obama <potus@whitehouse.gov>
+@foo 2012-07-16T14:02:05Z Barack Obama <potus@whitehouse.gov> # look, a tag!
