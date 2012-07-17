@@ -628,8 +628,8 @@ subtest 'live database' => sub {
 
     ##########################################################################
     # Deploy the new changes with two tags.
-    $plan->tag('beta');
-    $plan->tag('gamma');
+    $plan->tag( name => 'beta' );
+    $plan->tag( name => 'gamma' );
     ok my $fred = $plan->get('fred'),     'Get the "fred" change';
     ok $pg->log_deploy_change($fred),     'Deploy "fred"';
     ok my $barney = $plan->get('barney'), 'Get the "barney" change';

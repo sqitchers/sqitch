@@ -484,8 +484,8 @@ sub do {
 }
 
 sub tag {
-    my ( $self, $name ) = @_;
-    $name =~ s/^@//;
+    my ( $self, %p ) = @_;
+    ( my $name = $p{name} ) =~ s/^@//;
     $self->_is_valid(tag => $name);
 
     my $plan  = $self->_plan;
@@ -503,6 +503,7 @@ sub tag {
     );
 
     my $tag = App::Sqitch::Plan::Tag->new(
+        %p,
         plan   => $self,
         name   => $name,
         change => $change,

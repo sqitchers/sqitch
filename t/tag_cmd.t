@@ -59,7 +59,7 @@ is_deeply +MockOutput->get_info, [
 ], 'The one tag should have been listed';
 
 # Get a list of tags.
-ok $plan->tag('@beta'), 'Add tag @beta';
+ok $plan->tag( name => '@beta' ), 'Add tag @beta';
 ok $tag->execute, 'Execute with no arg again';
 is_deeply +MockOutput->get_info, [
     ['@alpha'],

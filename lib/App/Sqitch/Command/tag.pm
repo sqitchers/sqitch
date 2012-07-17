@@ -18,7 +18,7 @@ sub execute {
     my $plan   = $sqitch->plan;
 
     if (defined $name) {
-        my $tag = $plan->tag($name);
+        my $tag = $plan->tag( name => $name );
 
         # We good, write the plan file back out.
         $plan->write_to( $sqitch->plan_file );
