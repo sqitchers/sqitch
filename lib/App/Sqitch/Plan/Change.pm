@@ -247,10 +247,10 @@ App::Sqitch::Plan::Change - Sqitch deployment plan tag
 
 =head1 Description
 
-A App::Sqitch::Plan::Change represents deployment change as parsed from a plan
-file. In addition to the interface inherited from L<App::Sqitch::Plan::Line>,
-it offers interfaces for parsing dependencies from the deploy script, as well
-as for opening the deploy, revert, and test scripts.
+A App::Sqitch::Plan::Change represents a change as parsed from a plan file. In
+addition to the interface inherited from L<App::Sqitch::Plan::Line>, it offers
+interfaces for parsing dependencies from the deploy script, as well as for
+opening the deploy, revert, and test scripts.
 
 =head1 Interface
 
@@ -262,6 +262,39 @@ See L<App::Sqitch::Plan::Line> for the basics.
 
 An L<App::Sqitch::Plan::Tag> object representing the last tag to appear in the
 plan B<before> the change. May be C<undef>.
+
+=head3 C<pspace>
+
+Blank space separating the change name from the dependencies, timestamp, and
+planner in the file.
+
+=head3 C<suffix>
+
+Suffix to append to file names, if any. Used for reworked changes.
+
+=head3 C<info>
+
+Information about the change, returned as a string. Includes the change ID,
+the name and email address of the user who added the change to the plan, and
+the timestamp for when the change was added to the plan.
+
+=head3 C<id>
+
+A SHA1 hash of the data returned by C<info()>, which can be used as a
+globally-unique identifier for the change.
+
+=head3 C<timestamp>
+
+Returns the an L<App::Sqitch::DateTime> object reprsenting the time at which
+the change was added to the plan.
+
+=head3 C<planner_name>
+
+Returns the name of the user who added the change to the plan.
+
+=head3 C<planner_email>
+
+Returns the email address of the user who added the change to the plan.
 
 =head2 Instance Methods
 
@@ -328,6 +361,34 @@ reverted.
 
 Returns a string formatted with the change name followed by the list of tags, if
 any, associated with the change. Used to display a change as it is deployed.
+
+=head3 C<format_dependencies>
+
+  my $dependencies = $change->format_dependencies;
+
+Returns a string containing a bracketed list of dependencies. If there are no
+dependencies, an empty string will be returned.
+
+=head3 C<format_name_with_dependencies>
+
+  my $name_with_dependencies = $change->format_name_with_dependencies;
+
+Returns a string formatted with the change name followed by a bracketed list
+of dependencies, if any, associated with the change. Used to display a change
+when added to a plan.
+
+=head3 C<format_op_name_dependencies>
+
+  my $op_name_dependencies = $change->format_op_name_dependencies;
+
+Like C<format_name_with_dependencies>, but includes the operator, if present.
+
+=head3 C<format_planner>
+
+  my $planner = $change->format_planner;
+
+Returns a string formatted with the name and email address of the user who
+added the change to the plan.
 
 =head3 C<deploy_handle>
 

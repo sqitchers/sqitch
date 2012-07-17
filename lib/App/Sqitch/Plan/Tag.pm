@@ -101,9 +101,56 @@ App::Sqitch::Plan::Tag - Sqitch deployment plan tag
 
 =head1 Description
 
-A App::Sqitch::Plan::Tag represents a tag line in the plan file. See
-L<App::Sqitch::Plan::Line> for its interface. The only difference is that the
-C<format_name> returns the name with a leading C<@>.
+=head1 Description
+
+A App::Sqitch::Plan::Tag represents a tag as parsed from a plan file. In
+addition to the interface inherited from L<App::Sqitch::Plan::Line>, it offers
+interfaces fetching and formatting timestamp and planner information.
+
+=head1 Interface
+
+See L<App::Sqitch::Plan::Line> for the basics.
+
+=head2 Accessors
+
+=head3 C<change>
+
+Returns the L<App::Sqitch::Plan::Change> object with which the tag is
+associated.
+
+=head3 C<timestamp>
+
+Returns the an L<App::Sqitch::DateTime> object reprsenting the time at which
+the tag was added to the plan.
+
+=head3 C<planner_name>
+
+Returns the name of the user who added the tag to the plan.
+
+=head3 C<planner_email>
+
+Returns the email address of the user who added the tag to the plan.
+
+=head3 C<info>
+
+Information about the tag, returned as a string. Includes the tag ID, the ID
+of the associated change, the name and email address of the user who added the
+tag to the plan, and the timestamp for when the tag was added to the plan.
+
+=head3 C<id>
+
+A SHA1 hash of the data returned by C<info()>, which can be used as a
+globally-unique identifier for the tag.
+
+=head2 Instance Methods
+
+=head3 C<format_planner>
+
+  my $planner = $tag->format_planner;
+
+Returns a string formatted with the name and email address of the user who
+added the tag to the plan.
+
 
 =head1 Author
 
