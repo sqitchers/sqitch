@@ -19,14 +19,21 @@ our $VERSION = '0.72';
 
 has requires => (
     is       => 'ro',
-    isa      => 'ArrayRef',
+    isa      => 'ArrayRef[Str]',
     required => 1,
     default  => sub { [] },
 );
 
 has conflicts => (
     is       => 'ro',
-    isa      => 'ArrayRef',
+    isa      => 'ArrayRef[Str]',
+    required => 1,
+    default  => sub { [] },
+);
+
+has message => (
+    is       => 'ro',
+    isa      => 'ArrayRef[Str]',
     required => 1,
     default  => sub { [] },
 );
@@ -95,6 +102,7 @@ sub options {
     return qw(
         requires|r=s@
         conflicts|c=s@
+        message|m=s@
         set|s=s%
         template-directory=s
         deploy-template=s
@@ -112,6 +120,7 @@ sub configure {
     my %params = (
         requires  => $opt->{requires}  || [],
         conflicts => $opt->{conflicts} || [],
+        message   => $opt->{message}   || [],
     );
 
     $params{template_directory} = dir $opt->{template_directory}
@@ -144,6 +153,7 @@ sub execute {
         name      => $name,
         requires  => $self->requires,
         conflicts => $self->conflicts,
+        comment   => join "\n\n" => @{ $self->message },
     );
 
     $self->_add(

@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 81;
+use Test::More tests => 83;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -53,6 +53,7 @@ can_ok $CLASS, qw(
 is_deeply [$CLASS->options], [qw(
     requires|r=s@
     conflicts|c=s@
+    message|m=s@
     set|s=s%
     template-directory=s
     deploy-template=s
@@ -75,19 +76,23 @@ sub contents_of ($) {
 is_deeply $CLASS->configure($config, {}), {
     requires  => [],
     conflicts => [],
+    message   => [],
 }, 'Should have default configuration with no config or opts';
 
 is_deeply $CLASS->configure($config, {
     requires  => [qw(foo bar)],
     conflicts => ['baz'],
+    message   => [qw(hellow there)],
 }), {
     requires  => [qw(foo bar)],
     conflicts => ['baz'],
+    message   => [qw(hellow there)],
 }, 'Should have get requires and conflicts options';
 
 is_deeply $CLASS->configure($config, { template_directory => 't' }), {
     requires  => [],
     conflicts => [],
+    message   => [],
     template_directory => Path::Class::dir('t'),
 }, 'Should set up template directory option';
 
@@ -101,6 +106,7 @@ is_deeply $CLASS->configure($config, {
 }), {
     requires  => [],
     conflicts => [],
+    message   => [],
     with_deploy => 1,
     with_revert => 1,
     with_test => 0,
@@ -116,11 +122,13 @@ CONFIG: {
     is_deeply $CLASS->configure($config, {}), {
         requires  => [],
         conflicts => [],
+        message   => [],
     }, 'Variables should by default not be loaded from config';
 
     is_deeply $CLASS->configure($config, {set => { yo => 'dawg' }}), {
         requires  => [],
         conflicts => [],
+        message   => [],
         variables => {
             foo => 'bar',
             baz => [qw(hi there you)],
@@ -131,6 +139,7 @@ CONFIG: {
     is_deeply $CLASS->configure($config, {set => { foo => 'ick' }}), {
         requires  => [],
         conflicts => [],
+        message   => [],
         variables => {
             foo => 'ick',
             baz => [qw(hi there you)],
@@ -142,6 +151,7 @@ CONFIG: {
 # Test attributes.
 is_deeply $add->requires, [], 'Requires should be an arrayref';
 is_deeply $add->conflicts, [], 'Conflicts should be an arrayref';
+is_deeply $add->message, [], 'Messages should be an arrayref';
 is_deeply $add->variables, {}, 'Varibles should be a hashref';
 is $add->template_directory, undef, 'Default dir should be undef';
 
@@ -303,6 +313,7 @@ ok $add = $CLASS->new(
     sqitch => $sqitch,
     requires  => ['widgets_table'],
     conflicts => [qw(dr_evil joker)],
+    message   => [qw(hello there)],
     template_directory => Path::Class::dir(qw(etc templates))
 ), 'Create another add with template_directory';
 
@@ -322,6 +333,7 @@ isa_ok $change = $plan->get('foo_table'), 'App::Sqitch::Plan::Change',
 is $change->name, 'foo_table', 'Change name should be set to "foo_table"';
 is_deeply [$change->requires],  ['widgets_table'], 'It should have requires';
 is_deeply [$change->conflicts], [qw(dr_evil joker)], 'It should have conflicts';
+is        $change->comment, "hello\n\nthere", 'It should have a comment';
 
 is_deeply +MockOutput->get_info, [
     [__x 'Skipped {file}: already exists', file => $deploy_file],

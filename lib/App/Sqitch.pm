@@ -708,7 +708,11 @@ it.
 
 =item * Add optional message to each change.
 
-=item * Remove URI attribute.
+=item * Add C<-m> to rework, add, and tag.
+
+=item * Update status and log to support timestamps, planners, and comments.
+
+=item * Add URI to info only if set?
 
 =item * Add a project name as a plan pragma.
 
