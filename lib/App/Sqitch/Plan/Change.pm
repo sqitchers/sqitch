@@ -166,6 +166,27 @@ sub format_name_with_tags {
     return join ' ', $self->format_name, map { $_->format_name } $self->tags;
 }
 
+sub format_dependencies {
+    my $self = shift;
+    my $deps = join(
+        ' ',
+        ( map { ":$_" } $self->requires  ),
+        ( map { "!$_" } $self->conflicts ),
+    ) or return '';
+    return "[$deps]";
+}
+
+sub format_name_with_dependencies {
+    my $self = shift;
+    my $dep = $self->format_dependencies or return $self->format_name;
+    return $self->format_name . $self->pspace . $dep;
+}
+
+sub format_op_name_dependencies {
+    my $self = shift;
+    return $self->format_operator . $self->format_name_with_dependencies;
+}
+
 sub format_planner {
     my $self = shift;
     return join ' ', $self->planner_name, '<' . $self->planner_email . '>';
@@ -190,8 +211,7 @@ sub format_content {
     my $self = shift;
     return $self->SUPER::format_content . $self->pspace . join (
         ' ',
-        ( map { ":$_" } $self->requires  ),
-        ( map { "!$_" } $self->conflicts ),
+        ($self->format_dependencies || ()),
         $self->timestamp->as_string,
         $self->format_planner
     );
