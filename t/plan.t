@@ -899,7 +899,7 @@ for my $name (
 
 ##############################################################################
 # Try adding a tag.
-ok my $tag = $plan->add_tag('w00t'), 'Add tag "w00t"';
+ok my $tag = $plan->tag('w00t'), 'Add tag "w00t"';
 is $plan->count, 4, 'Should have 4 changes';
 is $plan->index_of('@w00t'), 3, 'Should find "@w00t at index 3';
 is $plan->last->name, 'hey-there', 'Last change should be "hey-there"';
@@ -917,13 +917,13 @@ file_contents_is $to,
     'The contents should include the "w00t" tag';
 
 # Try passing the tag name with a leading @.
-ok my $tag2 = $plan->add_tag('@alpha'), 'Add tag "@alpha"';
+ok my $tag2 = $plan->tag('@alpha'), 'Add tag "@alpha"';
 is $plan->index_of('@alpha'), 3, 'Should find "@alpha at index 3';
 is $tag2->name, 'alpha', 'The returned tag should be @alpha';
 is $tag2->change, $plan->last, 'The @alpha change should be the last change';
 
 # Should choke on a duplicate tag.
-throws_ok { $plan->add_tag('w00t') } 'App::Sqitch::X',
+throws_ok { $plan->tag('w00t') } 'App::Sqitch::X',
     'Should get error trying to add duplicate tag';
 is $@->ident, 'plan', 'Duplicate tag error ident should be "plan"';
 is $@->message, __x(
@@ -933,7 +933,7 @@ is $@->message, __x(
 
 # Should choke on an invalid tag names.
 for my $name (@bad_names, 'foo#bar') {
-    throws_ok { $plan->add_tag($name) } 'App::Sqitch::X',
+    throws_ok { $plan->tag($name) } 'App::Sqitch::X',
         qq{Should get error for invalid tag "$name"};
     is $@->ident, 'plan', qq{Invalid name "$name" error ident should be "plan"};
     is $@->message, __x(
@@ -943,7 +943,7 @@ for my $name (@bad_names, 'foo#bar') {
     ), qq{And the "$name" error message should be correct};
 }
 
-throws_ok { $plan->add_tag('HEAD') } 'App::Sqitch::X',
+throws_ok { $plan->tag('HEAD') } 'App::Sqitch::X',
     'Should get error for reserved tag "HEAD"';
 is $@->ident, 'plan', 'Reserved tag "HEAD" error ident should be "plan"';
 is $@->message, __x(
@@ -951,7 +951,7 @@ is $@->message, __x(
     name => 'HEAD',
 ), 'And the reserved tag "HEAD" message should be correct';
 
-throws_ok { $plan->add_tag('ROOT') } 'App::Sqitch::X',
+throws_ok { $plan->tag('ROOT') } 'App::Sqitch::X',
     'Should get error for reserved tag "ROOT"';
 is $@->ident, 'plan', 'Reserved tag "ROOT" error ident should be "plan"';
 is $@->message, __x(
@@ -959,7 +959,7 @@ is $@->message, __x(
     name => 'ROOT',
 ), 'And the reserved tag "ROOT" message should be correct';
 
-throws_ok { $plan->add_tag($sha1) } 'App::Sqitch::X',
+throws_ok { $plan->tag($sha1) } 'App::Sqitch::X',
     'Should get error for a SHA1 tag';
 is $@->ident, 'plan', 'SHA1 tag error ident should be "plan"';
 is $@->message, __x(
@@ -1092,7 +1092,7 @@ is $plan->index_of('you@HEAD'), 6, 'It should be at position 6';
 is $plan->count, 7, 'The plan count should be 7';
 
 # Tag and add again, to be sure we can do it multiple times.
-ok $plan->add_tag('@beta1'), 'Tag @beta1';
+ok $plan->tag('@beta1'), 'Tag @beta1';
 ok my $rev_change2 = $plan->rework('you'), 'Rework change "you" again';
 isa_ok $rev_change2, 'App::Sqitch::Plan::Change';
 is $rev_change2->name, 'you', 'New reworked change should be "you"';

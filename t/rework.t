@@ -99,7 +99,7 @@ is $@->message, __x(
 ), 'Fail message should say a tag is needed';
 
 # Tag it, and *then* it should work.
-ok $plan->add_tag('@alpha'), 'Tag it';
+ok $plan->tag('@alpha'), 'Tag it';
 
 my $deploy_file2 = file qw(sql deploy foo@alpha.sql);
 my $revert_file2 = file qw(sql revert foo@alpha.sql);
@@ -187,7 +187,7 @@ file_not_exists_ok($_) for ($deploy_file, $revert_file, $test_file);
 $add->execute('bar');
 file_exists_ok($deploy_file);
 file_not_exists_ok($_) for ($revert_file, $test_file);
-ok $plan->add_tag('@beta'), 'Tag it with @beta';
+ok $plan->tag('@beta'), 'Tag it with @beta';
 
 my $deploy_file3 = file qw(sql deploy bar@beta.sql);
 my $revert_file3 = file qw(sql revert bar@beta.sql);

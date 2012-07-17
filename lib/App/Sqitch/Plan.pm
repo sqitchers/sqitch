@@ -483,7 +483,7 @@ sub do {
     }
 }
 
-sub add_tag {
+sub tag {
     my ( $self, $name ) = @_;
     $name =~ s/^@//;
     $self->_is_valid(tag => $name);
@@ -503,8 +503,8 @@ sub add_tag {
     );
 
     my $tag = App::Sqitch::Plan::Tag->new(
-        plan => $self,
-        name => $name,
+        plan   => $self,
+        name   => $name,
         change => $change,
     );
 
@@ -945,12 +945,12 @@ argument is a hash reference, its keys should be previously-seen change and tag
 names that can be assumed to be satisfied requirements for the succeeding
 changes.
 
-=head3 C<add_tag>
+=head3 C<tag>
 
-  $plan->add_tag('whee');
+  $plan->tag('whee');
 
-Adds a tag to the plan. Exits with a fatal error if the tag already
-exists in the plan.
+Tags the most recent change in the plan. Exits with a fatal error if the tag
+already exists in the plan.
 
 =head3 C<add>
 
