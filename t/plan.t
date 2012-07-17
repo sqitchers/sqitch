@@ -969,7 +969,7 @@ is $@->message, __x(
 
 ##############################################################################
 # Try adding a change.
-ok my $new_change = $plan->add('booyah'), 'Add change "booyah"';
+ok my $new_change = $plan->add(name => 'booyah'), 'Add change "booyah"';
 is $plan->count, 5, 'Should have 5 changes';
 is $plan->index_of('booyah'), 4, 'Should find "booyah at index 4';
 is $plan->last->name, 'booyah', 'Last change should be "booyah"';
@@ -990,7 +990,8 @@ file_contents_is $to,
     'The contents should include the "booyah" change';
 
 # Make sure dependencies are verified.
-ok $new_change = $plan->add('blow', ['booyah']), 'Add change "blow"';
+ok $new_change = $plan->add(name => 'blow', requires => ['booyah']),
+    'Add change "blow"';
 is $plan->count, 6, 'Should have 6 changes';
 is $plan->index_of('blow'), 5, 'Should find "blow at index 5';
 is $plan->last->name, 'blow', 'Last change should be "blow"';
@@ -1002,7 +1003,7 @@ is [$plan->lines]->[-1], $new_change,
     'The new change should have been appended to the lines, too';
 
 # Should choke on a duplicate change.
-throws_ok { $plan->add('blow') } 'App::Sqitch::X',
+throws_ok { $plan->add(name => 'blow') } 'App::Sqitch::X',
     'Should get error trying to add duplicate change';
 is $@->ident, 'plan', 'Duplicate change error ident should be "plan"';
 is $@->message, __x(
@@ -1012,7 +1013,7 @@ is $@->message, __x(
 
 # Should choke on an invalid change names.
 for my $name (@bad_names) {
-    throws_ok { $plan->add($name) } 'App::Sqitch::X',
+    throws_ok { $plan->add( name => $name ) } 'App::Sqitch::X',
         qq{Should get error for invalid change "$name"};
     is $@->ident, 'plan', qq{Invalid name "$name" error ident should be "plan"};
     is $@->message, __x(
@@ -1023,14 +1024,14 @@ for my $name (@bad_names) {
 }
 
 # Try a reserved name.
-throws_ok { $plan->add('HEAD') } 'App::Sqitch::X',
+throws_ok { $plan->add( name => 'HEAD' ) } 'App::Sqitch::X',
     'Should get error for reserved name "HEAD"';
 is $@->ident, 'plan', 'Reserved name "HEAD" error ident should be "plan"';
 is $@->message, __x(
     '"{name}" is a reserved name',
     name => 'HEAD',
 ), 'And the reserved name "HEAD" message should be correct';
-throws_ok { $plan->add('ROOT') } 'App::Sqitch::X',
+throws_ok { $plan->add(name => 'ROOT' ) } 'App::Sqitch::X',
     'Should get error for reserved name "ROOT"';
 is $@->ident, 'plan', 'Reserved name "ROOT" error ident should be "plan"';
 is $@->message, __x(
@@ -1039,7 +1040,7 @@ is $@->message, __x(
 ), 'And the reserved name "ROOT" message should be correct';
 
 # Try an invalid dependency.
-throws_ok { $plan->add('whu', ['nonesuch' ] ) } 'App::Sqitch::X',
+throws_ok { $plan->add( name => 'whu', requires => ['nonesuch' ] ) } 'App::Sqitch::X',
     'Should get failure for failed dependency';
 is $@->ident, 'plan', 'Dependency error ident should be "plan"';
 is $@->message, __x(
@@ -1049,7 +1050,7 @@ is $@->message, __x(
 ), 'The dependency error should be correct';
 
 # Should choke on an unknown tag, too.
-throws_ok { $plan->add('whu', ['@nonesuch' ] ) } 'App::Sqitch::X',
+throws_ok { $plan->add(name => 'whu', requires => ['@nonesuch' ] ) } 'App::Sqitch::X',
     'Should get failure for failed tag dependency';
 is $@->ident, 'plan', 'Tag dependency error ident should be "plan"';
 is $@->message, __x(
@@ -1059,7 +1060,7 @@ is $@->message, __x(
 ), 'The tag dependency error should be correct';
 
 # Should choke on a change that looks like a SHA1.
-throws_ok { $plan->add($sha1) } 'App::Sqitch::X',
+throws_ok { $plan->add(name => $sha1) } 'App::Sqitch::X',
     'Should get error for a SHA1 change';
 is $@->ident, 'plan', 'SHA1 tag error ident should be "plan"';
 is $@->message, __x(

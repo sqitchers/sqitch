@@ -515,39 +515,32 @@ sub tag {
 }
 
 sub add {
-    my ( $self, $name, $requires, $conflicts ) = @_;
-    $self->_is_valid(change => $name);
+    my ( $self, %p ) = @_;
+    $self->_is_valid(change => $p{name});
 
-    my $plan  = $self->_plan;
+    my $plan    = $self->_plan;
     my $changes = $plan->{changes};
 
-    if (defined( my $idx = $changes->index_of($name . '@HEAD') )) {
+    if ( defined( my $idx = $changes->index_of( $p{name} . '@HEAD' ) ) ) {
         my $tag_idx = $changes->index_of_last_tagged;
         hurl plan => __x(
             qq{Change "{change}" already exists.\n}
             . 'Use "sqitch rework" to copy and rework it',
-            change => $name,
+            change => $p{name},
         );
     }
 
-    my $change = App::Sqitch::Plan::Change->new(
-        plan      => $self,
-        name      => $name,
-        requires  => $requires  ||= [],
-        conflicts => $conflicts ||= [],
-        (@{ $requires } || @{ $conflicts } ? ( pspace => ' ' ) : ()),
-    );
+    my $change = App::Sqitch::Plan::Change->new( %p, plan => $self );
 
     # Make sure dependencies are valid.
-    $self->_check_dependencies($change, 'add');
+    $self->_check_dependencies( $change, 'add' );
 
     # We good. Append a blank line if the previous change has a tag.
-    if ($changes->count) {
-        my $prev = $changes->change_at( $changes->count - 1);
-        if ($prev->tags) {
-            $plan->{lines}->append(App::Sqitch::Plan::Blank->new(
-                plan => $self,
-            ));
+    if ( $changes->count ) {
+        my $prev = $changes->change_at( $changes->count - 1 );
+        if ( $prev->tags ) {
+            $plan->{lines}
+              ->append( App::Sqitch::Plan::Blank->new( plan => $self, ) );
         }
     }
 
@@ -954,12 +947,16 @@ already exists in the plan.
 
 =head3 C<add>
 
-  $plan->add( 'whatevs' );
-  $plan->add( 'widgets', [qw(foo bar)], [qw(dr_evil)] );
+  $plan->add( name => 'whatevs' );
+  $plan->add(
+      name      => 'widgets',
+      requires  => [qw(foo bar)],
+      conflicts => [qw(dr_evil)],
+  );
 
-Adds a change to the plan. The second argument specifies a list of required
-changes. The third argument specifies a list of conflicting changes. Exits with a
-fatal error if the change already exists, or if the any of the dependencies are
+Adds a change to the plan. The supported parameters are the same as those
+passed to the L<App::Sqitch::Plan::Change> constructor. Exits with a fatal
+error if the change already exists, or if the any of the dependencies are
 unknown.
 
 =head3 C<rework>

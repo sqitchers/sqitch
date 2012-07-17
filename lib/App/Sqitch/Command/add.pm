@@ -141,9 +141,9 @@ sub execute {
     my $sqitch = $self->sqitch;
     my $plan   = $sqitch->plan;
     my $change = $plan->add(
-        $name,
-        $self->requires,
-        $self->conflicts,
+        name      => $name,
+        requires  => $self->requires,
+        conflicts => $self->conflicts,
     );
 
     $self->_add(

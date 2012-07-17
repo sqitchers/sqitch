@@ -38,7 +38,7 @@ make_path 'sql';
 END { remove_tree 'sql' };
 
 my $plan = $sqitch->plan;
-ok $plan->add('foo'), 'Add change "foo"';
+ok $plan->add( name => 'foo' ), 'Add change "foo"';
 
 ok $tag->execute('alpha'), 'Tag @alpha';
 is $plan->get('@alpha')->name, 'foo', 'Should have tagged "foo"';

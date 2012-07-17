@@ -543,8 +543,8 @@ subtest 'live database' => sub {
         conflicts => ['users', 'widgets'],
         requires  => ['fred', 'barney', 'widgets'],
     );
-    $plan->add('fred');
-    $plan->add('barney');
+    $plan->add( name => 'fred' );
+    $plan->add( name => 'barney' );
 
     is_deeply [$pg->check_conflicts($change3)], [qw(users widgets)],
         'Should get back list of installed conflicting changes';
