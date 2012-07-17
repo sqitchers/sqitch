@@ -86,7 +86,7 @@ sub execute {
     # Let the user knnow what to do.
     $self->info(__x(
         'Added "{change}" to {file}.',
-        change => $reworked->format_content,
+        change => $reworked->format_op_name_dependencies,
         file   => $sqitch->plan_file,
     ));
     $self->info(__n(

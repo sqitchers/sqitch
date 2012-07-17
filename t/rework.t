@@ -137,7 +137,7 @@ is_deeply [$steps[1]->requires], ['foo@alpha'],
 is_deeply +MockOutput->get_info, [
     [__x(
         'Added "{change}" to {file}.',
-        change => 'foo :foo@alpha',
+        change => 'foo [:foo@alpha]',
         file   => $sqitch->plan_file,
     )],
     [__n(
@@ -226,7 +226,7 @@ is_deeply [$steps[3]->conflicts], ['dr_evil'],
 is_deeply +MockOutput->get_info, [
     [__x(
         'Added "{change}" to {file}.',
-        change => 'bar :bar@beta :foo !dr_evil',
+        change => 'bar [:bar@beta :foo !dr_evil]',
         file   => $sqitch->plan_file,
     )],
     [__n(
