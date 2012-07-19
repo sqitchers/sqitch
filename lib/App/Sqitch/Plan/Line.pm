@@ -77,7 +77,7 @@ sub BUILDARGS {
         # Trim and then encode newlines.
         $note =~ s/\A\v+//;
         $note =~ s/\v+\z//;
-        $note =~ s/(\\[\\nr])/$unescape{$1}/g if $p->{note};
+        $note =~ s/(\\[\\nr])/$unescape{$1}/gl;
         $p->{note} = $note;
     }
     return $p;
