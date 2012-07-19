@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 148;
+use Test::More tests => 168;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -189,18 +189,23 @@ $cmock->unmock_all;
 
 ###############################################################################
 # Test named formats.
-my $dt = App::Sqitch::DateTime->now;
+my $cdt = App::Sqitch::DateTime->now;
+my $pdt = $cdt->clone->subtract(days => 1);
 my $event = {
-    event          => 'deploy',
-    change_id      => '000011112222333444',
-    change         => 'lolz',
-    tags           => [ '@beta', '@gamma' ],
-    committer_name => 'larry',
-    committed_at   => $dt,
+    event           => 'deploy',
+    change_id       => '000011112222333444',
+    change          => 'lolz',
+    tags            => [ '@beta', '@gamma' ],
+    committer_name  => 'larry',
+    committer_email => 'larry@example.com',
+    committed_at    => $cdt,
+    planner_name    => 'larry',
+    planner_email   => 'larry@example.com',
+    planned_at      => $pdt,
 };
 
-my $iso = $dt->as_string( format => 'iso' );
-my $raw = $dt->as_string( format => 'raw' );
+my $iso = $cdt->as_string( format => 'iso' );
+my $raw = $cdt->as_string( format => 'raw' );
 for my $spec (
     [ raw => "event     deploy\n"
            . "change    000011112222333444 (\@beta, \@gamma)\n"
@@ -227,7 +232,7 @@ for my $spec (
         . __ 'Date:' . "      __DATE__\n"
     ],
     [ short => color('yellow') . '000011112222333444' . color('reset') . "\n"
-        . $dt->as_string( format => 'short' ) . ' - '
+        . $cdt->as_string( format => 'short' ) . ' - '
         . __ 'deploy' . " lolz - larry\n"
     ],
     [ oneline => '000011112222333444 deploy lolz' ],
@@ -247,7 +252,7 @@ for my $spec (
                 format => $format,
                 date_format => $date_format,
             ), qq{Instantiate with format "$spec->[0]" and date format "$date_format"};
-            my $date = $dt->as_string( format => $date_format );
+            my $date = $cdt->as_string( format => $date_format );
             (my $exp = $spec->[1]) =~ s/__DATE__/$date/;
             is $log->formatter->format( $log->format, $event ), $exp,
                 qq{Format "$spec->[0]" and date format "$date_format" should output correctly};
@@ -265,6 +270,11 @@ for my $spec (
 
 ###############################################################################
 # Test all formatting characters.
+my $local_cdt = $cdt->clone;
+$local_cdt->set_time_zone('local');
+my $local_pdt = $pdt->clone;
+$local_pdt->set_time_zone('local');
+
 my $formatter = $log->formatter;
 for my $spec (
     ['%e', { event => 'deploy' }, 'deploy' ],
@@ -282,20 +292,45 @@ for my $spec (
     ['%{event}_',     {}, __ 'Event:    ' ],
     ['%{change}_',    {}, __ 'Change:   ' ],
     ['%{committer}_', {}, __ 'Committer:' ],
+    ['%{planner}_',   {}, __ 'Planner:  ' ],
     ['%{by}_',        {}, __ 'By:       ' ],
     ['%{date}_',      {}, __ 'Date:     ' ],
+    ['%{committed}_', {}, __ 'Committed:' ],
+    ['%{planned}_',   {}, __ 'Planned:  ' ],
     ['%{name}_',      {}, __ 'Name:     ' ],
+    ['%{email}_',     {}, __ 'Email:    ' ],
 
     ['%H', { change_id => '123456789' }, '123456789' ],
     ['%h', { change_id => '123456789' }, '123456789' ],
     ['%{5}h', { change_id => '123456789' }, '12345' ],
     ['%{7}h', { change_id => '123456789' }, '1234567' ],
 
-    ['%c', { change => 'foo' }, 'foo'],
-    ['%c', { change => 'bar' }, 'bar'],
+    ['%n', { change => 'foo' }, 'foo'],
+    ['%n', { change => 'bar' }, 'bar'],
 
-    ['%a', { committer_name => 'larry'  }, 'larry'],
-    ['%a', { committer_name => 'damian' }, 'damian'],
+    ['%c', { committer_name => 'larry'  }, 'larry'],
+    ['%{n}c', { committer_name => 'damian' }, 'damian'],
+    ['%{name}c', { committer_name => 'chip' }, 'chip'],
+    ['%{e}c', { committer_email => 'larry@example.com'  }, 'larry@example.com'],
+    ['%{email}c', { committer_email => 'damian@example.com' }, 'damian@example.com'],
+
+    ['%{date}c', { committed_at => $cdt }, $cdt->as_string( format => 'iso' ) ],
+    ['%{date:rfc}c', { committed_at => $cdt }, $cdt->as_string( format => 'rfc' ) ],
+    ['%{d:long}c', { committed_at => $cdt }, $cdt->as_string( format => 'long' ) ],
+    ["%{d:cldr:HH'h' mm'm'}c", { committed_at => $cdt }, $local_cdt->format_cldr( q{HH'h' mm'm'} ) ],
+    ["%{d:strftime:%a at %H:%M:%S}c", { committed_at => $cdt }, $local_cdt->strftime('%a at %H:%M:%S') ],
+
+    ['%p', { planner_name => 'larry'  }, 'larry'],
+    ['%{n}p', { planner_name => 'damian' }, 'damian'],
+    ['%{name}p', { planner_name => 'chip' }, 'chip'],
+    ['%{e}p', { planner_email => 'larry@example.com'  }, 'larry@example.com'],
+    ['%{email}p', { planner_email => 'damian@example.com' }, 'damian@example.com'],
+
+    ['%{date}p', { planned_at => $pdt }, $pdt->as_string( format => 'iso' ) ],
+    ['%{date:rfc}p', { planned_at => $pdt }, $pdt->as_string( format => 'rfc' ) ],
+    ['%{d:long}p', { planned_at => $pdt }, $pdt->as_string( format => 'long' ) ],
+    ["%{d:cldr:HH'h' mm'm'}p", { planned_at => $pdt }, $local_pdt->format_cldr( q{HH'h' mm'm'} ) ],
+    ["%{d:strftime:%a at %H:%M:%S}p", { planned_at => $pdt }, $local_pdt->strftime('%a at %H:%M:%S') ],
 
     ['%t', { tags => [] }, '' ],
     ['%t', { tags => ['@foo'] }, ' @foo' ],
@@ -311,13 +346,10 @@ for my $spec (
     ['%{|}T', { tags => ['@foo'] }, ' (@foo)' ],
     ['%{|}T', { tags => ['@foo', '@bar'] }, ' (@foo|@bar)' ],
 
-    ['%n', {}, "\n" ],
-
-    ['%d', { committed_at => $dt }, $dt->as_string( format => 'iso' ) ],
-    ['%{rfc}d', { committed_at => $dt }, $dt->as_string( format => 'rfc' ) ],
-    ['%{long}d', { committed_at => $dt }, $dt->as_string( format => 'long' ) ],
-
     ['%{yellow}C', {}, '' ],
+    ['%v', {}, "\n" ],
+    ['%%', {}, '%' ],
+
 ) {
     (my $desc = $spec->[2]) =~ s/\n/[newline]/g;
     is $formatter->format( $spec->[0], $spec->[1] ), $spec->[2],
@@ -339,12 +371,12 @@ is $log->formatter->format( '%H', { change_id => '123456789' } ),
 
 ok $log = $CLASS->new( sqitch => $sqitch, date_format => 'rfc' ),
     'Instantiate with date_format => "rfc"';
-is $log->formatter->format( '%d', { committed_at => $dt } ),
-    $dt->as_string( format => 'rfc' ),
-    '%d should respect the date_format attribute';
-is $log->formatter->format( '%{iso}d', { committed_at => $dt } ),
-    $dt->as_string( format => 'iso' ),
-    '%{iso}d should override the date_format attribute';
+is $log->formatter->format( '%{date}c', { committed_at => $cdt } ),
+    $cdt->as_string( format => 'rfc' ),
+    '%{date}c should respect the date_format attribute';
+is $log->formatter->format( '%{d:iso}c', { committed_at => $cdt } ),
+    $cdt->as_string( format => 'iso' ),
+    '%{iso}c should override the date_format attribute';
 
 delete $ENV{ANSI_COLORS_DISABLED};
 for my $color (qw(yellow red blue cyan magenta)) {
@@ -422,7 +454,7 @@ my $event2 = {
     change         => 'barf',
     tags           => [],
     committer_name => 'theory',
-    committed_at   => $dt,
+    committed_at   => $cdt,
 };
 push @events => {}, $event, $event2;
 isa_ok $log = $CLASS->new(

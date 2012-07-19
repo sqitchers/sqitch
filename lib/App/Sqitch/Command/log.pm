@@ -27,38 +27,38 @@ my %FORMATS;
 $FORMATS{raw} = <<EOF;
 event     %e
 change    %h%T
-name      %c
-date      %{raw}d
-committer %a
+name      %n
+date      %{date:raw}c
+committer %c
 EOF
 
 $FORMATS{full} = <<EOF;
 %{yellow}C%{change}_ %h%{reset}C%T
 %{event}_ %e
-%{name}_ %c
-%{date}_ %d
-%{by}_ %a
+%{name}_ %n
+%{date}_ %{date}c
+%{by}_ %c
 EOF
 
 $FORMATS{long} = <<EOF;
 %{yellow}C%L %h%{reset}C%T
-%{name}_ %c
-%{date}_ %d
-%{by}_ %a
+%{name}_ %n
+%{date}_ %{date}c
+%{by}_ %c
 EOF
 
 $FORMATS{medium} = <<EOF;
 %{yellow}C%L %h%{reset}C%T
-%{name}_ %c
-%{date}_ %d
+%{name}_ %n
+%{date}_ %{date}c
 EOF
 
 $FORMATS{short} = <<EOF;
 %{yellow}C%h%{reset}C
-%{short}d - %l %c - %a
+%{d:short}c - %l %n - %c
 EOF
 
-$FORMATS{oneline} = '%h %l %c';
+$FORMATS{oneline} = '%h %l %n';
 
 has event => (
     is      => 'ro',
@@ -153,9 +153,13 @@ has formatter => (
                         __ 'Event:    ' when 'event';
                         __ 'Change:   ' when 'change';
                         __ 'Committer:' when 'committer';
+                        __ 'Planner:  ' when 'planner';
                         __ 'By:       ' when 'by';
                         __ 'Date:     ' when 'date';
+                        __ 'Committed:' when 'committed';
+                        __ 'Planned:  ' when 'planned';
                         __ 'Name:     ' when 'name';
+                        __ 'Email:    ' when 'email';
                         hurl log => __ 'No label passed to the _ format'
                             when undef;
                     };
@@ -167,8 +171,24 @@ has formatter => (
                     }
                     return $_[0]->{change_id};
                 },
-                c => sub { $_[0]->{change} },
-                a => sub { $_[0]->{committer_name} },
+                n => sub { $_[0]->{change} },
+
+                c => sub {
+                    return $_[0]->{committer_name}  if $_[1] ~~ [undef, qw(n name)];
+                    return $_[0]->{committer_email} if $_[1] ~~ [qw(e email)];
+                    return $_[0]->{committed_at}->as_string(
+                        format => $_[1] || $self->date_format
+                    ) if $_[1] =~ s/^d(?:ate)?(?::|$)//;
+                },
+
+                p => sub {
+                    return $_[0]->{planner_name}  if $_[1] ~~ [undef, qw(n name)];
+                    return $_[0]->{planner_email} if $_[1] ~~ [qw(e email)];
+                    return $_[0]->{planned_at}->as_string(
+                        format => $_[1] || $self->date_format
+                    ) if $_[1] =~ s/^d(?:ate)?(?::|$)//;
+                },
+
                 t => sub {
                     @{ $_[0]->{tags} }
                         ? ' ' . join $_[1] || ', ' => @{ $_[0]->{tags} }
@@ -179,12 +199,7 @@ has formatter => (
                         ? ' (' . join($_[1] || ', ' => @{ $_[0]->{tags} }) . ')'
                         : '';
                 },
-                n => sub { "\n" },
-                d => sub {
-                    shift->{committed_at}->as_string(
-                        format => shift || $self->date_format
-                    )
-                },
+                v => sub { "\n" },
                 C => sub {
                     hurl log => __x(
                         '{color} is not a valid ANSI color', color => $_[1]

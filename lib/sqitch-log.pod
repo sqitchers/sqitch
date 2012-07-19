@@ -111,10 +111,11 @@ Show timestamps using an arbitrary C<strftime> pattern. See
 L<DateTime/strftime Paterns> for comprehensive documentation of supported
 patterns.
 
-=item C<cldr:$string>
+=item C<cldr:$pattern>
 
-Show timestamps using an arbitrary C<cldr> pattern. See L<DateTime/CLDR
-Paterns> for comprehensive documentation of supported patterns.
+Show timestamps using an arbitrary C<cldr> pattern. See
+L<DateTime/CLDR Paterns> for comprehensive documentation of supported
+patterns.
 
 =back
 
@@ -194,7 +195,7 @@ you can use C<%n> for a newline, but an actual newline is okay, too.
 
 =item * C<%h>: Event change ID (respects C<--abbrev>)
 
-=item * C<%c>: Event change name
+=item * C<%n>: Event change name
 
 =item * C<%($len)h>: abbreviated change of length C<$len>
 
@@ -208,27 +209,63 @@ you can use C<%n> for a newline, but an actual newline is okay, too.
 
 =item * C<%{committer}_> Localized label for "committer"
 
+=item * C<%{planner}_> Localized label for "planner"
+
 =item * C<%{by}_> Localized label for "by"
 
 =item * C<%{date}_> Localized label for "date"
 
+=item * C<%{committed}_> Localized label for "committed"
+
+=item * C<%{planned}_> Localized label for "planned"
+
 =item * C<%{name}_> Localized label for "name"
 
-=item * C<%a>: Event committer name
+=item * C<%{email}_> Localized label for "email"
 
-=item * C<%d>: Formatted Event date (respects C<--date-format>)
+=item * C<%{name}c>: Event committer name
 
-=item * C<%{rfc}d>: date, RFC2822 format
+=item * C<%{email}c>: Event committer email address
 
-=item * C<%{iso}d>: date, ISO-8601 format
+=item * C<%{date}c>: commit date (respects C<--date-format>)
 
-=item * C<%{full}d>: date, full format
+=item * C<%{date:rfc}c>: commit date, RFC2822 format
 
-=item * C<%{long}d>: date, long format
+=item * C<%{date:iso}c>: commit date, ISO-8601 format
 
-=item * C<%{medium}d>: date, medium format
+=item * C<%{date:full}c>: commit date, full format
 
-=item * C<%{short}d>: date, short format
+=item * C<%{date:long}c>: commit date, long format
+
+=item * C<%{date:medium}c>: commit date, medium format
+
+=item * C<%{date:short}c>: commit date, short format
+
+=item * C<%{date:cldr:$pattern}c>: commit date, formatted with custom L<CLDR pattern|DateTime/CLDR Patterns>
+
+=item * C<%{date:strftime:$pattern}c>: commit date, formatted with custom L<strftime pattern|DateTime/strftime Patterns>
+
+=item * C<%{name}c>: Change planner name
+
+=item * C<%{email}c>: Change planner email address
+
+=item * C<%{date}c>: plan date (respects C<--date-format>)
+
+=item * C<%{date:rfc}c>: plan date, RFC2822 format
+
+=item * C<%{date:iso}c>: plan date, ISO-8601 format
+
+=item * C<%{date:full}c>: plan date, full format
+
+=item * C<%{date:long}c>: plan date, long format
+
+=item * C<%{date:medium}c>: plan date, medium format
+
+=item * C<%{date:short}c>: plan date, short format
+
+=item * C<%{date:cldr:$pattern}c>: plan date, formatted with custom L<CLDR pattern|DateTime/CLDR Patterns>
+
+=item * C<%{date:strftime:$pattern}c>: plan date, formatted with custom L<strftime pattern|DateTime/strftime Patterns>
 
 =item * C<%t>: Comma-delimited list of tags
 
@@ -238,7 +275,7 @@ you can use C<%n> for a newline, but an actual newline is okay, too.
 
 =item * C<%{$sep}T>: Parenthesized list of tags delimited by C<$sep>
 
-=item * C<%n> newline
+=item * C<%v> vertical space (newline)
 
 =item * C<%{color}C>: An ANSI color: black, red, green, yellow, reset, etc.
 
