@@ -263,6 +263,7 @@ sub log_deploy_change {
         INSERT INTO changes (
               change_id
             , change
+            , comment
             , requires
             , conflicts
             , committer_name
@@ -271,10 +272,11 @@ sub log_deploy_change {
             , planner_name
             , planner_email
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     }, undef,
         $id,
         $name,
+        $change->comment,
         $req,
         $conf,
         $user,
@@ -290,18 +292,20 @@ sub log_deploy_change {
                   tag_id
                 , tag
                 , change_id
+                , comment
                 , committer_name
                 , committer_email
                 , planned_at
                 , planner_name
                 , planner_email
            ) VALUES
-        } . join( ', ', ( q{(?, ?, ?, ?, ?, ?, ?, ?)} ) x @tags ),
+        } . join( ', ', ( q{(?, ?, ?, ?, ?, ?, ?, ?, ?)} ) x @tags ),
             undef,
             map { (
                 $_->id,
                 $_->format_name,
                 $id,
+                $_->comment,
                 $user,
                 $email,
                 $_->timestamp->as_string(format => 'iso'),
@@ -319,7 +323,7 @@ sub log_fail_change {
 }
 
 sub _log_event {
-    my ( $self, $event, $change, $tags, $requires, $conflicts) = @_;
+    my ( $self, $event, $change, $tags, $comment, $requires, $conflicts) = @_;
     my $dbh    = $self->_dbh;
     my $sqitch = $self->sqitch;
 
@@ -328,6 +332,7 @@ sub _log_event {
               event
             , change_id
             , change
+            , comment
             , tags
             , requires
             , conflicts
@@ -337,11 +342,12 @@ sub _log_event {
             , planner_name
             , planner_email
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
     }, undef,
         $event,
         $change->id,
         $change->name,
+        $comment   // $change->comment,
         $tags      || [ map { $_->format_name } $change->tags ],
         $requires  || [ $change->requires ],
         $conflicts || [ $change->conflicts ],
@@ -366,13 +372,13 @@ sub log_revert_change {
     ) || [];
 
     # Delete the change record.
-    my ($req, $conf) = $dbh->selectrow_array(
-        'DELETE FROM changes where change_id = ? RETURNING requires, conflicts',
-        undef, $change->id
-    );
+    my ($req, $conf, $cmt) = $dbh->selectrow_array(q{
+        DELETE FROM changes where change_id = ?
+        RETURNING requires, conflicts, comment
+    }, undef, $change->id);
 
     # Log it.
-    return $self->_log_event( revert => $change, $del_tags, $req, $conf );
+    return $self->_log_event( revert => $change, $del_tags, $cmt, $req, $conf );
 }
 
 sub is_deployed_tag {
@@ -502,6 +508,7 @@ sub current_state {
     my $state = $self->_dbh->selectrow_hashref(qq{
         SELECT change_id
              , change
+             , comment
              , committer_name
              , committer_email
              , $ddtcol AS committed_at
@@ -619,6 +626,7 @@ sub search_events {
         SELECT event
              , change_id
              , change
+             , comment
              , requires
              , conflicts
              , tags

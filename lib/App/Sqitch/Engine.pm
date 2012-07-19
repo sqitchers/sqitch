@@ -752,6 +752,10 @@ The current change ID.
 
 The current change name.
 
+=item C<comment>
+
+A brief description of the change.
+
 =item C<tags>
 
 An array reference of the names of associated tags.
@@ -951,6 +955,10 @@ The change ID.
 =item C<change>
 
 The name of the change.
+
+=item C<comment>
+
+A brief description of the change.
 
 =item C<tags>
 
