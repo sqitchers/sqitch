@@ -28,7 +28,7 @@ can_ok $CLASS, qw(
     name
     lspace
     rspace
-    comment
+    note
     since_tag
     suffix
     tags
@@ -139,7 +139,7 @@ ok my $change2 = $CLASS->new(
     ropspace  => ' ',
     rspace    => "\t",
     suffix    => '@beta',
-    comment   => 'blah blah blah',
+    note      => 'blah blah blah',
     pspace    => '  ',
     requires  => [qw(foo bar @baz)],
     conflicts => ['dr_evil'],

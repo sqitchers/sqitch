@@ -11,7 +11,7 @@ sqitch-add-usage - Sqitch add usage statement
     -r --requires             require change
     -c --conflicts            declare conflicting change
     -s --set                  set a template variable
-    -m --message              set a message describing the change
+    -n --note                 a note describing the change
 
        --template-directory   path to directory containing templates
        --deploy-template      path to deploy template

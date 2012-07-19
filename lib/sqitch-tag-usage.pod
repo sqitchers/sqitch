@@ -8,5 +8,5 @@ sqitch-tag-usage - Sqitch tag usage statement
 
 =head1 Options
 
-    -m --message              set a message describing the tag
+    -n --note                 a note describing the tag
 

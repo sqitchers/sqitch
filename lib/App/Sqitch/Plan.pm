@@ -107,14 +107,14 @@ sub _parse {
         chomp $line;
 
         # Grab blank lines first.
-        if ($line =~ /\A(?<lspace>[[:blank:]]*)(?:#[[:blank:]]*(?<comment>.+)|$)/) {
+        if ($line =~ /\A(?<lspace>[[:blank:]]*)(?:#[[:blank:]]*(?<note>.+)|$)/) {
             my $line = App::Sqitch::Plan::Blank->new( plan => $self, %+ );
             push @lines => $line;
             next LINE;
         }
 
-        # Grab inline comment.
-        $line =~ s/(?<rspace>[[:blank:]]*)(?:[#][[:blank:]]*(?<comment>.*))?$//;
+        # Grab inline note.
+        $line =~ s/(?<rspace>[[:blank:]]*)(?:[#][[:blank:]]*(?<note>.*))?$//;
         my %params = %+;
 
         # Grab pragmas.
@@ -507,7 +507,7 @@ sub tag {
         plan   => $self,
         name   => $name,
         change => $change,
-        rspace => $p{comment} ? ' ' : '',
+        rspace => $p{note} ? ' ' : '',
     );
 
     $change->add_tag($tag);
@@ -906,7 +906,7 @@ iterate over every change.
 
   $plan->write_to($file);
 
-Write the plan to the named file, including. comments and white space from the
+Write the plan to the named file, including notes and white space from the
 original plan file.
 
 =head3 C<open_script>
@@ -1001,7 +1001,7 @@ A named deployment tag, generally corresponding to a release name. Begins with
 a C<@>, followed by one or more non-whitespace characters. The first and last
 characters must not be punctuation characters.
 
-=item * A comment.
+=item * A note.
 
 Begins with a C<#> and goes to the end of the line. Preceding white space is
 ignored. May appear on a line after a pragma, change, or tag.
@@ -1090,13 +1090,13 @@ VCS "delta" tag.
 
 Here is the EBNF Grammar for the plan file:
 
-  plan-file    = { <pragma> | <change-line> | <tag-line> | <comment-line> | <blank-line> }* ;
+  plan-file    = { <pragma> | <change-line> | <tag-line> | <note-line> | <blank-line> }* ;
 
   blank-line   = [ <blanks> ] <eol>;
-  comment-line = <comment> ;
-  change-line    = <name> [ { <requires> | <conflicts} } ] ( <eol> | <comment> ) ;
-  tag-line     = <tag> ( <eol> | <comment> ) ;
-  pragma       = "%" [ <blanks> ] <name> [ <blanks> ] = [ <blanks> ] <value> ( <eol> | <comment> ) ;
+  note-line = <note> ;
+  change-line    = <name> [ { <requires> | <conflicts} } ] ( <eol> | <note> ) ;
+  tag-line     = <tag> ( <eol> | <note> ) ;
+  pragma       = "%" [ <blanks> ] <name> [ <blanks> ] = [ <blanks> ] <value> ( <eol> | <note> ) ;
 
   tag          = "@" <name> ;
   requires     = ":" <name> ;
@@ -1105,7 +1105,7 @@ Here is the EBNF Grammar for the plan file:
   non-punct    = ? non-punctuation, non-blank character ? ;
   value        = ? non-EOL or "#" characters ?
 
-  comment      = [ <blanks> ] "#" [ <string> ] <EOL> ;
+  note      = [ <blanks> ] "#" [ <string> ] <EOL> ;
   eol          = [ <blanks> ] <EOL> ;
 
   blanks       = ? blank characters ? ;
@@ -1114,17 +1114,17 @@ Here is the EBNF Grammar for the plan file:
 And written as regular expressions:
 
   my $eol          = qr/[[:blank:]]*$/
-  my $comment      = qr/(?:[[:blank:]]+)?[#].+$/;
+  my $note      = qr/(?:[[:blank:]]+)?[#].+$/;
   my $name         = qr/[^[:punct:][:blank:]](?:(?:[^[:space:]@]+)?[^[:punct:][:blank:]])?/;
   my $tag          = qr/[@]$name/;
   my $requires     = qr/[:]$name/;
   my conflicts     = qr/[!]$name/;
-  my $tag_line     = qr/^$tag(?:$comment|$eol)/;
-  my $change_line    = qr/^$name(?:$requires|$conflicts)*(?:$comment|$eol)/;
-  my $comment_line = qr/^$comment/;
-  my $pragma    = qr/^][[:blank:]]*[%][[:blank:]]*$name[[:blank:]]*=[[:blank:]].+?(?:$comment|$eol)$/;
+  my $tag_line     = qr/^$tag(?:$note|$eol)/;
+  my $change_line    = qr/^$name(?:$requires|$conflicts)*(?:$note|$eol)/;
+  my $note_line = qr/^$note/;
+  my $pragma    = qr/^][[:blank:]]*[%][[:blank:]]*$name[[:blank:]]*=[[:blank:]].+?(?:$note|$eol)$/;
   my $blank_line   = qr/^$eol/;
-  my $plan         = qr/(?:$pragma|$change_line|$tag_line|$comment_line|$blank_line)+/ms;
+  my $plan         = qr/(?:$pragma|$change_line|$tag_line|$note_line|$blank_line)+/ms;
 
 =head1 See Also
 

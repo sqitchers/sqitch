@@ -24,7 +24,7 @@ can_ok $CLASS, qw(
     hspace
     ropspace
     lopspace
-    comment
+    note
     plan
     value
 );
@@ -51,7 +51,7 @@ ok $dir = $CLASS->new(
     lopspace => '   ',
     operator => '=',
     ropspace => ' ',
-    comment  => 'blah blah blah',
+    note     => 'blah blah blah',
 ), 'Create pragma with more stuff';
 
 is $dir->as_string, "  % howdy   = woody\t# blah blah blah",

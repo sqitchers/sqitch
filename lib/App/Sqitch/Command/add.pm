@@ -31,7 +31,7 @@ has conflicts => (
     default  => sub { [] },
 );
 
-has message => (
+has note => (
     is       => 'ro',
     isa      => 'ArrayRef[Str]',
     required => 1,
@@ -102,7 +102,7 @@ sub options {
     return qw(
         requires|r=s@
         conflicts|c=s@
-        message|m=s@
+        note|n=s@
         set|s=s%
         template-directory=s
         deploy-template=s
@@ -120,7 +120,7 @@ sub configure {
     my %params = (
         requires  => $opt->{requires}  || [],
         conflicts => $opt->{conflicts} || [],
-        message   => $opt->{message}   || [],
+        note      => $opt->{note}      || [],
     );
 
     $params{template_directory} = dir $opt->{template_directory}
@@ -153,7 +153,7 @@ sub execute {
         name      => $name,
         requires  => $self->requires,
         conflicts => $self->conflicts,
-        comment   => join "\n\n" => @{ $self->message },
+        note      => join "\n\n" => @{ $self->note },
     );
 
     $self->_add(

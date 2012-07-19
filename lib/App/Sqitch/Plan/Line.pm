@@ -47,7 +47,7 @@ has ropspace => (
     default  => '',
 );
 
-has comment => (
+has note => (
     is       => 'ro',
     isa      => 'Str',
     required => 1,
@@ -73,7 +73,7 @@ my %unescape = reverse %escape;
 sub BUILDARGS {
     my $class = shift;
     my $p = @_ == 1 && ref $_[0] ? { %{ +shift } } : { @_ };
-    $p->{comment} =~ s/(\\[\\nr])/$unescape{$1}/g if $p->{comment};
+    $p->{note} =~ s/(\\[\\nr])/$unescape{$1}/g if $p->{note};
     return $p;
 }
 
@@ -91,11 +91,11 @@ sub format_content {
     join '', $self->format_operator, $self->format_name;
 }
 
-sub format_comment {
-    my $comment = shift->comment;
-    return '' unless length $comment;
-    $comment =~ s/([\r\n\\])/$escape{$1}/g;
-    return "# $comment";
+sub format_note {
+    my $note = shift->note;
+    return '' unless length $note;
+    $note =~ s/([\r\n\\])/$escape{$1}/g;
+    return "# $note";
 }
 
 sub as_string {
@@ -103,7 +103,7 @@ sub as_string {
     return $self->lspace
          . $self->format_content
          . $self->rspace
-         . $self->format_comment;
+         . $self->format_note;
 }
 
 __PACKAGE__->meta->make_immutable;
@@ -170,11 +170,11 @@ The white space to the right of the operator, if any.
 =item C<rspace>
 
 The white space after the name until the end of the line or the start of a
-comment.
+note.
 
-=item C<comment>
+=item C<note>
 
-A comment. Does not include the leading C<#>, but does include any white space
+A note. Does not include the leading C<#>, but does include any white space
 immediate after the C<#> when the plan file is parsed.
 
 =back
@@ -204,15 +204,15 @@ Returns the white space from the beginning of the line, if any.
   my $rspace = $line->rspace.
 
 Returns the white space after the name until the end of the line or the start
-of a comment.
+of a note.
 
-=head3 C<comment>
+=head3 C<note>
 
-  my $comment = $line->comment.
+  my $note = $line->note.
 
-Returns the comment. Does not include the leading C<#>, but does include any
+Returns the note. Does not include the leading C<#>, but does include any
 white space immediate after the C<#> when the plan file is parsed. Returns the
-empty string if there is no comment.
+empty string if there is no note.
 
 =head2 Instance Methods
 
@@ -239,11 +239,12 @@ space exists, an empty string is returned. Used internally by C<as_string()>.
 Formats and returns the main content of the line. This consists of an operator
 and its associated white space, if any, followed by the formatted name.
 
-=head3 C<format_comment>
+=head3 C<format_note>
 
-  my $comment = $line->format_comment;
+  my $note = $line->format_note;
 
-Returns the comment formatted for output. That is, with a leading C<#>.
+Returns the note formatted for output. That is, with a leading C<#> and
+newlines encoded.
 
 =head3 C<as_string>
 

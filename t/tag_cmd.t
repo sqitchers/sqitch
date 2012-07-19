@@ -29,12 +29,12 @@ isa_ok my $tag = App::Sqitch::Command->load({
 can_ok $CLASS, qw(
     options
     configure
-    message
+    note
     execute
 );
 
 is_deeply [$CLASS->options], [qw(
-    message|m=s@
+    note|n=s@
 )], 'Should have no options';
 
 make_path 'sql';
@@ -47,7 +47,7 @@ ok $tag->execute('alpha'), 'Tag @alpha';
 is $plan->get('@alpha')->name, 'foo', 'Should have tagged "foo"';
 ok $plan->load, 'Reload plan';
 is $plan->get('@alpha')->name, 'foo', 'New tag should have been written';
-is [$plan->tags]->[-1]->comment, '', 'New tag should have empty comment';
+is [$plan->tags]->[-1]->note, '', 'New tag should have empty note';
 
 is_deeply +MockOutput->get_info, [
     [__x
@@ -71,18 +71,18 @@ is_deeply +MockOutput->get_info, [
     ['@beta'],
 ], 'Both tags should have been listed';
 
-# Set a message.
+# Set a note.
 isa_ok $tag = App::Sqitch::Command::tag->new({
-    sqitch  => $sqitch,
-    message => [qw(hello there)],
-}), $CLASS, 'tag command with message';
+    sqitch => $sqitch,
+    note   => [qw(hello there)],
+}), $CLASS, 'tag command with note';
 
 ok $tag->execute( 'gamma' ), 'Tag @gamma';
 is $plan->get('@gamma')->name, 'foo', 'Gamma tag should be on change "foo"';
-is [$plan->tags]->[-1]->comment, "hello\n\nthere", 'Gamma tag should have comment';
+is [$plan->tags]->[-1]->note, "hello\n\nthere", 'Gamma tag should have note';
 ok $plan->load, 'Reload plan';
 is $plan->get('@gamma')->name, 'foo', 'Gamma tag should have been written';
-is [$plan->tags]->[-1]->comment, "hello\n\nthere", 'Written tag should have comment';
+is [$plan->tags]->[-1]->note, "hello\n\nthere", 'Written tag should have note';
 
 is_deeply +MockOutput->get_info, [
     [__x
@@ -90,4 +90,4 @@ is_deeply +MockOutput->get_info, [
         change => 'foo',
         tag    => '@gamma',
     ]
-], 'The gamma message should be correct';
+], 'The gamma note should be correct';

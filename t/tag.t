@@ -28,7 +28,7 @@ can_ok $CLASS, qw(
     name
     lspace
     rspace
-    comment
+    note
     plan
     timestamp
     planner_name
@@ -90,7 +90,7 @@ ok $tag = $CLASS->new(
     change        => $change,
     lspace        => '  ',
     rspace        => "\t",
-    comment       => 'blah blah blah',
+    note          => 'blah blah blah',
     timestamp     => $date,
     planner_name  => 'Barack Obama',
     planner_email => 'potus@whitehouse.gov',

@@ -34,14 +34,14 @@ isa_ok my $rework = App::Sqitch::Command->load({
 can_ok $CLASS, qw(
     requires
     conflicts
-    message
+    note
     execute
 );
 
 is_deeply [$CLASS->options], [qw(
     requires|r=s@
     conflicts|c=s@
-    message|m=s@
+    note|n=s@
 )], 'Options should be set up';
 
 ##############################################################################
@@ -52,18 +52,18 @@ is_deeply $CLASS->configure($config, {}), {},
 is_deeply $CLASS->configure($config, {
     requires  => [qw(foo bar)],
     conflicts => ['baz'],
-    message   => [qw(hi there)],
+    note      => [qw(hi there)],
 }), {
     requires  => [qw(foo bar)],
     conflicts => ['baz'],
-    message   => [qw(hi there)],
-}, 'Should have get requires, conflicts, and message options';
+    note      => [qw(hi there)],
+}, 'Should have get requires, conflicts, and note options';
 
 ##############################################################################
 # Test attributes.
 is_deeply $rework->requires, [], 'Requires should be an arrayref';
 is_deeply $rework->conflicts, [], 'Conflicts should be an arrayref';
-is_deeply $rework->message, [], 'Message should be an arrayref';
+is_deeply $rework->note, [], 'Note should be an arrayref';
 
 ##############################################################################
 # Test execute().
@@ -204,7 +204,7 @@ isa_ok $rework = App::Sqitch::Command::rework->new(
     command   => 'rework',
     config    => $config,
     requires  => ['foo'],
-    message   => [qw(hi there)],
+    note      => [qw(hi there)],
     conflicts => ['dr_evil'],
 ), $CLASS, 'rework command with requirements and conflicts';
 
@@ -228,8 +228,8 @@ is_deeply [$steps[3]->requires], ['bar@beta', 'foo'],
     'Requires should have been passed to reworked change';
 is_deeply [$steps[3]->conflicts], ['dr_evil'],
     'Conflicts should have been passed to reworked change';
-is $steps[3]->comment, "hi\n\nthere",
-    'Message should have been passed as comment';
+is $steps[3]->note, "hi\n\nthere",
+    'Note should have been passed as comment';
 
 is_deeply +MockOutput->get_info, [
     [__x(

@@ -62,11 +62,11 @@ times.
 
 Name of a change that conflicts with the new change. May be specified multiple times.
 
-=item C<-m>
+=item C<-n>
 
-=item C<--message>
+=item C<--note>
 
-A brief message describing the purpose of the reworking. The message will be
+A brief note describing the purpose of the reworking. The note will be
 attached to the change as a comment. Multiple invocations will be concatenated
 together as separate paragraphs.
 

@@ -364,7 +364,7 @@ subtest 'live database' => sub {
     is_deeply $state, {
         change_id       => $change->id,
         change          => 'users',
-        comment         => '',
+        note            => '',
         committer_name  => $sqitch->user_name,
         committer_email => $sqitch->user_email,
         tags            => ['@alpha'],
@@ -396,7 +396,7 @@ subtest 'live database' => sub {
         event           => 'deploy',
         change_id       => $change->id,
         change          => 'users',
-        comment         => '',
+        note            => '',
         requires        => [],
         conflicts       => [],
         tags            => ['@alpha'],
@@ -448,7 +448,7 @@ subtest 'live database' => sub {
         event           => 'revert',
         change_id       => $change->id,
         change          => 'users',
-        comment         => '',
+        note            => '',
         requires        => [],
         conflicts       => [],
         tags            => ['@alpha'],
@@ -492,7 +492,7 @@ subtest 'live database' => sub {
         event           => 'fail',
         change_id       => $change->id,
         change          => 'users',
-        comment         => '',
+        note            => '',
         requires        => [],
         conflicts       => [],
         tags            => ['@alpha'],
@@ -591,7 +591,7 @@ subtest 'live database' => sub {
     is_deeply $state, {
         change_id       => $change2->id,
         change          => 'widgets',
-        comment         => 'All in',
+        note            => 'All in',
         committer_name  => $user2_name,
         committer_email => $user2_email,
         planner_name    => $change2->planner_name,
@@ -645,7 +645,7 @@ subtest 'live database' => sub {
         event           => 'deploy',
         change_id       => $change2->id,
         change          => 'widgets',
-        comment         => 'All in',
+        note            => 'All in',
         requires        => ['users'],
         conflicts       => ['dr_evil'],
         tags            => [],
@@ -659,7 +659,7 @@ subtest 'live database' => sub {
         event           => 'deploy',
         change_id       => $change->id,
         change          => 'users',
-        comment         => '',
+        note            => '',
         requires        => [],
         conflicts       => [],
         tags            => ['@alpha'],
@@ -691,7 +691,7 @@ subtest 'live database' => sub {
     is_deeply [$pg->check_requires($change3)], [qw(barney fred)],
         'Should get back list of missing dependencies';
 
-    # Mock the comment, requires, and conflicts in widget to ensure the
+    # Mock the note, requires, and conflicts in widget to ensure the
     # data is not copied from the plan into revert events.
     my $mock_widget = ref($change2)->new(
         plan          => $plan,
@@ -700,7 +700,7 @@ subtest 'live database' => sub {
         timestamp     => $change2->timestamp,
         planner_name  => $change2->planner_name,
         planner_email => $change2->planner_email,
-        comment       => 'I am not here',
+        note          => 'I am not here',
         requires      => [qw(ignore me)],
         conflicts     => [qw(me too)],
     );
@@ -737,7 +737,7 @@ subtest 'live database' => sub {
     is_deeply $state, {
         change_id       => $change2->id,
         change          => 'widgets',
-        comment         => 'All in',
+        note            => 'All in',
         committer_name  => $sqitch->user_name,
         committer_email => $sqitch->user_email,
         tags            => [],
@@ -754,7 +754,7 @@ subtest 'live database' => sub {
         event           => 'deploy',
         change_id       => $change2->id,
         change          => 'widgets',
-        comment         => 'All in',
+        note            => 'All in',
         requires        => ['users'],
         conflicts       => ['dr_evil'],
         tags            => [],
@@ -768,7 +768,7 @@ subtest 'live database' => sub {
         event           => 'revert',
         change_id       => $change2->id,
         change          => 'widgets',
-        comment         => 'All in',
+        note            => 'All in',
         requires        => ['users'],
         conflicts       => ['dr_evil'],
         tags            => [],
@@ -794,7 +794,7 @@ subtest 'live database' => sub {
     is_deeply $pg->current_state, {
         change_id       => $barney->id,
         change          => 'barney',
-        comment         => '',
+        note            => '',
         committer_name  => $sqitch->user_name,
         committer_email => $sqitch->user_email,
         committed_at    => dt_for_change($barney->id),
@@ -856,7 +856,7 @@ subtest 'live database' => sub {
         event           => 'deploy',
         change_id       => $barney->id,
         change          => 'barney',
-        comment         => '',
+        note            => '',
         requires        => [],
         conflicts       => [],
         tags            => ['@beta', '@gamma'],
@@ -870,7 +870,7 @@ subtest 'live database' => sub {
         event           => 'deploy',
         change_id       => $fred->id,
         change          => 'fred',
-        comment         => '',
+        note            => '',
         requires        => [],
         conflicts       => [],
         tags            => [],
@@ -1026,7 +1026,7 @@ sub dt_for_event {
 
 sub all_changes {
     $pg->_dbh->selectall_arrayref(q{
-        SELECT change_id, change, comment, requires, conflicts,
+        SELECT change_id, change, note, requires, conflicts,
                committer_name, committer_email, planner_name, planner_email
           FROM changes
          ORDER BY committed_at
@@ -1035,7 +1035,7 @@ sub all_changes {
 
 sub all_tags {
     $pg->_dbh->selectall_arrayref(q{
-        SELECT tag_id, tag, change_id, comment,
+        SELECT tag_id, tag, change_id, note,
                committer_name, committer_email, planner_name, planner_email
           FROM tags
          ORDER BY committed_at
@@ -1044,7 +1044,7 @@ sub all_tags {
 
 sub all_events {
     $pg->_dbh->selectall_arrayref(q{
-        SELECT event, change_id, change, comment, requires, conflicts, tags,
+        SELECT event, change_id, change, note, requires, conflicts, tags,
                committer_name, committer_email, planner_name, planner_email
           FROM events
          ORDER BY committed_at

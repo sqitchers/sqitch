@@ -21,7 +21,7 @@ can_ok $CLASS, qw(
     name
     lspace
     rspace
-    comment
+    note
     plan
 );
 
@@ -41,20 +41,20 @@ ok $blank = $CLASS->new(
     plan    => $plan,
     lspace  => '  ',
     rspace  => "\t",
-    comment => 'blah blah blah',
+    note   => 'blah blah blah',
 ), 'Create tag with more stuff';
 
 is $blank->as_string, "  \t# blah blah blah",
     'It should stringify correctly';
 
-ok $blank = $CLASS->new(plan => $plan, comment => "foo\nbar\nbaz\\\n"),
-    'Create a blank with newlines and backslashes in the comment';
-is $blank->comment, "foo\nbar\nbaz\\\n",
+ok $blank = $CLASS->new(plan => $plan, note => "foo\nbar\nbaz\\\n"),
+    'Create a blank with newlines and backslashes in the note';
+is $blank->note, "foo\nbar\nbaz\\\n",
     'The newlines and backslashe should not be escaped';
 
-is $blank->format_comment, '# foo\\nbar\\nbaz\\\\\\n',
-    'The newlines and backslahs should be escaped by format_comment';
+is $blank->format_note, '# foo\\nbar\\nbaz\\\\\\n',
+    'The newlines and backslahs should be escaped by format_note';
 
-ok $blank = $CLASS->new(plan => $plan, comment => "foo\\nbar\\nbaz\\\\\\n"),
+ok $blank = $CLASS->new(plan => $plan, note => "foo\\nbar\\nbaz\\\\\\n"),
     'Create a blank with escapes';
-is $blank->comment, "foo\nbar\nbaz\\\n", 'Comment shoud be unescaped';
+is $blank->note, "foo\nbar\nbaz\\\n", 'Note shoud be unescaped';

@@ -46,7 +46,7 @@ sub as_string {
     return $self->lspace
          . $self->format_content
          . $self->rspace
-         . $self->format_comment;
+         . $self->format_note;
 }
 
 __PACKAGE__->meta->make_immutable;

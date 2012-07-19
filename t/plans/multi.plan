@@ -1,4 +1,4 @@
-# This is a comment
+# This is a note
 
 # And there was a blank line.
 
@@ -7,6 +7,6 @@ you 2012-07-16T17:25:07Z anna <a@n.na>
 @foo 2012-07-16T17:24:07Z julie <j@ul.ie> # look, a tag!
    
 this/rocks  2012-07-16T17:25:07Z Barack Obama <potus@whitehouse.gov>
-hey-there 2012-07-16T17:25:07Z Barack Obama <potus@whitehouse.gov> # trailing comment!
+hey-there 2012-07-16T17:25:07Z Barack Obama <potus@whitehouse.gov> # trailing note!
 @bar 2012-07-16T17:25:07Z Barack Obama <potus@whitehouse.gov>
 @baz 2012-07-16T17:25:07Z Barack Obama <potus@whitehouse.gov>

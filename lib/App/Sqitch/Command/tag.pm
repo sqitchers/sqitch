@@ -12,7 +12,7 @@ extends 'App::Sqitch::Command';
 
 our $VERSION = '0.72';
 
-has message => (
+has note => (
     is       => 'ro',
     isa      => 'ArrayRef[Str]',
     required => 1,
@@ -21,7 +21,7 @@ has message => (
 
 sub options {
     return qw(
-        message|m=s@
+        note|n=s@
     );
 }
 
@@ -32,8 +32,8 @@ sub execute {
 
     if (defined $name) {
         my $tag = $plan->tag(
-            name    => $name,
-            comment => join "\n\n" => @{ $self->message },
+            name => $name,
+            note => join "\n\n" => @{ $self->note },
         );
 
         # We good, write the plan file back out.

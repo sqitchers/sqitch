@@ -43,9 +43,9 @@ isa_ok my $plan = App::Sqitch::Plan->new(sqitch => $sqitch), $CLASS;
 # Set up some some utility functions for creating changes.
 sub blank {
     App::Sqitch::Plan::Blank->new(
-        plan    => $plan,
-        lspace  => $_[0] // '',
-        comment => $_[1] // '',
+        plan   => $plan,
+        lspace => $_[0] // '',
+        note   => $_[1] // '',
     );
 }
 
@@ -135,7 +135,7 @@ sub prag {
         (defined $_[5] ? (ropspace => $_[5]) : ()),
         (defined $_[6] ? (value    => $_[6]) : ()),
         rspace  => $_[7] // '',
-        comment => $_[8] // '',
+        note    => $_[8] // '',
     );
 }
 
@@ -170,10 +170,10 @@ cmp_deeply [$parsed->{changes}->items], [
     change { name => 'hey', ts => '2012-07-16T14:01:20' },
     change { name => 'you', ts => '2012-07-16T14:01:35' },
     tag {
-        name    => 'foo',
-        comment => 'look, a tag!',
-        ts      => '2012-07-16T14:02:05',
-        rspace  => ' '
+        name   => 'foo',
+        note   => 'look, a tag!',
+        ts     => '2012-07-16T14:02:05',
+        rspace => ' '
     },
 ,
 ], 'All "widgets.plan" changes should be parsed';
@@ -181,7 +181,7 @@ cmp_deeply [$parsed->{changes}->items], [
 cmp_deeply [$parsed->{lines}->items], [
     clear,
     version,
-    blank('', 'This is a comment'),
+    blank('', 'This is a note'),
     blank(),
     blank(' ', 'And there was a blank line.'),
     blank(),
@@ -189,11 +189,11 @@ cmp_deeply [$parsed->{lines}->items], [
     change { name => 'you', ts => '2012-07-16T14:01:35' },
 
     tag {
-        ret     => 1,
-        name    => 'foo',
-        comment => 'look, a tag!',
-        ts      => '2012-07-16T14:02:05',
-        rspace  => ' '
+        ret    => 1,
+        name   => 'foo',
+        note   => 'look, a tag!',
+        ts     => '2012-07-16T14:02:05',
+        rspace => ' '
     },
 ], 'All "widgets.plan" lines should be parsed';
 
@@ -210,21 +210,21 @@ cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
         change { name => 'you', planner_name => 'anna',   planner_email => 'a@n.na' },
         tag {
             name          => 'foo',
-            comment       => 'look, a tag!',
+            note          => 'look, a tag!',
             ts            => '2012-07-16T17:24:07',
             rspace        => ' ',
             planner_name  => 'julie',
             planner_email => 'j@ul.ie',
         },
         change { name => 'this/rocks', pspace => '  ' },
-        change { name => 'hey-there', comment => 'trailing comment!', rspace => ' ' },
+        change { name => 'hey-there', note => 'trailing note!', rspace => ' ' },
         tag { name =>, 'bar' },
         tag { name => 'baz' },
     ],
     lines => [
         clear,
         version,
-        blank('', 'This is a comment'),
+        blank('', 'This is a note'),
         blank(),
         blank('', 'And there was a blank line.'),
         blank(),
@@ -233,7 +233,7 @@ cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
         tag {
             ret           => 1,
             name          => 'foo',
-            comment       => 'look, a tag!',
+            note          => 'look, a tag!',
             ts            => '2012-07-16T17:24:07',
             rspace        => ' ',
             planner_name  => 'julie',
@@ -241,7 +241,7 @@ cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
         },
         blank('   '),
         change { name => 'this/rocks', pspace => '  ' },
-        change { name => 'hey-there', comment => 'trailing comment!', rspace => ' ' },
+        change { name => 'hey-there', note => 'trailing note!', rspace => ' ' },
         tag { name =>, 'bar', ret => 1 },
         tag { name => 'baz', ret => 1 },
     ],
@@ -256,7 +256,7 @@ cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
     lines => [
         clear,
         version,
-        blank('', 'This is a comment'),
+        blank('', 'This is a note'),
         blank(),
         blank('', 'And there was a blank line.'),
         blank(),
@@ -550,11 +550,11 @@ cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
         change { name => 'this/rocks', op => '+', pspace => '  ' },
         change { name => 'hey-there', lspace => ' ' },
         change {
-            name    => 'dr_evil',
-            comment => 'revert!',
-            op      => '-',
-            rspace  => ' ',
-            pspace  => '  '
+            name   => 'dr_evil',
+            note   => 'revert!',
+            op     => '-',
+            rspace => ' ',
+            pspace => '  '
         },
         tag    { name => 'bar', lspace => ' ' },
     ],
@@ -569,11 +569,11 @@ cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
         change { name => 'this/rocks', op => '+', pspace => '  ' },
         change { name => 'hey-there', lspace => ' ' },
         change {
-            name    => 'dr_evil',
-            comment => 'revert!',
-            op      => '-',
-            rspace  => ' ',
-            pspace  => '  '
+            name   => 'dr_evil',
+            note   => 'revert!',
+            op     => '-',
+            rspace => ' ',
+            pspace => '  '
         },
         tag    { name => 'bar', lspace => ' ', ret => 1 },
     ],
@@ -638,7 +638,7 @@ isa_ok $plan = App::Sqitch::Plan->new(sqitch => $sqitch), $CLASS,
 cmp_deeply [$plan->lines], [
     clear,
     version,
-    blank('', 'This is a comment'),
+    blank('', 'This is a note'),
     blank(),
     blank('', 'And there was a blank line.'),
     blank(),
@@ -647,7 +647,7 @@ cmp_deeply [$plan->lines], [
     tag {
         ret           => 1,
         name          => 'foo',
-        comment       => 'look, a tag!',
+        note          => 'look, a tag!',
         ts            => '2012-07-16T17:24:07',
         rspace        => ' ',
         planner_name  => 'julie',
@@ -655,7 +655,7 @@ cmp_deeply [$plan->lines], [
     },
     blank('   '),
     change { name => 'this/rocks', pspace => '  ' },
-    change { name => 'hey-there', comment => 'trailing comment!', rspace => ' ' },
+    change { name => 'hey-there', note => 'trailing note!', rspace => ' ' },
     tag { name =>, 'bar', ret => 1 },
     tag { name => 'baz', ret => 1 },
 ], 'Lines should be parsed from file';
@@ -666,14 +666,14 @@ cmp_deeply [$plan->changes], [
     change { name => 'you', planner_name => 'anna',   planner_email => 'a@n.na' },
     tag {
         name          => 'foo',
-        comment       => 'look, a tag!',
+        note          => 'look, a tag!',
         ts            => '2012-07-16T17:24:07',
         rspace        => ' ',
         planner_name  => 'julie',
         planner_email => 'j@ul.ie',
     },
     change { name => 'this/rocks', pspace => '  ' },
-    change { name => 'hey-there', comment => 'trailing comment!', rspace => ' ' },
+    change { name => 'hey-there', note => 'trailing note!', rspace => ' ' },
     tag { name =>, 'bar' },
     tag { name => 'baz' },
 ], 'Changes should be parsed from file';
@@ -682,14 +682,14 @@ clear, change { name => 'you', planner_name => 'anna',   planner_email => 'a@n.n
 my $foo_tag =  tag {
     ret           => 1,
     name          => 'foo',
-    comment       => 'look, a tag!',
+    note          => 'look, a tag!',
     ts            => '2012-07-16T17:24:07',
     rspace        => ' ',
     planner_name  => 'julie',
     planner_email => 'j@ul.ie',
 };
 
-change { name => 'hey-there', rspace => ' ', comment => 'trailing comment!' };
+change { name => 'hey-there', rspace => ' ', note => 'trailing note!' };
 cmp_deeply [$plan->tags], [
     $foo_tag,
     tag { name =>, 'bar', ret => 1 },
@@ -702,7 +702,7 @@ cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
     lines => [
         clear,
         version,
-        blank('', 'This is a comment'),
+        blank('', 'This is a note'),
         blank(),
         blank('', 'And there was a blank line.'),
         blank(),
@@ -711,7 +711,7 @@ cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
         tag {
             ret           => 1,
             name          => 'foo',
-            comment       => 'look, a tag!',
+            note          => 'look, a tag!',
             ts            => '2012-07-16T17:24:07',
             rspace        => ' ',
             planner_name  => 'julie',
@@ -719,7 +719,7 @@ cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
         },
         blank('   '),
         change { name => 'this/rocks', pspace => '  ' },
-        change { name => 'hey-there', comment => 'trailing comment!', rspace => ' ' },
+        change { name => 'hey-there', note => 'trailing note!', rspace => ' ' },
         tag { name =>, 'bar', ret => 1 },
         tag { name => 'baz', ret => 1 },
     ],
@@ -729,14 +729,14 @@ cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
         change { name => 'you', planner_name => 'anna',   planner_email => 'a@n.na' },
         tag {
             name          => 'foo',
-            comment       => 'look, a tag!',
+            note          => 'look, a tag!',
             ts            => '2012-07-16T17:24:07',
             rspace        => ' ',
             planner_name  => 'julie',
             planner_email => 'j@ul.ie',
         },
         change { name => 'this/rocks', pspace => '  ' },
-        change { name => 'hey-there', comment => 'trailing comment!', rspace => ' ' },
+        change { name => 'hey-there', note => 'trailing note!', rspace => ' ' },
         tag { name =>, 'bar' },
         tag { name => 'baz' },
     ],

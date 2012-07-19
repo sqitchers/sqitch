@@ -752,7 +752,7 @@ The current change ID.
 
 The current change name.
 
-=item C<comment>
+=item C<note>
 
 A brief description of the change.
 
@@ -956,7 +956,7 @@ The change ID.
 
 The name of the change.
 
-=item C<comment>
+=item C<note>
 
 A brief description of the change.
 

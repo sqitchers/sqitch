@@ -8,7 +8,6 @@ use Moose;
 
 has '+name' => ( default => '' );
 
-
 sub format_name { '' }
 
 __PACKAGE__->meta->make_immutable;

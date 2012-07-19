@@ -10,4 +10,4 @@ sqitch-rework-usage - Sqitch rework usage statement
 
     -r --requires             require change
     -c --conflicts            declare conflicting change
-    -m --message              set a message describing the reworking
+    -n --note                 a note describing the change

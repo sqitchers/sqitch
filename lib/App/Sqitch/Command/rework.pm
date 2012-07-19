@@ -28,7 +28,7 @@ has conflicts => (
     default  => sub { [] },
 );
 
-has message => (
+has note => (
     is       => 'ro',
     isa      => 'ArrayRef[Str]',
     required => 1,
@@ -39,7 +39,7 @@ sub options {
     return qw(
         requires|r=s@
         conflicts|c=s@
-        message|m=s@
+        note|n=s@
     );
 }
 
@@ -54,7 +54,7 @@ sub execute {
         name      => $name,
         requires  => $self->requires,
         conflicts => $self->conflicts,
-        comment   => join "\n\n" => @{ $self->message },
+        note      => join "\n\n" => @{ $self->note },
     );
 
     # Get the latest instance of the change.

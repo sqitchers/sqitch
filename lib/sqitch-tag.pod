@@ -20,12 +20,12 @@ If called with name specified, a list of the current tags will be output.
 
 =over
 
-=item C<-m>
+=item C<-n>
 
-=item C<--message>
+=item C<--note>
 
-A brief message describing the tag. The message will be attached to the tag as
-a comment. Multiple invocations will be concatenated together as separate
+A brief note describing the tag. The note will be attached to the tag as a
+comment. Multiple invocations will be concatenated together as separate
 paragraphs.
 
 =back
