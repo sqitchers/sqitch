@@ -245,11 +245,18 @@ END {
 }
 
 subtest 'live database' => sub {
-    $sqitch = App::Sqitch->new(
+    my @sqitch_params = (
         db_username => 'postgres',
         top_dir     => Path::Class::dir(qw(t pg)),
         plan_file   => Path::Class::file(qw(t pg sqitch.plan)),
         uri         => URI->new('https://github.com/theory/sqitch/'),
+    );
+    my $user1_name = 'Marge Simpson';
+    my $user1_email = 'marge@example.com';
+    $sqitch = App::Sqitch->new(
+        @sqitch_params,
+        user_name  => $user1_name,
+        user_email => $user1_email,
     );
     $pg = $CLASS->new(sqitch => $sqitch);
     try {
@@ -314,58 +321,83 @@ subtest 'live database' => sub {
 
     is $pg->latest_change_id, $change->id, 'Should get users ID for latest change ID';
 
-    is_deeply $pg->_dbh->selectall_arrayref(
-        'SELECT change_id, change, requires, conflicts, deployed_by FROM changes'
-    ), [[$change->id, 'users', [], [], $pg->committer]],
-        'A record should have been inserted into the changes table';
+    is_deeply all_changes(), [[
+        $change->id, 'users', [], [], $sqitch->user_name, $sqitch->user_email,
+        $change->planner_name, $change->planner_email,
+    ]],'A record should have been inserted into the changes table';
 
-    is_deeply $pg->_dbh->selectall_arrayref(
-        'SELECT event, change_id, change, tags, committed_by FROM events'
-    ), [['deploy', $change->id, 'users', ['@alpha'], $pg->committer]],
+    my @event_data = ([
+        'deploy',
+        $change->id,
+        'users',
+        ['@alpha'],
+        $sqitch->user_name,
+        $sqitch->user_email,
+        $change->planner_name,
+        $change->planner_email
+    ]);
+
+    is_deeply all_events(), \@event_data,
         'A record should have been inserted into the events table';
 
-    is_deeply $pg->_dbh->selectall_arrayref(
-        'SELECT tag_id, tag, change_id, applied_by FROM tags'
-    ), [
-        [$tag->id, '@alpha', $change->id, $pg->committer],
-    ], 'The tag should have been logged';
+    is_deeply all_tags(), [[
+        $tag->id,
+        '@alpha',
+        $change->id,
+        $sqitch->user_name,
+        $sqitch->user_email,
+        $tag->planner_name,
+        $tag->planner_email,
+    ]], 'The tag should have been logged';
 
     is $pg->name_for_change_id($change->id), 'users@alpha',
         'name_for_change_id() should return the change name with tag';
 
     ok my $state = $pg->current_state, 'Get the current state';
-    isa_ok my $dt = delete $state->{deployed_at}, 'App::Sqitch::DateTime',
-        'deployed_at value';
-    is $dt->time_zone->name, 'UTC', 'Deployed_at TZ should be UTC';
+    isa_ok my $dt = delete $state->{committed_at}, 'App::Sqitch::DateTime',
+        'committed_at value';
+    is $dt->time_zone->name, 'UTC', 'committed_at TZ should be UTC';
     is_deeply $state, {
-        change_id   => $change->id,
-        change      => 'users',
-        deployed_by => $pg->committer,
-        tags        => ['@alpha'],
+        change_id       => $change->id,
+        change          => 'users',
+        committer_name  => $sqitch->user_name,
+        committer_email => $sqitch->user_email,
+        tags            => ['@alpha'],
+        planner_name    => $change->planner_name,
+        planner_email   => $change->planner_email,
+        planned_at      => $change->timestamp,
     }, 'The rest of the state should look right';
-    is_deeply all( $pg->current_changes ), [
-        {
-            change_id   => $change->id,
-            change      => 'users',
-            deployed_by => $pg->committer,
-            deployed_at => $dt,
-        },
-    ], 'Should have one current change';
-    is_deeply all( $pg->current_tags ), [
-        {
-            tag_id     => $tag->id,
-            tag        => '@alpha',
-            applied_at => dt_for_tag( $tag->id ),
-            applied_by => $pg->committer,
-        },
-    ], 'Should have one current tags';
+    is_deeply all( $pg->current_changes ), [{
+        change_id       => $change->id,
+        change          => 'users',
+        committer_name  => $sqitch->user_name,
+        committer_email => $sqitch->user_email,
+        committed_at     => $dt,
+        planner_name    => $change->planner_name,
+        planner_email   => $change->planner_email,
+        planned_at      => $change->timestamp,
+    }], 'Should have one current change';
+    is_deeply all( $pg->current_tags ), [{
+        tag_id          => $tag->id,
+        tag             => '@alpha',
+        committed_at      => dt_for_tag( $tag->id ),
+        committer_name  => $sqitch->user_name,
+        committer_email => $sqitch->user_email,
+        planner_name    => $tag->planner_name,
+        planner_email   => $tag->planner_email,
+        planned_at      => $tag->timestamp,
+    }], 'Should have one current tags';
     my @events = ({
-        event     => 'deploy',
-        change_id => $change->id,
-        change    => 'users',
-        tags      => ['@alpha'],
-        committed_by => $pg->committer,
-        committed_at => dt_for_event(0),
+        event           => 'deploy',
+        change_id       => $change->id,
+        change          => 'users',
+        tags            => ['@alpha'],
+        committer_name  => $sqitch->user_name,
+        committer_email => $sqitch->user_email,
+        committed_at    => dt_for_event(0),
+        planned_at      => $change->timestamp,
+        planner_name    => $change->planner_name,
+        planner_email   => $change->planner_email,
     });
     is_deeply all( $pg->search_events ), \@events, 'Should have one event';
 
@@ -376,20 +408,23 @@ subtest 'live database' => sub {
 
     is $pg->latest_change_id, undef, 'Should get undef for latest change';
 
-    is_deeply $pg->_dbh->selectall_arrayref(
-        'SELECT change_id, change, requires, conflicts, deployed_by FROM changes'
-    ), [], 'The record should have been deleted from the changes table';
+    is_deeply all_changes(), [],
+        'The record should have been deleted from the changes table';
+    is_deeply all_tags(), [], 'And the tag record should have been removed';
 
-    is_deeply $pg->_dbh->selectall_arrayref(
-        'SELECT event, change_id, change, tags, committed_by FROM events ORDER BY committed_at'
-    ), [
-        ['deploy', $change->id, 'users', ['@alpha'], $pg->committer],
-        ['revert', $change->id, 'users', ['@alpha'], $pg->committer],
-    ], 'The revert event should have been logged';
+    push @event_data, [
+        'revert',
+        $change->id,
+        'users',
+        ['@alpha'],
+        $sqitch->user_name,
+        $sqitch->user_email,
+        $change->planner_name,
+        $change->planner_email
+    ];
 
-    is_deeply $pg->_dbh->selectall_arrayref(
-        'SELECT tag_id, tag, change_id, applied_by FROM tags'
-    ), [], 'And the tag record should have been remved';
+    is_deeply all_events(), \@event_data,
+        'The revert event should have been logged';
 
     is $pg->name_for_change_id($change->id), undef,
         'name_for_change_id() should no longer return the change name';
@@ -399,12 +434,16 @@ subtest 'live database' => sub {
     is_deeply all( $pg->current_tags ), [], 'Should again have no current tags';
 
     unshift @events => {
-        event     => 'revert',
-        change_id => $change->id,
-        change    => 'users',
-        tags      => ['@alpha'],
-        committed_by => $pg->committer,
-        committed_at => dt_for_event(1),
+        event           => 'revert',
+        change_id       => $change->id,
+        change          => 'users',
+        tags            => ['@alpha'],
+        committer_name  => $sqitch->user_name,
+        committer_email => $sqitch->user_email,
+        committed_at    => dt_for_event(1),
+        planned_at      => $change->timestamp,
+        planner_name    => $change->planner_name,
+        planner_email   => $change->planner_email,
     };
     is_deeply all( $pg->search_events ), \@events, 'Should have two events';
 
@@ -412,43 +451,52 @@ subtest 'live database' => sub {
     # Test log_fail_change().
     ok $pg->log_fail_change($change), 'Fail "users" change';
     ok !$pg->is_deployed_change($change), 'The change still should not be deployed';
-
     is $pg->latest_change_id, undef, 'Should still get undef for latest change';
+    is_deeply all_changes(), [], 'Still should have not changes table record';
+    is_deeply all_tags(), [], 'Should still have no tag records';
 
-    is_deeply $pg->_dbh->selectall_arrayref(
-        'SELECT change_id, change, requires, conflicts, deployed_by FROM changes'
-    ), [], 'Still should have not changes table record';
+    push @event_data, [
+        'fail',
+        $change->id,
+        'users',
+        ['@alpha'],
+        $sqitch->user_name,
+        $sqitch->user_email,
+        $change->planner_name,
+        $change->planner_email
+    ];
 
-    is_deeply $pg->_dbh->selectall_arrayref(
-        'SELECT event, change_id, change, tags, committed_by FROM events ORDER BY committed_at'
-    ), [
-        ['deploy', $change->id, 'users', ['@alpha'], $pg->committer],
-        ['revert', $change->id, 'users', ['@alpha'], $pg->committer],
-        ['fail',   $change->id, 'users', ['@alpha'], $pg->committer],
-    ], 'The fail event should have been logged';
-
-    is_deeply $pg->_dbh->selectall_arrayref(
-        'SELECT tag_id, tag, change_id, applied_by FROM tags'
-    ), [], 'Should still have no tag records';
+    is_deeply all_events(), \@event_data, 'The fail event should have been logged';
     is $pg->current_state, undef, 'Current state should still be undef';
     is_deeply all( $pg->current_changes ), [], 'Should still have no current changes';
     is_deeply all( $pg->current_tags ), [], 'Should still have no current tags';
 
     unshift @events => {
-        event     => 'fail',
-        change_id => $change->id,
-        change    => 'users',
-        tags      => ['@alpha'],
-        committed_by => $pg->committer,
-        committed_at => dt_for_event(2),
+        event           => 'fail',
+        change_id       => $change->id,
+        change          => 'users',
+        tags            => ['@alpha'],
+        committer_name  => $sqitch->user_name,
+        committer_email => $sqitch->user_email,
+        committed_at    => dt_for_event(2),
+        planned_at      => $change->timestamp,
+        planner_name    => $change->planner_name,
+        planner_email   => $change->planner_email,
     };
     is_deeply all( $pg->search_events ), \@events, 'Should have 3 events';
 
     # From here on in, use a different committer.
-    my $committer1 = $pg->committer;
-    my $committer2 = "$committer1\_number_2";
-    my $pg_mocker = Test::MockModule->new($CLASS);
-    $pg_mocker->mock( committer => $committer2 );
+    my $user2_name  = 'Homer Simpson';
+    my $user2_email = 'homer@example.com';
+    $sqitch = App::Sqitch->new(
+        @sqitch_params,
+        user_name  => $user2_name,
+        user_email => $user2_email,
+    );
+    ok $pg = $CLASS->new(
+        sqitch        => $sqitch,
+        sqitch_schema => '__sqitchtest',
+    ), 'Create a pg with differnt user info';
 
     ##########################################################################
     # Test a change with dependencies.
@@ -460,75 +508,132 @@ subtest 'live database' => sub {
     ok $pg->log_deploy_change($change2),    'Deploy second change';
     is $pg->latest_change_id, $change2->id, 'Should get "widgets" ID for latest change ID';
 
-    is_deeply $pg->_dbh->selectall_arrayref(q{
-        SELECT change_id, change, requires, conflicts, deployed_by
-          FROM changes
-         ORDER BY deployed_at
-    }), [
-        [$change->id,  'users', [], [], $pg->committer],
-        [$change2->id, 'widgets', ['users'], ['dr_evil'], $pg->committer],
+    is_deeply all_changes(), [
+        [
+            $change->id,
+            'users',
+            [],
+            [],
+            $user2_name,
+            $user2_email,
+            $change->planner_name,
+            $change->planner_email,
+        ],
+        [
+            $change2->id,
+            'widgets',
+            ['users'],
+            ['dr_evil'],
+            $user2_name,
+            $user2_email,
+            $change2->planner_name,
+            $change2->planner_email,
+        ],
     ], 'Should have both changes and requires/conflcits deployed';
 
-    is_deeply $pg->_dbh->selectall_arrayref(
-        'SELECT event, change_id, change, tags, committed_by FROM events ORDER BY committed_at'
-    ), [
-        ['deploy', $change->id,  'users',   ['@alpha'], $committer1],
-        ['revert', $change->id,  'users',   ['@alpha'], $committer1],
-        ['fail',   $change->id,  'users',   ['@alpha'], $committer1],
-        ['deploy', $change->id,  'users',   ['@alpha'], $committer2],
-        ['deploy', $change2->id, 'widgets', [],         $committer2],
-    ], 'The new change deploy should have been logged';
+    push @event_data, [
+        'deploy',
+        $change->id,
+        'users',
+        ['@alpha'],
+        $user2_name,
+        $user2_email,
+        $change->planner_name,
+        $change->planner_email,
+    ], [
+        'deploy',
+        $change2->id,
+        'widgets',
+        [],
+        $user2_name,
+        $user2_email,
+        $change->planner_name,
+        $change->planner_email,
+    ];
+    is_deeply all_events(), \@event_data,
+        'The new change deploy should have been logged';
 
     is $pg->name_for_change_id($change2->id), 'widgets',
         'name_for_change_id() should return just the change name';
 
     ok $state = $pg->current_state, 'Get the current state again';
-    isa_ok $dt = delete $state->{deployed_at}, 'App::Sqitch::DateTime',
-        'deployed_at value';
-    is $dt->time_zone->name, 'UTC', 'Deployed_at TZ should be UTC';
+    isa_ok $dt = delete $state->{committed_at}, 'App::Sqitch::DateTime',
+        'committed_at value';
+    is $dt->time_zone->name, 'UTC', 'committed_at TZ should be UTC';
     is_deeply $state, {
-        change_id   => $change2->id,
-        change      => 'widgets',
-        deployed_by => $pg->committer,
-        tags        => [],
+        change_id       => $change2->id,
+        change          => 'widgets',
+        committer_name  => $user2_name,
+        committer_email => $user2_email,
+        planner_name    => $change2->planner_name,
+        planner_email   => $change2->planner_email,
+        planned_at      => $change2->timestamp,
+        tags            => [],
     }, 'The state should reference new change';
-    is_deeply all( $pg->current_changes ), [
+
+    my @current_changes = (
         {
-            change_id   => $change2->id,
-            change      => 'widgets',
-            deployed_by => $pg->committer,
-            deployed_at => $dt,
+            change_id       => $change2->id,
+            change          => 'widgets',
+            committer_name  => $user2_name,
+            committer_email => $user2_email,
+            committed_at    => $dt,
+            planner_name    => $change2->planner_name,
+            planner_email   => $change2->planner_email,
+            planned_at      => $change2->timestamp,
         },
         {
-            change_id   => $change->id,
-            change      => 'users',
-            deployed_by => $pg->committer,
-            deployed_at => dt_for_change( $change->id ),
+            change_id       => $change->id,
+            change          => 'users',
+            committer_name  => $user2_name,
+            committer_email => $user2_email,
+            committed_at    => dt_for_change( $change->id ),
+            planner_name    => $change->planner_name,
+            planner_email   => $change->planner_email,
+            planned_at      => $change->timestamp,
         },
-    ], 'Should have two current changes in reverse chronological order';
-    is_deeply all( $pg->current_tags ), [
+    );
+
+    is_deeply all( $pg->current_changes ), \@current_changes,
+        'Should have two current changes in reverse chronological order';
+
+    my @current_tags = (
         {
             tag_id     => $tag->id,
             tag        => '@alpha',
-            applied_at => dt_for_tag( $tag->id ),
-            applied_by => $pg->committer,
+            committer_name  => $user2_name,
+            committer_email => $user2_email,
+            committed_at => dt_for_tag( $tag->id ),
+            planner_name    => $tag->planner_name,
+            planner_email   => $tag->planner_email,
+            planned_at      => $tag->timestamp,
         },
-    ], 'Should again have one current tags';
+    );
+    is_deeply all( $pg->current_tags ), \@current_tags,
+        'Should again have one current tags';
 
     unshift @events => {
-        event     => 'deploy',
-        change_id => $change2->id,
-        change    => 'widgets',
-        tags      => [],
-        committed_by => $committer2,
-        committed_at => dt_for_event(4),
+        event           => 'deploy',
+        change_id       => $change2->id,
+        change          => 'widgets',
+        tags            => [],
+        committer_name  => $user2_name,
+        committer_email => $user2_email,
+        committed_at    => dt_for_event(4),
+        planner_name    => $change2->planner_name,
+        planner_email   => $change2->planner_email,
+        planned_at      => $change2->timestamp,
     }, {
-        event     => 'deploy',
-        change_id => $change->id,
-        change    => 'users',
-        tags      => ['@alpha'],
-        committed_by => $committer2,
-        committed_at => dt_for_event(3),
+        event           => 'deploy',
+        change_id       => $change->id,
+        change          => 'users',
+        tags            => ['@alpha'],
+        committer_name  => $user2_name,
+        committer_email => $user2_email,
+        committed_at    => dt_for_event(3),
+        planner_name    => $change->planner_name,
+        planner_email   => $change->planner_email,
+        planned_at      => $change->timestamp,
     };
     is_deeply all( $pg->search_events ), \@events, 'Should have 5 events';
 
@@ -577,52 +682,46 @@ subtest 'live database' => sub {
         'Should find none after the second';
 
     ok $state = $pg->current_state, 'Get the current state once more';
-    isa_ok $dt = delete $state->{deployed_at}, 'App::Sqitch::DateTime',
-        'deployed_at value';
-    is $dt->time_zone->name, 'UTC', 'Deployed_at TZ should be UTC';
+    isa_ok $dt = delete $state->{committed_at}, 'App::Sqitch::DateTime',
+        'committed_at value';
+    is $dt->time_zone->name, 'UTC', 'committed_at TZ should be UTC';
     is_deeply $state, {
-        change_id   => $change2->id,
-        change      => 'widgets',
-        deployed_by => $pg->committer,
-        tags        => [],
+        change_id       => $change2->id,
+        change          => 'widgets',
+        committer_name  => $sqitch->user_name,
+        committer_email => $sqitch->user_email,
+        tags            => [],
+        planner_name    => $change2->planner_name,
+        planner_email   => $change2->planner_email,
+        planned_at      => $change2->timestamp,
     }, 'The new state should reference latest change';
-    is_deeply all( $pg->current_changes ), [
-        {
-            change_id   => $change2->id,
-            change      => 'widgets',
-            deployed_by => $pg->committer,
-            deployed_at => $dt,
-        },
-        {
-            change_id   => $change->id,
-            change      => 'users',
-            deployed_by => $pg->committer,
-            deployed_at => dt_for_change( $change->id ),
-        },
-    ], 'Should still have two current changes in reverse chronological order';
-    is_deeply all( $pg->current_tags ), [
-        {
-            tag_id     => $tag->id,
-            tag        => '@alpha',
-            applied_at => dt_for_tag( $tag->id ),
-            applied_by => $pg->committer,
-        },
-    ], 'Should still have one current tags';
+    is_deeply all( $pg->current_changes ), \@current_changes,
+        'Should still have two current changes in reverse chronological order';
+    is_deeply all( $pg->current_tags ), \@current_tags,
+        'Should still have one current tags';
 
     unshift @events => {
-        event     => 'deploy',
-        change_id => $change2->id,
-        change    => 'widgets',
-        tags      => [],
-        committed_by => $committer2,
-        committed_at => dt_for_event(6),
+        event           => 'deploy',
+        change_id       => $change2->id,
+        change          => 'widgets',
+        tags            => [],
+        committer_name  => $user2_name,
+        committer_email => $user2_email,
+        committed_at    => dt_for_event(6),
+        planner_name    => $change2->planner_name,
+        planner_email   => $change2->planner_email,
+        planned_at      => $change2->timestamp,
     }, {
-        event     => 'revert',
-        change_id => $change2->id,
-        change    => 'widgets',
-        tags      => [],
-        committed_by => $committer2,
-        committed_at => dt_for_event(5),
+        event           => 'revert',
+        change_id       => $change2->id,
+        change          => 'widgets',
+        tags            => [],
+        committer_name  => $user2_name,
+        committer_email => $user2_email,
+        committed_at    => dt_for_event(5),
+        planner_name    => $change2->planner_name,
+        planner_email   => $change2->planner_email,
+        planned_at      => $change2->timestamp,
     };
     is_deeply all( $pg->search_events ), \@events, 'Should have 7 events';
 
@@ -637,76 +736,87 @@ subtest 'live database' => sub {
 
     is $pg->latest_change_id, $barney->id, 'Latest change should be "barney"';
     is_deeply $pg->current_state, {
-        change_id   => $barney->id,
-        change      => 'barney',
-        deployed_by => $pg->committer,
-        deployed_at => dt_for_change($barney->id),
-        tags        => [qw(@beta @gamma)],
+        change_id       => $barney->id,
+        change          => 'barney',
+        committer_name  => $sqitch->user_name,
+        committer_email => $sqitch->user_email,
+        committed_at    => dt_for_change($barney->id),
+        tags            => [qw(@beta @gamma)],
+        planner_name    => $barney->planner_name,
+        planner_email   => $barney->planner_email,
+        planned_at      => $barney->timestamp,
     }, 'Barney should be in the current state';
 
-    is_deeply all( $pg->current_changes ), [
-        {
-            change_id   => $barney->id,
-            change      => 'barney',
-            deployed_by => $pg->committer,
-            deployed_at => dt_for_change( $barney->id ),
-        },
-        {
-            change_id   => $fred->id,
-            change      => 'fred',
-            deployed_by => $pg->committer,
-            deployed_at => dt_for_change( $fred->id ),
-        },
-        {
-            change_id   => $change2->id,
-            change      => 'widgets',
-            deployed_by => $pg->committer,
-            deployed_at => dt_for_change( $change2->id ),
-        },
-        {
-            change_id   => $change->id,
-            change      => 'users',
-            deployed_by => $pg->committer,
-            deployed_at => dt_for_change( $change->id ),
-        },
-    ], 'Should have all four current changes in reverse chron order';
+    unshift @current_changes => {
+        change_id       => $barney->id,
+        change          => 'barney',
+        committer_name  => $user2_name,
+        committer_email => $user2_email,
+        committed_at    => dt_for_change( $barney->id ),
+        planner_name    => $barney->planner_name,
+        planner_email   => $barney->planner_email,
+        planned_at      => $barney->timestamp,
+    }, {
+        change_id       => $fred->id,
+        change          => 'fred',
+        committer_name  => $user2_name,
+        committer_email => $user2_email,
+        committed_at    => dt_for_change( $fred->id ),
+        planner_name    => $fred->planner_name,
+        planner_email   => $fred->planner_email,
+        planned_at      => $fred->timestamp,
+    };
+
+    is_deeply all( $pg->current_changes ), \@current_changes,
+        'Should have all four current changes in reverse chron order';
 
     my ($beta, $gamma) = $barney->tags;
-    is_deeply all( $pg->current_tags ), [
-        {
-            tag_id     => $gamma->id,
-            tag        => '@gamma',
-            applied_at => dt_for_tag( $gamma->id ),
-            applied_by => $pg->committer,
-        },
-        {
-            tag_id     => $beta->id,
-            tag        => '@beta',
-            applied_at => dt_for_tag( $beta->id ),
-            applied_by => $pg->committer,
-        },
-        {
-            tag_id     => $tag->id,
-            tag        => '@alpha',
-            applied_at => dt_for_tag( $tag->id ),
-            applied_by => $pg->committer,
-        },
-    ], 'Should now have three current tags in reverse chron order';
+
+    unshift @current_tags => {
+        tag_id          => $gamma->id,
+        tag             => '@gamma',
+        committer_name  => $user2_name,
+        committer_email => $user2_email,
+        committed_at    => dt_for_tag( $gamma->id ),
+        planner_name    => $gamma->planner_name,
+        planner_email   => $gamma->planner_email,
+        planned_at      => $gamma->timestamp,
+    }, {
+        tag_id          => $beta->id,
+        tag             => '@beta',
+        committer_name  => $user2_name,
+        committer_email => $user2_email,
+        committed_at    => dt_for_tag( $beta->id ),
+        planner_name    => $beta->planner_name,
+        planner_email   => $beta->planner_email,
+        planned_at      => $beta->timestamp,
+    };
+
+    is_deeply all( $pg->current_tags ), \@current_tags,
+        'Should now have three current tags in reverse chron order';
 
     unshift @events => {
-        event     => 'deploy',
-        change_id => $barney->id,
-        change    => 'barney',
-        tags      => ['@beta', '@gamma'],
-        committed_by => $committer2,
-        committed_at => dt_for_event(8),
+        event           => 'deploy',
+        change_id       => $barney->id,
+        change          => 'barney',
+        tags            => ['@beta', '@gamma'],
+        committer_name  => $user2_name,
+        committer_email => $user2_email,
+        committed_at    => dt_for_event(8),
+        planner_name    => $barney->planner_name,
+        planner_email   => $barney->planner_email,
+        planned_at      => $barney->timestamp,
     }, {
-        event     => 'deploy',
-        change_id => $fred->id,
-        change    => 'fred',
-        tags      => [],
-        committed_by => $committer2,
-        committed_at => dt_for_event(7),
+        event           => 'deploy',
+        change_id       => $fred->id,
+        change          => 'fred',
+        tags            => [],
+        committer_name  => $user2_name,
+        committer_email => $user2_email,
+        committed_at    => dt_for_event(7),
+        planner_name    => $fred->planner_name,
+        planner_email   => $fred->planner_email,
+        planned_at      => $fred->timestamp,
     };
     is_deeply all( $pg->search_events ), \@events, 'Should have 9 events';
 
@@ -743,13 +853,13 @@ subtest 'live database' => sub {
     is $@->message, 'Search direction must be either "ASC" or "DESC"',
         'Search direction error message should be correct';
 
-    is_deeply all( $pg->search_events( committer => $committer1 ) ), \@events,
+    is_deeply all( $pg->search_events( committer => 'Simpson$' ) ), \@events,
         'The committer param to search_events should work';
-    is_deeply all( $pg->search_events( committer => "$committer1\_number" ) ),
+    is_deeply all( $pg->search_events( committer => "^Homer" ) ),
         [ @events[0..5] ],
         'The committer param to search_events should work as a regex';
-    is_deeply all( $pg->search_events( committer => "$committer1\_number\$" ) ), [],
-        qq{Committer regex should fail to match with "$committer1\_number\$"};
+    is_deeply all( $pg->search_events( committer => 'Simpsonized$' ) ), [],
+        qq{Committer regex should fail to match with "Simpsonized\$"};
 
     is_deeply all( $pg->search_events( change => 'users' ) ),
         [ @events[5..$#events] ],
@@ -816,8 +926,10 @@ subtest 'live database' => sub {
 
 };
 
+done_testing;
+
 sub dt_for_change {
-    my $col = $ts2char->('deployed_at');
+    my $col = $ts2char->('committed_at');
     $dtfunc->($pg->_dbh->selectcol_arrayref(
         "SELECT $col FROM changes WHERE change_id = ?",
         undef, shift
@@ -825,7 +937,7 @@ sub dt_for_change {
 }
 
 sub dt_for_tag {
-    my $col = $ts2char->('applied_at');
+    my $col = $ts2char->('committed_at');
     $dtfunc->($pg->_dbh->selectcol_arrayref(
         "SELECT $col FROM tags WHERE tag_id = ?",
         undef, shift
@@ -844,9 +956,35 @@ sub all {
 sub dt_for_event {
     my $col = $ts2char->('committed_at');
     $dtfunc->($pg->_dbh->selectcol_arrayref(
-        "SELECT $col FROM events ORDER BY committed_at DESC OFFSET ? LIMIT 1",
+        "SELECT $col FROM events ORDER BY committed_at ASC OFFSET ? LIMIT 1",
         undef, shift
     )->[0]);
 }
 
-done_testing;
+sub all_changes {
+    $pg->_dbh->selectall_arrayref(q{
+        SELECT change_id, change, requires, conflicts, committer_name, committer_email,
+               planner_name, planner_email
+          FROM changes
+         ORDER BY committed_at
+    });
+}
+
+sub all_tags {
+    $pg->_dbh->selectall_arrayref(q{
+        SELECT tag_id, tag, change_id, committer_name, committer_email,
+               planner_name, planner_email
+          FROM tags
+         ORDER BY committed_at
+    });
+}
+
+sub all_events {
+    $pg->_dbh->selectall_arrayref(q{
+        SELECT event, change_id, change, tags, committer_name, committer_email,
+               planner_name, planner_email
+          FROM events
+         ORDER BY committed_at
+    });
+}
+

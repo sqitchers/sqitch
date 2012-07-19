@@ -706,17 +706,19 @@ it.
 
 =over
 
-=item * Add optional message to each change.
-
-=item * Add C<-m> to rework, add, and tag.
+=item * Add C<requires> and C<conflicts> to the events table.
 
 =item * Update status and log to support timestamps, planners, and comments.
 
-=item * Add URI to info only if set?
-
 =item * Add a project name as a plan pragma.
 
+=item * Add cross-project dependency specification using project name.
+
 =item * Add option to `init` to add/change the name pragma.
+
+=item * Move the URI to a pragma.
+
+=item * Add URI to info only if set?
 
 =item * Add support for C<^> and other shortcuts when specifying changes.
 

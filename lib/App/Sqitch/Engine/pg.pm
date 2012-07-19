@@ -39,15 +39,6 @@ has username => (
     },
 );
 
-has committer => (
-    is      => 'ro',
-    isa     => 'Str',
-    lazy    => 1,
-    default => sub {
-        $ENV{USER} || shift->username || $ENV{PGUSER};
-    },
-);
-
 has password => (
     is       => 'ro',
     isa      => 'Maybe[Str]',
@@ -256,48 +247,107 @@ sub run_handle {
 
 sub log_deploy_change {
     my ($self, $change) = @_;
-    my $dbh = $self->_dbh;
+    my $dbh    = $self->_dbh;
+    my $sqitch = $self->sqitch;
 
-    my ($id, $name, $req, $conf, $committer) = (
+    my ($id, $name, $req, $conf, $user, $email) = (
         $change->id,
         $change->format_name,
         [$change->requires],
         [$change->conflicts],
-        $self->committer,
+        $sqitch->user_name,
+        $sqitch->user_email
     );
 
     $dbh->do(q{
-        INSERT INTO changes (change_id, change, requires, conflicts, deployed_by)
-        VALUES (?, ?, ?, ?, ?)
-    }, undef, $id, $name, $req, $conf, $committer);
+        INSERT INTO changes (
+              change_id
+            , change
+            , requires
+            , conflicts
+            , committer_name
+            , committer_email
+            , planned_at
+            , planner_name
+            , planner_email
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    }, undef,
+        $id,
+        $name,
+        $req,
+        $conf,
+        $user,
+        $email,
+        $change->timestamp->as_string(format => 'iso'),
+        $change->planner_name,
+        $change->planner_email,
+    );
 
-    my @tags = $change->tags;
-    if (@tags) {
-        $dbh->do(
-            'INSERT INTO tags (tag_id, tag, change_id, applied_by) VALUES '
-            . join( ', ', ( q{(?, ?, ?, ?)} ) x @tags ),
+    if ( my @tags = $change->tags ) {
+        $dbh->do(q{
+            INSERT INTO tags (
+                  tag_id
+                , tag
+                , change_id
+                , committer_name
+                , committer_email
+                , planned_at
+                , planner_name
+                , planner_email
+           ) VALUES
+        } . join( ', ', ( q{(?, ?, ?, ?, ?, ?, ?, ?)} ) x @tags ),
             undef,
-            map { ($_->id, $_->format_name, $id, $committer) } @tags
+            map { (
+                $_->id,
+                $_->format_name,
+                $id,
+                $user,
+                $email,
+                $_->timestamp->as_string(format => 'iso'),
+                $_->planner_name,
+                $_->planner_email,
+            ) } @tags
         );
-        @tags = map { $_->format_name } @tags;
     }
 
-    $dbh->do(q{
-        INSERT INTO events (event, change_id, change, tags, committed_by)
-        VALUES ('deploy', ?, ?, ?, ?);
-    }, undef, $id, $name, \@tags, $committer);
-
-    return $self;
+    return $self->_log_event( deploy => $change );
 }
 
 sub log_fail_change {
-    my ( $self, $change ) = @_;
-    my $dbh  = $self->_dbh;
-    my $tags = [ map { $_->format_name } $change->tags ];
+    shift->_log_event( fail => shift );
+}
+
+sub _log_event {
+    my ( $self, $event, $change, $tags) = @_;
+    my $dbh    = $self->_dbh;
+    my $sqitch = $self->sqitch;
+
     $dbh->do(q{
-        INSERT INTO events (event, change_id, change, tags, committed_by)
-        VALUES ('fail', ?, ?, ?, ?);
-    }, undef, $change->id, $change->name, $tags, $self->committer);
+        INSERT INTO events (
+            event,
+            change_id,
+            change,
+            tags,
+            committer_name,
+            committer_email,
+            planned_at,
+            planner_name,
+            planner_email
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+    }, undef,
+        $event,
+        $change->id,
+        $change->name,
+        $tags || [ map { $_->format_name } $change->tags ],
+        $sqitch->user_name,
+        $sqitch->user_email,
+        $change->timestamp->as_string(format => 'iso'),
+        $change->planner_name,
+        $change->planner_email,
+    );
+
     return $self;
 }
 
@@ -318,12 +368,7 @@ sub log_revert_change {
     );
 
     # Log it.
-    $dbh->do(q{
-        INSERT INTO events (event, change_id, change, tags, committed_by)
-        VALUES ('revert', ?, ?, ?, ?);
-    }, undef, $change->id, $change->name, $del_tags, $self->committer);
-
-    return $self;
+    return $self->_log_event( revert => $change, $del_tags );
 }
 
 sub is_deployed_tag {
@@ -394,7 +439,7 @@ sub latest_change_id {
         $self->_dbh->selectcol_arrayref(q{
             SELECT change_id
               FROM changes
-             ORDER BY deployed_at DESC
+             ORDER BY committed_at DESC
              LIMIT 1
         })->[0];
     } catch {
@@ -407,7 +452,7 @@ sub deployed_change_ids {
     return @{ shift->_dbh->selectcol_arrayref(qq{
         SELECT change_id AS id
           FROM changes
-         ORDER BY deployed_at ASC
+         ORDER BY committed_at ASC
     }) };
 }
 
@@ -416,8 +461,8 @@ sub deployed_change_ids_since {
     return @{ $self->_dbh->selectcol_arrayref(qq{
         SELECT change_id
           FROM changes
-         WHERE deployed_at > (SELECT deployed_at FROM changes WHERE change_id = ?)
-         ORDER BY deployed_at ASC
+         WHERE committed_at > (SELECT committed_at FROM changes WHERE change_id = ?)
+         ORDER BY committed_at ASC
     }, undef, $change->id) };
 }
 
@@ -428,7 +473,7 @@ sub name_for_change_id {
             SELECT tag
               FROM changes c2
               JOIN tags ON c2.change_id = tags.change_id
-             WHERE c2.deployed_at >= c.deployed_at
+             WHERE c2.committed_at >= c.committed_at
              LIMIT 1
         ), '')
           FROM changes c
@@ -448,67 +493,84 @@ sub _dt($) {
 
 sub current_state {
     my $self  = shift;
-    my $dtcol = _ts2char 'deployed_at';
+    my $ddtcol = _ts2char 'committed_at';
+    my $pdtcol = _ts2char 'planned_at';
     my $state = $self->_dbh->selectrow_hashref(qq{
         SELECT change_id
              , change
-             , deployed_by
-             , $dtcol AS deployed_at
+             , committer_name
+             , committer_email
+             , $ddtcol AS committed_at
+             , planner_name
+             , planner_email
+             , $pdtcol AS planned_at
              , ARRAY(
                  SELECT tag
                    FROM tags
                   WHERE change_id = changes.change_id
-                  ORDER BY applied_at
+                  ORDER BY committed_at
              ) AS tags
           FROM changes
-         ORDER BY changes.deployed_at DESC
+         ORDER BY changes.committed_at DESC
          LIMIT 1
     }) or return undef;
-    $state->{deployed_at} = _dt $state->{deployed_at};
+    $state->{committed_at} = _dt $state->{committed_at};
+    $state->{planned_at}   = _dt $state->{planned_at};
     return $state;
 }
 
 sub current_changes {
     my $self  = shift;
-    my $dtcol = _ts2char 'deployed_at';
+    my $ddtcol = _ts2char 'committed_at';
+    my $pdtcol = _ts2char 'planned_at';
     my $sth   = $self->_dbh->prepare(qq{
         SELECT change_id
              , change
-             , deployed_by
-             , $dtcol AS deployed_at
+             , committer_name
+             , committer_email
+             , $ddtcol AS committed_at
+             , planner_name
+             , planner_email
+             , $pdtcol AS planned_at
           FROM changes
-         ORDER BY changes.deployed_at DESC
+         ORDER BY changes.committed_at DESC
     });
     $sth->execute;
     return sub {
         my $row = $sth->fetchrow_hashref or return;
-        $row->{deployed_at} = _dt $row->{deployed_at};
+        $row->{committed_at} = _dt $row->{committed_at};
+        $row->{planned_at}   = _dt $row->{planned_at};
         return $row;
     };
 }
 
 sub current_tags {
     my $self  = shift;
-    my $dtcol = _ts2char 'applied_at';
+    my $tdtcol = _ts2char 'committed_at';
+    my $pdtcol = _ts2char 'planned_at';
     my $sth   = $self->_dbh->prepare(qq{
         SELECT tag_id
              , tag
-             , applied_by
-             , $dtcol AS applied_at
+             , committer_name
+             , committer_email
+             , $tdtcol AS committed_at
+             , planner_name
+             , planner_email
+             , $pdtcol AS planned_at
           FROM tags
-         ORDER BY tags.applied_at DESC
+         ORDER BY tags.committed_at DESC
     });
     $sth->execute;
     return sub {
         my $row = $sth->fetchrow_hashref or return;
-        $row->{applied_at} = _dt $row->{applied_at};
+        $row->{committed_at} = _dt $row->{committed_at};
+        $row->{planned_at}   = _dt $row->{planned_at};
         return $row;
     };
 }
 
 sub search_events {
     my ( $self, %p ) = @_;
-    my $dtcol = _ts2char 'committed_at';
 
     # Determine order direction.
     my $dir = 'DESC';
@@ -521,8 +583,9 @@ sub search_events {
     # Limit with regular expressions?
     my (@wheres, @params);
     for my $spec (
-        [ committer => 'committed_by' ],
-        [ change    => 'change'    ],
+        [ committer => 'committer_name' ],
+        [ planner   => 'planner_name'   ],
+        [ change    => 'change'         ],
     ) {
         my $regex = delete $p{ $spec->[0] } // next;
         push @wheres => "$spec->[1] ~ ?";
@@ -546,13 +609,19 @@ sub search_events {
         . join ', ', sort keys %p if %p;
 
     # Prepare, execute, and return.
+    my $cdtcol = _ts2char 'committed_at';
+    my $pdtcol = _ts2char 'planned_at';
     my $sth = $self->_dbh->prepare(qq{
         SELECT event
              , change_id
              , change
              , tags
-             , committed_by
-             , $dtcol AS committed_at
+             , committer_name
+             , committer_email
+             , $cdtcol AS committed_at
+             , planner_name
+             , planner_email
+             , $pdtcol AS planned_at
           FROM events$where
          ORDER BY events.committed_at $dir
          LIMIT COALESCE(?::INT, NULL)
@@ -562,6 +631,7 @@ sub search_events {
     return sub {
         my $row = $sth->fetchrow_hashref or return;
         $row->{committed_at} = _dt $row->{committed_at};
+        $row->{planned_at}   = _dt $row->{planned_at};
         return $row;
     };
 }
