@@ -372,7 +372,7 @@ subtest 'live database' => sub {
         change          => 'users',
         committer_name  => $sqitch->user_name,
         committer_email => $sqitch->user_email,
-        committed_at     => $dt,
+        committed_at    => $dt,
         planner_name    => $change->planner_name,
         planner_email   => $change->planner_email,
         planned_at      => $change->timestamp,
@@ -380,7 +380,7 @@ subtest 'live database' => sub {
     is_deeply all( $pg->current_tags ), [{
         tag_id          => $tag->id,
         tag             => '@alpha',
-        committed_at      => dt_for_tag( $tag->id ),
+        committed_at    => dt_for_tag( $tag->id ),
         committer_name  => $sqitch->user_name,
         committer_email => $sqitch->user_email,
         planner_name    => $tag->planner_name,
