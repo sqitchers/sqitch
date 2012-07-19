@@ -203,26 +203,6 @@ you can use C<%n> for a newline, but an actual newline is okay, too.
 
 =item * C<%L>: Localized title case event type label
 
-=item * C<%{event}_> Localized label for "event"
-
-=item * C<%{change}_> Localized label for "change"
-
-=item * C<%{committer}_> Localized label for "committer"
-
-=item * C<%{planner}_> Localized label for "planner"
-
-=item * C<%{by}_> Localized label for "by"
-
-=item * C<%{date}_> Localized label for "date"
-
-=item * C<%{committed}_> Localized label for "committed"
-
-=item * C<%{planned}_> Localized label for "planned"
-
-=item * C<%{name}_> Localized label for "name"
-
-=item * C<%{email}_> Localized label for "email"
-
 =item * C<%{name}c>: Event committer name
 
 =item * C<%{email}c>: Event committer email address
@@ -274,6 +254,34 @@ you can use C<%n> for a newline, but an actual newline is okay, too.
 =item * C<%T>: Parenthesized list of comma-delimited tags
 
 =item * C<%{$sep}T>: Parenthesized list of tags delimited by C<$sep>
+
+=item * C<%s>: Subject
+
+=item * C<%b>: Body
+
+=item * C<%B>: Raw body (unwrapped subject and body)
+
+=item * C<%{$prefix}>B: Raw body with C<$prefix> prefixed to every line
+
+=item * C<%{event}_> Localized label for "event"
+
+=item * C<%{change}_> Localized label for "change"
+
+=item * C<%{committer}_> Localized label for "committer"
+
+=item * C<%{planner}_> Localized label for "planner"
+
+=item * C<%{by}_> Localized label for "by"
+
+=item * C<%{date}_> Localized label for "date"
+
+=item * C<%{committed}_> Localized label for "committed"
+
+=item * C<%{planned}_> Localized label for "planned"
+
+=item * C<%{name}_> Localized label for "name"
+
+=item * C<%{email}_> Localized label for "email"
 
 =item * C<%v> vertical space (newline)
 

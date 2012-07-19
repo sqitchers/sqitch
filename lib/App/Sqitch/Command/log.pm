@@ -206,6 +206,20 @@ has formatter => (
                     ) unless $_[1] && colorvalid $_[1];
                     color $_[1];
                 },
+                s => sub {
+                    ( my $s = $_[0]->{note} ) =~ s/\v.*//ms;
+                    return $s;
+                },
+                b => sub {
+                    return '' unless $_[0]->{note} =~ /\v/;
+                    ( my $b = $_[0]->{note} ) =~ s/^.+\v+//;
+                    return $b;
+                },
+                B => sub {
+                    return $_[0]->{note} unless defined $_[1];
+                    ( my $note = $_[0]->{note} ) =~ s/^/$_[1]/gms;
+                    return $note;
+                },
             },
         });
     }

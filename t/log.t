@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 168;
+use Test::More tests => 181;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -349,6 +349,22 @@ for my $spec (
     ['%{yellow}C', {}, '' ],
     ['%v', {}, "\n" ],
     ['%%', {}, '%' ],
+
+    ['%s', { note => 'hi there' }, 'hi there' ],
+    ['%s', { note => "hi there\nyo" }, 'hi there' ],
+    ['%s', { note => "subject line\n\nfirst graph\n\nsecond graph\n\n" }, 'subject line' ],
+
+    ['%b', { note => 'hi there' }, '' ],
+    ['%b', { note => "hi there\nyo" }, 'yo' ],
+    ['%b', { note => "subject line\n\nfirst graph\n\nsecond graph\n\n" }, "first graph\n\nsecond graph\n\n" ],
+
+    ['%B', { note => 'hi there' }, 'hi there' ],
+    ['%B', { note => "hi there\nyo" }, "hi there\nyo" ],
+    ['%B', { note => "subject line\n\nfirst graph\n\nsecond graph\n\n" }, "subject line\n\nfirst graph\n\nsecond graph\n\n" ],
+    ['%{  }B', { note => 'hi there' }, '  hi there' ],
+    ['%{xxx }B', { note => "hi there\nyo" }, "xxx hi there\nxxx yo" ],
+    ['%{x}B', { note => "subject line\n\nfirst graph\n\nsecond graph\n\n" }, "xsubject line\nx\nxfirst graph\nx\nxsecond graph\nx\n" ],
+    ['%{ }B', { note => "hi there\r\nyo" }, " hi there\r\n yo" ],
 
 ) {
     (my $desc = $spec->[2]) =~ s/\n/[newline]/g;
