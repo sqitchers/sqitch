@@ -73,7 +73,13 @@ my %unescape = reverse %escape;
 sub BUILDARGS {
     my $class = shift;
     my $p = @_ == 1 && ref $_[0] ? { %{ +shift } } : { @_ };
-    $p->{note} =~ s/(\\[\\nr])/$unescape{$1}/g if $p->{note};
+    if (my $note = $p->{note}) {
+        # Trim and then encode newlines.
+        $note =~ s/\A\v+//;
+        $note =~ s/\v+\z//;
+        $note =~ s/(\\[\\nr])/$unescape{$1}/g if $p->{note};
+        $p->{note} = $note;
+    }
     return $p;
 }
 

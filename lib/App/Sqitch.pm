@@ -706,8 +706,6 @@ it.
 
 =over
 
-=item * Update status and log to support timestamps, planners, and comments.
-
 =item * Add a project name as a plan pragma.
 
 =item * Add cross-project dependency specification using project name.
