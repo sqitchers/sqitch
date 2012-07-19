@@ -191,12 +191,12 @@ $cmock->unmock_all;
 # Test named formats.
 my $dt = App::Sqitch::DateTime->now;
 my $event = {
-    event        => 'deploy',
-    change_id    => '000011112222333444',
-    change       => 'lolz',
-    tags         => ['@beta', '@gamma'],
-    committed_by => 'larry',
-    committed_at => $dt,
+    event          => 'deploy',
+    change_id      => '000011112222333444',
+    change         => 'lolz',
+    tags           => [ '@beta', '@gamma' ],
+    committer_name => 'larry',
+    committed_at   => $dt,
 };
 
 my $iso = $dt->as_string( format => 'iso' );
@@ -294,8 +294,8 @@ for my $spec (
     ['%c', { change => 'foo' }, 'foo'],
     ['%c', { change => 'bar' }, 'bar'],
 
-    ['%a', { committed_by => 'larry'  }, 'larry'],
-    ['%a', { committed_by => 'damian' }, 'damian'],
+    ['%a', { committer_name => 'larry'  }, 'larry'],
+    ['%a', { committer_name => 'damian' }, 'damian'],
 
     ['%t', { tags => [] }, '' ],
     ['%t', { tags => ['@foo'] }, ' @foo' ],
@@ -417,12 +417,12 @@ is_deeply +MockOutput->get_page, [
 
 # Set attributes and add more events.
 my $event2 = {
-    event        => 'revert',
-    change_id    => '84584584359345',
-    change       => 'barf',
-    tags         => [],
-    committed_by => 'theory',
-    committed_at => $dt,
+    event          => 'revert',
+    change_id      => '84584584359345',
+    change         => 'barf',
+    tags           => [],
+    committer_name => 'theory',
+    committed_at   => $dt,
 };
 push @events => {}, $event, $event2;
 isa_ok $log = $CLASS->new(

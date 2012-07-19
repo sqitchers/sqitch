@@ -168,7 +168,7 @@ has formatter => (
                     return $_[0]->{change_id};
                 },
                 c => sub { $_[0]->{change} },
-                a => sub { $_[0]->{committed_by} },
+                a => sub { $_[0]->{committer_name} },
                 t => sub {
                     @{ $_[0]->{tags} }
                         ? ' ' . join $_[1] || ', ' => @{ $_[0]->{tags} }
