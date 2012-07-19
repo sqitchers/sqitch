@@ -706,8 +706,6 @@ it.
 
 =over
 
-=item * Add C<requires> and C<conflicts> to the events table.
-
 =item * Update status and log to support timestamps, planners, and comments.
 
 =item * Add a project name as a plan pragma.
@@ -719,6 +717,8 @@ it.
 =item * Move the URI to a pragma.
 
 =item * Add URI to info only if set?
+
+=item * Add custom formatting support to C<status>.
 
 =item * Add support for C<^> and other shortcuts when specifying changes.
 

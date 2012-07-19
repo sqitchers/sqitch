@@ -59,6 +59,8 @@ CREATE TABLE :"sqitch_schema".events (
     event           TEXT        NOT NULL CHECK (event IN ('deploy', 'revert', 'fail')),
     change_id       TEXT        NOT NULL,
     change          TEXT        NOT NULL,
+    requires        TEXT[]      NOT NULL DEFAULT '{}',
+    conflicts       TEXT[]      NOT NULL DEFAULT '{}',
     tags            TEXT[]      NOT NULL DEFAULT '{}',
     committed_at    TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
     committer_name  TEXT        NOT NULL,
@@ -73,6 +75,8 @@ IS 'Contains full history of all deployment events.';
 COMMENT ON COLUMN :"sqitch_schema".events.event           IS 'Type of event.';
 COMMENT ON COLUMN :"sqitch_schema".events.change_id       IS 'Change ID';
 COMMENT ON COLUMN :"sqitch_schema".events.change          IS 'Change name.';
+COMMENT ON COLUMN :"sqitch_schema".events.requires        IS 'Array of the names of required changes.';
+COMMENT ON COLUMN :"sqitch_schema".events.conflicts       IS 'Array of the names of conflicting changes.';
 COMMENT ON COLUMN :"sqitch_schema".events.tags            IS 'Tags associated with the change';
 COMMENT ON COLUMN :"sqitch_schema".events.committed_at    IS 'Date the event was committed.';
 COMMENT ON COLUMN :"sqitch_schema".events.committer_name  IS 'Name of the user who committed the event.';

@@ -319,28 +319,32 @@ sub log_fail_change {
 }
 
 sub _log_event {
-    my ( $self, $event, $change, $tags) = @_;
+    my ( $self, $event, $change, $tags, $requires, $conflicts) = @_;
     my $dbh    = $self->_dbh;
     my $sqitch = $self->sqitch;
 
     $dbh->do(q{
         INSERT INTO events (
-            event,
-            change_id,
-            change,
-            tags,
-            committer_name,
-            committer_email,
-            planned_at,
-            planner_name,
-            planner_email
+              event
+            , change_id
+            , change
+            , tags
+            , requires
+            , conflicts
+            , committer_name
+            , committer_email
+            , planned_at
+            , planner_name
+            , planner_email
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
     }, undef,
         $event,
         $change->id,
         $change->name,
-        $tags || [ map { $_->format_name } $change->tags ],
+        $tags      || [ map { $_->format_name } $change->tags ],
+        $requires  || [ $change->requires ],
+        $conflicts || [ $change->conflicts ],
         $sqitch->user_name,
         $sqitch->user_email,
         $change->timestamp->as_string(format => 'iso'),
@@ -362,13 +366,13 @@ sub log_revert_change {
     ) || [];
 
     # Delete the change record.
-    $dbh->do(
-        'DELETE FROM changes where change_id = ?',
+    my ($req, $conf) = $dbh->selectrow_array(
+        'DELETE FROM changes where change_id = ? RETURNING requires, conflicts',
         undef, $change->id
     );
 
     # Log it.
-    return $self->_log_event( revert => $change, $del_tags );
+    return $self->_log_event( revert => $change, $del_tags, $req, $conf );
 }
 
 sub is_deployed_tag {
@@ -615,6 +619,8 @@ sub search_events {
         SELECT event
              , change_id
              , change
+             , requires
+             , conflicts
              , tags
              , committer_name
              , committer_email

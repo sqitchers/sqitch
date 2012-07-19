@@ -952,6 +952,18 @@ The change ID.
 
 The name of the change.
 
+=item C<tags>
+
+An array reference of the names of associated tags.
+
+=item C<requires>
+
+An array reference of the names of any changes required by the change.
+
+=item C<conflicts>
+
+An array reference of the names of any changes that conflict with the change.
+
 =item C<committed_at>
 
 An L<App::Sqitch::DateTime> object representing the date and time at which the
