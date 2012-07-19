@@ -118,11 +118,15 @@ sub emit_state {
 
     $self->comment(__x(
         'Deployed: {date}',
-        date => $state->{deployed_at}->as_string(
+        date => $state->{committed_at}->as_string(
             format => $self->date_format
         ),
     ));
-    $self->comment( __x 'By:       {name}', name => $state->{deployed_by} );
+    $self->comment(__x(
+        'By:       {name} <{email}>',
+        name => $state->{committer_name},
+        email=> $state->{committer_email},
+    ));
     return $self;
 }
 
@@ -150,11 +154,12 @@ sub emit_changes {
 
     # Emit each change.
     $self->comment(sprintf(
-        '  %s%s - %s - %s',
+        '  %s%s - %s - %s <%s>',
         $_->{change},
         ((' ') x ($len - length $_->{change})) || '',
-        $_->{deployed_at}->as_string( format => $format ),
-        $_->{deployed_by},
+        $_->{committed_at}->as_string( format => $format ),
+        $_->{committer_name},
+        $_->{committer_email},
     )) for @{ $changes };
 
     return $self;
@@ -182,11 +187,12 @@ sub emit_tags {
 
     # Emit each tag.
     $self->comment(sprintf(
-        '  %s%s - %s - %s',
+        '  %s%s - %s - %s <%s>',
         $_->{tag},
         ((' ') x ($len - length $_->{tag})) || '',
-        $_->{applied_at}->as_string( format => $format ),
-        $_->{applied_by},
+        $_->{committed_at}->as_string( format => $format ),
+        $_->{committer_name},
+        $_->{committer_email},
     )) for @{ $tags };
 
     return $self;

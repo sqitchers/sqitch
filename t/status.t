@@ -74,7 +74,7 @@ is $@->message, __x(
 my $dt = App::Sqitch::DateTime->new(
     year       => 2012,
     month      => 7,
-    day        => 5,
+    day        => 7,
     hour       => 16,
     minute     => 12,
     second     => 47,
@@ -82,11 +82,15 @@ my $dt = App::Sqitch::DateTime->new(
 );
 
 my $state = {
-    change_id   => 'someid',
-    change      => 'widgets_table',
-    deployed_by => 'fred',
-    deployed_at => $dt->clone,
-    tags        => [],
+    change_id       => 'someid',
+    change          => 'widgets_table',
+    committer_name  => 'fred',
+    committer_email => 'fred@example.com',
+    committed_at    => $dt->clone,
+    tags            => [],
+    planner_name    => 'barney',
+    planner_email   => 'barney@example.com',
+    planned_at      => $dt->clone->subtract(days => 2),
 };
 $dt->set_time_zone('local');
 my $ts = $dt->as_string( format => $status->date_format );
@@ -96,7 +100,7 @@ is_deeply +MockOutput->get_comment, [
     [__x 'Change:   {change_id}', change_id => 'someid'],
     [__x 'Name:     {change}',    change    => 'widgets_table'],
     [__x 'Deployed: {date}',      date      => $ts],
-    [__x 'By:       {name}',      name      => 'fred'],
+    [__x 'By:       {name} <{email}>', name => 'fred', email => 'fred@example.com' ],
 ], 'The state should have been emitted';
 
 # Try with a tag.
@@ -107,7 +111,7 @@ is_deeply +MockOutput->get_comment, [
     [__x 'Name:     {change}',    change    => 'widgets_table'],
     [__nx 'Tag:      {tags}', 'Tags:     {tags}', 1, tags => '@alpha'],
     [__x 'Deployed: {date}',      date      => $ts],
-    [__x 'By:       {name}',      name      => 'fred'],
+    [__x 'By:       {name} <{email}>', name => 'fred', email => 'fred@example.com' ],
 ], 'The state should have been emitted with a tag';
 
 # Try with mulitple tags.
@@ -119,7 +123,7 @@ is_deeply +MockOutput->get_comment, [
     [__nx 'Tag:      {tags}', 'Tags:     {tags}', 3,
      tags => join(__ ', ', qw(@alpha @beta @gamma))],
     [__x 'Deployed: {date}',      date      => $ts],
-    [__x 'By:       {name}',      name      => 'fred'],
+    [__x 'By:       {name} <{email}>', name => 'fred', email => 'fred@example.com' ],
 ], 'The state should have been emitted with multiple tags';
 
 ##############################################################################
@@ -128,10 +132,14 @@ my $engine_mocker = Test::MockModule->new('App::Sqitch::Engine::sqlite');
 my @current_changes;
 $engine_mocker->mock(current_changes => sub { sub { shift @current_changes } });
 @current_changes = ({
-    change_id   => 'someid',
-    change      => 'foo',
-    deployed_by => 'anna',
-    deployed_at => $dt,
+    change_id       => 'someid',
+    change          => 'foo',
+    committer_name  => 'anna',
+    committer_email => 'anna@example.com',
+    committed_at    => $dt,
+    planner_name    => 'anna',
+    planner_email   => 'anna@example.com',
+    planned_at      => $dt->clone->subtract( hours => 4 ),
 });
 $sqitch = App::Sqitch->new(uri => $uri, _engine  => 'sqlite');
 ok $status = App::Sqitch::Command->load({
@@ -153,28 +161,40 @@ ok $status->emit_changes, 'Emit changes again';
 is_deeply +MockOutput->get_comment, [
     [''],
     [__n 'Change:', 'Changes:', 1],
-    ["  foo - $ts - anna"],
+    ["  foo - $ts - anna <anna\@example.com>"],
 ], 'Should have emitted one change';
 
 # Add a couple more changes.
 @current_changes = (
     {
-        change_id   => 'someid',
-        change      => 'foo',
-        deployed_by => 'anna',
-        deployed_at => $dt,
+        change_id       => 'someid',
+        change          => 'foo',
+        committer_name  => 'anna',
+        committer_email => 'anna@example.com',
+        committed_at    => $dt,
+        planner_name    => 'anna',
+        planner_email   => 'anna@example.com',
+        planned_at      => $dt->clone->subtract( hours => 4 ),
     },
     {
-        change_id   => 'anid',
-        change      => 'blech',
-        deployed_by => 'david',
-        deployed_at => $dt,
+        change_id       => 'anid',
+        change          => 'blech',
+        committer_name  => 'david',
+        committer_email => 'david@example.com',
+        committed_at    => $dt,
+        planner_name    => 'david',
+        planner_email   => 'david@example.com',
+        planned_at      => $dt->clone->subtract( hours => 4 ),
     },
     {
-        change_id   => 'anotherid',
-        change      => 'long_name',
-        deployed_by => 'julie',
-        deployed_at => $dt,
+        change_id       => 'anotherid',
+        change          => 'long_name',
+        committer_name  => 'julie',
+        committer_email => 'julie@example.com',
+        committed_at    => $dt,
+        planner_name    => 'julie',
+        planner_email   => 'julie@example.com',
+        planned_at      => $dt->clone->subtract( hours => 4 ),
     },
 );
 
@@ -182,9 +202,9 @@ ok $status->emit_changes, 'Emit changes thrice';
 is_deeply +MockOutput->get_comment, [
     [''],
     [__n 'Change:', 'Changes:', 3],
-    ["  foo       - $ts - anna"],
-    ["  blech     - $ts - david"],
-    ["  long_name - $ts - julie"],
+    ["  foo       - $ts - anna <anna\@example.com>"],
+    ["  blech     - $ts - david <david\@example.com>"],
+    ["  long_name - $ts - julie <julie\@example.com>"],
 ], 'Should have emitted three changes';
 
 ##############################################################################
@@ -208,38 +228,54 @@ is_deeply +MockOutput->get_comment, [
 ], 'Should have emitted a header for no tags';
 
 @current_tags = ({
-    tag_id     => 'tagid',
-    tag        => '@alpha',
-    applied_by => 'duncan',
-    applied_at => $dt,
+    tag_id          => 'tagid',
+    tag             => '@alpha',
+    committer_name  => 'duncan',
+    committer_email => 'duncan@example.com',
+    committed_at    => $dt,
+    planner_name    => 'duncan',
+    planner_email   => 'duncan@example.com',
+    planned_at      => $dt->clone->subtract( hours => 4 ),
 });
 
 ok $status->emit_tags, 'Emit tags';
 is_deeply +MockOutput->get_comment, [
     [''],
     [__n 'Tag:', 'Tags:', 1],
-    ["  \@alpha - $ts - duncan"],
+    ["  \@alpha - $ts - duncan <duncan\@example.com>"],
 ], 'Should have emitted one tag';
 
 # Add a couple more tags.
 @current_tags = (
     {
-        tag_id     => 'tagid',
-        tag        => '@alpha',
-        applied_by => 'duncan',
-        applied_at => $dt,
+        tag_id          => 'tagid',
+        tag             => '@alpha',
+        committer_name  => 'duncan',
+        committer_email => 'duncan@example.com',
+        committed_at    => $dt,
+        planner_name    => 'duncan',
+        planner_email   => 'duncan@example.com',
+        planned_at      => $dt->clone->subtract( hours => 4 ),
     },
     {
-        tag_id     => 'myid',
-        tag        => '@beta',
-        applied_by => 'nick',
-        applied_at => $dt,
+        tag_id          => 'myid',
+        tag             => '@beta',
+        committer_name  => 'nick',
+        committer_email => 'nick@example.com',
+        committed_at    => $dt,
+        planner_name    => 'nick',
+        planner_email   => 'nick@example.com',
+        planned_at      => $dt->clone->subtract( hours => 4 ),
     },
     {
-        tag_id     => 'yourid',
-        tag        => '@gamma',
-        applied_by => 'jacqueline',
-        applied_at => $dt,
+        tag_id          => 'yourid',
+        tag             => '@gamma',
+        committer_name  => 'jacqueline',
+        committer_email => 'jacqueline@example.com',
+        committed_at    => $dt,
+        planner_name    => 'jacqueline',
+        planner_email   => 'jacqueline@example.com',
+        planned_at      => $dt->clone->subtract( hours => 4 ),
     },
 );
 
@@ -247,9 +283,9 @@ ok $status->emit_tags, 'Emit tags again';
 is_deeply +MockOutput->get_comment, [
     [''],
     [__n 'Tag:', 'Tags:', 3],
-    ["  \@alpha - $ts - duncan"],
-    ["  \@beta  - $ts - nick"],
-    ["  \@gamma - $ts - jacqueline"],
+    ["  \@alpha - $ts - duncan <duncan\@example.com>"],
+    ["  \@beta  - $ts - nick <nick\@example.com>"],
+    ["  \@gamma - $ts - jacqueline <jacqueline\@example.com>"],
 ], 'Should have emitted all three tags';
 
 ##############################################################################
@@ -313,7 +349,7 @@ is_deeply +MockOutput->get_comment, [
     [__nx 'Tag:      {tags}', 'Tags:     {tags}', 3,
      tags => join(__ ', ', qw(@alpha @beta @gamma))],
     [__x 'Deployed: {date}',      date      => $ts],
-    [__x 'By:       {name}',      name      => 'fred'],
+    [__x 'By:       {name} <{email}>', name => 'fred', email => 'fred@example.com'],
     [''],
 ], 'The state should have been emitted';
 is_deeply +MockOutput->get_emit, [
@@ -321,7 +357,7 @@ is_deeply +MockOutput->get_emit, [
     map { ['  * ', $_->format_name_with_tags] } @changes[2..$#changes],
 ], 'Should emit list of undeployed changes';
 
-# Test with no chnages.
+# Test with no changes.
 $engine_mocker->mock( current_state => undef );
 throws_ok { $status->execute } 'App::Sqitch::X', 'Die on no state';
 is $@->ident, 'status', 'No state error ident should be "status"';
