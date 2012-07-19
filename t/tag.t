@@ -64,13 +64,13 @@ is $tag->format_planner, join(
     '<' . $sqitch->user_email . '>'
 ), 'Planner name and email should format properly';
 
-my $ts = $change->timestamp->as_string;
+my $ts = $tag->timestamp->as_string;
 is $tag->as_string, "\@foo $ts ". $tag->format_planner,
     'Should as_string to "@foo" + timstamp + planner';
 is $tag->info, join("\n",
     'tag @foo',
     'change ' . $change->id,
-    'planner ' . $change->format_planner,
+    'planner ' . $tag->format_planner,
     'date '    . $ts,
 ), 'Tag info should be correct';
 
@@ -137,8 +137,8 @@ ok $tag = $CLASS->new(
 is $tag->info, join("\n",
     'tag '     . '@阱阪阬',
     'change '  . $change->id,
-    'planner ' . $change->format_planner,
-    'date '    . $change->timestamp->as_string,
+    'planner ' . $tag->format_planner,
+    'date '    . $tag->timestamp->as_string,
 ), 'The name should be decoded text';
 
 is $tag->id, do {
