@@ -75,48 +75,58 @@ my %unescape = reverse %escape;
 sub BUILDARGS {
     my $class = shift;
     my $p = @_ == 1 && ref $_[0] ? { %{ +shift } } : { @_ };
-    my $note = $p->{note} // '';
-
-    if ( delete $p->{require_note} && $note !~ /\S/ ) {
-        # If no plan, params are invalid, so return and let Moose catch it.
-        my $plan = $p->{plan} || return $p;
-
-        # Edit in a file.
-        require File::Temp;
-        my $tmp = File::Temp->new;
-        ( my $prompt = $class->note_prompt ) =~ s/^/# /gms;
-        $tmp->print( $/, $prompt, $/ );
-        $tmp->close;
-
-        $plan->sqitch->run( $plan->sqitch->editor, "$tmp" );
-
-        open my $fh, '<:encoding(UTF-8)', $tmp or hurl add => __x(
-            'Cannot open {file}: {error}',
-            file  => $tmp,
-            error => $!
-        );
-
-        $note = join '', grep { $_ !~ /^\s*#/ } <$fh>;
-        hurl {
-            ident   => 'plan',
-            message => __ 'Aborting due to empty note',
-            exitval => 1,
-        } unless $note =~ /\S/;
-    }
-
-    if ($note) {
+    if (my $note = $p->{note}) {
         # Trim and then encode newlines.
         $note =~ s/\A\v+//;
         $note =~ s/\v+\z//;
         $note =~ s/(\\[\\nr])/$unescape{$1}/gl;
         $p->{note} = $note;
     }
-
     return $p;
 }
 
+sub request_note {
+    my ( $self, %p ) = @_;
+    my $note = $self->note // '';
+    return $note if $note =~ /\S/;
+
+    # Edit in a file.
+    require File::Temp;
+    my $tmp = File::Temp->new;
+    ( my $prompt = $self->note_prompt(%p) ) =~ s/^/# /gms;
+    $tmp->print( $/, $prompt, $/ );
+    $tmp->close;
+
+    $self->sqitch->run( $self->sqitch->editor, "$tmp" );
+
+    open my $fh, '<:encoding(UTF-8)', $tmp or hurl add => __x(
+        'Cannot open {file}: {error}',
+        file  => $tmp,
+        error => $!
+    );
+
+    $note = join '', grep { $_ !~ /^\s*#/ } <$fh>;
+    hurl {
+        ident   => 'plan',
+        message => __ 'Aborting due to empty note',
+        exitval => 1,
+    } unless $note =~ /\S/;
+
+    # Trim the note.
+    $note =~ s/\A\v+//;
+    $note =~ s/\v+\z//;
+
+    # Set the note via the meta API, bypassing the read-only constraint.
+    $self->meta->find_attribute_by_name('note')->set_value($self, $note);
+    return $note;
+}
+
 sub note_prompt {
-    __ "Write a note.\nLines starting with '#' will be ignored.";
+    my ( $self, %p ) = @_;
+    __x(
+        "Write a {command} note.\nLines starting with '#' will be ignored.",
+        command => $p{for}
+    );
 }
 
 sub format_name {
@@ -174,15 +184,6 @@ L<App::Sqitch::Plan::Blank> for concrete subclasses.
 
 =head1 Interface
 
-=head2 Class Methods
-
-=head3 C<note_prompt>
-
-  my $prompt = App::Sqitch::Plan::Line->note_prompt;
-
-Returns a localized string for use in the temporary file created when the
-C<require_note> parameter is passed to C<new()>.
-
 =head2 Constructors
 
 =head3 C<new>
@@ -227,13 +228,6 @@ note.
 
 A note. Does not include the leading C<#>, but does include any white space
 immediate after the C<#> when the plan file is parsed.
-
-=item C<require_note>
-
-Require a note if set to true. If no note is provided, an editor will be
-launched and the user asked to write one. Once the editor exits, the note will
-be retrieved from the file. If no note was written, an exception will be
-thrown with an C<extival> of 1.
 
 =back
 
@@ -310,6 +304,25 @@ newlines encoded.
 
 Returns the full stringification of the line, suitable for output to a plan
 file.
+
+=head3 C<request_note>
+
+  my $note = $line->request_note( for => 'add' );
+
+Request the note from the user. Pass in the name of the command for which the
+note is requested via the C<for> parameter. If there is a note, it is simply
+returned. Otherwise, an editor will be launched and the user asked to write
+one. Once the editor exits, the note will be retrieved from the file, saved,
+and returned. If no note was written, an exception will be thrown with an
+C<extival> of 1.
+
+=head3 C<note_prompt>
+
+  my $prompt = $line->note_prompt( for => 'tag' );
+
+Returns a localized string for use in the temporary file created by
+C<request_note()>. Pass in the name of the command for which to prompt via the
+C<for> parameter.
 
 =head1 See Also
 

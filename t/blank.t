@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 33;
+use Test::More tests => 34;
 #use Test::More 'no_plan';
 use Locale::TextDomain qw(App-Sqitch);
 use Test::NoWarnings;
@@ -28,6 +28,7 @@ can_ok $CLASS, qw(
     rspace
     note
     plan
+    request_note
     note_prompt
 );
 
@@ -81,18 +82,20 @@ for my $spec (
 
 ##############################################################################
 # Test note requirement.
-is $blank->note_prompt,
-    __ "Write a note.\nLines starting with '#' will be ignored.",
-    'Should have localized not prompt';
+is $blank->note_prompt(for => 'add'), __x(
+    "Write a {command} note.\nLines starting with '#' will be ignored.",
+    command => 'add'
+), 'Should have localized not prompt';
 
 my $sqitch_mocker = Test::MockModule->new('App::Sqitch');
 my $note = '';
+my $for  = 'add';
 $sqitch_mocker->mock(run => sub {
     my ( $self, $editor, $fn ) = @_;
     is $editor, $sqitch->editor, 'First arg to run() should be editor';
     file_exists_ok $fn, 'Temp file should exist';
 
-    ( my $prompt = $CLASS->note_prompt ) =~ s/^/# /gms;
+    ( my $prompt = $CLASS->note_prompt(for => $for) ) =~ s/^/# /gms;
     file_contents_is $fn, "$/$prompt$/", 'Temp file contents should include prompt';
 
     if ($note) {
@@ -103,7 +106,8 @@ $sqitch_mocker->mock(run => sub {
 
 });
 
-throws_ok { $CLASS->new(plan => $plan, require_note => 1 ) } 'App::Sqitch::X',
+throws_ok { $CLASS->new(plan => $plan )->request_note(for => $for) }
+    'App::Sqitch::X',
     'Should get exception for no note text';
 is $@->ident, 'plan', 'No note error ident should be "plan"';
 is $@->message, __ 'Aborting due to empty note',
@@ -111,7 +115,11 @@ is $@->message, __ 'Aborting due to empty note',
 is $@->exitval, 1, 'Exit val should be 1';
 
 # Now write a note.
+$for = 'rework';
 $note = "This is my awesome note.\n";
-ok $blank = $CLASS->new(plan => $plan, require_note => 1 ),
-    'Add a note via the editor';
-is $blank->note, 'This is my awesome note.', 'The note should be set';
+$blank = $CLASS->new(plan => $plan );
+is $blank->request_note(for => $for), 'This is my awesome note.', 'Request note';
+$note = '';
+is $blank->note, 'This is my awesome note.', 'Should have the edited note';
+is $blank->request_note(for => $for), 'This is my awesome note.',
+    'The request should not prompt again';
