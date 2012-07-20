@@ -50,7 +50,6 @@ Module::Build::Sqitch->new(
         'Throwable'                                    => 0,
         'Try::Tiny'                                    => 0,
         'User::pwent'                                  => 0,
-        'UUID::Tiny'                                   => '1.02',
         'URI'                                          => 0,
     },
     build_requires => {

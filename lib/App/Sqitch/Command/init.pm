@@ -86,7 +86,7 @@ sub write_plan {
     $fh->print(
         '%syntax-version=', App::Sqitch::Plan::SYNTAX_VERSION(), $/,
         '%project=', $project, $/,
-        ( $self->uri ? ('%uri=', $self->uri, $/) : () ), $/,
+        ( $self->uri ? ('%uri=', $self->uri->canonical, $/) : () ), $/,
     );
     $fh->close or hurl add => __x(
         'Error closing {file}: {error}',
@@ -111,19 +111,6 @@ sub write_config {
     }
 
     my ( @vars, @comments );
-
-    # Start with a URI.
-    my $uri = try { $sqitch->uri } || do {
-        require UUID::Tiny;
-        require URI;
-        URI->new(
-            'urn:uuid:' . UUID::Tiny::create_uuid_as_string(UUID::Tiny::UUID_V4())
-        );
-    };
-    push @vars => {
-        key   => 'core.uri',
-        value => $uri->canonical,
-    };
 
     # Write the engine.
     my $engine = $sqitch->engine;
