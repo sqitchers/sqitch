@@ -4,15 +4,29 @@ sqitch-init - Create a new Sqitch project
 
 =head1 Synopsis
 
-  sqitch [options] init
+  sqitch [options] init [<init-options>] project
+  sqitch [options] init --uri uri project
 
 =head1 Description
 
-This command creates an new Sqitch project -- basically a F<sqitch.conf> file
-and a F<sql> directory with F<deploy>, F<revert>, and F<test> subdirectories.
+This command creates an new Sqitch project -- basically a F<sqitch.conf> file,
+a F<sqitch.plan> file, and a F<sql> directory with F<deploy>, F<revert>, and
+F<test> subdirectories.
 
 Running sqitch init in an existing repository is safe. It will not overwrite
 things that are already there.
+
+=head1 Options
+
+=over
+
+=item C<--uri>
+
+Optional URI to associate with the project. If present, the URI will be
+written to the project plan and used for added uniqueness in hashed object
+IDs.
+
+=back
 
 =head1 Configuration
 
@@ -21,10 +35,6 @@ F<sqitch.conf>. While the C<init> command has no options of its own, it relies
 on several of the options to C<sqitch> to determine what to write to this file:
 
 =over
-
-=item C<--uri>
-
-Sets the C<core.uri> configuration variable.
 
 =item C<--plan-file>
 

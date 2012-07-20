@@ -688,8 +688,6 @@ it.
 
 =item * Add cross-project dependency specification using project name.
 
-=item * Add option to `init` to add/change the name pragma.
-
 =item * Add URI to info only if set?
 
 =item * Add custom formatting support to C<status>.
