@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 78;
+use Test::More tests => 80;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -137,6 +137,12 @@ BEGIN;
 COMMIT;
 EOF
 
+# The note should have been required.
+is_deeply \%request_params, {
+    for => __ 'rework',
+    scripts => [$deploy_file, $revert_file, $test_file],
+}, 'It should have prompted for a note';
+
 # The plan file should have been updated.
 ok $plan->load, 'Reload the plan file';
 ok my @steps = $plan->changes, 'Get the steps';
@@ -222,6 +228,12 @@ file_exists_ok($deploy_file);
 file_not_exists_ok($_) for ($revert_file, $test_file);
 file_exists_ok($deploy_file3);
 file_not_exists_ok($_) for ($revert_file3, $test_file3);
+
+# The note should have been required.
+is_deeply \%request_params, {
+    for => __ 'rework',
+    scripts => [$deploy_file],
+}, 'It should have prompted for a note';
 
 # The plan file should have been updated.
 ok $plan->load, 'Reload the plan file again';

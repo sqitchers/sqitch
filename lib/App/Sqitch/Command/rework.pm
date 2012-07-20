@@ -62,6 +62,16 @@ sub execute {
         $name . [$plan->last_tagged_change->tags]->[-1]->format_name
     );
 
+    # Make sure we have a note.
+    $reworked->request_note(
+        for     => __ 'rework',
+        scripts => [
+            (-e $reworked->deploy_file ? $reworked->deploy_file : ()),
+            (-e $reworked->revert_file ? $reworked->revert_file : ()),
+            (-e $reworked->test_file   ? $reworked->test_file   : ()),
+        ],
+    );
+
     # Copy files to the new names for the previous instance of the change.
     my @files = (
         $self->_copy(
