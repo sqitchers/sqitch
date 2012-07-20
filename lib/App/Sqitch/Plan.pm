@@ -14,7 +14,7 @@ use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use namespace::autoclean;
 use Moose;
-use constant SYNTAX_VERSION => '1.0.0-a1';
+use constant SYNTAX_VERSION => '1.0.0-b1';
 
 our $VERSION = '0.72';
 
@@ -44,13 +44,10 @@ has position => (
 sub load {
     my $self = shift;
     my $file = $self->sqitch->plan_file;
-    # XXX Issue a warning if file does not exist?
-    return {
-        changes => App::Sqitch::Plan::ChangeList->new,
-        lines => App::Sqitch::Plan::LineList->new(
-            $self->_version_line,
-        ),
-    } unless -f $file;
+    hurl plan => __x('Plan file {file} does not exist', file => $file)
+        unless -e $file;
+    hurl plan => __x('Plan file {file} is not a regular file', file => $file)
+        unless -f $file;
     my $fh = $file->open('<:encoding(UTF-8)') or hurl plan => __x(
         'Cannot open {file}: {error}',
         file  => $file,
@@ -68,6 +65,7 @@ sub _parse {
     my %line_no_for;   # Maps tags and changes to line numbers.
     my %change_named;  # Maps change names to change objects.
     my %tag_changes;   # Maps changes in current tag section to line numbers.
+    my %pragmas;       # Maps pragma names to values.
     my $seen_version;  # Have we seen a version pragma?
     my $prev_tag;      # Last seen tag.
     my $prev_change;   # Last seen change.
@@ -142,11 +140,15 @@ sub _parse {
                 # Set explicit version in case we write it out later. In
                 # future releases, may change parsers depending on the
                 # version.
-                $params{value} = SYNTAX_VERSION;
-                $seen_version = 1;
+                $pragmas{syntax_version} = $params{value} = SYNTAX_VERSION;
+            } else {
+                $pragmas{ $+{name} } = $+{value} // 1;
             }
-            my $prag = App::Sqitch::Plan::Pragma->new( plan => $self, %+, %params );
-            push @lines => $prag;
+            push @lines => App::Sqitch::Plan::Pragma->new(
+                plan => $self,
+                %+,
+                %params
+            );
             next LINE;
         }
 
@@ -324,11 +326,21 @@ sub _parse {
     push @changes => $self->sort_changes(\%line_no_for, @curr_changes) if @curr_changes;
 
     # We should have a version pragma.
-    unshift @lines => $self->_version_line unless $seen_version;
+    unless ( $pragmas{syntax_version} ) {
+        unshift @lines => $self->_version_line;
+        $pragmas{syntax_version} = SYNTAX_VERSION;
+    }
+
+    # Should have project pragma.
+    hurl plan => __x(
+        'Missing %project pragma in {file}',
+        file => $file,
+    ) unless $pragmas{project};
 
     return {
         changes => App::Sqitch::Plan::ChangeList->new(@changes),
-        lines => App::Sqitch::Plan::LineList->new(@lines),
+        lines   => App::Sqitch::Plan::LineList->new(@lines),
+        pragmas => \%pragmas,
     };
 }
 
@@ -422,6 +434,8 @@ sub open_script {
     );
 }
 
+sub syntax_version { shift->_plan->{pragmas}{syntax_version} };
+sub project        { shift->_plan->{pragmas}{project} };
 sub lines          { shift->_plan->{lines}->items }
 sub changes        { shift->_plan->{changes}->changes }
 sub tags           { shift->_plan->{changes}->tags }
@@ -714,6 +728,19 @@ Returns the current position of the iterator. This is an integer that's used
 as an index into plan. If C<next()> has not been called, or if C<reset()> has
 been called, the value will be -1, meaning it is outside of the plan. When
 C<next> returns C<undef>, the value will be the last index in the plan plus 1.
+
+=head3 C<project>
+
+  my $project = $plan->project;
+
+Returns the name of the project as set via the C<%project> pragma in the plan
+file.
+
+=head3 C<syntax_version>
+
+  my $syntax_version = $plan->syntax_version;
+
+Returns the plan syntax version, which is always the latest version.
 
 =head2 Instance Methods
 

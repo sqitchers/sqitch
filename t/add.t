@@ -221,6 +221,10 @@ is $ { $add->_slurp($tmpl)}, contents_of $tmpl,
 ##############################################################################
 # Test _add().
 make_path 'sql';
+my $fn = $sqitch->plan_file;
+open my $fh, '>', $fn or die "Cannot open $fn: $!";
+say $fh '%project=add';
+close $fh or die "Error closing $fn: $!";
 END { remove_tree 'sql' };
 my $out = file 'sql', 'sqitch_change_test.sql';
 file_not_exists_ok $out;

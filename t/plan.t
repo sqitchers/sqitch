@@ -181,6 +181,7 @@ cmp_deeply [$parsed->{changes}->items], [
 cmp_deeply [$parsed->{lines}->items], [
     clear,
     version,
+    prag( '', '', 'project', '', '=', '', 'widgets'),
     blank('', 'This is a note'),
     blank(),
     blank(' ', 'And there was a blank line.'),
@@ -203,6 +204,10 @@ $fh = $file->open('<:encoding(UTF-8)');
 ok $parsed = $plan->_parse($file, $fh),
     'Should parse multi-tagged "multi.plan"';
 is sorted, 2, 'Should have sorted changes twice';
+cmp_deeply delete $parsed->{pragmas}, {
+    syntax_version => App::Sqitch::Plan::SYNTAX_VERSION,
+    project        => 'multi',
+}, 'Should have captured the multi pragmas';
 cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
     changes => [
         clear,
@@ -224,6 +229,7 @@ cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
     lines => [
         clear,
         version,
+        prag( '', '', 'project', '', '=', '', 'multi'),
         blank('', 'This is a note'),
         blank(),
         blank('', 'And there was a blank line.'),
@@ -252,10 +258,15 @@ $file = file qw(t plans changes-only.plan);
 $fh = $file->open('<:encoding(UTF-8)');
 ok $parsed = $plan->_parse($file, $fh), 'Should read plan with no tags';
 is sorted, 1, 'Should have sorted changes';
+cmp_deeply delete $parsed->{pragmas}, {
+    syntax_version => App::Sqitch::Plan::SYNTAX_VERSION,
+    project        => 'changes_only',
+}, 'Should have captured the changes-only pragmas';
 cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
     lines => [
         clear,
         version,
+        prag( '', '', 'project', '', '=', '', 'changes_only'),
         blank('', 'This is a note'),
         blank(),
         blank('', 'And there was a blank line.'),
@@ -281,7 +292,7 @@ is $@->ident, 'plan', 'Bad change name error ident should be "plan"';
 is $@->message, __x(
     'Syntax error in {file} at line {line}: {error}',
     file => $file,
-    line => 4,
+    line => 5,
     error => __(
         'Invalid name; names must not begin or end in '
          . 'punctuation or end in digits following punctuation',
@@ -324,6 +335,12 @@ for my $name (@bad_names) {
 
 # Try some valid change and tag names.
 my $tsnp = '2012-07-16T17:25:07Z Barack Obama <potus@whitehouse.gov>';
+my $foo_proj = App::Sqitch::Plan::Pragma->new(
+    plan     => $plan,
+    name     => 'project',
+    value    => 'foo',
+    operator => '=',
+);
 for my $name (
     'foo',     # alpha
     '12',      # digits
@@ -334,26 +351,35 @@ for my $name (
     'beta1',   # ending digit
 ) {
     # Test a change name.
-    my $line = "$name $tsnp";
-    my $fh = IO::File->new(\$line, '<:utf8');
-    ok my $parsed = $plan->_parse('gooditem', $fh),
+    my $lines = "\%project=foo\n$name $tsnp";
+    my $fh = IO::File->new(\$lines, '<:utf8');
+    ok my $parsed = $plan->_parse('ooditem', $fh),
         encode_utf8(qq{Should parse "$name"});
+    cmp_deeply delete $parsed->{pragmas}, {
+        syntax_version => App::Sqitch::Plan::SYNTAX_VERSION,
+        project        => 'foo',
+    }, encode_utf8("Should have captured the $name pragmas");
     cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
         changes => [ clear, change { name => $name } ],
-        lines => [ clear, version, change { name => $name } ],
-    }, encode_utf8(qq{Should have line and change for "$name"});
+        lines => [ clear, version, $foo_proj, change { name => $name } ],
+    }, encode_utf8(qq{Should have pragmas in plan with change "$name"});
 
     # Test a tag name.
     my $tag = '@' . $name;
-    my $lines = "foo $tsnp\n$tag $tsnp";
+    $lines = "\%project=foo\nfoo $tsnp\n$tag $tsnp";
     $fh = IO::File->new(\$lines, '<:utf8');
     ok $parsed = $plan->_parse('gooditem', $fh),
         encode_utf8(qq{Should parse "$tag"});
+    cmp_deeply delete $parsed->{pragmas}, {
+        syntax_version => App::Sqitch::Plan::SYNTAX_VERSION,
+        project        => 'foo',
+    }, encode_utf8(qq{Should have pragmas in plan with tag "$name"});
     cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
         changes => [ clear, change { name => 'foo' }, tag { name => $name } ],
         lines => [
             clear,
             version,
+            $foo_proj,
             change { name => 'foo' },
             tag { name => $name, ret => 1 }
         ],
@@ -370,7 +396,7 @@ is $@->ident, 'plan', '@HEAD exception should have ident "plan"';
 is $@->message, __x(
     'Syntax error in {file} at line {line}: {error}',
     file => $file,
-    line => 5,
+    line => 6,
     error => __x(
         '"{name}" is a reserved name',
         name => '@HEAD',
@@ -440,11 +466,11 @@ is $@->ident, 'plan', 'The dupe tag error ident should be "plan"';
 is $@->message, __x(
     'Syntax error in {file} at line {line}: {error}',
     file => $file,
-    line => 10,
+    line => 11,
     error => __x(
         'Tag "{tag}" duplicates earlier declaration on line {line}',
         tag  => 'bar',
-        line => 5,
+        line => 6,
     ),
 ), 'And the missing change error message should be correct';
 is sorted, 2, 'Should have sorted changes twice';
@@ -458,11 +484,11 @@ is $@->ident, 'plan', 'The dupe change error ident should be "plan"';
 is $@->message, __x(
     'Syntax error in {file} at line {line}: {error}',
     file => $file,
-    line => 7,
+    line => 8,
     error => __x(
         'Change "{change}" duplicates earlier declaration on line {line}',
         change  => 'greets',
-        line    => 5,
+        line    => 6,
     ),
 ), 'And the dupe change error message should be correct';
 is sorted, 1, 'Should have sorted changes once';
@@ -515,6 +541,12 @@ $fh = $file->open('<:encoding(UTF-8)');
 ok $parsed = $plan->_parse($file, $fh),
     'Should parse plan with pragmas"';
 is sorted, 1, 'Should have sorted changes once';
+cmp_deeply delete $parsed->{pragmas}, {
+    syntax_version => App::Sqitch::Plan::SYNTAX_VERSION,
+    foo            => 'bar',
+    project        => 'pragmata',
+    strict         => 1,
+}, 'Should have captured all of the pragmas';
 cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
     changes => [
         clear,
@@ -525,6 +557,7 @@ cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
         clear,
         prag( '', ' ', 'syntax-version', '', '=', '', App::Sqitch::Plan::SYNTAX_VERSION),
         prag( '  ', '', 'foo', ' ', '=', ' ', 'bar', '    ', 'lolz'),
+        prag( '', ' ', 'project', '', '=', '', 'pragmata'),
         blank(),
         change { name => 'hey' },
         change { name => 'you' },
@@ -539,6 +572,10 @@ $fh = $file->open('<:encoding(UTF-8)');
 ok $parsed = $plan->_parse($file, $fh),
     'Should parse plan with deploy and revert operators';
 is sorted, 2, 'Should have sorted changes twice';
+cmp_deeply delete $parsed->{pragmas}, {
+    syntax_version => App::Sqitch::Plan::SYNTAX_VERSION,
+    project        => 'deploy_and_revert',
+}, 'Should have captured the deploy-and-revert pragmas';
 
 cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
     changes => [
@@ -561,6 +598,7 @@ cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
     lines => [
         clear,
         version,
+        prag( '', '', 'project', '', '=', '', 'deploy_and_revert'),
         change { name => 'hey', op => '+' },
         change { name => 'you', op => '+' },
         change { name => 'dr_evil', op => '+  ', lspace => ' ' },
@@ -582,12 +620,13 @@ cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
 # Try a non-existent plan file with load().
 $file = file qw(t hi nonexistent.plan);
 $sqitch = App::Sqitch->new(plan_file => $file, uri => $uri);
-isa_ok $plan = App::Sqitch::Plan->new(sqitch => $sqitch), $CLASS,
-    'Plan with sqitch with nonexistent plan file';
-
-cmp_deeply [$plan->lines], [version], 'Should have only the version line';
-cmp_deeply [$plan->changes], [], 'Should have no changes';
-cmp_deeply [$plan->tags], [], 'Should have no tags';
+throws_ok { App::Sqitch::Plan->new(sqitch => $sqitch)->load } 'App::Sqitch::X',
+    'Should get exception for nonexistent plan file';
+is $@->ident, 'plan', 'Nonexistent plan file ident should be "plan"';
+is $@->message, __x(
+    'Plan file {file} does not exist',
+    file => $file,
+), 'Nonexistent plan file message should be correct';
 
 # Try a plan with dependencies.
 $file = file qw(t plans dependencies.plan);
@@ -638,6 +677,7 @@ isa_ok $plan = App::Sqitch::Plan->new(sqitch => $sqitch), $CLASS,
 cmp_deeply [$plan->lines], [
     clear,
     version,
+    prag( '', '', 'project', '', '=', '', 'multi'),
     blank('', 'This is a note'),
     blank(),
     blank('', 'And there was a blank line.'),
@@ -698,10 +738,15 @@ cmp_deeply [$plan->tags], [
 is sorted, 2, 'Should have sorted changes twice';
 
 ok $parsed = $plan->load, 'Load should parse plan from file';
+cmp_deeply delete $parsed->{pragmas}, {
+    syntax_version => App::Sqitch::Plan::SYNTAX_VERSION,
+    project        => 'multi',
+}, 'Should have captured the multi pragmas';
 cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
     lines => [
         clear,
         version,
+        prag( '', '', 'project', '', '=', '', 'multi'),
         blank('', 'This is a note'),
         blank(),
         blank('', 'And there was a blank line.'),
@@ -1155,6 +1200,7 @@ isa_ok $plan = App::Sqitch::Plan->new(sqitch => $sqitch), $CLASS,
 cmp_deeply [ $plan->lines ], [
     clear,
     version,
+    prag( '', '', 'project', '', '=', '', 'dupe_change_diff_tag'),
     change { name => 'whatever' },
     tag    { name => 'foo', ret => 1 },
     blank(),
@@ -1392,5 +1438,23 @@ for my $req (qw(wanker @blah greets@foo)) {
         req    => $req,
     ), qq{And should get unknown dependency message for "$req"};
 }
+
+##############################################################################
+# Test pragma accessors.
+$file = file qw(t plans pragmas.plan);
+$sqitch = App::Sqitch->new(plan_file => $file, uri => $uri);
+isa_ok $plan = App::Sqitch::Plan->new(sqitch => $sqitch), $CLASS,
+    'Plan with sqitch with plan file with dependencies';
+is $plan->syntax_version, App::Sqitch::Plan::SYNTAX_VERSION,
+    'syntax_version should be set';
+is $plan->project, 'pragmata', 'Project should be set';
+
+# Make sure we get an error if there is no project pragma.
+$fh = IO::File->new(\"foo $tsnp", '<:utf8');
+throws_ok { $plan->_parse('noproject', $fh) } 'App::Sqitch::X',
+    'Should die on plan with no project pragma';
+is $@->ident, 'plan', 'Missing prorject error ident should be "plan"';
+is $@->message, __x('Missing %project pragma in {file}', file => 'noproject'),
+    'The missing project error message should be correct';
 
 done_testing;

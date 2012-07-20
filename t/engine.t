@@ -438,7 +438,11 @@ is_deeply +MockOutput->get_info, [
 
 # Try a plan with no changes.
 NOSTEPS: {
-    my $plan_file = file qw(nonexistent.plan);
+    my $plan_file = file qw(empty.plan);
+    my $fh = $plan_file->open('>') or die "Cannot open $plan_file: $!";
+    say $fh '%project=empty';
+    $fh->close or die "Error closing $plan_file: $!";
+    END { $plan_file->remove }
     my $sqitch = App::Sqitch->new( plan_file => $plan_file, uri => $uri );
     ok $engine = App::Sqitch::Engine::whu->new( sqitch => $sqitch ),
         'Engine with sqitch with no file';
