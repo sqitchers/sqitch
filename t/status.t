@@ -11,16 +11,13 @@ use Test::NoWarnings;
 use Test::Exception;
 use Test::MockModule;
 use Path::Class;
-use URI;
 use lib 't/lib';
 use MockOutput;
 
 my $CLASS = 'App::Sqitch::Command::status';
 require_ok $CLASS;
 
-my $uri = URI->new('https://github.com/theory/sqitch/');
 ok my $sqitch = App::Sqitch->new(
-    uri     => $uri,
     top_dir => Path::Class::Dir->new('sql'),
 ), 'Load a sqitch sqitch object';
 my $config = $sqitch->config;
@@ -141,7 +138,7 @@ $engine_mocker->mock(current_changes => sub { sub { shift @current_changes } });
     planner_email   => 'anna@example.com',
     planned_at      => $dt->clone->subtract( hours => 4 ),
 });
-$sqitch = App::Sqitch->new(uri => $uri, _engine  => 'sqlite');
+$sqitch = App::Sqitch->new(_engine  => 'sqlite');
 ok $status = App::Sqitch::Command->load({
     sqitch  => $sqitch,
     command => 'status',
@@ -291,7 +288,7 @@ is_deeply +MockOutput->get_comment, [
 ##############################################################################
 # Test emit_status().
 my $file = file qw(t plans multi.plan);
-$sqitch = App::Sqitch->new(plan_file => $file, uri => $uri, _engine  => 'sqlite');
+$sqitch = App::Sqitch->new(plan_file => $file, _engine  => 'sqlite');
 my @changes = $sqitch->plan->changes;
 ok $status = App::Sqitch::Command->load({
     sqitch  => $sqitch,

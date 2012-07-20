@@ -9,7 +9,6 @@ use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
 use Test::NoWarnings;
 use Test::Exception;
-use URI;
 use App::Sqitch::Command::add;
 use Path::Class;
 use Test::File qw(file_not_exists_ok file_exists_ok);
@@ -21,7 +20,6 @@ use MockOutput;
 my $CLASS = 'App::Sqitch::Command::rework';
 
 ok my $sqitch = App::Sqitch->new(
-    uri     => URI->new('https://github.com/theory/sqitch/'),
     top_dir => Path::Class::Dir->new('sql'),
 ), 'Load a sqitch sqitch object';
 my $config = $sqitch->config;

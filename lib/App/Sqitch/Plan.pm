@@ -757,7 +757,7 @@ C<next> returns C<undef>, the value will be the last index in the plan plus 1.
 Returns the name of the project as set via the C<%project> pragma in the plan
 file.
 
-=head C<uri>
+=head3 C<uri>
 
   my $uri = $plan->uri;
 

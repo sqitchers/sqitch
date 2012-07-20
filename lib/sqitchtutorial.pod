@@ -49,7 +49,6 @@ when we initialize Sqitch:
 Let's have a look at F<sqitch.conf>:
 
   [core]
-      uri = https://github.com/theory/sqitch-intro/
       engine = pg
       # plan_file = sqitch.plan
       # top_dir = .

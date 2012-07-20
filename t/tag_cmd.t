@@ -9,14 +9,12 @@ use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
 use Test::NoWarnings;
 use File::Path qw(make_path remove_tree);
-use URI;
 use lib 't/lib';
 use MockOutput;
 
 my $CLASS = 'App::Sqitch::Command::tag';
 
 ok my $sqitch = App::Sqitch->new(
-    uri     => URI->new('https://github.com/theory/sqitch/'),
     top_dir => Path::Class::Dir->new('sql'),
 ), 'Load a sqitch sqitch object';
 my $config = $sqitch->config;

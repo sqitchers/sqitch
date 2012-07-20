@@ -15,7 +15,6 @@ use Test::File::Contents;
 use Encode;
 #use Test::NoWarnings;
 use File::Path qw(make_path remove_tree);
-use URI;
 use lib 't/lib';
 use MockOutput;
 
@@ -39,8 +38,7 @@ can_ok $CLASS, qw(
     open_script
 );
 
-my $uri = URI->new('https://github.com/theory/sqitch/');
-my $sqitch = App::Sqitch->new(uri => $uri);
+my $sqitch = App::Sqitch->new;
 isa_ok my $plan = App::Sqitch::Plan->new(sqitch => $sqitch), $CLASS;
 
 # Set up some some utility functions for creating changes.
@@ -624,7 +622,7 @@ cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
 
 # Try a non-existent plan file with load().
 $file = file qw(t hi nonexistent.plan);
-$sqitch = App::Sqitch->new(plan_file => $file, uri => $uri);
+$sqitch = App::Sqitch->new(plan_file => $file);
 throws_ok { App::Sqitch::Plan->new(sqitch => $sqitch)->load } 'App::Sqitch::X',
     'Should get exception for nonexistent plan file';
 is $@->ident, 'plan', 'Nonexistent plan file ident should be "plan"';
@@ -635,7 +633,7 @@ is $@->message, __x(
 
 # Try a plan with dependencies.
 $file = file qw(t plans dependencies.plan);
-$sqitch = App::Sqitch->new(plan_file => $file, uri => $uri);
+$sqitch = App::Sqitch->new(plan_file => $file);
 isa_ok $plan = App::Sqitch::Plan->new(sqitch => $sqitch), $CLASS,
     'Plan with sqitch with plan file with dependencies';
 ok $parsed = $plan->load, 'Load plan with dependencies file';
@@ -661,7 +659,7 @@ is sorted, 2, 'Should have sorted changes twice';
 # Should fail with dependencies on tags.
 $file = file qw(t plans tag_dependencies.plan);
 $fh = IO::File->new(\"foo $tsnp\n\@bar [:foo] $tsnp", '<:utf8');
-$sqitch = App::Sqitch->new(plan_file => $file, uri => $uri);
+$sqitch = App::Sqitch->new(plan_file => $file);
 isa_ok $plan = App::Sqitch::Plan->new(sqitch => $sqitch), $CLASS,
     'Plan with sqitch with plan with tag dependencies';
 throws_ok { $plan->_parse($file, $fh) }  'App::Sqitch::X',
@@ -676,7 +674,7 @@ is $@->message, __x(
 
 # Make sure that lines() loads the plan.
 $file = file qw(t plans multi.plan);
-$sqitch = App::Sqitch->new(plan_file => $file, uri => $uri);
+$sqitch = App::Sqitch->new(plan_file => $file);
 isa_ok $plan = App::Sqitch::Plan->new(sqitch => $sqitch), $CLASS,
     'Plan with sqitch with plan file';
 cmp_deeply [$plan->lines], [
@@ -1199,7 +1197,7 @@ is $@->message, __x(
 ##############################################################################
 # Try a plan with a duplicate change in different tag sections.
 $file = file qw(t plans dupe-change-diff-tag.plan);
-$sqitch = App::Sqitch->new(plan_file => $file, uri => $uri);
+$sqitch = App::Sqitch->new(plan_file => $file);
 isa_ok $plan = App::Sqitch::Plan->new(sqitch => $sqitch), $CLASS,
     'Plan shoud work plan with dupe change across tags';
 cmp_deeply [ $plan->lines ], [
@@ -1448,7 +1446,7 @@ for my $req (qw(wanker @blah greets@foo)) {
 # Test pragma accessors.
 is $plan->uri, undef, 'Should have undef URI when no pragma';
 $file = file qw(t plans pragmas.plan);
-$sqitch = App::Sqitch->new(plan_file => $file, uri => $uri);
+$sqitch = App::Sqitch->new(plan_file => $file);
 isa_ok $plan = App::Sqitch::Plan->new(sqitch => $sqitch), $CLASS,
     'Plan with sqitch with plan file with dependencies';
 is $plan->syntax_version, App::Sqitch::Plan::SYNTAX_VERSION,

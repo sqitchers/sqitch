@@ -198,22 +198,6 @@ has editor => (
     }
 );
 
-has uri => (
-    is       => 'ro',
-    isa      => 'URI',
-    required => 1,
-    lazy     => 1,
-    default  => sub {
-        my $uri = shift->config->get( key => 'core.uri' ) or hurl core => __x(
-            'Missing project URI. Run {command} to add a URI',
-            command => '`sqitch config core.uri URI`'
-        );
-
-        require URI;
-        return URI->new($uri);
-    }
-);
-
 has pager => (
     is       => 'ro',
     required => 1,
@@ -289,7 +273,6 @@ sub _core_opts {
         db-username|db-user|u=s
         db-host=s
         db-port=i
-        uri=s
         top-dir|dir=s
         deploy-dir=s
         revert-dir=s
@@ -366,9 +349,6 @@ sub _parse_core_opts {
         $opts{$dir} = dir $opts{$dir} if defined $opts{$dir};
     }
     $opts{plan_file} = file $opts{plan_file} if defined $opts{plan_file};
-
-    # Convert URI to URI.
-    $opts{uri} = do { require URI; URI->new($opts{uri}) } if $opts{uri};
 
     # Normalize the options (remove undefs) and return.
     $opts{verbosity} = delete $opts{verbose};
@@ -709,8 +689,6 @@ it.
 =item * Add cross-project dependency specification using project name.
 
 =item * Add option to `init` to add/change the name pragma.
-
-=item * Move the URI to a pragma.
 
 =item * Add URI to info only if set?
 

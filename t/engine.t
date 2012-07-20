@@ -14,7 +14,6 @@ use Test::NoWarnings;
 use Test::MockModule;
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
-use URI;
 use lib 't/lib';
 use MockOutput;
 
@@ -77,8 +76,7 @@ ENGINE: {
     sub name_for_change_id { return 'bugaboo' }
 }
 
-my $uri = URI->new('https://github.com/theory/sqitch/');
-ok my $sqitch = App::Sqitch->new(db_name => 'mydb', uri => $uri),
+ok my $sqitch = App::Sqitch->new(db_name => 'mydb'),
     'Load a sqitch sqitch object';
 
 ##############################################################################
@@ -232,7 +230,7 @@ $record_work = 0;
 chdir 't';
 my $plan_file = file qw(sql sqitch.plan);
 my $sqitch_old = $sqitch; # Hang on to this because $change does not retain it.
-$sqitch = App::Sqitch->new( plan_file => $plan_file, uri => $uri );
+$sqitch = App::Sqitch->new( plan_file => $plan_file );
 ok $engine = App::Sqitch::Engine::whu->new( sqitch => $sqitch ),
     'Engine with sqitch with plan file';
 my $plan = $sqitch->plan;
@@ -443,7 +441,7 @@ NOSTEPS: {
     say $fh '%project=empty';
     $fh->close or die "Error closing $plan_file: $!";
     END { $plan_file->remove }
-    my $sqitch = App::Sqitch->new( plan_file => $plan_file, uri => $uri );
+    my $sqitch = App::Sqitch->new( plan_file => $plan_file );
     ok $engine = App::Sqitch::Engine::whu->new( sqitch => $sqitch ),
         'Engine with sqitch with no file';
     throws_ok { $engine->deploy } 'App::Sqitch::X', 'Should die with no changes';

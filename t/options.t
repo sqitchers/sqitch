@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 25;
+use Test::More tests => 24;
 #use Test::More 'no_plan';
 use Test::MockModule;
 use Capture::Tiny ':all';
@@ -97,7 +97,6 @@ my $opts = $CLASS->_parse_core_opts([
     '--revert-dir' => 'rev',
     '--test-dir'   => 'tst',
     '--extension'  => 'ext',
-    '--uri'        => 'https://github.com/theory/sqitch/',
     '--verbose', '--verbose',
     '--quiet'
 ]);
@@ -115,13 +114,9 @@ is_deeply $opts, {
     'revert_dir'  => 'rev',
     'test_dir'    => 'tst',
     'extension'   => 'ext',
-    'uri'         => 'https://github.com/theory/sqitch/',
     verbosity     => 2,
     quiet         => 1,
 }, 'Should parse lots of options';
-
-# Make sure objects are created.
-isa_ok $opts->{uri}, 'URI', 'URI option';
 
 for my $dir (qw(top_dir deploy_dir revert_dir test_dir)) {
     isa_ok $opts->{$dir}, 'Path::Class::Dir', $dir;

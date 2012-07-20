@@ -11,7 +11,6 @@ use App::Sqitch;
 use App::Sqitch::Plan;
 use Test::MockModule;
 use Digest::SHA1;
-use URI;
 
 my $CLASS;
 
@@ -36,9 +35,7 @@ can_ok $CLASS, qw(
     format_planner
 );
 
-my $sqitch = App::Sqitch->new(
-    uri => URI->new('https://github.com/theory/sqitch/'),
-);
+my $sqitch = App::Sqitch->new;
 my $plan   = App::Sqitch::Plan->new(sqitch => $sqitch);
 my $change = App::Sqitch::Plan::Change->new( plan => $plan, name => 'roles' );
 

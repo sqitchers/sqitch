@@ -11,13 +11,10 @@ use Test::Exception;
 use App::Sqitch;
 use App::Sqitch::Plan;
 use Locale::TextDomain qw(App-Sqitch);
-use URI;
 
 BEGIN { require_ok 'App::Sqitch::Plan::ChangeList' or die }
 
-my $sqitch = App::Sqitch->new(
-    uri => URI->new('https://github.com/theory/sqitch/'),
-);
+my $sqitch = App::Sqitch->new;
 my $plan   = App::Sqitch::Plan->new(sqitch => $sqitch);
 
 my $foo = App::Sqitch::Plan::Change->new(plan => $plan, name => 'foo');

@@ -225,15 +225,6 @@ engines.
 
 Port number to connect to. Does not apply to all engines.
 
-=item C<--uri>
-
-  sqitch --uri https://github.com/theory/sqitch/
-
-A uniform resource identifier that uniquely identifies the project. Used to
-generate unique IDs for project changes, and so should be consistently used in
-the project. Thus it it is probably best set as a local configuration setting
-(C<core.uri>).
-
 =item C<--top-dir>
 
   sqitch --top-dir migrations/

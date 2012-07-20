@@ -249,7 +249,6 @@ Given a F<./sqitch.conf> like this:
 
   ; core variables
   [core]
-          uri       = https://github.com/theory/sqitch/
           ; Use PostgreSQL
           engine    = pg
 
@@ -392,7 +391,6 @@ Some variables may require a special value format.
 
   # Core variables
   [core]
-      uri       = https://github.com/theory/sqitch/
       engine    = pg
       db        = widgetopolis
       top_dir   = migrations
@@ -413,14 +411,6 @@ command-specific variables, you will find a more detailed description in the
 appropriate manual page.
 
 =over
-
-=item C<core.uri>
-
-A uniform resource identifier that uniquely identifies the project. Used to
-generate unique IDs for project changes, and so should be consistently used in
-the project, but not shared across projects. Thus it is recommended to always
-be used in the local configuration file, but not the user or system
-configuration files.
 
 =item C<core.plan_file>
 

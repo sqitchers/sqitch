@@ -12,16 +12,13 @@ use Test::Exception;
 use Test::MockModule;
 use Path::Class;
 use Term::ANSIColor qw(color);
-use URI;
 use lib 't/lib';
 use MockOutput;
 
 my $CLASS = 'App::Sqitch::Command::log';
 require_ok $CLASS;
 
-my $uri = URI->new('https://github.com/theory/sqitch/');
 ok my $sqitch = App::Sqitch->new(
-    uri     => $uri,
     top_dir => Path::Class::Dir->new('sql'),
     _engine => 'sqlite',
 ), 'Load a sqitch sqitch object';

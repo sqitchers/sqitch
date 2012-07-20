@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 90;
+use Test::More tests => 86;
 #use Test::More 'no_plan';
 use Test::MockModule;
 use Path::Class;
@@ -65,13 +65,6 @@ is $sqitch->deploy_dir, dir(qw(deploy)), 'Default deploy_dir should be ./sql/dep
 is $sqitch->revert_dir, dir(qw(revert)), 'Default revert_dir should be ./sql/revert';
 is $sqitch->test_dir, dir(qw(test)), 'Default test_dir should be ./sql/test';
 isa_ok $sqitch->plan, 'App::Sqitch::Plan';
-throws_ok { $sqitch->uri } 'App::Sqitch::X',
-    'Should get error for missing URI';
-is $@->ident, 'core', 'Should be a "core" exception';
-is $@->message, __x(
-    'Missing project URI. Run {command} to add a URI',
-    command => '`sqitch config core.uri URI`'
-), 'Should have localized error message about missing URI';
 is $sqitch->user_name, do {
     require User::pwent;
     (User::pwent::getpwnam(getlogin)->gecos)[0];
@@ -125,8 +118,6 @@ GO: {
         'Should have local config overriding user';
     is $config->get(key => 'core.pg.host'), 'localhost',
         'Should fall back on user config';
-    is $sqitch->uri, URI->new('https://github.com/theory/sqitch/'),
-        'Should read URI from config file';
     is $sqitch->user_name, 'Michael Stonebraker',
         'Should have read user name from configuration';
     is $sqitch->user_email, 'michael@example.com',

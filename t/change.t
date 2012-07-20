@@ -16,7 +16,6 @@ use Path::Class;
 use File::Path qw(make_path remove_tree);
 use Digest::SHA1;
 use Test::MockModule;
-use URI;
 
 my $CLASS;
 
@@ -53,7 +52,6 @@ can_ok $CLASS, qw(
 );
 
 my $sqitch = App::Sqitch->new(
-    uri     => URI->new('https://github.com/theory/sqitch/'),
     top_dir => dir('sql'),
 );
 my $plan  = App::Sqitch::Plan->new(sqitch => $sqitch);
@@ -239,7 +237,6 @@ is $fh->getline, "-- test it, baby\n", 'It should be the test file';
 # Test the requires/conflicts params.
 my $file = file qw(t plans multi.plan);
 my $sqitch2 = App::Sqitch->new(
-    uri       => URI->new('https://github.com/theory/sqitch/'),
     top_dir   => dir('sql'),
     plan_file => $file,
 );

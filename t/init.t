@@ -139,15 +139,12 @@ file_contents_like $conf_file, qr{\Q[core]
 unlink $conf_file;
 
 # Set two options.
-$sqitch = App::Sqitch->new(
-    extension => 'foo',
-    uri       => URI->new('https://github.com/theory/sqitch/'),
-);
+$sqitch = App::Sqitch->new( extension => 'foo' );
 ok $init = $CLASS->new(sqitch => $sqitch), 'Another init object';
 ok $init->write_config, 'Write the config';
 file_exists_ok $conf_file;
 is_deeply read_config $conf_file, {
-    'core.uri'       => 'https://github.com/theory/sqitch/',
+    'core.uri'       => $uri,
     'core.extension' => 'foo',
 }, 'The configuration should have been written with the two settings';
 is_deeply +MockOutput->get_info, [
@@ -166,7 +163,7 @@ file_contents_like $conf_file, qr{
 # Go again.
 ok $init->write_config, 'Write the config again';
 is_deeply read_config $conf_file, {
-    'core.uri'       => 'https://github.com/theory/sqitch/',
+    'core.uri'       => $uri,
     'core.extension' => 'foo',
 }, 'The configuration should be unchanged';
 is_deeply +MockOutput->get_info, [
@@ -211,7 +208,6 @@ SYSTEMCONF: {
         'core.uri' => $uri,
         'core.extension' => 'foo',
         'core.engine' => 'pg',
-        'core.uri' => URI->new('https://github.com/theory/sqitch/'),
     }, 'The configuration should have local and system config';
     is_deeply +MockOutput->get_info, [
         [__x 'Created {file}', file => $conf_file]
