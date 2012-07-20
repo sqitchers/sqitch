@@ -85,6 +85,8 @@ sub ts($) {
     );
 }
 
+my $vivify = 0;
+
 sub change($) {
     my $p = shift;
     if ( my $op = delete $p->{op} ) {
@@ -104,8 +106,10 @@ sub change($) {
         $duped->suffix($prev_tag->format_name);
     }
     $seen{ $p->{name} } = $prev_change;
-    $prev_change->id;
-    $prev_change->tags;
+    if ($vivify) {
+        $prev_change->id;
+        $prev_change->tags;
+    }
     return $prev_change;
 }
 
@@ -121,7 +125,7 @@ sub tag($) {
         %{ $p },
     );
     $prev_change->add_tag($prev_tag);
-    $prev_tag->id;
+    $prev_tag->id if $vivify;
     return $ret ? $prev_tag : ();
 }
 
@@ -163,10 +167,10 @@ my $fh = $file->open('<:encoding(UTF-8)');
 ok my $parsed = $plan->_parse($file, $fh),
     'Should parse simple "widgets.plan"';
 is sorted, 1, 'Should have sorted changes';
-isa_ok $parsed->{changes}, 'App::Sqitch::Plan::ChangeList', 'changes';
-isa_ok $parsed->{lines}, 'App::Sqitch::Plan::LineList', 'lines';
+isa_ok $parsed->{changes}, 'ARRAY', 'changes';
+isa_ok $parsed->{lines}, 'ARRAY', 'lines';
 
-cmp_deeply [$parsed->{changes}->items], [
+cmp_deeply $parsed->{changes}, [
     clear,
     change { name => 'hey', ts => '2012-07-16T14:01:20' },
     change { name => 'you', ts => '2012-07-16T14:01:35' },
@@ -179,7 +183,7 @@ cmp_deeply [$parsed->{changes}->items], [
 ,
 ], 'All "widgets.plan" changes should be parsed';
 
-cmp_deeply [$parsed->{lines}->items], [
+cmp_deeply $parsed->{lines}, [
     clear,
     version,
     prag( '', '', 'project', '', '=', '', 'widgets'),
@@ -209,7 +213,7 @@ cmp_deeply delete $parsed->{pragmas}, {
     syntax_version => App::Sqitch::Plan::SYNTAX_VERSION,
     project        => 'multi',
 }, 'Should have captured the multi pragmas';
-cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
+cmp_deeply $parsed, {
     changes => [
         clear,
         change { name => 'hey', planner_name => 'theory', planner_email => 't@heo.ry' },
@@ -263,7 +267,7 @@ cmp_deeply delete $parsed->{pragmas}, {
     syntax_version => App::Sqitch::Plan::SYNTAX_VERSION,
     project        => 'changes_only',
 }, 'Should have captured the changes-only pragmas';
-cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
+cmp_deeply $parsed, {
     lines => [
         clear,
         version,
@@ -360,7 +364,7 @@ for my $name (
         syntax_version => App::Sqitch::Plan::SYNTAX_VERSION,
         project        => 'foo',
     }, encode_utf8("Should have captured the $name pragmas");
-    cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
+    cmp_deeply $parsed, {
         changes => [ clear, change { name => $name } ],
         lines => [ clear, version, $foo_proj, change { name => $name } ],
     }, encode_utf8(qq{Should have pragmas in plan with change "$name"});
@@ -375,7 +379,7 @@ for my $name (
         syntax_version => App::Sqitch::Plan::SYNTAX_VERSION,
         project        => 'foo',
     }, encode_utf8(qq{Should have pragmas in plan with tag "$name"});
-    cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
+    cmp_deeply $parsed, {
         changes => [ clear, change { name => 'foo' }, tag { name => $name } ],
         lines => [
             clear,
@@ -549,7 +553,7 @@ cmp_deeply delete $parsed->{pragmas}, {
     uri            => 'https://github.com/theory/sqitch/',
     strict         => 1,
 }, 'Should have captured all of the pragmas';
-cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
+cmp_deeply $parsed, {
     changes => [
         clear,
         change { name => 'hey' },
@@ -580,7 +584,7 @@ cmp_deeply delete $parsed->{pragmas}, {
     project        => 'deploy_and_revert',
 }, 'Should have captured the deploy-and-revert pragmas';
 
-cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
+cmp_deeply $parsed, {
     changes => [
         clear,
         change { name => 'hey', op => '+' },
@@ -637,7 +641,7 @@ $sqitch = App::Sqitch->new(plan_file => $file);
 isa_ok $plan = App::Sqitch::Plan->new(sqitch => $sqitch), $CLASS,
     'Plan with sqitch with plan file with dependencies';
 ok $parsed = $plan->load, 'Load plan with dependencies file';
-is_deeply [$parsed->{changes}->changes], [
+is_deeply $parsed->{changes}, [
     clear,
     change { name => 'roles', op => '+' },
     change { name => 'users', op => '+', pspace => '    ', requires => ['roles'] },
@@ -703,6 +707,7 @@ cmp_deeply [$plan->lines], [
     tag { name => 'baz', ret => 1 },
 ], 'Lines should be parsed from file';
 
+$vivify = 1;
 cmp_deeply [$plan->changes], [
     clear,
     change { name => 'hey', planner_name => 'theory', planner_email => 't@heo.ry' },
@@ -745,7 +750,8 @@ cmp_deeply delete $parsed->{pragmas}, {
     syntax_version => App::Sqitch::Plan::SYNTAX_VERSION,
     project        => 'multi',
 }, 'Should have captured the multi pragmas';
-cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
+$vivify = 0;
+cmp_deeply $parsed, {
     lines => [
         clear,
         version,
@@ -1214,6 +1220,7 @@ cmp_deeply [ $plan->lines ], [
     change { name => 'whatever' },
 ], 'Lines with dupe change should be read from file';
 
+$vivify = 1;
 cmp_deeply [ $plan->changes ], [
     clear,
     change { name => 'whatever' },

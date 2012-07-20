@@ -34,6 +34,26 @@ has _plan => (
     required   => 1,
 );
 
+has _changes => (
+    is       => 'ro',
+    isa      => 'App::Sqitch::Plan::ChangeList',
+    lazy     => 1,
+    required => 1,
+    default  => sub {
+        App::Sqitch::Plan::ChangeList->new(@{ shift->_plan->{changes} }),
+    },
+);
+
+has _lines => (
+    is       => 'ro',
+    isa      => 'App::Sqitch::Plan::LineList',
+    lazy     => 1,
+    required => 1,
+    default  => sub {
+        App::Sqitch::Plan::LineList->new(@{ shift->_plan->{lines} }),
+    },
+);
+
 has position => (
     is       => 'rw',
     isa      => 'Int',
@@ -360,8 +380,8 @@ sub _parse {
     ) unless $pragmas{project};
 
     return {
-        changes => App::Sqitch::Plan::ChangeList->new(@changes),
-        lines   => App::Sqitch::Plan::LineList->new(@lines),
+        changes => \@changes,
+        lines   => \@lines,
         pragmas => \%pragmas,
     };
 }
@@ -457,16 +477,16 @@ sub open_script {
 }
 
 sub syntax_version { shift->_plan->{pragmas}{syntax_version} };
-sub lines          { shift->_plan->{lines}->items }
-sub changes        { shift->_plan->{changes}->changes }
-sub tags           { shift->_plan->{changes}->tags }
-sub count          { shift->_plan->{changes}->count }
-sub index_of       { shift->_plan->{changes}->index_of(shift) }
-sub get            { shift->_plan->{changes}->get(shift) }
-sub find           { shift->_plan->{changes}->find(shift) }
-sub first_index_of { shift->_plan->{changes}->first_index_of(@_) }
-sub change_at      { shift->_plan->{changes}->change_at(shift) }
-sub last_tagged_change { shift->_plan->{changes}->last_tagged_change }
+sub lines          { shift->_lines->items }
+sub changes        { shift->_changes->changes }
+sub tags           { shift->_changes->tags }
+sub count          { shift->_changes->count }
+sub index_of       { shift->_changes->index_of(shift) }
+sub get            { shift->_changes->get(shift) }
+sub find           { shift->_changes->find(shift) }
+sub first_index_of { shift->_changes->first_index_of(@_) }
+sub change_at      { shift->_changes->change_at(shift) }
+sub last_tagged_change { shift->_changes->last_tagged_change }
 
 sub seek {
     my ( $self, $key ) = @_;
@@ -499,16 +519,16 @@ sub current {
     my $self = shift;
     my $pos = $self->position;
     return if $pos < 0;
-    $self->_plan->{changes}->change_at( $pos );
+    $self->_changes->change_at( $pos );
 }
 
 sub peek {
     my $self = shift;
-    $self->_plan->{changes}->change_at( $self->position + 1 );
+    $self->_changes->change_at( $self->position + 1 );
 }
 
 sub last {
-    shift->_plan->{changes}->change_at( -1 );
+    shift->_changes->change_at( -1 );
 }
 
 sub do {
@@ -523,8 +543,7 @@ sub tag {
     ( my $name = $p{name} ) =~ s/^@//;
     $self->_is_valid(tag => $name);
 
-    my $plan  = $self->_plan;
-    my $changes = $plan->{changes};
+    my $changes = $self->_changes;
     my $key   = "\@$name";
 
     hurl plan => __x(
@@ -547,16 +566,14 @@ sub tag {
 
     $change->add_tag($tag);
     $changes->index_tag( $changes->index_of( $change->id ), $tag );
-    $plan->{lines}->append( $tag );
+    $self->_lines->append( $tag );
     return $tag;
 }
 
 sub add {
     my ( $self, %p ) = @_;
     $self->_is_valid(change => $p{name});
-
-    my $plan    = $self->_plan;
-    my $changes = $plan->{changes};
+    my $changes = $self->_changes;
 
     if ( defined( my $idx = $changes->index_of( $p{name} . '@HEAD' ) ) ) {
         my $tag_idx = $changes->index_of_last_tagged;
@@ -576,21 +593,21 @@ sub add {
     if ( $changes->count ) {
         my $prev = $changes->change_at( $changes->count - 1 );
         if ( $prev->tags ) {
-            $plan->{lines}
-              ->append( App::Sqitch::Plan::Blank->new( plan => $self, ) );
+            $self->_lines->append(
+                App::Sqitch::Plan::Blank->new( plan => $self )
+            );
         }
     }
 
     # Append the change and return.
     $changes->append( $change );
-    $plan->{lines}->append( $change );
+    $self->_lines->append( $change );
     return $change;
 }
 
 sub rework {
     my ( $self, %p ) = @_;
-    my $plan  = $self->_plan;
-    my $changes = $plan->{changes};
+    my $changes = $self->_changes;
     my $idx   = $changes->index_of( $p{name} . '@HEAD') // hurl plan => __x(
         qq{Change "{change}" does not exist.\n}
         . 'Use "sqitch add {change}" to add it to the plan',
@@ -616,13 +633,13 @@ sub rework {
     # We good.
     $orig->suffix( $tag->format_name );
     $changes->append( $new );
-    $plan->{lines}->append( $new );
+    $self->_lines->append( $new );
     return $new;
 }
 
 sub _check_dependencies {
     my ( $self, $change, $action ) = @_;
-    my $changes = $self->_plan->{changes};
+    my $changes = $self->_changes;
     for my $req ( $change->requires ) {
         next if defined $changes->index_of($req =~ /@/ ? $req : $req . '@HEAD');
         my $name = $change->name;
