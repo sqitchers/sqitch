@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 83;
+use Test::More tests => 85;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -272,6 +272,14 @@ ok $add = $CLASS->new(
     template_directory => Path::Class::dir(qw(etc templates))
 ), 'Create another add with template_directory';
 
+# Override request_note().
+my $change_mocker = Test::MockModule->new('App::Sqitch::Plan::Change');
+my %request_params;
+$change_mocker->mock(request_note => sub {
+    shift;
+    %request_params = @_;
+});
+
 my $deploy_file = file qw(sql deploy widgets_table.sql);
 my $revert_file = file qw(sql revert widgets_table.sql);
 my $test_file   = file qw(sql test   widgets_table.sql);
@@ -285,6 +293,10 @@ isa_ok my $change = $plan->get('widgets_table'), 'App::Sqitch::Plan::Change',
 is $change->name, 'widgets_table', 'Change name should be set';
 is_deeply [$change->requires],  [], 'It should have no requires';
 is_deeply [$change->conflicts], [], 'It should have no conflicts';
+is_deeply \%request_params, {
+    for => __ 'add',
+    scripts => [$change->deploy_file, $change->revert_file, $change->test_file],
+}, 'It should have prompted for a note';
 
 file_exists_ok $_ for ($deploy_file, $revert_file, $test_file);
 file_contents_like +File::Spec->catfile(qw(sql deploy widgets_table.sql)),
@@ -310,12 +322,13 @@ isa_ok $change = $plan->get('widgets_table'), 'App::Sqitch::Plan::Change',
 
 # Make sure conflicts are avoided and conflicts and requires are respected.
 ok $add = $CLASS->new(
-    sqitch => $sqitch,
-    requires  => ['widgets_table'],
-    conflicts => [qw(dr_evil joker)],
-    note      => [qw(hello there)],
+    sqitch             => $sqitch,
+    requires           => ['widgets_table'],
+    conflicts          => [qw(dr_evil joker)],
+    note               => [qw(hello there)],
+    with_test          => 0,
     template_directory => Path::Class::dir(qw(etc templates))
-), 'Create another add with template_directory';
+), 'Create another add with template_directory and no test script';
 
 $deploy_file = file qw(sql deploy foo_table.sql);
 $revert_file = file qw(sql revert foo_table.sql);
@@ -326,9 +339,14 @@ file_exists_ok $deploy_file;
 file_not_exists_ok $_ for ($revert_file, $test_file);
 is $plan->get('foo_table'), undef, 'Should not have "foo_table" in plan';
 ok $add->execute('foo_table'), 'Add change "foo_table"';
-file_exists_ok $_ for ($deploy_file, $revert_file, $test_file);
+file_exists_ok $_ for ($deploy_file, $revert_file);
+file_not_exists_ok $test_file;
 isa_ok $change = $plan->get('foo_table'), 'App::Sqitch::Plan::Change',
     '"foo_table" change';
+is_deeply \%request_params, {
+    for => __ 'add',
+    scripts => [$change->deploy_file, $change->revert_file],
+}, 'It should have prompted for a note';
 
 is $change->name, 'foo_table', 'Change name should be set to "foo_table"';
 is_deeply [$change->requires],  ['widgets_table'], 'It should have requires';
@@ -338,7 +356,6 @@ is        $change->note, "hello\n\nthere", 'It should have a comment';
 is_deeply +MockOutput->get_info, [
     [__x 'Skipped {file}: already exists', file => $deploy_file],
     [__x 'Created {file}', file => $revert_file],
-    [__x 'Created {file}', file => $test_file],
     [__x 'Added "{change}" to {file}',
         change => 'foo_table [:widgets_table !dr_evil !joker]',
         file   => $sqitch->plan_file,

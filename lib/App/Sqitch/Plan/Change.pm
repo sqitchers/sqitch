@@ -434,8 +434,8 @@ for the change.
 =head3 C<note_prompt>
 
   my $prompt = $change->note_prompt(
-      for   => 'rework',
-      files => [$change->deploy_file, $change->revert_file],
+      for     => 'rework',
+      scripts => [$change->deploy_file, $change->revert_file],
   );
 
 Overrides the implementation from C<App::Sqitch::Plan::Line> to add the

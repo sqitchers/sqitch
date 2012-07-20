@@ -85,6 +85,13 @@ my $deploy_file = file qw(sql deploy foo.sql);
 my $revert_file = file qw(sql revert foo.sql);
 my $test_file   = file qw(sql test   foo.sql);
 
+my $change_mocker = Test::MockModule->new('App::Sqitch::Plan::Change');
+my %request_params;
+$change_mocker->mock(request_note => sub {
+    shift;
+    %request_params = @_;
+});
+
 ok my $add = App::Sqitch::Command::add->new(
     sqitch => $sqitch,
     template_directory => Path::Class::dir(qw(etc templates))

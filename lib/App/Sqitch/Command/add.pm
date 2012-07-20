@@ -156,6 +156,16 @@ sub execute {
         note      => join "\n\n" => @{ $self->note },
     );
 
+    # Make sure we have a note.
+    $change->request_note(
+        for     => __ 'add',
+        scripts => [
+            ($self->with_deploy ? $change->deploy_file : ()),
+            ($self->with_revert ? $change->revert_file : ()),
+            ($self->with_test   ? $change->test_file   : ()),
+        ],
+    );
+
     $self->_add(
         $name,
         $change->deploy_file,
