@@ -7,6 +7,7 @@ use parent 'App::Sqitch::Plan::Line';
 use Encode;
 use Moose;
 use App::Sqitch::DateTime;
+use Locale::TextDomain qw(App-Sqitch);
 
 has _requires => (
     is       => 'ro',
@@ -229,6 +230,25 @@ sub conflicts_changes {
     return map { $plan->find($_) } $self->conflicts;
 }
 
+sub note_prompt {
+    my ( $self, %p ) = @_;
+
+    return join(
+        '',
+        __x(
+            "Please enter a note for your change. Lines starting with '#' will\n" .
+            "be ignored, and an empty message aborts the {command}.",
+            command => $p{for},
+        ),
+        $/,
+        __x('Change to {command}:', command => $p{for}),
+        $/, $/,
+        '  ', $self->format_op_name_dependencies,
+        join "$/    ", '', @{ $p{scripts} },
+        $/,
+    );
+}
+
 __PACKAGE__->meta->make_immutable;
 no Moose;
 
@@ -410,6 +430,18 @@ for the change.
 
 Returns an L<IO::File> file handle, opened for reading, for the test script
 for the change.
+
+=head3 C<note_prompt>
+
+  my $prompt = $change->note_prompt(
+      for   => 'rework',
+      files => [$change->deploy_file, $change->revert_file],
+  );
+
+Overrides the implementation from C<App::Sqitch::Plan::Line> to add the
+C<files> parameter. This is a list of the files to be created for the command.
+These will usually be the deploy, revert, and test files, but the caller might
+not be creating all of them, so it needs to pass the list.
 
 =head1 See Also
 

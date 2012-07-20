@@ -4,12 +4,13 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-#use Test::More tests => 51;
-use Test::More 'no_plan';
+use Test::More tests => 66;
+#use Test::More 'no_plan';
 use Test::NoWarnings;
 use App::Sqitch;
 use App::Sqitch::Plan;
 use App::Sqitch::Plan::Tag;
+use Locale::TextDomain qw(App-Sqitch);
 use Test::Exception;
 use Path::Class;
 use File::Path qw(make_path remove_tree);
@@ -48,6 +49,7 @@ can_ok $CLASS, qw(
     format_name_with_dependencies
     format_op_name_dependencies
     format_planner
+    note_prompt
 );
 
 my $sqitch = App::Sqitch->new(
@@ -236,30 +238,30 @@ is $fh->getline, "-- test it, baby\n", 'It should be the test file';
 ##############################################################################
 # Test the requires/conflicts params.
 my $file = file qw(t plans multi.plan);
-$sqitch = App::Sqitch->new(
+my $sqitch2 = App::Sqitch->new(
     uri       => URI->new('https://github.com/theory/sqitch/'),
     top_dir   => dir('sql'),
     plan_file => $file,
 );
-$plan = $sqitch->plan;
+my $plan2 = $sqitch2->plan;
 ok $change2 = $CLASS->new(
     name      => 'whatever',
-    plan      => $plan,
+    plan      => $plan2,
     requires  => [qw(hey you)],
     conflicts => ['hey-there'],
 ), 'Create a change with explicit requires and conflicts';
 is_deeply [$change2->requires], [qw(hey you)], 'requires should be set';
 is_deeply [$change2->conflicts], ['hey-there'], 'conflicts should be set';
-is_deeply [$change2->requires_changes], [$plan->get('hey'),  $plan->get('you')],
+is_deeply [$change2->requires_changes], [$plan2->get('hey'),  $plan2->get('you')],
     'Should find changes for requires';
-is_deeply [$change2->conflicts_changes], [$plan->get('hey-there')],
+is_deeply [$change2->conflicts_changes], [$plan2->get('hey-there')],
     'Should find changes for conflicts';
 
 ##############################################################################
 # Test ID for a change with a UTF-8 name.
 ok $change2 = $CLASS->new(
     name => '阱阪阬',
-    plan => $plan,
+    plan => $plan2,
 ), 'Create change with UTF-8 name';
 is $change2->info, join("\n",
     'change '  . '阱阪阬',
@@ -273,3 +275,41 @@ is $change2->id, do {
         'change ' . length($content) . "\0" . $content
     )->hexdigest;
 },'Change ID should be hahsed from encoded UTF-8';
+
+##############################################################################
+# Test note_prompt().
+is $change->note_prompt(
+    for => 'add',
+    scripts => [$change->deploy_file, $change->revert_file, $change->test_file],
+), exp_prompt(
+    for => 'add',
+    scripts => [$change->deploy_file, $change->revert_file, $change->test_file],
+    name    => $change->format_op_name_dependencies,
+), 'note_prompt() should work';
+
+is $change2->note_prompt(
+    for => 'add',
+    scripts => [$change2->deploy_file, $change2->revert_file, $change2->test_file],
+), exp_prompt(
+    for => 'add',
+    scripts => [$change2->deploy_file, $change2->revert_file, $change2->test_file],
+    name    => $change2->format_op_name_dependencies,
+), 'note_prompt() should work';
+
+sub exp_prompt {
+    my %p = @_;
+    join(
+        '',
+        __x(
+            "Please enter a note for your change. Lines starting with '#' will\n" .
+            "be ignored, and an empty message aborts the {command}.",
+            command => $p{for},
+        ),
+        $/,
+        __x('Change to {command}:', command => $p{for}),
+        $/, $/,
+        '  ', $p{name},
+        join "$/    ", '', @{ $p{scripts} },
+        $/,
+    );
+}
