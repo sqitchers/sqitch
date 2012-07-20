@@ -18,7 +18,7 @@ use Moose::Util::TypeConstraints;
 use MooseX::Types::Path::Class;
 use namespace::autoclean;
 
-our $VERSION = '0.72';
+our $VERSION = '0.80';
 
 BEGIN {
     # Need to create types before loading other Sqitch classes.

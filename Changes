@@ -1,6 +1,6 @@
 Revision history for Perl extension App::Sqitch
 
-0.72
+0.80
      - Added the `log` command to `sqitchcommands.pod`, which is shown as the
        output of `sqitch help`.
 
