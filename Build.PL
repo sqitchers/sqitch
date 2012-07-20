@@ -43,6 +43,7 @@ Module::Build::Sqitch->new(
         'StackTrace::Auto'                             => 0,
         'String::Formatter'                            => 0,
         'Sub::Exporter'                                => 0,
+        'Sub::Exporter::Util'                          => 0,
         'Sys::Hostname'                                => 0,
         'Template::Tiny'                               => '0.11',
         'Term::ANSIColor'                              => '2.02',

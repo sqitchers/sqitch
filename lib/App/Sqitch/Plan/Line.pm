@@ -5,6 +5,8 @@ use utf8;
 use namespace::autoclean;
 use Moose;
 use Moose::Meta::Attribute::Native;
+use App::Sqitch::X qw(hurl);
+use Locale::TextDomain qw(App-Sqitch);
 
 has name => (
     is       => 'ro',
@@ -73,14 +75,48 @@ my %unescape = reverse %escape;
 sub BUILDARGS {
     my $class = shift;
     my $p = @_ == 1 && ref $_[0] ? { %{ +shift } } : { @_ };
-    if (my $note = $p->{note}) {
+    my $note = $p->{note} // '';
+
+    if ( delete $p->{require_note} && $note !~ /\S/ ) {
+        # If no plan, params are invalid, so return and let Moose catch it.
+        my $plan = $p->{plan} || return $p;
+
+        # Edit in a file.
+        require File::Temp;
+        my $tmp = File::Temp->new;
+        ( my $prompt = $class->note_prompt ) =~ s/^/# /gms;
+        $tmp->print( $/, $prompt, $/ );
+        $tmp->close;
+
+        $plan->sqitch->run( $plan->sqitch->editor, "$tmp" );
+
+        open my $fh, '<:encoding(UTF-8)', $tmp or hurl add => __x(
+            'Cannot open {file}: {error}',
+            file  => $tmp,
+            error => $!
+        );
+
+        $note = join '', grep { $_ !~ /^\s*#/ } <$fh>;
+        hurl {
+            ident   => 'plan',
+            message => __ 'Aborting due to empty note',
+            exitval => 1,
+        } unless $note =~ /\S/;
+    }
+
+    if ($note) {
         # Trim and then encode newlines.
         $note =~ s/\A\v+//;
         $note =~ s/\v+\z//;
         $note =~ s/(\\[\\nr])/$unescape{$1}/gl;
         $p->{note} = $note;
     }
+
     return $p;
+}
+
+sub note_prompt {
+    __ "Write a note.\nLines starting with '#' will be ignored.";
 }
 
 sub format_name {
@@ -138,6 +174,15 @@ L<App::Sqitch::Plan::Blank> for concrete subclasses.
 
 =head1 Interface
 
+=head2 Class Methods
+
+=head3 C<note_prompt>
+
+  my $prompt = App::Sqitch::Plan::Line->note_prompt;
+
+Returns a localized string for use in the temporary file created when the
+C<require_note> parameter is passed to C<new()>.
+
 =head2 Constructors
 
 =head3 C<new>
@@ -182,6 +227,13 @@ note.
 
 A note. Does not include the leading C<#>, but does include any white space
 immediate after the C<#> when the plan file is parsed.
+
+=item C<require_note>
+
+Require a note if set to true. If no note is provided, an editor will be
+launched and the user asked to write one. Once the editor exits, the note will
+be retrieved from the file. If no note was written, an exception will be
+thrown with an C<extival> of 1.
 
 =back
 

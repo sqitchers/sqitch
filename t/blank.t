@@ -4,11 +4,16 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 20;
+use Test::More tests => 33;
 #use Test::More 'no_plan';
+use Locale::TextDomain qw(App-Sqitch);
 use Test::NoWarnings;
+use Test::Exception;
 use App::Sqitch;
 use App::Sqitch::Plan;
+use Test::MockModule;
+use Test::File;
+use Test::File::Contents;
 
 my $CLASS;
 
@@ -23,6 +28,7 @@ can_ok $CLASS, qw(
     rspace
     note
     plan
+    note_prompt
 );
 
 my $sqitch = App::Sqitch->new;
@@ -72,3 +78,40 @@ for my $spec (
         note   => $spec->[0]
     )->note, $spec->[1], "Should trim $spec->[2] from note";
 }
+
+##############################################################################
+# Test note requirement.
+is $blank->note_prompt,
+    __ "Write a note.\nLines starting with '#' will be ignored.",
+    'Should have localized not prompt';
+
+my $sqitch_mocker = Test::MockModule->new('App::Sqitch');
+my $note = '';
+$sqitch_mocker->mock(run => sub {
+    my ( $self, $editor, $fn ) = @_;
+    is $editor, $sqitch->editor, 'First arg to run() should be editor';
+    file_exists_ok $fn, 'Temp file should exist';
+
+    ( my $prompt = $CLASS->note_prompt ) =~ s/^/# /gms;
+    file_contents_is $fn, "$/$prompt$/", 'Temp file contents should include prompt';
+
+    if ($note) {
+        open my $fh, '>:encoding(UTF-8)', $fn or die "Cannot open $fn: $!";
+        print $fh $note, $prompt, $/;
+        close $fh or die "Error clsing $fn: $!";
+    }
+
+});
+
+throws_ok { $CLASS->new(plan => $plan, require_note => 1 ) } 'App::Sqitch::X',
+    'Should get exception for no note text';
+is $@->ident, 'plan', 'No note error ident should be "plan"';
+is $@->message, __ 'Aborting due to empty note',
+    'No note error message should be correct';
+is $@->exitval, 1, 'Exit val should be 1';
+
+# Now write a note.
+$note = "This is my awesome note.\n";
+ok $blank = $CLASS->new(plan => $plan, require_note => 1 ),
+    'Add a note via the editor';
+is $blank->note, 'This is my awesome note.', 'The note should be set';
