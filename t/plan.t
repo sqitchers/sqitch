@@ -31,6 +31,9 @@ can_ok $CLASS, qw(
     changes
     position
     load
+    syntax_version
+    project
+    uri
     _parse
     sort_changes
     open_script
@@ -545,6 +548,7 @@ cmp_deeply delete $parsed->{pragmas}, {
     syntax_version => App::Sqitch::Plan::SYNTAX_VERSION,
     foo            => 'bar',
     project        => 'pragmata',
+    uri            => 'https://github.com/theory/sqitch/',
     strict         => 1,
 }, 'Should have captured all of the pragmas';
 cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
@@ -558,6 +562,7 @@ cmp_deeply { map { $_ => [$parsed->{$_}->items] } keys %{ $parsed } }, {
         prag( '', ' ', 'syntax-version', '', '=', '', App::Sqitch::Plan::SYNTAX_VERSION),
         prag( '  ', '', 'foo', ' ', '=', ' ', 'bar', '    ', 'lolz'),
         prag( '', ' ', 'project', '', '=', '', 'pragmata'),
+        prag( '', ' ', 'uri', '', '=', '', 'https://github.com/theory/sqitch/'),
         blank(),
         change { name => 'hey' },
         change { name => 'you' },
@@ -1441,6 +1446,7 @@ for my $req (qw(wanker @blah greets@foo)) {
 
 ##############################################################################
 # Test pragma accessors.
+is $plan->uri, undef, 'Should have undef URI when no pragma';
 $file = file qw(t plans pragmas.plan);
 $sqitch = App::Sqitch->new(plan_file => $file, uri => $uri);
 isa_ok $plan = App::Sqitch::Plan->new(sqitch => $sqitch), $CLASS,
@@ -1448,6 +1454,9 @@ isa_ok $plan = App::Sqitch::Plan->new(sqitch => $sqitch), $CLASS,
 is $plan->syntax_version, App::Sqitch::Plan::SYNTAX_VERSION,
     'syntax_version should be set';
 is $plan->project, 'pragmata', 'Project should be set';
+is $plan->uri, URI->new('https://github.com/theory/sqitch/'),
+    'Should have URI from pragma';
+isa_ok $plan->uri, 'URI', 'It';
 
 # Make sure we get an error if there is no project pragma.
 $fh = IO::File->new(\"foo $tsnp", '<:utf8');

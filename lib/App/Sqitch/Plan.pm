@@ -41,6 +41,28 @@ has position => (
     default  => -1,
 );
 
+has project => (
+    is       => 'ro',
+    isa      => 'Str',
+    required => 1,
+    lazy     => 1,
+    default  => sub {
+        shift->_plan->{pragmas}{project};
+    }
+);
+
+has uri => (
+    is       => 'ro',
+    isa      => 'Maybe[URI]',
+    required => 0,
+    lazy     => 1,
+    default  => sub {
+        my $uri = shift->_plan->{pragmas}{uri} || return;
+        require URI;
+        URI->new($uri);
+    }
+);
+
 sub load {
     my $self = shift;
     my $file = $self->sqitch->plan_file;
@@ -435,7 +457,6 @@ sub open_script {
 }
 
 sub syntax_version { shift->_plan->{pragmas}{syntax_version} };
-sub project        { shift->_plan->{pragmas}{project} };
 sub lines          { shift->_plan->{lines}->items }
 sub changes        { shift->_plan->{changes}->changes }
 sub tags           { shift->_plan->{changes}->tags }
@@ -735,6 +756,13 @@ C<next> returns C<undef>, the value will be the last index in the plan plus 1.
 
 Returns the name of the project as set via the C<%project> pragma in the plan
 file.
+
+=head C<uri>
+
+  my $uri = $plan->uri;
+
+Returns the URI for the project as set via the C<%uri> pragma, which is
+optional. If it is not present, C<undef> will be returned.
 
 =head3 C<syntax_version>
 

@@ -706,8 +706,6 @@ it.
 
 =over
 
-=item * Add a project name as a plan pragma.
-
 =item * Add cross-project dependency specification using project name.
 
 =item * Add option to `init` to add/change the name pragma.
