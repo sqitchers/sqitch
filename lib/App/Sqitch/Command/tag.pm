@@ -36,6 +36,9 @@ sub execute {
             note => join "\n\n" => @{ $self->note },
         );
 
+        # Make sure we have a note.
+        $tag->request_note( for => __ 'tag');
+
         # We good, write the plan file back out.
         $plan->write_to( $sqitch->plan_file );
         $self->info(__x(
