@@ -35,11 +35,11 @@ If you're a Git user and want to follow along the history, the repository
 used in these examples is L<on GitHub|https://github.com/theory/sqitch-intro>.
 
 Now that we have a repository, let's get started with Sqitch. Every Sqitch
-project must have a unique URI associated with it. Sqitch will create a random
-URI for you, but it's nicer to have a formal project URI, so let's specify one
-when we initialize Sqitch:
+project must have a name associated with it, and, optionally, a unique URI. We
+recommend including the URI, as it increases the uniqueness of object
+identifiers internally, so let's specify one when we initialize Sqitch:
 
-  > sqitch --uri https://github.com/theory/sqitch-intro/ --engine pg init
+  > sqitch --engine pg init flipr --uri https://github.com/theory/sqitch-intro/
   Created sqitch.conf
   Created sqitch.plan
   Created deploy/
@@ -65,11 +65,11 @@ Let's have a look at F<sqitch.conf>:
       # host = 
       # username = 
 
-Good, it saved our custom URI. It also picked up on the fact that we're
-creating changes for the PostgreSQL engine, thanks to the C<--engine pg>
-option, and saved it to the file. Furthermore, it wrote a commented-out
-C<[core "pg"]> section with all the available PostgreSQL engine-specific
-settings commented out and ready to be edited as appropriate.
+Good, it picked up on the fact that we're creating changes for the PostgreSQL
+engine, thanks to the C<--engine pg> option, and saved it to the file.
+Furthermore, it wrote a commented-out C<[core "pg"]> section with all the
+available PostgreSQL engine-specific settings commented out and ready to be
+edited as appropriate.
 
 By default, Sqitch will read F<sqitch.conf> in the current directory for
 settings. But it will also read F<~/.sqitch/sqitch.conf> for global settings.

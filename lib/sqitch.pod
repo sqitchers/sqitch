@@ -141,7 +141,6 @@ User who commits or reverts changes to a database.
   -u --db-user    USER    Database user name.
      --db-host    HOST    Database server host name.
      --db-port    PORT    Database server port number.
-     --uri        URI     Project unique identifier.
      --top-dir    DIR     Path to directory with plan and scripts.
      --deploy-dir DIR     Path to directory with deployment scripts.
      --revert-dir DIR     Path to directory with reversion scripts.
