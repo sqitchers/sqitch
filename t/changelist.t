@@ -8,13 +8,14 @@ use Test::More tests => 121;
 #use Test::More 'no_plan';
 use Test::NoWarnings;
 use Test::Exception;
+use Path::Class;
 use App::Sqitch;
 use App::Sqitch::Plan;
 use Locale::TextDomain qw(App-Sqitch);
 
 BEGIN { require_ok 'App::Sqitch::Plan::ChangeList' or die }
 
-my $sqitch = App::Sqitch->new;
+my $sqitch = App::Sqitch->new( top_dir => dir qw(t sql) );
 my $plan   = App::Sqitch::Plan->new(sqitch => $sqitch);
 
 my $foo = App::Sqitch::Plan::Change->new(plan => $plan, name => 'foo');

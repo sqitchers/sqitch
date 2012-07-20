@@ -92,8 +92,9 @@ has info => (
     lazy     => 1,
     default  => sub {
         my $self = shift;
-
         return join "\n", (
+            'project ' . $self->project,
+            ( $self->uri ? ( 'uri ' . $self->uri->canonical ) : () ),
             'change '  . $self->format_name,
             'planner ' . $self->format_planner,
             'date '    . $self->timestamp->as_string,

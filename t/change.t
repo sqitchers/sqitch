@@ -16,6 +16,7 @@ use Path::Class;
 use File::Path qw(make_path remove_tree);
 use Digest::SHA1;
 use Test::MockModule;
+use URI;
 
 my $CLASS;
 
@@ -51,10 +52,15 @@ can_ok $CLASS, qw(
     note_prompt
 );
 
-my $sqitch = App::Sqitch->new(
-    top_dir => dir('sql'),
-);
-my $plan  = App::Sqitch::Plan->new(sqitch => $sqitch);
+my $sqitch = App::Sqitch->new( top_dir => dir('sql') );
+my $plan   = App::Sqitch::Plan->new(sqitch => $sqitch);
+make_path 'sql';
+END { remove_tree 'sql' };
+my $fn = $sqitch->plan_file;
+open my $fh, '>', $fn or die "Cannot open $fn: $!";
+say $fh '%project=change';
+close $fh or die "Error closing $fn: $!";
+
 isa_ok my $change = $CLASS->new(
     name => 'foo',
     plan => $plan,
@@ -103,6 +109,7 @@ is $change->as_string, "foo $ts " . $change->format_planner,
     'should stringify to "foo" + planner';
 is $change->since_tag, undef, 'Since tag should be undef';
 is $change->info, join("\n",
+   'project change',
    'change foo',
    'planner ' . $change->format_planner,
    'date ' . $change->timestamp->as_string,
@@ -154,12 +161,16 @@ is $change2->as_string, "  - yo/howdy  [:foo :bar :\@baz !dr_evil] "
     'It should stringify correctly';
 my $mock_plan = Test::MockModule->new(ref $plan);
 $mock_plan->mock(index_of => 0);
+my $uri = URI->new('https://github.com/theory/sqitch/');
+$mock_plan->mock( uri => $uri );
 
 ok !$change2->is_deploy, 'It should not be a deploy change';
 ok $change2->is_revert, 'It should be a revert change';
 is $change2->action, 'revert', 'It should say so';
 is $change2->since_tag, $tag, 'It should have a since tag';
 is $change2->info, join("\n",
+   'project change',
+   'uri https://github.com/theory/sqitch/',
    'change yo/howdy',
    'planner Barack Obama <potus@whitehouse.gov>',
    'date 2012-07-16T17:25:07Z'
@@ -196,10 +207,9 @@ is $change2->test_file, $sqitch->test_dir->file(@fn),
 ##############################################################################
 # Test open_script.
 make_path dir(qw(sql deploy))->stringify;
-END { remove_tree 'sql' };
 file(qw(sql deploy baz.sql))->touch;
 my $change2_file = file qw(sql deploy bar.sql);
-my $fh = $change2_file->open('>:utf8') or die "Cannot open $change2_file: $!\n";
+$fh = $change2_file->open('>:utf8') or die "Cannot open $change2_file: $!\n";
 $fh->say('-- This is a comment');
 $fh->say('# And so is this');
 $fh->say('; and this, w€€!');
@@ -261,6 +271,8 @@ ok $change2 = $CLASS->new(
     plan => $plan2,
 ), 'Create change with UTF-8 name';
 is $change2->info, join("\n",
+    'project ' . 'multi',
+    'uri '     . $uri->canonical,
     'change '  . '阱阪阬',
     'planner ' . $change2->format_planner,
     'date '    . $change2->timestamp->as_string,

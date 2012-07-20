@@ -21,6 +21,8 @@ has info => (
         my $plan = $self->plan;
 
         return join "\n", (
+            'project ' . $self->project,
+            ( $self->uri ? ( 'uri ' . $self->uri->canonical ) : () ),
             'tag '     . $self->format_name,
             'change '  . $self->change->id,
             'planner ' . $self->format_planner,

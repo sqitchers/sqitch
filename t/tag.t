@@ -7,10 +7,12 @@ use utf8;
 #use Test::More tests => 17;
 use Test::More 'no_plan';
 use Test::NoWarnings;
+use Path::Class;
 use App::Sqitch;
 use App::Sqitch::Plan;
 use Test::MockModule;
 use Digest::SHA1;
+use URI;
 
 my $CLASS;
 
@@ -35,7 +37,7 @@ can_ok $CLASS, qw(
     format_planner
 );
 
-my $sqitch = App::Sqitch->new;
+my $sqitch = App::Sqitch->new( top_dir => dir qw(t sql) );
 my $plan   = App::Sqitch::Plan->new(sqitch => $sqitch);
 my $change = App::Sqitch::Plan::Change->new( plan => $plan, name => 'roles' );
 
@@ -64,12 +66,16 @@ is $tag->format_planner, join(
 my $ts = $tag->timestamp->as_string;
 is $tag->as_string, "\@foo $ts ". $tag->format_planner,
     'Should as_string to "@foo" + timstamp + planner';
+my $uri = URI->new('https://github.com/theory/sqitch/');
+$mock_plan->mock( uri => $uri );
 is $tag->info, join("\n",
+    'project sql',
+    'uri https://github.com/theory/sqitch/',
     'tag @foo',
     'change ' . $change->id,
     'planner ' . $tag->format_planner,
     'date '    . $ts,
-), 'Tag info should be correct';
+), 'Tag info should incldue the URI';
 
 my $date = App::Sqitch::DateTime->new(
     year   => 2012,
@@ -111,6 +117,8 @@ $mock_plan->mock(change_at => sub { shift @prevs });
 is $tag->change, $change, 'Change should be for previous change';
 
 is $tag->info, join("\n",
+    'project sql',
+    'uri https://github.com/theory/sqitch/',
     'tag @howdy',
     'change ' . $change->id,
     'planner Barack Obama <potus@whitehouse.gov>',
@@ -132,6 +140,8 @@ ok $tag = $CLASS->new(
     change  => $change,
 ), 'Create tag with UTF-8 name';
 is $tag->info, join("\n",
+    'project sql',
+    'uri https://github.com/theory/sqitch/',
     'tag '     . '@阱阪阬',
     'change '  . $change->id,
     'planner ' . $tag->format_planner,
