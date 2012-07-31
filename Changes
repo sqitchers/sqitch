@@ -3,6 +3,58 @@ Revision history for Perl extension App::Sqitch
 0.80
      - Added the `log` command to `sqitchcommands.pod`, which is shown as the
        output of `sqitch help`.
+     - Added  `user.name` and `user.email` configuration variables.
+     - Now using `user.name` and `user.email`, rather than the system or
+       database user name, to log the user committing changes to a database.
+     - Database-specific options are now prefixed with `--db-`.
+     - Added "raw" format to App::Sqitch::DateTime. It is ISO-8601 format in
+       UTC.
+     - Modified the "raw" log format to use the raw Datetime format.
+     - Added timestamp and planner info to the plan. This is additional
+       metadata included in every change and tag: The planner's name and email
+       address and the current timestamp. This makes it easier to audit who
+       added changes to a plan and when.
+     - Added the `--note` option to the `add`, `rework`, and `tag` commands.
+     - For consistency throughout, renamed all attributes and options from
+       "message" and "comment" to "note", which is shorter and better reflects
+       their purpose.
+     - The planner's name and email address, as well as the plan time and
+       note, are now stored in the database whenever changes or tags are
+       committed and logged.
+     - Renamed various database columns to be more consistent, with the terms
+       "commit", "plan", and "note".
+     - Added `requires` and `conflicts` columns to the events table, so that
+       they can become available to the `log` command.
+     - Various `log` format changes:
+       * Renamed %n (newline) to %v (vertical space)
+       * Renamed %c to %n (change name)
+       * Replaced %a (committer name) with %c (commit info). It takes an
+         argument:
+         + "name" or "n" for committer name
+         + "email" or "e" for committer email
+         + "d" or "date" for commit date
+         + "d:$format" or "date:$format" for formatted commit date
+       * Added %p (plan info). It takes an argument just like %c:
+         + "name" or "n" for planner name
+         + "email" or "e" for planner email
+         + "d" or "date" for plan date
+         + "d:$format" or "date:$format" for formatted plan date
+      * Added "planner", "committer", "planned", and "email" arguments to %_.
+      * Documented that the dates can take CLDR or strftime formats, too.
+      * Added the %s, %b, and %B format for "subject", "body", and raw body
+        akin to Git. The values are taken from the note value, if available.
+    - Updated the Change object to encode and decode vertical whitespace in a
+      note, so that all data remains on a single line for each object in the
+      plan file.
+    - Now require a note when adding, reworking, or tagging a change. If
+      `--note` is not specified, an editor will be launched and the user
+      prompted to write a note. This is similar to how `git commit` behaves,
+      and encourages documentation of changes.
+    - Added required "project" and optional "uri" pragmas to the plan.
+    - Added `--project` and `--uri` attributes to the `init` command.
+    - Removed the `core.uri` configuration variable and corresponding core
+      `--uri` option (since it has been replaced with the `init` command's
+      `--uri` option.
 
 0.71  2012-07-12T15:30:27Z
      - Updated the example `sqitch log` output in `sqitchtutorial`.
