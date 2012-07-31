@@ -18,6 +18,10 @@ BEGIN {
     use_ok $CLASS or die;
 }
 
+$ENV{SQITCH_CONFIG} = 'nonexistent.conf';
+$ENV{SQITCH_USER_CONFIG} = 'nonexistent.user';
+$ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
+
 can_ok $CLASS, qw(
     go
     new
@@ -101,6 +105,7 @@ GO: {
     my $ret = 1;
     $mock->mock(execute => sub { ($cmd, @params) = @_; $ret });
     chdir 't';
+    local $ENV{SQITCH_CONFIG} = 'sqitch.conf';
     local $ENV{SQITCH_USER_CONFIG} = 'user.conf';
     local @ARGV = qw(--engine sqlite help config);
     is +App::Sqitch->go, 0, 'Should get 0 from go()';
