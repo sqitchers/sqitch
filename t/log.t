@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 181;
+use Test::More tests => 208;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -196,52 +196,63 @@ my $event = {
     committer_name  => 'larry',
     committer_email => 'larry@example.com',
     committed_at    => $cdt,
-    planner_name    => 'larry',
-    planner_email   => 'larry@example.com',
+    planner_name    => 'damian',
+    planner_email   => 'damian@example.com',
     planned_at      => $pdt,
+    note            => "For the LOLZ.\n\nYou know, funny stuff and cute kittens, right?",
 };
 
-my $iso = $cdt->as_string( format => 'iso' );
-my $raw = $cdt->as_string( format => 'raw' );
+my $ciso = $cdt->as_string( format => 'iso' );
+my $craw = $cdt->as_string( format => 'raw' );
+my $piso = $pdt->as_string( format => 'iso' );
+my $praw = $pdt->as_string( format => 'raw' );
 for my $spec (
     [ raw => "event     deploy\n"
-           . "change    000011112222333444 (\@beta, \@gamma)\n"
-           . "name      lolz\n"
-           . "date      $raw\n"
-           . "committer larry\n"
+        . "change    000011112222333444 (\@beta, \@gamma)\n"
+        . "name      lolz\n"
+        . "planner   damian <damian\@example.com>\n"
+        . "planned   $praw\n"
+        . "committer larry <larry\@example.com>\n"
+        . "committed $craw\n\n"
+        . "    For the LOLZ.\n    \n    You know, funny stuff and cute kittens, right?\n"
     ],
-    [ full => color('yellow') . __ 'Change:' . '    000011112222333444'
-        . color('reset') . " (\@beta, \@gamma)\n"
+    [ full =>  __ 'Change:' . "    000011112222333444 (\@beta, \@gamma)\n"
         . __ 'Event:' . "     deploy\n"
         . __ 'Name:' . "      lolz\n"
-        . __ 'Date:' . "      __DATE__\n"
-        . __ 'By:' . "        larry\n"
+        . __ 'Planner:' . "   damian <damian\@example.com>\n"
+        . __ 'Planned:' . "   __PDATE__\n"
+        . __ 'Committer:' . " larry <larry\@example.com>\n"
+        . __ 'Committed:' . " __CDATE__\n\n"
+        . "    For the LOLZ.\n    \n    You know, funny stuff and cute kittens, right?\n"
     ],
-    [ long => color('yellow') . __ 'Deploy' . ' 000011112222333444'
-        . color('reset') . " (\@beta, \@gamma)\n"
+    [ long =>  __ 'Deploy' . " 000011112222333444 (\@beta, \@gamma)\n"
         . __ 'Name:' . "      lolz\n"
-        . __ 'Date:' . "      __DATE__\n"
-        . __ 'By:' . "        larry\n"
+        . __ 'Planner:' . "   damian <damian\@example.com>\n"
+        . __ 'Committer:' . " larry <larry\@example.com>\n\n"
+        . "    For the LOLZ.\n    \n    You know, funny stuff and cute kittens, right?\n"
     ],
-    [ medium => color('yellow') . __ 'Deploy' . ' 000011112222333444'
-        . color('reset') . " (\@beta, \@gamma)\n"
+    [ medium =>  __ 'Deploy' . " 000011112222333444\n"
         . __ 'Name:' . "      lolz\n"
-        . __ 'Date:' . "      __DATE__\n"
+        . __ 'Committer:' . " larry <larry\@example.com>\n"
+        . __ 'Date:' . "      __CDATE__\n\n"
+        . "    For the LOLZ.\n    \n    You know, funny stuff and cute kittens, right?\n"
     ],
-    [ short => color('yellow') . '000011112222333444' . color('reset') . "\n"
-        . $cdt->as_string( format => 'short' ) . ' - '
-        . __ 'deploy' . " lolz - larry\n"
+    [ short =>  __ 'Deploy' . " 000011112222333444\n"
+        . __ 'Name:' . "      lolz\n"
+        . __ 'Committer:' . " larry <larry\@example.com>\n\n"
+        . "    For the LOLZ.\n",
     ],
-    [ oneline => '000011112222333444 deploy lolz' ],
+    [ oneline => '000011112222333444 deploy lolz For the LOLZ.' ],
 ) {
     my $format = $CLASS->configure( $config, { format => $spec->[0] } )->{format};
     ok my $log = $CLASS->new( sqitch => $sqitch, format => $format ),
         qq{Instantiate with format "$spec->[0]"};
-    (my $exp = $spec->[1]) =~ s/__DATE__/$iso/;
+    (my $exp = $spec->[1]) =~ s/__CDATE__/$ciso/;
+    $exp =~ s/__PDATE__/$piso/;
     is $log->formatter->format( $log->format, $event ), $exp,
         qq{Format "$spec->[0]" should output correctly};
 
-    if ($spec->[1] =~ /__DATE__/) {
+    if ($spec->[1] =~ /__CDATE__/) {
         # Test different date formats.
         for my $date_format (qw(rfc long medium)) {
             ok my $log = $CLASS->new(
@@ -250,7 +261,9 @@ for my $spec (
                 date_format => $date_format,
             ), qq{Instantiate with format "$spec->[0]" and date format "$date_format"};
             my $date = $cdt->as_string( format => $date_format );
-            (my $exp = $spec->[1]) =~ s/__DATE__/$date/;
+            (my $exp = $spec->[1]) =~ s/__CDATE__/$date/;
+            $date = $pdt->as_string( format => $date_format );
+            $exp =~ s/__PDATE__/$date/;
             is $log->formatter->format( $log->format, $event ), $exp,
                 qq{Format "$spec->[0]" and date format "$date_format" should output correctly};
         }
@@ -259,7 +272,8 @@ for my $spec (
     if ($spec->[1] =~ s/\s+[(]?[@]beta,\s+[@]gamma[)]?//) {
         # Test without tags.
         local $event->{tags} = [];
-        (my $exp = $spec->[1]) =~ s/__DATE__/$iso/;
+        (my $exp = $spec->[1]) =~ s/__CDATE__/$ciso/;
+        $exp =~ s/__PDATE__/$piso/;
         is $log->formatter->format( $log->format, $event ), $exp,
             qq{Format "$spec->[0]" should output correctly without tags};
     }
@@ -278,13 +292,25 @@ for my $spec (
     ['%e', { event => 'revert' }, 'revert' ],
     ['%e', { event => 'fail' },   'fail' ],
 
+    ['%{1}e', { event => 'deploy' }, 'deploy' ],
+    ['%{1}e', { event => 'revert' }, 'revert' ],
+    ['%{1}e', { event => 'fail'   }, 'fail'   ],
+
     ['%L', { event => 'deploy' }, __ 'Deploy' ],
     ['%L', { event => 'revert' }, __ 'Revert' ],
     ['%L', { event => 'fail' },   __ 'Fail' ],
 
+    ['%{1}L', { event => 'deploy' }, __ 'Deploy' ],
+    ['%{1}L', { event => 'revert' }, __ 'Revert' ],
+    ['%{1}L', { event => 'fail' },   __ 'Fail' ],
+
     ['%l', { event => 'deploy' }, __ 'deploy' ],
     ['%l', { event => 'revert' }, __ 'revert' ],
     ['%l', { event => 'fail' },   __ 'fail' ],
+
+    ['%{1}l', { event => 'deploy' }, __ 'deploy' ],
+    ['%{1}l', { event => 'revert' }, __ 'revert' ],
+    ['%{1}l', { event => 'fail' },   __ 'fail' ],
 
     ['%{event}_',     {}, __ 'Event:    ' ],
     ['%{change}_',    {}, __ 'Change:   ' ],
@@ -305,7 +331,7 @@ for my $spec (
     ['%n', { change => 'foo' }, 'foo'],
     ['%n', { change => 'bar' }, 'bar'],
 
-    ['%c', { committer_name => 'larry'  }, 'larry'],
+    ['%c', { committer_name => 'larry', committer_email => 'larry@example.com'  }, 'larry <larry@example.com>'],
     ['%{n}c', { committer_name => 'damian' }, 'damian'],
     ['%{name}c', { committer_name => 'chip' }, 'chip'],
     ['%{e}c', { committer_email => 'larry@example.com'  }, 'larry@example.com'],
@@ -317,7 +343,7 @@ for my $spec (
     ["%{d:cldr:HH'h' mm'm'}c", { committed_at => $cdt }, $local_cdt->format_cldr( q{HH'h' mm'm'} ) ],
     ["%{d:strftime:%a at %H:%M:%S}c", { committed_at => $cdt }, $local_cdt->strftime('%a at %H:%M:%S') ],
 
-    ['%p', { planner_name => 'larry'  }, 'larry'],
+    ['%p', { planner_name => 'larry', planner_email => 'larry@example.com'  }, 'larry <larry@example.com>'],
     ['%{n}p', { planner_name => 'damian' }, 'damian'],
     ['%{name}p', { planner_name => 'chip' }, 'chip'],
     ['%{e}p', { planner_email => 'larry@example.com'  }, 'larry@example.com'],
@@ -350,10 +376,16 @@ for my $spec (
     ['%s', { note => 'hi there' }, 'hi there' ],
     ['%s', { note => "hi there\nyo" }, 'hi there' ],
     ['%s', { note => "subject line\n\nfirst graph\n\nsecond graph\n\n" }, 'subject line' ],
+    ['%{  }s', { note => 'hi there' }, '  hi there' ],
+    ['%{xx}s', { note => 'hi there' }, 'xxhi there' ],
 
     ['%b', { note => 'hi there' }, '' ],
     ['%b', { note => "hi there\nyo" }, 'yo' ],
     ['%b', { note => "subject line\n\nfirst graph\n\nsecond graph\n\n" }, "first graph\n\nsecond graph\n\n" ],
+    ['%{  }b', { note => 'hi there' }, '' ],
+    ['%{xxx }b', { note => "hi there\nyo" }, "xxx yo" ],
+    ['%{x}b', { note => "subject line\n\nfirst graph\n\nsecond graph\n\n" }, "xfirst graph\nx\nxsecond graph\nx\n" ],
+    ['%{ }b', { note => "hi there\r\nyo" }, " yo" ],
 
     ['%B', { note => 'hi there' }, 'hi there' ],
     ['%B', { note => "hi there\nyo" }, "hi there\nyo" ],
@@ -396,6 +428,67 @@ for my $color (qw(yellow red blue cyan magenta)) {
     is $formatter->format( "%{$color}C", {} ), color($color),
         qq{Format "%{$color}C" should output }
         . color($color) . $color . color('reset');
+}
+
+# Test other formats that use colors.
+for my $spec (
+    [ '%{1}e', { event => 'deploy' }, color('green') . 'deploy' . color('reset') ],
+    [ '%{1}e', { event => 'revert' }, color('blue')  . 'revert' . color('reset') ],
+    [ '%{1}e', { event => 'fail' },   color('red')   . 'fail'   . color('reset') ],
+
+    [ '%{1}l', { event => 'deploy' }, color('green') . __('deploy') . color('reset') ],
+    [ '%{1}l', { event => 'revert' }, color('blue')  . __('revert') . color('reset') ],
+    [ '%{1}l', { event => 'fail' },   color('red')   . __('fail')   . color('reset') ],
+
+    [ '%{1}L', { event => 'deploy' }, color('green') . __('Deploy') . color('reset') ],
+    [ '%{1}L', { event => 'revert' }, color('blue')  . __('Revert') . color('reset') ],
+    [ '%{1}L', { event => 'fail' },   color('red')   . __('Fail')   . color('reset') ],
+) {
+    is $formatter->format( $spec->[0], $spec->[1] ), $spec->[2],
+        qq{Format "$spec->[0]" should output "$spec->[2]"};
+}
+
+# Make sure other colors work.
+my $yellow = color('yellow') . '%s' . color('reset');
+my $green  = color('green')  . '%s' . color('reset');
+for my $spec (
+    [ full => sprintf($yellow, __ 'Change:' . '    000011112222333444')
+        . " (\@beta, \@gamma)\n"
+        . __ 'Event:' . "     " . sprintf($green, 'deploy'). "\n"
+        . __ 'Name:' . "      lolz\n"
+        . __ 'Planner:' . "   damian <damian\@example.com>\n"
+        . __ 'Planned:' . "   __PDATE__\n"
+        . __ 'Committer:' . " larry <larry\@example.com>\n"
+        . __ 'Committed:' . " __CDATE__\n\n"
+        . "    For the LOLZ.\n    \n    You know, funny stuff and cute kittens, right?\n"
+    ],
+    [ long => sprintf($green, __ 'Deploy') . ' ' . sprintf($yellow, '000011112222333444')
+        . " (\@beta, \@gamma)\n"
+        . __ 'Name:' . "      lolz\n"
+        . __ 'Planner:' . "   damian <damian\@example.com>\n"
+        . __ 'Committer:' . " larry <larry\@example.com>\n\n"
+        . "    For the LOLZ.\n    \n    You know, funny stuff and cute kittens, right?\n"
+    ],
+    [ medium => sprintf($green, __ 'Deploy') . ' ' . sprintf($yellow, '000011112222333444') . "\n"
+        . __ 'Name:' . "      lolz\n"
+        . __ 'Committer:' . " larry <larry\@example.com>\n"
+        . __ 'Date:' . "      __CDATE__\n\n"
+        . "    For the LOLZ.\n    \n    You know, funny stuff and cute kittens, right?\n"
+    ],
+    [ short => sprintf($green, __ 'Deploy') . ' ' . sprintf($yellow, '000011112222333444') . "\n"
+        . __ 'Name:' . "      lolz\n"
+        . __ 'Committer:' . " larry <larry\@example.com>\n\n"
+        . "    For the LOLZ.\n",
+    ],
+    [ oneline => sprintf "$yellow $green %s %s", '000011112222333444', __('deploy'), 'lolz', 'For the LOLZ.' ],
+) {
+    my $format = $CLASS->configure( $config, { format => $spec->[0] } )->{format};
+    ok my $log = $CLASS->new( sqitch => $sqitch, format => $format ),
+        qq{Instantiate with format "$spec->[0]" again};
+    (my $exp = $spec->[1]) =~ s/__CDATE__/$ciso/;
+    $exp =~ s/__PDATE__/$piso/;
+    is $log->formatter->format( $log->format, $event ), $exp,
+        qq{Format "$spec->[0]" should output correctly with color};
 }
 
 throws_ok { $formatter->format( '%{BLUELOLZ}C', {} ) } 'App::Sqitch::X',
@@ -462,12 +555,14 @@ is_deeply +MockOutput->get_page, [
 
 # Set attributes and add more events.
 my $event2 = {
-    event          => 'revert',
-    change_id      => '84584584359345',
-    change         => 'barf',
-    tags           => [],
-    committer_name => 'theory',
-    committed_at   => $cdt,
+    event           => 'revert',
+    change_id       => '84584584359345',
+    change          => 'barf',
+    tags            => [],
+    committer_name  => 'theory',
+    committer_email => 'theory@example.com',
+    committed_at    => $cdt,
+    note            => 'Oh man this was a bad idea',
 };
 push @events => {}, $event, $event2;
 isa_ok $log = $CLASS->new(

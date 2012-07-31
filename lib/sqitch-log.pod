@@ -183,13 +183,87 @@ Output colors. Supports the same values as the C<--color> option.
 
 =head1 Formats
 
-The format:<string> format allows you to specify which information you want to
-show. It works a little bit like C<printf> format. Like the Git log format,
-you can use C<%n> for a newline, but an actual newline is okay, too.
+There are several built-in formats, and you can emit data in a custom format
+C<< format:<string> >> format. Here are the details of the built-in formats:
 
 =over
 
-=item * C<%e>: Event type (deploy, revert, fail)
+=item C<oneline>
+
+  <change id> <event type> <change name> <title line>
+
+This is designed to be as compact as possible.
+
+=item C<short>
+
+  <event type> <change id>
+  Name:      <change name>
+  Committer: <committer>
+
+  <title line>
+
+=item C<medium>
+
+  <event type> <change id>
+  Name:      <change name>
+  Committer: <committer>
+  Date:      <commit date>
+
+  <full change note>
+
+=item C<long>
+
+  <event type> <change id> <tags>
+  Name:      <change name>
+  Planner:   <planner>
+  Committer: <committer>
+
+  <full change note>
+
+=item C<full>
+
+  Change:    <change id> <tags>
+  Event:     <event type>
+  Name:      <change name>
+  Planner:   <planner>
+  Planned:   <plan date>
+  Committer: <committer>
+  Committed: <commit date>
+
+  <full change note>
+
+=item C<raw>
+
+  event     <event type>
+  change    <full change id> <tags>
+  name      <change name>
+  planner   <planner>
+  planned   <raw plan date>
+  committer <committer>
+  committed <raw commit date>
+
+  <full change note>
+
+Suitable for parsing: the change ID is displayed in full, without regard to
+the value of C<--abbrev>; dates are formatted raw (strict ISO-8601 format in
+the UTC time zone); and all labels are lowercased and unlocalized.
+
+=item C<< format:<string> >>
+
+The C<< format:<string> >> format allows you to specify which information you
+want to show. It works a little bit like C<printf> format and a little like
+Git log format. For example, this format:
+
+  format:The committer of %h was %{name}c%vThe title was >>%s<<%v
+
+Would show something like this:
+
+  The committer of f26a3s was Tom Lane
+  The title was >>We really need to get this right.<<
+
+The placeholders are:
+
+=over
 
 =item * C<%H>: Event change ID
 
@@ -199,9 +273,19 @@ you can use C<%n> for a newline, but an actual newline is okay, too.
 
 =item * C<%($len)h>: abbreviated change of length C<$len>
 
+=item * C<%e>: Event type (deploy, revert, fail)
+
+=item * C<%{1}e>: ANSI-colored Event type (green deploy, blue revert, red fail)
+
 =item * C<%l>: Localized lowercase event type label
 
+=item * C<%{1}l>: Localized and ANSI-colored lowercase event type label
+
 =item * C<%L>: Localized title case event type label
+
+=item * C<%{1L>: Localized and ANSI-colored title case event type label
+
+=item * C<%c>: Event committer name and email address
 
 =item * C<%{name}c>: Event committer name
 
@@ -225,27 +309,29 @@ you can use C<%n> for a newline, but an actual newline is okay, too.
 
 =item * C<%{date:strftime:$pattern}c>: commit date, formatted with custom L<strftime pattern|DateTime/strftime Patterns>
 
-=item * C<%{name}c>: Change planner name
+=item * C<%c>: Change planner name and email address
 
-=item * C<%{email}c>: Change planner email address
+=item * C<%{name}p>: Change planner name
 
-=item * C<%{date}c>: plan date (respects C<--date-format>)
+=item * C<%{email}p>: Change planner email address
 
-=item * C<%{date:rfc}c>: plan date, RFC2822 format
+=item * C<%{date}p>: plan date (respects C<--date-format>)
 
-=item * C<%{date:iso}c>: plan date, ISO-8601 format
+=item * C<%{date:rfc}p>: plan date, RFC2822 format
 
-=item * C<%{date:full}c>: plan date, full format
+=item * C<%{date:iso}p>: plan date, ISO-8601 format
 
-=item * C<%{date:long}c>: plan date, long format
+=item * C<%{date:full}p>: plan date, full format
 
-=item * C<%{date:medium}c>: plan date, medium format
+=item * C<%{date:long}p>: plan date, long format
 
-=item * C<%{date:short}c>: plan date, short format
+=item * C<%{date:medium}p>: plan date, medium format
 
-=item * C<%{date:cldr:$pattern}c>: plan date, formatted with custom L<CLDR pattern|DateTime/CLDR Patterns>
+=item * C<%{date:short}p>: plan date, short format
 
-=item * C<%{date:strftime:$pattern}c>: plan date, formatted with custom L<strftime pattern|DateTime/strftime Patterns>
+=item * C<%{date:cldr:$pattern}p>: plan date, formatted with custom L<CLDR pattern|DateTime/CLDR Patterns>
+
+=item * C<%{date:strftime:$pattern}p>: plan date, formatted with custom L<strftime pattern|DateTime/strftime Patterns>
 
 =item * C<%t>: Comma-delimited list of tags
 
@@ -255,7 +341,7 @@ you can use C<%n> for a newline, but an actual newline is okay, too.
 
 =item * C<%{$sep}T>: Parenthesized list of tags delimited by C<$sep>
 
-=item * C<%s>: Subject
+=item * C<%s>: Subject (a.k.a. title line)
 
 =item * C<%b>: Body
 
@@ -286,6 +372,8 @@ you can use C<%n> for a newline, but an actual newline is okay, too.
 =item * C<%v> vertical space (newline)
 
 =item * C<%{color}C>: An ANSI color: black, red, green, yellow, reset, etc.
+
+=back
 
 =back
 

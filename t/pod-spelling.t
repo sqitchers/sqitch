@@ -58,3 +58,5 @@ committers
 UTC
 timestamp
 CLDR
+lowercased
+unlocalized

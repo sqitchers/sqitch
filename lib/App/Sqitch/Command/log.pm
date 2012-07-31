@@ -26,39 +26,55 @@ our $VERSION = '0.80';
 my %FORMATS;
 $FORMATS{raw} = <<EOF;
 event     %e
-change    %h%T
+change    %H%T
 name      %n
-date      %{date:raw}c
-committer %c
+planner   %{name}p <%{email}p>
+planned   %{date:raw}p
+committer %{name}c <%{email}c>
+committed %{date:raw}c
+
+%{    }B
 EOF
 
 $FORMATS{full} = <<EOF;
 %{yellow}C%{change}_ %h%{reset}C%T
-%{event}_ %e
+%{event}_ %{1}l
 %{name}_ %n
-%{date}_ %{date}c
-%{by}_ %c
+%{planner}_ %p
+%{planned}_ %{date}p
+%{committer}_ %c
+%{committed}_ %{date}c
+
+%{    }B
 EOF
 
 $FORMATS{long} = <<EOF;
-%{yellow}C%L %h%{reset}C%T
+%{1}L %{yellow}C%h%{reset}C%T
 %{name}_ %n
-%{date}_ %{date}c
-%{by}_ %c
+%{planner}_ %p
+%{committer}_ %c
+
+%{    }B
 EOF
 
 $FORMATS{medium} = <<EOF;
-%{yellow}C%L %h%{reset}C%T
+%{1}L %{yellow}C%h%{reset}C
 %{name}_ %n
+%{committer}_ %c
 %{date}_ %{date}c
+
+%{    }B
 EOF
 
 $FORMATS{short} = <<EOF;
-%{yellow}C%h%{reset}C
-%{d:short}c - %l %n - %c
+%{1}L %{yellow}C%h%{reset}C
+%{name}_ %n
+%{committer}_ %c
+
+%{    }s
 EOF
 
-$FORMATS{oneline} = '%h %l %n';
+$FORMATS{oneline} = '%{yellow}C%h%{reset}C %{1}l %n %s';
 
 has event => (
     is      => 'ro',
@@ -133,20 +149,42 @@ has formatter => (
             input_processor => 'require_single_input',
             string_replacer => 'method_replace',
             codes => {
-                e => sub { $_[0]->{event} },
+                e => sub {
+                    return $_[0]->{event} unless $_[1];
+                    my $color = $_[0]->{event} eq 'deploy' ? 'green'
+                              : $_[0]->{event} eq 'revert' ? 'blue'
+                                                            : 'red';
+                    return color($color) . $_[0]->{event} . color('reset');
+                },
                 L => sub {
-                    given ($_[0]->{event}) {
-                        __ 'Deploy' when 'deploy';
-                        __ 'Revert' when 'revert';
-                        __ 'Fail'   when 'fail';
-                    };
+                    if ($_[1]) {
+                        given ($_[0]->{event}) {
+                            color('green') . __('Deploy') . color('reset') when 'deploy';
+                            color('blue')  . __('Revert') . color('reset') when 'revert';
+                            color('red')   . __('Fail')   . color('reset') when 'fail';
+                        }
+                    } else {
+                        given ($_[0]->{event}) {
+                            __ 'Deploy' when 'deploy';
+                            __ 'Revert' when 'revert';
+                            __ 'Fail'   when 'fail';
+                        }
+                    }
                 },
                 l => sub {
-                    given ($_[0]->{event}) {
-                        __ 'deploy' when 'deploy';
-                        __ 'revert' when 'revert';
-                        __ 'fail'   when 'fail';
-                    };
+                    if ($_[1]) {
+                        given ($_[0]->{event}) {
+                            color('green') . __('deploy') . color('reset') when 'deploy';
+                            color('blue')  . __('revert') . color('reset') when 'revert';
+                            color('red')   . __('fail')   . color('reset') when 'fail';
+                        }
+                    } else {
+                        given ($_[0]->{event}) {
+                            __ 'deploy' when 'deploy';
+                            __ 'revert' when 'revert';
+                            __ 'fail'   when 'fail';
+                        }
+                    }
                 },
                 _ => sub {
                     given ($_[1]) {
@@ -174,7 +212,9 @@ has formatter => (
                 n => sub { $_[0]->{change} },
 
                 c => sub {
-                    return $_[0]->{committer_name}  if $_[1] ~~ [undef, qw(n name)];
+                    return "$_[0]->{committer_name} <$_[0]->{committer_email}>"
+                        unless defined $_[1];
+                    return $_[0]->{committer_name}  if $_[1] ~~ [qw(n name)];
                     return $_[0]->{committer_email} if $_[1] ~~ [qw(e email)];
                     return $_[0]->{committed_at}->as_string(
                         format => $_[1] || $self->date_format
@@ -182,7 +222,9 @@ has formatter => (
                 },
 
                 p => sub {
-                    return $_[0]->{planner_name}  if $_[1] ~~ [undef, qw(n name)];
+                    return "$_[0]->{planner_name} <$_[0]->{planner_email}>"
+                        unless defined $_[1];
+                    return $_[0]->{planner_name}  if $_[1] ~~ [qw(n name)];
                     return $_[0]->{planner_email} if $_[1] ~~ [qw(e email)];
                     return $_[0]->{planned_at}->as_string(
                         format => $_[1] || $self->date_format
@@ -208,11 +250,12 @@ has formatter => (
                 },
                 s => sub {
                     ( my $s = $_[0]->{note} ) =~ s/\v.*//ms;
-                    return $s;
+                    return ($_[1] // '') . $s;
                 },
                 b => sub {
                     return '' unless $_[0]->{note} =~ /\v/;
                     ( my $b = $_[0]->{note} ) =~ s/^.+\v+//;
+                    $b =~ s/^/$_[1]/gms if defined $_[1] && length $b;
                     return $b;
                 },
                 B => sub {
