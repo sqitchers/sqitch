@@ -1,3 +1,5 @@
+=encoding UTF-8
+
 =head1 Name
 
 sqitch - Sane database change management
@@ -17,8 +19,8 @@ approaches? A few things:
 =item No opinions
 
 Sqitch is not integrated with any framework, ORM, or platform. Rather, it is a
-standalone change management system with no opinions on your database or
-development choices.
+standalone change management system with no opinions about your database
+engine, application framework, or your development environment.
 
 =item Native scripting
 
@@ -49,6 +51,14 @@ out-of-order.
 Change deployment is managed by maintaining a plan file. As such, there is no
 need to number your changes, although you can if you want. Sqitch doesn't much
 care how you name your changes.
+
+=item Iterative Development
+
+Up until you tag and release your application, you can modify your change
+deployment scripts as often as you like. They're not locked in just because
+they've been committed to your VCS. This allows you to take an iterative
+approach to developing your database schema. Or, better, you can do
+test-driven database development.
 
 =begin comment
 
@@ -110,7 +120,7 @@ execute to change the database from one state to another.
 
 The act of adding a change to the plan. Sqitch will generate scripts for the
 change, which you then may modify with the necessary code (typically DDLs) to
-actually make, revert, and test the change.
+actually deploy, revert, and test the change.
 
 =item C<deploy>
 
@@ -129,6 +139,10 @@ name or tag).
 =item C<committer>
 
 User who commits or reverts changes to a database.
+
+=item C<planner>
+
+User who adds a change to the plan.
 
 =back
 
@@ -322,67 +336,17 @@ the name of the last deployed change, as well as any tags applied to it. If
 any changes in the plan have not been deployed, they will be listed
 separately.
 
-=item C<log>
+=item L<C<log>|sqitch-log>
+
+Search and Output the complete change history of a database. Provides
+information about when changes were deployed, reverted, or failed, as well as
+who planned and committed the changes, and when.
+
+=item C<plan>
 
 *Not yet implemented.
 
-Output the complete change history in reverse chronological order. Options:
-
-=over
-
-=item C<-t>
-
-=item C<-s>
-
-=item C<--change>
-
-Show only the specified change, which may be provided as a change name, ID, or
-tag.
-
-=item C<-n>
-
-=item C<--max-count>
-
-Limit the number of changes to show.
-
-=item C<--skip>
-
-Skip the specified number changes before starting to show the log output.
-
-=item C<--since>
-
-Show changes more recent than a specific date.
-
-=item C<--until>
-
-Show changes older than a specific date.
-
-=item C<--user>
-
-Limit the changes output to ones where the user name matches the specified
-pattern (regular expression).
-
-=item C<--reverse>
-
-Output the changes in reverse sort order.
-
-=item C<--format>
-
-The format to use. The value may be any one of:
-
-=over
-
-=item C<short>
-
-=item C<oneline>
-
-=item C<full>
-
-=item C<table>
-
-=back
-
-=back
+Search and output the list of changes in the plan.
 
 =item C<check>
 
@@ -483,9 +447,11 @@ with the "gamma" tag:
   [core]
       uri       = https://github.com/theory/sqitch/
       engine    = pg
-      db        = widgetopolis
       top_dir   = migrations
       extension = ddl
+
+  [core "pg"]
+      db_name   = widgetopolis
 
   [revert]
       to        = gamma
@@ -498,7 +464,11 @@ with the "gamma" tag:
 And here's an example of useful configuration in F<~/.sqitch/sqitch.conf>, to
 point to system-specific engine information:
 
-  [core.pg]
+  [user]
+      name      = Marge N. O’Vera
+      email     = marge@example.com
+
+  [core "pg"]
       client    = /usr/local/pgsql/bin/psql
       username  = theory
 
