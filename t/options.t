@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 24;
+use Test::More tests => 25;
 #use Test::More 'no_plan';
 use Test::MockModule;
 use Capture::Tiny ':all';
@@ -98,7 +98,6 @@ my $opts = $CLASS->_parse_core_opts([
     '--test-dir'   => 'tst',
     '--extension'  => 'ext',
     '--verbose', '--verbose',
-    '--quiet'
 ]);
 
 is_deeply $opts, {
@@ -115,12 +114,16 @@ is_deeply $opts, {
     'test_dir'    => 'tst',
     'extension'   => 'ext',
     verbosity     => 2,
-    quiet         => 1,
 }, 'Should parse lots of options';
 
 for my $dir (qw(top_dir deploy_dir revert_dir test_dir)) {
     isa_ok $opts->{$dir}, 'Path::Class::Dir', $dir;
 }
+
+# Make sure --quiet trumps --verbose.
+is_deeply $CLASS->_parse_core_opts([
+    '--verbose', '--verbose', '--quiet'
+]), { verbosity => 0 }, '--quiet should trump verbosity.';
 
 ##############################################################################
 # Try short options.

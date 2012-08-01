@@ -353,6 +353,7 @@ sub _parse_core_opts {
 
     # Normalize the options (remove undefs) and return.
     $opts{verbosity} = delete $opts{verbose};
+    $opts{verbosity} = 0 if delete $opts{quiet};
     delete $opts{$_} for grep { !defined $opts{$_} } keys %opts;
     return \%opts;
 }
