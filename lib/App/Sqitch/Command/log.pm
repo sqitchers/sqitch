@@ -40,7 +40,7 @@ $FORMATS{full} = <<EOF;
 %{yellow}C%{change}_ %h%{reset}C%T
 %{event}_ %{:event}C%l%{reset}C
 %{name}_ %n
-%{planner}_ %p
+%R%X%{planner}_ %p
 %{planned}_ %{date}p
 %{committer}_ %c
 %{committed}_ %{date}c
@@ -255,9 +255,10 @@ has formatter => (
                         : '';
                 },
                 R => sub {
-                    @{ $_[0]->{requires} }
-                        ? ' (' . join($_[1] || ', ' => @{ $_[0]->{requires} }) . ')'
-                        : '';
+                    return '' unless @{ $_[0]->{requires} };
+                    return __ 'Requires: ' . ' ' . join(
+                        $_[1] || ', ' => @{ $_[0]->{requires} }
+                    ) . "\n";
                 },
                 x => sub {
                     @{ $_[0]->{conflicts} }
@@ -265,9 +266,10 @@ has formatter => (
                         : '';
                 },
                 X => sub {
-                    @{ $_[0]->{conflicts} }
-                        ? ' (' . join($_[1] || ', ' => @{ $_[0]->{conflicts} }) . ')'
-                        : '';
+                    return '' unless @{ $_[0]->{conflicts} };
+                    return __ 'Conflicts:' . ' ' . join(
+                        $_[1] || ', ' => @{ $_[0]->{conflicts} }
+                    ) . "\n";
                 },
             },
         });

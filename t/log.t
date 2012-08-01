@@ -200,6 +200,8 @@ my $event = {
     planner_email   => 'damian@example.com',
     planned_at      => $pdt,
     note            => "For the LOLZ.\n\nYou know, funny stuff and cute kittens, right?",
+    requires        => [qw(foo bar)],
+    conflicts       => []
 };
 
 my $ciso = $cdt->as_string( format => 'iso' );
@@ -219,6 +221,7 @@ for my $spec (
     [ full =>  __ 'Change:' . "    000011112222333444 (\@beta, \@gamma)\n"
         . __ 'Event:' . "     deploy\n"
         . __ 'Name:' . "      lolz\n"
+        . __ 'Requires: ' . " foo, bar\n"
         . __ 'Planner:' . "   damian <damian\@example.com>\n"
         . __ 'Planned:' . "   __PDATE__\n"
         . __ 'Committer:' . " larry <larry\@example.com>\n"
@@ -367,11 +370,11 @@ for my $spec (
     ['%{|}r', { requires => ['foo', 'bar'] }, ' foo|bar' ],
 
     ['%R', { requires => [] }, '' ],
-    ['%R', { requires => ['foo'] }, ' (foo)' ],
-    ['%R', { requires => ['foo', 'bar'] }, ' (foo, bar)' ],
+    ['%R', { requires => ['foo'] }, __('Requires: ') . " foo\n" ],
+    ['%R', { requires => ['foo', 'bar'] }, __('Requires: ') . " foo, bar\n" ],
     ['%{|}R', { requires => [] }, '' ],
-    ['%{|}R', { requires => ['foo'] }, ' (foo)' ],
-    ['%{|}R', { requires => ['foo', 'bar'] }, ' (foo|bar)' ],
+    ['%{|}R', { requires => ['foo'] }, __('Requires: ') . " foo\n" ],
+    ['%{|}R', { requires => ['foo', 'bar'] }, __('Requires: ') . " foo|bar\n" ],
 
     ['%x', { conflicts => [] }, '' ],
     ['%x', { conflicts => ['foo'] }, ' foo' ],
@@ -381,11 +384,11 @@ for my $spec (
     ['%{|}x', { conflicts => ['foo', 'bax'] }, ' foo|bax' ],
 
     ['%X', { conflicts => [] }, '' ],
-    ['%X', { conflicts => ['foo'] }, ' (foo)' ],
-    ['%X', { conflicts => ['foo', 'bax'] }, ' (foo, bax)' ],
+    ['%X', { conflicts => ['foo'] }, __('Conflicts:') . " foo\n" ],
+    ['%X', { conflicts => ['foo', 'bar'] }, __('Conflicts:') . " foo, bar\n" ],
     ['%{|}X', { conflicts => [] }, '' ],
-    ['%{|}X', { conflicts => ['foo'] }, ' (foo)' ],
-    ['%{|}X', { conflicts => ['foo', 'bax'] }, ' (foo|bax)' ],
+    ['%{|}X', { conflicts => ['foo'] }, __('Conflicts:') . " foo\n" ],
+    ['%{|}X', { conflicts => ['foo', 'bar'] }, __('Conflicts:') . " foo|bar\n" ],
 
     ['%{yellow}C', {}, '' ],
     ['%{:event}C', { event => 'deploy' }, '' ],
@@ -462,11 +465,14 @@ for my $spec (
 # Make sure other colors work.
 my $yellow = color('yellow') . '%s' . color('reset');
 my $green  = color('green')  . '%s' . color('reset');
+$event->{conflicts} = [qw(dr_evil)];
 for my $spec (
     [ full => sprintf($yellow, __ 'Change:' . '    000011112222333444')
         . " (\@beta, \@gamma)\n"
         . __ 'Event:' . "     " . sprintf($green, 'deploy'). "\n"
         . __ 'Name:' . "      lolz\n"
+        . __ 'Requires: ' . " foo, bar\n"
+        . __ 'Conflicts: ' . "dr_evil\n"
         . __ 'Planner:' . "   damian <damian\@example.com>\n"
         . __ 'Planned:' . "   __PDATE__\n"
         . __ 'Committer:' . " larry <larry\@example.com>\n"
