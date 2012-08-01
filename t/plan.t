@@ -25,6 +25,10 @@ BEGIN {
     use_ok $CLASS or die;
 }
 
+$ENV{SQITCH_CONFIG} = 'nonexistent.conf';
+$ENV{SQITCH_USER_CONFIG} = 'nonexistent.user';
+$ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
+
 can_ok $CLASS, qw(
     sqitch
     changes
@@ -1023,7 +1027,8 @@ is $@->message, __x(
 
 ##############################################################################
 # Try adding a change.
-ok my $new_change = $plan->add(name => 'booyah'), 'Add change "booyah"';
+ok my $new_change = $plan->add(name => 'booyah', note => 'Hi there'),
+    'Add change "booyah"';
 is $plan->count, 5, 'Should have 5 changes';
 is $plan->index_of('booyah'), 4, 'Should find "booyah at index 4';
 is $plan->last->name, 'booyah', 'Last change should be "booyah"';
@@ -1032,6 +1037,7 @@ is $new_change->as_string, join (' ',
     'booyah',
     $new_change->timestamp->as_string,
     $new_change->format_planner,
+    $new_change->format_note,
 ), 'Should have plain stringification of "booya"';
 
 ok $plan->write_to($to), 'Write out the file again';

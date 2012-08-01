@@ -584,6 +584,7 @@ sub add {
         );
     }
 
+    $p{rspace} //= ' ' if $p{note};
     my $change = App::Sqitch::Plan::Change->new( %p, plan => $self );
 
     # Make sure dependencies are valid.
