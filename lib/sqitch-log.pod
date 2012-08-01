@@ -337,6 +337,22 @@ The placeholders are:
 
 =item * C<%s>: Subject (a.k.a. title line)
 
+=item * C<%r>: Comma-delimited list of required changes
+
+=item * C<%{$sep}r>: list of required changes delimited by C<$sep>
+
+=item * C<%R>: Parenthesized list of comma-delimited required changes
+
+=item * C<%{$sep}R>: Parenthesized list of required changes delimited by C<$sep>
+
+=item * C<%x>: Comma-delimited list of conflicting changes
+
+=item * C<%{$sep}x>: list of conflicting changes delimited by C<$sep>
+
+=item * C<%X>: Parenthesized list of comma-delimited conflicting changes
+
+=item * C<%{$sep}X>: Parenthesized list of conflicting changes delimited by C<$sep>
+
 =item * C<%b>: Body
 
 =item * C<%B>: Raw body (unwrapped subject and body)
@@ -362,6 +378,10 @@ The placeholders are:
 =item * C<%{name}_> Localized label for "name"
 
 =item * C<%{email}_> Localized label for "email"
+
+=item * C<%{requires}_> Localized label for "requires"
+
+=item * C<%{conflicts}_> Localized label for "conflicts"
 
 =item * C<%v> vertical space (newline)
 

@@ -176,6 +176,8 @@ has formatter => (
                         __ 'Planned:  ' when 'planned';
                         __ 'Name:     ' when 'name';
                         __ 'Email:    ' when 'email';
+                        __ 'Requires: ' when 'requires';
+                        __ 'Conflicts:' when 'conflicts';
                         hurl log => __ 'No label passed to the _ format'
                             when undef;
                     };
@@ -246,6 +248,26 @@ has formatter => (
                     return $_[0]->{note} unless defined $_[1];
                     ( my $note = $_[0]->{note} ) =~ s/^/$_[1]/gms;
                     return $note;
+                },
+                r => sub {
+                    @{ $_[0]->{requires} }
+                        ? ' ' . join $_[1] || ', ' => @{ $_[0]->{requires} }
+                        : '';
+                },
+                R => sub {
+                    @{ $_[0]->{requires} }
+                        ? ' (' . join($_[1] || ', ' => @{ $_[0]->{requires} }) . ')'
+                        : '';
+                },
+                x => sub {
+                    @{ $_[0]->{conflicts} }
+                        ? ' ' . join $_[1] || ', ' => @{ $_[0]->{conflicts} }
+                        : '';
+                },
+                X => sub {
+                    @{ $_[0]->{conflicts} }
+                        ? ' (' . join($_[1] || ', ' => @{ $_[0]->{conflicts} }) . ')'
+                        : '';
                 },
             },
         });

@@ -45,7 +45,8 @@ Revision history for Perl extension App::Sqitch
          + Green for "deploy"
          + Blue for "revert"
          + Red for "fail"
-
+        * Added "%r" and "%R" for lists of required changes.
+        * Added "%x" and "%X" for lists of conflicting changes.
       * Added "planner", "committer", "planned", and "email" arguments to %_.
       * Documented that the dates can take CLDR or strftime formats, too.
       * Added the %s, %b, and %B format for "subject", "body", and raw body

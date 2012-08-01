@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 194;
+use Test::More tests => 220;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -310,6 +310,8 @@ for my $spec (
     ['%{planned}_',   {}, __ 'Planned:  ' ],
     ['%{name}_',      {}, __ 'Name:     ' ],
     ['%{email}_',     {}, __ 'Email:    ' ],
+    ['%{requires}_',  {}, __ 'Requires: ' ],
+    ['%{conflicts}_', {}, __ 'Conflicts:' ],
 
     ['%H', { change_id => '123456789' }, '123456789' ],
     ['%h', { change_id => '123456789' }, '123456789' ],
@@ -356,6 +358,34 @@ for my $spec (
     ['%{|}T', { tags => [] }, '' ],
     ['%{|}T', { tags => ['@foo'] }, ' (@foo)' ],
     ['%{|}T', { tags => ['@foo', '@bar'] }, ' (@foo|@bar)' ],
+
+    ['%r', { requires => [] }, '' ],
+    ['%r', { requires => ['foo'] }, ' foo' ],
+    ['%r', { requires => ['foo', 'bar'] }, ' foo, bar' ],
+    ['%{|}r', { requires => [] }, '' ],
+    ['%{|}r', { requires => ['foo'] }, ' foo' ],
+    ['%{|}r', { requires => ['foo', 'bar'] }, ' foo|bar' ],
+
+    ['%R', { requires => [] }, '' ],
+    ['%R', { requires => ['foo'] }, ' (foo)' ],
+    ['%R', { requires => ['foo', 'bar'] }, ' (foo, bar)' ],
+    ['%{|}R', { requires => [] }, '' ],
+    ['%{|}R', { requires => ['foo'] }, ' (foo)' ],
+    ['%{|}R', { requires => ['foo', 'bar'] }, ' (foo|bar)' ],
+
+    ['%x', { conflicts => [] }, '' ],
+    ['%x', { conflicts => ['foo'] }, ' foo' ],
+    ['%x', { conflicts => ['foo', 'bax'] }, ' foo, bax' ],
+    ['%{|}x', { conflicts => [] }, '' ],
+    ['%{|}x', { conflicts => ['foo'] }, ' foo' ],
+    ['%{|}x', { conflicts => ['foo', 'bax'] }, ' foo|bax' ],
+
+    ['%X', { conflicts => [] }, '' ],
+    ['%X', { conflicts => ['foo'] }, ' (foo)' ],
+    ['%X', { conflicts => ['foo', 'bax'] }, ' (foo, bax)' ],
+    ['%{|}X', { conflicts => [] }, '' ],
+    ['%{|}X', { conflicts => ['foo'] }, ' (foo)' ],
+    ['%{|}X', { conflicts => ['foo', 'bax'] }, ' (foo|bax)' ],
 
     ['%{yellow}C', {}, '' ],
     ['%{:event}C', { event => 'deploy' }, '' ],
