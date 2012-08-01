@@ -4,6 +4,7 @@ use v5.10.1;
 use strict;
 use warnings;
 use utf8;
+BEGIN { $ENV{PERL_UNICODE} = 'AS' }
 use Getopt::Long;
 use Hash::Merge qw(merge);
 use Path::Class;
