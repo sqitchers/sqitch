@@ -216,7 +216,7 @@ command:
 
       App database user with limited permissions.
 
-Note that the actions we took are shown in reverse cronological order, with
+Note that the actions we took are shown in reverse chronological order, with
 the revert first and then the deploy.
 
 Cool. Now let's commit it.
@@ -431,7 +431,7 @@ Now might be a good time to have a look at the deployment plan:
   change_pass [:users :appuser] 2012-08-01T15:41:46Z Marge N. O’Vera <marge@example.com> # Creates a function to change a user password.
 
 Each change appears on a single line with the name of the change, a bracketed
-list of depdendencies, a timestamp, the name and email address of the user who
+list of dependencies, a timestamp, the name and email address of the user who
 planned the change, and a note.
 
 Let's write the code for the new changes. Here's what
@@ -599,7 +599,7 @@ C<@v1.0.0-dev1>. Let's have a look at the state:
   # 
   Nothing to deploy (up-to-date)
 
-Note rhe listing of the tag as part of the stats message. Now let's bundle
+Note the listing of the tag as part of the stats message. Now let's bundle
 everything up for release:
 
   > sqitch bundle
@@ -1043,9 +1043,8 @@ Have a look at this:
   "
    nickname |             password             |           timestamp           
   ----------+----------------------------------+-------------------------------
-   foo      | 9695da4dd567a19f9b92065f240c6725 | 2012-04-11 23:00:02.135612+00
-   bar      | 9695da4dd567a19f9b92065f240c6725 | 2012-04-11 23:00:02.135612+00
-  "
+   foo      | 9695da4dd567a19f9b92065f240c6725 | 2012-08-01 16:37:22.534807+00
+   bar      | 9695da4dd567a19f9b92065f240c6725 | 2012-08-01 16:37:22.534807+00
 
 If user "foo" ever got access to the database, she could quickly discover that
 user "bar" has the same password and thus be able to exploit the account. Not
@@ -1099,8 +1098,8 @@ section. With that, we can let Sqitch do most of the hard work for us, thanks
 to the C<rework> command, which is similar to C<add>, including support for
 the C<--requires> option:
 
-  > sqitch rework insert_user --requires pgcrypto
-  Added "insert_user :insert_user@v1.0.0-dev2 :pgcrypto" to sqitch.plan.
+  > sqitch rework insert_user --requires pgcrypto -n 'Change insert_user to use pgcrypto.'
+  Added "insert_user [:insert_user@v1.0.0-dev2 :pgcrypto]" to sqitch.plan.
   Modify these files as appropriate:
     * deploy/insert_user.sql
     * revert/insert_user.sql
@@ -1128,8 +1127,8 @@ of the C<insert_user> change, which we can see via C<git status>:
   no changes added to commit (use "git add" and/or "git commit -a")
 
 The "untracked files" part of the output is the first thing to notice. They
-are all named C<insert_user@v1.0.0-dev2.sql>. What that means is, "the
-C<insert_user> change as it was implemented as of the C<@v1.0.0-dev2> tag.
+are all named C<insert_user@v1.0.0-dev2.sql>. What that means is: "the
+C<insert_user> change as it was implemented as of the C<@v1.0.0-dev2> tag."
 These are copies of the original scripts, and thereafter Sqitch will find them
 when it needs to run scripts for the first instance of the C<insert_user>
 change. As such, it's important not to change them again. But hey, if you're
@@ -1170,15 +1169,15 @@ F<deploy/insert_user.sql>:
        password TEXT
    ) RETURNS VOID LANGUAGE SQL SECURITY DEFINER AS $$
   -    INSERT INTO users VALUES($1, md5($2));
-  +  INSERT INTO users values($1, crypt($2, gen_salt('md5')));
+  +    INSERT INTO users values($1, crypt($2, gen_salt('md5')));
    $$;
  
    GRANT EXECUTE ON FUNCTION insert_user(TEXT, TEXT) TO flipr;
 
 Go ahead and rework the C<change_pass> change, too:
 
-  > sqitch rework change_pass --requires pgcrypto
-  Added "change_pass :change_pass@v1.0.0-dev2 :pgcrypto" to sqitch.plan.
+  > sqitch rework change_pass --requires pgcrypto -n 'Change change_pass to use pgcrypto.' 
+  Added "change_pass [:change_pass@v1.0.0-dev2 :pgcrypto]" to sqitch.plan.
   Modify these files as appropriate:
     * deploy/change_pass.sql
     * revert/change_pass.sql
@@ -1223,8 +1222,8 @@ So, are the changes deployed?
   "
    nickname |              password              |           timestamp           
   ----------+------------------------------------+-------------------------------
-   foo      | $1$l6OEKyF3$kv5ae7505ROub75d9QKTh/ | 2012-04-12 18:55:43.422211+00
-   bar      | $1$J4NJDgaJ$578i9Lt6b8ohJwi6WhNNO1 | 2012-04-12 18:55:43.422211+00
+   foo      | $1$/H.K/3OO$5BNdG4tLQNhG7xai0mYqi. | 2012-08-01 16:49:14.777749+00
+   bar      | $1$5S2.0BFF$gBBVQVCzqmeu6w0ryKo34/ | 2012-08-01 16:49:14.777749+00
 
 Awesome, the stored passwords are different now. But can we revert, even
 though we haven't written any reversion scripts?
@@ -1243,8 +1242,8 @@ Did that work, are the C<MD5()> passwords back?
   "
    nickname |             password             |           timestamp           
   ----------+----------------------------------+-------------------------------
-   foo      | 9695da4dd567a19f9b92065f240c6725 | 2012-04-12 18:56:03.292423+00
-   bar      | 9695da4dd567a19f9b92065f240c6725 | 2012-04-12 18:56:03.292423+00
+   foo      | 9695da4dd567a19f9b92065f240c6725 | 2012-08-01 16:49:51.461641+00
+   bar      | 9695da4dd567a19f9b92065f240c6725 | 2012-08-01 16:49:51.461641+00
 
 Yes, it works! Sqitch properly finds the original instances of these changes
 in the new script files that include tags.So let's go ahead and commit these
@@ -1252,7 +1251,7 @@ changes and bring the database up-to-date:
 
   > git add .
   > git commit -m 'Use pgcrypto to encrypt passwords.'
-  [master bf926f4] Use pgcrypto to encrypt passwords.
+  [master 4076378] Use pgcrypto to encrypt passwords.
    11 files changed, 101 insertions(+), 12 deletions(-)
    create mode 100644 deploy/change_pass@v1.0.0-dev2.sql
    create mode 100644 deploy/insert_user@v1.0.0-dev2.sql
@@ -1269,10 +1268,10 @@ changes and bring the database up-to-date:
 
   > sqitch status
   # On database flipr_test
-  # Change:   02c5592d1db6c22c0a8d5e7ff963d5aa5ce065a3
+  # Change:   7ad1cc6d1706c559dceb3101e7c21786dc7d7b4c
   # Name:     change_pass
-  # Deployed: 2012-07-06 19:30:45 +0200
-  # By:       david
+  # Deployed: 2012-08-01 18:50:36 +0200
+  # By:       Marge N. O’Vera <marge@example.com>
   # 
   Nothing to deploy (up-to-date)
 
