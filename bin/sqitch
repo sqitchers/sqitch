@@ -1,4 +1,4 @@
-#!perl -w
+#!perl -w -CAS
 
 use App::Sqitch;
 
