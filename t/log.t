@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 208;
+use Test::More tests => 194;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -292,25 +292,13 @@ for my $spec (
     ['%e', { event => 'revert' }, 'revert' ],
     ['%e', { event => 'fail' },   'fail' ],
 
-    ['%{1}e', { event => 'deploy' }, 'deploy' ],
-    ['%{1}e', { event => 'revert' }, 'revert' ],
-    ['%{1}e', { event => 'fail'   }, 'fail'   ],
-
     ['%L', { event => 'deploy' }, __ 'Deploy' ],
     ['%L', { event => 'revert' }, __ 'Revert' ],
     ['%L', { event => 'fail' },   __ 'Fail' ],
 
-    ['%{1}L', { event => 'deploy' }, __ 'Deploy' ],
-    ['%{1}L', { event => 'revert' }, __ 'Revert' ],
-    ['%{1}L', { event => 'fail' },   __ 'Fail' ],
-
     ['%l', { event => 'deploy' }, __ 'deploy' ],
     ['%l', { event => 'revert' }, __ 'revert' ],
     ['%l', { event => 'fail' },   __ 'fail' ],
-
-    ['%{1}l', { event => 'deploy' }, __ 'deploy' ],
-    ['%{1}l', { event => 'revert' }, __ 'revert' ],
-    ['%{1}l', { event => 'fail' },   __ 'fail' ],
 
     ['%{event}_',     {}, __ 'Event:    ' ],
     ['%{change}_',    {}, __ 'Change:   ' ],
@@ -370,6 +358,7 @@ for my $spec (
     ['%{|}T', { tags => ['@foo', '@bar'] }, ' (@foo|@bar)' ],
 
     ['%{yellow}C', {}, '' ],
+    ['%{:event}C', { event => 'deploy' }, '' ],
     ['%v', {}, "\n" ],
     ['%%', {}, '%' ],
 
@@ -430,22 +419,14 @@ for my $color (qw(yellow red blue cyan magenta)) {
         . color($color) . $color . color('reset');
 }
 
-# Test other formats that use colors.
 for my $spec (
-    [ '%{1}e', { event => 'deploy' }, color('green') . 'deploy' . color('reset') ],
-    [ '%{1}e', { event => 'revert' }, color('blue')  . 'revert' . color('reset') ],
-    [ '%{1}e', { event => 'fail' },   color('red')   . 'fail'   . color('reset') ],
-
-    [ '%{1}l', { event => 'deploy' }, color('green') . __('deploy') . color('reset') ],
-    [ '%{1}l', { event => 'revert' }, color('blue')  . __('revert') . color('reset') ],
-    [ '%{1}l', { event => 'fail' },   color('red')   . __('fail')   . color('reset') ],
-
-    [ '%{1}L', { event => 'deploy' }, color('green') . __('Deploy') . color('reset') ],
-    [ '%{1}L', { event => 'revert' }, color('blue')  . __('Revert') . color('reset') ],
-    [ '%{1}L', { event => 'fail' },   color('red')   . __('Fail')   . color('reset') ],
+    [ ':event', { event => 'deploy' }, 'green', 'deploy' ],
+    [ ':event', { event => 'revert' }, 'blue',  'revert' ],
+    [ ':event', { event => 'fail'   }, 'red',   'fail'   ],
 ) {
-    is $formatter->format( $spec->[0], $spec->[1] ), $spec->[2],
-        qq{Format "$spec->[0]" should output "$spec->[2]"};
+    is $formatter->format( "%{$spec->[0]}C", $spec->[1] ), color($spec->[2]),
+        qq{Format "%{$spec->[0]}C" on "$spec->[3]" should output }
+        . color($spec->[2]) . $spec->[2] . color('reset');
 }
 
 # Make sure other colors work.

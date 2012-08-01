@@ -38,7 +38,7 @@ EOF
 
 $FORMATS{full} = <<EOF;
 %{yellow}C%{change}_ %h%{reset}C%T
-%{event}_ %{1}l
+%{event}_ %{:event}C%l%{reset}C
 %{name}_ %n
 %{planner}_ %p
 %{planned}_ %{date}p
@@ -49,7 +49,7 @@ $FORMATS{full} = <<EOF;
 EOF
 
 $FORMATS{long} = <<EOF;
-%{1}L %{yellow}C%h%{reset}C%T
+%{:event}C%L%{reset}C %{yellow}C%h%{reset}C%T
 %{name}_ %n
 %{planner}_ %p
 %{committer}_ %c
@@ -58,7 +58,7 @@ $FORMATS{long} = <<EOF;
 EOF
 
 $FORMATS{medium} = <<EOF;
-%{1}L %{yellow}C%h%{reset}C
+%{:event}C%L%{reset}C %{yellow}C%h%{reset}C
 %{name}_ %n
 %{committer}_ %c
 %{date}_ %{date}c
@@ -67,14 +67,14 @@ $FORMATS{medium} = <<EOF;
 EOF
 
 $FORMATS{short} = <<EOF;
-%{1}L %{yellow}C%h%{reset}C
+%{:event}C%L%{reset}C %{yellow}C%h%{reset}C
 %{name}_ %n
 %{committer}_ %c
 
 %{    }s
 EOF
 
-$FORMATS{oneline} = '%{yellow}C%h%{reset}C %{1}l %n %s';
+$FORMATS{oneline} = '%{yellow}C%h%{reset}C %{:event}C%l%{reset}C %n %s';
 
 has event => (
     is      => 'ro',
@@ -149,41 +149,19 @@ has formatter => (
             input_processor => 'require_single_input',
             string_replacer => 'method_replace',
             codes => {
-                e => sub {
-                    return $_[0]->{event} unless $_[1];
-                    my $color = $_[0]->{event} eq 'deploy' ? 'green'
-                              : $_[0]->{event} eq 'revert' ? 'blue'
-                                                            : 'red';
-                    return color($color) . $_[0]->{event} . color('reset');
-                },
+                e => sub { $_[0]->{event} },
                 L => sub {
-                    if ($_[1]) {
-                        given ($_[0]->{event}) {
-                            color('green') . __('Deploy') . color('reset') when 'deploy';
-                            color('blue')  . __('Revert') . color('reset') when 'revert';
-                            color('red')   . __('Fail')   . color('reset') when 'fail';
-                        }
-                    } else {
-                        given ($_[0]->{event}) {
-                            __ 'Deploy' when 'deploy';
-                            __ 'Revert' when 'revert';
-                            __ 'Fail'   when 'fail';
-                        }
+                    given ($_[0]->{event}) {
+                        __ 'Deploy' when 'deploy';
+                        __ 'Revert' when 'revert';
+                        __ 'Fail'   when 'fail';
                     }
                 },
                 l => sub {
-                    if ($_[1]) {
-                        given ($_[0]->{event}) {
-                            color('green') . __('deploy') . color('reset') when 'deploy';
-                            color('blue')  . __('revert') . color('reset') when 'revert';
-                            color('red')   . __('fail')   . color('reset') when 'fail';
-                        }
-                    } else {
-                        given ($_[0]->{event}) {
-                            __ 'deploy' when 'deploy';
-                            __ 'revert' when 'revert';
-                            __ 'fail'   when 'fail';
-                        }
+                    given ($_[0]->{event}) {
+                        __ 'deploy' when 'deploy';
+                        __ 'revert' when 'revert';
+                        __ 'fail'   when 'fail';
                     }
                 },
                 _ => sub {
@@ -243,6 +221,12 @@ has formatter => (
                 },
                 v => sub { "\n" },
                 C => sub {
+                    if (($_[1] // '') eq ':event') {
+                        # Select a color based on some attribute.
+                        return color $_[0]->{event} eq 'deploy' ? 'green'
+                                   : $_[0]->{event} eq 'revert' ? 'blue'
+                                   : 'red';
+                    }
                     hurl log => __x(
                         '{color} is not a valid ANSI color', color => $_[1]
                     ) unless $_[1] && colorvalid $_[1];

@@ -40,11 +40,12 @@ Revision history for Perl extension App::Sqitch
          + "email" or "e" for planner email
          + "d" or "date" for plan date
          + "d:$format" or "date:$format" for formatted plan date
-       * Added optional argument to "%e", "%l", and "%L" which, when true,
-         causes the values to be displayed with ANSI colors (if available):
+       * Added special argument to "%C", `:event", which returns a color based
+         on the value of the event type:
          + Green for "deploy"
          + Blue for "revert"
          + Red for "fail"
+
       * Added "planner", "committer", "planned", and "email" arguments to %_.
       * Documented that the dates can take CLDR or strftime formats, too.
       * Added the %s, %b, and %B format for "subject", "body", and raw body

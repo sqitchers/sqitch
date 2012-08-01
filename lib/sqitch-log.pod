@@ -275,15 +275,9 @@ The placeholders are:
 
 =item * C<%e>: Event type (deploy, revert, fail)
 
-=item * C<%{1}e>: ANSI-colored Event type (green deploy, blue revert, red fail)
-
 =item * C<%l>: Localized lowercase event type label
 
-=item * C<%{1}l>: Localized and ANSI-colored lowercase event type label
-
 =item * C<%L>: Localized title case event type label
-
-=item * C<%{1L>: Localized and ANSI-colored title case event type label
 
 =item * C<%c>: Event committer name and email address
 
@@ -371,7 +365,9 @@ The placeholders are:
 
 =item * C<%v> vertical space (newline)
 
-=item * C<%{color}C>: An ANSI color: black, red, green, yellow, reset, etc.
+=item * C<%{$color}C>: An ANSI color: black, red, green, yellow, reset, etc.
+
+=item * C<%{:event}C>: An ANSI color based on event type (green deploy, blue revert, red fail)
 
 =back
 
