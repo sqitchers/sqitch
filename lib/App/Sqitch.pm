@@ -426,7 +426,11 @@ sub _prepend {
 }
 
 sub page {
-    shift->pager->say(encode_utf8 join '', map { $_ // '' } @_);
+    my $pager = shift->pager;
+    # If the pager is a glob, we don't have to encode, because -CAS does it.
+    return $pager->say(@_) if ref $pager eq 'GLOB';
+    # If it is an object, we have to encode it. Ugh.
+    $pager->say(encode_utf8 join '', map { $_ // '' } @_);
 }
 
 sub trace {
