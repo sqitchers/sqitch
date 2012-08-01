@@ -11,6 +11,7 @@ use Config;
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use Moose;
+use Encode qw(encode_utf8);
 use Try::Tiny;
 use List::Util qw(first);
 use IPC::System::Simple qw(runx capturex $EXITVAL);
@@ -424,7 +425,7 @@ sub _prepend {
 }
 
 sub page {
-    shift->pager->say(@_);
+    shift->pager->say(encode_utf8 join '', map { $_ // '' } @_);
 }
 
 sub trace {
