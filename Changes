@@ -9,7 +9,7 @@ Revision history for Perl extension App::Sqitch
      - Database-specific options are now prefixed with `--db-`.
      - Added "raw" format to App::Sqitch::DateTime. It is ISO-8601 format in
        UTC.
-     - Modified the "raw" log format to use the raw Datetime format.
+     - Modified the "raw" log format to use the raw DateTime format.
      - Added timestamp and planner info to the plan. This is additional
        metadata included in every change and tag: The planner's name and email
        address and the current timestamp. This makes it easier to audit who
@@ -34,7 +34,7 @@ Revision history for Perl extension App::Sqitch
          + "email" or "e" for committer email
          + "d" or "date" for commit date
          + "d:$format" or "date:$format" for formatted commit date
-       * Added %p (planner info). It takes an optioanl argument just like
+       * Added %p (planner info). It takes an optional argument just like
          "%c" does:
          + "name" or "n" for planner name
          + "email" or "e" for planner email
@@ -45,13 +45,22 @@ Revision history for Perl extension App::Sqitch
          + Green for "deploy"
          + Blue for "revert"
          + Red for "fail"
-        * Added "%r" and "%R" for lists of required changes.
-        * Added "%x" and "%X" for lists of conflicting changes.
-        * Added "%a" to display an unlocalized attribute name and value.
-      * Added "planner", "committer", "planned", and "email" arguments to %_.
-      * Documented that the dates can take CLDR or strftime formats, too.
-      * Added the %s, %b, and %B format for "subject", "body", and raw body
-        akin to Git. The values are taken from the note value, if available.
+       * Added "%r" and "%R" for lists of required changes.
+       * Added "%x" and "%X" for lists of conflicting changes.
+       * Added "%a" to display an unlocalized attribute name and value.
+       * Added "planner", "committer", "planned", and "email" arguments to %_.
+       * Documented that the dates can take CLDR or strftime formats, too.
+       * Added the %s, %b, and %B format for "subject", "body", and raw body
+         akin to Git. The values are taken from the note value, if available.
+       * Added committer email addresses to default formats.
+       * Added plan data to default formats.
+       * Added note data to default formats.
+       * Added lists of required and conflicting changes to the "raw" and
+         "full" formats.
+       * Switched to event-driven colors for event types and change IDs in
+         default formats.
+       * Added color to the event type and change ID output in the "raw"
+         format.
     - Added detailed descriptions of the default formats to `sqitch-log.pod`.
     - Updated the Change object to encode and decode vertical whitespace in a
       note, so that all data remains on a single line for each object in the
@@ -65,6 +74,14 @@ Revision history for Perl extension App::Sqitch
     - Removed the `core.uri` configuration variable and corresponding core
       `--uri` option (since it has been replaced with the `init` command's
       `--uri` option.
+    - Command-line arguments are now all assumed to be UTF-8, and are parsed
+      as such.
+    - Added workaround to force the configuration file to be written and read
+      as UTF-8. Requires an unreleased version of Config::GitLike to actually
+      work properly.
+    - Text passed to a pager (as when running `sqitch log`) is now encoded in
+      UTF-8.
+    - Fixed `--quiet` option so that it properly trumps `--verbose`.
 
 0.71  2012-07-12T15:30:27Z
      - Updated the example `sqitch log` output in `sqitchtutorial`.
