@@ -392,9 +392,11 @@ Some variables may require a special value format.
   # Core variables
   [core]
       engine    = pg
-      db        = widgetopolis
       top_dir   = migrations
       extension = ddl
+
+  [core "pg"]
+      db_name   = widgetopolis
 
   [revert]
       to        = gamma
@@ -462,6 +464,24 @@ Defaults to C<sql>.
 An integer determining how verbose Sqitch should be. Defaults to 1. Set to 0
 to silence status messages and to 2 or three to increase verbosity. Error
 message output will not be affected by this property.
+
+=back
+
+=head3 C<user>
+
+Configuration properties that identify the user.
+
+=over
+
+=item C<user.name>
+
+Your full name, to be recorded in changes and tags added to the plan,
+and to to commits to the database.
+
+=item C<user.email>
+
+Your email address, to be recorded in changes and tags added to the plan, and
+to to commits to the database.
 
 =back
 

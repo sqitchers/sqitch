@@ -445,7 +445,6 @@ bundle to be created in the F<_build/sql> directory, and to deploy starting
 with the "gamma" tag:
 
   [core]
-      uri       = https://github.com/theory/sqitch/
       engine    = pg
       top_dir   = migrations
       extension = ddl
