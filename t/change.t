@@ -25,6 +25,10 @@ BEGIN {
     require_ok $CLASS or die;
 }
 
+$ENV{SQITCH_CONFIG} = 'nonexistent.conf';
+$ENV{SQITCH_USER_CONFIG} = 'nonexistent.user';
+$ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
+
 can_ok $CLASS, qw(
     name
     lspace
