@@ -209,8 +209,7 @@ my $craw = $cdt->as_string( format => 'raw' );
 my $piso = $pdt->as_string( format => 'iso' );
 my $praw = $pdt->as_string( format => 'raw' );
 for my $spec (
-    [ raw => "event     deploy\n"
-        . "change    000011112222333444 (\@beta, \@gamma)\n"
+    [ raw => "deploy 000011112222333444 (\@beta, \@gamma)\n"
         . "name      lolz\n"
         . "requires  foo, bar\n"
         . "planner   damian <damian\@example.com>\n"
@@ -219,8 +218,7 @@ for my $spec (
         . "committed $craw\n\n"
         . "    For the LOLZ.\n    \n    You know, funny stuff and cute kittens, right?\n"
     ],
-    [ full =>  __ 'Change:' . "    000011112222333444 (\@beta, \@gamma)\n"
-        . __ 'Event:' . "     deploy\n"
+    [ full =>  __ 'Deploy' . " 000011112222333444 (\@beta, \@gamma)\n"
         . __ 'Name:' . "      lolz\n"
         . __ 'Requires: ' . " foo, bar\n"
         . __ 'Planner:' . "   damian <damian\@example.com>\n"
@@ -484,9 +482,8 @@ my $yellow = color('yellow') . '%s' . color('reset');
 my $green  = color('green')  . '%s' . color('reset');
 $event->{conflicts} = [qw(dr_evil)];
 for my $spec (
-    [ full => sprintf($yellow, __ 'Change:' . '    000011112222333444')
+    [ full => sprintf($green, __ 'Deploy' . ' 000011112222333444')
         . " (\@beta, \@gamma)\n"
-        . __ 'Event:' . "     " . sprintf($green, 'deploy'). "\n"
         . __ 'Name:' . "      lolz\n"
         . __ 'Requires: ' . " foo, bar\n"
         . __ 'Conflicts: ' . "dr_evil\n"
@@ -496,25 +493,25 @@ for my $spec (
         . __ 'Committed:' . " __CDATE__\n\n"
         . "    For the LOLZ.\n    \n    You know, funny stuff and cute kittens, right?\n"
     ],
-    [ long => sprintf($green, __ 'Deploy') . ' ' . sprintf($yellow, '000011112222333444')
+    [ long => sprintf($green, __ 'Deploy' . ' 000011112222333444')
         . " (\@beta, \@gamma)\n"
         . __ 'Name:' . "      lolz\n"
         . __ 'Planner:' . "   damian <damian\@example.com>\n"
         . __ 'Committer:' . " larry <larry\@example.com>\n\n"
         . "    For the LOLZ.\n    \n    You know, funny stuff and cute kittens, right?\n"
     ],
-    [ medium => sprintf($green, __ 'Deploy') . ' ' . sprintf($yellow, '000011112222333444') . "\n"
+    [ medium => sprintf($green, __ 'Deploy' . ' 000011112222333444') . "\n"
         . __ 'Name:' . "      lolz\n"
         . __ 'Committer:' . " larry <larry\@example.com>\n"
         . __ 'Date:' . "      __CDATE__\n\n"
         . "    For the LOLZ.\n    \n    You know, funny stuff and cute kittens, right?\n"
     ],
-    [ short => sprintf($green, __ 'Deploy') . ' ' . sprintf($yellow, '000011112222333444') . "\n"
+    [ short => sprintf($green, __ 'Deploy' . ' 000011112222333444') . "\n"
         . __ 'Name:' . "      lolz\n"
         . __ 'Committer:' . " larry <larry\@example.com>\n\n"
         . "    For the LOLZ.\n",
     ],
-    [ oneline => sprintf "$yellow $green %s %s", '000011112222333444', __('deploy'), 'lolz', 'For the LOLZ.' ],
+    [ oneline => sprintf "$green %s %s", '000011112222333444' . ' ' . __('deploy'), 'lolz', 'For the LOLZ.' ],
 ) {
     my $format = $CLASS->configure( $config, { format => $spec->[0] } )->{format};
     ok my $log = $CLASS->new( sqitch => $sqitch, format => $format ),

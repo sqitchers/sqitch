@@ -25,8 +25,7 @@ our $VERSION = '0.80';
 
 my %FORMATS;
 $FORMATS{raw} = <<EOF;
-event     %e
-change    %H%T
+%{:event}C%e %H%{reset}C%T
 name      %n
 %{requires}a%{conflicts}aplanner   %{name}p <%{email}p>
 planned   %{date:raw}p
@@ -37,8 +36,7 @@ committed %{date:raw}c
 EOF
 
 $FORMATS{full} = <<EOF;
-%{yellow}C%{change}_ %h%{reset}C%T
-%{event}_ %{:event}C%l%{reset}C
+%{:event}C%L %h%{reset}C%T
 %{name}_ %n
 %R%X%{planner}_ %p
 %{planned}_ %{date}p
@@ -49,7 +47,7 @@ $FORMATS{full} = <<EOF;
 EOF
 
 $FORMATS{long} = <<EOF;
-%{:event}C%L%{reset}C %{yellow}C%h%{reset}C%T
+%{:event}C%L %h%{reset}C%T
 %{name}_ %n
 %{planner}_ %p
 %{committer}_ %c
@@ -58,7 +56,7 @@ $FORMATS{long} = <<EOF;
 EOF
 
 $FORMATS{medium} = <<EOF;
-%{:event}C%L%{reset}C %{yellow}C%h%{reset}C
+%{:event}C%L %h%{reset}C
 %{name}_ %n
 %{committer}_ %c
 %{date}_ %{date}c
@@ -67,14 +65,14 @@ $FORMATS{medium} = <<EOF;
 EOF
 
 $FORMATS{short} = <<EOF;
-%{:event}C%L%{reset}C %{yellow}C%h%{reset}C
+%{:event}C%L %h%{reset}C
 %{name}_ %n
 %{committer}_ %c
 
 %{    }s
 EOF
 
-$FORMATS{oneline} = '%{yellow}C%h%{reset}C %{:event}C%l%{reset}C %n %s';
+$FORMATS{oneline} = '%{:event}C%h %l%{reset}C %n %s';
 
 has event => (
     is      => 'ro',

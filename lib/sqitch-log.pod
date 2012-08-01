@@ -222,7 +222,7 @@ This is designed to be as compact as possible.
 
 =item C<full>
 
-  Change:    <change id> <tags>
+  <event type> <change id> <tags>
   Event:     <event type>
   Name:      <change name>
   Requires:  <required changes>
@@ -236,8 +236,7 @@ This is designed to be as compact as possible.
 
 =item C<raw>
 
-  event     <event type>
-  change    <full change id> <tags>
+  <event type> <change id> <tags>
   name      <change name>
   requires  <required changes>
   conflicts <conflicting changes>
