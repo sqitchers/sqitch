@@ -28,7 +28,7 @@ $FORMATS{raw} = <<EOF;
 event     %e
 change    %H%T
 name      %n
-planner   %{name}p <%{email}p>
+%{requires}a%{conflicts}aplanner   %{name}p <%{email}p>
 planned   %{date:raw}p
 committer %{name}c <%{email}c>
 committed %{date:raw}c
@@ -271,6 +271,22 @@ has formatter => (
                         $_[1] || ', ' => @{ $_[0]->{conflicts} }
                     ) . "\n";
                 },
+                a => sub {
+                    hurl log => __x(
+                        '{attr} is not a valid change attribute', attr => $_[1]
+                    ) unless $_[1] && exists $_[0]->{ $_[1] };
+                    my $val = $_[0]->{ $_[1] } // return '';
+
+                    if (ref $val eq 'ARRAY') {
+                        return '' unless @{ $val };
+                        $val = join ', ' => @{ $val };
+                    } elsif (eval { $val->isa('App::Sqitch::DateTime') }) {
+                        $val = $val->as_string( format => 'raw' );
+                    }
+
+                    my $sp = ' ' x (9 - length $_[1]);
+                    return "$_[1]$sp $val\n";
+                }
             },
         });
     }

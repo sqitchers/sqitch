@@ -239,6 +239,8 @@ This is designed to be as compact as possible.
   event     <event type>
   change    <full change id> <tags>
   name      <change name>
+  requires  <required changes>
+  conflicts <conflicting changes>
   planner   <planner>
   planned   <raw plan date>
   committer <committer>
@@ -390,6 +392,8 @@ The placeholders are:
 =item * C<%{$color}C>: An ANSI color: black, red, green, yellow, reset, etc.
 
 =item * C<%{:event}C>: An ANSI color based on event type (green deploy, blue revert, red fail)
+
+=item * C<%{$attribute}a>: The raw attribute name and value, if it exists and has a value
 
 =back
 

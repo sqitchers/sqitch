@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 220;
+use Test::More tests => 231;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -212,6 +212,7 @@ for my $spec (
     [ raw => "event     deploy\n"
         . "change    000011112222333444 (\@beta, \@gamma)\n"
         . "name      lolz\n"
+        . "requires  foo, bar\n"
         . "planner   damian <damian\@example.com>\n"
         . "planned   $praw\n"
         . "committer larry <larry\@example.com>\n"
@@ -417,6 +418,14 @@ for my $spec (
     ['%{x}B', { note => "subject line\n\nfirst graph\n\nsecond graph\n\n" }, "xsubject line\nx\nxfirst graph\nx\nxsecond graph\nx\n" ],
     ['%{ }B', { note => "hi there\r\nyo" }, " hi there\r\n yo" ],
 
+    ['%{change}a',    $event, "change    $event->{change}\n" ],
+    ['%{change_id}a', $event, "change_id $event->{change_id}\n" ],
+    ['%{event}a',     $event, "event     $event->{event}\n" ],
+    ['%{tags}a',      $event, 'tags      ' . join(', ', @{ $event->{tags} }) . "\n" ],
+    ['%{requires}a',  $event, 'requires  ' . join(', ', @{ $event->{requires} }) . "\n" ],
+    ['%{conflicts}a', $event, '' ],
+    ['%{committer_name}a', $event, "committer_name $event->{committer_name}\n" ],
+    ['%{committed_at}a',   $event, "committed_at $craw\n" ],
 ) {
     (my $desc = $spec->[2]) =~ s/\n/[newline]/g;
     is $formatter->format( $spec->[0], $spec->[1] ), $spec->[2],
@@ -444,6 +453,14 @@ is $log->formatter->format( '%{date}c', { committed_at => $cdt } ),
 is $log->formatter->format( '%{d:iso}c', { committed_at => $cdt } ),
     $cdt->as_string( format => 'iso' ),
     '%{iso}c should override the date_format attribute';
+
+throws_ok { $formatter->format( '%{foo}a', {}) } 'App::Sqitch::X',
+    'Should get exception for unknown attribute passed to %a';
+is $@->ident, 'log', '%a error ident should be "log"';
+is $@->message, __x(
+    '{attr} is not a valid change attribute', attr => 'foo'
+), '%a error message should be correct';
+
 
 delete $ENV{ANSI_COLORS_DISABLED};
 for my $color (qw(yellow red blue cyan magenta)) {

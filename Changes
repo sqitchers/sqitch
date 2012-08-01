@@ -47,6 +47,7 @@ Revision history for Perl extension App::Sqitch
          + Red for "fail"
         * Added "%r" and "%R" for lists of required changes.
         * Added "%x" and "%X" for lists of conflicting changes.
+        * Added "%a" to display an unlocalized attribute name and value.
       * Added "planner", "committer", "planned", and "email" arguments to %_.
       * Documented that the dates can take CLDR or strftime formats, too.
       * Added the %s, %b, and %B format for "subject", "body", and raw body
