@@ -42,6 +42,7 @@ sub configure {
     my ( $class, $config, $opt ) = @_;
 
     if ( my $uri = $opt->{uri} ) {
+        require URI;
         $opt->{uri} = URI->new($uri);
     }
 
