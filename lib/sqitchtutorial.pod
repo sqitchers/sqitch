@@ -172,7 +172,7 @@ which reads the metadata tables from the database:
   # On database flipr_test
   # Change:   ddf816c67fc7f60b2af872a673019a1ad38fb639
   # Name:     appuser
-  # Deployed: 2012-08-01 17:04:53 +0200
+  # Deployed: 2012-08-01 17:31:42 +0200
   # By:       Marge N. O’Vera <marge@example.com>
   # 
   Nothing to deploy (up-to-date)
@@ -202,22 +202,32 @@ command:
 
   > sqitch -d flipr_test log
   On database flipr_test
-  Revert 9df095ad10d799c3acdd74f7986ee1ed9a75e766
-  Name:   appuser
-  Date:   2012-07-06 19:00:45 +0200
+  Revert ddf816c67fc7f60b2af872a673019a1ad38fb639
+  Name:      appuser
+  Committer: Marge N. O’Vera <marge@example.com>
+  Date:      2012-08-01 17:32:15 +0200
 
-  Deploy 9df095ad10d799c3acdd74f7986ee1ed9a75e766
-  Name:   appuser
-  Date:   2012-07-06 18:59:08 +0200
+      App database user with limited permissions.
+
+  Deploy ddf816c67fc7f60b2af872a673019a1ad38fb639
+  Name:      appuser
+  Committer: Marge N. O’Vera <marge@example.com>
+  Date:      2012-08-01 17:31:42 +0200
+
+      App database user with limited permissions.
+
+Note that the actions we took are shown in reverse cronological order, with
+the revert first and then the deploy.
 
 Cool. Now let's commit it.
 
   > git add .
   > git commit -m 'Add app user.'
-  [master a29fb74] Add app user.
-   2 files changed, 2 insertions(+)
+  [master 6f2348b] Add app user.
+   4 files changed, 22 insertions(+)
    create mode 100644 deploy/appuser.sql
    create mode 100644 revert/appuser.sql
+   create mode 100644 test/appuser.sql
 
 And then deploy again:
 
@@ -237,10 +247,12 @@ When we look at the status, the deployment will be there:
 
   > sqitch -d flipr_test status
   # On database flipr_test
-  # Change:   9df095ad10d799c3acdd74f7986ee1ed9a75e766
+  # Change:   ddf816c67fc7f60b2af872a673019a1ad38fb639
   # Name:     appuser
-  # Deployed: 2012-07-06 19:01:19 +0200
-  # By:       david
+  # Deployed: 2012-08-01 17:34:17 +0200
+  # By:       Marge N. O’Vera <marge@example.com>
+  # 
+  Nothing to deploy (up-to-date)
 
 =head1 More Configuration
 
@@ -255,24 +267,26 @@ in, e.g.:
 
   > sqitch status
   # On database flipr_test
-  # Change:   9df095ad10d799c3acdd74f7986ee1ed9a75e766
+  # Change:   ddf816c67fc7f60b2af872a673019a1ad38fb639
   # Name:     appuser
-  # Deployed: 2012-07-06 19:01:19 +0200
-  # By:       david
+  # Deployed: 2012-08-01 17:34:17 +0200
+  # By:       Marge N. O’Vera <marge@example.com>
+  # 
+  Nothing to deploy (up-to-date)
 
 Yay, that allows things to be a little more concise. Let's make some more
 changes!
 
 =head1 Deploy with Dependency
 
-Let's add another deployment, this time to create a table. Our app will need
+Let's add another change, this time to create a table. Our app will need
 users, of course, so we'll create a table for them. First, add the new change:
 
-  > sqitch add users --requires appuser
+  > sqitch add users --requires appuser -n 'Creates table to track our users.'
   Created deploy/users.sql
   Created revert/users.sql
   Created test/users.sql
-  Added "users :appuser" to sqitch.plan
+  Added "users [:appuser]" to sqitch.plan
 
 Note that we're requiring the C<appuser> change as a dependency of the new
 C<users> change. Although that change has already been added to the plan and
@@ -336,10 +350,10 @@ Now have a look at the status:
 
   > sqitch status
   # On database flipr_test
-  # Change:   9d078bbc05a0950e7175c067bd2662de180e17a6
+  # Change:   deceb53186e63f7a8db10e33ce217d3f6dcd4d42
   # Name:     users
-  # Deployed: 2012-07-06 19:18:17 +0200
-  # By:       david
+  # Deployed: 2012-08-01 17:38:39 +0200
+  # By:       Marge N. O’Vera <marge@example.com>
   # 
   Nothing to deploy (up-to-date)
 
@@ -364,10 +378,11 @@ Now commit and deploy again:
 
   > git add .
   > git commit -am 'Add users table.'
-  [master 36590a3] Add users table.
-   4 files changed, 31 insertions(+)
+  [master 3245842] Add users table.
+   5 files changed, 30 insertions(+)
    create mode 100644 deploy/users.sql
-   create mode 100644 /users.sql
+   create mode 100644 revert/users.sql
+   create mode 100644 test/users.sql
   > sqitch deploy
   Deploying changes to flipr_test
     + users
@@ -376,10 +391,10 @@ Looks good. Check the status:
 
   > sqitch status
   # On database flipr_test
-  # Change:   9d078bbc05a0950e7175c067bd2662de180e17a6
+  # Change:   deceb53186e63f7a8db10e33ce217d3f6dcd4d42
   # Name:     users
-  # Deployed: 2012-07-06 19:19:02 +0200
-  # By:       david
+  # Deployed: 2012-08-01 17:39:47 +0200
+  # By:       Marge N. O’Vera <marge@example.com>
   # 
   Nothing to deploy (up-to-date)
 
@@ -389,30 +404,38 @@ Excellent. Let's do some more!
 
 Let's add a couple more changes to add functions for managing users.
 
-  > sqitch add insert_user --requires users --requires appuser
+  > sqitch add insert_user --requires users --requires appuser \
+    -n 'Creates a function to insert a user.'
   Created deploy/insert_user.sql
   Created revert/insert_user.sql
   Created test/insert_user.sql
-  Added "insert_user :users :appuser" to sqitch.plan
+  Added "insert_user [:users :appuser]" to sqitch.plan
 
-  > sqitch add change_pass --requires users --requires appuser
+  > sqitch add change_pass --requires users --requires appuser \
+    -n 'Creates a function to change a user password.'
   Created deploy/change_pass.sql
   Created revert/change_pass.sql
   Created test/change_pass.sql
-  Added "change_pass :users :appuser" to sqitch.plan
+  Added "change_pass [:users :appuser]" to sqitch.plan
 
 Now might be a good time to have a look at the deployment plan:
 
   > cat sqitch.plan
-  %syntax-version=1.0.0-a1
+  %syntax-version=1.0.0-b1
+  %project=flipr
+  %uri=https://github.com/theory/sqitch-intro/
 
-  appuser
-  users :appuser
-  insert_user :users :appuser
-  change_pass :users :appuser
+  appuser 2012-08-01T15:04:13Z Marge N. O’Vera <marge@example.com> # App database user with limited permissions.
+  users [:appuser] 2012-08-01T15:36:00Z Marge N. O’Vera <marge@example.com> # Creates table to track our users.
+  insert_user [:users :appuser] 2012-08-01T15:41:17Z Marge N. O’Vera <marge@example.com> # Creates a function to insert a user.
+  change_pass [:users :appuser] 2012-08-01T15:41:46Z Marge N. O’Vera <marge@example.com> # Creates a function to change a user password.
 
-Just a simple list of changes and their dependencies. Let's write the code for
-the new changes. Here's what C<deploy/insert_user.sql> should look like:
+Each change appears on a single line with the name of the change, a bracketed
+list of depdendencies, a timestamp, the name and email address of the user who
+planned the change, and a note.
+
+Let's write the code for the new changes. Here's what
+C<deploy/insert_user.sql> should look like:
 
   -- Deploy insert_user
   -- requires: users
@@ -461,6 +484,7 @@ Now for C<change_pass>; C<deploy/change_pass.sql> might look like this:
   $$;
 
   GRANT EXECUTE ON FUNCTION change_pass(TEXT, TEXT, TEXT) TO flipr;
+
   COMMIT;
 
 And of course, its C<revert> script, C<revert/change_pass.sql>, should look
@@ -491,10 +515,10 @@ And what's the status?
 
   > sqitch status 
   # On database flipr_test
-  # Change:   02c5592d1db6c22c0a8d5e7ff963d5aa5ce065a3
+  # Change:   e2106e86e77522090bbf1a82b82904ae7dfdeed3
   # Name:     change_pass
-  # Deployed: 2012-07-06 19:21:34 +0200
-  # By:       david
+  # Deployed: 2012-08-01 17:46:23 +0200
+  # By:       Marge N. O’Vera <marge@example.com>
   # 
   Nothing to deploy (up-to-date)
 
@@ -513,8 +537,8 @@ Looks good. Let's do the commit and re-deploy dance:
 
   > git add .
   > git commit -m 'Add `insert_user()` and `change_pass()`.'
-  [master 657a2e2] Add `insert_user()` and `change_pass()`.
-   7 files changed, 69 insertions(+)
+  [master 44befba] Add `insert_user()` and `change_pass()`.
+   7 files changed, 67 insertions(+)
    create mode 100644 deploy/change_pass.sql
    create mode 100644 deploy/insert_user.sql
    create mode 100644 revert/change_pass.sql
@@ -529,10 +553,10 @@ Looks good. Let's do the commit and re-deploy dance:
 
   > sqitch status
   # On database flipr_test
-  # Change:   02c5592d1db6c22c0a8d5e7ff963d5aa5ce065a3
+  # Change:   e2106e86e77522090bbf1a82b82904ae7dfdeed3
   # Name:     change_pass
-  # Deployed: 2012-07-06 19:22:52 +0200
-  # By:       david
+  # Deployed: 2012-08-01 17:47:20 +0200
+  # By:       Marge N. O’Vera <marge@example.com>
   # 
   Nothing to deploy (up-to-date)
 
@@ -543,13 +567,16 @@ Great, we're fully up-to-date!
 Let's do a first release of our app. Let's call it C<1.0.0-dev1> Since we want
 to have it go out with deployments tied to the release, let's tag it:
 
-  > sqitch tag v1.0.0-dev1
+  > sqitch tag v1.0.0-dev1 -n 'Tag v1.0.0-dev1.'
   Tagged "change_pass" with @v1.0.0-dev1
   > git commit -am 'Tag the database with v1.0.0-dev1.'
   > git tag v1.0.0-dev1 -am 'Tag v1.0.0-dev1'
 
 We can test deployment to make sure the tag gets picked up like so:
 
+  > dropdb flipr_test
+  > psql -c 'DROP ROLE flipr;'
+  DROP ROLE
   > createdb flipr_dev
   > sqitch --db-name flipr_dev deploy
   Adding metadata tables to flipr_dev
@@ -563,17 +590,17 @@ Great, all four changes were deployed and C<change_pass> was tagged with
 C<@v1.0.0-dev1>. Let's have a look at the state:
 
   > sqitch --db-name flipr_dev status
-  # On database flipr_test
-  # Change:   02c5592d1db6c22c0a8d5e7ff963d5aa5ce065a3
+  # On database flipr_dev
+  # Change:   e2106e86e77522090bbf1a82b82904ae7dfdeed3
   # Name:     change_pass
   # Tag:      @v1.0.0-dev1
-  # Deployed: 2012-07-06 19:24:58 +0200
-  # By:       david
+  # Deployed: 2012-08-01 17:50:53 +0200
+  # By:       Marge N. O’Vera <marge@example.com>
   # 
   Nothing to deploy (up-to-date)
 
-Note that all the tag is now listed as part of the stats message. Now let's
-bundle everything up for release:
+Note rhe listing of the tag as part of the stats message. Now let's bundle
+everything up for release:
 
   > sqitch bundle
   Bundling in bundle/
@@ -589,6 +616,9 @@ installed somewhere, users can use Sqitch to deploy to the database. Let's test
 deploying it:
 
   > cd bundle
+  > dropdb flipr_dev
+  > psql -c 'DROP ROLE flipr;'
+  DROP ROLE
   > createdb flipr_prod
   > sqitch --db-name flipr_prod deploy
   Adding metadata tables to flipr_prod
@@ -612,11 +642,11 @@ each other's way. So let's branch:
 
 Now we can add a new change to create a table for our flips.
 
-  > sqitch add flips --requires users
+  > sqitch add flips --requires users -n 'Adds table for storing flips.'
   Created deploy/flips.sql
   Created revert/flips.sql
   Created test/flips.sql
-  Added "flips :users" to sqitch.plan
+  Added "flips [:users]" to sqitch.plan
 
 You know the drill by now. Edit F<deploy/flips.sql>:
 
@@ -645,56 +675,39 @@ And edit F<revert/flips.sql>:
 
 And give it a whirl:
 
+  > dropdb flipr_prod
+  > psql -c 'DROP ROLE flipr;'
+  DROP ROLE
+  > createdb flipr_test
   > sqitch deploy
+  Adding metadata tables to flipr_test
   Deploying changes to flipr_test
+    + appuser
+    + users
+    + insert_user
+    + change_pass @v1.0.0-dev1
     + flips
 
 Look good?
 
-  > sqitch status --show tags
+  > sqitch status --show-tags
   # On database flipr_test
-  # Change:   540359a3892d1476f9ca6ccf7d3f9993ac383b68
-  # Name:     delete_flip
-  # Deployed: 2012-07-06 19:27:33 +0200
-  # By:       david
+  # Change:   9d6b7a3c2051721d4ac7a34fe14ef66d69c5d22b
+  # Name:     flips
+  # Deployed: 2012-08-01 17:56:46 +0200
+  # By:       Marge N. O’Vera <marge@example.com>
   # 
-  # Tags: None.
-  #
+  # Tag:
+  #   @v1.0.0-dev1 - 2012-08-01 17:56:46 +0200 - Marge N. O’Vera <marge@example.com>
+  # 
   Nothing to deploy (up-to-date)
 
-Note the use of C<--show tags> to show all the deployed tags. But there are
-none. Wait, I<what>?
-
-Oh, we added C<@v1.0.0-dev1> since the last deploy to the C<flipr_test>
-database, so of course it's not there. So let's revert to C<insert_user> and
-then deploy again to get it.
-
-  > sqitch revert insert_user
-  Reverting from flipr_test to insert_user
-    - flips
-    - change_pass @v1.0.0-dev1
-  > sqitch deploy
-  Deploying changes to flipr_test
-    + change_pass @v1.0.0-dev1
-    + flips
-  > sqitch status --show tags
-  # On database flipr_test
-  # Change:   540359a3892d1476f9ca6ccf7d3f9993ac383b68
-  # Name:     delete_flip
-  # Deployed: 2012-07-06 19:28:56 +0200
-  # By:       david
-  # 
-  # Tags:
-  #    @v1.0.0-dev1 - 2012-04-09 20:45:23 - david
-  #
-  Nothing to deploy (up-to-date)
-
-Ah, that's more like it. Now make it so:
+Note the use of C<--show tags> to show all the deployed tags. Now make it so:
 
   > git add .
   > git commit -am 'Add flipr table.'
-  [flips efca0a9] Add flipr table.
-   4 files changed, 32 insertions(+)
+  [flips 6fe319f] Add flipr table.
+   4 files changed, 31 insertions(+)
    create mode 100644 deploy/flips.sql
    create mode 100644 revert/flips.sql
    create mode 100644 test/flips.sql
@@ -705,7 +718,9 @@ Now comes the time to add functions to manage flips. I'm sure you have things
 nailed down now. Go ahead and add C<insert_flip> and C<delete_flip> changes
 and commit them. The C<insert_flip> deploy script might look something like:
 
-  -- requires: flips, appuser
+  -- Deploy insert_flip
+  -- requires: flips
+  -- requires: appuser
   BEGIN;
   CREATE OR REPLACE FUNCTION insert_flip(
      nickname TEXT,
@@ -720,7 +735,9 @@ and commit them. The C<insert_flip> deploy script might look something like:
 
 And the C<delete_flip> deploy script might look something like:
 
-  -- requires: flips, appuser
+  -- Deploy delete_flip
+  -- requires: flips
+  -- requires: appuser
   BEGIN;
   CREATE OR REPLACE FUNCTION delete_flip(
      flip_id BIGINT
@@ -766,15 +783,15 @@ Let's do it:
   > git checkout master
   Switched to branch 'master'
   > git pull
-  Updating c9473fc..966ba2e
+  Updating f25329e..edfaa7c
   Fast-forward
    deploy/delete_list.sql |   20 ++++++++++++++++++++
    deploy/insert_list.sql |   17 +++++++++++++++++
-   deploy/lists.sql       |   18 ++++++++++++++++++
+   deploy/lists.sql       |   17 +++++++++++++++++
    revert/delete_list.sql |    7 +++++++
    revert/insert_list.sql |    7 +++++++
    revert/lists.sql       |    7 +++++++
-   sqitch.plan            |    3 +++
+   sqitch.plan            |    4 ++++
    test/delete_list.sql   |    7 +++++++
    test/insert_list.sql   |    7 +++++++
    test/lists.sql         |    7 +++++++
@@ -790,8 +807,8 @@ Let's do it:
    create mode 100644 test/lists.sql
 
 Hrm, that's interesting. Looks like someone made some changes to C<master>.
-Looks like some list support was added. Well, let's see what happens when we
-merge our changes.
+They added list support. Well, let's see what happens when we merge our
+changes.
 
   > git merge --no-ff flips
   Auto-merging sqitch.plan
@@ -825,14 +842,13 @@ VCS is not Git.
 
 So let's restore things to how they were at master:
 
-  >  git reset --hard HEAD
+  > git reset --hard HEAD
   HEAD is now at 966ba2e Merge branch 'lists'
 
 That throws out our botched merge. Now let's go back to our branch and rebase
 it on C<master>:
 
   > git checkout flips
-  Switched to branch 'flips'
   > git rebase master
   First, rewinding head to replay your work on top of it...
   Applying: Add flipr table.
@@ -879,7 +895,7 @@ and rebase again:
   Using index info to reconstruct a base tree...
   Falling back to patching base and 3-way merge...
   Auto-merging sqitch.plan
-  Applying: Add `insert_flip()` and `delete_flip()`.
+  Applying: Add functions to insert and delete flips.
   Using index info to reconstruct a base tree...
   Falling back to patching base and 3-way merge...
   Auto-merging sqitch.plan
@@ -887,20 +903,22 @@ and rebase again:
 Ah, that looks a bit better. Let's have a look at the plan:
 
   > cat sqitch.plan 
-  %syntax-version=1.0.0-a1
+  %syntax-version=1.0.0-b1
+  %project=flipr
+  %uri=https://github.com/theory/sqitch-intro/
 
-  appuser
-  users :appuser
-  insert_user :users :appuser
-  change_pass :users :appuser
-  @v1.0.0-dev1
+  appuser 2012-08-01T15:04:13Z Marge N. O’Vera <marge@example.com> # App database user with limited permissions.
+  users [:appuser] 2012-08-01T15:36:00Z Marge N. O’Vera <marge@example.com> # Creates table to track our users.
+  insert_user [:users :appuser] 2012-08-01T15:41:17Z Marge N. O’Vera <marge@example.com> # Creates a function to insert a user.
+  change_pass [:users :appuser] 2012-08-01T15:41:46Z Marge N. O’Vera <marge@example.com> # Creates a function to change a user password.
+  @v1.0.0-dev1 2012-08-01T15:48:04Z Marge N. O’Vera <marge@example.com> # Tag v1.0.0-dev1.
 
-  lists :users :appuser
-  insert_list :lists :appuser
-  delete_list :lists :appuser
-  flips :users
-  insert_flip :flips :appuser
-  delete_flip :flips :appuser
+  lists [:users] 2012-08-01T16:03:50Z Vinnie Goombatz <vinnie@example.com> # Adds lists storing lists of things.
+  insert_list [:lists :appuser] 2012-08-01T16:13:49Z Vinnie Goombatz <vinnie@example.com> # Creates a function to insert a list.
+  delete_list [:lists :appuser] 2012-08-01T16:14:10Z Vinnie Goombatz <vinnie@example.com> # Creates a function to delete a list.
+  flips [:users] 2012-08-01T16:23:33Z Marge N. O’Vera <marge@example.com> # Adds table for storing flips.
+  insert_flip [:flips :appuser] 2012-08-01T16:25:41Z Marge N. O’Vera <marge@example.com> # Creates a function to insert a flip.
+  delete_flip [:flips :appuser] 2012-08-01T16:26:00Z Marge N. O’Vera <marge@example.com> # Creates a function to delete a flip.
 
 Note that it has appended the changes from the merged "lists" branch, and then
 merged the changes from our "flips" branch. Test it to make sure it works as
@@ -932,8 +950,9 @@ Excellent! It correctly reverted our changes, and then deployed them all again
 in the proper order. So let's commit F<.gitattributes>; seems worthwhile to keep
 that change:
 
+  > git add .
   > git ci -m 'Add `.gitattributes` with union merge for `sqitch.plan`.'
-  [flips 691ee81] Add `.gitattributes` with union merge for `sqitch.plan`.
+  [flips 98aec8f] Add `.gitattributes` with union merge for `sqitch.plan`.
    1 file changed, 1 insertion(+)
    create mode 100644 .gitattributes
 
@@ -946,17 +965,17 @@ And now, finally, we can merge into C<master>:
   > git merge --no-ff flips
   Merge made by the 'recursive' strategy.
    .gitattributes         |    1 +
-   deploy/delete_flip.sql |   17 +++++++++++++++++
-   deploy/flips.sql       |   17 +++++++++++++++++
-   deploy/insert_flip.sql |   17 +++++++++++++++++
-   revert/delete_flip.sql |    7 +++++++
+   deploy/delete_flip.sql |   14 ++++++++++++++
+   deploy/flips.sql       |   15 +++++++++++++++
+   deploy/insert_flip.sql |   14 ++++++++++++++
+   revert/delete_flip.sql |    5 +++++
    revert/flips.sql       |    7 +++++++
-   revert/insert_flip.sql |    7 +++++++
+   revert/insert_flip.sql |    5 +++++
    sqitch.plan            |    3 +++
    test/delete_flip.sql   |    7 +++++++
    test/flips.sql         |    7 +++++++
    test/insert_flip.sql   |    7 +++++++
-   11 files changed, 97 insertions(+)
+   11 files changed, 85 insertions(+)
    create mode 100644 .gitattributes
    create mode 100644 deploy/delete_flip.sql
    create mode 100644 deploy/flips.sql
@@ -971,29 +990,31 @@ And now, finally, we can merge into C<master>:
 And double-check our work:
 
   > cat sqitch.plan 
-  %syntax-version=1.0.0-a1
+  %syntax-version=1.0.0-b1
+  %project=flipr
+  %uri=https://github.com/theory/sqitch-intro/
 
-  appuser
-  users :appuser
-  insert_user :users :appuser
-  change_pass :users :appuser
-  @v1.0.0-dev1
+  appuser 2012-08-01T15:04:13Z Marge N. O’Vera <marge@example.com> # App database user with limited permissions.
+  users [:appuser] 2012-08-01T15:36:00Z Marge N. O’Vera <marge@example.com> # Creates table to track our users.
+  insert_user [:users :appuser] 2012-08-01T15:41:17Z Marge N. O’Vera <marge@example.com> # Creates a function to insert a user.
+  change_pass [:users :appuser] 2012-08-01T15:41:46Z Marge N. O’Vera <marge@example.com> # Creates a function to change a user password.
+  @v1.0.0-dev1 2012-08-01T15:48:04Z Marge N. O’Vera <marge@example.com> # Tag v1.0.0-dev1.
 
-  lists :users :appuser
-  insert_list :lists :appuser
-  delete_list :lists :appuser
-  flips :users
-  insert_flip :flips :appuser
-  delete_flip :flips :appuser
+  lists [:users] 2012-08-01T16:03:50Z Vinnie Goombatz <vinnie@example.com> # Adds lists storing lists of things.
+  insert_list [:lists :appuser] 2012-08-01T16:13:49Z Vinnie Goombatz <vinnie@example.com> # Creates a function to insert a list.
+  delete_list [:lists :appuser] 2012-08-01T16:14:10Z Vinnie Goombatz <vinnie@example.com> # Creates a function to delete a list.
+  flips [:users] 2012-08-01T16:23:33Z Marge N. O’Vera <marge@example.com> # Adds table for storing flips.
+  insert_flip [:flips :appuser] 2012-08-01T16:25:41Z Marge N. O’Vera <marge@example.com> # Creates a function to insert a flip.
+  delete_flip [:flips :appuser] 2012-08-01T16:26:00Z Marge N. O’Vera <marge@example.com> # Creates a function to delete a flip.
 
 Much much better, a nice clean master now. And because it is now identical to
 the "flips" branch, we can just carry on. Go ahead and tag it, bundle, and
 release:
 
-  > sqitch tag v1.0.0-dev2
+  > sqitch tag v1.0.0-dev2 -n 'Tag v1.0.0-dev2.'
   Tagged "delete_flip" with @v1.0.0-dev2
   > git commit -am 'Tag the database with v1.0.0-dev2.'
-  [master 54e2b6c] Tag the database with v1.0.0-dev2.
+  [master 168249d] Tag the database with v1.0.0-dev2.
    1 file changed, 1 insertion(+)
   > git tag v1.0.0-dev2 -am 'Tag v1.0.0-dev2'
   > sqitch bundle
