@@ -1,3 +1,5 @@
+=encoding UTF-8
+
 =head1 Name
 
 sqitchtutorial - A tutorial introduction to Sqitch
@@ -58,7 +60,7 @@ Let's have a look at F<sqitch.conf>:
       # extension = sql
   # [core "pg"]
       # db_name = 
-      # client = /var/lib/pgsql/bin/psql
+      # client = /usr/local/pgsql/bin/psql
       # sqitch_schema = sqitch
       # password = 
       # port = 
@@ -78,29 +80,51 @@ ahead an tell it globally where to find the client:
 
   > sqitch config --user core.pg.client /usr/local/pgsql/bin/psql
 
+And let's also tell it who we are, since this data will be used in all
+of our projects:
+
+  > sqitch config --user user.name 'Marge N. O’Vera'
+  > sqitch config --user user.email 'marge@example.com'
+
 Have a look at F<~/.sqitch/sqitch.conf> and you'll see this:
 
   [core "pg"]
-      client = /usr/local/pgsql/bin/psql
+  	client = /usr/local/pgsql/bin/psql
+  [user]
+  	name = Marge N. O’Vera
+  	email = marge@example.com
 
-Which means that Sqitch should be able to find C<psql> for any project.
+Which means that Sqitch should be able to find C<psql> for any project, and
+that it will always properly identify us when planning and committing changes.
 
-Back to the repository. Let's commit these changes and start creating the
-database changes.
+Back to the repository. Have a look at the plan file, F<sqitch.plan>:
+
+  %syntax-version=1.0.0-b1
+  %project=flipr
+  %uri=https://github.com/theory/sqitch-intro/
+  
+
+Note that it has picked up on the name and URI of the app we're building. This
+data will be used in the future to allow for cross-project dependency
+specification. The C<%syntax-version> pragma is always set by Sqitch, so that
+it always knows how to parse the plan, even if the format changes in the future.
+
+Let's commit these changes and start creating the database changes.
 
   > git add .
   > git commit -am 'Initialize Sqitch configuration.'
-  [master ba6eeb8] Initialize Sqitch configuration.
-   2 files changed, 19 insertions(+)
+  [master bd7e3f0] Initialize Sqitch configuration.
+   2 files changed, 20 insertions(+)
    create mode 100644 sqitch.conf
    create mode 100644 sqitch.plan
 
-=head1 Our First Deployment
+=head1 Our First Change
 
 First, our project will need a database user. This is the application user,
-who will have only limited access to objects in the database. Run this command:
+who will have only limited access to objects in the database. Run this
+command:
 
-  > sqitch add appuser
+  > sqitch add appuser -n 'App database user with limited permissions.'
   Created deploy/appuser.sql
   Created revert/appuser.sql
   Created test/appuser.sql
@@ -146,10 +170,10 @@ which reads the metadata tables from the database:
 
   > sqitch -d flipr_test status
   # On database flipr_test
-  # Change:   9df095ad10d799c3acdd74f7986ee1ed9a75e766
+  # Change:   ddf816c67fc7f60b2af872a673019a1ad38fb639
   # Name:     appuser
-  # Deployed: 2012-07-06 18:59:08 +0200
-  # By:       david
+  # Deployed: 2012-08-01 17:04:53 +0200
+  # By:       Marge N. O’Vera <marge@example.com>
   # 
   Nothing to deploy (up-to-date)
 
