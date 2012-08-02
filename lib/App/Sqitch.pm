@@ -1,5 +1,7 @@
 package App::Sqitch;
 
+# ABSTRACT: provide a simple yet robust interface for SQL change management
+
 use v5.10.1;
 use strict;
 use warnings;
