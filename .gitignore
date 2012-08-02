@@ -12,3 +12,4 @@
 *.rpm
 /_rpmbuild
 /target
+.build/
