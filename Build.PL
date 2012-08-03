@@ -34,6 +34,7 @@ Module::Build::Sqitch->new(
         'MooseX::Types::Path::Class'                   => '0.05',
         'namespace::autoclean'                         => '0.11',
         'Path::Class'                                  => 0,
+        'parent'                                       => 0,
         'Pod::Find'                                    => 0,
         'Pod::Usage'                                   => 0,
         'POSIX'                                        => 0,
