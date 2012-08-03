@@ -1,5 +1,7 @@
 Revision history for Perl extension App::Sqitch
 
+0.83
+
 0.82  2012-08-03T21:25:27Z
      - Now require Moose 2.0300, since MooseX::Role::Parameterized, which
        requires Role::HasMessage, requires it, anyway,
