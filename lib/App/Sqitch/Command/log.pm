@@ -150,32 +150,32 @@ has formatter => (
                 e => sub { $_[0]->{event} },
                 L => sub {
                     given ($_[0]->{event}) {
-                        __ 'Deploy' when 'deploy';
-                        __ 'Revert' when 'revert';
-                        __ 'Fail'   when 'fail';
+                        return __ 'Deploy' when 'deploy';
+                        return __ 'Revert' when 'revert';
+                        return __ 'Fail'   when 'fail';
                     }
                 },
                 l => sub {
                     given ($_[0]->{event}) {
-                        __ 'deploy' when 'deploy';
-                        __ 'revert' when 'revert';
-                        __ 'fail'   when 'fail';
+                        return __ 'deploy' when 'deploy';
+                        return __ 'revert' when 'revert';
+                        return __ 'fail'   when 'fail';
                     }
                 },
                 _ => sub {
                     given ($_[1]) {
-                        __ 'Event:    ' when 'event';
-                        __ 'Change:   ' when 'change';
-                        __ 'Committer:' when 'committer';
-                        __ 'Planner:  ' when 'planner';
-                        __ 'By:       ' when 'by';
-                        __ 'Date:     ' when 'date';
-                        __ 'Committed:' when 'committed';
-                        __ 'Planned:  ' when 'planned';
-                        __ 'Name:     ' when 'name';
-                        __ 'Email:    ' when 'email';
-                        __ 'Requires: ' when 'requires';
-                        __ 'Conflicts:' when 'conflicts';
+                        return __ 'Event:    ' when 'event';
+                        return __ 'Change:   ' when 'change';
+                        return __ 'Committer:' when 'committer';
+                        return __ 'Planner:  ' when 'planner';
+                        return __ 'By:       ' when 'by';
+                        return __ 'Date:     ' when 'date';
+                        return __ 'Committed:' when 'committed';
+                        return __ 'Planned:  ' when 'planned';
+                        return __ 'Name:     ' when 'name';
+                        return __ 'Email:    ' when 'email';
+                        return __ 'Requires: ' when 'requires';
+                        return __ 'Conflicts:' when 'conflicts';
                         hurl log => __ 'No label passed to the _ format'
                             when undef;
                     };
