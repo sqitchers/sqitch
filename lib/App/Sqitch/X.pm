@@ -7,7 +7,7 @@ use Sub::Exporter::Util ();
 use Sub::Exporter -setup => [qw(hurl)];
 use overload '""' => 'as_string';
 
-our $VERSION = '0.81';
+our $VERSION = '0.82';
 
 has message => (
     is       => 'ro',
