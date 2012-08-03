@@ -1,6 +1,8 @@
 Revision history for Perl extension App::Sqitch
 
 0.81
+     - Removed wayward `/l` from a regular expression, which breaks Perls
+       earlier than 5.14, and is not needed anyway.
 
 0.80  2012-08-01T21:54:00Z
      - Added the `log` command to `sqitchcommands.pod`, which is shown as the

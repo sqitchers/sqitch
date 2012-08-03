@@ -698,11 +698,13 @@ it.
 
 =item * Add project column and hash keys to C<Engine/pg>.
 
-=item * Allow C<status> and C<log> to work with no plan or config.
+=item * Allow C<status> and C<log> to work with no plan or config?
 
 =item * Add custom formatting support to C<status>.
 
 =item * Add support for C<^> and other shortcuts when specifying changes.
+
+=item * Add C<plan> command, similar to C<log> but shows what's in a plan.
 
 =back
 
