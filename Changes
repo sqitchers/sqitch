@@ -1,6 +1,6 @@
 Revision history for Perl extension App::Sqitch
 
-0.81
+0.81  2012-08-03T11:34:46Z
      - Removed wayward `/l` from a regular expression, which breaks Perls
        earlier than 5.14, and is not needed anyway.
      - Fixed error in `log` that caused invalid output on Perls earlier than
