@@ -4,6 +4,9 @@ Revision history for Perl extension App::Sqitch
      - Now require Moose 2.0300, since MooseX::Role::Parameterized, which
        requires Role::HasMessage, requires it, anyway,
      - Fixed test failure in `t/pg.t` when running on Test::More 0.94.
+     - Require POSIX in `t/datetime.t` to fix test failure with CentOS 6
+       Perl. Not sure why it did not fail anywhere else, but it's harmless
+       enough to make sure it's loaded early.
 
 0.81  2012-08-03T11:34:46Z
      - Removed wayward `/l` from a regular expression, which breaks Perls

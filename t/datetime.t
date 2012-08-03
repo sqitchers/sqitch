@@ -8,6 +8,7 @@ use Test::More tests => 33;
 use Locale::TextDomain qw(App-Sqitch);
 use Test::NoWarnings;
 use Test::Exception;
+require POSIX;
 
 my $CLASS = 'App::Sqitch::DateTime';
 require_ok $CLASS;
