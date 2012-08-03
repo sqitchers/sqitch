@@ -1,6 +1,8 @@
 Revision history for Perl extension App::Sqitch
 
 0.82
+     - Now require Moose 2.0300, since MooseX::Role::Parameterized, which
+       requires Role::HasMessage, requires it, anyway,
 
 0.81  2012-08-03T11:34:46Z
      - Removed wayward `/l` from a regular expression, which breaks Perls
