@@ -5,7 +5,7 @@ Revision history for Perl extension App::Sqitch
        earlier than 5.14, and is not needed anyway.
      - Fixed error in `log` that caused invalid output on Perls earlier than
        5.14. Seems that `return` is required for `when` statements meant to
-       return a value.
+       return a value, and postfix `when` is not supported in Perl 5.10.
 
 0.80  2012-08-01T21:54:00Z
      - Added the `log` command to `sqitchcommands.pod`, which is shown as the

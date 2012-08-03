@@ -150,34 +150,41 @@ has formatter => (
                 e => sub { $_[0]->{event} },
                 L => sub {
                     given ($_[0]->{event}) {
-                        return __ 'Deploy' when 'deploy';
-                        return __ 'Revert' when 'revert';
-                        return __ 'Fail'   when 'fail';
+                        when ('deploy') { return __ 'Deploy' }
+                        when ('revert') { return __ 'Revert' }
+                        when ('fail')   { return __ 'Fail'   }
                     }
                 },
                 l => sub {
                     given ($_[0]->{event}) {
-                        return __ 'deploy' when 'deploy';
-                        return __ 'revert' when 'revert';
-                        return __ 'fail'   when 'fail';
+                        when ('deploy') { return __ 'deploy' }
+                        when ('revert') { return __ 'revert' }
+                        when ('fail')   { return __ 'fail'   }
                     }
                 },
                 _ => sub {
                     given ($_[1]) {
-                        return __ 'Event:    ' when 'event';
-                        return __ 'Change:   ' when 'change';
-                        return __ 'Committer:' when 'committer';
-                        return __ 'Planner:  ' when 'planner';
-                        return __ 'By:       ' when 'by';
-                        return __ 'Date:     ' when 'date';
-                        return __ 'Committed:' when 'committed';
-                        return __ 'Planned:  ' when 'planned';
-                        return __ 'Name:     ' when 'name';
-                        return __ 'Email:    ' when 'email';
-                        return __ 'Requires: ' when 'requires';
-                        return __ 'Conflicts:' when 'conflicts';
-                        hurl log => __ 'No label passed to the _ format'
-                            when undef;
+                        when ('event')     { return __ 'Event:    ' }
+                        when ('change')    { return __ 'Change:   ' }
+                        when ('committer') { return __ 'Committer:' }
+                        when ('planner')   { return __ 'Planner:  ' }
+                        when ('by')        { return __ 'By:       ' }
+                        when ('date')      { return __ 'Date:     ' }
+                        when ('committed') { return __ 'Committed:' }
+                        when ('planned')   { return __ 'Planned:  ' }
+                        when ('name')      { return __ 'Name:     ' }
+                        when ('email')     { return __ 'Email:    ' }
+                        when ('requires')  { return __ 'Requires: ' }
+                        when ('conflicts') {return __ 'Conflicts:'  }
+                        when (undef)       {
+                            hurl log => __ 'No label passed to the _ format';
+                        }
+                        default {
+                            hurl log => __x(
+                                'Unknown label "{label}" passed to the _ format',
+                                label => $_[1],
+                            );
+                        }
                     };
                 },
                 H => sub { $_[0]->{change_id} },

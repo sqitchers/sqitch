@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 231;
+use Test::More tests => 234;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -435,6 +435,13 @@ throws_ok { $formatter->format( '%_', {} ) } 'App::Sqitch::X',
 is $@->ident, 'log', '%_ error ident should be "log"';
 is $@->message, __ 'No label passed to the _ format',
     '%_ error message should be correct';
+throws_ok { $formatter->format( '%{foo}_', {} ) } 'App::Sqitch::X',
+    'Should get exception for unknown label in format "%_"';
+is $@->ident, 'log', 'Invalid %_ label error ident should be "log"';
+is $@->message, __x(
+    'Unknown label "{label}" passed to the _ format',
+    label => 'foo'
+), 'Invalid %_ label error message should be correct';
 
 ok $log = $CLASS->new( sqitch => $sqitch, abbrev => 4 ),
     'Instantiate with abbrev => 4';
