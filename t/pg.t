@@ -981,7 +981,7 @@ subtest 'live database' => sub {
     ok $pg->finish_work, 'Finish work';
     ok !$txn, 'Should have committed a transaction';
     $mock_dbh->unmock_all;
-
+    done_testing;
 };
 
 done_testing;
