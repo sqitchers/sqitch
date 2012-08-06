@@ -10,16 +10,16 @@ use Getopt::Long;
 use Hash::Merge qw(merge);
 use Path::Class;
 use Config;
-use Locale::TextDomain qw(App-Sqitch);
+use Locale::TextDomain qw(1.20 App-Sqitch);
 use App::Sqitch::X qw(hurl);
-use Moose;
+use Moose 2.0300;
 use Encode qw(encode_utf8);
 use Try::Tiny;
 use List::Util qw(first);
-use IPC::System::Simple qw(runx capturex $EXITVAL);
-use Moose::Util::TypeConstraints;
-use MooseX::Types::Path::Class;
-use namespace::autoclean;
+use IPC::System::Simple 1.17, qw(runx capturex $EXITVAL);
+use Moose::Util::TypeConstraints 2.0300;
+use MooseX::Types::Path::Class 0.05;
+use namespace::autoclean 0.11;
 
 our $VERSION = '0.83';
 

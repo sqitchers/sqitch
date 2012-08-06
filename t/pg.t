@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use v5.10.1;
-use Test::More;
+use Test::More 0.94;
 use Test::MockModule;
 use Test::Exception;
 use Locale::TextDomain qw(App-Sqitch);

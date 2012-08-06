@@ -7,6 +7,7 @@ use warnings;
 use Path::Class;
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
+use Config::GitLike 1.07;
 use utf8;
 
 extends 'Config::GitLike';

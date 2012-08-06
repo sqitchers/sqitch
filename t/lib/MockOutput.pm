@@ -4,7 +4,7 @@ use v5.10.1;
 use strict;
 use warnings;
 use utf8;
-use Test::MockModule;
+use Test::MockModule 0.05;
 
 our $MOCK = Test::MockModule->new('App::Sqitch');
 
