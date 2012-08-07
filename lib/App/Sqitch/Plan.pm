@@ -334,14 +334,13 @@ sub _parse {
                 my (@req, @con);
                 for my $dep (split /[[:blank:]]+/, $deps) {
                     $raise_syntax_error->(__x(
-                        qq{"{dep}" does not look like a dependency.\n}
-                        . 'Dependencies must begin with ":" or "!" and be valid change names',
+                        qq{"{dep}" does not look like a dependency},
                         dep => $dep,
-                    )) unless $dep =~ /^([:!])((?:(?:$name_re)?[@])?$name_re)$/g;
-                    if ($1 eq ':') {
-                        push @req => $2;
-                    } else {
+                    )) unless $dep =~ /^(!)?((?:(?:$name_re)?[@])?$name_re)$/g;
+                    if ($1) {
                         push @con => $2;
+                    } else {
+                        push @req => $2;
                     }
                 }
                 $params{requires}  = \@req;
@@ -1166,19 +1165,19 @@ Here is the EBNF Grammar for the plan file:
   plan-file    = { <pragma> | <change-line> | <tag-line> | <note-line> | <blank-line> }* ;
 
   blank-line   = [ <blanks> ] <eol>;
-  note-line = <note> ;
-  change-line    = <name> [ { <requires> | <conflicts} } ] ( <eol> | <note> ) ;
+  note-line    = <note> ;
+  change-line  = <name> [ "[" { <requires> | <conflicts> } "]" ] ( <eol> | <note> ) ;
   tag-line     = <tag> ( <eol> | <note> ) ;
   pragma       = "%" [ <blanks> ] <name> [ <blanks> ] = [ <blanks> ] <value> ( <eol> | <note> ) ;
 
   tag          = "@" <name> ;
-  requires     = ":" <name> ;
+  requires     = <name> ;
   conflicts    = "!" <name> ;
   name         = <non-punct> [ [ ? non-blank and not "@" or "#" characters ? ] <non-punct> ] ;
   non-punct    = ? non-punctuation, non-blank character ? ;
   value        = ? non-EOL or "#" characters ?
 
-  note      = [ <blanks> ] "#" [ <string> ] <EOL> ;
+  note         = [ <blanks> ] "#" [ <string> ] <EOL> ;
   eol          = [ <blanks> ] <EOL> ;
 
   blanks       = ? blank characters ? ;
@@ -1187,15 +1186,15 @@ Here is the EBNF Grammar for the plan file:
 And written as regular expressions:
 
   my $eol          = qr/[[:blank:]]*$/
-  my $note      = qr/(?:[[:blank:]]+)?[#].+$/;
+  my $note         = qr/(?:[[:blank:]]+)?[#].+$/;
   my $name         = qr/[^[:punct:][:blank:]](?:(?:[^[:space:]@]+)?[^[:punct:][:blank:]])?/;
   my $tag          = qr/[@]$name/;
-  my $requires     = qr/[:]$name/;
+  my $requires     = qr/$name/;
   my conflicts     = qr/[!]$name/;
   my $tag_line     = qr/^$tag(?:$note|$eol)/;
-  my $change_line    = qr/^$name(?:$requires|$conflicts)*(?:$note|$eol)/;
-  my $note_line = qr/^$note/;
-  my $pragma    = qr/^][[:blank:]]*[%][[:blank:]]*$name[[:blank:]]*=[[:blank:]].+?(?:$note|$eol)$/;
+  my $change_line  = qr/^$name(?:[[](?:$requires|$conflicts)+[]])?(?:$note|$eol)/;
+  my $note_line    = qr/^$note/;
+  my $pragma       = qr/^][[:blank:]]*[%][[:blank:]]*$name[[:blank:]]*=[[:blank:]].+?(?:$note|$eol)$/;
   my $blank_line   = qr/^$eol/;
   my $plan         = qr/(?:$pragma|$change_line|$tag_line|$note_line|$blank_line)+/ms;
 

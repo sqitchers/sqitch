@@ -172,8 +172,8 @@ sub format_dependencies {
     my $self = shift;
     my $deps = join(
         ' ',
-        ( map { ":$_" } $self->requires  ),
-        ( map { "!$_" } $self->conflicts ),
+        $self->requires,
+        map { "!$_" } $self->conflicts
     ) or return '';
     return "[$deps]";
 }

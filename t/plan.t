@@ -1056,7 +1056,7 @@ is $plan->count, 6, 'Should have 6 changes';
 is $plan->index_of('blow'), 5, 'Should find "blow at index 5';
 is $plan->last->name, 'blow', 'Last change should be "blow"';
 is $new_change->as_string,
-    'blow [:booyah] ' . $new_change->timestamp->as_string . ' '
+    'blow [booyah] ' . $new_change->timestamp->as_string . ' '
     . $new_change->format_planner,
     'Should have nice stringification of "blow :booyah"';
 is [$plan->lines]->[-1], $new_change,
@@ -1142,7 +1142,7 @@ is $orig->deploy_file, $sqitch->deploy_dir->file('you@bar.sql'),
     'The original file should now be named you@bar.sql';
 is $rev_change->suffix, '', 'But the reworked change should have no suffix';
 is $rev_change->as_string,
-    'you [:you@bar] ' . $rev_change->timestamp->as_string . ' '
+    'you [you@bar] ' . $rev_change->timestamp->as_string . ' '
     . $rev_change->format_planner,
     'It should require the previous "you" change';
 is [$plan->lines]->[-1], $rev_change,
@@ -1167,7 +1167,7 @@ is $rev_change->name, 'you', 'The second "you" should be named that';
 is $rev_change->suffix, '@beta1', 'And the second change should now have the suffx "@beta1"';
 is $rev_change2->suffix, '', 'But the new reworked change should have no suffix';
 is $rev_change2->as_string,
-    'you [:you@beta1] ' . $rev_change2->timestamp->as_string . ' '
+    'you [you@beta1] ' . $rev_change2->timestamp->as_string . ' '
     . $rev_change2->format_planner,
     'It should require the previous "you" change';
 is [$plan->lines]->[-1], $rev_change2,

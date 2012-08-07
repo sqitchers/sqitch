@@ -160,7 +160,7 @@ ok my $change2 = $CLASS->new(
 ), 'Create change with more stuff';
 
 my $ts2 = '2012-07-16T17:25:07Z';
-is $change2->as_string, "  - yo/howdy  [:foo :bar :\@baz !dr_evil] "
+is $change2->as_string, "  - yo/howdy  [foo bar \@baz !dr_evil] "
     . "$ts2 Barack Obama <potus\@whitehouse.gov>\t# blah blah blah",
     'It should stringify correctly';
 my $mock_plan = Test::MockModule->new(ref $plan);
@@ -188,13 +188,13 @@ is $change2->format_name_with_tags, 'yo/howdy @alpha',
     'Should format name with tags';
 is $change2->format_planner, 'Barack Obama <potus@whitehouse.gov>',
     'Planner name and email should format properly';
-is $change2->format_dependencies, '[:foo :bar :@baz !dr_evil]',
-    'Dependencies should format as "[:foo :bar :@baz !dr_evil]"';
-is $change2->format_name_with_dependencies, 'yo/howdy  [:foo :bar :@baz !dr_evil]',
-    'Name should format with dependencies as "yo/howdy  [:foo :bar :@baz !dr_evil]"';
-is $change2->format_op_name_dependencies, '- yo/howdy  [:foo :bar :@baz !dr_evil]',
-    'Name should format op with dependencies as "yo/howdy  [:foo :bar :@baz !dr_evil]"';
-is $change2->format_content, '- yo/howdy  [:foo :bar :@baz !dr_evil] '
+is $change2->format_dependencies, '[foo bar @baz !dr_evil]',
+    'Dependencies should format as "[foo bar @baz !dr_evil]"';
+is $change2->format_name_with_dependencies, 'yo/howdy  [foo bar @baz !dr_evil]',
+    'Name should format with dependencies as "yo/howdy  [foo bar @baz !dr_evil]"';
+is $change2->format_op_name_dependencies, '- yo/howdy  [foo bar @baz !dr_evil]',
+    'Name should format op with dependencies as "yo/howdy  [foo bar @baz !dr_evil]"';
+is $change2->format_content, '- yo/howdy  [foo bar @baz !dr_evil] '
     . $change2->timestamp->as_string . ' ' . $change2->format_planner,
     'Change content should format correctly with dependencies';
 

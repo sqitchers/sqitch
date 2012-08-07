@@ -359,7 +359,7 @@ is_deeply +MockOutput->get_info, [
     [__x 'Skipped {file}: already exists', file => $deploy_file],
     [__x 'Created {file}', file => $revert_file],
     [__x 'Added "{change}" to {file}',
-        change => 'foo_table [:widgets_table !dr_evil !joker]',
+        change => 'foo_table [widgets_table !dr_evil !joker]',
         file   => $sqitch->plan_file,
     ],
 ], 'Info should report skipping file and include dependencies';

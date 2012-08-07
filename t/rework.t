@@ -158,7 +158,7 @@ is_deeply [$steps[1]->requires], ['foo@alpha'],
 is_deeply +MockOutput->get_info, [
     [__x(
         'Added "{change}" to {file}.',
-        change => 'foo [:foo@alpha]',
+        change => 'foo [foo@alpha]',
         file   => $sqitch->plan_file,
     )],
     [__n(
@@ -256,7 +256,7 @@ is $steps[3]->note, "hi\n\nthere",
 is_deeply +MockOutput->get_info, [
     [__x(
         'Added "{change}" to {file}.',
-        change => 'bar [:bar@beta :foo !dr_evil]',
+        change => 'bar [bar@beta foo !dr_evil]',
         file   => $sqitch->plan_file,
     )],
     [__n(

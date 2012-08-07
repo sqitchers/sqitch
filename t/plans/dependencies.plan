@@ -1,11 +1,11 @@
 %project=dependencies
 +roles 2012-07-16T17:25:07Z Barack Obama <potus@whitehouse.gov>
-+users    [:roles] 2012-07-16T17:25:07Z Barack Obama <potus@whitehouse.gov>
-+add_user [:users  :roles] 2012-07-16T17:25:07Z Barack Obama <potus@whitehouse.gov>
++users    [roles] 2012-07-16T17:25:07Z Barack Obama <potus@whitehouse.gov>
++add_user [users  roles] 2012-07-16T17:25:07Z Barack Obama <potus@whitehouse.gov>
 +dr_evil 2012-07-16T17:25:07Z Barack Obama <potus@whitehouse.gov>
 @alpha 2012-07-16T17:25:07Z Barack Obama <potus@whitehouse.gov>
 
-+users [:users@alpha] 2012-07-16T17:25:07Z Barack Obama <potus@whitehouse.gov>
++users [users@alpha] 2012-07-16T17:25:07Z Barack Obama <potus@whitehouse.gov>
 -dr_evil 2012-07-16T17:25:07Z Barack Obama <potus@whitehouse.gov>
-+del_user [!dr_evil :users] 2012-07-16T17:25:07Z Barack Obama <potus@whitehouse.gov>
++del_user [!dr_evil users] 2012-07-16T17:25:07Z Barack Obama <potus@whitehouse.gov>
 
