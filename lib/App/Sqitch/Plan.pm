@@ -252,8 +252,8 @@ sub _parse {
 
         # Raise errors for missing data.
         $raise_syntax_error->(__(
-            'Invalid name; names must not begin or end in '
-            . 'punctuation or end in digits following punctuation',
+            qq{Invalid name; names must not begin with punctuation, }
+            . 'contain "@" or "#", or end in punctuation or digits following punctuation',
         )) if !$params{name}
             || $params{name} =~ /[[:punct:]][[:digit:]]*\z/
             || (!$params{yr} && $line =~ $ts_re);
@@ -693,14 +693,14 @@ sub _is_valid {
     /x && $name !~ /[[:punct:]][[:digit:]]*\z/) {
         if ($type eq 'change') {
             hurl plan => __x(
-                qq{"{name}" is invalid: changes must not begin with punctuation }
-                . 'or end in punctuation or digits following punctuation',
+                qq{"{name}" is invalid: changes must not begin with punctuation, }
+                . 'contain "@" or "#", or end in punctuation or digits following punctuation',
                 name => $name,
             );
         } else {
             hurl plan => __x(
-                qq{"{name}" is invalid: tags must not begin with punctuation }
-                . 'or end in punctuation or digits following punctuation',
+                qq{"{name}" is invalid: tags must not begin with punctuation, }
+                . 'contain "@" or "#", or end in punctuation or digits following punctuation',
                 name => $name,
             );
         }
@@ -1069,11 +1069,11 @@ a value. Currently, the only pragma recognized by Sqitch is C<syntax-version>.
 =item * A change.
 
 A named change change. A change consists of an optional C<+> or C<-> character
-followed by one or more non-whitespace characters, of which the first and last
-characters must not be punctuation characters. A change may then also contain
-a space-delimited list of dependencies, which are the names of other changes
-or tags prefixed with a colon (C<:>) for required changes or with an
-exclamation point (C<!>) for conflicting changes.
+followed by one or more non-whitespace characters (excluding "@" and "#"), of
+which the first and last characters must not be punctuation characters. A
+change may then also contain a space-delimited list of dependencies, which are
+the names of other changes or tags prefixed with a colon (C<:>) for required
+changes or with an exclamation point (C<!>) for conflicting changes.
 
 Changes with a leading C<-> are slated to be reverted, while changes with no
 character or a leading C<+> are to be deployed.
@@ -1081,8 +1081,8 @@ character or a leading C<+> are to be deployed.
 =item * A tag.
 
 A named deployment tag, generally corresponding to a release name. Begins with
-a C<@>, followed by one or more non-whitespace characters. The first and last
-characters must not be punctuation characters.
+a C<@>, followed by one or more non-whitespace characters, excluding "@" and
+"#". The first and last characters must not be punctuation characters.
 
 =item * A note.
 

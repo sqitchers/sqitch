@@ -303,8 +303,8 @@ is $@->message, __x(
     file => $file,
     line => 5,
     error => __(
-        'Invalid name; names must not begin or end in '
-         . 'punctuation or end in digits following punctuation',
+        qq{Invalid name; names must not begin with punctuation, }
+        . 'contain "@" or "#", or end in punctuation or digits following punctuation',
     ),
 ), 'And the bad change name error message should be correct';
 
@@ -334,8 +334,8 @@ for my $name (@bad_names) {
             file => 'baditem',
             line => 1,
             error => __(
-                'Invalid name; names must not begin or end in '
-                . 'punctuation or end in digits following punctuation',
+                qq{Invalid name; names must not begin with punctuation, }
+                . 'contain "@" or "#", or end in punctuation or digits following punctuation',
             )
         ),  qq{And "$line" should trigger the appropriate message};
         is sorted, 0, 'Should not have sorted changes';
@@ -935,8 +935,8 @@ for my $name (@bad_names) {
         qq{Should find "$name" invalid};
     is $@->ident, 'plan', qq{Invalid name "$name" error ident should be "plan"};
     is $@->message, __x(
-        qq{"{name}" is invalid: tags must not begin with punctuation }
-        . 'or end in punctuation or digits following punctuation',
+        qq{"{name}" is invalid: tags must not begin with punctuation, }
+        . 'contain "@" or "#", or end in punctuation or digits following punctuation',
         name => $name,
     ), qq{And the "$name" error message should be correct};
 }
@@ -995,8 +995,8 @@ for my $name (@bad_names, 'foo#bar') {
         qq{Should get error for invalid tag "$name"};
     is $@->ident, 'plan', qq{Invalid name "$name" error ident should be "plan"};
     is $@->message, __x(
-        qq{"{name}" is invalid: tags must not begin with punctuation }
-        . 'or end in punctuation or digits following punctuation',
+        qq{"{name}" is invalid: tags must not begin with punctuation, }
+        . 'contain "@" or "#", or end in punctuation or digits following punctuation',
         name => $name,
     ), qq{And the "$name" error message should be correct};
 }
@@ -1077,8 +1077,8 @@ for my $name (@bad_names) {
         qq{Should get error for invalid change "$name"};
     is $@->ident, 'plan', qq{Invalid name "$name" error ident should be "plan"};
     is $@->message, __x(
-        qq{"{name}" is invalid: changes must not begin with punctuation }
-        . 'or end in punctuation or digits following punctuation',
+        qq{"{name}" is invalid: changes must not begin with punctuation, }
+        . 'contain "@" or "#", or end in punctuation or digits following punctuation',
         name => $name,
     ), qq{And the "$name" error message should be correct};
 }
