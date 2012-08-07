@@ -19,7 +19,7 @@ our $VERSION = '0.83';
 
 sub execute {
     my ( $self, $project ) = @_;
-    $self->usage unless $project;
+    $self->_validate_project($project);
     $self->write_config;
     $self->write_plan($project);
     $self->make_directories;
@@ -36,6 +36,18 @@ sub options {
     return qw(
         uri=s
     );
+}
+
+sub _validate_project {
+    my ( $self, $project ) = @_;
+    $self->usage unless $project;
+    hurl init => __x(
+        qq{invalid project name "{project}": project names must not }
+        . 'begin with punctuation, contain "@" or ":", or end in '
+        . 'punctuation or digits following punctuation',
+        project => $project
+    ) unless $project =~ /\A[^[:punct:]](?:[^[:blank:]:@]*[^[:punct:][:blank:]])?\z/
+          && $project !~ /[[:punct:]][[:digit:]]+\z/;
 }
 
 sub configure {

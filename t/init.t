@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 122;
+use Test::More tests => 149;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -461,6 +461,42 @@ file_contents_is $plan_file,
     '%project=howdy' . "$/" .
     '%uri=' . $uri->canonical . "$/$/",
     'The plan should include the project and uri pragmas';
+
+##############################################################################
+# Test _validate_project().
+can_ok $init, '_validate_project';
+NOPROJ: {
+    # Test handling of no command.
+    my $mock = Test::MockModule->new($CLASS);
+    my @args;
+    $mock->mock(usage => sub { @args = @_; die 'USAGE' });
+    throws_ok { $CLASS->_validate_project }
+        qr/USAGE/, 'No project should yield usage';
+    is_deeply \@args, [$CLASS], 'No args should be passed to usage';
+}
+
+# Test invalid project names.
+my @bad_names = (
+    '^foo',     # No leading punctuation
+    'foo+',     # No trailing punctuation
+    'foo+6',    # No trailing punctuation+digit
+    'foo+666',  # No trailing punctuation+digits
+    '%hi',      # No leading punctuation
+    'hi!',      # No trailing punctuation
+    'foo@bar',  # No @ allowed at all
+    'foo:bar',  # No : allowed at all
+);
+for my $bad (@bad_names) {
+    throws_ok { $init->_validate_project($bad) } 'App::Sqitch::X',
+        qq{Should get error for invalid project name "$bad"};
+    is $@->ident, 'init', qq{Bad project "$bad" ident should be "init"};
+    is $@->message, __x(
+        qq{invalid project name "{project}": project names must not }
+        . 'begin with punctuation, contain "@" or ":", or end in '
+        . 'punctuation or digits following punctuation',
+        project => $bad
+    ), qq{Bad project "$bad" error message should be correct};
+}
 
 ##############################################################################
 # Bring it all together, yo.

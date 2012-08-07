@@ -143,6 +143,16 @@ sub _parse {
         <(?<planner_email>[^>]+)> # email
     /x;
 
+    # Use for raising syntax error exceptions.
+    my $raise_syntax_error = sub {
+        hurl plan => __x(
+            'Syntax error in {file} at line {lineno}: {error}',
+            file   => $file,
+            lineno => $fh->input_line_number,
+            error  => shift
+        );
+    };
+
     LINE: while ( my $line = $fh->getline ) {
         chomp $line;
 
@@ -183,6 +193,17 @@ sub _parse {
                 # future releases, may change parsers depending on the
                 # version.
                 $pragmas{syntax_version} = $params{value} = SYNTAX_VERSION;
+            } elsif ($+{name} eq 'project') {
+                my $proj = $+{value};
+                $raise_syntax_error->(__x(
+                    qq{invalid project name "{project}": project names must not }
+                    . 'begin with punctuation, contain "@" or ":", or end in '
+                    . 'punctuation or digits following punctuation',
+                    project => $proj,
+                )) unless $proj =~ /\A$name_re\z/
+                       && $proj !~ /:/
+                       && $proj !~ /[[:punct:]][[:digit:]]+\z/;
+                $pragmas{project} = $proj;
             } else {
                 $pragmas{ $+{name} } = $+{value} // 1;
             }
@@ -228,16 +249,6 @@ sub _parse {
         /x;
 
         %params = ( %params, %+ );
-
-        # Make sure we have a valid name.
-        my $raise_syntax_error = sub {
-            hurl plan => __x(
-                'Syntax error in {file} at line {lineno}: {error}',
-                file   => $file,
-                lineno => $fh->input_line_number,
-                error  => shift
-            );
-        };
 
         # Raise errors for missing data.
         $raise_syntax_error->(__(
@@ -372,7 +383,7 @@ sub _parse {
         $pragmas{syntax_version} = SYNTAX_VERSION;
     }
 
-    # Should have project pragma.
+    # Should have valid project pragma.
     hurl plan => __x(
         'Missing %project pragma in {file}',
         file => $file,

@@ -1477,4 +1477,23 @@ is $@->ident, 'plan', 'Missing prorject error ident should be "plan"';
 is $@->message, __x('Missing %project pragma in {file}', file => 'noproject'),
     'The missing project error message should be correct';
 
+# Make sure we get an error for an invalid project name.
+for my $bad (@bad_names, 'foo:bar') {
+    my $fh = IO::File->new(\"%project=$bad\n\nfoo $tsnp", '<:utf8');
+    throws_ok { $plan->_parse(badproj => $fh) } 'App::Sqitch::X',
+        qq{Should die on invalid project name "$bad"};
+    is $@->ident, 'plan', qq{Ident for bad proj "$bad" should be "plan"};
+    is $@->message, __x(
+        'Syntax error in {file} at line {line}: {error}',
+        file => 'badproj',
+        line => 1,
+        error => __x(
+            qq{invalid project name "{project}": project names must not }
+            . 'begin with punctuation, contain "@" or ":", or end in '
+            . 'punctuation or digits following punctuation',
+            project => $bad
+        ),
+    ), qq{Error message for bad project "$bad" should be correct};
+}
+
 done_testing;
