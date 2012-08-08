@@ -344,12 +344,12 @@ sub _parse {
             # Got dependencies?
             if (my $deps = $params{dependencies}) {
                 my (@req, @con);
-                for my $dep (split /[[:blank:]]+/, $deps) {
-                    $dep = App::Sqitch::Plan::Depend->parse(
-                        $dep
+                for my $depstring (split /[[:blank:]]+/, $deps) {
+                    my $dep = App::Sqitch::Plan::Depend->parse(
+                        $depstring
                     ) or $raise_syntax_error->(__x(
-                        qq{"{dep}" does not look like a dependency},
-                        dep => $dep,
+                        '"{dep}" is not a valid dependency specification',
+                        dep => $depstring,
                     ));
                     if ($dep->conflicts) {
                         push @con => $dep;
@@ -584,6 +584,24 @@ sub tag {
     return $tag;
 }
 
+sub _parse_deps {
+    my $p = shift;
+    # Dependencies must be parsed into objects.
+    $p->{requires} = [ map {
+        App::Sqitch::Plan::Depend->parse($_) // hurl plan => __x(
+            '"{dep}" is not a valid dependency specification',
+            dep => $_,
+        );
+    } @{ $p->{requires} } ] if $p->{requires};
+
+    $p->{conflicts} = [ map {
+        App::Sqitch::Plan::Depend->parse("!$_") // hurl plan => __x(
+            '"{dep}" is not a valid dependency specification',
+            dep => $_,
+        );
+    } @{ $p->{conflicts} } ]if $p->{conflicts};
+}
+
 sub add {
     my ( $self, %p ) = @_;
     $self->_is_valid(change => $p{name});
@@ -598,10 +616,7 @@ sub add {
         );
     }
 
-    $p{requires} = [ map { App::Sqitch::Plan::Depend->parse($_) } @{ $p{requires} } ]
-        if $p{requires};
-    $p{conflicts} = [ map { App::Sqitch::Plan::Depend->parse("!$_") } @{ $p{conflicts} } ]
-        if $p{conflicts};
+    _parse_deps \%p;
 
     $p{rspace} //= ' ' if $p{note};
     my $change = App::Sqitch::Plan::Change->new( %p, plan => $self );
@@ -641,10 +656,7 @@ sub rework {
         change => $p{name},
     ) if !defined $tag_idx || $tag_idx < $idx;
 
-    $p{requires} = [ map { App::Sqitch::Plan::Depend->parse($_) } @{ $p{requires} } ]
-        if $p{requires};
-    $p{conflicts} = [ map { App::Sqitch::Plan::Depend->parse("!$_") } @{ $p{conflicts} } ]
-        if $p{conflicts};
+    _parse_deps \%p;
 
     my ($tag) = $changes->change_at($tag_idx)->tags;
     unshift @{ $p{requires} ||= [] } => App::Sqitch::Plan::Depend->parse(

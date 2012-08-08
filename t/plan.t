@@ -510,6 +510,22 @@ is $@->message, __x(
 ), 'And the dupe change error message should be correct';
 is sorted, 1, 'Should have sorted changes once';
 
+# Try a plan with an invalid requirement.
+$fh = IO::File->new(\"\%project=foo\nfoo [+bar] $tsnp", '<:utf8');
+throws_ok { $plan->_parse('badreq', $fh ) } 'App::Sqitch::X',
+    'Should die on invalid  dependency';
+is $@->ident, 'plan', 'The invalid dependency error ident should be "plan"';
+is $@->message, __x(
+    'Syntax error in {file} at line {line}: {error}',
+    file => 'badreq',
+    line => 2,
+    error => __x(
+        '"{dep}" is not a valid dependency specification',
+        dep => '+bar',
+    ),
+), 'And the invalid dependency error message should be correct';
+is sorted, 0, 'Should have sorted changes nonce';
+
 # Try a plan without a timestamp.
 $file = file qw(t plans no-timestamp.plan);
 $fh = IO::File->new(\'foo hi <t@heo.ry>', '<:utf8');
@@ -1117,6 +1133,23 @@ is $@->message, __x(
     req    => 'nonesuch',
 ), 'The dependency error should be correct';
 
+# Try invalid dependencies.
+throws_ok { $plan->add( name => 'whu', requires => ['+bogus' ] ) } 'App::Sqitch::X',
+    'Should get failure for invalid dependency';
+is $@->ident, 'plan', 'Invalid dependency error ident should be "plan"';
+is $@->message, __x(
+    '"{dep}" is not a valid dependency specification',
+    dep => '+bogus',
+), 'The invalid dependency error should be correct';
+
+throws_ok { $plan->add( name => 'whu', conflicts => ['+bogus' ] ) } 'App::Sqitch::X',
+    'Should get failure for invalid conflict';
+is $@->ident, 'plan', 'Invalid conflict error ident should be "plan"';
+is $@->message, __x(
+    '"{dep}" is not a valid dependency specification',
+    dep => '+bogus',
+), 'The invalid conflict error should be correct';
+
 # Should choke on an unknown tag, too.
 throws_ok { $plan->add(name => 'whu', requires => ['@nonesuch' ] ) } 'App::Sqitch::X',
     'Should get failure for failed tag dependency';
@@ -1213,6 +1246,23 @@ is $@->message, __x(
     change => 'booyah',
     req    => 'nonesuch',
 ), 'The rework dependency error should be correct';
+
+# Try invalid dependencies.
+throws_ok { $plan->rework( name => 'booyah', requires => ['+bogus' ] ) } 'App::Sqitch::X',
+    'Should get failure for invalid dependency';
+is $@->ident, 'plan', 'Invalid dependency error ident should be "plan"';
+is $@->message, __x(
+    '"{dep}" is not a valid dependency specification',
+    dep => '+bogus',
+), 'The invalid dependency error should be correct';
+
+throws_ok { $plan->rework( name => 'booyah', conflicts => ['+bogus' ] ) } 'App::Sqitch::X',
+    'Should get failure for invalid conflict';
+is $@->ident, 'plan', 'Invalid conflict error ident should be "plan"';
+is $@->message, __x(
+    '"{dep}" is not a valid dependency specification',
+    dep => '+bogus',
+), 'The invalid conflict error should be correct';
 
 ##############################################################################
 # Try a plan with a duplicate change in different tag sections.
