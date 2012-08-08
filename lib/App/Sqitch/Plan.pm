@@ -18,6 +18,14 @@ use constant SYNTAX_VERSION => '1.0.0-b2';
 
 our $VERSION = '0.83';
 
+my $name_re = qr/
+     [^[:punct:]]               #  not punct
+     (?:                        #  followed by...
+         [^[:blank:]:@#]*       #      any number non-blank, non-@, non-#, non-@
+         [^[:punct:][:blank:]]  #      one not blank or punct
+     )?                         #  ... optionally
+/x;
+
 has sqitch => (
     is       => 'ro',
     isa      => 'App::Sqitch',
@@ -112,24 +120,6 @@ sub _parse {
     my $prev_tag;      # Last seen tag.
     my $prev_change;   # Last seen change.
 
-    # Regex to match change names.
-    my $name_re = qr/
-         [^[:punct:]]               #  not punct
-         (?:                        #  followed by...
-             [^[:blank:]@]*         #      any number non-blank, non-@
-             [^[:punct:][:blank:]]  #      one not blank or punct
-         )?                         #  ... optionally
-    /x;
-
-    # Regex to math project names.
-    my $proj_re =  qr/
-         [^[:punct:]]               #  not punct
-         (?:                        #  followed by...
-             [^[:blank:]:@]*        #      any number non-blank, non-@, non-:
-             [^[:punct:][:blank:]]  #      one not blank or punct
-         )?                         #  ... optionally
-    /x;
-
     # Regex to match timestamps.
     my $ts_re = qr/
         (?<yr>[[:digit:]]{4})  # year
@@ -209,7 +199,7 @@ sub _parse {
                     . 'begin with punctuation, contain "@" or ":", or end in '
                     . 'punctuation or digits following punctuation',
                     project => $proj,
-                )) unless $proj =~ /\A$proj_re\z/
+                )) unless $proj =~ /\A$name_re\z/
                        && $proj !~ /[[:punct:]][[:digit:]]+\z/;
                 $pragmas{project} = $proj;
             } else {
@@ -358,7 +348,7 @@ sub _parse {
                     )) unless $dep =~ /\A
                         (!)?                        # Optional negation
                         (                           # followed by...
-                            (?:(?:$proj_re)?[:])?   #     Optional project + :
+                            (?:(?:$name_re)?[:])?   #     Optional project + :
                             (?:(?:$name_re)?[@])?   #     Optional name + @
                             $name_re                #      name
                         )                           # ... required
@@ -697,15 +687,7 @@ sub _is_valid {
         name => $name,
     ) if $name =~ /^[0-9a-f]{40}/;
 
-    unless ($name =~ /
-        ^                          # Beginning of line
-        [^[:punct:]]               # not punct
-        (?:                        # followed by...
-            [^[:blank:]@#]*?       #     any number non-blank, non-@, non-#.
-            [^[:punct:][:blank:]]  #     one not blank or punct
-        )?                         # ... optionally
-        $                          # end of line
-    /x && $name !~ /[[:punct:]][[:digit:]]*\z/) {
+    unless ($name =~ /^$name_re$/ && $name !~ /[[:punct:]][[:digit:]]*\z/) {
         if ($type eq 'change') {
             hurl plan => __x(
                 qq{"{name}" is invalid: changes must not begin with punctuation, }
@@ -1084,11 +1066,12 @@ a value. Currently, the only pragma recognized by Sqitch is C<syntax-version>.
 =item * A change.
 
 A named change change. A change consists of an optional C<+> or C<-> character
-followed by one or more non-whitespace characters (excluding "@" and "#"), of
-which the first and last characters must not be punctuation characters. A
-change may then also contain a space-delimited list of dependencies, which are
-the names of other changes or tags prefixed with a colon (C<:>) for required
-changes or with an exclamation point (C<!>) for conflicting changes.
+followed by one or more non-whitespace characters (excluding "@", ":", and
+"#"), of which the first and last characters must not be punctuation
+characters. A change may then also contain a space-delimited list of
+dependencies, which are the names of other changes or tags prefixed with a
+colon (C<:>) for required changes or with an exclamation point (C<!>) for
+conflicting changes.
 
 Changes with a leading C<-> are slated to be reverted, while changes with no
 character or a leading C<+> are to be deployed.
@@ -1096,8 +1079,8 @@ character or a leading C<+> are to be deployed.
 =item * A tag.
 
 A named deployment tag, generally corresponding to a release name. Begins with
-a C<@>, followed by one or more non-whitespace characters, excluding "@" and
-"#". The first and last characters must not be punctuation characters.
+a C<@>, followed by one or more non-whitespace characters, excluding "@", ":",
+and "#". The first and last characters must not be punctuation characters.
 
 =item * A note.
 
@@ -1199,7 +1182,7 @@ Here is the EBNF Grammar for the plan file:
   tag          = "@" <name> ;
   requires     = <name> ;
   conflicts    = "!" <name> ;
-  name         = <non-punct> [ [ ? non-blank and not "@" or "#" characters ? ] <non-punct> ] ;
+  name         = <non-punct> [ [ ? non-blank and not "@", ":", or "#" characters ? ] <non-punct> ] ;
   non-punct    = ? non-punctuation, non-blank character ? ;
   value        = ? non-EOL or "#" characters ?
 
@@ -1213,7 +1196,7 @@ And written as regular expressions:
 
   my $eol          = qr/[[:blank:]]*$/
   my $note         = qr/(?:[[:blank:]]+)?[#].+$/;
-  my $name         = qr/[^[:punct:][:blank:]](?:(?:[^[:space:]@]+)?[^[:punct:][:blank:]])?/;
+  my $name         = qr/[^[:punct:][:blank:]](?:(?:[^[:space:]:#@]+)?[^[:punct:][:blank:]])?/;
   my $tag          = qr/[@]$name/;
   my $requires     = qr/$name/;
   my conflicts     = qr/[!]$name/;

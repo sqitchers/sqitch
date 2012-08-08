@@ -318,6 +318,7 @@ my @bad_names = (
     '%hi',      # No leading punctuation
     'hi!',      # No trailing punctuation
     'foo@bar',  # No @ allowed at all
+    'foo:bar',  # No : allowed at all
 );
 
 # Try other invalid change and tag name issues.
@@ -1478,7 +1479,7 @@ is $@->message, __x('Missing %project pragma in {file}', file => 'noproject'),
     'The missing project error message should be correct';
 
 # Make sure we get an error for an invalid project name.
-for my $bad (@bad_names, 'foo:bar') {
+for my $bad (@bad_names) {
     my $fh = IO::File->new(\"%project=$bad\n\nfoo $tsnp", '<:utf8');
     throws_ok { $plan->_parse(badproj => $fh) } 'App::Sqitch::X',
         qq{Should die on invalid project name "$bad"};
