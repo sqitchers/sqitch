@@ -219,6 +219,22 @@ sub initialize {
     return $self;
 }
 
+sub register_project {
+    my $self   = shift;
+    my $sqitch = $self->sqitch;
+    my $plan   = $sqitch->plan;
+    return try {
+        $self->_dbh->do(q{
+            INSERT INTO projects (project, uri, creator_name, creator_email)
+            VALUES (?, ?, ?, ?)
+        }, undef, $plan->project, $plan->uri, $sqitch->user_name, $sqitch->user_email);
+        return $self;
+    } catch {
+        return $self if $DBI::state eq '23505'; # unique_violation
+        die $_;
+    };
+}
+
 sub begin_work {
     my $self = shift;
     my $dbh = $self->_dbh;
@@ -250,9 +266,10 @@ sub log_deploy_change {
     my $dbh    = $self->_dbh;
     my $sqitch = $self->sqitch;
 
-    my ($id, $name, $req, $conf, $user, $email) = (
+    my ($id, $name, $proj, $req, $conf, $user, $email) = (
         $change->id,
         $change->format_name,
+        $sqitch->plan->project,
         [map { $_->as_string } $change->requires],
         [map { $_->as_string } $change->conflicts],
         $sqitch->user_name,
@@ -263,6 +280,7 @@ sub log_deploy_change {
         INSERT INTO changes (
               change_id
             , change
+            , project
             , note
             , requires
             , conflicts
@@ -272,10 +290,11 @@ sub log_deploy_change {
             , planner_name
             , planner_email
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     }, undef,
         $id,
         $name,
+        $proj,
         $change->note,
         $req,
         $conf,
@@ -291,6 +310,7 @@ sub log_deploy_change {
             INSERT INTO tags (
                   tag_id
                 , tag
+                , project
                 , change_id
                 , note
                 , committer_name
@@ -299,11 +319,12 @@ sub log_deploy_change {
                 , planner_name
                 , planner_email
            ) VALUES
-        } . join( ', ', ( q{(?, ?, ?, ?, ?, ?, ?, ?, ?)} ) x @tags ),
+        } . join( ', ', ( q{(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)} ) x @tags ),
             undef,
             map { (
                 $_->id,
                 $_->format_name,
+                $proj,
                 $id,
                 $_->note,
                 $user,
@@ -332,6 +353,7 @@ sub _log_event {
               event
             , change_id
             , change
+            , project
             , note
             , tags
             , requires
@@ -342,11 +364,12 @@ sub _log_event {
             , planner_name
             , planner_email
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
     }, undef,
         $event,
         $change->id,
         $change->name,
+        $sqitch->plan->project,
         $note      // $change->note,
         $tags      || [ map { $_->format_name } $change->tags ],
         $requires  || [ map { $_->as_string } $change->requires ],

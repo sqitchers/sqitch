@@ -15,7 +15,7 @@ has sqitch => (
     is       => 'ro',
     isa      => 'App::Sqitch',
     required => 1,
-    handles  => { destination => 'db_name' },
+    handles  => { destination => 'db_name', plan => 'plan' },
 );
 
 has start_at => (
@@ -86,6 +86,7 @@ sub deploy {
             ));
             $self->initialize;
         }
+        $self->register_project;
 
     } else {
         # Make sure that $to_index is greater than the current point.
@@ -342,6 +343,11 @@ sub initialized {
 sub initialize {
     my $class = ref $_[0] || $_[0];
     hurl "$class has not implemented initialize()";
+}
+
+sub register_project {
+    my $class = ref $_[0] || $_[0];
+    hurl "$class has not implemented register_project()";
 }
 
 sub run_file {
@@ -644,6 +650,13 @@ has not.
 Initializes a database for Sqitch by installing the Sqitch metadata schema
 and/or tables. Should be overridden by subclasses. This implementation throws
 an exception
+
+=head3 C<register_project>
+
+  $engine->register_project;
+
+Registers the current project plan in the database. The implementation should
+insert the project name and URI if they have not already been inserted.
 
 =head3 C<is_deployed_tag>
 

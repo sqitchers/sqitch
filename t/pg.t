@@ -306,6 +306,37 @@ subtest 'live database' => sub {
     is_deeply all( $pg->current_tags ), [], 'Should have no current tags';
     is_deeply all( $pg->search_events ), [], 'Should have no events';
 
+    ##############################################################################
+    # Test register_project().
+    can_ok $pg, 'register_project';
+    ok $pg->register_project, 'Register the project';
+    is_deeply $pg->_dbh->selectall_arrayref(
+        'SELECT project, uri, creator_name, creator_email FROM projects'
+    ), [['pg', undef, $sqitch->user_name, $sqitch->user_email]],
+        'The project should be registered';
+
+    # Try to register it again.
+    ok $pg->register_project, 'Register the project again';
+    is_deeply $pg->_dbh->selectall_arrayref(
+        'SELECT project, uri, creator_name, creator_email FROM projects'
+    ), [['pg', undef, $sqitch->user_name, $sqitch->user_email]],
+        'The project should still be registered only once';
+
+    # Register a different project name.
+    MOCKPROJECT: {
+        my $plan_mocker = Test::MockModule->new(ref $sqitch->plan );
+        $plan_mocker->mock(project => 'groovy');
+        $plan_mocker->mock(uri     => 'http://example.com/');
+        ok $pg->register_project, 'Register a second project';
+    }
+
+    is_deeply $pg->_dbh->selectall_arrayref(
+        'SELECT project, uri, creator_name, creator_email FROM projects ORDER BY created_at'
+    ), [
+        ['pg', undef, $sqitch->user_name, $sqitch->user_email],
+        ['groovy', 'http://example.com/', $sqitch->user_name, $sqitch->user_email],
+    ], 'Both projects should now be registered';
+
     ##########################################################################
     # Test log_deploy_change().
     my $plan = $sqitch->plan;

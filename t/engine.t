@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 230;
+use Test::More tests => 231;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -58,17 +58,18 @@ ENGINE: {
             push @SEEN => [ $meth => $_[1] ];
         };
     }
-    sub is_deployed_tag   { push @SEEN => [ is_deployed_tag   => $_[1] ]; $is_deployed_tag }
-    sub is_deployed_change  { push @SEEN => [ is_deployed_change  => $_[1] ]; $is_deployed_change }
-    sub check_requires    { push @SEEN => [ check_requires    => $_[1] ]; @missing_requires }
-    sub check_conflicts   { push @SEEN => [ check_conflicts   => $_[1] ]; @conflicts }
-    sub latest_change_id    { push @SEEN => [ latest_change_id    => $_[1] ]; $latest_change_id }
-    sub initialized       { push @SEEN => 'initialized'; $initialized }
-    sub initialize        { push @SEEN => 'initialize' }
+    sub is_deployed_tag    { push @SEEN => [ is_deployed_tag   => $_[1] ]; $is_deployed_tag }
+    sub is_deployed_change { push @SEEN => [ is_deployed_change  => $_[1] ]; $is_deployed_change }
+    sub check_requires     { push @SEEN => [ check_requires    => $_[1] ]; @missing_requires }
+    sub check_conflicts    { push @SEEN => [ check_conflicts   => $_[1] ]; @conflicts }
+    sub latest_change_id   { push @SEEN => [ latest_change_id    => $_[1] ]; $latest_change_id }
+    sub initialized        { push @SEEN => 'initialized'; $initialized }
+    sub initialize         { push @SEEN => 'initialize' }
+    sub register_project   { push @SEEN => 'register_project' }
     sub deployed_change_ids { push @SEEN => [ deployed_change_ids => $_[1] ]; @deployed_change_ids }
     sub deployed_change_ids_since { push @SEEN => [ deployed_change_ids_since => $_[1] ]; @deployed_change_ids }
-    sub begin_work        { push @SEEN => ['begin_work']  if $record_work }
-    sub finish_work       { push @SEEN => ['finish_work'] if $record_work }
+    sub begin_work         { push @SEEN => ['begin_work']  if $record_work }
+    sub finish_work        { push @SEEN => ['finish_work'] if $record_work }
 
     sub seen { [@SEEN] }
     after seen => sub { @SEEN = () };
@@ -153,6 +154,7 @@ ok $engine = $CLASS->new({ sqitch => $sqitch }), "Create a $CLASS object again";
 for my $abs (qw(
     initialized
     initialize
+    register_project
     run_file
     run_handle
     log_deploy_change
@@ -287,6 +289,7 @@ is_deeply $engine->seen, [
     [latest_change_id => undef],
     'initialized',
     'initialize',
+    'register_project',
     [check_conflicts => $changes[0] ],
     [check_requires => $changes[0] ],
     [run_file => $changes[0]->deploy_file],
@@ -318,6 +321,7 @@ is $plan->position, 1, 'Plan should again be at position 1';
 is_deeply $engine->seen, [
     [latest_change_id => undef],
     'initialized',
+    'register_project',
     [check_conflicts => $changes[0] ],
     [check_requires => $changes[0] ],
     [run_file => $changes[0]->deploy_file],
@@ -380,6 +384,7 @@ is $plan->position, 3, 'Plan should be at position 3';
 is_deeply $engine->seen, [
     [latest_change_id => undef],
     'initialized',
+    'register_project',
     [check_conflicts => $changes[0] ],
     [check_requires => $changes[0] ],
     [run_file => $changes[0]->deploy_file],
@@ -429,6 +434,7 @@ is $@->message, __x('Unknown deployment mode: "{mode}"', mode => 'evil_mode'),
 is_deeply $engine->seen, [
     [latest_change_id => undef],
     'initialized',
+    'register_project',
 ], 'It should have check for initialization';
 is_deeply +MockOutput->get_info, [
     [__x 'Deploying changes to {destination}', destination =>  $engine->destination ],
