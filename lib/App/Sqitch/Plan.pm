@@ -26,6 +26,8 @@ my $name_re = qr/
      )?                         #  ... optionally
 /x;
 
+sub name_regex { $name_re }
+
 has sqitch => (
     is       => 'ro',
     isa      => 'App::Sqitch',
@@ -750,6 +752,19 @@ file and provides an iteration interface for working with the plan.
 
 Returns the current version of the Sqitch plan syntax. Used for the
 C<%sytax-version> pragma.
+
+=head2 Class Methods
+
+=head3 C<name_regex>
+
+  die "$this has no name" unless $this =~ App::Sqitch::Plan->name_regex;
+
+Returns a regular expression that matches names. Note that it is not anchored,
+so if you need to make sure that a string is a valid name and nothing else,
+you will need to anchor it yourself, like so:
+
+    my $name_re = App::Sqitch::Plan->name_regex;
+    die "$this is not a valid name" if $this !~ /\A$name_re\z/;
 
 =head2 Constructors
 

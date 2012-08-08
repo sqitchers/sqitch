@@ -10,6 +10,7 @@ use App::Sqitch::X qw(hurl);
 use File::Path qw(make_path);
 use Path::Class;
 use Try::Tiny;
+use App::Sqitch::Plan;
 use Moose::Util::TypeConstraints;
 use namespace::autoclean;
 
@@ -41,12 +42,13 @@ sub options {
 sub _validate_project {
     my ( $self, $project ) = @_;
     $self->usage unless $project;
+    my $name_re = App::Sqitch::Plan->name_regex;
     hurl init => __x(
         qq{invalid project name "{project}": project names must not }
         . 'begin with punctuation, contain "@" or ":", or end in '
         . 'punctuation or digits following punctuation',
         project => $project
-    ) unless $project =~ /\A[^[:punct:]](?:[^[:blank:]:@]*[^[:punct:][:blank:]])?\z/
+    ) unless $project =~ /\A$name_re\z/
           && $project !~ /[[:punct:]][[:digit:]]+\z/;
 }
 
