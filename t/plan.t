@@ -688,6 +688,31 @@ is_deeply $parsed->{changes}, [
 ], 'The changes should include the dependencies';
 is sorted, 2, 'Should have sorted changes twice';
 
+# Try a plan with cross-project dependencies.
+$file = file qw(t plans project_deps.plan);
+$sqitch = App::Sqitch->new(plan_file => $file);
+isa_ok $plan = App::Sqitch::Plan->new(sqitch => $sqitch), $CLASS,
+    'Plan with sqitch with plan file with project deps';
+ok $parsed = $plan->load, 'Load plan with project deps file';
+is_deeply $parsed->{changes}, [
+    clear,
+    change { name => 'roles', op => '+' },
+    change { name => 'users', op => '+', pspace => '    ', requires => ['roles'] },
+    change { name => 'add_user', op => '+', pspace => ' ', requires => [qw(users roles log:logger)] },
+    change { name => 'dr_evil', op => '+' },
+    tag    { name => 'alpha' },
+    change { name => 'users', op => '+', pspace => ' ', requires => ['users@alpha'] },
+    change { name => 'dr_evil', op => '-' },
+    change {
+        name      => 'del_user',
+        op        => '+',
+        pspace    => ' ',
+        requires  => ['users', 'log:logger@beta1'],
+        conflicts => ['dr_evil']
+    },
+], 'The changes should include the cross-project deps';
+is sorted, 2, 'Should have sorted changes twice';
+
 # Should fail with dependencies on tags.
 $file = file qw(t plans tag_dependencies.plan);
 $fh = IO::File->new(\"foo $tsnp\n\@bar [:foo] $tsnp", '<:utf8');
@@ -1481,6 +1506,11 @@ is $@->message, __x(
     required => '@foo',
     change   => 'this',
 ), 'And the error should point to the offending change';
+
+# Allow dependencies from different projects.
+@deps = ({%ddep}, {%ddep, requires => [dep 'foo:bob']}, {%ddep});
+cmp_deeply [$plan->sort_changes(changes qw(this that other))],
+    [changes qw(this that other)], 'Should get original order with external dependency';
 
 ##############################################################################
 # Test dependency testing.

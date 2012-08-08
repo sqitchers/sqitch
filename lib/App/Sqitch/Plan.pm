@@ -426,6 +426,7 @@ sub sort_changes {
 
         # XXX Ignoring conflicts for now.
         for my $dep ( $change->requires ) {
+            next if defined $dep->project;
             $dep = $dep->key_name;
 
             # Skip it if it's a change from an earlier tag.
