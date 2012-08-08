@@ -112,11 +112,20 @@ sub _parse {
     my $prev_tag;      # Last seen tag.
     my $prev_change;   # Last seen change.
 
-    # Regex to match names.
+    # Regex to match change names.
     my $name_re = qr/
          [^[:punct:]]               #  not punct
          (?:                        #  followed by...
              [^[:blank:]@]*         #      any number non-blank, non-@
+             [^[:punct:][:blank:]]  #      one not blank or punct
+         )?                         #  ... optionally
+    /x;
+
+    # Regex to math project names.
+    my $proj_re =  qr/
+         [^[:punct:]]               #  not punct
+         (?:                        #  followed by...
+             [^[:blank:]:@]*        #      any number non-blank, non-@, non-:
              [^[:punct:][:blank:]]  #      one not blank or punct
          )?                         #  ... optionally
     /x;
@@ -200,8 +209,7 @@ sub _parse {
                     . 'begin with punctuation, contain "@" or ":", or end in '
                     . 'punctuation or digits following punctuation',
                     project => $proj,
-                )) unless $proj =~ /\A$name_re\z/
-                       && $proj !~ /:/
+                )) unless $proj =~ /\A$proj_re\z/
                        && $proj !~ /[[:punct:]][[:digit:]]+\z/;
                 $pragmas{project} = $proj;
             } else {
@@ -347,7 +355,14 @@ sub _parse {
                     $raise_syntax_error->(__x(
                         qq{"{dep}" does not look like a dependency},
                         dep => $dep,
-                    )) unless $dep =~ /^(!)?((?:(?:$name_re)?[@])?$name_re)$/g;
+                    )) unless $dep =~ /\A
+                        (!)?                        # Optional negation
+                        (                           # followed by...
+                            (?:(?:$proj_re)?[:])?   #     Optional project + :
+                            (?:(?:$name_re)?[@])?   #     Optional name + @
+                            $name_re                #      name
+                        )                           # ... required
+                    \z/x;
                     if ($1) {
                         push @con => $2;
                     } else {
