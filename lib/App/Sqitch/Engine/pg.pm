@@ -253,8 +253,8 @@ sub log_deploy_change {
     my ($id, $name, $req, $conf, $user, $email) = (
         $change->id,
         $change->format_name,
-        [$change->requires],
-        [$change->conflicts],
+        [map { $_->as_string } $change->requires],
+        [map { $_->as_string } $change->conflicts],
         $sqitch->user_name,
         $sqitch->user_email
     );
@@ -349,8 +349,8 @@ sub _log_event {
         $change->name,
         $note      // $change->note,
         $tags      || [ map { $_->format_name } $change->tags ],
-        $requires  || [ $change->requires ],
-        $conflicts || [ $change->conflicts ],
+        $requires  || [ map { $_->as_string } $change->requires ],
+        $conflicts || [ map { $_->as_string } $change->conflicts ],
         $sqitch->user_name,
         $sqitch->user_email,
         $change->timestamp->as_string(format => 'iso'),

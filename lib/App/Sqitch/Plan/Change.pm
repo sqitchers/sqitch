@@ -7,11 +7,12 @@ use parent 'App::Sqitch::Plan::Line';
 use Encode;
 use Moose;
 use App::Sqitch::DateTime;
+use App::Sqitch::Plan::Depend;
 use Locale::TextDomain qw(App-Sqitch);
 
 has _requires => (
     is       => 'ro',
-    isa      => 'ArrayRef[Str]',
+    isa      => 'ArrayRef[App::Sqitch::Plan::Depend]',
     traits   => ['Array'],
     required => 1,
     init_arg => 'requires',
@@ -21,7 +22,7 @@ has _requires => (
 
 has _conflicts => (
     is       => 'ro',
-    isa      => 'ArrayRef[Str]',
+    isa      => 'ArrayRef[App::Sqitch::Plan::Depend]',
     traits   => ['Array'],
     required => 1,
     init_arg => 'conflicts',
@@ -172,8 +173,7 @@ sub format_dependencies {
     my $self = shift;
     my $deps = join(
         ' ',
-        $self->requires,
-        map { "!$_" } $self->conflicts
+        map { $_->as_plan_string} $self->requires, $self->conflicts
     ) or return '';
     return "[$deps]";
 }
@@ -222,13 +222,13 @@ sub format_content {
 sub requires_changes {
     my $self = shift;
     my $plan = $self->plan;
-    return map { $plan->find($_) } $self->requires;
+    return map { $plan->find( $_->key_name ) } $self->requires;
 }
 
 sub conflicts_changes {
     my $self = shift;
     my $plan = $self->plan;
-    return map { $plan->find($_) } $self->conflicts;
+    return map { $plan->find( $_->key_name ) } $self->conflicts;
 }
 
 sub note_prompt {
@@ -341,25 +341,29 @@ Returns the path to the test script file for the change.
 
   my @requires = $change->requires;
 
-Returns a list of the names of changes required by this change.
+Returns a list of L<App::Sqitch::Plan::Depend> objects representing changes
+required by this change.
 
 =head3 C<requires_changes>
 
   my @requires_changes = $change->requires_changes;
 
-Returns a list of the changes required by this change.
+Returns a list of the C<App::Sqitch::Plan::Change> objects representing
+changes required by this change.
 
 =head3 C<conflicts>
 
   my @conflicts = $change->conflicts;
 
-Returns a list of the names of changes with which this change conflicts.
+Returns a list of L<App::Sqitch::Plan::Depend> objects representing changes
+with which this change conflicts.
 
 =head3 C<conflicts_changes>
 
   my @conflicts_changes = $change->conflicts_changes;
 
-Returns a list of the changes with which this change conflicts.
+Returns a list of the C<App::Sqitch::Plan::Change> objects representing
+changes with which this change conflicts.
 
 =head3 C<is_deploy>
 

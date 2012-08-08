@@ -17,6 +17,8 @@ use File::Path qw(make_path remove_tree);
 use lib 't/lib';
 use MockOutput;
 
+sub dep($) { App::Sqitch::Plan::Depend->parse(shift) }
+
 my $CLASS = 'App::Sqitch::Command::add';
 
 ok my $sqitch = App::Sqitch->new(
@@ -351,8 +353,8 @@ is_deeply \%request_params, {
 }, 'It should have prompted for a note';
 
 is $change->name, 'foo_table', 'Change name should be set to "foo_table"';
-is_deeply [$change->requires],  ['widgets_table'], 'It should have requires';
-is_deeply [$change->conflicts], [qw(dr_evil joker)], 'It should have conflicts';
+is_deeply [$change->requires],  [dep 'widgets_table'], 'It should have requires';
+is_deeply [$change->conflicts], [map { dep "!$_" } qw(dr_evil joker)], 'It should have conflicts';
 is        $change->note, "hello\n\nthere", 'It should have a comment';
 
 is_deeply +MockOutput->get_info, [

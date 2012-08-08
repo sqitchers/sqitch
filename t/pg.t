@@ -56,6 +56,8 @@ my @std_opts = (
 is_deeply [$pg->psql], [$client, @std_opts],
     'psql command should be std opts-only';
 
+sub dep($) { App::Sqitch::Plan::Depend->parse(shift) }
+
 ##############################################################################
 # Test other configs for the destination.
 ENV: {
@@ -675,8 +677,8 @@ subtest 'live database' => sub {
     my $change3 = App::Sqitch::Plan::Change->new(
         name      => 'whatever',
         plan      => $plan,
-        conflicts => ['users', 'widgets'],
-        requires  => ['fred', 'barney', 'widgets'],
+        conflicts => [dep 'users', dep 'widgets'],
+        requires  => [map { dep $_ } qw(fred barney widgets)],
     );
     $plan->add( name => 'fred' );
     $plan->add( name => 'barney' );
@@ -696,8 +698,8 @@ subtest 'live database' => sub {
         planner_name  => $change2->planner_name,
         planner_email => $change2->planner_email,
         note          => 'I am not here',
-        requires      => [qw(ignore me)],
-        conflicts     => [qw(me too)],
+        requires      => [map { dep $_ } qw(ignore me)],
+        conflicts     => [map { dep $_ } qw(me too)],
     );
 
     # Undeploy widgets.

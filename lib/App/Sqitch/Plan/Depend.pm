@@ -56,14 +56,9 @@ sub parse {
     return $class->new(%+, conflicts => !!$+{conflicts});
 }
 
-sub as_string {
+sub key_name {
     my $self = shift;
-
-    my @parts = ($self->conflicts ? '!' : '');
-
-    if (defined (my $proj = $self->project)) {
-        push @parts => "$proj:";
-    }
+    my @parts;
 
     if (defined (my $change = $self->change)) {
         push @parts => $change;
@@ -74,6 +69,18 @@ sub as_string {
     }
 
     return join '' => @parts;
+}
+
+sub as_string {
+    my $self = shift;
+    my $proj = $self->project // return $self->key_name;
+    return "$proj:" . $self->key_name;
+}
+
+
+sub as_plan_string {
+    my $self = shift;
+    return ($self->conflicts ? '!' : '') . $self->as_string;
 }
 
 __PACKAGE__->meta->make_immutable;
@@ -172,12 +179,25 @@ is a change-only dependency.
 
 =head2 Instance Methods
 
+=head3 C<key_name>
+
+Returns the key name of the depenedency, with the change name and/or tag,
+properly formatted for passing to the C<find()> method of
+L<App::Sqitch::Plan>.
+
 =head3 C<as_string>
+
+Returns the project-qualified key name. That is, if there is a project name,
+it returns a string with the project name, a colon, and the key name. If there
+is no project name, the key name is returned.
+
+=head3 C<as_plan_string>
 
   my $string = $depend->as_string;
 
 Returns the full stringification of the dependency, suitable for output to a
-plan file.
+plan file. That is, the same as C<as_string> unless C<conflicts> returns true,
+in which case it is prepended with "!".
 
 =head1 See Also
 

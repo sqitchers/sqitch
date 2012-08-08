@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 63;
+use Test::More tests => 89;
 #use Test::More 'no_plan';
 use Test::Exception;
 use Test::NoWarnings;
@@ -21,7 +21,9 @@ can_ok $CLASS, qw(
     project
     change
     tag
+    key_name
     as_string
+    as_plan_string
 );
 
 for my $spec (
@@ -48,9 +50,13 @@ for my $spec (
 {
     my $exp = shift @{$spec};
     ok my $depend = $CLASS->new( @{$spec} ), qq{Construct "$exp"};
-    is $depend->as_string, $exp, qq{Constructed should stringify as "$exp"};
+    ( my $str = $exp ) =~ s/^!//;
+    ( my $key = $str ) =~ s/^[^:]+://;
+    is $depend->as_string, $str, qq{Parsed should stringify as "$str"};
+    is $depend->key_name, $key, qq{Parsed should have key name "$key"};
+    is $depend->as_plan_string, $exp, qq{Constructed should plan stringify as "$exp"};
     ok $depend = $CLASS->parse($exp), qq{Parse "$exp"};
-    is $depend->as_string, $exp, qq{Parsed should stringify as "$exp"};
+    is $depend->as_plan_string, $exp, qq{Parsed should plan stringify as "$exp"};
 }
 
 for my $bad ( 'foo bar', 'foo+@bar', 'foo:+bar', 'foo@bar+', 'proj:foo@bar+', )

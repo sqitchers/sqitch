@@ -141,6 +141,8 @@ my $date = App::Sqitch::DateTime->new(
     time_zone => 'UTC',
 );
 
+sub dep($) { App::Sqitch::Plan::Depend->parse(shift) }
+
 ok my $change2 = $CLASS->new(
     name      => 'yo/howdy',
     plan      => $plan,
@@ -152,8 +154,8 @@ ok my $change2 = $CLASS->new(
     suffix    => '@beta',
     note      => 'blah blah blah',
     pspace    => '  ',
-    requires  => [qw(foo bar @baz)],
-    conflicts => ['dr_evil'],
+    requires  => [map { dep $_ } qw(foo bar @baz)],
+    conflicts => [dep '!dr_evil'],
     timestamp     => $date,
     planner_name  => 'Barack Obama',
     planner_email => 'potus@whitehouse.gov',
@@ -258,11 +260,11 @@ my $plan2 = $sqitch2->plan;
 ok $change2 = $CLASS->new(
     name      => 'whatever',
     plan      => $plan2,
-    requires  => [qw(hey you)],
-    conflicts => ['hey-there'],
+    requires  => [dep 'hey', dep 'you'],
+    conflicts => [dep '!hey-there'],
 ), 'Create a change with explicit requires and conflicts';
-is_deeply [$change2->requires], [qw(hey you)], 'requires should be set';
-is_deeply [$change2->conflicts], ['hey-there'], 'conflicts should be set';
+is_deeply [$change2->requires], [dep 'hey', dep 'you'], 'requires should be set';
+is_deeply [$change2->conflicts], [dep '!hey-there'], 'conflicts should be set';
 is_deeply [$change2->requires_changes], [$plan2->get('hey'),  $plan2->get('you')],
     'Should find changes for requires';
 is_deeply [$change2->conflicts_changes], [$plan2->get('hey-there')],

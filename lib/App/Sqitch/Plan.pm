@@ -7,6 +7,7 @@ use App::Sqitch::Plan::Tag;
 use App::Sqitch::Plan::Change;
 use App::Sqitch::Plan::Blank;
 use App::Sqitch::Plan::Pragma;
+use App::Sqitch::Plan::Depend;
 use Path::Class;
 use App::Sqitch::Plan::ChangeList;
 use App::Sqitch::Plan::LineList;
@@ -19,7 +20,7 @@ use constant SYNTAX_VERSION => '1.0.0-b2';
 our $VERSION = '0.83';
 
 my $name_re = qr/
-     [^[:punct:]]               #  not punct
+     [^[:punct:][:blank:]]      #  not punct or blank
      (?:                        #  followed by...
          [^[:blank:]:@#]*       #      any number non-blank, non-@, non-#, non-@
          [^[:punct:][:blank:]]  #      one not blank or punct
@@ -344,21 +345,16 @@ sub _parse {
             if (my $deps = $params{dependencies}) {
                 my (@req, @con);
                 for my $dep (split /[[:blank:]]+/, $deps) {
-                    $raise_syntax_error->(__x(
+                    $dep = App::Sqitch::Plan::Depend->parse(
+                        $dep
+                    ) or $raise_syntax_error->(__x(
                         qq{"{dep}" does not look like a dependency},
                         dep => $dep,
-                    )) unless $dep =~ /\A
-                        (!)?                        # Optional negation
-                        (                           # followed by...
-                            (?:(?:$name_re)?[:])?   #     Optional project + :
-                            (?:(?:$name_re)?[@])?   #     Optional name + @
-                            $name_re                #      name
-                        )                           # ... required
-                    \z/x;
-                    if ($1) {
-                        push @con => $2;
+                    ));
+                    if ($dep->conflicts) {
+                        push @con => $dep;
                     } else {
-                        push @req => $2;
+                        push @req => $dep;
                     }
                 }
                 $params{requires}  = \@req;
@@ -430,6 +426,7 @@ sub sort_changes {
 
         # XXX Ignoring conflicts for now.
         for my $dep ( $change->requires ) {
+            $dep = $dep->key_name;
 
             # Skip it if it's a change from an earlier tag.
             if ($dep =~ /.@/) {
@@ -601,6 +598,11 @@ sub add {
         );
     }
 
+    $p{requires} = [ map { App::Sqitch::Plan::Depend->parse($_) } @{ $p{requires} } ]
+        if $p{requires};
+    $p{conflicts} = [ map { App::Sqitch::Plan::Depend->parse("!$_") } @{ $p{conflicts} } ]
+        if $p{conflicts};
+
     $p{rspace} //= ' ' if $p{note};
     my $change = App::Sqitch::Plan::Change->new( %p, plan => $self );
 
@@ -639,8 +641,15 @@ sub rework {
         change => $p{name},
     ) if !defined $tag_idx || $tag_idx < $idx;
 
+    $p{requires} = [ map { App::Sqitch::Plan::Depend->parse($_) } @{ $p{requires} } ]
+        if $p{requires};
+    $p{conflicts} = [ map { App::Sqitch::Plan::Depend->parse("!$_") } @{ $p{conflicts} } ]
+        if $p{conflicts};
+
     my ($tag) = $changes->change_at($tag_idx)->tags;
-    unshift @{ $p{requires} ||= [] } => $p{name} . $tag->format_name;
+    unshift @{ $p{requires} ||= [] } => App::Sqitch::Plan::Depend->parse(
+        $p{name} . $tag->format_name
+    );
 
     my $orig = $changes->change_at($idx);
     my $new  = App::Sqitch::Plan::Change->new( %p, plan => $self );
@@ -659,6 +668,7 @@ sub _check_dependencies {
     my ( $self, $change, $action ) = @_;
     my $changes = $self->_changes;
     for my $req ( $change->requires ) {
+        $req = $req->key_name;
         next if defined $changes->index_of($req =~ /@/ ? $req : $req . '@HEAD');
         my $name = $change->name;
         if ($action eq 'add') {
@@ -689,7 +699,7 @@ sub _is_valid {
         name => $name,
     ) if $name =~ /^[0-9a-f]{40}/;
 
-    unless ($name =~ /^$name_re$/ && $name !~ /[[:punct:]][[:digit:]]*\z/) {
+    unless ($name =~ /\A$name_re\z/ && $name !~ /[[:punct:]][[:digit:]]*\z/) {
         if ($type eq 'change') {
             hurl plan => __x(
                 qq{"{name}" is invalid: changes must not begin with punctuation, }

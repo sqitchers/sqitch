@@ -17,6 +17,8 @@ use File::Path qw(make_path remove_tree);
 use lib 't/lib';
 use MockOutput;
 
+sub dep($) { App::Sqitch::Plan::Depend->parse(shift) }
+
 my $CLASS = 'App::Sqitch::Command::rework';
 
 ok my $sqitch = App::Sqitch->new(
@@ -152,7 +154,7 @@ ok my @steps = $plan->changes, 'Get the steps';
 is @steps, 2, 'Should have two steps';
 is $steps[0]->name, 'foo', 'First step should be "foo"';
 is $steps[1]->name, 'foo', 'Second step should also be "foo"';
-is_deeply [$steps[1]->requires], ['foo@alpha'],
+is_deeply [$steps[1]->requires], [dep 'foo@alpha'],
     'Reworked step should require the previous step';
 
 is_deeply +MockOutput->get_info, [
@@ -246,9 +248,9 @@ is $steps[0]->name, 'foo', 'First step should be "foo"';
 is $steps[1]->name, 'foo', 'Second step should also be "foo"';
 is $steps[2]->name, 'bar', 'First step should be "bar"';
 is $steps[3]->name, 'bar', 'Second step should also be "bar"';
-is_deeply [$steps[3]->requires], ['bar@beta', 'foo'],
+is_deeply [$steps[3]->requires], [dep 'bar@beta', dep 'foo'],
     'Requires should have been passed to reworked change';
-is_deeply [$steps[3]->conflicts], ['dr_evil'],
+is_deeply [$steps[3]->conflicts], [dep '!dr_evil'],
     'Conflicts should have been passed to reworked change';
 is $steps[3]->note, "hi\n\nthere",
     'Note should have been passed as comment';
