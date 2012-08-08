@@ -311,7 +311,7 @@ is $@->message, __x(
     line => 5,
     error => __(
         qq{Invalid name; names must not begin with punctuation, }
-        . 'contain "@" or "#", or end in punctuation or digits following punctuation',
+        . 'contain "@", ":", or "#", or end in punctuation or digits following punctuation',
     ),
 ), 'And the bad change name error message should be correct';
 
@@ -343,7 +343,7 @@ for my $name (@bad_names) {
             line => 1,
             error => __(
                 qq{Invalid name; names must not begin with punctuation, }
-                . 'contain "@" or "#", or end in punctuation or digits following punctuation',
+                . 'contain "@", ":", or "#", or end in punctuation or digits following punctuation',
             )
         ),  qq{And "$line" should trigger the appropriate message};
         is sorted, 0, 'Should not have sorted changes';
@@ -944,7 +944,7 @@ for my $name (@bad_names) {
     is $@->ident, 'plan', qq{Invalid name "$name" error ident should be "plan"};
     is $@->message, __x(
         qq{"{name}" is invalid: tags must not begin with punctuation, }
-        . 'contain "@" or "#", or end in punctuation or digits following punctuation',
+        . 'contain "@", ":", or "#", or end in punctuation or digits following punctuation',
         name => $name,
     ), qq{And the "$name" error message should be correct};
 }
@@ -1004,7 +1004,7 @@ for my $name (@bad_names, 'foo#bar') {
     is $@->ident, 'plan', qq{Invalid name "$name" error ident should be "plan"};
     is $@->message, __x(
         qq{"{name}" is invalid: tags must not begin with punctuation, }
-        . 'contain "@" or "#", or end in punctuation or digits following punctuation',
+        . 'contain "@", ":", or "#", or end in punctuation or digits following punctuation',
         name => $name,
     ), qq{And the "$name" error message should be correct};
 }
@@ -1086,7 +1086,7 @@ for my $name (@bad_names) {
     is $@->ident, 'plan', qq{Invalid name "$name" error ident should be "plan"};
     is $@->message, __x(
         qq{"{name}" is invalid: changes must not begin with punctuation, }
-        . 'contain "@" or "#", or end in punctuation or digits following punctuation',
+        . 'contain "@", ":", or "#", or end in punctuation or digits following punctuation',
         name => $name,
     ), qq{And the "$name" error message should be correct};
 }
@@ -1107,7 +1107,7 @@ is $@->message, __x(
     name => 'ROOT',
 ), 'And the reserved name "ROOT" message should be correct';
 
-# Try an invalid dependency.
+# Try an unknown dependency.
 throws_ok { $plan->add( name => 'whu', requires => ['nonesuch' ] ) } 'App::Sqitch::X',
     'Should get failure for failed dependency';
 is $@->ident, 'plan', 'Dependency error ident should be "plan"';
@@ -1497,7 +1497,7 @@ for my $bad (@bad_names) {
         line => 1,
         error => __x(
             qq{invalid project name "{project}": project names must not }
-            . 'begin with punctuation, contain "@" or ":", or end in '
+            . 'begin with punctuation, contain "@", ":", or "#", or end in '
             . 'punctuation or digits following punctuation',
             project => $bad
         ),
