@@ -20,11 +20,12 @@ use constant SYNTAX_VERSION => '1.0.0-b2';
 our $VERSION = '0.83';
 
 my $name_re = qr/
-     [^[:punct:][:blank:]]      #  not punct or blank
-     (?:                        #  followed by...
-         [^[:blank:]:@#]*       #      any number non-blank, non-@, non-#, non-@
-         [^[:punct:][:blank:]]  #      one not blank or punct
-     )?                         #  ... optionally
+    (?![[:punct:]])                   # first character isn't punctuation
+    (?:                               # start non-capturing group, repeated once or more ...
+       (?![[:punct:]][[:digit:]]+\b)  #     look ahead to ensure does not end in punct and digits
+       [^[:blank:]:@#]                #     match a valid character
+    )+                                # ... end non-capturing group
+    (?<![[:punct:]])\b                # last character isn't punctuation
 /x;
 
 sub name_regex { $name_re }
@@ -202,8 +203,7 @@ sub _parse {
                     . 'begin with punctuation, contain "@", ":", or "#", or end in '
                     . 'punctuation or digits following punctuation',
                     project => $proj,
-                )) unless $proj =~ /\A$name_re\z/
-                       && $proj !~ /[[:punct:]][[:digit:]]+\z/;
+                )) unless $proj =~ /\A$name_re\z/;
                 $pragmas{project} = $proj;
             } else {
                 $pragmas{ $+{name} } = $+{value} // 1;
@@ -256,7 +256,6 @@ sub _parse {
             qq{Invalid name; names must not begin with punctuation, }
             . 'contain "@", ":", or "#", or end in punctuation or digits following punctuation',
         )) if !$params{name}
-            || $params{name} =~ /[[:punct:]][[:digit:]]*\z/
             || (!$params{yr} && $line =~ $ts_re);
 
         $raise_syntax_error->(__ 'Missing timestamp and planner name and email')
@@ -712,7 +711,7 @@ sub _is_valid {
         name => $name,
     ) if $name =~ /^[0-9a-f]{40}/;
 
-    unless ($name =~ /\A$name_re\z/ && $name !~ /[[:punct:]][[:digit:]]*\z/) {
+    unless ($name =~ /\A$name_re\z/) {
         if ($type eq 'change') {
             hurl plan => __x(
                 qq{"{name}" is invalid: changes must not begin with punctuation, }

@@ -48,8 +48,7 @@ sub _validate_project {
         . 'begin with punctuation, contain "@" or ":", or end in '
         . 'punctuation or digits following punctuation',
         project => $project
-    ) unless $project =~ /\A$name_re\z/
-          && $project !~ /[[:punct:]][[:digit:]]+\z/;
+    ) unless $project =~ /\A$name_re\z/;
 }
 
 sub configure {
