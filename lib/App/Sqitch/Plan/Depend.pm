@@ -42,7 +42,7 @@ sub parse {
     my $name_re = App::Sqitch::Plan->name_regex;
     return undef if $string !~ /
         \A                            # Beginning of string
-        (?<conflicts>!)?              # Optional negation
+        (?<conflicts>!?)              # Optional negation
         (?:(?<project>$name_re)[:])?  # Optional project + :
         (?:                           # Followed by...
             (?<change>$name_re)       #     Change name
@@ -53,7 +53,7 @@ sub parse {
         \z                            # End of string
     /x;
 
-    return $class->new(%+, conflicts => !!$+{conflicts});
+    return { %+, conflicts => !!$+{conflicts} };
 }
 
 sub key_name {
@@ -94,7 +94,9 @@ App::Sqitch::Plan::Depend - Sqitch dependency specification
 
 =head1 Synopsis
 
-  my $depend = App::Sqitch::Plan::Depend->parse('!proj:change@tag');
+  my $depend = App::Sqitch::Plan::Depend->new(
+        App::Sqitch::Plan::Depend->parse('!proj:change@tag')
+  );
 
 =head1 Description
 
@@ -135,10 +137,11 @@ The name of the tag claimed as the dependency.
 
 =head3 C<parse>
 
-  my $depend = App::Sqitch::Plan::Depend->parse($string);
+  my %params = App::Sqitch::Plan::Depend->parse($string);
 
-Parses a dependency specification as extracted from a plan. Returns C<undef>
-if the string is not a properly-formatted dependency.
+parses a dependency specification as extracted from a plan and returns a hash
+reference of parameters suitable for passing to C<new()>. Returns C<undef> if
+the string is not a properly-formatted dependency.
 
 =head2 Accessors
 

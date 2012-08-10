@@ -4,8 +4,8 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 89;
-#use Test::More 'no_plan';
+#use Test::More tests => 89;
+use Test::More 'no_plan';
 use Test::Exception;
 use Test::NoWarnings;
 
@@ -52,10 +52,10 @@ for my $spec (
     ok my $depend = $CLASS->new( @{$spec} ), qq{Construct "$exp"};
     ( my $str = $exp ) =~ s/^!//;
     ( my $key = $str ) =~ s/^[^:]+://;
-    is $depend->as_string, $str, qq{Parsed should stringify as "$str"};
-    is $depend->key_name, $key, qq{Parsed should have key name "$key"};
+    is $depend->as_string, $str, qq{Constructed should stringify as "$str"};
+    is $depend->key_name, $key, qq{Constructed should have key name "$key"};
     is $depend->as_plan_string, $exp, qq{Constructed should plan stringify as "$exp"};
-    ok $depend = $CLASS->parse($exp), qq{Parse "$exp"};
+    ok $depend = $CLASS->new( $CLASS->parse($exp) ), qq{Parse "$exp"};
     is $depend->as_plan_string, $exp, qq{Parsed should plan stringify as "$exp"};
 }
 
