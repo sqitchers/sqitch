@@ -29,6 +29,13 @@ has tag => (
     isa => 'Maybe[Str]',
 );
 
+has plan => (
+    is       => 'ro',
+    isa      => 'App::Sqitch::Plan',
+    weak_ref => 1,
+    required => 1,
+);
+
 sub required { shift->conflicts ? 0 : 1 }
 
 sub BUILD {
@@ -95,6 +102,7 @@ App::Sqitch::Plan::Depend - Sqitch dependency specification
 =head1 Synopsis
 
   my $depend = App::Sqitch::Plan::Depend->new(
+        plan => $plan,
         App::Sqitch::Plan::Depend->parse('!proj:change@tag')
   );
 
@@ -117,13 +125,17 @@ Instantiates and returns a App::Sqitch::Plan::Line object. Parameters:
 
 =over
 
-=item C<conflicts>
+=item C<plan>
 
-Boolean to indicate whether the dependency is a conflicting dependency.
+The plan with which the dependency is associated. Required.
 
 =item C<project>
 
-Name of the project.
+Name of the project. Required.
+
+=item C<conflicts>
+
+Boolean to indicate whether the dependency is a conflicting dependency.
 
 =item C<change>
 
@@ -145,6 +157,13 @@ the string is not a properly-formatted dependency.
 
 =head2 Accessors
 
+=head3 C<plan>
+
+  my $plan = $depend->plan;
+
+Returns the L<App::Sqitch::Plan> object with which the dependency
+specification is associated.
+
 =head3 C<conflicts>
 
   say $depend->as_string, ' conflicts' if $depend->conflicts;
@@ -163,8 +182,7 @@ case it is a conflicting dependency).
 
   my $proj = $depend->project;
 
-Returns the name of the project, if any. If C<undef> is returned, the project is
-the current project.
+Returns the name of the project with which the dependency is associated.
 
 =head3 C<change>
 

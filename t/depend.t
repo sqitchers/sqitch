@@ -8,6 +8,8 @@ use utf8;
 use Test::More 'no_plan';
 use Test::Exception;
 use Test::NoWarnings;
+use App::Sqitch;
+use App::Sqitch::Plan;
 
 my $CLASS;
 
@@ -15,6 +17,9 @@ BEGIN {
     $CLASS = 'App::Sqitch::Plan::Depend';
     require_ok $CLASS or die;
 }
+
+my $sqitch = App::Sqitch->new;
+my $plan   = App::Sqitch::Plan->new(sqitch => $sqitch);
 
 can_ok $CLASS, qw(
     conflicts
@@ -49,13 +54,13 @@ for my $spec (
   )
 {
     my $exp = shift @{$spec};
-    ok my $depend = $CLASS->new( @{$spec} ), qq{Construct "$exp"};
+    ok my $depend = $CLASS->new( plan=> $plan, @{$spec} ), qq{Construct "$exp"};
     ( my $str = $exp ) =~ s/^!//;
     ( my $key = $str ) =~ s/^[^:]+://;
     is $depend->as_string, $str, qq{Constructed should stringify as "$str"};
     is $depend->key_name, $key, qq{Constructed should have key name "$key"};
     is $depend->as_plan_string, $exp, qq{Constructed should plan stringify as "$exp"};
-    ok $depend = $CLASS->new( $CLASS->parse($exp) ), qq{Parse "$exp"};
+    ok $depend = $CLASS->new( %{ $CLASS->parse($exp) }, plan => $plan ), qq{Parse "$exp"};
     is $depend->as_plan_string, $exp, qq{Parsed should plan stringify as "$exp"};
 }
 
@@ -64,7 +69,7 @@ for my $bad ( 'foo bar', 'foo+@bar', 'foo:+bar', 'foo@bar+', 'proj:foo@bar+', )
     is $CLASS->parse($bad), undef, qq{Should fail to parse "$bad"};
 }
 
-throws_ok { $CLASS->new } 'App::Sqitch::X',
+throws_ok { $CLASS->new( plan => $plan ) } 'App::Sqitch::X',
   'Should get exception for no change or tag';
 is $@->ident, 'DEV', 'No change or tag error ident should be "DEV"';
 is $@->message,

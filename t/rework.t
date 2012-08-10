@@ -17,17 +17,19 @@ use File::Path qw(make_path remove_tree);
 use lib 't/lib';
 use MockOutput;
 
-sub dep($) {
-    App::Sqitch::Plan::Depend->new(
-        App::Sqitch::Plan::Depend->parse(shift)
-    )
-}
-
 my $CLASS = 'App::Sqitch::Command::rework';
 
 ok my $sqitch = App::Sqitch->new(
     top_dir => Path::Class::Dir->new('sql'),
 ), 'Load a sqitch sqitch object';
+
+sub dep($) {
+    App::Sqitch::Plan::Depend->new(
+        %{ App::Sqitch::Plan::Depend->parsea(shift) },
+        plan => $sqitch->plan,
+    )
+}
+
 my $config = $sqitch->config;
 isa_ok my $rework = App::Sqitch::Command->load({
     sqitch  => $sqitch,

@@ -143,7 +143,8 @@ my $date = App::Sqitch::DateTime->new(
 
 sub dep($) {
     App::Sqitch::Plan::Depend->new(
-        App::Sqitch::Plan::Depend->parse(shift)
+        %{ App::Sqitch::Plan::Depend->parsea(shift) },
+        plan => $sqitch->plan,
     )
 }
 
