@@ -62,7 +62,7 @@ make_path 'sql';
 END { remove_tree 'sql' };
 my $fn = $sqitch->plan_file;
 open my $fh, '>', $fn or die "Cannot open $fn: $!";
-say $fh '%project=change';
+say $fh '%project=change', $/, $/;
 close $fh or die "Error closing $fn: $!";
 
 isa_ok my $change = $CLASS->new(
@@ -143,8 +143,9 @@ my $date = App::Sqitch::DateTime->new(
 
 sub dep($) {
     App::Sqitch::Plan::Depend->new(
-        %{ App::Sqitch::Plan::Depend->parsea(shift) },
-        plan => $sqitch->plan,
+        %{ App::Sqitch::Plan::Depend->parse(shift) },
+        plan    => $sqitch->plan,
+        project => 'change',
     )
 }
 

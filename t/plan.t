@@ -90,11 +90,13 @@ sub ts($) {
 }
 
 my $vivify = 0;
+my $project;
 
 sub dep($) {
     App::Sqitch::Plan::Depend->new(
-        %{ App::Sqitch::Plan::Depend->parsea(shift) },
-        plan => $sqitch->plan,
+        plan    => $plan,
+        project => $project || $plan->project,
+        %{ App::Sqitch::Plan::Depend->parse(shift) },
     )
 }
 
@@ -168,7 +170,7 @@ sub sorted () {
     $sorted = 0;
     return $ret;
 }
-$mocker->mock(sort_changes => sub { $sorted++; shift, shift; @_ });
+$mocker->mock(sort_changes => sub { $sorted++; shift, shift, shift; @_ });
 
 sub version () {
     prag(
@@ -334,18 +336,21 @@ my @bad_names = (
 );
 
 # Try other invalid change and tag name issues.
+my $prags = '%syntax-version=' . App::Sqitch::Plan::SYNTAX_VERSION
+    . "\n%project=test\n\n";
 for my $name (@bad_names) {
     for my $line ($name, "\@$name") {
         next if $line eq '%hi'; # This would be a pragma.
+        my $buf = $prags . $line;
         my $what = $line =~ /^[@]/ ? 'tag' : 'change';
-        my $fh = IO::File->new(\$line, '<:utf8');
+        my $fh = IO::File->new(\$buf, '<:utf8');
         throws_ok { $plan->_parse('baditem', $fh) } 'App::Sqitch::X',
             qq{Should die on plan with bad name "$line"};
         is $@->ident, 'plan', 'Exception ident should be "plan"';
         is $@->message, __x(
             'Syntax error in {file} at line {line}: {error}',
             file => 'baditem',
-            line => 1,
+            line => 4,
             error => __(
                 qq{Invalid name; names must not begin with punctuation, }
                 . 'contain "@", ":", or "#", or end in punctuation or digits following punctuation',
@@ -373,7 +378,7 @@ for my $name (
     'beta1',   # ending digit
 ) {
     # Test a change name.
-    my $lines = "\%project=foo\n$name $tsnp";
+    my $lines = "\%project=foo\n\n$name $tsnp";
     my $fh = IO::File->new(\$lines, '<:utf8');
     ok my $parsed = $plan->_parse('ooditem', $fh),
         encode_utf8(qq{Should parse "$name"});
@@ -383,12 +388,12 @@ for my $name (
     }, encode_utf8("Should have captured the $name pragmas");
     cmp_deeply $parsed, {
         changes => [ clear, change { name => $name } ],
-        lines => [ clear, version, $foo_proj, change { name => $name } ],
+        lines => [ clear, version, $foo_proj, blank, change { name => $name } ],
     }, encode_utf8(qq{Should have pragmas in plan with change "$name"});
 
     # Test a tag name.
     my $tag = '@' . $name;
-    $lines = "\%project=foo\nfoo $tsnp\n$tag $tsnp";
+    $lines = "\%project=foo\n\nfoo $tsnp\n$tag $tsnp";
     $fh = IO::File->new(\$lines, '<:utf8');
     ok $parsed = $plan->_parse('gooditem', $fh),
         encode_utf8(qq{Should parse "$tag"});
@@ -402,6 +407,7 @@ for my $name (
             clear,
             version,
             $foo_proj,
+            blank,
             change { name => 'foo' },
             tag { name => $name, ret => 1 }
         ],
@@ -418,7 +424,7 @@ is $@->ident, 'plan', '@HEAD exception should have ident "plan"';
 is $@->message, __x(
     'Syntax error in {file} at line {line}: {error}',
     file => $file,
-    line => 6,
+    line => 7,
     error => __x(
         '"{name}" is a reserved name',
         name => '@HEAD',
@@ -427,7 +433,7 @@ is $@->message, __x(
 is sorted, 1, 'Should have sorted changes once';
 
 # Try a plan with reserved tag name @ROOT.
-my $root = '@ROOT ' . $tsnp;
+my $root = $prags . '@ROOT ' . $tsnp;
 $file = file qw(t plans root.plan);
 $fh = IO::File->new(\$root, '<:utf8');
 throws_ok { $plan->_parse($file, $fh) } 'App::Sqitch::X',
@@ -436,7 +442,7 @@ is $@->ident, 'plan', '@HEAD exception should have ident "plan"';
 is $@->message, __x(
     'Syntax error in {file} at line {line}: {error}',
     file => $file,
-    line => 1,
+    line => 4,
     error => __x(
         '"{name}" is a reserved name',
         name => '@ROOT',
@@ -447,14 +453,14 @@ is sorted, 0, 'Should have sorted changes nonce';
 # Try a plan with a change name that looks like a sha1 hash.
 my $sha1 = '6c2f28d125aff1deea615f8de774599acf39a7a1';
 $file = file qw(t plans sha1.plan);
-$fh = IO::File->new(\"$sha1 $tsnp", '<:utf8');
+$fh = IO::File->new(\"$prags$sha1 $tsnp", '<:utf8');
 throws_ok { $plan->_parse($file, $fh) } 'App::Sqitch::X',
     'Should die on plan with SHA1 change name';
 is $@->ident, 'plan', 'The SHA1 error ident should be "plan"';
 is $@->message, __x(
     'Syntax error in {file} at line {line}: {error}',
     file => $file,
-    line => 1,
+    line => 4,
     error => __x(
         '"{name}" is invalid because it could be confused with a SHA1 ID',
         name => $sha1,
@@ -464,14 +470,14 @@ is sorted, 0, 'Should have sorted changes nonce';
 
 # Try a plan with a tag but no change.
 $file = file qw(t plans tag-no-change.plan);
-$fh = IO::File->new(\"\@foo $tsnp\nbar $tsnp", '<:utf8');
+$fh = IO::File->new(\"$prags\@foo $tsnp\nbar $tsnp", '<:utf8');
 throws_ok { $plan->_parse($file, $fh) } 'App::Sqitch::X',
     'Should die on plan with tag but no preceding change';
 is $@->ident, 'plan', 'The missing change error ident should be "plan"';
 is $@->message, __x(
     'Syntax error in {file} at line {line}: {error}',
     file => $file,
-    line => 1,
+    line => 4,
     error => __x(
         'Tag "{tag}" declared without a preceding change',
         tag => 'foo',
@@ -488,11 +494,11 @@ is $@->ident, 'plan', 'The dupe tag error ident should be "plan"';
 is $@->message, __x(
     'Syntax error in {file} at line {line}: {error}',
     file => $file,
-    line => 11,
+    line => 12,
     error => __x(
         'Tag "{tag}" duplicates earlier declaration on line {line}',
         tag  => 'bar',
-        line => 6,
+        line => 7,
     ),
 ), 'And the missing change error message should be correct';
 is sorted, 2, 'Should have sorted changes twice';
@@ -506,24 +512,24 @@ is $@->ident, 'plan', 'The dupe change error ident should be "plan"';
 is $@->message, __x(
     'Syntax error in {file} at line {line}: {error}',
     file => $file,
-    line => 8,
+    line => 9,
     error => __x(
         'Change "{change}" duplicates earlier declaration on line {line}',
         change  => 'greets',
-        line    => 6,
+        line    => 7,
     ),
 ), 'And the dupe change error message should be correct';
 is sorted, 1, 'Should have sorted changes once';
 
 # Try a plan with an invalid requirement.
-$fh = IO::File->new(\"\%project=foo\nfoo [+bar] $tsnp", '<:utf8');
+$fh = IO::File->new(\"\%project=foo\n\nfoo [+bar] $tsnp", '<:utf8');
 throws_ok { $plan->_parse('badreq', $fh ) } 'App::Sqitch::X',
     'Should die on invalid  dependency';
 is $@->ident, 'plan', 'The invalid dependency error ident should be "plan"';
 is $@->message, __x(
     'Syntax error in {file} at line {line}: {error}',
     file => 'badreq',
-    line => 2,
+    line => 3,
     error => __x(
         '"{dep}" is not a valid dependency specification',
         dep => '+bar',
@@ -533,42 +539,42 @@ is sorted, 0, 'Should have sorted changes nonce';
 
 # Try a plan without a timestamp.
 $file = file qw(t plans no-timestamp.plan);
-$fh = IO::File->new(\'foo hi <t@heo.ry>', '<:utf8');
+$fh = IO::File->new(\"${prags}foo hi <t\@heo.ry>", '<:utf8');
 throws_ok { $plan->_parse($file, $fh) } 'App::Sqitch::X',
     'Should die on change with no timestamp';
 is $@->ident, 'plan', 'The missing timestamp error ident should be "plan"';
 is $@->message, __x(
     'Syntax error in {file} at line {line}: {error}',
     file => $file,
-    line => 1,
+    line => 4,
     error => __ 'Missing timestamp',
 ), 'And the missing timestamp error message should be correct';
 is sorted, 0, 'Should have sorted changes nonce';
 
 # Try a plan without a planner.
 $file = file qw(t plans no-planner.plan);
-$fh = IO::File->new(\'foo 2012-07-16T23:12:34Z', '<:utf8');
+$fh = IO::File->new(\"${prags}foo 2012-07-16T23:12:34Z", '<:utf8');
 throws_ok { $plan->_parse($file, $fh) } 'App::Sqitch::X',
     'Should die on change with no planner';
 is $@->ident, 'plan', 'The missing planner error ident should be "plan"';
 is $@->message, __x(
     'Syntax error in {file} at line {line}: {error}',
     file => $file,
-    line => 1,
+    line => 4,
     error => __ 'Missing planner name and email',
 ), 'And the missing planner error message should be correct';
 is sorted, 0, 'Should have sorted changes nonce';
 
 # Try a plan with neither timestamp nor planner.
 $file = file qw(t plans no-timestamp-or-planner.plan);
-$fh = IO::File->new(\'foo', '<:utf8');
+$fh = IO::File->new(\"%project=foo\n\nfoo", '<:utf8');
 throws_ok { $plan->_parse($file, $fh) } 'App::Sqitch::X',
     'Should die on change with no timestamp or planner';
 is $@->ident, 'plan', 'The missing timestamp or planner error ident should be "plan"';
 is $@->message, __x(
     'Syntax error in {file} at line {line}: {error}',
     file => $file,
-    line => 1,
+    line => 3,
     error => __ 'Missing timestamp and planner name and email',
 ), 'And the missing timestamp or planner error message should be correct';
 is sorted, 0, 'Should have sorted changes nonce';
@@ -598,11 +604,11 @@ cmp_deeply $parsed, {
         prag( '  ', '', 'foo', ' ', '=', ' ', 'bar', '    ', 'lolz'),
         prag( '', ' ', 'project', '', '=', '', 'pragmata'),
         prag( '', ' ', 'uri', '', '=', '', 'https://github.com/theory/sqitch/'),
+        prag( '', ' ', 'strict'),
         blank(),
         change { name => 'hey' },
         change { name => 'you' },
         blank(),
-        prag( '', ' ', 'strict'),
     ],
 }, 'Should have "multi.plan" lines and changes';
 
@@ -639,6 +645,7 @@ cmp_deeply $parsed, {
         clear,
         version,
         prag( '', '', 'project', '', '=', '', 'deploy_and_revert'),
+        blank,
         change { name => 'hey', op => '+' },
         change { name => 'you', op => '+' },
         change { name => 'dr_evil', op => '+  ', lspace => ' ' },
@@ -671,6 +678,7 @@ is $@->message, __x(
 # Try a plan with dependencies.
 $file = file qw(t plans dependencies.plan);
 $sqitch = App::Sqitch->new(plan_file => $file);
+$project = 'dependencies';
 isa_ok $plan = App::Sqitch::Plan->new(sqitch => $sqitch), $CLASS,
     'Plan with sqitch with plan file with dependencies';
 ok $parsed = $plan->load, 'Load plan with dependencies file';
@@ -678,7 +686,7 @@ is_deeply $parsed->{changes}, [
     clear,
     change { name => 'roles', op => '+' },
     change { name => 'users', op => '+', pspace => '    ', requires => ['roles'] },
-    change { name => 'add_user', op => '+', pspace => ' ', requires => [qw( users roles)] },
+    change { name => 'add_user', op => '+', pspace => ' ', requires => [qw(users roles)] },
     change { name => 'dr_evil', op => '+' },
     tag    { name => 'alpha' },
     change { name => 'users', op => '+', pspace => ' ', requires => ['users@alpha'] },
@@ -696,6 +704,7 @@ is sorted, 2, 'Should have sorted changes twice';
 # Try a plan with cross-project dependencies.
 $file = file qw(t plans project_deps.plan);
 $sqitch = App::Sqitch->new(plan_file => $file);
+$project = 'dependencies';
 isa_ok $plan = App::Sqitch::Plan->new(sqitch => $sqitch), $CLASS,
     'Plan with sqitch with plan file with project deps';
 ok $parsed = $plan->load, 'Load plan with project deps file';
@@ -720,7 +729,7 @@ is sorted, 2, 'Should have sorted changes twice';
 
 # Should fail with dependencies on tags.
 $file = file qw(t plans tag_dependencies.plan);
-$fh = IO::File->new(\"foo $tsnp\n\@bar [:foo] $tsnp", '<:utf8');
+$fh = IO::File->new(\"%project=tagdep\n\nfoo $tsnp\n\@bar [:foo] $tsnp", '<:utf8');
 $sqitch = App::Sqitch->new(plan_file => $file);
 isa_ok $plan = App::Sqitch::Plan->new(sqitch => $sqitch), $CLASS,
     'Plan with sqitch with plan with tag dependencies';
@@ -730,7 +739,7 @@ is $@->ident, 'plan', 'The tag dependencies error ident should be "plan"';
 is $@->message, __x(
     'Syntax error in {file} at line {line}: {error}',
     file => $file,
-    line => 2,
+    line => 4,
     error => __ 'Tags may not specify dependencies',
 ), 'And the tag dependencies error message should be correct';
 
@@ -1304,6 +1313,7 @@ cmp_deeply [ $plan->lines ], [
     clear,
     version,
     prag( '', '', 'project', '', '=', '', 'dupe_change_diff_tag'),
+    blank,
     change { name => 'whatever' },
     tag    { name => 'foo', ret => 1 },
     blank(),
@@ -1392,59 +1402,60 @@ sub changes {
 }
 
 # Start with no dependencies.
+$project = 'foo';
 my %ddep = ( requires => [], conflicts => [] );
 @deps = ({%ddep}, {%ddep}, {%ddep});
 cmp_deeply [$plan->sort_changes({}, changes qw(this that other))],
     [changes qw(this that other)], 'Should get original order when no dependencies';
 
 @deps = ({%ddep}, {%ddep}, {%ddep});
-cmp_deeply [$plan->sort_changes(changes qw(this that other))],
+cmp_deeply [$plan->sort_changes('foo', changes qw(this that other))],
     [changes qw(this that other)], 'Should get original order when no prepreqs';
 
 # Have that require this.
 @deps = ({%ddep}, {%ddep, requires => [dep 'this']}, {%ddep});
-cmp_deeply [$plan->sort_changes(changes qw(this that other))],
+cmp_deeply [$plan->sort_changes('foo', changes qw(this that other))],
     [changes qw(this that other)], 'Should get original order when that requires this';
 
 # Have other require that.
 @deps = ({%ddep}, {%ddep, requires => [dep 'this']}, {%ddep, requires => [dep 'that']});
-cmp_deeply [$plan->sort_changes(changes qw(this that other))],
+cmp_deeply [$plan->sort_changes('foo', changes qw(this that other))],
     [changes qw(this that other)], 'Should get original order when other requires that';
 
 # Have this require other.
 @deps = ({%ddep, requires => [dep 'other']}, {%ddep}, {%ddep});
-cmp_deeply [$plan->sort_changes(changes qw(this that other))],
+cmp_deeply [$plan->sort_changes('foo', changes qw(this that other))],
     [changes qw(other this that)], 'Should get other first when this requires it';
 
 # Have other other require taht.
 @deps = ({%ddep, requires => [dep 'other']}, {%ddep}, {%ddep, requires => [dep 'that']});
-cmp_deeply [$plan->sort_changes(changes qw(this that other))],
+cmp_deeply [$plan->sort_changes('foo', changes qw(this that other))],
     [changes qw(that other this)], 'Should get that, other, this now';
 
 # Have this require other and that.
 @deps = ({%ddep, requires => [dep 'other', dep 'that']}, {%ddep}, {%ddep});
-cmp_deeply [$plan->sort_changes(changes qw(this that other))],
+cmp_deeply [$plan->sort_changes('foo', changes qw(this that other))],
     [changes qw(other that this)], 'Should get other, that, this now';
 
 # Have this require other and that, and other requore that.
 @deps = ({%ddep, requires => [dep 'other', dep 'that']}, {%ddep}, {%ddep, requires => [dep 'that']});
-cmp_deeply [$plan->sort_changes(changes qw(this that other))],
+cmp_deeply [$plan->sort_changes('foo', changes qw(this that other))],
     [changes qw(that other this)], 'Should get that, other, this again';
 
 # Have that require a tag.
 @deps = ({%ddep}, {%ddep, requires => [dep '@howdy']}, {%ddep});
-cmp_deeply [$plan->sort_changes({'@howdy' => 2 }, changes qw(this that other))],
+cmp_deeply [$plan->sort_changes('foo', {'@howdy' => 2 }, changes qw(this that other))],
     [changes qw(this that other)], 'Should get original order when requiring a tag';
 
 # Requires a step as of a tag.
 @deps = ({%ddep}, {%ddep, requires => [dep 'foo@howdy']}, {%ddep});
-cmp_deeply [$plan->sort_changes({'foo' => 1, '@howdy' => 2 }, changes qw(this that other))],
+cmp_deeply [$plan->sort_changes('foo', {'foo' => 1, '@howdy' => 2 }, changes qw(this that other))],
     [changes qw(this that other)],
     'Should get original order when requiring a step as-of a tag';
 
 # Should die if the step comes *after* the specified tag.
 @deps = ({%ddep}, {%ddep, requires => [dep 'foo@howdy']}, {%ddep});
-throws_ok { $plan->sort_changes({'foo' => 3, '@howdy' => 2 }, changes qw(this that other)) }
+throws_ok { $plan->sort_changes('foo', {'foo' => 3, '@howdy' => 2 }, changes qw(this that other)) }
     'App::Sqitch::X', 'Should get failure for a step after a tag';
 is $@->ident, 'plan', 'Step after tag error ident should be "plan"';
 is $@->message, __x(
@@ -1455,7 +1466,7 @@ is $@->message, __x(
 
 # Add a cycle.
 @deps = ({%ddep, requires => [dep 'that']}, {%ddep, requires => [dep 'this']}, {%ddep});
-throws_ok { $plan->sort_changes(changes qw(this that other)) } 'App::Sqitch::X',
+throws_ok { $plan->sort_changes('foo', changes qw(this that other)) } 'App::Sqitch::X',
     'Should get failure for a cycle';
 is $@->ident, 'plan', 'Cycle error ident should be "plan"';
 is $@->message, __x(
@@ -1470,7 +1481,7 @@ is $@->message, __x(
     {%ddep, requires => [dep 'other']},
     {%ddep, requires => [dep 'this']}
 );
-throws_ok { $plan->sort_changes(changes qw(this that other)) } 'App::Sqitch::X',
+throws_ok { $plan->sort_changes('foo', changes qw(this that other)) } 'App::Sqitch::X',
     'Should get failure for a two-hop cycle';
 is $@->ident, 'plan', 'Two-hope cycle error ident should be "plan"';
 is $@->message, __x(
@@ -1482,17 +1493,17 @@ is $@->message, __x(
 
 # Okay, now deal with depedencies from ealier change sections.
 @deps = ({%ddep, requires => [dep 'foo']}, {%ddep}, {%ddep});
-cmp_deeply [$plan->sort_changes({ foo => 1}, changes qw(this that other))],
+cmp_deeply [$plan->sort_changes('foo', { foo => 1}, changes qw(this that other))],
     [changes qw(this that other)], 'Should get original order with earlier dependency';
 
 # Mix it up.
 @deps = ({%ddep, requires => [dep 'other', dep 'that']}, {%ddep, requires => [dep 'sqitch']}, {%ddep});
-cmp_deeply [$plan->sort_changes({sqitch => 1 }, changes qw(this that other))],
+cmp_deeply [$plan->sort_changes('foo', {sqitch => 1 }, changes qw(this that other))],
     [changes qw(other that this)], 'Should get other, that, this with earlier dependncy';
 
 # Make sure it fails on unknown previous dependencies.
 @deps = ({%ddep, requires => [dep 'foo']}, {%ddep}, {%ddep});
-throws_ok { $plan->sort_changes(changes qw(this that other)) } 'App::Sqitch::X',
+throws_ok { $plan->sort_changes('foo', changes qw(this that other)) } 'App::Sqitch::X',
     'Should die on unknown dependency';
 is $@->ident, 'plan', 'Unknown dependency error ident should be "plan"';
 is $@->message, __x(
@@ -1503,7 +1514,7 @@ is $@->message, __x(
 
 # Okay, now deal with depedencies from ealier change sections.
 @deps = ({%ddep, requires => [dep '@foo']}, {%ddep}, {%ddep});
-throws_ok { $plan->sort_changes(changes qw(this that other)) } 'App::Sqitch::X',
+throws_ok { $plan->sort_changes('foo', changes qw(this that other)) } 'App::Sqitch::X',
     'Should die on unknown tag dependency';
 is $@->ident, 'plan', 'Unknown tag dependency error ident should be "plan"';
 is $@->message, __x(
@@ -1513,8 +1524,8 @@ is $@->message, __x(
 ), 'And the error should point to the offending change';
 
 # Allow dependencies from different projects.
-@deps = ({%ddep}, {%ddep, requires => [dep 'foo:bob']}, {%ddep});
-cmp_deeply [$plan->sort_changes(changes qw(this that other))],
+@deps = ({%ddep}, {%ddep, requires => [dep 'bar:bob']}, {%ddep});
+cmp_deeply [$plan->sort_changes('foo', changes qw(this that other))],
     [changes qw(this that other)], 'Should get original order with external dependency';
 
 ##############################################################################
@@ -1563,7 +1574,7 @@ is $plan->uri, URI->new('https://github.com/theory/sqitch/'),
 isa_ok $plan->uri, 'URI', 'It';
 
 # Make sure we get an error if there is no project pragma.
-$fh = IO::File->new(\"foo $tsnp", '<:utf8');
+$fh = IO::File->new(\"%strict\n\nfoo $tsnp", '<:utf8');
 throws_ok { $plan->_parse('noproject', $fh) } 'App::Sqitch::X',
     'Should die on plan with no project pragma';
 is $@->ident, 'plan', 'Missing prorject error ident should be "plan"';

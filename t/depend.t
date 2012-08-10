@@ -19,7 +19,7 @@ BEGIN {
 }
 
 my $sqitch = App::Sqitch->new;
-my $plan   = App::Sqitch::Plan->new(sqitch => $sqitch);
+my $plan   = App::Sqitch::Plan->new(sqitch => $sqitch, project => 'depend');
 
 can_ok $CLASS, qw(
     conflicts
@@ -54,13 +54,21 @@ for my $spec (
   )
 {
     my $exp = shift @{$spec};
-    ok my $depend = $CLASS->new( plan=> $plan, @{$spec} ), qq{Construct "$exp"};
+    ok my $depend = $CLASS->new(
+        plan    => $plan,
+        project => 'depend',
+        @{$spec},
+    ), qq{Construct "$exp"};
     ( my $str = $exp ) =~ s/^!//;
     ( my $key = $str ) =~ s/^[^:]+://;
     is $depend->as_string, $str, qq{Constructed should stringify as "$str"};
     is $depend->key_name, $key, qq{Constructed should have key name "$key"};
     is $depend->as_plan_string, $exp, qq{Constructed should plan stringify as "$exp"};
-    ok $depend = $CLASS->new( %{ $CLASS->parse($exp) }, plan => $plan ), qq{Parse "$exp"};
+    ok $depend = $CLASS->new(
+        plan    => $plan,
+        project => 'depend',
+        %{ $CLASS->parse($exp) },
+    ), qq{Parse "$exp"};
     is $depend->as_plan_string, $exp, qq{Parsed should plan stringify as "$exp"};
 }
 

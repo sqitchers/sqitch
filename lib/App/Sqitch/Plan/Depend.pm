@@ -60,7 +60,7 @@ sub parse {
         \z                            # End of string
     /x;
 
-    return { %+, conflicts => !!$+{conflicts} };
+    return { %+, conflicts => $+{conflicts} ? 1 : 0 };
 }
 
 sub key_name {
@@ -80,7 +80,8 @@ sub key_name {
 
 sub as_string {
     my $self = shift;
-    my $proj = $self->project // return $self->key_name;
+    my $proj = $self->project;
+    return $self->key_name if $proj eq $self->plan->project;
     return "$proj:" . $self->key_name;
 }
 

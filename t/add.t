@@ -24,11 +24,13 @@ ok my $sqitch = App::Sqitch->new(
 ), 'Load a sqitch sqitch object';
 my $config = $sqitch->config;
 
-sub dep($) {
+sub dep($$) {
     App::Sqitch::Plan::Depend->new(
-        %{ App::Sqitch::Plan::Depend->parsea(shift) },
-        plan => $sqitch->plan,
-    )
+        project => 'add',
+        plan    => $sqitch->plan,
+        %{ App::Sqitch::Plan::Depend->parse( $_[1] ) },
+        conflicts => $_[0],
+    );
 }
 
 isa_ok my $add = App::Sqitch::Command->load({
@@ -229,7 +231,7 @@ is $ { $add->_slurp($tmpl)}, contents_of $tmpl,
 make_path 'sql';
 my $fn = $sqitch->plan_file;
 open my $fh, '>', $fn or die "Cannot open $fn: $!";
-say $fh '%project=add';
+say $fh "%project=add\n\n";
 close $fh or die "Error closing $fn: $!";
 END { remove_tree 'sql' };
 my $out = file 'sql', 'sqitch_change_test.sql';
@@ -359,8 +361,8 @@ is_deeply \%request_params, {
 }, 'It should have prompted for a note';
 
 is $change->name, 'foo_table', 'Change name should be set to "foo_table"';
-is_deeply [$change->requires],  [dep 'widgets_table'], 'It should have requires';
-is_deeply [$change->conflicts], [map { dep "!$_" } qw(dr_evil joker)], 'It should have conflicts';
+is_deeply [$change->requires],  [dep 0, 'widgets_table'], 'It should have requires';
+is_deeply [$change->conflicts], [map { dep 1, $_ } qw(dr_evil joker)], 'It should have conflicts';
 is        $change->note, "hello\n\nthere", 'It should have a comment';
 
 is_deeply +MockOutput->get_info, [

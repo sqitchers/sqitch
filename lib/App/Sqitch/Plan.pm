@@ -156,22 +156,25 @@ sub _parse {
         );
     };
 
-    LINE: while ( my $line = $fh->getline ) {
+    # First, find pragmas.
+    HEADER: while ( my $line = $fh->getline ) {
         chomp $line;
 
         # Grab blank lines first.
         if ($line =~ /\A(?<lspace>[[:blank:]]*)(?:#[[:blank:]]*(?<note>.+)|$)/) {
             my $line = App::Sqitch::Plan::Blank->new( plan => $self, %+ );
             push @lines => $line;
-            next LINE;
+            last HEADER if @lines && !$line->note;
+            next HEADER;
         }
 
         # Grab inline note.
         $line =~ s/(?<rspace>[[:blank:]]*)(?:[#][[:blank:]]*(?<note>.*))?$//;
         my %params = %+;
 
-        # Grab pragmas.
-        if ($line =~ /
+        $raise_syntax_error->(
+            __ 'Invalid pragma; a blank line must come between pragmas and changes'
+        ) unless $line =~ /
            \A                             # Beginning of line
            (?<lspace>[[:blank:]]*)?       # Optional leading space
            [%]                            # Required %
@@ -189,32 +192,61 @@ sub _parse {
                (?<ropspace>[[:blank:]]*)  #     Optional blanks
                (?<value>.+)               #     String value
            )?                             # ... optionally
-           $                              # end of line
-        /x) {
-            if ($+{name} eq 'syntax-version') {
-                # Set explicit version in case we write it out later. In
-                # future releases, may change parsers depending on the
-                # version.
-                $pragmas{syntax_version} = $params{value} = SYNTAX_VERSION;
-            } elsif ($+{name} eq 'project') {
-                my $proj = $+{value};
-                $raise_syntax_error->(__x(
-                    qq{invalid project name "{project}": project names must not }
-                    . 'begin with punctuation, contain "@", ":", or "#", or end in '
-                    . 'punctuation or digits following punctuation',
-                    project => $proj,
-                )) unless $proj =~ /\A$name_re\z/;
-                $pragmas{project} = $proj;
-            } else {
-                $pragmas{ $+{name} } = $+{value} // 1;
-            }
-            push @lines => App::Sqitch::Plan::Pragma->new(
-                plan => $self,
-                %+,
-                %params
-            );
+           \z                             # end of line
+        /x;
+
+        # XXX Die if the pragma is a dupe?
+
+        if ($+{name} eq 'syntax-version') {
+            # Set explicit version in case we write it out later. In future
+            # releases, may change parsers depending on the version.
+            $pragmas{syntax_version} = $params{value} = SYNTAX_VERSION;
+        } elsif ($+{name} eq 'project') {
+            my $proj = $+{value};
+            $raise_syntax_error->(__x(
+                qq{invalid project name "{project}": project names must not }
+                . 'begin with punctuation, contain "@", ":", or "#", or end in '
+                . 'punctuation or digits following punctuation',
+                project => $proj,
+            )) unless $proj =~ /\A$name_re\z/;
+            $pragmas{project} = $proj;
+        } else {
+            $pragmas{ $+{name} } = $+{value} // 1;
+        }
+
+        push @lines => App::Sqitch::Plan::Pragma->new(
+            plan => $self,
+            %+,
+            %params
+        );
+        next HEADER;
+    }
+
+    # We should have a version pragma.
+    unless ( $pragmas{syntax_version} ) {
+        unshift @lines => $self->_version_line;
+        $pragmas{syntax_version} = SYNTAX_VERSION;
+    }
+
+    # Should have valid project pragma.
+    hurl plan => __x(
+        'Missing %project pragma in {file}',
+        file => $file,
+    ) unless $pragmas{project};
+
+    LINE: while ( my $line = $fh->getline ) {
+        chomp $line;
+
+        # Grab blank lines first.
+        if ($line =~ /\A(?<lspace>[[:blank:]]*)(?:#[[:blank:]]*(?<note>.+)|$)/) {
+            my $line = App::Sqitch::Plan::Blank->new( plan => $self, %+ );
+            push @lines => $line;
             next LINE;
         }
+
+        # Grab inline note.
+        $line =~ s/(?<rspace>[[:blank:]]*)(?:[#][[:blank:]]*(?<note>.*))?$//;
+        my %params = %+;
 
         # Is it a tag or a change?
         my $type = $line =~ /^[[:blank:]]*[@]/ ? 'tag' : 'change';
@@ -314,7 +346,11 @@ sub _parse {
 
             if (@curr_changes) {
                 # Sort all changes up to this tag by their dependencies.
-                push @changes => $self->sort_changes(\%line_no_for, @curr_changes);
+                push @changes => $self->sort_changes(
+                    $pragmas{project},
+                    \%line_no_for,
+                    @curr_changes,
+                );
                 @curr_changes = ();
             }
 
@@ -344,12 +380,17 @@ sub _parse {
             if (my $deps = $params{dependencies}) {
                 my (@req, @con);
                 for my $depstring (split /[[:blank:]]+/, $deps) {
-                    my $dep = App::Sqitch::Plan::Depend->parse(
-                        $depstring
+                    my $dep_params = App::Sqitch::Plan::Depend->parse(
+                        $depstring,
                     ) or $raise_syntax_error->(__x(
                         '"{dep}" is not a valid dependency specification',
                         dep => $depstring,
                     ));
+                    my $dep = App::Sqitch::Plan::Depend->new(
+                        project => $pragmas{project},
+                        plan    => $self,
+                        %{ $dep_params },
+                    );
                     if ($dep->conflicts) {
                         push @con => $dep;
                     } else {
@@ -377,19 +418,11 @@ sub _parse {
     }
 
     # Sort and store any remaining changes.
-    push @changes => $self->sort_changes(\%line_no_for, @curr_changes) if @curr_changes;
-
-    # We should have a version pragma.
-    unless ( $pragmas{syntax_version} ) {
-        unshift @lines => $self->_version_line;
-        $pragmas{syntax_version} = SYNTAX_VERSION;
-    }
-
-    # Should have valid project pragma.
-    hurl plan => __x(
-        'Missing %project pragma in {file}',
-        file => $file,
-    ) unless $pragmas{project};
+    push @changes => $self->sort_changes(
+        $pragmas{project},
+        \%line_no_for,
+        @curr_changes,
+    ) if @curr_changes;
 
     return {
         changes => \@changes,
@@ -408,7 +441,7 @@ sub _version_line {
 }
 
 sub sort_changes {
-    my $self = shift;
+    my ( $self, $proj ) = ( shift, shift );
     my $seen = ref $_[0] eq 'HASH' ? shift : {};
 
     my %obj;             # maps change names to objects.
@@ -425,7 +458,8 @@ sub sort_changes {
 
         # XXX Ignoring conflicts for now.
         for my $dep ( $change->requires ) {
-            next if defined $dep->project;
+            # Ignore dependencies on other projects.
+            next if $dep->project ne $proj;
             $dep = $dep->key_name;
 
             # Skip it if it's a change from an earlier tag.
@@ -585,21 +619,33 @@ sub tag {
 }
 
 sub _parse_deps {
-    my $p = shift;
+    my ( $self, $p ) = @_;
     # Dependencies must be parsed into objects.
     $p->{requires} = [ map {
-        App::Sqitch::Plan::Depend->parse($_) // hurl plan => __x(
+        my $p = App::Sqitch::Plan::Depend->parse($_) // hurl plan => __x(
             '"{dep}" is not a valid dependency specification',
             dep => $_,
+        );
+        App::Sqitch::Plan::Depend->new(
+            project    => $self->project,
+            %{ $p },
+            plan      => $self,
+            conflicts => 0,
         );
     } @{ $p->{requires} } ] if $p->{requires};
 
     $p->{conflicts} = [ map {
-        App::Sqitch::Plan::Depend->parse("!$_") // hurl plan => __x(
+        my $p = App::Sqitch::Plan::Depend->parse("!$_") // hurl plan => __x(
             '"{dep}" is not a valid dependency specification',
             dep => $_,
         );
-    } @{ $p->{conflicts} } ]if $p->{conflicts};
+        App::Sqitch::Plan::Depend->new(
+            project    => $self->project,
+            %{ $p },
+            plan      => $self,
+            conflicts => 1,
+        );
+    } @{ $p->{conflicts} } ] if $p->{conflicts};
 }
 
 sub add {
@@ -616,7 +662,7 @@ sub add {
         );
     }
 
-    _parse_deps \%p;
+    $self->_parse_deps(\%p);
 
     $p{rspace} //= ' ' if $p{note};
     my $change = App::Sqitch::Plan::Change->new( %p, plan => $self );
@@ -656,11 +702,14 @@ sub rework {
         change => $p{name},
     ) if !defined $tag_idx || $tag_idx < $idx;
 
-    _parse_deps \%p;
+    $self->_parse_deps(\%p);
 
     my ($tag) = $changes->change_at($tag_idx)->tags;
-    unshift @{ $p{requires} ||= [] } => App::Sqitch::Plan::Depend->parse(
-        $p{name} . $tag->format_name
+    unshift @{ $p{requires} ||= [] } => App::Sqitch::Plan::Depend->new(
+        plan    => $self,
+        project => $self->project,
+        change  => $p{name},
+        tag     => $tag->name,
     );
 
     my $orig = $changes->change_at($idx);
@@ -1043,12 +1092,12 @@ the all of the changes, call C<changes()> instead.
 
 =head3 C<sort_changes>
 
-  @changes = $plan->sort_changes(@changes);
-  @changes = $plan->sort_changes( { '@foo' => 1, 'bar' => 1 }, @changes );
+  @changes = $plan->sort_changes( $project, @changes );
+  @changes = $plan->sort_changes( $project, { '@foo' => 1 }, @changes );
 
-Sorts a list of changes in dependency order and returns them. If the first
-argument is a hash reference, its keys should be previously-seen change and tag
-names that can be assumed to be satisfied requirements for the succeeding
+Sorts a list of changes in dependency order and returns them. If the second
+argument is a hash reference, its keys should be previously-seen change and
+tag names that can be assumed to be satisfied requirements for the succeeding
 changes.
 
 =head3 C<tag>
