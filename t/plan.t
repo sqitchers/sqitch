@@ -91,7 +91,11 @@ sub ts($) {
 
 my $vivify = 0;
 
-sub dep($) { App::Sqitch::Plan::Depend->parse(shift) }
+sub dep($) {
+    App::Sqitch::Plan::Depend->new(
+        App::Sqitch::Plan::Depend->parse(shift)
+    )
+}
 
 sub change($) {
     my $p = shift;

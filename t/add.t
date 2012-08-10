@@ -17,7 +17,11 @@ use File::Path qw(make_path remove_tree);
 use lib 't/lib';
 use MockOutput;
 
-sub dep($) { App::Sqitch::Plan::Depend->parse(shift) }
+sub dep($) {
+    App::Sqitch::Plan::Depend->new(
+        App::Sqitch::Plan::Depend->parse(shift)
+    )
+}
 
 my $CLASS = 'App::Sqitch::Command::add';
 

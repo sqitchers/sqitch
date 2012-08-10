@@ -141,7 +141,11 @@ my $date = App::Sqitch::DateTime->new(
     time_zone => 'UTC',
 );
 
-sub dep($) { App::Sqitch::Plan::Depend->parse(shift) }
+sub dep($) {
+    App::Sqitch::Plan::Depend->new(
+        App::Sqitch::Plan::Depend->parse(shift)
+    )
+}
 
 ok my $change2 = $CLASS->new(
     name      => 'yo/howdy',

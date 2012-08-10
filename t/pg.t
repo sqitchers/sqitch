@@ -56,7 +56,11 @@ my @std_opts = (
 is_deeply [$pg->psql], [$client, @std_opts],
     'psql command should be std opts-only';
 
-sub dep($) { App::Sqitch::Plan::Depend->parse(shift) }
+sub dep($) {
+    App::Sqitch::Plan::Depend->new(
+        App::Sqitch::Plan::Depend->parse(shift)
+    )
+}
 
 ##############################################################################
 # Test other configs for the destination.
