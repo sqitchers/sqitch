@@ -57,9 +57,12 @@ has id => (
 sub required { shift->conflicts ? 0 : 1 }
 
 sub BUILD {
-    my $self = shift;
-    hurl 'Depend object must have either "change" or "tag" defined (or both)'
-        unless defined $self->change || defined $self->tag;
+    my ( $self, $args ) = @_;
+    hurl 'Depend object must have either "change", "tag", or "id" defined'
+        unless length $args->{change} || length $args->{tag} || $args->{id};
+
+    hurl 'Depend object cannot contain both an ID and a tag or change'
+        if $args->{id} && (length $args->{change} || length $args->{tag});
 }
 
 sub parse {
@@ -70,6 +73,8 @@ sub parse {
         (?<conflicts>!?)              # Optional negation
         (?:(?<project>$name_re)[:])?  # Optional project + :
         (?:                           # Followed by...
+            (?<id>[0-9a-f]{40})       #     SHA1 hash
+        |                             # - OR -
             (?<change>$name_re)       #     Change name
             (?:[@](?<tag>$name_re))?  #     Optional tag
         |                             # - OR -
@@ -91,6 +96,10 @@ sub key_name {
 
     if (defined (my $tag = $self->tag)) {
         push @parts => '@' . $tag;
+    }
+
+    if ( !@parts && defined ( my $id = $self->id ) ) {
+        push @parts, $id;
     }
 
     return join '' => @parts;
@@ -164,13 +173,17 @@ The name of the change.
 
 The name of the tag claimed as the dependency.
 
+=item C<id>
+
+The ID of a change. Mutually exclusive with C<change> and C<tag>.
+
 =back
 
 =head3 C<parse>
 
   my %params = App::Sqitch::Plan::Depend->parse($string);
 
-parses a dependency specification as extracted from a plan and returns a hash
+Parses a dependency specification as extracted from a plan and returns a hash
 reference of parameters suitable for passing to C<new()>. Returns C<undef> if
 the string is not a properly-formatted dependency.
 
@@ -217,13 +230,19 @@ is a tag-only dependency.
 Returns the name of the tag, if any. If C<undef> is returned, the dependency
 is a change-only dependency.
 
+=head3 C<id>
+
+Returns the ID of the change if the dependency was specifed as an ID, or if
+the dependency is a local dependency.
+
 =head2 Instance Methods
 
 =head3 C<key_name>
 
 Returns the key name of the depenedency, with the change name and/or tag,
 properly formatted for passing to the C<find()> method of
-L<App::Sqitch::Plan>.
+L<App::Sqitch::Plan>. If the dependency was specifed as an ID, rather than a
+change or tag, then the ID will be returned.
 
 =head3 C<as_string>
 

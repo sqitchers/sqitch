@@ -4,10 +4,10 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 98;
-#use Test::More 'no_plan';
+#use Test::More tests => 98;
+use Test::More 'no_plan';
 use Test::Exception;
-use Test::NoWarnings;
+#use Test::NoWarnings;
 use App::Sqitch;
 use App::Sqitch::Plan;
 use Locale::TextDomain qw(App-Sqitch);
@@ -35,6 +35,7 @@ can_ok $CLASS, qw(
     as_plan_string
 );
 
+my $id = '9ed961ad7902a67fe0804c8e49e8993719fd5065';
 for my $spec (
     [ 'foo'          => change => 'foo' ],
     [ 'bar'          => change => 'bar' ],
@@ -55,6 +56,13 @@ for my $spec (
         project   => 'proj',
         conflicts => 1
     ],
+    [ $id, id => $id ],
+    [ "!$id", id => $id, conflicts => 1 ],
+    [ "foo:$id", id => $id, project => 'foo' ],
+    [ "!foo:$id", id => $id, project => 'foo', conflicts => 1 ],
+    [ "$id\@what", change => $id, tag => 'what' ],
+    [ "!$id\@what", change => $id, tag => 'what', conflicts => 1 ],
+    [ "foo:$id\@what", change => $id, tag => 'what', project => 'foo' ],
   )
 {
     my $exp = shift @{$spec};
@@ -85,8 +93,22 @@ throws_ok { $CLASS->new( plan => $plan ) } 'App::Sqitch::X',
   'Should get exception for no change or tag';
 is $@->ident, 'DEV', 'No change or tag error ident should be "DEV"';
 is $@->message,
-  'Depend object must have either "change" or "tag" defined (or both)',
+    'Depend object must have either "change", "tag", or "id" defined',
   'No change or tag error message should be correct';
+
+for my $params (
+    { change => 'foo' },
+    { tag    => 'bar' },
+    { change => 'foo', tag => 'bar' },
+) {
+    my $keys = join ' and ' => keys %{ $params };
+    throws_ok { $CLASS->new( plan => $plan, id => $id, %{ $params} ) }
+        'App::Sqitch::X', "Should get an error for ID + $keys";
+    is $@->ident, 'DEV', qq{ID + $keys error ident ident should be "DEV"};
+    is $@->message,
+        'Depend object cannot contain both an ID and a tag or change',
+        qq{ID + $keys error message should be correct};
+}
 
 ##############################################################################
 # Test ID.
