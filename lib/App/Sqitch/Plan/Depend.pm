@@ -15,9 +15,30 @@ has conflicts => (
     default  => 0,
 );
 
+has _id_passed => (
+    is       => 'ro',
+    isa      => 'Bool',
+    required => 1
+);
+
 has project => (
-    is  => 'ro',
-    isa => 'Maybe[Str]',
+    is       => 'ro',
+    isa      => 'Maybe[Str]',
+    required => 1,
+    lazy     => 1,
+    default  => sub {
+        my $self = shift;
+        my $plan = $self->plan;
+
+        # Local project is the default unless an ID was passed.
+        return $plan->project unless $self->_id_passed;
+
+        # Local project is default if passed ID is in plan.
+        return $plan->project if $plan->find( $self->id );
+
+        # Otherwise, the project is unknown (and external).
+        return undef;
+    }
 );
 
 has change => (
@@ -44,7 +65,8 @@ has id => (
     default  => sub {
         my $self = shift;
         my $plan = $self->plan;
-        return undef if $self->project ne $plan->project;
+        my $proj = $self->project // return undef;
+        return undef if $proj ne $plan->project;
         my $change = $plan->find( $self->key_name ) // hurl plan => __x(
             'Unable to find change "{change}" in plan {file}',
             change => $self->key_name,
@@ -54,15 +76,36 @@ has id => (
     }
 );
 
+has is_external => (
+    is       => 'ro',
+    isa      => 'Bool',
+    required => 1,
+    lazy     => 1,
+    default  => sub {
+        my $self = shift;
+
+        # If no project, then it must be external.
+        my $proj = $self->project // return 1;
+
+        # Just compare to the local project.
+        return $proj eq $self->plan->project ? 0 : 1;
+    },
+);
+
 sub required { shift->conflicts ? 0 : 1 }
 
-sub BUILD {
-    my ( $self, $args ) = @_;
+sub BUILDARGS {
+    my $class = shift;
+    my $p = @_ == 1 && ref $_[0] ? { %{ +shift } } : { @_ };
     hurl 'Depend object must have either "change", "tag", or "id" defined'
-        unless length $args->{change} || length $args->{tag} || $args->{id};
+        unless length $p->{change} || length $p->{tag} || $p->{id};
 
     hurl 'Depend object cannot contain both an ID and a tag or change'
-        if $args->{id} && (length $args->{change} || length $args->{tag});
+        if $p->{id} && (length $p->{change} || length $p->{tag});
+
+    $p->{_id_passed} = $p->{id} ? 1 : 0;
+
+    return $p;
 }
 
 sub parse {
@@ -107,11 +150,10 @@ sub key_name {
 
 sub as_string {
     my $self = shift;
-    my $proj = $self->project;
+    my $proj = $self->project // return $self->key_name;
     return $self->key_name if $proj eq $self->plan->project;
     return "$proj:" . $self->key_name;
 }
-
 
 sub as_plan_string {
     my $self = shift;

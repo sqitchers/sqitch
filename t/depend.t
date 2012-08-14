@@ -36,14 +36,14 @@ can_ok $CLASS, qw(
 );
 
 my $id = '9ed961ad7902a67fe0804c8e49e8993719fd5065';
-for my $spec (
-    [ 'foo'          => change => 'foo' ],
-    [ 'bar'          => change => 'bar' ],
-    [ '@bar'         => tag    => 'bar' ],
-    [ '!foo'         => change => 'foo', conflicts => 1 ],
-    [ '!@bar'        => tag    => 'bar', conflicts => 1 ],
-    [ 'foo@bar'      => change => 'foo', tag => 'bar' ],
-    [ '!foo@bar'     => change => 'foo', tag => 'bar', conflicts => 1 ],
+for my $spec(
+    [ 'foo'      => change => 'foo' ],
+    [ 'bar'      => change => 'bar' ],
+    [ '@bar'     => tag    => 'bar' ],
+    [ '!foo'     => change => 'foo', conflicts => 1 ],
+    [ '!@bar'    => tag    => 'bar', conflicts => 1 ],
+    [ 'foo@bar'  => change => 'foo', tag => 'bar' ],
+    [ '!foo@bar' => change => 'foo', tag => 'bar', conflicts => 1 ],
     [ 'proj:foo'     => change => 'foo', project => 'proj' ],
     [ '!proj:foo'    => change => 'foo', project => 'proj', conflicts => 1 ],
     [ 'proj:@foo'    => tag    => 'foo', project => 'proj' ],
@@ -56,32 +56,49 @@ for my $spec (
         project   => 'proj',
         conflicts => 1
     ],
-    [ $id, id => $id ],
-    [ "!$id", id => $id, conflicts => 1 ],
-    [ "foo:$id", id => $id, project => 'foo' ],
-    [ "!foo:$id", id => $id, project => 'foo', conflicts => 1 ],
-    [ "$id\@what", change => $id, tag => 'what' ],
-    [ "!$id\@what", change => $id, tag => 'what', conflicts => 1 ],
-    [ "foo:$id\@what", change => $id, tag => 'what', project => 'foo' ],
-  )
-{
+    [ $id => id => $id ],
+    [ "!$id"          => id     => $id, conflicts => 1 ],
+    [ "foo:$id"       => id     => $id, project   => 'foo' ],
+    [ "!foo:$id"      => id     => $id, project   => 'foo', conflicts => 1 ],
+    [ "$id\@what"     => change => $id, tag       => 'what' ],
+    [ "!$id\@what"    => change => $id, tag       => 'what', conflicts => 1 ],
+    [ "foo:$id\@what" => change => $id, tag       => 'what', project => 'foo' ],
+) {
     my $exp = shift @{$spec};
     ok my $depend = $CLASS->new(
         plan    => $plan,
-        project => 'depend',
         @{$spec},
     ), qq{Construct "$exp"};
     ( my $str = $exp ) =~ s/^!//;
     ( my $key = $str ) =~ s/^[^:]+://;
+    my $proj = $1;
     is $depend->as_string, $str, qq{Constructed should stringify as "$str"};
     is $depend->key_name, $key, qq{Constructed should have key name "$key"};
     is $depend->as_plan_string, $exp, qq{Constructed should plan stringify as "$exp"};
     ok $depend = $CLASS->new(
         plan    => $plan,
-        project => 'depend',
         %{ $CLASS->parse($exp) },
     ), qq{Parse "$exp"};
     is $depend->as_plan_string, $exp, qq{Parsed should plan stringify as "$exp"};
+    if ($str =~ /^([^:]+):/) {
+        # Project specified in spec.
+        my $prj = $1;
+        is $depend->project, $prj, qq{Should have project "$prj" for "$exp"};
+        if ($prj eq $plan->project) {
+            ok !$depend->is_external, qq{"$exp" should not be external};
+        } else {
+            ok $depend->is_external, qq{"$exp" should be external};
+        }
+    } elsif ($depend->change || $depend->tag) {
+        # No ID, default to current project.
+        my $prj = $plan->project;
+        is $depend->project, $prj, qq{Should have project "$prj" for "$exp"};
+        ok !$depend->is_external, qq{"$exp" should not be external};
+    } else {
+        # ID specified, but no project, and ID not in plan, so unknown project.
+        is $depend->project, undef, qq{Should have undef project for "$exp"};
+        ok $depend->is_external, qq{"$exp" should be external};
+    }
 }
 
 for my $bad ( 'foo bar', 'foo+@bar', 'foo:+bar', 'foo@bar+', 'proj:foo@bar+', )
@@ -114,18 +131,33 @@ for my $params (
 # Test ID.
 ok my $depend = $CLASS->new(
     plan    => $plan,
-    project => $plan->project,
     %{ $CLASS->parse('roles') },
 ), 'Create "roles" dependency';
 is $depend->id, $plan->find('roles')->id,
     'Should find the "roles" ID in the plan';
+ok !$depend->is_external, 'The "roles" change should not be external';
 
 ok $depend = $CLASS->new(
     plan    => $plan,
-    project => 'elsewhere',
     %{ $CLASS->parse('elsewhere:roles') },
 ), 'Create "elsewhere:roles" dependency';
 is $depend->id, undef, 'The "elsewhere:roles" id should be undef';
+ok $depend->is_external, 'The "elsewhere:roles" change should be external';
+
+ok $depend = $CLASS->new(
+    plan => $plan,
+    id   => $id,
+), 'Create depend using external ID';
+is $depend->id, $id, 'The external ID should be set';
+ok $depend->is_external, 'The external ID should register as external';
+
+$id = $plan->find('roles')->id;
+ok $depend = $CLASS->new(
+    plan => $plan,
+    id   => $id,
+), 'Create depend using "roles" ID';
+is $depend->id, $id, 'The "roles" ID should be set';
+ok !$depend->is_external, 'The "roles" ID should register as local';
 
 ok $depend = $CLASS->new(
     plan    => $plan,
