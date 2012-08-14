@@ -5,6 +5,7 @@ use utf8;
 use Moose;
 use App::Sqitch::Plan;
 use App::Sqitch::X qw(hurl);
+use Locale::TextDomain qw(App-Sqitch);
 use namespace::autoclean;
 
 has conflicts => (
@@ -34,6 +35,23 @@ has plan => (
     isa      => 'App::Sqitch::Plan',
     weak_ref => 1,
     required => 1,
+);
+
+has id => (
+    is       => 'ro',
+    isa      => 'Maybe[Str]',
+    lazy     => 1,
+    default  => sub {
+        my $self = shift;
+        my $plan = $self->plan;
+        return undef if $self->project ne $plan->project;
+        my $change = $plan->find( $self->key_name ) // hurl plan => __x(
+            'Unable to find change "{change}" in plan {file}',
+            change => $self->key_name,
+            file   => $plan->sqitch->plan_file,
+        );
+        return $change->id;
+    }
 );
 
 sub required { shift->conflicts ? 0 : 1 }

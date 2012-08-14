@@ -4,12 +4,13 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-#use Test::More tests => 89;
-use Test::More 'no_plan';
+use Test::More tests => 98;
+#use Test::More 'no_plan';
 use Test::Exception;
 use Test::NoWarnings;
 use App::Sqitch;
 use App::Sqitch::Plan;
+use Locale::TextDomain qw(App-Sqitch);
 
 my $CLASS;
 
@@ -18,7 +19,9 @@ BEGIN {
     require_ok $CLASS or die;
 }
 
-my $sqitch = App::Sqitch->new;
+ok my $sqitch = App::Sqitch->new(
+    top_dir => Path::Class::Dir->new(qw(t sql)),
+), 'Load a sqitch sqitch object';
 my $plan   = App::Sqitch::Plan->new(sqitch => $sqitch, project => 'depend');
 
 can_ok $CLASS, qw(
@@ -26,6 +29,7 @@ can_ok $CLASS, qw(
     project
     change
     tag
+    id
     key_name
     as_string
     as_plan_string
@@ -83,3 +87,34 @@ is $@->ident, 'DEV', 'No change or tag error ident should be "DEV"';
 is $@->message,
   'Depend object must have either "change" or "tag" defined (or both)',
   'No change or tag error message should be correct';
+
+##############################################################################
+# Test ID.
+ok my $depend = $CLASS->new(
+    plan    => $plan,
+    project => $plan->project,
+    %{ $CLASS->parse('roles') },
+), 'Create "roles" dependency';
+is $depend->id, $plan->find('roles')->id,
+    'Should find the "roles" ID in the plan';
+
+ok $depend = $CLASS->new(
+    plan    => $plan,
+    project => 'elsewhere',
+    %{ $CLASS->parse('elsewhere:roles') },
+), 'Create "elsewhere:roles" dependency';
+is $depend->id, undef, 'The "elsewhere:roles" id should be undef';
+
+ok $depend = $CLASS->new(
+    plan    => $plan,
+    project => $plan->project,
+    %{ $CLASS->parse('nonexistent') },
+), 'Create "nonexistent" dependency';
+throws_ok { $depend->id } 'App::Sqitch::X',
+    'Should get error for nonexistent change';
+is $@->ident, 'plan', 'Nonexistent change error ident should be "plan"';
+is $@->message, __x(
+    'Unable to find change "{change}" in plan {file}',
+    change => 'nonexistent',
+    file   => $plan->sqitch->plan_file,
+), 'Nonexistent change error message should be correct';
