@@ -84,6 +84,11 @@ has change_pattern => (
     isa     => 'Str',
 );
 
+has project_pattern => (
+    is      => 'ro',
+    isa     => 'Str',
+);
+
 has committer_pattern => (
     is      => 'ro',
     isa     => 'Str',
@@ -175,7 +180,7 @@ has formatter => (
                         when ('name')      { return __ 'Name:     ' }
                         when ('email')     { return __ 'Email:    ' }
                         when ('requires')  { return __ 'Requires: ' }
-                        when ('conflicts') {return __ 'Conflicts:'  }
+                        when ('conflicts') { return __ 'Conflicts:' }
                         when (undef)       {
                             hurl log => __ 'No label passed to the _ format';
                         }
@@ -195,6 +200,7 @@ has formatter => (
                     return $_[0]->{change_id};
                 },
                 n => sub { $_[0]->{change} },
+                o => sub { $_[0]->{project} },
 
                 c => sub {
                     return "$_[0]->{committer_name} <$_[0]->{committer_email}>"
@@ -301,6 +307,7 @@ sub options {
     return qw(
         event=s@
         change-pattern|change=s
+        project-pattern|project=s
         committer-pattern|committer=s
         format|f=s
         date-format|date=s
@@ -384,6 +391,7 @@ sub execute {
     $iter = $engine->search_events(
         event     => $self->event,
         change    => $self->change_pattern,
+        project   => $self->project_pattern,
         committer => $self->committer_pattern,
         limit     => $self->max_count,
         offset    => $self->skip,

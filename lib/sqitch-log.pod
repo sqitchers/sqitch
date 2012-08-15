@@ -38,6 +38,12 @@ Filter by event type. May be specified more than once. Allowed values are:
 
 A regular expression to match against change names.
 
+=item C<--project-pattern>
+
+=item C<--project>
+
+A regular expression to match against project names.
+
 =item C<--committer-pattern>
 
 =item C<--committer>
@@ -273,6 +279,8 @@ The placeholders are:
 =item * C<%h>: Event change ID (respects C<--abbrev>)
 
 =item * C<%n>: Event change name
+
+=item * C<%o>: Event change project name
 
 =item * C<%($len)h>: abbreviated change of length C<$len>
 

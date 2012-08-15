@@ -3,8 +3,8 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 234;
-#use Test::More 'no_plan';
+#use Test::More tests => 234;
+use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
 use Test::NoWarnings;
@@ -31,6 +31,7 @@ isa_ok my $log = App::Sqitch::Command->load({
 
 can_ok $log, qw(
     change_pattern
+    project_pattern
     committer_pattern
     max_count
     skip
@@ -47,6 +48,7 @@ can_ok $log, qw(
 is_deeply [$CLASS->options], [qw(
     event=s@
     change-pattern|change=s
+    project-pattern|project=s
     committer-pattern|committer=s
     format|f=s
     date-format|date=s
@@ -190,6 +192,7 @@ my $cdt = App::Sqitch::DateTime->now;
 my $pdt = $cdt->clone->subtract(days => 1);
 my $event = {
     event           => 'deploy',
+    project         => 'logit',
     change_id       => '000011112222333444',
     change          => 'lolz',
     tags            => [ '@beta', '@gamma' ],
@@ -322,6 +325,8 @@ for my $spec (
 
     ['%n', { change => 'foo' }, 'foo'],
     ['%n', { change => 'bar' }, 'bar'],
+    ['%o', { project => 'foo' }, 'foo'],
+    ['%o', { project => 'bar' }, 'bar'],
 
     ['%c', { committer_name => 'larry', committer_email => 'larry@example.com'  }, 'larry <larry@example.com>'],
     ['%{n}c', { committer_name => 'damian' }, 'damian'],
@@ -580,6 +585,7 @@ ok $log->execute, 'Execute log';
 is_deeply $search_args, [
     event     => undef,
     change    => undef,
+    project   => undef,
     committer => undef,
     limit     => undef,
     offset    => undef,
@@ -607,6 +613,7 @@ isa_ok $log = $CLASS->new(
     sqitch            => $sqitch,
     event             => [qw(revert fail)],
     change_pattern    => '.+',
+    project_pattern   => '.+',
     committer_pattern => '.+',
     max_count         => 10,
     skip              => 5,
@@ -617,6 +624,7 @@ ok $log->execute, 'Execute log with attributes';
 is_deeply $search_args, [
     event     => [qw(revert fail)],
     change    => '.+',
+    project   => '.+',
     committer => '.+',
     limit     => 10,
     offset    => 5,
