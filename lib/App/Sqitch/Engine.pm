@@ -659,17 +659,24 @@ insert the project name and URI if they have not already been inserted.
 
 =head3 C<is_deployed_tag>
 
-  say "Tag deployed"  if $engine->is_deployed_tag($tag);
+  say 'Tag deployed' if $engine->is_deployed_tag($tag);
 
-Should return true if the tag has been deployed to the database, and false if
-it has not.
+Should return true if the L<tag|App::Sqitch::Plan::Tag> has been applies to
+the database, and false if it has not.
 
 =head3 C<is_deployed_change>
 
-  say "Change deployed"  if $engine->is_deployed_change($change);
+  say 'Change deployed' if $engine->is_deployed_change($change);
 
-Should return true if the change has been deployed to the database, and false if
-it has not.
+Should return true if the L<change|App::Sqitch::Plan::Change> has been
+deployed to the database, and false if it has not.
+
+=head3 C<is_satisfied_depend>
+
+  say 'Dependency satisfied' if $engine->is_satisfied_depend($depend);
+
+Should return true if the L<dependency|App::Sqitch::Plan::Depend> has been
+satisfied, and false if it has not.
 
 =head3 C<log_deploy_change>
 
@@ -691,27 +698,6 @@ of the change failed.
 
 Should write to and/or remove from the database metadata and history the
 records necessary to indicate that the change has been reverted.
-
-=head3 C<check_requires>
-
-  if ( my @requires = $engine->requires($change) ) {
-      die "Change requires undeployed changes: "
-          . join ', ', map { $_->as_string } @requires;
-  }
-
-Returns L<App::Sqitch::Plan::Depend> objects representing required
-dependencies not currently deployed to the database. If none are returned, the
-requirements are presumed to be satisfied.
-
-=head3 C<check_conflicts>
-
-  if ( my @conflicts = $engine->conflicts($change) ) {
-      die "Change conflicts with previously deployed changes: @conflicts\n";
-  }
-
-Returns L<App::Sqitch::Plan::Depend> objects representing conflicting
-dependencies currently deployed to the database. If none are returned, there
-are presumed to be no conflicts.
 
 =head3 C<latest_change_id>
 

@@ -56,14 +56,6 @@ my @std_opts = (
 is_deeply [$pg->psql], [$client, @std_opts],
     'psql command should be std opts-only';
 
-sub dep($) {
-    App::Sqitch::Plan::Depend->new(
-        project => 'pg',
-        %{ App::Sqitch::Plan::Depend->parse(shift) },
-        plan => $sqitch->plan,
-    )
-}
-
 ##############################################################################
 # Test other configs for the destination.
 ENV: {
@@ -236,8 +228,7 @@ can_ok $CLASS, qw(
     latest_change_id
     is_deployed_tag
     is_deployed_change
-    check_requires
-    check_conflicts
+    is_satisfied_depend
     name_for_change_id
 );
 
@@ -707,51 +698,19 @@ subtest 'live database' => sub {
     is_deeply all( $pg->search_events ), \@events, 'Should have 5 events';
 
     ##########################################################################
-    # Test conflicts and requires.
-    is_deeply [$pg->check_conflicts($change)], [], 'Change should have no conflicts';
-    is_deeply [$pg->check_requires($change)], [], 'Change should have no missing dependencies';
-
-    my $change3 = App::Sqitch::Plan::Change->new(
-        name      => 'whatever',
-        plan      => $plan,
-        conflicts => [dep 'users', dep 'widgets'],
-        requires  => [map { dep $_ } qw(fred barney widgets)],
-    );
-    $plan->add( name => 'fred' );
-    $plan->add( name => 'barney' );
-
-    is_deeply [$pg->check_conflicts($change3)], [qw(users widgets)],
-        'Should get back list of installed conflicting changes';
-    is_deeply [$pg->check_requires($change3)], [qw(barney fred)],
-        'Should get back list of missing dependencies';
-
-    # Mock the note, requires, and conflicts in widget to ensure the
-    # data is not copied from the plan into revert events.
-    my $mock_widget = ref($change2)->new(
-        plan          => $plan,
-        id            => $change2->id,
-        name          => $change2->name,
-        timestamp     => $change2->timestamp,
-        planner_name  => $change2->planner_name,
-        planner_email => $change2->planner_email,
-        note          => 'I am not here',
-        requires      => [map { dep $_ } qw(ignore me)],
-        conflicts     => [map { dep $_ } qw(me too)],
-    );
-
-    # Undeploy widgets.
-    ok $pg->log_revert_change($mock_widget), 'Revert "widgets"';
-
-    is_deeply [$pg->check_conflicts($change3)], [qw(users)],
-        'Should now see only "users" as a conflict';
-    is_deeply [$pg->check_requires($change3)], [qw(barney fred widgets)],
-        'Should get back list all three missing dependencies';
-
-    ##########################################################################
     # Test deployed_change_ids() and deployed_change_ids_since().
     can_ok $pg, qw(deployed_change_ids deployed_change_ids_since);
+    is_deeply [$pg->deployed_change_ids], [$change->id, $change2->id],
+        'Should have two deployed change ID';
+    is_deeply [$pg->deployed_change_ids_since($change)], [$change2->id],
+        'Should find one deployed since the first one';
+    is_deeply [$pg->deployed_change_ids_since($change2)], [],
+        'Should find none deployed since the second one';
+
+    # Revert change 2.
+    ok $pg->log_revert_change($change2), 'Revert "widgets"';
     is_deeply [$pg->deployed_change_ids], [$change->id],
-        'Should have one deployed change ID';
+        'Should now have one deployed change ID';
     is_deeply [$pg->deployed_change_ids_since($change)], [],
         'Should find none deployed since that one';
 
@@ -817,6 +776,8 @@ subtest 'live database' => sub {
 
     ##########################################################################
     # Deploy the new changes with two tags.
+    $plan->add( name => 'fred' );
+    $plan->add( name => 'barney' );
     $plan->tag( name => 'beta' );
     $plan->tag( name => 'gamma' );
     ok my $fred = $plan->get('fred'),     'Get the "fred" change';
@@ -1002,6 +963,115 @@ subtest 'live database' => sub {
     is $@->ident, 'DEV', 'Invalid search params error ident should be "DEV"';
     is $@->message, 'Invalid parameters passed to search_events(): bar, foo',
         'Invalid search params error message should be correct';
+
+    ##########################################################################
+    # Test is_satisfied_depend.
+    my $id = '4f1e83f409f5f533eeef9d16b8a59e2c0aa91cc1';
+    my $i;
+
+    for my $spec (
+        [
+            'id only',
+            { id => $id },
+            { id => $id },
+        ],
+        [
+            'change + tag',
+            { change => 'bart', tag => 'epsilon' },
+            { name   => 'bart' }
+        ],
+        [
+            'change only',
+            { change => 'lisa' },
+            { name   => 'lisa' },
+        ],
+        [
+            'tag only',
+            { tag  => 'sigma' },
+            { name => 'maggie' },
+        ],
+    ) {
+        my ( $desc, $dep_params, $chg_params ) = @{ $spec };
+
+        # Test as an internal dependency.
+        INTERNAL: {
+            ok my $change = $plan->add(
+                name    => 'foo' . ++$i,
+                %{$chg_params},
+            ), "Create internal $desc change";
+
+            # Tag it if necessary.
+            if (my $tag = $dep_params->{tag}) {
+                ok $plan->tag(name => $tag), "Add tag internal \@$tag";
+            }
+
+            # Should start with unsatisfied dependency.
+            ok my $dep = App::Sqitch::Plan::Depend->new(
+                plan    => $plan,
+                project => $plan->project,
+                %{ $dep_params },
+            ), "Create internal $desc dependency";
+            ok !$pg->is_satisfied_depend($dep),
+                "Internal $desc depencency should not be satisfied";
+
+            # Once deployed, dependency should be satisfied.
+            ok $pg->log_deploy_change($change),
+                "Log internal $desc change deployment";
+            ok $pg->is_satisfied_depend($dep),
+                "Internal $desc depencency should now be satisfied";
+
+            # Revert it and try again.
+            ok $pg->log_revert_change($change),
+                "Log internal $desc change reversion";
+            ok !$pg->is_satisfied_depend($dep),
+                "Internal $desc depencency should again be unsatisfied";
+        }
+
+        # Now test as an external dependency.
+        EXTERNAL: {
+            # Make Change and Tag return registered external project "groovy".
+            $dep_params->{project} = 'groovy';
+            my $line_mocker = Test::MockModule->new('App::Sqitch::Plan::Line');
+            $line_mocker->mock(project => $dep_params->{project});
+
+            ok my $change = App::Sqitch::Plan::Change->new(
+                plan    => $plan,
+                name    => 'foo' . ++$i,
+                %{$chg_params},
+            ), "Create external $desc change";
+
+            # Tag it if necessary.
+            if (my $tag = $dep_params->{tag}) {
+                ok $change->add_tag(App::Sqitch::Plan::Tag->new(
+                    plan    => $plan,
+                    change  => $change,
+                    name    => $tag,
+                ) ), "Add tag external \@$tag";
+            }
+
+            # Should start with unsatisfied dependency.
+            ok my $dep = App::Sqitch::Plan::Depend->new(
+                plan    => $plan,
+                project => $plan->project,
+                %{ $dep_params },
+            ), "Create external $desc dependency";
+            ok !$pg->is_satisfied_depend($dep),
+                "External $desc depencency should not be satisfied";
+
+            # Once deployed, dependency should be satisfied.
+            ok $pg->log_deploy_change($change),
+                "Log external $desc change deployment";
+
+            ok $pg->is_satisfied_depend($dep),
+                "External $desc depencency should now be satisfied";
+
+            # Revert it and try again.
+            ok $pg->log_revert_change($change),
+                "Log external $desc change reversion";
+            ok !$pg->is_satisfied_depend($dep),
+                "External $desc depencency should again be unsatisfied";
+        }
+    }
 
     ##########################################################################
     # Test begin_work() and finish_work().

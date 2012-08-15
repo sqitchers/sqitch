@@ -269,7 +269,7 @@ sub log_deploy_change {
     my ($id, $name, $proj, $req, $conf, $user, $email) = (
         $change->id,
         $change->format_name,
-        $sqitch->plan->project,
+        $change->project,
         [map { $_->as_string } $change->requires],
         [map { $_->as_string } $change->conflicts],
         $sqitch->user_name,
@@ -369,7 +369,7 @@ sub _log_event {
         $event,
         $change->id,
         $change->name,
-        $sqitch->plan->project,
+        $change->project,
         $note      // $change->note,
         $tags      || [ map { $_->format_name } $change->tags ],
         $requires  || [ map { $_->as_string } $change->requires ],
@@ -426,34 +426,65 @@ sub is_deployed_change {
     }, undef, $change->id)->[0];
 }
 
-sub check_requires {
-    my ( $self, $change ) = @_;
+sub is_satisfied_depend {
+    my ( $self, $dep ) = @_;
+    my $dbh  = $self->_dbh;
 
-    # No need to check anything if there are no requirements.
-    my @requires = $change->requires_changes or return;
-    my $vals = join ', ', ('(?, ?)') x @requires;
+    if ( defined ( my $cid = $dep->id ) ) {
+        # Find by ID.
+        return $dbh->selectcol_arrayref(q{
+            SELECT EXISTS(
+                SELECT TRUE
+                  FROM changes
+                 WHERE change_id = ?
+            )
+         }, undef, $cid)->[0];
+    }
 
-    return @{ $self->_dbh->selectcol_arrayref(qq{
-        SELECT required.name
-          FROM (VALUES $vals) AS required(id, name)
-          LEFT JOIN changes ON required.id = changes.change_id
-         WHERE changes.change_id IS NULL
-         ORDER BY required.name;
-    }, undef, map { $_->id, $_->name } @requires) || [] };
-}
+    if ( defined ( my $change = $dep->change ) ) {
+        if ( defined ( my $tag = $dep->tag ) ) {
+            # Find by change name and following tag.
+            return $dbh->selectcol_arrayref(q{
+                SELECT EXISTS(
+                    SELECT TRUE
+                      FROM changes
+                      JOIN tags
+                        ON changes.committed_at < tags.committed_at
+                       AND changes.project = tags.project
+                     WHERE changes.project = ?
+                       AND changes.change  = ?
+                       AND tags.tag        = ?
+                )
+            }, undef, $dep->project, $change, '@' . $tag)->[0];
+        }
 
-sub check_conflicts {
-    my ( $self, $change ) = @_;
+        # Find by change name.
+        return $dbh->selectcol_arrayref(q{
+            SELECT EXISTS(
+                SELECT TRUE
+                  FROM changes
+                 WHERE project = ?
+                   AND change  = ?
+            )
+        }, undef, $dep->project, $change)->[0];
+    }
 
-    # No need to check anything if there are no conflicts.
-    my @conflicts = $change->conflicts_changes or return;
+    if ( defined ( my $tag = $dep->tag ) ) {
+        # Find by tag name.
+        return $dbh->selectcol_arrayref(q{
+            SELECT EXISTS(
+                SELECT TRUE
+                  FROM tags
+                 WHERE project = ?
+                   AND tag     = ?
+            )
+        }, undef, $dep->project, '@' . $tag)->[0];
+    }
 
-    return @{ $self->_dbh->selectcol_arrayref(q{
-        SELECT change
-          FROM changes
-         WHERE change_id = ANY(?)
-         ORDER BY change
-    }, undef, [map { $_->id } @conflicts ]) || [] };
+    hurl pg => __x(
+        'Invalid dependency: {dependency}',
+        $dep->as_string,
+    );
 }
 
 sub _fetch_item {
