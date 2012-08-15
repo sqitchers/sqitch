@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 231;
+use Test::More tests => 230;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -32,8 +32,7 @@ can_ok $CLASS, qw(load new name);
 
 my ($is_deployed_tag, $is_deployed_change) = (0, 0);
 my @deployed_change_ids;
-my @missing_requires;
-my @conflicts;
+my @satisfied;
 my $die = '';
 my $record_work = 1;
 my ( $latest_change, $latest_change_id, $initialized );
@@ -60,8 +59,7 @@ ENGINE: {
     }
     sub is_deployed_tag    { push @SEEN => [ is_deployed_tag   => $_[1] ]; $is_deployed_tag }
     sub is_deployed_change { push @SEEN => [ is_deployed_change  => $_[1] ]; $is_deployed_change }
-    sub check_requires     { push @SEEN => [ check_requires    => $_[1] ]; @missing_requires }
-    sub check_conflicts    { push @SEEN => [ check_conflicts   => $_[1] ]; @conflicts }
+    sub is_satisfied_depend { push @SEEN => [ is_satisfied_depend => $_[1] ]; shift @satisfied }
     sub latest_change_id   { push @SEEN => [ latest_change_id    => $_[1] ]; $latest_change_id }
     sub initialized        { push @SEEN => 'initialized'; $initialized }
     sub initialize         { push @SEEN => 'initialize' }
@@ -162,8 +160,7 @@ for my $abs (qw(
     log_revert_change
     is_deployed_tag
     is_deployed_change
-    check_requires
-    check_conflicts
+    is_satisfied_depend
     latest_change_id
     deployed_change_ids
     deployed_change_ids_since
@@ -188,8 +185,6 @@ my $change = App::Sqitch::Plan::Change->new( name => 'foo', plan => $sqitch->pla
 ok $engine->deploy_change($change), 'Deploy a change';
 is_deeply $engine->seen, [
     ['begin_work'],
-    [check_conflicts => $change ],
-    [check_requires => $change ],
     [run_file => $change->deploy_file ],
     [log_deploy_change => $change ],
     ['finish_work'],
@@ -205,8 +200,6 @@ throws_ok { $engine->deploy_change($change) } 'App::Sqitch::X',
 is $@->message, 'AAAH!', 'Error should be from run_file';
 is_deeply $engine->seen, [
     ['begin_work'],
-    [check_conflicts => $change ],
-    [check_requires => $change ],
     [log_fail_change => $change ],
     ['finish_work'],
 ], 'Should have logged change failure';
@@ -290,12 +283,8 @@ is_deeply $engine->seen, [
     'initialized',
     'initialize',
     'register_project',
-    [check_conflicts => $changes[0] ],
-    [check_requires => $changes[0] ],
     [run_file => $changes[0]->deploy_file],
     [log_deploy_change => $changes[0]],
-    [check_conflicts => $changes[1] ],
-    [check_requires => $changes[1] ],
     [run_file => $changes[1]->deploy_file],
     [log_deploy_change => $changes[1]],
 ], 'Should have deployed through @alpha';
@@ -322,12 +311,8 @@ is_deeply $engine->seen, [
     [latest_change_id => undef],
     'initialized',
     'register_project',
-    [check_conflicts => $changes[0] ],
-    [check_requires => $changes[0] ],
     [run_file => $changes[0]->deploy_file],
     [log_deploy_change => $changes[0]],
-    [check_conflicts => $changes[1] ],
-    [check_requires => $changes[1] ],
     [run_file => $changes[1]->deploy_file],
     [log_deploy_change => $changes[1]],
 ], 'Should have deployed through @alpha without initialization';
@@ -385,20 +370,12 @@ is_deeply $engine->seen, [
     [latest_change_id => undef],
     'initialized',
     'register_project',
-    [check_conflicts => $changes[0] ],
-    [check_requires => $changes[0] ],
     [run_file => $changes[0]->deploy_file],
     [log_deploy_change => $changes[0]],
-    [check_conflicts => $changes[1] ],
-    [check_requires => $changes[1] ],
     [run_file => $changes[1]->deploy_file],
     [log_deploy_change => $changes[1]],
-    [check_conflicts => $changes[2] ],
-    [check_requires => $changes[2] ],
     [run_file => $changes[2]->deploy_file],
     [log_deploy_change => $changes[2]],
-    [check_conflicts => $changes[3] ],
-    [check_requires => $changes[3] ],
     [run_file => $changes[3]->deploy_file],
     [log_deploy_change => $changes[3]],
 ], 'Should have deployed everything';
@@ -464,12 +441,8 @@ $plan->reset;
 $mock_engine->unmock('_deploy_by_change');
 ok $engine->_deploy_by_change($plan, 1), 'Deploy changewise to index 1';
 is_deeply $engine->seen, [
-    [check_conflicts => $changes[0] ],
-    [check_requires => $changes[0] ],
     [run_file => $changes[0]->deploy_file],
     [log_deploy_change => $changes[0]],
-    [check_conflicts => $changes[1] ],
-    [check_requires => $changes[1] ],
     [run_file => $changes[1]->deploy_file],
     [log_deploy_change => $changes[1]],
 ], 'Should changewise deploy to index 2';
@@ -480,12 +453,8 @@ is_deeply +MockOutput->get_info, [
 
 ok $engine->_deploy_by_change($plan, 3), 'Deploy changewise to index 2';
 is_deeply $engine->seen, [
-    [check_conflicts => $changes[2] ],
-    [check_requires => $changes[2] ],
     [run_file => $changes[2]->deploy_file],
     [log_deploy_change => $changes[2]],
-    [check_conflicts => $changes[3] ],
-    [check_requires => $changes[3] ],
     [run_file => $changes[3]->deploy_file],
     [log_deploy_change => $changes[3]],
 ], 'Should changewise deploy to from index 2 to index 3';
@@ -501,8 +470,6 @@ throws_ok { $engine->_deploy_by_change($plan, 2) } 'App::Sqitch::X',
     'Die in _deploy_by_change';
 is $@->message, 'AAAH!', 'It should have died in run_file';
 is_deeply $engine->seen, [
-    [check_conflicts => $changes[0] ],
-    [check_requires => $changes[0] ],
     [log_fail_change => $changes[0] ],
 ], 'It should have logged the failure';
 is_deeply +MockOutput->get_info, [
@@ -517,12 +484,8 @@ $mock_engine->unmock('_deploy_by_tag');
 ok $engine->_deploy_by_tag($plan, 1), 'Deploy tagwise to index 1';
 
 is_deeply $engine->seen, [
-    [check_conflicts => $changes[0] ],
-    [check_requires => $changes[0] ],
     [run_file => $changes[0]->deploy_file],
     [log_deploy_change => $changes[0]],
-    [check_conflicts => $changes[1] ],
-    [check_requires => $changes[1] ],
     [run_file => $changes[1]->deploy_file],
     [log_deploy_change => $changes[1]],
 ], 'Should tagwise deploy to index 1';
@@ -533,12 +496,8 @@ is_deeply +MockOutput->get_info, [
 
 ok $engine->_deploy_by_tag($plan, 3), 'Deploy tagwise to index 3';
 is_deeply $engine->seen, [
-    [check_conflicts => $changes[2] ],
-    [check_requires => $changes[2] ],
     [run_file => $changes[2]->deploy_file],
     [log_deploy_change => $changes[2]],
-    [check_conflicts => $changes[3] ],
-    [check_requires => $changes[3] ],
     [run_file => $changes[3]->deploy_file],
     [log_deploy_change => $changes[3]],
 ], 'Should tagwise deploy from index 2 to index 3';
@@ -560,17 +519,9 @@ throws_ok { $engine->_deploy_by_tag($plan, $#changes) } 'App::Sqitch::X',
     'Die in log_deploy_change';
 is $@->message, __('Deploy failed'), 'Should get final deploy failure message';
 is_deeply $engine->seen, [
-    [check_conflicts => $changes[2] ],
-    [check_requires => $changes[2] ],
     [run_file => $changes[2]->deploy_file],
-    [check_conflicts => $changes[3] ],
-    [check_requires => $changes[3] ],
     [run_file => $changes[3]->deploy_file],
-    [check_conflicts => $changes[4] ],
-    [check_requires => $changes[4] ],
     [run_file => $changes[4]->deploy_file],
-    [check_conflicts => $changes[5] ],
-    [check_requires => $changes[5] ],
     [run_file => $changes[5]->deploy_file],
     [log_fail_change => $changes[5] ],
     [run_file => $changes[4]->revert_file],
@@ -600,11 +551,7 @@ throws_ok { $engine->_deploy_by_tag($plan, $plan->count -1 ) } 'App::Sqitch::X',
     'Die in _deploy_by_tag again';
 is $@->message, __('Deploy failed'), 'Should again get final deploy failure message';
 is_deeply $engine->seen, [
-    [check_conflicts => $changes[0] ],
-    [check_requires => $changes[0] ],
     [log_deploy_change => $changes[0]],
-    [check_conflicts => $changes[1] ],
-    [check_requires => $changes[1] ],
     [log_fail_change => $changes[1]],
     [log_revert_change => $changes[0]],
 ], 'Should have logged back to the beginning';
@@ -632,26 +579,12 @@ throws_ok { $engine->_deploy_by_tag($plan, $plan->count -1 ) } 'App::Sqitch::X',
     'Die in _deploy_by_tag yet again';
 is $@->message, __('Deploy failed'), 'Should die "Deploy failed" again';
 is_deeply $engine->seen, [
-    [check_conflicts => $changes[0] ],
-    [check_requires => $changes[0] ],
     [log_deploy_change => $changes[0]],
-    [check_conflicts => $changes[1] ],
-    [check_requires => $changes[1] ],
     [log_deploy_change => $changes[1]],
-    [check_conflicts => $changes[2] ],
-    [check_requires => $changes[2] ],
     [log_deploy_change => $changes[2]],
-    [check_conflicts => $changes[3] ],
-    [check_requires => $changes[3] ],
     [log_deploy_change => $changes[3]],
-    [check_conflicts => $changes[4] ],
-    [check_requires => $changes[4] ],
     [log_deploy_change => $changes[4]],
-    [check_conflicts => $changes[5] ],
-    [check_requires => $changes[5] ],
     [log_deploy_change => $changes[5]],
-    [check_conflicts => $changes[6] ],
-    [check_requires => $changes[6] ],
     [log_fail_change => $changes[6]],
     [log_revert_change => $changes[5] ],
     [log_revert_change => $changes[4] ],
@@ -688,11 +621,7 @@ throws_ok { $engine->_deploy_by_tag($plan, $plan->count -1 ) } 'App::Sqitch::X',
     'Die in _deploy_by_tag again';
 is $@->message, __('Deploy failed'), 'Should once again get final deploy failure message';
 is_deeply $engine->seen, [
-    [check_conflicts => $changes[0] ],
-    [check_requires => $changes[0] ],
     [log_deploy_change => $changes[0] ],
-    [check_conflicts => $changes[1] ],
-    [check_requires => $changes[1] ],
     [log_fail_change => $changes[1] ],
 ], 'Should have tried to revert one change';
 is_deeply +MockOutput->get_info, [
@@ -715,12 +644,8 @@ $mock_engine->unmock('_deploy_all');
 ok $engine->_deploy_all($plan, 1), 'Deploy all to index 1';
 
 is_deeply $engine->seen, [
-    [check_conflicts => $changes[0] ],
-    [check_requires => $changes[0] ],
     [run_file => $changes[0]->deploy_file],
     [log_deploy_change => $changes[0]],
-    [check_conflicts => $changes[1] ],
-    [check_requires => $changes[1] ],
     [run_file => $changes[1]->deploy_file],
     [log_deploy_change => $changes[1]],
 ], 'Should tagwise deploy to index 1';
@@ -731,8 +656,6 @@ is_deeply +MockOutput->get_info, [
 
 ok $engine->_deploy_all($plan, 2), 'Deploy tagwise to index 2';
 is_deeply $engine->seen, [
-    [check_conflicts => $changes[2] ],
-    [check_requires => $changes[2] ],
     [run_file => $changes[2]->deploy_file],
     [log_deploy_change => $changes[2]],
 ], 'Should tagwise deploy to from index 1 to index 2';
@@ -748,14 +671,8 @@ throws_ok { $engine->_deploy_all($plan, 3) } 'App::Sqitch::X',
 is $@->message, __('Deploy failed'), 'Should get final deploy failure message';
 $mock_whu->unmock('log_deploy_change');
 is_deeply $engine->seen, [
-    [check_conflicts => $changes[0] ],
-    [check_requires => $changes[0] ],
     [run_file => $changes[0]->deploy_file],
-    [check_conflicts => $changes[1] ],
-    [check_requires => $changes[1] ],
     [run_file => $changes[1]->deploy_file],
-    [check_conflicts => $changes[2] ],
-    [check_requires => $changes[2] ],
     [run_file => $changes[2]->deploy_file],
     [log_fail_change => $changes[2]],
     [run_file => $changes[1]->revert_file],
@@ -784,14 +701,8 @@ throws_ok { $engine->_deploy_all($plan, $plan->count -1 ) } 'App::Sqitch::X',
     'Die in _deploy_all again';
 is $@->message, __('Deploy failed'), 'Should again get final deploy failure message';
 is_deeply $engine->seen, [
-    [check_conflicts => $changes[0] ],
-    [check_requires => $changes[0] ],
     [log_deploy_change => $changes[0]],
-    [check_conflicts => $changes[1] ],
-    [check_requires => $changes[1] ],
     [log_deploy_change => $changes[1]],
-    [check_conflicts => $changes[2] ],
-    [check_requires => $changes[2] ],
     [log_fail_change => $changes[2]],
     [log_revert_change => $changes[1]],
     [log_revert_change => $changes[0]],
@@ -816,17 +727,9 @@ throws_ok { $engine->_deploy_all($plan, $plan->count -1 ) } 'App::Sqitch::X',
     'Die in _deploy_all on the last change';
 is $@->message, __('Deploy failed'), 'Should once again get final deploy failure message';
 is_deeply $engine->seen, [
-    [check_conflicts => $changes[3] ],
-    [check_requires => $changes[3] ],
     [log_deploy_change => $changes[3]],
-    [check_conflicts => $changes[4] ],
-    [check_requires => $changes[4] ],
     [log_deploy_change => $changes[4]],
-    [check_conflicts => $changes[5] ],
-    [check_requires => $changes[5] ],
     [log_deploy_change => $changes[5]],
-    [check_conflicts => $changes[6] ],
-    [check_requires => $changes[6] ],
     [log_fail_change => $changes[6]],
     [log_revert_change => $changes[5]],
     [log_revert_change => $changes[4]],
@@ -871,8 +774,6 @@ is_deeply $engine->seen, [
 can_ok $engine, 'deploy_change';
 ok $engine->deploy_change($change), 'Deploy a change';
 is_deeply $engine->seen, [
-    [check_conflicts => $change],
-    [check_requires => $change],
     [run_file => $change->deploy_file],
     [log_deploy_change => $change],
 ], 'It should have been deployed';
@@ -880,10 +781,9 @@ is_deeply +MockOutput->get_info, [
     ['  + ', $change->format_name]
 ], 'Should have shown change name';
 
-# Die on conflicts.
 my $make_deps = sub {
     my $conflicts = shift;
-    map {
+    return map {
         my $dep = App::Sqitch::Plan::Depend->new(
             %{ App::Sqitch::Plan::Depend->parse( $_ ) },
             plan      => $plan,
@@ -893,62 +793,90 @@ my $make_deps = sub {
         $dep;
     } @_;
 };
-@conflicts = $make_deps->(1, qw(foo bar));
-throws_ok { $engine->deploy_change($change) } 'App::Sqitch::X',
-    'Conflict should throw exception';
-is $@->ident, 'deploy', 'Should be a "deploy" error';
-is $@->message, __nx(
-    'Conflicts with previously deployed change: {changes}',
-    'Conflicts with previously deployed changes: {changes}',
-    scalar 2,
-    changes => 'foo bar',
-), 'Should have localized message about conflicts';
 
-is_deeply $engine->seen, [
-    [check_conflicts => $change],
-], 'No other methods should have been called';
-is_deeply +MockOutput->get_info, [
-    ['  + ', $change->format_name]
-], 'Should again have shown change name';
-@conflicts = ();
+CONFLICTS: {
+    # Die on conflicts.
+    my @conflicts = $make_deps->( 1, qw(foo bar) );
+    my $change = App::Sqitch::Plan::Change->new(
+        name      => 'foo',
+        plan      => $sqitch->plan,
+        conflicts => \@conflicts,
+    );
+    push @satisfied, 1, 1;
+    throws_ok { $engine->deploy_change($change) } 'App::Sqitch::X',
+        'Conflict should throw exception';
+    is $@->ident, 'deploy', 'Should be a "deploy" error';
+    is $@->message, __nx(
+        'Conflicts with previously deployed change: {changes}',
+        'Conflicts with previously deployed changes: {changes}',
+        scalar 2,
+        changes => 'foo bar',
+    ), 'Should have localized message about conflicts';
 
-# Die on missing dependencies.
-@missing_requires = $make_deps->(0, qw(foo bar));
-throws_ok { $engine->deploy_change($change) } 'App::Sqitch::X',
-    'Missing dependencies should throw exception';
-is $@->ident, 'deploy', 'Should be another "deploy" error';
-is $@->message, __nx(
-    'Missing required change: {changes}',
-    'Missing required changes: {changes}',
-    scalar 2,
-    changes => 'foo bar',
-), 'Should have localized message missing dependencies';
+    is_deeply $engine->seen, [
+        [ is_satisfied_depend => $conflicts[0] ],
+        [ is_satisfied_depend => $conflicts[1] ],
+    ], 'No other methods should have been called';
+    is_deeply +MockOutput->get_info, [
+        ['  + ', $change->format_name]
+    ], 'Should again have shown change name';
+}
 
-is_deeply $engine->seen, [
-    [check_conflicts => $change],
-    [check_requires => $change],
-], 'Should have called check_requires';
-is_deeply +MockOutput->get_info, [
-    ['  + ', $change->format_name]
-], 'Should again have shown change name';
-@missing_requires = ();
+REQUIRES: {
+    # Die on missing dependencies.
+    my @requires = $make_deps->( 0, qw(foo bar) );
+    my $change = App::Sqitch::Plan::Change->new(
+        name      => 'foo',
+        plan      => $sqitch->plan,
+        requires  => \@requires,
+    );
+    push @satisfied, 0, 0;
+    throws_ok { $engine->deploy_change($change) } 'App::Sqitch::X',
+        'Missing dependencies should throw exception';
+    is $@->ident, 'deploy', 'Should be another "deploy" error';
+    is $@->message, __nx(
+        'Missing required change: {changes}',
+        'Missing required changes: {changes}',
+        scalar 2,
+        changes => 'foo bar',
+    ), 'Should have localized message missing dependencies';
 
-# Now make it die on the actual deploy.
-$die = 'log_deploy_change';
-throws_ok { $engine->deploy_change($change) } 'App::Sqitch::X',
-    'Shuld die on deploy failure';
-is $@->message, 'AAAH!', 'Should be the underlying error';
-is_deeply $engine->seen, [
-    [check_conflicts => $change],
-    [check_requires => $change],
-    [run_file => $change->deploy_file],
-    [log_fail_change => $change],
-], 'It should failed to have been deployed';
-is_deeply +MockOutput->get_info, [
-    ['  + ', $change->format_name]
-], 'Should have shown change name';
+    is_deeply $engine->seen, [
+        [ is_satisfied_depend => $requires[0] ],
+        [ is_satisfied_depend => $requires[1] ],
+    ], 'Should have called check_requires';
+    is_deeply +MockOutput->get_info, [
+        ['  + ', $change->format_name]
+    ], 'Should again have shown change name';
+}
 
-$die = '';
+DEPLOYDIE: {
+    # Now make it die on the actual deploy.
+    $die = 'log_deploy_change';
+    my @requires  = $make_deps->( 0, qw(foo bar) );
+    my @conflicts = $make_deps->( 1, qw(dr_evil) );
+    my $change    = App::Sqitch::Plan::Change->new(
+        name      => 'foo',
+        plan      => $sqitch->plan,
+        requires  => \@requires,
+        conflicts => \@conflicts,
+    );
+    @satisfied = (0, 1, 1);
+    throws_ok { $engine->deploy_change($change) } 'App::Sqitch::X',
+        'Shuld die on deploy failure';
+    is $@->message, 'AAAH!', 'Should be the underlying error';
+    is_deeply $engine->seen, [
+        [ is_satisfied_depend => $conflicts[0] ],
+        [ is_satisfied_depend => $requires[0]  ],
+        [ is_satisfied_depend => $requires[1]  ],
+        [run_file => $change->deploy_file],
+        [log_fail_change => $change],
+    ], 'It should failed to have been deployed';
+    is_deeply +MockOutput->get_info, [
+        ['  + ', $change->format_name]
+    ], 'Should have shown change name';
+    $die = '';
+}
 
 ##############################################################################
 # Test revert_change().

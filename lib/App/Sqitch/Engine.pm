@@ -282,7 +282,9 @@ sub deploy_change {
     $self->begin_work;
 
     # Check for conflicts.
-    if (my @conflicts = $self->check_conflicts($change)) {
+    if (my @conflicts = grep {
+        $self->is_satisfied_depend($_)
+    } $change->conflicts) {
         hurl deploy => __nx(
             'Conflicts with previously deployed change: {changes}',
             'Conflicts with previously deployed changes: {changes}',
@@ -292,7 +294,9 @@ sub deploy_change {
     }
 
     # Check for dependencies.
-    if (my @required = $self->check_requires($change)) {
+    if (my @required = grep {
+        !$self->is_satisfied_depend($_)
+    } $change->requires) {
         hurl deploy => __nx(
             'Missing required change: {changes}',
             'Missing required changes: {changes}',
@@ -385,14 +389,9 @@ sub is_deployed_change {
     hurl "$class has not implemented is_deployed_change()";
 }
 
-sub check_requires {
+sub is_satisfied_depend {
     my $class = ref $_[0] || $_[0];
-    hurl "$class has not implemented check_requires()";
-}
-
-sub check_conflicts {
-    my $class = ref $_[0] || $_[0];
-    hurl "$class has not implemented check_conflicts()";
+    hurl "$class has not implemented is_satisfied_depend()";
 }
 
 sub latest_change_id {
