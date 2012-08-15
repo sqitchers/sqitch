@@ -25,12 +25,13 @@ ok my $sqitch = App::Sqitch->new(
 my $config = $sqitch->config;
 
 sub dep($$) {
-    App::Sqitch::Plan::Depend->new(
-        project => 'add',
-        plan    => $sqitch->plan,
+    my $dep = App::Sqitch::Plan::Depend->new(
         %{ App::Sqitch::Plan::Depend->parse( $_[1] ) },
+        plan      => $sqitch->plan,
         conflicts => $_[0],
     );
+    $dep->project;
+    return $dep;
 }
 
 isa_ok my $add = App::Sqitch::Command->load({

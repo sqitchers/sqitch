@@ -23,14 +23,14 @@ ok my $sqitch = App::Sqitch->new(
     top_dir => Path::Class::Dir->new('sql'),
 ), 'Load a sqitch sqitch object';
 
-my $proj = 'rework';
 sub dep($) {
-    App::Sqitch::Plan::Depend->new(
+    my $dep = App::Sqitch::Plan::Depend->new(
         conflicts => 0,
         %{ App::Sqitch::Plan::Depend->parse(shift) },
-        plan => $sqitch->plan,
-        project => $proj,
-    )
+        plan      => $sqitch->plan,
+    );
+    $dep->project;
+    return $dep;
 }
 
 my $config = $sqitch->config;
@@ -82,7 +82,6 @@ my $plan_file = $sqitch->plan_file;
 my $fh = $plan_file->open('>') or die "Cannot open $plan_file: $!";
 say $fh '%project=empty', $/, $/;
 $fh->close or die "Error closing $plan_file: $!";
-$proj = 'empty';
 
 my $plan = $sqitch->plan;
 
