@@ -556,12 +556,13 @@ sub _dt($) {
 }
 
 sub current_state {
-    my $self  = shift;
+    my ( $self, $project ) = @_;
     my $ddtcol = _ts2char 'committed_at';
     my $pdtcol = _ts2char 'planned_at';
     my $state = $self->_dbh->selectrow_hashref(qq{
         SELECT change_id
              , change
+             , project
              , note
              , committer_name
              , committer_email
@@ -576,9 +577,10 @@ sub current_state {
                   ORDER BY committed_at
              ) AS tags
           FROM changes
+         WHERE project = ?
          ORDER BY changes.committed_at DESC
          LIMIT 1
-    }) or return undef;
+    }, undef, $project // $self->plan->project ) or return undef;
     $state->{committed_at} = _dt $state->{committed_at};
     $state->{planned_at}   = _dt $state->{planned_at};
     return $state;

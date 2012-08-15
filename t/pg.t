@@ -387,6 +387,7 @@ subtest 'live database' => sub {
         'committed_at value';
     is $dt->time_zone->name, 'UTC', 'committed_at TZ should be UTC';
     is_deeply $state, {
+        project         => 'pg',
         change_id       => $change->id,
         change          => 'users',
         note            => '',
@@ -617,6 +618,7 @@ subtest 'live database' => sub {
         'committed_at value';
     is $dt->time_zone->name, 'UTC', 'committed_at TZ should be UTC';
     is_deeply $state, {
+        project         => 'pg',
         change_id       => $change2->id,
         change          => 'widgets',
         note            => 'All in',
@@ -733,6 +735,7 @@ subtest 'live database' => sub {
         'committed_at value';
     is $dt->time_zone->name, 'UTC', 'committed_at TZ should be UTC';
     is_deeply $state, {
+        project         => 'pg',
         change_id       => $change2->id,
         change          => 'widgets',
         note            => 'All in',
@@ -794,6 +797,7 @@ subtest 'live database' => sub {
 
     is $pg->latest_change_id, $barney->id, 'Latest change should be "barney"';
     is_deeply $pg->current_state, {
+        project         => 'pg',
         change_id       => $barney->id,
         change          => 'barney',
         note            => '',
@@ -1007,6 +1011,25 @@ subtest 'live database' => sub {
     is $@->ident, 'DEV', 'Invalid search params error ident should be "DEV"';
     is $@->message, 'Invalid parameters passed to search_events(): bar, foo',
         'Invalid search params error message should be correct';
+
+    ##########################################################################
+    # Now that we have a change from an externa project, get its state.
+    ok $state = $pg->current_state('groovy'), 'Get the "groovy" state';
+    isa_ok $dt = delete $state->{committed_at}, 'App::Sqitch::DateTime',
+        'groofy committed_at value';
+    is $dt->time_zone->name, 'UTC', 'groovy committed_at TZ should be UTC';
+    is_deeply $state, {
+        project         => 'groovy',
+        change_id       => $ext_change->id,
+        change          => $ext_change->name,
+        note            => '',
+        committer_name  => $sqitch->user_name,
+        committer_email => $sqitch->user_email,
+        tags            => [],
+        planner_name    => $ext_change->planner_name,
+        planner_email   => $ext_change->planner_email,
+        planned_at      => $ext_change->timestamp,
+    }, 'The rest of the state should look right';
 
     ##########################################################################
     # Test is_satisfied_depend.

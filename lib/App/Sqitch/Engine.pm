@@ -730,13 +730,21 @@ methods of L<App::Sqitch::Plan>.
 =head3 C<current_state>
 
   my $state = $engine->current_state;
+  my $state = $engine->current_state($project);
 
-Returns a hash reference representing the current state of the database, or
-C<undef> if the database has no changes deployed. The hash contains
-information about the last successfully deployed change, as well as any
-associated tags. The keys to the hash should include:
+Returns a hash reference representing the current project deployment state of
+the database, or C<undef> if the database has no changes deployed. If a
+project name is passed, the state will be returned for that project. Otherwise,
+the state will be returned for the local project.
+
+The hash contains information about the last successfully deployed change, as
+well as any associated tags. The keys to the hash should include:
 
 =over
+
+=item C<project>
+
+The name of the project for which the state is reported.
 
 =item C<change_id>
 
