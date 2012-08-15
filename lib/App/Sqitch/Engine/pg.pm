@@ -651,6 +651,7 @@ sub search_events {
         [ committer => 'committer_name' ],
         [ planner   => 'planner_name'   ],
         [ change    => 'change'         ],
+        [ project   => 'project'        ],
     ) {
         my $regex = delete $p{ $spec->[0] } // next;
         push @wheres => "$spec->[1] ~ ?";
@@ -678,6 +679,7 @@ sub search_events {
     my $pdtcol = _ts2char 'planned_at';
     my $sth = $self->_dbh->prepare(qq{
         SELECT event
+             , project
              , change_id
              , change
              , note

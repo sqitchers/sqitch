@@ -419,6 +419,7 @@ subtest 'live database' => sub {
     }], 'Should have one current tags';
     my @events = ({
         event           => 'deploy',
+        project         => 'pg',
         change_id       => $change->id,
         change          => 'users',
         note            => '',
@@ -471,6 +472,7 @@ subtest 'live database' => sub {
 
     unshift @events => {
         event           => 'revert',
+        project         => 'pg',
         change_id       => $change->id,
         change          => 'users',
         note            => '',
@@ -515,6 +517,7 @@ subtest 'live database' => sub {
 
     unshift @events => {
         event           => 'fail',
+        project         => 'pg',
         change_id       => $change->id,
         change          => 'users',
         note            => '',
@@ -668,6 +671,7 @@ subtest 'live database' => sub {
 
     unshift @events => {
         event           => 'deploy',
+        project         => 'pg',
         change_id       => $change2->id,
         change          => 'widgets',
         note            => 'All in',
@@ -682,6 +686,7 @@ subtest 'live database' => sub {
         planned_at      => $change2->timestamp,
     }, {
         event           => 'deploy',
+        project         => 'pg',
         change_id       => $change->id,
         change          => 'users',
         note            => '',
@@ -745,6 +750,7 @@ subtest 'live database' => sub {
 
     unshift @events => {
         event           => 'deploy',
+        project         => 'pg',
         change_id       => $change2->id,
         change          => 'widgets',
         note            => 'All in',
@@ -759,6 +765,7 @@ subtest 'live database' => sub {
         planned_at      => $change2->timestamp,
     }, {
         event           => 'revert',
+        project         => 'pg',
         change_id       => $change2->id,
         change          => 'widgets',
         note            => 'All in',
@@ -849,6 +856,7 @@ subtest 'live database' => sub {
 
     unshift @events => {
         event           => 'deploy',
+        project         => 'pg',
         change_id       => $barney->id,
         change          => 'barney',
         note            => '',
@@ -863,6 +871,7 @@ subtest 'live database' => sub {
         planned_at      => $barney->timestamp,
     }, {
         event           => 'deploy',
+        project         => 'pg',
         change_id       => $fred->id,
         change          => 'fred',
         note            => '',
@@ -951,6 +960,41 @@ subtest 'live database' => sub {
         'The event param should work with "deploy", "revert", and "fail"';
     is_deeply all( $pg->search_events( event => ['foo'] ) ), [],
         'The event param should return nothing for "foo"';
+
+    # Add an external project event.
+    ok my $ext_plan = App::Sqitch::Plan->new(
+        sqitch => $sqitch,
+        project => 'groovy',
+    ), 'Create external plan';
+    ok my $ext_change = App::Sqitch::Plan::Change->new(
+        plan => $ext_plan,
+        name => 'crazyman',
+    ), "Create external change";
+    ok $pg->log_deploy_change($ext_change), 'Log the external change';
+    my $ext_event = {
+        event           => 'deploy',
+        project         => 'groovy',
+        change_id       => $ext_change->id,
+        change          => $ext_change->name,
+        note            => '',
+        requires        => [],
+        conflicts       => [],
+        tags            => [],
+        committer_name  => $user2_name,
+        committer_email => $user2_email,
+        committed_at    => dt_for_event(9),
+        planner_name    => $user2_name,
+        planner_email   => $user2_email,
+        planned_at      => $ext_change->timestamp,
+    };
+    is_deeply all( $pg->search_events( project => '^pg$' ) ), \@events,
+        'The project param to search_events should work';
+    is_deeply all( $pg->search_events( project => '^groovy$' ) ), [$ext_event],
+        'The project param to search_events should work with external project';
+    is_deeply all( $pg->search_events( project => 'g' ) ), [$ext_event, @events],
+        'The project param to search_events should match across projects';
+    is_deeply all( $pg->search_events( project => 'nonexistent' ) ), [],
+        qq{Project regex should fail to match with "nonexistent"};
 
     throws_ok { $pg->search_events(foo => 1) } 'App::Sqitch::X',
         'Should catch exception for invalid search param';

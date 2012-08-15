@@ -899,6 +899,11 @@ are:
 An array of the type of event to search for. Allowed values are "deploy",
 "revert", and "fail".
 
+=item C<project>
+
+Limit the events to those with project names matching the specified regular
+expression.
+
 =item C<change>
 
 Limit the events to those with changes matching the specified regular
@@ -941,6 +946,10 @@ The type of event, which is one of:
 =item C<fail>
 
 =back
+
+=item C<project>
+
+The name of the project with which the change is associated.
 
 =item C<change_id>
 
