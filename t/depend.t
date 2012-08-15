@@ -4,8 +4,8 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-#use Test::More tests => 98;
-use Test::More 'no_plan';
+use Test::More tests => 220;
+#use Test::More 'no_plan';
 use Test::Exception;
 #use Test::NoWarnings;
 use App::Sqitch;
@@ -86,18 +86,22 @@ for my $spec(
         is $depend->project, $prj, qq{Should have project "$prj" for "$exp"};
         if ($prj eq $plan->project) {
             ok !$depend->is_external, qq{"$exp" should not be external};
+            ok $depend->is_internal, qq{"$exp" should be internal};
         } else {
             ok $depend->is_external, qq{"$exp" should be external};
+            ok !$depend->is_internal, qq{"$exp" should not be internal};
         }
     } elsif ($depend->change || $depend->tag) {
         # No ID, default to current project.
         my $prj = $plan->project;
         is $depend->project, $prj, qq{Should have project "$prj" for "$exp"};
         ok !$depend->is_external, qq{"$exp" should not be external};
+        ok $depend->is_internal, qq{"$exp" should be internal};
     } else {
         # ID specified, but no project, and ID not in plan, so unknown project.
         is $depend->project, undef, qq{Should have undef project for "$exp"};
         ok $depend->is_external, qq{"$exp" should be external};
+        ok !$depend->is_internal, qq{"$exp" should not be internal};
     }
 }
 
@@ -136,6 +140,7 @@ ok my $depend = $CLASS->new(
 is $depend->id, $plan->find('roles')->id,
     'Should find the "roles" ID in the plan';
 ok !$depend->is_external, 'The "roles" change should not be external';
+ok $depend->is_internal, 'The "roles" change should be internal';
 
 ok $depend = $CLASS->new(
     plan    => $plan,
@@ -143,6 +148,7 @@ ok $depend = $CLASS->new(
 ), 'Create "elsewhere:roles" dependency';
 is $depend->id, undef, 'The "elsewhere:roles" id should be undef';
 ok $depend->is_external, 'The "elsewhere:roles" change should be external';
+ok !$depend->is_internal, 'The "elsewhere:roles" change should not be internal';
 
 ok $depend = $CLASS->new(
     plan => $plan,
@@ -150,6 +156,7 @@ ok $depend = $CLASS->new(
 ), 'Create depend using external ID';
 is $depend->id, $id, 'The external ID should be set';
 ok $depend->is_external, 'The external ID should register as external';
+ok !$depend->is_internal, 'The external ID should not register as internal';
 
 $id = $plan->find('roles')->id;
 ok $depend = $CLASS->new(
@@ -157,7 +164,8 @@ ok $depend = $CLASS->new(
     id   => $id,
 ), 'Create depend using "roles" ID';
 is $depend->id, $id, 'The "roles" ID should be set';
-ok !$depend->is_external, 'The "roles" ID should register as local';
+ok !$depend->is_external, 'The "roles" ID should not register as external';
+ok $depend->is_internal, 'The "roles" ID should register as internal';
 
 ok $depend = $CLASS->new(
     plan    => $plan,

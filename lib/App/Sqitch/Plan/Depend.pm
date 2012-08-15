@@ -92,7 +92,8 @@ has is_external => (
     },
 );
 
-sub required { shift->conflicts ? 0 : 1 }
+sub required    { shift->conflicts   ? 0 : 1 }
+sub is_internal { shift->is_external ? 0 : 1 }
 
 sub BUILDARGS {
     my $class = shift;
@@ -103,7 +104,7 @@ sub BUILDARGS {
     hurl 'Depend object cannot contain both an ID and a tag or change'
         if $p->{id} && (length $p->{change} || length $p->{tag});
 
-    $p->{_id_passed} = $p->{id} ? 1 : 0;
+    $p->{_id_passed}      = defined $p->{id}      ? 1 : 0;
 
     return $p;
 }
@@ -276,6 +277,16 @@ is a change-only dependency.
 
 Returns the ID of the change if the dependency was specifed as an ID, or if
 the dependency is a local dependency.
+
+=head3 C<is_external>
+
+Returns true if the dependency references a change external to the current
+project, and false if it is part of the current project.
+
+=head3 C<is_internal>
+
+The opposite of C<is_external()>: returns true if the dependency is in the
+internal (current) project, and false if not.
 
 =head2 Instance Methods
 
