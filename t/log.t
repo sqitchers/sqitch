@@ -214,6 +214,7 @@ my $praw = $pdt->as_string( format => 'raw' );
 for my $spec (
     [ raw => "deploy 000011112222333444 (\@beta, \@gamma)\n"
         . "name      lolz\n"
+        . "project   logit\n"
         . "requires  foo, bar\n"
         . "planner   damian <damian\@example.com>\n"
         . "planned   $praw\n"
@@ -223,6 +224,7 @@ for my $spec (
     ],
     [ full =>  __ 'Deploy' . " 000011112222333444 (\@beta, \@gamma)\n"
         . __ 'Name:' . "      lolz\n"
+        . __ 'Project:' . "   logit\n"
         . __ 'Requires: ' . " foo, bar\n"
         . __ 'Planner:' . "   damian <damian\@example.com>\n"
         . __ 'Planned:' . "   __PDATE__\n"
@@ -232,6 +234,7 @@ for my $spec (
     ],
     [ long =>  __ 'Deploy' . " 000011112222333444 (\@beta, \@gamma)\n"
         . __ 'Name:' . "      lolz\n"
+        . __ 'Project:' . "   logit\n"
         . __ 'Planner:' . "   damian <damian\@example.com>\n"
         . __ 'Committer:' . " larry <larry\@example.com>\n\n"
         . "    For the LOLZ.\n    \n    You know, funny stuff and cute kittens, right?\n"
@@ -247,7 +250,7 @@ for my $spec (
         . __ 'Committer:' . " larry <larry\@example.com>\n\n"
         . "    For the LOLZ.\n",
     ],
-    [ oneline => '000011112222333444 deploy lolz For the LOLZ.' ],
+    [ oneline => '000011112222333444 deploy logit:lolz For the LOLZ.' ],
 ) {
     my $format = $CLASS->configure( $config, { format => $spec->[0] } )->{format};
     ok my $log = $CLASS->new( sqitch => $sqitch, format => $format ),
@@ -497,6 +500,7 @@ for my $spec (
     [ full => sprintf($green, __ 'Deploy' . ' 000011112222333444')
         . " (\@beta, \@gamma)\n"
         . __ 'Name:' . "      lolz\n"
+        . __ 'Project:' . "   logit\n"
         . __ 'Requires: ' . " foo, bar\n"
         . __ 'Conflicts: ' . "dr_evil\n"
         . __ 'Planner:' . "   damian <damian\@example.com>\n"
@@ -508,6 +512,7 @@ for my $spec (
     [ long => sprintf($green, __ 'Deploy' . ' 000011112222333444')
         . " (\@beta, \@gamma)\n"
         . __ 'Name:' . "      lolz\n"
+        . __ 'Project:' . "   logit\n"
         . __ 'Planner:' . "   damian <damian\@example.com>\n"
         . __ 'Committer:' . " larry <larry\@example.com>\n\n"
         . "    For the LOLZ.\n    \n    You know, funny stuff and cute kittens, right?\n"
@@ -523,7 +528,9 @@ for my $spec (
         . __ 'Committer:' . " larry <larry\@example.com>\n\n"
         . "    For the LOLZ.\n",
     ],
-    [ oneline => sprintf "$green %s %s", '000011112222333444' . ' ' . __('deploy'), 'lolz', 'For the LOLZ.' ],
+    [ oneline => sprintf "$green %s %s", '000011112222333444' . ' '
+        . __('deploy'), 'logit:lolz', 'For the LOLZ.',
+    ],
 ) {
     my $format = $CLASS->configure( $config, { format => $spec->[0] } )->{format};
     ok my $log = $CLASS->new( sqitch => $sqitch, format => $format ),

@@ -27,6 +27,7 @@ my %FORMATS;
 $FORMATS{raw} = <<EOF;
 %{:event}C%e %H%{reset}C%T
 name      %n
+project   %o
 %{requires}a%{conflicts}aplanner   %{name}p <%{email}p>
 planned   %{date:raw}p
 committer %{name}c <%{email}c>
@@ -38,6 +39,7 @@ EOF
 $FORMATS{full} = <<EOF;
 %{:event}C%L %h%{reset}C%T
 %{name}_ %n
+%{project}_ %o
 %R%X%{planner}_ %p
 %{planned}_ %{date}p
 %{committer}_ %c
@@ -49,6 +51,7 @@ EOF
 $FORMATS{long} = <<EOF;
 %{:event}C%L %h%{reset}C%T
 %{name}_ %n
+%{project}_ %o
 %{planner}_ %p
 %{committer}_ %c
 
@@ -72,7 +75,7 @@ $FORMATS{short} = <<EOF;
 %{    }s
 EOF
 
-$FORMATS{oneline} = '%{:event}C%h %l%{reset}C %n %s';
+$FORMATS{oneline} = '%{:event}C%h %l%{reset}C %o:%n %s';
 
 has event => (
     is      => 'ro',
@@ -178,6 +181,7 @@ has formatter => (
                         when ('committed') { return __ 'Committed:' }
                         when ('planned')   { return __ 'Planned:  ' }
                         when ('name')      { return __ 'Name:     ' }
+                        when ('project')   { return __ 'Project:  ' }
                         when ('email')     { return __ 'Email:    ' }
                         when ('requires')  { return __ 'Requires: ' }
                         when ('conflicts') { return __ 'Conflicts:' }
