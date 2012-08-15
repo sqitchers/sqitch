@@ -4,8 +4,8 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 220;
-#use Test::More 'no_plan';
+#use Test::More tests => 220;
+use Test::More 'no_plan';
 use Test::Exception;
 #use Test::NoWarnings;
 use App::Sqitch;
@@ -83,6 +83,7 @@ for my $spec(
     if ($str =~ /^([^:]+):/) {
         # Project specified in spec.
         my $prj = $1;
+        ok $depend->got_project, qq{Should have got project from "$exp"};
         is $depend->project, $prj, qq{Should have project "$prj" for "$exp"};
         if ($prj eq $plan->project) {
             ok !$depend->is_external, qq{"$exp" should not be external};
@@ -91,17 +92,26 @@ for my $spec(
             ok $depend->is_external, qq{"$exp" should be external};
             ok !$depend->is_internal, qq{"$exp" should not be internal};
         }
-    } elsif ($depend->change || $depend->tag) {
-        # No ID, default to current project.
-        my $prj = $plan->project;
-        is $depend->project, $prj, qq{Should have project "$prj" for "$exp"};
-        ok !$depend->is_external, qq{"$exp" should not be external};
-        ok $depend->is_internal, qq{"$exp" should be internal};
     } else {
-        # ID specified, but no project, and ID not in plan, so unknown project.
-        is $depend->project, undef, qq{Should have undef project for "$exp"};
-        ok $depend->is_external, qq{"$exp" should be external};
-        ok !$depend->is_internal, qq{"$exp" should not be internal};
+        ok !$depend->got_project, qq{Should not have got project from "$exp"};
+        if ($depend->change || $depend->tag) {
+            # No ID, default to current project.
+            my $prj = $plan->project;
+            is $depend->project, $prj, qq{Should have project "$prj" for "$exp"};
+            ok !$depend->is_external, qq{"$exp" should not be external};
+            ok $depend->is_internal, qq{"$exp" should be internal};
+        } else {
+            # ID specified, but no project, and ID not in plan, so unknown project.
+            is $depend->project, undef, qq{Should have undef project for "$exp"};
+            ok $depend->is_external, qq{"$exp" should be external};
+            ok !$depend->is_internal, qq{"$exp" should not be internal};
+        }
+    }
+
+    if ($exp =~ /\Q$id\E(?![@])/) {
+        ok $depend->got_id, qq{Should have got ID from "$exp"};
+    } else {
+        ok !$depend->got_id, qq{Should not have got ID from "$exp"};
     }
 }
 

@@ -15,7 +15,13 @@ has conflicts => (
     default  => 0,
 );
 
-has _id_passed => (
+has got_id => (
+    is       => 'ro',
+    isa      => 'Bool',
+    required => 1
+);
+
+has got_project => (
     is       => 'ro',
     isa      => 'Bool',
     required => 1
@@ -31,7 +37,7 @@ has project => (
         my $plan = $self->plan;
 
         # Local project is the default unless an ID was passed.
-        return $plan->project unless $self->_id_passed;
+        return $plan->project unless $self->got_id;
 
         # Local project is default if passed ID is in plan.
         return $plan->project if $plan->find( $self->id );
@@ -104,7 +110,8 @@ sub BUILDARGS {
     hurl 'Depend object cannot contain both an ID and a tag or change'
         if $p->{id} && (length $p->{change} || length $p->{tag});
 
-    $p->{_id_passed}      = defined $p->{id}      ? 1 : 0;
+    $p->{got_id}      = defined $p->{id}      ? 1 : 0;
+    $p->{got_project} = defined $p->{project} ? 1 : 0;
 
     return $p;
 }
@@ -259,6 +266,11 @@ case it is a conflicting dependency).
 
 Returns the name of the project with which the dependency is associated.
 
+=head3 C<got_project>
+
+Returns true if the C<project> parameter was passed to the constructor with a
+defined value, and false if it was not passed to the constructor.
+
 =head3 C<change>
 
   my $change = $depend->change;
@@ -277,6 +289,11 @@ is a change-only dependency.
 
 Returns the ID of the change if the dependency was specifed as an ID, or if
 the dependency is a local dependency.
+
+=head3 C<got_id>
+
+Returns true if the C<id> parameter was passed to the constructor with a
+defined value, and false if it was not passed to the constructor.
 
 =head3 C<is_external>
 
