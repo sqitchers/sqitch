@@ -287,7 +287,7 @@ sub deploy_change {
             'Conflicts with previously deployed change: {changes}',
             'Conflicts with previously deployed changes: {changes}',
             scalar @conflicts,
-            changes => join ' ', @conflicts,
+            changes => join ' ', map { $_->as_string } @conflicts,
         )
     }
 
@@ -297,7 +297,7 @@ sub deploy_change {
             'Missing required change: {changes}',
             'Missing required changes: {changes}',
             scalar @required,
-            changes => join ' ', @required,
+            changes => join ' ', map { $_->as_string } @required,
         );
     }
 
@@ -696,13 +696,13 @@ records necessary to indicate that the change has been reverted.
 =head3 C<check_requires>
 
   if ( my @requires = $engine->requires($change) ) {
-      die "Change requires undeployed changes: @requires\n";
+      die "Change requires undeployed changes: "
+          . join ', ', map { $_->as_string } @requires;
   }
 
-Returns the names of any changes required by the specified change that are not
-currently deployed to the database. If none are returned, the requirements are
-presumed to be satisfied. The engine implementation should compare changes by
-their IDs.
+Returns L<App::Sqitch::Plan::Depend> objects representing required
+dependencies not currently deployed to the database. If none are returned, the
+requirements are presumed to be satisfied.
 
 =head3 C<check_conflicts>
 
@@ -710,13 +710,9 @@ their IDs.
       die "Change conflicts with previously deployed changes: @conflicts\n";
   }
 
-Returns the names of any currently-deployed changes that conflict with specified
-change. If none are returned, there are presumed to be no conflicts.
-
-If any of the changes that conflict with the specified change have been deployed
-to the database, their names should be returned by this method. If no names
-are returned, it's because there are no conflicts. The engine implementation
-should compare changes by their IDs.
+Returns L<App::Sqitch::Plan::Depend> objects representing conflicting
+dependencies currently deployed to the database. If none are returned, there
+are presumed to be no conflicts.
 
 =head3 C<latest_change_id>
 

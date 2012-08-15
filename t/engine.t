@@ -881,15 +881,27 @@ is_deeply +MockOutput->get_info, [
 ], 'Should have shown change name';
 
 # Die on conflicts.
-@conflicts = qw(foo bar);
+my $make_deps = sub {
+    my $conflicts = shift;
+    map {
+        my $dep = App::Sqitch::Plan::Depend->new(
+            %{ App::Sqitch::Plan::Depend->parse( $_ ) },
+            plan      => $plan,
+            conflicts => $conflicts,
+        );
+        $dep->project;
+        $dep;
+    } @_;
+};
+@conflicts = $make_deps->(1, qw(foo bar));
 throws_ok { $engine->deploy_change($change) } 'App::Sqitch::X',
     'Conflict should throw exception';
 is $@->ident, 'deploy', 'Should be a "deploy" error';
 is $@->message, __nx(
     'Conflicts with previously deployed change: {changes}',
     'Conflicts with previously deployed changes: {changes}',
-    scalar @conflicts,
-    changes => join ' ', @conflicts,
+    scalar 2,
+    changes => 'foo bar',
 ), 'Should have localized message about conflicts';
 
 is_deeply $engine->seen, [
@@ -901,15 +913,15 @@ is_deeply +MockOutput->get_info, [
 @conflicts = ();
 
 # Die on missing dependencies.
-@missing_requires = qw(foo bar);
+@missing_requires = $make_deps->(0, qw(foo bar));
 throws_ok { $engine->deploy_change($change) } 'App::Sqitch::X',
     'Missing dependencies should throw exception';
 is $@->ident, 'deploy', 'Should be another "deploy" error';
 is $@->message, __nx(
     'Missing required change: {changes}',
     'Missing required changes: {changes}',
-    scalar @missing_requires,
-    changes => join ' ', @missing_requires,
+    scalar 2,
+    changes => 'foo bar',
 ), 'Should have localized message missing dependencies';
 
 is_deeply $engine->seen, [
