@@ -95,7 +95,7 @@ my $project;
 sub dep($) {
     App::Sqitch::Plan::Depend->new(
         plan    => $plan,
-        project => $project || $plan->project,
+        (defined $project ? (project => $project) : ()),
         %{ App::Sqitch::Plan::Depend->parse(shift) },
     )
 }
@@ -678,7 +678,6 @@ is $@->message, __x(
 # Try a plan with dependencies.
 $file = file qw(t plans dependencies.plan);
 $sqitch = App::Sqitch->new(plan_file => $file);
-$project = 'dependencies';
 isa_ok $plan = App::Sqitch::Plan->new(sqitch => $sqitch), $CLASS,
     'Plan with sqitch with plan file with dependencies';
 ok $parsed = $plan->load, 'Load plan with dependencies file';
@@ -704,7 +703,6 @@ is sorted, 2, 'Should have sorted changes twice';
 # Try a plan with cross-project dependencies.
 $file = file qw(t plans project_deps.plan);
 $sqitch = App::Sqitch->new(plan_file => $file);
-$project = 'dependencies';
 isa_ok $plan = App::Sqitch::Plan->new(sqitch => $sqitch), $CLASS,
     'Plan with sqitch with plan file with project deps';
 ok $parsed = $plan->load, 'Load plan with project deps file';

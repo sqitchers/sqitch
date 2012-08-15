@@ -387,8 +387,7 @@ sub _parse {
                         dep => $depstring,
                     ));
                     my $dep = App::Sqitch::Plan::Depend->new(
-                        project => $pragmas{project},
-                        plan    => $self,
+                        plan => $self,
                         %{ $dep_params },
                     );
                     if ($dep->conflicts) {
@@ -459,25 +458,31 @@ sub sort_changes {
         # XXX Ignoring conflicts for now.
         for my $dep ( $change->requires ) {
             # Ignore dependencies on other projects.
-            next if $dep->project ne $proj;
-            $dep = $dep->key_name;
+            if ($dep->got_project) {
+                # Skip if parsed project name different from current project.
+                next if $dep->project ne $proj;
+            } else {
+                # Skip if an ID was passed, is it could be internal or external.
+                next if $dep->got_id;
+            }
+            my $key = $dep->key_name;
 
             # Skip it if it's a change from an earlier tag.
-            if ($dep =~ /.@/) {
+            if ($key =~ /.@/) {
                 # Need to look it up before the tag.
-                my ( $change, $tag ) = split /@/ => $dep, 2;
+                my ( $change, $tag ) = split /@/ => $key, 2;
                 if ( my $tag_at = $seen->{"\@$tag"} ) {
                     if ( my $change_at = $seen->{$change}) {
                         next if $change_at < $tag_at;
                     }
                 }
             } else {
-                next if exists $seen->{$dep};
+                next if exists $seen->{$key};
             }
 
-            $p->{$dep}++;
-            $npred{$dep}++;
-            push @{ $succ{$name} } => $dep;
+            $p->{$key}++;
+            $npred{$key}++;
+            push @{ $succ{$name} } => $key;
         }
     }
 
@@ -627,7 +632,6 @@ sub _parse_deps {
             dep => $_,
         );
         App::Sqitch::Plan::Depend->new(
-            project    => $self->project,
             %{ $p },
             plan      => $self,
             conflicts => 0,
@@ -640,7 +644,6 @@ sub _parse_deps {
             dep => $_,
         );
         App::Sqitch::Plan::Depend->new(
-            project    => $self->project,
             %{ $p },
             plan      => $self,
             conflicts => 1,
@@ -707,7 +710,6 @@ sub rework {
     my ($tag) = $changes->change_at($tag_idx)->tags;
     unshift @{ $p{requires} ||= [] } => App::Sqitch::Plan::Depend->new(
         plan    => $self,
-        project => $self->project,
         change  => $p{name},
         tag     => $tag->name,
     );
