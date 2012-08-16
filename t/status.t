@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 78;
+use Test::More tests => 86;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -51,11 +51,11 @@ is_deeply [ $CLASS->options ], [qw(
 ##############################################################################
 # Test project.
 throws_ok { $status->project } 'App::Sqitch::X',
-    'Should have error for no project name';
-is $@->ident, 'status', 'Unknown project error ident should be "status"';
+    'Should have error for uninitialized database';
+is $@->ident, 'status', 'Uninitialized database error ident should be "status"';
 is $@->message, __(
-    'Cannot access plan; use --project to specify a project to query'
-), 'Unknown project error message should be correct';
+    'Database not initialized for Sqitch'
+), 'Uninitialized database error message should be correct';
 
 # Specify a project.
 isa_ok $status = $CLASS->new(
@@ -64,7 +64,51 @@ isa_ok $status = $CLASS->new(
 ), $CLASS, 'new status command';
 is $status->project, 'foo', 'Should have project "foo"';
 
-# Fall back on project status.
+# Look up the project in the databse.
+ok $sqitch = App::Sqitch->new(
+    _engine => 'sqlite',
+    top_dir => Path::Class::Dir->new('sql'),
+), 'Load a sqitch object with SQLite';
+ok $status = $CLASS->new(sqitch => $sqitch), 'Create another status command';
+
+my $engine_mocker = Test::MockModule->new('App::Sqitch::Engine::sqlite');
+my @projs;
+$engine_mocker->mock( registered_projects => sub { @projs });
+my $initialized;
+$engine_mocker->mock( initialized => sub { $initialized } );
+
+# Start with uninitialized database.
+$initialized = 0;
+throws_ok { $status->project } 'App::Sqitch::X',
+    'Should get an error for uninitialized db';
+is $@->ident, 'status', 'Uninitialized db error ident should be "status"';
+is $@->message, __ 'Database not initialized for Sqitch',
+    'Uninitialized db error message should be correct';
+
+# Try no registered projects.
+$initialized = 1;
+throws_ok { $status->project } 'App::Sqitch::X',
+    'Should get an error for no registered projects';
+is $@->ident, 'status', 'No projects error ident should be "status"';
+is $@->message, __ 'No projects registered',
+    'No projects error message should be correct';
+
+# Try too many registered projects.
+@projs = qw(foo bar);
+throws_ok { $status->project } 'App::Sqitch::X',
+    'Should get an error for too many projects';
+is $@->ident, 'status', 'Too many projects error ident should be "status"';
+is $@->message, __x(
+    'Use --project to select which project to query: {projects}',
+    projects => join __ ', ', @projs,
+), 'Too many projects error message should be correct';
+
+# Go for one project.
+@projs = ('status');
+is $status->project, 'status', 'Should find single project';
+$engine_mocker->unmock_all;
+
+# Fall back on plan project name.
 ok $sqitch = App::Sqitch->new(
     top_dir => Path::Class::Dir->new(qw(t sql)),
 ), 'Load another sqitch object';
@@ -162,7 +206,6 @@ is_deeply +MockOutput->get_comment, [
 
 ##############################################################################
 # Test emit_changes().
-my $engine_mocker = Test::MockModule->new('App::Sqitch::Engine::sqlite');
 my @current_changes;
 $engine_mocker->mock(current_changes => sub { sub { shift @current_changes } });
 @current_changes = ({
@@ -373,7 +416,6 @@ is_deeply +MockOutput->get_vent, [
 ##############################################################################
 # Test execute().
 $state->{change_id} = $changes[1]->id;
-$engine_mocker->mock( initialized => 1 );
 $engine_mocker->mock( current_state => $state );
 ok $status->execute, 'Execute';
 is_deeply +MockOutput->get_comment, [
@@ -392,29 +434,7 @@ is_deeply +MockOutput->get_emit, [
     map { ['  * ', $_->format_name_with_tags] } @changes[2..$#changes],
 ], 'Should emit list of undeployed changes';
 
-# Test with no changes.
-$engine_mocker->mock( current_state => undef );
-throws_ok { $status->execute } 'App::Sqitch::X', 'Die on no state';
-is $@->ident, 'status', 'No state error ident should be "status"';
-is $@->message, __ 'No changes deployed',
-    'No state error message should be correct';
-is_deeply +MockOutput->get_comment, [
-    [__x 'On database {db}', db => $sqitch->engine->destination ],
-], 'The "On database" comment should have been emitted';
-
-# Test with no initialization.
-$engine_mocker->mock( current_state => $state );
-$engine_mocker->mock( initialized => 0 );
-throws_ok { $status->execute } 'App::Sqitch::X', 'Die on uninitialized';
-is $@->ident, 'status', 'uninitialized error ident should be "status"';
-is $@->message, __ 'No changes deployed',
-    'uninitialized error message should be correct';
-is_deeply +MockOutput->get_comment, [
-    [__x 'On database {db}', db => $sqitch->engine->destination ],
-], 'The "On database" comment should have been emitted';
-
 # Test with unknown plan.
-$engine_mocker->mock( initialized => 1 );
 for my $spec (
     [ 'specified', App::Sqitch->new( _engine => 'sqlite', db_name => 'whatever.db') ],
     [ 'external', $sqitch ],
@@ -441,3 +461,13 @@ for my $spec (
         [__x 'Status unknown. Use --plan-file to assess "{project}" status', project => 'foo'],
     ], "Should emit unknown status message for $desc project";
 }
+
+# Test with no changes.
+$engine_mocker->mock( current_state => undef );
+throws_ok { $status->execute } 'App::Sqitch::X', 'Die on no state';
+is $@->ident, 'status', 'No state error ident should be "status"';
+is $@->message, __ 'No changes deployed',
+    'No state error message should be correct';
+is_deeply +MockOutput->get_comment, [
+    [__x 'On database {db}', db => $sqitch->engine->destination ],
+], 'The "On database" comment should have been emitted';

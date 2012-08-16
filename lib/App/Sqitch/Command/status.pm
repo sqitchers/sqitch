@@ -50,13 +50,23 @@ has date_format => (
 
 has project => (
     is      => 'ro',
-    isa     => 'Maybe[Str]',
+    isa     => 'Str',
     lazy    => 1,
     default => sub {
-        # XXX See if the database has only one project.
-        eval { shift->plan->project } || hurl status => __(
-            'Cannot access plan; use --project to specify a project to query'
-        );
+        my $self = shift;
+        eval { $self->plan->project } || do {
+            # Try to extract a project name from the database.
+            my $engine = $self->engine;
+            hurl status => __ 'Database not initialized for Sqitch'
+                unless $engine->initialized;
+            my @projs = $engine->registered_projects
+                or hurl status => __ 'No projects registered';
+            hurl status => __x(
+                'Use --project to select which project to query: {projects}',
+                projects => join __ ', ', @projs,
+            ) if @projs > 1;
+            $projs[0];
+        };
     },
 );
 
@@ -77,12 +87,11 @@ sub execute {
     $self->comment( __x 'On database {db}', db => $engine->destination );
 
     # Exit with status 1 on no state, probably not expected.
-    my $state = $engine->initialized ? $engine->current_state($self->project) : undef;
-    hurl {
+    my $state = $engine->current_state( $self->project ) || hurl {
         ident   => 'status',
         message => __ 'No changes deployed',
         exitval => 1,
-    } unless defined $state;
+    };
 
     # Emit the state basics.
     $self->emit_state($state);
