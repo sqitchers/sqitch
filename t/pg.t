@@ -306,7 +306,14 @@ subtest 'live database' => sub {
     ##############################################################################
     # Test register_project().
     can_ok $pg, 'register_project';
+    can_ok $pg, 'registered_projects';
+
+    is_deeply [ $pg->registered_projects ], [],
+        'Should have no registered projects';
+
     ok $pg->register_project, 'Register the project';
+    is_deeply [ $pg->registered_projects ], ['pg'],
+        'Should have one registered project, "pg"';
     is_deeply $pg->_dbh->selectall_arrayref(
         'SELECT project, uri, creator_name, creator_email FROM projects'
     ), [['pg', undef, $sqitch->user_name, $sqitch->user_email]],
@@ -314,6 +321,8 @@ subtest 'live database' => sub {
 
     # Try to register it again.
     ok $pg->register_project, 'Register the project again';
+    is_deeply [ $pg->registered_projects ], ['pg'],
+        'Should still have one registered project, "pg"';
     is_deeply $pg->_dbh->selectall_arrayref(
         'SELECT project, uri, creator_name, creator_email FROM projects'
     ), [['pg', undef, $sqitch->user_name, $sqitch->user_email]],
@@ -327,6 +336,8 @@ subtest 'live database' => sub {
         ok $pg->register_project, 'Register a second project';
     }
 
+    is_deeply [ $pg->registered_projects ], ['groovy', 'pg'],
+        'Should have both registered projects';
     is_deeply $pg->_dbh->selectall_arrayref(
         'SELECT project, uri, creator_name, creator_email FROM projects ORDER BY created_at'
     ), [

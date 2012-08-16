@@ -414,6 +414,11 @@ sub name_for_change_id {
     hurl "$class has not implemented name_for_change_id()";
 }
 
+sub registered_projects {
+    my $class = ref $_[0] || $_[0];
+    hurl "$class has not implemented registered_projects()";
+}
+
 sub current_state {
     my $class = ref $_[0] || $_[0];
     hurl "$class has not implemented current_state()";
@@ -726,6 +731,12 @@ applied to a change after that change, the name will be returned with the tag
 qualification, e.g., C<app_user@beta>. This value should be suitable for
 uniquely identifying the change, and passing to the C<get> or C<index_of>
 methods of L<App::Sqitch::Plan>.
+
+=head3 C<registered_projects>
+
+  my @projects = $engine->registered_projects;
+
+Reeturns a list of the names of Sqitch projects registered in the database.
 
 =head3 C<current_state>
 

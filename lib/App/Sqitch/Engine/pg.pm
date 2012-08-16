@@ -555,6 +555,12 @@ sub _dt($) {
     return App::Sqitch::DateTime->new(split /:/ => shift);
 }
 
+sub registered_projects {
+    return @{ shift->_dbh->selectcol_arrayref(
+        'SELECT project FROM projects ORDER BY project'
+    ) };
+}
+
 sub current_state {
     my ( $self, $project ) = @_;
     my $ddtcol = _ts2char 'committed_at';
