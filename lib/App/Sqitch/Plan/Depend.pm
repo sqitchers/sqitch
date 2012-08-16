@@ -287,7 +287,7 @@ is a change-only dependency.
 
 =head3 C<id>
 
-Returns the ID of the change if the dependency was specifed as an ID, or if
+Returns the ID of the change if the dependency was specified as an ID, or if
 the dependency is a local dependency.
 
 =head3 C<got_id>
@@ -309,9 +309,9 @@ internal (current) project, and false if not.
 
 =head3 C<key_name>
 
-Returns the key name of the depenedency, with the change name and/or tag,
+Returns the key name of the dependency, with the change name and/or tag,
 properly formatted for passing to the C<find()> method of
-L<App::Sqitch::Plan>. If the dependency was specifed as an ID, rather than a
+L<App::Sqitch::Plan>. If the dependency was specified as an ID, rather than a
 change or tag, then the ID will be returned.
 
 =head3 C<as_string>

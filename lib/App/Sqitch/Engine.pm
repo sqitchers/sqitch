@@ -736,7 +736,7 @@ methods of L<App::Sqitch::Plan>.
 
   my @projects = $engine->registered_projects;
 
-Reeturns a list of the names of Sqitch projects registered in the database.
+Returns a list of the names of Sqitch projects registered in the database.
 
 =head3 C<current_state>
 
