@@ -42,9 +42,9 @@ information sufficient for Sqitch to figure it out for you.
 
 =item Dependency resolution
 
-Database changes may declare dependencies on other changes. This ensures
-proper order of execution, even when you've committed changes to your VCS
-out-of-order.
+Database changes may declare dependencies on other changes -- even on changes
+from other Sqitch projects. This ensures proper order of execution, even when
+you've committed changes to your VCS out-of-order.
 
 =item No numbering
 
