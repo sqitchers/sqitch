@@ -99,7 +99,7 @@ matching the key (and optionally the C<value_regex>).
 =item C<--add>
 
 Adds a new line to the option without altering any existing values. This is
-the same as providing ^$ as the value_regex in C<--replace-all>.
+the same as providing C<^$> as the value_regex in C<--replace-all>.
 
 =item C<--get>
 

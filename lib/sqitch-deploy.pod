@@ -30,7 +30,9 @@ to instead use L<sqitch-revert>.
 
 =item C<--to>
 
-Specify the deployment target. Defaults to the last point in the plan.
+Specify the deployment target. Defaults to the last point in the plan. See
+L<sqitchchanges> for the various ways in which change targets can be
+specified.
 
 =item C<--mode>
 
@@ -69,55 +71,6 @@ Target to deploy to. You probably don't want to set this.
 =item C<deploy.mode>
 
 Deploy mode. The supported values are the same as for the C<--mode> option.
-
-=back
-
-=head1 Specifying Targets
-
-A C<< <target> >> option typically, but not necessarily, names a target object.
-
-=over
-
-=item C<change>, e.g, C<users_table>
-
-A change name.
-
-=item C<< @<tag> >>, e.g, C<@beta>
-
-A tag name.
-
-=item C<< <change>@<tag> >>, e.g, C<users_table@beta>
-
-A change as of the specified tag. Probably more useful, in general, just to
-deploy to the tag.
-
-=begin comment
-
-These are not yet implemented.
-
-=item C<HEAD>
-
-Special symbolic name for the last change in the plan. Typically omitted.
-
-=item C<ROOT>
-
-Special symbolic name for the first change in the plan. Typically omitted.
-
-=item C<< <target>^ >>, e.g., C<HEAD^^>, C<users_table^3>, C<@beta^2>
-
-A suffix C<^> to a symbolic or actual name means the change I<prior> to that
-target. Multiple C<^>s indicate multiple prior changes. These can also be
-written as C<< ^<n> >>, where C<< <n> >> represents the number of changes to go
-back.
-
-=item C<< <target>+ >>, e.g., C<ROOT+>, C<foo++>, C<@bar+4>
-
-A suffix C<+> to a symbolic or actual target name that means the change I<after>
-that target. Multiple C<+>s indicate multiple prior changes. These can also be
-written as C<< +<n> >>, where C<< <n> >> represents the number of changes to go
-forward.
-
-=end comment
 
 =back
 

@@ -29,6 +29,7 @@ Flipr
 GitHub
 PostgreSQL's
 sqitchtutorial
+sqitchchanges
 VCSes
 Versioning
 metadata

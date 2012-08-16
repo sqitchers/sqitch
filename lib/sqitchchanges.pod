@@ -1,0 +1,105 @@
+=encoding UTF-8
+
+=head1 Name
+
+sqitchchanges -Specifying changes for Sqitch
+
+=head1 Description
+
+Many Sqitch commands take change parameters as arguments. Depending on the
+command, they denote a specific change or, for commands which walk change
+history or the change plan (such as L<C<sqitch log>|sqitch-log>), all changes
+which can be reached from that change.
+
+=head1 Specifying Changes
+
+A change parameter names a change object. It uses what is called an extended
+SHA1 syntax. Here are various ways to spell change names:
+
+=over
+
+=item C<< <change_name> >>, e.g., C<users_table>
+
+The name of a change itself, as it was added to the plan via
+L<C<sqitch add>|sqitch-add>.
+
+=item C<< @<tag_name> >>, e.g., C<@rc1>
+
+The change as of the named tag. Tags can be added to the plan via
+L<C<sqitch tag>|sqitch-tag>.
+
+=item C<< <change_name>@<tag_name> >>, e.g., C<users_table@beta1>
+
+The named change as of a tag, also known as a tag-qualified change name. For
+change iteration commands (such as L<C<sqitch log>|sqitch-log>), this means
+the instance of a change with that name before the specified tag. For
+dependency parameters (such as in L<C<sqitch add>|sqitch-add>), this means any
+instance of a change just before that tag, or at any time after the tag.
+
+=item C<< <sha1> >>, e.g., C<40763784148fa190d75bad036730ef44d1c2eac6>
+
+The change full SHA1 ID (40-byte hexadecimal string). In some cases, such as
+L<C<sqitch add>|sqitch-add>, the ID may refer to a change in another Sqitch
+project.
+
+=item C<< <project>:<change_name> >>, e.g., C<mybase:users_table>
+
+The name of a change in a specific project. Non-SHA1 change parameters without
+a project prefix are assumed to belong to the current project. Most useful for
+declaring a dependency on a change from another project in
+L<C<sqitch add>|sqitch-add>.
+
+=item C<< <project>:@<tag_name> >>, e.g., C<mybase:@rc1>
+
+The name of a tag in an the named project.
+
+=item C<< <project>:<change_name>@<tag_name> >>, e.g., C<project:users_table@beta1>
+
+A tag-qualified named change in the named project.
+
+=item C<< <project>:<sha1> >>, e.g., C<mybase:40763784148fa190d75bad036730ef44d1c2eac6>
+
+The full SHA1 ID from another project. Probably redundant, since the SHA1 I
+should itself be sufficient. But useful for declaring dependencies in the
+current project so that L<C<sqitch add>|sqitch-add> or
+L<C<sqitch rework>|sqitch-rework> will validate that the specified change is in
+the current project.
+
+=item C<@HEAD>
+
+Special symbolic name for the last change in the plan or deployed to the
+database. Typically omitted.
+
+=item C<@ROOT>
+
+Special symbolic name for the first change in the plan or deployed to the
+database. Typically omitted.
+
+=begin comment
+
+These are not yet implemented.
+
+=item C<< <change>~ >>, e.g., C<HEAD~~>, C<users_table~3>, C<@beta~2>
+
+A suffix C<-> to a symbolic or actual name means the change I<prior> to that
+change. Multiple C<->s indicate multiple prior changes. These can also be
+written as C<< -<n> >>, where C<< <n> >> represents the number of changes to
+go back.
+
+=item C<< <change>+ >>, e.g., C<ROOT+>, C<foo++>, C<@bar+4>
+
+A suffix C<+> to a symbolic or actual name that means the change I<after> that
+change. Multiple C<+>s indicate multiple prior changes. These can also be
+written as C<< +<n> >>, where C<< <n> >> represents the number of changes to
+go forward.
+
+=end comment
+
+=back
+
+=head1 Sqitch
+
+Part of the L<sqitch> suite.
+
+
+

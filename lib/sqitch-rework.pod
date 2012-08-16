@@ -54,13 +54,16 @@ leaves you free to edit the existing files.
 =item C<--requires>
 
 Name of a change that is required by the new change. May be specified multiple
-times.
+times. See L<sqitchchanges> for the various ways in which change targets can
+be specified.
 
 =item C<-c>
 
 =item C<--conflicts>
 
-Name of a change that conflicts with the new change. May be specified multiple times.
+Name of a change that conflicts with the new change. May be specified multiple
+times. See L<sqitchchanges> for the various ways in which change targets can
+be specified.
 
 =item C<-n>
 
