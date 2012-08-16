@@ -33,5 +33,6 @@
 ^target
 ^arco
 
+^dist\.ini$
 ^MYMETA\.yml$
 ^MYMETA\.json$
