@@ -22,6 +22,17 @@ my $CLASS = 'App::Sqitch::Command::rework';
 ok my $sqitch = App::Sqitch->new(
     top_dir => Path::Class::Dir->new('sql'),
 ), 'Load a sqitch sqitch object';
+
+sub dep($) {
+    my $dep = App::Sqitch::Plan::Depend->new(
+        conflicts => 0,
+        %{ App::Sqitch::Plan::Depend->parse(shift) },
+        plan      => $sqitch->plan,
+    );
+    $dep->project;
+    return $dep;
+}
+
 my $config = $sqitch->config;
 isa_ok my $rework = App::Sqitch::Command->load({
     sqitch  => $sqitch,
@@ -69,7 +80,7 @@ make_path 'sql';
 END { remove_tree 'sql' };
 my $plan_file = $sqitch->plan_file;
 my $fh = $plan_file->open('>') or die "Cannot open $plan_file: $!";
-say $fh '%project=empty';
+say $fh '%project=empty', $/, $/;
 $fh->close or die "Error closing $plan_file: $!";
 
 my $plan = $sqitch->plan;
@@ -152,13 +163,13 @@ ok my @steps = $plan->changes, 'Get the steps';
 is @steps, 2, 'Should have two steps';
 is $steps[0]->name, 'foo', 'First step should be "foo"';
 is $steps[1]->name, 'foo', 'Second step should also be "foo"';
-is_deeply [$steps[1]->requires], ['foo@alpha'],
+is_deeply [$steps[1]->requires], [dep 'foo@alpha'],
     'Reworked step should require the previous step';
 
 is_deeply +MockOutput->get_info, [
     [__x(
         'Added "{change}" to {file}.',
-        change => 'foo [:foo@alpha]',
+        change => 'foo [foo@alpha]',
         file   => $sqitch->plan_file,
     )],
     [__n(
@@ -246,9 +257,9 @@ is $steps[0]->name, 'foo', 'First step should be "foo"';
 is $steps[1]->name, 'foo', 'Second step should also be "foo"';
 is $steps[2]->name, 'bar', 'First step should be "bar"';
 is $steps[3]->name, 'bar', 'Second step should also be "bar"';
-is_deeply [$steps[3]->requires], ['bar@beta', 'foo'],
+is_deeply [$steps[3]->requires], [dep 'bar@beta', dep 'foo'],
     'Requires should have been passed to reworked change';
-is_deeply [$steps[3]->conflicts], ['dr_evil'],
+is_deeply [$steps[3]->conflicts], [dep '!dr_evil'],
     'Conflicts should have been passed to reworked change';
 is $steps[3]->note, "hi\n\nthere",
     'Note should have been passed as comment';
@@ -256,7 +267,7 @@ is $steps[3]->note, "hi\n\nthere",
 is_deeply +MockOutput->get_info, [
     [__x(
         'Added "{change}" to {file}.',
-        change => 'bar [:bar@beta :foo !dr_evil]',
+        change => 'bar [bar@beta foo !dr_evil]',
         file   => $sqitch->plan_file,
     )],
     [__n(

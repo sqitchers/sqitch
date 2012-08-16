@@ -35,6 +35,13 @@ BEGIN {
         hurl user => __ 'User email may not contain ">"' if />/;
         1;
     };
+
+    subtype 'CoreEngine', as 'Str', where {
+        hurl core => __x('Unknown engine: {engine}', engine => $_)
+            unless $_ ~~ [qw(pg sqlite)];
+        1;
+    };
+
 }
 
 # Okay to loas Sqitch classes now that typess are created.
@@ -64,20 +71,24 @@ has plan => (
 has _engine => (
     is      => 'ro',
     lazy    => 1,
-    isa     => maybe_type( enum [qw(pg mysql sqlite)] ),
+    isa     => 'CoreEngine',
     default => sub {
-        shift->config->get( key => 'core.engine' );
+        shift->config->get( key => 'core.engine' ) || hurl core => __(
+            'No engine specified; use --engine or set core.engine'
+        );
     }
 );
 has engine => (
     is      => 'ro',
-    isa     => 'Maybe[App::Sqitch::Engine]',
+    isa     => 'App::Sqitch::Engine',
     lazy    => 1,
     default => sub {
         my $self = shift;
-        my $name = $self->_engine or return;
         require App::Sqitch::Engine;
-        App::Sqitch::Engine->load({ sqitch => $self, engine => $name });
+        App::Sqitch::Engine->load({
+            sqitch => $self,
+            engine => $self->_engine,
+        });
     }
 );
 

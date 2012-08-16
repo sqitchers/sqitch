@@ -38,6 +38,12 @@ Filter by event type. May be specified more than once. Allowed values are:
 
 A regular expression to match against change names.
 
+=item C<--project-pattern>
+
+=item C<--project>
+
+A regular expression to match against project names.
+
 =item C<--committer-pattern>
 
 =item C<--committer>
@@ -190,7 +196,7 @@ C<< format:<string> >> format. Here are the details of the built-in formats:
 
 =item C<oneline>
 
-  <change id> <event type> <change name> <title line>
+  <change id> <event type> <project name>:<change name> <title line>
 
 This is designed to be as compact as possible.
 
@@ -215,6 +221,7 @@ This is designed to be as compact as possible.
 
   <event type> <change id> <tags>
   Name:      <change name>
+  Project:   <change name>
   Planner:   <planner>
   Committer: <committer>
 
@@ -225,6 +232,7 @@ This is designed to be as compact as possible.
   <event type> <change id> <tags>
   Event:     <event type>
   Name:      <change name>
+  Project:   <change name>
   Requires:  <required changes>
   Conflicts: <conflicting changes>
   Planner:   <planner>
@@ -238,6 +246,7 @@ This is designed to be as compact as possible.
 
   <event type> <change id> <tags>
   name      <change name>
+  project   <project name>
   requires  <required changes>
   conflicts <conflicting changes>
   planner   <planner>
@@ -273,6 +282,8 @@ The placeholders are:
 =item * C<%h>: Event change ID (respects C<--abbrev>)
 
 =item * C<%n>: Event change name
+
+=item * C<%o>: Event change project name
 
 =item * C<%($len)h>: abbreviated change of length C<$len>
 
@@ -379,6 +390,8 @@ The placeholders are:
 =item * C<%{planned}_> Localized label for "planned"
 
 =item * C<%{name}_> Localized label for "name"
+
+=item * C<%{project}_> Localized label for "project"
 
 =item * C<%{email}_> Localized label for "email"
 

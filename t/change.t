@@ -62,7 +62,7 @@ make_path 'sql';
 END { remove_tree 'sql' };
 my $fn = $sqitch->plan_file;
 open my $fh, '>', $fn or die "Cannot open $fn: $!";
-say $fh '%project=change';
+say $fh '%project=change', $/, $/;
 close $fh or die "Error closing $fn: $!";
 
 isa_ok my $change = $CLASS->new(
@@ -141,6 +141,14 @@ my $date = App::Sqitch::DateTime->new(
     time_zone => 'UTC',
 );
 
+sub dep($) {
+    App::Sqitch::Plan::Depend->new(
+        %{ App::Sqitch::Plan::Depend->parse(shift) },
+        plan    => $sqitch->plan,
+        project => 'change',
+    )
+}
+
 ok my $change2 = $CLASS->new(
     name      => 'yo/howdy',
     plan      => $plan,
@@ -152,15 +160,15 @@ ok my $change2 = $CLASS->new(
     suffix    => '@beta',
     note      => 'blah blah blah',
     pspace    => '  ',
-    requires  => [qw(foo bar @baz)],
-    conflicts => ['dr_evil'],
+    requires  => [map { dep $_ } qw(foo bar @baz)],
+    conflicts => [dep '!dr_evil'],
     timestamp     => $date,
     planner_name  => 'Barack Obama',
     planner_email => 'potus@whitehouse.gov',
 ), 'Create change with more stuff';
 
 my $ts2 = '2012-07-16T17:25:07Z';
-is $change2->as_string, "  - yo/howdy  [:foo :bar :\@baz !dr_evil] "
+is $change2->as_string, "  - yo/howdy  [foo bar \@baz !dr_evil] "
     . "$ts2 Barack Obama <potus\@whitehouse.gov>\t# blah blah blah",
     'It should stringify correctly';
 my $mock_plan = Test::MockModule->new(ref $plan);
@@ -188,13 +196,13 @@ is $change2->format_name_with_tags, 'yo/howdy @alpha',
     'Should format name with tags';
 is $change2->format_planner, 'Barack Obama <potus@whitehouse.gov>',
     'Planner name and email should format properly';
-is $change2->format_dependencies, '[:foo :bar :@baz !dr_evil]',
-    'Dependencies should format as "[:foo :bar :@baz !dr_evil]"';
-is $change2->format_name_with_dependencies, 'yo/howdy  [:foo :bar :@baz !dr_evil]',
-    'Name should format with dependencies as "yo/howdy  [:foo :bar :@baz !dr_evil]"';
-is $change2->format_op_name_dependencies, '- yo/howdy  [:foo :bar :@baz !dr_evil]',
-    'Name should format op with dependencies as "yo/howdy  [:foo :bar :@baz !dr_evil]"';
-is $change2->format_content, '- yo/howdy  [:foo :bar :@baz !dr_evil] '
+is $change2->format_dependencies, '[foo bar @baz !dr_evil]',
+    'Dependencies should format as "[foo bar @baz !dr_evil]"';
+is $change2->format_name_with_dependencies, 'yo/howdy  [foo bar @baz !dr_evil]',
+    'Name should format with dependencies as "yo/howdy  [foo bar @baz !dr_evil]"';
+is $change2->format_op_name_dependencies, '- yo/howdy  [foo bar @baz !dr_evil]',
+    'Name should format op with dependencies as "yo/howdy  [foo bar @baz !dr_evil]"';
+is $change2->format_content, '- yo/howdy  [foo bar @baz !dr_evil] '
     . $change2->timestamp->as_string . ' ' . $change2->format_planner,
     'Change content should format correctly with dependencies';
 
@@ -258,11 +266,11 @@ my $plan2 = $sqitch2->plan;
 ok $change2 = $CLASS->new(
     name      => 'whatever',
     plan      => $plan2,
-    requires  => [qw(hey you)],
-    conflicts => ['hey-there'],
+    requires  => [dep 'hey', dep 'you'],
+    conflicts => [dep '!hey-there'],
 ), 'Create a change with explicit requires and conflicts';
-is_deeply [$change2->requires], [qw(hey you)], 'requires should be set';
-is_deeply [$change2->conflicts], ['hey-there'], 'conflicts should be set';
+is_deeply [$change2->requires], [dep 'hey', dep 'you'], 'requires should be set';
+is_deeply [$change2->conflicts], [dep '!hey-there'], 'conflicts should be set';
 is_deeply [$change2->requires_changes], [$plan2->get('hey'),  $plan2->get('you')],
     'Should find changes for requires';
 is_deeply [$change2->conflicts_changes], [$plan2->get('hey-there')],

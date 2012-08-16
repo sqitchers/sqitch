@@ -228,8 +228,7 @@ can_ok $CLASS, qw(
     latest_change_id
     is_deployed_tag
     is_deployed_change
-    check_requires
-    check_conflicts
+    is_satisfied_depend
     name_for_change_id
 );
 
@@ -304,6 +303,48 @@ subtest 'live database' => sub {
     is_deeply all( $pg->current_tags ), [], 'Should have no current tags';
     is_deeply all( $pg->search_events ), [], 'Should have no events';
 
+    ##############################################################################
+    # Test register_project().
+    can_ok $pg, 'register_project';
+    can_ok $pg, 'registered_projects';
+
+    is_deeply [ $pg->registered_projects ], [],
+        'Should have no registered projects';
+
+    ok $pg->register_project, 'Register the project';
+    is_deeply [ $pg->registered_projects ], ['pg'],
+        'Should have one registered project, "pg"';
+    is_deeply $pg->_dbh->selectall_arrayref(
+        'SELECT project, uri, creator_name, creator_email FROM projects'
+    ), [['pg', undef, $sqitch->user_name, $sqitch->user_email]],
+        'The project should be registered';
+
+    # Try to register it again.
+    ok $pg->register_project, 'Register the project again';
+    is_deeply [ $pg->registered_projects ], ['pg'],
+        'Should still have one registered project, "pg"';
+    is_deeply $pg->_dbh->selectall_arrayref(
+        'SELECT project, uri, creator_name, creator_email FROM projects'
+    ), [['pg', undef, $sqitch->user_name, $sqitch->user_email]],
+        'The project should still be registered only once';
+
+    # Register a different project name.
+    MOCKPROJECT: {
+        my $plan_mocker = Test::MockModule->new(ref $sqitch->plan );
+        $plan_mocker->mock(project => 'groovy');
+        $plan_mocker->mock(uri     => 'http://example.com/');
+        ok $pg->register_project, 'Register a second project';
+    }
+
+    is_deeply [ $pg->registered_projects ], ['groovy', 'pg'],
+        'Should have both registered projects';
+    is_deeply $pg->_dbh->selectall_arrayref(
+        'SELECT project, uri, creator_name, creator_email FROM projects ORDER BY created_at'
+    ), [
+        ['pg', undef, $sqitch->user_name, $sqitch->user_email],
+        ['groovy', 'http://example.com/', $sqitch->user_name, $sqitch->user_email],
+    ], 'Both projects should now be registered';
+
     ##########################################################################
     # Test log_deploy_change().
     my $plan = $sqitch->plan;
@@ -357,6 +398,7 @@ subtest 'live database' => sub {
         'committed_at value';
     is $dt->time_zone->name, 'UTC', 'committed_at TZ should be UTC';
     is_deeply $state, {
+        project         => 'pg',
         change_id       => $change->id,
         change          => 'users',
         note            => '',
@@ -389,6 +431,7 @@ subtest 'live database' => sub {
     }], 'Should have one current tags';
     my @events = ({
         event           => 'deploy',
+        project         => 'pg',
         change_id       => $change->id,
         change          => 'users',
         note            => '',
@@ -441,6 +484,7 @@ subtest 'live database' => sub {
 
     unshift @events => {
         event           => 'revert',
+        project         => 'pg',
         change_id       => $change->id,
         change          => 'users',
         note            => '',
@@ -485,6 +529,7 @@ subtest 'live database' => sub {
 
     unshift @events => {
         event           => 'fail',
+        project         => 'pg',
         change_id       => $change->id,
         change          => 'users',
         note            => '',
@@ -584,6 +629,7 @@ subtest 'live database' => sub {
         'committed_at value';
     is $dt->time_zone->name, 'UTC', 'committed_at TZ should be UTC';
     is_deeply $state, {
+        project         => 'pg',
         change_id       => $change2->id,
         change          => 'widgets',
         note            => 'All in',
@@ -638,6 +684,7 @@ subtest 'live database' => sub {
 
     unshift @events => {
         event           => 'deploy',
+        project         => 'pg',
         change_id       => $change2->id,
         change          => 'widgets',
         note            => 'All in',
@@ -652,6 +699,7 @@ subtest 'live database' => sub {
         planned_at      => $change2->timestamp,
     }, {
         event           => 'deploy',
+        project         => 'pg',
         change_id       => $change->id,
         change          => 'users',
         note            => '',
@@ -668,51 +716,19 @@ subtest 'live database' => sub {
     is_deeply all( $pg->search_events ), \@events, 'Should have 5 events';
 
     ##########################################################################
-    # Test conflicts and requires.
-    is_deeply [$pg->check_conflicts($change)], [], 'Change should have no conflicts';
-    is_deeply [$pg->check_requires($change)], [], 'Change should have no missing dependencies';
-
-    my $change3 = App::Sqitch::Plan::Change->new(
-        name      => 'whatever',
-        plan      => $plan,
-        conflicts => ['users', 'widgets'],
-        requires  => ['fred', 'barney', 'widgets'],
-    );
-    $plan->add( name => 'fred' );
-    $plan->add( name => 'barney' );
-
-    is_deeply [$pg->check_conflicts($change3)], [qw(users widgets)],
-        'Should get back list of installed conflicting changes';
-    is_deeply [$pg->check_requires($change3)], [qw(barney fred)],
-        'Should get back list of missing dependencies';
-
-    # Mock the note, requires, and conflicts in widget to ensure the
-    # data is not copied from the plan into revert events.
-    my $mock_widget = ref($change2)->new(
-        plan          => $plan,
-        id            => $change2->id,
-        name          => $change2->name,
-        timestamp     => $change2->timestamp,
-        planner_name  => $change2->planner_name,
-        planner_email => $change2->planner_email,
-        note          => 'I am not here',
-        requires      => [qw(ignore me)],
-        conflicts     => [qw(me too)],
-    );
-
-    # Undeploy widgets.
-    ok $pg->log_revert_change($mock_widget), 'Revert "widgets"';
-
-    is_deeply [$pg->check_conflicts($change3)], [qw(users)],
-        'Should now see only "users" as a conflict';
-    is_deeply [$pg->check_requires($change3)], [qw(barney fred widgets)],
-        'Should get back list all three missing dependencies';
-
-    ##########################################################################
     # Test deployed_change_ids() and deployed_change_ids_since().
     can_ok $pg, qw(deployed_change_ids deployed_change_ids_since);
+    is_deeply [$pg->deployed_change_ids], [$change->id, $change2->id],
+        'Should have two deployed change ID';
+    is_deeply [$pg->deployed_change_ids_since($change)], [$change2->id],
+        'Should find one deployed since the first one';
+    is_deeply [$pg->deployed_change_ids_since($change2)], [],
+        'Should find none deployed since the second one';
+
+    # Revert change 2.
+    ok $pg->log_revert_change($change2), 'Revert "widgets"';
     is_deeply [$pg->deployed_change_ids], [$change->id],
-        'Should have one deployed change ID';
+        'Should now have one deployed change ID';
     is_deeply [$pg->deployed_change_ids_since($change)], [],
         'Should find none deployed since that one';
 
@@ -730,6 +746,7 @@ subtest 'live database' => sub {
         'committed_at value';
     is $dt->time_zone->name, 'UTC', 'committed_at TZ should be UTC';
     is_deeply $state, {
+        project         => 'pg',
         change_id       => $change2->id,
         change          => 'widgets',
         note            => 'All in',
@@ -747,6 +764,7 @@ subtest 'live database' => sub {
 
     unshift @events => {
         event           => 'deploy',
+        project         => 'pg',
         change_id       => $change2->id,
         change          => 'widgets',
         note            => 'All in',
@@ -761,6 +779,7 @@ subtest 'live database' => sub {
         planned_at      => $change2->timestamp,
     }, {
         event           => 'revert',
+        project         => 'pg',
         change_id       => $change2->id,
         change          => 'widgets',
         note            => 'All in',
@@ -778,6 +797,8 @@ subtest 'live database' => sub {
 
     ##########################################################################
     # Deploy the new changes with two tags.
+    $plan->add( name => 'fred' );
+    $plan->add( name => 'barney' );
     $plan->tag( name => 'beta' );
     $plan->tag( name => 'gamma' );
     ok my $fred = $plan->get('fred'),     'Get the "fred" change';
@@ -787,6 +808,7 @@ subtest 'live database' => sub {
 
     is $pg->latest_change_id, $barney->id, 'Latest change should be "barney"';
     is_deeply $pg->current_state, {
+        project         => 'pg',
         change_id       => $barney->id,
         change          => 'barney',
         note            => '',
@@ -849,6 +871,7 @@ subtest 'live database' => sub {
 
     unshift @events => {
         event           => 'deploy',
+        project         => 'pg',
         change_id       => $barney->id,
         change          => 'barney',
         note            => '',
@@ -863,6 +886,7 @@ subtest 'live database' => sub {
         planned_at      => $barney->timestamp,
     }, {
         event           => 'deploy',
+        project         => 'pg',
         change_id       => $fred->id,
         change          => 'fred',
         note            => '',
@@ -952,6 +976,41 @@ subtest 'live database' => sub {
     is_deeply all( $pg->search_events( event => ['foo'] ) ), [],
         'The event param should return nothing for "foo"';
 
+    # Add an external project event.
+    ok my $ext_plan = App::Sqitch::Plan->new(
+        sqitch => $sqitch,
+        project => 'groovy',
+    ), 'Create external plan';
+    ok my $ext_change = App::Sqitch::Plan::Change->new(
+        plan => $ext_plan,
+        name => 'crazyman',
+    ), "Create external change";
+    ok $pg->log_deploy_change($ext_change), 'Log the external change';
+    my $ext_event = {
+        event           => 'deploy',
+        project         => 'groovy',
+        change_id       => $ext_change->id,
+        change          => $ext_change->name,
+        note            => '',
+        requires        => [],
+        conflicts       => [],
+        tags            => [],
+        committer_name  => $user2_name,
+        committer_email => $user2_email,
+        committed_at    => dt_for_event(9),
+        planner_name    => $user2_name,
+        planner_email   => $user2_email,
+        planned_at      => $ext_change->timestamp,
+    };
+    is_deeply all( $pg->search_events( project => '^pg$' ) ), \@events,
+        'The project param to search_events should work';
+    is_deeply all( $pg->search_events( project => '^groovy$' ) ), [$ext_event],
+        'The project param to search_events should work with external project';
+    is_deeply all( $pg->search_events( project => 'g' ) ), [$ext_event, @events],
+        'The project param to search_events should match across projects';
+    is_deeply all( $pg->search_events( project => 'nonexistent' ) ), [],
+        qq{Project regex should fail to match with "nonexistent"};
+
     throws_ok { $pg->search_events(foo => 1) } 'App::Sqitch::X',
         'Should catch exception for invalid search param';
     is $@->ident, 'DEV', 'Invalid search param error ident should be "DEV"';
@@ -963,6 +1022,134 @@ subtest 'live database' => sub {
     is $@->ident, 'DEV', 'Invalid search params error ident should be "DEV"';
     is $@->message, 'Invalid parameters passed to search_events(): bar, foo',
         'Invalid search params error message should be correct';
+
+    ##########################################################################
+    # Now that we have a change from an externa project, get its state.
+    ok $state = $pg->current_state('groovy'), 'Get the "groovy" state';
+    isa_ok $dt = delete $state->{committed_at}, 'App::Sqitch::DateTime',
+        'groofy committed_at value';
+    is $dt->time_zone->name, 'UTC', 'groovy committed_at TZ should be UTC';
+    is_deeply $state, {
+        project         => 'groovy',
+        change_id       => $ext_change->id,
+        change          => $ext_change->name,
+        note            => '',
+        committer_name  => $sqitch->user_name,
+        committer_email => $sqitch->user_email,
+        tags            => [],
+        planner_name    => $ext_change->planner_name,
+        planner_email   => $ext_change->planner_email,
+        planned_at      => $ext_change->timestamp,
+    }, 'The rest of the state should look right';
+
+    ##########################################################################
+    # Test is_satisfied_depend.
+    my $id = '4f1e83f409f5f533eeef9d16b8a59e2c0aa91cc1';
+    my $i;
+
+    for my $spec (
+        [
+            'id only',
+            { id => $id },
+            { id => $id },
+        ],
+        [
+            'change + tag',
+            { change => 'bart', tag => 'epsilon' },
+            { name   => 'bart' }
+        ],
+        [
+            'change only',
+            { change => 'lisa' },
+            { name   => 'lisa' },
+        ],
+        [
+            'tag only',
+            { tag  => 'sigma' },
+            { name => 'maggie' },
+        ],
+    ) {
+        my ( $desc, $dep_params, $chg_params ) = @{ $spec };
+
+        # Test as an internal dependency.
+        INTERNAL: {
+            ok my $change = $plan->add(
+                name    => 'foo' . ++$i,
+                %{$chg_params},
+            ), "Create internal $desc change";
+
+            # Tag it if necessary.
+            if (my $tag = $dep_params->{tag}) {
+                ok $plan->tag(name => $tag), "Add tag internal \@$tag";
+            }
+
+            # Should start with unsatisfied dependency.
+            ok my $dep = App::Sqitch::Plan::Depend->new(
+                plan    => $plan,
+                project => $plan->project,
+                %{ $dep_params },
+            ), "Create internal $desc dependency";
+            ok !$pg->is_satisfied_depend($dep),
+                "Internal $desc depencency should not be satisfied";
+
+            # Once deployed, dependency should be satisfied.
+            ok $pg->log_deploy_change($change),
+                "Log internal $desc change deployment";
+            ok $pg->is_satisfied_depend($dep),
+                "Internal $desc depencency should now be satisfied";
+
+            # Revert it and try again.
+            ok $pg->log_revert_change($change),
+                "Log internal $desc change reversion";
+            ok !$pg->is_satisfied_depend($dep),
+                "Internal $desc depencency should again be unsatisfied";
+        }
+
+        # Now test as an external dependency.
+        EXTERNAL: {
+            # Make Change and Tag return registered external project "groovy".
+            $dep_params->{project} = 'groovy';
+            my $line_mocker = Test::MockModule->new('App::Sqitch::Plan::Line');
+            $line_mocker->mock(project => $dep_params->{project});
+
+            ok my $change = App::Sqitch::Plan::Change->new(
+                plan    => $plan,
+                name    => 'foo' . ++$i,
+                %{$chg_params},
+            ), "Create external $desc change";
+
+            # Tag it if necessary.
+            if (my $tag = $dep_params->{tag}) {
+                ok $change->add_tag(App::Sqitch::Plan::Tag->new(
+                    plan    => $plan,
+                    change  => $change,
+                    name    => $tag,
+                ) ), "Add tag external \@$tag";
+            }
+
+            # Should start with unsatisfied dependency.
+            ok my $dep = App::Sqitch::Plan::Depend->new(
+                plan    => $plan,
+                project => $plan->project,
+                %{ $dep_params },
+            ), "Create external $desc dependency";
+            ok !$pg->is_satisfied_depend($dep),
+                "External $desc depencency should not be satisfied";
+
+            # Once deployed, dependency should be satisfied.
+            ok $pg->log_deploy_change($change),
+                "Log external $desc change deployment";
+
+            ok $pg->is_satisfied_depend($dep),
+                "External $desc depencency should now be satisfied";
+
+            # Revert it and try again.
+            ok $pg->log_revert_change($change),
+                "Log external $desc change reversion";
+            ok !$pg->is_satisfied_depend($dep),
+                "External $desc depencency should again be unsatisfied";
+        }
+    }
 
     ##########################################################################
     # Test begin_work() and finish_work().

@@ -219,6 +219,22 @@ sub initialize {
     return $self;
 }
 
+sub register_project {
+    my $self   = shift;
+    my $sqitch = $self->sqitch;
+    my $plan   = $sqitch->plan;
+    return try {
+        $self->_dbh->do(q{
+            INSERT INTO projects (project, uri, creator_name, creator_email)
+            VALUES (?, ?, ?, ?)
+        }, undef, $plan->project, $plan->uri, $sqitch->user_name, $sqitch->user_email);
+        return $self;
+    } catch {
+        return $self if $DBI::state eq '23505'; # unique_violation
+        die $_;
+    };
+}
+
 sub begin_work {
     my $self = shift;
     my $dbh = $self->_dbh;
@@ -250,11 +266,12 @@ sub log_deploy_change {
     my $dbh    = $self->_dbh;
     my $sqitch = $self->sqitch;
 
-    my ($id, $name, $req, $conf, $user, $email) = (
+    my ($id, $name, $proj, $req, $conf, $user, $email) = (
         $change->id,
         $change->format_name,
-        [$change->requires],
-        [$change->conflicts],
+        $change->project,
+        [map { $_->as_string } $change->requires],
+        [map { $_->as_string } $change->conflicts],
         $sqitch->user_name,
         $sqitch->user_email
     );
@@ -263,6 +280,7 @@ sub log_deploy_change {
         INSERT INTO changes (
               change_id
             , change
+            , project
             , note
             , requires
             , conflicts
@@ -272,10 +290,11 @@ sub log_deploy_change {
             , planner_name
             , planner_email
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     }, undef,
         $id,
         $name,
+        $proj,
         $change->note,
         $req,
         $conf,
@@ -291,6 +310,7 @@ sub log_deploy_change {
             INSERT INTO tags (
                   tag_id
                 , tag
+                , project
                 , change_id
                 , note
                 , committer_name
@@ -299,11 +319,12 @@ sub log_deploy_change {
                 , planner_name
                 , planner_email
            ) VALUES
-        } . join( ', ', ( q{(?, ?, ?, ?, ?, ?, ?, ?, ?)} ) x @tags ),
+        } . join( ', ', ( q{(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)} ) x @tags ),
             undef,
             map { (
                 $_->id,
                 $_->format_name,
+                $proj,
                 $id,
                 $_->note,
                 $user,
@@ -332,6 +353,7 @@ sub _log_event {
               event
             , change_id
             , change
+            , project
             , note
             , tags
             , requires
@@ -342,15 +364,16 @@ sub _log_event {
             , planner_name
             , planner_email
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
     }, undef,
         $event,
         $change->id,
         $change->name,
+        $change->project,
         $note      // $change->note,
         $tags      || [ map { $_->format_name } $change->tags ],
-        $requires  || [ $change->requires ],
-        $conflicts || [ $change->conflicts ],
+        $requires  || [ map { $_->as_string } $change->requires ],
+        $conflicts || [ map { $_->as_string } $change->conflicts ],
         $sqitch->user_name,
         $sqitch->user_email,
         $change->timestamp->as_string(format => 'iso'),
@@ -403,34 +426,65 @@ sub is_deployed_change {
     }, undef, $change->id)->[0];
 }
 
-sub check_requires {
-    my ( $self, $change ) = @_;
+sub is_satisfied_depend {
+    my ( $self, $dep ) = @_;
+    my $dbh  = $self->_dbh;
 
-    # No need to check anything if there are no requirements.
-    my @requires = $change->requires_changes or return;
-    my $vals = join ', ', ('(?, ?)') x @requires;
+    if ( defined ( my $cid = $dep->id ) ) {
+        # Find by ID.
+        return $dbh->selectcol_arrayref(q{
+            SELECT EXISTS(
+                SELECT TRUE
+                  FROM changes
+                 WHERE change_id = ?
+            )
+         }, undef, $cid)->[0];
+    }
 
-    return @{ $self->_dbh->selectcol_arrayref(qq{
-        SELECT required.name
-          FROM (VALUES $vals) AS required(id, name)
-          LEFT JOIN changes ON required.id = changes.change_id
-         WHERE changes.change_id IS NULL
-         ORDER BY required.name;
-    }, undef, map { $_->id, $_->name } @requires) || [] };
-}
+    if ( defined ( my $change = $dep->change ) ) {
+        if ( defined ( my $tag = $dep->tag ) ) {
+            # Find by change name and following tag.
+            return $dbh->selectcol_arrayref(q{
+                SELECT EXISTS(
+                    SELECT TRUE
+                      FROM changes
+                      JOIN tags
+                        ON changes.committed_at < tags.committed_at
+                       AND changes.project = tags.project
+                     WHERE changes.project = ?
+                       AND changes.change  = ?
+                       AND tags.tag        = ?
+                )
+            }, undef, $dep->project, $change, '@' . $tag)->[0];
+        }
 
-sub check_conflicts {
-    my ( $self, $change ) = @_;
+        # Find by change name.
+        return $dbh->selectcol_arrayref(q{
+            SELECT EXISTS(
+                SELECT TRUE
+                  FROM changes
+                 WHERE project = ?
+                   AND change  = ?
+            )
+        }, undef, $dep->project, $change)->[0];
+    }
 
-    # No need to check anything if there are no conflicts.
-    my @conflicts = $change->conflicts_changes or return;
+    if ( defined ( my $tag = $dep->tag ) ) {
+        # Find by tag name.
+        return $dbh->selectcol_arrayref(q{
+            SELECT EXISTS(
+                SELECT TRUE
+                  FROM tags
+                 WHERE project = ?
+                   AND tag     = ?
+            )
+        }, undef, $dep->project, '@' . $tag)->[0];
+    }
 
-    return @{ $self->_dbh->selectcol_arrayref(q{
-        SELECT change
-          FROM changes
-         WHERE change_id = ANY(?)
-         ORDER BY change
-    }, undef, [map { $_->id } @conflicts ]) || [] };
+    hurl pg => __x(
+        'Invalid dependency: {dependency}',
+        $dep->as_string,
+    );
 }
 
 sub _fetch_item {
@@ -501,13 +555,20 @@ sub _dt($) {
     return App::Sqitch::DateTime->new(split /:/ => shift);
 }
 
+sub registered_projects {
+    return @{ shift->_dbh->selectcol_arrayref(
+        'SELECT project FROM projects ORDER BY project'
+    ) };
+}
+
 sub current_state {
-    my $self  = shift;
+    my ( $self, $project ) = @_;
     my $ddtcol = _ts2char 'committed_at';
     my $pdtcol = _ts2char 'planned_at';
     my $state = $self->_dbh->selectrow_hashref(qq{
         SELECT change_id
              , change
+             , project
              , note
              , committer_name
              , committer_email
@@ -522,9 +583,10 @@ sub current_state {
                   ORDER BY committed_at
              ) AS tags
           FROM changes
+         WHERE project = ?
          ORDER BY changes.committed_at DESC
          LIMIT 1
-    }) or return undef;
+    }, undef, $project // $self->plan->project ) or return undef;
     $state->{committed_at} = _dt $state->{committed_at};
     $state->{planned_at}   = _dt $state->{planned_at};
     return $state;
@@ -597,6 +659,7 @@ sub search_events {
         [ committer => 'committer_name' ],
         [ planner   => 'planner_name'   ],
         [ change    => 'change'         ],
+        [ project   => 'project'        ],
     ) {
         my $regex = delete $p{ $spec->[0] } // next;
         push @wheres => "$spec->[1] ~ ?";
@@ -624,6 +687,7 @@ sub search_events {
     my $pdtcol = _ts2char 'planned_at';
     my $sth = $self->_dbh->prepare(qq{
         SELECT event
+             , project
              , change_id
              , change
              , note

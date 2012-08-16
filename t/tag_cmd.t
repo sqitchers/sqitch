@@ -39,7 +39,7 @@ make_path 'sql';
 END { remove_tree 'sql' };
 my $plan_file = $sqitch->plan_file;
 my $fh = $plan_file->open('>') or die "Cannot open $plan_file: $!";
-say $fh '%project=empty';
+say $fh '%project=empty', $/, $/;
 $fh->close or die "Error closing $plan_file: $!";
 
 # Override request_note().

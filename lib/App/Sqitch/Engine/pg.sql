@@ -5,9 +5,25 @@ CREATE SCHEMA :"sqitch_schema";
 
 COMMENT ON SCHEMA :"sqitch_schema" IS 'Sqitch database deployment metadata v1.0.';
 
+CREATE TABLE :"sqitch_schema".projects (
+    project         TEXT        PRIMARY KEY,
+    uri             TEXT            NULL,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
+    creator_name    TEXT        NOT NULL,
+    creator_email   TEXT        NOT NULL
+);
+
+COMMENT ON TABLE :"sqitch_schema".projects                 IS 'Sqitch projects deployed to this database.';
+COMMENT ON COLUMN :"sqitch_schema".projects.project        IS 'Unique Name of a project.';
+COMMENT ON COLUMN :"sqitch_schema".projects.uri            IS 'Optional project URI';
+COMMENT ON COLUMN :"sqitch_schema".projects.created_at     IS 'Date the project was added to the database.';
+COMMENT ON COLUMN :"sqitch_schema".projects.creator_name   IS 'Name of the user who added the project.';
+COMMENT ON COLUMN :"sqitch_schema".projects.creator_email  IS 'Email address of the user who added the project.';
+
 CREATE TABLE :"sqitch_schema".changes (
     change_id       TEXT        PRIMARY KEY,
     change          TEXT        NOT NULL,
+    project         TEXT        NOT NULL REFERENCES :"sqitch_schema".projects(project),
     note            TEXT        NOT NULL DEFAULT '',
     requires        TEXT[]      NOT NULL DEFAULT '{}',
     conflicts       TEXT[]      NOT NULL DEFAULT '{}',
@@ -22,6 +38,7 @@ CREATE TABLE :"sqitch_schema".changes (
 COMMENT ON TABLE :"sqitch_schema".changes                  IS 'Tracks the changes currently deployed to the database.';
 COMMENT ON COLUMN :"sqitch_schema".changes.change_id       IS 'Change primary key.';
 COMMENT ON COLUMN :"sqitch_schema".changes.change          IS 'Name of a deployed change.';
+COMMENT ON COLUMN :"sqitch_schema".changes.project         IS 'Name of the Sqitch project to which the change belongs.';
 COMMENT ON COLUMN :"sqitch_schema".changes.note            IS 'Description of the change.';
 COMMENT ON COLUMN :"sqitch_schema".changes.requires        IS 'Array of the names of required changes.';
 COMMENT ON COLUMN :"sqitch_schema".changes.conflicts       IS 'Array of the names of conflicting changes.';
@@ -35,6 +52,7 @@ COMMENT ON COLUMN :"sqitch_schema".changes.planner_email   IS 'Email address of 
 CREATE TABLE :"sqitch_schema".tags (
     tag_id          TEXT        PRIMARY KEY,
     tag             TEXT        NOT NULL UNIQUE,
+    project         TEXT        NOT NULL REFERENCES :"sqitch_schema".projects(project),
     change_id       TEXT        NOT NULL REFERENCES :"sqitch_schema".changes(change_id),
     note            TEXT        NOT NULL DEFAULT '',
     committed_at    TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
@@ -48,6 +66,7 @@ CREATE TABLE :"sqitch_schema".tags (
 COMMENT ON TABLE :"sqitch_schema".tags                  IS 'Tracks the tags currently applied to the database.';
 COMMENT ON COLUMN :"sqitch_schema".tags.tag_id          IS 'Tag primary key.';
 COMMENT ON COLUMN :"sqitch_schema".tags.tag             IS 'Unique tag name.';
+COMMENT ON COLUMN :"sqitch_schema".tags.project         IS 'Name of the Sqitch project to which the tag belongs.';
 COMMENT ON COLUMN :"sqitch_schema".tags.change_id       IS 'ID of last change deployed before the tag was applied.';
 COMMENT ON COLUMN :"sqitch_schema".tags.note            IS 'Description of the tag.';
 COMMENT ON COLUMN :"sqitch_schema".tags.committed_at    IS 'Date the tag was applied to the database.';
@@ -61,6 +80,7 @@ CREATE TABLE :"sqitch_schema".events (
     event           TEXT        NOT NULL CHECK (event IN ('deploy', 'revert', 'fail')),
     change_id       TEXT        NOT NULL,
     change          TEXT        NOT NULL,
+    project         TEXT        NOT NULL REFERENCES :"sqitch_schema".projects(project),
     note            TEXT        NOT NULL DEFAULT '',
     requires        TEXT[]      NOT NULL DEFAULT '{}',
     conflicts       TEXT[]      NOT NULL DEFAULT '{}',
@@ -77,6 +97,7 @@ COMMENT ON TABLE :"sqitch_schema".events                  IS 'Contains full hist
 COMMENT ON COLUMN :"sqitch_schema".events.event           IS 'Type of event.';
 COMMENT ON COLUMN :"sqitch_schema".events.change_id       IS 'Change ID.';
 COMMENT ON COLUMN :"sqitch_schema".events.change          IS 'Change name.';
+COMMENT ON COLUMN :"sqitch_schema".events.project         IS 'Name of the Sqitch project to which the change belongs.';
 COMMENT ON COLUMN :"sqitch_schema".events.note            IS 'Description of the change.';
 COMMENT ON COLUMN :"sqitch_schema".events.requires        IS 'Array of the names of required changes.';
 COMMENT ON COLUMN :"sqitch_schema".events.conflicts       IS 'Array of the names of conflicting changes.';

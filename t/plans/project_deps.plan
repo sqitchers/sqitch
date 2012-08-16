@@ -2,11 +2,11 @@
 
 +roles 2012-07-16T17:25:07Z Barack Obama <potus@whitehouse.gov>
 +users    [roles] 2012-07-16T17:25:07Z Barack Obama <potus@whitehouse.gov>
-+add_user [users  roles] 2012-07-16T17:25:07Z Barack Obama <potus@whitehouse.gov>
++add_user [users roles log:logger] 2012-07-16T17:25:07Z Barack Obama <potus@whitehouse.gov>
 +dr_evil 2012-07-16T17:25:07Z Barack Obama <potus@whitehouse.gov>
 @alpha 2012-07-16T17:25:07Z Barack Obama <potus@whitehouse.gov>
 
 +users [users@alpha] 2012-07-16T17:25:07Z Barack Obama <potus@whitehouse.gov>
 -dr_evil 2012-07-16T17:25:07Z Barack Obama <potus@whitehouse.gov>
-+del_user [!dr_evil users] 2012-07-16T17:25:07Z Barack Obama <potus@whitehouse.gov>
++del_user [!dr_evil users log:logger@beta1] 2012-07-16T17:25:07Z Barack Obama <potus@whitehouse.gov>
 

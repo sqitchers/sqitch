@@ -15,7 +15,7 @@ has sqitch => (
     is       => 'ro',
     isa      => 'App::Sqitch',
     required => 1,
-    handles  => { destination => 'db_name' },
+    handles  => { destination => 'db_name', plan => 'plan' },
 );
 
 has start_at => (
@@ -86,6 +86,7 @@ sub deploy {
             ));
             $self->initialize;
         }
+        $self->register_project;
 
     } else {
         # Make sure that $to_index is greater than the current point.
@@ -281,22 +282,26 @@ sub deploy_change {
     $self->begin_work;
 
     # Check for conflicts.
-    if (my @conflicts = $self->check_conflicts($change)) {
+    if (my @conflicts = grep {
+        $self->is_satisfied_depend($_)
+    } $change->conflicts) {
         hurl deploy => __nx(
             'Conflicts with previously deployed change: {changes}',
             'Conflicts with previously deployed changes: {changes}',
             scalar @conflicts,
-            changes => join ' ', @conflicts,
+            changes => join ' ', map { $_->as_string } @conflicts,
         )
     }
 
     # Check for dependencies.
-    if (my @required = $self->check_requires($change)) {
+    if (my @required = grep {
+        !$self->is_satisfied_depend($_)
+    } $change->requires) {
         hurl deploy => __nx(
             'Missing required change: {changes}',
             'Missing required changes: {changes}',
             scalar @required,
-            changes => join ' ', @required,
+            changes => join ' ', map { $_->as_string } @required,
         );
     }
 
@@ -344,6 +349,11 @@ sub initialize {
     hurl "$class has not implemented initialize()";
 }
 
+sub register_project {
+    my $class = ref $_[0] || $_[0];
+    hurl "$class has not implemented register_project()";
+}
+
 sub run_file {
     my $class = ref $_[0] || $_[0];
     hurl "$class has not implemented run_file()";
@@ -379,14 +389,9 @@ sub is_deployed_change {
     hurl "$class has not implemented is_deployed_change()";
 }
 
-sub check_requires {
+sub is_satisfied_depend {
     my $class = ref $_[0] || $_[0];
-    hurl "$class has not implemented check_requires()";
-}
-
-sub check_conflicts {
-    my $class = ref $_[0] || $_[0];
-    hurl "$class has not implemented check_conflicts()";
+    hurl "$class has not implemented is_satisfied_depend()";
 }
 
 sub latest_change_id {
@@ -407,6 +412,11 @@ sub deployed_change_ids_since {
 sub name_for_change_id {
     my $class = ref $_[0] || $_[0];
     hurl "$class has not implemented name_for_change_id()";
+}
+
+sub registered_projects {
+    my $class = ref $_[0] || $_[0];
+    hurl "$class has not implemented registered_projects()";
 }
 
 sub current_state {
@@ -645,19 +655,33 @@ Initializes a database for Sqitch by installing the Sqitch metadata schema
 and/or tables. Should be overridden by subclasses. This implementation throws
 an exception
 
+=head3 C<register_project>
+
+  $engine->register_project;
+
+Registers the current project plan in the database. The implementation should
+insert the project name and URI if they have not already been inserted.
+
 =head3 C<is_deployed_tag>
 
-  say "Tag deployed"  if $engine->is_deployed_tag($tag);
+  say 'Tag deployed' if $engine->is_deployed_tag($tag);
 
-Should return true if the tag has been deployed to the database, and false if
-it has not.
+Should return true if the L<tag|App::Sqitch::Plan::Tag> has been applies to
+the database, and false if it has not.
 
 =head3 C<is_deployed_change>
 
-  say "Change deployed"  if $engine->is_deployed_change($change);
+  say 'Change deployed' if $engine->is_deployed_change($change);
 
-Should return true if the change has been deployed to the database, and false if
-it has not.
+Should return true if the L<change|App::Sqitch::Plan::Change> has been
+deployed to the database, and false if it has not.
+
+=head3 C<is_satisfied_depend>
+
+  say 'Dependency satisfied' if $engine->is_satisfied_depend($depend);
+
+Should return true if the L<dependency|App::Sqitch::Plan::Depend> has been
+satisfied, and false if it has not.
 
 =head3 C<log_deploy_change>
 
@@ -679,31 +703,6 @@ of the change failed.
 
 Should write to and/or remove from the database metadata and history the
 records necessary to indicate that the change has been reverted.
-
-=head3 C<check_requires>
-
-  if ( my @requires = $engine->requires($change) ) {
-      die "Change requires undeployed changes: @requires\n";
-  }
-
-Returns the names of any changes required by the specified change that are not
-currently deployed to the database. If none are returned, the requirements are
-presumed to be satisfied. The engine implementation should compare changes by
-their IDs.
-
-=head3 C<check_conflicts>
-
-  if ( my @conflicts = $engine->conflicts($change) ) {
-      die "Change conflicts with previously deployed changes: @conflicts\n";
-  }
-
-Returns the names of any currently-deployed changes that conflict with specified
-change. If none are returned, there are presumed to be no conflicts.
-
-If any of the changes that conflict with the specified change have been deployed
-to the database, their names should be returned by this method. If no names
-are returned, it's because there are no conflicts. The engine implementation
-should compare changes by their IDs.
 
 =head3 C<latest_change_id>
 
@@ -733,16 +732,30 @@ qualification, e.g., C<app_user@beta>. This value should be suitable for
 uniquely identifying the change, and passing to the C<get> or C<index_of>
 methods of L<App::Sqitch::Plan>.
 
+=head3 C<registered_projects>
+
+  my @projects = $engine->registered_projects;
+
+Reeturns a list of the names of Sqitch projects registered in the database.
+
 =head3 C<current_state>
 
   my $state = $engine->current_state;
+  my $state = $engine->current_state($project);
 
-Returns a hash reference representing the current state of the database, or
-C<undef> if the database has no changes deployed. The hash contains
-information about the last successfully deployed change, as well as any
-associated tags. The keys to the hash should include:
+Returns a hash reference representing the current project deployment state of
+the database, or C<undef> if the database has no changes deployed. If a
+project name is passed, the state will be returned for that project. Otherwise,
+the state will be returned for the local project.
+
+The hash contains information about the last successfully deployed change, as
+well as any associated tags. The keys to the hash should include:
 
 =over
+
+=item C<project>
+
+The name of the project for which the state is reported.
 
 =item C<change_id>
 
@@ -905,6 +918,11 @@ are:
 An array of the type of event to search for. Allowed values are "deploy",
 "revert", and "fail".
 
+=item C<project>
+
+Limit the events to those with project names matching the specified regular
+expression.
+
 =item C<change>
 
 Limit the events to those with changes matching the specified regular
@@ -947,6 +965,10 @@ The type of event, which is one of:
 =item C<fail>
 
 =back
+
+=item C<project>
+
+The name of the project with which the change is associated.
 
 =item C<change_id>
 

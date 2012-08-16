@@ -27,6 +27,7 @@ my %FORMATS;
 $FORMATS{raw} = <<EOF;
 %{:event}C%e %H%{reset}C%T
 name      %n
+project   %o
 %{requires}a%{conflicts}aplanner   %{name}p <%{email}p>
 planned   %{date:raw}p
 committer %{name}c <%{email}c>
@@ -38,6 +39,7 @@ EOF
 $FORMATS{full} = <<EOF;
 %{:event}C%L %h%{reset}C%T
 %{name}_ %n
+%{project}_ %o
 %R%X%{planner}_ %p
 %{planned}_ %{date}p
 %{committer}_ %c
@@ -49,6 +51,7 @@ EOF
 $FORMATS{long} = <<EOF;
 %{:event}C%L %h%{reset}C%T
 %{name}_ %n
+%{project}_ %o
 %{planner}_ %p
 %{committer}_ %c
 
@@ -72,7 +75,7 @@ $FORMATS{short} = <<EOF;
 %{    }s
 EOF
 
-$FORMATS{oneline} = '%{:event}C%h %l%{reset}C %n %s';
+$FORMATS{oneline} = '%{:event}C%h %l%{reset}C %o:%n %s';
 
 has event => (
     is      => 'ro',
@@ -80,6 +83,11 @@ has event => (
 );
 
 has change_pattern => (
+    is      => 'ro',
+    isa     => 'Str',
+);
+
+has project_pattern => (
     is      => 'ro',
     isa     => 'Str',
 );
@@ -173,9 +181,10 @@ has formatter => (
                         when ('committed') { return __ 'Committed:' }
                         when ('planned')   { return __ 'Planned:  ' }
                         when ('name')      { return __ 'Name:     ' }
+                        when ('project')   { return __ 'Project:  ' }
                         when ('email')     { return __ 'Email:    ' }
                         when ('requires')  { return __ 'Requires: ' }
-                        when ('conflicts') {return __ 'Conflicts:'  }
+                        when ('conflicts') { return __ 'Conflicts:' }
                         when (undef)       {
                             hurl log => __ 'No label passed to the _ format';
                         }
@@ -195,6 +204,7 @@ has formatter => (
                     return $_[0]->{change_id};
                 },
                 n => sub { $_[0]->{change} },
+                o => sub { $_[0]->{project} },
 
                 c => sub {
                     return "$_[0]->{committer_name} <$_[0]->{committer_email}>"
@@ -301,6 +311,7 @@ sub options {
     return qw(
         event=s@
         change-pattern|change=s
+        project-pattern|project=s
         committer-pattern|committer=s
         format|f=s
         date-format|date=s
@@ -384,6 +395,7 @@ sub execute {
     $iter = $engine->search_events(
         event     => $self->event,
         change    => $self->change_pattern,
+        project   => $self->project_pattern,
         committer => $self->committer_pattern,
         limit     => $self->max_count,
         offset    => $self->skip,

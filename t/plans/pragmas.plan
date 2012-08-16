@@ -2,8 +2,8 @@
   %foo = bar    # lolz
 % project=pragmata
 % uri=https://github.com/theory/sqitch/
+% strict
 
 hey 2012-07-16T17:25:07Z Barack Obama <potus@whitehouse.gov>
 you 2012-07-16T17:25:07Z Barack Obama <potus@whitehouse.gov>
 
-% strict

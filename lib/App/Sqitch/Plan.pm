@@ -7,6 +7,7 @@ use App::Sqitch::Plan::Tag;
 use App::Sqitch::Plan::Change;
 use App::Sqitch::Plan::Blank;
 use App::Sqitch::Plan::Pragma;
+use App::Sqitch::Plan::Depend;
 use Path::Class;
 use App::Sqitch::Plan::ChangeList;
 use App::Sqitch::Plan::LineList;
@@ -14,9 +15,20 @@ use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use namespace::autoclean;
 use Moose;
-use constant SYNTAX_VERSION => '1.0.0-b1';
+use constant SYNTAX_VERSION => '1.0.0-b2';
 
 our $VERSION = '0.83';
+
+my $name_re = qr/
+    (?![[:punct:]])                   # first character isn't punctuation
+    (?:                               # start non-capturing group, repeated once or more ...
+       (?![[:punct:]][[:digit:]]+\b)  #     look ahead to ensure does not end in punct and digits
+       [^[:blank:]:@#]                #     match a valid character
+    )+                                # ... end non-capturing group
+    (?<![[:punct:]])\b                # last character isn't punctuation
+/x;
+
+sub name_regex { $name_re }
 
 has sqitch => (
     is       => 'ro',
@@ -112,15 +124,6 @@ sub _parse {
     my $prev_tag;      # Last seen tag.
     my $prev_change;   # Last seen change.
 
-    # Regex to match names.
-    my $name_re = qr/
-         [^[:punct:]]               #  not punct
-         (?:                        #  followed by...
-             [^[:blank:]@]*         #      any number non-blank, non-@
-             [^[:punct:][:blank:]]  #      one not blank or punct
-         )?                         #  ... optionally
-    /x;
-
     # Regex to match timestamps.
     my $ts_re = qr/
         (?<yr>[[:digit:]]{4})  # year
@@ -143,22 +146,35 @@ sub _parse {
         <(?<planner_email>[^>]+)> # email
     /x;
 
-    LINE: while ( my $line = $fh->getline ) {
+    # Use for raising syntax error exceptions.
+    my $raise_syntax_error = sub {
+        hurl plan => __x(
+            'Syntax error in {file} at line {lineno}: {error}',
+            file   => $file,
+            lineno => $fh->input_line_number,
+            error  => shift
+        );
+    };
+
+    # First, find pragmas.
+    HEADER: while ( my $line = $fh->getline ) {
         chomp $line;
 
         # Grab blank lines first.
         if ($line =~ /\A(?<lspace>[[:blank:]]*)(?:#[[:blank:]]*(?<note>.+)|$)/) {
             my $line = App::Sqitch::Plan::Blank->new( plan => $self, %+ );
             push @lines => $line;
-            next LINE;
+            last HEADER if @lines && !$line->note;
+            next HEADER;
         }
 
         # Grab inline note.
         $line =~ s/(?<rspace>[[:blank:]]*)(?:[#][[:blank:]]*(?<note>.*))?$//;
         my %params = %+;
 
-        # Grab pragmas.
-        if ($line =~ /
+        $raise_syntax_error->(
+            __ 'Invalid pragma; a blank line must come between pragmas and changes'
+        ) unless $line =~ /
            \A                             # Beginning of line
            (?<lspace>[[:blank:]]*)?       # Optional leading space
            [%]                            # Required %
@@ -176,23 +192,61 @@ sub _parse {
                (?<ropspace>[[:blank:]]*)  #     Optional blanks
                (?<value>.+)               #     String value
            )?                             # ... optionally
-           $                              # end of line
-        /x) {
-            if ($+{name} eq 'syntax-version') {
-                # Set explicit version in case we write it out later. In
-                # future releases, may change parsers depending on the
-                # version.
-                $pragmas{syntax_version} = $params{value} = SYNTAX_VERSION;
-            } else {
-                $pragmas{ $+{name} } = $+{value} // 1;
-            }
-            push @lines => App::Sqitch::Plan::Pragma->new(
-                plan => $self,
-                %+,
-                %params
-            );
+           \z                             # end of line
+        /x;
+
+        # XXX Die if the pragma is a dupe?
+
+        if ($+{name} eq 'syntax-version') {
+            # Set explicit version in case we write it out later. In future
+            # releases, may change parsers depending on the version.
+            $pragmas{syntax_version} = $params{value} = SYNTAX_VERSION;
+        } elsif ($+{name} eq 'project') {
+            my $proj = $+{value};
+            $raise_syntax_error->(__x(
+                qq{invalid project name "{project}": project names must not }
+                . 'begin with punctuation, contain "@", ":", or "#", or end in '
+                . 'punctuation or digits following punctuation',
+                project => $proj,
+            )) unless $proj =~ /\A$name_re\z/;
+            $pragmas{project} = $proj;
+        } else {
+            $pragmas{ $+{name} } = $+{value} // 1;
+        }
+
+        push @lines => App::Sqitch::Plan::Pragma->new(
+            plan => $self,
+            %+,
+            %params
+        );
+        next HEADER;
+    }
+
+    # We should have a version pragma.
+    unless ( $pragmas{syntax_version} ) {
+        unshift @lines => $self->_version_line;
+        $pragmas{syntax_version} = SYNTAX_VERSION;
+    }
+
+    # Should have valid project pragma.
+    hurl plan => __x(
+        'Missing %project pragma in {file}',
+        file => $file,
+    ) unless $pragmas{project};
+
+    LINE: while ( my $line = $fh->getline ) {
+        chomp $line;
+
+        # Grab blank lines first.
+        if ($line =~ /\A(?<lspace>[[:blank:]]*)(?:#[[:blank:]]*(?<note>.+)|$)/) {
+            my $line = App::Sqitch::Plan::Blank->new( plan => $self, %+ );
+            push @lines => $line;
             next LINE;
         }
+
+        # Grab inline note.
+        $line =~ s/(?<rspace>[[:blank:]]*)(?:[#][[:blank:]]*(?<note>.*))?$//;
+        my %params = %+;
 
         # Is it a tag or a change?
         my $type = $line =~ /^[[:blank:]]*[@]/ ? 'tag' : 'change';
@@ -229,22 +283,11 @@ sub _parse {
 
         %params = ( %params, %+ );
 
-        # Make sure we have a valid name.
-        my $raise_syntax_error = sub {
-            hurl plan => __x(
-                'Syntax error in {file} at line {lineno}: {error}',
-                file   => $file,
-                lineno => $fh->input_line_number,
-                error  => shift
-            );
-        };
-
         # Raise errors for missing data.
         $raise_syntax_error->(__(
-            'Invalid name; names must not begin or end in '
-            . 'punctuation or end in digits following punctuation',
+            qq{Invalid name; names must not begin with punctuation, }
+            . 'contain "@", ":", or "#", or end in punctuation or digits following punctuation',
         )) if !$params{name}
-            || $params{name} =~ /[[:punct:]][[:digit:]]*\z/
             || (!$params{yr} && $line =~ $ts_re);
 
         $raise_syntax_error->(__ 'Missing timestamp and planner name and email')
@@ -303,7 +346,11 @@ sub _parse {
 
             if (@curr_changes) {
                 # Sort all changes up to this tag by their dependencies.
-                push @changes => $self->sort_changes(\%line_no_for, @curr_changes);
+                push @changes => $self->sort_changes(
+                    $pragmas{project},
+                    \%line_no_for,
+                    @curr_changes,
+                );
                 @curr_changes = ();
             }
 
@@ -332,16 +379,21 @@ sub _parse {
             # Got dependencies?
             if (my $deps = $params{dependencies}) {
                 my (@req, @con);
-                for my $dep (split /[[:blank:]]+/, $deps) {
-                    $raise_syntax_error->(__x(
-                        qq{"{dep}" does not look like a dependency.\n}
-                        . 'Dependencies must begin with ":" or "!" and be valid change names',
-                        dep => $dep,
-                    )) unless $dep =~ /^([:!])((?:(?:$name_re)?[@])?$name_re)$/g;
-                    if ($1 eq ':') {
-                        push @req => $2;
+                for my $depstring (split /[[:blank:]]+/, $deps) {
+                    my $dep_params = App::Sqitch::Plan::Depend->parse(
+                        $depstring,
+                    ) or $raise_syntax_error->(__x(
+                        '"{dep}" is not a valid dependency specification',
+                        dep => $depstring,
+                    ));
+                    my $dep = App::Sqitch::Plan::Depend->new(
+                        plan => $self,
+                        %{ $dep_params },
+                    );
+                    if ($dep->conflicts) {
+                        push @con => $dep;
                     } else {
-                        push @con => $2;
+                        push @req => $dep;
                     }
                 }
                 $params{requires}  = \@req;
@@ -365,19 +417,11 @@ sub _parse {
     }
 
     # Sort and store any remaining changes.
-    push @changes => $self->sort_changes(\%line_no_for, @curr_changes) if @curr_changes;
-
-    # We should have a version pragma.
-    unless ( $pragmas{syntax_version} ) {
-        unshift @lines => $self->_version_line;
-        $pragmas{syntax_version} = SYNTAX_VERSION;
-    }
-
-    # Should have project pragma.
-    hurl plan => __x(
-        'Missing %project pragma in {file}',
-        file => $file,
-    ) unless $pragmas{project};
+    push @changes => $self->sort_changes(
+        $pragmas{project},
+        \%line_no_for,
+        @curr_changes,
+    ) if @curr_changes;
 
     return {
         changes => \@changes,
@@ -396,7 +440,7 @@ sub _version_line {
 }
 
 sub sort_changes {
-    my $self = shift;
+    my ( $self, $proj ) = ( shift, shift );
     my $seen = ref $_[0] eq 'HASH' ? shift : {};
 
     my %obj;             # maps change names to objects.
@@ -413,23 +457,32 @@ sub sort_changes {
 
         # XXX Ignoring conflicts for now.
         for my $dep ( $change->requires ) {
+            # Ignore dependencies on other projects.
+            if ($dep->got_project) {
+                # Skip if parsed project name different from current project.
+                next if $dep->project ne $proj;
+            } else {
+                # Skip if an ID was passed, is it could be internal or external.
+                next if $dep->got_id;
+            }
+            my $key = $dep->key_name;
 
             # Skip it if it's a change from an earlier tag.
-            if ($dep =~ /.@/) {
+            if ($key =~ /.@/) {
                 # Need to look it up before the tag.
-                my ( $change, $tag ) = split /@/ => $dep, 2;
+                my ( $change, $tag ) = split /@/ => $key, 2;
                 if ( my $tag_at = $seen->{"\@$tag"} ) {
                     if ( my $change_at = $seen->{$change}) {
                         next if $change_at < $tag_at;
                     }
                 }
             } else {
-                next if exists $seen->{$dep};
+                next if exists $seen->{$key};
             }
 
-            $p->{$dep}++;
-            $npred{$dep}++;
-            push @{ $succ{$name} } => $dep;
+            $p->{$key}++;
+            $npred{$key}++;
+            push @{ $succ{$name} } => $key;
         }
     }
 
@@ -570,6 +623,34 @@ sub tag {
     return $tag;
 }
 
+sub _parse_deps {
+    my ( $self, $p ) = @_;
+    # Dependencies must be parsed into objects.
+    $p->{requires} = [ map {
+        my $p = App::Sqitch::Plan::Depend->parse($_) // hurl plan => __x(
+            '"{dep}" is not a valid dependency specification',
+            dep => $_,
+        );
+        App::Sqitch::Plan::Depend->new(
+            %{ $p },
+            plan      => $self,
+            conflicts => 0,
+        );
+    } @{ $p->{requires} } ] if $p->{requires};
+
+    $p->{conflicts} = [ map {
+        my $p = App::Sqitch::Plan::Depend->parse("!$_") // hurl plan => __x(
+            '"{dep}" is not a valid dependency specification',
+            dep => $_,
+        );
+        App::Sqitch::Plan::Depend->new(
+            %{ $p },
+            plan      => $self,
+            conflicts => 1,
+        );
+    } @{ $p->{conflicts} } ] if $p->{conflicts};
+}
+
 sub add {
     my ( $self, %p ) = @_;
     $self->_is_valid(change => $p{name});
@@ -583,6 +664,8 @@ sub add {
             change => $p{name},
         );
     }
+
+    $self->_parse_deps(\%p);
 
     $p{rspace} //= ' ' if $p{note};
     my $change = App::Sqitch::Plan::Change->new( %p, plan => $self );
@@ -622,8 +705,14 @@ sub rework {
         change => $p{name},
     ) if !defined $tag_idx || $tag_idx < $idx;
 
+    $self->_parse_deps(\%p);
+
     my ($tag) = $changes->change_at($tag_idx)->tags;
-    unshift @{ $p{requires} ||= [] } => $p{name} . $tag->format_name;
+    unshift @{ $p{requires} ||= [] } => App::Sqitch::Plan::Depend->new(
+        plan    => $self,
+        change  => $p{name},
+        tag     => $tag->name,
+    );
 
     my $orig = $changes->change_at($idx);
     my $new  = App::Sqitch::Plan::Change->new( %p, plan => $self );
@@ -642,6 +731,7 @@ sub _check_dependencies {
     my ( $self, $change, $action ) = @_;
     my $changes = $self->_changes;
     for my $req ( $change->requires ) {
+        $req = $req->key_name;
         next if defined $changes->index_of($req =~ /@/ ? $req : $req . '@HEAD');
         my $name = $change->name;
         if ($action eq 'add') {
@@ -672,25 +762,17 @@ sub _is_valid {
         name => $name,
     ) if $name =~ /^[0-9a-f]{40}/;
 
-    unless ($name =~ /
-        ^                          # Beginning of line
-        [^[:punct:]]               # not punct
-        (?:                        # followed by...
-            [^[:blank:]@#]*?       #     any number non-blank, non-@, non-#.
-            [^[:punct:][:blank:]]  #     one not blank or punct
-        )?                         # ... optionally
-        $                          # end of line
-    /x && $name !~ /[[:punct:]][[:digit:]]*\z/) {
+    unless ($name =~ /\A$name_re\z/) {
         if ($type eq 'change') {
             hurl plan => __x(
-                qq{"{name}" is invalid: changes must not begin with punctuation }
-                . 'or end in punctuation or digits following punctuation',
+                qq{"{name}" is invalid: changes must not begin with punctuation, }
+                . 'contain "@", ":", or "#", or end in punctuation or digits following punctuation',
                 name => $name,
             );
         } else {
             hurl plan => __x(
-                qq{"{name}" is invalid: tags must not begin with punctuation }
-                . 'or end in punctuation or digits following punctuation',
+                qq{"{name}" is invalid: tags must not begin with punctuation, }
+                . 'contain "@", ":", or "#", or end in punctuation or digits following punctuation',
                 name => $name,
             );
         }
@@ -743,6 +825,19 @@ file and provides an iteration interface for working with the plan.
 
 Returns the current version of the Sqitch plan syntax. Used for the
 C<%sytax-version> pragma.
+
+=head2 Class Methods
+
+=head3 C<name_regex>
+
+  die "$this has no name" unless $this =~ App::Sqitch::Plan->name_regex;
+
+Returns a regular expression that matches names. Note that it is not anchored,
+so if you need to make sure that a string is a valid name and nothing else,
+you will need to anchor it yourself, like so:
+
+    my $name_re = App::Sqitch::Plan->name_regex;
+    die "$this is not a valid name" if $this !~ /\A$name_re\z/;
 
 =head2 Constructors
 
@@ -999,12 +1094,12 @@ the all of the changes, call C<changes()> instead.
 
 =head3 C<sort_changes>
 
-  @changes = $plan->sort_changes(@changes);
-  @changes = $plan->sort_changes( { '@foo' => 1, 'bar' => 1 }, @changes );
+  @changes = $plan->sort_changes( $project, @changes );
+  @changes = $plan->sort_changes( $project, { '@foo' => 1 }, @changes );
 
-Sorts a list of changes in dependency order and returns them. If the first
-argument is a hash reference, its keys should be previously-seen change and tag
-names that can be assumed to be satisfied requirements for the succeeding
+Sorts a list of changes in dependency order and returns them. If the second
+argument is a hash reference, its keys should be previously-seen change and
+tag names that can be assumed to be satisfied requirements for the succeeding
 changes.
 
 =head3 C<tag>
@@ -1059,11 +1154,12 @@ a value. Currently, the only pragma recognized by Sqitch is C<syntax-version>.
 =item * A change.
 
 A named change change. A change consists of an optional C<+> or C<-> character
-followed by one or more non-whitespace characters, of which the first and last
-characters must not be punctuation characters. A change may then also contain
-a space-delimited list of dependencies, which are the names of other changes
-or tags prefixed with a colon (C<:>) for required changes or with an
-exclamation point (C<!>) for conflicting changes.
+followed by one or more non-whitespace characters (excluding "@", ":", and
+"#"), of which the first and last characters must not be punctuation
+characters. A change may then also contain a space-delimited list of
+dependencies, which are the names of other changes or tags prefixed with a
+colon (C<:>) for required changes or with an exclamation point (C<!>) for
+conflicting changes.
 
 Changes with a leading C<-> are slated to be reverted, while changes with no
 character or a leading C<+> are to be deployed.
@@ -1071,8 +1167,8 @@ character or a leading C<+> are to be deployed.
 =item * A tag.
 
 A named deployment tag, generally corresponding to a release name. Begins with
-a C<@>, followed by one or more non-whitespace characters. The first and last
-characters must not be punctuation characters.
+a C<@>, followed by one or more non-whitespace characters, excluding "@", ":",
+and "#". The first and last characters must not be punctuation characters.
 
 =item * A note.
 
@@ -1166,19 +1262,19 @@ Here is the EBNF Grammar for the plan file:
   plan-file    = { <pragma> | <change-line> | <tag-line> | <note-line> | <blank-line> }* ;
 
   blank-line   = [ <blanks> ] <eol>;
-  note-line = <note> ;
-  change-line    = <name> [ { <requires> | <conflicts} } ] ( <eol> | <note> ) ;
+  note-line    = <note> ;
+  change-line  = <name> [ "[" { <requires> | <conflicts> } "]" ] ( <eol> | <note> ) ;
   tag-line     = <tag> ( <eol> | <note> ) ;
   pragma       = "%" [ <blanks> ] <name> [ <blanks> ] = [ <blanks> ] <value> ( <eol> | <note> ) ;
 
   tag          = "@" <name> ;
-  requires     = ":" <name> ;
+  requires     = <name> ;
   conflicts    = "!" <name> ;
-  name         = <non-punct> [ [ ? non-blank and not "@" or "#" characters ? ] <non-punct> ] ;
+  name         = <non-punct> [ [ ? non-blank and not "@", ":", or "#" characters ? ] <non-punct> ] ;
   non-punct    = ? non-punctuation, non-blank character ? ;
   value        = ? non-EOL or "#" characters ?
 
-  note      = [ <blanks> ] "#" [ <string> ] <EOL> ;
+  note         = [ <blanks> ] "#" [ <string> ] <EOL> ;
   eol          = [ <blanks> ] <EOL> ;
 
   blanks       = ? blank characters ? ;
@@ -1187,15 +1283,15 @@ Here is the EBNF Grammar for the plan file:
 And written as regular expressions:
 
   my $eol          = qr/[[:blank:]]*$/
-  my $note      = qr/(?:[[:blank:]]+)?[#].+$/;
-  my $name         = qr/[^[:punct:][:blank:]](?:(?:[^[:space:]@]+)?[^[:punct:][:blank:]])?/;
+  my $note         = qr/(?:[[:blank:]]+)?[#].+$/;
+  my $name         = qr/[^[:punct:][:blank:]](?:(?:[^[:space:]:#@]+)?[^[:punct:][:blank:]])?/;
   my $tag          = qr/[@]$name/;
-  my $requires     = qr/[:]$name/;
+  my $requires     = qr/$name/;
   my conflicts     = qr/[!]$name/;
   my $tag_line     = qr/^$tag(?:$note|$eol)/;
-  my $change_line    = qr/^$name(?:$requires|$conflicts)*(?:$note|$eol)/;
-  my $note_line = qr/^$note/;
-  my $pragma    = qr/^][[:blank:]]*[%][[:blank:]]*$name[[:blank:]]*=[[:blank:]].+?(?:$note|$eol)$/;
+  my $change_line  = qr/^$name(?:[[](?:$requires|$conflicts)+[]])?(?:$note|$eol)/;
+  my $note_line    = qr/^$note/;
+  my $pragma       = qr/^][[:blank:]]*[%][[:blank:]]*$name[[:blank:]]*=[[:blank:]].+?(?:$note|$eol)$/;
   my $blank_line   = qr/^$eol/;
   my $plan         = qr/(?:$pragma|$change_line|$tag_line|$note_line|$blank_line)+/ms;
 

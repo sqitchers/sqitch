@@ -1,4 +1,5 @@
 %project=pg
+
 + users 2012-07-16T17:25:07Z Barack Obama <potus@whitehouse.gov>
 @alpha 2012-07-16T17:25:07Z Barack Obama <potus@whitehouse.gov> # Good to go!
-+ widgets [:users !dr_evil] 2012-07-16T17:25:07Z Barack Obama <potus@whitehouse.gov> # All in
++ widgets [users !dr_evil] 2012-07-16T17:25:07Z Barack Obama <potus@whitehouse.gov> # All in

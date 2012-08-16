@@ -3,8 +3,8 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 234;
-#use Test::More 'no_plan';
+#use Test::More tests => 234;
+use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
 use Test::NoWarnings;
@@ -31,6 +31,7 @@ isa_ok my $log = App::Sqitch::Command->load({
 
 can_ok $log, qw(
     change_pattern
+    project_pattern
     committer_pattern
     max_count
     skip
@@ -47,6 +48,7 @@ can_ok $log, qw(
 is_deeply [$CLASS->options], [qw(
     event=s@
     change-pattern|change=s
+    project-pattern|project=s
     committer-pattern|committer=s
     format|f=s
     date-format|date=s
@@ -190,6 +192,7 @@ my $cdt = App::Sqitch::DateTime->now;
 my $pdt = $cdt->clone->subtract(days => 1);
 my $event = {
     event           => 'deploy',
+    project         => 'logit',
     change_id       => '000011112222333444',
     change          => 'lolz',
     tags            => [ '@beta', '@gamma' ],
@@ -211,6 +214,7 @@ my $praw = $pdt->as_string( format => 'raw' );
 for my $spec (
     [ raw => "deploy 000011112222333444 (\@beta, \@gamma)\n"
         . "name      lolz\n"
+        . "project   logit\n"
         . "requires  foo, bar\n"
         . "planner   damian <damian\@example.com>\n"
         . "planned   $praw\n"
@@ -220,6 +224,7 @@ for my $spec (
     ],
     [ full =>  __ 'Deploy' . " 000011112222333444 (\@beta, \@gamma)\n"
         . __ 'Name:' . "      lolz\n"
+        . __ 'Project:' . "   logit\n"
         . __ 'Requires: ' . " foo, bar\n"
         . __ 'Planner:' . "   damian <damian\@example.com>\n"
         . __ 'Planned:' . "   __PDATE__\n"
@@ -229,6 +234,7 @@ for my $spec (
     ],
     [ long =>  __ 'Deploy' . " 000011112222333444 (\@beta, \@gamma)\n"
         . __ 'Name:' . "      lolz\n"
+        . __ 'Project:' . "   logit\n"
         . __ 'Planner:' . "   damian <damian\@example.com>\n"
         . __ 'Committer:' . " larry <larry\@example.com>\n\n"
         . "    For the LOLZ.\n    \n    You know, funny stuff and cute kittens, right?\n"
@@ -244,7 +250,7 @@ for my $spec (
         . __ 'Committer:' . " larry <larry\@example.com>\n\n"
         . "    For the LOLZ.\n",
     ],
-    [ oneline => '000011112222333444 deploy lolz For the LOLZ.' ],
+    [ oneline => '000011112222333444 deploy logit:lolz For the LOLZ.' ],
 ) {
     my $format = $CLASS->configure( $config, { format => $spec->[0] } )->{format};
     ok my $log = $CLASS->new( sqitch => $sqitch, format => $format ),
@@ -322,6 +328,8 @@ for my $spec (
 
     ['%n', { change => 'foo' }, 'foo'],
     ['%n', { change => 'bar' }, 'bar'],
+    ['%o', { project => 'foo' }, 'foo'],
+    ['%o', { project => 'bar' }, 'bar'],
 
     ['%c', { committer_name => 'larry', committer_email => 'larry@example.com'  }, 'larry <larry@example.com>'],
     ['%{n}c', { committer_name => 'damian' }, 'damian'],
@@ -492,6 +500,7 @@ for my $spec (
     [ full => sprintf($green, __ 'Deploy' . ' 000011112222333444')
         . " (\@beta, \@gamma)\n"
         . __ 'Name:' . "      lolz\n"
+        . __ 'Project:' . "   logit\n"
         . __ 'Requires: ' . " foo, bar\n"
         . __ 'Conflicts: ' . "dr_evil\n"
         . __ 'Planner:' . "   damian <damian\@example.com>\n"
@@ -503,6 +512,7 @@ for my $spec (
     [ long => sprintf($green, __ 'Deploy' . ' 000011112222333444')
         . " (\@beta, \@gamma)\n"
         . __ 'Name:' . "      lolz\n"
+        . __ 'Project:' . "   logit\n"
         . __ 'Planner:' . "   damian <damian\@example.com>\n"
         . __ 'Committer:' . " larry <larry\@example.com>\n\n"
         . "    For the LOLZ.\n    \n    You know, funny stuff and cute kittens, right?\n"
@@ -518,7 +528,9 @@ for my $spec (
         . __ 'Committer:' . " larry <larry\@example.com>\n\n"
         . "    For the LOLZ.\n",
     ],
-    [ oneline => sprintf "$green %s %s", '000011112222333444' . ' ' . __('deploy'), 'lolz', 'For the LOLZ.' ],
+    [ oneline => sprintf "$green %s %s", '000011112222333444' . ' '
+        . __('deploy'), 'logit:lolz', 'For the LOLZ.',
+    ],
 ) {
     my $format = $CLASS->configure( $config, { format => $spec->[0] } )->{format};
     ok my $log = $CLASS->new( sqitch => $sqitch, format => $format ),
@@ -580,6 +592,7 @@ ok $log->execute, 'Execute log';
 is_deeply $search_args, [
     event     => undef,
     change    => undef,
+    project   => undef,
     committer => undef,
     limit     => undef,
     offset    => undef,
@@ -607,6 +620,7 @@ isa_ok $log = $CLASS->new(
     sqitch            => $sqitch,
     event             => [qw(revert fail)],
     change_pattern    => '.+',
+    project_pattern   => '.+',
     committer_pattern => '.+',
     max_count         => 10,
     skip              => 5,
@@ -617,6 +631,7 @@ ok $log->execute, 'Execute log with attributes';
 is_deeply $search_args, [
     event     => [qw(revert fail)],
     change    => '.+',
+    project   => '.+',
     committer => '.+',
     limit     => 10,
     offset    => 5,

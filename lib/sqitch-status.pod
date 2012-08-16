@@ -17,6 +17,11 @@ Otherwise, a message will indicate that the database is up-to-date.
 
 =over
 
+=item C<--project>
+
+Project for which to retreive the status. Defaults to the status of the
+current project, if a plan can be found.
+
 =item C<--show-changes>
 
 Also display a list of deployed changes.

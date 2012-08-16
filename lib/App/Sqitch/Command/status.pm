@@ -10,6 +10,7 @@ use Moose;
 use Moose::Util::TypeConstraints;
 use App::Sqitch::DateTime;
 use List::Util qw(max);
+use Try::Tiny;
 use namespace::autoclean;
 extends 'App::Sqitch::Command';
 
@@ -48,8 +49,31 @@ has date_format => (
     }
 );
 
+has project => (
+    is      => 'ro',
+    isa     => 'Str',
+    lazy    => 1,
+    default => sub {
+        my $self = shift;
+        try { $self->plan->project } || do {
+            # Try to extract a project name from the database.
+            my $engine = $self->engine;
+            hurl status => __ 'Database not initialized for Sqitch'
+                unless $engine->initialized;
+            my @projs = $engine->registered_projects
+                or hurl status => __ 'No projects registered';
+            hurl status => __x(
+                'Use --project to select which project to query: {projects}',
+                projects => join __ ', ', @projs,
+            ) if @projs > 1;
+            $projs[0];
+        };
+    },
+);
+
 sub options {
     return qw(
+        project=s
         show-tags
         show-changes
         date-format|date=s
@@ -60,19 +84,29 @@ sub execute {
     my $self   = shift;
     my $engine = $self->engine;
 
+    # Where are we?
     $self->comment( __x 'On database {db}', db => $engine->destination );
 
-    my $state = $engine->initialized ? $engine->current_state : undef;
-
     # Exit with status 1 on no state, probably not expected.
-    hurl {
+    my $state = $engine->current_state( $self->project ) || hurl {
         ident   => 'status',
         message => __ 'No changes deployed',
         exitval => 1,
-    } unless defined $state;
+    };
 
     # Emit the state basics.
     $self->emit_state($state);
+
+    # If we have no access to the project plan, we can't emit the status.
+    my $plan_proj = try { $self->plan->project };
+    if ( !defined $plan_proj || $self->project ne $plan_proj ) {
+        $self->comment('');
+        $self->emit(__x(
+            'Status unknown. Use --plan-file to assess "{project}" status',
+            project => $self->project,
+        ));
+        return $self;
+    }
 
     # Emit changes and tags, if required.
     $self->emit_changes;
@@ -99,6 +133,10 @@ sub configure {
 
 sub emit_state {
     my ( $self, $state ) = @_;
+    $self->comment(__x(
+        'Project:  {project}',
+        project => $state->{project},
+    ));
     $self->comment(__x(
         'Change:   {change_id}',
         change_id => $state->{change_id},

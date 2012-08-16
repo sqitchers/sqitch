@@ -7,7 +7,7 @@ use warnings;
 use Path::Class;
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
-use Config::GitLike 1.07;
+use Config::GitLike 1.09;
 use utf8;
 
 extends 'Config::GitLike';
@@ -15,10 +15,7 @@ extends 'Config::GitLike';
 our $VERSION = '0.83';
 
 has '+confname' => ( default => 'sqitch.conf' );
-
-# https://github.com/bestpractical/config-gitlike/pull/6
-has '+encoding' => ( default => 'UTF-8' )
-    if __PACKAGE__->meta->find_attribute_by_name('encoding');
+has '+encoding' => ( default => 'UTF-8' );
 
 my $SYSTEM_DIR = undef;
 
@@ -67,33 +64,6 @@ sub get_section {
         map { $_ => $data->{"$section.$_"} }
         grep { s{^\Q$section.\E([^.]+)$}{$1} } keys %{$data}
     };
-}
-
-# Remove once https://github.com/bestpractical/config-gitlike/pull/4 is merged
-# and released.
-sub add_comment {
-    my $self = shift;
-    my (%args) = (
-        comment   => undef,
-        filename  => undef,
-        indented  => undef,
-        semicolon => undef,
-        @_
-    );
-
-    my $filename = $args{filename} or die "No filename passed to add_comment()";
-    die "No comment to add\n" unless defined $args{comment};
-
-    # Comment, preserving leading whitespace.
-    my $chars = $args{indented}  ? '[[:blank:]]*' : '';
-    my $char  = $args{semicolon} ? ';'            : '#';
-    ( my $comment = $args{comment} ) =~ s/^($chars)/$1$char /mg;
-    $comment .= "\n" if $comment !~ /\n\z/;
-
-    my $c = $self->_read_config($filename);
-    $c = '' unless defined $c;
-
-    return $self->_write_config( $filename, $c . $comment );
 }
 
 __PACKAGE__->meta->make_immutable;

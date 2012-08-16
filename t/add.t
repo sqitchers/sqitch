@@ -23,6 +23,17 @@ ok my $sqitch = App::Sqitch->new(
     top_dir => Path::Class::Dir->new('sql'),
 ), 'Load a sqitch sqitch object';
 my $config = $sqitch->config;
+
+sub dep($$) {
+    my $dep = App::Sqitch::Plan::Depend->new(
+        %{ App::Sqitch::Plan::Depend->parse( $_[1] ) },
+        plan      => $sqitch->plan,
+        conflicts => $_[0],
+    );
+    $dep->project;
+    return $dep;
+}
+
 isa_ok my $add = App::Sqitch::Command->load({
     sqitch  => $sqitch,
     command => 'add',
@@ -221,7 +232,7 @@ is $ { $add->_slurp($tmpl)}, contents_of $tmpl,
 make_path 'sql';
 my $fn = $sqitch->plan_file;
 open my $fh, '>', $fn or die "Cannot open $fn: $!";
-say $fh '%project=add';
+say $fh "%project=add\n\n";
 close $fh or die "Error closing $fn: $!";
 END { remove_tree 'sql' };
 my $out = file 'sql', 'sqitch_change_test.sql';
@@ -351,15 +362,15 @@ is_deeply \%request_params, {
 }, 'It should have prompted for a note';
 
 is $change->name, 'foo_table', 'Change name should be set to "foo_table"';
-is_deeply [$change->requires],  ['widgets_table'], 'It should have requires';
-is_deeply [$change->conflicts], [qw(dr_evil joker)], 'It should have conflicts';
+is_deeply [$change->requires],  [dep 0, 'widgets_table'], 'It should have requires';
+is_deeply [$change->conflicts], [map { dep 1, $_ } qw(dr_evil joker)], 'It should have conflicts';
 is        $change->note, "hello\n\nthere", 'It should have a comment';
 
 is_deeply +MockOutput->get_info, [
     [__x 'Skipped {file}: already exists', file => $deploy_file],
     [__x 'Created {file}', file => $revert_file],
     [__x 'Added "{change}" to {file}',
-        change => 'foo_table [:widgets_table !dr_evil !joker]',
+        change => 'foo_table [widgets_table !dr_evil !joker]',
         file   => $sqitch->plan_file,
     ],
 ], 'Info should report skipping file and include dependencies';
