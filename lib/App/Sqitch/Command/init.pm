@@ -127,7 +127,7 @@ sub write_config {
     my ( @vars, @comments );
 
     # Write the engine.
-    my $engine = $sqitch->engine;
+    my $engine = try { $sqitch->engine };
     if ($engine) {
         push @vars => {
             key   => "core.engine",
