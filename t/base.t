@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 86;
+use Test::More tests => 95;
 #use Test::More 'no_plan';
 use Test::MockModule;
 use Path::Class;
@@ -49,8 +49,6 @@ can_ok $CLASS, qw(
 isa_ok my $sqitch = $CLASS->new, $CLASS, 'A new object';
 
 for my $attr (qw(
-    _engine
-    engine
     db_client
     db_username
     db_name
@@ -77,6 +75,30 @@ is $sqitch->user_email, do {
     require Sys::Hostname;
     getlogin . '@' . Sys::Hostname::hostname();
 }, 'Default user_email should be set from system';
+
+# Test engine.
+throws_ok { $sqitch->_engine } 'App::Sqitch::X',
+    'Should get exception for no _engine';
+is $@->ident, 'core', 'No _engine error ident should be "core"';
+is $@->message, __ 'No engine specified; use --engine or set core.engine',
+    'No _engine error message should be correct';
+throws_ok { $sqitch->engine } 'App::Sqitch::X',
+    'Should get exception for no engine';
+is $@->ident, 'core', 'No engine error ident should be "core"';
+is $@->message, __ 'No engine specified; use --engine or set core.engine',
+    'No engine error message should be correct';
+
+# Try an uknown engine.
+throws_ok { $CLASS->new(_engine => 'nonexistent') } 'App::Sqitch::X',
+    'Should get error for unknown engine';
+is $@->ident, 'core', 'Unknown engine error ident should be "core"';
+is $@->message, __x('Unknown engine: {engine}', engine => 'nonexistent'),
+    'Unknown No engine error message should be correct';
+
+# Valid engines.
+for my $eng (qw(pg sqlite)) {
+    ok $CLASS->new(_engine => $eng), qq{Engine "$eng" should be valid};
+}
 
 # Test invalid user name and email values.
 throws_ok { $CLASS->new(user_name => 'foo<bar') } 'App::Sqitch::X',
