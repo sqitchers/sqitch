@@ -10,6 +10,7 @@ use Moose;
 use Moose::Util::TypeConstraints;
 use App::Sqitch::DateTime;
 use List::Util qw(max);
+use Try::Tiny;
 use namespace::autoclean;
 extends 'App::Sqitch::Command';
 
@@ -54,7 +55,7 @@ has project => (
     lazy    => 1,
     default => sub {
         my $self = shift;
-        eval { $self->plan->project } || do {
+        try { $self->plan->project } || do {
             # Try to extract a project name from the database.
             my $engine = $self->engine;
             hurl status => __ 'Database not initialized for Sqitch'
@@ -97,7 +98,7 @@ sub execute {
     $self->emit_state($state);
 
     # If we have no access to the project plan, we can't emit the status.
-    my $plan_proj = eval { $self->plan->project };
+    my $plan_proj = try { $self->plan->project };
     if ( !defined $plan_proj || $self->project ne $plan_proj ) {
         $self->comment('');
         $self->emit(__x(
