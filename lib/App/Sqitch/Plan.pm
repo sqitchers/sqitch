@@ -17,7 +17,7 @@ use namespace::autoclean;
 use Moose;
 use constant SYNTAX_VERSION => '1.0.0-b2';
 
-our $VERSION = '0.83';
+our $VERSION = '0.90';
 
 my $name_re = qr/
     (?![[:punct:]])                   # first character isn't punctuation

@@ -1,6 +1,6 @@
 Revision history for Perl extension App::Sqitch
 
-0.83
+0.90
      - Added `dist/sqitch.spec`. This file was created to generate an RPM for
        CentOS 6.1.
      - Added `dist/sqitch-pg.spec` to use for creating RPMs for Sqitch with
