@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 76;
+use Test::More tests => 78;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -398,6 +398,9 @@ throws_ok { $status->execute } 'App::Sqitch::X', 'Die on no state';
 is $@->ident, 'status', 'No state error ident should be "status"';
 is $@->message, __ 'No changes deployed',
     'No state error message should be correct';
+is_deeply +MockOutput->get_comment, [
+    [__x 'On database {db}', db => $sqitch->engine->destination ],
+], 'The "On database" comment should have been emitted';
 
 # Test with no initialization.
 $engine_mocker->mock( current_state => $state );
@@ -406,6 +409,9 @@ throws_ok { $status->execute } 'App::Sqitch::X', 'Die on uninitialized';
 is $@->ident, 'status', 'uninitialized error ident should be "status"';
 is $@->message, __ 'No changes deployed',
     'uninitialized error message should be correct';
+is_deeply +MockOutput->get_comment, [
+    [__x 'On database {db}', db => $sqitch->engine->destination ],
+], 'The "On database" comment should have been emitted';
 
 # Test with unknown plan.
 $engine_mocker->mock( initialized => 1 );

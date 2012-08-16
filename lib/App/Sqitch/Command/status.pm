@@ -53,6 +53,7 @@ has project => (
     isa     => 'Maybe[Str]',
     lazy    => 1,
     default => sub {
+        # XXX See if the database has only one project.
         eval { shift->plan->project } || hurl status => __(
             'Cannot access plan; use --project to specify a project to query'
         );
@@ -72,9 +73,11 @@ sub execute {
     my $self   = shift;
     my $engine = $self->engine;
 
-    my $state = $engine->initialized ? $engine->current_state($self->project) : undef;
+    # Where are we?
+    $self->comment( __x 'On database {db}', db => $engine->destination );
 
     # Exit with status 1 on no state, probably not expected.
+    my $state = $engine->initialized ? $engine->current_state($self->project) : undef;
     hurl {
         ident   => 'status',
         message => __ 'No changes deployed',
@@ -82,7 +85,6 @@ sub execute {
     } unless defined $state;
 
     # Emit the state basics.
-    $self->comment( __x 'On database {db}', db => $engine->destination );
     $self->emit_state($state);
 
     # If we have no access to the project plan, we can't emit the status.
