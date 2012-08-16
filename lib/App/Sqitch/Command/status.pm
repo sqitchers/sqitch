@@ -48,8 +48,20 @@ has date_format => (
     }
 );
 
+has project => (
+    is      => 'ro',
+    isa     => 'Maybe[Str]',
+    lazy    => 1,
+    default => sub {
+        eval { shift->plan->project } || hurl status => __(
+            'Cannot access plan; use --project to specify a project to query'
+        );
+    },
+);
+
 sub options {
     return qw(
+        project=s
         show-tags
         show-changes
         date-format|date=s
@@ -60,9 +72,7 @@ sub execute {
     my $self   = shift;
     my $engine = $self->engine;
 
-    $self->comment( __x 'On database {db}', db => $engine->destination );
-
-    my $state = $engine->initialized ? $engine->current_state : undef;
+    my $state = $engine->initialized ? $engine->current_state($self->project) : undef;
 
     # Exit with status 1 on no state, probably not expected.
     hurl {
@@ -72,7 +82,19 @@ sub execute {
     } unless defined $state;
 
     # Emit the state basics.
+    $self->comment( __x 'On database {db}', db => $engine->destination );
     $self->emit_state($state);
+
+    # If we have no access to the project plan, we can't emit the status.
+    my $plan_proj = eval { $self->plan->project };
+    if ( !defined $plan_proj || $self->project ne $plan_proj ) {
+        $self->comment('');
+        $self->emit(__x(
+            'Status unknown. Use --plan-file to assess "{project}" status',
+            project => $self->project,
+        ));
+        return $self;
+    }
 
     # Emit changes and tags, if required.
     $self->emit_changes;
@@ -99,6 +121,10 @@ sub configure {
 
 sub emit_state {
     my ( $self, $state ) = @_;
+    $self->comment(__x(
+        'Project:  {project}',
+        project => $state->{project},
+    ));
     $self->comment(__x(
         'Change:   {change_id}',
         change_id => $state->{change_id},
