@@ -24,7 +24,11 @@ my $punct = q{-!"#$%&'()*+,./:;<=>?@[\\]^`{|}~};
 my $name_re = qr/
     (?![$punct])                   # first character isn't punctuation
     (?:                            # start non-capturing group, repeated once or more ...
-       (?![$punct][[:digit:]]+\b)  #     look ahead to ensure does not end in punct and digits
+       (?!                         #    negative look ahead for...
+           [$punct]                #       punctuation
+           [[:digit:]]+            #       digits
+           (?:$|[[:blank:]])       #       eol or blank
+       )                           #    ...
        [^[:blank:]:@#]             #     match a valid character
     )+                             # ... end non-capturing group
     (?<![$punct])\b                # last character isn't punctuation

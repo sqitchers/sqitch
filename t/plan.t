@@ -378,6 +378,7 @@ for my $name (
     'beta1',   # ending digit
     'foo_',    # ending underscore
     '_foo',    # leading underscore
+    'v1.0-1b', # punctuation followed by digit in middle
 ) {
     # Test a change name.
     my $lines = "\%project=foo\n\n$name $tsnp";
@@ -415,7 +416,7 @@ for my $name (
         ],
     }, encode_utf8(qq{Should have line and change for "$tag"});
 }
-is sorted, 18, 'Should have sorted changes 18 times';
+is sorted, 20, 'Should have sorted changes 18 times';
 
 # Try a plan with reserved tag name @HEAD.
 $file = file qw(t plans reserved-tag.plan);
