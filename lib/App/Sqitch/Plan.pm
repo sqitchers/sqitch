@@ -19,13 +19,15 @@ use constant SYNTAX_VERSION => '1.0.0-b2';
 
 our $VERSION = '0.90';
 
+# Like [:punct:], but excluding _. Copied from perlrecharclass.
+my $punct = q{-!"#$%&'()*+,./:;<=>?@[\\]^`{|}~};
 my $name_re = qr/
-    (?![[:punct:]])                   # first character isn't punctuation
-    (?:                               # start non-capturing group, repeated once or more ...
-       (?![[:punct:]][[:digit:]]+\b)  #     look ahead to ensure does not end in punct and digits
-       [^[:blank:]:@#]                #     match a valid character
-    )+                                # ... end non-capturing group
-    (?<![[:punct:]])\b                # last character isn't punctuation
+    (?![$punct])                   # first character isn't punctuation
+    (?:                            # start non-capturing group, repeated once or more ...
+       (?![$punct][[:digit:]]+\b)  #     look ahead to ensure does not end in punct and digits
+       [^[:blank:]:@#]             #     match a valid character
+    )+                             # ... end non-capturing group
+    (?<![$punct])\b                # last character isn't punctuation
 /x;
 
 sub name_regex { $name_re }
@@ -180,10 +182,10 @@ sub _parse {
            [%]                            # Required %
            (?<hspace>[[:blank:]]*)?       # Optional space
            (?<name>                       # followed by name consisting of...
-               [^[:punct:]]               #     not punct
+               [^$punct]                  #     not punct
                (?:                        #     followed by...
                    [^[:blank:]=]*?        #         any number non-blank, non-=
-                   [^[:punct:][:blank:]]  #         one not blank or punct
+                   [^$punct[:blank:]]     #         one not blank or punct
                )?                         #     ... optionally
            )                              # ... required
            (?:                            # followed by value consisting of...
@@ -1284,7 +1286,8 @@ And written as regular expressions:
 
   my $eol          = qr/[[:blank:]]*$/
   my $note         = qr/(?:[[:blank:]]+)?[#].+$/;
-  my $name         = qr/[^[:punct:][:blank:]](?:(?:[^[:space:]:#@]+)?[^[:punct:][:blank:]])?/;
+  my $punct        = q{-!"#$%&'()*+,./:;<=>?@[\\]^`{|}~};
+  my $name         = qr/[^$punct[:blank:]](?:(?:[^[:space:]:#@]+)?[^$punct[:blank:]])?/;
   my $tag          = qr/[@]$name/;
   my $requires     = qr/$name/;
   my conflicts     = qr/[!]$name/;
