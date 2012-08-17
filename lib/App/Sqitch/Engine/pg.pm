@@ -503,9 +503,10 @@ sub latest_change_id {
         $self->_dbh->selectcol_arrayref(q{
             SELECT change_id
               FROM changes
+             WHERE project = ?
              ORDER BY committed_at DESC
              LIMIT 1
-        })->[0];
+        }, undef, $self->plan->project)->[0];
     } catch {
         return if $DBI::state eq '42P01'; # undefined_table
         die $_;

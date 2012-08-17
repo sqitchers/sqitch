@@ -708,7 +708,7 @@ records necessary to indicate that the change has been reverted.
 
   my $change_id = $engine->latest_change_id;
 
-Returns the ID of the most recently applied change.
+Returns the ID of the most recently applied change from the current project.
 
 =head3 C<deployed_change_ids>
 
