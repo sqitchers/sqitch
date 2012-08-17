@@ -120,27 +120,26 @@ Let's commit these changes and start creating the database changes.
 
 =head1 Our First Change
 
-First, our project will need a database user. This is the application user,
-who will have only limited access to objects in the database. Run this
-command:
+First, our project will need a schema. This creates a nice namespace for all
+of the objects that will be part of the flipr app. Run this command:
 
-  > sqitch add appuser -n 'App database user with limited permissions.'
-  Created deploy/appuser.sql
-  Created revert/appuser.sql
-  Created test/appuser.sql
-  Added "appuser" to sqitch.plan
+  > sqitch add appschema -n 'App schema for all flipr objects.'
+  Created deploy/appschema.sql
+  Created revert/appschema.sql
+  Created test/appschema.sql
+  Added "appschema" to sqitch.plan
 
 The C<add> command adds a database change to the plan and writes deploy,
 revert, and test scripts that represent the change. Now we edit these files.
-The C<deploy> script's job is to create the user. So we add this to
-F<deploy/appuser.sql>:
+The C<deploy> script's job is to create the schema. So we add this to
+F<deploy/appschema.sql>:
 
-  CREATE ROLE flipr WITH LOGIN;
+  CREATE SCHEMA flipr;
 
 The C<revert> script's job is to precisely revert the change to the deploy
-script, so we add this to F<revert/appuser.sql>:
+script, so we add this to F<revert/appschema.sql>:
 
-  DROP ROLE flipr;
+  DROP SCHEMA flipr;
 
 Now we can try deploying this change:
 
@@ -148,7 +147,7 @@ Now we can try deploying this change:
   > sqitch --db-name flipr_test deploy
   Adding metadata tables to flipr_test
   Deploying to flipr_test
-    + appuser
+    + appschema
 
 First Sqitch created the metadata tables used to track database changes. The
 structure and name of the metadata tables varies between databases (PostgreSQL
@@ -159,20 +158,21 @@ that the change is being added to the database.
 With this change deployed, if you connect to the database, you'll be able to
 see the role:
 
-  > psql -d flipr_test -c '\du flipr'
-             List of roles
-   Role name | Attributes | Member of 
-  -----------+------------+-----------
-   flipr     |            | {}
-
+  > psql -d flipr_test -c '\dn flipr'
+  List of schemas
+   Name  | Owner 
+  -------+-------
+   flipr | david
+x
 And we can also see how the deployment was recorded via the C<status> command,
 which reads the metadata tables from the database:
 
   > sqitch -d flipr_test status
   # On database flipr_test
-  # Change:   ddf816c67fc7f60b2af872a673019a1ad38fb639
-  # Name:     appuser
-  # Deployed: 2012-08-01 17:31:42 +0200
+  # Project:  flipr
+  # Change:   9b24259744da156552479197872adba6a01a1ace
+  # Name:     appschema
+  # Deployed: 2012-08-16 18:52:40 -0700
   # By:       Marge N. O’Vera <marge@example.com>
   # 
   Nothing to deploy (up-to-date)
@@ -181,15 +181,16 @@ Let's make sure that we can revert the change:
 
   > sqitch --db-name flipr_test revert
   Reverting all changes from flipr_test
-    - appuser
+    - appschema
 
 Note the C<-> reinforces that the change is being removed from the database.
 And now the user should be gone:
 
-  > psql -d flipr_test -c '\du flipr'
+  > psql -d flipr_test -c '\dn flipr'
               List of roles
-   Role name | Attributes | Member of 
-  -----------+------------+-----------
+  List of schemas
+   Name | Owner 
+  ------+-------
 
 And the status message should reflect as much:
 
@@ -202,19 +203,19 @@ command:
 
   > sqitch -d flipr_test log
   On database flipr_test
-  Revert ddf816c67fc7f60b2af872a673019a1ad38fb639
-  Name:      appuser
+  Revert 9b24259744da156552479197872adba6a01a1ace
+  Name:      appschema
   Committer: Marge N. O’Vera <marge@example.com>
-  Date:      2012-08-01 17:32:15 +0200
+  Date:      2012-08-16 18:54:55 -0700
 
-      App database user with limited permissions.
+      App schema for all flipr objects.
 
-  Deploy ddf816c67fc7f60b2af872a673019a1ad38fb639
-  Name:      appuser
+  Deploy 9b24259744da156552479197872adba6a01a1ace
+  Name:      appschema
   Committer: Marge N. O’Vera <marge@example.com>
-  Date:      2012-08-01 17:31:42 +0200
+  Date:      2012-08-16 18:52:40 -0700
 
-      App database user with limited permissions.
+      App schema for all flipr objects.
 
 Note that the actions we took are shown in reverse chronological order, with
 the revert first and then the deploy.
@@ -222,34 +223,35 @@ the revert first and then the deploy.
 Cool. Now let's commit it.
 
   > git add .
-  > git commit -m 'Add app user.'
-  [master 6f2348b] Add app user.
-   4 files changed, 22 insertions(+)
-   create mode 100644 deploy/appuser.sql
-   create mode 100644 revert/appuser.sql
-   create mode 100644 test/appuser.sql
+  > git commit -m 'Add flipr schema.'
+  [master 0fcb493] Add flipr schema.
+   4 files changed, 23 insertions(+), 1 deletion(-)
+   create mode 100644 deploy/appschema.sql
+   create mode 100644 revert/appschema.sql
+   create mode 100644 test/appschema.sql
 
 And then deploy again:
 
   > sqitch --db-name flipr_test deploy
   Deploying changes to flipr_test
-    + appuser
+    + appschema
 
 And now the user should be back:
 
-  > psql -d flipr_test -c '\du flipr'
-             List of roles
-   Role name | Attributes | Member of 
-  -----------+------------+-----------
-   flipr     |            | {}
+  > psql -d flipr_test -c '\dn flipr'
+  List of schemas
+   Name  | Owner 
+  -------+-------
+   flipr | david
 
 When we look at the status, the deployment will be there:
 
   > sqitch -d flipr_test status
   # On database flipr_test
-  # Change:   ddf816c67fc7f60b2af872a673019a1ad38fb639
-  # Name:     appuser
-  # Deployed: 2012-08-01 17:34:17 +0200
+  # Project:  flipr
+  # Change:   9b24259744da156552479197872adba6a01a1ace
+  # Name:     appschema
+  # Deployed: 2012-08-16 18:57:03 -0700
   # By:       Marge N. O’Vera <marge@example.com>
   # 
   Nothing to deploy (up-to-date)
@@ -267,28 +269,29 @@ in, e.g.:
 
   > sqitch status
   # On database flipr_test
-  # Change:   ddf816c67fc7f60b2af872a673019a1ad38fb639
-  # Name:     appuser
-  # Deployed: 2012-08-01 17:34:17 +0200
+  # Project:  flipr
+  # Change:   9b24259744da156552479197872adba6a01a1ace
+  # Name:     appschema
+  # Deployed: 2012-08-16 18:57:03 -0700
   # By:       Marge N. O’Vera <marge@example.com>
   # 
   Nothing to deploy (up-to-date)
 
 Yay, that allows things to be a little more concise. Let's make some more
 changes!
-
+a
 =head1 Deploy with Dependency
 
 Let's add another change, this time to create a table. Our app will need
 users, of course, so we'll create a table for them. First, add the new change:
 
-  > sqitch add users --requires appuser -n 'Creates table to track our users.'
+  > sqitch add users --requires appschema -n 'Creates table to track our users.'
   Created deploy/users.sql
   Created revert/users.sql
   Created test/users.sql
-  Added "users [:appuser]" to sqitch.plan
+  Added "users [appschema]" to sqitch.plan
 
-Note that we're requiring the C<appuser> change as a dependency of the new
+Note that we're requiring the C<appschema> change as a dependency of the new
 C<users> change. Although that change has already been added to the plan and
 therefore should always be applied before the C<users> change, it's a good
 idea to be explicit about dependencies.
@@ -297,21 +300,20 @@ Now edit the scripts. When you're done, C<deploy/users.sql> should look like
 this:
 
   -- Deploy users
-  -- requires: appuser
+  -- requires: appschema
   BEGIN;
   SET client_min_messages = 'warning';
 
-  CREATE TABLE users (
+  CREATE TABLE flipr.users (
       nickname  TEXT        PRIMARY KEY,
       password  TEXT        NOT NULL,
       timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW()
   );
 
-  GRANT SELECT ON users TO flipr;
   COMMIT;
 
 A few things to notice here. On the second line, the dependence on the
-C<appuser> change has been listed. This doesn't do anything, but the default
+C<appschema> change has been listed. This doesn't do anything, but the default
 templates lists it here for your reference while editing the file. Useful,
 right?
 
@@ -320,13 +322,12 @@ PostgreSQL deployments, because PostgreSQL DDLs are transactional. The upshot
 is that if any part of the deployment fails, the whole change fails. Such may
 work less-well for database engines that don't support transactional DDLs.
 
-Just before the commit, the C<GRANT> command grants C<SELECT> access on the
-table to the C<flipr> user created by the C<appuser> change. This is why we
-need to require the C<appuser> change.
+The table itself has been created in the C<flipr> schema. This is why we need
+to require the C<appschema> change.
 
 Now for the revert script. Add this to C<revert/users.sql>:
 
-  DROP TABLE users;
+  DROP TABLE flipr.users;
 
 Couldn't be much simpler, right? Let's deploy this bad boy:
 
@@ -336,8 +337,8 @@ Couldn't be much simpler, right? Let's deploy this bad boy:
 
 The C<users> table should have been created:
 
-  > psql -d flipr_test -c '\d users'
-                       Table "public.users"
+  > psql -d flipr_test -c '\d flipr.users'
+                        Table "flipr.users"
     Column   |           Type           |       Modifiers        
   -----------+--------------------------+------------------------
    nickname  | text                     | not null
@@ -350,35 +351,31 @@ Now have a look at the status:
 
   > sqitch status
   # On database flipr_test
-  # Change:   deceb53186e63f7a8db10e33ce217d3f6dcd4d42
+  # Project:  flipr
+  # Change:   0521530ed75365d16163e3b46d292c2a29e13dfa
   # Name:     users
-  # Deployed: 2012-08-01 17:38:39 +0200
+  # Deployed: 2012-08-16 19:01:06 -0700
   # By:       Marge N. O’Vera <marge@example.com>
   # 
   Nothing to deploy (up-to-date)
 
 Success! Let's make sure we can revert the change, as well:
 
-  > sqitch revert --to appuser
-  Reverting from flipr_test to appuser
+  > sqitch revert --to appschema
+  Reverting from flipr_test to appschema
     - users
 
-Note that we've used the C<--to> option to revert only to C<appuser>. The
+Note that we've used the C<--to> option to revert only to C<appschema>. The
 C<users> table should be gone, but the C<flipr> user should still be around:
 
-  > psql -d flipr_test -c '\d users'
-  Did not find any relation named "users".
-  > psql -d flipr_test -c '\du flipr'
-             List of roles
-   Role name | Attributes | Member of 
-  -----------+------------+-----------
-   flipr     |            | {}
+  > psql -d flipr_test -c '\d flipr.users'
+  Did not find any relation named "flipr.users".
 
 Now commit and deploy again:
 
   > git add .
   > git commit -am 'Add users table.'
-  [master 3245842] Add users table.
+  [master dfa6952] Add users table.
    5 files changed, 30 insertions(+)
    create mode 100644 deploy/users.sql
    create mode 100644 revert/users.sql
@@ -391,9 +388,10 @@ Looks good. Check the status:
 
   > sqitch status
   # On database flipr_test
-  # Change:   deceb53186e63f7a8db10e33ce217d3f6dcd4d42
+  # Project:  flipr
+  # Change:   0521530ed75365d16163e3b46d292c2a29e13dfa
   # Name:     users
-  # Deployed: 2012-08-01 17:39:47 +0200
+  # Deployed: 2012-08-16 19:03:48 -0700
   # By:       Marge N. O’Vera <marge@example.com>
   # 
   Nothing to deploy (up-to-date)
@@ -404,31 +402,31 @@ Excellent. Let's do some more!
 
 Let's add a couple more changes to add functions for managing users.
 
-  > sqitch add insert_user --requires users --requires appuser \
+  > sqitch add insert_user --requires users --requires appschema \
     -n 'Creates a function to insert a user.'
   Created deploy/insert_user.sql
   Created revert/insert_user.sql
   Created test/insert_user.sql
-  Added "insert_user [:users :appuser]" to sqitch.plan
+  Added "insert_user [users appschema]" to sqitch.plan
 
-  > sqitch add change_pass --requires users --requires appuser \
+  > sqitch add change_pass --requires users --requires appschema \
     -n 'Creates a function to change a user password.'
   Created deploy/change_pass.sql
   Created revert/change_pass.sql
   Created test/change_pass.sql
-  Added "change_pass [:users :appuser]" to sqitch.plan
+  Added "change_pass [users appschema]" to sqitch.plan
 
 Now might be a good time to have a look at the deployment plan:
 
   > cat sqitch.plan
-  %syntax-version=1.0.0-b1
+  %syntax-version=1.0.0-b2
   %project=flipr
   %uri=https://github.com/theory/sqitch-intro/
 
-  appuser 2012-08-01T15:04:13Z Marge N. O’Vera <marge@example.com> # App database user with limited permissions.
-  users [:appuser] 2012-08-01T15:36:00Z Marge N. O’Vera <marge@example.com> # Creates table to track our users.
-  insert_user [:users :appuser] 2012-08-01T15:41:17Z Marge N. O’Vera <marge@example.com> # Creates a function to insert a user.
-  change_pass [:users :appuser] 2012-08-01T15:41:46Z Marge N. O’Vera <marge@example.com> # Creates a function to change a user password.
+  appschema 2012-08-17T01:49:33Z Marge N. O’Vera <marge@example.com> # App schema for all flipr objects.
+  users [appschema] 2012-08-17T01:58:43Z Marge N. O’Vera <marge@example.com> # Creates table to track our users.
+  insert_user [users appschema] 2012-08-17T02:07:53Z Marge N. O’Vera <marge@example.com> # Creates a function to insert a user.
+  change_pass [users appschema] 2012-08-17T02:08:10Z Marge N. O’Vera <marge@example.com> # Creates a function to change a user password.
 
 Each change appears on a single line with the name of the change, a bracketed
 list of dependencies, a timestamp, the name and email address of the user who
@@ -439,18 +437,16 @@ C<deploy/insert_user.sql> should look like:
 
   -- Deploy insert_user
   -- requires: users
-  -- requires: appuser
+  -- requires: appschema
   
   BEGIN;
 
-  CREATE OR REPLACE FUNCTION insert_user(
+  CREATE OR REPLACE FUNCTION flipr.insert_user(
       nickname TEXT,
       password TEXT
   ) RETURNS VOID LANGUAGE SQL SECURITY DEFINER AS $$
-      INSERT INTO users VALUES($1, md5($2));
+      INSERT INTO flipr.users VALUES($1, md5($2));
   $$;
-
-  GRANT EXECUTE ON FUNCTION insert_user(TEXT, TEXT) TO flipr;
 
   COMMIT;
 
@@ -458,32 +454,30 @@ And C<revert/insert_user.sql> should look something like this:
 
   -- Revert insert_user
   BEGIN;
-  DROP FUNCTION insert_user(TEXT, TEXT);
+  DROP FUNCTION flipr.insert_user(TEXT, TEXT);
   COMMIT;
 
 Now for C<change_pass>; C<deploy/change_pass.sql> might look like this:
 
   -- Deploy change_pass
   -- requires: users
-  -- requires: appuser
+  -- requires: appschema
 
   BEGIN;
 
-  CREATE OR REPLACE FUNCTION change_pass(
+  CREATE OR REPLACE FUNCTION flipr.change_pass(
       nick    TEXT,
       oldpass TEXT,
       newpass TEXT
   ) RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER AS $$
   BEGIN
-      UPDATE users
+      UPDATE flipr.users
          SET password = md5($3)
        WHERE nickname = $1
          AND password = md5($2);
       RETURN FOUND;
   END;
   $$;
-
-  GRANT EXECUTE ON FUNCTION change_pass(TEXT, TEXT, TEXT) TO flipr;
 
   COMMIT;
 
@@ -492,7 +486,7 @@ something like:
 
   -- Revert change_pass
   BEGIN;
-  DROP FUNCTION change_pass(TEXT, TEXT, TEXT);
+  DROP FUNCTION flipr.change_pass(TEXT, TEXT, TEXT);
   COMMIT;
 
 Test em out!
@@ -504,20 +498,21 @@ Test em out!
 
 Do we have the functions?
 
-  > psql -d flipr_test -c '\df'
+  > psql -d flipr_test -c '\df flipr.*'
                                       List of functions
    Schema |    Name     | Result data type |          Argument data types          |  Type  
   --------+-------------+------------------+---------------------------------------+--------
-   public | change_pass | boolean          | nick text, oldpass text, newpass text | normal
-   public | insert_user | void             | nickname text, password text          | normal
+   flipr  | change_pass | boolean          | nick text, oldpass text, newpass text | normal
+   flipr  | insert_user | void             | nickname text, password text          | normal
 
 And what's the status?
 
   > sqitch status 
   # On database flipr_test
-  # Change:   e2106e86e77522090bbf1a82b82904ae7dfdeed3
+  # Project:  flipr
+  # Change:   99408db589f6031b6e851bce17aec7f870ed11e6
   # Name:     change_pass
-  # Deployed: 2012-08-01 17:46:23 +0200
+  # Deployed: 2012-08-16 19:10:58 -0700
   # By:       Marge N. O’Vera <marge@example.com>
   # 
   Nothing to deploy (up-to-date)
@@ -528,7 +523,7 @@ Looks good. Let's make sure revert works:
   Reverting from flipr_test to users
     - change_pass
     - insert_user
-  > psql -d flipr_test -c '\df'
+  > psql -d flipr_test -c '\df flipr.*'
                          List of functions
    Schema | Name | Result data type | Argument data types | Type 
   --------+------+------------------+---------------------+------
@@ -537,8 +532,8 @@ Looks good. Let's do the commit and re-deploy dance:
 
   > git add .
   > git commit -m 'Add `insert_user()` and `change_pass()`.'
-  [master 44befba] Add `insert_user()` and `change_pass()`.
-   7 files changed, 67 insertions(+)
+  [master 75be062] Add `insert_user()` and `change_pass()`.
+   7 files changed, 65 insertions(+)
    create mode 100644 deploy/change_pass.sql
    create mode 100644 deploy/insert_user.sql
    create mode 100644 revert/change_pass.sql
@@ -553,9 +548,10 @@ Looks good. Let's do the commit and re-deploy dance:
 
   > sqitch status
   # On database flipr_test
-  # Change:   e2106e86e77522090bbf1a82b82904ae7dfdeed3
+  # Project:  flipr
+  # Change:   99408db589f6031b6e851bce17aec7f870ed11e6
   # Name:     change_pass
-  # Deployed: 2012-08-01 17:47:20 +0200
+  # Deployed: 2012-08-16 19:12:35 -0700
   # By:       Marge N. O’Vera <marge@example.com>
   # 
   Nothing to deploy (up-to-date)
@@ -570,18 +566,17 @@ to have it go out with deployments tied to the release, let's tag it:
   > sqitch tag v1.0.0-dev1 -n 'Tag v1.0.0-dev1.'
   Tagged "change_pass" with @v1.0.0-dev1
   > git commit -am 'Tag the database with v1.0.0-dev1.'
+  [master 067ef73] Tag the database with v1.0.0-dev1.
+   1 file changed, 1 insertion(+)
   > git tag v1.0.0-dev1 -am 'Tag v1.0.0-dev1'
 
 We can test deployment to make sure the tag gets picked up like so:
 
-  > dropdb flipr_test
-  > psql -c 'DROP ROLE flipr;'
-  DROP ROLE
   > createdb flipr_dev
   > sqitch --db-name flipr_dev deploy
   Adding metadata tables to flipr_dev
   Deploying changes to flipr_dev
-    + appuser
+    + appschema
     + users
     + insert_user
     + change_pass @v1.0.0-dev1
@@ -591,10 +586,11 @@ C<@v1.0.0-dev1>. Let's have a look at the state:
 
   > sqitch --db-name flipr_dev status
   # On database flipr_dev
-  # Change:   e2106e86e77522090bbf1a82b82904ae7dfdeed3
+  # Project:  flipr
+  # Change:   99408db589f6031b6e851bce17aec7f870ed11e6
   # Name:     change_pass
   # Tag:      @v1.0.0-dev1
-  # Deployed: 2012-08-01 17:50:53 +0200
+  # Deployed: 2012-08-16 19:17:23 -0700
   # By:       Marge N. O’Vera <marge@example.com>
   # 
   Nothing to deploy (up-to-date)
@@ -604,7 +600,7 @@ everything up for release:
 
   > sqitch bundle
   Bundling in bundle/
-    + appuser
+    + appschema
     + users
     + insert_user
     + change_pass @v1.0.0-dev1
@@ -616,14 +612,11 @@ installed somewhere, users can use Sqitch to deploy to the database. Let's test
 deploying it:
 
   > cd bundle
-  > dropdb flipr_dev
-  > psql -c 'DROP ROLE flipr;'
-  DROP ROLE
   > createdb flipr_prod
   > sqitch --db-name flipr_prod deploy
   Adding metadata tables to flipr_prod
   Deploying changes to flipr_prod
-    + appuser
+    + appschema
     + users
     + insert_user
     + change_pass @v1.0.0-dev1
@@ -682,7 +675,7 @@ And give it a whirl:
   > sqitch deploy
   Adding metadata tables to flipr_test
   Deploying changes to flipr_test
-    + appuser
+    + appschema
     + users
     + insert_user
     + change_pass @v1.0.0-dev1
@@ -720,7 +713,7 @@ and commit them. The C<insert_flip> deploy script might look something like:
 
   -- Deploy insert_flip
   -- requires: flips
-  -- requires: appuser
+  -- requires: appschema
   BEGIN;
   CREATE OR REPLACE FUNCTION insert_flip(
      nickname TEXT,
@@ -737,7 +730,7 @@ And the C<delete_flip> deploy script might look something like:
 
   -- Deploy delete_flip
   -- requires: flips
-  -- requires: appuser
+  -- requires: appschema
   BEGIN;
   CREATE OR REPLACE FUNCTION delete_flip(
      flip_id BIGINT
@@ -907,18 +900,18 @@ Ah, that looks a bit better. Let's have a look at the plan:
   %project=flipr
   %uri=https://github.com/theory/sqitch-intro/
 
-  appuser 2012-08-01T15:04:13Z Marge N. O’Vera <marge@example.com> # App database user with limited permissions.
-  users [:appuser] 2012-08-01T15:36:00Z Marge N. O’Vera <marge@example.com> # Creates table to track our users.
-  insert_user [:users :appuser] 2012-08-01T15:41:17Z Marge N. O’Vera <marge@example.com> # Creates a function to insert a user.
-  change_pass [:users :appuser] 2012-08-01T15:41:46Z Marge N. O’Vera <marge@example.com> # Creates a function to change a user password.
+  appschema 2012-08-01T15:04:13Z Marge N. O’Vera <marge@example.com> # App database user with limited permissions.
+  users [:appschema] 2012-08-01T15:36:00Z Marge N. O’Vera <marge@example.com> # Creates table to track our users.
+  insert_user [:users :appschema] 2012-08-01T15:41:17Z Marge N. O’Vera <marge@example.com> # Creates a function to insert a user.
+  change_pass [:users :appschema] 2012-08-01T15:41:46Z Marge N. O’Vera <marge@example.com> # Creates a function to change a user password.
   @v1.0.0-dev1 2012-08-01T15:48:04Z Marge N. O’Vera <marge@example.com> # Tag v1.0.0-dev1.
 
   lists [:users] 2012-08-01T16:03:50Z Vinnie Goombatz <vinnie@example.com> # Adds lists storing lists of things.
-  insert_list [:lists :appuser] 2012-08-01T16:13:49Z Vinnie Goombatz <vinnie@example.com> # Creates a function to insert a list.
-  delete_list [:lists :appuser] 2012-08-01T16:14:10Z Vinnie Goombatz <vinnie@example.com> # Creates a function to delete a list.
+  insert_list [:lists :appschema] 2012-08-01T16:13:49Z Vinnie Goombatz <vinnie@example.com> # Creates a function to insert a list.
+  delete_list [:lists :appschema] 2012-08-01T16:14:10Z Vinnie Goombatz <vinnie@example.com> # Creates a function to delete a list.
   flips [:users] 2012-08-01T16:23:33Z Marge N. O’Vera <marge@example.com> # Adds table for storing flips.
-  insert_flip [:flips :appuser] 2012-08-01T16:25:41Z Marge N. O’Vera <marge@example.com> # Creates a function to insert a flip.
-  delete_flip [:flips :appuser] 2012-08-01T16:26:00Z Marge N. O’Vera <marge@example.com> # Creates a function to delete a flip.
+  insert_flip [:flips :appschema] 2012-08-01T16:25:41Z Marge N. O’Vera <marge@example.com> # Creates a function to insert a flip.
+  delete_flip [:flips :appschema] 2012-08-01T16:26:00Z Marge N. O’Vera <marge@example.com> # Creates a function to delete a flip.
 
 Note that it has appended the changes from the merged "lists" branch, and then
 merged the changes from our "flips" branch. Test it to make sure it works as
@@ -932,10 +925,10 @@ expected:
     - change_pass @v1.0.0-dev1
     - insert_user
     - users
-    - appuser
+    - appschema
   > sqitch deploy
   Deploying changes to flipr_test
-    + appuser
+    + appschema
     + users
     + insert_user
     + change_pass @v1.0.0-dev1
@@ -994,18 +987,18 @@ And double-check our work:
   %project=flipr
   %uri=https://github.com/theory/sqitch-intro/
 
-  appuser 2012-08-01T15:04:13Z Marge N. O’Vera <marge@example.com> # App database user with limited permissions.
-  users [:appuser] 2012-08-01T15:36:00Z Marge N. O’Vera <marge@example.com> # Creates table to track our users.
-  insert_user [:users :appuser] 2012-08-01T15:41:17Z Marge N. O’Vera <marge@example.com> # Creates a function to insert a user.
-  change_pass [:users :appuser] 2012-08-01T15:41:46Z Marge N. O’Vera <marge@example.com> # Creates a function to change a user password.
+  appschema 2012-08-01T15:04:13Z Marge N. O’Vera <marge@example.com> # App database user with limited permissions.
+  users [:appschema] 2012-08-01T15:36:00Z Marge N. O’Vera <marge@example.com> # Creates table to track our users.
+  insert_user [:users :appschema] 2012-08-01T15:41:17Z Marge N. O’Vera <marge@example.com> # Creates a function to insert a user.
+  change_pass [:users :appschema] 2012-08-01T15:41:46Z Marge N. O’Vera <marge@example.com> # Creates a function to change a user password.
   @v1.0.0-dev1 2012-08-01T15:48:04Z Marge N. O’Vera <marge@example.com> # Tag v1.0.0-dev1.
 
   lists [:users] 2012-08-01T16:03:50Z Vinnie Goombatz <vinnie@example.com> # Adds lists storing lists of things.
-  insert_list [:lists :appuser] 2012-08-01T16:13:49Z Vinnie Goombatz <vinnie@example.com> # Creates a function to insert a list.
-  delete_list [:lists :appuser] 2012-08-01T16:14:10Z Vinnie Goombatz <vinnie@example.com> # Creates a function to delete a list.
+  insert_list [:lists :appschema] 2012-08-01T16:13:49Z Vinnie Goombatz <vinnie@example.com> # Creates a function to insert a list.
+  delete_list [:lists :appschema] 2012-08-01T16:14:10Z Vinnie Goombatz <vinnie@example.com> # Creates a function to delete a list.
   flips [:users] 2012-08-01T16:23:33Z Marge N. O’Vera <marge@example.com> # Adds table for storing flips.
-  insert_flip [:flips :appuser] 2012-08-01T16:25:41Z Marge N. O’Vera <marge@example.com> # Creates a function to insert a flip.
-  delete_flip [:flips :appuser] 2012-08-01T16:26:00Z Marge N. O’Vera <marge@example.com> # Creates a function to delete a flip.
+  insert_flip [:flips :appschema] 2012-08-01T16:25:41Z Marge N. O’Vera <marge@example.com> # Creates a function to insert a flip.
+  delete_flip [:flips :appschema] 2012-08-01T16:26:00Z Marge N. O’Vera <marge@example.com> # Creates a function to delete a flip.
 
 Much much better, a nice clean master now. And because it is now identical to
 the "flips" branch, we can just carry on. Go ahead and tag it, bundle, and
@@ -1019,7 +1012,7 @@ release:
   > git tag v1.0.0-dev2 -am 'Tag v1.0.0-dev2'
   > sqitch bundle
   Bundling in bundle/
-    + appuser
+    + appschema
     + users
     + insert_user
     + change_pass @v1.0.0-dev1
@@ -1159,7 +1152,7 @@ F<deploy/insert_user.sql>:
   @@ -1,6 +1,7 @@
    -- Deploy insert_user
    -- requires: users
-   -- requires: appuser
+   -- requires: appschema
   +-- requires: pgcrypto
  
    BEGIN;
@@ -1188,7 +1181,7 @@ And make this change to F<deploy/change_pass.sql>:
   @@ -1,6 +1,7 @@
    -- Deploy change_pass
    -- requires: users
-   -- requires: appuser
+   -- requires: appschema
   +-- requires: pgcrypto
  
    BEGIN;
