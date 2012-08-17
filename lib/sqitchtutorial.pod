@@ -1030,13 +1030,13 @@ Uh-oh, someone just noticed that MD5 hashing is not particularly secure. Why?
 Have a look at this:
 
   > psql -d flipr_test -c "
-      SELECT insert_user('foo', 'secr3t'), insert_user('bar', 'secr3t');
-      SELECT * FROM users;
+      SELECT flipr.insert_user('foo', 'secr3t'), flipr.insert_user('bar', 'secr3t');
+      SELECT * FROM flipr.users;
   "
    nickname |             password             |           timestamp           
   ----------+----------------------------------+-------------------------------
-   foo      | 9695da4dd567a19f9b92065f240c6725 | 2012-08-01 16:37:22.534807+00
-   bar      | 9695da4dd567a19f9b92065f240c6725 | 2012-08-01 16:37:22.534807+00
+   foo      | 9695da4dd567a19f9b92065f240c6725 | 2012-08-17 23:21:42.489121+00
+   bar      | 9695da4dd567a19f9b92065f240c6725 | 2012-08-17 23:21:42.489121+00
 
 If user "foo" ever got access to the database, she could quickly discover that
 user "bar" has the same password and thus be able to exploit the account. Not
@@ -1091,7 +1091,7 @@ to the C<rework> command, which is similar to C<add>, including support for
 the C<--requires> option:
 
   > sqitch rework insert_user --requires pgcrypto -n 'Change insert_user to use pgcrypto.'
-  Added "insert_user [:insert_user@v1.0.0-dev2 :pgcrypto]" to sqitch.plan.
+  Added "insert_user [insert_user@v1.0.0-dev2 pgcrypto]" to sqitch.plan.
   Modify these files as appropriate:
     * deploy/insert_user.sql
     * revert/insert_user.sql
@@ -1103,6 +1103,9 @@ of the C<insert_user> change, which we can see via C<git status>:
 
   > git status
   # On branch master
+  # Your branch and 'origin/master' have diverged,
+  # and have 13 and 14 different commits each, respectively.
+  #
   # Changes not staged for commit:
   #   (use "git add <file>..." to update what will be committed)
   #   (use "git checkout -- <file>..." to discard changes in working directory)
@@ -1156,15 +1159,15 @@ F<deploy/insert_user.sql>:
  
    BEGIN;
  
-  @@ -8,7 +9,7 @@ CREATE OR REPLACE FUNCTION insert_user(
+  @@ -8,7 +9,7 @@ CREATE OR REPLACE FUNCTION flipr.insert_user(
        nickname TEXT,
        password TEXT
    ) RETURNS VOID LANGUAGE SQL SECURITY DEFINER AS $$
-  -    INSERT INTO users VALUES($1, md5($2));
-  +    INSERT INTO users values($1, crypt($2, gen_salt('md5')));
+  -    INSERT INTO flipr.users VALUES($1, md5($2));
+  +    INSERT INTO flipr.users values($1, crypt($2, gen_salt('md5')));
    $$;
  
-   GRANT EXECUTE ON FUNCTION insert_user(TEXT, TEXT) TO flipr;
+   COMMIT;
 
 Go ahead and rework the C<change_pass> change, too:
 
@@ -1185,10 +1188,10 @@ And make this change to F<deploy/change_pass.sql>:
  
    BEGIN;
  
-  @@ -11,9 +12,9 @@ CREATE OR REPLACE FUNCTION change_pass(
+  @@ -11,9 +12,9 @@ CREATE OR REPLACE FUNCTION flipr.change_pass(
    ) RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER AS $$
    BEGIN
-       UPDATE users
+       UPDATE flipr.users
   -       SET password = md5($3)
   +       SET password = crypt($3, gen_salt('md5'))
         WHERE nickname = $1
@@ -1208,14 +1211,14 @@ And then test deployment:
 So, are the changes deployed?
 
   > psql -d flipr_test -c "
-      DELETE FROM users;
-      SELECT insert_user('foo', 'secr3t'), insert_user('bar', 'secr3t');
-      SELECT * FROM users;
+      DELETE FROM flipr.users;
+      SELECT flipr.insert_user('foo', 'secr3t'), flipr.insert_user('bar', 'secr3t');
+      SELECT * FROM flipr.users;
   "
    nickname |              password              |           timestamp           
   ----------+------------------------------------+-------------------------------
-   foo      | $1$/H.K/3OO$5BNdG4tLQNhG7xai0mYqi. | 2012-08-01 16:49:14.777749+00
-   bar      | $1$5S2.0BFF$gBBVQVCzqmeu6w0ryKo34/ | 2012-08-01 16:49:14.777749+00
+   foo      | $1$MuWWLE4t$83EuG49Hpeb9rYCz7T1OX/ | 2012-08-17 23:29:34.568335+00
+   bar      | $1$bENvWj9k$gfq81YuEG7QcSotaskMkd0 | 2012-08-17 23:29:34.568335+00
 
 Awesome, the stored passwords are different now. But can we revert, even
 though we haven't written any reversion scripts?
@@ -1228,14 +1231,15 @@ though we haven't written any reversion scripts?
 Did that work, are the C<MD5()> passwords back?
 
   > psql -d flipr_test -c "
-      DELETE FROM users;
-      SELECT insert_user('foo', 'secr3t'), insert_user('bar', 'secr3t');
-      SELECT * FROM users;
+      DELETE FROM flipr.users;
+      SELECT flipr.insert_user('foo', 'secr3t'), flipr.insert_user('bar', 'secr3t');
+      SELECT * FROM flipr.users;
   "
    nickname |             password             |           timestamp           
   ----------+----------------------------------+-------------------------------
-   foo      | 9695da4dd567a19f9b92065f240c6725 | 2012-08-01 16:49:51.461641+00
-   bar      | 9695da4dd567a19f9b92065f240c6725 | 2012-08-01 16:49:51.461641+00
+   foo      | 9695da4dd567a19f9b92065f240c6725 | 2012-08-17 23:30:36.513217+00
+   bar      | 9695da4dd567a19f9b92065f240c6725 | 2012-08-17 23:30:36.513217+00
+
 
 Yes, it works! Sqitch properly finds the original instances of these changes
 in the new script files that include tags.So let's go ahead and commit these
@@ -1243,12 +1247,11 @@ changes and bring the database up-to-date:
 
   > git add .
   > git commit -m 'Use pgcrypto to encrypt passwords.'
-  [master 4076378] Use pgcrypto to encrypt passwords.
-   11 files changed, 101 insertions(+), 12 deletions(-)
+  [master f555cf9] Use pgcrypto to encrypt passwords.
+   11 files changed, 95 insertions(+), 7 deletions(-)
    create mode 100644 deploy/change_pass@v1.0.0-dev2.sql
    create mode 100644 deploy/insert_user@v1.0.0-dev2.sql
-   rewrite revert/change_pass.sql (78%)
-   rename revert/{change_pass.sql => change_pass@v1.0.0-dev2.sql} (100%)
+   create mode 100644 revert/change_pass@v1.0.0-dev2.sql
    create mode 100644 revert/insert_user@v1.0.0-dev2.sql
    create mode 100644 test/change_pass@v1.0.0-dev2.sql
    create mode 100644 test/insert_user@v1.0.0-dev2.sql
@@ -1260,9 +1263,10 @@ changes and bring the database up-to-date:
 
   > sqitch status
   # On database flipr_test
-  # Change:   7ad1cc6d1706c559dceb3101e7c21786dc7d7b4c
+  # Project:  flipr
+  # Change:   d0eb9c5ff822877696e834d686a4d9ee8a5cd2a9
   # Name:     change_pass
-  # Deployed: 2012-08-01 18:50:36 +0200
+  # Deployed: 2012-08-17 16:31:13 -0700
   # By:       Marge N. O’Vera <marge@example.com>
   # 
   Nothing to deploy (up-to-date)
