@@ -513,11 +513,13 @@ sub latest_change_id {
 }
 
 sub deployed_change_ids {
-    return @{ shift->_dbh->selectcol_arrayref(qq{
+    my $self = shift;
+    return @{ $self->_dbh->selectcol_arrayref(qq{
         SELECT change_id AS id
           FROM changes
+         WHERE project = ?
          ORDER BY committed_at ASC
-    }) };
+    }, undef, $self->plan->project) };
 }
 
 sub deployed_change_ids_since {
@@ -525,9 +527,10 @@ sub deployed_change_ids_since {
     return @{ $self->_dbh->selectcol_arrayref(qq{
         SELECT change_id
           FROM changes
-         WHERE committed_at > (SELECT committed_at FROM changes WHERE change_id = ?)
+         WHERE project = ?
+           AND committed_at > (SELECT committed_at FROM changes WHERE change_id = ?)
          ORDER BY committed_at ASC
-    }, undef, $change->id) };
+    }, undef, $change->project, $change->id) };
 }
 
 sub name_for_change_id {

@@ -1011,6 +1011,12 @@ subtest 'live database' => sub {
     is_deeply all( $pg->search_events( project => 'nonexistent' ) ), [],
         qq{Project regex should fail to match with "nonexistent"};
 
+    # Make sure we do not see these changes from deployed_change_ids.
+    ok !grep( { $_ eq $ext_change->id } $pg->deployed_change_ids),
+        'deployed_change_ids should not include external change';
+    ok !grep( { $_ eq $ext_change->id } $pg->deployed_change_ids_since($change)),
+        'deployed_change_ids_since should not include external change';
+
     throws_ok { $pg->search_events(foo => 1) } 'App::Sqitch::X',
         'Should catch exception for invalid search param';
     is $@->ident, 'DEV', 'Invalid search param error ident should be "DEV"';

@@ -714,13 +714,15 @@ Returns the ID of the most recently applied change.
 
   my @change_ids = $engine->deployed_change_ids;
 
-Returns a list of all deployed change IDs in the order in which they were deployed.
+Returns a list of all deployed change IDs from the current project in the
+order in which they were deployed.
 
 =head3 C<deployed_change_ids_since>
 
   my @change_ids = $engine->deployed_change_ids_since($change);
 
-Returns a list of change IDs for changes deployed after the specified change.
+Returns a list of change IDs for changes from the current project deployed
+after the specified change.
 
 =head3 C<name_for_change_id>
 
