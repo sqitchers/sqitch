@@ -14,7 +14,7 @@ use Moose::Util::TypeConstraints;
 use namespace::autoclean;
 extends 'App::Sqitch::Command';
 
-our $VERSION = '0.90';
+our $VERSION = '0.91';
 
 has file => (
     is      => 'ro',
