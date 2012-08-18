@@ -61,3 +61,5 @@ timestamp
 CLDR
 lowercased
 unlocalized
+flipr
+
