@@ -1,13 +1,57 @@
 Revision history for Perl extension App::Sqitch
 
-0.90
+0.90  2012-08-18T00:05:41Z
      - Added `dist/sqitch.spec`. This file was created to generate an RPM for
        CentOS 6.1.
      - Added `dist/sqitch-pg.spec` to use for creating RPMs for Sqitch with
        PostgreSQL support.
-     - Fixed an occaisional test failure due to a clock tick in `t/pg.t.`
-     - Plan syntax change: required dependencies no longer begin with ":".
-       Conflicts still must begin with "!".
+     - Fixed an occasional test failure due to a clock tick in `t/pg.t.`
+     - Switched to Dist::Zilla for creating the distribution. For end-users,
+       this just means that `Build.PL` is now a generated file.
+     - Required module versions are now declared in code. This is so that they
+       are enforced at runtime, and also so that they will be picked up by
+       Dist::Zilla for inclusion in the generated `Build.PL` and `META` files.x
+     - Added support for declaring dependencies (required and conflicting
+       changes) from other Sqitch projects. This allows one project to depend
+       on changes from another. The syntax is `--requires $projname:$change`.
+       This use of the colon required a few changes to the Plan syntax:
+       + Pragmas may now appear only in the first "header" section of the
+         plan, separated from the changes in the "body" of the plan by a blank
+         line.
+       + Required dependencies no longer begin with ":". Conflicts still must
+         begin with "!".
+       + Object names may no longer contain ":", as it is used for project
+         specification.
+       + Project-qualified dependencies are supported by the project name
+         appearing before the change name, separated by a colon.
+     - Added App::Sqitch::Plan::Depend, an object to parse, represent, and
+       serialize dependencies.
+     - The plan parser does not validate changes required from other projects,
+       as it has no access to the plans from those projects.
+     - The engine interface validates cross-project dependencies before
+       deploying changes.
+     - Project data is not included in the Sqitch metadata tables in the
+       database. There is a table for all known projects, as well as foreign
+       key references in the `changes`, `tags`, and `events` tables.
+     - Project information is now displayed in the output of `sqitch status`
+       and `sqitch log` (in some formats).
+     - Added `--project` option to `sqitch status` to identify the project for
+       which to display the status. Defaults to the current project, if there
+       is one, or to the project in the database, if there is only one
+       registered project.
+     - Added `--project` option to `sqitch log` to allow searching for events
+       from projects matching a regular expression.
+     - Now require Config::GitLike 1.09 for its improved character encoding
+       support.
+     - Dependencies can now be declared as SHA1 hash IDs, including for IDs
+       from other projects.
+     - Fixed change and tag name validation to count "_" as a non-punctuation
+       character, and therefore able to be used at the beginning or end of
+       names.
+     - Replaced the `appuser` change in `sqitchtutorial` with `appschema`.
+       This simplifies things, since users are global objects in PostgreSQL,
+       while schemas are not. As a result, a bunch of irrelevant code was
+       removed from the tutorial.
 
 0.82  2012-08-03T21:25:27Z
      - Now require Moose 2.0300, since MooseX::Role::Parameterized, which
