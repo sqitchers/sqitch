@@ -256,7 +256,8 @@ subtest 'live database' => sub {
     try {
         $pg->_dbh;
     } catch {
-        plan skip_all => "Unable to connect to a database for testing: $_";
+        plan skip_all => "Unable to connect to a database for testing: "
+            . eval { $_->message } || $_;
     };
 
     ok !$pg->initialized, 'Database should not yet be initialized';
