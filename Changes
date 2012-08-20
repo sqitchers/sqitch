@@ -1,5 +1,7 @@
 Revision history for Perl extension App::Sqitch
 
+0.903
+
 0.902 2012-08-20T21:14:08Z
      - Fixed another occasional test failure due to a clock tick in `t/pg.t.`
      - Fixed test failures in `t/status.t` on systems without DBD::Pg.
