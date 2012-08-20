@@ -705,14 +705,6 @@ it.
 
 =over
 
-=item * Add cross-project dependency specification using project name.
-
-=item * Add `projects` table to C<Engine/pg> and populate based on plan.
-
-=item * Add project column and hash keys to C<Engine/pg>.
-
-=item * Allow C<status> and C<log> to work with no plan or config?
-
 =item * Add custom formatting support to C<status>.
 
 =item * Add support for C<^> and other shortcuts when specifying changes.
