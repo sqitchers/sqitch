@@ -1,12 +1,12 @@
 Name:           sqitch-pg
-Version:        0.82
+Version:        0.901
 Release:        1%{?dist}
 Summary:        Sane PostgreSQL database change management
 License:        MIT
 Group:          Development/Libraries
-URL:            http://search.cpan.org/dist/App-Sqitch-0.82/
+URL:            http://sqitch.org/
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
-Requires:       sqitch
+Requires:       sqitch >= 0.901
 Requires:       postgresql91
 Requires:       perl(DBI)
 Requires:       perl(DBD::Pg)
@@ -29,5 +29,8 @@ package bundles the Sqith PostgreSQL support.
 %files
 
 %changelog
+* Mon Aug 20 2012 David E. Wheeler <david.wheeler@iovation.com> 0.901-1
+- Upgrade to v0.901.
+
 * Sat Aug 04 2012 David E. Wheeler <david.wheeler@iovation.com> 0.82-1
 - First release.
