@@ -105,10 +105,10 @@ sub BUILDARGS {
     my $class = shift;
     my $p = @_ == 1 && ref $_[0] ? { %{ +shift } } : { @_ };
     hurl 'Depend object must have either "change", "tag", or "id" defined'
-        unless length $p->{change} || length $p->{tag} || $p->{id};
+        unless length($p->{change} // '') || length($p->{tag} // '') || $p->{id};
 
     hurl 'Depend object cannot contain both an ID and a tag or change'
-        if $p->{id} && (length $p->{change} || length $p->{tag});
+        if $p->{id} && (length($p->{change} // '') || length($p->{tag} // ''));
 
     $p->{got_id}      = defined $p->{id}      ? 1 : 0;
     $p->{got_project} = defined $p->{project} ? 1 : 0;
