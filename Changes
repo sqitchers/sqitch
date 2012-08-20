@@ -1,6 +1,8 @@
 Revision history for Perl extension App::Sqitch
 
 0.91
+     - Fix test failure in `t/status.t` caused by failing to ignore a
+       pre-existing `~/.sqitch/sqitch.conf` configuration file.
 
 0.90  2012-08-18T00:05:41Z
      - Added `dist/sqitch.spec`. This file was created to generate an RPM for

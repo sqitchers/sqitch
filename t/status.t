@@ -17,8 +17,13 @@ use MockOutput;
 my $CLASS = 'App::Sqitch::Command::status';
 require_ok $CLASS;
 
+$ENV{SQITCH_CONFIG} = 'nonexistent.conf';
+$ENV{SQITCH_USER_CONFIG} = 'nonexistent.user';
+$ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
+
 ok my $sqitch = App::Sqitch->new(
     top_dir => Path::Class::Dir->new('sql'),
+    _engine => 'pg',
 ), 'Load a sqitch object';
 my $config = $sqitch->config;
 isa_ok my $status = App::Sqitch::Command->load({
