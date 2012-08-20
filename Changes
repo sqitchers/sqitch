@@ -1,6 +1,6 @@
 Revision history for Perl extension App::Sqitch
 
-0.901
+0.901 2012-08-20T19:31:03Z
      - Fix test failure in `t/status.t` caused by failing to ignore a
        pre-existing `~/.sqitch/sqitch.conf` configuration file.
      - Eliminated "Use of uninitialized value in length" warnings.
