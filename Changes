@@ -1,6 +1,6 @@
 Revision history for Perl extension App::Sqitch
 
-0.91
+0.901
      - Fix test failure in `t/status.t` caused by failing to ignore a
        pre-existing `~/.sqitch/sqitch.conf` configuration file.
 
