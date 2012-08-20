@@ -23,7 +23,7 @@ $ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
 
 ok my $sqitch = App::Sqitch->new(
     top_dir => Path::Class::Dir->new('sql'),
-    _engine => 'pg',
+    _engine => 'sqlite',
 ), 'Load a sqitch object';
 my $config = $sqitch->config;
 isa_ok my $status = App::Sqitch::Command->load({
@@ -53,6 +53,15 @@ is_deeply [ $CLASS->options ], [qw(
     date-format|date=s
 )], 'Options should be correct';
 
+my $engine_mocker = Test::MockModule->new('App::Sqitch::Engine::sqlite');
+my @projs;
+$engine_mocker->mock( registered_projects => sub { @projs });
+my $initialized;
+$engine_mocker->mock( initialized => sub { $initialized } );
+
+# Start with uninitialized database.
+$initialized = 0;
+
 ##############################################################################
 # Test project.
 throws_ok { $status->project } 'App::Sqitch::X',
@@ -76,14 +85,6 @@ ok $sqitch = App::Sqitch->new(
 ), 'Load a sqitch object with SQLite';
 ok $status = $CLASS->new(sqitch => $sqitch), 'Create another status command';
 
-my $engine_mocker = Test::MockModule->new('App::Sqitch::Engine::sqlite');
-my @projs;
-$engine_mocker->mock( registered_projects => sub { @projs });
-my $initialized;
-$engine_mocker->mock( initialized => sub { $initialized } );
-
-# Start with uninitialized database.
-$initialized = 0;
 throws_ok { $status->project } 'App::Sqitch::X',
     'Should get an error for uninitialized db';
 is $@->ident, 'status', 'Uninitialized db error ident should be "status"';
