@@ -266,12 +266,10 @@ sub log_deploy_change {
     my $dbh    = $self->_dbh;
     my $sqitch = $self->sqitch;
 
-    my ($id, $name, $proj, $req, $conf, $user, $email) = (
+    my ($id, $name, $proj, $user, $email) = (
         $change->id,
         $change->format_name,
         $change->project,
-        [map { $_->as_string } $change->requires],
-        [map { $_->as_string } $change->conflicts],
         $sqitch->user_name,
         $sqitch->user_email
     );
@@ -282,22 +280,18 @@ sub log_deploy_change {
             , change
             , project
             , note
-            , requires
-            , conflicts
             , committer_name
             , committer_email
             , planned_at
             , planner_name
             , planner_email
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     }, undef,
         $id,
         $name,
         $proj,
         $change->note,
-        $req,
-        $conf,
         $user,
         $email,
         $change->timestamp->as_string(format => 'iso'),
@@ -413,11 +407,26 @@ sub log_revert_change {
         undef, $change->id
     ) || [];
 
-    # Delete the change record.
-    my ($req, $conf, $note) = $dbh->selectrow_array(q{
-        DELETE FROM changes where change_id = ?
-        RETURNING requires, conflicts, note
+    # Retrieve dependencies.
+    my ($req, $conf) = $dbh->selectrow_array(q{
+        SELECT ARRAY(
+            SELECT dependency
+              FROM dependencies
+             WHERE change_id = $1
+               AND type = 'require'
+        ), ARRAY(
+            SELECT dependency
+              FROM dependencies
+             WHERE change_id = $1
+               AND type = 'conflict'
+        )
     }, undef, $change->id);
+
+    # Delete the change record.
+    my ($note) = $dbh->selectrow_array(
+        'DELETE FROM changes where change_id = ? RETURNING note',
+        undef, $change->id,
+    );
 
     # Log it.
     return $self->_log_event( revert => $change, $del_tags, $note, $req, $conf );

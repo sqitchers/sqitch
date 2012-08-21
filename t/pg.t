@@ -359,7 +359,7 @@ subtest 'live database' => sub {
     is $pg->latest_change_id, $change->id, 'Should get users ID for latest change ID';
 
     is_deeply all_changes(), [[
-        $change->id, 'users', '', [], [], $sqitch->user_name, $sqitch->user_email,
+        $change->id, 'users', '', $sqitch->user_name, $sqitch->user_email,
         $change->planner_name, $change->planner_email,
     ]],'A record should have been inserted into the changes table';
     is_deeply get_dependencies($change->id), [], 'Should have no dependencies';
@@ -577,8 +577,6 @@ subtest 'live database' => sub {
             $change->id,
             'users',
             '',
-            [],
-            [],
             $user2_name,
             $user2_email,
             $change->planner_name,
@@ -588,8 +586,6 @@ subtest 'live database' => sub {
             $change2->id,
             'widgets',
             'All in',
-            ['users'],
-            ['dr_evil'],
             $user2_name,
             $user2_email,
             $change2->planner_name,
@@ -1241,8 +1237,8 @@ sub dt_for_event {
 
 sub all_changes {
     $pg->_dbh->selectall_arrayref(q{
-        SELECT change_id, change, note, requires, conflicts,
-               committer_name, committer_email, planner_name, planner_email
+        SELECT change_id, change, note, committer_name, committer_email,
+               planner_name, planner_email
           FROM changes
          ORDER BY committed_at
     });
