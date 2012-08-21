@@ -76,6 +76,20 @@ COMMENT ON COLUMN :"sqitch_schema".tags.planned_at      IS 'Date the tag was add
 COMMENT ON COLUMN :"sqitch_schema".tags.planner_name    IS 'Name of the user who planed the tag.';
 COMMENT ON COLUMN :"sqitch_schema".tags.planner_email   IS 'Email address of the user who planned the tag.';
 
+CREATE TABLE :"sqitch_schema".dependencies (
+    change_id       TEXT        NOT NULL REFERENCES :"sqitch_schema".changes(change_id) ON DELETE CASCADE,
+    type            TEXT        NOT NULL CHECK (type IN ('require', 'conflict')),
+    dependency      TEXT        NOT NULL,
+    dependency_id   TEXT            NULL REFERENCES :"sqitch_schema".changes(change_id),
+    PRIMARY KEY (change_id, dependency)
+);
+
+COMMENT ON TABLE :"sqitch_schema".dependencies                IS 'Tracks the currently satisfied dependencies.';
+COMMENT ON COLUMN :"sqitch_schema".dependencies.change_id     IS 'ID of the depending change.';
+COMMENT ON COLUMN :"sqitch_schema".dependencies.type          IS 'Type of dependency.';
+COMMENT ON COLUMN :"sqitch_schema".dependencies.dependency    IS 'Dependency name.';
+COMMENT ON COLUMN :"sqitch_schema".dependencies.dependency_id IS 'Change ID the dependency resolves to.';
+
 CREATE TABLE :"sqitch_schema".events (
     event           TEXT        NOT NULL CHECK (event IN ('deploy', 'revert', 'fail')),
     change_id       TEXT        NOT NULL,

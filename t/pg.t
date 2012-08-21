@@ -362,6 +362,7 @@ subtest 'live database' => sub {
         $change->id, 'users', '', [], [], $sqitch->user_name, $sqitch->user_email,
         $change->planner_name, $change->planner_email,
     ]],'A record should have been inserted into the changes table';
+    is_deeply get_dependencies($change->id), [], 'Should have no dependencies';
 
     my @event_data = ([
         'deploy',
@@ -458,6 +459,7 @@ subtest 'live database' => sub {
     is_deeply all_changes(), [],
         'The record should have been deleted from the changes table';
     is_deeply all_tags(), [], 'And the tag record should have been removed';
+    is_deeply get_dependencies($change->id), [], 'Should still have no dependencies';
 
     push @event_data, [
         'revert',
@@ -508,6 +510,7 @@ subtest 'live database' => sub {
     is $pg->latest_change_id, undef, 'Should still get undef for latest change';
     is_deeply all_changes(), [], 'Still should have not changes table record';
     is_deeply all_tags(), [], 'Should still have no tag records';
+    is_deeply get_dependencies($change->id), [], 'Should still have no dependencies';
 
     push @event_data, [
         'fail',
@@ -593,6 +596,22 @@ subtest 'live database' => sub {
             $change2->planner_email,
         ],
     ], 'Should have both changes and requires/conflcits deployed';
+    is_deeply get_dependencies($change->id), [],
+        'Should still have no dependencies for "users"';
+    is_deeply get_dependencies($change2->id), [
+        [
+            $change2->id,
+            'conflict',
+            'dr_evil',
+            undef,
+        ],
+        [
+            $change2->id,
+            'require',
+            'users',
+            undef,
+        ],
+    ], 'Should have both dependencies for "widgets"';
 
     push @event_data, [
         'deploy',
@@ -1245,5 +1264,14 @@ sub all_events {
           FROM events
          ORDER BY committed_at
     });
+}
+
+sub get_dependencies {
+    $pg->_dbh->selectall_arrayref(q{
+        SELECT change_id, type, dependency, dependency_id
+          FROM dependencies
+         WHERE change_id = ?
+         ORDER BY dependency
+    }, undef, shift);
 }
 

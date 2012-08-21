@@ -305,6 +305,25 @@ sub log_deploy_change {
         $change->planner_email,
     );
 
+    if ( my @deps = $change->dependencies ) {
+        $dbh->do(q{
+            INSERT INTO dependencies(
+                  change_id
+                , type
+                , dependency
+                , dependency_id
+           ) VALUES
+        } . join( ', ', ( q{(?, ?, ?, ?)} ) x @deps ),
+            undef,
+            map { (
+                $id,
+                $_->type,
+                $_->as_string,
+                $_->resolved_id,
+            ) } @deps
+        );
+    }
+
     if ( my @tags = $change->tags ) {
         $dbh->do(q{
             INSERT INTO tags (
