@@ -103,7 +103,7 @@ has is_external => (
     },
 );
 
-sub type        { shift->conflicts   ? 'conflicts' : 'required' }
+sub type        { shift->conflicts   ? 'conflict' : 'require' }
 sub required    { shift->conflicts   ? 0 : 1 }
 sub is_internal { shift->is_external ? 0 : 1 }
 
@@ -270,8 +270,8 @@ case it is a conflicting dependency).
 
   say $depend->type;
 
-Returns a string indicating the type of dependency, either "required" or
-"conflicts".
+Returns a string indicating the type of dependency, either "require" or
+"conflict".
 
 =head3 C<project>
 

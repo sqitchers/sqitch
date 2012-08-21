@@ -86,12 +86,12 @@ for my $spec(
         # Conflicting.
         ok $depend->conflicts, qq{"$exp" should be conflicting};
         ok !$depend->required, qq{"$exp" should not be required};
-        is $depend->type, 'conflicts', qq{"$exp" type should be "conflicts"};
+        is $depend->type, 'conflict', qq{"$exp" type should be "conflict"};
     } else {
         # Required.
         ok $depend->required, qq{"$exp" should be required};
         ok !$depend->conflicts, qq{"$exp" should not be conflicting};
-        is $depend->type, 'required', qq{"$exp" type should be "required"};
+        is $depend->type, 'require', qq{"$exp" type should be "require"};
     }
 
     if ($str =~ /^([^:]+):/) {
