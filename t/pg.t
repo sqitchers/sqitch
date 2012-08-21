@@ -228,7 +228,7 @@ can_ok $CLASS, qw(
     latest_change_id
     is_deployed_tag
     is_deployed_change
-    is_satisfied_depend
+    change_id_for_depend
     name_for_change_id
 );
 
@@ -1057,7 +1057,7 @@ subtest 'live database' => sub {
     }, 'The rest of the state should look right';
 
     ##########################################################################
-    # Test is_satisfied_depend.
+    # Test change_id_for_depend.
     my $id = '4f1e83f409f5f533eeef9d16b8a59e2c0aa91cc1';
     my $i;
 
@@ -1103,19 +1103,19 @@ subtest 'live database' => sub {
                 project => $plan->project,
                 %{ $dep_params },
             ), "Create internal $desc dependency";
-            ok !$pg->is_satisfied_depend($dep),
+            is $pg->change_id_for_depend($dep), undef,
                 "Internal $desc depencency should not be satisfied";
 
             # Once deployed, dependency should be satisfied.
             ok $pg->log_deploy_change($change),
                 "Log internal $desc change deployment";
-            ok $pg->is_satisfied_depend($dep),
+            is $pg->change_id_for_depend($dep), $change->id,
                 "Internal $desc depencency should now be satisfied";
 
             # Revert it and try again.
             ok $pg->log_revert_change($change),
                 "Log internal $desc change reversion";
-            ok !$pg->is_satisfied_depend($dep),
+            is $pg->change_id_for_depend($dep), undef,
                 "Internal $desc depencency should again be unsatisfied";
         }
 
@@ -1147,20 +1147,20 @@ subtest 'live database' => sub {
                 project => $plan->project,
                 %{ $dep_params },
             ), "Create external $desc dependency";
-            ok !$pg->is_satisfied_depend($dep),
+            is $pg->change_id_for_depend($dep), undef,
                 "External $desc depencency should not be satisfied";
 
             # Once deployed, dependency should be satisfied.
             ok $pg->log_deploy_change($change),
                 "Log external $desc change deployment";
 
-            ok $pg->is_satisfied_depend($dep),
+            is $pg->change_id_for_depend($dep), $change->id,
                 "External $desc depencency should now be satisfied";
 
             # Revert it and try again.
             ok $pg->log_revert_change($change),
                 "Log external $desc change reversion";
-            ok !$pg->is_satisfied_depend($dep),
+            is $pg->change_id_for_depend($dep), undef,
                 "External $desc depencency should again be unsatisfied";
         }
     }

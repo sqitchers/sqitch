@@ -283,7 +283,7 @@ sub deploy_change {
 
     # Check for conflicts.
     if (my @conflicts = grep {
-        $self->is_satisfied_depend($_)
+        $self->change_id_for_depend($_)
     } $change->conflicts) {
         hurl deploy => __nx(
             'Conflicts with previously deployed change: {changes}',
@@ -295,7 +295,7 @@ sub deploy_change {
 
     # Check for dependencies.
     if (my @required = grep {
-        !$self->is_satisfied_depend($_)
+        !$_->resolved_id( $self->change_id_for_depend($_) )
     } $change->requires) {
         hurl deploy => __nx(
             'Missing required change: {changes}',
@@ -389,9 +389,9 @@ sub is_deployed_change {
     hurl "$class has not implemented is_deployed_change()";
 }
 
-sub is_satisfied_depend {
+sub change_id_for_depend {
     my $class = ref $_[0] || $_[0];
-    hurl "$class has not implemented is_satisfied_depend()";
+    hurl "$class has not implemented change_id_for_depend()";
 }
 
 sub latest_change_id {
@@ -676,12 +676,13 @@ the database, and false if it has not.
 Should return true if the L<change|App::Sqitch::Plan::Change> has been
 deployed to the database, and false if it has not.
 
-=head3 C<is_satisfied_depend>
+=head3 C<change_id_for_depend>
 
-  say 'Dependency satisfied' if $engine->is_satisfied_depend($depend);
+  say 'Dependency satisfied' if $engine->change_id_for_depend($depend);
 
-Should return true if the L<dependency|App::Sqitch::Plan::Depend> has been
-satisfied, and false if it has not.
+Returns the change ID for a L<dependency|App::Sqitch::Plan::Depend>, if the
+dependency resolves to a change currently deployed to the database. Returns
+C<undef> if the dependency resolves to no currently-deployed change.
 
 =head3 C<log_deploy_change>
 

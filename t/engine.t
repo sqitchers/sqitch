@@ -59,7 +59,7 @@ ENGINE: {
     }
     sub is_deployed_tag    { push @SEEN => [ is_deployed_tag   => $_[1] ]; $is_deployed_tag }
     sub is_deployed_change { push @SEEN => [ is_deployed_change  => $_[1] ]; $is_deployed_change }
-    sub is_satisfied_depend { push @SEEN => [ is_satisfied_depend => $_[1] ]; shift @satisfied }
+    sub change_id_for_depend { push @SEEN => [ change_id_for_depend => $_[1] ]; shift @satisfied }
     sub latest_change_id   { push @SEEN => [ latest_change_id    => $_[1] ]; $latest_change_id }
     sub initialized        { push @SEEN => 'initialized'; $initialized }
     sub initialize         { push @SEEN => 'initialize' }
@@ -160,7 +160,7 @@ for my $abs (qw(
     log_revert_change
     is_deployed_tag
     is_deployed_change
-    is_satisfied_depend
+    change_id_for_depend
     latest_change_id
     deployed_change_ids
     deployed_change_ids_since
@@ -815,8 +815,8 @@ CONFLICTS: {
     ), 'Should have localized message about conflicts';
 
     is_deeply $engine->seen, [
-        [ is_satisfied_depend => $conflicts[0] ],
-        [ is_satisfied_depend => $conflicts[1] ],
+        [ change_id_for_depend => $conflicts[0] ],
+        [ change_id_for_depend => $conflicts[1] ],
     ], 'No other methods should have been called';
     is_deeply +MockOutput->get_info, [
         ['  + ', $change->format_name]
@@ -843,8 +843,8 @@ REQUIRES: {
     ), 'Should have localized message missing dependencies';
 
     is_deeply $engine->seen, [
-        [ is_satisfied_depend => $requires[0] ],
-        [ is_satisfied_depend => $requires[1] ],
+        [ change_id_for_depend => $requires[0] ],
+        [ change_id_for_depend => $requires[1] ],
     ], 'Should have called check_requires';
     is_deeply +MockOutput->get_info, [
         ['  + ', $change->format_name]
@@ -867,9 +867,9 @@ DEPLOYDIE: {
         'Shuld die on deploy failure';
     is $@->message, 'AAAH!', 'Should be the underlying error';
     is_deeply $engine->seen, [
-        [ is_satisfied_depend => $conflicts[0] ],
-        [ is_satisfied_depend => $requires[0]  ],
-        [ is_satisfied_depend => $requires[1]  ],
+        [ change_id_for_depend => $conflicts[0] ],
+        [ change_id_for_depend => $requires[0]  ],
+        [ change_id_for_depend => $requires[1]  ],
         [run_file => $change->deploy_file],
         [log_fail_change => $change],
     ], 'It should failed to have been deployed';

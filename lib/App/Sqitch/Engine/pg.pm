@@ -426,58 +426,50 @@ sub is_deployed_change {
     }, undef, $change->id)->[0];
 }
 
-sub is_satisfied_depend {
+sub change_id_for_depend {
     my ( $self, $dep ) = @_;
     my $dbh  = $self->_dbh;
 
     if ( defined ( my $cid = $dep->id ) ) {
         # Find by ID.
         return $dbh->selectcol_arrayref(q{
-            SELECT EXISTS(
-                SELECT TRUE
-                  FROM changes
-                 WHERE change_id = ?
-            )
-         }, undef, $cid)->[0];
+            SELECT change_id
+              FROM changes
+             WHERE change_id = ?
+        }, undef, $cid)->[0];
     }
 
     if ( defined ( my $change = $dep->change ) ) {
         if ( defined ( my $tag = $dep->tag ) ) {
             # Find by change name and following tag.
             return $dbh->selectcol_arrayref(q{
-                SELECT EXISTS(
-                    SELECT TRUE
-                      FROM changes
-                      JOIN tags
-                        ON changes.committed_at < tags.committed_at
-                       AND changes.project = tags.project
-                     WHERE changes.project = ?
-                       AND changes.change  = ?
-                       AND tags.tag        = ?
-                )
+                SELECT changes.change_id
+                  FROM changes
+                  JOIN tags
+                    ON changes.committed_at < tags.committed_at
+                   AND changes.project = tags.project
+                 WHERE changes.project = ?
+                   AND changes.change  = ?
+                   AND tags.tag        = ?
             }, undef, $dep->project, $change, '@' . $tag)->[0];
         }
 
         # Find by change name.
         return $dbh->selectcol_arrayref(q{
-            SELECT EXISTS(
-                SELECT TRUE
-                  FROM changes
-                 WHERE project = ?
-                   AND change  = ?
-            )
+            SELECT change_id
+              FROM changes
+             WHERE project = ?
+               AND change  = ?
         }, undef, $dep->project, $change)->[0];
     }
 
     if ( defined ( my $tag = $dep->tag ) ) {
         # Find by tag name.
         return $dbh->selectcol_arrayref(q{
-            SELECT EXISTS(
-                SELECT TRUE
-                  FROM tags
-                 WHERE project = ?
-                   AND tag     = ?
-            )
+            SELECT change_id
+              FROM tags
+             WHERE project = ?
+               AND tag     = ?
         }, undef, $dep->project, '@' . $tag)->[0];
     }
 
