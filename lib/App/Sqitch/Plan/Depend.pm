@@ -82,6 +82,11 @@ has id => (
     }
 );
 
+has resolved_id => (
+    is  => 'rw',
+    isa => 'Maybe[Str]',
+);
+
 has is_external => (
     is       => 'ro',
     isa      => 'Bool',
@@ -294,6 +299,12 @@ the dependency is a local dependency.
 
 Returns true if the C<id> parameter was passed to the constructor with a
 defined value, and false if it was not passed to the constructor.
+
+=head3 C<resolved_id>
+
+Change ID used by the engine when deploying a change. That is, if the
+dependency is in the database, it will be assigned this ID from the database.
+If it is not in the databse, C<resolved_id> will be undef.
 
 =head3 C<is_external>
 
