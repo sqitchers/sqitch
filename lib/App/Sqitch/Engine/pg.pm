@@ -454,7 +454,7 @@ sub is_deployed_change {
     }, undef, $change->id)->[0];
 }
 
-sub change_required_by {
+sub changes_requiring_change {
     my ( $self, $change ) = @_;
     return @{ $self->_dbh->selectall_arrayref(q{
         SELECT c.change_id, c.project, c.change, ARRAY(
