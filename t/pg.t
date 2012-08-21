@@ -363,7 +363,8 @@ subtest 'live database' => sub {
         $change->planner_name, $change->planner_email,
     ]],'A record should have been inserted into the changes table';
     is_deeply get_dependencies($change->id), [], 'Should have no dependencies';
-    ok !$pg->is_required_change($change), 'Change should not be required';
+    is_deeply [ $pg->change_required_by($change) ], [],
+        'Change should not be required';
 
     my @event_data = ([
         'deploy',
@@ -461,7 +462,8 @@ subtest 'live database' => sub {
         'The record should have been deleted from the changes table';
     is_deeply all_tags(), [], 'And the tag record should have been removed';
     is_deeply get_dependencies($change->id), [], 'Should still have no dependencies';
-    ok !$pg->is_required_change($change), 'Change should not be required';
+    is_deeply [ $pg->change_required_by($change) ], [],
+        'Change should not be required';
 
     push @event_data, [
         'revert',
@@ -513,7 +515,8 @@ subtest 'live database' => sub {
     is_deeply all_changes(), [], 'Still should have not changes table record';
     is_deeply all_tags(), [], 'Should still have no tag records';
     is_deeply get_dependencies($change->id), [], 'Should still have no dependencies';
-    ok !$pg->is_required_change($change), 'Change should not be required';
+    is_deeply [ $pg->change_required_by($change) ], [],
+        'Change should not be required';
 
     push @event_data, [
         'fail',
@@ -613,8 +616,14 @@ subtest 'live database' => sub {
             $change->id,
         ],
     ], 'Should have both dependencies for "widgets"';
-    ok $pg->is_required_change($change), 'Change "users" should now be required';
-    ok !$pg->is_required_change($change2), 'Change "widgets" should not be required';
+    is_deeply [ $pg->change_required_by($change) ], [{
+        project   => 'pg',
+        change_id => $change2->id,
+        change    => 'widgets',
+        tags      => [],
+    }], 'Change "users" should be required by "widgets"';
+    is_deeply [ $pg->change_required_by($change2) ], [],
+        'Change "widgets" should not be required';
 
     push @event_data, [
         'deploy',

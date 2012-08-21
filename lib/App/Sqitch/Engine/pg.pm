@@ -454,15 +454,19 @@ sub is_deployed_change {
     }, undef, $change->id)->[0];
 }
 
-sub is_required_change {
+sub change_required_by {
     my ( $self, $change ) = @_;
-    $self->_dbh->selectcol_arrayref(q{
-        SELECT EXISTS(
-            SELECT TRUE
-              FROM dependencies
-             WHERE dependency_id = ?
-        )
-    }, undef, $change->id)->[0];
+    return @{ $self->_dbh->selectall_arrayref(q{
+        SELECT c.change_id, c.project, c.change, ARRAY(
+            SELECT tag
+              FROM changes c2
+              JOIN tags ON c2.change_id = tags.change_id
+             WHERE c2.committed_at >= c.committed_at
+        ) AS tags
+          FROM dependencies d
+          JOIN changes c ON c.change_id = d.change_id
+         WHERE d.dependency_id = ?
+    }, { Slice => {} }, $change->id) };
 }
 
 sub change_id_for_depend {
