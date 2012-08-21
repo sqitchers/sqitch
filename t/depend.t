@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 266;
+use Test::More tests => 326;
 #use Test::More 'no_plan';
 use Test::Exception;
 #use Test::NoWarnings;
@@ -81,6 +81,19 @@ for my $spec(
         %{ $CLASS->parse($exp) },
     ), qq{Parse "$exp"};
     is $depend->as_plan_string, $exp, qq{Parsed should plan stringify as "$exp"};
+
+    if ($exp =~ /^!/) {
+        # Conflicting.
+        ok $depend->conflicts, qq{"$exp" should be conflicting};
+        ok !$depend->required, qq{"$exp" should not be required};
+        is $depend->type, 'conflicts', qq{"$exp" type should be "conflicts"};
+    } else {
+        # Required.
+        ok $depend->required, qq{"$exp" should be required};
+        ok !$depend->conflicts, qq{"$exp" should not be conflicting};
+        is $depend->type, 'required', qq{"$exp" type should be "required"};
+    }
+
     if ($str =~ /^([^:]+):/) {
         # Project specified in spec.
         my $prj = $1;
