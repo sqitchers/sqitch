@@ -363,6 +363,7 @@ subtest 'live database' => sub {
         $change->planner_name, $change->planner_email,
     ]],'A record should have been inserted into the changes table';
     is_deeply get_dependencies($change->id), [], 'Should have no dependencies';
+    ok !$pg->is_required_change($change), 'Change should not be required';
 
     my @event_data = ([
         'deploy',
@@ -460,6 +461,7 @@ subtest 'live database' => sub {
         'The record should have been deleted from the changes table';
     is_deeply all_tags(), [], 'And the tag record should have been removed';
     is_deeply get_dependencies($change->id), [], 'Should still have no dependencies';
+    ok !$pg->is_required_change($change), 'Change should not be required';
 
     push @event_data, [
         'revert',
@@ -511,6 +513,7 @@ subtest 'live database' => sub {
     is_deeply all_changes(), [], 'Still should have not changes table record';
     is_deeply all_tags(), [], 'Should still have no tag records';
     is_deeply get_dependencies($change->id), [], 'Should still have no dependencies';
+    ok !$pg->is_required_change($change), 'Change should not be required';
 
     push @event_data, [
         'fail',
@@ -569,6 +572,8 @@ subtest 'live database' => sub {
     is $pg->latest_change_id, $change->id, 'Should still get users ID for latest change ID';
 
     ok my $change2 = $plan->change_at(1),   'Get the second change';
+    my ($req) = $change2->requires;
+    ok $req->resolved_id($change->id),      'Set resolved ID in required depend';
     ok $pg->log_deploy_change($change2),    'Deploy second change';
     is $pg->latest_change_id, $change2->id, 'Should get "widgets" ID for latest change ID';
 
@@ -605,9 +610,11 @@ subtest 'live database' => sub {
             $change2->id,
             'require',
             'users',
-            undef,
+            $change->id,
         ],
     ], 'Should have both dependencies for "widgets"';
+    ok $pg->is_required_change($change), 'Change "users" should now be required';
+    ok !$pg->is_required_change($change2), 'Change "widgets" should not be required';
 
     push @event_data, [
         'deploy',

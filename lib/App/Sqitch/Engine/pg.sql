@@ -74,9 +74,12 @@ COMMENT ON COLUMN :"sqitch_schema".tags.planner_email   IS 'Email address of the
 
 CREATE TABLE :"sqitch_schema".dependencies (
     change_id       TEXT        NOT NULL REFERENCES :"sqitch_schema".changes(change_id) ON DELETE CASCADE,
-    type            TEXT        NOT NULL CHECK (type IN ('require', 'conflict')),
+    type            TEXT        NOT NULL,
     dependency      TEXT        NOT NULL,
-    dependency_id   TEXT            NULL REFERENCES :"sqitch_schema".changes(change_id),
+    dependency_id   TEXT            NULL REFERENCES :"sqitch_schema".changes(change_id) CHECK (
+            (type = 'require'  AND dependency_id IS NOT NULL)
+         OR (type = 'conflict' AND dependency_id IS NULL)
+    ),
     PRIMARY KEY (change_id, dependency)
 );
 

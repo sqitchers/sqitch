@@ -454,6 +454,17 @@ sub is_deployed_change {
     }, undef, $change->id)->[0];
 }
 
+sub is_required_change {
+    my ( $self, $change ) = @_;
+    $self->_dbh->selectcol_arrayref(q{
+        SELECT EXISTS(
+            SELECT TRUE
+              FROM dependencies
+             WHERE dependency_id = ?
+        )
+    }, undef, $change->id)->[0];
+}
+
 sub change_id_for_depend {
     my ( $self, $dep ) = @_;
     my $dbh  = $self->_dbh;
