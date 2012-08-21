@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 231;
+use Test::More tests => 235;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -32,7 +32,7 @@ can_ok $CLASS, qw(load new name);
 
 my ($is_deployed_tag, $is_deployed_change) = (0, 0);
 my @deployed_change_ids;
-my @satisfied;
+my @resolved;
 my $die = '';
 my $record_work = 1;
 my ( $latest_change, $latest_change_id, $initialized );
@@ -59,7 +59,7 @@ ENGINE: {
     }
     sub is_deployed_tag    { push @SEEN => [ is_deployed_tag   => $_[1] ]; $is_deployed_tag }
     sub is_deployed_change { push @SEEN => [ is_deployed_change  => $_[1] ]; $is_deployed_change }
-    sub change_id_for_depend { push @SEEN => [ change_id_for_depend => $_[1] ]; shift @satisfied }
+    sub change_id_for_depend { push @SEEN => [ change_id_for_depend => $_[1] ]; shift @resolved }
     sub latest_change_id   { push @SEEN => [ latest_change_id    => $_[1] ]; $latest_change_id }
     sub initialized        { push @SEEN => 'initialized'; $initialized }
     sub initialize         { push @SEEN => 'initialize' }
@@ -803,7 +803,7 @@ CONFLICTS: {
         plan      => $sqitch->plan,
         conflicts => \@conflicts,
     );
-    push @satisfied, 1, 1;
+    push @resolved, '2342', '253245';
     throws_ok { $engine->deploy_change($change) } 'App::Sqitch::X',
         'Conflict should throw exception';
     is $@->ident, 'deploy', 'Should be a "deploy" error';
@@ -821,6 +821,8 @@ CONFLICTS: {
     is_deeply +MockOutput->get_info, [
         ['  + ', $change->format_name]
     ], 'Should again have shown change name';
+    is_deeply [ map { $_->resolved_id } @conflicts ], [undef, undef],
+        'Conflicting dependencies should have no resolved IDs';
 }
 
 REQUIRES: {
@@ -831,7 +833,7 @@ REQUIRES: {
         plan      => $sqitch->plan,
         requires  => \@requires,
     );
-    push @satisfied, 0, 0;
+    push @resolved, undef, undef;
     throws_ok { $engine->deploy_change($change) } 'App::Sqitch::X',
         'Missing dependencies should throw exception';
     is $@->ident, 'deploy', 'Should be another "deploy" error';
@@ -849,6 +851,8 @@ REQUIRES: {
     is_deeply +MockOutput->get_info, [
         ['  + ', $change->format_name]
     ], 'Should again have shown change name';
+    is_deeply [ map { $_->resolved_id } @requires ], [undef, undef],
+        'Missing requirements should not have resolved';
 }
 
 DEPLOYDIE: {
@@ -862,7 +866,7 @@ DEPLOYDIE: {
         requires  => \@requires,
         conflicts => \@conflicts,
     );
-    @satisfied = (0, 1, 1);
+    @resolved = (0, '232213', '2352354');
     throws_ok { $engine->deploy_change($change) } 'App::Sqitch::X',
         'Shuld die on deploy failure';
     is $@->message, 'AAAH!', 'Should be the underlying error';
@@ -876,6 +880,10 @@ DEPLOYDIE: {
     is_deeply +MockOutput->get_info, [
         ['  + ', $change->format_name]
     ], 'Should have shown change name';
+    is_deeply [ map { $_->resolved_id } @conflicts ], [undef],
+        'Non-conflicting dependency should not have resolved';
+    is_deeply [ map { $_->resolved_id } @requires ], ['232213', '2352354'],
+        'Satisffied requirements should have resolved';
     $die = '';
 }
 
