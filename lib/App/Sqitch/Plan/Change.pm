@@ -137,6 +137,11 @@ has planner_email => (
     default  => sub { shift->sqitch->user_email },
 );
 
+sub dependencies {
+    my $self = shift;
+    return $self->requires, $self->conflicts;
+}
+
 sub deploy_file {
     my $self   = shift;
     $self->sqitch->deploy_dir->file( @{ $self->_fn } );
@@ -364,6 +369,13 @@ with which this change conflicts.
 
 Returns a list of the C<App::Sqitch::Plan::Change> objects representing
 changes with which this change conflicts.
+
+=head3 C<dependencies>
+
+  my @dependencies = $change->dependencies;
+
+Returns a list of L<App::Sqitch::Plan::Depend> objects representing all
+dependencies, required and conflicting.
 
 =head3 C<is_deploy>
 

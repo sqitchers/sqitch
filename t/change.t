@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 66;
+use Test::More tests => 67;
 #use Test::More 'no_plan';
 use Test::NoWarnings;
 use App::Sqitch;
@@ -271,6 +271,8 @@ ok $change2 = $CLASS->new(
 ), 'Create a change with explicit requires and conflicts';
 is_deeply [$change2->requires], [dep 'hey', dep 'you'], 'requires should be set';
 is_deeply [$change2->conflicts], [dep '!hey-there'], 'conflicts should be set';
+is_deeply [$change2->dependencies], [dep 'hey', dep 'you', dep '!hey-there'],
+    'Dependencies should include requires and conflicts';
 is_deeply [$change2->requires_changes], [$plan2->get('hey'),  $plan2->get('you')],
     'Should find changes for requires';
 is_deeply [$change2->conflicts_changes], [$plan2->get('hey-there')],
