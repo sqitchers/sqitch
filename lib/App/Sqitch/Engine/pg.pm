@@ -580,6 +580,7 @@ sub name_for_change_id {
               FROM changes c2
               JOIN tags ON c2.change_id = tags.change_id
              WHERE c2.committed_at >= c.committed_at
+               AND c2.project = c.project
              LIMIT 1
         ), '')
           FROM changes c

@@ -1196,6 +1196,26 @@ subtest 'live database' => sub {
         }
     }
 
+    ok my $ext_change2 = App::Sqitch::Plan::Change->new(
+        plan => $ext_plan,
+        name => 'outside_in',
+    ), "Create another external change";
+    ok $ext_change2->add_tag( App::Sqitch::Plan::Tag->new(
+        plan    => $plan,
+        change  => $ext_change2,
+        name    => 'meta',
+    ) ), 'Add tag external "meta"';
+
+    ok $pg->log_deploy_change($ext_change2), 'Log the external change with tag';
+
+    # Make sure name_for_change_id() works properly.
+    ok $pg->_dbh->do(q{DELETE FROM tags WHERE project = 'pg'}),
+        'Delete the pg project tags';
+    is $pg->name_for_change_id($change2->id), 'widgets',
+        'name_for_change_id() should return "widgets" for its ID';
+    is $pg->name_for_change_id($ext_change2->id), 'outside_in@meta',
+        'name_for_change_id() should return "outside_in@meta" for its ID';
+
     ##########################################################################
     # Test begin_work() and finish_work().
     can_ok $pg, qw(begin_work finish_work);
