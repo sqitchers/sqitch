@@ -192,7 +192,7 @@ has user_name => (
             my $sysname = $self->sysuser || hurl user => __(
                     'Cannot find your name; run sqitch config --user user.name "YOUR NAME"'
             );
-            if ($^O =~ /^MSWin(?:32|64)$/) {
+            if ($^O eq 'MSWin32') {
                 require Win32API::Net;
                 Win32API::Net::UserGetInfo( "", $self->sysuser, 1101, my $info = {} );
                 return $info->{fullName} || $sysname;
