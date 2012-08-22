@@ -49,10 +49,11 @@ sub process_pm_files {
     my $etc  = $self->_path_to('etc');
 
     $self->do_system(
-        $self->perl, '-i', '-pe',
+        $self->perl, '-i.bak', '-pe',
         qq{s{my \\\$SYSTEM_DIR = undef}{my \\\$SYSTEM_DIR = q{$etc}}},
         $pm,
     );
+    unlink "$pm.bak";
 
     return $ret;
 }
