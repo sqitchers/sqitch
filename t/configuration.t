@@ -34,8 +34,9 @@ is $config->global_file, File::Spec->catfile(
     $config->system_dir, 'sqitch.conf'
 ), 'Default global file name should be correct';
 
-$ENV{SQITCH_SYSTEM_CONFIG} = 'FOO/BAR';
-is $config->global_file, 'FOO/BAR',
+my $file = File::Spec->catfile(qw(FOO BAR));
+$ENV{SQITCH_SYSTEM_CONFIG} = $file;
+is $config->global_file, $file,
     'Should preferably get SQITCH_SYSTEM_CONFIG file from global_file';
 is $config->system_file, $config->global_file, 'system_file should alias global_file';
 
@@ -43,8 +44,8 @@ is $config->user_file, File::Spec->catfile(
     File::HomeDir->my_home, '.sqitch', 'sqitch.conf'
 ), 'Default user file name should be correct';
 
-$ENV{SQITCH_USER_CONFIG} = 'FOO/BAR';
-is $config->user_file, 'FOO/BAR',
+$ENV{SQITCH_USER_CONFIG} = $file,
+is $config->user_file, $file,
     'Should preferably get SQITCH_USER_CONFIG file from user_file';
 
 is $config->local_file, 'sqitch.conf',

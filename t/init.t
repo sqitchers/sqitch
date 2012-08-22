@@ -88,19 +88,27 @@ is_deeply +MockOutput->get_info, [
     [__x 'Created {file}', file => $sqitch->revert_dir . $sep],
 ], 'Should have noted creation of revert dir';
 
-# Handle errors.
 remove_tree $top_dir_string;
-make_path $top_dir_string;
-chmod 0000, $top_dir_string;
-END { chmod 0400, $top_dir_string }
-throws_ok { $init->make_directories } 'App::Sqitch::X',
-    'Should fail on permission issue';
-is $@->ident, 'init', 'Permission error should have ident "init"';
-is $@->message, __x(
-    'Error creating {path}: {error}',
-    path  => $sqitch->deploy_dir,
-    error => 'Permission denied',
-), 'The permission error should be formatted properly';
+
+# Handle errors.
+FSERR: {
+    # Make mkpath to insert an error.
+    my $mock = Test::MockModule->new('File::Path');
+    $mock->mock( mkpath => sub {
+        my ($file, $p) = @_;
+        ${ $p->{error} } = [{ $file => 'Permission denied yo'}];
+        return;
+    });
+
+    throws_ok { $init->make_directories } 'App::Sqitch::X',
+        'Should fail on permission issue';
+    is $@->ident, 'init', 'Permission error should have ident "init"';
+    is $@->message, __x(
+        'Error creating {path}: {error}',
+        path  => $sqitch->deploy_dir,
+        error => 'Permission denied yo',
+    ), 'The permission error should be formatted properly';
+}
 
 ##############################################################################
 # Test write_config().

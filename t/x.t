@@ -4,6 +4,7 @@ use strict;
 use Test::More;
 use Test::Exception;
 use Try::Tiny;
+use Path::Class;
 
 my $CLASS;
 BEGIN {
@@ -34,7 +35,7 @@ is $x->ident, 'basic', 'Ident should be "basic"';
 is $x->message, 'OMFG!', 'The message should have been passed';
 ok $x->stack_trace->frames, 'It should have a stack trace';
 is $x->exitval, 2, 'Exit val should be 2';
-is +($x->stack_trace->frames)[0]->filename, __FILE__,
+is +($x->stack_trace->frames)[0]->filename, file(qw(t x.t)),
     'The trace should start in this file';
 
 throws_ok { hurl 'OMFG!' } $CLASS;
