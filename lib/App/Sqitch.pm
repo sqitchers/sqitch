@@ -167,14 +167,38 @@ has verbosity => (
     }
 );
 
+has sysuser => (
+    is       => 'ro',
+    isa      => 'Maybe[Str]',
+    lazy     => 1,
+    default  => sub {
+        # Adapted from User.pm.
+        return getlogin
+            || scalar getpwuid( $< )
+            || $ENV{ LOGNAME }
+            || $ENV{ USER }
+            || $ENV{ USERNAME }
+            || eval { require Win32; Win32::LoginName() };
+    },
+);
+
 has user_name => (
     is      => 'ro',
     lazy    => 1,
     isa     => 'UserName',
     default => sub {
-        shift->config->get( key => 'user.name' ) || do {
+        my $self = shift;
+        $self->config->get( key => 'user.name' ) || do {
+            my $sysname = $self->sysuser || hurl user => __(
+                    'Cannot find your name; run sqitch config --user user.name "YOUR NAME"'
+            );
+            if ($^O =~ /^MSWin(?:32|64)$/) {
+                require Win32API::Net;
+                Win32API::Net::UserGetInfo( "", $self->sysuser, 1101, my $info = {} );
+                return $info->{fullName} || $sysname;
+            }
             require User::pwent;
-            (User::pwent::getpwnam(getlogin)->gecos)[0];
+            (User::pwent::getpwnam($self->sysuser)->gecos)[0] || $sysname;
         };
     }
 );
@@ -184,9 +208,13 @@ has user_email => (
     lazy    => 1,
     isa     => 'UserEmail',
     default => sub {
-        shift->config->get( key => 'user.email' ) || do {
+        my $self = shift;
+        $self->config->get( key => 'user.email' ) || do {
+            my $sysname = $self->sysuser || hurl user => __(
+                'Cannot infer your email address; run sqitch config --user user.email you@host.com'
+            );
             require Sys::Hostname;
-            getlogin . '@' . Sys::Hostname::hostname();
+            "$sysname@" . Sys::Hostname::hostname();
         };
     }
 );
