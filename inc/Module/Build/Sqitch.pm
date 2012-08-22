@@ -5,7 +5,16 @@ use warnings;
 use base 'Module::Build';
 
 sub new {
-    my $self = shift->SUPER::new(@_);
+    my ( $class, %p ) = @_;
+    if ($^O eq 'MSWin32') {
+        my $recs = $p{recommends} ||= {};
+        $recs->{$_} = 0 for qw(
+            Win32
+            Win32::Console::ANSI
+            Win32API::Net
+        );
+    }
+    my $self = shift->SUPER::new(%p);
     $self->add_build_element('etc');
     $self->add_build_element('sql');
     return $self;

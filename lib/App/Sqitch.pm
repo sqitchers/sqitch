@@ -178,7 +178,7 @@ has sysuser => (
             || $ENV{ LOGNAME }
             || $ENV{ USER }
             || $ENV{ USERNAME }
-            || eval { require Win32; Win32::LoginName() };
+            || try { require Win32; Win32::LoginName() };
     },
 );
 
@@ -193,7 +193,7 @@ has user_name => (
                     'Cannot find your name; run sqitch config --user user.name "YOUR NAME"'
             );
             if ($^O eq 'MSWin32') {
-                require Win32API::Net;
+                try { require Win32API::Net } || return $sysname;
                 Win32API::Net::UserGetInfo( "", $self->sysuser, 1101, my $info = {} );
                 return $info->{fullName} || $sysname;
             }
