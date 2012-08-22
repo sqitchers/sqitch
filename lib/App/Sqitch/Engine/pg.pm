@@ -457,12 +457,15 @@ sub is_deployed_change {
 sub changes_requiring_change {
     my ( $self, $change ) = @_;
     return @{ $self->_dbh->selectall_arrayref(q{
-        SELECT c.change_id, c.project, c.change, ARRAY(
+        SELECT c.change_id, c.project, c.change, (
             SELECT tag
               FROM changes c2
               JOIN tags ON c2.change_id = tags.change_id
-             WHERE c2.committed_at >= c.committed_at
-        ) AS tags
+             WHERE c2.project      = c.project
+               AND c2.committed_at >= c.committed_at
+             ORDER BY c2.committed_at
+             LIMIT 1
+        ) AS asof_tag
           FROM dependencies d
           JOIN changes c ON c.change_id = d.change_id
          WHERE d.dependency_id = ?

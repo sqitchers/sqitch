@@ -620,7 +620,7 @@ subtest 'live database' => sub {
         project   => 'pg',
         change_id => $change2->id,
         change    => 'widgets',
-        tags      => [],
+        asof_tag  => undef,
     }], 'Change "users" should be required by "widgets"';
     is_deeply [ $pg->changes_requiring_change($change2) ], [],
         'Change "widgets" should not be required';

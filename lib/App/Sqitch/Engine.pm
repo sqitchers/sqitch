@@ -320,6 +320,22 @@ sub revert_change {
     my ( $self, $change ) = @_;
     $self->sqitch->info('  - ', $change->format_name_with_tags);
     $self->begin_work;
+
+    if (my @requiring = $self->changes_requiring_change($change)) {
+        my $proj = $self->plan->project;
+        # XXX Include change_id in the output?
+        hurl revert => __nx(
+            'Required by currently deployed change: {changes}',
+            'Required by currently deployed changes: {changes}',
+            scalar @requiring,
+            changes => join ' ', map {
+                ($_->{project} eq $proj ? '' : "$_->{project}:" )
+                . $_->{change}
+                . ($_->{asof_tag} // '')
+            } @requiring,
+        );
+    }
+
     try {
         $self->run_file($change->revert_file);
         $self->log_revert_change($change);
@@ -407,6 +423,11 @@ sub deployed_change_ids {
 sub deployed_change_ids_since {
     my $class = ref $_[0] || $_[0];
     hurl "$class has not implemented deployed_change_ids_since()";
+}
+
+sub changes_requiring_change {
+    my $class = ref $_[0] || $_[0];
+    hurl "$class has not implemented changes_requiring_change()";
 }
 
 sub name_for_change_id {
@@ -683,6 +704,36 @@ deployed to the database, and false if it has not.
 Returns the change ID for a L<dependency|App::Sqitch::Plan::Depend>, if the
 dependency resolves to a change currently deployed to the database. Returns
 C<undef> if the dependency resolves to no currently-deployed change.
+
+=head3 C<changes_requiring_change>
+
+  my @requiring = $engine->changes_requiring_change($change);
+
+Returns a list of hash references represting currently deployed changes that
+require the passed change. When this method returns one or more hash
+references, the change should not be reverted. Each hash reference should
+contain the following keys:
+
+=over
+
+=item C<change_id>
+
+The requiring change ID.
+
+=item C<change>
+
+The requiring change name.
+
+=item C<project>
+
+The project the requiring change is from.
+
+=item C<asof_tag>
+
+Name of the first tag to be applied after the requiring change was deployed,
+if any.
+
+=back
 
 =head3 C<log_deploy_change>
 
