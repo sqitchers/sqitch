@@ -638,7 +638,6 @@ sub _parse_deps {
             dep => $_,
         );
         App::Sqitch::Plan::Depend->new(
-            project   => $self->project,
             %{ $p },
             plan      => $self,
             conflicts => 0,
@@ -651,7 +650,6 @@ sub _parse_deps {
             dep => $_,
         );
         App::Sqitch::Plan::Depend->new(
-            project   => $self->project,
             %{ $p },
             plan      => $self,
             conflicts => 1,

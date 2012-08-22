@@ -1542,6 +1542,13 @@ for my $req (qw(hi greets whatever @foo whatever@foo ext:larry ext:greets)) {
         name     => 'lazy',
         requires => [dep $req],
     );
+    my $req_proj = $req =~ /:/ ? do {
+        (my $p = $req) =~ s/:.+//;
+        $p;
+    } : $plan->project;
+    my ($dep) = $change->requires;
+    is $dep->project, $req_proj,
+        qq{Depend "$req" should be in project "$req_proj"};
     ok $plan->_check_dependencies($change, 'add'),
         qq{Dependency on "$req" should succeed};
 }
