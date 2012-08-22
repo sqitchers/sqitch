@@ -14,7 +14,7 @@ sub new {
             Win32API::Net
         );
     }
-    my $self = shift->SUPER::new(%p);
+    my $self = $class->SUPER::new(%p);
     $self->add_build_element('etc');
     $self->add_build_element('sql');
     return $self;
