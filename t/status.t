@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 86;
+use Test::More tests => 91;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -213,7 +213,11 @@ is_deeply +MockOutput->get_comment, [
 ##############################################################################
 # Test emit_changes().
 my @current_changes;
-$engine_mocker->mock(current_changes => sub { sub { shift @current_changes } });
+my $project;
+$engine_mocker->mock(current_changes => sub {
+    $project = $_[1];
+    sub { shift @current_changes };
+});
 @current_changes = ({
     change_id       => 'someid',
     change          => 'foo',
@@ -236,11 +240,13 @@ is_deeply +MockOutput->get_comment, [],
     'Should have emitted no changes';
 
 ok $status = App::Sqitch::Command::status->new(
-    sqitch         => $sqitch,
+    sqitch       => $sqitch,
     show_changes => 1,
+    project      => 'foo',
 ), 'Create change-showing status command';
 
 ok $status->emit_changes, 'Emit changes again';
+is $project, 'foo', 'Project "foo" should have been passed to current_changes';
 is_deeply +MockOutput->get_comment, [
     [''],
     [__n 'Change:', 'Changes:', 1],
@@ -282,6 +288,8 @@ is_deeply +MockOutput->get_comment, [
 );
 
 ok $status->emit_changes, 'Emit changes thrice';
+is $project, 'foo',
+    'Project "foo" again should have been passed to current_changes';
 is_deeply +MockOutput->get_comment, [
     [''],
     [__n 'Change:', 'Changes:', 3],
@@ -293,18 +301,23 @@ is_deeply +MockOutput->get_comment, [
 ##############################################################################
 # Test emit_tags().
 my @current_tags;
-$engine_mocker->mock(current_tags => sub { sub { shift @current_tags } });
+$engine_mocker->mock(current_tags => sub {
+    $project = $_[1];
+    sub { shift @current_tags };
+});
 
 ok $status->emit_tags, 'Try to emit tags';
 is_deeply +MockOutput->get_comment, [], 'No tags should have been emitted';
 
 ok $status = App::Sqitch::Command::status->new(
-    sqitch       => $sqitch,
-    show_tags    => 1,
+    sqitch    => $sqitch,
+    show_tags => 1,
+    project   => 'bar',
 ), 'Create tag-showing status command';
 
 # Try with no tags.
 ok $status->emit_tags, 'Try to emit tags again';
+is $project, 'bar', 'Project "bar" should be passed to current_tags()';
 is_deeply +MockOutput->get_comment, [
     [''],
     [__ 'Tags: None.'],
@@ -322,6 +335,7 @@ is_deeply +MockOutput->get_comment, [
 });
 
 ok $status->emit_tags, 'Emit tags';
+is $project, 'bar', 'Project "bar" should again be passed to current_tags()';
 is_deeply +MockOutput->get_comment, [
     [''],
     [__n 'Tag:', 'Tags:', 1],
@@ -363,6 +377,7 @@ is_deeply +MockOutput->get_comment, [
 );
 
 ok $status->emit_tags, 'Emit tags again';
+is $project, 'bar', 'Project "bar" should once more be passed to current_tags()';
 is_deeply +MockOutput->get_comment, [
     [''],
     [__n 'Tag:', 'Tags:', 3],
