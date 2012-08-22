@@ -423,6 +423,8 @@ subtest 'live database' => sub {
         planner_email   => $change->planner_email,
         planned_at      => $change->timestamp,
     }], 'Should have one current change';
+    is_deeply all( $pg->current_tags('nonesuch') ), [],
+        'Should have no current chnages for nonexistent project';
     is_deeply all( $pg->current_tags ), [{
         tag_id          => $tag->id,
         tag             => '@alpha',
@@ -433,6 +435,8 @@ subtest 'live database' => sub {
         planner_email   => $tag->planner_email,
         planned_at      => $tag->timestamp,
     }], 'Should have one current tags';
+    is_deeply all( $pg->current_tags('nonesuch') ), [],
+        'Should have no current tags for nonexistent project';
     my @events = ({
         event           => 'deploy',
         project         => 'pg',
@@ -1200,7 +1204,7 @@ subtest 'live database' => sub {
         plan => $ext_plan,
         name => 'outside_in',
     ), "Create another external change";
-    ok $ext_change2->add_tag( App::Sqitch::Plan::Tag->new(
+    ok $ext_change2->add_tag( my $ext_tag = App::Sqitch::Plan::Tag->new(
         plan    => $plan,
         change  => $ext_change2,
         name    => 'meta',
@@ -1215,6 +1219,44 @@ subtest 'live database' => sub {
         'name_for_change_id() should return "widgets" for its ID';
     is $pg->name_for_change_id($ext_change2->id), 'outside_in@meta',
         'name_for_change_id() should return "outside_in@meta" for its ID';
+
+    # Make sure current_changes and current_tags are project-scoped.
+    is_deeply all( $pg->current_changes ), \@current_changes,
+        'Should have only the "pg" changes from current_changes';
+    is_deeply all( $pg->current_changes('groovy') ), [
+        {
+            change_id       => $ext_change2->id,
+            change          => $ext_change2->name,
+            committer_name  => $user2_name,
+            committer_email => $user2_email,
+            committed_at    => dt_for_change( $ext_change2->id ),
+            planner_name    => $ext_change2->planner_name,
+            planner_email   => $ext_change2->planner_email,
+            planned_at      => $ext_change2->timestamp,
+        }, {
+            change_id       => $ext_change->id,
+            change          => $ext_change->name,
+            committer_name  => $user2_name,
+            committer_email => $user2_email,
+            committed_at    => dt_for_change( $ext_change->id ),
+            planner_name    => $ext_change->planner_name,
+            planner_email   => $ext_change->planner_email,
+            planned_at      => $ext_change->timestamp,
+        }
+    ], 'Should get only requestd project changes from current_changes';
+    is_deeply all( $pg->current_tags ), [],
+        'Should no longer have "pg" project tags';
+    is_deeply all( $pg->current_tags('groovy') ), [{
+        tag_id          => $ext_tag->id,
+        tag             => '@meta',
+        committer_name  => $user2_name,
+        committer_email => $user2_email,
+        committed_at    => dt_for_tag( $ext_tag->id ),
+        planner_name    => $ext_tag->planner_name,
+        planner_email   => $ext_tag->planner_email,
+        planned_at      => $ext_tag->timestamp,
+    }], 'Should get groovy tags from current_chages()';
+
 
     ##########################################################################
     # Test begin_work() and finish_work().

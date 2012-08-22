@@ -858,12 +858,14 @@ Email address of the user who added the change to the plan.
 =head3 C<current_changes>
 
   my $iter = $engine->current_changes;
+  my $iter = $engine->current_changes($project);
   while (my $change = $iter->()) {
       say '* ', $change->{change};
   }
 
 Returns a code reference that iterates over a list of the currently deployed
-changes in reverse chronological order. Each change is represented by a hash
+changes in reverse chronological order. If a project name is not passed, the
+current project will be assumed. Each change is represented by a hash
 reference containing the following keys:
 
 =over
@@ -907,13 +909,15 @@ Email address of the user who added the change to the plan.
 =head3 C<current_tags>
 
   my $iter = $engine->current_tags;
+  my $iter = $engine->current_tags($project);
   while (my $tag = $iter->()) {
       say '* ', $tag->{tag};
   }
 
 Returns a code reference that iterates over a list of the currently deployed
-tags in reverse chronological order. Each tag is represented by a hash
-reference containing the following keys:
+tags in reverse chronological order. If a project name is not passed, the
+current project will be assumed. Each tag is represented by a hash reference
+containing the following keys:
 
 =over
 

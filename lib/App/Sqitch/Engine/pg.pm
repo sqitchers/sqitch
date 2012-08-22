@@ -636,7 +636,7 @@ sub current_state {
 }
 
 sub current_changes {
-    my $self  = shift;
+    my ( $self, $project ) = @_;
     my $ddtcol = _ts2char 'committed_at';
     my $pdtcol = _ts2char 'planned_at';
     my $sth   = $self->_dbh->prepare(qq{
@@ -649,9 +649,10 @@ sub current_changes {
              , planner_email
              , $pdtcol AS planned_at
           FROM changes
+         WHERE project = ?
          ORDER BY changes.committed_at DESC
     });
-    $sth->execute;
+    $sth->execute($project // $self->plan->project);
     return sub {
         my $row = $sth->fetchrow_hashref or return;
         $row->{committed_at} = _dt $row->{committed_at};
@@ -661,7 +662,7 @@ sub current_changes {
 }
 
 sub current_tags {
-    my $self  = shift;
+    my ( $self, $project ) = @_;
     my $tdtcol = _ts2char 'committed_at';
     my $pdtcol = _ts2char 'planned_at';
     my $sth   = $self->_dbh->prepare(qq{
@@ -674,9 +675,10 @@ sub current_tags {
              , planner_email
              , $pdtcol AS planned_at
           FROM tags
+         WHERE project = ?
          ORDER BY tags.committed_at DESC
     });
-    $sth->execute;
+    $sth->execute($project // $self->plan->project);
     return sub {
         my $row = $sth->fetchrow_hashref or return;
         $row->{committed_at} = _dt $row->{committed_at};
