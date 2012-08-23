@@ -1,5 +1,7 @@
 Revision history for Perl extension App::Sqitch
 
+0.912
+
 0.911 2012-08-23T19:19:17Z
      - Fixed more platform-specific test failures in `t/base.t`.
      - Increased liklihood of finding a user's full name on Windows. Thanks to

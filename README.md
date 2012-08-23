@@ -1,4 +1,4 @@
-App/Sqitch version 0.911
+App/Sqitch version 0.912
 =======================
 
 This application, `sqitch`, will provide a simple yet robust interface for SQL

@@ -14,7 +14,7 @@ use Try::Tiny;
 use namespace::autoclean;
 extends 'App::Sqitch::Command';
 
-our $VERSION = '0.911';
+our $VERSION = '0.912';
 
 has show_changes => (
     is      => 'ro',
