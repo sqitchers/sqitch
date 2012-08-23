@@ -5,6 +5,8 @@ use strict;
 use warnings;
 use utf8;
 use Moose;
+use MooseX::Types::Path::Class;
+use Path::Class;
 use Locale::TextDomain qw(App-Sqitch);
 use namespace::autoclean;
 
@@ -14,15 +16,27 @@ our $VERSION = '0.912';
 
 has dest_dir => (
     is       => 'ro',
-    isa      => 'Str',
+    isa      => 'Path::Class::Dir',
     required => 1,
-    default  => 'bundle',
+    default  => sub { dir 'bundle' },
 );
 
 sub options {
     return qw(
         dest_dir|dir=s
     );
+}
+
+sub configure {
+    my ( $class, $config, $opt ) = @_;
+
+    my %params;
+
+    if (my $dir = $opt->{dest_dir} || $config->get(key => 'bundle.dest_dir') ) {
+        $params{dest_dir} = dir $dir;
+    }
+
+    return \%params;
 }
 
 sub execute {
