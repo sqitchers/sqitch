@@ -194,11 +194,11 @@ has user_name => (
             );
             if ($^O eq 'MSWin32') {
                 try { require Win32API::Net } || return $sysname;
-                Win32API::Net::UserGetInfo( "", $self->sysuser, 1101, my $info = {} );
+                Win32API::Net::UserGetInfo( "", $sysname, 1101, my $info = {} );
                 return $info->{fullName} || $sysname;
             }
             require User::pwent;
-            (User::pwent::getpwnam($self->sysuser)->gecos)[0] || $sysname;
+            (User::pwent::getpwnam($sysname)->gecos)[0] || $sysname;
         };
     }
 );
