@@ -33,7 +33,7 @@ can_ok $CLASS, qw(
 
 is_deeply [$CLASS->options], [qw(
     note|n=s@
-)], 'Should have no options';
+)], 'Should have note option';
 
 make_path 'sql';
 END { remove_tree 'sql' };
