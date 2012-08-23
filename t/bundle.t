@@ -3,11 +3,14 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 22;
+use Test::More tests => 28;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Test::NoWarnings;
 use Path::Class;
+use Test::Exception;
+use Test::Dir;
+use Locale::TextDomain qw(App-Sqitch);
 use File::Path qw(make_path remove_tree);
 use lib 't/lib';
 use MockOutput;
@@ -26,6 +29,10 @@ can_ok $CLASS, qw(
     dest_dir
     configure
     execute
+    _mkpath
+    bundle_config
+    bundle_plan
+    bundle_scripts
 );
 
 is_deeply [$CLASS->options], [qw(
@@ -91,7 +98,7 @@ is_deeply $bundle->_dir_map, {
 # Add a test directory.
 my $test_dir = dir qw(pg test);
 $test_dir->mkpath;
-END { remove_tree $test_dir->stringify }
+END { remove_tree $test_dir->stringify if -e $test_dir }
 isa_ok $bundle = App::Sqitch::Command->load({
     sqitch  => $sqitch,
     command => 'bundle',
@@ -116,3 +123,32 @@ is_deeply $bundle->_dir_map, {
     revert_dir => [ dir(qw(pg revert)), dir(qw(_build sql pg revert)) ],
     test_dir   => [ dir(qw(pg test)),   dir(qw(_build sql pg test)) ],
 }, 'Dir map should still now include test dir';
+
+##############################################################################
+# Test _mkpath.
+my $path = dir 'delete.me';
+dir_not_exists_ok $path, "Path $path should not exist";
+END { remove_tree $path->stringify if -e $path }
+ok $bundle->_mkpath($path), "Create $path";
+dir_exists_ok $path, "Path $path should now exist";
+
+# Handle errors.
+FSERR: {
+    # Make mkpath to insert an error.
+    my $mock = Test::MockModule->new('File::Path');
+    $mock->mock( mkpath => sub {
+        my ($file, $p) = @_;
+        ${ $p->{error} } = [{ $file => 'Permission denied yo'}];
+        return;
+    });
+
+    throws_ok { $bundle->_mkpath('foo') } 'App::Sqitch::X',
+        'Should fail on permission issue';
+    is $@->ident, 'bundle', 'Permission error should have ident "bundle"';
+    is $@->message, __x(
+        'Error creating {path}: {error}',
+        path  => 'foo',
+        error => 'Permission denied yo',
+    ), 'The permission error should be formatted properly';
+}
+

@@ -6,6 +6,7 @@ use warnings;
 use utf8;
 use Moose;
 use MooseX::Types::Path::Class;
+use File::Path qw(make_path);
 use Path::Class;
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
@@ -68,28 +69,32 @@ sub execute {
     return $self;
 }
 
-sub make_directories {
-    my $self   = shift;
-    my $dirs   = $self->_dir_map;
+sub _mkpath {
+    my ( $self, $dir ) = @_;
+    $self->info( __ 'Created {file}', file => $dir )
+        if make_path $dir, { error => \my $err };
 
-    for my $dir (qw(deploy_dir revert_dir test_dir)) {
-        my ( $src, $dst ) = @{ $dirs->{$dir} || [] } or next;
-        $self->info( __ 'Created {file}', file => $dst )
-            if make_path $dst, { error => \my $err };
-        if ( my $diag = shift @{ $err } ) {
-            my ( $path, $msg ) = %{ $diag };
-            hurl init => __x(
-                'Error creating {path}: {error}',
-                path  => $path,
-                error => $msg,
-            ) if $path;
-            hurl bundle => $msg;
-        }
-    }
+    my $diag = shift @{ $err } or return $self;
 
-    return $self;
+    my ( $path, $msg ) = %{ $diag };
+    hurl bundle => __x(
+        'Error creating {path}: {error}',
+        path  => $path,
+        error => $msg,
+    ) if $path;
+    hurl bundle => $msg;
 }
 
+sub bundle_config {
+    my $self = shift;
+}
+
+sub bundle_plan {
+    my $self = shift;
+}
+
+sub bundle_scripts {
+}
 
 1;
 
