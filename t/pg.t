@@ -359,7 +359,7 @@ subtest 'live database' => sub {
     is $pg->latest_change_id, $change->id, 'Should get users ID for latest change ID';
 
     is_deeply all_changes(), [[
-        $change->id, 'users', '', $sqitch->user_name, $sqitch->user_email,
+        $change->id, 'users', 'pg', '', $sqitch->user_name, $sqitch->user_email,
         $change->planner_name, $change->planner_email,
     ]],'A record should have been inserted into the changes table';
     is_deeply get_dependencies($change->id), [], 'Should have no dependencies';
@@ -370,6 +370,7 @@ subtest 'live database' => sub {
         'deploy',
         $change->id,
         'users',
+        'pg',
         '',
         [],
         [],
@@ -387,6 +388,7 @@ subtest 'live database' => sub {
         $tag->id,
         '@alpha',
         $change->id,
+        'pg',
         'Good to go!',
         $sqitch->user_name,
         $sqitch->user_email,
@@ -473,6 +475,7 @@ subtest 'live database' => sub {
         'revert',
         $change->id,
         'users',
+        'pg',
         '',
         [],
         [],
@@ -526,6 +529,7 @@ subtest 'live database' => sub {
         'fail',
         $change->id,
         'users',
+        'pg',
         '',
         [],
         [],
@@ -588,6 +592,7 @@ subtest 'live database' => sub {
         [
             $change->id,
             'users',
+            'pg',
             '',
             $user2_name,
             $user2_email,
@@ -597,6 +602,7 @@ subtest 'live database' => sub {
         [
             $change2->id,
             'widgets',
+            'pg',
             'All in',
             $user2_name,
             $user2_email,
@@ -633,6 +639,7 @@ subtest 'live database' => sub {
         'deploy',
         $change->id,
         'users',
+        'pg',
         '',
         [],
         [],
@@ -645,6 +652,7 @@ subtest 'live database' => sub {
         'deploy',
         $change2->id,
         'widgets',
+        'pg',
         'All in',
         ['users'],
         ['dr_evil'],
@@ -1021,7 +1029,7 @@ subtest 'live database' => sub {
         sqitch => $sqitch,
         project => 'groovy',
     ), 'Create external plan';
-    ok my $ext_change = App::Sqitch::Plan::Change->new(
+    ok my $ext_change = $ext_plan->add(
         plan => $ext_plan,
         name => 'crazyman',
     ), "Create external change";
@@ -1257,6 +1265,80 @@ subtest 'live database' => sub {
         planned_at      => $ext_tag->timestamp,
     }], 'Should get groovy tags from current_chages()';
 
+    ##########################################################################
+    # Test changes with multiple and cross-project dependencies.
+    ok my $hyper = $plan->add(
+        name     => 'hypercritical',
+        requires => ['pg:fred', 'groovy:crazyman'],
+    ), 'Create change "hypercritial" in current plan';
+    $_->resolved_id( $pg->change_id_for_depend($_) ) for $hyper->requires;
+    ok $pg->log_deploy_change($hyper), 'Log change "hyper"';
+
+    is_deeply [ $pg->changes_requiring_change($hyper) ], [],
+        'No changes should require "hypercritical"';
+    is_deeply [ $pg->changes_requiring_change($fred) ], [{
+        project   => 'pg',
+        change_id => $hyper->id,
+        change    => $hyper->name,
+        asof_tag  => undef,
+    }], 'Change "hypercritical" should require "fred"';
+
+    is_deeply [ $pg->changes_requiring_change($ext_change) ], [{
+        project   => 'pg',
+        change_id => $hyper->id,
+        change    => $hyper->name,
+        asof_tag  => undef,
+    }], 'Change "hypercritical" should require "groovy:crazyman"';
+
+    # Add another change with more depencencies.
+    ok my $ext_change3 = App::Sqitch::Plan::Change->new(
+        plan => $ext_plan,
+        name => 'elsewise',
+        requires => [
+            App::Sqitch::Plan::Depend->new(
+                plan    => $ext_plan,
+                project => 'pg',
+                change  => 'fred',
+            ),
+            App::Sqitch::Plan::Depend->new(
+                plan    => $ext_plan,
+                change  => 'crazyman',
+            ),
+        ]
+    ), "Create a third external change";
+    $_->resolved_id( $pg->change_id_for_depend($_) ) for $ext_change3->requires;
+    ok $pg->log_deploy_change($ext_change3), 'Log change "elsewise"';
+
+    # Check the dependencies again.
+    is_deeply [ $pg->changes_requiring_change($fred) ], [
+        {
+            project   => 'pg',
+            change_id => $hyper->id,
+            change    => $hyper->name,
+            asof_tag  => undef,
+        },
+        {
+            project   => 'groovy',
+            change_id => $ext_change3->id,
+            change    => $ext_change3->name,
+            asof_tag  => undef,
+        },
+    ], 'Change "fred" should be required by changes in two projects';
+
+    is_deeply [ $pg->changes_requiring_change($ext_change) ], [
+        {
+            project   => 'pg',
+            change_id => $hyper->id,
+            change    => $hyper->name,
+            asof_tag  => undef,
+        },
+        {
+            project   => 'groovy',
+            change_id => $ext_change3->id,
+            change    => $ext_change3->name,
+            asof_tag  => undef,
+        },
+    ], 'Change "groovy:crazyman" should be required by changes in two projects';
 
     ##########################################################################
     # Test begin_work() and finish_work().
@@ -1315,7 +1397,7 @@ sub dt_for_event {
 
 sub all_changes {
     $pg->_dbh->selectall_arrayref(q{
-        SELECT change_id, change, note, committer_name, committer_email,
+        SELECT change_id, change, project, note, committer_name, committer_email,
                planner_name, planner_email
           FROM changes
          ORDER BY committed_at
@@ -1324,7 +1406,7 @@ sub all_changes {
 
 sub all_tags {
     $pg->_dbh->selectall_arrayref(q{
-        SELECT tag_id, tag, change_id, note,
+        SELECT tag_id, tag, change_id, project, note,
                committer_name, committer_email, planner_name, planner_email
           FROM tags
          ORDER BY committed_at
@@ -1333,7 +1415,7 @@ sub all_tags {
 
 sub all_events {
     $pg->_dbh->selectall_arrayref(q{
-        SELECT event, change_id, change, note, requires, conflicts, tags,
+        SELECT event, change_id, change, project, note, requires, conflicts, tags,
                committer_name, committer_email, planner_name, planner_email
           FROM events
          ORDER BY committed_at
