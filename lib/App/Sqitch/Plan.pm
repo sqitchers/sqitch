@@ -736,7 +736,11 @@ sub rework {
 sub _check_dependencies {
     my ( $self, $change, $action ) = @_;
     my $changes = $self->_changes;
+    my $project = $self->project;
     for my $req ( $change->requires ) {
+        # use Test::More; diag $req->key_name;
+        # diag $req->project, ' ne ', $project;
+        next if $req->project ne $project;
         $req = $req->key_name;
         next if defined $changes->index_of($req =~ /@/ ? $req : $req . '@HEAD');
         my $name = $change->name;

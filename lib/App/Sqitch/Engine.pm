@@ -283,7 +283,7 @@ sub deploy_change {
 
     # Check for conflicts.
     if (my @conflicts = grep {
-        $self->is_satisfied_depend($_)
+        $self->change_id_for_depend($_)
     } $change->conflicts) {
         hurl deploy => __nx(
             'Conflicts with previously deployed change: {changes}',
@@ -295,7 +295,7 @@ sub deploy_change {
 
     # Check for dependencies.
     if (my @required = grep {
-        !$self->is_satisfied_depend($_)
+        !$_->resolved_id( $self->change_id_for_depend($_) )
     } $change->requires) {
         hurl deploy => __nx(
             'Missing required change: {changes}',
@@ -320,6 +320,22 @@ sub revert_change {
     my ( $self, $change ) = @_;
     $self->sqitch->info('  - ', $change->format_name_with_tags);
     $self->begin_work;
+
+    if (my @requiring = $self->changes_requiring_change($change)) {
+        my $proj = $self->plan->project;
+        # XXX Include change_id in the output?
+        hurl revert => __nx(
+            'Required by currently deployed change: {changes}',
+            'Required by currently deployed changes: {changes}',
+            scalar @requiring,
+            changes => join ' ', map {
+                ($_->{project} eq $proj ? '' : "$_->{project}:" )
+                . $_->{change}
+                . ($_->{asof_tag} // '')
+            } @requiring,
+        );
+    }
+
     try {
         $self->run_file($change->revert_file);
         $self->log_revert_change($change);
@@ -389,9 +405,9 @@ sub is_deployed_change {
     hurl "$class has not implemented is_deployed_change()";
 }
 
-sub is_satisfied_depend {
+sub change_id_for_depend {
     my $class = ref $_[0] || $_[0];
-    hurl "$class has not implemented is_satisfied_depend()";
+    hurl "$class has not implemented change_id_for_depend()";
 }
 
 sub latest_change_id {
@@ -407,6 +423,11 @@ sub deployed_change_ids {
 sub deployed_change_ids_since {
     my $class = ref $_[0] || $_[0];
     hurl "$class has not implemented deployed_change_ids_since()";
+}
+
+sub changes_requiring_change {
+    my $class = ref $_[0] || $_[0];
+    hurl "$class has not implemented changes_requiring_change()";
 }
 
 sub name_for_change_id {
@@ -676,12 +697,43 @@ the database, and false if it has not.
 Should return true if the L<change|App::Sqitch::Plan::Change> has been
 deployed to the database, and false if it has not.
 
-=head3 C<is_satisfied_depend>
+=head3 C<change_id_for_depend>
 
-  say 'Dependency satisfied' if $engine->is_satisfied_depend($depend);
+  say 'Dependency satisfied' if $engine->change_id_for_depend($depend);
 
-Should return true if the L<dependency|App::Sqitch::Plan::Depend> has been
-satisfied, and false if it has not.
+Returns the change ID for a L<dependency|App::Sqitch::Plan::Depend>, if the
+dependency resolves to a change currently deployed to the database. Returns
+C<undef> if the dependency resolves to no currently-deployed change.
+
+=head3 C<changes_requiring_change>
+
+  my @requiring = $engine->changes_requiring_change($change);
+
+Returns a list of hash references represting currently deployed changes that
+require the passed change. When this method returns one or more hash
+references, the change should not be reverted. Each hash reference should
+contain the following keys:
+
+=over
+
+=item C<change_id>
+
+The requiring change ID.
+
+=item C<change>
+
+The requiring change name.
+
+=item C<project>
+
+The project the requiring change is from.
+
+=item C<asof_tag>
+
+Name of the first tag to be applied after the requiring change was deployed,
+if any.
+
+=back
 
 =head3 C<log_deploy_change>
 
@@ -806,12 +858,14 @@ Email address of the user who added the change to the plan.
 =head3 C<current_changes>
 
   my $iter = $engine->current_changes;
+  my $iter = $engine->current_changes($project);
   while (my $change = $iter->()) {
       say '* ', $change->{change};
   }
 
 Returns a code reference that iterates over a list of the currently deployed
-changes in reverse chronological order. Each change is represented by a hash
+changes in reverse chronological order. If a project name is not passed, the
+current project will be assumed. Each change is represented by a hash
 reference containing the following keys:
 
 =over
@@ -855,13 +909,15 @@ Email address of the user who added the change to the plan.
 =head3 C<current_tags>
 
   my $iter = $engine->current_tags;
+  my $iter = $engine->current_tags($project);
   while (my $tag = $iter->()) {
       say '* ', $tag->{tag};
   }
 
 Returns a code reference that iterates over a list of the currently deployed
-tags in reverse chronological order. Each tag is represented by a hash
-reference containing the following keys:
+tags in reverse chronological order. If a project name is not passed, the
+current project will be assumed. Each tag is represented by a hash reference
+containing the following keys:
 
 =over
 

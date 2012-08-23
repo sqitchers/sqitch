@@ -1310,6 +1310,7 @@ $file = file qw(t plans dupe-change-diff-tag.plan);
 $sqitch = App::Sqitch->new(plan_file => $file);
 isa_ok $plan = App::Sqitch::Plan->new(sqitch => $sqitch), $CLASS,
     'Plan shoud work plan with dupe change across tags';
+is $plan->project, 'dupe_change_diff_tag', 'Project name should be set';
 cmp_deeply [ $plan->lines ], [
     clear,
     version,
@@ -1528,18 +1529,26 @@ is $@->message, __x(
 @deps = ({%ddep}, {%ddep, requires => [dep 'bar:bob']}, {%ddep});
 cmp_deeply [$plan->sort_changes('foo', changes qw(this that other))],
     [changes qw(this that other)], 'Should get original order with external dependency';
+$project = undef;
 
 ##############################################################################
 # Test dependency testing.
 can_ok $plan, '_check_dependencies';
 $mock_change->unmock('requires');
 
-for my $req (qw(hi greets whatever @foo whatever@foo)) {
+for my $req (qw(hi greets whatever @foo whatever@foo ext:larry ext:greets)) {
     $change = App::Sqitch::Plan::Change->new(
         plan     => $plan,
         name     => 'lazy',
         requires => [dep $req],
     );
+    my $req_proj = $req =~ /:/ ? do {
+        (my $p = $req) =~ s/:.+//;
+        $p;
+    } : $plan->project;
+    my ($dep) = $change->requires;
+    is $dep->project, $req_proj,
+        qq{Depend "$req" should be in project "$req_proj"};
     ok $plan->_check_dependencies($change, 'add'),
         qq{Dependency on "$req" should succeed};
 }

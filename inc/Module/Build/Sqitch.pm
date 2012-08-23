@@ -5,7 +5,16 @@ use warnings;
 use base 'Module::Build';
 
 sub new {
-    my $self = shift->SUPER::new(@_);
+    my ( $class, %p ) = @_;
+    if ($^O eq 'MSWin32') {
+        my $recs = $p{recommends} ||= {};
+        $recs->{$_} = 0 for qw(
+            Win32
+            Win32::Console::ANSI
+            Win32API::Net
+        );
+    }
+    my $self = $class->SUPER::new(%p);
     $self->add_build_element('etc');
     $self->add_build_element('sql');
     return $self;
@@ -49,10 +58,11 @@ sub process_pm_files {
     my $etc  = $self->_path_to('etc');
 
     $self->do_system(
-        $self->perl, '-i', '-pe',
+        $self->perl, '-i.bak', '-pe',
         qq{s{my \\\$SYSTEM_DIR = undef}{my \\\$SYSTEM_DIR = q{$etc}}},
         $pm,
     );
+    unlink "$pm.bak";
 
     return $ret;
 }

@@ -4,8 +4,8 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-#use Test::More tests => 220;
-use Test::More 'no_plan';
+use Test::More tests => 326;
+#use Test::More 'no_plan';
 use Test::Exception;
 #use Test::NoWarnings;
 use App::Sqitch;
@@ -22,7 +22,7 @@ BEGIN {
 ok my $sqitch = App::Sqitch->new(
     top_dir => Path::Class::Dir->new(qw(t sql)),
 ), 'Load a sqitch sqitch object';
-my $plan   = App::Sqitch::Plan->new(sqitch => $sqitch, project => 'depend');
+my $plan = App::Sqitch::Plan->new(sqitch => $sqitch, project => 'depend');
 
 can_ok $CLASS, qw(
     conflicts
@@ -30,6 +30,7 @@ can_ok $CLASS, qw(
     change
     tag
     id
+    resolved_id
     key_name
     as_string
     as_plan_string
@@ -80,6 +81,19 @@ for my $spec(
         %{ $CLASS->parse($exp) },
     ), qq{Parse "$exp"};
     is $depend->as_plan_string, $exp, qq{Parsed should plan stringify as "$exp"};
+
+    if ($exp =~ /^!/) {
+        # Conflicting.
+        ok $depend->conflicts, qq{"$exp" should be conflicting};
+        ok !$depend->required, qq{"$exp" should not be required};
+        is $depend->type, 'conflict', qq{"$exp" type should be "conflict"};
+    } else {
+        # Required.
+        ok $depend->required, qq{"$exp" should be required};
+        ok !$depend->conflicts, qq{"$exp" should not be conflicting};
+        is $depend->type, 'require', qq{"$exp" type should be "require"};
+    }
+
     if ($str =~ /^([^:]+):/) {
         # Project specified in spec.
         my $prj = $1;
@@ -190,3 +204,13 @@ is $@->message, __x(
     change => 'nonexistent',
     file   => $plan->sqitch->plan_file,
 ), 'Nonexistent change error message should be correct';
+
+##############################################################################
+# Test resolved_id.
+ok $depend = $CLASS->new( plan => $plan, tag => 'foo' ),
+    'Create depend without ID';
+is $depend->resolved_id, undef, 'Resolved ID should be undef';
+ok $depend->resolved_id($id), 'Set resolved ID';
+is $depend->resolved_id, $id, 'Resolved ID should be set';
+ok !$depend->resolved_id(undef), 'Unset resolved ID';
+is $depend->resolved_id, undef, 'Resolved ID should be undef again';

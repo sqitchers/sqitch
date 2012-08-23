@@ -25,8 +25,6 @@ CREATE TABLE :"sqitch_schema".changes (
     change          TEXT        NOT NULL,
     project         TEXT        NOT NULL REFERENCES :"sqitch_schema".projects(project),
     note            TEXT        NOT NULL DEFAULT '',
-    requires        TEXT[]      NOT NULL DEFAULT '{}',
-    conflicts       TEXT[]      NOT NULL DEFAULT '{}',
     committed_at    TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
     committer_name  TEXT        NOT NULL,
     committer_email TEXT        NOT NULL,
@@ -40,8 +38,6 @@ COMMENT ON COLUMN :"sqitch_schema".changes.change_id       IS 'Change primary ke
 COMMENT ON COLUMN :"sqitch_schema".changes.change          IS 'Name of a deployed change.';
 COMMENT ON COLUMN :"sqitch_schema".changes.project         IS 'Name of the Sqitch project to which the change belongs.';
 COMMENT ON COLUMN :"sqitch_schema".changes.note            IS 'Description of the change.';
-COMMENT ON COLUMN :"sqitch_schema".changes.requires        IS 'Array of the names of required changes.';
-COMMENT ON COLUMN :"sqitch_schema".changes.conflicts       IS 'Array of the names of conflicting changes.';
 COMMENT ON COLUMN :"sqitch_schema".changes.committed_at    IS 'Date the change was deployed.';
 COMMENT ON COLUMN :"sqitch_schema".changes.committer_name  IS 'Name of the user who deployed the change.';
 COMMENT ON COLUMN :"sqitch_schema".changes.committer_email IS 'Email address of the user who deployed the change.';
@@ -75,6 +71,23 @@ COMMENT ON COLUMN :"sqitch_schema".tags.committer_email IS 'Email address of the
 COMMENT ON COLUMN :"sqitch_schema".tags.planned_at      IS 'Date the tag was added to the plan.';
 COMMENT ON COLUMN :"sqitch_schema".tags.planner_name    IS 'Name of the user who planed the tag.';
 COMMENT ON COLUMN :"sqitch_schema".tags.planner_email   IS 'Email address of the user who planned the tag.';
+
+CREATE TABLE :"sqitch_schema".dependencies (
+    change_id       TEXT        NOT NULL REFERENCES :"sqitch_schema".changes(change_id) ON DELETE CASCADE,
+    type            TEXT        NOT NULL,
+    dependency      TEXT        NOT NULL,
+    dependency_id   TEXT            NULL REFERENCES :"sqitch_schema".changes(change_id) CHECK (
+            (type = 'require'  AND dependency_id IS NOT NULL)
+         OR (type = 'conflict' AND dependency_id IS NULL)
+    ),
+    PRIMARY KEY (change_id, dependency)
+);
+
+COMMENT ON TABLE :"sqitch_schema".dependencies                IS 'Tracks the currently satisfied dependencies.';
+COMMENT ON COLUMN :"sqitch_schema".dependencies.change_id     IS 'ID of the depending change.';
+COMMENT ON COLUMN :"sqitch_schema".dependencies.type          IS 'Type of dependency.';
+COMMENT ON COLUMN :"sqitch_schema".dependencies.dependency    IS 'Dependency name.';
+COMMENT ON COLUMN :"sqitch_schema".dependencies.dependency_id IS 'Change ID the dependency resolves to.';
 
 CREATE TABLE :"sqitch_schema".events (
     event           TEXT        NOT NULL CHECK (event IN ('deploy', 'revert', 'fail')),

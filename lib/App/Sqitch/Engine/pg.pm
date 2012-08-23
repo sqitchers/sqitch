@@ -266,12 +266,10 @@ sub log_deploy_change {
     my $dbh    = $self->_dbh;
     my $sqitch = $self->sqitch;
 
-    my ($id, $name, $proj, $req, $conf, $user, $email) = (
+    my ($id, $name, $proj, $user, $email) = (
         $change->id,
         $change->format_name,
         $change->project,
-        [map { $_->as_string } $change->requires],
-        [map { $_->as_string } $change->conflicts],
         $sqitch->user_name,
         $sqitch->user_email
     );
@@ -282,28 +280,43 @@ sub log_deploy_change {
             , change
             , project
             , note
-            , requires
-            , conflicts
             , committer_name
             , committer_email
             , planned_at
             , planner_name
             , planner_email
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     }, undef,
         $id,
         $name,
         $proj,
         $change->note,
-        $req,
-        $conf,
         $user,
         $email,
         $change->timestamp->as_string(format => 'iso'),
         $change->planner_name,
         $change->planner_email,
     );
+
+    if ( my @deps = $change->dependencies ) {
+        $dbh->do(q{
+            INSERT INTO dependencies(
+                  change_id
+                , type
+                , dependency
+                , dependency_id
+           ) VALUES
+        } . join( ', ', ( q{(?, ?, ?, ?)} ) x @deps ),
+            undef,
+            map { (
+                $id,
+                $_->type,
+                $_->as_string,
+                $_->resolved_id,
+            ) } @deps
+        );
+    }
 
     if ( my @tags = $change->tags ) {
         $dbh->do(q{
@@ -394,11 +407,26 @@ sub log_revert_change {
         undef, $change->id
     ) || [];
 
-    # Delete the change record.
-    my ($req, $conf, $note) = $dbh->selectrow_array(q{
-        DELETE FROM changes where change_id = ?
-        RETURNING requires, conflicts, note
+    # Retrieve dependencies.
+    my ($req, $conf) = $dbh->selectrow_array(q{
+        SELECT ARRAY(
+            SELECT dependency
+              FROM dependencies
+             WHERE change_id = $1
+               AND type = 'require'
+        ), ARRAY(
+            SELECT dependency
+              FROM dependencies
+             WHERE change_id = $1
+               AND type = 'conflict'
+        )
     }, undef, $change->id);
+
+    # Delete the change record.
+    my ($note) = $dbh->selectrow_array(
+        'DELETE FROM changes where change_id = ? RETURNING note',
+        undef, $change->id,
+    );
 
     # Log it.
     return $self->_log_event( revert => $change, $del_tags, $note, $req, $conf );
@@ -426,58 +454,68 @@ sub is_deployed_change {
     }, undef, $change->id)->[0];
 }
 
-sub is_satisfied_depend {
+sub changes_requiring_change {
+    my ( $self, $change ) = @_;
+    return @{ $self->_dbh->selectall_arrayref(q{
+        SELECT c.change_id, c.project, c.change, (
+            SELECT tag
+              FROM changes c2
+              JOIN tags ON c2.change_id = tags.change_id
+             WHERE c2.project      = c.project
+               AND c2.committed_at >= c.committed_at
+             ORDER BY c2.committed_at
+             LIMIT 1
+        ) AS asof_tag
+          FROM dependencies d
+          JOIN changes c ON c.change_id = d.change_id
+         WHERE d.dependency_id = ?
+    }, { Slice => {} }, $change->id) };
+}
+
+sub change_id_for_depend {
     my ( $self, $dep ) = @_;
     my $dbh  = $self->_dbh;
 
     if ( defined ( my $cid = $dep->id ) ) {
         # Find by ID.
         return $dbh->selectcol_arrayref(q{
-            SELECT EXISTS(
-                SELECT TRUE
-                  FROM changes
-                 WHERE change_id = ?
-            )
-         }, undef, $cid)->[0];
+            SELECT change_id
+              FROM changes
+             WHERE change_id = ?
+        }, undef, $cid)->[0];
     }
 
     if ( defined ( my $change = $dep->change ) ) {
         if ( defined ( my $tag = $dep->tag ) ) {
             # Find by change name and following tag.
             return $dbh->selectcol_arrayref(q{
-                SELECT EXISTS(
-                    SELECT TRUE
-                      FROM changes
-                      JOIN tags
-                        ON changes.committed_at < tags.committed_at
-                       AND changes.project = tags.project
-                     WHERE changes.project = ?
-                       AND changes.change  = ?
-                       AND tags.tag        = ?
-                )
+                SELECT changes.change_id
+                  FROM changes
+                  JOIN tags
+                    ON changes.committed_at < tags.committed_at
+                   AND changes.project = tags.project
+                 WHERE changes.project = ?
+                   AND changes.change  = ?
+                   AND tags.tag        = ?
             }, undef, $dep->project, $change, '@' . $tag)->[0];
         }
 
         # Find by change name.
         return $dbh->selectcol_arrayref(q{
-            SELECT EXISTS(
-                SELECT TRUE
-                  FROM changes
-                 WHERE project = ?
-                   AND change  = ?
-            )
+            SELECT change_id
+              FROM changes
+             WHERE project = ?
+               AND change  = ?
         }, undef, $dep->project, $change)->[0];
     }
 
     if ( defined ( my $tag = $dep->tag ) ) {
         # Find by tag name.
         return $dbh->selectcol_arrayref(q{
-            SELECT EXISTS(
-                SELECT TRUE
-                  FROM tags
-                 WHERE project = ?
-                   AND tag     = ?
-            )
+            SELECT change_id
+              FROM tags
+             WHERE project = ?
+               AND tag     = ?
         }, undef, $dep->project, '@' . $tag)->[0];
     }
 
@@ -542,6 +580,7 @@ sub name_for_change_id {
               FROM changes c2
               JOIN tags ON c2.change_id = tags.change_id
              WHERE c2.committed_at >= c.committed_at
+               AND c2.project = c.project
              LIMIT 1
         ), '')
           FROM changes c
@@ -597,7 +636,7 @@ sub current_state {
 }
 
 sub current_changes {
-    my $self  = shift;
+    my ( $self, $project ) = @_;
     my $ddtcol = _ts2char 'committed_at';
     my $pdtcol = _ts2char 'planned_at';
     my $sth   = $self->_dbh->prepare(qq{
@@ -610,9 +649,10 @@ sub current_changes {
              , planner_email
              , $pdtcol AS planned_at
           FROM changes
+         WHERE project = ?
          ORDER BY changes.committed_at DESC
     });
-    $sth->execute;
+    $sth->execute($project // $self->plan->project);
     return sub {
         my $row = $sth->fetchrow_hashref or return;
         $row->{committed_at} = _dt $row->{committed_at};
@@ -622,7 +662,7 @@ sub current_changes {
 }
 
 sub current_tags {
-    my $self  = shift;
+    my ( $self, $project ) = @_;
     my $tdtcol = _ts2char 'committed_at';
     my $pdtcol = _ts2char 'planned_at';
     my $sth   = $self->_dbh->prepare(qq{
@@ -635,9 +675,10 @@ sub current_tags {
              , planner_email
              , $pdtcol AS planned_at
           FROM tags
+         WHERE project = ?
          ORDER BY tags.committed_at DESC
     });
-    $sth->execute;
+    $sth->execute($project // $self->plan->project);
     return sub {
         my $row = $sth->fetchrow_hashref or return;
         $row->{committed_at} = _dt $row->{committed_at};

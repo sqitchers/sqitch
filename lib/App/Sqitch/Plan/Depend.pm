@@ -82,6 +82,11 @@ has id => (
     }
 );
 
+has resolved_id => (
+    is  => 'rw',
+    isa => 'Maybe[Str]',
+);
+
 has is_external => (
     is       => 'ro',
     isa      => 'Bool',
@@ -98,6 +103,7 @@ has is_external => (
     },
 );
 
+sub type        { shift->conflicts   ? 'conflict' : 'require' }
 sub required    { shift->conflicts   ? 0 : 1 }
 sub is_internal { shift->is_external ? 0 : 1 }
 
@@ -260,6 +266,13 @@ is not (in which case it is a required dependency).
 Returns true if the dependency is a required, and false if it is not (in which
 case it is a conflicting dependency).
 
+=head3 C<type>
+
+  say $depend->type;
+
+Returns a string indicating the type of dependency, either "require" or
+"conflict".
+
 =head3 C<project>
 
   my $proj = $depend->project;
@@ -294,6 +307,12 @@ the dependency is a local dependency.
 
 Returns true if the C<id> parameter was passed to the constructor with a
 defined value, and false if it was not passed to the constructor.
+
+=head3 C<resolved_id>
+
+Change ID used by the engine when deploying a change. That is, if the
+dependency is in the database, it will be assigned this ID from the database.
+If it is not in the databse, C<resolved_id> will be undef.
 
 =head3 C<is_external>
 
