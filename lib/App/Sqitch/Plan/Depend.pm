@@ -312,7 +312,7 @@ defined value, and false if it was not passed to the constructor.
 
 Change ID used by the engine when deploying a change. That is, if the
 dependency is in the database, it will be assigned this ID from the database.
-If it is not in the databse, C<resolved_id> will be undef.
+If it is not in the database, C<resolved_id> will be undef.
 
 =head3 C<is_external>
 

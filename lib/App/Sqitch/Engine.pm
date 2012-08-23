@@ -709,7 +709,7 @@ C<undef> if the dependency resolves to no currently-deployed change.
 
   my @requiring = $engine->changes_requiring_change($change);
 
-Returns a list of hash references represting currently deployed changes that
+Returns a list of hash references representing currently deployed changes that
 require the passed change. When this method returns one or more hash
 references, the change should not be reverted. Each hash reference should
 contain the following keys:
