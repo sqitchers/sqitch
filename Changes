@@ -1,6 +1,22 @@
 Revision history for Perl extension App::Sqitch
 
 0.91
+     - Moved `requires` and `conflicts` array columns from the `changes` table
+       to an new table, `dependencies`, where there is just one per row.
+     - Requirements are now checked before reverting a change. If the change
+       is depended on by other changes, it will not be reverted (Issue #36).
+     - Fixed bug where the `status` command would show changes and/or tags
+       from other projects when `--show-tags` or `--show-changes` were used.
+     - Fixed test failures on Windows.
+     - Added more ways to look up the current username to minimize the chances
+       that none is found.
+     - Added Windows-specific way of finding the current user's full name,
+       since the existing approach died on Windows.
+     - Windows-specific modules are no longer required, but are recommended on
+       Windows. They will be listed by `./Build` and added to the "recommends"
+       section of the the generated `MYMETA.*` files on Windows.
+     - Fixed a bug where dependencies on other projects would be rejected
+       in calls to `add` and `rework`.
 
 0.902 2012-08-20T21:14:08Z
      - Fixed another occasional test failure due to a clock tick in `t/pg.t.`
