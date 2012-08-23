@@ -35,7 +35,9 @@ is_deeply [$CLASS->options], [qw(
 is $bundle->dest_dir, dir('bundle'),
     'Default dest_dir should be bundle/';
 
-is_deeply $bundle->_dir_map, {}, 'Dir map should be empty with no source dirs';
+is_deeply $bundle->_dir_map, {
+    top_dir => [ $sqitch->top_dir, dir 'bundle'],
+}, 'Dir map should have only top dir';
 
 ##############################################################################
 # Test configure().
@@ -65,8 +67,9 @@ isa_ok $bundle = App::Sqitch::Command->load({
 
 is $bundle->dest_dir, $dir, qq{dest_dir should be "$dir"};
 is_deeply $bundle->_dir_map, {
+    top_dir    => [ $sqitch->top_dir, dir qw(_build sql sql)],
     deploy_dir => [ dir(qw(sql deploy)), dir(qw(_build sql sql deploy)) ]
-}, 'Dir map should have deploy dir';
+}, 'Dir map should have top and deploy dirs';
 
 # Try pg project.
 ok $sqitch = App::Sqitch->new(
@@ -80,9 +83,10 @@ isa_ok $bundle = App::Sqitch::Command->load({
 
 is $bundle->dest_dir, $dir, qq{dest_dir should again be "$dir"};
 is_deeply $bundle->_dir_map, {
+    top_dir    => [ $sqitch->top_dir, dir qw(_build sql pg)],
     deploy_dir => [ dir(qw(pg deploy)), dir(qw(_build sql pg deploy)) ],
     revert_dir => [ dir(qw(pg revert)), dir(qw(_build sql pg revert)) ],
-}, 'Dir map should have deploy and revert dirs';
+}, 'Dir map should have top, deploy, and revert dirs';
 
 # Add a test directory.
 my $test_dir = dir qw(pg test);
@@ -94,6 +98,7 @@ isa_ok $bundle = App::Sqitch::Command->load({
     config  => $config,
 }), $CLASS, 'another pg bundle command';
 is_deeply $bundle->_dir_map, {
+    top_dir    => [ $sqitch->top_dir, dir qw(_build sql pg)],
     deploy_dir => [ dir(qw(pg deploy)), dir(qw(_build sql pg deploy)) ],
     revert_dir => [ dir(qw(pg revert)), dir(qw(_build sql pg revert)) ],
 }, 'Dir map should still not have test dir';
@@ -106,6 +111,7 @@ isa_ok $bundle = App::Sqitch::Command->load({
     config  => $config,
 }), $CLASS, 'yet another pg bundle command';
 is_deeply $bundle->_dir_map, {
+    top_dir    => [ $sqitch->top_dir, dir qw(_build sql pg)],
     deploy_dir => [ dir(qw(pg deploy)), dir(qw(_build sql pg deploy)) ],
     revert_dir => [ dir(qw(pg revert)), dir(qw(_build sql pg revert)) ],
     test_dir   => [ dir(qw(pg test)),   dir(qw(_build sql pg test)) ],

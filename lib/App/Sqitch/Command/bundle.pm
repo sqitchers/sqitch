@@ -33,7 +33,7 @@ has _dir_map => (
         my $dst    = $self->dest_dir;
         my $ret    = {};
 
-        for my $attr (qw(deploy_dir revert_dir test_dir)) {
+        for my $attr (qw(top_dir deploy_dir revert_dir test_dir)) {
             my $dir = $sqitch->$attr;
             # Map source to test if source exists and has children.
             $ret->{$attr} = [ $dir, dir $dst, $dir->relative ]
