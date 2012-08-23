@@ -1,6 +1,7 @@
 Revision history for Perl extension App::Sqitch
 
 0.911
+     - Fixed more platform-specific test failures in `t/base.t`.
 
 0.91  2012-08-23T00:37:36Z
      - Moved `requires` and `conflicts` array columns from the `changes` table
