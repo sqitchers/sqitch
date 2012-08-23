@@ -8,6 +8,7 @@ use Moose;
 use MooseX::Types::Path::Class;
 use Path::Class;
 use Locale::TextDomain qw(App-Sqitch);
+use App::Sqitch::X qw(hurl);
 use namespace::autoclean;
 
 extends 'App::Sqitch::Command';
@@ -19,6 +20,28 @@ has dest_dir => (
     isa      => 'Path::Class::Dir',
     required => 1,
     default  => sub { dir 'bundle' },
+);
+
+has _dir_map => (
+    is       => 'ro',
+    isa      => 'HashRef',
+    required => 1,
+    lazy     => 1,
+    default  => sub {
+        my $self = shift;
+        my $sqitch = $self->sqitch;
+        my $dst    = $self->dest_dir;
+        my $ret    = {};
+
+        for my $attr (qw(deploy_dir revert_dir test_dir)) {
+            my $dir = $sqitch->$attr;
+            # Map source to test if source exists and has children.
+            $ret->{$attr} = [ $dir, dir $dst, $dir->relative ]
+                if -e $dir && scalar $dir->children;
+        }
+
+        return $ret;
+    },
 );
 
 sub options {
@@ -44,6 +67,29 @@ sub execute {
 
     return $self;
 }
+
+sub make_directories {
+    my $self   = shift;
+    my $dirs   = $self->_dir_map;
+
+    for my $dir (qw(deploy_dir revert_dir test_dir)) {
+        my ( $src, $dst ) = @{ $dirs->{$dir} || [] } or next;
+        $self->info( __ 'Created {file}', file => $dst )
+            if make_path $dst, { error => \my $err };
+        if ( my $diag = shift @{ $err } ) {
+            my ( $path, $msg ) = %{ $diag };
+            hurl init => __x(
+                'Error creating {path}: {error}',
+                path  => $path,
+                error => $msg,
+            ) if $path;
+            hurl bundle => $msg;
+        }
+    }
+
+    return $self;
+}
+
 
 1;
 

@@ -3,10 +3,11 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 12;
+use Test::More tests => 22;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Test::NoWarnings;
+use Path::Class;
 use File::Path qw(make_path remove_tree);
 use lib 't/lib';
 use MockOutput;
@@ -31,23 +32,25 @@ is_deeply [$CLASS->options], [qw(
     dest_dir|dir=s
 )], 'Should have dest_dir option';
 
-is $bundle->dest_dir, Path::Class::Dir->new('bundle'),
+is $bundle->dest_dir, dir('bundle'),
     'Default dest_dir should be bundle/';
+
+is_deeply $bundle->_dir_map, {}, 'Dir map should be empty with no source dirs';
 
 ##############################################################################
 # Test configure().
 
 is_deeply $CLASS->configure($config, {}), {}, 'Default config should be empty';
 is_deeply $CLASS->configure($config, {dest_dir => 'whu'}), {
-    dest_dir => Path::Class::Dir->new('whu'),
+    dest_dir => dir 'whu',
 }, '--dest_dir should be converted to a path object by configure()';
 
 chdir 't';
 ok $sqitch = App::Sqitch->new(
-    top_dir => Path::Class::Dir->new(qw(sql)),
+    top_dir => dir 'sql',
 ), 'Load a sqitch sqitch object with top_dir';
 $config = $sqitch->config;
-my $dir = Path::Class::Dir->new(qw(_build sql));
+my $dir = dir qw(_build sql);
 is_deeply $CLASS->configure($config, {}), {
     dest_dir => $dir,
 }, 'bundle.dest_dir config should be converted to a path object by configure()';
@@ -61,3 +64,49 @@ isa_ok $bundle = App::Sqitch::Command->load({
 }), $CLASS, 'another bundle command';
 
 is $bundle->dest_dir, $dir, qq{dest_dir should be "$dir"};
+is_deeply $bundle->_dir_map, {
+    deploy_dir => [ dir(qw(sql deploy)), dir(qw(_build sql sql deploy)) ]
+}, 'Dir map should have deploy dir';
+
+# Try pg project.
+ok $sqitch = App::Sqitch->new(
+    top_dir => dir 'pg',
+), 'Load a sqitch sqitch object with pg top_dir';
+isa_ok $bundle = App::Sqitch::Command->load({
+    sqitch  => $sqitch,
+    command => 'bundle',
+    config  => $config,
+}), $CLASS, 'pg bundle command';
+
+is $bundle->dest_dir, $dir, qq{dest_dir should again be "$dir"};
+is_deeply $bundle->_dir_map, {
+    deploy_dir => [ dir(qw(pg deploy)), dir(qw(_build sql pg deploy)) ],
+    revert_dir => [ dir(qw(pg revert)), dir(qw(_build sql pg revert)) ],
+}, 'Dir map should have deploy and revert dirs';
+
+# Add a test directory.
+my $test_dir = dir qw(pg test);
+$test_dir->mkpath;
+END { remove_tree $test_dir->stringify }
+isa_ok $bundle = App::Sqitch::Command->load({
+    sqitch  => $sqitch,
+    command => 'bundle',
+    config  => $config,
+}), $CLASS, 'another pg bundle command';
+is_deeply $bundle->_dir_map, {
+    deploy_dir => [ dir(qw(pg deploy)), dir(qw(_build sql pg deploy)) ],
+    revert_dir => [ dir(qw(pg revert)), dir(qw(_build sql pg revert)) ],
+}, 'Dir map should still not have test dir';
+
+# Now put something into the test directory.
+$test_dir->file('something')->touch;
+isa_ok $bundle = App::Sqitch::Command->load({
+    sqitch  => $sqitch,
+    command => 'bundle',
+    config  => $config,
+}), $CLASS, 'yet another pg bundle command';
+is_deeply $bundle->_dir_map, {
+    deploy_dir => [ dir(qw(pg deploy)), dir(qw(_build sql pg deploy)) ],
+    revert_dir => [ dir(qw(pg revert)), dir(qw(_build sql pg revert)) ],
+    test_dir   => [ dir(qw(pg test)),   dir(qw(_build sql pg test)) ],
+}, 'Dir map should still now include test dir';
