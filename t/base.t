@@ -67,13 +67,10 @@ is $sqitch->deploy_dir, dir(qw(deploy)), 'Default deploy_dir should be ./sql/dep
 is $sqitch->revert_dir, dir(qw(revert)), 'Default revert_dir should be ./sql/revert';
 is $sqitch->test_dir, dir(qw(test)), 'Default test_dir should be ./sql/test';
 isa_ok $sqitch->plan, 'App::Sqitch::Plan';
-is $sqitch->user_name, do {
-    require User::pwent;
-    (User::pwent::getpwnam(getlogin)->gecos)[0];
-}, 'Default user_name should be set from system';
+ok $sqitch->user_name, 'Default user_name should be set from system';
 is $sqitch->user_email, do {
     require Sys::Hostname;
-    getlogin . '@' . Sys::Hostname::hostname();
+    $sqitch->sysuser . '@' . Sys::Hostname::hostname();
 }, 'Default user_email should be set from system';
 
 # Test engine.
