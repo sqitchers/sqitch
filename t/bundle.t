@@ -3,8 +3,8 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 51;
-#use Test::More 'no_plan';
+#use Test::More tests => 51;
+use Test::More 'no_plan';
 use App::Sqitch;
 use Test::NoWarnings;
 use Path::Class;
@@ -184,6 +184,15 @@ file_exists_ok $dest, "File $dest should still exist";
 file_contents_identical $dest, $file,
     "Files $dest and $file should still be equal";
 is_deeply +MockOutput->get_debug, [], 'Should have no mkdir output';
+is_deeply +MockOutput->get_info, [], 'No copy message should have been emitted';
+
+# Make it old and copy it again.
+utime 0, $file->stat->mtime - 1, $dest;
+ok $bundle->_copy($file, $dest), "Copy $file to old $dest";
+file_exists_ok $dest, "File $dest should still be there";
+file_contents_identical $dest, $file,
+    "Files $dest and $file should remain equal";
+is_deeply +MockOutput->get_debug, [], 'Should still have no mkdir output';
 is_deeply +MockOutput->get_info, [[__x(
     "Copying {source} -> {dest}",
     source => $file,
@@ -192,6 +201,7 @@ is_deeply +MockOutput->get_info, [[__x(
 
 # Copy a different file.
 my $file2 = file qw(sql deploy users.sql);
+$dest->remove;
 ok $bundle->_copy($file2, $dest), "Copy $file2 to $dest";
 file_exists_ok $dest, "File $dest should now exist";
 file_contents_identical $dest, $file2, "Files $dest and $file2 should be equal";
@@ -202,8 +212,19 @@ is_deeply +MockOutput->get_info, [[__x(
     dest   => $dest
 )]], 'Copy message should have been emitted';
 
+# Try to copy a nonexistent file.
+my $nonfile = file 'nonexistent.txt';
+throws_ok { $bundle->_copy($nonfile, $dest) } 'App::Sqitch::X',
+    'Should get exception when source file does not exist';
+is $@->ident, 'bundle', 'Nonexistent file error ident should be "bundle"';
+is $@->message, __x(
+    'Cannot copy {file}: does not exist',
+    file => $nonfile,
+), 'Nonexistent file error message should be correct';
+
 COPYDIE: {
     # Make copy die.
+    $dest->remove;
     my $mocker = Test::MockModule->new('File::Copy');
     $mocker->mock(copy => sub { return 0 });
     throws_ok { $bundle->_copy($file, $dest) } 'App::Sqitch::X',
@@ -216,3 +237,6 @@ COPYDIE: {
         error  => $!,
     ), 'Copy fail error message should be correct';
 }
+
+##############################################################################
+# Test bundle_config().

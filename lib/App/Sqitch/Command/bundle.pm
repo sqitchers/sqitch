@@ -89,7 +89,19 @@ sub _mkpath {
 sub _copy {
     my ( $self, $src, $dst ) = @_;
 
-    $self->_mkpath( $dst->dir );
+    hurl bundle => __x(
+        'Cannot copy {file}: does not exist',
+        file => $src,
+    ) unless -e $src;
+
+    if (-e $dst) {
+        # Skip the file if it is up-to-date.
+        return $self if -M $dst < -M $src;
+    } else {
+        # Create the directory.
+        $self->_mkpath( $dst->dir );
+    }
+
     $self->info(__x(
         "Copying {source} -> {dest}",
         source => $src,
