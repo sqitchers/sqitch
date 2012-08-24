@@ -3,13 +3,15 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 28;
+use Test::More tests => 51;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Test::NoWarnings;
 use Path::Class;
 use Test::Exception;
 use Test::Dir;
+use Test::File qw(file_exists_ok file_not_exists_ok);
+use Test::File::Contents;
 use Locale::TextDomain qw(App-Sqitch);
 use File::Path qw(make_path remove_tree);
 use lib 't/lib';
@@ -29,10 +31,11 @@ can_ok $CLASS, qw(
     dest_dir
     configure
     execute
-    _mkpath
     bundle_config
     bundle_plan
     bundle_scripts
+    _mkpath
+    _copy
 );
 
 is_deeply [$CLASS->options], [qw(
@@ -131,6 +134,13 @@ dir_not_exists_ok $path, "Path $path should not exist";
 END { remove_tree $path->stringify if -e $path }
 ok $bundle->_mkpath($path), "Create $path";
 dir_exists_ok $path, "Path $path should now exist";
+is_deeply +MockOutput->get_debug, [[__x 'Created {file}', file => $path]],
+    'The mkdir info should have been output';
+
+# Create it again.
+ok $bundle->_mkpath($path), "Create $path again";
+dir_exists_ok $path, "Path $path should still exist";
+is_deeply +MockOutput->get_debug, [], 'Nothing should have been emitted';
 
 # Handle errors.
 FSERR: {
@@ -152,3 +162,57 @@ FSERR: {
     ), 'The permission error should be formatted properly';
 }
 
+##############################################################################
+# Test _copy().
+my $file = file qw(sql deploy roles.sql);
+my $dest = file $path, qw(deploy roles.sql);
+file_not_exists_ok $dest, "File $dest should not exist";
+ok $bundle->_copy($file, $dest), "Copy $file to $dest";
+file_exists_ok $dest, "File $dest should now exist";
+file_contents_identical $dest, $file, "Files $dest and $file should be equal";
+is_deeply +MockOutput->get_debug, [[__x 'Created {file}', file => $dest->dir]],
+    'The mkdir info should have been output';
+is_deeply +MockOutput->get_info, [[__x(
+    "Copying {source} -> {dest}",
+    source => $file,
+    dest   => $dest
+)]], 'Copy message should have been emitted';
+
+# Copy it again.
+ok $bundle->_copy($file, $dest), "Copy $file to $dest again";
+file_exists_ok $dest, "File $dest should still exist";
+file_contents_identical $dest, $file,
+    "Files $dest and $file should still be equal";
+is_deeply +MockOutput->get_debug, [], 'Should have no mkdir output';
+is_deeply +MockOutput->get_info, [[__x(
+    "Copying {source} -> {dest}",
+    source => $file,
+    dest   => $dest
+)]], 'Copy message should again have been emitted';
+
+# Copy a different file.
+my $file2 = file qw(sql deploy users.sql);
+ok $bundle->_copy($file2, $dest), "Copy $file2 to $dest";
+file_exists_ok $dest, "File $dest should now exist";
+file_contents_identical $dest, $file2, "Files $dest and $file2 should be equal";
+is_deeply +MockOutput->get_debug, [], 'Should still have no mkdir output';
+is_deeply +MockOutput->get_info, [[__x(
+    "Copying {source} -> {dest}",
+    source => $file2,
+    dest   => $dest
+)]], 'Copy message should have been emitted';
+
+COPYDIE: {
+    # Make copy die.
+    my $mocker = Test::MockModule->new('File::Copy');
+    $mocker->mock(copy => sub { return 0 });
+    throws_ok { $bundle->_copy($file, $dest) } 'App::Sqitch::X',
+        'Should get exception when copy returns false';
+    is $@->ident, 'bundle', 'Copy fail ident should be "bundle"';
+    is $@->message, __x(
+        'Cannot copy "{source}" to "{dest}": {error}',
+        source => $file,
+        dest   => $dest,
+        error  => $!,
+    ), 'Copy fail error message should be correct';
+}

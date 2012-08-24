@@ -10,6 +10,7 @@ use File::Path qw(make_path);
 use Path::Class;
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
+use File::Copy ();
 use namespace::autoclean;
 
 extends 'App::Sqitch::Command';
@@ -71,7 +72,7 @@ sub execute {
 
 sub _mkpath {
     my ( $self, $dir ) = @_;
-    $self->info( __ 'Created {file}', file => $dir )
+    $self->debug( __x 'Created {file}', file => $dir )
         if make_path $dir, { error => \my $err };
 
     my $diag = shift @{ $err } or return $self;
@@ -85,8 +86,32 @@ sub _mkpath {
     hurl bundle => $msg;
 }
 
+sub _copy {
+    my ( $self, $src, $dst ) = @_;
+
+    $self->_mkpath( $dst->dir );
+    $self->info(__x(
+        "Copying {source} -> {dest}",
+        source => $src,
+        dest   => $dst
+    ));
+
+    File::Copy::copy($src, $dst) or hurl bundle => __x(
+        'Cannot copy "{source}" to "{dest}": {error}',
+        source => $src,
+        dest   => $dst,
+        error  => $!,
+    );
+    return $self;
+}
+
 sub bundle_config {
     my $self = shift;
+    my $dir  = $self->dest_dir;
+    my $file = $self->sqitch->config_file;
+
+    $self->_mkpath($dir);
+    $self->_copy( $file, $dir->file( $file->basename ) );
 }
 
 sub bundle_plan {
