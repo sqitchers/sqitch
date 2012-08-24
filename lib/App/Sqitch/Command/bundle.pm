@@ -86,7 +86,7 @@ sub _mkpath {
     hurl bundle => $msg;
 }
 
-sub _copy {
+sub _copy_if_modified {
     my ( $self, $src, $dst ) = @_;
 
     hurl bundle => __x(
@@ -123,7 +123,7 @@ sub bundle_config {
     my $file = $self->sqitch->config_file;
 
     $self->_mkpath($dir);
-    $self->_copy( $file, $dir->file( $file->basename ) );
+    $self->_copy_if_modified( $file, $dir->file( $file->basename ) );
 }
 
 sub bundle_plan {

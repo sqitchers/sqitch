@@ -35,7 +35,7 @@ can_ok $CLASS, qw(
     bundle_plan
     bundle_scripts
     _mkpath
-    _copy
+    _copy_if_modified
 );
 
 is_deeply [$CLASS->options], [qw(
@@ -167,7 +167,7 @@ FSERR: {
 my $file = file qw(sql deploy roles.sql);
 my $dest = file $path, qw(deploy roles.sql);
 file_not_exists_ok $dest, "File $dest should not exist";
-ok $bundle->_copy($file, $dest), "Copy $file to $dest";
+ok $bundle->_copy_if_modified($file, $dest), "Copy $file to $dest";
 file_exists_ok $dest, "File $dest should now exist";
 file_contents_identical $dest, $file, "Files $dest and $file should be equal";
 is_deeply +MockOutput->get_debug, [[__x 'Created {file}', file => $dest->dir]],
@@ -179,7 +179,7 @@ is_deeply +MockOutput->get_info, [[__x(
 )]], 'Copy message should have been emitted';
 
 # Copy it again.
-ok $bundle->_copy($file, $dest), "Copy $file to $dest again";
+ok $bundle->_copy_if_modified($file, $dest), "Copy $file to $dest again";
 file_exists_ok $dest, "File $dest should still exist";
 file_contents_identical $dest, $file,
     "Files $dest and $file should still be equal";
@@ -188,7 +188,7 @@ is_deeply +MockOutput->get_info, [], 'No copy message should have been emitted';
 
 # Make it old and copy it again.
 utime 0, $file->stat->mtime - 1, $dest;
-ok $bundle->_copy($file, $dest), "Copy $file to old $dest";
+ok $bundle->_copy_if_modified($file, $dest), "Copy $file to old $dest";
 file_exists_ok $dest, "File $dest should still be there";
 file_contents_identical $dest, $file,
     "Files $dest and $file should remain equal";
@@ -202,7 +202,7 @@ is_deeply +MockOutput->get_info, [[__x(
 # Copy a different file.
 my $file2 = file qw(sql deploy users.sql);
 $dest->remove;
-ok $bundle->_copy($file2, $dest), "Copy $file2 to $dest";
+ok $bundle->_copy_if_modified($file2, $dest), "Copy $file2 to $dest";
 file_exists_ok $dest, "File $dest should now exist";
 file_contents_identical $dest, $file2, "Files $dest and $file2 should be equal";
 is_deeply +MockOutput->get_debug, [], 'Should still have no mkdir output';
@@ -214,7 +214,7 @@ is_deeply +MockOutput->get_info, [[__x(
 
 # Try to copy a nonexistent file.
 my $nonfile = file 'nonexistent.txt';
-throws_ok { $bundle->_copy($nonfile, $dest) } 'App::Sqitch::X',
+throws_ok { $bundle->_copy_if_modified($nonfile, $dest) } 'App::Sqitch::X',
     'Should get exception when source file does not exist';
 is $@->ident, 'bundle', 'Nonexistent file error ident should be "bundle"';
 is $@->message, __x(
@@ -227,7 +227,7 @@ COPYDIE: {
     $dest->remove;
     my $mocker = Test::MockModule->new('File::Copy');
     $mocker->mock(copy => sub { return 0 });
-    throws_ok { $bundle->_copy($file, $dest) } 'App::Sqitch::X',
+    throws_ok { $bundle->_copy_if_modified($file, $dest) } 'App::Sqitch::X',
         'Should get exception when copy returns false';
     is $@->ident, 'bundle', 'Copy fail ident should be "bundle"';
     is $@->message, __x(
