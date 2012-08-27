@@ -87,6 +87,7 @@ sub configure {
 
 sub execute {
     my $self = shift;
+    $self->info(__x 'Bundling into {dir}', dir => $self->dest_dir );
     $self->bundle_config;
     $self->bundle_plan;
     $self->bundle_scripts;

@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 92;
+use Test::More tests => 93;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Test::NoWarnings;
@@ -251,6 +251,7 @@ file_exists_ok $_ for @files;
 
 ##############################################################################
 # Test execute().
+MockOutput->get_info;
 remove_tree $dir->parent->stringify;
 @files = (
     file($dir, 'sqitch.conf'),
@@ -260,3 +261,7 @@ remove_tree $dir->parent->stringify;
 file_not_exists_ok $_ for @files;
 ok $bundle->execute, 'Execute!';
 file_exists_ok $_ for @files;
+is_deeply +MockOutput->get_info->[0],
+    [__x 'Bundling into {dir}', dir => $bundle->dest_dir ],
+    'Should have emitted "Bunding into" notice';
+
