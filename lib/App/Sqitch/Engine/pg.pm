@@ -72,7 +72,7 @@ has destination => (
             || $ENV{PGDATABASE}
             || $self->username
             || $ENV{PGUSER}
-            || $ENV{USER};
+            || $self->sqitch->sysuser
     },
 );
 

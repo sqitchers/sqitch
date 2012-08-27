@@ -62,12 +62,17 @@ ENV: {
     # Make sure we override system-set vars.
     local $ENV{PGDATABASE};
     local $ENV{PGUSER};
-    local $ENV{USER};
-    for my $env (qw(PGDATABASE PGUSER USER)) {
+    for my $env (qw(PGDATABASE PGUSER)) {
         my $pg = $CLASS->new(sqitch => $sqitch);
         local $ENV{$env} = "\$ENV=whatever";
         is $pg->destination, "\$ENV=whatever", "Destination should read \$$env";
     }
+
+    my $mocker = Test::MockModule->new('App::Sqitch');
+    $mocker->mock(sysuser => 'sysuser=whatever');
+    my $pg = $CLASS->new(sqitch => $sqitch);
+    is $pg->destination, 'sysuser=whatever',
+        'Destination should fall back on sysuser';
 
     $pg = $CLASS->new(sqitch => $sqitch, username => 'hi');
     is $pg->destination, 'hi', 'Destination should read username';
