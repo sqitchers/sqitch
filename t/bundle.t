@@ -3,8 +3,8 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 90;
-#use Test::More 'no_plan';
+#use Test::More tests => 93;
+use Test::More 'no_plan';
 use App::Sqitch;
 use Test::NoWarnings;
 use Path::Class;
@@ -218,6 +218,8 @@ file_not_exists_ok $dest;
 ok $bundle->bundle_config, 'Bundle the config file';
 file_exists_ok $dest;
 file_contents_identical file('sqitch.conf'), $dest;
+is_deeply +MockOutput->get_info, [[__ 'Writing config']],
+    'Should have config notice';
 
 ##############################################################################
 # Test bundle_plan().
@@ -226,6 +228,8 @@ file_not_exists_ok $dest;
 ok $bundle->bundle_plan, 'Bundle the plan file';
 file_exists_ok $dest;
 file_contents_identical file(qw(pg sqitch.plan)), $dest;
+is_deeply +MockOutput->get_info, [[__ 'Writing plan']],
+    'Should have plan notice';
 
 ##############################################################################
 # Test bundle_scripts().
@@ -247,6 +251,11 @@ isa_ok $bundle = App::Sqitch::Command->load({
 }), $CLASS, 'another bundle command';
 ok $bundle->bundle_scripts, 'Bundle scripts';
 file_exists_ok $_ for @files;
+is_deeply +MockOutput->get_info, [
+    [__ 'Writing scripts'],
+    ['  + ', 'users @alpha'],
+    ['  + ', 'widgets'],
+], 'Should have change notices';
 
 ##############################################################################
 # Test execute().
@@ -260,7 +269,12 @@ remove_tree $dir->parent->stringify;
 file_not_exists_ok $_ for @files;
 ok $bundle->execute, 'Execute!';
 file_exists_ok $_ for @files;
-is_deeply +MockOutput->get_info->[0],
+is_deeply +MockOutput->get_info, [
     [__x 'Bundling into {dir}', dir => $bundle->dest_dir ],
-    'Should have emitted "Bunding into" notice';
+    [__ 'Writing config'],
+    [__ 'Writing plan'],
+    [__ 'Writing scripts'],
+    ['  + ', 'users @alpha'],
+    ['  + ', 'widgets'],
+], 'Should have all notices';
 

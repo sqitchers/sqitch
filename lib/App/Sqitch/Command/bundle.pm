@@ -142,12 +142,14 @@ sub _copy_if_modified {
 
 sub bundle_config {
     my $self = shift;
+    $self->info(__ 'Writing config');
     my $file = $self->sqitch->config->local_file;
     $self->_copy_if_modified( $file, $self->dest_dir->file( $file->basename ) );
 }
 
 sub bundle_plan {
     my $self = shift;
+    $self->info(__ 'Writing plan');
     my $file = $self->sqitch->plan_file;
     $self->_copy_if_modified(
         $file,
@@ -157,6 +159,7 @@ sub bundle_plan {
 
 sub bundle_scripts {
     my $self = shift;
+    $self->info(__ 'Writing scripts');
     my $top  = $self->sqitch->top_dir;
     my $plan = $self->plan;
     my $dir  = $self->dest_dir;
@@ -164,6 +167,7 @@ sub bundle_scripts {
     $plan->reset;
 
     while (my $change = $plan->next) {
+        $self->info('  + ', $change->format_name_with_tags);
         if (-e ( my $file = $change->deploy_file )) {
             $self->_copy_if_modified(
                 $file,
