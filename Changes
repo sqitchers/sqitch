@@ -1,5 +1,7 @@
 Revision history for Perl extension App::Sqitch
 
+0.913
+
 0.912 2012-08-27T21:23:19Z
      - Fall back on `Sqitch->sysuser` when looking for the PostgreSQL user,
        rather than just `$ENV{USER}`. The method does a lot more work to find
