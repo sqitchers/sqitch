@@ -66,8 +66,9 @@ sub configure {
 
 sub execute {
     my $self = shift;
-
-    return $self;
+    $self->bundle_config;
+    $self->bundle_plan;
+    $self->bundle_scripts;
 }
 
 sub _mkpath {
@@ -119,18 +120,35 @@ sub _copy_if_modified {
 
 sub bundle_config {
     my $self = shift;
-    my $dir  = $self->dest_dir;
-    my $file = $self->sqitch->config_file;
-
-    $self->_mkpath($dir);
-    $self->_copy_if_modified( $file, $dir->file( $file->basename ) );
+    my $file = $self->sqitch->config->local_file;
+    $self->_copy_if_modified( $file, $self->dest_dir->file( $file->basename ) );
 }
 
 sub bundle_plan {
     my $self = shift;
+    my $file = $self->sqitch->plan_file;
+    $self->_copy_if_modified( $file, $self->dest_dir->file( $file->basename ) );
 }
 
 sub bundle_scripts {
+    my $self = shift;
+    my $top  = $self->sqitch->top_dir;
+    my $plan = $self->plan;
+    my $dir  = $self->dest_dir;
+
+    $plan->reset;
+    while (my $change = $plan->next) {
+        for my $file (
+            $change->deploy_file,
+            $change->revert_file,
+            $change->test_file,
+        ) {
+            $self->_copy_if_modified( $file, $dir->file( $file->relative($top) ) )
+                if -e $file;
+        }
+    }
+
+    return $self;
 }
 
 1;

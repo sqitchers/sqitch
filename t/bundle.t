@@ -3,8 +3,8 @@
 use strict;
 use warnings;
 use utf8;
-#use Test::More tests => 51;
-use Test::More 'no_plan';
+use Test::More tests => 91;
+#use Test::More 'no_plan';
 use App::Sqitch;
 use Test::NoWarnings;
 use Path::Class;
@@ -19,7 +19,7 @@ use MockOutput;
 
 my $CLASS = 'App::Sqitch::Command::bundle';
 
-ok my $sqitch = App::Sqitch->new, 'Load a sqitch sqitch object';
+ok my $sqitch = App::Sqitch->new, 'Load a sqitch object';
 my $config = $sqitch->config;
 isa_ok my $bundle = App::Sqitch::Command->load({
     sqitch  => $sqitch,
@@ -60,7 +60,7 @@ is_deeply $CLASS->configure($config, {dest_dir => 'whu'}), {
 chdir 't';
 ok $sqitch = App::Sqitch->new(
     top_dir => dir 'sql',
-), 'Load a sqitch sqitch object with top_dir';
+), 'Load a sqitch object with top_dir';
 $config = $sqitch->config;
 my $dir = dir qw(_build sql);
 is_deeply $CLASS->configure($config, {}), {
@@ -84,7 +84,7 @@ is_deeply $bundle->_dir_map, {
 # Try pg project.
 ok $sqitch = App::Sqitch->new(
     top_dir => dir 'pg',
-), 'Load a sqitch sqitch object with pg top_dir';
+), 'Load a sqitch object with pg top_dir';
 isa_ok $bundle = App::Sqitch::Command->load({
     sqitch  => $sqitch,
     command => 'bundle',
@@ -169,7 +169,7 @@ my $dest = file $path, qw(deploy roles.sql);
 file_not_exists_ok $dest, "File $dest should not exist";
 ok $bundle->_copy_if_modified($file, $dest), "Copy $file to $dest";
 file_exists_ok $dest, "File $dest should now exist";
-file_contents_identical $dest, $file, "Files $dest and $file should be equal";
+file_contents_identical $dest, $file;
 is_deeply +MockOutput->get_debug, [[__x 'Created {file}', file => $dest->dir]],
     'The mkdir info should have been output';
 is_deeply +MockOutput->get_info, [[__x(
@@ -181,8 +181,7 @@ is_deeply +MockOutput->get_info, [[__x(
 # Copy it again.
 ok $bundle->_copy_if_modified($file, $dest), "Copy $file to $dest again";
 file_exists_ok $dest, "File $dest should still exist";
-file_contents_identical $dest, $file,
-    "Files $dest and $file should still be equal";
+file_contents_identical $dest, $file;
 is_deeply +MockOutput->get_debug, [], 'Should have no mkdir output';
 is_deeply +MockOutput->get_info, [], 'No copy message should have been emitted';
 
@@ -190,8 +189,7 @@ is_deeply +MockOutput->get_info, [], 'No copy message should have been emitted';
 utime 0, $file->stat->mtime - 1, $dest;
 ok $bundle->_copy_if_modified($file, $dest), "Copy $file to old $dest";
 file_exists_ok $dest, "File $dest should still be there";
-file_contents_identical $dest, $file,
-    "Files $dest and $file should remain equal";
+file_contents_identical $dest, $file;
 is_deeply +MockOutput->get_debug, [], 'Should still have no mkdir output';
 is_deeply +MockOutput->get_info, [[__x(
     "Copying {source} -> {dest}",
@@ -204,7 +202,7 @@ my $file2 = file qw(sql deploy users.sql);
 $dest->remove;
 ok $bundle->_copy_if_modified($file2, $dest), "Copy $file2 to $dest";
 file_exists_ok $dest, "File $dest should now exist";
-file_contents_identical $dest, $file2, "Files $dest and $file2 should be equal";
+file_contents_identical $dest, $file2;
 is_deeply +MockOutput->get_debug, [], 'Should still have no mkdir output';
 is_deeply +MockOutput->get_info, [[__x(
     "Copying {source} -> {dest}",
@@ -240,3 +238,45 @@ COPYDIE: {
 
 ##############################################################################
 # Test bundle_config().
+END { remove_tree $dir->parent->stringify }
+$dest = file $dir, qw(sqitch.conf);
+file_not_exists_ok $dest;
+ok $bundle->bundle_config, 'Bundle the config file';
+file_exists_ok $dest;
+file_contents_identical file('sqitch.conf'), $dest;
+
+##############################################################################
+# Test bundle_plan().
+$dest = file $dir, qw(sqitch.plan);
+file_not_exists_ok $dest;
+ok $bundle->bundle_plan, 'Bundle the plan file';
+file_exists_ok $dest;
+file_contents_identical file(qw(pg sqitch.plan)), $dest;
+
+##############################################################################
+# Test bundle_scripts().
+my @files = map { file $dir, $_ }
+    file(qw(deploy users.sql)),
+    file(qw(deploy widgets.sql)),
+    file(qw(revert users.sql)),
+    file(qw(revert widgets.sql));
+file_not_exists_ok $_ for @files;
+ok $sqitch = App::Sqitch->new(
+    extension => 'sql',
+    top_dir   => dir 'pg',
+), 'Load pg sqitch object';
+isa_ok $bundle = App::Sqitch::Command->load({
+    sqitch  => $sqitch,
+    command => 'bundle',
+    config  => $config,
+}), $CLASS, 'another bundle command';
+ok $bundle->bundle_scripts, 'Bundle scripts';
+file_exists_ok $_ for @files;
+
+##############################################################################
+# Test execute().
+remove_tree $dir->parent->stringify;
+@files = (file($dir, 'sqitch.conf'), file($dir, 'sqitch.plan'), @files);
+file_not_exists_ok $_ for @files;
+ok $bundle->execute, 'Execute!';
+file_exists_ok $_ for @files;
