@@ -24,25 +24,46 @@ has dest_dir => (
     default  => sub { dir 'bundle' },
 );
 
-has _dir_map => (
+has dest_top_dir => (
     is       => 'ro',
-    isa      => 'HashRef',
+    isa      => 'Path::Class::Dir',
+    required => 1,
+    default  => sub {
+        my $self = shift;
+        dir $self->dest_dir, $self->sqitch->top_dir->relative;
+    },
+);
+
+has dest_deploy_dir => (
+    is       => 'ro',
+    isa      => 'Path::Class::Dir',
     required => 1,
     lazy     => 1,
     default  => sub {
         my $self = shift;
-        my $sqitch = $self->sqitch;
-        my $dst    = $self->dest_dir;
-        my $ret    = {};
+        dir $self->dest_dir, $self->sqitch->deploy_dir->relative;
+    },
+);
 
-        for my $attr (qw(top_dir deploy_dir revert_dir test_dir)) {
-            my $dir = $sqitch->$attr;
-            # Map source to test if source exists and has children.
-            $ret->{$attr} = [ $dir, dir $dst, $dir->relative ]
-                if -e $dir && scalar $dir->children;
-        }
+has dest_revert_dir => (
+    is       => 'ro',
+    isa      => 'Path::Class::Dir',
+    required => 1,
+    lazy     => 1,
+    default  => sub {
+        my $self = shift;
+        dir $self->dest_dir, $self->sqitch->revert_dir->relative;
+    },
+);
 
-        return $ret;
+has dest_test_dir => (
+    is       => 'ro',
+    isa      => 'Path::Class::Dir',
+    required => 1,
+    lazy     => 1,
+    default  => sub {
+        my $self = shift;
+        dir $self->dest_dir, $self->sqitch->test_dir->relative;
     },
 );
 
@@ -127,7 +148,10 @@ sub bundle_config {
 sub bundle_plan {
     my $self = shift;
     my $file = $self->sqitch->plan_file;
-    $self->_copy_if_modified( $file, $self->dest_dir->file( $file->basename ) );
+    $self->_copy_if_modified(
+        $file,
+        $self->dest_top_dir->file( $file->basename ),
+    );
 }
 
 sub bundle_scripts {
@@ -137,14 +161,25 @@ sub bundle_scripts {
     my $dir  = $self->dest_dir;
 
     $plan->reset;
+
     while (my $change = $plan->next) {
-        for my $file (
-            $change->deploy_file,
-            $change->revert_file,
-            $change->test_file,
-        ) {
-            $self->_copy_if_modified( $file, $dir->file( $file->relative($top) ) )
-                if -e $file;
+        if (-e ( my $file = $change->deploy_file )) {
+            $self->_copy_if_modified(
+                $file,
+                $self->dest_deploy_dir->file( $file->basename )
+            );
+        }
+        if (-e ( my $file = $change->revert_file )) {
+            $self->_copy_if_modified(
+                $file,
+                $self->dest_revert_dir->file( $file->basename )
+            );
+        }
+        if (-e ( my $file = $change->test_file )) {
+            $self->_copy_if_modified(
+                $file,
+                $self->dest_test_dir->file( $file->basename )
+            );
         }
     }
 

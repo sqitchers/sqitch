@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 91;
+use Test::More tests => 92;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Test::NoWarnings;
@@ -28,9 +28,13 @@ isa_ok my $bundle = App::Sqitch::Command->load({
 }), $CLASS, 'bundle command';
 
 can_ok $CLASS, qw(
-    dest_dir
     configure
     execute
+    dest_dir
+    dest_top_dir
+    dest_deploy_dir
+    dest_revert_dir
+    dest_test_dir
     bundle_config
     bundle_plan
     bundle_scripts
@@ -45,13 +49,10 @@ is_deeply [$CLASS->options], [qw(
 is $bundle->dest_dir, dir('bundle'),
     'Default dest_dir should be bundle/';
 
-is_deeply $bundle->_dir_map, {
-    top_dir => [ $sqitch->top_dir, dir 'bundle'],
-}, 'Dir map should have only top dir';
+is $bundle->dest_top_dir, dir('bundle'), 'Should have dest top dir';
 
 ##############################################################################
 # Test configure().
-
 is_deeply $CLASS->configure($config, {}), {}, 'Default config should be empty';
 is_deeply $CLASS->configure($config, {dest_dir => 'whu'}), {
     dest_dir => dir 'whu',
@@ -76,10 +77,13 @@ isa_ok $bundle = App::Sqitch::Command->load({
 }), $CLASS, 'another bundle command';
 
 is $bundle->dest_dir, $dir, qq{dest_dir should be "$dir"};
-is_deeply $bundle->_dir_map, {
-    top_dir    => [ $sqitch->top_dir, dir qw(_build sql sql)],
-    deploy_dir => [ dir(qw(sql deploy)), dir(qw(_build sql sql deploy)) ]
-}, 'Dir map should have top and deploy dirs';
+is $bundle->dest_top_dir, dir(qw(_build sql sql)),
+    'Dest top dir should be _build/sql/sql/';
+for my $sub (qw(deploy revert test)) {
+    my $attr = "dest_$sub\_dir";
+    is $bundle->$attr, $dir->subdir('sql', $sub),
+        "Dest $sub dir should be _build/sql/sql/$sub";
+}
 
 # Try pg project.
 ok $sqitch = App::Sqitch->new(
@@ -92,40 +96,11 @@ isa_ok $bundle = App::Sqitch::Command->load({
 }), $CLASS, 'pg bundle command';
 
 is $bundle->dest_dir, $dir, qq{dest_dir should again be "$dir"};
-is_deeply $bundle->_dir_map, {
-    top_dir    => [ $sqitch->top_dir, dir qw(_build sql pg)],
-    deploy_dir => [ dir(qw(pg deploy)), dir(qw(_build sql pg deploy)) ],
-    revert_dir => [ dir(qw(pg revert)), dir(qw(_build sql pg revert)) ],
-}, 'Dir map should have top, deploy, and revert dirs';
-
-# Add a test directory.
-my $test_dir = dir qw(pg test);
-$test_dir->mkpath;
-END { remove_tree $test_dir->stringify if -e $test_dir }
-isa_ok $bundle = App::Sqitch::Command->load({
-    sqitch  => $sqitch,
-    command => 'bundle',
-    config  => $config,
-}), $CLASS, 'another pg bundle command';
-is_deeply $bundle->_dir_map, {
-    top_dir    => [ $sqitch->top_dir, dir qw(_build sql pg)],
-    deploy_dir => [ dir(qw(pg deploy)), dir(qw(_build sql pg deploy)) ],
-    revert_dir => [ dir(qw(pg revert)), dir(qw(_build sql pg revert)) ],
-}, 'Dir map should still not have test dir';
-
-# Now put something into the test directory.
-$test_dir->file('something')->touch;
-isa_ok $bundle = App::Sqitch::Command->load({
-    sqitch  => $sqitch,
-    command => 'bundle',
-    config  => $config,
-}), $CLASS, 'yet another pg bundle command';
-is_deeply $bundle->_dir_map, {
-    top_dir    => [ $sqitch->top_dir, dir qw(_build sql pg)],
-    deploy_dir => [ dir(qw(pg deploy)), dir(qw(_build sql pg deploy)) ],
-    revert_dir => [ dir(qw(pg revert)), dir(qw(_build sql pg revert)) ],
-    test_dir   => [ dir(qw(pg test)),   dir(qw(_build sql pg test)) ],
-}, 'Dir map should still now include test dir';
+for my $sub (qw(deploy revert test)) {
+    my $attr = "dest_$sub\_dir";
+    is $bundle->$attr, $dir->subdir('pg', $sub),
+        "Dest $sub dir should be _build/sql/pg/$sub";
+}
 
 ##############################################################################
 # Test _mkpath.
@@ -247,7 +222,7 @@ file_contents_identical file('sqitch.conf'), $dest;
 
 ##############################################################################
 # Test bundle_plan().
-$dest = file $dir, qw(sqitch.plan);
+$dest = file $bundle->dest_top_dir, qw(sqitch.plan);
 file_not_exists_ok $dest;
 ok $bundle->bundle_plan, 'Bundle the plan file';
 file_exists_ok $dest;
@@ -255,11 +230,12 @@ file_contents_identical file(qw(pg sqitch.plan)), $dest;
 
 ##############################################################################
 # Test bundle_scripts().
-my @files = map { file $dir, $_ }
-    file(qw(deploy users.sql)),
-    file(qw(deploy widgets.sql)),
-    file(qw(revert users.sql)),
-    file(qw(revert widgets.sql));
+my @files = (
+    $bundle->dest_deploy_dir->file('users.sql'),
+    $bundle->dest_deploy_dir->file('widgets.sql'),
+    $bundle->dest_revert_dir->file('users.sql'),
+    $bundle->dest_revert_dir->file('widgets.sql'),
+);
 file_not_exists_ok $_ for @files;
 ok $sqitch = App::Sqitch->new(
     extension => 'sql',
@@ -276,7 +252,11 @@ file_exists_ok $_ for @files;
 ##############################################################################
 # Test execute().
 remove_tree $dir->parent->stringify;
-@files = (file($dir, 'sqitch.conf'), file($dir, 'sqitch.plan'), @files);
+@files = (
+    file($dir, 'sqitch.conf'),
+    file($bundle->dest_top_dir, 'sqitch.plan'),
+    @files,
+);
 file_not_exists_ok $_ for @files;
 ok $bundle->execute, 'Execute!';
 file_exists_ok $_ for @files;
