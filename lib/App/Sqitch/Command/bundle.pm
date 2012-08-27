@@ -125,7 +125,7 @@ sub _copy_if_modified {
         $self->_mkpath( $dst->dir );
     }
 
-    $self->info(__x(
+    $self->debug(__x(
         "Copying {source} -> {dest}",
         source => $src,
         dest   => $dst

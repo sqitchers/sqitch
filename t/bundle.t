@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 93;
+use Test::More tests => 90;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Test::NoWarnings;
@@ -145,32 +145,32 @@ file_not_exists_ok $dest, "File $dest should not exist";
 ok $bundle->_copy_if_modified($file, $dest), "Copy $file to $dest";
 file_exists_ok $dest, "File $dest should now exist";
 file_contents_identical $dest, $file;
-is_deeply +MockOutput->get_debug, [[__x 'Created {file}', file => $dest->dir]],
-    'The mkdir info should have been output';
-is_deeply +MockOutput->get_info, [[__x(
-    "Copying {source} -> {dest}",
-    source => $file,
-    dest   => $dest
-)]], 'Copy message should have been emitted';
+is_deeply +MockOutput->get_debug, [
+    [__x 'Created {file}', file => $dest->dir],
+    [__x(
+        "Copying {source} -> {dest}",
+        source => $file,
+        dest   => $dest
+    )],
+], 'The mkdir and copy info should have been output';
 
 # Copy it again.
 ok $bundle->_copy_if_modified($file, $dest), "Copy $file to $dest again";
 file_exists_ok $dest, "File $dest should still exist";
 file_contents_identical $dest, $file;
 is_deeply +MockOutput->get_debug, [], 'Should have no mkdir output';
-is_deeply +MockOutput->get_info, [], 'No copy message should have been emitted';
+is_deeply +MockOutput->get_debug, [], 'No copy message should have been emitted';
 
 # Make it old and copy it again.
 utime 0, $file->stat->mtime - 1, $dest;
 ok $bundle->_copy_if_modified($file, $dest), "Copy $file to old $dest";
 file_exists_ok $dest, "File $dest should still be there";
 file_contents_identical $dest, $file;
-is_deeply +MockOutput->get_debug, [], 'Should still have no mkdir output';
-is_deeply +MockOutput->get_info, [[__x(
+is_deeply +MockOutput->get_debug, [[__x(
     "Copying {source} -> {dest}",
     source => $file,
     dest   => $dest
-)]], 'Copy message should again have been emitted';
+)]], 'Only copy message should again have been emitted';
 
 # Copy a different file.
 my $file2 = file qw(sql deploy users.sql);
@@ -178,12 +178,11 @@ $dest->remove;
 ok $bundle->_copy_if_modified($file2, $dest), "Copy $file2 to $dest";
 file_exists_ok $dest, "File $dest should now exist";
 file_contents_identical $dest, $file2;
-is_deeply +MockOutput->get_debug, [], 'Should still have no mkdir output';
-is_deeply +MockOutput->get_info, [[__x(
+is_deeply +MockOutput->get_debug, [[__x(
     "Copying {source} -> {dest}",
     source => $file2,
     dest   => $dest
-)]], 'Copy message should have been emitted';
+)]], 'Again only Copy message should have been emitted';
 
 # Try to copy a nonexistent file.
 my $nonfile = file 'nonexistent.txt';
@@ -251,7 +250,7 @@ file_exists_ok $_ for @files;
 
 ##############################################################################
 # Test execute().
-MockOutput->get_info;
+MockOutput->get_debug;
 remove_tree $dir->parent->stringify;
 @files = (
     file($dir, 'sqitch.conf'),
