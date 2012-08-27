@@ -599,13 +599,14 @@ Note the listing of the tag as part of the stats message. Now let's bundle
 everything up for release:
 
   > sqitch bundle
-  Bundling in bundle/
+  Bundling into bundle/
+  Writing config
+  Writing plan
+  Writing scripts
     + appschema
     + users
     + insert_user
     + change_pass @v1.0.0-dev1
-  Plan written to bundle/sqitch.plan
-  Config written to bundle/sqitch.conf
 
 Now we can package up the C<bundle> directory and distribute it. When it gets
 installed somewhere, users can use Sqitch to deploy to the database. Let's test
@@ -1010,7 +1011,10 @@ release:
    1 file changed, 1 insertion(+)
   > git tag v1.0.0-dev2 -am 'Tag v1.0.0-dev2'
   > sqitch bundle
-  Bundling in bundle/
+  Bundling into bundle
+  Writing config
+  Writing plan
+  Writing scripts
     + appschema
     + users
     + insert_user
@@ -1021,8 +1025,6 @@ release:
     + flips
     + insert_flip
     + delete_flip @v1.0.0-dev2
-  Plan written to bundle/sqitch.plan
-  Config written to bundle/sqitch.conf
 
 =head1 In Place Changes
 
