@@ -5,6 +5,7 @@ Revision history for Perl extension App::Sqitch
        rather than just `$ENV{USER}`. The method does a lot more work to find
        the system user name. This will hopefully also fix test failures on
        systems where `$ENV{USER}` is not set.
+     - Use Win32::Locale to set the locale on DateTime objects on Windows.
 
 0.911 2012-08-23T19:19:17Z
      - Fixed more platform-specific test failures in `t/base.t`.

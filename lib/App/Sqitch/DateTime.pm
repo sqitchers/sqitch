@@ -54,8 +54,13 @@ sub as_string {
             s/\+0000$/-0000/;
         return $rv;
     } else {
-        require POSIX;
-        $dt->set( locale => POSIX::setlocale( POSIX::LC_TIME() ) );
+        if ($^O eq 'Win32') {
+            require Win32::Locale;
+            $dt->set( locale => Win32::Locale::get_locale() );
+        } else {
+            require POSIX;
+            $dt->set( locale => POSIX::setlocale( POSIX::LC_TIME() ) );
+        }
         return $dt->format_cldr($format) if $format =~ s/^cldr://;
         return $dt->strftime($format) if $format =~ s/^strftime://;
         my $meth = $dt->locale->can("datetime_format_$format") or hurl(
