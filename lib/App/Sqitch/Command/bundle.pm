@@ -95,7 +95,7 @@ sub execute {
 
 sub _mkpath {
     my ( $self, $dir ) = @_;
-    $self->debug( __x 'Created {file}', file => $dir )
+    $self->debug( '    ', __x 'Created {file}', file => $dir )
         if make_path $dir, { error => \my $err };
 
     my $diag = shift @{ $err } or return $self;
@@ -125,7 +125,7 @@ sub _copy_if_modified {
         $self->_mkpath( $dst->dir );
     }
 
-    $self->debug(__x(
+    $self->debug('    ', __x(
         "Copying {source} -> {dest}",
         source => $src,
         dest   => $dst

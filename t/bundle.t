@@ -109,7 +109,7 @@ dir_not_exists_ok $path, "Path $path should not exist";
 END { remove_tree $path->stringify if -e $path }
 ok $bundle->_mkpath($path), "Create $path";
 dir_exists_ok $path, "Path $path should now exist";
-is_deeply +MockOutput->get_debug, [[__x 'Created {file}', file => $path]],
+is_deeply +MockOutput->get_debug, [['    ', __x 'Created {file}', file => $path]],
     'The mkdir info should have been output';
 
 # Create it again.
@@ -146,8 +146,8 @@ ok $bundle->_copy_if_modified($file, $dest), "Copy $file to $dest";
 file_exists_ok $dest, "File $dest should now exist";
 file_contents_identical $dest, $file;
 is_deeply +MockOutput->get_debug, [
-    [__x 'Created {file}', file => $dest->dir],
-    [__x(
+    ['    ', __x 'Created {file}', file => $dest->dir],
+    ['    ', __x(
         "Copying {source} -> {dest}",
         source => $file,
         dest   => $dest
@@ -166,7 +166,7 @@ utime 0, $file->stat->mtime - 1, $dest;
 ok $bundle->_copy_if_modified($file, $dest), "Copy $file to old $dest";
 file_exists_ok $dest, "File $dest should still be there";
 file_contents_identical $dest, $file;
-is_deeply +MockOutput->get_debug, [[__x(
+is_deeply +MockOutput->get_debug, [['    ', __x(
     "Copying {source} -> {dest}",
     source => $file,
     dest   => $dest
@@ -178,7 +178,7 @@ $dest->remove;
 ok $bundle->_copy_if_modified($file2, $dest), "Copy $file2 to $dest";
 file_exists_ok $dest, "File $dest should now exist";
 file_contents_identical $dest, $file2;
-is_deeply +MockOutput->get_debug, [[__x(
+is_deeply +MockOutput->get_debug, [['    ', __x(
     "Copying {source} -> {dest}",
     source => $file2,
     dest   => $dest
