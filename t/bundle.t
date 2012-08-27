@@ -30,6 +30,8 @@ isa_ok my $bundle = App::Sqitch::Command->load({
 can_ok $CLASS, qw(
     configure
     execute
+    from
+    to
     dest_dir
     dest_top_dir
     dest_deploy_dir
@@ -44,6 +46,8 @@ can_ok $CLASS, qw(
 
 is_deeply [$CLASS->options], [qw(
     dest_dir|dir=s
+    from=s
+    to=s
 )], 'Should have dest_dir option';
 
 is $bundle->dest_dir, dir('bundle'),
@@ -59,6 +63,7 @@ is_deeply $CLASS->configure($config, {dest_dir => 'whu'}), {
 }, '--dest_dir should be converted to a path object by configure()';
 
 chdir 't';
+END { remove_tree 'bundle' if -d 'bundle' }
 ok $sqitch = App::Sqitch->new(
     top_dir => dir 'sql',
 ), 'Load a sqitch object with top_dir';
@@ -235,8 +240,8 @@ is_deeply +MockOutput->get_info, [[__ 'Writing plan']],
 # Test bundle_scripts().
 my @files = (
     $bundle->dest_deploy_dir->file('users.sql'),
-    $bundle->dest_deploy_dir->file('widgets.sql'),
     $bundle->dest_revert_dir->file('users.sql'),
+    $bundle->dest_deploy_dir->file('widgets.sql'),
     $bundle->dest_revert_dir->file('widgets.sql'),
 );
 file_not_exists_ok $_ for @files;
@@ -257,6 +262,48 @@ is_deeply +MockOutput->get_info, [
     ['  + ', 'widgets'],
 ], 'Should have change notices';
 
+# Make sure that --from works.
+remove_tree $dir->parent->stringify;
+isa_ok $bundle = App::Sqitch::Command::bundle->new(
+    sqitch   => $sqitch,
+    dest_dir => $bundle->dest_dir,
+    from     => 'widgets',
+), $CLASS, 'bundle from "widgets"';
+ok $bundle->bundle_scripts, 'Bundle scripts';
+file_not_exists_ok $_ for @files[0,1];
+file_exists_ok $_ for @files[2,3];
+is_deeply +MockOutput->get_info, [
+    [__ 'Writing scripts'],
+    ['  + ', 'widgets'],
+], 'Should have only "widets" in change notices';
+
+# Make sure that --to works.
+remove_tree $dir->parent->stringify;
+isa_ok $bundle = App::Sqitch::Command::bundle->new(
+    sqitch   => $sqitch,
+    dest_dir => $bundle->dest_dir,
+    to       => 'users',
+), $CLASS, 'bundle to "users"';
+ok $bundle->bundle_scripts, 'Bundle scripts';
+file_exists_ok $_ for @files[0,1];
+file_not_exists_ok $_ for @files[2,3];
+is_deeply +MockOutput->get_info, [
+    [__ 'Writing scripts'],
+    ['  + ', 'users @alpha'],
+], 'Should have only "users" in change notices';
+
+# Should throw exceptions on unknonw changes.
+for my $key (qw(from to)) {
+    throws_ok {
+        $CLASS->new( sqitch => $sqitch, $key => 'nonexistent' )->bundle_scripts
+    } 'App::Sqitch::X', "Should die on nonexistent $key change";
+    is $@->ident, 'bundle', qq{Nonexistent $key change ident should be "bundle"};
+    is $@->message, __x(
+        'Cannot find change {change}',
+        change => 'nonexistent',
+    ), "Nonexistent $key message change should be correct";
+}
+
 ##############################################################################
 # Test execute().
 MockOutput->get_debug;
@@ -267,6 +314,11 @@ remove_tree $dir->parent->stringify;
     @files,
 );
 file_not_exists_ok $_ for @files;
+isa_ok $bundle = App::Sqitch::Command->load({
+    sqitch  => $sqitch,
+    command => 'bundle',
+    config  => $config,
+}), $CLASS, 'another bundle command';
 ok $bundle->execute, 'Execute!';
 file_exists_ok $_ for @files;
 is_deeply +MockOutput->get_info, [

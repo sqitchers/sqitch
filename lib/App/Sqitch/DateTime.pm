@@ -71,7 +71,6 @@ sub as_string {
         );
         return $dt->format_cldr( $dt->locale->$meth );
     }
-
 }
 
 1;

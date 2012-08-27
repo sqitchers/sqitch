@@ -17,6 +17,20 @@ extends 'App::Sqitch::Command';
 
 our $VERSION = '0.913';
 
+has from => (
+    is       => 'ro',
+    isa      => 'Str',
+    required => 1,
+    default  => '@ROOT',
+);
+
+has to => (
+    is       => 'ro',
+    isa      => 'Str',
+    required => 1,
+    default  => '@HEAD',
+);
+
 has dest_dir => (
     is       => 'ro',
     isa      => 'Path::Class::Dir',
@@ -70,6 +84,8 @@ has dest_test_dir => (
 sub options {
     return qw(
         dest_dir|dir=s
+        from=s
+        to=s
     );
 }
 
@@ -159,14 +175,24 @@ sub bundle_plan {
 
 sub bundle_scripts {
     my $self = shift;
-    $self->info(__ 'Writing scripts');
     my $top  = $self->sqitch->top_dir;
     my $plan = $self->plan;
     my $dir  = $self->dest_dir;
 
-    $plan->reset;
+    my $from_index = $plan->index_of( $self->from ) // hurl bundle => __x(
+        'Cannot find change {change}',
+        change => $self->from,
+    );
 
-    while (my $change = $plan->next) {
+    my $to_index = $plan->index_of( $self->to ) // hurl bundle => __x(
+        'Cannot find change {change}',
+        change => $self->to,
+    );
+
+    $self->info(__ 'Writing scripts');
+    $plan->position( $from_index );
+    while ( $plan->position <= $to_index ) {
+        my $change = $plan->current // last;
         $self->info('  + ', $change->format_name_with_tags);
         if (-e ( my $file = $change->deploy_file )) {
             $self->_copy_if_modified(
@@ -186,6 +212,7 @@ sub bundle_scripts {
                 $self->dest_test_dir->file( $file->basename )
             );
         }
+        $plan->next;
     }
 
     return $self;
