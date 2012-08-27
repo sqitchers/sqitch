@@ -790,14 +790,60 @@ sub _is_valid {
 }
 
 sub write_to {
-    my ( $self, $file ) = @_;
+    my ( $self, $file, $from, $to ) = @_;
+
+    my @lines = $self->lines;
+
+    if (defined $from || defined $to) {
+        my $lines = $self->_lines;
+
+        # Where are the pragmas?
+        my $head_ends_at = do {
+            my $i = 0;
+            while ( my $line = $lines[$i] ) {
+                last if $line->isa('App::Sqitch::Plan::Blank')
+                     && !length $line->note;
+                ++$i;
+            }
+            $i;
+        };
+
+        # Where do we start with the changes?
+        my $from_idx = defined $from ? do {
+            my $change = $self->find($from // '@ROOT') //  hurl plan => __x(
+                'Cannot find change {change}',
+                change => $from,
+            );
+            $lines->index_of($change);
+        } : $head_ends_at + 1;
+
+        # Where do we end up?
+        my $to_idx = defined $to ? do {
+            my $change = $self->find( $to // '@HEAD' ) // hurl plan => __x(
+                'Cannot find change {change}',
+                change => $to,
+            );
+
+            # Include any subsequent tags.
+            if (my @tags = $change->tags) {
+                $change = $tags[-1];
+            }
+            $lines->index_of($change);
+        } : $#lines;
+
+        # Collect the lines to write.
+        @lines = (
+            @lines[ 0         .. $head_ends_at ],
+            @lines[ $from_idx .. $to_idx       ],
+        );
+    }
 
     my $fh = $file->open('>:encoding(UTF-8)') or hurl plan => __x(
         'Cannot open {file}: {error}',
         file  => $file,
         error => $!
     );
-    $fh->say($_->as_string) for $self->lines;
+    $fh->say($_->as_string) for @lines;
     $fh->close or hurl plan => __x(
         '"Error closing {file}: {error}',
         file => $file,
@@ -1083,9 +1129,12 @@ iterate over every change.
 =head3 C<write_to>
 
   $plan->write_to($file);
+  $plan->write_to($file, $from, $to);
 
 Write the plan to the named file, including notes and white space from the
-original plan file.
+original plan file. If C<from> and/or C<$to> are provided, the plan will be
+written only with the pragmas headers and the lines betwteen those specified
+changes.
 
 =head3 C<open_script>
 
