@@ -179,6 +179,26 @@ and copying the configuration file, plan file, and change files into it.
 
 Executes the C<bundle> command.
 
+=head3 C<bundle_config>
+
+ $bundle->bundle_config;
+
+Copies the configuration file to the bundle directory.
+
+=head3 C<bundle_plan>
+
+ $bundle->bundle_plan;
+
+Copies the plan file to the bundle directory.
+
+=head3 C<bundle_scripts>
+
+ $bundle->bundle_scripts;
+
+Copies the deploy, revert, and test scripts for each step in the plan to the
+bundle directory. Files in the script directories that do not correspond to
+changes in the plan will not be copied.
+
 =head1 See Also
 
 =over
