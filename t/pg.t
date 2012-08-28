@@ -41,7 +41,7 @@ for my $attr (qw(username password db_name host port)) {
     is $pg->$attr, undef, "$attr default should be undef";
 }
 
-is $pg->destination, $ENV{PGDATABASE} || $ENV{PGUSER} || $ENV{USER},
+is $pg->destination, $ENV{PGDATABASE} || $ENV{PGUSER} || $sqitch->sysuser,
     'Destination should fall back on environment variables';
 
 my @std_opts = (
