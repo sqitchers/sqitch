@@ -13,6 +13,7 @@ sub new {
             Win32::Console::ANSI
             Win32API::Net
         );
+        $p{requires}{'Win32::Locale'} = 0;
     }
     my $self = $class->SUPER::new(%p);
     $self->add_build_element('etc');
