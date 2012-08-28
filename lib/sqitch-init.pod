@@ -4,7 +4,7 @@ sqitch-init - Create a new Sqitch project
 
 =head1 Synopsis
 
-  sqitch [options] init [<init-options>] project
+  sqitch [options] init project
   sqitch [options] init --uri uri project
 
 =head1 Description
@@ -35,10 +35,6 @@ F<sqitch.conf>. While the C<init> command has no options of its own, it relies
 on several of the options to C<sqitch> to determine what to write to this file:
 
 =over
-
-=item C<--plan-file>
-
-Sets the C<core.plan_file> configuration variable.
 
 =item C<--plan-file>
 
@@ -105,7 +101,7 @@ Used to set C<core.pg.username>, or C<core.mysql.username>.
 
 Used to set C<core.pg.host>, or C<core.mysql.host>.
 
-=item C<--db_port>
+=item C<--db-port>
 
 Used to set C<core.pg.port>, or C<core.mysql.port>.
 

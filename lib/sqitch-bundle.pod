@@ -1,0 +1,64 @@
+=head1 Name
+
+sqitch-bundle - Bundle a Sqitch project for distribution
+
+=head1 Synopsis
+
+  sqitch [options] init project
+  sqitch [options] init --uri uri project
+
+=head1 Description
+
+This command bundles up a sqitch project for distribution. At its simplest, it
+copies the project configuration file, the plan file, and all of the change
+scripts to a directory. This directory can then be packaged up for
+distribution (as a tarball, RPM, etc.). Options allow for the list of changes
+to be bundled to be a subset of the plan.
+
+=head1 Options
+
+=over
+
+=item C<--dest-dir>
+
+The name of the directory in which to bundle the project. The configuration
+file will be created in this directory, and the top, deploy, revert, and test
+directories will be created relative to it. Defaults to F<bundle>.
+
+=item C<--from>
+
+The change from which to start bundling. If you need to bundle up only a subset
+of your plan, specify a change (using a supported L<change specification|sqitchchanges>
+from which to start the bundling via this option.
+
+=item C<--to>
+
+The change to which to end bundling. If you need to bundle up only a subset
+of your plan, specify a change (using a supported L<change specification|sqitchchanges>
+that should be the last change to be included in the bundle.
+
+=back
+
+=head1 Configuration Variables
+
+=over
+
+=item C<bundle.dest_dir>
+
+The name of the directory in which to bundle the project.
+
+=back
+
+=head1 Examples
+
+Bundle a Sqitch project into F<BUILDROOT/MyProj>:
+
+  sqitch bundle --dest-dir BUILDROOT/MyProj
+
+Bundle a project including changes C<adduser> through C<@v1.0>:
+
+  sqitch bundle --from adduser --to @v1.0
+
+=head1 Sqitch
+
+Part of the L<sqitch> suite.
