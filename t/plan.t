@@ -990,6 +990,60 @@ file_contents_is $to,
     . $file->slurp(iomode => '<:encoding(UTF-8)'),
     'The contents should look right';
 
+# Make sure it will start from a certain point.
+ok $plan->write_to($to, 'this/rocks'), 'Write out the file from "this/rocks"';
+file_contents_is $to,
+    '%syntax-version=' . App::Sqitch::Plan::SYNTAX_VERSION . $/
+    . '%project=multi' . $/
+    . '# This is a note' . $/
+    . $/
+    . $plan->find('this/rocks')->as_string . $/
+    . $plan->find('hey-there')->as_string . $/
+    . join( $/, map { $_->as_string } $plan->find('hey-there')->tags ) . $/,
+    'Plan should have been written from "this/rocks" through tags at end';
+
+# Make sure it ends at a certain point.
+ok $plan->write_to($to, undef, 'you'), 'Write the file up to "you"';
+file_contents_is $to,
+    '%syntax-version=' . App::Sqitch::Plan::SYNTAX_VERSION . $/
+    . '%project=multi' . $/
+    . '# This is a note' . $/
+    . $/
+    . '# And there was a blank line.' . $/
+    . $/
+    . $plan->find('hey')->as_string . $/
+    . $plan->find('you')->as_string . $/
+    . join( $/, map { $_->as_string } $plan->find('you')->tags ) . $/,
+    'Plan should have been written through "you" and its tags';
+
+# Try both.
+ok $plan->write_to($to, '@foo', 'this/rocks'),
+    'Write from "@foo" to "this/rocks"';
+file_contents_is $to,
+    '%syntax-version=' . App::Sqitch::Plan::SYNTAX_VERSION . $/
+    . '%project=multi' . $/
+    . '# This is a note' . $/
+    . $/
+    . $plan->find('you')->as_string . $/
+    . join( $/, map { $_->as_string } $plan->find('you')->tags ) . $/
+    . '   ' . $/
+    . $plan->find('this/rocks')->as_string . $/,
+    'Plan should have been written from "@foo" to "this/rocks"';
+
+# End with a tag.
+ok $plan->write_to($to, 'hey', '@foo'), 'Write from "hey" to "@foo"';
+file_contents_is $to,
+    '%syntax-version=' . App::Sqitch::Plan::SYNTAX_VERSION . $/
+    . '%project=multi' . $/
+    . '# This is a note' . $/
+    . $/
+    . $plan->find('hey')->as_string . $/
+    . $plan->find('you')->as_string . $/
+    . join( $/, map { $_->as_string } $plan->find('you')->tags ) . $/,
+    'Plan should have been written from "hey" through "@foo"';
+
+done_testing && exit;
+
 ##############################################################################
 # Test _is_valid.
 can_ok $plan, '_is_valid';
