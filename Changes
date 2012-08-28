@@ -2,6 +2,8 @@ Revision history for Perl extension App::Sqitch
 
 0.92
      - Added the `bundle` command.
+     - Attempts to deploy a project with a different name or URI than
+       previously registered now throws an exception.
 
 0.913  2012-08-28T17:31:29Z
      - Fixed oversight in test that still relied on `$ENV{USER}` instead of
