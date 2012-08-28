@@ -62,6 +62,11 @@ is_deeply $CLASS->configure($config, {dest_dir => 'whu'}), {
     dest_dir => dir 'whu',
 }, '--dest_dir should be converted to a path object by configure()';
 
+is_deeply $CLASS->configure($config, {from => 'HERE', to => 'THERE'}), {
+    from => 'HERE',
+    to   => 'THERE',
+}, '--from and --to should be passed through configure';
+
 chdir 't';
 END { remove_tree 'bundle' if -d 'bundle' }
 ok $sqitch = App::Sqitch->new(
@@ -222,7 +227,7 @@ $dest = file $dir, qw(sqitch.conf);
 file_not_exists_ok $dest;
 ok $bundle->bundle_config, 'Bundle the config file';
 file_exists_ok $dest;
-file_contents_identical file('sqitch.conf'), $dest;
+file_contents_identical $dest, file('sqitch.conf');
 is_deeply +MockOutput->get_info, [[__ 'Writing config']],
     'Should have config notice';
 
@@ -232,9 +237,53 @@ $dest = file $bundle->dest_top_dir, qw(sqitch.plan);
 file_not_exists_ok $dest;
 ok $bundle->bundle_plan, 'Bundle the plan file';
 file_exists_ok $dest;
-file_contents_identical file(qw(pg sqitch.plan)), $dest;
+file_contents_identical $dest, file(qw(pg sqitch.plan));
 is_deeply +MockOutput->get_info, [[__ 'Writing plan']],
     'Should have plan notice';
+
+# Make sure that --from works.
+isa_ok $bundle = App::Sqitch::Command->load({
+    sqitch  => $sqitch,
+    command => 'bundle',
+    config  => $config,
+    args    => ['--from', 'widgets'],
+}), $CLASS, '--from bundle command';
+is $bundle->from, 'widgets', 'From should be "widgets"';
+ok $bundle->bundle_plan, 'Bundle the plan file with --from';
+my $plan = $sqitch->plan;
+is_deeply +MockOutput->get_info, [[__x(
+    'Writing plan from {from} to {to}',
+    from => 'widgets',
+    to   => '@HEAD',
+)]], 'Statement of the bits written should have been emitted';
+file_contents_is $dest,
+    '%syntax-version=' . App::Sqitch::Plan::SYNTAX_VERSION . $/
+    . '%project=pg' . $/
+    . $/
+    . $plan->find('widgets')->as_string . $/,
+    'Plan should have written only "widgets"';
+
+# Make sure that --to works.
+isa_ok $bundle = App::Sqitch::Command->load({
+    sqitch  => $sqitch,
+    command => 'bundle',
+    config  => $config,
+    args    => ['--to', 'users'],
+}), $CLASS, '--to bundle command';
+is $bundle->to, 'users', 'To should be "users"';
+ok $bundle->bundle_plan, 'Bundle the plan file with --to';
+is_deeply +MockOutput->get_info, [[__x(
+    'Writing plan from {from} to {to}',
+    from => '@ROOT',
+    to   => 'users',
+)]], 'Statement of the bits written should have been emitted';
+file_contents_is $dest,
+    '%syntax-version=' . App::Sqitch::Plan::SYNTAX_VERSION . $/
+    . '%project=pg' . $/
+    . $/
+    . $plan->find('users')->as_string . $/
+    . join( $/, map { $_->as_string } $plan->find('users')->tags ) . $/,
+    'Plan should have written only "users" and its tags';
 
 ##############################################################################
 # Test bundle_scripts().

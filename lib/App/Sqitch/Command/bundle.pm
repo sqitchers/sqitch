@@ -19,16 +19,12 @@ our $VERSION = '0.913';
 
 has from => (
     is       => 'ro',
-    isa      => 'Str',
-    required => 1,
-    default  => '@ROOT',
+    isa      => 'Maybe[Str]',
 );
 
 has to => (
     is       => 'ro',
-    isa      => 'Str',
-    required => 1,
-    default  => '@HEAD',
+    isa      => 'Maybe[Str]',
 );
 
 has dest_dir => (
@@ -98,6 +94,11 @@ sub configure {
         $params{dest_dir} = dir $dir;
     }
 
+    # Make sure we get the --from and --to options passed through.
+    for my $key (qw(from to)) {
+        $params{$key} = $opt->{$key} if exists $opt->{$key};
+    }
+
     return \%params;
 }
 
@@ -164,12 +165,27 @@ sub bundle_config {
 }
 
 sub bundle_plan {
-    my $self = shift;
-    $self->info(__ 'Writing plan');
-    my $file = $self->sqitch->plan_file;
-    $self->_copy_if_modified(
-        $file,
-        $self->dest_top_dir->file( $file->basename ),
+    my $self   = shift;
+    my $sqitch = $self->sqitch;
+    if (!defined $self->from && !defined $self->to) {
+        $self->info(__ 'Writing plan');
+        my $file = $self->sqitch->plan_file;
+        return $self->_copy_if_modified(
+            $file,
+            $self->dest_top_dir->file( $file->basename ),
+        );
+    }
+
+    $self->info(__x(
+        'Writing plan from {from} to {to}',
+        from => $self->from // '@ROOT',
+        to   => $self->to   // '@HEAD',
+    ));
+
+    $sqitch->plan->write_to(
+        $self->dest_top_dir->file( $sqitch->plan_file->basename ),
+        $self->from,
+        $self->to,
     );
 }
 
@@ -179,12 +195,16 @@ sub bundle_scripts {
     my $plan = $self->plan;
     my $dir  = $self->dest_dir;
 
-    my $from_index = $plan->index_of( $self->from ) // hurl bundle => __x(
+    my $from_index = $plan->index_of(
+        $self->from // '@ROOT'
+    ) // hurl bundle => __x(
         'Cannot find change {change}',
         change => $self->from,
     );
 
-    my $to_index = $plan->index_of( $self->to ) // hurl bundle => __x(
+    my $to_index = $plan->index_of(
+        $self->to // '@HEAD'
+    ) // hurl bundle => __x(
         'Cannot find change {change}',
         change => $self->to,
     );
