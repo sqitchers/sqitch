@@ -1,6 +1,6 @@
 Revision history for Perl extension App::Sqitch
 
-0.913
+0.913  2012-08-28T17:31:29Z
      - Fixed oversight in test that still relied on `$ENV{USER}` instead of
        `Sqitch->sysuser`,
 
