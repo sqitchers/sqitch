@@ -4,6 +4,10 @@ Revision history for Perl extension App::Sqitch
      - Added the `bundle` command.
      - Attempts to deploy a project with a different name or URI than
        previously registered now throws an exception.
+     - Added UNIQUE constraint to `projects.uri` in the PostgreSQL Sqitch
+       schema.
+     - Added ON UPDATE actions to foreign key constraints in the PostgreSQL
+       Sqitch schema.
 
 0.913  2012-08-28T17:31:29Z
      - Fixed oversight in test that still relied on `$ENV{USER}` instead of

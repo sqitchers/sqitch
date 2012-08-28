@@ -23,7 +23,7 @@ COMMENT ON COLUMN :"sqitch_schema".projects.creator_email  IS 'Email address of 
 CREATE TABLE :"sqitch_schema".changes (
     change_id       TEXT        PRIMARY KEY,
     change          TEXT        NOT NULL,
-    project         TEXT        NOT NULL REFERENCES :"sqitch_schema".projects(project),
+    project         TEXT        NOT NULL REFERENCES :"sqitch_schema".projects(project) ON UPDATE CASCADE,
     note            TEXT        NOT NULL DEFAULT '',
     committed_at    TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
     committer_name  TEXT        NOT NULL,
@@ -48,8 +48,8 @@ COMMENT ON COLUMN :"sqitch_schema".changes.planner_email   IS 'Email address of 
 CREATE TABLE :"sqitch_schema".tags (
     tag_id          TEXT        PRIMARY KEY,
     tag             TEXT        NOT NULL UNIQUE,
-    project         TEXT        NOT NULL REFERENCES :"sqitch_schema".projects(project),
-    change_id       TEXT        NOT NULL REFERENCES :"sqitch_schema".changes(change_id),
+    project         TEXT        NOT NULL REFERENCES :"sqitch_schema".projects(project) ON UPDATE CASCADE,
+    change_id       TEXT        NOT NULL REFERENCES :"sqitch_schema".changes(change_id) ON UPDATE CASCADE,
     note            TEXT        NOT NULL DEFAULT '',
     committed_at    TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
     committer_name  TEXT        NOT NULL,
@@ -76,7 +76,7 @@ CREATE TABLE :"sqitch_schema".dependencies (
     change_id       TEXT        NOT NULL REFERENCES :"sqitch_schema".changes(change_id) ON DELETE CASCADE,
     type            TEXT        NOT NULL,
     dependency      TEXT        NOT NULL,
-    dependency_id   TEXT            NULL REFERENCES :"sqitch_schema".changes(change_id) CHECK (
+    dependency_id   TEXT            NULL REFERENCES :"sqitch_schema".changes(change_id) ON UPDATE CASCADE CHECK (
             (type = 'require'  AND dependency_id IS NOT NULL)
          OR (type = 'conflict' AND dependency_id IS NULL)
     ),
@@ -93,7 +93,7 @@ CREATE TABLE :"sqitch_schema".events (
     event           TEXT        NOT NULL CHECK (event IN ('deploy', 'revert', 'fail')),
     change_id       TEXT        NOT NULL,
     change          TEXT        NOT NULL,
-    project         TEXT        NOT NULL REFERENCES :"sqitch_schema".projects(project),
+    project         TEXT        NOT NULL REFERENCES :"sqitch_schema".projects(project) ON UPDATE CASCADE,
     note            TEXT        NOT NULL DEFAULT '',
     requires        TEXT[]      NOT NULL DEFAULT '{}',
     conflicts       TEXT[]      NOT NULL DEFAULT '{}',
