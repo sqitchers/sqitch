@@ -1,12 +1,12 @@
 Name:           sqitch-pg
-Version:        0.92
+Version:        0.921
 Release:        1%{?dist}
 Summary:        Sane PostgreSQL database change management
 License:        MIT
 Group:          Development/Libraries
 URL:            http://sqitch.org/
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
-Requires:       sqitch >= 0.92
+Requires:       sqitch >= 0.921
 Requires:       postgresql91
 Requires:       perl(DBI)
 Requires:       perl(DBD::Pg)
