@@ -7,7 +7,7 @@ COMMENT ON SCHEMA :"sqitch_schema" IS 'Sqitch database deployment metadata v1.0.
 
 CREATE TABLE :"sqitch_schema".projects (
     project         TEXT        PRIMARY KEY,
-    uri             TEXT            NULL,
+    uri             TEXT            NULL UNIQUE,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
     creator_name    TEXT        NOT NULL,
     creator_email   TEXT        NOT NULL
