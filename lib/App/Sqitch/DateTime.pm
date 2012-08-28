@@ -8,7 +8,7 @@ use parent 'DateTime';
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 
-our $VERSION = '0.913';
+our $VERSION = '0.92';
 
 sub as_string_formats {
     return qw(

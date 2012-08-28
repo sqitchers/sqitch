@@ -12,7 +12,7 @@ use namespace::autoclean;
 
 extends 'App::Sqitch::Command';
 
-our $VERSION = '0.913';
+our $VERSION = '0.92';
 
 has requires => (
     is       => 'ro',

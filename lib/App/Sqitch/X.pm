@@ -10,7 +10,7 @@ use Role::Identifiable::HasIdent 0.005;
 use Role::Identifiable::HasTags 0.005;
 use overload '""' => 'as_string';
 
-our $VERSION = '0.913';
+our $VERSION = '0.92';
 
 has message => (
     is       => 'ro',

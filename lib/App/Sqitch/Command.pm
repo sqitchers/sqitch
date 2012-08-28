@@ -10,7 +10,7 @@ use App::Sqitch::X qw(hurl);
 use Hash::Merge 'merge';
 use Moose;
 
-our $VERSION = '0.913';
+our $VERSION = '0.92';
 
 has sqitch => (
     is       => 'ro',
