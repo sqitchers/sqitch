@@ -1133,7 +1133,7 @@ iterate over every change.
 
 Write the plan to the named file, including notes and white space from the
 original plan file. If C<from> and/or C<$to> are provided, the plan will be
-written only with the pragmas headers and the lines betwteen those specified
+written only with the pragmas headers and the lines between those specified
 changes.
 
 =head3 C<open_script>
