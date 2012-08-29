@@ -6,6 +6,7 @@ Summary:        Sane PostgreSQL database change management
 License:        MIT
 Group:          Development/Libraries
 URL:            http://sqitch.org/
+BuildArch:      noarch
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 Requires:       sqitch >= %{version}
 Requires:       postgresql91
