@@ -21,19 +21,18 @@ our $VERSION = '0.923';
 
 # Like [:punct:], but excluding _. Copied from perlrecharclass.
 my $punct = q{-!"#$%&'()*+,./:;<=>?@[\\]^`{|}~};
-my $refpunct = q{~^/=%};
-my $name_re = qr/
+my $name_re = qr{
     (?![$punct])                   # first character isn't punctuation
     (?:                            # start non-capturing group, repeated once or more ...
        (?!                         #     negative look ahead for...
-           [$refpunct]             #         symbolic reference punctuation
+           [~/=%^]                 #         symbolic reference punctuation
            [[:digit:]]+            #         digits
            (?:$|[[:blank:]])       #         eol or blank
        )                           #     ...
        [^[:blank:]:@#]             #     match a valid character
     )+                             # ... end non-capturing group
     (?<![$punct])\b                # last character isn't punctuation
-/x;
+}x;
 
 sub name_regex { $name_re }
 
