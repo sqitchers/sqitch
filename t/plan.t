@@ -326,20 +326,23 @@ is sorted, 0, 'Should not have sorted changes';
 
 my @bad_names = (
     '^foo',     # No leading punctuation
-    'foo+',     # No trailing punctuation
-    'foo+6',    # No trailing punctuation+digit
-    'foo+666',  # No trailing punctuation+digits
+    'foo^',     # No trailing punctuation
+    'foo^6',    # No trailing punctuation+digit
+    'foo^666',  # No trailing punctuation+digits
     '%hi',      # No leading punctuation
     'hi!',      # No trailing punctuation
     'foo@bar',  # No @ allowed at all
     'foo:bar',  # No : allowed at all
+    '+foo',     # No leading +
+    '-foo',     # No leading -
+    '@foo',     # No leading @
 );
 
 # Try other invalid change and tag name issues.
 my $prags = '%syntax-version=' . App::Sqitch::Plan::SYNTAX_VERSION
     . "\n%project=test\n\n";
 for my $name (@bad_names) {
-    for my $line ($name, "\@$name") {
+    for my $line ("+$name", "\@$name") {
         next if $line eq '%hi'; # This would be a pragma.
         my $buf = $prags . $line;
         my $what = $line =~ /^[@]/ ? 'tag' : 'change';
@@ -379,6 +382,9 @@ for my $name (
     'foo_',    # ending underscore
     '_foo',    # leading underscore
     'v1.0-1b', # punctuation followed by digit in middle
+    'v1.2-1',  # version number with dash
+    'v1.2+1',  # version number with plus
+    'v1.2_1',  # version number with underscore
 ) {
     # Test a change name.
     my $lines = "\%project=foo\n\n$name $tsnp";
@@ -416,7 +422,7 @@ for my $name (
         ],
     }, encode_utf8(qq{Should have line and change for "$tag"});
 }
-is sorted, 20, 'Should have sorted changes 18 times';
+is sorted, 26, 'Should have sorted changes 18 times';
 
 # Try a plan with reserved tag name @HEAD.
 $file = file qw(t plans reserved-tag.plan);
@@ -525,7 +531,7 @@ is $@->message, __x(
 is sorted, 1, 'Should have sorted changes once';
 
 # Try a plan with an invalid requirement.
-$fh = IO::File->new(\"\%project=foo\n\nfoo [+bar] $tsnp", '<:utf8');
+$fh = IO::File->new(\"\%project=foo\n\nfoo [^bar] $tsnp", '<:utf8');
 throws_ok { $plan->_parse('badreq', $fh ) } 'App::Sqitch::X',
     'Should die on invalid  dependency';
 is $@->ident, 'plan', 'The invalid dependency error ident should be "plan"';
@@ -535,7 +541,7 @@ is $@->message, __x(
     line => 3,
     error => __x(
         '"{dep}" is not a valid dependency specification',
-        dep => '+bar',
+        dep => '^bar',
     ),
 ), 'And the invalid dependency error message should be correct';
 is sorted, 0, 'Should have sorted changes nonce';
@@ -1042,8 +1048,6 @@ file_contents_is $to,
     . join( $/, map { $_->as_string } $plan->find('you')->tags ) . $/,
     'Plan should have been written from "hey" through "@foo"';
 
-done_testing && exit;
-
 ##############################################################################
 # Test _is_valid.
 can_ok $plan, '_is_valid';
@@ -1068,7 +1072,11 @@ for my $name (
     '阱阪阬',   # multibyte
     'foo/bar', # middle punct
     'beta1',   # ending digit
+    'v1.2-1',  # version number with dash
+    'v1.2+1',  # version number with plus
+    'v1.2_1',  # version number with underscore
 ) {
+    local $ENV{FOO} = 1;
     my $disp = Encode::encode_utf8($name);
     ok $plan->_is_valid(change => $name), qq{Name "$disp" sould be valid};
 }
@@ -1109,6 +1117,7 @@ is $@->message, __x(
 
 # Should choke on an invalid tag names.
 for my $name (@bad_names, 'foo#bar') {
+    next if $name =~ /^@/;
     throws_ok { $plan->tag( name => $name ) } 'App::Sqitch::X',
         qq{Should get error for invalid tag "$name"};
     is $@->ident, 'plan', qq{Invalid name "$name" error ident should be "plan"};
@@ -1228,20 +1237,20 @@ is $@->message, __x(
 ), 'The dependency error should be correct';
 
 # Try invalid dependencies.
-throws_ok { $plan->add( name => 'whu', requires => ['+bogus' ] ) } 'App::Sqitch::X',
+throws_ok { $plan->add( name => 'whu', requires => ['^bogus' ] ) } 'App::Sqitch::X',
     'Should get failure for invalid dependency';
 is $@->ident, 'plan', 'Invalid dependency error ident should be "plan"';
 is $@->message, __x(
     '"{dep}" is not a valid dependency specification',
-    dep => '+bogus',
+    dep => '^bogus',
 ), 'The invalid dependency error should be correct';
 
-throws_ok { $plan->add( name => 'whu', conflicts => ['+bogus' ] ) } 'App::Sqitch::X',
+throws_ok { $plan->add( name => 'whu', conflicts => ['^bogus' ] ) } 'App::Sqitch::X',
     'Should get failure for invalid conflict';
 is $@->ident, 'plan', 'Invalid conflict error ident should be "plan"';
 is $@->message, __x(
     '"{dep}" is not a valid dependency specification',
-    dep => '+bogus',
+    dep => '^bogus',
 ), 'The invalid conflict error should be correct';
 
 # Should choke on an unknown tag, too.
@@ -1342,20 +1351,20 @@ is $@->message, __x(
 ), 'The rework dependency error should be correct';
 
 # Try invalid dependencies.
-throws_ok { $plan->rework( name => 'booyah', requires => ['+bogus' ] ) } 'App::Sqitch::X',
+throws_ok { $plan->rework( name => 'booyah', requires => ['^bogus' ] ) } 'App::Sqitch::X',
     'Should get failure for invalid dependency';
 is $@->ident, 'plan', 'Invalid dependency error ident should be "plan"';
 is $@->message, __x(
     '"{dep}" is not a valid dependency specification',
-    dep => '+bogus',
+    dep => '^bogus',
 ), 'The invalid dependency error should be correct';
 
-throws_ok { $plan->rework( name => 'booyah', conflicts => ['+bogus' ] ) } 'App::Sqitch::X',
+throws_ok { $plan->rework( name => 'booyah', conflicts => ['^bogus' ] ) } 'App::Sqitch::X',
     'Should get failure for invalid conflict';
 is $@->ident, 'plan', 'Invalid conflict error ident should be "plan"';
 is $@->message, __x(
     '"{dep}" is not a valid dependency specification',
-    dep => '+bogus',
+    dep => '^bogus',
 ), 'The invalid conflict error should be correct';
 
 ##############################################################################

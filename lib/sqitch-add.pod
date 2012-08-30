@@ -15,6 +15,9 @@ determined by the evaluation of templates. By default, system templates in
 F<$(etc_path)/templates> are used. These can be overridden by a single user by
 creating templates in F<~/.sqitch/templates/> See L</Templates> for details.
 
+Note that the name of the new change must adhere to the rules as defined in
+L<sqitchchanges>.
+
 =head1 Options
 
 =over

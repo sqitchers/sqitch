@@ -21,14 +21,15 @@ our $VERSION = '0.922';
 
 # Like [:punct:], but excluding _. Copied from perlrecharclass.
 my $punct = q{-!"#$%&'()*+,./:;<=>?@[\\]^`{|}~};
+my $refpunct = q{~^/=%};
 my $name_re = qr/
     (?![$punct])                   # first character isn't punctuation
     (?:                            # start non-capturing group, repeated once or more ...
-       (?!                         #    negative look ahead for...
-           [$punct]                #       punctuation
-           [[:digit:]]+            #       digits
-           (?:$|[[:blank:]])       #       eol or blank
-       )                           #    ...
+       (?!                         #     negative look ahead for...
+           [$refpunct]             #         symbolic reference punctuation
+           [[:digit:]]+            #         digits
+           (?:$|[[:blank:]])       #         eol or blank
+       )                           #     ...
        [^[:blank:]:@#]             #     match a valid character
     )+                             # ... end non-capturing group
     (?<![$punct])\b                # last character isn't punctuation
@@ -1212,13 +1213,10 @@ a value. Currently, the only pragma recognized by Sqitch is C<syntax-version>.
 
 =item * A change.
 
-A named change change. A change consists of an optional C<+> or C<-> character
-followed by one or more non-whitespace characters (excluding "@", ":", and
-"#"), of which the first and last characters must not be punctuation
-characters. A change may then also contain a space-delimited list of
-dependencies, which are the names of other changes or tags prefixed with a
-colon (C<:>) for required changes or with an exclamation point (C<!>) for
-conflicting changes.
+A named change change as defined in L<sqitchchanges>. A change may then also
+contain a space-delimited list of dependencies, which are the names of other
+changes or tags prefixed with a colon (C<:>) for required changes or with an
+exclamation point (C<!>) for conflicting changes.
 
 Changes with a leading C<-> are slated to be reverted, while changes with no
 character or a leading C<+> are to be deployed.

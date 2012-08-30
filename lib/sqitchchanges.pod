@@ -11,6 +11,103 @@ command, they denote a specific change or, for commands which walk change
 history or the change plan (such as L<C<sqitch log>|sqitch-log>), all changes
 which can be reached from that change.
 
+=head2 Change Names
+
+A change name, such as that passed to L<C<sqitch add>|sqitch-add> and written
+to the plan file has a few limitations on the characters it may contain. The
+same limitations apply to tag names. The rules are:
+
+=over
+
+=item *
+
+Must be at least one character.
+
+=item *
+
+Must contain no blank characters.
+
+=item *
+
+The first character may not be punctuation.
+
+=item *
+
+Last letter may not be punctuation.
+
+=item *
+
+Must not end in "~", "^", "/", "=", or "%" followed by digits.
+
+=item *
+
+All other characters may be any UTF-8 character other than ":", "@", and "#".
+
+=back
+
+Note that "_" (underscore) is never considered punctuation. Some examples of
+valid names:
+
+=over
+
+=item C<foo>
+
+=item C<12>
+
+=item C<t>
+
+=item C<6>
+
+=item C<阱阪阬>
+
+=item C<阱阪阬92>
+
+=item C<foo/bar>
+
+=item C<beta1>
+
+=item C<foo_>
+
+=item C<_foo>
+
+=item C<v1.0-1b>
+
+=item C<v1.2-1>
+
+=item C<v1.2+1>
+
+=item C<v1.2_1>
+
+=back
+
+Some examples of invalid names:
+
+=over
+
+=item C<^foo>
+
+=item C<foo^>
+
+=item C<foo^6>
+
+=item C<foo^666>
+
+=item C<%hi>
+
+=item C<hi!>
+
+=item C<foo@bar>
+
+=item C<foo:bar>
+
+=item C<+foo>
+
+=item C<-foo>
+
+=item C<@foo>
+
+=back
+
 =head1 Specifying Changes
 
 A change parameter names a change object. It uses what is called an extended

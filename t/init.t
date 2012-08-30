@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 149;
+use Test::More tests => 158;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -486,13 +486,16 @@ NOPROJ: {
 # Test invalid project names.
 my @bad_names = (
     '^foo',     # No leading punctuation
-    'foo+',     # No trailing punctuation
-    'foo+6',    # No trailing punctuation+digit
-    'foo+666',  # No trailing punctuation+digits
+    'foo^',     # No trailing punctuation
+    'foo^6',    # No trailing punctuation+digit
+    'foo^666',  # No trailing punctuation+digits
     '%hi',      # No leading punctuation
     'hi!',      # No trailing punctuation
     'foo@bar',  # No @ allowed at all
     'foo:bar',  # No : allowed at all
+    '+foo',     # No leading +
+    '-foo',     # No leading -
+    '@foo',     # No leading @
 );
 for my $bad (@bad_names) {
     throws_ok { $init->_validate_project($bad) } 'App::Sqitch::X',
