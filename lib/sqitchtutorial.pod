@@ -31,7 +31,7 @@ source code repository. So let's do that with Git:
   Initialized empty Git repository in /flipr/.git/
   > touch README.md
   > git add .
-  > git commit -am 'Fist post!'
+  > git commit -am 'First post!'
 
 If you're a Git user and want to follow along the history, the repository
 used in these examples is L<on GitHub|https://github.com/theory/sqitch-intro>.
