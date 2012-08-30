@@ -14,7 +14,8 @@ sub new {
         lookup         => {},
         last_tagged_at => undef,
     } => $class;
-    return $self->append(@_);
+    $self->append(@_) if @_;
+    return $self;
 }
 
 sub count       { scalar @{ shift->{list} } }
@@ -23,6 +24,20 @@ sub tags        { map { $_->tags } @{ shift->{list} } }
 sub items       { @{ shift->{list} } }
 sub change_at   { shift->{list}[shift] }
 sub last_change { return shift->{list}[ -1 ] }
+
+sub _lookup {
+    my ( $self, $key ) = @_;
+    if ($key =~ /\A[@]?((?:LA|FIR)ST)\z/) {
+        my $change = $self->{list}[0] || return undef;
+        my $engine = $change->plan->sqitch->engine;
+        $key = (
+            $1 eq 'LAST'
+                ? $engine->latest_change_id
+                : $engine->earliest_change_id
+        ) || return undef;
+    }
+    return $self->{lookup}{$key};
+}
 
 sub _offset {
     # Look for symbolic references.
@@ -33,7 +48,6 @@ sub _offset {
     } else {
         return 0;
     }
-
 }
 
 sub index_of {
@@ -56,14 +70,14 @@ sub _index_of {
 
     if ($change eq '') {
         # Just want the change with the associated tag.
-        my $idx = $self->{lookup}{'@' . $tag} or return undef;
+        my $idx = $self->_lookup('@' . $tag ) or return undef;
         return $idx->[0];
     }
 
-    my $idx = $self->{lookup}{$change} or return undef;
+    my $idx = $self->_lookup($change) or return undef;
     if (defined $tag) {
         # Wanted for a change as of a specific tag.
-        my $tag_idx = $self->{lookup}{ '@' . $tag } or hurl plan => __x(
+        my $tag_idx = $self->_lookup( '@' . $tag ) or hurl plan => __x(
             'Unknown tag "{tag}"',
             tag => '@' . $tag,
         );
@@ -93,14 +107,13 @@ sub first_index_of {
     } else {
         return $self->_first_index_of( $key, $since );
     }
-
 }
 
 sub _first_index_of {
     my ( $self, $change, $since ) = @_;
 
     # Just return the first index if no tag.
-    my $idx = $self->{lookup}{$change} or return undef;
+    my $idx = $self->_lookup($change) or return undef;
     return $idx->[0] unless defined $since;
 
     # Find the tag index.
