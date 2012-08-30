@@ -369,8 +369,26 @@ Note that we've used the C<--to> option to specify the change to revert to.
 And what do we revert to? The symbolic tag C<@LAST> always refers to the last
 change deployed to the database. Appending the caret (C<^>) tells Sqitch to
 select the change prior to the last deployed change. So we revert to
-C<appschema>, the penultimate change. The C<users> table should be gone, but
-the C<flipr> user should still be around:
+C<appschema>, the penultimate change. Other useful symbolic tags are:
+
+=over
+
+=item C<@FIRST>
+
+The first change deployed to the database.
+
+=item C<@HEAD>
+
+The last change in the plan.
+
+=item C<@ROOT>
+
+The first change in the plan.
+
+=back
+
+Back to the database. The C<users> table should be gone but the C<flipr> user
+should still be around:
 
   > psql -d flipr_test -c '\d flipr.users'
   Did not find any relation named "flipr.users".
