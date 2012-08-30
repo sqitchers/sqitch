@@ -3,6 +3,10 @@ Revision history for Perl extension App::Sqitch
 0.922
      - Loosened constraint to disallow only `/[~^/=%]/` before digits at the
        end of name. This allows, for example, a tag to be named "v1.2-1".
+     - Added the `bundle` command to the documentation displayed by `sqitch
+       help`.
+     - Updated the mention of the `bundle` command in the main `sqitch`
+       documentation.
 
 0.921 2012-08-30T00:09:56Z
      - Made Win32::Locale required only on Windows.
