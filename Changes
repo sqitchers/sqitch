@@ -1,5 +1,7 @@
 Revision history for Perl extension App::Sqitch
 
+0.922
+
 0.921 2012-08-30T00:09:56Z
      - Made Win32::Locale required only on Windows.
      - Fixed some module minimum version requirements so that dependencies
