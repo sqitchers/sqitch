@@ -24,8 +24,34 @@ sub items       { @{ shift->{list} } }
 sub change_at   { shift->{list}[shift] }
 sub last_change { return shift->{list}[ -1 ] }
 
+sub _offset {
+    # Look for symbolic references.
+    if ( $_[0] =~ s{([~^])(?:(\1)|(\d+))?\z}{} ) {
+        my $offset = $3 // ($2 ? 2 : 1);
+        $offset *= -1 if $1 eq '^';
+        return $offset;
+    } else {
+        return 0;
+    }
+
+}
+
 sub index_of {
     my ( $self, $key ) = @_;
+
+    # Look for symbolic references.
+    if ( my $offset = _offset $key ) {
+        my $idx = $self->_index_of( $key ) // return undef;
+        $idx += $offset;
+        return $idx < 0 ? undef : $idx > $#{ $self->{list} } ? undef : $idx;
+    } else {
+        return $self->_index_of( $key );
+    }
+}
+
+sub _index_of {
+    my ( $self, $key ) = @_;
+
     my ( $change, $tag ) = split /@/ => $key, 2;
 
     if ($change eq '') {
@@ -57,6 +83,20 @@ sub index_of {
 }
 
 sub first_index_of {
+    my ( $self, $key, $since ) = @_;
+
+    # Look for symbolic references.
+    if ( my $offset = _offset $key ) {
+        my $idx = $self->_first_index_of( $key, $since ) // return undef;
+        $idx += $offset;
+        return $idx < 0 ? undef : $idx > $#{ $self->{list} } ? undef : $idx;
+    } else {
+        return $self->_first_index_of( $key, $since );
+    }
+
+}
+
+sub _first_index_of {
     my ( $self, $change, $since ) = @_;
 
     # Just return the first index if no tag.
