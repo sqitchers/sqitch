@@ -7,7 +7,7 @@ use Test::More 0.94;
 use Test::MockModule;
 use Test::Exception;
 use Locale::TextDomain qw(App-Sqitch);
-use Capture::Tiny qw(:all);
+use Capture::Tiny 0.12 qw(:all);
 use Try::Tiny;
 use App::Sqitch;
 use App::Sqitch::Plan;

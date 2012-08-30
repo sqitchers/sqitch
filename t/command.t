@@ -23,7 +23,7 @@ use Test::Exception;
 use Test::NoWarnings;
 use Test::MockModule;
 use Locale::TextDomain qw(App-Sqitch);
-use Capture::Tiny ':all';
+use Capture::Tiny 0.12 ':all';
 use lib 't/lib';
 
 my $CLASS;

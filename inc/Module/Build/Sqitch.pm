@@ -2,7 +2,8 @@ package Module::Build::Sqitch;
 
 use strict;
 use warnings;
-use base 'Module::Build';
+use Module::Build 0.35;
+use parent 'Module::Build';
 
 sub new {
     my ( $class, %p ) = @_;

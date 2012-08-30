@@ -12,7 +12,7 @@ BuildArch:      noarch
 BuildRequires:  perl >= 1:v5.10.1
 BuildRequires:  perl(Capture::Tiny) >= 0.12
 BuildRequires:  perl(Config)
-BuildRequires:  perl(Config::GitLike) >= 1.07
+BuildRequires:  perl(Config::GitLike) >= 1.09
 BuildRequires:  perl(constant)
 BuildRequires:  perl(DateTime)
 BuildRequires:  perl(DBI)
@@ -69,7 +69,7 @@ BuildRequires:  perl(User::pwent)
 BuildRequires:  perl(utf8)
 BuildRequires:  perl(warnings)
 Requires:       perl(Config)
-Requires:       perl(Config::GitLike) >= 1.07
+Requires:       perl(Config::GitLike) >= 1.09
 Requires:       perl(constant)
 Requires:       perl(DateTime)
 Requires:       perl(Digest::SHA1)

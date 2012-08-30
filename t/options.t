@@ -6,7 +6,7 @@ use utf8;
 use Test::More tests => 25;
 #use Test::More 'no_plan';
 use Test::MockModule;
-use Capture::Tiny ':all';
+use Capture::Tiny 0.12 ':all';
 
 my $CLASS;
 

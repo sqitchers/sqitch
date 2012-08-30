@@ -4,7 +4,7 @@ use v5.10.1;
 use utf8;
 use namespace::autoclean;
 use Moose;
-use Moose::Meta::Attribute::Native;
+use Moose::Meta::Attribute::Native 2.0300;
 use App::Sqitch::X qw(hurl);
 use Locale::TextDomain qw(App-Sqitch);
 

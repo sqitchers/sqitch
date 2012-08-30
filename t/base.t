@@ -8,7 +8,7 @@ use Test::MockModule;
 use Path::Class;
 use Test::Exception;
 use Test::NoWarnings;
-use Capture::Tiny 0.12, qw(:all);
+use Capture::Tiny 0.12 qw(:all);
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X 'hurl';
 

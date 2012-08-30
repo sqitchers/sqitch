@@ -16,7 +16,7 @@ use Moose 2.0300;
 use Encode qw(encode_utf8);
 use Try::Tiny;
 use List::Util qw(first);
-use IPC::System::Simple 1.17, qw(runx capturex $EXITVAL);
+use IPC::System::Simple 1.17 qw(runx capturex $EXITVAL);
 use Moose::Util::TypeConstraints 2.0300;
 use MooseX::Types::Path::Class 0.05;
 use namespace::autoclean 0.11;
