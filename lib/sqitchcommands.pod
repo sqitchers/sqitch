@@ -23,6 +23,10 @@ The most commonly used sqitch commands are:
 
 Add a new change to the plan
 
+=item L<C<bundle>|sqitch-bundle>
+
+Bundle a Sqitch project for distribution
+
 =item L<C<config>|sqitch-config>
 
 Get and set local, user, or system options

@@ -396,34 +396,9 @@ Get and set project, user, or system Sqitch options.
 
 =item C<bundle>
 
-*Not yet implemented.
-
-Bundle up deployment and reversion scripts and write out plan and
-configuration files. Configuration properties may be specified under the
-C<[bundle]> section of the configuration file, or via C<sqitch config
-bundle.$property $value> command. Options and configuration properties:
-
-=over
-
-=item C<--from>
-
-Tag to start the plan from. All tags and changes prior to that tag will not be
-included in the plan, and their change scripts Will be omitted from the bundle
-directory. Property name: C<bundle.from>.
-
-=item C<--to>
-
-Tag with which to end the plan. No changes or tags after that tag will be
-included in the plan, and their change scripts will be omitted from the bundle
-directory. Property name: C<bundle.to>.
-
-=item C<--destdir>
-
-Specify a destination directory. The plan file and C<deploy>, C<revert>, and
-C<test> directories will be written to it. Defaults to "bundle". Property
-name: C<bundle.destdir>.
-
-=back
+Bundle a Sqitch project for distribution. This command copies the Sqitch
+configuration, plan, and deploy, revert, and test scripts to a directory, so
+that it can be packaged up for distribution, such as in an RPM or tarball.
 
 =item L<C<help>|sqitch-help>
 
