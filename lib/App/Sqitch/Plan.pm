@@ -34,6 +34,8 @@ my $name_re = qr{
     (?<![$punct])\b                # last character isn't punctuation
 }x;
 
+my %reserved = map { $_ => undef } qw(ROOT HEAD FIRST LAST);
+
 sub name_regex { $name_re }
 
 has sqitch => (
@@ -307,7 +309,7 @@ sub _parse {
         $raise_syntax_error->(__x(
             '"{name}" is a reserved name',
             name => ($type eq 'tag' ? '@' : '') . $params{name},
-        )) if $params{name} eq 'HEAD' || $params{name} eq 'ROOT';
+        )) if exists $reserved{ $params{name} };
 
         # It must not look like a SHA1 hash.
         $raise_syntax_error->(__x(
@@ -766,7 +768,7 @@ sub _is_valid {
     hurl plan => __x(
         '"{name}" is a reserved name',
         name => $name
-    ) if $name eq 'HEAD' || $name eq 'ROOT';
+    ) if exists $reserved{$name};
     hurl plan => __x(
         '"{name}" is invalid because it could be confused with a SHA1 ID',
         name => $name,
