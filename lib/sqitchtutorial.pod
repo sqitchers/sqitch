@@ -163,7 +163,7 @@ see the role:
    Name  | Owner 
   -------+-------
    flipr | david
-x
+
 And we can also see how the deployment was recorded via the C<status> command,
 which reads the metadata tables from the database:
 
