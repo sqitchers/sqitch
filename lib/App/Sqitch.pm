@@ -729,18 +729,6 @@ Send a warning messages to C<STDERR>. Warnings will have C<warning: > prefixed
 to every line. Use if something unexpected happened but you can recover from
 it.
 
-=head1 To Do
-
-=over
-
-=item * Add custom formatting support to C<status>.
-
-=item * Add support for C<^> and other shortcuts when specifying changes.
-
-=item * Add C<plan> command, similar to C<log> but shows what's in a plan.
-
-=back
-
 =head1 Author
 
 David E. Wheeler <david@justatheory.com>

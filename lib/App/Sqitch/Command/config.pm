@@ -634,14 +634,6 @@ The Sqitch command-line client.
 
 =back
 
-=head1 To Do
-
-=over
-
-=item * Make exit codes the same as C<git-config>.
-
-=back
-
 =head1 Author
 
 David E. Wheeler <david@justatheory.com>
