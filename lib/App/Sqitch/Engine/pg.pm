@@ -581,7 +581,7 @@ sub _fetch_item {
 }
 
 sub _cid {
-    my ( $self, $ord ) = @_;
+    my ( $self, $ord, $offset ) = @_;
     return try {
         $self->_dbh->selectcol_arrayref(qq{
             SELECT change_id
@@ -589,7 +589,8 @@ sub _cid {
              WHERE project = ?
              ORDER BY committed_at $ord
              LIMIT 1
-        }, undef, $self->plan->project)->[0];
+            OFFSET COALESCE(?::bigint, NULL)
+        }, undef, $self->plan->project, $offset)->[0];
     } catch {
         return if $DBI::state eq '42P01'; # undefined_table
         die $_;
@@ -597,11 +598,11 @@ sub _cid {
 }
 
 sub earliest_change_id {
-    shift->_cid('ASC');
+    shift->_cid('ASC', @_);
 }
 
 sub latest_change_id {
-    shift->_cid('DESC');
+    shift->_cid('DESC', @_);
 }
 
 sub deployed_change_ids {

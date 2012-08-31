@@ -351,13 +351,13 @@ sub finish_work { shift }
 
 sub earliest_change {
     my $self = shift;
-    my $change_id = $self->earliest_change_id // return undef;
+    my $change_id = $self->earliest_change_id(@_) // return undef;
     return $self->sqitch->plan->get( $change_id );
 }
 
 sub latest_change {
     my $self = shift;
-    my $change_id = $self->latest_change_id // return undef;
+    my $change_id = $self->latest_change_id(@_) // return undef;
     return $self->sqitch->plan->get( $change_id );
 }
 
@@ -651,14 +651,18 @@ C<is_deployed_change()> as appropriate to its argument.
   my $change = $engine->earliest_change;
 
 Returns the L<App::Sqitch::Plan::Change> object representing the earliest
-applied change.
+applied change. With the optional C<$offset> argument, the returned change
+will be the offset number of changes following the earliest change.
+
 
 =head3 C<latest_change>
 
   my $change = $engine->latest_change;
+  my $change = $engine->latest_change($offset);
 
 Returns the L<App::Sqitch::Plan::Change> object representing the latest
-applied change.
+applied change. With the optional C<$offset> argument, the returned change
+will be the offset number of changes before the latest change.
 
 =head2 Abstract Instance Methods
 
@@ -778,15 +782,20 @@ records necessary to indicate that the change has been reverted.
 
 =head3 C<earliest_change_id>
 
-  my $change_id = $engine->earliest_change_id;
+  my $change_id = $engine->earliest_change_id($offset);
 
-Returns the ID of the earliest applied change from the current project.
+Returns the ID of the earliest applied change from the current project. With
+the optional C<$offset> argument, the ID of the change the offset number of
+changes followin the earliest change will be returned.
 
 =head3 C<latest_change_id>
 
   my $change_id = $engine->latest_change_id;
+  my $change_id = $engine->latest_change_id($offset);
 
 Returns the ID of the latest applied change from the current project.
+With the optional C<$offset> argument, the ID of the change the offset
+number of changes before the latest change will be returned.
 
 =head3 C<deployed_change_ids>
 

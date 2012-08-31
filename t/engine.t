@@ -4,8 +4,8 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-#use Test::More tests => 235;
-use Test::More 'no_plan';
+use Test::More tests => 248;
+#use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
 use Path::Class;
@@ -242,14 +242,24 @@ my @changes = $plan->changes;
 
 $latest_change_id = $changes[0]->id;
 is $engine->latest_change, $changes[0], 'Should get proper change from latest_change()';
+is_deeply $engine->seen, [[ latest_change_id => undef ]],
+    'Latest change ID should have been called with no arg';
 $latest_change_id = $changes[2]->id;
-is $engine->latest_change, $changes[2], 'Should again get proper change from latest_change()';
+is $engine->latest_change(2), $changes[2],
+    'Should again get proper change from latest_change()';
+is_deeply $engine->seen, [[ latest_change_id => 2 ]],
+    'Latest change ID should have been called with offset arg';
 $latest_change_id = undef;
 
 $earliest_change_id = $changes[0]->id;
 is $engine->earliest_change, $changes[0], 'Should get proper change from earliest_change()';
+is_deeply $engine->seen, [[ earliest_change_id => undef ]],
+    'Earliest change ID should have been called with no arg';
 $earliest_change_id = $changes[2]->id;
-is $engine->earliest_change, $changes[2], 'Should again get proper change from earliest_change()';
+is $engine->earliest_change(4), $changes[2],
+    'Should again get proper change from earliest_change()';
+is_deeply $engine->seen, [[ earliest_change_id => 4 ]],
+    'Earliest change ID should have been called with offset arg';
 $earliest_change_id = undef;
 
 ##############################################################################
