@@ -311,7 +311,7 @@ is_deeply +MockOutput->get_info, [
     ],
     [__x 'Deploying changes through {target} to {destination}',
         destination =>  $engine->destination,
-        target      => '@alpha'
+        target      => $plan->get('@alpha')->format_name_with_tags,
     ],
     ['  + ', 'roles'],
     ['  + ', 'users @alpha'],
@@ -336,7 +336,7 @@ is $deploy_meth, '_deploy_by_tag', 'Should have called _deploy_by_tag()';
 is_deeply +MockOutput->get_info, [
     [__x 'Deploying changes through {target} to {destination}',
         destination =>  $engine->destination,
-        target      => '@alpha'
+        target      => $plan->get('@alpha')->format_name_with_tags,
     ],
     ['  + ', 'roles'],
     ['  + ', 'users @alpha'],
@@ -1070,7 +1070,7 @@ is_deeply +MockOutput->get_info, [
     [__x(
         'Reverting from {destination} to {target}',
         destination => $engine->destination,
-        target      => '@alpha',
+        target      => $plan->get('@alpha')->format_name_with_tags,
     )],
     ['  - ', 'lolz'],
     ['  - ', 'widgets @beta'],

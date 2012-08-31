@@ -98,7 +98,7 @@ sub deploy {
         defined $to ? __x(
             'Deploying changes through {target} to {destination}',
             destination => $self->destination,
-            target      => $to
+            target      => $plan->change_at($to_index)->format_name_with_tags
         ) : __x(
             'Deploying changes to {destination}',
             destination => $self->destination,
@@ -136,7 +136,7 @@ sub revert {
         $sqitch->info(__x(
             'Reverting from {destination} to {target}',
             destination => $self->destination,
-            target      => $to
+            target      => $change->format_name_with_tags,
         ));
     } else {
         @change_ids = $self->deployed_change_ids or hurl {
