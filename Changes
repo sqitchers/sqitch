@@ -1,6 +1,6 @@
 Revision history for Perl extension App::Sqitch
 
-0.93
+0.93  2012-08-31T22:29:41Z
      - Added forward and reverse change references. Append ^ to a change
        reference to mean the change before, or ~ to mean the change following.
        Use ~~ and ^^ to select two changes forward and back, and ~n and ^n,
