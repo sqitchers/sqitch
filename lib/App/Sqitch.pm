@@ -10,7 +10,7 @@ use Getopt::Long;
 use Hash::Merge qw(merge);
 use Path::Class;
 use Config;
-use Locale::TextDomain qw(1.20 App-Sqitch);
+use Locale::TextDomain 1.20 qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use Moose 2.0300;
 use Encode qw(encode_utf8);
