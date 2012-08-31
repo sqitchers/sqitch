@@ -1,4 +1,4 @@
-%define cpanversion 0.923
+%define cpanversion 9.93
 Name:           sqitch-pg
 Version:        %(%{__perl} -E 'say sprintf "%.3f", %{cpanversion}')
 Release:        1%{?dist}

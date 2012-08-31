@@ -10,7 +10,7 @@ use Pod::Find;
 use Moose;
 extends 'App::Sqitch::Command';
 
-our $VERSION = '0.923';
+our $VERSION = '9.93';
 
 # XXX Add --all at some point, to output a list of all possible commands.
 
