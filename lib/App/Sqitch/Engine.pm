@@ -98,7 +98,7 @@ sub deploy {
         defined $to ? __x(
             'Deploying changes through {target} to {destination}',
             destination => $self->destination,
-            target      => $to
+            target      => $plan->change_at($to_index)->format_name_with_tags
         ) : __x(
             'Deploying changes to {destination}',
             destination => $self->destination,
@@ -134,9 +134,9 @@ sub revert {
         );
 
         $sqitch->info(__x(
-            'Reverting from {destination} to {target}',
+            'Reverting changes to {target} from {destination}',
+            target      => $change->format_name_with_tags,
             destination => $self->destination,
-            target      => $to
         ));
     } else {
         @change_ids = $self->deployed_change_ids or hurl {
@@ -349,6 +349,12 @@ sub revert_change {
 sub begin_work  { shift }
 sub finish_work { shift }
 
+sub earliest_change {
+    my $self = shift;
+    my $change_id = $self->earliest_change_id // return undef;
+    return $self->sqitch->plan->get( $change_id );
+}
+
 sub latest_change {
     my $self = shift;
     my $change_id = $self->latest_change_id // return undef;
@@ -408,6 +414,11 @@ sub is_deployed_change {
 sub change_id_for_depend {
     my $class = ref $_[0] || $_[0];
     hurl "$class has not implemented change_id_for_depend()";
+}
+
+sub earliest_change_id {
+    my $class = ref $_[0] || $_[0];
+    hurl "$class has not implemented earliest_change_id()";
 }
 
 sub latest_change_id {
@@ -635,11 +646,18 @@ revert an individual change.
 Convenience method that dispatches to C<is_deployed_tag()> or
 C<is_deployed_change()> as appropriate to its argument.
 
+=head3 C<earliest_change>
+
+  my $change = $engine->earliest_change;
+
+Returns the L<App::Sqitch::Plan::Change> object representing the earliest
+applied change.
+
 =head3 C<latest_change>
 
   my $change = $engine->latest_change;
 
-Returns the L<App::Sqitch::Plan::Change> object representing the most recently
+Returns the L<App::Sqitch::Plan::Change> object representing the latest
 applied change.
 
 =head2 Abstract Instance Methods
@@ -758,11 +776,17 @@ of the change failed.
 Should write to and/or remove from the database metadata and history the
 records necessary to indicate that the change has been reverted.
 
+=head3 C<earliest_change_id>
+
+  my $change_id = $engine->earliest_change_id;
+
+Returns the ID of the earliest applied change from the current project.
+
 =head3 C<latest_change_id>
 
   my $change_id = $engine->latest_change_id;
 
-Returns the ID of the most recently applied change from the current project.
+Returns the ID of the latest applied change from the current project.
 
 =head3 C<deployed_change_ids>
 

@@ -441,23 +441,25 @@ is $@->message, __x(
 ), 'And the @HEAD error message should be correct';
 is sorted, 1, 'Should have sorted changes once';
 
-# Try a plan with reserved tag name @ROOT.
-my $root = $prags . '@ROOT ' . $tsnp;
-$file = file qw(t plans root.plan);
-$fh = IO::File->new(\$root, '<:utf8');
-throws_ok { $plan->_parse($file, $fh) } 'App::Sqitch::X',
-    'Should die on plan with reserved tag "@ROOT"';
-is $@->ident, 'plan', '@HEAD exception should have ident "plan"';
-is $@->message, __x(
-    'Syntax error in {file} at line {line}: {error}',
-    file => $file,
-    line => 4,
-    error => __x(
-        '"{name}" is a reserved name',
-        name => '@ROOT',
-    ),
-), 'And the @HEAD error message should be correct';
-is sorted, 0, 'Should have sorted changes nonce';
+# Try planning with other reserved names.
+for my $reserved (qw(ROOT FIRST LAST)) {
+    my $root = $prags . '@' . $reserved . " $tsnp";
+    $file = file qw(t plans), "$reserved.plan";
+    $fh = IO::File->new(\$root, '<:utf8');
+    throws_ok { $plan->_parse($file, $fh) } 'App::Sqitch::X',
+        qq{Should die on plan with reserved tag "\@$reserved"};
+    is $@->ident, 'plan', qq{\@$reserved exception should have ident "plan"};
+    is $@->message, __x(
+        'Syntax error in {file} at line {line}: {error}',
+        file => $file,
+        line => 4,
+        error => __x(
+            '"{name}" is a reserved name',
+            name => '@' . $reserved,
+        ),
+    ), qq{And the \@$reserved error message should be correct};
+    is sorted, 0, "Should have sorted \@$reserved changes nonce";
+}
 
 # Try a plan with a change name that looks like a sha1 hash.
 my $sha1 = '6c2f28d125aff1deea615f8de774599acf39a7a1';
@@ -1128,21 +1130,16 @@ for my $name (@bad_names, 'foo#bar') {
     ), qq{And the "$name" error message should be correct};
 }
 
-throws_ok { $plan->tag( name => 'HEAD' ) } 'App::Sqitch::X',
-    'Should get error for reserved tag "HEAD"';
-is $@->ident, 'plan', 'Reserved tag "HEAD" error ident should be "plan"';
-is $@->message, __x(
-    '"{name}" is a reserved name',
-    name => 'HEAD',
-), 'And the reserved tag "HEAD" message should be correct';
-
-throws_ok { $plan->tag( name => 'ROOT' ) } 'App::Sqitch::X',
-    'Should get error for reserved tag "ROOT"';
-is $@->ident, 'plan', 'Reserved tag "ROOT" error ident should be "plan"';
-is $@->message, __x(
-    '"{name}" is a reserved name',
-    name => 'ROOT',
-), 'And the reserved tag "ROOT" message should be correct';
+# Validate reserved names.
+for my $reserved (qw(HEAD ROOT FIRST LAST)) {
+    throws_ok { $plan->tag( name => $reserved ) } 'App::Sqitch::X',
+        qq{Should get error for reserved tag "$reserved"};
+    is $@->ident, 'plan', qq{Reserved tag "$reserved" error ident should be "plan"};
+    is $@->message, __x(
+        '"{name}" is a reserved name',
+        name => $reserved,
+    ), qq{And the reserved tag "$reserved" message should be correct};
+}
 
 throws_ok { $plan->tag( name => $sha1 ) } 'App::Sqitch::X',
     'Should get error for a SHA1 tag';
@@ -1211,20 +1208,15 @@ for my $name (@bad_names) {
 }
 
 # Try a reserved name.
-throws_ok { $plan->add( name => 'HEAD' ) } 'App::Sqitch::X',
-    'Should get error for reserved name "HEAD"';
-is $@->ident, 'plan', 'Reserved name "HEAD" error ident should be "plan"';
-is $@->message, __x(
-    '"{name}" is a reserved name',
-    name => 'HEAD',
-), 'And the reserved name "HEAD" message should be correct';
-throws_ok { $plan->add(name => 'ROOT' ) } 'App::Sqitch::X',
-    'Should get error for reserved name "ROOT"';
-is $@->ident, 'plan', 'Reserved name "ROOT" error ident should be "plan"';
-is $@->message, __x(
-    '"{name}" is a reserved name',
-    name => 'ROOT',
-), 'And the reserved name "ROOT" message should be correct';
+for my $reserved (qw(HEAD ROOT FIRST LAST)) {
+    throws_ok { $plan->add( name => $reserved ) } 'App::Sqitch::X',
+        qq{Should get error for reserved name "$reserved"};
+    is $@->ident, 'plan', qq{Reserved name "$reserved" error ident should be "plan"};
+    is $@->message, __x(
+        '"{name}" is a reserved name',
+        name => $reserved,
+    ), qq{And the reserved name "$reserved" message should be correct};
+}
 
 # Try an unknown dependency.
 throws_ok { $plan->add( name => 'whu', requires => ['nonesuch' ] ) } 'App::Sqitch::X',

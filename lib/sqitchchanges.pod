@@ -164,39 +164,38 @@ the current project.
 
 =item C<@HEAD>
 
-Special symbolic name for the last change in the plan or deployed to the
-database. Typically omitted.
+Special symbolic name for the last change in the plan.
 
 =item C<@ROOT>
 
-Special symbolic name for the first change in the plan or deployed to the
-database. Typically omitted.
+Special symbolic name for the first change in the plan.
 
-=begin comment
+=item C<@FIRST>
 
-These are not yet implemented.
+Special symbolic name for the first change deployed to the database from the
+current project.
 
-=item C<< <change>^ >>, e.g., C<HEAD^^>, C<users_table^3>, C<@beta^2>
+=item C<@LAST>
+
+Special symbolic name for the last change deployed to the database from the
+current project.
+
+=item C<< <change>^ >>, e.g., C<@HEAD^^>, C<@LAST^3>, C<@beta^2>
 
 A suffix C<^> to a symbolic or actual name means the change I<prior> to that
-change. Multiple C<^>s indicate multiple prior changes. These can also be
-written as C<< ^<n> >>, where C<< <n> >> represents the number of changes to
-go back.
+change. Two C<^>s indicate the second prior change. Additional prior changes
+can be specified as C<< ^<n> >>, where C<< <n> >> represents the number of
+changes to go back.
 
-=item C<< <change>~ >>, e.g., C<ROOT~>, C<foo~~>, C<@bar~4>
+=item C<< <change>~ >>, e.g., C<@ROOT~>, C<@FIRST~~>, C<@bar~4>
 
-A suffix C<~> to a symbolic or actual name that means the change I<after> that
-change. Multiple C<~>s indicate multiple prior changes. These can also be
-written as C<< ~<n> >>, where C<< <n> >> represents the number of changes to
-go forward.
-
-=end comment
+A suffix C<~> to a symbolic or actual name means the change I<after> that
+change. Two C<~>s indicate the second following change. Additional following
+changes can be specified as C<< ~<n> >>, where C<< <n> >> represents the
+number of changes to go forward.
 
 =back
 
 =head1 Sqitch
 
 Part of the L<sqitch> suite.
-
-
-

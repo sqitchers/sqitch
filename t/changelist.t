@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 121;
+use Test::More tests => 253;
 #use Test::More 'no_plan';
 use Test::NoWarnings;
 use Test::Exception;
@@ -12,22 +12,23 @@ use Path::Class;
 use App::Sqitch;
 use App::Sqitch::Plan;
 use Locale::TextDomain qw(App-Sqitch);
+use Test::MockModule;
 
 BEGIN { require_ok 'App::Sqitch::Plan::ChangeList' or die }
 
-my $sqitch = App::Sqitch->new( top_dir => dir qw(t sql) );
+my $sqitch = App::Sqitch->new( _engine => 'sqlite', top_dir => dir qw(t sql) );
 my $plan   = App::Sqitch::Plan->new(sqitch => $sqitch);
 
 my $foo = App::Sqitch::Plan::Change->new(plan => $plan, name => 'foo');
 my $bar = App::Sqitch::Plan::Change->new(plan => $plan, name => 'bar');
 my $baz = App::Sqitch::Plan::Change->new(plan => $plan, name => 'baz');
 my $yo1 = App::Sqitch::Plan::Change->new(plan => $plan, name => 'yo');
-my $yo2 = App::Sqitch::Plan::Change->new(plan => $plan, name => 'yo');
+my $yo2 = App::Sqitch::Plan::Change->new(plan => $plan, name => 'yo', planner_name => 'Phil');
 
 my $alpha = App::Sqitch::Plan::Tag->new(
-    plan => $plan,
+    plan   => $plan,
     change => $yo1,
-    name => 'alpha',
+    name   => 'alpha',
 );
 $yo1->add_tag($alpha);
 my $changes = App::Sqitch::Plan::ChangeList->new(
@@ -37,6 +38,11 @@ my $changes = App::Sqitch::Plan::ChangeList->new(
     $baz,
     $yo2,
 );
+
+my ($earliest_id, $latest_id);
+my $engine_mocker = Test::MockModule->new('App::Sqitch::Engine::sqlite');
+$engine_mocker->mock(earliest_change_id => sub { $earliest_id });
+$engine_mocker->mock(latest_change_id   => sub { $latest_id });
 
 is $changes->count, 5, 'Count should be six';
 is_deeply [$changes->changes], [$foo, $bar, $yo1, $baz, $yo2],
@@ -55,11 +61,66 @@ is $changes->index_of('@non'), undef, 'Should not find "@non"';
 is $changes->index_of('foo'), 0, 'Should find foo at 0';
 is $changes->index_of($foo->id), 0, 'Should find foo by ID at 0';
 is $changes->index_of('bar'), 1, 'Should find bar at 1';
+is $changes->index_of('bar^'), 0, 'Should find bar^ at 0';
+is $changes->index_of('bar~'), 2, 'Should find bar~ at 2';
+is $changes->index_of('bar~~'), 3, 'Should find bar~~ at 3';
+is $changes->index_of('bar~~~'), undef, 'Should not find bar~~~';
+is $changes->index_of('bar~2'), 3, 'Should find bar~2 at 3';
+is $changes->index_of('bar~3'), 4, 'Should find bar~3 at 4';
 is $changes->index_of($bar->id), 1, 'Should find bar by ID at 1';
 is $changes->index_of('@alpha'), 2, 'Should find @alpha at 2';
+is $changes->index_of('@alpha^'), 1, 'Should find @alpha^ at 1';
+is $changes->index_of('@alpha^^'), 0, 'Should find @alpha^^ at 1';
+is $changes->index_of('@alpha^^^'), undef, 'Should not find @alpha^^^';
 is $changes->index_of($alpha->id), 2, 'Should find @alpha by ID at 2';
 is $changes->index_of('baz'), 3, 'Should find baz at 3';
 is $changes->index_of($baz->id), 3, 'Should find baz by ID at 3';
+is $changes->index_of('baz^^^'), undef, 'Should not find baz^^^';
+is $changes->index_of('baz^3'), 0, 'Should not find baz^3 at 0';
+is $changes->index_of('baz^4'), undef, 'Should not find baz^4';
+is $changes->index_of($baz->id . '^'), 2, 'Should find baz by ID^ at 2';
+
+# Test @FIRST.
+$earliest_id = $bar->id;
+is $changes->index_of('@FIRST'), 1, 'Should find @FIRST at 1';
+is $changes->index_of('@FIRST^'), 0, 'Should find @FIRST^ at 0';
+is $changes->index_of('@FIRST~'), 2, 'Should find @FIRST~ at 2';
+is $changes->index_of('@FIRST~~'), 3, 'Should find @FIRST~~ at 3';
+is $changes->index_of('@FIRST~~~'), undef, 'Should not find @FIRST~~~';
+is $changes->index_of('@FIRST~2'), 3, 'Should find @FIRST~2 at 3';
+is $changes->index_of('@FIRST~3'), 4, 'Should find @FIRST~3 at 4';
+is $changes->first_index_of('@FIRST'), 1, 'Should find @FIRST at firest index of 1';
+is $changes->first_index_of('@FIRST^'), 0, 'Should find @FIRST^ at firest index of 0';
+is $changes->first_index_of('@FIRST~'), 2, 'Should find @FIRST~ at firest index of 2';
+is $changes->first_index_of('@FIRST~~'), 3, 'Should find @FIRST~~ at firest index of 3';
+is $changes->first_index_of('@FIRST~~~'), undef, 'Should not find @FIRST~~~';
+is $changes->first_index_of('@FIRST~2'), 3, 'Should find @FIRST~2 at firest index of 3';
+is $changes->first_index_of('@FIRST~3'), 4, 'Should find @FIRST~3 at firest index of 4';
+is $changes->get('@FIRST'), $bar, 'Should get bar for @FIRST';
+is $changes->get('@FIRST^'), $foo, 'Should get foo for @FIRST^';
+is $changes->get('@FIRST~'), $yo1, 'Should get yo1 for @FIRST~';
+is $changes->find('@FIRST'), $bar, 'Should find bar for @FIRST';
+is $changes->find('@FIRST^'), $foo, 'Should find foo for @FIRST^';
+is $changes->find('@FIRST~'), $yo1, 'Should find yo1 for @FIRST~';
+$earliest_id = undef;
+
+# Test @LAST.
+$latest_id = $yo1->id;
+is $changes->index_of('@LAST'), 2, 'Should find @LAST at 2';
+is $changes->index_of('@LAST^'), 1, 'Should find @LAST^ at 1';
+is $changes->index_of('@LAST^^'), 0, 'Should find @LAST^^ at 1';
+is $changes->index_of('@LAST^^^'), undef, 'Should not find @LAST^^^';
+is $changes->first_index_of('@LAST'), 2, 'Should find @LAST at firest index of 2';
+is $changes->first_index_of('@LAST^'), 1, 'Should find @LAST^ at firest index of 1';
+is $changes->first_index_of('@LAST^^'), 0, 'Should find @LAST^^ at firest index of 1';
+is $changes->first_index_of('@LAST^^^'), undef, 'Should not find @LAST^^^';
+is $changes->get('@LAST'), $yo1, 'Should get yo1 for @LAST';
+is $changes->get('@LAST^'), $bar, 'should get bar for @LAST^';
+is $changes->get('@LAST~'), $baz, 'should get baz for @LAST~';
+is $changes->find('@LAST'), $yo1, 'Should find yo1 for @LAST';
+is $changes->find('@LAST^'), $bar, 'should find bar for @LAST^';
+is $changes->find('@LAST~'), $baz, 'should find baz for @LAST~';
+$latest_id = undef;
 
 throws_ok { $changes->index_of('yo') } 'App::Sqitch::X',
     'Should get multiple indexes error looking for index of "yo"';
@@ -78,7 +139,11 @@ is $@->message, __x(
 ), 'Unknown taf message should be correct';
 
 is $changes->index_of('yo@alpha'), 2, 'Should get 2 for yo@alpha';
+is $changes->index_of('yo@alpha^'), 1, 'Should get 1 for yo@alpha^';
 is $changes->index_of('yo@HEAD'), 4, 'Should get 4 for yo@HEAD';
+is $changes->index_of('yo@HEAD^'), 3, 'Should get 3 for yo@HEAD^';
+is $changes->index_of('yo@HEAD~'), undef, 'Should get undef for yo@HEAD~';
+is $changes->index_of('yo@HEAD~~'), undef, 'Should get undef for yo@HEAD~~';
 is $changes->index_of('foo@alpha'), 0, 'Should get 0 for foo@alpha';
 is $changes->index_of('foo@HEAD'), 0, 'Should get 0 for foo@HEAD';
 is $changes->index_of('foo@ROOT'), 0, 'Should get 0 for foo@ROOT';
@@ -86,15 +151,26 @@ is $changes->index_of('baz@alpha'), undef, 'Should get undef for baz@alpha';
 is $changes->index_of('baz@HEAD'), 3, 'Should get 3 for baz@HEAD';
 is $changes->index_of('@HEAD'), 4, 'Should get 4 for @HEAD';
 is $changes->index_of('@ROOT'), 0, 'Should get 0 for @ROOT';
+is $changes->index_of('@HEAD^'), 3, 'Should get 3 for @HEAD^';
+is $changes->index_of('@HEAD~'), undef, 'Should get undef for @HEAD~';
+is $changes->index_of('@ROOT~'), 1, 'Should get 1 for @ROOT~';
+is $changes->index_of('@ROOT^'), undef, 'Should get undef for @ROOT^';
 
 is $changes->get('foo'), $foo, 'Should get foo for "foo"';
+is $changes->get('foo~'), $bar, 'Should get bar for "foo~"';
 is $changes->get($foo->id), $foo, 'Should get foo by ID';
 is $changes->get('bar'), $bar, 'Should get bar for "bar"';
+is $changes->get('bar^'), $foo, 'Should get foo for "bar^"';
+is $changes->get('bar~'), $yo1, 'Should get yo1 for "bar~"';
+is $changes->get('bar~~'), $baz, 'Should get baz for "bar~~"';
+is $changes->get('bar~3'), $yo2, 'Should get yo2 for "bar~3"';
 is $changes->get($bar->id), $bar, 'Should get bar by ID';
 is $changes->get($alpha->id), $yo1, 'Should get "yo" by the @alpha tag';
 is $changes->get('baz'), $baz, 'Should get baz for "baz"';
 is $changes->get($baz->id), $baz, 'Should get baz by ID';
-is $changes->get('@HEAD'), $yo2, 'Should get yo2 for "@HEAD"';
+is $changes->get('@HEAD^'), $baz, 'Should get baz for "@HEAD^"';
+is $changes->get('@HEAD^^'), $yo1, 'Should get yo1 for "@HEAD^^"';
+is $changes->get('@HEAD^3'), $bar, 'Should get bar for "@HEAD^3"';
 is $changes->get('@ROOT'), $foo, 'Should get foo for "@ROOT"';
 
 is $changes->get('yo@alpha'), $yo1, 'Should get yo1 for yo@alpha';
@@ -112,6 +188,17 @@ is $changes->find('yo@HEAD'), $yo2, 'Should find yo2 with yo@HEAD';
 is $changes->find('foo'), $foo, 'Should find foo for "foo"';
 is $changes->find('foo@alpha'), $foo, 'Should find foo for "foo@alpha"';
 is $changes->find('foo@HEAD'), $foo, 'Should find foo for "foo@HEAD"';
+is $changes->find('yo^'), $bar, 'Should find bar with "yo^"';
+is $changes->find('yo^^'), $foo, 'Should find foo with "yo^^"';
+is $changes->find('yo^2'), $foo, 'Should find foo with "yo^2"';
+is $changes->find('yo~'), $baz, 'Should find baz with "yo~"';
+is $changes->find('yo~~'), $yo2, 'Should find yo2 with "yo~~"';
+is $changes->find('yo~2'), $yo2, 'Should find yo2 with "yo~2"';
+is $changes->find('yo@alpha^'), $bar, 'Should find bar with "yo@alpha^"';
+is $changes->find('yo@alpha~'), $baz, 'Should find baz with "yo@alpha^"';
+is $changes->find('yo@HEAD^'), $baz, 'Should find baz with yo@HEAD^';
+is $changes->find('@HEAD^'), $baz, 'Should find baz with @HEAD^';
+is $changes->find('@ROOT~'), $bar, 'Should find bar with @ROOT~^';
 
 throws_ok { $changes->get('yo') } 'App::Sqitch::X',
     'Should get multiple indexes error looking for index of "yo"';
@@ -142,15 +229,27 @@ is $changes->index_of('@HEAD'), 5, 'Index of @HEAD should now be 5';
 # Now try first_index_of().
 is $changes->first_index_of('non'), undef, 'First index of "non" should be undef';
 is $changes->first_index_of('foo'), 0, 'First index of "foo" should be 0';
+is $changes->first_index_of('foo~'), 1, 'First index of "foo~" should be 1';
+is $changes->first_index_of('foo~~'), 2, 'First index of "foo~~" should be 2';
+is $changes->first_index_of('foo~3'), 3, 'First index of "foo~3" should be 3';
+is $changes->first_index_of('foo~~~'), undef, 'Should not find first index of "foo~~~"';
 is $changes->first_index_of('foo', '@ROOT'), undef, 'First index of "foo" since @ROOT should be undef';
 is $changes->first_index_of('bar'), 1, 'First index of "bar" should be 1';
 is $changes->first_index_of('yo'), 2, 'First index of "yo" should be 2';
 is $changes->first_index_of('yo', '@ROOT'), 2, 'First index of "yo" since @ROOT should be 2';
 is $changes->first_index_of('baz'), 3, 'First index of "baz" should be 3';
+is $changes->first_index_of('baz^'), 2, 'First index of "baz^" should be 2';
+is $changes->first_index_of('baz^^'), 1, 'First index of "baz^^" should be 1';
+is $changes->first_index_of('baz^3'), 0, 'First index of "baz^3" should be 0';
+is $changes->first_index_of('baz^^^'), undef, 'Should not find first index of "baz^^^"';
 is $changes->first_index_of('yo', '@alpha'), 4,
     'First index of "yo" since "@alpha" should be 4';
 is $changes->first_index_of('yo', 'baz'), 4,
-    'First index of "yo" since "baz" should be 3';
+    'First index of "yo" since "baz" should be 4';
+is $changes->first_index_of('yo^', 'baz'), 3,
+    'First index of "yo^" since "baz" should be 4';
+is $changes->first_index_of('yo~', 'baz'), 5,
+    'First index of "yo~" since "baz" should be 5';
 throws_ok { $changes->first_index_of('baz', 'nonexistent') } 'App::Sqitch::X',
     'Should get an exception for an unknown change passed to first_index_of()';
 is $@->ident, 'plan', 'Unknown change error ident should be "plan"';
@@ -216,4 +315,31 @@ for my $changes (
     if (!@{ $changes }) {
         is $n->last_change, undef, "Should find no change in empty plan";
     }
+}
+
+# Try an empty change list.
+isa_ok $changes = App::Sqitch::Plan::ChangeList->new,
+    'App::Sqitch::Plan::ChangeList';
+for my $ref (qw(
+    foo
+    bar
+    HEAD
+    @HEAD
+    ROOT
+    @ROOT
+    alpha
+    @alpha
+    FIRST
+    @FIRST
+    LAST
+    @LAST
+)) {
+    is $changes->index_of($ref), undef,
+        qq{Should not find index of "$ref" in empty list};
+    is $changes->first_index_of($ref), undef,
+        qq{Should not find first index of "$ref" in empty list};
+    is $changes->get($ref), undef,
+        qq{Should get undef for "$ref" in empty list};
+    is $changes->find($ref), undef,
+        qq{Should find undef for "$ref" in empty list};
 }

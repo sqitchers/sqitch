@@ -14,7 +14,8 @@ sub new {
         lookup         => {},
         last_tagged_at => undef,
     } => $class;
-    return $self->append(@_);
+    $self->append(@_) if @_;
+    return $self;
 }
 
 sub count       { scalar @{ shift->{list} } }
@@ -24,20 +25,59 @@ sub items       { @{ shift->{list} } }
 sub change_at   { shift->{list}[shift] }
 sub last_change { return shift->{list}[ -1 ] }
 
+sub _lookup {
+    my ( $self, $key ) = @_;
+    if ($key =~ /\A[@]?((?:LA|FIR)ST)\z/) {
+        my $change = $self->{list}[0] || return undef;
+        my $engine = $change->plan->sqitch->engine;
+        $key = (
+            $1 eq 'LAST'
+                ? $engine->latest_change_id
+                : $engine->earliest_change_id
+        ) || return undef;
+    }
+    return $self->{lookup}{$key};
+}
+
+sub _offset {
+    # Look for symbolic references.
+    if ( $_[0] =~ s{([~^])(?:(\1)|(\d+))?\z}{} ) {
+        my $offset = $3 // ($2 ? 2 : 1);
+        $offset *= -1 if $1 eq '^';
+        return $offset;
+    } else {
+        return 0;
+    }
+}
+
 sub index_of {
     my ( $self, $key ) = @_;
+
+    # Look for symbolic references.
+    if ( my $offset = _offset $key ) {
+        my $idx = $self->_index_of( $key ) // return undef;
+        $idx += $offset;
+        return $idx < 0 ? undef : $idx > $#{ $self->{list} } ? undef : $idx;
+    } else {
+        return $self->_index_of( $key );
+    }
+}
+
+sub _index_of {
+    my ( $self, $key ) = @_;
+
     my ( $change, $tag ) = split /@/ => $key, 2;
 
     if ($change eq '') {
         # Just want the change with the associated tag.
-        my $idx = $self->{lookup}{'@' . $tag} or return undef;
+        my $idx = $self->_lookup('@' . $tag ) or return undef;
         return $idx->[0];
     }
 
-    my $idx = $self->{lookup}{$change} or return undef;
+    my $idx = $self->_lookup($change) or return undef;
     if (defined $tag) {
         # Wanted for a change as of a specific tag.
-        my $tag_idx = $self->{lookup}{ '@' . $tag } or hurl plan => __x(
+        my $tag_idx = $self->_lookup( '@' . $tag ) or hurl plan => __x(
             'Unknown tag "{tag}"',
             tag => '@' . $tag,
         );
@@ -57,10 +97,23 @@ sub index_of {
 }
 
 sub first_index_of {
+    my ( $self, $key, $since ) = @_;
+
+    # Look for symbolic references.
+    if ( my $offset = _offset $key ) {
+        my $idx = $self->_first_index_of( $key, $since ) // return undef;
+        $idx += $offset;
+        return $idx < 0 ? undef : $idx > $#{ $self->{list} } ? undef : $idx;
+    } else {
+        return $self->_first_index_of( $key, $since );
+    }
+}
+
+sub _first_index_of {
     my ( $self, $change, $since ) = @_;
 
     # Just return the first index if no tag.
-    my $idx = $self->{lookup}{$change} or return undef;
+    my $idx = $self->_lookup($change) or return undef;
     return $idx->[0] unless defined $since;
 
     # Find the tag index.
