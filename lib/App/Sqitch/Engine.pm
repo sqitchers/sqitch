@@ -134,9 +134,9 @@ sub revert {
         );
 
         $sqitch->info(__x(
-            'Reverting from {destination} to {target}',
-            destination => $self->destination,
+            'Reverting changes through {target} from {destination}',
             target      => $change->format_name_with_tags,
+            destination => $self->destination,
         ));
     } else {
         @change_ids = $self->deployed_change_ids or hurl {
