@@ -134,7 +134,7 @@ sub revert {
         );
 
         $sqitch->info(__x(
-            'Reverting changes through {target} from {destination}',
+            'Reverting changes to {target} from {destination}',
             target      => $change->format_name_with_tags,
             destination => $self->destination,
         ));

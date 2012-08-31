@@ -362,7 +362,7 @@ Now have a look at the status:
 Success! Let's make sure we can revert the change, as well:
 
   > sqitch revert --to @LAST^
-  Reverting from flipr_test to appschema
+  Reverting changes to appschema from flipr_test
     - users
 
 Note that we've used the C<--to> option to specify the change to revert to.
@@ -542,7 +542,7 @@ And what's the status?
 Looks good. Let's make sure revert works:
 
   > sqitch revert --to @LAST^^
-  Reverting from flipr_test to users
+  Reverting changes to users from flipr_test
     - change_pass
     - insert_user
   > psql -d flipr_test -c '\df flipr.*'
@@ -1249,7 +1249,7 @@ Awesome, the stored passwords are different now. But can we revert, even
 though we haven't written any reversion scripts?
 
   > sqitch revert --to @LAST^^
-  Reverting from flipr_test to pgcrypto
+  Reverting changes to pgcrypto from flipr_test
     - change_pass
     - insert_user
 

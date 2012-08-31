@@ -1068,7 +1068,7 @@ is_deeply $engine->seen, [
 ], 'Should have reverted only changes after @alpha';
 is_deeply +MockOutput->get_info, [
     [__x(
-        'Reverting changes through {target} from {destination}',
+        'Reverting changes to {target} from {destination}',
         destination => $engine->destination,
         target      => $plan->get('@alpha')->format_name_with_tags,
     )],
