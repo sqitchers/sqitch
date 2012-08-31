@@ -1,5 +1,7 @@
 #!perl -w -CAS
 
+use POSIX qw (setlocale LC_MESSAGES);
+setlocale LC_MESSAGES, '';
 use App::Sqitch;
 
 exit App::Sqitch->go;
