@@ -786,7 +786,7 @@ records necessary to indicate that the change has been reverted.
 
 Returns the ID of the earliest applied change from the current project. With
 the optional C<$offset> argument, the ID of the change the offset number of
-changes followin the earliest change will be returned.
+changes following the earliest change will be returned.
 
 =head3 C<latest_change_id>
 
