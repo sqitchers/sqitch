@@ -1,6 +1,22 @@
 Revision history for Perl extension App::Sqitch
 
-0.923
+0.93
+     - Added forward and reverse change references. Append ^ to a change
+       reference to mean the change before, or ~ to mean the change following.
+       Use ~~ and ^^ to select two changes forward and back, and ~n and ^n,
+       where n is an integer, to select that number of changes forward or
+       back. Idea stolen from Git, though the meanings of the characters are
+       different.
+     - Added the @FIRST and @LAST symbolic references to refer to the first
+       and last changes deployed to the database, respectively. These vary
+       from the existing @ROOT and @HEAD symbolic references, which refer to
+       the first and last changes listed in the plan.
+     - Updated the tutorial to use the new symbolic references and ^ and ~
+       qualifiers where appropriate.
+     - The messages output by the `deploy` and `revert` commands now show the
+       resolved name of the `--to` target, rather than the value passed to
+       `--to`. This is most useful when using a symbolic reference, so you
+       can see what you're actually deploying or reverting to.
 
 0.922 2012-08-30T17:41:59Z
      - Loosened constraint to disallow only `/[~^/=%]/` before digits at the
