@@ -32,6 +32,7 @@
 ^rpm\.spec$
 ^target
 ^arco
+^po/
 
 ^dist\.ini$
 ^MYMETA\.yml$
