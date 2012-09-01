@@ -46,12 +46,15 @@ $(TD).pot: $(POTFILES)
 		--add-comments=TRANSLATORS: \
 		--copyright-holder="$(COPYRIGHT_HOLDER)" \
 		--msgid-bugs-address="$(MSGID_BUGS_ADDRESS)" \
+	    --package-name="$(PACKAGE_NAME)" \
+	    --package-version="$(PACKAGE_VERSION)" \
 		--keyword --keyword='$$__' --keyword=__ --keyword=__x \
 		--keyword=__n:1,2 --keyword=__nx:1,2 --keyword=__xn:1,2 \
 		--keyword=__p:1c,2 --keyword=__np:1c,2,3 \
 		--keyword=__npx:1c,2,3 --keyword=N__ --keyword=N__n:1,2 \
 		--keyword=N__p:1c,2 --keyword=N__np:1c,2,3 --keyword=%__ \
 		--language=perl `find $(libdir) -name '*.pm'` && \
+    perl -i -pe 's{CHARSET}{UTF-8}' $(TD).pox && \
 	rm -f $@ && mv $(TD).pox $@
 
 install: $(MO_FILES)

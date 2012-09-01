@@ -14,3 +14,6 @@ TEXTDOMAIN = App-Sqitch
 
 # Where to send msgid bugs?  
 MSGID_BUGS_ADDRESS = david@justatheory.com
+
+PACKAGE_NAME = Sqitch
+PACKAGE_VERSION = 0.93
