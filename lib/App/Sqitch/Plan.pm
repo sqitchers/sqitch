@@ -17,7 +17,7 @@ use namespace::autoclean;
 use Moose;
 use constant SYNTAX_VERSION => '1.0.0-b2';
 
-our $VERSION = '0.93';
+our $VERSION = '0.931';
 
 # Like [:punct:], but excluding _. Copied from perlrecharclass.
 my $punct = q{-!"#$%&'()*+,./:;<=>?@[\\]^`{|}~};
