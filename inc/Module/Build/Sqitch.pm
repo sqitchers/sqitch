@@ -18,6 +18,7 @@ sub new {
     }
     my $self = $class->SUPER::new(%p);
     $self->add_build_element('etc');
+    $self->add_build_element('mo');
     $self->add_build_element('sql');
     return $self;
 }

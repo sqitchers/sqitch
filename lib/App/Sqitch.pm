@@ -41,7 +41,6 @@ BEGIN {
             unless $_ ~~ [qw(pg sqlite)];
         1;
     };
-
 }
 
 # Okay to loas Sqitch classes now that typess are created.
