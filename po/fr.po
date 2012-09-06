@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Sqitch 0.931\n"
 "Report-Msgid-Bugs-To: david@justatheory.com\n"
-"POT-Creation-Date: 2012-08-31 17:15-0700\n"
+"POT-Creation-Date: 2012-09-06 13:40-0700\n"
 "PO-Revision-Date: 2012-08-31 17:15-0700\n"
 "Last-Translator: David Wheeler <david@justatheory.com>\n"
 "Language-Team: French <david@justatheory.com>\n"
@@ -797,31 +797,31 @@ msgstr ""
 msgid "Unknown engine: {engine}"
 msgstr ""
 
-#: ../lib/App/Sqitch.pm:77
+#: ../lib/App/Sqitch.pm:76
 msgid "No engine specified; use --engine or set core.engine"
 msgstr ""
 
-#: ../lib/App/Sqitch.pm:193
+#: ../lib/App/Sqitch.pm:192
 msgid "Cannot find your name; run sqitch config --user user.name \"YOUR NAME\""
 msgstr ""
 
-#: ../lib/App/Sqitch.pm:214
+#: ../lib/App/Sqitch.pm:213
 msgid ""
 "Cannot infer your email address; run sqitch config --user user.email "
 "you@host.com"
 msgstr ""
 
-#: ../lib/App/Sqitch.pm:433
+#: ../lib/App/Sqitch.pm:432
 #, perl-brace-format
 msgid "Cannot exec {command}: {error}"
 msgstr ""
 
-#: ../lib/App/Sqitch.pm:440
+#: ../lib/App/Sqitch.pm:439
 #, perl-brace-format
 msgid "Error closing pipe to {command}: {error}"
 msgstr ""
 
-#: ../lib/App/Sqitch.pm:444
+#: ../lib/App/Sqitch.pm:443
 #, perl-brace-format
 msgid "{command} unexpectedly returned exit value {exitval}"
 msgstr ""

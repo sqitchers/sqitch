@@ -5,10 +5,8 @@ libdir = ../lib
 
 #CATALOGS = $(addsuffix .po, LINGUAS)
 CATALOGS = $(LINGUAS)
-MO_FILES = $(addsuffix .mo, $(LINGUAS))
 
 MSGMERGE = msgmerge
-MSGFMT   = msgfmt
 XGETTEXT = xgettext
 CATOBJEXT = .po
 
@@ -18,20 +16,18 @@ TD = $(strip $(TEXTDOMAIN))
 
 default: help
 
-all: $(TD).pot update-po update-mo install
+all: $(TD).pot update-po
 
 help:
 	@echo "Available targets:"
-	@echo "  pot                       - remake master catalog"
-	@echo "  update-po                 - merge po files"
-	@echo "  update-mo                 - regenerate mo files"
-	@echo "  install                   - install mo files"
-	@echo "  all			   - all of the above"
+	@echo "  pot               - remake master catalog"
+	@echo "  update-po         - merge po files"
+	@echo "  all               - all of the above"
 
 pot: $(TD).pot 
 
 clean:
-	rm -f *~ *.bak *.mo
+	rm -f *~ *.bak
 
 # FIXME: The parameter --from-code is only needed if your sources contain
 # any 8 bit data (even in comments).  UTF-8 is only a guess here, but it
@@ -57,20 +53,6 @@ $(TD).pot: $(POTFILES)
     perl -i -pe 's{CHARSET}{UTF-8}' $(TD).pox && \
 	rm -f $@ && mv $(TD).pox $@
 
-install: $(MO_FILES)
-	cd $(srcdir); \
-	targetdir='$(libdir)/LocaleData'; \
-	languages='$(LINGUAS)'; \
-	for lang in $$languages; do \
-		mkdir -p "$$targetdir/$$lang/LC_MESSAGES" || exit 1; \
-		dest="$$targetdir/$$lang/LC_MESSAGES/$(TD).mo"; \
-		cat="$$lang.mo"; \
-		echo "installing $$cat as $$dest"; \
-		cp -f $$cat $$dest && chmod 644 $$dest || exit 1; \
-	done
-
-update-mo: $(MO_FILES)
-
 update-po:
 	$(MAKE) $(TD).pot
 	cd $(srcdir); \
@@ -90,8 +72,4 @@ update-po:
         done
 
 .SUFFIXES:
-.SUFFIXES: .po .mo
-
-.po.mo:
-	$(MSGFMT) --check --statistics --verbose -o $@ $<
-
+.SUFFIXES: .po
