@@ -162,7 +162,7 @@ see the role:
   List of schemas
    Name  | Owner 
   -------+-------
-   flipr | david
+   flipr | marge
 
 And we can also see how the deployment was recorded via the C<status> command,
 which reads the metadata tables from the database:
@@ -242,7 +242,7 @@ And now the user should be back:
   List of schemas
    Name  | Owner 
   -------+-------
-   flipr | david
+   flipr | marge
 
 When we look at the status, the deployment will be there:
 
