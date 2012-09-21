@@ -45,7 +45,7 @@ can_ok $CLASS, qw(
 );
 
 is_deeply [$CLASS->options], [qw(
-    dest_dir|dir=s
+    dest-dir|dir=s
     from=s
     to=s
 )], 'Should have dest_dir option';

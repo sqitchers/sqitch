@@ -79,7 +79,7 @@ has dest_test_dir => (
 
 sub options {
     return qw(
-        dest_dir|dir=s
+        dest-dir|dir=s
         from=s
         to=s
     );
