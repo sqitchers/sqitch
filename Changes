@@ -1,6 +1,9 @@
 Revision history for Perl extension App::Sqitch
 
 0.931
+     - Now properly require Text::LocaleDomain 1.20.
+     - Stubbed out French and German localization files. Translators wanted!
+     - Added LocaleTextDomain dzil support (no impact on distribution).
 
 0.93  2012-08-31T22:29:41Z
      - Added forward and reverse change references. Append ^ to a change
