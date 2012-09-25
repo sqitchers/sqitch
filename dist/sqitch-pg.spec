@@ -31,6 +31,9 @@ package bundles the Sqith PostgreSQL support.
 %files
 
 %changelog
+* Fri Sep 25 2012 David E. Wheeler <david.wheeler@iovation.com> 0.931-1
+- Upgrade to v0.931.
+
 * Fri Aug 31 2012 David E. Wheeler <david.wheeler@iovation.com> 0.930-1
 - Upgrade to v0.93.
 

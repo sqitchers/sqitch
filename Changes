@@ -1,9 +1,11 @@
 Revision history for Perl extension App::Sqitch
 
-0.931
+0.931 2012-09-25T19:09:14Z
      - Now properly require Text::LocaleDomain 1.20.
      - Stubbed out French and German localization files. Translators wanted!
      - Added LocaleTextDomain dzil support (no impact on distribution).
+     - Fix "List form of pipe open not implemented" bug on Windows by using
+       Win32::ShellQuote to quote commands.
 
 0.93  2012-08-31T22:29:41Z
      - Added forward and reverse change references. Append ^ to a change
