@@ -427,8 +427,13 @@ sub capture {
 
 sub spool {
     my ($self, $fh) = (shift, shift);
+    my @cmd = $^O eq 'MSWin32' ? do {
+        require Win32::ShellQuote;
+        Win32::ShellQuote::quote_system(@_)
+    } : @_;
+
     local $SIG{__WARN__} = sub { }; # Silence warning.
-    open my $pipe, '|-', @_ or hurl io => __x(
+    open my $pipe, '|-', @cmd or hurl io => __x(
         'Cannot exec {command}: {error}',
         command => $_[0],
         error   => $!,
