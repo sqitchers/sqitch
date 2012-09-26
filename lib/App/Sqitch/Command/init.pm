@@ -65,24 +65,28 @@ sub configure {
 sub make_directories {
     my $self   = shift;
     my $sqitch = $self->sqitch;
-    my $sep    = dir('')->stringify; # OS-specific directory separator.
     for my $attr (qw(deploy_dir revert_dir test_dir)) {
-        my $dir = $sqitch->$attr;
-        $self->info(__x(
-            'Created {file}',
-            file => "$dir$sep"
-        )) if make_path $dir, { error => \my $err };
-        if ( my $diag = shift @{ $err } ) {
-            my ( $path, $msg ) = %{ $diag };
-            hurl init => __x(
-                'Error creating {path}: {error}',
-                path  => $path,
-                error => $msg,
-            ) if $path;
-            hurl init => $msg;
-        }
+        $self->_mkdir( $sqitch->$attr );
     }
     return $self;
+}
+
+sub _mkdir {
+    my ( $self, $dir ) = @_;
+    my $sep    = dir('')->stringify; # OS-specific directory separator.
+    $self->info(__x(
+        'Created {file}',
+        file => "$dir$sep"
+    )) if make_path $dir, { error => \my $err };
+    if ( my $diag = shift @{ $err } ) {
+        my ( $path, $msg ) = %{ $diag };
+        hurl init => __x(
+            'Error creating {path}: {error}',
+            path  => $path,
+            error => $msg,
+        ) if $path;
+        hurl init => $msg;
+    }
 }
 
 sub write_plan {
@@ -90,6 +94,7 @@ sub write_plan {
     my $sqitch = $self->sqitch;
     my $file   = $sqitch->plan_file;
     return $self if -f $file;
+    $self->_mkdir( $file->dir ) unless -d $file->dir;
 
     my $fh = $file->open('>:encoding(UTF-8)') or hurl init => __x(
         'Cannot open {file}: {error}',

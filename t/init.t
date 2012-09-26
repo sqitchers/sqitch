@@ -455,12 +455,16 @@ file_contents_like $plan_file, qr/testing 1, 2, 3/,
 
 # Make sure a URI gets written, if present.
 $plan_file->remove;
+$sqitch = App::Sqitch->new(top_dir => dir 'plan.dir');
+END { remove_tree dir('plan.dir')->stringify }
+$plan_file = $sqitch->plan_file;
 ok $init = $CLASS->new(
     sqitch => $sqitch,
     uri    => $uri,
 ), 'Create new init with sqitch with project and URI';
 ok $init->write_plan( 'howdy' ), 'Write the plan file again';
 is_deeply +MockOutput->get_info, [
+    [__x 'Created {file}', file => $plan_file->dir . $sep],
     [__x 'Created {file}', file => $plan_file]
 ], 'The plan creation should be sent to info againq';
 file_exists_ok $plan_file, 'Plan file should again exist';
