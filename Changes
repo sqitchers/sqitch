@@ -1,6 +1,8 @@
 Revision history for Perl extension App::Sqitch
 
 0.932
+     - One more attemp to fix "List form of pipe open not implemented" bug on
+       Windows.
 
 0.931 2012-09-25T19:09:14Z
      - Now properly require Text::LocaleDomain 1.20.
