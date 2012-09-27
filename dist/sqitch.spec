@@ -154,7 +154,10 @@ rm -rf $RPM_BUILD_ROOT
 %{etcdir}/*
 
 %changelog
-* wed Sep 26 2012 David E. Wheeler <david.wheeler@iovation.com> 0.932-1
+* Thu Sep 27 2012 David E. Wheeler <david.wheeler@iovation.com> 0.933-1
+- Upgrade to v0.933.
+
+* Wed Sep 26 2012 David E. Wheeler <david.wheeler@iovation.com> 0.932-1
 - Upgrade to v0.932.
 
 * Tue Sep 25 2012 David E. Wheeler <david.wheeler@iovation.com> 0.931-1
