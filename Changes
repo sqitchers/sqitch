@@ -3,9 +3,11 @@ Revision history for Perl extension App::Sqitch
 0.933
      - The `init` command no longer fails if `--top-dir` does not exist. It
        creates it.
+     - Yet another attempt to fix "List form of pipe open not implemented" bug
+       on Windows.
 
 0.932 2012-09-26T21:32:48Z
-     - One more attemp to fix "List form of pipe open not implemented" bug on
+     - One more attempt to fix "List form of pipe open not implemented" bug on
        Windows.
 
 0.931 2012-09-25T19:09:14Z
