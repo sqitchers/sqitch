@@ -449,7 +449,7 @@ sub spool {
     close $pipe or hurl io => $! ? __x(
         'Error closing pipe to {command}: {error}',
          command => $_[0],
-         errror  => $!,
+         error   => $!,
     ) : __x(
         '{command} unexpectedly returned exit value {exitval}',
         command => $_[0],
