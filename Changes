@@ -1,6 +1,6 @@
 Revision history for Perl extension App::Sqitch
 
-0.934
+0.934 2012-09-28T16:43:43Z
      - Fixed typo in error handling that prevented an I/O error message from
        being properly emitted.
 
