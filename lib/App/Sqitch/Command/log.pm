@@ -22,7 +22,7 @@ BEGIN {
     $ENV{ANSI_COLORS_DISABLED} = 1 unless CAN_OUTPUT_COLOR;
 }
 
-our $VERSION = '0.934';
+our $VERSION = '0.935';
 
 my %FORMATS;
 $FORMATS{raw} = <<EOF;
