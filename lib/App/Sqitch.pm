@@ -431,7 +431,7 @@ sub spool {
     my $pipe;
     if ($^O eq 'MSWin32') {
         require Win32::ShellQuote;
-        open $pipe, '|' . Win32::ShellQuote::quote_system(@_) or hurl io => __x(
+        open $pipe, '|' . Win32::ShellQuote::quote_native(@_) or hurl io => __x(
             'Cannot exec {command}: {error}',
             command => $_[0],
             error   => $!,
