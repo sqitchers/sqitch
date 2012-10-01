@@ -165,6 +165,8 @@ is_deeply +MockOutput->get_debug, [
 ], 'The mkdir and copy info should have been output';
 
 # Copy it again.
+diag "Src: ", -M $file;
+diag "Dst: ", -M $dest;
 ok $bundle->_copy_if_modified($file, $dest), "Copy $file to $dest again";
 file_exists_ok $dest, "File $dest should still exist";
 file_contents_identical $dest, $file;
