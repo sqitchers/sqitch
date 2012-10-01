@@ -24,7 +24,7 @@ is_deeply [$CLASS->config_vars], [
 my $sqitch = App::Sqitch->new;
 isa_ok my $sqlite = $CLASS->new(sqitch => $sqitch, db_name => 'foo'), $CLASS;
 
-is $sqlite->client, 'sqlite3' . ($^O eq 'Win32' ? '.exe' : ''),
+is $sqlite->client, 'sqlite3' . ($^O eq 'MSWin32' ? '.exe' : ''),
     'client should default to sqlite3';
 is $sqlite->db_name, 'foo', 'db_name should be required';
 is $sqlite->sqitch_prefix, 'sqitch',

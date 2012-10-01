@@ -34,7 +34,7 @@ is_deeply [$CLASS->config_vars], [
 my $sqitch = App::Sqitch->new;
 isa_ok my $pg = $CLASS->new(sqitch => $sqitch), $CLASS;
 
-my $client = 'psql' . ($^O eq 'Win32' ? '.exe' : '');
+my $client = 'psql' . ($^O eq 'MSWin32' ? '.exe' : '');
 is $pg->client, $client, 'client should default to psql';
 is $pg->sqitch_schema, 'sqitch', 'sqitch_schema default should be "sqitch"';
 for my $attr (qw(username password db_name host port)) {

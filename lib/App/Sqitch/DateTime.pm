@@ -54,7 +54,7 @@ sub as_string {
             s/\+0000$/-0000/;
         return $rv;
     } else {
-        if ($^O eq 'Win32') {
+        if ($^O eq 'MSWin32') {
             require Win32::Locale;
             $dt->set( locale => Win32::Locale::get_locale() );
         } else {
