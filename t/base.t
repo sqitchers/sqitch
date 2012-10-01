@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 95;
+use Test::More tests => 99;
 #use Test::More 'no_plan';
 use Test::MockModule;
 use Path::Class;
@@ -305,10 +305,15 @@ is capture_stdout {
 }, $data, 'Data should have been sent to STDOUT by read.pl';
 like capture_stderr {
     throws_ok { $sqitch->spool($fh, $^X, 'die.pl') }
-        qr/\Q$^X\E unexpectedly returned exit value /,
-        'Should get error when die.pl dies';
+        'App::Sqitch::X', 'Should get error when die.pl dies';
+    is $@->ident, 'io', 'Error ident should be "io"';
+    like $@->message,
+        qr/\Q$^X\E unexpectedly returned exit value |\QError closing pipe to/,
+        'The error message should be one of the I/O messages';
 }, qr/OMGWTF/, 'The die script STDERR should have passed through';
 
 throws_ok { $sqitch->spool($fh, '--nosuchscript.ply--') }
-    qr/\QCannot exec --nosuchscript.ply--: No such file/,
-    'Should get an error for a bad command';
+    'App::Sqitch::X', 'Should get an error for a bad command';
+is $@->ident, 'io', 'Error ident should be "io"';
+like $@->message, qr/\QCannot exec --nosuchscript.ply--:/,
+    'Error message should be about inability to exec';
