@@ -3,8 +3,8 @@
 use strict;
 use warnings;
 use utf8;
-#use Test::More tests => 93;
-use Test::More 'no_plan';
+use Test::More tests => 124;
+#use Test::More 'no_plan';
 use App::Sqitch;
 use Test::NoWarnings;
 use Path::Class;
@@ -168,8 +168,9 @@ is_deeply +MockOutput->get_debug, [
 ok $bundle->_copy_if_modified($file, $dest), "Copy $file to $dest again";
 file_exists_ok $dest, "File $dest should still exist";
 file_contents_identical $dest, $file;
-is_deeply +MockOutput->get_debug, [], 'Should have no mkdir output';
-is_deeply +MockOutput->get_debug, [], 'No copy message should have been emitted';
+my $out = MockOutput->get_debug;
+is_deeply $out, [], 'Should have debugging output'
+    or do { require Data::Dumper; diag Data::Dumper::Dumper($out) };
 
 # Make it old and copy it again.
 utime 0, $file->stat->mtime - 1, $dest;
