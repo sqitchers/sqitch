@@ -136,7 +136,7 @@ sub _copy_if_modified {
 
     if (-e $dst) {
         # Skip the file if it is up-to-date.
-        return $self if -M $dst < -M $src;
+        return $self if -M $dst <= -M $src;
     } else {
         # Create the directory.
         $self->_mkpath( $dst->dir );
