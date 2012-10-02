@@ -1,8 +1,22 @@
 Revision history for Perl extension App::Sqitch
 
 0.935
-     - Fixed "'2' is not recognized as an internal or external command,
-       operable program or batch file" error on Windows.
+     - Updated `dist/sqitch-pg.spec` to require `postgresql` rather than
+       "postgresql91". The version doesn't matter so much.
+     - All known Windows issues and failures fixed, with many thanks to Randy
+       Stauner for repeatedly running tests and supplying patches:
+       - Fixed "'2' is not recognized as an internal or external command,
+         operable program or batch file" error on Windows.
+       - Fixed multiple errors detecting Windows. The OS name is "MSWin32",
+         not "Win32". The test failure thus addressed was the setting of the
+         DateTime locale.
+       - Fixed failing tests that were incorrectly comparing subprocess errors
+         messages on Windows
+       - Fixed bug in `bundle` where a file would be re-copied even if the
+         source and destination had the same timestamps, as they seem to do
+         during tests on Windows. Patch from Randy Stauner.
+       - Fixed failing test that failed to include `.exe` in a file name on
+         Windows. Patch from Randy Stauner.
 
 0.934 2012-09-28T16:43:43Z
      - Fixed typo in error handling that prevented an I/O error message from
