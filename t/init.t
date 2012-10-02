@@ -19,6 +19,8 @@ use URI;
 use lib 't/lib';
 use MockOutput;
 
+my $exe_ext = $^O eq 'MSWin32' ? '.exe' : '';
+
 my $CLASS;
 
 BEGIN {
@@ -309,7 +311,7 @@ is_deeply read_config $conf_file, {
 file_contents_like $conf_file, qr{^\Q# [core "sqlite"]
 	# sqitch_prefix = sqitch
 	# db_name = 
-	# client = sqlite3
+	# client = sqlite3$exe_ext
 }m, 'Engine section should be present but commented-out';
 
 # Now build it with other config.
@@ -389,7 +391,7 @@ is_deeply read_config $conf_file, {
 
 file_contents_like $conf_file, qr{^\Q# [core "pg"]
 	# db_name = 
-	# client = psql
+	# client = psql$exe_ext
 	# sqitch_schema = sqitch
 	# password = 
 	# port = 
