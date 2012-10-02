@@ -8,7 +8,6 @@ use Test::More tests => 33;
 use Locale::TextDomain qw(App-Sqitch);
 use Test::NoWarnings;
 use Test::Exception;
-require POSIX;
 
 my $CLASS = 'App::Sqitch::DateTime';
 require_ok $CLASS;
@@ -43,7 +42,13 @@ my $iso = do {
 my $ldt = do {
     my $clone = $dt->clone;
     $clone->set_time_zone('local');
-    $clone->set(locale => POSIX::setlocale(POSIX::LC_TIME()) );
+    if ($^O eq 'MSWin32') {
+        require Win32::Locale;
+        $clone->set( locale => Win32::Locale::get_locale() );
+    } else {
+        require POSIX;
+        $clone->set( locale => POSIX::setlocale( POSIX::LC_TIME() ) );
+    }
     $clone;
 };
 
