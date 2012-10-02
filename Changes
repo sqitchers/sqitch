@@ -1,6 +1,6 @@
 Revision history for Perl extension App::Sqitch
 
-0.935
+0.935 2012-10-02T19:21:05Z
      - Updated `dist/sqitch-pg.spec` to require `postgresql` rather than
        "postgresql91". The version doesn't matter so much.
      - All known Windows issues and failures fixed, with many thanks to Randy
