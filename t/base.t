@@ -315,5 +315,6 @@ like capture_stderr {
 throws_ok { $sqitch->spool($fh, '--nosuchscript.ply--') }
     'App::Sqitch::X', 'Should get an error for a bad command';
 is $@->ident, 'io', 'Error ident should be "io"';
-like $@->message, qr/\QCannot exec --nosuchscript.ply--:/,
+like $@->message,
+    qr/\QCannot exec --nosuchscript.ply--:\E|\QError closing pipe to --nosuchscript.ply--:/,
     'Error message should be about inability to exec';
