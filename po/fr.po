@@ -219,9 +219,9 @@ msgid ""
 "invalid project name \"{project}\": project names must not begin with "
 "punctuation, contain \"@\", \":\", or \"#\", or end in punctuation or digits "
 "following punctuation"
-msgstr "nom de projet invalide  \"{project}\" : les noms de projets ne doivent
-pas commencer par de la ponctuation, contenir \"@\", \":\", ou \"#\", ou se
-terminer par de la ponctuation ou des chiffres après de la ponctuation"
+msgstr "nom de projet invalide  \"{project}\" : les noms de projets ne doivent "
+"pas commencer par de la ponctuation, contenir \"@\", \":\", ou \"#\", ou se "
+"terminer par de la ponctuation ou des chiffres après de la ponctuation"
 
 #: lib/App/Sqitch/Plan.pm:241
 #, perl-format, perl-brace-format
@@ -232,9 +232,9 @@ msgstr "Pragma %project absent dans {file}"
 msgid ""
 "Invalid name; names must not begin with punctuation, contain \"@\", \":\", "
 "or \"#\", or end in punctuation or digits following punctuation"
-msgstr "Nom invalide; les noms ne doivent pas commencer par de la ponctuation,
-contenir  \"@\", \":\", ou \"#\", ou se terminer par de la ponctuation ou des
-chiffres après de la ponctuation"
+msgstr "Nom invalide; les noms ne doivent pas commencer par de la ponctuation, "
+"contenir  \"@\", \":\", ou \"#\", ou se terminer par de la ponctuation ou des "
+"chiffres après de la ponctuation"
 
 #: lib/App/Sqitch/Plan.pm:301
 msgid "Missing timestamp and planner name and email"
@@ -366,9 +366,9 @@ msgstr "\"{name}\" est invalide : les changements ne doivent pas commencer par d
 msgid ""
 "\"{name}\" is invalid: tags must not begin with punctuation, contain \"@\", "
 "\":\", or \"#\", or end in punctuation or digits following punctuation"
-msgstr "\"{name}\" est invalide : les étiquettes ne doivent pas commencer par
-de la ponctuation, contenir  \"@\", \":\", ou \"#\", ou se terminer par de la
-ponctuation ou des chiffres après de la ponctuation"
+msgstr "\"{name}\" est invalide : les étiquettes ne doivent pas commencer par "
+"de la ponctuation, contenir  \"@\", \":\", ou \"#\", ou se terminer par de la "
+"ponctuation ou des chiffres après de la ponctuation"
 
 #: lib/App/Sqitch/Plan.pm:816 lib/App/Sqitch/Plan.pm:825
 #: lib/App/Sqitch/Command/bundle.pm:201 lib/App/Sqitch/Command/bundle.pm:208
@@ -436,7 +436,7 @@ msgstr "Copie {source} -> {dest}"
 #: lib/App/Sqitch/Command/bundle.pm:152
 #, perl-brace-format
 msgid "Cannot copy \"{source}\" to \"{dest}\": {error}"
-msgstr "Impossible de copier \"{SOURCE}\" vers \"{dest}\" : {error}"
+msgstr "Impossible de copier \"{source}\" vers \"{dest}\" : {error}"
 
 #: lib/App/Sqitch/Command/bundle.pm:162
 msgid "Writing config"
@@ -488,9 +488,9 @@ msgid ""
 "invalid project name \"{project}\": project names must not begin with "
 "punctuation, contain \"@\" or \":\", or end in punctuation or digits "
 "following punctuation"
-msgstr "nom de projet invalide  \"{project}\" : les noms de projets ne doivent
-pas commencer par de la ponctuation, contenir \"@\" ou \":\", ou se terminer
-par de la ponctuation ou des chiffres après de la ponctuation"
+msgstr "nom de projet invalide  \"{project}\" : les noms de projets ne doivent "
+"pas commencer par de la ponctuation, contenir \"@\" ou \":\", ou se terminer "
+"par de la ponctuation ou des chiffres après de la ponctuation"
 
 #: lib/App/Sqitch/Command/log.pm:162
 msgid "Deploy"
@@ -761,7 +761,7 @@ msgstr "Le schéma Sqitch \"{schema}\" existe déjà"
 #, perl-brace-format
 msgid ""
 "Cannot register \"{project}\" with URI {uri}: already exists with NULL URI"
-msgstr "Impossible d'enregistrer \"{project}\" avec l'URI {ui} : il existe déjà avec un URI NULL"
+msgstr "Impossible d'enregistrer \"{project}\" avec l'URI {uri} : il existe déjà avec un URI NULL"
 
 #: lib/App/Sqitch/Engine/pg.pm:245
 #, perl-brace-format

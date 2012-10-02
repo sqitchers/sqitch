@@ -17,6 +17,7 @@ Revision history for Perl extension App::Sqitch
          during tests on Windows. Patch from Randy Stauner.
        - Fixed failing test that failed to include `.exe` in a file name on
          Windows. Patch from Randy Stauner.
+     - Added French translation, with thanks to Arnaud (Arhuman) ASSAD!
 
 0.934 2012-09-28T16:43:43Z
      - Fixed typo in error handling that prevented an I/O error message from
