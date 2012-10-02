@@ -43,7 +43,10 @@ my $iso = do {
 my $ldt = do {
     my $clone = $dt->clone;
     $clone->set_time_zone('local');
+  # sometimes Windows returns things DateTime doesn't like ("English_United States.1252")
+  eval {
     $clone->set(locale => POSIX::setlocale(POSIX::LC_TIME()) );
+  } or diag $@;
     $clone;
 };
 
