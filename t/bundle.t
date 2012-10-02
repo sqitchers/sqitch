@@ -165,15 +165,11 @@ is_deeply +MockOutput->get_debug, [
 ], 'The mkdir and copy info should have been output';
 
 # Copy it again.
-diag "Src: ", -M $file, ' ' . (stat($file))[9];
-diag "Dst: ", -M $dest, ' ' . (stat($dest))[9];
-diag "Src == Dst: ", (-M $file) == (-M $dest);
 ok $bundle->_copy_if_modified($file, $dest), "Copy $file to $dest again";
 file_exists_ok $dest, "File $dest should still exist";
 file_contents_identical $dest, $file;
 my $out = MockOutput->get_debug;
-is_deeply $out, [], 'Should have debugging output'
-    or do { require Data::Dumper; diag Data::Dumper::Dumper($out) };
+is_deeply $out, [], 'Should have debugging output';
 
 # Make it old and copy it again.
 utime 0, $file->stat->mtime - 1, $dest;
