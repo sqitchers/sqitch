@@ -128,6 +128,10 @@ has psql => (
             push @ret, "--$spec->[0]" => $spec->[1] if $spec->[1];
         }
 
+        if (my %vars = $self->variables) {
+            push @ret => map {; '--set', "$_=$vars{$_}" } sort keys %vars;
+        }
+
         push @ret => (
             '--quiet',
             '--no-psqlrc',

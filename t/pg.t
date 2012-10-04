@@ -56,6 +56,17 @@ my @std_opts = (
 is_deeply [$pg->psql], [$client, @std_opts],
     'psql command should be std opts-only';
 
+isa_ok $pg = $CLASS->new(sqitch => $sqitch), $CLASS;
+ok $pg->set_variables(foo => 'baz', whu => 'hi there', yo => 'stellar'),
+    'Set some variables';
+is_deeply [$pg->psql], [
+    $client,
+    '--set' => 'foo=baz',
+    '--set' => 'whu=hi there',
+    '--set' => 'yo=stellar',
+    @std_opts,
+], 'Variables should be passed to psql via --set';
+
 ##############################################################################
 # Test other configs for the destination.
 ENV: {
