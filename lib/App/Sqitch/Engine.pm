@@ -592,6 +592,22 @@ subclasses may override it to provide other values, such as when neither of
 the above have values but there is nevertheless a default value assumed by the
 engine. Used internally to name the destination in status messages.
 
+=head3 variables
+
+=head3 set_variables
+
+=head3 clear_variables
+
+  my %vars = $engine->variables;
+  $engine->set_variables(foo => 'bar', baz => 'hi there');
+  $engine->clear_variables;
+
+Get, set, and clear engine variables. Variables are defined as key/value pairs
+to be passed to the engine client in calls to C<deploy> and C<revert>, if the
+client supports variables. For example, the
+L<PostgreSQL engine|App::Sqitch::Engine::pg> passes all the variables to
+the C<psql> client via the C<--set> option.
+
 =head3 C<deploy>
 
   $engine->deploy($to_target);
