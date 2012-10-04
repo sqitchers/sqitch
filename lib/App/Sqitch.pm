@@ -77,6 +77,7 @@ has _engine => (
         );
     }
 );
+
 has engine => (
     is      => 'ro',
     isa     => 'App::Sqitch::Engine',

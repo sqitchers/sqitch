@@ -23,6 +23,18 @@ has start_at => (
     isa => 'Str'
 );
 
+has _variables => (
+    traits  => ['Hash'],
+    is      => 'rw',
+    isa     => 'HashRef[Str]',
+    default => sub { {} },
+    handles => {
+        variables       => 'elements',
+        set_variables   => 'set',
+        clear_variables => 'clear',
+    },
+);
+
 sub load {
     my ( $class, $p ) = @_;
 

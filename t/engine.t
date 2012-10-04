@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use v5.10.1;
 use utf8;
-use Test::More tests => 248;
+use Test::More tests => 255;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -147,9 +147,23 @@ is +App::Sqitch::Engine::whu->name, 'whu', 'Subclass class name should be "whu"'
 
 ##############################################################################
 # Test config_vars.
-can_ok 'App::Sqitch::Engine', 'config_vars';
+can_ok $CLASS, 'config_vars';
 is_deeply [App::Sqitch::Engine->config_vars], [],
     'Should have no config vars in engine base class';
+
+##############################################################################
+# Test variables.
+can_ok $CLASS, qw(variables set_variables clear_variables);
+is_deeply [$engine->variables], [], 'Should have no variables';
+ok $engine->set_variables(foo => 'bar'), 'Add a variable';
+is_deeply [$engine->variables], [foo => 'bar'], 'Should have the variable';
+ok $engine->set_variables(foo => 'baz', whu => 'hi', yo => 'stellar'),
+    'Set more variables';
+is_deeply {$engine->variables}, {foo => 'baz', whu => 'hi', yo => 'stellar'},
+    'Should have all of the variables';
+$engine->clear_variables;
+is_deeply [$engine->variables], [], 'Should again have no variables';
+
 
 ##############################################################################
 # Test abstract methods.
