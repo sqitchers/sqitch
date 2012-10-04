@@ -27,16 +27,47 @@ has mode => (
     default => 'all',
 );
 
+has variables => (
+    is       => 'ro',
+    isa      => 'HashRef',
+    required => 1,
+    lazy     => 1,
+    default  => sub {
+        shift->sqitch->config->get_section( section => 'deploy.variables' );
+    },
+);
+
 sub options {
     return qw(
         to-target|to|target=s
         mode=s
+        set|s=s%
     );
 }
+
+sub configure {
+    my ( $class, $config, $opt ) = @_;
+
+    my %params = (
+        mode => $opt->{mode} || $config->get( key => 'deploy.mode' ) || 'all',
+    );
+
+    if ( my $vars = $opt->{set} ) {
+        # Merge with config.
+        $params{variables} = {
+            %{ $config->get_section( section => 'deploy.variables' ) },
+            %{ $vars },
+        };
+    }
+
+    return \%params;
+}
+
 
 sub execute {
     my $self   = shift;
     my $engine = $self->sqitch->engine;
+    if (my %v = %{ $self->variables }) { $engine->set_variables(%v) }
     $engine->deploy($self->to_target // shift, $self->mode);
     return $self;
 }

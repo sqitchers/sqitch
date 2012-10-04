@@ -22,13 +22,69 @@ can_ok $CLASS, qw(
     to_target
     mode
     execute
+    variables
 );
+
+is_deeply [$CLASS->options], [qw(
+    to-target|to|target=s
+    mode=s
+    set|s=s%
+)], 'Options should be correct';
 
 my $sqitch = App::Sqitch->new(
     plan_file => file(qw(t sql sqitch.plan)),
     top_dir   => dir(qw(t sql)),
     _engine   => 'sqlite',
 );
+my $config = $sqitch->config;
+
+# Test configure().
+is_deeply $CLASS->configure($config, {}), {
+    mode  => 'all',
+}, 'Should have default configuration with no config or opts';
+
+is_deeply $CLASS->configure($config, {
+    mode => 'tag',
+    set  => { foo => 'bar' },
+}), {
+    mode      => 'tag',
+    variables => { foo => 'bar' },
+}, 'Should have mode and set options';
+
+CONFIG: {
+    my $mock_config = Test::MockModule->new(ref $config);
+    my %config_vals;
+    $mock_config->mock(get => sub {
+        my ($self, %p) = @_;
+        return $config_vals{ $p{key} };
+    });
+    $mock_config->mock(get_section => sub {
+        my ($self, %p) = @_;
+        return $config_vals{ $p{section} };
+    });
+    %config_vals = (
+        'deploy.mode'      => 'change',
+        'deploy.variables' => { foo => 'bar', hi => 21 },
+    );
+
+    is_deeply $CLASS->configure($config, {}), {
+        mode  => 'change',
+    }, 'Should have mode configuration';
+
+    # Try merging.
+    is_deeply $CLASS->configure($config, {
+        mode => 'tag',
+        set  => { foo => 'yo', yo => 'stellar' },
+    }), {
+        mode      => 'tag',
+        variables => { foo => 'yo', yo => 'stellar', hi => 21 },
+    }, 'Should have merged variables';
+
+
+    isa_ok my $deploy = $CLASS->new(sqitch => $sqitch), $CLASS;
+    is_deeply $deploy->variables, { foo => 'bar', hi => 21 },
+        'Should pick up variables from configuration';
+}
 
 isa_ok my $deploy = $CLASS->new(sqitch => $sqitch), $CLASS;
 
@@ -39,6 +95,8 @@ is $deploy->mode, 'all', 'mode should be "all"';
 my $mock_engine = Test::MockModule->new('App::Sqitch::Engine::sqlite');
 my @args;
 $mock_engine->mock(deploy => sub { shift; @args = @_ });
+my @vars;
+$mock_engine->mock(set_variables => sub { shift; @vars = @_ });
 
 ok $deploy->execute('@alpha'), 'Execute to "@alpha"';
 is_deeply \@args, ['@alpha', 'all'],
@@ -53,13 +111,15 @@ isa_ok $deploy = $CLASS->new(
     sqitch    => $sqitch,
     to_target => 'foo',
     mode      => 'tag',
-), $CLASS, 'Object with to and mode';
-
+    variables => { foo => 'bar', one => 1 },
+), $CLASS, 'Object with to, mode, and variables';
 
 @args = ();
 ok $deploy->execute, 'Execute again';
 is_deeply \@args, ['foo', 'tag'],
     '"foo" and "tag" should be passed to the engine';
+is_deeply {@vars}, { foo => 'bar', one => 1 },
+    'Vars should have been passed through to the engine';
 
 # Make sure the mode enum works.
 for my $mode (qw(all tag change)) {
