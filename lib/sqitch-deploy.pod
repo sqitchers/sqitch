@@ -62,9 +62,11 @@ assumption that a change failure is total, and the change may be applied again.
 
 =item C<--set>
 
-Set a variable name and value for use by the databse engine client, if it
+Set a variable name and value for use by the database engine client, if it
 supports variables. The format must be C<name=value>, e.g.,
-C<--set defuser='Homer Simpson'>.
+C<--set defuser='Homer Simpson'>. Overrides any values loaded from the
+C<deploy.variables> configuration.
+
 
 =back
 
@@ -82,7 +84,7 @@ Deploy mode. The supported values are the same as for the C<--mode> option.
 
 =item C<[deploy.variables]>
 
-A section defining database clioent variables. Useful if your database engine
+A section defining database client variables. Useful if your database engine
 supports variables in scripts, such as PostgreSQL's L<C<psql>
 variables|http://www.postgresql.org/docs/9.2/static/app-psql.html#APP-PSQL-INTERPOLATION>.
 

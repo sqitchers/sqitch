@@ -9,6 +9,7 @@ sqitch-revert-usage - Sqitch revert usage statement
 =head1 Options
 
        --to-target <tag>    revert to target
+    -s --set                set a database client variable
 
 
 

@@ -55,7 +55,7 @@ sub configure {
     if ( my $vars = $opt->{set} ) {
         # Merge with config.
         $params{variables} = {
-            %{ $config->get_section( section => 'deploy.variables' ) },
+            %{ $config->get_section( section => 'deploy.variables' ) || {} },
             %{ $vars },
         };
     }
