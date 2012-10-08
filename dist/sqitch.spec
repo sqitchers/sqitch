@@ -153,6 +153,22 @@ rm -rf $RPM_BUILD_ROOT
 %{_bindir}/*
 %{etcdir}/*
 
+%package pg
+Summary:        Sane database change management for PostgreSQL
+Group:          Development/Libraries
+Requires:       sqitch >= %{version}
+Requires:       postgresql
+Requires:       perl(DBI)
+Requires:       perl(DBD::Pg)
+
+%description pg
+Sqitch provides a simple yet robust interface for database change
+management. The philosophy and functionality is inspired by Git. This
+package bundles the Sqitch PostgreSQL support.
+
+%files pg
+# No additional files required.
+
 %changelog
 * Tue Oct 2 2012 David E. Wheeler <david.wheeler@iovation.com> 0.935-1
 - Upgrade to v0.935.
