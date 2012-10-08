@@ -1,6 +1,9 @@
 Revision history for Perl extension App::Sqitch
 
 0.936
+     - Added `--set` option to the `deploy` and `revert` commands. Useful for
+       setting database client variables for use in scripts. Used by the
+       PostgreSQL engine.
 
 0.935 2012-10-02T19:21:05Z
      - Updated `dist/sqitch-pg.spec` to require `postgresql` rather than
