@@ -82,7 +82,7 @@ is_deeply $CLASS->configure($config, {}), {foo => 'hi'},
     'Should get config with no options';
 is_deeply $CLASS->configure($config, {foo => 'yo'}), {foo => 'yo'},
     'Options should override config';
-is_deeply $CLASS->configure($config, {'foo-bar' => 'yo'}), {foo => 'hi', foo_bar => 'yo'},
+is_deeply $CLASS->configure($config, {'foo_bar' => 'yo'}), {foo => 'hi', foo_bar => 'yo'},
     'Options keys should have dashes changed to underscores';
 
 ##############################################################################
@@ -192,8 +192,8 @@ my $args = [qw(
 )];
 is_deeply $cmd->_parse_opts($args), {
     'foo'      => 1,
-    'hi-there' => 1,
-    'icky-foo' => 0,
+    'hi_there' => 1,
+    'icky_foo' => 0,
     'feathers' => 'down',
 }, 'Subclass should parse options spec';
 is_deeply $args, ['whatever'], 'Args array should be cleared of options';

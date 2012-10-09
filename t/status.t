@@ -139,7 +139,7 @@ is $@->message, __x(
 ), 'Invalid date format error message should be correct';
 $cmock->unmock_all;
 
-throws_ok { $CLASS->configure($config, { 'date-format' => 'non'}), {} }
+throws_ok { $CLASS->configure($config, { date_format => 'non'}), {} }
     'App::Sqitch::X',
     'Should get error for invalid date format in optsions';
 is $@->ident, 'datetime',

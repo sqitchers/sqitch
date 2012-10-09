@@ -85,12 +85,6 @@ sub load {
 sub configure {
     my ( $class, $config, $options ) = @_;
 
-    # Convert option keys with dashes to underscores.
-    for my $k ( keys %{$options} ) {
-        next unless ( my $nk = $k ) =~ s/-/_/g;
-        $options->{$nk} = delete $options->{$k};
-    }
-
     return Hash::Merge->new->merge(
         $options,
         $config->get_section( section => $class->command ),
@@ -109,6 +103,12 @@ sub _parse_opts {
     Getopt::Long::Configure(qw(bundling no_pass_through));
     Getopt::Long::GetOptionsFromArray( $args, \%opts, $class->options )
         or $class->usage;
+
+    # Convert dashes to underscores.
+    for my $k (keys %opts) {
+        next unless ( my $nk = $k ) =~ s/-/_/g;
+        $opts{$nk} = delete $opts{$k};
+    }
 
     return \%opts;
 }
@@ -189,9 +189,10 @@ App::Sqitch::Command is the base class for all Sqitch commands.
 
 Returns a list of L<Getopt::Long> options specifications. When C<load> loads
 the class, any options passed to the command will be parsed using these
-values. The keys in the resulting hash will be the first part of each option.
-This hash will be passed to C<configure> along with a L<App::Sqitch::Config>
-object for munging into parameters to be passed to the constructor.
+values. The keys in the resulting hash will be the first part of each option,
+with dashes converted to underscores. This hash will be passed to C<configure>
+along with a L<App::Sqitch::Config> object for munging into parameters to be
+passed to the constructor.
 
 Here's an example excerpted from the C<config> command:
 

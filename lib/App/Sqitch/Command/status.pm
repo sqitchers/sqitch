@@ -122,7 +122,7 @@ sub configure {
     my ( $class, $config, $opt ) = @_;
 
     # Make sure the date format is valid.
-    if (my $format = $opt->{'date-format'}
+    if (my $format = $opt->{date_format}
         || $config->get(key => 'status.date_format')
     ) {
         App::Sqitch::DateTime->validate_as_string_format($format);

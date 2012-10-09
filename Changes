@@ -9,6 +9,8 @@ Revision history for Perl extension App::Sqitch
        process. Simplifies things quite a bit and improves the flexibility for
        adding other engines in the future.
      - Reduced required Perl version from 5.10.1 to 5.10.0.
+     - Fixed inconsistent handling of command options with dashes where some
+       were ignored.
 
 0.935 2012-10-02T19:21:05Z
      - Updated `dist/sqitch-pg.spec` to require `postgresql` rather than

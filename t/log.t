@@ -78,7 +78,7 @@ is $@->message, __x(
 ), 'Invalid date format error message should be correct';
 $cmock->unmock_all;
 
-throws_ok { $CLASS->configure($config, { 'date-format' => 'non'}), {} }
+throws_ok { $CLASS->configure($config, { date_format => 'non'}), {} }
     'App::Sqitch::X',
     'Should get error for invalid date format in optsions';
 is $@->ident, 'datetime',
@@ -115,7 +115,7 @@ is $@->message, __x(
 ), 'Invalid format error message should be correct';
 
 # Test color configuration.
-is_deeply$CLASS->configure( $config, {'no-color', 1 } ), {
+is_deeply$CLASS->configure( $config, { no_color => 1 } ), {
     color => 'never'
 }, 'Configuration should respect --no-color, setting "never"';
 
@@ -129,7 +129,7 @@ $cmock->mock( get => sub {
 my $log_config = {};
 $cmock->mock( get_section => sub { $log_config } );
 
-is_deeply $CLASS->configure( $config, {'no-color', 1 } ), {
+is_deeply $CLASS->configure( $config, { no_color => 1 } ), {
     color => 'never'
 }, 'Configuration should respect --no-color even when configure is set';
 

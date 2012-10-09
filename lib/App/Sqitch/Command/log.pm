@@ -329,7 +329,7 @@ sub configure {
     my ( $class, $config, $opt ) = @_;
 
     # Make sure the date format is valid.
-    if (my $format = $opt->{'date-format'}
+    if (my $format = $opt->{date_format}
         || $config->get(key => 'log.date_format')
     ) {
         App::Sqitch::DateTime->validate_as_string_format($format);
@@ -350,7 +350,7 @@ sub configure {
     }
 
     # Turn colors on or off as appropriate.
-    $opt->{color} = 'never' if delete $opt->{'no-color'};
+    $opt->{color} = 'never' if delete $opt->{no_color};
     if ( my $color = $opt->{color} || $config->get(key => 'log.color') ) {
         if ($color eq 'always') {
             delete $ENV{ANSI_COLORS_DISABLED};
