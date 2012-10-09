@@ -1,6 +1,6 @@
 Revision history for Perl extension App::Sqitch
 
-0.937
+0.937 2012-10-09T21:54:36Z
      - Fixed the `--to` option to `deploy` and `revert`, which was ignored
        starting in v0.936.
 
