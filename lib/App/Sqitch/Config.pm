@@ -12,7 +12,7 @@ use utf8;
 
 extends 'Config::GitLike';
 
-our $VERSION = '0.936';
+our $VERSION = '0.937';
 
 has '+confname' => ( default => 'sqitch.conf' );
 has '+encoding' => ( default => 'UTF-8' );
