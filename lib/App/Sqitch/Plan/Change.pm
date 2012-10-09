@@ -53,7 +53,7 @@ has suffix => (
 after suffix => sub {
     my $self = shift;
     # Need to reset the file name if a new value is passed.
-    $self->meta->get_attribute('_fn')->clear_value($self) if @_;
+    $self->meta->get_attribute('_path_segments')->clear_value($self) if @_;
 };
 
 has _tags => (
@@ -69,11 +69,13 @@ has _tags => (
     },
 );
 
-has _fn => (
+has _path_segments => (
     is       => 'ro',
     isa      => 'ArrayRef[Str]',
+    traits   => ['Array'],
     required => 1,
     lazy     => 1,
+    handles  => { path_segments => 'elements' },
     default  => sub {
         my $self = shift;
         my @path = split m{/} => $self->name;
@@ -144,17 +146,17 @@ sub dependencies {
 
 sub deploy_file {
     my $self   = shift;
-    $self->sqitch->deploy_dir->file( @{ $self->_fn } );
+    $self->sqitch->deploy_dir->file( $self->path_segments );
 }
 
 sub revert_file {
     my $self   = shift;
-    $self->sqitch->revert_dir->file( @{ $self->_fn } );
+    $self->sqitch->revert_dir->file( $self->path_segments );
 }
 
 sub test_file {
     my $self   = shift;
-    $self->sqitch->test_dir->file( @{ $self->_fn } );
+    $self->sqitch->test_dir->file( $self->path_segments );
 }
 
 sub is_revert {
@@ -323,6 +325,15 @@ Returns the name of the user who added the change to the plan.
 Returns the email address of the user who added the change to the plan.
 
 =head2 Instance Methods
+
+=head3 C<path_segments>
+
+  my @segments = $change->path_segments;
+
+Returns the path segment for the change. For example, if the change is named
+"foo", C<('foo.sql')> is returned. If the change is named "functions/bar>
+C<('functions', 'bar.sql')> is returned. Internally, this data is used to
+create the deploy, revert, and test file names.
 
 =head3 C<deploy_file>
 

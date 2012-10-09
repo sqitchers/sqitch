@@ -76,7 +76,8 @@ ok !$change->is_revert, 'It should not be a revert change';
 is $change->action, 'deploy', 'And it should say so';
 isa_ok $change->timestamp, 'App::Sqitch::DateTime', 'Timestamp';
 
-is_deeply $change->_fn, ['foo.sql'], '_fn should have the file name';
+is_deeply [ $change->path_segments ], ['foo.sql'],
+    'path_segments should have the file name';
 is $change->deploy_file, $sqitch->deploy_dir->file('foo.sql'),
     'The deploy file should be correct';
 is $change->revert_file, $sqitch->revert_dir->file('foo.sql'),
@@ -84,7 +85,8 @@ is $change->revert_file, $sqitch->revert_dir->file('foo.sql'),
 is $change->test_file, $sqitch->test_dir->file('foo.sql'),
     'The test file should be correct';
 ok $change->suffix('@foo'), 'Set the suffix';
-is_deeply $change->_fn, ['foo@foo.sql'], '_fn should now include suffix';
+is_deeply [ $change->path_segments ], ['foo@foo.sql'],
+    'path_segments should now include suffix';
 
 is $change->format_name, 'foo', 'Name should format as "foo"';
 is $change->format_name_with_tags,
@@ -208,7 +210,8 @@ is $change2->format_content, '- yo/howdy  [foo bar @baz !dr_evil] '
 
 # Check file names.
 my @fn = ('yo', 'howdy@beta.sql');
-is_deeply $change2->_fn, \@fn, '_fn should separate out directories';
+is_deeply [ $change2->path_segments ], \@fn,
+    'path_segments should include directories';
 is $change2->deploy_file, $sqitch->deploy_dir->file(@fn),
     'The deploy file should include the suffix';
 is $change2->revert_file, $sqitch->revert_dir->file(@fn),
