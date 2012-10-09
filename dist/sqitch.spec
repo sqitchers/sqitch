@@ -1,12 +1,11 @@
-%define cpanversion 0.938
 Name:           sqitch
-Version:        %(%{__perl} -E 'say sprintf "%.3f", %{cpanversion}')
+Version:        0.938
 Release:        1%{?dist}
 Summary:        Sane database change management
 License:        MIT
 Group:          Development/Libraries
 URL:            http://sqitch.org/
-Source0:        http://www.cpan.org/modules/by-module/App/App-Sqitch-%{cpanversion}.tar.gz
+Source0:        http://www.cpan.org/modules/by-module/App/App-Sqitch-%{version}.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 BuildArch:      noarch
 BuildRequires:  perl >= 1:v5.10.0
@@ -125,7 +124,7 @@ database change management. The philosophy and functionality is inspired by
 Git.
 
 %prep
-%setup -q -n App-Sqitch-%{cpanversion}
+%setup -q -n App-Sqitch-%{version}
 
 %build
 %{__perl} Build.PL installdirs=vendor
