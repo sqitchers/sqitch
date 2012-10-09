@@ -218,19 +218,19 @@ sub bundle_scripts {
         if (-e ( my $file = $change->deploy_file )) {
             $self->_copy_if_modified(
                 $file,
-                $self->dest_deploy_dir->file( $file->basename )
+                $self->dest_deploy_dir->file( $change->path_segments )
             );
         }
         if (-e ( my $file = $change->revert_file )) {
             $self->_copy_if_modified(
                 $file,
-                $self->dest_revert_dir->file( $file->basename )
+                $self->dest_revert_dir->file( $change->path_segments )
             );
         }
         if (-e ( my $file = $change->test_file )) {
             $self->_copy_if_modified(
                 $file,
-                $self->dest_test_dir->file( $file->basename )
+                $self->dest_test_dir->file( $change->path_segments )
             );
         }
         $plan->next;
