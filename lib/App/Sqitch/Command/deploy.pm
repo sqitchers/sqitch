@@ -51,6 +51,7 @@ sub configure {
     my %params = (
         mode => $opt->{mode} || $config->get( key => 'deploy.mode' ) || 'all',
     );
+    $params{to_target} = $opt->{to_target} if exists $opt->{to_target};
 
     if ( my $vars = $opt->{set} ) {
         # Merge with config.

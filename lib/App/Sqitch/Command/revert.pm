@@ -42,6 +42,7 @@ sub configure {
     my ( $class, $config, $opt ) = @_;
 
     my %params;
+    $params{to_target} = $opt->{to_target} if exists $opt->{to_target};
 
     if ( my $vars = $opt->{set} ) {
         # Merge with config.
@@ -54,7 +55,6 @@ sub configure {
 
     return \%params;
 }
-
 
 sub execute {
     my $self   = shift;

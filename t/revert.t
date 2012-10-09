@@ -67,9 +67,11 @@ CONFIG: {
 
     # Try merging.
     is_deeply $CLASS->configure($config, {
-        set  => { foo => 'yo', yo => 'stellar' },
+        to_target => 'whu',
+        set       => { foo => 'yo', yo => 'stellar' },
     }), {
         variables => { foo => 'yo', yo => 'stellar', hi => 21 },
+        to_target => 'whu',
     }, 'Should have merged variables';
 
     # Try merging with revert.variables, too.

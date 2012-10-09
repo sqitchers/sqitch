@@ -73,9 +73,11 @@ CONFIG: {
 
     # Try merging.
     is_deeply $CLASS->configure($config, {
-        mode => 'tag',
-        set  => { foo => 'yo', yo => 'stellar' },
+        to_target => 'whu',
+        mode      => 'tag',
+        set       => { foo => 'yo', yo => 'stellar' },
     }), {
+        to_target => 'whu',
         mode      => 'tag',
         variables => { foo => 'yo', yo => 'stellar', hi => 21 },
     }, 'Should have merged variables';
