@@ -7,13 +7,13 @@ use Test::More tests => 80;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
-use Test::NoWarnings;
 use Test::Exception;
 use App::Sqitch::Command::add;
 use Path::Class;
 use Test::File qw(file_not_exists_ok file_exists_ok);
 use Test::File::Contents qw(file_contents_identical file_contents_is);
 use File::Path qw(make_path remove_tree);
+use Test::NoWarnings;
 use lib 't/lib';
 use MockOutput;
 

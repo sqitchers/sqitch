@@ -1,6 +1,6 @@
 package App::Sqitch::Plan;
 
-use v5.10.1;
+use 5.010;
 use utf8;
 use App::Sqitch::DateTime;
 use App::Sqitch::Plan::Tag;

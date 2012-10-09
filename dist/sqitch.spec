@@ -9,7 +9,7 @@ URL:            http://sqitch.org/
 Source0:        http://www.cpan.org/modules/by-module/App/App-Sqitch-%{cpanversion}.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 BuildArch:      noarch
-BuildRequires:  perl >= 1:v5.10.1
+BuildRequires:  perl >= 1:v5.10.0
 BuildRequires:  perl(Capture::Tiny) >= 0.12
 BuildRequires:  perl(Config)
 BuildRequires:  perl(Config::GitLike) >= 1.09

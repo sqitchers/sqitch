@@ -1,6 +1,6 @@
 package App::Sqitch::Engine;
 
-use v5.10.1;
+use 5.010;
 use Moose;
 use strict;
 use utf8;

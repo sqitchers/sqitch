@@ -6,7 +6,6 @@ use utf8;
 use Test::More tests => 124;
 #use Test::More 'no_plan';
 use App::Sqitch;
-use Test::NoWarnings;
 use Path::Class;
 use Test::Exception;
 use Test::Dir;
@@ -14,6 +13,7 @@ use Test::File qw(file_exists_ok file_not_exists_ok);
 use Test::File::Contents;
 use Locale::TextDomain qw(App-Sqitch);
 use File::Path qw(make_path remove_tree);
+use Test::NoWarnings;
 use lib 't/lib';
 use MockOutput;
 

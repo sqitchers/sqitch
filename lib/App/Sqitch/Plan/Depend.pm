@@ -1,6 +1,6 @@
 package App::Sqitch::Plan::Depend;
 
-use v5.10.1;
+use 5.010;
 use utf8;
 use Moose;
 use App::Sqitch::Plan;

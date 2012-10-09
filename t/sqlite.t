@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use v5.10.1;
+use 5.010;
 use Test::More tests => 13;
 #use Test::More 'no_plan';
 use App::Sqitch;

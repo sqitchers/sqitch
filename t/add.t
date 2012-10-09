@@ -8,12 +8,12 @@ use Test::More tests => 85;
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
 use Path::Class;
-use Test::NoWarnings 0.083;
 use Test::Exception;
 use Test::Dir;
 use Test::File qw(file_not_exists_ok file_exists_ok);
 use Test::File::Contents 0.05;
 use File::Path qw(make_path remove_tree);
+use Test::NoWarnings 0.083;
 use lib 't/lib';
 use MockOutput;
 

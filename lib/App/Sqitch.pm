@@ -2,7 +2,7 @@ package App::Sqitch;
 
 # ABSTRACT: Sane database change management
 
-use v5.10.1;
+use 5.010;
 use strict;
 use warnings;
 use utf8;

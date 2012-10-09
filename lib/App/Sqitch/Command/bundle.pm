@@ -1,6 +1,6 @@
 package App::Sqitch::Command::bundle;
 
-use v5.10.1;
+use 5.010;
 use strict;
 use warnings;
 use utf8;
@@ -148,7 +148,8 @@ sub _copy_if_modified {
         dest   => $dst
     ));
 
-    File::Copy::copy($src, $dst) or hurl bundle => __x(
+    # Stringify to work around bug in File::Copy warning on 5.10.0.
+    File::Copy::copy "$src", "$dst" or hurl bundle => __x(
         'Cannot copy "{source}" to "{dest}": {error}',
         source => $src,
         dest   => $dst,
