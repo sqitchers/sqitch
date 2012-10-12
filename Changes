@@ -1,6 +1,8 @@
 Revision history for Perl extension App::Sqitch
 
 0.938
+     - Added a primary key to the PostgreSQL `events` table, which should make
+       it easier to support replication.
 
 0.937 2012-10-09T21:54:36Z
      - Fixed the `--to` option to `deploy` and `revert`, which was ignored

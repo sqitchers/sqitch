@@ -103,7 +103,8 @@ CREATE TABLE :"sqitch_schema".events (
     committer_email TEXT        NOT NULL,
     planned_at      TIMESTAMPTZ NOT NULL,
     planner_name    TEXT        NOT NULL,
-    planner_email   TEXT        NOT NULL
+    planner_email   TEXT        NOT NULL,
+    PRIMARY KEY (change_id, committed_at)
 );
 
 COMMENT ON TABLE :"sqitch_schema".events                  IS 'Contains full history of all deployment events.';
