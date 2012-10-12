@@ -497,35 +497,35 @@ my $yellow = color('yellow') . '%s' . color('reset');
 my $green  = color('green')  . '%s' . color('reset');
 $event->{conflicts} = [qw(dr_evil)];
 for my $spec (
-    [ full => sprintf($green, __ 'Deploy' . ' 000011112222333444')
+    [ full => sprintf($green, __ ('Deploy') . ' 000011112222333444')
         . " (\@beta, \@gamma)\n"
-        . __ 'Name:' . "      lolz\n"
-        . __ 'Project:' . "   logit\n"
-        . __ 'Requires: ' . " foo, bar\n"
-        . __ 'Conflicts: ' . "dr_evil\n"
-        . __ 'Planner:' . "   damian <damian\@example.com>\n"
-        . __ 'Planned:' . "   __PDATE__\n"
-        . __ 'Committer:' . " larry <larry\@example.com>\n"
-        . __ 'Committed:' . " __CDATE__\n\n"
+        . __ ('Name:     ') . "      lolz\n"
+        . __ ('Project:  ') . "   logit\n"
+        . __ ('Requires: ') . " foo, bar\n"
+        . __ ('Conflicts: ') . "dr_evil\n"
+        . __ ('Planner:') . "   damian <damian\@example.com>\n"
+        . __ ('Planned:') . "   __PDATE__\n"
+        . __ ('Committer:' . " larry <larry\@example.com>\n"
+        . __ ('Committed:') . " __CDATE__\n\n"
         . "    For the LOLZ.\n    \n    You know, funny stuff and cute kittens, right?\n"
     ],
-    [ long => sprintf($green, __ 'Deploy' . ' 000011112222333444')
+    [ long => sprintf($green, __ ('Deploy') . ' 000011112222333444')
         . " (\@beta, \@gamma)\n"
-        . __ 'Name:' . "      lolz\n"
-        . __ 'Project:' . "   logit\n"
-        . __ 'Planner:' . "   damian <damian\@example.com>\n"
-        . __ 'Committer:' . " larry <larry\@example.com>\n\n"
+        . __ ('Name:     ') . "      lolz\n"
+        . __ ('Project:  ') . "   logit\n"
+        . __ ('Planner:  ') . "   damian <damian\@example.com>\n"
+        . __ ('Committer:') . " larry <larry\@example.com>\n\n"
         . "    For the LOLZ.\n    \n    You know, funny stuff and cute kittens, right?\n"
     ],
-    [ medium => sprintf($green, __ 'Deploy' . ' 000011112222333444') . "\n"
-        . __ 'Name:' . "      lolz\n"
-        . __ 'Committer:' . " larry <larry\@example.com>\n"
-        . __ 'Date:' . "      __CDATE__\n\n"
+    [ medium => sprintf($green, __ ('Deploy') . ' 000011112222333444') . "\n"
+        . __ ('Name:     ') . "      lolz\n"
+        . __ ('Committer:') . " larry <larry\@example.com>\n"
+        . __ ('Date:     ') . "      __CDATE__\n\n"
         . "    For the LOLZ.\n    \n    You know, funny stuff and cute kittens, right?\n"
     ],
-    [ short => sprintf($green, __ 'Deploy' . ' 000011112222333444') . "\n"
-        . __ 'Name:' . "      lolz\n"
-        . __ 'Committer:' . " larry <larry\@example.com>\n\n"
+    [ short => sprintf($green, __ ('Deploy') . ' 000011112222333444') . "\n"
+        . __ ('Name:     ') . "      lolz\n"
+        . __ ('Committer:') . " larry <larry\@example.com>\n\n"
         . "    For the LOLZ.\n",
     ],
     [ oneline => sprintf "$green %s %s", '000011112222333444' . ' '

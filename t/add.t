@@ -249,7 +249,7 @@ BEGIN;
 
 COMMIT;
 EOF
-is_deeply +MockOutput->get_info, [["Created $out"]],
+is_deeply +MockOutput->get_info, [[__x 'Created {file}', file => $out ]],
     'Info should show $out created';
 
 # Try with requires and conflicts.
@@ -262,7 +262,7 @@ ok $add =  $CLASS->new(
 $out = file 'sql', 'another_change_test.sql';
 ok $add->_add('another_change_test', $out, $tmpl),
     'Write out a script with requires and conflicts';
-is_deeply +MockOutput->get_info, [["Created $out"]],
+is_deeply +MockOutput->get_info, [[__x 'Created {file}', file => $out ]],
     'Info should show $out created';
 file_contents_is $out, <<EOF, 'The template should have been evaluated with requires and conflicts';
 -- Deploy another_change_test
