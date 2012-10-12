@@ -1,6 +1,6 @@
 Revision history for Perl extension App::Sqitch
 
-0.938
+0.938 2012-10-12T19:16:57Z
      - Added a primary key to the PostgreSQL `events` table, which should make
        it easier to support replication.
 
