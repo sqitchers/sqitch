@@ -304,6 +304,7 @@ is capture_stdout {
     ok $sqitch->spool($fh, $^X, 'read.pl'), 'Spool to read.pl';
 }, $data, 'Data should have been sent to STDOUT by read.pl';
 like capture_stderr {
+    local $ENV{LANGUAGE} = 'en';
     throws_ok { $sqitch->spool($fh, $^X, 'die.pl') }
         'App::Sqitch::X', 'Should get error when die.pl dies';
     is $@->ident, 'io', 'Error ident should be "io"';
@@ -312,8 +313,10 @@ like capture_stderr {
         'The error message should be one of the I/O messages';
 }, qr/OMGWTF/, 'The die script STDERR should have passed through';
 
-throws_ok { $sqitch->spool($fh, '--nosuchscript.ply--') }
-    'App::Sqitch::X', 'Should get an error for a bad command';
+throws_ok {
+    local $ENV{LANGUAGE} = 'en';
+    $sqitch->spool($fh, '--nosuchscript.ply--')
+} 'App::Sqitch::X', 'Should get an error for a bad command';
 is $@->ident, 'io', 'Error ident should be "io"';
 like $@->message,
     qr/\QCannot exec --nosuchscript.ply--:\E|\QError closing pipe to --nosuchscript.ply--:/,
