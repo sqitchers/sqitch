@@ -313,9 +313,9 @@ throws_ok { $plan->_parse($file, $fh) } 'App::Sqitch::X',
     'Should die on plan with bad change name';
 is $@->ident, 'plan', 'Bad change name error ident should be "plan"';
 is $@->message, __x(
-    'Syntax error in {file} at line {line}: {error}',
+    'Syntax error in {file} at line {lineno}: {error}',
     file => $file,
-    line => 5,
+    lineno => 5,
     error => __(
         qq{Invalid name; names must not begin with punctuation, }
         . 'contain "@", ":", or "#", or end in punctuation or digits following punctuation',
@@ -351,9 +351,9 @@ for my $name (@bad_names) {
             qq{Should die on plan with bad name "$line"};
         is $@->ident, 'plan', 'Exception ident should be "plan"';
         is $@->message, __x(
-            'Syntax error in {file} at line {line}: {error}',
+            'Syntax error in {file} at line {lineno}: {error}',
             file => 'baditem',
-            line => 4,
+            lineno => 4,
             error => __(
                 qq{Invalid name; names must not begin with punctuation, }
                 . 'contain "@", ":", or "#", or end in punctuation or digits following punctuation',
@@ -431,9 +431,9 @@ throws_ok { $plan->_parse($file, $fh) } 'App::Sqitch::X',
     'Should die on plan with reserved tag "@HEAD"';
 is $@->ident, 'plan', '@HEAD exception should have ident "plan"';
 is $@->message, __x(
-    'Syntax error in {file} at line {line}: {error}',
+    'Syntax error in {file} at line {lineno}: {error}',
     file => $file,
-    line => 7,
+    lineno => 7,
     error => __x(
         '"{name}" is a reserved name',
         name => '@HEAD',
@@ -450,9 +450,9 @@ for my $reserved (qw(ROOT FIRST LAST)) {
         qq{Should die on plan with reserved tag "\@$reserved"};
     is $@->ident, 'plan', qq{\@$reserved exception should have ident "plan"};
     is $@->message, __x(
-        'Syntax error in {file} at line {line}: {error}',
+        'Syntax error in {file} at line {lineno}: {error}',
         file => $file,
-        line => 4,
+        lineno => 4,
         error => __x(
             '"{name}" is a reserved name',
             name => '@' . $reserved,
@@ -469,9 +469,9 @@ throws_ok { $plan->_parse($file, $fh) } 'App::Sqitch::X',
     'Should die on plan with SHA1 change name';
 is $@->ident, 'plan', 'The SHA1 error ident should be "plan"';
 is $@->message, __x(
-    'Syntax error in {file} at line {line}: {error}',
+    'Syntax error in {file} at line {lineno}: {error}',
     file => $file,
-    line => 4,
+    lineno => 4,
     error => __x(
         '"{name}" is invalid because it could be confused with a SHA1 ID',
         name => $sha1,
@@ -486,9 +486,9 @@ throws_ok { $plan->_parse($file, $fh) } 'App::Sqitch::X',
     'Should die on plan with tag but no preceding change';
 is $@->ident, 'plan', 'The missing change error ident should be "plan"';
 is $@->message, __x(
-    'Syntax error in {file} at line {line}: {error}',
+    'Syntax error in {file} at line {lineno}: {error}',
     file => $file,
-    line => 4,
+    lineno => 4,
     error => __x(
         'Tag "{tag}" declared without a preceding change',
         tag => 'foo',
@@ -503,9 +503,9 @@ throws_ok { $plan->_parse($file, $fh) } 'App::Sqitch::X',
     'Should die on plan with dupe tag';
 is $@->ident, 'plan', 'The dupe tag error ident should be "plan"';
 is $@->message, __x(
-    'Syntax error in {file} at line {line}: {error}',
+    'Syntax error in {file} at line {lineno}: {error}',
     file => $file,
-    line => 12,
+    lineno => 12,
     error => __x(
         'Tag "{tag}" duplicates earlier declaration on line {line}',
         tag  => 'bar',
@@ -521,9 +521,9 @@ throws_ok { $plan->_parse($file, $fh) } 'App::Sqitch::X',
     'Should die on plan with dupe change';
 is $@->ident, 'plan', 'The dupe change error ident should be "plan"';
 is $@->message, __x(
-    'Syntax error in {file} at line {line}: {error}',
+    'Syntax error in {file} at line {lineno}: {error}',
     file => $file,
-    line => 9,
+    lineno => 9,
     error => __x(
         'Change "{change}" duplicates earlier declaration on line {line}',
         change  => 'greets',
@@ -538,9 +538,9 @@ throws_ok { $plan->_parse('badreq', $fh ) } 'App::Sqitch::X',
     'Should die on invalid  dependency';
 is $@->ident, 'plan', 'The invalid dependency error ident should be "plan"';
 is $@->message, __x(
-    'Syntax error in {file} at line {line}: {error}',
+    'Syntax error in {file} at line {lineno}: {error}',
     file => 'badreq',
-    line => 3,
+    lineno => 3,
     error => __x(
         '"{dep}" is not a valid dependency specification',
         dep => '^bar',
@@ -555,9 +555,9 @@ throws_ok { $plan->_parse($file, $fh) } 'App::Sqitch::X',
     'Should die on change with no timestamp';
 is $@->ident, 'plan', 'The missing timestamp error ident should be "plan"';
 is $@->message, __x(
-    'Syntax error in {file} at line {line}: {error}',
+    'Syntax error in {file} at line {lineno}: {error}',
     file => $file,
-    line => 4,
+    lineno => 4,
     error => __ 'Missing timestamp',
 ), 'And the missing timestamp error message should be correct';
 is sorted, 0, 'Should have sorted changes nonce';
@@ -569,9 +569,9 @@ throws_ok { $plan->_parse($file, $fh) } 'App::Sqitch::X',
     'Should die on change with no planner';
 is $@->ident, 'plan', 'The missing planner error ident should be "plan"';
 is $@->message, __x(
-    'Syntax error in {file} at line {line}: {error}',
+    'Syntax error in {file} at line {lineno}: {error}',
     file => $file,
-    line => 4,
+    lineno => 4,
     error => __ 'Missing planner name and email',
 ), 'And the missing planner error message should be correct';
 is sorted, 0, 'Should have sorted changes nonce';
@@ -583,9 +583,9 @@ throws_ok { $plan->_parse($file, $fh) } 'App::Sqitch::X',
     'Should die on change with no timestamp or planner';
 is $@->ident, 'plan', 'The missing timestamp or planner error ident should be "plan"';
 is $@->message, __x(
-    'Syntax error in {file} at line {line}: {error}',
+    'Syntax error in {file} at line {lineno}: {error}',
     file => $file,
-    line => 3,
+    lineno => 3,
     error => __ 'Missing timestamp and planner name and email',
 ), 'And the missing timestamp or planner error message should be correct';
 is sorted, 0, 'Should have sorted changes nonce';
@@ -746,9 +746,9 @@ throws_ok { $plan->_parse($file, $fh) }  'App::Sqitch::X',
     'Should get an exception for tag with dependencies';
 is $@->ident, 'plan', 'The tag dependencies error ident should be "plan"';
 is $@->message, __x(
-    'Syntax error in {file} at line {line}: {error}',
+    'Syntax error in {file} at line {lineno}: {error}',
     file => $file,
-    line => 4,
+    lineno => 4,
     error => __ 'Tags may not specify dependencies',
 ), 'And the tag dependencies error message should be correct';
 
@@ -1652,16 +1652,16 @@ for my $bad (@bad_names) {
     throws_ok { $plan->_parse(badproj => $fh) } 'App::Sqitch::X',
         qq{Should die on invalid project name "$bad"};
     is $@->ident, 'plan', qq{Ident for bad proj "$bad" should be "plan"};
-    is $@->message, __x(
-        'Syntax error in {file} at line {line}: {error}',
-        file => 'badproj',
-        line => 1,
-        error => __x(
-            qq{invalid project name "{project}": project names must not }
+    my $error =  __x(
+            'invalid project name "{project}": project names must not '
             . 'begin with punctuation, contain "@", ":", or "#", or end in '
             . 'punctuation or digits following punctuation',
-            project => $bad
-        ),
+            project => $bad);
+    is $@->message, __x(
+        'Syntax error in {file} at line {lineno}: {error}',
+        file => 'badproj',
+        lineno => 1,
+        error => $error
     ), qq{Error message for bad project "$bad" should be correct};
 }
 
