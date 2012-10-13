@@ -3,8 +3,8 @@
 use strict;
 use warnings;
 use utf8;
-#use Test::More tests => 234;
-use Test::More 'no_plan';
+use Test::More tests => 236;
+#use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
 use Test::NoWarnings;
@@ -222,35 +222,35 @@ for my $spec (
         . "committed $craw\n\n"
         . "    For the LOLZ.\n    \n    You know, funny stuff and cute kittens, right?\n"
     ],
-    [ full =>  __ 'Deploy' . " 000011112222333444 (\@beta, \@gamma)\n"
-        . __ 'Name:' . "      lolz\n"
-        . __ 'Project:' . "   logit\n"
-        . __ 'Requires: ' . " foo, bar\n"
-        . __ 'Planner:' . "   damian <damian\@example.com>\n"
-        . __ 'Planned:' . "   __PDATE__\n"
-        . __ 'Committer:' . " larry <larry\@example.com>\n"
-        . __ 'Committed:' . " __CDATE__\n\n"
+    [ full =>  __('Deploy') . " 000011112222333444 (\@beta, \@gamma)\n"
+        . __('Name:     ') . " lolz\n"
+        . __('Project:  ') . " logit\n"
+        . __('Requires: ') . " foo, bar\n"
+        . __('Planner:  ') . " damian <damian\@example.com>\n"
+        . __('Planned:  ') . " __PDATE__\n"
+        . __('Committer:') . " larry <larry\@example.com>\n"
+        . __('Committed:') . " __CDATE__\n\n"
         . "    For the LOLZ.\n    \n    You know, funny stuff and cute kittens, right?\n"
     ],
-    [ long =>  __ 'Deploy' . " 000011112222333444 (\@beta, \@gamma)\n"
-        . __ 'Name:' . "      lolz\n"
-        . __ 'Project:' . "   logit\n"
-        . __ 'Planner:' . "   damian <damian\@example.com>\n"
-        . __ 'Committer:' . " larry <larry\@example.com>\n\n"
+    [ long =>  __('Deploy') . " 000011112222333444 (\@beta, \@gamma)\n"
+        . __('Name:     ') . " lolz\n"
+        . __('Project:  ') . " logit\n"
+        . __('Planner:  ') . " damian <damian\@example.com>\n"
+        . __('Committer:') . " larry <larry\@example.com>\n\n"
         . "    For the LOLZ.\n    \n    You know, funny stuff and cute kittens, right?\n"
     ],
-    [ medium =>  __ 'Deploy' . " 000011112222333444\n"
-        . __ 'Name:' . "      lolz\n"
-        . __ 'Committer:' . " larry <larry\@example.com>\n"
-        . __ 'Date:' . "      __CDATE__\n\n"
+    [ medium =>  __('Deploy') . " 000011112222333444\n"
+        . __('Name:     ') . " lolz\n"
+        . __('Committer:') . " larry <larry\@example.com>\n"
+        . __('Date:     ') . " __CDATE__\n\n"
         . "    For the LOLZ.\n    \n    You know, funny stuff and cute kittens, right?\n"
     ],
-    [ short =>  __ 'Deploy' . " 000011112222333444\n"
-        . __ 'Name:' . "      lolz\n"
-        . __ 'Committer:' . " larry <larry\@example.com>\n\n"
+    [ short =>  __('Deploy') . " 000011112222333444\n"
+        . __('Name:     ') . " lolz\n"
+        . __('Committer:') . " larry <larry\@example.com>\n\n"
         . "    For the LOLZ.\n",
     ],
-    [ oneline => '000011112222333444 deploy logit:lolz For the LOLZ.' ],
+    [ oneline => '000011112222333444 ' . __('deploy') . ' logit:lolz For the LOLZ.' ],
 ) {
     my $format = $CLASS->configure( $config, { format => $spec->[0] } )->{format};
     ok my $log = $CLASS->new( sqitch => $sqitch, format => $format ),
@@ -499,32 +499,32 @@ $event->{conflicts} = [qw(dr_evil)];
 for my $spec (
     [ full => sprintf($green, __ ('Deploy') . ' 000011112222333444')
         . " (\@beta, \@gamma)\n"
-        . __ ('Name:') . "      lolz\n"
-        . __ ('Project:') . "   logit\n"
+        . __ ('Name:     ') . " lolz\n"
+        . __ ('Project:  ') . " logit\n"
         . __ ('Requires: ') . " foo, bar\n"
-        . __ ('Conflicts: ') . "dr_evil\n"
-        . __ ('Planner:') . "   damian <damian\@example.com>\n"
-        . __ ('Planned:') . "   __PDATE__\n"
+        . __ ('Conflicts:') . " dr_evil\n"
+        . __ ('Planner:  ') . " damian <damian\@example.com>\n"
+        . __ ('Planned:  ') . " __PDATE__\n"
         . __ ('Committer:') . " larry <larry\@example.com>\n"
         . __ ('Committed:') . " __CDATE__\n\n"
         . "    For the LOLZ.\n    \n    You know, funny stuff and cute kittens, right?\n"
     ],
     [ long => sprintf($green, __ ('Deploy') . ' 000011112222333444')
         . " (\@beta, \@gamma)\n"
-        . __ ('Name:') . "      lolz\n"
-        . __ ('Project:') . "   logit\n"
-        . __ ('Planner:') . "   damian <damian\@example.com>\n"
+        . __ ('Name:     ') . " lolz\n"
+        . __ ('Project:  ') . " logit\n"
+        . __ ('Planner:  ') . " damian <damian\@example.com>\n"
         . __ ('Committer:') . " larry <larry\@example.com>\n\n"
         . "    For the LOLZ.\n    \n    You know, funny stuff and cute kittens, right?\n"
     ],
     [ medium => sprintf($green, __ ('Deploy') . ' 000011112222333444') . "\n"
-        . __ ('Name:') . "      lolz\n"
+        . __ ('Name:     ') . " lolz\n"
         . __ ('Committer:') . " larry <larry\@example.com>\n"
-        . __ ('Date:') . "      __CDATE__\n\n"
+        . __ ('Date:     ') . " __CDATE__\n\n"
         . "    For the LOLZ.\n    \n    You know, funny stuff and cute kittens, right?\n"
     ],
     [ short => sprintf($green, __ ('Deploy') . ' 000011112222333444') . "\n"
-        . __ ('Name:') . "      lolz\n"
+        . __ ('Name:     ') . " lolz\n"
         . __ ('Committer:') . " larry <larry\@example.com>\n\n"
         . "    For the LOLZ.\n",
     ],

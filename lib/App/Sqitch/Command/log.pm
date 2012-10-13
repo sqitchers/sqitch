@@ -272,7 +272,7 @@ has formatter => (
                 },
                 R => sub {
                     return '' unless @{ $_[0]->{requires} };
-                    return __ 'Requires: ' . ' ' . join(
+                    return __ ('Requires: ') . ' ' . join(
                         $_[1] || ', ' => @{ $_[0]->{requires} }
                     ) . "\n";
                 },
@@ -283,7 +283,7 @@ has formatter => (
                 },
                 X => sub {
                     return '' unless @{ $_[0]->{conflicts} };
-                    return __ 'Conflicts:' . ' ' . join(
+                    return __('Conflicts:') . ' ' . join(
                         $_[1] || ', ' => @{ $_[0]->{conflicts} }
                     ) . "\n";
                 },
