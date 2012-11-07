@@ -11,6 +11,7 @@ use Hash::Merge qw(merge);
 use Path::Class;
 use Config;
 use Locale::TextDomain 1.20 qw(App-Sqitch);
+use Locale::Messages qw(bind_textdomain_filter);
 use App::Sqitch::X qw(hurl);
 use Moose 2.0300;
 use Encode qw(encode_utf8);
@@ -41,6 +42,10 @@ BEGIN {
             unless $_ ~~ [qw(pg sqlite)];
         1;
     };
+
+    # Force Locale::TextDomain to encode in UTF-8 and to decode all messages.
+    $ENV{OUTPUT_CHARSET} = 'UTF-8';
+    bind_textdomain_filter 'App-Sqitch' => \&Encode::decode_utf8;
 }
 
 # Okay to loas Sqitch classes now that typess are created.

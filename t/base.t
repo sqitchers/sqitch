@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 99;
+use Test::More tests => 103;
 #use Test::More 'no_plan';
 use Test::MockModule;
 use Path::Class;
@@ -321,3 +321,12 @@ is $@->ident, 'io', 'Error ident should be "io"';
 like $@->message,
     qr/\QCannot exec --nosuchscript.ply--:\E|\QError closing pipe to --nosuchscript.ply--:/,
     'Error message should be about inability to exec';
+
+##############################################################################
+# Make sure Test::LocaleDomain gives us decoded strings.
+for my $lang (qw(en fr)) {
+    local $ENV{LANGUAGE} = $lang;
+    my $text = __x 'On database {db}', db => 'foo';
+    ok utf8::valid($text), 'Localied string should be valid UTF-8';
+    ok utf8::is_utf8($text), 'Localied string should be decoded';
+}
