@@ -519,7 +519,7 @@ sub sort_changes {
     if ( my @cycles = map { $_->name } grep { $npred{$_->name} } @_ ) {
         my $last = pop @cycles;
         hurl plan => __x(
-            'Dependency cycle detected beween changes {changes}',
+            'Dependency cycle detected between changes {changes}',
             changes => join( __ ', ', map {
                 __x('"{quoted}"', quoted => $_)
             } @cycles) . __ ' and ' . __x('"{quoted}"', quoted => $last)

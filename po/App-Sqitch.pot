@@ -288,7 +288,7 @@ msgstr ""
 
 #: lib/App/Sqitch/Plan.pm:522
 #, perl-brace-format
-msgid "Dependency cycle detected beween changes {changes}"
+msgid "Dependency cycle detected between changes {changes}"
 msgstr ""
 
 #: lib/App/Sqitch/Plan.pm:523 lib/App/Sqitch/Command/status.pm:67

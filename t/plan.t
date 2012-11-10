@@ -1527,7 +1527,7 @@ throws_ok { $plan->sort_changes('foo', changes qw(this that other)) } 'App::Sqit
     'Should get failure for a cycle';
 is $@->ident, 'plan', 'Cycle error ident should be "plan"';
 is $@->message, __x(
-    'Dependency cycle detected beween changes {changes}',
+    'Dependency cycle detected between changes {changes}',
     changes => __x('"{quoted}"', quoted => 'this')
              . __ ' and ' . __x('"{quoted}"', quoted => 'that')
 ), 'The cycle error message should be correct';
@@ -1542,7 +1542,7 @@ throws_ok { $plan->sort_changes('foo', changes qw(this that other)) } 'App::Sqit
     'Should get failure for a two-hop cycle';
 is $@->ident, 'plan', 'Two-hope cycle error ident should be "plan"';
 is $@->message, __x(
-    'Dependency cycle detected beween changes {changes}',
+    'Dependency cycle detected between changes {changes}',
     changes => join( __ ', ', map {
         __x('"{quoted}"', quoted => $_)
     } qw(this that)) . __ ' and ' . __x('"{quoted}"', quoted => 'other')
