@@ -158,6 +158,17 @@ Given the lowercase key from the loaded data, this method returns it in its
 original case. This is like C<original_key>, only in the case where there are
 multiple keys (for multi-value keys), only the first key is returned.
 
+=begin comment
+
+Hide <original_key>: It is defined in Config::GitLike 1.10, and only defined
+here for older versions.
+
+=head3 C<original_key>
+
+Only provided if not inherited from Config::GitLike.
+
+=end comment
+
 =head1 See Also
 
 =over
