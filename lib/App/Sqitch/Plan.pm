@@ -465,7 +465,7 @@ sub sort_changes {
         $obj{$name} = $change;
         my $p = $pairs{$name} = {};
         $nreqs{$name} += 0;
-        $order{$name} //= $i++;
+        $order{$name} = $i++;
 
         # XXX Ignoring conflicts for now.
         for my $dep ( $change->requires ) {
