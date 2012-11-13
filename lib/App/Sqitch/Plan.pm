@@ -455,6 +455,9 @@ sub sort_changes {
     my %pairs;           # all pairs ($l, $r)
     my %nreqs;           # number of requiring changes
     my %deps;            # list of dependencies
+    my %order;           # tracks orinal order of the objects.
+
+    my $i = 0;
     for my $change (@_) {
 
         # Stolen from http://cpansearch.perl.org/src/CWEST/ppt-0.14/bin/tsort.
@@ -462,6 +465,7 @@ sub sort_changes {
         $obj{$name} = $change;
         my $p = $pairs{$name} = {};
         $nreqs{$name} += 0;
+        $order{$name} //= $i++;
 
         # XXX Ignoring conflicts for now.
         for my $dep ( $change->requires ) {
@@ -494,27 +498,27 @@ sub sort_changes {
         }
     }
 
-    # Stolen from http://cpansearch.perl.org/src/CWEST/ppt-0.14/bin/tsort.
-    # Create a list of changes without predecessors
-    my @list = grep { !$nreqs{$_->name} } @_;
-
+    # Sort for dependencies, preferring original order.
+    # http://stackoverflow.com/a/13370233/79202
     my @ret;
-    while (@list) {
-        my $change = pop @list;
-        unshift @ret => $change;
-        foreach my $child ( @{ $deps{$change->name} } ) {
-            unless ( $pairs{$child} ) {
-                hurl plan => __x(
-                    'Unknown change "{required}" required by change "{change}"',
-                    required => $child,
-                    change   => $change->name,
-                );
+    while (my @list = grep { !$nreqs{$_} } keys %nreqs) {
+        unshift @ret => map { $obj{$_} } sort { $order{$a} <=> $order{$b} } @list;
+        for my $name (@list) {
+            delete $nreqs{$name};
+            for my $child ( @{ $deps{$name} } ) {
+                unless ( $pairs{$child} ) {
+                    hurl plan => __x(
+                        'Unknown change "{required}" required by change "{change}"',
+                        required => $child,
+                        change   => $name,
+                    );
+                }
+                $nreqs{$child}--;
             }
-            push @list, $obj{$child} unless --$nreqs{$child};
         }
     }
 
-    if ( my @cycles = map { $_->name } grep { $nreqs{$_->name} } @_ ) {
+    if ( my @cycles = sort { $order{$a} <=> $order{$b} } keys %nreqs ) {
         my $last = pop @cycles;
         hurl plan => __x(
             'Dependency cycle detected between changes {changes}',

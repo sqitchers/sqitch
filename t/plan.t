@@ -1492,7 +1492,7 @@ cmp_deeply [$plan->sort_changes('foo', changes qw(this that other))],
 # Have this require other and that.
 @deps = ({%ddep, requires => [dep 'other', dep 'that']}, {%ddep}, {%ddep});
 cmp_deeply [$plan->sort_changes('foo', changes qw(this that other))],
-    [changes qw(other that this)], 'Should get other, that, this now';
+    [changes qw(that other this)], 'Should get that, other, this now';
 
 # Have this require other and that, and other requore that.
 @deps = ({%ddep, requires => [dep 'other', dep 'that']}, {%ddep}, {%ddep, requires => [dep 'that']});
@@ -1556,7 +1556,7 @@ cmp_deeply [$plan->sort_changes('foo', { foo => 1}, changes qw(this that other))
 # Mix it up.
 @deps = ({%ddep, requires => [dep 'other', dep 'that']}, {%ddep, requires => [dep 'sqitch']}, {%ddep});
 cmp_deeply [$plan->sort_changes('foo', {sqitch => 1 }, changes qw(this that other))],
-    [changes qw(other that this)], 'Should get other, that, this with earlier dependncy';
+    [changes qw(that other this)], 'Should get that, other, this with earlier dependncy';
 
 # Make sure it fails on unknown previous dependencies.
 @deps = ({%ddep, requires => [dep 'foo']}, {%ddep}, {%ddep});
