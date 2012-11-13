@@ -453,15 +453,15 @@ sub sort_changes {
 
     my %obj;             # maps change names to objects.
     my %pairs;           # all pairs ($l, $r)
-    my %npred;           # number of predecessors
-    my %succ;            # list of successors
+    my %nreqs;           # number of requiring changes
+    my %deps;            # list of dependencies
     for my $change (@_) {
 
         # Stolen from http://cpansearch.perl.org/src/CWEST/ppt-0.14/bin/tsort.
         my $name = $change->name;
         $obj{$name} = $change;
         my $p = $pairs{$name} = {};
-        $npred{$name} += 0;
+        $nreqs{$name} += 0;
 
         # XXX Ignoring conflicts for now.
         for my $dep ( $change->requires ) {
@@ -489,34 +489,32 @@ sub sort_changes {
             }
 
             $p->{$key}++;
-            $npred{$key}++;
-            push @{ $succ{$name} } => $key;
+            $nreqs{$key}++;
+            push @{ $deps{$name} } => $key;
         }
     }
 
     # Stolen from http://cpansearch.perl.org/src/CWEST/ppt-0.14/bin/tsort.
     # Create a list of changes without predecessors
-    my @list = grep { !$npred{$_->name} } @_;
+    my @list = grep { !$nreqs{$_->name} } @_;
 
     my @ret;
     while (@list) {
         my $change = pop @list;
         unshift @ret => $change;
-        foreach my $child ( @{ $succ{$change->name} } ) {
+        foreach my $child ( @{ $deps{$change->name} } ) {
             unless ( $pairs{$child} ) {
-                my $sqitch = $self->sqitch;
-                my $name = $change->name;
                 hurl plan => __x(
                     'Unknown change "{required}" required by change "{change}"',
                     required => $child,
-                    change   => $name,
+                    change   => $change->name,
                 );
             }
-            push @list, $obj{$child} unless --$npred{$child};
+            push @list, $obj{$child} unless --$nreqs{$child};
         }
     }
 
-    if ( my @cycles = map { $_->name } grep { $npred{$_->name} } @_ ) {
+    if ( my @cycles = map { $_->name } grep { $nreqs{$_->name} } @_ ) {
         my $last = pop @cycles;
         hurl plan => __x(
             'Dependency cycle detected between changes {changes}',
@@ -525,6 +523,7 @@ sub sort_changes {
             } @cycles) . __ ' and ' . __x('"{quoted}"', quoted => $last)
         );
     }
+
     return @ret;
 }
 

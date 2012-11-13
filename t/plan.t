@@ -1586,6 +1586,18 @@ cmp_deeply [$plan->sort_changes('foo', changes qw(this that other))],
     [changes qw(this that other)], 'Should get original order with external dependency';
 $project = undef;
 
+# Make sure sort ordering is correct when we have depenencies from other projects.
+@deps = (
+    {%ddep},
+    {%ddep},
+    {%ddep, requires => [dep 'that']},
+    {%ddep, requires => [dep 'that', dep 'this']},
+);
+cmp_deeply [$plan->sort_changes('foo', changes qw(this that other thing))],
+    [changes qw(this that other thing)],
+    'Should get original order with cascading dependencies';
+$project = undef;
+
 ##############################################################################
 # Test dependency testing.
 can_ok $plan, '_check_dependencies';

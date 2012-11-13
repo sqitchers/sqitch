@@ -291,7 +291,6 @@ sub go {
             sqitch  => $sqitch,
             command => $cmd,
             config  => $config,
-
         });
 
         # 6. Execute command.
