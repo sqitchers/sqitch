@@ -164,8 +164,8 @@ User who adds a change to the plan.
      --quiet              Quiet mode with non-error output suppressed.
      --verbose            Increment verbosity.
      --version            Print the version number and exit.
-     --help               Print a usage statement and exit.
-     --man                Print the complete documentation and exit.
+     --help               Show a list of commands and exit.
+     --man                Print the introductory documentation and exit.
 
 =head1 Options Details
 
@@ -301,7 +301,7 @@ greater verbosity. Ignored if C<--quiet> is specified.
 
   sqitch --help
 
-Outputs a brief description of the options supported by C<sqitch> and exits.
+Outputs a brief description all known Sqitch commands and exits.
 
 =item C<--man>
 

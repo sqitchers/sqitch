@@ -272,6 +272,7 @@ sub go {
 
     # 1. Split command and options.
     my ( $core_args, $cmd, $cmd_args ) = $class->_split_args(@ARGV);
+    $class->_pod2usage('sqitchcommands') unless $cmd;
 
     # 2. Parse core options.
     my $opts = $class->_parse_core_opts($core_args);
@@ -290,7 +291,7 @@ sub go {
             sqitch  => $sqitch,
             command => $cmd,
             config  => $config,
-            args    => $cmd_args,
+
         });
 
         # 6. Execute command.
