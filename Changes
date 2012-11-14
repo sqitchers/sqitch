@@ -17,6 +17,7 @@ Revision history for Perl extension App::Sqitch
        preserved after dependency resolution, even if the dependency ordering
        allows it (issue #55). Thanks to @user5402 in [this SO
        answer](http://stackoverflow.com/a/13370233/79202) for the solution.
+     - Fixed bug where the `core.plan_file` config variable was ignored.
 
 0.938 2012-10-12T19:16:57Z
      - Added a primary key to the PostgreSQL `events` table, which should make

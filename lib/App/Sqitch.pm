@@ -58,7 +58,11 @@ has plan_file => (
     required => 1,
     lazy     => 1,
     default  => sub {
-        shift->top_dir->file('sqitch.plan')->cleanup;
+        my $self = shift;
+        if ( my $fn = $self->config->get( key => 'core.plan_file') ) {
+            return file $fn;
+        }
+        return $self->top_dir->file('sqitch.plan')->cleanup;
     }
 );
 
