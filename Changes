@@ -15,7 +15,7 @@ Revision history for Perl extension App::Sqitch
        options. Thanks to BryLo for the suggestion.
      - Fixed a bug where the original order of changes in the plan is not
        preserved after dependency resolution, even if the dependency ordering
-       allows it. Thanks to @user5402 in [this SO
+       allows it (issue #55). Thanks to @user5402 in [this SO
        answer](http://stackoverflow.com/a/13370233/79202) for the solution.
 
 0.938 2012-10-12T19:16:57Z
