@@ -1,6 +1,22 @@
 Revision history for Perl extension App::Sqitch
 
 0.939
+     - Fixed tests that failed due to I18N issues, with thanks to Arnaud
+       (Arhuman) ASSAD!
+     - Localized messages are now properly encoded in UTF-8. Thanks to Ronan
+       Dunklau for the report (issue #46) and to Guido Flohr for details on
+       how to address the issue.
+     - The variables defined for the `add`, `deploy`, and `revert` commands
+       now have the case of there names preserved if Config::GitLike 1.10 or
+       later is installed. Thanks to Ronan Dunklau for the report (issue #48)
+       and to Alex Vandiver for the case-preserving update to Config::GitLike.
+     - Attempting to run `sqitch` with no command now outputs the list of
+       supported commands (`sqitchcommands`), rather than the list of core
+       options. Thanks to BryLo for the suggestion.
+     - Fixed a bug where the original order of changes in the plan is not
+       preserved after dependency resolution, even if the dependency ordering
+       allows it. Thanks to @user5402 in [this SO
+       answer](http://stackoverflow.com/a/13370233/79202) for the solution.
 
 0.938 2012-10-12T19:16:57Z
      - Added a primary key to the PostgreSQL `events` table, which should make
