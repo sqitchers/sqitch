@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 255;
+use Test::More tests => 256;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -562,6 +562,7 @@ is_deeply $engine->seen, [
     [run_file => $changes[3]->deploy_file],
     [run_file => $changes[4]->deploy_file],
     [run_file => $changes[5]->deploy_file],
+    [run_file => $changes[5]->revert_file],
     [log_fail_change => $changes[5] ],
     [changes_requiring_change => $changes[4] ],
     [run_file => $changes[4]->revert_file],
@@ -576,11 +577,13 @@ is_deeply +MockOutput->get_info, [
     ['  + ', 'lolz'],
     ['  + ', 'tacos'],
     ['  + ', 'curry'],
+    ['  - ', 'curry'],
     ['  - ', 'tacos'],
     ['  - ', 'lolz'],
 ], 'Should have seen deploy and revert messages';
 is_deeply +MockOutput->get_vent, [
     ['ROFL'],
+    [__ 'Deploy failed'],
     [__x 'Reverting to {target}', target => 'widgets @beta']
 ], 'The original error should have been vented';
 $mock_whu->unmock('log_deploy_change');
@@ -720,6 +723,7 @@ is_deeply $engine->seen, [
     [run_file => $changes[0]->deploy_file],
     [run_file => $changes[1]->deploy_file],
     [run_file => $changes[2]->deploy_file],
+    [run_file => $changes[2]->revert_file],
     [log_fail_change => $changes[2]],
     [changes_requiring_change => $changes[1] ],
     [run_file => $changes[1]->revert_file],
@@ -733,12 +737,14 @@ is_deeply +MockOutput->get_info, [
     ['  + ', 'roles'],
     ['  + ', 'users @alpha'],
     ['  + ', 'widgets @beta'],
+    ['  - ', 'widgets @beta'],
     ['  - ', 'users @alpha'],
     ['  - ', 'roles'],
 ], 'Should have seen deploy and revert messages';
 is_deeply +MockOutput->get_vent, [
     ['ROFL'],
-    [__ 'Reverting all changes']
+    [__ 'Deploy failed' ],
+    [__ 'Reverting all changes'],
 ], 'The original error should have been vented';
 $die = '';
 
@@ -921,16 +927,21 @@ DEPLOYDIE: {
     @resolved = (0, '232213', '2352354');
     throws_ok { $engine->deploy_change($change) } 'App::Sqitch::X',
         'Shuld die on deploy failure';
-    is $@->message, 'AAAH!', 'Should be the underlying error';
+    is $@->message, __ 'Deploy failed', 'Should be told the deploy failed';
     is_deeply $engine->seen, [
         [ change_id_for_depend => $conflicts[0] ],
         [ change_id_for_depend => $requires[0]  ],
         [ change_id_for_depend => $requires[1]  ],
         [run_file => $change->deploy_file],
+        [run_file => $change->revert_file],
         [log_fail_change => $change],
     ], 'It should failed to have been deployed';
+    is_deeply +MockOutput->get_vent, [
+        ['AAAH!'],
+    ], 'Should have vented the original error';
     is_deeply +MockOutput->get_info, [
-        ['  + ', $change->format_name]
+        ['  + ', $change->format_name],
+        ['  - ', $change->format_name],
     ], 'Should have shown change name';
     is_deeply [ map { $_->resolved_id } @conflicts ], [undef],
         'Non-conflicting dependency should not have resolved';

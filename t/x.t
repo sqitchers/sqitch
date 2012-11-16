@@ -64,4 +64,13 @@ try {
     is $_->ident, 'io', 'Should be an "io" exception';
 };
 
+# Make sure we can goto hurl.
+try {
+    @_ = (io => 'Cannot open file');
+    goto &hurl;
+} catch {
+    return fail "Not a Sqitch::X: $_" unless eval { $_->isa('App::Sqitch::X') };
+    is $_->ident, 'io', 'Should catch error called via &goto';
+};
+
 done_testing;

@@ -291,7 +291,7 @@ sub deploy_change {
     my ( $self, $change ) = @_;
     my $sqitch = $self->sqitch;
     $sqitch->info('  + ', $change->format_name_with_tags);
-    $self->begin_work;
+    $self->begin_work($change);
 
     # Check for conflicts.
     if (my @conflicts = grep {
@@ -319,19 +319,36 @@ sub deploy_change {
 
     return try {
         $self->run_file($change->deploy_file);
-        $self->log_deploy_change($change);
+        try {
+            $self->log_deploy_change($change);
+        } catch {
+            # Oy, our logging died. Rollback.
+            $sqitch->vent(eval { $_->message } // $_);
+            $self->rollback_work($change);
+
+            # Begin work and run the revert.
+            try {
+                $self->sqitch->info('  - ', $change->format_name_with_tags);
+                $self->begin_work($change);
+                $self->run_file($change->revert_file);
+            } catch {
+                # Oy, the revert failed. Just emit the error.
+                $sqitch->vent(eval { $_->message } // $_);
+            };
+            hurl deploy => __ 'Deploy failed';
+        };
     } finally {
-        $self->finish_work;
+        $self->finish_work($change);
     } catch {
         $self->log_fail_change($change);
         die $_;
-    }
+    };
 }
 
 sub revert_change {
     my ( $self, $change ) = @_;
     $self->sqitch->info('  - ', $change->format_name_with_tags);
-    $self->begin_work;
+    $self->begin_work($change);
 
     if (my @requiring = $self->changes_requiring_change($change)) {
         my $proj = $self->plan->project;
@@ -350,16 +367,24 @@ sub revert_change {
 
     try {
         $self->run_file($change->revert_file);
-        $self->log_revert_change($change);
+        try {
+            $self->log_revert_change($change);
+        } catch {
+            # Oy, our logging died. Rollback and revert this change.
+            $self->sqitch->vent(eval { $_->message } // $_);
+            $self->rollback_work($change);
+            hurl revert => 'Revert failed';
+        };
     } finally {
-        $self->finish_work;
+        $self->finish_work($change);
     } catch {
         die $_;
-    }
+    };
 }
 
 sub begin_work  { shift }
 sub finish_work { shift }
+sub rollback_work { shift }
 
 sub earliest_change {
     my $self = shift;
@@ -698,18 +723,26 @@ These methods must be overridden in subclasses.
 
 =head3 C<begin_work>
 
-  $engine->begin_work;
+  $engine->begin_work($change);
 
 This method is called just before a change is deployed or reverted. It should
 create a lock to prevent any other processes from making changes to the
-database, to be freed in C<finish_work>.
+database, to be freed in C<finish_work> or C<rollback_work>.
 
 =head3 C<finish_work>
 
-  $engine->finish_work;
+  $engine->finish_work($change);
 
 This method is called after a change has been deployed or reverted. It should
 unlock the lock created by C<begin_work>.
+
+=head3 C<rollback_work>
+
+  $engine->rollback_work($change);
+
+This method is called after a change has been deployed or reverted and the
+logging of that change has failed. It should rollback changes started by
+C<begin_work>.
 
 =head3 C<initialized>
 

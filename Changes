@@ -18,6 +18,11 @@ Revision history for Perl extension App::Sqitch
        allows it (issue #55). Thanks to @user5402 in [this SO
        answer](http://stackoverflow.com/a/13370233/79202) for the solution.
      - Fixed bug where the `core.plan_file` config variable was ignored.
+     - Improved error handling when deploying and reverting a change. If the
+       change successfully deployed but the logging of the deployment to the
+       database failed, there was just a rollback message. Sqitch will now
+       emit the underlying error *and* run the revert script for the
+       just-deployed change.
 
 0.938 2012-10-12T19:16:57Z
      - Added a primary key to the PostgreSQL `events` table, which should make

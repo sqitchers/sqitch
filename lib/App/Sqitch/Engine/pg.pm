@@ -300,6 +300,12 @@ sub finish_work {
     return $self;
 }
 
+sub rollback_work {
+    my $self = shift;
+    $self->_dbh->rollback;
+    return $self;
+}
+
 sub run_file {
     my ($self, $file) = @_;
     $self->_run('--file' => $file);
