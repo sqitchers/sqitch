@@ -276,28 +276,30 @@ sub go {
 
     # 1. Split command and options.
     my ( $core_args, $cmd, $cmd_args ) = $class->_split_args(@ARGV);
-    $class->_pod2usage('sqitchcommands') unless $cmd;
 
     # 2. Parse core options.
     my $opts = $class->_parse_core_opts($core_args);
 
-    # 3. Load config.
+    # 3. If there is no command, emit help that lists commands.
+    $class->_pod2usage('sqitchcommands') unless $cmd;
+
+    # 4. Load config.
     my $config = App::Sqitch::Config->new;
 
-    # 4. Instantiate Sqitch.
+    # 5. Instantiate Sqitch.
     $opts->{_engine} = delete $opts->{engine} if $opts->{engine};
     $opts->{config} = $config;
     my $sqitch = $class->new($opts);
 
     return try {
-        # 5. Instantiate the command object.
+        # 6. Instantiate the command object.
         my $command = App::Sqitch::Command->load({
             sqitch  => $sqitch,
             command => $cmd,
             config  => $config,
         });
 
-        # 6. Execute command.
+        # 7. Execute command.
         $command->execute( @{$cmd_args} ) ? 0 : 2;
     } catch {
         # Just bail for unknown exceptions.
