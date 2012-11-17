@@ -233,7 +233,11 @@ sub _deploy_by_tag {
             }
         }
     } catch {
-        $self->sqitch->vent(eval { $_->message } // $_);
+        if (my $ident = eval{ $_->ident }) {
+            $self->sqitch->vent($_->message) unless $ident eq 'private'
+        } else {
+            $self->sqitch->vent($_);
+        }
         $self->_rollback($last_tagged, @run);
     };
 
@@ -251,7 +255,11 @@ sub _deploy_all {
             push @run => $change;
         }
     } catch {
-        $self->sqitch->vent(eval { $_->message } // $_);
+        if (my $ident = eval{ $_->ident }) {
+            $self->sqitch->vent($_->message) unless $ident eq 'private'
+        } else {
+            $self->sqitch->vent($_);
+        }
         $self->_rollback(undef, @run);
     };
 
@@ -335,7 +343,7 @@ sub deploy_change {
                 # Oy, the revert failed. Just emit the error.
                 $sqitch->vent(eval { $_->message } // $_);
             };
-            hurl deploy => __ 'Deploy failed';
+            hurl private => __ 'Deploy failed';
         };
     } finally {
         $self->finish_work($change);

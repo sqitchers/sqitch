@@ -583,7 +583,6 @@ is_deeply +MockOutput->get_info, [
 ], 'Should have seen deploy and revert messages';
 is_deeply +MockOutput->get_vent, [
     ['ROFL'],
-    [__ 'Deploy failed'],
     [__x 'Reverting to {target}', target => 'widgets @beta']
 ], 'The original error should have been vented';
 $mock_whu->unmock('log_deploy_change');
@@ -743,7 +742,6 @@ is_deeply +MockOutput->get_info, [
 ], 'Should have seen deploy and revert messages';
 is_deeply +MockOutput->get_vent, [
     ['ROFL'],
-    [__ 'Deploy failed' ],
     [__ 'Reverting all changes'],
 ], 'The original error should have been vented';
 $die = '';
