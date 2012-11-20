@@ -38,7 +38,7 @@ can_ok $CLASS, qw(
     project
     uri
     _parse
-    sort_changes
+    check_changes
     open_script
 );
 
@@ -170,7 +170,7 @@ sub sorted () {
     $sorted = 0;
     return $ret;
 }
-$mocker->mock(sort_changes => sub { $sorted++; shift, shift, shift; @_ });
+$mocker->mock(check_changes => sub { $sorted++; shift, shift, shift; @_ });
 
 sub version () {
     prag(
@@ -1444,9 +1444,9 @@ ok $fh = $plan->open_script(file qw(sql deploy baz.sql)), 'Open baz.sql';
 is $fh->getline, undef, 'It should be empty';
 
 ##############################################################################
-# Test sort_changes()
-$mocker->unmock('sort_changes');
-can_ok $CLASS, 'sort_changes';
+# Test check_changes()
+$mocker->unmock('check_changes');
+can_ok $CLASS, 'check_changes';
 my @deps;
 my $mock_change = Test::MockModule->new('App::Sqitch::Plan::Change');
 $mock_change->mock(requires => sub { @{ shift(@deps)->{requires} } });
@@ -1462,21 +1462,21 @@ sub changes {
 $project = 'foo';
 my %ddep = ( requires => [], conflicts => [] );
 @deps = ({%ddep}, {%ddep}, {%ddep});
-cmp_deeply [$plan->sort_changes({}, changes qw(this that other))],
+cmp_deeply [$plan->check_changes({}, changes qw(this that other))],
     [changes qw(this that other)], 'Should get original order when no dependencies';
 
 @deps = ({%ddep}, {%ddep}, {%ddep});
-cmp_deeply [$plan->sort_changes('foo', changes qw(this that other))],
+cmp_deeply [$plan->check_changes('foo', changes qw(this that other))],
     [changes qw(this that other)], 'Should get original order when no prepreqs';
 
 # Have that require this.
 @deps = ({%ddep}, {%ddep, requires => [dep 'this']}, {%ddep});
-cmp_deeply [$plan->sort_changes('foo', changes qw(this that other))],
+cmp_deeply [$plan->check_changes('foo', changes qw(this that other))],
     [changes qw(this that other)], 'Should get original order when that requires this';
 
 # Have other require that.
 @deps = ({%ddep}, {%ddep, requires => [dep 'this']}, {%ddep, requires => [dep 'that']});
-cmp_deeply [$plan->sort_changes('foo', changes qw(this that other))],
+cmp_deeply [$plan->check_changes('foo', changes qw(this that other))],
     [changes qw(this that other)], 'Should get original order when other requires that';
 
 my $deperr = sub {
@@ -1490,7 +1490,7 @@ my $deperr = sub {
 # Have this require other.
 @deps = ({%ddep, requires => [dep 'other']}, {%ddep}, {%ddep});
 throws_ok {
-    $plan->sort_changes('foo', changes qw(this that other))
+    $plan->check_changes('foo', changes qw(this that other))
 } 'App::Sqitch::X', 'Should get error for out-of-order dependency';
 is $@->ident, 'plan', 'Unordered dependency error ident should be "plan"';
 is $@->message, $deperr->(__nx(
@@ -1512,7 +1512,7 @@ is $@->message, $deperr->(__nx(
 # Have this require other and that.
 @deps = ({%ddep, requires => [dep 'other', dep 'that']}, {%ddep}, {%ddep});
 throws_ok {
-    $plan->sort_changes('foo', changes qw(this that other));
+    $plan->check_changes('foo', changes qw(this that other));
 } 'App::Sqitch::X', 'Should get error for multiple dependency errors';
 is $@->ident, 'plan', 'Multiple dependency error ident should be "plan"';
 is $@->message, $deperr->(
@@ -1542,18 +1542,18 @@ is $@->message, $deperr->(
 
 # Have that require a tag.
 @deps = ({%ddep}, {%ddep, requires => [dep '@howdy']}, {%ddep});
-cmp_deeply [$plan->sort_changes('foo', {'@howdy' => 2 }, changes qw(this that other))],
+cmp_deeply [$plan->check_changes('foo', {'@howdy' => 2 }, changes qw(this that other))],
     [changes qw(this that other)], 'Should get original order when requiring a tag';
 
 # Requires a step as of a tag.
 @deps = ({%ddep}, {%ddep, requires => [dep 'foo@howdy']}, {%ddep});
-cmp_deeply [$plan->sort_changes('foo', {'foo' => 1, '@howdy' => 2 }, changes qw(this that other))],
+cmp_deeply [$plan->check_changes('foo', {'foo' => 1, '@howdy' => 2 }, changes qw(this that other))],
     [changes qw(this that other)],
     'Should get original order when requiring a step as-of a tag';
 
 # Should die if the step comes *after* the specified tag.
 @deps = ({%ddep}, {%ddep, requires => [dep 'foo@howdy']}, {%ddep});
-throws_ok { $plan->sort_changes('foo', {'foo' => 3, '@howdy' => 2 }, changes qw(this that other)) }
+throws_ok { $plan->check_changes('foo', {'foo' => 3, '@howdy' => 2 }, changes qw(this that other)) }
     'App::Sqitch::X', 'Should get failure for a step after a tag';
 is $@->ident, 'plan', 'Step after tag error ident should be "plan"';
 is $@->message, $deperr->(__x(
@@ -1564,7 +1564,7 @@ is $@->message, $deperr->(__x(
 
 # Add a cycle.
 @deps = ({%ddep, requires => [dep 'that']}, {%ddep, requires => [dep 'this']}, {%ddep});
-throws_ok { $plan->sort_changes('foo', changes qw(this that other)) } 'App::Sqitch::X',
+throws_ok { $plan->check_changes('foo', changes qw(this that other)) } 'App::Sqitch::X',
     'Should get failure for a cycle';
 is $@->ident, 'plan', 'Cycle error ident should be "plan"';
 is $@->message, $deperr->(
@@ -1591,7 +1591,7 @@ is $@->message, $deperr->(
     {%ddep, requires => [dep 'other']},
     {%ddep, requires => [dep 'this']}
 );
-throws_ok { $plan->sort_changes('foo', changes qw(this that other)) } 'App::Sqitch::X',
+throws_ok { $plan->check_changes('foo', changes qw(this that other)) } 'App::Sqitch::X',
     'Should get failure for a two-hop cycle';
 is $@->ident, 'plan', 'Two-hope cycle error ident should be "plan"';
 is $@->message, $deperr->(
@@ -1628,13 +1628,13 @@ is $@->message, $deperr->(
 
 # Okay, now deal with depedencies from ealier change sections.
 @deps = ({%ddep, requires => [dep 'foo']}, {%ddep}, {%ddep});
-cmp_deeply [$plan->sort_changes('foo', { foo => 1}, changes qw(this that other))],
+cmp_deeply [$plan->check_changes('foo', { foo => 1}, changes qw(this that other))],
     [changes qw(this that other)], 'Should get original order with earlier dependency';
 
 # Mix it up.
 @deps = ({%ddep, requires => [dep 'other', dep 'that']}, {%ddep, requires => [dep 'sqitch']}, {%ddep});
 throws_ok {
-    $plan->sort_changes('foo', {sqitch => 1 }, changes qw(this that other))
+    $plan->check_changes('foo', {sqitch => 1 }, changes qw(this that other))
 } 'App::Sqitch::X', 'Should get error with misordered and seen dependencies';
 is $@->ident, 'plan', 'Misorderd and seen error ident should be "plan"';
 is $@->message, $deperr->(
@@ -1664,7 +1664,7 @@ is $@->message, $deperr->(
 
 # Make sure it fails on unknown previous dependencies.
 @deps = ({%ddep, requires => [dep 'foo']}, {%ddep}, {%ddep});
-throws_ok { $plan->sort_changes('foo', changes qw(this that other)) } 'App::Sqitch::X',
+throws_ok { $plan->check_changes('foo', changes qw(this that other)) } 'App::Sqitch::X',
     'Should die on unknown dependency';
 is $@->ident, 'plan', 'Unknown dependency error ident should be "plan"';
 is $@->message, $deperr->(__x(
@@ -1675,7 +1675,7 @@ is $@->message, $deperr->(__x(
 
 # Okay, now deal with depedencies from ealier change sections.
 @deps = ({%ddep, requires => [dep '@foo']}, {%ddep}, {%ddep});
-throws_ok { $plan->sort_changes('foo', changes qw(this that other)) } 'App::Sqitch::X',
+throws_ok { $plan->check_changes('foo', changes qw(this that other)) } 'App::Sqitch::X',
     'Should die on unknown tag dependency';
 is $@->ident, 'plan', 'Unknown tag dependency error ident should be "plan"';
 is $@->message, $deperr->(__x(
@@ -1686,13 +1686,13 @@ is $@->message, $deperr->(__x(
 
 # Allow dependencies from different projects.
 @deps = ({%ddep}, {%ddep, requires => [dep 'bar:bob']}, {%ddep});
-cmp_deeply [$plan->sort_changes('foo', changes qw(this that other))],
+cmp_deeply [$plan->check_changes('foo', changes qw(this that other))],
     [changes qw(this that other)], 'Should get original order with external dependency';
 $project = undef;
 
 # Make sure that a change does not require itself
 @deps = ({%ddep, requires => [dep 'this']}, {%ddep}, {%ddep});
-throws_ok { $plan->sort_changes('foo', changes qw(this that other)) } 'App::Sqitch::X',
+throws_ok { $plan->check_changes('foo', changes qw(this that other)) } 'App::Sqitch::X',
     'Should die on self dependency';
 is $@->ident, 'plan', 'Self dependency error ident should be "plan"';
 is $@->message, $deperr->(__x(
@@ -1707,7 +1707,7 @@ is $@->message, $deperr->(__x(
     {%ddep, requires => [dep 'that']},
     {%ddep, requires => [dep 'that', dep 'this']},
 );
-cmp_deeply [$plan->sort_changes('foo', changes qw(this that other thing))],
+cmp_deeply [$plan->check_changes('foo', changes qw(this that other thing))],
     [changes qw(this that other thing)],
     'Should get original order with cascading dependencies';
 $project = undef;
@@ -1719,7 +1719,7 @@ $project = undef;
     {%ddep, requires => [dep 'that', dep 'this', dep 'other']},
     {%ddep, requires => [dep 'that', dep 'this']},
 );
-cmp_deeply [$plan->sort_changes('foo', changes qw(this that other thing yowza))],
+cmp_deeply [$plan->check_changes('foo', changes qw(this that other thing yowza))],
     [changes qw(this that other thing yowza)],
     'Should get original order with multiple cascading dependencies';
 $project = undef;

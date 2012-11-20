@@ -354,7 +354,7 @@ sub _parse {
 
             if (@curr_changes) {
                 # Sort all changes up to this tag by their dependencies.
-                push @changes => $self->sort_changes(
+                push @changes => $self->check_changes(
                     $pragmas{project},
                     \%line_no_for,
                     @curr_changes,
@@ -425,7 +425,7 @@ sub _parse {
     }
 
     # Sort and store any remaining changes.
-    push @changes => $self->sort_changes(
+    push @changes => $self->check_changes(
         $pragmas{project},
         \%line_no_for,
         @curr_changes,
@@ -447,7 +447,7 @@ sub _version_line {
     );
 }
 
-sub sort_changes {
+sub check_changes {
     my ( $self, $proj ) = ( shift, shift );
     my $seen = ref $_[0] eq 'HASH' ? shift : {};
 
@@ -763,8 +763,6 @@ sub _check_dependencies {
     my $changes = $self->_changes;
     my $project = $self->project;
     for my $req ( $change->requires ) {
-        # use Test::More; diag $req->key_name;
-        # diag $req->project, ' ne ', $project;
         next if $req->project ne $project;
         $req = $req->key_name;
         next if defined $changes->index_of($req =~ /@/ ? $req : $req . '@HEAD');
@@ -1176,15 +1174,15 @@ Loads the plan data. Called internally, not meant to be called directly, as it
 parses the plan file and deploy scripts every time it's called. If you want
 the all of the changes, call C<changes()> instead.
 
-=head3 C<sort_changes>
+=head3 C<check_changes>
 
-  @changes = $plan->sort_changes( $project, @changes );
-  @changes = $plan->sort_changes( $project, { '@foo' => 1 }, @changes );
+  @changes = $plan->check_changes( $project, @changes );
+  @changes = $plan->check_changes( $project, { '@foo' => 1 }, @changes );
 
-Sorts a list of changes in dependency order and returns them. If the second
-argument is a hash reference, its keys should be previously-seen change and
-tag names that can be assumed to be satisfied requirements for the succeeding
-changes.
+Checks a list of changes to validate their depenencies and returns them. If
+the second argument is a hash reference, its keys should be previously-seen
+change and tag names that can be assumed to be satisfied requirements for the
+succeeding changes.
 
 =head3 C<tag>
 
