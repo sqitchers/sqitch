@@ -451,21 +451,12 @@ sub sort_changes {
     my ( $self, $proj ) = ( shift, shift );
     my $seen = ref $_[0] eq 'HASH' ? shift : {};
 
-    my %obj;             # maps change names to objects.
-    my %pairs;           # all pairs ($l, $r)
-    my %nreqs;           # number of requiring changes
-    my %deps;            # list of dependencies
-    my %order;           # tracks orinal order of the objects.
+    my %position;
+    my @invalid;
 
     my $i = 0;
     for my $change (@_) {
-
-        # Stolen from http://cpansearch.perl.org/src/CWEST/ppt-0.14/bin/tsort.
-        my $name = $change->name;
-        $obj{$name} = $change;
-        my $p = $pairs{$name} = {};
-        $nreqs{$name} += 0;
-        $order{$name} = $i++;
+        my @bad;
 
         # XXX Ignoring conflicts for now.
         for my $dep ( $change->requires ) {
@@ -489,46 +480,75 @@ sub sort_changes {
                     }
                 }
             } else {
-                next if exists $seen->{$key};
+                # Skip it if we've already seen it in the plan.
+                next if exists $seen->{$key} || $position{$key};
             }
 
-            $p->{$key}++;
-            $nreqs{$key}++;
-            push @{ $deps{$name} } => $key;
+            # Hrm, unknown dependency.
+            push @bad, $key;
+        }
+        $position{$change->name} = ++$i;
+        push @invalid, [ $change->name => \@bad ] if @bad;
+    }
+
+
+    # Nothing bad, then go!
+    return @_ unless @invalid;
+
+    # Build up all of the error messages.
+    my @errors;
+    for my $bad (@invalid) {
+        my $change = $bad->[0];
+        my $max_delta = 0;
+        for my $dep (@{ $bad->[1] }) {
+            if ($change eq $dep) {
+                push @errors => __x(
+                    'Change "{change}" cannot require itself',
+                    change => $change,
+                );
+            } elsif (my $pos = $position{ $dep }) {
+                my $delta = $pos - $position{$change};
+                $max_delta = $delta if $delta > $max_delta;
+                push @errors => __xn(
+                    'Change "{change}" planned {num} change before required change "{required}"',
+                    'Change "{change}" planned {num} changes before required change "{required}"',
+                    $delta,
+                    change   => $change,
+                    required => $dep,
+                    num      => $delta,
+                );
+            } else {
+                push @errors => __x(
+                    'Unknown change "{required}" required by change "{change}"',
+                    required => $dep,
+                    change   => $change,
+                );
+            }
+        }
+        if ($max_delta) {
+            # Suggest that the change be moved.
+            # XXX Potentially offer to move it and rewrite the plan.
+            $errors[-1] .= "\n    " .  __xn(
+                'HINT: move "{change}" down {num} line in {plan}',
+                'HINT: move "{change}" down {num} lines in {plan}',
+                $max_delta,
+                change => $change,
+                num    => $max_delta,
+                plan   => $self->sqitch->plan_file,
+            );
         }
     }
 
-    # Sort for dependencies, preferring original order.
-    # http://stackoverflow.com/a/13370233/79202
-    my @ret;
-    while (my @list = grep { !$nreqs{$_} } keys %nreqs) {
-        unshift @ret => map { $obj{$_} } sort { $order{$a} <=> $order{$b} } @list;
-        for my $name (@list) {
-            delete $nreqs{$name};
-            for my $child ( @{ $deps{$name} } ) {
-                unless ( $pairs{$child} ) {
-                    hurl plan => __x(
-                        'Unknown change "{required}" required by change "{change}"',
-                        required => $child,
-                        change   => $name,
-                    );
-                }
-                $nreqs{$child}--;
-            }
-        }
-    }
-
-    if ( my @cycles = sort { $order{$a} <=> $order{$b} } keys %nreqs ) {
-        my $last = pop @cycles;
-        hurl plan => __x(
-            'Dependency cycle detected between changes {changes}',
-            changes => join( __ ', ', map {
-                __x('"{quoted}"', quoted => $_)
-            } @cycles) . __ ' and ' . __x('"{quoted}"', quoted => $last)
-        );
-    }
-
-    return @ret;
+    # Throw the exception with all of the errors.
+    hurl plan => join(
+        "\n  ",
+        __n(
+            'Dependency error detected:',
+            'Dependency errors detected:',
+            @errors
+        ),
+        @errors,
+    );
 }
 
 sub open_script {

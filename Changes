@@ -13,10 +13,12 @@ Revision history for Perl extension App::Sqitch
      - Attempting to run `sqitch` with no command now outputs the list of
        supported commands (`sqitchcommands`), rather than the list of core
        options. Thanks to BryLo for the suggestion.
-     - Fixed a bug where the original order of changes in the plan is not
-       preserved after dependency resolution, even if the dependency ordering
-       allows it (issue #55). Thanks to @user5402 in [this SO
-       answer](http://stackoverflow.com/a/13370233/79202) for the solution.
+     - Changed the plan parser so that it no longer changes the order of
+       changes based on the depenency change. Unfortunately, this meant that
+       the order could change from one run to another, especially if new
+       changes were added since the last deploy. The planner now throws an
+       exception if the order in the plan is wrong, and suggests that the user
+       move changes in the plan file to get it to work properly.
      - Fixed bug where the `core.plan_file` config variable was ignored.
      - Improved error handling when deploying and reverting a change. If the
        change successfully deployed but the logging of the deployment to the

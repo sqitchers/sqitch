@@ -1479,25 +1479,66 @@ cmp_deeply [$plan->sort_changes('foo', changes qw(this that other))],
 cmp_deeply [$plan->sort_changes('foo', changes qw(this that other))],
     [changes qw(this that other)], 'Should get original order when other requires that';
 
+my $deperr = sub {
+    join "\n  ", __n(
+        'Dependency error detected:',
+        'Dependency errors detected:',
+        @_
+    ), @_
+};
+
 # Have this require other.
 @deps = ({%ddep, requires => [dep 'other']}, {%ddep}, {%ddep});
-cmp_deeply [$plan->sort_changes('foo', changes qw(this that other))],
-    [changes qw(other this that)], 'Should get other first when this requires it';
-
-# Have other other require taht.
-@deps = ({%ddep, requires => [dep 'other']}, {%ddep}, {%ddep, requires => [dep 'that']});
-cmp_deeply [$plan->sort_changes('foo', changes qw(this that other))],
-    [changes qw(that other this)], 'Should get that, other, this now';
+throws_ok {
+    $plan->sort_changes('foo', changes qw(this that other))
+} 'App::Sqitch::X', 'Should get error for out-of-order dependency';
+is $@->ident, 'plan', 'Unordered dependency error ident should be "plan"';
+is $@->message, $deperr->(__nx(
+    'Change "{change}" planned {num} change before required change "{required}"',
+    'Change "{change}" planned {num} changes before required change "{required}"',
+    2,
+    change   => 'this',
+    required => 'other',
+    num      => 2,
+) . "\n    " .  __xn(
+    'HINT: move "{change}" down {num} line in {plan}',
+    'HINT: move "{change}" down {num} lines in {plan}',
+    2,
+    change => 'this',
+    num    => 2,
+    plan   => $plan->sqitch->plan_file,
+)),  'And the unordered dependency error message should be correct';
 
 # Have this require other and that.
 @deps = ({%ddep, requires => [dep 'other', dep 'that']}, {%ddep}, {%ddep});
-cmp_deeply [$plan->sort_changes('foo', changes qw(this that other))],
-    [changes qw(that other this)], 'Should get that, other, this now';
-
-# Have this require other and that, and other requore that.
-@deps = ({%ddep, requires => [dep 'other', dep 'that']}, {%ddep}, {%ddep, requires => [dep 'that']});
-cmp_deeply [$plan->sort_changes('foo', changes qw(this that other))],
-    [changes qw(that other this)], 'Should get that, other, this again';
+throws_ok {
+    $plan->sort_changes('foo', changes qw(this that other));
+} 'App::Sqitch::X', 'Should get error for multiple dependency errors';
+is $@->ident, 'plan', 'Multiple dependency error ident should be "plan"';
+is $@->message, $deperr->(
+    __nx(
+        'Change "{change}" planned {num} change before required change "{required}"',
+        'Change "{change}" planned {num} changes before required change "{required}"',
+        2,
+        change   => 'this',
+        required => 'other',
+        num      => 2,
+    ), __nx(
+        'Change "{change}" planned {num} change before required change "{required}"',
+        'Change "{change}" planned {num} changes before required change "{required}"',
+        1,
+        change   => 'this',
+        required => 'that',
+        num      => 1,
+    ) . "\n    " .  __xn(
+        'HINT: move "{change}" down {num} line in {plan}',
+        'HINT: move "{change}" down {num} lines in {plan}',
+        2,
+        change => 'this',
+        num    => 2,
+        plan   => $plan->sqitch->plan_file,
+    ),
+),  'And the multiple dependency error message should be correct';
 
 # Have that require a tag.
 @deps = ({%ddep}, {%ddep, requires => [dep '@howdy']}, {%ddep});
@@ -1515,21 +1556,33 @@ cmp_deeply [$plan->sort_changes('foo', {'foo' => 1, '@howdy' => 2 }, changes qw(
 throws_ok { $plan->sort_changes('foo', {'foo' => 3, '@howdy' => 2 }, changes qw(this that other)) }
     'App::Sqitch::X', 'Should get failure for a step after a tag';
 is $@->ident, 'plan', 'Step after tag error ident should be "plan"';
-is $@->message, __x(
+is $@->message, $deperr->(__x(
     'Unknown change "{required}" required by change "{change}"',
     required => 'foo@howdy',
     change   => 'that',
-),  'And we the unknown change as-of a tag message should be correct';
+)),  'And we the unknown change as-of a tag message should be correct';
 
 # Add a cycle.
 @deps = ({%ddep, requires => [dep 'that']}, {%ddep, requires => [dep 'this']}, {%ddep});
 throws_ok { $plan->sort_changes('foo', changes qw(this that other)) } 'App::Sqitch::X',
     'Should get failure for a cycle';
 is $@->ident, 'plan', 'Cycle error ident should be "plan"';
-is $@->message, __x(
-    'Dependency cycle detected between changes {changes}',
-    changes => __x('"{quoted}"', quoted => 'this')
-             . __ ' and ' . __x('"{quoted}"', quoted => 'that')
+is $@->message, $deperr->(
+    __nx(
+        'Change "{change}" planned {num} change before required change "{required}"',
+        'Change "{change}" planned {num} changes before required change "{required}"',
+        1,
+        change   => 'this',
+        required => 'that',
+        num      => 1,
+    ) . "\n    " .  __xn(
+        'HINT: move "{change}" down {num} line in {plan}',
+        'HINT: move "{change}" down {num} lines in {plan}',
+        1,
+        change => 'this',
+        num    => 1,
+        plan   => $plan->sqitch->plan_file,
+    ),
 ), 'The cycle error message should be correct';
 
 # Add an extended cycle.
@@ -1541,11 +1594,36 @@ is $@->message, __x(
 throws_ok { $plan->sort_changes('foo', changes qw(this that other)) } 'App::Sqitch::X',
     'Should get failure for a two-hop cycle';
 is $@->ident, 'plan', 'Two-hope cycle error ident should be "plan"';
-is $@->message, __x(
-    'Dependency cycle detected between changes {changes}',
-    changes => join( __ ', ', map {
-        __x('"{quoted}"', quoted => $_)
-    } qw(this that)) . __ ' and ' . __x('"{quoted}"', quoted => 'other')
+is $@->message, $deperr->(
+    __nx(
+        'Change "{change}" planned {num} change before required change "{required}"',
+        'Change "{change}" planned {num} changes before required change "{required}"',
+        1,
+        change   => 'this',
+        required => 'that',
+        num      => 1,
+    ) . "\n    " .  __xn(
+        'HINT: move "{change}" down {num} line in {plan}',
+        'HINT: move "{change}" down {num} lines in {plan}',
+        1,
+        change => 'this',
+        num    => 1,
+        plan   => $plan->sqitch->plan_file,
+    ), __nx(
+        'Change "{change}" planned {num} change before required change "{required}"',
+        'Change "{change}" planned {num} changes before required change "{required}"',
+        1,
+        change   => 'that',
+        required => 'other',
+        num      => 1,
+    ) . "\n    " .  __xn(
+        'HINT: move "{change}" down {num} line in {plan}',
+        'HINT: move "{change}" down {num} lines in {plan}',
+        1,
+        change => 'that',
+        num    => 1,
+        plan   => $plan->sqitch->plan_file,
+    ),
 ), 'The two-hop cycle error message should be correct';
 
 # Okay, now deal with depedencies from ealier change sections.
@@ -1555,36 +1633,72 @@ cmp_deeply [$plan->sort_changes('foo', { foo => 1}, changes qw(this that other))
 
 # Mix it up.
 @deps = ({%ddep, requires => [dep 'other', dep 'that']}, {%ddep, requires => [dep 'sqitch']}, {%ddep});
-cmp_deeply [$plan->sort_changes('foo', {sqitch => 1 }, changes qw(this that other))],
-    [changes qw(that other this)], 'Should get that, other, this with earlier dependncy';
+throws_ok {
+    $plan->sort_changes('foo', {sqitch => 1 }, changes qw(this that other))
+} 'App::Sqitch::X', 'Should get error with misordered and seen dependencies';
+is $@->ident, 'plan', 'Misorderd and seen error ident should be "plan"';
+is $@->message, $deperr->(
+    __nx(
+        'Change "{change}" planned {num} change before required change "{required}"',
+        'Change "{change}" planned {num} changes before required change "{required}"',
+        2,
+        change   => 'this',
+        required => 'other',
+        num      => 2,
+    ), __nx(
+        'Change "{change}" planned {num} change before required change "{required}"',
+        'Change "{change}" planned {num} changes before required change "{required}"',
+        1,
+        change   => 'this',
+        required => 'that',
+        num      => 1,
+    ) . "\n    " .  __xn(
+        'HINT: move "{change}" down {num} line in {plan}',
+        'HINT: move "{change}" down {num} lines in {plan}',
+        2,
+        change => 'this',
+        num    => 2,
+        plan   => $plan->sqitch->plan_file,
+    ),
+),  'And the misordered and seen error message should be correct';
 
 # Make sure it fails on unknown previous dependencies.
 @deps = ({%ddep, requires => [dep 'foo']}, {%ddep}, {%ddep});
 throws_ok { $plan->sort_changes('foo', changes qw(this that other)) } 'App::Sqitch::X',
     'Should die on unknown dependency';
 is $@->ident, 'plan', 'Unknown dependency error ident should be "plan"';
-is $@->message, __x(
+is $@->message, $deperr->(__x(
     'Unknown change "{required}" required by change "{change}"',
     required => 'foo',
     change   => 'this',
-), 'And the error should point to the offending change';
+)), 'And the error should point to the offending change';
 
 # Okay, now deal with depedencies from ealier change sections.
 @deps = ({%ddep, requires => [dep '@foo']}, {%ddep}, {%ddep});
 throws_ok { $plan->sort_changes('foo', changes qw(this that other)) } 'App::Sqitch::X',
     'Should die on unknown tag dependency';
 is $@->ident, 'plan', 'Unknown tag dependency error ident should be "plan"';
-is $@->message, __x(
+is $@->message, $deperr->(__x(
     'Unknown change "{required}" required by change "{change}"',
     required => '@foo',
     change   => 'this',
-), 'And the error should point to the offending change';
+)), 'And the error should point to the offending change';
 
 # Allow dependencies from different projects.
 @deps = ({%ddep}, {%ddep, requires => [dep 'bar:bob']}, {%ddep});
 cmp_deeply [$plan->sort_changes('foo', changes qw(this that other))],
     [changes qw(this that other)], 'Should get original order with external dependency';
 $project = undef;
+
+# Make sure that a change does not require itself
+@deps = ({%ddep, requires => [dep 'this']}, {%ddep}, {%ddep});
+throws_ok { $plan->sort_changes('foo', changes qw(this that other)) } 'App::Sqitch::X',
+    'Should die on self dependency';
+is $@->ident, 'plan', 'Self dependency error ident should be "plan"';
+is $@->message, $deperr->(__x(
+    'Change "{change}" cannot require itself',
+    change   => 'this',
+)), 'And the self dependency error should be correct';
 
 # Make sure sort ordering respects the original ordering.
 @deps = (
