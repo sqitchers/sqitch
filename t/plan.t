@@ -1454,10 +1454,16 @@ $mocker->unmock('check_changes');
 can_ok $CLASS, 'check_changes';
 my @deps;
 my $mock_change = Test::MockModule->new('App::Sqitch::Plan::Change');
-$mock_change->mock(requires => sub { @{ shift(@deps)->{requires} } });
+my $i = 0;
+my $j = 0;
+$mock_change->mock(requires => sub {
+    my $reqs = caller eq 'App::Sqitch::Plan' ? $deps[$i++] : $deps[$j++];
+    @{ $reqs->{requires} };
+});
 
 sub changes {
     clear;
+    $i = $j = 0;
     map {
         change { name => $_ };
     } @_;
@@ -1467,22 +1473,22 @@ sub changes {
 $project = 'foo';
 my %ddep = ( requires => [], conflicts => [] );
 @deps = ({%ddep}, {%ddep}, {%ddep});
-cmp_deeply [$plan->check_changes({}, changes qw(this that other))],
-    [changes qw(this that other)], 'Should get original order when no dependencies';
+cmp_deeply [map { $_->name } $plan->check_changes({}, changes qw(this that other))],
+    [qw(this that other)], 'Should get original order when no dependencies';
 
 @deps = ({%ddep}, {%ddep}, {%ddep});
-cmp_deeply [$plan->check_changes('foo', changes qw(this that other))],
-    [changes qw(this that other)], 'Should get original order when no prepreqs';
+cmp_deeply [map { $_->name } $plan->check_changes('foo', changes qw(this that other))],
+    [qw(this that other)], 'Should get original order when no prepreqs';
 
 # Have that require this.
 @deps = ({%ddep}, {%ddep, requires => [dep 'this']}, {%ddep});
-cmp_deeply [$plan->check_changes('foo', changes qw(this that other))],
-    [changes qw(this that other)], 'Should get original order when that requires this';
+cmp_deeply [map { $_->name }$plan->check_changes('foo', changes qw(this that other))],
+    [qw(this that other)], 'Should get original order when that requires this';
 
 # Have other require that.
 @deps = ({%ddep}, {%ddep, requires => [dep 'this']}, {%ddep, requires => [dep 'that']});
-cmp_deeply [$plan->check_changes('foo', changes qw(this that other))],
-    [changes qw(this that other)], 'Should get original order when other requires that';
+cmp_deeply [map { $_->name } $plan->check_changes('foo', changes qw(this that other))],
+    [qw(this that other)], 'Should get original order when other requires that';
 
 my $deperr = sub {
     join "\n  ", __n(

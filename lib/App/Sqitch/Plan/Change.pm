@@ -101,12 +101,18 @@ has info => (
     lazy     => 1,
     default  => sub {
         my $self = shift;
+        my $reqs  = join "\n  + ", map { $_->as_string } $self->requires;
+        my $confs = join "\n  - ", map { $_->as_string } $self->conflicts;
         return join "\n", (
             'project ' . $self->project,
             ( $self->uri ? ( 'uri ' . $self->uri->canonical ) : () ),
             'change '  . $self->format_name,
+            ( $self->parent ? ( 'parent ' . $self->parent->id ) : () ),
             'planner ' . $self->format_planner,
             'date '    . $self->timestamp->as_string,
+            ( $reqs  ? "requires\n  + $reqs" : ()),
+            ( $confs ? "conflicts\n  - $confs" : ()),
+            ( $self->note ? ('', $self->note) : ()),
         );
     }
 );
@@ -117,6 +123,35 @@ has id => (
     lazy     => 1,
     default  => sub {
         my $content = encode_utf8 shift->info;
+        require Digest::SHA1;
+        return Digest::SHA1->new->add(
+            'change ' . length($content) . "\0" . $content
+        )->hexdigest;
+    }
+);
+
+has old_info => (
+    is       => 'ro',
+    isa      => 'Str',
+    lazy     => 1,
+    default  => sub {
+        my $self = shift;
+        return join "\n", (
+            'project ' . $self->project,
+            ( $self->uri ? ( 'uri ' . $self->uri->canonical ) : () ),
+            'change '  . $self->format_name,
+            'planner ' . $self->format_planner,
+            'date '    . $self->timestamp->as_string,
+        );
+    }
+);
+
+has old_id => (
+    is       => 'ro',
+    isa      => 'Str',
+    lazy     => 1,
+    default  => sub {
+        my $content = encode_utf8 shift->old_info;
         require Digest::SHA1;
         return Digest::SHA1->new->add(
             'change ' . length($content) . "\0" . $content
@@ -186,7 +221,7 @@ sub format_dependencies {
     my $self = shift;
     my $deps = join(
         ' ',
-        map { $_->as_plan_string} $self->requires, $self->conflicts
+        map { $_->as_plan_string } $self->requires, $self->conflicts
     ) or return '';
     return "[$deps]";
 }
