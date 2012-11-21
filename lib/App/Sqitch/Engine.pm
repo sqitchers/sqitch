@@ -165,11 +165,12 @@ sub revert {
     # Get the list of changes to revert before we do actual work.
     my @changes = map {
         $plan->get($_) or do {
+            # Couldn't find it by ID; try to find by name and tag.
             my $name = $self->name_for_change_id($_);
             $plan->get($name) or hurl revert => __x(
                 'Could not find change "{change}" ({id}) in the plan',
-                change => $self->name_for_change_id($_),
-                id => $_,
+                change => $name,
+                id     => $_,
             );
         };
     } reverse @change_ids;
