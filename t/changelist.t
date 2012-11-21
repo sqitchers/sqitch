@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 253;
+use Test::More tests => 264;
 #use Test::More 'no_plan';
 use Test::NoWarnings;
 use Test::Exception;
@@ -20,10 +20,10 @@ my $sqitch = App::Sqitch->new( _engine => 'sqlite', top_dir => dir qw(t sql) );
 my $plan   = App::Sqitch::Plan->new(sqitch => $sqitch);
 
 my $foo = App::Sqitch::Plan::Change->new(plan => $plan, name => 'foo');
-my $bar = App::Sqitch::Plan::Change->new(plan => $plan, name => 'bar');
-my $baz = App::Sqitch::Plan::Change->new(plan => $plan, name => 'baz');
-my $yo1 = App::Sqitch::Plan::Change->new(plan => $plan, name => 'yo');
-my $yo2 = App::Sqitch::Plan::Change->new(plan => $plan, name => 'yo', planner_name => 'Phil');
+my $bar = App::Sqitch::Plan::Change->new(plan => $plan, name => 'bar', parent => $foo);
+my $baz = App::Sqitch::Plan::Change->new(plan => $plan, name => 'baz', parent => $bar);
+my $yo1 = App::Sqitch::Plan::Change->new(plan => $plan, name => 'yo', parent => $baz);
+my $yo2 = App::Sqitch::Plan::Change->new(plan => $plan, name => 'yo', parent => $yo1, planner_name => 'Phil' );
 
 my $alpha = App::Sqitch::Plan::Tag->new(
     plan   => $plan,
@@ -60,6 +60,7 @@ is $changes->index_of('non'), undef, 'Should not find "non"';
 is $changes->index_of('@non'), undef, 'Should not find "@non"';
 is $changes->index_of('foo'), 0, 'Should find foo at 0';
 is $changes->index_of($foo->id), 0, 'Should find foo by ID at 0';
+is $changes->index_of($foo->old_id), 0, 'Should find foo by old ID at 0';
 is $changes->index_of('bar'), 1, 'Should find bar at 1';
 is $changes->index_of('bar^'), 0, 'Should find bar^ at 0';
 is $changes->index_of('bar~'), 2, 'Should find bar~ at 2';
@@ -68,17 +69,21 @@ is $changes->index_of('bar~~~'), undef, 'Should not find bar~~~';
 is $changes->index_of('bar~2'), 3, 'Should find bar~2 at 3';
 is $changes->index_of('bar~3'), 4, 'Should find bar~3 at 4';
 is $changes->index_of($bar->id), 1, 'Should find bar by ID at 1';
+is $changes->index_of($bar->old_id), 1, 'Should find bar by old ID at 1';
 is $changes->index_of('@alpha'), 2, 'Should find @alpha at 2';
 is $changes->index_of('@alpha^'), 1, 'Should find @alpha^ at 1';
 is $changes->index_of('@alpha^^'), 0, 'Should find @alpha^^ at 1';
 is $changes->index_of('@alpha^^^'), undef, 'Should not find @alpha^^^';
 is $changes->index_of($alpha->id), 2, 'Should find @alpha by ID at 2';
+is $changes->index_of($alpha->old_id), 2, 'Should find @alpha by old ID at 2';
 is $changes->index_of('baz'), 3, 'Should find baz at 3';
 is $changes->index_of($baz->id), 3, 'Should find baz by ID at 3';
+is $changes->index_of($baz->old_id), 3, 'Should find baz by old ID at 3';
 is $changes->index_of('baz^^^'), undef, 'Should not find baz^^^';
 is $changes->index_of('baz^3'), 0, 'Should not find baz^3 at 0';
 is $changes->index_of('baz^4'), undef, 'Should not find baz^4';
 is $changes->index_of($baz->id . '^'), 2, 'Should find baz by ID^ at 2';
+is $changes->index_of($baz->old_id . '^'), 2, 'Should find baz by old ID^ at 2';
 
 # Test @FIRST.
 $earliest_id = $bar->id;
@@ -159,15 +164,19 @@ is $changes->index_of('@ROOT^'), undef, 'Should get undef for @ROOT^';
 is $changes->get('foo'), $foo, 'Should get foo for "foo"';
 is $changes->get('foo~'), $bar, 'Should get bar for "foo~"';
 is $changes->get($foo->id), $foo, 'Should get foo by ID';
+is $changes->get($foo->old_id), $foo, 'Should get foo by old ID';
 is $changes->get('bar'), $bar, 'Should get bar for "bar"';
 is $changes->get('bar^'), $foo, 'Should get foo for "bar^"';
 is $changes->get('bar~'), $yo1, 'Should get yo1 for "bar~"';
 is $changes->get('bar~~'), $baz, 'Should get baz for "bar~~"';
 is $changes->get('bar~3'), $yo2, 'Should get yo2 for "bar~3"';
 is $changes->get($bar->id), $bar, 'Should get bar by ID';
-is $changes->get($alpha->id), $yo1, 'Should get "yo" by the @alpha tag';
+is $changes->get($bar->old_id), $bar, 'Should get bar by old ID';
+is $changes->get($alpha->id), $yo1, 'Should get "yo" by the @alpha tag ID';
+is $changes->get($alpha->old_id), $yo1, 'Should get "yo" by the @alpha tag old ID';
 is $changes->get('baz'), $baz, 'Should get baz for "baz"';
 is $changes->get($baz->id), $baz, 'Should get baz by ID';
+is $changes->get($baz->old_id), $baz, 'Should get baz by old ID';
 is $changes->get('@HEAD^'), $baz, 'Should get baz for "@HEAD^"';
 is $changes->get('@HEAD^^'), $yo1, 'Should get yo1 for "@HEAD^^"';
 is $changes->get('@HEAD^3'), $bar, 'Should get bar for "@HEAD^3"';
@@ -223,6 +232,7 @@ is_deeply [$changes->changes], [$foo, $bar, $yo1, $baz, $yo2, $hi],
     'Changes should be in order with $hi at the end';
 is $changes->index_of('hi'), 5, 'Should find "hi" at index 5';
 is $changes->index_of($hi->id), 5, 'Should find "hi" by ID at index 5';
+is $changes->index_of($hi->old_id), 5, 'Should find "hi" by old ID at index 5';
 is $changes->index_of('@ROOT'), 0, 'Index of @ROOT should still be 0';
 is $changes->index_of('@HEAD'), 5, 'Index of @HEAD should now be 5';
 
@@ -279,6 +289,7 @@ ok $changes->index_tag(4, $beta), 'Index beta';
 is $changes->index_of('@beta'), 4, 'Should find @beta at index 4';
 is $changes->get('@beta'), $yo2, 'Should find yo2 via @beta';
 is $changes->get($beta->id), $yo2, 'Should find yo2 via @beta ID';
+is $changes->get($beta->old_id), $yo2, 'Should find yo2 via @beta old ID';
 is_deeply [$changes->tags], [$alpha, $beta], 'Tags should return both tags';
 
 ##############################################################################
