@@ -9,6 +9,7 @@ use Try::Tiny;
 use App::Sqitch::X qw(hurl);
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::Plan::Change;
+use List::Util qw(first);
 use namespace::autoclean;
 
 extends 'App::Sqitch::Engine';
@@ -821,6 +822,93 @@ sub search_events {
         $row->{planned_at}   = _dt $row->{planned_at};
         return $row;
     };
+}
+
+# This method only required by pg, as no other engines existed when change and
+# tag IDs changed.
+sub _update_ids {
+    my $self = shift;
+    my $plan = $self->sqitch->plan;
+    my $proj = $plan->project;
+
+    $self->SUPER::_update_ids;
+    my $dbh = $self->_dbh;
+    $dbh->begin_work;
+    try {
+        # First, we have to recreate the FK constraint on dependencies.
+        $dbh->do(q{
+            ALTER TABLE dependencies
+             DROP CONSTRAINT dependencies_change_id_fkey,
+              ADD FOREIGN KEY (change_id) REFERENCES changes (change_id)
+                  ON UPDATE CASCADE ON DELETE CASCADE;
+        });
+
+        my $sth = $dbh->prepare(q{
+            SELECT change_id, change, committed_at
+              FROM changes
+             WHERE project = ?
+        });
+        my $sel = $dbh->prepare(q{
+            SELECT tag
+              FROM tags
+             WHERE project = ?
+               AND committed_at > ? LIMIT 1
+        });
+        my $upd = $dbh->prepare(
+            'UPDATE changes SET change_id = ? WHERE change_id = ?'
+        );
+
+        $sth->execute($proj);
+        $sth->bind_columns(\my ($old_id, $name, $date));
+
+        while ($sth->fetch) {
+            # Try to find it in the plan by the old ID.
+            if (my $change = $plan->get($old_id)) {
+                $upd->execute($change->id, $old_id);
+                next;
+            }
+
+            # Try to find it by the tag that follows it.
+            if (my $tag = $dbh->selectcol_arrayref($sel, undef, $proj, $date)->[0]) {
+                if (my $change = $plan->get($name . $tag)) {
+                    # We found it by name plus tag.
+                    $upd->execute($change->id, $old_id);
+                    next;
+                }
+            }
+
+            # Try to find it by name. Throws an exception if there is more than one.
+            if (my $change = $plan->get($name)) {
+                $upd->execute($change->id, $old_id);
+                next;
+            }
+
+            # If we get here, we're fucked.
+            hurl pg => "Unable to find $name ($old_id) in the plan; update failed";
+        }
+
+        # Now update tags.
+        $sth = $dbh->prepare('SELECT tag_id, tag FROM tags WHERE project = ?');
+        $upd = $dbh->prepare('UPDATE tags SET tag_id = ? WHERE tag_id = ?');
+        $sth->execute($proj);
+        $sth->bind_columns(\($old_id, $name));
+        while ($sth->fetch) {
+            my $change = $plan->find($old_id) || $plan->find($name)
+                or hurl pg => "Unable to find $name ($old_id) in the plan; update failed";
+            my $tag = first { $_->old_id eq $old_id } $change->tags;
+            $tag ||= first { $_->format_name eq $name } $change->tags;
+            hurl pg => "Unable to find $name ($old_id) in the plan; update failed"
+                unless $tag;
+            $upd->execute($tag->id, $old_id);
+        }
+
+        # Success!
+        $dbh->commit;
+    } catch {
+        $dbh->rollback;
+        die $_;
+    };
+    return $self;
 }
 
 sub _run {

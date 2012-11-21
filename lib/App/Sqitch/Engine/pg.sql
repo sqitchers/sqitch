@@ -73,7 +73,7 @@ COMMENT ON COLUMN :"sqitch_schema".tags.planner_name    IS 'Name of the user who
 COMMENT ON COLUMN :"sqitch_schema".tags.planner_email   IS 'Email address of the user who planned the tag.';
 
 CREATE TABLE :"sqitch_schema".dependencies (
-    change_id       TEXT        NOT NULL REFERENCES :"sqitch_schema".changes(change_id) ON DELETE CASCADE,
+    change_id       TEXT        NOT NULL REFERENCES :"sqitch_schema".changes(change_id) ON UPDATE CASCADE ON DELETE CASCADE,
     type            TEXT        NOT NULL,
     dependency      TEXT        NOT NULL,
     dependency_id   TEXT            NULL REFERENCES :"sqitch_schema".changes(change_id) ON UPDATE CASCADE CHECK (

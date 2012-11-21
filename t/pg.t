@@ -1457,18 +1457,93 @@ subtest 'live database' => sub {
     can_ok $pg, qw(begin_work finish_work);
     my $mock_dbh = Test::MockModule->new(ref $pg->_dbh, no_auto => 1);
     my $txn;
-    $mock_dbh->mock(begin_work => sub { $txn = 1 });
-    $mock_dbh->mock(commit     => sub { $txn = 0 });
+    $mock_dbh->mock(begin_work => sub { $txn = 1  });
+    $mock_dbh->mock(commit     => sub { $txn = 0  });
+    $mock_dbh->mock(rollback   => sub { $txn = -1 });
     my @do;
     $mock_dbh->mock(do => sub { shift; @do = @_ });
     ok $pg->begin_work, 'Begin work';
-    ok $txn, 'Should have started a transaction';
+    is $txn, 1, 'Should have started a transaction';
     is_deeply \@do, [
         'LOCK TABLE changes IN EXCLUSIVE MODE',
     ], 'The changes table should have been locked';
     ok $pg->finish_work, 'Finish work';
-    ok !$txn, 'Should have committed a transaction';
+    is $txn, 0, 'Should have committed a transaction';
+    ok $pg->begin_work, 'Begin work again';
+    is $txn, 1, 'Should have started another transaction';
+    ok $pg->rollback_work, 'Rollback work';
+    is $txn, -1, 'Should have rolled back a transaction';
+    $mock_dbh->unmock('do');
+
+    ##########################################################################
+    # Test _update_ids by old ID.
+    my @proj_changes = ($change, $change2, $fred, $barney, $hyper);
+    my @all_changes  = ($change, $change2, $fred, $barney, $ext_change, $ext_change2, $hyper, $ext_change3);
+    my @proj_tags    = ($change->tags, $beta, $gamma);
+    my @all_tags     = (@proj_tags, $ext_tag);
+
+    # Let's just revert and re-deploy them all.
+    ok $pg->log_revert_change($_), 'Revert "' . $_->name . '" change' for reverse @all_changes;
+    ok $pg->log_deploy_change($_), 'Deploy "' . $_->name . '" change' for @all_changes;
+
+    my $upd_change = $pg->_dbh->prepare(
+        'UPDATE changes SET change_id = ? WHERE change_id = ?'
+    );
+    my $upd_tag = $pg->_dbh->prepare(
+        'UPDATE tags SET tag_id = ? WHERE tag_id = ?'
+    );
+
+    for my $change (@proj_changes) {
+        $upd_change->execute($change->old_id, $change->id);
+    }
+    for my $tag (@proj_tags) {
+        $upd_tag->execute($tag->old_id, $tag->id);
+    }
+
+    # Make sure Sqitch has the plan.
+    $mock_sqitch->mock(plan => $plan);
+
+    # Mock Engine to silence the info notice.
+    my $mock_engine = Test::MockModule->new('App::Sqitch::Engine');
+    $mock_engine->mock(_update_ids => sub { shift });
+
+    ok $pg->_update_ids, 'Update IDs by old ID';
+
+    # All of the current project changes should be updated.
+    is_deeply [ map { [@{$_}[0,1]] } @{ all_changes() }],
+        [ map { [ $_->id, $_->name ] } @all_changes ],
+        'All of the change IDs should have been updated';
+
+    # All of the current project tags should be updated.
+    is_deeply [ map { [@{$_}[0,1]] } @{ all_tags() }],
+        [ map { [ $_->id, $_->format_name ] } @all_tags ],
+        'All of the tag IDs should have been updated';
+
+    # Now reset them so they have to be found by name.
+    $i = 0;
+    for my $change (@proj_changes) {
+        $upd_change->execute($change->old_id . $i++, $change->id);
+    }
+    for my $tag (@proj_tags) {
+        $upd_tag->execute($tag->old_id . $i++, $tag->id);
+    }
+
+    ok $pg->_update_ids, 'Update IDs by name';
+
+    # All of the current project changes should be updated.
+    is_deeply [ map { [@{$_}[0,1]] } @{ all_changes() }],
+        [ map { [ $_->id, $_->name ] } @all_changes ],
+        'All of the change IDs should have been updated by name';
+
+    # All of the current project tags should be updated.
+    is_deeply [ map { [@{$_}[0,1]] } @{ all_tags() }],
+        [ map { [ $_->id, $_->format_name ] } @all_tags ],
+        'All of the tag IDs should have been updated by name';
+
+    # Unmock everything and call it a day.
     $mock_dbh->unmock_all;
+    $mock_sqitch->unmock_all;
+    $mock_engine->unmock_all;
     done_testing;
 };
 

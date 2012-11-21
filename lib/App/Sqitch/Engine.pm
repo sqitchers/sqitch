@@ -292,8 +292,13 @@ sub _sync_plan {
 }
 
 sub _update_ids {
-    # Do nothing by default.
-    shift;
+    # We do nothing but inform, by default.
+    my $self = shift;
+    $self->sqitch->info(__x(
+        'Updating legacy change and tag IDs in {destination}',
+        destination => $self->destination,
+    ));
+    return $self;
 }
 
 sub is_deployed {

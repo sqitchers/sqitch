@@ -1009,10 +1009,10 @@ The named change as it was last seen in the list before the specified tag.
 =head3 C<get>
 
   my $change = $plan->get('6c2f28d125aff1deea615f8de774599acf39a7a1');
-  my $foo  = $plan->index_of('@foo');
-  my $bar  = $plan->index_of('bar');
-  my $bar1 = $plan->index_of('bar@alpha')
-  my $bar2 = $plan->index_of('bar@HEAD');
+  my $foo    = $plan->get('@foo');
+  my $bar    = $plan->get('bar');
+  my $bar1   = $plan->get('bar@alpha')
+  my $bar2   = $plan->get('bar@HEAD');
 
 Returns the change corresponding to the specified ID or name. The argument may
 be in any of the formats described for C<index_of()>.
@@ -1020,10 +1020,10 @@ be in any of the formats described for C<index_of()>.
 =head3 C<find>
 
   my $change = $plan->find('6c2f28d125aff1deea615f8de774599acf39a7a1');
-  my $foo  = $plan->index_of('@foo');
-  my $bar  = $plan->index_of('bar');
-  my $bar1 = $plan->index_of('bar@alpha')
-  my $bar2 = $plan->index_of('bar@HEAD');
+  my $foo    = $plan->find('@foo');
+  my $bar    = $plan->find('bar');
+  my $bar1   = $plan->find('bar@alpha')
+  my $bar2   = $plan->find('bar@HEAD');
 
 Finds the change corresponding to the specified ID or name. The argument may be
 in any of the formats described for C<index_of()>. Unlike C<get()>, C<find()>

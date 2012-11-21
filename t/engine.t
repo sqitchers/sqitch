@@ -4,8 +4,8 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-#use Test::More tests => 256;
-use Test::More 'no_plan';
+use Test::More tests => 259;
+#use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
 use Path::Class;
@@ -300,8 +300,6 @@ is_deeply $engine->seen, [['latest_change_id', undef]],
 
 # Have latest_item return a tag.
 $latest_change_id = $changes[1]->old_id;
-diag $changes[1]->old_id;
-diag $changes[1]->id;
 ok $engine->_sync_plan, 'Sync the plan to a tag';
 is $plan->position, 1, 'Plan should now be at position 1';
 is $engine->start_at, 'users@alpha', 'start_at should now be users@alpha';
