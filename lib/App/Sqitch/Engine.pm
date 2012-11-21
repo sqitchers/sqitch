@@ -282,10 +282,18 @@ sub _sync_plan {
         } else {
             $self->start_at( $change->format_name );
         }
+
+        # Old IDs need to be replaced.
+        $self->_update_ids if $id eq $change->old_id;
     } else {
         $plan->reset;
     }
     return $plan;
+}
+
+sub _update_ids {
+    # Do nothing by default.
+    shift;
 }
 
 sub is_deployed {

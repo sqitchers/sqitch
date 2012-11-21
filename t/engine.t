@@ -4,8 +4,8 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 256;
-#use Test::More 'no_plan';
+#use Test::More tests => 256;
+use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
 use Path::Class;
@@ -71,6 +71,7 @@ ENGINE: {
     sub deployed_change_ids_since { push @SEEN => [ deployed_change_ids_since => $_[1] ]; @deployed_change_ids }
     sub begin_work         { push @SEEN => ['begin_work']  if $record_work }
     sub finish_work        { push @SEEN => ['finish_work'] if $record_work }
+    sub _update_ids        { push @SEEN => ['_update_ids'] }
 
     sub seen { [@SEEN] }
     after seen => sub { @SEEN = () };
@@ -279,22 +280,33 @@ $earliest_change_id = undef;
 ##############################################################################
 # Test _sync_plan()
 can_ok $CLASS, '_sync_plan';
+$engine->seen;
 
 is $plan->position, -1, 'Plan should start at position -1';
 is $engine->start_at, undef, 'start_at should be undef';
+
 ok $engine->_sync_plan, 'Sync the plan';
 is $plan->position, -1, 'Plan should still be at position -1';
 is $engine->start_at, undef, 'start_at should still be undef';
 $plan->position(4);
+is_deeply $engine->seen, [['latest_change_id', undef]],
+    'Should not have updated IDs';
+
 ok $engine->_sync_plan, 'Sync the plan again';
 is $plan->position, -1, 'Plan should again be at position -1';
 is $engine->start_at, undef, 'start_at should again be undef';
+is_deeply $engine->seen, [['latest_change_id', undef]],
+    'Still should not have updated IDs';
 
 # Have latest_item return a tag.
-$latest_change_id = $changes[1]->id;
+$latest_change_id = $changes[1]->old_id;
+diag $changes[1]->old_id;
+diag $changes[1]->id;
 ok $engine->_sync_plan, 'Sync the plan to a tag';
 is $plan->position, 1, 'Plan should now be at position 1';
 is $engine->start_at, 'users@alpha', 'start_at should now be users@alpha';
+is_deeply $engine->seen, [['latest_change_id', undef], ['_update_ids']],
+    'Should have updated IDs';
 
 ##############################################################################
 # Test deploy.
@@ -401,7 +413,7 @@ is_deeply $engine->seen, [
 # Make sure we can deploy everything by change.
 $latest_change_id = undef;
 $plan->reset;
-$plan->add( name => 'lolz' );
+$plan->add( name => 'lolz', note => 'ha ha' );
 @changes = $plan->changes;
 ok $engine->deploy(undef, 'change'), 'Deploy everything by change';
 is $plan->position, 3, 'Plan should be at position 3';
