@@ -4,8 +4,8 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-#use Test::More tests => 17;
-use Test::More 'no_plan';
+use Test::More tests => 27;
+#use Test::More 'no_plan';
 use Test::NoWarnings;
 use Path::Class;
 use App::Sqitch;
@@ -27,6 +27,10 @@ BEGIN {
 
 can_ok $CLASS, qw(
     name
+    info
+    id
+    old_info
+    old_id
     lspace
     rspace
     note
@@ -77,6 +81,15 @@ is $tag->info, join("\n",
     'date '    . $ts,
 ), 'Tag info should incldue the URI';
 
+is $tag->old_info, join("\n",
+    'project sql',
+    'uri https://github.com/theory/sqitch/',
+    'tag @foo',
+    'change ' . $change->old_id,
+    'planner ' . $tag->format_planner,
+    'date '    . $ts,
+), 'Old tag info should incldue the URI';
+
 my $date = App::Sqitch::DateTime->new(
     year   => 2012,
     month  => 7,
@@ -122,7 +135,8 @@ is $tag->info, join("\n",
     'tag @howdy',
     'change ' . $change->id,
     'planner Barack Obama <potus@whitehouse.gov>',
-    'date 2012-07-16T17:25:07Z'
+    'date 2012-07-16T17:25:07Z',
+    '', 'blah blah blah',
 ), 'Tag info should include the change';
 
 is $tag->id, do {
@@ -132,6 +146,22 @@ is $tag->id, do {
     )->hexdigest;
 },'Tag ID should be correct';
 
+is $tag->old_info, join("\n",
+    'project sql',
+    'uri https://github.com/theory/sqitch/',
+    'tag @howdy',
+    'change ' . $change->old_id,
+    'planner Barack Obama <potus@whitehouse.gov>',
+    'date 2012-07-16T17:25:07Z'
+), 'Old tag info should include the change';
+
+is $tag->old_id, do {
+    my $content = $tag->old_info;
+    Digest::SHA1->new->add(
+        'tag ' . length($content) . "\0" . $content
+    )->hexdigest;
+},'Old tag ID should be correct';
+
 ##############################################################################
 # Test ID for a tag with a UTF-8 name.
 ok $tag = $CLASS->new(
@@ -139,14 +169,15 @@ ok $tag = $CLASS->new(
     plan => $plan,
     change  => $change,
 ), 'Create tag with UTF-8 name';
+
 is $tag->info, join("\n",
     'project sql',
     'uri https://github.com/theory/sqitch/',
     'tag '     . '@阱阪阬',
-    'change '  . $change->id,
+    'change '  . $change->old_id,
     'planner ' . $tag->format_planner,
     'date '    . $tag->timestamp->as_string,
-), 'The name should be decoded text';
+), 'The name should be decoded text in info';
 
 is $tag->id, do {
     my $content = Encode::encode_utf8 $tag->info;
@@ -154,3 +185,19 @@ is $tag->id, do {
         'tag ' . length($content) . "\0" . $content
     )->hexdigest;
 },'Tag ID should be hahsed from encoded UTF-8';
+
+is $tag->old_info, join("\n",
+    'project sql',
+    'uri https://github.com/theory/sqitch/',
+    'tag '     . '@阱阪阬',
+    'change '  . $change->old_id,
+    'planner ' . $tag->format_planner,
+    'date '    . $tag->timestamp->as_string,
+), 'Old name should be decoded text in info';
+
+is $tag->old_id, do {
+    my $content = Encode::encode_utf8 $tag->old_info;
+    Digest::SHA1->new->add(
+        'tag ' . length($content) . "\0" . $content
+    )->hexdigest;
+},'Old tag ID should be hahsed from encoded UTF-8';
