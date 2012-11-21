@@ -117,7 +117,8 @@ sub change($) {
         timestamp     => ts delete $p->{ts},
         planner_name  => 'Barack Obama',
         planner_email => 'potus@whitehouse.gov',
-        ( $prev_tag ? ( since_tag => $prev_tag ) : () ),
+        ( $prev_tag    ? ( since_tag => $prev_tag    ) : () ),
+        ( $prev_change ? ( parent    => $prev_change ) : () ),
         %{ $p },
     );
     if (my $duped = $seen{ $p->{name} }) {
@@ -801,9 +802,12 @@ cmp_deeply [$plan->changes], [
     tag { name =>, 'bar' },
     tag { name => 'baz' },
 ], 'Changes should be parsed from file';
-clear, change { name => 'you', planner_name => 'anna',   planner_email => 'a@n.na' };
 
-my $foo_tag =  tag {
+clear;
+change { name => 'hey', planner_name => 'theory', planner_email => 't@heo.ry' };
+change { name => 'you', planner_name => 'anna',   planner_email => 'a@n.na' };
+
+my $foo_tag = tag {
     ret           => 1,
     name          => 'foo',
     note          => 'look, a tag!',
@@ -813,6 +817,7 @@ my $foo_tag =  tag {
     planner_email => 'j@ul.ie',
 };
 
+change { name => 'this/rocks', pspace => '  ' };
 change { name => 'hey-there', rspace => ' ', note => 'trailing note!' };
 cmp_deeply [$plan->tags], [
     $foo_tag,

@@ -411,7 +411,8 @@ sub _parse {
             $tag_changes{ $params{name} } = $fh->input_line_number;
             push @curr_changes => $prev_change = App::Sqitch::Plan::Change->new(
                 plan => $self,
-                ( $prev_tag ? ( since_tag => $prev_tag ) : () ),
+                ( $prev_tag    ? ( since_tag => $prev_tag    ) : () ),
+                ( $prev_change ? ( parent    => $prev_change ) : () ),
                 %params,
             );
             push @lines => $prev_change;

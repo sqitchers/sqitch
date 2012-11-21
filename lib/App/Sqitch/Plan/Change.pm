@@ -43,6 +43,12 @@ has since_tag => (
     required => 0,
 );
 
+has parent => (
+    is       => 'ro',
+    isa      => 'App::Sqitch::Plan::Change',
+    required => 0,
+);
+
 has suffix => (
     is       => 'rw',
     isa      => 'Str',

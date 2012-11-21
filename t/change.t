@@ -4,8 +4,8 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 67;
-#use Test::More 'no_plan';
+#use Test::More tests => 67;
+use Test::More 'no_plan';
 use Test::NoWarnings;
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -34,6 +34,7 @@ can_ok $CLASS, qw(
     lspace
     rspace
     note
+    parent
     since_tag
     suffix
     tags
@@ -114,6 +115,7 @@ my $ts = $change->timestamp->as_string;
 is $change->as_string, "foo $ts " . $change->format_planner,
     'should stringify to "foo" + planner';
 is $change->since_tag, undef, 'Since tag should be undef';
+is $change->parent, undef, 'Parent should be undef';
 is $change->info, join("\n",
    'project change',
    'change foo',
@@ -155,6 +157,7 @@ ok my $change2 = $CLASS->new(
     name      => 'yo/howdy',
     plan      => $plan,
     since_tag => $tag,
+    parent    => $change,
     lspace    => '  ',
     operator  => '-',
     ropspace  => ' ',
@@ -182,6 +185,7 @@ ok !$change2->is_deploy, 'It should not be a deploy change';
 ok $change2->is_revert, 'It should be a revert change';
 is $change2->action, 'revert', 'It should say so';
 is $change2->since_tag, $tag, 'It should have a since tag';
+is $change2->parent, $change, 'It should have a parent';
 is $change2->info, join("\n",
    'project change',
    'uri https://github.com/theory/sqitch/',
