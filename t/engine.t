@@ -36,6 +36,7 @@ my @resolved;
 my @requiring;
 my $die = '';
 my $record_work = 1;
+my $updated_idx;
 my ( $earliest_change_id, $latest_change_id, $initialized );
 ENGINE: {
     # Stub out a engine.
@@ -71,7 +72,7 @@ ENGINE: {
     sub deployed_change_ids_since { push @SEEN => [ deployed_change_ids_since => $_[1] ]; @deployed_change_ids }
     sub begin_work         { push @SEEN => ['begin_work']  if $record_work }
     sub finish_work        { push @SEEN => ['finish_work'] if $record_work }
-    sub _update_ids        { push @SEEN => ['_update_ids'] }
+    sub _update_ids        { push @SEEN => ['_update_ids']; $updated_idx }
 
     sub seen { [@SEEN] }
     after seen => sub { @SEEN = () };
@@ -300,9 +301,10 @@ is_deeply $engine->seen, [['latest_change_id', undef]],
 
 # Have latest_item return a tag.
 $latest_change_id = $changes[1]->old_id;
+$updated_idx = 2;
 ok $engine->_sync_plan, 'Sync the plan to a tag';
-is $plan->position, 1, 'Plan should now be at position 1';
-is $engine->start_at, 'users@alpha', 'start_at should now be users@alpha';
+is $plan->position, 2, 'Plan should now be at position 1';
+is $engine->start_at, 'widgets@beta', 'start_at should now be widgets@beta';
 is_deeply $engine->seen, [['latest_change_id', undef], ['_update_ids']],
     'Should have updated IDs';
 

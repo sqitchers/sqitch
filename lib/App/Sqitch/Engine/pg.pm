@@ -830,6 +830,7 @@ sub _update_ids {
     my $self = shift;
     my $plan = $self->sqitch->plan;
     my $proj = $plan->project;
+    my $maxi = 0;
 
     $self->SUPER::_update_ids;
     my $dbh = $self->_dbh;
@@ -848,11 +849,19 @@ sub _update_ids {
               FROM changes
              WHERE project = ?
         });
-        my $sel = $dbh->prepare(q{
+        my $atag_sth = $dbh->prepare(q{
             SELECT tag
               FROM tags
              WHERE project = ?
-               AND committed_at > ? LIMIT 1
+               AND committed_at < ?
+             LIMIT 1
+        });
+        my $btag_sth = $dbh->prepare(q{
+            SELECT tag
+              FROM tags
+             WHERE project = ?
+               AND committed_at >= ?
+             LIMIT 1
         });
         my $upd = $dbh->prepare(
             'UPDATE changes SET change_id = ? WHERE change_id = ?'
@@ -863,16 +872,27 @@ sub _update_ids {
 
         while ($sth->fetch) {
             # Try to find it in the plan by the old ID.
-            if (my $change = $plan->get($old_id)) {
-                $upd->execute($change->id, $old_id);
+            if (my $idx = $plan->index_of($old_id)) {
+                $upd->execute($plan->change_at($idx)->id, $old_id);
+                $maxi = $idx if $idx > $maxi;
                 next;
             }
 
-            # Try to find it by the tag that follows it.
-            if (my $tag = $dbh->selectcol_arrayref($sel, undef, $proj, $date)->[0]) {
-                if (my $change = $plan->get($name . $tag)) {
-                    # We found it by name plus tag.
+            # Try to find it by the tag that precedes it.
+            if (my $tag = $dbh->selectcol_arrayref($atag_sth, undef, $proj, $date)->[0]) {
+                if (my $idx = $plan->first_index_of($name, $tag)) {
+                    $upd->execute($plan->change_at($idx)->id, $old_id);
+                    $maxi = $idx if $idx > $maxi;
+                    next;
+                }
+            }
+
+            # Try to find it by the tag that succeeds it.
+            if (my $tag = $dbh->selectcol_arrayref($btag_sth, undef, $proj, $date)->[0]) {
+                if (my $change = $plan->find($name . $tag)) {
                     $upd->execute($change->id, $old_id);
+                    my $idx = $plan->index_of($change->id);
+                    $maxi = $idx if $idx > $maxi;
                     next;
                 }
             }
@@ -880,6 +900,8 @@ sub _update_ids {
             # Try to find it by name. Throws an exception if there is more than one.
             if (my $change = $plan->get($name)) {
                 $upd->execute($change->id, $old_id);
+                my $idx = $plan->index_of($change->id);
+                $maxi = $idx if $idx > $maxi;
                 next;
             }
 
@@ -908,7 +930,7 @@ sub _update_ids {
         $dbh->rollback;
         die $_;
     };
-    return $self;
+    return $maxi;
 }
 
 sub _run {

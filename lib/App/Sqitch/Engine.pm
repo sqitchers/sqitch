@@ -275,16 +275,21 @@ sub _sync_plan {
             'Cannot find {target} in the plan',
             target => $id
         );
+
+        my $change = $plan->change_at($idx);
+        if ($id eq $change->old_id) {
+            # Old IDs need to be replaced.
+            $idx    = $self->_update_ids;
+            $change = $plan->change_at($idx);
+        }
+
         $plan->position($idx);
-        my $change = $plan->get($id);
         if (my @tags = $change->tags) {
             $self->start_at( $change->format_name . $tags[-1]->format_name );
         } else {
             $self->start_at( $change->format_name );
         }
 
-        # Old IDs need to be replaced.
-        $self->_update_ids if $id eq $change->old_id;
     } else {
         $plan->reset;
     }

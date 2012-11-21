@@ -1507,7 +1507,7 @@ subtest 'live database' => sub {
     my $mock_engine = Test::MockModule->new('App::Sqitch::Engine');
     $mock_engine->mock(_update_ids => sub { shift });
 
-    ok $pg->_update_ids, 'Update IDs by old ID';
+    is $pg->_update_ids, 9, 'Update IDs by old ID should return 9';
 
     # All of the current project changes should be updated.
     is_deeply [ map { [@{$_}[0,1]] } @{ all_changes() }],
@@ -1528,7 +1528,7 @@ subtest 'live database' => sub {
         $upd_tag->execute($tag->old_id . $i++, $tag->id);
     }
 
-    ok $pg->_update_ids, 'Update IDs by name';
+    is $pg->_update_ids, 9, 'Update IDs by name should also return 9';
 
     # All of the current project changes should be updated.
     is_deeply [ map { [@{$_}[0,1]] } @{ all_changes() }],
