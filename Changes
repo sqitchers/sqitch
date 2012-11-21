@@ -25,6 +25,10 @@ Revision history for Perl extension App::Sqitch
        database failed, there was just a rollback message. Sqitch will now
        emit the underlying error *and* run the revert script for the
        just-deployed change.
+     - Symbolic refererences `^` and `~` on the deployed change symbolic tags
+       `@LAST` and `@FIRST` now correctly calculate the offset according to
+       the changes deployed to the database, rather than relative to the
+       placement of the first or last change in the plan.
 
 0.938 2012-10-12T19:16:57Z
      - Added a primary key to the PostgreSQL `events` table, which should make
