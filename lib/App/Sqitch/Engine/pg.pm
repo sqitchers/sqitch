@@ -413,7 +413,7 @@ sub log_fail_change {
 }
 
 sub _log_event {
-    my ( $self, $event, $change, $tags, $note, $requires, $conflicts) = @_;
+    my ( $self, $event, $change, $tags, $requires, $conflicts) = @_;
     my $dbh    = $self->_dbh;
     my $sqitch = $self->sqitch;
 
@@ -439,7 +439,7 @@ sub _log_event {
         $change->id,
         $change->name,
         $change->project,
-        $note      // $change->note,
+        $change->note,
         $tags      || [ map { $_->format_name } $change->tags ],
         $requires  || [ map { $_->as_string } $change->requires ],
         $conflicts || [ map { $_->as_string } $change->conflicts ],
@@ -479,13 +479,13 @@ sub log_revert_change {
     }, undef, $change->id);
 
     # Delete the change record.
-    my ($note) = $dbh->selectrow_array(
-        'DELETE FROM changes where change_id = ? RETURNING note',
+    $dbh->do(
+        'DELETE FROM changes where change_id = ?',
         undef, $change->id,
     );
 
     # Log it.
-    return $self->_log_event( revert => $change, $del_tags, $note, $req, $conf );
+    return $self->_log_event( revert => $change, $del_tags, $req, $conf );
 }
 
 sub is_deployed_tag {
@@ -528,11 +528,25 @@ sub changes_requiring_change {
     }, { Slice => {} }, $change->id) };
 }
 
-sub change_id_for_depend {
-    my ( $self, $dep ) = @_;
-    my $dbh  = $self->_dbh;
+sub change_id_offset_from_id {
+    my ( $self, $change_id, $offset ) = @_;
+    my ( $dir, $op ) = $offset > 0 ? ( 'ASC', '>' ) : ( 'DESC' , '<' );
+    return $self->_dbh->selectcol_arrayref(qq{
+        SELECT change_id
+          FROM changes
+         WHERE project = ?
+           AND committed_at $op (
+               SELECT commited_at FROM changes WHERE change_id = ?
+         )
+         OFFFSET COALESCE(?, NULL)
+    }, undef, $self->project, $change_id, abs $offset)->[0];
+}
 
-    if ( defined ( my $cid = $dep->id ) ) {
+sub change_id_for {
+    my ( $self, %p) = @_;
+    my $dbh = $self->_dbh;
+
+    if ( defined ( my $cid = $p{change_id} ) ) {
         # Find by ID.
         return $dbh->selectcol_arrayref(q{
             SELECT change_id
@@ -541,8 +555,21 @@ sub change_id_for_depend {
         }, undef, $cid)->[0];
     }
 
-    if ( defined ( my $change = $dep->change ) ) {
-        if ( defined ( my $tag = $dep->tag ) ) {
+    if ( defined ( my $change = $p{change} ) ) {
+        if ( defined ( my $tag = $p{tag} ) ) {
+            # Ther is nothing before the first tag.
+            return undef if $tag eq 'FIRST';
+
+            # Find closest to the end for @LAST.
+            return $dbh->selectcol_arrayref(q{
+                SELECT change_id
+                  FROM changes
+                 WHERE project = ?
+                   AND change  = ?
+                 ORDER BY committed_at DESC
+                 LIMIT 1
+            }, undef, $p{project}, $change)->[0] if $tag eq 'LAST';
+
             # Find by change name and following tag.
             return $dbh->selectcol_arrayref(q{
                 SELECT changes.change_id
@@ -553,7 +580,7 @@ sub change_id_for_depend {
                  WHERE changes.project = ?
                    AND changes.change  = ?
                    AND tags.tag        = ?
-            }, undef, $dep->project, $change, '@' . $tag)->[0];
+            }, undef, $p{project}, $change, '@' . $tag)->[0];
         }
 
         # Find by change name.
@@ -562,23 +589,27 @@ sub change_id_for_depend {
               FROM changes
              WHERE project = ?
                AND change  = ?
-        }, undef, $dep->project, $change)->[0];
+        }, undef, $p{project}, $change)->[0];
     }
 
-    if ( defined ( my $tag = $dep->tag ) ) {
+    if ( defined ( my $tag = $p{tag} ) ) {
+        # Just return the latest for @LAST.
+        return $self->latest_change_id if $tag eq 'LAST';
+
+        # Just return the earliest for @FIRST.
+        return $self->earliest_change_id if $tag eq 'FIRST';
+
         # Find by tag name.
         return $dbh->selectcol_arrayref(q{
             SELECT change_id
               FROM tags
              WHERE project = ?
                AND tag     = ?
-        }, undef, $dep->project, '@' . $tag)->[0];
+        }, undef, $p{project}, '@' . $tag)->[0];
     }
 
-    hurl pg => __x(
-        'Invalid dependency: {dependency}',
-        $dep->as_string,
-    );
+    # We got nothin.
+    return undef;
 }
 
 sub _fetch_item {
@@ -616,25 +647,46 @@ sub latest_change_id {
     shift->_cid('DESC', @_);
 }
 
-sub deployed_change_ids {
+sub load_change {
+    my ( $self, $change_id ) = @_;
+    my $tscol = _ts2char 'planned_at';
+    my $change = $self->_dbh->selerow_hashref(qq{
+        SELECT change_id AS id, change AS name, project, note,
+               $tscol AS timestamp, planner_name, planner_email
+          FROM changes
+         WHERE change_id = ?
+    });
+    $change->{timetamp} = _dt $change->{timestamp};
+    return $change;
+}
+
+sub deployed_changes {
     my $self = shift;
-    return @{ $self->_dbh->selectcol_arrayref(qq{
-        SELECT change_id AS id
+    my $tscol = _ts2char 'planned_at';
+    return map {
+        $_->{timestamp} = _dt $_->{timestamp}; $_
+    } @{ $self->_dbh->selectall_arrayref(qq{
+        SELECT change_id AS id, change AS name, project, note,
+               $tscol AS timestamp, planner_name, planner_email
           FROM changes
          WHERE project = ?
          ORDER BY committed_at ASC
-    }, undef, $self->plan->project) };
+    }, { Slice => {} }, $self->plan->project) };
 }
 
-sub deployed_change_ids_since {
-    my ( $self, $change ) = @_;
-    return @{ $self->_dbh->selectcol_arrayref(qq{
-        SELECT change_id
+sub deployed_changes_since {
+    my ( $self, $change_id ) = @_;
+    my $tscol = _ts2char 'planned_at';
+    return map {
+        $_->{timestamp} = _dt $_->{timestamp}; $_
+    } @{ $self->_dbh->selectall_arrayref(qq{
+        SELECT change_id AS id, change AS name, project, note,
+               $tscol AS timestamp, planner_name, planner_email
           FROM changes
          WHERE project = ?
            AND committed_at > (SELECT committed_at FROM changes WHERE change_id = ?)
          ORDER BY committed_at ASC
-    }, undef, $change->project, $change->id) };
+    }, { Slice => {} }, $self->plan->project, $change_id) };
 }
 
 sub name_for_change_id {

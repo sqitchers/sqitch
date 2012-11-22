@@ -132,18 +132,39 @@ sub revert {
     my $sqitch = $self->sqitch;
     my $plan   = $self->sqitch->plan;
 
-    my @change_ids;
+    my @changes;
 
     if (defined $to) {
-        my $change = $plan->get($to) // hurl revert => __x(
-            'Unknown revert target: "{target}"',
-            target => $to,
-        );
+        my ( $cname, $tag ) = split /@/ => $to, 2;
+        my $offset = App::Sqitch::Plan::ChangeList::_offset $to;
+        my $change = $self->find_change(
+            change => $cname,
+            tag    => $tag,
+            offset => $offset,
+        ) or do {
+            # Not deployed. Is it in the plan?
+            if ( $plan->get($to) ) {
+                # Known but not deployed.
+                hurl revert => __x(
+                    'Target not deployed: "{target}"',
+                    target => $to
+                );
+            }
+            # Never heard of it.
+            hurl revert => __x(
+                'Unknown revert target: "{target}"',
+                target => $to,
+            );
+        };
 
-        @change_ids = $self->deployed_change_ids_since($change) or hurl revert => __x(
-            'Target not deployed: "{target}"',
-            target => $to,
-        );
+        @changes = $self->deployed_changes_since($change->id) or hurl {
+            ident => 'revert',
+            message => __x(
+                'No changes deployed since: "{target}"',
+                target => $to,
+            ),
+            exitval => 1,
+        };
 
         $sqitch->info(__x(
             'Reverting changes to {target} from {destination}',
@@ -151,7 +172,7 @@ sub revert {
             destination => $self->destination,
         ));
     } else {
-        @change_ids = $self->deployed_change_ids or hurl {
+        @changes = $self->deployed_changes or hurl {
             ident   => 'revert',
             message => __ 'Nothing to revert (nothing deployed)',
             exitval => 1,
@@ -162,18 +183,12 @@ sub revert {
         ));
     }
 
-    # Get the list of changes to revert before we do actual work.
-    my @changes = map {
-        $plan->get($_) or do {
-            # Couldn't find it by ID; try to find by name and tag.
-            my $name = $self->name_for_change_id($_);
-            $plan->get($name) or hurl revert => __x(
-                'Could not find change "{change}" ({id}) in the plan',
-                change => $name,
-                id     => $_,
-            );
-        };
-    } reverse @change_ids;
+    # Create change objects.
+    @changes = map {
+        App::Sqitch::Plan::Change->new(%{ $_ }, plan => $plan )
+    } reverse @changes;
+
+    # XXX Check for conflicts before reverting anything.
 
     # Do we want to support modes, where failures would re-deploy to previous
     # tag or all the way back to the starting point? This would be very much
@@ -184,6 +199,46 @@ sub revert {
 
     return $self;
 }
+
+sub change_id_for_depend {
+    my ( $self, $dep ) = @_;
+    hurl engine =>  __x(
+        'Invalid dependency: {dependency}',
+        dependency => $dep->as_string,
+    ) unless defined $dep->id
+          || defined $dep->change
+          || defined $dep->tag;
+
+    return $self->change_id_for(
+        change_id => $dep->id,
+        change    => $dep->change,
+        tag       => $dep->tag,
+        project   => $dep->project,
+    );
+}
+
+sub find_change {
+    my $self = shift;
+    my $change_id = $self->find_change_id(@_) // return;
+    return $self->load_change($change_id);
+}
+
+sub find_change_id {
+    my ( $self, %p ) = @_;
+
+    # Find the change ID or return undef.
+    my $change_id = $self->change_id_for(
+        change_id => $p{change_id},
+        change    => $p{change},
+        tag       => $p{tag},
+        project   => $p{project} || $self->plan->project,
+    ) // return;
+
+    # Return relative to the offset.
+    return $change_id unless $p{offset};
+    return $self->change_id_offset_from_id($change_id, $p{offset});
+}
+
 
 sub _deploy_by_change {
     my ( $self, $plan, $to_index ) = @_;
@@ -475,9 +530,9 @@ sub is_deployed_change {
     hurl "$class has not implemented is_deployed_change()";
 }
 
-sub change_id_for_depend {
+sub change_id_for {
     my $class = ref $_[0] || $_[0];
-    hurl "$class has not implemented change_id_for_depend()";
+    hurl "$class has not implemented change_id_for()";
 }
 
 sub earliest_change_id {
@@ -490,14 +545,19 @@ sub latest_change_id {
     hurl "$class has not implemented latest_change_id()";
 }
 
-sub deployed_change_ids {
+sub deployed_changes {
     my $class = ref $_[0] || $_[0];
-    hurl "$class has not implemented deployed_change_ids()";
+    hurl "$class has not implemented deployed_changes()";
 }
 
-sub deployed_change_ids_since {
+sub deployed_changes_since {
     my $class = ref $_[0] || $_[0];
-    hurl "$class has not implemented deployed_change_ids_since()";
+    hurl "$class has not implemented deployed_changes_since()";
+}
+
+sub load_change {
+    my $class = ref $_[0] || $_[0];
+    hurl "$class has not implemented load_change()";
 }
 
 sub changes_requiring_change {
@@ -809,6 +869,43 @@ the database, and false if it has not.
 Should return true if the L<change|App::Sqitch::Plan::Change> has been
 deployed to the database, and false if it has not.
 
+=head3 C<change_id_for>
+
+  say $engine->find_change_id(
+      change  => $change_name,
+      tag     => $tag_name,
+      offset  => $offset,
+      project => $project,
+);
+
+Searches the database for the change with the specified name, tag, and offset.
+The parameters are as follows:
+
+=over
+
+=item C<change>
+
+The name of a change. Required unless C<tag> is passed.
+
+=item C<tag>
+
+The name of a tag. Required unless C<change> is passed.
+
+=item C<offset>
+
+The number of changes offset from the change found by the tag and/or change
+name. May be positive or negative to mean later or earlier changes,
+respectively. Defaults to 0.
+
+=item C<project>
+
+The name of the project to search. Defaults to the current project.
+
+=back
+
+If both C<change> and C<tag> are passed, C<find_change_id> will search for the
+last instance of the named change deployed I<before> the tag.
+
 =head3 C<change_id_for_depend>
 
   say 'Dependency satisfied' if $engine->change_id_for_depend($depend);
@@ -885,19 +982,52 @@ Returns the ID of the latest applied change from the current project.
 With the optional C<$offset> argument, the ID of the change the offset
 number of changes before the latest change will be returned.
 
-=head3 C<deployed_change_ids>
+=head3 C<deployed_changes>
 
-  my @change_ids = $engine->deployed_change_ids;
+  my @change_hashes = $engine->deployed_changes;
 
-Returns a list of all deployed change IDs from the current project in the
-order in which they were deployed.
+Returns a list of hash reference, each representing a change from the current
+project in the order in which they were deployed. The keys in each hash
+reference must be:
 
-=head3 C<deployed_change_ids_since>
+=over
 
-  my @change_ids = $engine->deployed_change_ids_since($change);
+=item C<id>
 
-Returns a list of change IDs for changes from the current project deployed
-after the specified change.
+The change ID.
+
+=item C<name>
+
+The change name.
+
+=item C<project>
+
+The name of the project with which the change is associated.
+
+=item C<note>
+
+The note attached to the change.
+
+=item C<planner_name>
+
+The name of the user who planned the change.
+
+=item C<planner_email>
+
+The email address of the user who planned the change.
+
+=item C<timestamp>
+
+An L<App::Sqitch::DateTime> object representing the time the change was planned.
+
+=back
+
+=head3 C<deployed_changes_since>
+
+  my @change_hashes = $engine->deployed_changes_since($change);
+
+Returns a list of hash references, each representing a change from the current
+project deployed after the specified change.
 
 =head3 C<name_for_change_id>
 
