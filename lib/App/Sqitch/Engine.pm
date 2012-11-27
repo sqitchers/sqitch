@@ -157,7 +157,7 @@ sub revert {
             );
         };
 
-        @changes = $self->deployed_changes_since($change->id) or hurl {
+        @changes = $self->deployed_changes_since($change) or hurl {
             ident => 'revert',
             message => __x(
                 'No changes deployed since: "{target}"',
@@ -185,7 +185,12 @@ sub revert {
 
     # Create change objects.
     @changes = map {
-        App::Sqitch::Plan::Change->new(%{ $_ }, plan => $plan )
+        my $tags = $_->{tags} || [];
+        my $c    = App::Sqitch::Plan::Change->new(%{ $_ }, plan => $plan );
+        $c->add_tag(
+            App::Sqitch::Plan::Tag->new(name => $_, plan => $plan, change => $c )
+        ) for @{ $tags };
+        $c;
     } reverse @changes;
 
     # XXX Check for conflicts before reverting anything.
@@ -1020,6 +1025,10 @@ The email address of the user who planned the change.
 
 An L<App::Sqitch::DateTime> object representing the time the change was planned.
 
+=iten C<tags>
+
+An array reference of the tag naems associated with the change.
+
 =back
 
 =head3 C<deployed_changes_since>
@@ -1027,7 +1036,8 @@ An L<App::Sqitch::DateTime> object representing the time the change was planned.
   my @change_hashes = $engine->deployed_changes_since($change);
 
 Returns a list of hash references, each representing a change from the current
-project deployed after the specified change.
+project deployed after the specified change. The keys in the hash references
+should be the same as for those returned by C<deployed_changes()>.
 
 =head3 C<name_for_change_id>
 

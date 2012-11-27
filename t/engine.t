@@ -1073,6 +1073,10 @@ is $@->message, __x(
     target => $changes[0]->id,
 ), 'No subsequent change error message should be correct';
 
+is_deeply $engine->seen, [
+    [deployed_changes_since => $changes[0]],
+], 'Should have called deployed_changes_since';
+
 # Revert with nothing deployed.
 throws_ok { $engine->revert } 'App::Sqitch::X',
     'Should get error for known but undeployed change';
@@ -1081,24 +1085,50 @@ is $@->exitval, 1, 'No changes exitval should be 1';
 is $@->message, __ 'Nothing to revert (nothing deployed)',
     'No changes message should be correct';
 
+is_deeply $engine->seen, [
+    [deployed_changes => undef],
+], 'Should have called deployed_changes';
 
 # Now revert from a deployed change.
-@deployed_changes = map { $changes[$_] } (0..3);
+my @dbchanges;
+@deployed_changes = map {
+    my $plan_change = $_;
+    my $params = {
+        id            => $plan_change->id,
+        name          => $plan_change->name,
+        project       => $plan_change->project,
+        note          => $plan_change->note,
+        planner_name  => $plan_change->planner_name,
+        planner_email => $plan_change->planner_email,
+        timestamp     => $plan_change->timestamp,
+        tags          => [ map { $_->name } $plan_change->tags ],
+    };
+    push @dbchanges => my $db_change = App::Sqitch::Plan::Change->new(
+        plan => $plan,
+        %{ $params },
+    );
+    $db_change->add_tag( App::Sqitch::Plan::Tag->new(
+        name => $_->name, plan => $plan, change => $db_change
+    ) ) for $plan_change->tags;
+    $db_change->tags; # Autovivify _tags For changes with no tags.
+    $params;
+} @changes[0..3];
+
 ok $engine->revert, 'Revert all changes';
 is_deeply $engine->seen, [
     [deployed_changes => undef],
-    [changes_requiring_change => $changes[3] ],
-    [run_file => $changes[3]->revert_file ],
-    [log_revert_change => $changes[3] ],
-    [changes_requiring_change => $changes[2] ],
-    [run_file => $changes[2]->revert_file ],
-    [log_revert_change => $changes[2] ],
-    [changes_requiring_change => $changes[1] ],
-    [run_file => $changes[1]->revert_file ],
-    [log_revert_change => $changes[1] ],
-    [changes_requiring_change => $changes[0] ],
-    [run_file => $changes[0]->revert_file ],
-    [log_revert_change => $changes[0] ],
+    [changes_requiring_change => $dbchanges[3] ],
+    [run_file => $dbchanges[3]->revert_file ],
+    [log_revert_change => $dbchanges[3] ],
+    [changes_requiring_change => $dbchanges[2] ],
+    [run_file => $dbchanges[2]->revert_file ],
+    [log_revert_change => $dbchanges[2] ],
+    [changes_requiring_change => $dbchanges[1] ],
+    [run_file => $dbchanges[1]->revert_file ],
+    [log_revert_change => $dbchanges[1] ],
+    [changes_requiring_change => $dbchanges[0] ],
+    [run_file => $dbchanges[0]->revert_file ],
+    [log_revert_change => $dbchanges[0] ],
 ], 'Should have reverted the changes in reverse order';
 is_deeply +MockOutput->get_info, [
     [__x(
@@ -1112,28 +1142,31 @@ is_deeply +MockOutput->get_info, [
 ], 'It should have said it was reverting all changes and listed them';
 
 # Now just rever to an earlier change.
-@deployed_changes = map { $changes[$_]->id } (2..3);
+@deployed_changes = @deployed_changes[2..3];
+$mock_engine->mock( find_change => $dbchanges[1]);
 ok $engine->revert('@alpha'), 'Revert to @alpha';
+
 is_deeply $engine->seen, [
-    [deployed_changes_since => $changes[1]],
-    [changes_requiring_change => $changes[3] ],
-    [run_file => $changes[3]->revert_file ],
-    [log_revert_change => $changes[3] ],
-    [changes_requiring_change => $changes[2] ],
-    [run_file => $changes[2]->revert_file ],
-    [log_revert_change => $changes[2] ],
+    [deployed_changes_since => $dbchanges[1]],
+    [changes_requiring_change => $dbchanges[3] ],
+    [run_file => $dbchanges[3]->revert_file ],
+    [log_revert_change => $dbchanges[3] ],
+    [changes_requiring_change => $dbchanges[2] ],
+    [run_file => $dbchanges[2]->revert_file ],
+    [log_revert_change => $dbchanges[2] ],
 ], 'Should have reverted only changes after @alpha';
 is_deeply +MockOutput->get_info, [
     [__x(
         'Reverting changes to {target} from {destination}',
         destination => $engine->destination,
-        target      => $plan->get('@alpha')->format_name_with_tags,
+        target      => $dbchanges[1]->format_name_with_tags,
     )],
     ['  - ', 'lolz'],
     ['  - ', 'widgets @beta'],
 ], 'Output should show what it reverts to';
 
 # Let it find it via the name.
+# XXX Pick up here; test find_change instead.
 my $mock_plan = Test::MockModule->new(ref $plan);
 $mock_plan->mock(get => sub {
     my ( $self, $name ) = @_;
@@ -1141,13 +1174,13 @@ $mock_plan->mock(get => sub {
     return $self->$get('@alpha') if $name eq 'bugaboo';
     return $self->$get($name);
 });
-@deployed_changes = ('this is not an id');
+@deployed_changes = ({ id => 'this is not an id', name => 'something'});
 ok $engine->revert, 'Revert by name rather than ID';
 is_deeply $engine->seen, [
     [deployed_changes => undef],
-    [changes_requiring_change => $changes[1] ],
-    [run_file => $changes[1]->revert_file ],
-    [log_revert_change => $changes[1] ],
+    [changes_requiring_change => $dbchanges[1] ],
+    [run_file => $dbchanges[1]->revert_file ],
+    [log_revert_change => $dbchanges[1] ],
 ], 'Should have reverted only @alpha';
 is_deeply +MockOutput->get_info, [
     [__x(
