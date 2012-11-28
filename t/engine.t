@@ -1237,6 +1237,49 @@ is_deeply +MockOutput->get_info, [
     ['  - ', 'widgets @beta'],
 ], 'Output should show what it reverts to';
 
+##############################################################################
+# Test change_id_for_depend().
+can_ok $CLASS, 'change_id_for_depend';
+my ($dep) = $make_deps->( 1, 'foo' );
+throws_ok { $engine->change_id_for_depend( $dep ) } 'App::Sqitch::X',
+    'Should get error from change_id_for_depend when change not in plan';
+is $@->ident, 'plan', 'Should get ident "plan" from change_id_for_depend';
+is $@->message, __x(
+    'Unable to find change "{change}" in plan {file}',
+    change => $dep->key_name,
+    file   => $sqitch->plan_file,
+), 'Should have proper message from change_id_for_depend error';
+
+PLANOK: {
+    my $mock_depend = Test::MockModule->new('App::Sqitch::Plan::Depend');
+    $mock_depend->mock(id     => sub { undef });
+    $mock_depend->mock(change => sub { undef });
+    throws_ok { $engine->change_id_for_depend( $dep ) } 'App::Sqitch::X',
+        'Should get error from change_id_for_depend when no ID';
+    is $@->ident, 'engine', 'Should get ident "engine" when no ID';
+    is $@->message, __x(
+        'Invalid dependency: {dependency}',
+        dependency => $dep->as_string,
+    ), 'Should have proper messag from change_id_for_depend error';
+
+    # Let it have the change.
+    $mock_depend->unmock('change');
+
+    push @resolved => $changes[1]->id;
+    is $engine->change_id_for_depend( $dep ), $changes[1]->id,
+        'Get a change id';
+    is_deeply $engine->seen, [
+        [change_id_for => {
+            change_id => $dep->id,
+            change    => $dep->change,
+            tag       => $dep->tag,
+            project   => $dep->project,
+        }],
+    ], 'Should have passed dependency params to change_id_for()';
+}
+
+##############################################################################
+# Test find_change().
 
 exit;
 
