@@ -35,9 +35,9 @@ my @deployed_changes;
 my @resolved;
 my @requiring;
 my @load_changes;
+my $offset_change;
 my $die = '';
 my $record_work = 1;
-my $found_change_id;
 my $updated_idx;
 my ( $earliest_change_id, $latest_change_id, $initialized );
 ENGINE: {
@@ -63,9 +63,8 @@ ENGINE: {
     }
     sub is_deployed_tag    { push @SEEN => [ is_deployed_tag   => $_[1] ]; $is_deployed_tag }
     sub is_deployed_change { push @SEEN => [ is_deployed_change  => $_[1] ]; $is_deployed_change }
-    sub find_change_id     {shift; push @SEEN => [ find_change_id => {@_} ]; $found_change_id }
-    sub change_id_for_depend { push @SEEN => [ change_id_for_depend => $_[1] ]; shift @resolved }
-#    sub change_id_for      { push @SEEN => [ change_id_for => $_[1] ]; shift @resolved }
+    sub change_id_for      { shift; push @SEEN => [ change_id_for => {@_} ]; shift @resolved }
+    sub change_offset_from_id { shift; push @SEEN => [ change_offset_from_id => [@_] ]; $offset_change }
     sub changes_requiring_change { push @SEEN => [ changes_requiring_change => $_[1] ]; @requiring }
     sub earliest_change_id { push @SEEN => [ earliest_change_id  => $_[1] ]; $earliest_change_id }
     sub latest_change_id   { push @SEEN => [ latest_change_id    => $_[1] ]; $latest_change_id }
@@ -199,6 +198,7 @@ for my $abs (qw(
     current_tags
     search_events
     registered_projects
+    change_offset_from_id
 )) {
     throws_ok { $engine->$abs } qr/\Q$CLASS has not implemented $abs()/,
         "Should get an unimplemented exception from $abs()"
@@ -860,17 +860,19 @@ my $make_deps = sub {
     my $conflicts = shift;
     return map {
         my $dep = App::Sqitch::Plan::Depend->new(
-            %{ App::Sqitch::Plan::Depend->parse( $_ ) },
+            change    => $_,
             plan      => $plan,
             conflicts => $conflicts,
         );
-        $dep->project;
         $dep;
     } @_;
 };
 
 CONFLICTS: {
     # Die on conflicts.
+    my $mock_depend = Test::MockModule->new('App::Sqitch::Plan::Depend');
+    $mock_depend->mock(id => sub { undef });
+
     my @conflicts = $make_deps->( 1, qw(foo bar) );
     my $change = App::Sqitch::Plan::Change->new(
         name      => 'foo',
@@ -889,9 +891,19 @@ CONFLICTS: {
     ), 'Should have localized message about conflicts';
 
     is_deeply $engine->seen, [
-        [ change_id_for_depend => $conflicts[0] ],
-        [ change_id_for_depend => $conflicts[1] ],
-    ], 'No other methods should have been called';
+        [ change_id_for => {
+            change_id => undef,
+            change    => 'foo',
+            tag       => undef,
+            project   => 'sql',
+        } ],
+        [ change_id_for => {
+            change_id => undef,
+            change    => 'bar',
+            tag       => undef,
+            project   => 'sql',
+        } ],
+    ], 'Should have called change_id_for() twice';
     is_deeply +MockOutput->get_info, [
         ['  + ', $change->format_name]
     ], 'Should again have shown change name';
@@ -901,6 +913,9 @@ CONFLICTS: {
 
 REQUIRES: {
     # Die on missing dependencies.
+    my $mock_depend = Test::MockModule->new('App::Sqitch::Plan::Depend');
+    $mock_depend->mock(id => sub { undef });
+
     my @requires = $make_deps->( 0, qw(foo bar) );
     my $change = App::Sqitch::Plan::Change->new(
         name      => 'foo',
@@ -919,8 +934,18 @@ REQUIRES: {
     ), 'Should have localized message missing dependencies';
 
     is_deeply $engine->seen, [
-        [ change_id_for_depend => $requires[0] ],
-        [ change_id_for_depend => $requires[1] ],
+        [ change_id_for => {
+            change_id => undef,
+            change    => 'foo',
+            tag       => undef,
+            project   => 'sql',
+        } ],
+        [ change_id_for => {
+            change_id => undef,
+            change    => 'bar',
+            tag       => undef,
+            project   => 'sql',
+        } ],
     ], 'Should have called check_requires';
     is_deeply +MockOutput->get_info, [
         ['  + ', $change->format_name]
@@ -930,6 +955,9 @@ REQUIRES: {
 }
 
 DEPLOYDIE: {
+    my $mock_depend = Test::MockModule->new('App::Sqitch::Plan::Depend');
+    $mock_depend->mock(id => sub { undef });
+
     # Now make it die on the actual deploy.
     $die = 'log_deploy_change';
     my @requires  = $make_deps->( 0, qw(foo bar) );
@@ -945,9 +973,24 @@ DEPLOYDIE: {
         'Shuld die on deploy failure';
     is $@->message, __ 'Deploy failed', 'Should be told the deploy failed';
     is_deeply $engine->seen, [
-        [ change_id_for_depend => $conflicts[0] ],
-        [ change_id_for_depend => $requires[0]  ],
-        [ change_id_for_depend => $requires[1]  ],
+        [ change_id_for => {
+            change_id => undef,
+            change    => 'dr_evil',
+            tag       => undef,
+            project   => 'sql',
+        } ],
+        [ change_id_for => {
+            change_id => undef,
+            change    => 'foo',
+            tag       => undef,
+            project   => 'sql',
+        } ],
+        [ change_id_for => {
+            change_id => undef,
+            change    => 'bar',
+            tag       => undef,
+            project   => 'sql',
+        } ],
         [run_file => $change->deploy_file],
         [run_file => $change->revert_file],
         [log_fail_change => $change],
@@ -1040,11 +1083,28 @@ is $@->message, __x(
     'Unknown revert target: "{target}"',
     target => 'nonexistent',
 ), 'The message should mention it is an unknown target';
-is_deeply $engine->seen, [['find_change_id', {
-    change => 'nonexistent',
-    tag => undef,
-    offset => 0,
-}]], 'Only find_change_id() should have been called';
+is_deeply $engine->seen, [['change_id_for', {
+    change_id => undef,
+    change  => 'nonexistent',
+    tag     => undef,
+    project => 'sql',
+}]], 'Should have called change_id_for() with change name';
+is_deeply +MockOutput->get_info, [], 'Nothing should have been output';
+
+# Try reverting to an unknown change ID.
+throws_ok { $engine->revert('8d77c5f588b60bc0f2efcda6369df5cb0177521d') } 'App::Sqitch::X',
+    'Revert should die on unknown change ID';
+is $@->ident, 'revert', 'Should be another "revert" error';
+is $@->message, __x(
+    'Unknown revert target: "{target}"',
+    target => '8d77c5f588b60bc0f2efcda6369df5cb0177521d',
+), 'The message should mention it is an unknown target';
+is_deeply $engine->seen, [['change_id_for', {
+    change_id => '8d77c5f588b60bc0f2efcda6369df5cb0177521d',
+    change  => undef,
+    tag     => undef,
+    project => 'sql',
+}]], 'Shoudl have called change_id_for() with change ID';
 is_deeply +MockOutput->get_info, [], 'Nothing should have been output';
 
 # Revert an undeployed target.
@@ -1055,15 +1115,17 @@ is $@->message, __x(
     'Target not deployed: "{target}"',
     target => '@alpha',
 ), 'The message should mention that the target is not deployed';
-is_deeply $engine->seen,  [['find_change_id', {
+is_deeply $engine->seen,  [['change_id_for', {
     change => '',
+    change_id => undef,
     tag => 'alpha',
-    offset => 0,
-}]], 'find_change_id';
+    project => 'sql',
+}]], 'change_id_for';
 is_deeply +MockOutput->get_info, [], 'Nothing should have been output';
 
 # Revert to a point with no following changes.
-$mock_engine->mock( find_change => $changes[0]);
+$offset_change = $changes[0];
+push @resolved => $offset_change->id;
 throws_ok { $engine->revert($changes[0]->id) } 'App::Sqitch::X',
     'Should get error reverting when no subsequent changes';
 is $@->ident, 'revert', 'No subsequent change error ident should be "revert"';
@@ -1074,8 +1136,15 @@ is $@->message, __x(
 ), 'No subsequent change error message should be correct';
 
 is_deeply $engine->seen, [
+    [change_id_for => {
+        change_id => $changes[0]->id,
+        change => undef,
+        tag => undef,
+        project => 'sql',
+    }],
+    [ change_offset_from_id => [$changes[0]->id, 0] ],
     [deployed_changes_since => $changes[0]],
-], 'Should have called deployed_changes_since';
+], 'Should have called change_id_for and deployed_changes_since';
 
 # Revert with nothing deployed.
 throws_ok { $engine->revert } 'App::Sqitch::X',
@@ -1141,12 +1210,15 @@ is_deeply +MockOutput->get_info, [
     ['  - ', 'roles'],
 ], 'It should have said it was reverting all changes and listed them';
 
-# Now just rever to an earlier change.
+# Now just revert to an earlier change.
+$offset_change = $dbchanges[1];
+push @resolved => $offset_change->id;
 @deployed_changes = @deployed_changes[2..3];
-$mock_engine->mock( find_change => $dbchanges[1]);
 ok $engine->revert('@alpha'), 'Revert to @alpha';
 
 is_deeply $engine->seen, [
+    [change_id_for => { change_id => undef, change => '', tag => 'alpha', project => 'sql' }],
+    [ change_offset_from_id => [$dbchanges[1]->id, 0] ],
     [deployed_changes_since => $dbchanges[1]],
     [changes_requiring_change => $dbchanges[3] ],
     [run_file => $dbchanges[3]->revert_file ],
@@ -1164,6 +1236,10 @@ is_deeply +MockOutput->get_info, [
     ['  - ', 'lolz'],
     ['  - ', 'widgets @beta'],
 ], 'Output should show what it reverts to';
+
+
+exit;
+
 
 # Let it find it via the name.
 # XXX Pick up here; test find_change instead.

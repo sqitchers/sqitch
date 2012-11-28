@@ -138,8 +138,10 @@ sub revert {
         my ( $cname, $tag ) = split /@/ => $to, 2;
         my $offset = App::Sqitch::Plan::ChangeList::_offset $to;
         my $change = $self->find_change(
-            change => $cname,
-            tag    => $tag,
+            ( !$tag && $cname =~ /^[0-9a-f]{40}$/ ? (change_id => $cname) : (
+                change => $cname,
+                tag    => $tag,
+            )),
             offset => $offset,
         ) or do {
             # Not deployed. Is it in the plan?
@@ -223,12 +225,6 @@ sub change_id_for_depend {
 }
 
 sub find_change {
-    my $self = shift;
-    my $change_id = $self->find_change_id(@_) // return;
-    return $self->load_change($change_id);
-}
-
-sub find_change_id {
     my ( $self, %p ) = @_;
 
     # Find the change ID or return undef.
@@ -240,8 +236,7 @@ sub find_change_id {
     ) // return;
 
     # Return relative to the offset.
-    return $change_id unless $p{offset};
-    return $self->change_id_offset_from_id($change_id, $p{offset});
+    return $self->change_offset_from_id($change_id, $p{offset});
 }
 
 
@@ -573,6 +568,11 @@ sub changes_requiring_change {
 sub name_for_change_id {
     my $class = ref $_[0] || $_[0];
     hurl "$class has not implemented name_for_change_id()";
+}
+
+sub change_offset_from_id {
+    my $class = ref $_[0] || $_[0];
+    hurl "$class has not implemented change_offset_from_id()";
 }
 
 sub registered_projects {

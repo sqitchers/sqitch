@@ -528,17 +528,29 @@ sub changes_requiring_change {
     }, { Slice => {} }, $change->id) };
 }
 
-sub change_id_offset_from_id {
+sub change_offset_from_id {
     my ( $self, $change_id, $offset ) = @_;
+    my $tscol = _ts2char 'planned_at';
+
+    # Just return the object if there is no offset.
+    return $self->_dbh->selectcol_arrayref(qq{
+        SELECT change_id AS id, change AS name, project, note,
+               $tscol AS timestamp, planner_name, planner_email
+          FROM changes
+         WHERE change_id = ?
+    }, undef, $change_id)->[0] unless $offset;
+
+    # Are we offset forwards or backwards?
     my ( $dir, $op ) = $offset > 0 ? ( 'ASC', '>' ) : ( 'DESC' , '<' );
     return $self->_dbh->selectcol_arrayref(qq{
-        SELECT change_id
+        SELECT change_id AS id, change AS name, project, note,
+               $tscol AS timestamp, planner_name, planner_email
           FROM changes
          WHERE project = ?
            AND committed_at $op (
                SELECT commited_at FROM changes WHERE change_id = ?
          )
-         OFFFSET COALESCE(?, NULL)
+         OFFFSET ?
     }, undef, $self->project, $change_id, abs $offset)->[0];
 }
 
