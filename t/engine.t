@@ -4,8 +4,8 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-#use Test::More tests => 259;
-use Test::More 'no_plan';
+use Test::More tests => 282;
+#use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
 use Path::Class;
@@ -1240,6 +1240,7 @@ is_deeply +MockOutput->get_info, [
 ##############################################################################
 # Test change_id_for_depend().
 can_ok $CLASS, 'change_id_for_depend';
+
 my ($dep) = $make_deps->( 1, 'foo' );
 throws_ok { $engine->change_id_for_depend( $dep ) } 'App::Sqitch::X',
     'Should get error from change_id_for_depend when change not in plan';
@@ -1280,33 +1281,36 @@ PLANOK: {
 
 ##############################################################################
 # Test find_change().
-
-exit;
-
-
-# Let it find it via the name.
-# XXX Pick up here; test find_change instead.
-my $mock_plan = Test::MockModule->new(ref $plan);
-$mock_plan->mock(get => sub {
-    my ( $self, $name ) = @_;
-    my $get = $mock_plan->original('get');
-    return $self->$get('@alpha') if $name eq 'bugaboo';
-    return $self->$get($name);
-});
-@deployed_changes = ({ id => 'this is not an id', name => 'something'});
-ok $engine->revert, 'Revert by name rather than ID';
+can_ok $CLASS, 'find_change';
+push @resolved => $dbchanges[1]->id;
+is $engine->find_change(
+    change_id => $resolved[0],
+    change    => 'hi',
+    tag       => 'yo',
+), $dbchanges[1], 'find_change() should work';
 is_deeply $engine->seen, [
-    [deployed_changes => undef],
-    [changes_requiring_change => $dbchanges[1] ],
-    [run_file => $dbchanges[1]->revert_file ],
-    [log_revert_change => $dbchanges[1] ],
-], 'Should have reverted only @alpha';
-is_deeply +MockOutput->get_info, [
-    [__x(
-        'Reverting all changes from {destination}',
-        destination => $engine->destination,
-    )],
-    ['  - ', 'users @alpha'],
-], 'Output should show reverting all, though really only once, thanks to mocking';
+    [change_id_for => {
+        change_id => $dbchanges[1]->id,
+        change    => 'hi',
+        tag       => 'yo',
+        project   => 'sql',
+    }],
+    [change_offset_from_id => [ $dbchanges[1]->id, undef ]],
+], 'Its parameters should have been passed to change_id_for and change_offset_from_id';
 
-$mock_plan->unmock_all;
+# Pass a project and an ofset.
+push @resolved => $dbchanges[1]->id;
+is $engine->find_change(
+    change    => 'hi',
+    offset    => 1,
+    project   => 'fred',
+), $dbchanges[1], 'find_change() should work';
+is_deeply $engine->seen, [
+    [change_id_for => {
+        change_id => undef,
+        change    => 'hi',
+        tag       => undef,
+        project   => 'fred',
+    }],
+    [change_offset_from_id => [ $dbchanges[1]->id, 1 ]],
+], 'Project and offset should have been passed off';
