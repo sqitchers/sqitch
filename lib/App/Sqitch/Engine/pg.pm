@@ -542,7 +542,7 @@ sub change_id_for {
     my ( $self, %p) = @_;
     my $dbh = $self->_dbh;
 
-    if ( defined ( my $cid = $p{change_id} ) ) {
+    if ( my $cid = $p{change_id} ) {
         # Find by ID.
         return $dbh->selectcol_arrayref(q{
             SELECT change_id
@@ -551,8 +551,9 @@ sub change_id_for {
         }, undef, $cid)->[0];
     }
 
-    if ( defined ( my $change = $p{change} ) ) {
-        if ( defined ( my $tag = $p{tag} ) ) {
+    my $project = $p{project} || $self->plan->project;
+    if ( my $change = $p{change} ) {
+        if ( my $tag = $p{tag} ) {
             # Ther is nothing before the first tag.
             return undef if $tag eq 'FIRST';
 
@@ -564,7 +565,7 @@ sub change_id_for {
                    AND change  = ?
                  ORDER BY committed_at DESC
                  LIMIT 1
-            }, undef, $p{project}, $change)->[0] if $tag eq 'LAST';
+            }, undef, $project, $change)->[0] if $tag eq 'LAST';
 
             # Find by change name and following tag.
             return $dbh->selectcol_arrayref(q{
@@ -576,7 +577,7 @@ sub change_id_for {
                  WHERE changes.project = ?
                    AND changes.change  = ?
                    AND tags.tag        = ?
-            }, undef, $p{project}, $change, '@' . $tag)->[0];
+            }, undef, $project, $change, '@' . $tag)->[0];
         }
 
         # Find by change name.
@@ -585,15 +586,15 @@ sub change_id_for {
               FROM changes
              WHERE project = ?
                AND change  = ?
-        }, undef, $p{project}, $change)->[0];
+        }, undef, $project, $change)->[0];
     }
 
-    if ( defined ( my $tag = $p{tag} ) ) {
+    if ( my $tag = $p{tag} ) {
         # Just return the latest for @LAST.
-        return $self->latest_change_id if $tag eq 'LAST';
+        return $self->latest_change_id(0, $project) if $tag eq 'LAST';
 
         # Just return the earliest for @FIRST.
-        return $self->earliest_change_id if $tag eq 'FIRST';
+        return $self->earliest_change_id(0, $project) if $tag eq 'FIRST';
 
         # Find by tag name.
         return $dbh->selectcol_arrayref(q{
@@ -601,7 +602,7 @@ sub change_id_for {
               FROM tags
              WHERE project = ?
                AND tag     = ?
-        }, undef, $p{project}, '@' . $tag)->[0];
+        }, undef, $project, '@' . $tag)->[0];
     }
 
     # We got nothin.
@@ -619,7 +620,7 @@ sub _fetch_item {
 }
 
 sub _cid {
-    my ( $self, $ord, $offset ) = @_;
+    my ( $self, $ord, $offset, $project ) = @_;
     return try {
         $self->_dbh->selectcol_arrayref(qq{
             SELECT change_id
@@ -628,7 +629,7 @@ sub _cid {
              ORDER BY committed_at $ord
              LIMIT 1
             OFFSET COALESCE(?::bigint, NULL)
-        }, undef, $self->plan->project, $offset)->[0];
+        }, undef, $project || $self->plan->project, $offset)->[0];
     } catch {
         return if $DBI::state eq '42P01'; # undefined_table
         die $_;

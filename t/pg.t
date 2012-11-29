@@ -1270,7 +1270,94 @@ subtest 'live database' => sub {
     }, 'The rest of the state should look right';
 
     ##########################################################################
-    # Test change_id_for_depend.
+    # Test change_id_for().
+    for my $spec (
+        [
+            'change_id only',
+            { change_id => $change->id },
+            $change->id,
+        ],
+        [
+            'change only',
+            { change => $change->name },
+            $change->id,
+        ],
+        [
+            'change + tag',
+            { change => $change->name, tag => 'alpha' },
+            $change->id,
+        ],
+        [
+            'change@LAST',
+            { change => $change->name, tag => 'LAST' },
+            $change->id,
+        ],
+        [
+            'tag only',
+            { tag => 'alpha' },
+            $change->id,
+        ],
+        [
+            'FIRST',
+            { tag => 'FIRST' },
+            $change->id,
+        ],
+        [
+            'LAST',
+            { tag => 'LAST' },
+            $barney->id,
+        ],
+        [
+            'project:FIRST',
+            { tag => 'FIRST', project => 'groovy' },
+            $ext_change->id,
+        ],
+        [
+            'project:LAST',
+            { tag => 'LAST', project => 'groovy' },
+            $ext_change->id,
+        ],
+    ) {
+        my ( $desc, $params, $exp_id ) = @{ $spec };
+        is $pg->change_id_for(%{ $params }), $exp_id, "Should find id for $desc";
+    }
+
+    for my $spec (
+        [
+            'unkonwn id',
+            { change_id => 'whatever' },
+        ],
+        [
+            'unkonwn change',
+            { change => 'whatever' },
+        ],
+        [
+            'unkonwn tag',
+            { tag => 'whatever' },
+        ],
+        [
+            'change + unkonwn tag',
+            { change => $change->name, tag => 'whatever' },
+        ],
+        [
+            'change@FIRST',
+            { change => $change->name, tag => 'FIRST' },
+        ],
+        [
+            'change + different project',
+            { change => $change->name, project => 'whatever' },
+        ],
+        [
+            'tag + different project',
+            { tag => 'alpha', project => 'whatever' },
+        ],
+    ) {
+        my ( $desc, $params ) = @{ $spec };
+        is $pg->change_id_for(%{ $params }), undef, "Should find nothign for $desc";
+    }
+
+    ##########################################################################
+    # Test change_id_for_depend().
     my $id = '4f1e83f409f5f533eeef9d16b8a59e2c0aa91cc1';
     my $i;
 
