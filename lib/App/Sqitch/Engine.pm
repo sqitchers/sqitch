@@ -554,6 +554,12 @@ sub deployed_changes_since {
     hurl "$class has not implemented deployed_changes_since()";
 }
 
+
+sub load_change {
+    my $class = ref $_[0] || $_[0];
+    hurl "$class has not implemented load_change()";
+}
+
 sub changes_requiring_change {
     my $class = ref $_[0] || $_[0];
     hurl "$class has not implemented changes_requiring_change()";
@@ -788,6 +794,7 @@ C<is_deployed_change()> as appropriate to its argument.
 =head3 C<earliest_change>
 
   my $change = $engine->earliest_change;
+  my $change = $engine->earliest_change($offset);
 
 Returns the L<App::Sqitch::Plan::Change> object representing the earliest
 applied change. With the optional C<$offset> argument, the returned change
@@ -1404,6 +1411,15 @@ SQL file to run through the engine's native client.
 Should execute the commands in the specified file handle. The file handle's
 contents should be piped to the engine's native client.
 
+=head3 C<load_change>
+
+  my $change = $engine->load_change($change_id);
+
+Given a deployed change ID, loads an returns a hash reference represeting the
+change in the database. The keys should be the same as those in the hash
+references returned by C<deployed_changes()>. Returns C<undef> if the change
+has not been deployed.
+
 =head3 C<change_offset_from_id>
 
   my $change = $engine->change_offset_from_id( $change_id, $offset );
@@ -1412,11 +1428,11 @@ Given a change ID and an offset, returns a hash reference of the data for a
 deployed change (with the same keys as defined for C<deployed_changes()>) in
 the current project that was deployed C<$offset> steps before the change
 identified by C<$change_id>. If C<$offset> is C<0> or C<undef>, the change
-represented by C<$change_id> should be returned. Otherwise, the change
-returned should be C<$offset> steps from that change ID, where C<$offset> may
-be positve (later step) or negative (earlier step). Returns C<undef> if the
-change was not found or if the offset is more than the number of changes
-before or after the change, as appropriate.
+represented by C<$change_id> should be returned (just like C<load_change()>).
+Otherwise, the change returned should be C<$offset> steps from that change ID,
+where C<$offset> may be positve (later step) or negative (earlier step).
+Returns C<undef> if the change was not found or if the offset is more than the
+number of changes before or after the change, as appropriate.
 
 =head1 See Also
 

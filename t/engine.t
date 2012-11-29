@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 281;
+use Test::More tests => 282;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -34,6 +34,7 @@ my ($is_deployed_tag, $is_deployed_change) = (0, 0);
 my @deployed_changes;
 my @resolved;
 my @requiring;
+my @load_changes;
 my $offset_change;
 my $die = '';
 my $record_work = 1;
@@ -71,6 +72,7 @@ ENGINE: {
     sub initialize         { push @SEEN => 'initialize' }
     sub register_project   { push @SEEN => 'register_project' }
     sub deployed_changes   { push @SEEN => [ deployed_changes => $_[1] ]; @deployed_changes }
+    sub load_change        { push @SEEN => [ load_change => $_[1] ]; @load_changes }
     sub deployed_changes_since { push @SEEN => [ deployed_changes_since => $_[1] ]; @deployed_changes }
     sub begin_work         { push @SEEN => ['begin_work']  if $record_work }
     sub finish_work        { push @SEEN => ['finish_work'] if $record_work }
@@ -189,6 +191,7 @@ for my $abs (qw(
     latest_change_id
     deployed_changes
     deployed_changes_since
+    load_change
     name_for_change_id
     current_state
     current_changes
