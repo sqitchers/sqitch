@@ -528,17 +528,22 @@ sub changes_requiring_change {
     }, { Slice => {} }, $change->id) };
 }
 
+sub _ts2char($) {
+    my $col = shift;
+    return qq{to_char($col AT TIME ZONE 'UTC', '"year":YYYY:"month":MM:"day":DD:"hour":HH24:"minute":MI:"second":SS:"time_zone":"UTC"')};
+}
+
+sub _dt($) {
+    require App::Sqitch::DateTime;
+    return App::Sqitch::DateTime->new(split /:/ => shift);
+}
+
 sub change_offset_from_id {
     my ( $self, $change_id, $offset ) = @_;
     my $tscol = _ts2char 'planned_at';
 
     # Just return the object if there is no offset.
-    return $self->_dbh->selectcol_arrayref(qq{
-        SELECT change_id AS id, change AS name, project, note,
-               $tscol AS timestamp, planner_name, planner_email
-          FROM changes
-         WHERE change_id = ?
-    }, undef, $change_id)->[0] unless $offset;
+    return $self->load_change($change_id) unless $offset;
 
     # Are we offset forwards or backwards?
     my ( $dir, $op ) = $offset > 0 ? ( 'ASC', '>' ) : ( 'DESC' , '<' );
@@ -679,7 +684,8 @@ sub deployed_changes {
         $_->{timestamp} = _dt $_->{timestamp}; $_
     } @{ $self->_dbh->selectall_arrayref(qq{
         SELECT change_id AS id, change AS name, project, note,
-               $tscol AS timestamp, planner_name, planner_email
+               $tscol AS timestamp, planner_name, planner_email,
+               ARRAY(SELECT tag FROM tags WHERE change_id = changes.change_id) AS tags
           FROM changes
          WHERE project = ?
          ORDER BY committed_at ASC
@@ -687,18 +693,19 @@ sub deployed_changes {
 }
 
 sub deployed_changes_since {
-    my ( $self, $change_id ) = @_;
+    my ( $self, $change ) = @_;
     my $tscol = _ts2char 'planned_at';
     return map {
         $_->{timestamp} = _dt $_->{timestamp}; $_
     } @{ $self->_dbh->selectall_arrayref(qq{
         SELECT change_id AS id, change AS name, project, note,
-               $tscol AS timestamp, planner_name, planner_email
+               $tscol AS timestamp, planner_name, planner_email,
+               ARRAY(SELECT tag FROM tags WHERE change_id = changes.change_id) AS tags
           FROM changes
          WHERE project = ?
            AND committed_at > (SELECT committed_at FROM changes WHERE change_id = ?)
          ORDER BY committed_at ASC
-    }, { Slice => {} }, $self->plan->project, $change_id) };
+    }, { Slice => {} }, $self->plan->project, $change->id) };
 }
 
 sub name_for_change_id {
@@ -715,16 +722,6 @@ sub name_for_change_id {
           FROM changes c
          WHERE change_id = ?
     }, undef, $change_id)->[0];
-}
-
-sub _ts2char($) {
-    my $col = shift;
-    return qq{to_char($col AT TIME ZONE 'UTC', '"year":YYYY:"month":MM:"day":DD:"hour":HH24:"minute":MI:"second":SS:"time_zone":"UTC"')};
-}
-
-sub _dt($) {
-    require App::Sqitch::DateTime;
-    return App::Sqitch::DateTime->new(split /:/ => shift);
 }
 
 sub registered_projects {

@@ -1,5 +1,10 @@
 #!/usr/bin/perl -w
 
+# Add change_id_for
+# Change deployed_change_ids to deployed_changes
+# Change deployed_change_ids_since to deployed_changes_since
+# Add change_offset_from_id
+
 use strict;
 use warnings;
 use 5.010;
@@ -858,29 +863,49 @@ subtest 'live database' => sub {
     is_deeply all( $pg->search_events ), \@events, 'Should have 5 events';
 
     ##########################################################################
-    # Test deployed_change_ids() and deployed_change_ids_since().
-    can_ok $pg, qw(deployed_change_ids deployed_change_ids_since);
-    is_deeply [$pg->deployed_change_ids], [$change->id, $change2->id],
-        'Should have two deployed change ID';
-    is_deeply [$pg->deployed_change_ids_since($change)], [$change2->id],
+    # Test deployed_changes() and deployed_changes_since().
+    can_ok $pg, qw(deployed_changes deployed_changes_since);
+    my $change_hash = {
+        id            => $change->id,
+        name          => $change->name,
+        project       => $change->project,
+        note          => $change->note,
+        timestamp     => $change->timestamp,
+        planner_name  => $change->planner_name,
+        planner_email => $change->planner_email,
+        tags          => ['@alpha'],
+    };
+    my $change2_hash = {
+        id            => $change2->id,
+        name          => $change2->name,
+        project       => $change2->project,
+        note          => $change2->note,
+        timestamp     => $change2->timestamp,
+        planner_name  => $change2->planner_name,
+        planner_email => $change2->planner_email,
+        tags          => [],
+    };
+    is_deeply [$pg->deployed_changes], [$change_hash, $change2_hash],
+        'Should have two deployed changes';
+    is_deeply [$pg->deployed_changes_since($change)], [$change2_hash],
         'Should find one deployed since the first one';
-    is_deeply [$pg->deployed_change_ids_since($change2)], [],
+    is_deeply [$pg->deployed_changes_since($change2)], [],
         'Should find none deployed since the second one';
 
     # Revert change 2.
     ok $pg->log_revert_change($change2), 'Revert "widgets"';
-    is_deeply [$pg->deployed_change_ids], [$change->id],
+    is_deeply [$pg->deployed_changes], [$change_hash],
         'Should now have one deployed change ID';
-    is_deeply [$pg->deployed_change_ids_since($change)], [],
+    is_deeply [$pg->deployed_changes_since($change)], [],
         'Should find none deployed since that one';
 
     # Add another one.
     ok $pg->log_deploy_change($change2), 'Log another change';
-    is_deeply [$pg->deployed_change_ids], [$change->id, $change2->id],
+    is_deeply [$pg->deployed_changes], [$change_hash, $change2_hash],
         'Should have both deployed change IDs';
-    is_deeply [$pg->deployed_change_ids_since($change)], [$change2->id],
+    is_deeply [$pg->deployed_changes_since($change)], [$change2_hash],
         'Should find only the second after the first';
-    is_deeply [$pg->deployed_change_ids_since($change2)], [],
+    is_deeply [$pg->deployed_changes_since($change2)], [],
         'Should find none after the second';
 
     ok $state = $pg->current_state, 'Get the current state once more';
@@ -1170,10 +1195,10 @@ subtest 'live database' => sub {
         qq{Project regex should fail to match with "nonexistent"};
 
     # Make sure we do not see these changes where we should not.
-    ok !grep( { $_ eq $ext_change->id } $pg->deployed_change_ids),
-        'deployed_change_ids should not include external change';
-    ok !grep( { $_ eq $ext_change->id } $pg->deployed_change_ids_since($change)),
-        'deployed_change_ids_since should not include external change';
+    ok !grep( { $_ eq $ext_change->id } $pg->deployed_changes),
+        'deployed_changes should not include external change';
+    ok !grep( { $_ eq $ext_change->id } $pg->deployed_changes_since($change)),
+        'deployed_changes_since should not include external change';
 
     is $pg->earliest_change_id, $change->id,
         'Earliest change should sill be "users"';
