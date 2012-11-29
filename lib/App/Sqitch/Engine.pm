@@ -239,7 +239,6 @@ sub find_change {
     return $self->change_offset_from_id($change_id, $p{offset});
 }
 
-
 sub _deploy_by_change {
     my ( $self, $plan, $to_index ) = @_;
 
@@ -555,11 +554,6 @@ sub deployed_changes_since {
     hurl "$class has not implemented deployed_changes_since()";
 }
 
-sub load_change {
-    my $class = ref $_[0] || $_[0];
-    hurl "$class has not implemented load_change()";
-}
-
 sub changes_requiring_change {
     my $class = ref $_[0] || $_[0];
     hurl "$class has not implemented changes_requiring_change()";
@@ -809,6 +803,67 @@ Returns the L<App::Sqitch::Plan::Change> object representing the latest
 applied change. With the optional C<$offset> argument, the returned change
 will be the offset number of changes before the latest change.
 
+=head3 C<change_id_for_depend>
+
+  say 'Dependency satisfied' if $engine->change_id_for_depend($depend);
+
+Returns the change ID for a L<dependency|App::Sqitch::Plan::Depend>, if the
+dependency resolves to a change currently deployed to the database. Returns
+C<undef> if the dependency resolves to no currently-deployed change.
+
+=head3 C<find_change>
+
+  my $change = $engine->find_change(%params);
+
+Finds and returns a deployed change, or C<undef> if the change has not been
+deployed. The supported paramters are:
+
+=over
+
+=item C<change_id>
+
+The change ID.
+
+=item C<change>
+
+A change name.
+
+=item C<tag>
+
+A tag name.
+
+=item C<project>
+
+A project name. Defaults to the current project.
+
+=item C<offset>
+
+The number of changes offset from the change found by the other parameters
+should actually be returned. May be positive or negative.
+
+=back
+
+The order of precedence for the search is:
+
+=over
+
+=item 1.
+
+Search by change ID, if passed.
+
+=item 2.
+
+Search by change name as of tag, if both are passed.
+
+=item 3.
+
+Search by change name or tag.
+
+=back
+
+The offset, if passed, will be applied relative to whatever change is found by
+the above algorithm.
+
 =head2 Abstract Instance Methods
 
 These methods must be overridden in subclasses.
@@ -876,7 +931,7 @@ deployed to the database, and false if it has not.
 
 =head3 C<change_id_for>
 
-  say $engine->find_change_id(
+  say $engine->change_id_for(
       change  => $change_name,
       tag     => $tag_name,
       offset  => $offset,
@@ -910,14 +965,6 @@ The name of the project to search. Defaults to the current project.
 
 If both C<change> and C<tag> are passed, C<find_change_id> will search for the
 last instance of the named change deployed I<before> the tag.
-
-=head3 C<change_id_for_depend>
-
-  say 'Dependency satisfied' if $engine->change_id_for_depend($depend);
-
-Returns the change ID for a L<dependency|App::Sqitch::Plan::Depend>, if the
-dependency resolves to a change currently deployed to the database. Returns
-C<undef> if the dependency resolves to no currently-deployed change.
 
 =head3 C<changes_requiring_change>
 
@@ -1356,6 +1403,20 @@ SQL file to run through the engine's native client.
 
 Should execute the commands in the specified file handle. The file handle's
 contents should be piped to the engine's native client.
+
+=head3 C<change_offset_from_id>
+
+  my $change = $engine->change_offset_from_id( $change_id, $offset );
+
+Given a change ID and an offset, returns a hash reference of the data for a
+deployed change (with the same keys as defined for C<deployed_changes()>) in
+the current project that was deployed C<$offset> steps before the change
+identified by C<$change_id>. If C<$offset> is C<0> or C<undef>, the change
+represented by C<$change_id> should be returned. Otherwise, the change
+returned should be C<$offset> steps from that change ID, where C<$offset> may
+be positve (later step) or negative (earlier step). Returns C<undef> if the
+change was not found or if the offset is more than the number of changes
+before or after the change, as appropriate.
 
 =head1 See Also
 
