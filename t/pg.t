@@ -1,9 +1,6 @@
 #!/usr/bin/perl -w
 
 # Add change_id_for
-# Change deployed_change_ids to deployed_changes
-# Change deployed_change_ids_since to deployed_changes_since
-# Add change_offset_from_id
 
 use strict;
 use warnings;
@@ -250,8 +247,11 @@ can_ok $CLASS, qw(
     latest_change_id
     is_deployed_tag
     is_deployed_change
+    change_id_for
     change_id_for_depend
     name_for_change_id
+    change_offset_from_id
+    load_change
 );
 
 my @cleanup;
@@ -820,7 +820,7 @@ subtest 'live database' => sub {
             tag        => '@alpha',
             committer_name  => $user2_name,
             committer_email => $user2_email,
-            committed_at => dt_for_tag( $tag->id ),
+            committed_at    => dt_for_tag( $tag->id ),
             planner_name    => $tag->planner_name,
             planner_email   => $tag->planner_email,
             planned_at      => $tag->timestamp,
@@ -863,8 +863,14 @@ subtest 'live database' => sub {
     is_deeply all( $pg->search_events ), \@events, 'Should have 5 events';
 
     ##########################################################################
-    # Test deployed_changes() and deployed_changes_since().
-    can_ok $pg, qw(deployed_changes deployed_changes_since);
+    # Test deployed_changes(), deployed_changes_since(), load_change, and
+    # change_offset_from_id().
+    can_ok $pg, qw(
+        deployed_changes
+        deployed_changes_since
+        load_change
+        change_offset_from_id
+    );
     my $change_hash = {
         id            => $change->id,
         name          => $change->name,
@@ -891,6 +897,33 @@ subtest 'live database' => sub {
         'Should find one deployed since the first one';
     is_deeply [$pg->deployed_changes_since($change2)], [],
         'Should find none deployed since the second one';
+
+    is_deeply $pg->load_change($change->id), $change_hash,
+        'Should load change 1';
+    is_deeply $pg->load_change($change2->id), $change2_hash,
+        'Should load change 2';
+    is_deeply $pg->load_change('whatever'), undef,
+        'load() should return undef for uknown change ID';
+
+    is_deeply $pg->change_offset_from_id($change->id, undef), $change_hash,
+        'Should load change with no offset';
+    is_deeply $pg->change_offset_from_id($change2->id, 0), $change2_hash,
+        'Should load change with offset 0';
+
+    # Make sure the times are different.
+    $pg->_dbh->do(q{
+        UPDATE changes
+           SET committed_at = committed_at + ?
+         WHERE change_id = ?
+    }, undef, '1s', $change2->id );
+
+    # Now try some offsets.
+    is_deeply $pg->change_offset_from_id($change->id, 1), $change2_hash,
+        'Should find change with offset 1';
+    is_deeply $pg->change_offset_from_id($change2->id, -1), $change_hash,
+        'Should find change with offset -1';
+    is_deeply $pg->change_offset_from_id($change->id, 2), undef,
+        'Should find undef change with offset 2';
 
     # Revert change 2.
     ok $pg->log_revert_change($change2), 'Revert "widgets"';

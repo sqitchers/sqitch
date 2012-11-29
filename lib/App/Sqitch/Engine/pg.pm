@@ -538,27 +538,6 @@ sub _dt($) {
     return App::Sqitch::DateTime->new(split /:/ => shift);
 }
 
-sub change_offset_from_id {
-    my ( $self, $change_id, $offset ) = @_;
-    my $tscol = _ts2char 'planned_at';
-
-    # Just return the object if there is no offset.
-    return $self->load_change($change_id) unless $offset;
-
-    # Are we offset forwards or backwards?
-    my ( $dir, $op ) = $offset > 0 ? ( 'ASC', '>' ) : ( 'DESC' , '<' );
-    return $self->_dbh->selectcol_arrayref(qq{
-        SELECT change_id AS id, change AS name, project, note,
-               $tscol AS timestamp, planner_name, planner_email
-          FROM changes
-         WHERE project = ?
-           AND committed_at $op (
-               SELECT commited_at FROM changes WHERE change_id = ?
-         )
-         OFFFSET ?
-    }, undef, $self->project, $change_id, abs $offset)->[0];
-}
-
 sub change_id_for {
     my ( $self, %p) = @_;
     my $dbh = $self->_dbh;
@@ -667,13 +646,38 @@ sub latest_change_id {
 sub load_change {
     my ( $self, $change_id ) = @_;
     my $tscol = _ts2char 'planned_at';
-    my $change = $self->_dbh->selerow_hashref(qq{
+    my $change = $self->_dbh->selectrow_hashref(qq{
         SELECT change_id AS id, change AS name, project, note,
-               $tscol AS timestamp, planner_name, planner_email
+               $tscol AS timestamp, planner_name, planner_email,
+               ARRAY(SELECT tag FROM tags WHERE change_id = changes.change_id) AS tags
           FROM changes
          WHERE change_id = ?
-    });
-    $change->{timetamp} = _dt $change->{timestamp};
+    }, undef, $change_id) || return undef;
+    $change->{timestamp} = _dt $change->{timestamp};
+    return $change;
+}
+
+sub change_offset_from_id {
+    my ( $self, $change_id, $offset ) = @_;
+
+    # Just return the object if there is no offset.
+    return $self->load_change($change_id) unless $offset;
+
+    # Are we offset forwards or backwards?
+    my ( $dir, $op ) = $offset > 0 ? ( 'ASC', '>' ) : ( 'DESC' , '<' );
+    my $tscol = _ts2char 'planned_at';
+    my $change = $self->_dbh->selectrow_hashref(qq{
+        SELECT change_id AS id, change AS name, project, note,
+               $tscol AS timestamp, planner_name, planner_email,
+               ARRAY(SELECT tag FROM tags WHERE change_id = changes.change_id) AS tags
+          FROM changes
+         WHERE project = ?
+           AND committed_at $op (
+               SELECT committed_at FROM changes WHERE change_id = ?
+         )
+         OFFSET ?
+    }, undef, $self->plan->project, $change_id, abs($offset) - 1) || return undef;
+    $change->{timestamp} = _dt $change->{timestamp};
     return $change;
 }
 
