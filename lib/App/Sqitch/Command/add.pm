@@ -57,7 +57,7 @@ has template_directory => (
     }
 );
 
-for my $script (qw(deploy revert test)) {
+for my $script (qw(deploy revert verify)) {
     has "with_$script" => (
         is      => 'ro',
         isa     => 'Bool',
@@ -107,10 +107,10 @@ sub options {
         template-directory=s
         deploy-template=s
         revert-template=s
-        test-template=s
+        verify-template|test-template=s
         deploy!
         revert!
-        test!
+        verify|test!
     );
 }
 
@@ -126,7 +126,7 @@ sub configure {
     $params{template_directory} = dir $opt->{template_directory}
         if $opt->{template_directory};
 
-    for my $attr (qw(deploy revert test)) {
+    for my $attr (qw(deploy revert verify)) {
         $params{"with_$attr"} = $opt->{$attr} if exists $opt->{$attr};
         my $t = "$attr\_template";
         $params{$t} = file $opt->{$t} if $opt->{$t};
@@ -162,7 +162,7 @@ sub execute {
         scripts => [
             ($self->with_deploy ? $change->deploy_file : ()),
             ($self->with_revert ? $change->revert_file : ()),
-            ($self->with_test   ? $change->test_file   : ()),
+            ($self->with_verify ? $change->verify_file : ()),
         ],
     );
 
@@ -180,9 +180,9 @@ sub execute {
 
     $self->_add(
         $name,
-        $change->test_file,
-        $self->test_template,
-    ) if $self->with_test;
+        $change->verify_file,
+        $self->verify_template,
+    ) if $self->with_verify;
 
     # We good, write the plan file back out.
     $plan->write_to( $sqitch->plan_file );
@@ -267,7 +267,7 @@ App::Sqitch::Command::add - Add a new change to a Sqitch plan
 =head1 Description
 
 Adds a new deployment change. This will result in the creation of a scripts in
-the deploy, revert, and test directories. The scripts are based on
+the deploy, revert, and verify directories. The scripts are based on
 L<Template::Tiny> templates in F<~/.sqitch/templates/> or
 C<$(etc_path)/templates>.
 

@@ -48,10 +48,10 @@ can_ok $CLASS, qw(
     template_directory
     with_deploy
     with_revert
-    with_test
+    with_verify
     deploy_template
     revert_template
-    test_template
+    verify_template
     configure
     execute
     _find
@@ -67,10 +67,10 @@ is_deeply [$CLASS->options], [qw(
     template-directory=s
     deploy-template=s
     revert-template=s
-    test-template=s
+    verify-template|test-template=s
     deploy!
     revert!
-    test!
+    verify|test!
 )], 'Options should be set up';
 
 sub contents_of ($) {
@@ -108,20 +108,20 @@ is_deeply $CLASS->configure($config, { template_directory => 't' }), {
 is_deeply $CLASS->configure($config, {
     deploy => 1,
     revert => 1,
-    test   => 0,
+    verify => 0,
     deploy_template => 'templates/deploy.tmpl',
     revert_template => 'templates/revert.tmpl',
-    test_template => 'templates/test.tmpl',
+    verify_template => 'templates/verify.tmpl',
 }), {
     requires  => [],
     conflicts => [],
     note      => [],
     with_deploy => 1,
     with_revert => 1,
-    with_test => 0,
+    with_verify => 0,
     deploy_template => Path::Class::file('templates/deploy.tmpl'),
     revert_template => Path::Class::file('templates/revert.tmpl'),
-    test_template => Path::Class::file('templates/test.tmpl'),
+    verify_template => Path::Class::file('templates/verify.tmpl'),
 }, 'Should have get template options';
 
 # Test variable configuration.
@@ -167,7 +167,7 @@ is $add->template_directory, undef, 'Default dir should be undef';
 MOCKCONFIG: {
     my $config_mock = Test::MockModule->new('App::Sqitch::Config');
     $config_mock->mock(system_dir => Path::Class::dir('nonexistent'));
-    for my $script (qw(deploy revert test)) {
+    for my $script (qw(deploy revert verify)) {
         my $with = "with_$script";
         ok $add->$with, "$with should be true by default";
         my $tmpl = "$script\_template";
@@ -186,7 +186,7 @@ ok $add = $CLASS->new(
     template_directory => Path::Class::dir(qw(etc templates))
 ), 'Create add with template_directory';
 
-for my $script (qw(deploy revert test)) {
+for my $script (qw(deploy revert verify)) {
     my $tmpl = "$script\_template";
     is $add->$tmpl, Path::Class::file('etc', 'templates', "$script.tmpl"),
         "Should find $script in templates directory";
@@ -208,13 +208,13 @@ MOCKCONFIG: {
         '_find should work with user_dir from Config';
 
     $config_mock->unmock('user_dir');
-    throws_ok { $add->_find('test') } 'App::Sqitch::X',
+    throws_ok { $add->_find('verify') } 'App::Sqitch::X',
         "Should die trying to find template";
     is $@->ident, 'add', 'Should be an "add" exception';
     is $@->message, __x(
         'Cannot find {script} template',
-        script => 'test',
-    ), "Should get unfound test template note";
+        script => 'verify',
+    ), "Should get unfound verify template note";
 
     $config_mock->mock(system_dir => Path::Class::dir('etc'));
     is $add->_find('deploy'), Path::Class::file(qw(etc templates deploy.tmpl)),
@@ -295,11 +295,11 @@ $change_mocker->mock(request_note => sub {
 
 my $deploy_file = file qw(sql deploy widgets_table.sql);
 my $revert_file = file qw(sql revert widgets_table.sql);
-my $test_file   = file qw(sql test   widgets_table.sql);
+my $verify_file = file qw(sql verify   widgets_table.sql);
 
 my $plan = $sqitch->plan;
 is $plan->get('widgets_table'), undef, 'Should not have "widgets_table" in plan';
-dir_not_exists_ok +File::Spec->catdir('sql', $_) for qw(deploy revert test);
+dir_not_exists_ok +File::Spec->catdir('sql', $_) for qw(deploy revert verify);
 ok $add->execute('widgets_table'), 'Add change "widgets_table"';
 isa_ok my $change = $plan->get('widgets_table'), 'App::Sqitch::Plan::Change',
     'Added change';
@@ -308,20 +308,20 @@ is_deeply [$change->requires],  [], 'It should have no requires';
 is_deeply [$change->conflicts], [], 'It should have no conflicts';
 is_deeply \%request_params, {
     for => __ 'add',
-    scripts => [$change->deploy_file, $change->revert_file, $change->test_file],
+    scripts => [$change->deploy_file, $change->revert_file, $change->verify_file],
 }, 'It should have prompted for a note';
 
-file_exists_ok $_ for ($deploy_file, $revert_file, $test_file);
+file_exists_ok $_ for ($deploy_file, $revert_file, $verify_file);
 file_contents_like +File::Spec->catfile(qw(sql deploy widgets_table.sql)),
     qr/^-- Deploy widgets_table/, 'Deploy script should look right';
 file_contents_like +File::Spec->catfile(qw(sql revert widgets_table.sql)),
     qr/^-- Revert widgets_table/, 'Revert script should look right';
-file_contents_like +File::Spec->catfile(qw(sql test widgets_table.sql)),
-    qr/^-- Test widgets_table/, 'Test script should look right';
+file_contents_like +File::Spec->catfile(qw(sql verify widgets_table.sql)),
+    qr/^-- Verify widgets_table/, 'Verify script should look right';
 is_deeply +MockOutput->get_info, [
     [__x 'Created {file}', file => $deploy_file],
     [__x 'Created {file}', file => $revert_file],
-    [__x 'Created {file}', file => $test_file],
+    [__x 'Created {file}', file => $verify_file],
     [__x 'Added "{change}" to {file}',
         change => 'widgets_table',
         file   => $sqitch->plan_file,
@@ -339,21 +339,21 @@ ok $add = $CLASS->new(
     requires           => ['widgets_table'],
     conflicts          => [qw(dr_evil joker)],
     note               => [qw(hello there)],
-    with_test          => 0,
+    with_verify        => 0,
     template_directory => Path::Class::dir(qw(etc templates))
-), 'Create another add with template_directory and no test script';
+), 'Create another add with template_directory and no verify script';
 
 $deploy_file = file qw(sql deploy foo_table.sql);
 $revert_file = file qw(sql revert foo_table.sql);
-$test_file   = file qw(sql test   foo_table.sql);
+$verify_file = file qw(sql ferify foo_table.sql);
 $deploy_file->touch;
 
 file_exists_ok $deploy_file;
-file_not_exists_ok $_ for ($revert_file, $test_file);
+file_not_exists_ok $_ for ($revert_file, $verify_file);
 is $plan->get('foo_table'), undef, 'Should not have "foo_table" in plan';
 ok $add->execute('foo_table'), 'Add change "foo_table"';
 file_exists_ok $_ for ($deploy_file, $revert_file);
-file_not_exists_ok $test_file;
+file_not_exists_ok $verify_file;
 isa_ok $change = $plan->get('foo_table'), 'App::Sqitch::Plan::Change',
     '"foo_table" change';
 is_deeply \%request_params, {

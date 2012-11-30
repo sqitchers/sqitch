@@ -36,7 +36,7 @@ can_ok $CLASS, qw(
     dest_top_dir
     dest_deploy_dir
     dest_revert_dir
-    dest_test_dir
+    dest_verify_dir
     bundle_config
     bundle_plan
     bundle_scripts
@@ -89,7 +89,7 @@ isa_ok $bundle = App::Sqitch::Command->load({
 is $bundle->dest_dir, $dir, qq{dest_dir should be "$dir"};
 is $bundle->dest_top_dir, dir(qw(_build sql sql)),
     'Dest top dir should be _build/sql/sql/';
-for my $sub (qw(deploy revert test)) {
+for my $sub (qw(deploy revert verify)) {
     my $attr = "dest_$sub\_dir";
     is $bundle->$attr, $dir->subdir('sql', $sub),
         "Dest $sub dir should be _build/sql/sql/$sub";
@@ -106,7 +106,7 @@ isa_ok $bundle = App::Sqitch::Command->load({
 }), $CLASS, 'pg bundle command';
 
 is $bundle->dest_dir, $dir, qq{dest_dir should again be "$dir"};
-for my $sub (qw(deploy revert test)) {
+for my $sub (qw(deploy revert verify)) {
     my $attr = "dest_$sub\_dir";
     is $bundle->$attr, $dir->subdir('pg', $sub),
         "Dest $sub dir should be _build/sql/pg/$sub";

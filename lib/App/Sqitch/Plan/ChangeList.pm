@@ -35,7 +35,6 @@ sub _dbsymtag($) {
 }
 
 sub _offset($) {
-    use Test::More;
     # Look for symbolic references.
     if ( $_[0] =~ s{(?<![$punct])([~^])(?:(\1)|(\d+))?\z}{} ) {
         my $offset = $3 // ($2 ? 2 : 1);

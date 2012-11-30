@@ -46,7 +46,7 @@ identifiers internally, so let's specify one when we initialize Sqitch:
   Created sqitch.plan
   Created deploy/
   Created revert/
-  Created test/
+  Created verify/
 
 Let's have a look at F<sqitch.conf>:
 
@@ -56,7 +56,7 @@ Let's have a look at F<sqitch.conf>:
       # top_dir = .
       # deploy_dir = deploy
       # revert_dir = revert
-      # test_dir = test
+      # verify_dir = verify
       # extension = sql
   # [core "pg"]
       # db_name = 
@@ -126,11 +126,11 @@ of the objects that will be part of the flipr app. Run this command:
   > sqitch add appschema -n 'App schema for all flipr objects.'
   Created deploy/appschema.sql
   Created revert/appschema.sql
-  Created test/appschema.sql
+  Created verify/appschema.sql
   Added "appschema" to sqitch.plan
 
 The C<add> command adds a database change to the plan and writes deploy,
-revert, and test scripts that represent the change. Now we edit these files.
+revert, and verify scripts that represent the change. Now we edit these files.
 The C<deploy> script's job is to create the schema. So we add this to
 F<deploy/appschema.sql>:
 
@@ -228,7 +228,7 @@ Cool. Now let's commit it.
    4 files changed, 23 insertions(+), 1 deletion(-)
    create mode 100644 deploy/appschema.sql
    create mode 100644 revert/appschema.sql
-   create mode 100644 test/appschema.sql
+   create mode 100644 verify/appschema.sql
 
 And then deploy again:
 
@@ -288,7 +288,7 @@ users, of course, so we'll create a table for them. First, add the new change:
   > sqitch add users --requires appschema -n 'Creates table to track our users.'
   Created deploy/users.sql
   Created revert/users.sql
-  Created test/users.sql
+  Created verify/users.sql
   Added "users [appschema]" to sqitch.plan
 
 Note that we're requiring the C<appschema> change as a dependency of the new
@@ -401,7 +401,7 @@ Now commit and deploy again:
    5 files changed, 30 insertions(+)
    create mode 100644 deploy/users.sql
    create mode 100644 revert/users.sql
-   create mode 100644 test/users.sql
+   create mode 100644 verify/users.sql
   > sqitch deploy
   Deploying changes to flipr_test
     + users
@@ -428,14 +428,14 @@ Let's add a couple more changes to add functions for managing users.
     -n 'Creates a function to insert a user.'
   Created deploy/insert_user.sql
   Created revert/insert_user.sql
-  Created test/insert_user.sql
+  Created verify/insert_user.sql
   Added "insert_user [users appschema]" to sqitch.plan
 
   > sqitch add change_pass --requires users --requires appschema \
     -n 'Creates a function to change a user password.'
   Created deploy/change_pass.sql
   Created revert/change_pass.sql
-  Created test/change_pass.sql
+  Created verify/change_pass.sql
   Added "change_pass [users appschema]" to sqitch.plan
 
 Now might be a good time to have a look at the deployment plan:
@@ -511,7 +511,7 @@ something like:
   DROP FUNCTION flipr.change_pass(TEXT, TEXT, TEXT);
   COMMIT;
 
-Test em out!
+Try em out!
 
   > sqitch deploy
   Deploying changes to flipr_test
@@ -561,8 +561,8 @@ the last deployed change. Looks good. Let's do the commit and re-deploy dance:
    create mode 100644 deploy/insert_user.sql
    create mode 100644 revert/change_pass.sql
    create mode 100644 revert/insert_user.sql
-   create mode 100644 test/change_pass.sql
-   create mode 100644 test/insert_user.sql
+   create mode 100644 verify/change_pass.sql
+   create mode 100644 verify/insert_user.sql
  
   > sqitch deploy
   Deploying changes to flipr_test
@@ -593,7 +593,7 @@ to have it go out with deployments tied to the release, let's tag it:
    1 file changed, 1 insertion(+)
   > git tag v1.0.0-dev1 -am 'Tag v1.0.0-dev1'
 
-We can test deployment to make sure the tag gets picked up like so:
+We can try deploying to make sure the tag gets picked up like so:
 
   > createdb flipr_dev
   > sqitch --db-name flipr_dev deploy
@@ -632,7 +632,7 @@ everything up for release:
     + change_pass @v1.0.0-dev1
 
 Now we can package up the C<bundle> directory and distribute it. When it gets
-installed somewhere, users can use Sqitch to deploy to the database. Let's test
+installed somewhere, users can use Sqitch to deploy to the database. Let's try
 deploying it:
 
   > cd bundle
@@ -662,7 +662,7 @@ Now we can add a new change to create a table for our flips.
   > sqitch add flips --requires users -n 'Adds table for storing flips.'
   Created deploy/flips.sql
   Created revert/flips.sql
-  Created test/flips.sql
+  Created verify/flips.sql
   Added "flips [:users]" to sqitch.plan
 
 You know the drill by now. Edit F<deploy/flips.sql>:
@@ -723,7 +723,7 @@ Note the use of C<--show tags> to show all the deployed tags. Now make it so:
    4 files changed, 28 insertions(+)
    create mode 100644 deploy/flips.sql
    create mode 100644 revert/flips.sql
-   create mode 100644 test/flips.sql
+   create mode 100644 verify/flips.sql
 
 =head1 Wash, Rinse, Repeat
 
@@ -808,9 +808,9 @@ Let's do it:
    revert/insert_list.sql |    5 +++++
    revert/lists.sql       |    5 +++++
    sqitch.plan            |    4 ++++
-   test/delete_list.sql   |    7 +++++++
-   test/insert_list.sql   |    7 +++++++
-   test/lists.sql         |    7 +++++++
+   verify/delete_list.sql |    7 +++++++
+   verify/insert_list.sql |    7 +++++++
+   verify/lists.sql       |    7 +++++++
    10 files changed, 90 insertions(+)
    create mode 100644 deploy/delete_list.sql
    create mode 100644 deploy/insert_list.sql
@@ -818,9 +818,9 @@ Let's do it:
    create mode 100644 revert/delete_list.sql
    create mode 100644 revert/insert_list.sql
    create mode 100644 revert/lists.sql
-   create mode 100644 test/delete_list.sql
-   create mode 100644 test/insert_list.sql
-   create mode 100644 test/lists.sql
+   create mode 100644 verify/delete_list.sql
+   create mode 100644 verify/insert_list.sql
+   create mode 100644 verify/lists.sql
 
 Hrm, that's interesting. Looks like someone made some changes to C<master>.
 They added list support. Well, let's see what happens when we merge our
@@ -988,9 +988,9 @@ And now, finally, we can merge into C<master>:
    revert/flips.sql       |    5 +++++
    revert/insert_flip.sql |    5 +++++
    sqitch.plan            |    3 +++
-   test/delete_flip.sql   |    7 +++++++
-   test/flips.sql         |    7 +++++++
-   test/insert_flip.sql   |    7 +++++++
+   verify/delete_flip.sql |    7 +++++++
+   verify/flips.sql       |    7 +++++++
+   verify/insert_flip.sql |    7 +++++++
    11 files changed, 86 insertions(+)
    create mode 100644 .gitattributes
    create mode 100644 deploy/delete_flip.sql
@@ -999,9 +999,9 @@ And now, finally, we can merge into C<master>:
    create mode 100644 revert/delete_flip.sql
    create mode 100644 revert/flips.sql
    create mode 100644 revert/insert_flip.sql
-   create mode 100644 test/delete_flip.sql
-   create mode 100644 test/flips.sql
-   create mode 100644 test/insert_flip.sql
+   create mode 100644 verify/delete_flip.sql
+   create mode 100644 verify/flips.sql
+   create mode 100644 verify/insert_flip.sql
 
 And double-check our work:
 
@@ -1120,7 +1120,7 @@ the C<--requires> option:
   Modify these files as appropriate:
     * deploy/insert_user.sql
     * revert/insert_user.sql
-    * test/insert_user.sql
+    * verify/insert_user.sql
 
 Oh, so we can edit those files in place. Nice! How does Sqitch do it? Well, in
 point of fact, it has copied the files to stand in for the previous instance
@@ -1143,7 +1143,7 @@ of the C<insert_user> change, which we can see via C<git status>:
   #
   #	deploy/insert_user@v1.0.0-dev2.sql
   #	revert/insert_user@v1.0.0-dev2.sql
-  #	test/insert_user@v1.0.0-dev2.sql
+  #	verify/insert_user@v1.0.0-dev2.sql
   no changes added to commit (use "git add" and/or "git commit -a")
 
 The "untracked files" part of the output is the first thing to notice. They
@@ -1201,7 +1201,7 @@ Go ahead and rework the C<change_pass> change, too:
   Modify these files as appropriate:
     * deploy/change_pass.sql
     * revert/change_pass.sql
-    * test/change_pass.sql
+    * verify/change_pass.sql
 
 And make this change to F<deploy/change_pass.sql>:
 
@@ -1226,7 +1226,7 @@ And make this change to F<deploy/change_pass.sql>:
    END;
    $$;
 
-And then test deployment:
+And then try a deployment:
 
   > sqitch deploy
   Deploying changes to flipr_test
@@ -1278,8 +1278,8 @@ changes and bring the database up-to-date:
    create mode 100644 deploy/insert_user@v1.0.0-dev2.sql
    create mode 100644 revert/change_pass@v1.0.0-dev2.sql
    create mode 100644 revert/insert_user@v1.0.0-dev2.sql
-   create mode 100644 test/change_pass@v1.0.0-dev2.sql
-   create mode 100644 test/insert_user@v1.0.0-dev2.sql
+   create mode 100644 verify/change_pass@v1.0.0-dev2.sql
+   create mode 100644 verify/insert_user@v1.0.0-dev2.sql
 
   > sqitch deploy
   Deploying changes to flipr_test

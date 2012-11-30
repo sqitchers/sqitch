@@ -22,7 +22,7 @@ to be bundled to be a subset of the plan.
 =item C<--dest-dir>
 
 The name of the directory in which to bundle the project. The configuration
-file will be created in this directory, and the top, deploy, revert, and test
+file will be created in this directory, and the top, deploy, revert, and verify
 directories will be created relative to it. Defaults to F<bundle>.
 
 =item C<--from>

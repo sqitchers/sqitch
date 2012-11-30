@@ -68,7 +68,7 @@ sub execute {
         scripts => [
             (-e $reworked->deploy_file ? $reworked->deploy_file : ()),
             (-e $reworked->revert_file ? $reworked->revert_file : ()),
-            (-e $reworked->test_file   ? $reworked->test_file   : ()),
+            (-e $reworked->verify_file ? $reworked->verify_file : ()),
         ],
     );
 
@@ -86,8 +86,8 @@ sub execute {
         ),
         $self->_copy(
             $name,
-            $reworked->test_file,
-            $prev->test_file,
+            $reworked->verify_file,
+            $prev->verify_file,
         ),
     );
 
@@ -161,8 +161,8 @@ App::Sqitch::Command::rework - Rework a Sqitch change
 
 =head1 Description
 
-Reworks a new deployment change. This will result in the creation of a scripts in
-the deploy, revert, and test directories. The scripts are based on
+Reworks a new deployment change. This will result in the creation of a scripts
+in the deploy, revert, and verify directories. The scripts are based on
 L<Template::Tiny> templates in F<~/.sqitch/templates/> or
 C<$(etc_path)/templates>.
 

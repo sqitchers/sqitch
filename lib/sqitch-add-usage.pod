@@ -16,11 +16,11 @@ sqitch-add-usage - Sqitch add usage statement
        --template-directory   path to directory containing templates
        --deploy-template      path to deploy template
        --revert-template      path to revert template
-       --test-template        path to test template
+       --verify-template      path to verify template
 
        --no-deploy            do not create deploy script
        --no-revert            do not create revert script
-       --no-test              do not create test script
+       --no-verify            do not create verify script
        --deploy               create deploy script
        --revert               create revert script
-       --test                 create test script
+       --verify               create verify script

@@ -144,17 +144,17 @@ has revert_dir => (
     },
 );
 
-has test_dir => (
+has verify_dir => (
     is       => 'ro',
     isa      => 'Path::Class::Dir',
     required => 1,
     lazy     => 1,
     default  => sub {
         my $self = shift;
-        if ( my $dir = $self->config->get( key => 'core.test_dir' ) ) {
+        if ( my $dir = $self->config->get( key => 'core.verify_dir' ) ) {
             return dir $dir;
         }
-        $self->top_dir->subdir('test')->cleanup;
+        $self->top_dir->subdir('verify')->cleanup;
     },
 );
 
@@ -330,7 +330,7 @@ sub _core_opts {
         top-dir|dir=s
         deploy-dir=s
         revert-dir=s
-        test-dir=s
+        verify-dir|test-dir=s
         extension=s
         etc-path
         quiet
@@ -399,7 +399,7 @@ sub _parse_core_opts {
     }
 
     # Convert files and dirs to objects.
-    for my $dir (qw(top_dir deploy_dir revert_dir test_dir)) {
+    for my $dir (qw(top_dir deploy_dir revert_dir verify_dir)) {
         $opts{$dir} = dir $opts{$dir} if defined $opts{$dir};
     }
     $opts{plan_file} = file $opts{plan_file} if defined $opts{plan_file};
@@ -600,7 +600,7 @@ Constructs and returns a new Sqitch object. The supported parameters include:
 
 =item C<revert_dir>
 
-=item C<test_dir>
+=item C<verify_dir>
 
 =item C<extension>
 
@@ -636,7 +636,7 @@ Constructs and returns a new Sqitch object. The supported parameters include:
 
 =head3 C<revert_dir>
 
-=head3 C<test_dir>
+=head3 C<verify_dir>
 
 =head3 C<extension>
 

@@ -94,7 +94,7 @@ Eventually move to L<sqitchtutorial> or L<sqitchintro> or some such.
 =item C<change>
 
 A named unit of change. A change name must be used in the file names of its
-deployment and a reversion scripts. It may also be used in a test script file
+deploy and a revert scripts. It may also be used in a verify script file
 name.
 
 =item C<tag>
@@ -120,7 +120,7 @@ execute to change the database from one state to another.
 
 The act of adding a change to the plan. Sqitch will generate scripts for the
 change, which you then may modify with the necessary code (typically DDLs) to
-actually deploy, revert, and test the change.
+actually deploy, revert, and verify the change.
 
 =item C<deploy>
 
@@ -158,7 +158,7 @@ User who adds a change to the plan.
      --top-dir    DIR     Path to directory with plan and scripts.
      --deploy-dir DIR     Path to directory with deployment scripts.
      --revert-dir DIR     Path to directory with reversion scripts.
-     --test-dir   DIR     Path to directory with test scripts.
+     --verify-dir DIR     Path to directory with verify scripts.
      --extension  EXT     SQL script file name extension.
      --etc-path           Print the path to the etc directory and exit.
      --quiet              Quiet mode with non-error output suppressed.
@@ -242,10 +242,10 @@ Port number to connect to. Does not apply to all engines.
 
   sqitch --top-dir migrations/
 
-Path to directory containing deployment, reversion, and test SQL scripts. It
+Path to directory containing deploy, revert, and verify SQL scripts. It
 should contain subdirectories named C<deploy>, C<revert>, and (optionally)
-C<test>. These may be overridden by C<--deploy-dir>, C<--revert-dir>, and
-C<--test-dir>. Defaults to C<./sql>.
+C<verify>. These may be overridden by C<--deploy-dir>, C<--revert-dir>, and
+C<--verify-dir>. Defaults to C<./sql>.
 
 =item C<--deploy-dir>
 
@@ -261,18 +261,18 @@ implied by C<--top-dir>.
 Path to a directory containing SQL reversion scripts. Overrides the value
 implied by C<--top-dir>.
 
-=item C<--test-dir>
+=item C<--verify-dir>
 
-  sqitch --test-dir db/t
+  sqitch --verify-dir db/t
 
-Path to a directory containing SQL test scripts. Overrides the value implied
+Path to a directory containing SQL verify scripts. Overrides the value implied
 by C<--top-dir>.
 
 =item C<--extension>
 
   sqitch --extension ddl
 
-The file name extension on deployment, reversion, and test SQL scripts.
+The file name extension on deploy, revert, and verify SQL scripts.
 Defaults to C<sql>.
 
 =item C<--etc-path>
@@ -325,7 +325,7 @@ Outputs the program name and version and exits.
 
 =item L<C<init>|sqitch-init>
 
-Create the plan file and directories for deploy, revert, and test scripts if
+Create the plan file and directories for deploy, revert, and verify scripts if
 they do not already exist. This command is useful for starting a new Sqitch
 project.
 
@@ -382,13 +382,13 @@ Deploy changes.
 
 Revert changes.
 
-=item C<test>
+=item C<verify>
 
 *Not yet implemented.
 
-Test changes. All SQL scripts in C<--test-dir> will be run.
-[XXX Not sure whether to have subdirectories for tests and expected output and
-to diff them, or to use some other approach.]
+Verify changes. All SQL scripts in C<--verify-dir> will be run. [XXX Not sure
+whether to have subdirectories for verifys and expected output and to diff
+them, or to use some other approach.]
 
 =item L<C<config>|sqitch-config>
 
@@ -397,7 +397,7 @@ Get and set project, user, or system Sqitch options.
 =item C<bundle>
 
 Bundle a Sqitch project for distribution. This command copies the Sqitch
-configuration, plan, and deploy, revert, and test scripts to a directory, so
+configuration, plan, and deploy, revert, and verify scripts to a directory, so
 that it can be packaged up for distribution, such as in an RPM or tarball.
 
 =item L<C<help>|sqitch-help>

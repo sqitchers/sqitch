@@ -66,14 +66,14 @@ has dest_revert_dir => (
     },
 );
 
-has dest_test_dir => (
+has dest_verify_dir => (
     is       => 'ro',
     isa      => 'Path::Class::Dir',
     required => 1,
     lazy     => 1,
     default  => sub {
         my $self = shift;
-        dir $self->dest_dir, $self->sqitch->test_dir->relative;
+        dir $self->dest_dir, $self->sqitch->verify_dir->relative;
     },
 );
 
@@ -227,10 +227,10 @@ sub bundle_scripts {
                 $self->dest_revert_dir->file( $change->path_segments )
             );
         }
-        if (-e ( my $file = $change->test_file )) {
+        if (-e ( my $file = $change->verify_file )) {
             $self->_copy_if_modified(
                 $file,
-                $self->dest_test_dir->file( $change->path_segments )
+                $self->dest_verify_dir->file( $change->path_segments )
             );
         }
         $plan->next;
@@ -283,7 +283,7 @@ Copies the plan file to the bundle directory.
 
  $bundle->bundle_scripts;
 
-Copies the deploy, revert, and test scripts for each step in the plan to the
+Copies the deploy, revert, and verify scripts for each step in the plan to the
 bundle directory. Files in the script directories that do not correspond to
 changes in the plan will not be copied.
 

@@ -46,7 +46,7 @@ can_ok $CLASS, qw(
     plan
     deploy_file
     revert_file
-    test_file
+    verify_file
     requires
     conflicts
     timestamp
@@ -87,8 +87,8 @@ is $change->deploy_file, $sqitch->deploy_dir->file('foo.sql'),
     'The deploy file should be correct';
 is $change->revert_file, $sqitch->revert_dir->file('foo.sql'),
     'The revert file should be correct';
-is $change->test_file, $sqitch->test_dir->file('foo.sql'),
-    'The test file should be correct';
+is $change->verify_file, $sqitch->verify_dir->file('foo.sql'),
+    'The verify file should be correct';
 ok $change->suffix('@foo'), 'Set the suffix';
 is_deeply [ $change->path_segments ], ['foo@foo.sql'],
     'path_segments should now include suffix';
@@ -253,8 +253,8 @@ is $change2->deploy_file, $sqitch->deploy_dir->file(@fn),
     'The deploy file should include the suffix';
 is $change2->revert_file, $sqitch->revert_dir->file(@fn),
     'The revert file should include the suffix';
-is $change2->test_file, $sqitch->test_dir->file(@fn),
-    'The test file should include the suffix';
+is $change2->verify_file, $sqitch->verify_dir->file(@fn),
+    'The verify file should include the suffix';
 
 ##############################################################################
 # Test open_script.
@@ -287,13 +287,13 @@ $fh->close;
 ok $fh = $change2->revert_handle, 'Get revert handle';
 is $fh->getline, "-- revert it, baby\n", 'It should be the revert file';
 
-make_path dir(qw(sql test))->stringify;
-$fh = $change2->test_file->open('>')
-    or die "Cannot open " . $change2->test_file . ": $!\n";
-$fh->say('-- test it, baby');
+make_path dir(qw(sql verify))->stringify;
+$fh = $change2->verify_file->open('>')
+    or die "Cannot open " . $change2->verify_file . ": $!\n";
+$fh->say('-- verify it, baby');
 $fh->close;
-ok $fh = $change2->test_handle, 'Get test handle';
-is $fh->getline, "-- test it, baby\n", 'It should be the test file';
+ok $fh = $change2->verify_handle, 'Get verify handle';
+is $fh->getline, "-- verify it, baby\n", 'It should be the verify file';
 
 ##############################################################################
 # Test the requires/conflicts params.
@@ -358,19 +358,19 @@ is $change2->id, do {
 # Test note_prompt().
 is $change->note_prompt(
     for => 'add',
-    scripts => [$change->deploy_file, $change->revert_file, $change->test_file],
+    scripts => [$change->deploy_file, $change->revert_file, $change->verify_file],
 ), exp_prompt(
     for => 'add',
-    scripts => [$change->deploy_file, $change->revert_file, $change->test_file],
+    scripts => [$change->deploy_file, $change->revert_file, $change->verify_file],
     name    => $change->format_op_name_dependencies,
 ), 'note_prompt() should work';
 
 is $change2->note_prompt(
     for => 'add',
-    scripts => [$change2->deploy_file, $change2->revert_file, $change2->test_file],
+    scripts => [$change2->deploy_file, $change2->revert_file, $change2->verify_file],
 ), exp_prompt(
     for => 'add',
-    scripts => [$change2->deploy_file, $change2->revert_file, $change2->test_file],
+    scripts => [$change2->deploy_file, $change2->revert_file, $change2->verify_file],
     name    => $change2->format_op_name_dependencies,
 ), 'note_prompt() should work';
 

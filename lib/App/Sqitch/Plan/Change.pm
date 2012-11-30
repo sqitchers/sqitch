@@ -195,9 +195,9 @@ sub revert_file {
     $self->sqitch->revert_dir->file( $self->path_segments );
 }
 
-sub test_file {
+sub verify_file {
     my $self   = shift;
-    $self->sqitch->test_dir->file( $self->path_segments );
+    $self->sqitch->verify_dir->file( $self->path_segments );
 }
 
 sub is_revert {
@@ -252,9 +252,9 @@ sub revert_handle {
     $self->plan->open_script($self->revert_file);
 }
 
-sub test_handle {
+sub verify_handle {
     my $self = shift;
-    $self->plan->open_script($self->test_file);
+    $self->plan->open_script($self->verify_file);
 }
 
 sub format_content {
@@ -319,7 +319,7 @@ App::Sqitch::Plan::Change - Sqitch deployment plan tag
 A App::Sqitch::Plan::Change represents a change as parsed from a plan file. In
 addition to the interface inherited from L<App::Sqitch::Plan::Line>, it offers
 interfaces for parsing dependencies from the deploy script, as well as for
-opening the deploy, revert, and test scripts.
+opening the deploy, revert, and verify scripts.
 
 =head1 Interface
 
@@ -374,7 +374,7 @@ Returns the email address of the user who added the change to the plan.
 Returns the path segment for the change. For example, if the change is named
 "foo", C<('foo.sql')> is returned. If the change is named "functions/bar>
 C<('functions', 'bar.sql')> is returned. Internally, this data is used to
-create the deploy, revert, and test file names.
+create the deploy, revert, and verify file names.
 
 =head3 C<deploy_file>
 
@@ -388,11 +388,11 @@ Returns the path to the deploy script file for the change.
 
 Returns the path to the revert script file for the change.
 
-=head3 C<test_file>
+=head3 C<verify_file>
 
-  my $file = $change->test_file;
+  my $file = $change->verify_file;
 
-Returns the path to the test script file for the change.
+Returns the path to the verify script file for the change.
 
 =head3 C<requires>
 
@@ -493,11 +493,11 @@ for the change.
 Returns an L<IO::File> file handle, opened for reading, for the revert script
 for the change.
 
-=head3 C<test_handle>
+=head3 C<verify_handle>
 
-  my $fh = $change->test_handle;
+  my $fh = $change->verify_handle;
 
-Returns an L<IO::File> file handle, opened for reading, for the test script
+Returns an L<IO::File> file handle, opened for reading, for the verify script
 for the change.
 
 =head3 C<note_prompt>
@@ -509,8 +509,8 @@ for the change.
 
 Overrides the implementation from C<App::Sqitch::Plan::Line> to add the
 C<files> parameter. This is a list of the files to be created for the command.
-These will usually be the deploy, revert, and test files, but the caller might
-not be creating all of them, so it needs to pass the list.
+These will usually be the deploy, revert, and verify files, but the caller
+might not be creating all of them, so it needs to pass the list.
 
 =head1 See Also
 

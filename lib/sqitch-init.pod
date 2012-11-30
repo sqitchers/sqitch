@@ -11,7 +11,7 @@ sqitch-init - Create a new Sqitch project
 
 This command creates an new Sqitch project -- basically a F<sqitch.conf> file,
 a F<sqitch.plan> file, and a F<sql> directory with F<deploy>, F<revert>, and
-F<test> subdirectories.
+F<verify> subdirectories.
 
 Running sqitch init in an existing repository is safe. It will not overwrite
 things that are already there.
@@ -43,7 +43,7 @@ Sets the C<core.plan_file> configuration variable.
 =item C<--top-dir>
 
 Determines the top-level directory to use when writing the plan and
-theC<core.deploy_dir>, C<core.revert_dir>, and C<core.test_dir> variables --
+theC<core.deploy_dir>, C<core.revert_dir>, and C<core.verify_dir> variables --
 unless they are overridden by their more-specific options, detailed below.
 
 =item C<--deploy-dir>
@@ -54,9 +54,9 @@ Sets the C<core.deploy_dir> configuration variable.
 
 Sets the C<core.revert_dir> configuration variable.
 
-=item C<--test-dir>
+=item C<--verify-dir>
 
-Sets the C<core.test_dir> configuration variable.
+Sets the C<core.verify_dir> configuration variable.
 
 =item C<--extension>
 
