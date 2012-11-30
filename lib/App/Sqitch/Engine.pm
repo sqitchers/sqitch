@@ -1079,7 +1079,7 @@ The email address of the user who planned the change.
 
 An L<App::Sqitch::DateTime> object representing the time the change was planned.
 
-=iten C<tags>
+=item C<tags>
 
 An array reference of the tag naems associated with the change.
 
