@@ -30,7 +30,9 @@ a suggestion to instead use L<sqitch-deploy>.
 
 =item C<--to>
 
-Specify the reversion target. Defaults to reverting all changes.
+Specify the reversion target. Defaults to reverting all changes. See
+L<sqitchchanges> for the various ways in which change targets can be
+specified.
 
 =item C<-s>
 
@@ -57,8 +59,8 @@ assumption that the values will generally be the same. If they're not, use
 C<revert.variables> to override C<deploy.variables>.
 
 These variables are Useful if your database engine supports variables in
-scripts, such as PostgreSQL's L<C<psql>
-variables|http://www.postgresql.org/docs/9.2/static/app-psql.html#APP-PSQL-INTERPOLATION>.
+scripts, such as PostgreSQL's
+L<C<psql> variables|http://www.postgresql.org/docs/current/static/app-psql.html#APP-PSQL-INTERPOLATION>.
 
 =back
 
