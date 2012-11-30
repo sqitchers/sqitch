@@ -823,7 +823,7 @@ C<undef> if the dependency resolves to no currently-deployed change.
   my $change = $engine->find_change(%params);
 
 Finds and returns a deployed change, or C<undef> if the change has not been
-deployed. The supported paramters are:
+deployed. The supported parameters are:
 
 =over
 
@@ -1081,7 +1081,7 @@ An L<App::Sqitch::DateTime> object representing the time the change was planned.
 
 =item C<tags>
 
-An array reference of the tag naems associated with the change.
+An array reference of the tag names associated with the change.
 
 =back
 
@@ -1415,7 +1415,7 @@ contents should be piped to the engine's native client.
 
   my $change = $engine->load_change($change_id);
 
-Given a deployed change ID, loads an returns a hash reference represeting the
+Given a deployed change ID, loads an returns a hash reference representing the
 change in the database. The keys should be the same as those in the hash
 references returned by C<deployed_changes()>. Returns C<undef> if the change
 has not been deployed.
@@ -1430,7 +1430,7 @@ the current project that was deployed C<$offset> steps before the change
 identified by C<$change_id>. If C<$offset> is C<0> or C<undef>, the change
 represented by C<$change_id> should be returned (just like C<load_change()>).
 Otherwise, the change returned should be C<$offset> steps from that change ID,
-where C<$offset> may be positve (later step) or negative (earlier step).
+where C<$offset> may be positive (later step) or negative (earlier step).
 Returns C<undef> if the change was not found or if the offset is more than the
 number of changes before or after the change, as appropriate.
 

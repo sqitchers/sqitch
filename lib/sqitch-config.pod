@@ -456,8 +456,8 @@ by C<core.top_dir>.
 
 =item C<core.extension>
 
-The file name extension on deploy, reverst, and verify SQL scripts.
-Defaults to C<sql>.
+The file name extension on deploy, revert, and verify SQL scripts. Defaults to
+C<sql>.
 
 =item C<core.verbosity>
 
