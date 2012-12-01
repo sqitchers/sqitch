@@ -591,11 +591,11 @@ sub change_id_for {
 
     if ( my $tag = $p{tag} ) {
         # Just return the latest for @HEAD.
-        return $self->latest_change_id(0, $project)
+        return $self->_cid('DESC', 0, $project)
             if $tag eq 'HEAD' || $tag eq 'LAST';
 
         # Just return the earliest for @ROOT.
-        return $self->earliest_change_id(0, $project)
+        return $self->_cid('ASC', 0, $project)
             if $tag eq 'ROOT' || $tag eq 'FIRST';
 
         # Find by tag name.
@@ -678,6 +678,7 @@ sub change_offset_from_id {
            AND committed_at $op (
                SELECT committed_at FROM changes WHERE change_id = ?
          )
+         ORDER BY committed_at $dir
          OFFSET ?
     }, undef, $self->plan->project, $change_id, abs($offset) - 1) || return undef;
     $change->{timestamp} = _dt $change->{timestamp};

@@ -160,6 +160,7 @@ sub revert {
             );
         };
 
+        $change = App::Sqitch::Plan::Change->new( %{ $change }, plan => $plan );
         @changes = $self->deployed_changes_since($change) or hurl {
             ident => 'revert',
             message => __x(
@@ -554,7 +555,6 @@ sub deployed_changes_since {
     my $class = ref $_[0] || $_[0];
     hurl "$class has not implemented deployed_changes_since()";
 }
-
 
 sub load_change {
     my $class = ref $_[0] || $_[0];
