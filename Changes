@@ -1,6 +1,6 @@
 Revision history for Perl extension App::Sqitch
 
-0.939
+0.940
      - Fixed tests that failed due to I18N issues, with thanks to Arnaud
        (Arhuman) ASSAD!
      - Localized messages are now properly encoded in UTF-8. Thanks to Ronan

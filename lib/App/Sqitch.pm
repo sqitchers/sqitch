@@ -22,7 +22,7 @@ use Moose::Util::TypeConstraints 2.0300;
 use MooseX::Types::Path::Class 0.05;
 use namespace::autoclean 0.11;
 
-our $VERSION = '0.939';
+our $VERSION = '0.940';
 
 BEGIN {
     # Need to create types before loading other Sqitch classes.
