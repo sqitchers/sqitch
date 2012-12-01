@@ -85,8 +85,8 @@ Deploy mode. The supported values are the same as for the C<--mode> option.
 =item C<[deploy.variables]>
 
 A section defining database client variables. Useful if your database engine
-supports variables in scripts, such as PostgreSQL's L<C<psql>
-variables|http://www.postgresql.org/docs/9.2/static/app-psql.html#APP-PSQL-INTERPOLATION>.
+supports variables in scripts, such as PostgreSQL's
+L<C<psql> variables|http://www.postgresql.org/docs/current/static/app-psql.html#APP-PSQL-INTERPOLATION>.
 
 =back
 

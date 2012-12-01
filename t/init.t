@@ -61,7 +61,7 @@ isa_ok $CLASS->configure({}, { uri => 'http://example.com' })->{uri}, 'URI',
 ##############################################################################
 # Test make_directories.
 can_ok $init, 'make_directories';
-for my $attr (map { "$_\_dir"} qw(top deploy revert test)) {
+for my $attr (map { "$_\_dir"} qw(top deploy revert verify)) {
     dir_not_exists_ok $sqitch->$attr;
 }
 
@@ -69,13 +69,13 @@ my $top_dir_string = $sqitch->top_dir->stringify;
 END { remove_tree $top_dir_string }
 
 ok $init->make_directories, 'Make the directories';
-for my $attr (map { "$_\_dir"} qw(top deploy revert test)) {
+for my $attr (map { "$_\_dir"} qw(top deploy revert verify)) {
     dir_exists_ok $sqitch->$attr;
 }
 my $sep = dir('')->stringify;
 is_deeply +MockOutput->get_info, [
     map { [__x "Created {file}", file => $sqitch->$_ . $sep] }
-    map { "$_\_dir" } qw(deploy revert test)
+    map { "$_\_dir" } qw(deploy revert verify)
 ], 'Each should have been sent to info';
 
 # Do it again.
@@ -142,7 +142,7 @@ is_deeply +MockOutput->get_info, [
 my $top_dir    = File::Spec->curdir;
 my $deploy_dir = File::Spec->catdir(qw(deploy));
 my $revert_dir = File::Spec->catdir(qw(revert));
-my $test_dir   = File::Spec->catdir(qw(test));
+my $verify_dir   = File::Spec->catdir(qw(verify));
 my $plan_file  = $sqitch->top_dir->file('sqitch.plan')->cleanup->stringify;
 file_contents_like $conf_file, qr{\Q[core]
 	# engine = 
@@ -150,7 +150,7 @@ file_contents_like $conf_file, qr{\Q[core]
 	# top_dir = $top_dir
 	# deploy_dir = $deploy_dir
 	# revert_dir = $revert_dir
-	# test_dir = $test_dir
+	# verify_dir = $verify_dir
 	# extension = sql
 }m, 'All in core section should be commented-out';
 unlink $conf_file;
@@ -173,7 +173,7 @@ file_contents_like $conf_file, qr{
 	# top_dir = $top_dir
 	# deploy_dir = $deploy_dir
 	# revert_dir = $revert_dir
-	# test_dir = $test_dir
+	# verify_dir = $verify_dir
 }m, 'Other settings should be commented-out';
 
 # Go again.
@@ -206,7 +206,7 @@ USERCONF: {
 	# top_dir = $top_dir
 	# deploy_dir = $deploy_dir
 	# revert_dir = $revert_dir
-	# test_dir = $test_dir
+	# verify_dir = $verify_dir
 }m, 'Other settings should be commented-out';
 }
 
@@ -230,7 +230,7 @@ SYSTEMCONF: {
 
     my $deploy_dir = File::Spec->catdir(qw(migrations deploy));
     my $revert_dir = File::Spec->catdir(qw(migrations revert));
-    my $test_dir   = File::Spec->catdir(qw(migrations test));
+    my $verify_dir = File::Spec->catdir(qw(migrations verify));
     my $plan_file  = $sqitch->top_dir->file('sqitch.plan')->stringify;
 
     file_contents_like $conf_file, qr{\Q
@@ -238,7 +238,7 @@ SYSTEMCONF: {
 	# top_dir = migrations
 	# deploy_dir = $deploy_dir
 	# revert_dir = $revert_dir
-	# test_dir = $test_dir
+	# verify_dir = $verify_dir
 }m, 'Other settings should be commented-out';
 }
 
@@ -249,7 +249,7 @@ $sqitch = App::Sqitch->new(
     plan_file  => 'my.plan',
     deploy_dir => dir('dep'),
     revert_dir => dir('rev'),
-    test_dir   => dir('tst'),
+    verify_dir => dir('tst'),
     extension  => 'ddl',
     _engine    => 'sqlite',
 );
@@ -265,7 +265,7 @@ is_deeply read_config $conf_file, {
     'core.plan_file'  => 'my.plan',
     'core.deploy_dir' => 'dep',
     'core.revert_dir' => 'rev',
-    'core.test_dir'   => 'tst',
+    'core.verify_dir' => 'tst',
     'core.extension'  => 'ddl',
     'core.engine'     => 'sqlite',
 }, 'The configuration should have been written with all the core values';
@@ -522,7 +522,7 @@ $plan_file->remove;
 ok $init->execute('foofoo'), 'Execute!';
 
 # Should have directories.
-for my $attr (map { "$_\_dir"} qw(top deploy revert test)) {
+for my $attr (map { "$_\_dir"} qw(top deploy revert verify)) {
     dir_exists_ok $sqitch->$attr;
 }
 
@@ -533,7 +533,7 @@ file_exists_ok $plan_file;
 # Should have the output.
 my @dir_messages = map {
     [__x 'Created {file}', file => $sqitch->$_ . $sep]
-} map { "$_\_dir" } qw(deploy revert test);
+} map { "$_\_dir" } qw(deploy revert verify);
 is_deeply +MockOutput->get_info, [
     [__x 'Created {file}', file => $conf_file],
     [__x 'Created {file}', file => $plan_file],

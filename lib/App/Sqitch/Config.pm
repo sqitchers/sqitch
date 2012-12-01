@@ -156,7 +156,7 @@ Adds a comment to the configuration file.
 
 Given the lowercase key from the loaded data, this method returns it in its
 original case. This is like C<original_key>, only in the case where there are
-multiple keys (for multi-value keys), only the first key is returned.
+multiple keys (for multivalue keys), only the first key is returned.
 
 =begin comment
 

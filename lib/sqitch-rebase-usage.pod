@@ -1,0 +1,18 @@
+=head1 Name
+
+sqitch-rebase-usage - Sqitch rebase usage statement
+
+=head1 Usage
+
+  sqitch [options] rebase [<revert-target options> [<deploy-target options>]]
+
+=head1 Options
+
+       --to-target <tag>    rebase to target
+    -s --set                set a database client variable
+    -r --set-revert         set a database client revert variable
+    -r --set-deploy         set a database client deploy variable
+
+
+
+

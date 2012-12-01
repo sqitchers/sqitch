@@ -51,6 +51,10 @@ Show change logs for a database.
 
 Revert changes from a database
 
+=item L<C<rebase>|sqitch-rebase>
+
+Revert and redeploy database changes.
+
 =item L<C<rework>|sqitch-rework>
 
 Duplicate a change in the plan and revise its scripts

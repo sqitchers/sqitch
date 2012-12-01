@@ -95,7 +95,7 @@ my $opts = $CLASS->_parse_core_opts([
     '--top-dir'    => 'ddl',
     '--deploy-dir' => 'dep',
     '--revert-dir' => 'rev',
-    '--test-dir'   => 'tst',
+    '--verify-dir' => 'tst',
     '--extension'  => 'ext',
     '--verbose', '--verbose',
 ]);
@@ -111,12 +111,12 @@ is_deeply $opts, {
     'top_dir'     => 'ddl',
     'deploy_dir'  => 'dep',
     'revert_dir'  => 'rev',
-    'test_dir'    => 'tst',
+    'verify_dir'  => 'tst',
     'extension'   => 'ext',
     verbosity     => 2,
 }, 'Should parse lots of options';
 
-for my $dir (qw(top_dir deploy_dir revert_dir test_dir)) {
+for my $dir (qw(top_dir deploy_dir revert_dir verify_dir)) {
     isa_ok $opts->{$dir}, 'Path::Class::Dir', $dir;
 }
 

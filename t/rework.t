@@ -97,7 +97,7 @@ is $@->message, __x(
 # Use the add command to create a step.
 my $deploy_file = file qw(sql deploy foo.sql);
 my $revert_file = file qw(sql revert foo.sql);
-my $test_file   = file qw(sql test   foo.sql);
+my $verify_file = file qw(sql verify foo.sql);
 
 my $change_mocker = Test::MockModule->new('App::Sqitch::Plan::Change');
 my %request_params;
@@ -110,9 +110,9 @@ ok my $add = App::Sqitch::Command::add->new(
     sqitch => $sqitch,
     template_directory => Path::Class::dir(qw(etc templates))
 ), 'Create another add with template_directory';
-file_not_exists_ok($_) for ($deploy_file, $revert_file, $test_file);
+file_not_exists_ok($_) for ($deploy_file, $revert_file, $verify_file);
 $add->execute('foo');
-file_exists_ok($_) for ($deploy_file, $revert_file, $test_file);
+file_exists_ok($_) for ($deploy_file, $revert_file, $verify_file);
 ok my $foo = $plan->get('foo'), 'Get the "foo" change';
 
 throws_ok { $rework->execute('foo') } 'App::Sqitch::X',
@@ -129,17 +129,17 @@ ok $plan->tag( name => '@alpha' ), 'Tag it';
 
 my $deploy_file2 = file qw(sql deploy foo@alpha.sql);
 my $revert_file2 = file qw(sql revert foo@alpha.sql);
-my $test_file2   = file qw(sql test   foo@alpha.sql);
+my $verify_file2 = file qw(sql verify foo@alpha.sql);
 MockOutput->get_info;
 
-file_not_exists_ok($_) for ($deploy_file2, $revert_file2, $test_file2);
+file_not_exists_ok($_) for ($deploy_file2, $revert_file2, $verify_file2);
 ok $rework->execute('foo'), 'Rework "foo"';
 
 # The files should have been copied.
-file_exists_ok($_) for ($deploy_file, $revert_file, $test_file);
-file_exists_ok($_) for ($deploy_file2, $revert_file2, $test_file2);
+file_exists_ok($_) for ($deploy_file, $revert_file, $verify_file);
+file_exists_ok($_) for ($deploy_file2, $revert_file2, $verify_file2);
 file_contents_identical($deploy_file2, $deploy_file);
-file_contents_identical($test_file2, $test_file);
+file_contents_identical($verify_file2, $verify_file);
 file_contents_identical($revert_file, $deploy_file);
 file_contents_is($revert_file2, <<'EOF', 'New revert should revert');
 -- Revert foo
@@ -154,7 +154,7 @@ EOF
 # The note should have been required.
 is_deeply \%request_params, {
     for => __ 'rework',
-    scripts => [$deploy_file, $revert_file, $test_file],
+    scripts => [$deploy_file, $revert_file, $verify_file],
 }, 'It should have prompted for a note';
 
 # The plan file should have been updated.
@@ -179,7 +179,7 @@ is_deeply +MockOutput->get_info, [
     )],
     ["  * $deploy_file"],
     ["  * $revert_file"],
-    ["  * $test_file"],
+    ["  * $verify_file"],
 ], 'And the info message should suggest editing the old files';
 is_deeply +MockOutput->get_debug, [
     [__x(
@@ -194,8 +194,8 @@ is_deeply +MockOutput->get_debug, [
     )],
     [__x(
         'Copied {src} to {dest}',
-        dest => $test_file2,
-        src  => $test_file,
+        dest => $verify_file2,
+        src  => $verify_file,
     )],
     [__x(
         'Copied {src} to {dest}',
@@ -208,22 +208,22 @@ is_deeply +MockOutput->get_debug, [
 # Let's do that again. This time with more dependencies and fewer files.
 $deploy_file = file qw(sql deploy bar.sql);
 $revert_file = file qw(sql revert bar.sql);
-$test_file   = file qw(sql test   bar.sql);
+$verify_file = file qw(sql verify bar.sql);
 ok $add = App::Sqitch::Command::add->new(
     sqitch => $sqitch,
     template_directory => Path::Class::dir(qw(etc templates)),
     with_revert => 0,
-    with_test   => 0,
+    with_verify => 0,
 ), 'Create another add with template_directory';
-file_not_exists_ok($_) for ($deploy_file, $revert_file, $test_file);
+file_not_exists_ok($_) for ($deploy_file, $revert_file, $verify_file);
 $add->execute('bar');
 file_exists_ok($deploy_file);
-file_not_exists_ok($_) for ($revert_file, $test_file);
+file_not_exists_ok($_) for ($revert_file, $verify_file);
 ok $plan->tag( name => '@beta' ), 'Tag it with @beta';
 
 my $deploy_file3 = file qw(sql deploy bar@beta.sql);
 my $revert_file3 = file qw(sql revert bar@beta.sql);
-my $test_file3   = file qw(sql test   bar@beta.sql);
+my $verify_file3 = file qw(sql verify bar@beta.sql);
 MockOutput->get_info;
 
 isa_ok $rework = App::Sqitch::Command::rework->new(
@@ -236,12 +236,12 @@ isa_ok $rework = App::Sqitch::Command::rework->new(
 ), $CLASS, 'rework command with requirements and conflicts';
 
 # Check the files.
-file_not_exists_ok($_) for ($deploy_file3, $revert_file3, $test_file3);
+file_not_exists_ok($_) for ($deploy_file3, $revert_file3, $verify_file3);
 ok $rework->execute('bar'), 'Rework "bar"';
 file_exists_ok($deploy_file);
-file_not_exists_ok($_) for ($revert_file, $test_file);
+file_not_exists_ok($_) for ($revert_file, $verify_file);
 file_exists_ok($deploy_file3);
-file_not_exists_ok($_) for ($revert_file3, $test_file3);
+file_not_exists_ok($_) for ($revert_file3, $verify_file3);
 
 # The note should have been required.
 is_deeply \%request_params, {
@@ -291,8 +291,8 @@ is_deeply +MockOutput->get_debug, [
     )],
     [__x(
         'Skipped {dest}: {src} does not exist',
-        dest => $test_file3,
-        src  => $test_file,
+        dest => $verify_file3,
+        src  => $verify_file,
     )],
     [__x(
         'Skipped {dest}: {src} does not exist',

@@ -34,6 +34,7 @@ my $name_re = qr{
     (?<![$punct])\b                # last character isn't punctuation
 }x;
 
+# XXX FIRST & LAST deprecated. Remove at some point?
 my %reserved = map { $_ => undef } qw(ROOT HEAD FIRST LAST);
 
 sub name_regex { $name_re }
@@ -1180,7 +1181,7 @@ the all of the changes, call C<changes()> instead.
   @changes = $plan->check_changes( $project, @changes );
   @changes = $plan->check_changes( $project, { '@foo' => 1 }, @changes );
 
-Checks a list of changes to validate their depenencies and returns them. If
+Checks a list of changes to validate their dependencies and returns them. If
 the second argument is a hash reference, its keys should be previously-seen
 change and tag names that can be assumed to be satisfied requirements for the
 succeeding changes.

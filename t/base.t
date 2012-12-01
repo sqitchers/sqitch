@@ -39,7 +39,7 @@ can_ok $CLASS, qw(
     top_dir
     deploy_dir
     revert_dir
-    test_dir
+    verify_dir
     extension
     verbosity
 );
@@ -65,7 +65,7 @@ is $sqitch->extension, 'sql', 'Default extension should be sql';
 is $sqitch->top_dir, dir(), 'Default top_dir should be .';
 is $sqitch->deploy_dir, dir(qw(deploy)), 'Default deploy_dir should be ./sql/deploy';
 is $sqitch->revert_dir, dir(qw(revert)), 'Default revert_dir should be ./sql/revert';
-is $sqitch->test_dir, dir(qw(test)), 'Default test_dir should be ./sql/test';
+is $sqitch->verify_dir, dir(qw(verify)), 'Default verify_dir should be ./sql/verify';
 isa_ok $sqitch->plan, 'App::Sqitch::Plan';
 ok $sqitch->user_name, 'Default user_name should be set from system';
 is $sqitch->user_email, do {

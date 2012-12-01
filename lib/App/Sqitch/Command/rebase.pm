@@ -1,0 +1,197 @@
+package App::Sqitch::Command::rebase;
+
+use 5.010;
+use strict;
+use warnings;
+use utf8;
+use Moose;
+use Moose::Util::TypeConstraints;
+use List::Util qw(first);
+use namespace::autoclean;
+extends 'App::Sqitch::Command';
+
+our $VERSION = '0.939';
+
+has onto_target => (
+    is  => 'ro',
+    isa => 'Str',
+);
+
+has upto_target => (
+    is  => 'ro',
+    isa => 'Str',
+);
+
+has deploy_variables => (
+    is       => 'ro',
+    isa      => 'HashRef',
+    required => 1,
+    lazy     => 1,
+    default  => sub {
+        my $self = shift;
+        return {
+            %{ $self->sqitch->config->get_section( section => 'deploy.variables' ) },
+        };
+    },
+);
+
+has revert_variables => (
+    is       => 'ro',
+    isa      => 'HashRef',
+    required => 1,
+    lazy     => 1,
+    default  => sub {
+        my $self = shift;
+        return {
+            %{ $self->deploy_variables },
+            %{ $self->sqitch->config->get_section( section => 'revert.variables' ) },
+        };
+    },
+);
+
+sub options {
+    return qw(
+        onto-target|onto=s
+        upto-target|upto=s
+        set|s=s%
+        set-deploy|d=s%
+        set-revert|r=s%
+    );
+}
+
+sub configure {
+    my ( $class, $config, $opt ) = @_;
+
+    my %params;
+    $params{onto_target} = $opt->{onto_target} if exists $opt->{onto_target};
+    $params{upto_target} = $opt->{upto_target} if exists $opt->{upto_target};
+
+    if ( my $vars = $opt->{set} ) {
+        # Merge with config.
+        $params{deploy_variables} = {
+            %{ $config->get_section( section => 'deploy.variables' ) },
+            %{ $vars },
+        };
+        $params{revert_variables} = {
+            %{ $params{deploy_variables} },
+            %{ $config->get_section( section => 'revert.variables' ) },
+            %{ $vars },
+        };
+    }
+
+    if ( my $vars = $opt->{set_deploy} ) {
+        $params{deploy_variables} = {
+            %{
+                $params{deploy_variables}
+                || $config->get_section( section => 'deploy.variables' )
+            },
+            %{ $vars },
+        };
+    }
+
+    if ( my $vars = $opt->{set_revert} ) {
+        $params{revert_variables} = {
+            %{
+                $params{deploy_variables}
+                || $config->get_section( section => 'deploy.variables' )
+            },
+            %{
+                $params{revert_variables}
+                || $config->get_section( section => 'revert.variables' )
+            },
+            %{ $vars },
+        };
+    }
+
+    return \%params;
+}
+
+sub execute {
+    my $self   = shift;
+    my $engine = $self->sqitch->engine;
+    if (my %v = %{ $self->revert_variables }) { $engine->set_variables(%v) }
+    $engine->revert( $self->onto_target // shift );
+    if (my %v = %{ $self->deploy_variables }) { $engine->set_variables(%v) }
+    $engine->deploy( $self->upto_target // shift );
+    return $self;
+}
+
+1;
+
+__END__
+
+=head1 Name
+
+App::Sqitch::Command::rebase - Revert and redeploy Sqitch changes
+
+=head1 Synopsis
+
+  my $cmd = App::Sqitch::Command::rebase->new(%params);
+  $cmd->execute;
+
+=head1 Description
+
+If you want to know how to use the C<rebase> command, you probably want to be
+reading C<sqitch-rebase>. But if you really want to know how the C<rebase> command
+works, read on.
+
+=head1 Interface
+
+=head2 Class Methods
+
+=head3 C<options>
+
+  my @opts = App::Sqitch::Command::rebase->options;
+
+Returns a list of L<Getopt::Long> option specifications for the command-line
+options for the C<rebase> command.
+
+=head2 Instance Methods
+
+=head3 C<execute>
+
+  $rebase->execute;
+
+Executes the rebase command.
+
+=head1 See Also
+
+=over
+
+=item L<sqitch-rebase>
+
+Documentation for the C<rebase> command to the Sqitch command-line client.
+
+=item L<sqitch>
+
+The Sqitch command-line client.
+
+=back
+
+=head1 Author
+
+David E. Wheeler <david@justatheory.com>
+
+=head1 License
+
+Copyright (c) 2012 iovation Inc.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+=cut

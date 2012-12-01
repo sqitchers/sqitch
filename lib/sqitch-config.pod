@@ -434,10 +434,10 @@ The database engine to use. Supported engines include:
 
 =item C<core.top_dir>
 
-Path to directory containing deployment, reversion, and test SQL scripts. It
+Path to directory containing deploy, revert, and verify SQL scripts. It
 should contain subdirectories named C<deploy>, C<revert>, and (optionally)
-C<test>. These may be overridden by C<deploy_dir>, C<revert_dir>, and
-C<test_dir>. Defaults to C<./sql>.
+C<verify>. These may be overridden by C<deploy_dir>, C<revert_dir>, and
+C<verify_dir>. Defaults to C<./sql>.
 
 =item C<core.deploy_dir>
 
@@ -449,15 +449,15 @@ implied by C<core.top_dir>.
 Path to a directory containing SQL reversion scripts. Overrides the value
 implied by C<core.top_dir>.
 
-=item C<core.test_dir>
+=item C<core.verify_dir>
 
-Path to a directory containing SQL test scripts. Overrides the value implied
+Path to a directory containing SQL verify scripts. Overrides the value implied
 by C<core.top_dir>.
 
 =item C<core.extension>
 
-The file name extension on deployment, reversion, and test SQL scripts.
-Defaults to C<sql>.
+The file name extension on deploy, revert, and verify SQL scripts. Defaults to
+C<sql>.
 
 =item C<core.verbosity>
 
