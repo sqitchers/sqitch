@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 282;
+use Test::More tests => 285;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -1237,10 +1237,33 @@ is_deeply +MockOutput->get_info, [
     ['  - ', 'widgets @beta'],
 ], 'Output should show what it reverts to';
 
+# Try to revert just the last change.
+$offset_change = $dbchanges[-1];
+push @resolved => $offset_change->id;
+@deployed_changes = $deployed_changes[-1];
+ok $engine->revert('@HEAD^'), 'Revert to @HEAD^';
+is_deeply $engine->seen, [
+    [change_id_for => { change_id => undef, change => '', tag => 'HEAD', project => 'sql' }],
+    [change_offset_from_id => [$dbchanges[-1]->id, -1] ],
+    [deployed_changes_since => $dbchanges[-1]],
+    [changes_requiring_change => $dbchanges[-1] ],
+    [run_file => $dbchanges[-1]->revert_file ],
+    [log_revert_change => $dbchanges[-1] ],
+], 'Should have reverted one changes for @HEAD^';
+is_deeply +MockOutput->get_info, [
+    [__x(
+        'Reverting changes to {target} from {destination}',
+        destination => $engine->destination,
+        target      => $dbchanges[-1]->format_name_with_tags,
+    )],
+    ['  - ', $dbchanges[-1]->format_name_with_tags],
+], 'Output should show what it reverts to';
+
 ##############################################################################
 # Test change_id_for_depend().
 can_ok $CLASS, 'change_id_for_depend';
 
+$offset_change = $dbchanges[1];
 my ($dep) = $make_deps->( 1, 'foo' );
 throws_ok { $engine->change_id_for_depend( $dep ) } 'App::Sqitch::X',
     'Should get error from change_id_for_depend when change not in plan';

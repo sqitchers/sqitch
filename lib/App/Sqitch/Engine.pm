@@ -135,8 +135,9 @@ sub revert {
     my @changes;
 
     if (defined $to) {
-        my ( $cname, $tag ) = split /@/ => $to, 2;
-        my $offset = App::Sqitch::Plan::ChangeList::_offset $to;
+        my $parsed = $to;
+        my $offset = App::Sqitch::Plan::ChangeList::_offset $parsed;
+        my ( $cname, $tag ) = split /@/ => $parsed, 2;
         my $change = $self->find_change(
             ( !$tag && $cname =~ /^[0-9a-f]{40}$/ ? (change_id => $cname) : (
                 change => $cname,
