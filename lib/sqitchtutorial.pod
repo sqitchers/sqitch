@@ -361,31 +361,18 @@ Now have a look at the status:
 
 Success! Let's make sure we can revert the change, as well:
 
-  > sqitch revert --to @LAST^
+  > sqitch revert --to @HEAD^
   Reverting changes to appschema from flipr_test
     - users
 
 Note that we've used the C<--to> option to specify the change to revert to.
-And what do we revert to? The symbolic tag C<@LAST> always refers to the last
-change deployed to the database. Appending the caret (C<^>) tells Sqitch to
-select the change prior to the last deployed change. So we revert to
-C<appschema>, the penultimate change. Other useful symbolic tags are:
-
-=over
-
-=item C<@FIRST>
-
-The first change deployed to the database.
-
-=item C<@HEAD>
-
-The last change in the plan.
-
-=item C<@ROOT>
-
-The first change in the plan.
-
-=back
+And what do we revert to? The symbolic tag C<@HEAD>, when passed to C<revert>,
+always refers to the last change deployed to the database. (For other
+commands, it refers to the last change in the plan.) Appending the caret
+(C<^>) tells Sqitch to select the change prior to the last deployed change. So
+we revert to C<appschema>, the penultimate change. The other potentially
+useful symbolic tag is C<@ROOT>, which refers to the first change deployed to
+the database (or in the plan, depending on the command).
 
 Back to the database. The C<users> table should be gone but the C<flipr> user
 should still be around:
@@ -541,7 +528,7 @@ And what's the status?
 
 Looks good. Let's make sure revert works:
 
-  > sqitch revert --to @LAST^^
+  > sqitch revert --to @HEAD^^
   Reverting changes to users from flipr_test
     - change_pass
     - insert_user
@@ -550,7 +537,7 @@ Looks good. Let's make sure revert works:
    Schema | Name | Result data type | Argument data types | Type 
   --------+------+------------------+---------------------+------
 
-Note the use of C<@LAST^^> to specify that the revert be to two changes prior
+Note the use of C<@HEAD^^> to specify that the revert be to two changes prior
 the last deployed change. Looks good. Let's do the commit and re-deploy dance:
 
   > git add .
@@ -691,7 +678,7 @@ And edit F<revert/flips.sql>:
 
 And give it a whirl:
 
-  > sqitch revert --to @LAST^
+  > sqitch revert --to @HEAD^
     - change_pass
   > sqitch deploy
   Deploying changes to flipr_test
@@ -1248,7 +1235,7 @@ So, are the changes deployed?
 Awesome, the stored passwords are different now. But can we revert, even
 though we haven't written any reversion scripts?
 
-  > sqitch revert --to @LAST^^
+  > sqitch revert --to @HEAD^^
   Reverting changes to pgcrypto from flipr_test
     - change_pass
     - insert_user

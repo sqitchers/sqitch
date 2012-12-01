@@ -34,6 +34,7 @@ my $name_re = qr{
     (?<![$punct])\b                # last character isn't punctuation
 }x;
 
+# XXX FIRST & LAST deprecated. Remove at some point?
 my %reserved = map { $_ => undef } qw(ROOT HEAD FIRST LAST);
 
 sub name_regex { $name_re }

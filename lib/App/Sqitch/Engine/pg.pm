@@ -555,9 +555,9 @@ sub change_id_for {
     if ( my $change = $p{change} ) {
         if ( my $tag = $p{tag} ) {
             # Ther is nothing before the first tag.
-            return undef if $tag eq 'FIRST';
+            return undef if $tag eq 'ROOT' || $tag eq 'FIRST';
 
-            # Find closest to the end for @LAST.
+            # Find closest to the end for @HEAD.
             return $dbh->selectcol_arrayref(q{
                 SELECT change_id
                   FROM changes
@@ -565,7 +565,7 @@ sub change_id_for {
                    AND change  = ?
                  ORDER BY committed_at DESC
                  LIMIT 1
-            }, undef, $project, $change)->[0] if $tag eq 'LAST';
+            }, undef, $project, $change)->[0] if $tag eq 'HEAD' || $tag eq 'LAST';
 
             # Find by change name and following tag.
             return $dbh->selectcol_arrayref(q{
@@ -590,11 +590,13 @@ sub change_id_for {
     }
 
     if ( my $tag = $p{tag} ) {
-        # Just return the latest for @LAST.
-        return $self->latest_change_id(0, $project) if $tag eq 'LAST';
+        # Just return the latest for @HEAD.
+        return $self->latest_change_id(0, $project)
+            if $tag eq 'HEAD' || $tag eq 'LAST';
 
-        # Just return the earliest for @FIRST.
-        return $self->earliest_change_id(0, $project) if $tag eq 'FIRST';
+        # Just return the earliest for @ROOT.
+        return $self->earliest_change_id(0, $project)
+            if $tag eq 'ROOT' || $tag eq 'FIRST';
 
         # Find by tag name.
         return $dbh->selectcol_arrayref(q{

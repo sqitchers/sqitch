@@ -9,7 +9,9 @@ sqitchchanges -Specifying changes for Sqitch
 Many Sqitch commands take change parameters as arguments. Depending on the
 command, they denote a specific change or, for commands which walk change
 history or the change plan (such as L<C<sqitch log>|sqitch-log>), all changes
-which can be reached from that change.
+which can be reached from that change. Most commands search the plan for the
+relevant change, though some, such as L<C<sqitch revert>|sqitch-revert> and
+L<C<sqitch log>|sqitch-log>, search the database for the change.
 
 =head2 Change Names
 
@@ -170,24 +172,14 @@ Special symbolic name for the last change in the plan.
 
 Special symbolic name for the first change in the plan.
 
-=item C<@FIRST>
-
-Special symbolic name for the first change deployed to the database from the
-current project.
-
-=item C<@LAST>
-
-Special symbolic name for the last change deployed to the database from the
-current project.
-
-=item C<< <change>^ >>, e.g., C<@HEAD^^>, C<@LAST^3>, C<@beta^2>
+=item C<< <change>^ >>, e.g., C<@HEAD^^>, C<@HEAD^3>, C<@beta^2>
 
 A suffix C<^> to a symbolic or actual name means the change I<prior> to that
 change. Two C<^>s indicate the second prior change. Additional prior changes
 can be specified as C<< ^<n> >>, where C<< <n> >> represents the number of
 changes to go back.
 
-=item C<< <change>~ >>, e.g., C<@ROOT~>, C<@FIRST~~>, C<@bar~4>
+=item C<< <change>~ >>, e.g., C<@ROOT~>, C<@ROOT~~>, C<@bar~4>
 
 A suffix C<~> to a symbolic or actual name means the change I<after> that
 change. Two C<~>s indicate the second following change. Additional following

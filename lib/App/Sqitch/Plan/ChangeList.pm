@@ -28,6 +28,8 @@ sub last_change { return shift->{list}[ -1 ] }
 # Like [:punct:], but excluding _. Copied from perlrecharclass.
 my $punct = q{-!"#$%&'()*+,./:;<=>?@[\\]^`{|}~};
 
+# XXX Deprecated. Delete dbsymtag when @LAST and @FIRST are removed.
+# Consult 4eb1096c when removing.
 sub _dbsymtag($) {
     # Return LAST or FIRST if it is a DB symbolic tag.
     $_[0] =~ /\A[@]?((?:LA|FIR)ST)(?:(?<![$punct])([~^])(?:(\2)|(\d+))?)?\z/ or return;
@@ -48,6 +50,7 @@ sub _offset($) {
 sub _lookup {
     my ( $self, $key ) = @_;
     my $symtag = _dbsymtag $key or return $self->{lookup}{$key};
+    # XXX The rest of this only applies to the deprecated @FIRST & @LAST tags.
     my $change = $self->{list}[0] || return undef;
     my $engine = $change->plan->sqitch->engine;
     my $offset = _offset $key;

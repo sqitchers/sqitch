@@ -1288,8 +1288,8 @@ subtest 'live database' => sub {
             $change->id,
         ],
         [
-            'change@LAST',
-            { change => $change->name, tag => 'LAST' },
+            'change@HEAD',
+            { change => $change->name, tag => 'HEAD' },
             $change->id,
         ],
         [
@@ -1298,9 +1298,19 @@ subtest 'live database' => sub {
             $change->id,
         ],
         [
+            'ROOT',
+            { tag => 'ROOT' },
+            $change->id,
+        ],
+        [
             'FIRST',
             { tag => 'FIRST' },
             $change->id,
+        ],
+        [
+            'HEAD',
+            { tag => 'HEAD' },
+            $barney->id,
         ],
         [
             'LAST',
@@ -1308,13 +1318,13 @@ subtest 'live database' => sub {
             $barney->id,
         ],
         [
-            'project:FIRST',
-            { tag => 'FIRST', project => 'groovy' },
+            'project:ROOT',
+            { tag => 'ROOT', project => 'groovy' },
             $ext_change->id,
         ],
         [
-            'project:LAST',
-            { tag => 'LAST', project => 'groovy' },
+            'project:HEAD',
+            { tag => 'HEAD', project => 'groovy' },
             $ext_change->id,
         ],
     ) {
@@ -1340,8 +1350,8 @@ subtest 'live database' => sub {
             { change => $change->name, tag => 'whatever' },
         ],
         [
-            'change@FIRST',
-            { change => $change->name, tag => 'FIRST' },
+            'change@ROOT',
+            { change => $change->name, tag => 'ROOT' },
         ],
         [
             'change + different project',
