@@ -13,6 +13,7 @@ use App::Sqitch::Plan::ChangeList;
 use App::Sqitch::Plan::LineList;
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
+use List::MoreUtils qw(uniq);
 use namespace::autoclean;
 use Moose;
 use constant SYNTAX_VERSION => '1.0.0-b2';
@@ -669,7 +670,7 @@ sub _parse_deps {
             plan      => $self,
             conflicts => 0,
         );
-    } @{ $p->{requires} } ] if $p->{requires};
+    } uniq @{ $p->{requires} } ] if $p->{requires};
 
     $p->{conflicts} = [ map {
         my $p = App::Sqitch::Plan::Depend->parse("!$_") // hurl plan => __x(
@@ -681,7 +682,7 @@ sub _parse_deps {
             plan      => $self,
             conflicts => 1,
         );
-    } @{ $p->{conflicts} } ] if $p->{conflicts};
+    } uniq @{ $p->{conflicts} } ] if $p->{conflicts};
 }
 
 sub add {

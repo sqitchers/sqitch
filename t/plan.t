@@ -1183,12 +1183,48 @@ file_contents_is $to,
 ok $new_change = $plan->add(name => 'blow', requires => ['booyah']),
     'Add change "blow"';
 is $plan->count, 6, 'Should have 6 changes';
-is $plan->index_of('blow'), 5, 'Should find "blow at index 5';
+is $plan->index_of('blow'), 5, 'Should find "blow" at index 5';
 is $plan->last->name, 'blow', 'Last change should be "blow"';
 is $new_change->as_string,
     'blow [booyah] ' . $new_change->timestamp->as_string . ' '
     . $new_change->format_planner,
-    'Should have nice stringification of "blow :booyah"';
+    'Should have nice stringification of "blow [booyah]"';
+is [$plan->lines]->[-1], $new_change,
+    'The new change should have been appended to the lines, too';
+
+# Make sure dependencies are unique.
+ok $new_change = $plan->add(name => 'jive', requires => [qw(blow blow)]),
+    'Add change "jive" with dupe dependency';
+is $plan->count, 7, 'Should have 7 changes';
+is $plan->index_of('jive'), 6, 'Should find "jive" at index 6';
+is $plan->last->name, 'jive', 'jive change should be "jive"';
+is_deeply [ map { $_->change } $new_change->requires ], ['blow'],
+    'Should have dependency "blow"';
+is $new_change->as_string,
+    'jive [blow] ' . $new_change->timestamp->as_string . ' '
+    . $new_change->format_planner,
+    'Should have nice stringification of "jive [blow]"';
+is [$plan->lines]->[-1], $new_change,
+    'The new change should have been appended to the lines, too';
+
+# Make sure externals and conflicts are unique.
+ok $new_change = $plan->add(
+    name => 'moo',
+    requires => [qw(ext:foo ext:foo)],
+    conflicts => [qw(blow blow ext:whu ext:whu)],
+),  'Add change "moo" with dupe dependencies';
+
+is $plan->count, 8, 'Should have 8 changes';
+is $plan->index_of('moo'), 7, 'Should find "moo" at index 7';
+is $plan->last->name, 'moo', 'moo change should be "moo"';
+is_deeply [ map { $_->as_string } $new_change->requires ], ['ext:foo'],
+    'Should require "ext:whu"';
+is_deeply [ map { $_->as_string } $new_change->conflicts ], [qw(blow ext:whu)],
+    'Should conflict with "blow" and "ext:whu"';
+is $new_change->as_string,
+    'moo [ext:foo !blow !ext:whu] ' . $new_change->timestamp->as_string . ' '
+    . $new_change->format_planner,
+    'Should have nice stringification of "moo [ext:foo !blow !ext:whu]"';
 is [$plan->lines]->[-1], $new_change,
     'The new change should have been appended to the lines, too';
 
@@ -1291,8 +1327,8 @@ is [$plan->lines]->[-1], $rev_change,
     'The new "you" should have been appended to the lines, too';
 
 # Make sure it was appended to the plan.
-is $plan->index_of('you@HEAD'), 6, 'It should be at position 6';
-is $plan->count, 7, 'The plan count should be 7';
+is $plan->index_of('you@HEAD'), 8, 'It should be at position 8';
+is $plan->count, 9, 'The plan count should be 9';
 
 # Tag and add again, to be sure we can do it multiple times.
 ok $plan->tag( name => '@beta1' ), 'Tag @beta1';
@@ -1316,8 +1352,8 @@ is [$plan->lines]->[-1], $rev_change2,
     'The new reworking should have been appended to the lines';
 
 # Make sure it was appended to the plan.
-is $plan->index_of('you@HEAD'), 7, 'It should be at position 7';
-is $plan->count, 8, 'The plan count should be 8';
+is $plan->index_of('you@HEAD'), 9, 'It should be at position 9';
+is $plan->count, 10, 'The plan count should be 10';
 
 # Try a nonexistent change name.
 throws_ok { $plan->rework( name => 'nonexistent' ) } 'App::Sqitch::X',
