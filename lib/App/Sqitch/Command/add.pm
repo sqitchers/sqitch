@@ -49,12 +49,8 @@ has variables => (
 );
 
 has template_directory => (
-    is      => 'ro',
-    isa     => 'Maybe[Path::Class::Dir]',
-    lazy    => 1,
-    default => sub {
-        dir shift->sqitch->config->get( key => "add.template_directory" );
-    }
+    is  => 'ro',
+    isa => 'Maybe[Path::Class::Dir]',
 );
 
 for my $script (qw(deploy revert verify)) {
@@ -123,8 +119,22 @@ sub configure {
         note      => $opt->{note}      || [],
     );
 
-    $params{template_directory} = dir $opt->{template_directory}
-        if $opt->{template_directory};
+    if (
+        my $dir = $opt->{template_directory}
+               || $config->get( key => "add.template_directory" )
+    ) {
+        $dir = $params{template_directory} = dir $dir;
+        hurl add => __x(
+            'Directory "{dir}" does not exist',
+            dir => $dir,
+        ) unless -e $dir;
+
+        hurl add => __x(
+            '"{dir}" is not a directory',
+            dir => $dir,
+        ) unless -d $dir;
+
+    }
 
     for my $attr (qw(deploy revert verify)) {
         $params{"with_$attr"} = $opt->{$attr} if exists $opt->{$attr};

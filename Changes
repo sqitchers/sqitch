@@ -38,6 +38,10 @@ Revision history for Perl extension App::Sqitch
        placement of the first or last change in the plan.
      - Duplicate values passed via `--requires` and `--conflicts` in the `add`
        and `rework` actions are now ignored.
+     - The `add` command now throws an exception if `--template-directory` is
+       passed or specified in the configuration file, and the specified
+       directory does not exist or is not a directory. Thanks to Ronan Dunklau
+       for the report! (Issue #52).
 
 0.938 2012-10-12T19:16:57Z
      - Added a primary key to the PostgreSQL `events` table, which should make

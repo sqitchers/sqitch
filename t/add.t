@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 85;
+use Test::More tests => 91;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -105,6 +105,24 @@ is_deeply $CLASS->configure($config, { template_directory => 't' }), {
     template_directory => Path::Class::dir('t'),
 }, 'Should set up template directory option';
 
+throws_ok {
+    $CLASS->configure($config, { template_directory => '__nonexistent__' });
+} 'App::Sqitch::X', 'Should die if --template-directory does not exist';
+is $@->ident, 'add', 'Missing directory ident should be "add"';
+is $@->message, __x(
+    'Directory "{dir}" does not exist',
+    dir => '__nonexistent__',
+), 'Missing directory error message should be correct';
+
+throws_ok {
+    $CLASS->configure($config, { template_directory => 'README.md' });
+} 'App::Sqitch::X', 'Should die if --template-directory does is not a dir';
+is $@->ident, 'add', 'In alid directory ident should be "add"';
+is $@->message, __x(
+    '"{dir}" is not a directory',
+    dir => 'README.md',
+), 'Invalid directory error message should be correct';
+
 is_deeply $CLASS->configure($config, {
     deploy => 1,
     revert => 1,
@@ -128,13 +146,16 @@ is_deeply $CLASS->configure($config, {
 CONFIG: {
     local $ENV{SQITCH_CONFIG} = File::Spec->catfile(qw(t add_change.conf));
     my $config = App::Sqitch::Config->new;
+    my $dir = dir 't';
     is_deeply $CLASS->configure($config, {}), {
+        template_directory => $dir,
         requires  => [],
         conflicts => [],
         note      => [],
     }, 'Variables should by default not be loaded from config';
 
     is_deeply $CLASS->configure($config, {set => { yo => 'dawg' }}), {
+        template_directory => $dir,
         requires  => [],
         conflicts => [],
         note      => [],
@@ -146,6 +167,7 @@ CONFIG: {
     }, '--set should be merged with config variables';
 
     is_deeply $CLASS->configure($config, {set => { foo => 'ick' }}), {
+        template_directory => $dir,
         requires  => [],
         conflicts => [],
         note      => [],
