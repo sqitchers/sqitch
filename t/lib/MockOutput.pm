@@ -17,6 +17,8 @@ my @mocked = qw(
     vent
     warn
     page
+    prompt
+    ask_y_n
 );
 
 my %CAPTURED;

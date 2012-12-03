@@ -23,6 +23,12 @@ has start_at => (
     isa => 'Str'
 );
 
+has no_prompt => (
+    is      => 'ro',
+    isa     => 'Bool',
+    default => 0,
+);
+
 has _variables => (
     traits  => ['Hash'],
     is      => 'rw',
@@ -170,21 +176,38 @@ sub revert {
             exitval => 1,
         };
 
-        $sqitch->info(__x(
-            'Reverting changes to {target} from {destination}',
-            target      => $change->format_name_with_tags,
-            destination => $self->destination,
-        ));
+        if ($self->no_prompt) {
+            $sqitch->info(__x(
+                'Reverting changes to {target} from {destination}',
+                target      => $change->format_name_with_tags,
+                destination => $self->destination,
+            ));
+        } else {
+            $sqitch->ask_y_n(__x(
+                'Revert changes to {target} from {destination}?',
+                target      => $change->format_name_with_tags,
+                destination => $self->destination,
+            ), 'Yes');
+        }
+
     } else {
         @changes = $self->deployed_changes or hurl {
             ident   => 'revert',
             message => __ 'Nothing to revert (nothing deployed)',
             exitval => 1,
         };
-        $sqitch->info(__x(
-            'Reverting all changes from {destination}',
-            destination => $self->destination,
-        ));
+
+        if ($self->no_prompt) {
+            $sqitch->info(__x(
+                'Reverting all changes from {destination}',
+                destination => $self->destination,
+            ));
+        } else {
+            $sqitch->ask_y_n(__x(
+                'Revert all changes from {destination}?',
+                destination => $self->destination,
+            ), 'Yes');
+        }
     }
 
     # Create change objects.

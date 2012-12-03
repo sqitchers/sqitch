@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 285;
+use Test::More tests => 292;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -28,7 +28,7 @@ BEGIN {
     $ENV{SQITCH_CONFIG} = 'nonexistent.conf';
 }
 
-can_ok $CLASS, qw(load new name);
+can_ok $CLASS, qw(load new name no_prompt);
 
 my ($is_deployed_tag, $is_deployed_change) = (0, 0);
 my @deployed_changes;
@@ -1199,6 +1199,39 @@ is_deeply $engine->seen, [
     [run_file => $dbchanges[0]->revert_file ],
     [log_revert_change => $dbchanges[0] ],
 ], 'Should have reverted the changes in reverse order';
+is_deeply +MockOutput->get_ask_y_n, [
+    [__x(
+        'Revert all changes from {destination}?',
+        destination => $engine->destination,
+    ), 'Yes'],
+], 'Should have prompt to revert all changes';
+is_deeply +MockOutput->get_info, [
+    ['  - ', 'lolz'],
+    ['  - ', 'widgets @beta'],
+    ['  - ', 'users @alpha'],
+    ['  - ', 'roles'],
+], 'It should have said it was reverting all changes and listed them';
+
+# Revert all changes with no prompt.
+my $no_prompt = 1;
+$mock_engine->mock( no_prompt => sub { $no_prompt } );
+ok $engine->revert, 'Revert all changes with no prompt';
+is_deeply $engine->seen, [
+    [deployed_changes => undef],
+    [changes_requiring_change => $dbchanges[3] ],
+    [run_file => $dbchanges[3]->revert_file ],
+    [log_revert_change => $dbchanges[3] ],
+    [changes_requiring_change => $dbchanges[2] ],
+    [run_file => $dbchanges[2]->revert_file ],
+    [log_revert_change => $dbchanges[2] ],
+    [changes_requiring_change => $dbchanges[1] ],
+    [run_file => $dbchanges[1]->revert_file ],
+    [log_revert_change => $dbchanges[1] ],
+    [changes_requiring_change => $dbchanges[0] ],
+    [run_file => $dbchanges[0]->revert_file ],
+    [log_revert_change => $dbchanges[0] ],
+], 'Should have reverted the changes in reverse order';
+is_deeply +MockOutput->get_ask_y_n, [], 'Should have no prompt';
 is_deeply +MockOutput->get_info, [
     [__x(
         'Reverting all changes from {destination}',
@@ -1211,6 +1244,7 @@ is_deeply +MockOutput->get_info, [
 ], 'It should have said it was reverting all changes and listed them';
 
 # Now just revert to an earlier change.
+$no_prompt = 0;
 $offset_change = $dbchanges[1];
 push @resolved => $offset_change->id;
 @deployed_changes = @deployed_changes[2..3];
@@ -1227,17 +1261,20 @@ is_deeply $engine->seen, [
     [run_file => $dbchanges[2]->revert_file ],
     [log_revert_change => $dbchanges[2] ],
 ], 'Should have reverted only changes after @alpha';
-is_deeply +MockOutput->get_info, [
+is_deeply +MockOutput->get_ask_y_n, [
     [__x(
-        'Reverting changes to {target} from {destination}',
+        'Revert changes to {target} from {destination}?',
         destination => $engine->destination,
         target      => $dbchanges[1]->format_name_with_tags,
-    )],
+    ), 'Yes'],
+], 'Should have prompt to revert to target';
+is_deeply +MockOutput->get_info, [
     ['  - ', 'lolz'],
     ['  - ', 'widgets @beta'],
 ], 'Output should show what it reverts to';
 
-# Try to revert just the last change.
+# Try to revert just the last change with no prompt
+$no_prompt = 1;
 $offset_change = $dbchanges[-1];
 push @resolved => $offset_change->id;
 @deployed_changes = $deployed_changes[-1];
@@ -1250,6 +1287,7 @@ is_deeply $engine->seen, [
     [run_file => $dbchanges[-1]->revert_file ],
     [log_revert_change => $dbchanges[-1] ],
 ], 'Should have reverted one changes for @HEAD^';
+is_deeply +MockOutput->get_ask_y_n, [], 'Should have no prompt';
 is_deeply +MockOutput->get_info, [
     [__x(
         'Reverting changes to {target} from {destination}',
