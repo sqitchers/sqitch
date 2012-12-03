@@ -28,6 +28,7 @@ BuildRequires:  perl(Hash::Merge)
 BuildRequires:  perl(IO::Pager)
 BuildRequires:  perl(IPC::System::Simple) >= 1.17
 BuildRequires:  perl(List::Util)
+BuildRequires:  perl(List::MoreUtils)
 BuildRequires:  perl(Locale::TextDomain) >= 1.20
 BuildRequires:  perl(Module::Build) >= 0.35
 BuildRequires:  perl(Moose) >= 2.0300
@@ -84,6 +85,7 @@ Requires:       perl(Hash::Merge)
 Requires:       perl(IO::Pager)
 Requires:       perl(IPC::System::Simple) >= 1.17
 Requires:       perl(List::Util)
+Requires:       perl(List::MoreUtils)
 Requires:       perl(Locale::TextDomain) >= 1.20
 Requires:       perl(Moose) >= 2.0300
 Requires:       perl(Moose::Meta::Attribute::Native) >= 2.0300
