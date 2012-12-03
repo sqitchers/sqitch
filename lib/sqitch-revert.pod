@@ -43,6 +43,10 @@ supports variables. The format must be C<name=value>, e.g., C<--set
 defuser='Homer Simpson'>. Overrides any values loaded from the
 C<deploy.variables> or C<revert.variables> configurations.
 
+=item C<-y>
+
+Disable the prompt that normally asks whether or not to execute the revert.
+
 =back
 
 =head1 Configuration Variables
@@ -61,6 +65,11 @@ C<revert.variables> to override C<deploy.variables>.
 These variables are Useful if your database engine supports variables in
 scripts, such as PostgreSQL's
 L<C<psql> variables|http://www.postgresql.org/docs/current/static/app-psql.html#APP-PSQL-INTERPOLATION>.
+
+=item C<[revert.no_prompt]>
+
+A boolean value indicating whether or not to disable the prompt before
+executing the revert. My be overridden by C<-y>.
 
 =back
 

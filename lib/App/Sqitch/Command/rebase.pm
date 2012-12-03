@@ -22,6 +22,11 @@ has upto_target => (
     isa => 'Str',
 );
 
+has no_prompt => (
+    is  => 'ro',
+    isa => 'Bool'
+);
+
 has deploy_variables => (
     is       => 'ro',
     isa      => 'HashRef',
@@ -56,6 +61,7 @@ sub options {
         set|s=s%
         set-deploy|d=s%
         set-revert|r=s%
+        y
     );
 }
 
@@ -103,12 +109,21 @@ sub configure {
         };
     }
 
+    $params{no_prompt} = delete $opt->{y} // $config->get(
+        key => 'rebase.no_prompt',
+        as  => 'bool',
+    ) // $config->get(
+        key => 'revert.no_prompt',
+        as  => 'bool',
+    ) // 0;
+
     return \%params;
 }
 
 sub execute {
     my $self   = shift;
     my $engine = $self->sqitch->engine;
+    $engine->no_prompt( $self->no_prompt );
     if (my %v = %{ $self->revert_variables }) { $engine->set_variables(%v) }
     $engine->revert( $self->onto_target // shift );
     if (my %v = %{ $self->deploy_variables }) { $engine->set_variables(%v) }

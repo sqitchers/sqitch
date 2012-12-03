@@ -24,7 +24,7 @@ has start_at => (
 );
 
 has no_prompt => (
-    is      => 'ro',
+    is      => 'rw',
     isa     => 'Bool',
     default => 0,
 );

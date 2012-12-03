@@ -27,6 +27,7 @@ can_ok $CLASS, qw(
 is_deeply [$CLASS->options], [qw(
     to-target|to|target=s
     set|s=s%
+    y
 )], 'Options should be correct';
 
 my $sqitch = App::Sqitch->new(
@@ -38,12 +39,14 @@ my $sqitch = App::Sqitch->new(
 my $config = $sqitch->config;
 
 # Test configure().
-is_deeply $CLASS->configure($config, {}), {},
+is_deeply $CLASS->configure($config, {}), { no_prompt => 0 },
     'Should have empty default configuration with no config or opts';
 
 is_deeply $CLASS->configure($config, {
+    y    => 1,
     set  => { foo => 'bar' },
 }), {
+    no_prompt => 1,
     variables => { foo => 'bar' },
 }, 'Should have set option';
 
@@ -62,14 +65,15 @@ CONFIG: {
         'deploy.variables' => { foo => 'bar', hi => 21 },
     );
 
-    is_deeply $CLASS->configure($config, {}), {},
-        'Should have mode configuration';
+    is_deeply $CLASS->configure($config, {}), { no_prompt => 0 },
+        'Should have no_prompt false';
 
     # Try merging.
     is_deeply $CLASS->configure($config, {
         to_target => 'whu',
         set       => { foo => 'yo', yo => 'stellar' },
     }), {
+        no_prompt => 0,
         variables => { foo => 'yo', yo => 'stellar', hi => 21 },
         to_target => 'whu',
     }, 'Should have merged variables';
@@ -79,16 +83,32 @@ CONFIG: {
     is_deeply $CLASS->configure($config, {
         set  => { yo => 'stellar' },
     }), {
+        no_prompt => 0,
         variables => { foo => 'bar', yo => 'stellar', hi => 42 },
     }, 'Should have merged --set, deploy, revert';
-
 
     isa_ok my $revert = $CLASS->new(sqitch => $sqitch), $CLASS;
     is_deeply $revert->variables, { foo => 'bar', hi => 42 },
         'Should pick up variables from configuration';
+
+    # Make sure we can override prompting.
+    %config_vals = ('revert.no_prompt' => 1);
+    is_deeply $CLASS->configure($config, {}), { no_prompt => 1 },
+        'Should have no_prompt true';
+
+    # But option should override.
+    is_deeply $CLASS->configure($config, {y => 0}), { no_prompt => 0 },
+        'Should have no_prompt false again';
+
+    %config_vals = ('revert.no_prompt' => 0);
+    is_deeply $CLASS->configure($config, {}), { no_prompt => 0 },
+        'Should have no_prompt false for false config';
+
+    is_deeply $CLASS->configure($config, {y => 1}), { no_prompt => 1 },
+        'Should have no_prompt true with -y';
 }
 
-isa_ok my $revert = $CLASS->new(sqitch => $sqitch), $CLASS;
+isa_ok my $revert = $CLASS->new(sqitch => $sqitch, no_prompt => 1), $CLASS;
 
 is $revert->to_target, undef, 'to_target should be undef';
 
@@ -100,6 +120,7 @@ my @vars;
 $mock_engine->mock(set_variables => sub { shift; @vars = @_ });
 
 ok $revert->execute('@alpha'), 'Execute to "@alpha"';
+ok $sqitch->engine->no_prompt, 'Engine should be no_prompt';
 is_deeply \@args, ['@alpha'],
     '"@alpha" and "all" should be passed to the engine';
 
@@ -118,6 +139,7 @@ isa_ok $revert = $CLASS->new(
 
 @args = ();
 ok $revert->execute, 'Execute again';
+ok !$sqitch->engine->no_prompt, 'Engine should not be no_prompt';
 is_deeply \@args, ['foo'],
     '"foo" and "tag" should be passed to the engine';
 is_deeply {@vars}, { foo => 'bar', one => 1 },

@@ -17,6 +17,11 @@ has to_target => (
     isa => 'Str',
 );
 
+has no_prompt => (
+    is  => 'ro',
+    isa => 'Bool'
+);
+
 has variables => (
     is       => 'ro',
     isa      => 'HashRef',
@@ -35,6 +40,7 @@ sub options {
     return qw(
         to-target|to|target=s
         set|s=s%
+        y
     );
 }
 
@@ -53,12 +59,18 @@ sub configure {
         };
     }
 
+    $params{no_prompt} = delete $opt->{y} // $config->get(
+        key => 'revert.no_prompt',
+        as  => 'bool',
+    ) // 0;
+
     return \%params;
 }
 
 sub execute {
     my $self   = shift;
     my $engine = $self->sqitch->engine;
+    $engine->no_prompt( $self->no_prompt );
     if (my %v = %{ $self->variables }) { $engine->set_variables(%v) }
     $engine->revert( $self->to_target // shift );
     return $self;
