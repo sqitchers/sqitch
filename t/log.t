@@ -294,6 +294,14 @@ $local_cdt->set_time_zone('local');
 my $local_pdt = $pdt->clone;
 $local_pdt->set_time_zone('local');
 
+if ($^O eq 'MSWin32') {
+    require Win32::Locale;
+    $_->set( locale => Win32::Locale::get_locale() ) for ($local_cdt, $local_pdt);
+} else {
+    require POSIX;
+    $_->set( locale =>POSIX::setlocale( POSIX::LC_TIME() ) ) for ($local_cdt, $local_pdt);
+}
+
 my $formatter = $log->formatter;
 for my $spec (
     ['%e', { event => 'deploy' }, 'deploy' ],
