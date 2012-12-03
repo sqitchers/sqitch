@@ -31,6 +31,8 @@ has sqitch => (
         vent
         warn
         page
+        prompt
+        ask_y_n
     )],
 );
 

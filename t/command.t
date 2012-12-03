@@ -33,7 +33,7 @@ BEGIN {
     use_ok $CLASS or die;
 }
 
-can_ok $CLASS, qw(load new options configure command);
+can_ok $CLASS, qw(load new options configure command prompt ask_y_n);
 
 COMMAND: {
     # Stub out a command.

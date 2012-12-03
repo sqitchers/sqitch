@@ -438,6 +438,73 @@ sub capture {
     capturex @_;
 }
 
+sub _is_interactive {
+  return -t STDIN && (-t STDOUT || !(-f STDOUT || -c STDOUT)) ;   # Pipe?
+}
+
+sub _is_unattended {
+    my $self = shift;
+    return !$self->_is_interactive && eof STDIN;
+}
+
+sub _readline {
+    my $self = shift;
+    return undef if $self->_is_unattended;
+    my $answer = <STDIN>;
+    chomp $answer if defined $answer;
+    return $answer;
+}
+
+sub prompt {
+    my $self = shift;
+    my $msg  = shift or hurl 'prompt() called without a prompt message';
+
+    # use a list to distinguish a default of undef() from no default
+    my @def;
+    @def = (shift) if @_;
+    # use dispdef for output
+    my @dispdef = scalar(@def)
+        ? ('[', (defined($def[0]) ? $def[0] : ''), ']  ')
+        : (' ', '');
+
+    $self->emit("$msg ", @dispdef);
+
+    hurl io => __(
+        'Sqitch seems to be unattended and there is no default value for this question'
+    ) if !@def && $self->_is_unattended;
+
+    my $ans = $self->_readline;
+
+    if ( !defined $ans    # Ctrl-D or unattended
+         or !length $ans  # User hit return
+     ) {
+        print "$dispdef[1]\n";
+        $ans = scalar(@def) ? $def[0] : '';
+    }
+
+    return $ans;
+}
+
+sub ask_y_n {
+    my $self = shift;
+    my ($msg, $def)  = @_;
+
+    hurl 'ask_y_n() called without a prompt message' unless $msg;
+    hurl 'Invalid default value: ask_y_n() default must be "y" or "n"'
+        if $def && $def !~ /^[yn]/i;
+
+    my $answer;
+    my $i = 3;
+    while ($i--) {
+        $answer = $self->prompt(@_);
+        return 1 if $answer =~ /^y/i;
+        return 0 if $answer =~ /^n/i;
+        $self->emit(__ 'Please answer "y" or "n".');
+    }
+
+    hurl io => __ 'No valid answer after 3 attempts; aborting';
+}
+
 sub spool {
     my ($self, $fh) = (shift, shift);
     local $SIG{__WARN__} = sub { }; # Silence warning.
@@ -499,37 +566,42 @@ sub page {
 
 sub trace {
     my $self = shift;
-    say _prepend 'trace:', @_ if $self->verbosity > 2;
+    $self->emit( _prepend 'trace:', @_ ) if $self->verbosity > 2;
 }
 
 sub debug {
     my $self = shift;
-    say _prepend 'debug:', @_ if $self->verbosity > 1;
+    $self->emit( _prepend 'debug:', @_ ) if $self->verbosity > 1;
 }
 
 sub info {
     my $self = shift;
-    say @_ if $self->verbosity;
+    $self->emit(@_) if $self->verbosity;
 }
 
 sub comment {
     my $self = shift;
-    say _prepend '#', @_;
+    $self->emit( _prepend '#', @_ );
 }
 
 sub emit {
     shift;
+    local $|=1;
     say @_;
 }
 
 sub vent {
     shift;
+    my $fh = select;
+    select STDERR;
+    local $|=1;
     say STDERR @_;
+    select $fh;
 }
 
 sub warn {
     my $self = shift;
-    say STDERR _prepend 'warning:', @_;
+    $self->vent(_prepend 'warning:', @_);
 }
 
 __PACKAGE__->meta->make_immutable;
@@ -751,6 +823,27 @@ log:
 Send a warning messages to C<STDERR>. Warnings will have C<warning: > prefixed
 to every line. Use if something unexpected happened but you can recover from
 it.
+
+=head3 C<prompt>
+
+  my $ans = $sqitch->('Why would you want to do this?', 'because');
+
+Prompts the user for input and returns that input. Pass in an optional default
+value for the user to accept or to be used if Sqitch is running unattended. An
+exception will be thrown if there is no prompt message or if Sqitch is
+unattended and there is no default value.
+
+=head3 C<ask_y_n>
+
+  if ( $sqitch->ask_y_no('Are you sure?', 'y') ) { # do it! }
+
+Prompts the user with a "yes" or "no" question. Returuns true for "yes" and
+false for "no". Any answer that begins with case-insensitive "y" or "n" will
+be accepted as valid. If the user inputs an invalid value three times, an
+exception will be thrown. An exception will also be thrown if there is no
+message or if the optional default value does not begin with "y" or "n". As
+with C<prompt()> an exception will be thrown if Sqitch is running unattended
+and there is no default.
 
 =head1 Author
 
