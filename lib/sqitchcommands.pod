@@ -47,13 +47,13 @@ Initialize a project
 
 Show change logs for a database.
 
-=item L<C<revert>|sqitch-revert>
-
-Revert changes from a database
-
 =item L<C<rebase>|sqitch-rebase>
 
 Revert and redeploy database changes.
+
+=item L<C<revert>|sqitch-revert>
+
+Revert changes from a database
 
 =item L<C<rework>|sqitch-rework>
 
