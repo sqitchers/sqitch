@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 146;
+use Test::More tests => 144;
 #use Test::More 'no_plan';
 use Test::MockModule;
 use Path::Class;
@@ -357,13 +357,13 @@ $input = undef;
 is capture_stdout {
     is $sqitch->prompt('hi', 'yo'), 'yo',
         'Prompt should return default for undef input';
-}, "hi [yo]  yo\n", 'Prompt should show default when undef input';
+}, 'hi [yo]  ', 'Prompt should show default when undef input';
 
 $input = '';
 is capture_stdout {
     is $sqitch->prompt('hi', 'yo'), 'yo',
         'Prompt should return input for empty input';
-}, "hi [yo]  yo\n", 'Prompt should show default when empty input';
+}, 'hi [yo]  ', 'Prompt should show default when empty input';
 
 $unattended = 1;
 throws_ok {
@@ -377,12 +377,7 @@ is $@->message, __(
 
 is capture_stdout {
     is $sqitch->prompt('hi', 'yo'), 'yo', 'Prompt should return input';
-}, "hi [yo]  yo\n", 'Prompt should show default when undef input';
-
-is capture_stdout {
-    is $sqitch->prompt('hi', 'yo'), 'yo',
-        'Prompt should return default when uattended';
-}, "hi [yo]  yo\n", 'Prompt should show default when unattended';
+}, "hi [yo]  yo\n", 'Prompt should show default as selected when unattended';
 
 ##############################################################################
 # Test ask_y_n().
@@ -422,10 +417,10 @@ is capture_stdout {
 $input = '';
 is capture_stdout {
     ok $sqitch->ask_y_n('whu?', 'y'), 'ask_y_n should return true default "y"';
-}, "whu? [y]  y\n", 'ask_y_n() should prompt and show default "y"';
+}, 'whu? [y]  ', 'ask_y_n() should prompt and show default "y"';
 is capture_stdout {
     ok !$sqitch->ask_y_n('whu?', 'n'), 'ask_y_n should return false default "n"';
-}, "whu? [n]  n\n", 'ask_y_n() should prompt and show default "n"';
+}, 'whu? [n]  ', 'ask_y_n() should prompt and show default "n"';
 
 my $please = __ 'Please answer "y" or "n".';
 $input = 'ha!';

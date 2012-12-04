@@ -471,17 +471,18 @@ sub prompt {
     local $|=1;
     print $msg, ' ', @dispdef;
 
-    hurl io => __(
-        'Sqitch seems to be unattended and there is no default value for this question'
-    ) if !@def && $self->_is_unattended;
+    if ($self->_is_unattended) {
+        hurl io => __(
+            'Sqitch seems to be unattended and there is no default value for this question'
+        ) unless @def;
+        print "$dispdef[1]\n";
+    }
 
     my $ans = $self->_readline;
 
-    if ( !defined $ans    # Ctrl-D or unattended
-         or !length $ans  # User hit return
-     ) {
-        print "$dispdef[1]\n";
-        $ans = scalar(@def) ? $def[0] : '';
+    if ( !defined $ans or !length $ans ) {
+        # Ctrl-D or user hit return;
+        $ans = @def ? $def[0] : '';
     }
 
     return $ans;
