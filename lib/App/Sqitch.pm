@@ -467,7 +467,9 @@ sub prompt {
         ? ('[', (defined($def[0]) ? $def[0] : ''), ']  ')
         : (' ', '');
 
-    $self->emit("$msg ", @dispdef);
+    # Don't use emit because it adds a newline.
+    local $|=1;
+    print $msg, ' ', @dispdef;
 
     hurl io => __(
         'Sqitch seems to be unattended and there is no default value for this question'
