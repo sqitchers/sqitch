@@ -28,7 +28,7 @@ my $sqitch = App::Sqitch->new(
 );
 
 isa_ok my $show = $CLASS->new(sqitch => $sqitch), $CLASS;
-my $change = $sqitch->plan->get('users'), 'Get a change';
+ok my $change = $sqitch->plan->get('users'), 'Get a change';
 
 # Start with the change.
 ok $show->execute( change => $change->id ), 'Find change by id';
