@@ -1,6 +1,6 @@
 =head1 Name
 
-sqitch-revert - Revert and redeploy database changes
+sqitch-rebase - Revert and redeploy database changes
 
 =head1 Synopsis
 
