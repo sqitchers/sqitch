@@ -42,6 +42,10 @@ Revision history for Perl extension App::Sqitch
        passed or specified in the configuration file, and the specified
        directory does not exist or is not a directory. Thanks to Ronan Dunklau
        for the report! (Issue #52).
+     - The `revert` command now prompts for confirmation before reverting
+       anything. The prompt can be skipped via the `-y` option or setting the
+       `revert.no_pompt' config variable. Works for rebase, too, which reads
+       `rebase.no_prompt` before `revert.no_prompt`.'
 
 0.938 2012-10-12T19:16:57Z
      - Added a primary key to the PostgreSQL `events` table, which should make
