@@ -17,11 +17,11 @@ L<sqitchchanges>. The supported types include:
 
 =item C<change>
 
-A change object.
+A change object. Outputs the text used to generate the change SHA1 ID.
 
 =item C<tag>
 
-A tag.
+A tag. Outputs the text used to generate the tag SHA1 ID.
 
 =item C<deploy>
 

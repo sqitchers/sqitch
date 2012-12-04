@@ -27,16 +27,23 @@ Revision history for Perl extension App::Sqitch
        emit the underlying error *and* run the revert script for the
        just-deployed change.
      - Modified the text hashed for change and tag IDs. Both now include the
-       note, if present, and changes include the ID of the preceding change
-       and the list of dependencies. The result is that, when a change is
-       modified, it gets a new ID, and if it's moved in the plan, it gets a
-       new ID. The upshot is that things must be in order for a deploy to
-       succeed. Existing deployments will automatically have their IDs
-       updated.
-     - Symbolic references `^` and `~` on the deployed change symbolic tags
-       `@LAST` and `@FIRST` now correctly calculate the offset according to
-       the changes deployed to the database, rather than relative to the
-       placement of the first or last change in the plan.
+       note, if present, the ID of the preceding change, and the list of
+       dependencies. The result is that, when a change is modified or moved in
+       the plan, it gets a new ID ID. The upshot is that things *must* be in
+       order for a deploy to succeed. Existing deployments will automatically
+       have their IDs updated by the `deploy` command.
+     - Changed the `revert` command so that it *only* fetches information about
+       changes to be reverted from the database, rather than the plan.
+     - Deprecated the `@LAST` and `@FIRST` symbolic tags. With `revert` now
+       fetching change information from the database, there is no longer a
+       need to specify that changes be found in the database. It's possible
+       some other way to search database changes will be added in the future,
+       but if so, it will be less limiting than `@LAST` and `@FIRST`, because
+       it will likely allow searches by literal tags.
+     - Added the `rebase` command. This command combines a `revert` and a
+       `deploy` into a single command, which should allow for more natural
+       deployment testing during development. `sqitch rebase @HEAD^` should
+       become a common command for database developers.
      - Duplicate values passed via `--requires` and `--conflicts` in the `add`
        and `rework` actions are now ignored.
      - The `add` command now throws an exception if `--template-directory` is
@@ -45,8 +52,8 @@ Revision history for Perl extension App::Sqitch
        for the report! (Issue #52).
      - The `revert` command now prompts for confirmation before reverting
        anything. The prompt can be skipped via the `-y` option or setting the
-       `revert.no_prompt` config variable. Works for rebase, too, which reads
-       `rebase.no_prompt` before `revert.no_prompt`.' (Issue #49.)
+       `revert.no_prompt` configuration variable. Works for rebase, too, which
+       reads `rebase.no_prompt` before `revert.no_prompt`.' (Issue #49.)
      - Added the `show` command, which show information about changes or tags,
        or the contents of change script files. (Issue #57.)
 
