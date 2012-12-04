@@ -63,6 +63,10 @@ Duplicate a change in the plan and revise its scripts
 
 Show the current deployment status of a database
 
+=item L<C<show>|sqitch-show>
+
+Show information about changes and tags, or change script contents.
+
 =item L<C<tag>|sqitch-tag>
 
 Add or list tags in the plan
