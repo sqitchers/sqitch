@@ -340,30 +340,30 @@ $sqitch_mock->mock(_is_unattended => sub { $unattended });
 
 is capture_stdout {
     is $sqitch->prompt('hi'), 'hey', 'Prompt should return input';
-}, 'hi  ', 'Prompt should prompt';
+}, 'hi ', 'Prompt should prompt';
 
 $input = 'how';
 is capture_stdout {
     is $sqitch->prompt('hi', 'blah'), 'how',
         'Prompt with default should return input';
-}, 'hi [blah]  ', 'Prompt should prompt with default';
+}, 'hi [blah] ', 'Prompt should prompt with default';
 $input = 'hi';
 is capture_stdout {
     is $sqitch->prompt('hi', undef), 'hi',
         'Prompt with undef default should return input';
-}, 'hi []  ', 'Prompt should prompt with bracket for undef default';
+}, 'hi [] ', 'Prompt should prompt with bracket for undef default';
 
 $input = undef;
 is capture_stdout {
     is $sqitch->prompt('hi', 'yo'), 'yo',
         'Prompt should return default for undef input';
-}, 'hi [yo]  ', 'Prompt should show default when undef input';
+}, 'hi [yo] ', 'Prompt should show default when undef input';
 
 $input = '';
 is capture_stdout {
     is $sqitch->prompt('hi', 'yo'), 'yo',
         'Prompt should return input for empty input';
-}, 'hi [yo]  ', 'Prompt should show default when empty input';
+}, 'hi [yo] ', 'Prompt should show default when empty input';
 
 $unattended = 1;
 throws_ok {
@@ -377,7 +377,7 @@ is $@->message, __(
 
 is capture_stdout {
     is $sqitch->prompt('hi', 'yo'), 'yo', 'Prompt should return input';
-}, "hi [yo]  yo\n", 'Prompt should show default as selected when unattended';
+}, "hi [yo] yo\n", 'Prompt should show default as selected when unattended';
 
 ##############################################################################
 # Test ask_y_n().
@@ -397,30 +397,30 @@ $input = 'y';
 $unattended = 0;
 is capture_stdout {
     ok $sqitch->ask_y_n('hi'), 'ask_y_n should return true for "y" input';
-}, 'hi  ', 'ask_y_n() should prompt';
+}, 'hi ', 'ask_y_n() should prompt';
 
 $input = 'no';
 is capture_stdout {
     ok !$sqitch->ask_y_n('howdy'), 'ask_y_n should return false for "no" input';
-}, 'howdy  ', 'ask_y_n() should prompt for no';
+}, 'howdy ', 'ask_y_n() should prompt for no';
 
 $input = 'Nein';
 is capture_stdout {
     ok !$sqitch->ask_y_n('howdy'), 'ask_y_n should return false for "Nein"';
-}, 'howdy  ', 'ask_y_n() should prompt for no';
+}, 'howdy ', 'ask_y_n() should prompt for no';
 
 $input = 'Yep';
 is capture_stdout {
     ok $sqitch->ask_y_n('howdy'), 'ask_y_n should return true for "Yep"';
-}, 'howdy  ', 'ask_y_n() should prompt for yes';
+}, 'howdy ', 'ask_y_n() should prompt for yes';
 
 $input = '';
 is capture_stdout {
     ok $sqitch->ask_y_n('whu?', 'y'), 'ask_y_n should return true default "y"';
-}, 'whu? [y]  ', 'ask_y_n() should prompt and show default "y"';
+}, 'whu? [y] ', 'ask_y_n() should prompt and show default "y"';
 is capture_stdout {
     ok !$sqitch->ask_y_n('whu?', 'n'), 'ask_y_n should return false default "n"';
-}, 'whu? [n]  ', 'ask_y_n() should prompt and show default "n"';
+}, 'whu? [n] ', 'ask_y_n() should prompt and show default "n"';
 
 my $please = __ 'Please answer "y" or "n".';
 $input = 'ha!';

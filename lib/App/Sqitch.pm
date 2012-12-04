@@ -464,8 +464,8 @@ sub prompt {
     @def = (shift) if @_;
     # use dispdef for output
     my @dispdef = scalar(@def)
-        ? ('[', (defined($def[0]) ? $def[0] : ''), ']  ')
-        : (' ', '');
+        ? ('[', (defined($def[0]) ? $def[0] : ''), '] ')
+        : ('', '');
 
     # Don't use emit because it adds a newline.
     local $|=1;
