@@ -840,7 +840,7 @@ unattended and there is no default value.
 
   if ( $sqitch->ask_y_no('Are you sure?', 'y') ) { # do it! }
 
-Prompts the user with a "yes" or "no" question. Returuns true for "yes" and
+Prompts the user with a "yes" or "no" question. Returns true for "yes" and
 false for "no". Any answer that begins with case-insensitive "y" or "n" will
 be accepted as valid. If the user inputs an invalid value three times, an
 exception will be thrown. An exception will also be thrown if there is no
