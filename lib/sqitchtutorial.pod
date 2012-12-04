@@ -180,11 +180,14 @@ which reads the metadata tables from the database:
 Let's make sure that we can revert the change:
 
   > sqitch --db-name flipr_test revert
-  Reverting all changes from flipr_test
+  Revert all changes from flipr_test? [Yes]
     - appschema
 
-Note the C<-> reinforces that the change is being removed from the database.
-And now the user should be gone:
+The C<revert> command first prompts to make sure that we really do want to
+revert. This is to prevent unnecessary accidents. You can pass the C<-y>
+option to disable the prompt. Also, notice the C<-> in the output, which
+reinforces that the change is being removed from the database. And now the
+schema should be gone:
 
   > psql -d flipr_test -c '\dn flipr'
               List of roles
@@ -361,7 +364,7 @@ Now have a look at the status:
 
 Success! Let's make sure we can revert the change, as well:
 
-  > sqitch revert --to @HEAD^
+  > sqitch revert -y --to @HEAD^
   Reverting changes to appschema from flipr_test
     - users
 
@@ -528,7 +531,7 @@ And what's the status?
 
 Looks good. Let's make sure revert works:
 
-  > sqitch revert --to @HEAD^^
+  > sqitch revert -y --to @HEAD^^
   Reverting changes to users from flipr_test
     - change_pass
     - insert_user
@@ -678,16 +681,17 @@ And edit F<revert/flips.sql>:
 
 And give it a whirl:
 
-  > sqitch revert --to @HEAD^
+  > sqitch rebase -y --onto @HEAD^
+  Reverting changes to insert_user to flipr_test
     - change_pass
-  > sqitch deploy
   Deploying changes to flipr_test
     + change_pass @v1.0.0-dev1
     + flips
 
-We first revert one change (C<change_pass>) because the C<@v1.0.0-dev1> tag
-was never applied to the test database. It gets applied on the new deploy,
-along with the C<flips> change. Look good?
+We first use the C<rebase> command to revert and re-deploy one change
+(C<change_pass>) because the C<@v1.0.0-dev1> tag was never applied to the test
+database. It gets applied on the new deploy, along with the C<flips> change.
+Look good?
 
   > sqitch status --show-tags
   # On database flipr_test
@@ -927,7 +931,7 @@ Note that it has appended the changes from the merged "lists" branch, and then
 merged the changes from our "flips" branch. Test it to make sure it works as
 expected:
 
-  > sqitch revert
+  > sqitch rebase -y
   Reverting all changes from flipr_test
     - delete_flip
     - insert_flip
@@ -936,7 +940,6 @@ expected:
     - insert_user
     - users
     - appschema
-  > sqitch deploy
   Deploying changes to flipr_test
     + appschema
     + users
@@ -1235,7 +1238,7 @@ So, are the changes deployed?
 Awesome, the stored passwords are different now. But can we revert, even
 though we haven't written any reversion scripts?
 
-  > sqitch revert --to @HEAD^^
+  > sqitch revert -y --to @HEAD^^
   Reverting changes to pgcrypto from flipr_test
     - change_pass
     - insert_user
