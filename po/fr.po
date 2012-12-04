@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Sqitch 0.932\n"
 "Report-Msgid-Bugs-To: david@justatheory.com\n"
-"POT-Creation-Date: 2012-12-03 16:51-0800\n"
+"POT-Creation-Date: 2012-12-03 21:49-0800\n"
 "PO-Revision-Date: 2012-10-12 11:28-0700\n"
 "Last-Translator: Arnaud Assad <arhuman@gmail.com>\n"
 "Language-Team: French <arhuman@gmail.com>\n"
@@ -47,30 +47,30 @@ msgstr ""
 "Impossible de déduire votre adressse email; exécuter sqitch config --user "
 "user.email vous@hote.com"
 
-#: lib/App/Sqitch.pm:473
+#: lib/App/Sqitch.pm:476
 msgid ""
 "Sqitch seems to be unattended and there is no default value for this question"
 msgstr ""
 
-#: lib/App/Sqitch.pm:502
+#: lib/App/Sqitch.pm:505
 msgid "Please answer \"y\" or \"n\"."
 msgstr ""
 
-#: lib/App/Sqitch.pm:505
+#: lib/App/Sqitch.pm:508
 msgid "No valid answer after 3 attempts; aborting"
 msgstr ""
 
-#: lib/App/Sqitch.pm:515 lib/App/Sqitch.pm:521
+#: lib/App/Sqitch.pm:518 lib/App/Sqitch.pm:524
 #, perl-brace-format
 msgid "Cannot exec {command}: {error}"
 msgstr "Impossible d'exécuter {command} : {error}"
 
-#: lib/App/Sqitch.pm:530
+#: lib/App/Sqitch.pm:533
 #, perl-brace-format
 msgid "Error closing pipe to {command}: {error}"
 msgstr "Erreur en fermant le tube vers {command} : {error}"
 
-#: lib/App/Sqitch.pm:534
+#: lib/App/Sqitch.pm:537
 #, perl-brace-format
 msgid "{command} unexpectedly returned exit value {exitval}"
 msgstr "{command} a retourné de manière inattendue la valeur {exitval}"
@@ -734,6 +734,31 @@ msgstr "Impossible de copier {src} vers {dest} : {error}"
 msgid "Copied {src} to {dest}"
 msgstr "{src} copié vers {dest}"
 
+#: lib/App/Sqitch/Command/show.pm:36 lib/App/Sqitch/Plan/ChangeList.pm:98
+#, perl-brace-format
+msgid "Unknown tag \"{tag}\""
+msgstr "Étiquette inconnue \"{tag}\""
+
+#: lib/App/Sqitch/Command/show.pm:44
+#, fuzzy, perl-brace-format
+msgid "Unknown object type \"{type}"
+msgstr "Cible d'annulation inconnue : \"{target}\""
+
+#: lib/App/Sqitch/Command/show.pm:50
+#, fuzzy, perl-brace-format
+msgid "Unknown change \"{change}\""
+msgstr "Changement inconnu \"{change}\" "
+
+#: lib/App/Sqitch/Command/show.pm:62
+#, fuzzy, perl-brace-format
+msgid "File \"{path}\" does not exist"
+msgstr "Le fichier de plan {file} n'existe pas"
+
+#: lib/App/Sqitch/Command/show.pm:64
+#, fuzzy, perl-brace-format
+msgid "\"{path}\" is not a file"
+msgstr "\"{command}\" n'est pas une commande valide"
+
 #: lib/App/Sqitch/Command/status.pm:61
 msgid "Database not initialized for Sqitch"
 msgstr "Base de Données pas initialisée pour Sqitch"
@@ -890,11 +915,6 @@ msgstr ""
 #, perl-brace-format
 msgid "Change to {command}:"
 msgstr "Changement à {command}"
-
-#: lib/App/Sqitch/Plan/ChangeList.pm:98
-#, perl-brace-format
-msgid "Unknown tag \"{tag}\""
-msgstr "Étiquette inconnue \"{tag}\""
 
 #: lib/App/Sqitch/Plan/ChangeList.pm:110
 #, perl-brace-format

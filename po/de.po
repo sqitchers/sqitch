@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Sqitch 0.932\n"
 "Report-Msgid-Bugs-To: david@justatheory.com\n"
-"POT-Creation-Date: 2012-12-03 16:51-0800\n"
+"POT-Creation-Date: 2012-12-03 21:49-0800\n"
 "PO-Revision-Date: 2012-08-31 17:15-0700\n"
 "Last-Translator: David Wheeler <david@justatheory.com>\n"
 "Language-Team: German <david@justatheory.com>\n"
@@ -43,30 +43,30 @@ msgid ""
 "you@host.com"
 msgstr ""
 
-#: lib/App/Sqitch.pm:473
+#: lib/App/Sqitch.pm:476
 msgid ""
 "Sqitch seems to be unattended and there is no default value for this question"
 msgstr ""
 
-#: lib/App/Sqitch.pm:502
+#: lib/App/Sqitch.pm:505
 msgid "Please answer \"y\" or \"n\"."
 msgstr ""
 
-#: lib/App/Sqitch.pm:505
+#: lib/App/Sqitch.pm:508
 msgid "No valid answer after 3 attempts; aborting"
 msgstr ""
 
-#: lib/App/Sqitch.pm:515 lib/App/Sqitch.pm:521
+#: lib/App/Sqitch.pm:518 lib/App/Sqitch.pm:524
 #, perl-brace-format
 msgid "Cannot exec {command}: {error}"
 msgstr ""
 
-#: lib/App/Sqitch.pm:530
+#: lib/App/Sqitch.pm:533
 #, perl-brace-format
 msgid "Error closing pipe to {command}: {error}"
 msgstr ""
 
-#: lib/App/Sqitch.pm:534
+#: lib/App/Sqitch.pm:537
 #, perl-brace-format
 msgid "{command} unexpectedly returned exit value {exitval}"
 msgstr ""
@@ -694,6 +694,31 @@ msgstr ""
 msgid "Copied {src} to {dest}"
 msgstr ""
 
+#: lib/App/Sqitch/Command/show.pm:36 lib/App/Sqitch/Plan/ChangeList.pm:98
+#, perl-brace-format
+msgid "Unknown tag \"{tag}\""
+msgstr ""
+
+#: lib/App/Sqitch/Command/show.pm:44
+#, perl-brace-format
+msgid "Unknown object type \"{type}"
+msgstr ""
+
+#: lib/App/Sqitch/Command/show.pm:50
+#, perl-brace-format
+msgid "Unknown change \"{change}\""
+msgstr ""
+
+#: lib/App/Sqitch/Command/show.pm:62
+#, perl-brace-format
+msgid "File \"{path}\" does not exist"
+msgstr ""
+
+#: lib/App/Sqitch/Command/show.pm:64
+#, perl-brace-format
+msgid "\"{path}\" is not a file"
+msgstr ""
+
 #: lib/App/Sqitch/Command/status.pm:61
 msgid "Database not initialized for Sqitch"
 msgstr ""
@@ -837,11 +862,6 @@ msgstr ""
 #: lib/App/Sqitch/Plan/Change.pm:293
 #, perl-brace-format
 msgid "Change to {command}:"
-msgstr ""
-
-#: lib/App/Sqitch/Plan/ChangeList.pm:98
-#, perl-brace-format
-msgid "Unknown tag \"{tag}\""
 msgstr ""
 
 #: lib/App/Sqitch/Plan/ChangeList.pm:110
