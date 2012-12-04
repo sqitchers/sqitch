@@ -14,12 +14,13 @@ Revision history for Perl extension App::Sqitch
        supported commands (`sqitchcommands`), rather than the list of core
        options. Thanks to BryLo for the suggestion.
      - Changed the plan parser so that it no longer changes the order of
-       changes based on the depenency graph. Unfortunately, this meant that
+       changes based on the dependency graph. Unfortunately, this meant that
        the order could change from one run to another, especially if new
        changes were added since the last deploy. The planner now throws an
        exception if the order in the plan is wrong, and suggests that the user
        move changes in the plan file to get it to work properly.
-     - Fixed bug where the `core.plan_file` config variable was ignored.
+     - Fixed bug where the `core.plan_file` configuration variable was
+       ignored.
      - Improved error handling when deploying and reverting a change. If the
        change successfully deployed but the logging of the deployment to the
        database failed, there was just a rollback message. Sqitch will now
@@ -32,7 +33,7 @@ Revision history for Perl extension App::Sqitch
        new ID. The upshot is that things must be in order for a deploy to
        succeed. Existing deployments will automatically have their IDs
        updated.
-     - Symbolic refererences `^` and `~` on the deployed change symbolic tags
+     - Symbolic references `^` and `~` on the deployed change symbolic tags
        `@LAST` and `@FIRST` now correctly calculate the offset according to
        the changes deployed to the database, rather than relative to the
        placement of the first or last change in the plan.
@@ -44,8 +45,8 @@ Revision history for Perl extension App::Sqitch
        for the report! (Issue #52).
      - The `revert` command now prompts for confirmation before reverting
        anything. The prompt can be skipped via the `-y` option or setting the
-       `revert.no_pompt' config variable. Works for rebase, too, which reads
-       `rebase.no_prompt` before `revert.no_prompt`.'
+       `revert.no_prompt` config variable. Works for rebase, too, which reads
+       `rebase.no_prompt` before `revert.no_prompt`.' (Issue #49).
 
 0.938 2012-10-12T19:16:57Z
      - Added a primary key to the PostgreSQL `events` table, which should make
