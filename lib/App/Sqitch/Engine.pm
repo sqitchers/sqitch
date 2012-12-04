@@ -183,7 +183,11 @@ sub revert {
                 destination => $self->destination,
             ));
         } else {
-            $sqitch->ask_y_n(__x(
+            hurl {
+                ident   => 'revert',
+                message => __ 'Nothing reverted',
+                exitval => 1,
+            } unless $sqitch->ask_y_n(__x(
                 'Revert changes to {target} from {destination}?',
                 target      => $change->format_name_with_tags,
                 destination => $self->destination,
@@ -203,7 +207,11 @@ sub revert {
                 destination => $self->destination,
             ));
         } else {
-            $sqitch->ask_y_n(__x(
+            hurl {
+                ident   => 'revert',
+                message => __ 'Nothing reverted',
+                exitval => 1,
+            } unless $sqitch->ask_y_n(__x(
                 'Revert all changes from {destination}?',
                 destination => $self->destination,
             ), 'Yes');

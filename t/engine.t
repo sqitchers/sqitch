@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 292;
+use Test::More tests => 306;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -1183,6 +1183,7 @@ my @dbchanges;
     $params;
 } @changes[0..3];
 
+MockOutput->ask_y_n_returns(1);
 ok $engine->revert, 'Revert all changes';
 is_deeply $engine->seen, [
     [deployed_changes => undef],
@@ -1212,7 +1213,26 @@ is_deeply +MockOutput->get_info, [
     ['  - ', 'roles'],
 ], 'It should have said it was reverting all changes and listed them';
 
+# Should exit if the revert is declined.
+MockOutput->ask_y_n_returns(0);
+throws_ok { $engine->revert } 'App::Sqitch::X', 'Should abort declined revert';
+is $@->ident, 'revert', 'Declined revert ident should be "revert"';
+is $@->exitval, 1, 'Should have exited with value 1';
+is $@->message, __ 'Nothing reverted', 'Should have exited with proper message';
+is_deeply $engine->seen, [
+    [deployed_changes => undef],
+], 'Should have called deployed_changes only';
+is_deeply +MockOutput->get_ask_y_n, [
+    [__x(
+        'Revert all changes from {destination}?',
+        destination => $engine->destination,
+    ), 'Yes'],
+], 'Should have prompt to revert all changes';
+is_deeply +MockOutput->get_info, [
+], 'It should have emitted nothing else';
+
 # Revert all changes with no prompt.
+MockOutput->ask_y_n_returns(1);
 my $no_prompt = 1;
 $mock_engine->mock( no_prompt => sub { $no_prompt } );
 ok $engine->revert, 'Revert all changes with no prompt';
@@ -1273,7 +1293,31 @@ is_deeply +MockOutput->get_info, [
     ['  - ', 'widgets @beta'],
 ], 'Output should show what it reverts to';
 
+MockOutput->ask_y_n_returns(0);
+$offset_change = $dbchanges[1];
+push @resolved => $offset_change->id;
+throws_ok { $engine->revert('@alpha') } 'App::Sqitch::X',
+    'Should abort declined revert to @alpha';
+is $@->ident, 'revert', 'Declined revert ident should be "revert"';
+is $@->exitval, 1, 'Should have exited with value 1';
+is $@->message, __ 'Nothing reverted', 'Should have exited with proper message';
+is_deeply $engine->seen, [
+    [change_id_for => { change_id => undef, change => '', tag => 'alpha', project => 'sql' }],
+    [change_offset_from_id => [$dbchanges[1]->id, 0] ],
+    [deployed_changes_since => $dbchanges[1]],
+], 'Should have called revert methods';
+is_deeply +MockOutput->get_ask_y_n, [
+    [__x(
+        'Revert changes to {target} from {destination}?',
+        target      => $dbchanges[1]->format_name_with_tags,
+        destination => $engine->destination,
+    ), 'Yes'],
+], 'Should have prompt to revert to @alpha';
+is_deeply +MockOutput->get_info, [
+], 'It should have emitted nothing else';
+
 # Try to revert just the last change with no prompt
+MockOutput->ask_y_n_returns(1);
 $no_prompt = 1;
 $offset_change = $dbchanges[-1];
 push @resolved => $offset_change->id;

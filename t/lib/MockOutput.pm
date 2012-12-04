@@ -21,6 +21,12 @@ my @mocked = qw(
     ask_y_n
 );
 
+my $INPUT;
+sub prompt_returns { $INPUT = $_[1]; }
+
+my $Y_N;
+sub ask_y_n_returns { $Y_N = $_[1]; }
+
 my %CAPTURED;
 
 __PACKAGE__->clear;
@@ -40,6 +46,18 @@ for my $meth (@mocked) {
     no strict 'refs';
     *{"get_$meth"} = $get;
 }
+
+$MOCK->mock(prompt => sub {
+    shift;
+    push @{ $CAPTURED{prompt} } => [@_];
+    return $INPUT;
+});
+
+$MOCK->mock(ask_y_n => sub {
+    shift;
+    push @{ $CAPTURED{ask_y_n} } => [@_];
+    return $Y_N;
+});
 
 sub clear {
     %CAPTURED = map { $_ => [] } @mocked;
