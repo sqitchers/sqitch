@@ -1,5 +1,5 @@
-App/Sqitch version 0.940
-=======================
+App/Sqitch version 0.941
+========================
 
 This application, `sqitch`, will provide a simple yet robust interface for SQL
 change management. The philosophy and functionality is covered over a series
