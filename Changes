@@ -58,6 +58,7 @@ Revision history for Perl extension App::Sqitch
        reads `rebase.no_prompt` before `revert.no_prompt`.' (Issue #49.)
      - Added the `show` command, which show information about changes or tags,
        or the contents of change script files. (Issue #57.)
+     - Renamed the `test` scripts and planned command to `verify`.
 
 0.938 2012-10-12T19:16:57Z
      - Added a primary key to the PostgreSQL `events` table, which should make
