@@ -1,0 +1,68 @@
+=head1 Name
+
+sqitch-show - Show object information or change file contents
+
+=head1 Synopsis
+
+  sqitch show <type> <object>
+
+=head1 Description
+
+Shows information about Sqitch objects. The first argument must be the type of
+object to show, and the second must be a key identifier for the object in the
+plan. The second argument must be a a change name or tag as specified in
+L<sqitchchanges>. The supported types include:
+
+=over
+
+=item C<change>
+
+A change object.
+
+=item C<tag>
+
+A tag.
+
+=item C<deploy>
+
+A change deploy script.
+
+=item C<revert>
+
+A change revert script.
+
+=item C<verify>
+
+A change verify script.
+
+=back
+
+=head2 Examples
+
+=over
+
+=item * Show information about a specific change:
+
+  sqitch show change add_users_table
+
+=item * Show information about a change by ID:
+
+  sqitch show change be7cd00571d7151eacb0691e825dfc8980cc14ff
+
+=item * Show the most recent change info:
+
+  sqitch show change @HEAD
+
+=item * Show information about a tag:
+
+  sqitch show tag @beta1
+
+=item * Show the contents of a deploy file:
+
+  sqitch show deploy add_users_table@HEAD
+
+=back
+
+=head1 Sqitch
+
+Part of the L<sqitch> suite.

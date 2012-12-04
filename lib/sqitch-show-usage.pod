@@ -1,0 +1,12 @@
+=head1 Name
+
+sqitch-show-usage - Sqitch show usage statement
+
+=head1 Usage
+
+  sqitch show <type> <object>
+
+C<< <type> >> can be one of: change, tag, deploy, revert, verify
+
+
+

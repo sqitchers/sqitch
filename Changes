@@ -46,7 +46,9 @@ Revision history for Perl extension App::Sqitch
      - The `revert` command now prompts for confirmation before reverting
        anything. The prompt can be skipped via the `-y` option or setting the
        `revert.no_prompt` config variable. Works for rebase, too, which reads
-       `rebase.no_prompt` before `revert.no_prompt`.' (Issue #49).
+       `rebase.no_prompt` before `revert.no_prompt`.' (Issue #49.)
+     - Added the `show` command, which show information about changes or tags,
+       or the contents of change script files. (Issue #57.)
 
 0.938 2012-10-12T19:16:57Z
      - Added a primary key to the PostgreSQL `events` table, which should make
