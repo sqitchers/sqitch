@@ -1158,6 +1158,12 @@ is_deeply $engine->seen, [
     [deployed_changes => undef],
 ], 'Should have called deployed_changes';
 
+# Mock App::Sqitch::DateTime so that dbchange tags all have the same
+# timestamps.
+my $mock_dt = Test::MockModule->new('App::Sqitch::DateTime');
+my $now = App::Sqitch::DateTime->now;
+$mock_dt->mock(now => $now);
+
 # Now revert from a deployed change.
 my @dbchanges;
 @deployed_changes = map {
