@@ -373,6 +373,7 @@ sub _sync_plan {
 
         $plan->position($idx);
         if (my @tags = $change->tags) {
+            $self->log_new_tags($change);
             $self->start_at( $change->format_name . $tags[-1]->format_name );
         } else {
             $self->start_at( $change->format_name );
@@ -552,6 +553,11 @@ sub log_revert_change {
     hurl "$class has not implemented log_revert_change()";
 }
 
+sub log_new_tags {
+    my $class = ref $_[0] || $_[0];
+    hurl "$class has not implemented log_new_tags()";
+}
+
 sub is_deployed_tag {
     my $class = ref $_[0] || $_[0];
     hurl "$class has not implemented is_deployed_tag()";
@@ -653,7 +659,7 @@ the engine code.
 
 =head1 Interface
 
-=head3 Class Methods
+=head2 Class Methods
 
 =head3 C<config_vars>
 
@@ -741,11 +747,11 @@ subclasses may override it to provide other values, such as when neither of
 the above have values but there is nevertheless a default value assumed by the
 engine. Used internally to name the destination in status messages.
 
-=head3 variables
+=head3 C<variables>
 
-=head3 set_variables
+=head3 C<set_variables>
 
-=head3 clear_variables
+=head3 C<clear_variables>
 
   my %vars = $engine->variables;
   $engine->set_variables(foo => 'bar', baz => 'hi there');
@@ -1055,6 +1061,14 @@ of the change failed.
 
 Should write to and/or remove from the database metadata and history the
 records necessary to indicate that the change has been reverted.
+
+=head3 C<log_new_tags>
+
+  $engine->log_new_tags($change);
+
+Given a change, if it has any tags that are not currently logged in the
+database, they should be logged. This is assuming, of course, that the change
+itself has previously been logged.
 
 =head3 C<earliest_change_id>
 

@@ -549,6 +549,39 @@ subtest 'live database' => sub {
     is_deeply all( $pg->search_events ), \@events, 'Should have one event';
 
     ##########################################################################
+    # Test log_new_tags().
+    ok $pg->log_new_tags($change), 'Log new tags for "users" change';
+    is_deeply all_tags(), [[
+        $tag->id,
+        '@alpha',
+        $change->id,
+        'pg',
+        'Good to go!',
+        $sqitch->user_name,
+        $sqitch->user_email,
+        $tag->planner_name,
+        $tag->planner_email,
+    ]], 'The tag should be the same';
+
+    # Delete that tag.
+    $pg->_dbh->do('DELETE FROM tags');
+    is_deeply all_tags(), [], 'Should now have no tags';
+
+    # Put it back.
+    ok $pg->log_new_tags($change), 'Log new tags for "users" change again';
+    is_deeply all_tags(), [[
+        $tag->id,
+        '@alpha',
+        $change->id,
+        'pg',
+        'Good to go!',
+        $sqitch->user_name,
+        $sqitch->user_email,
+        $tag->planner_name,
+        $tag->planner_email,
+    ]], 'The tag should be back';
+
+    ##########################################################################
     # Test log_revert_change().
     ok $pg->log_revert_change($change), 'Revert "users" change';
     ok !$pg->is_deployed_change($change), 'The change should no longer be deployed';

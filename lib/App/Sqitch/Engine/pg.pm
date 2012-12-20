@@ -408,6 +408,58 @@ sub log_deploy_change {
     return $self->_log_event( deploy => $change );
 }
 
+sub log_new_tags {
+    my ( $self, $change ) = @_;
+    my @tags   = $change->tags or return $self;
+    my $sqitch = $self->sqitch;
+
+    my ($id, $name, $proj, $user, $email) = (
+        $change->id,
+        $change->format_name,
+        $change->project,
+        $sqitch->user_name,
+        $sqitch->user_email
+    );
+
+    $self->_dbh->do(
+        q{
+            INSERT INTO tags (
+                   tag_id
+                 , tag
+                 , project
+                 , change_id
+                 , note
+                 , committer_name
+                 , committer_email
+                 , planned_at
+                 , planner_name
+                 , planner_email
+            )
+            SELECT tid, tg, proj, chid, n, name, email, at, pname, pemail FROM ( VALUES
+        } . join( ",\n                ", ( q{(?, ?, ?, ?, ?, ?, ?, ?::timestamptz, ?, ?)} ) x @tags )
+        . q{
+            ) i(tid, tg, proj, chid, n, name, email, at, pname, pemail)
+              LEFT JOIN tags ON i.tid = tags.tag_id
+             WHERE tags.tag_id IS NULL
+         },
+        undef,
+        map { (
+            $_->id,
+            $_->format_name,
+            $proj,
+            $id,
+            $_->note,
+            $user,
+            $email,
+            $_->timestamp->as_string(format => 'iso'),
+            $_->planner_name,
+            $_->planner_email,
+        ) } @tags
+    );
+
+    return $self;
+}
+
 sub log_fail_change {
     shift->_log_event( fail => shift );
 }

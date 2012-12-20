@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 306;
+use Test::More tests => 307;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -77,6 +77,7 @@ ENGINE: {
     sub begin_work         { push @SEEN => ['begin_work']  if $record_work }
     sub finish_work        { push @SEEN => ['finish_work'] if $record_work }
     sub _update_ids        { push @SEEN => ['_update_ids']; $updated_idx }
+    sub log_new_tags       { push @SEEN => [ log_new_tags => $_[1] ]; $_[0] }
 
     sub seen { [@SEEN] }
     after seen => sub { @SEEN = () };
@@ -183,6 +184,7 @@ for my $abs (qw(
     log_deploy_change
     log_fail_change
     log_revert_change
+    log_new_tags
     is_deployed_tag
     is_deployed_change
     change_id_for
@@ -311,8 +313,11 @@ $updated_idx = 2;
 ok $engine->_sync_plan, 'Sync the plan to a tag';
 is $plan->position, 2, 'Plan should now be at position 1';
 is $engine->start_at, 'widgets@beta', 'start_at should now be widgets@beta';
-is_deeply $engine->seen, [['latest_change_id', undef], ['_update_ids']],
-    'Should have updated IDs';
+is_deeply $engine->seen, [
+    ['latest_change_id', undef],
+    ['_update_ids'],
+    ['log_new_tags' => $plan->change_at(2)],
+], 'Should have updated IDs';
 
 ##############################################################################
 # Test deploy.
@@ -400,6 +405,7 @@ $latest_change_id = ($changes[1]->tags)[0]->id;
 ok $engine->deploy('@alpha'), 'Deploy to alpha thrice';
 is_deeply $engine->seen, [
     [latest_change_id => undef],
+    ['log_new_tags' => $changes[1]],
 ], 'Only latest_item() should have been called';
 is_deeply +MockOutput->get_info, [
     [__x 'Nothing to deploy (already at "{target}"', target => '@alpha'],
@@ -414,6 +420,7 @@ is $@->message,  __ 'Cannot deploy to an earlier target; use "revert" instead',
     'It should suggest using "revert"';
 is_deeply $engine->seen, [
     [latest_change_id => undef],
+    ['log_new_tags' => $changes[2]],
 ], 'Should have called latest_item() and latest_tag()';
 
 # Make sure we can deploy everything by change.
