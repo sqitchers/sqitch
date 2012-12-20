@@ -67,6 +67,12 @@ supports variables. The format must be C<name=value>, e.g.,
 C<--set defuser='Homer Simpson'>. Overrides any values loaded from the
 C<deploy.variables> configuration.
 
+=item C<--log-only>
+
+Log the changes as if they were deployed, but without actually running the
+deploy scripts. Useful for an existing database that is being converted to
+Sqitch, and you need to log changes as deployed because they have been
+deployed by other means in the past.
 
 =back
 

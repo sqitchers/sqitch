@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 307;
+use Test::More tests => 325;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -225,6 +225,17 @@ is_deeply +MockOutput->get_info, [[
     '  + ', 'foo'
 ]], 'Output should reflect the deployment';
 
+# Have it log only.
+ok $engine->deploy_change($change, 1), 'Only log a change';
+is_deeply $engine->seen, [
+    ['begin_work'],
+    [log_deploy_change => $change ],
+    ['finish_work'],
+], 'log-only deploy_change should not have called run_file';
+is_deeply +MockOutput->get_info, [[
+    '  + ', 'foo'
+]], 'Output should reflect the logging';
+
 # Make it fail.
 $die = 'run_file';
 throws_ok { $engine->deploy_change($change) } 'App::Sqitch::X',
@@ -363,6 +374,34 @@ is_deeply +MockOutput->get_info, [
     ['  + ', 'roles'],
     ['  + ', 'users @alpha'],
 ], 'Should have seen the output of the deploy to @alpha';
+
+# Try with log-only in all modes.
+for my $mode (qw(change tag all)) {
+    ok $engine->deploy('@alpha', $mode, 1), 'Log-only deploy in $mode mode to @alpha';
+    is $plan->position, 1, 'Plan should be at position 1';
+    is_deeply $engine->seen, [
+        [latest_change_id => undef],
+        'initialized',
+        'initialize',
+        'register_project',
+        [log_deploy_change => $changes[0]],
+        [log_deploy_change => $changes[1]],
+    ], 'Should have deployed through @alpha without running files';
+
+    my $meth = $mode eq 'all' ? 'all' : ('by_' . $mode);
+    is $deploy_meth, "_deploy_$meth", "Should have called _deploy_$meth()";
+    is_deeply +MockOutput->get_info, [
+        [__x 'Adding metadata tables to {destination}',
+         destination => $engine->destination,
+     ],
+        [__x 'Deploying changes through {target} to {destination}',
+         destination =>  $engine->destination,
+         target      => $plan->get('@alpha')->format_name_with_tags,
+     ],
+        ['  + ', 'roles'],
+        ['  + ', 'users @alpha'],
+    ], 'Should have seen the output of the deploy to @alpha';
+}
 
 # Try with no need to initialize.
 $initialized = 1;

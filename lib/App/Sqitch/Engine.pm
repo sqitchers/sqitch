@@ -64,7 +64,7 @@ sub name {
 sub config_vars { return }
 
 sub deploy {
-    my ( $self, $to, $mode ) = @_;
+    my ( $self, $to, $mode, $log_only ) = @_;
     my $sqitch   = $self->sqitch;
     my $plan     = $self->_sync_plan;
     my $to_index = $plan->count - 1;
@@ -130,7 +130,7 @@ sub deploy {
              : hurl deploy => __x 'Unknown deployment mode: "{mode}"', mode => $mode;
     ;
 
-    $self->$meth($plan, $to_index);
+    $self->$meth( $plan, $to_index, $log_only );
 }
 
 sub revert {
@@ -273,11 +273,11 @@ sub find_change {
 }
 
 sub _deploy_by_change {
-    my ( $self, $plan, $to_index ) = @_;
+    my ( $self, $plan, $to_index, $log_only ) = @_;
 
     # Just deploy each change. If any fails, we just stop.
     while ($plan->position < $to_index) {
-        $self->deploy_change($plan->next);
+        $self->deploy_change($plan->next, $log_only);
     }
 
     return $self;
@@ -307,13 +307,13 @@ sub _rollback {
 }
 
 sub _deploy_by_tag {
-    my ( $self, $plan, $to_index ) = @_;
+    my ( $self, $plan, $to_index, $log_only ) = @_;
 
     my ($last_tagged, @run);
     try {
         while ($plan->position < $to_index) {
             my $change = $plan->next;
-            $self->deploy_change($change);
+            $self->deploy_change($change, $log_only);
             push @run => $change;
             if ($change->tags) {
                 @run = ();
@@ -333,13 +333,13 @@ sub _deploy_by_tag {
 }
 
 sub _deploy_all {
-    my ( $self, $plan, $to_index ) = @_;
+    my ( $self, $plan, $to_index, $log_only ) = @_;
 
     my @run;
     try {
         while ($plan->position < $to_index) {
             my $change = $plan->next;
-            $self->deploy_change($change);
+            $self->deploy_change($change, $log_only);
             push @run => $change;
         }
     } catch {
@@ -403,7 +403,7 @@ sub is_deployed {
 }
 
 sub deploy_change {
-    my ( $self, $change ) = @_;
+    my ( $self, $change, $log_only ) = @_;
     my $sqitch = $self->sqitch;
     $sqitch->info('  + ', $change->format_name_with_tags);
     $self->begin_work($change);
@@ -433,7 +433,7 @@ sub deploy_change {
     }
 
     return try {
-        $self->run_file($change->deploy_file);
+        $self->run_file($change->deploy_file) unless $log_only;
         try {
             $self->log_deploy_change($change);
         } catch {
@@ -767,6 +767,7 @@ the C<psql> client via the C<--set> option.
 
   $engine->deploy($to_target);
   $engine->deploy($to_target, $mode);
+  $engine->deploy($to_target, $mode, $log_only);
 
 Deploys changes to the destination database, starting with the current
 deployment state, and continuing to C<$to_target>. C<$to_target> must be a
@@ -796,6 +797,10 @@ In the event of failure, no changes will be reverted. This is on the
 assumption that a change failure is total, and the change may be applied again.
 
 =back
+
+The C<$log_only> parameter, if passed a true values, causes the deploy to log
+the deployed changes I<without running the deploy scripts>. This is useful for
+an existing database schema that needs to be converted to Sqitch.
 
 Note that, in the event of failure, if a reversion fails, the destination
 database B<may be left in a corrupted state>. Write your revert scripts

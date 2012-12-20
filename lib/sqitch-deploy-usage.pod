@@ -11,7 +11,7 @@ sqitch-deploy-usage - Sqitch deploy usage statement
        --to-target <tag>    deploy to target
        --mode <mode>        failure reversion mode
     -s --set                set a database client variable
-
+       --log-only           log changes without running them
 
 
 

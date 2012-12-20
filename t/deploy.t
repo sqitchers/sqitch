@@ -29,6 +29,7 @@ is_deeply [$CLASS->options], [qw(
     to-target|to|target=s
     mode=s
     set|s=s%
+    log-only
 )], 'Options should be correct';
 
 my $sqitch = App::Sqitch->new(
@@ -40,16 +41,19 @@ my $config = $sqitch->config;
 
 # Test configure().
 is_deeply $CLASS->configure($config, {}), {
-    mode  => 'all',
+    mode     => 'all',
+    log_only => 0,
 }, 'Should have default configuration with no config or opts';
 
 is_deeply $CLASS->configure($config, {
     mode => 'tag',
+    log_only => 1,
     set  => { foo => 'bar' },
 }), {
     mode      => 'tag',
+    log_only  => 1,
     variables => { foo => 'bar' },
-}, 'Should have mode and set options';
+}, 'Should have mode, set, and log-only options';
 
 CONFIG: {
     my $mock_config = Test::MockModule->new(ref $config);
@@ -68,7 +72,8 @@ CONFIG: {
     );
 
     is_deeply $CLASS->configure($config, {}), {
-        mode  => 'change',
+        mode     => 'change',
+        log_only => 0,
     }, 'Should have mode configuration';
 
     # Try merging.
@@ -79,6 +84,7 @@ CONFIG: {
     }), {
         to_target => 'whu',
         mode      => 'tag',
+        log_only  => 0,
         variables => { foo => 'yo', yo => 'stellar', hi => 21 },
     }, 'Should have merged variables';
 
@@ -101,25 +107,26 @@ my @vars;
 $mock_engine->mock(set_variables => sub { shift; @vars = @_ });
 
 ok $deploy->execute('@alpha'), 'Execute to "@alpha"';
-is_deeply \@args, ['@alpha', 'all'],
-    '"@alpha" and "all" should be passed to the engine';
+is_deeply \@args, ['@alpha', 'all', 0],
+    '"@alpha" "all", and 0 should be passed to the engine';
 
 @args = ();
 ok $deploy->execute, 'Execute';
-is_deeply \@args, [undef, 'all'],
-    'undef and "all" should be passed to the engine';
+is_deeply \@args, [undef, 'all', 0],
+    'undef, "all", and 0 should be passed to the engine';
 
 isa_ok $deploy = $CLASS->new(
     sqitch    => $sqitch,
     to_target => 'foo',
     mode      => 'tag',
+    log_only  => 1,
     variables => { foo => 'bar', one => 1 },
-), $CLASS, 'Object with to, mode, and variables';
+), $CLASS, 'Object with to, mode, log_only, and variables';
 
 @args = ();
 ok $deploy->execute, 'Execute again';
-is_deeply \@args, ['foo', 'tag'],
-    '"foo" and "tag" should be passed to the engine';
+is_deeply \@args, ['foo', 'tag', 1],
+    '"foo", "tag", and 1 should be passed to the engine';
 is_deeply {@vars}, { foo => 'bar', one => 1 },
     'Vars should have been passed through to the engine';
 

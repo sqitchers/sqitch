@@ -27,6 +27,13 @@ has mode => (
     default => 'all',
 );
 
+has log_only => (
+    is       => 'ro',
+    isa      => 'Bool',
+    required => 1,
+    default  => 0,
+);
+
 has variables => (
     is       => 'ro',
     isa      => 'HashRef',
@@ -42,6 +49,7 @@ sub options {
         to-target|to|target=s
         mode=s
         set|s=s%
+        log-only
     );
 }
 
@@ -49,7 +57,8 @@ sub configure {
     my ( $class, $config, $opt ) = @_;
 
     my %params = (
-        mode => $opt->{mode} || $config->get( key => 'deploy.mode' ) || 'all',
+        mode     => $opt->{mode} || $config->get( key => 'deploy.mode' ) || 'all',
+        log_only => $opt->{log_only} || 0,
     );
     $params{to_target} = $opt->{to_target} if exists $opt->{to_target};
 
@@ -64,12 +73,11 @@ sub configure {
     return \%params;
 }
 
-
 sub execute {
     my $self   = shift;
     my $engine = $self->sqitch->engine;
     if (my %v = %{ $self->variables }) { $engine->set_variables(%v) }
-    $engine->deploy($self->to_target // shift, $self->mode);
+    $engine->deploy( $self->to_target // shift, $self->mode, $self->log_only );
     return $self;
 }
 
