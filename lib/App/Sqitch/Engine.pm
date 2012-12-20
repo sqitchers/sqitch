@@ -134,7 +134,7 @@ sub deploy {
 }
 
 sub revert {
-    my ( $self, $to ) = @_;
+    my ( $self, $to, $log_only ) = @_;
     my $sqitch = $self->sqitch;
     my $plan   = $self->sqitch->plan;
 
@@ -235,7 +235,7 @@ sub revert {
     # like deploy() mode. I'm thinking not, as a failure on a revert is not
     # something you generaly want to recover from by deploying back to where
     # you started. But maybe I'm wrong?
-    $self->revert_change($_) for @changes;
+    $self->revert_change($_, $log_only) for @changes;
 
     return $self;
 }
@@ -445,7 +445,7 @@ sub deploy_change {
             try {
                 $self->sqitch->info('  - ', $change->format_name_with_tags);
                 $self->begin_work($change);
-                $self->run_file($change->revert_file);
+                $self->run_file($change->revert_file) unless $log_only;
             } catch {
                 # Oy, the revert failed. Just emit the error.
                 $sqitch->vent(eval { $_->message } // $_);
@@ -461,7 +461,7 @@ sub deploy_change {
 }
 
 sub revert_change {
-    my ( $self, $change ) = @_;
+    my ( $self, $change, $log_only ) = @_;
     $self->sqitch->info('  - ', $change->format_name_with_tags);
     $self->begin_work($change);
 
@@ -481,7 +481,7 @@ sub revert_change {
     }
 
     try {
-        $self->run_file($change->revert_file);
+        $self->run_file($change->revert_file) unless $log_only;
         try {
             $self->log_revert_change($change);
         } catch {
@@ -808,20 +808,26 @@ carefully!
 
 =head3 C<revert>
 
+  $engine->revert;
   $engine->revert($tag);
+  $engine->revert($tag, $log_only);
 
 Reverts the L<App::Sqitch::Plan::Tag> from the database, including all of its
-associated changes.
+associated changes. The C<$log_only> parameter, if passed a true values,
+causes the revret to log the reverted changes I<without running the revert
+scripts>.
 
 =head3 C<deploy_change>
 
   $engine->deploy_change($change);
+  $engine->deploy_change($change, $log_only);
 
 Used internally by C<deploy()> to deploy an individual change.
 
 =head3 C<revert_change>
 
   $engine->revert_change($change);
+  $engine->revert_change($change, $log_only);
 
 Used internally by C<revert()> (and, by C<deploy()> when a deploy fails) to
 revert an individual change.

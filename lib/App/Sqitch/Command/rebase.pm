@@ -27,6 +27,13 @@ has no_prompt => (
     isa => 'Bool'
 );
 
+has log_only => (
+    is       => 'ro',
+    isa      => 'Bool',
+    required => 1,
+    default  => 0,
+);
+
 has deploy_variables => (
     is       => 'ro',
     isa      => 'HashRef',
@@ -61,6 +68,7 @@ sub options {
         set|s=s%
         set-deploy|d=s%
         set-revert|r=s%
+        log-only
         y
     );
 }
@@ -68,9 +76,11 @@ sub options {
 sub configure {
     my ( $class, $config, $opt ) = @_;
 
-    my %params;
-    $params{onto_target} = $opt->{onto_target} if exists $opt->{onto_target};
-    $params{upto_target} = $opt->{upto_target} if exists $opt->{upto_target};
+    my %params = map { $_ => $opt->{$_} } grep { exists $opt->{$_} } qw(
+        onto_target
+        upto_target
+        log_only
+    );
 
     if ( my $vars = $opt->{set} ) {
         # Merge with config.
@@ -125,9 +135,9 @@ sub execute {
     my $engine = $self->sqitch->engine;
     $engine->no_prompt( $self->no_prompt );
     if (my %v = %{ $self->revert_variables }) { $engine->set_variables(%v) }
-    $engine->revert( $self->onto_target // shift );
+    $engine->revert( $self->onto_target // shift, $self->log_only );
     if (my %v = %{ $self->deploy_variables }) { $engine->set_variables(%v) }
-    $engine->deploy( $self->upto_target // shift );
+    $engine->deploy( $self->upto_target // shift, $self->log_only );
     return $self;
 }
 

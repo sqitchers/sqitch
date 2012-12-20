@@ -21,6 +21,7 @@ can_ok $CLASS, qw(
     new
     to_target
     mode
+    log_only
     execute
     variables
 );

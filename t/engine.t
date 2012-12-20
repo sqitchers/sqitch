@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 325;
+use Test::More tests => 332;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -262,6 +262,18 @@ is_deeply $engine->seen, [
 is_deeply +MockOutput->get_info, [[
     '  - ', 'foo'
 ]], 'Output should reflect reversion';
+
+# Revert with log-only.
+ok $engine->revert_change($change, 1), 'Revert a change with log-only';
+is_deeply $engine->seen, [
+    ['begin_work'],
+    [changes_requiring_change => $change ],
+    [log_revert_change => $change ],
+    ['finish_work'],
+], 'Log-only revert_change should not have run the change script';
+is_deeply +MockOutput->get_info, [[
+    '  - ', 'foo'
+]], 'Output should reflect logged reversion';
 $record_work = 0;
 
 ##############################################################################
@@ -1257,7 +1269,34 @@ is_deeply +MockOutput->get_ask_y_n, [
         'Revert all changes from {destination}?',
         destination => $engine->destination,
     ), 'Yes'],
-], 'Should have prompt to revert all changes';
+], 'Should have prompted to revert all changes';
+is_deeply +MockOutput->get_info, [
+    ['  - ', 'lolz'],
+    ['  - ', 'widgets @beta'],
+    ['  - ', 'users @alpha'],
+    ['  - ', 'roles'],
+], 'It should have said it was reverting all changes and listed them';
+
+# Try with log-only.
+ok $engine->revert(undef, 1), 'Revert all changes log-only';
+delete $_->{_path_segments} for @dbchanges; # These need to be invisible.
+is_deeply $engine->seen, [
+    [deployed_changes => undef],
+    [changes_requiring_change => $dbchanges[3] ],
+    [log_revert_change => $dbchanges[3] ],
+    [changes_requiring_change => $dbchanges[2] ],
+    [log_revert_change => $dbchanges[2] ],
+    [changes_requiring_change => $dbchanges[1] ],
+    [log_revert_change => $dbchanges[1] ],
+    [changes_requiring_change => $dbchanges[0] ],
+    [log_revert_change => $dbchanges[0] ],
+], 'Log-only Should have reverted the changes in reverse order';
+is_deeply +MockOutput->get_ask_y_n, [
+    [__x(
+        'Revert all changes from {destination}?',
+        destination => $engine->destination,
+    ), 'Yes'],
+], 'Log-only should have prompted to revert all changes';
 is_deeply +MockOutput->get_info, [
     ['  - ', 'lolz'],
     ['  - ', 'widgets @beta'],

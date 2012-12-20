@@ -7,11 +7,11 @@ Revision history for Perl extension App::Sqitch
      - At the start of a `deploy`, if the most recently deployed change has
        any umlogged tags (that is, tags added since the last `deploy`), they
        will be logged before the `deploy` continues (issue #60).
-     - Added the `--no-log` option to `deploy. This causes the changes to be
-       logged as deployed without actually running the deploy scripts. Useful
-       for an existing database that is being converted to Sqitch, and you
-       need to log changes as deployed because they have been deployed by
-       other means in the past.
+     - Added the `--no-log` option to `deploy`, `revert`, and `rebase`. This
+       causes the changes to be logged as deployed without actually running
+       the deploy scripts. Useful for an existing database that is being
+       converted to Sqitch, and you need to log changes as deployed because
+       they have been deployed by other means in the past.
 
 0.940  2012-12-04T05:49:45Z
      - Fixed tests that failed due to I18N issues, with thanks to Arnaud

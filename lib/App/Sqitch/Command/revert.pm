@@ -22,6 +22,13 @@ has no_prompt => (
     isa => 'Bool'
 );
 
+has log_only => (
+    is       => 'ro',
+    isa      => 'Bool',
+    required => 1,
+    default  => 0,
+);
+
 has variables => (
     is       => 'ro',
     isa      => 'HashRef',
@@ -40,6 +47,7 @@ sub options {
     return qw(
         to-target|to|target=s
         set|s=s%
+        log-only
         y
     );
 }
@@ -47,8 +55,10 @@ sub options {
 sub configure {
     my ( $class, $config, $opt ) = @_;
 
-    my %params;
-    $params{to_target} = $opt->{to_target} if exists $opt->{to_target};
+    my %params = map { $_ => $opt->{$_} } grep { exists $opt->{$_} } qw(
+        to_target
+        log_only
+    );
 
     if ( my $vars = $opt->{set} ) {
         # Merge with config.
@@ -72,7 +82,7 @@ sub execute {
     my $engine = $self->sqitch->engine;
     $engine->no_prompt( $self->no_prompt );
     if (my %v = %{ $self->variables }) { $engine->set_variables(%v) }
-    $engine->revert( $self->to_target // shift );
+    $engine->revert( $self->to_target // shift, $self->log_only );
     return $self;
 }
 

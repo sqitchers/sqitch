@@ -43,6 +43,11 @@ supports variables. The format must be C<name=value>, e.g., C<--set
 defuser='Homer Simpson'>. Overrides any values loaded from the
 C<deploy.variables> or C<revert.variables> configurations.
 
+=item C<--log-only>
+
+Log the changes as if they were reverted, but without actually running the
+revert scripts.
+
 =item C<-y>
 
 Disable the prompt that normally asks whether or not to execute the revert.

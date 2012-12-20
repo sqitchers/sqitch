@@ -20,6 +20,7 @@ can_ok $CLASS, qw(
     configure
     new
     to_target
+    log_only
     execute
     variables
 );
@@ -27,6 +28,7 @@ can_ok $CLASS, qw(
 is_deeply [$CLASS->options], [qw(
     to-target|to|target=s
     set|s=s%
+    log-only
     y
 )], 'Options should be correct';
 
@@ -71,11 +73,13 @@ CONFIG: {
     # Try merging.
     is_deeply $CLASS->configure($config, {
         to_target => 'whu',
+        log_only  => 1,
         set       => { foo => 'yo', yo => 'stellar' },
     }), {
         no_prompt => 0,
         variables => { foo => 'yo', yo => 'stellar', hi => 21 },
         to_target => 'whu',
+        log_only  => 1,
     }, 'Should have merged variables';
 
     # Try merging with revert.variables, too.
@@ -121,12 +125,12 @@ $mock_engine->mock(set_variables => sub { shift; @vars = @_ });
 
 ok $revert->execute('@alpha'), 'Execute to "@alpha"';
 ok $sqitch->engine->no_prompt, 'Engine should be no_prompt';
-is_deeply \@args, ['@alpha'],
+is_deeply \@args, ['@alpha', 0],
     '"@alpha" and "all" should be passed to the engine';
 
 @args = ();
 ok $revert->execute, 'Execute';
-is_deeply \@args, [undef],
+is_deeply \@args, [undef, 0],
     'undef and "all" should be passed to the engine';
 is_deeply {@vars}, { },
     'No vars should have been passed through to the engine';
@@ -134,14 +138,15 @@ is_deeply {@vars}, { },
 isa_ok $revert = $CLASS->new(
     sqitch    => $sqitch,
     to_target => 'foo',
+    log_only  => 1,
     variables => { foo => 'bar', one => 1 },
 ), $CLASS, 'Object with to and variables';
 
 @args = ();
 ok $revert->execute, 'Execute again';
 ok !$sqitch->engine->no_prompt, 'Engine should not be no_prompt';
-is_deeply \@args, ['foo'],
-    '"foo" and "tag" should be passed to the engine';
+is_deeply \@args, ['foo', 1],
+    '"foo" and 1 should be passed to the engine';
 is_deeply {@vars}, { foo => 'bar', one => 1 },
     'Vars should have been passed through to the engine';
 

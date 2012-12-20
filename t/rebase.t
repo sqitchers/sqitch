@@ -21,6 +21,7 @@ can_ok $CLASS, qw(
     new
     onto_target
     upto_target
+    log_only
     execute
     deploy_variables
     revert_variables
@@ -32,6 +33,7 @@ is_deeply [$CLASS->options], [qw(
     set|s=s%
     set-deploy|d=s%
     set-revert|r=s%
+    log-only
     y
 )], 'Options should be correct';
 
@@ -58,10 +60,12 @@ is_deeply $CLASS->configure($config, {
 is_deeply $CLASS->configure($config, {
     y           => 1,
     set_deploy  => { foo => 'bar' },
+    log_only    => 1,
 }), {
     no_prompt        => 1,
     deploy_variables => { foo => 'bar' },
-}, 'Should have set_deploy option and no_prompt true';
+    log_only    => 1,
+}, 'Should have deploy_veariables, no_propmt, and log_only';
 
 is_deeply $CLASS->configure($config, {
     y           => 0,
@@ -188,23 +192,24 @@ my @vars;
 $mock_engine->mock(set_variables => sub { shift; push @vars => [@_] });
 
 ok $rebase->execute('@alpha'), 'Execute to "@alpha"';
-is_deeply \@dep_args, [undef],
-    '"@alpha" and "all" should be passed to the engine deploy';
-is_deeply \@rev_args, ['@alpha'],
-    '"@alpha" and "all" should be passed to the engine revert';
+is_deeply \@dep_args, [undef, 0],
+    'undef and 0 should be passed to the engine deploy';
+is_deeply \@rev_args, ['@alpha', 0],
+    '"@alpha" and 0 should be passed to the engine revert';
 ok !$sqitch->engine->no_prompt, 'Engine should prompt';
 
 @dep_args = @rev_args = ();
 ok $rebase->execute, 'Execute';
-is_deeply \@dep_args, [undef],
-    'undef should be passed to the engine deploy';
-is_deeply \@rev_args, [undef],
-    'undef should be passed to the engine revert';
+is_deeply \@dep_args, [undef, 0],
+    'undef and 0 should be passed to the engine deploy';
+is_deeply \@rev_args, [undef, 0],
+    'undef and = should be passed to the engine revert';
 is_deeply \@vars, [],
     'No vars should have been passed through to the engine';
 
 isa_ok $rebase = $CLASS->new(
     no_prompt        => 1,
+    log_only         => 1,
     sqitch           => $sqitch,
     onto_target      => 'foo',
     upto_target      => 'bar',
@@ -215,8 +220,8 @@ isa_ok $rebase = $CLASS->new(
 @dep_args = @rev_args = ();
 ok $rebase->execute, 'Execute again';
 ok $sqitch->engine->no_prompt, 'Engine should be no_prompt';
-is_deeply \@dep_args, ['bar'], '"bar" should be passed to the engine revert';
-is_deeply \@rev_args, ['foo'], '"foo" should be passed to the engine deploy';
+is_deeply \@dep_args, ['bar', 1], '"bar" and 1 should be passed to the engine revert';
+is_deeply \@rev_args, ['foo', 1], '"foo" and 1 should be passed to the engine deploy';
 is @vars, 2, 'Variables should have been passed to the engine twice';
 is_deeply { @{ $vars[0] } }, { hey => 'there' },
     'The revert vars should have been passed first';
