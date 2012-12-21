@@ -839,7 +839,7 @@ carefully!
 
 Reverts the L<App::Sqitch::Plan::Tag> from the database, including all of its
 associated changes. The C<$log_only> parameter, if passed a true values,
-causes the revret to log the reverted changes I<without running the revert
+causes the revert to log the reverted changes I<without running the revert
 scripts>.
 
 =head3 C<check_deploy_dependencies>
