@@ -232,7 +232,8 @@ sub revert {
         $c;
     } reverse @changes;
 
-    # XXX Check for conflicts before reverting anything.
+    # Check that all dependencies will be satisfied.
+    $self->check_revert_dependencies(@changes);
 
     # Do we want to support modes, where failures would re-deploy to previous
     # tag or all the way back to the starting point? This would be very much
@@ -287,6 +288,35 @@ sub check_deploy_dependencies {
     ) if @required;
 
     hurl deploy => join $/ => @msg;
+}
+
+sub check_revert_dependencies {
+    my $self = shift;
+    my $proj = $self->plan->project;
+    my (%seen, @msg);
+
+    for my $change (@_) {
+        $seen{ $change->id } = 1;
+        my @requiring = grep {
+            !$seen{ $_->{change_id} }
+        } $self->changes_requiring_change($change) or next;
+
+        # XXX Include change_id in the output?
+        push @msg => __nx(
+            'Change "{change}" required by currently deployed change: {changes}',
+            'Change "{change}" required by currently deployed changes: {changes}',
+            scalar @requiring,
+            change  => $change->format_name_with_tags,
+            changes => join ' ', map {
+                ($_->{project} eq $proj ? '' : "$_->{project}:" )
+                . $_->{change}
+                . ($_->{asof_tag} // '')
+            } @requiring
+        );
+    }
+
+    hurl revert => join $/, @msg if @msg;
+    return $self;
 }
 
 sub change_id_for_depend {
@@ -489,21 +519,6 @@ sub revert_change {
     my ( $self, $change, $log_only ) = @_;
     $self->sqitch->info('  - ', $change->format_name_with_tags);
     $self->begin_work($change);
-
-    if (my @requiring = $self->changes_requiring_change($change)) {
-        my $proj = $self->plan->project;
-        # XXX Include change_id in the output?
-        hurl revert => __nx(
-            'Required by currently deployed change: {changes}',
-            'Required by currently deployed changes: {changes}',
-            scalar @requiring,
-            changes => join ' ', map {
-                ($_->{project} eq $proj ? '' : "$_->{project}:" )
-                . $_->{change}
-                . ($_->{asof_tag} // '')
-            } @requiring,
-        );
-    }
 
     try {
         $self->run_file($change->revert_file) unless $log_only;
@@ -849,7 +864,21 @@ scripts>.
 
 Validates that all dependencies will be met for all changes to be deployed,
 starting with the currently-deployed change up to the specified index, or to
-the last change in the plan if no index is passed.
+the last change in the plan if no index is passed. If any of the changes to be
+deployed would conflict with previously-deployed changes or are missing any
+required changes, an exception will be thrown. Used internally by C<deploy()>
+to ensure that dependencies will be satisfied before deploying any changes.
+
+=head3 C<check_revert_dependencies>
+
+  $engine->check_revert_dependencies(@changes);
+
+Validates that the list of changes to be reverted, which should be passed in
+the order in which they will be reverted, are not depended upon by other
+changes. If any are depended upon by other changes, an exception will be
+thrown listing the changes that cannot be reverted and what changes depend on
+them. Used internally by C<revert()> to ensure no dependencies will be
+violated before revering any changes.
 
 =head3 C<deploy_change>
 

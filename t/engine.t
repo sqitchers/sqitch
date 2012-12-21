@@ -4,8 +4,8 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-#use Test::More tests => 344;
-use Test::More 'no_plan';
+use Test::More tests => 352;
+#use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
 use Path::Class;
@@ -65,7 +65,7 @@ ENGINE: {
     sub is_deployed_change { push @SEEN => [ is_deployed_change  => $_[1] ]; $is_deployed_change }
     sub change_id_for      { shift; push @SEEN => [ change_id_for => {@_} ]; shift @resolved }
     sub change_offset_from_id { shift; push @SEEN => [ change_offset_from_id => [@_] ]; $offset_change }
-    sub changes_requiring_change { push @SEEN => [ changes_requiring_change => $_[1] ]; @requiring }
+    sub changes_requiring_change { push @SEEN => [ changes_requiring_change => $_[1] ]; @{ shift @requiring } }
     sub earliest_change_id { push @SEEN => [ earliest_change_id  => $_[1] ]; $earliest_change_id }
     sub latest_change_id   { push @SEEN => [ latest_change_id    => $_[1] ]; $latest_change_id }
     sub initialized        { push @SEEN => 'initialized'; $initialized }
@@ -75,6 +75,7 @@ ENGINE: {
     sub load_change        { push @SEEN => [ load_change => $_[1] ]; @load_changes }
     sub deployed_changes_since { push @SEEN => [ deployed_changes_since => $_[1] ]; @deployed_changes }
     sub mock_check_deploy  { shift; push @SEEN => [ check_deploy_dependencies => [@_] ] }
+    sub mock_check_revert  { shift; push @SEEN => [ check_revert_dependencies => [@_] ] }
     sub begin_work         { push @SEEN => ['begin_work']  if $record_work }
     sub finish_work        { push @SEEN => ['finish_work'] if $record_work }
     sub _update_ids        { push @SEEN => ['_update_ids']; $updated_idx }
@@ -255,7 +256,6 @@ is_deeply +MockOutput->get_info, [[
 ok $engine->revert_change($change), 'Revert a change';
 is_deeply $engine->seen, [
     ['begin_work'],
-    [changes_requiring_change => $change ],
     [run_file => $change->revert_file ],
     [log_revert_change => $change ],
     ['finish_work'],
@@ -268,7 +268,6 @@ is_deeply +MockOutput->get_info, [[
 ok $engine->revert_change($change, 1), 'Revert a change with log-only';
 is_deeply $engine->seen, [
     ['begin_work'],
-    [changes_requiring_change => $change ],
     [log_revert_change => $change ],
     ['finish_work'],
 ], 'Log-only revert_change should not have run the change script';
@@ -365,6 +364,9 @@ for my $meth (qw(_deploy_all _deploy_by_tag _deploy_by_change)) {
 # Mock dependency checking to add its call to the seen stuff.
 $mock_engine->mock( check_deploy_dependencies => sub {
     shift->mock_check_deploy(@_);
+});
+$mock_engine->mock( check_revert_dependencies => sub {
+    shift->mock_check_revert(@_);
 });
 
 ok $engine->deploy('@alpha'), 'Deploy to @alpha';
@@ -651,10 +653,8 @@ is_deeply $engine->seen, [
     [run_file => $changes[5]->deploy_file],
     [run_file => $changes[5]->revert_file],
     [log_fail_change => $changes[5] ],
-    [changes_requiring_change => $changes[4] ],
     [run_file => $changes[4]->revert_file],
     [log_revert_change => $changes[4]],
-    [changes_requiring_change => $changes[3] ],
     [run_file => $changes[3]->revert_file],
     [log_revert_change => $changes[3]],
 ], 'It should have reverted back to the last deployed tag';
@@ -683,7 +683,6 @@ is $@->message, __('Deploy failed'), 'Should again get final deploy failure mess
 is_deeply $engine->seen, [
     [log_deploy_change => $changes[0]],
     [log_fail_change => $changes[1]],
-    [changes_requiring_change => $changes[0] ],
     [log_revert_change => $changes[0]],
 ], 'Should have logged back to the beginning';
 is_deeply +MockOutput->get_info, [
@@ -717,11 +716,8 @@ is_deeply $engine->seen, [
     [log_deploy_change => $changes[4]],
     [log_deploy_change => $changes[5]],
     [log_fail_change => $changes[6]],
-    [changes_requiring_change => $changes[5] ],
     [log_revert_change => $changes[5] ],
-    [changes_requiring_change => $changes[4] ],
     [log_revert_change => $changes[4] ],
-    [changes_requiring_change => $changes[3] ],
     [log_revert_change => $changes[3] ],
 ], 'Should have reverted back to last tag';
 
@@ -757,7 +753,6 @@ is $@->message, __('Deploy failed'), 'Should once again get final deploy failure
 is_deeply $engine->seen, [
     [log_deploy_change => $changes[0] ],
     [log_fail_change => $changes[1] ],
-    [changes_requiring_change => $changes[0] ],
 ], 'Should have tried to revert one change';
 is_deeply +MockOutput->get_info, [
     ['  + ', 'roles'],
@@ -811,10 +806,8 @@ is_deeply $engine->seen, [
     [run_file => $changes[2]->deploy_file],
     [run_file => $changes[2]->revert_file],
     [log_fail_change => $changes[2]],
-    [changes_requiring_change => $changes[1] ],
     [run_file => $changes[1]->revert_file],
     [log_revert_change => $changes[1]],
-    [changes_requiring_change => $changes[0] ],
     [run_file => $changes[0]->revert_file],
     [log_revert_change => $changes[0]],
 ], 'It should have logged up to the failure';
@@ -843,9 +836,7 @@ is_deeply $engine->seen, [
     [log_deploy_change => $changes[0]],
     [log_deploy_change => $changes[1]],
     [log_fail_change => $changes[2]],
-    [changes_requiring_change => $changes[1] ],
     [log_revert_change => $changes[1]],
-    [changes_requiring_change => $changes[0] ],
     [log_revert_change => $changes[0]],
 ], 'Should have reveted all changes and tags';
 is_deeply +MockOutput->get_info, [
@@ -872,11 +863,8 @@ is_deeply $engine->seen, [
     [log_deploy_change => $changes[4]],
     [log_deploy_change => $changes[5]],
     [log_fail_change => $changes[6]],
-    [changes_requiring_change => $changes[5] ],
     [log_revert_change => $changes[5]],
-    [changes_requiring_change => $changes[4] ],
     [log_revert_change => $changes[4]],
-    [changes_requiring_change => $changes[3] ],
     [log_revert_change => $changes[3]],
 ], 'Should have deployed to dr_evil and revered down to @alpha';
 
@@ -975,47 +963,12 @@ DEPLOYDIE: {
 can_ok $engine, 'revert_change';
 ok $engine->revert_change($change), 'Revert the change';
 is_deeply $engine->seen, [
-    [changes_requiring_change => $change ],
     [run_file => $change->revert_file],
     [log_revert_change => $change],
 ], 'It should have been reverted';
 is_deeply +MockOutput->get_info, [
     ['  - ', $change->format_name]
 ], 'Should have shown reverted change name';
-
-# Have revert change fail with requiring changes.
-@requiring = (
-    {
-        change_id => '23234234',
-        change    => 'blah',
-        project   => 'empty',
-        asof_tag  => undef,
-    },
-    {
-        change_id => '635462345',
-        change    => 'urf',
-        project   => 'elsewhere',
-        asof_tag  => '@beta1',
-    },
-);
-
-throws_ok { $engine->revert_change($change) } 'App::Sqitch::X',
-    'Should get error reverting change others depend on';
-is $@->ident, 'revert', 'Dependent error ident should be "revert"';
-is $@->message, __nx(
-    'Required by currently deployed change: {changes}',
-    'Required by currently deployed changes: {changes}',
-    scalar 2,
-    changes => 'blah elsewhere:urf@beta1'
-), 'Dependent error message should be correct';
-is_deeply $engine->seen, [
-    [changes_requiring_change => $change ],
-], 'It should have check for requiring changes';
-is_deeply +MockOutput->get_info, [
-    ['  - ', $change->format_name]
-], 'Should have shown attempted revert change name';
-
-@requiring = ();
 
 ##############################################################################
 # Test revert().
@@ -1154,16 +1107,13 @@ MockOutput->ask_y_n_returns(1);
 ok $engine->revert, 'Revert all changes';
 is_deeply $engine->seen, [
     [deployed_changes => undef],
-    [changes_requiring_change => $dbchanges[3] ],
+    [check_revert_dependencies => [reverse @dbchanges[0..3]] ],
     [run_file => $dbchanges[3]->revert_file ],
     [log_revert_change => $dbchanges[3] ],
-    [changes_requiring_change => $dbchanges[2] ],
     [run_file => $dbchanges[2]->revert_file ],
     [log_revert_change => $dbchanges[2] ],
-    [changes_requiring_change => $dbchanges[1] ],
     [run_file => $dbchanges[1]->revert_file ],
     [log_revert_change => $dbchanges[1] ],
-    [changes_requiring_change => $dbchanges[0] ],
     [run_file => $dbchanges[0]->revert_file ],
     [log_revert_change => $dbchanges[0] ],
 ], 'Should have reverted the changes in reverse order';
@@ -1185,13 +1135,10 @@ ok $engine->revert(undef, 1), 'Revert all changes log-only';
 delete $_->{_path_segments} for @dbchanges; # These need to be invisible.
 is_deeply $engine->seen, [
     [deployed_changes => undef],
-    [changes_requiring_change => $dbchanges[3] ],
+    [check_revert_dependencies => [reverse @dbchanges[0..3]] ],
     [log_revert_change => $dbchanges[3] ],
-    [changes_requiring_change => $dbchanges[2] ],
     [log_revert_change => $dbchanges[2] ],
-    [changes_requiring_change => $dbchanges[1] ],
     [log_revert_change => $dbchanges[1] ],
-    [changes_requiring_change => $dbchanges[0] ],
     [log_revert_change => $dbchanges[0] ],
 ], 'Log-only Should have reverted the changes in reverse order';
 is_deeply +MockOutput->get_ask_y_n, [
@@ -1232,16 +1179,13 @@ $mock_engine->mock( no_prompt => sub { $no_prompt } );
 ok $engine->revert, 'Revert all changes with no prompt';
 is_deeply $engine->seen, [
     [deployed_changes => undef],
-    [changes_requiring_change => $dbchanges[3] ],
+    [check_revert_dependencies => [reverse @dbchanges[0..3]] ],
     [run_file => $dbchanges[3]->revert_file ],
     [log_revert_change => $dbchanges[3] ],
-    [changes_requiring_change => $dbchanges[2] ],
     [run_file => $dbchanges[2]->revert_file ],
     [log_revert_change => $dbchanges[2] ],
-    [changes_requiring_change => $dbchanges[1] ],
     [run_file => $dbchanges[1]->revert_file ],
     [log_revert_change => $dbchanges[1] ],
-    [changes_requiring_change => $dbchanges[0] ],
     [run_file => $dbchanges[0]->revert_file ],
     [log_revert_change => $dbchanges[0] ],
 ], 'Should have reverted the changes in reverse order';
@@ -1268,10 +1212,9 @@ is_deeply $engine->seen, [
     [change_id_for => { change_id => undef, change => '', tag => 'alpha', project => 'sql' }],
     [ change_offset_from_id => [$dbchanges[1]->id, 0] ],
     [deployed_changes_since => $dbchanges[1]],
-    [changes_requiring_change => $dbchanges[3] ],
+    [check_revert_dependencies => [reverse @dbchanges[2..3]] ],
     [run_file => $dbchanges[3]->revert_file ],
     [log_revert_change => $dbchanges[3] ],
-    [changes_requiring_change => $dbchanges[2] ],
     [run_file => $dbchanges[2]->revert_file ],
     [log_revert_change => $dbchanges[2] ],
 ], 'Should have reverted only changes after @alpha';
@@ -1321,7 +1264,7 @@ is_deeply $engine->seen, [
     [change_id_for => { change_id => undef, change => '', tag => 'HEAD', project => 'sql' }],
     [change_offset_from_id => [$dbchanges[-1]->id, -1] ],
     [deployed_changes_since => $dbchanges[-1]],
-    [changes_requiring_change => $dbchanges[-1] ],
+    [check_revert_dependencies => [$dbchanges[-1]] ],
     [run_file => $dbchanges[-1]->revert_file ],
     [log_revert_change => $dbchanges[-1] ],
 ], 'Should have reverted one changes for @HEAD^';
@@ -1419,7 +1362,7 @@ is_deeply $engine->seen, [
 $mock_engine->unmock('check_deploy_dependencies');
 can_ok $engine, 'check_deploy_dependencies';
 
-CHECK_DEPEND: {
+CHECK_DEPLOY_DEPEND: {
     # Make sure dependencies check out for all the existing changes.
     $plan->reset;
     ok $engine->check_deploy_dependencies($plan),
@@ -1628,5 +1571,102 @@ CHECK_DEPEND: {
     ], 'Should have called check_requires';
     is_deeply [ map { $_->resolved_id } @requires ], [undef, undef],
         'Missing requirements should not have resolved';
-
 }
+
+# Test revert dependency-checking.
+$mock_engine->unmock('check_revert_dependencies');
+can_ok $engine, 'check_revert_dependencies';
+
+CHECK_REVERT_DEPEND: {
+    my $change = App::Sqitch::Plan::Change->new(
+        name      => 'urfa',
+        id        => '24234234234e',
+        plan      => $plan,
+    );
+
+    # Have revert change fail with requiring changes.
+    my $req = {
+        change_id => '23234234',
+        change    => 'blah',
+        asof_tag  => undef,
+        project   => $plan->project,
+    };
+    @requiring = [$req];
+
+    throws_ok { $engine->check_revert_dependencies($change) } 'App::Sqitch::X',
+        'Should get error reverting change another depend on';
+    is $@->ident, 'revert', 'Dependent error ident should be "revert"';
+    is $@->message, __nx(
+        'Change "{change}" required by currently deployed change: {changes}',
+        'Change "{change}" required by currently deployed changes: {changes}',
+        1,
+        change  => 'urfa',
+        changes => 'blah'
+    ), 'Dependent error message should be correct';
+    is_deeply $engine->seen, [
+        [changes_requiring_change => $change ],
+    ], 'It should have check for requiring changes';
+
+    # Add a second requiring change.
+    my $req2 = {
+        change_id => '99999',
+        change    => 'harhar',
+        asof_tag  => '@foo',
+        project   => 'elsewhere',
+    };
+    @requiring = [$req, $req2];
+
+    throws_ok { $engine->check_revert_dependencies($change) } 'App::Sqitch::X',
+        'Should get error reverting change others depend on';
+    is $@->ident, 'revert', 'Dependent error ident should be "revert"';
+    is $@->message, __nx(
+        'Change "{change}" required by currently deployed change: {changes}',
+        'Change "{change}" required by currently deployed changes: {changes}',
+        2 ,
+        change  => 'urfa',
+        changes => 'blah elsewhere:harhar@foo'
+    ), 'Dependent error message should be correct';
+    is_deeply $engine->seen, [
+        [changes_requiring_change => $change ],
+    ], 'It should have check for requiring changes';
+
+    # Try it with two changes.
+    my $req3 = {
+        change_id => '94949494',
+        change    => 'frobisher',
+        project   => 'whu',
+    };
+    @requiring = ([$req, $req2], [$req3]);
+
+    my $change2 = App::Sqitch::Plan::Change->new(
+        name      => 'kazane',
+        id        => '8686868686',
+        plan      => $plan,
+    );
+
+    throws_ok { $engine->check_revert_dependencies($change, $change2) } 'App::Sqitch::X',
+        'Should get error reverting change others depend on';
+    is $@->ident, 'revert', 'Dependent error ident should be "revert"';
+    is $@->message, join(
+        $/,
+        __nx(
+            'Change "{change}" required by currently deployed change: {changes}',
+            'Change "{change}" required by currently deployed changes: {changes}',
+            2 ,
+            change  => 'urfa',
+            changes => 'blah elsewhere:harhar@foo'
+        ),
+        __nx(
+            'Change "{change}" required by currently deployed change: {changes}',
+            'Change "{change}" required by currently deployed changes: {changes}',
+            1,
+            change  => 'kazane',
+            changes => 'whu:frobisher'
+        ),
+    ), 'Dependent error message should be correct';
+    is_deeply $engine->seen, [
+        [changes_requiring_change => $change ],
+        [changes_requiring_change => $change2 ],
+    ], 'It should have checked twice for requiring changes';
+}
+
