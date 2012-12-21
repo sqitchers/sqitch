@@ -12,6 +12,10 @@ Revision history for Perl extension App::Sqitch
        the deploy scripts. Useful for an existing database that is being
        converted to Sqitch, and you need to log changes as deployed because
        they have been deployed by other means in the past.
+     - Now check that dependencies are required for all changes to be deployed
+       before deploying anything, rather than checkint for each change just
+       before deploying it. This allows a deploy to fail sooner, with no
+       database changes, when dependencies are not met.
 
 0.940  2012-12-04T05:49:45Z
      - Fixed tests that failed due to I18N issues, with thanks to Arnaud

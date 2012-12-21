@@ -4,8 +4,8 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 332;
-#use Test::More 'no_plan';
+#use Test::More tests => 344;
+use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
 use Path::Class;
@@ -74,6 +74,7 @@ ENGINE: {
     sub deployed_changes   { push @SEEN => [ deployed_changes => $_[1] ]; @deployed_changes }
     sub load_change        { push @SEEN => [ load_change => $_[1] ]; @load_changes }
     sub deployed_changes_since { push @SEEN => [ deployed_changes_since => $_[1] ]; @deployed_changes }
+    sub mock_check_deploy  { shift; push @SEEN => [ check_deploy_dependencies => [@_] ] }
     sub begin_work         { push @SEEN => ['begin_work']  if $record_work }
     sub finish_work        { push @SEEN => ['finish_work'] if $record_work }
     sub _update_ids        { push @SEEN => ['_update_ids']; $updated_idx }
@@ -361,6 +362,11 @@ for my $meth (qw(_deploy_all _deploy_by_tag _deploy_by_change)) {
     });
 }
 
+# Mock dependency checking to add its call to the seen stuff.
+$mock_engine->mock( check_deploy_dependencies => sub {
+    shift->mock_check_deploy(@_);
+});
+
 ok $engine->deploy('@alpha'), 'Deploy to @alpha';
 is $plan->position, 1, 'Plan should be at position 1';
 is_deeply $engine->seen, [
@@ -368,6 +374,7 @@ is_deeply $engine->seen, [
     'initialized',
     'initialize',
     'register_project',
+    [check_deploy_dependencies => [$plan, 1]],
     [run_file => $changes[0]->deploy_file],
     [log_deploy_change => $changes[0]],
     [run_file => $changes[1]->deploy_file],
@@ -396,6 +403,7 @@ for my $mode (qw(change tag all)) {
         'initialized',
         'initialize',
         'register_project',
+        [check_deploy_dependencies => [$plan, 1]],
         [log_deploy_change => $changes[0]],
         [log_deploy_change => $changes[1]],
     ], 'Should have deployed through @alpha without running files';
@@ -424,6 +432,7 @@ is_deeply $engine->seen, [
     [latest_change_id => undef],
     'initialized',
     'register_project',
+    [check_deploy_dependencies => [$plan, 1]],
     [run_file => $changes[0]->deploy_file],
     [log_deploy_change => $changes[0]],
     [run_file => $changes[1]->deploy_file],
@@ -485,6 +494,7 @@ is_deeply $engine->seen, [
     [latest_change_id => undef],
     'initialized',
     'register_project',
+    [check_deploy_dependencies => [$plan, 3]],
     [run_file => $changes[0]->deploy_file],
     [log_deploy_change => $changes[0]],
     [run_file => $changes[1]->deploy_file],
@@ -527,6 +537,7 @@ is_deeply $engine->seen, [
     [latest_change_id => undef],
     'initialized',
     'register_project',
+    [check_deploy_dependencies => [$plan, 3]],
 ], 'It should have check for initialization';
 is_deeply +MockOutput->get_info, [
     [__x 'Deploying changes to {destination}', destination =>  $engine->destination ],
@@ -920,97 +931,12 @@ my $make_deps = sub {
         my $dep = App::Sqitch::Plan::Depend->new(
             change    => $_,
             plan      => $plan,
+            project   => $plan->project,
             conflicts => $conflicts,
         );
         $dep;
     } @_;
 };
-
-CONFLICTS: {
-    # Die on conflicts.
-    my $mock_depend = Test::MockModule->new('App::Sqitch::Plan::Depend');
-    $mock_depend->mock(id => sub { undef });
-
-    my @conflicts = $make_deps->( 1, qw(foo bar) );
-    my $change = App::Sqitch::Plan::Change->new(
-        name      => 'foo',
-        plan      => $sqitch->plan,
-        conflicts => \@conflicts,
-    );
-    push @resolved, '2342', '253245';
-    throws_ok { $engine->deploy_change($change) } 'App::Sqitch::X',
-        'Conflict should throw exception';
-    is $@->ident, 'deploy', 'Should be a "deploy" error';
-    is $@->message, __nx(
-        'Conflicts with previously deployed change: {changes}',
-        'Conflicts with previously deployed changes: {changes}',
-        scalar 2,
-        changes => 'foo bar',
-    ), 'Should have localized message about conflicts';
-
-    is_deeply $engine->seen, [
-        [ change_id_for => {
-            change_id => undef,
-            change    => 'foo',
-            tag       => undef,
-            project   => 'sql',
-        } ],
-        [ change_id_for => {
-            change_id => undef,
-            change    => 'bar',
-            tag       => undef,
-            project   => 'sql',
-        } ],
-    ], 'Should have called change_id_for() twice';
-    is_deeply +MockOutput->get_info, [
-        ['  + ', $change->format_name]
-    ], 'Should again have shown change name';
-    is_deeply [ map { $_->resolved_id } @conflicts ], [undef, undef],
-        'Conflicting dependencies should have no resolved IDs';
-}
-
-REQUIRES: {
-    # Die on missing dependencies.
-    my $mock_depend = Test::MockModule->new('App::Sqitch::Plan::Depend');
-    $mock_depend->mock(id => sub { undef });
-
-    my @requires = $make_deps->( 0, qw(foo bar) );
-    my $change = App::Sqitch::Plan::Change->new(
-        name      => 'foo',
-        plan      => $sqitch->plan,
-        requires  => \@requires,
-    );
-    push @resolved, undef, undef;
-    throws_ok { $engine->deploy_change($change) } 'App::Sqitch::X',
-        'Missing dependencies should throw exception';
-    is $@->ident, 'deploy', 'Should be another "deploy" error';
-    is $@->message, __nx(
-        'Missing required change: {changes}',
-        'Missing required changes: {changes}',
-        scalar 2,
-        changes => 'foo bar',
-    ), 'Should have localized message missing dependencies';
-
-    is_deeply $engine->seen, [
-        [ change_id_for => {
-            change_id => undef,
-            change    => 'foo',
-            tag       => undef,
-            project   => 'sql',
-        } ],
-        [ change_id_for => {
-            change_id => undef,
-            change    => 'bar',
-            tag       => undef,
-            project   => 'sql',
-        } ],
-    ], 'Should have called check_requires';
-    is_deeply +MockOutput->get_info, [
-        ['  + ', $change->format_name]
-    ], 'Should again have shown change name';
-    is_deeply [ map { $_->resolved_id } @requires ], [undef, undef],
-        'Missing requirements should not have resolved';
-}
 
 DEPLOYDIE: {
     my $mock_depend = Test::MockModule->new('App::Sqitch::Plan::Depend');
@@ -1026,29 +952,10 @@ DEPLOYDIE: {
         requires  => \@requires,
         conflicts => \@conflicts,
     );
-    @resolved = (0, '232213', '2352354');
     throws_ok { $engine->deploy_change($change) } 'App::Sqitch::X',
         'Shuld die on deploy failure';
     is $@->message, __ 'Deploy failed', 'Should be told the deploy failed';
     is_deeply $engine->seen, [
-        [ change_id_for => {
-            change_id => undef,
-            change    => 'dr_evil',
-            tag       => undef,
-            project   => 'sql',
-        } ],
-        [ change_id_for => {
-            change_id => undef,
-            change    => 'foo',
-            tag       => undef,
-            project   => 'sql',
-        } ],
-        [ change_id_for => {
-            change_id => undef,
-            change    => 'bar',
-            tag       => undef,
-            project   => 'sql',
-        } ],
         [run_file => $change->deploy_file],
         [run_file => $change->revert_file],
         [log_fail_change => $change],
@@ -1060,10 +967,6 @@ DEPLOYDIE: {
         ['  + ', $change->format_name],
         ['  - ', $change->format_name],
     ], 'Should have shown change name';
-    is_deeply [ map { $_->resolved_id } @conflicts ], [undef],
-        'Non-conflicting dependency should not have resolved';
-    is_deeply [ map { $_->resolved_id } @requires ], ['232213', '2352354'],
-        'Satisffied requirements should have resolved';
     $die = '';
 }
 
@@ -1510,3 +1413,220 @@ is_deeply $engine->seen, [
     }],
     [change_offset_from_id => [ $dbchanges[1]->id, 1 ]],
 ], 'Project and offset should have been passed off';
+
+##############################################################################
+# Test check_deploy_dependenices().
+$mock_engine->unmock('check_deploy_dependencies');
+can_ok $engine, 'check_deploy_dependencies';
+
+CHECK_DEPEND: {
+    # Make sure dependencies check out for all the existing changes.
+    $plan->reset;
+    ok $engine->check_deploy_dependencies($plan),
+        'All planned changes should be okay';
+
+    # Make sure it works when depending on a previous change.
+    my $change = $plan->change_at(3);
+    push @{ $change->_requires } => $make_deps->( 0, 'users' );
+    ok $engine->check_deploy_dependencies($plan),
+        'Dependencies should check out even when within those to be deployed';
+
+    # Make sure it fails if there is a conflict within those to be deployed.
+    push @{ $change->_conflicts } => $make_deps->( 1, 'widgets' );
+    throws_ok { $engine->check_deploy_dependencies($plan) } 'App::Sqitch::X',
+        'Conflict should throw exception';
+    is $@->ident, 'deploy', 'Should be a "deploy" error';
+    is $@->message, __nx(
+        'Conflicts with previously deployed change: {changes}',
+        'Conflicts with previously deployed changes: {changes}',
+        scalar 1,
+        changes => 'widgets',
+    ), 'Should have localized message about the local conflict';
+    shift @{ $change->_conflicts };
+
+    # Now test looking stuff up in the database.
+    my $mock_depend = Test::MockModule->new('App::Sqitch::Plan::Depend');
+    my @depend_ids;
+    $mock_depend->mock(id => sub { shift @depend_ids });
+
+    my @conflicts = $make_deps->( 1, qw(foo bar) );
+    $change = App::Sqitch::Plan::Change->new(
+        name      => 'foo',
+        plan      => $sqitch->plan,
+        conflicts => \@conflicts,
+    );
+    $plan->_changes->append($change);
+
+    my $start_from = $plan->count - 1;
+    $plan->position( $start_from - 1);
+    push @resolved, '2342', '253245';
+    throws_ok { $engine->check_deploy_dependencies($plan, $start_from) } 'App::Sqitch::X',
+        'Conflict should throw exception';
+    is $@->ident, 'deploy', 'Should be a "deploy" error';
+    is $@->message, __nx(
+        'Conflicts with previously deployed change: {changes}',
+        'Conflicts with previously deployed changes: {changes}',
+        scalar 2,
+        changes => 'foo bar',
+    ), 'Should have localized message about conflicts';
+
+    is_deeply $engine->seen, [
+        [ change_id_for => {
+            change_id => undef,
+            change    => 'foo',
+            tag       => undef,
+            project   => 'sql',
+        } ],
+        [ change_id_for => {
+            change_id => undef,
+            change    => 'bar',
+            tag       => undef,
+            project   => 'sql',
+        } ],
+    ], 'Should have called change_id_for() twice';
+    is_deeply [ map { $_->resolved_id } @conflicts ], [undef, undef],
+        'Conflicting dependencies should have no resolved IDs';
+
+    # Fail with multiple conflicts.
+    push @{ $plan->change_at(3)->_conflicts } => $make_deps->( 1, 'widgets' );
+    $plan->reset;
+    push @depend_ids => $plan->change_at(2)->id;
+    push @resolved, '2342', '253245', '2323434';
+    throws_ok { $engine->check_deploy_dependencies($plan) } 'App::Sqitch::X',
+        'Conflict should throw another exception';
+    is $@->ident, 'deploy', 'Should be a "deploy" error';
+    is $@->message, __nx(
+        'Conflicts with previously deployed change: {changes}',
+        'Conflicts with previously deployed changes: {changes}',
+        scalar 3,
+        changes => 'widgets foo bar',
+    ), 'Should have localized message about all three conflicts';
+
+    is_deeply $engine->seen, [
+        [ change_id_for => {
+            change_id => undef,
+            change    => 'users',
+            tag       => undef,
+            project   => 'sql',
+        } ],
+        [ change_id_for => {
+            change_id => undef,
+            change    => 'foo',
+            tag       => undef,
+            project   => 'sql',
+        } ],
+        [ change_id_for => {
+            change_id => undef,
+            change    => 'bar',
+            tag       => undef,
+            project   => 'sql',
+        } ],
+    ], 'Should have called change_id_for() twice';
+    is_deeply [ map { $_->resolved_id } @conflicts ], [undef, undef],
+        'Conflicting dependencies should have no resolved IDs';
+
+    ##########################################################################
+    # Die on missing dependencies.
+    my @requires = $make_deps->( 0, qw(foo bar) );
+    $change = App::Sqitch::Plan::Change->new(
+        name      => 'blah',
+        plan      => $sqitch->plan,
+        requires  => \@requires,
+    );
+    $plan->_changes->append($change);
+    $start_from = $plan->count - 1;
+    $plan->position( $start_from - 1);
+
+    push @resolved, undef, undef;
+    throws_ok { $engine->check_deploy_dependencies($plan, $start_from) } 'App::Sqitch::X',
+        'Missing dependencies should throw exception';
+    is $@->ident, 'deploy', 'Should be another "deploy" error';
+    is $@->message, __nx(
+        'Missing required change: {changes}',
+        'Missing required changes: {changes}',
+        scalar 2,
+        changes => 'foo bar',
+    ), 'Should have localized message missing dependencies';
+
+    is_deeply $engine->seen, [
+        [ change_id_for => {
+            change_id => undef,
+            change    => 'foo',
+            tag       => undef,
+            project   => 'sql',
+        } ],
+        [ change_id_for => {
+            change_id => undef,
+            change    => 'bar',
+            tag       => undef,
+            project   => 'sql',
+        } ],
+    ], 'Should have called check_requires';
+    is_deeply [ map { $_->resolved_id } @requires ], [undef, undef],
+        'Missing requirements should not have resolved';
+
+    # Make sure we see both conflict and prereq failures.
+    push @resolved, '2342', '253245', '2323434', undef, undef;
+    $plan->reset;
+
+    throws_ok { $engine->check_deploy_dependencies($plan, $start_from) } 'App::Sqitch::X',
+        'Missing dependencies should throw exception';
+    is $@->ident, 'deploy', 'Should be another "deploy" error';
+    is $@->message, join(
+        $/,
+        __nx(
+            'Conflicts with previously deployed change: {changes}',
+            'Conflicts with previously deployed changes: {changes}',
+            scalar 3,
+            changes => 'widgets foo',
+        ),
+        __nx(
+            'Missing required change: {changes}',
+            'Missing required changes: {changes}',
+            scalar 2,
+            changes => 'foo bar',
+        ),
+    ), 'Should have localized conflicts and required error messages';
+
+    is_deeply $engine->seen, [
+        [ change_id_for => {
+            change_id => undef,
+            change    => 'widgets',
+            tag       => undef,
+            project   => 'sql',
+        } ],
+        [ change_id_for => {
+            change_id => undef,
+            change    => 'users',
+            tag       => undef,
+            project   => 'sql',
+        } ],
+        [ change_id_for => {
+            change_id => undef,
+            change    => 'foo',
+            tag       => undef,
+            project   => 'sql',
+        } ],
+        [ change_id_for => {
+            change_id => undef,
+            change    => 'bar',
+            tag       => undef,
+            project   => 'sql',
+        } ],
+        [ change_id_for => {
+            change_id => undef,
+            change    => 'foo',
+            tag       => undef,
+            project   => 'sql',
+        } ],
+        [ change_id_for => {
+            change_id => undef,
+            change    => 'bar',
+            tag       => undef,
+            project   => 'sql',
+        } ],
+    ], 'Should have called check_requires';
+    is_deeply [ map { $_->resolved_id } @requires ], [undef, undef],
+        'Missing requirements should not have resolved';
+
+}

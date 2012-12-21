@@ -123,6 +123,10 @@ sub deploy {
         )
     );
 
+    # Check that all dependencies will be satisfied.
+    $self->check_deploy_dependencies($plan, $to_index);
+
+    # Do it!
     $mode ||= 'all';
     my $meth = $mode eq 'change' ? '_deploy_by_change'
              : $mode eq 'tag'  ? '_deploy_by_tag'
@@ -238,6 +242,51 @@ sub revert {
     $self->revert_change($_, $log_only) for @changes;
 
     return $self;
+}
+
+sub check_deploy_dependencies {
+    my ( $self, $plan, $to_index ) = @_;
+
+    my $from_index = $plan->position;
+    $to_index    //= $plan->count - 1;
+    my (%seen, @conflicts, @required);
+
+    while ($from_index < $to_index) {
+        my $change = $plan->change_at( ++$from_index );
+
+        # Check for conflicts.
+        push @conflicts => grep {
+            $seen{ $_->id // '' } || $self->change_id_for_depend($_)
+        } $change->conflicts;
+
+        # Check for prerequisites.
+        push @required => grep {
+            !$seen{ $_->id // ''} && !$_->resolved_id(
+                $self->change_id_for_depend($_)
+            )
+        } $change->requires;
+        $seen{$change->id} = 1;
+    }
+
+    return $self unless @conflicts or @required;
+
+    # Dependencies not satisfied. Put together the error messages.
+    my @msg;
+    push @msg, __nx(
+        'Conflicts with previously deployed change: {changes}',
+        'Conflicts with previously deployed changes: {changes}',
+        scalar @conflicts,
+        changes => join ' ', map { $_->as_string } @conflicts,
+    ) if @conflicts;
+
+    push @msg, __nx(
+        'Missing required change: {changes}',
+        'Missing required changes: {changes}',
+        scalar @required,
+        changes => join ' ', map { $_->as_string } @required,
+    ) if @required;
+
+    hurl deploy => join $/ => @msg;
 }
 
 sub change_id_for_depend {
@@ -407,30 +456,6 @@ sub deploy_change {
     my $sqitch = $self->sqitch;
     $sqitch->info('  + ', $change->format_name_with_tags);
     $self->begin_work($change);
-
-    # Check for conflicts.
-    if (my @conflicts = grep {
-        $self->change_id_for_depend($_)
-    } $change->conflicts) {
-        hurl deploy => __nx(
-            'Conflicts with previously deployed change: {changes}',
-            'Conflicts with previously deployed changes: {changes}',
-            scalar @conflicts,
-            changes => join ' ', map { $_->as_string } @conflicts,
-        )
-    }
-
-    # Check for dependencies.
-    if (my @required = grep {
-        !$_->resolved_id( $self->change_id_for_depend($_) )
-    } $change->requires) {
-        hurl deploy => __nx(
-            'Missing required change: {changes}',
-            'Missing required changes: {changes}',
-            scalar @required,
-            changes => join ' ', map { $_->as_string } @required,
-        );
-    }
 
     return try {
         $self->run_file($change->deploy_file) unless $log_only;
@@ -816,6 +841,15 @@ Reverts the L<App::Sqitch::Plan::Tag> from the database, including all of its
 associated changes. The C<$log_only> parameter, if passed a true values,
 causes the revret to log the reverted changes I<without running the revert
 scripts>.
+
+=head3 C<check_deploy_dependencies>
+
+  $engine->check_deploy_dependencies;
+  $engine->check_deploy_dependencies($to_index);
+
+Validates that all dependencies will be met for all changes to be deployed,
+starting with the currently-deployed change up to the specified index, or to
+the last change in the plan if no index is passed.
 
 =head3 C<deploy_change>
 
