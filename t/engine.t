@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 352;
+use Test::More tests => 354;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -32,6 +32,7 @@ can_ok $CLASS, qw(load new name no_prompt);
 
 my ($is_deployed_tag, $is_deployed_change) = (0, 0);
 my @deployed_changes;
+my @deployed_change_ids;
 my @resolved;
 my @requiring;
 my @load_changes;
@@ -63,6 +64,7 @@ ENGINE: {
     }
     sub is_deployed_tag    { push @SEEN => [ is_deployed_tag   => $_[1] ]; $is_deployed_tag }
     sub is_deployed_change { push @SEEN => [ is_deployed_change  => $_[1] ]; $is_deployed_change }
+    sub are_deployed_changes { shift; push @SEEN => [ are_deployed_changes  => [@_] ]; @deployed_change_ids }
     sub change_id_for      { shift; push @SEEN => [ change_id_for => {@_} ]; shift @resolved }
     sub change_offset_from_id { shift; push @SEEN => [ change_offset_from_id => [@_] ]; $offset_change }
     sub changes_requiring_change { push @SEEN => [ changes_requiring_change => $_[1] ]; @{ shift @requiring } }
@@ -189,6 +191,7 @@ for my $abs (qw(
     log_new_tags
     is_deployed_tag
     is_deployed_change
+    are_deployed_changes
     change_id_for
     changes_requiring_change
     earliest_change_id
@@ -1367,6 +1370,9 @@ CHECK_DEPLOY_DEPEND: {
     $plan->reset;
     ok $engine->check_deploy_dependencies($plan),
         'All planned changes should be okay';
+    is_deeply $engine->seen, [
+        [ are_deployed_changes => [map { $plan->change_at($_) } 0..$plan->count - 1] ],
+    ], 'Should have called are_deployed_changes';
 
     # Make sure it works when depending on a previous change.
     my $change = $plan->change_at(3);
@@ -1414,6 +1420,7 @@ CHECK_DEPLOY_DEPEND: {
     ), 'Should have localized message about conflicts';
 
     is_deeply $engine->seen, [
+        [ are_deployed_changes => [map { $plan->change_at($_) } 0..$start_from-1] ],
         [ change_id_for => {
             change_id => undef,
             change    => 'foo',

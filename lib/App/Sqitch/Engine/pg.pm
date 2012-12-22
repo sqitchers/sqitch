@@ -562,6 +562,15 @@ sub is_deployed_change {
     }, undef, $change->id)->[0];
 }
 
+sub are_deployed_changes {
+    my $self = shift;
+    @{ $self->_dbh->selectcol_arrayref(
+        'SELECT change_id FROM changes WHERE change_id = ANY(?)',
+        undef,
+        [ map { $_->id } @_ ],
+    ) };
+}
+
 sub changes_requiring_change {
     my ( $self, $change ) = @_;
     return @{ $self->_dbh->selectall_arrayref(q{

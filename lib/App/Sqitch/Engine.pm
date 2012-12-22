@@ -247,14 +247,12 @@ sub revert {
 
 sub check_deploy_dependencies {
     my ( $self, $plan, $to_index ) = @_;
-
-    my $from_index = $plan->position;
+    my $from_index = $plan->position + 1;
     $to_index    //= $plan->count - 1;
+    my @changes = map { $plan->change_at($_) } $from_index..$to_index;
     my (%seen, @conflicts, @required);
 
-    while ($from_index < $to_index) {
-        my $change = $plan->change_at( ++$from_index );
-
+    for my $change (@changes) {
         # Check for conflicts.
         push @conflicts => grep {
             $seen{ $_->id // '' } || $self->change_id_for_depend($_)
@@ -266,28 +264,40 @@ sub check_deploy_dependencies {
                 $self->change_id_for_depend($_)
             )
         } $change->requires;
-        $seen{$change->id} = 1;
+        $seen{ $change->id } = $change;
     }
 
-    return $self unless @conflicts or @required;
+    if (@conflicts or @required) {
+        # Dependencies not satisfied. Put together the error messages.
+        my @msg;
+        push @msg, __nx(
+            'Conflicts with previously deployed change: {changes}',
+            'Conflicts with previously deployed changes: {changes}',
+            scalar @conflicts,
+            changes => join ' ', map { $_->as_string } @conflicts,
+        ) if @conflicts;
 
-    # Dependencies not satisfied. Put together the error messages.
-    my @msg;
-    push @msg, __nx(
-        'Conflicts with previously deployed change: {changes}',
-        'Conflicts with previously deployed changes: {changes}',
-        scalar @conflicts,
-        changes => join ' ', map { $_->as_string } @conflicts,
-    ) if @conflicts;
+        push @msg, __nx(
+            'Missing required change: {changes}',
+            'Missing required changes: {changes}',
+            scalar @required,
+            changes => join ' ', map { $_->as_string } @required,
+        ) if @required;
 
-    push @msg, __nx(
-        'Missing required change: {changes}',
-        'Missing required changes: {changes}',
-        scalar @required,
-        changes => join ' ', map { $_->as_string } @required,
-    ) if @required;
+        hurl deploy => join $/ => @msg;
+    }
 
-    hurl deploy => join $/ => @msg;
+    # Make sure nothing isn't already deployed.
+    if ( my @ids = $self->are_deployed_changes(@changes) ) {
+        hurl deploy => __nx(
+            'Change "{changes}" has already been deployed',
+            'Changes have already been deployed: {changes}',
+            scalar @ids,
+            changes => join ' ', map { $seen{$_} } @ids
+        );
+    }
+
+    return $self;
 }
 
 sub check_revert_dependencies {
@@ -316,6 +326,10 @@ sub check_revert_dependencies {
     }
 
     hurl revert => join $/, @msg if @msg;
+
+    # XXX Should we make sure that they are all deployed before trying to
+    # revert them?
+
     return $self;
 }
 
@@ -606,6 +620,11 @@ sub is_deployed_tag {
 sub is_deployed_change {
     my $class = ref $_[0] || $_[0];
     hurl "$class has not implemented is_deployed_change()";
+}
+
+sub are_deployed_changes {
+    my $class = ref $_[0] || $_[0];
+    hurl "$class has not implemented are_deployed_changes()";
 }
 
 sub change_id_for {
@@ -1047,6 +1066,14 @@ the database, and false if it has not.
 
 Should return true if the L<change|App::Sqitch::Plan::Change> has been
 deployed to the database, and false if it has not.
+
+=head3 C<are_deployed_changes>
+
+  say "Change $_ is deployed" for $engine->are_deployed_change(@changes);
+
+Should return the IDs of any of the changes passed in that are currently
+deployed. Used by C<deploy> to ensure that no changes already deployed are
+re-deployed.
 
 =head3 C<change_id_for>
 

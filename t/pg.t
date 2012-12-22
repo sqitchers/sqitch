@@ -441,8 +441,12 @@ subtest 'live database' => sub {
     my ($tag) = $change->tags;
     is $change->name, 'users', 'Should have "users" change';
     ok !$pg->is_deployed_change($change), 'The change should not be deployed';
+    is_deeply [$pg->are_deployed_changes($change)], [],
+        'The change should not be deployed';
     ok $pg->log_deploy_change($change), 'Deploy "users" change';
     ok $pg->is_deployed_change($change), 'The change should now be deployed';
+    is_deeply [$pg->are_deployed_changes($change)], [$change->id],
+        'The change should now be deployed';
 
     is $pg->earliest_change_id, $change->id, 'Should get users ID for earliest change ID';
     is $pg->earliest_change_id(1), undef, 'Should get no change offset 1 from earliest';
@@ -585,6 +589,8 @@ subtest 'live database' => sub {
     # Test log_revert_change().
     ok $pg->log_revert_change($change), 'Revert "users" change';
     ok !$pg->is_deployed_change($change), 'The change should no longer be deployed';
+    is_deeply [$pg->are_deployed_changes($change)], [],
+        'The change should no longer be deployed';
 
     is $pg->earliest_change_id, undef, 'Should get undef for earliest change';
     is $pg->latest_change_id, undef, 'Should get undef for latest change';
@@ -643,6 +649,8 @@ subtest 'live database' => sub {
     # Test log_fail_change().
     ok $pg->log_fail_change($change), 'Fail "users" change';
     ok !$pg->is_deployed_change($change), 'The change still should not be deployed';
+    is_deeply [$pg->are_deployed_changes($change)], [],
+        'The change still should not be deployed';
     is $pg->earliest_change_id, undef, 'Should still get undef for earliest change';
     is $pg->latest_change_id, undef, 'Should still get undef for latest change';
     is_deeply all_changes(), [], 'Still should have not changes table record';
@@ -712,6 +720,8 @@ subtest 'live database' => sub {
     is $pg->latest_change_id(1), undef, 'Should still get no change offset 1 from latest';
 
     ok my $change2 = $plan->change_at(1),   'Get the second change';
+    is_deeply [sort $pg->are_deployed_changes($change, $change2)], [$change->id],
+        'Only the first change should be deployed';
     my ($req) = $change2->requires;
     ok $req->resolved_id($change->id),      'Set resolved ID in required depend';
     ok $pg->log_deploy_change($change2),    'Deploy second change';
@@ -746,6 +756,9 @@ subtest 'live database' => sub {
             $change2->planner_email,
         ],
     ], 'Should have both changes and requires/conflcits deployed';
+    is_deeply [sort $pg->are_deployed_changes($change, $change2)],
+        [sort $change->id, $change2->id],
+        'Both changes should be deployed';
     is_deeply get_dependencies($change->id), [],
         'Should still have no dependencies for "users"';
     is_deeply get_dependencies($change2->id), [

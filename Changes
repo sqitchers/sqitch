@@ -17,6 +17,8 @@ Revision history for Perl extension App::Sqitch
        checking depdencies for each change just before deploying or reverting
        it. This allows a or revert deploy to fail sooner, with no database
        changes, when dependencies are not met.
+     - Now check that no changes are already deployed before attempting to
+       deploy any changes.
 
 0.940  2012-12-04T05:49:45Z
      - Fixed tests that failed due to I18N issues, with thanks to Arnaud
