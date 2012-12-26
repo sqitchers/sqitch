@@ -29,6 +29,12 @@ has no_prompt => (
     default => 0,
 );
 
+has with_verify => (
+    is      => 'rw',
+    isa     => 'Bool',
+    default => 0,
+);
+
 has _variables => (
     traits  => ['Hash'],
     is      => 'rw',
@@ -241,6 +247,20 @@ sub revert {
     # something you generaly want to recover from by deploying back to where
     # you started. But maybe I'm wrong?
     $self->revert_change($_, $log_only) for @changes;
+
+    return $self;
+}
+
+sub verify_change {
+    my ( $self, $change ) = @_;
+    my $file = $change->verify_file;
+    return $self->run_file( $file ) if -e $file;
+
+    # The file does not exist. Complain, but don't die.
+    $self->sqitch->vent(__x(
+        'Verify file {file} does not exist',
+        file => $file,
+    ));
 
     return $self;
 }
@@ -503,6 +523,7 @@ sub deploy_change {
 
     return try {
         $self->run_file($change->deploy_file) unless $log_only;
+        $self->verify_change( $change ) if $self->with_verify;
         try {
             $self->log_deploy_change($change);
         } catch {
@@ -786,6 +807,30 @@ The App::Sqitch object driving the whole thing.
 
 Instantiates and returns a App::Sqitch::Engine object.
 
+=head2 Instance Accessors
+
+=head3 C<sqitch>
+
+The current Sqitch object.
+
+=head3 C<start_at>
+
+The point in the plan from which to start deploying changes.
+
+=head3 C<no_prompt>
+
+Boolean indicating whether or not to prompt for reverts. False by default.
+
+=head3 C<with_verify>
+
+Boolean indicating whether or not to run the verification script after each
+deploy scxript. False by default.
+
+=head3 C<variables>
+
+A hash of engine client variables to be set. May be set and retrieved as a
+list.
+
 =head2 Instance Methods
 
 =head3 C<name>
@@ -913,6 +958,13 @@ Used internally by C<deploy()> to deploy an individual change.
 
 Used internally by C<revert()> (and, by C<deploy()> when a deploy fails) to
 revert an individual change.
+
+=head3 C<verify_change>
+
+  $engine->verify_change($change);
+
+Used internally by C<deploy_change()> to verify a just-deployed change if
+C<with_verify> is true.
 
 =head3 C<is_deployed>
 

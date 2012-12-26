@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 354;
+use Test::More tests => 377;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -91,8 +91,11 @@ ENGINE: {
 
 ok my $sqitch = App::Sqitch->new(
     db_name => 'mydb',
+    top_dir   => dir( qw(t sql) ),
     plan_file => file qw(t plans multi.plan)
 ), 'Load a sqitch sqitch object';
+
+my $mock_engine = Test::MockModule->new($CLASS);
 
 ##############################################################################
 # Test new().
@@ -217,7 +220,7 @@ ok $engine = App::Sqitch::Engine::whu->new( sqitch => $sqitch ),
     'Create a subclass name object again';
 can_ok $engine, 'deploy_change', 'revert_change';
 
-my $change = App::Sqitch::Plan::Change->new( name => 'foo', plan => $sqitch->plan );
+my $change = App::Sqitch::Plan::Change->new( name => 'users', plan => $sqitch->plan );
 
 ok $engine->deploy_change($change), 'Deploy a change';
 is_deeply $engine->seen, [
@@ -227,7 +230,7 @@ is_deeply $engine->seen, [
     ['finish_work'],
 ], 'deploy_change should have called the proper methods';
 is_deeply +MockOutput->get_info, [[
-    '  + ', 'foo'
+    '  + ', 'users'
 ]], 'Output should reflect the deployment';
 
 # Have it log only.
@@ -238,7 +241,33 @@ is_deeply $engine->seen, [
     ['finish_work'],
 ], 'log-only deploy_change should not have called run_file';
 is_deeply +MockOutput->get_info, [[
-    '  + ', 'foo'
+    '  + ', 'users'
+]], 'Output should reflect the logging';
+
+# Have it verify.
+ok $engine->with_verify(1), 'Enable verification';
+ok $engine->deploy_change($change), 'Deploy a change to be verified';
+is_deeply $engine->seen, [
+    ['begin_work'],
+    [run_file => $change->deploy_file ],
+    [run_file => $change->verify_file ],
+    [log_deploy_change => $change ],
+    ['finish_work'],
+], 'deploy_change with verification should run the verify file';
+is_deeply +MockOutput->get_info, [[
+    '  + ', 'users'
+]], 'Output should reflect the logging';
+
+# Have it verify *and* log-only.
+ok $engine->deploy_change($change, 1), 'Verify and log a change';
+is_deeply $engine->seen, [
+    ['begin_work'],
+    [run_file => $change->verify_file ],
+    [log_deploy_change => $change ],
+    ['finish_work'],
+], 'deploy_change with verification and log-only should not run deploy';
+is_deeply +MockOutput->get_info, [[
+    '  + ', 'users'
 ]], 'Output should reflect the logging';
 
 # Make it fail.
@@ -253,8 +282,44 @@ is_deeply $engine->seen, [
 ], 'Should have logged change failure';
 $die = '';
 is_deeply +MockOutput->get_info, [[
-    '  + ', 'foo'
+    '  + ', 'users'
 ]], 'Output should reflect the deployment, even with failure';
+
+# Make the verify fail.
+$mock_engine->mock( verify_change => sub { hurl 'WTF!' });
+throws_ok { $engine->deploy_change($change) } 'App::Sqitch::X',
+    'Deploy change with failed verification';
+is $@->message, 'WTF!', 'Error should be from verify_change';
+is_deeply $engine->seen, [
+    ['begin_work'],
+    [run_file => $change->deploy_file ],
+    [log_fail_change => $change ],
+    ['finish_work'],
+], 'Should have logged verify failure';
+$die = '';
+is_deeply +MockOutput->get_info, [[
+    '  + ', 'users'
+]], 'Output should reflect the deployment, even with verify failure';
+
+# Try a change with no verify file.
+$mock_engine->unmock( 'verify_change' );
+$change = App::Sqitch::Plan::Change->new( name => 'foo', plan => $sqitch->plan );
+ok $engine->deploy_change($change), 'Deploy a change with no verify script';
+is_deeply $engine->seen, [
+    ['begin_work'],
+    [run_file => $change->deploy_file ],
+    [log_deploy_change => $change ],
+    ['finish_work'],
+], 'deploy_change with no verify file should not run it';
+is_deeply +MockOutput->get_info, [[
+    '  + ', 'foo'
+]], 'Output should reflect the logging';
+is_deeply +MockOutput->get_vent, [
+    [__x 'Verify file {file} does not exist', file => $change->verify_file],
+], 'A warning about no verify file should have been emitted';
+
+# Alright, disable verify now.
+$engine->with_verify(0);
 
 ok $engine->revert_change($change), 'Revert a change';
 is_deeply $engine->seen, [
@@ -284,7 +349,7 @@ $record_work = 0;
 chdir 't';
 my $plan_file = file qw(sql sqitch.plan);
 my $sqitch_old = $sqitch; # Hang on to this because $change does not retain it.
-$sqitch = App::Sqitch->new( plan_file => $plan_file );
+$sqitch = App::Sqitch->new( plan_file => $plan_file, top_dir => dir 'sql' );
 ok $engine = App::Sqitch::Engine::whu->new( sqitch => $sqitch ),
     'Engine with sqitch with plan file';
 my $plan = $sqitch->plan;
@@ -354,7 +419,6 @@ $engine->seen;
 @changes = $plan->changes;
 
 # Mock the deploy methods to log which were called.
-my $mock_engine = Test::MockModule->new($CLASS);
 my $deploy_meth;
 for my $meth (qw(_deploy_all _deploy_by_tag _deploy_by_change)) {
     my $orig = $CLASS->can($meth);
@@ -1361,6 +1425,25 @@ is_deeply $engine->seen, [
 ], 'Project and offset should have been passed off';
 
 ##############################################################################
+# Test verify_change().
+can_ok $CLASS, 'verify_change';
+$change = App::Sqitch::Plan::Change->new( name => 'users', plan => $sqitch->plan );
+ok $engine->verify_change($change), 'Verify a change';
+is_deeply $engine->seen, [
+    [run_file => $change->verify_file ],
+], 'The change file should have been run';
+is_deeply +MockOutput->get_info, [], 'Should have no info output';
+
+# Try a change with no verify script.
+$change = App::Sqitch::Plan::Change->new( name => 'roles', plan => $sqitch->plan );
+ok $engine->verify_change($change), 'Verify a change with no verify script.';
+is_deeply $engine->seen, [], 'No abstract methods should be called';
+is_deeply +MockOutput->get_info, [], 'Should have no info output';
+is_deeply +MockOutput->get_vent, [
+    [__x 'Verify file {file} does not exist', file => $change->verify_file],
+], 'A warning about no verify file should have been emitted';
+
+##############################################################################
 # Test check_deploy_dependenices().
 $mock_engine->unmock('check_deploy_dependencies');
 can_ok $engine, 'check_deploy_dependencies';
@@ -1676,4 +1759,3 @@ CHECK_REVERT_DEPEND: {
         [changes_requiring_change => $change2 ],
     ], 'It should have checked twice for requiring changes';
 }
-
