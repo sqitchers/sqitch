@@ -11,6 +11,8 @@ sqitch-deploy-usage - Sqitch deploy usage statement
        --to-target <tag>    deploy to target
        --mode <mode>        failure reversion mode
     -s --set                set a database client variable
+       --verify             run verify scripts after each change
+       --no-verify          do not run verify scripts
        --log-only           log changes without running them
 
 

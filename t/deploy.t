@@ -31,6 +31,7 @@ is_deeply [$CLASS->options], [qw(
     mode=s
     set|s=s%
     log-only
+    verify!
 )], 'Options should be correct';
 
 my $sqitch = App::Sqitch->new(
@@ -43,18 +44,21 @@ my $config = $sqitch->config;
 # Test configure().
 is_deeply $CLASS->configure($config, {}), {
     mode     => 'all',
+    verify   => 0,
     log_only => 0,
 }, 'Should have default configuration with no config or opts';
 
 is_deeply $CLASS->configure($config, {
     mode => 'tag',
+    verify => 1,
     log_only => 1,
     set  => { foo => 'bar' },
 }), {
     mode      => 'tag',
+    verify    => 1,
     log_only  => 1,
     variables => { foo => 'bar' },
-}, 'Should have mode, set, and log-only options';
+}, 'Should have mode, verify, set, and log-only options';
 
 CONFIG: {
     my $mock_config = Test::MockModule->new(ref $config);
@@ -69,26 +73,29 @@ CONFIG: {
     });
     %config_vals = (
         'deploy.mode'      => 'change',
+        'deploy.verify'    => 1,
         'deploy.variables' => { foo => 'bar', hi => 21 },
     );
 
     is_deeply $CLASS->configure($config, {}), {
         mode     => 'change',
+        verify   => 1,
         log_only => 0,
-    }, 'Should have mode configuration';
+    }, 'Should have mode and verify configuration';
 
     # Try merging.
     is_deeply $CLASS->configure($config, {
         to_target => 'whu',
         mode      => 'tag',
+        verify    => 0,
         set       => { foo => 'yo', yo => 'stellar' },
     }), {
         to_target => 'whu',
         mode      => 'tag',
+        verify    => 0,
         log_only  => 0,
         variables => { foo => 'yo', yo => 'stellar', hi => 21 },
     }, 'Should have merged variables';
-
 
     isa_ok my $deploy = $CLASS->new(sqitch => $sqitch), $CLASS;
     is_deeply $deploy->variables, { foo => 'bar', hi => 21 },

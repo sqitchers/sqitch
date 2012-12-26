@@ -58,6 +58,16 @@ assumption that a change failure is total, and the change may be applied again.
 
 =back
 
+=item C<--verify>
+
+Verify each change by running its verfiy script, if there is one. If a verify
+test fails, the deploy will be considered to have failed and the appropriate
+reversion will be carried out, depending on the value of C<--mode>.
+
+=item C<--no-verify>
+
+Don't verify each change. This is the default.
+
 =item C<-s>
 
 =item C<--set>
@@ -87,6 +97,10 @@ Target to deploy to. You probably don't want to set this.
 =item C<deploy.mode>
 
 Deploy mode. The supported values are the same as for the C<--mode> option.
+
+=item C<deploy.verify>
+
+Boolean indicating whether or not to verify each change.
 
 =item C<[deploy.variables]>
 

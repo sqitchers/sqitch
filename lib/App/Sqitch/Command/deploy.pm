@@ -34,6 +34,13 @@ has log_only => (
     default  => 0,
 );
 
+has verify => (
+    is       => 'ro',
+    isa      => 'Bool',
+    required => 1,
+    default  => 0,
+);
+
 has variables => (
     is       => 'ro',
     isa      => 'HashRef',
@@ -50,6 +57,7 @@ sub options {
         mode=s
         set|s=s%
         log-only
+        verify!
     );
 }
 
@@ -57,7 +65,8 @@ sub configure {
     my ( $class, $config, $opt ) = @_;
 
     my %params = (
-        mode     => $opt->{mode} || $config->get( key => 'deploy.mode' ) || 'all',
+        mode     => $opt->{mode}   || $config->get( key => 'deploy.mode' )   || 'all',
+        verify   => $opt->{verify} // $config->get( key => 'deploy.verify', as => 'boolean' ) // 0,
         log_only => $opt->{log_only} || 0,
     );
     $params{to_target} = $opt->{to_target} if exists $opt->{to_target};
@@ -76,6 +85,7 @@ sub configure {
 sub execute {
     my $self   = shift;
     my $engine = $self->sqitch->engine;
+    $engine->with_verify( $self->verify );
     if (my %v = %{ $self->variables }) { $engine->set_variables(%v) }
     $engine->deploy( $self->to_target // shift, $self->mode, $self->log_only );
     return $self;
