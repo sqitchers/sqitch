@@ -151,16 +151,7 @@ sub revert {
     my @changes;
 
     if (defined $to) {
-        my $parsed = $to;
-        my $offset = App::Sqitch::Plan::ChangeList::_offset $parsed;
-        my ( $cname, $tag ) = split /@/ => $parsed, 2;
-        my $change = $self->find_change(
-            ( !$tag && $cname =~ /^[0-9a-f]{40}$/ ? (change_id => $cname) : (
-                change => $cname,
-                tag    => $tag,
-            )),
-            offset => $offset,
-        ) or do {
+        my $change = $self->change_for_key($to) or do {
             # Not deployed. Is it in the plan?
             if ( $plan->get($to) ) {
                 # Known but not deployed.
@@ -581,17 +572,27 @@ sub change_id_for_depend {
     );
 }
 
-sub change_id_for_key {
+sub _params_for_key {
     my ( $self, $key ) = @_;
     my $offset = App::Sqitch::Plan::ChangeList::_offset $key;
     my ( $cname, $tag ) = split /@/ => $key, 2;
-    return $self->change_id_for(
+    return (
         ( !$tag && $cname =~ /^[0-9a-f]{40}$/ ? (change_id => $cname) : (
             change => $cname,
             tag    => $tag,
         )),
         offset => $offset,
     );
+}
+
+sub change_id_for_key {
+    my $self = shift;
+    return $self->change_id_for( $self->_params_for_key(shift) );
+}
+
+sub change_for_key {
+    my $self = shift;
+    return $self->find_change( $self->_params_for_key(shift) );
 }
 
 sub find_change {
@@ -1252,12 +1253,31 @@ Returns the L<App::Sqitch::Plan::Change> object representing the latest
 applied change. With the optional C<$offset> argument, the returned change
 will be the offset number of changes before the latest change.
 
+=head3 C<change_for_key>
+
+  my $change = if $engine->change_for_key(key);
+
+Searches the deployed changes for a change corresponding to the specified key,
+which should be in a format as described in L<sqitchchanges>. Throws an
+exception if the key matches more than one changes. Returns C<undef> if it
+matches no changes.
+
 =head3 C<change_id_for_key>
 
-  say 'Got it!' if $engine->change_id_for_key(key);
+  my $change_id = if $engine->change_id_for_key(key);
 
-Searches the list of deplyed changes for a change ID corresponding to the
+Searches the deployed changes for a change corresponding to the specified key,
+which should be in a format as described in L<sqitchchanges>, and returns the
+change's ID. Throws an exception if the key matches more than one changes.
+Returns C<undef> if it matches no changes.
+
+=head3 C<change_for_key>
+
+  my $change = if $engine->change_for_key(key);
+
+Searches the list of deployed changes for a change corresponding to the
 specified key, which should be in a format as described in L<sqitchchanges>.
+Throws an exception if the key matches multiple changes.
 
 =head3 C<change_id_for_depend>
 
