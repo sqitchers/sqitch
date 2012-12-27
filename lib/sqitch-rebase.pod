@@ -51,6 +51,31 @@ Specify the deployment target. Defaults to the last point in the plan. See
 L<sqitchchanges> for the various ways in which change targets can be
 specified.
 
+=item C<--mode>
+
+Specify the reversion mode to use in case of deploy failure. Possible values
+are:
+
+=over
+
+=item C<all>
+
+In the event of failure, revert all deployed changes, back to
+C<--onto-target>. This is the default.
+
+=item C<tag>
+
+In the event of failure, revert all deployed changes to the last
+successfully-applied tag. If no tags were applied, all changes will be
+reverted to C<--onto-target>.
+
+=item C<change>
+
+In the event of failure, no changes will be reverted. This is on the
+assumption that a change is atomic, and thus may may be deployed again.
+
+=back
+
 =item C<--verify>
 
 Verify each change by running its verify script, if there is one, immediate

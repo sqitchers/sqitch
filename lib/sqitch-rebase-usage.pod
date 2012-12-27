@@ -9,6 +9,7 @@ sqitch-rebase-usage - Sqitch rebase usage statement
 =head1 Options
 
        --to-target <tag>    rebase to target
+       --mode <mode>        deploy failure reversion mode (all, tag, or change)
        --verify             run verify scripts after deploying each change
        --no-verify          do not run verify scripts
     -s --set                set a database client variable
@@ -16,7 +17,3 @@ sqitch-rebase-usage - Sqitch rebase usage statement
     -r --set-deploy         set a database client deploy variable
        --log-only           log changes without running them
     -y                      disable the prompt before reverting
-
-
-
-

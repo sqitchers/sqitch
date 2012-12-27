@@ -27,6 +27,16 @@ has no_prompt => (
     isa => 'Bool'
 );
 
+has mode => (
+    is  => 'ro',
+    isa => enum([qw(
+        change
+        tag
+        all
+    )]),
+    default => 'all',
+);
+
 has verify => (
     is       => 'ro',
     isa      => 'Bool',
@@ -72,6 +82,7 @@ sub options {
     return qw(
         onto-target|onto=s
         upto-target|upto=s
+        mode=s
         verify!
         set|s=s%
         set-deploy|d=s%
@@ -95,6 +106,10 @@ sub configure {
                    // $config->get( key => 'rebase.verify', as => 'boolean' )
                    // $config->get( key => 'deploy.verify', as => 'boolean' )
                    // 0;
+    $params{mode} = $opt->{mode}
+                 || $config->get( key => 'rebase.mode' )
+                 || $config->get( key => 'deploy.mode' )
+                 || 'all';
 
     if ( my $vars = $opt->{set} ) {
         # Merge with config.
@@ -152,7 +167,7 @@ sub execute {
     if (my %v = %{ $self->revert_variables }) { $engine->set_variables(%v) }
     $engine->revert( $self->onto_target // shift, $self->log_only );
     if (my %v = %{ $self->deploy_variables }) { $engine->set_variables(%v) }
-    $engine->deploy( $self->upto_target // shift, $self->log_only );
+    $engine->deploy( $self->upto_target // shift, $self->mode, $self->log_only );
     return $self;
 }
 

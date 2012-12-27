@@ -11,5 +11,3 @@ sqitch-bundle-usage - Sqitch bundle usage statement
     --dest-dir  destination directory to which to copy files
     --from      change from which to start bundling
     --to        change to which to end bundling
-
-

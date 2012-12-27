@@ -12,8 +12,3 @@ sqitch-revert-usage - Sqitch revert usage statement
     -s --set                set a database client variable
        --log-only           log changes without running them
     -y                      disable the prompt before reverting
-
-
-
-
-

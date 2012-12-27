@@ -19,6 +19,7 @@ Revision history for Perl extension App::Sqitch
        changes, when dependencies are not met.
      - Now check that no changes are already deployed before attempting to
        deploy any changes.
+     - Added `--mode` to the `rebase` command.
 
 0.940  2012-12-04T05:49:45Z
      - Fixed tests that failed due to I18N issues, with thanks to Arnaud

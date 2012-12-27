@@ -14,7 +14,3 @@ sqitch-deploy-usage - Sqitch deploy usage statement
        --verify             run verify scripts after each change
        --no-verify          do not run verify scripts
        --log-only           log changes without running them
-
-
-
-

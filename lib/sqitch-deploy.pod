@@ -49,12 +49,12 @@ which deployment started. This is the default.
 
 In the event of failure, revert all deployed changes to the last
 successfully-applied tag. If no tags were applied during this deployment, all
-changes will be reverted to the pint at which deployment began.
+changes will be reverted to the point at which deployment began.
 
 =item C<change>
 
 In the event of failure, no changes will be reverted. This is on the
-assumption that a change failure is total, and the change may be applied again.
+assumption that a change is atomic, and thus may may be deployed again.
 
 =back
 

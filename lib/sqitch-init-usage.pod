@@ -10,4 +10,3 @@ sqitch-init-usage - Sqitch init usage statement
 =head1 Options
 
     --uri   associate a URI with the project plan
-
