@@ -27,6 +27,13 @@ has no_prompt => (
     isa => 'Bool'
 );
 
+has verify => (
+    is       => 'ro',
+    isa      => 'Bool',
+    required => 1,
+    default  => 0,
+);
+
 has log_only => (
     is       => 'ro',
     isa      => 'Bool',
@@ -65,6 +72,7 @@ sub options {
     return qw(
         onto-target|onto=s
         upto-target|upto=s
+        verify!
         set|s=s%
         set-deploy|d=s%
         set-revert|r=s%
@@ -81,6 +89,12 @@ sub configure {
         upto_target
         log_only
     );
+
+    # Verify?
+    $params{verify} = $opt->{verify}
+                   // $config->get( key => 'rebase.verify', as => 'boolean' )
+                   // $config->get( key => 'deploy.verify', as => 'boolean' )
+                   // 0;
 
     if ( my $vars = $opt->{set} ) {
         # Merge with config.
@@ -133,6 +147,7 @@ sub configure {
 sub execute {
     my $self   = shift;
     my $engine = $self->sqitch->engine;
+    $engine->with_verify( $self->verify );
     $engine->no_prompt( $self->no_prompt );
     if (my %v = %{ $self->revert_variables }) { $engine->set_variables(%v) }
     $engine->revert( $self->onto_target // shift, $self->log_only );

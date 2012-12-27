@@ -51,6 +51,17 @@ Specify the deployment target. Defaults to the last point in the plan. See
 L<sqitchchanges> for the various ways in which change targets can be
 specified.
 
+=item C<--verify>
+
+Verify each change by running its verify script, if there is one, immediate
+after deploying it. If a verify test fails, the deploy will be considered to
+have failed and the appropriate reversion will be carried out, depending on
+the value of C<--mode>.
+
+=item C<--no-verify>
+
+Don't verify each change. This is the default.
+
 =item C<-s>
 
 =item C<--set>
@@ -105,6 +116,12 @@ C<revert.variables> to override C<deploy.variables>.
 These variables are Useful if your database engine supports variables in
 scripts, such as PostgreSQL's
 L<C<psql> variables|http://www.postgresql.org/docs/current/static/app-psql.html#APP-PSQL-INTERPOLATION>.
+
+=item C<rebase.verify>
+
+=item C<deploy.verify>
+
+Boolean indicating whether or not to verify each change after deploying it.
 
 =item C<[rebase.no_prompt]>
 

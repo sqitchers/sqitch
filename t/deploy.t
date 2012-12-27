@@ -128,11 +128,13 @@ isa_ok $deploy = $CLASS->new(
     to_target => 'foo',
     mode      => 'tag',
     log_only  => 1,
+    verify    => 1,
     variables => { foo => 'bar', one => 1 },
 ), $CLASS, 'Object with to, mode, log_only, and variables';
 
 @args = ();
 ok $deploy->execute, 'Execute again';
+ok $sqitch->engine->with_verify, 'Engine should verify';
 is_deeply \@args, ['foo', 'tag', 1],
     '"foo", "tag", and 1 should be passed to the engine';
 is_deeply {@vars}, { foo => 'bar', one => 1 },

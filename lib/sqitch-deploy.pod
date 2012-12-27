@@ -60,7 +60,7 @@ assumption that a change failure is total, and the change may be applied again.
 
 =item C<--verify>
 
-Verify each change by running its verfiy script, if there is one. If a verify
+Verify each change by running its verify script, if there is one. If a verify
 test fails, the deploy will be considered to have failed and the appropriate
 reversion will be carried out, depending on the value of C<--mode>.
 

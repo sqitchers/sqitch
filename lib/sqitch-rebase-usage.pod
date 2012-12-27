@@ -9,6 +9,8 @@ sqitch-rebase-usage - Sqitch rebase usage statement
 =head1 Options
 
        --to-target <tag>    rebase to target
+       --verify             run verify scripts after deploying each change
+       --no-verify          do not run verify scripts
     -s --set                set a database client variable
     -r --set-revert         set a database client revert variable
     -r --set-deploy         set a database client deploy variable
