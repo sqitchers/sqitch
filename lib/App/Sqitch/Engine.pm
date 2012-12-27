@@ -251,6 +251,217 @@ sub revert {
     return $self;
 }
 
+sub verify {
+    my ( $self, $from, $to ) = @_;
+    my $sqitch   = $self->sqitch;
+    my $plan     = $sqitch->plan->changes;
+    my $exitval  = 0;
+    my $from_idx = 0;
+    my $to_idx = 0;
+    my @changes = map {
+        my $tags = $_->{tags} || [];
+        my $c    = App::Sqitch::Plan::Change->new(%{ $_ }, plan => $plan );
+        $c->add_tag(
+            App::Sqitch::Plan::Tag->new(name => $_, plan => $plan, change => $c )
+        ) for @{ $tags };
+        $c;
+    } $self->deployed_changes;
+
+    $self->sqitch->info(__x(
+        'Verifying {destination}',
+        destination => $self->destination,
+    ));
+
+    if (!@changes) {
+        # Probably expected, but exit 1 anyway.
+        $exitval++;
+        my $msg = $plan->count
+            ? __ 'No changes deployed.'
+            : __ 'Nothing to verify (no planned or deployed changes)';
+        hurl {
+            ident   => 'verify',
+            message => $msg,
+            exitval => $exitval,
+        };
+    }
+
+    if ($plan->count == 0) {
+        # Oy, there are deployed changes, but not planned!
+        hurl {
+            ident   => 'verify',
+            message => __ 'There are deployed changes, but none planned!',
+            exitval => 2,
+        };
+    }
+
+    if (defined $from) {
+        # Jump to that change in each set of changes.
+        my $from_id = $self->change_id_for_key( $from ) || hurl {
+            ident   => 'verify',
+            exitval => 2,
+            message => __x(
+                'Cannot find change "{change}" in the plan',
+                change => $from
+            ),
+        };
+        shift @changes until !@changes || $changes[0]->id eq $from_id;
+        $from_idx = try { $plan->index_of( $from ) } catch {
+            $sqitch->vent($_);
+            undef;
+        };
+
+        if (!@changes) {
+            # Can't find it in the database. Is it in the plan?
+            my $msg = defined $from_idx ? __x(
+                'Change "{change}" has not been deployed',
+                change => $from,
+            ) : __x(
+                'Cannot find "{change}" in the database or the plan',
+                change => $from,
+            );
+            hurl {
+                ident   => 'verify',
+                message => $msg,
+                exitval => 2,
+            };
+        }
+
+        # Complain if we can't find the change in the plan.
+        hurl {
+            ident   => 'verify',
+            exitval => 2,
+            message => __x(
+                'Change "{change}" is deployed, but not planned',
+                change => $from,
+            ),
+        } unless defined $from_idx;
+
+        # We good.
+
+    } else {
+        # Make sure we can find the change in the plan.
+        $from_idx = $plan->index_of( $changes[0]->id );
+        hurl {
+            ident   => 'verify',
+            exitval => 2,
+            message => __x(
+                'Cannot find first deploye change "{change}" in the plan',
+                change => $changes[0]->format_name_with_tags,
+            ),
+        } unless defined $from_idx;
+
+        if ($from_idx > 0) {
+            # There are changes in the plan before the earliest deployed change.
+            my $count = $plan->count - $from_idx;
+            $sqitch->emit(
+                __nx(
+                    'Planned change appears before first deployed change "{change}":',
+                    'Planned changes appear before first deployed change "{change}":',
+                    $count,
+                    change => $changes[0]->format_name_with_tags,
+                ),
+            );
+
+            $sqitch->emit( '  * ', $plan->change_at($_)->format_name_with_tags )
+                for (0..$from_idx);
+            $exitval += $count;
+        }
+
+        # We good.
+    }
+
+    if (defined $to) {
+        my $to_id = $self->change_id_for_key( $to ) || hurl {
+            ident   => 'verify',
+            exitval => 2,
+            message => __x(
+                'Cannot find change "{change}" in the plan',
+                change => $to
+            ),
+        };
+        pop @changes until !@changes || $changes[-1]->id eq $to_id;
+        $to_idx = try { $plan->index_of( $to ) } catch {
+            $sqitch->vent($_);
+            undef;
+        };
+
+        if (!@changes) {
+            # Can't find it in the database. Is it in the plan?
+            my $msg = defined $to_idx ? __x(
+                'Change "{change}" has not been deployed',
+                change => $to,
+            ) : __x(
+                'Cannot find "{change}" in the database or the plan',
+                change => $to,
+            );
+            hurl {
+                ident   => 'verify',
+                message => $msg,
+                exitval => 2,
+            };
+        }
+
+        # Complain if we can't find the change in the plan.
+        hurl {
+            ident   => 'verify',
+            exitval => 2,
+            message => __x(
+                'Change "{change}" is deployed, but not planned',
+                change => $to,
+            ),
+        } unless defined $to_idx;
+
+        # We good.
+
+    } else {
+        $to_idx = $plan->count - 1;
+    }
+
+    # Run the verify tests.
+    my $i = 0;
+    my @good_indexes;
+    for my $change (@changes) {
+        $sqitch->emit( '  * ', $change->format_name_with_tags );
+
+        my $plan_index = $plan->index_of( $change->id );
+        if (! defined $plan_index) {
+            $exitval++;
+            $sqitch->comment('  ! ', __ 'Not present in the plan');
+        } elsif ( $plan_index != ($from_idx + $i) ) {
+            $exitval++;
+            $sqitch->comment('  ! ', __ 'Out of order');
+        } else {
+            push @good_indexes => $i;
+        }
+        $i++;
+
+        # Run the verify script.
+        try { $self->verify_change( $change ) };
+        catch {
+            $sqitch->vent($_);
+            $exitval++;
+        };
+    }
+
+    # List off any undeployed changes.
+    for my $idx ( $from_idx .. $to_idx ) {
+        next if first { $_ == $idx } @good_indexes;
+        my $change = $plan->change_at( $idx );
+        $sqitch->emit( '  * ', $change->format_name_with_tags );
+        $sqitch->comment('  ! ', __ 'Not deployed');
+        $exitval++;
+    }
+
+    # Die if we have errors.
+    hurl {
+        ident   => 'verify',
+        exitval => $exitval,
+        message => __ 'Verify failed',
+    } if $exitval;
+
+    return $self;
+}
+
 sub verify_change {
     my ( $self, $change ) = @_;
     my $file = $change->verify_file;
@@ -258,7 +469,7 @@ sub verify_change {
 
     # The file does not exist. Complain, but don't die.
     $self->sqitch->vent(__x(
-        'Verify file {file} does not exist',
+        'Verify script {file} does not exist',
         file => $file,
     ));
 
@@ -367,6 +578,19 @@ sub change_id_for_depend {
         change    => $dep->change,
         tag       => $dep->tag,
         project   => $dep->project,
+    );
+}
+
+sub change_id_for_key {
+    my ( $self, $key ) = @_;
+    my $offset = App::Sqitch::Plan::ChangeList::_offset $key;
+    my ( $cname, $tag ) = split /@/ => $key, 2;
+    return $self->change_id_for(
+        ( !$tag && $cname =~ /^[0-9a-f]{40}$/ ? (change_id => $cname) : (
+            change => $cname,
+            tag    => $tag,
+        )),
+        offset => $offset,
     );
 }
 
@@ -921,6 +1145,41 @@ associated changes. The C<$log_only> parameter, if passed a true values,
 causes the revert to log the reverted changes I<without running the revert
 scripts>.
 
+=head3 C<verify>
+
+  $engine->verify;
+  $engine->verify( $from );
+  $engine->verify( $from, $to );
+  $engine->verify( undef, $to );
+
+Verifies the database against the plan. Pass in change identfiers, as
+described in L<sqitchchanges>, to limit the changes to verify. For
+each change, information will be emitted if:
+
+=over
+
+=item *
+
+It does not appear in the plan.
+
+=item *
+
+It has not been deployed to the database.
+
+=item *
+
+It has been deployed out-of-order relative to the plan.
+
+=item *
+
+Its verify script fails.
+
+=back
+
+Changes without verify scripts will emit a warning, but not constitute a
+failure. If there are any failures, an exception will be thrown once all
+verifications have completed.
+
 =head3 C<check_deploy_dependencies>
 
   $engine->check_deploy_dependencies;
@@ -992,6 +1251,13 @@ will be the offset number of changes following the earliest change.
 Returns the L<App::Sqitch::Plan::Change> object representing the latest
 applied change. With the optional C<$offset> argument, the returned change
 will be the offset number of changes before the latest change.
+
+=head3 C<change_id_for_key>
+
+  say 'Got it!' if $engine->change_id_for_key(key);
+
+Searches the list of deplyed changes for a change ID corresponding to the
+specified key, which should be in a format as described in L<sqitchchanges>.
 
 =head3 C<change_id_for_depend>
 

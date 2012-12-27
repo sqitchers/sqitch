@@ -315,7 +315,7 @@ is_deeply +MockOutput->get_info, [[
     '  + ', 'foo'
 ]], 'Output should reflect the logging';
 is_deeply +MockOutput->get_vent, [
-    [__x 'Verify file {file} does not exist', file => $change->verify_file],
+    [__x 'Verify script {file} does not exist', file => $change->verify_file],
 ], 'A warning about no verify file should have been emitted';
 
 # Alright, disable verify now.
@@ -1440,7 +1440,7 @@ ok $engine->verify_change($change), 'Verify a change with no verify script.';
 is_deeply $engine->seen, [], 'No abstract methods should be called';
 is_deeply +MockOutput->get_info, [], 'Should have no info output';
 is_deeply +MockOutput->get_vent, [
-    [__x 'Verify file {file} does not exist', file => $change->verify_file],
+    [__x 'Verify script {file} does not exist', file => $change->verify_file],
 ], 'A warning about no verify file should have been emitted';
 
 ##############################################################################
