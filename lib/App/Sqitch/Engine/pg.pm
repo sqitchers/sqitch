@@ -641,13 +641,18 @@ sub change_id_for {
             }, undef, $project, $change, '@' . $tag)->[0];
         }
 
-        # Find by change name.
-        return $dbh->selectcol_arrayref(q{
+        # Find by change name. Fail if there are multiple.
+        my $ids = $dbh->selectcol_arrayref(q{
             SELECT change_id
               FROM changes
              WHERE project = ?
                AND change  = ?
-        }, undef, $project, $change)->[0];
+        }, undef, $project, $change);
+        return $ids->[0] if @{ $ids } < 2;
+        hurl engine => __x(
+            'Key "{key}" matches multiple changes',
+            key => $change,
+        );
     }
 
     if ( my $tag = $p{tag} ) {

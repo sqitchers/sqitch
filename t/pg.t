@@ -1,7 +1,5 @@
 #!/usr/bin/perl -w
 
-# Add change_id_for
-
 use strict;
 use warnings;
 use 5.010;
@@ -1409,7 +1407,7 @@ subtest 'live database' => sub {
         ],
     ) {
         my ( $desc, $params ) = @{ $spec };
-        is $pg->change_id_for(%{ $params }), undef, "Should find nothign for $desc";
+        is $pg->change_id_for(%{ $params }), undef, "Should find nothing for $desc";
     }
 
     ##########################################################################

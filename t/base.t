@@ -269,7 +269,7 @@ my ($stdout, $stderr) = capture {
 };
 
 is $stdout, "hi there\n", 'The echo script should have run';
-is $stderr, '', 'Nothign should have gone to STDERR';
+is $stderr, '', 'Nothing should have gone to STDERR';
 
 ($stdout, $stderr) = capture {
     throws_ok {

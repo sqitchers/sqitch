@@ -141,7 +141,7 @@ is $offset, 1, 'Should have offset 1 for @FIRST~';
 is $changes->find('@FIRST'), $bar, 'Should find bar for @FIRST';
 is $offset, 0, 'Should have no offset for @FIRST';
 $offset = undef;
-is $changes->find('@FIRST^'), undef, 'Should find nothign for @FIRST^';
+is $changes->find('@FIRST^'), undef, 'Should find nothing for @FIRST^';
 is $offset, undef, 'Offset should not be set';
 is $changes->find('@FIRST~'), $yo1, 'Should find yo1 for @FIRST~';
 is $offset, 1, 'Should have offset 1 for @FIRST~';
