@@ -20,6 +20,11 @@ Revision history for Perl extension App::Sqitch
      - Now check that no changes are already deployed before attempting to
        deploy any changes.
      - Added `--mode` to the `rebase` command.
+     - Added the `--verify` option to `deploy` and `rebase`. Specify this
+       option to run the verify script, if it exists, for each change after it
+       is deployed. If the verify script dies, the deploy will be considered a
+       failure and the requisite reversion (as specified for `--mode`) will
+       begin.
 
 0.940  2012-12-04T05:49:45Z
      - Fixed tests that failed due to I18N issues, with thanks to Arnaud
