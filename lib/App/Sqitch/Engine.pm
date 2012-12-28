@@ -7,6 +7,7 @@ use utf8;
 use Try::Tiny;
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
+use List::Util qw(first);
 use namespace::autoclean;
 
 our $VERSION = '0.941';
@@ -167,8 +168,9 @@ sub revert {
             );
         };
 
-        $change = App::Sqitch::Plan::Change->new( %{ $change }, plan => $plan );
-        @changes = $self->deployed_changes_since($change) or hurl {
+        @changes = $self->deployed_changes_since(
+            $self->_load_changes($change)
+        ) or hurl {
             ident => 'revert',
             message => __x(
                 'No changes deployed since: "{target}"',
@@ -219,17 +221,8 @@ sub revert {
         }
     }
 
-    # Create change objects.
-    @changes = map {
-        my $tags = $_->{tags} || [];
-        my $c    = App::Sqitch::Plan::Change->new(%{ $_ }, plan => $plan );
-        $c->add_tag(
-            App::Sqitch::Plan::Tag->new(name => $_, plan => $plan, change => $c )
-        ) for @{ $tags };
-        $c;
-    } reverse @changes;
-
-    # Check that all dependencies will be satisfied.
+    # Make change objects and check that all dependencies will be satisfied.
+    @changes = $self->_load_changes( reverse @changes );
     $self->check_revert_dependencies(@changes);
 
     # Do we want to support modes, where failures would re-deploy to previous
@@ -245,19 +238,12 @@ sub revert {
 sub verify {
     my ( $self, $from, $to ) = @_;
     my $sqitch   = $self->sqitch;
-    my $plan     = $sqitch->plan->changes;
+    my $plan     = $sqitch->plan;
     my $exitval  = 0;
     my $from_idx = 0;
     my $to_idx   = 0;
 
-    my @changes = map {
-        my $tags = $_->{tags} || [];
-        my $c    = App::Sqitch::Plan::Change->new(%{ $_ }, plan => $plan );
-        $c->add_tag(
-            App::Sqitch::Plan::Tag->new(name => $_, plan => $plan, change => $c )
-        ) for @{ $tags };
-        $c;
-    } $self->deployed_changes;
+    my @changes = $self->_load_changes( $self->deployed_changes );
 
     $self->sqitch->info(__x(
         'Verifying {destination}',
@@ -623,6 +609,19 @@ sub find_change {
 
     # Return relative to the offset.
     return $self->change_offset_from_id($change_id, $p{offset});
+}
+
+sub _load_changes {
+    my $self = shift;
+    my $plan = $self->sqitch->plan;
+    map {
+        my $tags = $_->{tags} || [];
+        my $c = App::Sqitch::Plan::Change->new(%{ $_ }, plan => $plan );
+        $c->add_tag(
+            App::Sqitch::Plan::Tag->new(name => $_, plan => $plan, change => $c )
+        ) for @{ $tags };
+        $c;
+    } @_;
 }
 
 sub _deploy_by_change {
