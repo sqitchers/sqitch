@@ -14,6 +14,10 @@ use MockOutput;
 my $CLASS = 'App::Sqitch::Command::deploy';
 require_ok $CLASS or die;
 
+$ENV{SQITCH_CONFIG} = 'nonexistent.conf';
+$ENV{SQITCH_USER_CONFIG} = 'nonexistent.user';
+$ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
+
 isa_ok $CLASS, 'App::Sqitch::Command';
 can_ok $CLASS, qw(
     options
