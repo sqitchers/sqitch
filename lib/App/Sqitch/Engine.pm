@@ -674,7 +674,7 @@ sub _deploy_by_tag {
             }
         }
     } catch {
-        if (my $ident = eval{ $_->ident }) {
+        if (my $ident = eval { $_->ident }) {
             $self->sqitch->vent($_->message) unless $ident eq 'private'
         } else {
             $self->sqitch->vent($_);
@@ -696,7 +696,7 @@ sub _deploy_all {
             push @run => $change;
         }
     } catch {
-        if (my $ident = eval{ $_->ident }) {
+        if (my $ident = eval { $_->ident }) {
             $self->sqitch->vent($_->message) unless $ident eq 'private'
         } else {
             $self->sqitch->vent($_);
