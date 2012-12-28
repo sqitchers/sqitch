@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 378;
+use Test::More tests => 379;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -289,10 +289,12 @@ is_deeply +MockOutput->get_info, [[
 $mock_engine->mock( verify_change => sub { hurl 'WTF!' });
 throws_ok { $engine->deploy_change($change) } 'App::Sqitch::X',
     'Deploy change with failed verification';
-is $@->message, 'WTF!', 'Error should be from verify_change';
+is $@->message, 'Deploy failed', 'Error should be from deploy_change';
 is_deeply $engine->seen, [
     ['begin_work'],
     [run_file => $change->deploy_file ],
+    ['begin_work'],
+    [run_file => $change->revert_file ],
     [log_fail_change => $change ],
     ['finish_work'],
 ], 'Should have logged verify failure';
@@ -300,6 +302,8 @@ $die = '';
 is_deeply +MockOutput->get_info, [[
     '  + ', 'users'
 ]], 'Output should reflect the deployment, even with verify failure';
+is_deeply +MockOutput->get_vent, [['WTF!']],
+    'Verify error should have been vented';
 
 # Try a change with no verify file.
 $mock_engine->unmock( 'verify_change' );
@@ -731,10 +735,9 @@ is_deeply +MockOutput->get_info, [
     ['  + ', 'lolz'],
     ['  + ', 'tacos'],
     ['  + ', 'curry'],
-    ['  - ', 'curry'],
     ['  - ', 'tacos'],
     ['  - ', 'lolz'],
-], 'Should have seen deploy and revert messages';
+], 'Should have seen deploy and revert messages (excluding curry revert)';
 is_deeply +MockOutput->get_vent, [
     ['ROFL'],
     [__x 'Reverting to {target}', target => 'widgets @beta']
@@ -883,10 +886,9 @@ is_deeply +MockOutput->get_info, [
     ['  + ', 'roles'],
     ['  + ', 'users @alpha'],
     ['  + ', 'widgets @beta'],
-    ['  - ', 'widgets @beta'],
     ['  - ', 'users @alpha'],
     ['  - ', 'roles'],
-], 'Should have seen deploy and revert messages';
+], 'Should have seen deploy and revert messages excluding revert for failed logging';
 is_deeply +MockOutput->get_vent, [
     ['ROFL'],
     [__ 'Reverting all changes'],
@@ -1020,7 +1022,6 @@ DEPLOYDIE: {
     ], 'Should have vented the original error';
     is_deeply +MockOutput->get_info, [
         ['  + ', $change->format_name],
-        ['  - ', $change->format_name],
     ], 'Should have shown change name';
     $die = '';
 }

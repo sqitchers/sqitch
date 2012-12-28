@@ -457,7 +457,19 @@ sub verify {
 sub verify_change {
     my ( $self, $change ) = @_;
     my $file = $change->verify_file;
-    return $self->run_file( $file ) if -e $file;
+    if (-e $file) {
+        return try { $self->run_file($file) }
+        catch {
+            hurl {
+                ident => 'verify',
+                previous_exception => $_,
+                message => __x(
+                    'Verify script "{script}" failed.',
+                    script => $file,
+                ),
+            };
+        };
+    }
 
     # The file does not exist. Complain, but don't die.
     $self->sqitch->vent(__x(
@@ -751,17 +763,18 @@ sub deploy_change {
 
     return try {
         $self->run_file($change->deploy_file) unless $log_only;
-        $self->verify_change( $change ) if $self->with_verify;
         try {
+            $self->verify_change( $change ) if $self->with_verify;
             $self->log_deploy_change($change);
         } catch {
-            # Oy, our logging died. Rollback.
+            # Oy, logging or verify failed. Rollback.
             $sqitch->vent(eval { $_->message } // $_);
             $self->rollback_work($change);
 
             # Begin work and run the revert.
             try {
-                $self->sqitch->info('  - ', $change->format_name_with_tags);
+                # Don't bother displaying the reverting change name.
+                # $self->sqitch->info('  - ', $change->format_name_with_tags);
                 $self->begin_work($change);
                 $self->run_file($change->revert_file) unless $log_only;
             } catch {
