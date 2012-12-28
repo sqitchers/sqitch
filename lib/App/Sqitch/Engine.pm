@@ -239,7 +239,6 @@ sub verify {
     my ( $self, $from, $to ) = @_;
     my $sqitch   = $self->sqitch;
     my $plan     = $sqitch->plan;
-    my $exitval  = 0;
     my @changes  = $self->_load_changes( $self->deployed_changes );
 
     $self->sqitch->info(__x(
@@ -249,70 +248,47 @@ sub verify {
 
     if (!@changes) {
         # Probably expected, but exit 1 anyway.
-        $exitval++;
         my $msg = $plan->count
             ? __ 'No changes deployed.'
             : __ 'Nothing to verify (no planned or deployed changes)';
         hurl {
             ident   => 'verify',
             message => $msg,
-            exitval => $exitval,
+            exitval => 1,
         };
     }
 
     if ($plan->count == 0) {
         # Oy, there are deployed changes, but not planned!
-        hurl {
-            ident   => 'verify',
-            message => __ 'There are deployed changes, but none planned!',
-            exitval => 2,
-        };
+        hurl verify => __ 'There are deployed changes, but none planned!';
     }
 
-    my $from_idx = defined $from ? $self->_trim_to('verify', $from, \@changes) : do {
-        # Make sure we can find the change in the plan.
-        my $idx = $plan->index_of( $changes[0]->id ) // hurl {
-            ident   => 'verify',
-            exitval => 2,
-            message => __x(
-                'Cannot find first deploye change "{change}" in the plan',
-                change => $changes[0]->format_name_with_tags,
-            ),
-        };
+    # Figure out where to start and end relative to the plan.
+    my $from_idx = defined $from
+        ? $self->_trim_to('verify', $from, \@changes)
+        : 0;
 
-        if ($idx > 0) {
-            # There are changes in the plan before the earliest deployed change.
-            my $count = $plan->count - $idx;
-            $sqitch->emit(
-                __nx(
-                    'Planned change appears before first deployed change "{change}":',
-                    'Planned changes appear before first deployed change "{change}":',
-                    $count,
-                    change => $changes[0]->format_name_with_tags,
-                ),
-            );
-
-            $sqitch->emit( '  * ', $plan->change_at($_)->format_name_with_tags )
-                for (0..$idx);
-            $exitval += $count;
-        }
-
-        $idx;
-    };
-
-    my $to_idx = defined $to
+    my $to_idx   = defined $to
         ? $self->_trim_to('verify', $from, \@changes, 1)
         : $plan->count - 1;
 
     # Run the verify tests.
-    $exitval += $self->_verify_changes($from_idx, $to_idx, @changes);
+    if ( my $count = $self->_verify_changes($from_idx, $to_idx, @changes) ) {
+        # Emit a quick report.
+        # XXX Consider coloring red.
+        my $num_changes = 1 + $to_idx - $from_idx;
+        $num_changes = @changes if @changes > $num_changes;
+        my $msg = __ 'Verify Summary Report';
+        $sqitch->emit($msg);
+        $sqitch->emit('-' x length $msg);
+        $sqitch->emit(__x 'Changes: {number}', number => $num_changes );
+        $sqitch->emit(__x 'Errors:  {number}', number => $count );
+        hurl verify => __ 'Verify failed';
+    }
 
-    # Die if we have errors.
-    hurl {
-        ident   => 'verify',
-        exitval => $exitval,
-        message => __ 'Verify failed',
-    } if $exitval;
+    # Success!
+    # XXX Consider coloring green.
+    $sqitch->emit(__ 'Verify successful');
 
     return $self;
 }
@@ -360,7 +336,7 @@ sub _verify_changes {
     my $to_idx   = shift;
     my $sqitch   = $self->sqitch;
     my $plan     = $sqitch->plan;
-    my $errcnt   = 0;
+    my $errcount = 0;
     my $i        = 0;
     my @seen;
 
@@ -370,19 +346,19 @@ sub _verify_changes {
         my $plan_index = $plan->index_of( $change->id );
         if (! defined $plan_index) {
             $sqitch->comment(__ 'Not present in the plan');
-            $errcnt++;
+            $errcount++;
         } else {
             push @seen => $plan_index;
             if ( $plan_index != ($from_idx + $i) ) {
                 $sqitch->comment(__ 'Out of order');
-                $errcnt++;
+                $errcount++;
             }
         }
 
         # Run the verify script.
         try { $self->verify_change( $change ) } catch {
             $sqitch->comment(eval { $_->message } // $_);
-            $errcnt++;
+            $errcount++;
         };
         $i++;
     }
@@ -393,10 +369,10 @@ sub _verify_changes {
         my $change = $plan->change_at( $idx );
         $sqitch->emit( '  * ', $change->format_name_with_tags );
         $sqitch->comment(__ 'Not deployed');
-        $errcnt++;
+        $errcount++;
     }
 
-    return $errcnt;
+    return $errcount;
 }
 
 sub verify_change {

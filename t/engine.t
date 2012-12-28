@@ -1947,3 +1947,133 @@ is_deeply +MockOutput->get_comment, [
     [__ 'Not deployed' ],
 ], 'Should have comments for undeployed changes';
 is_deeply $engine->seen, [], 'No abstract methods should have been called';
+
+##############################################################################
+# Test verify().
+can_ok $engine, 'verify';
+my @verify_changes;
+$mock_engine->mock( _load_changes => sub { @verify_changes });
+
+# First, test with no changes.
+throws_ok { $engine->verify } 'App::Sqitch::X',
+    'Should get error for no deployed changes';
+is $@->ident, 'verify', 'No deployed changes ident should be "verify"';
+is $@->exitval, 1, 'No deployed changes exitval should be 1';
+is $@->message, __ 'No changes deployed.',
+    'No deployed changes message should be correct';
+is_deeply +MockOutput->get_info, [
+    [__x 'Verifying {destination}', destination => $engine->destination],
+], 'Notification of the verify should be emitted';
+
+# Try no changes *and* nothing in the plan.
+my $count = 0;
+$mock_plan->mock(count => sub { $count });
+throws_ok { $engine->verify } 'App::Sqitch::X',
+    'Should get error for no changes';
+is $@->ident, 'verify', 'No changes ident should be "verify"';
+is $@->exitval, 1, 'No changes exitval should be 1';
+is $@->message, __ 'Nothing to verify (no planned or deployed changes)',
+    'No changes message should be correct';
+is_deeply +MockOutput->get_info, [
+    [__x 'Verifying {destination}', destination => $engine->destination],
+], 'Notification of the verify should be emitted';
+
+# Now return some changes but have nothing in the plan.
+@verify_changes = @changes;
+throws_ok { $engine->verify } 'App::Sqitch::X',
+    'Should get error for no planned changes';
+is $@->ident, 'verify', 'No planned changes ident should be "verify"';
+is $@->exitval, 2, 'No planned changes exitval should be 2';
+is $@->message, __ 'There are deployed changes, but none planned!',
+    'No planned changes message should be correct';
+is_deeply +MockOutput->get_info, [
+    [__x 'Verifying {destination}', destination => $engine->destination],
+], 'Notification of the verify should be emitted';
+
+# Let's do one change and have it pass.
+$mock_plan->mock(index_of => 0);
+$count = 1;
+@verify_changes = ($changes[1]);
+undef $@;
+ok $engine->verify, 'Verify one change';
+is_deeply +MockOutput->get_info, [
+    [__x 'Verifying {destination}', destination => $engine->destination],
+], 'Notification of the verify should be emitted';
+is_deeply +MockOutput->get_emit, [
+    ['  * ', $changes[1]->format_name_with_tags ],
+    [__ 'Verify successful'],
+], 'The one change name should be emitted';
+is_deeply +MockOutput->get_comment, [], 'Should have no comments';
+
+# Verify two changes.
+MockOutput->get_vent;
+$mock_plan->unmock('index_of');
+@verify_changes = @changes[0,1];
+ok $engine->verify, 'Verify two changes';
+is_deeply +MockOutput->get_info, [
+    [__x 'Verifying {destination}', destination => $engine->destination],
+], 'Notification of the verify should be emitted';
+is_deeply +MockOutput->get_emit, [
+    ['  * ', $changes[0]->format_name_with_tags ],
+    ['  * ', $changes[1]->format_name_with_tags ],
+    [__ 'Verify successful'],
+], 'The two change names should be emitted';
+is_deeply +MockOutput->get_comment, [], 'Should have no comments';
+is_deeply +MockOutput->get_vent, [
+    [__x(
+        'Verify script {file} does not exist',
+        file => $changes[0]->verify_file,
+    )]
+], 'Should have warning about missing verify script';
+
+# Make sure we can trim.
+@verify_changes = @changes;
+@resolved   = map { $_->id } @changes[1,2];
+ok $engine->verify('users', 'widgets'), 'Verify two specific changes';
+is_deeply +MockOutput->get_info, [
+    [__x 'Verifying {destination}', destination => $engine->destination],
+], 'Notification of the verify should be emitted';
+is_deeply +MockOutput->get_emit, [
+    ['  * ', $changes[1]->format_name_with_tags ],
+    ['  * ', $changes[2]->format_name_with_tags ],
+    [__ 'Verify successful'],
+], 'The two change names should be emitted';
+is_deeply +MockOutput->get_comment, [], 'Should have no comments';
+is_deeply +MockOutput->get_vent, [
+    [__x(
+        'Verify script {file} does not exist',
+        file => $changes[2]->verify_file,
+    )]
+], 'Should have warning about missing verify script';
+
+# Now fail!
+$mock_engine->mock( verify_change => sub { hurl 'WTF!' });
+@verify_changes = @changes;
+@resolved   = map { $_->id } @changes[1,2];
+throws_ok { $engine->verify('users', 'widgets') } 'App::Sqitch::X',
+    'Should get failure for failing verify scripts';
+is $@->ident, 'verify', 'Failed verify ident should be "verify"';
+is $@->exitval, 2, 'Failed verify exitval should be 2';
+is $@->message, __ 'Verify failed', 'Faield verify message should be correct';
+is_deeply +MockOutput->get_info, [
+    [__x 'Verifying {destination}', destination => $engine->destination],
+], 'Notification of the verify should be emitted';
+my $msg = __ 'Verify Summary Report';
+is_deeply +MockOutput->get_emit, [
+    ['  * ', $changes[1]->format_name_with_tags ],
+    ['  * ', $changes[2]->format_name_with_tags ],
+    [ $msg ],
+    [ '-' x length $msg ],
+    [__x 'Changes: {number}', number => 2 ],
+    [__x 'Errors:  {number}', number => 2 ],
+], 'Output should include the failure report';
+is_deeply +MockOutput->get_comment, [
+    ['WTF!'],
+    ['WTF!'],
+], 'Should have the errors in comments';
+is_deeply +MockOutput->get_vent, [], 'Nothing should have been vented';
+
+__END__
+diag $_->format_name_with_tags for @changes;
+diag '======';
+diag $_->format_name_with_tags for $plan->changes;
