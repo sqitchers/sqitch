@@ -362,7 +362,7 @@ sub _verify_changes {
     my $plan     = $sqitch->plan;
     my $errcnt   = 0;
     my $i        = 0;
-    my @undeployed_indexes;
+    my @seen;
 
     for my $change (@_) {
         $sqitch->emit( '  * ', $change->format_name_with_tags );
@@ -370,29 +370,33 @@ sub _verify_changes {
         my $plan_index = $plan->index_of( $change->id );
         if (! defined $plan_index) {
             $sqitch->comment(__ 'Not present in the plan');
-            push @undeployed_indexes => $i;
-        } elsif ( $plan_index != ($from_idx + $i) ) {
-            $sqitch->comment(__ 'Out of order');
-            push @undeployed_indexes => $i;
+            $errcnt++;
+        } else {
+            push @seen => $plan_index;
+            if ( $plan_index != ($from_idx + $i) ) {
+                $sqitch->comment(__ 'Out of order');
+                $errcnt++;
+            }
         }
 
         # Run the verify script.
-        try { $self->verify_change( $change ) };
-        catch {
-            $sqitch->comment($_);
+        try { $self->verify_change( $change ) } catch {
+            $sqitch->comment(eval { $_->message } // $_);
             $errcnt++;
         };
         $i++;
     }
 
     # List off any undeployed changes.
-    for my $idx (@undeployed_indexes) {
+    for my $idx ($from_idx..$to_idx) {
+        next if defined first { $_ == $idx } @seen;
         my $change = $plan->change_at( $idx );
         $sqitch->emit( '  * ', $change->format_name_with_tags );
         $sqitch->comment(__ 'Not deployed');
+        $errcnt++;
     }
 
-    return $errcnt + @undeployed_indexes;
+    return $errcnt;
 }
 
 sub verify_change {
