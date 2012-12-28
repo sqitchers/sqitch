@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 377;
+use Test::More tests => 378;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -1462,6 +1462,9 @@ CHECK_DEPLOY_DEPEND: {
     push @{ $change->_requires } => $make_deps->( 0, 'users' );
     ok $engine->check_deploy_dependencies($plan),
         'Dependencies should check out even when within those to be deployed';
+    is_deeply [ map { $_->resolved_id } map { $_->requires } $plan->changes ],
+        [ $plan->change_at(1)->id ],
+        'Resolved ID should be populated';
 
     # Make sure it fails if there is a conflict within those to be deployed.
     push @{ $change->_conflicts } => $make_deps->( 1, 'widgets' );
@@ -1759,3 +1762,6 @@ CHECK_REVERT_DEPEND: {
         [changes_requiring_change => $change2 ],
     ], 'It should have checked twice for requiring changes';
 }
+
+##############################################################################
+# Test verify.

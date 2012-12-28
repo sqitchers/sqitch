@@ -248,7 +248,8 @@ sub verify {
     my $plan     = $sqitch->plan->changes;
     my $exitval  = 0;
     my $from_idx = 0;
-    my $to_idx = 0;
+    my $to_idx   = 0;
+
     my @changes = map {
         my $tags = $_->{tags} || [];
         my $c    = App::Sqitch::Plan::Change->new(%{ $_ }, plan => $plan );
@@ -481,11 +482,13 @@ sub check_deploy_dependencies {
         } $change->conflicts;
 
         # Check for prerequisites.
-        push @required => grep {
-            !$seen{ $_->id // ''} && !$_->resolved_id(
-                $self->change_id_for_depend($_)
-            )
-        } $change->requires;
+        push @required => grep { !$_->resolved_id(do {
+            if ( my $req = $seen{ $_->id // '' } ) {
+                $req->id;
+            } else {
+                $self->change_id_for_depend($_);
+            }
+        }) } $change->requires;
         $seen{ $change->id } = $change;
     }
 
