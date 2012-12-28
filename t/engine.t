@@ -4,8 +4,8 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 379;
-#use Test::More 'no_plan';
+#use Test::More tests => 379;
+use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
 use Path::Class;
@@ -1765,4 +1765,69 @@ CHECK_REVERT_DEPEND: {
 }
 
 ##############################################################################
-# Test verify.
+# Test _trim_to().
+can_ok $engine, '_trim_to';
+
+# Should get an error when a change is not in the plan.
+throws_ok { $engine->_trim_to( 'foo', 'nonexistent', [] ) } 'App::Sqitch::X',
+    '_trim_to should complain about a nonexistent change key';
+is $@->ident, 'foo', '_trim_to nonexistent key error ident should be "foo"';
+is $@->message, __x(
+    'Cannot find "{change}" in the database or the plan',
+    change => 'nonexistent',
+), '_trim_to nonexistent key error message should be correct';
+
+# Should get an error when it's in the plan but not the database.
+throws_ok { $engine->_trim_to( 'yep', 'blah', [] ) } 'App::Sqitch::X',
+    '_trim_to should complain about an undeployed change key';
+is $@->ident, 'yep', '_trim_to undeployed change error ident should be "yep"';
+is $@->message, __x(
+    'Change "{change}" has not been deployed',
+    change => 'blah',
+), '_trim_to undeployed change error message should be correct';
+
+# Should get an error when it's deployed but not in the plan.
+@resolved = ('whatever');
+throws_ok { $engine->_trim_to( 'oop', 'whatever', [] ) } 'App::Sqitch::X',
+    '_trim_to should complain about an unplanned change key';
+is $@->ident, 'oop', '_trim_to unplanned change error ident should be "oop"';
+is $@->message, __x(
+    'Change "{change}" is deployed, but not planned',
+    change => 'whatever',
+), '_trim_to unplanned change error message should be correct';
+
+# Let's mess with changes. Start by shifting nothing.
+my $to_trim = [@changes];
+@resolved   = ($changes[0]->id);
+my $key     = $changes[0]->name;
+is $engine->_trim_to('foo', $key, $to_trim), 0,
+    qq{_trim_to should find "$key" at index 0};
+is_deeply [ map { $_->id } @{ $to_trim } ], [ map { $_->id } @changes ],
+    'Changes should be untrimmed';
+
+# Try shifting to the third change.
+$to_trim  = [@changes];
+@resolved = ($changes[2]->id);
+$key      = $changes[2]->name;
+is $engine->_trim_to('foo', $key, $to_trim), 2,
+    qq{_trim_to should find "$key" at index 2};
+is_deeply [ map { $_->id } @{ $to_trim } ], [ map { $_->id } @changes[2..$#changes] ],
+    'First two changes should be shifted off';
+
+# Try poppipng nothing.
+$to_trim  = [@changes];
+@resolved = ($changes[-1]->id);
+$key      = $changes[-1]->name;
+is $engine->_trim_to('foo', $key, $to_trim, 1), $#changes,
+    qq{_trim_to should find "$key" at last index};
+is_deeply [ map { $_->id } @{ $to_trim } ], [ map { $_->id } @changes ],
+    'Changes should be untrimmed';
+
+# Try shifting to the third-to-last change.
+$to_trim  = [@changes];
+@resolved = ($changes[-3]->id);
+$key      = $changes[-3]->name;
+is $engine->_trim_to('foo', $key, $to_trim, 1), 4,
+    qq{_trim_to should find "$key" at index 4};
+is_deeply [ map { $_->id } @{ $to_trim } ], [ map { $_->id } @changes[0..$#changes-2] ],
+    'Last two changes should be popped off';

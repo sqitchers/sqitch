@@ -322,55 +322,33 @@ sub _trim_to {
     my $sqitch = $self->sqitch;
     my $plan   = $sqitch->plan;
 
-    # Find the change in the database.
-    my $to_id = $self->change_id_for_key( $key ) || hurl {
-        ident   => $ident,
-        exitval => 2,
-        message => __x(
-            'Cannot find change "{change}" in the plan',
-            change => $key
-        ),
-    };
-
     # Find the change in the plan.
     my $to_idx = try { $plan->index_of( $key ) } catch {
         $sqitch->vent($_);
         undef;
     };
 
-    if ($pop) {
-        # Pop changes till we find what we're looking for.
-        pop @{ $changes }   until !@{ $changes } || $changes->[-1]->id eq $to_id;
-    } else {
-        # Shift changes till we find what we're looking for.
-        shift @{ $changes } until !@{ $changes } || $changes->[0]->id  eq $to_id;
-    }
-
-    if (!@{ $changes }) {
-        # Can't find it in the database. Is it in the plan?
-        my $msg = defined $to_idx ? __x(
-            'Change "{change}" has not been deployed',
-            change => $key,
-        ) : __x(
-            'Cannot find "{change}" in the database or the plan',
-            change => $key,
-        );
-        hurl {
-            ident   => 'verify',
-            message => $msg,
-            exitval => 2,
-        };
-    }
+    # Find the change in the database.
+    my $to_id = $self->change_id_for_key( $key ) || hurl $ident => defined $to_idx ? __x(
+        'Change "{change}" has not been deployed',
+        change => $key,
+    ) : __x(
+        'Cannot find "{change}" in the database or the plan',
+        change => $key,
+    );
 
     # Complain if we can't find the change in the plan.
-    hurl {
-        ident   => 'verify',
-            exitval => 2,
-            message => __x(
-            'Change "{change}" is deployed, but not planned',
-            change => $key,
-        ),
-    } unless defined $to_idx;
+    hurl $ident => __x(
+        'Change "{change}" is deployed, but not planned',
+        change => $key,
+    ) unless defined $to_idx;
+
+    # Pope or shift changes till we find the change we want.
+    if ($pop) {
+        pop @{ $changes }   while $changes->[-1]->id ne $to_id;
+    } else {
+        shift @{ $changes } while $changes->[0]->id  ne $to_id;
+    }
 
     # We good.
     return $to_idx;
