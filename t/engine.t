@@ -2026,6 +2026,26 @@ is_deeply +MockOutput->get_vent, [
     )]
 ], 'Should have warning about missing verify script';
 
+# Make sure a reworked change (that is, one with a suffix) is ignored.
+my @suffixes = qw(@foo);
+my $mock_change = Test::MockModule->new(ref $change);
+$mock_change->mock(suffix => sub { shift @suffixes });
+
+@verify_changes = @changes[0,1];
+ok $engine->verify, 'Verify with a reworked change changes';
+is_deeply +MockOutput->get_info, [
+    [__x 'Verifying {destination}', destination => $engine->destination],
+], 'Notification of the verify should be emitted';
+is_deeply +MockOutput->get_emit, [
+    ['  * ', $changes[0]->format_name_with_tags ],
+    ['  * ', $changes[1]->format_name_with_tags ],
+    [__ 'Verify successful'],
+], 'The two change names should be emitted';
+is_deeply +MockOutput->get_comment, [], 'Should have no comments';
+is_deeply +MockOutput->get_vent, [], 'Should have no warnings';
+
+$mock_change->unmock('suffix');
+
 # Make sure we can trim.
 @verify_changes = @changes;
 @resolved   = map { $_->id } @changes[1,2];

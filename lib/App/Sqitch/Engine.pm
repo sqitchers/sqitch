@@ -337,10 +337,11 @@ sub _verify_changes {
     my $sqitch   = $self->sqitch;
     my $plan     = $sqitch->plan;
     my $errcount = 0;
-    my $i        = 0;
+    my $i        = -1;
     my @seen;
 
     for my $change (@_) {
+        $i++;
         $sqitch->emit( '  * ', $change->format_name_with_tags );
 
         my $plan_index = $plan->index_of( $change->id );
@@ -353,15 +354,15 @@ sub _verify_changes {
                 $sqitch->comment(__ 'Out of order');
                 $errcount++;
             }
+            # Don't run the test scriptif it's a reworked change.
+            next if $plan->change_at($plan_index)->suffix;
         }
 
         # Run the verify script.
-        # XXX Need to skip this step for reworked changes.
         try { $self->verify_change( $change ) } catch {
             $sqitch->comment(eval { $_->message } // $_);
             $errcount++;
         };
-        $i++;
     }
 
     # List off any undeployed changes.
