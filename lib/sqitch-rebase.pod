@@ -4,6 +4,7 @@ sqitch-rebase - Revert and redeploy database changes
 
 =head1 Synopsis
 
+  sqitch [options] rebase
   sqitch [options] rebase --onto-target <target>
   sqitch [options] rebase --onto-target <target> --upto-target <target>
   sqitch [options] rebase <target>

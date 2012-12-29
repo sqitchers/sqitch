@@ -25,6 +25,8 @@ Revision history for Perl extension App::Sqitch
        is deployed. If the verify script dies, the deploy will be considered a
        failure and the requisite reversion (as specified for `--mode`) will
        begin.
+     - Added the `verify` command, which verifies that a database is valid
+       relative to the plan and each deployed change's verification scripts.
 
 0.940  2012-12-04T05:49:45Z
      - Fixed tests that failed due to I18N issues, with thanks to Arnaud

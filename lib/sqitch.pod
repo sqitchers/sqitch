@@ -342,26 +342,6 @@ Search and Output the complete change history of a database. Provides
 information about when changes were deployed, reverted, or failed, as well as
 who planned and committed the changes, and when.
 
-=item C<plan>
-
-*Not yet implemented.
-
-Search and output the list of changes in the plan.
-
-=item C<check>
-
-*Not yet implemented.
-
-Sanity check the deployment scripts. Checks include:
-
-=over
-
-=item *
-
-Make sure all deploy scripts have complementary revert scripts.
-
-=back
-
 =item L<C<add>|sqitch-add>
 
 Add a new change.
@@ -376,25 +356,21 @@ Rework an existing change.
 
 =item L<C<deploy>|sqitch-deploy>
 
-Deploy changes.
+Deploy changes tp a database
 
 =item L<C<revert>|sqitch-revert>
 
-Revert changes.
+Revert changes from a database.
 
-=item C<verify>
+=item L<C<verify>|sqitch-verify>
 
-*Not yet implemented.
-
-Verify changes. All SQL scripts in C<--verify-dir> will be run. If any return
-other than success, C<sqitch verify> will return failure, as well. This will
-allow individual changes to be verified as successful.
+Verify changes deployed to a database.
 
 =item L<C<config>|sqitch-config>
 
 Get and set project, user, or system Sqitch options.
 
-=item C<bundle>
+=item L<C<bundle>|sqitch-bundle>
 
 Bundle a Sqitch project for distribution. This command copies the Sqitch
 configuration, plan, and deploy, revert, and verify scripts to a directory, so

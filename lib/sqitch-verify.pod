@@ -1,0 +1,97 @@
+=head1 Name
+
+sqitch-verify - Verify deployed database changes
+
+=head1 Synopsis
+
+  sqitch [options] verify
+  sqitch [options] verify --from-target <target>
+  sqitch [options] verify --to-target <target>
+  sqitch [options] verify --from-target <target> --to-target <target>
+
+=head1 Description
+
+Verify that a database is valid relative to the plan and each deployed
+change's verification scripts.
+
+More specifically, C<verify> iterates over all deployed and planned changes
+(or the subset identified by C<--from-target> and/or C<--to-target>) and
+checks that each:
+
+=over
+
+=item *
+
+Is deployed.
+
+=item *
+
+Is present in the plan.
+
+=item *
+
+Was deployed in the proper order.
+
+=item *
+
+Passes its verify test, if one exists.
+
+=back
+
+Verify tests are scripts that may be associated with each change. If a change
+has no verify script, a warning is emitted, but it is not considered a
+failure.
+
+Verify scripts should make no assumptions about the contents of the database,
+as unit tests might. Rather, their job is to ensure that the state of a
+database is correct after a deploy script has completed. Verify scripts are
+run through the database engine command-line client, just like deploy and
+revert scripts. They should cause the client to exit with a non-zero exit code
+if they fail.
+
+=head1 Options
+
+=over
+
+=item C<--from-target>
+
+=item C<--from>
+
+Specify the change target with which to start the verification. Defaults to
+the earliest deployed change. See L<sqitchchanges> for the various ways in
+which change targets can be specified.
+
+=item C<--to-target>
+
+=item C<--to>
+
+Specify the change target with which to complete the verification. Defaults to
+the last deployed change. See L<sqitchchanges> for the various ways in which
+change targets can be specified.
+
+=item C<-s>
+
+=item C<--set>
+
+Set a variable name and value for use by the database engine client, if it
+supports variables. The format must be C<name=value>, e.g.,
+C<--set defuser='Homer Simpson'>. Overrides any values loaded from the
+C<verify.variables> configuration.
+
+=back
+
+=head1 Configuration Variables
+
+=over
+
+=item C<[verify.variables]>
+
+A section defining database client variables. Useful if your database engine
+supports variables in scripts, such as PostgreSQL's
+L<C<psql> variables|http://www.postgresql.org/docs/current/static/app-psql.html#APP-PSQL-INTERPOLATION>.
+
+=back
+
+=head1 Sqitch
+
+Part of the L<sqitch> suite.

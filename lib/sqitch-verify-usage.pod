@@ -1,0 +1,13 @@
+=head1 Name
+
+sqitch-verify-usage - Sqitch verify usage statement
+
+=head1 Usage
+
+  sqitch [options] verify [<verify options>]
+
+=head1 Options
+
+       --from-target <change>  verify from change
+       --to-target   <change>  verify to change
+    -s --set                   set a database client variable

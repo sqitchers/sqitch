@@ -356,6 +356,7 @@ sub _verify_changes {
         }
 
         # Run the verify script.
+        # XXX Need to skip this step for reworked changes.
         try { $self->verify_change( $change ) } catch {
             $sqitch->comment(eval { $_->message } // $_);
             $errcount++;
