@@ -11,8 +11,8 @@ sqitch-verify - Verify deployed database changes
 
 =head1 Description
 
-Verify that a database is valid relative to the plan and each deployed
-change's verification scripts.
+Verify that a database is valid relative to the plan and the verification
+scripts for each deployed change.
 
 More specifically, C<verify> iterates over all deployed and planned changes
 (or the subset identified by C<--from-target> and/or C<--to-target>) and

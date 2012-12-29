@@ -356,7 +356,7 @@ Rework an existing change.
 
 =item L<C<deploy>|sqitch-deploy>
 
-Deploy changes tp a database
+Deploy changes to a database
 
 =item L<C<revert>|sqitch-revert>
 

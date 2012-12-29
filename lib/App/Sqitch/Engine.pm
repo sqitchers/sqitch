@@ -1001,7 +1001,7 @@ Boolean indicating whether or not to prompt for reverts. False by default.
 =head3 C<with_verify>
 
 Boolean indicating whether or not to run the verification script after each
-deploy scxript. False by default.
+deploy script. False by default.
 
 =head3 C<variables>
 
@@ -1105,9 +1105,9 @@ scripts>.
   $engine->verify( $from, $to );
   $engine->verify( undef, $to );
 
-Verifies the database against the plan. Pass in change identfiers, as
-described in L<sqitchchanges>, to limit the changes to verify. For
-each change, information will be emitted if:
+Verifies the database against the plan. Pass in change identifiers, as
+described in L<sqitchchanges>, to limit the changes to verify. For each
+change, information will be emitted if:
 
 =over
 
