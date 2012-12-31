@@ -270,18 +270,20 @@ sub verify {
         ? $self->_trim_to('verify', $from, \@changes)
         : 0;
 
-    my $to_idx   = defined $to
-        ? $self->_trim_to('verify', $from, \@changes, 1)
-        : $plan->count - 1;
+    my $to_idx = defined $to ? $self->_trim_to('verify', $to, \@changes, 1) : do {
+        if (my $id = $self->latest_change_id) {
+            $plan->index_of( $id );
+        }
+    } // $plan->count - 1;
 
     # Run the verify tests.
-    if ( my $count = $self->_verify_changes($from_idx, $to_idx, @changes) ) {
+    if ( my $count = $self->_verify_changes($from_idx, $to_idx, !!$to, @changes) ) {
         # Emit a quick report.
         # XXX Consider coloring red.
         my $num_changes = 1 + $to_idx - $from_idx;
         $num_changes = @changes if @changes > $num_changes;
         my $msg = __ 'Verify Summary Report';
-        $sqitch->emit($msg);
+        $sqitch->emit($/, $msg);
         $sqitch->emit('-' x length $msg);
         $sqitch->emit(__x 'Changes: {number}', number => $num_changes );
         $sqitch->emit(__x 'Errors:  {number}', number => $count );
@@ -336,6 +338,7 @@ sub _verify_changes {
     my $self     = shift;
     my $from_idx = shift;
     my $to_idx   = shift;
+    my $pending  = shift;
     my $sqitch   = $self->sqitch;
     my $plan     = $sqitch->plan;
     my $errcount = 0;
@@ -374,6 +377,19 @@ sub _verify_changes {
         $sqitch->emit( '  * ', $change->format_name_with_tags );
         $sqitch->comment(__ 'Not deployed');
         $errcount++;
+    }
+
+    # List off any pending changes.
+    if ( $pending && $to_idx < ($plan->count - 1) ) {
+        my @idxes = ( ($to_idx + 1)..($plan->count - 1) );
+        $sqitch->emit(__n(
+            'Undeployed change:',
+            'Undeployed changes:',
+            @idxes,
+        ));
+
+        $sqitch->emit( '  * ', $plan->change_at( $_ )->format_name_with_tags )
+            for @idxes;
     }
 
     return $errcount;

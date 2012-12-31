@@ -1838,7 +1838,7 @@ can_ok $engine, '_verify_changes';
 $engine->seen;
 
 # Start with a single change with a valid verify script.
-is $engine->_verify_changes(1, 1, $changes[1]), 0,
+is $engine->_verify_changes(1, 1, 0, $changes[1]), 0,
     'Verify of a single change should return errcount 0';
 is_deeply +MockOutput->get_emit, [[
     '  * ', 'users @alpha'
@@ -1849,7 +1849,7 @@ is_deeply $engine->seen, [
 ], 'The verify script should have been run';
 
 # Try a single change with no verify script.
-is $engine->_verify_changes(0, 0, $changes[0]), 0,
+is $engine->_verify_changes(0, 0, 0, $changes[0]), 0,
     'Verify of another single change should return errcount 0';
 is_deeply +MockOutput->get_emit, [[
     '  * ', 'roles'
@@ -1862,7 +1862,7 @@ is_deeply $engine->seen, [
 ], 'The verify script should not have been run';
 
 # Try multiple changes.
-is $engine->_verify_changes(0, 1, @changes[0,1]), 0,
+is $engine->_verify_changes(0, 1, 0, @changes[0,1]), 0,
     'Verify of two changes should return errcount 0';
 is_deeply +MockOutput->get_emit, [
     ['  * ', 'roles'],
@@ -1876,9 +1876,27 @@ is_deeply $engine->seen, [
     [run_file => $changes[1]->verify_file ],
 ], 'Only one verify script should have been run';
 
+# Try multiple changes and show undeployed changes.
+my @plan_changes = $plan->changes;
+is $engine->_verify_changes(0, 1, 1, @changes[0,1]), 0,
+    'Verify of two changes and show pending';
+is_deeply +MockOutput->get_emit, [
+    ['  * ', 'roles'],
+    ['  * ', 'users @alpha'],
+    [__n 'Undeployed change:', 'Undeployed changes:', 2],
+    map { [ '  * ', $_->format_name_with_tags] } @plan_changes[2..$#plan_changes]
+], 'Emitted output should include list of pending changes';
+is_deeply +MockOutput->get_comment, [], 'Should have no comments';
+is_deeply +MockOutput->get_vent, [
+    [__x 'Verify script {file} does not exist', file => $changes[0]->verify_file],
+], 'A warning about no verify file should have been emitted';
+is_deeply $engine->seen, [
+    [run_file => $changes[1]->verify_file ],
+], 'Only one verify script should have been run';
+
 # Try a change that is not in the plan.
 $change = App::Sqitch::Plan::Change->new( name => 'nonexistent', plan => $plan );
-is $engine->_verify_changes(1, 0, $change), 1,
+is $engine->_verify_changes(1, 0, 0, $change), 1,
     'Verify of a change not in the plan should return errcount 1';
 is_deeply +MockOutput->get_emit, [[
     '  * ', 'nonexistent'
@@ -1890,7 +1908,7 @@ is_deeply $engine->seen, [], 'No verify script should have been run';
 # Try a change in the wrong place in the plan.
 my $mock_plan = Test::MockModule->new(ref $plan);
 $mock_plan->mock(index_of => 5);
-is $engine->_verify_changes(1, 0, $changes[1]), 1,
+is $engine->_verify_changes(1, 0, 0, $changes[1]), 1,
     'Verify of an out-of-order change should return errcount 1';
 is_deeply +MockOutput->get_emit, [
     ['  * ', 'users @alpha'],
@@ -1903,7 +1921,7 @@ is_deeply $engine->seen, [
 
 # Make sure that multiple issues add up.
 $mock_engine->mock( verify_change => sub { hurl 'WTF!' });
-is $engine->_verify_changes(1, 0, $changes[1]), 2,
+is $engine->_verify_changes(1, 0, 0, $changes[1]), 2,
     'Verify of a change with 2 issues should return 2';
 is_deeply +MockOutput->get_emit, [
     ['  * ', 'users @alpha'],
@@ -1916,7 +1934,7 @@ is_deeply $engine->seen, [], 'No abstract methods should have been called';
 
 # Make sure that multiple changes with multiple issues add up.
 $mock_engine->mock( verify_change => sub { hurl 'WTF!' });
-is $engine->_verify_changes(0, -1, @changes[0,1]), 4,
+is $engine->_verify_changes(0, -1, 0, @changes[0,1]), 4,
     'Verify of 2 changes with 2 issues each should return 4';
 is_deeply +MockOutput->get_emit, [
     ['  * ', 'roles'],
@@ -1935,7 +1953,7 @@ $mock_plan->unmock('index_of');
 $mock_engine->unmock('verify_change');
 
 # Now deal with changes in the plan but not in the list.
-is $engine->_verify_changes($#changes, $plan->count - 1, $changes[-1]), 2,
+is $engine->_verify_changes($#changes, $plan->count - 1, 0, $changes[-1]), 2,
     '_verify_changes with two undeployed changes should returne 2';
 is_deeply +MockOutput->get_emit, [
     ['  * ', 'dr_evil'],
@@ -1947,6 +1965,7 @@ is_deeply +MockOutput->get_comment, [
     [__ 'Not deployed' ],
 ], 'Should have comments for undeployed changes';
 is_deeply $engine->seen, [], 'No abstract methods should have been called';
+
 
 ##############################################################################
 # Test verify().
@@ -2082,7 +2101,7 @@ my $msg = __ 'Verify Summary Report';
 is_deeply +MockOutput->get_emit, [
     ['  * ', $changes[1]->format_name_with_tags ],
     ['  * ', $changes[2]->format_name_with_tags ],
-    [ $msg ],
+    [ $/, $msg ],
     [ '-' x length $msg ],
     [__x 'Changes: {number}', number => 2 ],
     [__x 'Errors:  {number}', number => 2 ],
