@@ -1832,6 +1832,24 @@ is $engine->_trim_to('foo', $key, $to_trim, 1), 4,
 is_deeply [ map { $_->id } @{ $to_trim } ], [ map { $_->id } @changes[0..$#changes-2] ],
     'Last two changes should be popped off';
 
+# Make sure that @HEAD is handled relative to deployed changes, not the plan.
+$to_trim  = [@changes];
+@resolved = ($changes[2]->id);
+$key      = '@HEAD';
+is $engine->_trim_to('foo', $key, $to_trim), 2,
+    qq{_trim_to should find "$key" at index 2};
+is_deeply [ map { $_->id } @{ $to_trim } ], [ map { $_->id } @changes[2..$#changes] ],
+    'First two changes should be shifted off';
+
+# Make sure that @ROOT is handled relative to deployed changes, not the plan.
+$to_trim  = [@changes];
+@resolved = ($changes[2]->id);
+$key      = '@ROOT';
+is $engine->_trim_to('foo', $key, $to_trim, 1), 2,
+    qq{_trim_to should find "$key" at index 2};
+is_deeply [ map { $_->id } @{ $to_trim } ], [ map { $_->id } @changes[0,1,2] ],
+    'All but First three changes should be popped off';
+
 ##############################################################################
 # Test _verify_changes().
 can_ok $engine, '_verify_changes';
@@ -1965,7 +1983,6 @@ is_deeply +MockOutput->get_comment, [
     [__ 'Not deployed' ],
 ], 'Should have comments for undeployed changes';
 is_deeply $engine->seen, [], 'No abstract methods should have been called';
-
 
 ##############################################################################
 # Test verify().

@@ -302,26 +302,22 @@ sub _trim_to {
     my $sqitch = $self->sqitch;
     my $plan   = $sqitch->plan;
 
-    # Find the change in the plan.
-    my $to_idx = try { $plan->index_of( $key ) } catch {
-        $sqitch->vent($_);
-        undef;
-    };
-
     # Find the change in the database.
-    my $to_id = $self->change_id_for_key( $key ) || hurl $ident => defined $to_idx ? __x(
-        'Change "{change}" has not been deployed',
-        change => $key,
-    ) : __x(
-        'Cannot find "{change}" in the database or the plan',
-        change => $key,
+    my $to_id = $self->change_id_for_key( $key ) || hurl $ident => (
+        defined eval { $plan->index_of( $key ) } ? __x(
+            'Change "{change}" has not been deployed',
+            change => $key,
+        ) : __x(
+            'Cannot find "{change}" in the database or the plan',
+            change => $key,
+        )
     );
 
-    # Complain if we can't find the change in the plan.
-    hurl $ident => __x(
+    # Find the change in the plan.
+    my $to_idx = $plan->index_of( $to_id ) // hurl $ident => __x(
         'Change "{change}" is deployed, but not planned',
         change => $key,
-    ) unless defined $to_idx;
+    );
 
     # Pope or shift changes till we find the change we want.
     if ($pop) {
