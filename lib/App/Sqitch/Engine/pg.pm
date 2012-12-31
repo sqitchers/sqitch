@@ -312,6 +312,13 @@ sub run_file {
     $self->_run('--file' => $file);
 }
 
+sub run_verify {
+    my $self = shift;
+    # Suppress STDOUT unless we want extra verbosity.
+    my $meth = $self->can($self->sqitch->verbosity > 1 ? '_run' : '_capture');
+    return $self->$meth('--file' => @_);
+}
+
 sub run_handle {
     my ($self, $fh) = @_;
     $self->_spool($fh);
