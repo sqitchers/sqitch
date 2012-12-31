@@ -277,7 +277,7 @@ sub verify {
     } // $plan->count - 1;
 
     # Run the verify tests.
-    if ( my $count = $self->_verify_changes($from_idx, $to_idx, !!$to, @changes) ) {
+    if ( my $count = $self->_verify_changes($from_idx, $to_idx, !$to, @changes) ) {
         # Emit a quick report.
         # XXX Consider coloring red.
         my $num_changes = 1 + $to_idx - $from_idx;
