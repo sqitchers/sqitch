@@ -255,7 +255,7 @@ has pager => (
     lazy     => 1,
     isa      => type('IO::Pager' => where {
         # IO::Pager annoyingly just returns the file handle if there is no TTY.
-        eval { $_->isa('IO::Pager') } || ref $_ eq 'GLOB'
+        eval { $_->isa('IO::Pager') || $_->isa('IO::Handle') } || ref $_ eq 'GLOB'
     }),
     default  => sub {
         require IO::Pager;
