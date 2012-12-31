@@ -28,7 +28,7 @@ BEGIN {
     $ENV{SQITCH_CONFIG} = 'nonexistent.conf';
 }
 
-can_ok $CLASS, qw(load new name no_prompt);
+can_ok $CLASS, qw(load new name no_prompt run_deploy run_revert run_verify);
 
 my ($is_deployed_tag, $is_deployed_change) = (0, 0);
 my @deployed_changes;

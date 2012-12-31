@@ -395,7 +395,7 @@ sub verify_change {
     my ( $self, $change ) = @_;
     my $file = $change->verify_file;
     if (-e $file) {
-        return try { $self->run_file($file) }
+        return try { $self->run_verify($file) }
         catch {
             hurl {
                 ident => 'verify',
@@ -416,6 +416,10 @@ sub verify_change {
 
     return $self;
 }
+
+sub run_deploy { shift->run_file(@_) }
+sub run_revert { shift->run_file(@_) }
+sub run_verify { shift->run_file(@_) }
 
 sub check_deploy_dependencies {
     my ( $self, $plan, $to_index ) = @_;
@@ -712,7 +716,7 @@ sub deploy_change {
     $self->begin_work($change);
 
     return try {
-        $self->run_file($change->deploy_file) unless $log_only;
+        $self->run_deploy($change->deploy_file) unless $log_only;
         try {
             $self->verify_change( $change ) if $self->with_verify;
             $self->log_deploy_change($change);
@@ -726,7 +730,7 @@ sub deploy_change {
                 # Don't bother displaying the reverting change name.
                 # $self->sqitch->info('  - ', $change->format_name_with_tags);
                 $self->begin_work($change);
-                $self->run_file($change->revert_file) unless $log_only;
+                $self->run_revert($change->revert_file) unless $log_only;
             } catch {
                 # Oy, the revert failed. Just emit the error.
                 $sqitch->vent(eval { $_->message } // $_);
@@ -747,7 +751,7 @@ sub revert_change {
     $self->begin_work($change);
 
     try {
-        $self->run_file($change->revert_file) unless $log_only;
+        $self->run_revert($change->revert_file) unless $log_only;
         try {
             $self->log_revert_change($change);
         } catch {
@@ -1305,6 +1309,27 @@ Search by change name or tag.
 
 The offset, if passed, will be applied relative to whatever change is found by
 the above algorithm.
+
+=head3 C<run_deploy>
+
+  $engine->run_deploy($deploy_file);
+
+Runs a deploy script. The implementation is just an alias for C<run_file()>;
+subclasses may override as appropriate.
+
+=head3 C<run_revert>
+
+  $engine->run_revert($revert_file);
+
+Runs a revert script. The implementation is just an alias for C<run_file()>;
+subclasses may override as appropriate.
+
+=head3 C<run_verify>
+
+  $engine->run_verify($verify_file);
+
+Runs a deploy script. The implementation is just an alias for C<run_file()>;
+subclasses may override as appropriate.
 
 =head2 Abstract Instance Methods
 
