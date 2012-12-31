@@ -152,7 +152,9 @@ sub revert {
     my @changes;
 
     if (defined $to) {
-        my $change = $self->change_for_key($to) or do {
+        my ($change) = $self->_load_changes(
+            $self->change_for_key($to)
+        ) or do {
             # Not deployed. Is it in the plan?
             if ( $plan->get($to) ) {
                 # Known but not deployed.
