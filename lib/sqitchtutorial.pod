@@ -300,16 +300,26 @@ in, e.g.:
   > sqitch status
   # On database flipr_test
   # Project:  flipr
-  # Change:   9b24259744da156552479197872adba6a01a1ace
+  # Change:   ae1263b92b3355cf705c7832271730fe4ccb3c77
   # Name:     appschema
-  # Deployed: 2012-08-16 18:57:03 -0700
+  # Deployed: 2012-12-31 11:03:18 -0800
   # By:       Marge N. O’Vera <marge@example.com>
   # 
   Nothing to deploy (up-to-date)
 
-Yay, that allows things to be a little more concise. Let's make some more
-changes!
-a
+Yay, that allows things to be a little more concise. Let's also make sure that
+changes are verified after dploying them:
+
+  > sqitch config --bool deploy.verify true
+  > sqitch config --bool rebase.verify true
+
+We'll see the C<rebase> command a bit later. In the meantime, let's commit the
+new configuration and and make some more changes!
+
+  > git commit -am 'Set default DB name and always verify.'
+  [master b6d189b] Set default DB name and always verify.
+   1 file changed, 6 insertions(+)
+
 =head1 Deploy with Dependency
 
 Let's add another change, this time to create a table. Our app will need
@@ -331,7 +341,9 @@ this:
 
   -- Deploy users
   -- requires: appschema
+
   BEGIN;
+
   SET client_min_messages = 'warning';
 
   CREATE TABLE flipr.users (
@@ -349,13 +361,22 @@ right?
 
 Notice that all of the SQL code is wrapped in a transaction. This is handy for
 PostgreSQL deployments, because PostgreSQL DDLs are transactional. The upshot
-is that if any part of the deployment fails, the whole change fails. Such may
-work less-well for database engines that don't support transactional DDLs.
+is that if any part of this deploy script fails, the whole change fails. Such
+may work less-well for database engines that don't support transactional DDLs.
 
-The table itself has been created in the C<flipr> schema. This is why we need
+The table itself will been created in the C<flipr> schema. This is why we need
 to require the C<appschema> change.
 
-Now for the revert script. Add this to C<revert/users.sql>:
+Now for the verify script. The simplest way to check that the table was
+created and has the expected columns without touching the data? Just select
+from the table with a false C<WHERE> clause. Add this to C<verify/users.sql>:
+
+  SELECT nickname, password, timestamp
+    FROM flipr.users
+   WHERE FALSE;
+
+Now for the revert script: all we have to do is drop the table. Add this to
+C<revert/users.sql>:
 
   DROP TABLE flipr.users;
 
@@ -365,7 +386,8 @@ Couldn't be much simpler, right? Let's deploy this bad boy:
   Deploying changes to flipr_test
     + users
 
-The C<users> table should have been created:
+We know, since verification is enabled, that the table must have been created.
+But for the purposes of visilibity, let's have a quick look:
 
   > psql -d flipr_test -c '\d flipr.users'
                         Table "flipr.users"
@@ -377,14 +399,22 @@ The C<users> table should have been created:
   Indexes:
       "users_pkey" PRIMARY KEY, btree (nickname)
 
+We can also verify all currenty deployed changes with the C<verify> command:
+
+  > sqitch verify
+  Verifying flipr_test
+    * appschema
+    * users
+  Verify successful
+
 Now have a look at the status:
 
   > sqitch status
   # On database flipr_test
   # Project:  flipr
-  # Change:   0521530ed75365d16163e3b46d292c2a29e13dfa
+  # Change:   bbb98e0660898ced0ba5f84c577036b5dafa3a55
   # Name:     users
-  # Deployed: 2012-08-16 19:01:06 -0700
+  # Deployed: 2012-12-31 11:42:17 -0800
   # By:       Marge N. O’Vera <marge@example.com>
   # 
   Nothing to deploy (up-to-date)
@@ -399,12 +429,12 @@ Note that we've used the C<--to> option to specify the change to revert to.
 And what do we revert to? The symbolic tag C<@HEAD>, when passed to C<revert>,
 always refers to the last change deployed to the database. (For other
 commands, it refers to the last change in the plan.) Appending the caret
-(C<^>) tells Sqitch to select the change prior to the last deployed change. So
-we revert to C<appschema>, the penultimate change. The other potentially
+(C<^>) tells Sqitch to select the change I<prior> to the last deployed change.
+So we revert to C<appschema>, the penultimate change. The other potentially
 useful symbolic tag is C<@ROOT>, which refers to the first change deployed to
 the database (or in the plan, depending on the command).
 
-Back to the database. The C<users> table should be gone but the C<flipr> user
+Back to the database. The C<users> table should be gone but the C<flipr> schema
 should still be around:
 
   > psql -d flipr_test -c '\d flipr.users'
@@ -414,8 +444,8 @@ Now commit and deploy again:
 
   > git add .
   > git commit -am 'Add users table.'
-  [master dfa6952] Add users table.
-   5 files changed, 30 insertions(+)
+  [master 4322c18] Add users table.
+   4 files changed, 31 insertions(+)
    create mode 100644 deploy/users.sql
    create mode 100644 revert/users.sql
    create mode 100644 verify/users.sql
@@ -428,9 +458,9 @@ Looks good. Check the status:
   > sqitch status
   # On database flipr_test
   # Project:  flipr
-  # Change:   0521530ed75365d16163e3b46d292c2a29e13dfa
+  # Change:   bbb98e0660898ced0ba5f84c577036b5dafa3a55
   # Name:     users
-  # Deployed: 2012-08-16 19:03:48 -0700
+  # Deployed: 2012-12-31 11:48:01 -0800
   # By:       Marge N. O’Vera <marge@example.com>
   # 
   Nothing to deploy (up-to-date)
