@@ -31,7 +31,7 @@ source code repository. So let's do that with Git:
   Initialized empty Git repository in /flipr/.git/
   > touch README.md
   > git add .
-  > git commit -am 'First post!'
+  > git commit -am 'Initialize project, add README.'
 
 If you're a Git user and want to follow along the history, the repository
 used in these examples is L<on GitHub|https://github.com/theory/sqitch-intro>.
@@ -113,8 +113,8 @@ Let's commit these changes and start creating the database changes.
 
   > git add .
   > git commit -am 'Initialize Sqitch configuration.'
-  [master bd7e3f0] Initialize Sqitch configuration.
-   2 files changed, 20 insertions(+)
+  [master be9ab3e] Initialize Sqitch configuration.
+   2 files changed, 23 insertions(+)
    create mode 100644 sqitch.conf
    create mode 100644 sqitch.plan
 
@@ -136,7 +136,7 @@ F<deploy/appschema.sql>:
 
   CREATE SCHEMA flipr;
 
-The C<revert> script's job is to precisely revert the change to the deploy
+And the C<revert> script's job is to precisely revert the change to the deploy
 script, so we add this to F<revert/appschema.sql>:
 
   DROP SCHEMA flipr;
@@ -156,7 +156,7 @@ Sqitch deploys changes. We only have one so far; the C<+> reinforces the idea
 that the change is being added to the database.
 
 With this change deployed, if you connect to the database, you'll be able to
-see the role:
+see the schema:
 
   > psql -d flipr_test -c '\dn flipr'
   List of schemas
@@ -164,15 +164,34 @@ see the role:
   -------+-------
    flipr | marge
 
-And we can also see how the deployment was recorded via the C<status> command,
-which reads the metadata tables from the database:
+But that's too much work. do you really want to do something like that after
+every deploy?
+
+Here's where the C<verify> script comes in. Its job is to test that the deploy
+did was it was supposed to. It should do so without regard to any data that
+might be in the database, and should throw an error if the deloy was not
+successful. So let's write a simple query that will die if the schema does not
+exist and put it into F<verify/appschema.sql>:
+
+  SELECT 1/COUNT(*) FROM information_schema.schemata WHERE schema_name = 'flipr';
+
+We can run the C<verify> script with the C<verify> command:
+
+  > sqitch --db-name flipr_test verify
+  Deploying flipr_test
+    * appschema
+  Verify successful
+
+Looks good! For informational purposes, we can always see how a deployment was
+recorded via the C<status> command, which reads the metadata tables from the
+database:
 
   > sqitch -d flipr_test status
   # On database flipr_test
   # Project:  flipr
-  # Change:   9b24259744da156552479197872adba6a01a1ace
+  # Change:   ae1263b92b3355cf705c7832271730fe4ccb3c77
   # Name:     appschema
-  # Deployed: 2012-08-16 18:52:40 -0700
+  # Deployed: 2012-12-31 11:00:29 -0800
   # By:       Marge N. O’Vera <marge@example.com>
   # 
   Nothing to deploy (up-to-date)
@@ -201,22 +220,29 @@ And the status message should reflect as much:
   # On database flipr_test
   No changes deployed
 
-We still have a record that the change happened, visible via the C<log>
-command:
+Of course, since nothing is deployed, the C<verify> command has nothing to
+verify:
+
+  > sqitch -d flipr_test verify
+  # On database flipr_test
+  No changes deployed
+
+However, we still have a record that the change happened, visible via the
+C<log> command:
 
   > sqitch -d flipr_test log
   On database flipr_test
-  Revert 9b24259744da156552479197872adba6a01a1ace
+  Revert ae1263b92b3355cf705c7832271730fe4ccb3c77
   Name:      appschema
   Committer: Marge N. O’Vera <marge@example.com>
-  Date:      2012-08-16 18:54:55 -0700
+  Date:      2012-12-31 11:01:22 -0800
 
       App schema for all flipr objects.
 
-  Deploy 9b24259744da156552479197872adba6a01a1ace
+  Deploy ae1263b92b3355cf705c7832271730fe4ccb3c77
   Name:      appschema
   Committer: Marge N. O’Vera <marge@example.com>
-  Date:      2012-08-16 18:52:40 -0700
+  Date:      2012-12-31 11:00:29 -0800
 
       App schema for all flipr objects.
 
@@ -227,15 +253,16 @@ Cool. Now let's commit it.
 
   > git add .
   > git commit -m 'Add flipr schema.'
-  [master 0fcb493] Add flipr schema.
-   4 files changed, 23 insertions(+), 1 deletion(-)
+  [master 0bdcfcc] Add flipr schema.
+   4 files changed, 22 insertions(+)
    create mode 100644 deploy/appschema.sql
    create mode 100644 revert/appschema.sql
    create mode 100644 verify/appschema.sql
 
-And then deploy again:
+And then deploy again. This time, let's use the C<--verify> option, so that
+the C<verify> script is applied when the change is deployed:
 
-  > sqitch --db-name flipr_test deploy
+  > sqitch --db-name flipr_test deploy --verify
   Deploying changes to flipr_test
     + appschema
 
@@ -252,9 +279,9 @@ When we look at the status, the deployment will be there:
   > sqitch -d flipr_test status
   # On database flipr_test
   # Project:  flipr
-  # Change:   9b24259744da156552479197872adba6a01a1ace
+  # Change:   ae1263b92b3355cf705c7832271730fe4ccb3c77
   # Name:     appschema
-  # Deployed: 2012-08-16 18:57:03 -0700
+  # Deployed: 2012-12-31 11:03:18 -0800
   # By:       Marge N. O’Vera <marge@example.com>
   # 
   Nothing to deploy (up-to-date)
