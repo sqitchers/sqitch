@@ -1076,6 +1076,14 @@ sub _run {
     return $sqitch->run( $self->psql, @_ );
 }
 
+sub _capture {
+    my $self   = shift;
+    my $sqitch = $self->sqitch;
+    my $pass   = $self->password or return $sqitch->capture( $self->psql, @_ );
+    local $ENV{PGPASSWORD} = $pass;
+    return $sqitch->capture( $self->psql, @_ );
+}
+
 sub _spool {
     my $self   = shift;
     my $fh     = shift;

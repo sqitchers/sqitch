@@ -154,13 +154,24 @@ is_deeply [$pg->psql], [qw(
 ), @std_opts], 'psql command should be as optioned';
 
 ##############################################################################
-# Test _run() and _spool().
-can_ok $pg, qw(_run _spool);
+# Test _run(), _capture(), and _spool().
+can_ok $pg, qw(_run _capture _spool);
 my $mock_sqitch = Test::MockModule->new('App::Sqitch');
 my (@run, $exp_pass);
 $mock_sqitch->mock(run => sub {
     shift;
     @run = @_;
+    if (defined $exp_pass) {
+        is $ENV{PGPASSWORD}, $exp_pass, qq{PGPASSWORD should be "$exp_pass"};
+    } else {
+        ok !exists $ENV{PGPASSWORD}, 'PGPASSWORD should not exist';
+    }
+});
+
+my @capture;
+$mock_sqitch->mock(capture => sub {
+    shift;
+    @capture = @_;
     if (defined $exp_pass) {
         is $ENV{PGPASSWORD}, $exp_pass, qq{PGPASSWORD should be "$exp_pass"};
     } else {
@@ -188,6 +199,10 @@ ok $pg->_spool('FH'), 'Call _spool';
 is_deeply \@spool, ['FH', $pg->psql],
     'Command should be passed to spool()';
 
+ok $pg->_capture(qw(foo bar baz)), 'Call _capture';
+is_deeply \@capture, [$pg->psql, qw(foo bar baz)],
+    'Command should be passed to capture()';
+
 # Remove the password.
 delete $config{'core.pg.password'};
 ok $pg = $CLASS->new(sqitch => $sqitch), 'Create a pg with sqitch with no pw';
@@ -199,6 +214,10 @@ is_deeply \@run, [$pg->psql, qw(foo bar baz)],
 ok $pg->_spool('FH'), 'Call _spool again';
 is_deeply \@spool, ['FH', $pg->psql],
     'Command should be passed to spool() again';
+
+ok $pg->_capture(qw(foo bar baz)), 'Call _capture again';
+is_deeply \@capture, [$pg->psql, qw(foo bar baz)],
+    'Command should be passed to capture() again';
 
 ##############################################################################
 # Test file and handle running.
