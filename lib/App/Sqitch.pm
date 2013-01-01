@@ -320,13 +320,13 @@ sub go {
 
 sub _core_opts {
     return qw(
-        plan-file=s
+        plan-file|f=s
         engine=s
         db-client=s
         db-name|d=s
         db-username|db-user|u=s
-        db-host=s
-        db-port=i
+        db-host|h=s
+        db-port|p=i
         top-dir|dir=s
         deploy-dir=s
         revert-dir=s
@@ -334,7 +334,7 @@ sub _core_opts {
         extension=s
         etc-path
         quiet
-        verbose+
+        verbose|v+
         help
         man
         version

@@ -27,6 +27,11 @@ Revision history for Perl extension App::Sqitch
        begin.
      - Added the `verify` command, which verifies that a database is valid
        relative to the plan and each deployed change's verification scripts.
+     - Added short aliases for commonly-used core options:
+       * -f for --plan-file
+       * -v for --verbose
+       * -h for --db-host
+       * -p for --db-port
 
 0.940  2012-12-04T05:49:45Z
      - Fixed tests that failed due to I18N issues, with thanks to Arnaud

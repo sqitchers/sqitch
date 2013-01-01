@@ -148,13 +148,13 @@ User who adds a change to the plan.
 
 =head1 Options
 
-     --plan-file  FILE    Path to a deployment plan file.
+  -f --plan-file  FILE    Path to a deployment plan file.
      --engine     ENGINE  Database engine.
      --db-client  PATH    Path to the engine command-line client.
   -d --db-name    NAME    Database name.
   -u --db-user    USER    Database user name.
-     --db-host    HOST    Database server host name.
-     --db-port    PORT    Database server port number.
+  -h --db-host    HOST    Database server host name.
+  -p --db-port    PORT    Database server port number.
      --top-dir    DIR     Path to directory with plan and scripts.
      --deploy-dir DIR     Path to directory with deployment scripts.
      --revert-dir DIR     Path to directory with reversion scripts.
@@ -162,7 +162,7 @@ User who adds a change to the plan.
      --extension  EXT     SQL script file name extension.
      --etc-path           Print the path to the etc directory and exit.
      --quiet              Quiet mode with non-error output suppressed.
-     --verbose            Increment verbosity.
+  -v --verbose            Increment verbosity.
      --version            Print the version number and exit.
      --help               Show a list of commands and exit.
      --man                Print the introductory documentation and exit.
@@ -171,9 +171,12 @@ User who adds a change to the plan.
 
 =over
 
+=item C<-f>
+
 =item C<--plan-file>
 
   sqitch --plan-file plan.txt
+  sqitch -f main.plan
 
 Path to the deployment plan file. Defaults to F<$top_dir/sqitch.plan>. See
 L</Plan File> for a description of its structure.
@@ -225,16 +228,22 @@ the database will be automatically created on first connect.
 
 User name to use when connecting to the database. Does not apply to all engines.
 
+=item C<-h>
+
 =item C<--db-host>
 
   sqitch --db-host db.example.com
+  sqitch -h appdb.example.net
 
 Host name to use when connecting to the database. Does not apply to all
 engines.
 
+=item C<-p>
+
 =item C<--db-port>
 
   sqitch --db-port 7654
+  sqitch -p 5431
 
 Port number to connect to. Does not apply to all engines.
 
@@ -288,14 +297,18 @@ deployment script templates.
 Suppress normal output messages. Error messages will still be emitted to
 C<STDERR>. Overrides any value specified by C<--verbose>.
 
+=item C<-v>
+
 =item C<--verbose>
 
-  sqitch --verbose --verbose
+  sqitch --verbose
+  sqitch -vvv
 
-A value between 0 and 3 specifying how verbose Sqitch should be. Unless
-C<--quiet> is specified, the default is 1, meaning that Sqitch will output
-basic status messages as it does its thing. Values of 2 and 3 each cause
-greater verbosity. Ignored if C<--quiet> is specified.
+Pass multiple times to specify a value between 0 and 3 to determine how
+verbose Sqitch should be. Unless C<--quiet> is specified, the default is 1,
+meaning that Sqitch will output basic status messages as it does its thing.
+Values of 2 and 3 each cause greater verbosity. Ignored if C<--quiet> is
+specified.
 
 =item C<--help>
 

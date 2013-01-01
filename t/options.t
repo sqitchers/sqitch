@@ -130,9 +130,17 @@ is_deeply $CLASS->_parse_core_opts([
 is_deeply $CLASS->_parse_core_opts([
   '-d' => 'mydb',
   '-u' => 'fred',
+  '-h' => 'db1',
+  '-p' => 5431,
+  '-f' => 'foo.plan',
+  '-vvv',
 ]), {
     db_name     => 'mydb',
     db_username => 'fred',
+    db_host     => 'db1',
+    db_port     => 5431,
+    verbosity   => 3,
+    plan_file   => 'foo.plan',
 }, 'Short options should work';
 
 USAGE: {
