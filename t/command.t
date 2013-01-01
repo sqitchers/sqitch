@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 85;
+use Test::More tests => 87;
 #use Test::More 'no_plan';
 
 my $catch_exit;
@@ -334,6 +334,15 @@ $sqitch->{verbosity} = 0;
 is capture_stdout { $cmd->emit('This ', "that\n", 'and the other') },
     "This that\nand the other\n",
     'emit should work even with verbosity 0';
+
+# Declare.
+is capture_stdout { $cmd->declare('This ', "that\n", 'and the other') },
+    "This that\nand the other",
+    'declare should work';
+$sqitch->{verbosity} = 0;
+is capture_stdout { $cmd->declare('This ', "that\n", 'and the other') },
+    "This that\nand the other",
+    'declare should work even with verbosity 0';
 
 # Warn.
 is capture_stderr { $cmd->warn('This ', "that\n", 'and the other') },

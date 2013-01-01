@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 144;
+use Test::More tests => 146;
 #use Test::More 'no_plan';
 use Test::MockModule;
 use Path::Class;
@@ -248,6 +248,15 @@ $sqitch = $CLASS->new(verbosity => 0);
 is capture_stdout { $sqitch->emit('This ', "that\n", 'and the other') },
     "This that\nand the other\n",
     'emit should work even with verbosity 0';
+
+# Declare.
+is capture_stdout { $sqitch->declare('This ', "that\n", 'and the other') },
+    "This that\nand the other",
+    'declare should work';
+$sqitch = $CLASS->new(verbosity => 0);
+is capture_stdout { $sqitch->declare('This ', "that\n", 'and the other') },
+    "This that\nand the other",
+    'declare should work even with verbosity 0';
 
 # Warn.
 is capture_stderr { $sqitch->warn('This ', "that\n", 'and the other') },

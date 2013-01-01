@@ -593,6 +593,12 @@ sub emit {
     say @_;
 }
 
+sub declare {
+    shift;
+    local $|=1;
+    print @_;
+}
+
 sub vent {
     shift;
     my $fh = select;
@@ -795,6 +801,14 @@ lower than 1, nothing will be output.
 Send a message to C<STDOUT>, without regard to the verbosity. Should be used
 only if the user explicitly asks for output, such as for
 C<sqitch config --get core.editor>.
+
+=head3 C<declare>
+
+  $sqitch->declare('core.editor=emacs');
+
+Send a message to C<STDOUT>, without regard to the verbosity Unlikes C<emit>,
+this method calls C<print> instead of C<say>, so no additional newline will be
+appended to the output.
 
 =head3 C<vent>
 

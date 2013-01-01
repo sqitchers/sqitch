@@ -28,6 +28,7 @@ has sqitch => (
         info
         comment
         emit
+        declare
         vent
         warn
         page
