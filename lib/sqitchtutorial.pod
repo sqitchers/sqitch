@@ -184,7 +184,7 @@ We can run the C<verify> script with the C<verify> command:
 
   > sqitch --db-name flipr_test verify
   Verifying flipr_test
-    * appschema
+    * appschema .. ok
   Verify successful
 
 Looks good! If you want to make sure that the verify script correctly dies if
@@ -197,9 +197,9 @@ Then C<verify> again:
 
   > sqitch --db-name flipr_test verify
   Verifying flipr_test
-    * appschema
-  psql:verify/appschema.sql:5: ERROR:  schema "nonexistent" does not exist
+    * appschema .. psql:verify/appschema.sql:5: ERROR:  schema "nonexistent" does not exist
   # Verify script "verify/appschema.sql" failed.
+  not ok
   
   Verify Summary Report
   ---------------------
@@ -431,8 +431,8 @@ We can also verify all currenty deployed changes with the C<verify> command:
 
   > sqitch verify
   Verifying flipr_test
-    * appschema
-    * users
+    * appschema .. ok
+    * users ...... ok
   Verify successful
 
 Now have a look at the status:
@@ -485,7 +485,7 @@ As does the C<verify> command:
 
   > sqitch verify
   Verifying flipr_test
-    * appschema
+    * appschema .. ok
   Undeployed change:
     * users
   Verify successful

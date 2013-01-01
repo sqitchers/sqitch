@@ -14,6 +14,7 @@ my @mocked = qw(
     info
     comment
     emit
+    declare
     vent
     warn
     page

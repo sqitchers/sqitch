@@ -1858,9 +1858,11 @@ $engine->seen;
 # Start with a single change with a valid verify script.
 is $engine->_verify_changes(1, 1, 0, $changes[1]), 0,
     'Verify of a single change should return errcount 0';
-is_deeply +MockOutput->get_emit, [[
-    '  * ', 'users @alpha'
-]], 'Emitted Output should reflect the verification of the change';
+is_deeply +MockOutput->get_declare, [[
+    '  * users @alpha ..', '', ' ',
+]], 'Declared output should list the change';
+is_deeply +MockOutput->get_emit, [['ok']],
+    'Emitted Output should reflect the verification of the change';
 is_deeply +MockOutput->get_comment, [], 'Should have no comments';
 is_deeply $engine->seen, [
     [run_file => $changes[1]->verify_file ],
@@ -1869,9 +1871,11 @@ is_deeply $engine->seen, [
 # Try a single change with no verify script.
 is $engine->_verify_changes(0, 0, 0, $changes[0]), 0,
     'Verify of another single change should return errcount 0';
-is_deeply +MockOutput->get_emit, [[
-    '  * ', 'roles'
-]], 'Emitted Output should reflect the verification of the change';
+is_deeply +MockOutput->get_declare, [[
+    '  * roles ..', '', ' ',
+]], 'Declared output should list the change';
+is_deeply +MockOutput->get_emit, [['ok']],
+    'Emitted Output should reflect the verification of the change';
 is_deeply +MockOutput->get_comment, [], 'Should have no comments';
 is_deeply +MockOutput->get_vent, [
     [__x 'Verify script {file} does not exist', file => $changes[0]->verify_file],
@@ -1882,10 +1886,13 @@ is_deeply $engine->seen, [
 # Try multiple changes.
 is $engine->_verify_changes(0, 1, 0, @changes[0,1]), 0,
     'Verify of two changes should return errcount 0';
-is_deeply +MockOutput->get_emit, [
-    ['  * ', 'roles'],
-    ['  * ', 'users @alpha'],
-], 'Emitted output should show both changes';
+is_deeply +MockOutput->get_declare, [
+    ['  * roles ..', '.......', ' '],
+    ['  * users @alpha ..', '', ' '],
+], 'Declared output should list both changes';
+is_deeply +MockOutput->get_emit, [['ok'], ['ok']],
+    'Emitted Output should reflect the verification of the changes';
+
 is_deeply +MockOutput->get_comment, [], 'Should have no comments';
 is_deeply +MockOutput->get_vent, [
     [__x 'Verify script {file} does not exist', file => $changes[0]->verify_file],
@@ -1898,9 +1905,12 @@ is_deeply $engine->seen, [
 my @plan_changes = $plan->changes;
 is $engine->_verify_changes(0, 1, 1, @changes[0,1]), 0,
     'Verify of two changes and show pending';
+is_deeply +MockOutput->get_declare, [
+    ['  * roles ..', '.......', ' '],
+    ['  * users @alpha ..', '', ' '],
+], 'Delcared output should list deployed changes';
 is_deeply +MockOutput->get_emit, [
-    ['  * ', 'roles'],
-    ['  * ', 'users @alpha'],
+    ['ok'], ['ok'],
     [__n 'Undeployed change:', 'Undeployed changes:', 2],
     map { [ '  * ', $_->format_name_with_tags] } @plan_changes[2..$#plan_changes]
 ], 'Emitted output should include list of pending changes';
@@ -1916,9 +1926,11 @@ is_deeply $engine->seen, [
 $change = App::Sqitch::Plan::Change->new( name => 'nonexistent', plan => $plan );
 is $engine->_verify_changes(1, 0, 0, $change), 1,
     'Verify of a change not in the plan should return errcount 1';
-is_deeply +MockOutput->get_emit, [[
-    '  * ', 'nonexistent'
-]], 'Emitted Output should reflect the verification of the change';
+is_deeply +MockOutput->get_declare, [[
+    '  * nonexistent ..', '', ' '
+]], 'Declared Output should reflect the verification of the change';
+is_deeply +MockOutput->get_emit, [['not ok']],
+    'Emitted Output should reflect the failure of the verify';
 is_deeply +MockOutput->get_comment, [[__ 'Not present in the plan' ]],
     'Should have a comment about the change missing from the plan';
 is_deeply $engine->seen, [], 'No verify script should have been run';
@@ -1928,9 +1940,11 @@ my $mock_plan = Test::MockModule->new(ref $plan);
 $mock_plan->mock(index_of => 5);
 is $engine->_verify_changes(1, 0, 0, $changes[1]), 1,
     'Verify of an out-of-order change should return errcount 1';
-is_deeply +MockOutput->get_emit, [
-    ['  * ', 'users @alpha'],
-], 'Emitted Output should reflect the verification of the change';
+is_deeply +MockOutput->get_declare, [
+    ['  * users @alpha ..', '', ' '],
+], 'Declared output should reflect the verification of the change';
+is_deeply +MockOutput->get_emit, [['not ok']],
+    'Emitted Output should reflect the failure of the verify';
 is_deeply +MockOutput->get_comment, [[__ 'Out of order' ]],
     'Should have a comment about the out-of-order change';
 is_deeply $engine->seen, [
@@ -1941,9 +1955,11 @@ is_deeply $engine->seen, [
 $mock_engine->mock( verify_change => sub { hurl 'WTF!' });
 is $engine->_verify_changes(1, 0, 0, $changes[1]), 2,
     'Verify of a change with 2 issues should return 2';
-is_deeply +MockOutput->get_emit, [
-    ['  * ', 'users @alpha'],
-], 'Emitted output should reflect the verification of the change';
+is_deeply +MockOutput->get_declare, [
+    ['  * users @alpha ..', '', ' '],
+], 'Declared output should reflect the verification of the change';
+is_deeply +MockOutput->get_emit, [['not ok']],
+    'Emitted Output should reflect the failure of the verify';
 is_deeply +MockOutput->get_comment, [
     [__ 'Out of order' ],
     ['WTF!'],
@@ -1954,10 +1970,12 @@ is_deeply $engine->seen, [], 'No abstract methods should have been called';
 $mock_engine->mock( verify_change => sub { hurl 'WTF!' });
 is $engine->_verify_changes(0, -1, 0, @changes[0,1]), 4,
     'Verify of 2 changes with 2 issues each should return 4';
-is_deeply +MockOutput->get_emit, [
-    ['  * ', 'roles'],
-    ['  * ', 'users @alpha'],
-], 'Emitted output should reflect the verification of both changes';
+is_deeply +MockOutput->get_declare, [
+    ['  * roles ..', '.......', ' '],
+    ['  * users @alpha ..', '', ' '],
+], 'Declraed output should reflect the verification of both changes';
+is_deeply +MockOutput->get_emit, [['not ok'], ['not ok']],
+    'Emitted Output should reflect the failure of both verifies';
 is_deeply +MockOutput->get_comment, [
     [__ 'Out of order' ],
     ['WTF!'],
@@ -1973,11 +1991,13 @@ $mock_engine->unmock('verify_change');
 # Now deal with changes in the plan but not in the list.
 is $engine->_verify_changes($#changes, $plan->count - 1, 0, $changes[-1]), 2,
     '_verify_changes with two undeployed changes should returne 2';
-is_deeply +MockOutput->get_emit, [
-    ['  * ', 'dr_evil'],
-    ['  * ', 'foo'    ],
-    ['  * ', 'blah'   ],
+is_deeply +MockOutput->get_declare, [
+    ['  * dr_evil ..', '', ' '],
+    ['  * foo ..', '....', ' ' , 'not ok', ' '],
+    ['  * blah ..', '...', ' ' , 'not ok', ' '],
 ], 'Listed changes should be both deployed and undeployed';
+is_deeply +MockOutput->get_emit, [['ok']],
+    'Emitted Output should reflect 1 pass';
 is_deeply +MockOutput->get_comment, [
     [__ 'Not deployed' ],
     [__ 'Not deployed' ],
@@ -2035,10 +2055,13 @@ ok $engine->verify, 'Verify one change';
 is_deeply +MockOutput->get_info, [
     [__x 'Verifying {destination}', destination => $engine->destination],
 ], 'Notification of the verify should be emitted';
+is_deeply +MockOutput->get_declare, [
+    ['  * ' . $changes[1]->format_name_with_tags . ' ..', '', ' ' ],
+], 'The one change name should be declared';
 is_deeply +MockOutput->get_emit, [
-    ['  * ', $changes[1]->format_name_with_tags ],
+    ['ok'],
     [__ 'Verify successful'],
-], 'The one change name should be emitted';
+], 'Success should be emitted';
 is_deeply +MockOutput->get_comment, [], 'Should have no comments';
 
 # Verify two changes.
@@ -2049,11 +2072,14 @@ ok $engine->verify, 'Verify two changes';
 is_deeply +MockOutput->get_info, [
     [__x 'Verifying {destination}', destination => $engine->destination],
 ], 'Notification of the verify should be emitted';
+is_deeply +MockOutput->get_declare, [
+    ['  * roles ..', '.......', ' ' ],
+    ['  * users @alpha ..', '', ' ' ],
+], 'The two change names should be declared';
 is_deeply +MockOutput->get_emit, [
-    ['  * ', $changes[0]->format_name_with_tags ],
-    ['  * ', $changes[1]->format_name_with_tags ],
+    ['ok'], ['ok'],
     [__ 'Verify successful'],
-], 'The two change names should be emitted';
+], 'Both successes should be emitted';
 is_deeply +MockOutput->get_comment, [], 'Should have no comments';
 is_deeply +MockOutput->get_vent, [
     [__x(
@@ -2072,11 +2098,14 @@ ok $engine->verify, 'Verify with a reworked change changes';
 is_deeply +MockOutput->get_info, [
     [__x 'Verifying {destination}', destination => $engine->destination],
 ], 'Notification of the verify should be emitted';
-is_deeply +MockOutput->get_emit, [
-    ['  * ', $changes[0]->format_name_with_tags ],
-    ['  * ', $changes[1]->format_name_with_tags ],
-    [__ 'Verify successful'],
+is_deeply +MockOutput->get_declare, [
+    ['  * roles ..', '.......', ' ' ],
+    ['  * users @alpha ..', '', ' ' ],
 ], 'The two change names should be emitted';
+is_deeply +MockOutput->get_emit, [
+    ['ok'], ['ok'],
+    [__ 'Verify successful'],
+], 'Both successes should be emitted';
 is_deeply +MockOutput->get_comment, [], 'Should have no comments';
 is_deeply +MockOutput->get_vent, [], 'Should have no warnings';
 
@@ -2089,11 +2118,14 @@ ok $engine->verify('users', 'widgets'), 'Verify two specific changes';
 is_deeply +MockOutput->get_info, [
     [__x 'Verifying {destination}', destination => $engine->destination],
 ], 'Notification of the verify should be emitted';
-is_deeply +MockOutput->get_emit, [
-    ['  * ', $changes[1]->format_name_with_tags ],
-    ['  * ', $changes[2]->format_name_with_tags ],
-    [__ 'Verify successful'],
+is_deeply +MockOutput->get_declare, [
+    ['  * users @alpha ..', '.', ' ' ],
+    ['  * widgets @beta ..', '', ' ' ],
 ], 'The two change names should be emitted';
+is_deeply +MockOutput->get_emit, [
+    ['ok'], ['ok'],
+    [__ 'Verify successful'],
+], 'Both successes should be emitted';
 is_deeply +MockOutput->get_comment, [], 'Should have no comments';
 is_deeply +MockOutput->get_vent, [
     [__x(
@@ -2115,9 +2147,12 @@ is_deeply +MockOutput->get_info, [
     [__x 'Verifying {destination}', destination => $engine->destination],
 ], 'Notification of the verify should be emitted';
 my $msg = __ 'Verify Summary Report';
+is_deeply +MockOutput->get_declare, [
+    ['  * users @alpha ..', '.', ' ' ],
+    ['  * widgets @beta ..', '', ' ' ],
+], 'Both change names should be declared';
 is_deeply +MockOutput->get_emit, [
-    ['  * ', $changes[1]->format_name_with_tags ],
-    ['  * ', $changes[2]->format_name_with_tags ],
+    ['not ok'], ['not ok'],
     [ $/, $msg ],
     [ '-' x length $msg ],
     [__x 'Changes: {number}', number => 2 ],

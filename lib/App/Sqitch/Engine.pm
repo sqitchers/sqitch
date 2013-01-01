@@ -7,7 +7,7 @@ use utf8;
 use Try::Tiny;
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
-use List::Util qw(first);
+use List::Util qw(first max);
 use namespace::autoclean;
 
 our $VERSION = '0.950';
@@ -341,51 +341,72 @@ sub _verify_changes {
     my $i        = -1;
     my @seen;
 
+    my $max_name_len = max map {
+        length $_->format_name_with_tags
+    } @_, map { $plan->change_at($_) } $from_idx..$to_idx;
+
     for my $change (@_) {
         $i++;
-        $sqitch->emit( '  * ', $change->format_name_with_tags );
+        my $errs     = 0;
+        my $reworked = 0;
+        my $name     = $change->format_name_with_tags;
+        $sqitch->declare(
+            "  * $name ..",
+            '.' x ($max_name_len - length $name), ' '
+        );
 
         my $plan_index = $plan->index_of( $change->id );
-        if (! defined $plan_index) {
-            $sqitch->comment(__ 'Not present in the plan');
-            $errcount++;
-        } else {
+        if (defined $plan_index) {
             push @seen => $plan_index;
             if ( $plan_index != ($from_idx + $i) ) {
                 $sqitch->comment(__ 'Out of order');
-                $errcount++;
+                $errs++;
             }
-            # Don't run the test scriptif it's a reworked change.
-            next if $plan->change_at($plan_index)->suffix;
+            # Is it reworked?
+            $reworked = !! $plan->change_at($plan_index)->suffix;
+        } else {
+            $sqitch->comment(__ 'Not present in the plan');
+            $errs++;
         }
 
         # Run the verify script.
-        try { $self->verify_change( $change ) } catch {
+        try {  $self->verify_change( $change ) } catch {
             $sqitch->comment(eval { $_->message } // $_);
-            $errcount++;
-        };
+            $errs++;
+        } unless $reworked;
+
+        # Emit pass/fail and add to the total error count.
+        $sqitch->emit( $errs ? __ 'not ok' : __ 'ok' );
+        $errcount += $errs;
     }
 
     # List off any undeployed changes.
     for my $idx ($from_idx..$to_idx) {
         next if defined first { $_ == $idx } @seen;
         my $change = $plan->change_at( $idx );
-        $sqitch->emit( '  * ', $change->format_name_with_tags );
+        my $name   = $change->format_name_with_tags;
+        $sqitch->declare(
+            "  * $name ..",
+            '.' x ($max_name_len - length $name), ' ',
+            __ 'not ok', ' '
+        );
         $sqitch->comment(__ 'Not deployed');
         $errcount++;
     }
 
     # List off any pending changes.
-    if ( $pending && $to_idx < ($plan->count - 1) ) {
-        my @idxes = ( ($to_idx + 1)..($plan->count - 1) );
-        $sqitch->emit(__n(
-            'Undeployed change:',
-            'Undeployed changes:',
-            @idxes,
-        ));
+    if ($pending && $to_idx < ($plan->count - 1)) {
+        if (my @pending = map {
+            $plan->change_at($_)
+        } ($to_idx + 1)..($plan->count - 1) ) {
+            $sqitch->emit(__n(
+                'Undeployed change:',
+                'Undeployed changes:',
+                @pending,
+            ));
 
-        $sqitch->emit( '  * ', $plan->change_at( $_ )->format_name_with_tags )
-            for @idxes;
+            $sqitch->emit( '  * ', $_->format_name_with_tags ) for @pending;
+        }
     }
 
     return $errcount;
