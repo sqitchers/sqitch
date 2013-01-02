@@ -350,7 +350,7 @@ sub _verify_changes {
         my $errs     = 0;
         my $reworked = 0;
         my $name     = $change->format_name_with_tags;
-        $sqitch->declare(
+        $sqitch->emit_literal(
             "  * $name ..",
             '.' x ($max_name_len - length $name), ' '
         );
@@ -385,7 +385,7 @@ sub _verify_changes {
         next if defined first { $_ == $idx } @seen;
         my $change = $plan->change_at( $idx );
         my $name   = $change->format_name_with_tags;
-        $sqitch->declare(
+        $sqitch->emit_literal(
             "  * $name ..",
             '.' x ($max_name_len - length $name), ' ',
             __ 'not ok', ' '

@@ -24,14 +24,21 @@ has sqitch => (
         probe
         verbosity
         trace
+        trace_literal
         debug
+        debug_literal
         info
+        info_literal
         comment
+        comment_literal
         emit
-        declare
+        emit_literal
         vent
+        vent_literal
         warn
+        warn_literal
         page
+        page_literal
         prompt
         ask_y_n
     )],

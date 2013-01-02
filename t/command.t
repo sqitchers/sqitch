@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 87;
+use Test::More tests => 96;
 #use Test::More 'no_plan';
 
 my $catch_exit;
@@ -293,6 +293,7 @@ is $cmd->verbosity, $sqitch->verbosity, 'Verbosity should change with sqitch';
 
 ##############################################################################
 # Test message levels. Start with trace.
+$sqitch->{verbosity} = 3;
 is capture_stdout { $cmd->trace('This ', "that\n", 'and the other') },
     "trace: This that\ntrace: and the other\n",
     'trace should work';
@@ -300,7 +301,17 @@ $sqitch->{verbosity} = 2;
 is capture_stdout { $cmd->trace('This ', "that\n", 'and the other') },
     '', 'Should get no trace output for verbosity 2';
 
+# Trace literal.
+$sqitch->{verbosity} = 3;
+is capture_stdout { $cmd->trace_literal('This ', "that\n", 'and the other') },
+    "trace: This that\ntrace: and the other",
+    'trace_literal should work';
+$sqitch->{verbosity} = 2;
+is capture_stdout { $cmd->trace_literal('This ', "that\n", 'and the other') },
+    '', 'Should get no trace_literal output for verbosity 2';
+
 # Debug.
+$sqitch->{verbosity} = 2;
 is capture_stdout { $cmd->debug('This ', "that\n", 'and the other') },
     "debug: This that\ndebug: and the other\n",
     'debug should work';
@@ -308,13 +319,32 @@ $sqitch->{verbosity} = 1;
 is capture_stdout { $cmd->debug('This ', "that\n", 'and the other') },
     '', 'Should get no debug output for verbosity 1';
 
+# Debug literal.
+$sqitch->{verbosity} = 2;
+is capture_stdout { $cmd->debug_literal('This ', "that\n", 'and the other') },
+    "debug: This that\ndebug: and the other",
+    'debug_literal should work';
+$sqitch->{verbosity} = 1;
+is capture_stdout { $cmd->debug_literal('This ', "that\n", 'and the other') },
+    '', 'Should get no debug_literal output for verbosity 1';
+
 # Info.
+$sqitch->{verbosity} = 1;
 is capture_stdout { $cmd->info('This ', "that\n", 'and the other') },
     "This that\nand the other\n",
     'info should work';
 $sqitch->{verbosity} = 0;
 is capture_stdout { $cmd->info('This ', "that\n", 'and the other') },
     '', 'Should get no info output for verbosity 0';
+
+# Info literal.
+$sqitch->{verbosity} = 1;
+is capture_stdout { $cmd->info_literal('This ', "that\n", 'and the other') },
+    "This that\nand the other",
+    'info_literal should work';
+$sqitch->{verbosity} = 0;
+is capture_stdout { $cmd->info_literal('This ', "that\n", 'and the other') },
+    '', 'Should get no info_literal output for verbosity 0';
 
 # Comment.
 $sqitch->{verbosity} = 1;
@@ -326,6 +356,16 @@ is capture_stdout { $sqitch->comment('This ', "that\n", 'and the other') },
     "# This that\n# and the other\n",
     'comment should work with verbosity 0';
 
+# Comment literal.
+$sqitch->{verbosity} = 1;
+is capture_stdout { $cmd->comment_literal('This ', "that\n", 'and the other') },
+    "# This that\n# and the other",
+    'comment_literal should work';
+$sqitch->{verbosity} = 0;
+is capture_stdout { $sqitch->comment_literal('This ', "that\n", 'and the other') },
+    "# This that\n# and the other",
+    'comment_literal should work with verbosity 0';
+
 # Emit.
 is capture_stdout { $cmd->emit('This ', "that\n", 'and the other') },
     "This that\nand the other\n",
@@ -335,19 +375,24 @@ is capture_stdout { $cmd->emit('This ', "that\n", 'and the other') },
     "This that\nand the other\n",
     'emit should work even with verbosity 0';
 
-# Declare.
-is capture_stdout { $cmd->declare('This ', "that\n", 'and the other') },
+# Emit literal.
+is capture_stdout { $cmd->emit_literal('This ', "that\n", 'and the other') },
     "This that\nand the other",
-    'declare should work';
+    'emit_literal should work';
 $sqitch->{verbosity} = 0;
-is capture_stdout { $cmd->declare('This ', "that\n", 'and the other') },
+is capture_stdout { $cmd->emit_literal('This ', "that\n", 'and the other') },
     "This that\nand the other",
-    'declare should work even with verbosity 0';
+    'emit_literal should work even with verbosity 0';
 
 # Warn.
 is capture_stderr { $cmd->warn('This ', "that\n", 'and the other') },
     "warning: This that\nwarning: and the other\n",
     'warn should work';
+
+# Warn literal.
+is capture_stderr { $cmd->warn_literal('This ', "that\n", 'and the other') },
+    "warning: This that\nwarning: and the other",
+    'warn_literal should work';
 
 # Usage.
 $catch_exit = 1;
