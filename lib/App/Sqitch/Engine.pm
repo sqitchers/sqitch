@@ -244,6 +244,9 @@ sub revert {
     # like deploy() mode. I'm thinking not, as a failure on a revert is not
     # something you generaly want to recover from by deploying back to where
     # you started. But maybe I'm wrong?
+    $self->max_name_length(
+        max map { length $_->format_name_with_tags } @changes
+    );
     $self->revert_change($_, $log_only) for @changes;
 
     return $self;
@@ -786,13 +789,20 @@ sub deploy_change {
 
 sub revert_change {
     my ( $self, $change, $log_only ) = @_;
-    $self->sqitch->info('  - ', $change->format_name_with_tags);
+    my $sqitch = $self->sqitch;
+    my $name   = $change->format_name_with_tags;
+    $sqitch->info_literal(
+        "  - $name ..",
+        '.' x ($self->max_name_length - length $name), ' '
+    );
+
     $self->begin_work($change);
 
     try {
         $self->run_revert($change->revert_file) unless $log_only;
         try {
             $self->log_revert_change($change);
+            $sqitch->info(__ 'ok');
         } catch {
             # Oy, our logging died. Rollback and revert this change.
             $self->sqitch->vent(eval { $_->message } // $_);
@@ -802,6 +812,7 @@ sub revert_change {
     } finally {
         $self->finish_work($change);
     } catch {
+        $sqitch->info(__ 'not ok');
         die $_;
     };
 }

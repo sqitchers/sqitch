@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 527;
+use Test::More tests => 535;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -346,9 +346,11 @@ is_deeply $engine->seen, [
     [log_revert_change => $change ],
     ['finish_work'],
 ], 'revert_change should have called the proper methods';
-is_deeply +MockOutput->get_info, [[
-    '  - ', 'foo'
+is_deeply +MockOutput->get_info_literal, [[
+    '  - foo ..', '', ' '
 ]], 'Output should reflect reversion';
+is_deeply +MockOutput->get_info, [[__ 'ok']],
+    'Output should acknowldge revert success';
 
 # Revert with log-only.
 ok $engine->revert_change($change, 1), 'Revert a change with log-only';
@@ -357,9 +359,11 @@ is_deeply $engine->seen, [
     [log_revert_change => $change ],
     ['finish_work'],
 ], 'Log-only revert_change should not have run the change script';
-is_deeply +MockOutput->get_info, [[
-    '  - ', 'foo'
+is_deeply +MockOutput->get_info_literal, [[
+    '  - foo ..', '', ' '
 ]], 'Output should reflect logged reversion';
+is_deeply +MockOutput->get_info, [[__ 'ok']],
+    'Output should acknowldge revert success';
 $record_work = 0;
 
 ##############################################################################
@@ -780,14 +784,16 @@ is_deeply +MockOutput->get_info_literal, [
     ['  + lolz ..', '', ' '],
     ['  + tacos ..', '', ' '],
     ['  + curry ..', '', ' '],
+    ['  - tacos ..', '', ' '],
+    ['  - lolz ..', '', ' '],
 ], 'Should have seen deploy and revert messages (excluding curry revert)';
 is_deeply +MockOutput->get_info, [
     [__ 'ok' ],
     [__ 'ok' ],
     [__ 'ok' ],
     [__ 'not ok' ],
-    ['  - ', 'tacos'],
-    ['  - ', 'lolz'],
+    [__ 'ok' ],
+    [__ 'ok' ],
 ], 'Output should reflect deploy successes and failure';
 is_deeply +MockOutput->get_vent, [
     ['ROFL'],
@@ -809,11 +815,12 @@ is_deeply $engine->seen, [
 is_deeply +MockOutput->get_info_literal, [
     ['  + roles ..', '', ' '],
     ['  + users @alpha ..', '', ' '],
+    ['  - roles ..', '', ' '],
 ], 'Should have seen deploy and revert messages';
 is_deeply +MockOutput->get_info, [
     [__ 'ok' ],
     [__ 'not ok' ],
-    ['  - ', 'roles'],
+    [__ 'ok' ],
 ], 'Output should reflect deploy successes and failure';
 my $vented = MockOutput->get_vent;
 is @{ $vented }, 2, 'Should have one vented message';
@@ -854,6 +861,9 @@ is_deeply +MockOutput->get_info_literal, [
     ['  + tacos ..', '', ' '],
     ['  + curry ..', '', ' '],
     ['  + dr_evil ..', '', ' '],
+    ['  - curry ..', '', ' '],
+    ['  - tacos ..', '', ' '],
+    ['  - lolz ..', '', ' '],
 ], 'Should have user change reversion messages';
 is_deeply +MockOutput->get_info, [
     [__ 'ok' ],
@@ -863,9 +873,9 @@ is_deeply +MockOutput->get_info, [
     [__ 'ok' ],
     [__ 'ok' ],
     [__ 'not ok' ],
-    ['  - ', 'curry'],
-    ['  - ', 'tacos'],
-    ['  - ', 'lolz'],
+    [__ 'ok' ],
+    [__ 'ok' ],
+    [__ 'ok' ],
 ], 'Output should reflect deploy successes and failure';
 is_deeply +MockOutput->get_vent, [
     ['ROFL'],
@@ -891,11 +901,12 @@ is_deeply $engine->seen, [
 is_deeply +MockOutput->get_info_literal, [
     ['  + roles ..', '', ' '],
     ['  + users @alpha ..', '', ' '],
+    ['  - roles ..', '', ' '],
 ], 'Should have seen revert message';
 is_deeply +MockOutput->get_info, [
     [__ 'ok' ],
     [__ 'not ok' ],
-    ['  - ', 'roles'],
+    [__ 'not ok' ],
 ], 'Output should reflect deploy successes and failure';
 is_deeply +MockOutput->get_vent, [
     ['ROFL'],
@@ -961,13 +972,15 @@ is_deeply +MockOutput->get_info_literal, [
     ['  + roles ..', '', ' '],
     ['  + users @alpha ..', '', ' '],
     ['  + widgets @beta ..', '', ' '],
+    ['  - users @alpha ..', '', ' '],
+    ['  - roles ..', '', ' '],
 ], 'Should have seen deploy and revert messages excluding revert for failed logging';
 is_deeply +MockOutput->get_info, [
     [__ 'ok' ],
     [__ 'ok' ],
     [__ 'not ok' ],
-    ['  - ', 'users @alpha'],
-    ['  - ', 'roles'],
+    [__ 'ok' ],
+    [__ 'ok' ],
 ], 'Output should reflect deploy successes and failures';
 is_deeply +MockOutput->get_vent, [
     ['ROFL'],
@@ -992,13 +1005,15 @@ is_deeply +MockOutput->get_info_literal, [
     ['  + roles ..', '', ' '],
     ['  + users @alpha ..', '', ' '],
     ['  + widgets @beta ..', '', ' '],
+    ['  - users @alpha ..', '', ' '],
+    ['  - roles ..', '', ' '],
 ], 'Should see all changes revert';
 is_deeply +MockOutput->get_info, [
     [__ 'ok' ],
     [__ 'ok' ],
     [__ 'not ok' ],
-    ['  - ', 'users @alpha'],
-    ['  - ', 'roles'],
+    [__ 'ok' ],
+    [__ 'ok' ],
 ], 'Output should reflect deploy successes and failures';
 is_deeply +MockOutput->get_vent, [
     ['ROFL'],
@@ -1027,15 +1042,18 @@ is_deeply +MockOutput->get_info_literal, [
     ['  + tacos ..', '', ' '],
     ['  + curry ..', '', ' '],
     ['  + dr_evil ..', '', ' '],
+    ['  - curry ..', '', ' '],
+    ['  - tacos ..', '', ' '],
+    ['  - lolz ..', '', ' '],
 ], 'Should see changes revert back to @alpha';
 is_deeply +MockOutput->get_info, [
     [__ 'ok' ],
     [__ 'ok' ],
     [__ 'ok' ],
     [__ 'not ok' ],
-    ['  - ', 'curry'],
-    ['  - ', 'tacos'],
-    ['  - ', 'lolz'],
+    [__ 'ok' ],
+    [__ 'ok' ],
+    [__ 'ok' ],
 ], 'Output should reflect deploy successes and failures';
 is_deeply +MockOutput->get_vent, [
     ['ROFL'],
@@ -1131,9 +1149,12 @@ is_deeply $engine->seen, [
     [run_file => $change->revert_file],
     [log_revert_change => $change],
 ], 'It should have been reverted';
-is_deeply +MockOutput->get_info, [
-    ['  - ', $change->format_name]
+is_deeply +MockOutput->get_info_literal, [
+    ['  - foo ..', '', ' ']
 ], 'Should have shown reverted change name';
+is_deeply +MockOutput->get_info, [
+    [__ 'ok'],
+], 'And the revert failure should be "ok"';
 
 ##############################################################################
 # Test revert().
@@ -1288,12 +1309,18 @@ is_deeply +MockOutput->get_ask_y_n, [
         destination => $engine->destination,
     ), 'Yes'],
 ], 'Should have prompted to revert all changes';
-is_deeply +MockOutput->get_info, [
-    ['  - ', 'lolz'],
-    ['  - ', 'widgets @beta'],
-    ['  - ', 'users @alpha'],
-    ['  - ', 'roles'],
+is_deeply +MockOutput->get_info_literal, [
+    ['  - lolz ..', '.........', ' '],
+    ['  - widgets @beta ..', '', ' '],
+    ['  - users @alpha ..', '.', ' '],
+    ['  - roles ..', '........', ' '],
 ], 'It should have said it was reverting all changes and listed them';
+is_deeply +MockOutput->get_info, [
+    [__ 'ok'],
+    [__ 'ok'],
+    [__ 'ok'],
+    [__ 'ok'],
+], 'And the revert successes should be emitted';
 
 # Try with log-only.
 ok $engine->revert(undef, 1), 'Revert all changes log-only';
@@ -1312,12 +1339,18 @@ is_deeply +MockOutput->get_ask_y_n, [
         destination => $engine->destination,
     ), 'Yes'],
 ], 'Log-only should have prompted to revert all changes';
-is_deeply +MockOutput->get_info, [
-    ['  - ', 'lolz'],
-    ['  - ', 'widgets @beta'],
-    ['  - ', 'users @alpha'],
-    ['  - ', 'roles'],
+is_deeply +MockOutput->get_info_literal, [
+    ['  - lolz ..', '.........', ' '],
+    ['  - widgets @beta ..', '', ' '],
+    ['  - users @alpha ..', '.', ' '],
+    ['  - roles ..', '........', ' '],
 ], 'It should have said it was reverting all changes and listed them';
+is_deeply +MockOutput->get_info, [
+    [__ 'ok'],
+    [__ 'ok'],
+    [__ 'ok'],
+    [__ 'ok'],
+], 'And the revert successes should be emitted';
 
 # Should exit if the revert is declined.
 MockOutput->ask_y_n_returns(0);
@@ -1355,16 +1388,22 @@ is_deeply $engine->seen, [
     [log_revert_change => $dbchanges[0] ],
 ], 'Should have reverted the changes in reverse order';
 is_deeply +MockOutput->get_ask_y_n, [], 'Should have no prompt';
+is_deeply +MockOutput->get_info_literal, [
+    ['  - lolz ..', '.........', ' '],
+    ['  - widgets @beta ..', '', ' '],
+    ['  - users @alpha ..', '.', ' '],
+    ['  - roles ..', '........', ' '],
+], 'It should have said it was reverting all changes and listed them';
 is_deeply +MockOutput->get_info, [
     [__x(
         'Reverting all changes from {destination}',
         destination => $engine->destination,
     )],
-    ['  - ', 'lolz'],
-    ['  - ', 'widgets @beta'],
-    ['  - ', 'users @alpha'],
-    ['  - ', 'roles'],
-], 'It should have said it was reverting all changes and listed them';
+    [__ 'ok'],
+    [__ 'ok'],
+    [__ 'ok'],
+    [__ 'ok'],
+], 'And the revert successes should be emitted';
 
 # Now just revert to an earlier change.
 $no_prompt = 0;
@@ -1390,10 +1429,14 @@ is_deeply +MockOutput->get_ask_y_n, [
         target      => $dbchanges[1]->format_name_with_tags,
     ), 'Yes'],
 ], 'Should have prompt to revert to target';
-is_deeply +MockOutput->get_info, [
-    ['  - ', 'lolz'],
-    ['  - ', 'widgets @beta'],
+is_deeply +MockOutput->get_info_literal, [
+    ['  - lolz ..', '.........', ' '],
+    ['  - widgets @beta ..', '', ' '],
 ], 'Output should show what it reverts to';
+is_deeply +MockOutput->get_info, [
+    [__ 'ok'],
+    [__ 'ok'],
+], 'And the revert successes should be emitted';
 
 MockOutput->ask_y_n_returns(0);
 $offset_change = $dbchanges[1];
@@ -1434,14 +1477,17 @@ is_deeply $engine->seen, [
     [log_revert_change => $dbchanges[-1] ],
 ], 'Should have reverted one changes for @HEAD^';
 is_deeply +MockOutput->get_ask_y_n, [], 'Should have no prompt';
+is_deeply +MockOutput->get_info_literal, [
+    ['  - lolz ..', '', ' '],
+], 'Output should show what it reverts to';
 is_deeply +MockOutput->get_info, [
     [__x(
         'Reverting changes to {target} from {destination}',
         destination => $engine->destination,
         target      => $dbchanges[-1]->format_name_with_tags,
     )],
-    ['  - ', $dbchanges[-1]->format_name_with_tags],
-], 'Output should show what it reverts to';
+    [__ 'ok'],
+], 'And the header and "ok" should be emitted';
 
 ##############################################################################
 # Test change_id_for_depend().
