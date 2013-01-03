@@ -36,6 +36,12 @@ has with_verify => (
     default => 0,
 );
 
+has max_name_length => (
+    is      => 'rw',
+    isa     => 'Int',
+    default => 0,
+);
+
 has _variables => (
     traits  => ['Hash'],
     is      => 'rw',
@@ -140,6 +146,12 @@ sub deploy {
              : $mode eq 'all'  ? '_deploy_all'
              : hurl deploy => __x 'Unknown deployment mode: "{mode}"', mode => $mode;
     ;
+
+    $self->max_name_length(
+        max map {
+            length $_->format_name_with_tags
+        } ($plan->changes)[$plan->position + 1..$to_index]
+    );
 
     $self->$meth( $plan, $to_index, $log_only );
 }
@@ -733,7 +745,11 @@ sub is_deployed {
 sub deploy_change {
     my ( $self, $change, $log_only ) = @_;
     my $sqitch = $self->sqitch;
-    $sqitch->info('  + ', $change->format_name_with_tags);
+    my $name = $change->format_name_with_tags;
+    $sqitch->info_literal(
+        "  + $name ..",
+        '.' x ($self->max_name_length - length $name), ' '
+    );
     $self->begin_work($change);
 
     return try {
@@ -741,6 +757,7 @@ sub deploy_change {
         try {
             $self->verify_change( $change ) if $self->with_verify;
             $self->log_deploy_change($change);
+            $sqitch->info(__ 'ok');
         } catch {
             # Oy, logging or verify failed. Rollback.
             $sqitch->vent(eval { $_->message } // $_);
@@ -762,6 +779,7 @@ sub deploy_change {
         $self->finish_work($change);
     } catch {
         $self->log_fail_change($change);
+        $sqitch->info(__ 'not ok');
         die $_;
     };
 }
