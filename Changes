@@ -1,6 +1,6 @@
 Revision history for Perl extension App::Sqitch
 
-0.950
+0.950  2013-01-03T23:09:42Z
      - Fixed the "Name" header in `sqitch-rebase` so that it will actually
        show up on the CPAN search sites.
      - Fixed test failure triggered by the passage of time in `t/engine.t`.
@@ -17,8 +17,8 @@ Revision history for Perl extension App::Sqitch
        checking dependencies for each change just before deploying or reverting
        it. This allows a or revert deploy to fail sooner, with no database
        changes, when dependencies are not met.
-     - Now check that no changes are already deployed before attempting to
-       deploy any changes.
+     - The `deploy` command now check that no changes its about to deploy are
+       already deployed.
      - Added `--mode` to the `rebase` command.
      - Added the `--verify` option to `deploy` and `rebase`. Specify this
        option to run the verify script, if it exists, for each change after it
