@@ -3,9 +3,9 @@ Revision history for Perl extension App::Sqitch
 0.950
      - Fixed the "Name" header in `sqitch-rebase` so that it will actually
        show up on the CPAN search sites.
-     - Fixed test failure triggered by the passsage of time im `t/engine.t`.
+     - Fixed test failure triggered by the passage of time in `t/engine.t`.
      - At the start of a `deploy`, if the most recently deployed change has
-       any umlogged tags (that is, tags added since the last `deploy`), they
+       any unlogged tags (that is, tags added since the last `deploy`), they
        will be logged before the `deploy` continues (issue #60).
      - Added the `--no-log` option to `deploy`, `revert`, and `rebase`. This
        causes the changes to be logged as deployed without actually running
@@ -14,7 +14,7 @@ Revision history for Perl extension App::Sqitch
        they have been deployed by other means in the past.
      - Now check that dependencies are required for all changes to be deployed
        or reverted before deploying or reverting anything, rather than
-       checking depdencies for each change just before deploying or reverting
+       checking dependencies for each change just before deploying or reverting
        it. This allows a or revert deploy to fail sooner, with no database
        changes, when dependencies are not met.
      - Now check that no changes are already deployed before attempting to
