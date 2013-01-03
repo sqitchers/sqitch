@@ -10,7 +10,7 @@ use App::Sqitch::X qw(hurl);
 use List::Util qw(first max);
 use namespace::autoclean;
 
-our $VERSION = '0.950';
+our $VERSION = '0.951';
 
 has sqitch => (
     is       => 'ro',
