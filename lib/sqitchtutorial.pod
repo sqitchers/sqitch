@@ -1024,19 +1024,19 @@ Let's do it:
   > git checkout master
   Switched to branch 'master'
   > git pull
-  Updating 067ef73..cabc5e3
+  Updating b215e03..ff60b9b
   Fast-forward
-   deploy/delete_list.sql |   19 +++++++++++++++++++
-   deploy/insert_list.sql |   16 ++++++++++++++++
-   deploy/lists.sql       |   15 +++++++++++++++
-   revert/delete_list.sql |    5 +++++
-   revert/insert_list.sql |    5 +++++
-   revert/lists.sql       |    5 +++++
+   deploy/delete_list.sql |   20 ++++++++++++++++++++
+   deploy/insert_list.sql |   17 +++++++++++++++++
+   deploy/lists.sql       |   16 ++++++++++++++++
+   revert/delete_list.sql |    7 +++++++
+   revert/insert_list.sql |    7 +++++++
+   revert/lists.sql       |    7 +++++++
    sqitch.plan            |    4 ++++
    verify/delete_list.sql |    7 +++++++
    verify/insert_list.sql |    7 +++++++
-   verify/lists.sql       |    7 +++++++
-   10 files changed, 90 insertions(+)
+   verify/lists.sql       |    9 +++++++++
+   10 files changed, 101 insertions(+)
    create mode 100644 deploy/delete_list.sql
    create mode 100644 deploy/insert_list.sql
    create mode 100644 deploy/lists.sql
@@ -1061,17 +1061,17 @@ C<lists> branch and our C<flips> branch added changes to the plan. Let's try a
 different approach.
 
 The truth is, we got lazy. Those changes when we pulled master from the origin
-should have raised a red flag. In truth, it's considered a bad practice not to
-look at what's changed in C<master> before merging in a branch. What one
-I<should> do is either:
+should have raised a red flag. It's considered a bad practice not to look at
+what's changed in C<master> before merging in a branch. What one I<should> do
+is either:
 
 =over
 
 =item *
 
-Rebase the branch from master before merging. This "rewinds" the branch
-changes, pulls from C<master>, and then replays the changes back on top of
-C<master>.
+Rebase the F<flips> branch from master before merging. This "rewinds" the
+branch changes, pulls from C<master>, and then replays the changes back on top
+of rhe pulled changes.
 
 =item *
 
@@ -1084,7 +1084,7 @@ VCS is not Git.
 So let's restore things to how they were at master:
 
   > git reset --hard HEAD
-  HEAD is now at cabc5e3 Merge branch 'lists'
+  HEAD is now at ff60b9b Merge branch 'lists'
 
 That throws out our botched merge. Now let's go back to our branch and rebase
 it on C<master>:
@@ -1105,11 +1105,11 @@ it on C<master>:
   To check out the original branch and stop rebasing run "git rebase --abort".
 
 Oy, that's kind of a pain. It seems like no matter what we do, we'll need to
-resolve conflicts in that file. Except in Git. Fortunately, we can tell Git to
-resolve conflicts differently in F<sqitch.plan>. Because we only ever append
-lines to the file, we can have it use the "union" merge driver, which,
-according to
-L<its docs|http://git-scm.com/docs/gitattributes#_built-in_merge_drivers>:
+resolve conflicts in that file. Except in Git. Fortunately for us, we can tell
+Git to resolve conflicts in F<sqitch.plan> differently. Because we only ever
+append lines to the file, we can have it use the "union" merge driver, which,
+according to L<its
+docs|http://git-scm.com/docs/gitattributes#_built-in_merge_drivers>:
 
 =over
 
@@ -1148,18 +1148,22 @@ Ah, that looks a bit better. Let's have a look at the plan:
   %project=flipr
   %uri=https://github.com/theory/sqitch-intro/
 
-  appschema 2012-08-17T01:49:33Z Marge N. O’Vera <marge@example.com> # App schema for all flipr objects.
-  users [appschema] 2012-08-17T01:58:43Z Marge N. O’Vera <marge@example.com> # Creates table to track our users.
-  insert_user [users appschema] 2012-08-17T02:07:53Z Marge N. O’Vera <marge@example.com> # Creates a function to insert a user.
-  change_pass [users appschema] 2012-08-17T02:08:10Z Marge N. O’Vera <marge@example.com> # Creates a function to change a user password.
-  @v1.0.0-dev1 2012-08-17T05:24:20Z Marge N. O’Vera <marge@example.com> # Tag v1.0.0-dev1.
+  %syntax-version=1.0.0-b2
+  %project=flipr
+  %uri=https://github.com/theory/sqitch-intro/
 
-  lists [users] 2012-08-17T22:56:58Z Marge N. O’Vera <marge@example.com> # Adds table for storing lists.
-  insert_list [lists appschema] 2012-08-17T23:10:19Z Marge N. O’Vera <marge@example.com> # Creates a function to insert a list.
-  delete_list [lists appschema] 2012-08-17T23:10:24Z Marge N. O’Vera <marge@example.com> # Creates a function to delete a list.
-  flips [users] 2012-08-17T22:48:39Z Marge N. O’Vera <marge@example.com> # Adds table for storing flips.
-  insert_flip [flips appschema] 2012-08-17T23:05:22Z Marge N. O’Vera <marge@example.com> # Creates a function to insert a flip.
-  delete_flip [flips appschema] 2012-08-17T23:05:30Z Marge N. O’Vera <marge@example.com> # Creates a function to delete a flip.
+  appschema 2012-12-29T01:08:29Z Marge N. O’Vera <marge@example.com> # App schema for all flipr objects.
+  users [appschema] 2012-12-31T19:38:06Z Marge N. O’Vera <marge@example.com> # Creates table to track our users.
+  insert_user [users appschema] 2012-12-31T22:44:27Z Marge N. O’Vera <marge@example.com> # Creates a function to insert a user.
+  change_pass [users appschema] 2012-12-31T22:44:38Z Marge N. O’Vera <marge@example.com> # Creates a function to change a user password.
+  @v1.0.0-dev1 2013-01-03T19:15:57Z Marge N. O’Vera <marge@example.com> # Tag v1.0.0-dev1.
+
+  lists [appschema users] 2013-01-03T19:48:58Z Marge N. O’Vera <marge@example.com> # Adds table for storing lists.
+  insert_list [lists appschema users] 2013-01-03T19:54:29Z Marge N. O’Vera <marge@example.com> # Creates a function to insert a list.
+  delete_list [lists appschema users] 2013-01-03T19:54:41Z Marge N. O’Vera <marge@example.com> # Creates a function to delete a list.
+  flips [appschema users] 2013-01-03T19:33:36Z Marge N. O’Vera <marge@example.com> # Adds table for storing flips.
+  insert_flip [flips appschema users] 2013-01-03T20:01:25Z Marge N. O’Vera <marge@example.com> # Creates a function to insert a flip
+  delete_flip [flips appschema users] 2013-01-03T20:01:36Z Marge N. O’Vera <marge@example.com> # Creates a function to delete a flip
 
 Note that it has appended the changes from the merged "lists" branch, and then
 merged the changes from our "flips" branch. Test it to make sure it works as
@@ -1167,16 +1171,13 @@ expected:
 
   > sqitch rebase -y
   Reverting all changes from flipr_test
-    - delete_flip ............... ok
-    - insert_flip ............... ok
-    - flips ..................... ok
-    - delete_list ............... ok
-    - insert_list ............... ok
-    - lists ..................... ok
-    - change_pass @v1.0.0-dev1 .. ok
-    - insert_user ............... ok
-    - users ..................... ok
-    - appschema ................. ok
+    - delete_flip ................ ok
+    - insert_flip ................ ok
+    - flips ...................... ok
+    - change_pass @@v1.0.0-dev1 .. ok
+    - insert_user ................ ok
+    - users ...................... ok
+    - appschema .................. ok
   Deploying changes to flipr_test
     + appschema ................. ok
     + users ..................... ok
@@ -1195,7 +1196,7 @@ that change:
 
   > git add .
   > git ci -m 'Add `.gitattributes` with union merge for `sqitch.plan`.'
-  [flips 47e35c4] Add `.gitattributes` with union merge for `sqitch.plan`.
+  [flips 5fb0367] Add `.gitattributes` with union merge for `sqitch.plan`.
    1 file changed, 1 insertion(+)
    create mode 100644 .gitattributes
 
@@ -1208,17 +1209,17 @@ And now, finally, we can merge into C<master>:
   > git merge --no-ff flips
   Merge made by the 'recursive' strategy.
    .gitattributes         |    1 +
-   deploy/delete_flip.sql |   16 ++++++++++++++++
-   deploy/flips.sql       |   14 ++++++++++++++
-   deploy/insert_flip.sql |   16 ++++++++++++++++
-   revert/delete_flip.sql |    5 +++++
-   revert/flips.sql       |    5 +++++
-   revert/insert_flip.sql |    5 +++++
+   deploy/delete_flip.sql |   17 +++++++++++++++++
+   deploy/flips.sql       |   16 ++++++++++++++++
+   deploy/insert_flip.sql |   17 +++++++++++++++++
+   revert/delete_flip.sql |    7 +++++++
+   revert/flips.sql       |    7 +++++++
+   revert/insert_flip.sql |    7 +++++++
    sqitch.plan            |    3 +++
    verify/delete_flip.sql |    7 +++++++
-   verify/flips.sql       |    7 +++++++
+   verify/flips.sql       |   12 ++++++++++++
    verify/insert_flip.sql |    7 +++++++
-   11 files changed, 86 insertions(+)
+   11 files changed, 101 insertions(+)
    create mode 100644 .gitattributes
    create mode 100644 deploy/delete_flip.sql
    create mode 100644 deploy/flips.sql
@@ -1237,18 +1238,18 @@ And double-check our work:
   %project=flipr
   %uri=https://github.com/theory/sqitch-intro/
 
-  appschema 2012-08-17T01:49:33Z Marge N. O’Vera <marge@example.com> # App schema for all flipr objects.
-  users [appschema] 2012-08-17T01:58:43Z Marge N. O’Vera <marge@example.com> # Creates table to track our users.
-  insert_user [users appschema] 2012-08-17T02:07:53Z Marge N. O’Vera <marge@example.com> # Creates a function to insert a user.
-  change_pass [users appschema] 2012-08-17T02:08:10Z Marge N. O’Vera <marge@example.com> # Creates a function to change a user password.
-  @v1.0.0-dev1 2012-08-17T05:24:20Z Marge N. O’Vera <marge@example.com> # Tag v1.0.0-dev1.
+  appschema 2012-12-29T01:08:29Z Marge N. O’Vera <marge@example.com> # App schema for all flipr objects.
+  users [appschema] 2012-12-31T19:38:06Z Marge N. O’Vera <marge@example.com> # Creates table to track our users.
+  insert_user [users appschema] 2012-12-31T22:44:27Z Marge N. O’Vera <marge@example.com> # Creates a function to insert a user.
+  change_pass [users appschema] 2012-12-31T22:44:38Z Marge N. O’Vera <marge@example.com> # Creates a function to change a user password.
+  @v1.0.0-dev1 2013-01-03T19:15:57Z Marge N. O’Vera <marge@example.com> # Tag v1.0.0-dev1.
 
-  lists [users] 2012-08-17T22:56:58Z Marge N. O’Vera <marge@example.com> # Adds table for storing lists.
-  insert_list [lists appschema] 2012-08-17T23:10:19Z Marge N. O’Vera <marge@example.com> # Creates a function to insert a list.
-  delete_list [lists appschema] 2012-08-17T23:10:24Z Marge N. O’Vera <marge@example.com> # Creates a function to delete a list.
-  flips [users] 2012-08-17T22:48:39Z Marge N. O’Vera <marge@example.com> # Adds table for storing flips.
-  insert_flip [flips appschema] 2012-08-17T23:05:22Z Marge N. O’Vera <marge@example.com> # Creates a function to insert a flip.
-  delete_flip [flips appschema] 2012-08-17T23:05:30Z Marge N. O’Vera <marge@example.com> # Creates a function to delete a flip.
+  lists [appschema users] 2013-01-03T19:48:58Z Marge N. O’Vera <marge@example.com> # Adds table for storing lists.
+  insert_list [lists appschema users] 2013-01-03T19:54:29Z Marge N. O’Vera <marge@example.com> # Creates a function to insert a list.
+  delete_list [lists appschema users] 2013-01-03T19:54:41Z Marge N. O’Vera <marge@example.com> # Creates a function to delete a list.
+  flips [appschema users] 2013-01-03T19:33:36Z Marge N. O’Vera <marge@example.com> # Adds table for storing flips.
+  insert_flip [flips appschema users] 2013-01-03T20:01:25Z Marge N. O’Vera <marge@example.com> # Creates a function to insert a flip
+  delete_flip [flips appschema users] 2013-01-03T20:01:36Z Marge N. O’Vera <marge@example.com> # Creates a function to delete a flip
 
 Much much better, a nice clean master now. And because it is now identical to
 the "flips" branch, we can just carry on. Go ahead and tag it, bundle, and
@@ -1257,7 +1258,7 @@ release:
   > sqitch tag v1.0.0-dev2 -n 'Tag v1.0.0-dev2.'
   Tagged "delete_flip" with @v1.0.0-dev2
   > git commit -am 'Tag the database with v1.0.0-dev2.'
-  [master b6cb90d] Tag the database with v1.0.0-dev2.
+  [master 3b09796] Tag the database with v1.0.0-dev2.
    1 file changed, 1 insertion(+)
   > git tag v1.0.0-dev2 -am 'Tag v1.0.0-dev2'
   > sqitch bundle
@@ -1287,25 +1288,40 @@ Have a look at this:
   "
    nickname |             password             |           timestamp           
   ----------+----------------------------------+-------------------------------
-   foo      | 9695da4dd567a19f9b92065f240c6725 | 2012-08-17 23:21:42.489121+00
-   bar      | 9695da4dd567a19f9b92065f240c6725 | 2012-08-17 23:21:42.489121+00
+   foo      | 9695da4dd567a19f9b92065f240c6725 | 2013-01-03 21:34:12.296926+00
+   bar      | 9695da4dd567a19f9b92065f240c6725 | 2013-01-03 21:34:12.296926+00
 
 If user "foo" ever got access to the database, she could quickly discover that
 user "bar" has the same password and thus be able to exploit the account. Not
 a great idea. So we need to modify the C<insert_user()> and C<change_pass()>
-functions to fix that. How? we'll use
+functions to fix that. How?
+
+We'll use
 L<C<pgcrypto>|http://www.postgresql.org/docs/current/static/pgcrypto.html>'s
 C<crypt()> function to encrypt passwords with a salt, so that they're all
-unique. We just add a change to add C<pgcrypto> to the database, and then we can
-use it. The deploy script should be:
+unique. We just add a change to add C<pgcrypto> to the database, and then we
+can use it. The deploy script should be:
 
- CREATE EXTENSION pgcrypto;
+  CREATE EXTENSION pgcrypto;
 
-And the revert script should just C<DROP EXTENSION pgcrypto>. Then we can use
-it. But how to deploy the changes to C<insert_user()> and C<change_pass()>?
+And the revert script should be:
 
-Normally, modifying functions in database changes is a PITA. You have to
-take changes like these:
+  DROP EXTENSION pgcrypto;
+
+We're going to use the C<crypt()> and C<gen_salt()> functions, so in the
+C<verify> script, let's make sure that the extension exists I<and> that both
+those functions exist:
+
+  SELECT 1/count(*) FROM pg_extension WHERE extname = 'pgcrypto';
+  SELECT has_function_privilege('crypt(text, text)', 'execute');
+  SELECT has_function_privilege('gen_salt(text)', 'execute');
+
+Now we can use pgcrypto. But how to deploy the changes to C<insert_user()> and
+C<change_pass()>?
+
+Normally, modifying functions in database changes is a
+L<PITA|http://www.urbandictionary.com/define.php?term=pita>. You have to make
+changes like these:
 
 =over
 
@@ -1325,10 +1341,19 @@ Yes, copy the original change script to the new revert change.
 
 =item 4.
 
+Copy F<verify/insert_user.sql> to F<verify/insert_user_crypt.sql>.
+
+=item 5.
+
+Edit F<verify/insert_user_crypt.sql> to test that the function now properly
+uses C<crypt()>.
+
+=item 6.
+
 Test the changes to make sure you can deploy and revert the
 C<insert_user_crypt> change.
 
-=item 5.
+=item 7.
 
 Now do the same for the C<change_pass> scripts.
 
@@ -1355,9 +1380,6 @@ of the C<insert_user> change, which we can see via C<git status>:
 
   > git status
   # On branch master
-  # Your branch and 'origin/master' have diverged,
-  # and have 13 and 14 different commits each, respectively.
-  #
   # Changes not staged for commit:
   #   (use "git add <file>..." to update what will be committed)
   #   (use "git checkout -- <file>..." to discard changes in working directory)
@@ -1379,7 +1401,7 @@ C<insert_user> change as it was implemented as of the C<@v1.0.0-dev2> tag."
 These are copies of the original scripts, and thereafter Sqitch will find them
 when it needs to run scripts for the first instance of the C<insert_user>
 change. As such, it's important not to change them again. But hey, if you're
-reworking them, you shouldn't need to.
+reworking the change, you shouldn't need to.
 
 The other thing to notice is that F<revert/insert_user.sql> has changed.
 Sqitch replaced it with The original deploy script. As of now,
@@ -1394,8 +1416,8 @@ properly restores things to how they were after the original deploy script was
 deployed. Or, more simply, it should revert changes back to how they were
 as-of the deployment of F<deploy/insert_user@v1.0.0-dev2.sql>.
 
-Fortunately, our function deployment scripts are already idempotent, thanks to
-the use of the C<OR REPLACE> expression. No matter how many times a deployment
+Fortunately, our function deploy scripts are already idempotent, thanks to the
+use of the C<OR REPLACE> expression. No matter how many times a deployment
 script is run, the end result will be the same instance of the function, with
 no duplicates or errors.
 
@@ -1432,6 +1454,10 @@ Go ahead and rework the C<change_pass> change, too:
 
 And make this change to F<deploy/change_pass.sql>:
 
+  diff --git a/deploy/change_pass.sql b/deploy/change_pass.sql
+  index b2e7422..352649e 100644
+  --- a/deploy/change_pass.sql
+  +++ b/deploy/change_pass.sql
   @@ -1,6 +1,7 @@
    -- Deploy change_pass
    -- requires: users
@@ -1469,13 +1495,13 @@ So, are the changes deployed?
   "
    nickname |              password              |           timestamp           
   ----------+------------------------------------+-------------------------------
-   foo      | $1$MuWWLE4t$83EuG49Hpeb9rYCz7T1OX/ | 2012-08-17 23:29:34.568335+00
-   bar      | $1$bENvWj9k$gfq81YuEG7QcSotaskMkd0 | 2012-08-17 23:29:34.568335+00
+   foo      | $1$IIesFTbo$ureudbdLx0Nq4VyaQHCJu/ | 2013-01-03 22:16:01.184548+00
+   bar      | $1$gAvverve$c9TtQ20reIkbqLq7FWpPS/ | 2013-01-03 22:16:01.184548+00
 
 Awesome, the stored passwords are different now. But can we revert, even
 though we haven't written any reversion scripts?
 
-  > sqitch revert -y --to @HEAD^^
+  > sqitch revert --to @HEAD^^ -y
   Reverting changes to pgcrypto from flipr_test
     - change_pass .. ok
     - insert_user .. ok
@@ -1489,18 +1515,58 @@ Did that work, are the C<MD5()> passwords back?
   "
    nickname |             password             |           timestamp           
   ----------+----------------------------------+-------------------------------
-   foo      | 9695da4dd567a19f9b92065f240c6725 | 2012-08-17 23:30:36.513217+00
-   bar      | 9695da4dd567a19f9b92065f240c6725 | 2012-08-17 23:30:36.513217+00
-
+   foo      | 9695da4dd567a19f9b92065f240c6725 | 2013-01-03 22:16:41.888413+00
+   bar      | 9695da4dd567a19f9b92065f240c6725 | 2013-01-03 22:16:41.888413+00
 
 Yes, it works! Sqitch properly finds the original instances of these changes
-in the new script files that include tags.So let's go ahead and commit these
-changes and bring the database up-to-date:
+in the new script files that include tags.
+
+But what about the verify script? How can we verify that the functions have
+been modified to use C<crypt()>? I think the simplest thing to do is to
+examine the body of the function, using
+L<C<pg_get_functiondef()>|http://www.postgresql.org/docs/9.2/static/functions-info.html#FUNCTIONS-INFO-CATALOG-TABLE>. So the C<insert_user> verify script looks like this:
+
+  -- Verify insert_user
+
+  BEGIN;
+
+  SELECT has_function_privilege('flipr.insert_user(text, text)', 'execute');
+
+  SELECT 1/COUNT(*)
+    FROM pg_catalog.pg_proc
+   WHERE proname = 'insert_user'
+     AND pg_get_functiondef(oid) LIKE $$%crypt($2, gen_salt('md5'))%$$;
+
+  COMMIT;
+
+And the C<change_pass> verify script looks like this:
+
+  -- Verify change_pass
+
+  BEGIN;
+
+  SELECT has_function_privilege('flipr.change_pass(text, text, text)', 'execute');
+
+  SELECT 1/COUNT(*)
+    FROM pg_catalog.pg_proc
+   WHERE proname = 'change_pass'
+     AND pg_get_functiondef(oid) LIKE $$%crypt($3, gen_salt('md5'))%$$;
+
+  COMMIT;
+
+Make sure these pass by re-deploying:
+
+  > sqitch deploy
+  Deploying changes to flipr_test
+    + insert_user .. ok
+    + change_pass .. ok
+
+Excellent. Let's go ahead and commit these changes:
 
   > git add .
   > git commit -m 'Use pgcrypto to encrypt passwords.'
-  [master f555cf9] Use pgcrypto to encrypt passwords.
-   11 files changed, 95 insertions(+), 7 deletions(-)
+  [master 5fd0a1d] Use pgcrypto to encrypt passwords.
+   13 files changed, 105 insertions(+), 7 deletions(-)
    create mode 100644 deploy/change_pass@v1.0.0-dev2.sql
    create mode 100644 deploy/insert_user@v1.0.0-dev2.sql
    create mode 100644 revert/change_pass@v1.0.0-dev2.sql
@@ -1508,17 +1574,12 @@ changes and bring the database up-to-date:
    create mode 100644 verify/change_pass@v1.0.0-dev2.sql
    create mode 100644 verify/insert_user@v1.0.0-dev2.sql
 
-  > sqitch deploy
-  Deploying changes to flipr_test
-    + insert_user .. ok
-    + change_pass .. ok
-
   > sqitch status
   # On database flipr_test
   # Project:  flipr
-  # Change:   d0eb9c5ff822877696e834d686a4d9ee8a5cd2a9
+  # Change:   6238d88bb11fa0e9ac9b1a90831bb45f16a8e19a
   # Name:     change_pass
-  # Deployed: 2012-08-17 16:31:13 -0700
+  # Deployed: 2013-01-03 14:37:24 -0800
   # By:       Marge N. O’Vera <marge@example.com>
   # 
   Nothing to deploy (up-to-date)
