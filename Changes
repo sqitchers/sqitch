@@ -1,6 +1,6 @@
 Revision history for Perl extension App::Sqitch
 
-0.941
+0.950
      - Fixed the "Name" header in `sqitch-rebase` so that it will actually
        show up on the CPAN search sites.
      - Fixed test failure triggered by the passsage of time im `t/engine.t`.
