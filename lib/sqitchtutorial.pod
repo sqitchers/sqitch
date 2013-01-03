@@ -877,18 +877,11 @@ And edit F<revert/flips.sql>:
 
 And give it a whirl:
 
-  > sqitch rebase -y --onto @HEAD^
-  Reverting changes to insert_user from flipr_test
-    - change_pass .. ok
+  > sqitch deploy
   Deploying changes to flipr_test
-    + change_pass @v1.0.0-dev1 .. ok
-    + flips ..................... ok
+    + flips .. ok
 
-We first use L<C<rebase>|sqitch-rebase>, which combines a
-L<C<revert>|sqitch-revert> and a L<C<deploy>|sqitch-deploy> into a single
-command, to revert and re-deploy one change (C<change_pass>) because the
-C<@v1.0.0-dev1> tag was never applied to the test database. It gets applied on
-the new deploy, along with the C<flips> change. Look good?
+Look good?
 
   > sqitch status --show-tags
   # On database flipr_test
@@ -1190,9 +1183,11 @@ expected:
     + insert_flip ............... ok
     + delete_flip ............... ok
 
-Excellent! It correctly reverted our changes, and then deployed them all again
-in the proper order. So let's commit F<.gitattributes>; seems worthwhile to keep
-that change:
+Note the use of L<C<rebase>|sqitch-rebase>, which combines a
+L<C<revert>|sqitch-revert> and a L<C<deploy>|sqitch-deploy> into a single
+command. Handy, right? It correctly reverted our changes, and then deployed
+them all again in the proper order. So let's commit F<.gitattributes>; seems
+worthwhile to keep that change:
 
   > git add .
   > git ci -m 'Add `.gitattributes` with union merge for `sqitch.plan`.'
