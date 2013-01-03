@@ -1071,7 +1071,7 @@ is either:
 
 Rebase the F<flips> branch from master before merging. This "rewinds" the
 branch changes, pulls from C<master>, and then replays the changes back on top
-of rhe pulled changes.
+of the pulled changes.
 
 =item *
 
@@ -1316,8 +1316,8 @@ those functions exist:
   SELECT has_function_privilege('crypt(text, text)', 'execute');
   SELECT has_function_privilege('gen_salt(text)', 'execute');
 
-Now we can use pgcrypto. But how to deploy the changes to C<insert_user()> and
-C<change_pass()>?
+Now we can use C<pgcrypto>. But how to deploy the changes to C<insert_user()>
+and C<change_pass()>?
 
 Normally, modifying functions in database changes is a
 L<PITA|http://www.urbandictionary.com/define.php?term=pita>. You have to make
