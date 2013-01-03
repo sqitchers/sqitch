@@ -147,7 +147,7 @@ Now we can try deploying this change:
   > sqitch --db-name flipr_test deploy
   Adding metadata tables to flipr_test
   Deploying to flipr_test
-    + appschema
+    + appschema .. ok
 
 First Sqitch created the metadata tables used to track database changes. The
 structure and name of the metadata tables varies between databases (PostgreSQL
@@ -228,7 +228,7 @@ Let's make sure that we can revert the change:
 
   > sqitch --db-name flipr_test revert
   Revert all changes from flipr_test? [Yes]
-    - appschema
+    - appschema .. ok
 
 The C<revert> command first prompts to make sure that we really do want to
 revert. This is to prevent unnecessary accidents. You can pass the C<-y>
@@ -292,7 +292,7 @@ the C<verify> script is applied when the change is deployed:
 
   > sqitch --db-name flipr_test deploy --verify
   Deploying changes to flipr_test
-    + appschema
+    + appschema .. ok
 
 And now the user should be back:
 
@@ -412,7 +412,7 @@ Couldn't be much simpler, right? Let's deploy this bad boy:
 
   > sqitch deploy
   Deploying changes to flipr_test
-    + users
+    + users .. ok
 
 We know, since verification is enabled, that the table must have been created.
 But for the purposes of visilibity, let's have a quick look:
@@ -451,7 +451,7 @@ Success! Let's make sure we can revert the change, as well:
 
   > sqitch revert -y --to @HEAD^
   Reverting changes to appschema from flipr_test
-    - users
+    - users .. ok
 
 Note that we've used the C<--to> option to specify the change to revert to.
 And what do we revert to? The symbolic tag C<@HEAD>, when passed to C<revert>,
@@ -505,7 +505,7 @@ Okay, let's commit and deploy again:
    create mode 100644 verify/users.sql
   > sqitch deploy
   Deploying changes to flipr_test
-    + users
+    + users .. ok
 
 Looks good. Check the status:
 
@@ -631,8 +631,8 @@ Try em out!
 
   > sqitch deploy
   Deploying changes to flipr_test
-    + insert_user
-    + change_pass
+    + insert_user .. ok
+    + change_pass .. ok
 
 Do we have the functions? Of course we do, they were verified. Still, have a look:
 
@@ -659,8 +659,8 @@ Looks good. Let's make sure revert works:
 
   > sqitch revert -y --to @HEAD^^
   Reverting changes to users from flipr_test
-    - change_pass
-    - insert_user
+    - change_pass .. ok
+    - insert_user .. ok
   > psql -d flipr_test -c '\df flipr.*'
                          List of functions
    Schema | Name | Result data type | Argument data types | Type 
@@ -682,8 +682,8 @@ the last deployed change. Looks good. Let's do the commit and re-deploy dance:
  
   > sqitch deploy
   Deploying changes to flipr_test
-    + insert_user
-    + change_pass
+    + insert_user .. ok
+    + change_pass .. ok
 
   > sqitch status
   # On database flipr_test
@@ -715,10 +715,10 @@ We can try deploying to make sure the tag gets picked up like so:
   > sqitch --db-name flipr_dev deploy
   Adding metadata tables to flipr_dev
   Deploying changes to flipr_dev
-    + appschema
-    + users
-    + insert_user
-    + change_pass @v1.0.0-dev1
+    + appschema ................. ok
+    + users ..................... ok
+    + insert_user ............... ok
+    + change_pass @v1.0.0-dev1 .. ok
 
 Great, all four changes were deployed and C<change_pass> was tagged with
 C<@v1.0.0-dev1>. Let's have a look at the state:
@@ -756,10 +756,10 @@ deploying it:
   > sqitch --db-name flipr_prod deploy
   Adding metadata tables to flipr_prod
   Deploying changes to flipr_prod
-    + appschema
-    + users
-    + insert_user
-    + change_pass @v1.0.0-dev1
+    + appschema ................. ok
+    + users ..................... ok
+    + insert_user ............... ok
+    + change_pass @v1.0.0-dev1 .. ok
 
 Looks much the same as before, eh? Package it up and ship it!
 
@@ -809,10 +809,10 @@ And give it a whirl:
 
   > sqitch rebase -y --onto @HEAD^
   Reverting changes to insert_user to flipr_test
-    - change_pass
+    - change_pass .. ok
   Deploying changes to flipr_test
-    + change_pass @v1.0.0-dev1
-    + flips
+    + change_pass @v1.0.0-dev1 .. ok
+    + flips ..................... ok
 
 We first use the C<rebase> command to revert and re-deploy one change
 (C<change_pass>) because the C<@v1.0.0-dev1> tag was never applied to the test
@@ -1059,24 +1059,27 @@ expected:
 
   > sqitch rebase -y
   Reverting all changes from flipr_test
-    - delete_flip
-    - insert_flip
-    - flips
-    - change_pass @v1.0.0-dev1
-    - insert_user
-    - users
-    - appschema
+    - delete_flip ............... ok
+    - insert_flip ............... ok
+    - flips ..................... ok
+    - delete_list ............... ok
+    - insert_list ............... ok
+    - lists ..................... ok
+    - change_pass @v1.0.0-dev1 .. ok
+    - insert_user ............... ok
+    - users ..................... ok
+    - appschema ................. ok
   Deploying changes to flipr_test
-    + appschema
-    + users
-    + insert_user
-    + change_pass @v1.0.0-dev1
-    + lists
-    + insert_list
-    + delete_list
-    + flips
-    + insert_flip
-    + delete_flip
+    + appschema ................. ok
+    + users ..................... ok
+    + insert_user ............... ok
+    + change_pass @v1.0.0-dev1 .. ok
+    + lists ..................... ok
+    + insert_list ............... ok
+    + delete_list ............... ok
+    + flips ..................... ok
+    + insert_flip ............... ok
+    + delete_flip ............... ok
 
 Excellent! It correctly reverted our changes, and then deployed them all again
 in the proper order. So let's commit F<.gitattributes>; seems worthwhile to keep
@@ -1346,8 +1349,8 @@ And then try a deployment:
 
   > sqitch deploy
   Deploying changes to flipr_test
-    + insert_user
-    + change_pass
+    + insert_user .. ok
+    + change_pass .. ok
 
 So, are the changes deployed?
 
@@ -1366,8 +1369,8 @@ though we haven't written any reversion scripts?
 
   > sqitch revert -y --to @HEAD^^
   Reverting changes to pgcrypto from flipr_test
-    - change_pass
-    - insert_user
+    - change_pass .. ok
+    - insert_user .. ok
 
 Did that work, are the C<MD5()> passwords back?
 
@@ -1399,8 +1402,8 @@ changes and bring the database up-to-date:
 
   > sqitch deploy
   Deploying changes to flipr_test
-    + insert_user
-    + change_pass
+    + insert_user .. ok
+    + change_pass .. ok
 
   > sqitch status
   # On database flipr_test
