@@ -27,6 +27,9 @@ Revision history for Perl extension App::Sqitch
        begin.
      - Added the `verify` command, which verifies that a database is valid
        relative to the plan and each deployed change's verification scripts.
+     - Changed the format of the list of changes output by `deploy` and
+       `revert` so that each now gets "ok" or "not ok" printed on success or
+       failure.
      - Added short aliases for commonly-used core options:
        * -f for --plan-file
        * -v for --verbose
