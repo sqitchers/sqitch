@@ -2158,7 +2158,7 @@ throws_ok { $engine->verify } 'App::Sqitch::X',
     'Should get error for no deployed changes';
 is $@->ident, 'verify', 'No deployed changes ident should be "verify"';
 is $@->exitval, 1, 'No deployed changes exitval should be 1';
-is $@->message, __ 'No changes deployed.',
+is $@->message, __ 'No changes deployed',
     'No deployed changes message should be correct';
 is_deeply +MockOutput->get_info, [
     [__x 'Verifying {destination}', destination => $engine->destination],

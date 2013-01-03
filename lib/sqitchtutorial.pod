@@ -78,7 +78,7 @@ settings. But it will also read F<~/.sqitch/sqitch.conf> for global settings.
 Since PostgreSQL's C<psql> client is not in the path on my system, let's go
 ahead an tell it globally where to find the client:
 
-  > sqitch config --user core.pg.client /usr/local/pgsql/bin/psql
+  > sqitch config --user core.pg.client /opt/local/pgsql/bin/psql
 
 And let's also tell it who we are, since this data will be used in all
 of our projects:
@@ -89,7 +89,7 @@ of our projects:
 Have a look at F<~/.sqitch/sqitch.conf> and you'll see this:
 
   [core "pg"]
-  	client = /usr/local/pgsql/bin/psql
+  	client = /opt/local/pgsql/bin/psql
   [user]
   	name = Marge N. O’Vera
   	email = marge@example.com
@@ -104,10 +104,10 @@ Back to the repository. Have a look at the plan file, F<sqitch.plan>:
   %uri=https://github.com/theory/sqitch-intro/
   
 
-Note that it has picked up on the name and URI of the app we're building. This
-data will be used in the future to allow for cross-project dependency
-specification. The C<%syntax-version> pragma is always set by Sqitch, so that
-it always knows how to parse the plan, even if the format changes in the future.
+Note that it has picked up on the name and URI of the app we're building.
+Sqitch uses this data to manage cross-project dependencies. The
+C<%syntax-version> pragma is always set by Sqitch, so that it always knows how
+to parse the plan, even if the format changes in the future.
 
 Let's commit these changes and start creating the database changes.
 
@@ -136,7 +136,7 @@ F<deploy/appschema.sql>:
 
   CREATE SCHEMA flipr;
 
-And the C<revert> script's job is to precisely revert the change to the deploy
+The C<revert> script's job is to precisely revert the change to the deploy
 script, so we add this to F<revert/appschema.sql>:
 
   DROP SCHEMA flipr;
@@ -164,12 +164,14 @@ see the schema:
   -------+-------
    flipr | marge
 
+=head2 Trust, But Verify
+
 But that's too much work. do you really want to do something like that after
 every deploy?
 
 Here's where the C<verify> script comes in. Its job is to test that the deploy
 did was it was supposed to. It should do so without regard to any data that
-might be in the database, and should throw an error if the deloy was not
+might be in the database, and should throw an error if the deploy was not
 successful. In PostgreSQL, the simplest way to do so for non-queryable objects
 such as schemas is to take advantage the
 L<access privilege inquiry functions|http://www.postgresql.org/docs/current/static/functions-info.html#FUNCTIONS-INFO-ACCESS-TABLE>.
@@ -180,7 +182,15 @@ F<verify/appschema.sql>:
 
   SELECT pg_catalog.has_schema_privilege('flipr', 'usage');
 
-We can run the C<verify> script with the C<verify> command:
+Such functionality may not be available to other databases, but you can use
+I<any> query that will throw an exception if the schema doesn't exist. One
+handy way to do that is to divide by zero if an object doesn't exist. So for
+other databases, to throw an error when the C<flipr> schema does not exist,
+you could do something like this:
+
+  SELECT 1/COUNT(*) FROM information_schema.schemata WHERE schema_name = 'flipr';
+
+Either way, run the C<verify> script with the C<verify> command:
 
   > sqitch --db-name flipr_test verify
   Verifying flipr_test
@@ -191,13 +201,13 @@ Looks good! If you want to make sure that the verify script correctly dies if
 the schema doesn't exist, temporarily change the schema name in the script to
 something that doesn't exist, something like:
 
-  SELECT pg_catalog.has_schema_privilege('nonexistent', 'usage');
+  SELECT pg_catalog.has_schema_privilege('nonesuch', 'usage');
 
 Then C<verify> again:
 
   > sqitch --db-name flipr_test verify
   Verifying flipr_test
-    * appschema .. psql:verify/appschema.sql:5: ERROR:  schema "nonexistent" does not exist
+    * appschema .. psql:verify/appschema.sql:5: ERROR:  schema "nonesuch" does not exist
   # Verify script "verify/appschema.sql" failed.
   not ok
   
@@ -207,8 +217,35 @@ Then C<verify> again:
   Errors:  1
   Verify failed
 
-It's even nice enough to tell us what the problem is. Don't forget to change
-it back before continuing!
+It's even nice enough to tell us what the problem is. Or, for the
+divide-by-zero example, change the schema name:
+
+  SELECT 1/COUNT(*) FROM information_schema.schemata WHERE schema_name = 'nonesuch';
+
+Then the verify will look something like:
+
+  > sqitch --db-name flipr_test verify
+  Verifying flipr_test
+    * appschema .. psql:verify/appschema.sql:5: ERROR:  division by zero
+  # Verify script "verify/appschema.sql" failed.
+  not ok
+  Undeployed changes:
+    * users
+    * insert_user
+    * change_pass
+
+  Verify Summary Report
+  ---------------------
+  Changes: 1
+  Errors:  1
+  Verify failed
+
+Less useful error output, but enough to alert us that something has gone
+wrong.
+
+Don't forget to change the schema name back before continuing!
+
+=head2 Status, Revert, Log, Repeat
 
 For purely informational purposes, we can always see how a deployment was
 recorded via the C<status> command, which reads the metadata tables from the
@@ -232,9 +269,9 @@ Let's make sure that we can revert the change:
 
 The C<revert> command first prompts to make sure that we really do want to
 revert. This is to prevent unnecessary accidents. You can pass the C<-y>
-option to disable the prompt. Also, notice the C<-> in the output, which
-reinforces that the change is being removed from the database. And now the
-schema should be gone:
+option to disable the prompt. Also, notice the C<-> before the change name in
+the output, which reinforces that the change is being removed from the
+database. And now the schema should be gone:
 
   > psql -d flipr_test -c '\dn flipr'
               List of roles
@@ -252,7 +289,7 @@ Of course, since nothing is deployed, the C<verify> command has nothing to
 verify:
 
   > sqitch -d flipr_test verify
-  # On database flipr_test
+  # Verifying flipr_test
   No changes deployed
 
 However, we still have a record that the change happened, visible via the
@@ -336,7 +373,7 @@ in, e.g.:
   Nothing to deploy (up-to-date)
 
 Yay, that allows things to be a little more concise. Let's also make sure that
-changes are verified after dploying them:
+changes are verified after deploying them:
 
   > sqitch config --bool deploy.verify true
   > sqitch config --bool rebase.verify true
@@ -384,8 +421,8 @@ this:
 
 A few things to notice here. On the second line, the dependence on the
 C<appschema> change has been listed. This doesn't do anything, but the default
-templates lists it here for your reference while editing the file. Useful,
-right?
+C<deploy> template lists it here for your reference while editing the file.
+Useful, right?
 
 Notice that all of the SQL code is wrapped in a transaction. This is handy for
 PostgreSQL deployments, because PostgreSQL DDLs are transactional. The upshot
@@ -415,7 +452,7 @@ Couldn't be much simpler, right? Let's deploy this bad boy:
     + users .. ok
 
 We know, since verification is enabled, that the table must have been created.
-But for the purposes of visilibity, let's have a quick look:
+But for the purposes of visibility, let's have a quick look:
 
   > psql -d flipr_test -c '\d flipr.users'
                         Table "flipr.users"
@@ -427,7 +464,7 @@ But for the purposes of visilibity, let's have a quick look:
   Indexes:
       "users_pkey" PRIMARY KEY, btree (nickname)
 
-We can also verify all currenty deployed changes with the C<verify> command:
+We can also verify all currently deployed changes with the C<verify> command:
 
   > sqitch verify
   Verifying flipr_test
@@ -449,7 +486,7 @@ Now have a look at the status:
 
 Success! Let's make sure we can revert the change, as well:
 
-  > sqitch revert -y --to @HEAD^
+  > sqitch revert --to @HEAD^ -y
   Reverting changes to appschema from flipr_test
     - users .. ok
 
@@ -490,9 +527,9 @@ As does the C<verify> command:
     * users
   Verify successful
 
-Note that the verify is succesful, because all currently-deployed chagnes are
-verfired. The list of undeployed changes is just a reminder about the current
-state.
+Note that the verify is successful, because all currently-deployed changes are
+verified. The list of undeployed changes (just "users" here) reminds us about
+the current state.
 
 Okay, let's commit and deploy again:
 
@@ -634,7 +671,8 @@ Try em out!
     + insert_user .. ok
     + change_pass .. ok
 
-Do we have the functions? Of course we do, they were verified. Still, have a look:
+Do we have the functions? Of course we do, they were verified. Still, have a
+look:
 
   > psql -d flipr_test -c '\df flipr.*'
                                       List of functions
@@ -694,6 +732,14 @@ the last deployed change. Looks good. Let's do the commit and re-deploy dance:
   # By:       Marge N. O’Vera <marge@example.com>
   # 
   Nothing to deploy (up-to-date)
+  
+  > sqitch verify
+  Verifying flipr_test
+    * appschema .... ok
+    * users ........ ok
+    * insert_user .. ok
+    * change_pass .. ok
+  Verify successful
 
 Great, we're fully up-to-date!
 

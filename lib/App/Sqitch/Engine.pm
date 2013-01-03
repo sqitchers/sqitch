@@ -266,7 +266,7 @@ sub verify {
     if (!@changes) {
         # Probably expected, but exit 1 anyway.
         my $msg = $plan->count
-            ? __ 'No changes deployed.'
+            ? __ 'No changes deployed'
             : __ 'Nothing to verify (no planned or deployed changes)';
         hurl {
             ident   => 'verify',
