@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 535;
+use Test::More tests => 541;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -215,6 +215,104 @@ for my $abs (qw(
 }
 
 ##############################################################################
+# Test _load_changes().
+can_ok $engine, '_load_changes';
+my $now = App::Sqitch::DateTime->now;
+my $plan = $sqitch->plan;
+
+for my $spec (
+    ['no tags' => [
+        {
+            id            => 'c8a60f1a4fdab2cf91ee7f6da08f4ac52a732b4d',
+            name          => 'howdy',
+            project       => 'engine',
+            note          => 'For realz',
+            planner_name  => 'Barack Obama',
+            planner_email => 'bo@whitehouse.gov',
+            timestamp     => $now,
+        },
+    ]],
+    ['multiple hashes with no tags' => [
+        {
+            id            => 'c8a60f1a4fdab2cf91ee7f6da08f4ac52a732b4d',
+            name          => 'howdy',
+            project       => 'engine',
+            note          => 'For realz',
+            planner_name  => 'Barack Obama',
+            planner_email => 'bo@whitehouse.gov',
+            timestamp     => $now,
+        },
+        {
+            id            => 'ae5b4397f78dfc6072ccf6d505b17f9624d0e3b0',
+            name          => 'booyah',
+            project       => 'engine',
+            note          => 'Whatever',
+            planner_name  => 'Barack Obama',
+            planner_email => 'bo@whitehouse.gov',
+            timestamp     => $now,
+        },
+    ]],
+    ['tags' => [
+        {
+            id            => 'c8a60f1a4fdab2cf91ee7f6da08f4ac52a732b4d',
+            name          => 'howdy',
+            project       => 'engine',
+            note          => 'For realz',
+            planner_name  => 'Barack Obama',
+            planner_email => 'bo@whitehouse.gov',
+            timestamp     => $now,
+            tags          => [qw(foo bar)],
+        },
+    ]],
+    ['tags with leading @' => [
+        {
+            id            => 'c8a60f1a4fdab2cf91ee7f6da08f4ac52a732b4d',
+            name          => 'howdy',
+            project       => 'engine',
+            note          => 'For realz',
+            planner_name  => 'Barack Obama',
+            planner_email => 'bo@whitehouse.gov',
+            timestamp     => $now,
+            tags          => [qw(@foo @bar)],
+        },
+    ]],
+    ['multiple hashes with tags' => [
+        {
+            id            => 'c8a60f1a4fdab2cf91ee7f6da08f4ac52a732b4d',
+            name          => 'howdy',
+            project       => 'engine',
+            note          => 'For realz',
+            planner_name  => 'Barack Obama',
+            planner_email => 'bo@whitehouse.gov',
+            timestamp     => $now,
+            tags          => [qw(foo bar)],
+        },
+        {
+            id            => 'ae5b4397f78dfc6072ccf6d505b17f9624d0e3b0',
+            name          => 'booyah',
+            project       => 'engine',
+            note          => 'Whatever',
+            planner_name  => 'Barack Obama',
+            planner_email => 'bo@whitehouse.gov',
+            timestamp     => $now,
+            tags          => [qw(@foo @bar)],
+        },
+    ]],
+) {
+    my ($desc, $args) = @{ $spec };
+    is_deeply [ $engine->_load_changes(@{ $args }) ], [ map {
+        my $tags = $_->{tags} || [];
+        my $c = App::Sqitch::Plan::Change->new(%{ $_ }, plan => $plan );
+        $c->add_tag(
+            App::Sqitch::Plan::Tag->new(name => $_, plan => $plan, change => $c )
+        ) for map { s/^@//; $_ } @{ $tags };
+        $c;
+    } @{ $args }], "Should load changes with $desc";
+}
+
+
+
+##############################################################################
 # Test deploy_change and revert_change.
 ok $engine = App::Sqitch::Engine::whu->new( sqitch => $sqitch ),
     'Create a subclass name object again';
@@ -374,7 +472,7 @@ my $sqitch_old = $sqitch; # Hang on to this because $change does not retain it.
 $sqitch = App::Sqitch->new( plan_file => $plan_file, top_dir => dir 'sql' );
 ok $engine = App::Sqitch::Engine::whu->new( sqitch => $sqitch ),
     'Engine with sqitch with plan file';
-my $plan = $sqitch->plan;
+$plan = $sqitch->plan;
 my @changes = $plan->changes;
 
 $latest_change_id = $changes[0]->id;
@@ -1261,7 +1359,6 @@ is_deeply $engine->seen, [
 # Mock App::Sqitch::DateTime so that dbchange tags all have the same
 # timestamps.
 my $mock_dt = Test::MockModule->new('App::Sqitch::DateTime');
-my $now = App::Sqitch::DateTime->now;
 $mock_dt->mock(now => $now);
 
 # Now revert from a deployed change.

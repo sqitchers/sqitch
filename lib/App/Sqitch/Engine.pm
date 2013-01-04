@@ -610,7 +610,7 @@ sub _load_changes {
         my $c = App::Sqitch::Plan::Change->new(%{ $_ }, plan => $plan );
         $c->add_tag(
             App::Sqitch::Plan::Tag->new(name => $_, plan => $plan, change => $c )
-        ) for @{ $tags };
+        ) for map { s/^@//; $_ } @{ $tags };
         $c;
     } @_;
 }
