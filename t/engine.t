@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 541;
+use Test::More tests => 543;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -310,7 +310,20 @@ for my $spec (
     } @{ $args }], "Should load changes with $desc";
 }
 
-
+# Make sure it picks up the suffix from the plan.
+my $change = $plan->change_at(1);
+$change->suffix('foo');
+ok my ($loaded) = $engine->_load_changes({
+    id            => $change->id,
+    name          => $change->name,
+    project       => 'something',
+    note          => 'Whatever',
+    planner_name  => 'Barack Obama',
+    planner_email => 'bo@whitehouse.gov',
+    timestamp     => $now,
+}), 'Load a change corresponding to a planned change with suffix';
+is $loaded->suffix, 'foo', 'It should have picked up the suffix from the plan';
+$change->suffix('');
 
 ##############################################################################
 # Test deploy_change and revert_change.
@@ -318,7 +331,7 @@ ok $engine = App::Sqitch::Engine::whu->new( sqitch => $sqitch ),
     'Create a subclass name object again';
 can_ok $engine, 'deploy_change', 'revert_change';
 
-my $change = App::Sqitch::Plan::Change->new( name => 'users', plan => $sqitch->plan );
+$change = App::Sqitch::Plan::Change->new( name => 'users', plan => $sqitch->plan );
 
 ok $engine->deploy_change($change), 'Deploy a change';
 is_deeply $engine->seen, [

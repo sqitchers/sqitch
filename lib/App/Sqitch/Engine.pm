@@ -608,6 +608,14 @@ sub _load_changes {
     map {
         my $tags = $_->{tags} || [];
         my $c = App::Sqitch::Plan::Change->new(%{ $_ }, plan => $plan );
+
+        # Assign a suffix from the planned change.
+        if (my $pc = $plan->get( $_->{id} )) {
+            my $suffix = $pc->suffix;
+            $c->suffix( $suffix ) if length $suffix;
+        }
+
+        # Add tags.
         $c->add_tag(
             App::Sqitch::Plan::Tag->new(name => $_, plan => $plan, change => $c )
         ) for map { s/^@//; $_ } @{ $tags };
