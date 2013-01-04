@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 74;
+use Test::More tests => 77;
 #use Test::More 'no_plan';
 use Test::NoWarnings;
 use App::Sqitch;
@@ -233,6 +233,18 @@ ok $change2->add_tag($tag), 'Add a tag';
 is_deeply [$change2->tags], [$tag], 'Should have the tag';
 is $change2->format_name_with_tags, 'yo/howdy @alpha',
     'Should format name with tags';
+
+# Add another tag.
+my $tag2 = App::Sqitch::Plan::Tag->new(
+    plan   => $plan,
+    name   => 'beta',
+    change => $change,
+);
+ok $change2->add_tag($tag2), 'Add another tag';
+is_deeply [$change2->tags], [$tag, $tag2], 'Should have both tags';
+is $change2->format_name_with_tags, 'yo/howdy @alpha @beta',
+    'Should format name with both tags';
+
 is $change2->format_planner, 'Barack Obama <potus@whitehouse.gov>',
     'Planner name and email should format properly';
 is $change2->format_dependencies, '[foo bar @baz !dr_evil]',
