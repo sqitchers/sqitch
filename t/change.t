@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 77;
+use Test::More tests => 79;
 #use Test::More 'no_plan';
 use Test::NoWarnings;
 use App::Sqitch;
@@ -41,6 +41,7 @@ can_ok $CLASS, qw(
     parent
     since_tag
     suffix
+    is_reworked
     tags
     add_tag
     plan
@@ -89,7 +90,9 @@ is $change->revert_file, $sqitch->revert_dir->file('foo.sql'),
     'The revert file should be correct';
 is $change->verify_file, $sqitch->verify_dir->file('foo.sql'),
     'The verify file should be correct';
+ok !$change->is_reworked, 'The change should not be reworked';
 ok $change->suffix('@foo'), 'Set the suffix';
+ok $change->is_reworked, 'The change should be reworked';
 is_deeply [ $change->path_segments ], ['foo@foo.sql'],
     'path_segments should now include suffix';
 

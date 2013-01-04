@@ -378,7 +378,7 @@ sub _verify_changes {
                 $errs++;
             }
             # Is it reworked?
-            $reworked = !! $plan->change_at($plan_index)->suffix;
+            $reworked = $plan->change_at($plan_index)->is_reworked;
         } else {
             $sqitch->comment(__ 'Not present in the plan');
             $errs++;

@@ -56,6 +56,8 @@ has suffix => (
     default  => '',
 );
 
+sub is_reworked { length shift->suffix }
+
 after suffix => sub {
     my $self = shift;
     # Need to reset the file name if a new value is passed.
@@ -340,6 +342,10 @@ planner in the file.
 =head3 C<suffix>
 
 Suffix to append to file names, if any. Used for reworked changes.
+
+=head3 C<is_reworked>
+
+Boolean indicting whether or not the change has been reworked.
 
 =head3 C<info>
 
