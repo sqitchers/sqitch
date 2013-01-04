@@ -2,6 +2,8 @@ Revision history for Perl extension App::Sqitch
 
 0.951
      - Fixed double "@" displayed for tags in the output of `revert`.
+     - Fixed reversion of reworked changes to run the original revert script,
+       rather than the reworked script.
 
 0.950  2013-01-03T23:09:42Z
      - Fixed the "Name" header in `sqitch-rebase` so that it will actually
