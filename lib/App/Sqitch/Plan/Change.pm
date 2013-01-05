@@ -49,19 +49,28 @@ has parent => (
     required => 0,
 );
 
-has suffix => (
-    is       => 'rw',
-    isa      => 'Str',
+has _rework_tags => (
+    is       => 'ro',
+    isa      => 'ArrayRef[App::Sqitch::Plan::Tag]',
+    traits   => ['Array'],
     required => 1,
-    default  => '',
+    init_arg => 'rework_tags',
+    traits   => ['Array'],
+    lazy     => 1,
+    default  => sub { [] },
+    handles  => {
+        rework_tags       => 'elements',
+        add_rework_tags   => 'push',
+        clear_rework_tags => 'clear',
+    },
 );
 
-sub is_reworked { length shift->suffix }
+sub is_reworked { @{ shift->_rework_tags } > 0 }
 
-after suffix => sub {
+after add_rework_tags => sub {
     my $self = shift;
     # Need to reset the file name if a new value is passed.
-    $self->meta->get_attribute('_path_segments')->clear_value($self) if @_;
+    $self->meta->get_attribute('_path_segments')->clear_value($self);
 };
 
 has _tags => (
@@ -87,12 +96,20 @@ has _path_segments => (
     default  => sub {
         my $self = shift;
         my @path = split m{/} => $self->name;
-        $path[-1] = join '', (
-            $path[-1],
-            $self->suffix,
-            '.',
-            $self->sqitch->extension,
-        );
+        my $ext  = '.' . $self->sqitch->extension;
+        if (my @rework_tags = $self->rework_tags) {
+            # Determine suffix based on the first one found in the deploy dir.
+            my $dir = $self->sqitch->deploy_dir;
+            my $bn  = pop @path;
+            my $fn;
+            for my $tag (@rework_tags) {
+                $fn = join '', $bn, $tag->format_name, $ext;
+                last if -e $dir->contains(@path, $fn);
+            }
+            push @path => $fn || "$bn.$ext";
+        } else {
+            $path[-1] .= $ext;
+        }
         return \@path;
     },
 );
@@ -339,10 +356,6 @@ plan B<before> the change. May be C<undef>.
 Blank space separating the change name from the dependencies, timestamp, and
 planner in the file.
 
-=head3 C<suffix>
-
-Suffix to append to file names, if any. Used for reworked changes.
-
 =head3 C<is_reworked>
 
 Boolean indicting whether or not the change has been reworked.
@@ -399,6 +412,19 @@ Returns the path to the revert script file for the change.
   my $file = $change->verify_file;
 
 Returns the path to the verify script file for the change.
+
+=head3 C<rework_tags>
+
+  my @tags = $change->rework_tags;
+
+Returns a list of tags that occur between a change and its next reworking.
+Returns an empty list if the change is not reworked.
+
+=head3 C<add_rework_tags>
+
+  $change->add_rework_tags(@tags);
+
+Add to the list of rework tags.
 
 =head3 C<requires>
 
