@@ -104,7 +104,7 @@ has _path_segments => (
             my $fn;
             for my $tag (@rework_tags) {
                 $fn = join '', $bn, $tag->format_name, $ext;
-                last if -e $dir->contains(@path, $fn);
+                last if -e $dir->file(@path, $fn);
             }
             push @path => $fn || "$bn.$ext";
         } else {
