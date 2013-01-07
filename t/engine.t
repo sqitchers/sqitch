@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 543;
+use Test::More tests => 544;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -298,32 +298,110 @@ for my $spec (
             tags          => [qw(@foo @bar)],
         },
     ]],
+    ['reworked change' => [
+        {
+            id            => 'c8a60f1a4fdab2cf91ee7f6da08f4ac52a732b4d',
+            name          => 'howdy',
+            project       => 'engine',
+            note          => 'For realz',
+            planner_name  => 'Barack Obama',
+            planner_email => 'bo@whitehouse.gov',
+            timestamp     => $now,
+            tags          => [qw(foo bar)],
+        },
+        {
+            id            => 'df18b5c9739772b210fcf2c4edae095e2f6a4163',
+            name          => 'howdy',
+            project       => 'engine',
+            note          => 'For realz',
+            planner_name  => 'Barack Obama',
+            planner_email => 'bo@whitehouse.gov',
+            timestamp     => $now,
+            rtags         => [qw(howdy)],
+        },
+    ]],
+    ['reworked change & multiple tags' => [
+        {
+            id            => 'c8a60f1a4fdab2cf91ee7f6da08f4ac52a732b4d',
+            name          => 'howdy',
+            project       => 'engine',
+            note          => 'For realz',
+            planner_name  => 'Barack Obama',
+            planner_email => 'bo@whitehouse.gov',
+            timestamp     => $now,
+            tags          => [qw(foo bar)],
+        },
+        {
+            id            => 'ae5b4397f78dfc6072ccf6d505b17f9624d0e3b0',
+            name          => 'booyah',
+            project       => 'engine',
+            note          => 'Whatever',
+            planner_name  => 'Barack Obama',
+            planner_email => 'bo@whitehouse.gov',
+            timestamp     => $now,
+            tags          => [qw(@settle)],
+        },
+        {
+            id            => 'df18b5c9739772b210fcf2c4edae095e2f6a4163',
+            name          => 'howdy',
+            project       => 'engine',
+            note          => 'For realz',
+            planner_name  => 'Barack Obama',
+            planner_email => 'bo@whitehouse.gov',
+            timestamp     => $now,
+            rtags         => [qw(booyah howdy)],
+        },
+    ]],
+    ['doubly reworked change' => [
+        {
+            id            => 'c8a60f1a4fdab2cf91ee7f6da08f4ac52a732b4d',
+            name          => 'howdy',
+            project       => 'engine',
+            note          => 'For realz',
+            planner_name  => 'Barack Obama',
+            planner_email => 'bo@whitehouse.gov',
+            timestamp     => $now,
+            tags          => [qw(foo bar)],
+        },
+        {
+            id            => 'df18b5c9739772b210fcf2c4edae095e2f6a4163',
+            name          => 'howdy',
+            project       => 'engine',
+            note          => 'For realz',
+            planner_name  => 'Barack Obama',
+            planner_email => 'bo@whitehouse.gov',
+            timestamp     => $now,
+            rtags         => [qw(howdy)],
+            tags          => [qw(why)],
+        },
+        {
+            id            => 'f38ceb6efcf2a813104b7bb08cc90667033ddf6b',
+            name          => 'howdy',
+            project       => 'engine',
+            note          => 'For realz',
+            planner_name  => 'Barack Obama',
+            planner_email => 'bo@whitehouse.gov',
+            timestamp     => $now,
+            rtags         => [qw(howdy)],
+        },
+    ]],
 ) {
     my ($desc, $args) = @{ $spec };
+    my %seen;
     is_deeply [ $engine->_load_changes(@{ $args }) ], [ map {
-        my $tags = $_->{tags} || [];
+        my $tags  = $_->{tags}  || [];
+        my $rtags = $_->{rtags};
         my $c = App::Sqitch::Plan::Change->new(%{ $_ }, plan => $plan );
         $c->add_tag(
             App::Sqitch::Plan::Tag->new(name => $_, plan => $plan, change => $c )
         ) for map { s/^@//; $_ } @{ $tags };
+        if (my $dupe = $seen{ $_->{name} }) {
+            $dupe->add_rework_tags( map { $seen{$_}->tags } @{ $rtags });
+        }
+        $seen{ $_->{name} } = $c;
         $c;
     } @{ $args }], "Should load changes with $desc";
 }
-
-# Make sure it picks up the suffix from the plan.
-my $change = $plan->change_at(1);
-$change->suffix('foo');
-ok my ($loaded) = $engine->_load_changes({
-    id            => $change->id,
-    name          => $change->name,
-    project       => 'something',
-    note          => 'Whatever',
-    planner_name  => 'Barack Obama',
-    planner_email => 'bo@whitehouse.gov',
-    timestamp     => $now,
-}), 'Load a change corresponding to a planned change with suffix';
-is $loaded->suffix, 'foo', 'It should have picked up the suffix from the plan';
-$change->suffix('');
 
 ##############################################################################
 # Test deploy_change and revert_change.
@@ -331,7 +409,7 @@ ok $engine = App::Sqitch::Engine::whu->new( sqitch => $sqitch ),
     'Create a subclass name object again';
 can_ok $engine, 'deploy_change', 'revert_change';
 
-$change = App::Sqitch::Plan::Change->new( name => 'users', plan => $sqitch->plan );
+my $change = App::Sqitch::Plan::Change->new( name => 'users', plan => $sqitch->plan );
 
 ok $engine->deploy_change($change), 'Deploy a change';
 is_deeply $engine->seen, [
@@ -1346,6 +1424,7 @@ is $@->message, __x(
     target => $changes[0]->id,
 ), 'No subsequent change error message should be correct';
 
+delete $changes[0]->{_rework_tags}; # For deep comparison.
 is_deeply $engine->seen, [
     [change_id_for => {
         change_id => $changes[0]->id,
@@ -1434,7 +1513,7 @@ is_deeply +MockOutput->get_info, [
 
 # Try with log-only.
 ok $engine->revert(undef, 1), 'Revert all changes log-only';
-delete $_->{_path_segments} for @dbchanges; # These need to be invisible.
+delete @{ $_ }{qw(_path_segments _rework_tags)} for @dbchanges; # These need to be invisible.
 is_deeply $engine->seen, [
     [deployed_changes => undef],
     [check_revert_dependencies => [reverse @dbchanges[0..3]] ],
@@ -1522,6 +1601,7 @@ push @resolved => $offset_change->id;
 @deployed_changes = @deployed_changes[2..3];
 ok $engine->revert('@alpha'), 'Revert to @alpha';
 
+delete $dbchanges[1]->{_rework_tags}; # These need to be invisible.
 is_deeply $engine->seen, [
     [change_id_for => { change_id => undef, change => '', tag => 'alpha', project => 'sql' }],
     [ change_offset_from_id => [$dbchanges[1]->id, 0] ],
@@ -1574,6 +1654,7 @@ is_deeply +MockOutput->get_info, [
 # Try to revert just the last change with no prompt
 MockOutput->ask_y_n_returns(1);
 $no_prompt = 1;
+my $rtags = delete $dbchanges[-1]->{_rework_tags}; # These need to be invisible.
 $offset_change = $dbchanges[-1];
 push @resolved => $offset_change->id;
 @deployed_changes = $deployed_changes[-1];
@@ -1582,9 +1663,9 @@ is_deeply $engine->seen, [
     [change_id_for => { change_id => undef, change => '', tag => 'HEAD', project => 'sql' }],
     [change_offset_from_id => [$dbchanges[-1]->id, -1] ],
     [deployed_changes_since => $dbchanges[-1]],
-    [check_revert_dependencies => [$dbchanges[-1]] ],
+    [check_revert_dependencies => [{ %{ $dbchanges[-1] }, _rework_tags => $rtags }] ],
     [run_file => $dbchanges[-1]->revert_file ],
-    [log_revert_change => $dbchanges[-1] ],
+    [log_revert_change => { %{ $dbchanges[-1] }, _rework_tags => $rtags } ],
 ], 'Should have reverted one changes for @HEAD^';
 is_deeply +MockOutput->get_ask_y_n, [], 'Should have no prompt';
 is_deeply +MockOutput->get_info_literal, [
@@ -2342,10 +2423,8 @@ is_deeply +MockOutput->get_vent, [
 ], 'Should have warning about missing verify script';
 
 # Make sure a reworked change (that is, one with a suffix) is ignored.
-my @suffixes = qw(@foo);
 my $mock_change = Test::MockModule->new(ref $change);
-$mock_change->mock(suffix => sub { shift @suffixes });
-
+$mock_change->mock(is_reworked => 1);
 @verify_changes = @changes[0,1];
 ok $engine->verify, 'Verify with a reworked change changes';
 is_deeply +MockOutput->get_info, [
@@ -2362,7 +2441,7 @@ is_deeply +MockOutput->get_emit, [
 is_deeply +MockOutput->get_comment, [], 'Should have no comments';
 is_deeply +MockOutput->get_vent, [], 'Should have no warnings';
 
-$mock_change->unmock('suffix');
+$mock_change->unmock('is_reworked');
 
 # Make sure we can trim.
 @verify_changes = @changes;
