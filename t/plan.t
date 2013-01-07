@@ -122,7 +122,7 @@ sub change($) {
         %{ $p },
     );
     if (my $duped = $seen{ $p->{name} }) {
-        $duped->suffix($prev_tag->format_name);
+        $duped->add_rework_tags(map { $seen{$_}-> tags } @{ $p->{rtag} });
     }
     $seen{ $p->{name} } = $prev_change;
     if ($vivify) {
@@ -650,7 +650,8 @@ cmp_deeply $parsed, {
             note   => 'revert!',
             op     => '-',
             rspace => ' ',
-            pspace => '  '
+            pspace => '  ',
+            rtag   => [qw(dr_evil)],
         },
         tag    { name => 'bar', lspace => ' ' },
     ],
@@ -671,7 +672,8 @@ cmp_deeply $parsed, {
             note   => 'revert!',
             op     => '-',
             rspace => ' ',
-            pspace => '  '
+            pspace => '  ',
+            rtag   => [qw(dr_evil)],
         },
         tag    { name => 'bar', lspace => ' ', ret => 1 },
     ],
@@ -701,8 +703,14 @@ is_deeply $parsed->{changes}, [
     change { name => 'add_user', op => '+', pspace => ' ', requires => [qw(users roles)] },
     change { name => 'dr_evil', op => '+' },
     tag    { name => 'alpha' },
-    change { name => 'users', op => '+', pspace => ' ', requires => ['users@alpha'] },
-    change { name => 'dr_evil', op => '-' },
+    change {
+        name     => 'users',
+        op       => '+',
+        pspace   => ' ',
+        requires => ['users@alpha'],
+        rtag     => [qw(dr_evil add_user users)],
+    },
+    change { name => 'dr_evil', op => '-', rtag => [qw(dr_evil)] },
     change {
         name      => 'del_user',
         op        => '+',
@@ -726,8 +734,15 @@ is_deeply $parsed->{changes}, [
     change { name => 'add_user', op => '+', pspace => ' ', requires => [qw(users roles log:logger)] },
     change { name => 'dr_evil', op => '+' },
     tag    { name => 'alpha' },
-    change { name => 'users', op => '+', pspace => ' ', requires => ['users@alpha'] },
-    change { name => 'dr_evil', op => '-' },
+    change {
+        name     => 'users',
+        op       => '+',
+        pspace   => ' ',
+        requires => ['users@alpha'],
+        rtag     => [qw(dr_evil add_user users)],
+    },
+    change { name => 'dr_evil', op => '-', rtag => [qw(dr_evil)] },
+
     change {
         name      => 'del_user',
         op        => '+',
@@ -1308,17 +1323,17 @@ is $@->message, __x(
 
 ##############################################################################
 # Try reworking a change.
-can_ok $plan, 'rework';
 ok my $rev_change = $plan->rework( name => 'you' ), 'Rework change "you"';
 isa_ok $rev_change, 'App::Sqitch::Plan::Change';
 is $rev_change->name, 'you', 'Reworked change should be "you"';
 ok my $orig = $plan->change_at($plan->first_index_of('you')),
     'Get original "you" change';
 is $orig->name, 'you', 'It should also be named "you"';
-is $orig->suffix, '@bar', 'And its suffix should be "@bar"';
+is_deeply [ map { $_->format_name } $orig->rework_tags ],
+    [qw(@bar)], 'And its should have the one rework tag';
 is $orig->deploy_file, $sqitch->deploy_dir->file('you@bar.sql'),
     'The original file should now be named you@bar.sql';
-is $rev_change->suffix, '', 'But the reworked change should have no suffix';
+can_ok $plan, 'rework';
 is $rev_change->as_string,
     'you [you@bar] ' . $rev_change->timestamp->as_string . ' '
     . $rev_change->format_planner,
@@ -1339,11 +1354,14 @@ is $rev_change2->name, 'you', 'New reworked change should be "you"';
 ok $orig = $plan->change_at($plan->first_index_of('you')),
     'Get original "you" change again';
 is $orig->name, 'you', 'It should still be named "you"';
-is $orig->suffix, '@bar', 'And it should still have the suffix "@bar"';
+is_deeply [ map { $_->format_name } $orig->rework_tags ],
+    [qw(@bar)], 'And its should have the one rework tag';
 ok $rev_change = $plan->get('you@beta1'), 'Get you@beta1';
 is $rev_change->name, 'you', 'The second "you" should be named that';
-is $rev_change->suffix, '@beta1', 'And the second change should now have the suffx "@beta1"';
-is $rev_change2->suffix, '', 'But the new reworked change should have no suffix';
+is_deeply [ map { $_->format_name } $rev_change->rework_tags ],
+    [qw(@beta1)], 'And the second change should have the rework_tag "@beta1"';
+is_deeply [ $rev_change2->rework_tags ],
+    [], 'But the new reworked change should have no rework tags';
 is $rev_change2->as_string,
     'you [you@beta1] ' . $rev_change2->timestamp->as_string . ' '
     . $rev_change2->format_planner,
@@ -1420,7 +1438,7 @@ cmp_deeply [ $plan->lines ], [
     tag    { name => 'bar', ret => 1 },
     blank(),
     change { name => 'greets' },
-    change { name => 'whatever' },
+    change { name => 'whatever', rtag => [qw(hi whatever)] },
 ], 'Lines with dupe change should be read from file';
 
 $vivify = 1;
@@ -1431,7 +1449,7 @@ cmp_deeply [ $plan->changes ], [
     change { name => 'hi' },
     tag    { name => 'bar' },
     change { name => 'greets' },
-    change { name => 'whatever' },
+    change { name => 'whatever', rtag => [qw(hi whatever)] },
 ], 'Noes with dupe change should be read from file';
 is sorted, 3, 'Should have sorted changes three times';
 
