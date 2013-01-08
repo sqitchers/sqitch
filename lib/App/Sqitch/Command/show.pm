@@ -10,7 +10,7 @@ use List::Util qw(first);
 use Moose;
 extends 'App::Sqitch::Command';
 
-our $VERSION = '0.951';
+our $VERSION = '0.952';
 
 sub execute {
     my ( $self, $type, $key ) = @_;
