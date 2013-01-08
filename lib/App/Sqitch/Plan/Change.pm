@@ -6,10 +6,8 @@ use namespace::autoclean;
 use parent 'App::Sqitch::Plan::Line';
 use Encode;
 use Moose;
-use Path::Class;
 use App::Sqitch::DateTime;
 use App::Sqitch::Plan::Depend;
-use App::Sqitch::X qw(hurl);
 use Locale::TextDomain qw(App-Sqitch);
 
 has _requires => (
@@ -103,25 +101,17 @@ has _path_segments => (
             # Determine suffix based on the first one found in the deploy dir.
             my $dir = $self->sqitch->deploy_dir;
             my $bn  = pop @path;
-            my @tried;
+            my $first;
             for my $tag (@rework_tags) {
                 my $fn = join '', $bn, $tag->format_name, $ext;
-                my $file = file @path, $fn;
-                if ( -e $dir->file($file) ) {
+                $first //= $fn;
+                if ( -e $dir->file(@path, $fn) ) {
                     push @path => $fn;
-                    @tried = ();
+                    $first = undef;
                     last;
-                } else {
-                    push @tried => $file;
                 }
             }
-            if (@tried) {
-                hurl plan => join $/, __n(
-                    'Cannot find deploy script named:',
-                    'Cannot find deploy script named any of:',
-                    @tried,
-                ), map { "  * $_" } @tried;
-            }
+            push @path => $first if defined $first;
         } else {
             $path[-1] .= $ext;
         }

@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 91;
+use Test::More tests => 85;
 #use Test::More 'no_plan';
 use Test::NoWarnings;
 use App::Sqitch;
@@ -280,31 +280,6 @@ is $change2->format_content, '- yo/howdy  [foo bar @baz !dr_evil] '
 # Check file names.
 my @fn = ('yo', 'howdy@beta.sql');
 $change2->add_rework_tags($tag2);
-throws_ok { $change2->path_segments } 'App::Sqitch::X',
-    'Should catch exception for nonexistent deploy script';
-is $@->ident, 'plan', 'Nonexistent deploy script ident should be "plan"';
-is $@->message, join( $/, __n(
-    'Cannot find deploy script named:',
-    'Cannot find deploy script named any of:',
-    1,
-), '  * ' . file(@fn)), 'Nonexistent script error shold be correct';
-
-# Try with two rework tags.
-$change2->add_rework_tags($tag);
-throws_ok { $change2->path_segments } 'App::Sqitch::X',
-    'Should catch exception for nonexistent deploy scripts';
-is $@->ident, 'plan', 'Nonexistent deploy scripts ident should be "plan"';
-is $@->message, join( $/, __n(
-    'Cannot find deploy script named:',
-    'Cannot find deploy script named any of:',
-    2,
-), map { '  * ' . file(@{ $_}) } \@fn, ['yo', 'howdy@alpha.sql']),
-    'Nonexistent scripts error shold be correct';
-
-# Okay, create the script
-my $file = $sqitch->deploy_dir->file(@fn);
-make_path $file->parent->stringify;
-$file->touch;
 is_deeply [ $change2->path_segments ], \@fn,
     'path_segments should include directories';
 is $change2->deploy_file, $sqitch->deploy_dir->file(@fn),
@@ -355,7 +330,7 @@ is $fh->getline, "-- verify it, baby\n", 'It should be the verify file';
 
 ##############################################################################
 # Test the requires/conflicts params.
-$file = file qw(t plans multi.plan);
+my $file = file qw(t plans multi.plan);
 my $sqitch2 = App::Sqitch->new(
     top_dir   => dir('sql'),
     plan_file => $file,
