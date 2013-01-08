@@ -5,6 +5,11 @@ Revision history for Perl extension App::Sqitch
      - Fixed reversion of reworked changes to run the original revert script,
        rather than the reworked script.
      - Added `is_reworked` accessor to App::Sqitch::Plan::Change.
+     - Changed the behavior determining the file name to use for reworked
+       change scripts. It now looks for a deploy script using the name of any
+       tag between the reworked instances of a change and selects the first
+       one it finds that exists. This will allow Sqitch to find the proper
+       script name even if new tags have been added to the plan (issue #70).
 
 0.950  2013-01-03T23:09:42Z
      - Fixed the "Name" header in `sqitch-rebase` so that it will actually
