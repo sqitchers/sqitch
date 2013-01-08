@@ -1,5 +1,7 @@
 Revision history for Perl extension App::Sqitch
 
+0.952
+
 0.951  2013-01-08T00:21:58Z
      - Fixed double "@" displayed for tags in the output of `revert`.
      - Fixed reversion of reworked changes to run the original revert script,
