@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 79;
+use Test::More tests => 85;
 #use Test::More 'no_plan';
 use Test::NoWarnings;
 use App::Sqitch;
@@ -40,7 +40,8 @@ can_ok $CLASS, qw(
     note
     parent
     since_tag
-    suffix
+    rework_tags
+    add_rework_tags
     is_reworked
     tags
     add_tag
@@ -82,6 +83,12 @@ ok !$change->is_revert, 'It should not be a revert change';
 is $change->action, 'deploy', 'And it should say so';
 isa_ok $change->timestamp, 'App::Sqitch::DateTime', 'Timestamp';
 
+my $tag = App::Sqitch::Plan::Tag->new(
+    plan   => $plan,
+    name   => 'alpha',
+    change => $change,
+);
+
 is_deeply [ $change->path_segments ], ['foo.sql'],
     'path_segments should have the file name';
 is $change->deploy_file, $sqitch->deploy_dir->file('foo.sql'),
@@ -91,10 +98,31 @@ is $change->revert_file, $sqitch->revert_dir->file('foo.sql'),
 is $change->verify_file, $sqitch->verify_dir->file('foo.sql'),
     'The verify file should be correct';
 ok !$change->is_reworked, 'The change should not be reworked';
-ok $change->suffix('@foo'), 'Set the suffix';
+is_deeply [ $change->path_segments ], ['foo.sql'],
+    'path_segments should not include suffix';
+
+# Identify it as reworked.
+ok $change->add_rework_tags($tag), 'Add a rework tag';
+is_deeply [$change->rework_tags], [$tag], 'Reworked tag should be stored';
 ok $change->is_reworked, 'The change should be reworked';
-is_deeply [ $change->path_segments ], ['foo@foo.sql'],
+$sqitch->deploy_dir->mkpath;
+$sqitch->deploy_dir->file('foo@alpha.sql')->touch;
+is_deeply [ $change->path_segments ], ['foo@alpha.sql'],
     'path_segments should now include suffix';
+
+# Make sure all rework tags are searched.
+$change->clear_rework_tags;
+ok !$change->is_reworked, 'The change should not be reworked';
+
+my $tag2 = App::Sqitch::Plan::Tag->new(
+    plan   => $plan,
+    name   => 'beta',
+    change => $change,
+);
+ok $change->add_rework_tags($tag2, $tag), 'Add two rework tags';
+ok $change->is_reworked, 'The change should again be reworked';
+is_deeply [ $change->path_segments ], ['foo@alpha.sql'],
+    'path_segments should now include the correct suffixc';
 
 is $change->format_name, 'foo', 'Name should format as "foo"';
 is $change->format_name_with_tags,
@@ -148,12 +176,6 @@ is $change->id, do {
         'change ' . length($content) . "\0" . $content
     )->hexdigest;
 },'Change ID should be correct';
-
-my $tag = App::Sqitch::Plan::Tag->new(
-    plan => $plan,
-    name => 'alpha',
-    change => $change,
-);
 
 my $date = App::Sqitch::DateTime->new(
     year   => 2012,
@@ -238,11 +260,6 @@ is $change2->format_name_with_tags, 'yo/howdy @alpha',
     'Should format name with tags';
 
 # Add another tag.
-my $tag2 = App::Sqitch::Plan::Tag->new(
-    plan   => $plan,
-    name   => 'beta',
-    change => $change,
-);
 ok $change2->add_tag($tag2), 'Add another tag';
 is_deeply [$change2->tags], [$tag, $tag2], 'Should have both tags';
 is $change2->format_name_with_tags, 'yo/howdy @alpha @beta',
@@ -262,6 +279,7 @@ is $change2->format_content, '- yo/howdy  [foo bar @baz !dr_evil] '
 
 # Check file names.
 my @fn = ('yo', 'howdy@beta.sql');
+$change2->add_rework_tags($tag2);
 is_deeply [ $change2->path_segments ], \@fn,
     'path_segments should include directories';
 is $change2->deploy_file, $sqitch->deploy_dir->file(@fn),
