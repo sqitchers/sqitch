@@ -13,7 +13,7 @@ use Config;
 use Locale::TextDomain 1.20 qw(App-Sqitch);
 use Locale::Messages qw(bind_textdomain_filter);
 use App::Sqitch::X qw(hurl);
-use Mouse 1.02;
+use Mouse 1.04;
 use Mouse::Meta::Attribute::Native 1.04;
 use Encode qw(encode_utf8);
 use Try::Tiny;
