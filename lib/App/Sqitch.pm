@@ -13,13 +13,14 @@ use Config;
 use Locale::TextDomain 1.20 qw(App-Sqitch);
 use Locale::Messages qw(bind_textdomain_filter);
 use App::Sqitch::X qw(hurl);
-use Mouse;
+use Mouse 1.02;
+use Mouse::Meta::Attribute::Native 1.04;
 use Encode qw(encode_utf8);
 use Try::Tiny;
 use List::Util qw(first);
 use IPC::System::Simple 1.17 qw(runx capturex $EXITVAL);
 use Mouse::Util::TypeConstraints;
-use MouseX::Types::Path::Class;
+use MouseX::Types::Path::Class 0.06;
 use namespace::autoclean 0.11;
 
 our $VERSION = '0.952';

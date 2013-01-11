@@ -4,7 +4,6 @@ use 5.010;
 use utf8;
 use namespace::autoclean;
 use Mouse;
-use Mouse::Meta::Attribute::Native;
 use App::Sqitch::X qw(hurl);
 use Locale::TextDomain qw(App-Sqitch);
 
