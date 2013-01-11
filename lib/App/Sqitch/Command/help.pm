@@ -7,7 +7,7 @@ use utf8;
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use Pod::Find;
-use Moose;
+use Mouse;
 extends 'App::Sqitch::Command';
 
 our $VERSION = '0.952';

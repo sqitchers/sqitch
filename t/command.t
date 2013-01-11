@@ -38,7 +38,7 @@ can_ok $CLASS, qw(load new options configure command prompt ask_y_n);
 COMMAND: {
     # Stub out a command.
     package App::Sqitch::Command::whu;
-    use Moose;
+    use Mouse;
     extends 'App::Sqitch::Command';
     has foo => (is => 'ro');
     has feathers => (is => 'ro');

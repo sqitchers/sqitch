@@ -78,7 +78,7 @@ sub initial_key {
 }
 
 __PACKAGE__->meta->make_immutable;
-no Moose;
+no Mouse;
 
 =head1 Name
 

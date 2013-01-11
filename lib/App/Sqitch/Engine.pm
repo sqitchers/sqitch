@@ -1,7 +1,7 @@
 package App::Sqitch::Engine;
 
 use 5.010;
-use Moose;
+use Mouse;
 use strict;
 use utf8;
 use Try::Tiny;
@@ -977,7 +977,7 @@ sub search_events {
 }
 
 __PACKAGE__->meta->make_immutable;
-no Moose;
+no Mouse;
 
 __END__
 

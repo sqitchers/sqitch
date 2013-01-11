@@ -8,7 +8,7 @@ use Try::Tiny;
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use Hash::Merge 'merge';
-use Moose;
+use Mouse;
 
 our $VERSION = '0.952';
 
@@ -172,7 +172,7 @@ sub usage {
 }
 
 __PACKAGE__->meta->make_immutable;
-no Moose;
+no Mouse;
 
 __END__
 

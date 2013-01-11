@@ -1,7 +1,7 @@
 package App::Sqitch::Engine::pg;
 
 use 5.010;
-use Moose;
+use Mouse;
 use utf8;
 use Path::Class;
 use DBI;
@@ -1101,7 +1101,7 @@ sub _spool {
 }
 
 __PACKAGE__->meta->make_immutable;
-no Moose;
+no Mouse;
 
 __END__
 
