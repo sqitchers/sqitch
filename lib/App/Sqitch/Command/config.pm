@@ -44,13 +44,15 @@ has action => (
     )]),
 );
 
+enum "App::Sqitch::contexts" => [qw(
+    local
+    user
+    system
+)];
+
 has context => (
     is  => 'ro',
-    isa => maybe_type enum([qw(
-        local
-        user
-        system
-    )]),
+    isa => 'Maybe[App::Sqitch::contexts]',
 );
 
 has type => ( is => 'ro', isa => enum( [qw(int num bool bool-or-int)] ) );
