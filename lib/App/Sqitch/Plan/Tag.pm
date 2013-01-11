@@ -3,7 +3,7 @@ package App::Sqitch::Plan::Tag;
 use 5.010;
 use utf8;
 use namespace::autoclean;
-use Moose;
+use Mouse;
 use Encode;
 use parent 'App::Sqitch::Plan::Line';
 use DateTime;
@@ -119,7 +119,7 @@ sub format_content {
 }
 
 __PACKAGE__->meta->make_immutable;
-no Moose;
+no Mouse;
 
 __END__
 

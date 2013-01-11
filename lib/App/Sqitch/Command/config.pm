@@ -9,8 +9,8 @@ use Try::Tiny;
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use List::Util qw(first);
-use Moose;
-use Moose::Util::TypeConstraints;
+use Mouse;
+use Mouse::Util::TypeConstraints;
 use namespace::autoclean;
 extends 'App::Sqitch::Command';
 
@@ -44,13 +44,15 @@ has action => (
     )]),
 );
 
+enum "App::Sqitch::contexts" => [qw(
+    local
+    user
+    system
+)];
+
 has context => (
     is  => 'ro',
-    isa => maybe_type enum([qw(
-        local
-        user
-        system
-    )]),
+    isa => 'Maybe[App::Sqitch::contexts]',
 );
 
 has type => ( is => 'ro', isa => enum( [qw(int num bool bool-or-int)] ) );
@@ -374,7 +376,7 @@ sub _touch_dir {
 }
 
 __PACKAGE__->meta->make_immutable;
-no Moose;
+no Mouse;
 
 __END__
 

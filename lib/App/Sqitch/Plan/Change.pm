@@ -5,7 +5,7 @@ use utf8;
 use namespace::autoclean;
 use parent 'App::Sqitch::Plan::Line';
 use Encode;
-use Moose;
+use Mouse;
 use App::Sqitch::DateTime;
 use App::Sqitch::Plan::Depend;
 use Locale::TextDomain qw(App-Sqitch);
@@ -323,7 +323,7 @@ sub note_prompt {
 }
 
 __PACKAGE__->meta->make_immutable;
-no Moose;
+no Mouse;
 
 __END__
 

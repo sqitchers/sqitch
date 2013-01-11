@@ -2,7 +2,7 @@ package App::Sqitch::Plan::Depend;
 
 use 5.010;
 use utf8;
-use Moose;
+use Mouse;
 use App::Sqitch::Plan;
 use App::Sqitch::X qw(hurl);
 use Locale::TextDomain qw(App-Sqitch);
@@ -175,7 +175,7 @@ sub as_plan_string {
 }
 
 __PACKAGE__->meta->make_immutable;
-no Moose;
+no Mouse;
 
 __END__
 

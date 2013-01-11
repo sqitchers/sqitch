@@ -4,14 +4,14 @@ use 5.010;
 use utf8;
 use namespace::autoclean;
 use parent 'App::Sqitch::Plan::Line';
-use Moose;
+use Mouse;
 
 has '+name' => ( default => '' );
 
 sub format_name { '' }
 
 __PACKAGE__->meta->make_immutable;
-no Moose;
+no Mouse;
 
 __END__
 
