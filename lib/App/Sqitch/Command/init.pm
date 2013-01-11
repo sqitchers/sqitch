@@ -158,7 +158,9 @@ sub write_config {
         my $attr = $meta->find_attribute_by_name($name)
             or hurl "Cannot find App::Sqitch attribute $name";
         my $val = $attr->get_value($sqitch);
-        my $def = $attr->default($sqitch);
+
+        my $def = _default_for_instance($attr, $sqitch);
+
         my $var = $config->get( key => "core.$name" );
 
         no warnings 'uninitialized';
@@ -225,7 +227,7 @@ sub write_config {
             if ( my $attr = $emeta->find_attribute_by_name($key) ) {
 
                 # Add it as a comment, possibly with a default.
-                my $def = $attr->default($engine)
+                my $def = _default_for_instance($attr, $engine)
                     // $config->get( key => "$ekey.$key" )
                     // '';
                 push @comments => "\t$key = $def";
@@ -259,6 +261,17 @@ sub write_config {
 
     $self->info( __x 'Created {file}', file => $file );
     return $self;
+}
+
+
+# Work around $attr->default($instance) being broken in Mouse.
+sub _default_for_instance {
+    my($attr, $instance) = @_;
+
+    my $def = $attr->default;
+    $def = $def->($instance) if ref $def;
+
+    return $def;
 }
 
 __PACKAGE__->meta->make_immutable;
