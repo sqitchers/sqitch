@@ -508,7 +508,7 @@ should still be around:
   > psql -d flipr_test -c '\d flipr.users'
   Did not find any relation named "flipr.users".
 
-The L<C<status>|sqitch-status> command politely inform us that we have
+The L<C<status>|sqitch-status> command politely informs us that we have
 undeployed changes:
 
   > sqitch status
