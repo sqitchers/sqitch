@@ -7,7 +7,7 @@ use utf8;
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use File::Copy;
-use Moose;
+use Mouse;
 use namespace::autoclean;
 
 extends 'App::Sqitch::Command';

@@ -4,7 +4,7 @@ use 5.010;
 use strict;
 use warnings;
 use utf8;
-use Moose;
+use Mouse;
 use Locale::TextDomain qw(App-Sqitch);
 use namespace::autoclean;
 

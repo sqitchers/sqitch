@@ -13,13 +13,13 @@ use Config;
 use Locale::TextDomain 1.20 qw(App-Sqitch);
 use Locale::Messages qw(bind_textdomain_filter);
 use App::Sqitch::X qw(hurl);
-use Moose 2.0300;
+use Mouse;
 use Encode qw(encode_utf8);
 use Try::Tiny;
 use List::Util qw(first);
 use IPC::System::Simple 1.17 qw(runx capturex $EXITVAL);
-use Moose::Util::TypeConstraints 2.0300;
-use MooseX::Types::Path::Class 0.05;
+use Mouse::Util::TypeConstraints;
+use MouseX::Types::Path::Class;
 use namespace::autoclean 0.11;
 
 our $VERSION = '0.952';
@@ -652,7 +652,7 @@ sub warn_literal {
 }
 
 __PACKAGE__->meta->make_immutable;
-no Moose;
+no Mouse;
 
 __END__
 

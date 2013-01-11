@@ -4,14 +4,14 @@ use 5.010;
 use strict;
 use warnings;
 use utf8;
-use Moose;
+use Mouse;
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use File::Path qw(make_path);
 use Path::Class;
 use Try::Tiny;
 use App::Sqitch::Plan;
-use Moose::Util::TypeConstraints;
+use Mouse::Util::TypeConstraints;
 use namespace::autoclean;
 
 extends 'App::Sqitch::Command';
@@ -262,7 +262,7 @@ sub write_config {
 }
 
 __PACKAGE__->meta->make_immutable;
-no Moose;
+no Mouse;
 
 __END__
 
