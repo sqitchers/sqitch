@@ -1,5 +1,7 @@
 Revision history for Perl extension App::Sqitch
 
+0.953
+
 0.952  2013-01-12T00:02:54Z
      - Switched from Moose to Mouse whever possible. Speeds load and runtime
        20-30%. Thanks to Michael Schwern for the pull request!
