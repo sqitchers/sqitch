@@ -1,6 +1,7 @@
 Revision history for Perl extension App::Sqitch
 
 0.953
+     - Fixed test failure in `t/engine.t` triggered by a clock tick.
 
 0.952  2013-01-12T00:02:54Z
      - Switched from Moose to Mouse whever possible. Speeds load and runtime

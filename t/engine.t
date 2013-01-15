@@ -392,9 +392,12 @@ for my $spec (
         my $tags  = $_->{tags}  || [];
         my $rtags = $_->{rtags};
         my $c = App::Sqitch::Plan::Change->new(%{ $_ }, plan => $plan );
-        $c->add_tag(
-            App::Sqitch::Plan::Tag->new(name => $_, plan => $plan, change => $c )
-        ) for map { s/^@//; $_ } @{ $tags };
+        $c->add_tag(App::Sqitch::Plan::Tag->new(
+            name      => $_,
+            plan      => $plan,
+            change    => $c,
+            timestamp => $now,
+        )) for map { s/^@//; $_ } @{ $tags };
         if (my $dupe = $seen{ $_->{name} }) {
             $dupe->add_rework_tags( map { $seen{$_}->tags } @{ $rtags });
         }
