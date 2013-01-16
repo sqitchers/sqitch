@@ -220,6 +220,12 @@ can_ok $engine, '_load_changes';
 my $now = App::Sqitch::DateTime->now;
 my $plan = $sqitch->plan;
 
+# Mock App::Sqitch::DateTime so that dbchange tags all have the same
+# timestamps.
+my $mock_dt = Test::MockModule->new('App::Sqitch::DateTime');
+$mock_dt->mock(now => $now);
+
+
 for my $spec (
     ['no tags' => [
         {
@@ -1450,11 +1456,6 @@ is $@->message, __ 'Nothing to revert (nothing deployed)',
 is_deeply $engine->seen, [
     [deployed_changes => undef],
 ], 'Should have called deployed_changes';
-
-# Mock App::Sqitch::DateTime so that dbchange tags all have the same
-# timestamps.
-my $mock_dt = Test::MockModule->new('App::Sqitch::DateTime');
-$mock_dt->mock(now => $now);
 
 # Now revert from a deployed change.
 my @dbchanges;
