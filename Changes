@@ -5,6 +5,8 @@ Revision history for Perl extension App::Sqitch
      - Changed the verify template to end with `ROLLBACK` rather than
        `COMMIT`. This it to encourage folks to make no lasting changes in
        verify tests.
+     - Fixed exception triggered on an attempt to revert or rebase `--to` a
+       change that does not exist in the database.
 
 0.952  2013-01-12T00:02:54Z
      - Switched from Moose to Mouse whever possible. Speeds load and runtime

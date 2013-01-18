@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 544;
+use Test::More tests => 546;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -227,6 +227,8 @@ $mock_dt->mock(now => $now);
 
 
 for my $spec (
+    [ 'no change' => [] ],
+    [ 'undef' => [undef] ],
     ['no tags' => [
         {
             id            => 'c8a60f1a4fdab2cf91ee7f6da08f4ac52a732b4d',
@@ -409,7 +411,7 @@ for my $spec (
         }
         $seen{ $_->{name} } = $c;
         $c;
-    } @{ $args }], "Should load changes with $desc";
+    } grep { $_ } @{ $args }], "Should load changes with $desc";
 }
 
 ##############################################################################

@@ -607,6 +607,7 @@ sub _load_changes {
     my $plan = $self->sqitch->plan;
     my (@changes, %seen);
     for my $params (@_) {
+        next unless $params;
         my $tags = $params->{tags} || [];
         my $c = App::Sqitch::Plan::Change->new(%{ $params }, plan => $plan );
 
