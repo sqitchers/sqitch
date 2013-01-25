@@ -230,10 +230,6 @@ Then the verify will look something like:
     * appschema .. psql:verify/appschema.sql:5: ERROR:  division by zero
   # Verify script "verify/appschema.sql" failed.
   not ok
-  Undeployed changes:
-    * users
-    * insert_user
-    * change_pass
 
   Verify Summary Report
   ---------------------
