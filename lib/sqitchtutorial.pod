@@ -1299,6 +1299,19 @@ And the revert script should be:
 
   DROP EXTENSION pgcrypto;
 
+=over
+
+If you're on PostgreSQL 9.0 or lower, you won't be able to deploy C<pgcrypto>
+with a Sqitch change, alas. You'll have to install it manually, like so:
+
+    psql -d flipr_test -f /path/to/pgsql/share/contrib/pgcrypto.sql
+
+Don't forget to do this with your staging and production databases, too. Or
+consider upgrading to PostgreSQL 9.1 or higher; the SQL-level extension
+support is amazingly useful.
+
+=back
+
 We're going to use the C<crypt()> and C<gen_salt()> functions, so in the
 C<verify> script, let's make sure that the extension exists I<and> that both
 those functions exist:
