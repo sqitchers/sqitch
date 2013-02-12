@@ -7,6 +7,7 @@ Revision history for Perl extension App::Sqitch
        verify tests.
      - Fixed exception triggered on an attempt to revert or rebase `--to` a
        change that does not exist in the database.
+     - Added recommendation for Pod::Simple to the build process.
 
 0.952  2013-01-12T00:02:54Z
      - Switched from Moose to Mouse whever possible. Speeds load and runtime
