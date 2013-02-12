@@ -92,19 +92,19 @@ section of the a Sqitch configuration file. The variables and their types are:
 =head3 C<client>
 
 Returns the path to the SQLite client. If C<--db-client> was passed to
-L<sqitch>, that's what will be returned. Otherwise, it uses the
+C<sqitch>, that's what will be returned. Otherwise, it uses the
 C<core.sqlite.client> configuration value, or else defaults to C<sqlite3> (or
 C<sqlite3.exe> on Windows), which should work if it's in your path.
 
 =head3 C<db_name>
 
-Returns the name of the database file. If C<--db-name> was passed to L<sqitch>
+Returns the name of the database file. If C<--db-name> was passed to C<sqitch>
 that's what will be returned.
 
 =head3 C<sqitch_prefix>
 
 Returns the prefix to use for the Sqitch metadata tables. Returns the value of
-the L<core.sqlite.sqitch_prefix> configuration value, or else defaults to
+the C<core.sqlite.sqitch_prefix> configuration value, or else defaults to
 "sqitch".
 
 =head1 Author
