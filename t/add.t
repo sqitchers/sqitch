@@ -189,6 +189,7 @@ is $add->template_directory, undef, 'Default dir should be undef';
 MOCKCONFIG: {
     my $config_mock = Test::MockModule->new('App::Sqitch::Config');
     $config_mock->mock(system_dir => Path::Class::dir('nonexistent'));
+    $config_mock->mock(user_dir => Path::Class::dir('nonexistent'));
     for my $script (qw(deploy revert verify)) {
         my $with = "with_$script";
         ok $add->$with, "$with should be true by default";
@@ -229,7 +230,7 @@ MOCKCONFIG: {
     is $add->_find('deploy'), Path::Class::file(qw(etc templates deploy.tmpl)),
         '_find should work with user_dir from Config';
 
-    $config_mock->unmock('user_dir');
+    $config_mock->mock(user_dir => Path::Class::dir('nonexistent'));
     throws_ok { $add->_find('verify') } 'App::Sqitch::X',
         "Should die trying to find template";
     is $@->ident, 'add', 'Should be an "add" exception';
