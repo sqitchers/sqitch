@@ -21,7 +21,7 @@ my $SYSTEM_DIR = undef;
 
 sub user_dir {
     require File::HomeDir;
-    my $hd = File::HomeDir->my_home or hurl config => __(
+    my $hd = $ENV{SQITCH_USER_DIR} || File::HomeDir->my_home or hurl config => __(
         "Could not determine home directory"
     );
     return dir $hd, '.sqitch';

@@ -19,9 +19,13 @@ use MockOutput;
 
 my $CLASS = 'App::Sqitch::Command::add';
 
+$ENV{SQITCH_USER_DIR} = '.';
+
 ok my $sqitch = App::Sqitch->new(
     top_dir => Path::Class::Dir->new('sql'),
 ), 'Load a sqitch sqitch object';
+
+
 my $config = $sqitch->config;
 
 sub dep($$) {
