@@ -499,7 +499,7 @@ is_deeply +MockOutput->get_info, [[__ 'not ok' ]],
 $mock_engine->mock( verify_change => sub { hurl 'WTF!' });
 throws_ok { $engine->deploy_change($change) } 'App::Sqitch::X',
     'Deploy change with failed verification';
-is $@->message, 'Deploy failed', 'Error should be from deploy_change';
+is $@->message, __ 'Deploy failed', 'Error should be from deploy_change';
 is_deeply $engine->seen, [
     ['begin_work'],
     [run_file => $change->deploy_file ],
