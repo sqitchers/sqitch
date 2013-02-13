@@ -1,0 +1,17 @@
+=head1 Name
+
+sqitch-checkout-usage - Sqitch checkout usage statement
+
+=head1 Usage
+
+  sqitch [options] checkout branchname
+
+=head1 Options
+
+       --mode <mode>        failure reversion mode
+       -s --set                   set a database client variable
+       -r --set-revert            set a database client revert variable
+       -r --set-deploy            set a database client deploy variable
+       --verify             run verify scripts after each change
+       --no-verify          do not run verify scripts
+       --log-only           log changes without running them

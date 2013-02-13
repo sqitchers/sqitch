@@ -1,0 +1,126 @@
+=head1 Name
+
+sqitch-checkout - Checkout another VCS branch
+
+=head1 Synopsis
+
+  sqitch [options] checkout <branch>
+
+=head1 Description
+
+Checkout another branch in the VCS (eg, git), while performing every necessary
+sqitch action.
+
+This will identify the last common changes between the two branches (or
+commits), revert to it (see L<sqitch-revert>), checkout the given branch (or
+commit) and deploy the plan in this branch (see L<sqitch-deploy>).
+
+If the VCS is already on this branch, nothing will be done.
+
+=head1 Options
+
+=over
+
+=item C<--mode>
+
+Specify the reversion mode to use in case of failure. Possible values are:
+
+=over
+
+=item C<all>
+
+In the event of failure, revert all deployed changes, back to the point at
+which deployment started. This is the default.
+
+=item C<tag>
+
+In the event of failure, revert all deployed changes to the last
+successfully-applied tag. If no tags were applied during this deployment, all
+changes will be reverted to the point at which deployment began.
+
+=item C<change>
+
+In the event of failure, no changes will be reverted. This is on the
+assumption that a change is atomic, and thus may may be deployed again.
+
+=back
+
+=item C<--verify>
+
+Verify each change by running its verify script, if there is one. If a verify
+test fails, the deploy will be considered to have failed and the appropriate
+reversion will be carried out, depending on the value of C<--mode>.
+
+=item C<--no-verify>
+
+Don't verify each change. This is the default.
+
+=item C<--log-only>
+
+Log the changes as if they were deployed, but without actually running the
+deploy scripts. Useful for an existing database that is being converted to
+Sqitch, and you need to log changes as deployed because they have been
+deployed by other means in the past.
+
+
+=item C<-s>
+
+=item C<--set>
+
+Set a variable name and value for use by the database engine client, if it
+supports variables. The format must be C<name=value>, e.g., C<--set
+defuser='Homer Simpson'>. Overrides any values loaded from the
+C<deploy.variables> or C<revert.variables> configurations.
+
+=item C<-d>
+
+=item C<--set-deploy>
+
+Set a variable name and value for use by the database engine client when
+deploying, if it supports variables. The format must be C<name=value>, e.g.,
+C<--set defuser='Homer Simpson'>. Overrides any values from C<--set> or loaded
+from the C<deploy.variables> configuration.
+
+=item C<-r>
+
+=item C<--set-revert>
+
+Sets a variable name to be used by the database engine client during when
+reverting, if it supports variables. The format must be C<name=value>, e.g.,
+C<--set defuser='Homer Simpson'>. Overrides any values from C<--set> or loaded
+from the C<deploy.variables> and C<revert.variables> configurations.
+
+
+=back
+
+=head1 Configuration Variables
+
+=over
+
+=item C<deploy.to_target>
+
+Target to deploy to. You probably don't want to set this.
+
+=item C<deploy.mode>
+
+Deploy mode. The supported values are the same as for the C<--mode> option.
+
+=item C<deploy.verify>
+
+Boolean indicating whether or not to verify each change.
+
+=item C<[deploy.variables]>
+
+A section defining database client variables. Useful if your database engine
+supports variables in scripts, such as PostgreSQL's
+L<C<psql> variables|http://www.postgresql.org/docs/current/static/app-psql.html#APP-PSQL-INTERPOLATION>.
+
+=item C<deploy.verify>
+
+Boolean indicating whether or not to verify each change after deploying it.
+
+=back
+
+=head1 Sqitch
+
+Part of the L<sqitch> suite.

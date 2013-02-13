@@ -76,7 +76,7 @@ has id => (
         my $change = $plan->find( $self->key_name ) // hurl plan => __x(
             'Unable to find change "{change}" in plan {file}',
             change => $self->key_name,
-            file   => $plan->sqitch->plan_file,
+            file   => $plan->plan_file,
         );
         return $change->id;
     }
