@@ -14,7 +14,7 @@ use namespace::autoclean;
 
 extends 'App::Sqitch::Engine';
 
-our $VERSION = '0.953';
+our $VERSION = '0.954';
 
 has client => (
     is       => 'ro',
