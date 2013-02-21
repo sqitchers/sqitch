@@ -5,6 +5,8 @@ use warnings;
 use Module::Build 0.35;
 use parent 'Module::Build';
 
+__PACKAGE__->add_property($_) for qw(etcdir installed_etcdir);
+
 sub new {
     my ( $class, %p ) = @_;
     if ($^O eq 'MSWin32') {
@@ -24,18 +26,26 @@ sub new {
     return $self;
 }
 
-sub _path_to {
+sub _getetc {
     my $self = shift;
-    if ( my $dir = $self->prefix || $self->install_base ) {
-        return File::Spec->catdir( $dir, @_ );
+    # Prefer the user-specified directory.
+    if (my $etc = $self->etcdir) {
+        return $etc;
     }
 
-    return File::Spec->catdir( $Config::Config{prefix}, @_, 'sqitch' );
+    # Use a directory unde the install base (or prefix).
+    my @subdirs = qw(etc sqitch);
+    if ( my $dir = $self->prefix || $self->install_base ) {
+        return File::Spec->catdir( $dir, @subdirs );
+    }
+
+    # Go under Perl's prefix.
+    return File::Spec->catdir( $Config::Config{prefix}, @subdirs );
 }
 
 sub process_etc_files {
     my $self = shift;
-    my $etc  = $self->_path_to('etc');
+    my $etc  = $self->_getetc;
     $self->install_path( etc => $etc );
     for my $file ( @{ $self->rscan_dir( 'etc', sub { -f && !/\.\#/ } ) } ) {
         $file = $self->localize_file_path($file);
@@ -59,7 +69,7 @@ sub process_pm_files {
     my $self = shift;
     my $ret  = $self->SUPER::process_pm_files(@_);
     my $pm   = File::Spec->catfile(qw(blib lib App Sqitch Config.pm));
-    my $etc  = $self->_path_to('etc');
+    my $etc  = $self->installed_etcdir || $self->_getetc;
 
     $self->do_system(
         $self->perl, '-i.bak', '-pe',

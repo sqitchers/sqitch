@@ -17,6 +17,7 @@ our $VERSION = '0.953';
 has '+confname' => ( default => 'sqitch.conf' );
 has '+encoding' => ( default => 'UTF-8' );
 
+# Set by ./Build; see Module::Build::Sqitch for details.
 my $SYSTEM_DIR = undef;
 
 sub user_dir {
