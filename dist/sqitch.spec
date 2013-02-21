@@ -171,6 +171,9 @@ package bundles the Sqitch PostgreSQL support.
 # No additional files required.
 
 %changelog
+* Thu Feb 21 2013 David E. Wheeler <david.wheeler@iovation.com> 0.953-1
+- Upgrade to v0.953.
+
 * Fri Jan 12 2013 David E. Wheeler <david.wheeler@iovation.com> 0.952-1
 - Upgrade to v0.952.
 

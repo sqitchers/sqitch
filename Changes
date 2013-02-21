@@ -1,6 +1,6 @@
 Revision history for Perl extension App::Sqitch
 
-0.953
+0.953  2013-02-21T23:37:57Z
      - Fixed test failure in `t/engine.t` triggered by a clock tick.
      - Changed the verify template to end with `ROLLBACK` rather than
        `COMMIT`. This it to encourage folks to make no lasting changes in
