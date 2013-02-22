@@ -94,7 +94,7 @@ sub fix_shebang_line {
         next unless $line =~ s/^\s*\#!\s*//;     # Not a shbang file.
 
         my ($cmd, $arg) = (split(' ', $line, 2), '');
-        next unless $cmd =~ /perl/i && $arg =~ s/-C\w+//;
+        next unless $cmd =~ /perl/i && $arg =~ s/ -C\w+//;
 
         # We removed -C; write the file out.
         my $FIXOUT = IO::File->new(">$file.new")
