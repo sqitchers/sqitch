@@ -81,4 +81,42 @@ sub process_pm_files {
     return $ret;
 }
 
+sub fix_shebang_line {
+    my $self = shift;
+    # Noting to do before after 5.10.0.
+    return $self->SUPER::fix_shebang_line(@_) if $] > 5.010000;
+
+    # Remove -C from the shebang line.
+    for my $file (@_) {
+        my $FIXIN = IO::File->new($file) or die "Can't process '$file': $!";
+        local $/ = "\n";
+        chomp(my $line = <$FIXIN>);
+        next unless $line =~ s/^\s*\#!\s*//;     # Not a shbang file.
+
+        my ($cmd, $arg) = (split(' ', $line, 2), '');
+        next unless $cmd =~ /perl/i && $arg =~ s/-C\w+//;
+
+        # We removed -C; write the file out.
+        my $FIXOUT = IO::File->new(">$file.new")
+            or die "Can't create new $file: $!\n";
+        local $\;
+        undef $/; # Was localized above
+        print $FIXOUT "#!$cmd $arg", <$FIXIN>;
+        close $FIXIN;
+        close $FIXOUT;
+
+        rename($file, "$file.bak")
+            or die "Can't rename $file to $file.bak: $!";
+
+        rename("$file.new", $file)
+            or die "Can't rename $file.new to $file: $!";
+
+        $self->delete_filetree("$file.bak")
+            or $self->log_warn("Couldn't clean up $file.bak, leaving it there");
+    }
+
+    # Back at it now.
+    return $self->SUPER::fix_shebang_line(@_);
+}
+
 1;
