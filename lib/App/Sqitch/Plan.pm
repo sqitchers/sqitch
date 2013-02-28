@@ -19,7 +19,7 @@ use Scalar::Util 'reftype';
 use Mouse;
 use constant SYNTAX_VERSION => '1.0.0-b2';
 
-our $VERSION = '0.953';
+our $VERSION = '0.954';
 
 # Like [:punct:], but excluding _. Copied from perlrecharclass.
 my $punct = q{-!"#$%&'()*+,./:;<=>?@[\\]^`{|}~};

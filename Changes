@@ -1,6 +1,12 @@
 Revision history for Perl extension App::Sqitch
 
-0.953
+0.954
+     - Removed `-CAS` from the shebang line on Perl 5.10.0. This is to
+       eliminate `Too late for "-CAS" option` errors. This means that UTF-8
+       semantics will be suboptimal on perl 5.10.0. Consider upgrading to 5.12
+       or higher.
+
+0.953  2013-02-21T23:37:57Z
      - Fixed test failure in `t/engine.t` triggered by a clock tick.
      - Changed the verify template to end with `ROLLBACK` rather than
        `COMMIT`. This it to encourage folks to make no lasting changes in
@@ -8,6 +14,17 @@ Revision history for Perl extension App::Sqitch
      - Fixed exception triggered on an attempt to revert or rebase `--to` a
        change that does not exist in the database.
      - Added recommendation for Pod::Simple to the build process.
+     - Added the `--etcdir` build option to specify the directory in which
+       configuration and template files should be installed. Defaults to the
+       `etc/sqitch` subdirectory of the `--prefix`, `--install_base`, or
+       Perl's prefix.
+     - Added the `--installed_etcdir` build option. This is used to set
+       the location of the system etc directory. Defaults to the value of
+       `--etcdir`.
+     - When building with `--prefix` or `--install_base`, and without
+       `--etcdir`, the configuration files and tmeplates are now installed
+       into `etc/sqitch` in that directory, rather than just `etc`. This is to
+       enable packaging systems to move the directory to the proper location.
 
 0.952  2013-01-12T00:02:54Z
      - Switched from Moose to Mouse whever possible. Speeds load and runtime
