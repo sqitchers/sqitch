@@ -11,10 +11,11 @@ use App::Sqitch::X qw(hurl);
 use App::Sqitch::Plan;
 use Git::Wrapper;
 use FileHandle;
+use File::Basename;
 
 extends 'App::Sqitch::Command';
 
-our $VERSION = '0.953';
+our $VERSION = '0.954';
 
 
 has deploy_variables => (
@@ -62,6 +63,14 @@ has mode => (
     default => 'all',
 );
 
+has git => (
+    is => 'ro',
+    required => 1,
+    lazy => 1,
+    default => sub {
+        Git::Wrapper->new(shift->sqitch->top_dir);
+    },
+);
 
 sub options {
     return qw(
@@ -125,13 +134,13 @@ sub execute {
     my $plan = $sqitch->plan;
     my $engine = $sqitch->engine;
     $engine->with_verify( $self->verify );
-    my $git = Git::Wrapper->new('.');
+    my $git = $self->git; 
     my @current_branch = $git->rev_parse("--abbrev-ref", "HEAD");
-    hurl plan => __x(
+    hurl checkout => __x(
         'Already on branch {branch}',
         branch=>$branch) if $current_branch[0] eq $branch;
     my $other_content = join("\n", $git->show($branch . ':' .
-            $sqitch->plan_file));
+            basename($sqitch->plan_file)));
     my $fh;
     open($fh, '<', \$other_content) or die;
     my $old_plan = App::Sqitch::Plan->new(
