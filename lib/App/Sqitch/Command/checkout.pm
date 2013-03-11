@@ -14,19 +14,11 @@ use FileHandle;
 use File::Basename;
 
 extends 'App::Sqitch::Command';
+with 'App::Sqitch::CommandOptions::deploy_variables';
+with 'App::Sqitch::CommandOptions::revert_variables';
 
 our $VERSION = '0.954';
 
-
-has deploy_variables => (
-    is       => 'ro',
-    isa      => 'HashRef',
-    required => 1,
-    lazy     => 1,
-    default  => sub {
-        shift->sqitch->config->get_section( section => 'deploy.variables' );
-    },
-);
 
 has verify => (
     is       => 'ro',
@@ -42,16 +34,6 @@ has log_only => (
     default  => 0,
 );
 
-
-has revert_variables => (
-    is       => 'ro',
-    isa      => 'HashRef',
-    required => 1,
-    lazy     => 1,
-    default  => sub {
-        shift->sqitch->config->get_section( section => 'deploy.variables' );
-    },
-);
 
 has mode => (
     is  => 'ro',
@@ -90,40 +72,6 @@ sub configure {
         verify   => $opt->{verify} // $config->get( key => 'deploy.verify', as => 'boolean' ) // 0,
         log_only => $opt->{log_only} || 0,
     );
-    if ( my $vars = $opt->{set} ) {
-        # Merge with config.
-        $params{deploy_variables} = {
-            %{ $config->get_section( section => 'deploy.variables' ) },
-            %{ $vars },
-        };
-        $params{revert_variables} = {
-            %{ $params{deploy_variables} },
-            %{ $config->get_section( section => 'revert.variables' ) },
-            %{ $vars },
-        };
-    }
-    if ( my $vars = $opt->{set_deploy} ) {
-        $params{deploy_variables} = {
-            %{
-                $params{deploy_variables}
-                || $config->get_section( section => 'deploy.variables' )
-            },
-            %{ $vars },
-        };
-    }
-    if ( my $vars = $opt->{set_revert} ) {
-        $params{revert_variables} = {
-            %{
-                $params{deploy_variables}
-                || $config->get_section( section => 'deploy.variables' )
-            },
-            %{
-                $params{revert_variables}
-                || $config->get_section( section => 'revert.variables' )
-            },
-            %{ $vars },
-        };
-    }
     return \%params;
 }
 

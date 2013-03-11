@@ -7,8 +7,11 @@ use utf8;
 use Mouse;
 use Mouse::Util::TypeConstraints;
 use List::Util qw(first);
+use Hash::Merge 'merge';
 use namespace::autoclean;
 extends 'App::Sqitch::Command';
+with 'App::Sqitch::CommandOptions::revert_variables';
+with 'App::Sqitch::CommandOptions::deploy_variables';
 
 our $VERSION = '0.954';
 
@@ -51,33 +54,6 @@ has log_only => (
     default  => 0,
 );
 
-has deploy_variables => (
-    is       => 'ro',
-    isa      => 'HashRef',
-    required => 1,
-    lazy     => 1,
-    default  => sub {
-        my $self = shift;
-        return {
-            %{ $self->sqitch->config->get_section( section => 'deploy.variables' ) },
-        };
-    },
-);
-
-has revert_variables => (
-    is       => 'ro',
-    isa      => 'HashRef',
-    required => 1,
-    lazy     => 1,
-    default  => sub {
-        my $self = shift;
-        return {
-            %{ $self->deploy_variables },
-            %{ $self->sqitch->config->get_section( section => 'revert.variables' ) },
-        };
-    },
-);
-
 sub options {
     return qw(
         onto-target|onto=s
@@ -93,70 +69,32 @@ sub options {
 }
 
 sub configure {
-    my ( $class, $config, $opt ) = @_;
+    my ( $class, $config, $opt, $params ) = @_;
 
-    my %params = map { $_ => $opt->{$_} } grep { exists $opt->{$_} } qw(
+    my %myparams = map { $_ => $opt->{$_} } grep { exists $opt->{$_} } qw(
         onto_target
         upto_target
         log_only
     );
-
+    $params = merge($params, \%myparams);
     # Verify?
-    $params{verify} = $opt->{verify}
+    $params->{verify} = $opt->{verify}
                    // $config->get( key => 'rebase.verify', as => 'boolean' )
                    // $config->get( key => 'deploy.verify', as => 'boolean' )
                    // 0;
-    $params{mode} = $opt->{mode}
+    $params->{mode} = $opt->{mode}
                  || $config->get( key => 'rebase.mode' )
                  || $config->get( key => 'deploy.mode' )
                  || 'all';
 
-    if ( my $vars = $opt->{set} ) {
-        # Merge with config.
-        $params{deploy_variables} = {
-            %{ $config->get_section( section => 'deploy.variables' ) },
-            %{ $vars },
-        };
-        $params{revert_variables} = {
-            %{ $params{deploy_variables} },
-            %{ $config->get_section( section => 'revert.variables' ) },
-            %{ $vars },
-        };
-    }
-
-    if ( my $vars = $opt->{set_deploy} ) {
-        $params{deploy_variables} = {
-            %{
-                $params{deploy_variables}
-                || $config->get_section( section => 'deploy.variables' )
-            },
-            %{ $vars },
-        };
-    }
-
-    if ( my $vars = $opt->{set_revert} ) {
-        $params{revert_variables} = {
-            %{
-                $params{deploy_variables}
-                || $config->get_section( section => 'deploy.variables' )
-            },
-            %{
-                $params{revert_variables}
-                || $config->get_section( section => 'revert.variables' )
-            },
-            %{ $vars },
-        };
-    }
-
-    $params{no_prompt} = delete $opt->{y} // $config->get(
+    $params->{no_prompt} = delete $opt->{y} // $config->get(
         key => 'rebase.no_prompt',
         as  => 'bool',
     ) // $config->get(
         key => 'revert.no_prompt',
         as  => 'bool',
     ) // 0;
-
-    return \%params;
+    return $params;
 }
 
 sub execute {
