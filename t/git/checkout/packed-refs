@@ -1,0 +1,4 @@
+# pack-refs with: peeled 
+d92b93f67eec6f2b21c37fc80cf00a11faa01378 refs/heads/another_branch
+dcc0f05930395bae46399952d52f589d8e32e500 refs/heads/master
+9336fc7ec47efd7e91c75a1b3544a35d046d2b60 refs/heads/yet_another_branch
