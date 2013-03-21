@@ -4,9 +4,7 @@ use 5.010;
 use strict;
 use warnings;
 use utf8;
-use Locale::TextDomain qw(App-Sqitch);
 use Mouse::Role;
-use App::Sqitch::X qw(hurl);
 requires 'configure';
 use Mouse::Util::TypeConstraints;
 
