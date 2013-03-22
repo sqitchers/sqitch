@@ -9,9 +9,11 @@ use Mouse::Util::TypeConstraints;
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use App::Sqitch::Plan;
+use Path::Class qw(dir);
 use Git::Wrapper;
 use FileHandle;
 use File::Basename;
+use namespace::autoclean;
 
 extends 'App::Sqitch::Command';
 with 'App::Sqitch::CommandOptions::deploy_variables';
@@ -46,12 +48,11 @@ has mode => (
 );
 
 has git => (
-    is => 'ro',
+    is       => 'ro',
+    isa      => 'Git::Wrapper',
     required => 1,
-    lazy => 1,
-    default => sub {
-        Git::Wrapper->new(shift->sqitch->top_dir);
-    },
+    lazy     => 1,
+    default  => sub { Git::Wrapper->new(dir) }
 );
 
 sub options {
