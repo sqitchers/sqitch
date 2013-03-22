@@ -34,7 +34,6 @@ can_ok $CLASS, qw(
     revert_variables
 );
 
-
 my $tmp_git_dir = File::Temp->newdir();
 
 ok my $sqitch = App::Sqitch->new(

@@ -11,8 +11,6 @@ use App::Sqitch::X qw(hurl);
 use App::Sqitch::Plan;
 use Path::Class qw(dir);
 use Git::Wrapper;
-use FileHandle;
-use File::Basename;
 use namespace::autoclean;
 
 extends 'App::Sqitch::Command';
@@ -80,43 +78,58 @@ sub execute {
     my ( $self, $branch) = @_;
     $self->usage unless defined $branch;
     my $sqitch = $self->sqitch;
-    my $plan = $sqitch->plan;
+    my $git    = $self->git;
     my $engine = $sqitch->engine;
     $engine->with_verify( $self->verify );
-    my $git = $self->git; 
-    my @current_branch = $git->rev_parse("--abbrev-ref", "HEAD");
-    hurl checkout => __x(
-        'Already on branch {branch}',
-        branch=>$branch) if $current_branch[0] eq $branch;
-    my $other_content = join("\n", $git->show($branch . ':' .
-            basename($sqitch->plan_file)));
-    my $fh;
-    open($fh, '<', \$other_content) or die;
-    my $old_plan = App::Sqitch::Plan->new(
-        sqitch => $sqitch,
-        plan_file => $fh);
-    $old_plan->load;
+
+    # What branch are we on?
+    my ($current_branch) = $git->rev_parse("--abbrev-ref", "HEAD");
+    hurl {
+        ident   => 'checkout',
+        message => __x('Already on branch {branch}', branch => $branch),
+        exitval => 1,
+    } if $current_branch eq $branch;
+
+    # Instantitate a plan without calling $sqitch->plan.
+    my $from_plan = App::Sqitch::Plan->new( sqitch => $sqitch );
+
+    # Load the target plan from Git, assuming the same path.
+    my $to_plan = App::Sqitch::Plan->new( sqitch => $sqitch )->parse(
+        # XXX How is encoding handled by Git::Wrapper?
+        # XXX Handle missing file/no contents.
+        join "\n" => $git->show("$branch:" . $sqitch->plan_file->basename )
+    );
+
+    # Find the last change the plans have in common.
     my $last_common_change;
-    foreach($old_plan->changes){
-        if(!$plan->get($_->id)){
-            last;
-        } else {
-            $last_common_change = $_;
-        }
+    for my $change ($to_plan->changes){
+        last unless $from_plan->get( $change->id );
+        $last_common_change = $change;
     }
+
+    hurl checkout => __x(
+        'Target branch {target} has no canges in common with source branch {source}',
+        target => $branch,
+        source => $current_branch,
+    ) unless $last_common_change;
+
     $sqitch->info(__x(
         'Last change before the branches diverged: {last_change}',
-        last_change=> $last_common_change->format_name_with_tags,
+        last_change => $last_common_change->format_name_with_tags,
     ));
-    if (my %v = %{ $self->revert_variables }) {
-        $engine->set_variables(%v)
-    }
+
+    # Revert to the last common change.
+    if (my %v = %{ $self->revert_variables }) { $engine->set_variables(%v) }
+    $engine->plan( $from_plan );
     $engine->revert( $last_common_change->id, $self->log_only );
-    if(not $self->log_only){
-        $git->checkout($branch);
-    }
-    $sqitch->plan = $old_plan;
+
+    # Check out the new branch.
+    # XXX Why avoid for log-only?
+    $git->checkout($branch) unless $self->log_only;
+
+    # Deploy!
     if (my %v = %{ $self->deploy_variables}) { $engine->set_variables(%v) }
+    $engine->plan( $to_plan );
     $engine->deploy( undef, $self->mode, $self->log_only);
     return $self;
 }

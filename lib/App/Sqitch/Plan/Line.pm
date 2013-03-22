@@ -313,7 +313,7 @@ note is requested via the C<for> parameter. If there is a note, it is simply
 returned. Otherwise, an editor will be launched and the user asked to write
 one. Once the editor exits, the note will be retrieved from the file, saved,
 and returned. If no note was written, an exception will be thrown with an
-C<extival> of 1.
+C<exitval> of 1.
 
 =head3 C<note_prompt>
 

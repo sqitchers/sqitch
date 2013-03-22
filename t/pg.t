@@ -1729,11 +1729,9 @@ subtest 'live database' => sub {
         $upd_tag->execute($tag->old_id, $tag->id);
     }
 
-    # Make sure Sqitch has the plan.
-    $mock_sqitch->mock(plan => $plan);
-
     # Mock Engine to silence the info notice.
     my $mock_engine = Test::MockModule->new('App::Sqitch::Engine');
+    $mock_engine->mock(plan => $plan);
     $mock_engine->mock(_update_ids => sub { shift });
 
     is $pg->_update_ids, 9, 'Update IDs by old ID should return 9';

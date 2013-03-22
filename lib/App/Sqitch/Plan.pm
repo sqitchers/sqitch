@@ -15,7 +15,6 @@ use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use List::MoreUtils qw(uniq);
 use namespace::autoclean;
-use Scalar::Util 'reftype';
 use Mouse;
 use constant SYNTAX_VERSION => '1.0.0-b2';
 
@@ -46,15 +45,6 @@ has sqitch => (
     isa      => 'App::Sqitch',
     required => 1,
     weak_ref => 1,
-);
-
-has plan_file => (
-    is       => 'ro',
-    required => 1,
-    lazy     => 1,
-    default  => sub {
-        $_[0]->sqitch->plan_file;
-    },
 );
 
 has _plan => (
@@ -115,25 +105,30 @@ has uri => (
     }
 );
 
+sub parse {
+    my ( $self, $data ) = @_;
+    # XXX Assume decoded.
+    open my $fh, '<', \$data;
+    $self->_plan( $self->load($fh) );
+    return $self;
+}
+
 sub load {
     my $self = shift;
-    my $file = $self->plan_file;
-    my $fh;
-    if(not ((reftype $file) eq "GLOB")){
+    my $file = $self->sqitch->plan_file;
+    my $fh = shift || do {
         hurl plan => __x('Plan file {file} does not exist', file => $file)
             unless -e $file;
         hurl plan => __x('Plan file {file} is not a regular file', file => $file)
             unless -f $file;
-        $fh = $file->open('<:encoding(UTF-8)') or hurl plan => __x(
+        $file->open('<:encoding(UTF-8)') or hurl plan => __x(
             'Cannot open {file}: {error}',
             file  => $file,
             error => $!
         );
-    } else {
-        seek ($file, 0, 0);
-        $fh = $file;
-    }
-    return $self->_parse($self->plan_file, $fh);
+    };
+
+    return $self->_parse($file, $fh);
 }
 
 sub _parse {
@@ -558,7 +553,7 @@ sub check_changes {
                 $max_delta,
                 change => $change,
                 num    => $max_delta,
-                plan   => $self->plan_file,
+                plan   => $self->sqitch->plan_file,
             );
         }
     }
