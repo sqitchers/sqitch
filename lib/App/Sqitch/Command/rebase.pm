@@ -10,8 +10,8 @@ use List::Util qw(first);
 use Hash::Merge 'merge';
 use namespace::autoclean;
 extends 'App::Sqitch::Command';
-with 'App::Sqitch::CommandOptions::revert_variables';
 with 'App::Sqitch::CommandOptions::deploy_variables';
+with 'App::Sqitch::CommandOptions::revert_variables';
 
 our $VERSION = '0.954';
 

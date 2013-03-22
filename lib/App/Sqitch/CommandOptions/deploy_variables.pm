@@ -5,8 +5,10 @@ use strict;
 use warnings;
 use utf8;
 use Mouse::Role;
-requires 'configure';
 use Mouse::Util::TypeConstraints;
+
+requires 'sqitch';
+requires 'configure';
 
 has deploy_variables => (
     is       => 'ro',

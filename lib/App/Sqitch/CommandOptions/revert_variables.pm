@@ -5,8 +5,11 @@ use strict;
 use warnings;
 use utf8;
 use Mouse::Role;
-requires 'configure';
 use Mouse::Util::TypeConstraints;
+
+requires 'sqitch';
+requires 'configure';
+requires 'deploy_variables';
 
 has revert_variables => (
     is       => 'ro',
