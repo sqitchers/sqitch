@@ -1191,7 +1191,15 @@ script file must be encoded in UTF-8.
 
 Loads the plan data. Called internally, not meant to be called directly, as it
 parses the plan file and deploy scripts every time it's called. If you want
-the all of the changes, call C<changes()> instead.
+the all of the changes, call C<changes()> instead. And if you want to load an
+alternate plan, use C<parse()>.
+
+=head3 C<parse>
+
+  $plan->parse($plan_data);
+
+Load an alternate plan by passing the complete text of the plan. Useful for
+loading a plan from a different VCS branch, for example.
 
 =head3 C<check_changes>
 
