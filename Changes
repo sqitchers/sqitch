@@ -5,6 +5,11 @@ Revision history for Perl extension App::Sqitch
        eliminate `Too late for "-CAS" option` errors. This means that UTF-8
        semantics will be suboptimal on perl 5.10.0. Consider upgrading to 5.12
        or higher.
+     - Added the `checkout` command. Pass it the name of a VCS branch, and it
+       will compare the plans between that branch and the current branch,
+       revert to the last common change, check out the branch, and then
+       redeploy. This makes it easy to switch between working branches that
+       have different sets of commits. Idea and code by Ronan Dunklau.
 
 0.953  2013-02-21T23:37:57Z
      - Fixed test failure in `t/engine.t` triggered by a clock tick.
