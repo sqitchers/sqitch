@@ -54,15 +54,13 @@ is_deeply $CLASS->configure($config, {}), {
     no_prompt => 0,
     verify    => 0,
     mode      => 'all',
-    log_only  => 0,
 }, 'Check default configuration';
 
 is_deeply $CLASS->configure($config, {
     set  => { foo => 'bar' },
-}, {}), {
+}), {
     verify           => 0,
     no_prompt        => 0,
-    log_only         => 0,
     mode             => 'all',
     deploy_variables => { foo => 'bar' },
     revert_variables => { foo => 'bar' },
@@ -75,7 +73,7 @@ is_deeply $CLASS->configure($config, {
     log_only    => 1,
     verify      => 1,
     mode        => 'tag',
-}, {}), {
+}), {
     mode             => 'tag',
     no_prompt        => 1,
     deploy_variables => { foo => 'bar' },
@@ -86,11 +84,10 @@ is_deeply $CLASS->configure($config, {
 is_deeply $CLASS->configure($config, {
     y           => 0,
     set_revert  => { foo => 'bar' },
-}, {}), {
+}), {
     mode             => 'all',
     no_prompt        => 0,
     verify           => 0,
-    log_only         => 0,
     revert_variables => { foo => 'bar' },
 }, 'Should have set_revert option and no_prompt false';
 
@@ -98,11 +95,10 @@ is_deeply $CLASS->configure($config, {
     set  => { foo => 'bar' },
     set_deploy => { foo => 'dep', hi => 'you' },
     set_revert => { foo => 'rev', hi => 'me' },
-}, {}), {
+}), {
     mode             => 'all',
     no_prompt        => 0,
     verify           => 0,
-    log_only         => 0,
     deploy_variables => { foo => 'dep', hi => 'you' },
     revert_variables => { foo => 'rev', hi => 'me' },
 }, 'set_deploy and set_revert should overrid set';
@@ -111,10 +107,9 @@ is_deeply $CLASS->configure($config, {
     set  => { foo => 'bar' },
     set_deploy => { hi => 'you' },
     set_revert => { hi => 'me' },
-}, {}), {
+}), {
     mode             => 'all',
     no_prompt        => 0,
-    log_only         => 0,
     verify           => 0,
     deploy_variables => { foo => 'bar', hi => 'you' },
     revert_variables => { foo => 'bar', hi => 'me' },
@@ -124,9 +119,8 @@ is_deeply $CLASS->configure($config, {
     set  => { foo => 'bar' },
     set_deploy => { hi => 'you' },
     set_revert => { my => 'yo' },
-}, {}), {
+}), {
     mode             => 'all',
-    log_only         => 0,
     no_prompt        => 0,
     verify           => 0,
     deploy_variables => { foo => 'bar', hi => 'you' },
@@ -148,9 +142,8 @@ CONFIG: {
         'deploy.variables' => { foo => 'bar', hi => 21 },
     );
 
-    is_deeply $CLASS->configure($config, {}, {}), {
+    is_deeply $CLASS->configure($config, {}), {
         no_prompt => 0,
-        log_only  => 0,
         verify    => 0,
         mode      => 'all',
     }, 'Should have deploy configuration';
@@ -158,10 +151,9 @@ CONFIG: {
     # Try merging.
     is_deeply $CLASS->configure($config, {
         set         => { foo => 'yo', yo => 'stellar' },
-    }, {}), {
+    }), {
         mode             => 'all',
         no_prompt        => 0,
-        log_only         => 0,
         verify           => 0,
         deploy_variables => { foo => 'yo', yo => 'stellar', hi => 21 },
         revert_variables => { foo => 'yo', yo => 'stellar', hi => 21 },
@@ -171,10 +163,9 @@ CONFIG: {
     $config_vals{'revert.variables'} = { hi => 42 };
     is_deeply $CLASS->configure($config, {
         set  => { yo => 'stellar' },
-    }, {}), {
+    }), {
         mode             => 'all',
         no_prompt        => 0,
-        log_only         => 0,
         verify           => 0,
         deploy_variables => { foo => 'bar', yo => 'stellar', hi => 21 },
         revert_variables => { foo => 'bar', yo => 'stellar', hi => 42 },
@@ -189,9 +180,8 @@ CONFIG: {
 
     # Make sure we can override mode, prompting, and verify.
     %config_vals = ('revert.no_prompt' => 1, 'deploy.verify' => 1, 'deploy.mode' => 'tag');
-    is_deeply $CLASS->configure($config, {}, {}), {
+    is_deeply $CLASS->configure($config, {}), {
         no_prompt => 1,
-        log_only  => 0,
         verify    => 1,
         mode      => 'tag',
     }, 'Should have log_only true';
@@ -200,9 +190,8 @@ CONFIG: {
     $config_vals{'checkout.no_prompt'} = 0;
     $config_vals{'checkout.verify'} = 0;
     $config_vals{'checkout.mode'}   = 'change';
-    is_deeply $CLASS->configure($config, {}, {}), {
+    is_deeply $CLASS->configure($config, {}), {
         no_prompt => 0,
-        log_only  => 0,
         verify    => 0,
         mode      => 'change',
     }, 'Should havev false log_only and verify from checkout config';
@@ -211,29 +200,26 @@ CONFIG: {
     delete $config_vals{'checkout.verify'};
     delete $config_vals{'checkout.mode'};
     $config_vals{'checkout.no_prompt'} = 1;
-    is_deeply $CLASS->configure($config, {}, {}), {
+    is_deeply $CLASS->configure($config, {}), {
         no_prompt => 1,
-        log_only  => 0,
         verify    => 1,
         mode      => 'tag'
     }, 'Should have log_only true from checkout and verify from deploy';
 
     # But option should override.
-    is_deeply $CLASS->configure($config, {y => 0, verify => 0, mode => 'all'}, {}),
-        { no_prompt => 0, log_only => 0, verify => 0, mode => 'all' },
+    is_deeply $CLASS->configure($config, {y => 0, verify => 0, mode => 'all'}),
+        { no_prompt => 0, verify => 0, mode => 'all' },
         'Should have log_only false and mode all again';
 
     $config_vals{'checkout.no_prompt'} = 0;
-    is_deeply $CLASS->configure($config, {}, {}), {
+    is_deeply $CLASS->configure($config, {}), {
         no_prompt => 0,
-        log_only  => 0,
         verify    => 1,
         mode      => 'tag',
     }, 'Should have log_only false for false config';
 
-    is_deeply $CLASS->configure($config, {y => 1}, {}), {
+    is_deeply $CLASS->configure($config, {y => 1}), {
         no_prompt => 1,
-        log_only  => 0,
         verify    => 1,
         mode      => 'tag',
     }, 'Should have no_prompt true with -y';

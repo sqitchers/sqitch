@@ -16,39 +16,9 @@ use Git::Wrapper;
 use namespace::autoclean;
 
 extends 'App::Sqitch::Command';
-with 'App::Sqitch::CommandOptions::deploy_variables';
-with 'App::Sqitch::CommandOptions::revert_variables';
+with 'App::Sqitch::Role::RevertDeployCommand';
 
 our $VERSION = '0.954';
-
-has verify => (
-    is       => 'ro',
-    isa      => 'Bool',
-    required => 1,
-    default  => 0,
-);
-
-has log_only => (
-    is       => 'ro',
-    isa      => 'Bool',
-    required => 1,
-    default  => 0,
-);
-
-has no_prompt => (
-    is  => 'ro',
-    isa => 'Bool'
-);
-
-has mode => (
-    is  => 'ro',
-    isa => enum([qw(
-        change
-        tag
-        all
-    )]),
-    default => 'all',
-);
 
 has git => (
     is       => 'ro',
@@ -58,36 +28,7 @@ has git => (
     default  => sub { Git::Wrapper->new(dir) }
 );
 
-sub options {
-    return qw(
-        mode=s
-        verify!
-        set|s=s%
-        set-deploy|d=s%
-        set-revert|r=s%
-        log-only
-        y
-    );
-}
-
-sub configure {
-    my ( $class, $config, $opt, $params ) = @_;
-    return merge $params || {}, {
-        mode      => $opt->{mode}
-                  || $config->get( key => 'checkout.mode' )
-                  || $config->get( key => 'deploy.mode' )
-                  || 'all',
-        verify    => $opt->{verify}
-                  // $config->get( key => 'checkout.verify', as => 'boolean' )
-                  // $config->get( key => 'deploy.verify',   as => 'boolean' )
-                  // 0,
-        log_only  => $opt->{log_only} || 0,
-        no_prompt =>  delete $opt->{y}
-                  // $config->get( key => 'checkout.no_prompt', as  => 'bool' )
-                  // $config->get( key => 'revert.no_prompt',   as  => 'bool' )
-                  // 0,
-    };
-}
+sub configure { {} }
 
 sub execute {
     my ( $self, $branch) = @_;

@@ -80,11 +80,13 @@ sub load {
             ),
         };
     };
+
+    # Merge the command-line options and configuration parameters
     my $params = $pkg->configure(
         $p->{config},
-        $pkg->_parse_opts( $p->{args} ),
-        {}
+        $pkg->_parse_opts( $p->{args} )
     );
+
     # Instantiate and return the command.
     $params->{sqitch} = $p->{sqitch};
     return $pkg->new($params);

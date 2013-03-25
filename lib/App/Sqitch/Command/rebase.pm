@@ -9,9 +9,9 @@ use Mouse::Util::TypeConstraints;
 use List::Util qw(first);
 use Hash::Merge 'merge';
 use namespace::autoclean;
+
 extends 'App::Sqitch::Command';
-with 'App::Sqitch::CommandOptions::deploy_variables';
-with 'App::Sqitch::CommandOptions::revert_variables';
+with 'App::Sqitch::Role::RevertDeployCommand';
 
 our $VERSION = '0.954';
 
@@ -25,76 +25,20 @@ has upto_target => (
     isa => 'Str',
 );
 
-has no_prompt => (
-    is  => 'ro',
-    isa => 'Bool'
-);
-
-has mode => (
-    is  => 'ro',
-    isa => enum([qw(
-        change
-        tag
-        all
-    )]),
-    default => 'all',
-);
-
-has verify => (
-    is       => 'ro',
-    isa      => 'Bool',
-    required => 1,
-    default  => 0,
-);
-
-has log_only => (
-    is       => 'ro',
-    isa      => 'Bool',
-    required => 1,
-    default  => 0,
-);
-
 sub options {
     return qw(
         onto-target|onto=s
         upto-target|upto=s
-        mode=s
-        verify!
-        set|s=s%
-        set-deploy|d=s%
-        set-revert|r=s%
-        log-only
-        y
     );
 }
 
 sub configure {
-    my ( $class, $config, $opt, $params ) = @_;
+    my ( $class, $config, $opt ) = @_;
 
-    my %myparams = map { $_ => $opt->{$_} } grep { exists $opt->{$_} } qw(
+    return { map { $_ => $opt->{$_} } grep { exists $opt->{$_} } qw(
         onto_target
         upto_target
-        log_only
-    );
-    $params = merge($params, \%myparams);
-    # Verify?
-    $params->{verify} = $opt->{verify}
-                   // $config->get( key => 'rebase.verify', as => 'boolean' )
-                   // $config->get( key => 'deploy.verify', as => 'boolean' )
-                   // 0;
-    $params->{mode} = $opt->{mode}
-                 || $config->get( key => 'rebase.mode' )
-                 || $config->get( key => 'deploy.mode' )
-                 || 'all';
-
-    $params->{no_prompt} = delete $opt->{y} // $config->get(
-        key => 'rebase.no_prompt',
-        as  => 'bool',
-    ) // $config->get(
-        key => 'revert.no_prompt',
-        as  => 'bool',
-    ) // 0;
-    return $params;
+    ) };
 }
 
 sub execute {
