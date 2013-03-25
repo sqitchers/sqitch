@@ -7,7 +7,7 @@ use utf8;
 use Mouse;
 use Mouse::Util::TypeConstraints;
 use List::Util qw(first);
-use Hash::Merge 'merge';
+use Try::Tiny;
 use namespace::autoclean;
 
 extends 'App::Sqitch::Command';
@@ -42,12 +42,26 @@ sub configure {
 }
 
 sub execute {
-    my $self   = shift;
+    my $self = shift;
     my $engine = $self->sqitch->engine;
     $engine->with_verify( $self->verify );
     $engine->no_prompt( $self->no_prompt );
+
+    # Revert.
     if (my %v = %{ $self->revert_variables }) { $engine->set_variables(%v) }
-    $engine->revert( $self->onto_target // shift, $self->log_only );
+    my $to = $self->onto_target // shift;
+    try {
+        $engine->revert( $to, $self->log_only );
+    } catch {
+        # Rethrow unknown errors or errors with exitval > 1.
+        die $_ if ! eval { $_->isa('App::Sqitch::X') }
+            || $_->exitval > 1
+            || $_->ident eq 'revert:confirm';
+        # Emite notice of non-fatal errors (e.g., nothign to revert).
+        $self->info($_->message)
+    };
+
+    # Deploy.
     if (my %v = %{ $self->deploy_variables }) { $engine->set_variables(%v) }
     $engine->deploy( $self->upto_target // shift, $self->mode, $self->log_only );
     return $self;

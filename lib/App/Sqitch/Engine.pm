@@ -209,7 +209,7 @@ sub revert {
             ));
         } else {
             hurl {
-                ident   => 'revert',
+                ident   => 'revert:confirm',
                 message => __ 'Nothing reverted',
                 exitval => 1,
             } unless $sqitch->ask_y_n(__x(

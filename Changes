@@ -11,6 +11,9 @@ Revision history for Perl extension App::Sqitch
        redeploy. This makes it easy to switch between working branches that
        have different sets of commits. Git-only for now. Idea and code by
        Ronan Dunklau.
+     - The `rebase` command no longer fails if the database is already
+       reverted, but just makes a note of it and goes on to the deploy.
+
 
 0.953  2013-02-21T23:37:57Z
      - Fixed test failure in `t/engine.t` triggered by a clock tick.

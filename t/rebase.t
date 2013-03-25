@@ -6,6 +6,7 @@ use v5.10;
 use Test::More;
 use App::Sqitch;
 use Path::Class qw(dir file);
+use App::Sqitch::X qw(hurl);
 use Test::MockModule;
 use Test::Exception;
 use lib 't/lib';
@@ -262,5 +263,31 @@ is_deeply { @{ $vars[0] } }, { hey => 'there' },
     'The revert vars should have been passed first';
 is_deeply { @{ $vars[1] } }, { foo => 'bar', one => 1 },
     'The deploy vars should have been next';
+
+# If nothing is deployed, or we are already at the revert target, the revert
+# should be skipped.
+@dep_args = @rev_args = @vars = ();
+$mock_engine->mock(revert => sub { hurl { ident => 'revert', message => 'foo', exitval => 1 } });
+ok $rebase->execute, 'Execute once more';
+is_deeply \@dep_args, ['bar', 'tag', 1],
+    '"bar", "tag", and 1 should be passed to the engine deploy';
+is @vars, 2, 'Variables should have been passed to the engine twice';
+is_deeply { @{ $vars[0] } }, { hey => 'there' },
+    'The revert vars should have been passed first';
+is_deeply { @{ $vars[1] } }, { foo => 'bar', one => 1 },
+    'The deploy vars should have been next';
+is_deeply +MockOutput->get_info, [['foo']],
+    'Should have emitted info for non-fatal revert exception';
+
+# Should die for fatal, unknown, or confirmation errors.
+for my $spec (
+    [ confirm => App::Sqitch::X->new(ident => 'revert:confirm', message => 'foo', exitval => 1) ],
+    [ fatal   => App::Sqitch::X->new(ident => 'revert', message => 'foo', exitval => 2) ],
+    [ unknown => bless { } => __PACKAGE__ ],
+) {
+    $mock_engine->mock(revert => sub { die $spec->[1] });
+    throws_ok { $rebase->execute } ref $spec->[1],
+        "Should rethrow $spec->[0] exception";
+}
 
 done_testing;

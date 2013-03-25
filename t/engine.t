@@ -1638,7 +1638,7 @@ $offset_change = $dbchanges[1];
 push @resolved => $offset_change->id;
 throws_ok { $engine->revert('@alpha') } 'App::Sqitch::X',
     'Should abort declined revert to @alpha';
-is $@->ident, 'revert', 'Declined revert ident should be "revert"';
+is $@->ident, 'revert:confirm', 'Declined revert ident should be "revert:confirm"';
 is $@->exitval, 1, 'Should have exited with value 1';
 is $@->message, __ 'Nothing reverted', 'Should have exited with proper message';
 is_deeply $engine->seen, [
