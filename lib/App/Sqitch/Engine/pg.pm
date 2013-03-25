@@ -227,7 +227,7 @@ sub initialize {
 sub register_project {
     my $self   = shift;
     my $sqitch = $self->sqitch;
-    my $plan   = $sqitch->plan;
+    my $plan   = $self->plan;
     my $proj   = $plan->project;
     my $uri    = $plan->uri;
 
@@ -970,7 +970,7 @@ sub search_events {
 # tag IDs changed.
 sub _update_ids {
     my $self = shift;
-    my $plan = $self->sqitch->plan;
+    my $plan = $self->plan;
     my $proj = $plan->project;
     my $maxi = 0;
 

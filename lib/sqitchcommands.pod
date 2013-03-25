@@ -51,6 +51,10 @@ Show change logs for a database.
 
 Revert and redeploy database changes.
 
+=item L<C<checkout>|sqitch-checkout>
+
+Move to another VCS branch, and deploy the plan from the destination.
+
 =item L<C<revert>|sqitch-revert>
 
 Revert changes from a database

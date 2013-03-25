@@ -16,7 +16,7 @@ has sqitch => (
     is       => 'ro',
     isa      => 'App::Sqitch',
     required => 1,
-    handles  => { destination => 'db_name', plan => 'plan' },
+    handles  => { destination => 'db_name' },
 );
 
 has start_at => (
@@ -40,6 +40,14 @@ has max_name_length => (
     is      => 'rw',
     isa     => 'Int',
     default => 0,
+);
+
+has plan => (
+    is       => 'rw',
+    isa      => 'App::Sqitch::Plan',
+    required => 1,
+    lazy     => 1,
+    default  => sub { shift->sqitch->plan }
 );
 
 has _variables => (
@@ -159,7 +167,7 @@ sub deploy {
 sub revert {
     my ( $self, $to, $log_only ) = @_;
     my $sqitch = $self->sqitch;
-    my $plan   = $self->sqitch->plan;
+    my $plan   = $self->plan;
 
     my @changes;
 
@@ -255,7 +263,7 @@ sub revert {
 sub verify {
     my ( $self, $from, $to ) = @_;
     my $sqitch   = $self->sqitch;
-    my $plan     = $sqitch->plan;
+    my $plan     = $self->plan;
     my @changes  = $self->_load_changes( $self->deployed_changes );
 
     $self->sqitch->info(__x(
@@ -315,7 +323,7 @@ sub verify {
 sub _trim_to {
     my ( $self, $ident, $key, $changes, $pop ) = @_;
     my $sqitch = $self->sqitch;
-    my $plan   = $sqitch->plan;
+    my $plan   = $self->plan;
 
     # Find the change in the database.
     my $to_id = $self->change_id_for_key( $key ) || hurl $ident => (
@@ -351,7 +359,7 @@ sub _verify_changes {
     my $to_idx   = shift;
     my $pending  = shift;
     my $sqitch   = $self->sqitch;
-    my $plan     = $sqitch->plan;
+    my $plan     = $self->plan;
     my $errcount = 0;
     my $i        = -1;
     my @seen;
@@ -604,7 +612,7 @@ sub find_change {
 
 sub _load_changes {
     my $self = shift;
-    my $plan = $self->sqitch->plan;
+    my $plan = $self->plan;
     my (@changes, %seen);
     for my $params (@_) {
         next unless $params;
@@ -713,7 +721,7 @@ sub _deploy_all {
 
 sub _sync_plan {
     my $self = shift;
-    my $plan = $self->sqitch->plan;
+    my $plan = $self->plan;
 
     if (my $id = $self->latest_change_id) {
         my $idx = $plan->index_of($id) // hurl plan => __x(
@@ -838,13 +846,13 @@ sub rollback_work { shift }
 sub earliest_change {
     my $self = shift;
     my $change_id = $self->earliest_change_id(@_) // return undef;
-    return $self->sqitch->plan->get( $change_id );
+    return $self->plan->get( $change_id );
 }
 
 sub latest_change {
     my $self = shift;
     my $change_id = $self->latest_change_id(@_) // return undef;
-    return $self->sqitch->plan->get( $change_id );
+    return $self->plan->get( $change_id );
 }
 
 sub initialized {

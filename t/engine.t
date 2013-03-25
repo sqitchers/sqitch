@@ -1359,8 +1359,7 @@ is_deeply +MockOutput->get_info, [
 ##############################################################################
 # Test revert().
 can_ok $engine, 'revert';
-my $mock_sqitch = Test::MockModule->new('App::Sqitch');
-$mock_sqitch->mock(plan => $plan);
+$mock_engine->mock(plan => $plan);
 
 # Start with no deployed IDs.
 @deployed_changes = ();

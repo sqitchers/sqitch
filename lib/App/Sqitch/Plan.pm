@@ -48,7 +48,7 @@ has sqitch => (
 );
 
 has _plan => (
-    is         => 'ro',
+    is         => 'rw',
     isa        => 'HashRef',
     builder    => 'load',
     init_arg   => 'plan',
@@ -105,18 +105,29 @@ has uri => (
     }
 );
 
+sub parse {
+    my ( $self, $data ) = @_;
+    # XXX Assume decoded.
+    open my $fh, '<', \$data;
+    $self->_plan( $self->load($fh) );
+    return $self;
+}
+
 sub load {
     my $self = shift;
     my $file = $self->sqitch->plan_file;
-    hurl plan => __x('Plan file {file} does not exist', file => $file)
-        unless -e $file;
-    hurl plan => __x('Plan file {file} is not a regular file', file => $file)
-        unless -f $file;
-    my $fh = $file->open('<:encoding(UTF-8)') or hurl plan => __x(
-        'Cannot open {file}: {error}',
-        file  => $file,
-        error => $!
-    );
+    my $fh = shift || do {
+        hurl plan => __x('Plan file {file} does not exist', file => $file)
+            unless -e $file;
+        hurl plan => __x('Plan file {file} is not a regular file', file => $file)
+            unless -f $file;
+        $file->open('<:encoding(UTF-8)') or hurl plan => __x(
+            'Cannot open {file}: {error}',
+            file  => $file,
+            error => $!
+        );
+    };
+
     return $self->_parse($file, $fh);
 }
 
@@ -1180,7 +1191,15 @@ script file must be encoded in UTF-8.
 
 Loads the plan data. Called internally, not meant to be called directly, as it
 parses the plan file and deploy scripts every time it's called. If you want
-the all of the changes, call C<changes()> instead.
+the all of the changes, call C<changes()> instead. And if you want to load an
+alternate plan, use C<parse()>.
+
+=head3 C<parse>
+
+  $plan->parse($plan_data);
+
+Load an alternate plan by passing the complete text of the plan. Useful for
+loading a plan from a different VCS branch, for example.
 
 =head3 C<check_changes>
 

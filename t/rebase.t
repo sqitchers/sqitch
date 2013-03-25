@@ -171,6 +171,7 @@ CONFIG: {
     isa_ok my $rebase = $CLASS->new(sqitch => $sqitch), $CLASS;
     is_deeply $rebase->deploy_variables, { foo => 'bar', hi => 21 },
         'Should pick up deploy variables from configuration';
+
     is_deeply $rebase->revert_variables, { foo => 'bar', hi => 42 },
         'Should pick up revert variables from configuration';
 
