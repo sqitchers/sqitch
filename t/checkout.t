@@ -31,11 +31,12 @@ can_ok $CLASS, qw(
 
 is_deeply [$CLASS->options], [qw(
     mode=s
+    verify!
     set|s=s%
     set-deploy|d=s%
     set-revert|r=s%
     log-only
-    verify!
+    y
 )], 'Options should be correct';
 
 my $tmp_git_dir = File::Temp->newdir();
@@ -50,15 +51,17 @@ my $config = $sqitch->config;
 
 # Test configure().
 is_deeply $CLASS->configure($config, {}), {
-    verify   => 0,
-    mode     => 'all',
-    log_only => 0,
+    no_prompt => 0,
+    verify    => 0,
+    mode      => 'all',
+    log_only  => 0,
 }, 'Check default configuration';
 
 is_deeply $CLASS->configure($config, {
     set  => { foo => 'bar' },
 }, {}), {
     verify           => 0,
+    no_prompt        => 0,
     log_only         => 0,
     mode             => 'all',
     deploy_variables => { foo => 'bar' },
@@ -66,32 +69,30 @@ is_deeply $CLASS->configure($config, {
 }, 'Should have set option';
 
 
-isa_ok my $checkout = App::Sqitch::Command->load({
-    sqitch  => $sqitch,
-    command => 'checkout',
-    config  => $config,
-}), $CLASS, 'checkout command';
-
 is_deeply $CLASS->configure($config, {
+    y           => 1,
     set_deploy  => { foo => 'bar' },
     log_only    => 1,
     verify      => 1,
     mode        => 'tag',
 }, {}), {
     mode             => 'tag',
+    no_prompt        => 1,
     deploy_variables => { foo => 'bar' },
     verify           => 1,
     log_only         => 1,
-}, 'Should have mode, deploy_variables, verify, and log_only';
+}, 'Should have mode, deploy_variables, verify, no_prompt, and log_only';
 
 is_deeply $CLASS->configure($config, {
+    y           => 0,
     set_revert  => { foo => 'bar' },
 }, {}), {
     mode             => 'all',
+    no_prompt        => 0,
     verify           => 0,
     log_only         => 0,
     revert_variables => { foo => 'bar' },
-}, 'Should have set_revert option false';
+}, 'Should have set_revert option and no_prompt false';
 
 is_deeply $CLASS->configure($config, {
     set  => { foo => 'bar' },
@@ -99,6 +100,7 @@ is_deeply $CLASS->configure($config, {
     set_revert => { foo => 'rev', hi => 'me' },
 }, {}), {
     mode             => 'all',
+    no_prompt        => 0,
     verify           => 0,
     log_only         => 0,
     deploy_variables => { foo => 'dep', hi => 'you' },
@@ -111,6 +113,7 @@ is_deeply $CLASS->configure($config, {
     set_revert => { hi => 'me' },
 }, {}), {
     mode             => 'all',
+    no_prompt        => 0,
     log_only         => 0,
     verify           => 0,
     deploy_variables => { foo => 'bar', hi => 'you' },
@@ -124,6 +127,7 @@ is_deeply $CLASS->configure($config, {
 }, {}), {
     mode             => 'all',
     log_only         => 0,
+    no_prompt        => 0,
     verify           => 0,
     deploy_variables => { foo => 'bar', hi => 'you' },
     revert_variables => { foo => 'bar', hi => 'you', my => 'yo' },
@@ -144,14 +148,19 @@ CONFIG: {
         'deploy.variables' => { foo => 'bar', hi => 21 },
     );
 
-    is_deeply $CLASS->configure($config, {}, {}), {log_only => 0, verify => 0, mode => 'all'},
-        'Should have deploy configuration';
+    is_deeply $CLASS->configure($config, {}, {}), {
+        no_prompt => 0,
+        log_only  => 0,
+        verify    => 0,
+        mode      => 'all',
+    }, 'Should have deploy configuration';
 
     # Try merging.
     is_deeply $CLASS->configure($config, {
         set         => { foo => 'yo', yo => 'stellar' },
     }, {}), {
         mode             => 'all',
+        no_prompt        => 0,
         log_only         => 0,
         verify           => 0,
         deploy_variables => { foo => 'yo', yo => 'stellar', hi => 21 },
@@ -164,7 +173,8 @@ CONFIG: {
         set  => { yo => 'stellar' },
     }, {}), {
         mode             => 'all',
-        log_only        => 0,
+        no_prompt        => 0,
+        log_only         => 0,
         verify           => 0,
         deploy_variables => { foo => 'bar', yo => 'stellar', hi => 21 },
         revert_variables => { foo => 'bar', yo => 'stellar', hi => 42 },
@@ -178,28 +188,55 @@ CONFIG: {
         'Should pick up revert variables from configuration';
 
     # Make sure we can override mode, prompting, and verify.
-    %config_vals = ('deploy.verify' => 1, 'deploy.mode' => 'tag');
-    is_deeply $CLASS->configure($config, {}, {}), { log_only => 0, verify => 1, mode => 'tag' },
-        'Should have log_only true';
+    %config_vals = ('revert.no_prompt' => 1, 'deploy.verify' => 1, 'deploy.mode' => 'tag');
+    is_deeply $CLASS->configure($config, {}, {}), {
+        no_prompt => 1,
+        log_only  => 0,
+        verify    => 1,
+        mode      => 'tag',
+    }, 'Should have log_only true';
 
     # Checkout option takes precendence
+    $config_vals{'checkout.no_prompt'} = 0;
     $config_vals{'checkout.verify'} = 0;
     $config_vals{'checkout.mode'}   = 'change';
-    is_deeply $CLASS->configure($config, {}, {}), { log_only => 0, verify => 0, mode => 'change' },
-        'Should havev false log_only and verify from checkout config';
+    is_deeply $CLASS->configure($config, {}, {}), {
+        no_prompt => 0,
+        log_only  => 0,
+        verify    => 0,
+        mode      => 'change',
+    }, 'Should havev false log_only and verify from checkout config';
 
+    delete $config_vals{'revert.no_prompt'};
     delete $config_vals{'checkout.verify'};
     delete $config_vals{'checkout.mode'};
-    is_deeply $CLASS->configure($config, {}, {}), { log_only => 0, verify => 1, mode => 'tag' },
-        'Should have log_only true from checkout and verify from deploy';
+    $config_vals{'checkout.no_prompt'} = 1;
+    is_deeply $CLASS->configure($config, {}, {}), {
+        no_prompt => 1,
+        log_only  => 0,
+        verify    => 1,
+        mode      => 'tag'
+    }, 'Should have log_only true from checkout and verify from deploy';
 
     # But option should override.
-    is_deeply $CLASS->configure($config, {verify => 0, mode => 'all'}, {}),
-        { log_only => 0, verify => 0, mode => 'all' },
+    is_deeply $CLASS->configure($config, {y => 0, verify => 0, mode => 'all'}, {}),
+        { no_prompt => 0, log_only => 0, verify => 0, mode => 'all' },
         'Should have log_only false and mode all again';
 
-    is_deeply $CLASS->configure($config, {}, {}), { log_only => 0, verify => 1, mode => 'tag' },
-        'Should have log_only false for false config';
+    $config_vals{'checkout.no_prompt'} = 0;
+    is_deeply $CLASS->configure($config, {}, {}), {
+        no_prompt => 0,
+        log_only  => 0,
+        verify    => 1,
+        mode      => 'tag',
+    }, 'Should have log_only false for false config';
+
+    is_deeply $CLASS->configure($config, {y => 1}, {}), {
+        no_prompt => 1,
+        log_only  => 0,
+        verify    => 1,
+        mode      => 'tag',
+    }, 'Should have no_prompt true with -y';
 }
 
 # Mock the Git interface.
@@ -210,6 +247,12 @@ my @checkout_args;
 $mock_git->mock(checkout => sub { shift; @checkout_args = @_ });
 
 # Try rebasing to the current branch.
+isa_ok my $checkout = App::Sqitch::Command->load({
+    sqitch  => $sqitch,
+    command => 'checkout',
+    config  => $config,
+}), $CLASS, 'checkout command';
+
 $rev_parsed = 'fixdupes';
 throws_ok { $checkout->execute($rev_parsed) } 'App::Sqitch::X',
     'Should get an error current branch';

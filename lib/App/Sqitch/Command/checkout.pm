@@ -21,7 +21,6 @@ with 'App::Sqitch::CommandOptions::revert_variables';
 
 our $VERSION = '0.954';
 
-
 has verify => (
     is       => 'ro',
     isa      => 'Bool',
@@ -36,6 +35,10 @@ has log_only => (
     default  => 0,
 );
 
+has no_prompt => (
+    is  => 'ro',
+    isa => 'Bool'
+);
 
 has mode => (
     is  => 'ro',
@@ -58,26 +61,31 @@ has git => (
 sub options {
     return qw(
         mode=s
+        verify!
         set|s=s%
         set-deploy|d=s%
         set-revert|r=s%
         log-only
-        verify!
+        y
     );
 }
 
 sub configure {
     my ( $class, $config, $opt, $params ) = @_;
     return merge $params || {}, {
-        mode     => $opt->{mode}
-                 || $config->get( key => 'checkout.mode' )
-                 || $config->get( key => 'deploy.mode' )
-                 || 'all',
-        verify   => $opt->{verify}
-                 // $config->get( key => 'checkout.verify', as => 'boolean' )
-                 // $config->get( key => 'deploy.verify',   as => 'boolean' )
-                 // 0,
-        log_only => $opt->{log_only} || 0,
+        mode      => $opt->{mode}
+                  || $config->get( key => 'checkout.mode' )
+                  || $config->get( key => 'deploy.mode' )
+                  || 'all',
+        verify    => $opt->{verify}
+                  // $config->get( key => 'checkout.verify', as => 'boolean' )
+                  // $config->get( key => 'deploy.verify',   as => 'boolean' )
+                  // 0,
+        log_only  => $opt->{log_only} || 0,
+        no_prompt =>  delete $opt->{y}
+                  // $config->get( key => 'checkout.no_prompt', as  => 'bool' )
+                  // $config->get( key => 'revert.no_prompt',   as  => 'bool' )
+                  // 0,
     };
 }
 
@@ -88,6 +96,7 @@ sub execute {
     my $git    = $self->git;
     my $engine = $sqitch->engine;
     $engine->with_verify( $self->verify );
+    $engine->no_prompt( $self->no_prompt );
 
     # What branch are we on?
     my ($current_branch) = $git->rev_parse(qw(--abbrev-ref HEAD));
