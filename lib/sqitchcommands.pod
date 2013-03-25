@@ -27,6 +27,10 @@ Add a new change to the plan
 
 Bundle a Sqitch project for distribution
 
+=item L<C<checkout>|sqitch-checkout>
+
+Revert, checkout another VCS branch, and re-deploy changes
+
 =item L<C<config>|sqitch-config>
 
 Get and set local, user, or system options
