@@ -34,21 +34,41 @@ can_ok $CLASS, qw(
     revert_variables
 );
 
+is_deeply [$CLASS->options], [qw(
+    mode=s
+    set|s=s%
+    set-deploy|d=s%
+    set-revert|r=s%
+    log-only
+    verify!
+)], 'Options should be correct';
+
 my $tmp_git_dir = File::Temp->newdir();
 
 ok my $sqitch = App::Sqitch->new(
     top_dir => Path::Class::dir($tmp_git_dir),
-    _engine   => 'sqlite',
+    _engine => 'sqlite',
 ), 'Load a sqitch object';
 
 my $config = $sqitch->config;
 
 # Test configure().
 is_deeply $CLASS->configure($config, {}), {
-    verify => 0,
-    mode => 'all',
+    verify   => 0,
+    mode     => 'all',
     log_only => 0,
 }, 'Check default configuration';
+
+is_deeply $CLASS->configure($config, {
+    set  => { foo => 'bar' },
+}, {}), {
+    verify           => 0,
+    log_only         => 0,
+    mode             => 'all',
+    deploy_variables => { foo => 'bar' },
+    revert_variables => { foo => 'bar' },
+}, 'Should have set option';
+
 
 isa_ok my $checkout = App::Sqitch::Command->load({
     sqitch  => $sqitch,
@@ -56,6 +76,139 @@ isa_ok my $checkout = App::Sqitch::Command->load({
     config  => $config,
 }), $CLASS, 'checkout command';
 
+is_deeply $CLASS->configure($config, {
+    set_deploy  => { foo => 'bar' },
+    log_only    => 1,
+    verify      => 1,
+    mode        => 'tag',
+}, {}), {
+    mode             => 'tag',
+    deploy_variables => { foo => 'bar' },
+    verify           => 1,
+    log_only         => 1,
+}, 'Should have mode, deploy_variables, verify, and log_only';
+
+is_deeply $CLASS->configure($config, {
+    set_revert  => { foo => 'bar' },
+}, {}), {
+    mode             => 'all',
+    verify           => 0,
+    log_only         => 0,
+    revert_variables => { foo => 'bar' },
+}, 'Should have set_revert option false';
+
+is_deeply $CLASS->configure($config, {
+    set  => { foo => 'bar' },
+    set_deploy => { foo => 'dep', hi => 'you' },
+    set_revert => { foo => 'rev', hi => 'me' },
+}, {}), {
+    mode             => 'all',
+    verify           => 0,
+    log_only         => 0,
+    deploy_variables => { foo => 'dep', hi => 'you' },
+    revert_variables => { foo => 'rev', hi => 'me' },
+}, 'set_deploy and set_revert should overrid set';
+
+is_deeply $CLASS->configure($config, {
+    set  => { foo => 'bar' },
+    set_deploy => { hi => 'you' },
+    set_revert => { hi => 'me' },
+}, {}), {
+    mode             => 'all',
+    log_only         => 0,
+    verify           => 0,
+    deploy_variables => { foo => 'bar', hi => 'you' },
+    revert_variables => { foo => 'bar', hi => 'me' },
+}, 'set_deploy and set_revert should merge with set';
+
+is_deeply $CLASS->configure($config, {
+    set  => { foo => 'bar' },
+    set_deploy => { hi => 'you' },
+    set_revert => { my => 'yo' },
+}, {}), {
+    mode             => 'all',
+    log_only         => 0,
+    verify           => 0,
+    deploy_variables => { foo => 'bar', hi => 'you' },
+    revert_variables => { foo => 'bar', hi => 'you', my => 'yo' },
+}, 'set_revert should merge with set_deploy';
+
+CONFIG: {
+    my $mock_config = Test::MockModule->new(ref $config);
+    my %config_vals;
+    $mock_config->mock(get => sub {
+        my ($self, %p) = @_;
+        return $config_vals{ $p{key} };
+    });
+    $mock_config->mock(get_section => sub {
+        my ($self, %p) = @_;
+        return $config_vals{ $p{section} } || {};
+    });
+    %config_vals = (
+        'deploy.variables' => { foo => 'bar', hi => 21 },
+    );
+
+    is_deeply $CLASS->configure($config, {}, {}), {log_only => 0, verify => 0, mode => 'all'},
+        'Should have deploy configuration';
+
+    # Try merging.
+    is_deeply $CLASS->configure($config, {
+        set         => { foo => 'yo', yo => 'stellar' },
+    }, {}), {
+        mode             => 'all',
+        log_only         => 0,
+        verify           => 0,
+        deploy_variables => { foo => 'yo', yo => 'stellar', hi => 21 },
+        revert_variables => { foo => 'yo', yo => 'stellar', hi => 21 },
+    }, 'Should have merged variables';
+
+    # Try merging with checkout.variables, too.
+    $config_vals{'revert.variables'} = { hi => 42 };
+    is_deeply $CLASS->configure($config, {
+        set  => { yo => 'stellar' },
+    }, {}), {
+        mode             => 'all',
+        log_only        => 0,
+        verify           => 0,
+        deploy_variables => { foo => 'bar', yo => 'stellar', hi => 21 },
+        revert_variables => { foo => 'bar', yo => 'stellar', hi => 42 },
+    }, 'Should have merged --set, deploy, checkout';
+
+    isa_ok my $checkout = $CLASS->new(sqitch => $sqitch), $CLASS;
+    is_deeply $checkout->deploy_variables, { foo => 'bar', hi => 21 },
+        'Should pick up deploy variables from configuration';
+
+    is_deeply $checkout->revert_variables, { foo => 'bar', hi => 42 },
+        'Should pick up revert variables from configuration';
+
+    # Make sure we can override mode, prompting, and verify.
+    %config_vals = ('deploy.verify' => 1, 'deploy.mode' => 'tag');
+    is_deeply $CLASS->configure($config, {}, {}), { log_only => 0, verify => 1, mode => 'tag' },
+        'Should have log_only true';
+
+    # Checkout option takes precendence
+    $config_vals{'checkout.verify'} = 0;
+    $config_vals{'checkout.mode'}   = 'change';
+    is_deeply $CLASS->configure($config, {}, {}), { log_only => 0, verify => 0, mode => 'change' },
+        'Should havev false log_only and verify from checkout config';
+
+    delete $config_vals{'checkout.verify'};
+    delete $config_vals{'checkout.mode'};
+    is_deeply $CLASS->configure($config, {}, {}), { log_only => 0, verify => 1, mode => 'tag' },
+        'Should have log_only true from checkout and verify from deploy';
+
+    # But option should override.
+    is_deeply $CLASS->configure($config, {y => 0, verify => 0, mode => 'all'},
+        {}),
+        { log_only => 0, verify => 0, mode => 'all' },
+        'Should have log_only false and mode all again';
+
+    is_deeply $CLASS->configure($config, {}, {}), { log_only => 0, verify => 1, mode => 'tag' },
+        'Should have log_only false for false config';
+
+    is_deeply $CLASS->configure($config, {y => 1}, {}), { log_only => 0, verify => 1, mode => 'tag' },
+        'Should have log_only true with -y';
+}
 
 # Copy the git repo to a temp directory
 my $git = $checkout->git;

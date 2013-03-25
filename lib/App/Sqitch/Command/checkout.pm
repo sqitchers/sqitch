@@ -11,6 +11,7 @@ use App::Sqitch::X qw(hurl);
 use App::Sqitch::Plan;
 use Encode qw(decode);
 use Path::Class qw(dir);
+use Hash::Merge 'merge';
 use Git::Wrapper;
 use namespace::autoclean;
 
@@ -66,13 +67,18 @@ sub options {
 }
 
 sub configure {
-    my ( $class, $config, $opt ) = @_;
-    my %params = (
-        mode     => $opt->{mode}   || $config->get( key => 'deploy.mode' )   || 'all',
-        verify   => $opt->{verify} // $config->get( key => 'deploy.verify', as => 'boolean' ) // 0,
+    my ( $class, $config, $opt, $params ) = @_;
+    return merge $params || {}, {
+        mode     => $opt->{mode}
+                 || $config->get( key => 'checkout.mode' )
+                 || $config->get( key => 'deploy.mode' )
+                 || 'all',
+        verify   => $opt->{verify}
+                 // $config->get( key => 'checkout.verify', as => 'boolean' )
+                 // $config->get( key => 'deploy.verify',   as => 'boolean' )
+                 // 0,
         log_only => $opt->{log_only} || 0,
-    );
-    return \%params;
+    };
 }
 
 sub execute {
