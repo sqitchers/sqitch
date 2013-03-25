@@ -90,7 +90,7 @@ sub execute {
     $engine->with_verify( $self->verify );
 
     # What branch are we on?
-    my ($current_branch) = $git->rev_parse("--abbrev-ref", "HEAD");
+    my ($current_branch) = $git->rev_parse(qw(--abbrev-ref HEAD));
     hurl {
         ident   => 'checkout',
         message => __x('Already on branch {branch}', branch => $branch),
@@ -104,7 +104,7 @@ sub execute {
     my $to_plan = App::Sqitch::Plan->new( sqitch => $sqitch )->parse(
         # XXX Handle missing file/no contents.
         decode 'UTF-8', join(
-            "\n" => $git->show("$branch:" . $sqitch->plan_file->basename )
+            "\n" => $git->show("$branch:" . $sqitch->plan_file )
         ), Encode::FB_CROAK
     );
 
@@ -132,8 +132,7 @@ sub execute {
     $engine->revert( $last_common_change->id, $self->log_only );
 
     # Check out the new branch.
-    # XXX Why avoid for log-only?
-    $git->checkout($branch) unless $self->log_only;
+    $git->checkout($branch);
 
     # Deploy!
     if (my %v = %{ $self->deploy_variables}) { $engine->set_variables(%v) }

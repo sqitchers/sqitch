@@ -9,12 +9,7 @@ use Path::Class qw(dir file);
 use Locale::TextDomain qw(App-Sqitch);
 use Test::MockModule;
 use Test::Exception;
-use Test::File qw(file_not_exists_ok file_exists_ok);
-
-use File::Temp;
-use File::Copy::Recursive qw(dircopy);
 use lib 't/lib';
-use Git::Wrapper;
 use MockOutput;
 
 my $CLASS = 'App::Sqitch::Command::checkout';
@@ -46,7 +41,8 @@ is_deeply [$CLASS->options], [qw(
 my $tmp_git_dir = File::Temp->newdir();
 
 ok my $sqitch = App::Sqitch->new(
-    top_dir => Path::Class::dir($tmp_git_dir),
+    plan_file => file(qw(t sql sqitch.plan)),
+    top_dir   => dir(qw(t sql)),
     _engine => 'sqlite',
 ), 'Load a sqitch object';
 
@@ -198,75 +194,123 @@ CONFIG: {
         'Should have log_only true from checkout and verify from deploy';
 
     # But option should override.
-    is_deeply $CLASS->configure($config, {y => 0, verify => 0, mode => 'all'},
-        {}),
+    is_deeply $CLASS->configure($config, {verify => 0, mode => 'all'}, {}),
         { log_only => 0, verify => 0, mode => 'all' },
         'Should have log_only false and mode all again';
 
     is_deeply $CLASS->configure($config, {}, {}), { log_only => 0, verify => 1, mode => 'tag' },
         'Should have log_only false for false config';
-
-    is_deeply $CLASS->configure($config, {y => 1}, {}), { log_only => 0, verify => 1, mode => 'tag' },
-        'Should have log_only true with -y';
 }
 
-# Copy the git repo to a temp directory
-my $git = $checkout->git;
+# Mock the Git interface.
+my $mock_git = Test::MockModule->new('Git::Wrapper');
+my (@rev_parse_args, $rev_parsed);
+$mock_git->mock(rev_parse => sub { shift; @rev_parse_args = @_; $rev_parsed });
+my @checkout_args;
+$mock_git->mock(checkout => sub { shift; @checkout_args = @_ });
 
-$git->clone(Path::Class::Dir->new('t', 'git', 'checkout'), $tmp_git_dir);
+# Try rebasing to the current branch.
+$rev_parsed = 'fixdupes';
+throws_ok { $checkout->execute($rev_parsed) } 'App::Sqitch::X',
+    'Should get an error current branch';
+is $@->ident, 'checkout', 'Current branch error ident should be "checkout"';
+is $@->message, __x('Already on branch {branch}', branch => $rev_parsed),
+    'Should get proper error for current branch error';
+is_deeply \@rev_parse_args, [qw(--abbrev-ref HEAD)],
+    'The proper args should have been passed to rev-parse';
+@rev_parse_args = ();
 
+# Should die when the plan file does not exist.
+my $mock_sqitch = Test::MockModule->new(ref $sqitch);
+$mock_sqitch->mock(plan_file => file 'nonesuch.plan');
+throws_ok { $checkout->execute('master') } 'Git::Wrapper::Exception',
+    'Should get an exception for a non-existent plan file';
+is $@->status, 128, 'Exitval should be 128';
+is $@->error, "fatal: Path 'nonesuch.plan' does not exist in 'master'\n",
+     'Should have the proper error output';
+$mock_sqitch->unmock('plan_file');
 
-file_exists_ok file ($tmp_git_dir, 'sqitch.plan'),
-    'The plan file exists';
+# Try a plan with nothing in common with the current branch's plan.
+my (@show_args, $showed);
+$mock_git->mock(show => sub { shift; @show_args = @_; $showed });
+$showed = q{%project=sql
 
-file_exists_ok file ($tmp_git_dir, '.git'),
-    'The repository exists';
+foo 2012-07-16T17:25:07Z Barack Obama <potus@whitehouse.gov>
+bar 2012-07-16T17:25:07Z Barack Obama <potus@whitehouse.gov>
+};
 
+throws_ok { $checkout->execute('master') } 'App::Sqitch::X',
+    'Should get an error for plans without a common change';
+is $@->ident, 'checkout',
+    'The no common change error ident should be "checkout"';
+is $@->message, __x(
+    'Target branch {target} has no canges in common with source branch {source}',
+    target => 'master',
+    source => $rev_parsed,
+), 'The no common change error message should be correct';
 
-my $plan = $sqitch->plan;
-my $changes = $plan->changes;
-is $changes, 2, "The plan file from the git repository is ok";
-is $git->dir, $tmp_git_dir, 'Git is in the tmp dir';
-
-# Make sure the local branches are actually created.
-$git->checkout('another_branch');
-$git->pull();
-$git->checkout('yet_another_branch');
-$git->pull();
-$git->checkout('master');
-$git->pull();
-
-# Mock the engine
+# Mock the engine interface.
 my $mock_engine = Test::MockModule->new('App::Sqitch::Engine::sqlite');
-my @dep_args;
-$mock_engine->mock(deploy => sub { shift; @dep_args = @_ });
-my @rev_args;
-$mock_engine->mock(revert => sub { shift; @rev_args = @_ });
+my (@dep_args, @dep_changes);
+$mock_engine->mock(deploy => sub {
+    @dep_changes = map { $_->name } shift->plan->changes;
+    @dep_args = @_;
+});
+
+my (@rev_args, @rev_changes);
+$mock_engine->mock(revert => sub {
+    @rev_changes = map { $_->name } shift->plan->changes;
+    @rev_args = @_;
+ });
 my @vars;
 $mock_engine->mock(set_variables => sub { shift; push @vars => [@_] });
 
-# Deploy the thing.
-$sqitch->engine->deploy;
+# Load up the plan file without decoding and change the plan.
+$showed = file(qw(t sql sqitch.plan))->slurp;
+{
+    no utf8;
+    $showed =~ s/widgets/thingíes/;
+}
 
-$checkout->execute('another_branch');
+# Checkout with options.
+isa_ok $checkout = $CLASS->new(
+    log_only         => 1,
+    verify           => 1,
+    sqitch           => $sqitch,
+    mode             => 'tag',
+    deploy_variables => { foo => 'bar', one => 1 },
+    revert_variables => { hey => 'there' },
+), $CLASS, 'Object with to and variables';
 
-is_deeply +MockOutput->get_info, [
-    [__x 'Last change before the branches diverged: {last_change}',
-         last_change => 'users @alpha'],
-], 'Should not revert anything, and deploy to another_branch';
+ok $checkout->execute('master'), 'Checkout master';
+is_deeply \@rev_parse_args, [qw(--abbrev-ref HEAD)],
+    'The proper args should again have been passed to rev-parse';
+is_deeply \@show_args, ['master:' . $sqitch->plan_file ],
+    'Should have requested the plan file contents as of master';
+is_deeply \@checkout_args, ['master'], 'Should have checked out other branch';
 
+is_deeply +MockOutput->get_info, [[__x(
+    'Last change before the branches diverged: {last_change}',
+    last_change => 'users @alpha',
+)]], 'Should have emitted info identifying the last common change';
 
-throws_ok {$checkout->execute('another_branch')} 'App::Sqitch::X',
-    'Should throw an error when switching to the same branch';
+# Did it revert?
+is_deeply \@rev_args, [$sqitch->plan->get('users')->id, 1],
+    '"users" ID and 1 should be passed to the engine revert';
+is_deeply \@rev_changes, [qw(roles users widgets)],
+    'Should have had the current changes for revision';
 
-is $@->ident, 'checkout', 'The error when switching to the same branch should be ident';
-is $@->message, __x('Already on branch {branch}',
-         branch=> 'another_branch'), 'The error message should match';
+# Did it deploy?
+is_deeply \@dep_args, [undef, 'tag', 1],
+    'undef, "tag", and 1 should be passed to the engine deploy';
+is_deeply \@dep_changes, [qw(roles users thingíes)],
+    'Should have had the other branch changes (decoded) for deploy';
 
-$checkout->execute('yet_another_branch');
-is_deeply +MockOutput->get_info, [
-    [__x 'Last change before the branches diverged: {last_change}',
-         last_change => 'users @alpha'],
-], 'Should not revert anything, and deploy to another_branch';
+ok $sqitch->engine->with_verify, 'Engine should verify';
+is @vars, 2, 'Variables should have been passed to the engine twice';
+is_deeply { @{ $vars[0] } }, { hey => 'there' },
+    'The revert vars should have been passed first';
+is_deeply { @{ $vars[1] } }, { foo => 'bar', one => 1 },
+    'The deploy vars should have been next';
 
 done_testing;

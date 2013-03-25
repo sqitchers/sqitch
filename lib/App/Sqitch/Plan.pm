@@ -48,7 +48,7 @@ has sqitch => (
 );
 
 has _plan => (
-    is         => 'ro',
+    is         => 'rw',
     isa        => 'HashRef',
     builder    => 'load',
     init_arg   => 'plan',
