@@ -1,6 +1,6 @@
 =head1 Name
 
-sqitch-checkout - Checkout another VCS branch
+sqitch-checkout - Revert, checkout another VCS branch, and re-deploy changes
 
 =head1 Synopsis
 
@@ -8,14 +8,17 @@ sqitch-checkout - Checkout another VCS branch
 
 =head1 Description
 
-Checkout another branch in the VCS (eg, git), while performing every necessary
-sqitch action.
+Checkout another branch in your project's VCS (such as
+L<git|http://git-scm.org/>), while performing the necessary database changes
+to update your database for the new branch.
 
-This will identify the last common changes between the two branches (or
-commits), revert to it (see L<sqitch-revert>), checkout the given branch (or
-commit) and deploy the plan in this branch (see L<sqitch-deploy>).
+More specifically, the C<checkout> command compares the plan in the current
+branch to that in the target branch, identifies the last common changes
+between them, reverts to that change as if L<C<sqitch revert>|sqitch-revert>
+was called, checks out the target branch, and then deploys all changes in
+the new branch as if L<C<sqitch deploy>|sqitch-deploy> had been called.
 
-If the VCS is already on this branch, nothing will be done.
+If the VCS is already on the target branch, nothing will be done.
 
 =head1 Options
 
@@ -55,14 +58,6 @@ reversion will be carried out, depending on the value of C<--mode>.
 
 Don't verify each change. This is the default.
 
-=item C<--log-only>
-
-Log the changes as if they were deployed, but without actually running the
-deploy scripts. Useful for an existing database that is being converted to
-Sqitch, and you need to log changes as deployed because they have been
-deployed by other means in the past.
-
-
 =item C<-s>
 
 =item C<--set>
@@ -90,6 +85,16 @@ reverting, if it supports variables. The format must be C<name=value>, e.g.,
 C<--set defuser='Homer Simpson'>. Overrides any values from C<--set> or loaded
 from the C<deploy.variables> and C<revert.variables> configurations.
 
+=item C<--log-only>
+
+Log the changes as if they were deployed, but without actually running the
+deploy scripts. Useful for an existing database that is being converted to
+Sqitch, and you need to log changes as deployed because they have been
+deployed by other means in the past.
+
+=item C<-y>
+
+Disable the prompt that normally asks whether or not to execute the revert.
 
 =back
 
@@ -97,27 +102,38 @@ from the C<deploy.variables> and C<revert.variables> configurations.
 
 =over
 
-=item C<deploy.to_target>
+=item C<[deploy.variables]>
 
-Target to deploy to. You probably don't want to set this.
+=item C<[revert.variables]>
+
+A section defining database client variables. The C<deploy.variables>
+configuration is read from the C<deploy> command configuration, on the
+assumption that the values will generally be the same. If they're not, use
+C<revert.variables> to override C<deploy.variables>.
+
+These variables are Useful if your database engine supports variables in
+scripts, such as PostgreSQL's
+L<C<psql> variables|http://www.postgresql.org/docs/current/static/app-psql.html#APP-PSQL-INTERPOLATION>.
+
+=item C<checkout.verify>
+
+=item C<deploy.verify>
+
+Boolean indicating whether or not to verify each change after deploying it.
+
+=item C<checkout.mode>
 
 =item C<deploy.mode>
 
 Deploy mode. The supported values are the same as for the C<--mode> option.
 
-=item C<deploy.verify>
+=item C<[checkout.no_prompt]>
 
-Boolean indicating whether or not to verify each change.
+=item C<[revert.no_prompt]>
 
-=item C<[deploy.variables]>
-
-A section defining database client variables. Useful if your database engine
-supports variables in scripts, such as PostgreSQL's
-L<C<psql> variables|http://www.postgresql.org/docs/current/static/app-psql.html#APP-PSQL-INTERPOLATION>.
-
-=item C<deploy.verify>
-
-Boolean indicating whether or not to verify each change after deploying it.
+A boolean value indicating whether or not to disable the prompt before
+executing the revert. The C<checkout.no_prompt> variable takes precedence over
+C<revert.no_prompt>, and both may of course be overridden by C<-y>.
 
 =back
 

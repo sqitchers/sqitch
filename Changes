@@ -9,7 +9,8 @@ Revision history for Perl extension App::Sqitch
        will compare the plans between that branch and the current branch,
        revert to the last common change, check out the branch, and then
        redeploy. This makes it easy to switch between working branches that
-       have different sets of commits. Idea and code by Ronan Dunklau.
+       have different sets of commits. Git-only for now. Idea and code by
+       Ronan Dunklau.
 
 0.953  2013-02-21T23:37:57Z
      - Fixed test failure in `t/engine.t` triggered by a clock tick.

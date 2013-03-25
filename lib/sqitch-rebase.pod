@@ -149,6 +149,12 @@ L<C<psql> variables|http://www.postgresql.org/docs/current/static/app-psql.html#
 
 Boolean indicating whether or not to verify each change after deploying it.
 
+=item C<rebase.mode>
+
+=item C<deploy.mode>
+
+Deploy mode. The supported values are the same as for the C<--mode> option.
+
 =item C<[rebase.no_prompt]>
 
 =item C<[revert.no_prompt]>
