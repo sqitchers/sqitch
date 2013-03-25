@@ -188,7 +188,7 @@ Configures the options common to commands that revert and deploy.
 
 =item L<App::Sqitch::Command::rebase>
 
-The C<rebase< command reverts and deploys changes.
+The C<rebase> command reverts and deploys changes.
 
 =item L<App::Sqitch::Command::checkout>
 
