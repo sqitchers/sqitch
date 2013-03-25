@@ -20,7 +20,9 @@ in succession.
 More specifically, starting from the current deployment state, changes will be
 reverted in reverse the order of application. All changes will be reverted
 unless a target is specified, either via C<--onto> or with no option flag, in
-which case changes will be reverted back to that target.
+which case changes will be reverted back to that target. If nothing needs to
+be reverted, a message will be emitted explaining why and nothing will be
+reverted.
 
 Once the revert finishes, changes will be deployed starting from the deployed
 state through the rest of the deployment plan. They will run to the latest

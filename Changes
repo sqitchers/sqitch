@@ -14,7 +14,6 @@ Revision history for Perl extension App::Sqitch
      - The `rebase` command no longer fails if the database is already
        reverted, but just makes a note of it and goes on to the deploy.
 
-
 0.953  2013-02-21T23:37:57Z
      - Fixed test failure in `t/engine.t` triggered by a clock tick.
      - Changed the verify template to end with `ROLLBACK` rather than

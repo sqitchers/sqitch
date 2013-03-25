@@ -11,7 +11,7 @@ use App::Sqitch::X qw(hurl);
 use App::Sqitch::Plan;
 use Encode qw(decode);
 use Path::Class qw(dir);
-use Hash::Merge 'merge';
+use Try::Tiny;
 use Git::Wrapper;
 use namespace::autoclean;
 
@@ -79,7 +79,17 @@ sub execute {
     # Revert to the last common change.
     if (my %v = %{ $self->revert_variables }) { $engine->set_variables(%v) }
     $engine->plan( $from_plan );
-    $engine->revert( $last_common_change->id, $self->log_only );
+    try {
+        $engine->revert( $last_common_change->id, $self->log_only );
+    } catch {
+        # Rethrow unknown errors or errors with exitval > 1.
+        die $_ if ! eval { $_->isa('App::Sqitch::X') }
+            || $_->exitval > 1
+            || $_->ident eq 'revert:confirm';
+        # Emite notice of non-fatal errors (e.g., nothign to revert).
+        $self->info($_->message)
+    };
+
 
     # Check out the new branch.
     $git->checkout($branch);
