@@ -232,7 +232,7 @@ for my $spec (
         . __('Planner:  ') . " damian <damian\@example.com>\n\n"
         . "    For the LOLZ.\n",
     ],
-    [ oneline => '000011112222333444 ' . __('deploy') . ' lolz For the LOLZ.' ],
+    [ oneline => '000011112222333444 ' . __('deploy') . ' lolz @beta, @gamma' ],
 ) {
     my $configured = $CLASS->configure( $config, { format => $spec->[0] } );
     my $format = $configured->{format};
@@ -467,6 +467,7 @@ for my $spec (
 # Make sure other colors work.
 my $yellow = color('yellow') . '%s' . color('reset');
 my $green  = color('green')  . '%s' . color('reset');
+my $cyan   = color('cyan')   . ' %s' . color('reset');
 $change->{conflicts} = [qw(dr_evil)];
 for my $spec (
     [ full => sprintf($green, __ ('Deploy') . ' 000011112222333444')
@@ -497,8 +498,8 @@ for my $spec (
         . __ ('Planner:  ') . " damian <damian\@example.com>\n\n"
         . "    For the LOLZ.\n",
     ],
-    [ oneline => sprintf "$green %s %s", '000011112222333444' . ' '
-        . __('deploy'), 'lolz', 'For the LOLZ.',
+    [ oneline => sprintf "$green %s$cyan", '000011112222333444' . ' '
+        . __('deploy'), 'lolz', '@beta, @gamma',
     ],
 ) {
     my $format = $CLASS->configure( $config, { format => $spec->[0] } )->{format};

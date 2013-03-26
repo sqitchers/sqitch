@@ -62,7 +62,7 @@ $FORMATS{short} = <<EOF;
 %{    }s
 EOF
 
-$FORMATS{oneline} = '%{:event}C%h %l%{reset}C %n %s';
+$FORMATS{oneline} = '%{:event}C%h %l%{reset}C %n%{cyan}C%t%{reset}C';
 
 has event => (
     is      => 'ro',

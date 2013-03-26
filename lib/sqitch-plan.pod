@@ -186,7 +186,7 @@ C<< format:<string> >> format. Here are the details of the built-in formats:
 
 =item C<oneline>
 
-  <change id> <event type <change name> <title line>
+  <change id> <event type> <change name> <title line> <tags>
 
 This is designed to be as compact as possible.
 
