@@ -1006,6 +1006,95 @@ $plan->do(sub {
 $plan->do(sub { fail 'Should not get anything passed to do()' });
 
 ##############################################################################
+# Let's try searching changes.
+isa_ok my $iter = $plan->search_changes, 'CODE',
+    'search_changes() should return a code ref';
+
+my $get_all_names = sub {
+    my $iter = shift;
+    my @res;
+    while (my $change = $iter->()) {
+        push @res => $change->name;
+    }
+    return \@res;
+};
+
+is_deeply $get_all_names->($iter), [qw(hey you this/rocks hey-there)],
+    'All the changes should be returned in the proper order';
+
+# Try reverse order.
+is_deeply $get_all_names->( $plan->search_changes( direction => 'DESC' ) ),
+    [qw(hey-there this/rocks you hey)], 'Direction "DESC" should work';
+
+# Try invalid directions.
+throws_ok { $plan->search_changes( direction => 'foo' ) } 'App::Sqitch::X',
+    'Should get error for invalid direction';
+is $@->ident, 'DEV', 'Invalid direction error ident should be "DEV"';
+is $@->message, 'Search direction must be either "ASC" or "DESC"',
+    'Invalid direction error message should be correct';
+
+# Try ascending lowercased.
+is_deeply $get_all_names->( $plan->search_changes( direction => 'asc' ) ),
+    [qw(hey you this/rocks hey-there)], 'Direction "asc" should work';
+
+# Try change name.
+is_deeply $get_all_names->( $plan->search_changes( name => 'you')),
+    [qw(you)], 'Search by change name should work';
+
+is_deeply $get_all_names->( $plan->search_changes( name => 'hey')),
+    [qw(hey hey-there)], 'Search by change name should work as a regex';
+
+is_deeply $get_all_names->( $plan->search_changes( name => '[-/]')),
+    [qw(this/rocks hey-there)],
+    'Search by change name should with a character class';
+
+# Try planner name.
+is_deeply $get_all_names->( $plan->search_changes( planner => 'Barack' ) ),
+    [qw(this/rocks hey-there)], 'Search by planner should work';
+
+is_deeply $get_all_names->( $plan->search_changes( planner => 'a..a' ) ),
+    [qw(you)], 'Search by planner should work as a regex';
+
+# Search by operation.
+is_deeply $get_all_names->( $plan->search_changes( operation => 'deploy' ) ),
+    [qw(hey you this/rocks hey-there)], 'Search by operation "deploy" should work';
+
+is_deeply $get_all_names->( $plan->search_changes( operation => 'revert' ) ),
+    [], 'Search by operation "rever" should return nothing';
+
+# Fake out an operation.
+my $mock_change = Test::MockModule->new('App::Sqitch::Plan::Change');
+$mock_change->mock( operator => sub { return shift->name =~ /hey/ ? '-' : '+' });
+
+is_deeply $get_all_names->( $plan->search_changes( operation => 'DEPLOY' ) ),
+    [qw(you this/rocks)], 'Search by operation "DEPLOY" should now return two changes';
+
+is_deeply $get_all_names->( $plan->search_changes( operation => 'REVERT' ) ),
+    [qw(hey hey-there)], 'Search by operation "REVERT" should return the other two';
+
+$mock_change->unmock_all;
+
+# Make sure we test only for legal operations.
+throws_ok { $plan->search_changes( operation => 'foo' ) } 'App::Sqitch::X',
+    'Should get an error for unknown operation';
+is $@->ident, 'DEV', 'Unknown operation error ident should be "DEV"';
+is $@->message, 'Unknown change operation "foo"',
+    'Unknown operation error message should be correct';
+
+# Test offset and limit.
+is_deeply $get_all_names->( $plan->search_changes( offset => 2 ) ),
+    [qw(this/rocks hey-there)], 'Search with offset 2 should work';
+
+is_deeply $get_all_names->( $plan->search_changes( offset => 2, limit => 1 ) ),
+    [qw(this/rocks)], 'Search with offset 2, limit 1 should work';
+
+is_deeply $get_all_names->( $plan->search_changes( offset => 3, direction => 'desc' ) ),
+    [qw(hey)], 'Search with offset 3 and dierction "desc" should work';
+
+is_deeply $get_all_names->( $plan->search_changes( offset => 2, limit => 1, direction => 'desc' ) ),
+    [qw(you)], 'Search with offset 2, limit 1, dierction "desc" should work';
+
+##############################################################################
 # Test writing the plan.
 can_ok $plan, 'write_to';
 my $to = file 'plan.out';
@@ -1508,7 +1597,6 @@ is $fh->getline, undef, 'It should be empty';
 $mocker->unmock('check_changes');
 can_ok $CLASS, 'check_changes';
 my @deps;
-my $mock_change = Test::MockModule->new('App::Sqitch::Plan::Change');
 my $i = 0;
 my $j = 0;
 $mock_change->mock(requires => sub {

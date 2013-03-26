@@ -1856,6 +1856,11 @@ expression.
 Limit the events to those logged for the actions of the committers with names
 matching the specified regular expression.
 
+=item C<planner>
+
+Limit the events to those with changes who's planner's name matches the
+specified regular expression.
+
 =item C<limit>
 
 Limit the number of events to the specified number.

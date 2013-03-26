@@ -13,7 +13,7 @@ use App::Sqitch::Plan::ChangeList;
 use App::Sqitch::Plan::LineList;
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
-use List::MoreUtils qw(uniq);
+use List::MoreUtils qw(uniq any);
 use namespace::autoclean;
 use Mouse;
 use constant SYNTAX_VERSION => '1.0.0-b2';
@@ -591,6 +591,70 @@ sub first_index_of { shift->_changes->first_index_of(@_) }
 sub change_at      { shift->_changes->change_at(shift) }
 sub last_tagged_change { shift->_changes->last_tagged_change }
 
+sub search_changes {
+    my ( $self, %p ) = @_;
+    my $meta = App::Sqitch::Plan::Change->meta;
+
+    my $reverse = 0;
+    if (my $d = delete $p{direction}) {
+        $reverse = $d =~ /^ASC/i  ? 0
+                 : $d =~ /^DESC/i ? 1
+                 : hurl 'Search direction must be either "ASC" or "DESC"';
+    }
+
+    # Limit with regular expressions?
+    my @filters;
+    for my $spec (
+        [ planner => 'planner_name' ],
+        [ name    => 'name'         ],
+    ) {
+        my $regex = delete $p{ $spec->[0] } // next;
+        $regex = qr/$regex/;
+        my $attr = $meta->find_attribute_by_name( $spec->[1] );
+        push @filters => sub { $attr->get_value($_[0]) =~ $regex };
+    }
+
+    # Match events?
+    if (my $op = lc(delete $p{operation} || '') ) {
+        push @filters => $op eq 'deploy' ? sub { $_[0]->is_deploy }
+                       : $op eq 'revert' ? sub { $_[0]->is_revert }
+                       : hurl qq{Unknown change operation "$op"};
+    }
+
+    my $changes = $self->_changes;
+    my $offset  = delete $p{offset} || 0;
+    my $limit   = delete $p{limit}  || 0;
+
+    hurl 'Invalid parameters passed to search_changes(): '
+        . join ', ', sort keys %p if %p;
+
+    # If no filters, we want to return everything.
+    push @filters => sub { 1 } unless @filters;
+
+    if ($reverse) {
+        # Go backwards.
+        my $index  = $changes->count - ($offset + 1);
+        my $end_at = $limit - 1;
+        return sub {
+            while ($index > $end_at) {
+                my $change = $changes->change_at($index--) or return;
+                return $change if any { $_->($change) } @filters;
+            }
+            return;
+        };
+    }
+
+    my $index  = $offset - 1;
+    my $end_at = $limit ? $index + $limit : $changes->count - 1;
+    return sub {
+        while ($index < $end_at) {
+            my $change = $changes->change_at(++$index) or return;
+            return $change if any { $_->($change) } @filters;
+        }
+        return;
+    };
+}
+
 sub seek {
     my ( $self, $key ) = @_;
     my $index = $self->index_of($key);
@@ -1167,6 +1231,49 @@ to the call to C<do()>, then only the remaining changes in the iterator will
 passed to the code reference. Iteration terminates when the code reference
 returns false, so be sure to have it return a true value if you want it to
 iterate over every change.
+
+=head3 C<search_changes>
+
+  my $iter = $engine->search_changes( %params );
+  while (my $change = $iter->()) {
+      say '* $change->{event}ed $change->{change}";
+  }
+
+Searches the changes in the plan returns an iterator code reference with the
+results. If no parameters are provided, a list of all changes will be returned
+from the iterator in plan order. The supported parameters are:
+
+=over
+
+=item C<event>
+
+An array of the type of event to search for. Allowed values are "deploy" and
+ "revert".
+
+=item C<name>
+
+Limit the results to changes with names matching the specified regular
+expression.
+
+=item C<planner>
+
+Limit the changes to those added by planners matching the specified regular
+expression.
+
+=item C<limit>
+
+Limit the number of changes to the specified number.
+
+=item C<offset>
+
+Skip the specified number of events.
+
+=item C<direction>
+
+Return the results in the specified order, which must be a value matching
+C</^(:?a|de)sc/i> for "ascending" or "descending".
+
+=back
 
 =head3 C<write_to>
 
