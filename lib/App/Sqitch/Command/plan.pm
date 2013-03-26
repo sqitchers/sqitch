@@ -66,7 +66,7 @@ $FORMATS{oneline} = '%{:event}C%h %l%{reset}C %n %s';
 
 has event => (
     is      => 'ro',
-    isa     => 'ArrayRef',
+    isa     => 'Str',
 );
 
 has change_pattern => (
@@ -112,7 +112,7 @@ has formatter => (
 
 sub options {
     return qw(
-        event=s@
+        event=s
         change-pattern|change=s
         planner-pattern|planner=s
         format|f=s
@@ -182,7 +182,7 @@ sub execute {
 
     # Search the changes.
     my $iter = $plan->search_changes(
-        event     => $self->event,
+        operation => $self->event,
         name      => $self->change_pattern,
         planner   => $self->planner_pattern,
         limit     => $self->max_count,

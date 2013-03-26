@@ -43,7 +43,7 @@ can_ok $cmd, qw(
 );
 
 is_deeply [$CLASS->options], [qw(
-    event=s@
+    event=s
     change-pattern|change=s
     planner-pattern|planner=s
     format|f=s
@@ -548,7 +548,7 @@ $change = $sqitch->plan->change_at(0);
 push @changes => $change;
 ok $cmd->execute, 'Execute plan';
 is_deeply $search_args, [
-    event     => undef,
+    operation => undef,
     name      => undef,
     planner   => undef,
     limit     => undef,
@@ -579,7 +579,7 @@ my $change2 = $sqitch->plan->change_at(1);
 push @changes => $change, $change2;
 isa_ok $cmd = $CLASS->new(
     sqitch            => $sqitch,
-    event             => [qw(revert fail)],
+    event             => 'deploy',
     change_pattern    => '.+',
     project_pattern   => '.+',
     planner_pattern   => '.+',
@@ -590,7 +590,7 @@ isa_ok $cmd = $CLASS->new(
 
 ok $cmd->execute, 'Execute plan with attributes';
 is_deeply $search_args, [
-    event     => [qw(revert fail)],
+    operation => 'deploy',
     name      => '.+',
     planner   => '.+',
     limit     => 10,
