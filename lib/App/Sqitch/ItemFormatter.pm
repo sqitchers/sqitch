@@ -44,12 +44,6 @@ has color => (
     default  => 'auto',
 );
 
-has _format => (
-    is       => 'rw',
-    isa      => 'CodeRef',
-    required => 1,
-);
-
 has formatter => (
     is      => 'ro',
     lazy    => 1,
@@ -212,32 +206,18 @@ has formatter => (
     }
 );
 
-sub BUILDARGS {
-    my $class = shift;
-    my $p = @_ == 1 && ref $_[0] ? { %{ +shift } } : { @_ };
-
+sub format {
+    my $self = shift;
     local $SIG{__DIE__} = sub {
         die @_ if $_[0] !~ /^Unknown conversion in stringf: (\S+)/;
         hurl format => __x 'Unknown format code "{code}"', code => $1;
     };
 
-    my $color = $p->{color} || 'auto';
-    if ($color eq 'always') {
-        local $ENV{ANSI_COLORS_DISABLED};
-        $p->{_format} = sub { shift->formatter->format( @_ ) };
-    } elsif ($color eq 'never') {
-        local $ENV{ANSI_COLORS_DISABLED} = 1;
-        $p->{_format} = sub { shift->formatter->format( @_ ) };
-    } else {
-        $p->{_format} = sub { shift->formatter->format( @_ ) };
-    }
+    local $ENV{ANSI_COLORS_DISABLED} = $self->color eq 'always' ? 0
+        :                              $self->color eq 'never'  ? 1
+        :                              $ENV{ANSI_COLORS_DISABLED};
 
-    return $p;
-}
-
-sub format {
-    my $self = shift;
-    $self->_format->($self, @_);
+    return $self->formatter->format(@_);
 }
 
 1;

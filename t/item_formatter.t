@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 155;
+use Test::More tests => 158;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -245,6 +245,7 @@ is $@->message, __x(
 ), '%a error message should be correct';
 
 # Test colors.
+delete $ENV{ANSI_COLORS_DISABLED};
 ok $formatter = $CLASS->new( color => 'always' ),
     'Construct with color "always"';
 for my $color (qw(yellow red blue cyan magenta)) {
@@ -272,8 +273,17 @@ is $@->message, __x(
 
 # Make sure color "never" works.
 ok $formatter = $CLASS->new( color => 'never' ),
-    'Construct with color "always"';
+    'Construct with color "never"';
 for my $color (qw(yellow red blue cyan magenta)) {
     is $formatter->format( "%{$color}C", {} ), '',
         qq{Format "%{$color}C" should not output a color};
 }
+
+# Make sure an unknown format character throws a proper exception.
+throws_ok { $formatter->format('%Z', {}) } 'App::Sqitch::X',
+    'Should get an exception for a bad format code';
+is $@->ident, 'format',
+    'bad format code format error ident should be "log"';
+is $@->message, __x(
+    'Unknown format code "{code}"', code => 'Z',
+), 'bad format code format error message should be correct';
