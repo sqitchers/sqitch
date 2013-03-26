@@ -6,21 +6,12 @@ use warnings;
 use utf8;
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
-use App::Sqitch::DateTime;
 use Mouse;
 use Mouse::Util::TypeConstraints;
-use String::Formatter;
+use App::Sqitch::ItemFormatter;
 use namespace::autoclean;
 use Try::Tiny;
-use Term::ANSIColor 2.02 qw(color colorvalid);
 extends 'App::Sqitch::Command';
-use constant CAN_OUTPUT_COLOR => $^O eq 'MSWin32'
-    ? try { require Win32::Console::ANSI }
-    : -t *STDOUT;
-
-BEGIN {
-    $ENV{ANSI_COLORS_DISABLED} = 1 unless CAN_OUTPUT_COLOR;
-}
 
 our $VERSION = '0.954';
 
@@ -114,12 +105,6 @@ has reverse => (
     default => 0,
 );
 
-has abbrev => (
-    is      => 'ro',
-    isa     => 'Int',
-    default => 0,
-);
-
 has format => (
     is       => 'ro',
     isa      => 'Str',
@@ -127,185 +112,12 @@ has format => (
     default  => $FORMATS{medium},
 );
 
-has date_format => (
-    is      => 'ro',
-    lazy    => 1,
-    isa     => 'Str',
-    default => sub {
-        shift->sqitch->config->get( key => 'log.date_format' ) || 'iso'
-    }
-);
-
-has color => (
+has formatter => (
     is       => 'ro',
-    isa      => enum([ qw(always never auto) ]),
+    isa      => 'App::Sqitch::ItemFormatter',
     required => 1,
     lazy     => 1,
-    default  => sub {
-        shift->sqitch->config->get( key => 'log.color' ) || 'auto';
-    },
-);
-
-has formatter => (
-    is      => 'ro',
-    lazy    => 1,
-    isa     => 'String::Formatter',
-    default => sub {
-        my $self = shift;
-        String::Formatter->new({
-            input_processor => 'require_single_input',
-            string_replacer => 'method_replace',
-            codes => {
-                e => sub { $_[0]->{event} },
-                L => sub {
-                    given ($_[0]->{event}) {
-                        when ('deploy') { return __ 'Deploy' }
-                        when ('revert') { return __ 'Revert' }
-                        when ('fail')   { return __ 'Fail'   }
-                    }
-                },
-                l => sub {
-                    given ($_[0]->{event}) {
-                        when ('deploy') { return __ 'deploy' }
-                        when ('revert') { return __ 'revert' }
-                        when ('fail')   { return __ 'fail'   }
-                    }
-                },
-                _ => sub {
-                    given ($_[1]) {
-                        when ('event')     { return __ 'Event:    ' }
-                        when ('change')    { return __ 'Change:   ' }
-                        when ('committer') { return __ 'Committer:' }
-                        when ('planner')   { return __ 'Planner:  ' }
-                        when ('by')        { return __ 'By:       ' }
-                        when ('date')      { return __ 'Date:     ' }
-                        when ('committed') { return __ 'Committed:' }
-                        when ('planned')   { return __ 'Planned:  ' }
-                        when ('name')      { return __ 'Name:     ' }
-                        when ('project')   { return __ 'Project:  ' }
-                        when ('email')     { return __ 'Email:    ' }
-                        when ('requires')  { return __ 'Requires: ' }
-                        when ('conflicts') { return __ 'Conflicts:' }
-                        when (undef)       {
-                            hurl log => __ 'No label passed to the _ format';
-                        }
-                        default {
-                            hurl log => __x(
-                                'Unknown label "{label}" passed to the _ format',
-                                label => $_[1],
-                            );
-                        }
-                    };
-                },
-                H => sub { $_[0]->{change_id} },
-                h => sub {
-                    if (my $abb = $_[1] || $self->abbrev) {
-                        return substr $_[0]->{change_id}, 0, $abb;
-                    }
-                    return $_[0]->{change_id};
-                },
-                n => sub { $_[0]->{change} },
-                o => sub { $_[0]->{project} },
-
-                c => sub {
-                    return "$_[0]->{committer_name} <$_[0]->{committer_email}>"
-                        unless defined $_[1];
-                    return $_[0]->{committer_name}  if $_[1] ~~ [qw(n name)];
-                    return $_[0]->{committer_email} if $_[1] ~~ [qw(e email)];
-                    return $_[0]->{committed_at}->as_string(
-                        format => $_[1] || $self->date_format
-                    ) if $_[1] =~ s/^d(?:ate)?(?::|$)//;
-                },
-
-                p => sub {
-                    return "$_[0]->{planner_name} <$_[0]->{planner_email}>"
-                        unless defined $_[1];
-                    return $_[0]->{planner_name}  if $_[1] ~~ [qw(n name)];
-                    return $_[0]->{planner_email} if $_[1] ~~ [qw(e email)];
-                    return $_[0]->{planned_at}->as_string(
-                        format => $_[1] || $self->date_format
-                    ) if $_[1] =~ s/^d(?:ate)?(?::|$)//;
-                },
-
-                t => sub {
-                    @{ $_[0]->{tags} }
-                        ? ' ' . join $_[1] || ', ' => @{ $_[0]->{tags} }
-                        : '';
-                },
-                T => sub {
-                    @{ $_[0]->{tags} }
-                        ? ' (' . join($_[1] || ', ' => @{ $_[0]->{tags} }) . ')'
-                        : '';
-                },
-                v => sub { "\n" },
-                C => sub {
-                    if (($_[1] // '') eq ':event') {
-                        # Select a color based on some attribute.
-                        return color $_[0]->{event} eq 'deploy' ? 'green'
-                                   : $_[0]->{event} eq 'revert' ? 'blue'
-                                   : 'red';
-                    }
-                    hurl log => __x(
-                        '{color} is not a valid ANSI color', color => $_[1]
-                    ) unless $_[1] && colorvalid $_[1];
-                    color $_[1];
-                },
-                s => sub {
-                    ( my $s = $_[0]->{note} ) =~ s/\v.*//ms;
-                    return ($_[1] // '') . $s;
-                },
-                b => sub {
-                    return '' unless $_[0]->{note} =~ /\v/;
-                    ( my $b = $_[0]->{note} ) =~ s/^.+\v+//;
-                    $b =~ s/^/$_[1]/gms if defined $_[1] && length $b;
-                    return $b;
-                },
-                B => sub {
-                    return $_[0]->{note} unless defined $_[1];
-                    ( my $note = $_[0]->{note} ) =~ s/^/$_[1]/gms;
-                    return $note;
-                },
-                r => sub {
-                    @{ $_[0]->{requires} }
-                        ? ' ' . join $_[1] || ', ' => @{ $_[0]->{requires} }
-                        : '';
-                },
-                R => sub {
-                    return '' unless @{ $_[0]->{requires} };
-                    return __ ('Requires: ') . ' ' . join(
-                        $_[1] || ', ' => @{ $_[0]->{requires} }
-                    ) . "\n";
-                },
-                x => sub {
-                    @{ $_[0]->{conflicts} }
-                        ? ' ' . join $_[1] || ', ' => @{ $_[0]->{conflicts} }
-                        : '';
-                },
-                X => sub {
-                    return '' unless @{ $_[0]->{conflicts} };
-                    return __('Conflicts:') . ' ' . join(
-                        $_[1] || ', ' => @{ $_[0]->{conflicts} }
-                    ) . "\n";
-                },
-                a => sub {
-                    hurl log => __x(
-                        '{attr} is not a valid change attribute', attr => $_[1]
-                    ) unless $_[1] && exists $_[0]->{ $_[1] };
-                    my $val = $_[0]->{ $_[1] } // return '';
-
-                    if (ref $val eq 'ARRAY') {
-                        return '' unless @{ $val };
-                        $val = join ', ' => @{ $val };
-                    } elsif (eval { $val->isa('App::Sqitch::DateTime') }) {
-                        $val = $val->as_string( format => 'raw' );
-                    }
-
-                    my $sp = ' ' x (9 - length $_[1]);
-                    return "$_[1]$sp $val\n";
-                }
-            },
-        });
-    }
+    default  => sub { App::Sqitch::ItemFormatter->new },
 );
 
 sub options {
@@ -328,11 +140,14 @@ sub options {
 sub configure {
     my ( $class, $config, $opt ) = @_;
 
-    # Make sure the date format is valid.
-    if (my $format = $opt->{date_format}
-        || $config->get(key => 'log.date_format')
-    ) {
-        App::Sqitch::DateTime->validate_as_string_format($format);
+    # Determine and validate the date format.
+    my $date_format = delete $opt->{date_format} || $config->get(
+        key => 'log.date_format'
+    );
+    if ($date_format) {
+        App::Sqitch::DateTime->validate_as_string_format($date_format);
+    } else {
+        $date_format = 'iso';
     }
 
     # Make sure the log format is valid.
@@ -349,20 +164,15 @@ sub configure {
         }
     }
 
-    # Turn colors on or off as appropriate.
-    $opt->{color} = 'never' if delete $opt->{no_color};
-    if ( my $color = $opt->{color} || $config->get(key => 'log.color') ) {
-        if ($color eq 'always') {
-            delete $ENV{ANSI_COLORS_DISABLED};
-        } elsif ($color eq 'never') {
-            $ENV{ANSI_COLORS_DISABLED} = 1;
-        } else {
-            # Die on an invalid value.
-            hurl log => __ 'Option "color" expects "always", "auto", or "never"'
-                if $color ne 'auto';
-            # For auto we do nothing.
-        }
-    }
+    # Determine how to handle ANSI colors.
+    my $color = delete $opt->{no_color} ? 'never'
+        : delete $opt->{color} || $config->get(key => 'log.color');
+
+    $opt->{formatter} = App::Sqitch::ItemFormatter->new(
+        ( $date_format   ? ( date_format => $date_format          ) : () ),
+        ( $color         ? ( color       => $color                ) : () ),
+        ( $opt->{abbrev} ? ( abbrev      => delete $opt->{abbrev} ) : () ),
+    );
 
     return $class->SUPER::configure( $config, $opt );
 }
@@ -404,15 +214,11 @@ sub execute {
     );
 
     # Send the results.
-    my $changef = $self->formatter;
-    my $format  = $self->format;
-    local $SIG{__DIE__} = sub {
-        die @_ if $_[0] !~ /^Unknown conversion in stringf: (\S+)/;
-        hurl log => __x 'Unknown log format code "{code}"', code => $1;
-    };
+    my $formatter = $self->formatter;
+    my $format    = $self->format;
     $self->page( __x 'On database {db}', db => $engine->destination );
     while ( my $change = $iter->() ) {
-        $self->page( $changef->format( $format, $change ) );
+        $self->page( $formatter->format( $format, $change ) );
     }
 
     return $self;
