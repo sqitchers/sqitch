@@ -10,7 +10,8 @@ sqitch-plan - Show database change planned changes
 
 The C<plan> command displays information about planned changes. By default, it
 will show all the changes for the current plan, but you can also search for
-changes matching regular expressions, and limit the results.
+changes matching regular expressions, and limit the results. Of course you
+could just C<cat> your plan file, but this is more fun.
 
 =head1 Options
 
