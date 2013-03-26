@@ -13,7 +13,9 @@ Revision history for Perl extension App::Sqitch
        Ronan Dunklau.
      - The `rebase` command no longer fails if the database is already
        reverted, but just makes a note of it and goes on to the deploy.
-     - Added `search_changes()` to Plan. To be used for a `plan` command.
+     - Added the `plan` command. It's like `log`, but shows a list of changes
+       in the plan, rather than events recorded in the database.
+     - Added `search_changes()` to Plan. Used by the `plan` command.
 
 0.953  2013-02-21T23:37:57Z
      - Fixed test failure in `t/engine.t` triggered by a clock tick.

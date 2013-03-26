@@ -1,18 +1,16 @@
 =head1 Name
 
-sqitch-log - Show database change logs
+sqitch-plan - Show database change planned changes
 
 =head1 Synopsis
 
-  sqitch [options] log [<options>]
+  sqitch [options] plan [<options>]
 
 =head1 Description
 
-Sqitch keeps a record of the deployment, failed deployment, or reversion of
-all changes in a database. Even after a change has been reverted, a log of its
-earlier deployment is retained. The C<log> command is your key to accessing
-it. You can simply list all the events, search for events matching regular
-expressions, and limit the results.
+The C<plan> command displays information about planned changes. By default, it
+will show all the changes for the current plan, but you can also search for
+changes matching regular expressions, and limit the results.
 
 =head1 Options
 
@@ -28,8 +26,6 @@ Filter by event type. May be specified more than once. Allowed values are:
 
 =item * C<revert>
 
-=item * C<fail>
-
 =back
 
 =item C<--change-pattern>
@@ -38,17 +34,11 @@ Filter by event type. May be specified more than once. Allowed values are:
 
 A regular expression to match against change names.
 
-=item C<--project-pattern>
+=item C<--planner-pattern>
 
-=item C<--project>
+=item C<--planner>
 
-A regular expression to match against project names.
-
-=item C<--committer-pattern>
-
-=item C<--committer>
-
-A regular expression to match against committer names.
+A regular expression to match against planner names.
 
 =item C<--format>
 
@@ -129,19 +119,19 @@ patterns.
 
 =item C<-n>
 
-Limit the number of events to output.
+Limit the number of changes to output.
 
 =item C<--skip>
 
-Skip the specified number events before starting to show the event output.
+Skip the specified number changes before starting to show the output.
 
 =item C<--reverse>
 
-Output the events in reverse order. 
+Output the changes in reverse order. 
 
 =item C<--no-reverse>
 
-Do not output the events in reverse order. 
+Do not output the changes in reverse order. 
 
 =item C<--color>
 
@@ -172,16 +162,16 @@ prefix the specified number of characters long.
 
 =over
 
-=item C<log.format>
+=item C<plan.format>
 
 Output format to use. Supports the same values as C<--format>.
 
-=item C<log.date_format>
+=item C<plan.date_format>
 
 Format to use for timestamps. Supports the same values as the C<--date-format>
 option.
 
-=item C<log.color>
+=item C<plan.color>
 
 Output colors. Supports the same values as the C<--color> option.
 
@@ -196,7 +186,7 @@ C<< format:<string> >> format. Here are the details of the built-in formats:
 
 =item C<oneline>
 
-  <change id> <event type> <project name>:<change name> <title line>
+  <change id> <event type <change name> <title line>
 
 This is designed to be as compact as possible.
 
@@ -204,7 +194,7 @@ This is designed to be as compact as possible.
 
   <event type> <change id>
   Name:      <change name>
-  Committer: <committer>
+  Planner:   <planner>
 
   <title line>
 
@@ -212,7 +202,7 @@ This is designed to be as compact as possible.
 
   <event type> <change id>
   Name:      <change name>
-  Committer: <committer>
+  Planner:   <planner>
   Date:      <commit date>
 
   <full change note>
@@ -223,7 +213,6 @@ This is designed to be as compact as possible.
   Name:      <change name>
   Project:   <change name>
   Planner:   <planner>
-  Committer: <committer>
 
   <full change note>
 
@@ -237,8 +226,6 @@ This is designed to be as compact as possible.
   Conflicts: <conflicting changes>
   Planner:   <planner>
   Planned:   <plan date>
-  Committer: <committer>
-  Committed: <commit date>
 
   <full change note>
 
@@ -251,8 +238,6 @@ This is designed to be as compact as possible.
   conflicts <conflicting changes>
   planner   <planner>
   planned   <raw plan date>
-  committer <committer>
-  committed <raw commit date>
 
   <full change note>
 
@@ -264,13 +249,13 @@ the UTC time zone); and all labels are lowercased and unlocalized.
 
 The C<< format:<string> >> format allows you to specify which information you
 want to show. It works a little bit like C<printf> format and a little like
-Git log format. For example, this format:
+Git plan format. For example, this format:
 
-  format:The committer of %h was %{name}c%vThe title was >>%s<<%v
+  format:The planner of %h was %{name}p%vThe title was >>%s<<%v
 
 Would show something like this:
 
-  The committer of f26a3s was Tom Lane
+  The planner of f26a3s was Tom Lane
   The title was >>We really need to get this right.<<
 
 The placeholders are:
@@ -292,30 +277,6 @@ The placeholders are:
 =item * C<%l>: Localized lowercase event type label
 
 =item * C<%L>: Localized title case event type label
-
-=item * C<%c>: Event committer name and email address
-
-=item * C<%{name}c>: Event committer name
-
-=item * C<%{email}c>: Event committer email address
-
-=item * C<%{date}c>: commit date (respects C<--date-format>)
-
-=item * C<%{date:rfc}c>: commit date, RFC2822 format
-
-=item * C<%{date:iso}c>: commit date, ISO-8601 format
-
-=item * C<%{date:full}c>: commit date, full format
-
-=item * C<%{date:long}c>: commit date, long format
-
-=item * C<%{date:medium}c>: commit date, medium format
-
-=item * C<%{date:short}c>: commit date, short format
-
-=item * C<%{date:cldr:$pattern}c>: commit date, formatted with custom L<CLDR pattern|DateTime/CLDR Patterns>
-
-=item * C<%{date:strftime:$pattern}c>: commit date, formatted with custom L<strftime pattern|DateTime/strftime Patterns>
 
 =item * C<%c>: Change planner name and email address
 
@@ -377,15 +338,11 @@ The placeholders are:
 
 =item * C<%{change}_> Localized label for "change"
 
-=item * C<%{committer}_> Localized label for "committer"
-
 =item * C<%{planner}_> Localized label for "planner"
 
 =item * C<%{by}_> Localized label for "by"
 
 =item * C<%{date}_> Localized label for "date"
-
-=item * C<%{committed}_> Localized label for "committed"
 
 =item * C<%{planned}_> Localized label for "planned"
 

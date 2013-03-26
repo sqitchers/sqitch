@@ -3,8 +3,8 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 229;
-#use Test::More 'no_plan';
+#use Test::More tests => 236;
+use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
 use Test::NoWarnings;
@@ -15,24 +15,24 @@ use Term::ANSIColor qw(color);
 use lib 't/lib';
 use MockOutput;
 
-my $CLASS = 'App::Sqitch::Command::log';
+my $CLASS = 'App::Sqitch::Command::plan';
 require_ok $CLASS;
 
 ok my $sqitch = App::Sqitch->new(
     top_dir => Path::Class::Dir->new('sql'),
     _engine => 'sqlite',
+    plan_file => file(qw(t sql sqitch.plan)),
 ), 'Load a sqitch sqitch object';
 my $config = $sqitch->config;
-isa_ok my $log = App::Sqitch::Command->load({
+isa_ok my $cmd = App::Sqitch::Command->load({
     sqitch  => $sqitch,
-    command => 'log',
+    command => 'plan',
     config  => $config,
-}), $CLASS, 'log command';
+}), $CLASS, 'plan command';
 
-can_ok $log, qw(
+can_ok $cmd, qw(
     change_pattern
-    project_pattern
-    committer_pattern
+    planner_pattern
     max_count
     skip
     reverse
@@ -45,8 +45,7 @@ can_ok $log, qw(
 is_deeply [$CLASS->options], [qw(
     event=s@
     change-pattern|change=s
-    project-pattern|project=s
-    committer-pattern|committer=s
+    planner-pattern|planner=s
     format|f=s
     date-format|date=s
     max-count|n=i
@@ -81,7 +80,7 @@ throws_ok { $CLASS->configure($config, { date_format => 'non'}), {} }
     'App::Sqitch::X',
     'Should get error for invalid date format in optsions';
 is $@->ident, 'datetime',
-    'Invalid date format error ident should be "log"';
+    'Invalid date format error ident should be "plan"';
 is $@->message, __x(
     'Unknown date format "{format}"',
     format => 'non',
@@ -90,15 +89,15 @@ is $@->message, __x(
 # Test format validation.
 $cmock->mock( get => sub {
     my ($self, %p) = @_;
-    return 'nonesuch' if $p{key} eq 'log.format';
+    return 'nonesuch' if $p{key} eq 'plan.format';
     return undef;
 });
 throws_ok { $CLASS->configure($config, {}), {} } 'App::Sqitch::X',
     'Should get error for invalid format in config';
-is $@->ident, 'log',
-    'Invalid format error ident should be "log"';
+is $@->ident, 'plan',
+    'Invalid format error ident should be "plan"';
 is $@->message, __x(
-    'Unknown log format "{format}"',
+    'Unknown plan format "{format}"',
     format => 'nonesuch',
 ), 'Invalid format error message should be correct';
 $cmock->unmock_all;
@@ -106,10 +105,10 @@ $cmock->unmock_all;
 throws_ok { $CLASS->configure($config, { format => 'non'}), {} }
     'App::Sqitch::X',
     'Should get error for invalid format in optsions';
-is $@->ident, 'log',
-    'Invalid format error ident should be "log"';
+is $@->ident, 'plan',
+    'Invalid format error ident should be "plan"';
 is $@->message, __x(
-    'Unknown log format "{format}"',
+    'Unknown plan format "{format}"',
     format => 'non',
 ), 'Invalid format error message should be correct';
 
@@ -121,12 +120,12 @@ is $configured->{formatter}->color, 'never',
 my $config_color = 'auto';
 $cmock->mock( get => sub {
     my ($self, %p) = @_;
-    return $config_color if $p{key} eq 'log.color';
+    return $config_color if $p{key} eq 'plan.color';
     return undef;
 });
 
-my $log_config = {};
-$cmock->mock( get_section => sub { $log_config } );
+my $cmd_config = {};
+$cmock->mock( get_section => sub { $cmd_config } );
 
 $configured = $CLASS->configure( $config, { no_color => 1 } );
 
@@ -135,13 +134,13 @@ is $configured->{formatter}->color, 'never',
 
 NEVER: {
     $config_color = 'never';
-    $log_config = { color => $config_color };
-    my $configured = $CLASS->configure( $config, $log_config );
+    $cmd_config = { color => $config_color };
+    my $configured = $CLASS->configure( $config, $cmd_config );
     is $configured->{formatter}->color, 'never',
         'Configuration should respect color option';
 
     # Try it with config.
-    $log_config = { color => $config_color };
+    $cmd_config = { color => $config_color };
     $configured = $CLASS->configure( $config, {} );
     is $configured->{formatter}->color, 'never',
         'Configuration should respect color config';
@@ -149,13 +148,13 @@ NEVER: {
 
 ALWAYS: {
     $config_color = 'always';
-    $log_config = { color => $config_color };
-    my $configured = $CLASS->configure( $config, $log_config );
+    $cmd_config = { color => $config_color };
+    my $configured = $CLASS->configure( $config, $cmd_config );
     is_deeply $configured->{formatter}->color, 'always',
         'Configuration should respect color option';
 
     # Try it with config.
-    $log_config = { color => $config_color };
+    $cmd_config = { color => $config_color };
     $configured = $CLASS->configure( $config, {} );
     is_deeply $configured->{formatter}->color, 'always',
         'Configuration should respect color config';
@@ -163,14 +162,14 @@ ALWAYS: {
 
 AUTO: {
     $config_color = 'auto';
-    $log_config = { color => $config_color };
+    $cmd_config = { color => $config_color };
     for my $enabled (0, 1) {
-        my $configured = $CLASS->configure( $config, $log_config );
+        my $configured = $CLASS->configure( $config, $cmd_config );
         is_deeply $configured->{formatter}->color, 'auto',
             'Configuration should respect color option';
 
         # Try it with config.
-        $log_config = { color => $config_color };
+        $cmd_config = { color => $config_color };
         $configured = $CLASS->configure( $config, {} );
         is_deeply $configured->{formatter}->color, 'auto',
             'Configuration should respect color config';
@@ -183,15 +182,12 @@ $cmock->unmock_all;
 # Test named formats.
 my $cdt = App::Sqitch::DateTime->now;
 my $pdt = $cdt->clone->subtract(days => 1);
-my $event = {
+my $change = {
     event           => 'deploy',
-    project         => 'logit',
+    project         => 'planit',
     change_id       => '000011112222333444',
     change          => 'lolz',
     tags            => [ '@beta', '@gamma' ],
-    committer_name  => 'larry',
-    committer_email => 'larry@example.com',
-    committed_at    => $cdt,
     planner_name    => 'damian',
     planner_email   => 'damian@example.com',
     planned_at      => $pdt,
@@ -200,103 +196,90 @@ my $event = {
     conflicts       => []
 };
 
-my $ciso = $cdt->as_string( format => 'iso' );
-my $craw = $cdt->as_string( format => 'raw' );
 my $piso = $pdt->as_string( format => 'iso' );
 my $praw = $pdt->as_string( format => 'raw' );
 for my $spec (
     [ raw => "deploy 000011112222333444 (\@beta, \@gamma)\n"
         . "name      lolz\n"
-        . "project   logit\n"
+        . "project   planit\n"
         . "requires  foo, bar\n"
         . "planner   damian <damian\@example.com>\n"
-        . "planned   $praw\n"
-        . "committer larry <larry\@example.com>\n"
-        . "committed $craw\n\n"
+        . "planned   $praw\n\n"
         . "    For the LOLZ.\n    \n    You know, funny stuff and cute kittens, right?\n"
     ],
     [ full =>  __('Deploy') . " 000011112222333444 (\@beta, \@gamma)\n"
         . __('Name:     ') . " lolz\n"
-        . __('Project:  ') . " logit\n"
+        . __('Project:  ') . " planit\n"
         . __('Requires: ') . " foo, bar\n"
         . __('Planner:  ') . " damian <damian\@example.com>\n"
-        . __('Planned:  ') . " __PDATE__\n"
-        . __('Committer:') . " larry <larry\@example.com>\n"
-        . __('Committed:') . " __CDATE__\n\n"
+        . __('Planned:  ') . " __PDATE__\n\n"
         . "    For the LOLZ.\n    \n    You know, funny stuff and cute kittens, right?\n"
     ],
     [ long =>  __('Deploy') . " 000011112222333444 (\@beta, \@gamma)\n"
         . __('Name:     ') . " lolz\n"
-        . __('Project:  ') . " logit\n"
-        . __('Planner:  ') . " damian <damian\@example.com>\n"
-        . __('Committer:') . " larry <larry\@example.com>\n\n"
+        . __('Project:  ') . " planit\n"
+        . __('Planner:  ') . " damian <damian\@example.com>\n\n"
         . "    For the LOLZ.\n    \n    You know, funny stuff and cute kittens, right?\n"
     ],
     [ medium =>  __('Deploy') . " 000011112222333444\n"
         . __('Name:     ') . " lolz\n"
-        . __('Committer:') . " larry <larry\@example.com>\n"
-        . __('Date:     ') . " __CDATE__\n\n"
+        . __('Planner:  ') . " damian <damian\@example.com>\n"
+        . __('Date:     ') . " __PDATE__\n\n"
         . "    For the LOLZ.\n    \n    You know, funny stuff and cute kittens, right?\n"
     ],
     [ short =>  __('Deploy') . " 000011112222333444\n"
         . __('Name:     ') . " lolz\n"
-        . __('Committer:') . " larry <larry\@example.com>\n\n"
+        . __('Planner:  ') . " damian <damian\@example.com>\n\n"
         . "    For the LOLZ.\n",
     ],
-    [ oneline => '000011112222333444 ' . __('deploy') . ' logit:lolz For the LOLZ.' ],
+    [ oneline => '000011112222333444 ' . __('deploy') . ' lolz For the LOLZ.' ],
 ) {
     my $configured = $CLASS->configure( $config, { format => $spec->[0] } );
     my $format = $configured->{format};
-    ok my $log = $CLASS->new( sqitch => $sqitch, %{ $configured } ),
+    ok my $cmd = $CLASS->new( sqitch => $sqitch, %{ $configured } ),
         qq{Instantiate with format "$spec->[0]"};
-    (my $exp = $spec->[1]) =~ s/__CDATE__/$ciso/;
-    $exp =~ s/__PDATE__/$piso/;
-    is $log->formatter->format( $log->format, $event ), $exp,
+    (my $exp = $spec->[1]) =~ s/__PDATE__/$piso/;
+    is $cmd->formatter->format( $cmd->format, $change ), $exp,
         qq{Format "$spec->[0]" should output correctly};
 
-    if ($spec->[1] =~ /__CDATE__/) {
+    if ($spec->[1] =~ /__PDATE__/) {
         # Test different date formats.
         for my $date_format (qw(rfc long medium)) {
-            ok my $log = $CLASS->new(
+            ok my $cmd = $CLASS->new(
                 sqitch => $sqitch,
                 format => $format,
                 formatter => App::Sqitch::ItemFormatter->new(date_format => $date_format),
             ), qq{Instantiate with format "$spec->[0]" and date format "$date_format"};
-            my $date = $cdt->as_string( format => $date_format );
-            (my $exp = $spec->[1]) =~ s/__CDATE__/$date/;
-            $date = $pdt->as_string( format => $date_format );
-            $exp =~ s/__PDATE__/$date/;
-            is $log->formatter->format( $log->format, $event ), $exp,
+            my $date = $pdt->as_string( format => $date_format );
+            (my $exp = $spec->[1]) =~ s/__PDATE__/$date/;
+            is $cmd->formatter->format( $cmd->format, $change ), $exp,
                 qq{Format "$spec->[0]" and date format "$date_format" should output correctly};
         }
     }
 
     if ($spec->[1] =~ s/\s+[(]?[@]beta,\s+[@]gamma[)]?//) {
         # Test without tags.
-        local $event->{tags} = [];
-        (my $exp = $spec->[1]) =~ s/__CDATE__/$ciso/;
-        $exp =~ s/__PDATE__/$piso/;
-        is $log->formatter->format( $log->format, $event ), $exp,
+        local $change->{tags} = [];
+        (my $exp = $spec->[1]) =~ s/__PDATE__/$piso/;
+        is $cmd->formatter->format( $cmd->format, $change ), $exp,
             qq{Format "$spec->[0]" should output correctly without tags};
     }
 }
 
 ###############################################################################
 # Test all formatting characters.
-my $local_cdt = $cdt->clone;
-$local_cdt->set_time_zone('local');
 my $local_pdt = $pdt->clone;
 $local_pdt->set_time_zone('local');
 
 if ($^O eq 'MSWin32') {
     require Win32::Locale;
-    $_->set( locale => Win32::Locale::get_locale() ) for ($local_cdt, $local_pdt);
+    $local_pdt->set( locale => Win32::Locale::get_locale() );
 } else {
     require POSIX;
-    $_->set( locale =>POSIX::setlocale( POSIX::LC_TIME() ) ) for ($local_cdt, $local_pdt);
+    $local_pdt->set( locale =>POSIX::setlocale( POSIX::LC_TIME() ) );
 }
 
-my $formatter = $log->formatter;
+my $formatter = $cmd->formatter;
 for my $spec (
     ['%e', { event => 'deploy' }, 'deploy' ],
     ['%e', { event => 'revert' }, 'revert' ],
@@ -312,11 +295,9 @@ for my $spec (
 
     ['%{event}_',     {}, __ 'Event:    ' ],
     ['%{change}_',    {}, __ 'Change:   ' ],
-    ['%{committer}_', {}, __ 'Committer:' ],
     ['%{planner}_',   {}, __ 'Planner:  ' ],
     ['%{by}_',        {}, __ 'By:       ' ],
     ['%{date}_',      {}, __ 'Date:     ' ],
-    ['%{committed}_', {}, __ 'Committed:' ],
     ['%{planned}_',   {}, __ 'Planned:  ' ],
     ['%{name}_',      {}, __ 'Name:     ' ],
     ['%{email}_',     {}, __ 'Email:    ' ],
@@ -332,18 +313,6 @@ for my $spec (
     ['%n', { change => 'bar' }, 'bar'],
     ['%o', { project => 'foo' }, 'foo'],
     ['%o', { project => 'bar' }, 'bar'],
-
-    ['%c', { committer_name => 'larry', committer_email => 'larry@example.com'  }, 'larry <larry@example.com>'],
-    ['%{n}c', { committer_name => 'damian' }, 'damian'],
-    ['%{name}c', { committer_name => 'chip' }, 'chip'],
-    ['%{e}c', { committer_email => 'larry@example.com'  }, 'larry@example.com'],
-    ['%{email}c', { committer_email => 'damian@example.com' }, 'damian@example.com'],
-
-    ['%{date}c', { committed_at => $cdt }, $cdt->as_string( format => 'iso' ) ],
-    ['%{date:rfc}c', { committed_at => $cdt }, $cdt->as_string( format => 'rfc' ) ],
-    ['%{d:long}c', { committed_at => $cdt }, $cdt->as_string( format => 'long' ) ],
-    ["%{d:cldr:HH'h' mm'm'}c", { committed_at => $cdt }, $local_cdt->format_cldr( q{HH'h' mm'm'} ) ],
-    ["%{d:strftime:%a at %H:%M:%S}c", { committed_at => $cdt }, $local_cdt->strftime('%a at %H:%M:%S') ],
 
     ['%p', { planner_name => 'larry', planner_email => 'larry@example.com'  }, 'larry <larry@example.com>'],
     ['%{n}p', { planner_name => 'damian' }, 'damian'],
@@ -426,14 +395,12 @@ for my $spec (
     ['%{x}B', { note => "subject line\n\nfirst graph\n\nsecond graph\n\n" }, "xsubject line\nx\nxfirst graph\nx\nxsecond graph\nx\n" ],
     ['%{ }B', { note => "hi there\r\nyo" }, " hi there\r\n yo" ],
 
-    ['%{change}a',    $event, "change    $event->{change}\n" ],
-    ['%{change_id}a', $event, "change_id $event->{change_id}\n" ],
-    ['%{event}a',     $event, "event     $event->{event}\n" ],
-    ['%{tags}a',      $event, 'tags      ' . join(', ', @{ $event->{tags} }) . "\n" ],
-    ['%{requires}a',  $event, 'requires  ' . join(', ', @{ $event->{requires} }) . "\n" ],
-    ['%{conflicts}a', $event, '' ],
-    ['%{committer_name}a', $event, "committer_name $event->{committer_name}\n" ],
-    ['%{committed_at}a',   $event, "committed_at $craw\n" ],
+    ['%{change}a',    $change, "change    $change->{change}\n" ],
+    ['%{change_id}a', $change, "change_id $change->{change_id}\n" ],
+    ['%{event}a',     $change, "event     $change->{event}\n" ],
+    ['%{tags}a',      $change, 'tags      ' . join(', ', @{ $change->{tags} }) . "\n" ],
+    ['%{requires}a',  $change, 'requires  ' . join(', ', @{ $change->{requires} }) . "\n" ],
+    ['%{conflicts}a', $change, '' ],
 ) {
     (my $desc = $spec->[2]) =~ s/\n/[newline]/g;
     is $formatter->format( $spec->[0], $spec->[1] ), $spec->[2],
@@ -453,25 +420,25 @@ is $@->message, __x(
     label => 'foo'
 ), 'Invalid %_ label error message should be correct';
 
-ok $log = $CLASS->new(
+ok $cmd = $CLASS->new(
     sqitch    => $sqitch,
     formatter => App::Sqitch::ItemFormatter->new(abbrev => 4)
 ), 'Instantiate with abbrev => 4';
-is $log->formatter->format( '%h', { change_id => '123456789' } ),
+is $cmd->formatter->format( '%h', { change_id => '123456789' } ),
     '1234', '%h should respect abbrev';
-is $log->formatter->format( '%H', { change_id => '123456789' } ),
+is $cmd->formatter->format( '%H', { change_id => '123456789' } ),
     '123456789', '%H should not respect abbrev';
 
-ok $log = $CLASS->new(
+ok $cmd = $CLASS->new(
     sqitch    => $sqitch,
     formatter => App::Sqitch::ItemFormatter->new(date_format => 'rfc')
 ), 'Instantiate with date_format => "rfc"';
-is $log->formatter->format( '%{date}c', { committed_at => $cdt } ),
+is $cmd->formatter->format( '%{date}p', { planned_at => $cdt } ),
     $cdt->as_string( format => 'rfc' ),
-    '%{date}c should respect the date_format attribute';
-is $log->formatter->format( '%{d:iso}c', { committed_at => $cdt } ),
+    '%{date}p should respect the date_format attribute';
+is $cmd->formatter->format( '%{d:iso}p', { planned_at => $cdt } ),
     $cdt->as_string( format => 'iso' ),
-    '%{iso}c should override the date_format attribute';
+    '%{iso}p should override the date_format attribute';
 
 throws_ok { $formatter->format( '%{foo}a', {}) } 'App::Sqitch::X',
     'Should get exception for unknown attribute passed to %a';
@@ -479,7 +446,6 @@ is $@->ident, 'format', '%a error ident should be "format"';
 is $@->message, __x(
     '{attr} is not a valid change attribute', attr => 'foo'
 ), '%a error message should be correct';
-
 
 delete $ENV{ANSI_COLORS_DISABLED};
 for my $color (qw(yellow red blue cyan magenta)) {
@@ -501,49 +467,45 @@ for my $spec (
 # Make sure other colors work.
 my $yellow = color('yellow') . '%s' . color('reset');
 my $green  = color('green')  . '%s' . color('reset');
-$event->{conflicts} = [qw(dr_evil)];
+$change->{conflicts} = [qw(dr_evil)];
 for my $spec (
     [ full => sprintf($green, __ ('Deploy') . ' 000011112222333444')
         . " (\@beta, \@gamma)\n"
         . __ ('Name:     ') . " lolz\n"
-        . __ ('Project:  ') . " logit\n"
+        . __ ('Project:  ') . " planit\n"
         . __ ('Requires: ') . " foo, bar\n"
         . __ ('Conflicts:') . " dr_evil\n"
         . __ ('Planner:  ') . " damian <damian\@example.com>\n"
-        . __ ('Planned:  ') . " __PDATE__\n"
-        . __ ('Committer:') . " larry <larry\@example.com>\n"
-        . __ ('Committed:') . " __CDATE__\n\n"
+        . __ ('Planned:  ') . " __PDATE__\n\n"
         . "    For the LOLZ.\n    \n    You know, funny stuff and cute kittens, right?\n"
     ],
     [ long => sprintf($green, __ ('Deploy') . ' 000011112222333444')
         . " (\@beta, \@gamma)\n"
         . __ ('Name:     ') . " lolz\n"
-        . __ ('Project:  ') . " logit\n"
-        . __ ('Planner:  ') . " damian <damian\@example.com>\n"
-        . __ ('Committer:') . " larry <larry\@example.com>\n\n"
+        . __ ('Project:  ') . " planit\n"
+        . __ ('Planner:  ') . " damian <damian\@example.com>\n\n"
         . "    For the LOLZ.\n    \n    You know, funny stuff and cute kittens, right?\n"
     ],
     [ medium => sprintf($green, __ ('Deploy') . ' 000011112222333444') . "\n"
         . __ ('Name:     ') . " lolz\n"
-        . __ ('Committer:') . " larry <larry\@example.com>\n"
-        . __ ('Date:     ') . " __CDATE__\n\n"
+        . __ ('Planner:  ') . " damian <damian\@example.com>\n"
+        . __ ('Date:     ') . " __PDATE__\n\n"
         . "    For the LOLZ.\n    \n    You know, funny stuff and cute kittens, right?\n"
     ],
     [ short => sprintf($green, __ ('Deploy') . ' 000011112222333444') . "\n"
         . __ ('Name:     ') . " lolz\n"
-        . __ ('Committer:') . " larry <larry\@example.com>\n\n"
+        . __ ('Planner:  ') . " damian <damian\@example.com>\n\n"
         . "    For the LOLZ.\n",
     ],
     [ oneline => sprintf "$green %s %s", '000011112222333444' . ' '
-        . __('deploy'), 'logit:lolz', 'For the LOLZ.',
+        . __('deploy'), 'lolz', 'For the LOLZ.',
     ],
 ) {
     my $format = $CLASS->configure( $config, { format => $spec->[0] } )->{format};
-    ok my $log = $CLASS->new( sqitch => $sqitch, format => $format ),
+    ok my $cmd = $CLASS->new( sqitch => $sqitch, format => $format ),
         qq{Instantiate with format "$spec->[0]" again};
-    (my $exp = $spec->[1]) =~ s/__CDATE__/$ciso/;
-    $exp =~ s/__PDATE__/$piso/;
-    is $log->formatter->format( $log->format, $event ), $exp,
+    (my $exp = $spec->[1]) =~ s/__PDATE__/$piso/;
+    is $cmd->formatter->format( $cmd->format, $change ), $exp,
         qq{Format "$spec->[0]" should output correctly with color};
 }
 
@@ -554,110 +516,116 @@ is $@->message, __x(
     '{color} is not a valid ANSI color', color => 'BLUELOLZ'
 ), 'Invalid color error message should be correct';
 
+
 ##############################################################################
 # Test execute().
-my $emock = Test::MockModule->new('App::Sqitch::Engine::sqlite');
-$emock->mock(destination => 'flipr');
+my $pmock = Test::MockModule->new('App::Sqitch::Plan');
 
-# First test for uninitialized DB.
-my $init = 0;
-$emock->mock(initialized => sub { $init });
-throws_ok { $log->execute } 'App::Sqitch::X',
-    'Should get exception for unititialied db';
-is $@->ident, 'log', 'Uninit db error ident should be "log"';
-is $@->exitval, 1, 'Uninit db exit val should be 1';
+# First, test for no changes.
+$pmock->mock(count => 0);
+
+throws_ok { $cmd->execute } 'App::Sqitch::X',
+    'Should get error for no changes';
+is $@->ident, 'plan', 'no changes error ident should be "plan"';
+is $@->exitval, 1, 'no changes exit val should be 1';
 is $@->message, __x(
-    'Database {db} has not been initilized for Sqitch',
-    db => 'flipr',
-), 'Uninit db error message should be correct';
+    'No changes in {file}',
+    file => $sqitch->plan_file
+), 'no changes error message should be correct';
+$pmock->unmock('count');
 
-# Next, test for no events.
-$init = 1;
-my @events;
-my $iter = sub { shift @events };
+# Okay, let's see some changes.
+my @changes;
+my $iter = sub { shift @changes };
 my $search_args;
-$emock->mock(search_events => sub {
+$pmock->mock(search_changes => sub {
     shift;
     $search_args = [@_];
     return $iter;
 });
-throws_ok { $log->execute } 'App::Sqitch::X',
-    'Should get error for empty event table';
-is $@->ident, 'log', 'no events error ident should be "log"';
-is $@->exitval, 1, 'no events exit val should be 1';
-is $@->message, __x(
-    'No events logged to {db}',
-    db => 'flipr',
-), 'no events error message should be correct';
-is_deeply $search_args, [limit => 1],
-    'Search should have been limited to one row';
 
-# Okay, let's add some events.
-push @events => {}, $event;
-ok $log->execute, 'Execute log';
+$change = $sqitch->plan->change_at(0);
+push @changes => $change;
+ok $cmd->execute, 'Execute plan';
 is_deeply $search_args, [
     event     => undef,
-    change    => undef,
-    project   => undef,
-    committer => undef,
+    name      => undef,
+    planner   => undef,
     limit     => undef,
     offset    => undef,
     direction => 'DESC'
 ], 'The proper args should have been passed to search_events';
 
+my $fmt_params = {
+    event         => $change->is_deploy ? 'deploy' : 'revert',
+    project       => $change->project,
+    change_id     => $change->id,
+    change        => $change->name,
+    note          => $change->note,
+    tags          => [ map { $_->format_name } $change->tags ],
+    requires      => [ map { $_->as_string } $change->requires ],
+    conflicts     => [ map { $_->as_string } $change->conflicts ],
+    planned_at    => $change->timestamp,
+    planner_name  => $change->planner_name,
+    planner_email => $change->planner_email,
+};
 is_deeply +MockOutput->get_page, [
-    [__x 'On database {db}', db => 'flipr'],
-    [ $log->formatter->format( $log->format, $event ) ],
-], 'The change should have been paged';
+    [__x 'In {file}', file => $sqitch->plan_file ],
+    [ $cmd->formatter->format( $cmd->format, $fmt_params ) ],
+], 'The event should have been paged';
 
 # Set attributes and add more events.
-my $event2 = {
-    event           => 'revert',
-    change_id       => '84584584359345',
-    change          => 'barf',
-    tags            => [],
-    committer_name  => 'theory',
-    committer_email => 'theory@example.com',
-    committed_at    => $cdt,
-    note            => 'Oh man this was a bad idea',
-};
-push @events => {}, $event, $event2;
-isa_ok $log = $CLASS->new(
+my $change2 = $sqitch->plan->change_at(1);
+push @changes => $change, $change2;
+isa_ok $cmd = $CLASS->new(
     sqitch            => $sqitch,
     event             => [qw(revert fail)],
     change_pattern    => '.+',
     project_pattern   => '.+',
-    committer_pattern => '.+',
+    planner_pattern   => '.+',
     max_count         => 10,
     skip              => 5,
     reverse           => 1,
-), $CLASS, 'log with attributes';
+), $CLASS, 'plan with attributes';
 
-ok $log->execute, 'Execute log with attributes';
+ok $cmd->execute, 'Execute plan with attributes';
 is_deeply $search_args, [
     event     => [qw(revert fail)],
-    change    => '.+',
-    project   => '.+',
-    committer => '.+',
+    name      => '.+',
+    planner   => '.+',
     limit     => 10,
     offset    => 5,
     direction => 'ASC'
 ], 'All params should have been passed to search_events';
 
+my $fmt_params2 = {
+    event         => $change2->is_deploy ? 'deploy' : 'revert',
+    project       => $change2->project,
+    change_id     => $change2->id,
+    change        => $change2->name,
+    note          => $change2->note,
+    tags          => [ map { $_->format_name } $change2->tags ],
+    requires      => [ map { $_->as_string } $change2->requires ],
+    conflicts     => [ map { $_->as_string } $change2->conflicts ],
+    planned_at    => $change2->timestamp,
+    planner_name  => $change2->planner_name,
+    planner_email => $change2->planner_email,
+};
+
 is_deeply +MockOutput->get_page, [
-    [__x 'On database {db}', db => 'flipr'],
-    [ $log->formatter->format( $log->format, $event ) ],
-    [ $log->formatter->format( $log->format, $event2 ) ],
-], 'Both changes should have been paged';
+    [__x 'In {file}', file => $sqitch->plan_file],
+    [ $cmd->formatter->format( $cmd->format, $fmt_params  ) ],
+    [ $cmd->formatter->format( $cmd->format, $fmt_params2 ) ],
+], 'Both events should have been paged';
 
 # Make sure we catch bad format codes.
-isa_ok $log = $CLASS->new(
+isa_ok $cmd = $CLASS->new(
     sqitch => $sqitch,
     format => '%Z',
-), $CLASS, 'log with bad format';
+), $CLASS, 'plan with bad format';
 
-push @events, {}, $event;
-throws_ok { $log->execute } 'App::Sqitch::X',
+push @changes, $change;
+throws_ok { $cmd->execute } 'App::Sqitch::X',
     'Should get an exception for a bad format code';
 is $@->ident, 'format',
     'bad format code format error ident should be "format"';
