@@ -157,6 +157,10 @@ Turn off colored output. It is the same as C<--color never>.
 Instead of showing the full 40-byte hexadecimal change ID, show only a partial
 prefix the specified number of characters long.
 
+=item C<--oneline>
+
+Shorthand for C<--format oneline --abbrev 6>.
+
 =back
 
 =head1 Configuration Variables

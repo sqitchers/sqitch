@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 229;
+use Test::More tests => 233;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -55,6 +55,7 @@ is_deeply [$CLASS->options], [qw(
     color=s
     no-color
     abbrev=i
+    oneline
 )], 'Options should be correct';
 
 ##############################################################################
@@ -117,6 +118,16 @@ is $@->message, __x(
 $configured = $CLASS->configure( $config, { no_color => 1 } );
 is $configured->{formatter}->color, 'never',
     'Configuration should respect --no-color, setting "never"';
+
+# Test oneline configuration.
+$configured = $CLASS->configure( $config, { oneline => 1 });
+is $configured->{format}, '%{:event}C%h %l%{reset}C %o:%n %s',
+    '--oneline should set format';
+is $configured->{formatter}{abbrev}, 6, '--oneline should set abbrev to 6';
+
+$configured = $CLASS->configure( $config, { oneline => 1, format => 'format:foo', abbrev => 5 });
+is $configured->{format}, 'foo', '--oneline should not override --format';
+is $configured->{formatter}{abbrev}, 5, '--oneline should not overrride --abbrev';
 
 my $config_color = 'auto';
 $cmock->mock( get => sub {

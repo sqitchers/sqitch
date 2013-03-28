@@ -134,11 +134,18 @@ sub options {
         color=s
         no-color
         abbrev=i
+        oneline
     );
 }
 
 sub configure {
     my ( $class, $config, $opt ) = @_;
+
+    # Set base values if --oneline.
+    if ($opt->{oneline}) {
+        $opt->{format} ||= 'oneline';
+        $opt->{abbrev} //= 6;
+    }
 
     # Determine and validate the date format.
     my $date_format = delete $opt->{date_format} || $config->get(

@@ -16,6 +16,7 @@ Revision history for Perl extension App::Sqitch
      - Added the `plan` command. It's like `log`, but shows a list of changes
        in the plan, rather than events recorded in the database.
      - Added `search_changes()` to Plan. Used by the `plan` command.
+     - Added the `--oneline` option to the `log` command.
 
 0.953  2013-02-21T23:37:57Z
      - Fixed test failure in `t/engine.t` triggered by a clock tick.

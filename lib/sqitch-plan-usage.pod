@@ -25,3 +25,4 @@ Formatting
     --color                       use ANSI colors
     --no-color                    never use ANSI colors
     --abrev                       abbreviate change IDs
+    --online                      shorthand for --format oneline --abbrev 6
