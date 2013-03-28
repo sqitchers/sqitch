@@ -742,6 +742,8 @@ sub tag {
 
     $change->add_tag($tag);
     $changes->index_tag( $changes->index_of( $change->id ), $tag );
+
+    # Add tag to line list, after the change and any preceding tags.
     my $lines = $self->_lines;
     $lines->insert_at( $tag, $lines->index_of($change) + $change->tags );
     return $tag;
