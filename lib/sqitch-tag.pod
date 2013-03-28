@@ -6,15 +6,18 @@ sqitch-tag - Create or list tag objects
 
   sqitch [options] tag
   sqitch [options] tag name
-  sqitch [options] tag [-m MESSAGE] name
+  sqitch [options] tag name change
+  sqitch [options] tag [-n MESSAGE] name
 
 =head1 Description
 
-Tag the latest change in the plan, or list the existing tags. This is useful
-for preparing for a release. Tags are also required in order to rework a
-change.
+Tag a change or list the existing tags. Tagging a change is useful for
+preparing for a release. Tags are also required in order to rework a change.
 
-If called with name specified, a list of the current tags will be output.
+To specify a change, use a change specification as documented in
+L<sqitchchanges>. If called with a tag name but no change, the most recent
+change will be tagged. If called with no name specified, a list of the current
+tags will be output.
 
 =head1 Options
 

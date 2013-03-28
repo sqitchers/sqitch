@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 29;
+use Test::More tests => 39;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -105,3 +105,26 @@ is_deeply +MockOutput->get_info, [
         tag    => '@gamma',
     ]
 ], 'The gamma note should be correct';
+
+# Tag a specific change.
+isa_ok $tag = App::Sqitch::Command::tag->new({
+    sqitch => $sqitch,
+    note   => ['here we go'],
+}), $CLASS, 'tag command with note';
+
+ok $plan->add( name => 'bar' ), 'Add change "bar"';
+ok $plan->add( name => 'baz' ), 'Add change "baz"';
+ok $tag->execute('delta', 'bar'), 'Tag change "bar" with @delta';
+is $plan->get('@delta')->name, 'bar', 'Should have tagged "bar"';
+ok $plan->load, 'Reload plan';
+is $plan->get('@delta')->name, 'bar', 'New tag should have been written';
+is [$plan->tags]->[-1]->note, 'here we go', 'New tag should have the proper note';
+is_deeply \%request_params, { for => __ 'tag' }, 'Should have requested a note';
+
+is_deeply +MockOutput->get_info, [
+    [__x
+        'Tagged "{change}" with {tag}',
+        change => 'bar',
+        tag    => '@delta',
+    ]
+], 'The info message should be correct';

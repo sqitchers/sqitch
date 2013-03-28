@@ -26,14 +26,15 @@ sub options {
 }
 
 sub execute {
-    my ( $self, $name ) = @_;
+    my ( $self, $name, $change ) = @_;
     my $sqitch = $self->sqitch;
     my $plan   = $sqitch->plan;
 
     if (defined $name) {
         my $tag = $plan->tag(
-            name => $name,
-            note => join "\n\n" => @{ $self->note },
+            name   => $name,
+            change => $change,
+            note   => join "\n\n" => @{ $self->note },
         );
 
         # Make sure we have a note.
