@@ -1211,12 +1211,22 @@ file_contents_is $to,
     . $file->slurp(iomode => '<:encoding(UTF-8)')
     . $tag->as_string . $/,
     'The contents should include the "w00t" tag';
-
 # Try passing the tag name with a leading @.
 ok my $tag2 = $plan->tag( name => '@alpha' ), 'Add tag "@alpha"';
 is $plan->index_of('@alpha'), 3, 'Should find "@alpha at index 3';
 is $tag2->name, 'alpha', 'The returned tag should be @alpha';
 is $tag2->change, $plan->last, 'The @alpha change should be the last change';
+
+# Try specifying the change to tag.
+ok my $tag3 = $plan->tag(name => 'blarney', change => 'you'),
+    'Tag change "you"';
+is $plan->count, 4, 'Should still have 4 changes';
+is $plan->index_of('@blarney'), 1, 'Should find "@blarney at index 1';
+is_deeply [map { $_->name } $plan->change_at(1)->tags], [qw(foo blarney)],
+    'The blarney tag should be on the second change';
+isa_ok $tag3, 'App::Sqitch::Plan::Tag';
+is $tag3->name, 'blarney', 'The returned tag should be @blarney';
+is $tag3->change, $plan->change_at(1), 'The @blarney change should be the second change';
 
 # Should choke on a duplicate tag.
 throws_ok { $plan->tag( name => 'w00t' ) } 'App::Sqitch::X',
@@ -1274,10 +1284,12 @@ is $new_change->as_string, join (' ',
     $new_change->format_note,
 ), 'Should have plain stringification of "booya"';
 
+my $contents = $file->slurp(iomode => '<:encoding(UTF-8)');
+$contents =~ s{(\s+this/rocks)}{"\n" . $tag3->as_string . $1}ems;
 ok $plan->write_to($to), 'Write out the file again';
 file_contents_is $to,
     '%syntax-version=' . App::Sqitch::Plan::SYNTAX_VERSION . $/
-    . $file->slurp(iomode => '<:encoding(UTF-8)')
+    . $contents
     . $tag->as_string . "\n"
     . $tag2->as_string . "\n\n"
     . $new_change->as_string . $/,

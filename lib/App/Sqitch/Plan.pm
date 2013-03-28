@@ -718,10 +718,19 @@ sub tag {
         tag => $key
     ) if defined $changes->index_of($key);
 
-    my $change = $changes->last_change or hurl plan => __x(
-        'Cannot apply tag "{tag}" to a plan with no changes',
-        tag => $key
-    );
+
+    my $change;
+    if (my $spec = $p{change}) {
+        $change = $changes->get($spec) or hurl plan => __x(
+            'Unknown change: "{change}"',
+            change => $spec,
+        );
+    } else {
+        $change = $changes->last_change or hurl plan => __x(
+            'Cannot apply tag "{tag}" to a plan with no changes',
+            tag => $key
+        );
+    }
 
     my $tag = App::Sqitch::Plan::Tag->new(
         %p,
@@ -733,7 +742,8 @@ sub tag {
 
     $change->add_tag($tag);
     $changes->index_tag( $changes->index_of( $change->id ), $tag );
-    $self->_lines->append( $tag );
+    my $lines = $self->_lines;
+    $lines->insert_at( $tag, $lines->index_of($change) + $change->tags );
     return $tag;
 }
 
@@ -1320,10 +1330,38 @@ succeeding changes.
 
 =head3 C<tag>
 
-  $plan->tag('whee');
+  $plan->tag( name => 'whee' );
 
-Tags the most recent change in the plan. Exits with a fatal error if the tag
-already exists in the plan.
+Tags a change in the plan. Exits with a fatal error if the tag already exists
+in the plan or if a change cannot be found to tag. The supported paramters
+are:
+
+=over
+
+=item C<name>
+
+The tag name to use. Required.
+
+=item C<change>
+
+The change to be tagged, specfied as a supported change specification as
+described in L<sqitchchanges>. Defaults to the last change in the plan.
+
+=item C<note>
+
+A brief note about the tag.
+
+=item C<planner_name>
+
+The name of the user adding the tag to the plan. Defaults to the value of the
+C<user.name> configuration variable.
+
+=item C<planner_email>
+
+The email address of the user adding the tag to the plan. Defaults to the
+value of the C<user.email> configuration variable.
+
+=back
 
 =head3 C<add>
 
