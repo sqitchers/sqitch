@@ -4,7 +4,8 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 22;
+use Test::More tests => 28;
+#use Test::More 'no_plan';
 use Test::NoWarnings;
 use Test::Exception;
 use App::Sqitch;
@@ -63,3 +64,14 @@ ok $lines->append($hi), 'Append hi';
 is $lines->count, 8, 'Count should now be eight';
 is_deeply [$lines->items], [$foo, $bar, $yo1, $alpha, $blank, $baz, $yo2, $hi],
     'Lines should be in order with $hi at the end';
+
+# Try inserting.
+my $oy = App::Sqitch::Plan::Change->new(plan => $plan, name => 'oy');
+ok $lines->insert_at($oy, 3), 'Insert a change at index 3';
+is $lines->count, 9, 'Count should now be nine';
+is_deeply [$lines->items], [$foo, $bar, $yo1, $oy, $alpha, $blank, $baz, $yo2, $hi],
+    'Lines should be in order with $oy at index 3';
+is $lines->index_of($oy), 3, 'Should find oy at 3';
+is $lines->index_of($alpha), 4, 'Should find @alpha at 4';
+is $lines->index_of($hi), 8, 'Should find hi at 8';
+

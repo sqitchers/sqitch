@@ -30,6 +30,19 @@ sub append {
     $self->{lookup}{$line} = $#$list;
 }
 
+sub insert_at {
+    my ( $self, $line, $idx ) = @_;
+
+    # Add the line to the list.
+    my $list = $self->{list};
+    splice @{ $list }, $idx, 0, $line;
+
+    # Reindex.
+    my $index = $self->{lookup};
+    $index->{ $list->[$_] } = $_ for $idx..$#$list;
+    return $self;
+}
+
 1;
 
 __END__
@@ -76,6 +89,8 @@ appears between each instance of a key.
 =head3 C<index_of>
 
 =head3 C<append>
+
+=head3 C<insert_at>
 
 =head1 See Also
 
