@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use 5.010;
-use Test::More tests => 43;
+use Test::More tests => 44;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Test::MockModule;
@@ -74,6 +74,11 @@ is_deeply [$sqlite->sqlite3], [$sqlite->client, @std_opts, $sqlite->db_name],
 
 ##############################################################################
 # Test _run(), _capture(), and _spool().
+my $tmp_dir = Path::Class::tempdir( CLEANUP => 1 );
+my $db_name = $tmp_dir->file('sqitch.db');
+ok $sqlite = $CLASS->new(sqitch => $sqitch, db_name => $db_name->stringify),
+    'Instantiate with a temporary database file';
+
 can_ok $sqlite, qw(_run _capture _spool);
 
 my $mock_sqitch = Test::MockModule->new('App::Sqitch');
