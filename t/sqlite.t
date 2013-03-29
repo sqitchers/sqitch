@@ -8,6 +8,8 @@ use App::Sqitch;
 use Test::MockModule;
 use Path::Class;
 use Try::Tiny;
+use Test::Exception;
+use Locale::TextDomain qw(App-Sqitch);
 
 my $CLASS;
 
@@ -43,6 +45,14 @@ my @std_opts = (
 
 is_deeply [$sqlite->sqlite3], [$sqlite->client, @std_opts, $sqlite->db_name],
     'sqlite3 command should have the proper opts';
+
+##############################################################################
+# Make sure we get an error for no database name.
+isa_ok $sqlite = $CLASS->new(sqitch => $sqitch), $CLASS;
+throws_ok { $sqlite->_dbh } 'App::Sqitch::X', 'Should get an error for no db name';
+is $@->ident, 'sqlite', 'Missing db name error ident should be "sqlite"';
+is $@->message, __ 'No database specified; use --db-name set "ore.sqlite.db_name" via sqitch config',
+    'Missing db name error message should be correct';
 
 ##############################################################################
 # Make sure config settings override defaults.

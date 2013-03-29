@@ -73,7 +73,9 @@ has _dbh => (
         eval "require DBD::SQLite";
         hurl sqlite => __ 'DBD::SQLite module required to manage PostgreSQL' if $@;
 
-        my $dsn = 'dbi:SQLite:dbname=' . $self->sqitch_db;
+        my $dsn = 'dbi:SQLite:dbname=' . ($self->sqitch_db || hurl sqlite => __(
+            'No database specified; use --db-name set "ore.sqlite.db_name" via sqitch config'
+        ));
 
         DBI->connect($dsn, '', '', {
             PrintError        => 0,
