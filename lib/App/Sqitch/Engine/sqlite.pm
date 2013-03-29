@@ -40,6 +40,7 @@ has db_name => (
         my $self   = shift;
         my $sqitch = $self->sqitch;
         my $name = $sqitch->db_name
+            || $self->sqitch->config->get( key => 'core.sqlite.db_name' )
             || try { $sqitch->plan->project . '.db' }
             || return undef;
         return file $name;

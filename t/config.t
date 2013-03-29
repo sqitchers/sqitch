@@ -451,7 +451,7 @@ core.pg.host=localhost
 core.pg.sqitch_schema=meta
 core.pg.username=postgres
 core.sqlite.client=/opt/local/bin/sqlite3
-core.sqlite.sqitch_prefix=meta
+core.sqlite.sqitch_db=meta.db
 core.top_dir=migrations
 core.uri=https://github.com/theory/sqitch/
 revert.count=2
@@ -508,7 +508,7 @@ core.pg.host=localhost
 core.pg.sqitch_schema=meta
 core.pg.username=postgres
 core.sqlite.client=/opt/local/bin/sqlite3
-core.sqlite.sqitch_prefix=meta
+core.sqlite.sqitch_db=meta.db
 user.email=michael\@example.com
 user.name=Michael Stonebraker
 "
