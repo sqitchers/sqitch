@@ -5,13 +5,15 @@ use strict;
 use warnings;
 use utf8;
 use Mouse::Role;
-use namespace::autoclean;
 use Try::Tiny;
 use App::Sqitch::X qw(hurl);
+use Locale::TextDomain qw(App-Sqitch);
+use namespace::autoclean;
 
 our $VERSION = '0.954';
 
 requires '_dbh';
+requires 'sqitch';
 requires 'plan';
 requires '_regex_op';
 requires '_ts2char_format';
@@ -210,6 +212,75 @@ sub search_events {
     };
 }
 
+sub registered_projects {
+    return @{ shift->_dbh->selectcol_arrayref(
+        'SELECT project FROM projects ORDER BY project'
+    ) };
+}
+
+sub register_project {
+    my $self   = shift;
+    my $sqitch = $self->sqitch;
+    my $dbh    = $self->_dbh;
+    my $plan   = $self->plan;
+    my $proj   = $plan->project;
+    my $uri    = $plan->uri;
+
+    my $res = $dbh->selectcol_arrayref(
+        'SELECT uri FROM projects WHERE project = ?',
+        undef, $proj
+    );
+
+    if (@{ $res }) {
+        # A project with that name is already registreed. Compare URIs.
+        my $reg_uri = $res->[0];
+        if ( defined $uri && !defined $reg_uri ) {
+            hurl engine => __x(
+                'Cannot register "{project}" with URI {uri}: already exists with NULL URI',
+                project => $proj,
+                uri     => $uri
+            );
+        } elsif ( !defined $uri && defined $reg_uri ) {
+            hurl engine => __x(
+                'Cannot register "{project}" without URI: already exists with URI {uri}',
+                project => $proj,
+                uri     => $reg_uri
+            );
+        } elsif ( defined $uri && defined $reg_uri ) {
+            hurl engine => __x(
+                'Cannot register "{project}" with URI {uri}: already exists with URI {reg_uri}',
+                project => $proj,
+                uri     => $uri,
+                reg_uri => $reg_uri,
+            ) if $uri ne $reg_uri;
+        } else {
+            # Both are undef, so cool.
+        }
+    } else {
+        # Does the URI already exist?
+        my $res = $dbh->selectcol_arrayref(
+            'SELECT project FROM projects WHERE uri = ?',
+            undef, $uri
+        );
+
+        hurl engine => __x(
+            'Cannot register "{project}" with URI {uri}: project "{reg_prog}" already using that URI',
+            project => $proj,
+            uri     => $uri,
+            reg_proj => $res->[0],
+        ) if @{ $res };
+
+        # Insert the project.
+        $dbh->do(q{
+            INSERT INTO projects (project, uri, creator_name, creator_email)
+            VALUES (?, ?, ?, ?)
+        }, undef, $proj, $uri, $sqitch->user_name, $sqitch->user_email);
+    }
+
+    return $self;
+}
+
+
 1;
 
 __END__
@@ -244,6 +315,10 @@ DBI-powered engines.
 =head3 C<current_tags>
 
 =head3 C<search_events>
+
+=head3 C<registered_projects>
+
+=head3 C<register_project>
 
 =head1 See Also
 

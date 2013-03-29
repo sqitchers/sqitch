@@ -9,6 +9,7 @@ use Test::MockModule;
 use Path::Class;
 use Try::Tiny;
 use Test::Exception;
+use DBI;
 use Locale::TextDomain qw(App-Sqitch);
 
 my $CLASS;
@@ -249,7 +250,114 @@ subtest 'live database' => sub {
     is_deeply all( $sqlite->current_tags ), [], 'Should have no current tags';
     is_deeply all( $sqlite->search_events ), [], 'Should have no events';
 
+    ##############################################################################
+    # Test register_project().
+    can_ok $sqlite, 'register_project';
+    can_ok $sqlite, 'registered_projects';
+
+    is_deeply [ $sqlite->registered_projects ], [],
+        'Should have no registered projects';
+
+    ok $sqlite->register_project, 'Register the project';
+    is_deeply [ $sqlite->registered_projects ], ['sql'],
+        'Should have one registered project, "sql"';
+    is_deeply $sqlite->_dbh->selectall_arrayref(
+        'SELECT project, uri, creator_name, creator_email FROM projects'
+    ), [['sql', undef, $sqitch->user_name, $sqitch->user_email]],
+        'The project should be registered';
+
+    # Try to register it again.
+    ok $sqlite->register_project, 'Register the project again';
+    is_deeply [ $sqlite->registered_projects ], ['sql'],
+        'Should still have one registered project, "sql"';
+    is_deeply $sqlite->_dbh->selectall_arrayref(
+        'SELECT project, uri, creator_name, creator_email FROM projects'
+    ), [['sql', undef, $sqitch->user_name, $sqitch->user_email]],
+        'The project should still be registered only once';
+
+    # Register a different project name.
+    MOCKPROJECT: {
+        my $plan_mocker = Test::MockModule->new(ref $sqitch->plan );
+        $plan_mocker->mock(project => 'groovy');
+        $plan_mocker->mock(uri     => 'http://example.com/');
+        ok $sqlite->register_project, 'Register a second project';
+    }
+
+    is_deeply [ $sqlite->registered_projects ], ['groovy', 'sql'],
+        'Should have both registered projects';
+    is_deeply $sqlite->_dbh->selectall_arrayref(
+        'SELECT project, uri, creator_name, creator_email FROM projects ORDER BY created_at'
+    ), [
+        ['sql', undef, $sqitch->user_name, $sqitch->user_email],
+        ['groovy', 'http://example.com/', $sqitch->user_name, $sqitch->user_email],
+    ], 'Both projects should now be registered';
+
+    # Try to register with a different URI.
+    MOCKURI: {
+        my $plan_mocker = Test::MockModule->new(ref $sqitch->plan );
+        my $plan_proj = 'sql';
+        my $plan_uri = 'http://example.net/';
+        $plan_mocker->mock(project => sub { $plan_proj });
+        $plan_mocker->mock(uri => sub { $plan_uri });
+        throws_ok { $sqlite->register_project } 'App::Sqitch::X',
+            'Should get an error for defined URI vs NULL registered URI';
+        is $@->ident, 'engine', 'Defined URI error ident should be "engine"';
+        is $@->message, __x(
+            'Cannot register "{project}" with URI {uri}: already exists with NULL URI',
+            project => 'sql',
+            uri     => $plan_uri,
+        ), 'Defined URI error message should be correct';
+
+        # Try it when the registered URI is NULL.
+        $plan_proj = 'groovy';
+        throws_ok { $sqlite->register_project } 'App::Sqitch::X',
+            'Should get an error for different URIs';
+        is $@->ident, 'engine', 'Different URI error ident should be "engine"';
+        is $@->message, __x(
+            'Cannot register "{project}" with URI {uri}: already exists with URI {reg_uri}',
+            project => 'groovy',
+            uri     => $plan_uri,
+            reg_uri => 'http://example.com/',
+        ), 'Different URI error message should be correct';
+
+        # Try with a NULL project URI.
+        $plan_uri  = undef;
+        throws_ok { $sqlite->register_project } 'App::Sqitch::X',
+            'Should get an error for NULL plan URI';
+        is $@->ident, 'engine', 'NULL plan URI error ident should be "engine"';
+        is $@->message, __x(
+            'Cannot register "{project}" without URI: already exists with URI {uri}',
+            project => 'groovy',
+            uri     => 'http://example.com/',
+        ), 'NULL plan uri error message should be correct';
+
+        # It should succeed when the name and URI are the same.
+        $plan_uri = 'http://example.com/';
+        ok $sqlite->register_project, 'Register "groovy" again';
+        is_deeply [ $sqlite->registered_projects ], ['groovy', 'sql'],
+            'Should still have two registered projects';
+        is_deeply $sqlite->_dbh->selectall_arrayref(
+            'SELECT project, uri, creator_name, creator_email FROM projects ORDER BY created_at'
+        ), [
+            ['sql', undef, $sqitch->user_name, $sqitch->user_email],
+            ['groovy', 'http://example.com/', $sqitch->user_name, $sqitch->user_email],
+        ], 'Both projects should still be registered';
+
+        # Now try the same URI but a different name.
+        $plan_proj = 'bob';
+        throws_ok { $sqlite->register_project } 'App::Sqitch::X',
+            'Should get error for an project with the URI';
+        is $@->ident, 'engine', 'Existing URI error ident should be "engine"';
+        is $@->message, __x(
+            'Cannot register "{project}" with URI {uri}: project "{reg_prog}" already using that URI',
+            project => $plan_proj,
+            uri     => $plan_uri,
+            reg_proj => 'groovy',
+        ), 'Exising URI error message should be correct';
+    }
+
 };
+
 
 done_testing;
 
