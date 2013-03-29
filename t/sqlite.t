@@ -7,8 +7,6 @@ use Test::More;
 use App::Sqitch;
 use Test::MockModule;
 use Try::Tiny;
-use lib 't/lib';
-use EngineTest;
 
 my $CLASS;
 
@@ -31,12 +29,12 @@ isa_ok my $sqlite = $CLASS->new(sqitch => $sqitch, db_name => 'foo'), $CLASS;
 is $sqlite->client, 'sqlite3' . ($^O eq 'MSWin32' ? '.exe' : ''),
     'client should default to sqlite3';
 is $sqlite->db_name, 'foo', 'db_name should be required';
-is $sqlite->sqitch_prefix, 'sqitch',
-    'sqitch_prefix should default to "sqitch"';
+is $sqlite->sqitch_prefix, 'sqitch_',
+    'sqitch_prefix should default to "sqitch_"';
 
 my @std_opts = (
     '-noheader',
-    '-column',
+    '-bail',
     '-csv',
 );
 
@@ -76,8 +74,8 @@ is_deeply [$sqlite->sqlite3], [$sqlite->client, @std_opts, $sqlite->db_name],
 ##############################################################################
 # Test _run(), _capture(), and _spool().
 my $tmp_dir = Path::Class::tempdir( CLEANUP => 1 );
-my $db_name = $tmp_dir->file('sqitch.db');
-ok $sqlite = $CLASS->new(sqitch => $sqitch, db_name => $db_name->stringify),
+my $db_name = $tmp_dir->file('sqitch.db')->stringify;
+ok $sqlite = $CLASS->new(sqitch => $sqitch, db_name => $db_name),
     'Instantiate with a temporary database file';
 
 can_ok $sqlite, qw(_run _capture _spool);
@@ -170,14 +168,46 @@ can_ok $CLASS, qw(
     load_change
 );
 
-EngineTest->run(
-    class         => $CLASS,
-    sqitch_params => [
+subtest 'live database' => sub {
+    my @sqitch_params = (
         top_dir     => Path::Class::dir(qw(t sqlite)),
         plan_file   => Path::Class::file(qw(t sqlite sqitch.plan)),
-    ],
-    engine_params => [ db_name => $db_name->stringify ],
-    skip_unless   => sub { shift->_dbh },
-);
+    );
+    my $user1_name = 'Marge Simpson';
+    my $user1_email = 'marge@example.com';
+    $sqitch = App::Sqitch->new(
+        @sqitch_params,
+        user_name  => $user1_name,
+        user_email => $user1_email,
+    );
+    my $sqlite = $CLASS->new(sqitch => $sqitch, db_name => $db_name);
+    try {
+        $sqlite->_dbh;
+    } catch {
+        plan skip_all => "Unable to connect to a database for testing: "
+            . eval { $_->message } || $_;
+    };
+
+    isa_ok $sqlite, $CLASS, 'The live DB engine';
+
+    ok !$sqlite->initialized, 'Database should not yet be initialized';
+    ok $sqlite->initialize, 'Initialize the database';
+    ok $sqlite->initialized, 'Database should now be initialized';
+
+    # Try it with a different prefix.
+    ok $sqlite = $CLASS->new(
+        sqitch        => $sqitch,
+        db_name       => $db_name,
+        sqitch_prefix => '__sqitchtest',
+    ), 'Create a sqlite with __sqitchtest prefix';
+
+#    is $sqlite->earliest_change_id, undef, 'No init, earliest change';
+#    is $sqlite->latest_change_id, undef, 'No init, no latest change';
+
+    ok !$sqlite->initialized, 'Database should no longer seem initialized';
+    ok $sqlite->initialize, 'Initialize the database again';
+    ok $sqlite->initialized, 'Database should be initialized again';
+
+};
 
 done_testing;

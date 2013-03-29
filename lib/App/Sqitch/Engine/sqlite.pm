@@ -9,8 +9,9 @@ use App::Sqitch::X qw(hurl);
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::Plan::Change;
 use App::Sqitch::DateTime;
-use namespace::autoclean;
+use Path::Class;
 use Mouse;
+use namespace::autoclean;
 
 extends 'App::Sqitch::Engine';
 
@@ -48,7 +49,7 @@ has sqitch_prefix => (
     required => 1,
     default  => sub {
         shift->sqitch->config->get( key => 'core.sqlite.sqitch_prefix' )
-            || 'sqitch';
+            || 'sqitch_';
     },
 );
 
@@ -89,7 +90,7 @@ has sqlite3 => (
         return [
             $self->client,
             '-noheader',
-            '-column',
+            '-bail',
             '-csv', # or -column or -line?
             $self->db_name
         ];
@@ -103,6 +104,40 @@ sub config_vars {
         sqitch_prefix => 'any',
     );
 }
+
+sub initialized {
+    my $self = shift;
+    return $self->_dbh->selectcol_arrayref(q{
+        SELECT EXISTS(
+            SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?
+        )
+    }, undef, $self->sqitch_prefix . 'changes')->[0];
+}
+
+sub initialize {
+    my $self   = shift;
+    my $prefix = $self->sqitch_prefix;
+    hurl sqlite => __x(
+        'Sqitch table "{table}" already exists',
+        table => $prefix . 'changes'
+    ) if $self->initialized;
+
+    my $file = file(__FILE__)->dir->file('sqlite.sql');
+    if ($prefix eq 'sqitch') {
+        # It's the default.
+        $self->run_file( $file );
+    } else {
+        # Update the prefix and write to a temporary file.
+        require File::Temp;
+        my $tmp = File::Temp->new;
+        $tmp->print($_) for map { s/sqitch_/\Q$prefix/; $_ } $file->slurp;
+        $tmp->close;
+        $self->run_file( $tmp );
+    }
+
+    return $self;
+}
+
 
 
 sub _run {
