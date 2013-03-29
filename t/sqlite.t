@@ -3,11 +3,12 @@
 use strict;
 use warnings;
 use 5.010;
-use Test::More tests => 44;
-#use Test::More 'no_plan';
+use Test::More;
 use App::Sqitch;
 use Test::MockModule;
 use Try::Tiny;
+use lib 't/lib';
+use EngineTest;
 
 my $CLASS;
 
@@ -168,3 +169,15 @@ can_ok $CLASS, qw(
     change_offset_from_id
     load_change
 );
+
+EngineTest->run(
+    class         => $CLASS,
+    sqitch_params => [
+        top_dir     => Path::Class::dir(qw(t sqlite)),
+        plan_file   => Path::Class::file(qw(t sqlite sqitch.plan)),
+    ],
+    engine_params => [ db_name => $db_name->stringify ],
+    skip_unless   => sub { shift->_dbh },
+);
+
+done_testing;
