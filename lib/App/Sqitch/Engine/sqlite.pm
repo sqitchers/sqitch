@@ -32,19 +32,23 @@ has client => (
 
 has db_name => (
     is       => 'ro',
-    isa      => 'Path::Class::File',
+    isa      => 'Maybe[Path::Class::File]',
     lazy     => 1,
     required => 1,
+    handles  => { destination => 'stringify' },
     default  => sub {
-        my $sqitch = shift->sqitch;
-        file $sqitch->db_name
-            || $sqitch->config->get( key => 'core.sqlite.db_name' );
+        my $self   = shift;
+        my $sqitch = $self->sqitch;
+        my $name = $sqitch->db_name
+            || try { $sqitch->plan->project . '.db' }
+            || return undef;
+        return file $name;
     },
 );
 
 has sqitch_db => (
     is       => 'ro',
-    isa      => 'Path::Class::File',
+    isa      => 'Maybe[Path::Class::File]',
     lazy     => 1,
     required => 1,
     default  => sub {
@@ -52,7 +56,10 @@ has sqitch_db => (
         if (my $db = $self->sqitch->config->get( key => 'core.sqlite.sqitch_db' ) ) {
             return file $db;
         }
-        $self->db_name->dir->file('sqitch.db');
+        if (my $db = $self->db_name) {
+            return $db->dir->file('sqitch.db');
+        }
+        return undef;
     },
 );
 

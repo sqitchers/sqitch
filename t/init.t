@@ -292,8 +292,9 @@ is_deeply read_config $conf_file, {
     'core.sqlite.db_name' => 'my.db',
 }, 'The configuration should have been written with sqlite values';
 
-file_contents_like $conf_file, qr/^\t# sqitch_prefix = sqitch\n/m,
-    'sqitch_prefix should be included in a comment';
+my $sqitch_db = file($sqitch->db_name)->dir->file('sqitch.db');
+file_contents_like $conf_file, qr/^\t# sqitch_db = \Q$sqitch_db\E\n/m,
+    'sqitch_db should be included in a comment';
 
 # Try it with no options.
 unlink $conf_file;
@@ -309,9 +310,9 @@ is_deeply read_config $conf_file, {
 }, 'The configuration should have been written with only the engine var';
 
 file_contents_like $conf_file, qr{^\Q# [core "sqlite"]
-	# sqitch_prefix = sqitch
 	# db_name = 
 	# client = sqlite3$exe_ext
+	# sqitch_db = 
 }m, 'Engine section should be present but commented-out';
 
 # Now build it with other config.
@@ -339,8 +340,8 @@ USERCONF: {
     file_contents_like $conf_file, qr{^\t\Q# client = /opt/local/bin/sqlite3\E\n}m,
         'Configured client should be included in a comment';
 
-    file_contents_like $conf_file, qr/^\t# sqitch_prefix = meta\n/m,
-        'Configured sqitch_prefix should be included in a comment';
+    file_contents_like $conf_file, qr/^\t# sqitch_db = meta\.db\n/m,
+        'Configured sqitch_db should be included in a comment';
 }
 
 ##############################################################################
