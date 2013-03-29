@@ -40,8 +40,6 @@ is_deeply [$CLASS->options], [qw(
     y
 )], 'Options should be correct';
 
-my $tmp_git_dir = File::Temp->newdir();
-
 ok my $sqitch = App::Sqitch->new(
     plan_file => file(qw(t sql sqitch.plan)),
     top_dir   => dir(qw(t sql)),
