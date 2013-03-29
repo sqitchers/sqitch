@@ -4,6 +4,11 @@ use 5.010;
 use strict;
 use warnings;
 use utf8;
+use Try::Tiny;
+use App::Sqitch::X qw(hurl);
+use Locale::TextDomain qw(App-Sqitch);
+use App::Sqitch::Plan::Change;
+use App::Sqitch::DateTime;
 use namespace::autoclean;
 use Mouse;
 
@@ -47,12 +52,100 @@ has sqitch_prefix => (
     },
 );
 
+has _dbh => (
+    is      => 'rw',
+    isa     => 'DBI::db',
+    lazy    => 1,
+    default => sub {
+        my $self = shift;
+        eval "require DBD::SQLite";
+        hurl sqlite => __ 'DBD::SQLite module required to manage PostgreSQL' if $@;
+
+        my $dsn = 'dbi:SQLite:dbname=' . $self->db_name;
+
+        DBI->connect($dsn, '', '', {
+            PrintError        => 0,
+            RaiseError        => 0,
+            AutoCommit        => 1,
+            sqlite_unicode    => 1,
+            HandleError       => sub {
+                my ($err, $dbh) = @_;
+                $@ = $err;
+                @_ = ($dbh->state || 'DEV' => $dbh->errstr);
+                goto &hurl;
+            },
+        });
+    }
+);
+
+has sqlite3 => (
+    is         => 'ro',
+    isa        => 'ArrayRef',
+    lazy       => 1,
+    required   => 1,
+    auto_deref => 1,
+    default    => sub {
+        my $self = shift;
+        return [
+            $self->client,
+            '-noheader',
+            '-column',
+            '-csv', # or -column or -line?
+            $self->db_name
+        ];
+    },
+);
+
 sub config_vars {
     return (
         client        => 'any',
         db_name       => 'any',
         sqitch_prefix => 'any',
     );
+}
+
+
+sub _run {
+    my $self   = shift;
+    return $self->sqitch->run( $self->sqlite3, @_ );
+}
+
+sub _capture {
+    my $self   = shift;
+    return $self->sqitch->capture( $self->sqlite3, @_ );
+}
+
+sub _spool {
+    my $self   = shift;
+    my $fh     = shift;
+    return $self->sqitch->spool( $fh, $self->sqlite3, @_ );
+}
+
+sub run_file {
+    my ($self, $file) = @_;
+    $self->_run( '.read ' . $self->_dbh->quote($file) );
+}
+
+sub run_verify {
+    my ($self, $file) = @_;
+    # Suppress STDOUT unless we want extra verbosity.
+    my $meth = $self->can($self->sqitch->verbosity > 1 ? '_run' : '_capture');
+    $self->$meth( '.read ' . $self->_dbh->quote($file) );
+}
+
+sub run_handle {
+    my ($self, $fh) = @_;
+    $self->_spool($fh);
+}
+
+sub _ts2char($) {
+    my $col = shift;
+    return qq{strftime('year:%Y:month:%m:day:%d:hour:%H:minute:%M:second:%S:time_zone:UTC', $col)};
+}
+
+sub _dt($) {
+    require App::Sqitch::DateTime;
+    return App::Sqitch::DateTime->new(split /:/ => shift);
 }
 
 __PACKAGE__->meta->make_immutable;
