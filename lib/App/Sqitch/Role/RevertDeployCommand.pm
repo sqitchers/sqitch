@@ -155,7 +155,7 @@ __END__
 
 =head1 Name
 
-App::Sqitch::Command::checkout - A command that reverts and deploys
+App::Sqitch::Role::RevertDepoyCommand - A command that reverts and deploys
 
 =head1 Synopsis
 

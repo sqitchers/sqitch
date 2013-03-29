@@ -147,8 +147,8 @@ $mock_config->unmock_all;
 
 ##############################################################################
 # Test DateTime formatting stuff.
-ok my $ts2char = $CLASS->can('_ts2char'), "$CLASS->can('_ts2char')";
-is $ts2char->('foo'),
+can_ok $CLASS, '_ts2char';
+is $CLASS->_ts2char('foo'),
     q{strftime('year:%Y:month:%m:day:%d:hour:%H:minute:%M:second:%S:time_zone:UTC', foo)},
     '_ts2char should work';
 
