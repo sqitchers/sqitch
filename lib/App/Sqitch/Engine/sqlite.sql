@@ -1,6 +1,6 @@
 BEGIN;
 
-CREATE TABLE sqitch_projects (
+CREATE TABLE projects (
     project         TEXT        PRIMARY KEY,
     uri             TEXT            NULL UNIQUE,
     created_at      DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -8,10 +8,10 @@ CREATE TABLE sqitch_projects (
     creator_email   TEXT        NOT NULL
 );
 
-CREATE TABLE sqitch_changes (
+CREATE TABLE changes (
     change_id       TEXT        PRIMARY KEY,
     change          TEXT        NOT NULL,
-    project         TEXT        NOT NULL REFERENCES sqitch_projects(project) ON UPDATE CASCADE,
+    project         TEXT        NOT NULL REFERENCES projects(project) ON UPDATE CASCADE,
     note            TEXT        NOT NULL DEFAULT '',
     committed_at    DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     committer_name  TEXT        NOT NULL,
@@ -21,11 +21,11 @@ CREATE TABLE sqitch_changes (
     planner_email   TEXT        NOT NULL
 );
 
-CREATE TABLE sqitch_tags (
+CREATE TABLE tags (
     tag_id          TEXT        PRIMARY KEY,
     tag             TEXT        NOT NULL UNIQUE,
-    project         TEXT        NOT NULL REFERENCES sqitch_projects(project) ON UPDATE CASCADE,
-    change_id       TEXT        NOT NULL REFERENCES sqitch_changes(change_id) ON UPDATE CASCADE,
+    project         TEXT        NOT NULL REFERENCES projects(project) ON UPDATE CASCADE,
+    change_id       TEXT        NOT NULL REFERENCES changes(change_id) ON UPDATE CASCADE,
     note            TEXT        NOT NULL DEFAULT '',
     committed_at    DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     committer_name  TEXT        NOT NULL,
@@ -35,22 +35,22 @@ CREATE TABLE sqitch_tags (
     planner_email   TEXT        NOT NULL
 );
 
-CREATE TABLE sqitch_dependencies (
-    change_id       TEXT        NOT NULL REFERENCES sqitch_changes(change_id) ON UPDATE CASCADE ON DELETE CASCADE,
+CREATE TABLE dependencies (
+    change_id       TEXT        NOT NULL REFERENCES changes(change_id) ON UPDATE CASCADE ON DELETE CASCADE,
     type            TEXT        NOT NULL,
     dependency      TEXT        NOT NULL,
-    dependency_id   TEXT            NULL REFERENCES sqitch_changes(change_id) ON UPDATE CASCADE CHECK (
+    dependency_id   TEXT            NULL REFERENCES changes(change_id) ON UPDATE CASCADE CHECK (
             (type = 'require'  AND dependency_id IS NOT NULL)
          OR (type = 'conflict' AND dependency_id IS NULL)
     ),
     PRIMARY KEY (change_id, dependency)
 );
 
-CREATE TABLE sqitch_events (
+CREATE TABLE events (
     event           TEXT        NOT NULL CHECK (event IN ('deploy', 'revert', 'fail')),
     change_id       TEXT        NOT NULL,
     change          TEXT        NOT NULL,
-    project         TEXT        NOT NULL REFERENCES sqitch_projects(project) ON UPDATE CASCADE,
+    project         TEXT        NOT NULL REFERENCES projects(project) ON UPDATE CASCADE,
     note            TEXT        NOT NULL DEFAULT '',
     requires        TEXT        NOT NULL DEFAULT '',
     conflicts       TEXT        NOT NULL DEFAULT '',

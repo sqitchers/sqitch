@@ -32,24 +32,27 @@ has client => (
 
 has db_name => (
     is       => 'ro',
-    isa      => 'Str',
+    isa      => 'Path::Class::File',
     lazy     => 1,
     required => 1,
     default  => sub {
         my $sqitch = shift->sqitch;
-        $sqitch->db_name
+        file $sqitch->db_name
             || $sqitch->config->get( key => 'core.sqlite.db_name' );
     },
 );
 
-has sqitch_prefix => (
+has sqitch_db => (
     is       => 'ro',
-    isa      => 'Str',
+    isa      => 'Path::Class::File',
     lazy     => 1,
     required => 1,
     default  => sub {
-        shift->sqitch->config->get( key => 'core.sqlite.sqitch_prefix' )
-            || 'sqitch_';
+        my $self = shift;
+        if (my $db = $self->sqitch->config->get( key => 'core.sqlite.sqitch_db' ) ) {
+            return file $db;
+        }
+        $self->db_name->dir->file('sqitch.db');
     },
 );
 
@@ -62,7 +65,7 @@ has _dbh => (
         eval "require DBD::SQLite";
         hurl sqlite => __ 'DBD::SQLite module required to manage PostgreSQL' if $@;
 
-        my $dsn = 'dbi:SQLite:dbname=' . $self->db_name;
+        my $dsn = 'dbi:SQLite:dbname=' . $self->sqitch_db;
 
         DBI->connect($dsn, '', '', {
             PrintError        => 0,
@@ -99,9 +102,9 @@ has sqlite3 => (
 
 sub config_vars {
     return (
-        client        => 'any',
-        db_name       => 'any',
-        sqitch_prefix => 'any',
+        client    => 'any',
+        db_name   => 'any',
+        sqitch_db => 'any',
     );
 }
 
@@ -111,34 +114,48 @@ sub initialized {
         SELECT EXISTS(
             SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?
         )
-    }, undef, $self->sqitch_prefix . 'changes')->[0];
+    }, undef, 'changes')->[0];
 }
 
 sub initialize {
     my $self   = shift;
-    my $prefix = $self->sqitch_prefix;
     hurl sqlite => __x(
-        'Sqitch table "{table}" already exists',
-        table => $prefix . 'changes'
+        'Sqitch database {database} already initialized',
+        database => $self->sqitch_db,
     ) if $self->initialized;
 
+    # Load up our database.
+    my @cmd = $self->sqlite3;
+    $cmd[-1] = $self->sqitch_db;
     my $file = file(__FILE__)->dir->file('sqlite.sql');
-    if ($prefix eq 'sqitch') {
-        # It's the default.
-        $self->run_file( $file );
-    } else {
-        # Update the prefix and write to a temporary file.
-        require File::Temp;
-        my $tmp = File::Temp->new;
-        $tmp->print($_) for map { s/sqitch_/\Q$prefix/; $_ } $file->slurp;
-        $tmp->close;
-        $self->run_file( $tmp );
-    }
-
-    return $self;
+    $self->sqitch->run( @cmd, '.read ' . $self->_dbh->quote($file) );
 }
 
+sub _cid {
+    my ( $self, $ord, $offset, $project ) = @_;
+    return try {
+        $self->_dbh->selectcol_arrayref(qq{
+            SELECT change_id
+              FROM changes
+             WHERE project = ?
+             ORDER BY committed_at $ord
+             LIMIT 1
+            OFFSET COALESCE(?, 0)
+        }, undef, $project || $self->plan->project, $offset)->[0];
+    } catch {
+        # Too bad $DBI::state isn't set to an SQL error coee. :-(
+        return if $DBI::errstr eq 'no such table: changes';
+        die $_;
+    };
+}
 
+sub earliest_change_id {
+    shift->_cid('ASC', @_);
+}
+
+sub latest_change_id {
+    shift->_cid('DESC', @_);
+}
 
 sub _run {
     my $self   = shift;
@@ -211,9 +228,9 @@ App::Sqitch::Engine::sqlite provides the SQLite storage engine for Sqitch.
 Returns a hash of names and types to use for variables in the C<core.sqlite>
 section of the a Sqitch configuration file. The variables and their types are:
 
-  client        => 'any'
-  db_name       => 'any'
-  sqitch_prefix => 'any'
+  client    => 'any'
+  db_name   => 'any'
+  sqitch_db => 'any'
 
 =head2 Accessors
 
@@ -229,11 +246,11 @@ C<sqlite3.exe> on Windows), which should work if it's in your path.
 Returns the name of the database file. If C<--db-name> was passed to C<sqitch>
 that's what will be returned.
 
-=head3 C<sqitch_prefix>
+=head3 C<sqitch_db>
 
-Returns the prefix to use for the Sqitch metadata tables. Returns the value of
-the C<core.sqlite.sqitch_prefix> configuration value, or else defaults to
-"sqitch".
+Name of the SQLite database file to use for the Sqitch metadata tables.
+Returns the value of the C<core.sqlite.sqitch_db> configuration value, or else
+defaults to F<sqitch.db> in the same directory as C<db_name>.
 
 =head1 Author
 

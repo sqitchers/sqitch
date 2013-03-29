@@ -6,6 +6,7 @@ use 5.010;
 use Test::More;
 use App::Sqitch;
 use Test::MockModule;
+use Path::Class;
 use Try::Tiny;
 
 my $CLASS;
@@ -18,19 +19,19 @@ BEGIN {
 }
 
 is_deeply [$CLASS->config_vars], [
-    client        => 'any',
-    db_name       => 'any',
-    sqitch_prefix => 'any',
+    client    => 'any',
+    db_name   => 'any',
+    sqitch_db => 'any',
 ], 'config_vars should return three vars';
 
 my $sqitch = App::Sqitch->new;
-isa_ok my $sqlite = $CLASS->new(sqitch => $sqitch, db_name => 'foo'), $CLASS;
+isa_ok my $sqlite = $CLASS->new(sqitch => $sqitch, db_name => file 'foo'), $CLASS;
 
 is $sqlite->client, 'sqlite3' . ($^O eq 'MSWin32' ? '.exe' : ''),
     'client should default to sqlite3';
 is $sqlite->db_name, 'foo', 'db_name should be required';
-is $sqlite->sqitch_prefix, 'sqitch_',
-    'sqitch_prefix should default to "sqitch_"';
+is $sqlite->sqitch_db, file('foo')->dir->file('sqitch.db'),
+    'sqitch_db should default to "sqitch.db" in the same diretory as db_name';
 
 my @std_opts = (
     '-noheader',
@@ -44,9 +45,9 @@ is_deeply [$sqlite->sqlite3], [$sqlite->client, @std_opts, $sqlite->db_name],
 ##############################################################################
 # Make sure config settings override defaults.
 my %config = (
-    'core.sqlite.client'        => '/path/to/sqlite3',
-    'core.sqlite.db_name'       => '/path/to/sqlite.db',
-    'core.sqlite.sqitch_prefix' => 'meta',
+    'core.sqlite.client'    => '/path/to/sqlite3',
+    'core.sqlite.db_name'   => '/path/to/sqlite.db',
+    'core.sqlite.sqitch_db' => 'meta.db',
 );
 my $mock_config = Test::MockModule->new('App::Sqitch::Config');
 $mock_config->mock(get => sub { $config{ $_[2] } });
@@ -56,8 +57,8 @@ is $sqlite->client, '/path/to/sqlite3',
     'client should fall back on config';
 is $sqlite->db_name, '/path/to/sqlite.db',
     'db_name should fall back on config';
-is $sqlite->sqitch_prefix, 'meta',
-    'sqitch_prefix should fall back on config';
+is $sqlite->sqitch_db, file('meta.db'),
+    'sqitch_db should fall back on config';
 is_deeply [$sqlite->sqlite3], [$sqlite->client, @std_opts, $sqlite->db_name],
     'sqlite3 command should have config values';
 
@@ -74,7 +75,7 @@ is_deeply [$sqlite->sqlite3], [$sqlite->client, @std_opts, $sqlite->db_name],
 ##############################################################################
 # Test _run(), _capture(), and _spool().
 my $tmp_dir = Path::Class::tempdir( CLEANUP => 1 );
-my $db_name = $tmp_dir->file('sqitch.db')->stringify;
+my $db_name = $tmp_dir->file('sqitch.db');
 ok $sqlite = $CLASS->new(sqitch => $sqitch, db_name => $db_name),
     'Instantiate with a temporary database file';
 
@@ -170,8 +171,8 @@ can_ok $CLASS, qw(
 
 subtest 'live database' => sub {
     my @sqitch_params = (
-        top_dir     => Path::Class::dir(qw(t sqlite)),
-        plan_file   => Path::Class::file(qw(t sqlite sqitch.plan)),
+        top_dir     => Path::Class::dir(qw(t sql)),
+        plan_file   => Path::Class::file(qw(t sql sqitch.plan)),
     );
     my $user1_name = 'Marge Simpson';
     my $user1_email = 'marge@example.com';
@@ -194,15 +195,15 @@ subtest 'live database' => sub {
     ok $sqlite->initialize, 'Initialize the database';
     ok $sqlite->initialized, 'Database should now be initialized';
 
-    # Try it with a different prefix.
+    # Try it with a different Sqitch DB.
     ok $sqlite = $CLASS->new(
-        sqitch        => $sqitch,
-        db_name       => $db_name,
-        sqitch_prefix => '__sqitchtest',
-    ), 'Create a sqlite with __sqitchtest prefix';
+        sqitch    => $sqitch,
+        db_name   => $db_name,
+        sqitch_db => $db_name->dir->file('sqitchtest.db')
+    ), 'Create a sqlite with sqitchtest.db sqitch_db';
 
-#    is $sqlite->earliest_change_id, undef, 'No init, earliest change';
-#    is $sqlite->latest_change_id, undef, 'No init, no latest change';
+    is $sqlite->earliest_change_id, undef, 'No init, earliest change';
+    is $sqlite->latest_change_id, undef, 'No init, no latest change';
 
     ok !$sqlite->initialized, 'Database should no longer seem initialized';
     ok $sqlite->initialize, 'Initialize the database again';
