@@ -151,9 +151,9 @@ Now we can try deploying this change:
 
 First Sqitch created the metadata tables used to track database changes. The
 structure and name of the metadata tables varies between databases (PostgreSQL
-uses a schema to namespace its metadata; MySQL and SQLite use a prefix). Next,
-Sqitch deploys changes. We only have one so far; the C<+> reinforces the idea
-that the change is being added to the database.
+uses a schema to namespace its metadata, while SQLite uses a separate
+database). Next, Sqitch deploys changes. We only have one so far; the C<+>
+reinforces the idea that the change is being added to the database.
 
 With this change deployed, if you connect to the database, you'll be able to
 see the schema:

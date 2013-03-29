@@ -584,9 +584,12 @@ found in the path.
 
 Path to the SQLite database file.
 
-=item C<core.sqlite.sqitch_prefix>
+=item C<core.sqlite.sqitch_db>
 
-Prefix to use for Sqitch metadata tables. Defaults to C<sqitch>.
+Path to the file to use for the Sqitch database. This is where Sqitch will
+store all of its metadata. If you manage multiple databases with Sqitch, each
+should have its own corresponding Sqitch database. Defaults to F<sqitch.db> in
+the same directory as C<db_name>.
 
 =back
 
