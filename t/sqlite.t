@@ -225,6 +225,40 @@ subtest 'live database' => sub {
     ok $sqlite->initialize, 'Initialize the database again';
     ok $sqlite->initialized, 'Database should be initialized again';
 
+    is $sqlite->earliest_change_id, undef, 'Still no earlist change';
+    is $sqlite->latest_change_id, undef, 'Still no latest changes';
+
+    # Make sure a second attempt to initialize dies.
+    throws_ok { $sqlite->initialize } 'App::Sqitch::X',
+        'Should die on existing schema';
+    is $@->ident, 'sqlite', 'Mode should be "sqlite"';
+    is $@->message, __x(
+        'Sqitch database {database} already initialized',
+        database => $sqlite->sqitch_db,
+    ), 'And it should show the proper schema in the error message';
+
+    throws_ok { $sqlite->_dbh->do('INSERT blah INTO __bar_____') } 'App::Sqitch::X',
+        'Database error should be converted to Sqitch exception';
+    is $@->ident, $DBI::state, 'Ident should be SQL error state';
+    is $@->message, 'near "blah": syntax error', 'The message should be the SQLite error';
+    like $@->previous_exception, qr/\QDBD::SQLite::db do failed: /,
+        'The DBI error should be in preview_exception';
+
+    is $sqlite->current_state, undef, 'Current state should be undef';
+    is_deeply all( $sqlite->current_changes ), [], 'Should have no current changes';
+    is_deeply all( $sqlite->current_tags ), [], 'Should have no current tags';
+    is_deeply all( $sqlite->search_events ), [], 'Should have no events';
+
 };
 
 done_testing;
+
+sub all {
+    my $iter = shift;
+    my @res;
+    while (my $row = $iter->()) {
+        push @res => $row;
+    }
+    return \@res;
+}
+

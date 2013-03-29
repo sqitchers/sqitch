@@ -141,6 +141,16 @@ sub initialize {
     $self->sqitch->run( @cmd, '.read ' . $self->_dbh->quote($file) );
 }
 
+sub _ts2char($) {
+    my $col = shift;
+    return qq{strftime('year:%Y:month:%m:day:%d:hour:%H:minute:%M:second:%S:time_zone:UTC', $col)};
+}
+
+sub _dt($) {
+    require App::Sqitch::DateTime;
+    return App::Sqitch::DateTime->new(split /:/ => shift);
+}
+
 sub _cid {
     my ( $self, $ord, $offset, $project ) = @_;
     return try {
@@ -165,6 +175,164 @@ sub earliest_change_id {
 
 sub latest_change_id {
     shift->_cid('DESC', @_);
+}
+
+sub current_state {
+    my ( $self, $project ) = @_;
+    my $ddtcol = _ts2char 'committed_at';
+    my $pdtcol = _ts2char 'planned_at';
+    my $dbh    = $self->_dbh;
+    my $state  = $dbh->selectrow_hashref(qq{
+        SELECT change_id
+             , change
+             , project
+             , note
+             , committer_name
+             , committer_email
+             , $ddtcol AS committed_at
+             , planner_name
+             , planner_email
+             , $pdtcol AS planned_at
+          FROM changes
+         WHERE project = ?
+         ORDER BY changes.committed_at DESC
+         LIMIT 1
+    }, undef, $project // $self->plan->project ) or return undef;
+    $state->{committed_at} = _dt $state->{committed_at};
+    $state->{planned_at}   = _dt $state->{planned_at};
+    $state->{tags}         = $dbh->selectcol_arrayref(
+        'SELECT tag FROM tags WHERE change_id = ? ORDER BY committed_at',
+        undef, $state->{change_id}
+    );
+    return $state;
+}
+
+sub current_changes {
+    my ( $self, $project ) = @_;
+    my $ddtcol = _ts2char 'committed_at';
+    my $pdtcol = _ts2char 'planned_at';
+    my $sth   = $self->_dbh->prepare(qq{
+        SELECT change_id
+             , change
+             , committer_name
+             , committer_email
+             , $ddtcol AS committed_at
+             , planner_name
+             , planner_email
+             , $pdtcol AS planned_at
+          FROM changes
+         WHERE project = ?
+         ORDER BY changes.committed_at DESC
+    });
+    $sth->execute($project // $self->plan->project);
+    return sub {
+        my $row = $sth->fetchrow_hashref or return;
+        $row->{committed_at} = _dt $row->{committed_at};
+        $row->{planned_at}   = _dt $row->{planned_at};
+        return $row;
+    };
+}
+
+sub current_tags {
+    my ( $self, $project ) = @_;
+    my $tdtcol = _ts2char 'committed_at';
+    my $pdtcol = _ts2char 'planned_at';
+    my $sth   = $self->_dbh->prepare(qq{
+        SELECT tag_id
+             , tag
+             , committer_name
+             , committer_email
+             , $tdtcol AS committed_at
+             , planner_name
+             , planner_email
+             , $pdtcol AS planned_at
+          FROM tags
+         WHERE project = ?
+         ORDER BY tags.committed_at DESC
+    });
+    $sth->execute($project // $self->plan->project);
+    return sub {
+        my $row = $sth->fetchrow_hashref or return;
+        $row->{committed_at} = _dt $row->{committed_at};
+        $row->{planned_at}   = _dt $row->{planned_at};
+        return $row;
+    };
+}
+
+sub search_events {
+    my ( $self, %p ) = @_;
+
+    # Determine order direction.
+    my $dir = 'DESC';
+    if (my $d = delete $p{direction}) {
+        $dir = $d =~ /^ASC/i  ? 'ASC'
+             : $d =~ /^DESC/i ? 'DESC'
+             : hurl 'Search direction must be either "ASC" or "DESC"';
+    }
+
+    # Limit with regular expressions?
+    my (@wheres, @params);
+    for my $spec (
+        [ committer => 'committer_name' ],
+        [ planner   => 'planner_name'   ],
+        [ change    => 'change'         ],
+        [ project   => 'project'        ],
+    ) {
+        my $regex = delete $p{ $spec->[0] } // next;
+        push @wheres => "$spec->[1] REGEXP ?";
+        push @params => $regex;
+    }
+
+    # Match events?
+    if (my $e = delete $p{event} ) {
+        my $qs = ('?') x @{ $e };
+        push @wheres => "event IN ($qs)";
+        push @params => $ { $e };
+    }
+
+    # Assemble the where clause.
+    my $where = @wheres
+        ? "\n         WHERE " . join( "\n               ", @wheres )
+        : '';
+
+    # Handle remaining parameters.
+    my $limits = join ' ' => map {
+        push @params => $p{$_};
+        uc "$_ ?"
+    } grep { $p{$_} } qw(limit offset);
+
+    hurl 'Invalid parameters passed to search_events(): '
+        . join ', ', sort keys %p if %p;
+
+    # Prepare, execute, and return.
+    my $cdtcol = _ts2char 'committed_at';
+    my $pdtcol = _ts2char 'planned_at';
+    my $sth = $self->_dbh->prepare(qq{
+        SELECT event
+             , project
+             , change_id
+             , change
+             , note
+             , requires
+             , conflicts
+             , tags
+             , committer_name
+             , committer_email
+             , $cdtcol AS committed_at
+             , planner_name
+             , planner_email
+             , $pdtcol AS planned_at
+          FROM events$where
+         ORDER BY events.committed_at $dir
+         $limits
+    });
+    $sth->execute(@params);
+    return sub {
+        my $row = $sth->fetchrow_hashref or return;
+        $row->{committed_at} = _dt $row->{committed_at};
+        $row->{planned_at}   = _dt $row->{planned_at};
+        return $row;
+    };
 }
 
 sub _run {
@@ -198,16 +366,6 @@ sub run_verify {
 sub run_handle {
     my ($self, $fh) = @_;
     $self->_spool($fh);
-}
-
-sub _ts2char($) {
-    my $col = shift;
-    return qq{strftime('year:%Y:month:%m:day:%d:hour:%H:minute:%M:second:%S:time_zone:UTC', $col)};
-}
-
-sub _dt($) {
-    require App::Sqitch::DateTime;
-    return App::Sqitch::DateTime->new(split /:/ => shift);
 }
 
 __PACKAGE__->meta->make_immutable;
