@@ -17,6 +17,7 @@ requires 'sqitch';
 requires 'plan';
 requires '_regex_op';
 requires '_ts2char_format';
+requires '_char2ts';
 
 sub _ts2char {
     my $format = $_[0]->_ts2char_format;
@@ -26,6 +27,18 @@ sub _ts2char {
 sub _dt($) {
     require App::Sqitch::DateTime;
     return App::Sqitch::DateTime->new(split /:/ => shift);
+}
+
+sub _log_tags_param {
+    join ',' => map { $_->format_name } $_[1]->tags;
+}
+
+sub _log_requires_param {
+    join ',' => map { $_->as_string } $_[1]->requires;
+}
+
+sub _log_conflicts_param {
+    join ',' => map { $_->as_string } $_[1]->conflicts;
 }
 
 sub _cid {
@@ -280,6 +293,196 @@ sub register_project {
     return $self;
 }
 
+sub is_deployed_change {
+    my ( $self, $change ) = @_;
+    $self->_dbh->selectcol_arrayref(q{
+        SELECT EXISTS(
+            SELECT 1
+              FROM changes
+             WHERE change_id = ?
+        )
+    }, undef, $change->id)->[0];
+}
+
+sub are_deployed_changes {
+    my $self = shift;
+    my $qs = join ', ' => ('?') x @_;
+    @{ $self->_dbh->selectcol_arrayref(
+        "SELECT change_id FROM changes WHERE change_id IN ($qs)",
+        undef,
+        map { $_->id } @_,
+    ) };
+}
+
+sub log_deploy_change {
+    my ($self, $change) = @_;
+    my $dbh    = $self->_dbh;
+    my $sqitch = $self->sqitch;
+
+    my ($id, $name, $proj, $user, $email) = (
+        $change->id,
+        $change->format_name,
+        $change->project,
+        $sqitch->user_name,
+        $sqitch->user_email
+    );
+
+    $dbh->do(q{
+        INSERT INTO changes (
+              change_id
+            , change
+            , project
+            , note
+            , committer_name
+            , committer_email
+            , planned_at
+            , planner_name
+            , planner_email
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    }, undef,
+        $id,
+        $name,
+        $proj,
+        $change->note,
+        $user,
+        $email,
+        $self->_char2ts( $change->timestamp ),
+        $change->planner_name,
+        $change->planner_email,
+    );
+
+    if ( my @deps = $change->dependencies ) {
+        $dbh->do(q{
+            INSERT INTO dependencies(
+                  change_id
+                , type
+                , dependency
+                , dependency_id
+           ) VALUES
+        } . join( ', ', ( q{(?, ?, ?, ?)} ) x @deps ),
+            undef,
+            map { (
+                $id,
+                $_->type,
+                $_->as_string,
+                $_->resolved_id,
+            ) } @deps
+        );
+    }
+
+    if ( my @tags = $change->tags ) {
+        $dbh->do(q{
+            INSERT INTO tags (
+                  tag_id
+                , tag
+                , project
+                , change_id
+                , note
+                , committer_name
+                , committer_email
+                , planned_at
+                , planner_name
+                , planner_email
+           ) VALUES
+        } . join( ', ', ( q{(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)} ) x @tags ),
+            undef,
+            map { (
+                $_->id,
+                $_->format_name,
+                $proj,
+                $id,
+                $_->note,
+                $user,
+                $email,
+                $self->_char2ts( $_->timestamp ),
+                $_->planner_name,
+                $_->planner_email,
+            ) } @tags
+        );
+    }
+
+    return $self->_log_event( deploy => $change );
+}
+
+sub log_fail_change {
+    shift->_log_event( fail => shift );
+}
+
+sub _log_event {
+    my ( $self, $event, $change, $tags, $requires, $conflicts) = @_;
+    my $dbh    = $self->_dbh;
+    my $sqitch = $self->sqitch;
+
+    $dbh->do(q{
+        INSERT INTO events (
+              event
+            , change_id
+            , change
+            , project
+            , note
+            , tags
+            , requires
+            , conflicts
+            , committer_name
+            , committer_email
+            , planned_at
+            , planner_name
+            , planner_email
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+    }, undef,
+        $event,
+        $change->id,
+        $change->name,
+        $change->project,
+        $change->note,
+        $tags      || $self->_log_tags_param($change),
+        $requires  || $self->_log_requires_param($change),
+        $conflicts || $self->_log_conflicts_param($change),
+        $sqitch->user_name,
+        $sqitch->user_email,
+        $self->_char2ts( $change->timestamp ),
+        $change->planner_name,
+        $change->planner_email,
+    );
+
+    return $self;
+}
+
+sub changes_requiring_change {
+    my ( $self, $change ) = @_;
+    return @{ $self->_dbh->selectall_arrayref(q{
+        SELECT c.change_id, c.project, c.change, (
+            SELECT tag
+              FROM changes c2
+              JOIN tags ON c2.change_id = tags.change_id
+             WHERE c2.project      = c.project
+               AND c2.committed_at >= c.committed_at
+             ORDER BY c2.committed_at
+             LIMIT 1
+        ) AS asof_tag
+          FROM dependencies d
+          JOIN changes c ON c.change_id = d.change_id
+         WHERE d.dependency_id = ?
+    }, { Slice => {} }, $change->id) };
+}
+
+sub name_for_change_id {
+    my ( $self, $change_id ) = @_;
+    return $self->_dbh->selectcol_arrayref(q{
+        SELECT change || COALESCE((
+            SELECT tag
+              FROM changes c2
+              JOIN tags ON c2.change_id = tags.change_id
+             WHERE c2.committed_at >= c.committed_at
+               AND c2.project = c.project
+             LIMIT 1
+        ), '')
+          FROM changes c
+         WHERE change_id = ?
+    }, undef, $change_id)->[0];
+}
 
 1;
 
@@ -319,6 +522,18 @@ DBI-powered engines.
 =head3 C<registered_projects>
 
 =head3 C<register_project>
+
+=head3 C<is_deployed_change>
+
+=head3 C<are_deployed_changes>
+
+=head3 C<log_deploy_change>
+
+=head3 C<log_fail_change>
+
+=head3 C<changes_requiring_change>
+
+=head3 C<name_for_change_id>
 
 =head1 See Also
 

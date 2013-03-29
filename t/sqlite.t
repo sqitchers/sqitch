@@ -188,8 +188,8 @@ can_ok $CLASS, qw(
 
 subtest 'live database' => sub {
     my @sqitch_params = (
-        top_dir     => Path::Class::dir(qw(t sql)),
-        plan_file   => Path::Class::file(qw(t sql sqitch.plan)),
+        top_dir     => Path::Class::dir(qw(t pg)),
+        plan_file   => Path::Class::file(qw(t pg sqitch.plan)),
     );
     my $user1_name = 'Marge Simpson';
     my $user1_email = 'marge@example.com';
@@ -198,7 +198,7 @@ subtest 'live database' => sub {
         user_name  => $user1_name,
         user_email => $user1_email,
     );
-    my $sqlite = $CLASS->new(sqitch => $sqitch, db_name => $db_name);
+    $sqlite = $CLASS->new(sqitch => $sqitch, db_name => $db_name);
     try {
         $sqlite->_dbh;
     } catch {
@@ -259,20 +259,20 @@ subtest 'live database' => sub {
         'Should have no registered projects';
 
     ok $sqlite->register_project, 'Register the project';
-    is_deeply [ $sqlite->registered_projects ], ['sql'],
+    is_deeply [ $sqlite->registered_projects ], ['pg'],
         'Should have one registered project, "sql"';
     is_deeply $sqlite->_dbh->selectall_arrayref(
         'SELECT project, uri, creator_name, creator_email FROM projects'
-    ), [['sql', undef, $sqitch->user_name, $sqitch->user_email]],
+    ), [['pg', undef, $sqitch->user_name, $sqitch->user_email]],
         'The project should be registered';
 
     # Try to register it again.
     ok $sqlite->register_project, 'Register the project again';
-    is_deeply [ $sqlite->registered_projects ], ['sql'],
+    is_deeply [ $sqlite->registered_projects ], ['pg'],
         'Should still have one registered project, "sql"';
     is_deeply $sqlite->_dbh->selectall_arrayref(
         'SELECT project, uri, creator_name, creator_email FROM projects'
-    ), [['sql', undef, $sqitch->user_name, $sqitch->user_email]],
+    ), [['pg', undef, $sqitch->user_name, $sqitch->user_email]],
         'The project should still be registered only once';
 
     # Register a different project name.
@@ -283,19 +283,19 @@ subtest 'live database' => sub {
         ok $sqlite->register_project, 'Register a second project';
     }
 
-    is_deeply [ $sqlite->registered_projects ], ['groovy', 'sql'],
+    is_deeply [ $sqlite->registered_projects ], ['groovy', 'pg'],
         'Should have both registered projects';
     is_deeply $sqlite->_dbh->selectall_arrayref(
         'SELECT project, uri, creator_name, creator_email FROM projects ORDER BY created_at'
     ), [
-        ['sql', undef, $sqitch->user_name, $sqitch->user_email],
+        ['pg', undef, $sqitch->user_name, $sqitch->user_email],
         ['groovy', 'http://example.com/', $sqitch->user_name, $sqitch->user_email],
     ], 'Both projects should now be registered';
 
     # Try to register with a different URI.
     MOCKURI: {
         my $plan_mocker = Test::MockModule->new(ref $sqitch->plan );
-        my $plan_proj = 'sql';
+        my $plan_proj = 'pg';
         my $plan_uri = 'http://example.net/';
         $plan_mocker->mock(project => sub { $plan_proj });
         $plan_mocker->mock(uri => sub { $plan_uri });
@@ -304,7 +304,7 @@ subtest 'live database' => sub {
         is $@->ident, 'engine', 'Defined URI error ident should be "engine"';
         is $@->message, __x(
             'Cannot register "{project}" with URI {uri}: already exists with NULL URI',
-            project => 'sql',
+            project => 'pg',
             uri     => $plan_uri,
         ), 'Defined URI error message should be correct';
 
@@ -334,12 +334,12 @@ subtest 'live database' => sub {
         # It should succeed when the name and URI are the same.
         $plan_uri = 'http://example.com/';
         ok $sqlite->register_project, 'Register "groovy" again';
-        is_deeply [ $sqlite->registered_projects ], ['groovy', 'sql'],
+        is_deeply [ $sqlite->registered_projects ], ['groovy', 'pg'],
             'Should still have two registered projects';
         is_deeply $sqlite->_dbh->selectall_arrayref(
             'SELECT project, uri, creator_name, creator_email FROM projects ORDER BY created_at'
         ), [
-            ['sql', undef, $sqitch->user_name, $sqitch->user_email],
+            ['pg', undef, $sqitch->user_name, $sqitch->user_email],
             ['groovy', 'http://example.com/', $sqitch->user_name, $sqitch->user_email],
         ], 'Both projects should still be registered';
 
@@ -356,10 +356,144 @@ subtest 'live database' => sub {
         ), 'Exising URI error message should be correct';
     }
 
+    ##########################################################################
+    # Test log_deploy_change().
+    my $plan = $sqitch->plan;
+    my $change = $plan->change_at(0);
+    my ($tag) = $change->tags;
+    is $change->name, 'users', 'Should have "users" change';
+    ok !$sqlite->is_deployed_change($change), 'The change should not be deployed';
+    is_deeply [$sqlite->are_deployed_changes($change)], [],
+        'The change should not be deployed';
+    ok $sqlite->log_deploy_change($change), 'Deploy "users" change';
+    ok $sqlite->is_deployed_change($change), 'The change should now be deployed';
+    is_deeply [$sqlite->are_deployed_changes($change)], [$change->id],
+        'The change should now be deployed';
+
+    is $sqlite->earliest_change_id, $change->id, 'Should get users ID for earliest change ID';
+    is $sqlite->earliest_change_id(1), undef, 'Should get no change offset 1 from earliest';
+    is $sqlite->latest_change_id, $change->id, 'Should get users ID for latest change ID';
+    is $sqlite->latest_change_id(1), undef, 'Should get no change offset 1 from latest';
+
+    is_deeply all_changes(), [[
+        $change->id, 'users', 'pg', '', $sqitch->user_name, $sqitch->user_email,
+        $change->planner_name, $change->planner_email,
+    ]],'A record should have been inserted into the changes table';
+    is_deeply get_dependencies($change->id), [], 'Should have no dependencies';
+    is_deeply [ $sqlite->changes_requiring_change($change) ], [],
+        'Change should not be required';
+
+
+    my @event_data = ([
+        'deploy',
+        $change->id,
+        'users',
+        'pg',
+        '',
+        $sqlite->_log_requires_param($change),
+        $sqlite->_log_conflicts_param($change),
+        $sqlite->_log_tags_param($change),
+        $sqitch->user_name,
+        $sqitch->user_email,
+        $change->planner_name,
+        $change->planner_email
+    ]);
+
+    is_deeply all_events(), \@event_data,
+        'A record should have been inserted into the events table';
+
+    is_deeply all_tags(), [[
+        $tag->id,
+        '@alpha',
+        $change->id,
+        'pg',
+        'Good to go!',
+        $sqitch->user_name,
+        $sqitch->user_email,
+        $tag->planner_name,
+        $tag->planner_email,
+    ]], 'The tag should have been logged';
+
+    is $sqlite->name_for_change_id($change->id), 'users@alpha',
+        'name_for_change_id() should return the change name with tag';
+
+    ok my $state = $sqlite->current_state, 'Get the current state';
+    isa_ok my $dt = delete $state->{committed_at}, 'App::Sqitch::DateTime',
+        'committed_at value';
+    is $dt->time_zone->name, 'UTC', 'committed_at TZ should be UTC';
+    is_deeply $state, {
+        project         => 'pg',
+        change_id       => $change->id,
+        change          => 'users',
+        note            => '',
+        committer_name  => $sqitch->user_name,
+        committer_email => $sqitch->user_email,
+        tags            => ['@alpha'],
+        planner_name    => $change->planner_name,
+        planner_email   => $change->planner_email,
+        planned_at      => $change->timestamp,
+    }, 'The rest of the state should look right';
+    is_deeply all( $sqlite->current_changes ), [{
+        change_id       => $change->id,
+        change          => 'users',
+        committer_name  => $sqitch->user_name,
+        committer_email => $sqitch->user_email,
+        committed_at    => $dt,
+        planner_name    => $change->planner_name,
+        planner_email   => $change->planner_email,
+        planned_at      => $change->timestamp,
+    }], 'Should have one current change';
+    is_deeply all( $sqlite->current_tags('nonesuch') ), [],
+        'Should have no current chnages for nonexistent project';
+    is_deeply all( $sqlite->current_tags ), [{
+        tag_id          => $tag->id,
+        tag             => '@alpha',
+        committed_at    => dt_for_tag( $tag->id ),
+        committer_name  => $sqitch->user_name,
+        committer_email => $sqitch->user_email,
+        planner_name    => $tag->planner_name,
+        planner_email   => $tag->planner_email,
+        planned_at      => $tag->timestamp,
+    }], 'Should have one current tags';
+    is_deeply all( $sqlite->current_tags('nonesuch') ), [],
+        'Should have no current tags for nonexistent project';
+    my @events = ({
+        event           => 'deploy',
+        project         => 'pg',
+        change_id       => $change->id,
+        change          => 'users',
+        note            => '',
+        requires        => $sqlite->_log_requires_param($change),
+        conflicts       => $sqlite->_log_conflicts_param($change),
+        tags            => $sqlite->_log_tags_param($change),
+        committer_name  => $sqitch->user_name,
+        committer_email => $sqitch->user_email,
+        committed_at    => dt_for_event(0),
+        planned_at      => $change->timestamp,
+        planner_name    => $change->planner_name,
+        planner_email   => $change->planner_email,
+    });
+    is_deeply all( $sqlite->search_events ), \@events, 'Should have one event';
+
 };
 
-
 done_testing;
+
+sub dt_for_change {
+    my $col = $sqlite->_ts2char('committed_at');
+    $dtfunc->($sqlite->_dbh->selectcol_arrayref(
+        "SELECT $col FROM changes WHERE change_id = ?",
+        undef, shift
+    )->[0]);
+}
+
+sub dt_for_tag {
+    my $col = $sqlite->_ts2char('committed_at');
+    $dtfunc->($sqlite->_dbh->selectcol_arrayref(
+        "SELECT $col FROM tags WHERE tag_id = ?",
+        undef, shift
+    )->[0]);
+}
 
 sub all {
     my $iter = shift;
@@ -368,5 +502,49 @@ sub all {
         push @res => $row;
     }
     return \@res;
+}
+
+sub dt_for_event {
+    my $col = $sqlite->_ts2char('committed_at');
+    $dtfunc->($sqlite->_dbh->selectcol_arrayref(
+        "SELECT $col FROM events ORDER BY committed_at ASC LIMIT 1 OFFSET ?",
+        undef, shift
+    )->[0]);
+}
+
+sub all_changes {
+    $sqlite->_dbh->selectall_arrayref(q{
+        SELECT change_id, change, project, note, committer_name, committer_email,
+               planner_name, planner_email
+          FROM changes
+         ORDER BY committed_at
+    });
+}
+
+sub all_tags {
+    $sqlite->_dbh->selectall_arrayref(q{
+        SELECT tag_id, tag, change_id, project, note,
+               committer_name, committer_email, planner_name, planner_email
+          FROM tags
+         ORDER BY committed_at
+    });
+}
+
+sub all_events {
+    $sqlite->_dbh->selectall_arrayref(q{
+        SELECT event, change_id, change, project, note, requires, conflicts, tags,
+               committer_name, committer_email, planner_name, planner_email
+          FROM events
+         ORDER BY committed_at
+    });
+}
+
+sub get_dependencies {
+    $sqlite->_dbh->selectall_arrayref(q{
+        SELECT change_id, type, dependency, dependency_id
+          FROM dependencies
+         WHERE change_id = ?
+         ORDER BY dependency
+    }, undef, shift);
 }
 

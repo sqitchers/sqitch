@@ -147,6 +147,12 @@ sub _ts2char_format {
     return q{strftime('year:%%Y:month:%%m:day:%%d:hour:%%H:minute:%%M:second:%%S:time_zone:UTC', %s)};
 }
 
+sub _char2ts {
+    my $dt = $_[1];
+    $dt->set_time_zone('UTC');
+    return join ' ', $dt->ymd('-'), $dt->hms(':');
+}
+
 sub _run {
     my $self   = shift;
     return $self->sqitch->run( $self->sqlite3, @_ );
