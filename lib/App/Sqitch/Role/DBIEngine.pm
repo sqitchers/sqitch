@@ -532,6 +532,25 @@ sub log_new_tags {
     return $self;
 }
 
+sub begin_work {
+    my $self = shift;
+    # XXX Add some way to lock?
+    $self->_dbh->begin_work;
+    return $self;
+}
+
+sub finish_work {
+    my $self = shift;
+    $self->_dbh->commit;
+    return $self;
+}
+
+sub rollback_work {
+    my $self = shift;
+    $self->_dbh->rollback;
+    return $self;
+}
+
 1;
 
 __END__
