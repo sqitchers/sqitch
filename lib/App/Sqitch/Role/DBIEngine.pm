@@ -484,6 +484,54 @@ sub name_for_change_id {
     }, undef, $change_id)->[0];
 }
 
+sub log_new_tags {
+    my ( $self, $change ) = @_;
+    my @tags   = $change->tags or return $self;
+    my $sqitch = $self->sqitch;
+
+    my ($id, $name, $proj, $user, $email) = (
+        $change->id,
+        $change->format_name,
+        $change->project,
+        $sqitch->user_name,
+        $sqitch->user_email
+    );
+
+    # Insert one at a time, but only if they are not already present.
+    my $sth = $self->_dbh->prepare(q{
+        INSERT INTO tags (
+               tag_id
+             , tag
+             , project
+             , change_id
+             , note
+             , committer_name
+             , committer_email
+             , planned_at
+             , planner_name
+             , planner_email
+        )
+        SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+         WHERE NOT EXISTS (SELECT tag_id FROM tags WHERE tag_id = ?)
+    });
+
+    $sth->execute(
+        $_->id,
+        $_->format_name,
+        $proj,
+        $id,
+        $_->note,
+        $user,
+        $email,
+        $self->_char2ts( $_->timestamp ),
+        $_->planner_name,
+        $_->planner_email,
+        $_->id,
+    ) for @tags;
+
+    return $self;
+}
+
 1;
 
 __END__
@@ -534,6 +582,8 @@ DBI-powered engines.
 =head3 C<changes_requiring_change>
 
 =head3 C<name_for_change_id>
+
+=head3 C<log_new_tags>
 
 =head1 See Also
 

@@ -88,6 +88,12 @@ has _dbh => (
                 @_ = ($dbh->state || 'DEV' => $dbh->errstr);
                 goto &hurl;
             },
+            Callbacks         => {
+                connected => sub {
+                    shift->do('PRAGMA foreign_keys = ON');
+                    return;
+                },
+            },
         });
     }
 );
