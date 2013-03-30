@@ -314,6 +314,17 @@ sub are_deployed_changes {
     ) };
 }
 
+sub is_deployed_tag {
+    my ( $self, $tag ) = @_;
+    return $self->_dbh->selectcol_arrayref(q{
+        SELECT EXISTS(
+            SELECT 1
+              FROM tags
+             WHERE tag_id = ?
+        );
+    }, undef, $tag->id)->[0];
+}
+
 sub log_deploy_change {
     my ($self, $change) = @_;
     my $dbh    = $self->_dbh;

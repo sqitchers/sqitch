@@ -417,6 +417,15 @@ subtest 'live database' => sub {
     is $sqlite->name_for_change_id($change->id), 'users@alpha',
         'name_for_change_id() should return the change name with tag';
 
+    # Fake out a clock tick by setting the event to an earlier time.
+    my $set_event_timestamp = sub {
+        $sqlite->_dbh->do(
+            'UPDATE events SET committed_at = ? WHERE committed_at = CURRENT_TIMESTAMP',
+            undef, shift
+        );
+    };
+    $set_event_timestamp->('2013-03-30 00:44:47');
+
     ok my $state = $sqlite->current_state, 'Get the current state';
     isa_ok my $dt = delete $state->{committed_at}, 'App::Sqitch::DateTime',
         'committed_at value';
@@ -510,12 +519,6 @@ subtest 'live database' => sub {
 
     ##########################################################################
     # Test log_revert_change(). First shift existing event dates.
-    $sqlite->_dbh->do(
-        'UPDATE events SET committed_at = ? WHERE change_id = ?',
-        undef, '2013-03-30 00:44:47', $change->id
-    );
-    $events[-1]->{committed_at} = dt_for_event(0);
-
     ok $sqlite->log_revert_change($change), 'Revert "users" change';
     ok !$sqlite->is_deployed_change($change), 'The change should no longer be deployed';
     is_deeply [$sqlite->are_deployed_changes($change)], [],
@@ -556,6 +559,7 @@ subtest 'live database' => sub {
         'Should again have no current changes';
     is_deeply all( $sqlite->current_tags ), [], 'Should again have no current tags';
 
+    $set_event_timestamp->('2013-03-30 00:45:47');
     unshift @events => {
         event           => 'revert',
         project         => 'pg',
@@ -573,6 +577,270 @@ subtest 'live database' => sub {
         planner_email   => $change->planner_email,
     };
     is_deeply all( $sqlite->search_events ), \@events, 'Should have two events';
+
+    ##########################################################################
+    # Test log_fail_change().
+    ok $sqlite->log_fail_change($change), 'Fail "users" change';
+    ok !$sqlite->is_deployed_change($change), 'The change still should not be deployed';
+    is_deeply [$sqlite->are_deployed_changes($change)], [],
+        'The change still should not be deployed';
+    is $sqlite->earliest_change_id, undef, 'Should still get undef for earliest change';
+    is $sqlite->latest_change_id, undef, 'Should still get undef for latest change';
+    is_deeply all_changes(), [], 'Still should have not changes table record';
+    is_deeply all_tags(), [], 'Should still have no tag records';
+    is_deeply get_dependencies($change->id), [], 'Should still have no dependencies';
+    is_deeply [ $sqlite->changes_requiring_change($change) ], [],
+        'Change should not be required';
+
+    push @event_data, [
+        'fail',
+        $change->id,
+        'users',
+        'pg',
+        '',
+        $sqlite->_log_requires_param($change),
+        $sqlite->_log_conflicts_param($change),
+        $sqlite->_log_tags_param($change),
+        $sqitch->user_name,
+        $sqitch->user_email,
+        $change->planner_name,
+        $change->planner_email
+    ];
+
+    is_deeply all_events(), \@event_data, 'The fail event should have been logged';
+    is $sqlite->current_state, undef, 'Current state should still be undef';
+    is_deeply all( $sqlite->current_changes ), [], 'Should still have no current changes';
+    is_deeply all( $sqlite->current_tags ), [], 'Should still have no current tags';
+
+    $set_event_timestamp->('2013-03-30 00:46:47');
+    unshift @events => {
+        event           => 'fail',
+        project         => 'pg',
+        change_id       => $change->id,
+        change          => 'users',
+        note            => '',
+        requires        => $sqlite->_log_requires_param($change),
+        conflicts       => $sqlite->_log_conflicts_param($change),
+        tags            => $sqlite->_log_tags_param($change),
+        committer_name  => $sqitch->user_name,
+        committer_email => $sqitch->user_email,
+        committed_at    => dt_for_event(2),
+        planned_at      => $change->timestamp,
+        planner_name    => $change->planner_name,
+        planner_email   => $change->planner_email,
+    };
+    is_deeply all( $sqlite->search_events ), \@events, 'Should have 3 events';
+
+    # From here on in, use a different committer.
+    my $user2_name  = 'Homer Simpson';
+    my $user2_email = 'homer@example.com';
+    $mock_sqitch->mock( user_name => $user2_name );
+    $mock_sqitch->mock( user_email => $user2_email );
+
+    ##########################################################################
+    # Test a change with dependencies.
+    ok $sqlite->log_deploy_change($change),    'Deploy the change again';
+    $set_event_timestamp->('2013-03-30 00:47:47');
+    ok $sqlite->is_deployed_tag($tag),     'The tag again should be deployed';
+    is $sqlite->earliest_change_id, $change->id, 'Should again get users ID for earliest change ID';
+    is $sqlite->earliest_change_id(1), undef, 'Should still get no change offset 1 from earliest';
+    is $sqlite->latest_change_id, $change->id, 'Should again get users ID for latest change ID';
+    is $sqlite->latest_change_id(1), undef, 'Should still get no change offset 1 from latest';
+
+    ok my $change2 = $plan->change_at(1),   'Get the second change';
+    is_deeply [sort $sqlite->are_deployed_changes($change, $change2)], [$change->id],
+        'Only the first change should be deployed';
+    my ($req) = $change2->requires;
+    ok $req->resolved_id($change->id),      'Set resolved ID in required depend';
+    # Send this change back in time.
+    $sqlite->_dbh->do(
+        'UPDATE changes SET committed_at = ?',
+            undef, '2013-03-30 00:47:47',
+    );
+    ok $sqlite->log_deploy_change($change2),    'Deploy second change';
+    $set_event_timestamp->('2013-03-30 00:48:47');
+    is $sqlite->earliest_change_id, $change->id, 'Should still get users ID for earliest change ID';
+    is $sqlite->earliest_change_id(1), $change2->id,
+        'Should get "widgets" offset 1 from earliest';
+    is $sqlite->earliest_change_id(2), undef, 'Should get no change offset 2 from earliest';
+    is $sqlite->latest_change_id, $change2->id, 'Should get "widgets" ID for latest change ID';
+    is $sqlite->latest_change_id(1), $change->id,
+        'Should get "user" offset 1 from earliest';
+    is $sqlite->latest_change_id(2), undef, 'Should get no change offset 2 from latest';
+
+    is_deeply all_changes(), [
+        [
+            $change->id,
+            'users',
+            'pg',
+            '',
+            $user2_name,
+            $user2_email,
+            $change->planner_name,
+            $change->planner_email,
+        ],
+        [
+            $change2->id,
+            'widgets',
+            'pg',
+            'All in',
+            $user2_name,
+            $user2_email,
+            $change2->planner_name,
+            $change2->planner_email,
+        ],
+    ], 'Should have both changes and requires/conflcits deployed';
+    is_deeply [sort $sqlite->are_deployed_changes($change, $change2)],
+        [sort $change->id, $change2->id],
+        'Both changes should be deployed';
+    is_deeply get_dependencies($change->id), [],
+        'Should still have no dependencies for "users"';
+    is_deeply get_dependencies($change2->id), [
+        [
+            $change2->id,
+            'conflict',
+            'dr_evil',
+            undef,
+        ],
+        [
+            $change2->id,
+            'require',
+            'users',
+            $change->id,
+        ],
+    ], 'Should have both dependencies for "widgets"';
+    is_deeply [ $sqlite->changes_requiring_change($change) ], [{
+        project   => 'pg',
+        change_id => $change2->id,
+        change    => 'widgets',
+        asof_tag  => undef,
+    }], 'Change "users" should be required by "widgets"';
+    is_deeply [ $sqlite->changes_requiring_change($change2) ], [],
+        'Change "widgets" should not be required';
+
+    push @event_data, [
+        'deploy',
+        $change->id,
+        'users',
+        'pg',
+        '',
+        $sqlite->_log_requires_param($change),
+        $sqlite->_log_conflicts_param($change),
+        $sqlite->_log_tags_param($change),
+        $user2_name,
+        $user2_email,
+        $change->planner_name,
+        $change->planner_email,
+    ], [
+        'deploy',
+        $change2->id,
+        'widgets',
+        'pg',
+        'All in',
+        $sqlite->_log_requires_param($change2),
+        $sqlite->_log_conflicts_param($change2),
+        $sqlite->_log_tags_param($change2),
+        $user2_name,
+        $user2_email,
+        $change2->planner_name,
+        $change2->planner_email,
+    ];
+    is_deeply all_events(), \@event_data,
+        'The new change deploy should have been logged';
+
+    is $sqlite->name_for_change_id($change2->id), 'widgets',
+        'name_for_change_id() should return just the change name';
+
+    ok $state = $sqlite->current_state, 'Get the current state again';
+    isa_ok $dt = delete $state->{committed_at}, 'App::Sqitch::DateTime',
+        'committed_at value';
+    is $dt->time_zone->name, 'UTC', 'committed_at TZ should be UTC';
+    is_deeply $state, {
+        project         => 'pg',
+        change_id       => $change2->id,
+        change          => 'widgets',
+        note            => 'All in',
+        committer_name  => $user2_name,
+        committer_email => $user2_email,
+        planner_name    => $change2->planner_name,
+        planner_email   => $change2->planner_email,
+        planned_at      => $change2->timestamp,
+        tags            => [],
+    }, 'The state should reference new change';
+
+    my @current_changes = (
+        {
+            change_id       => $change2->id,
+            change          => 'widgets',
+            committer_name  => $user2_name,
+            committer_email => $user2_email,
+            committed_at    => dt_for_change( $change2->id ),
+            planner_name    => $change2->planner_name,
+            planner_email   => $change2->planner_email,
+            planned_at      => $change2->timestamp,
+        },
+        {
+            change_id       => $change->id,
+            change          => 'users',
+            committer_name  => $user2_name,
+            committer_email => $user2_email,
+            committed_at    => dt_for_change( $change->id ),
+            planner_name    => $change->planner_name,
+            planner_email   => $change->planner_email,
+            planned_at      => $change->timestamp,
+        },
+    );
+
+    is_deeply all( $sqlite->current_changes ), \@current_changes,
+        'Should have two current changes in reverse chronological order';
+
+    my @current_tags = (
+        {
+            tag_id     => $tag->id,
+            tag        => '@alpha',
+            committer_name  => $user2_name,
+            committer_email => $user2_email,
+            committed_at    => dt_for_tag( $tag->id ),
+            planner_name    => $tag->planner_name,
+            planner_email   => $tag->planner_email,
+            planned_at      => $tag->timestamp,
+        },
+    );
+    is_deeply all( $sqlite->current_tags ), \@current_tags,
+        'Should again have one current tags';
+
+    unshift @events => {
+        event           => 'deploy',
+        project         => 'pg',
+        change_id       => $change2->id,
+        change          => 'widgets',
+        note            => 'All in',
+        requires        => $sqlite->_log_requires_param($change2),
+        conflicts       => $sqlite->_log_conflicts_param($change2),
+        tags            => $sqlite->_log_tags_param($change2),
+        committer_name  => $user2_name,
+        committer_email => $user2_email,
+        committed_at    => dt_for_event(4),
+        planner_name    => $change2->planner_name,
+        planner_email   => $change2->planner_email,
+        planned_at      => $change2->timestamp,
+    }, {
+        event           => 'deploy',
+        project         => 'pg',
+        change_id       => $change->id,
+        change          => 'users',
+        note            => '',
+        requires        => $sqlite->_log_requires_param($change),
+        conflicts       => $sqlite->_log_conflicts_param($change),
+        tags            => $sqlite->_log_tags_param($change),
+        committer_name  => $user2_name,
+        committer_email => $user2_email,
+        committed_at    => dt_for_event(3),
+        planner_name    => $change->planner_name,
+        planner_email   => $change->planner_email,
+        planned_at      => $change->timestamp,
+    };
+    is_deeply all( $sqlite->search_events ), \@events, 'Should have 5 events';
 
 };
 
