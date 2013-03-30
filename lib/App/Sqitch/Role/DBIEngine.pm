@@ -532,6 +532,49 @@ sub log_new_tags {
     return $self;
 }
 
+sub log_revert_change {
+    my ($self, $change) = @_;
+    my $dbh = $self->_dbh;
+    my $cid = $change->id;
+
+    # Retrieve and delete tags.
+    my $del_tags = join ',' => @{ $dbh->selectcol_arrayref(
+        'SELECT tag FROM tags WHERE change_id = ?',
+        undef, $cid
+    ) || [] };
+
+    $dbh->do(
+        'DELETE FROM tags WHERE change_id = ?',
+        undef, $cid
+    );
+
+    # Retrieve dependencies and delete.
+    my $sth = $dbh->prepare(q{
+        SELECT dependency
+          FROM dependencies
+         WHERE change_id = ?
+           AND type      = ?
+    });
+    my $req = join ',' => @{ $dbh->selectcol_arrayref(
+        $sth, undef, $cid, 'require'
+    ) };
+
+    my $conf = join ',' => @{ $dbh->selectcol_arrayref(
+        $sth, undef, $cid, 'conflict'
+    ) };
+
+    $dbh->do('DELETE FROM dependencies WHERE change_id = ?', undef, $cid);
+
+    # Delete the change record.
+    $dbh->do(
+        'DELETE FROM changes where change_id = ?',
+        undef, $cid,
+    );
+
+    # Log it.
+    return $self->_log_event( revert => $change, $del_tags, $req, $conf );
+}
+
 sub begin_work {
     my $self = shift;
     # XXX Add some way to lock?
@@ -603,6 +646,8 @@ DBI-powered engines.
 =head3 C<name_for_change_id>
 
 =head3 C<log_new_tags>
+
+=head3 C<log_revert_change>
 
 =head1 See Also
 

@@ -508,6 +508,72 @@ subtest 'live database' => sub {
         $tag->planner_email,
     ]], 'The tag should be back';
 
+    ##########################################################################
+    # Test log_revert_change(). First shift existing event dates.
+    $sqlite->_dbh->do(
+        'UPDATE events SET committed_at = ? WHERE change_id = ?',
+        undef, '2013-03-30 00:44:47', $change->id
+    );
+    $events[-1]->{committed_at} = dt_for_event(0);
+
+    ok $sqlite->log_revert_change($change), 'Revert "users" change';
+    ok !$sqlite->is_deployed_change($change), 'The change should no longer be deployed';
+    is_deeply [$sqlite->are_deployed_changes($change)], [],
+        'The change should no longer be deployed';
+
+    is $sqlite->earliest_change_id, undef, 'Should get undef for earliest change';
+    is $sqlite->latest_change_id, undef, 'Should get undef for latest change';
+
+    is_deeply all_changes(), [],
+        'The record should have been deleted from the changes table';
+    is_deeply all_tags(), [], 'And the tag record should have been removed';
+    is_deeply get_dependencies($change->id), [], 'Should still have no dependencies';
+    is_deeply [ $sqlite->changes_requiring_change($change) ], [],
+        'Change should not be required';
+
+    push @event_data, [
+        'revert',
+        $change->id,
+        'users',
+        'pg',
+        '',
+        $sqlite->_log_requires_param($change),
+        $sqlite->_log_conflicts_param($change),
+        $sqlite->_log_tags_param($change),
+        $sqitch->user_name,
+        $sqitch->user_email,
+        $change->planner_name,
+        $change->planner_email
+    ];
+
+    is_deeply all_events(), \@event_data,
+        'The revert event should have been logged';
+
+    is $sqlite->name_for_change_id($change->id), undef,
+        'name_for_change_id() should no longer return the change name';
+    is $sqlite->current_state, undef, 'Current state should be undef again';
+    is_deeply all( $sqlite->current_changes ), [],
+        'Should again have no current changes';
+    is_deeply all( $sqlite->current_tags ), [], 'Should again have no current tags';
+
+    unshift @events => {
+        event           => 'revert',
+        project         => 'pg',
+        change_id       => $change->id,
+        change          => 'users',
+        note            => '',
+        requires        => $sqlite->_log_requires_param($change),
+        conflicts       => $sqlite->_log_conflicts_param($change),
+        tags            => $sqlite->_log_tags_param($change),
+        committer_name  => $sqitch->user_name,
+        committer_email => $sqitch->user_email,
+        committed_at    => dt_for_event(1),
+        planned_at      => $change->timestamp,
+        planner_name    => $change->planner_name,
+        planner_email   => $change->planner_email,
+    };
+    is_deeply all( $sqlite->search_events ), \@events, 'Should have two events';
+
 };
 
 done_testing;
