@@ -660,6 +660,14 @@ DBI-powered engines.
 
 =head3 C<log_revert_change>
 
+=head3 C<begin_work>
+
+=head3 C<finish_work>
+
+=head3 C<is_deployed_tag>
+
+=head3 Crollback_work>
+
 =head1 See Also
 
 =over
