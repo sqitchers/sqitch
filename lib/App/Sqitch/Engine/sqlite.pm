@@ -90,7 +90,8 @@ has _dbh => (
             },
             Callbacks         => {
                 connected => sub {
-                    shift->do('PRAGMA foreign_keys = ON');
+                    my $dbh = shift;
+                    $dbh->do('PRAGMA foreign_keys = ON');
                     return;
                 },
             },
@@ -151,6 +152,10 @@ sub _regex_op { 'REGEXP' }
 
 sub _ts2char_format {
     return q{strftime('year:%%Y:month:%%m:day:%%d:hour:%%H:minute:%%M:second:%%S:time_zone:UTC', %s)};
+}
+
+sub _listagg_format {
+    return q{group_concat(%s, ', ')};
 }
 
 sub _char2ts {

@@ -18,6 +18,7 @@ requires 'plan';
 requires '_regex_op';
 requires '_ts2char_format';
 requires '_char2ts';
+requires '_listagg_format';
 
 sub _ts2char {
     my $format = $_[0]->_ts2char_format;
@@ -69,23 +70,36 @@ sub latest_change_id {
 
 sub current_state {
     my ( $self, $project ) = @_;
-    my $cdtcol = $self->_ts2char('committed_at');
-    my $pdtcol = $self->_ts2char('planned_at');
+    my $cdtcol = $self->_ts2char('c.committed_at');
+    my $pdtcol = $self->_ts2char('c.planned_at');
+    my $tagcol = sprintf $self->_listagg_format, 't.tag';
     my $dbh    = $self->_dbh;
     my $state  = $dbh->selectrow_hashref(qq{
-        SELECT change_id
-             , change
-             , project
-             , note
-             , committer_name
-             , committer_email
+        SELECT c.change_id
+             , c.change
+             , c.project
+             , c.note
+             , c.committer_name
+             , c.committer_email
              , $cdtcol AS committed_at
-             , planner_name
-             , planner_email
+             , c.planner_name
+             , c.planner_email
              , $pdtcol AS planned_at
-          FROM changes
-         WHERE project = ?
-         ORDER BY changes.committed_at DESC
+             , $tagcol AS tags
+          FROM changes   c
+          LEFT JOIN tags t ON c.change_id = t.change_id
+         WHERE c.project = ?
+         GROUP BY c.change_id
+             , c.change
+             , c.project
+             , c.note
+             , c.committer_name
+             , c.committer_email
+             , c.committed_at
+             , c.planner_name
+             , c.planner_email
+             , c.planned_at
+         ORDER BY c.committed_at DESC
          LIMIT 1
     }, undef, $project // $self->plan->project ) or return undef;
     $state->{committed_at} = _dt $state->{committed_at};
@@ -586,6 +600,98 @@ sub log_revert_change {
     return $self->_log_event( revert => $change, $del_tags, $req, $conf );
 }
 
+sub deployed_changes {
+    my $self = shift;
+    my $tscol = $self->_ts2char('c.planned_at');
+    my $tagcol = sprintf $self->_listagg_format, 't.tag';
+    return map {
+        $_->{timestamp} = _dt $_->{timestamp};
+        $_->{tags} = $_->{tags} ? [ split /, / => $_->{tags} ] : [];
+        $_;
+    } @{ $self->_dbh->selectall_arrayref(qq{
+        SELECT c.change_id AS id, c.change AS name, c.project, c.note,
+               $tscol AS timestamp, c.planner_name, c.planner_email,
+               $tagcol AS tags
+          FROM changes   c
+          LEFT JOIN tags t ON c.change_id = t.change_id
+         WHERE c.project = ?
+         GROUP BY c.change_id, c.change, c.project, c.note, c.planned_at,
+               c.planner_name, c.planner_email
+         ORDER BY c.committed_at ASC
+    }, { Slice => {} }, $self->plan->project) };
+}
+
+sub deployed_changes_since {
+    my ( $self, $change ) = @_;
+    my $tscol = $self->_ts2char('c.planned_at');
+    my $tagcol = sprintf $self->_listagg_format, 't.tag';
+    return map {
+        $_->{timestamp} = _dt $_->{timestamp};
+        $_->{tags} = $_->{tags} ? [ split /, / => $_->{tags} ] : [];
+        $_;
+    } @{ $self->_dbh->selectall_arrayref(qq{
+        SELECT c.change_id AS id, c.change AS name, c.project, c.note,
+               $tscol AS timestamp, c.planner_name, c.planner_email,
+               $tagcol AS tags
+          FROM changes   c
+          LEFT JOIN tags t ON c.change_id = t.change_id
+         WHERE c.project = ?
+           AND c.committed_at > (SELECT committed_at FROM changes WHERE change_id = ?)
+         GROUP BY c.change_id, c.change, c.project, c.note, c.planned_at,
+               c.planner_name, c.planner_email
+         ORDER BY c.committed_at ASC
+    }, { Slice => {} }, $self->plan->project, $change->id) };
+}
+
+sub load_change {
+    my ( $self, $change_id ) = @_;
+    my $tscol = $self->_ts2char('c.planned_at');
+    my $tagcol = sprintf $self->_listagg_format, 't.tag';
+    my $change = $self->_dbh->selectrow_hashref(qq{
+        SELECT c.change_id AS id, c.change AS name, c.project, c.note,
+               $tscol AS timestamp, c.planner_name, c.planner_email,
+                $tagcol AS tags
+          FROM changes   c
+          LEFT JOIN tags t ON c.change_id = t.change_id
+         WHERE c.change_id = ?
+         GROUP BY c.change_id, c.change, c.project, c.note, c.planned_at,
+               c.planner_name, c.planner_email
+    }, undef, $change_id) || return undef;
+    $change->{timestamp} = _dt $change->{timestamp};
+    $change->{tags} = $change->{tags} ? [ split /, / => $change->{tags} ] : [];
+    return $change;
+}
+
+sub change_offset_from_id {
+    my ( $self, $change_id, $offset ) = @_;
+
+    # Just return the object if there is no offset.
+    return $self->load_change($change_id) unless $offset;
+
+    # Are we offset forwards or backwards?
+    my ( $dir, $op ) = $offset > 0 ? ( 'ASC', '>' ) : ( 'DESC' , '<' );
+    my $tscol = $self->_ts2char('c.planned_at');
+    my $tagcol = sprintf $self->_listagg_format, 't.tag';
+    my $change = $self->_dbh->selectrow_hashref(qq{
+        SELECT c.change_id AS id, c.change AS name, c.project, c.note,
+               $tscol AS timestamp, c.planner_name, c.planner_email,
+               $tagcol AS tags
+          FROM changes   c
+          LEFT JOIN tags t ON c.change_id = t.change_id
+         WHERE c.project = ?
+           AND c.committed_at $op (
+               SELECT committed_at FROM changes WHERE change_id = ?
+         )
+         GROUP BY c.change_id, c.change, c.project, c.note, c.planned_at,
+               c.planner_name, c.planner_email, c.committed_at
+         ORDER BY c.committed_at $dir
+         LIMIT -1 OFFSET ?
+    }, undef, $self->plan->project, $change_id, abs($offset) - 1) || return undef;
+    $change->{timestamp} = _dt $change->{timestamp};
+    $change->{tags} = $change->{tags} ? [ split /, / => $change->{tags} ] : [];
+    return $change;
+}
+
 sub begin_work {
     my $self = shift;
     # XXX Add some way to lock?
@@ -667,6 +773,14 @@ DBI-powered engines.
 =head3 C<is_deployed_tag>
 
 =head3 Crollback_work>
+
+=head3 C<deployed_changes>
+
+=head3 C<deployed_changes_since>
+
+=head3 C<load_change>
+
+=head3 C<change_offset_from_id>
 
 =head1 See Also
 
