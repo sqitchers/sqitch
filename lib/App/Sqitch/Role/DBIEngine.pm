@@ -31,7 +31,7 @@ sub _dt($) {
 }
 
 sub _log_tags_param {
-    join ',' => map { $_->format_name } $_[1]->tags;
+    join ' ' => map { $_->format_name } $_[1]->tags;
 }
 
 sub _log_requires_param {
@@ -612,7 +612,7 @@ sub deployed_changes {
     my $tagcol = sprintf $self->_listagg_format, 't.tag';
     return map {
         $_->{timestamp} = _dt $_->{timestamp};
-        $_->{tags} = $_->{tags} ? [ split /, / => $_->{tags} ] : [];
+        $_->{tags} = $_->{tags} ? [ split / / => $_->{tags} ] : [];
         $_;
     } @{ $self->_dbh->selectall_arrayref(qq{
         SELECT c.change_id AS id, c.change AS name, c.project, c.note,
@@ -633,7 +633,7 @@ sub deployed_changes_since {
     my $tagcol = sprintf $self->_listagg_format, 't.tag';
     return map {
         $_->{timestamp} = _dt $_->{timestamp};
-        $_->{tags} = $_->{tags} ? [ split /, / => $_->{tags} ] : [];
+        $_->{tags} = $_->{tags} ? [ split / / => $_->{tags} ] : [];
         $_;
     } @{ $self->_dbh->selectall_arrayref(qq{
         SELECT c.change_id AS id, c.change AS name, c.project, c.note,
@@ -664,7 +664,7 @@ sub load_change {
                c.planner_name, c.planner_email
     }, undef, $change_id) || return undef;
     $change->{timestamp} = _dt $change->{timestamp};
-    $change->{tags} = $change->{tags} ? [ split /, / => $change->{tags} ] : [];
+    $change->{tags} = $change->{tags} ? [ split / / => $change->{tags} ] : [];
     return $change;
 }
 
@@ -694,7 +694,7 @@ sub change_offset_from_id {
          LIMIT -1 OFFSET ?
     }, undef, $self->plan->project, $change_id, abs($offset) - 1) || return undef;
     $change->{timestamp} = _dt $change->{timestamp};
-    $change->{tags} = $change->{tags} ? [ split /, / => $change->{tags} ] : [];
+    $change->{tags} = $change->{tags} ? [ split / / => $change->{tags} ] : [];
     return $change;
 }
 

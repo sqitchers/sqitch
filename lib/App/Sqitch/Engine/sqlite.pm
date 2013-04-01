@@ -161,7 +161,7 @@ sub _ts2char_format {
 }
 
 sub _listagg_format {
-    return q{group_concat(%s, ', ')};
+    return q{group_concat(%s, ' ')};
 }
 
 sub _char2ts {
