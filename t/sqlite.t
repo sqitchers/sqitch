@@ -977,6 +977,131 @@ subtest 'live database' => sub {
     };
     is_deeply all( $sqlite->search_events ), \@events, 'Should have 7 events';
 
+    ##########################################################################
+    # Deploy the new changes with two tags.
+    $plan->add( name => 'fred' );
+    $plan->add( name => 'barney' );
+    $plan->tag( name => 'beta' );
+    $plan->tag( name => 'gamma' );
+    ok my $fred = $plan->get('fred'),     'Get the "fred" change';
+    ok $sqlite->log_deploy_change($fred),     'Deploy "fred"';
+    $set_event_timestamp->('2013-03-30 00:51:47');
+    ok my $barney = $plan->get('barney'), 'Get the "barney" change';
+    ok $sqlite->log_deploy_change($barney),   'Deploy "barney"';
+    $set_event_timestamp->('2013-03-30 00:52:47');
+
+    is $sqlite->earliest_change_id, $change->id, 'Earliest change should sill be "users"';
+    is $sqlite->earliest_change_id(1), $change2->id,
+        'Should still get "widgets" offset 1 from earliest';
+    is $sqlite->earliest_change_id(2), $fred->id,
+        'Should get "fred" offset 2 from earliest';
+    is $sqlite->earliest_change_id(3), $barney->id,
+        'Should get "barney" offset 3 from earliest';
+
+    is $sqlite->latest_change_id, $barney->id, 'Latest change should be "barney"';
+    is $sqlite->latest_change_id(1), $fred->id, 'Should get "fred" offset 1 from latest';
+    is $sqlite->latest_change_id(2), $change2->id, 'Should get "widgets" offset 2 from latest';
+    is $sqlite->latest_change_id(3), $change->id, 'Should get "users" offset 3 from latest';
+
+    is_deeply $sqlite->current_state, {
+        project         => 'pg',
+        change_id       => $barney->id,
+        change          => 'barney',
+        note            => '',
+        committer_name  => $sqitch->user_name,
+        committer_email => $sqitch->user_email,
+        committed_at    => dt_for_change($barney->id),
+        tags            => [qw(@beta @gamma)],
+        planner_name    => $barney->planner_name,
+        planner_email   => $barney->planner_email,
+        planned_at      => $barney->timestamp,
+    }, 'Barney should be in the current state';
+
+    unshift @current_changes => {
+        change_id       => $barney->id,
+        change          => 'barney',
+        committer_name  => $user2_name,
+        committer_email => $user2_email,
+        committed_at    => dt_for_change( $barney->id ),
+        planner_name    => $barney->planner_name,
+        planner_email   => $barney->planner_email,
+        planned_at      => $barney->timestamp,
+    }, {
+        change_id       => $fred->id,
+        change          => 'fred',
+        committer_name  => $user2_name,
+        committer_email => $user2_email,
+        committed_at    => dt_for_change( $fred->id ),
+        planner_name    => $fred->planner_name,
+        planner_email   => $fred->planner_email,
+        planned_at      => $fred->timestamp,
+    };
+
+    is_deeply all( $sqlite->current_changes ), \@current_changes,
+        'Should have all four current changes in reverse chron order';
+
+    my ($beta, $gamma) = $barney->tags;
+
+    # Make sure the two tags have different timestamps.
+    $sqlite->_dbh->do($_) for (
+        q{UPDATE tags SET committed_at = '2013-03-30 00:53:47' WHERE tag = '@gamma'}
+    );
+    unshift @current_tags => {
+        tag_id          => $gamma->id,
+        tag             => '@gamma',
+        committer_name  => $user2_name,
+        committer_email => $user2_email,
+        committed_at    => dt_for_tag( $gamma->id ),
+        planner_name    => $gamma->planner_name,
+        planner_email   => $gamma->planner_email,
+        planned_at      => $gamma->timestamp,
+    }, {
+        tag_id          => $beta->id,
+        tag             => '@beta',
+        committer_name  => $user2_name,
+        committer_email => $user2_email,
+        committed_at    => dt_for_tag( $beta->id ),
+        planner_name    => $beta->planner_name,
+        planner_email   => $beta->planner_email,
+        planned_at      => $beta->timestamp,
+    };
+
+    is_deeply all( $sqlite->current_tags ), \@current_tags,
+        'Should now have three current tags in reverse chron order';
+
+    unshift @events => {
+        event           => 'deploy',
+        project         => 'pg',
+        change_id       => $barney->id,
+        change          => 'barney',
+        note            => '',
+        requires        => $sqlite->_log_requires_param($barney),
+        conflicts       => $sqlite->_log_conflicts_param($barney),
+        tags            => $sqlite->_log_tags_param($barney),
+        committer_name  => $user2_name,
+        committer_email => $user2_email,
+        committed_at    => dt_for_event(8),
+        planner_name    => $barney->planner_name,
+        planner_email   => $barney->planner_email,
+        planned_at      => $barney->timestamp,
+    }, {
+        event           => 'deploy',
+        project         => 'pg',
+        change_id       => $fred->id,
+        change          => 'fred',
+        note            => '',
+        requires        => $sqlite->_log_requires_param($fred),
+        conflicts       => $sqlite->_log_conflicts_param($fred),
+        tags            => $sqlite->_log_tags_param($fred),
+        committer_name  => $user2_name,
+        committer_email => $user2_email,
+        committed_at    => dt_for_event(7),
+        planner_name    => $fred->planner_name,
+        planner_email   => $fred->planner_email,
+        planned_at      => $fred->timestamp,
+    };
+    is_deeply all( $sqlite->search_events ), \@events, 'Should have 9 events';
+
 };
 
 done_testing;
