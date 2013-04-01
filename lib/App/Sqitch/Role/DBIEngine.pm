@@ -700,7 +700,7 @@ sub change_offset_from_id {
 
 sub begin_work {
     my $self = shift;
-    # XXX Add some way to lock?
+    # Note: Engines should acquire locks to prevent concurrent Sqitch activity.
     $self->_dbh->begin_work;
     return $self;
 }

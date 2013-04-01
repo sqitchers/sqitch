@@ -125,6 +125,12 @@ sub config_vars {
     );
 }
 
+sub begin_work {
+    my $self = shift;
+    $self->_dbh->do('BEGIN EXCLUSIVE TRANSACTION');
+    return $self;
+}
+
 sub initialized {
     my $self = shift;
     return $self->_dbh->selectcol_arrayref(q{
