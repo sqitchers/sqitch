@@ -522,37 +522,43 @@ sub log_new_tags {
         $sqitch->user_email
     );
 
-    # Insert one at a time, but only if they are not already present.
-    my $sth = $self->_dbh->prepare(q{
-        INSERT INTO tags (
-               tag_id
-             , tag
-             , project
-             , change_id
-             , note
-             , committer_name
-             , committer_email
-             , planned_at
-             , planner_name
-             , planner_email
-        )
-        SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
-         WHERE NOT EXISTS (SELECT tag_id FROM tags WHERE tag_id = ?)
-    });
-
-    $sth->execute(
-        $_->id,
-        $_->format_name,
-        $proj,
-        $id,
-        $_->note,
-        $user,
-        $email,
-        $self->_char2ts( $_->timestamp ),
-        $_->planner_name,
-        $_->planner_email,
-        $_->id,
-    ) for @tags;
+    $self->_dbh->do(
+        q{
+            INSERT INTO tags (
+                   tag_id
+                 , tag
+                 , project
+                 , change_id
+                 , note
+                 , committer_name
+                 , committer_email
+                 , planned_at
+                 , planner_name
+                 , planner_email
+            )
+            SELECT i.* FROM (
+                         } . join(
+                "\n               UNION ALL ",
+                ('SELECT ? AS tid, ?, ?, ?, ?, ?, ?, ?, ?, ?') x @tags
+            ) . q{
+            ) AS i
+              LEFT JOIN tags ON i.tid = tags.tag_id
+             WHERE tags.tag_id IS NULL
+         },
+        undef,
+        map { (
+            $_->id,
+            $_->format_name,
+            $proj,
+            $id,
+            $_->note,
+            $user,
+            $email,
+            $self->_char2ts( $_->timestamp ),
+            $_->planner_name,
+            $_->planner_email,
+        ) } @tags
+    );
 
     return $self;
 }
