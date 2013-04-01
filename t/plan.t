@@ -320,7 +320,7 @@ is $@->message, __x(
     lineno => 5,
     error => __(
         qq{Invalid name; names must not begin with punctuation, }
-        . 'contain "@", ":", or "#", or end in punctuation or digits following punctuation',
+        . 'contain "@", ":", "#", or blanks, or end in punctuation or digits following punctuation',
     ),
 ), 'And the bad change name error message should be correct';
 
@@ -358,7 +358,7 @@ for my $name (@bad_names) {
             lineno => 4,
             error => __(
                 qq{Invalid name; names must not begin with punctuation, }
-                . 'contain "@", ":", or "#", or end in punctuation or digits following punctuation',
+                . 'contain "@", ":", "#", or blanks, or end in punctuation or digits following punctuation',
             )
         ),  qq{And "$line" should trigger the appropriate message};
         is sorted, 0, 'Should not have sorted changes';
@@ -1170,7 +1170,7 @@ for my $name (@bad_names) {
     is $@->ident, 'plan', qq{Invalid name "$name" error ident should be "plan"};
     is $@->message, __x(
         qq{"{name}" is invalid: tags must not begin with punctuation, }
-        . 'contain "@", ":", or "#", or end in punctuation or digits following punctuation',
+        . 'contain "@", ":", "#", or blanks, or end in punctuation or digits following punctuation',
         name => $name,
     ), qq{And the "$name" error message should be correct};
 }
@@ -1245,7 +1245,7 @@ for my $name (@bad_names, 'foo#bar') {
     is $@->ident, 'plan', qq{Invalid name "$name" error ident should be "plan"};
     is $@->message, __x(
         qq{"{name}" is invalid: tags must not begin with punctuation, }
-        . 'contain "@", ":", or "#", or end in punctuation or digits following punctuation',
+        . 'contain "@", ":", "#", or blanks, or end in punctuation or digits following punctuation',
         name => $name,
     ), qq{And the "$name" error message should be correct};
 }
@@ -1360,7 +1360,7 @@ for my $name (@bad_names) {
     is $@->ident, 'plan', qq{Invalid name "$name" error ident should be "plan"};
     is $@->message, __x(
         qq{"{name}" is invalid: changes must not begin with punctuation, }
-        . 'contain "@", ":", or "#", or end in punctuation or digits following punctuation',
+        . 'contain "@", ":", "#", or blanks, or end in punctuation or digits following punctuation',
         name => $name,
     ), qq{And the "$name" error message should be correct};
 }
@@ -1958,7 +1958,7 @@ for my $bad (@bad_names) {
     is $@->ident, 'plan', qq{Ident for bad proj "$bad" should be "plan"};
     my $error =  __x(
             'invalid project name "{project}": project names must not '
-            . 'begin with punctuation, contain "@", ":", or "#", or end in '
+            . 'begin with punctuation, contain "@", ":", "#", or blanks, or end in '
             . 'punctuation or digits following punctuation',
             project => $bad);
     is $@->message, __x(

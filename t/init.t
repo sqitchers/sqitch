@@ -510,7 +510,7 @@ for my $bad (@bad_names) {
     is $@->ident, 'init', qq{Bad project "$bad" ident should be "init"};
     is $@->message, __x(
         qq{invalid project name "{project}": project names must not }
-        . 'begin with punctuation, contain "@" or ":", or end in '
+        . 'begin with punctuation, contain "@", ":", "#", or blanks, or end in '
         . 'punctuation or digits following punctuation',
         project => $bad
     ), qq{Bad project "$bad" error message should be correct};

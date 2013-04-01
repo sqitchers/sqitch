@@ -45,7 +45,7 @@ sub _validate_project {
     my $name_re = App::Sqitch::Plan->name_regex;
     hurl init => __x(
         qq{invalid project name "{project}": project names must not }
-        . 'begin with punctuation, contain "@" or ":", or end in '
+        . 'begin with punctuation, contain "@", ":", "#", or blanks, or end in '
         . 'punctuation or digits following punctuation',
         project => $project
     ) unless $project =~ /\A$name_re\z/;
