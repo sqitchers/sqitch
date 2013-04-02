@@ -1233,6 +1233,123 @@ subtest 'live database' => sub {
     is $@->ident, 'DEV', 'Invalid search params error ident should be "DEV"';
     is $@->message, 'Invalid parameters passed to search_events(): bar, foo',
         'Invalid search params error message should be correct';
+
+    ##########################################################################
+    # Now that we have a change from an externa project, get its state.
+    ok $state = $sqlite->current_state('groovy'), 'Get the "groovy" state';
+    isa_ok $dt = delete $state->{committed_at}, 'App::Sqitch::DateTime',
+        'groofy committed_at value';
+    is $dt->time_zone->name, 'UTC', 'groovy committed_at TZ should be UTC';
+    is_deeply $state, {
+        project         => 'groovy',
+        change_id       => $ext_change->id,
+        change          => $ext_change->name,
+        note            => '',
+        committer_name  => $sqitch->user_name,
+        committer_email => $sqitch->user_email,
+        tags            => [],
+        planner_name    => $ext_change->planner_name,
+        planner_email   => $ext_change->planner_email,
+        planned_at      => $ext_change->timestamp,
+    }, 'The rest of the state should look right';
+
+    ##########################################################################
+    # Test change_id_for().
+    for my $spec (
+        [
+            'change_id only',
+            { change_id => $change->id },
+            $change->id,
+        ],
+        [
+            'change only',
+            { change => $change->name },
+            $change->id,
+        ],
+        [
+            'change + tag',
+            { change => $change->name, tag => 'alpha' },
+            $change->id,
+        ],
+        [
+            'change@HEAD',
+            { change => $change->name, tag => 'HEAD' },
+            $change->id,
+        ],
+        [
+            'tag only',
+            { tag => 'alpha' },
+            $change->id,
+        ],
+        [
+            'ROOT',
+            { tag => 'ROOT' },
+            $change->id,
+        ],
+        [
+            'FIRST',
+            { tag => 'FIRST' },
+            $change->id,
+        ],
+        [
+            'HEAD',
+            { tag => 'HEAD' },
+            $barney->id,
+        ],
+        [
+            'LAST',
+            { tag => 'LAST' },
+            $barney->id,
+        ],
+        [
+            'project:ROOT',
+            { tag => 'ROOT', project => 'groovy' },
+            $ext_change->id,
+        ],
+        [
+            'project:HEAD',
+            { tag => 'HEAD', project => 'groovy' },
+            $ext_change->id,
+        ],
+    ) {
+        my ( $desc, $params, $exp_id ) = @{ $spec };
+        is $sqlite->change_id_for(%{ $params }), $exp_id, "Should find id for $desc";
+    }
+
+    for my $spec (
+        [
+            'unkonwn id',
+            { change_id => 'whatever' },
+        ],
+        [
+            'unkonwn change',
+            { change => 'whatever' },
+        ],
+        [
+            'unkonwn tag',
+            { tag => 'whatever' },
+        ],
+        [
+            'change + unkonwn tag',
+            { change => $change->name, tag => 'whatever' },
+        ],
+        [
+            'change@ROOT',
+            { change => $change->name, tag => 'ROOT' },
+        ],
+        [
+            'change + different project',
+            { change => $change->name, project => 'whatever' },
+        ],
+        [
+            'tag + different project',
+            { tag => 'alpha', project => 'whatever' },
+        ],
+    ) {
+        my ( $desc, $params ) = @{ $spec };
+        is $sqlite->change_id_for(%{ $params }), undef, "Should find nothing for $desc";
+    }
+
 };
 
 done_testing;

@@ -702,6 +702,84 @@ sub change_offset_from_id {
     return $change;
 }
 
+sub change_id_for {
+    my ( $self, %p) = @_;
+    my $dbh = $self->_dbh;
+
+    if ( my $cid = $p{change_id} ) {
+        # Find by ID.
+        return $dbh->selectcol_arrayref(q{
+            SELECT change_id
+              FROM changes
+             WHERE change_id = ?
+        }, undef, $cid)->[0];
+    }
+
+    my $project = $p{project} || $self->plan->project;
+    if ( my $change = $p{change} ) {
+        if ( my $tag = $p{tag} ) {
+            # Ther is nothing before the first tag.
+            return undef if $tag eq 'ROOT' || $tag eq 'FIRST';
+
+            # Find closest to the end for @HEAD.
+            return $dbh->selectcol_arrayref(q{
+                SELECT change_id
+                  FROM changes
+                 WHERE project = ?
+                   AND change  = ?
+                 ORDER BY committed_at DESC
+                 LIMIT 1
+            }, undef, $project, $change)->[0] if $tag eq 'HEAD' || $tag eq 'LAST';
+
+            # Find by change name and following tag.
+            return $dbh->selectcol_arrayref(q{
+                SELECT changes.change_id
+                  FROM changes
+                  JOIN tags
+                    ON changes.committed_at <= tags.committed_at
+                   AND changes.project = tags.project
+                 WHERE changes.project = ?
+                   AND changes.change  = ?
+                   AND tags.tag        = ?
+            }, undef, $project, $change, '@' . $tag)->[0];
+        }
+
+        # Find by change name. Fail if there are multiple.
+        my $ids = $dbh->selectcol_arrayref(q{
+            SELECT change_id
+              FROM changes
+             WHERE project = ?
+               AND change  = ?
+        }, undef, $project, $change);
+        return $ids->[0] if @{ $ids } < 2;
+        hurl engine => __x(
+            'Key "{key}" matches multiple changes',
+            key => $change,
+        );
+    }
+
+    if ( my $tag = $p{tag} ) {
+        # Just return the latest for @HEAD.
+        return $self->_cid('DESC', 0, $project)
+            if $tag eq 'HEAD' || $tag eq 'LAST';
+
+        # Just return the earliest for @ROOT.
+        return $self->_cid('ASC', 0, $project)
+            if $tag eq 'ROOT' || $tag eq 'FIRST';
+
+        # Find by tag name.
+        return $dbh->selectcol_arrayref(q{
+            SELECT change_id
+              FROM tags
+             WHERE project = ?
+               AND tag     = ?
+        }, undef, $project, '@' . $tag)->[0];
+    }
+
+    # We got nothin.
+    return undef;
+}
+
 sub begin_work {
     my $self = shift;
     # Note: Engines should acquire locks to prevent concurrent Sqitch activity.
