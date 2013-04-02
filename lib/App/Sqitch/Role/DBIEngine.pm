@@ -12,7 +12,7 @@ use namespace::autoclean;
 
 our $VERSION = '0.954';
 
-requires '_dbh';
+requires 'dbh';
 requires 'sqitch';
 requires 'plan';
 requires '_regex_op';
@@ -45,7 +45,7 @@ sub _log_conflicts_param {
 sub _cid {
     my ( $self, $ord, $offset, $project ) = @_;
     return try {
-        $self->_dbh->selectcol_arrayref(qq{
+        $self->dbh->selectcol_arrayref(qq{
             SELECT change_id
               FROM changes
              WHERE project = ?
@@ -73,7 +73,7 @@ sub current_state {
     my $cdtcol = $self->_ts2char('c.committed_at');
     my $pdtcol = $self->_ts2char('c.planned_at');
     my $tagcol = sprintf $self->_listagg_format, 't.tag';
-    my $dbh    = $self->_dbh;
+    my $dbh    = $self->dbh;
     my $state  = $dbh->selectrow_hashref(qq{
         SELECT c.change_id
              , c.change
@@ -115,7 +115,7 @@ sub current_changes {
     my ( $self, $project ) = @_;
     my $cdtcol = $self->_ts2char('committed_at');
     my $pdtcol = $self->_ts2char('planned_at');
-    my $sth    = $self->_dbh->prepare(qq{
+    my $sth    = $self->dbh->prepare(qq{
         SELECT change_id
              , change
              , committer_name
@@ -141,7 +141,7 @@ sub current_tags {
     my ( $self, $project ) = @_;
     my $cdtcol = $self->_ts2char('committed_at');
     my $pdtcol = $self->_ts2char('planned_at');
-    my $sth    = $self->_dbh->prepare(qq{
+    my $sth    = $self->dbh->prepare(qq{
         SELECT tag_id
              , tag
              , committer_name
@@ -216,7 +216,7 @@ sub search_events {
     # Prepare, execute, and return.
     my $cdtcol = $self->_ts2char('committed_at');
     my $pdtcol = $self->_ts2char('planned_at');
-    my $sth = $self->_dbh->prepare(qq{
+    my $sth = $self->dbh->prepare(qq{
         SELECT event
              , project
              , change_id
@@ -244,7 +244,7 @@ sub search_events {
 }
 
 sub registered_projects {
-    return @{ shift->_dbh->selectcol_arrayref(
+    return @{ shift->dbh->selectcol_arrayref(
         'SELECT project FROM projects ORDER BY project'
     ) };
 }
@@ -252,7 +252,7 @@ sub registered_projects {
 sub register_project {
     my $self   = shift;
     my $sqitch = $self->sqitch;
-    my $dbh    = $self->_dbh;
+    my $dbh    = $self->dbh;
     my $plan   = $self->plan;
     my $proj   = $plan->project;
     my $uri    = $plan->uri;
@@ -313,7 +313,7 @@ sub register_project {
 
 sub is_deployed_change {
     my ( $self, $change ) = @_;
-    $self->_dbh->selectcol_arrayref(q{
+    $self->dbh->selectcol_arrayref(q{
         SELECT EXISTS(
             SELECT 1
               FROM changes
@@ -325,7 +325,7 @@ sub is_deployed_change {
 sub are_deployed_changes {
     my $self = shift;
     my $qs = join ', ' => ('?') x @_;
-    @{ $self->_dbh->selectcol_arrayref(
+    @{ $self->dbh->selectcol_arrayref(
         "SELECT change_id FROM changes WHERE change_id IN ($qs)",
         undef,
         map { $_->id } @_,
@@ -334,7 +334,7 @@ sub are_deployed_changes {
 
 sub is_deployed_tag {
     my ( $self, $tag ) = @_;
-    return $self->_dbh->selectcol_arrayref(q{
+    return $self->dbh->selectcol_arrayref(q{
         SELECT EXISTS(
             SELECT 1
               FROM tags
@@ -345,7 +345,7 @@ sub is_deployed_tag {
 
 sub log_deploy_change {
     my ($self, $change) = @_;
-    my $dbh    = $self->_dbh;
+    my $dbh    = $self->dbh;
     my $sqitch = $self->sqitch;
 
     my ($id, $name, $proj, $user, $email) = (
@@ -440,7 +440,7 @@ sub log_fail_change {
 
 sub _log_event {
     my ( $self, $event, $change, $tags, $requires, $conflicts) = @_;
-    my $dbh    = $self->_dbh;
+    my $dbh    = $self->dbh;
     my $sqitch = $self->sqitch;
 
     $dbh->do(q{
@@ -481,7 +481,7 @@ sub _log_event {
 
 sub changes_requiring_change {
     my ( $self, $change ) = @_;
-    return @{ $self->_dbh->selectall_arrayref(q{
+    return @{ $self->dbh->selectall_arrayref(q{
         SELECT c.change_id, c.project, c.change, (
             SELECT tag
               FROM changes c2
@@ -499,7 +499,7 @@ sub changes_requiring_change {
 
 sub name_for_change_id {
     my ( $self, $change_id ) = @_;
-    return $self->_dbh->selectcol_arrayref(q{
+    return $self->dbh->selectcol_arrayref(q{
         SELECT change || COALESCE((
             SELECT tag
               FROM changes c2
@@ -526,7 +526,7 @@ sub log_new_tags {
         $sqitch->user_email
     );
 
-    $self->_dbh->do(
+    $self->dbh->do(
         q{
             INSERT INTO tags (
                    tag_id
@@ -569,7 +569,7 @@ sub log_new_tags {
 
 sub log_revert_change {
     my ($self, $change) = @_;
-    my $dbh = $self->_dbh;
+    my $dbh = $self->dbh;
     my $cid = $change->id;
 
     # Retrieve and delete tags.
@@ -618,7 +618,7 @@ sub deployed_changes {
         $_->{timestamp} = _dt $_->{timestamp};
         $_->{tags} = $_->{tags} ? [ split / / => $_->{tags} ] : [];
         $_;
-    } @{ $self->_dbh->selectall_arrayref(qq{
+    } @{ $self->dbh->selectall_arrayref(qq{
         SELECT c.change_id AS id, c.change AS name, c.project, c.note,
                $tscol AS timestamp, c.planner_name, c.planner_email,
                $tagcol AS tags
@@ -639,7 +639,7 @@ sub deployed_changes_since {
         $_->{timestamp} = _dt $_->{timestamp};
         $_->{tags} = $_->{tags} ? [ split / / => $_->{tags} ] : [];
         $_;
-    } @{ $self->_dbh->selectall_arrayref(qq{
+    } @{ $self->dbh->selectall_arrayref(qq{
         SELECT c.change_id AS id, c.change AS name, c.project, c.note,
                $tscol AS timestamp, c.planner_name, c.planner_email,
                $tagcol AS tags
@@ -657,7 +657,7 @@ sub load_change {
     my ( $self, $change_id ) = @_;
     my $tscol = $self->_ts2char('c.planned_at');
     my $tagcol = sprintf $self->_listagg_format, 't.tag';
-    my $change = $self->_dbh->selectrow_hashref(qq{
+    my $change = $self->dbh->selectrow_hashref(qq{
         SELECT c.change_id AS id, c.change AS name, c.project, c.note,
                $tscol AS timestamp, c.planner_name, c.planner_email,
                 $tagcol AS tags
@@ -682,7 +682,7 @@ sub change_offset_from_id {
     my ( $dir, $op ) = $offset > 0 ? ( 'ASC', '>' ) : ( 'DESC' , '<' );
     my $tscol = $self->_ts2char('c.planned_at');
     my $tagcol = sprintf $self->_listagg_format, 't.tag';
-    my $change = $self->_dbh->selectrow_hashref(qq{
+    my $change = $self->dbh->selectrow_hashref(qq{
         SELECT c.change_id AS id, c.change AS name, c.project, c.note,
                $tscol AS timestamp, c.planner_name, c.planner_email,
                $tagcol AS tags
@@ -704,7 +704,7 @@ sub change_offset_from_id {
 
 sub change_id_for {
     my ( $self, %p) = @_;
-    my $dbh = $self->_dbh;
+    my $dbh = $self->dbh;
 
     if ( my $cid = $p{change_id} ) {
         # Find by ID.
@@ -783,19 +783,19 @@ sub change_id_for {
 sub begin_work {
     my $self = shift;
     # Note: Engines should acquire locks to prevent concurrent Sqitch activity.
-    $self->_dbh->begin_work;
+    $self->dbh->begin_work;
     return $self;
 }
 
 sub finish_work {
     my $self = shift;
-    $self->_dbh->commit;
+    $self->dbh->commit;
     return $self;
 }
 
 sub rollback_work {
     my $self = shift;
-    $self->_dbh->rollback;
+    $self->dbh->rollback;
     return $self;
 }
 

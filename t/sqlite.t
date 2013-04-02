@@ -50,7 +50,7 @@ is_deeply [$sqlite->sqlite3], [$sqlite->client, @std_opts, $sqlite->db_name],
 ##############################################################################
 # Make sure we get an error for no database name.
 isa_ok $sqlite = $CLASS->new(sqitch => $sqitch), $CLASS;
-throws_ok { $sqlite->_dbh } 'App::Sqitch::X', 'Should get an error for no db name';
+throws_ok { $sqlite->dbh } 'App::Sqitch::X', 'Should get an error for no db name';
 is $@->ident, 'sqlite', 'Missing db name error ident should be "sqlite"';
 is $@->message, __ 'No database specified; use --db-name set "ore.sqlite.db_name" via sqitch config',
     'Missing db name error message should be correct';
@@ -200,7 +200,7 @@ subtest 'live database' => sub {
     );
     $sqlite = $CLASS->new(sqitch => $sqitch, db_name => $db_name);
     try {
-        $sqlite->_dbh;
+        $sqlite->dbh;
     } catch {
         plan skip_all => "Unable to connect to a database for testing: "
             . eval { $_->message } || $_;
@@ -238,7 +238,7 @@ subtest 'live database' => sub {
         database => $sqlite->sqitch_db,
     ), 'And it should show the proper schema in the error message';
 
-    throws_ok { $sqlite->_dbh->do('INSERT blah INTO __bar_____') } 'App::Sqitch::X',
+    throws_ok { $sqlite->dbh->do('INSERT blah INTO __bar_____') } 'App::Sqitch::X',
         'Database error should be converted to Sqitch exception';
     is $@->ident, $DBI::state, 'Ident should be SQL error state';
     is $@->message, 'near "blah": syntax error', 'The message should be the SQLite error';
@@ -261,7 +261,7 @@ subtest 'live database' => sub {
     ok $sqlite->register_project, 'Register the project';
     is_deeply [ $sqlite->registered_projects ], ['pg'],
         'Should have one registered project, "sql"';
-    is_deeply $sqlite->_dbh->selectall_arrayref(
+    is_deeply $sqlite->dbh->selectall_arrayref(
         'SELECT project, uri, creator_name, creator_email FROM projects'
     ), [['pg', undef, $sqitch->user_name, $sqitch->user_email]],
         'The project should be registered';
@@ -270,7 +270,7 @@ subtest 'live database' => sub {
     ok $sqlite->register_project, 'Register the project again';
     is_deeply [ $sqlite->registered_projects ], ['pg'],
         'Should still have one registered project, "sql"';
-    is_deeply $sqlite->_dbh->selectall_arrayref(
+    is_deeply $sqlite->dbh->selectall_arrayref(
         'SELECT project, uri, creator_name, creator_email FROM projects'
     ), [['pg', undef, $sqitch->user_name, $sqitch->user_email]],
         'The project should still be registered only once';
@@ -285,7 +285,7 @@ subtest 'live database' => sub {
 
     is_deeply [ $sqlite->registered_projects ], ['groovy', 'pg'],
         'Should have both registered projects';
-    is_deeply $sqlite->_dbh->selectall_arrayref(
+    is_deeply $sqlite->dbh->selectall_arrayref(
         'SELECT project, uri, creator_name, creator_email FROM projects ORDER BY created_at'
     ), [
         ['pg', undef, $sqitch->user_name, $sqitch->user_email],
@@ -336,7 +336,7 @@ subtest 'live database' => sub {
         ok $sqlite->register_project, 'Register "groovy" again';
         is_deeply [ $sqlite->registered_projects ], ['groovy', 'pg'],
             'Should still have two registered projects';
-        is_deeply $sqlite->_dbh->selectall_arrayref(
+        is_deeply $sqlite->dbh->selectall_arrayref(
             'SELECT project, uri, creator_name, creator_email FROM projects ORDER BY created_at'
         ), [
             ['pg', undef, $sqitch->user_name, $sqitch->user_email],
@@ -362,7 +362,7 @@ subtest 'live database' => sub {
     # Will use this fo fake clock ticks.
     my $set_event_timestamp = sub {
         my $ts = shift;
-        $sqlite->_dbh->do($_, undef, $ts) for (
+        $sqlite->dbh->do($_, undef, $ts) for (
             'UPDATE events  SET committed_at = ? WHERE committed_at = CURRENT_TIMESTAMP',
             'UPDATE changes SET committed_at = ? WHERE committed_at = CURRENT_TIMESTAMP',
             'UPDATE tags    SET committed_at = ? WHERE committed_at = CURRENT_TIMESTAMP',
@@ -503,7 +503,7 @@ subtest 'live database' => sub {
     ]], 'The tag should be the same';
 
     # Delete that tag.
-    $sqlite->_dbh->do('DELETE FROM tags');
+    $sqlite->dbh->do('DELETE FROM tags');
     is_deeply all_tags(), [], 'Should now have no tags';
 
     # Put it back.
@@ -656,7 +656,7 @@ subtest 'live database' => sub {
     my ($req) = $change2->requires;
     ok $req->resolved_id($change->id),      'Set resolved ID in required depend';
     # Send this change back in time.
-    $sqlite->_dbh->do(
+    $sqlite->dbh->do(
         'UPDATE changes SET committed_at = ?',
             undef, '2013-03-30 00:47:47',
     );
@@ -1043,7 +1043,7 @@ subtest 'live database' => sub {
     my ($beta, $gamma) = $barney->tags;
 
     # Make sure the two tags have different timestamps.
-    $sqlite->_dbh->do($_) for (
+    $sqlite->dbh->do($_) for (
         q{UPDATE tags SET committed_at = '2013-03-30 00:53:47' WHERE tag = '@gamma'}
     );
     unshift @current_tags => {
@@ -1478,7 +1478,7 @@ subtest 'live database' => sub {
     $set_event_timestamp->('2013-03-30 00:58:47');
 
     # Make sure name_for_change_id() works properly.
-    ok $sqlite->_dbh->do(q{DELETE FROM tags WHERE project = 'pg'}),
+    ok $sqlite->dbh->do(q{DELETE FROM tags WHERE project = 'pg'}),
         'Delete the pg project tags';
     is $sqlite->name_for_change_id($change2->id), 'widgets',
         'name_for_change_id() should return "widgets" for its ID';
@@ -1602,7 +1602,7 @@ subtest 'live database' => sub {
     ##########################################################################
     # Test begin_work() and finish_work().
     can_ok $sqlite, qw(begin_work finish_work);
-    my $mock_dbh = Test::MockModule->new(ref $sqlite->_dbh, no_auto => 1);
+    my $mock_dbh = Test::MockModule->new(ref $sqlite->dbh, no_auto => 1);
     my $txn;
     $mock_dbh->mock(commit     => sub { $txn = 0  });
     $mock_dbh->mock(rollback   => sub { $txn = -1 });
@@ -1632,7 +1632,7 @@ done_testing;
 
 sub dt_for_change {
     my $col = $sqlite->_ts2char('committed_at');
-    $dtfunc->($sqlite->_dbh->selectcol_arrayref(
+    $dtfunc->($sqlite->dbh->selectcol_arrayref(
         "SELECT $col FROM changes WHERE change_id = ?",
         undef, shift
     )->[0]);
@@ -1640,7 +1640,7 @@ sub dt_for_change {
 
 sub dt_for_tag {
     my $col = $sqlite->_ts2char('committed_at');
-    $dtfunc->($sqlite->_dbh->selectcol_arrayref(
+    $dtfunc->($sqlite->dbh->selectcol_arrayref(
         "SELECT $col FROM tags WHERE tag_id = ?",
         undef, shift
     )->[0]);
@@ -1657,14 +1657,14 @@ sub all {
 
 sub dt_for_event {
     my $col = $sqlite->_ts2char('committed_at');
-    $dtfunc->($sqlite->_dbh->selectcol_arrayref(
+    $dtfunc->($sqlite->dbh->selectcol_arrayref(
         "SELECT $col FROM events ORDER BY committed_at ASC LIMIT 1 OFFSET ?",
         undef, shift
     )->[0]);
 }
 
 sub all_changes {
-    $sqlite->_dbh->selectall_arrayref(q{
+    $sqlite->dbh->selectall_arrayref(q{
         SELECT change_id, change, project, note, committer_name, committer_email,
                planner_name, planner_email
           FROM changes
@@ -1673,7 +1673,7 @@ sub all_changes {
 }
 
 sub all_tags {
-    $sqlite->_dbh->selectall_arrayref(q{
+    $sqlite->dbh->selectall_arrayref(q{
         SELECT tag_id, tag, change_id, project, note,
                committer_name, committer_email, planner_name, planner_email
           FROM tags
@@ -1682,7 +1682,7 @@ sub all_tags {
 }
 
 sub all_events {
-    $sqlite->_dbh->selectall_arrayref(q{
+    $sqlite->dbh->selectall_arrayref(q{
         SELECT event, change_id, change, project, note, requires, conflicts, tags,
                committer_name, committer_email, planner_name, planner_email
           FROM events
@@ -1691,7 +1691,7 @@ sub all_events {
 }
 
 sub get_dependencies {
-    $sqlite->_dbh->selectall_arrayref(q{
+    $sqlite->dbh->selectall_arrayref(q{
         SELECT change_id, type, dependency, dependency_id
           FROM dependencies
          WHERE change_id = ?

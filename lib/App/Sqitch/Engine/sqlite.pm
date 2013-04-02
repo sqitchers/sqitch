@@ -63,7 +63,7 @@ has sqitch_db => (
     },
 );
 
-has _dbh => (
+has dbh => (
     is      => 'rw',
     isa     => 'DBI::db',
     lazy    => 1,
@@ -126,13 +126,13 @@ sub config_vars {
 
 sub begin_work {
     my $self = shift;
-    $self->_dbh->do('BEGIN EXCLUSIVE TRANSACTION');
+    $self->dbh->do('BEGIN EXCLUSIVE TRANSACTION');
     return $self;
 }
 
 sub initialized {
     my $self = shift;
-    return $self->_dbh->selectcol_arrayref(q{
+    return $self->dbh->selectcol_arrayref(q{
         SELECT EXISTS(
             SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?
         )
@@ -150,7 +150,7 @@ sub initialize {
     my @cmd = $self->sqlite3;
     $cmd[-1] = $self->sqitch_db;
     my $file = file(__FILE__)->dir->file('sqlite.sql');
-    $self->sqitch->run( @cmd, '.read ' . $self->_dbh->quote($file) );
+    $self->sqitch->run( @cmd, '.read ' . $self->dbh->quote($file) );
 }
 
 sub _regex_op { 'REGEXP' }
@@ -187,14 +187,14 @@ sub _spool {
 
 sub run_file {
     my ($self, $file) = @_;
-    $self->_run( '.read ' . $self->_dbh->quote($file) );
+    $self->_run( '.read ' . $self->dbh->quote($file) );
 }
 
 sub run_verify {
     my ($self, $file) = @_;
     # Suppress STDOUT unless we want extra verbosity.
     my $meth = $self->can($self->sqitch->verbosity > 1 ? '_run' : '_capture');
-    $self->$meth( '.read ' . $self->_dbh->quote($file) );
+    $self->$meth( '.read ' . $self->dbh->quote($file) );
 }
 
 sub run_handle {
