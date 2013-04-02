@@ -1102,6 +1102,137 @@ subtest 'live database' => sub {
     };
     is_deeply all( $sqlite->search_events ), \@events, 'Should have 9 events';
 
+    ##########################################################################
+    # Test search_events() parameters.
+    is_deeply all( $sqlite->search_events(limit => 2) ), [ @events[0..1] ],
+        'The limit param to search_events should work';
+
+    is_deeply all( $sqlite->search_events(offset => 4) ), [ @events[4..$#events] ],
+        'The offset param to search_events should work';
+
+    is_deeply all( $sqlite->search_events(limit => 3, offset => 4) ), [ @events[4..6] ],
+        'The limit and offset params to search_events should work together';
+
+    is_deeply all( $sqlite->search_events( direction => 'DESC' ) ), \@events,
+        'Should work to set direction "DESC" in search_events';
+    is_deeply all( $sqlite->search_events( direction => 'desc' ) ), \@events,
+        'Should work to set direction "desc" in search_events';
+    is_deeply all( $sqlite->search_events( direction => 'descending' ) ), \@events,
+        'Should work to set direction "descending" in search_events';
+
+    is_deeply all( $sqlite->search_events( direction => 'ASC' ) ),
+        [ reverse @events ],
+        'Should work to set direction "ASC" in search_events';
+    is_deeply all( $sqlite->search_events( direction => 'asc' ) ),
+        [ reverse @events ],
+        'Should work to set direction "asc" in search_events';
+    is_deeply all( $sqlite->search_events( direction => 'ascending' ) ),
+        [ reverse @events ],
+        'Should work to set direction "ascending" in search_events';
+    throws_ok { $sqlite->search_events( direction => 'foo' ) } 'App::Sqitch::X',
+        'Should catch exception for invalid search direction';
+    is $@->ident, 'DEV', 'Search direction error ident should be "DEV"';
+    is $@->message, 'Search direction must be either "ASC" or "DESC"',
+        'Search direction error message should be correct';
+
+    is_deeply all( $sqlite->search_events( committer => 'Simpson$' ) ), \@events,
+        'The committer param to search_events should work';
+    is_deeply all( $sqlite->search_events( committer => "^Homer" ) ),
+        [ @events[0..5] ],
+        'The committer param to search_events should work as a regex';
+    is_deeply all( $sqlite->search_events( committer => 'Simpsonized$' ) ), [],
+        qq{Committer regex should fail to match with "Simpsonized\$"};
+
+    is_deeply all( $sqlite->search_events( change => 'users' ) ),
+        [ @events[5..$#events] ],
+        'The change param to search_events should work with "users"';
+    is_deeply all( $sqlite->search_events( change => 'widgets' ) ),
+        [ @events[2..4] ],
+        'The change param to search_events should work with "widgets"';
+    is_deeply all( $sqlite->search_events( change => 'fred' ) ),
+        [ $events[1] ],
+        'The change param to search_events should work with "fred"';
+    is_deeply all( $sqlite->search_events( change => 'fre$' ) ), [],
+        'The change param to search_events should return nothing for "fre$"';
+    is_deeply all( $sqlite->search_events( change => '(er|re)' ) ),
+        [@events[1, 5..8]],
+        'The change param to search_events should return match "(er|re)"';
+
+    is_deeply all( $sqlite->search_events( event => [qw(deploy)] ) ),
+        [ grep { $_->{event} eq 'deploy' } @events ],
+        'The event param should work with "deploy"';
+    is_deeply all( $sqlite->search_events( event => [qw(revert)] ) ),
+        [ grep { $_->{event} eq 'revert' } @events ],
+        'The event param should work with "revert"';
+    is_deeply all( $sqlite->search_events( event => [qw(fail)] ) ),
+        [ grep { $_->{event} eq 'fail' } @events ],
+        'The event param should work with "fail"';
+    is_deeply all( $sqlite->search_events( event => [qw(revert fail)] ) ),
+        [ grep { $_->{event} ne 'deploy' } @events ],
+        'The event param should work with "revert" and "fail"';
+    is_deeply all( $sqlite->search_events( event => [qw(deploy revert fail)] ) ),
+        \@events,
+        'The event param should work with "deploy", "revert", and "fail"';
+    is_deeply all( $sqlite->search_events( event => ['foo'] ) ), [],
+        'The event param should return nothing for "foo"';
+
+    # Add an external project event.
+    ok my $ext_plan = App::Sqitch::Plan->new(
+        sqitch => $sqitch,
+        project => 'groovy',
+    ), 'Create external plan';
+    ok my $ext_change = $ext_plan->add(
+        plan => $ext_plan,
+        name => 'crazyman',
+    ), "Create external change";
+    ok $sqlite->log_deploy_change($ext_change), 'Log the external change';
+    my $ext_event = {
+        event           => 'deploy',
+        project         => 'groovy',
+        change_id       => $ext_change->id,
+        change          => $ext_change->name,
+        note            => '',
+        requires        => $sqlite->_log_requires_param($ext_change),
+        conflicts       => $sqlite->_log_conflicts_param($ext_change),
+        tags            => $sqlite->_log_tags_param($ext_change),
+        committer_name  => $user2_name,
+        committer_email => $user2_email,
+        committed_at    => dt_for_event(9),
+        planner_name    => $user2_name,
+        planner_email   => $user2_email,
+        planned_at      => $ext_change->timestamp,
+    };
+    is_deeply all( $sqlite->search_events( project => '^pg$' ) ), \@events,
+        'The project param to search_events should work';
+    is_deeply all( $sqlite->search_events( project => '^groovy$' ) ), [$ext_event],
+        'The project param to search_events should work with external project';
+    is_deeply all( $sqlite->search_events( project => 'g' ) ), [$ext_event, @events],
+        'The project param to search_events should match across projects';
+    is_deeply all( $sqlite->search_events( project => 'nonexistent' ) ), [],
+        qq{Project regex should fail to match with "nonexistent"};
+
+    # Make sure we do not see these changes where we should not.
+    ok !grep( { $_ eq $ext_change->id } $sqlite->deployed_changes),
+        'deployed_changes should not include external change';
+    ok !grep( { $_ eq $ext_change->id } $sqlite->deployed_changes_since($change)),
+        'deployed_changes_since should not include external change';
+
+    is $sqlite->earliest_change_id, $change->id,
+        'Earliest change should sill be "users"';
+    isnt $sqlite->latest_change_id, $ext_change->id,
+        'Latest change ID should not be from external project';
+
+    throws_ok { $sqlite->search_events(foo => 1) } 'App::Sqitch::X',
+        'Should catch exception for invalid search param';
+    is $@->ident, 'DEV', 'Invalid search param error ident should be "DEV"';
+    is $@->message, 'Invalid parameters passed to search_events(): foo',
+        'Invalid search param error message should be correct';
+
+    throws_ok { $sqlite->search_events(foo => 1, bar => 2) } 'App::Sqitch::X',
+        'Should catch exception for invalid search params';
+    is $@->ident, 'DEV', 'Invalid search params error ident should be "DEV"';
+    is $@->message, 'Invalid parameters passed to search_events(): bar, foo',
+        'Invalid search params error message should be correct';
 };
 
 done_testing;

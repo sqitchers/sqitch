@@ -190,9 +190,9 @@ sub search_events {
 
     # Match events?
     if (my $e = delete $p{event} ) {
-        my $qs = ('?') x @{ $e };
+        my $qs = join ', ', ('?') x @{ $e };
         push @wheres => "event IN ($qs)";
-        push @params => $ { $e };
+        push @params => @{ $e };
     }
 
     # Assemble the where clause.
@@ -201,10 +201,14 @@ sub search_events {
         : '';
 
     # Handle remaining parameters.
-    my $limits = join '  ' => map {
-        push @params => $p{$_};
-        uc "\n         $_ ?"
-    } grep { $p{$_} } qw(limit offset);
+    my $limits = '';
+    if ($p{limit} || $p{offset}) {
+        $limits = "\n         LIMIT ?\n         OFFSET ?";
+        push @params => (
+            delete $p{limit}  // -1,
+            delete $p{offset} // 0,
+        );
+    }
 
     hurl 'Invalid parameters passed to search_events(): '
         . join ', ', sort keys %p if %p;
@@ -776,6 +780,8 @@ DBI-powered engines.
 
 =head3 C<finish_work>
 
+=head3 C<rollback_work>
+
 =head3 C<is_deployed_tag>
 
 =head3 Crollback_work>
@@ -787,6 +793,7 @@ DBI-powered engines.
 =head3 C<load_change>
 
 =head3 C<change_offset_from_id>
+
 
 =head1 See Also
 
