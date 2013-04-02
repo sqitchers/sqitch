@@ -1186,6 +1186,7 @@ subtest 'live database' => sub {
         name => 'crazyman',
     ), "Create external change";
     ok $sqlite->log_deploy_change($ext_change), 'Log the external change';
+    $set_event_timestamp->('2013-03-30 00:53:47');
     my $ext_event = {
         event           => 'deploy',
         project         => 'groovy',
@@ -1403,14 +1404,14 @@ subtest 'live database' => sub {
             # Once deployed, dependency should be satisfied.
             ok $sqlite->log_deploy_change($change),
                 "Log internal $desc change deployment";
-            $set_event_timestamp->('2013-03-30 00:53:47');
+            $set_event_timestamp->('2013-03-30 00:54:47');
             is $sqlite->change_id_for_depend($dep), $change->id,
                 "Internal $desc depencency should now be satisfied";
 
             # Revert it and try again.
             ok $sqlite->log_revert_change($change),
                 "Log internal $desc change reversion";
-            $set_event_timestamp->('2013-03-30 00:54:47');
+            $set_event_timestamp->('2013-03-30 00:55:47');
             is $sqlite->change_id_for_depend($dep), undef,
                 "Internal $desc depencency should again be unsatisfied";
         }
@@ -1449,7 +1450,7 @@ subtest 'live database' => sub {
             # Once deployed, dependency should be satisfied.
             ok $sqlite->log_deploy_change($change),
                 "Log external $desc change deployment";
-            $set_event_timestamp->('2013-03-30 00:55:47');
+            $set_event_timestamp->('2013-03-30 00:56:47');
 
             is $sqlite->change_id_for_depend($dep), $change->id,
                 "External $desc depencency should now be satisfied";
@@ -1457,7 +1458,7 @@ subtest 'live database' => sub {
             # Revert it and try again.
             ok $sqlite->log_revert_change($change),
                 "Log external $desc change reversion";
-            $set_event_timestamp->('2013-03-30 00:56:47');
+            $set_event_timestamp->('2013-03-30 00:57:47');
             is $sqlite->change_id_for_depend($dep), undef,
                 "External $desc depencency should again be unsatisfied";
         }
@@ -1474,7 +1475,7 @@ subtest 'live database' => sub {
     ) ), 'Add tag external "meta"';
 
     ok $sqlite->log_deploy_change($ext_change2), 'Log the external change with tag';
-    $set_event_timestamp->('2013-03-30 00:57:47');
+    $set_event_timestamp->('2013-03-30 00:58:47');
 
     # Make sure name_for_change_id() works properly.
     ok $sqlite->_dbh->do(q{DELETE FROM tags WHERE project = 'pg'}),
@@ -1529,7 +1530,7 @@ subtest 'live database' => sub {
     ), 'Create change "hypercritial" in current plan';
     $_->resolved_id( $sqlite->change_id_for_depend($_) ) for $hyper->requires;
     ok $sqlite->log_deploy_change($hyper), 'Log change "hyper"';
-    $set_event_timestamp->('2013-03-30 00:58:47');
+    $set_event_timestamp->('2013-03-30 00:59:47');
 
     is_deeply [ $sqlite->changes_requiring_change($hyper) ], [],
         'No changes should require "hypercritical"';
@@ -1565,7 +1566,7 @@ subtest 'live database' => sub {
     ), "Create a third external change";
     $_->resolved_id( $sqlite->change_id_for_depend($_) ) for $ext_change3->requires;
     ok $sqlite->log_deploy_change($ext_change3), 'Log change "elsewise"';
-    $set_event_timestamp->('2013-03-30 00:59:47');
+    $set_event_timestamp->('2013-03-30 01:00:47');
 
     # Check the dependencies again.
     is_deeply [ $sqlite->changes_requiring_change($fred) ], [
