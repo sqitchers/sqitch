@@ -872,6 +872,7 @@ DBI-powered engines.
 
 =head3 C<change_offset_from_id>
 
+=head3 C<change_id_for>
 
 =head1 See Also
 
