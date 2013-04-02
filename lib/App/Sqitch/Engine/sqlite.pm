@@ -8,7 +8,6 @@ use Try::Tiny;
 use App::Sqitch::X qw(hurl);
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::Plan::Change;
-use App::Sqitch::DateTime;
 use Path::Class;
 use Mouse;
 use namespace::autoclean;

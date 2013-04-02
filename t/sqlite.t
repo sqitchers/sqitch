@@ -1350,6 +1350,281 @@ subtest 'live database' => sub {
         is $sqlite->change_id_for(%{ $params }), undef, "Should find nothing for $desc";
     }
 
+    ##########################################################################
+    # Test change_id_for_depend().
+    my $id = '4f1e83f409f5f533eeef9d16b8a59e2c0aa91cc1';
+    my $i;
+
+    for my $spec (
+        [
+            'id only',
+            { id => $id },
+            { id => $id },
+        ],
+        [
+            'change + tag',
+            { change => 'bart', tag => 'epsilon' },
+            { name   => 'bart' }
+        ],
+        [
+            'change only',
+            { change => 'lisa' },
+            { name   => 'lisa' },
+        ],
+        [
+            'tag only',
+            { tag  => 'sigma' },
+            { name => 'maggie' },
+        ],
+    ) {
+        my ( $desc, $dep_params, $chg_params ) = @{ $spec };
+
+        # Test as an internal dependency.
+        INTERNAL: {
+            ok my $change = $plan->add(
+                name    => 'foo' . ++$i,
+                %{$chg_params},
+            ), "Create internal $desc change";
+
+            # Tag it if necessary.
+            if (my $tag = $dep_params->{tag}) {
+                ok $plan->tag(name => $tag), "Add tag internal \@$tag";
+            }
+
+            # Should start with unsatisfied dependency.
+            ok my $dep = App::Sqitch::Plan::Depend->new(
+                plan    => $plan,
+                project => $plan->project,
+                %{ $dep_params },
+            ), "Create internal $desc dependency";
+            is $sqlite->change_id_for_depend($dep), undef,
+                "Internal $desc depencency should not be satisfied";
+
+            # Once deployed, dependency should be satisfied.
+            ok $sqlite->log_deploy_change($change),
+                "Log internal $desc change deployment";
+            $set_event_timestamp->('2013-03-30 00:53:47');
+            is $sqlite->change_id_for_depend($dep), $change->id,
+                "Internal $desc depencency should now be satisfied";
+
+            # Revert it and try again.
+            ok $sqlite->log_revert_change($change),
+                "Log internal $desc change reversion";
+            $set_event_timestamp->('2013-03-30 00:54:47');
+            is $sqlite->change_id_for_depend($dep), undef,
+                "Internal $desc depencency should again be unsatisfied";
+        }
+
+        # Now test as an external dependency.
+        EXTERNAL: {
+            # Make Change and Tag return registered external project "groovy".
+            $dep_params->{project} = 'groovy';
+            my $line_mocker = Test::MockModule->new('App::Sqitch::Plan::Line');
+            $line_mocker->mock(project => $dep_params->{project});
+
+            ok my $change = App::Sqitch::Plan::Change->new(
+                plan    => $plan,
+                name    => 'foo' . ++$i,
+                %{$chg_params},
+            ), "Create external $desc change";
+
+            # Tag it if necessary.
+            if (my $tag = $dep_params->{tag}) {
+                ok $change->add_tag(App::Sqitch::Plan::Tag->new(
+                    plan    => $plan,
+                    change  => $change,
+                    name    => $tag,
+                ) ), "Add tag external \@$tag";
+            }
+
+            # Should start with unsatisfied dependency.
+            ok my $dep = App::Sqitch::Plan::Depend->new(
+                plan    => $plan,
+                project => $plan->project,
+                %{ $dep_params },
+            ), "Create external $desc dependency";
+            is $sqlite->change_id_for_depend($dep), undef,
+                "External $desc depencency should not be satisfied";
+
+            # Once deployed, dependency should be satisfied.
+            ok $sqlite->log_deploy_change($change),
+                "Log external $desc change deployment";
+            $set_event_timestamp->('2013-03-30 00:55:47');
+
+            is $sqlite->change_id_for_depend($dep), $change->id,
+                "External $desc depencency should now be satisfied";
+
+            # Revert it and try again.
+            ok $sqlite->log_revert_change($change),
+                "Log external $desc change reversion";
+            $set_event_timestamp->('2013-03-30 00:56:47');
+            is $sqlite->change_id_for_depend($dep), undef,
+                "External $desc depencency should again be unsatisfied";
+        }
+    }
+
+    ok my $ext_change2 = App::Sqitch::Plan::Change->new(
+        plan => $ext_plan,
+        name => 'outside_in',
+    ), "Create another external change";
+    ok $ext_change2->add_tag( my $ext_tag = App::Sqitch::Plan::Tag->new(
+        plan    => $plan,
+        change  => $ext_change2,
+        name    => 'meta',
+    ) ), 'Add tag external "meta"';
+
+    ok $sqlite->log_deploy_change($ext_change2), 'Log the external change with tag';
+    $set_event_timestamp->('2013-03-30 00:57:47');
+
+    # Make sure name_for_change_id() works properly.
+    ok $sqlite->_dbh->do(q{DELETE FROM tags WHERE project = 'pg'}),
+        'Delete the pg project tags';
+    is $sqlite->name_for_change_id($change2->id), 'widgets',
+        'name_for_change_id() should return "widgets" for its ID';
+    is $sqlite->name_for_change_id($ext_change2->id), 'outside_in@meta',
+        'name_for_change_id() should return "outside_in@meta" for its ID';
+
+    # Make sure current_changes and current_tags are project-scoped.
+    is_deeply all( $sqlite->current_changes ), \@current_changes,
+        'Should have only the "pg" changes from current_changes';
+    is_deeply all( $sqlite->current_changes('groovy') ), [
+        {
+            change_id       => $ext_change2->id,
+            change          => $ext_change2->name,
+            committer_name  => $user2_name,
+            committer_email => $user2_email,
+            committed_at    => dt_for_change( $ext_change2->id ),
+            planner_name    => $ext_change2->planner_name,
+            planner_email   => $ext_change2->planner_email,
+            planned_at      => $ext_change2->timestamp,
+        }, {
+            change_id       => $ext_change->id,
+            change          => $ext_change->name,
+            committer_name  => $user2_name,
+            committer_email => $user2_email,
+            committed_at    => dt_for_change( $ext_change->id ),
+            planner_name    => $ext_change->planner_name,
+            planner_email   => $ext_change->planner_email,
+            planned_at      => $ext_change->timestamp,
+        }
+    ], 'Should get only requestd project changes from current_changes';
+    is_deeply all( $sqlite->current_tags ), [],
+        'Should no longer have "pg" project tags';
+    is_deeply all( $sqlite->current_tags('groovy') ), [{
+        tag_id          => $ext_tag->id,
+        tag             => '@meta',
+        committer_name  => $user2_name,
+        committer_email => $user2_email,
+        committed_at    => dt_for_tag( $ext_tag->id ),
+        planner_name    => $ext_tag->planner_name,
+        planner_email   => $ext_tag->planner_email,
+        planned_at      => $ext_tag->timestamp,
+    }], 'Should get groovy tags from current_chages()';
+
+    ##########################################################################
+    # Test changes with multiple and cross-project dependencies.
+    ok my $hyper = $plan->add(
+        name     => 'hypercritical',
+        requires => ['pg:fred', 'groovy:crazyman'],
+    ), 'Create change "hypercritial" in current plan';
+    $_->resolved_id( $sqlite->change_id_for_depend($_) ) for $hyper->requires;
+    ok $sqlite->log_deploy_change($hyper), 'Log change "hyper"';
+    $set_event_timestamp->('2013-03-30 00:58:47');
+
+    is_deeply [ $sqlite->changes_requiring_change($hyper) ], [],
+        'No changes should require "hypercritical"';
+    is_deeply [ $sqlite->changes_requiring_change($fred) ], [{
+        project   => 'pg',
+        change_id => $hyper->id,
+        change    => $hyper->name,
+        asof_tag  => undef,
+    }], 'Change "hypercritical" should require "fred"';
+
+    is_deeply [ $sqlite->changes_requiring_change($ext_change) ], [{
+        project   => 'pg',
+        change_id => $hyper->id,
+        change    => $hyper->name,
+        asof_tag  => undef,
+    }], 'Change "hypercritical" should require "groovy:crazyman"';
+
+    # Add another change with more depencencies.
+    ok my $ext_change3 = App::Sqitch::Plan::Change->new(
+        plan => $ext_plan,
+        name => 'elsewise',
+        requires => [
+            App::Sqitch::Plan::Depend->new(
+                plan    => $ext_plan,
+                project => 'pg',
+                change  => 'fred',
+            ),
+            App::Sqitch::Plan::Depend->new(
+                plan    => $ext_plan,
+                change  => 'crazyman',
+            ),
+        ]
+    ), "Create a third external change";
+    $_->resolved_id( $sqlite->change_id_for_depend($_) ) for $ext_change3->requires;
+    ok $sqlite->log_deploy_change($ext_change3), 'Log change "elsewise"';
+    $set_event_timestamp->('2013-03-30 00:59:47');
+
+    # Check the dependencies again.
+    is_deeply [ $sqlite->changes_requiring_change($fred) ], [
+        {
+            project   => 'pg',
+            change_id => $hyper->id,
+            change    => $hyper->name,
+            asof_tag  => undef,
+        },
+        {
+            project   => 'groovy',
+            change_id => $ext_change3->id,
+            change    => $ext_change3->name,
+            asof_tag  => undef,
+        },
+    ], 'Change "fred" should be required by changes in two projects';
+
+    is_deeply [ $sqlite->changes_requiring_change($ext_change) ], [
+        {
+            project   => 'pg',
+            change_id => $hyper->id,
+            change    => $hyper->name,
+            asof_tag  => undef,
+        },
+        {
+            project   => 'groovy',
+            change_id => $ext_change3->id,
+            change    => $ext_change3->name,
+            asof_tag  => undef,
+        },
+    ], 'Change "groovy:crazyman" should be required by changes in two projects';
+
+    ##########################################################################
+    # Test begin_work() and finish_work().
+    can_ok $sqlite, qw(begin_work finish_work);
+    my $mock_dbh = Test::MockModule->new(ref $sqlite->_dbh, no_auto => 1);
+    my $txn;
+    $mock_dbh->mock(commit     => sub { $txn = 0  });
+    $mock_dbh->mock(rollback   => sub { $txn = -1 });
+    my @do;
+    $mock_dbh->mock(do => sub {
+        shift;
+        @do = @_;
+        $txn = 1 if $do[0] eq 'BEGIN EXCLUSIVE TRANSACTION'
+    });
+    ok $sqlite->begin_work, 'Begin work';
+    is $txn, 1, 'Should have started a transaction';
+    ok $sqlite->finish_work, 'Finish work';
+    is $txn, 0, 'Should have committed a transaction';
+    ok $sqlite->begin_work, 'Begin work again';
+    is $txn, 1, 'Should have started another transaction';
+    ok $sqlite->rollback_work, 'Rollback work';
+    is $txn, -1, 'Should have rolled back a transaction';
+    $mock_dbh->unmock('do');
+
+    # Unmock everything and call it a day.
+    $mock_dbh->unmock_all;
+    $mock_sqitch->unmock_all;
+    done_testing;
 };
 
 done_testing;
