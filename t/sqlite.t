@@ -148,8 +148,8 @@ $mock_config->unmock_all;
 
 ##############################################################################
 # Test DateTime formatting stuff.
-can_ok $CLASS, '_ts2char';
-is $CLASS->_ts2char('foo'),
+can_ok $CLASS, '_ts2char_format';
+is sprintf($CLASS->_ts2char_format, 'foo'),
     q{strftime('year:%Y:month:%m:day:%d:hour:%H:minute:%M:second:%S:time_zone:UTC', foo)},
     '_ts2char should work';
 
@@ -1631,7 +1631,7 @@ subtest 'live database' => sub {
 done_testing;
 
 sub dt_for_change {
-    my $col = $sqlite->_ts2char('committed_at');
+    my $col = sprintf $sqlite->_ts2char_format, 'committed_at';
     $dtfunc->($sqlite->dbh->selectcol_arrayref(
         "SELECT $col FROM changes WHERE change_id = ?",
         undef, shift
@@ -1639,7 +1639,7 @@ sub dt_for_change {
 }
 
 sub dt_for_tag {
-    my $col = $sqlite->_ts2char('committed_at');
+    my $col = sprintf $sqlite->_ts2char_format, 'committed_at';
     $dtfunc->($sqlite->dbh->selectcol_arrayref(
         "SELECT $col FROM tags WHERE tag_id = ?",
         undef, shift
@@ -1656,7 +1656,7 @@ sub all {
 }
 
 sub dt_for_event {
-    my $col = $sqlite->_ts2char('committed_at');
+    my $col = sprintf $sqlite->_ts2char_format, 'committed_at';
     $dtfunc->($sqlite->dbh->selectcol_arrayref(
         "SELECT $col FROM events ORDER BY committed_at ASC LIMIT 1 OFFSET ?",
         undef, shift

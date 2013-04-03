@@ -20,11 +20,6 @@ requires '_ts2char_format';
 requires '_char2ts';
 requires '_listagg_format';
 
-sub _ts2char {
-    my $format = $_[0]->_ts2char_format;
-    sprintf $format => $_[1];
-}
-
 sub _dt($) {
     require App::Sqitch::DateTime;
     return App::Sqitch::DateTime->new(split /:/ => shift);
@@ -70,8 +65,8 @@ sub latest_change_id {
 
 sub current_state {
     my ( $self, $project ) = @_;
-    my $cdtcol = $self->_ts2char('c.committed_at');
-    my $pdtcol = $self->_ts2char('c.planned_at');
+    my $cdtcol = sprintf $self->_ts2char_format, 'c.committed_at';
+    my $pdtcol = sprintf $self->_ts2char_format, 'c.planned_at';
     my $tagcol = sprintf $self->_listagg_format, 't.tag';
     my $dbh    = $self->dbh;
     my $state  = $dbh->selectrow_hashref(qq{
@@ -113,8 +108,8 @@ sub current_state {
 
 sub current_changes {
     my ( $self, $project ) = @_;
-    my $cdtcol = $self->_ts2char('committed_at');
-    my $pdtcol = $self->_ts2char('planned_at');
+    my $cdtcol = sprintf $self->_ts2char_format, 'committed_at';
+    my $pdtcol = sprintf $self->_ts2char_format, 'planned_at';
     my $sth    = $self->dbh->prepare(qq{
         SELECT change_id
              , change
@@ -139,8 +134,8 @@ sub current_changes {
 
 sub current_tags {
     my ( $self, $project ) = @_;
-    my $cdtcol = $self->_ts2char('committed_at');
-    my $pdtcol = $self->_ts2char('planned_at');
+    my $cdtcol = sprintf $self->_ts2char_format, 'committed_at';
+    my $pdtcol = sprintf $self->_ts2char_format, 'planned_at';
     my $sth    = $self->dbh->prepare(qq{
         SELECT tag_id
              , tag
@@ -214,8 +209,8 @@ sub search_events {
         . join ', ', sort keys %p if %p;
 
     # Prepare, execute, and return.
-    my $cdtcol = $self->_ts2char('committed_at');
-    my $pdtcol = $self->_ts2char('planned_at');
+    my $cdtcol = sprintf $self->_ts2char_format, 'committed_at';
+    my $pdtcol = sprintf $self->_ts2char_format, 'planned_at';
     my $sth = $self->dbh->prepare(qq{
         SELECT event
              , project
@@ -611,8 +606,8 @@ sub log_revert_change {
 }
 
 sub deployed_changes {
-    my $self = shift;
-    my $tscol = $self->_ts2char('c.planned_at');
+    my $self   = shift;
+    my $tscol  = sprintf $self->_ts2char_format, 'c.planned_at';
     my $tagcol = sprintf $self->_listagg_format, 't.tag';
     return map {
         $_->{timestamp} = _dt $_->{timestamp};
@@ -633,7 +628,7 @@ sub deployed_changes {
 
 sub deployed_changes_since {
     my ( $self, $change ) = @_;
-    my $tscol = $self->_ts2char('c.planned_at');
+    my $tscol  = sprintf $self->_ts2char_format, 'c.planned_at';
     my $tagcol = sprintf $self->_listagg_format, 't.tag';
     return map {
         $_->{timestamp} = _dt $_->{timestamp};
@@ -655,7 +650,7 @@ sub deployed_changes_since {
 
 sub load_change {
     my ( $self, $change_id ) = @_;
-    my $tscol = $self->_ts2char('c.planned_at');
+    my $tscol  = sprintf $self->_ts2char_format, 'c.planned_at';
     my $tagcol = sprintf $self->_listagg_format, 't.tag';
     my $change = $self->dbh->selectrow_hashref(qq{
         SELECT c.change_id AS id, c.change AS name, c.project, c.note,
@@ -680,7 +675,7 @@ sub change_offset_from_id {
 
     # Are we offset forwards or backwards?
     my ( $dir, $op ) = $offset > 0 ? ( 'ASC', '>' ) : ( 'DESC' , '<' );
-    my $tscol = $self->_ts2char('c.planned_at');
+    my $tscol  = sprintf $self->_ts2char_format, 'c.planned_at';
     my $tagcol = sprintf $self->_listagg_format, 't.tag';
     my $change = $self->dbh->selectrow_hashref(qq{
         SELECT c.change_id AS id, c.change AS name, c.project, c.note,
