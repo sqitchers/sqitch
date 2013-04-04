@@ -59,7 +59,8 @@ has sqitch_db => (
             return file $db;
         }
         if (my $db = $self->db_name) {
-            return $db->dir->file('sqitch.db');
+            (my $fn = $db->basename) =~ s/([.][^.]+)?$/-sqitch$1/;
+            return $db->dir->file($fn);
         }
         return undef;
     },

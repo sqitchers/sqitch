@@ -29,15 +29,15 @@ is_deeply [$CLASS->config_vars], [
 ], 'config_vars should return three vars';
 
 my $sqitch = App::Sqitch->new;
-isa_ok my $sqlite = $CLASS->new(sqitch => $sqitch, db_name => file 'foo'), $CLASS;
+isa_ok my $sqlite = $CLASS->new(sqitch => $sqitch, db_name => file 'foo.db'), $CLASS;
 
 is $sqlite->client, 'sqlite3' . ($^O eq 'MSWin32' ? '.exe' : ''),
     'client should default to sqlite3';
-is $sqlite->db_name, 'foo', 'db_name should be required';
+is $sqlite->db_name, 'foo.db', 'db_name should be required';
 is $sqlite->destination, $sqlite->db_name->stringify,
     'Destination should be db_name strintified';
-is $sqlite->sqitch_db, file('foo')->dir->file('sqitch.db'),
-    'sqitch_db should default to "sqitch.db" in the same diretory as db_name';
+is $sqlite->sqitch_db, file('foo')->dir->file('foo-sqitch.db'),
+    'sqitch_db should default to "$db_name-sqitch.db" in the same diretory as db_name';
 
 my @std_opts = (
     '-noheader',
