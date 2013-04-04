@@ -22,6 +22,15 @@ Revision history for Perl extension App::Sqitch
        second argument to the `tag` command.
      - Updated error messages to note that blank characters are not allowed in
        project, change, or tag names.
+     - Factored most of the engine-specific code into
+       App::Sqitch::Role::DBIEngine. Future DBI-based engines should be able
+       to use this role to handle most of the work.
+     - Factored the live engine tests int `t/lib/DBIEngineTest`. Future
+       DBI-based engines can use this module to do all or most of the live
+       testing.
+     - Added the SQLite engine. The Sqitch metadata is stored in a separate
+       file from a database, by default in the same directory as the database
+       file.
 
 0.953  2013-02-21T23:37:57Z
      - Fixed test failure in `t/engine.t` triggered by a clock tick.
