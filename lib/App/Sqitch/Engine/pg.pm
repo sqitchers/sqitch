@@ -13,6 +13,8 @@ use List::Util qw(first);
 use namespace::autoclean;
 
 extends 'App::Sqitch::Engine';
+sub dbh; # required by DBIEngine;
+with 'App::Sqitch::Role::DBIEngine';
 
 our $VERSION = '0.954';
 
@@ -212,6 +214,12 @@ sub _log_conflicts_param {
 sub _ts2char_format {
      q{to_char(%s AT TIME ZONE 'UTC', '"year":YYYY:"month":MM:"day":DD:"hour":HH24:"minute":MI:"second":SS:"time_zone":"UTC"')};
 }
+
+sub _char2ts { $_[1]->as_string(format => 'iso') }
+
+sub _listagg_format { q{array_agg(%s)} }
+
+sub _regex_op { '~' }
 
 sub initialized {
     my $self = shift;

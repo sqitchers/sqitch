@@ -13,6 +13,8 @@ use Mouse;
 use namespace::autoclean;
 
 extends 'App::Sqitch::Engine';
+sub dbh; # required by DBIEngine;
+with 'App::Sqitch::Role::DBIEngine';
 
 our $VERSION = '0.954';
 
@@ -202,7 +204,6 @@ sub run_handle {
 }
 
 __PACKAGE__->meta->make_immutable;
-with 'App::Sqitch::Role::DBIEngine';
 no Mouse;
 
 1;
