@@ -95,21 +95,21 @@ for my $sub (qw(deploy revert verify)) {
         "Dest $sub dir should be _build/sql/sql/$sub";
 }
 
-# Try pg project.
+# Try engine project.
 ok $sqitch = App::Sqitch->new(
-    top_dir => dir 'pg',
-), 'Load a sqitch object with pg top_dir';
+    top_dir => dir 'engine',
+), 'Load a sqitch object with engine top_dir';
 isa_ok $bundle = App::Sqitch::Command->load({
     sqitch  => $sqitch,
     command => 'bundle',
     config  => $config,
-}), $CLASS, 'pg bundle command';
+}), $CLASS, 'engine bundle command';
 
 is $bundle->dest_dir, $dir, qq{dest_dir should again be "$dir"};
 for my $sub (qw(deploy revert verify)) {
     my $attr = "dest_$sub\_dir";
-    is $bundle->$attr, $dir->subdir('pg', $sub),
-        "Dest $sub dir should be _build/sql/pg/$sub";
+    is $bundle->$attr, $dir->subdir('engine', $sub),
+        "Dest $sub dir should be _build/sql/engine/$sub";
 }
 
 ##############################################################################
@@ -237,7 +237,7 @@ $dest = file $bundle->dest_top_dir, qw(sqitch.plan);
 file_not_exists_ok $dest;
 ok $bundle->bundle_plan, 'Bundle the plan file';
 file_exists_ok $dest;
-file_contents_identical $dest, file(qw(pg sqitch.plan));
+file_contents_identical $dest, file(qw(engine sqitch.plan));
 is_deeply +MockOutput->get_info, [[__ 'Writing plan']],
     'Should have plan notice';
 
@@ -258,7 +258,7 @@ is_deeply +MockOutput->get_info, [[__x(
 )]], 'Statement of the bits written should have been emitted';
 file_contents_is $dest,
     '%syntax-version=' . App::Sqitch::Plan::SYNTAX_VERSION . $/
-    . '%project=pg' . $/
+    . '%project=engine' . $/
     . $/
     . $plan->find('widgets')->as_string . $/
     . $plan->find('func/add_user')->as_string . $/,
@@ -280,7 +280,7 @@ is_deeply +MockOutput->get_info, [[__x(
 )]], 'Statement of the bits written should have been emitted';
 file_contents_is $dest,
     '%syntax-version=' . App::Sqitch::Plan::SYNTAX_VERSION . $/
-    . '%project=pg' . $/
+    . '%project=engine' . $/
     . $/
     . $plan->find('users')->as_string . $/
     . join( $/, map { $_->as_string } $plan->find('users')->tags ) . $/,
@@ -299,8 +299,8 @@ my @files = (
 file_not_exists_ok $_ for @files;
 ok $sqitch = App::Sqitch->new(
     extension => 'sql',
-    top_dir   => dir 'pg',
-), 'Load pg sqitch object';
+    top_dir => dir 'engine',
+), 'Load engine sqitch object';
 isa_ok $bundle = App::Sqitch::Command->load({
     sqitch  => $sqitch,
     command => 'bundle',

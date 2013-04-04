@@ -293,8 +293,8 @@ EngineTest->run(
     sqitch_params => [
         db_username => 'postgres',
         db_name     => '__sqitchtest__',
-        top_dir     => Path::Class::dir(qw(t pg)),
-        plan_file   => Path::Class::file(qw(t pg sqitch.plan)),
+        top_dir     => Path::Class::dir(qw(t engine)),
+        plan_file   => Path::Class::file(qw(t engine sqitch.plan)),
     ],
     engine_params     => [],
     alt_engine_params => [ sqitch_schema => '__sqitchtest' ],

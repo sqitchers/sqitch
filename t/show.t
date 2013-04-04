@@ -22,8 +22,8 @@ is_deeply [$CLASS->options], [
 ], 'Options should be correct';
 
 my $sqitch = App::Sqitch->new(
-    plan_file => file(qw(t pg sqitch.plan)),
-    top_dir   => dir(qw(t pg)),
+    plan_file => file(qw(t engine sqitch.plan)),
+    top_dir   => dir(qw(t engine)),
     _engine   => 'pg',
 );
 

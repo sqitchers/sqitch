@@ -172,8 +172,8 @@ my $alt_db = $db_name->dir->file('sqitchtest.db');
 EngineTest->run(
     class         => $CLASS,
     sqitch_params => [
-        top_dir   => Path::Class::dir(qw(t sqlite)),
-        plan_file => Path::Class::file(qw(t pg sqitch.plan)),
+        top_dir   => Path::Class::dir(qw(t engine)),
+        plan_file => Path::Class::file(qw(t engine sqitch.plan)),
     ],
     engine_params     => [ db_name => $db_name ],
     alt_engine_params => [ db_name => $db_name, sqitch_db => $alt_db ],

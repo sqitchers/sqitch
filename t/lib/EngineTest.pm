@@ -106,20 +106,20 @@ sub run {
             'Should have no registered projects';
 
         ok $engine->register_project, 'Register the project';
-        is_deeply [ $engine->registered_projects ], ['pg'],
-            'Should have one registered project, "sql"';
+        is_deeply [ $engine->registered_projects ], ['engine'],
+            'Should have one registered project, "engine"';
         is_deeply $engine->dbh->selectall_arrayref(
             'SELECT project, uri, creator_name, creator_email FROM projects'
-        ), [['pg', undef, $sqitch->user_name, $sqitch->user_email]],
+        ), [['engine', undef, $sqitch->user_name, $sqitch->user_email]],
             'The project should be registered';
 
         # Try to register it again.
         ok $engine->register_project, 'Register the project again';
-        is_deeply [ $engine->registered_projects ], ['pg'],
-            'Should still have one registered project, "sql"';
+        is_deeply [ $engine->registered_projects ], ['engine'],
+            'Should still have one registered project, "engine"';
         is_deeply $engine->dbh->selectall_arrayref(
             'SELECT project, uri, creator_name, creator_email FROM projects'
-        ), [['pg', undef, $sqitch->user_name, $sqitch->user_email]],
+        ), [['engine', undef, $sqitch->user_name, $sqitch->user_email]],
             'The project should still be registered only once';
 
         # Register a different project name.
@@ -130,19 +130,19 @@ sub run {
             ok $engine->register_project, 'Register a second project';
         }
 
-        is_deeply [ $engine->registered_projects ], ['groovy', 'pg'],
+        is_deeply [ $engine->registered_projects ], ['engine', 'groovy'],
             'Should have both registered projects';
         is_deeply $engine->dbh->selectall_arrayref(
             'SELECT project, uri, creator_name, creator_email FROM projects ORDER BY created_at'
         ), [
-            ['pg', undef, $sqitch->user_name, $sqitch->user_email],
+            ['engine', undef, $sqitch->user_name, $sqitch->user_email],
             ['groovy', 'http://example.com/', $sqitch->user_name, $sqitch->user_email],
         ], 'Both projects should now be registered';
 
         # Try to register with a different URI.
         MOCKURI: {
             my $plan_mocker = Test::MockModule->new(ref $sqitch->plan );
-            my $plan_proj = 'pg';
+            my $plan_proj = 'engine';
             my $plan_uri = 'http://example.net/';
             $plan_mocker->mock(project => sub { $plan_proj });
             $plan_mocker->mock(uri => sub { $plan_uri });
@@ -151,7 +151,7 @@ sub run {
             is $@->ident, 'engine', 'Defined URI error ident should be "engine"';
             is $@->message, __x(
                 'Cannot register "{project}" with URI {uri}: already exists with NULL URI',
-                project => 'pg',
+                project => 'engine',
                 uri     => $plan_uri,
             ), 'Defined URI error message should be correct';
 
@@ -181,12 +181,12 @@ sub run {
             # It should succeed when the name and URI are the same.
             $plan_uri = 'http://example.com/';
             ok $engine->register_project, 'Register "groovy" again';
-            is_deeply [ $engine->registered_projects ], ['groovy', 'pg'],
+            is_deeply [ $engine->registered_projects ], ['engine', 'groovy'],
                 'Should still have two registered projects';
             is_deeply $engine->dbh->selectall_arrayref(
                 'SELECT project, uri, creator_name, creator_email FROM projects ORDER BY created_at'
             ), [
-                ['pg', undef, $sqitch->user_name, $sqitch->user_email],
+                ['engine', undef, $sqitch->user_name, $sqitch->user_email],
                 ['groovy', 'http://example.com/', $sqitch->user_name, $sqitch->user_email],
             ], 'Both projects should still be registered';
 
@@ -223,7 +223,7 @@ sub run {
         is $engine->latest_change_id(1), undef, 'Should get no change offset 1 from latest';
 
         is_deeply all_changes($engine), [[
-            $change->id, 'users', 'pg', '', $sqitch->user_name, $sqitch->user_email,
+            $change->id, 'users', 'engine', '', $sqitch->user_name, $sqitch->user_email,
             $change->planner_name, $change->planner_email,
         ]],'A record should have been inserted into the changes table';
         is_deeply get_dependencies($engine, $change->id), [], 'Should have no dependencies';
@@ -235,7 +235,7 @@ sub run {
             'deploy',
             $change->id,
             'users',
-            'pg',
+            'engine',
             '',
             $engine->_log_requires_param($change),
             $engine->_log_conflicts_param($change),
@@ -253,7 +253,7 @@ sub run {
             $tag->id,
             '@alpha',
             $change->id,
-            'pg',
+            'engine',
             'Good to go!',
             $sqitch->user_name,
             $sqitch->user_email,
@@ -269,7 +269,7 @@ sub run {
             'committed_at value';
         is $dt->time_zone->name, 'UTC', 'committed_at TZ should be UTC';
         is_deeply $state, {
-            project         => 'pg',
+            project         => 'engine',
             change_id       => $change->id,
             change          => 'users',
             note            => '',
@@ -306,7 +306,7 @@ sub run {
             'Should have no current tags for nonexistent project';
         my @events = ({
             event           => 'deploy',
-            project         => 'pg',
+            project         => 'engine',
             change_id       => $change->id,
             change          => 'users',
             note            => '',
@@ -329,7 +329,7 @@ sub run {
             $tag->id,
             '@alpha',
             $change->id,
-            'pg',
+            'engine',
             'Good to go!',
             $sqitch->user_name,
             $sqitch->user_email,
@@ -347,7 +347,7 @@ sub run {
             $tag->id,
             '@alpha',
             $change->id,
-            'pg',
+            'engine',
             'Good to go!',
             $sqitch->user_name,
             $sqitch->user_email,
@@ -376,7 +376,7 @@ sub run {
             'revert',
             $change->id,
             'users',
-            'pg',
+            'engine',
             '',
             $engine->_log_requires_param($change),
             $engine->_log_conflicts_param($change),
@@ -399,7 +399,7 @@ sub run {
 
         unshift @events => {
             event           => 'revert',
-            project         => 'pg',
+            project         => 'engine',
             change_id       => $change->id,
             change          => 'users',
             note            => '',
@@ -433,7 +433,7 @@ sub run {
             'fail',
             $change->id,
             'users',
-            'pg',
+            'engine',
             '',
             $engine->_log_requires_param($change),
             $engine->_log_conflicts_param($change),
@@ -451,7 +451,7 @@ sub run {
 
         unshift @events => {
             event           => 'fail',
-            project         => 'pg',
+            project         => 'engine',
             change_id       => $change->id,
             change          => 'users',
             note            => '',
@@ -506,7 +506,7 @@ sub run {
             [
                 $change->id,
                 'users',
-                'pg',
+                'engine',
                 '',
                 $user2_name,
                 $user2_email,
@@ -516,7 +516,7 @@ sub run {
             [
                 $change2->id,
                 'widgets',
-                'pg',
+                'engine',
                 'All in',
                 $user2_name,
                 $user2_email,
@@ -544,7 +544,7 @@ sub run {
             ],
         ], 'Should have both dependencies for "widgets"';
         is_deeply [ $engine->changes_requiring_change($change) ], [{
-            project   => 'pg',
+            project   => 'engine',
             change_id => $change2->id,
             change    => 'widgets',
             asof_tag  => undef,
@@ -556,7 +556,7 @@ sub run {
             'deploy',
             $change->id,
             'users',
-            'pg',
+            'engine',
             '',
             $engine->_log_requires_param($change),
             $engine->_log_conflicts_param($change),
@@ -569,7 +569,7 @@ sub run {
             'deploy',
             $change2->id,
             'widgets',
-            'pg',
+            'engine',
             'All in',
             $engine->_log_requires_param($change2),
             $engine->_log_conflicts_param($change2),
@@ -590,7 +590,7 @@ sub run {
             'committed_at value';
         is $dt->time_zone->name, 'UTC', 'committed_at TZ should be UTC';
         is_deeply $state, {
-            project         => 'pg',
+            project         => 'engine',
             change_id       => $change2->id,
             change          => 'widgets',
             note            => 'All in',
@@ -645,7 +645,7 @@ sub run {
 
         unshift @events => {
             event           => 'deploy',
-            project         => 'pg',
+            project         => 'engine',
             change_id       => $change2->id,
             change          => 'widgets',
             note            => 'All in',
@@ -660,7 +660,7 @@ sub run {
             planned_at      => $change2->timestamp,
         }, {
             event           => 'deploy',
-            project         => 'pg',
+            project         => 'engine',
             change_id       => $change->id,
             change          => 'users',
             note            => '',
@@ -753,7 +753,7 @@ sub run {
             'committed_at value';
         is $dt->time_zone->name, 'UTC', 'committed_at TZ should be UTC';
         is_deeply $state, {
-            project         => 'pg',
+            project         => 'engine',
             change_id       => $change2->id,
             change          => 'widgets',
             note            => 'All in',
@@ -775,7 +775,7 @@ sub run {
 
         unshift @events => {
             event           => 'deploy',
-            project         => 'pg',
+            project         => 'engine',
             change_id       => $change2->id,
             change          => 'widgets',
             note            => 'All in',
@@ -790,7 +790,7 @@ sub run {
             planned_at      => $change2->timestamp,
         }, {
             event           => 'revert',
-            project         => 'pg',
+            project         => 'engine',
             change_id       => $change2->id,
             change          => 'widgets',
             note            => 'All in',
@@ -831,7 +831,7 @@ sub run {
         is $engine->latest_change_id(3), $change->id, 'Should get "users" offset 3 from latest';
 
         is_deeply $engine->current_state, {
-            project         => 'pg',
+            project         => 'engine',
             change_id       => $barney->id,
             change          => 'barney',
             note            => '',
@@ -899,7 +899,7 @@ sub run {
 
         unshift @events => {
             event           => 'deploy',
-            project         => 'pg',
+            project         => 'engine',
             change_id       => $barney->id,
             change          => 'barney',
             note            => '',
@@ -914,7 +914,7 @@ sub run {
             planned_at      => $barney->timestamp,
         }, {
             event           => 'deploy',
-            project         => 'pg',
+            project         => 'engine',
             change_id       => $fred->id,
             change          => 'fred',
             note            => '',
@@ -1030,7 +1030,7 @@ sub run {
             planner_email   => $user2_email,
             planned_at      => $ext_change->timestamp,
         };
-        is_deeply all( $engine->search_events( project => '^pg$' ) ), \@events,
+        is_deeply all( $engine->search_events( project => '^engine$' ) ), \@events,
             'The project param to search_events should work';
         is_deeply all( $engine->search_events( project => '^groovy$' ) ), [$ext_event],
             'The project param to search_events should work with external project';
@@ -1300,8 +1300,8 @@ sub run {
         ok $engine->log_deploy_change($ext_change2), 'Log the external change with tag';
 
         # Make sure name_for_change_id() works properly.
-        ok $engine->dbh->do(q{DELETE FROM tags WHERE project = 'pg'}),
-            'Delete the pg project tags';
+        ok $engine->dbh->do(q{DELETE FROM tags WHERE project = 'engine'}),
+            'Delete the engine project tags';
         is $engine->name_for_change_id($change2->id), 'widgets',
             'name_for_change_id() should return "widgets" for its ID';
         is $engine->name_for_change_id($ext_change2->id), 'outside_in@meta',
@@ -1309,7 +1309,7 @@ sub run {
 
         # Make sure current_changes and current_tags are project-scoped.
         is_deeply all( $engine->current_changes ), \@current_changes,
-            'Should have only the "pg" changes from current_changes';
+            'Should have only the "engine" changes from current_changes';
         is_deeply all( $engine->current_changes('groovy') ), [
             {
                 change_id       => $ext_change2->id,
@@ -1332,7 +1332,7 @@ sub run {
             }
         ], 'Should get only requestd project changes from current_changes';
         is_deeply all( $engine->current_tags ), [],
-            'Should no longer have "pg" project tags';
+            'Should no longer have "engine" project tags';
         is_deeply all( $engine->current_tags('groovy') ), [{
             tag_id          => $ext_tag->id,
             tag             => '@meta',
@@ -1348,7 +1348,7 @@ sub run {
         # Test changes with multiple and cross-project dependencies.
         ok my $hyper = $plan->add(
             name     => 'hypercritical',
-            requires => ['pg:fred', 'groovy:crazyman'],
+            requires => ['engine:fred', 'groovy:crazyman'],
         ), 'Create change "hypercritial" in current plan';
         $_->resolved_id( $engine->change_id_for_depend($_) ) for $hyper->requires;
         ok $engine->log_deploy_change($hyper), 'Log change "hyper"';
@@ -1356,14 +1356,14 @@ sub run {
         is_deeply [ $engine->changes_requiring_change($hyper) ], [],
             'No changes should require "hypercritical"';
         is_deeply [ $engine->changes_requiring_change($fred) ], [{
-            project   => 'pg',
+            project   => 'engine',
             change_id => $hyper->id,
             change    => $hyper->name,
             asof_tag  => undef,
         }], 'Change "hypercritical" should require "fred"';
 
         is_deeply [ $engine->changes_requiring_change($ext_change) ], [{
-            project   => 'pg',
+            project   => 'engine',
             change_id => $hyper->id,
             change    => $hyper->name,
             asof_tag  => undef,
@@ -1376,7 +1376,7 @@ sub run {
             requires => [
                 App::Sqitch::Plan::Depend->new(
                     plan    => $ext_plan,
-                    project => 'pg',
+                    project => 'engine',
                     change  => 'fred',
                 ),
                 App::Sqitch::Plan::Depend->new(
@@ -1391,7 +1391,7 @@ sub run {
         # Check the dependencies again.
         is_deeply [ $engine->changes_requiring_change($fred) ], [
             {
-                project   => 'pg',
+                project   => 'engine',
                 change_id => $hyper->id,
                 change    => $hyper->name,
                 asof_tag  => undef,
@@ -1406,7 +1406,7 @@ sub run {
 
         is_deeply [ $engine->changes_requiring_change($ext_change) ], [
             {
-                project   => 'pg',
+                project   => 'engine',
                 change_id => $hyper->id,
                 change    => $hyper->name,
                 asof_tag  => undef,
