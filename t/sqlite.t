@@ -11,7 +11,7 @@ use Try::Tiny;
 use Test::Exception;
 use Locale::TextDomain qw(App-Sqitch);
 use lib 't/lib';
-use EngineTest;
+use DBIEngineTest;
 
 my $CLASS;
 
@@ -169,7 +169,7 @@ is $dt->time_zone->name, 'UTC', 'DateTime TZ should be set';
 ##############################################################################
 # Can we do live tests?
 my $alt_db = $db_name->dir->file('sqitchtest.db');
-EngineTest->run(
+DBIEngineTest->run(
     class         => $CLASS,
     sqitch_params => [
         top_dir   => Path::Class::dir(qw(t engine)),

@@ -12,7 +12,7 @@ use Try::Tiny;
 use App::Sqitch;
 use App::Sqitch::Plan;
 use lib 't/lib';
-use EngineTest;
+use DBIEngineTest;
 
 my $CLASS;
 
@@ -288,7 +288,7 @@ my $err = try {
     eval { $_->message } || $_;
 };
 
-EngineTest->run(
+DBIEngineTest->run(
     class         => $CLASS,
     sqitch_params => [
         db_username => 'postgres',

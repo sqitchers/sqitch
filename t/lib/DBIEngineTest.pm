@@ -1,4 +1,4 @@
-package EngineTest;
+package DBIEngineTest;
 use 5.010;
 use strict;
 use warnings;
