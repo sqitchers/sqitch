@@ -39,30 +39,12 @@ sub _log_conflicts_param {
 
 sub _ts_default { 'DEFAULT' }
 
-sub _cid {
-    my ( $self, $ord, $offset, $project ) = @_;
-    return try {
-        $self->dbh->selectcol_arrayref(qq{
-            SELECT change_id
-              FROM changes
-             WHERE project = ?
-             ORDER BY committed_at $ord
-             LIMIT 1
-            OFFSET COALESCE(?, 0)
-        }, undef, $project || $self->plan->project, $offset)->[0];
-    } catch {
-        # Too bad $DBI::state isn't set to an SQL error coee. :-(
-        return if $DBI::errstr eq 'no such table: changes';
-        die $_;
-    };
-}
+sub _limit_default { undef }
 
-sub earliest_change_id {
-    shift->_cid('ASC', @_);
-}
-
-sub latest_change_id {
-    shift->_cid('DESC', @_);
+sub _in_expr {
+    my ($self, $vals) = @_;
+    my $in = sprintf 'IN (%s)', join ', ', ('?') x @{ $vals };
+    return $in, @{ $vals };
 }
 
 sub current_state {
@@ -99,12 +81,11 @@ sub current_state {
          ORDER BY c.committed_at DESC
          LIMIT 1
     }, undef, $project // $self->plan->project ) or return undef;
+    unless (ref $state->{tags}) {
+        $state->{tags} = $state->{tags} ? [ split / / => $state->{tags} ] : [];
+    }
     $state->{committed_at} = _dt $state->{committed_at};
     $state->{planned_at}   = _dt $state->{planned_at};
-    $state->{tags}         = $dbh->selectcol_arrayref(
-        'SELECT tag FROM tags WHERE change_id = ? ORDER BY committed_at',
-        undef, $state->{change_id}
-    );
     return $state;
 }
 
@@ -187,9 +168,9 @@ sub search_events {
 
     # Match events?
     if (my $e = delete $p{event} ) {
-        my $qs = join ', ', ('?') x @{ $e };
-        push @wheres => "event IN ($qs)";
-        push @params => @{ $e };
+        my ($in, @vals) = $self->_in_expr( $e );
+        push @wheres => "event $in";
+        push @params => @vals;
     }
 
     # Assemble the where clause.
@@ -200,11 +181,20 @@ sub search_events {
     # Handle remaining parameters.
     my $limits = '';
     if ($p{limit} || $p{offset}) {
-        $limits = "\n         LIMIT ?\n         OFFSET ?";
-        push @params => (
-            delete $p{limit}  // -1,
-            delete $p{offset} // 0,
-        );
+        my $lim = delete $p{limit};
+        if ($lim) {
+            $limits = "\n         LIMIT ?";
+            push @params => $lim;
+        }
+        if (my $off = delete $p{offset}) {
+            if (!$lim && ($lim = $self->_limit_default)) {
+                # SQLite requires LIMIT when OFFSET is set.
+                $limits = "\n         LIMIT ?";
+                push @params => $lim;
+            }
+            $limits .= "\n         OFFSET ?";
+            push @params => $off;
+        }
     }
 
     hurl 'Invalid parameters passed to search_events(): '
@@ -621,7 +611,9 @@ sub deployed_changes {
     my $tagcol = sprintf $self->_listagg_format, 't.tag';
     return map {
         $_->{timestamp} = _dt $_->{timestamp};
-        $_->{tags} = $_->{tags} ? [ split / / => $_->{tags} ] : [];
+        unless (ref $_->{tags}) {
+            $_->{tags} = $_->{tags} ? [ split / / => $_->{tags} ] : [];
+        }
         $_;
     } @{ $self->dbh->selectall_arrayref(qq{
         SELECT c.change_id AS id, c.change AS name, c.project, c.note,
@@ -642,7 +634,9 @@ sub deployed_changes_since {
     my $tagcol = sprintf $self->_listagg_format, 't.tag';
     return map {
         $_->{timestamp} = _dt $_->{timestamp};
-        $_->{tags} = $_->{tags} ? [ split / / => $_->{tags} ] : [];
+        unless (ref $_->{tags}) {
+            $_->{tags} = $_->{tags} ? [ split / / => $_->{tags} ] : [];
+        }
         $_;
     } @{ $self->dbh->selectall_arrayref(qq{
         SELECT c.change_id AS id, c.change AS name, c.project, c.note,
@@ -673,7 +667,9 @@ sub load_change {
                c.planner_name, c.planner_email
     }, undef, $change_id) || return undef;
     $change->{timestamp} = _dt $change->{timestamp};
-    $change->{tags} = $change->{tags} ? [ split / / => $change->{tags} ] : [];
+    unless (ref $change->{tags}) {
+        $change->{tags} = $change->{tags} ? [ split / / => $change->{tags} ] : [];
+    }
     return $change;
 }
 
@@ -687,6 +683,12 @@ sub change_offset_from_id {
     my ( $dir, $op ) = $offset > 0 ? ( 'ASC', '>' ) : ( 'DESC' , '<' );
     my $tscol  = sprintf $self->_ts2char_format, 'c.planned_at';
     my $tagcol = sprintf $self->_listagg_format, 't.tag';
+
+    # SQLite requires LIMIT when there is an OFFSET.
+    my $limit  = '';
+    if (my $lim = $self->_limit_default) {
+        $limit = "LIMIT $lim ";
+    }
     my $change = $self->dbh->selectrow_hashref(qq{
         SELECT c.change_id AS id, c.change AS name, c.project, c.note,
                $tscol AS timestamp, c.planner_name, c.planner_email,
@@ -700,10 +702,12 @@ sub change_offset_from_id {
          GROUP BY c.change_id, c.change, c.project, c.note, c.planned_at,
                c.planner_name, c.planner_email, c.committed_at
          ORDER BY c.committed_at $dir
-         LIMIT -1 OFFSET ?
+         ${limit}OFFSET ?
     }, undef, $self->plan->project, $change_id, abs($offset) - 1) || return undef;
     $change->{timestamp} = _dt $change->{timestamp};
-    $change->{tags} = $change->{tags} ? [ split / / => $change->{tags} ] : [];
+    unless (ref $change->{tags}) {
+        $change->{tags} = $change->{tags} ? [ split / / => $change->{tags} ] : [];
+    }
     return $change;
 }
 
@@ -827,10 +831,6 @@ DBI-powered engines.
 
 =head2 Instance Methods
 
-=head3 C<earliest_change_id>
-
-=head3 C<latest_change_id>
-
 =head3 C<current_state>
 
 =head3 C<current_changes>
@@ -866,8 +866,6 @@ DBI-powered engines.
 =head3 C<rollback_work>
 
 =head3 C<is_deployed_tag>
-
-=head3 Crollback_work>
 
 =head3 C<deployed_changes>
 

@@ -215,9 +215,13 @@ sub _ts2char_format {
      q{to_char(%s AT TIME ZONE 'UTC', '"year":YYYY:"month":MM:"day":DD:"hour":HH24:"minute":MI:"second":SS:"time_zone":"UTC"')};
 }
 
+sub _ts_default { 'clock_timestamp()' }
+
 sub _char2ts { $_[1]->as_string(format => 'iso') }
 
-sub _listagg_format { q{array_agg(%s)} }
+sub _listagg_format {
+    q{ARRAY(SELECT * FROM UNNEST( array_agg(%s) ) a WHERE a IS NOT NULL)}
+}
 
 sub _regex_op { '~' }
 
@@ -248,67 +252,8 @@ sub initialize {
     return $self;
 }
 
-sub register_project {
-    my $self   = shift;
-    my $sqitch = $self->sqitch;
-    my $plan   = $self->plan;
-    my $proj   = $plan->project;
-    my $uri    = $plan->uri;
-
-    my $res = $self->dbh->selectcol_arrayref(
-        'SELECT uri FROM projects WHERE project = ?',
-        undef, $proj
-    );
-
-    if (@{ $res }) {
-        # A project with that name is already registreed. Compare URIs.
-        my $reg_uri = $res->[0];
-        if ( defined $uri && !defined $reg_uri ) {
-            hurl engine => __x(
-                'Cannot register "{project}" with URI {uri}: already exists with NULL URI',
-                project => $proj,
-                uri     => $uri
-            );
-        } elsif ( !defined $uri && defined $reg_uri ) {
-            hurl engine => __x(
-                'Cannot register "{project}" without URI: already exists with URI {uri}',
-                project => $proj,
-                uri     => $reg_uri
-            );
-        } elsif ( defined $uri && defined $reg_uri ) {
-            hurl engine => __x(
-                'Cannot register "{project}" with URI {uri}: already exists with URI {reg_uri}',
-                project => $proj,
-                uri     => $uri,
-                reg_uri => $reg_uri,
-            ) if $uri ne $reg_uri;
-        } else {
-            # Both are undef, so cool.
-        }
-    } else {
-        # Does the URI already exist?
-        my $res = $self->dbh->selectcol_arrayref(
-            'SELECT project FROM projects WHERE uri = ?',
-            undef, $uri
-        );
-
-        hurl engine => __x(
-            'Cannot register "{project}" with URI {uri}: project "{reg_prog}" already using that URI',
-            project => $proj,
-            uri     => $uri,
-            reg_proj => $res->[0],
-        ) if @{ $res };
-
-        # Insert the project.
-        $self->dbh->do(q{
-            INSERT INTO projects (project, uri, creator_name, creator_email)
-            VALUES (?, ?, ?, ?)
-        }, undef, $proj, $uri, $sqitch->user_name, $sqitch->user_email);
-    }
-
-    return $self;
-}
-
+# Override to lock the changes table. This ensures that only one instance of
+# Sqitch runs at one time.
 sub begin_work {
     my $self = shift;
     my $dbh = $self->dbh;
@@ -316,18 +261,6 @@ sub begin_work {
     # Start transaction and lock changes to allow only one change at a time.
     $dbh->begin_work;
     $dbh->do('LOCK TABLE changes IN EXCLUSIVE MODE');
-    return $self;
-}
-
-sub finish_work {
-    my $self = shift;
-    $self->dbh->commit;
-    return $self;
-}
-
-sub rollback_work {
-    my $self = shift;
-    $self->dbh->rollback;
     return $self;
 }
 
@@ -348,97 +281,7 @@ sub run_handle {
     $self->_spool($fh);
 }
 
-sub log_deploy_change {
-    my ($self, $change) = @_;
-    my $dbh    = $self->dbh;
-    my $sqitch = $self->sqitch;
-
-    my ($id, $name, $proj, $user, $email) = (
-        $change->id,
-        $change->format_name,
-        $change->project,
-        $sqitch->user_name,
-        $sqitch->user_email
-    );
-
-    $dbh->do(q{
-        INSERT INTO changes (
-              change_id
-            , change
-            , project
-            , note
-            , committer_name
-            , committer_email
-            , planned_at
-            , planner_name
-            , planner_email
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    }, undef,
-        $id,
-        $name,
-        $proj,
-        $change->note,
-        $user,
-        $email,
-        $change->timestamp->as_string(format => 'iso'),
-        $change->planner_name,
-        $change->planner_email,
-    );
-
-    if ( my @deps = $change->dependencies ) {
-        $dbh->do(q{
-            INSERT INTO dependencies(
-                  change_id
-                , type
-                , dependency
-                , dependency_id
-           ) VALUES
-        } . join( ', ', ( q{(?, ?, ?, ?)} ) x @deps ),
-            undef,
-            map { (
-                $id,
-                $_->type,
-                $_->as_string,
-                $_->resolved_id,
-            ) } @deps
-        );
-    }
-
-    if ( my @tags = $change->tags ) {
-        $dbh->do(q{
-            INSERT INTO tags (
-                  tag_id
-                , tag
-                , project
-                , change_id
-                , note
-                , committer_name
-                , committer_email
-                , planned_at
-                , planner_name
-                , planner_email
-           ) VALUES
-        } . join( ', ', ( q{(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)} ) x @tags ),
-            undef,
-            map { (
-                $_->id,
-                $_->format_name,
-                $proj,
-                $id,
-                $_->note,
-                $user,
-                $email,
-                $_->timestamp->as_string(format => 'iso'),
-                $_->planner_name,
-                $_->planner_email,
-            ) } @tags
-        );
-    }
-
-    return $self->_log_event( deploy => $change );
-}
-
+# Override to avoid cast errors, and to use VALUES instead of a UNION query.
 sub log_new_tags {
     my ( $self, $change ) = @_;
     my @tags   = $change->tags or return $self;
@@ -491,51 +334,8 @@ sub log_new_tags {
     return $self;
 }
 
-sub log_fail_change {
-    shift->_log_event( fail => shift );
-}
-
-sub _log_event {
-    my ( $self, $event, $change, $tags, $requires, $conflicts) = @_;
-    my $dbh    = $self->dbh;
-    my $sqitch = $self->sqitch;
-
-    $dbh->do(q{
-        INSERT INTO events (
-              event
-            , change_id
-            , change
-            , project
-            , note
-            , tags
-            , requires
-            , conflicts
-            , committer_name
-            , committer_email
-            , planned_at
-            , planner_name
-            , planner_email
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
-    }, undef,
-        $event,
-        $change->id,
-        $change->name,
-        $change->project,
-        $change->note,
-        $tags      || [ map { $_->format_name } $change->tags ],
-        $requires  || [ map { $_->as_string } $change->requires ],
-        $conflicts || [ map { $_->as_string } $change->conflicts ],
-        $sqitch->user_name,
-        $sqitch->user_email,
-        $change->timestamp->as_string(format => 'iso'),
-        $change->planner_name,
-        $change->planner_email,
-    );
-
-    return $self;
-}
-
+# Override to take advantage of the RETURNING expression, and to save tags as
+# an array rather than a space-delimited string.
 sub log_revert_change {
     my ($self, $change) = @_;
     my $dbh = $self->dbh;
@@ -571,55 +371,6 @@ sub log_revert_change {
     return $self->_log_event( revert => $change, $del_tags, $req, $conf );
 }
 
-sub is_deployed_tag {
-    my ( $self, $tag ) = @_;
-    return $self->dbh->selectcol_arrayref(q{
-        SELECT EXISTS(
-            SELECT TRUE
-              FROM tags
-             WHERE tag_id = ?
-        );
-    }, undef, $tag->id)->[0];
-}
-
-sub is_deployed_change {
-    my ( $self, $change ) = @_;
-    $self->dbh->selectcol_arrayref(q{
-        SELECT EXISTS(
-            SELECT TRUE
-              FROM changes
-             WHERE change_id = ?
-        )
-    }, undef, $change->id)->[0];
-}
-
-sub are_deployed_changes {
-    my $self = shift;
-    @{ $self->dbh->selectcol_arrayref(
-        'SELECT change_id FROM changes WHERE change_id = ANY(?)',
-        undef,
-        [ map { $_->id } @_ ],
-    ) };
-}
-
-sub changes_requiring_change {
-    my ( $self, $change ) = @_;
-    return @{ $self->dbh->selectall_arrayref(q{
-        SELECT c.change_id, c.project, c.change, (
-            SELECT tag
-              FROM changes c2
-              JOIN tags ON c2.change_id = tags.change_id
-             WHERE c2.project      = c.project
-               AND c2.committed_at >= c.committed_at
-             ORDER BY c2.committed_at
-             LIMIT 1
-        ) AS asof_tag
-          FROM dependencies d
-          JOIN changes c ON c.change_id = d.change_id
-         WHERE d.dependency_id = ?
-    }, { Slice => {} }, $change->id) };
-}
-
 sub _ts2char($) {
     my $col = shift;
     return qq{to_char($col AT TIME ZONE 'UTC', '"year":YYYY:"month":MM:"day":DD:"hour":HH24:"minute":MI:"second":SS:"time_zone":"UTC"')};
@@ -628,94 +379,6 @@ sub _ts2char($) {
 sub _dt($) {
     require App::Sqitch::DateTime;
     return App::Sqitch::DateTime->new(split /:/ => shift);
-}
-
-sub change_id_for {
-    my ( $self, %p) = @_;
-    my $dbh = $self->dbh;
-
-    if ( my $cid = $p{change_id} ) {
-        # Find by ID.
-        return $dbh->selectcol_arrayref(q{
-            SELECT change_id
-              FROM changes
-             WHERE change_id = ?
-        }, undef, $cid)->[0];
-    }
-
-    my $project = $p{project} || $self->plan->project;
-    if ( my $change = $p{change} ) {
-        if ( my $tag = $p{tag} ) {
-            # Ther is nothing before the first tag.
-            return undef if $tag eq 'ROOT' || $tag eq 'FIRST';
-
-            # Find closest to the end for @HEAD.
-            return $dbh->selectcol_arrayref(q{
-                SELECT change_id
-                  FROM changes
-                 WHERE project = ?
-                   AND change  = ?
-                 ORDER BY committed_at DESC
-                 LIMIT 1
-            }, undef, $project, $change)->[0] if $tag eq 'HEAD' || $tag eq 'LAST';
-
-            # Find by change name and following tag.
-            return $dbh->selectcol_arrayref(q{
-                SELECT changes.change_id
-                  FROM changes
-                  JOIN tags
-                    ON changes.committed_at < tags.committed_at
-                   AND changes.project = tags.project
-                 WHERE changes.project = ?
-                   AND changes.change  = ?
-                   AND tags.tag        = ?
-            }, undef, $project, $change, '@' . $tag)->[0];
-        }
-
-        # Find by change name. Fail if there are multiple.
-        my $ids = $dbh->selectcol_arrayref(q{
-            SELECT change_id
-              FROM changes
-             WHERE project = ?
-               AND change  = ?
-        }, undef, $project, $change);
-        return $ids->[0] if @{ $ids } < 2;
-        hurl engine => __x(
-            'Key "{key}" matches multiple changes',
-            key => $change,
-        );
-    }
-
-    if ( my $tag = $p{tag} ) {
-        # Just return the latest for @HEAD.
-        return $self->_cid('DESC', 0, $project)
-            if $tag eq 'HEAD' || $tag eq 'LAST';
-
-        # Just return the earliest for @ROOT.
-        return $self->_cid('ASC', 0, $project)
-            if $tag eq 'ROOT' || $tag eq 'FIRST';
-
-        # Find by tag name.
-        return $dbh->selectcol_arrayref(q{
-            SELECT change_id
-              FROM tags
-             WHERE project = ?
-               AND tag     = ?
-        }, undef, $project, '@' . $tag)->[0];
-    }
-
-    # We got nothin.
-    return undef;
-}
-
-sub _fetch_item {
-    my ($self, $sql) = @_;
-    return try {
-        $self->dbh->selectcol_arrayref($sql)->[0];
-    } catch {
-        return if $DBI::state eq '42P01'; # undefined_table
-        die $_;
-    };
 }
 
 sub _cid {
@@ -743,251 +406,9 @@ sub latest_change_id {
     shift->_cid('DESC', @_);
 }
 
-sub load_change {
-    my ( $self, $change_id ) = @_;
-    my $tscol = _ts2char 'planned_at';
-    my $change = $self->dbh->selectrow_hashref(qq{
-        SELECT change_id AS id, change AS name, project, note,
-               $tscol AS timestamp, planner_name, planner_email,
-               ARRAY(SELECT tag FROM tags WHERE change_id = changes.change_id) AS tags
-          FROM changes
-         WHERE change_id = ?
-    }, undef, $change_id) || return undef;
-    $change->{timestamp} = _dt $change->{timestamp};
-    return $change;
-}
-
-sub change_offset_from_id {
-    my ( $self, $change_id, $offset ) = @_;
-
-    # Just return the object if there is no offset.
-    return $self->load_change($change_id) unless $offset;
-
-    # Are we offset forwards or backwards?
-    my ( $dir, $op ) = $offset > 0 ? ( 'ASC', '>' ) : ( 'DESC' , '<' );
-    my $tscol = _ts2char 'planned_at';
-    my $change = $self->dbh->selectrow_hashref(qq{
-        SELECT change_id AS id, change AS name, project, note,
-               $tscol AS timestamp, planner_name, planner_email,
-               ARRAY(SELECT tag FROM tags WHERE change_id = changes.change_id) AS tags
-          FROM changes
-         WHERE project = ?
-           AND committed_at $op (
-               SELECT committed_at FROM changes WHERE change_id = ?
-         )
-         ORDER BY committed_at $dir
-         OFFSET ?
-    }, undef, $self->plan->project, $change_id, abs($offset) - 1) || return undef;
-    $change->{timestamp} = _dt $change->{timestamp};
-    return $change;
-}
-
-sub deployed_changes {
-    my $self = shift;
-    my $tscol = _ts2char 'planned_at';
-    return map {
-        $_->{timestamp} = _dt $_->{timestamp}; $_
-    } @{ $self->dbh->selectall_arrayref(qq{
-        SELECT change_id AS id, change AS name, project, note,
-               $tscol AS timestamp, planner_name, planner_email,
-               ARRAY(SELECT tag FROM tags WHERE change_id = changes.change_id) AS tags
-          FROM changes
-         WHERE project = ?
-         ORDER BY committed_at ASC
-    }, { Slice => {} }, $self->plan->project) };
-}
-
-sub deployed_changes_since {
-    my ( $self, $change ) = @_;
-    my $tscol = _ts2char 'planned_at';
-    return map {
-        $_->{timestamp} = _dt $_->{timestamp}; $_
-    } @{ $self->dbh->selectall_arrayref(qq{
-        SELECT change_id AS id, change AS name, project, note,
-               $tscol AS timestamp, planner_name, planner_email,
-               ARRAY(SELECT tag FROM tags WHERE change_id = changes.change_id) AS tags
-          FROM changes
-         WHERE project = ?
-           AND committed_at > (SELECT committed_at FROM changes WHERE change_id = ?)
-         ORDER BY committed_at ASC
-    }, { Slice => {} }, $self->plan->project, $change->id) };
-}
-
-sub name_for_change_id {
-    my ( $self, $change_id ) = @_;
-    return $self->dbh->selectcol_arrayref(q{
-        SELECT change || COALESCE((
-            SELECT tag
-              FROM changes c2
-              JOIN tags ON c2.change_id = tags.change_id
-             WHERE c2.committed_at >= c.committed_at
-               AND c2.project = c.project
-             LIMIT 1
-        ), '')
-          FROM changes c
-         WHERE change_id = ?
-    }, undef, $change_id)->[0];
-}
-
-sub registered_projects {
-    return @{ shift->dbh->selectcol_arrayref(
-        'SELECT project FROM projects ORDER BY project'
-    ) };
-}
-
-sub current_state {
-    my ( $self, $project ) = @_;
-    my $ddtcol = _ts2char 'committed_at';
-    my $pdtcol = _ts2char 'planned_at';
-    my $state = $self->dbh->selectrow_hashref(qq{
-        SELECT change_id
-             , change
-             , project
-             , note
-             , committer_name
-             , committer_email
-             , $ddtcol AS committed_at
-             , planner_name
-             , planner_email
-             , $pdtcol AS planned_at
-             , ARRAY(
-                 SELECT tag
-                   FROM tags
-                  WHERE change_id = changes.change_id
-                  ORDER BY committed_at
-             ) AS tags
-          FROM changes
-         WHERE project = ?
-         ORDER BY changes.committed_at DESC
-         LIMIT 1
-    }, undef, $project // $self->plan->project ) or return undef;
-    $state->{committed_at} = _dt $state->{committed_at};
-    $state->{planned_at}   = _dt $state->{planned_at};
-    return $state;
-}
-
-sub current_changes {
-    my ( $self, $project ) = @_;
-    my $ddtcol = _ts2char 'committed_at';
-    my $pdtcol = _ts2char 'planned_at';
-    my $sth   = $self->dbh->prepare(qq{
-        SELECT change_id
-             , change
-             , committer_name
-             , committer_email
-             , $ddtcol AS committed_at
-             , planner_name
-             , planner_email
-             , $pdtcol AS planned_at
-          FROM changes
-         WHERE project = ?
-         ORDER BY changes.committed_at DESC
-    });
-    $sth->execute($project // $self->plan->project);
-    return sub {
-        my $row = $sth->fetchrow_hashref or return;
-        $row->{committed_at} = _dt $row->{committed_at};
-        $row->{planned_at}   = _dt $row->{planned_at};
-        return $row;
-    };
-}
-
-sub current_tags {
-    my ( $self, $project ) = @_;
-    my $tdtcol = _ts2char 'committed_at';
-    my $pdtcol = _ts2char 'planned_at';
-    my $sth   = $self->dbh->prepare(qq{
-        SELECT tag_id
-             , tag
-             , committer_name
-             , committer_email
-             , $tdtcol AS committed_at
-             , planner_name
-             , planner_email
-             , $pdtcol AS planned_at
-          FROM tags
-         WHERE project = ?
-         ORDER BY tags.committed_at DESC
-    });
-    $sth->execute($project // $self->plan->project);
-    return sub {
-        my $row = $sth->fetchrow_hashref or return;
-        $row->{committed_at} = _dt $row->{committed_at};
-        $row->{planned_at}   = _dt $row->{planned_at};
-        return $row;
-    };
-}
-
-sub search_events {
-    my ( $self, %p ) = @_;
-
-    # Determine order direction.
-    my $dir = 'DESC';
-    if (my $d = delete $p{direction}) {
-        $dir = $d =~ /^ASC/i  ? 'ASC'
-             : $d =~ /^DESC/i ? 'DESC'
-             : hurl 'Search direction must be either "ASC" or "DESC"';
-    }
-
-    # Limit with regular expressions?
-    my (@wheres, @params);
-    for my $spec (
-        [ committer => 'committer_name' ],
-        [ planner   => 'planner_name'   ],
-        [ change    => 'change'         ],
-        [ project   => 'project'        ],
-    ) {
-        my $regex = delete $p{ $spec->[0] } // next;
-        push @wheres => "$spec->[1] ~ ?";
-        push @params => $regex;
-    }
-
-    # Match events?
-    if (my $e = delete $p{event} ) {
-        push @wheres => 'event = ANY(?)';
-        push @params => $e;
-    }
-
-    # Assemble the where clause.
-    my $where = @wheres
-        ? "\n         WHERE " . join( "\n               ", @wheres )
-        : '';
-
-    # Handle remaining parameters.
-    push @params, delete @p{ qw(limit offset) };
-    hurl 'Invalid parameters passed to search_events(): '
-        . join ', ', sort keys %p if %p;
-
-    # Prepare, execute, and return.
-    my $cdtcol = _ts2char 'committed_at';
-    my $pdtcol = _ts2char 'planned_at';
-    my $sth = $self->dbh->prepare(qq{
-        SELECT event
-             , project
-             , change_id
-             , change
-             , note
-             , requires
-             , conflicts
-             , tags
-             , committer_name
-             , committer_email
-             , $cdtcol AS committed_at
-             , planner_name
-             , planner_email
-             , $pdtcol AS planned_at
-          FROM events$where
-         ORDER BY events.committed_at $dir
-         LIMIT COALESCE(?::INT, NULL)
-        OFFSET COALESCE(?::INT, NULL)
-    });
-    $sth->execute(@params);
-    return sub {
-        my $row = $sth->fetchrow_hashref or return;
-        $row->{committed_at} = _dt $row->{committed_at};
-        $row->{planned_at}   = _dt $row->{planned_at};
-        return $row;
-    };
+sub _in_expr {
+    my ($self, $vals) = @_;
+    return '= ANY(?)', $vals;
 }
 
 # This method only required by pg, as no other engines existed when change and

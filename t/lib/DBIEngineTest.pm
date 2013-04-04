@@ -705,6 +705,7 @@ sub run {
             planner_email => $change2->planner_email,
             tags          => [],
         };
+
         is_deeply [$engine->deployed_changes], [$change_hash, $change2_hash],
             'Should have two deployed changes';
         is_deeply [$engine->deployed_changes_since($change)], [$change2_hash],
