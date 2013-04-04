@@ -150,30 +150,8 @@ sub initialize {
     $self->sqitch->run( @cmd, '.read ' . $self->dbh->quote($file) );
 }
 
-sub _cid {
-    my ( $self, $ord, $offset, $project ) = @_;
-    return try {
-        $self->dbh->selectcol_arrayref(qq{
-            SELECT change_id
-              FROM changes
-             WHERE project = ?
-             ORDER BY committed_at $ord
-             LIMIT 1
-            OFFSET COALESCE(?, 0)
-        }, undef, $project || $self->plan->project, $offset)->[0];
-    } catch {
-        # Too bad $DBI::state isn't set to an SQL error code. :-(
-        return if $DBI::errstr eq 'no such table: changes';
-        die $_;
-    };
-}
-
-sub earliest_change_id {
-    shift->_cid('ASC', @_);
-}
-
-sub latest_change_id {
-    shift->_cid('DESC', @_);
+sub _no_table_error  {
+    return $DBI::errstr =~ /^\Qno such table:/;
 }
 
 sub _regex_op { 'REGEXP' }

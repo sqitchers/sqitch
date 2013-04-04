@@ -19,6 +19,7 @@ requires '_regex_op';
 requires '_ts2char_format';
 requires '_char2ts';
 requires '_listagg_format';
+requires '_no_table_error';
 
 sub _dt($) {
     require App::Sqitch::DateTime;
@@ -45,6 +46,31 @@ sub _in_expr {
     my ($self, $vals) = @_;
     my $in = sprintf 'IN (%s)', join ', ', ('?') x @{ $vals };
     return $in, @{ $vals };
+}
+
+sub _cid {
+    my ( $self, $ord, $offset, $project ) = @_;
+    return try {
+        $self->dbh->selectcol_arrayref(qq{
+            SELECT change_id
+              FROM changes
+             WHERE project = ?
+             ORDER BY committed_at $ord
+             LIMIT 1
+            OFFSET COALESCE(?, 0)
+        }, undef, $project || $self->plan->project, $offset)->[0];
+    } catch {
+        return if $self->_no_table_error;
+        die $_;
+    };
+}
+
+sub earliest_change_id {
+    shift->_cid('ASC', @_);
+}
+
+sub latest_change_id {
+    shift->_cid('DESC', @_);
 }
 
 sub current_state {
@@ -830,6 +856,10 @@ DBI-powered engines.
 =head1 Interface
 
 =head2 Instance Methods
+
+=head3 C<earliest_change_id>
+
+=head3 C<latest_change_id>
 
 =head3 C<current_state>
 
