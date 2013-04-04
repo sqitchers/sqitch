@@ -1442,6 +1442,74 @@ sub run {
         is $txn, -1, 'Should have rolled back a transaction';
         $mock_dbh->unmock('do');
 
+        ######################################################################
+        if ($class eq 'App::Sqitch::Engine::pg') {
+            # Test _update_ids by old ID; required only for pg, which was the
+            # only engine that existed at the time.
+            my @proj_changes = ($change, $change2, $fred, $barney, $hyper);
+            my @all_changes  = ($change, $change2, $fred, $barney, $ext_change, $ext_change2, $hyper, $ext_change3);
+            my @proj_tags    = ($change->tags, $beta, $gamma);
+            my @all_tags     = (@proj_tags, $ext_tag);
+
+            # Let's just revert and re-deploy them all.
+            ok $engine->log_revert_change($_),
+                'Revert "' . $_->name . '" change' for reverse @all_changes;
+            ok $engine->log_deploy_change($_),
+                'Deploy "' . $_->name . '" change' for @all_changes;
+
+            my $upd_change = $engine->dbh->prepare(
+                'UPDATE changes SET change_id = ? WHERE change_id = ?'
+            );
+            my $upd_tag = $engine->dbh->prepare(
+                'UPDATE tags SET tag_id = ? WHERE tag_id = ?'
+            );
+
+            for my $change (@proj_changes) {
+                $upd_change->execute($change->old_id, $change->id);
+            }
+            for my $tag (@proj_tags) {
+                $upd_tag->execute($tag->old_id, $tag->id);
+            }
+
+            # Mock Engine to silence the info notice.
+            my $mock_engine = Test::MockModule->new('App::Sqitch::Engine');
+            $mock_engine->mock(plan => $plan);
+            $mock_engine->mock(_update_ids => sub { shift });
+
+            is $engine->_update_ids, 9, 'Update IDs by old ID should return 9';
+
+            # All of the current project changes should be updated.
+            is_deeply [ map { [@{$_}[0,1]] } @{ all_changes($engine) }],
+                [ map { [ $_->id, $_->name ] } @all_changes ],
+                'All of the change IDs should have been updated';
+
+            # All of the current project tags should be updated.
+            is_deeply [ map { [@{$_}[0,1]] } @{ all_tags($engine) }],
+                [ map { [ $_->id, $_->format_name ] } @all_tags ],
+                'All of the tag IDs should have been updated';
+
+            # Now reset them so they have to be found by name.
+            $i = 0;
+            for my $change (@proj_changes) {
+                $upd_change->execute($change->old_id . $i++, $change->id);
+            }
+            for my $tag (@proj_tags) {
+                $upd_tag->execute($tag->old_id . $i++, $tag->id);
+            }
+
+            is $engine->_update_ids, 9, 'Update IDs by name should also return 9';
+
+            # All of the current project changes should be updated.
+            is_deeply [ map { [@{$_}[0,1]] } @{ all_changes($engine) }],
+                [ map { [ $_->id, $_->name ] } @all_changes ],
+                'All of the change IDs should have been updated by name';
+
+            # All of the current project tags should be updated.
+            is_deeply [ map { [@{$_}[0,1]] } @{ all_tags($engine) }],
+                [ map { [ $_->id, $_->format_name ] } @all_tags ],
+                'All of the tag IDs should have been updated by name';
+        }
+
         # Unmock everything and call it a day.
         $mock_dbh->unmock_all;
         $mock_sqitch->unmock_all;
