@@ -282,40 +282,49 @@ can_ok $CLASS, qw(
     load_change
 );
 
-my @cleanup;
+my $dbh;
 END {
-    $pg->_dbh->do(
-        "SET client_min_messages=warning; $_"
-    ) for @cleanup;
+    $dbh->do('DROP DATABASE __sqitchtest__') if $dbh;
 }
 
+my $err = try {
+    $dbh = DBI->connect('dbi:Pg:dbname=template1', 'postgres', '', {
+        PrintError => 0,
+        RaiseError => 1,
+        AutoCommit => 1,
+    });
+    $dbh->do('CREATE DATABASE __sqitchtest__');
+    undef;
+} catch {
+    eval { $_->message } || $_;
+};
+
+
 subtest 'live database' => sub {
+    plan skip_all => "Unable to connect to a database for testing: $err"
+        if $err;
+
     my @sqitch_params = (
         db_username => 'postgres',
+        db_name     => '__sqitchtest__',
         top_dir     => Path::Class::dir(qw(t pg)),
         plan_file   => Path::Class::file(qw(t pg sqitch.plan)),
     );
     my $user1_name = 'Marge Simpson';
     my $user1_email = 'marge@example.com';
-    $sqitch = App::Sqitch->new(
+    my $sqitch = App::Sqitch->new(
         @sqitch_params,
         user_name  => $user1_name,
         user_email => $user1_email,
     );
     $pg = $CLASS->new(sqitch => $sqitch);
-    try {
-        $pg->_dbh;
-    } catch {
-        plan skip_all => "Unable to connect to a database for testing: "
-            . eval { $_->message } || $_;
-    };
 
     ok !$pg->initialized, 'Database should not yet be initialized';
-    push @cleanup, 'DROP SCHEMA ' . $pg->sqitch_schema . ' CASCADE';
     ok $pg->initialize, 'Initialize the database';
     ok $pg->initialized, 'Database should now be initialized';
     is $pg->_dbh->selectcol_arrayref('SHOW search_path')->[0], 'sqitch',
         'The search path should be set';
+    $pg->_dbh->disconnect;
 
     # Try it with a different schema name.
     ok $pg = $CLASS->new(
@@ -327,7 +336,6 @@ subtest 'live database' => sub {
     is $pg->latest_change_id, undef, 'No init, no latest change';
 
     ok !$pg->initialized, 'Database should no longer seem initialized';
-    push @cleanup, 'DROP SCHEMA __sqitchtest CASCADE';
     ok $pg->initialize, 'Initialize the database again';
     ok $pg->initialized, 'Database should be initialized again';
     is $pg->_dbh->selectcol_arrayref('SHOW search_path')->[0], '__sqitchtest',
@@ -733,6 +741,7 @@ subtest 'live database' => sub {
         user_name  => $user2_name,
         user_email => $user2_email,
     );
+    $pg->_dbh->disconnect;
     ok $pg = $CLASS->new(
         sqitch        => $sqitch,
         sqitch_schema => '__sqitchtest',
@@ -1771,6 +1780,7 @@ subtest 'live database' => sub {
     $mock_dbh->unmock_all;
     $mock_sqitch->unmock_all;
     $mock_engine->unmock_all;
+    $pg->_dbh->disconnect;
     done_testing;
 };
 
