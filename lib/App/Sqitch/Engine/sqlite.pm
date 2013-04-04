@@ -150,6 +150,10 @@ sub initialize {
 
 sub _regex_op { 'REGEXP' }
 
+sub _ts_default {
+    q{strftime('%Y-%m-%d %H:%M:%f')};
+}
+
 sub _ts2char_format {
     return q{strftime('year:%%Y:month:%%m:day:%%d:hour:%%H:minute:%%M:second:%%S:time_zone:UTC', %s)};
 }

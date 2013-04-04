@@ -183,6 +183,7 @@ EngineTest->run(
         'Sqitch database {database} already initialized',
         database => $alt_db,
     ),
+    add_second_format => q{strftime('%%Y-%%m-%%d %%H:%%M:%%f', strftime('%%J', %s) + (1/86400.0))},
 );
 
 done_testing;

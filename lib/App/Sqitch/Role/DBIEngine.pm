@@ -37,6 +37,8 @@ sub _log_conflicts_param {
     join ',' => map { $_->as_string } $_[1]->conflicts;
 }
 
+sub _ts_default { 'DEFAULT' }
+
 sub _cid {
     my ( $self, $ord, $offset, $project ) = @_;
     return try {
@@ -297,9 +299,10 @@ sub register_project {
         ) if @{ $res };
 
         # Insert the project.
-        $dbh->do(q{
-            INSERT INTO projects (project, uri, creator_name, creator_email)
-            VALUES (?, ?, ?, ?)
+        my $ts = $self->_ts_default;
+        $dbh->do(qq{
+            INSERT INTO projects (project, uri, creator_name, creator_email, created_at)
+            VALUES (?, ?, ?, ?, $ts)
         }, undef, $proj, $uri, $sqitch->user_name, $sqitch->user_email);
     }
 
@@ -351,7 +354,8 @@ sub log_deploy_change {
         $sqitch->user_email
     );
 
-    $dbh->do(q{
+    my $ts = $self->_ts_default;
+    $dbh->do(qq{
         INSERT INTO changes (
               change_id
             , change
@@ -362,8 +366,9 @@ sub log_deploy_change {
             , planned_at
             , planner_name
             , planner_email
+            , committed_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, $ts)
     }, undef,
         $id,
         $name,
@@ -408,8 +413,9 @@ sub log_deploy_change {
                 , planned_at
                 , planner_name
                 , planner_email
+                , committed_at
            ) VALUES
-        } . join( ', ', ( q{(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)} ) x @tags ),
+        } . join( ', ', ( qq{(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, $ts)} ) x @tags ),
             undef,
             map { (
                 $_->id,
@@ -438,7 +444,8 @@ sub _log_event {
     my $dbh    = $self->dbh;
     my $sqitch = $self->sqitch;
 
-    $dbh->do(q{
+    my $ts = $self->_ts_default;
+    $dbh->do(qq{
         INSERT INTO events (
               event
             , change_id
@@ -453,8 +460,9 @@ sub _log_event {
             , planned_at
             , planner_name
             , planner_email
+            , committed_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, $ts);
     }, undef,
         $event,
         $change->id,
@@ -521,6 +529,7 @@ sub log_new_tags {
         $sqitch->user_email
     );
 
+    my $ts = $self->_ts_default;
     $self->dbh->do(
         q{
             INSERT INTO tags (
@@ -534,11 +543,12 @@ sub log_new_tags {
                  , planned_at
                  , planner_name
                  , planner_email
+                 , committed_at
             )
             SELECT i.* FROM (
                          } . join(
                 "\n               UNION ALL ",
-                ('SELECT ? AS tid, ?, ?, ?, ?, ?, ?, ?, ?, ?') x @tags
+                ("SELECT ? AS tid, ?, ?, ?, ?, ?, ?, ?, ?, ?, $ts") x @tags
             ) . q{
             ) AS i
               LEFT JOIN tags ON i.tid = tags.tag_id

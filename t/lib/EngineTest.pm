@@ -205,17 +205,6 @@ sub run {
 
         ######################################################################
         # Test log_deploy_change().
-
-        # Will use this fo fake clock ticks.
-        my $set_event_timestamp = sub {
-            my $ts = shift;
-            $engine->dbh->do($_, undef, $ts) for (
-                'UPDATE events  SET committed_at = ? WHERE committed_at = CURRENT_TIMESTAMP',
-                'UPDATE changes SET committed_at = ? WHERE committed_at = CURRENT_TIMESTAMP',
-                'UPDATE tags    SET committed_at = ? WHERE committed_at = CURRENT_TIMESTAMP',
-            );
-        };
-
         my $plan = $sqitch->plan;
         my $change = $plan->change_at(0);
         my ($tag) = $change->tags;
@@ -224,7 +213,6 @@ sub run {
         is_deeply [$engine->are_deployed_changes($change)], [],
             'The change should not be deployed';
         ok $engine->log_deploy_change($change), 'Deploy "users" change';
-        $set_event_timestamp->('2013-03-30 00:44:47');
         ok $engine->is_deployed_change($change), 'The change should now be deployed';
         is_deeply [$engine->are_deployed_changes($change)], [$change->id],
             'The change should now be deployed';
@@ -370,7 +358,6 @@ sub run {
         ######################################################################
         # Test log_revert_change(). First shift existing event dates.
         ok $engine->log_revert_change($change), 'Revert "users" change';
-        $set_event_timestamp->('2013-03-30 00:45:47');
         ok !$engine->is_deployed_change($change), 'The change should no longer be deployed';
         is_deeply [$engine->are_deployed_changes($change)], [],
             'The change should no longer be deployed';
@@ -431,7 +418,6 @@ sub run {
         ######################################################################
         # Test log_fail_change().
         ok $engine->log_fail_change($change), 'Fail "users" change';
-        $set_event_timestamp->('2013-03-30 00:46:47');
         ok !$engine->is_deployed_change($change), 'The change still should not be deployed';
         is_deeply [$engine->are_deployed_changes($change)], [],
             'The change still should not be deployed';
@@ -490,7 +476,6 @@ sub run {
         ######################################################################
         # Test a change with dependencies.
         ok $engine->log_deploy_change($change),    'Deploy the change again';
-        $set_event_timestamp->('2013-03-30 00:47:47');
         ok $engine->is_deployed_tag($tag),     'The tag again should be deployed';
         is $engine->earliest_change_id, $change->id, 'Should again get users ID for earliest change ID';
         is $engine->earliest_change_id(1), undef, 'Should still get no change offset 1 from earliest';
@@ -508,7 +493,6 @@ sub run {
                 undef, '2013-03-30 00:47:47',
         );
         ok $engine->log_deploy_change($change2),    'Deploy second change';
-        $set_event_timestamp->('2013-03-30 00:48:47');
         is $engine->earliest_change_id, $change->id, 'Should still get users ID for earliest change ID';
         is $engine->earliest_change_id(1), $change2->id,
             'Should get "widgets" offset 1 from earliest';
@@ -750,7 +734,6 @@ sub run {
 
         # Revert change 2.
         ok $engine->log_revert_change($change2), 'Revert "widgets"';
-        $set_event_timestamp->('2013-03-30 00:49:47');
         is_deeply [$engine->deployed_changes], [$change_hash],
             'Should now have one deployed change ID';
         is_deeply [$engine->deployed_changes_since($change)], [],
@@ -758,7 +741,6 @@ sub run {
 
         # Add another one.
         ok $engine->log_deploy_change($change2), 'Log another change';
-        $set_event_timestamp->('2013-03-30 00:50:47');
         is_deeply [$engine->deployed_changes], [$change_hash, $change2_hash],
             'Should have both deployed change IDs';
         is_deeply [$engine->deployed_changes_since($change)], [$change2_hash],
@@ -832,10 +814,8 @@ sub run {
         $plan->tag( name => 'gamma' );
         ok my $fred = $plan->get('fred'),     'Get the "fred" change';
         ok $engine->log_deploy_change($fred),     'Deploy "fred"';
-        $set_event_timestamp->('2013-03-30 00:51:47');
         ok my $barney = $plan->get('barney'), 'Get the "barney" change';
         ok $engine->log_deploy_change($barney),   'Deploy "barney"';
-        $set_event_timestamp->('2013-03-30 00:52:47');
 
         is $engine->earliest_change_id, $change->id, 'Earliest change should sill be "users"';
         is $engine->earliest_change_id(1), $change2->id,
@@ -888,11 +868,12 @@ sub run {
             'Should have all four current changes in reverse chron order';
 
         my ($beta, $gamma) = $barney->tags;
-
-        # Make sure the two tags have different timestamps.
-        $engine->dbh->do($_) for (
-            q{UPDATE tags SET committed_at = '2013-03-30 00:53:47' WHERE tag = '@gamma'}
-        );
+        if (my $format = $p{add_second_format}) {
+            my $set = sprintf $format, 'committed_at';
+            $engine->dbh->do(
+                "UPDATE tags SET committed_at = $set WHERE tag = '\@gamma'"
+            );
+        }
         unshift @current_tags => {
             tag_id          => $gamma->id,
             tag             => '@gamma',
@@ -1033,7 +1014,6 @@ sub run {
             name => 'crazyman',
         ), "Create external change";
         ok $engine->log_deploy_change($ext_change), 'Log the external change';
-        $set_event_timestamp->('2013-03-30 00:53:47');
         my $ext_event = {
             event           => 'deploy',
             project         => 'groovy',
@@ -1251,14 +1231,12 @@ sub run {
                 # Once deployed, dependency should be satisfied.
                 ok $engine->log_deploy_change($change),
                     "Log internal $desc change deployment";
-                $set_event_timestamp->('2013-03-30 00:54:47');
                 is $engine->change_id_for_depend($dep), $change->id,
                     "Internal $desc depencency should now be satisfied";
 
                 # Revert it and try again.
                 ok $engine->log_revert_change($change),
                     "Log internal $desc change reversion";
-                $set_event_timestamp->('2013-03-30 00:55:47');
                 is $engine->change_id_for_depend($dep), undef,
                     "Internal $desc depencency should again be unsatisfied";
             }
@@ -1297,7 +1275,6 @@ sub run {
                 # Once deployed, dependency should be satisfied.
                 ok $engine->log_deploy_change($change),
                     "Log external $desc change deployment";
-                $set_event_timestamp->('2013-03-30 00:56:47');
 
                 is $engine->change_id_for_depend($dep), $change->id,
                     "External $desc depencency should now be satisfied";
@@ -1305,7 +1282,6 @@ sub run {
                 # Revert it and try again.
                 ok $engine->log_revert_change($change),
                     "Log external $desc change reversion";
-                $set_event_timestamp->('2013-03-30 00:57:47');
                 is $engine->change_id_for_depend($dep), undef,
                     "External $desc depencency should again be unsatisfied";
             }
@@ -1322,7 +1298,6 @@ sub run {
         ) ), 'Add tag external "meta"';
 
         ok $engine->log_deploy_change($ext_change2), 'Log the external change with tag';
-        $set_event_timestamp->('2013-03-30 00:58:47');
 
         # Make sure name_for_change_id() works properly.
         ok $engine->dbh->do(q{DELETE FROM tags WHERE project = 'pg'}),
@@ -1377,7 +1352,6 @@ sub run {
         ), 'Create change "hypercritial" in current plan';
         $_->resolved_id( $engine->change_id_for_depend($_) ) for $hyper->requires;
         ok $engine->log_deploy_change($hyper), 'Log change "hyper"';
-        $set_event_timestamp->('2013-03-30 00:59:47');
 
         is_deeply [ $engine->changes_requiring_change($hyper) ], [],
             'No changes should require "hypercritical"';
@@ -1413,7 +1387,6 @@ sub run {
         ), "Create a third external change";
         $_->resolved_id( $engine->change_id_for_depend($_) ) for $ext_change3->requires;
         ok $engine->log_deploy_change($ext_change3), 'Log change "elsewise"';
-        $set_event_timestamp->('2013-03-30 01:00:47');
 
         # Check the dependencies again.
         is_deeply [ $engine->changes_requiring_change($fred) ], [
