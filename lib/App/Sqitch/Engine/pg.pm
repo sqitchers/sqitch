@@ -146,7 +146,7 @@ has psql => (
     },
 );
 
-has _dbh => (
+has dbh => (
     is      => 'rw',
     isa     => 'DBI::db',
     lazy    => 1,
@@ -197,9 +197,25 @@ sub config_vars {
     );
 }
 
+sub _log_tags_param {
+    [ map { $_->format_name } $_[1]->tags ];
+}
+
+sub _log_requires_param {
+    [ map { $_->as_string } $_[1]->requires ];
+}
+
+sub _log_conflicts_param {
+    [ map { $_->as_string } $_[1]->conflicts ];
+}
+
+sub _ts2char_format {
+     q{to_char(%s AT TIME ZONE 'UTC', '"year":YYYY:"month":MM:"day":DD:"hour":HH24:"minute":MI:"second":SS:"time_zone":"UTC"')};
+}
+
 sub initialized {
     my $self = shift;
-    return $self->_dbh->selectcol_arrayref(q{
+    return $self->dbh->selectcol_arrayref(q{
         SELECT EXISTS(
             SELECT TRUE FROM pg_catalog.pg_namespace WHERE nspname = ?
         )
@@ -209,7 +225,7 @@ sub initialized {
 sub initialize {
     my $self   = shift;
     my $schema = $self->sqitch_schema;
-    hurl pg => __x(
+    hurl engine => __x(
         'Sqitch schema "{schema}" already exists',
         schema => $schema
     ) if $self->initialized;
@@ -220,7 +236,7 @@ sub initialize {
         '--set'  => "sqitch_schema=$schema",
     );
 
-    $self->_dbh->do('SET search_path = ?', undef, $schema);
+    $self->dbh->do('SET search_path = ?', undef, $schema);
     return $self;
 }
 
@@ -231,7 +247,7 @@ sub register_project {
     my $proj   = $plan->project;
     my $uri    = $plan->uri;
 
-    my $res = $self->_dbh->selectcol_arrayref(
+    my $res = $self->dbh->selectcol_arrayref(
         'SELECT uri FROM projects WHERE project = ?',
         undef, $proj
     );
@@ -263,7 +279,7 @@ sub register_project {
         }
     } else {
         # Does the URI already exist?
-        my $res = $self->_dbh->selectcol_arrayref(
+        my $res = $self->dbh->selectcol_arrayref(
             'SELECT project FROM projects WHERE uri = ?',
             undef, $uri
         );
@@ -276,7 +292,7 @@ sub register_project {
         ) if @{ $res };
 
         # Insert the project.
-        $self->_dbh->do(q{
+        $self->dbh->do(q{
             INSERT INTO projects (project, uri, creator_name, creator_email)
             VALUES (?, ?, ?, ?)
         }, undef, $proj, $uri, $sqitch->user_name, $sqitch->user_email);
@@ -287,7 +303,7 @@ sub register_project {
 
 sub begin_work {
     my $self = shift;
-    my $dbh = $self->_dbh;
+    my $dbh = $self->dbh;
 
     # Start transaction and lock changes to allow only one change at a time.
     $dbh->begin_work;
@@ -297,13 +313,13 @@ sub begin_work {
 
 sub finish_work {
     my $self = shift;
-    $self->_dbh->commit;
+    $self->dbh->commit;
     return $self;
 }
 
 sub rollback_work {
     my $self = shift;
-    $self->_dbh->rollback;
+    $self->dbh->rollback;
     return $self;
 }
 
@@ -326,7 +342,7 @@ sub run_handle {
 
 sub log_deploy_change {
     my ($self, $change) = @_;
-    my $dbh    = $self->_dbh;
+    my $dbh    = $self->dbh;
     my $sqitch = $self->sqitch;
 
     my ($id, $name, $proj, $user, $email) = (
@@ -428,7 +444,7 @@ sub log_new_tags {
         $sqitch->user_email
     );
 
-    $self->_dbh->do(
+    $self->dbh->do(
         q{
             INSERT INTO tags (
                    tag_id
@@ -473,7 +489,7 @@ sub log_fail_change {
 
 sub _log_event {
     my ( $self, $event, $change, $tags, $requires, $conflicts) = @_;
-    my $dbh    = $self->_dbh;
+    my $dbh    = $self->dbh;
     my $sqitch = $self->sqitch;
 
     $dbh->do(q{
@@ -514,7 +530,7 @@ sub _log_event {
 
 sub log_revert_change {
     my ($self, $change) = @_;
-    my $dbh = $self->_dbh;
+    my $dbh = $self->dbh;
 
     # Delete tags.
     my $del_tags = $dbh->selectcol_arrayref(
@@ -549,7 +565,7 @@ sub log_revert_change {
 
 sub is_deployed_tag {
     my ( $self, $tag ) = @_;
-    return $self->_dbh->selectcol_arrayref(q{
+    return $self->dbh->selectcol_arrayref(q{
         SELECT EXISTS(
             SELECT TRUE
               FROM tags
@@ -560,7 +576,7 @@ sub is_deployed_tag {
 
 sub is_deployed_change {
     my ( $self, $change ) = @_;
-    $self->_dbh->selectcol_arrayref(q{
+    $self->dbh->selectcol_arrayref(q{
         SELECT EXISTS(
             SELECT TRUE
               FROM changes
@@ -571,7 +587,7 @@ sub is_deployed_change {
 
 sub are_deployed_changes {
     my $self = shift;
-    @{ $self->_dbh->selectcol_arrayref(
+    @{ $self->dbh->selectcol_arrayref(
         'SELECT change_id FROM changes WHERE change_id = ANY(?)',
         undef,
         [ map { $_->id } @_ ],
@@ -580,7 +596,7 @@ sub are_deployed_changes {
 
 sub changes_requiring_change {
     my ( $self, $change ) = @_;
-    return @{ $self->_dbh->selectall_arrayref(q{
+    return @{ $self->dbh->selectall_arrayref(q{
         SELECT c.change_id, c.project, c.change, (
             SELECT tag
               FROM changes c2
@@ -608,7 +624,7 @@ sub _dt($) {
 
 sub change_id_for {
     my ( $self, %p) = @_;
-    my $dbh = $self->_dbh;
+    my $dbh = $self->dbh;
 
     if ( my $cid = $p{change_id} ) {
         # Find by ID.
@@ -687,7 +703,7 @@ sub change_id_for {
 sub _fetch_item {
     my ($self, $sql) = @_;
     return try {
-        $self->_dbh->selectcol_arrayref($sql)->[0];
+        $self->dbh->selectcol_arrayref($sql)->[0];
     } catch {
         return if $DBI::state eq '42P01'; # undefined_table
         die $_;
@@ -697,7 +713,7 @@ sub _fetch_item {
 sub _cid {
     my ( $self, $ord, $offset, $project ) = @_;
     return try {
-        $self->_dbh->selectcol_arrayref(qq{
+        $self->dbh->selectcol_arrayref(qq{
             SELECT change_id
               FROM changes
              WHERE project = ?
@@ -722,7 +738,7 @@ sub latest_change_id {
 sub load_change {
     my ( $self, $change_id ) = @_;
     my $tscol = _ts2char 'planned_at';
-    my $change = $self->_dbh->selectrow_hashref(qq{
+    my $change = $self->dbh->selectrow_hashref(qq{
         SELECT change_id AS id, change AS name, project, note,
                $tscol AS timestamp, planner_name, planner_email,
                ARRAY(SELECT tag FROM tags WHERE change_id = changes.change_id) AS tags
@@ -742,7 +758,7 @@ sub change_offset_from_id {
     # Are we offset forwards or backwards?
     my ( $dir, $op ) = $offset > 0 ? ( 'ASC', '>' ) : ( 'DESC' , '<' );
     my $tscol = _ts2char 'planned_at';
-    my $change = $self->_dbh->selectrow_hashref(qq{
+    my $change = $self->dbh->selectrow_hashref(qq{
         SELECT change_id AS id, change AS name, project, note,
                $tscol AS timestamp, planner_name, planner_email,
                ARRAY(SELECT tag FROM tags WHERE change_id = changes.change_id) AS tags
@@ -763,7 +779,7 @@ sub deployed_changes {
     my $tscol = _ts2char 'planned_at';
     return map {
         $_->{timestamp} = _dt $_->{timestamp}; $_
-    } @{ $self->_dbh->selectall_arrayref(qq{
+    } @{ $self->dbh->selectall_arrayref(qq{
         SELECT change_id AS id, change AS name, project, note,
                $tscol AS timestamp, planner_name, planner_email,
                ARRAY(SELECT tag FROM tags WHERE change_id = changes.change_id) AS tags
@@ -778,7 +794,7 @@ sub deployed_changes_since {
     my $tscol = _ts2char 'planned_at';
     return map {
         $_->{timestamp} = _dt $_->{timestamp}; $_
-    } @{ $self->_dbh->selectall_arrayref(qq{
+    } @{ $self->dbh->selectall_arrayref(qq{
         SELECT change_id AS id, change AS name, project, note,
                $tscol AS timestamp, planner_name, planner_email,
                ARRAY(SELECT tag FROM tags WHERE change_id = changes.change_id) AS tags
@@ -791,7 +807,7 @@ sub deployed_changes_since {
 
 sub name_for_change_id {
     my ( $self, $change_id ) = @_;
-    return $self->_dbh->selectcol_arrayref(q{
+    return $self->dbh->selectcol_arrayref(q{
         SELECT change || COALESCE((
             SELECT tag
               FROM changes c2
@@ -806,7 +822,7 @@ sub name_for_change_id {
 }
 
 sub registered_projects {
-    return @{ shift->_dbh->selectcol_arrayref(
+    return @{ shift->dbh->selectcol_arrayref(
         'SELECT project FROM projects ORDER BY project'
     ) };
 }
@@ -815,7 +831,7 @@ sub current_state {
     my ( $self, $project ) = @_;
     my $ddtcol = _ts2char 'committed_at';
     my $pdtcol = _ts2char 'planned_at';
-    my $state = $self->_dbh->selectrow_hashref(qq{
+    my $state = $self->dbh->selectrow_hashref(qq{
         SELECT change_id
              , change
              , project
@@ -846,7 +862,7 @@ sub current_changes {
     my ( $self, $project ) = @_;
     my $ddtcol = _ts2char 'committed_at';
     my $pdtcol = _ts2char 'planned_at';
-    my $sth   = $self->_dbh->prepare(qq{
+    my $sth   = $self->dbh->prepare(qq{
         SELECT change_id
              , change
              , committer_name
@@ -872,7 +888,7 @@ sub current_tags {
     my ( $self, $project ) = @_;
     my $tdtcol = _ts2char 'committed_at';
     my $pdtcol = _ts2char 'planned_at';
-    my $sth   = $self->_dbh->prepare(qq{
+    my $sth   = $self->dbh->prepare(qq{
         SELECT tag_id
              , tag
              , committer_name
@@ -937,7 +953,7 @@ sub search_events {
     # Prepare, execute, and return.
     my $cdtcol = _ts2char 'committed_at';
     my $pdtcol = _ts2char 'planned_at';
-    my $sth = $self->_dbh->prepare(qq{
+    my $sth = $self->dbh->prepare(qq{
         SELECT event
              , project
              , change_id
@@ -975,7 +991,7 @@ sub _update_ids {
     my $maxi = 0;
 
     $self->SUPER::_update_ids;
-    my $dbh = $self->_dbh;
+    my $dbh = $self->dbh;
     $dbh->begin_work;
     try {
         # First, we have to recreate the FK constraint on dependencies.
@@ -1048,7 +1064,7 @@ sub _update_ids {
             }
 
             # If we get here, we're fucked.
-            hurl pg => "Unable to find $name ($old_id) in the plan; update failed";
+            hurl engine => "Unable to find $name ($old_id) in the plan; update failed";
         }
 
         # Now update tags.
@@ -1058,10 +1074,10 @@ sub _update_ids {
         $sth->bind_columns(\($old_id, $name));
         while ($sth->fetch) {
             my $change = $plan->find($old_id) || $plan->find($name)
-                or hurl pg => "Unable to find $name ($old_id) in the plan; update failed";
+                or hurl engine => "Unable to find $name ($old_id) in the plan; update failed";
             my $tag = first { $_->old_id eq $old_id } $change->tags;
             $tag ||= first { $_->format_name eq $name } $change->tags;
-            hurl pg => "Unable to find $name ($old_id) in the plan; update failed"
+            hurl engine => "Unable to find $name ($old_id) in the plan; update failed"
                 unless $tag;
             $upd->execute($tag->id, $old_id);
         }

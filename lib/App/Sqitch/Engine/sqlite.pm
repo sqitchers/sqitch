@@ -81,6 +81,7 @@ has dbh => (
             RaiseError        => 0,
             AutoCommit        => 1,
             sqlite_unicode    => 1,
+            sqlite_use_immediate_transaction => 1,
             HandleError       => sub {
                 my ($err, $dbh) = @_;
                 $@ = $err;
@@ -124,12 +125,6 @@ sub config_vars {
     );
 }
 
-sub begin_work {
-    my $self = shift;
-    $self->dbh->do('BEGIN EXCLUSIVE TRANSACTION');
-    return $self;
-}
-
 sub initialized {
     my $self = shift;
     return $self->dbh->selectcol_arrayref(q{
@@ -141,7 +136,7 @@ sub initialized {
 
 sub initialize {
     my $self   = shift;
-    hurl sqlite => __x(
+    hurl engine => __x(
         'Sqitch database {database} already initialized',
         database => $self->sqitch_db,
     ) if $self->initialized;

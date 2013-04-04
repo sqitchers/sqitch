@@ -66,7 +66,7 @@ sub run {
         ok $engine = $class->new(
             sqitch    => $sqitch,
             @{ $p{alt_engine_params} || [] },
-        ), 'Create a sqlite with sqitchtest.db sqitch_db';
+        ), 'Create engine with alternate params';
 
         is $engine->earliest_change_id, undef, 'No init, earliest change';
         is $engine->latest_change_id, undef, 'No init, no latest change';
@@ -81,17 +81,15 @@ sub run {
         # Make sure a second attempt to initialize dies.
         throws_ok { $engine->initialize } 'App::Sqitch::X',
             'Should die on existing schema';
-        is $@->ident, 'sqlite', 'Mode should be "sqlite"';
-        is $@->message, __x(
-            'Sqitch database {database} already initialized',
-            database => $engine->sqitch_db,
-        ), 'And it should show the proper schema in the error message';
+        is $@->ident, 'engine', 'Mode should be "sqlite"';
+        is $@->message, $p{init_error},
+            'And it should show the proper schema in the error message';
 
         throws_ok { $engine->dbh->do('INSERT blah INTO __bar_____') } 'App::Sqitch::X',
             'Database error should be converted to Sqitch exception';
         is $@->ident, $DBI::state, 'Ident should be SQL error state';
-        is $@->message, 'near "blah": syntax error', 'The message should be the SQLite error';
-        like $@->previous_exception, qr/\QDBD::SQLite::db do failed: /,
+        like $@->message, $p{engine_err_regex}, 'The message should be from the engine';
+        like $@->previous_exception, qr/DBD::[^:]+::db do failed: /,
             'The DBI error should be in preview_exception';
 
         is $engine->current_state, undef, 'Current state should be undef';
@@ -1453,13 +1451,13 @@ sub run {
         can_ok $engine, qw(begin_work finish_work);
         my $mock_dbh = Test::MockModule->new(ref $engine->dbh, no_auto => 1);
         my $txn;
+        $mock_dbh->mock(begin_work => sub { $txn = 1 });
         $mock_dbh->mock(commit     => sub { $txn = 0  });
         $mock_dbh->mock(rollback   => sub { $txn = -1 });
         my @do;
         $mock_dbh->mock(do => sub {
             shift;
             @do = @_;
-            $txn = 1 if $do[0] eq 'BEGIN EXCLUSIVE TRANSACTION'
         });
         ok $engine->begin_work, 'Begin work';
         is $txn, 1, 'Should have started a transaction';

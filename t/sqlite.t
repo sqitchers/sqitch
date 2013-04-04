@@ -168,6 +168,7 @@ is $dt->time_zone->name, 'UTC', 'DateTime TZ should be set';
 
 ##############################################################################
 # Can we do live tests?
+my $alt_db = $db_name->dir->file('sqitchtest.db');
 EngineTest->run(
     class         => $CLASS,
     sqitch_params => [
@@ -175,8 +176,13 @@ EngineTest->run(
         plan_file => Path::Class::file(qw(t pg sqitch.plan)),
     ],
     engine_params     => [ db_name => $db_name ],
-    alt_engine_params => [ db_name => $db_name, sqitch_db => $db_name->dir->file('sqitchtest.db') ],
+    alt_engine_params => [ db_name => $db_name, sqitch_db => $alt_db ],
     skip_unless       => sub { shift->dbh },
+    engine_err_regex  => qr/^near "blah": syntax error/,
+    init_error        =>  __x(
+        'Sqitch database {database} already initialized',
+        database => $alt_db,
+    ),
 );
 
 done_testing;
