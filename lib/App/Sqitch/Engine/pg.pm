@@ -243,10 +243,30 @@ sub initialize {
     ) if $self->initialized;
 
     my $file = file(__FILE__)->dir->file('pg.sql');
-    $self->_run(
-        '--file' => $file,
-        '--set'  => "sqitch_schema=$schema",
-    );
+
+    # Check the client version.
+    my ($maj, $min) = split /[.]/ => (
+        split / / => $self->sqitch->probe( $self->client, '--version' )
+    )[-1];
+
+    if ($maj < 9) {
+        # Need to write a temp file; no :"sqitch_schema" variable syntax.
+        ($schema) = $self->dbh->selectrow_array(
+            'SELECT quote_ident(?)', undef, $schema
+        );
+        (my $sql = scalar $file->slurp) =~ s{:"sqitch_schema"}{$schema}g;
+        require File::Temp;
+        my ($fh, $fn) = File::Temp->new;
+        print $fh $sql;
+        close $fh;
+        $self->_run( '--file' => $fn );
+    } else {
+        # We can take advantage of the :"sqitch_schema" variable syntax.
+        $self->_run(
+            '--file' => $file,
+            '--set'  => "sqitch_schema=$schema",
+        );
+    }
 
     $self->dbh->do('SET search_path = ?', undef, $schema);
     return $self;
