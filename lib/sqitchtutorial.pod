@@ -1079,6 +1079,7 @@ That throws out our botched merge. Now let's go back to our branch and rebase
 it on C<master>:
 
   > git checkout flips
+  Switched to branch 'flips'
   > git rebase master
   First, rewinding head to replay your work on top of it...
   Applying: Add flips table.
