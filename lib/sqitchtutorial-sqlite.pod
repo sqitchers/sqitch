@@ -860,21 +860,22 @@ Much much better, a nice clean master now. And because it is now identical to
 the "hashtags" branch, we can just carry on. Go ahead and tag it, bundle, and
 release:
 
-> sqitch tag v1.0.0-dev2 -n 'Tag v1.0.0-dev2.'
-Tagged "hashtags" with @v1.0.0-dev2
-> git commit -am 'Tag the database with v1.0.0-dev2.'
-[master 8bfab58] Tag the database with v1.0.0-dev2.
- 1 file changed, 1 insertion(+)
-> git tag v1.0.0-dev2 -am 'Tag v1.0.0-dev2'
-> sqitch bundle
-Bundling into bundle
-Writing config
-Writing plan
-Writing scripts
-  + users
-  + flips @v1.0.0-dev1
-  + lists
-  + hashtags @v1.0.0-dev2
+  > sqitch tag v1.0.0-dev2 -n 'Tag v1.0.0-dev2.'
+  Tagged "hashtags" with @v1.0.0-dev2
+  > git commit -am 'Tag the database with v1.0.0-dev2.'
+  [master 8bfab58] Tag the database with v1.0.0-dev2.
+   1 file changed, 1 insertion(+)
+  > git tag v1.0.0-dev2 -am 'Tag v1.0.0-dev2'
+  > sqitch bundle
+  Bundling into bundle
+  Writing config
+  Writing plan
+  Writing scripts
+    + users
+    + flips @v1.0.0-dev1
+    + lists
+    + hashtags @v1.0.0-dev2
+
 
 =head1 Author
 
