@@ -213,7 +213,8 @@ sub format {
         hurl format => __x 'Unknown format code "{code}"', code => $1;
     };
 
-    local $ENV{ANSI_COLORS_DISABLED} = $self->color eq 'always' ? 0
+    # Older versions of TERM::ANSIColor check for definedness.
+    local $ENV{ANSI_COLORS_DISABLED} = $self->color eq 'always' ? undef
         :                              $self->color eq 'never'  ? 1
         :                              $ENV{ANSI_COLORS_DISABLED};
 
