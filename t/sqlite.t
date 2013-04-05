@@ -10,6 +10,7 @@ use Path::Class;
 use Try::Tiny;
 use Test::Exception;
 use Locale::TextDomain qw(App-Sqitch);
+use File::Temp 'tempdir';
 use lib 't/lib';
 use DBIEngineTest;
 
@@ -96,7 +97,7 @@ is_deeply [$sqlite->sqlite3], [$sqlite->client, @std_opts, $sqlite->db_name],
 
 ##############################################################################
 # Test _run(), _capture(), and _spool().
-my $tmp_dir = Path::Class::tempdir( CLEANUP => 1 );
+my $tmp_dir = Path::Class::dir( tempdir CLEANUP => 1 );
 my $db_name = $tmp_dir->file('sqitch.db');
 ok $sqlite = $CLASS->new(sqitch => $sqitch, db_name => $db_name),
     'Instantiate with a temporary database file';
