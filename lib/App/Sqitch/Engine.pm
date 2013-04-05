@@ -1115,10 +1115,20 @@ uses to find the engine class.
   my $destination = $engine->destination;
 
 Returns the name of the destination database. This will usually be the same as
-the configured database name or the value of the C<--db-name> option. Hover,
+the configured database name or the value of the C<--db-name> option. However,
 subclasses may override it to provide other values, such as when neither of
 the above have values but there is nevertheless a default value assumed by the
 engine. Used internally to name the destination in status messages.
+
+=head3 C<meta_destination>
+
+  my $meta_destination = $engine->meta_destination;
+
+Returns the name of the metadata destination database. In other words, the
+database in which Sqitch's own data is stored. It will usually be the same as
+C<destination()>, but some engines, such as
+L<SQLite|App::Sqitch::Engine::sqlite>, may use a separate database. Uses
+internally to name the destination when the metadata tables are created.
 
 =head3 C<variables>
 
