@@ -153,7 +153,7 @@ First Sqitch created the metadata tables used to track database changes. The
 structure and name of the metadata tables varies between databases (PostgreSQL
 uses a schema to namespace its metadata, while SQLite uses a separate
 database). Next, Sqitch deploys changes. We only have one so far; the C<+>
-reinforces the idea that the change is being added to the database.
+reinforces the idea that the change is being C<added> to the database.
 
 With this change deployed, if you connect to the database, you'll be able to
 see the schema:
@@ -166,7 +166,7 @@ see the schema:
 
 =head2 Trust, But Verify
 
-But that's too much work. do you really want to do something like that after
+But that's too much work. Do you really want to do something like that after
 every deploy?
 
 Here's where the C<verify> script comes in. Its job is to test that the deploy
@@ -260,15 +260,15 @@ tables from the database:
 
 Let's make sure that we can revert the change:
 
-  > sqitch --db-name flipr_test revert
+  > sqitch -d flipr_test revert
   Revert all changes from flipr_test? [Yes]
     - appschema .. ok
 
 The L<C<revert>|sqitch-revert> command first prompts to make sure that we
 really do want to revert. This is to prevent unnecessary accidents. You can
 pass the C<-y> option to disable the prompt. Also, notice the C<-> before the
-change name in the output, which reinforces that the change is being removed
-from the database. And now the schema should be gone:
+change name in the output, which reinforces that the change is being
+I<removed> from the database. And now the schema should be gone:
 
   > psql -d flipr_test -c '\dn flipr'
               List of roles
@@ -328,7 +328,7 @@ the C<verify> script is applied when the change is deployed:
   Deploying changes to flipr_test
     + appschema .. ok
 
-And now the user should be back:
+And now the schema should be back:
 
   > psql -d flipr_test -c '\dn flipr'
   List of schemas
