@@ -24,12 +24,15 @@ Usually the first thing to do when starting a new project is to create a
 source code repository. So let's do that with Git:
 
   > mkdir flipr
-  > cd flipr 
+  > cd flipr
   > git init .
   Initialized empty Git repository in /flipr/.git/
   > touch README.md
   > git add .
   > git commit -am 'Initialize project, add README.'
+  [master (root-commit) be9b283] Initialize project, add README.
+   1 file changed, 37 insertions(+)
+   create mode 100644 README.md
 
 If you're a Git user and want to follow along the history, the repository used
 in these examples is L<on GitHub|https://github.com/theory/sqitch-sqlite-intro>.
@@ -48,18 +51,19 @@ identifiers internally, so let's specify one when we initialize Sqitch:
 
 Let's have a look at F<sqitch.conf>:
 
+  > cat sqitch.conf
   [core]
-  	engine = sqlite
-  	# plan_file = sqitch.plan
-  	# top_dir = .
-  	# deploy_dir = deploy
-  	# revert_dir = revert
-  	# verify_dir = verify
-  	# extension = sql
+	engine = sqlite
+	# plan_file = sqitch.plan
+	# top_dir = .
+	# deploy_dir = deploy
+	# revert_dir = revert
+	# verify_dir = verify
+	# extension = sql
   # [core "sqlite"]
-  	# db_name = 
-  	# client = sqlite3
-  	# sqitch_db = 
+	# db_name =
+	# client = sqlite3
+	# sqitch_db =
 
 Good, it picked up on the fact that we're creating changes for the SQLite
 engine, thanks to the C<--engine sqlite> option, and saved it to the file.
@@ -83,10 +87,10 @@ of our projects:
 Have a look at F<~/.sqitch/sqitch.conf> and you'll see this:
 
   [core "sqlite"]
-  	client = /opt/local/bin/sqlite3
+	client = /opt/local/bin/sqlite3
   [user]
-  	name = Marge N. O’Vera
-  	email = marge@example.com
+	name = Marge N. O’Vera
+	email = marge@example.com
 
 Which means that Sqitch should be able to find C<sqlite3> for any project, and
 that it will always properly identify us when planning and committing changes.
@@ -107,7 +111,7 @@ Let's commit these changes and start creating the database changes.
 
   > git add .
   > git commit -am 'Initialize Sqitch configuration.'
-  [master f029823] Initialize Sqitch configuration.
+  [master 706d2ad] Initialize Sqitch configuration.
    2 files changed, 16 insertions(+)
    create mode 100644 sqitch.conf
    create mode 100644 sqitch.plan
@@ -144,9 +148,11 @@ statement, like so:
   BEGIN;
 
   CREATE TABLE users (
-      nickname  TEXT      PRIMARY KEY,
-      password  TEXT      NOT NULL,
-      timestamp DATETIME  NOT NULL DEFAULT CURRENT_TIMESTAMP
+	  nickname  TEXT      PRIMARY KEY,
+	  password  TEXT      NOT NULL,
+	  fullname  TEXT      NOT NULL,
+	  twitter   TEXT      NOT NULL,
+	  timestamp DATETIME  NOT NULL DEFAULT CURRENT_TIMESTAMP
   );
 
   COMMIT;
@@ -167,7 +173,7 @@ Now we can try deploying this change:
   > sqitch --db-name flipr_test.db deploy
   Adding metadata tables to flipr_test-sqitch.db
   Deploying changes to flipr_test.db
-    + users .. ok
+	+ users .. ok
 
 First Sqitch created the metadata database and tables used to track database
 changes. This database is separate from the database to which the C<users>
@@ -186,8 +192,8 @@ that the change is being I<added> to the database.
 With this change deployed, if you connect to the database, you'll be able to
 see the schema:
 
-    > sqlite3 flipr_test.db '.tables'
-    users
+	> sqlite3 flipr_test.db '.tables'
+	users
 
 =head2 Trust, But Verify
 
@@ -200,8 +206,8 @@ might be in the database, and should throw an error if the deploy was not
 successful. The easiest way to do that with a table is to simply C<SELECT>
 from it. Put this query into F<verify/users.sql>:
 
-  SELECT nickname, password, timestamp
-    FROM users
+  SELECT nickname, password, fullname, twitter
+	FROM users
    WHERE 0;
 
 Now you cab run the C<verify> script with the L<C<verify>|sqitch-verify>
@@ -209,7 +215,7 @@ command:
 
   > sqitch --db-name flipr_test.db verify
   Verifying flipr_test.db
-    * users .. ok
+	* users .. ok
   Verify successful
 
 Looks good! If you want to make sure that the verify script correctly dies if
@@ -217,14 +223,14 @@ the table doesn't exist, temporarily change the table name in the script to
 something that doesn't exist, something like:
 
   SELECT nickname, password, timestamp
-    FROM users_nonesuch
+	FROM users_nonesuch
    WHERE 0;
 
 Then L<C<verify>|sqitch-verify> again:
 
   > sqitch --db-name flipr_test.db verify
   Verifying flipr_test.db
-    * users .. Error: near line 5: no such table: users_nonesuch
+	* users .. Error: near line 5: no such table: users_nonesuch
   # Verify script "verify/users.sql" failed.
   not ok
 
@@ -234,7 +240,7 @@ Then L<C<verify>|sqitch-verify> again:
   Errors:  1
   Verify failed
 
-It's even nice enough to tell us what the problem is. Don't forget to change
+SQLite is kind enough to tell us what the problem is. Don't forget to change
 the table name back before continuing!
 
 =head2 Status, Revert, Log, Repeat
@@ -246,18 +252,18 @@ from the metadata database:
   > sqitch --db-name flipr_test.db status
   # On database flipr_test.db
   # Project:  flipr
-  # Change:   5d339a89c720abc7a85fdca378645c8648e572b5
+  # Change:   5f102a2fcb29a16d1fb958439aac5bacbeac89ac
   # Name:     users
-  # Deployed: 2013-04-04 16:19:44 -0700
+  # Deployed: 2013-04-05 13:16:29 -0700
   # By:       Marge N. O’Vera <marge@example.com>
-  # 
+  #
   Nothing to deploy (up-to-date)
 
 Let's make sure that we can revert the change:
 
   > sqitch --db-name flipr_test.db revert
   Revert all changes from flipr_test? [Yes]
-    - users .. ok
+	- users .. ok
 
 The L<C<revert>|sqitch-revert> command first prompts to make sure that we
 really do want to revert. This is to prevent unnecessary accidents. You can
@@ -265,7 +271,7 @@ pass the C<-y> option to disable the prompt. Also, notice the C<-> before the
 change name in the output, which reinforces that the change is being
 I<removed> from the database. And now the schema should be gone:
 
-    > sqlite3 flipr_test.db '.tables'
+	> sqlite3 flipr_test.db '.tables'
 
 And the status message should reflect as much:
 
@@ -283,31 +289,32 @@ has nothing to verify:
 However, we still have a record that the change happened, visible via the
 L<C<log>|sqitch-log> command:
 
+  > sqitch --db-name flipr_test.db log
   On database flipr_test.db
-  Revert 5d339a89c720abc7a85fdca378645c8648e572b5
+  Revert 5f102a2fcb29a16d1fb958439aac5bacbeac89ac
   Name:      users
   Committer: Marge N. O’Vera <marge@example.com>
-  Date:      2013-04-04 18:47:19 -0700
+  Date:      2013-04-05 13:18:13 -0700
 
-      Creates table to track our users.
+	  Creates table to track our users.
 
-  Deploy 5d339a89c720abc7a85fdca378645c8648e572b5
+  Deploy 5f102a2fcb29a16d1fb958439aac5bacbeac89ac
   Name:      users
   Committer: Marge N. O’Vera <marge@example.com>
-  Date:      2013-04-04 16:19:44 -0700
+  Date:      2013-04-05 13:16:29 -0700
 
-      Creates table to track our users.
+	  Creates table to track our users.
 
 Note that the actions we took are shown in reverse chronological order, with
 the revert first and then the deploy.
 
-Cool. Now let's commit it.
+Cool. Let's tell Git to ignore F<*.db> files and then commit it.
 
   > echo '*.db' > .gitignore
   > git add .
   > git commit -m 'Add users table.'
-  [master f292bb5] Add users table.
-   5 files changed, 29 insertions(+)
+  [master 1e1d190] Add users table.
+   5 files changed, 31 insertions(+)
    create mode 100644 .gitignore
    create mode 100644 deploy/users.sql
    create mode 100644 revert/users.sql
@@ -318,7 +325,7 @@ the C<verify> script is applied when the change is deployed:
 
   > sqitch --db-name flipr_test.db deploy --verify
   Deploying changes to flipr_test.db
-    + users .. ok
+	+ users .. ok
 
 And now the C<users> table should be back:
 
@@ -330,11 +337,11 @@ When we look at the status, the deployment will be there:
   > sqitch --db-name flipr_test.db status
   # On database flipr_test.db
   # Project:  flipr
-  # Change:   5d339a89c720abc7a85fdca378645c8648e572b5
+  # Change:   5f102a2fcb29a16d1fb958439aac5bacbeac89ac
   # Name:     users
-  # Deployed: 2013-04-04 18:55:09 -0700
+  # Deployed: 2013-04-05 13:20:02 -0700
   # By:       Marge N. O’Vera <marge@example.com>
-  # 
+  #
   Nothing to deploy (up-to-date)
 
 =head1 More Configuration
@@ -352,11 +359,11 @@ in, e.g.:
   > sqitch status
   # On database flipr_test.db
   # Project:  flipr
-  # Change:   5d339a89c720abc7a85fdca378645c8648e572b5
+  # Change:   5f102a2fcb29a16d1fb958439aac5bacbeac89ac
   # Name:     users
-  # Deployed: 2013-04-04 18:55:09 -0700
+  # Deployed: 2013-04-05 13:20:02 -0700
   # By:       Marge N. O’Vera <marge@example.com>
-  # 
+  #
   Nothing to deploy (up-to-date)
 
 Yay, that allows things to be a little more concise. Let's also make sure that
@@ -369,7 +376,7 @@ We'll see the L<C<rebase>|sqitch-rebase> command a bit later. In the meantime,
 let's commit the new configuration and and make some more changes!
 
   > git commit -am 'Set default DB name and always verify.'
-  [master 19dd632] Set default DB name and always verify.
+  [master 9428556] Set default DB name and always verify.
    1 file changed, 6 insertions(+)
 
 =head1 Deploy with Dependency
@@ -398,10 +405,10 @@ this:
   BEGIN;
 
   CREATE TABLE flips (
-      id        INTEGER   PRIMARY KEY AUTOINCREMENT,
-      nickname  TEXT      NOT NULL REFERENCES users(nickname),
-      body      TEXT      NOT NULL DEFAULT '' CHECK ( length(body) <= 180 ),
-      timestamp DATETIME  NOT NULL DEFAULT CURRENT_TIMESTAMP
+	  id        INTEGER   PRIMARY KEY AUTOINCREMENT,
+	  nickname  TEXT      NOT NULL REFERENCES users(nickname),
+	  body      TEXT      NOT NULL DEFAULT '' CHECK ( length(body) <= 180 ),
+	  timestamp DATETIME  NOT NULL DEFAULT CURRENT_TIMESTAMP
   );
 
   COMMIT;
@@ -422,11 +429,8 @@ column is missing. Here's the F<verify/flips.sql>:
 
   BEGIN;
 
-  SELECT id
-       , nickname
-       , body
-       , timestamp
-    FROM flips
+  SELECT id, nickname, body, timestamp
+	FROM flips
    WHERE 0;
 
   COMMIT;
@@ -446,7 +450,7 @@ Couldn't be much simpler, right? Let's deploy this bad boy:
 
   > sqitch deploy
   Deploying changes to flipr_test.db
-    + flips .. ok
+	+ flips .. ok
 
 We know, since verification is enabled, that the table must have been created.
 But for the purposes of visibility, let's have a quick look:
@@ -459,27 +463,27 @@ L<C<verify>|sqitch-verify> command:
 
   > sqitch verify
   Verifying flipr_test.db
-    * users .. ok
-    * flips .. ok
+	* users .. ok
+	* flips .. ok
   Verify successful
 
 Now have a look at the status:
 
-  > sqitch verify
+  > sqitch status
   # On database flipr_test.db
   # Project:  flipr
-  # Change:   e881676d95c5d28ac9e75da1caf37c4c39b9d669
+  # Change:   12a3622b0b54c628de33c40512c049a3ad570ef4
   # Name:     flips
-  # Deployed: 2013-04-04 19:43:25 -0700
+  # Deployed: 2013-04-05 13:22:12 -0700
   # By:       Marge N. O’Vera <marge@example.com>
-  # 
+  #
   Nothing to deploy (up-to-date)
 
 Success! Let's make sure we can revert the change, as well:
 
   > sqitch revert --to @HEAD^ -y
   Reverting changes to users from flipr_test.db
-    - flips .. ok
+	- flips .. ok
 
 Note that we've used the C<--to> option to specify the change to revert to.
 And what do we revert to? The symbolic tag C<@HEAD>, when passed to
@@ -493,7 +497,7 @@ change deployed to the database (or in the plan, depending on the command).
 Back to the database. The C<flips> table should be gone but the C<users> table
 should still be around:
 
-  > sqlite3 flipr_test.db '.tables'               
+  > sqlite3 flipr_test.db '.tables'
   users
 
 The L<C<status>|sqitch-status> command politely informs us that we have
@@ -502,21 +506,21 @@ undeployed changes:
   > sqitch status
   # On database flipr_test.db
   # Project:  flipr
-  # Change:   5d339a89c720abc7a85fdca378645c8648e572b5
+  # Change:   5f102a2fcb29a16d1fb958439aac5bacbeac89ac
   # Name:     users
-  # Deployed: 2013-04-04 18:55:09 -0700
+  # Deployed: 2013-04-05 13:20:02 -0700
   # By:       Marge N. O’Vera <marge@example.com>
-  # 
+  #
   Undeployed change:
-    * flips
+	* flips
 
 As does the L<C<verify>|sqitch-verify> command:
 
-  > sqitch verify         
+  > sqitch verify
   Verifying flipr_test.db
-    * users .. ok
+	* users .. ok
   Undeployed change:
-    * flips
+	* flips
   Verify successful
 
 Note that the verify is successful, because all currently-deployed changes are
@@ -526,59 +530,117 @@ the current state.
 Okay, let's commit and deploy again:
 
   > git add .
-  > git commit -am 'Add flips table.'     
-  [master 6bb406e] Add flips table.
-   4 files changed, 33 insertions(+)
+  > git commit -am 'Add flips table.'
+  [master 5e04f7f] Add flips table.
+   4 files changed, 30 insertions(+)
    create mode 100644 deploy/flips.sql
    create mode 100644 revert/flips.sql
    create mode 100644 verify/flips.sql
-  > sqitch deploy         
+  > sqitch deploy
   Deploying changes to flipr_test.db
-    + flips .. ok
+	+ flips .. ok
 
 Looks good. Check the status:
 
-  > sqitch status         
+  > sqitch status
   # On database flipr_test.db
   # Project:  flipr
-  # Change:   e881676d95c5d28ac9e75da1caf37c4c39b9d669
+  # Change:   12a3622b0b54c628de33c40512c049a3ad570ef4
   # Name:     flips
-  # Deployed: 2013-04-04 19:50:57 -0700
+  # Deployed: 2013-04-05 13:24:07 -0700
   # By:       Marge N. O’Vera <marge@example.com>
-  # 
+  #
   Nothing to deploy (up-to-date)
+
+=head1 View to a Thrill
+
+One more thing to add before we are ready to ship a first beta release. Let's
+create a view that lists user names with their flips.
+
+  > sqitch add userflips --requires users --requires flips \
+	-n 'Creates the userflips view.'
+  Created deploy/userflips.sql
+  Created revert/userflips.sql
+  Created verify/userflips.sql
+  Added "userflips [users flips]" to sqitch.plan
+
+Now add this SQL to F<deploy/userflips.sql>:
+
+  CREATE VIEW userflips AS
+  SELECT f.id, u.nickname, u.fullname, f.body, f.timestamp
+	FROM users u
+	JOIN flips f ON u.nickname = f.nickname;
+
+Add this SQL to F<verify/userflips.sql>
+
+  SELECT id, nickname, fullname, body, timestamp
+	FROM userflips
+   WHERE 0;
+
+And add the C<DROP VIEW> statement to F<revert/userflips.sql>:
+
+  DROP VIEW userflips;
+
+Now Try it out!
+
+  > sqitch deploy
+  Deploying changes to flipr_test.db
+	+ userflips .. ok
+  > sqitch revert -y
+  Reverting all changes from flipr_test.db
+	- userflips .. ok
+	- flips ...... ok
+	- users ...... ok
+  > sqitch deploy
+  Deploying changes to flipr_test.db
+	+ users ...... ok
+	+ flips ...... ok
+	+ userflips .. ok
+
+Looks good! Commit it.
+
+  > git add .
+  > git commit -m 'Add the userflips view.'
+  [master f76f6e7] Add the userflips view.
+   4 files changed, 29 insertions(+)
+   create mode 100644 deploy/userflips.sql
+   create mode 100644 revert/userflips.sql
+   create mode 100644 verify/userflips.sql
 
 =head1 Ship It!
 
-Let's do a first release of our app. Let's call it C<1.0.0-dev1> Since we want
-to have it go out with deployments tied to the release, let's tag it:
+Now we're ready for the first development release of our app. Let's call it
+C<1.0.0-dev1> Since we want to have it go out with deployments tied to the
+release, let's tag it:
 
   > sqitch tag v1.0.0-dev1 -n 'Tag v1.0.0-dev1.'
-  Tagged "flips" with @v1.0.0-dev1
+  Tagged "userflips" with @v1.0.0-dev1
   > git commit -am 'Tag the database with v1.0.0-dev1.'
-  [master 13e7297] Tag the database with v1.0.0-dev1.
+  [master 2db2775] Tag the database with v1.0.0-dev1.
    1 file changed, 1 insertion(+)
   > git tag v1.0.0-dev1 -am 'Tag v1.0.0-dev1'
 
 We can try deploying to make sure the tag gets picked up like so:
 
-   > sqitch -d flipr_dev.db deploy
+  > sqitch -d flipr_dev.db deploy
   Adding metadata tables to ./flipr_dev-sqitch.db
   Deploying changes to flipr_dev.db
-    + users ............... ok
-    + flips @v1.0.0-dev1 .. ok
+	+ users ................... ok
+	+ flips ................... ok
+	+ userflips @v1.0.0-dev1 .. ok
 
-Great, both changes were deployed and C<flips> was tagged with
+Great, both changes were deployed and C<userflips> was tagged with
 C<@v1.0.0-dev1>. Let's have a look at the status:
 
+  > sqitch -d flipr_dev.db status
   # On database flipr_dev.db
   # Project:  flipr
-  # Change:   e881676d95c5d28ac9e75da1caf37c4c39b9d669
-  # Name:     flips
+  # Change:   e98e18dced32f7ee090ea368510f923e538e719a
+  # Name:     userflips
   # Tag:      @v1.0.0-dev1
-  # Deployed: 2013-04-04 21:06:08 -0700
+  # Deployed: 2013-04-05 13:36:52 -0700
   # By:       Marge N. O’Vera <marge@example.com>
-  # 
+  #
   Nothing to deploy (up-to-date)
 
 Note the listing of the tag as part of the status message. Now let's bundle
@@ -589,20 +651,28 @@ everything up for release:
   Writing config
   Writing plan
   Writing scripts
-    + users
-    + flips @v1.0.0-dev1
+	+ users
+	+ flips
+	+ userflips @v1.0.0-dev1
 
 Now we can package the F<bundle> directory and distribute it. When it gets
 installed somewhere, users can use Sqitch to deploy to the database. Let's try
 deploying it:
 
+  > cd bundle
   > sqitch --db-name flipr_prod.db deploy
   Adding metadata tables to ./flipr_prod-sqitch.db
   Deploying changes to flipr_prod.db
-    + users ............... ok
-    + flips @v1.0.0-dev1 .. ok
+	+ users ................... ok
+	+ flips ................... ok
+	+ userflips @v1.0.0-dev1 .. ok
 
 Looks much the same as before, eh? Package it up and ship it!
+
+  > rm *.db
+  > cd ..
+  > mv bundle flipr-v1.0.0-dev1
+  > tar -czf flipr-v1.0.0-dev1.tgz flipr-v1.0.0-dev1
 
 =head1 Making a Hash of Things
 
@@ -625,9 +695,9 @@ Now we can add a new change to create a table for hashtags.
 You know the drill by now. Add this to F<deploy/hashtags.sql>
 
   CREATE TABLE hashtags (
-      flip_id   INTEGER   NOT NULL REFERENCES flips(id),
-      hashtag   TEXT      NOT NULL CHECK ( length(hashtag) > 0 ),
-      PRIMARY KEY (flip_id, hashtag)
+	  flip_id   INTEGER   NOT NULL REFERENCES flips(id),
+	  hashtag   TEXT      NOT NULL CHECK ( length(hashtag) > 0 ),
+	  PRIMARY KEY (flip_id, hashtag)
   );
 
 Again, select from the table in F<verify/hashtags.sql>:
@@ -642,28 +712,28 @@ And give it a whirl:
 
   > sqitch deploy
   Deploying changes to flipr_test.db
-    + hashtags .. ok
+	+ hashtags .. ok
 
 Look good?
 
   > sqitch status --show-tags
   # On database flipr_test.db
   # Project:  flipr
-  # Change:   0a3bbc034728bba146daef4c85cee2db8ce21db0
+  # Change:   6b55f1147898da3b46d3671062486e56fac26827
   # Name:     hashtags
-  # Deployed: 2013-04-05 10:24:00 -0700
+  # Deployed: 2013-04-05 13:44:59 -0700
   # By:       Marge N. O’Vera <marge@example.com>
-  # 
+  #
   # Tag:
-  #   @v1.0.0-dev1 - 2013-04-05 10:11:25 -0700 - David E. Wheeler <david.wheeler@iovation.com>
-  # 
+  #   @v1.0.0-dev1 - 2013-04-05 13:42:26 -0700 - Marge N. O’Vera <marge@example.com>
+  #
   Nothing to deploy (up-to-date)
 
 Note the use of C<--show tags> to show all the deployed tags. Now make it so:
 
   > git add .
   > git commit -am 'Add hashtags table.'
-  [hashtags 362cd36] Add hashtags table.
+  [hashtags ad40ccd] Add hashtags table.
    4 files changed, 28 insertions(+)
    create mode 100644 deploy/hashtags.sql
    create mode 100644 revert/hashtags.sql
@@ -678,7 +748,7 @@ Let's do it:
   > git checkout master
   Switched to branch 'master'
   > git pull
-  Updating 13e7297..7ca9bdf
+  Updating 2db2775..e210a72
   Fast-forward
    deploy/lists.sql | 13 +++++++++++++
    revert/lists.sql |  7 +++++++
@@ -726,13 +796,14 @@ VCS is not Git.
 So let's restore things to how they were at master:
 
   > git reset --hard HEAD
-  HEAD is now at 7ca9bdf Merge branch 'lists'
+  HEAD is now at d5e7e86 Merge branch 'lists'
 
 That throws out our botched merge. Now let's go back to our branch and rebase
 it on C<master>:
 
   > git checkout hashtags
   Switched to branch 'hashtags'
+  > git rebase master
   > git rebase master
   First, rewinding head to replay your work on top of it...
   Applying: Add hashtags table.
@@ -743,6 +814,8 @@ it on C<master>:
   CONFLICT (content): Merge conflict in sqitch.plan
   Failed to merge in the changes.
   Patch failed at 0001 Add hashtags table.
+  The copy of the patch that failed is found in:
+	 .git/rebase-apply/patch
 
   When you have resolved this problem, run "git rebase --continue".
   If you prefer to skip this patch, run "git rebase --skip" instead.
@@ -789,27 +862,30 @@ Ah, that looks a bit better. Let's have a look at the plan:
   %project=flipr
   %uri=https://github.com/theory/sqitch-sqlite-intro/
 
-  users 2013-04-04T23:11:44Z David E. Wheeler <david.wheeler@iovation.com> # Creates table to track our users.
-  flips [users] 2013-04-05T02:34:27Z David E. Wheeler <david.wheeler@iovation.com> # Adds table for storing flips.
-  @v1.0.0-dev1 2013-04-05T04:04:31Z David E. Wheeler <david.wheeler@iovation.com> # Tag v1.0.0-dev1.
+  users 2013-04-05T20:15:55Z Marge N. O’Vera <marge@example.com> # Creates table to track our users.
+  flips [users] 2013-04-05T20:21:23Z Marge N. O’Vera <marge@example.com> # Adds table for storing flips.
+  userflips [users flips] 2013-04-05T20:28:13Z Marge N. O’Vera <marge@example.com> # Creates the userflips view.
+  @v1.0.0-dev1 2013-04-05T20:36:13Z Marge N. O’Vera <marge@example.com> # Tag v1.0.0-dev1.
 
-  lists [users] 2013-04-05T17:14:51Z David E. Wheeler <david.wheeler@iovation.com> # Adds table for storing lists.
-  hashtags [flips] 2013-04-05T17:07:52Z David E. Wheeler <david.wheeler@iovation.com> # Adds table for storing hashtags.
+  lists [users] 2013-04-05T20:41:21Z Marge N. O’Vera <marge@example.com> # Adds table for storing lists.
+  hashtags [flips] 2013-04-05T20:43:26Z Marge N. O’Vera <marge@example.com> # Adds table for storing hashtags.
 
 Note that it has appended the changes from the merged "lists" branch, and then
 merged the changes from our "hashtags" branch. Test it to make sure it works
 as expected:
 
-  > ~/dev/cpan/sqitch/t/sqitch rebase -y
+  > sqitch rebase -y
   Reverting all changes from flipr_test.db
-    - hashtags ............ ok
-    - flips @v1.0.0-dev1 .. ok
-    - users ............... ok
+	- hashtags ................ ok
+	- userflips @v1.0.0-dev1 .. ok
+	- flips ................... ok
+	- users ................... ok
   Deploying changes to flipr_test.db
-    + users ............... ok
-    + flips @v1.0.0-dev1 .. ok
-    + lists ............... ok
-    + hashtags ............ ok
+	+ users ................... ok
+	+ flips ................... ok
+	+ userflips @v1.0.0-dev1 .. ok
+	+ lists ................... ok
+	+ hashtags ................ ok
 
 Note the use of L<C<rebase>|sqitch-rebase>, which combines a
 L<C<revert>|sqitch-revert> and a L<C<deploy>|sqitch-deploy> into a single
@@ -819,7 +895,7 @@ worthwhile to keep that change:
 
   > git add .
   > git commit -m 'Add `.gitattributes` with union merge for `sqitch.plan`.'
-  [hashtags 5475f32] Add `.gitattributes` with union merge for `sqitch.plan`.
+  [hashtags 5c1fb6d] Add `.gitattributes` with union merge for `sqitch.plan`.
    1 file changed, 1 insertion(+)
    create mode 100644 .gitattributes
 
@@ -849,12 +925,13 @@ And double-check our work:
   %project=flipr
   %uri=https://github.com/theory/sqitch-sqlite-intro/
 
-  users 2013-04-04T23:11:44Z David E. Wheeler <david.wheeler@iovation.com> # Creates table to track our users.
-  flips [users] 2013-04-05T02:34:27Z David E. Wheeler <david.wheeler@iovation.com> # Adds table for storing flips.
-  @v1.0.0-dev1 2013-04-05T04:04:31Z David E. Wheeler <david.wheeler@iovation.com> # Tag v1.0.0-dev1.
+  users 2013-04-05T20:15:55Z Marge N. O’Vera <marge@example.com> # Creates table to track our users.
+  flips [users] 2013-04-05T20:21:23Z Marge N. O’Vera <marge@example.com> # Adds table for storing flips.
+  userflips [users flips] 2013-04-05T20:28:13Z Marge N. O’Vera <marge@example.com> # Creates the userflips view.
+  @v1.0.0-dev1 2013-04-05T20:36:13Z Marge N. O’Vera <marge@example.com> # Tag v1.0.0-dev1.
 
-  lists [users] 2013-04-05T17:14:51Z David E. Wheeler <david.wheeler@iovation.com> # Adds table for storing lists.
-  hashtags [flips] 2013-04-05T17:07:52Z David E. Wheeler <david.wheeler@iovation.com> # Adds table for storing hashtags.
+  lists [users] 2013-04-05T20:41:21Z Marge N. O’Vera <marge@example.com> # Adds table for storing lists.
+  hashtags [flips] 2013-04-05T20:43:26Z Marge N. O’Vera <marge@example.com> # Adds table for storing hashtags.
 
 Much much better, a nice clean master now. And because it is now identical to
 the "hashtags" branch, we can just carry on. Go ahead and tag it, bundle, and
@@ -863,19 +940,23 @@ release:
   > sqitch tag v1.0.0-dev2 -n 'Tag v1.0.0-dev2.'
   Tagged "hashtags" with @v1.0.0-dev2
   > git commit -am 'Tag the database with v1.0.0-dev2.'
-  [master 8bfab58] Tag the database with v1.0.0-dev2.
+  [master 1edf584] Tag the database with v1.0.0-dev2.
    1 file changed, 1 insertion(+)
   > git tag v1.0.0-dev2 -am 'Tag v1.0.0-dev2'
-  > sqitch bundle
-  Bundling into bundle
+  > sqitch bundle --dest-dir flipr-1.0.0-dev2
+  Bundling into flipr-1.0.0-dev2
   Writing config
   Writing plan
   Writing scripts
-    + users
-    + flips @v1.0.0-dev1
-    + lists
-    + hashtags @v1.0.0-dev2
+	+ users
+	+ flips
+	+ userflips @v1.0.0-dev1
+	+ lists
+	+ hashtags @v1.0.0-dev2
 
+Note the use of the C<--dest-dir> option to C<sqitch bundle>. Just a nicer way
+to create the top-level directory name so we don't have to rename it from
+F<bundle>.
 
 =head1 Author
 
