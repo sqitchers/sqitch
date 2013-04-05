@@ -1,9 +1,9 @@
 Revision history for Perl extension App::Sqitch
 
-0.960
+0.960  2013-04-05T23:04:35Z
      - Removed `-CAS` from the shebang line on Perl 5.10.0. This is to
        eliminate `Too late for "-CAS" option` errors. This means that UTF-8
-       semantics will be suboptimal on perl 5.10.0. Consider upgrading to 5.12
+       semantics will be suboptimal on Perl 5.10.0. Consider upgrading to 5.12
        or higher.
      - Added the `checkout` command. Pass it the name of a VCS branch, and it
        will compare the plans between that branch and the current branch,
@@ -18,7 +18,7 @@ Revision history for Perl extension App::Sqitch
      - Added `search_changes()` to Plan. Used by the `plan` command.
      - Added the `--oneline` option to the `log` command.
      - Allow tagging of an arbitrary change, not just the last change in the
-       plan, by passing a chnage specification (name, ID, or tag) as the
+       plan, by passing a change specification (name, ID, or tag) as the
        second argument to the `tag` command.
      - Updated error messages to note that blank characters are not allowed in
        project, change, or tag names.
