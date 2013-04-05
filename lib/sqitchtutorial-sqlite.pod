@@ -243,7 +243,7 @@ For purely informational purposes, we can always see how a deployment was
 recorded via the L<C<status>|sqitch-status> command, which reads the tables
 from the metadata database:
 
-  > sqitch -d flipr_test.db status
+  > sqitch --db-name flipr_test.db status
   # On database flipr_test.db
   # Project:  flipr
   # Change:   5d339a89c720abc7a85fdca378645c8648e572b5
@@ -255,7 +255,7 @@ from the metadata database:
 
 Let's make sure that we can revert the change:
 
-  > sqitch -d flipr_test.db revert
+  > sqitch --db-name flipr_test.db revert
   Revert all changes from flipr_test? [Yes]
     - users .. ok
 
@@ -269,14 +269,14 @@ I<removed> from the database. And now the schema should be gone:
 
 And the status message should reflect as much:
 
-  > sqitch -d flipr_test.db status
+  > sqitch --db-name flipr_test.db status
   # On database flipr_test.db
   No changes deployed
 
 Of course, since nothing is deployed, the L<C<verify>|sqitch-verify> command
 has nothing to verify:
 
-  > sqitch -d flipr_test.db verify
+  > sqitch --db-name flipr_test.db verify
   Verifying flipr_test.db
   No changes deployed
 
@@ -336,6 +336,219 @@ When we look at the status, the deployment will be there:
   # By:       Marge N. O’Vera <marge@example.com>
   # 
   Nothing to deploy (up-to-date)
+
+=head1 More Configuration
+
+I'm getting a little tired of always having to type
+C<--db-name flipr_test.db>, aren't you? We could use C<-d> instead, but even
+simpler it to just make that the default. Let's do that, shall we?
+
+  > sqitch config core.sqlite.db_name flipr_test.db
+
+Now we can leave it out, unless we need to deploy to another database. Which
+we will, eventually, but at least our examples will be simpler from here on
+in, e.g.:
+
+  > sqitch status
+  # On database flipr_test.db
+  # Project:  flipr
+  # Change:   5d339a89c720abc7a85fdca378645c8648e572b5
+  # Name:     users
+  # Deployed: 2013-04-04 18:55:09 -0700
+  # By:       Marge N. O’Vera <marge@example.com>
+  # 
+  Nothing to deploy (up-to-date)
+
+Yay, that allows things to be a little more concise. Let's also make sure that
+changes are verified after deploying them:
+
+  > sqitch config --bool deploy.verify true
+  > sqitch config --bool rebase.verify true
+
+We'll see the L<C<rebase>|sqitch-rebase> command a bit later. In the meantime,
+let's commit the new configuration and and make some more changes!
+
+  > git commit -am 'Set default DB name and always verify.'
+  [master 19dd632] Set default DB name and always verify.
+   1 file changed, 6 insertions(+)
+
+=head1 Deploy with Dependency
+
+Let's add another change. Our app will need to store status messages from
+users. Let's call them -- and the table to store them -- "flips". First, add
+the new change:
+
+  > sqitch add flips --requires users -n 'Adds table for storing flips.'
+  Created deploy/flips.sql
+  Created revert/flips.sql
+  Created verify/flips.sql
+  Added "flips [users]" to sqitch.plan
+
+Note that we're requiring the C<users> change as a dependency of the new
+C<flips> change. Although that change has already been added to the plan and
+therefore should always be applied before the C<flips> change, it's a good
+idea to be explicit about dependencies.
+
+Now edit the scripts. When you're done, F<deploy/flips.sql> should look like
+this:
+
+  -- Deploy flips
+  -- requires: users
+
+  BEGIN;
+
+  CREATE TABLE flips (
+      id        INTEGER   PRIMARY KEY AUTOINCREMENT,
+      nickname  TEXT      NOT NULL REFERENCES users(nickname),
+      body      TEXT      NOT NULL DEFAULT '' CHECK ( length(body) <= 180 ),
+      timestamp DATETIME  NOT NULL DEFAULT CURRENT_TIMESTAMP
+  );
+
+  COMMIT;
+
+A couple things to notice here. On the second line, the dependence on the
+C<users> change has been listed. This doesn't do anything, but the default
+C<deploy> template lists it here for your reference while editing the file.
+Useful, right?
+
+The C<users.nickname> column references the C<users> table.This is why we need
+to require the C<users> change.
+
+Now for the verify script. Again, all we need to do is C<SELECT> from the
+table. I recommend selecting each column by name, too, to be sure that no
+column is missing. Here's the F<verify/flips.sql>:
+
+  -- Verify flips
+
+  BEGIN;
+
+  SELECT id
+       , nickname
+       , body
+       , timestamp
+    FROM flips
+   WHERE 0;
+
+  COMMIT;
+
+Now for the revert script: all we have to do is drop the table. Add this to
+F<revert/flips.sql>:
+
+  -- Revert flips
+
+  BEGIN;
+
+  DROP TABLE flips;
+
+  COMMIT;
+
+Couldn't be much simpler, right? Let's deploy this bad boy:
+
+  > sqitch deploy
+  Deploying changes to flipr_test.db
+    + flips .. ok
+
+We know, since verification is enabled, that the table must have been created.
+But for the purposes of visibility, let's have a quick look:
+
+  > sqlite3 flipr_test.db '.tables'
+  flips  users
+
+We can also verify all currently deployed changes with the
+L<C<verify>|sqitch-verify> command:
+
+  > sqitch verify
+  Verifying flipr_test.db
+    * users .. ok
+    * flips .. ok
+  Verify successful
+
+Now have a look at the status:
+
+  > sqitch verify
+  # On database flipr_test.db
+  # Project:  flipr
+  # Change:   e881676d95c5d28ac9e75da1caf37c4c39b9d669
+  # Name:     flips
+  # Deployed: 2013-04-04 19:43:25 -0700
+  # By:       Marge N. O’Vera <marge@example.com>
+  # 
+  Nothing to deploy (up-to-date)
+
+Success! Let's make sure we can revert the change, as well:
+
+  > sqitch revert --to @HEAD^ -y
+  Reverting changes to users from flipr_test.db
+    - flips .. ok
+
+Note that we've used the C<--to> option to specify the change to revert to.
+And what do we revert to? The symbolic tag C<@HEAD>, when passed to
+L<C<revert>|sqitch-revert>, always refers to the last change deployed to the
+database. (For other commands, it refers to the last change in the plan.)
+Appending the caret (C<^>) tells Sqitch to select the change I<prior> to the
+last deployed change. So we revert to C<users>, the penultimate change. The
+other potentially useful symbolic tag is C<@ROOT>, which refers to the first
+change deployed to the database (or in the plan, depending on the command).
+
+Back to the database. The C<flips> table should be gone but the C<users> table
+should still be around:
+
+  > sqlite3 flipr_test.db '.tables'               
+  users
+
+The L<C<status>|sqitch-status> command politely informs us that we have
+undeployed changes:
+
+  > sqitch status
+  # On database flipr_test.db
+  # Project:  flipr
+  # Change:   5d339a89c720abc7a85fdca378645c8648e572b5
+  # Name:     users
+  # Deployed: 2013-04-04 18:55:09 -0700
+  # By:       Marge N. O’Vera <marge@example.com>
+  # 
+  Undeployed change:
+    * flips
+
+As does the L<C<verify>|sqitch-verify> command:
+
+  > sqitch verify         
+  Verifying flipr_test.db
+    * users .. ok
+  Undeployed change:
+    * flips
+  Verify successful
+
+Note that the verify is successful, because all currently-deployed changes are
+verified. The list of undeployed changes (just "flips" here) reminds us about
+the current state.
+
+Okay, let's commit and deploy again:
+
+  > git add .
+  > git commit -am 'Add flips table.'     
+  [master 6bb406e] Add flips table.
+   4 files changed, 33 insertions(+)
+   create mode 100644 deploy/flips.sql
+   create mode 100644 revert/flips.sql
+   create mode 100644 verify/flips.sql
+  > sqitch deploy         
+  Deploying changes to flipr_test.db
+    + flips .. ok
+
+Looks good. Check the status:
+
+  > sqitch status         
+  # On database flipr_test.db
+  # Project:  flipr
+  # Change:   e881676d95c5d28ac9e75da1caf37c4c39b9d669
+  # Name:     flips
+  # Deployed: 2013-04-04 19:50:57 -0700
+  # By:       Marge N. O’Vera <marge@example.com>
+  # 
+  Nothing to deploy (up-to-date)
+
+Excellent. Let's do some more!
 
 =head1 Author
 
