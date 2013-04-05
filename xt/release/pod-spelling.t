@@ -10,7 +10,7 @@ all_pod_files_spelling_ok();
 
 __DATA__
 iovation
-noninfringement
+NONINFRINGEMENT
 RDBMS
 RDBMSes
 SQLite
@@ -64,3 +64,15 @@ unlocalized
 flipr
 change's
 queryable
+Relatedly
+Rebase
+SQLite's
+Yay
+hashtags
+sqlite
+Overridable
+formatter
+Ronan
+Dunklau
+Sqitch's
+Unsets

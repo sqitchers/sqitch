@@ -180,7 +180,7 @@ changes. This database is separate from the database to which the C<users>
 change was deployed; by default, it has the same name as the destination
 database, but with C<-sqitch> appended to the base name. If you'd like it to
 have a different name, use C<sqitch config core.sqlite.sqitch_db $name> to
-configure it. This will be espcially useful if you use the SQLite L<C<ATTACH
+configure it. This will be especially useful if you use the SQLite L<C<ATTACH
 DATABASE>|http://www.sqlite.org/lang_attach.html> command to manage multiple
 database files in a single project. In that case, you will want to use the
 same metadata file for all the databases.
@@ -964,10 +964,10 @@ Well, some folks have been testing the C<1.0.0-dev2> release and have demanded
 that Twitter user links be added to Flipr pages. Why anyone would want to
 include social network links in an anti-social networking app is beyond us
 programmers, but we're just the plumbers, right? Gotta go with what Marketing
-demands. The upshot is that we need to udpate the C<userflips> view, which is
-used for the feature in question, to include the Twitter usernames.
+demands. The upshot is that we need to update the C<userflips> view, which is
+used for the feature in question, to include the Twitter user names.
 
-Normally, modifying ciews in database changes is a
+Normally, modifying views in database changes is a
 L<PITA|http://www.urbandictionary.com/define.php?term=pita>. You have to make
 changes like these:
 
@@ -1065,7 +1065,7 @@ since it doesn't, we will have to edit the script to drop the view before
 creating it. Or, more simply, it needs to be updated to revert changes back to
 how they were as-of the deployment of F<deploy/userflips@v1.0.0-dev2.sql>.
 
-Modif F<deploy/userflips.sql> to add the C<twitter> column; in fact, let's
+Modify F<deploy/userflips.sql> to add the C<twitter> column; in fact, let's
 also add a C<DROP VIEW IF EXISTS> statement, in case we need to rework this
 change again in the future:
 

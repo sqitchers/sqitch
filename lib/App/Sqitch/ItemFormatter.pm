@@ -321,8 +321,8 @@ Controls the use of ANSI color formatting. The value may be one of:
 =item C<formatter>
 
 A String::Formatter object. You probably don't want to pass one of these, as
-the defaullt one understands all the values to that Sqitch is likely to want
-to format.
+the default one understands all the values to that Sqitch is likely to want to
+format.
 
 =back
 
@@ -332,8 +332,8 @@ to format.
 
   $formatter->format( $format, $item );
 
-Formats an item as a string and retuns it. The item will be formatted using
-the first agument. See L</Formats> for the gory details.
+Formats an item as a string and returns it. The item will be formatted using
+the first argument. See L</Formats> for the gory details.
 
 The second argument is a hash reference defining the item to be formatted.
 These are simple key/value pairs, generally identifying attribute names and

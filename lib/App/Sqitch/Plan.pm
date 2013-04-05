@@ -1335,7 +1335,7 @@ succeeding changes.
   $plan->tag( name => 'whee' );
 
 Tags a change in the plan. Exits with a fatal error if the tag already exists
-in the plan or if a change cannot be found to tag. The supported paramters
+in the plan or if a change cannot be found to tag. The supported parameters
 are:
 
 =over
@@ -1346,7 +1346,7 @@ The tag name to use. Required.
 
 =item C<change>
 
-The change to be tagged, specfied as a supported change specification as
+The change to be tagged, specified as a supported change specification as
 described in L<sqitchchanges>. Defaults to the last change in the plan.
 
 =item C<note>
