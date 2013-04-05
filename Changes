@@ -1,6 +1,7 @@
 Revision history for Perl extension App::Sqitch
 
 0.961
+     - Fixed error when running on PostgreSQL 9.0.
 
 0.960  2013-04-05T23:04:35Z
      - Removed `-CAS` from the shebang line on Perl 5.10.0. This is to

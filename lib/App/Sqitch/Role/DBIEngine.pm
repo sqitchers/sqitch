@@ -649,7 +649,7 @@ sub deployed_changes {
           LEFT JOIN tags t ON c.change_id = t.change_id
          WHERE c.project = ?
          GROUP BY c.change_id, c.change, c.project, c.note, c.planned_at,
-               c.planner_name, c.planner_email
+               c.planner_name, c.planner_email, c.committed_at
          ORDER BY c.committed_at ASC
     }, { Slice => {} }, $self->plan->project) };
 }
@@ -673,7 +673,7 @@ sub deployed_changes_since {
          WHERE c.project = ?
            AND c.committed_at > (SELECT committed_at FROM changes WHERE change_id = ?)
          GROUP BY c.change_id, c.change, c.project, c.note, c.planned_at,
-               c.planner_name, c.planner_email
+               c.planner_name, c.planner_email, c.committed_at
          ORDER BY c.committed_at ASC
     }, { Slice => {} }, $self->plan->project, $change->id) };
 }
