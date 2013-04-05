@@ -548,7 +548,61 @@ Looks good. Check the status:
   # 
   Nothing to deploy (up-to-date)
 
-Excellent. Let's do some more!
+=head1 Ship It!
+
+Let's do a first release of our app. Let's call it C<1.0.0-dev1> Since we want
+to have it go out with deployments tied to the release, let's tag it:
+
+  > sqitch tag v1.0.0-dev1 -n 'Tag v1.0.0-dev1.'
+  Tagged "flips" with @v1.0.0-dev1
+  > git commit -am 'Tag the database with v1.0.0-dev1.'
+  [master 13e7297] Tag the database with v1.0.0-dev1.
+   1 file changed, 1 insertion(+)
+  > git tag v1.0.0-dev1 -am 'Tag v1.0.0-dev1'
+
+We can try deploying to make sure the tag gets picked up like so:
+
+   > sqitch -d flipr_dev.db deploy
+  Adding metadata tables to ./flipr_dev-sqitch.db
+  Deploying changes to flipr_dev.db
+    + users ............... ok
+    + flips @v1.0.0-dev1 .. ok
+
+Great, both changes were deployed and C<flips> was tagged with
+C<@v1.0.0-dev1>. Let's have a look at the status:
+
+  # On database flipr_dev.db
+  # Project:  flipr
+  # Change:   e881676d95c5d28ac9e75da1caf37c4c39b9d669
+  # Name:     flips
+  # Tag:      @v1.0.0-dev1
+  # Deployed: 2013-04-04 21:06:08 -0700
+  # By:       Marge N. O’Vera <marge@example.com>
+  # 
+  Nothing to deploy (up-to-date)
+
+Note the listing of the tag as part of the status message. Now let's bundle
+everything up for release:
+
+  > sqitch bundle
+  Bundling into bundle
+  Writing config
+  Writing plan
+  Writing scripts
+    + users
+    + flips @v1.0.0-dev1
+
+Now we can package the F<bundle> directory and distribute it. When it gets
+installed somewhere, users can use Sqitch to deploy to the database. Let's try
+deploying it:
+
+  > sqitch --db-name flipr_prod.db deploy
+  Adding metadata tables to ./flipr_prod-sqitch.db
+  Deploying changes to flipr_prod.db
+    + users ............... ok
+    + flips @v1.0.0-dev1 .. ok
+
+Looks much the same as before, eh? Package it up and ship it!
 
 =head1 Author
 

@@ -767,7 +767,7 @@ We can try deploying to make sure the tag gets picked up like so:
     + change_pass @v1.0.0-dev1 .. ok
 
 Great, all four changes were deployed and C<change_pass> was tagged with
-C<@v1.0.0-dev1>. Let's have a look at the state:
+C<@v1.0.0-dev1>. Let's have a look at the status:
 
   > sqitch -d flipr_dev status
   # On database flipr_dev
@@ -780,7 +780,7 @@ C<@v1.0.0-dev1>. Let's have a look at the state:
   # 
   Nothing to deploy (up-to-date)
 
-Note the listing of the tag as part of the stats message. Now let's bundle
+Note the listing of the tag as part of the status message. Now let's bundle
 everything up for release:
 
   > sqitch bundle
