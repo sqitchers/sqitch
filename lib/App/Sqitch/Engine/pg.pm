@@ -256,10 +256,10 @@ sub initialize {
         );
         (my $sql = scalar $file->slurp) =~ s{:"sqitch_schema"}{$schema}g;
         require File::Temp;
-        my ($fh, $fn) = File::Temp->new;
+        my $fh = File::Temp->new;
         print $fh $sql;
         close $fh;
-        $self->_run( '--file' => $fn );
+        $self->_run( '--file' => $fh->filename );
     } else {
         # We can take advantage of the :"sqitch_schema" variable syntax.
         $self->_run(
