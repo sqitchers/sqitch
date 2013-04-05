@@ -1413,7 +1413,7 @@ change. As such, it's important not to change them again. But hey, if you're
 reworking the change, you shouldn't need to.
 
 The other thing to notice is that F<revert/insert_user.sql> has changed.
-Sqitch replaced it with The original deploy script. As of now,
+Sqitch replaced it with the original deploy script. As of now,
 F<deploy/insert_user.sql> and F<revert/insert_user.sql> are identical. This is
 on the assumption that the deploy script will be changed (we're reworking it,
 remember?), and that the revert script should actually change things back to

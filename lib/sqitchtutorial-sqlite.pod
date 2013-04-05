@@ -958,6 +958,201 @@ Note the use of the C<--dest-dir> option to C<sqitch bundle>. Just a nicer way
 to create the top-level directory name so we don't have to rename it from
 F<bundle>.
 
+=head1 In Place Changes
+
+Well, some folks have been testing the C<1.0.0-dev2> release and have demanded
+that Twitter user links be added to Flipr pages. Why anyone would want to
+include social network links in an anti-social networking app is beyond us
+programmers, but we're just the plumbers, right? Gotta go with what Marketing
+demands. The upshot is that we need to udpate the C<userflips> view, which is
+used for the feature in question, to include the Twitter usernames.
+
+Normally, modifying ciews in database changes is a
+L<PITA|http://www.urbandictionary.com/define.php?term=pita>. You have to make
+changes like these:
+
+=over
+
+=item 1.
+
+Copy F<deploy/userflips.sql> to F<deploy/userflips_twitter.sql>.
+
+=item 2.
+
+Edit F<deploy/userflips_twitter.sql> to drop and re-create the view with the
+C<twitter> column to the view.
+
+=item 3.
+
+Copy F<deploy/userflips.sql> to F<revert/userflips_twitter.sql>.
+Yes, copy the original change script to the new revert change.
+
+=item 4.
+
+Add a C<DROP VIEW> statement to F<revert/userflips_twitter.sql>.
+
+=item 5.
+
+Copy F<verify/userflips.sql> to F<verify/userflips_twitter.sql>.
+
+=item 6.
+
+Modify F<verify/userflips_twitter.sql> to include a check for the C<twiter>
+column.
+
+=item 7.
+
+Test the changes to make sure you can deploy and revert the
+C<userflips_twitter> change.
+
+=back
+
+But you can have Sqitch do most of the work for you. The only requirement is
+that a tag appear between the two instances of a change we want to modify. In
+general, you're going to make a change like this after a release, which you've
+tagged anyway, right? Well we have, with C<@v1.0.0-dev2> added in the previous
+section. With that, we can let Sqitch do most of the hard work for us, thanks
+to the L<C<rework>|sqitch-rework> command, which is similar to
+L<C<add>|sqitch-add>:
+
+  > sqitch rework userflips -n 'Adds userflips.twitter.'
+  Added "userflips [userflips@v1.0.0-dev2]" to sqitch.plan.
+  Modify these files as appropriate:
+	* deploy/userflips.sql
+	* revert/userflips.sql
+	* verify/userflips.sql
+
+
+Oh, so we can edit those files in place. Nice! How does Sqitch do it? Well, in
+point of fact, it has copied the files to stand in for the previous instance
+of the C<userflips> change, which we can see via C<git status>:
+
+  > git status
+  # On branch master
+  # Changes not staged for commit:
+  #   (use "git add <file>..." to update what will be committed)
+  #   (use "git checkout -- <file>..." to discard changes in working directory)
+  #
+  #	modified:   revert/userflips.sql
+  #	modified:   sqitch.plan
+  #
+  # Untracked files:
+  #   (use "git add <file>..." to include in what will be committed)
+  #
+  #	deploy/userflips@v1.0.0-dev2.sql
+  #	revert/userflips@v1.0.0-dev2.sql
+  #	verify/userflips@v1.0.0-dev2.sql
+  no changes added to commit (use "git add" and/or "git commit -a")
+
+The "untracked files" part of the output is the first thing to notice. They
+are all named C<userflips@v1.0.0-dev2.sql>. What that means is: "the
+C<userflips> change as it was implemented as of the C<@v1.0.0-dev2> tag."
+These are copies of the original scripts, and thereafter Sqitch will find them
+when it needs to run scripts for the first instance of the C<userflips>
+change. As such, it's important not to change them again. But hey, if you're
+reworking the change, you shouldn't need to.
+
+The other thing to notice is that F<revert/userflips.sql> has changed. Sqitch
+replaced it with the original deploy script. As of now,
+F<deploy/userflips.sql> and F<revert/userflips.sql> are identical. This is on
+the assumption that the deploy script will be changed (we're reworking it,
+remember?), and that the revert script should actually change things back to
+how they were before. Of course, the original deploy script won't be
+L<idempotent|http://en.wikipedia.org/wiki/Idempotence> -- that is, able to be
+applied multiple times without changing the result beyond the initial
+application. It could be if SQLite supported C<CREATE OR REPLACE VIEW>, but
+since it doesn't, we will have to edit the script to drop the view before
+creating it. Or, more simply, it needs to be updated to revert changes back to
+how they were as-of the deployment of F<deploy/userflips@v1.0.0-dev2.sql>.
+
+Modif F<deploy/userflips.sql> to add the C<twitter> column; in fact, let's
+also add a C<DROP VIEW IF EXISTS> statement, in case we need to rework this
+change again in the future:
+
+  @@ -4,8 +4,9 @@
+
+   BEGIN;
+
+  +DROP VIEW IF EXISTS userflips;
+   CREATE VIEW userflips AS
+  -SELECT f.id, u.nickname, u.fullname, f.body, f.timestamp
+  +SELECT f.id, u.nickname, u.fullname, u.twitter, f.body, f.timestamp
+	 FROM users u
+	 JOIN flips f ON u.nickname = f.nickname;
+
+Next, modify F<verify/userflips.sql> to check for the C<twitter> column.
+Here's the diff:
+
+  @@ -2,7 +2,7 @@
+
+   BEGIN;
+
+  -SELECT id, nickname, fullname, body, timestamp
+  +SELECT id, nickname, fullname, twitter, body, timestamp
+	 FROM userflips
+	WHERE 0;
+
+And finally, modify F<deploy/userflips@v1.0.0-dev2.sql> to drop the view
+before creating it:
+
+  @@ -4,6 +4,7 @@
+
+   BEGIN;
+
+  +DROP VIEW IF EXISTS userflips;
+   CREATE VIEW userflips AS
+   SELECT f.id, u.nickname, u.fullname, f.body, f.timestamp
+	 FROM users u
+
+Note that if we had included that statement when we originally created the
+C<userflips> change, we wouldn't have to change this file at all.
+
+Now try a deployment:
+
+  > sqitch deploy
+  Deploying changes to flipr_test.db
+	+ userflips .. ok
+
+So, are the changes deployed?
+
+  > sqlite3 flipr_test.db '.schema userflips'
+  CREATE VIEW userflips AS
+  SELECT f.id, u.nickname, u.fullname, u.twitter, f.body, f.timestamp
+	FROM users u
+	JOIN flips f ON u.nickname = f.nickname;
+
+Awesome, the view now includes the C<twitter> column. But can we revert?
+
+  > sqitch revert --to @HEAD^ -y
+  Reverting changes to hashtags @v1.0.0-dev2 from flipr_test.db
+	- userflips .. ok
+
+Did that work, is the C<twitter> column gone?
+
+  > sqlite3 flipr_test.db '.schema userflips'
+  CREATE VIEW userflips AS
+  SELECT f.id, u.nickname, u.fullname, f.body, f.timestamp
+	FROM users u
+	JOIN flips f ON u.nickname = f.nickname;
+
+Yes, it works! Sqitch properly finds the original instances of these changes
+in the new script files that include tags.
+
+Excellent. Let's go ahead and commit these changes:
+
+  > git add .
+  > git ci -m 'Add the twitter column to the userflips view.'
+  [master 23b46a8] Add the twitter column to the userflips view.
+   7 files changed, 40 insertions(+), 4 deletions(-)
+   create mode 100644 deploy/userflips@v1.0.0-dev2.sql
+   create mode 100644 revert/userflips@v1.0.0-dev2.sql
+   create mode 100644 verify/userflips@v1.0.0-dev2.sql
+
+=head1 More to Come
+
+Sqitch is a work in progress. Better integration with version control systems
+is planned to make managing idempotent reworkings even easier. Stay tuned.
+
 =head1 Author
 
 David E. Wheeler <david@justatheory.com>
