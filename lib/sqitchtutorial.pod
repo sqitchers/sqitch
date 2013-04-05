@@ -18,7 +18,8 @@ We'll start by creating new project from scratch, a fictional antisocial
 networking site called Flipr. All examples use L<Git|http://git-scm.com/> as
 the VCS and L<PostgreSQL|http://www.postgresql.org/> as the storage engine,
 but for the most part you can substitute other VCSes and database engines in
-the examples as appropriate.
+the examples as appropriate. If you'd like to manage an SQLite database, see
+L<sqitchtutorial-sqlite>.
 
 =head1 Starting a New Project
 
