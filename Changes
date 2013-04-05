@@ -1,6 +1,6 @@
 Revision history for Perl extension App::Sqitch
 
-0.954
+0.960
      - Removed `-CAS` from the shebang line on Perl 5.10.0. This is to
        eliminate `Too late for "-CAS" option` errors. This means that UTF-8
        semantics will be suboptimal on perl 5.10.0. Consider upgrading to 5.12
