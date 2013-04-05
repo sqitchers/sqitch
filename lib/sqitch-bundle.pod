@@ -4,8 +4,8 @@ sqitch-bundle - Bundle a Sqitch project for distribution
 
 =head1 Synopsis
 
-  sqitch [options] init project
-  sqitch [options] init --uri uri project
+  sqitch [options] bundle project
+  sqitch [options] bundle --dest-dir widgets-1.0.0
 
 =head1 Description
 
