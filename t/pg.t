@@ -45,6 +45,8 @@ for my $attr (qw(username password db_name host port)) {
 
 is $pg->destination, $ENV{PGDATABASE} || $ENV{PGUSER} || $sqitch->sysuser,
     'Destination should fall back on environment variables';
+is $pg->meta_destination, $pg->destination,
+    'Meta destination should be the same as destination';
 
 my @std_opts = (
     '--quiet',
@@ -79,6 +81,8 @@ ENV: {
         my $pg = $CLASS->new(sqitch => $sqitch);
         local $ENV{$env} = "\$ENV=whatever";
         is $pg->destination, "\$ENV=whatever", "Destination should read \$$env";
+        is $pg->meta_destination, $pg->destination,
+            'Meta destination should be the same as destination';
     }
 
     my $mocker = Test::MockModule->new('App::Sqitch');
@@ -86,13 +90,19 @@ ENV: {
     my $pg = $CLASS->new(sqitch => $sqitch);
     is $pg->destination, 'sysuser=whatever',
         'Destination should fall back on sysuser';
+    is $pg->meta_destination, $pg->destination,
+        'Meta destination should be the same as destination';
 
     $pg = $CLASS->new(sqitch => $sqitch, username => 'hi');
     is $pg->destination, 'hi', 'Destination should read username';
+    is $pg->meta_destination, $pg->destination,
+        'Meta destination should be the same as destination';
 
     $ENV{PGDATABASE} = 'mydb';
     $pg = $CLASS->new(sqitch => $sqitch, username => 'hi');
     is $pg->destination, 'mydb', 'Destination should prefer $PGDATABASE to username';
+    is $pg->meta_destination, $pg->destination,
+        'Meta destination should be the same as destination';
 }
 
 ##############################################################################
@@ -116,6 +126,7 @@ is $pg->username, 'freddy', 'username should be as configured';
 is $pg->password, 's3cr3t', 'password should be as configured';
 is $pg->db_name, 'widgets', 'db_name should be as configured';
 is $pg->destination, 'widgets', 'destination should default to db_name';
+is $pg->meta_destination, 'widgets', 'meta_destination should default to db_name';
 is $pg->host, 'db.example.com', 'host should be as configured';
 is $pg->port, 1234, 'port should be as configured';
 is $pg->sqitch_schema, 'meta', 'sqitch_schema should be as configured';
@@ -144,6 +155,7 @@ is $pg->username, 'anna', 'username should be as optioned';
 is $pg->password, 's3cr3t', 'password should still be as configured';
 is $pg->db_name, 'widgets_dev', 'db_name should be as optioned';
 is $pg->destination, 'widgets_dev', 'destination should still default to db_name';
+is $pg->meta_destination, 'widgets_dev', 'meta_destination should still default to db_name';
 is $pg->host, 'foo.com', 'host should be as optioned';
 is $pg->port, 98760, 'port should be as optioned';
 is $pg->sqitch_schema, 'meta', 'sqitch_schema should still be as configured';

@@ -38,6 +38,8 @@ is $sqlite->destination, $sqlite->db_name->stringify,
     'Destination should be db_name strintified';
 is $sqlite->sqitch_db, file('foo')->dir->file('foo-sqitch.db'),
     'sqitch_db should default to "$db_name-sqitch.db" in the same diretory as db_name';
+is $sqlite->meta_destination, $sqlite->sqitch_db->stringify,
+    'Meta destination should be sqitch_db strintified';
 
 my @std_opts = (
     '-noheader',
@@ -75,6 +77,8 @@ is $sqlite->destination, $sqlite->db_name->stringify,
     'Destination should be configured db_name strintified';
 is $sqlite->sqitch_db, file('meta.db'),
     'sqitch_db should fall back on config';
+is $sqlite->meta_destination, $sqlite->sqitch_db->stringify,
+    'Meta destination should be configured sqitch_db strintified';
 is_deeply [$sqlite->sqlite3], [$sqlite->client, @std_opts, $sqlite->db_name],
     'sqlite3 command should have config values';
 

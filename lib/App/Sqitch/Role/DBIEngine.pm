@@ -206,7 +206,7 @@ sub search_events {
 
     # Handle remaining parameters.
     my $limits = '';
-    if ($p{limit} || $p{offset}) {
+    if (exists $p{limit} || exists $p{offset}) {
         my $lim = delete $p{limit};
         if ($lim) {
             $limits = "\n         LIMIT ?";

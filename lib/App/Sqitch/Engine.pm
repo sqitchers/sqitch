@@ -19,6 +19,8 @@ has sqitch => (
     handles  => { destination => 'db_name' },
 );
 
+sub meta_destination { shift->destination }
+
 has start_at => (
     is  => 'rw',
     isa => 'Str'
@@ -121,7 +123,7 @@ sub deploy {
         unless ($self->initialized) {
             $sqitch->info(__x(
                 'Adding metadata tables to {destination}',
-                destination => $self->destination,
+                destination => $self->meta_destination,
             ));
             $self->initialize;
         }

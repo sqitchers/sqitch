@@ -675,7 +675,7 @@ is_deeply $engine->seen, [
 is $deploy_meth, '_deploy_all', 'Should have called _deploy_all()';
 is_deeply +MockOutput->get_info, [
     [__x 'Adding metadata tables to {destination}',
-        destination => $engine->destination,
+        destination => $engine->meta_destination,
     ],
     [__x 'Deploying changes through {target} to {destination}',
         destination =>  $engine->destination,
@@ -708,7 +708,7 @@ for my $mode (qw(change tag all)) {
     is_deeply +MockOutput->get_info, [
         [
             __x 'Adding metadata tables to {destination}',
-            destination => $engine->destination,
+            destination => $engine->meta_destination,
         ],
         [
             __x 'Deploying changes through {target} to {destination}',
@@ -743,7 +743,7 @@ is_deeply $engine->seen, [
 is $deploy_meth, '_deploy_by_tag', 'Should have called _deploy_by_tag()';
 is_deeply +MockOutput->get_info, [
     [__x 'Deploying changes through {target} to {destination}',
-        destination =>  $engine->destination,
+        destination =>  $engine->meta_destination,
         target      => $plan->get('@alpha')->format_name_with_tags,
     ],
     [__ 'ok'],

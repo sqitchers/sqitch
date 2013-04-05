@@ -53,6 +53,7 @@ has sqitch_db => (
     isa      => 'Maybe[Path::Class::File]',
     lazy     => 1,
     required => 1,
+    handles  => { meta_destination => 'stringify' },
     default  => sub {
         my $self = shift;
         if (my $db = $self->sqitch->config->get( key => 'core.sqlite.sqitch_db' ) ) {
