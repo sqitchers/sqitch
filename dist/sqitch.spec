@@ -170,7 +170,27 @@ package bundles the Sqitch PostgreSQL support.
 %files pg
 # No additional files required.
 
+%package sqlite
+Summary:        Sane database change management for SQLite
+Group:          Development/Libraries
+Requires:       sqitch >= %{version}
+Requires:       sqlite
+Requires:       perl(DBI)
+Requires:       perl(DBD::SQLite) >= 1.31
+
+%description sqlite
+Sqitch provides a simple yet robust interface for database change
+management. The philosophy and functionality is inspired by Git. This
+package bundles the Sqitch SQLite support.
+
+%files sqlite
+# No additional files required.
+
 %changelog
+* Fri Apri 5 2013 David E. Wheeler <david.wheeler@iovation.com> 0.960-1
+- Upgrade to v0.960.
+- Add sqitch-sqlite.
+
 * Thu Feb 21 2013 David E. Wheeler <david.wheeler@iovation.com> 0.953-1
 - Upgrade to v0.953.
 
