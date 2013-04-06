@@ -559,7 +559,8 @@ App::Sqitch::Engine::pg - Sqitch PostgreSQL Engine
 
 =head1 Description
 
-App::Sqitch::Engine::pg provides the PostgreSQL storage engine for Sqitch.
+App::Sqitch::Engine::pg provides the PostgreSQL storage engine for Sqitch. It
+supports PostgreSQL 8.4.0 and higher.
 
 =head1 Interface
 

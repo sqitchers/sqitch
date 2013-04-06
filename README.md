@@ -1,18 +1,60 @@
 App/Sqitch version 0.961
 ========================
 
-This application, `sqitch`, will provide a simple yet robust interface for SQL
-change management. The philosophy and functionality is covered over a series
-of blog posts published in January, 2012:
+[Sqitch](http://sqitch.org/) is a database change management application. It
+currently supports PostgreSQL 8.4 and higher and SQLite.
 
-* [Simple SQL Change Management](http://justatheory.com/computers/databases/simple-sql-change-management.html)
-* [VCS-Enabled SQL Change Management](http://justatheory.com/computers/databases/vcs-sql-change-management.html)
-* [SQL Change Management Sans Duplication](http://justatheory.com/computers/databases/sql-change-management-sans-redundancy.html)
+What makes it different from your typical
+[migration](http://guides.rubyonrails.org/migrations.html) approaches? A few
+things:
 
-But it's not there yet. It's under heavy development. Hopefully it will be
-quasi-usable soon, as there is
-[a deadline](http://www.pgcon.org/2012/schedule/events/479.en.html). Watch
-this space.
+*   No opinions
+
+    Sqitch is not integrated with any framework, ORM, or platform. Rather, it
+    is a standalone change management system with no opinions about your
+    database engine, application framework, or your development environment.
+
+*   Native scripting
+
+    Changes are implemented as scripts native to your selected database
+    engine. Writing a L<PostgreSQL|http://postgresql.org/> application? Write
+    SQL scripts for
+    L<C<psql>|http://www.postgresql.org/docs/current/static/app-psql.html>.
+    Writing a L<MySQL|http://mysql.com/>-backed app? Write SQL scripts for
+    L<C<mysql>|http://dev.mysql.com/doc/refman/5.6/en/mysql.html> (coming
+    soon!).
+
+*   Dependency resolution
+
+    Database changes may declare dependencies on other changes -- even on
+    changes from other Sqitch projects. This ensures proper order of
+    execution, even when you've committed changes to your VCS out-of-order.
+
+*   No numbering
+
+    Change deployment is managed by maintaining a plan file. As such, there is
+    no need to number your changes, although you can if you want. Sqitch
+    doesn't much care how you name your changes.
+
+*   Iterative Development
+
+    Up until you tag and release your application, you can modify your change
+    deployment scripts as often as you like. They're not locked in just
+    because they've been committed to your VCS. This allows you to take an
+    iterative approach to developing your database schema. Or, better, you can
+    do test-driven database development.
+
+*   Reduced Duplication
+
+    If you're using a VCS to track your changes, you don't have to duplicate
+    xentire change scripts for simple changes. As long as the changes are
+    L<idempotent|http://en.wikipedia.org/wiki/Idempotence>, you can change
+    your code directly, and Sqitch will know it needs to be updated.
+
+Want to learn more? The best place to start is in the tutorials:
+
+* [Introduction to Sqitch on PostgreSQL](lib/sqitchtutorial.pod)
+* [Introduction to Sqitch on SQLite](lib/sqitchtutorial-sqlite.pod)
 
 Installation
 ------------
@@ -20,6 +62,7 @@ Installation
 To install this module, type the following:
 
     perl Build.PL
+    ./Build installdeps
     ./Build
     ./Build test
     ./Build install
@@ -27,7 +70,7 @@ To install this module, type the following:
 Licence
 -------
 
-Copyright © 2012 iovation Inc.
+Copyright © 20122-2013 iovation Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
