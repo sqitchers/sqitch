@@ -25,6 +25,7 @@ BuildRequires:  perl(File::Spec)
 BuildRequires:  perl(File::Temp)
 BuildRequires:  perl(Getopt::Long)
 BuildRequires:  perl(Hash::Merge)
+BuildRequires:  perl(Git::Wrapper)
 BuildRequires:  perl(IO::Pager)
 BuildRequires:  perl(IPC::System::Simple) >= 1.17
 BuildRequires:  perl(List::Util)
