@@ -34,7 +34,7 @@ isa_ok my $sqlite = $CLASS->new(sqitch => $sqitch, db_name => file 'foo.db'), $C
 
 is $sqlite->client, 'sqlite3' . ($^O eq 'MSWin32' ? '.exe' : ''),
     'client should default to sqlite3';
-is $sqlite->db_name, 'foo.db', 'db_name should be required';
+is $sqlite->db_name, file('foo.db'), 'db_name should be required';
 is $sqlite->destination, $sqlite->db_name->stringify,
     'Destination should be db_name strintified';
 is $sqlite->sqitch_db, file('foo')->dir->file('foo-sqitch.db'),
@@ -72,7 +72,7 @@ ok $sqlite = $CLASS->new(sqitch => $sqitch),
     'Create another sqlite';
 is $sqlite->client, '/path/to/sqlite3',
     'client should fall back on config';
-is $sqlite->db_name, file('/path/to/sqlite.db')->stringify,
+is $sqlite->db_name, file('/path/to/sqlite.db'),
     'db_name should fall back on config';
 is $sqlite->destination, $sqlite->db_name->stringify,
     'Destination should be configured db_name strintified';
@@ -89,7 +89,7 @@ $sqitch = App::Sqitch->new(db_client => 'foo/bar', db_name => 'my.db');
 ok $sqlite = $CLASS->new(sqitch => $sqitch),
     'Create sqlite with sqitch with --client and --db-name';
 is $sqlite->client, 'foo/bar', 'The client should be grabbed from sqitch';
-is $sqlite->db_name, 'my.db', 'The db_name should be grabbed from sqitch';
+is $sqlite->db_name, file('my.db'), 'The db_name should be grabbed from sqitch';
 is $sqlite->destination, $sqlite->db_name->stringify,
     'Destination should be optioned db_name strintified';
 is_deeply [$sqlite->sqlite3], [$sqlite->client, @std_opts, $sqlite->db_name],
