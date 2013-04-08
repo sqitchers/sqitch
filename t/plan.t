@@ -389,7 +389,7 @@ for my $name (
     'v1.2_1',  # version number with underscore
 ) {
     # Test a change name.
-    my $lines = "\%project=foo\n\n$name $tsnp";
+    my $lines = encode_utf8 "\%project=foo\n\n$name $tsnp";
     my $fh = IO::File->new(\$lines, '<:utf8');
     ok my $parsed = $plan->_parse('ooditem', $fh),
         encode_utf8(qq{Should parse "$name"});
@@ -404,7 +404,7 @@ for my $name (
 
     # Test a tag name.
     my $tag = '@' . $name;
-    $lines = "\%project=foo\n\nfoo $tsnp\n$tag $tsnp";
+    $lines = encode_utf8 "\%project=foo\n\nfoo $tsnp\n$tag $tsnp";
     $fh = IO::File->new(\$lines, '<:utf8');
     ok $parsed = $plan->_parse('gooditem', $fh),
         encode_utf8(qq{Should parse "$tag"});
