@@ -182,7 +182,10 @@ DBIEngineTest->run(
     ],
     engine_params     => [ db_name => $db_name ],
     alt_engine_params => [ db_name => $db_name, sqitch_db => $alt_db ],
-    skip_unless       => sub { shift->dbh },
+    skip_unless       => sub {
+        my $self = shift;
+        $self->dbh && $self->sqitch->probe( $self->client, '-version' );
+    },
     engine_err_regex  => qr/^near "blah": syntax error/,
     init_error        =>  __x(
         'Sqitch database {database} already initialized',
