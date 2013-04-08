@@ -107,8 +107,7 @@ has uri => (
 
 sub parse {
     my ( $self, $data ) = @_;
-    # XXX Assume decoded.
-    open my $fh, '<', \$data;
+    open my $fh, '<:encoding(UTF-8)', \$data;
     $self->_plan( $self->load($fh) );
     return $self;
 }
@@ -1317,8 +1316,9 @@ alternate plan, use C<parse()>.
 
   $plan->parse($plan_data);
 
-Load an alternate plan by passing the complete text of the plan. Useful for
-loading a plan from a different VCS branch, for example.
+Load an alternate plan by passing the complete text of the plan. The text
+should be UTF-8 encoded. Useful for loading a plan from a different VCS
+branch, for example.
 
 =head3 C<check_changes>
 

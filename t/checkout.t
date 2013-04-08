@@ -5,6 +5,7 @@ use warnings;
 use v5.10;
 use Test::More;
 use App::Sqitch;
+use utf8;
 use Path::Class qw(dir file);
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);

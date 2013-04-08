@@ -9,7 +9,6 @@ use Mouse::Util::TypeConstraints;
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use App::Sqitch::Plan;
-use Encode qw(decode);
 use Path::Class qw(dir);
 use Try::Tiny;
 use Git::Wrapper;
@@ -53,9 +52,7 @@ sub execute {
     # Load the target plan from Git, assuming the same path.
     my $to_plan = App::Sqitch::Plan->new( sqitch => $sqitch )->parse(
         # XXX Handle missing file/no contents.
-        decode 'UTF-8', join(
-            "\n" => $git->show("$branch:" . $sqitch->plan_file )
-        ), Encode::FB_CROAK
+        join "\n" => $git->show("$branch:" . $sqitch->plan_file )
     );
 
     # Find the last change the plans have in common.
