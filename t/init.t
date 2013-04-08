@@ -390,8 +390,6 @@ is_deeply read_config $conf_file, {
     'core.engine' => 'pg',
 }, 'The configuration should have been written with only the engine var';
 
-diag `cat $conf_file`;
-
 file_contents_like $conf_file, qr{^\Q# [core "pg"]
 	# client = psql$exe_ext
 	# username = 
