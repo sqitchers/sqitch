@@ -245,6 +245,7 @@ for my $spec (
     ],
     [ oneline => '000011112222333444 ' . __('deploy') . ' lolz @beta, @gamma' ],
 ) {
+    local $ENV{ANSI_COLORS_DISABLED} = 1;
     my $configured = $CLASS->configure( $config, { format => $spec->[0] } );
     my $format = $configured->{format};
     ok my $cmd = $CLASS->new( sqitch => $sqitch, %{ $configured } ),
@@ -413,6 +414,7 @@ for my $spec (
     ['%{requires}a',  $change, 'requires  ' . join(', ', @{ $change->{requires} }) . "\n" ],
     ['%{conflicts}a', $change, '' ],
 ) {
+    local $ENV{ANSI_COLORS_DISABLED} = 1;
     (my $desc = $spec->[2]) =~ s/\n/[newline]/g;
     is $formatter->format( $spec->[0], $spec->[1] ), $spec->[2],
         qq{Format "$spec->[0]" should output "$desc"};
