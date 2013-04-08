@@ -9,6 +9,7 @@ Revision history for Perl extension App::Sqitch
        found or cannot connect to the database.
      - Fixed the `checkout` test to skip tests that depend on Git and Git is
        not found in the path.
+     - Fixed test failures on Windows (hopefully).
 
 0.960  2013-04-05T23:04:35Z
      - Removed `-CAS` from the shebang line on Perl 5.10.0. This is to
