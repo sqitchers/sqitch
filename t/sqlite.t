@@ -72,7 +72,7 @@ ok $sqlite = $CLASS->new(sqitch => $sqitch),
     'Create another sqlite';
 is $sqlite->client, '/path/to/sqlite3',
     'client should fall back on config';
-is $sqlite->db_name, '/path/to/sqlite.db',
+is $sqlite->db_name, file('/path/to/sqlite.db')->stringify,
     'db_name should fall back on config';
 is $sqlite->destination, $sqlite->db_name->stringify,
     'Destination should be configured db_name strintified';
