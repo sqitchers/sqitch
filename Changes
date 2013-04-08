@@ -5,6 +5,8 @@ Revision history for Perl extension App::Sqitch
      - Added support for PostgreSQL 8.4.
      - Fixed the SQLite tests to skip the live tests when `sqlite3` cannot be
        found.
+     - Fixed the Postgres tests to skip the live tests if `psql` cannot be
+       found or cannot connect to the database.
 
 0.960  2013-04-05T23:04:35Z
      - Removed `-CAS` from the shebang line on Perl 5.10.0. This is to

@@ -285,7 +285,7 @@ END {
         $h->disconnect if $h->{Type} eq 'db' && $h->{Active} && $h ne $dbh;
     });
 
-    $dbh->do('DROP DATABASE __sqitchtest__');
+    $dbh->do('DROP DATABASE __sqitchtest__') if $dbh->{Active};
 }
 
 my $err = try {
@@ -310,7 +310,13 @@ DBIEngineTest->run(
     ],
     engine_params     => [],
     alt_engine_params => [ sqitch_schema => '__sqitchtest' ],
-    skip_unless       => sub { die $err if $err; 1 },
+    skip_unless       => sub {
+        my $self = shift;
+        die $err if $err;
+        # Make sure we have psql and can connect to the database.
+        $self->sqitch->probe( $self->client, '--version' );
+        $self->_capture('--command' => 'SELECT version()');
+    },
     engine_err_regex  => qr/^ERROR:  /,
     init_error        => __x(
         'Sqitch schema "{schema}" already exists',
