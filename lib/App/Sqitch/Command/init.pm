@@ -8,6 +8,7 @@ use Mouse;
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use File::Path qw(make_path);
+use List::MoreUtils qw(natatime);
 use Path::Class;
 use Try::Tiny;
 use App::Sqitch::Plan;
@@ -195,11 +196,12 @@ sub write_config {
 
         # Write out the core.$engine section.
         my $ekey        = 'core.' . $engine->name;
-        my %config_vars = $engine->config_vars;
+        my @config_vars = $engine->config_vars;
         my $emeta       = $engine->meta;
         @comments = @vars = ();
 
-        while ( my ( $key, $type ) = each %config_vars ) {
+        my $iter = natatime 2, @config_vars;
+        while ( my ( $key, $type ) = $iter->() ) {
 
             # Was it passed as an option?
             my $core_key = $key =~ /^db_/ ? $key : "db_$key";

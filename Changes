@@ -10,6 +10,10 @@ Revision history for Perl extension App::Sqitch
      - Fixed the `checkout` test to skip tests that depend on Git and Git is
        not found in the path.
      - Fixed test failures on Windows (hopefully).
+     - Made the order of commented configuration variables in the project
+       configuration file deterministic. It will now always be the same order
+       as specified by the engine class. This fixes test failures on Perl
+       5.17.
 
 0.960  2013-04-05T23:04:35Z
      - Removed `-CAS` from the shebang line on Perl 5.10.0. This is to

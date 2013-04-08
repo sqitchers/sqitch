@@ -310,8 +310,8 @@ is_deeply read_config $conf_file, {
 }, 'The configuration should have been written with only the engine var';
 
 file_contents_like $conf_file, qr{^\Q# [core "sqlite"]
-	# db_name = 
 	# client = sqlite3$exe_ext
+	# db_name = 
 	# sqitch_db = 
 }m, 'Engine section should be present but commented-out';
 
@@ -390,14 +390,16 @@ is_deeply read_config $conf_file, {
     'core.engine' => 'pg',
 }, 'The configuration should have been written with only the engine var';
 
+diag `cat $conf_file`;
+
 file_contents_like $conf_file, qr{^\Q# [core "pg"]
-	# db_name = 
 	# client = psql$exe_ext
-	# sqitch_schema = sqitch
-	# password = 
-	# port = 
-	# host = 
 	# username = 
+	# password = 
+	# db_name = 
+	# host = 
+	# port = 
+	# sqitch_schema = sqitch
 }m, 'Engine section should be present but commented-out';
 
 USERCONF: {
