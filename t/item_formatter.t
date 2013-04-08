@@ -204,6 +204,7 @@ for my $spec (
     ['%{committed_at}a',   $event, "committed_at $craw\n" ],
 ) {
     (my $desc = $spec->[2]) =~ s/\n/[newline]/g;
+    local $ENV{ANSI_COLORS_DISABLED} = 1;
     is $formatter->format( $spec->[0], $spec->[1] ), $spec->[2],
         qq{Format "$spec->[0]" should output "$desc"};
 }
