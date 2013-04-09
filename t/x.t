@@ -38,11 +38,13 @@ is $x->exitval, 2, 'Exit val should be 2';
 is +($x->stack_trace->frames)[0]->filename, file(qw(t x.t)),
     'The trace should start in this file';
 
-throws_ok { hurl 'OMFG!' } $CLASS;
+throws_ok { local $@ = 'Yo dawg'; hurl 'OMFG!' } $CLASS;
 isa_ok $x = $@, $CLASS, 'Thrown object';
 is $x->ident, 'DEV', 'Ident should be "DEV"';
 is $x->message, 'OMFG!', 'The message should have been passed';
 is $x->exitval, 2, 'Exit val should again be 2';
+is $x->previous_exception, 'Yo dawg',
+    'Previous exception should have been passed';
 
 throws_ok { hurl {ident => 'blah', message => 'OMFG!', exitval => 1} } $CLASS;
 isa_ok $x = $@, $CLASS, 'Thrown object';

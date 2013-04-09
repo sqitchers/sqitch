@@ -25,6 +25,7 @@ has exitval => (
     default  => 2,
 );
 
+
 with qw(
     Throwable
     Role::HasMessage
@@ -33,11 +34,16 @@ with qw(
 );
 
 has '+ident' => (default => 'DEV');
+has '+previous_exception' => (init_arg => 'previous_exception');
 
 sub hurl {
     @_ = (
         __PACKAGE__,
-        ref $_[0]     ? $_[0]
+        # Always pass $@, as Throwable is unreliable about getting it thanks
+        # to hash randomization. Its workaround in v0.200006:
+        # https://github.com/rjbs/throwable/commit/596dfbafed970a30324dc21539d4edf2cbda767a
+        previous_exception => $@,
+        ref $_[0]     ? %{ $_[0] }
             : @_ == 1 ? (message => $_[0])
             :           (ident => $_[0],  message => $_[1])
     );
