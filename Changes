@@ -1,5 +1,7 @@
 Revision history for Perl extension App::Sqitch
 
+0.962
+
 0.961  2013-04-09T19:21:15Z
      - Fixed error when running on PostgreSQL 9.0.
      - Added support for PostgreSQL 8.4.
