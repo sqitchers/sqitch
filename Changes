@@ -15,6 +15,8 @@ Revision history for Perl extension App::Sqitch
        as specified by the engine class. This fixes test failures on Perl
        5.17.
      - Fixed encoding issue that caused test failures on Perl 5.17.
+     - Requiring Devel::StackTrace 1.30, as earlier versions can
+       intermittently suppress errors.
 
 0.960  2013-04-05T23:04:35Z
      - Removed `-CAS` from the shebang line on Perl 5.10.0. This is to
