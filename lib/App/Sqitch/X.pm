@@ -70,17 +70,7 @@ App::Sqitch::X - Sqitch Exception class
 
 =head1 Synopsis
 
-Throw:
-
   use Locale::TextDomain;
-  use App::Sqitch::X;
-  open my $fh, '>', 'foo.txt' or App::Sqitch::X->throw(
-      ident   => 'io',
-      message => __x 'Cannot open {file}: {err}", file => 'foo.txt', err => $!,
-  );
-
-Hurl:
-
   use App::Sqitch::X qw(hurl);
   open my $fh, '>', 'foo.txt' or hurl {
       ident   => 'io',
@@ -99,40 +89,11 @@ handled, showing the error message to the user.
 
 =head1 Interface
 
-=head2 Class Method
-
-=head3 C<throw()>
-
-  open my $fh, '>', 'foo.txt' or App::Sqitch::X->throw(
-      ident   => 'io',
-      message => __x 'Cannot open {file}: {err}", file => 'foo.txt', err => $!,
-  );
-
-Throws an exception. The supported parameters include:
-
-=over
-
-=item C<ident>
-
-A non-localized string identifying the type of exception.
-
-=item C<message>
-
-The exception message. Use L<Locale::TextDomain> to craft localized messages.
-
-=item C<exitval>
-
-Suggested exit value to use. Defaults to 2. This will be used if Sqitch
-handles an exception while a command is running.
-
-=back
-
 =head2 Function
 
 =head3 C<hurl>
 
-To save yourself some typing, you can import the C<hurl> keyword and pass the
-parameters as a hash reference, like so:
+Throws an exception. Pass the parameters as a hash reference, like so:
 
   use App::Sqitch::X qw(hurl);
   open my $fh, '>', 'foo.txt' or hurl {
@@ -155,6 +116,25 @@ the C<ident>:
 In this case, the C<ident> will be C<DEV>, which you should not otherwise use.
 Sqitch will emit a more detailed error message, including a stack trace, when
 it sees C<DEV> exceptions.
+
+The supported parameters are:
+
+=over
+
+=item C<ident>
+
+A non-localized string identifying the type of exception.
+
+=item C<message>
+
+The exception message. Use L<Locale::TextDomain> to craft localized messages.
+
+=item C<exitval>
+
+Suggested exit value to use. Defaults to 2. This will be used if Sqitch
+handles an exception while a command is running.
+
+=back
 
 =head2 Methods
 

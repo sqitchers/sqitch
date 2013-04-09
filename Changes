@@ -17,6 +17,9 @@ Revision history for Perl extension App::Sqitch
      - Fixed encoding issue that caused test failures on Perl 5.17.
      - Requiring Devel::StackTrace 1.30, as earlier versions can
        intermittently suppress errors.
+     - Added hack to `App::Sqitch::X::hurl()` to work around a bug in
+       Throwable that prevents `previous_exception` from being set half the
+       time on v5.17.
 
 0.960  2013-04-05T23:04:35Z
      - Removed `-CAS` from the shebang line on Perl 5.10.0. This is to
