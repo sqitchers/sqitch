@@ -15,6 +15,7 @@ BuildRequires:  perl(Config::GitLike) >= 1.09
 BuildRequires:  perl(constant)
 BuildRequires:  perl(DateTime)
 BuildRequires:  perl(DBI)
+BuildRequires:  perl(Devel::StackTrace) >= 1.30
 BuildRequires:  perl(Digest::SHA1)
 BuildRequires:  perl(Encode)
 BuildRequires:  perl(File::Basename)
