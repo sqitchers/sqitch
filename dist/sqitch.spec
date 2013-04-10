@@ -60,7 +60,7 @@ BuildRequires:  perl(Test::Deep)
 BuildRequires:  perl(Test::Dir)
 BuildRequires:  perl(Test::Exception)
 BuildRequires:  perl(Test::File)
-BuildRequires:  perl(Test::File::Contents) >= 0.05
+BuildRequires:  perl(Test::File::Contents) >= 0.20
 BuildRequires:  perl(Test::MockModule) >= 0.05
 BuildRequires:  perl(Test::More) >= 0.94
 BuildRequires:  perl(Test::NoWarnings) >= 0.083

@@ -2,6 +2,10 @@ Revision history for Perl extension App::Sqitch
 
 0.962
      - Fixed failing test on Perl 5.12 and lower.
+     - Fixed the French translation by re-encoding it in UTF-8 (Ronan
+       Dunklau).
+     - Fixed the loading of the editor with placeholder text to properly
+       encode that text as UTF-8 (Ronan Dunklau).
 
 0.961  2013-04-09T19:21:15Z
      - Fixed error when running on PostgreSQL 9.0.
