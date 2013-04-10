@@ -12,7 +12,7 @@ msgstr ""
 "Language-Team: French <arhuman@gmail.com>\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=iso-8859-1\n"
+"Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
@@ -115,8 +115,7 @@ msgstr "Ajout des tables de metadonnées à {destination}"
 #: lib/App/Sqitch/Engine.pm:134
 msgid "Cannot deploy to an earlier target; use \"revert\" instead"
 msgstr ""
-"Impossible de déployer vers une cible antérieure; utiliser \"revert\" plut�"
-"�t"
+"Impossible de déployer vers une cible antérieure; utiliser \"revert\" plutôt"
 
 #: lib/App/Sqitch/Engine.pm:140
 #, perl-brace-format
