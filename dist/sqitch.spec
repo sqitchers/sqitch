@@ -189,6 +189,9 @@ package bundles the Sqitch SQLite support.
 # No additional files required.
 
 %changelog
+* Tue Apr 10 2013 David E. Wheeler <david.wheeler@iovation.com> 0.962-1
+- upgrade to v0.962.
+
 * Tue Apr 9 2013 David E. Wheeler <david.wheeler@iovation.com> 0.961-1
 - upgrade to v0.961.
 
