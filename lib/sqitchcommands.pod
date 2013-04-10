@@ -49,15 +49,19 @@ Initialize a project
 
 =item L<C<log>|sqitch-log>
 
-Show change logs for a database.
+Show change logs for a database
+
+=item L<C<plan>|sqitch-plan>
+
+Show the contents of a plan
 
 =item L<C<rebase>|sqitch-rebase>
 
-Revert and redeploy database changes.
+Revert and redeploy database changes
 
 =item L<C<checkout>|sqitch-checkout>
 
-Move to another VCS branch, and deploy the plan from the destination.
+Move to another VCS branch, and deploy the plan from the destination
 
 =item L<C<revert>|sqitch-revert>
 
@@ -73,7 +77,7 @@ Show the current deployment status of a database
 
 =item L<C<show>|sqitch-show>
 
-Show information about changes and tags, or change script contents.
+Show information about changes and tags, or change script contents
 
 =item L<C<tag>|sqitch-tag>
 

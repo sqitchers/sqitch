@@ -1,6 +1,6 @@
 =head1 Name
 
-sqitch-plan - Show database change planned changes
+sqitch-plan - Show planned database changes
 
 =head1 Synopsis
 
