@@ -38,7 +38,8 @@ is $x->exitval, 2, 'Exit val should be 2';
 is +($x->stack_trace->frames)[0]->filename, file(qw(t x.t)),
     'The trace should start in this file';
 
-throws_ok { local $@ = 'Yo dawg'; hurl 'OMFG!' } $CLASS;
+# NB: Don't use `local $@`, as it does not work on Perls < 5.14.
+throws_ok { $@ = 'Yo dawg'; hurl 'OMFG!' } $CLASS;
 isa_ok $x = $@, $CLASS, 'Thrown object';
 is $x->ident, 'DEV', 'Ident should be "DEV"';
 is $x->message, 'OMFG!', 'The message should have been passed';
