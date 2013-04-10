@@ -92,6 +92,7 @@ sub request_note {
     # Edit in a file.
     require File::Temp;
     my $tmp = File::Temp->new;
+    binmode($tmp, ":encoding(UTF-8)");
     ( my $prompt = $self->note_prompt(%p) ) =~ s/^/# /gms;
     $tmp->print( $/, $prompt, $/ );
     $tmp->close;
