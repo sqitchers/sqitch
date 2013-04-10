@@ -1,5 +1,7 @@
 Revision history for Perl extension App::Sqitch
 
+0.963
+
 0.962  2013-04-10T17:10:05Z
      - Fixed failing test on Perl 5.12 and lower.
      - Fixed the French translation by re-encoding it in UTF-8 (Ronan
