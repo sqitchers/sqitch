@@ -97,7 +97,7 @@ $sqitch_mocker->mock(run => sub {
 
     ( my $prompt = $CLASS->note_prompt(for => $for) ) =~ s/^/# /gms;
     file_contents_is $fn, "$/$prompt$/", 'Temp file contents should include prompt',
-        { encoding => 'UTF-8' };
+        { encoding => 'UTF-8' } or diag "Actual contents:\n", Path::Class::file($fn)->slurp;
 
     if ($note) {
         open my $fh, '>:encoding(UTF-8)', $fn or die "Cannot open $fn: $!";
