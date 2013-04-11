@@ -104,7 +104,6 @@ $sqitch_mocker->mock(run => sub {
         print $fh $note, $prompt, $/;
         close $fh or die "Error closing $fn: $!";
     }
-
 });
 
 throws_ok { $CLASS->new(plan => $plan )->request_note(for => $for) }

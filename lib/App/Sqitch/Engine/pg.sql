@@ -47,7 +47,7 @@ COMMENT ON COLUMN :"sqitch_schema".changes.planner_email   IS 'Email address of 
 
 CREATE TABLE :"sqitch_schema".tags (
     tag_id          TEXT        PRIMARY KEY,
-    tag             TEXT        NOT NULL UNIQUE,
+    tag             TEXT        NOT NULL,
     project         TEXT        NOT NULL REFERENCES :"sqitch_schema".projects(project) ON UPDATE CASCADE,
     change_id       TEXT        NOT NULL REFERENCES :"sqitch_schema".changes(change_id) ON UPDATE CASCADE,
     note            TEXT        NOT NULL DEFAULT '',
@@ -56,12 +56,13 @@ CREATE TABLE :"sqitch_schema".tags (
     committer_email TEXT        NOT NULL,
     planned_at      TIMESTAMPTZ NOT NULL,
     planner_name    TEXT        NOT NULL,
-    planner_email   TEXT        NOT NULL
+    planner_email   TEXT        NOT NULL,
+    UNIQUE(project, tag)
 );
 
 COMMENT ON TABLE :"sqitch_schema".tags                  IS 'Tracks the tags currently applied to the database.';
 COMMENT ON COLUMN :"sqitch_schema".tags.tag_id          IS 'Tag primary key.';
-COMMENT ON COLUMN :"sqitch_schema".tags.tag             IS 'Unique tag name.';
+COMMENT ON COLUMN :"sqitch_schema".tags.tag             IS 'Project-unique tag name.';
 COMMENT ON COLUMN :"sqitch_schema".tags.project         IS 'Name of the Sqitch project to which the tag belongs.';
 COMMENT ON COLUMN :"sqitch_schema".tags.change_id       IS 'ID of last change deployed before the tag was applied.';
 COMMENT ON COLUMN :"sqitch_schema".tags.note            IS 'Description of the tag.';

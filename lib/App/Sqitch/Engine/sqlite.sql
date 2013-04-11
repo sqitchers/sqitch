@@ -23,7 +23,7 @@ CREATE TABLE changes (
 
 CREATE TABLE tags (
     tag_id          TEXT        PRIMARY KEY,
-    tag             TEXT        NOT NULL UNIQUE,
+    tag             TEXT        NOT NULL,
     project         TEXT        NOT NULL REFERENCES projects(project) ON UPDATE CASCADE,
     change_id       TEXT        NOT NULL REFERENCES changes(change_id) ON UPDATE CASCADE,
     note            TEXT        NOT NULL DEFAULT '',
@@ -32,7 +32,8 @@ CREATE TABLE tags (
     committer_email TEXT        NOT NULL,
     planned_at      DATETIME    NOT NULL,
     planner_name    TEXT        NOT NULL,
-    planner_email   TEXT        NOT NULL
+    planner_email   TEXT        NOT NULL,
+    UNIQUE(project, tag)
 );
 
 CREATE TABLE dependencies (
