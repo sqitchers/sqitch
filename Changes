@@ -7,7 +7,10 @@ Revision history for Perl extension App::Sqitch
        Sqitch is run with no command.
      - Removed the unique constraint on tag names in the database, as it
        prevented two projects from having the same tag name. Replaced it with
-       a unique constraint on the project and tag names.
+       a unique constraint on the project and tag names. Folks with production
+       PostgreSQL installs should run these queries:
+           ALTER TABLE sqitch.tags DROP CONSTRAINT tags_tag_key, ADD UNIQUE(project, tag);
+           COMMENT ON COLUMN sqitch.tags.tag IS 'Project-unique tag name.';
 
 0.962  2013-04-10T17:10:05Z
      - Fixed failing test on Perl 5.12 and lower.
