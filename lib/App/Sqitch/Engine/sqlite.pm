@@ -73,7 +73,6 @@ has dbh => (
     lazy    => 1,
     default => sub {
         my $self = shift;
-        local $@;
         try { require DBD::SQLite } catch {
             hurl sqlite => __ 'DBD::SQLite module required to manage SQLite';
         };
