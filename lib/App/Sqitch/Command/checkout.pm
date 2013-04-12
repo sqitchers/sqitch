@@ -11,7 +11,6 @@ use App::Sqitch::X qw(hurl);
 use App::Sqitch::Plan;
 use Path::Class qw(dir);
 use Try::Tiny;
-use Git::Wrapper;
 use namespace::autoclean;
 
 extends 'App::Sqitch::Command';
@@ -19,12 +18,16 @@ with 'App::Sqitch::Role::RevertDeployCommand';
 
 our $VERSION = '0.963';
 
-has git => (
+has client => (
     is       => 'ro',
-    isa      => 'Git::Wrapper',
-    required => 1,
+    isa      => 'Str',
     lazy     => 1,
-    default  => sub { Git::Wrapper->new(dir) }
+    required => 1,
+    default  => sub {
+        my $sqitch = shift->sqitch;
+        return $sqitch->config->get( key => 'core.vcs.client' )
+            || 'git' . ( $^O eq 'MSWin32' ? '.exe' : '' );
+    },
 );
 
 sub configure { {} }
@@ -33,13 +36,13 @@ sub execute {
     my ( $self, $branch) = @_;
     $self->usage unless defined $branch;
     my $sqitch = $self->sqitch;
-    my $git    = $self->git;
+    my $git    = $self->client;
     my $engine = $sqitch->engine;
     $engine->with_verify( $self->verify );
     $engine->no_prompt( $self->no_prompt );
 
     # What branch are we on?
-    my ($current_branch) = $git->rev_parse(qw(--abbrev-ref HEAD));
+    my $current_branch = $sqitch->probe($git, qw(rev-parse --abbrev-ref HEAD));
     hurl {
         ident   => 'checkout',
         message => __x('Already on branch {branch}', branch => $branch),
@@ -52,7 +55,7 @@ sub execute {
     # Load the target plan from Git, assuming the same path.
     my $to_plan = App::Sqitch::Plan->new( sqitch => $sqitch )->parse(
         # XXX Handle missing file/no contents.
-        join "\n" => $git->show("$branch:" . $sqitch->plan_file )
+        scalar $sqitch->capture( $git, 'show', "$branch:" . $sqitch->plan_file)
     );
 
     # Find the last change the plans have in common.
@@ -89,7 +92,7 @@ sub execute {
 
 
     # Check out the new branch.
-    $git->checkout($branch);
+    $sqitch->run($git, 'checkout', $branch);
 
     # Deploy!
     if (my %v = %{ $self->deploy_variables}) { $engine->set_variables(%v) }

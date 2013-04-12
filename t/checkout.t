@@ -225,12 +225,13 @@ CONFIG: {
     }, 'Should have no_prompt true with -y';
 }
 
-# Mock the Git interface.
-my $mock_git = Test::MockModule->new('Git::Wrapper');
-my (@rev_parse_args, $rev_parsed);
-$mock_git->mock(rev_parse => sub { shift; @rev_parse_args = @_; $rev_parsed });
-my @checkout_args;
-$mock_git->mock(checkout => sub { shift; @checkout_args = @_ });
+# Mock the execution interface.
+my $mock_sqitch = Test::MockModule->new(ref $sqitch);
+my (@probe_args, $probed);
+$mock_sqitch->mock(probe => sub { shift; @probe_args = @_; $probed });
+
+my @run_args;
+$mock_sqitch->mock(run => sub { shift; @run_args = @_ });
 
 # Try rebasing to the current branch.
 isa_ok my $checkout = App::Sqitch::Command->load({
@@ -238,35 +239,22 @@ isa_ok my $checkout = App::Sqitch::Command->load({
     command => 'checkout',
     config  => $config,
 }), $CLASS, 'checkout command';
+my $client = $checkout->client;
 
-$rev_parsed = 'fixdupes';
-throws_ok { $checkout->execute($rev_parsed) } 'App::Sqitch::X',
+$probed = 'fixdupes';
+throws_ok { $checkout->execute($probed) } 'App::Sqitch::X',
     'Should get an error current branch';
 is $@->ident, 'checkout', 'Current branch error ident should be "checkout"';
-is $@->message, __x('Already on branch {branch}', branch => $rev_parsed),
+is $@->message, __x('Already on branch {branch}', branch => $probed),
     'Should get proper error for current branch error';
-is_deeply \@rev_parse_args, [qw(--abbrev-ref HEAD)],
+is_deeply \@probe_args, [$client, qw(rev-parse --abbrev-ref HEAD)],
     'The proper args should have been passed to rev-parse';
-@rev_parse_args = ();
-
-# Make sure that Git deaths are passed-through.
-$mock_git->mock(show => sub {
-    die Git::Wrapper::Exception->new(
-        output => [],
-        error  => [q{fatal: Path 'nonesuch.plan' does not exist in 'master'}],
-        status => 128,
-    );
-});
-throws_ok { $checkout->execute('master') } 'Git::Wrapper::Exception',
-    'Should get an exception for a non-existent plan file';
-is $@->status, 128, 'Exitval should be 128';
-is $@->error, "fatal: Path 'nonesuch.plan' does not exist in 'master'\n",
-    'Should have the proper error output';
+@probe_args = ();
 
 # Try a plan with nothing in common with the current branch's plan.
-my (@show_args, $showed);
-$mock_git->mock(show => sub { shift; @show_args = @_; $showed });
-$showed = q{%project=sql
+my (@capture_args, $captured);
+$mock_sqitch->mock(capture => sub { shift; @capture_args = @_; $captured });
+$captured = q{%project=sql
 
 foo 2012-07-16T17:25:07Z Barack Obama <potus@whitehouse.gov>
 bar 2012-07-16T17:25:07Z Barack Obama <potus@whitehouse.gov>
@@ -279,7 +267,7 @@ is $@->ident, 'checkout',
 is $@->message, __x(
     'Target branch {target} has no canges in common with source branch {source}',
     target => 'master',
-    source => $rev_parsed,
+    source => $probed,
 ), 'The no common change error message should be correct';
 
 # Mock the engine interface.
@@ -299,10 +287,10 @@ my @vars;
 $mock_engine->mock(set_variables => sub { shift; push @vars => [@_] });
 
 # Load up the plan file without decoding and change the plan.
-$showed = file(qw(t sql sqitch.plan))->slurp;
+$captured = file(qw(t sql sqitch.plan))->slurp;
 {
     no utf8;
-    $showed =~ s/widgets/thingíes/;
+    $captured =~ s/widgets/thingíes/;
 }
 
 # Checkout with options.
@@ -316,11 +304,11 @@ isa_ok $checkout = $CLASS->new(
 ), $CLASS, 'Object with to and variables';
 
 ok $checkout->execute('master'), 'Checkout master';
-is_deeply \@rev_parse_args, [qw(--abbrev-ref HEAD)],
+is_deeply \@probe_args, [$client, qw(rev-parse --abbrev-ref HEAD)],
     'The proper args should again have been passed to rev-parse';
-is_deeply \@show_args, ['master:' . $sqitch->plan_file ],
+is_deeply \@capture_args, [$client, 'show', 'master:' . $sqitch->plan_file ],
     'Should have requested the plan file contents as of master';
-is_deeply \@checkout_args, ['master'], 'Should have checked out other branch';
+is_deeply \@run_args, [$client, qw(checkout master)], 'Should have checked out other branch';
 
 is_deeply +MockOutput->get_info, [[__x(
     'Last change before the branches diverged: {last_change}',

@@ -595,6 +595,20 @@ directory as C<db_name>.
 
 =back
 
+=head3 C<core.vcs>
+
+Configuration properties for the version control system. Currently, only Git
+is supported.
+
+=over
+
+=item C<core.vcs.client>
+
+Path to the C<VCS> command-line client. Defaults to the first instance of
+F<git> found in the path.
+
+=back
+
 =head3 C<user>
 
 =over

@@ -12,6 +12,12 @@ Revision history for Perl extension App::Sqitch
            ALTER TABLE sqitch.tags DROP CONSTRAINT tags_tag_key, ADD UNIQUE(project, tag);
            COMMENT ON COLUMN sqitch.tags.tag IS 'Project-unique tag name.';
      - Fixed failing tests when DBD::SQLite is not installed.
+     - Removed dependency on Git::Wrapper. The `checkout` command does things
+       very simply, and we already have tools for running command-line
+       applications. So we just take advantage of that. The code is no more
+       complicated than it was before.
+     - Added the `core.vcs.client` configuration setting. Defaults to `git`
+       (or `git.exe` on Windows).
 
 0.962  2013-04-10T17:10:05Z
      - Fixed failing test on Perl 5.12 and lower.
