@@ -54,10 +54,19 @@ is_deeply [$sqlite->sqlite3], [$sqlite->client, @std_opts, $sqlite->db_name],
 ##############################################################################
 # Make sure we get an error for no database name.
 isa_ok $sqlite = $CLASS->new(sqitch => $sqitch), $CLASS;
-throws_ok { $sqlite->dbh } 'App::Sqitch::X', 'Should get an error for no db name';
-is $@->ident, 'sqlite', 'Missing db name error ident should be "sqlite"';
-is $@->message, __ 'No database specified; use --db-name set "ore.sqlite.db_name" via sqitch config',
-    'Missing db name error message should be correct';
+my $have_sqlite = try { require DBD::SQLite };
+if ($have_sqlite) {
+    throws_ok { $sqlite->dbh } 'App::Sqitch::X', 'Should get an error for no db name';
+    is $@->ident, 'sqlite', 'Missing db name error ident should be "sqlite"';
+    is $@->message, __ 'No database specified; use --db-name set "ore.sqlite.db_name" via sqitch config',
+        'Missing db name error message should be correct';
+} else {
+    throws_ok { $sqlite->dbh } 'App::Sqitch::X',
+        'Should get an error without DBD::SQLite';
+    is $@->ident, 'sqlite', 'No DBD::SQLite error ident should be "sqlite"';
+    is $@->message, __ 'DBD::SQLite module required to manage SQLite',
+        'No DBD::SQLite error message should be correct';
+}
 
 ##############################################################################
 # Make sure config settings override defaults.
@@ -123,20 +132,19 @@ is_deeply \@capture, [$sqlite->sqlite3, qw(foo bar baz)],
     'Command should be passed to capture()';
 
 # Test file and handle running.
-ok $sqlite->run_file('foo/bar.sql'), 'Run foo/bar.sql';
-is_deeply \@run, [$sqlite->sqlite3, ".read 'foo/bar.sql'"],
-    'File should be passed to run()';
+SKIP: {
+    skip 'DBD::SQLite not installed', 2 unless $have_sqlite;
+    ok $sqlite->run_file('foo/bar.sql'), 'Run foo/bar.sql';
+    is_deeply \@run, [$sqlite->sqlite3, ".read 'foo/bar.sql'"],
+        'File should be passed to run()';
+}
 
 ok $sqlite->run_handle('FH'), 'Spool a "file handle"';
 is_deeply \@spool, ['FH', $sqlite->sqlite3],
     'Handle should be passed to spool()';
 
-QUOTE: {
-    try {
-        require DBD::SQLite;
-    } catch {
-        skip 'DBD::SQLite not installed', 2;
-    };
+SKIP: {
+    skip 'DBD::SQLite not installed', 2 unless $have_sqlite;
 
     # Verify should go to capture unless verosity is > 1.
     ok $sqlite->run_verify('foo/bar.sql'), 'Verify foo/bar.sql';

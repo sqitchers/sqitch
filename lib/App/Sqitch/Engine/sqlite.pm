@@ -73,7 +73,8 @@ has dbh => (
     lazy    => 1,
     default => sub {
         my $self = shift;
-        eval "require DBD::SQLite";
+        local $@;
+        eval 'require DBD::SQLite';
         hurl sqlite => __ 'DBD::SQLite module required to manage SQLite' if $@;
 
         my $dsn = 'dbi:SQLite:dbname=' . ($self->sqitch_db || hurl sqlite => __(

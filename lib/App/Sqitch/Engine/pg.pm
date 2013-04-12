@@ -154,6 +154,7 @@ has dbh => (
     lazy    => 1,
     default => sub {
         my $self = shift;
+        local $@;
         eval "require DBD::Pg";
         hurl pg => __ 'DBD::Pg module required to manage PostgreSQL' if $@;
 

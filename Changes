@@ -11,6 +11,7 @@ Revision history for Perl extension App::Sqitch
        PostgreSQL installs should run these queries:
            ALTER TABLE sqitch.tags DROP CONSTRAINT tags_tag_key, ADD UNIQUE(project, tag);
            COMMENT ON COLUMN sqitch.tags.tag IS 'Project-unique tag name.';
+     - Fixed failing tests when DBD::SQLite is not installed.
 
 0.962  2013-04-10T17:10:05Z
      - Fixed failing test on Perl 5.12 and lower.
