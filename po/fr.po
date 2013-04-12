@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Sqitch 0.932\n"
 "Report-Msgid-Bugs-To: david@justatheory.com\n"
-"POT-Creation-Date: 2013-04-05 15:01-0700\n"
+"POT-Creation-Date: 2013-04-12 12:11-0700\n"
 "PO-Revision-Date: 2012-10-12 11:28-0700\n"
 "Last-Translator: Arnaud Assad <arhuman@gmail.com>\n"
 "Language-Team: French <arhuman@gmail.com>\n"
@@ -231,8 +231,8 @@ msgstr "Impossible de trouver {target} dans le plan"
 #, fuzzy, perl-brace-format
 msgid "Change \"{change}\" is deployed, but not planned"
 msgstr ""
-"Le changement \"{change}\" duplique une déclaration précédente à la "
-"ligne {line}"
+"Le changement \"{change}\" duplique une déclaration précédente à la ligne "
+"{line}"
 
 #: lib/App/Sqitch/Engine.pm:387
 msgid "Out of order"
@@ -435,36 +435,36 @@ msgstr "{attr} n'est pas un changement d'attribut valide"
 msgid "Unknown format code \"{code}\""
 msgstr "Code de format de journalisation  \"{code}\" inconnu"
 
-#: lib/App/Sqitch/Plan.pm:120
+#: lib/App/Sqitch/Plan.pm:119
 #, perl-brace-format
 msgid "Plan file {file} does not exist"
 msgstr "Le fichier de plan {file} n'existe pas"
 
-#: lib/App/Sqitch/Plan.pm:122
+#: lib/App/Sqitch/Plan.pm:121
 #, perl-brace-format
 msgid "Plan file {file} is not a regular file"
 msgstr "Le fichier de plan {file} n'est pas un fichier régulier"
 
-#: lib/App/Sqitch/Plan.pm:125 lib/App/Sqitch/Plan.pm:576
-#: lib/App/Sqitch/Plan.pm:960 lib/App/Sqitch/Command/add.pm:230
-#: lib/App/Sqitch/Command/add.pm:256 lib/App/Sqitch/Command/init.pm:100
-#: lib/App/Sqitch/Plan/Line.pm:102
+#: lib/App/Sqitch/Plan.pm:124 lib/App/Sqitch/Plan.pm:575
+#: lib/App/Sqitch/Plan.pm:959 lib/App/Sqitch/Command/add.pm:230
+#: lib/App/Sqitch/Command/add.pm:256 lib/App/Sqitch/Command/init.pm:101
+#: lib/App/Sqitch/Plan/Line.pm:103
 #, perl-brace-format
 msgid "Cannot open {file}: {error}"
 msgstr "Impossible d'ouvrir {file} : {error}"
 
-#: lib/App/Sqitch/Plan.pm:173
+#: lib/App/Sqitch/Plan.pm:172
 #, perl-brace-format
 msgid "Syntax error in {file} at line {lineno}: {error}"
 msgstr "Erreur de syntaxe dans {file} à la ligne {lineno} : {error}"
 
-#: lib/App/Sqitch/Plan.pm:197
+#: lib/App/Sqitch/Plan.pm:196
 msgid "Invalid pragma; a blank line must come between pragmas and changes"
 msgstr ""
 "Pragma invalide; une ligne vide doit s'intercaler entre les pragmas et les "
 "changements"
 
-#: lib/App/Sqitch/Plan.pm:228 lib/App/Sqitch/Command/init.pm:47
+#: lib/App/Sqitch/Plan.pm:227 lib/App/Sqitch/Command/init.pm:48
 #, fuzzy, perl-brace-format
 msgid ""
 "invalid project name \"{project}\": project names must not begin with "
@@ -475,12 +475,12 @@ msgstr ""
 "commencer par de la ponctuation, contenir \"@\", \":\", ou \"#\", ou se "
 "terminer par de la ponctuation ou des chiffres après de la ponctuation"
 
-#: lib/App/Sqitch/Plan.pm:254
+#: lib/App/Sqitch/Plan.pm:253
 #, perl-format, perl-brace-format
 msgid "Missing %project pragma in {file}"
 msgstr "Pragma %project absent dans {file}"
 
-#: lib/App/Sqitch/Plan.pm:309
+#: lib/App/Sqitch/Plan.pm:308
 #, fuzzy
 msgid ""
 "Invalid name; names must not begin with punctuation, contain \"@\", \":\", "
@@ -490,62 +490,62 @@ msgstr ""
 "contenir  \"@\", \":\", ou \"#\", ou se terminer par de la ponctuation ou "
 "des chiffres après de la ponctuation"
 
-#: lib/App/Sqitch/Plan.pm:314
+#: lib/App/Sqitch/Plan.pm:313
 msgid "Missing timestamp and planner name and email"
 msgstr "Horodatage, nom et email du plannificateur absents"
 
-#: lib/App/Sqitch/Plan.pm:316
+#: lib/App/Sqitch/Plan.pm:315
 msgid "Missing timestamp"
 msgstr "Horodatage absent"
 
-#: lib/App/Sqitch/Plan.pm:318
+#: lib/App/Sqitch/Plan.pm:317
 msgid "Missing planner name and email"
 msgstr "Nom et email du plannificateur absents"
 
-#: lib/App/Sqitch/Plan.pm:323 lib/App/Sqitch/Plan.pm:885
+#: lib/App/Sqitch/Plan.pm:322 lib/App/Sqitch/Plan.pm:884
 #, perl-brace-format
 msgid "\"{name}\" is a reserved name"
 msgstr "\"{name}\" est un nom réservé"
 
-#: lib/App/Sqitch/Plan.pm:329 lib/App/Sqitch/Plan.pm:889
+#: lib/App/Sqitch/Plan.pm:328 lib/App/Sqitch/Plan.pm:888
 #, perl-brace-format
 msgid "\"{name}\" is invalid because it could be confused with a SHA1 ID"
 msgstr "\"{name}\" est invalide car il pourrait être confondu avec un ID SHA1"
 
-#: lib/App/Sqitch/Plan.pm:348
+#: lib/App/Sqitch/Plan.pm:347
 #, perl-brace-format
 msgid "Tag \"{tag}\" declared without a preceding change"
 msgstr "Étiquette \"{tag}\" déclarée sans changement préalable"
 
-#: lib/App/Sqitch/Plan.pm:357
+#: lib/App/Sqitch/Plan.pm:356
 #, perl-brace-format
 msgid "Tag \"{tag}\" duplicates earlier declaration on line {line}"
 msgstr ""
 "Étiquette \"{tag}\" duplique une déclaration précédente à la ligne {line}"
 
-#: lib/App/Sqitch/Plan.pm:365
+#: lib/App/Sqitch/Plan.pm:364
 msgid "Tags may not specify dependencies"
 msgstr "Les étiquettes ne peuvent pas spécifier les dépendances"
 
-#: lib/App/Sqitch/Plan.pm:394
+#: lib/App/Sqitch/Plan.pm:393
 #, perl-brace-format
 msgid "Change \"{change}\" duplicates earlier declaration on line {line}"
 msgstr ""
-"Le changement \"{change}\" duplique une déclaration précédente à la "
-"ligne {line}"
+"Le changement \"{change}\" duplique une déclaration précédente à la ligne "
+"{line}"
 
-#: lib/App/Sqitch/Plan.pm:407 lib/App/Sqitch/Plan.pm:757
-#: lib/App/Sqitch/Plan.pm:769
+#: lib/App/Sqitch/Plan.pm:406 lib/App/Sqitch/Plan.pm:756
+#: lib/App/Sqitch/Plan.pm:768
 #, perl-brace-format
 msgid "\"{dep}\" is not a valid dependency specification"
 msgstr "\"{dep}\" n'est pas une spécification de dépendance valide"
 
-#: lib/App/Sqitch/Plan.pm:525
+#: lib/App/Sqitch/Plan.pm:524
 #, perl-brace-format
 msgid "Change \"{change}\" cannot require itself"
 msgstr ""
 
-#: lib/App/Sqitch/Plan.pm:532
+#: lib/App/Sqitch/Plan.pm:531
 #, fuzzy, perl-brace-format
 msgid ""
 "Change \"{change}\" planned {num} change before required change "
@@ -560,46 +560,45 @@ msgstr[1] ""
 "Impossible de retravailler le changement \"{change}\" : il requiert un "
 "changement inconnu \"{req}\""
 
-#: lib/App/Sqitch/Plan.pm:541
+#: lib/App/Sqitch/Plan.pm:540
 #, perl-brace-format
 msgid "Unknown change \"{required}\" required by change \"{change}\""
 msgstr "Changement \"{required}\" inconnu requis par le changemet \"{change}\""
 
-#: lib/App/Sqitch/Plan.pm:551
+#: lib/App/Sqitch/Plan.pm:550
 #, perl-brace-format
 msgid "HINT: move \"{change}\" down {num} line in {plan}"
 msgid_plural "HINT: move \"{change}\" down {num} lines in {plan}"
 msgstr[0] ""
 msgstr[1] ""
 
-#: lib/App/Sqitch/Plan.pm:565
+#: lib/App/Sqitch/Plan.pm:564
 msgid "Dependency error detected:"
 msgid_plural "Dependency errors detected:"
 msgstr[0] ""
 msgstr[1] ""
 
-#: lib/App/Sqitch/Plan.pm:662
+#: lib/App/Sqitch/Plan.pm:661
 #, perl-brace-format
 msgid "Cannot find change \"{change}\" in plan"
 msgstr "Impossible de trouver le changement \"{change}\" dans le plan"
 
-#: lib/App/Sqitch/Plan.pm:717
+#: lib/App/Sqitch/Plan.pm:716
 #, perl-brace-format
 msgid "Tag \"{tag}\" already exists"
 msgstr "L'étiquette \"{tag}\" existe déjà"
 
-#: lib/App/Sqitch/Plan.pm:725 lib/App/Sqitch/Plan/ChangeList.pm:138
+#: lib/App/Sqitch/Plan.pm:724 lib/App/Sqitch/Plan/ChangeList.pm:138
 #, perl-brace-format
 msgid "Unknown change: \"{change}\""
 msgstr "Changement inconnu \"{change}\" "
 
-#: lib/App/Sqitch/Plan.pm:730
+#: lib/App/Sqitch/Plan.pm:729
 #, perl-brace-format
 msgid "Cannot apply tag \"{tag}\" to a plan with no changes"
-msgstr ""
-"Impossible d'appliquer l'étiquette \"{tag}\" à un plan sans changement"
+msgstr "Impossible d'appliquer l'étiquette \"{tag}\" à un plan sans changement"
 
-#: lib/App/Sqitch/Plan.pm:788
+#: lib/App/Sqitch/Plan.pm:787
 #, perl-brace-format
 msgid ""
 "Change \"{change}\" already exists.\n"
@@ -608,7 +607,7 @@ msgstr ""
 "Changement \"{change}\" déjà existant.\n"
 "Utiliser \"sqitch rework\" pour le copier et le retravailler"
 
-#: lib/App/Sqitch/Plan.pm:822
+#: lib/App/Sqitch/Plan.pm:821
 #, perl-brace-format
 msgid ""
 "Change \"{change}\" does not exist.\n"
@@ -617,7 +616,7 @@ msgstr ""
 "Le changement \"{change}\" n'existe pas.\n"
 "Utiliser \"sqitch add {change}\" pour l'ajouter au plan"
 
-#: lib/App/Sqitch/Plan.pm:829
+#: lib/App/Sqitch/Plan.pm:828
 #, perl-brace-format
 msgid ""
 "Cannot rework \"{change}\" without an intervening tag.\n"
@@ -626,21 +625,21 @@ msgstr ""
 "Retravail de \"{change}\" impossible sans un tag d'intervention.\n"
 "Utiliser \"sqitch tag\" pour créer un tag et recommencer"
 
-#: lib/App/Sqitch/Plan.pm:867
+#: lib/App/Sqitch/Plan.pm:866
 #, perl-brace-format
 msgid "Cannot add change \"{change}\": requires unknown change \"{req}\""
 msgstr ""
 "Impossible d'ajouter le changement \"{change}\" : il requiert un changement "
 "inconnu \"{req}\""
 
-#: lib/App/Sqitch/Plan.pm:873
+#: lib/App/Sqitch/Plan.pm:872
 #, perl-brace-format
 msgid "Cannot rework change \"{change}\": requires unknown change \"{req}\""
 msgstr ""
 "Impossible de retravailler le changement \"{change}\" : il requiert un "
 "changement inconnu \"{req}\""
 
-#: lib/App/Sqitch/Plan.pm:896
+#: lib/App/Sqitch/Plan.pm:895
 #, fuzzy, perl-brace-format
 msgid ""
 "\"{name}\" is invalid: changes must not begin with punctuation, contain \"@"
@@ -651,7 +650,7 @@ msgstr ""
 "ponctuation, contenir  \"@\", \":\", ou \"#\", ou se terminer par de la "
 "ponctuation ou des chiffres après de la ponctuation"
 
-#: lib/App/Sqitch/Plan.pm:902
+#: lib/App/Sqitch/Plan.pm:901
 #, fuzzy, perl-brace-format
 msgid ""
 "\"{name}\" is invalid: tags must not begin with punctuation, contain \"@\", "
@@ -662,13 +661,13 @@ msgstr ""
 "ponctuation, contenir  \"@\", \":\", ou \"#\", ou se terminer par de la "
 "ponctuation ou des chiffres après de la ponctuation"
 
-#: lib/App/Sqitch/Plan.pm:932 lib/App/Sqitch/Plan.pm:941
+#: lib/App/Sqitch/Plan.pm:931 lib/App/Sqitch/Plan.pm:940
 #: lib/App/Sqitch/Command/bundle.pm:202 lib/App/Sqitch/Command/bundle.pm:209
 #, perl-brace-format
 msgid "Cannot find change {change}"
 msgstr "Impossible de trouver le changement {change}"
 
-#: lib/App/Sqitch/Plan.pm:966
+#: lib/App/Sqitch/Plan.pm:965
 #, perl-brace-format
 msgid "\"Error closing {file}: {error}"
 msgstr "\"Erreur à la fermeture de {file} : {error}"
@@ -703,19 +702,19 @@ msgid "Skipped {file}: already exists"
 msgstr "Ignoré {file}: existe déjà"
 
 #: lib/App/Sqitch/Command/add.pm:222 lib/App/Sqitch/Command/bundle.pm:122
-#: lib/App/Sqitch/Command/init.pm:84
+#: lib/App/Sqitch/Command/init.pm:85
 #, perl-brace-format
 msgid "Error creating {path}: {error}"
 msgstr "Erreur à la création de {path} : {error}"
 
-#: lib/App/Sqitch/Command/add.pm:245 lib/App/Sqitch/Command/init.pm:111
+#: lib/App/Sqitch/Command/add.pm:245 lib/App/Sqitch/Command/init.pm:112
 #, perl-brace-format
 msgid "Error closing {file}: {error}"
 msgstr "Erreur à la fermeture de {file} : {error}"
 
 #: lib/App/Sqitch/Command/add.pm:250 lib/App/Sqitch/Command/bundle.pm:115
-#: lib/App/Sqitch/Command/init.pm:78 lib/App/Sqitch/Command/init.pm:116
-#: lib/App/Sqitch/Command/init.pm:260
+#: lib/App/Sqitch/Command/init.pm:79 lib/App/Sqitch/Command/init.pm:117
+#: lib/App/Sqitch/Command/init.pm:262
 #, perl-brace-format
 msgid "Created {file}"
 msgstr "{file} crée"
@@ -757,7 +756,7 @@ msgstr "Écriture du plan de {from} à {to}"
 msgid "Writing scripts"
 msgstr "Écriture des scripts"
 
-#: lib/App/Sqitch/Command/checkout.pm:46
+#: lib/App/Sqitch/Command/checkout.pm:48
 #, perl-brace-format
 msgid "Already on branch {branch}"
 msgstr ""
@@ -969,8 +968,7 @@ msgstr "Impossible de trouver ce changement dans {file}"
 
 #: lib/App/Sqitch/Command/status.pm:249
 msgid "Make sure you are connected to the proper database for this project."
-msgstr ""
-"Assurez-vous d'être connecté à la bonne base de données pour ce projet"
+msgstr "Assurez-vous d'être connecté à la bonne base de données pour ce projet"
 
 #: lib/App/Sqitch/Command/tag.pm:41
 msgid "tag"
@@ -981,27 +979,27 @@ msgstr "étiquette"
 msgid "Tagged \"{change}\" with {tag}"
 msgstr "\"{change}\" étiquetté avec {tag}"
 
-#: lib/App/Sqitch/Engine/pg.pm:158
+#: lib/App/Sqitch/Engine/pg.pm:159
 msgid "DBD::Pg module required to manage PostgreSQL"
 msgstr "Module DBD::Pg requis pour gérer PostgreSQL"
 
-#: lib/App/Sqitch/Engine/pg.pm:241
+#: lib/App/Sqitch/Engine/pg.pm:242
 #, perl-brace-format
 msgid "Sqitch schema \"{schema}\" already exists"
 msgstr "Le schéma Sqitch \"{schema}\" existe déjà"
 
-#: lib/App/Sqitch/Engine/sqlite.pm:77
+#: lib/App/Sqitch/Engine/sqlite.pm:78
 #, fuzzy
-msgid "DBD::SQLite module required to manage PostgreSQL"
+msgid "DBD::SQLite module required to manage SQLite"
 msgstr "Module DBD::Pg requis pour gérer PostgreSQL"
 
-#: lib/App/Sqitch/Engine/sqlite.pm:80
+#: lib/App/Sqitch/Engine/sqlite.pm:81
 msgid ""
 "No database specified; use --db-name set \"ore.sqlite.db_name\" via sqitch "
 "config"
 msgstr ""
 
-#: lib/App/Sqitch/Engine/sqlite.pm:144
+#: lib/App/Sqitch/Engine/sqlite.pm:145
 #, perl-brace-format
 msgid "Sqitch database {database} already initialized"
 msgstr ""
@@ -1030,11 +1028,11 @@ msgstr "Clé {key} indexée plusieurs fois"
 msgid "Unable to find change \"{change}\" in plan {file}"
 msgstr "Incapable de trouver le changement \"{change}\" dans le plan {file}"
 
-#: lib/App/Sqitch/Plan/Line.pm:110
+#: lib/App/Sqitch/Plan/Line.pm:111
 msgid "Aborting due to empty note"
 msgstr "Abandon dû à une note vide"
 
-#: lib/App/Sqitch/Plan/Line.pm:126
+#: lib/App/Sqitch/Plan/Line.pm:127
 #, perl-brace-format
 msgid ""
 "Write a {command} note.\n"
@@ -1056,8 +1054,8 @@ msgstr ""
 msgid ""
 "Cannot register \"{project}\" without URI: already exists with URI {uri}"
 msgstr ""
-"Impossible d'enregistrer \"{project}\" sans URI : il existe déjà avec "
-"l'URI {uri}"
+"Impossible d'enregistrer \"{project}\" sans URI : il existe déjà avec l'URI "
+"{uri}"
 
 #: lib/App/Sqitch/Role/DBIEngine.pm:295 t/lib/DBIEngineTest.pm:164
 #, perl-brace-format
