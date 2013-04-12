@@ -1,6 +1,6 @@
 Revision history for Perl extension App::Sqitch
 
-0.963
+0.963  2013-04-12T19:11:29Z
      - Fixed a test failure when Git is in the execution path and the test is
        not run from a Git checkout.
      - Added `plan` to `sqitchchanges`, the contents of which are shown when

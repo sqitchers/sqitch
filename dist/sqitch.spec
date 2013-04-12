@@ -189,11 +189,16 @@ package bundles the Sqitch SQLite support.
 # No additional files required.
 
 %changelog
+* Thu Apr 12 2013 David E. Wheeler <david.wheeler@iovation.com> 0.963-1
+- Upgrade to v0.963.
+- Add missing dependency on Devel::StackTrace 1.30.
+- Remove dependency on Git::Wrapper.
+
 * Tue Apr 10 2013 David E. Wheeler <david.wheeler@iovation.com> 0.962-1
-- upgrade to v0.962.
+- Upgrade to v0.962.
 
 * Tue Apr 9 2013 David E. Wheeler <david.wheeler@iovation.com> 0.961-1
-- upgrade to v0.961.
+- Upgrade to v0.961.
 
 * Mon Apr 8 2013 David E. Wheeler <david.wheeler@iovation.com> 0.960-2
 - Add missing dependency on Git::Wrapper.
