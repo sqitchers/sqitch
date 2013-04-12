@@ -223,7 +223,7 @@ SYSTEMCONF: {
     is_deeply read_config $conf_file, {
         'core.extension' => 'foo',
         'core.engine' => 'pg',
-    }, 'The configuration should have local and system config';
+    }, 'The configuration should have local and system config' or diag $conf_file->slurp;
     is_deeply +MockOutput->get_info, [
         [__x 'Created {file}', file => $conf_file]
     ], 'The creation should be sent to info again';
@@ -370,7 +370,7 @@ is_deeply read_config $conf_file, {
     'core.pg.username' => 'anna',
     'core.pg.host'     => 'banana',
     'core.pg.port'     => 93453,
-}, 'The configuration should have been written with pg values';
+}, 'The configuration should have been written with pg values' or diag $conf_file->slurp;
 
 file_contents_like $conf_file, qr/^\t# sqitch_schema = sqitch\n/m,
     'sqitch_schema should be included in a comment';
@@ -388,7 +388,7 @@ is_deeply +MockOutput->get_info, [
 ], 'The creation should be sent to info again again again';
 is_deeply read_config $conf_file, {
     'core.engine' => 'pg',
-}, 'The configuration should have been written with only the engine var';
+}, 'The configuration should have been written with only the engine var' or diag $conf_file->slurp;
 
 file_contents_like $conf_file, qr{^\Q# [core "pg"]
 	# client = psql$exe_ext
@@ -419,7 +419,7 @@ USERCONF: {
     is_deeply read_config $conf_file, {
         'core.engine'      => 'pg',
         'core.pg.db_name'  => 'thingies',
-    }, 'The configuration should have been written with pg options';
+    }, 'The configuration should have been written with pg options' or diag $conf_file->slurp;
 
     file_contents_like $conf_file, qr/^\t# sqitch_schema = meta\n/m,
         'Configured sqitch_schema should be in a comment';
