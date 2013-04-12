@@ -154,9 +154,9 @@ has dbh => (
     lazy    => 1,
     default => sub {
         my $self = shift;
-        local $@;
-        eval "require DBD::Pg";
-        hurl pg => __ 'DBD::Pg module required to manage PostgreSQL' if $@;
+        try { require DBD::Pg } catch {
+            hurl pg => __ 'DBD::Pg module required to manage PostgreSQL' if $@;
+        };
 
         my $dsn = 'dbi:Pg:' . join ';' => map {
             "$_->[0]=$_->[1]"
