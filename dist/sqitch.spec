@@ -74,6 +74,7 @@ Requires:       perl(Config)
 Requires:       perl(Config::GitLike) >= 1.09
 Requires:       perl(constant)
 Requires:       perl(DateTime)
+Requires:       perl(Devel::StackTrace) >= 1.30
 Requires:       perl(Digest::SHA1)
 Requires:       perl(Encode)
 Requires:       perl(File::Basename)
