@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Sqitch 0.932\n"
 "Report-Msgid-Bugs-To: david@justatheory.com\n"
-"POT-Creation-Date: 2013-04-12 12:11-0700\n"
+"POT-Creation-Date: 2013-04-15 11:45-0700\n"
 "PO-Revision-Date: 2012-08-31 17:15-0700\n"
 "Last-Translator: David Wheeler <david@justatheory.com>\n"
 "Language-Team: German <david@justatheory.com>\n"
@@ -934,7 +934,7 @@ msgstr ""
 msgid "Tagged \"{change}\" with {tag}"
 msgstr ""
 
-#: lib/App/Sqitch/Engine/pg.pm:159
+#: lib/App/Sqitch/Engine/pg.pm:158
 msgid "DBD::Pg module required to manage PostgreSQL"
 msgstr ""
 
@@ -943,7 +943,7 @@ msgstr ""
 msgid "Sqitch schema \"{schema}\" already exists"
 msgstr ""
 
-#: lib/App/Sqitch/Engine/sqlite.pm:78
+#: lib/App/Sqitch/Engine/sqlite.pm:77
 msgid "DBD::SQLite module required to manage SQLite"
 msgstr ""
 
