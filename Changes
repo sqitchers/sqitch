@@ -1,8 +1,8 @@
 Revision history for Perl extension App::Sqitch
 
 0.964
-     - Fixed test failure on Perl versions lower than 5.14 when DBD::SQLite or
-       DBD::Pg is not installed.
+     - Fixed test failures on Perl versions lower than 5.14 when DBD::SQLite
+       or DBD::Pg is not installed.
      - Removed DBD::SQLite from the list of build dependencies.
      - Fixed test failures due to encoded (wide-character) warnings on
        triggered on systems with non-english locales. Thanks to Alexandr
@@ -10,6 +10,8 @@ Revision history for Perl extension App::Sqitch
      - Removed overriding of Throwable's `previous_exception` in
        App::Sqitch::X on Throwable 0.200007 and higher, where it is no longer
        needed.
+     - Changed test comparing file contents that fails on Windows to do a
+       looser comparison and hopefully fix the test failure.
 
 0.963  2013-04-12T19:11:29Z
      - Fixed a test failure when Git is in the execution path and the test is
