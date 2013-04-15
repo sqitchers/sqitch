@@ -8,6 +8,7 @@ use Test::More tests => 33;
 use Locale::TextDomain qw(App-Sqitch);
 use Test::NoWarnings;
 use Test::Exception;
+use Encode;
 
 my $CLASS = 'App::Sqitch::DateTime';
 require_ok $CLASS;
@@ -75,7 +76,7 @@ for my $spec (
     my $clone = $dt->clone;
     $clone->set_time_zone('UTC');
     is $dt->as_string( format => $spec->[0] ), $spec->[1],
-        qq{Date format "$spec->[0]" should yield "$spec->[1]"};
+        sprintf 'Date format "%s" should yield "%s"', $spec->[0], encode_utf8 $spec->[1];
     ok $dt->validate_as_string_format($spec->[0]),
         qq{Format "$spec->[0]" should be valid} if $spec->[0];
 }

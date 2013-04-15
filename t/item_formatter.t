@@ -14,6 +14,7 @@ use Path::Class;
 use Term::ANSIColor qw(color);
 use lib 't/lib';
 use MockOutput;
+use Encode;
 
 my $CLASS = 'App::Sqitch::ItemFormatter';
 require_ok $CLASS;
@@ -203,7 +204,7 @@ for my $spec (
     ['%{committer_name}a', $event, "committer_name $event->{committer_name}\n" ],
     ['%{committed_at}a',   $event, "committed_at $craw\n" ],
 ) {
-    (my $desc = $spec->[2]) =~ s/\n/[newline]/g;
+    (my $desc = encode_utf8 $spec->[2]) =~ s/\n/[newline]/g;
     local $ENV{ANSI_COLORS_DISABLED} = 1;
     is $formatter->format( $spec->[0], $spec->[1] ), $spec->[2],
         qq{Format "$spec->[0]" should output "$desc"};

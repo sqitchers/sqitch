@@ -14,6 +14,7 @@ use Path::Class;
 use Term::ANSIColor qw(color);
 use lib 't/lib';
 use MockOutput;
+use Encode;
 
 my $CLASS = 'App::Sqitch::Command::plan';
 require_ok $CLASS;
@@ -415,7 +416,7 @@ for my $spec (
     ['%{conflicts}a', $change, '' ],
 ) {
     local $ENV{ANSI_COLORS_DISABLED} = 1;
-    (my $desc = $spec->[2]) =~ s/\n/[newline]/g;
+    (my $desc = encode_utf8 $spec->[2]) =~ s/\n/[newline]/g;
     is $formatter->format( $spec->[0], $spec->[1] ), $spec->[2],
         qq{Format "$spec->[0]" should output "$desc"};
 }
