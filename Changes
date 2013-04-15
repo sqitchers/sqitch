@@ -7,6 +7,9 @@ Revision history for Perl extension App::Sqitch
      - Fixed test failures due to encoded (wide-character) warnings on
        triggered on systems with non-english locales. Thanks to Alexandr
        Ciornii for the smoke testing that revealed this issue.
+     - Removed overriding of Throwable's `previous_exception` in
+       App::Sqitch::X on Throwable 0.200007 and higher, where it is no longer
+       needed.
 
 0.963  2013-04-12T19:11:29Z
      - Fixed a test failure when Git is in the execution path and the test is
