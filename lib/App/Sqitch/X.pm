@@ -35,8 +35,7 @@ with qw(
 
 has '+ident' => (default => 'DEV');
 has '+previous_exception' => (init_arg => 'previous_exception')
-    if Throwable->version < 0.200007;
-
+    if Throwable->VERSION < 0.200007;
 
 sub hurl {
     @_ = (
