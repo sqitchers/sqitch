@@ -1,6 +1,6 @@
 Revision history for Perl extension App::Sqitch
 
-0.964
+0.964  2013-04-15T18:47:30Z
      - Fixed test failures on Perl versions lower than 5.14 when DBD::SQLite
        or DBD::Pg is not installed.
      - Removed DBD::SQLite from the list of build dependencies.
