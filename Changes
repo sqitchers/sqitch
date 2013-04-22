@@ -1,6 +1,8 @@
 Revision history for Perl extension App::Sqitch
 
 0.965
+     - Fixed failing test due to line-ending character variations on Windows.
+       Many thanks to Jan Dubois for the testing help.
 
 0.964  2013-04-15T18:47:30Z
      - Fixed test failures on Perl versions lower than 5.14 when DBD::SQLite

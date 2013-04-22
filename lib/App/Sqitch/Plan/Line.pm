@@ -94,7 +94,7 @@ sub request_note {
     my $tmp = File::Temp->new;
     binmode $tmp, ':encoding(UTF-8)';
     ( my $prompt = $self->note_prompt(%p) ) =~ s/^/# /gms;
-    $tmp->print( $/, $prompt, $/ );
+    $tmp->print( "\n", $prompt, "\n" );
     $tmp->close;
 
     $self->sqitch->run( $self->sqitch->editor, "$tmp" );
