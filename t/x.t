@@ -51,7 +51,7 @@ throws_ok { hurl {ident => 'blah', message => 'OMFG!', exitval => 1} } $CLASS;
 isa_ok $x = $@, $CLASS, 'Thrown object';
 is $x->message, 'OMFG!', 'The params should have been passed';
 is $x->exitval, 1, 'Exit val should be 1';
-is $x->as_string, join($/, grep { defined }
+is $x->as_string, join("\n", grep { defined }
     $x->message,
     $x->previous_exception,
     $x->stack_trace

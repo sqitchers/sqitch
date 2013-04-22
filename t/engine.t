@@ -1949,7 +1949,7 @@ CHECK_DEPLOY_DEPEND: {
         'Missing dependencies should throw exception';
     is $@->ident, 'deploy', 'Should be another "deploy" error';
     is $@->message, join(
-        $/,
+        "\n",
         __nx(
             'Conflicts with previously deployed change: {changes}',
             'Conflicts with previously deployed changes: {changes}',
@@ -2081,7 +2081,7 @@ CHECK_REVERT_DEPEND: {
         'Should get error reverting change others depend on';
     is $@->ident, 'revert', 'Dependent error ident should be "revert"';
     is $@->message, join(
-        $/,
+        "\n",
         __nx(
             'Change "{change}" required by currently deployed change: {changes}',
             'Change "{change}" required by currently deployed changes: {changes}',
@@ -2490,7 +2490,7 @@ is_deeply +MockOutput->get_emit_literal, [
 ], 'Both change names should be declared';
 is_deeply +MockOutput->get_emit, [
     ['not ok'], ['not ok'],
-    [ $/, $msg ],
+    [ "\n", $msg ],
     [ '-' x length $msg ],
     [__x 'Changes: {number}', number => 2 ],
     [__x 'Errors:  {number}', number => 2 ],

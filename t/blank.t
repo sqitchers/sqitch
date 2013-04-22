@@ -101,7 +101,7 @@ $sqitch_mocker->mock(run => sub {
 
     if ($note) {
         open my $fh, '>:encoding(UTF-8)', $fn or die "Cannot open $fn: $!";
-        print $fh $note, $prompt, $/;
+        print $fh $note, $prompt, "\n";
         close $fh or die "Error closing $fn: $!";
     }
 });

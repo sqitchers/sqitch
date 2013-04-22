@@ -53,7 +53,7 @@ sub hurl {
 
 sub as_string {
     my $self = shift;
-    join $/, grep { defined } (
+    join "\n", grep { defined } (
         $self->message,
         $self->previous_exception,
         $self->stack_trace

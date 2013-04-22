@@ -308,7 +308,7 @@ sub verify {
         my $num_changes = 1 + $to_idx - $from_idx;
         $num_changes = @changes if @changes > $num_changes;
         my $msg = __ 'Verify Summary Report';
-        $sqitch->emit($/, $msg);
+        $sqitch->emit("\n", $msg);
         $sqitch->emit('-' x length $msg);
         $sqitch->emit(__x 'Changes: {number}', number => $num_changes );
         $sqitch->emit(__x 'Errors:  {number}', number => $count );
@@ -508,7 +508,7 @@ sub check_deploy_dependencies {
             changes => join ' ', map { $_->as_string } @required,
         ) if @required;
 
-        hurl deploy => join $/ => @msg;
+        hurl deploy => join "\n" => @msg;
     }
 
     # Make sure nothing isn't already deployed.
@@ -549,7 +549,7 @@ sub check_revert_dependencies {
         );
     }
 
-    hurl revert => join $/, @msg if @msg;
+    hurl revert => join "\n", @msg if @msg;
 
     # XXX Should we make sure that they are all deployed before trying to
     # revert them?

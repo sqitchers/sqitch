@@ -1104,60 +1104,60 @@ ok $plan->write_to($to), 'Write out the file';
 file_exists_ok $to;
 my $v = App::Sqitch->VERSION;
 file_contents_is $to,
-    '%syntax-version=' . App::Sqitch::Plan::SYNTAX_VERSION . $/
+    '%syntax-version=' . App::Sqitch::Plan::SYNTAX_VERSION . "\n"
     . $file->slurp(iomode => '<:encoding(UTF-8)'),
     'The contents should look right';
 
 # Make sure it will start from a certain point.
 ok $plan->write_to($to, 'this/rocks'), 'Write out the file from "this/rocks"';
 file_contents_is $to,
-    '%syntax-version=' . App::Sqitch::Plan::SYNTAX_VERSION . $/
-    . '%project=multi' . $/
-    . '# This is a note' . $/
-    . $/
-    . $plan->find('this/rocks')->as_string . $/
-    . $plan->find('hey-there')->as_string . $/
-    . join( $/, map { $_->as_string } $plan->find('hey-there')->tags ) . $/,
+    '%syntax-version=' . App::Sqitch::Plan::SYNTAX_VERSION . "\n"
+    . '%project=multi' . "\n"
+    . '# This is a note' . "\n"
+    . "\n"
+    . $plan->find('this/rocks')->as_string . "\n"
+    . $plan->find('hey-there')->as_string . "\n"
+    . join( "\n", map { $_->as_string } $plan->find('hey-there')->tags ) . "\n",
     'Plan should have been written from "this/rocks" through tags at end';
 
 # Make sure it ends at a certain point.
 ok $plan->write_to($to, undef, 'you'), 'Write the file up to "you"';
 file_contents_is $to,
-    '%syntax-version=' . App::Sqitch::Plan::SYNTAX_VERSION . $/
-    . '%project=multi' . $/
-    . '# This is a note' . $/
-    . $/
-    . '# And there was a blank line.' . $/
-    . $/
-    . $plan->find('hey')->as_string . $/
-    . $plan->find('you')->as_string . $/
-    . join( $/, map { $_->as_string } $plan->find('you')->tags ) . $/,
+    '%syntax-version=' . App::Sqitch::Plan::SYNTAX_VERSION . "\n"
+    . '%project=multi' . "\n"
+    . '# This is a note' . "\n"
+    . "\n"
+    . '# And there was a blank line.' . "\n"
+    . "\n"
+    . $plan->find('hey')->as_string . "\n"
+    . $plan->find('you')->as_string . "\n"
+    . join( "\n", map { $_->as_string } $plan->find('you')->tags ) . "\n",
     'Plan should have been written through "you" and its tags';
 
 # Try both.
 ok $plan->write_to($to, '@foo', 'this/rocks'),
     'Write from "@foo" to "this/rocks"';
 file_contents_is $to,
-    '%syntax-version=' . App::Sqitch::Plan::SYNTAX_VERSION . $/
-    . '%project=multi' . $/
-    . '# This is a note' . $/
-    . $/
-    . $plan->find('you')->as_string . $/
-    . join( $/, map { $_->as_string } $plan->find('you')->tags ) . $/
-    . '   ' . $/
-    . $plan->find('this/rocks')->as_string . $/,
+    '%syntax-version=' . App::Sqitch::Plan::SYNTAX_VERSION . "\n"
+    . '%project=multi' . "\n"
+    . '# This is a note' . "\n"
+    . "\n"
+    . $plan->find('you')->as_string . "\n"
+    . join( "\n", map { $_->as_string } $plan->find('you')->tags ) . "\n"
+    . '   ' . "\n"
+    . $plan->find('this/rocks')->as_string . "\n",
     'Plan should have been written from "@foo" to "this/rocks"';
 
 # End with a tag.
 ok $plan->write_to($to, 'hey', '@foo'), 'Write from "hey" to "@foo"';
 file_contents_is $to,
-    '%syntax-version=' . App::Sqitch::Plan::SYNTAX_VERSION . $/
-    . '%project=multi' . $/
-    . '# This is a note' . $/
-    . $/
-    . $plan->find('hey')->as_string . $/
-    . $plan->find('you')->as_string . $/
-    . join( $/, map { $_->as_string } $plan->find('you')->tags ) . $/,
+    '%syntax-version=' . App::Sqitch::Plan::SYNTAX_VERSION . "\n"
+    . '%project=multi' . "\n"
+    . '# This is a note' . "\n"
+    . "\n"
+    . $plan->find('hey')->as_string . "\n"
+    . $plan->find('you')->as_string . "\n"
+    . join( "\n", map { $_->as_string } $plan->find('you')->tags ) . "\n",
     'Plan should have been written from "hey" through "@foo"';
 
 ##############################################################################
@@ -1207,9 +1207,9 @@ is $tag->change, $plan->last, 'The @w00t change should be the last change';
 
 ok $plan->write_to($to), 'Write out the file again';
 file_contents_is $to,
-    '%syntax-version=' . App::Sqitch::Plan::SYNTAX_VERSION . $/
+    '%syntax-version=' . App::Sqitch::Plan::SYNTAX_VERSION . "\n"
     . $file->slurp(iomode => '<:encoding(UTF-8)')
-    . $tag->as_string . $/,
+    . $tag->as_string . "\n",
     'The contents should include the "w00t" tag';
 # Try passing the tag name with a leading @.
 ok my $tag2 = $plan->tag( name => '@alpha' ), 'Add tag "@alpha"';
@@ -1288,11 +1288,11 @@ my $contents = $file->slurp(iomode => '<:encoding(UTF-8)');
 $contents =~ s{(\s+this/rocks)}{"\n" . $tag3->as_string . $1}ems;
 ok $plan->write_to($to), 'Write out the file again';
 file_contents_is $to,
-    '%syntax-version=' . App::Sqitch::Plan::SYNTAX_VERSION . $/
+    '%syntax-version=' . App::Sqitch::Plan::SYNTAX_VERSION . "\n"
     . $contents
     . $tag->as_string . "\n"
     . $tag2->as_string . "\n\n"
-    . $new_change->as_string . $/,
+    . $new_change->as_string . "\n",
     'The contents should include the "booyah" change';
 
 # Make sure dependencies are verified.

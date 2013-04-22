@@ -104,9 +104,9 @@ sub write_plan {
     );
     require App::Sqitch::Plan;
     $fh->print(
-        '%syntax-version=', App::Sqitch::Plan::SYNTAX_VERSION(), $/,
-        '%project=', $project, $/,
-        ( $self->uri ? ('%uri=', $self->uri->canonical, $/) : () ), $/,
+        '%syntax-version=', App::Sqitch::Plan::SYNTAX_VERSION(), "\n",
+        '%project=', "$project\n",
+        ( $self->uri ? ('%uri=', $self->uri->canonical, "\n") : () ), "\n",
     );
     $fh->close or hurl add => __x(
         'Error closing {file}: {error}',

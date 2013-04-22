@@ -391,7 +391,7 @@ sub _parse_core_opts {
     if ( delete $opts{version} ) {
         require File::Basename;
         my $fn = File::Basename::basename($0);
-        print $fn, ' (', __PACKAGE__, ') ', __PACKAGE__->VERSION, $/;
+        print $fn, ' (', __PACKAGE__, ') ', __PACKAGE__->VERSION, "\n";
         exit;
     }
 

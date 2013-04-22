@@ -313,12 +313,12 @@ sub note_prompt {
             "be ignored, and an empty message aborts the {command}.",
             command => $p{for},
         ),
-        $/,
+        "\n",
         __x('Change to {command}:', command => $p{for}),
-        $/, $/,
+        "\n\n",
         '  ', $self->format_op_name_dependencies,
-        join "$/    ", '', @{ $p{scripts} },
-        $/,
+        join "\n    ", '', @{ $p{scripts} },
+        "\n",
     );
 }
 

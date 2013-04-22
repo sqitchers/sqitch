@@ -69,7 +69,7 @@ make_path 'sql';
 END { remove_tree 'sql' };
 my $fn = $sqitch->plan_file;
 open my $fh, '>', $fn or die "Cannot open $fn: $!";
-say $fh '%project=change', $/, $/;
+say $fh "%project=change\n\n";
 close $fh or die "Error closing $fn: $!";
 
 isa_ok my $change = $CLASS->new(
@@ -416,11 +416,11 @@ sub exp_prompt {
             "be ignored, and an empty message aborts the {command}.",
             command => $p{for},
         ),
-        $/,
+        "\n",
         __x('Change to {command}:', command => $p{for}),
-        $/, $/,
+        "\n\n",
         '  ', $p{name},
-        join "$/    ", '', @{ $p{scripts} },
-        $/,
+        join "\n    ", '', @{ $p{scripts} },
+        "\n",
     );
 }

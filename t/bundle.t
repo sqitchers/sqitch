@@ -257,11 +257,11 @@ is_deeply +MockOutput->get_info, [[__x(
     to   => '@HEAD',
 )]], 'Statement of the bits written should have been emitted';
 file_contents_is $dest,
-    '%syntax-version=' . App::Sqitch::Plan::SYNTAX_VERSION . $/
-    . '%project=engine' . $/
-    . $/
-    . $plan->find('widgets')->as_string . $/
-    . $plan->find('func/add_user')->as_string . $/,
+    '%syntax-version=' . App::Sqitch::Plan::SYNTAX_VERSION . "\n"
+    . '%project=engine' . "\n"
+    . "\n"
+    . $plan->find('widgets')->as_string . "\n"
+    . $plan->find('func/add_user')->as_string . "\n",
     'Plan should have written only "widgets"';
 
 # Make sure that --to works.
@@ -279,11 +279,11 @@ is_deeply +MockOutput->get_info, [[__x(
     to   => 'users',
 )]], 'Statement of the bits written should have been emitted';
 file_contents_is $dest,
-    '%syntax-version=' . App::Sqitch::Plan::SYNTAX_VERSION . $/
-    . '%project=engine' . $/
-    . $/
-    . $plan->find('users')->as_string . $/
-    . join( $/, map { $_->as_string } $plan->find('users')->tags ) . $/,
+    '%syntax-version=' . App::Sqitch::Plan::SYNTAX_VERSION . "\n"
+    . '%project=engine' . "\n"
+    . "\n"
+    . $plan->find('users')->as_string . "\n"
+    . join( "\n", map { $_->as_string } $plan->find('users')->tags ) . "\n",
     'Plan should have written only "users" and its tags';
 
 ##############################################################################

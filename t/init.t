@@ -442,8 +442,8 @@ is_deeply +MockOutput->get_info, [
 ], 'The plan creation should be sent to info';
 file_exists_ok $plan_file, 'Plan file should now exist';
 file_contents_is $plan_file,
-    '%syntax-version=' . App::Sqitch::Plan::SYNTAX_VERSION() . "$/" .
-    '%project=nada' . "$/$/",
+    '%syntax-version=' . App::Sqitch::Plan::SYNTAX_VERSION() . "\n" .
+    '%project=nada' . "\n\n",
  'The contents should be correct';
 
 # Write more to the plan.
@@ -472,9 +472,9 @@ is_deeply +MockOutput->get_info, [
 ], 'The plan creation should be sent to info againq';
 file_exists_ok $plan_file, 'Plan file should again exist';
 file_contents_is $plan_file,
-    '%syntax-version=' . App::Sqitch::Plan::SYNTAX_VERSION() . "$/" .
-    '%project=howdy' . "$/" .
-    '%uri=' . $uri->canonical . "$/$/",
+    '%syntax-version=' . App::Sqitch::Plan::SYNTAX_VERSION() . "\n" .
+    '%project=howdy' . "\n" .
+    '%uri=' . $uri->canonical . "\n\n",
     'The plan should include the project and uri pragmas';
 
 ##############################################################################
@@ -542,7 +542,7 @@ is_deeply +MockOutput->get_info, [
 ], 'Should have status messages';
 
 file_contents_is $plan_file,
-    '%syntax-version=' . App::Sqitch::Plan::SYNTAX_VERSION() . "$/" .
-    '%project=foofoo' . "$/" .
-    '%uri=' . $uri->canonical . "$/$/",
+    '%syntax-version=' . App::Sqitch::Plan::SYNTAX_VERSION() . "\n" .
+    '%project=foofoo' . "\n" .
+    '%uri=' . $uri->canonical . "\n\n",
     'The plan should have the --project name';

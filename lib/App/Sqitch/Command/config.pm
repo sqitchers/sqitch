@@ -180,7 +180,7 @@ sub get_all {
         message => '',
         exitval => 1,
     } unless @vals;
-    $self->emit( join $/, @vals );
+    $self->emit( join "\n", @vals );
     return $self;
 }
 
@@ -219,7 +219,7 @@ sub get_regex {
             push @out => $key;
         }
     }
-    $self->emit( join $/ => @out );
+    $self->emit( join "\n" => @out );
 
     return $self;
 }
