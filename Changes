@@ -5,6 +5,8 @@ Revision history for Perl extension App::Sqitch
        Many thanks to Jan Dubois for the testing help.
      - Replaced all uses of `$/` in output to `"\n"`. Thanks to Jan Dubois for
        pointing out the incorrect use of `$/`.
+     - Fixed build error that prevented installation on Perl 5.10 when the
+       parent module was not installed.
 
 0.964  2013-04-15T18:47:30Z
      - Fixed test failures on Perl versions lower than 5.14 when DBD::SQLite

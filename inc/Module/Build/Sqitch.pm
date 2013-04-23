@@ -3,7 +3,7 @@ package Module::Build::Sqitch;
 use strict;
 use warnings;
 use Module::Build 0.35;
-use parent 'Module::Build';
+use base 'Module::Build';
 
 __PACKAGE__->add_property($_) for qw(etcdir installed_etcdir);
 
