@@ -128,11 +128,11 @@ Skip the specified number changes before starting to show the output.
 
 =item C<--reverse>
 
-Output the changes in reverse order. 
+Output the changes in reverse order.
 
 =item C<--no-reverse>
 
-Do not output the changes in reverse order. 
+Do not output the changes in reverse order.
 
 =item C<--color>
 

@@ -568,7 +568,7 @@ is_deeply $search_args, [
     planner   => undef,
     limit     => undef,
     offset    => undef,
-    direction => 'DESC'
+    direction => 'ASC'
 ], 'The proper args should have been passed to search_events';
 
 my $fmt_params = {
@@ -610,7 +610,7 @@ is_deeply $search_args, [
     planner   => '.+',
     limit     => 10,
     offset    => 5,
-    direction => 'ASC'
+    direction => 'DESC'
 ], 'All params should have been passed to search_events';
 
 my $fmt_params2 = {

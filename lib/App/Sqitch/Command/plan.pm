@@ -194,7 +194,7 @@ sub execute {
         planner   => $self->planner_pattern,
         limit     => $self->max_count,
         offset    => $self->skip,
-        direction => $self->reverse ? 'ASC' : 'DESC',
+        direction => $self->reverse ? 'DESC' : 'ASC',
     );
 
     # Send the results.
