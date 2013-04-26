@@ -29,28 +29,31 @@
       <div class="inner clearfix">
         <section id="main-content">
           <p>Sqitch is a database change management application. What makes it different
-from your typical<a href="http://guides.rubyonrails.org/migrations.html">migration</a>-<a href="http://metacpan.org/module/Module::Build::DB">style</a> approaches? A few things:</p>
+from your typical <a href="http://guides.rubyonrails.org/migrations.html">migration</a>-<a href="http://metacpan.org/module/Module::Build::DB">style</a> approaches? A few things:</p>
 
-<dl>
-<dt>No opinions</dt>
-<dd><p>Sqitch is not integrated with any framework, ORM, or platform. Rather, it is a standalone change management system with no opinions about your database engine, application framework, or your development environment.</p></dd>
+<h4>No opinions</h4>
 
-<dt>Native scripting</dt>
-<dd><p>Changes are implemented as scripts native to your selected database engine. Writing a <a href="http://postgresql.org/">PostgreSQL</a> application? Write SQL scripts for <a href="http://www.postgresql.org/docs/current/static/app-psql.html"><code>psql</code></a>. Writing a <a href="http://mysql.com/">MySQL</a>-backed app? Write SQL scripts for <a href="http://dev.mysql.com/doc/refman/5.6/en/mysql.html"><code>mysql</code></a>.</p></dd>
+<p>Sqitch is not integrated with any framework, ORM, or platform. Rather, it is a standalone change management system with no opinions about your database engine, application framework, or your development environment.</p>
 
-<dt>Dependency resolution</dt>
-<dd><p>Database changes may declare dependencies on other changes--even on changes from other Sqitch projects. This ensures proper order of execution, even when you've committed changes to your VCS out-of-order.</p></dd>
+<h4>Native scripting</h4>
 
-<dt>No numbering</dt>
-<dd><p>Change deployment is managed by maintaining a plan file. As such, there is no need to number your changes, although you can if you want. Sqitch doesn't much care how you name your changes.</p></dd>
+<p>Changes are implemented as scripts native to your selected database engine. Writing a <a href="http://postgresql.org/">PostgreSQL</a> application? Write SQL scripts for <a href="http://www.postgresql.org/docs/current/static/app-psql.html"><code>psql</code></a>. Writing a <a href="http://mysql.com/">MySQL</a>-backed app? Write SQL scripts for <a href="http://dev.mysql.com/doc/refman/5.6/en/mysql.html"><code>mysql</code></a>.</p>
 
-<dt>Iterative development
-</dt>
-<dd><p>Up until you tag and release your application, you can modify your change deployment scripts as often as you like. They're not locked in just because they've been committed to your VCS. This allows you to take an iterative approach to developing your database schema. Or, better, you can do test-driven database development.</p></dd>
+<h4>Dependency resolution</h4>
 
-<dt>Reduced Duplication</dt>
-<dd><p>If you're using a VCS to track your changes, you don't have to duplicate entire change scripts for simple changes. As long as the changes are <a href="http://en.wikipedia.org/wiki/Idempotence">idempotent</a>, you can change your code directly, and Sqitch will know it needs to be updated.</p></dd>
-</dl>
+<p>Database changes may declare dependencies on other changes--even on changes from other Sqitch projects. This ensures proper order of execution, even when you've committed changes to your VCS out-of-order.</p>
+
+<h4>No numbering</h4>
+
+<p>Change deployment is managed by maintaining a plan file. As such, there is no need to number your changes, although you can if you want. Sqitch doesn't much care how you name your changes.</p>
+
+<h4>Iterative development</h4>
+
+<p>Up until you tag and release your application, you can modify your change deployment scripts as often as you like. They're not locked in just because they've been committed to your VCS. This allows you to take an iterative approach to developing your database schema. Or, better, you can do test-driven database development.</p>
+
+<h4>Reduced Duplication</h4>
+
+<p>If you're using a VCS to track your changes, you don't have to duplicate entire change scripts for simple changes. As long as the changes are <a href="http://en.wikipedia.org/wiki/Idempotence">idempotent</a>, you can change your code directly, and Sqitch will know it needs to be updated.</p>
         </section>
 
         <aside id="sidebar">
