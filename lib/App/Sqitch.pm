@@ -269,7 +269,7 @@ has pager => (
         } unless IO::Pager->can('say');
 
         my $fh = IO::Pager->new(\*STDOUT);
-        $fh->binmode(':encoding(UTF-8)') if eval { $fh->isa('IO::Pager') };
+        $fh->binmode(':utf8_strict') if eval { $fh->isa('IO::Pager') };
         $fh;
     },
 );

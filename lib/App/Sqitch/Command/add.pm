@@ -252,7 +252,7 @@ sub _add {
 
 sub _slurp {
     my ( $self, $tmpl ) = @_;
-    open my $fh, "<:encoding(UTF-8)", $tmpl or hurl add => __x(
+    open my $fh, "<:utf8_strict", $tmpl or hurl add => __x(
         'Cannot open {file}: {error}',
         file  => $tmpl,
         error => $!

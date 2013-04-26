@@ -97,10 +97,10 @@ $sqitch_mocker->mock(run => sub {
 
     ( my $prompt = $CLASS->note_prompt(for => $for) ) =~ s/^/# /gms;
     file_contents_eq $fn, "\n$prompt\n", 'Temp file contents should include prompt',
-        { encoding => ':raw:encoding(UTF-8)' };
+        { encoding => ':raw:utf8_strict' };
 
     if ($note) {
-        open my $fh, '>:encoding(UTF-8)', $fn or die "Cannot open $fn: $!";
+        open my $fh, '>:utf8_strict', $fn or die "Cannot open $fn: $!";
         print $fh $note, $prompt, "\n";
         close $fh or die "Error closing $fn: $!";
     }

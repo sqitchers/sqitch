@@ -75,7 +75,7 @@ is_deeply [$CLASS->options], [qw(
 
 sub contents_of ($) {
     my $file = shift;
-    open my $fh, "<:encoding(UTF-8)", $file or die "cannot open $file: $!";
+    open my $fh, "<:utf8_strict", $file or die "cannot open $file: $!";
     local $/;
     return <$fh>;
 }

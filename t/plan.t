@@ -183,7 +183,7 @@ sub version () {
 ##############################################################################
 # Test parsing.
 my $file = file qw(t plans widgets.plan);
-my $fh = $file->open('<:encoding(UTF-8)');
+my $fh = $file->open('<:utf8_strict');
 ok my $parsed = $plan->_parse($file, $fh),
     'Should parse simple "widgets.plan"';
 is sorted, 1, 'Should have sorted changes';
@@ -225,7 +225,7 @@ cmp_deeply $parsed->{lines}, [
 
 # Plan with multiple tags.
 $file = file qw(t plans multi.plan);
-$fh = $file->open('<:encoding(UTF-8)');
+$fh = $file->open('<:utf8_strict');
 ok $parsed = $plan->_parse($file, $fh),
     'Should parse multi-tagged "multi.plan"';
 is sorted, 2, 'Should have sorted changes twice';
@@ -280,7 +280,7 @@ cmp_deeply $parsed, {
 
 # Try a plan with changes appearing without a tag.
 $file = file qw(t plans changes-only.plan);
-$fh = $file->open('<:encoding(UTF-8)');
+$fh = $file->open('<:utf8_strict');
 ok $parsed = $plan->_parse($file, $fh), 'Should read plan with no tags';
 is sorted, 1, 'Should have sorted changes';
 cmp_deeply delete $parsed->{pragmas}, {
@@ -310,7 +310,7 @@ cmp_deeply $parsed, {
 
 # Try a plan with a bad change name.
 $file = file qw(t plans bad-change.plan);
-$fh = $file->open('<:encoding(UTF-8)');
+$fh = $file->open('<:utf8_strict');
 throws_ok { $plan->_parse($file, $fh) } 'App::Sqitch::X',
     'Should die on plan with bad change name';
 is $@->ident, 'plan', 'Bad change name error ident should be "plan"';
@@ -428,7 +428,7 @@ is sorted, 26, 'Should have sorted changes 18 times';
 
 # Try a plan with reserved tag name @HEAD.
 $file = file qw(t plans reserved-tag.plan);
-$fh = $file->open('<:encoding(UTF-8)');
+$fh = $file->open('<:utf8_strict');
 throws_ok { $plan->_parse($file, $fh) } 'App::Sqitch::X',
     'Should die on plan with reserved tag "@HEAD"';
 is $@->ident, 'plan', '@HEAD exception should have ident "plan"';
@@ -500,7 +500,7 @@ is sorted, 0, 'Should have sorted changes nonce';
 
 # Try a plan with a duplicate tag name.
 $file = file qw(t plans dupe-tag.plan);
-$fh = $file->open('<:encoding(UTF-8)');
+$fh = $file->open('<:utf8_strict');
 throws_ok { $plan->_parse($file, $fh) } 'App::Sqitch::X',
     'Should die on plan with dupe tag';
 is $@->ident, 'plan', 'The dupe tag error ident should be "plan"';
@@ -518,7 +518,7 @@ is sorted, 2, 'Should have sorted changes twice';
 
 # Try a plan with a duplicate change within a tag section.
 $file = file qw(t plans dupe-change.plan);
-$fh = $file->open('<:encoding(UTF-8)');
+$fh = $file->open('<:utf8_strict');
 throws_ok { $plan->_parse($file, $fh) } 'App::Sqitch::X',
     'Should die on plan with dupe change';
 is $@->ident, 'plan', 'The dupe change error ident should be "plan"';
@@ -594,7 +594,7 @@ is sorted, 0, 'Should have sorted changes nonce';
 
 # Try a plan with pragmas.
 $file = file qw(t plans pragmas.plan);
-$fh = $file->open('<:encoding(UTF-8)');
+$fh = $file->open('<:utf8_strict');
 ok $parsed = $plan->_parse($file, $fh),
     'Should parse plan with pragmas"';
 is sorted, 1, 'Should have sorted changes once';
@@ -627,7 +627,7 @@ cmp_deeply $parsed, {
 
 # Try a plan with deploy/revert operators.
 $file = file qw(t plans deploy-and-revert.plan);
-$fh = $file->open('<:encoding(UTF-8)');
+$fh = $file->open('<:utf8_strict');
 ok $parsed = $plan->_parse($file, $fh),
     'Should parse plan with deploy and revert operators';
 is sorted, 2, 'Should have sorted changes twice';
@@ -1105,7 +1105,7 @@ file_exists_ok $to;
 my $v = App::Sqitch->VERSION;
 file_contents_is $to,
     '%syntax-version=' . App::Sqitch::Plan::SYNTAX_VERSION . "\n"
-    . $file->slurp(iomode => '<:encoding(UTF-8)'),
+    . $file->slurp(iomode => '<:utf8_strict'),
     'The contents should look right';
 
 # Make sure it will start from a certain point.
@@ -1208,7 +1208,7 @@ is $tag->change, $plan->last, 'The @w00t change should be the last change';
 ok $plan->write_to($to), 'Write out the file again';
 file_contents_is $to,
     '%syntax-version=' . App::Sqitch::Plan::SYNTAX_VERSION . "\n"
-    . $file->slurp(iomode => '<:encoding(UTF-8)')
+    . $file->slurp(iomode => '<:utf8_strict')
     . $tag->as_string . "\n",
     'The contents should include the "w00t" tag';
 # Try passing the tag name with a leading @.
@@ -1284,7 +1284,7 @@ is $new_change->as_string, join (' ',
     $new_change->format_note,
 ), 'Should have plain stringification of "booya"';
 
-my $contents = $file->slurp(iomode => '<:encoding(UTF-8)');
+my $contents = $file->slurp(iomode => '<:utf8_strict');
 $contents =~ s{(\s+this/rocks)}{"\n" . $tag3->as_string . $1}ems;
 ok $plan->write_to($to), 'Write out the file again';
 file_contents_is $to,

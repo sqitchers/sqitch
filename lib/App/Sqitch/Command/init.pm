@@ -97,7 +97,7 @@ sub write_plan {
     return $self if -f $file;
     $self->_mkdir( $file->dir ) unless -d $file->dir;
 
-    my $fh = $file->open('>:encoding(UTF-8)') or hurl init => __x(
+    my $fh = $file->open('>:utf8_strict') or hurl init => __x(
         'Cannot open {file}: {error}',
         file => $file,
         error => $!,

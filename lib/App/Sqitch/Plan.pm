@@ -107,7 +107,7 @@ has uri => (
 
 sub parse {
     my ( $self, $data ) = @_;
-    open my $fh, '<:encoding(UTF-8)', \$data;
+    open my $fh, '<:utf8_strict', \$data;
     $self->_plan( $self->load($fh) );
     return $self;
 }
@@ -120,7 +120,7 @@ sub load {
             unless -e $file;
         hurl plan => __x('Plan file {file} is not a regular file', file => $file)
             unless -f $file;
-        $file->open('<:encoding(UTF-8)') or hurl plan => __x(
+        $file->open('<:utf8_strict') or hurl plan => __x(
             'Cannot open {file}: {error}',
             file  => $file,
             error => $!
@@ -571,7 +571,7 @@ sub check_changes {
 
 sub open_script {
     my ( $self, $file ) = @_;
-    return $file->open('<:encoding(UTF-8)') or hurl plan => __x(
+    return $file->open('<:utf8_strict') or hurl plan => __x(
         'Cannot open {file}: {error}',
         file  => $file,
         error => $!,
@@ -955,7 +955,7 @@ sub write_to {
         );
     }
 
-    my $fh = $file->open('>:encoding(UTF-8)') or hurl plan => __x(
+    my $fh = $file->open('>:utf8_strict') or hurl plan => __x(
         'Cannot open {file}: {error}',
         file  => $file,
         error => $!

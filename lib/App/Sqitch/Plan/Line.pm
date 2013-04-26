@@ -92,14 +92,14 @@ sub request_note {
     # Edit in a file.
     require File::Temp;
     my $tmp = File::Temp->new;
-    binmode $tmp, ':encoding(UTF-8)';
+    binmode $tmp, ':utf8_strict';
     ( my $prompt = $self->note_prompt(%p) ) =~ s/^/# /gms;
     $tmp->print( "\n", $prompt, "\n" );
     $tmp->close;
 
     $self->sqitch->run( $self->sqitch->editor, "$tmp" );
 
-    open my $fh, '<:encoding(UTF-8)', $tmp or hurl add => __x(
+    open my $fh, '<:utf8_strict', $tmp or hurl add => __x(
         'Cannot open {file}: {error}',
         file  => $tmp,
         error => $!
