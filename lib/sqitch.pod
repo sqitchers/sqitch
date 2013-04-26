@@ -81,6 +81,32 @@ your code directly, and Sqitch will know it needs to be updated.
 
 =back
 
+Ready to get started? Here's where:
+
+=over
+
+=item L<Sqitch PostgreSQL Tutorial|sqitchtutorial>
+
+A detailed tutorial demonstrating the creation, development, and maintenance
+of a PostgreSQL database with Sqitch.
+
+=item L<Sqitch SQLite Tutorial|sqitchtutorial-sqlite>
+
+A detailed tutorial demonstrating the creation, development, and maintenance
+of a SQLite database with Sqitch.
+
+=item L<PDX.pm Presentation|https://speakerdeck.com/theory/sane-database-change-management-with-sqitch>
+
+Slides from "Sane Database Management with Sqitch", presented to the Portland
+Perl Mongers in January, 2013.
+
+=item L<PDXPUG Presentation|https://vimeo.com/50104469>
+
+Movie of "Sane Database Management with Sqitch", presented to the Portland
+PostgreSQL Users Group in September, 2012.
+
+=back
+
 =begin comment
 
 Eventually move to L<sqitchtutorial> or L<sqitchintro> or some such.
