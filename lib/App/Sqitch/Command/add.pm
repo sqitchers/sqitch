@@ -226,7 +226,7 @@ sub _add {
         hurl add => $msg;
     }
 
-    my $fh = $file->open('>:utf8') or hurl add => __x(
+    my $fh = $file->open('>:utf8_strict') or hurl add => __x(
         'Cannot open {file}: {error}',
         file  => $file,
         error => $!

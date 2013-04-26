@@ -447,7 +447,7 @@ file_contents_is $plan_file,
  'The contents should be correct';
 
 # Write more to the plan.
-my $fh = $plan_file->open('>:utf8') or die "Cannot open $plan_file: $!\n";
+my $fh = $plan_file->open('>:utf8_strict') or die "Cannot open $plan_file: $!\n";
 $fh->say('# testing 1, 2, 3');
 $fh->close;
 

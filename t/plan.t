@@ -348,7 +348,7 @@ for my $name (@bad_names) {
         next if $line eq '%hi'; # This would be a pragma.
         my $buf = $prags . $line;
         my $what = $line =~ /^[@]/ ? 'tag' : 'change';
-        my $fh = IO::File->new(\$buf, '<:utf8');
+        my $fh = IO::File->new(\$buf, '<:utf8_strict');
         throws_ok { $plan->_parse('baditem', $fh) } 'App::Sqitch::X',
             qq{Should die on plan with bad name "$line"};
         is $@->ident, 'plan', 'Exception ident should be "plan"';
@@ -390,7 +390,7 @@ for my $name (
 ) {
     # Test a change name.
     my $lines = encode_utf8 "\%project=foo\n\n$name $tsnp";
-    my $fh = IO::File->new(\$lines, '<:utf8');
+    my $fh = IO::File->new(\$lines, '<:utf8_strict');
     ok my $parsed = $plan->_parse('ooditem', $fh),
         encode_utf8(qq{Should parse "$name"});
     cmp_deeply delete $parsed->{pragmas}, {
@@ -405,7 +405,7 @@ for my $name (
     # Test a tag name.
     my $tag = '@' . $name;
     $lines = encode_utf8 "\%project=foo\n\nfoo $tsnp\n$tag $tsnp";
-    $fh = IO::File->new(\$lines, '<:utf8');
+    $fh = IO::File->new(\$lines, '<:utf8_strict');
     ok $parsed = $plan->_parse('gooditem', $fh),
         encode_utf8(qq{Should parse "$tag"});
     cmp_deeply delete $parsed->{pragmas}, {
@@ -447,7 +447,7 @@ is sorted, 1, 'Should have sorted changes once';
 for my $reserved (qw(ROOT FIRST LAST)) {
     my $root = $prags . '@' . $reserved . " $tsnp";
     $file = file qw(t plans), "$reserved.plan";
-    $fh = IO::File->new(\$root, '<:utf8');
+    $fh = IO::File->new(\$root, '<:utf8_strict');
     throws_ok { $plan->_parse($file, $fh) } 'App::Sqitch::X',
         qq{Should die on plan with reserved tag "\@$reserved"};
     is $@->ident, 'plan', qq{\@$reserved exception should have ident "plan"};
@@ -466,7 +466,7 @@ for my $reserved (qw(ROOT FIRST LAST)) {
 # Try a plan with a change name that looks like a sha1 hash.
 my $sha1 = '6c2f28d125aff1deea615f8de774599acf39a7a1';
 $file = file qw(t plans sha1.plan);
-$fh = IO::File->new(\"$prags$sha1 $tsnp", '<:utf8');
+$fh = IO::File->new(\"$prags$sha1 $tsnp", '<:utf8_strict');
 throws_ok { $plan->_parse($file, $fh) } 'App::Sqitch::X',
     'Should die on plan with SHA1 change name';
 is $@->ident, 'plan', 'The SHA1 error ident should be "plan"';
@@ -483,7 +483,7 @@ is sorted, 0, 'Should have sorted changes nonce';
 
 # Try a plan with a tag but no change.
 $file = file qw(t plans tag-no-change.plan);
-$fh = IO::File->new(\"$prags\@foo $tsnp\nbar $tsnp", '<:utf8');
+$fh = IO::File->new(\"$prags\@foo $tsnp\nbar $tsnp", '<:utf8_strict');
 throws_ok { $plan->_parse($file, $fh) } 'App::Sqitch::X',
     'Should die on plan with tag but no preceding change';
 is $@->ident, 'plan', 'The missing change error ident should be "plan"';
@@ -535,7 +535,7 @@ is $@->message, __x(
 is sorted, 1, 'Should have sorted changes once';
 
 # Try a plan with an invalid requirement.
-$fh = IO::File->new(\"\%project=foo\n\nfoo [^bar] $tsnp", '<:utf8');
+$fh = IO::File->new(\"\%project=foo\n\nfoo [^bar] $tsnp", '<:utf8_strict');
 throws_ok { $plan->_parse('badreq', $fh ) } 'App::Sqitch::X',
     'Should die on invalid  dependency';
 is $@->ident, 'plan', 'The invalid dependency error ident should be "plan"';
@@ -552,7 +552,7 @@ is sorted, 0, 'Should have sorted changes nonce';
 
 # Try a plan without a timestamp.
 $file = file qw(t plans no-timestamp.plan);
-$fh = IO::File->new(\"${prags}foo hi <t\@heo.ry>", '<:utf8');
+$fh = IO::File->new(\"${prags}foo hi <t\@heo.ry>", '<:utf8_strict');
 throws_ok { $plan->_parse($file, $fh) } 'App::Sqitch::X',
     'Should die on change with no timestamp';
 is $@->ident, 'plan', 'The missing timestamp error ident should be "plan"';
@@ -566,7 +566,7 @@ is sorted, 0, 'Should have sorted changes nonce';
 
 # Try a plan without a planner.
 $file = file qw(t plans no-planner.plan);
-$fh = IO::File->new(\"${prags}foo 2012-07-16T23:12:34Z", '<:utf8');
+$fh = IO::File->new(\"${prags}foo 2012-07-16T23:12:34Z", '<:utf8_strict');
 throws_ok { $plan->_parse($file, $fh) } 'App::Sqitch::X',
     'Should die on change with no planner';
 is $@->ident, 'plan', 'The missing planner error ident should be "plan"';
@@ -580,7 +580,7 @@ is sorted, 0, 'Should have sorted changes nonce';
 
 # Try a plan with neither timestamp nor planner.
 $file = file qw(t plans no-timestamp-or-planner.plan);
-$fh = IO::File->new(\"%project=foo\n\nfoo", '<:utf8');
+$fh = IO::File->new(\"%project=foo\n\nfoo", '<:utf8_strict');
 throws_ok { $plan->_parse($file, $fh) } 'App::Sqitch::X',
     'Should die on change with no timestamp or planner';
 is $@->ident, 'plan', 'The missing timestamp or planner error ident should be "plan"';
@@ -755,7 +755,7 @@ is sorted, 2, 'Should have sorted changes twice';
 
 # Should fail with dependencies on tags.
 $file = file qw(t plans tag_dependencies.plan);
-$fh = IO::File->new(\"%project=tagdep\n\nfoo $tsnp\n\@bar [:foo] $tsnp", '<:utf8');
+$fh = IO::File->new(\"%project=tagdep\n\nfoo $tsnp\n\@bar [:foo] $tsnp", '<:utf8_strict');
 $sqitch = App::Sqitch->new(plan_file => $file);
 isa_ok $plan = App::Sqitch::Plan->new(sqitch => $sqitch), $CLASS,
     'Plan with sqitch with plan with tag dependencies';
@@ -1943,7 +1943,7 @@ is $plan->uri, URI->new('https://github.com/theory/sqitch/'),
 isa_ok $plan->uri, 'URI', 'It';
 
 # Make sure we get an error if there is no project pragma.
-$fh = IO::File->new(\"%strict\n\nfoo $tsnp", '<:utf8');
+$fh = IO::File->new(\"%strict\n\nfoo $tsnp", '<:utf8_strict');
 throws_ok { $plan->_parse('noproject', $fh) } 'App::Sqitch::X',
     'Should die on plan with no project pragma';
 is $@->ident, 'plan', 'Missing prorject error ident should be "plan"';
@@ -1952,7 +1952,7 @@ is $@->message, __x('Missing %project pragma in {file}', file => 'noproject'),
 
 # Make sure we get an error for an invalid project name.
 for my $bad (@bad_names) {
-    my $fh = IO::File->new(\"%project=$bad\n\nfoo $tsnp", '<:utf8');
+    my $fh = IO::File->new(\"%project=$bad\n\nfoo $tsnp", '<:utf8_strict');
     throws_ok { $plan->_parse(badproj => $fh) } 'App::Sqitch::X',
         qq{Should die on invalid project name "$bad"};
     is $@->ident, 'plan', qq{Ident for bad proj "$bad" should be "plan"};

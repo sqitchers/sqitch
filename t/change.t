@@ -294,7 +294,7 @@ is $change2->verify_file, $sqitch->verify_dir->file(@fn),
 make_path dir(qw(sql deploy))->stringify;
 file(qw(sql deploy baz.sql))->touch;
 my $change2_file = file qw(sql deploy bar.sql);
-$fh = $change2_file->open('>:utf8') or die "Cannot open $change2_file: $!\n";
+$fh = $change2_file->open('>:utf8_strict') or die "Cannot open $change2_file: $!\n";
 $fh->say('-- This is a comment');
 $fh->say('# And so is this');
 $fh->say('; and this, w€€!');
