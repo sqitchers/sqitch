@@ -54,7 +54,53 @@ from your typical <a href="http://guides.rubyonrails.org/migrations.html">migrat
 <h4>Reduced Duplication</h4>
 
 <p>If you're using a VCS to track your changes, you don't have to duplicate entire change scripts for simple changes. As long as the changes are <a href="http://en.wikipedia.org/wiki/Idempotence">idempotent</a>, you can change your code directly, and Sqitch will know it needs to be updated.</p>
+
+<h2>Installation</h2>
+
+<p>There are a number of ways to install Sqitch. The examples below demonstrate
+installation with SQLite support.</p>
+
+<h4><a href="https://metacpan.org/dist/App-Sqitch">CPAN</a></h4>
+
+<ul>
+  <li>PostgreSQL: <code>cpan App::Sqitch DBD::Pg</code></li>
+  <li>SQLite: <code>cpan App::Sqitch DBD::SQLite</code></li>
+</ul>
+
+<h4><a href="http://brew.sh">Homebrew</a></h4>
+
+<ul>
+  <li>Tap: <code>brew tap theory/sqitch</code></li>
+  <li>PostreSQL: <code> brew install sqitch-pg</code></li>
+  <li>SQLite: <code> brew install sqitch-sqlite</code></li>
+</ul>
+
+<h4><a href="http://code.activestate.com/ppm/">ActiveState PPM</a></h4>
+
+<ul>
+  <li>Install <a href="http://www.activestate.com/activeperl/downloads">ActivePerl</a></li>
+  <li>Run <code>ppm install App-Sqitch</code></li>
+</ul>
+
+<h2>Getting Started</h2>
+
+<h4><a href="https://metacpan.org/module/sqitchtutorial">PostgreSQL tutorial</a></h4>
+
+<p>A detailed tutorial demonstrating the creation, development, and maintenance of a PostgreSQL database with Sqitch.</p>
+
+<h4><a href="https://metacpan.org/module/sqitchtutorial">SQLite tutorial</a></h4>
+
+<p>A detailed tutorial demonstrating the creation, development, and maintenance of a SQLite database with Sqitch.</p>
+
+<h4><a href="https://vimeo.com/50104469">Presentation</a></h4>
+
+<p>Video of “Sane Database Change Management with Sqitch.” Presented to the Portland PostgreSQL Users Group in September, 2012.</p>
+
+<h4><a href="https://speakerdeck.com/theory/sane-database-change-management-with-sqitch">Slides</a></h4>
+
+<p>From “Sane Database Change Management with Sqitch.” Presented to the Portland Perl Mongers in January, 2013.</p>
         </section>
+
 
         <aside id="sidebar">
           <a href="https://github.com/theory/sqitch/zipball/master" class="button">
