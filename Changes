@@ -5,6 +5,9 @@ Revision history for Perl extension App::Sqitch
        They are now ascending by default.
      - Switched to PerlIO::utf8_strict for fast character encoding and
        decoding.
+     - The help emitted when an unknown option is passed to `sqitch` now
+       consists of a usage statement and brief table of options, rather than
+       the entire man page.
 
 0.965  2013-04-23T16:25:59Z
      - Fixed failing test due to line-ending character variations on Windows.
