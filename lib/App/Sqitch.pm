@@ -358,7 +358,7 @@ sub _split_args {
         '<>' => sub { die '!FINISH' },
         # Count how many args we've processed until we die.
         map { $_ => m/=/ ? $add_two : $add_one } $self->_core_opts
-    ) or $self->_pod2usage('sqitch', '-verbose' => 99 );
+    ) or $self->_pod2usage('sqitchusage', '-verbose' => 99 );
 
     # Splice the command and its options out of the arguments.
     my ( $cmd, @cmd_opts ) = splice @args, $cmd_at;
@@ -376,7 +376,7 @@ sub _parse_core_opts {
             $k =~ s/-/_/g;
             $_ => \$opts{$k};
         } $self->_core_opts
-    ) or $self->_pod2usage('sqitch', '-verbose' => 99 );
+    ) or $self->_pod2usage('sqitchusage', '-verbose' => 99 );
 
     # Handle documentation requests.
     if ($opts{help} || $opts{man}) {
