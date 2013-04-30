@@ -87,6 +87,8 @@ has destination => (
             || $ENV{TWO_TASK}
             || $^O eq 'MSWin32' ? $ENV{LOCAL} : undef
             || $ENV{ORACLE_SID}
+            || $self->username
+            || $self->sqitch->sysuser
     },
 );
 
@@ -130,7 +132,7 @@ has sqlplus => (
     auto_deref => 1,
     default    => sub {
         my $self = shift;
-        [ $self->client, qw(sqlplus -S -L /nolog) ];
+        [ $self->client, qw(-S -L /nolog) ];
     },
 );
 
@@ -349,17 +351,29 @@ sub _script {
     my $self   = shift;
     my $target = $self->username // '';
     if (my $pass = $self->password) {
-        $target .= "/$pass";
+        $pass =~ s/"/""/g;
+        $target .= qq{/"$pass"};
     }
     if (my $db = $self->db_name) {
-        $target .= '@' if length $target;
-        $target .= $db;
+        $target .= '@';
+        $db =~ s/"/""/g;
+        if ($self->host || $self->port) {
+            $target .= '//' . ($self->host || '');
+            if (my $port = $self->port) {
+                $target .= ":$port";
+            }
+            $target .= qq{/"$db"};
+        } else {
+            $target .= qq{"$db"};
+        }
     }
+    my %vars = $self->variables;
 
     return join "\n" => (
         'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF',
         'WHENEVER OSERROR EXIT 9;',
         'WHENEVER SQLERROR EXIT SQL.SQLCODE;',
+        (map {; (my $v = $vars{$_}) =~ s/"/""/g; qq{DEFINE $_="$v"} } sort keys %vars),
         "connect $target",
         @_
     );
