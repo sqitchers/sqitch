@@ -90,15 +90,18 @@ COMMENT ON COLUMN &sqitch_schema..dependencies.type          IS 'Type of depende
 COMMENT ON COLUMN &sqitch_schema..dependencies.dependency    IS 'Dependency name.';
 COMMENT ON COLUMN &sqitch_schema..dependencies.dependency_id IS 'Change ID the dependency resolves to.';
 
+CREATE TYPE &sqitch_schema.sqitch_array AS varray(1024) OF VARCHAR2(512);
+/
+
 CREATE TABLE &sqitch_schema..events (
     event           VARCHAR2(6)              NOT NULL CHECK (event IN ('deploy', 'revert', 'fail')),
     change_id       CHAR(40)                 NOT NULL,
     change          VARCHAR2(512 CHAR)       NOT NULL,
     project         VARCHAR2(512 CHAR)       NOT NULL REFERENCES &sqitch_schema..projects(project),
     note            VARCHAR2(4000 CHAR)      DEFAULT '' NOT NULL,
-    requires        VARCHAR2(4000 CHAR)      DEFAULT '' NOT NULL, -- replace with varray?
-    conflicts       VARCHAR2(4000 CHAR)      DEFAULT '' NOT NULL, -- replace with varray?
-    tags            VARCHAR2(4000 CHAR)      DEFAULT '' NOT NULL, -- replace with varray?
+    requires        SQITCH_ARRAY             DEFAULT SQITCH_ARRAY() NOT NULL,
+    conflicts       SQITCH_ARRAY             DEFAULT SQITCH_ARRAY() NOT NULL,
+    tags            SQITCH_ARRAY             DEFAULT SQITCH_ARRAY() NOT NULL,
     committed_at    TIMESTAMP WITH TIME ZONE DEFAULT current_timestamp NOT NULL,
     committer_name  VARCHAR2(512 CHAR)       NOT NULL,
     committer_email VARCHAR2(512 CHAR)       NOT NULL,
