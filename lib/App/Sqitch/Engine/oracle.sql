@@ -1,8 +1,6 @@
-def sqitch_schema=&1
+BEGIN;
 
---BEGIN;
-
---COMMENT ON SCHEMA &sqitch_schema IS 'Sqitch database deployment metadata v1.0.';
+COMMENT ON SCHEMA &sqitch_schema IS 'Sqitch database deployment metadata v1.0.';
 
 CREATE TABLE &sqitch_schema..projects (
     project         VARCHAR2(512 CHAR)       PRIMARY KEY,

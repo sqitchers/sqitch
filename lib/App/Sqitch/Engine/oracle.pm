@@ -85,7 +85,7 @@ has destination => (
         my $self = shift;
         $self->db_name
             || $ENV{TWO_TASK}
-            || $^O eq 'MSWin32' ? $ENV{LOCAL} : undef
+            || ( $^O eq 'MSWin32' ? $ENV{LOCAL} : undef )
             || $ENV{ORACLE_SID}
             || $self->username
             || $self->sqitch->sysuser
@@ -238,8 +238,7 @@ sub initialize {
     hurl engine => __x( 'Sqitch already initialized' ) if $self->initialized;
 
     # Load up our database.
-    my $file = file(__FILE__)->dir->file('oracle.sql');
-
+    (my $file = file(__FILE__)->dir->file('oracle.sql')) =~ s/"/""/g;
 
     $self->_run(
         (
@@ -252,7 +251,7 @@ sub initialize {
                 q{SELECT SYS_CONTEXT('USERENV', 'SESSION_SCHEMA') AS sname FROM DUAL},
             )
         ),
-        '@' . file(__FILE__)->dir->file('oracle.sql')
+        qq{\@"$file"}
     );
 
     $self->dbh->do('ALTER SESSION SET CURRENT_SCHEMA = ?', undef, $schema)
@@ -273,22 +272,24 @@ sub begin_work {
 }
 
 sub run_file {
-    my ($self, $file) = @_;
-    $self->_run('@' . $file);
+    my $self = shift;
+    (my $file = shift) =~ s/"/""/g;
+    $self->_run(qq{\@"$file"});
 }
 
 sub run_verify {
-    my ($self, $file) = @_;
+    my $self = shift;
+    (my $file = shift) =~ s/"/""/g;
     # Suppress STDOUT unless we want extra verbosity.
     my $meth = $self->can($self->sqitch->verbosity > 1 ? '_run' : '_capture');
-    return $self->$meth('@'. $file);
+    $self->$meth(qq{\@"$file"});
 }
 
 sub run_handle {
     my ($self, $fh) = @_;
     my $target = $self->_script;
     open my $tfh, '<:utf8_strict', \$target;
-    $self->sqitch->spool( [$tfh, $fh], $self->client );
+    $self->sqitch->spool( [$tfh, $fh], $self->sqlplus );
 }
 
 # Override to take advantage of the RETURNING expression, and to save tags as
