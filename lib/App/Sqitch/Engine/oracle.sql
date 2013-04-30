@@ -129,5 +129,3 @@ COMMENT ON COLUMN &sqitch_schema..events.planner_name    IS 'Name of the user wh
 COMMENT ON COLUMN &sqitch_schema..events.planner_email   IS 'Email address of the user who plan planned the change.';
 
 COMMIT;
-
-quit
