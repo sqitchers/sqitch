@@ -531,7 +531,14 @@ sub spool {
     }
 
     local $SIG{PIPE} = sub { die 'spooler pipe broke' };
-    print $pipe $_ while <$fh>;
+    if (ref $fh eq 'ARRAY') {
+        for my $h (@{ $fh }) {
+            print $pipe $_ while <$h>;
+        }
+    } else {
+        print $pipe $_ while <$fh>;
+    }
+
     close $pipe or hurl io => $! ? __x(
         'Error closing pipe to {command}: {error}',
          command => $_[0],
