@@ -804,9 +804,11 @@ Like C<capture>, but returns just the C<chomp>ed first line of output.
 =head3 C<spool>
 
   $sqitch->spool($sql_file_handle, 'sqlite3', 'my.db');
+  $sqitch->spool(\@file_handles, 'sqlite3', 'my.db');
 
-Like run, but spools the contents of a file handle to the standard input the
-system command. Returns true on success and throws an exception on failure.
+Like run, but spools the contents of one or ore file handle to the standard
+input the system command. Returns true on success and throws an exception on
+failure.
 
 =head3 C<trace>
 
