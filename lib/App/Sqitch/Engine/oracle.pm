@@ -151,12 +151,12 @@ has dbh => (
             $dsn .=  join ';' => map {
                 "$_->[0]=$_->[1]"
             } grep { $_->[1] } (
-                [ sid   => $self->destination ],
-                [ host  => $self->host        ],
-                [ port  => $self->port        ],
+                [ sid   => $self->db_name ],
+                [ host  => $self->host    ],
+                [ port  => $self->port    ],
             );
         } else {
-            $dsn .= $self->destination;
+            $dsn .= $self->db_name if $self->db_name;
         }
 
         DBI->connect($dsn, $self->username, $self->password, {
@@ -173,7 +173,7 @@ has dbh => (
             Callbacks         => {
                 connected => sub {
                     if (my $schema = $self->sqitch_schema) {
-                        shift->do('ALTER SESSION SET CURRENT_SCHEMA = ?', undef, $schema);
+                        shift->do("ALTER SESSION SET CURRENT_SCHEMA = $schema");
                     }
                     return;
                 },
@@ -220,27 +220,44 @@ sub _listagg_format {
 
 sub _regex_op { 'REGEXP_LIKE(%s, ?)' }
 
+sub _cid {
+    my ( $self, $ord, $offset, $project ) = @_;
+
+    return try {
+        $self->dbh->selectcol_arrayref(qq{
+            SELECT * FROM (
+                SELECT change_id
+                  FROM changes
+                 WHERE project = ?
+                 ORDER BY committed_at $ord
+            ) WHERE rownum >= ?
+        }, undef, $project || $self->plan->project, ($offset // 0) + 1)->[0];
+    } catch {
+        return if $self->_no_table_error;
+        die $_;
+    };
+}
+
 sub initialized {
     my $self = shift;
     return $self->dbh->selectcol_arrayref(q{
-        SELECT EXISTS(
-            SELECT 1
-              FROM all_tables
-             WHERE owner = COALESCE(UPPER(?), SYS_CONTEXT('USERENV', 'SESSION_SCHEMA'))
-               AND table_name = 'CHANGES'
-        )
-    }, undef, $self->sqitch_schema)->[0];
+        SELECT 1
+          FROM all_tables
+         WHERE owner = SYS_CONTEXT('USERENV', 'SESSION_SCHEMA')
+           AND table_name = 'CHANGES'
+    })->[0];
 }
 
 sub initialize {
     my $self   = shift;
     my $schema = $self->sqitch_schema;
-    hurl engine => __x( 'Sqitch already initialized' ) if $self->initialized;
+    hurl engine => __ 'Sqitch already initialized' if $self->initialized;
 
     # Load up our database.
     (my $file = file(__FILE__)->dir->file('oracle.sql')) =~ s/"/""/g;
+    my $meth = $self->can($self->sqitch->verbosity > 1 ? '_run' : '_capture');
 
-    $self->_run(
+    $self->$meth(
         (
             $schema ? (
                 "DEFINE sqitch_schema=$schema"
@@ -248,14 +265,13 @@ sub initialize {
                 # Select the current schema into &sqitch_schema.
                 # http://www.orafaq.com/node/515
                 'COLUMN sname for a30 new_value sqitch_schema',
-                q{SELECT SYS_CONTEXT('USERENV', 'SESSION_SCHEMA') AS sname FROM DUAL},
+                q{SELECT SYS_CONTEXT('USERENV', 'SESSION_SCHEMA') AS sname FROM DUAL;},
             )
         ),
         qq{\@"$file"}
     );
 
-    $self->dbh->do('ALTER SESSION SET CURRENT_SCHEMA = ?', undef, $schema)
-        if $schema;
+    $self->dbh->do("ALTER SESSION SET CURRENT_SCHEMA = $schema") if $schema;
     return $self;
 }
 
@@ -382,8 +398,8 @@ sub _script {
 
 sub _run {
     my $self = shift;
-    my $target = $self->_script(@_);
-    open my $fh, '<:utf8_strict', \$target;
+    my $script = $self->_script(@_);
+    open my $fh, '<:utf8_strict', \$script;
     return $self->sqitch->spool( $fh, $self->sqlplus );
 }
 
@@ -396,7 +412,7 @@ sub _capture {
     IPC::Run3::run3( [$self->sqlplus], \$target, \@out );
     hurl io => __x(
         '{command} unexpectedly returned exit value {exitval}',
-        command => $_[0],
+        command => $self->client,
         exitval => ($? >> 8),
     ) if $?;
 

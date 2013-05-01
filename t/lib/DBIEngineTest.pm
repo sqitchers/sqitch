@@ -81,7 +81,7 @@ sub run {
         # Make sure a second attempt to initialize dies.
         throws_ok { $engine->initialize } 'App::Sqitch::X',
             'Should die on existing schema';
-        is $@->ident, 'engine', 'Mode should be "sqlite"';
+        is $@->ident, 'engine', 'Mode should be "engine"';
         is $@->message, $p{init_error},
             'And it should show the proper schema in the error message';
 

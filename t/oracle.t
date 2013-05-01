@@ -52,7 +52,7 @@ for my $attr (qw(username password db_name host port)) {
 }
 
 is $ora->destination, $ENV{TWO_TASK}
-                   || $^O eq 'MSWin32' ? $ENV{LOCAL} : undef
+                   || ($^O eq 'MSWin32' ? $ENV{LOCAL} : undef)
                    || $ENV{ORACLE_SID}
                    || $sqitch->sysuser,
     'Destination should fall back on environment variables';
@@ -282,6 +282,7 @@ is_deeply \@run, ['@"foo/bar.sql"'],
 
 $mock_sqitch->unmock_all;
 $mock_config->unmock_all;
+$mock_ora->unmock_all;
 
 ##############################################################################
 # Test DateTime formatting stuff.
@@ -301,5 +302,68 @@ is $dt->hour,   15, 'DateTime hour should be set';
 is $dt->minute,  7, 'DateTime minute should be set';
 is $dt->second,  1, 'DateTime second should be set';
 is $dt->time_zone->name, 'UTC', 'DateTime TZ should be set';
+
+##############################################################################
+# Can we do live tests?
+my $dbh;
+END {
+    return unless $dbh;
+    $dbh->{Driver}->visit_child_handles(sub {
+        my $h = shift;
+        $h->disconnect if $h->{Type} eq 'db' && $h->{Active} && $h ne $dbh;
+    });
+
+    $dbh->{RaiseError} = 0;
+    $dbh->{PrintError} = 1;
+    $dbh->do($_) for (
+        'DROP TABLE events',
+        'DROP TABLE dependencies',
+        'DROP TABLE tags',
+        'DROP TABLE changes',
+        'DROP TABLE projects',
+        'DROP TYPE  sqitch_array',
+        'DROP TABLE oe.events',
+        'DROP TABLE oe.dependencies',
+        'DROP TABLE oe.tags',
+        'DROP TABLE oe.changes',
+        'DROP TABLE oe.projects',
+        'DROP TYPE  oe.sqitch_array',
+    );
+}
+
+my $user = $ENV{ORAUSER} || 'scott';
+my $pass = $ENV{ORAPASS} || 'tiger';
+my $err = try {
+    my $dsn = 'dbi:Oracle:';
+    $dbh = DBI->connect($dsn, $user, $pass, {
+        PrintError => 0,
+        RaiseError => 1,
+        AutoCommit => 1,
+    });
+    undef;
+} catch {
+    eval { $_->message } || $_;
+};
+
+DBIEngineTest->run(
+    class         => $CLASS,
+    sqitch_params => [
+        db_username => $user,
+        db_name     => $ENV{TWO_TASK} || $ENV{LOCAL} || $ENV{ORACLE_SID},
+        top_dir     => Path::Class::dir(qw(t engine)),
+        plan_file   => Path::Class::file(qw(t engine sqitch.plan)),
+    ],
+    engine_params     => [ password => $pass ],
+    alt_engine_params => [ password => $pass, sqitch_schema => 'oe' ],
+    skip_unless       => sub {
+        my $self = shift;
+        die $err if $err;
+        # Make sure we have sqlplus and can connect to the database.
+        $self->sqitch->probe( $self->client, '-v' );
+        $self->_capture('SELECT 1 FROM dual;');
+    },
+    engine_err_regex  => qr/^ORA-00925: /,
+    init_error        => __ 'Sqitch already initialized',
+);
 
 done_testing;

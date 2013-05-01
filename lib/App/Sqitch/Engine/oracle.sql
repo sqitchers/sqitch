@@ -1,7 +1,3 @@
-BEGIN;
-
-COMMENT ON SCHEMA &sqitch_schema IS 'Sqitch database deployment metadata v1.0.';
-
 CREATE TABLE &sqitch_schema..projects (
     project         VARCHAR2(512 CHAR)       PRIMARY KEY,
     uri             VARCHAR2(512 CHAR)       NULL UNIQUE,
@@ -88,27 +84,27 @@ COMMENT ON COLUMN &sqitch_schema..dependencies.type          IS 'Type of depende
 COMMENT ON COLUMN &sqitch_schema..dependencies.dependency    IS 'Dependency name.';
 COMMENT ON COLUMN &sqitch_schema..dependencies.dependency_id IS 'Change ID the dependency resolves to.';
 
-CREATE TYPE &sqitch_schema.sqitch_array AS varray(1024) OF VARCHAR2(512);
+CREATE TYPE &sqitch_schema..sqitch_array AS varray(1024) OF VARCHAR2(512);
 /
 
 CREATE TABLE &sqitch_schema..events (
-    event           VARCHAR2(6)              NOT NULL CHECK (event IN ('deploy', 'revert', 'fail')),
-    change_id       CHAR(40)                 NOT NULL,
-    change          VARCHAR2(512 CHAR)       NOT NULL,
-    project         VARCHAR2(512 CHAR)       NOT NULL REFERENCES &sqitch_schema..projects(project),
-    note            VARCHAR2(4000 CHAR)      DEFAULT '' NOT NULL,
-    requires        SQITCH_ARRAY             DEFAULT SQITCH_ARRAY() NOT NULL,
-    conflicts       SQITCH_ARRAY             DEFAULT SQITCH_ARRAY() NOT NULL,
-    tags            SQITCH_ARRAY             DEFAULT SQITCH_ARRAY() NOT NULL,
-    committed_at    TIMESTAMP WITH TIME ZONE DEFAULT current_timestamp NOT NULL,
-    committer_name  VARCHAR2(512 CHAR)       NOT NULL,
-    committer_email VARCHAR2(512 CHAR)       NOT NULL,
-    planned_at      TIMESTAMP WITH TIME ZONE NOT NULL,
-    planner_name    VARCHAR2(512 CHAR)       NOT NULL,
-    planner_email   VARCHAR2(512 CHAR)       NOT NULL
+    event           VARCHAR2(6)                   NOT NULL CHECK (event IN ('deploy', 'revert', 'fail')),
+    change_id       CHAR(40)                      NOT NULL,
+    change          VARCHAR2(512 CHAR)            NOT NULL,
+    project         VARCHAR2(512 CHAR)            NOT NULL REFERENCES &sqitch_schema..projects(project),
+    note            VARCHAR2(4000 CHAR)           DEFAULT '' NOT NULL,
+    requires        &sqitch_schema..SQITCH_ARRAY  DEFAULT &sqitch_schema..SQITCH_ARRAY() NOT NULL,
+    conflicts       &sqitch_schema..SQITCH_ARRAY  DEFAULT &sqitch_schema..SQITCH_ARRAY() NOT NULL,
+    tags            &sqitch_schema..SQITCH_ARRAY  DEFAULT &sqitch_schema..SQITCH_ARRAY() NOT NULL,
+    committed_at    TIMESTAMP WITH TIME ZONE      DEFAULT current_timestamp NOT NULL,
+    committer_name  VARCHAR2(512 CHAR)            NOT NULL,
+    committer_email VARCHAR2(512 CHAR)            NOT NULL,
+    planned_at      TIMESTAMP WITH TIME ZONE      NOT NULL,
+    planner_name    VARCHAR2(512 CHAR)            NOT NULL,
+    planner_email   VARCHAR2(512 CHAR)            NOT NULL
 );
 
-CREATE UNIQUE INDEX events_pkey ON &sqitch_schema..events(change_id, committed_at);
+CREATE UNIQUE INDEX &sqitch_schema..events_pkey ON &sqitch_schema..events(change_id, committed_at);
 
 COMMENT ON TABLE &sqitch_schema..events                  IS 'Contains full history of all deployment events.';
 COMMENT ON COLUMN &sqitch_schema..events.event           IS 'Type of event.';
@@ -125,5 +121,3 @@ COMMENT ON COLUMN &sqitch_schema..events.committer_email IS 'Email address of th
 COMMENT ON COLUMN &sqitch_schema..events.planned_at      IS 'Date the event was added to the plan.';
 COMMENT ON COLUMN &sqitch_schema..events.planner_name    IS 'Name of the user who planed the change.';
 COMMENT ON COLUMN &sqitch_schema..events.planner_email   IS 'Email address of the user who plan planned the change.';
-
-COMMIT;
