@@ -410,11 +410,15 @@ sub _capture {
 
     require IPC::Run3;
     IPC::Run3::run3( [$self->sqlplus], \$target, \@out );
-    hurl io => __x(
-        '{command} unexpectedly returned exit value {exitval}',
-        command => $self->client,
-        exitval => ($? >> 8),
-    ) if $?;
+    if (my $err = $?) {
+        # Ugh, send everything to STDERR.
+        $self->sqitch->vent(@out);
+        hurl io => __x(
+            '{command} unexpectedly returned exit value {exitval}',
+            command => $self->client,
+            exitval => ($err >> 8),
+        );
+    }
 
     return wantarray ? @out : \@out;
 }
