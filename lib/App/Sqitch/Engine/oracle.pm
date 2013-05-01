@@ -215,7 +215,8 @@ sub _ts_default { 'current_timestamp' }
 sub _char2ts { $_[1]->as_string(format => 'iso') }
 
 sub _listagg_format {
-    q{ARRAY(SELECT * FROM UNNEST( array_agg(%s) ) a WHERE a IS NOT NULL)}
+    # http://stackoverflow.com/q/16313631/79202
+    return q{COLLECT(%s)};
 }
 
 sub _regex_op { 'REGEXP_LIKE(%s, ?)' }
@@ -362,6 +363,11 @@ sub _dt($) {
 
 sub _no_table_error  {
     return $DBI::err == 942; # ORA-00942: table or view does not exist
+}
+
+sub _in_expr {
+    my ($self, $vals) = @_;
+    return 'IN(SELECT * FROM TABLE(?))', $vals;
 }
 
 sub _script {
