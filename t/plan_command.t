@@ -585,7 +585,9 @@ my $fmt_params = {
     planner_email => $change->planner_email,
 };
 is_deeply +MockOutput->get_page, [
-    [__x 'In {file}', file => $sqitch->plan_file ],
+    ['# ', __x 'Project: {project}', project => $sqitch->plan->project ],
+    ['# ', __x 'File:    {file}', file => $sqitch->plan_file ],
+    [''],
     [ $cmd->formatter->format( $cmd->format, $fmt_params ) ],
 ], 'The event should have been paged';
 
@@ -628,7 +630,9 @@ my $fmt_params2 = {
 };
 
 is_deeply +MockOutput->get_page, [
-    [__x 'In {file}', file => $sqitch->plan_file],
+    ['# ', __x 'Project: {project}', project => $sqitch->plan->project ],
+    ['# ', __x 'File:    {file}', file => $sqitch->plan_file ],
+    [''],
     [ $cmd->formatter->format( $cmd->format, $fmt_params  ) ],
     [ $cmd->formatter->format( $cmd->format, $fmt_params2 ) ],
 ], 'Both events should have been paged';

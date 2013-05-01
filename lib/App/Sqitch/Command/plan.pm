@@ -200,7 +200,9 @@ sub execute {
     # Send the results.
     my $formatter = $self->formatter;
     my $format    = $self->format;
-    $self->page( __x 'In {file}', file => $self->sqitch->plan_file );
+    $self->page( '# ', __x 'Project: {project}', project => $plan->project );
+    $self->page( '# ', __x 'File:    {file}', file => $self->sqitch->plan_file );
+    $self->page('');
     while ( my $change = $iter->() ) {
         $self->page( $formatter->format( $format, {
             event         => $change->is_deploy ? 'deploy' : 'revert',
