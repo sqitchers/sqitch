@@ -263,6 +263,19 @@ sub _cid {
     };
 }
 
+sub _cid_head {
+    my ($self, $project, $change) = @_;
+    return $self->dbh->selectcol_arrayref(qq{
+        SELECT change_id FROM (
+            SELECT change_id
+              FROM changes
+             WHERE project = ?
+               AND change  = ?
+             ORDER BY committed_at DESC
+        ) WHERE rownum = 1
+    }, undef, $project, $change)->[0];
+}
+
 sub current_state {
     my ( $self, $project ) = @_;
     my $cdtcol = sprintf $self->_ts2char_format, 'c.committed_at';

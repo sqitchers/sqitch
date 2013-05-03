@@ -744,6 +744,18 @@ sub change_offset_from_id {
     return $change;
 }
 
+sub _cid_head {
+    my ($self, $project, $change) = @_;
+    return $self->dbh->selectcol_arrayref(q{
+        SELECT change_id
+          FROM changes
+         WHERE project = ?
+           AND change  = ?
+         ORDER BY committed_at DESC
+         LIMIT 1
+    }, undef, $project, $change)->[0];
+}
+
 sub change_id_for {
     my ( $self, %p) = @_;
     my $dbh = $self->dbh;
@@ -764,14 +776,8 @@ sub change_id_for {
             return undef if $tag eq 'ROOT' || $tag eq 'FIRST';
 
             # Find closest to the end for @HEAD.
-            return $dbh->selectcol_arrayref(q{
-                SELECT change_id
-                  FROM changes
-                 WHERE project = ?
-                   AND change  = ?
-                 ORDER BY committed_at DESC
-                 LIMIT 1
-            }, undef, $project, $change)->[0] if $tag eq 'HEAD' || $tag eq 'LAST';
+            return $self->_cid_head($project, $change)
+                if $tag eq 'HEAD' || $tag eq 'LAST';
 
             # Find by change name and following tag.
             return $dbh->selectcol_arrayref(q{
