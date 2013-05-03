@@ -364,6 +364,7 @@ DBIEngineTest->run(
     },
     engine_err_regex  => qr/^ORA-00925: /,
     init_error        => __ 'Sqitch already initialized',
+    add_second_format => q{%s + interval '1' second},
 );
 
 done_testing;

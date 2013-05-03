@@ -175,7 +175,7 @@ has dbh => (
                 connected => sub {
                     my $dbh = shift;
                     $dbh->do("ALTER SESSION SET $_='YYYY-MM-DD HH24:MI:SS TZR'") for qw(
-                        nsl_date_format
+                        nls_date_format
                         nls_timestamp_format
                         nls_timestamp_tz_format
                     );
