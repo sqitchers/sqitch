@@ -411,6 +411,41 @@ sub name_for_change_id {
     }, undef, $change_id)->[0];
 }
 
+sub change_offset_from_id {
+    my ( $self, $change_id, $offset ) = @_;
+
+    # Just return the object if there is no offset.
+    return $self->load_change($change_id) unless $offset;
+
+    # Are we offset forwards or backwards?
+    my ( $dir, $op ) = $offset > 0 ? ( 'ASC', '>' ) : ( 'DESC' , '<' );
+    my $tscol  = sprintf $self->_ts2char_format, 'c.planned_at';
+    my $tagcol = sprintf $self->_listagg_format, 't.tag';
+
+    my $change = $self->dbh->selectrow_hashref(qq{
+        SELECT id, name, project, note, timestamp, planner_name, planner_email, tags
+          FROM (
+              SELECT id, name, project, note, timestamp, planner_name, planner_email, tags, rownum AS rnum
+                FROM (
+                  SELECT c.change_id AS id, c.change AS name, c.project, c.note,
+                         $tscol AS timestamp, c.planner_name, c.planner_email,
+                         $tagcol AS tags
+                    FROM changes   c
+                    LEFT JOIN tags t ON c.change_id = t.change_id
+                   WHERE c.project = ?
+                     AND c.committed_at $op (
+                         SELECT committed_at FROM changes WHERE change_id = ?
+                   )
+                   GROUP BY c.change_id, c.change, c.project, c.note, c.planned_at,
+                         c.planner_name, c.planner_email, c.committed_at
+                   ORDER BY c.committed_at $dir
+              )
+         ) WHERE rnum = ?
+    }, undef, $self->plan->project, $change_id, abs $offset) || return undef;
+    $change->{timestamp} = _dt $change->{timestamp};
+    return $change;
+}
+
 sub is_deployed_tag {
     my ( $self, $tag ) = @_;
     return $self->dbh->selectcol_arrayref(
