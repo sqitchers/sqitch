@@ -233,6 +233,11 @@ sub _regex_op { 'REGEXP_LIKE(%s, ?)' }
 
 sub _simple_from { ' FROM dual' }
 
+sub _multi_values {
+    my ($self, $count, $expr) = @_;
+    return join ' UNION ALL ', ("SELECT $expr FROM dual") x $count;
+}
+
 sub _dt($) {
     require App::Sqitch::DateTime;
     return App::Sqitch::DateTime->new(split /:/ => shift);
@@ -403,6 +408,14 @@ sub name_for_change_id {
           LEFT JOIN tag t ON c.project = t.project AND t.committed_at >= c.committed_at
          WHERE change_id = ?
     }, undef, $change_id)->[0];
+}
+
+sub is_deployed_tag {
+    my ( $self, $tag ) = @_;
+    return $self->dbh->selectcol_arrayref(
+        'SELECT 1 FROM tags WHERE tag_id = ?',
+        undef, $tag->id
+    )->[0];
 }
 
 sub initialize {

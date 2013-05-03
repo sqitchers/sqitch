@@ -359,6 +359,11 @@ sub is_deployed_tag {
     }, undef, $tag->id)->[0];
 }
 
+sub _multi_values {
+    my ($self, $count, $expr) = @_;
+    return 'VALUES ' . join(', ', ("($expr)") x $count)
+}
+
 sub log_deploy_change {
     my ($self, $change) = @_;
     my $dbh    = $self->dbh;
@@ -406,8 +411,7 @@ sub log_deploy_change {
                 , type
                 , dependency
                 , dependency_id
-           ) VALUES
-        } . join( ', ', ( q{(?, ?, ?, ?)} ) x @deps ),
+           ) } . $self->_multi_values(scalar @deps, '?, ?, ?, ?'),
             undef,
             map { (
                 $id,
@@ -432,8 +436,7 @@ sub log_deploy_change {
                 , planner_name
                 , planner_email
                 , committed_at
-           ) VALUES
-        } . join( ', ', ( qq{(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, $ts)} ) x @tags ),
+           ) } . $self->_multi_values(scalar @tags, "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, $ts"),
             undef,
             map { (
                 $_->id,
