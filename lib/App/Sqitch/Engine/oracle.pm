@@ -231,6 +231,8 @@ sub _listagg_format {
 
 sub _regex_op { 'REGEXP_LIKE(%s, ?)' }
 
+sub _simple_from { ' FROM dual' }
+
 sub _dt($) {
     require App::Sqitch::DateTime;
     return App::Sqitch::DateTime->new(split /:/ => shift);
@@ -261,6 +263,7 @@ sub current_state {
     my $tagcol = sprintf $self->_listagg_format, 't.tag';
     my $dbh    = $self->dbh;
     # XXX Oy, placeholders do not work with COLLECT() in this query.
+    # http://www.nntp.perl.org/group/perl.dbi.users/2013/05/msg36581.html
     my $qproj  = $dbh->quote($project // $self->plan->project);
     my $state  = $dbh->selectrow_hashref(qq{
         SELECT * FROM (
@@ -467,27 +470,33 @@ sub run_handle {
 sub log_revert_change {
     my ($self, $change) = @_;
     my $dbh = $self->dbh;
+    my $cid = $change->id;
 
     # Delete tags.
-    my $del_tags = $dbh->selectcol_arrayref(
-        'DELETE FROM tags WHERE change_id = ? RETURNING tag',
-        undef, $change->id
-    ) || [];
+    my $sth = $dbh->prepare(
+        'DELETE FROM tags WHERE change_id = ? RETURNING tag INTO ?',
+    );
+    $sth->bind_param(1, $cid);
+    $sth->bind_param_inout_array(2, my $del_tags = [], 0, {
+        ora_type => DBD::Oracle::ORA_VARCHAR2()
+    });
+    $sth->execute;
 
     # Retrieve dependencies.
     my ($req, $conf) = $dbh->selectrow_array(q{
-        SELECT ARRAY(
-            SELECT dependency
+        SELECT (
+            SELECT COLLECT(dependency)
               FROM dependencies
-             WHERE change_id = $1
+             WHERE change_id = ?
                AND type = 'require'
-        ), ARRAY(
-            SELECT dependency
+        ),
+        (
+            SELECT COLLECT(dependency)
               FROM dependencies
-             WHERE change_id = $1
+             WHERE change_id = ?
                AND type = 'conflict'
-        )
-    }, undef, $change->id);
+        ) FROM dual
+    }, undef, $cid, $cid);
 
     # Delete the change record.
     $dbh->do(

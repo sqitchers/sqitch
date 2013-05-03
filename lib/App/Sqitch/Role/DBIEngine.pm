@@ -42,6 +42,8 @@ sub _ts_default { 'DEFAULT' }
 
 sub _limit_default { undef }
 
+sub _simple_from { '' }
+
 sub _in_expr {
     my ($self, $vals) = @_;
     my $in = sprintf 'IN (%s)', join ', ', ('?') x @{ $vals };
@@ -547,6 +549,7 @@ sub log_new_tags {
     );
 
     my $ts = $self->_ts_default;
+    my $sf = $self->_simple_from;
     $self->dbh->do(
         q{
             INSERT INTO tags (
@@ -565,9 +568,9 @@ sub log_new_tags {
             SELECT i.* FROM (
                          } . join(
                 "\n               UNION ALL ",
-                ("SELECT ? AS tid, ?, ?, ?, ?, ?, ?, ?, ?, ?, $ts") x @tags
+                ("SELECT ? AS tid, ?, ?, ?, ?, ?, ?, ?, ?, ?, $ts$sf") x @tags
             ) . q{
-            ) AS i
+            ) i
               LEFT JOIN tags ON i.tid = tags.tag_id
              WHERE tags.tag_id IS NULL
          },
