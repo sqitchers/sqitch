@@ -481,6 +481,99 @@ sub initialize {
     return $self;
 }
 
+# Override for special handling of regular the expression operator and
+# LIMIT/OFFSET.
+sub search_events {
+    my ( $self, %p ) = @_;
+
+    # Determine order direction.
+    my $dir = 'DESC';
+    if (my $d = delete $p{direction}) {
+        $dir = $d =~ /^ASC/i  ? 'ASC'
+             : $d =~ /^DESC/i ? 'DESC'
+             : hurl 'Search direction must be either "ASC" or "DESC"';
+    }
+
+    # Limit with regular expressions?
+    my (@wheres, @params);
+    for my $spec (
+        [ committer => 'committer_name' ],
+        [ planner   => 'planner_name'   ],
+        [ change    => 'change'         ],
+        [ project   => 'project'        ],
+    ) {
+        my $regex = delete $p{ $spec->[0] } // next;
+        push @wheres => "REGEXP_LIKE($spec->[1], ?)";
+        push @params => $regex;
+    }
+
+    # Match events?
+    if (my $e = delete $p{event} ) {
+        my ($in, @vals) = $self->_in_expr( $e );
+        push @wheres => "event $in";
+        push @params => @vals;
+    }
+
+    # Assemble the where clause.
+    my $where = @wheres
+        ? "\n         WHERE " . join( "\n               ", @wheres )
+        : '';
+
+    # Handle remaining parameters.
+    my ($lim, $off) = (delete $p{limit}, delete $p{offset});
+
+    hurl 'Invalid parameters passed to search_events(): '
+        . join ', ', sort keys %p if %p;
+
+    # Prepare, execute, and return.
+    my $cdtcol = sprintf $self->_ts2char_format, 'committed_at';
+    my $pdtcol = sprintf $self->_ts2char_format, 'planned_at';
+    my $sql = qq{
+        SELECT event
+             , project
+             , change_id
+             , change
+             , note
+             , requires
+             , conflicts
+             , tags
+             , committer_name
+             , committer_email
+             , $cdtcol AS committed_at
+             , planner_name
+             , planner_email
+             , $pdtcol AS planned_at
+          FROM events$where
+         ORDER BY events.committed_at $dir
+    };
+
+    if ($lim || $off) {
+        my @limits;
+        if ($lim) {
+            $off //= 0;
+            push @params => $lim + $off;
+            push @limits => 'rnum <= ?';
+        }
+        if ($off) {
+            push @params => $off;
+            push @limits => 'rnum > ?';
+        }
+
+        $sql = "SELECT * FROM ( SELECT ROWNUM AS rnum, i.* FROM ($sql) i ) WHERE "
+            . join ' AND ', @limits;
+    }
+
+    my $sth = $self->dbh->prepare($sql);
+    $sth->execute(@params);
+    return sub {
+        my $row = $sth->fetchrow_hashref or return;
+        delete $row->{rnum};
+        $row->{committed_at} = _dt $row->{committed_at};
+        $row->{planned_at}   = _dt $row->{planned_at};
+        return $row;
+    };
+}
+
 # Override to lock the changes table. This ensures that only one instance of
 # Sqitch runs at one time.
 sub begin_work {
@@ -564,11 +657,6 @@ sub _ts2char($) {
 
 sub _no_table_error  {
     return $DBI::err == 942; # ORA-00942: table or view does not exist
-}
-
-sub _in_expr {
-    my ($self, $vals) = @_;
-    return 'IN(SELECT * FROM TABLE(?))', $vals;
 }
 
 sub _script {
