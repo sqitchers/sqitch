@@ -1548,12 +1548,17 @@ sub all {
 }
 
 sub dt_for_event {
-    my $engine = shift;
+    my ($engine, $offset) = @_;
     my $col = sprintf $engine->_ts2char_format, 'committed_at';
     my $dtfunc = $engine->can('_dt');
-    $dtfunc->($engine->dbh->selectcol_arrayref(
+    my $dbh = $engine->dbh;
+    return $dtfunc->($engine->dbh->selectcol_arrayref(
+        "SELECT * FROM (SELECT $col FROM events ORDER BY committed_at ASC) WHERE ROWNUM = ?",
+        undef, $offset + 1
+    )->[0]) if $dbh->{Driver}->{Name} eq 'Oracle';
+    return $dtfunc->($engine->dbh->selectcol_arrayref(
         "SELECT $col FROM events ORDER BY committed_at ASC LIMIT 1 OFFSET ?",
-        undef, shift
+        undef, $offset
     )->[0]);
 }
 

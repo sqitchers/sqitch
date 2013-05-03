@@ -293,7 +293,7 @@ is $ts2char->('foo'),
 
 ok my $dtfunc = $CLASS->can('_dt'), "$CLASS->can('_dt')";
 isa_ok my $dt = $dtfunc->(
-    '2012:07:05:15:07:01'
+    'year:2012:month:07:day:05:hour:15:minute:07:second:01:time_zone:UTC'
 ), 'App::Sqitch::DateTime', 'Return value of _dt()';
 is $dt->year, 2012, 'DateTime year should be set';
 is $dt->month,   7, 'DateTime month should be set';

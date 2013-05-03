@@ -214,7 +214,7 @@ sub _log_conflicts_param {
 }
 
 sub _ts2char_format {
-     q{to_char(%s AT TIME ZONE 'UTC', 'YYYY:MM:DD:HH24:MI:SS')};
+    q{to_char(%1$s AT TIME ZONE 'UTC', '"year":YYYY:"month":MM:"day":DD') || to_char(%1$s AT TIME ZONE 'UTC', ':"hour":HH24:"minute":MI:"second":SS:"time_zone":"UTC"')}
 }
 
 sub _ts_default { 'current_timestamp' }
@@ -230,6 +230,11 @@ sub _listagg_format {
 }
 
 sub _regex_op { 'REGEXP_LIKE(%s, ?)' }
+
+sub _dt($) {
+    require App::Sqitch::DateTime;
+    return App::Sqitch::DateTime->new(split /:/ => shift);
+}
 
 sub _cid {
     my ( $self, $ord, $offset, $project ) = @_;
@@ -262,7 +267,7 @@ sub current_state {
             SELECT c.change_id
                  , c.change
                  , c.project
-                 , COALESCE(c.note, '')
+                 , c.note
                  , c.committer_name
                  , c.committer_email
                  , $cdtcol AS committed_at
@@ -359,6 +364,42 @@ sub _log_event {
     );
 
     return $self;
+}
+
+sub changes_requiring_change {
+    my ( $self, $change ) = @_;
+    # Why CTE: https://forums.oracle.com/forums/thread.jspa?threadID=1005221
+    return @{ $self->dbh->selectall_arrayref(q{
+        WITH tag AS (
+            SELECT t.tag AS tag, c.committed_at AS committed_at, c.project AS project,
+                   RANK() OVER (partition by c.change_id ORDER BY c.committed_at) AS rnk
+              FROM changes c
+              JOIN tags t ON c.change_id = t.change_id
+        )
+        SELECT c.change_id, c.project, c.change, t.tag AS asof_tag
+          FROM dependencies d
+          JOIN changes  c ON c.change_id = d.change_id
+          LEFT JOIN tag t ON c.project   = t.project AND t.committed_at >= c.committed_at
+         WHERE d.dependency_id = ?
+           AND t.rnk = 1
+    }, { Slice => {} }, $change->id) };
+}
+
+sub name_for_change_id {
+    my ( $self, $change_id ) = @_;
+    # Why CTE: https://forums.oracle.com/forums/thread.jspa?threadID=1005221
+    return $self->dbh->selectcol_arrayref(q{
+        WITH tag AS (
+            SELECT t.tag AS tag, c.committed_at AS committed_at, c.project AS project,
+                   RANK() OVER (partition by c.change_id ORDER BY c.committed_at) AS rnk
+              FROM changes c
+              JOIN tags t ON c.change_id = t.change_id
+        )
+        SELECT change || COALESCE(t.tag, '')
+          FROM changes c
+          LEFT JOIN tag t ON c.project = t.project AND t.committed_at >= c.committed_at
+         WHERE change_id = ?
+    }, undef, $change_id)->[0];
 }
 
 sub initialize {
@@ -461,16 +502,6 @@ sub log_revert_change {
 sub _ts2char($) {
     my $col = shift;
     return qq{to_char($col AT TIME ZONE 'UTC', 'YYYY:MM:DD:HH24:MI:SS')};
-}
-
-sub _dt($) {
-    require App::Sqitch::DateTime;
-    my %params;
-    @params{qw(time_zone year month day hour minute second)} = (
-        'UTC',
-        split /:/ => shift
-    );
-    return App::Sqitch::DateTime->new(%params);
 }
 
 sub _no_table_error  {
