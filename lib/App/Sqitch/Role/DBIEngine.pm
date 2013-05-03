@@ -461,6 +461,7 @@ sub _log_event {
     my $sqitch = $self->sqitch;
 
     my $ts = $self->_ts_default;
+
     $dbh->do(qq{
         INSERT INTO events (
               event
@@ -478,7 +479,7 @@ sub _log_event {
             , planner_email
             , committed_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, $ts);
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, $ts)
     }, undef,
         $event,
         $change->id,

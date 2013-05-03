@@ -142,6 +142,7 @@ has dbh => (
     lazy    => 1,
     default => sub {
         my $self = shift;
+        # XXX require DBD::Oracle 1.23.
         try { require DBD::Oracle } catch {
             hurl oracle => __ 'DBD::Oracle module required to manage Oracle' if $@;
         };
@@ -172,8 +173,14 @@ has dbh => (
             },
             Callbacks         => {
                 connected => sub {
+                    my $dbh = shift;
+                    $dbh->do("ALTER SESSION SET $_='YYYY-MM-DD HH24:MI:SS TZR'") for qw(
+                        nsl_date_format
+                        nls_timestamp_format
+                        nls_timestamp_tz_format
+                    );
                     if (my $schema = $self->sqitch_schema) {
-                        shift->do("ALTER SESSION SET CURRENT_SCHEMA = $schema");
+                        $dbh->do("ALTER SESSION SET CURRENT_SCHEMA = $schema");
                     }
                     return;
                 },
@@ -212,7 +219,10 @@ sub _ts2char_format {
 
 sub _ts_default { 'current_timestamp' }
 
-sub _char2ts { $_[1]->as_string(format => 'iso') }
+sub _char2ts {
+    my $dt = $_[1];
+    join ' ', $dt->ymd('-'), $dt->hms(':'), $dt->time_zone->name;
+}
 
 sub _listagg_format {
     # http://stackoverflow.com/q/16313631/79202
@@ -239,6 +249,56 @@ sub _cid {
     };
 }
 
+sub current_state {
+    my ( $self, $project ) = @_;
+    my $cdtcol = sprintf $self->_ts2char_format, 'c.committed_at';
+    my $pdtcol = sprintf $self->_ts2char_format, 'c.planned_at';
+    my $tagcol = sprintf $self->_listagg_format, 't.tag';
+    my $dbh    = $self->dbh;
+    # XXX Oy, placeholders do not work with COLLECT() in this query.
+    my $qproj  = $dbh->quote($project // $self->plan->project);
+    my $state  = $dbh->selectrow_hashref(qq{
+        SELECT * FROM (
+            SELECT c.change_id
+                 , c.change
+                 , c.project
+                 , COALESCE(c.note, '')
+                 , c.committer_name
+                 , c.committer_email
+                 , $cdtcol AS committed_at
+                 , c.planner_name
+                 , c.planner_email
+                 , $pdtcol AS planned_at
+                 , $tagcol AS tags
+              FROM changes   c
+              LEFT JOIN tags t ON c.change_id = t.change_id
+             WHERE c.project = $qproj
+             GROUP BY c.change_id
+                 , c.change
+                 , c.project
+                 , c.note
+                 , c.committer_name
+                 , c.committer_email
+                 , c.committed_at
+                 , c.planner_name
+                 , c.planner_email
+                 , c.planned_at
+             ORDER BY c.committed_at DESC
+        ) WHERE rownum = 1
+    }) or return undef;
+    $state->{committed_at} = _dt $state->{committed_at};
+    $state->{planned_at}   = _dt $state->{planned_at};
+    return $state;
+}
+
+sub is_deployed_change {
+    my ( $self, $change ) = @_;
+    $self->dbh->selectcol_arrayref(
+        'SELECT 1 FROM changes WHERE change_id = ?',
+        undef, $change->id
+    )->[0];
+}
+
 sub initialized {
     my $self = shift;
     return $self->dbh->selectcol_arrayref(q{
@@ -247,6 +307,58 @@ sub initialized {
          WHERE owner = SYS_CONTEXT('USERENV', 'SESSION_SCHEMA')
            AND table_name = 'CHANGES'
     })->[0];
+}
+
+sub _log_event {
+    my ( $self, $event, $change, $tags, $requires, $conflicts) = @_;
+    my $dbh    = $self->dbh;
+    my $sqitch = $self->sqitch;
+
+    $tags      ||= $self->_log_tags_param($change);
+    $requires  ||= $self->_log_requires_param($change);
+    $conflicts ||= $self->_log_conflicts_param($change);
+
+    # Use the sqitch_array() constructor to insert arrays of values.
+    my $tag_ph = 'sqitch_array('. join(', ', ('?') x @{ $tags      }) . ')';
+    my $req_ph = 'sqitch_array('. join(', ', ('?') x @{ $requires  }) . ')';
+    my $con_ph = 'sqitch_array('. join(', ', ('?') x @{ $conflicts }) . ')';
+    my $ts     = $self->_ts_default;
+
+    $dbh->do(qq{
+        INSERT INTO events (
+              event
+            , change_id
+            , change
+            , project
+            , note
+            , tags
+            , requires
+            , conflicts
+            , committer_name
+            , committer_email
+            , planned_at
+            , planner_name
+            , planner_email
+            , committed_at
+        )
+        VALUES (?, ?, ?, ?, ?, $tag_ph, $req_ph, $con_ph, ?, ?, ?, ?, ?, $ts)
+    }, undef,
+        $event,
+        $change->id,
+        $change->name,
+        $change->project,
+        $change->note,
+        @{ $tags      },
+        @{ $requires  },
+        @{ $conflicts },
+        $sqitch->user_name,
+        $sqitch->user_email,
+        $self->_char2ts( $change->timestamp ),
+        $change->planner_name,
+        $change->planner_email,
+    );
+
+    return $self;
 }
 
 sub initialize {
