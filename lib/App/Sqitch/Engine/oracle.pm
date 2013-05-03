@@ -235,7 +235,7 @@ sub _simple_from { ' FROM dual' }
 
 sub _multi_values {
     my ($self, $count, $expr) = @_;
-    return join ' UNION ALL ', ("SELECT $expr FROM dual") x $count;
+    return join "\nUNION ALL ", ("SELECT $expr FROM dual") x $count;
 }
 
 sub _dt($) {
@@ -247,13 +247,15 @@ sub _cid {
     my ( $self, $ord, $offset, $project ) = @_;
 
     return try {
-        $self->dbh->selectcol_arrayref(qq{
-            SELECT * FROM (
-                SELECT change_id
-                  FROM changes
-                 WHERE project = ?
-                 ORDER BY committed_at $ord
-            ) WHERE rownum >= ?
+        return $self->dbh->selectcol_arrayref(qq{
+            SELECT change_id FROM (
+                SELECT change_id, rownum as rnum FROM (
+                    SELECT change_id
+                      FROM changes
+                     WHERE project = ?
+                     ORDER BY committed_at $ord
+                )
+            ) WHERE rnum = ?
         }, undef, $project || $self->plan->project, ($offset // 0) + 1)->[0];
     } catch {
         return if $self->_no_table_error;

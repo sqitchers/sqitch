@@ -1554,9 +1554,11 @@ sub dt_for_event {
     my $dbh = $engine->dbh;
     return $dtfunc->($engine->dbh->selectcol_arrayref(qq{
         SELECT ts FROM (
-            SELECT rownum AS rnum, $col AS ts
-              FROM events
-             ORDER BY committed_at ASC
+            SELECT ts, rownum AS rnum FROM (
+                SELECT $col AS ts
+                  FROM events
+                 ORDER BY committed_at ASC
+            )
         ) WHERE rnum = ?
     }, undef, $offset + 1)->[0]) if $dbh->{Driver}->{Name} eq 'Oracle';
     return $dtfunc->($engine->dbh->selectcol_arrayref(
