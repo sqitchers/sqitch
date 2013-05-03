@@ -381,17 +381,16 @@ sub changes_requiring_change {
     # Why CTE: https://forums.oracle.com/forums/thread.jspa?threadID=1005221
     return @{ $self->dbh->selectall_arrayref(q{
         WITH tag AS (
-            SELECT t.tag AS tag, c.committed_at AS committed_at, c.project AS project,
-                   RANK() OVER (partition by c.change_id ORDER BY c.committed_at) AS rnk
-              FROM changes c
-              JOIN tags t ON c.change_id = t.change_id
+            SELECT tag, committed_at, project,
+                   ROW_NUMBER() OVER (partition by project ORDER BY committed_at) AS rnk
+              FROM tags
         )
         SELECT c.change_id, c.project, c.change, t.tag AS asof_tag
           FROM dependencies d
           JOIN changes  c ON c.change_id = d.change_id
-          LEFT JOIN tag t ON c.project   = t.project AND t.committed_at >= c.committed_at
+          LEFT JOIN tag t ON t.project   = c.project AND t.committed_at >= c.committed_at
          WHERE d.dependency_id = ?
-           AND t.rnk = 1
+           AND (t.rnk IS NULL OR t.rnk = 1)
     }, { Slice => {} }, $change->id) };
 }
 
@@ -400,15 +399,15 @@ sub name_for_change_id {
     # Why CTE: https://forums.oracle.com/forums/thread.jspa?threadID=1005221
     return $self->dbh->selectcol_arrayref(q{
         WITH tag AS (
-            SELECT t.tag AS tag, c.committed_at AS committed_at, c.project AS project,
-                   RANK() OVER (partition by c.change_id ORDER BY c.committed_at) AS rnk
-              FROM changes c
-              JOIN tags t ON c.change_id = t.change_id
+            SELECT tag, committed_at, project,
+                   ROW_NUMBER() OVER (partition by project ORDER BY committed_at) AS rnk
+              FROM tags
         )
         SELECT change || COALESCE(t.tag, '')
           FROM changes c
           LEFT JOIN tag t ON c.project = t.project AND t.committed_at >= c.committed_at
          WHERE change_id = ?
+           AND (t.rnk IS NULL OR t.rnk = 1)
     }, undef, $change_id)->[0];
 }
 

@@ -543,6 +543,7 @@ sub run {
                 $change->id,
             ],
         ], 'Should have both dependencies for "widgets"';
+
         is_deeply [ $engine->changes_requiring_change($change) ], [{
             project   => 'engine',
             change_id => $change2->id,
