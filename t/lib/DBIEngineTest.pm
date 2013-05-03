@@ -810,10 +810,10 @@ sub run {
 
         ######################################################################
         # Deploy the new changes with two tags.
-        $plan->add( name => 'fred' );
-        $plan->add( name => 'barney' );
-        $plan->tag( name => 'beta' );
-        $plan->tag( name => 'gamma' );
+        $plan->add( name => 'fred',   note => 'Hello Fred' );
+        $plan->add( name => 'barney', note => 'Hello Barney' );
+        $plan->tag( name => 'beta',   note => 'Note beta' );
+        $plan->tag( name => 'gamma',  note => 'Note gamma' );
         ok my $fred = $plan->get('fred'),     'Get the "fred" change';
         ok $engine->log_deploy_change($fred),     'Deploy "fred"';
         ok my $barney = $plan->get('barney'), 'Get the "barney" change';
@@ -836,7 +836,7 @@ sub run {
             project         => 'engine',
             change_id       => $barney->id,
             change          => 'barney',
-            note            => '',
+            note            => 'Hello Barney',
             committer_name  => $sqitch->user_name,
             committer_email => $sqitch->user_email,
             committed_at    => dt_for_change( $engine,$barney->id),
@@ -904,7 +904,7 @@ sub run {
             project         => 'engine',
             change_id       => $barney->id,
             change          => 'barney',
-            note            => '',
+            note            => 'Hello Barney',
             requires        => $engine->_log_requires_param($barney),
             conflicts       => $engine->_log_conflicts_param($barney),
             tags            => $engine->_log_tags_param($barney),
@@ -919,7 +919,7 @@ sub run {
             project         => 'engine',
             change_id       => $fred->id,
             change          => 'fred',
-            note            => '',
+            note            => 'Hello Fred',
             requires        => $engine->_log_requires_param($fred),
             conflicts       => $engine->_log_conflicts_param($fred),
             tags            => $engine->_log_tags_param($fred),
@@ -1014,6 +1014,7 @@ sub run {
         ok my $ext_change = $ext_plan->add(
             plan => $ext_plan,
             name => 'crazyman',
+            note => 'Crazy, right?',
         ), "Create external change";
         ok $engine->log_deploy_change($ext_change), 'Log the external change';
         my $ext_event = {
@@ -1021,7 +1022,7 @@ sub run {
             project         => 'groovy',
             change_id       => $ext_change->id,
             change          => $ext_change->name,
-            note            => '',
+            note            => $ext_change->note,
             requires        => $engine->_log_requires_param($ext_change),
             conflicts       => $engine->_log_conflicts_param($ext_change),
             tags            => $engine->_log_tags_param($ext_change),
@@ -1074,7 +1075,7 @@ sub run {
             project         => 'groovy',
             change_id       => $ext_change->id,
             change          => $ext_change->name,
-            note            => '',
+            note            => $ext_change->note,
             committer_name  => $sqitch->user_name,
             committer_email => $sqitch->user_email,
             tags            => [],
