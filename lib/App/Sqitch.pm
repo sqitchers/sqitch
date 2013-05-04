@@ -40,7 +40,7 @@ BEGIN {
 
     subtype 'CoreEngine', as 'Str', where {
         hurl core => __x('Unknown engine: {engine}', engine => $_)
-            unless $_ ~~ [qw(pg sqlite)];
+            unless $_ ~~ [qw(pg sqlite oracle)];
         1;
     };
 

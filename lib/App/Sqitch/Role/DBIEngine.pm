@@ -924,13 +924,17 @@ DBI-powered engines.
 
 =over
 
+=item L<App::Sqitch::Engine::pg>
+
+The PostgreSQL engine.
+
 =item L<App::Sqitch::Engine::sqlite>
 
 The SQLite engine.
 
-=item L<App::Sqitch::Engine::pg>
+=item L<App::Sqitch::Engine::oracle>
 
-The PostgreSQL engine.
+The Oracle engine.
 
 =back
 

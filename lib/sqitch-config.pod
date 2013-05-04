@@ -426,9 +426,9 @@ The database engine to use. Supported engines include:
 
 =item * C<pg> - L<PostgreSQL|http://postgresql.org/>
 
-=item * C<mysql> - L<MySQL|http://mysql.com/>
-
 =item * C<sqlite> - L<SQLite|http://sqlite.org/>
+
+=item * C<oracle> - L<Oracle|http://www.oracle.com/us/products/database/>
 
 =back
 
@@ -520,52 +520,13 @@ the C<$PGHOST> environment variable.
 
 =item C<core.pg.port>
 
-Port number to connect to. Does not apply to all engines. Defaults to the
-contents of the C<$PGPORT> environment variable.
+Port number to connect to. Defaults to the contents of the C<$PGPORT>
+environment variable.
 
 =item C<core.pg.sqitch_schema>
 
 The name of the schema in which Sqitch metadata will be stored. No other data
 should be stored in this schema. Defaults to C<sqitch>.
-
-=back
-
-=head3 C<core.mysql>
-
-Configuration properties for the MySQL engine. All except C<client> can also
-be set via the L<MySQL options
-file|http://dev.mysql.com/doc/refman/5.6/en/option-files.html>
-
-=over
-
-=item C<core.mysql.client>
-
-Path to the C<mysql> command-line client. Defaults to the first instance found
-in the path.
-
-=item C<core.mysql.username>
-
-User name to use when connecting to the MySQL database.
-
-=item C<core.mysql.password>
-
-Password to use when connecting to the MySQL database.
-
-=item C<core.mysql.db_name>
-
-Name of the MySQL database.
-
-=item C<core.mysql.host>
-
-Host name to use when connecting to the database.
-
-=item C<core.mysql.port>
-
-Port number to connect to. Does not apply to all engines.
-
-=item C<core.mysql.sqitch_prefix>
-
-Prefix to use for Sqitch metadata tables. Defaults to C<sqitch>.
 
 =back
 
@@ -592,6 +553,45 @@ should have its own corresponding Sqitch database. If you want the Sqitch
 metadata to be stored in the same file as the database it builds, make this
 value the same as C<core.sqlite.db_name>. Defaults to F<sqitch.db> in the same
 directory as C<db_name>.
+
+=back
+
+=head3 C<core.oracle>
+
+Configuration properties for the Oracle engine.
+
+=over
+
+=item C<core.oracle.client>
+
+Path to the C<sqlplus> command-line client. Defaults to the first instance
+found in C<$ORACLE_HOME> or the path.
+
+=item C<core.oracle.username>
+
+User name to use when connecting to the Oracle database
+
+=item C<core.oracle.password>
+
+Password to use when connecting to the Oracle database.
+
+=item C<core.oracle.db_name>
+
+Name of the Oracle database.
+
+=item C<core.oracle.host>
+
+Host name to use when connecting to the database.
+
+=item C<core.oracle.port>
+
+Port number to connect to.
+
+=item C<core.oracle.sqitch_schema>
+
+The name of the schema in which Sqitch metadata will be stored. No other data
+should be stored in this schema. Uses the current schema by default (usually
+the same name as C<core.oracle.username>.
 
 =back
 

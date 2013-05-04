@@ -2,7 +2,8 @@ App/Sqitch version 0.966
 ========================
 
 [Sqitch](http://sqitch.org/) is a database change management application. It
-currently supports PostgreSQL 8.4 and higher and SQLite.
+currently supports PostgreSQL 8.4 and higher, SQLite 3, and Oracle 10g and
+higher.
 
 What makes it different from your typical
 [migration](http://guides.rubyonrails.org/migrations.html) approaches? A few
@@ -17,12 +18,11 @@ things:
 *   Native scripting
 
     Changes are implemented as scripts native to your selected database
-    engine. Writing a L<PostgreSQL|http://postgresql.org/> application? Write
+    engine. Writing a [PostgreSQL](http://postgresql.org/) application? Write
     SQL scripts for
-    L<C<psql>|http://www.postgresql.org/docs/current/static/app-psql.html>.
-    Writing a L<MySQL|http://mysql.com/>-backed app? Write SQL scripts for
-    L<C<mysql>|http://dev.mysql.com/doc/refman/5.6/en/mysql.html> (coming
-    soon!).
+    [`psql`](http://www.postgresql.org/docs/current/static/app-psql.html).
+    Writing an [Oracle](http://www.oracle.com/us/products/database/)-backed app?
+    Write SQL scripts for [SQL\*Plus](http://www.orafaq.com/wiki/SQL*Plus).
 
 *   Dependency resolution
 
@@ -48,7 +48,7 @@ things:
 
     If you're using a VCS to track your changes, you don't have to duplicate
     xentire change scripts for simple changes. As long as the changes are
-    L<idempotent|http://en.wikipedia.org/wiki/Idempotence>, you can change
+    [idempotent](http://en.wikipedia.org/wiki/Idempotence), you can change
     your code directly, and Sqitch will know it needs to be updated.
 
 Want to learn more? The best place to start is in the tutorials:
