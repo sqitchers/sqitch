@@ -70,7 +70,7 @@ To install this module, type the following:
 Licence
 -------
 
-Copyright © 20122-2013 iovation Inc.
+Copyright © 2012-2013 iovation Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
