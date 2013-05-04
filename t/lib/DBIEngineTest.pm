@@ -1391,8 +1391,10 @@ sub run {
         $_->resolved_id( $engine->change_id_for_depend($_) ) for $ext_change3->requires;
         ok $engine->log_deploy_change($ext_change3), 'Log change "elsewise"';
 
-        # Check the dependencies again.
-        is_deeply [ $engine->changes_requiring_change($fred) ], [
+        is_deeply [
+            sort { $b->{change} cmp $a->{change} }
+            $engine->changes_requiring_change($fred)
+        ], [
             {
                 project   => 'engine',
                 change_id => $hyper->id,
@@ -1407,7 +1409,10 @@ sub run {
             },
         ], 'Change "fred" should be required by changes in two projects';
 
-        is_deeply [ $engine->changes_requiring_change($ext_change) ], [
+        is_deeply [
+            sort { $b->{change} cmp $a->{change} }
+            $engine->changes_requiring_change($ext_change)
+        ], [
             {
                 project   => 'engine',
                 change_id => $hyper->id,
