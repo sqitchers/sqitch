@@ -349,7 +349,7 @@ DBIEngineTest->run(
     class         => $CLASS,
     sqitch_params => [
         db_username => $user,
-        db_name     => $ENV{TWO_TASK} || $ENV{LOCAL} || $ENV{ORACLE_SID},
+#        db_name     => $ENV{TWO_TASK} || $ENV{LOCAL} || $ENV{ORACLE_SID},
         top_dir     => Path::Class::dir(qw(t engine)),
         plan_file   => Path::Class::file(qw(t engine sqitch.plan)),
     ],
