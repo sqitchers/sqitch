@@ -167,7 +167,7 @@ idea that the change is being C<added> to the database.
 With this change deployed, if you connect to the database, you'll be able to
 see the schema:
 
-  echo "SELECT username FROM all_users WHERE username = 'FLIPR';" \
+  > echo "SELECT username FROM all_users WHERE username = 'FLIPR';" \
   | sqlplus -S scott/tiger@flipr_test
   USERNAME
   ------------------------------
@@ -181,28 +181,25 @@ every deploy?
 Here's where the C<verify> script comes in. Its job is to test that the deploy
 did was it was supposed to. It should do so without regard to any data that
 might be in the database, and should throw an error if the deploy was not
-successful. In Oracle, the simplest way to do so for non-queryable objects
-such as schemas is to take advantage the
-L<access privilege inquiry functions|http://www.oracle.org/docs/current/static/functions-info.html#FUNCTIONS-INFO-ACCESS-TABLE>.
-These functions conveniently throw exceptions if the object being inquired
-does not exist. the specified function does not exist. For our new schema,
-C<has_schema_privilege()> will do very nicely. Put this query into
+successful. In Oracle, the simplest way to do so for schema is probably to
+simply create an object in the schema. Put this SQL into
 F<verify/appschema.sql>:
 
-  SELECT oracle_catalog.has_schema_privilege('flipr', 'usage');
+  WHENEVER SQLERROR EXIT SQL.SQLCODE
+  CREATE TABLE flipr.verify__ (id int);
+  DROP   TABLE flipr.verify__;
 
-Such functionality may not be available to other databases, but you can use
-I<any> query that will throw an exception if the schema doesn't exist. One
-handy way to do that is to divide by zero if an object doesn't exist. So for
-other databases, to throw an error when the C<flipr> schema does not exist,
-you could do something like this:
+In truth, you can use I<any> query that will throw an exception if the schema
+doesn't exist. One handy way to do that is to divide by zero if an object
+doesn't exist. So for other databases, to throw an error when the C<flipr>
+schema does not exist, you could do something like this:
 
-  SELECT 1/COUNT(*) FROM information_schema.schemata WHERE schema_name = 'flipr';
+  SELECT 1/COUNT(*) FROM sys.all_users WHERE username = 'FLIPR';
 
 Either way, run the C<verify> script with the L<C<verify>|sqitch-verify>
 command:
 
-  > sqitch --db-name flipr_test verify
+  > sqitch --db-name flipr_test --db-user scott/tiger verify
   Verifying flipr_test
     * appschema .. ok
   Verify successful
@@ -211,16 +208,22 @@ Looks good! If you want to make sure that the verify script correctly dies if
 the schema doesn't exist, temporarily change the schema name in the script to
 something that doesn't exist, something like:
 
-  SELECT oracle_catalog.has_schema_privilege('nonesuch', 'usage');
+  CREATE TABLE nonesuch.verify__ (id int);
 
 Then L<C<verify>|sqitch-verify> again:
 
-  > sqitch --db-name flipr_test verify
+  > sqitch --db-name flipr_test --db-user scott/tiger verify
   Verifying flipr_test
-    * appschema .. psql:verify/appschema.sql:5: ERROR:  schema "nonesuch" does not exist
+    * appschema .. CREATE TABLE nonesuch.verify__ (id int)
+  *
+  ERROR at line 1:
+  ORA-01918: user 'NONESUCH' does not exist
+
+
+
   # Verify script "verify/appschema.sql" failed.
   not ok
-  
+
   Verify Summary Report
   ---------------------
   Changes: 1
@@ -230,13 +233,19 @@ Then L<C<verify>|sqitch-verify> again:
 It's even nice enough to tell us what the problem is. Or, for the
 divide-by-zero example, change the schema name:
 
-  SELECT 1/COUNT(*) FROM information_schema.schemata WHERE schema_name = 'nonesuch';
+  SELECT 1/COUNT(*) FROM sys.all_users WHERE username = 'NONESUCH';
 
 Then the verify will look something like:
 
   > sqitch --db-name flipr_test verify
   Verifying flipr_test
-    * appschema .. psql:verify/appschema.sql:5: ERROR:  division by zero
+    * appschema ..   SELECT 1/COUNT(*) FROM sys.all_users WHERE username = 'NONESUCH'
+            *
+  ERROR at line 1:
+  ORA-01476: divisor is equal to zero
+
+
+
   # Verify script "verify/appschema.sql" failed.
   not ok
 
@@ -257,19 +266,19 @@ For purely informational purposes, we can always see how a deployment was
 recorded via the L<C<status>|sqitch-status> command, which reads the metadata
 tables from the database:
 
-  > sqitch -d flipr_test status
+  > sqitch --db-name flipr_test --db-user scott/tiger status
   # On database flipr_test
   # Project:  flipr
-  # Change:   ae1263b92b3355cf705c7832271730fe4ccb3c77
+  # Change:   4f48ef56c7113ccc998a1cec7c0ebf089f45ce85
   # Name:     appschema
-  # Deployed: 2012-12-31 11:00:29 -0800
+  # Deployed: 2013-05-07 13:56:18 -0700
   # By:       Marge N. O’Vera <marge@example.com>
   # 
   Nothing to deploy (up-to-date)
 
 Let's make sure that we can revert the change:
 
-  > sqitch -d flipr_test revert
+  > sqitch -d flipr_test -u scott/tiger revert
   Revert all changes from flipr_test? [Yes]
     - appschema .. ok
 
@@ -279,15 +288,14 @@ pass the C<-y> option to disable the prompt. Also, notice the C<-> before the
 change name in the output, which reinforces that the change is being
 I<removed> from the database. And now the schema should be gone:
 
-  > psql -d flipr_test -c '\dn flipr'
-              List of roles
-  List of schemas
-   Name | Owner 
-  ------+-------
+  > echo "SELECT username FROM all_users WHERE username = 'FLIPR';" \
+  | sqlplus -S scott/tiger@flipr_test
+  no rows selected
+  
 
 And the status message should reflect as much:
 
-  > sqitch -d flipr_test status
+  > sqitch -d flipr_test -u scott/tiger status
   # On database flipr_test
   No changes deployed
 
@@ -303,19 +311,19 @@ L<C<log>|sqitch-log> command:
 
   > sqitch -d flipr_test log
   On database flipr_test
-  Revert ae1263b92b3355cf705c7832271730fe4ccb3c77
+  Revert 4f48ef56c7113ccc998a1cec7c0ebf089f45ce85
   Name:      appschema
   Committer: Marge N. O’Vera <marge@example.com>
-  Date:      2012-12-31 11:01:22 -0800
+  Date:      2013-05-07 13:56:44 -0700
 
-      App schema for all flipr objects.
+      App user and schema for all flipr objects.
 
-  Deploy ae1263b92b3355cf705c7832271730fe4ccb3c77
+  Deploy 4f48ef56c7113ccc998a1cec7c0ebf089f45ce85
   Name:      appschema
   Committer: Marge N. O’Vera <marge@example.com>
-  Date:      2012-12-31 11:00:29 -0800
+  Date:      2013-05-07 13:56:18 -0700
 
-      App schema for all flipr objects.
+      App user and schema for all flipr objects.
 
 Note that the actions we took are shown in reverse chronological order, with
 the revert first and then the deploy.
@@ -324,8 +332,8 @@ Cool. Now let's commit it.
 
   > git add .
   > git commit -m 'Add flipr schema.'
-  [master e6464c0] Add flipr schema.
-   4 files changed, 22 insertions(+)
+  [master 5475055] Add flipr schema.
+   5 files changed, 16 insertions(+)
    create mode 100644 deploy/appschema.sql
    create mode 100644 revert/appschema.sql
    create mode 100644 verify/appschema.sql
@@ -333,26 +341,26 @@ Cool. Now let's commit it.
 And then deploy again. This time, let's use the C<--verify> option, so that
 the C<verify> script is applied when the change is deployed:
 
-  > sqitch --db-name flipr_test deploy --verify
+  > sqitch -d flipr_test -u scott/tiger deploy --verify
   Deploying changes to flipr_test
     + appschema .. ok
 
 And now the schema should be back:
 
-  > psql -d flipr_test -c '\dn flipr'
-  List of schemas
-   Name  | Owner 
-  -------+-------
-   flipr | marge
+  > echo "SELECT username FROM all_users WHERE username = 'FLIPR';" \
+  | sqlplus -S scott/tiger@flipr_test
+  USERNAME
+  ------------------------------
+  FLIPR
 
 When we look at the status, the deployment will be there:
 
-  > sqitch -d flipr_test status
+  > sqitch -d flipr_test -u scott/tiger status
   # On database flipr_test
   # Project:  flipr
-  # Change:   ae1263b92b3355cf705c7832271730fe4ccb3c77
+  # Change:   4f48ef56c7113ccc998a1cec7c0ebf089f45ce85
   # Name:     appschema
-  # Deployed: 2012-12-31 11:03:18 -0800
+  # Deployed: 2013-05-07 14:01:09 -0700
   # By:       Marge N. O’Vera <marge@example.com>
   # 
   Nothing to deploy (up-to-date)
