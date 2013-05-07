@@ -368,20 +368,27 @@ When we look at the status, the deployment will be there:
 =head1 More Configuration
 
 I'm getting a little tired of always having to type C<--db-name flipr_test>,
-aren't you? Let's just make that the default, shall we?
+and C<--db-user scott/tiger>, aren't you? Let's just make these the default,
+shall we? Start with the database name:
 
   > sqitch config core.oracle.db_name flipr_test
 
-Now we can leave it out, unless we need to deploy to another database. Which
-we will, eventually, but at least our examples will be simpler from here on
-in, e.g.:
+And set the database username and password in the Sqitch user config, since it
+might vary for other folks who have checked out our Git repository.
+
+  > sqitch config --user core.oracle.username scott
+  > sqitch config --user core.oracle.password tiger
+
+Now we can omit the those options, unless we need to deploy to another
+database or with a different username. Which we will, eventually, but at least
+our examples will be simpler from here on in, e.g.:
 
   > sqitch status
   # On database flipr_test
   # Project:  flipr
-  # Change:   ae1263b92b3355cf705c7832271730fe4ccb3c77
+  # Change:   4f48ef56c7113ccc998a1cec7c0ebf089f45ce85
   # Name:     appschema
-  # Deployed: 2012-12-31 11:03:18 -0800
+  # Deployed: 2013-05-07 14:01:09 -0700
   # By:       Marge N. O’Vera <marge@example.com>
   # 
   Nothing to deploy (up-to-date)
@@ -396,7 +403,7 @@ We'll see the L<C<rebase>|sqitch-rebase> command a bit later. In the meantime,
 let's commit the new configuration and and make some more changes!
 
   > git commit -am 'Set default DB name and always verify.'
-  [master 367add8] Set default DB name and always verify.
+  [master 891ff34] Set default DB name and always verify.
    1 file changed, 6 insertions(+)
 
 =head1 Deploy with Dependency
@@ -421,27 +428,21 @@ this:
   -- Deploy users
   -- requires: appschema
 
-  BEGIN;
-
-  SET client_min_messages = 'warning';
-
+  WHENEVER SQLERROR EXIT SQL.SQLCODE
   CREATE TABLE flipr.users (
-      nickname  TEXT        PRIMARY KEY,
-      password  TEXT        NOT NULL,
-      timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      nickname  VARCHAR(512 CHAR) PRIMARY KEY,
+      password  VARCHAR(512 CHAR) NOT NULL,
+      timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
   );
-
-  COMMIT;
 
 A few things to notice here. On the second line, the dependence on the
 C<appschema> change has been listed. This doesn't do anything, but the default
 C<deploy> template lists it here for your reference while editing the file.
 Useful, right?
 
-Notice that all of the SQL code is wrapped in a transaction. This is handy for
-Oracle deployments, because Oracle DDLs are transactional. The upshot
-is that if any part of this deploy script fails, the whole change fails. Such
-may work less-well for database engines that don't support transactional DDLs.
+Notice that we've told SQL*Plus to exit on error with the appropriate error
+code. This is essential for Sqitch to be able to detect that a change has
+failed.
 
 The table itself will been created in the C<flipr> schema. This is why we need
 to require the C<appschema> change.
@@ -450,13 +451,18 @@ Now for the verify script. The simplest way to check that the table was
 created and has the expected columns without touching the data? Just select
 from the table with a false C<WHERE> clause. Add this to F<verify/users.sql>:
 
+  WHENEVER SQLERROR EXIT SQL.SQLCODE
   SELECT nickname, password, timestamp
     FROM flipr.users
-   WHERE FALSE;
+   WHERE 1 = 1;
+
+Note that we have once again set the SQL*Plus error handling. In truth, this
+line should be in I<all> Sqitch scripts.
 
 Now for the revert script: all we have to do is drop the table. Add this to
 F<revert/users.sql>:
 
+  WHENEVER SQLERROR EXIT SQL.SQLCODE
   DROP TABLE flipr.users;
 
 Couldn't be much simpler, right? Let's deploy this bad boy:
@@ -468,15 +474,13 @@ Couldn't be much simpler, right? Let's deploy this bad boy:
 We know, since verification is enabled, that the table must have been created.
 But for the purposes of visibility, let's have a quick look:
 
-  > psql -d flipr_test -c '\d flipr.users'
-                        Table "flipr.users"
-    Column   |           Type           |       Modifiers        
-  -----------+--------------------------+------------------------
-   nickname  | text                     | not null
-   password  | text                     | not null
-   timestamp | timestamp with time zone | not null default now()
-  Indexes:
-      "users_pkey" PRIMARY KEY, btree (nickname)
+  > echo "DESCRIBE flipr.users;" | sqlplus -S scott/tiger@flipr_test
+
+   Name					   Null?    Type
+   ----------------------------------------- -------- ----------------------------
+   NICKNAME				   NOT NULL VARCHAR2(512 CHAR)
+   PASSWORD				   NOT NULL VARCHAR2(512 CHAR)
+   TIMESTAMP				   NOT NULL TIMESTAMP(6) WITH TIME ZONE
 
 We can also verify all currently deployed changes with the
 L<C<verify>|sqitch-verify> command:
@@ -492,9 +496,9 @@ Now have a look at the status:
   > sqitch status
   # On database flipr_test
   # Project:  flipr
-  # Change:   bbb98e0660898ced0ba5f84c577036b5dafa3a55
+  # Change:   afd3de96a30274760ce7e4078b7b52df3717e17b
   # Name:     users
-  # Deployed: 2012-12-31 11:42:17 -0800
+  # Deployed: 2013-05-07 14:10:33 -0700
   # By:       Marge N. O’Vera <marge@example.com>
   # 
   Nothing to deploy (up-to-date)
@@ -518,8 +522,10 @@ command).
 Back to the database. The C<users> table should be gone but the C<flipr> schema
 should still be around:
 
-  > psql -d flipr_test -c '\d flipr.users'
-  Did not find any relation named "flipr.users".
+  > echo "DESCRIBE flipr.users;" | sqlplus -S dwheeler/dwheeler@flipr_test
+
+  ERROR:
+  ORA-04043: object flipr.users does not exist
 
 The L<C<status>|sqitch-status> command politely informs us that we have
 undeployed changes:
@@ -527,9 +533,9 @@ undeployed changes:
   > sqitch status
   # On database flipr_test
   # Project:  flipr
-  # Change:   ae1263b92b3355cf705c7832271730fe4ccb3c77
+  # Change:   4f48ef56c7113ccc998a1cec7c0ebf089f45ce85
   # Name:     appschema
-  # Deployed: 2012-12-31 11:03:18 -0800
+  # Deployed: 2013-05-07 14:01:09 -0700
   # By:       Marge N. O’Vera <marge@example.com>
   # 
   Undeployed change:
@@ -552,8 +558,8 @@ Okay, let's commit and deploy again:
 
   > git add .
   > git commit -am 'Add users table.'
-  [master 6aae0e9] Add users table.
-   4 files changed, 31 insertions(+)
+  [master 53b87dd] Add users table.
+   4 files changed, 20 insertions(+)
    create mode 100644 deploy/users.sql
    create mode 100644 revert/users.sql
    create mode 100644 verify/users.sql
@@ -566,9 +572,9 @@ Looks good. Check the status:
   > sqitch status
   # On database flipr_test
   # Project:  flipr
-  # Change:   bbb98e0660898ced0ba5f84c577036b5dafa3a55
+  # Change:   afd3de96a30274760ce7e4078b7b52df3717e17b
   # Name:     users
-  # Deployed: 2012-12-31 14:04:11 -0800
+  # Deployed: 2013-05-07 14:18:16 -0700
   # By:       Marge N. O’Vera <marge@example.com>
   # 
   Nothing to deploy (up-to-date)
