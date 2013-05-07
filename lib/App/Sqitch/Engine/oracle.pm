@@ -289,6 +289,7 @@ sub current_state {
     my $dbh    = $self->dbh;
     # XXX Oy, placeholders do not work with COLLECT() in this query.
     # http://www.nntp.perl.org/group/perl.dbi.users/2013/05/msg36581.html
+    # http://stackoverflow.com/q/16407560/79202
     my $qproj  = $dbh->quote($project // $self->plan->project);
     my $state  = $dbh->selectrow_hashref(qq{
         SELECT * FROM (
@@ -322,6 +323,30 @@ sub current_state {
     $state->{committed_at} = _dt $state->{committed_at};
     $state->{planned_at}   = _dt $state->{planned_at};
     return $state;
+}
+
+sub deployed_changes {
+    my $self   = shift;
+    my $tscol  = sprintf $self->_ts2char_format, 'c.planned_at';
+    my $tagcol = sprintf $self->_listagg_format, 't.tag';
+    # XXX Oy, placeholders do not work with COLLECT() in this query.
+    # http://www.nntp.perl.org/group/perl.dbi.users/2013/05/msg36581.html
+    # http://stackoverflow.com/q/16407560/79202
+    my $qproj  = $self->dbh->quote($self->plan->project);
+    return map {
+        $_->{timestamp} = _dt $_->{timestamp};
+        $_;
+    } @{ $self->dbh->selectall_arrayref(qq{
+        SELECT c.change_id AS id, c.change AS name, c.project, c.note,
+               $tscol AS timestamp, c.planner_name, c.planner_email,
+               $tagcol AS tags
+          FROM changes   c
+          LEFT JOIN tags t ON c.change_id = t.change_id
+         WHERE c.project = $qproj
+         GROUP BY c.change_id, c.change, c.project, c.note, c.planned_at,
+               c.planner_name, c.planner_email, c.committed_at
+         ORDER BY c.committed_at ASC
+    }, { Slice => {} } ) };
 }
 
 sub is_deployed_change {
@@ -674,7 +699,7 @@ sub _ts2char($) {
 }
 
 sub _no_table_error  {
-    return $DBI::err == 942; # ORA-00942: table or view does not exist
+    return defined $DBI::err && $DBI::err == 942; # ORA-00942: table or view does not exist
 }
 
 sub _script {
