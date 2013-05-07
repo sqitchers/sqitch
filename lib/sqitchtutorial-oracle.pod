@@ -2,7 +2,7 @@
 
 =head1 Name
 
-sqitchtutorial - A tutorial introduction to Sqitch
+sqitchtutorial-oracle - A tutorial introduction to Sqitch change management on Oracle
 
 =head1 Synopsis
 
@@ -10,16 +10,16 @@ sqitchtutorial - A tutorial introduction to Sqitch
 
 =head1 Description
 
-This tutorial explains how to create a sqitch-enabled project, use a VCS for
-deployment planning, and work with other developers to make sure changes
-remain in sync and in the proper order.
+This tutorial explains how to create a sqitch-enabled Oracle project, use a
+VCS for deployment planning, and work with other developers to make sure
+changes remain in sync and in the proper order.
 
 We'll start by creating new project from scratch, a fictional antisocial
 networking site called Flipr. All examples use L<Git|http://git-scm.com/> as
-the VCS and L<PostgreSQL|http://www.postgresql.org/> as the storage engine,
-but for the most part you can substitute other VCSes and database engines in
-the examples as appropriate. If you'd like to manage an SQLite database, see
-L<sqitchtutorial-sqlite>.
+the VCS and L<Oracle|http://www.oracle.com/us/products/database/> as the
+storage engine. Note that you will need to set
+L<C<$ORACLE_HOME>|http://www.orafaq.com/wiki/ORACLE_HOME> so that all the
+database connections will work.
 
 =head1 Starting a New Project
 
@@ -34,15 +34,15 @@ source code repository. So let's do that with Git:
   > git add .
   > git commit -am 'Initialize project, add README.'
 
-If you're a Git user and want to follow along the history, the repository
-used in these examples is L<on GitHub|https://github.com/theory/sqitch-intro>.
+If you're a Git user and want to follow along the history, the repository used
+in these examples is L<on GitHub|https://github.com/theory/sqitch-oracle-intro>.
 
 Now that we have a repository, let's get started with Sqitch. Every Sqitch
 project must have a name associated with it, and, optionally, a unique URI. We
 recommend including the URI, as it increases the uniqueness of object
 identifiers internally, so let's specify one when we initialize Sqitch:
 
-  > sqitch --engine pg init flipr --uri https://github.com/theory/sqitch-intro/
+  > sqitch --engine oracle init flipr --uri https://github.com/theory/sqitch-intro/
   Created sqitch.conf
   Created sqitch.plan
   Created deploy/
@@ -51,39 +51,35 @@ identifiers internally, so let's specify one when we initialize Sqitch:
 
 Let's have a look at F<sqitch.conf>:
 
-  > cat sqitch.conf
+  > cat sqitch.conf 
   [core]
-      engine = pg
-      # plan_file = sqitch.plan
-      # top_dir = .
-      # deploy_dir = deploy
-      # revert_dir = revert
-      # verify_dir = verify
-      # extension = sql
-  # [core "pg"]
-      # db_name = 
-      # client = /usr/local/pgsql/bin/psql
-      # sqitch_schema = sqitch
-      # password = 
-      # port = 
-      # host = 
-      # username = 
+  	engine = oracle
+  	# plan_file = sqitch.plan
+  	# top_dir = .
+  	# deploy_dir = deploy
+  	# revert_dir = revert
+  	# verify_dir = verify
+  	# extension = sql
+  # [core "oracle"]
+  	# client = /usr/local/instantclient_11_2/sqlplus
+  	# username = 
+  	# password = 
+  	# db_name = 
+  	# host = 
+  	# port = 
+  	# sqitch_schema = 
 
-Good, it picked up on the fact that we're creating changes for the PostgreSQL
-engine, thanks to the C<--engine pg> option, and saved it to the file.
-Furthermore, it wrote a commented-out C<[core "pg"]> section with all the
-available PostgreSQL engine-specific settings commented out and ready to be
-edited as appropriate.
+Good, it picked up on the fact that we're creating changes for the Oracle
+engine, thanks to the C<--engine oracle> option, and saved it to the file.
+Furthermore, it wrote a commented-out C<[core "oracle"]> section with all the
+available Oracle engine-specific settings commented out and ready to be edited
+as appropriate. This includes the path to
+L<SQL*Plus|http://www.orafaq.com/wiki/SQL*Plus> in my C<$ORACLE_HOME>.
 
 By default, Sqitch will read F<sqitch.conf> in the current directory for
 settings. But it will also read F<~/.sqitch/sqitch.conf> for user-specific
-settings. Since PostgreSQL's C<psql> client is not in the path on my system,
-let's go ahead an tell it where to find the client on our computer:
-
-  > sqitch config --user core.pg.client /opt/local/pgsql/bin/psql
-
-And let's also tell it who we are, since this data will be used in all
-of our projects:
+settings. Let's tell it who we are, since this data will be used in all of our
+projects:
 
   > sqitch config --user user.name 'Marge N. O’Vera'
   > sqitch config --user user.email 'marge@example.com'
@@ -91,21 +87,18 @@ of our projects:
 Have a look at F<~/.sqitch/sqitch.conf> and you'll see this:
 
   > cat ~/.sqitch/sqitch.conf
-  [core "pg"]
-  	client = /opt/local/pgsql/bin/psql
   [user]
   	name = Marge N. O’Vera
   	email = marge@example.com
 
-Which means that Sqitch should be able to find C<psql> for any project, and
-that it will always properly identify us when planning and committing changes.
-
-Back to the repository. Have a look at the plan file, F<sqitch.plan>:
+Which means that Sqitch will always properly identify us when planning and
+committing changes.Back to the repository. Have a look at the plan file,
+F<sqitch.plan>:
 
   > cat sqitch.plan
   %syntax-version=1.0.0-b1
   %project=flipr
-  %uri=https://github.com/theory/sqitch-intro/
+  %uri=https://github.com/theory/sqitch-oracle-intro/
   
 
 Note that it has picked up on the name and URI of the app we're building.
@@ -117,17 +110,18 @@ Let's commit these changes and start creating the database changes.
 
   > git add .
   > git commit -am 'Initialize Sqitch configuration.'
-  [master be9ab3e] Initialize Sqitch configuration.
-   2 files changed, 23 insertions(+)
+  [master 6601c10] Initialize Sqitch configuration.
+   2 files changed, 20 insertions(+)
    create mode 100644 sqitch.conf
    create mode 100644 sqitch.plan
 
 =head1 Our First Change
 
-First, our project will need a schema. This creates a nice namespace for all
-of the objects that will be part of the flipr app. Run this command:
+First, our project will need an Oracle user and accompanying schema. This
+creates a nice namespace for all of the objects that will be part of the flipr
+app. Run this command:
 
-  > sqitch add appschema -n 'Add schema for all flipr objects.'
+  > sqitch add appschema -n 'App user and schema for all flipr objects.'
   Created deploy/appschema.sql
   Created revert/appschema.sql
   Created verify/appschema.sql
@@ -135,38 +129,49 @@ of the objects that will be part of the flipr app. Run this command:
 
 The L<C<add>|sqitch-add> command adds a database change to the plan and writes
 deploy, revert, and verify scripts that represent the change. Now we edit
-these files. The C<deploy> script's job is to create the schema. So we add
+these files. The C<deploy> script's job is to create the user. So we add
 this to F<deploy/appschema.sql>:
 
-  CREATE SCHEMA flipr;
+  CREATE USER flipr IDENTIFIED BY whatever;
 
 The C<revert> script's job is to precisely revert the change to the deploy
 script, so we add this to F<revert/appschema.sql>:
 
-  DROP SCHEMA flipr;
+  DROP USER flipr;
 
-Now we can try deploying this change:
+Now we can try deploying this change. We'll assume you have a Oracle SID
+set up in your C<F<TNSNAMES.ORA>|http://www.orafaq.com/wiki/Tnsnames.ora>
+file pointing to a database named C<flipr_test>:
 
-  > createdb flipr_test
-  > sqitch --db-name flipr_test deploy
+  > sqitch --db-name flipr_test --db-user scott/tiger deploy                   
   Adding metadata tables to flipr_test
-  Deploying to flipr_test
+  Deploying changes to flipr_test
     + appschema .. ok
 
 First Sqitch created the metadata tables used to track database changes. The
-structure and name of the metadata tables varies between databases (PostgreSQL
-uses a schema to namespace its metadata, while SQLite uses a separate
-database). Next, Sqitch deploys changes. We only have one so far; the C<+>
-reinforces the idea that the change is being C<added> to the database.
+structure and name of the metadata tables varies between databases, but in Oracle
+they are simply stored in the current schema -- that is, the schema with the same
+name as the user you've connected as. In this example, that schema is C<scott>.
+If you'd like to keep the Sqitch metadata in some other schema, set the
+C<core.oracle.sqitch_schema> configuration variable:
+
+  sqitch config core.oracle.sqitch_schema sqitch
+
+Ideally, only Sqitch data will be stored in this schema, so it probably makes
+the most sense to create a superuser named C<sqitch> or something similar to
+do the deployments.
+
+Next, Sqitch deploys changes. We only have one so far; the C<+> reinforces the
+idea that the change is being C<added> to the database.
 
 With this change deployed, if you connect to the database, you'll be able to
 see the schema:
 
-  > psql -d flipr_test -c '\dn flipr'
-  List of schemas
-   Name  | Owner 
-  -------+-------
-   flipr | marge
+  echo "SELECT username FROM all_users WHERE username = 'FLIPR';" \
+  | sqlplus -S scott/tiger@flipr_test
+  USERNAME
+  ------------------------------
+  FLIPR
 
 =head2 Trust, But Verify
 
@@ -176,15 +181,15 @@ every deploy?
 Here's where the C<verify> script comes in. Its job is to test that the deploy
 did was it was supposed to. It should do so without regard to any data that
 might be in the database, and should throw an error if the deploy was not
-successful. In PostgreSQL, the simplest way to do so for non-queryable objects
+successful. In Oracle, the simplest way to do so for non-queryable objects
 such as schemas is to take advantage the
-L<access privilege inquiry functions|http://www.postgresql.org/docs/current/static/functions-info.html#FUNCTIONS-INFO-ACCESS-TABLE>.
+L<access privilege inquiry functions|http://www.oracle.org/docs/current/static/functions-info.html#FUNCTIONS-INFO-ACCESS-TABLE>.
 These functions conveniently throw exceptions if the object being inquired
 does not exist. the specified function does not exist. For our new schema,
 C<has_schema_privilege()> will do very nicely. Put this query into
 F<verify/appschema.sql>:
 
-  SELECT pg_catalog.has_schema_privilege('flipr', 'usage');
+  SELECT oracle_catalog.has_schema_privilege('flipr', 'usage');
 
 Such functionality may not be available to other databases, but you can use
 I<any> query that will throw an exception if the schema doesn't exist. One
@@ -206,7 +211,7 @@ Looks good! If you want to make sure that the verify script correctly dies if
 the schema doesn't exist, temporarily change the schema name in the script to
 something that doesn't exist, something like:
 
-  SELECT pg_catalog.has_schema_privilege('nonesuch', 'usage');
+  SELECT oracle_catalog.has_schema_privilege('nonesuch', 'usage');
 
 Then L<C<verify>|sqitch-verify> again:
 
@@ -357,7 +362,7 @@ When we look at the status, the deployment will be there:
 I'm getting a little tired of always having to type C<--db-name flipr_test>,
 aren't you? Let's just make that the default, shall we?
 
-  > sqitch config core.pg.db_name flipr_test
+  > sqitch config core.oracle.db_name flipr_test
 
 Now we can leave it out, unless we need to deploy to another database. Which
 we will, eventually, but at least our examples will be simpler from here on
@@ -426,7 +431,7 @@ C<deploy> template lists it here for your reference while editing the file.
 Useful, right?
 
 Notice that all of the SQL code is wrapped in a transaction. This is handy for
-PostgreSQL deployments, because PostgreSQL DDLs are transactional. The upshot
+Oracle deployments, because Oracle DDLs are transactional. The upshot
 is that if any part of this deploy script fails, the whole change fails. Such
 may work less-well for database engines that don't support transactional DDLs.
 
@@ -642,7 +647,7 @@ Now for C<change_pass>; F<deploy/change_pass.sql> might look like this:
       nick    TEXT,
       oldpass TEXT,
       newpass TEXT
-  ) RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER AS $$
+  ) RETURNS BOOLEAN LANGUAGE ploraclesql SECURITY DEFINER AS $$
   BEGIN
       UPDATE flipr.users
          SET password = md5($3)
@@ -941,7 +946,7 @@ And the C<delete_flip> deploy script might look something like:
 
   CREATE OR REPLACE FUNCTION flipr.delete_flip(
      flip_id BIGINT
-  ) RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER AS $$
+  ) RETURNS BOOLEAN LANGUAGE ploraclesql SECURITY DEFINER AS $$
   BEGIN
       DELETE FROM flipe.flips WHERE id = flip_id;
       RETURN FOUND;
@@ -1297,26 +1302,26 @@ a great idea. So we need to modify the C<insert_user()> and C<change_pass()>
 functions to fix that. How?
 
 We'll use
-L<C<pgcrypto>|http://www.postgresql.org/docs/current/static/pgcrypto.html>'s
+L<C<oraclecrypto>|http://www.oracle.org/docs/current/static/oraclecrypto.html>'s
 C<crypt()> function to encrypt passwords with a salt, so that they're all
-unique. We just add a change to add C<pgcrypto> to the database, and then we
+unique. We just add a change to add C<oraclecrypto> to the database, and then we
 can use it. The deploy script should be:
 
-  CREATE EXTENSION pgcrypto;
+  CREATE EXTENSION oraclecrypto;
 
 And the revert script should be:
 
-  DROP EXTENSION pgcrypto;
+  DROP EXTENSION oraclecrypto;
 
 =over
 
-If you're on PostgreSQL 9.0 or lower, you won't be able to deploy C<pgcrypto>
+If you're on Oracle 9.0 or lower, you won't be able to deploy C<oraclecrypto>
 with a Sqitch change, alas. You'll have to install it manually, like so:
 
-    psql -d flipr_test -f /path/to/pgsql/share/contrib/pgcrypto.sql
+    psql -d flipr_test -f /path/to/oraclesql/share/contrib/oraclecrypto.sql
 
 Don't forget to do this with your staging and production databases, too. Or
-consider upgrading to PostgreSQL 9.1 or higher; the SQL-level extension
+consider uoraclerading to Oracle 9.1 or higher; the SQL-level extension
 support is amazingly useful.
 
 =back
@@ -1325,11 +1330,11 @@ We're going to use the C<crypt()> and C<gen_salt()> functions, so in the
 C<verify> script, let's make sure that the extension exists I<and> that both
 those functions exist:
 
-  SELECT 1/count(*) FROM pg_extension WHERE extname = 'pgcrypto';
+  SELECT 1/count(*) FROM oracle_extension WHERE extname = 'oraclecrypto';
   SELECT has_function_privilege('crypt(text, text)', 'execute');
   SELECT has_function_privilege('gen_salt(text)', 'execute');
 
-Now we can use C<pgcrypto>. But how to deploy the changes to C<insert_user()>
+Now we can use C<oraclecrypto>. But how to deploy the changes to C<insert_user()>
 and C<change_pass()>?
 
 Normally, modifying functions in database changes is a
@@ -1345,7 +1350,7 @@ Copy F<deploy/insert_user.sql> to F<deploy/insert_user_crypt.sql>.
 =item 2.
 
 Edit F<deploy/insert_user_crypt.sql> to switch from C<MD5()> to C<crypt()>
-and to add a dependency on the C<pgcrypto> change.
+and to add a dependency on the C<oraclecrypto> change.
 
 =item 3.
 
@@ -1380,8 +1385,8 @@ section. With that, we can let Sqitch do most of the hard work for us, thanks
 to the L<C<rework>|sqitch-rework> command, which is similar to
 L<C<add>|sqitch-add>, including support for the C<--requires> option:
 
-  > sqitch rework insert_user --requires pgcrypto -n 'Change insert_user to use pgcrypto.'
-  Added "insert_user [insert_user@v1.0.0-dev2 pgcrypto]" to sqitch.plan.
+  > sqitch rework insert_user --requires oraclecrypto -n 'Change insert_user to use oraclecrypto.'
+  Added "insert_user [insert_user@v1.0.0-dev2 oraclecrypto]" to sqitch.plan.
   Modify these files as appropriate:
     * deploy/insert_user.sql
     * revert/insert_user.sql
@@ -1442,7 +1447,7 @@ F<deploy/insert_user.sql>:
    -- Deploy insert_user
    -- requires: users
    -- requires: appschema
-  +-- requires: pgcrypto
+  +-- requires: oraclecrypto
  
    BEGIN;
  
@@ -1458,8 +1463,8 @@ F<deploy/insert_user.sql>:
 
 Go ahead and rework the C<change_pass> change, too:
 
-  > sqitch rework change_pass --requires pgcrypto -n 'Change change_pass to use pgcrypto.' 
-  Added "change_pass [:change_pass@v1.0.0-dev2 :pgcrypto]" to sqitch.plan.
+  > sqitch rework change_pass --requires oraclecrypto -n 'Change change_pass to use oraclecrypto.' 
+  Added "change_pass [:change_pass@v1.0.0-dev2 :oraclecrypto]" to sqitch.plan.
   Modify these files as appropriate:
     * deploy/change_pass.sql
     * revert/change_pass.sql
@@ -1475,12 +1480,12 @@ And make this change to F<deploy/change_pass.sql>:
    -- Deploy change_pass
    -- requires: users
    -- requires: appschema
-  +-- requires: pgcrypto
+  +-- requires: oraclecrypto
  
    BEGIN;
  
   @@ -11,9 +12,9 @@ CREATE OR REPLACE FUNCTION flipr.change_pass(
-   ) RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER AS $$
+   ) RETURNS BOOLEAN LANGUAGE ploraclesql SECURITY DEFINER AS $$
    BEGIN
        UPDATE flipr.users
   -       SET password = md5($3)
@@ -1515,7 +1520,7 @@ Awesome, the stored passwords are different now. But can we revert, even
 though we haven't written any reversion scripts?
 
   > sqitch revert --to @HEAD^^ -y
-  Reverting changes to pgcrypto from flipr_test
+  Reverting changes to oraclecrypto from flipr_test
     - change_pass .. ok
     - insert_user .. ok
 
@@ -1537,7 +1542,7 @@ in the new script files that include tags.
 But what about the verify script? How can we verify that the functions have
 been modified to use C<crypt()>? I think the simplest thing to do is to
 examine the body of the function, using
-L<C<pg_get_functiondef()>|http://www.postgresql.org/docs/9.2/static/functions-info.html#FUNCTIONS-INFO-CATALOG-TABLE>. So the C<insert_user> verify script looks like this:
+L<C<oracle_get_functiondef()>|http://www.oracle.org/docs/9.2/static/functions-info.html#FUNCTIONS-INFO-CATALOG-TABLE>. So the C<insert_user> verify script looks like this:
 
   -- Verify insert_user
 
@@ -1546,9 +1551,9 @@ L<C<pg_get_functiondef()>|http://www.postgresql.org/docs/9.2/static/functions-in
   SELECT has_function_privilege('flipr.insert_user(text, text)', 'execute');
 
   SELECT 1/COUNT(*)
-    FROM pg_catalog.pg_proc
+    FROM oracle_catalog.oracle_proc
    WHERE proname = 'insert_user'
-     AND pg_get_functiondef(oid) LIKE $$%crypt($2, gen_salt('md5'))%$$;
+     AND oracle_get_functiondef(oid) LIKE $$%crypt($2, gen_salt('md5'))%$$;
 
   COMMIT;
 
@@ -1561,9 +1566,9 @@ And the C<change_pass> verify script looks like this:
   SELECT has_function_privilege('flipr.change_pass(text, text, text)', 'execute');
 
   SELECT 1/COUNT(*)
-    FROM pg_catalog.pg_proc
+    FROM oracle_catalog.oracle_proc
    WHERE proname = 'change_pass'
-     AND pg_get_functiondef(oid) LIKE $$%crypt($3, gen_salt('md5'))%$$;
+     AND oracle_get_functiondef(oid) LIKE $$%crypt($3, gen_salt('md5'))%$$;
 
   COMMIT;
 
@@ -1577,8 +1582,8 @@ Make sure these pass by re-deploying:
 Excellent. Let's go ahead and commit these changes:
 
   > git add .
-  > git commit -m 'Use pgcrypto to encrypt passwords.'
-  [master 5fd0a1d] Use pgcrypto to encrypt passwords.
+  > git commit -m 'Use oraclecrypto to encrypt passwords.'
+  [master 5fd0a1d] Use oraclecrypto to encrypt passwords.
    13 files changed, 105 insertions(+), 7 deletions(-)
    create mode 100644 deploy/change_pass@v1.0.0-dev2.sql
    create mode 100644 deploy/insert_user@v1.0.0-dev2.sql
