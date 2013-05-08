@@ -13,6 +13,8 @@ Revision history for Perl extension App::Sqitch
      - Added `sqitchtutorial-oracle.pod`, a Oracle-specific variant of
        `sqitchtutorial.pod`.
      - Added missing version declaration to the App::Sqitch::Plan::* modules.
+     - Devel::StackTrace 1.30 is now properly required (it was previously
+       recommended).
 
 0.965  2013-04-23T16:25:59Z
      - Fixed failing test due to line-ending character variations on Windows.
