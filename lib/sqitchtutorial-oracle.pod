@@ -185,7 +185,6 @@ successful. In Oracle, the simplest way to do so for schema is probably to
 simply create an object in the schema. Put this SQL into
 F<verify/appschema.sql>:
 
-  WHENEVER SQLERROR EXIT SQL.SQLCODE
   CREATE TABLE flipr.verify__ (id int);
   DROP   TABLE flipr.verify__;
 
@@ -428,7 +427,6 @@ this:
   -- Deploy users
   -- requires: appschema
 
-  WHENEVER SQLERROR EXIT SQL.SQLCODE
   CREATE TABLE flipr.users (
       nickname  VARCHAR2(512 CHAR) PRIMARY KEY,
       password  VARCHAR2(512 CHAR) NOT NULL,
@@ -440,18 +438,23 @@ C<appschema> change has been listed. This doesn't do anything, but the default
 C<deploy> template lists it here for your reference while editing the file.
 Useful, right?
 
-Notice that we've told SQL*Plus to exit on error with the appropriate error
-code. This is essential for Sqitch to be able to detect that a change has
-failed.
-
 The table itself will been created in the C<flipr> schema. This is why we need
 to require the C<appschema> change.
+
+Notice that we've done nothing about error handling. Sqitch needs SQL*Plus
+to return failure when a scipt experiences an error, so one might expect that
+each script would need to start with lines like these:
+
+  WHENEVER OSERROR EXIT 9
+  WHENEVER SQLERROR EXIT SQL.SQLCODE
+
+However, Sqitch always sets these error handling parameters before it executes
+your scripts, so you don't have to.
 
 Now for the verify script. The simplest way to check that the table was
 created and has the expected columns without touching the data? Just select
 from the table with a false C<WHERE> clause. Add this to F<verify/users.sql>:
 
-  WHENEVER SQLERROR EXIT SQL.SQLCODE
   SELECT nickname, password, timestamp
     FROM flipr.users
    WHERE 1 = 1;
@@ -462,7 +465,6 @@ line should be in I<all> Sqitch scripts.
 Now for the revert script: all we have to do is drop the table. Add this to
 F<revert/users.sql>:
 
-  WHENEVER SQLERROR EXIT SQL.SQLCODE
   DROP TABLE flipr.users;
 
 Couldn't be much simpler, right? Let's deploy this bad boy:
@@ -622,8 +624,6 @@ F<deploy/insert_user.sql> should look like:
   -- requires: users
   -- requires: appschema
 
-  WHENEVER SQLERROR EXIT SQL.SQLCODE
-
   CREATE OR REPLACE PROCEDURE flipr.insert_user(
       nickname VARCHAR2,
       password VARCHAR2
@@ -667,7 +667,6 @@ errors propgate and a broken function get dropped.
 
 Here's what F<verify/insert_user.sql> might look like:
 
-  WHENEVER SQLERROR EXIT SQL.SQLCODE
   DESCRIBE flipr.insert_user;
 
 We simply take advantage of the fact that C<DESCRIBE> throws an exception if
@@ -676,7 +675,6 @@ the specified function does not exist.
 And F<revert/insert_user.sql> should look something like this:
 
   -- Revert insert_user
-  WHENEVER SQLERROR EXIT SQL.SQLCODE
   DROP FUNCTION flipr.insert_user;
 
 Now for C<change_pass>; F<deploy/change_pass.sql> might look like this:
@@ -684,8 +682,6 @@ Now for C<change_pass>; F<deploy/change_pass.sql> might look like this:
   -- Deploy change_pass
   -- requires: users
   -- requires: appschema
-
-  WHENEVER SQLERROR EXIT SQL.SQLCODE
 
   CREATE OR REPLACE PROCEDURE flipr.change_pass(
       nick    VARCHAR2,
@@ -733,7 +729,6 @@ Use C<DESCRIBE> in F<verify/change_pass.sql> again:
 
   -- Verify change_pass
   
-  WHENEVER SQLERROR EXIT SQL.SQLCODE
   DESCRIBE flipr.change_pass;
 
 And of course, its C<revert> script, F<revert/change_pass.sql>, should look
@@ -741,7 +736,6 @@ something like:
 
   -- Revert change_pass
   
-  WHENEVER SQLERROR EXIT SQL.SQLCODE
   DROP FUNCTION flipr.change_pass;
 
 Try em out!
