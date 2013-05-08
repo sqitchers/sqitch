@@ -446,7 +446,7 @@ The table itself will been created in the C<flipr> schema. This is why we need
 to require the C<appschema> change.
 
 Notice that we've done nothing about error handling. Sqitch needs SQL*Plus
-to return failure when a scipt experiences an error, so one might expect that
+to return failure when a script experiences an error, so one might expect that
 each script would need to start with lines like these:
 
   WHENEVER OSERROR EXIT 9
@@ -665,7 +665,7 @@ F<deploy/insert_user.sql> should look like:
 The C<DECLARE> PL/SQL block is to catch compilation warnings, which are not
 normally fatal. It's admittedly
 L<a bit convoluted|http://stackoverflow.com/a/16429231/79202>, but ensures that
-errors propgate and a broken function get dropped.
+errors propagate and a broken function get dropped.
 
 Here's what F<verify/insert_user.sql> might look like:
 
@@ -1463,7 +1463,7 @@ And, as usual, the verify script should just use C<DESCRIBE>:
   -- Verify crypt
   DESCRIBE flipr.crypt;
 
-With that change in palce and committed, we're ready to make use of the
+With that change in place and committed, we're ready to make use of the
 improved encryption. But how to deploy the changes to C<insert_user()> and
 C<change_pass()>?
 
