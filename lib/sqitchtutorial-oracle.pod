@@ -1386,55 +1386,86 @@ F<bundle>.
 Uh-oh, someone just noticed that MD5 hashing is not particularly secure. Why?
 Have a look at this:
 
-  > psql -d flipr_test -c "
-      SELECT flipr.insert_user('foo', 'secr3t'), flipr.insert_user('bar', 'secr3t');
-      SELECT * FROM flipr.users;
-  "
-   nickname |             password             |           timestamp           
-  ----------+----------------------------------+-------------------------------
-   foo      | 9695da4dd567a19f9b92065f240c6725 | 2013-01-03 21:34:12.296926+00
-   bar      | 9695da4dd567a19f9b92065f240c6725 | 2013-01-03 21:34:12.296926+00
+  > echo "
+      DELETE FROM flipr.users;
+      EXECUTE flipr.insert_user('foo', 's3cr3t');
+      EXECUTE flipr.insert_user('bar', 's3cr3t');
+      SELECT nickname, password FROM flipr.users;
+  " | sqlplus -S scott/tiger@flipr_test
+
+  PL/SQL procedure successfully completed.
+
+
+  PL/SQL procedure successfully completed.
+
+
+  NICKNAME
+  --------------------------------------------------------------------------------
+  PASSWORD
+  --------------------------------------------------------------------------------
+  foo
+  a4d80eac9ab26a4a2da04125bc2c096a
+
+  bar
+  a4d80eac9ab26a4a2da04125bc2c096a
 
 If user "foo" ever got access to the database, she could quickly discover that
 user "bar" has the same password and thus be able to exploit the account. Not
 a great idea. So we need to modify the C<insert_user()> and C<change_pass()>
 functions to fix that. How?
 
-We'll use
-L<C<oraclecrypto>|http://www.oracle.org/docs/current/static/oraclecrypto.html>'s
-C<crypt()> function to encrypt passwords with a salt, so that they're all
-unique. We just add a change to add C<oraclecrypto> to the database, and then we
-can use it. The deploy script should be:
+We'll create a function that encrypts passwords using a L<cryptographic
+salt|https://en.wikipedia.org/wiki/Salt_(cryptography)>. This will allow the
+password hashes to be stored with random hashing. So we'll need to add the
+function. The deploy script should be:
 
-  CREATE EXTENSION oraclecrypto;
+  -- Deploy crypt
+  -- requires: appschema
+
+  CREATE OR REPLACE FUNCTION flipr.crypt(
+      password VARCHAR2,
+      salt     VARCHAR2
+  ) RETURN VARCHAR2 IS
+      salted CHAR(10) := SUBSTR(salt, 0, 10);
+  BEGIN
+      RETURN salted || LOWER( RAWTOHEX( UTL_RAW.CAST_TO_RAW(
+           sys.dbms_obfuscation_toolkit.md5(input_string => password || salted)
+      ) ) );
+  END;
+  /
+
+  SHOW ERRORS;
+
+  -- Drop and die on error.
+  DECLARE
+      l_err_count INTEGER;
+  BEGIN
+      SELECT COUNT(*)
+        INTO l_err_count
+        FROM all_errors
+       WHERE owner = 'FLIPR'
+         AND name  = 'CRYPT';
+
+      IF l_err_count > 0 THEN
+          EXECUTE IMMEDIATE 'DROP PROCEDURE flipr.crypt';
+          raise_application_error(-20001, 'Errors in FLIPR.CRYPT');
+      END IF;
+  END;
+  /
 
 And the revert script should be:
 
-  DROP EXTENSION oraclecrypto;
+  -- Revert crypt.
+  DROP FUNCTION flipr.crypt;
 
-=over
+And, as usual, the verify script should just use C<DESCRIBE>:
 
-If you're on Oracle 9.0 or lower, you won't be able to deploy C<oraclecrypto>
-with a Sqitch change, alas. You'll have to install it manually, like so:
+  -- Verify crypt
+  DESCRIBE flipr.crypt;
 
-    psql -d flipr_test -f /path/to/oraclesql/share/contrib/oraclecrypto.sql
-
-Don't forget to do this with your staging and production databases, too. Or
-consider uoraclerading to Oracle 9.1 or higher; the SQL-level extension
-support is amazingly useful.
-
-=back
-
-We're going to use the C<crypt()> and C<gen_salt()> functions, so in the
-C<verify> script, let's make sure that the extension exists I<and> that both
-those functions exist:
-
-  SELECT 1/count(*) FROM oracle_extension WHERE extname = 'oraclecrypto';
-  SELECT has_function_privilege('crypt(text, text)', 'execute');
-  SELECT has_function_privilege('gen_salt(text)', 'execute');
-
-Now we can use C<oraclecrypto>. But how to deploy the changes to C<insert_user()>
-and C<change_pass()>?
+With that change in palce and committed, we're ready to make use of the
+improved encryption. But how to deploy the changes to C<insert_user()> and
+C<change_pass()>?
 
 Normally, modifying functions in database changes is a
 L<PITA|http://www.urbandictionary.com/define.php?term=pita>. You have to make
@@ -1448,8 +1479,9 @@ Copy F<deploy/insert_user.sql> to F<deploy/insert_user_crypt.sql>.
 
 =item 2.
 
-Edit F<deploy/insert_user_crypt.sql> to switch from C<MD5()> to C<crypt()>
-and to add a dependency on the C<oraclecrypto> change.
+Edit F<deploy/insert_user_crypt.sql> to switch from
+C<sys.dbms_obfuscation_toolkit.md5()> to C<flipr.crypt()> and to add a
+dependency on the C<crypt> change.
 
 =item 3.
 
@@ -1463,7 +1495,7 @@ Copy F<verify/insert_user.sql> to F<verify/insert_user_crypt.sql>.
 =item 5.
 
 Edit F<verify/insert_user_crypt.sql> to test that the function now properly
-uses C<crypt()>.
+uses C<flipr.crypt()>.
 
 =item 6.
 
@@ -1484,8 +1516,8 @@ section. With that, we can let Sqitch do most of the hard work for us, thanks
 to the L<C<rework>|sqitch-rework> command, which is similar to
 L<C<add>|sqitch-add>, including support for the C<--requires> option:
 
-  > sqitch rework insert_user --requires oraclecrypto -n 'Change insert_user to use oraclecrypto.'
-  Added "insert_user [insert_user@v1.0.0-dev2 oraclecrypto]" to sqitch.plan.
+  > sqitch rework insert_user --requires crypt -n 'Change insert_user to use crypt.'
+  Added "insert_user [insert_user@v1.0.0-dev2 crypt]" to sqitch.plan.
   Modify these files as appropriate:
     * deploy/insert_user.sql
     * revert/insert_user.sql
@@ -1546,24 +1578,26 @@ F<deploy/insert_user.sql>:
    -- Deploy insert_user
    -- requires: users
    -- requires: appschema
-  +-- requires: oraclecrypto
+  +-- requires: crypt
  
-   BEGIN;
- 
-  @@ -8,7 +9,7 @@ CREATE OR REPLACE FUNCTION flipr.insert_user(
-       nickname TEXT,
-       password TEXT
-   ) RETURNS VOID LANGUAGE SQL SECURITY DEFINER AS $$
-  -    INSERT INTO flipr.users VALUES($1, md5($2));
-  +    INSERT INTO flipr.users values($1, crypt($2, gen_salt('md5')));
-   $$;
- 
-   COMMIT;
+   CREATE OR REPLACE PROCEDURE flipr.insert_user(
+       nickname VARCHAR2,
+  @@ -9,9 +10,7 @@ CREATE OR REPLACE PROCEDURE flipr.insert_user(
+   BEGIN
+       INSERT INTO flipr.users VALUES(
+           nickname,
+  -        LOWER( RAWTOHEX( UTL_RAW.CAST_TO_RAW(
+  -             sys.dbms_obfuscation_toolkit.md5(input_string => password)
+  -        ) ) ),
+  +        flipr.crypt(password, DBMS_RANDOM.STRING('p', 10)),
+           DEFAULT
+       );
+   END;
 
 Go ahead and rework the C<change_pass> change, too:
 
-  > sqitch rework change_pass --requires oraclecrypto -n 'Change change_pass to use oraclecrypto.' 
-  Added "change_pass [:change_pass@v1.0.0-dev2 :oraclecrypto]" to sqitch.plan.
+  > sqitch rework change_pass --requires crypt -n 'Change change_pass to use crypt.' 
+  Added "change_pass [change_pass@v1.0.0-dev2 crypt]" to sqitch.plan.
   Modify these files as appropriate:
     * deploy/change_pass.sql
     * revert/change_pass.sql
@@ -1571,132 +1605,162 @@ Go ahead and rework the C<change_pass> change, too:
 
 And make this change to F<deploy/change_pass.sql>:
 
-  diff --git a/deploy/change_pass.sql b/deploy/change_pass.sql
-  index b2e7422..352649e 100644
-  --- a/deploy/change_pass.sql
-  +++ b/deploy/change_pass.sql
   @@ -1,6 +1,7 @@
    -- Deploy change_pass
    -- requires: users
    -- requires: appschema
-  +-- requires: oraclecrypto
+  +-- requires: crypt
  
-   BEGIN;
- 
-  @@ -11,9 +12,9 @@ CREATE OR REPLACE FUNCTION flipr.change_pass(
-   ) RETURNS BOOLEAN LANGUAGE ploraclesql SECURITY DEFINER AS $$
+   CREATE OR REPLACE PROCEDURE flipr.change_pass(
+       nick    VARCHAR2,
+  @@ -10,13 +11,9 @@ CREATE OR REPLACE PROCEDURE flipr.change_pass(
+      flipr_auth_failed EXCEPTION;
    BEGIN
        UPDATE flipr.users
-  -       SET password = md5($3)
-  +       SET password = crypt($3, gen_salt('md5'))
-        WHERE nickname = $1
-  -       AND password = md5($2);
-  +       AND password = crypt($2, password);
-       RETURN FOUND;
+  -       SET password = LOWER( RAWTOHEX( UTL_RAW.CAST_TO_RAW(
+  -               sys.dbms_obfuscation_toolkit.md5(input_string => newpass)
+  -           ) ) )
+  +       SET password = flipr.crypt(newpass, DBMS_RANDOM.STRING('p', 10))
+        WHERE nickname = nick
+  -       AND password = LOWER( RAWTOHEX( UTL_RAW.CAST_TO_RAW(
+  -               sys.dbms_obfuscation_toolkit.md5(input_string => oldpass)
+  -           ) ) );
+  +       AND password = flipr.crypt(oldpass, password);
+        IF SQL%ROWCOUNT = 0 THEN RAISE flipr_auth_failed; END IF;
    END;
-   $$;
+   /
 
 And then try a deployment:
 
   > sqitch deploy
   Deploying changes to flipr_test
-    + insert_user .. ok
-    + change_pass .. ok
+    + insert_user .. No errors.
+  ok
+    + change_pass .. No errors.
+  ok
 
 So, are the changes deployed?
 
-  > psql -d flipr_test -c "
+  > echo "
       DELETE FROM flipr.users;
-      SELECT flipr.insert_user('foo', 'secr3t'), flipr.insert_user('bar', 'secr3t');
-      SELECT * FROM flipr.users;
-  "
-   nickname |              password              |           timestamp           
-  ----------+------------------------------------+-------------------------------
-   foo      | $1$IIesFTbo$ureudbdLx0Nq4VyaQHCJu/ | 2013-01-03 22:16:01.184548+00
-   bar      | $1$gAvverve$c9TtQ20reIkbqLq7FWpPS/ | 2013-01-03 22:16:01.184548+00
+      EXECUTE flipr.insert_user('foo', 's3cr3t');
+      EXECUTE flipr.insert_user('bar', 's3cr3t');
+      SELECT nickname, password FROM flipr.users;
+  " | sqlplus -S scott/tiger@flipr_test
+
+  PL/SQL procedure successfully completed.
+
+
+  PL/SQL procedure successfully completed.
+
+
+  NICKNAME
+  --------------------------------------------------------------------------------
+  PASSWORD
+  --------------------------------------------------------------------------------
+  foo
+  cP?.eR!V[pf3d91ce9b7dcfe9260c6f4bb94ed0b22
+
+  bar
+  Z+l"_W_JiSefb62b789c0ff114cddcccc69c422e78
 
 Awesome, the stored passwords are different now. But can we revert, even
 though we haven't written any reversion scripts?
 
   > sqitch revert --to @HEAD^^ -y
-  Reverting changes to oraclecrypto from flipr_test
-    - change_pass .. ok
-    - insert_user .. ok
+  Reverting changes to crypt from flipr_test
+    - change_pass .. No errors.
+  ok
+    - insert_user .. No errors.
+  ok
 
-Did that work, are the C<MD5()> passwords back?
+Did that work, are the MD5 passwords back?
 
-  > psql -d flipr_test -c "
+  > echo "
       DELETE FROM flipr.users;
-      SELECT flipr.insert_user('foo', 'secr3t'), flipr.insert_user('bar', 'secr3t');
-      SELECT * FROM flipr.users;
-  "
-   nickname |             password             |           timestamp           
-  ----------+----------------------------------+-------------------------------
-   foo      | 9695da4dd567a19f9b92065f240c6725 | 2013-01-03 22:16:41.888413+00
-   bar      | 9695da4dd567a19f9b92065f240c6725 | 2013-01-03 22:16:41.888413+00
+      EXECUTE flipr.insert_user('foo', 's3cr3t');
+      EXECUTE flipr.insert_user('bar', 's3cr3t');
+      SELECT nickname, password FROM flipr.users;
+  " | sqlplus -S scott/tiger@flipr_test
+
+  PL/SQL procedure successfully completed.
+
+
+  PL/SQL procedure successfully completed.
+
+
+  NICKNAME
+  --------------------------------------------------------------------------------
+  PASSWORD
+  --------------------------------------------------------------------------------
+  foo
+  a4d80eac9ab26a4a2da04125bc2c096a
+
+  bar
+  a4d80eac9ab26a4a2da04125bc2c096a
 
 Yes, it works! Sqitch properly finds the original instances of these changes
 in the new script files that include tags.
 
 But what about the verify script? How can we verify that the functions have
 been modified to use C<crypt()>? I think the simplest thing to do is to
-examine the body of the function, using
-L<C<oracle_get_functiondef()>|http://www.oracle.org/docs/9.2/static/functions-info.html#FUNCTIONS-INFO-CATALOG-TABLE>. So the C<insert_user> verify script looks like this:
+examine the body of the function by querying the
+L<C<all_source>|http://docs.oracle.com/cd/B19306_01/server.102/b14237/statviews_2063.htm>
+view. So the C<insert_user> verify script looks like this:
 
   -- Verify insert_user
 
-  BEGIN;
-
-  SELECT has_function_privilege('flipr.insert_user(text, text)', 'execute');
+  DESCRIBE flipr.insert_user;
 
   SELECT 1/COUNT(*)
-    FROM oracle_catalog.oracle_proc
-   WHERE proname = 'insert_user'
-     AND oracle_get_functiondef(oid) LIKE $$%crypt($2, gen_salt('md5'))%$$;
-
-  COMMIT;
+    FROM all_source
+   WHERE type = 'PROCEDURE'
+     AND name = 'INSERT_USER'
+     AND text LIKE '%flipr.crypt(password, DBMS_RANDOM.STRING(''p'', 10))%';
 
 And the C<change_pass> verify script looks like this:
 
   -- Verify change_pass
 
-  BEGIN;
-
-  SELECT has_function_privilege('flipr.change_pass(text, text, text)', 'execute');
+  DESCRIBE flipr.change_pass;
 
   SELECT 1/COUNT(*)
-    FROM oracle_catalog.oracle_proc
-   WHERE proname = 'change_pass'
-     AND oracle_get_functiondef(oid) LIKE $$%crypt($3, gen_salt('md5'))%$$;
-
-  COMMIT;
+    FROM all_source
+   WHERE type = 'PROCEDURE'
+     AND name = 'CHANGE_PASS'
+     AND text LIKE '%password = flipr.crypt(newpass, DBMS_RANDOM.STRING(''p'', 10))%';
 
 Make sure these pass by re-deploying:
 
   > sqitch deploy
   Deploying changes to flipr_test
-    + insert_user .. ok
-    + change_pass .. ok
+    + insert_user .. No errors.
+  ok
+    + change_pass .. No errors.
+  ok
 
 Excellent. Let's go ahead and commit these changes:
 
   > git add .
-  > git commit -m 'Use oraclecrypto to encrypt passwords.'
-  [master 5fd0a1d] Use oraclecrypto to encrypt passwords.
-   13 files changed, 105 insertions(+), 7 deletions(-)
+  > git commit -m 'Use crypt to encrypt passwords.'
+  [master 9e22396] Use crypt to encrypt passwords.
+   14 files changed, 181 insertions(+), 15 deletions(-)
    create mode 100644 deploy/change_pass@v1.0.0-dev2.sql
    create mode 100644 deploy/insert_user@v1.0.0-dev2.sql
-   create mode 100644 revert/change_pass@v1.0.0-dev2.sql
-   create mode 100644 revert/insert_user@v1.0.0-dev2.sql
+   create mode 100644 echo
+   rewrite revert/change_pass.sql (98%)
+   rename revert/{change_pass.sql => change_pass@v1.0.0-dev2.sql} (100%)
+   rewrite revert/insert_user.sql (98%)
+   rename revert/{insert_user.sql => insert_user@v1.0.0-dev2.sql} (100%)
    create mode 100644 verify/change_pass@v1.0.0-dev2.sql
    create mode 100644 verify/insert_user@v1.0.0-dev2.sql
 
   > sqitch status
   # On database flipr_test
   # Project:  flipr
-  # Change:   6238d88bb11fa0e9ac9b1a90831bb45f16a8e19a
+  # Change:   4216710aa417b706a4a3276d2d5ab5aac0d825b7
   # Name:     change_pass
-  # Deployed: 2013-01-03 14:37:24 -0800
+  # Deployed: 2013-05-08 16:16:00 -0700
   # By:       Marge N. O’Vera <marge@example.com>
   # 
   Nothing to deploy (up-to-date)

@@ -1459,7 +1459,7 @@ F<deploy/insert_user.sql>:
 Go ahead and rework the C<change_pass> change, too:
 
   > sqitch rework change_pass --requires pgcrypto -n 'Change change_pass to use pgcrypto.' 
-  Added "change_pass [:change_pass@v1.0.0-dev2 :pgcrypto]" to sqitch.plan.
+  Added "change_pass [change_pass@v1.0.0-dev2 pgcrypto]" to sqitch.plan.
   Modify these files as appropriate:
     * deploy/change_pass.sql
     * revert/change_pass.sql
