@@ -33,6 +33,9 @@ source code repository. So let's do that with Git:
   > touch README.md
   > git add .
   > git commit -am 'Initialize project, add README.'
+  [master (root-commit) 12ea2b4] Initialize project, add README.
+   1 file changed, 38 insertions(+)
+   create mode 100644 README.md
 
 If you're a Git user and want to follow along the history, the repository used
 in these examples is L<on GitHub|https://github.com/theory/sqitch-oracle-intro>.
@@ -42,7 +45,7 @@ project must have a name associated with it, and, optionally, a unique URI. We
 recommend including the URI, as it increases the uniqueness of object
 identifiers internally, so let's specify one when we initialize Sqitch:
 
-  > sqitch --engine oracle init flipr --uri https://github.com/theory/sqitch-intro/
+  > sqitch --engine oracle init flipr --uri https://github.com/theory/sqitch-oracle-intro/
   Created sqitch.conf
   Created sqitch.plan
   Created deploy/
@@ -110,8 +113,8 @@ Let's commit these changes and start creating the database changes.
 
   > git add .
   > git commit -am 'Initialize Sqitch configuration.'
-  [master 6601c10] Initialize Sqitch configuration.
-   2 files changed, 20 insertions(+)
+  [master 3480f19] Initialize Sqitch configuration.
+   2 files changed, 23 insertions(+)
    create mode 100644 sqitch.conf
    create mode 100644 sqitch.plan
 
@@ -139,9 +142,9 @@ script, so we add this to F<revert/appschema.sql>:
 
   DROP USER flipr;
 
-Now we can try deploying this change. We'll assume you have a Oracle SID
-set up in your C<F<TNSNAMES.ORA>|http://www.orafaq.com/wiki/Tnsnames.ora>
-file pointing to a database named C<flipr_test>:
+Now we can try deploying this change. We'll assume you have an Oracle SID
+named C<flipr_test> set up in your
+C<F<TNSNAMES.ORA>|http://www.orafaq.com/wiki/Tnsnames.ora> file:
 
   > sqitch --db-name flipr_test --db-user scott/tiger deploy                   
   Adding metadata tables to flipr_test
@@ -155,11 +158,11 @@ name as the user you've connected as. In this example, that schema is C<scott>.
 If you'd like to keep the Sqitch metadata in some other schema, set the
 C<core.oracle.sqitch_schema> configuration variable:
 
-  sqitch config core.oracle.sqitch_schema sqitch
+  > sqitch config core.oracle.sqitch_schema sqitch
 
 Ideally, only Sqitch data will be stored in this schema, so it probably makes
-the most sense to create a superuser named C<sqitch> or something similar to
-do the deployments.
+the most sense to create a superuser named C<sqitch> or something similar and
+use it to deploy changes.
 
 Next, Sqitch deploys changes. We only have one so far; the C<+> reinforces the
 idea that the change is being C<added> to the database.
@@ -188,10 +191,12 @@ F<verify/appschema.sql>:
   CREATE TABLE flipr.verify__ (id int);
   DROP   TABLE flipr.verify__;
 
-In truth, you can use I<any> query that will throw an exception if the schema
-doesn't exist. One handy way to do that is to divide by zero if an object
-doesn't exist. So for other databases, to throw an error when the C<flipr>
-schema does not exist, you could do something like this:
+In truth, you can use I<any> query that generates an SQL error if the schema
+doesn't exist. This works because Sqitch configures SQL*Plus so that SQL
+errors cause it to exit with the error code (more on that below). Another
+handy way to do that is to divide by zero if an object doesn't exist. For
+example, to throw an error when the C<flipr> schema does not exist, you could
+do something like this:
 
   SELECT 1/COUNT(*) FROM sys.all_users WHERE username = 'FLIPR';
 
@@ -268,9 +273,9 @@ tables from the database:
   > sqitch --db-name flipr_test --db-user scott/tiger status
   # On database flipr_test
   # Project:  flipr
-  # Change:   4f48ef56c7113ccc998a1cec7c0ebf089f45ce85
+  # Change:   60e613ecd32beb168edeb9b823a91337b9018791
   # Name:     appschema
-  # Deployed: 2013-05-07 13:56:18 -0700
+  # Deployed: 2013-05-08 13:34:21 -0700
   # By:       Marge N. O’Vera <marge@example.com>
   # 
   Nothing to deploy (up-to-date)
@@ -291,7 +296,6 @@ I<removed> from the database. And now the schema should be gone:
   | sqlplus -S scott/tiger@flipr_test
   no rows selected
   
-
 And the status message should reflect as much:
 
   > sqitch -d flipr_test -u scott/tiger status
@@ -310,17 +314,17 @@ L<C<log>|sqitch-log> command:
 
   > sqitch -d flipr_test log
   On database flipr_test
-  Revert 4f48ef56c7113ccc998a1cec7c0ebf089f45ce85
+  Revert 60e613ecd32beb168edeb9b823a91337b9018791
   Name:      appschema
   Committer: Marge N. O’Vera <marge@example.com>
-  Date:      2013-05-07 13:56:44 -0700
+  Date:      2013-05-08 13:38:29 -0700
 
       App user and schema for all flipr objects.
 
-  Deploy 4f48ef56c7113ccc998a1cec7c0ebf089f45ce85
+  Deploy 60e613ecd32beb168edeb9b823a91337b9018791
   Name:      appschema
   Committer: Marge N. O’Vera <marge@example.com>
-  Date:      2013-05-07 13:56:18 -0700
+  Date:      2013-05-08 13:34:21 -0700
 
       App user and schema for all flipr objects.
 
@@ -331,8 +335,8 @@ Cool. Now let's commit it.
 
   > git add .
   > git commit -m 'Add flipr schema.'
-  [master 5475055] Add flipr schema.
-   5 files changed, 16 insertions(+)
+  [master 308bf5a] Add flipr schema.
+   4 files changed, 11 insertions(+)
    create mode 100644 deploy/appschema.sql
    create mode 100644 revert/appschema.sql
    create mode 100644 verify/appschema.sql
@@ -357,9 +361,9 @@ When we look at the status, the deployment will be there:
   > sqitch -d flipr_test -u scott/tiger status
   # On database flipr_test
   # Project:  flipr
-  # Change:   4f48ef56c7113ccc998a1cec7c0ebf089f45ce85
+  # Change:   60e613ecd32beb168edeb9b823a91337b9018791
   # Name:     appschema
-  # Deployed: 2013-05-07 14:01:09 -0700
+  # Deployed: 2013-05-08 13:40:22 -0700
   # By:       Marge N. O’Vera <marge@example.com>
   # 
   Nothing to deploy (up-to-date)
@@ -385,9 +389,9 @@ our examples will be simpler from here on in, e.g.:
   > sqitch status
   # On database flipr_test
   # Project:  flipr
-  # Change:   4f48ef56c7113ccc998a1cec7c0ebf089f45ce85
+  # Change:   60e613ecd32beb168edeb9b823a91337b9018791
   # Name:     appschema
-  # Deployed: 2013-05-07 14:01:09 -0700
+  # Deployed: 2013-05-08 13:40:22 -0700
   # By:       Marge N. O’Vera <marge@example.com>
   # 
   Nothing to deploy (up-to-date)
@@ -402,7 +406,7 @@ We'll see the L<C<rebase>|sqitch-rebase> command a bit later. In the meantime,
 let's commit the new configuration and and make some more changes!
 
   > git commit -am 'Set default DB name and always verify.'
-  [master 891ff34] Set default DB name and always verify.
+  [master 58be3fc] Set default DB name and always verify.
    1 file changed, 6 insertions(+)
 
 =head1 Deploy with Dependency
@@ -434,9 +438,9 @@ this:
   );
 
 A few things to notice here. On the second line, the dependence on the
-C<appschema> change has been listed. This doesn't do anything, but the default
-C<deploy> template lists it here for your reference while editing the file.
-Useful, right?
+C<appschema> change has been listed in a comment. This doesn't do anything,
+but the default C<deploy> template lists it here for your reference while
+editing the file. Useful, right?
 
 The table itself will been created in the C<flipr> schema. This is why we need
 to require the C<appschema> change.
@@ -498,9 +502,9 @@ Now have a look at the status:
   > sqitch status
   # On database flipr_test
   # Project:  flipr
-  # Change:   afd3de96a30274760ce7e4078b7b52df3717e17b
+  # Change:   7d8363d2f950b7ef2dc7dea5441210ae95b2dda1
   # Name:     users
-  # Deployed: 2013-05-07 14:10:33 -0700
+  # Deployed: 2013-05-08 13:44:05 -0700
   # By:       Marge N. O’Vera <marge@example.com>
   # 
   Nothing to deploy (up-to-date)
@@ -524,7 +528,7 @@ command).
 Back to the database. The C<users> table should be gone but the C<flipr> schema
 should still be around:
 
-  > echo "DESCRIBE flipr.users;" | sqlplus -S dwheeler/dwheeler@flipr_test
+  > echo "DESCRIBE flipr.users;" | sqlplus -S scott/tiger@flipr_test
 
   ERROR:
   ORA-04043: object flipr.users does not exist
@@ -535,9 +539,9 @@ undeployed changes:
   > sqitch status
   # On database flipr_test
   # Project:  flipr
-  # Change:   4f48ef56c7113ccc998a1cec7c0ebf089f45ce85
+  # Change:   60e613ecd32beb168edeb9b823a91337b9018791
   # Name:     appschema
-  # Deployed: 2013-05-07 14:01:09 -0700
+  # Deployed: 2013-05-08 13:40:22 -0700
   # By:       Marge N. O’Vera <marge@example.com>
   # 
   Undeployed change:
@@ -560,8 +564,8 @@ Okay, let's commit and deploy again:
 
   > git add .
   > git commit -am 'Add users table.'
-  [master 53b87dd] Add users table.
-   4 files changed, 20 insertions(+)
+  [master 03b3839] Add users table.
+   4 files changed, 17 insertions(+)
    create mode 100644 deploy/users.sql
    create mode 100644 revert/users.sql
    create mode 100644 verify/users.sql
@@ -574,9 +578,9 @@ Looks good. Check the status:
   > sqitch status
   # On database flipr_test
   # Project:  flipr
-  # Change:   afd3de96a30274760ce7e4078b7b52df3717e17b
+  # Change:   7d8363d2f950b7ef2dc7dea5441210ae95b2dda1
   # Name:     users
-  # Deployed: 2013-05-07 14:18:16 -0700
+  # Deployed: 2013-05-08 13:47:03 -0700
   # By:       Marge N. O’Vera <marge@example.com>
   # 
   Nothing to deploy (up-to-date)
@@ -608,10 +612,10 @@ Now might be a good time to have a look at the deployment plan:
   %project=flipr
   %uri=https://github.com/theory/sqitch-oracle-intro/
 
-  appschema 2013-05-07T00:07:28Z Marge N. O’Vera <marge@example.com> # App user and schema for all flipr objects.
-  users [appschema] 2013-05-07T21:06:52Z Marge N. O’Vera <marge@example.com> # Creates table to track our users.
-  insert_user [users appschema] 2013-05-07T21:21:14Z Marge N. O’Vera <marge@example.com> # Creates a function to insert a user.
-  change_pass [users appschema] 2013-05-07T21:21:23Z Marge N. O’Vera <marge@example.com> # Creates a function to change a user password.
+  appschema 2013-05-08T20:27:45Z Marge N. O’Vera <marge@example.com> # App user and schema for all flipr objects.
+  users [appschema] 2013-05-08T20:42:15Z Marge N. O’Vera <marge@example.com> # Creates table to track our users.
+  insert_user [users appschema] 2013-05-08T20:47:36Z Marge N. O’Vera <marge@example.com> # Creates a function to insert a user.
+  change_pass [users appschema] 2013-05-08T20:47:45Z Marge N. O’Vera <marge@example.com> # Creates a function to change a user password.
 
 Each change appears on a single line with the name of the change, a bracketed
 list of dependencies, a timestamp, the name and email address of the user who
@@ -631,31 +635,29 @@ F<deploy/insert_user.sql> should look like:
   BEGIN
       INSERT INTO flipr.users VALUES(
           nickname,
-          LOWER( RAWTOHEX( UTL_RAW.CAST_TO_RAW( sys.dbms_obfuscation_toolkit.md5(input_string => password) ) ) ),
+          LOWER( RAWTOHEX( UTL_RAW.CAST_TO_RAW(
+               sys.dbms_obfuscation_toolkit.md5(input_string => password)
+          ) ) ),
           DEFAULT
       );
   END;
   /
 
-  -- Drop on error.
+  SHOW ERRORS;
+
+  -- Drop and die on error.
   DECLARE
-      l_num_errors integer;
-      l_err VARCHAR2(4000);
+      l_err_count INTEGER;
   BEGIN
       SELECT COUNT(*)
-        INTO l_num_errors
+        INTO l_err_count
         FROM all_errors
-        WHERE owner = 'FLIPR'
-          AND name  = 'INSERT_USER';
+       WHERE owner = 'FLIPR'
+         AND name  = 'INSERT_USER';
 
-      IF ( l_num_errors > 0 ) THEN
-          SELECT 'line ' || line || ', column ' || position || ':' || chr(10) || text
-            INTO l_err
-            FROM all_errors
-            WHERE owner = 'FLIPR'
-              AND name  = 'INSERT_USER';
+      IF l_err_count > 0 THEN
           EXECUTE IMMEDIATE 'DROP PROCEDURE flipr.insert_user';
-          raise_application_error( -20001, 'Errors in FLIPR.INSERT_USER at ' || l_err );
+          raise_application_error(-20001, 'Errors in FLIPR.INSERT_USER:');
       END IF;
   END;
   /
@@ -667,6 +669,7 @@ errors propgate and a broken function get dropped.
 
 Here's what F<verify/insert_user.sql> might look like:
 
+  -- Verify insert_user
   DESCRIBE flipr.insert_user;
 
 We simply take advantage of the fact that C<DESCRIBE> throws an exception if
@@ -675,7 +678,7 @@ the specified function does not exist.
 And F<revert/insert_user.sql> should look something like this:
 
   -- Revert insert_user
-  DROP FUNCTION flipr.insert_user;
+  DROP PROCEDURE flipr.insert_user;
 
 Now for C<change_pass>; F<deploy/change_pass.sql> might look like this:
 
@@ -702,62 +705,64 @@ Now for C<change_pass>; F<deploy/change_pass.sql> might look like this:
   END;
   /
 
-  -- Drop on error.
+  SHOW ERRORS;
+
+  -- Drop and die on error.
   DECLARE
-      l_num_errors integer;
-      l_err VARCHAR2(4000);
+      l_err_count INTEGER;
   BEGIN
       SELECT COUNT(*)
-        INTO l_num_errors
+        INTO l_err_count
         FROM all_errors
-        WHERE owner = 'FLIPR'
-          AND name  = 'CHANGE_PASS';
+       WHERE owner = 'FLIPR'
+         AND name  = 'CHANGE_PASS';
 
-      IF ( l_num_errors > 0 ) THEN
-          SELECT 'line ' || line || ', column ' || position || ':' || chr(10) || text
-            INTO l_err
-            FROM all_errors
-            WHERE owner = 'FLIPR'
-              AND name  = 'CHANGE_PASS';
-          EXECUTE IMMEDIATE 'DROP PROCEDURE flipr.change_pass';
-          raise_application_error( -20001, 'Errors in FLIPR.CHANGE_PASS at ' || l_err );
+      IF l_err_count > 0 THEN
+          EXECUTE IMMEDIATE 'DROP PROCEDURE flipr.CHANGE_PASS';
+          raise_application_error(-20001, 'Errors in FLIPR.CHANGE_PASS:');
       END IF;
   END;
   /
 
-Use C<DESCRIBE> in F<verify/change_pass.sql> again:
+We again need the C<DECLARE> PL/SQL block to detect compilation warnings and
+make the script die. Use C<DESCRIBE> in F<verify/change_pass.sql> again:
 
   -- Verify change_pass
-  
   DESCRIBE flipr.change_pass;
 
 And of course, its C<revert> script, F<revert/change_pass.sql>, should look
 something like:
 
   -- Revert change_pass
-  
-  DROP FUNCTION flipr.change_pass;
+  DROP PROCEDURE flipr.change_pass;
 
 Try em out!
 
   > sqitch deploy
   Deploying changes to flipr_test
-    + insert_user .. ok
-    + change_pass .. ok
+    + insert_user .. No errors.
+  ok
+    + change_pass .. No errors.
+  ok
 
-Do we have the functions? Of course we do, they were verified. Still, have a
-look:
+Looks good. The "No errors" notices come from the C<SHOW ERRORS> SQL*Plus
+command. It's not very useful here, but very useful if there are compilation
+errors. If it bothers you, you can drop the C<SHOW ERRORS> line and select the
+error for display in the C<DECLARE> block, instead.
+
+Now, do we have the functions? Of course we do, they were verified. Still,
+have a look:
 
   > echo "DESCRIBE flipr.insert_user;\nDESCRIBE flipr.change_pass;" \
-  | sqlplus -S dwheeler/dwheeler@flipr_test
+  | sqlplus -S scott/tiger@flipr_test
 
-  FUNCTION flipr.insert_user RETURNS NUMBER(38)
+  PROCEDURE flipr.insert_user
    Argument Name			Type			In/Out Default?
    ------------------------------ ----------------------- ------ --------
    NICKNAME			VARCHAR2		IN
    PASSWORD			VARCHAR2		IN
 
-  FUNCTION flipr.change_pass RETURNS NUMBER(38)
+  PROCEDURE flipr.change_pass
    Argument Name			Type			In/Out Default?
    ------------------------------ ----------------------- ------ --------
    NICK				VARCHAR2		IN
@@ -769,9 +774,9 @@ And what's the status?
   > sqitch status 
   # On database flipr_test
   # Project:  flipr
-  # Change:   d030394ca088d60118ca335de090ae0888c4ba85
+  # Change:   d972814cc04010b88dcd7ee4091344ab62c8a849
   # Name:     change_pass
-  # Deployed: 2013-05-07 16:31:28 -0700
+  # Deployed: 2013-05-08 13:51:51 -0700
   # By:       Marge N. O’Vera <marge@example.com>
   # 
   Nothing to deploy (up-to-date)
@@ -795,8 +800,8 @@ the last deployed change. Looks good. Let's do the commit and re-deploy dance:
 
   > git add .
   > git commit -m 'Add `insert_user()` and `change_pass()`.'
-  [master 1ebbf35] Add `insert_user()` and `change_pass()`.
-   8 files changed, 109 insertions(+), 2 deletions(-)
+  [master e3637c5] Add `insert_user()` and `change_pass()`.
+   7 files changed, 92 insertions(+)
    create mode 100644 deploy/change_pass.sql
    create mode 100644 deploy/insert_user.sql
    create mode 100644 revert/change_pass.sql
@@ -806,15 +811,17 @@ the last deployed change. Looks good. Let's do the commit and re-deploy dance:
  
   > sqitch deploy
   Deploying changes to flipr_test
-    + insert_user .. ok
-    + change_pass .. ok
+    + insert_user .. No errors.
+  ok
+    + change_pass .. No errors.
+  ok
 
   > sqitch status
   # On database flipr_test
   # Project:  flipr
-  # Change:   d030394ca088d60118ca335de090ae0888c4ba85
+  # Change:   d972814cc04010b88dcd7ee4091344ab62c8a849
   # Name:     change_pass
-  # Deployed: 2013-05-07 17:01:56 -0700
+  # Deployed: 2013-05-08 13:57:18 -0700
   # By:       Marge N. O’Vera <marge@example.com>
   # 
   Nothing to deploy (up-to-date)
@@ -837,7 +844,7 @@ to have it go out with deployments tied to the release, let's tag it:
   > sqitch tag v1.0.0-dev1 -n 'Tag v1.0.0-dev1.'
   Tagged "change_pass" with @v1.0.0-dev1
   > git commit -am 'Tag the database with v1.0.0-dev1.'
-  [master 9b9598f] Tag the database with v1.0.0-dev1.
+  [master a8ca4dc] Tag the database with v1.0.0-dev1.
    1 file changed, 1 insertion(+)
   > git tag v1.0.0-dev1 -am 'Tag v1.0.0-dev1'
 
@@ -849,8 +856,10 @@ database, like so:
   Deploying changes to flipr_dev
     + appschema ................. ok
     + users ..................... ok
-    + insert_user ............... ok
-    + change_pass @v1.0.0-dev1 .. ok
+    + insert_user ............... No errors.
+  ok
+    + change_pass @v1.0.0-dev1 .. No errors.
+  ok
 
 Great, all four changes were deployed and C<change_pass> was tagged with
 C<@v1.0.0-dev1>. Let's have a look at the status:
@@ -858,10 +867,10 @@ C<@v1.0.0-dev1>. Let's have a look at the status:
   > sqitch -d flipr_dev status
   # On database flipr_dev
   # Project:  flipr
-  # Change:   d030394ca088d60118ca335de090ae0888c4ba85
+  # Change:   d972814cc04010b88dcd7ee4091344ab62c8a849
   # Name:     change_pass
   # Tag:      @v1.0.0-dev1
-  # Deployed: 2013-05-07 17:09:14 -0700
+  # Deployed: 2013-05-08 13:59:04 -0700
   # By:       Marge N. O’Vera <marge@example.com>
   # 
   Nothing to deploy (up-to-date)
