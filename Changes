@@ -9,6 +9,9 @@ Revision history for Perl extension App::Sqitch
        consists of a usage statement and brief table of options, rather than
        the entire man page.
      - Added the project name in a header to the output of the `plan` command.
+     - Added the Oracle engine.
+     - Added `sqitchtutorial-oracle.pod`, a Oracle-specific variant of
+       `sqitchtutorial.pod`.
 
 0.965  2013-04-23T16:25:59Z
      - Fixed failing test due to line-ending character variations on Windows.
