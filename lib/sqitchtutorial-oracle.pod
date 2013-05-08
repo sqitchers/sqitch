@@ -430,8 +430,8 @@ this:
 
   WHENEVER SQLERROR EXIT SQL.SQLCODE
   CREATE TABLE flipr.users (
-      nickname  VARCHAR(512 CHAR) PRIMARY KEY,
-      password  VARCHAR(512 CHAR) NOT NULL,
+      nickname  VARCHAR2(512 CHAR) PRIMARY KEY,
+      password  VARCHAR2(512 CHAR) NOT NULL,
       timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
   );
 
@@ -604,12 +604,12 @@ Now might be a good time to have a look at the deployment plan:
   > cat sqitch.plan
   %syntax-version=1.0.0-b2
   %project=flipr
-  %uri=https://github.com/theory/sqitch-intro/
+  %uri=https://github.com/theory/sqitch-oracle-intro/
 
-  appschema 2012-12-29T01:08:29Z Marge N. O’Vera <marge@example.com> # App schema for all flipr objects.
-  users [appschema] 2012-12-31T19:38:06Z Marge N. O’Vera <marge@example.com> # Creates table to track our users.
-  insert_user [users appschema] 2012-12-31T22:44:27Z Marge N. O’Vera <marge@example.com> # Creates a function to insert a user.
-  change_pass [users appschema] 2012-12-31T22:44:38Z Marge N. O’Vera <marge@example.com> # Creates a function to change a user password.
+  appschema 2013-05-07T00:07:28Z Marge N. O’Vera <marge@example.com> # App user and schema for all flipr objects.
+  users [appschema] 2013-05-07T21:06:52Z Marge N. O’Vera <marge@example.com> # Creates table to track our users.
+  insert_user [users appschema] 2013-05-07T21:21:14Z Marge N. O’Vera <marge@example.com> # Creates a function to insert a user.
+  change_pass [users appschema] 2013-05-07T21:21:23Z Marge N. O’Vera <marge@example.com> # Creates a function to change a user password.
 
 Each change appears on a single line with the name of the change, a bracketed
 list of dependencies, a timestamp, the name and email address of the user who
@@ -621,33 +621,63 @@ F<deploy/insert_user.sql> should look like:
   -- Deploy insert_user
   -- requires: users
   -- requires: appschema
-  
-  BEGIN;
 
-  CREATE OR REPLACE FUNCTION flipr.insert_user(
-      nickname TEXT,
-      password TEXT
-  ) RETURNS VOID LANGUAGE SQL SECURITY DEFINER AS $$
-      INSERT INTO flipr.users VALUES($1, md5($2));
-  $$;
+  WHENEVER SQLERROR EXIT SQL.SQLCODE
 
-  COMMIT;
+  CREATE OR REPLACE PROCEDURE flipr.insert_user(
+      nickname VARCHAR2,
+      password VARCHAR2
+  ) AS
+  BEGIN
+      INSERT INTO flipr.users VALUES(
+          nickname,
+          LOWER( RAWTOHEX( UTL_RAW.CAST_TO_RAW( sys.dbms_obfuscation_toolkit.md5(input_string => password) ) ) ),
+          DEFAULT
+      );
+  END;
+  /
+
+  -- Drop on error.
+  DECLARE
+      l_num_errors integer;
+      l_err VARCHAR2(4000);
+  BEGIN
+      SELECT COUNT(*)
+        INTO l_num_errors
+        FROM all_errors
+        WHERE owner = 'FLIPR'
+          AND name  = 'INSERT_USER';
+
+      IF ( l_num_errors > 0 ) THEN
+          SELECT 'line ' || line || ', column ' || position || ':' || chr(10) || text
+            INTO l_err
+            FROM all_errors
+            WHERE owner = 'FLIPR'
+              AND name  = 'INSERT_USER';
+          EXECUTE IMMEDIATE 'DROP PROCEDURE flipr.insert_user';
+          raise_application_error( -20001, 'Errors in FLIPR.INSERT_USER at ' || l_err );
+      END IF;
+  END;
+  /
+
+The C<DECLARE> PL/SQL block is to catch compilation warnings, which are not
+normally fatal. It's admittedly
+L<a bit convoluted|http://stackoverflow.com/a/16429231/79202>, but ensures that
+errors propgate and a broken function get dropped.
 
 Here's what F<verify/insert_user.sql> might look like:
 
-  BEGIN;
-  SELECT has_function_privilege('flipr.insert_user(text, text)', 'execute');
-  COMMIT;
+  WHENEVER SQLERROR EXIT SQL.SQLCODE
+  DESCRIBE flipr.insert_user;
 
-We simply take advantage of the fact that C<has_function_privilege()> throws
-an exception if the specified function does not exist.
+We simply take advantage of the fact that C<DESCRIBE> throws an exception if
+the specified function does not exist.
 
 And F<revert/insert_user.sql> should look something like this:
 
   -- Revert insert_user
-  BEGIN;
-  DROP FUNCTION flipr.insert_user(TEXT, TEXT);
-  COMMIT;
+  WHENEVER SQLERROR EXIT SQL.SQLCODE
+  DROP FUNCTION flipr.insert_user;
 
 Now for C<change_pass>; F<deploy/change_pass.sql> might look like this:
 
@@ -655,37 +685,64 @@ Now for C<change_pass>; F<deploy/change_pass.sql> might look like this:
   -- requires: users
   -- requires: appschema
 
-  BEGIN;
+  WHENEVER SQLERROR EXIT SQL.SQLCODE
 
-  CREATE OR REPLACE FUNCTION flipr.change_pass(
-      nick    TEXT,
-      oldpass TEXT,
-      newpass TEXT
-  ) RETURNS BOOLEAN LANGUAGE ploraclesql SECURITY DEFINER AS $$
+  CREATE OR REPLACE PROCEDURE flipr.change_pass(
+      nick    VARCHAR2,
+      oldpass VARCHAR2,
+      newpass VARCHAR2
+  ) IS
+     flipr_auth_failed EXCEPTION;
   BEGIN
       UPDATE flipr.users
-         SET password = md5($3)
-       WHERE nickname = $1
-         AND password = md5($2);
-      RETURN FOUND;
+         SET password = LOWER( RAWTOHEX( UTL_RAW.CAST_TO_RAW(
+                 sys.dbms_obfuscation_toolkit.md5(input_string => newpass)
+             ) ) )
+       WHERE nickname = nick
+         AND password = LOWER( RAWTOHEX( UTL_RAW.CAST_TO_RAW(
+                 sys.dbms_obfuscation_toolkit.md5(input_string => oldpass)
+             ) ) );
+       IF SQL%ROWCOUNT = 0 THEN RAISE flipr_auth_failed; END IF;
   END;
-  $$;
+  /
 
-  COMMIT;
+  -- Drop on error.
+  DECLARE
+      l_num_errors integer;
+      l_err VARCHAR2(4000);
+  BEGIN
+      SELECT COUNT(*)
+        INTO l_num_errors
+        FROM all_errors
+        WHERE owner = 'FLIPR'
+          AND name  = 'CHANGE_PASS';
 
-Use C<has_function_privilege()> in F<verify/change_pass.sql> again:
+      IF ( l_num_errors > 0 ) THEN
+          SELECT 'line ' || line || ', column ' || position || ':' || chr(10) || text
+            INTO l_err
+            FROM all_errors
+            WHERE owner = 'FLIPR'
+              AND name  = 'CHANGE_PASS';
+          EXECUTE IMMEDIATE 'DROP PROCEDURE flipr.change_pass';
+          raise_application_error( -20001, 'Errors in FLIPR.CHANGE_PASS at ' || l_err );
+      END IF;
+  END;
+  /
 
-  BEGIN;
-  SELECT has_function_privilege('flipr.change_pass(text, text, text)', 'execute');
-  COMMIT;
+Use C<DESCRIBE> in F<verify/change_pass.sql> again:
+
+  -- Verify change_pass
+  
+  WHENEVER SQLERROR EXIT SQL.SQLCODE
+  DESCRIBE flipr.change_pass;
 
 And of course, its C<revert> script, F<revert/change_pass.sql>, should look
 something like:
 
   -- Revert change_pass
-  BEGIN;
-  DROP FUNCTION flipr.change_pass(TEXT, TEXT, TEXT);
-  REVERT;
+  
+  WHENEVER SQLERROR EXIT SQL.SQLCODE
+  DROP FUNCTION flipr.change_pass;
 
 Try em out!
 
@@ -697,21 +754,30 @@ Try em out!
 Do we have the functions? Of course we do, they were verified. Still, have a
 look:
 
-  > psql -d flipr_test -c '\df flipr.*'
-                                      List of functions
-   Schema |    Name     | Result data type |          Argument data types          |  Type  
-  --------+-------------+------------------+---------------------------------------+--------
-   flipr  | change_pass | boolean          | nick text, oldpass text, newpass text | normal
-   flipr  | insert_user | void             | nickname text, password text          | normal
+  > echo "DESCRIBE flipr.insert_user;\nDESCRIBE flipr.change_pass;" \
+  | sqlplus -S dwheeler/dwheeler@flipr_test
+
+  FUNCTION flipr.insert_user RETURNS NUMBER(38)
+   Argument Name			Type			In/Out Default?
+   ------------------------------ ----------------------- ------ --------
+   NICKNAME			VARCHAR2		IN
+   PASSWORD			VARCHAR2		IN
+
+  FUNCTION flipr.change_pass RETURNS NUMBER(38)
+   Argument Name			Type			In/Out Default?
+   ------------------------------ ----------------------- ------ --------
+   NICK				VARCHAR2		IN
+   OLDPASS			VARCHAR2		IN
+   NEWPASS			VARCHAR2		IN
 
 And what's the status?
 
   > sqitch status 
   # On database flipr_test
   # Project:  flipr
-  # Change:   0acf77aaafc1a828e37e8e857d04d13ee22a2d36
+  # Change:   d030394ca088d60118ca335de090ae0888c4ba85
   # Name:     change_pass
-  # Deployed: 2012-12-31 14:45:18 -0800
+  # Deployed: 2013-05-07 16:31:28 -0700
   # By:       Marge N. O’Vera <marge@example.com>
   # 
   Nothing to deploy (up-to-date)
@@ -722,18 +788,21 @@ Looks good. Let's make sure revert works:
   Reverting changes to users from flipr_test
     - change_pass .. ok
     - insert_user .. ok
-  > psql -d flipr_test -c '\df flipr.*'
-                         List of functions
-   Schema | Name | Result data type | Argument data types | Type 
-  --------+------+------------------+---------------------+------
+  > echo "DESCRIBE flipr.insert_user;\nDESCRIBE flipr.change_pass;" \
+  | sqlplus -S dwheeler/dwheeler@flipr_test
+  ERROR:
+  ORA-04043: object flipr.insert_user does not exist
+
+  ERROR:
+  ORA-04043: object flipr.change_pass does not exist
 
 Note the use of C<@HEAD^^> to specify that the revert be to two changes prior
 the last deployed change. Looks good. Let's do the commit and re-deploy dance:
 
   > git add .
   > git commit -m 'Add `insert_user()` and `change_pass()`.'
-  [master 79cd1da] Add `insert_user()` and `change_pass()`.
-   7 files changed, 65 insertions(+)
+  [master 1ebbf35] Add `insert_user()` and `change_pass()`.
+   8 files changed, 109 insertions(+), 2 deletions(-)
    create mode 100644 deploy/change_pass.sql
    create mode 100644 deploy/insert_user.sql
    create mode 100644 revert/change_pass.sql
@@ -749,9 +818,9 @@ the last deployed change. Looks good. Let's do the commit and re-deploy dance:
   > sqitch status
   # On database flipr_test
   # Project:  flipr
-  # Change:   0acf77aaafc1a828e37e8e857d04d13ee22a2d36
+  # Change:   d030394ca088d60118ca335de090ae0888c4ba85
   # Name:     change_pass
-  # Deployed: 2012-12-31 15:08:36 -0800
+  # Deployed: 2013-05-07 17:01:56 -0700
   # By:       Marge N. O’Vera <marge@example.com>
   # 
   Nothing to deploy (up-to-date)
