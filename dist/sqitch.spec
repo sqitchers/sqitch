@@ -188,6 +188,22 @@ package bundles the Sqitch SQLite support.
 %files sqlite
 # No additional files required.
 
+%package oracle
+Summary:        Sane database change management for Oracle
+Group:          Development/Libraries
+Requires:       sqitch >= %{version}
+Requires:       oracle-instantclient11.2-sqlplus
+Requires:       perl(DBI)
+Requires:       perl(DBD::Oracle)
+
+%description oracle
+Sqitch provides a simple yet robust interface for database change
+management. The philosophy and functionality is inspired by Git. This
+package bundles the Sqitch Oracle support.
+
+%files oracle
+# No additional files required.
+
 %changelog
 * Tue Apr 23 2013 David E. Wheeler <david.wheeler@iovation.com> 0.965-1
 - Upgrade to v0.965.

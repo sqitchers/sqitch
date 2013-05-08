@@ -81,7 +81,7 @@ sub run {
         # Make sure a second attempt to initialize dies.
         throws_ok { $engine->initialize } 'App::Sqitch::X',
             'Should die on existing schema';
-        is $@->ident, 'engine', 'Mode should be "sqlite"';
+        is $@->ident, 'engine', 'Mode should be "engine"';
         is $@->message, $p{init_error},
             'And it should show the proper schema in the error message';
 
@@ -223,7 +223,7 @@ sub run {
         is $engine->latest_change_id(1), undef, 'Should get no change offset 1 from latest';
 
         is_deeply all_changes($engine), [[
-            $change->id, 'users', 'engine', '', $sqitch->user_name, $sqitch->user_email,
+            $change->id, 'users', 'engine', 'User roles', $sqitch->user_name, $sqitch->user_email,
             $change->planner_name, $change->planner_email,
         ]],'A record should have been inserted into the changes table';
         is_deeply get_dependencies($engine, $change->id), [], 'Should have no dependencies';
@@ -236,7 +236,7 @@ sub run {
             $change->id,
             'users',
             'engine',
-            '',
+            'User roles',
             $engine->_log_requires_param($change),
             $engine->_log_conflicts_param($change),
             $engine->_log_tags_param($change),
@@ -272,7 +272,7 @@ sub run {
             project         => 'engine',
             change_id       => $change->id,
             change          => 'users',
-            note            => '',
+            note            => 'User roles',
             committer_name  => $sqitch->user_name,
             committer_email => $sqitch->user_email,
             tags            => ['@alpha'],
@@ -309,7 +309,7 @@ sub run {
             project         => 'engine',
             change_id       => $change->id,
             change          => 'users',
-            note            => '',
+            note            => 'User roles',
             requires        => $engine->_log_requires_param($change),
             conflicts       => $engine->_log_conflicts_param($change),
             tags            => $engine->_log_tags_param($change),
@@ -377,7 +377,7 @@ sub run {
             $change->id,
             'users',
             'engine',
-            '',
+            'User roles',
             $engine->_log_requires_param($change),
             $engine->_log_conflicts_param($change),
             $engine->_log_tags_param($change),
@@ -402,7 +402,7 @@ sub run {
             project         => 'engine',
             change_id       => $change->id,
             change          => 'users',
-            note            => '',
+            note            => 'User roles',
             requires        => $engine->_log_requires_param($change),
             conflicts       => $engine->_log_conflicts_param($change),
             tags            => $engine->_log_tags_param($change),
@@ -434,7 +434,7 @@ sub run {
             $change->id,
             'users',
             'engine',
-            '',
+            'User roles',
             $engine->_log_requires_param($change),
             $engine->_log_conflicts_param($change),
             $engine->_log_tags_param($change),
@@ -454,7 +454,7 @@ sub run {
             project         => 'engine',
             change_id       => $change->id,
             change          => 'users',
-            note            => '',
+            note            => 'User roles',
             requires        => $engine->_log_requires_param($change),
             conflicts       => $engine->_log_conflicts_param($change),
             tags            => $engine->_log_tags_param($change),
@@ -507,7 +507,7 @@ sub run {
                 $change->id,
                 'users',
                 'engine',
-                '',
+                'User roles',
                 $user2_name,
                 $user2_email,
                 $change->planner_name,
@@ -543,6 +543,7 @@ sub run {
                 $change->id,
             ],
         ], 'Should have both dependencies for "widgets"';
+
         is_deeply [ $engine->changes_requiring_change($change) ], [{
             project   => 'engine',
             change_id => $change2->id,
@@ -557,7 +558,7 @@ sub run {
             $change->id,
             'users',
             'engine',
-            '',
+            'User roles',
             $engine->_log_requires_param($change),
             $engine->_log_conflicts_param($change),
             $engine->_log_tags_param($change),
@@ -663,7 +664,7 @@ sub run {
             project         => 'engine',
             change_id       => $change->id,
             change          => 'users',
-            note            => '',
+            note            => 'User roles',
             requires        => $engine->_log_requires_param($change),
             conflicts       => $engine->_log_conflicts_param($change),
             tags            => $engine->_log_tags_param($change),
@@ -809,10 +810,10 @@ sub run {
 
         ######################################################################
         # Deploy the new changes with two tags.
-        $plan->add( name => 'fred' );
-        $plan->add( name => 'barney' );
-        $plan->tag( name => 'beta' );
-        $plan->tag( name => 'gamma' );
+        $plan->add( name => 'fred',   note => 'Hello Fred' );
+        $plan->add( name => 'barney', note => 'Hello Barney' );
+        $plan->tag( name => 'beta',   note => 'Note beta' );
+        $plan->tag( name => 'gamma',  note => 'Note gamma' );
         ok my $fred = $plan->get('fred'),     'Get the "fred" change';
         ok $engine->log_deploy_change($fred),     'Deploy "fred"';
         ok my $barney = $plan->get('barney'), 'Get the "barney" change';
@@ -835,7 +836,7 @@ sub run {
             project         => 'engine',
             change_id       => $barney->id,
             change          => 'barney',
-            note            => '',
+            note            => 'Hello Barney',
             committer_name  => $sqitch->user_name,
             committer_email => $sqitch->user_email,
             committed_at    => dt_for_change( $engine,$barney->id),
@@ -903,7 +904,7 @@ sub run {
             project         => 'engine',
             change_id       => $barney->id,
             change          => 'barney',
-            note            => '',
+            note            => 'Hello Barney',
             requires        => $engine->_log_requires_param($barney),
             conflicts       => $engine->_log_conflicts_param($barney),
             tags            => $engine->_log_tags_param($barney),
@@ -918,7 +919,7 @@ sub run {
             project         => 'engine',
             change_id       => $fred->id,
             change          => 'fred',
-            note            => '',
+            note            => 'Hello Fred',
             requires        => $engine->_log_requires_param($fred),
             conflicts       => $engine->_log_conflicts_param($fred),
             tags            => $engine->_log_tags_param($fred),
@@ -1013,6 +1014,7 @@ sub run {
         ok my $ext_change = $ext_plan->add(
             plan => $ext_plan,
             name => 'crazyman',
+            note => 'Crazy, right?',
         ), "Create external change";
         ok $engine->log_deploy_change($ext_change), 'Log the external change';
         my $ext_event = {
@@ -1020,7 +1022,7 @@ sub run {
             project         => 'groovy',
             change_id       => $ext_change->id,
             change          => $ext_change->name,
-            note            => '',
+            note            => $ext_change->note,
             requires        => $engine->_log_requires_param($ext_change),
             conflicts       => $engine->_log_conflicts_param($ext_change),
             tags            => $engine->_log_tags_param($ext_change),
@@ -1073,7 +1075,7 @@ sub run {
             project         => 'groovy',
             change_id       => $ext_change->id,
             change          => $ext_change->name,
-            note            => '',
+            note            => $ext_change->note,
             committer_name  => $sqitch->user_name,
             committer_email => $sqitch->user_email,
             tags            => [],
@@ -1389,8 +1391,10 @@ sub run {
         $_->resolved_id( $engine->change_id_for_depend($_) ) for $ext_change3->requires;
         ok $engine->log_deploy_change($ext_change3), 'Log change "elsewise"';
 
-        # Check the dependencies again.
-        is_deeply [ $engine->changes_requiring_change($fred) ], [
+        is_deeply [
+            sort { $b->{change} cmp $a->{change} }
+            $engine->changes_requiring_change($fred)
+        ], [
             {
                 project   => 'engine',
                 change_id => $hyper->id,
@@ -1405,7 +1409,10 @@ sub run {
             },
         ], 'Change "fred" should be required by changes in two projects';
 
-        is_deeply [ $engine->changes_requiring_change($ext_change) ], [
+        is_deeply [
+            sort { $b->{change} cmp $a->{change} }
+            $engine->changes_requiring_change($ext_change)
+        ], [
             {
                 project   => 'engine',
                 change_id => $hyper->id,
@@ -1548,12 +1555,22 @@ sub all {
 }
 
 sub dt_for_event {
-    my $engine = shift;
+    my ($engine, $offset) = @_;
     my $col = sprintf $engine->_ts2char_format, 'committed_at';
     my $dtfunc = $engine->can('_dt');
-    $dtfunc->($engine->dbh->selectcol_arrayref(
+    my $dbh = $engine->dbh;
+    return $dtfunc->($engine->dbh->selectcol_arrayref(qq{
+        SELECT ts FROM (
+            SELECT ts, rownum AS rnum FROM (
+                SELECT $col AS ts
+                  FROM events
+                 ORDER BY committed_at ASC
+            )
+        ) WHERE rnum = ?
+    }, undef, $offset + 1)->[0]) if $dbh->{Driver}->{Name} eq 'Oracle';
+    return $dtfunc->($engine->dbh->selectcol_arrayref(
         "SELECT $col FROM events ORDER BY committed_at ASC LIMIT 1 OFFSET ?",
-        undef, shift
+        undef, $offset
     )->[0]);
 }
 

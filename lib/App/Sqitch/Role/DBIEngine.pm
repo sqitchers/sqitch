@@ -42,6 +42,8 @@ sub _ts_default { 'DEFAULT' }
 
 sub _limit_default { undef }
 
+sub _simple_from { '' }
+
 sub _in_expr {
     my ($self, $vals) = @_;
     my $in = sprintf 'IN (%s)', join ', ', ('?') x @{ $vals };
@@ -357,6 +359,11 @@ sub is_deployed_tag {
     }, undef, $tag->id)->[0];
 }
 
+sub _multi_values {
+    my ($self, $count, $expr) = @_;
+    return 'VALUES ' . join(', ', ("($expr)") x $count)
+}
+
 sub log_deploy_change {
     my ($self, $change) = @_;
     my $dbh    = $self->dbh;
@@ -404,8 +411,7 @@ sub log_deploy_change {
                 , type
                 , dependency
                 , dependency_id
-           ) VALUES
-        } . join( ', ', ( q{(?, ?, ?, ?)} ) x @deps ),
+           ) } . $self->_multi_values(scalar @deps, '?, ?, ?, ?'),
             undef,
             map { (
                 $id,
@@ -430,8 +436,7 @@ sub log_deploy_change {
                 , planner_name
                 , planner_email
                 , committed_at
-           ) VALUES
-        } . join( ', ', ( qq{(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, $ts)} ) x @tags ),
+           ) } . $self->_multi_values(scalar @tags, "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, $ts"),
             undef,
             map { (
                 $_->id,
@@ -461,6 +466,7 @@ sub _log_event {
     my $sqitch = $self->sqitch;
 
     my $ts = $self->_ts_default;
+
     $dbh->do(qq{
         INSERT INTO events (
               event
@@ -478,7 +484,7 @@ sub _log_event {
             , planner_email
             , committed_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, $ts);
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, $ts)
     }, undef,
         $event,
         $change->id,
@@ -546,6 +552,7 @@ sub log_new_tags {
     );
 
     my $ts = $self->_ts_default;
+    my $sf = $self->_simple_from;
     $self->dbh->do(
         q{
             INSERT INTO tags (
@@ -564,9 +571,9 @@ sub log_new_tags {
             SELECT i.* FROM (
                          } . join(
                 "\n               UNION ALL ",
-                ("SELECT ? AS tid, ?, ?, ?, ?, ?, ?, ?, ?, ?, $ts") x @tags
+                ("SELECT ? AS tid, ?, ?, ?, ?, ?, ?, ?, ?, ?, $ts$sf") x @tags
             ) . q{
-            ) AS i
+            ) i
               LEFT JOIN tags ON i.tid = tags.tag_id
              WHERE tags.tag_id IS NULL
          },
@@ -737,6 +744,18 @@ sub change_offset_from_id {
     return $change;
 }
 
+sub _cid_head {
+    my ($self, $project, $change) = @_;
+    return $self->dbh->selectcol_arrayref(q{
+        SELECT change_id
+          FROM changes
+         WHERE project = ?
+           AND change  = ?
+         ORDER BY committed_at DESC
+         LIMIT 1
+    }, undef, $project, $change)->[0];
+}
+
 sub change_id_for {
     my ( $self, %p) = @_;
     my $dbh = $self->dbh;
@@ -757,14 +776,8 @@ sub change_id_for {
             return undef if $tag eq 'ROOT' || $tag eq 'FIRST';
 
             # Find closest to the end for @HEAD.
-            return $dbh->selectcol_arrayref(q{
-                SELECT change_id
-                  FROM changes
-                 WHERE project = ?
-                   AND change  = ?
-                 ORDER BY committed_at DESC
-                 LIMIT 1
-            }, undef, $project, $change)->[0] if $tag eq 'HEAD' || $tag eq 'LAST';
+            return $self->_cid_head($project, $change)
+                if $tag eq 'HEAD' || $tag eq 'LAST';
 
             # Find by change name and following tag.
             return $dbh->selectcol_arrayref(q{
@@ -911,13 +924,17 @@ DBI-powered engines.
 
 =over
 
+=item L<App::Sqitch::Engine::pg>
+
+The PostgreSQL engine.
+
 =item L<App::Sqitch::Engine::sqlite>
 
 The SQLite engine.
 
-=item L<App::Sqitch::Engine::pg>
+=item L<App::Sqitch::Engine::oracle>
 
-The PostgreSQL engine.
+The Oracle engine.
 
 =back
 

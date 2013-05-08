@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 156;
+use Test::More tests => 158;
 #use Test::More 'no_plan';
 use Test::MockModule;
 use Path::Class;
@@ -363,6 +363,12 @@ open my $fh, '<', \$data;
 is capture_stdout {
     ok $sqitch->spool($fh, $^X, 'read.pl'), 'Spool to read.pl';
 }, $data, 'Data should have been sent to STDOUT by read.pl';
+seek $fh, 0, 0;
+open my $fh2, '<', \$CLASS;
+is capture_stdout {
+    ok $sqitch->spool([$fh, $fh2], $^X, 'read.pl'), 'Spool to read.pl';
+}, $data . $CLASS, 'All data should have been sent to STDOUT by read.pl';
+
 like capture_stderr {
     local $ENV{LANGUAGE} = 'en';
     throws_ok { $sqitch->spool($fh, $^X, 'die.pl') }

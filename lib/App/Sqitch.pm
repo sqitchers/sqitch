@@ -40,7 +40,7 @@ BEGIN {
 
     subtype 'CoreEngine', as 'Str', where {
         hurl core => __x('Unknown engine: {engine}', engine => $_)
-            unless $_ ~~ [qw(pg sqlite)];
+            unless $_ ~~ [qw(pg sqlite oracle)];
         1;
     };
 
@@ -531,7 +531,14 @@ sub spool {
     }
 
     local $SIG{PIPE} = sub { die 'spooler pipe broke' };
-    print $pipe $_ while <$fh>;
+    if (ref $fh eq 'ARRAY') {
+        for my $h (@{ $fh }) {
+            print $pipe $_ while <$h>;
+        }
+    } else {
+        print $pipe $_ while <$fh>;
+    }
+
     close $pipe or hurl io => $! ? __x(
         'Error closing pipe to {command}: {error}',
          command => $_[0],
@@ -797,9 +804,11 @@ Like C<capture>, but returns just the C<chomp>ed first line of output.
 =head3 C<spool>
 
   $sqitch->spool($sql_file_handle, 'sqlite3', 'my.db');
+  $sqitch->spool(\@file_handles, 'sqlite3', 'my.db');
 
-Like run, but spools the contents of a file handle to the standard input the
-system command. Returns true on success and throws an exception on failure.
+Like run, but spools the contents of one or ore file handle to the standard
+input the system command. Returns true on success and throws an exception on
+failure.
 
 =head3 C<trace>
 

@@ -82,3 +82,5 @@ Show information about changes and tags, or change script contents
 =item L<C<tag>|sqitch-tag>
 
 Add or list tags in the plan
+
+=back

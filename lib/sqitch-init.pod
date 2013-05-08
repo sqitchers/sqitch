@@ -86,24 +86,24 @@ write variables, as follows:
 
 =item C<--db-client>
 
-Used to set C<core.pg.client>, C<core.sqlite.client>, or C<core.mysql.client>.
+Used to set C<core.pg.client>, C<core.sqlite.client>, or C<core.oracle.client>.
 
 =item C<--db-name>
 
 Used to set C<core.pg.db_name>, C<core.sqlite.db_name>, or
-C<core.mysql.db_name>.
+C<core.oracle.db_name>.
 
 =item C<--db-user>
 
-Used to set C<core.pg.username>, or C<core.mysql.username>.
+Used to set C<core.pg.username>, or C<core.oracle.username>.
 
 =item C<--db-host>
 
-Used to set C<core.pg.host>, or C<core.mysql.host>.
+Used to set C<core.pg.host>, or C<core.oracle.host>.
 
 =item C<--db-port>
 
-Used to set C<core.pg.port>, or C<core.mysql.port>.
+Used to set C<core.pg.port>, or C<core.oracle.port>.
 
 =back
 

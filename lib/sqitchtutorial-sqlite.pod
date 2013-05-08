@@ -16,7 +16,7 @@ changes remain in sync and in the proper order.
 
 We'll start by creating new project from scratch, a fictional antisocial
 networking site called Flipr. All examples use L<Git|http://git-scm.com/> as
-the VCS and L<SQLite|http://www.sqlite.org/>. as the storage engine.
+the VCS and L<SQLite|http://www.sqlite.org/> as the storage engine.
 
 =head1 Starting a New Project
 
@@ -72,9 +72,9 @@ available SQLite engine-specific settings commented out and ready to be edited
 as appropriate.
 
 By default, Sqitch will read F<sqitch.conf> in the current directory for
-settings. But it will also read F<~/.sqitch/sqitch.conf> for global settings.
-Since SQLite's C<sqlite3> client is not in the path on my system, let's go
-ahead an tell it globally where to find the client:
+settings. But it will also read F<~/.sqitch/sqitch.conf> for user-specific
+settings. Since SQLite's C<sqlite3> client is not in the path on my system,
+let's go ahead an tell it where to find the client on our computer.
 
   > sqitch config --user core.sqlite.client /opt/local/bin/sqlite3
 
@@ -86,6 +86,7 @@ of our projects:
 
 Have a look at F<~/.sqitch/sqitch.conf> and you'll see this:
 
+  > cat ~/.sqitch/sqitch.conf
   [core "sqlite"]
 	client = /opt/local/bin/sqlite3
   [user]
@@ -97,6 +98,7 @@ that it will always properly identify us when planning and committing changes.
 
 Back to the repository. Have a look at the plan file, F<sqitch.plan>:
 
+  > cat sqitch.plan
   %syntax-version=1.0.0-b2
   %project=flipr
   %uri=https://github.com/theory/sqitch-sqlite-intro/
