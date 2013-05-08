@@ -10,6 +10,8 @@ use App::Sqitch::DateTime;
 use App::Sqitch::Plan::Depend;
 use Locale::TextDomain qw(App-Sqitch);
 
+our $VERSION = '0.970';
+
 has _requires => (
     is       => 'ro',
     isa      => 'ArrayRef[App::Sqitch::Plan::Depend]',
