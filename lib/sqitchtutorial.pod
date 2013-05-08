@@ -923,7 +923,7 @@ and commit them. The C<insert_flip> deploy script might look something like:
      nickname TEXT,
      body     TEXT
   ) RETURNS BIGINT LANGUAGE sql SECURITY DEFINER AS $$
-      INSERT INTO flipr.flips (body, nickname)
+      INSERT INTO flipr.flips (nickname, body)
       VALUES ($1, $2)
       RETURNING id;
   $$;
