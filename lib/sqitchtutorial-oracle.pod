@@ -843,13 +843,13 @@ to have it go out with deployments tied to the release, let's tag it:
   > sqitch tag v1.0.0-dev1 -n 'Tag v1.0.0-dev1.'
   Tagged "change_pass" with @v1.0.0-dev1
   > git commit -am 'Tag the database with v1.0.0-dev1.'
-  [master b215e03] Tag the database with v1.0.0-dev1.
+  [master 9b9598f] Tag the database with v1.0.0-dev1.
    1 file changed, 1 insertion(+)
   > git tag v1.0.0-dev1 -am 'Tag v1.0.0-dev1'
 
-We can try deploying to make sure the tag gets picked up like so:
+We can try deploying to make sure the tag gets picked up by deploying to a new
+database, like so:
 
-  > createdb flipr_dev
   > sqitch -d flipr_dev deploy
   Adding metadata tables to flipr_dev
   Deploying changes to flipr_dev
@@ -864,10 +864,10 @@ C<@v1.0.0-dev1>. Let's have a look at the status:
   > sqitch -d flipr_dev status
   # On database flipr_dev
   # Project:  flipr
-  # Change:   0acf77aaafc1a828e37e8e857d04d13ee22a2d36
+  # Change:   d030394ca088d60118ca335de090ae0888c4ba85
   # Name:     change_pass
   # Tag:      @v1.0.0-dev1
-  # Deployed: 2013-01-03 11:16:44 -0800
+  # Deployed: 2013-05-07 17:09:14 -0700
   # By:       Marge N. O’Vera <marge@example.com>
   # 
   Nothing to deploy (up-to-date)
@@ -887,10 +887,9 @@ everything up for release:
 
 Now we can package the F<bundle> directory and distribute it. When it gets
 installed somewhere, users can use Sqitch to deploy to the database. Let's try
-deploying it:
+deploying it to yet another database:
 
   > cd bundle
-  > createdb flipr_prod
   > sqitch --db-name flipr_prod deploy
   Adding metadata tables to flipr_prod
   Deploying changes to flipr_prod
