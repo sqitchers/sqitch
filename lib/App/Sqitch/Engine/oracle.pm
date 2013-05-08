@@ -349,6 +349,53 @@ sub deployed_changes {
     }, { Slice => {} } ) };
 }
 
+sub deployed_changes_since {
+    my ( $self, $change ) = @_;
+    my $tscol  = sprintf $self->_ts2char_format, 'c.planned_at';
+    my $tagcol = sprintf $self->_listagg_format, 't.tag';
+    # XXX Oy, placeholders do not work with COLLECT() in this query.
+    # http://www.nntp.perl.org/group/perl.dbi.users/2013/05/msg36581.html
+    # http://stackoverflow.com/q/16407560/79202
+    my $qproj  = $self->dbh->quote($self->plan->project);
+    return map {
+        $_->{timestamp} = _dt $_->{timestamp};
+        $_;
+    } @{ $self->dbh->selectall_arrayref(qq{
+        SELECT c.change_id AS id, c.change AS name, c.project, c.note,
+               $tscol AS timestamp, c.planner_name, c.planner_email,
+               $tagcol AS tags
+          FROM changes   c
+          LEFT JOIN tags t ON c.change_id = t.change_id
+         WHERE c.project = $qproj
+           AND c.committed_at > (SELECT committed_at FROM changes WHERE change_id = ?)
+         GROUP BY c.change_id, c.change, c.project, c.note, c.planned_at,
+               c.planner_name, c.planner_email, c.committed_at
+         ORDER BY c.committed_at ASC
+    }, { Slice => {} }, $change->id) };
+}
+
+sub load_change {
+    my ( $self, $change_id ) = @_;
+    my $tscol  = sprintf $self->_ts2char_format, 'c.planned_at';
+    my $tagcol = sprintf $self->_listagg_format, 't.tag';
+    # XXX Oy, placeholders do not work with COLLECT() in this query.
+    # http://www.nntp.perl.org/group/perl.dbi.users/2013/05/msg36581.html
+    # http://stackoverflow.com/q/16407560/79202
+    my $qcid   = $self->dbh->quote($change_id);
+    my $change = $self->dbh->selectrow_hashref(qq{
+        SELECT c.change_id AS id, c.change AS name, c.project, c.note,
+               $tscol AS timestamp, c.planner_name, c.planner_email,
+                $tagcol AS tags
+          FROM changes   c
+          LEFT JOIN tags t ON c.change_id = t.change_id
+         WHERE c.change_id = $qcid
+         GROUP BY c.change_id, c.change, c.project, c.note, c.planned_at,
+               c.planner_name, c.planner_email
+    }, undef) || return undef;
+    $change->{timestamp} = _dt $change->{timestamp};
+    return $change;
+}
+
 sub is_deployed_change {
     my ( $self, $change ) = @_;
     $self->dbh->selectcol_arrayref(
