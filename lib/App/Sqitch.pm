@@ -39,8 +39,9 @@ BEGIN {
     };
 
     subtype 'CoreEngine', as 'Str', where {
+        my $e = $_;
         hurl core => __x('Unknown engine: {engine}', engine => $_)
-            unless $_ ~~ [qw(pg sqlite oracle)];
+            unless first { $e eq $_ } qw(pg sqlite oracle);
         1;
     };
 

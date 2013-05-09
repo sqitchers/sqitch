@@ -7,6 +7,7 @@ use utf8;
 use parent 'DateTime';
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
+use List::Util qw(first);
 
 our $VERSION = '0.971';
 
@@ -29,7 +30,7 @@ sub validate_as_string_format {
     hurl datetime => __x(
         'Unknown date format "{format}"',
         format => $format
-    ) unless $format ~~ [ $self->as_string_formats ]
+    ) unless (first { $format eq $_ } $self->as_string_formats)
           || $format =~ /^(?:cldr|strftime):/;
     return $self;
 }
@@ -46,9 +47,9 @@ sub as_string {
 
     $dt->set_time_zone('local');
 
-    if ( $format ~~ [qw(iso iso8601)] ) {
+    if ( first { $format eq $_ } qw(iso iso8601) ) {
         return join ' ', $dt->ymd('-'), $dt->hms(':'), $dt->strftime('%z');
-    } elsif ( $format ~~ [qw(rfc rfc2822)] ) {
+    } elsif ( first { $format eq $_ } qw(rfc rfc2822) ) {
         $dt->set( locale => 'en_US' );
         ( my $rv = $dt->strftime('%a, %d %b %Y %H:%M:%S %z') ) =~
             s/\+0000$/-0000/;
