@@ -4,6 +4,10 @@ Revision history for Perl extension App::Sqitch
      - Removed most uses of the smartmatch operator, since as of Perl 5.17.11
        it is marked as experimental, and silenced the warning where it is
        still used.
+     - Added 0.1s sleep between logging changes back-to-back in the engine
+       tests, mostly to try to get SQLite to generate different timestamps.
+       Pretty sure the recent test failures have been due to the passage of
+       less than a millisecond between the two inserts.
 
 0.970 2013-05-09T00:21:06Z
      - Fixed the default ordering of changes displayed by the `plan` command.

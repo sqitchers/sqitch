@@ -6,6 +6,7 @@ use utf8;
 use Try::Tiny;
 use Test::More;
 use Test::Exception;
+use Time::HiRes qw(sleep);
 use Locale::TextDomain qw(App-Sqitch);
 
 sub run {
@@ -814,10 +815,11 @@ sub run {
         $plan->add( name => 'barney', note => 'Hello Barney' );
         $plan->tag( name => 'beta',   note => 'Note beta' );
         $plan->tag( name => 'gamma',  note => 'Note gamma' );
-        ok my $fred = $plan->get('fred'),     'Get the "fred" change';
-        ok $engine->log_deploy_change($fred),     'Deploy "fred"';
-        ok my $barney = $plan->get('barney'), 'Get the "barney" change';
-        ok $engine->log_deploy_change($barney),   'Deploy "barney"';
+        ok my $fred = $plan->get('fred'),       'Get the "fred" change';
+        ok $engine->log_deploy_change($fred),   'Deploy "fred"';
+        sleep 0.1; # Give SQLite a little time to tick microseconds.
+        ok my $barney = $plan->get('barney'),   'Get the "barney" change';
+        ok $engine->log_deploy_change($barney), 'Deploy "barney"';
 
         is $engine->earliest_change_id, $change->id, 'Earliest change should sill be "users"';
         is $engine->earliest_change_id(1), $change2->id,
@@ -827,10 +829,10 @@ sub run {
         is $engine->earliest_change_id(3), $barney->id,
             'Should get "barney" offset 3 from earliest';
 
-        is $engine->latest_change_id, $barney->id, 'Latest change should be "barney"';
-        is $engine->latest_change_id(1), $fred->id, 'Should get "fred" offset 1 from latest';
+        is $engine->latest_change_id,    $barney->id,  'Latest change should be "barney"';
+        is $engine->latest_change_id(1), $fred->id,    'Should get "fred" offset 1 from latest';
         is $engine->latest_change_id(2), $change2->id, 'Should get "widgets" offset 2 from latest';
-        is $engine->latest_change_id(3), $change->id, 'Should get "users" offset 3 from latest';
+        is $engine->latest_change_id(3), $change->id,  'Should get "users" offset 3 from latest';
 
         is_deeply $engine->current_state, {
             project         => 'engine',
