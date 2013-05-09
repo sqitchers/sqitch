@@ -1,6 +1,6 @@
 Revision history for Perl extension App::Sqitch
 
-0.966
+0.970 2013-05-09T00:21:06Z
      - Fixed the default ordering of changes displayed by the `plan` command.
        They are now ascending by default.
      - Switched to PerlIO::utf8_strict for fast character encoding and
