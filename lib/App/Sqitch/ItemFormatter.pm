@@ -50,7 +50,7 @@ has formatter => (
     isa     => 'String::Formatter',
     default => sub {
         my $self = shift;
-        no warnings 'experimental::smartmatch';
+        no if $] >= 5.017011, warnings => 'experimental::smartmatch';
         String::Formatter->new({
             input_processor => 'require_single_input',
             string_replacer => 'method_replace',
