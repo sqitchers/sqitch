@@ -10,7 +10,7 @@ use List::Util qw(first);
 use Mouse;
 extends 'App::Sqitch::Command';
 
-our $VERSION = '0.970';
+our $VERSION = '0.971';
 
 sub execute {
     my ( $self, $type, $key ) = @_;

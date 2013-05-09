@@ -13,7 +13,7 @@ requires 'command';
 requires 'options';
 requires 'configure';
 
-our $VERSION = '0.970';
+our $VERSION = '0.971';
 
 has verify => (
     is       => 'ro',

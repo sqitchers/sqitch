@@ -13,7 +13,7 @@ use namespace::autoclean;
 extends 'App::Sqitch::Command';
 with 'App::Sqitch::Role::RevertDeployCommand';
 
-our $VERSION = '0.970';
+our $VERSION = '0.971';
 
 has onto_target => (
     is  => 'ro',
