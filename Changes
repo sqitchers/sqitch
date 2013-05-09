@@ -15,6 +15,8 @@ Revision history for Perl extension App::Sqitch
      - Added missing version declaration to the App::Sqitch::Plan::* modules.
      - Devel::StackTrace 1.30 is now properly required (it was previously
        recommended).
+     - The `--show-tags` and `--show-changes` options to the `status` command
+       now show the changes when the project plan cannot be found (issue #90).
 
 0.965  2013-04-23T16:25:59Z
      - Fixed failing test due to line-ending character variations on Windows.
