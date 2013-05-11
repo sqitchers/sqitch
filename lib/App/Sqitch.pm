@@ -433,6 +433,27 @@ sub run {
     return $self;
 }
 
+sub shell {
+    my ($self, $cmd) = @_;
+    local $SIG{__DIE__} = sub {
+        ( my $msg = shift ) =~ s/\s+at\s+.+/\n/ms;
+        die $msg;
+    };
+    IPC::System::Simple::run $cmd;
+    return $self;
+}
+
+sub quote_shell {
+    my $self = shift;
+    if ($^O eq 'MSWin32') {
+        require Win32::ShellQuote;
+        return Win32::ShellQuote::quote_native(@_);
+    } else {
+        require String::ShellQuote;
+        return String::ShellQuote::shell_quote(@_);
+    }
+}
+
 sub capture {
     my $self = shift;
     local $SIG{__DIE__} = sub {
@@ -517,8 +538,7 @@ sub spool {
     local $SIG{__WARN__} = sub { }; # Silence warning.
     my $pipe;
     if ($^O eq 'MSWin32') {
-        require Win32::ShellQuote;
-        open $pipe, '|' . Win32::ShellQuote::quote_native(@_) or hurl io => __x(
+        open $pipe, '|' . $self->quote_shell(@_) or hurl io => __x(
             'Cannot exec {command}: {error}',
             command => $_[0],
             error   => $!,
@@ -783,10 +803,30 @@ configuration files.
 
 =head3 C<run>
 
-  $sqitch->run('echo hello');
+  $sqitch->run('echo', '-n', 'hello');
 
 Runs a system command and waits for it to finish. Throws an exception on
-error.
+error. Does not use the shell, so arguments must be passed as a list. Use
+C<shell> to run a command and its arguments as a single string.
+
+=head3 C<shell>
+
+  $sqitch->shell('echo -n hello');
+
+Shells out a system command and waits for it to finish. Throws an exception on
+error. Always uses the shell, so a single string must be passed encapsulating
+the entire command and its arguments. Use C<quote_shell> to assemble strings
+into a single shell command. Use C<run> to execute a list without a shell.
+
+=head3 C<quote_shell>
+
+  my $cmd = $sqitch->quote_shell('echo', '-n', 'hello');
+
+Assemble a list into a single string quoted for execution by C<shell>. Useful
+for combining a specified command, such as C<editor()>, which might include
+the options in the string, for example:
+
+  $sqitch->shell( $sqitch->editor, $sqitch->quote_shell($file) );
 
 =head3 C<capture>
 

@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 158;
+use Test::More tests => 166;
 #use Test::More 'no_plan';
 use Test::MockModule;
 use Path::Class;
@@ -337,6 +337,43 @@ is $stderr, '', 'Nothing should have gone to STDERR';
 
 is $stdout, "hi there\n", 'The die script should have its STDOUT ummolested';
 like $stderr, qr/OMGWTF/, 'The die script should have its STDERR unmolested';
+
+##############################################################################
+# Test shell().
+can_ok $CLASS, 'shell';
+my $pl = $sqitch->quote_shell($^X);
+($stdout, $stderr) = capture {
+    ok $sqitch->shell(
+        "$pl echo.pl hi there"
+    ), 'Should get success back from shell echo';
+};
+
+is $stdout, "hi there\n", 'The echo script should have shell';
+is $stderr, '', 'Nothing should have gone to STDERR';
+
+($stdout, $stderr) = capture {
+    throws_ok {
+        $sqitch->shell( "$pl die.pl hi there" )
+    } qr/unexpectedly returned/, 'shell die should, well, die';
+};
+
+is $stdout, "hi there\n", 'The die script should have its STDOUT ummolested';
+like $stderr, qr/OMGWTF/, 'The die script should have its STDERR unmolested';
+
+##############################################################################
+# Test quote_shell().
+my $quoter = do {
+    if ($^O eq 'MSWin32') {
+        require Win32::ShellQuote;
+         \&Win32::ShellQuote::quote_native;
+    } else {
+        require String::ShellQuote;
+        \&String::ShellQuote::shell_quote;
+    }
+};
+
+is $sqitch->quote_shell(qw(foo bar baz), 'hi there'),
+    $quoter->(qw(foo bar baz), 'hi there'), 'quote_shell should work';
 
 ##############################################################################
 # Test capture().

@@ -8,6 +8,8 @@ Revision history for Perl extension App::Sqitch
        tests, mostly to try to get SQLite to generate different timestamps.
        Pretty sure the recent test failures have been due to the passage of
        less than a millisecond between the two inserts.
+     - Added the `shell` and `quote_shell` methods to Sqitch.pm for shelling
+       out a command.
 
 0.970 2013-05-09T00:21:06Z
      - Fixed the default ordering of changes displayed by the `plan` command.
