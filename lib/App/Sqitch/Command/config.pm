@@ -321,7 +321,9 @@ sub edit {
     my $self = shift;
 
     # Let the editor deal with locking.
-    $self->run( $self->sqitch->editor, $self->file );
+    $self->shell(
+        $self->sqitch->editor . ' ' . $self->quote_shell( $self->file )
+    );
 }
 
 sub rename_section {

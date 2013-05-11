@@ -1061,15 +1061,15 @@ is $@->message, __('Cannot overwrite multiple values with a single value'),
 
 ##############################################################################
 # Test edit().
-my @run;
+my $shell;
 my $ret = 1;
-$mock->mock(run => sub { shift; @run = @_; return $ret });
+$mock->mock(shell => sub { $shell = $_[1]; return $ret });
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
     action  => 'edit',
 }), 'Create system config edit command';
 ok $cmd->execute, 'Execute the edit comand';
-is_deeply \@run, [$sqitch->editor, $cmd->file],
+is $shell, $sqitch->editor . ' ' . $sqitch->quote_shell($cmd->file),
     'The editor should have been run';
 
 ##############################################################################

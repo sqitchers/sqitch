@@ -99,7 +99,8 @@ sub request_note {
     $tmp->print( "\n", $prompt, "\n" );
     $tmp->close;
 
-    $self->sqitch->run( $self->sqitch->editor, "$tmp" );
+    my $sqitch = $self->sqitch;
+    $sqitch->shell( $sqitch->editor . ' ' . $sqitch->quote_shell($tmp) );
 
     open my $fh, '<:utf8_strict', $tmp or hurl add => __x(
         'Cannot open {file}: {error}',

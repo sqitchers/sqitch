@@ -90,9 +90,11 @@ is $blank->note_prompt(for => 'add'), __x(
 my $sqitch_mocker = Test::MockModule->new('App::Sqitch');
 my $note = '';
 my $for  = 'add';
-$sqitch_mocker->mock(run => sub {
-    my ( $self, $editor, $fn ) = @_;
-    is $editor, $sqitch->editor, 'First arg to run() should be editor';
+$sqitch_mocker->mock(shell => sub {
+    my ( $self, $cmd ) = @_;
+    my $editor = $sqitch->editor;
+    ok $cmd =~ s/^\Q$editor\E //, 'Shell command should start with editor';
+    my $fn = $cmd;
     file_exists_ok $fn, 'Temp file should exist';
 
     ( my $prompt = $CLASS->note_prompt(for => $for) ) =~ s/^/# /gms;

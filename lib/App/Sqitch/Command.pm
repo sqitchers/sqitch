@@ -20,6 +20,8 @@ has sqitch => (
         plan
         engine
         run
+        shell
+        quote_shell
         capture
         probe
         verbosity

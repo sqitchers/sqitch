@@ -10,6 +10,10 @@ Revision history for Perl extension App::Sqitch
        less than a millisecond between the two inserts.
      - Added the `shell` and `quote_shell` methods to Sqitch.pm for shelling
        out a command.
+     - Sqitch now shells out to an editor when opening a file for the user to
+       edit. For example, if the `$EDITOR` environment variable is set to
+       `"emacs -nw"`, it will now work. Thanks to Florian Ragwitz for the
+       report (issue #80).
 
 0.970 2013-05-09T00:21:06Z
      - Fixed the default ordering of changes displayed by the `plan` command.
