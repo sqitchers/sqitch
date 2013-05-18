@@ -14,6 +14,7 @@ Revision history for Perl extension App::Sqitch
        edit. For example, if the `$EDITOR` environment variable is set to
        `"emacs -nw"`, it will now work. Thanks to Florian Ragwitz for the
        report (issue #80).
+     - Removed the pod-checking tests from the distribution.
 
 0.970 2013-05-09T00:21:06Z
      - Fixed the default ordering of changes displayed by the `plan` command.
