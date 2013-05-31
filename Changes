@@ -2,7 +2,13 @@ Revision history for Perl extension App::Sqitch
 
 0.972
      - Fixed test failures on Windows.
-     - Fixed locale configuration on Windows.
+     - Fixed locale configuration on Windows so that `sqitch` will actually
+       run, rather than exiting with an error about `LC_MESSAGES` not being
+       set.
+     - Fixed a test hang on Windows when DBD::Oracle is installed but the
+       Oracle libraries (`OCI.dll`) are not or cannot be found. This was
+       triggering a UI dialog that did not dismiss itself. Using Win32::API
+       to work around this issue. Thanks to Jan Dubois for the fix.
 
 0.971  2013-05-18T21:08:51Z
      - Removed most uses of the smartmatch operator, since as of Perl 5.17.11
