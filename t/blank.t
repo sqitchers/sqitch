@@ -108,6 +108,9 @@ $sqitch_mocker->mock(shell => sub {
     }
 });
 
+# Do no actual shell quoting.
+$sqitch_mocker->mock(quote_shell => sub { shift; join ' ' => @_ });
+
 throws_ok { $CLASS->new(plan => $plan )->request_note(for => $for) }
     'App::Sqitch::X',
     'Should get exception for no note text';

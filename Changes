@@ -1,6 +1,7 @@
 Revision history for Perl extension App::Sqitch
 
 0.972
+     - Fixed test failures on Windows.
 
 0.971  2013-05-18T21:08:51Z
      - Removed most uses of the smartmatch operator, since as of Perl 5.17.11
