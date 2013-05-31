@@ -1,7 +1,14 @@
 #!perl -w -CAS
 
-use POSIX qw (setlocale LC_MESSAGES);
-setlocale LC_MESSAGES, '';
+use POSIX qw (setlocale);
+BEGIN {
+    if ($^O eq 'MSWin32') {
+	require Win32::Locale;
+	setlocale Win32::Locale::get_locale(), '';
+    } else {
+	setlocale POSIX::LC_MESSAGES, '';
+    }
+}
 use App::Sqitch;
 
 exit App::Sqitch->go;
