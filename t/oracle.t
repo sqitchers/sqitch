@@ -305,6 +305,16 @@ is $dt->time_zone->name, 'UTC', 'DateTime TZ should be set';
 
 ##############################################################################
 # Can we do live tests?
+if ($^O eq 'MSWin32') {
+    # Call kernel32.SetErrorMode(SEM_FAILCRITICALERRORS):
+    # "The system does not display the critical-error-handler message box.
+    # Instead, the system sends the error to the calling process." and
+    # "A child process inherits the error mode of its parent process."
+    require Win32::API;
+    my $SetErrorMode = Win32::API->new('kernel32', 'SetErrorMode', 'I', 'I');
+    my $SEM_FAILCRITICALERRORS = 0x0001;
+    $SetErrorMode->Call($SEM_FAILCRITICALERRORS);
+}
 my $dbh;
 END {
     return unless $dbh;
