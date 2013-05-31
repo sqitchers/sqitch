@@ -6,7 +6,7 @@ use namespace::autoclean;
 use parent 'App::Sqitch::Plan::Line';
 use Mouse;
 
-our $VERSION = '0.972';
+our $VERSION = '0.973';
 
 has value => (
     is       => 'ro',
