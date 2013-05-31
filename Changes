@@ -1,6 +1,6 @@
 Revision history for Perl extension App::Sqitch
 
-0.972
+0.972  2013-05-31T23:26:52Z
      - Fixed test failures on Windows.
      - Fixed locale configuration on Windows so that `sqitch` will actually
        run, rather than exiting with an error about `LC_MESSAGES` not being

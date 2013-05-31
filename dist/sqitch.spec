@@ -211,6 +211,9 @@ package bundles the Sqitch Oracle support.
 # No additional files required.
 
 %changelog
+* Fri May 31 2013 David E. Wheeler <david.wheeler@iovation.com> 0.972-1
+- Upgrade to v0.972.
+
 * Sat May 18 2013 David E. Wheeler <david.wheeler@iovation.com> 0.971-1
 - Upgrade to v0.971.
 
