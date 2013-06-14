@@ -78,10 +78,10 @@ has dbh => (
         };
 
         my $dsn = 'dbi:SQLite:dbname=' . ($self->sqitch_db || hurl sqlite => __(
-            'No database specified; use --db-name set "ore.sqlite.db_name" via sqitch config'
+            'No database specified; use --db-name set "core.sqlite.db_name" via sqitch config'
         ));
 
-        DBI->connect($dsn, '', '', {
+        my $dbh = DBI->connect($dsn, '', '', {
             PrintError        => 0,
             RaiseError        => 0,
             AutoCommit        => 1,
@@ -101,6 +101,15 @@ has dbh => (
                 },
             },
         });
+
+        # Make sure we support this version.
+        my @v = split /[.]/ => $dbh->{sqlite_version};
+        hurl sqlite => __x(
+            'Sqitch requires SQLite 3.7.11 or later; DBD::SQLite was built with {version}',
+            version => $dbh->{sqlite_version}
+        ) unless $v[0] > 3 || ($v[0] == 3 && ($v[1] > 7 || ($v[1] == 7 && $v[2] >= 11)));
+
+        return $dbh;
     }
 );
 
