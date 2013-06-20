@@ -492,6 +492,7 @@ sub check_deploy_dependencies {
     }
 
     if (@conflicts or @required) {
+        require List::MoreUtils;
         # Dependencies not satisfied. Put together the error messages.
         my @msg;
         push @msg, __nx(
@@ -499,14 +500,14 @@ sub check_deploy_dependencies {
             'Conflicts with previously deployed changes: {changes}',
             scalar @conflicts,
             changes => join ' ', map { $_->as_string } @conflicts,
-        ) if @conflicts;
+        ) if @conflicts = List::MoreUtils::uniq(@conflicts);
 
         push @msg, __nx(
             'Missing required change: {changes}',
             'Missing required changes: {changes}',
             scalar @required,
             changes => join ' ', map { $_->as_string } @required,
-        ) if @required;
+        ) if @required = List::MoreUtils::uniq(@required);
 
         hurl deploy => join "\n" => @msg;
     }
