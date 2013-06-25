@@ -4,6 +4,7 @@ use 5.010;
 use strict;
 use warnings;
 use utf8;
+use DBI;
 use Mouse::Role;
 use Try::Tiny;
 use App::Sqitch::X qw(hurl);

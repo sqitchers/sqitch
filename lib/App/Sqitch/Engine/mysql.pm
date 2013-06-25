@@ -116,7 +116,7 @@ has dbh => (
             'No database specified; use --db-name set "core.mysql.db_name" via sqitch config'
         ));
 
-        DBI->connect($dsn, '', '', {
+        DBI->connect($dsn, $self->username, $self->password, {
             PrintError           => 0,
             RaiseError           => 0,
             AutoCommit           => 1,
@@ -206,6 +206,13 @@ sub _ts2char_format {
 
 sub initialized {
     my $self = shift;
+
+    # Try to connect.
+    my $err = 0;
+    my $dbh = try { $self->dbh } catch { $err = $DBI::err };
+    # MySQL error code 1049 (ER_BAD_DB_ERROR): Unknown database '%-.192s'
+    return 0 if $err == 1049;
+
     return $self->dbh->selectcol_arrayref(q{
         SELECT COUNT(*)
           FROM information_schema.tables
@@ -221,10 +228,20 @@ sub initialize {
         database => $self->sqitch_db,
     ) if $self->initialized;
 
-    # Load up our database.
+    # Create the Sqitch database if it does not exist.
+    (my $db = $self->sqitch_db) =~ s/"/""/g;
+    $self->_run(
+        '--execute'  => sprintf(
+            'SET sql_mode = ansi; CREATE DATABASE IF NOT EXISTS "%s"',
+            $self->sqitch_db
+        ),
+    );
+
+    # Connect to the Sqitch database.
     my @cmd = $self->mysql;
     $cmd[1 + firstidx { $_ eq '--database' } @cmd ] = $self->sqitch_db;
     my $file = file(__FILE__)->dir->file('mysql.sql');
+
     $self->sqitch->run( @cmd, '--execute', "source $file" );
 }
 

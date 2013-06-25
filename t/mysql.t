@@ -193,4 +193,58 @@ is $dt->minute,  7, 'DateTime minute should be set';
 is $dt->second,  1, 'DateTime second should be set';
 is $dt->time_zone->name, 'UTC', 'DateTime TZ should be set';
 
+##############################################################################
+# Can we do live tests?
+my $dbh;
+END {
+    return unless $dbh;
+    $dbh->{Driver}->visit_child_handles(sub {
+        my $h = shift;
+        $h->disconnect if $h->{Type} eq 'db' && $h->{Active} && $h ne $dbh;
+    });
+
+    return unless $dbh->{Active};
+    $dbh->do("DROP DATABASE $_") for qw(
+        __sqitchtest__
+        __metasqitch
+        __sqitchmeta
+    );
+}
+
+my $err = try {
+    $dbh = DBI->connect('dbi:mysql:database=information_schema', 'root', '', {
+        PrintError => 0,
+        RaiseError => 1,
+        AutoCommit => 1,
+    });
+    $dbh->do('CREATE DATABASE __sqitchtest__');
+    undef;
+} catch {
+    eval { $_->message } || $_;
+};
+
+DBIEngineTest->run(
+    class         => $CLASS,
+    sqitch_params => [
+        db_username => 'root',
+        db_name     => '__sqitchtest__',
+        top_dir     => Path::Class::dir(qw(t engine)),
+        plan_file   => Path::Class::file(qw(t engine sqitch.plan)),
+    ],
+    engine_params     => [ sqitch_db => '__metasqitch' ],
+    alt_engine_params => [ sqitch_db => '__sqitchmeta' ],
+    skip_unless       => sub {
+        my $self = shift;
+        die $err if $err;
+        # Make sure we have psql and can connect to the database.
+        $self->sqitch->probe( $self->client, '--version' );
+        $self->_capture('--execute' => 'SELECT version()');
+    },
+    engine_err_regex  => qr/^ERROR /,
+    init_error        => __x(
+        'Sqitch database {database} already initialized',
+        database => '__sqitchtest',
+    ),
+);
+
 done_testing;
