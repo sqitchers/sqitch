@@ -73,14 +73,8 @@ has sqitch_db => (
     lazy     => 1,
     required => 1,
     default  => sub {
-        my $self = shift;
-        $self->sqitch->config->get( key => 'core.mysql.sqitch_db' ) || do {
-            if (my $db = $self->db_name) {
-                "$db\_sqitch";
-            } else {
-                undef;
-            }
-        };
+        shift->sqitch->config->get( key => 'core.mysql.sqitch_db' )
+            || 'sqitch';
     },
 );
 
@@ -139,11 +133,18 @@ has dbh => (
                 connected => sub {
                     my $dbh = shift;
                     $dbh->do("SET SESSION $_") for (
-                        q{sql_mode='ansi,strict_trans_tables,no_auto_value_on_zero,no_zero_date,no_zero_in_date,only_full_group_by'},
-                        'character_set_client=utf8',
-                        'character_set_server=utf8',
-                        'default_storage_engine=InnoDB',
-                        # 'default_time_zone=utc',
+                        q{character_set_client   = 'utf8'},
+                        q{character_set_server   = 'utf8'},
+                        q{default_storage_engine = 'InnoDB'},
+                        q{time_zone              = '+00:00'},
+                        q{sql_mode = '} . join(', ', qw(
+                            ansi
+                            strict_trans_tables
+                            no_auto_value_on_zero
+                            no_zero_date
+                            no_zero_in_date
+                            only_full_group_by
+                        )) . q{'},
                     );
                     return;
                 },
@@ -200,9 +201,8 @@ sub config_vars {
 sub _char2ts { $_[1]->as_string(format => 'iso') }
 
 sub _ts2char_format {
-     q{to_char(%s AT TIME ZONE 'UTC', '"year":YYYY:"month":MM:"day":DD:"hour":HH24:"minute":MI:"second":SS:"time_zone":"UTC"')};
+    return q{date_format(%s, 'year:%%Y:month:%%m:day:%%d:hour:%%H:minute:%%i:second:%%S:time_zone:UTC')};
 }
-
 
 sub initialized {
     my $self = shift;
@@ -277,7 +277,7 @@ sub run_verify {
     my ($self, $file) = @_;
     # Suppress STDOUT unless we want extra verbosity.
     my $meth = $self->can($self->sqitch->verbosity > 1 ? '_run' : '_capture');
-    $self->$meth( '.read ' . $self->dbh->quote($file) );
+    $self->$meth( '--execute' => "source $file" );
 }
 
 sub run_handle {
