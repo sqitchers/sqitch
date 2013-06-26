@@ -302,6 +302,26 @@ sub run_handle {
     $self->_spool($fh);
 }
 
+sub _cid {
+    my ( $self, $ord, $offset, $project ) = @_;
+
+    my ($off_expr, @offset) = $offset ? ('OFFSET ?', $offset) : ();
+    return try {
+        return $self->dbh->selectcol_arrayref(qq{
+            SELECT change_id
+              FROM changes
+             WHERE project = ?
+             ORDER BY committed_at $ord
+             LIMIT 1
+             $off_expr
+        }, undef, $project || $self->plan->project, @offset)->[0];
+    } catch {
+        # MySQL error code 1049 (ER_BAD_DB_ERROR): Unknown database '%-.192s'
+        return if $DBI::err == 1049;
+        die $_;
+    };
+}
+
 __PACKAGE__->meta->make_immutable;
 no Mouse;
 
