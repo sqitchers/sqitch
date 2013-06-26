@@ -204,7 +204,7 @@ END {
     });
 
     return unless $dbh->{Active};
-    $dbh->do("DROP DATABASE $_") for qw(
+    $dbh->do("DROP DATABASE IF EXISTS $_") for qw(
         __sqitchtest__
         __metasqitch
         __sqitchmeta

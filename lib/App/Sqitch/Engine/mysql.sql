@@ -1,0 +1,154 @@
+BEGIN;
+
+SET SESSION sql_mode = ansi;
+
+CREATE TABLE projects (
+    project         VARCHAR(255) PRIMARY KEY
+                    COMMENT 'Unique Name of a project.',
+    uri             VARCHAR(255) NULL UNIQUE
+                    COMMENT 'Optional project URI',
+    created_at      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    COMMENT 'Date the project was added to the database.',
+    creator_name    VARCHAR(255) NOT NULL
+                    COMMENT 'Name of the user who added the project.',
+    creator_email   VARCHAR(255) NOT NULL
+                    COMMENT 'Email address of the user who added the project.'
+) ENGINE  InnoDB,
+  CHARACTER SET 'utf8',
+  COMMENT 'Sqitch projects deployed to this database.'
+;
+
+CREATE TABLE changes (
+    change_id       VARCHAR(40) PRIMARY KEY
+                    COMMENT 'Change primary key.',
+    "change"        VARCHAR(255) NOT NULL
+                    COMMENT 'Name of a deployed change.',
+    project         VARCHAR(255) NOT NULL
+                    COMMENT 'Name of the Sqitch project to which the change belongs.'
+                    REFERENCES projects(project) ON UPDATE CASCADE,
+    note            TEXT         NOT NULL
+                    COMMENT 'Description of the change.',
+    committed_at    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    COMMENT 'Date the change was deployed.',
+    committer_name  VARCHAR(255) NOT NULL
+                    COMMENT 'Name of the user who deployed the change.',
+    committer_email VARCHAR(255) NOT NULL
+                    COMMENT 'Email address of the user who deployed the change.',
+    planned_at      TIMESTAMP    NOT NULL
+                    COMMENT 'Date the change was added to the plan.',
+    planner_name    VARCHAR(255) NOT NULL
+                    COMMENT 'Name of the user who planed the change.',
+    planner_email   VARCHAR(255) NOT NULL
+                    COMMENT 'Email address of the user who planned the change.'
+) ENGINE  InnoDB,
+  CHARACTER SET 'utf8',
+  COMMENT 'Tracks the changes currently deployed to the database.'
+;
+
+CREATE TABLE tags (
+    tag_id          VARCHAR(40) PRIMARY KEY
+                    COMMENT 'Tag primary key.',
+    tag             VARCHAR(255) NOT NULL
+                    COMMENT 'Project-unique tag name.',
+    project         VARCHAR(255) NOT NULL
+                    COMMENT 'Name of the Sqitch project to which the tag belongs.'
+                    REFERENCES projects(project) ON UPDATE CASCADE,
+    change_id       VARCHAR(40) NOT NULL
+                    COMMENT 'ID of last change deployed before the tag was applied.'
+                    REFERENCES changes(change_id) ON UPDATE CASCADE,
+    note            VARCHAR(255) NOT NULL
+                    COMMENT 'Description of the tag.',
+    committed_at    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    COMMENT 'Date the tag was applied to the database.',
+    committer_name  VARCHAR(255) NOT NULL
+                    COMMENT 'Name of the user who applied the tag.',
+    committer_email VARCHAR(255) NOT NULL
+                    COMMENT 'Email address of the user who applied the tag.',
+    planned_at      TIMESTAMP    NOT NULL
+                    COMMENT 'Date the tag was added to the plan.',
+    planner_name    VARCHAR(255) NOT NULL
+                    COMMENT 'Name of the user who planed the tag.',
+    planner_email   VARCHAR(255) NOT NULL
+                    COMMENT 'Email address of the user who planned the tag.',
+    UNIQUE(project, tag)
+) ENGINE  InnoDB,
+  CHARACTER SET 'utf8',
+  COMMENT 'Tracks the tags currently applied to the database.'
+;
+
+CREATE TABLE dependencies (
+    change_id       VARCHAR(40)  NOT NULL
+                    COMMENT 'ID of the depending change.'
+                    REFERENCES changes(change_id) ON UPDATE CASCADE ON DELETE CASCADE,
+    type            VARCHAR(8)   NOT NULL
+                    COMMENT 'Type of dependency.',
+    dependency      VARCHAR(255) NOT NULL
+                    COMMENT 'Dependency name.',
+    dependency_id   VARCHAR(40)      NULL
+                    COMMENT 'Change ID the dependency resolves to.'
+                    REFERENCES changes(change_id) ON UPDATE CASCADE,
+    PRIMARY KEY (change_id, dependency)
+) ENGINE  InnoDB,
+  CHARACTER SET 'utf8',
+  COMMENT 'Tracks the currently satisfied dependencies.'
+;
+
+CREATE TABLE events (
+    event           ENUM ('deploy', 'fail', 'revert') NOT NULL
+                    COMMENT 'Type of event.',
+    change_id       VARCHAR(40)  NOT NULL
+                    COMMENT 'Change ID.',
+    "change"        VARCHAR(255) NOT NULL
+                    COMMENT 'Change name.',
+    project         VARCHAR(255) NOT NULL
+                    COMMENT 'Name of the Sqitch project to which the change belongs.'
+                    REFERENCES projects(project) ON UPDATE CASCADE,
+    note            TEXT         NOT NULL
+                    COMMENT 'Description of the change.',
+    requires        TEXT         NOT NULL
+                    COMMENT 'List of the names of required changes.',
+    conflicts       TEXT         NOT NULL
+                    COMMENT 'List of the names of conflicting changes.',
+    tags            TEXT         NOT NULL
+                    COMMENT 'List of tags associated with the change.',
+    committed_at    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    COMMENT 'Date the event was committed.',
+    committer_name  VARCHAR(255) NOT NULL
+                    COMMENT 'Name of the user who committed the event.',
+    committer_email VARCHAR(255) NOT NULL
+                    COMMENT 'Email address of the user who committed the event.',
+    planned_at      TIMESTAMP    NOT NULL
+                    COMMENT 'Date the event was added to the plan.',
+    planner_name    VARCHAR(255) NOT NULL
+                    COMMENT 'Name of the user who planed the change.',
+    planner_email   VARCHAR(255) NOT NULL
+                    COMMENT 'Email address of the user who plan planned the change.',
+    PRIMARY KEY (change_id, committed_at)
+) ENGINE  InnoDB,
+  CHARACTER SET 'utf8',
+  COMMENT 'Contains full history of all deployment events.'
+;
+
+-- MySQL does not support checks, so work around that lack by adding triggers
+-- to the dependencies table to force correctness. Could lead to unexpected
+-- storage (you think you're inserting a "conflict" but it ends up a "require"
+-- instaed), but the checks in the other engines should at least prevent our
+-- own code from having that problem.
+
+DELIMITER |
+
+CREATE TRIGGER ck_insert_dependency BEFORE INSERT ON dependencies
+FOR EACH ROW BEGIN
+    SET NEW.type = IF( NEW.dependency_id IS NULL, 'conflict', 'require' );
+END;
+|
+
+CREATE TRIGGER ck_update_dependency BEFORE UPDATE ON dependencies
+FOR EACH ROW BEGIN
+    SET NEW.type = IF( NEW.dependency_id IS NULL, 'conflict', 'require' );
+END;
+|
+
+DELIMITER ;
+
+COMMIT;
