@@ -120,20 +120,20 @@ sub current_state {
 
 sub current_changes {
     my ( $self, $project ) = @_;
-    my $cdtcol = sprintf $self->_ts2char_format, 'committed_at';
-    my $pdtcol = sprintf $self->_ts2char_format, 'planned_at';
+    my $cdtcol = sprintf $self->_ts2char_format, 'c.committed_at';
+    my $pdtcol = sprintf $self->_ts2char_format, 'c.planned_at';
     my $sth    = $self->dbh->prepare(qq{
-        SELECT change_id
-             , change
-             , committer_name
-             , committer_email
+        SELECT c.change_id
+             , c.change
+             , c.committer_name
+             , c.committer_email
              , $cdtcol AS committed_at
-             , planner_name
-             , planner_email
+             , c.planner_name
+             , c.planner_email
              , $pdtcol AS planned_at
-          FROM changes
+          FROM changes c
          WHERE project = ?
-         ORDER BY changes.committed_at DESC
+         ORDER BY c.committed_at DESC
     });
     $sth->execute($project // $self->plan->project);
     return sub {
@@ -185,10 +185,10 @@ sub search_events {
     my (@wheres, @params);
     my $op = $self->_regex_op;
     for my $spec (
-        [ committer => 'committer_name' ],
-        [ planner   => 'planner_name'   ],
-        [ change    => 'change'         ],
-        [ project   => 'project'        ],
+        [ committer => 'e.committer_name' ],
+        [ planner   => 'e.planner_name'   ],
+        [ change    => 'e.change'         ],
+        [ project   => 'e.project'        ],
     ) {
         my $regex = delete $p{ $spec->[0] } // next;
         push @wheres => "$spec->[1] $op ?";
@@ -198,7 +198,7 @@ sub search_events {
     # Match events?
     if (my $e = delete $p{event} ) {
         my ($in, @vals) = $self->_in_expr( $e );
-        push @wheres => "event $in";
+        push @wheres => "e.event $in";
         push @params => @vals;
     }
 
@@ -230,25 +230,25 @@ sub search_events {
         . join ', ', sort keys %p if %p;
 
     # Prepare, execute, and return.
-    my $cdtcol = sprintf $self->_ts2char_format, 'committed_at';
-    my $pdtcol = sprintf $self->_ts2char_format, 'planned_at';
+    my $cdtcol = sprintf $self->_ts2char_format, 'e.committed_at';
+    my $pdtcol = sprintf $self->_ts2char_format, 'e.planned_at';
     my $sth = $self->dbh->prepare(qq{
-        SELECT event
-             , project
-             , change_id
-             , change
-             , note
-             , requires
-             , conflicts
-             , tags
-             , committer_name
-             , committer_email
+        SELECT e.event
+             , e.project
+             , e.change_id
+             , e.change
+             , e.note
+             , e.requires
+             , e.conflicts
+             , e.tags
+             , e.committer_name
+             , e.committer_email
              , $cdtcol AS committed_at
-             , planner_name
-             , planner_email
+             , e.planner_name
+             , e.planner_email
              , $pdtcol AS planned_at
-          FROM events$where
-         ORDER BY events.committed_at $dir$limits
+          FROM events e$where
+         ORDER BY e.committed_at $dir$limits
     });
     $sth->execute(@params);
     return sub {
@@ -382,7 +382,7 @@ sub log_deploy_change {
     $dbh->do(qq{
         INSERT INTO changes (
               change_id
-            , change
+            , "change"
             , project
             , note
             , committer_name
@@ -472,7 +472,7 @@ sub _log_event {
         INSERT INTO events (
               event
             , change_id
-            , change
+            , "change"
             , project
             , note
             , tags
@@ -526,7 +526,7 @@ sub changes_requiring_change {
 sub name_for_change_id {
     my ( $self, $change_id ) = @_;
     return $self->dbh->selectcol_arrayref(q{
-        SELECT change || COALESCE((
+        SELECT c.change || COALESCE((
             SELECT tag
               FROM changes c2
               JOIN tags ON c2.change_id = tags.change_id
@@ -577,7 +577,7 @@ sub log_new_tags {
             ) i
               LEFT JOIN tags ON i.tid = tags.tag_id
              WHERE tags.tag_id IS NULL
-         },
+        },
         undef,
         map { (
             $_->id,

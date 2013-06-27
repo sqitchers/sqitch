@@ -207,7 +207,7 @@ END {
     $dbh->do("DROP DATABASE IF EXISTS $_") for qw(
         __sqitchtest__
         __metasqitch
-        __sqitchmeta
+        __sqitchtest
     );
 }
 
@@ -232,7 +232,7 @@ DBIEngineTest->run(
         plan_file   => Path::Class::file(qw(t engine sqitch.plan)),
     ],
     engine_params     => [ sqitch_db => '__metasqitch' ],
-    alt_engine_params => [ sqitch_db => '__sqitchmeta' ],
+    alt_engine_params => [ sqitch_db => '__sqitchtest' ],
     skip_unless       => sub {
         my $self = shift;
         die $err if $err;
@@ -240,7 +240,7 @@ DBIEngineTest->run(
         $self->sqitch->probe( $self->client, '--version' );
         $self->_capture('--execute' => 'SELECT version()');
     },
-    engine_err_regex  => qr/^ERROR /,
+    engine_err_regex  => qr/^You have an error /,
     init_error        => __x(
         'Sqitch database {database} already initialized',
         database => '__sqitchtest',

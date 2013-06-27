@@ -213,6 +213,7 @@ sub run {
         ok !$engine->is_deployed_change($change), 'The change should not be deployed';
         is_deeply [$engine->are_deployed_changes($change)], [],
             'The change should not be deployed';
+
         ok $engine->log_deploy_change($change), 'Deploy "users" change';
         ok $engine->is_deployed_change($change), 'The change should now be deployed';
         is_deeply [$engine->are_deployed_changes($change)], [$change->id],
@@ -1571,16 +1572,15 @@ sub dt_for_event {
         ) WHERE rnum = ?
     }, undef, $offset + 1)->[0]) if $dbh->{Driver}->{Name} eq 'Oracle';
     return $dtfunc->($engine->dbh->selectcol_arrayref(
-        "SELECT $col FROM events ORDER BY committed_at ASC LIMIT 1 OFFSET ?",
-        undef, $offset
+        "SELECT $col FROM events ORDER BY committed_at ASC LIMIT 1 OFFSET $offset",
     )->[0]);
 }
 
 sub all_changes {
     shift->dbh->selectall_arrayref(q{
-        SELECT change_id, change, project, note, committer_name, committer_email,
+        SELECT change_id, c.change, project, note, committer_name, committer_email,
                planner_name, planner_email
-          FROM changes
+          FROM changes c
          ORDER BY committed_at
     });
 }
@@ -1596,9 +1596,9 @@ sub all_tags {
 
 sub all_events {
     shift->dbh->selectall_arrayref(q{
-        SELECT event, change_id, change, project, note, requires, conflicts, tags,
+        SELECT event, change_id, e.change, project, note, requires, conflicts, tags,
                committer_name, committer_email, planner_name, planner_email
-          FROM events
+          FROM events e
          ORDER BY committed_at
     });
 }

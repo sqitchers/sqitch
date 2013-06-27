@@ -137,13 +137,14 @@ has dbh => (
                         q{character_set_server   = 'utf8'},
                         q{default_storage_engine = 'InnoDB'},
                         q{time_zone              = '+00:00'},
-                        q{sql_mode = '} . join(', ', qw(
+                        q{sql_mode = '} . join(',', qw(
                             ansi
                             strict_trans_tables
                             no_auto_value_on_zero
                             no_zero_date
                             no_zero_in_date
                             only_full_group_by
+                            error_for_division_by_zero
                         )) . q{'},
                     );
                     return;
@@ -198,11 +199,15 @@ sub config_vars {
     );
 }
 
-sub _char2ts { $_[1]->as_string(format => 'iso') }
+sub _char2ts {
+    $_[1]->set_time_zone('UTC')->iso8601;
+}
 
 sub _ts2char_format {
     return q{date_format(%s, 'year:%%Y:month:%%m:day:%%d:hour:%%H:minute:%%i:second:%%S:time_zone:UTC')};
 }
+
+sub _ts_default { 'current_timestamp' }
 
 sub initialized {
     my $self = shift;
@@ -211,7 +216,7 @@ sub initialized {
     my $err = 0;
     my $dbh = try { $self->dbh } catch { $err = $DBI::err };
     # MySQL error code 1049 (ER_BAD_DB_ERROR): Unknown database '%-.192s'
-    return 0 if $err == 1049;
+    return 0 if $err && $err == 1049;
 
     return $self->dbh->selectcol_arrayref(q{
         SELECT COUNT(*)
@@ -305,16 +310,15 @@ sub run_handle {
 sub _cid {
     my ( $self, $ord, $offset, $project ) = @_;
 
-    my ($off_expr, @offset) = $offset ? ('OFFSET ?', $offset) : ();
+    my $offexpr = $offset ? " OFFSET $offset" : '';
     return try {
         return $self->dbh->selectcol_arrayref(qq{
             SELECT change_id
               FROM changes
              WHERE project = ?
              ORDER BY committed_at $ord
-             LIMIT 1
-             $off_expr
-        }, undef, $project || $self->plan->project, @offset)->[0];
+             LIMIT 1$offexpr
+        }, undef, $project || $self->plan->project)->[0];
     } catch {
         # MySQL error code 1049 (ER_BAD_DB_ERROR): Unknown database '%-.192s'
         return if $DBI::err == 1049;
