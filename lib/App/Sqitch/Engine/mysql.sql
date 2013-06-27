@@ -34,7 +34,7 @@ CREATE TABLE changes (
                     COMMENT 'Name of the user who deployed the change.',
     committer_email VARCHAR(255) NOT NULL
                     COMMENT 'Email address of the user who deployed the change.',
-    planned_at      TIMESTAMP    NOT NULL
+    planned_at      DATETIME(6)  NOT NULL
                     COMMENT 'Date the change was added to the plan.',
     planner_name    VARCHAR(255) NOT NULL
                     COMMENT 'Name of the user who planed the change.',
@@ -53,7 +53,7 @@ CREATE TABLE tags (
     project         VARCHAR(255) NOT NULL
                     COMMENT 'Name of the Sqitch project to which the tag belongs.'
                     REFERENCES projects(project) ON UPDATE CASCADE,
-    change_id       VARCHAR(40) NOT NULL
+    change_id       VARCHAR(40)  NOT NULL
                     COMMENT 'ID of last change deployed before the tag was applied.'
                     REFERENCES changes(change_id) ON UPDATE CASCADE,
     note            VARCHAR(255) NOT NULL
@@ -64,7 +64,7 @@ CREATE TABLE tags (
                     COMMENT 'Name of the user who applied the tag.',
     committer_email VARCHAR(255) NOT NULL
                     COMMENT 'Email address of the user who applied the tag.',
-    planned_at      TIMESTAMP    NOT NULL
+    planned_at      DATETIME(6)  NOT NULL
                     COMMENT 'Date the tag was added to the plan.',
     planner_name    VARCHAR(255) NOT NULL
                     COMMENT 'Name of the user who planed the tag.',
@@ -117,7 +117,7 @@ CREATE TABLE events (
                     COMMENT 'Name of the user who committed the event.',
     committer_email VARCHAR(255) NOT NULL
                     COMMENT 'Email address of the user who committed the event.',
-    planned_at      TIMESTAMP    NOT NULL
+    planned_at      DATETIME(6)  NOT NULL
                     COMMENT 'Date the event was added to the plan.',
     planner_name    VARCHAR(255) NOT NULL
                     COMMENT 'Name of the user who planed the change.',
