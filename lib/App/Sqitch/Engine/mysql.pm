@@ -116,7 +116,7 @@ has dbh => (
             'No database specified; use --db-name set "core.mysql.db_name" via sqitch config'
         ));
 
-        DBI->connect($dsn, $self->username, $self->password, {
+        my $dbh = DBI->connect($dsn, $self->username, $self->password, {
             PrintError           => 0,
             RaiseError           => 0,
             AutoCommit           => 1,
@@ -151,6 +151,15 @@ has dbh => (
                 },
             },
         });
+
+        # Make sure we support this version.
+        hurl mysql => __x(
+            'Sqitch requires MySQL {want_version} or higher; this is {have_version}',
+            want_version => '5.6.4',
+            have_version => $dbh->selectcol_arrayref('SELECT version()')->[0],
+        ) unless $dbh->{mysql_serverversion} >= 50604;
+
+        return $dbh;
     }
 );
 
@@ -207,7 +216,7 @@ sub _ts2char_format {
     return q{date_format(%s, 'year:%%Y:month:%%m:day:%%d:hour:%%H:minute:%%i:second:%%S:time_zone:UTC')};
 }
 
-sub _ts_default { 'current_timestamp' }
+sub _ts_default { 'utc_timestamp(6)' }
 
 sub initialized {
     my $self = shift;

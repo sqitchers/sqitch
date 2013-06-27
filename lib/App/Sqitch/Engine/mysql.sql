@@ -7,7 +7,7 @@ CREATE TABLE projects (
                     COMMENT 'Unique Name of a project.',
     uri             VARCHAR(255) NULL UNIQUE
                     COMMENT 'Optional project URI',
-    created_at      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at      DATETIME(6)  NOT NULL
                     COMMENT 'Date the project was added to the database.',
     creator_name    VARCHAR(255) NOT NULL
                     COMMENT 'Name of the user who added the project.',
@@ -28,7 +28,7 @@ CREATE TABLE changes (
                     REFERENCES projects(project) ON UPDATE CASCADE,
     note            TEXT         NOT NULL
                     COMMENT 'Description of the change.',
-    committed_at    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
+    committed_at    DATETIME(6)  NOT NULL
                     COMMENT 'Date the change was deployed.',
     committer_name  VARCHAR(255) NOT NULL
                     COMMENT 'Name of the user who deployed the change.',
@@ -58,7 +58,7 @@ CREATE TABLE tags (
                     REFERENCES changes(change_id) ON UPDATE CASCADE,
     note            VARCHAR(255) NOT NULL
                     COMMENT 'Description of the tag.',
-    committed_at    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
+    committed_at    DATETIME(6)  NOT NULL
                     COMMENT 'Date the tag was applied to the database.',
     committer_name  VARCHAR(255) NOT NULL
                     COMMENT 'Name of the user who applied the tag.',
@@ -111,7 +111,7 @@ CREATE TABLE events (
                     COMMENT 'List of the names of conflicting changes.',
     tags            TEXT         NOT NULL
                     COMMENT 'List of tags associated with the change.',
-    committed_at    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
+    committed_at    DATETIME(6)  NOT NULL
                     COMMENT 'Date the event was committed.',
     committer_name  VARCHAR(255) NOT NULL
                     COMMENT 'Name of the user who committed the event.',
