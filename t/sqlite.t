@@ -200,7 +200,7 @@ DBIEngineTest->run(
 
         # Should have the database handle and client.
         $self->dbh && $self->sqitch->probe( $self->client, '-version' );
-+
+
         # Make sure we have a supported version.
         my $version = $self->dbh->{sqlite_version};
         my @v = split /[.]/ => $version;

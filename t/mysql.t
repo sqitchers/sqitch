@@ -217,6 +217,11 @@ my $err = try {
         RaiseError => 1,
         AutoCommit => 1,
     });
+
+    # Make sure we have a version we can use.
+    die "MySQL >= 50604 required; this is $dbh->{mysql_serverversion}\n"
+        unless $dbh->{mysql_serverversion} >= 50604;
+
     $dbh->do('CREATE DATABASE __sqitchtest__');
     undef;
 } catch {
