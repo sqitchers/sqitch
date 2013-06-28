@@ -78,7 +78,7 @@ has dbh => (
         };
 
         my $dsn = 'dbi:SQLite:dbname=' . ($self->sqitch_db || hurl sqlite => __(
-            'No database specified; use --db-name set "core.sqlite.db_name" via sqitch config'
+            'No database specified; use --db-name or set "core.sqlite.db_name" via sqitch config'
         ));
 
         my $dbh = DBI->connect($dsn, '', '', {

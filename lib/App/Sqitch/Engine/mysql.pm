@@ -113,7 +113,7 @@ has dbh => (
         };
 
         my $dsn = 'dbi:mysql:database=' . ($self->sqitch_db || hurl mysql => __(
-            'No database specified; use --db-name set "core.mysql.db_name" via sqitch config'
+            'No Sqitch database specified; use --sqitch-db or set "core.mysql.sqitch_db" via sqitch config'
         ));
 
         my $dbh = DBI->connect($dsn, $self->username, $self->password, {
@@ -266,9 +266,11 @@ sub begin_work {
     my $self = shift;
     my $dbh = $self->dbh;
 
-    # Start transaction and lock changes to allow only one change at a time.
+    # Start transaction and lock all tables to disallow concurrent changes.
     $dbh->begin_work;
-    $dbh->do('LOCK TABLES changes WRITE');
+    $dbh->do('LOCK TABLES ' . join ', ', map {
+        "$_ WRITE"
+    } qw(changes dependencies events projects tags));
     return $self;
 }
 
