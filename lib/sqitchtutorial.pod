@@ -18,8 +18,11 @@ We'll start by creating new project from scratch, a fictional antisocial
 networking site called Flipr. All examples use L<Git|http://git-scm.com/> as
 the VCS and L<PostgreSQL|http://www.postgresql.org/> as the storage engine,
 but for the most part you can substitute other VCSes and database engines in
-the examples as appropriate. If you'd like to manage an SQLite database, see
-L<sqitchtutorial-sqlite>.
+the examples as appropriate.
+
+If you'd like to manage an SQLite database, see L<sqitchtutorial-sqlite>.
+
+If you'd like to manage an Oracle database, see L<sqitchtutorial-oracle>.
 
 =head1 Starting a New Project
 
@@ -155,8 +158,8 @@ Now we can try deploying this change:
 
 First Sqitch created the metadata tables used to track database changes. The
 structure and name of the metadata tables varies between databases (PostgreSQL
-uses a schema to namespace its metadata, while SQLite uses a separate
-database). Next, Sqitch deploys changes. We only have one so far; the C<+>
+uses a schema to namespace its metadata, while SQLite and MySQL use separate
+databases). Next, Sqitch deploys changes. We only have one so far; the C<+>
 reinforces the idea that the change is being C<added> to the database.
 
 With this change deployed, if you connect to the database, you'll be able to

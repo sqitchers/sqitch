@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 166;
+use Test::More tests => 168;
 #use Test::More 'no_plan';
 use Test::MockModule;
 use Path::Class;
@@ -95,7 +95,7 @@ is $@->message, __x('Unknown engine: {engine}', engine => 'nonexistent'),
     'Unknown No engine error message should be correct';
 
 # Valid engines.
-for my $eng (qw(pg sqlite)) {
+for my $eng (qw(pg sqlite mysql oracle)) {
     ok $CLASS->new(_engine => $eng), qq{Engine "$eng" should be valid};
 }
 

@@ -217,7 +217,7 @@ sub search_events {
         }
         if (my $off = delete $p{offset}) {
             if (!$lim && ($lim = $self->_limit_default)) {
-                # SQLite requires LIMIT when OFFSET is set.
+                # Some drivers require LIMIT when OFFSET is set.
                 $limits = "\n         LIMIT ?";
                 push @params => $lim;
             }
@@ -942,6 +942,10 @@ The SQLite engine.
 =item L<App::Sqitch::Engine::oracle>
 
 The Oracle engine.
+
+=item L<App::Sqitch::Engine::mysql>
+
+The MySQL engine.
 
 =back
 
