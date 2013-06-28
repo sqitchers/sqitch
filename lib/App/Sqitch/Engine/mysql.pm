@@ -78,7 +78,7 @@ has sqitch_db => (
     },
 );
 
-sub met_destination { shift->sqitch_db }
+sub meta_destination { shift->sqitch_db }
 
 has host => (
     is       => 'ro',

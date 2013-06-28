@@ -39,9 +39,11 @@ isa_ok my $mysql = $CLASS->new(sqitch => $sqitch), $CLASS;
 my $client = 'mysql' . ($^O eq 'MSWin32' ? '.exe' : '');
 is $mysql->client, $client, 'client should default to mysql';
 is $mysql->sqitch_db, 'sqitch', 'sqitch_db default should be "sqitch"';
-for my $attr (qw(username password db_name host port destination meta_destination)) {
+for my $attr (qw(username password db_name host port destination)) {
     is $mysql->$attr, undef, "$attr default should be undef";
 }
+is $mysql->meta_destination, 'sqitch',
+    'meta_destination shoul default to "sqitch"';
 
 my @std_opts = (
     '--skip-pager',
@@ -83,7 +85,7 @@ is $mysql->username, 'freddy', 'username should be as configured';
 is $mysql->password, 's3cr3t', 'password should be as configured';
 is $mysql->db_name, 'widgets', 'db_name should be as configured';
 is $mysql->destination, 'widgets', 'destination should default to db_name';
-is $mysql->meta_destination, 'widgets', 'meta_destination should default to db_name';
+is $mysql->meta_destination, 'meta', 'meta_destination should be as configured';
 is $mysql->host, 'db.example.com', 'host should be as configured';
 is $mysql->port, 1234, 'port should be as configured';
 is $mysql->sqitch_db, 'meta', 'sqitch_db should be as configured';
@@ -106,14 +108,15 @@ $sqitch = App::Sqitch->new(
     db_port     => 98760,
 );
 
-ok $mysql = $CLASS->new(sqitch => $sqitch), 'Create a mysql with sqitch with options';
+ok $mysql = $CLASS->new(sqitch => $sqitch),
+    'Create a mysql with sqitch with options';
 
 is $mysql->client, '/some/other/mysql', 'client should be as optioned';
 is $mysql->username, 'anna', 'username should be as optioned';
 is $mysql->password, 's3cr3t', 'password should still be as configured';
 is $mysql->db_name, 'widgets_dev', 'db_name should be as optioned';
 is $mysql->destination, 'widgets_dev', 'destination should still default to db_name';
-is $mysql->meta_destination, 'widgets_dev', 'meta_destination should still default to db_name';
+is $mysql->meta_destination, 'meta', 'meta_destination should still be configured';
 is $mysql->host, 'foo.com', 'host should be as optioned';
 is $mysql->port, 98760, 'port should be as optioned';
 is $mysql->sqitch_db, 'meta', 'sqitch_db should still be as configured';
