@@ -185,7 +185,7 @@ changes. This database is separate from the database to which the C<users>
 change was deployed; by default, it is named C<sqitch>, but if you'd like it to
 have a different name, set the C<core.mysql.sqitch_db> configuration variable:
 
-  > sqitch config core.sqlite.sqitch_db $name
+  > sqitch config core.mysql.sqitch_db $name
 
 Ideally, only Sqitch data will be stored in this database, so it probably makes
 the most sense to create a superuser named C<sqitch> or something similar and
