@@ -30,7 +30,7 @@ source code repository. So let's do that with Git:
   > touch README.md
   > git add .
   > git commit -am 'Initialize project, add README.'
-  [master (root-commit) 12ea2b4] Initialize project, add README.
+  [master (root-commit) 9c991b9] Initialize project, add README.
    1 file changed, 38 insertions(+)
    create mode 100644 README.md
 
@@ -61,13 +61,13 @@ Let's have a look at F<sqitch.conf>:
   	# verify_dir = verify
   	# extension = sql
   # [core "mysql"]
-  	# client = /usr/local/mysql/bin/mysql
+  	# client = mysql
   	# username = 
   	# password = 
   	# db_name = 
   	# host = 
   	# port = 
-  	# sqitch_schema = 
+  	# sqitch_db = sqitch
 
 Good, it picked up on the fact that we're creating changes for the MySQL
 engine, thanks to the C<--engine mysql> option, and saved it to the file.
@@ -103,7 +103,7 @@ that it will always properly identify us when planning and committing changes.
 Back to the repository. Have a look at the plan file, F<sqitch.plan>:
 
   > cat sqitch.plan
-  %syntax-version=1.0.0-b1
+  %syntax-version=1.0.0-b2
   %project=flipr
   %uri=https://github.com/theory/sqitch-mysql-intro/
   
@@ -117,10 +117,245 @@ Let's commit these changes and start creating the database changes.
 
   > git add .
   > git commit -am 'Initialize Sqitch configuration.'
-  [master 3480f19] Initialize Sqitch configuration.
+  [master 0738c94] Initialize Sqitch configuration.
    2 files changed, 23 insertions(+)
    create mode 100644 sqitch.conf
    create mode 100644 sqitch.plan
+
+=head1 Our First Change
+
+Let's create a table. Our app will need users, of course, so we'll create a
+table for them. Run this command:
+
+  > sqitch add users -n 'Creates table to track our users.'
+  Created deploy/users.sql
+  Created revert/users.sql
+  Created verify/users.sql
+  Added "users" to sqitch.plan
+
+The L<C<add>|sqitch-add> command adds a database change to the plan and writes
+deploy, revert, and verify scripts that represent the change. Now we edit
+these files. The C<deploy> script's job is to create the table. By default,
+the F<deploy/users.sql> file looks like this:
+
+  -- Deploy users
+
+  BEGIN;
+
+  -- XXX Add DDLs here.
+
+  COMMIT;
+
+What we want to do is to replace the C<XXX> comment with the C<CREATE TABLE>
+statement, like so:
+
+  -- Deploy users
+
+  BEGIN;
+
+  CREATE TABLE users (
+      nickname  VARCHAR(512) PRIMARY KEY,
+      password  VARCHAR(512) NOT NULL,
+      timestamp TIMESTAMP(6) NOT NULL
+  );
+
+  COMMIT;
+
+The C<revert> script's job is to precisely revert the change to the deploy
+script, so we edit this to F<revert/users.sql> to look like this:
+
+  -- Revert users
+
+  BEGIN;
+
+  DROP TABLE users;
+
+  COMMIT;
+
+Now we can try deploying this change:
+
+  > mysql -u root --execute 'CREATE DATABASE flipr_test'
+  > sqitch --db-name flipr_test --db-user root deploy
+  Adding metadata tables to flipr_test
+  Deploying changes to flipr_test
+    + users .. ok
+
+First Sqitch created the metadata database and tables used to track database
+changes. This database is separate from the database to which the C<users>
+change was deployed; by default, it is named C<sqitch>, but if you'd like it to
+have a different name, set the C<core.mysql.sqitch_db> configuration variable:
+
+  > sqitch config core.sqlite.sqitch_db $name
+
+Ideally, only Sqitch data will be stored in this database, so it probably makes
+the most sense to create a superuser named C<sqitch> or something similar and
+use it to deploy changes.
+
+Next, Sqitch deploys changes to the destination database, which we specified
+on the command-line. We only have one so far; the C<+> reinforces the idea
+that the change is being I<added> to the database.
+
+With this change deployed, if you connect to the database, you'll be able to
+see the table:
+
+  > mysql -u root -D flipr_test --execute 'SHOW TABLES'
+  +----------------------+
+  | Tables_in_flipr_test |
+  +----------------------+
+  | users                |
+  +----------------------+
+
+=head2 Trust, But Verify
+
+But that's too much work. do you really want to do something like that after
+every deploy?
+
+Here's where the C<verify> script comes in. Its job is to test that the deploy
+did was it was supposed to. It should do so without regard to any data that
+might be in the database, and should throw an error if the deploy was not
+successful. The easiest way to do that with a table is to simply C<SELECT>
+from it. Put this query into F<verify/users.sql>:
+
+  SELECT nickname, password, timestamp
+	FROM users
+   WHERE 0;
+
+Now you can run the C<verify> script with the L<C<verify>|sqitch-verify>
+command:
+
+  > sqitch --db-name flipr_test --db-user root verify
+  Verifying flipr_test
+    * users .. ok
+  Verify successful
+
+Looks good! If you want to make sure that the verify script correctly dies if
+the table doesn't exist, temporarily change the table name in the script to
+something that doesn't exist, something like:
+
+  SELECT nickname, password, timestamp
+	FROM users_nonesuch
+   WHERE 0;
+
+Then L<C<verify>|sqitch-verify> again:
+
+  > sqitch --db-name flipr_test --db-user root verify
+  Verifying flipr_test
+    * users .. ERROR 1146 (42S02) at line 5 in file: 'verify/users.sql': Table 'flipr_test.users_nonesuch' doesn't exist
+  # Verify script "verify/users.sql" failed.
+  not ok
+
+  Verify Summary Report
+  ---------------------
+  Changes: 1
+  Errors:  1
+  Verify failed
+
+MySQL is kind enough to tell us what the problem is. Don't forget to change
+the table name back before continuing!
+
+=head2 Status, Revert, Log, Repeat
+
+For purely informational purposes, we can always see how a deployment was
+recorded via the L<C<status>|sqitch-status> command, which reads the tables
+from the metadata database:
+
+  > sqitch --db-name flipr_test --db-user root status
+  # On database flipr_test
+  # Project:  flipr
+  # Change:   d9dd4c7c42104fe66ec80d595fd67d597ab33962
+  # Name:     users
+  # Deployed: 2013-06-28 23:26:00 +0200
+  # By:       Marge N. O’Vera <marge@example.com>
+  # 
+  Nothing to deploy (up-to-date)
+
+Let's make sure that we can revert the change:
+
+  >  sqitch --db-name flipr_test --db-user root revert
+  Revert all changes from flipr_test? [Yes]
+	- users .. ok
+
+The L<C<revert>|sqitch-revert> command first prompts to make sure that we
+really do want to revert. This is to prevent unnecessary accidents. You can
+pass the C<-y> option to disable the prompt. Also, notice the C<-> before the
+change name in the output, which reinforces that the change is being
+I<removed> from the database. And now the schema should be gone:
+
+  > mysql -u root -D flipr_test --execute 'SHOW TABLES'
+
+And the status message should reflect as much:
+
+  > sqitch --db-name flipr_test --db-user root status
+  # On database flipr_test
+  No changes deployed
+
+Of course, since nothing is deployed, the L<C<verify>|sqitch-verify> command
+has nothing to verify:
+
+  > sqitch --db-name flipr_test --db-user root verify
+  Verifying flipr_test
+  No changes deployed
+
+However, we still have a record that the change happened, visible via the
+L<C<log>|sqitch-log> command:
+
+  # XXX Does not work!
+  > sqitch --db-name flipr_test log
+  On database flipr_test
+  Revert 5f102a2fcb29a16d1fb958439aac5bacbeac89ac
+  Name:      users
+  Committer: Marge N. O’Vera <marge@example.com>
+  Date:      2013-04-05 13:18:13 -0700
+
+	  Creates table to track our users.
+
+  Deploy 5f102a2fcb29a16d1fb958439aac5bacbeac89ac
+  Name:      users
+  Committer: Marge N. O’Vera <marge@example.com>
+  Date:      2013-04-05 13:16:29 -0700
+
+	  Creates table to track our users.
+
+Note that the actions we took are shown in reverse chronological order, with
+the revert first and then the deploy.
+
+Cool. Now let's commit it.
+
+  > git add .
+  > git commit -m 'Add users table.'
+  [master 27c5ee5] Add users table.
+   4 files changed, 28 insertions(+)
+   create mode 100644 deploy/users.sql
+   create mode 100644 revert/users.sql
+   create mode 100644 verify/users.sql
+
+And then deploy again. This time, let's use the C<--verify> option, so that
+the C<verify> script is applied when the change is deployed:
+
+  > sqitch --db-name flipr_test --db-user root deploy
+  Deploying changes to flipr_test
+	+ users .. ok
+
+And now the C<users> table should be back:
+
+  > mysql -u root -D flipr_test --execute 'SHOW TABLES'
+  +----------------------+
+  | Tables_in_flipr_test |
+  +----------------------+
+  | users                |
+  +----------------------+
+
+When we look at the status, the deployment will be there:
+
+  > sqitch --db-name flipr_test --db-user root status
+  # On database flipr_test
+  # Project:  flipr
+  # Change:   d9dd4c7c42104fe66ec80d595fd67d597ab33962
+  # Name:     users
+  # Deployed: 2013-06-28 23:54:18 +0200
+  # By:       Marge N. O’Vera <marge@example.com>
+  # 
+  Nothing to deploy (up-to-date)
 
 =head1 More to Come
 

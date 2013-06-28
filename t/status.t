@@ -78,7 +78,7 @@ isa_ok $status = $CLASS->new(
 ), $CLASS, 'new status command';
 is $status->project, 'foo', 'Should have project "foo"';
 
-# Look up the project in the databse.
+# Look up the project in the database.
 ok $sqitch = App::Sqitch->new(
     _engine => 'sqlite',
     top_dir => Path::Class::Dir->new('sql'),

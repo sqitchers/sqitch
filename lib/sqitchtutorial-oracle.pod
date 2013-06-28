@@ -99,7 +99,7 @@ committing changes. Back to the repository. Have a look at the plan file,
 F<sqitch.plan>:
 
   > cat sqitch.plan
-  %syntax-version=1.0.0-b1
+  %syntax-version=1.0.0-b2
   %project=flipr
   %uri=https://github.com/theory/sqitch-oracle-intro/
   

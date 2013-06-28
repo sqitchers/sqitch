@@ -212,7 +212,7 @@ from it. Put this query into F<verify/users.sql>:
 	FROM users
    WHERE 0;
 
-Now you cab run the C<verify> script with the L<C<verify>|sqitch-verify>
+Now you can run the C<verify> script with the L<C<verify>|sqitch-verify>
 command:
 
   > sqitch --db-name flipr_test.db verify
