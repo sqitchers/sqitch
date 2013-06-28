@@ -137,6 +137,7 @@ has dbh => (
                         q{character_set_server   = 'utf8'},
                         q{default_storage_engine = 'InnoDB'},
                         q{time_zone              = '+00:00'},
+                        q{group_concat_max_len   = 32768},
                         q{sql_mode = '} . join(',', qw(
                             ansi
                             strict_trans_tables

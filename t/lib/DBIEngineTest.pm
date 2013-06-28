@@ -835,7 +835,11 @@ sub run {
         is $engine->latest_change_id(2), $change2->id, 'Should get "widgets" offset 2 from latest';
         is $engine->latest_change_id(3), $change->id,  'Should get "users" offset 3 from latest';
 
-        is_deeply $engine->current_state, {
+        my $state = $engine->current_state;
+        # MySQL's group_concat() does not by default sort by row order, alas.
+        $state->{tags} = [ sort @{ $state->{tags} } ]
+            if $class eq 'App::Sqitch::Engine::mysql';
+        is_deeply $state, {
             project         => 'engine',
             change_id       => $barney->id,
             change          => 'barney',
