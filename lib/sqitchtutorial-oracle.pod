@@ -95,7 +95,7 @@ Have a look at F<~/.sqitch/sqitch.conf> and you'll see this:
   	email = marge@example.com
 
 Which means that Sqitch will always properly identify us when planning and
-committing changes.Back to the repository. Have a look at the plan file,
+committing changes. Back to the repository. Have a look at the plan file,
 F<sqitch.plan>:
 
   > cat sqitch.plan

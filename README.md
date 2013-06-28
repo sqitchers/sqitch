@@ -56,6 +56,7 @@ Want to learn more? The best place to start is in the tutorials:
 * [Introduction to Sqitch on PostgreSQL](lib/sqitchtutorial.pod)
 * [Introduction to Sqitch on SQLite](lib/sqitchtutorial-sqlite.pod)
 * [Introduction to Sqitch on Oracle](lib/sqitchtutorial-oracle.pod)
+* [Introduction to Sqitch on MySQL](lib/sqitchtutorial-mysql.pod)
 
 Installation
 ------------
