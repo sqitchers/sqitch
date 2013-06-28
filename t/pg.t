@@ -322,6 +322,12 @@ DBIEngineTest->run(
         'Sqitch schema "{schema}" already exists',
         schema => '__sqitchtest',
     ),
+    test_dbh => sub {
+        my $dbh = shift;
+        # Make sure the sqitch schema is the first in the search path.
+        is $dbh->selectcol_arrayref('SELECT current_schema')->[0],
+            '__sqitchtest', 'The Sqitch schema should be the current schema';
+    },
 );
 
 done_testing;
