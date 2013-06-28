@@ -212,6 +212,12 @@ DBIEngineTest->run(
         'Sqitch database {database} already initialized',
         database => $alt_db,
     ),
+    test_dbh => sub {
+        my $dbh = shift;
+        # Make sure foreign key constraints are enforced.
+        ok $dbh->selectcol_arrayref('PRAGMA foreign_keys')->[0],
+            'The foreign_keys pragma should be enabled';
+    },
     add_second_format => q{strftime('%%Y-%%m-%%d %%H:%%M:%%f', strftime('%%J', %s) + (1/86400.0))},
 );
 
