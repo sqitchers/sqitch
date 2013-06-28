@@ -99,6 +99,12 @@ sub run {
         is_deeply all( $engine->search_events ), [], 'Should have no events';
 
         ##########################################################################
+        # Test the database connection, if appropriate.
+        if (my $code = $p{test_dbh}) {
+            $code->($engine->dbh);
+        }
+
+        ##########################################################################
         # Test register_project().
         can_ok $engine, 'register_project';
         can_ok $engine, 'registered_projects';

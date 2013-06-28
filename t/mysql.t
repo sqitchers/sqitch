@@ -251,6 +251,34 @@ DBIEngineTest->run(
         database => '__sqitchtest',
     ),
     add_second_format => q{date_add(%s, interval 1 second)},
+    test_dbh => sub {
+        my $dbh = shift;
+        # Check the session configuration.
+        for my $spec (
+            [character_set_client   => 'utf8'],
+            [character_set_server   => 'utf8'],
+            [default_storage_engine => 'InnoDB'],
+            [time_zone              => '+00:00'],
+            [group_concat_max_len   => 32768],
+        ) {
+            is $dbh->selectcol_arrayref('SELECT @@SESSION.' . $spec->[0])->[0],
+                $spec->[1], "Setting $spec->[0] should be set to $spec->[1]";
+        }
+
+        # Special-case sql_mode.
+        my $sql_mode = $dbh->selectcol_arrayref('SELECT @@SESSION.sql_mode')->[0];
+        for my $mode (qw(
+                ansi
+                strict_trans_tables
+                no_auto_value_on_zero
+                no_zero_date
+                no_zero_in_date
+                only_full_group_by
+                error_for_division_by_zero
+        )) {
+            like $sql_mode, qr/\b\Q$mode\E\b/i, "sql_mode should include $mode";
+        }
+    },
 );
 
 done_testing;
