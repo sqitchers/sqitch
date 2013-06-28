@@ -19,7 +19,7 @@ CREATE TABLE projects (
 ;
 
 CREATE TABLE changes (
-    change_id       VARCHAR(40) PRIMARY KEY
+    change_id       VARCHAR(40)  PRIMARY KEY
                     COMMENT 'Change primary key.',
     "change"        VARCHAR(255) NOT NULL
                     COMMENT 'Name of a deployed change.',
@@ -46,7 +46,7 @@ CREATE TABLE changes (
 ;
 
 CREATE TABLE tags (
-    tag_id          VARCHAR(40) PRIMARY KEY
+    tag_id          VARCHAR(40)  PRIMARY KEY
                     COMMENT 'Tag primary key.',
     tag             VARCHAR(255) NOT NULL
                     COMMENT 'Project-unique tag name.',

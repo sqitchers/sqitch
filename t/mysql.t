@@ -250,6 +250,7 @@ DBIEngineTest->run(
         'Sqitch database {database} already initialized',
         database => '__sqitchtest',
     ),
+    add_second_format => q{date_add(%s, interval 1 second)},
 );
 
 done_testing;

@@ -718,11 +718,17 @@ sub change_offset_from_id {
     my $tscol  = sprintf $self->_ts2char_format, 'c.planned_at';
     my $tagcol = sprintf $self->_listagg_format, 't.tag';
 
-    # SQLite requires LIMIT when there is an OFFSET.
-    my $limit  = '';
-    if (my $lim = $self->_limit_default) {
-        $limit = "LIMIT $lim ";
+    $offset = abs($offset) - 1;
+    my ($offset_expr, $limit_expr) = ('', '');
+    if ($offset) {
+        $offset_expr = "OFFSET $offset";
+
+        # Some engines require LIMIT when there is an OFFSET.
+        if (my $lim = $self->_limit_default) {
+            $limit_expr = "LIMIT $lim ";
+        }
     }
+
     my $change = $self->dbh->selectrow_hashref(qq{
         SELECT c.change_id AS id, c.change AS name, c.project, c.note,
                $tscol AS timestamp, c.planner_name, c.planner_email,
@@ -736,8 +742,8 @@ sub change_offset_from_id {
          GROUP BY c.change_id, c.change, c.project, c.note, c.planned_at,
                c.planner_name, c.planner_email, c.committed_at
          ORDER BY c.committed_at $dir
-         ${limit}OFFSET ?
-    }, undef, $self->plan->project, $change_id, abs($offset) - 1) || return undef;
+         $limit_expr $offset_expr
+    }, undef, $self->plan->project, $change_id) || return undef;
     $change->{timestamp} = _dt $change->{timestamp};
     unless (ref $change->{tags}) {
         $change->{tags} = $change->{tags} ? [ split / / => $change->{tags} ] : [];
@@ -751,7 +757,7 @@ sub _cid_head {
         SELECT change_id
           FROM changes
          WHERE project = ?
-           AND change  = ?
+           AND changes.change  = ?
          ORDER BY committed_at DESC
          LIMIT 1
     }, undef, $project, $change)->[0];
@@ -798,7 +804,7 @@ sub change_id_for {
             SELECT change_id
               FROM changes
              WHERE project = ?
-               AND change  = ?
+               AND changes.change  = ?
         }, undef, $project, $change);
         return $ids->[0] if @{ $ids } < 2;
         hurl engine => __x(

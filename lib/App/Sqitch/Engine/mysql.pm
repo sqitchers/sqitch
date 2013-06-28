@@ -277,10 +277,10 @@ sub _no_table_error  {
 
 sub _regex_op { 'REGEXP' }
 
-sub _limit_default { -1 }
+sub _limit_default { '18446744073709551615' }
 
 sub _listagg_format {
-    return q{group_concat(%s, ' ')};
+    return q{group_concat(%s SEPARATOR ' ')};
 }
 
 sub _run {
