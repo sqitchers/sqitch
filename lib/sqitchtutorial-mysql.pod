@@ -299,22 +299,21 @@ has nothing to verify:
 However, we still have a record that the change happened, visible via the
 L<C<log>|sqitch-log> command:
 
-  # XXX Does not work!
-  > sqitch --db-name flipr_test log
+  > sqitch --db-name flipr_test --db-user root log
   On database flipr_test
-  Revert 5f102a2fcb29a16d1fb958439aac5bacbeac89ac
+  Revert d9dd4c7c42104fe66ec80d595fd67d597ab33962
   Name:      users
   Committer: Marge N. O’Vera <marge@example.com>
-  Date:      2013-04-05 13:18:13 -0700
+  Date:      2013-06-28 23:14:26 +0200
 
-	  Creates table to track our users.
+      Creates table to track our users.
 
-  Deploy 5f102a2fcb29a16d1fb958439aac5bacbeac89ac
+  Deploy d9dd4c7c42104fe66ec80d595fd67d597ab33962
   Name:      users
   Committer: Marge N. O’Vera <marge@example.com>
-  Date:      2013-04-05 13:16:29 -0700
+  Date:      2013-06-28 23:14:17 +0200
 
-	  Creates table to track our users.
+      Creates table to track our users.
 
 Note that the actions we took are shown in reverse chronological order, with
 the revert first and then the deploy.
