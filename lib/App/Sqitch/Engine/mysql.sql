@@ -130,21 +130,24 @@ CREATE TABLE events (
 ;
 
 -- MySQL does not support checks, so work around that lack by adding triggers
--- to the dependencies table to force correctness. Could lead to unexpected
--- storage (you think you're inserting a "conflict" but it ends up a "require"
--- instaed), but the checks in the other engines should at least prevent our
--- own code from having that problem.
+-- to the dependencies table to check for correctness. The raise() function
+-- can also be useful for verify tests.
 
 DELIMITER |
+
+CREATE PROCEDURE raise(message VARCHAR(256))
+BEGIN
+    SIGNAL SQLSTATE 'ERR0R' SET MESSAGE_TEXT = message;
+END;
+|
 
 CREATE TRIGGER ck_insert_dependency BEFORE INSERT ON dependencies
 FOR EACH ROW BEGIN
     IF (NEW.type = 'require'  AND NEW.dependency_id IS NULL)
     OR (NEW.type = 'conflict' AND NEW.dependency_id IS NOT NULL)
-    OR NEW.type NOT IN ('require', 'conflict') THEN
-        SIGNAL SQLSTATE '77777' 
-           SET MESSAGE_TEXT = 'Type must be "require" with dependency_id set or "conflict" with dependency_id not set';
-    END IF;
+    OR NEW.type NOT IN ('require', 'conflict') THEN CALL raise(
+        'Type must be "require" with dependency_id set or "conflict" with dependency_id not set'
+    ); END IF;
 END;
 |
 
@@ -152,10 +155,9 @@ CREATE TRIGGER ck_update_dependency BEFORE UPDATE ON dependencies
 FOR EACH ROW BEGIN
     IF (NEW.type = 'require'  AND NEW.dependency_id IS NULL)
     OR (NEW.type = 'conflict' AND NEW.dependency_id IS NOT NULL)
-    OR NEW.type NOT IN ('require', 'conflict') THEN
-        SIGNAL SQLSTATE '77777' 
-           SET MESSAGE_TEXT = 'Type must be "require" with dependency_id set or "conflict" with dependency_id not set';
-    END IF;
+    OR NEW.type NOT IN ('require', 'conflict') THEN CALL raise(
+        'Type must be "require" with dependency_id set or "conflict" with dependency_id not set'
+    ); END IF;
 END;
 |
 
