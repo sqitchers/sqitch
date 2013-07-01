@@ -139,13 +139,23 @@ DELIMITER |
 
 CREATE TRIGGER ck_insert_dependency BEFORE INSERT ON dependencies
 FOR EACH ROW BEGIN
-    SET NEW.type = IF( NEW.dependency_id IS NULL, 'conflict', 'require' );
+    IF (NEW.type = 'require'  AND NEW.dependency_id IS NULL)
+    OR (NEW.type = 'conflict' AND NEW.dependency_id IS NOT NULL)
+    OR NEW.type NOT IN ('require', 'conflict') THEN
+        SIGNAL SQLSTATE '77777' 
+           SET MESSAGE_TEXT = 'Type must be "require" with dependency_id set or "conflict" with dependency_id not set';
+    END IF;
 END;
 |
 
 CREATE TRIGGER ck_update_dependency BEFORE UPDATE ON dependencies
 FOR EACH ROW BEGIN
-    SET NEW.type = IF( NEW.dependency_id IS NULL, 'conflict', 'require' );
+    IF (NEW.type = 'require'  AND NEW.dependency_id IS NULL)
+    OR (NEW.type = 'conflict' AND NEW.dependency_id IS NOT NULL)
+    OR NEW.type NOT IN ('require', 'conflict') THEN
+        SIGNAL SQLSTATE '77777' 
+           SET MESSAGE_TEXT = 'Type must be "require" with dependency_id set or "conflict" with dependency_id not set';
+    END IF;
 END;
 |
 
