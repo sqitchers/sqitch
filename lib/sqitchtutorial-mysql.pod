@@ -222,7 +222,7 @@ evaluates to false, an exception will be thrown with the error message.
 
 Give it a try. Put this query into F<verify/appuser.sql>:
 
-  SELECT sqitch.checkit(COUNT(*), 'User "flipr" dos not exist')
+  SELECT sqitch.checkit(COUNT(*), 'User "flipr" does not exist')
     FROM mysql.user WHERE user = 'flipr';
 
 This will work well as long as we know that the Sqitch database is named
@@ -241,14 +241,14 @@ Looks good! If you want to make sure that the verify script correctly dies if
 the table doesn't exist, temporarily change the user name in the script to
 something that doesn't exist, something like:
 
-  SELECT sqitch.checkit(COUNT(*), 'User "flipr" dos not exist')
+  SELECT sqitch.checkit(COUNT(*), 'User "flipr" does not exist')
     FROM mysql.user WHERE user = 'nonesuch';
 
 Then L<C<verify>|sqitch-verify> again:
 
   > sqitch --db-name flipr_test --db-user root verify
   Verifying flipr_test
-    * appuser .. ERROR 1644 (ERR0R) at line 5 in file: 'verify/appuser.sql': User "flipr" dos not exist
+    * appuser .. ERROR 1644 (ERR0R) at line 5 in file: 'verify/appuser.sql': User "flipr" does not exist
   # Verify script "verify/appuser.sql" failed.
   not ok
 
@@ -571,6 +571,218 @@ Looks good. Check the status:
   Nothing to deploy (up-to-date)
 
 Excellent. Let's do some more!
+
+=head1 Add Two at Once
+
+Let's add a couple more changes to add functions for managing users.
+
+  > sqitch add insert_user --requires users --requires appuser \
+    -n 'Creates a function to insert a user.'
+  Created deploy/insert_user.sql
+  Created revert/insert_user.sql
+  Created verify/insert_user.sql
+  Added "insert_user [users appuser]" to sqitch.plan
+
+  > sqitch add change_pass --requires users --requires appuser \
+    -n 'Creates a function to change a user password.'
+  Created deploy/change_pass.sql
+  Created revert/change_pass.sql
+  Created verify/change_pass.sql
+  Added "change_pass [users appuser]" to sqitch.plan
+
+Now might be a good time to have a look at the deployment plan:
+
+  > cat sqitch.plan
+  %syntax-version=1.0.0-b2
+  %project=flipr
+  %uri=https://github.com/theory/sqitch-mysql-intro/
+
+  appuser 2013-07-01T13:09:31Z Marge N. O’Vera <marge@example.com> # Creates a an application user.
+  users [appuser] 2013-07-01T19:38:33Z Marge N. O’Vera <marge@example.com> # Creates table to track our users.
+  insert_user [users appuser] 2013-07-01T19:54:08Z Marge N. O’Vera <marge@example.com> # Creates a function to insert a user.
+  change_pass [users appuser] 2013-07-01T19:54:15Z Marge N. O’Vera <marge@example.com> # Creates a function to change a user password.
+
+Each change appears on a single line with the name of the change, a bracketed
+list of dependencies, a timestamp, the name and email address of the user who
+planned the change, and a note.
+
+Let's write the code for the new changes. Here's what
+F<deploy/insert_user.sql> should look like:
+
+  -- Deploy insert_user
+  -- requires: users
+  -- requires: appuser
+
+  BEGIN;
+
+  DELIMITER //
+
+  CREATE PROCEDURE insert_user(
+      nickname VARCHAR(512),
+      password VARCHAR(512)
+  ) SQL SECURITY DEFINER
+  BEGIN
+      INSERT INTO users (nickname, password, timestamp)
+      VALUES (nickname, md5(password), UTC_TIMESTAMP(6));
+  END
+  //
+
+  DELIMITER ;
+
+  GRANT EXECUTE ON PROCEDURE insert_user to flipr;
+
+  COMMIT;
+
+Here's what F<verify/insert_user.sql> might look like, using the Sqitch
+C<checkit()> function again:
+
+  -- Verify insert_user
+
+  BEGIN;
+
+  SELECT sqitch.checkit(COUNT(*), 'Procedure "insert_user" does not exist')
+    FROM mysql.proc
+   WHERE db = database()
+     AND specific_name = 'insert_user';
+
+  ROLLBACK;
+
+We simply take advantage of the fact that the new procedure should be listed
+in the C<mysql.proc> table and throw an exception if it does not exist.
+
+And F<revert/insert_user.sql> should look something like this:
+
+  -- Revert insert_user
+  BEGIN;
+  DROP PROCEDURE insert_user;
+  COMMIT;
+
+Now for C<change_pass>; F<deploy/change_pass.sql> might look like this:
+
+  -- Deploy change_pass
+  -- requires: users
+  -- requires: appuser
+
+  BEGIN;
+
+  DELIMITER //
+
+  CREATE FUNCTION change_pass(
+      nickname VARCHAR(512),
+      oldpass  VARCHAR(512),
+      newpass  VARCHAR(512)
+  ) RETURNS INTEGER SQL SECURITY DEFINER
+  BEGIN
+      UPDATE users
+         SET password = md5(newpass)
+       WHERE nickname = nickname
+         AND password = md5(oldpass);
+      RETURN ROW_COUNT();
+  END;
+  //
+
+  DELIMITER ;
+
+  GRANT EXECUTE ON FUNCTION change_pass to flipr;
+
+  COMMIT;
+
+Use C<checkit()> in F<verify/change_pass.sql> again:
+
+  BEGIN;
+  SELECT sqitch.checkit(COUNT(*), 'Procedure "change_pass" does not exist')
+    FROM mysql.proc
+   WHERE db = database()
+     AND specific_name = 'change_pass';
+  COMMIT;
+
+And of course, its C<revert> script, F<revert/change_pass.sql>, should look
+something like:
+
+  -- Revert change_pass
+  BEGIN;
+  DROP FUNCTION change_pass;
+  REVERT;
+
+Try em out!
+
+  > sqitch deploy
+  Deploying changes to flipr_test
+    + insert_user .. ok
+    + change_pass .. ok
+
+Do we have the functions? Of course we do, they were verified. Still, have a
+look:
+
+  > mysql -u root --execute "SELECT name FROM mysql.proc WHERE db = 'flipr_test'"
+  +-------------+
+  | name        |
+  +-------------+
+  | change_pass |
+  | insert_user |
+  +-------------+
+
+And what's the status?
+
+  > sqitch status
+  # On database flipr_test
+  # Project:  flipr
+  # Change:   3d47365408243d95d406e9f9037105a767750f50
+  # Name:     change_pass
+  # Deployed: 2013-07-01 22:18:01 +0200
+  # By:       Marge N. O’Vera <marge@example.com>
+  # 
+  Nothing to deploy (up-to-date)
+
+Looks good. Let's make sure revert works:
+
+  > sqitch revert -y --to @HEAD^^
+  Reverting changes to users from flipr_test
+    - change_pass .. ok
+    - insert_user .. ok
+  > mysql -u root --execute "SELECT name FROM mysql.proc WHERE db = 'flipr_test'"
+
+Note the use of C<@HEAD^^> to specify that the revert be to two changes prior
+the last deployed change. Looks good. Let's do the commit and re-deploy dance:
+
+  > git add .
+  > git commit -m 'Add `insert_user()` and `change_pass()`.'
+  [master 46b3ef4] Add `insert_user()` and `change_pass()`.
+   11 files changed, 118 insertions(+), 1 deletion(-)
+   create mode 100644 deploy/change_pass.sql
+   create mode 100644 deploy/insert_user.sql
+   create mode 100644 deploy/users.sql
+   create mode 100644 revert/change_pass.sql
+   create mode 100644 revert/insert_user.sql
+   create mode 100644 revert/users.sql
+   create mode 100644 verify/change_pass.sql
+   create mode 100644 verify/insert_user.sql
+   create mode 100644 verify/users.sql
+
+  > sqitch deploy
+  Deploying changes to flipr_test
+    + insert_user .. ok
+    + change_pass .. ok
+
+  > sqitch status
+  # On database flipr_test
+  # Project:  flipr
+  # Change:   3d47365408243d95d406e9f9037105a767750f50
+  # Name:     change_pass
+  # Deployed: 2013-07-01 22:22:55 +0200
+  # By:       Marge N. O’Vera <marge@example.com>
+  # 
+  Nothing to deploy (up-to-date)
+
+  > sqitch verify
+  Verifying flipr_test
+    * appuser .... ok
+    * users ........ ok
+    * insert_user .. ok
+    * change_pass .. ok
+  Verify successful
+
+Great, we're fully up-to-date!
 
 =head1 More to Come
 
