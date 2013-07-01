@@ -77,8 +77,10 @@ as appropriate.
 
 By default, Sqitch will read F<sqitch.conf> in the current directory for
 settings. But it will also read F<~/.sqitch/sqitch.conf> for user-specific
-settings. Since MySQL's C<mysql> client is not in the path on my system, let's
-go ahead an tell it where to find the client on our computer:
+settings. Since MySQL's
+L<C<mysql> client|https://dev.mysql.com/doc/refman/5.6/en/mysql.html> is not
+in the path on my system, let's go ahead an tell it where to find the client
+on our computer:
 
   > sqitch config --user core.mysql.client /opt/local/mysql/bin/psql
 
