@@ -221,7 +221,7 @@ The database engine to use. Supported engines include:
 
 =item * C<oracle> - L<Oracle|http://www.oracle.com/us/products/database/>
 
-=item * C<mysql> - L<MySQL|http://mysql.org/>
+=item * C<mysql> - L<MySQL|http://dev.mysql.com/>
 
 =back
 
@@ -240,7 +240,7 @@ in the current path named appropriately for the specified engine.
   sqitch -d bricolage
 
 Name of the database. For some engines, such as
-L<PostgreSQL|http://postgresql.org/>, L<MySQL|http://mysql.org/>, and
+L<PostgreSQL|http://postgresql.org/>, L<MySQL|http://dev.mysql.com/>, and
 L<Oracle|http://www.oracle.com/us/products/database/>, the database must
 already exist. For others, such as L<SQLite|http://sqlite.org/>, the database
 will be automatically created on first connect.

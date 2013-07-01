@@ -430,7 +430,7 @@ The database engine to use. Supported engines include:
 
 =item * C<oracle> - L<Oracle|http://www.oracle.com/us/products/database/>
 
-=item * C<mysql> - L<MySQL|http://mysql.org/>
+=item * C<mysql> - L<MySQL|http://dev.mysql.com/>
 
 =back
 
