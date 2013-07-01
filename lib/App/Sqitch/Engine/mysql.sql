@@ -129,35 +129,44 @@ CREATE TABLE events (
   COMMENT 'Contains full history of all deployment events.'
 ;
 
--- MySQL does not support checks, so work around that lack by adding triggers
--- to the dependencies table to check for correctness. The raise() function
--- can also be useful for verify tests.
+-- MySQL does not support checks, so we kind of create our own. The checkit()
+-- procedure works sort of like a CHECK: if the first argument is 0 or NULL,
+-- it throws the second argument as an exception. The checkit() function is
+-- provided so that verify scripts can use it.
 
 DELIMITER |
 
-CREATE PROCEDURE raise(message VARCHAR(256))
+CREATE PROCEDURE checkit(doit INTEGER, message VARCHAR(256))
 BEGIN
-    SIGNAL SQLSTATE 'ERR0R' SET MESSAGE_TEXT = message;
+    IF doit IS NULL OR doit = 0 THEN
+        SIGNAL SQLSTATE 'ERR0R' SET MESSAGE_TEXT = message;
+    END IF;
+END;
+
+CREATE FUNCTION checkit(doit INTEGER, message VARCHAR(256)) RETURNS INTEGER
+BEGIN
+    CALL checkit(doit, message);
+    RETURN doit;
 END;
 |
 
 CREATE TRIGGER ck_insert_dependency BEFORE INSERT ON dependencies
 FOR EACH ROW BEGIN
-    IF (NEW.type = 'require'  AND NEW.dependency_id IS NULL)
-    OR (NEW.type = 'conflict' AND NEW.dependency_id IS NOT NULL)
-    OR NEW.type NOT IN ('require', 'conflict') THEN CALL raise(
+    CALL checkit(
+            (NEW.type = 'require'  AND NEW.dependency_id IS NOT NULL)
+         OR (NEW.type = 'conflict' AND NEW.dependency_id IS NULL),
         'Type must be "require" with dependency_id set or "conflict" with dependency_id not set'
-    ); END IF;
+    );
 END;
 |
 
 CREATE TRIGGER ck_update_dependency BEFORE UPDATE ON dependencies
 FOR EACH ROW BEGIN
-    IF (NEW.type = 'require'  AND NEW.dependency_id IS NULL)
-    OR (NEW.type = 'conflict' AND NEW.dependency_id IS NOT NULL)
-    OR NEW.type NOT IN ('require', 'conflict') THEN CALL raise(
+    CALL checkit(
+            (NEW.type = 'require'  AND NEW.dependency_id IS NOT NULL)
+         OR (NEW.type = 'conflict' AND NEW.dependency_id IS NULL),
         'Type must be "require" with dependency_id set or "conflict" with dependency_id not set'
-    ); END IF;
+    );
 END;
 |
 
