@@ -16,7 +16,7 @@ remain in sync and in the proper order.
 
 We'll start by creating new project from scratch, a fictional antisocial
 networking site called Flipr. All examples use L<Git|http://git-scm.com/> as
-the VCS and L<MySQL|http://www.mysql.org/> as the storage engine.
+the VCS and L<MySQL|http://dev.mysql.com/> as the storage engine.
 
 =head1 Starting a New Project
 
@@ -124,21 +124,21 @@ Let's commit these changes and start creating the database changes.
 
 =head1 Our First Change
 
-Let's create a table. Our app will need users, of course, so we'll create a
-table for them. Run this command:
+First, our app will need a database user, so let's create one. Run this
+command:
 
-  > sqitch add users -n 'Creates table to track our users.'
-  Created deploy/users.sql
-  Created revert/users.sql
-  Created verify/users.sql
-  Added "users" to sqitch.plan
+  > sqitch add appuser -n 'Creates a an application user.'
+  Created deploy/appuser.sql
+  Created revert/appuser.sql
+  Created verify/appuser.sql
+  Added "appuser" to sqitch.plan
 
 The L<C<add>|sqitch-add> command adds a database change to the plan and writes
 deploy, revert, and verify scripts that represent the change. Now we edit
 these files. The C<deploy> script's job is to create the table. By default,
-the F<deploy/users.sql> file looks like this:
+the F<deploy/appuser.sql> file looks like this:
 
-  -- Deploy users
+  -- Deploy appuser
 
   BEGIN;
 
@@ -146,29 +146,25 @@ the F<deploy/users.sql> file looks like this:
 
   COMMIT;
 
-What we want to do is to replace the C<XXX> comment with the C<CREATE TABLE>
+What we want to do is to replace the C<XXX> comment with the C<CREATE USER>
 statement, like so:
 
   -- Deploy users
 
   BEGIN;
 
-  CREATE TABLE users (
-      nickname  VARCHAR(512) PRIMARY KEY,
-      password  VARCHAR(512) NOT NULL,
-      timestamp TIMESTAMP(6) NOT NULL
-  );
+  CREATE USER flipr;
 
   COMMIT;
 
 The C<revert> script's job is to precisely revert the change to the deploy
-script, so we edit this to F<revert/users.sql> to look like this:
+script, so we edit this to F<revert/appuser.sql> to look like this:
 
   -- Revert users
 
   BEGIN;
 
-  DROP TABLE users;
+  DROP USER flipr;
 
   COMMIT;
 
@@ -177,13 +173,14 @@ Now we can try deploying this change:
   > mysql -u root --execute 'CREATE DATABASE flipr_test'
   > sqitch --db-name flipr_test --db-user root deploy
   Adding metadata tables to flipr_test
-  Deploying changes to flipr_test
-    + users .. ok
+  Deploying to flipr_test
+    + appuser .. ok
 
 First Sqitch created the metadata database and tables used to track database
-changes. This database is separate from the database to which the C<users>
-change was deployed; by default, it is named C<sqitch>, but if you'd like it to
-have a different name, set the C<core.mysql.sqitch_db> configuration variable:
+changes. This database is separate from the database to which the C<appuser>
+change was deployed; by default, it is named C<sqitch>, but if you'd like it
+to have a different name, set the C<core.mysql.sqitch_db> configuration
+variable:
 
   > sqitch config core.mysql.sqitch_db $name
 
@@ -196,14 +193,14 @@ on the command-line. We only have one so far; the C<+> reinforces the idea
 that the change is being I<added> to the database.
 
 With this change deployed, if you connect to the database, you'll be able to
-see the table:
+see the user:
 
-  > mysql -u root -D flipr_test --execute 'SHOW TABLES'
-  +----------------------+
-  | Tables_in_flipr_test |
-  +----------------------+
-  | users                |
-  +----------------------+
+  mysql -u root --execute "SELECT user from mysql.user WHERE user = 'flipr';"
+  +-------+
+  | User  |
+  +-------+
+  | flipr |
+  +-------+
 
 =head2 Trust, But Verify
 
@@ -213,35 +210,44 @@ every deploy?
 Here's where the C<verify> script comes in. Its job is to test that the deploy
 did was it was supposed to. It should do so without regard to any data that
 might be in the database, and should throw an error if the deploy was not
-successful. The easiest way to do that with a table is to simply C<SELECT>
-from it. Put this query into F<verify/users.sql>:
+successful. The simplest way to throw an error if a user does not exist is to
+check the C<mysql.user> table. However, throwing an error in the event that
+the user does not exist is trickier in MySQL. To simplify things, Sqitch
+provides a custom function you can use in your tests, C<checkit()>. It works
+kind of like a C<CHECK> constraint in other databases: pass an expression
+as the first argument, and an error message as the second. If the expression
+evaluates to false, an exception will be thrown with the error message.
 
-  SELECT nickname, password, timestamp
-	FROM users
-   WHERE 0;
+Give it a try. Put this query into F<verify/appuser.sql>:
+
+  SELECT sqitch.checkit(COUNT(*), 'User "flipr" dos not exist')
+    FROM mysql.user WHERE user = 'flipr';
+
+This will work well as long as we know that the Sqitch database is named
+C<sqitch>. If you've set C<core.mysql.sqitch_db> to a different value, you
+will need to make sure you specify the correct datbase name in the script.
 
 Now you can run the C<verify> script with the L<C<verify>|sqitch-verify>
 command:
 
   > sqitch --db-name flipr_test --db-user root verify
   Verifying flipr_test
-    * users .. ok
+    * appuser .. ok
   Verify successful
 
 Looks good! If you want to make sure that the verify script correctly dies if
-the table doesn't exist, temporarily change the table name in the script to
+the table doesn't exist, temporarily change the user name in the script to
 something that doesn't exist, something like:
 
-  SELECT nickname, password, timestamp
-	FROM users_nonesuch
-   WHERE 0;
+  SELECT sqitch.checkit(COUNT(*), 'User "flipr" dos not exist')
+    FROM mysql.user WHERE user = 'nonesuch';
 
 Then L<C<verify>|sqitch-verify> again:
 
   > sqitch --db-name flipr_test --db-user root verify
   Verifying flipr_test
-    * users .. ERROR 1146 (42S02) at line 5 in file: 'verify/users.sql': Table 'flipr_test.users_nonesuch' doesn't exist
-  # Verify script "verify/users.sql" failed.
+    * appuser .. ERROR 1644 (ERR0R) at line 5 in file: 'verify/appuser.sql': User "flipr" dos not exist
+  # Verify script "verify/appuser.sql" failed.
   not ok
 
   Verify Summary Report
@@ -250,8 +256,9 @@ Then L<C<verify>|sqitch-verify> again:
   Errors:  1
   Verify failed
 
-MySQL is kind enough to tell us what the problem is. Don't forget to change
-the table name back before continuing!
+The C<checkit()> function is kind enough to use the error message to tell us
+what the problem is. Don't forget to change the table name back before
+continuing!
 
 =head2 Status, Revert, Log, Repeat
 
@@ -262,18 +269,18 @@ from the metadata database:
   > sqitch --db-name flipr_test --db-user root status
   # On database flipr_test
   # Project:  flipr
-  # Change:   d9dd4c7c42104fe66ec80d595fd67d597ab33962
-  # Name:     users
-  # Deployed: 2013-06-28 23:26:00 +0200
+  # Change:   df801cddbb329ee14e6641670a214804f4384129
+  # Name:     appuser
+  # Deployed: 2013-07-01 18:42:51 +0200
   # By:       Marge N. O’Vera <marge@example.com>
   # 
   Nothing to deploy (up-to-date)
 
 Let's make sure that we can revert the change:
 
-  >  sqitch --db-name flipr_test --db-user root revert
+  > sqitch --db-name flipr_test --db-user root revert
   Revert all changes from flipr_test? [Yes]
-	- users .. ok
+    - appuser .. ok
 
 The L<C<revert>|sqitch-revert> command first prompts to make sure that we
 really do want to revert. This is to prevent unnecessary accidents. You can
@@ -281,7 +288,7 @@ pass the C<-y> option to disable the prompt. Also, notice the C<-> before the
 change name in the output, which reinforces that the change is being
 I<removed> from the database. And now the schema should be gone:
 
-  > mysql -u root -D flipr_test --execute 'SHOW TABLES'
+  > mysql -u root --execute "SELECT user from mysql.user WHERE user = 'flipr';"
 
 And the status message should reflect as much:
 
@@ -301,19 +308,19 @@ L<C<log>|sqitch-log> command:
 
   > sqitch --db-name flipr_test --db-user root log
   On database flipr_test
-  Revert d9dd4c7c42104fe66ec80d595fd67d597ab33962
-  Name:      users
+  Revert df801cddbb329ee14e6641670a214804f4384129
+  Name:      appuser
   Committer: Marge N. O’Vera <marge@example.com>
-  Date:      2013-06-28 23:14:26 +0200
+  Date:      2013-07-01 20:55:51 +0200
 
-      Creates table to track our users.
+      Creates a an application user.
 
-  Deploy d9dd4c7c42104fe66ec80d595fd67d597ab33962
-  Name:      users
+  Deploy df801cddbb329ee14e6641670a214804f4384129
+  Name:      appuser
   Committer: Marge N. O’Vera <marge@example.com>
-  Date:      2013-06-28 23:14:17 +0200
+  Date:      2013-07-01 18:42:51 +0200
 
-      Creates table to track our users.
+      Creates a an application user.
 
 Note that the actions we took are shown in reverse chronological order, with
 the revert first and then the deploy.
@@ -321,37 +328,37 @@ the revert first and then the deploy.
 Cool. Now let's commit it.
 
   > git add .
-  > git commit -m 'Add users table.'
-  [master 27c5ee5] Add users table.
-   4 files changed, 28 insertions(+)
-   create mode 100644 deploy/users.sql
-   create mode 100644 revert/users.sql
-   create mode 100644 verify/users.sql
+  > git commit -m 'Add the "flipr" user.'
+  [new 700df87] Add the "flipr" user.
+   4 files changed, 23 insertions(+)
+   create mode 100644 deploy/appuser.sql
+   create mode 100644 revert/appuser.sql
+   create mode 100644 verify/appuser.sql
 
 And then deploy again. This time, let's use the C<--verify> option, so that
 the C<verify> script is applied when the change is deployed:
 
   > sqitch --db-name flipr_test --db-user root deploy
   Deploying changes to flipr_test
-	+ users .. ok
+	+ appuser .. ok
 
-And now the C<users> table should be back:
+And now the C<flipr> user should be back:
 
-  > mysql -u root -D flipr_test --execute 'SHOW TABLES'
-  +----------------------+
-  | Tables_in_flipr_test |
-  +----------------------+
-  | users                |
-  +----------------------+
+  > mysql -u root --execute "SELECT user from mysql.user WHERE user = 'flipr';"
+  +-------+
+  | user  |
+  +-------+
+  | flipr |
+  +-------+
 
 When we look at the status, the deployment will be there:
 
   > sqitch --db-name flipr_test --db-user root status
   # On database flipr_test
   # Project:  flipr
-  # Change:   d9dd4c7c42104fe66ec80d595fd67d597ab33962
-  # Name:     users
-  # Deployed: 2013-06-28 23:54:18 +0200
+  # Change:   df801cddbb329ee14e6641670a214804f4384129
+  # Name:     appuser
+  # Deployed: 2013-07-01 20:57:54 +0200
   # By:       Marge N. O’Vera <marge@example.com>
   # 
   Nothing to deploy (up-to-date)
