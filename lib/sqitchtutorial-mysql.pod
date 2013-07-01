@@ -363,6 +363,42 @@ When we look at the status, the deployment will be there:
   # 
   Nothing to deploy (up-to-date)
 
+=head1 More Configuration
+
+I'm getting a little tired of always having to type
+C<--db-user root --db-name flipr_test>, aren't you? Let's just make that the
+default, shall we?
+
+  > sqitch config core.mysql.username root
+  > sqitch config core.mysql.db_name flipr_test
+
+Now we can leave it out, unless we need to deploy to another database. Which
+we will, eventually, but at least our examples will be simpler from here on
+in, e.g.:
+
+  > sqitch status
+  # On database flipr_test
+  # Project:  flipr
+  # Change:   df801cddbb329ee14e6641670a214804f4384129
+  # Name:     appuser
+  # Deployed: 2013-07-01 20:57:54 +0200
+  # By:       Marge N. O’Vera <marge@example.com>
+  # 
+  Nothing to deploy (up-to-date)
+
+Yay, that allows things to be a little more concise. Let's also make sure that
+changes are verified after deploying them:
+
+  > sqitch config --bool deploy.verify true
+  > sqitch config --bool rebase.verify true
+
+We'll see the L<C<rebase>|sqitch-rebase> command a bit later. In the meantime,
+let's commit the new configuration and and make some more changes!
+
+  > git commit -am 'Set default DB name and always verify.'
+  [master bb35c99] Set default DB name and always verify.
+   1 file changed, 7 insertions(+)
+
 =head1 More to Come
 
 Sqitch is a work in progress. Better integration with version control systems
