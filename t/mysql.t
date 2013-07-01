@@ -59,11 +59,11 @@ ok $mysql->set_variables(foo => 'baz', whu => 'hi there', yo => 'stellar'),
     'Set some variables';
 is_deeply [$mysql->mysql], [
     $client,
-    '--foo' => 'baz',
-    '--whu' => 'hi there',
-    '--yo'  => 'stellar',
+    # '--foo' => 'baz',
+    # '--whu' => 'hi there',
+    # '--yo'  => 'stellar',
     @std_opts,
-], 'Variables should be passed to mysql via --$key';
+], 'Variables should not be passed to mysql';
 
 ##############################################################################
 # Make sure config settings override defaults.

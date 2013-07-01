@@ -183,9 +183,9 @@ has mysql => (
             push @ret, "--$spec->[0]" => $spec->[1] if $spec->[1];
         }
 
-        if (my %vars = $self->variables) {
-            push @ret => map {; "--$_", $vars{$_} } sort keys %vars;
-        }
+        # if (my %vars = $self->variables) {
+        #     push @ret => map {; "--$_", $vars{$_} } sort keys %vars;
+        # }
 
         push @ret => (
             '--skip-pager',
