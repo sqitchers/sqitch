@@ -114,7 +114,9 @@ C<revert.variables> to override C<deploy.variables>.
 
 These variables are Useful if your database engine supports variables in
 scripts, such as PostgreSQL's
-L<C<psql> variables|http://www.postgresql.org/docs/current/static/app-psql.html#APP-PSQL-INTERPOLATION>.
+L<C<psql> variables|http://www.postgresql.org/docs/current/static/app-psql.html#APP-PSQL-INTERPOLATION>
+and SQL*Plus's
+L<C<DEFINE> variables|http://docs.oracle.com/cd/B19306_01/server.102/b14357/ch12017.htm>.
 
 =item C<checkout.verify>
 
