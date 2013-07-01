@@ -197,7 +197,7 @@ that the change is being I<added> to the database.
 With this change deployed, if you connect to the database, you'll be able to
 see the user:
 
-  mysql -u root --execute "SELECT user from mysql.user WHERE user = 'flipr';"
+  > mysql -u root --execute "SELECT user from mysql.user WHERE user = 'flipr';"
   +-------+
   | User  |
   +-------+
@@ -400,6 +400,177 @@ let's commit the new configuration and and make some more changes!
   > git commit -am 'Set default DB name and always verify.'
   [master bb35c99] Set default DB name and always verify.
    1 file changed, 7 insertions(+)
+
+=head1 Deploy with Dependency
+
+Let's add another change, this time to create a table. Our app will need
+users, of course, so we'll create a table for them. First, add the new change:
+
+  > sqitch add users --requires appuser -n 'Creates table to track our users.'
+  Created deploy/users.sql
+  Created revert/users.sql
+  Created verify/users.sql
+  Added "users [appuser]" to sqitch.plan
+
+Note that we're requiring the C<appuser> change as a dependency of the new
+C<users> change. Although that change has already been added to the plan and
+therefore should always be applied before the C<users> change, it's a good
+idea to be explicit about dependencies.
+
+Now edit the scripts. When you're done, F<deploy/users.sql> should look like
+this:
+
+  -- Deploy users
+  -- requires: appuser
+
+  BEGIN;
+
+  CREATE TABLE users (
+      nickname  VARCHAR(512) PRIMARY KEY,
+      password  VARCHAR(512) NOT NULL,
+      timestamp DATETIME(6)  NOT NULL
+  );
+
+  GRANT SELECT ON TABLE users TO flipr;
+
+  COMMIT;
+
+A few things to notice here. On the second line, the dependence on the
+C<appuser> change has been listed. This doesn't do anything, but the default
+C<deploy> template lists it here for your reference while editing the file.
+Useful, right?
+
+The C<flipr> user has been granged C<SELECT> access to the table. The app's
+got to be able to read the data, right? This is why we need to require the
+C<appuser> change.
+
+Now for the verify script. The simplest way to check that the table was
+created and has the expected columns without touching the data? Just select
+from the table with a false C<WHERE> clause. Add this to F<verify/users.sql>:
+
+  SELECT nickname, password, timestamp
+    FROM flipr.users
+   WHERE FALSE;
+
+Now for the revert script: all we have to do is drop the table. Add this to
+F<revert/users.sql>:
+
+  DROP TABLE users;
+
+Couldn't be much simpler, right? Let's deploy this bad boy:
+
+  > sqitch deploy
+  Deploying changes to flipr_test
+    + users .. ok
+
+We know, since verification is enabled, that the table must have been created.
+But for the purposes of visibility, let's have a quick look:
+
+  > mysql -u root -D flipr_test --execute 'SHOW TABLES'
+  +----------------------+
+  | Tables_in_flipr_test |
+  +----------------------+
+  | users                |
+  +----------------------+
+
+We can also verify all currently deployed changes with the
+L<C<verify>|sqitch-verify> command:
+
+  > sqitch verify
+  Verifying flipr_test
+    * appuser .. ok
+    * users .... ok
+  Verify successful
+
+Now have a look at the status:
+
+  > sqitch status
+  # On database flipr_test
+  # Project:  flipr
+  # Change:   53c520dea482be30c426f241e74f5cbc58f3febc
+  # Name:     users
+  # Deployed: 2013-07-01 21:41:37 +0200
+  # By:       Marge N. O’Vera <marge@example.com>
+  # 
+  Nothing to deploy (up-to-date)
+
+  > sqitch revert --to @HEAD^ -y
+  Reverting changes to appuser from flipr_test
+    - users .. ok
+
+Note that we've used the C<--to> option to specify the change to revert to.
+And what do we revert to? The symbolic tag C<@HEAD>, when passed to
+L<C<revert>|sqitch-revert>, always refers to the last change deployed to the
+database. (For other commands, it refers to the last change in the plan.)
+Appending the caret (C<^>) tells Sqitch to select the change I<prior> to the
+last deployed change. So we revert to C<appuser>, the penultimate change. The
+other potentially useful symbolic tag is C<@ROOT>, which refers to the first
+change deployed to the database (or in the plan, depending on the command).
+
+Back to the database. The C<users> table should be gone but the C<flipr> user
+should still be around:
+
+  > mysql -u root -D flipr_test --execute 'SHOW TABLES'
+  > mysql -u root --execute "SELECT user from mysql.user WHERE user = 'flipr';"
+  +-------+
+  | User  |
+  +-------+
+  | flipr |
+  +-------+
+
+The L<C<status>|sqitch-status> command politely informs us that we have
+undeployed changes:
+
+  > sqitch status
+  # On database flipr_test
+  # Project:  flipr
+  # Change:   df801cddbb329ee14e6641670a214804f4384129
+  # Name:     appuser
+  # Deployed: 2013-07-01 20:57:54 +0200
+  # By:       Marge N. O’Vera <marge@example.com>
+  # 
+  Undeployed change:
+    * users
+
+As does the L<C<verify>|sqitch-verify> command:
+
+  > sqitch verify
+  Verifying flipr_test
+    * appuser .. ok
+  Undeployed change:
+    * users
+  Verify successful
+
+Note that the verify is successful, because all currently-deployed changes are
+verified. The list of undeployed changes (just "users" here) reminds us about
+the current state.
+
+Okay, let's commit and deploy again:
+
+  > git add .
+  > git commit -am 'Add users table.'
+  [master be7214a] Add users table.
+   4 files changed, 31 insertions(+)
+   create mode 100644 deploy/users.sql
+   create mode 100644 revert/users.sql
+   create mode 100644 verify/users.sql
+  > sqitch deploy
+  Deploying changes to flipr_test
+    + users .. ok
+
+Looks good. Check the status:
+
+  > sqitch status
+  # On database flipr_test
+  # Project:  flipr
+  # Change:   53c520dea482be30c426f241e74f5cbc58f3febc
+  # Name:     users
+  # Deployed: 2013-07-01 21:48:47 +0200
+  # By:       Marge N. O’Vera <marge@example.com>
+  # 
+  Nothing to deploy (up-to-date)
+
+Excellent. Let's do some more!
 
 =head1 More to Come
 
