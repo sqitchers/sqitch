@@ -130,29 +130,26 @@ CREATE TABLE events (
 ;
 
 -- MySQL does not support checks, so we kind of create our own. The checkit()
--- procedure works sort of like a CHECK: if the first argument is 0 or NULL,
--- it throws the second argument as an exception. The checkit() function is
--- provided so that verify scripts can use it.
+-- function works sort of like a CHECK: if the first argument is 0 or NULL, it
+-- throws the second argument as an exception. Conveniently, verify scripts
+-- can also use it to ensure an error is thrown when a change cannot be
+-- verified.
 
 DELIMITER |
 
-CREATE PROCEDURE checkit(doit INTEGER, message VARCHAR(256))
+CREATE FUNCTION checkit(doit INTEGER, message VARCHAR(256)) RETURNS INTEGER
 BEGIN
     IF doit IS NULL OR doit = 0 THEN
         SIGNAL SQLSTATE 'ERR0R' SET MESSAGE_TEXT = message;
     END IF;
-END;
-
-CREATE FUNCTION checkit(doit INTEGER, message VARCHAR(256)) RETURNS INTEGER
-BEGIN
-    CALL checkit(doit, message);
     RETURN doit;
 END;
 |
 
 CREATE TRIGGER ck_insert_dependency BEFORE INSERT ON dependencies
 FOR EACH ROW BEGIN
-    CALL checkit(
+    -- DO does not work. http://bugs.mysql.com/bug.php?id=69647
+    SET @dummy := checkit(
             (NEW.type = 'require'  AND NEW.dependency_id IS NOT NULL)
          OR (NEW.type = 'conflict' AND NEW.dependency_id IS NULL),
         'Type must be "require" with dependency_id set or "conflict" with dependency_id not set'
@@ -162,7 +159,8 @@ END;
 
 CREATE TRIGGER ck_update_dependency BEFORE UPDATE ON dependencies
 FOR EACH ROW BEGIN
-    CALL checkit(
+    -- DO does not work. http://bugs.mysql.com/bug.php?id=69647
+    SET @dummy := checkit(
             (NEW.type = 'require'  AND NEW.dependency_id IS NOT NULL)
          OR (NEW.type = 'conflict' AND NEW.dependency_id IS NULL),
         'Type must be "require" with dependency_id set or "conflict" with dependency_id not set'
