@@ -119,7 +119,7 @@ has dbh => (
         };
 
         my $dsn = 'dbi:mysql:database=' . ($self->sqitch_db || hurl mysql => __(
-            'No Sqitch database specified; use --sqitch-db or set "core.mysql.sqitch_db" via sqitch config'
+            'No database specified; use --db-name or set "core.mysql.db_name" via sqitch config'
         ));
 
         my $dbh = DBI->connect($dsn, $self->username, $self->password, {
