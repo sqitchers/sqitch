@@ -30,7 +30,7 @@ source code repository. So let's do that with Git:
   > touch README.md
   > git add .
   > git commit -am 'Initialize project, add README.'
-  [master (root-commit) 9c991b9] Initialize project, add README.
+  [master (root-commit) dff2c81] Initialize project, add README.
    1 file changed, 38 insertions(+)
    create mode 100644 README.md
 
@@ -67,7 +67,7 @@ Let's have a look at F<sqitch.conf>:
   	# db_name = 
   	# host = 
   	# port = 
-  	# sqitch_db = 
+  	# sqitch_db = sqitch
 
 Good, it picked up on the fact that we're creating changes for the MySQL
 engine, thanks to the C<--engine mysql> option, and saved it to the file.
@@ -82,7 +82,7 @@ L<C<mysql> client|https://dev.mysql.com/doc/refman/5.6/en/mysql.html> is not
 in the path on my system, let's go ahead an tell it where to find the client
 on our computer:
 
-  > sqitch config --user core.mysql.client /opt/local/mysql/bin/psql
+  > sqitch config --user core.mysql.client /usr/local/mysql/bin/mysql
 
 And let's also tell it who we are, since this data will be used in all
 of our projects:
@@ -94,7 +94,7 @@ Have a look at F<~/.sqitch/sqitch.conf> and you'll see this:
 
   > cat ~/.sqitch/sqitch.conf
   [core "mysql"]
-  	client = /opt/local/mysql/bin/psql
+  	client = /usr/local/mysql/bin/mysql
   [user]
   	name = Marge N. O’Vera
   	email = marge@example.com
@@ -119,7 +119,7 @@ Let's commit these changes and start creating the database changes.
 
   > git add .
   > git commit -am 'Initialize Sqitch configuration.'
-  [master 0738c94] Initialize Sqitch configuration.
+  [master 16d9c49] Initialize Sqitch configuration.
    2 files changed, 23 insertions(+)
    create mode 100644 sqitch.conf
    create mode 100644 sqitch.plan
@@ -174,14 +174,14 @@ Now we can try deploying this change:
 
   > mysql -u root --execute 'CREATE DATABASE flipr_test'
   > sqitch --db-name flipr_test --db-user root deploy
-  Adding metadata tables to flipr_test_sqitch
+  Adding metadata tables to sqitch
   Deploying to flipr_test
     + appuser .. ok
 
 First Sqitch created the metadata database and tables used to track database
 changes. This database is separate from the database to which the C<appuser>
 change was deployed; by default, it has the same name as the that database,
-but with C<_sqitch> appended to it, in this case C<flipr_test_sqitch>. But if
+but with C<_sqitch> appended to it, in this case C<sqitch>. But if
 you'd like it to have a different name, or want a single Sqitch instance to
 manage all of the databases on your server, set the C<core.mysql.sqitch_db>
 configuration variable:

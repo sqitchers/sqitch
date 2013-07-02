@@ -593,10 +593,10 @@ Port number to connect to.
 =item C<core.mysql.sqitch_db>
 
 The name of the database (schema) in which Sqitch metadata will be stored. No
-other data should be stored in this database. If you want all of your
-Sqitch-managed MySQL databases to use a single Sqitch database, set
-C<core.mysql.sqitch_db> to the common database, perhaps C<sqitch>. Defaults to
-the the value of C<$db_name> with C<_sqitch> appended to the end.
+other data should be stored in this database. Defaults to C<sqitch>. If you
+need to manage multiple databases on a single server, and don't want them all
+to share the same Sqitch metadata database, change this property to a value
+specific for your database.
 
 =back
 
