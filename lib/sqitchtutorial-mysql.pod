@@ -783,6 +783,74 @@ the last deployed change. Looks good. Let's do the commit and re-deploy dance:
 
 Great, we're fully up-to-date!
 
+=head1 Ship It!
+
+Let's do a first release of our app. Let's call it C<1.0.0-dev1> Since we want
+to have it go out with deployments tied to the release, let's tag it:
+
+  > sqitch tag v1.0.0-dev1 -n 'Tag v1.0.0-dev1.'
+  Tagged "change_pass" with @v1.0.0-dev1
+  > git commit -am 'Tag the database with v1.0.0-dev1.'
+  [master 384543e] Tag the database with v1.0.0-dev1.
+   1 file changed, 1 insertion(+)
+  > git tag v1.0.0-dev1 -am 'Tag v1.0.0-dev1'
+
+Now let's bundle everything up for release:
+
+  > sqitch bundle
+  Bundling into bundle/
+  Writing config
+  Writing plan
+  Writing scripts
+    + appuser
+    + users
+    + insert_user
+    + change_pass @v1.0.0-dev1
+
+Now we can package the F<bundle> directory and distribute it. When it gets
+installed somewhere, users can use Sqitch to deploy to the database. We ought
+to try deploying it, but first we'll need to revert our existing databases, as
+a single Sqitch project cannot be deployed to two databases on the same server
+unless C<core.mysql.sqitch_db> is different and the C<checkit()> function is
+not used in verify scripts. We have used C<checkit()> quite a bit, so we need
+to keep the Sqitch database name just where it is. Fortunately, it's easy to
+build the database again, so let's just revert it.
+
+  > sqitch revert -y
+  Reverting all changes from flipr_test
+    - change_pass .. ok
+    - insert_user .. ok
+    - users ........ ok
+    - appuser ...... ok
+
+Now we can try deploying the bundle:
+
+  > cd bundle
+  > mysql -u root --execute 'CREATE DATABASE flipr_dev'
+  > sqitch --db-name flipr_dev deploy
+  Adding metadata tables to sqitch
+  Deploying changes to flipr_dev
+    + appuser ................... ok
+    + users ..................... ok
+    + insert_user ............... ok
+    + change_pass @v1.0.0-dev1 .. ok
+
+Great, all four changes were deployed and C<change_pass> was tagged with
+C<@v1.0.0-dev1>. Let's have a look at the status:
+
+  > sqitch -d flipr_dev status
+  # On database flipr_dev
+  # Project:  flipr
+  # Change:   d6dc035fdffadbbedb1c61563db6ac43def1a6eb
+  # Name:     change_pass
+  # Tag:      @v1.0.0-dev1
+  # Deployed: 2013-07-02 16:37:32 +0200
+  # By:       Marge N. O’Vera <marge@example.com>
+  # 
+  Nothing to deploy (up-to-date)
+
+Looks good, eh? Package it up and ship it!
+
 =head1 More to Come
 
 Sqitch is a work in progress. Better integration with version control systems
