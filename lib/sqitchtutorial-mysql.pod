@@ -956,6 +956,130 @@ Note the use of C<--show tags> to show all the deployed tags. Now make it so:
    create mode 100644 revert/flips.sql
    create mode 100644 verify/flips.sql
 
+=head1 Wash, Rinse, Repeat
+
+Now comes the time to add functions to manage flips. I'm sure you have things
+nailed down now. Go ahead and add C<insert_flip> and C<delete_flip> changes
+and commit them. The C<insert_flip> deploy script might look something like:
+
+  -- Deploy insert_flip
+  -- requires: flips
+  -- requires: appuser
+  -- requires: users
+
+  BEGIN;
+
+  DELIMITER //
+
+  CREATE FUNCTION insert_flip(
+      nickname VARCHAR(512),
+      body     VARCHAR(180)
+  ) RETURNS BIGINT SQL SECURITY DEFINER
+  BEGIN
+      INSERT INTO flips (nickname, body)
+      VALUES (nickname, body);
+      RETURN LAST_INSERT_ID();
+  END;
+  //
+
+  DELIMITER ;
+
+  GRANT EXECUTE ON FUNCTION insert_flip to flipr;
+
+  COMMIT;
+
+And the C<delete_flip> deploy script might look something like:
+
+  -- Deploy delete_flip
+  -- requires: flips
+  -- requires: appuser
+  -- requires: users
+
+  BEGIN;
+
+  DELIMITER //
+
+  CREATE FUNCTION delete_flip(
+      flip_id BIGINT
+  ) RETURNS INTEGER SQL SECURITY DEFINER
+  BEGIN
+      DELETE FROM flips WHERE id = flip_id;
+      RETURN ROW_COUNT();
+  END;
+  //
+
+  DELIMITER ;
+
+  GRANT EXECUTE ON FUNCTION delete_flip to flipr;
+
+  COMMIT;
+
+The C<verify> scripts are:
+
+  -- Verify insert_flip
+
+  BEGIN;
+
+  SELECT sqitch.checkit(COUNT(*), 'Function "insert_flip" does not exist')
+    FROM mysql.proc
+   WHERE db = database()
+     AND specific_name = 'insert_flip';
+
+  ROLLBACK;
+
+And:
+
+  -- Verify delete_flip
+
+  BEGIN;
+
+  SELECT sqitch.checkit(COUNT(*), 'Function "delete_flip" does not exist')
+    FROM mysql.proc
+   WHERE db = database()
+     AND specific_name = 'delete_flip';
+
+  ROLLBACK;
+
+The C<revert> scripts are:
+
+  -- Revert insert_flip
+
+  BEGIN;
+
+  DROP FUNCTION insert_flip;
+
+  COMMIT;
+
+And:
+
+  -- Revert delete_flip
+
+  BEGIN;
+
+  DROP FUNCTION delete_flip;
+
+  COMMIT;
+
+Check the L<example git repository|https://github.com/theory/sqitch-intro> for
+the complete details. Test L<C<deploy>|sqitch-deploy> and
+L<C<revert>|sqitch-revert>, then commit it to the repository. The status
+should end up looking something like this:
+
+  > sqitch status --show-tags
+  # On database flipr_test
+  # Project:  flipr
+  # Change:   59743222382be0668906c6d8f47b6ec60b440f6c
+  # Name:     delete_flip
+  # Deployed: 2013-07-02 17:00:56 +0200
+  # By:       Marge N. O’Vera <marge@example.com>
+  # 
+  # Tag:
+  #   @v1.0.0-dev1 - 2013-07-02 16:48:00 +0200 - Marge N. O’Vera <marge@example.com>
+  # 
+  Nothing to deploy (up-to-date)
+
+Good, we've finished this feature. Time to merge back into C<master>.
+
 =head1 More to Come
 
 Sqitch is a work in progress. Better integration with version control systems
