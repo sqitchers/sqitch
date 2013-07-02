@@ -38,12 +38,9 @@ isa_ok my $mysql = $CLASS->new(sqitch => $sqitch), $CLASS;
 
 my $client = 'mysql' . ($^O eq 'MSWin32' ? '.exe' : '');
 is $mysql->client, $client, 'client should default to mysql';
-is $mysql->sqitch_db, 'sqitch', 'sqitch_db default should be "sqitch"';
-for my $attr (qw(username password db_name host port destination)) {
+for my $attr (qw(username password db_name host port destination sqitch_db meta_destination)) {
     is $mysql->$attr, undef, "$attr default should be undef";
 }
-is $mysql->meta_destination, 'sqitch',
-    'meta_destination shoul default to "sqitch"';
 
 my @std_opts = (
     '--skip-pager',
@@ -54,7 +51,7 @@ my @std_opts = (
 is_deeply [$mysql->mysql], [$client, @std_opts],
     'mysql command should be std opts-only';
 
-isa_ok $mysql = $CLASS->new(sqitch => $sqitch), $CLASS;
+isa_ok $mysql = $CLASS->new(sqitch => $sqitch, db_name => 'foo'), $CLASS;
 ok $mysql->set_variables(foo => 'baz', whu => 'hi there', yo => 'stellar'),
     'Set some variables';
 is_deeply [$mysql->mysql], [
@@ -62,8 +59,11 @@ is_deeply [$mysql->mysql], [
     # '--foo' => 'baz',
     # '--whu' => 'hi there',
     # '--yo'  => 'stellar',
+    '--database' => 'foo',
     @std_opts,
 ], 'Variables should not be passed to mysql';
+is $mysql->sqitch_db, 'foo_sqitch',
+    'The default sqitch_db should be "foo_sqitch"';
 
 ##############################################################################
 # Make sure config settings override defaults.

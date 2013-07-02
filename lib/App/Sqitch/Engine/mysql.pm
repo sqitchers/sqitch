@@ -73,8 +73,14 @@ has sqitch_db => (
     lazy     => 1,
     required => 1,
     default  => sub {
-        shift->sqitch->config->get( key => 'core.mysql.sqitch_db' )
-            || 'sqitch';
+        my $self = shift;
+        $self->sqitch->config->get( key => 'core.mysql.sqitch_db' ) || do {
+            if (my $db = $self->db_name) {
+                $db . '_sqitch';
+            } else {
+                undef;
+            }
+        };
     },
 );
 

@@ -67,7 +67,7 @@ Let's have a look at F<sqitch.conf>:
   	# db_name = 
   	# host = 
   	# port = 
-  	# sqitch_db = sqitch
+  	# sqitch_db = 
 
 Good, it picked up on the fact that we're creating changes for the MySQL
 engine, thanks to the C<--engine mysql> option, and saved it to the file.
@@ -174,17 +174,19 @@ Now we can try deploying this change:
 
   > mysql -u root --execute 'CREATE DATABASE flipr_test'
   > sqitch --db-name flipr_test --db-user root deploy
-  Adding metadata tables to flipr_test
+  Adding metadata tables to flipr_test_sqitch
   Deploying to flipr_test
     + appuser .. ok
 
 First Sqitch created the metadata database and tables used to track database
 changes. This database is separate from the database to which the C<appuser>
-change was deployed; by default, it is named C<sqitch>, but if you'd like it
-to have a different name, set the C<core.mysql.sqitch_db> configuration
-variable:
+change was deployed; by default, it has the same name as the that database,
+but with C<_sqitch> appended to it, in this case C<flipr_test_sqitch>. But if
+you'd like it to have a different name, or want a single Sqitch instance to
+manage all of the databases on your server, set the C<core.mysql.sqitch_db>
+configuration variable:
 
-  > sqitch config core.mysql.sqitch_db $name
+  > sqitch config core.mysql.sqitch_db sqitch
 
 Ideally, only Sqitch data will be stored in this database, so it probably makes
 the most sense to create a superuser named C<sqitch> or something similar and
@@ -776,7 +778,7 @@ the last deployed change. Looks good. Let's do the commit and re-deploy dance:
 
   > sqitch verify
   Verifying flipr_test
-    * appuser .... ok
+    * appuser ...... ok
     * users ........ ok
     * insert_user .. ok
     * change_pass .. ok
