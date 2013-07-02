@@ -63,7 +63,8 @@ if ($have_sqlite) {
 if ($have_sqlite) {
     throws_ok { $sqlite->dbh } 'App::Sqitch::X', 'Should get an error for no db name';
     is $@->ident, 'sqlite', 'Missing db name error ident should be "sqlite"';
-    is $@->message, __ 'No database specified; use --db-name set "core.sqlite.db_name" via sqitch config',
+    is $@->message,
+        __ 'No database specified; use --db-name or set "core.sqlite.db_name" via sqitch config',
         'Missing db name error message should be correct';
 } else {
     throws_ok { $sqlite->dbh } 'App::Sqitch::X',
