@@ -1080,6 +1080,193 @@ should end up looking something like this:
 
 Good, we've finished this feature. Time to merge back into C<master>.
 
+=head2 Emergency
+
+Let's do it:
+
+  > git checkout master
+  Switched to branch 'master'
+  > git pull
+  Updating 384543e..7db6c07
+  Fast-forward
+   deploy/delete_list.sql | 23 +++++++++++++++++++++++
+   deploy/insert_list.sql | 26 ++++++++++++++++++++++++++
+   deploy/lists.sql       | 17 +++++++++++++++++
+   revert/delete_list.sql |  7 +++++++
+   revert/insert_list.sql |  7 +++++++
+   revert/lists.sql       |  7 +++++++
+   sqitch.plan            |  4 ++++
+   verify/delete_list.sql | 10 ++++++++++
+   verify/insert_list.sql | 10 ++++++++++
+   verify/lists.sql       |  8 ++++++++
+   10 files changed, 119 insertions(+)
+   create mode 100644 deploy/delete_list.sql
+   create mode 100644 deploy/insert_list.sql
+   create mode 100644 deploy/lists.sql
+   create mode 100644 revert/delete_list.sql
+   create mode 100644 revert/insert_list.sql
+   create mode 100644 revert/lists.sql
+   create mode 100644 verify/delete_list.sql
+   create mode 100644 verify/insert_list.sql
+   create mode 100644 verify/lists.sql
+
+Hrm, that's interesting. Looks like someone made some changes to C<master>.
+They added list support. Well, let's see what happens when we merge our
+changes.
+
+  > git merge --no-ff flips
+  Auto-merging sqitch.plan
+  CONFLICT (content): Merge conflict in sqitch.plan
+  Automatic merge failed; fix conflicts and then commit the result.
+
+Oh, a conflict in F<sqitch.plan>. Not too surprising, since both the merged
+C<lists> branch and our C<flips> branch added changes to the plan. Let's try a
+different approach.
+
+The truth is, we got lazy. Those changes when we pulled master from the origin
+should have raised a red flag. It's considered a bad practice not to look at
+what's changed in C<master> before merging in a branch. What one I<should> do
+is either:
+
+=over
+
+=item *
+
+Rebase the F<flips> branch from master before merging. This "rewinds" the
+branch changes, pulls from C<master>, and then replays the changes back on top
+of the pulled changes.
+
+=item *
+
+Create a patch and apply I<that> to master. This is the sort of thing you
+might have to do if you're sending changes to another user, especially if the
+VCS is not Git.
+
+=back
+
+So let's restore things to how they were at master:
+
+  > git reset --hard HEAD
+  HEAD is now at 7db6c07 Add functions to insert and delete lists.
+
+That throws out our botched merge. Now let's go back to our branch and rebase
+it on C<master>:
+
+  > git checkout flips
+  Switched to branch 'flips'
+  > git rebase master
+  First, rewinding head to replay your work on top of it...
+  Applying: Add flips table.
+  Using index info to reconstruct a base tree...
+  M	sqitch.plan
+  Falling back to patching base and 3-way merge...
+  Auto-merging sqitch.plan
+  CONFLICT (content): Merge conflict in sqitch.plan
+  Failed to merge in the changes.
+  Patch failed at 0001 Add flips table.
+  The copy of the patch that failed is found in:
+     /Users/david/dev/presentations/sqitch-intro-mysql/.git/rebase-apply/patch
+
+  When you have resolved this problem, run "git rebase --continue".
+  If you prefer to skip this patch, run "git rebase --skip" instead.
+  To check out the original branch and stop rebasing, run "git rebase --abort".
+
+Oy, that's kind of a pain. It seems like no matter what we do, we'll need to
+resolve conflicts in that file. Except in Git. Fortunately for us, we can tell
+Git to resolve conflicts in F<sqitch.plan> differently. Because we only ever
+append lines to the file, we can have it use the "union" merge driver, which,
+according to L<its
+docs|http://git-scm.com/docs/gitattributes#_built-in_merge_drivers>:
+
+=over
+
+Run 3-way file level merge for text files, but take lines from both versions,
+instead of leaving conflict markers. This tends to leave the added lines in
+the resulting file in random order and the user should verify the result. Do
+not use this if you do not understand the implications.
+
+=back
+
+This has the effect of appending lines from all the merging files, which is
+exactly what we need. So let's give it a try. First, back out the botched
+rebase:
+
+  > git rebase --abort
+
+Now add the union merge driver to F<.gitattributes> for F<sqitch.plan>
+and rebase again:
+
+  > echo sqitch.plan merge=union > .gitattributes
+  > git rebase master
+  First, rewinding head to replay your work on top of it...
+  Applying: Add flips table.
+  Using index info to reconstruct a base tree...
+  M	sqitch.plan
+  Falling back to patching base and 3-way merge...
+  Auto-merging sqitch.plan
+  Applying: Add functions to insert and delete flips.
+  Using index info to reconstruct a base tree...
+  M	sqitch.plan
+  Falling back to patching base and 3-way merge...
+  Auto-merging sqitch.plan
+
+Ah, that looks a bit better. Let's have a look at the plan:
+
+  > cat sqitch.plan 
+  %syntax-version=1.0.0-b2
+  %project=flipr
+  %uri=https://github.com/theory/sqitch-mysql-intro/
+
+  appuser 2013-07-02T14:16:12Z Marge N. O’Vera <marge@example.com> # Creates a an application user.
+  users [appuser] 2013-07-02T14:22:37Z Marge N. O’Vera <marge@example.com> # Creates table to track our users.
+  insert_user [users appuser] 2013-07-02T14:26:22Z Marge N. O’Vera <marge@example.com> # Creates a function to insert a user.
+  change_pass [users appuser] 2013-07-02T14:26:27Z Marge N. O’Vera <marge@example.com> # Creates a function to change a user password.
+  @v1.0.0-dev1 2013-07-02T14:32:07Z Marge N. O’Vera <marge@example.com> # Tag v1.0.0-dev1.
+
+  lists [appuser users] 2013-07-02T15:08:06Z Marge N. O’Vera <marge@example.com> # Adds table for storing lists.
+  insert_list [lists appuser users] 2013-07-02T16:28:39Z Marge N. O’Vera <marge@example.com> # Creates a function to insert a list.
+  delete_list [lists appuser users] 2013-07-02T16:28:56Z Marge N. O’Vera <marge@example.com> # Creates a function to delete a list.
+  flips [appuser users] 2013-07-02T14:40:25Z Marge N. O’Vera <marge@example.com> # Adds table for storing flips.
+  insert_flip [flips appuser users] 2013-07-02T14:55:06Z Marge N. O’Vera <marge@example.com> # Creates a function to insert a flip.
+  delete_flip [flips appuser users] 2013-07-02T14:55:15Z Marge N. O’Vera <marge@example.com> # Creates a function to delete a flip.
+
+Note that it has appended the changes from the merged "lists" branch, and then
+merged the changes from our "flips" branch. Test it to make sure it works as
+expected:
+
+  > sqitch rebase -y
+  Reverting all changes from flipr_test
+    - delete_flip ............... ok
+    - insert_flip ............... ok
+    - flips ..................... ok
+    - change_pass @v1.0.0-dev1 .. ok
+    - insert_user ............... ok
+    - users ..................... ok
+    - appuser ................... ok
+  Deploying changes to flipr_test
+    + appuser ................... ok
+    + users ..................... ok
+    + insert_user ............... ok
+    + change_pass @v1.0.0-dev1 .. ok
+    + lists ..................... ok
+    + insert_list ............... ok
+    + delete_list ............... ok
+    + flips ..................... ok
+    + insert_flip ............... ok
+    + delete_flip ............... ok
+
+Note the use of L<C<rebase>|sqitch-rebase>, which combines a
+L<C<revert>|sqitch-revert> and a L<C<deploy>|sqitch-deploy> into a single
+command. Handy, right? It correctly reverted our changes, and then deployed
+them all again in the proper order. So let's commit F<.gitattributes>; seems
+worthwhile to keep that change:
+
+  > git add .
+  > git commit -m 'Add `.gitattributes` with union merge for `sqitch.plan`.'
+  [flips 448040d] Add `.gitattributes` with union merge for `sqitch.plan`.
+   1 file changed, 1 insertion(+)
+   create mode 100644 .gitattributes
+
 =head1 More to Come
 
 Sqitch is a work in progress. Better integration with version control systems
