@@ -1348,6 +1348,319 @@ Note the use of the C<--dest-dir> option to C<sqitch bundle>. Just a nicer way
 to create the top-level directory name so we don't have to rename it from
 F<bundle>.
 
+=head1 In Place Changes
+
+Uh-oh, someone just noticed that MD5 hashing is not particularly secure. Why?
+Have a look at this:
+
+  > mysql -u root -D flipr_test --execute "
+      CALL insert_user('foo', 'secr3t');
+      CALL insert_user('bar', 'secr3t');
+      SELECT * FROM users;
+  "
+  +----------+----------------------------------+----------------------------+
+  | nickname | password                         | timestamp                  |
+  +----------+----------------------------------+----------------------------+
+  | bar      | 9695da4dd567a19f9b92065f240c6725 | 2013-07-02 19:32:52.747248 |
+  | foo      | 9695da4dd567a19f9b92065f240c6725 | 2013-07-02 19:32:52.740789 |
+  +----------+----------------------------------+----------------------------+
+
+If user "foo" ever got access to the database, she could quickly discover that
+user "bar" has the same password and thus be able to exploit the account. Not
+a great idea. So we need to modify the C<insert_user()> and C<change_pass()>
+functions to fix that. How?
+
+We can use MySQL's
+L<C<ENCRYPT()|https://dev.mysql.com/doc/refman/5.5/en/encryption-functions.html#function_encrypt>
+function to encrypt passwords with a salt, so that they're all unique. But how
+to deploy the changes to C<insert_user()> and C<change_pass()>?
+
+Normally, modifying functions in database changes is a
+L<PITA|http://www.urbandictionary.com/define.php?term=pita>. You have to make
+changes like these:
+
+=over
+
+=item 1.
+
+Copy F<deploy/insert_user.sql> to F<deploy/insert_user_encrypt.sql>.
+
+=item 2.
+
+Edit F<deploy/insert_user_encrypt.sql> to switch from C<MD5()> to C<ENCRYPT()>.
+
+=item 3.
+
+Copy F<deploy/insert_user.sql> to F<revert/insert_user_encrypt.sql>.
+Yes, copy the original change script to the new revert change.
+
+=item 4.
+
+Copy F<verify/insert_user.sql> to F<verify/insert_user_encrypt.sql>.
+
+=item 5.
+
+Edit F<verify/insert_user_encrypt.sql> to test that the function now properly
+uses C<ENCRYPT()>.
+
+=item 6.
+
+Test the changes to make sure you can deploy and revert the
+C<insert_user_encrypt> change.
+
+=item 7.
+
+Now do the same for the C<change_pass> scripts.
+
+=back
+
+But you can have Sqitch do it for you. The only requirement is that a tag
+appear between the two instances of a change we want to modify. In general,
+you're going to make a change like this after a release, which you've tagged
+anyway, right? Well we have, with C<@v1.0.0-dev2> added in the previous
+section. With that, we can let Sqitch do most of the hard work for us, thanks
+to the L<C<rework>|sqitch-rework> command, which is similar to
+L<C<add>|sqitch-add>:
+
+  > sqitch rework insert_user -n 'Change insert_user to use encyrpt().'
+  Added "insert_user [insert_user@v1.0.0-dev2]" to sqitch.plan.
+  Modify these files as appropriate:
+    * deploy/insert_user.sql
+    * revert/insert_user.sql
+    * verify/insert_user.sql
+
+Oh, so we can edit those files in place. Nice! How does Sqitch do it? Well, in
+point of fact, it has copied the files to stand in for the previous instance
+of the C<insert_user> change, which we can see via C<git status>:
+
+  > git status
+  # On branch master
+  # Changes not staged for commit:
+  #   (use "git add <file>..." to update what will be committed)
+  #   (use "git checkout -- <file>..." to discard changes in working directory)
+  #
+  #	modified:   revert/insert_user.sql
+  #	modified:   sqitch.plan
+  #
+  # Untracked files:
+  #   (use "git add <file>..." to include in what will be committed)
+  #
+  #	deploy/insert_user@v1.0.0-dev2.sql
+  #	revert/insert_user@v1.0.0-dev2.sql
+  #	verify/insert_user@v1.0.0-dev2.sql
+  no changes added to commit (use "git add" and/or "git commit -a")
+
+The "untracked files" part of the output is the first thing to notice. They
+are all named C<insert_user@v1.0.0-dev2.sql>. What that means is: "the
+C<insert_user> change as it was implemented as of the C<@v1.0.0-dev2> tag."
+These are copies of the original scripts, and thereafter Sqitch will find them
+when it needs to run scripts for the first instance of the C<insert_user>
+change. As such, it's important not to change them again. But hey, if you're
+reworking the change, you shouldn't need to.
+
+The other thing to notice is that F<revert/insert_user.sql> has changed.
+Sqitch replaced it with the original deploy script. As of now,
+F<deploy/insert_user.sql> and F<revert/insert_user.sql> are identical. This is
+on the assumption that the deploy script will be changed (we're reworking it,
+remember?), and that the revert script should actually change things back to
+how they were before. Of course, the original deploy script may not be
+L<idempotent|http://en.wikipedia.org/wiki/Idempotence> -- that is, able to be
+applied multiple times without changing the result beyond the initial
+application. If it's not, you will likely need to modify it so that it
+properly restores things to how they were after the original deploy script was
+deployed. Or, more simply, it should revert changes back to how they were
+as-of the deployment of F<deploy/insert_user@v1.0.0-dev2.sql>.
+
+Had MySQL supported an C<OR REPLACE> expression on C<CREATE FUNCTION> and we
+had used it, our function deploy scripts would already idempotent. No matter
+how many times they were run, the end results would be the same instance of
+the function, with no duplicates or errors.
+
+Alas, such is not the case for MySQL, so we will have to modify the scripts to
+drop the function before re-creating it. So let's do it. We'll modify the
+scripts drop and re-create the functions with to use C<ENCRYPT()>. Make this
+change to F<deploy/insert_user.sql>:
+
+  @@ -6,13 +6,14 @@ BEGIN;
+ 
+   DELIMITER //
+ 
+  +DROP PROCEDURE insert_user;
+   CREATE PROCEDURE insert_user(
+       nickname VARCHAR(512),
+       password VARCHAR(512)
+   ) SQL SECURITY DEFINER
+   BEGIN
+       INSERT INTO users (nickname, password, timestamp)
+  -    VALUES (nickname, md5(password), UTC_TIMESTAMP(6));
+  +    VALUES (nickname, ENCRYPT(md5(password), md5(FLOOR(RAND() * 0xFFFFFFFF))), UTC_TIMESTAMP(6));
+   END
+   //
+
+We just need to add the C<DROP> statement to the revert script:
+
+  @@ -6,6 +6,7 @@ BEGIN;
+ 
+   DELIMITER //
+ 
+  +DROP PROCEDURE insert_user;
+   CREATE PROCEDURE insert_user(
+       nickname VARCHAR(512),
+       password VARCHAR(512)
+
+Go ahead and rework the C<change_pass> change, too:
+
+  > sqitch rework change_pass --requires mysqlcrypto -n 'Change change_pass to use encrypt().' 
+  Added "change_pass [change_pass@v1.0.0-dev2]" to sqitch.plan.
+  Modify these files as appropriate:
+    * deploy/change_pass.sql
+    * revert/change_pass.sql
+    * verify/change_pass.sql
+
+And make this change to F<deploy/change_pass.sql>:
+
+  @@ -6,6 +6,7 @@ BEGIN;
+ 
+   DELIMITER //
+ 
+  +DROP FUNCTION change_pass;
+   CREATE FUNCTION change_pass(
+       nickname VARCHAR(512),
+       oldpass  VARCHAR(512),
+  @@ -13,9 +14,9 @@ CREATE FUNCTION change_pass(
+   ) RETURNS INTEGER SQL SECURITY DEFINER
+   BEGIN
+       UPDATE users
+  -       SET password = md5(newpass)
+  +       SET password = ENCRYPT(md5(newpass), md5(FLOOR(RAND() * 0xFFFFFFFF)))
+        WHERE nickname = nickname
+  -       AND password = md5(oldpass);
+  +       AND password = ENCRYPT(md5(oldpass), password);
+       RETURN ROW_COUNT();
+   END;
+   //
+
+And add the C<DROP FUNCTION> statement to its revert script, too:
+
+  @@ -6,6 +6,7 @@ BEGIN;
+ 
+   DELIMITER //
+ 
+  +DROP FUNCTION change_pass;
+   CREATE FUNCTION change_pass(
+       nickname VARCHAR(512),
+       oldpass  VARCHAR(512),
+
+And now we're ready to try a deployment:
+
+  > sqitch deploy
+  Deploying changes to flipr_test
+    + insert_user .. ok
+    + change_pass .. ok
+
+So, are the changes deployed?
+
+  > mysql -u root -D flipr_test --execute "
+      DELETE FROM users;
+      CALL insert_user('foo', 'secr3t');
+      CALL insert_user('bar', 'secr3t');
+      SELECT * FROM users;
+  "
+  +----------+---------------+----------------------------+
+  | nickname | password      | timestamp                  |
+  +----------+---------------+----------------------------+
+  | bar      | e4G8xXZjHow.s | 2013-07-02 19:58:39.374555 |
+  | foo      | f27RX5CKfjjAc | 2013-07-02 19:58:39.374226 |
+  +----------+---------------+----------------------------+
+
+Awesome, the stored passwords are different now. But can we revert, even
+though we haven't written any reversion scripts?
+
+  > sqitch revert --to @HEAD^^ -y
+  Reverting changes to mysqlcrypto from flipr_test
+    - change_pass .. ok
+    - insert_user .. ok
+
+Did that work, are the C<MD5()> passwords back?
+
+  > mysql -u root -D flipr_test --execute "
+      DELETE FROM users;
+      CALL insert_user('foo', 'secr3t');
+      CALL insert_user('bar', 'secr3t');
+      SELECT * FROM users;
+  "
+  +----------+----------------------------------+----------------------------+
+  | nickname | password                         | timestamp                  |
+  +----------+----------------------------------+----------------------------+
+  | bar      | 9695da4dd567a19f9b92065f240c6725 | 2013-07-02 19:59:23.963402 |
+  | foo      | 9695da4dd567a19f9b92065f240c6725 | 2013-07-02 19:59:23.962958 |
+  +----------+----------------------------------+----------------------------+
+
+Yes, it works! Sqitch properly finds the original instances of these changes
+in the new script files that include tags.
+
+But what about the verify script? How can we verify that the functions have
+been modified to use C<ENCRYPT()>? I think the simplest thing to do is to
+examine the body of the function as returned by
+L<C<INFORMATION_SCHEMA.ROUTINES>|http://dev.mysql.com/doc/refman/5.6/en/routines-table.html>
+So the C<insert_user> verify script looks like this:
+
+  -- Verify insert_user
+
+  BEGIN;
+
+  SELECT sqitch.checkit(COUNT(*), 'Procedure "insert_user" does not exist or is not up-to-date')
+    FROM mysql.proc
+   WHERE db = database()
+     AND specific_name = 'insert_user'
+     AND body_utf8 LIKE '%ENCRYPT(md5(password), md5(FLOOR(RAND() * 0xFFFFFFFF))%';
+
+  ROLLBACK;
+
+And the C<change_pass> verify script looks like this:
+
+  -- Verify change_pass
+
+  BEGIN;
+
+  SELECT sqitch.checkit(COUNT(*), 'Procedure "change_pass" does not exist or is not up-to-date')
+    FROM mysql.proc
+   WHERE db = database()
+     AND specific_name = 'change_pass'
+     AND body_utf8 LIKE '%ENCRYPT(md5(oldpass), password)%';
+
+  ROLLBACK;
+
+Make sure these pass by re-deploying:
+
+  > sqitch deploy
+  Deploying changes to flipr_test
+    + insert_user .. ok
+    + change_pass .. ok
+
+Excellent. Let's go ahead and commit these changes:
+
+  > git add .
+  > git commit -m 'Use encrypt() to encrypt passwords.'
+  [master c1389e5] Use encrypt() to encrypt passwords.
+   13 files changed, 137 insertions(+), 9 deletions(-)
+   create mode 100644 deploy/change_pass@v1.0.0-dev2.sql
+   create mode 100644 deploy/insert_user@v1.0.0-dev2.sql
+   create mode 100644 revert/change_pass@v1.0.0-dev2.sql
+   create mode 100644 revert/insert_user@v1.0.0-dev2.sql
+   create mode 100644 verify/change_pass@v1.0.0-dev2.sql
+   create mode 100644 verify/insert_user@v1.0.0-dev2.sql
+
+  > sqitch status
+  # On database flipr_test
+  # Project:  flipr
+  # Change:   4e7e669026c067c2d7db759aa2a9978ab4d1b9f2
+  # Name:     change_pass
+  # Deployed: 2013-07-02 22:17:06 +0200
+  # By:       Marge N. O’Vera <marge@example.com>
+  # 
+  Nothing to deploy (up-to-date)
+
 =head1 More to Come
 
 Sqitch is a work in progress. Better integration with version control systems

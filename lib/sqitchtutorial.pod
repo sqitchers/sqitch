@@ -1468,10 +1468,6 @@ Go ahead and rework the C<change_pass> change, too:
 
 And make this change to F<deploy/change_pass.sql>:
 
-  diff --git a/deploy/change_pass.sql b/deploy/change_pass.sql
-  index b2e7422..352649e 100644
-  --- a/deploy/change_pass.sql
-  +++ b/deploy/change_pass.sql
   @@ -1,6 +1,7 @@
    -- Deploy change_pass
    -- requires: users
