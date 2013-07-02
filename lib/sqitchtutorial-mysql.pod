@@ -51,7 +51,7 @@ identifiers internally, so let's specify one when we initialize Sqitch:
 
 Let's have a look at F<sqitch.conf>:
 
-  > cat sqitch.conf 
+  > cat sqitch.conf
   [core]
   	engine = mysql
   	# plan_file = sqitch.plan
@@ -1212,7 +1212,7 @@ and rebase again:
 
 Ah, that looks a bit better. Let's have a look at the plan:
 
-  > cat sqitch.plan 
+  > cat sqitch.plan
   %syntax-version=1.0.0-b2
   %project=flipr
   %uri=https://github.com/theory/sqitch-mysql-intro/
@@ -1266,6 +1266,87 @@ worthwhile to keep that change:
   [flips 448040d] Add `.gitattributes` with union merge for `sqitch.plan`.
    1 file changed, 1 insertion(+)
    create mode 100644 .gitattributes
+
+=head2 Merges Mastered
+
+And now, finally, we can merge into C<master>:
+
+  > git checkout master
+  Switched to branch 'master'
+  > git merge --no-ff flips
+  Merge made by the 'recursive' strategy.
+   .gitattributes         |  1 +
+   deploy/delete_flip.sql | 23 +++++++++++++++++++++++
+   deploy/flips.sql       | 16 ++++++++++++++++
+   deploy/insert_flip.sql | 25 +++++++++++++++++++++++++
+   revert/delete_flip.sql |  7 +++++++
+   revert/flips.sql       |  7 +++++++
+   revert/insert_flip.sql |  7 +++++++
+   sqitch.plan            |  3 +++
+   verify/delete_flip.sql | 10 ++++++++++
+   verify/flips.sql       | 12 ++++++++++++
+   verify/insert_flip.sql | 10 ++++++++++
+   11 files changed, 121 insertions(+)
+   create mode 100644 .gitattributes
+   create mode 100644 deploy/delete_flip.sql
+   create mode 100644 deploy/flips.sql
+   create mode 100644 deploy/insert_flip.sql
+   create mode 100644 revert/delete_flip.sql
+   create mode 100644 revert/flips.sql
+   create mode 100644 revert/insert_flip.sql
+   create mode 100644 verify/delete_flip.sql
+   create mode 100644 verify/flips.sql
+   create mode 100644 verify/insert_flip.sql
+
+And double-check our work:
+
+  > cat sqitch.plan
+  %syntax-version=1.0.0-b2
+  %project=flipr
+  %uri=https://github.com/theory/sqitch-mysql-intro/
+
+  appuser 2013-07-02T14:16:12Z Marge N. O’Vera <marge@example.com> # Creates a an application user.
+  users [appuser] 2013-07-02T14:22:37Z Marge N. O’Vera <marge@example.com> # Creates table to track our users.
+  insert_user [users appuser] 2013-07-02T14:26:22Z Marge N. O’Vera <marge@example.com> # Creates a function to insert a user.
+  change_pass [users appuser] 2013-07-02T14:26:27Z Marge N. O’Vera <marge@example.com> # Creates a function to change a user password.
+  @v1.0.0-dev1 2013-07-02T14:32:07Z Marge N. O’Vera <marge@example.com> # Tag v1.0.0-dev1.
+
+  lists [appuser users] 2013-07-02T15:08:06Z Marge N. O’Vera <marge@example.com> # Adds table for storing lists.
+  insert_list [lists appuser users] 2013-07-02T16:28:39Z Marge N. O’Vera <marge@example.com> # Creates a function to insert a list.
+  delete_list [lists appuser users] 2013-07-02T16:28:56Z Marge N. O’Vera <marge@example.com> # Creates a function to delete a list.
+  flips [appuser users] 2013-07-02T14:40:25Z Marge N. O’Vera <marge@example.com> # Adds table for storing flips.
+  insert_flip [flips appuser users] 2013-07-02T14:55:06Z Marge N. O’Vera <marge@example.com> # Creates a function to insert a flip.
+  delete_flip [flips appuser users] 2013-07-02T14:55:15Z Marge N. O’Vera <marge@example.com> # Creates a function to delete a flip.
+
+Much much better, a nice clean master now. And because it is now identical to
+the "flips" branch, we can just carry on. Go ahead and tag it, bundle, and
+release:
+
+  > sqitch tag v1.0.0-dev2 -n 'Tag v1.0.0-dev2.'
+  Tagged "delete_flip" with @v1.0.0-dev2
+  > git commit -am 'Tag the database with v1.0.0-dev2.'
+  [master db1afdd] Tag the database with v1.0.0-dev2.
+   1 file changed, 1 insertion(+)
+  > git tag v1.0.0-dev2 -am 'Tag v1.0.0-dev2'
+  > sqitch bundle --dest-dir flipr-1.0.0-dev2
+  Bundling into flipr-1.0.0-dev2
+  Writing config
+  Writing plan
+  Writing scripts
+    + appuser
+    + users
+    + insert_user
+    + change_pass @v1.0.0-dev1
+    + lists
+    + insert_list
+    + delete_list
+    + flips
+    + insert_flip
+    + delete_flip @v1.0.0-dev2
+
+Note the use of the C<--dest-dir> option to C<sqitch bundle>. Just a nicer way
+to create the top-level directory name so we don't have to rename it from
+F<bundle>.
 
 =head1 More to Come
 
