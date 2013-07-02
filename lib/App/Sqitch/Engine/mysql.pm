@@ -259,17 +259,27 @@ sub initialize {
     $self->sqitch->run( @cmd, '--execute', "source $file" );
 }
 
-# Override to lock the changes table. This ensures that only one instance of
+# Override to lock the Sqitch tables. This ensures that only one instance of
 # Sqitch runs at one time.
 sub begin_work {
     my $self = shift;
     my $dbh = $self->dbh;
 
     # Start transaction and lock all tables to disallow concurrent changes.
-    $dbh->begin_work;
     $dbh->do('LOCK TABLES ' . join ', ', map {
         "$_ WRITE"
     } qw(changes dependencies events projects tags));
+    $dbh->begin_work;
+    return $self;
+}
+
+# Override to unlock the tables, otherwise future transactions on this
+# connection can fail.
+sub finish_work {
+    my $self = shift;
+    my $dbh = $self->dbh;
+    $dbh->commit;
+    $dbh->do('UNLOCK TABLES');
     return $self;
 }
 
