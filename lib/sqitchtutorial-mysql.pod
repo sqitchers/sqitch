@@ -849,7 +849,112 @@ C<@v1.0.0-dev1>. Let's have a look at the status:
   # 
   Nothing to deploy (up-to-date)
 
-Looks good, eh? Package it up and ship it!
+Looks good, eh? Go ahead and revert it:
+
+  > sqitch --db-name flipr_dev revert -y
+    - change_pass @v1.0.0-dev1 .. ok
+    - insert_user ............... ok
+    - users ..................... ok
+    - appuser ................... ok
+
+Now package it up and ship it!
+
+=head1 Flip Out
+
+Now that we've got the basics of user management done, let's get to work on
+the core of our product, the "flip." Since other folks are working on other
+tasks in the repository, we'll work on a branch, so we can all stay out of
+each other's way. So let's branch:
+
+  > git checkout -b flips
+  Switched to a new branch 'flips'
+
+Now we can add a new change to create a table for our flips.
+
+  > sqitch add flips -r appuser -r users -n 'Adds table for storing flips.'
+  Created deploy/flips.sql
+  Created revert/flips.sql
+  Created verify/flips.sql
+  Added "flips [appuser users]" to sqitch.plan
+
+You know the drill by now. Edit F<deploy/flips.sql>:
+
+  -- Deploy flips
+  -- requires: appuser
+  -- requires: users
+
+  BEGIN;
+
+  SET client_min_messages = 'warning';
+
+  CREATE TABLE flipr.flips (
+      id        BIGSERIAL   PRIMARY KEY,
+      nickname  TEXT        NOT NULL REFERENCES flipr.users(nickname),
+      body      TEXT        NOT NULL DEFAULT '' CHECK ( length(body) <= 180 ),
+      timestamp TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp()
+  );
+
+  COMMIT;
+
+Edit F<verify/flips.sql>:
+
+  -- Verify flips
+
+  BEGIN;
+
+  SELECT id
+       , nickname
+       , body
+       , timestamp
+    FROM flipr.flips
+   WHERE FALSE;
+
+  COMMIT;
+
+And edit F<revert/flips.sql>:
+
+  -- Revert flips
+
+  BEGIN;
+
+  DROP TABLE flipr.flips;
+
+  COMMIT;
+
+And give it a whirl:
+
+  > sqitch deploy
+  Deploying changes to flipr_test
+    + appuser ................... ok
+    + users ..................... ok
+    + insert_user ............... ok
+    + change_pass @v1.0.0-dev1 .. ok
+    + flips ..................... ok
+
+Look good?
+
+  > sqitch status --show-tags
+  # On database flipr_test
+  # Project:  flipr
+  # Change:   3c96c238a06f0a72f2321cb26d66ce682702cbfe
+  # Name:     flips
+  # Deployed: 2013-07-02 16:48:00 +0200
+  # By:       Marge N. O’Vera <marge@example.com>
+  # 
+  # Tag:
+  #   @v1.0.0-dev1 - 2013-07-02 16:48:00 +0200 - Marge N. O’Vera <marge@example.com>
+  # 
+  Nothing to deploy (up-to-date)
+
+Note the use of C<--show tags> to show all the deployed tags. Now make it so:
+
+  > git add .
+  > git commit -am 'Add flips table.'
+  [flips 23fea3b] Add flips table.
+   4 files changed, 37 insertions(+)
+   create mode 100644 deploy/flips.sql
+   create mode 100644 revert/flips.sql
+   create mode 100644 verify/flips.sql
 
 =head1 More to Come
 
