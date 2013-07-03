@@ -99,6 +99,12 @@ sub run {
         is_deeply all( $engine->search_events ), [], 'Should have no events';
 
         ##########################################################################
+        # Test the database connection, if appropriate.
+        if (my $code = $p{test_dbh}) {
+            $code->($engine->dbh);
+        }
+
+        ##########################################################################
         # Test register_project().
         can_ok $engine, 'register_project';
         can_ok $engine, 'registered_projects';
@@ -213,6 +219,7 @@ sub run {
         ok !$engine->is_deployed_change($change), 'The change should not be deployed';
         is_deeply [$engine->are_deployed_changes($change)], [],
             'The change should not be deployed';
+
         ok $engine->log_deploy_change($change), 'Deploy "users" change';
         ok $engine->is_deployed_change($change), 'The change should now be deployed';
         is_deeply [$engine->are_deployed_changes($change)], [$change->id],
@@ -834,7 +841,11 @@ sub run {
         is $engine->latest_change_id(2), $change2->id, 'Should get "widgets" offset 2 from latest';
         is $engine->latest_change_id(3), $change->id,  'Should get "users" offset 3 from latest';
 
-        is_deeply $engine->current_state, {
+        $state = $engine->current_state;
+        # MySQL's group_concat() does not by default sort by row order, alas.
+        $state->{tags} = [ sort @{ $state->{tags} } ]
+            if $class eq 'App::Sqitch::Engine::mysql';
+        is_deeply $state, {
             project         => 'engine',
             change_id       => $barney->id,
             change          => 'barney',
@@ -1571,16 +1582,15 @@ sub dt_for_event {
         ) WHERE rnum = ?
     }, undef, $offset + 1)->[0]) if $dbh->{Driver}->{Name} eq 'Oracle';
     return $dtfunc->($engine->dbh->selectcol_arrayref(
-        "SELECT $col FROM events ORDER BY committed_at ASC LIMIT 1 OFFSET ?",
-        undef, $offset
+        "SELECT $col FROM events ORDER BY committed_at ASC LIMIT 1 OFFSET $offset",
     )->[0]);
 }
 
 sub all_changes {
     shift->dbh->selectall_arrayref(q{
-        SELECT change_id, change, project, note, committer_name, committer_email,
+        SELECT change_id, c.change, project, note, committer_name, committer_email,
                planner_name, planner_email
-          FROM changes
+          FROM changes c
          ORDER BY committed_at
     });
 }
@@ -1596,9 +1606,9 @@ sub all_tags {
 
 sub all_events {
     shift->dbh->selectall_arrayref(q{
-        SELECT event, change_id, change, project, note, requires, conflicts, tags,
+        SELECT event, change_id, e.change, project, note, requires, conflicts, tags,
                committer_name, committer_email, planner_name, planner_email
-          FROM events
+          FROM events e
          ORDER BY committed_at
     });
 }

@@ -2,8 +2,8 @@ App/Sqitch version 0.973
 ========================
 
 [Sqitch](http://sqitch.org/) is a database change management application. It
-currently supports PostgreSQL 8.4 and higher, SQLite 3, and Oracle 10g and
-higher.
+currently supports PostgreSQL 8.4 and higher, SQLite 3.7.11 and higher, MySQL
+5.6.4 and higher,, and Oracle 10g and higher.
 
 What makes it different from your typical
 [migration](http://guides.rubyonrails.org/migrations.html) approaches? A few
@@ -55,6 +55,8 @@ Want to learn more? The best place to start is in the tutorials:
 
 * [Introduction to Sqitch on PostgreSQL](lib/sqitchtutorial.pod)
 * [Introduction to Sqitch on SQLite](lib/sqitchtutorial-sqlite.pod)
+* [Introduction to Sqitch on Oracle](lib/sqitchtutorial-oracle.pod)
+* [Introduction to Sqitch on MySQL](lib/sqitchtutorial-mysql.pod)
 
 Installation
 ------------

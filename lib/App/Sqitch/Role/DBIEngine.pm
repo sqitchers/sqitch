@@ -4,6 +4,7 @@ use 5.010;
 use strict;
 use warnings;
 use utf8;
+use DBI;
 use Mouse::Role;
 use Try::Tiny;
 use App::Sqitch::X qw(hurl);
@@ -119,20 +120,20 @@ sub current_state {
 
 sub current_changes {
     my ( $self, $project ) = @_;
-    my $cdtcol = sprintf $self->_ts2char_format, 'committed_at';
-    my $pdtcol = sprintf $self->_ts2char_format, 'planned_at';
+    my $cdtcol = sprintf $self->_ts2char_format, 'c.committed_at';
+    my $pdtcol = sprintf $self->_ts2char_format, 'c.planned_at';
     my $sth    = $self->dbh->prepare(qq{
-        SELECT change_id
-             , change
-             , committer_name
-             , committer_email
+        SELECT c.change_id
+             , c.change
+             , c.committer_name
+             , c.committer_email
              , $cdtcol AS committed_at
-             , planner_name
-             , planner_email
+             , c.planner_name
+             , c.planner_email
              , $pdtcol AS planned_at
-          FROM changes
+          FROM changes c
          WHERE project = ?
-         ORDER BY changes.committed_at DESC
+         ORDER BY c.committed_at DESC
     });
     $sth->execute($project // $self->plan->project);
     return sub {
@@ -184,10 +185,10 @@ sub search_events {
     my (@wheres, @params);
     my $op = $self->_regex_op;
     for my $spec (
-        [ committer => 'committer_name' ],
-        [ planner   => 'planner_name'   ],
-        [ change    => 'change'         ],
-        [ project   => 'project'        ],
+        [ committer => 'e.committer_name' ],
+        [ planner   => 'e.planner_name'   ],
+        [ change    => 'e.change'         ],
+        [ project   => 'e.project'        ],
     ) {
         my $regex = delete $p{ $spec->[0] } // next;
         push @wheres => "$spec->[1] $op ?";
@@ -197,7 +198,7 @@ sub search_events {
     # Match events?
     if (my $e = delete $p{event} ) {
         my ($in, @vals) = $self->_in_expr( $e );
-        push @wheres => "event $in";
+        push @wheres => "e.event $in";
         push @params => @vals;
     }
 
@@ -216,7 +217,7 @@ sub search_events {
         }
         if (my $off = delete $p{offset}) {
             if (!$lim && ($lim = $self->_limit_default)) {
-                # SQLite requires LIMIT when OFFSET is set.
+                # Some drivers require LIMIT when OFFSET is set.
                 $limits = "\n         LIMIT ?";
                 push @params => $lim;
             }
@@ -229,25 +230,25 @@ sub search_events {
         . join ', ', sort keys %p if %p;
 
     # Prepare, execute, and return.
-    my $cdtcol = sprintf $self->_ts2char_format, 'committed_at';
-    my $pdtcol = sprintf $self->_ts2char_format, 'planned_at';
+    my $cdtcol = sprintf $self->_ts2char_format, 'e.committed_at';
+    my $pdtcol = sprintf $self->_ts2char_format, 'e.planned_at';
     my $sth = $self->dbh->prepare(qq{
-        SELECT event
-             , project
-             , change_id
-             , change
-             , note
-             , requires
-             , conflicts
-             , tags
-             , committer_name
-             , committer_email
+        SELECT e.event
+             , e.project
+             , e.change_id
+             , e.change
+             , e.note
+             , e.requires
+             , e.conflicts
+             , e.tags
+             , e.committer_name
+             , e.committer_email
              , $cdtcol AS committed_at
-             , planner_name
-             , planner_email
+             , e.planner_name
+             , e.planner_email
              , $pdtcol AS planned_at
-          FROM events$where
-         ORDER BY events.committed_at $dir$limits
+          FROM events e$where
+         ORDER BY e.committed_at $dir$limits
     });
     $sth->execute(@params);
     return sub {
@@ -381,7 +382,7 @@ sub log_deploy_change {
     $dbh->do(qq{
         INSERT INTO changes (
               change_id
-            , change
+            , "change"
             , project
             , note
             , committer_name
@@ -471,7 +472,7 @@ sub _log_event {
         INSERT INTO events (
               event
             , change_id
-            , change
+            , "change"
             , project
             , note
             , tags
@@ -525,7 +526,7 @@ sub changes_requiring_change {
 sub name_for_change_id {
     my ( $self, $change_id ) = @_;
     return $self->dbh->selectcol_arrayref(q{
-        SELECT change || COALESCE((
+        SELECT c.change || COALESCE((
             SELECT tag
               FROM changes c2
               JOIN tags ON c2.change_id = tags.change_id
@@ -571,12 +572,12 @@ sub log_new_tags {
             SELECT i.* FROM (
                          } . join(
                 "\n               UNION ALL ",
-                ("SELECT ? AS tid, ?, ?, ?, ?, ?, ?, ?, ?, ?, $ts$sf") x @tags
+                ("SELECT ? AS tid, ? AS tname, ? AS proj, ? AS cid, ? AS note, ? AS cuser, ? AS cemail, ? AS tts, ? AS puser, ? AS pemail, $ts$sf") x @tags
             ) . q{
             ) i
               LEFT JOIN tags ON i.tid = tags.tag_id
              WHERE tags.tag_id IS NULL
-         },
+        },
         undef,
         map { (
             $_->id,
@@ -717,11 +718,17 @@ sub change_offset_from_id {
     my $tscol  = sprintf $self->_ts2char_format, 'c.planned_at';
     my $tagcol = sprintf $self->_listagg_format, 't.tag';
 
-    # SQLite requires LIMIT when there is an OFFSET.
-    my $limit  = '';
-    if (my $lim = $self->_limit_default) {
-        $limit = "LIMIT $lim ";
+    $offset = abs($offset) - 1;
+    my ($offset_expr, $limit_expr) = ('', '');
+    if ($offset) {
+        $offset_expr = "OFFSET $offset";
+
+        # Some engines require LIMIT when there is an OFFSET.
+        if (my $lim = $self->_limit_default) {
+            $limit_expr = "LIMIT $lim ";
+        }
     }
+
     my $change = $self->dbh->selectrow_hashref(qq{
         SELECT c.change_id AS id, c.change AS name, c.project, c.note,
                $tscol AS timestamp, c.planner_name, c.planner_email,
@@ -735,8 +742,8 @@ sub change_offset_from_id {
          GROUP BY c.change_id, c.change, c.project, c.note, c.planned_at,
                c.planner_name, c.planner_email, c.committed_at
          ORDER BY c.committed_at $dir
-         ${limit}OFFSET ?
-    }, undef, $self->plan->project, $change_id, abs($offset) - 1) || return undef;
+         $limit_expr $offset_expr
+    }, undef, $self->plan->project, $change_id) || return undef;
     $change->{timestamp} = _dt $change->{timestamp};
     unless (ref $change->{tags}) {
         $change->{tags} = $change->{tags} ? [ split / / => $change->{tags} ] : [];
@@ -750,7 +757,7 @@ sub _cid_head {
         SELECT change_id
           FROM changes
          WHERE project = ?
-           AND change  = ?
+           AND changes.change  = ?
          ORDER BY committed_at DESC
          LIMIT 1
     }, undef, $project, $change)->[0];
@@ -797,7 +804,7 @@ sub change_id_for {
             SELECT change_id
               FROM changes
              WHERE project = ?
-               AND change  = ?
+               AND changes.change  = ?
         }, undef, $project, $change);
         return $ids->[0] if @{ $ids } < 2;
         hurl engine => __x(
@@ -935,6 +942,10 @@ The SQLite engine.
 =item L<App::Sqitch::Engine::oracle>
 
 The Oracle engine.
+
+=item L<App::Sqitch::Engine::mysql>
+
+The MySQL engine.
 
 =back
 

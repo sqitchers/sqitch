@@ -63,7 +63,8 @@ if ($have_sqlite) {
 if ($have_sqlite) {
     throws_ok { $sqlite->dbh } 'App::Sqitch::X', 'Should get an error for no db name';
     is $@->ident, 'sqlite', 'Missing db name error ident should be "sqlite"';
-    is $@->message, __ 'No database specified; use --db-name set "core.sqlite.db_name" via sqitch config',
+    is $@->message,
+        __ 'No database specified; use --db-name or set "core.sqlite.db_name" via sqitch config',
         'Missing db name error message should be correct';
 } else {
     throws_ok { $sqlite->dbh } 'App::Sqitch::X',
@@ -200,7 +201,7 @@ DBIEngineTest->run(
 
         # Should have the database handle and client.
         $self->dbh && $self->sqitch->probe( $self->client, '-version' );
-+
+
         # Make sure we have a supported version.
         my $version = $self->dbh->{sqlite_version};
         my @v = split /[.]/ => $version;
@@ -212,6 +213,12 @@ DBIEngineTest->run(
         'Sqitch database {database} already initialized',
         database => $alt_db,
     ),
+    test_dbh => sub {
+        my $dbh = shift;
+        # Make sure foreign key constraints are enforced.
+        ok $dbh->selectcol_arrayref('PRAGMA foreign_keys')->[0],
+            'The foreign_keys pragma should be enabled';
+    },
     add_second_format => q{strftime('%%Y-%%m-%%d %%H:%%M:%%f', strftime('%%J', %s) + (1/86400.0))},
 );
 

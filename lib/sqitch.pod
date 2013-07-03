@@ -221,6 +221,8 @@ The database engine to use. Supported engines include:
 
 =item * C<oracle> - L<Oracle|http://www.oracle.com/us/products/database/>
 
+=item * C<mysql> - L<MySQL|http://dev.mysql.com/>
+
 =back
 
 =item C<--db-client>
@@ -238,7 +240,7 @@ in the current path named appropriately for the specified engine.
   sqitch -d bricolage
 
 Name of the database. For some engines, such as
-L<PostgreSQL|http://postgresql.org/> and
+L<PostgreSQL|http://postgresql.org/>, L<MySQL|http://dev.mysql.com/>, and
 L<Oracle|http://www.oracle.com/us/products/database/>, the database must
 already exist. For others, such as L<SQLite|http://sqlite.org/>, the database
 will be automatically created on first connect.
@@ -462,11 +464,15 @@ point to system-specific engine information:
       client    = /usr/local/pgsql/bin/psql
       username  = theory
 
-  [core.oracle]
+  [core "mysql"]
+      client    = /usr/local/mysql/bin/mysql
+      username  = root
+
+  [core "oracle"]
       client    = /usr/local/instantclient_11_2/sqlplus
       username  = scott
 
-  [core.sqlite]
+  [core "sqlite"]
       client    = /usr/local/bin/sqlite3
 
 Various commands read from the configuration file and adjust their operation

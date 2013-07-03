@@ -22,6 +22,7 @@ EBNF
 UTF
 ftw
 MySQL
+MySQL's
 ORM
 blog
 depesz
