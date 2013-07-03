@@ -184,7 +184,7 @@ Group:          Development/Libraries
 Requires:       sqitch >= %{version}
 Requires:       sqlite
 Requires:       perl(DBI)
-Requires:       perl(DBD::SQLite) >= 1.31
+Requires:       perl(DBD::SQLite) >= 1.37
 
 %description sqlite
 Sqitch provides a simple yet robust interface for database change
@@ -208,6 +208,22 @@ management. The philosophy and functionality is inspired by Git. This
 package bundles the Sqitch Oracle support.
 
 %files oracle
+# No additional files required.
+
+%package mysql
+Summary:        Sane database change management for MySQL
+Group:          Development/Libraries
+Requires:       sqitch >= %{version}
+Requires:       mysql >= 5.6.4
+Requires:       perl(DBI)
+Requires:       perl(DBD::mysql) >= 4.018
+
+%description mysql
+Sqitch provides a simple yet robust interface for database change
+management. The philosophy and functionality is inspired by Git. This
+package bundles the Sqitch MySQL support.
+
+%files mysql
 # No additional files required.
 
 %changelog
