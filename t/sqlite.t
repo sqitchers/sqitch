@@ -197,7 +197,15 @@ DBIEngineTest->run(
     alt_engine_params => [ db_name => $db_name, sqitch_db => $alt_db ],
     skip_unless       => sub {
         my $self = shift;
+
+        # Should have the database handle and client.
         $self->dbh && $self->sqitch->probe( $self->client, '-version' );
++
+        # Make sure we have a supported version.
+        my $version = $self->dbh->{sqlite_version};
+        my @v = split /[.]/ => $version;
+        die "SQLite >= 3.7.11 required; DBD::SQLite built with $version\n"
+            unless $v[0] > 3 || ($v[0] == 3 && ($v[1] > 7 || ($v[1] == 7 && $v[2] >= 11)));
     },
     engine_err_regex  => qr/^near "blah": syntax error/,
     init_error        =>  __x(
