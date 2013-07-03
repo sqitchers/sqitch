@@ -1,7 +1,6 @@
 Revision history for Perl extension App::Sqitch
 
 0.973
-
      - Now Require DBD::SQLite compiled with SQLite 3.7.11 or higher. It
        always has, but now it throws a meaningful exception if an older
        version is compiled into DBD::SQLite. Thanks to Damon Buckwalter for
