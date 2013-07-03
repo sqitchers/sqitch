@@ -228,7 +228,7 @@ Give it a try. Put this query into F<verify/appuser.sql>:
 
 This will work well as long as we know that the Sqitch database is named
 C<sqitch>. If you've set C<core.mysql.sqitch_db> to a different value, you
-will need to make sure you specify the correct datbase name in the script.
+will need to make sure you specify the correct database name in the script.
 
 Now you can run the C<verify> script with the L<C<verify>|sqitch-verify>
 command:
@@ -442,9 +442,9 @@ C<appuser> change has been listed. This doesn't do anything, but the default
 C<deploy> template lists it here for your reference while editing the file.
 Useful, right?
 
-The C<flipr> user has been granged C<SELECT> access to the table. The app's
-got to be able to read the data, right? This is why we need to require the
-C<appuser> change.
+The C<flipr> user has been granted C<SELECT> access to the table. The app
+needs to read the data, right? This is why we need to require the C<appuser>
+change.
 
 Now for the verify script. The simplest way to check that the table was
 created and has the expected columns without touching the data? Just select
@@ -1371,7 +1371,7 @@ a great idea. So we need to modify the C<insert_user()> and C<change_pass()>
 functions to fix that. How?
 
 We can use MySQL's
-L<C<ENCRYPT()|https://dev.mysql.com/doc/refman/5.5/en/encryption-functions.html#function_encrypt>
+L<C<ENCRYPT()>|https://dev.mysql.com/doc/refman/5.5/en/encryption-functions.html#function_encrypt>
 function to encrypt passwords with a salt, so that they're all unique. But how
 to deploy the changes to C<insert_user()> and C<change_pass()>?
 
