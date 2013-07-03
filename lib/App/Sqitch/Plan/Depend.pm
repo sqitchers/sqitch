@@ -8,7 +8,7 @@ use App::Sqitch::X qw(hurl);
 use Locale::TextDomain qw(App-Sqitch);
 use namespace::autoclean;
 
-our $VERSION = '0.973';
+our $VERSION = '0.980';
 
 has conflicts => (
     is       => 'ro',
