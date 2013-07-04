@@ -1,10 +1,5 @@
 package App::Sqitch::Engine::oracle;
 
-# Environment variables required to test:
-# * ORAUSER
-# * ORAPASS
-# * TWO_TASK
-
 use 5.010;
 use Mouse;
 use utf8;

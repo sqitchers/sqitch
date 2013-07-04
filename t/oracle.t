@@ -1,5 +1,20 @@
 #!/usr/bin/perl -w
 
+# Environment variables required to test. If using the the Developer Days VM:
+#   http://www.oracle.com/technetwork/database/enterprise-edition/databaseappdev-vm-161299.html
+#
+# Then create a super user as described here:
+#   http://www.jeffmdean.com/2012/3/13/developing-locally-with-oracle-and-ruby-on-a-mac
+#
+# Use this SQL to create the user and give it access:
+#
+# CREATE USER sqitchtest IDENTIFIED BY oracle;
+# GRANT ALL PRIVILEGES TO sqitchtest;
+
+# * ORAUSER=sqitchtest
+# * ORAPASS=oracle
+# * TWO_TASK=localhost/ORCL
+
 use strict;
 use warnings;
 use 5.010;
