@@ -218,6 +218,11 @@ sub _ts2char_format {
 
 sub _ts_default { 'utc_timestamp(6)' }
 
+sub _quote_idents {
+    shift;
+    map { $_ eq 'change' ? '"change"' : $_ } @_;
+}
+
 sub initialized {
     my $self = shift;
 

@@ -45,6 +45,8 @@ sub _limit_default { undef }
 
 sub _simple_from { '' }
 
+sub _quote_idents { shift; @_ }
+
 sub _in_expr {
     my ($self, $vals) = @_;
     my $in = sprintf 'IN (%s)', join ', ', ('?') x @{ $vals };
@@ -379,18 +381,21 @@ sub log_deploy_change {
     );
 
     my $ts = $self->_ts_default;
+    my $cols = join "\n            , ", $self->_quote_idents(qw(
+        change_id
+        change
+        project
+        note
+        committer_name
+        committer_email
+        planned_at
+        planner_name
+        planner_email
+        committed_at
+    ));
     $dbh->do(qq{
         INSERT INTO changes (
-              change_id
-            , "change"
-            , project
-            , note
-            , committer_name
-            , committer_email
-            , planned_at
-            , planner_name
-            , planner_email
-            , committed_at
+            $cols
         )
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, $ts)
     }, undef,
@@ -466,24 +471,27 @@ sub _log_event {
     my $dbh    = $self->dbh;
     my $sqitch = $self->sqitch;
 
-    my $ts = $self->_ts_default;
+    my $ts   = $self->_ts_default;
+    my $cols = join "\n            , ", $self->_quote_idents(qw(
+        event
+        change_id
+        change
+        project
+        note
+        tags
+        requires
+        conflicts
+        committer_name
+        committer_email
+        planned_at
+        planner_name
+        planner_email
+        committed_at
+    ));
 
     $dbh->do(qq{
         INSERT INTO events (
-              event
-            , change_id
-            , "change"
-            , project
-            , note
-            , tags
-            , requires
-            , conflicts
-            , committer_name
-            , committer_email
-            , planned_at
-            , planner_name
-            , planner_email
-            , committed_at
+            $cols
         )
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, $ts)
     }, undef,
