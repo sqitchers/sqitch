@@ -37,7 +37,7 @@ is $sqlite->client, 'sqlite3' . ($^O eq 'MSWin32' ? '.exe' : ''),
 is $sqlite->db_name, file('foo.db'), 'db_name should be required';
 is $sqlite->destination, $sqlite->db_name->stringify,
     'Destination should be db_name strintified';
-is $sqlite->sqitch_db, file('foo')->dir->file('foo-sqitch.db'),
+is $sqlite->sqitch_db, file('foo')->dir->file('sqitch.db'),
     'sqitch_db should default to "$db_name-sqitch.db" in the same diretory as db_name';
 is $sqlite->meta_destination, $sqlite->sqitch_db->stringify,
     'Meta destination should be sqitch_db strintified';

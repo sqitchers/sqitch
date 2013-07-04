@@ -292,7 +292,7 @@ is_deeply read_config $conf_file, {
     'core.sqlite.db_name' => 'my.db',
 }, 'The configuration should have been written with sqlite values';
 
-my $sqitch_db = file($sqitch->db_name)->dir->file('my-sqitch.db');
+my $sqitch_db = file($sqitch->db_name)->dir->file('sqitch.db');
 file_contents_like $conf_file, qr/^\t# sqitch_db = \Q$sqitch_db\E\n/m,
     'sqitch_db should be included in a comment';
 

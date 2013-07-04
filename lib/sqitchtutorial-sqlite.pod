@@ -179,13 +179,19 @@ Now we can try deploying this change:
 
 First Sqitch created the metadata database and tables used to track database
 changes. This database is separate from the database to which the C<users>
-change was deployed; by default, it has the same name as the destination
-database, but with C<-sqitch> appended to the base name. If you'd like it to
-have a different name, use C<sqitch config core.sqlite.sqitch_db $name> to
-configure it. This will be especially useful if you use the SQLite L<C<ATTACH
-DATABASE>|http://www.sqlite.org/lang_attach.html> command to manage multiple
-database files in a single project. In that case, you will want to use the
-same metadata file for all the databases.
+change was deployed; by default, its name is C<sqitch.$suffix>, where
+C<$suffix> is the same as the suffix on the destination database, if any. It
+lives in the same directory as the destination database. This will be useful
+if you use the SQLite L<C<ATTACHDATABASE>|http://www.sqlite.org/lang_attach.html>
+command to manage multiple database files in a single project. In that case,
+you will want to use the same metadata file for all the databases. Keep them
+all in the same directory with the same suffix and you get just that with the
+default sqitch database.
+
+If you'd like it to have a different name, use
+C<sqitch config core.sqlite.sqitch_db $name> to configure it. This will be
+useful if you don't want to use the same Sqitch database to manage multple
+databases, or if you do, but they live in different directories.
 
 Next, Sqitch deploys changes to the destination database, which we specified
 on the command-line. We only have one so far; the C<+> reinforces the idea

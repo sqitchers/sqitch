@@ -1,6 +1,11 @@
 Revision history for Perl extension App::Sqitch
 
 0.980
+     - Changed the default SQLite Sqitch database name from
+       `$dbname-sqitch.$suffix` to `sqitch.$suffix`. The `$suffix` still
+       comes from the destination database name. This breaks compatability
+       with previous releases. If you need the old name, set it with
+       `sqitch config core.sqlite.sqitch_db $dbname`.
 
 0.973  2013-07-03T13:47:22Z
      - Now Require DBD::SQLite compiled with SQLite 3.7.11 or higher. It
