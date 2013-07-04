@@ -190,7 +190,7 @@ default sqitch database.
 
 If you'd like it to have a different name, use
 C<sqitch config core.sqlite.sqitch_db $name> to configure it. This will be
-useful if you don't want to use the same Sqitch database to manage multple
+useful if you don't want to use the same Sqitch database to manage multiple
 databases, or if you do, but they live in different directories.
 
 Next, Sqitch deploys changes to the destination database, which we specified
