@@ -1,19 +1,37 @@
 #!/usr/bin/perl -w
 
-# Environment variables required to test. If using the the Developer Days VM:
+# Environment variables required to test:
+#
+# * ORAUSER
+# * ORAPASS
+# * TWO_TASK
+#
+# Tests can be run against the Developer Days VM with a bit of configuration.
+# Download the VM from:
+#
 #   http://www.oracle.com/technetwork/database/enterprise-edition/databaseappdev-vm-161299.html
 #
-# Then create a super user as described here:
-#   http://www.jeffmdean.com/2012/3/13/developing-locally-with-oracle-and-ruby-on-a-mac
+# Once the VM is imported into VirtualBox and started, login with the username
+# "oracle" and the password "oracle". Then, in VirtualBox, go to Settings ->
+# Network, select the NAT adapter, and add two port forwarding rules:
 #
-# Use this SQL to create the user and give it access:
+#   Host Port | Guest Port
+#  -----------+------------
+#        1521 |       1521
+#        2222 |         22
 #
-# CREATE USER sqitchtest IDENTIFIED BY oracle;
-# GRANT ALL PRIVILEGES TO sqitchtest;
-
-# * ORAUSER=sqitchtest
-# * ORAPASS=oracle
-# * TWO_TASK=localhost/ORCL
+# Then restart the VM. You should then be able to connect from your host with:
+#
+#     sqlplus sys/oracle@localhost/ORCL as sysdba
+#
+# Execute this SQL to create the user and give it access:
+#
+#     CREATE USER sqitchtest IDENTIFIED BY oracle;
+#     GRANT ALL PRIVILEGES TO sqitchtest;
+#
+# Now the tests can be run with:
+#
+# ORAUSER=sqitchtest ORAPASS=oracle TWO_TASK=localhost/ORCL prove -lv t/oracle.t
 
 use strict;
 use warnings;
