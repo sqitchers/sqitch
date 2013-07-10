@@ -1210,6 +1210,7 @@ file_contents_is $to,
     '%syntax-version=' . App::Sqitch::Plan::SYNTAX_VERSION . "\n"
     . $file->slurp(iomode => '<:utf8_strict')
     . $tag->as_string . "\n",
+    { encoding => 'UTF-8' },
     'The contents should include the "w00t" tag';
 # Try passing the tag name with a leading @.
 ok my $tag2 = $plan->tag( name => '@alpha' ), 'Add tag "@alpha"';
@@ -1293,6 +1294,7 @@ file_contents_is $to,
     . $tag->as_string . "\n"
     . $tag2->as_string . "\n\n"
     . $new_change->as_string . "\n",
+    { encoding => 'UTF-8' },
     'The contents should include the "booyah" change';
 
 # Make sure dependencies are verified.
