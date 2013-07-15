@@ -10,6 +10,7 @@ use Test::NoWarnings;
 use App::Sqitch;
 use App::Sqitch::Plan;
 use App::Sqitch::Plan::Tag;
+use Encode qw(encode_utf8);
 use Locale::TextDomain qw(App-Sqitch);
 use Test::Exception;
 use Path::Class;
@@ -158,7 +159,7 @@ is $change->old_info, join("\n",
    'date ' . $change->timestamp->as_string,
 ), 'Old change info should be correct';
 is $change->old_id, do {
-    my $content = $change->old_info;
+    my $content = encode_utf8 $change->old_info;
     Digest::SHA1->new->add(
         'change ' . length($content) . "\0" . $content
     )->hexdigest;
@@ -171,7 +172,7 @@ is $change->info, join("\n",
    'date ' . $change->timestamp->as_string,
 ), 'Change info should be correct';
 is $change->id, do {
-    my $content = $change->info;
+    my $content = encode_utf8 $change->info;
     Digest::SHA1->new->add(
         'change ' . length($content) . "\0" . $content
     )->hexdigest;
