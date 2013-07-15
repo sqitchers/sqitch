@@ -15,7 +15,7 @@ use Locale::Messages qw(bind_textdomain_filter);
 use App::Sqitch::X qw(hurl);
 use Mouse 1.04;
 use Mouse::Meta::Attribute::Native 1.04;
-use Encode qw(decode_utf8 encode_utf8);
+use Encode ();
 use Try::Tiny;
 use List::Util qw(first);
 use IPC::System::Simple 1.17 qw(runx capturex $EXITVAL);
@@ -209,9 +209,9 @@ has user_name => (
                 return $info->{fullName} || $sysname;
             }
             require User::pwent;
-            my $fullname = (User::pwent::getpwnam($sysname)->gecos)[0] || $sysname;
-            decode_utf8($fullname) if $^O eq 'darwin';
-            $fullname;
+            my $name = (User::pwent::getpwnam($sysname)->gecos)[0]
+                || return $sysname;
+            return  $^O eq 'darwin' ? Encode::decode_utf8 $name : $name;
         };
     }
 );
