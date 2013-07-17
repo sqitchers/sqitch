@@ -1538,8 +1538,8 @@ sub run {
         ok $engine->log_deploy_change($rev_change),  'Deploy the reworked change';
 
         # Make sure that change_id_for() is okay with the dupe.
-        is $engine->change_id_for( change => 'users'), $rev_change->id,
-            'change_id_for() should find the latest reworked change ID';
+        is $engine->change_id_for( change => 'users'), $change->id,
+            'change_id_for() should find the earliest change ID';
 
         # Unmock everything and call it a day.
         $mock_dbh->unmock_all;

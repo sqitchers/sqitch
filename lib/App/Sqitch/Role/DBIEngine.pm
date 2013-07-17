@@ -808,14 +808,14 @@ sub change_id_for {
             }, undef, $project, $change, '@' . $tag)->[0];
         }
 
-        # Find latest by change name.
+        # Find earliest by change name.
         my $limit = $self->_can_limit ? "\n             LIMIT 1" : '';
         return $dbh->selectcol_arrayref(qq{
             SELECT change_id
               FROM changes
              WHERE project = ?
                AND changes.change  = ?
-             ORDER BY changes.committed_at DESC$limit
+             ORDER BY changes.committed_at ASC$limit
         }, undef, $project, $change)->[0];
     }
 
