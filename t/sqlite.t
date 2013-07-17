@@ -53,20 +53,36 @@ is_deeply [$sqlite->sqlite3], [$sqlite->client, @std_opts, $sqlite->db_name],
 
 ##############################################################################
 # Make sure we get an error for no database name.
+my $tmp_dir = Path::Class::dir( tempdir CLEANUP => 1 );
 isa_ok $sqlite = $CLASS->new(sqitch => $sqitch), $CLASS;
 my $have_sqlite = try { require DBD::SQLite };
 if ($have_sqlite) {
-    my @v = split /[.]/ => DBI->connect('DBI:SQLite:')->{sqlite_version};
-    $have_sqlite = $v[0] > 3 || ($v[0] == 3 && ($v[1] > 7 || ($v[1] == 7 && $v[2] >= 11)));
-}
-
-if ($have_sqlite) {
+    # We have DBD::SQLite.
     throws_ok { $sqlite->dbh } 'App::Sqitch::X', 'Should get an error for no db name';
     is $@->ident, 'sqlite', 'Missing db name error ident should be "sqlite"';
     is $@->message,
         __ 'No database specified; use --db-name or set "core.sqlite.db_name" via sqitch config',
         'Missing db name error message should be correct';
+
+    # Find out if it's built with SQLite >= 3.7.11.
+    my $dbh = DBI->connect('DBI:SQLite:');
+    my @v = split /[.]/ => $dbh->{sqlite_version};
+    $have_sqlite = $v[0] > 3 || ($v[0] == 3 && ($v[1] > 7 || ($v[1] == 7 && $v[2] >= 11)));
+    unless ($have_sqlite) {
+        # We have DBD::SQLite, but it is too old. Make sure we complain about that.
+        isa_ok $sqlite = $CLASS->new(
+            sqitch => $sqitch,
+            sqitch_db => $tmp_dir->file('_tmp.db')
+        ), $CLASS;
+        throws_ok { $sqlite->dbh } 'App::Sqitch::X', 'Should get an error for old SQLite';
+        is $@->ident, 'sqlite', 'Unsupported SQLite error ident should be "sqlite"';
+        is $@->message, __x(
+            'Sqitch requires SQLite 3.7.11 or later; DBD::SQLite was built with {version}',
+            version => $dbh->{sqlite_version}
+        ), 'Unsupported SQLite error message should be correct';
+    }
 } else {
+    # No DBD::SQLite at all.
     throws_ok { $sqlite->dbh } 'App::Sqitch::X',
         'Should get an error without DBD::SQLite';
     is $@->ident, 'sqlite', 'No DBD::SQLite error ident should be "sqlite"';
@@ -112,7 +128,6 @@ is_deeply [$sqlite->sqlite3], [$sqlite->client, @std_opts, $sqlite->db_name],
 
 ##############################################################################
 # Test _run(), _capture(), and _spool().
-my $tmp_dir = Path::Class::dir( tempdir CLEANUP => 1 );
 my $db_name = $tmp_dir->file('sqitch.db');
 ok $sqlite = $CLASS->new(sqitch => $sqitch, db_name => $db_name),
     'Instantiate with a temporary database file';

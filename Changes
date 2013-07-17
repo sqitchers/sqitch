@@ -8,6 +8,8 @@ Revision history for Perl extension App::Sqitch
        `sqitch config core.sqlite.sqitch_db $dbname`.
      - Fixed encoding of the user's full name when fetched from the system on
        OS X. Thanks to Tomohiro Hosaka for the pull request!
+     - Fixed test failures when DBD::SQLite is installed but compiled with
+       SQLite 3.7.10 or lower.
 
 0.973  2013-07-03T13:47:22Z
      - Now Require DBD::SQLite compiled with SQLite 3.7.11 or higher. It
