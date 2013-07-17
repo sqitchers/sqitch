@@ -219,6 +219,8 @@ sub _ts2char_format {
 
 sub _ts_default { 'current_timestamp' }
 
+sub _can_limit { 0 }
+
 sub _char2ts {
     my $dt = $_[1];
     join ' ', $dt->ymd('-'), $dt->hms(':'), $dt->time_zone->name;

@@ -10,6 +10,9 @@ Revision history for Perl extension App::Sqitch
        OS X. Thanks to Tomohiro Hosaka for the pull request!
      - Fixed test failures when DBD::SQLite is installed but compiled with
        SQLite 3.7.10 or lower.
+     - Fixed a bug where declaring a dependency on a reworked change would
+       incorrectly result in the error "Key "foo" matches multiple changes".
+       Thanks to BryLo for the report (issue #103).
 
 0.973  2013-07-03T13:47:22Z
      - Now Require DBD::SQLite compiled with SQLite 3.7.11 or higher. It

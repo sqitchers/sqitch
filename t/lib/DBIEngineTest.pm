@@ -1531,6 +1531,16 @@ sub run {
                 'All of the tag IDs should have been updated by name';
         }
 
+        ######################################################################
+        # Add a reworked change.
+        ok my $rev_change = $plan->rework( name => 'users' ), 'Rework change "users"';
+        $_->resolved_id( $engine->change_id_for_depend($_) ) for $rev_change->requires;
+        ok $engine->log_deploy_change($rev_change),  'Deploy the reworked change';
+
+        # Make sure that change_id_for() is okay with the dupe.
+        is $engine->change_id_for( change => 'users'), $rev_change->id,
+            'change_id_for() should find the latest reworked change ID';
+
         # Unmock everything and call it a day.
         $mock_dbh->unmock_all;
         $mock_sqitch->unmock_all;

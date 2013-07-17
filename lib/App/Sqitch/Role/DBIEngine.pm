@@ -41,6 +41,7 @@ sub _log_conflicts_param {
 
 sub _ts_default { 'DEFAULT' }
 
+sub _can_limit { 1 }
 sub _limit_default { undef }
 
 sub _simple_from { '' }
@@ -807,18 +808,15 @@ sub change_id_for {
             }, undef, $project, $change, '@' . $tag)->[0];
         }
 
-        # Find by change name. Fail if there are multiple.
-        my $ids = $dbh->selectcol_arrayref(q{
+        # Find latest by change name.
+        my $limit = $self->_can_limit ? "\n             LIMIT 1" : '';
+        return $dbh->selectcol_arrayref(qq{
             SELECT change_id
               FROM changes
              WHERE project = ?
                AND changes.change  = ?
-        }, undef, $project, $change);
-        return $ids->[0] if @{ $ids } < 2;
-        hurl engine => __x(
-            'Key "{key}" matches multiple changes',
-            key => $change,
-        );
+             ORDER BY changes.committed_at DESC$limit
+        }, undef, $project, $change)->[0];
     }
 
     if ( my $tag = $p{tag} ) {
