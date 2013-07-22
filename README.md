@@ -61,13 +61,26 @@ Want to learn more? The best place to start is in the tutorials:
 Installation
 ------------
 
-To install this module, type the following:
+To install Sqitch from a distribution download, type the following:
 
     perl Build.PL
     ./Build installdeps
     ./Build
     ./Build test
     ./Build install
+
+From a Git clone, first install
+[Dist::Zilla](https://metacpan.org/module/Dist::Zilla), then use it to install
+Sqitch and its dependencies:
+
+    cpan Dist::Zilla
+    dzil install
+
+To run Sqitch directly from the Git clone execute `t/sqitch`. If you're doing
+development on Sqitch, you will need to install the autoring dependencies, as
+well:
+
+    dzil listdeps | xargs cpan
 
 Licence
 -------
