@@ -61,6 +61,8 @@ Want to learn more? The best place to start is in the tutorials:
 Installation
 ------------
 
+[![Build Status](https://travis-ci.org/theory/sqitch.png)](https://travis-ci.org/theory/sqitch)
+
 To install Sqitch from a distribution download, type the following:
 
     perl Build.PL

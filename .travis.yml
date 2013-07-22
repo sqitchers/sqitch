@@ -1,0 +1,21 @@
+language: perl
+perl:
+  - "5.19"
+  - "5.18"
+  - "5.16"
+  - "5.14"
+  - "5.12"
+  - "5.10"
+
+before_install:
+   # Prevent "Please tell me who you are" errors for certain DZIL configs
+   - git config --global user.name "TravisCI"
+
+install:
+   - cpanm --quiet --notest --skip-satisfied Dist::Zilla
+   - dzil authordeps | grep -vP '[^\w:]' | xargs -n 5 -P 10 cpanm --quiet --notest --skip-satisfied
+   - export RELEASE_TESTING=1 AUTOMATED_TESTING=1 AUTHOR_TESTING=1 HARNESS_OPTIONS=j10:c HARNESS_TIMER=1
+   - dzil listdeps | grep -vP '[^\w:]' | cpanm --verbose
+
+script:
+   - dzil smoke --release --author
