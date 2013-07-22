@@ -20,7 +20,7 @@ use MockOutput;
 my $CLASS = 'App::Sqitch::Command::add';
 
 ok my $sqitch = App::Sqitch->new(
-    top_dir => Path::Class::Dir->new('sql'),
+    top_dir => Path::Class::Dir->new('test-add'),
 ), 'Load a sqitch sqitch object';
 my $config = $sqitch->config;
 
@@ -252,13 +252,13 @@ is $ { $add->_slurp($tmpl)}, contents_of $tmpl,
 
 ##############################################################################
 # Test _add().
-make_path 'sql';
+make_path 'test-add';
 my $fn = $sqitch->plan_file;
 open my $fh, '>', $fn or die "Cannot open $fn: $!";
 say $fh "%project=add\n\n";
 close $fh or die "Error closing $fn: $!";
-END { remove_tree 'sql' };
-my $out = file 'sql', 'sqitch_change_test.sql';
+END { remove_tree 'test-add' };
+my $out = file 'test-add', 'sqitch_change_test.sql';
 file_not_exists_ok $out;
 ok $add->_add('sqitch_change_test', $out, $tmpl),
     'Write out a script';
@@ -282,7 +282,7 @@ ok $add =  $CLASS->new(
     conflicts => ['baz'],
 ), 'Create add cmd with requires and conflicts';
 
-$out = file 'sql', 'another_change_test.sql';
+$out = file 'test-add', 'another_change_test.sql';
 ok $add->_add('another_change_test', $out, $tmpl),
     'Write out a script with requires and conflicts';
 is_deeply +MockOutput->get_info, [[__x 'Created {file}', file => $out ]],
@@ -316,13 +316,13 @@ $change_mocker->mock(request_note => sub {
     %request_params = @_;
 });
 
-my $deploy_file = file qw(sql deploy widgets_table.sql);
-my $revert_file = file qw(sql revert widgets_table.sql);
-my $verify_file = file qw(sql verify   widgets_table.sql);
+my $deploy_file = file qw(test-add deploy widgets_table.sql);
+my $revert_file = file qw(test-add revert widgets_table.sql);
+my $verify_file = file qw(test-add verify   widgets_table.sql);
 
 my $plan = $sqitch->plan;
 is $plan->get('widgets_table'), undef, 'Should not have "widgets_table" in plan';
-dir_not_exists_ok +File::Spec->catdir('sql', $_) for qw(deploy revert verify);
+dir_not_exists_ok +File::Spec->catdir('test-add', $_) for qw(deploy revert verify);
 ok $add->execute('widgets_table'), 'Add change "widgets_table"';
 isa_ok my $change = $plan->get('widgets_table'), 'App::Sqitch::Plan::Change',
     'Added change';
@@ -335,11 +335,11 @@ is_deeply \%request_params, {
 }, 'It should have prompted for a note';
 
 file_exists_ok $_ for ($deploy_file, $revert_file, $verify_file);
-file_contents_like +File::Spec->catfile(qw(sql deploy widgets_table.sql)),
+file_contents_like +File::Spec->catfile(qw(test-add deploy widgets_table.sql)),
     qr/^-- Deploy widgets_table/, 'Deploy script should look right';
-file_contents_like +File::Spec->catfile(qw(sql revert widgets_table.sql)),
+file_contents_like +File::Spec->catfile(qw(test-add revert widgets_table.sql)),
     qr/^-- Revert widgets_table/, 'Revert script should look right';
-file_contents_like +File::Spec->catfile(qw(sql verify widgets_table.sql)),
+file_contents_like +File::Spec->catfile(qw(test-add verify widgets_table.sql)),
     qr/^-- Verify widgets_table/, 'Verify script should look right';
 is_deeply +MockOutput->get_info, [
     [__x 'Created {file}', file => $deploy_file],
@@ -366,9 +366,9 @@ ok $add = $CLASS->new(
     template_directory => Path::Class::dir(qw(etc templates))
 ), 'Create another add with template_directory and no verify script';
 
-$deploy_file = file qw(sql deploy foo_table.sql);
-$revert_file = file qw(sql revert foo_table.sql);
-$verify_file = file qw(sql ferify foo_table.sql);
+$deploy_file = file qw(test-add deploy foo_table.sql);
+$revert_file = file qw(test-add revert foo_table.sql);
+$verify_file = file qw(test-add ferify foo_table.sql);
 $deploy_file->touch;
 
 file_exists_ok $deploy_file;

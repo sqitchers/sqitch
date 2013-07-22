@@ -15,7 +15,7 @@ use MockOutput;
 my $CLASS = 'App::Sqitch::Command::tag';
 
 ok my $sqitch = App::Sqitch->new(
-    top_dir => Path::Class::Dir->new('sql'),
+    top_dir => Path::Class::Dir->new('test-tag_cmd'),
 ), 'Load a sqitch sqitch object';
 my $config = $sqitch->config;
 isa_ok my $tag = App::Sqitch::Command->load({
@@ -35,8 +35,8 @@ is_deeply [$CLASS->options], [qw(
     note|n=s@
 )], 'Should have note option';
 
-make_path 'sql';
-END { remove_tree 'sql' };
+make_path 'test-tag_cmd';
+END { remove_tree 'test-tag_cmd' };
 my $plan_file = $sqitch->plan_file;
 my $fh = $plan_file->open('>') or die "Cannot open $plan_file: $!";
 say $fh "%project=empty\n\n";
