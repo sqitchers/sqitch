@@ -16,7 +16,7 @@ install:
    - cpanm --quiet --notest --skip-satisfied Dist::Zilla
    - dzil authordeps | grep -vP '[^\w:]' | xargs -n 5 -P 10 cpanm --quiet --notest --skip-satisfied
    - export RELEASE_TESTING=1 AUTOMATED_TESTING=1 AUTHOR_TESTING=1 HARNESS_OPTIONS=j10:c HARNESS_TIMER=1
-   - cpanm --verbose Mouse
+   - cpanm --quiet --notest Any::Moose
    - dzil listdeps | grep -vP '[^\w:]' | cpanm --verbose
 
 script:
