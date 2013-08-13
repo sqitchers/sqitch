@@ -15,7 +15,7 @@ Revision history for Perl extension App::Sqitch
        Thanks to BryLo for the report (issue #103).
      - Modified tests to allow them to run in parallel without stomping on
        each other.
-     - Bundling of options, such as `-vvv`, now works properly (issue #).
+     - Bundling of options, such as `-vvv`, now works properly (issue #108).
 
 0.973  2013-07-03T13:47:22Z
      - Now Require DBD::SQLite compiled with SQLite 3.7.11 or higher. It
