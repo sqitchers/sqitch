@@ -354,9 +354,9 @@ sub _split_args {
     my $add_one = sub { $cmd_at++ };
     my $add_two = sub { $cmd_at += 2 };
 
-    Getopt::Long::Configure(qw(bundling));
     Getopt::Long::GetOptionsFromArray(
-        [@args],
+        # remove bundled options, or we lose track of our position.
+        [map { /^-([^-]{2,})/ ? '-' . substr $1, -1 : $_ } @args],
         # Halt processing on on first non-option, which will be the command.
         '<>' => sub { die '!FINISH' },
         # Count how many args we've processed until we die.

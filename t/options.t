@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 25;
+use Test::More tests => 26;
 #use Test::More 'no_plan';
 use Test::MockModule;
 use Capture::Tiny 0.12 ':all';
@@ -53,6 +53,10 @@ is_deeply [$CLASS->_split_args(qw(
 
 is_deeply [ $CLASS->_split_args('--help') ], [['--help'], undef, []],
     'Should handle no command';
+
+is_deeply [ $CLASS->_split_args('-vvv', 'deploy') ],
+    [['-vvv'], 'deploy', []],
+    'Spliting args when using bundling should work';
 
 # Make sure an invalid option is caught.
 INVALID: {
