@@ -495,6 +495,7 @@ is_deeply +MockOutput->get_comment, [
 
 # Test with no initilization.
 $initialized = 0;
+$engine_mocker->mock( initialized => sub { $initialized } );
 $engine_mocker->mock( current_state => sub { die 'No Sqitch tables' } );
 throws_ok { $status->execute } 'App::Sqitch::X',
     'Should get an error for uninitialized db';
