@@ -1,7 +1,6 @@
 #!/usr/bin/env perl -CAS
 
 use FindBin;
-use lib "$FindBin::Bin/..";
 use lib "$FindBin::Bin/../lib";
 use POSIX qw (setlocale);
 BEGIN {
