@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 91;
+use Test::More tests => 94;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -149,7 +149,7 @@ is $@->message, __x(
     format => 'non',
 ), 'Invalid date format error message should be correct';
 
-#######################################################################################
+##############################################################################
 # Test emit_state().
 my $dt = App::Sqitch::DateTime->new(
     year       => 2012,
@@ -492,3 +492,12 @@ is $@->message, __ 'No changes deployed',
 is_deeply +MockOutput->get_comment, [
     [__x 'On database {db}', db => $sqitch->engine->destination ],
 ], 'The "On database" comment should have been emitted';
+
+# Test with no initilization.
+$initialized = 0;
+$engine_mocker->mock( current_state => sub { die 'No Sqitch tables' } );
+throws_ok { $status->execute } 'App::Sqitch::X',
+    'Should get an error for uninitialized db';
+is $@->ident, 'status', 'Uninitialized db error ident should be "status"';
+is $@->message, __ 'Database not initialized for Sqitch',
+    'Uninitialized db error message should be correct';

@@ -88,11 +88,19 @@ sub execute {
     $self->comment( __x 'On database {db}', db => $engine->destination );
 
     # Exit with status 1 on no state, probably not expected.
-    my $state = $engine->current_state( $self->project ) || hurl {
+    my $state = try {
+        $engine->current_state( $self->project )
+    } catch {
+        # Hrm. Maybe not initialized?
+        die $_ if $engine->initialized;
+        hurl status => __ 'Database not initialized for Sqitch';
+    };
+
+    hurl {
         ident   => 'status',
         message => __ 'No changes deployed',
         exitval => 1,
-    };
+    } unless $state;
 
     # Emit the state basics.
     $self->emit_state($state);

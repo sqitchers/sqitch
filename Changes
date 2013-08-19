@@ -16,14 +16,17 @@ Revision history for Perl extension App::Sqitch
      - Modified tests to allow them to run in parallel without stomping on
        each other.
      - Bundling of options, such as `-vvv`, now works properly (issue #108).
-     - Added alias `--get-regexp` for `--get-regex` to the config command.
-       This brings it inline with the documentaion for the config command
+     - Added alias `--get-regexp` for `--get-regex` to the `config` command.
+       This brings it inline with the documentaion for the `config` command
        (Issue #110).
-     - Fixed all of the config command actions that contain a dash so that
+     - Fixed all of the `config` command actions that contain a dash so that
        they actually work. Thanks to Ștefan Suciu for the report (issue #110).
      - All leading and trailing white space is now trimmed from plan notes,
        rather than just vertical white space. Thanks to Ronan Dunklau for the
        report (issue #106).
+     - The `status` command now notices if the specified database is
+       uninitialized and says as much, rather than dying with an SQL error
+       (issue #109).
 
 0.973  2013-07-03T13:47:22Z
      - Now Require DBD::SQLite compiled with SQLite 3.7.11 or higher. It
