@@ -197,8 +197,8 @@ is_deeply \@get, [qw(foo)], 'The get method should have been called';
 
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
-    action  => 'get-all',
-}), 'Create config get-all command';
+    action  => 'get_all',
+}), 'Create config get_all command';
 $cmd->execute('boy.howdy');
 is_deeply \@get_all, ['boy.howdy'],
     'An action with a dash should have triggered a method with an underscore';
@@ -647,7 +647,7 @@ is_deeply \@emit, [], 'Nothing should have been emitted';
 @emit = ();
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
-    action  => 'get-all',
+    action  => 'get_all',
 }), 'Create system config get_all command';
 ok $cmd->execute('core.engine'), 'Call get_all on core.engine';
 is_deeply \@emit, [['funky']], 'The engine should have been emitted';
@@ -687,7 +687,7 @@ is_deeply \@usage, ['Wrong number of arguments.'],
 # Make sure int data type works.
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
-    action  => 'get-all',
+    action  => 'get_all',
     type    => 'int',
 }), 'Create config get_all int command';
 
@@ -708,7 +708,7 @@ is $@->ident, 'config', 'Int cast exception ident should be "config"';
 # Make sure num data type works.
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
-    action  => 'get-all',
+    action  => 'get_all',
     type    => 'num',
 }), 'Create config get_all num command';
 
@@ -729,7 +729,7 @@ is $@->ident, 'config', 'Num cast exception ident should be "config"';
 # Make sure bool data type works.
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
-    action  => 'get-all',
+    action  => 'get_all',
     type    => 'bool',
 }), 'Create config get_all bool command';
 
@@ -748,7 +748,7 @@ is_deeply \@emit, [[$Config::GitLike::VERSION > 1.08 ? 'true' : 1]],
 # Make sure bool-or-int data type works.
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
-    action  => 'get-all',
+    action  => 'get_all',
     type    => 'bool-or-int',
 }), 'Create config get_all bool-or-int command';
 
@@ -771,7 +771,7 @@ is_deeply \@emit, [[$Config::GitLike::VERSION > 1.08 ? 'true' : 1]],
 # Test get_regex().
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
-    action  => 'get-regex',
+    action  => 'get_regex',
 }), 'Create system config get_regex command';
 ok $cmd->execute('core\\..+'), 'Call get_regex on core\\..+';
 is_deeply \@emit, [[q{core.engine=funky
@@ -817,7 +817,7 @@ is_deeply \@usage, ['Wrong number of arguments.'],
 # Make sure int data type works.
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
-    action  => 'get-regex',
+    action  => 'get_regex',
     type    => 'int',
 }), 'Create config get_regex int command';
 
@@ -838,9 +838,9 @@ is $@->ident, 'config', 'Int cast exception ident should be "config"';
 # Make sure num data type works.
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
-    action  => 'get-regex',
+    action  => 'get_regex',
     type    => 'num',
-}), 'Create config get-regexp num command';
+}), 'Create config get_regexp num command';
 
 ok $cmd->execute('revert.count'), 'Get revert.count as num';
 is_deeply \@emit, [['revert.count=2']],
@@ -859,7 +859,7 @@ is $@->ident, 'config', 'Num cast exception ident should be "config"';
 # Make sure bool data type works.
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
-    action  => 'get-regex',
+    action  => 'get_regex',
     type    => 'bool',
 }), 'Create config get_regex bool command';
 
@@ -878,7 +878,7 @@ is_deeply \@emit, [['bundle.tags_only=' . ($Config::GitLike::VERSION > 1.08 ? 't
 # Make sure int data type works.
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
-    action  => 'get-regex',
+    action  => 'get_regex',
     type    => 'bool-or-int',
 }), 'Create config get_regex bool-or-int command';
 
@@ -937,11 +937,11 @@ is_deeply \@usage, ['Wrong number of arguments.'],
 # Test unset_all().
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
-    action  => 'unset-all',
-}), 'Create system config unset-all command';
+    action  => 'unset_all',
+}), 'Create system config unset_all command';
 
 $cmd->add('core.foo', 'baz');
-ok $cmd->execute('core.foo'), 'Unset-all core.foo';
+ok $cmd->execute('core.foo'), 'unset_all core.foo';
 is_deeply read_config($cmd->file), {}, 'core.foo should have been removed';
 
 # Test handling of multiple value.
@@ -949,7 +949,7 @@ $cmd->add('core.foo', 'bar');
 $cmd->add('core.foo', 'baz');
 $cmd->add('core.foo', 'yo');
 
-ok $cmd->execute('core.foo', '^ba'), 'Unset-all core.foo with regex';
+ok $cmd->execute('core.foo', '^ba'), 'unset_all core.foo with regex';
 is_deeply read_config($cmd->file), {
     'core.foo' => 'yo',
 }, 'core.foo should have one value left';
@@ -963,11 +963,11 @@ is_deeply \@usage, ['Wrong number of arguments.'],
     'And the invalid unset_all key should trigger a usage message';
 
 ##############################################################################
-# Test replace-all.
+# Test replace_all.
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
-    action  => 'replace-all',
-}), 'Create system config replace-all command';
+    action  => 'replace_all',
+}), 'Create system config replace_all command';
 
 $cmd->add('core.bar', 'bar');
 $cmd->add('core.bar', 'baz');
@@ -996,8 +996,8 @@ $cmd->unset('core.foo', 'ba');
 # Test rename_section().
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
-    action  => 'rename-section',
-}), 'Create system config rename-section command';
+    action  => 'rename_section',
+}), 'Create system config rename_section command';
 ok $cmd->execute('core', 'funk'), 'Rename "core" to "funk"';
 is_deeply read_config($cmd->file), {
     'funk.foo' => 'yo',
@@ -1025,8 +1025,8 @@ is $@->message, __ 'No such section!',
 # Test remove_section().
 ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
-    action  => 'remove-section',
-}), 'Create system config remove-section command';
+    action  => 'remove_section',
+}), 'Create system config remove_section command';
 ok $cmd->execute('funk'), 'Remove "func" section';
 is_deeply read_config($cmd->file), {},
     'The "funk" section should be gone';

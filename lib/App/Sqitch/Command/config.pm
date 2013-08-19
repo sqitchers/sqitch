@@ -30,17 +30,17 @@ has action => (
     is  => 'ro',
     isa => enum([qw(
         get
-        get-all
-        get-regex
+        get_all
+        get_regex
         set
         unset
         list
         edit
         add
-        replace-all
-        unset-all
-        rename-section
-        remove-section
+        replace_all
+        unset_all
+        rename_section
+        remove_section
     )]),
 );
 

@@ -19,6 +19,8 @@ Revision history for Perl extension App::Sqitch
      - Added alias `--get-regexp` for `--get-regex` to the config command.
        This brings it inline with the documentaion for the config command
        (Issue #110).
+     - Fixed all of the config command actions that contain a dash so that
+       they actually work. Thanks to Ștefan Suciu for the report (issue #110).
 
 0.973  2013-07-03T13:47:22Z
      - Now Require DBD::SQLite compiled with SQLite 3.7.11 or higher. It
