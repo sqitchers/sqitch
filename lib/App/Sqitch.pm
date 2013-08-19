@@ -184,12 +184,16 @@ has sysuser => (
     lazy     => 1,
     default  => sub {
         # Adapted from User.pm.
-        return getlogin
-            || scalar getpwuid( $< )
+        require Encode::Locale;
+        return Encode::decode( locale => getlogin )
+            || Encode::decode( locale => scalar getpwuid( $< ) )
             || $ENV{ LOGNAME }
             || $ENV{ USER }
             || $ENV{ USERNAME }
-            || try { require Win32; Win32::LoginName() };
+            || try {
+                require Win32;
+                Encode::decode( locale => Win32::LoginName() )
+            };
     },
 );
 

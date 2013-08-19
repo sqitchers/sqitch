@@ -27,6 +27,10 @@ Revision history for Perl extension App::Sqitch
      - The `status` command now notices if the specified database is
        uninitialized and says as much, rather than dying with an SQL error
        (issue #109).
+     - When reading the user's name from the system to generate the default
+       value of the `user.name` config, Sqitch now uses Encode::Locale to try
+       to decode the value from the system encoding. Note that this is not
+       necessary if `user.name` is explicitly set, as recommended. Issue #107.
 
 0.973  2013-07-03T13:47:22Z
      - Now Require DBD::SQLite compiled with SQLite 3.7.11 or higher. It
