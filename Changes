@@ -21,6 +21,9 @@ Revision history for Perl extension App::Sqitch
        (Issue #110).
      - Fixed all of the config command actions that contain a dash so that
        they actually work. Thanks to Ștefan Suciu for the report (issue #110).
+     - All leading and trailing white space is now trimmed from plan notes,
+       rather than just vertical white space. Thanks to Ronan Dunklau for the
+       report (issue #106).
 
 0.973  2013-07-03T13:47:22Z
      - Now Require DBD::SQLite compiled with SQLite 3.7.11 or higher. It

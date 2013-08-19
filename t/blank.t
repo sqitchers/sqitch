@@ -72,7 +72,7 @@ for my $spec (
     ["foo\n\n\n" => 'foo', 'Trailing newlines' ],
     ["foo\r\r\r" => 'foo', 'trailing line feeds' ],
     ["\r\n\r\n\r\nfoo\n\nbar\r" => "foo\n\nbar", 'Leading and trailing vertical space' ],
-    ["\n\n\n  foo \n" => '  foo ', 'Laeading and trailing newlines but not spaces' ],
+    ["\n\n\n  foo \n" => 'foo', 'Leading and trailing newlines and spaces' ],
 ) {
     is $CLASS->new(
         plan    => $plan,
