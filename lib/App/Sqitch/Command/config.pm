@@ -69,7 +69,7 @@ sub options {
 
         get
         get-all
-        get-regex
+        get-regex|get-regexp
         add
         replace-all
         unset
@@ -445,7 +445,7 @@ The action to be executed. May be one of:
 
 =item * C<get-all>
 
-=item * C<get-regex>
+=item * C<get-regexp>
 
 =item * C<set>
 

@@ -16,6 +16,9 @@ Revision history for Perl extension App::Sqitch
      - Modified tests to allow them to run in parallel without stomping on
        each other.
      - Bundling of options, such as `-vvv`, now works properly (issue #108).
+     - Added alias `--get-regexp` for `--get-regex` to the config command.
+       This brings it inline with the documentaion for the config command
+       (Issue #110).
 
 0.973  2013-07-03T13:47:22Z
      - Now Require DBD::SQLite compiled with SQLite 3.7.11 or higher. It

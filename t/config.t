@@ -39,7 +39,7 @@ is_deeply [$cmd->options], [qw(
     num
     get
     get-all
-    get-regex
+    get-regex|get-regexp
     add
     replace-all
     unset
@@ -840,7 +840,7 @@ ok $cmd = App::Sqitch::Command::config->new({
     sqitch  => $sqitch,
     action  => 'get-regex',
     type    => 'num',
-}), 'Create config get_regex num command';
+}), 'Create config get-regexp num command';
 
 ok $cmd->execute('revert.count'), 'Get revert.count as num';
 is_deeply \@emit, [['revert.count=2']],
