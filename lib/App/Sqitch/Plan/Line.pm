@@ -78,8 +78,8 @@ sub BUILDARGS {
     my $p = @_ == 1 && ref $_[0] ? { %{ +shift } } : { @_ };
     if (my $note = $p->{note}) {
         # Trim and then encode newlines.
-        $note =~ s/\A\v+//;
-        $note =~ s/\v+\z//;
+        $note =~ s/\A\s+//;
+        $note =~ s/\s+\z//;
         $note =~ s/(\\[\\nr])/$unescape{$1}/g;
         $p->{note} = $note;
     }
