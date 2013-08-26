@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 91;
+use Test::More tests => 97;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -21,6 +21,7 @@ my $CLASS = 'App::Sqitch::Command::add';
 
 ok my $sqitch = App::Sqitch->new(
     top_dir => Path::Class::Dir->new('test-add'),
+    _engine => 'pg',
 ), 'Load a sqitch sqitch object';
 my $config = $sqitch->config;
 
@@ -64,6 +65,7 @@ is_deeply [$CLASS->options], [qw(
     conflicts|c=s@
     note|n=s@
     set|s=s%
+    template-name|template|t=s
     template-directory=s
     deploy-template=s
     revert-template=s
@@ -123,6 +125,13 @@ is $@->message, __x(
     dir => 'README.md',
 ), 'Invalid directory error message should be correct';
 
+is_deeply $CLASS->configure($config, { template_name => 'foo' }), {
+    requires  => [],
+    conflicts => [],
+    note      => [],
+    template_name => 'foo',
+}, 'Should set up template name option';
+
 is_deeply $CLASS->configure($config, {
     deploy => 1,
     revert => 1,
@@ -149,6 +158,7 @@ CONFIG: {
     my $dir = dir 't';
     is_deeply $CLASS->configure($config, {}), {
         template_directory => $dir,
+        template_name      => 'hi',
         requires  => [],
         conflicts => [],
         note      => [],
@@ -156,6 +166,7 @@ CONFIG: {
 
     is_deeply $CLASS->configure($config, {set => { yo => 'dawg' }}), {
         template_directory => $dir,
+        template_name      => 'hi',
         requires  => [],
         conflicts => [],
         note      => [],
@@ -168,6 +179,7 @@ CONFIG: {
 
     is_deeply $CLASS->configure($config, {set => { foo => 'ick' }}), {
         template_directory => $dir,
+        template_name      => 'hi',
         requires  => [],
         conflicts => [],
         note      => [],
@@ -185,6 +197,7 @@ is_deeply $add->conflicts, [], 'Conflicts should be an arrayref';
 is_deeply $add->note, [], 'Notes should be an arrayref';
 is_deeply $add->variables, {}, 'Varibles should be a hashref';
 is $add->template_directory, undef, 'Default dir should be undef';
+is $add->template_name, $sqitch->_engine, 'Default temlate_name should be engine';
 
 MOCKCONFIG: {
     my $config_mock = Test::MockModule->new('App::Sqitch::Config');
@@ -206,18 +219,31 @@ MOCKCONFIG: {
 # Point to a valid template directory.
 ok $add = $CLASS->new(
     sqitch => $sqitch,
-    template_directory => Path::Class::dir(qw(etc templates))
+    template_directory => Path::Class::dir(qw(etc templates)),
 ), 'Create add with template_directory';
 
 for my $script (qw(deploy revert verify)) {
     my $tmpl = "$script\_template";
-    is $add->$tmpl, Path::Class::file('etc', 'templates', "$script.tmpl"),
-        "Should find $script in templates directory";
+    is $add->$tmpl, Path::Class::file('etc', 'templates', $script, 'pg.tmpl'),
+        "Should find pg $script in templates directory";
+}
+
+# Make sure it works if we override the template name.
+ok $add = $CLASS->new(
+    sqitch => $sqitch,
+    template_directory => Path::Class::dir(qw(etc templates)),
+    template_name      => 'sqlite',
+), 'Create add with template_directory and name';
+
+for my $script (qw(deploy revert verify)) {
+    my $tmpl = "$script\_template";
+    is $add->$tmpl, Path::Class::file('etc', 'templates', $script, 'sqlite.tmpl'),
+        "Should find sqlite $script in templates directory";
 }
 
 ##############################################################################
 # Test find().
-is $add->_find('deploy'), Path::Class::file(qw(etc templates deploy.tmpl)),
+is $add->_find('deploy'), Path::Class::file(qw(etc templates deploy sqlite.tmpl)),
     '_find should work with template_directory';
 
 ok $add = $CLASS->new(sqitch => $sqitch),
@@ -227,7 +253,7 @@ MOCKCONFIG: {
     my $config_mock = Test::MockModule->new('App::Sqitch::Config');
     $config_mock->mock(system_dir => Path::Class::dir('nonexistent'));
     $config_mock->mock(user_dir => Path::Class::dir('etc'));
-    is $add->_find('deploy'), Path::Class::file(qw(etc templates deploy.tmpl)),
+    is $add->_find('deploy'), Path::Class::file(qw(etc templates deploy pg.tmpl)),
         '_find should work with user_dir from Config';
 
     $config_mock->mock(user_dir => Path::Class::dir('nonexistent'));
@@ -240,13 +266,13 @@ MOCKCONFIG: {
     ), "Should get unfound verify template note";
 
     $config_mock->mock(system_dir => Path::Class::dir('etc'));
-    is $add->_find('deploy'), Path::Class::file(qw(etc templates deploy.tmpl)),
+    is $add->_find('deploy'), Path::Class::file(qw(etc templates deploy pg.tmpl)),
         '_find should work with system_dir from Config';
 }
 
 ##############################################################################
 # Test _slurp().
-my $tmpl = Path::Class::file(qw(etc templates deploy.tmpl));
+my $tmpl = Path::Class::file(qw(etc templates deploy pg.tmpl));
 is $ { $add->_slurp($tmpl)}, contents_of $tmpl,
     '_slurp() should load a reference to file contents';
 

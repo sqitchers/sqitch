@@ -53,6 +53,14 @@ has template_directory => (
     isa => 'Maybe[Path::Class::Dir]',
 );
 
+has template_name => (
+    is       => 'ro',
+    isa      => 'Str',
+    required => 1,
+    lazy     => 1,
+    default  => sub { shift->sqitch->_engine },
+);
+
 for my $script (qw(deploy revert verify)) {
     has "with_$script" => (
         is      => 'ro',
@@ -77,6 +85,7 @@ for my $script (qw(deploy revert verify)) {
 sub _find {
     my ( $self, $script ) = @_;
     my $config = $self->sqitch->config;
+    my $name   = $self->template_name;
     $config->get( key => "add.$script\_template" ) || do {
         for my $dir (
             $self->template_directory,
@@ -84,7 +93,7 @@ sub _find {
             $config->system_dir->subdir('templates'),
         ) {
             next unless $dir;
-            my $tmpl = $dir->file("$script.tmpl");
+            my $tmpl = $dir->file($script, "$name.tmpl");
             return $tmpl if -f $tmpl;
         }
         hurl add => __x(
@@ -100,6 +109,7 @@ sub options {
         conflicts|c=s@
         note|n=s@
         set|s=s%
+        template-name|template|t=s
         template-directory=s
         deploy-template=s
         revert-template=s
@@ -121,7 +131,7 @@ sub configure {
 
     if (
         my $dir = $opt->{template_directory}
-               || $config->get( key => "add.template_directory" )
+            || $config->get( key => 'add.template_directory' )
     ) {
         $dir = $params{template_directory} = dir $dir;
         hurl add => __x(
@@ -136,6 +146,13 @@ sub configure {
 
     }
 
+    if (
+        my $name = $opt->{template_name}
+            || $config->get( key => 'add.template_name' )
+    ) {
+        $params{template_name} = $name;
+    }
+
     for my $attr (qw(deploy revert verify)) {
         $params{"with_$attr"} = $opt->{$attr} if exists $opt->{$attr};
         my $t = "$attr\_template";
@@ -143,7 +160,6 @@ sub configure {
     }
 
     if ( my $vars = $opt->{set} ) {
-
         # Merge with config.
         $params{variables} = {
             %{ $config->get_section( section => 'add.variables' ) },

@@ -21,6 +21,7 @@ my $CLASS = 'App::Sqitch::Command::rework';
 
 ok my $sqitch = App::Sqitch->new(
     top_dir => Path::Class::Dir->new('sql'),
+    _engine => 'pg',
 ), 'Load a sqitch sqitch object';
 
 sub dep($) {
