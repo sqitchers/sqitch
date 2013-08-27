@@ -33,7 +33,7 @@ sub _getetc {
         return $etc;
     }
 
-    # Use a directory unde the install base (or prefix).
+    # Use a directory under the install base (or prefix).
     my @subdirs = qw(etc sqitch);
     if ( my $dir = $self->prefix || $self->install_base ) {
         return File::Spec->catdir( $dir, @subdirs );
@@ -43,10 +43,53 @@ sub _getetc {
     return File::Spec->catdir( $Config::Config{prefix}, @subdirs );
 }
 
+sub ACTION_move_old_templates {
+    my $self = shift;
+    $self->depends_on('build');
+
+    # First, rename existing etc dir templates; They were moved in v0.980.
+    my $tmpl_dir = File::Spec->catdir( $self->_getetc, 'templates' );
+    if (-e $tmpl_dir && -d _) {
+        # Scan for old templates, but only if we can read the directory.
+        if (opendir my $dh, $tmpl_dir) {
+            while (my $bn = readdir $dh) {
+                next unless $bn =~ /^(deploy|verify|revert)[.]tmpl([.]default)?$/;
+                my ($action, $default) = ($1, $2);
+                my $file = File::Spec->catfile($tmpl_dir, $bn);
+                if ($default) {
+                    $self->log_verbose("Unlinking $file\n");
+                    # Just unlink default files.
+                    unlink $file;
+                    next;
+                }
+                # Move action templates to $action/pg.tmpl and $action/sqlite.tmpl.
+                my $action_dir = File::Spec->catdir($tmpl_dir, $action);
+                File::Path::mkpath($action_dir) or die;
+                for my $engine (qw(pg sqlite)) {
+                    my $dest = File::Spec->catdir($action_dir, "$engine.tmpl");
+                    $self->log_info("Copying old $bn to $dest\n");
+                    File::Copy::copy($file, $dest)
+                        or die "Cannot copy('$file', '$dest'): $!\n";
+                }
+
+                $self->log_verbose("Unlinking $file\n");
+                unlink $file;
+            }
+        }
+    }
+}
+
+sub ACTION_install {
+    my ($self, @params) = @_;
+    $self->depends_on('move_old_templates');
+    $self->SUPER::ACTION_install(@_);
+}
+
 sub process_etc_files {
     my $self = shift;
     my $etc  = $self->_getetc;
     $self->install_path( etc => $etc );
+
     for my $file ( @{ $self->rscan_dir( 'etc', sub { -f && !/\.\#/ } ) } ) {
         $file = $self->localize_file_path($file);
 
@@ -55,8 +98,17 @@ sub process_etc_files {
         my (undef, @segs) = File::Spec->splitdir($dirs);
         my $rel = File::Spec->catpath($vol, File::Spec->catdir(@segs), $fn);
 
-        # Append .default if file already exists at its ultimate destination.
-        my $dest = -e File::Spec->catfile($etc, $rel) ? "$file.default" : $file;
+        my $dest = $file;
+
+        # Append .default if file already exists at its ultimate destination
+        # or if it exists with an old name (to be moved by move_old_templates).
+        if ( -e File::Spec->catfile($etc, $rel) || (
+            $segs[0] eq 'templates'
+                && $fn =~ /^(?:pg|sqlite)[.]tmpl$/
+                && -e File::Spec->catfile($etc, 'templates', "$segs[1].tmpl")
+        ) ) {
+            $dest .= '.default';
+        }
 
         $self->copy_if_modified(
             from => $file,
