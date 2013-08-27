@@ -439,8 +439,8 @@ this:
 
 A few things to notice here. On the second line, the dependence on the
 C<appschema> change has been listed in a comment. This doesn't do anything,
-but the default C<deploy> template lists it here for your reference while
-editing the file. Useful, right?
+but the default SQLite C<deploy> template lists it here for your reference
+while editing the file. Useful, right?
 
 The table itself will been created in the C<flipr> schema. This is why we need
 to require the C<appschema> change.

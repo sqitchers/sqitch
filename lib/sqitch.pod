@@ -318,8 +318,8 @@ Defaults to C<sql>.
   sqitch --etc-path
 
 Print out the path to the Sqitch F<etc> directory and exit. This is the
-directory where the system-wide configuration file lives, as well as
-deployment script templates.
+directory where the system-wide configuration file lives, as well as change
+script templates.
 
 =item C<--quiet>
 

@@ -427,8 +427,8 @@ this:
 
 A few things to notice here. On the second line, the dependence on the
 C<appschema> change has been listed. This doesn't do anything, but the default
-C<deploy> template lists it here for your reference while editing the file.
-Useful, right?
+C<deploy> PostgreSQL template lists it here for your reference while editing
+the file. Useful, right?
 
 Notice that all of the SQL code is wrapped in a transaction. This is handy for
 PostgreSQL deployments, because PostgreSQL DDLs are transactional. The upshot

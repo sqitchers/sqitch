@@ -439,8 +439,8 @@ this:
 
 A few things to notice here. On the second line, the dependence on the
 C<appuser> change has been listed. This doesn't do anything, but the default
-C<deploy> template lists it here for your reference while editing the file.
-Useful, right?
+MySQL C<deploy> template lists it here for your reference while editing the
+file. Useful, right?
 
 The C<flipr> user has been granted C<SELECT> access to the table. The app
 needs to read the data, right? This is why we need to require the C<appuser>
