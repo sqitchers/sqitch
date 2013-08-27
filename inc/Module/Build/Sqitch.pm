@@ -48,6 +48,7 @@ sub ACTION_move_old_templates {
     $self->depends_on('build');
 
     # First, rename existing etc dir templates; They were moved in v0.980.
+    my $notify = 0;
     my $tmpl_dir = File::Spec->catdir( $self->_getetc, 'templates' );
     if (-e $tmpl_dir && -d _) {
         # Scan for old templates, but only if we can read the directory.
@@ -74,8 +75,34 @@ sub ACTION_move_old_templates {
 
                 $self->log_verbose("Unlinking $file\n");
                 unlink $file;
+                $notify = 1;
             }
         }
+    }
+
+    # If we moved any files, nofify the user that custom templates will need
+    # to be updated, too.
+    if ($notify) {
+        $self->log_warn(q{
+            #################################################################
+            #                         WARNING                               #
+            #                                                               #
+            # As of v0.980, the location of script templates has changed.   #
+            # The system-wide templates have been moved to their new        #
+            # locations as described above. However, user-specific          #
+            # templates have not been moved.                                #
+            #                                                               #
+            # Please inform all users that any custom Sqitch templates in   #
+            # their ~/.sqitch/templates directories must be moved into      #
+            # subdirectories using the appropriate engine name (pg, sqlite, #
+            # or oracle) as follows:                                        #
+            #                                                               #
+            #             deploy.tmpl -> deploy/$engine.tmpl                #
+            #             revert.tmpl -> revert/$engine.tmpl                #
+            #             verify.tmpl -> verify/$engine.tmpl                #
+            #                                                               #
+            #################################################################
+        } . "\n");
     }
 }
 
