@@ -16,10 +16,11 @@ my $CLASS = 'App::Sqitch::Command::show';
 require_ok $CLASS or die;
 
 isa_ok $CLASS, 'App::Sqitch::Command';
-can_ok $CLASS, qw(execute);
+can_ok $CLASS, qw(execute exists_only);
 
-is_deeply [$CLASS->options], [
-], 'Options should be correct';
+is_deeply [$CLASS->options], [qw(
+    exists|e!
+)], 'Options should be correct';
 
 my $sqitch = App::Sqitch->new(
     plan_file => file(qw(t engine sqitch.plan)),
@@ -28,9 +29,25 @@ my $sqitch = App::Sqitch->new(
 );
 
 isa_ok my $show = $CLASS->new(sqitch => $sqitch), $CLASS;
+ok !$show->exists_only, 'exists_only should be false by default';
+
+ok my $eshow = $CLASS->new(sqitch => $sqitch, exists_only => 1),
+    'Construct with exists_only';
+ok $eshow->exists_only, 'exists_only should be set';
+
+##############################################################################
+# Test configure().
+my $config = $sqitch->config;
+is_deeply $CLASS->configure($config, {}), {},
+    'Should get empty hash for no config or options';
+
+is_deeply $CLASS->configure($config, {exists => 1}), { exists_only => 1 },
+    'Should get exists_only => 1 for exist in options';
+
+##############################################################################
+# Start with the change.
 ok my $change = $sqitch->plan->get('users'), 'Get a change';
 
-# Start with the change.
 ok $show->execute( change => $change->id ), 'Find change by id';
 is_deeply +MockOutput->get_emit, [[ $change->info ]],
     'The change info should have been emitted';
@@ -40,12 +57,17 @@ ok $show->execute( change => $change->name ), 'Find change by name';
 is_deeply +MockOutput->get_emit, [[ $change->info ]],
     'The change info should have been emitted again';
 
-# What happens for something unknonwn?
+# What happens for something unknown?
 throws_ok { $show->execute( change => 'nonexistent' ) } 'App::Sqitch::X',
     'Should get an error for an unknown change';
 is $@->ident, 'show', 'Unknown change error ident should be "show"';
 is $@->message, __x('Unknown change "{change}"', change => 'nonexistent'),
     'Should get proper error for unknown change';
+
+# What about with exists_only?
+ok !$eshow->execute( change => 'nonexistent' ),
+    'Should return false for uknown change and exists_only';
+is_deeply +MockOutput->get_emit, [], 'Nothing should have been emitted';
 
 # Let's find it by tag.
 my $tag = ($change->tags)[0];
@@ -58,10 +80,19 @@ ok $show->execute( change => $tag->format_name ), 'Find change by tag';
 is_deeply +MockOutput->get_emit, [[ $change->info ]],
     'The change info should have been emitted';
 
+# Make sure it works with exists_only.
+ok $eshow->execute( change => $change->id ), 'Run exists with ID';
+is_deeply +MockOutput->get_emit, [],
+    'There should be no output';
+
 # Great, let's look a the tag itself.
 ok $show->execute( tag => $tag->id ), 'Find tag by id';
 is_deeply +MockOutput->get_emit, [[ $tag->info ]],
     'The tag info should have been emitted';
+
+# Should work with exists_only, too.
+ok $eshow->execute( tag => $tag->id ), 'Find tag by id with exists_only';
+is_deeply +MockOutput->get_emit, [], 'Nothing should have been emitted';
 
 ok $show->execute( tag => $tag->name ), 'Find tag by name';
 is_deeply +MockOutput->get_emit, [[ $tag->info ]],
@@ -73,15 +104,20 @@ is_deeply +MockOutput->get_emit, [[ $tag->info ]],
 
 # Try an invalid tag.
 throws_ok { $show->execute( tag => 'nope') } 'App::Sqitch::X',
-    'Should get errof for non-existent tag';
+    'Should get error for non-existent tag';
 is $@->ident, 'show', 'Unknown tag error ident should be "show"';
 is $@->message, __x('Unknown tag "{tag}"', tag => 'nope' ),
     'Should get proper error for unknown tag';
 
+# Try invalid tag with exists_only.
+ok !$eshow->execute( tag => 'nope'),
+    'Should return false for non-existent tag and exists_only';
+is_deeply +MockOutput->get_emit, [], 'Nothing should have been emitted';
+
 # Also an invalid sha1.
 throws_ok { $show->execute( tag => '7ecba288708307ef714362c121691de02ffb364d') }
     'App::Sqitch::X',
-    'Should get errof for non-existent tag ID';
+    'Should get error for non-existent tag ID';
 is $@->ident, 'show', 'Unknown tag ID error ident should be "show"';
 is $@->message, __x('Unknown tag "{tag}"', tag => '7ecba288708307ef714362c121691de02ffb364d' ),
     'Should get proper error for unknown tag ID';
@@ -90,6 +126,10 @@ is $@->message, __x('Unknown tag "{tag}"', tag => '7ecba288708307ef714362c121691
 ok $show->execute(deploy => $change->id), 'Show a deploy file';
 is_deeply +MockOutput->get_emit, [[ $change->deploy_file->slurp(iomode => '<:raw') ]],
     'The deploy file should have been emitted';
+
+# With exists_only.
+ok $eshow->execute(deploy => $change->id), 'Show a deploy file with exists_only';
+is_deeply +MockOutput->get_emit, [], 'Nothing should have been emitted';
 
 ok $show->execute(revert => $change->id), 'Show a revert file';
 is_deeply +MockOutput->get_emit, [[ $change->revert_file->slurp(iomode => '<:raw') ]],
@@ -101,6 +141,11 @@ throws_ok { $show->execute( verify => $change->id ) } 'App::Sqitch::X',
 is $@->ident, 'show', 'Nonexistent file error ident should be "show"';
 is $@->message, __x('File "{path}" does not exist', path => $change->verify_file ),
     'Should get proper error for nonexistent file';
+
+# Nonexistent with exists_only.
+ok !$eshow->execute( verify => $change->id ),
+    'Should return false for nonexistent file';
+is_deeply +MockOutput->get_emit, [], 'Nothing should have been emitted';
 
 # Now try invalid args.
 my $mock = Test::MockModule->new($CLASS);
@@ -117,6 +162,5 @@ is $@->message,  __x(
     'Unknown object type "{type}',
     type => 'foo',
 ), 'Should get proper error for unknown type';
-
 
 done_testing;

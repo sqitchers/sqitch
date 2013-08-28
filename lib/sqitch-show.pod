@@ -37,6 +37,19 @@ A change verify script.
 
 =back
 
+=head1 Options
+
+=over
+
+=item C<-e>
+
+=item C<--exists>
+
+Suppress all output; instead exit with zero status if <object> exists and is a
+valid object.
+
+=back
+
 =head2 Examples
 
 =over

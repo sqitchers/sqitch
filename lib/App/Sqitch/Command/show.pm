@@ -12,6 +12,27 @@ extends 'App::Sqitch::Command';
 
 our $VERSION = '0.980';
 
+has exists_only => (
+    is       => 'ro',
+    isa      => 'Bool',
+    required => 1,
+    default  => 0,
+);
+
+sub options {
+    return qw(
+        exists|e!
+    );
+}
+
+sub configure {
+    my ( $class, $config, $opt ) = @_;
+    $opt->{exists_only} = delete $opt->{exists}
+        if exists $opt->{exists};
+    return $class->SUPER::configure( $config, $opt );
+}
+
+
 sub execute {
     my ( $self, $type, $key ) = @_;
     $self->usage unless $type && $key;
@@ -33,9 +54,11 @@ sub execute {
                 first { $_->name eq $name } $change->tags;
             }
         } : undef;
-        hurl show => __x( 'Unknown tag "{tag}"', tag => $key )
-            unless $tag;
-        $self->emit( $tag->info ) if $tag;
+        unless ($tag) {
+            return if $self->exists_only;
+            hurl show => __x( 'Unknown tag "{tag}"', tag => $key );
+        }
+        $self->emit( $tag->info ) unless $self->exists_only;
         return $self;
     }
 
@@ -46,23 +69,30 @@ sub execute {
     ) unless first { $type eq $_ } qw(change deploy revert verify);
 
     # Make sure we have a change object.
-    my $change = $self->plan->get($key) or  hurl show => __x(
-        'Unknown change "{change}"',
-        change => $key
-    );
+    my $change = $self->plan->get($key) or do {
+        return if $self->exists_only;
+        hurl show => __x(
+            'Unknown change "{change}"',
+            change => $key
+        );
+    };
 
     if ($type eq 'change') {
         # Just show its info.
-        $self->emit( $change->info );
+        $self->emit( $change->info ) unless $self->exists_only;
         return $self;
     }
 
     my $meth = $change->can("$type\_file");
     my $path = $change->$meth;
-    hurl show => __x('File "{path}" does not exist', path => $path)
-        unless -e $path;
+    unless (-e $path) {
+        return if $self->exists_only;
+        hurl show => __x('File "{path}" does not exist', path => $path);
+    }
     hurl show => __x('"{path}" is not a file', path => $path)
         if $path->is_dir;
+
+    return $self if $self->exists_only;
 
     # Assume nothing about the encoding.
     binmode STDOUT, ':raw';
