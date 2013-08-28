@@ -190,7 +190,6 @@ sub configure {
     }
 
     if ( my $vars = $opt->{set} ) {
-        use Data::Dump; ddx $vars;
         # Merge with config.
         $params{variables} = {
             %{ $config->get_section( section => 'add.variables' ) },
@@ -286,7 +285,7 @@ sub _add {
         error => $!
     );
 
-    if (eval 'require Template') {
+    if (eval 'use Template; 1') {
         Template->new->process( $self->_slurp($tmpl), $vars, $fh );
     } else {
         eval 'use Template::Tiny 0.11; 1' or die $@;
