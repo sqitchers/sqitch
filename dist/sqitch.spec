@@ -228,7 +228,7 @@ package bundles the Sqitch MySQL support.
 # No additional files required.
 
 %changelog
-* Tue Aug 27 2013 David E. Wheeler <david.wheeler@iovation.com> 0.980-1
+* Tue Aug 28 2013 David E. Wheeler <david.wheeler@iovation.com> 0.980-1
 - Upgrade to v0.980.
 - Require Encode::Locale.
 - Require DBD::SQLite 1.37.
