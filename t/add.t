@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 97;
+use Test::More tests => 107;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -64,7 +64,6 @@ is_deeply [$CLASS->options], [qw(
     requires|r=s@
     conflicts|c=s@
     note|n=s@
-    set|s=s%
     template-name|template|t=s
     template-directory=s
     deploy-template=s
@@ -423,3 +422,35 @@ is_deeply +MockOutput->get_info, [
         file   => $sqitch->plan_file,
     ],
 ], 'Info should report skipping file and include dependencies';
+
+##############################################################################
+# Test options parsing.
+can_ok $CLASS, 'options', '_parse_opts';
+ok $add = $CLASS->new({ sqitch => $sqitch }), "Create a $CLASS object again";
+is_deeply $add->_parse_opts, {}, 'Base _parse_opts should return an empty hash';
+
+is_deeply $add->_parse_opts([1]), {}, '_parse_opts() hould use options spec';
+my $args = [qw(
+    --note foo
+    --template bar
+    whatever
+)];
+is_deeply $add->_parse_opts($args), {
+    note          => ['foo'],
+    template_name => 'bar',
+}, '_parse_opts() should parse options spec';
+is_deeply $args, ['whatever'], 'Args array should be cleared of options';
+
+# Make sure --set works.
+push @{ $args }, '--set' => 'schema=foo', '--set' => 'table=bar';
+is_deeply $add->_parse_opts($args), {
+    set => { schema => 'foo', table => 'bar' },
+}, '_parse_opts() should parse --set options';
+is_deeply $args, ['whatever'], 'Args array should be cleared of options';
+
+# make sure --set works with repeating keys.
+push @{ $args }, '--set' => 'column=id', '--set' => 'column=name';
+is_deeply $add->_parse_opts($args), {
+    set => { column => [qw(id name)] },
+}, '_parse_opts() should parse --set options with repeting key';
+is_deeply $args, ['whatever'], 'Args array should be cleared of options';

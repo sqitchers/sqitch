@@ -51,6 +51,8 @@ Revision history for Perl extension App::Sqitch
        `--template-name createtable` to use those templates when adding a
        change.
      - Added the `--exists` option to the `show` command.
+     - Fixed the `--set` option to the `add` command so that duplicate keys
+       have their values passed to the template as an array, as documented.
 
 0.973  2013-07-03T13:47:22Z
      - Now Require DBD::SQLite compiled with SQLite 3.7.11 or higher. It

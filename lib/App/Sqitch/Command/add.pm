@@ -108,7 +108,6 @@ sub options {
         requires|r=s@
         conflicts|c=s@
         note|n=s@
-        set|s=s%
         template-name|template|t=s
         template-directory=s
         deploy-template=s
@@ -118,6 +117,37 @@ sub options {
         revert!
         verify|test!
     );
+}
+
+# Override to convert multiple vars to an array.
+sub _parse_opts {
+    my ( $class, $args ) = @_;
+    return {} unless $args && @{$args};
+
+    my (%opts, %vars);
+    Getopt::Long::Configure(qw(bundling no_pass_through));
+    Getopt::Long::GetOptionsFromArray(
+        $args, \%opts,
+        $class->options,
+        'set|s=s%' => sub {
+            my ($opt, $key, $val) = @_;
+            if (exists $vars{$key}) {
+                $vars{$key} = [$vars{$key}] unless ref $vars{$key};
+                push @{ $vars{$key} } => $val;
+            } else {
+                $vars{$key} = $val;
+            }
+        }
+    ) or $class->usage;
+
+    # Convert dashes to underscores.
+    for my $k (keys %opts) {
+        next unless ( my $nk = $k ) =~ s/-/_/g;
+        $opts{$nk} = delete $opts{$k};
+    }
+
+    $opts{set} = \%vars if %vars;
+    return \%opts;
 }
 
 sub configure {
@@ -160,6 +190,7 @@ sub configure {
     }
 
     if ( my $vars = $opt->{set} ) {
+        use Data::Dump; ddx $vars;
         # Merge with config.
         $params{variables} = {
             %{ $config->get_section( section => 'add.variables' ) },
