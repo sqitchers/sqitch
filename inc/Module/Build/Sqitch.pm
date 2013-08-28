@@ -49,7 +49,11 @@ sub ACTION_move_old_templates {
 
     # First, rename existing etc dir templates; They were moved in v0.980.
     my $notify = 0;
-    my $tmpl_dir = File::Spec->catdir( $self->_getetc, 'templates' );
+    my $tmpl_dir = File::Spec->catdir(
+        ( $self->destdir ? $self->destdir : ()),
+        $self->_getetc,
+        'templates'
+    );
     if (-e $tmpl_dir && -d _) {
         # Scan for old templates, but only if we can read the directory.
         if (opendir my $dh, $tmpl_dir) {
