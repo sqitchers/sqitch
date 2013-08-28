@@ -1,6 +1,6 @@
 Revision history for Perl extension App::Sqitch
 
-0.980
+0.980  2013-08-28T00:59:39Z
      - Changed the default SQLite Sqitch database name from
        `$dbname-sqitch.$suffix` to `sqitch.$suffix`. The `$suffix` still
        comes from the destination database name. This breaks compatibility
