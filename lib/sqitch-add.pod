@@ -164,6 +164,11 @@ Loop over a list of values:
 
 =back
 
+If this is not sufficient for your needs, simply install L<Template::Toolkit>
+and all templates will be processed by its more comprehensive features. See
+the L<complete Template Toolkit documentation|http://tt2.org/docs/manual/> for
+details, especially the L<syntax docs|http://tt2.org/docs/manual/Syntax.html>
+
 =head2 Variables
 
 Sqitch defines three variables for all templates. Any number of additional variables
