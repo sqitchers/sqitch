@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 107;
+use Test::More tests => 118;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -277,18 +277,22 @@ is $ { $add->_slurp($tmpl)}, contents_of $tmpl,
 
 ##############################################################################
 # Test _add().
-make_path 'test-add';
-my $fn = $sqitch->plan_file;
-open my $fh, '>', $fn or die "Cannot open $fn: $!";
-say $fh "%project=add\n\n";
-close $fh or die "Error closing $fn: $!";
-END { remove_tree 'test-add' };
-my $out = file 'test-add', 'sqitch_change_test.sql';
-file_not_exists_ok $out;
-ok $add->_add('sqitch_change_test', $out, $tmpl),
-    'Write out a script';
-file_exists_ok $out;
-file_contents_is $out, <<EOF, 'The template should have been evaluated';
+
+my $test_add = sub {
+    my $engine = shift;
+    make_path 'test-add';
+    my $fn = $sqitch->plan_file;
+    open my $fh, '>', $fn or die "Cannot open $fn: $!";
+    say $fh "%project=add\n\n";
+    close $fh or die "Error closing $fn: $!";
+    END { remove_tree 'test-add' };
+    my $out = file 'test-add', 'sqitch_change_test.sql';
+    file_not_exists_ok $out;
+    ok my $add = $CLASS->new(sqitch => $sqitch), 'Create add command';
+    ok $add->_add('sqitch_change_test', $out, $tmpl),
+        'Write out a script';
+    file_exists_ok $out;
+    file_contents_is $out, <<EOF, 'The template should have been evaluated';
 -- Deploy sqitch_change_test
 
 BEGIN;
@@ -297,22 +301,23 @@ BEGIN;
 
 COMMIT;
 EOF
-is_deeply +MockOutput->get_info, [[__x 'Created {file}', file => $out ]],
-    'Info should show $out created';
+    is_deeply +MockOutput->get_info, [[__x 'Created {file}', file => $out ]],
+        'Info should show $out created';
+    unlink $out;
 
-# Try with requires and conflicts.
-ok $add =  $CLASS->new(
-    sqitch    => $sqitch,
-    requires  => [qw(foo bar)],
-    conflicts => ['baz'],
-), 'Create add cmd with requires and conflicts';
+    # Try with requires and conflicts.
+    ok $add =  $CLASS->new(
+        sqitch    => $sqitch,
+        requires  => [qw(foo bar)],
+        conflicts => ['baz'],
+    ), 'Create add cmd with requires and conflicts';
 
-$out = file 'test-add', 'another_change_test.sql';
-ok $add->_add('another_change_test', $out, $tmpl),
-    'Write out a script with requires and conflicts';
-is_deeply +MockOutput->get_info, [[__x 'Created {file}', file => $out ]],
-    'Info should show $out created';
-file_contents_is $out, <<EOF, 'The template should have been evaluated with requires and conflicts';
+    $out = file 'test-add', 'another_change_test.sql';
+    ok $add->_add('another_change_test', $out, $tmpl),
+        'Write out a script with requires and conflicts';
+    is_deeply +MockOutput->get_info, [[__x 'Created {file}', file => $out ]],
+        'Info should show $out created';
+    file_contents_is $out, <<EOF, 'The template should have been evaluated with requires and conflicts';
 -- Deploy another_change_test
 -- requires: foo
 -- requires: bar
@@ -324,7 +329,29 @@ BEGIN;
 
 COMMIT;
 EOF
-unlink $out;
+    unlink $out;
+};
+
+# First, test  with Template::Tiny.
+unshift @INC => sub {
+    my ($self, $file) = @_;
+    return if $file ne 'Template.pm';
+    my $i = 0;
+    return sub {
+        $_ = 'die "NO ONE HERE";';
+        return $i = !$i;
+    }, 1;
+};
+
+$test_add->('Template::Tiny');
+
+# Test _add() with Template.
+shift @INC;
+delete $INC{'Template.pm'};
+SKIP: {
+    skip 'Template Toolkit not installed', 10 unless eval 'use Template; 1';
+    $test_add->('Template Toolkit');
+}
 
 ##############################################################################
 # Test execute.
