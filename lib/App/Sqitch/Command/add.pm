@@ -4,12 +4,12 @@ use 5.010;
 use strict;
 use warnings;
 use utf8;
-use Template::Tiny 0.11;
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use Mouse;
 use MouseX::Types::Path::Class;
 use Path::Class;
+use Try::Tiny;
 use File::Path qw(make_path);
 use namespace::autoclean;
 
@@ -273,27 +273,33 @@ sub _add {
         hurl add => $msg;
     }
 
+    my $vars = {
+        %{ $self->variables },
+        change    => $name,
+        requires  => $self->requires,
+        conflicts => $self->conflicts,
+    };
+
     my $fh = $file->open('>:utf8_strict') or hurl add => __x(
         'Cannot open {file}: {error}',
         file  => $file,
         error => $!
     );
-    my $orig_selected = select;
-    select $fh;
 
-    Template::Tiny->new->process( $self->_slurp($tmpl), {
-        %{ $self->variables },
-        change    => $name,
-        requires  => $self->requires,
-        conflicts => $self->conflicts,
-    });
+    if (eval 'require Template') {
+        Template->new->process( $self->_slurp($tmpl), $vars, $fh );
+    } else {
+        eval 'use Template::Tiny 0.11; 1' or die $@;
+        my $output = '';
+        Template::Tiny->new->process( $self->_slurp($tmpl), $vars, \$output );
+        print $fh $output;
+    }
 
     close $fh or hurl add => __x(
         'Error closing {file}: {error}',
         file  => $file,
         error => $!
     );
-    select $orig_selected;
     $self->info(__x 'Created {file}', file => $file);
 }
 

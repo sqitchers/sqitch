@@ -53,6 +53,9 @@ Revision history for Perl extension App::Sqitch
      - Added the `--exists` option to the `show` command.
      - Fixed the `--set` option to the `add` command so that duplicate keys
        have their values passed to the template as an array, as documented.
+     - If Template::Toolkit is installed, the `add` command will use it for
+       processing templates instead of Template::Tiny. This makes it easy to
+       upgrade the templating environment just by installing a module.
 
 0.973  2013-07-03T13:47:22Z
      - Now Require DBD::SQLite compiled with SQLite 3.7.11 or higher. It
