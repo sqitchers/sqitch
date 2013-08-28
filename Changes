@@ -3,7 +3,7 @@ Revision history for Perl extension App::Sqitch
 0.980
      - Changed the default SQLite Sqitch database name from
        `$dbname-sqitch.$suffix` to `sqitch.$suffix`. The `$suffix` still
-       comes from the destination database name. This breaks compatability
+       comes from the destination database name. This breaks compatibility
        with previous releases. If you need the old name, set it with
        `sqitch config core.sqlite.sqitch_db $dbname`.
      - Fixed encoding of the user's full name when fetched from the system on
@@ -17,7 +17,7 @@ Revision history for Perl extension App::Sqitch
        each other.
      - Bundling of options, such as `-vvv`, now works properly (issue #108).
      - Added alias `--get-regexp` for `--get-regex` to the `config` command.
-       This brings it inline with the documentaion for the `config` command
+       This brings it in line with the documentation for the `config` command
        (Issue #110).
      - Fixed all of the `config` command actions that contain a dash so that
        they actually work. Thanks to Ștefan Suciu for the report (issue #110).
@@ -31,6 +31,25 @@ Revision history for Perl extension App::Sqitch
        value of the `user.name` config, Sqitch now uses Encode::Locale to try
        to decode the value from the system encoding. Note that this is not
        necessary if `user.name` is explicitly set, as recommended. Issue #107.
+     - Compatibility change: Changed the location and name of script template
+       files. Previously they were called `deploy.tmpl`, `revert.tmpl`, and
+       `verify.tmpl`, and they lived in the `templates` subdirectory of the
+       system-wide and user-specific configuration directories. They now live
+       in subdirectories of the `templates` directory named for each action
+       (deploy, revert, and verify), and with file names matching engine names
+       (`pg.tmpl`, `sqlite.tmpl`, `oracle.tmpl`, and `mysql.tmpl`). The
+       installer will move old files from the system-wide config directory
+       (`sqitch --etc-path`) to their new homes, named `pg.tmpl` and
+       `sqlite.tmpl`. It assumes no customizations exist for Oracle. If that's
+       not true in your case, simply copy the `pg.tmpl` files to
+       `oracle.tmpl`.
+     - Added the `--template-name` option to the `add` command. By default, it
+       looks for templates named for the current engine. The option allows for
+       the user of task-specific templates. For example, if you create
+       templates named `createtable.tmpl` in the `deploy`, `revert`, and
+       `verify` subdirectories of `~/.sqitch/templates`, You can specify
+       `--template-name createtable` to use those templates when adding a
+       change.
 
 0.973  2013-07-03T13:47:22Z
      - Now Require DBD::SQLite compiled with SQLite 3.7.11 or higher. It
