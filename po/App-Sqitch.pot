@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: App-Sqitch 0.980\n"
 "Report-Msgid-Bugs-To: david@justatheory.com\n"
-"POT-Creation-Date: 2013-08-27 17:56-0700\n"
+"POT-Creation-Date: 2013-08-28 14:08-0700\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -436,8 +436,8 @@ msgid "Plan file {file} is not a regular file"
 msgstr ""
 
 #: lib/App/Sqitch/Plan.pm:124 lib/App/Sqitch/Plan.pm:575
-#: lib/App/Sqitch/Plan.pm:959 lib/App/Sqitch/Command/add.pm:246
-#: lib/App/Sqitch/Command/add.pm:272 lib/App/Sqitch/Command/init.pm:101
+#: lib/App/Sqitch/Plan.pm:959 lib/App/Sqitch/Command/add.pm:283
+#: lib/App/Sqitch/Command/add.pm:308 lib/App/Sqitch/Command/init.pm:101
 #: lib/App/Sqitch/Plan/Line.pm:106
 #, perl-brace-format
 msgid "Cannot open {file}: {error}"
@@ -635,42 +635,42 @@ msgstr ""
 msgid "Cannot find {script} template"
 msgstr ""
 
-#: lib/App/Sqitch/Command/add.pm:138
+#: lib/App/Sqitch/Command/add.pm:168
 #, perl-brace-format
 msgid "Directory \"{dir}\" does not exist"
 msgstr ""
 
-#: lib/App/Sqitch/Command/add.pm:143
+#: lib/App/Sqitch/Command/add.pm:173
 #, perl-brace-format
 msgid "\"{dir}\" is not a directory"
 msgstr ""
 
-#: lib/App/Sqitch/Command/add.pm:187
+#: lib/App/Sqitch/Command/add.pm:217
 msgid "add"
 msgstr ""
 
-#: lib/App/Sqitch/Command/add.pm:216
+#: lib/App/Sqitch/Command/add.pm:246
 #, perl-brace-format
 msgid "Added \"{change}\" to {file}"
 msgstr ""
 
-#: lib/App/Sqitch/Command/add.pm:227
+#: lib/App/Sqitch/Command/add.pm:257
 #, perl-brace-format
 msgid "Skipped {file}: already exists"
 msgstr ""
 
-#: lib/App/Sqitch/Command/add.pm:238 lib/App/Sqitch/Command/bundle.pm:122
+#: lib/App/Sqitch/Command/add.pm:268 lib/App/Sqitch/Command/bundle.pm:122
 #: lib/App/Sqitch/Command/init.pm:85
 #, perl-brace-format
 msgid "Error creating {path}: {error}"
 msgstr ""
 
-#: lib/App/Sqitch/Command/add.pm:261 lib/App/Sqitch/Command/init.pm:112
+#: lib/App/Sqitch/Command/add.pm:298 lib/App/Sqitch/Command/init.pm:112
 #, perl-brace-format
 msgid "Error closing {file}: {error}"
 msgstr ""
 
-#: lib/App/Sqitch/Command/add.pm:266 lib/App/Sqitch/Command/bundle.pm:115
+#: lib/App/Sqitch/Command/add.pm:302 lib/App/Sqitch/Command/bundle.pm:115
 #: lib/App/Sqitch/Command/init.pm:79 lib/App/Sqitch/Command/init.pm:117
 #: lib/App/Sqitch/Command/init.pm:262
 #, perl-brace-format
