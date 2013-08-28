@@ -22,7 +22,7 @@ $ENV{SQITCH_USER_CONFIG} = 'nonexistent.user';
 $ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
 
 ok my $sqitch = App::Sqitch->new(
-    top_dir => Path::Class::Dir->new('sql'),
+    top_dir => Path::Class::Dir->new('test-status'),
     _engine => 'sqlite',
 ), 'Load a sqitch object';
 my $config = $sqitch->config;
@@ -84,7 +84,7 @@ is $status->project, 'foo', 'Should have project "foo"';
 # Look up the project in the database.
 ok $sqitch = App::Sqitch->new(
     _engine => 'sqlite',
-    top_dir => Path::Class::Dir->new('sql'),
+    top_dir => Path::Class::Dir->new('test-status'),
 ), 'Load a sqitch object with SQLite';
 ok $status = $CLASS->new(sqitch => $sqitch), 'Create another status command';
 
