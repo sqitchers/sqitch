@@ -14,7 +14,7 @@ use Mouse::Util::TypeConstraints;
 use namespace::autoclean;
 extends 'App::Sqitch::Command';
 
-our $VERSION = '0.980';
+our $VERSION = '0.981';
 
 has file => (
     is      => 'ro',
