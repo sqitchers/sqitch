@@ -167,7 +167,7 @@ rm -rf $RPM_BUILD_ROOT
 Summary:        Sane database change management for PostgreSQL
 Group:          Development/Libraries
 Requires:       sqitch >= %{version}
-Requires:       postgresql
+Requires:       postgresql >= 8.4.0
 Requires:       perl(DBI)
 Requires:       perl(DBD::Pg)
 
@@ -232,6 +232,7 @@ package bundles the Sqitch MySQL support.
 - Upgrade to v0.980.
 - Require Encode::Locale.
 - Require DBD::SQLite 1.37.
+- Require PostgreSQL 8.4.0.
 - Remove FindBin requirement.
 - Add sqitch-mysql.
 
