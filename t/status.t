@@ -57,7 +57,7 @@ my $engine_mocker = Test::MockModule->new('App::Sqitch::Engine::sqlite');
 my @projs;
 $engine_mocker->mock( registered_projects => sub { @projs });
 my $initialized;
-$engine_mocker->mock( initialized => sub { $initialized } );
+$engine_mocker->mock( initialized => sub { diag "Gonna return $initialized"; $initialized } );
 
 # Start with uninitialized database.
 $initialized = 0;
