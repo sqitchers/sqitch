@@ -1,5 +1,13 @@
 Revision history for Perl extension App::Sqitch
 
+0.981
+     - Now use Encode::Locale to try to decode the user's full name from the
+       system encoding when fetched from the system on all OSes. Note that
+       this is not necessary if the `user.name` config is explicitly set, as
+       recommended. Issue #107.
+     - Removed the special-case handling of the user's full name fetched from
+       the system on OS X.
+
 0.980  2013-08-28T21:40:00Z
      - Changed the default SQLite Sqitch database name from
        `$dbname-sqitch.$suffix` to `sqitch.$suffix`. The `$suffix` still
@@ -27,10 +35,9 @@ Revision history for Perl extension App::Sqitch
      - The `status` command now notices if the specified database is
        uninitialized and says as much, rather than dying with an SQL error
        (issue #109).
-     - When reading the user's name from the system to generate the default
-       value of the `user.name` config, Sqitch now uses Encode::Locale to try
-       to decode the value from the system encoding. Note that this is not
-       necessary if `user.name` is explicitly set, as recommended. Issue #107.
+     - When reading the user's username from the system Sqitch now uses
+       Encode::Locale to try to decode the value from the system encoding.
+       Issue #107.
      - Compatibility change: Changed the location and name of script template
        files. Previously they were called `deploy.tmpl`, `revert.tmpl`, and
        `verify.tmpl`, and they lived in the `templates` subdirectory of the

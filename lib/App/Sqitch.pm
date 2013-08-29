@@ -210,12 +210,15 @@ has user_name => (
             if ($^O eq 'MSWin32') {
                 try { require Win32API::Net } || return $sysname;
                 Win32API::Net::UserGetInfo( "", $sysname, 10, my $info = {} );
-                return $info->{fullName} || $sysname;
+                return $sysname unless $info->{fullName};
+                require Encode::Locale;
+                Encode::decode( locale => $info->{fullName} );
             }
             require User::pwent;
             my $name = (User::pwent::getpwnam($sysname)->gecos)[0]
                 || return $sysname;
-            return  $^O eq 'darwin' ? Encode::decode_utf8 $name : $name;
+            require Encode::Locale;
+            Encode::decode( locale => $name );
         };
     }
 );
