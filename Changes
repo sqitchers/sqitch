@@ -8,6 +8,8 @@ Revision history for Perl extension App::Sqitch
      - Removed the special-case handling of the user's full name fetched from
        the system on OS X.
      - Added call to `sleep` to test in an attempt to fix SQLite failures.
+     - The SQLite engine now requires that the SQLite client be 3.3.9 or
+       later, for support of the `-bail` option.
 
 0.980  2013-08-28T21:40:00Z
      - Changed the default SQLite Sqitch database name from
