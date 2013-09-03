@@ -169,7 +169,7 @@ ok $bundle->_copy_if_modified($file, $dest), "Copy $file to $dest again";
 file_exists_ok $dest, "File $dest should still exist";
 file_contents_identical $dest, $file;
 my $out = MockOutput->get_debug;
-is_deeply $out, [], 'Should have debugging output';
+is_deeply $out, [], 'Should have no debugging output' or diag explain $out;
 
 # Make it old and copy it again.
 utime 0, $file->stat->mtime - 1, $dest;
