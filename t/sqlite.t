@@ -44,9 +44,8 @@ is $sqlite->meta_destination, $sqlite->sqitch_db->stringify,
 
 # Pretend for now that we always have a valid SQLite.
 my $mock_sqitch = Test::MockModule->new(ref $sqitch);
-$mock_sqitch->mock(probe => sub {
-    '3.7.12 2012-04-03 19:43:07 86b8481be7e76cccc92d14ce762d21bfb69504af'
-});
+my $sqlite_version = '3.7.12 2012-04-03 19:43:07 86b8481be7e76cccc92d14ce762d21bfb69504af';
+$mock_sqitch->mock(probe => sub { $sqlite_version });
 
 my @std_opts = (
     '-noheader',
@@ -202,6 +201,45 @@ is $dt->hour,   15, 'DateTime hour should be set';
 is $dt->minute,  7, 'DateTime minute should be set';
 is $dt->second,  1, 'DateTime second should be set';
 is $dt->time_zone->name, 'UTC', 'DateTime TZ should be set';
+
+##############################################################################
+# Test checking the SQLite version.
+for my $v (qw(
+    3.3.9
+    3.3.10
+    3.3.200
+    3.4.0
+    3.4.8
+    3.7.11
+    3.8.12
+    3.10.0
+    4.1.30
+)) {
+    $sqlite_version = "$v 2012-04-03 19:43:07 86b8481be7e76cccc92d14ce762d21bfb69504af";
+    ok my $sqlite = $CLASS->new(sqitch => $sqitch), "Create command for v$v";
+    ok $sqlite->sqlite3, "Should be okay with sqlite v$v";
+}
+
+for my $v (qw(
+    3.3.8
+    3.3.0
+    3.2.8
+    3.0.1
+    3.0.0
+    2.8.1
+    2.20.0
+    1.0.0
+)) {
+    $sqlite_version = "$v 2012-04-03 19:43:07 86b8481be7e76cccc92d14ce762d21bfb69504af";
+    ok my $sqlite = $CLASS->new(sqitch => $sqitch), "Create command for v$v";
+    throws_ok { $sqlite->sqlite3 } 'App::Sqitch::X', "Should not be okay with v$v";
+    is $@->ident, 'sqlite', qq{Should get ident "sqlite" for v$v};
+    is $@->message,  __x(
+        'Sqitch requires SQLite 3.3.9 or later; {client} is {version}',
+        client  => $sqlite->client,
+        version => $v
+    ), "Should get proper error message for v$v";
+}
 
 $mock_sqitch->unmock_all;
 $mock_config->unmock_all;
