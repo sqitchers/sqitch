@@ -1296,6 +1296,7 @@ sub run {
                     "External $desc depencency should now be satisfied";
 
                 # Revert it and try again.
+                sleep 0.1; # Give SQLite a little time to tick microseconds.
                 ok $engine->log_revert_change($change),
                     "Log external $desc change reversion";
                 is $engine->change_id_for_depend($dep), undef,

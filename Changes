@@ -7,6 +7,7 @@ Revision history for Perl extension App::Sqitch
        recommended. Issue #107.
      - Removed the special-case handling of the user's full name fetched from
        the system on OS X.
+     - Added call to `sleep` to test in an attempt to fix SQLite failures.
 
 0.980  2013-08-28T21:40:00Z
      - Changed the default SQLite Sqitch database name from
