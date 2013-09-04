@@ -10,8 +10,9 @@ Revision history for Perl extension App::Sqitch
      - Added call to `sleep` to test in an attempt to fix SQLite failures.
      - The SQLite engine now requires that the SQLite client be 3.3.9 or
        later, for support of the `-bail` option.
-     - Bug fix: The MySQL engine now properly uses the host and port options
-       when connecting to the database. Thanks to vreb87 for the report!
+     - Bug fix: The MySQL engine now properly uses the host, port, and
+       password options when connecting to the database. Thanks to vreb87 for
+       the report!
 
 0.980  2013-08-28T21:40:00Z
      - Changed the default SQLite Sqitch database name from

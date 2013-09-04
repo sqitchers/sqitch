@@ -181,12 +181,16 @@ has mysql => (
         my @ret  = ( $self->client );
         for my $spec (
             [ user     => $self->username ],
-            [ password => $self->password ],
             [ database => $self->db_name  ],
             [ host     => $self->host     ],
             [ port     => $self->port     ],
         ) {
             push @ret, "--$spec->[0]" => $spec->[1] if $spec->[1];
+        }
+
+        # Special-case --password, which requires = before the value. O_o
+        if (my $pw = $self->password) {
+            push @ret, "--password=$pw";
         }
 
         # if (my %vars = $self->variables) {

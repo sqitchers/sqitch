@@ -94,10 +94,10 @@ is $mysql->sqitch_db, 'meta', 'sqitch_db should be as configured';
 is_deeply [$mysql->mysql], [qw(
     /path/to/mysql
     --user     freddy
-    --password s3cr3t
     --database widgets
     --host     db.example.com
     --port     1234
+    --password=s3cr3t
 ), @std_opts], 'mysql command should be configured';
 
 ##############################################################################
@@ -125,10 +125,10 @@ is $mysql->sqitch_db, 'meta', 'sqitch_db should still be as configured';
 is_deeply [$mysql->mysql], [qw(
     /some/other/mysql
     --user     anna
-    --password s3cr3t
     --database widgets_dev
     --host     foo.com
     --port     98760
+    --password=s3cr3t
 ), @std_opts], 'mysql command should be as optioned';
 
 ##############################################################################
