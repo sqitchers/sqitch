@@ -20,7 +20,7 @@ use MockOutput;
 my $CLASS = 'App::Sqitch::Command::rework';
 
 ok my $sqitch = App::Sqitch->new(
-    top_dir => Path::Class::Dir->new('sql'),
+    top_dir => Path::Class::Dir->new('test-rework'),
     _engine => 'pg',
 ), 'Load a sqitch sqitch object';
 
@@ -77,8 +77,8 @@ is_deeply $rework->note, [], 'Note should be an arrayref';
 
 ##############################################################################
 # Test execute().
-make_path 'sql';
-END { remove_tree 'sql' };
+make_path 'test-rework';
+END { remove_tree 'test-rework' };
 my $plan_file = $sqitch->plan_file;
 my $fh = $plan_file->open('>') or die "Cannot open $plan_file: $!";
 say $fh "%project=empty\n\n";
@@ -96,9 +96,9 @@ is $@->message, __x(
 ), 'Fail message should say the step does not exist';
 
 # Use the add command to create a step.
-my $deploy_file = file qw(sql deploy foo.sql);
-my $revert_file = file qw(sql revert foo.sql);
-my $verify_file = file qw(sql verify foo.sql);
+my $deploy_file = file qw(test-rework deploy foo.sql);
+my $revert_file = file qw(test-rework revert foo.sql);
+my $verify_file = file qw(test-rework verify foo.sql);
 
 my $change_mocker = Test::MockModule->new('App::Sqitch::Plan::Change');
 my %request_params;
@@ -128,9 +128,9 @@ is $@->message, __x(
 # Tag it, and *then* it should work.
 ok $plan->tag( name => '@alpha' ), 'Tag it';
 
-my $deploy_file2 = file qw(sql deploy foo@alpha.sql);
-my $revert_file2 = file qw(sql revert foo@alpha.sql);
-my $verify_file2 = file qw(sql verify foo@alpha.sql);
+my $deploy_file2 = file qw(test-rework deploy foo@alpha.sql);
+my $revert_file2 = file qw(test-rework revert foo@alpha.sql);
+my $verify_file2 = file qw(test-rework verify foo@alpha.sql);
 MockOutput->get_info;
 
 file_not_exists_ok($_) for ($deploy_file2, $revert_file2, $verify_file2);
@@ -207,9 +207,9 @@ is_deeply +MockOutput->get_debug, [
 
 ##############################################################################
 # Let's do that again. This time with more dependencies and fewer files.
-$deploy_file = file qw(sql deploy bar.sql);
-$revert_file = file qw(sql revert bar.sql);
-$verify_file = file qw(sql verify bar.sql);
+$deploy_file = file qw(test-rework deploy bar.sql);
+$revert_file = file qw(test-rework revert bar.sql);
+$verify_file = file qw(test-rework verify bar.sql);
 ok $add = App::Sqitch::Command::add->new(
     sqitch => $sqitch,
     template_directory => Path::Class::dir(qw(etc templates)),
@@ -222,9 +222,9 @@ file_exists_ok($deploy_file);
 file_not_exists_ok($_) for ($revert_file, $verify_file);
 ok $plan->tag( name => '@beta' ), 'Tag it with @beta';
 
-my $deploy_file3 = file qw(sql deploy bar@beta.sql);
-my $revert_file3 = file qw(sql revert bar@beta.sql);
-my $verify_file3 = file qw(sql verify bar@beta.sql);
+my $deploy_file3 = file qw(test-rework deploy bar@beta.sql);
+my $revert_file3 = file qw(test-rework revert bar@beta.sql);
+my $verify_file3 = file qw(test-rework verify bar@beta.sql);
 MockOutput->get_info;
 
 isa_ok $rework = App::Sqitch::Command::rework->new(

@@ -20,7 +20,7 @@ my $CLASS = 'App::Sqitch::Command::plan';
 require_ok $CLASS;
 
 ok my $sqitch = App::Sqitch->new(
-    top_dir => Path::Class::Dir->new('sql'),
+    top_dir => Path::Class::Dir->new('test-plan_command'),
     _engine => 'sqlite',
     plan_file => file(qw(t sql sqitch.plan)),
 ), 'Load a sqitch sqitch object';

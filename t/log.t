@@ -20,7 +20,7 @@ my $CLASS = 'App::Sqitch::Command::log';
 require_ok $CLASS;
 
 ok my $sqitch = App::Sqitch->new(
-    top_dir => Path::Class::Dir->new('sql'),
+    top_dir => Path::Class::Dir->new('test-log'),
     _engine => 'sqlite',
 ), 'Load a sqitch sqitch object';
 my $config = $sqitch->config;
