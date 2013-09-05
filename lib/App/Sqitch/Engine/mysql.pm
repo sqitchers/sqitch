@@ -115,8 +115,8 @@ has dbh => (
             'No database specified; use --db-name or set "core.mysql.db_name" via sqitch config'
         ));
 
-        $dsn .= join ';' => map {
-            "$_->[0]=$_->[1]"
+        $dsn .= join '' => map {
+            ";$_->[0]=$_->[1]"
         } grep { $_->[1] } (
             [ host => $self->host ],
             [ port => $self->port ],
