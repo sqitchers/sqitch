@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Sqitch 0.932\n"
 "Report-Msgid-Bugs-To: david@justatheory.com\n"
-"POT-Creation-Date: 2013-08-28 14:08-0700\n"
+"POT-Creation-Date: 2013-09-05 17:16-0700\n"
 "PO-Revision-Date: 2012-08-31 17:15-0700\n"
 "Last-Translator: David Wheeler <david@justatheory.com>\n"
 "Language-Team: German <david@justatheory.com>\n"
@@ -37,36 +37,36 @@ msgstr ""
 msgid "Cannot find your name; run sqitch config --user user.name \"YOUR NAME\""
 msgstr ""
 
-#: lib/App/Sqitch.pm:231
+#: lib/App/Sqitch.pm:234
 msgid ""
 "Cannot infer your email address; run sqitch config --user user.email "
 "you@host.com"
 msgstr ""
 
-#: lib/App/Sqitch.pm:507
+#: lib/App/Sqitch.pm:510
 msgid ""
 "Sqitch seems to be unattended and there is no default value for this question"
 msgstr ""
 
-#: lib/App/Sqitch.pm:536
+#: lib/App/Sqitch.pm:539
 msgid "Please answer \"y\" or \"n\"."
 msgstr ""
 
-#: lib/App/Sqitch.pm:539
+#: lib/App/Sqitch.pm:542
 msgid "No valid answer after 3 attempts; aborting"
 msgstr ""
 
-#: lib/App/Sqitch.pm:548 lib/App/Sqitch.pm:554
+#: lib/App/Sqitch.pm:551 lib/App/Sqitch.pm:557
 #, perl-brace-format
 msgid "Cannot exec {command}: {error}"
 msgstr ""
 
-#: lib/App/Sqitch.pm:570
+#: lib/App/Sqitch.pm:573
 #, perl-brace-format
 msgid "Error closing pipe to {command}: {error}"
 msgstr ""
 
-#: lib/App/Sqitch.pm:574 lib/App/Sqitch/Engine/oracle.pm:799
+#: lib/App/Sqitch.pm:577 lib/App/Sqitch/Engine/oracle.pm:799
 #, perl-brace-format
 msgid "{command} unexpectedly returned exit value {exitval}"
 msgstr ""
@@ -949,12 +949,12 @@ msgid ""
 "sqitch config"
 msgstr ""
 
-#: lib/App/Sqitch/Engine/mysql.pm:157
+#: lib/App/Sqitch/Engine/mysql.pm:164
 #, perl-brace-format
 msgid "Sqitch requires MySQL {want_version} or higher; this is {have_version}"
 msgstr ""
 
-#: lib/App/Sqitch/Engine/mysql.pm:246 lib/App/Sqitch/Engine/sqlite.pm:155
+#: lib/App/Sqitch/Engine/mysql.pm:257 lib/App/Sqitch/Engine/sqlite.pm:166
 #, perl-brace-format
 msgid "Sqitch database {database} already initialized"
 msgstr ""
@@ -990,6 +990,11 @@ msgstr ""
 #, perl-brace-format
 msgid ""
 "Sqitch requires SQLite 3.7.11 or later; DBD::SQLite was built with {version}"
+msgstr ""
+
+#: lib/App/Sqitch/Engine/sqlite.pm:131
+#, perl-brace-format
+msgid "Sqitch requires SQLite 3.3.9 or later; {client} is {version}"
 msgstr ""
 
 #: lib/App/Sqitch/Plan/Change.pm:314
