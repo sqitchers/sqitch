@@ -9,7 +9,7 @@ use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use List::Util qw(first);
 
-our $VERSION = '0.981';
+our $VERSION = '0.982';
 
 sub as_string_formats {
     return qw(

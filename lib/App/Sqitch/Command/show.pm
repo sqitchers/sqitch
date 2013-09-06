@@ -10,7 +10,7 @@ use List::Util qw(first);
 use Mouse;
 extends 'App::Sqitch::Command';
 
-our $VERSION = '0.981';
+our $VERSION = '0.982';
 
 has exists_only => (
     is       => 'ro',

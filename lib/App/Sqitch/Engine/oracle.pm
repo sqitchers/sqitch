@@ -16,7 +16,7 @@ extends 'App::Sqitch::Engine';
 sub dbh; # required by DBIEngine;
 with 'App::Sqitch::Role::DBIEngine';
 
-our $VERSION = '0.981';
+our $VERSION = '0.982';
 
 BEGIN {
     # We tell the Oracle connector which encoding to use. The last part of the

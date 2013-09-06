@@ -17,7 +17,7 @@ use namespace::autoclean;
 
 extends 'App::Sqitch::Command';
 
-our $VERSION = '0.981';
+our $VERSION = '0.982';
 
 sub execute {
     my ( $self, $project ) = @_;
