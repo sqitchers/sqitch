@@ -228,6 +228,9 @@ package bundles the Sqitch MySQL support.
 # No additional files required.
 
 %changelog
+* Thu Sep 5 2013 David E. Wheeler <david.wheeler@iovation.com> 0.981-1
+- Upgrade to v0.981.
+
 * Tue Aug 28 2013 David E. Wheeler <david.wheeler@iovation.com> 0.980-1
 - Upgrade to v0.980.
 - Require Encode::Locale.

@@ -1,6 +1,6 @@
 Revision history for Perl extension App::Sqitch
 
-0.981
+0.981  2013-09-06T00:22:26Z
      - Now use Encode::Locale to try to decode the user's full name from the
        system encoding when fetched from the system on all OSes. Note that
        this is not necessary if the `user.name` config is explicitly set, as
