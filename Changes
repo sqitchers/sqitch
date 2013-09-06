@@ -1,6 +1,7 @@
 Revision history for Perl extension App::Sqitch
 
 0.982
+     - Errors thrown by Template toolkit are no longer silently ignored.
 
 0.981  2013-09-06T00:22:26Z
      - Now use Encode::Locale to try to decode the user's full name from the

@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 118;
+use Test::More tests => 122;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -351,6 +351,21 @@ delete $INC{'Template.pm'};
 SKIP: {
     skip 'Template Toolkit not installed', 10 unless eval 'use Template; 1';
     $test_add->('Template Toolkit');
+
+    # Template Toolkit should throw an error on template syntax errors.
+    ok my $add = $CLASS->new(sqitch => $sqitch), 'Create add command';
+    my $mock_add = Test::MockModule->new($CLASS);
+    $mock_add->mock(_slurp => sub { \'[% IF foo %]' });
+    my $out = file 'test-add', 'sqitch_change_test.sql';
+
+    throws_ok { $add->_add('sqitch_change_test', $out, $tmpl) }
+        'App::Sqitch::X', 'Should get an exception on TT syntax error';
+    is $@->ident, 'add', 'TT exception ident should be "add"';
+    is $@->message, __x(
+        'Error executing {template}: {error}',
+        template => $tmpl,
+        error    => 'file error - parse error - input text line 1: unexpected end of input',
+    ), 'TT exception message should include the original error message';
 }
 
 ##############################################################################

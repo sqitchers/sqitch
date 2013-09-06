@@ -286,7 +286,12 @@ sub _add {
     );
 
     if (eval 'use Template; 1') {
-        Template->new->process( $self->_slurp($tmpl), $vars, $fh );
+        my $tt = Template->new;
+        $tt->process( $self->_slurp($tmpl), $vars, $fh ) or hurl add => __x(
+            'Error executing {template}: {error}',
+            template => $tmpl,
+            error    => $tt->error,
+        );
     } else {
         eval 'use Template::Tiny 0.11; 1' or die $@;
         my $output = '';
