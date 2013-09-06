@@ -349,7 +349,7 @@ $test_add->('Template::Tiny');
 shift @INC;
 delete $INC{'Template.pm'};
 SKIP: {
-    skip 'Template Toolkit not installed', 10 unless eval 'use Template; 1';
+    skip 'Template Toolkit not installed', 14 unless eval 'use Template; 1';
     $test_add->('Template Toolkit');
 
     # Template Toolkit should throw an error on template syntax errors.
