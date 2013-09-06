@@ -11,6 +11,7 @@ use MouseX::Types::Path::Class;
 use Path::Class;
 use Try::Tiny;
 use File::Path qw(make_path);
+use Clone qw(clone);
 use namespace::autoclean;
 
 extends 'App::Sqitch::Command';
@@ -272,7 +273,7 @@ sub _add {
         hurl add => $msg;
     }
 
-    my $vars = {
+    my $vars = clone {
         %{ $self->variables },
         change    => $name,
         requires  => $self->requires,
