@@ -10,6 +10,7 @@ BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 BuildArch:      noarch
 BuildRequires:  perl >= 1:v5.10.0
 BuildRequires:  perl(Capture::Tiny) >= 0.12
+BuildRequires:  perl(Clone)
 BuildRequires:  perl(Config)
 BuildRequires:  perl(Config::GitLike) >= 1.09
 BuildRequires:  perl(constant)
@@ -73,6 +74,7 @@ BuildRequires:  perl(URI)
 BuildRequires:  perl(User::pwent)
 BuildRequires:  perl(utf8)
 BuildRequires:  perl(warnings)
+Requires:       perl(Clone)
 Requires:       perl(Config)
 Requires:       perl(Config::GitLike) >= 1.09
 Requires:       perl(constant)
