@@ -212,13 +212,13 @@ has user_name => (
                 Win32API::Net::UserGetInfo( "", $sysname, 10, my $info = {} );
                 return $sysname unless $info->{fullName};
                 require Encode::Locale;
-                Encode::decode( locale => $info->{fullName} );
+                return Encode::decode( locale => $info->{fullName} );
             }
             require User::pwent;
             my $name = (User::pwent::getpwnam($sysname)->gecos)[0]
                 || return $sysname;
             require Encode::Locale;
-            Encode::decode( locale => $name );
+            return Encode::decode( locale => $name );
         };
     }
 );
