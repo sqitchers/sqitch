@@ -1,5 +1,5 @@
 Name:           sqitch
-Version:        0.982
+Version:        0.983
 Release:        1%{?dist}
 Summary:        Sane database change management
 License:        MIT
@@ -232,6 +232,7 @@ package bundles the Sqitch MySQL support.
 %changelog
 * Wed Sep 11 2013 David E. Wheeler <david.wheeler@iovation.com> 0.982-1
 - Upgrade to v0.982.
+- Require Clone.
 
 * Thu Sep 5 2013 David E. Wheeler <david.wheeler@iovation.com> 0.981-1
 - Upgrade to v0.981.
