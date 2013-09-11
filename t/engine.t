@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 546;
+use Test::More tests => 564;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -517,6 +517,25 @@ is_deeply +MockOutput->get_info, [[__ 'not ok' ]],
 is_deeply +MockOutput->get_vent, [['WTF!']],
     'Verify error should have been vented';
 
+# Make the verify fail with log only.
+throws_ok { $engine->deploy_change($change, 1) } 'App::Sqitch::X',
+    'Deploy change with log-only and failed verification';
+is $@->message, __ 'Deploy failed', 'Error should be from deploy_change';
+is_deeply $engine->seen, [
+    ['begin_work'],
+    ['begin_work'],
+    [log_fail_change => $change ],
+    ['finish_work'],
+], 'Should have logged verify failure but not reverted';
+$die = '';
+is_deeply +MockOutput->get_info_literal, [[
+    '  + users ..', '' , ' '
+]], 'Output should reflect the deployment, even with verify failure';
+is_deeply +MockOutput->get_info, [[__ 'not ok' ]],
+    'Output should reflect deploy failure';
+is_deeply +MockOutput->get_vent, [['WTF!']],
+    'Verify error should have been vented';
+
 # Try a change with no verify file.
 $mock_engine->unmock( 'verify_change' );
 $change = App::Sqitch::Plan::Change->new( name => 'foo', plan => $sqitch->plan );
@@ -1001,6 +1020,40 @@ is_deeply +MockOutput->get_vent, [
 ], 'The original error should have been vented';
 $mock_whu->unmock('log_deploy_change');
 
+# Make it die with log-only..
+$plan->position(1);
+$mock_whu->mock(log_deploy_change => sub { hurl 'ROFL' if $_[1] eq $changes[-1] });
+throws_ok { $engine->_deploy_by_tag($plan, $#changes, 1) } 'App::Sqitch::X',
+    'Die in log_deploy_change log-only';
+is $@->message, __('Deploy failed'), 'Should get final deploy failure message';
+is_deeply $engine->seen, [
+    [log_fail_change => $changes[5] ],
+    [log_revert_change => $changes[4]],
+    [log_revert_change => $changes[3]],
+], 'It should have run no deploy or revert scripts';
+
+is_deeply +MockOutput->get_info_literal, [
+    ['  + widgets @beta ..', '', ' '],
+    ['  + lolz ..', '', ' '],
+    ['  + tacos ..', '', ' '],
+    ['  + curry ..', '', ' '],
+    ['  - tacos ..', '', ' '],
+    ['  - lolz ..', '', ' '],
+], 'Should have seen deploy and revert messages (excluding curry revert)';
+is_deeply +MockOutput->get_info, [
+    [__ 'ok' ],
+    [__ 'ok' ],
+    [__ 'ok' ],
+    [__ 'not ok' ],
+    [__ 'ok' ],
+    [__ 'ok' ],
+], 'Output should reflect deploy successes and failure';
+is_deeply +MockOutput->get_vent, [
+    ['ROFL'],
+    [__x 'Reverting to {target}', target => 'widgets @beta']
+], 'The original error should have been vented';
+$mock_whu->unmock('log_deploy_change');
+
 # Now have it fail back to the beginning.
 $plan->reset;
 $mock_whu->mock(run_file => sub { die 'ROFL' if $_[1]->basename eq 'users.sql' });
@@ -1167,6 +1220,39 @@ is_deeply $engine->seen, [
     [run_file => $changes[0]->revert_file],
     [log_revert_change => $changes[0]],
 ], 'It should have logged up to the failure';
+
+is_deeply +MockOutput->get_info_literal, [
+    ['  + roles ..', '', ' '],
+    ['  + users @alpha ..', '', ' '],
+    ['  + widgets @beta ..', '', ' '],
+    ['  - users @alpha ..', '', ' '],
+    ['  - roles ..', '', ' '],
+], 'Should have seen deploy and revert messages excluding revert for failed logging';
+is_deeply +MockOutput->get_info, [
+    [__ 'ok' ],
+    [__ 'ok' ],
+    [__ 'not ok' ],
+    [__ 'ok' ],
+    [__ 'ok' ],
+], 'Output should reflect deploy successes and failures';
+is_deeply +MockOutput->get_vent, [
+    ['ROFL'],
+    [__ 'Reverting all changes'],
+], 'The original error should have been vented';
+$die = '';
+
+# Make it die with log-only.
+$plan->reset;
+$mock_whu->mock(log_deploy_change => sub { hurl 'ROFL' if $_[1] eq $changes[2] });
+throws_ok { $engine->_deploy_all($plan, 3, 1) } 'App::Sqitch::X',
+    'Die in log-only _deploy_all';
+is $@->message, __('Deploy failed'), 'Should get final deploy failure message';
+$mock_whu->unmock('log_deploy_change');
+is_deeply $engine->seen, [
+    [log_fail_change => $changes[2]],
+    [log_revert_change => $changes[1]],
+    [log_revert_change => $changes[0]],
+], 'It should have run no deploys or reverts';
 
 is_deeply +MockOutput->get_info_literal, [
     ['  + roles ..', '', ' '],

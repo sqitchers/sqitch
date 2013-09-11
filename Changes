@@ -6,6 +6,9 @@ Revision history for Perl extension App::Sqitch
        execution of each template. This prevents one template from deleting
        variable values another template might also need.
      - Fixed "The getpwnam function is unimplemented" errors on Win32.
+     - No longer runs revert scripts when deploying with `--log-only` and a
+       verify script fails, as that could lead to data loss (yikes!). Thanks
+       to BryLo for the report (issue #112).
 
 0.981  2013-09-06T00:22:26Z
      - Now use Encode::Locale to try to decode the user's full name from the

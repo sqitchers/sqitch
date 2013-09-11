@@ -652,7 +652,7 @@ sub _deploy_by_change {
 }
 
 sub _rollback {
-    my ($self, $tagged) = (shift, shift);
+    my ($self, $tagged, $log_only) = (shift, shift, shift);
     my $sqitch = $self->sqitch;
 
     if (my @run = reverse @_) {
@@ -663,7 +663,7 @@ sub _rollback {
         );
 
         try {
-            $self->revert_change($_) for @run;
+            $self->revert_change($_, $log_only) for @run;
         } catch {
             # Sucks when this happens.
             $sqitch->vent(eval { $_->message } // $_);
@@ -694,7 +694,7 @@ sub _deploy_by_tag {
         } else {
             $self->sqitch->vent($_);
         }
-        $self->_rollback($last_tagged, @run);
+        $self->_rollback($last_tagged, $log_only, @run);
     };
 
     return $self;
@@ -716,7 +716,7 @@ sub _deploy_all {
         } else {
             $self->sqitch->vent($_);
         }
-        $self->_rollback(undef, @run);
+        $self->_rollback(undef, $log_only, @run);
     };
 
     return $self;
