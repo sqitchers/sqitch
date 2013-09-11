@@ -1,6 +1,6 @@
 Revision history for Perl extension App::Sqitch
 
-0.982
+0.982  2013-09-11T18:26:07Z
      - Errors thrown by Template toolkit are no longer silently ignored.
      - Variables passed to change templates are now cloned before the
        execution of each template. This prevents one template from deleting
