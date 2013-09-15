@@ -95,11 +95,15 @@ is $fb->port, 1234, 'port should be as configured';
 is $fb->sqitch_db, 'meta', 'sqitch_db should be as configured';
 is_deeply [$fb->isql], [qw(
     /path/to/isql
-    -host     db.example.com
-    -port     1234
-    -user     freddy
+    -host db.example.com
+    -port 1234
+    -user freddy
     -password s3cr3t
-    -database widgets
+    -quiet
+    -bail
+    -sqldialect 3
+    -pagelength 16384
+    -charset UTF8
 ), @std_opts], 'firebird command should be configured';
 
 ##############################################################################
@@ -130,7 +134,11 @@ is_deeply [$fb->isql], [qw(
     -port     98760
     -user     anna
     -password s3cr3t
-    -database widgets_dev
+    -sqldialect 3
+    -pagelength 16384
+    -charset UTF8
+    -bail
+    -quiet
 ), @std_opts], 'isql command should be as optioned';
 
 ##############################################################################
@@ -185,9 +193,14 @@ $mock_config->unmock_all;
 # Test DateTime formatting stuff.
 can_ok $CLASS, '_ts2char_format';
 is sprintf($CLASS->_ts2char_format, 'foo'),
-    q{date_format(foo, 'year:%Y:month:%m:day:%d:hour:%H:minute:%i:second:%S:time_zone:UTC')},
-    '_ts2char_format should work';
-
+    q{'year:' || CAST(EXTRACT(YEAR   FROM foo) AS SMALLINT)
+        || ':month:'  || CAST(EXTRACT(MONTH  FROM foo) AS SMALLINT)
+        || ':day:'    || CAST(EXTRACT(DAY    FROM foo) AS SMALLINT)
+        || ':hour:'   || CAST(EXTRACT(HOUR   FROM foo) AS SMALLINT)
+        || ':minute:' || CAST(EXTRACT(MINUTE FROM foo) AS SMALLINT)
+        || ':second:' || CAST(EXTRACT(SECOND FROM foo) AS INTEGER)
+        || ':time_zone:UTC'},
+    '_ts2char_format should work';           # WORKS! :)
 ok my $dtfunc = $CLASS->can('_dt'), "$CLASS->can('_dt')";
 isa_ok my $dt = $dtfunc->(
     'year:2012:month:07:day:05:hour:15:minute:07:second:01:time_zone:UTC'
@@ -207,28 +220,34 @@ END {
     return unless $dbh;
     $dbh->{Driver}->visit_child_handles(sub {
         my $h = shift;
+        use Data::Printer; p $h;
         $h->disconnect if $h->{Type} eq 'db' && $h->{Active} && $h ne $dbh;
     });
 
     return unless $dbh->{Active};
-    $dbh->do("DROP DATABASE IF EXISTS $_") for qw(
-        __sqitchtest__
-        __metasqitch
-        __sqitchtest
-    );
+    $dbh->func('ib_drop_database')
+        or return 'Error dropping test database';
+    # $dbh->do("DROP DATABASE IF EXISTS $_") for qw(
+    #     __sqitchtest__
+    #     __metasqitch
+    #     __sqitchtest
+    # );
 }
 
 my $pass = $ENV{DBI_PASS} || '';
 
 my $err = try {
-    # my $path = '/home/fbdb/' . $fb->sqitch_db;
-    # $dbh = DBI->connect("dbi:Firebird:dbname=$path", 'sysdba', 'tba790k', {
-    #     PrintError => 0,
-    #     RaiseError => 1,
-    #     AutoCommit => 1,
-    # });
-
-    # $dbh->do('CREATE DATABASE __sqitchtest__');
+    my $path = '/home/fbdb/__sqitchtest__';
+    print "=t= CREATE DATABASE", $path, "\n";
+    require DBD::Firebird;
+    DBD::Firebird->create_database(
+        {   db_path       => $path,
+            user          => 'SYSDBA',
+            password      => $pass,
+            character_set => 'UTF8',
+            page_size     => 16384,
+        }
+    );
     undef;
 } catch {
     eval { $_->message } || $_;
@@ -253,12 +272,12 @@ DBIEngineTest->run(
         # $self->_capture('--execute' => 'SELECT version()');
         1;
     },
-    engine_err_regex  => qr/^Unsuccessful execution /,
+    engine_err_regex  => qr/^Invalid token /,
     init_error        => __x(
         'Sqitch database {database} already initialized',
         database => '__sqitchtest',
     ),
-    add_second_format => q{date_add(%s, interval 1 second)},
+    add_second_format => q{dateadd(1 second to %s)},
     test_dbh => sub {
         my $dbh = shift;
         # Check the session configuration.
