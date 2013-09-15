@@ -13,11 +13,11 @@ COMMENT ON SCHEMA :"sqitch_schema" IS 'Sqitch database deployment metadata v1.0.
 -- # key size exceeds implementation restriction for index "RDB$PRIMARY1"
 
 CREATE TABLE projects (
-    project         VARCHAR(250)  NOT NULL PRIMARY KEY,
-    uri             VARCHAR(250)  NOT NULL UNIQUE,
-    created_at      TIMESTAMP     DEFAULT 'NOW',
-    creator_name    VARCHAR(512)  NOT NULL,
-    creator_email   VARCHAR(512)  NOT NULL
+    project         VARCHAR(255)  NOT NULL PRIMARY KEY,
+    uri             VARCHAR(255)  UNIQUE,
+    created_at      TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,
+    creator_name    VARCHAR(255)  NOT NULL,
+    creator_email   VARCHAR(255)  NOT NULL
 );
 
 /*
@@ -30,16 +30,16 @@ COMMENT ON COLUMN projects.creator_email  IS 'Email address of the user who adde
 */
 
 CREATE TABLE changes (
-    change_id       CHAR(40)      NOT NULL PRIMARY KEY,
-    change          VARCHAR(512)  NOT NULL,
-    project         VARCHAR(512)  NOT NULL REFERENCES projects(project) ON UPDATE CASCADE,
+    change_id       VARCHAR(40)   NOT NULL PRIMARY KEY,
+    change          VARCHAR(255)  NOT NULL,
+    project         VARCHAR(255)  NOT NULL REFERENCES projects(project) ON UPDATE CASCADE,
     note            VARCHAR(4000) DEFAULT '',
-    committed_at    TIMESTAMP     DEFAULT 'NOW',
-    committer_name  VARCHAR(512)  NOT NULL,
-    committer_email VARCHAR(512)  NOT NULL,
+    committed_at    TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,
+    committer_name  VARCHAR(255)  NOT NULL,
+    committer_email VARCHAR(255)  NOT NULL,
     planned_at      TIMESTAMP     NOT NULL,
-    planner_name    VARCHAR(512)  NOT NULL,
-    planner_email   VARCHAR(512)  NOT NULL
+    planner_name    VARCHAR(255)  NOT NULL,
+    planner_email   VARCHAR(255)  NOT NULL
 );
 
 /*
@@ -62,7 +62,7 @@ CREATE TABLE tags (
     project         VARCHAR(512)  NOT NULL REFERENCES projects(project) ON UPDATE CASCADE,
     change_id       CHAR(40)      NOT NULL REFERENCES changes(change_id) ON UPDATE CASCADE,
     note            VARCHAR(4000) DEFAULT '',
-    committed_at    TIMESTAMP     DEFAULT 'NOW',
+    committed_at    TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,
     committer_name  VARCHAR(512)  NOT NULL,
     committer_email VARCHAR(512)  NOT NULL,
     planned_at      TIMESTAMP     NOT NULL,
@@ -114,7 +114,7 @@ CREATE TABLE events (
     requires        BLOB          DEFAULT '',
     conflicts       BLOB          DEFAULT '',
     tags            BLOB          DEFAULT '',
-    committed_at    TIMESTAMP     DEFAULT 'NOW',
+    committed_at    TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,
     committer_name  VARCHAR(512)  NOT NULL,
     committer_email VARCHAR(512)  NOT NULL,
     planned_at      TIMESTAMP     NOT NULL,
