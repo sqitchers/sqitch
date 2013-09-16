@@ -28,8 +28,7 @@ has client => (
         my $sqitch = shift->sqitch;
         $sqitch->db_client
             || $sqitch->config->get( key => 'core.firebird.client' )
-            || '/opt/firebird/bin/isql' . ( $^O eq 'MSWin32' ? '.exe' : '' )
-            || 'fbsql' . ( $^O eq 'MSWin32' ? '.exe' : '' );
+            || 'isql-fb' . ( $^O eq 'MSWin32' ? '.exe' : '' )
     },
 );
 
