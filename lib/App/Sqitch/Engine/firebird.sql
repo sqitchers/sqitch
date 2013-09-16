@@ -59,7 +59,7 @@ COMMENT ON COLUMN changes.planner_email   IS 'Email address of the user who plan
 CREATE TABLE tags (
     tag_id          CHAR(40)      NOT NULL PRIMARY KEY,
     tag             VARCHAR(250)  NOT NULL,
-    project         VARCHAR(512)  NOT NULL REFERENCES projects(project) ON UPDATE CASCADE,
+    project         VARCHAR(255)  NOT NULL REFERENCES projects(project) ON UPDATE CASCADE,
     change_id       CHAR(40)      NOT NULL REFERENCES changes(change_id) ON UPDATE CASCADE,
     note            VARCHAR(4000) DEFAULT '',
     committed_at    TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,
@@ -109,7 +109,7 @@ CREATE TABLE events (
     event           VARCHAR(6)    NOT NULL CHECK (event IN ('deploy', 'revert', 'fail')),
     change_id       CHAR(40)      NOT NULL,
     change          VARCHAR(512)  NOT NULL,
-    project         VARCHAR(512)  NOT NULL REFERENCES projects(project) ON UPDATE CASCADE,
+    project         VARCHAR(255)  NOT NULL REFERENCES projects(project) ON UPDATE CASCADE,
     note            VARCHAR(4000) DEFAULT '',
     requires        BLOB          DEFAULT '',
     conflicts       BLOB          DEFAULT '',
