@@ -198,7 +198,7 @@ is sprintf($CLASS->_ts2char_format, 'foo'),
         || ':day:'    || CAST(EXTRACT(DAY    FROM foo) AS SMALLINT)
         || ':hour:'   || CAST(EXTRACT(HOUR   FROM foo) AS SMALLINT)
         || ':minute:' || CAST(EXTRACT(MINUTE FROM foo) AS SMALLINT)
-        || ':second:' || FLOOR(CAST(EXTRACT(SECOND FROM %1\$s) AS NUMERIC(9,4)))
+        || ':second:' || FLOOR(CAST(EXTRACT(SECOND FROM foo) AS NUMERIC(9,4)))
         || ':time_zone:UTC'},
     '_ts2char_format should work';           # WORKS! :)
 ok my $dtfunc = $CLASS->can('_dt'), "$CLASS->can('_dt')";
