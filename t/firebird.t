@@ -272,7 +272,7 @@ DBIEngineTest->run(
         # $self->_capture('--execute' => 'SELECT version()');
         1;
     },
-    engine_err_regex  => qr/^Invalid token /,
+    engine_err_regex  => qr/\QDynamic SQL Error\E/xms,
     init_error        => __x(
         'Sqitch database {database} already initialized',
         database => '__sqitchtest',
