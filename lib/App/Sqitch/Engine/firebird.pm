@@ -204,14 +204,13 @@ sub _char2ts {
     return join ' ', $dt->ymd('-'), $dt->hms(':');
 }
 
-# It looks like the second can get the value 60 sometimes... ???
 sub _ts2char_format {
     return qq{'year:' || CAST(EXTRACT(YEAR   FROM %s) AS SMALLINT)
         || ':month:'  || CAST(EXTRACT(MONTH  FROM %1\$s) AS SMALLINT)
         || ':day:'    || CAST(EXTRACT(DAY    FROM %1\$s) AS SMALLINT)
         || ':hour:'   || CAST(EXTRACT(HOUR   FROM %1\$s) AS SMALLINT)
         || ':minute:' || CAST(EXTRACT(MINUTE FROM %1\$s) AS SMALLINT)
-        || ':second:' || CAST(EXTRACT(SECOND FROM %1\$s) AS INTEGER)
+        || ':second:' || FLOOR(CAST(EXTRACT(SECOND FROM %1\$s) AS NUMERIC(9,4)))
         || ':time_zone:UTC'};
 }
 
