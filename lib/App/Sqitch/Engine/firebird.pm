@@ -524,6 +524,39 @@ sub search_events {
         [ project   => 'e.project'        ],
     ) {
         my $regex = delete $p{ $spec->[0] } // next;
+        # Trying to adapt REGEXP for SIMILAR TO from Firebird 2.5 :)
+        # Yes, I know is ugly...
+        # There is no support for ^ and $ as in normal REGEXP.
+        #
+        # From the docs:
+        # Description: SIMILAR TO matches a string against an SQL
+        # regular expression pattern. UNLIKE in some other languages,
+        # the pattern MUST MATCH THE ENTIRE STRING in order to succeed
+        # – matching a substring is not enough. If any operand is
+        # NULL, the result is NULL. Otherwise, the result is TRUE or
+        # FALSE.
+        #
+        # Maybe use the CONTAINING operator instead?
+        print "===REGEX: $regex\n";
+        if ( $regex =~ m{^\^} and $regex =~ m{\$$} ) {
+            $regex =~ s{\^}{};
+            $regex =~ s{\$}{};
+            $regex = "%$regex%";
+        }
+        else {
+            if ( $regex !~ m{^\^} and $regex !~ m{\$$} ) {
+                $regex = "%$regex%";
+            }
+        }
+        if ( $regex =~ m{\$$} ) {
+            $regex =~ s{\$}{};
+            $regex = "%$regex";
+        }
+        if ( $regex =~ m{^\^} ) {
+            $regex =~ s{\^}{};
+            $regex = "$regex%";
+        }
+        print "== SIMILAR TO: $regex\n";
         push @wheres => "$spec->[1] $op ?";
         push @params => "$regex";
     }
@@ -786,16 +819,23 @@ sub log_new_tags {
             SELECT i.* FROM (
                          } . join(
                 "\n               UNION ALL ",
-                ("SELECT ? AS tid, ? AS tname, ? AS proj, ? AS cid, ? AS note, ? AS cuser, ? AS cemail, ? AS tts, ? AS puser, ? AS pemail, $ts$sf") x @tags
-            ) . q{
-            ) i
-              LEFT JOIN tags ON i.tid = tags.tag_id
-             WHERE tags.tag_id IS NULL
+                ("SELECT CAST(? AS CHAR(40)) AS tid
+                       , CAST(? AS VARCHAR(250)) AS tname
+                       , CAST(? AS VARCHAR(255)) AS proj
+                       , CAST(? AS CHAR(40)) AS cid
+                       , CAST(? AS VARCHAR(4000)) AS note
+                       , CAST(? AS VARCHAR(512)) AS cuser
+                       , CAST(? AS VARCHAR(512)) AS cemail
+                       , CAST(? AS TIMESTAMP) AS tts
+                       , CAST(? AS VARCHAR(512)) AS puser
+                       , CAST(? AS VARCHAR(512)) AS pemail
+                       , CAST($ts$sf AS TIMESTAMP) AS cts"
+             ) x @tags ) . q{
+               FROM RDB$DATABASE ) i
+               LEFT JOIN tags ON i.tid = tags.tag_id
+               WHERE tags.tag_id IS NULL
         };
-    print "SQL: $sql\n";
-            $self->dbh->do($sql,
-        undef,
-        map { (
+    my @params = map { (
             $_->id,
             $_->format_name,
             $proj,
@@ -806,63 +846,12 @@ sub log_new_tags {
             $self->_char2ts( $_->timestamp ),
             $_->planner_name,
             $_->planner_email,
-        ) } @tags
-    );
-
+        ) } @tags;
+    # use Data::Printer; p @params;
+    #local $self->dbh->{TraceLevel} = "15";
+    $self->dbh->do($sql, undef, @params );
     return $self;
 }
-
-# sub log_new_tags {
-#     my ( $self, $change ) = @_;
-#     my @tags   = $change->tags or return $self;
-#     my $sqitch = $self->sqitch;
-
-#     my ($id, $name, $proj, $user, $email) = (
-#         $change->id,
-#         $change->format_name,
-#         $change->project,
-#         $sqitch->user_name,
-#         $sqitch->user_email
-#     );
-
-#     my $sql = q{
-#             INSERT INTO tags (
-#                    tag_id
-#                  , tag
-#                  , project
-#                  , change_id
-#                  , note
-#                  , committer_name
-#                  , committer_email
-#                  , planned_at
-#                  , planner_name
-#                  , planner_email
-#             )
-#             SELECT tid, tg, proj, chid, n, name, email, pat, pname, pemail FROM ( VALUES
-#         } . join( ",\n                ", ( q{(?, ?, ?, ?, ?, ?, ?, current_timestamp, ?, ?)} ) x @tags )
-#         . q{
-#             ) i(tid, tg, proj, chid, n, name, email, pat, pname, pemail)
-#               LEFT JOIN tags ON i.tid = tags.tag_id
-#              WHERE tags.tag_id IS NULL
-#          },
-#         undef,
-#         map { (
-#             $_->id,
-#             $_->format_name,
-#             $proj,
-#             $id,
-#             $_->note,
-#             $user,
-#             $email,
-#             $_->timestamp->as_string(format => 'iso'),
-#             $_->planner_name,
-#             $_->planner_email,
-#         ) } @tags;
-#     print "SQL: $sql\n";
-#         $self->dbh->do($sql);
-
-#     return $self;
-# }
 
 sub log_deploy_change {
     my ($self, $change) = @_;
