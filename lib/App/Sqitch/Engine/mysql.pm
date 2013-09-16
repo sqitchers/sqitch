@@ -358,7 +358,7 @@ sub _cid {
         }, undef, $project || $self->plan->project)->[0];
     } catch {
         # MySQL error code 1049 (ER_BAD_DB_ERROR): Unknown database '%-.192s'
-        return if $DBI::err == 1049;
+        return if $DBI::err && $DBI::err == 1049;
         die $_;
     };
 }
