@@ -442,6 +442,9 @@ bundle.from=gamma
 bundle.tags_only=true
 core.engine=pg
 core.extension=ddl
+core.firebird.client=/opt/firebird/bin/isql
+core.firebird.sqitch_prefix=meta
+core.firebird.username=sysdba
 core.mysql.client=/opt/local/mysql/bin/mysql
 core.mysql.registry=meta
 core.mysql.username=root
@@ -502,7 +505,10 @@ revert.to=gamma
     }), 'Create user config list command';
     ok $cmd->execute, 'List the user config';
     is_deeply \@emit, [[
-        "core.mysql.client=/opt/local/mysql/bin/mysql
+        "core.firebird.client=/opt/firebird/bin/isql
+core.firebird.sqitch_prefix=meta
+core.firebird.username=sysdba
+core.mysql.client=/opt/local/mysql/bin/mysql
 core.mysql.registry=meta
 core.mysql.username=root
 core.pg.client=/opt/local/pgsql/bin/psql
