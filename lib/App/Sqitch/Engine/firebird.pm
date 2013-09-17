@@ -136,18 +136,6 @@ has dbh => (
                 @_ = ($dbh->state || 'DEV' => $dbh->errstr);
                 goto &hurl;
             },
-            Callbacks             => {
-                connected => sub {
-                    my $dbh = shift;
-                    # $dbh->do("SET SESSION $_") for (
-                    #     q{character_set_client   = 'utf8'},
-                    #     q{character_set_server   = 'utf8'},
-                    #     q{time_zone              = '+00:00'},
-                    #     q{group_concat_max_len   = 32768},
-                    # );
-                    return;
-                },
-            },
         });
 
         # Make sure we support this version. ???
@@ -173,13 +161,13 @@ has isql => (
         ) {
             push @ret, "-$spec->[0]" => $spec->[1] if $spec->[1];
         }
-
         push @ret => (
             '-quiet',
             '-bail',
             '-sqldialect' => '3',
             '-pagelength' => '16384',
             '-charset'    => 'UTF8',
+            $self->db_name
         );
         return \@ret;
     },
@@ -214,11 +202,6 @@ sub _ts2char_format {
 }
 
 sub _ts_default { 'current_timestamp' }
-
-# sub _quote_idents {
-#     shift;
-#     map { $_ eq 'change' ? '"change"' : $_ } @_;
-# }
 
 sub is_deployed_change {
     my ( $self, $change ) = @_;
@@ -261,7 +244,7 @@ sub initialize {
         database => $self->sqitch_db,
     ) if $self->initialized;
 
-    print "=f= CREATE DATABASE", $self->sqitch_db, "\n";
+    print "=m= Creating the '", $self->sqitch_db, "' database\n";
     # Create the Sqitch database if it does not exist.
     try {
         require DBD::Firebird;
@@ -279,10 +262,9 @@ sub initialize {
     };
 
     # Load up our database. The database have to exist!
-    my @cmd = $self->isql;
-    push @cmd, $self->sqitch_db;
+    my @cmd  = $self->isql;
+    $cmd[-1] = $self->sqitch_db;
     my $file = file(__FILE__)->dir->file('firebird.sql');
-    # use Data::Printer; p @cmd;
     $self->sqitch->run( @cmd, '-input' => $file );
 }
 
@@ -293,9 +275,9 @@ sub begin_work {
     my $dbh = $self->dbh;
 
     # Start transaction and lock all tables to disallow concurrent changes.
-    $dbh->do('LOCK TABLES ' . join ', ', map {
-        "$_ WRITE"
-    } qw(changes dependencies events projects tags));
+    # $dbh->do('LOCK TABLES ' . join ', ', map {
+    #     "$_ WRITE"
+    # } qw(changes dependencies events projects tags));
     $dbh->begin_work;
     return $self;
 }
@@ -306,7 +288,7 @@ sub finish_work {
     my $self = shift;
     my $dbh = $self->dbh;
     $dbh->commit;
-    $dbh->do('UNLOCK TABLES');
+    # $dbh->do('UNLOCK TABLES');
     return $self;
 }
 
@@ -348,14 +330,14 @@ sub _spool {
 
 sub run_file {
     my ($self, $file) = @_;
-    $self->_run( '-input' => "source $file" );
+    $self->_run( '-input' => $file );
 }
 
 sub run_verify {
     my ($self, $file) = @_;
     # Suppress STDOUT unless we want extra verbosity.
     my $meth = $self->can($self->sqitch->verbosity > 1 ? '_run' : '_capture');
-    $self->$meth( '-input' => "source $file" );
+    $self->$meth( '-input' => $file );
 }
 
 sub run_handle {
@@ -375,7 +357,7 @@ sub _cid {
              ORDER BY committed_at $ord;
         }, undef, $project || $self->plan->project)->[0];
     } catch {
-        # Firebird error code -902, one possible message:
+        # Firebird generic error code -902, one possible message:
         # -I/O error during "open" operation for file...
         # -Error while trying to open file
         # -No such file or directory

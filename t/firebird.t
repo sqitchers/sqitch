@@ -55,7 +55,7 @@ my @std_opts = (
     '-pagelength' => '16384',
     '-charset'    => 'UTF8',
 );
-is_deeply [$fb->isql], [$client, @std_opts],
+is_deeply [$fb->isql], [$client, @std_opts, $fb->db_name],
     'isql command should be std opts-only';
 
 isa_ok $fb = $CLASS->new(sqitch => $sqitch, db_name => 'foo'), $CLASS;
@@ -64,6 +64,7 @@ ok $fb->set_variables(foo => 'baz', whu => 'hi there', yo => 'stellar'),
 is_deeply [$fb->isql], [
     $client,
     @std_opts,
+    $fb->db_name
 ], 'Variables should not be passed to firebird';
 
 ##############################################################################
@@ -90,14 +91,13 @@ is $fb->meta_destination, 'meta', 'meta_destination should be as configured';
 is $fb->host, 'db.example.com', 'host should be as configured';
 is $fb->port, 1234, 'port should be as configured';
 is $fb->sqitch_db, 'meta', 'sqitch_db should be as configured';
-use Data::Printer; p $fb->isql;
 is_deeply [$fb->isql], [qw(
     /path/to/isql-fb
     -host db.example.com
     -port 1234
     -user freddy
     -password s3cr3t
-), @std_opts], 'firebird command should be configured';
+), @std_opts, $fb->db_name], 'firebird command should be configured';
 
 ##############################################################################
 # Now make sure that Sqitch options override configurations.
@@ -127,7 +127,7 @@ is_deeply [$fb->isql], [qw(
     -port     98760
     -user     anna
     -password s3cr3t
-), @std_opts], 'isql-fb command should be as optioned';
+), @std_opts, $fb->db_name], 'isql-fb command should be as optioned';
 
 ##############################################################################
 # Test _run(), _capture(), and _spool().
@@ -157,7 +157,7 @@ is_deeply \@capture, [$fb->isql, qw(foo bar baz)],
 ##############################################################################
 # Test file and handle running.
 ok $fb->run_file('foo/bar.sql'), 'Run foo/bar.sql';
-is_deeply \@run, [$fb->isql, '-input', 'source foo/bar.sql'],
+is_deeply \@run, [$fb->isql, '-input', 'foo/bar.sql'],
     'File should be passed to run()';
 
 ok $fb->run_handle('FH'), 'Spool a "file handle"';
@@ -166,13 +166,13 @@ is_deeply \@spool, ['FH', $fb->isql],
 
 # Verify should go to capture unless verosity is > 1.
 ok $fb->run_verify('foo/bar.sql'), 'Verify foo/bar.sql';
-is_deeply \@capture, [$fb->isql, '-input', 'source foo/bar.sql'],
+is_deeply \@capture, [$fb->isql, '-input', 'foo/bar.sql'],
     'Verify file should be passed to capture()';
 
 $mock_sqitch->mock(verbosity => 2);
 ok $fb->run_verify('foo/bar.sql'), 'Verify foo/bar.sql again';
-is_deeply \@run, [$fb->isql, '-input', 'source foo/bar.sql'],
-    'Verifile file should be passed to run() for high verbosity';
+is_deeply \@run, [$fb->isql, '-input', 'foo/bar.sql'],
+    'Verify file should be passed to run() for high verbosity';
 
 $mock_sqitch->unmock_all;
 $mock_config->unmock_all;
@@ -208,7 +208,6 @@ END {
     return unless $dbh;
     $dbh->{Driver}->visit_child_handles(sub {
         my $h = shift;
-        use Data::Printer; p $h;
         $h->disconnect if $h->{Type} eq 'db' && $h->{Active} && $h ne $dbh;
     });
 
@@ -223,7 +222,7 @@ my $pass = $ENV{DBI_PASS} || '';
 
 my $err = try {
     my $path = '__sqitchtest__';
-    print "=t= CREATE DATABASE", $path, "\n";
+    print "=t= CREATE DATABASE ", $path, "\n";
     require DBD::Firebird;
     DBD::Firebird->create_database(
         {   db_path       => $path,
@@ -249,13 +248,14 @@ DBIEngineTest->run(
     engine_params     => [ password => $pass, sqitch_db => '__metasqitch' ],
     alt_engine_params => [ password => $pass, sqitch_db => '__sqitchtest' ],
 
-    skip_unless       => sub {
+    skip_unless => sub {
         my $self = shift;
         die $err if $err;
         # Make sure we have isql-fb and can connect to the database.
-        #$self->sqitch->probe( $self->client, '-d', '__sqitchtest' );
-        # $self->_capture('--execute' => 'SELECT version()');
-        1;
+        # Adapted from the FirebirdMaker.pm module of DBD::Firebird.
+        my $cmd = $self->client;
+        my $cmd_echo = qx( echo 'quit;' | $cmd -z -quiet 2>&1 );
+        return 0 unless $cmd_echo =~ m{Firebird}ims;
     },
     engine_err_regex  => qr/\QDynamic SQL Error\E/xms,
     init_error        => __x(
@@ -266,12 +266,10 @@ DBIEngineTest->run(
     test_dbh => sub {
         my $dbh = shift;
         # Check the session configuration.
-        # for my $spec (
-        #     [ib_enable_utf8   => 1],
-        # ) {
-        #     is $dbh->selectcol_arrayref('SELECT @@SESSION.' . $spec->[0])->[0],
-        #         $spec->[1], "Setting $spec->[0] should be set to $spec->[1]";
-        # }
+        for my $spec ( [ib_enable_utf8   => 1], ) {
+            # is $dbh->selectcol_arrayref('SELECT @@SESSION.' . $spec->[0])->[0],
+            # $spec->[1], "Setting $spec->[0] should be set to $spec->[1]";
+        }
     },
 );
 
