@@ -204,21 +204,28 @@ is $dt->time_zone->name, 'UTC', 'DateTime TZ should be set';
 ##############################################################################
 # Can we do live tests?
 my $dbh;
-END {
-    return unless $dbh;
-    $dbh->{Driver}->visit_child_handles(sub {
-        my $h = shift;
-        $h->disconnect if $h->{Type} eq 'db' && $h->{Active} && $h ne $dbh;
-    });
-
-    return unless $dbh->{Active};
-    # Not yet functional... ???
-    $dbh->func('ib_drop_database')
-        or return 'Error dropping test database';
-}
-
 my $user = $ENV{DBI_USER} || 'SYSDBA';
 my $pass = $ENV{DBI_PASS} || '';
+
+END {
+    foreach my $db (qw{__sqitchtest__ __sqitchtest __metasqitch}) {
+        # print "DROP DATABASE $db\n";
+        my $dsn = qq{dbi:Firebird:dbname=$db;host=localhost;port=3050};
+        $dsn .= q{;ib_dialect=3;ib_charset=UTF8};
+
+        my $dbh = DBI->connect(
+            $dsn, $user, $pass,
+            {   FetchHashKeyName => 'NAME_lc',
+                AutoCommit       => 1,
+                RaiseError       => 0,
+                PrintError       => 0,
+            }
+        ) or die;
+
+        $dbh->func('ib_drop_database')
+            or return 'Error dropping test database';
+    }
+}
 
 my $err = try {
     my $path = '__sqitchtest__';
