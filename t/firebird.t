@@ -220,10 +220,10 @@ END {
                 RaiseError       => 0,
                 PrintError       => 0,
             }
-        ) or die;
+        ) or die $DBI::errstr;
 
         $dbh->func('ib_drop_database')
-            or return 'Error dropping test database';
+            or warn "Error dropping test database: $db";
     }
 }
 
