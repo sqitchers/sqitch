@@ -14,6 +14,10 @@ use App::Sqitch::Plan;
 use Locale::TextDomain qw(App-Sqitch);
 use Test::MockModule;
 
+$ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
+$ENV{SQITCH_USER_CONFIG}   = 'nonexistent.user';
+$ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
+
 BEGIN { require_ok 'App::Sqitch::Plan::ChangeList' or die }
 
 my $sqitch = App::Sqitch->new( _engine => 'sqlite', top_dir => dir qw(t sql) );

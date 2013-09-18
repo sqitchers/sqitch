@@ -7,6 +7,10 @@ use utf8;
 use Test::More tests => 96;
 #use Test::More 'no_plan';
 
+$ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
+$ENV{SQITCH_USER_CONFIG}   = 'nonexistent.user';
+$ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
+
 my $catch_exit;
 BEGIN {
     $catch_exit = 0;

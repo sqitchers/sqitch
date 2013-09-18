@@ -6,13 +6,16 @@ use Test::Exception;
 use Try::Tiny;
 use Path::Class;
 
+$ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
+$ENV{SQITCH_USER_CONFIG}   = 'nonexistent.user';
+$ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
+
 my $CLASS;
 BEGIN {
     $CLASS = 'App::Sqitch::X';
     require_ok $CLASS or die;
     $CLASS->import(':all');
 }
-
 
 isa_ok my $x = $CLASS->new(ident => 'test', message => 'Die'), $CLASS, 'X object';
 

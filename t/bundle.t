@@ -17,6 +17,10 @@ use Test::NoWarnings;
 use lib 't/lib';
 use MockOutput;
 
+$ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
+$ENV{SQITCH_USER_CONFIG}   = 'nonexistent.user';
+$ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
+
 my $CLASS = 'App::Sqitch::Command::bundle';
 
 ok my $sqitch = App::Sqitch->new, 'Load a sqitch object';
@@ -68,6 +72,7 @@ is_deeply $CLASS->configure($config, {from => 'HERE', to => 'THERE'}), {
 }, '--from and --to should be passed through configure';
 
 chdir 't';
+$ENV{SQITCH_CONFIG} = 'sqitch.conf';
 END { remove_tree 'bundle' if -d 'bundle' }
 ok $sqitch = App::Sqitch->new(
     top_dir => dir 'sql',

@@ -16,6 +16,10 @@ use lib 't/lib';
 use MockOutput;
 use Encode;
 
+$ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
+$ENV{SQITCH_USER_CONFIG}   = 'nonexistent.user';
+$ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
+
 my $CLASS = 'App::Sqitch::ItemFormatter';
 require_ok $CLASS;
 can_ok $CLASS => qw(

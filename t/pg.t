@@ -19,8 +19,9 @@ my $CLASS;
 BEGIN {
     $CLASS = 'App::Sqitch::Engine::pg';
     require_ok $CLASS or die;
-    $ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.conf';
-    $ENV{SQITCH_USER_CONFIG}   = 'nonexistent.conf';
+    $ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
+    $ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.user';
+    $ENV{SQITCH_USER_CONFIG}   = 'nonexistent.sys';
 }
 
 is_deeply [$CLASS->config_vars], [

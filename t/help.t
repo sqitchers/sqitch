@@ -13,6 +13,10 @@ use File::Spec;
 use Test::MockModule;
 use Test::NoWarnings;
 
+$ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
+$ENV{SQITCH_USER_CONFIG}   = 'nonexistent.user';
+$ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
+
 my $CLASS = 'App::Sqitch::Command::help';
 
 ok my $sqitch = App::Sqitch->new, 'Load a sqitch sqitch object';

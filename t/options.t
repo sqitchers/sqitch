@@ -8,6 +8,10 @@ use Test::More tests => 26;
 use Test::MockModule;
 use Capture::Tiny 0.12 ':all';
 
+$ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
+$ENV{SQITCH_USER_CONFIG}   = 'nonexistent.user';
+$ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
+
 my $CLASS;
 
 BEGIN {

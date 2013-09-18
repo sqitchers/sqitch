@@ -12,6 +12,10 @@ use Test::MockModule;
 use lib 't/lib';
 use MockOutput;
 
+$ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
+$ENV{SQITCH_USER_CONFIG}   = 'nonexistent.user';
+$ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
+
 my $CLASS = 'App::Sqitch::Command::show';
 require_ok $CLASS or die;
 

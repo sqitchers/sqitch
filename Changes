@@ -3,6 +3,8 @@ Revision history for Perl extension App::Sqitch
 0.983
      - Fixed "Use of uninitialized value" in the MySQL engine. Thanks to
        Jean-Michel REY for the report.
+     - All tests now protect against failures due to the presence of the
+       `$SQITCH_CONFIG` environment variable (issue #114).
 
 0.982  2013-09-11T18:26:07Z
      - Errors thrown by Template toolkit are no longer silently ignored.

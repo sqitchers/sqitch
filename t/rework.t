@@ -17,6 +17,10 @@ use Test::NoWarnings;
 use lib 't/lib';
 use MockOutput;
 
+$ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
+$ENV{SQITCH_USER_CONFIG}   = 'nonexistent.user';
+$ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
+
 my $CLASS = 'App::Sqitch::Command::rework';
 
 ok my $sqitch = App::Sqitch->new(
