@@ -38,8 +38,8 @@ is_deeply [$CLASS->config_vars], [
 my $sqitch = App::Sqitch->new;
 isa_ok my $fb = $CLASS->new(sqitch => $sqitch), $CLASS;
 
-my $client = 'isql-fb' . ($^O eq 'MSWin32' ? '.exe' : '');
-is $fb->client, $client, 'client should default to isql-fb';
+#my $client = 'isql-fb' . ($^O eq 'MSWin32' ? '.exe' : '');
+like ( $fb->client, qr/isql/, 'client should default to isql');
 is $fb->sqitch_db, 'sqitch', 'sqitch_db default should be "sqitch"';
 for my $attr (qw(username password db_name host port destination)) {
     is $fb->$attr, undef, "$attr default should be undef";
@@ -55,14 +55,14 @@ my @std_opts = (
     '-pagelength' => '16384',
     '-charset'    => 'UTF8',
 );
-is_deeply [$fb->isql], [$client, @std_opts, $fb->db_name],
+is_deeply [$fb->isql], [$fb->client, @std_opts, $fb->db_name],
     'isql command should be std opts-only';
 
 isa_ok $fb = $CLASS->new(sqitch => $sqitch, db_name => 'foo'), $CLASS;
 ok $fb->set_variables(foo => 'baz', whu => 'hi there', yo => 'stellar'),
     'Set some variables';
 is_deeply [$fb->isql], [
-    $client,
+    $fb->client,
     @std_opts,
     $fb->db_name
 ], 'Variables should not be passed to firebird';
@@ -70,7 +70,7 @@ is_deeply [$fb->isql], [
 ##############################################################################
 # Make sure config settings override defaults.
 my %config = (
-    'core.firebird.client'    => '/path/to/isql-fb',
+    'core.firebird.client'    => '/path/to/isql',
     'core.firebird.username'  => 'freddy',
     'core.firebird.password'  => 's3cr3t',
     'core.firebird.db_name'   => 'widgets',
@@ -82,7 +82,7 @@ my $mock_config = Test::MockModule->new('App::Sqitch::Config');
 $mock_config->mock(get => sub { $config{ $_[2] } });
 ok $fb = $CLASS->new(sqitch => $sqitch), 'Create another firebird';
 
-is $fb->client, '/path/to/isql-fb', 'client should be as configured';
+is $fb->client, '/path/to/isql', 'client should be as configured';
 is $fb->username, 'freddy', 'username should be as configured';
 is $fb->password, 's3cr3t', 'password should be as configured';
 is $fb->db_name, 'widgets', 'db_name should be as configured';
@@ -92,7 +92,7 @@ is $fb->host, 'db.example.com', 'host should be as configured';
 is $fb->port, 1234, 'port should be as configured';
 is $fb->sqitch_db, 'meta', 'sqitch_db should be as configured';
 is_deeply [$fb->isql], [qw(
-    /path/to/isql-fb
+    /path/to/isql
     -host db.example.com
     -port 1234
     -user freddy
@@ -102,7 +102,7 @@ is_deeply [$fb->isql], [qw(
 ##############################################################################
 # Now make sure that Sqitch options override configurations.
 $sqitch = App::Sqitch->new(
-    db_client   => '/some/other/isql-fb',
+    db_client   => '/some/other/isql',
     db_username => 'anna',
     db_name     => 'widgets_dev',
     db_host     => 'foo.com',
@@ -112,7 +112,7 @@ $sqitch = App::Sqitch->new(
 ok $fb = $CLASS->new(sqitch => $sqitch),
     'Create a firebird with sqitch with options';
 
-is $fb->client, '/some/other/isql-fb', 'client should be as optioned';
+is $fb->client, '/some/other/isql', 'client should be as optioned';
 is $fb->username, 'anna', 'username should be as optioned';
 is $fb->password, 's3cr3t', 'password should still be as configured';
 is $fb->db_name, 'widgets_dev', 'db_name should be as optioned';
@@ -122,12 +122,12 @@ is $fb->host, 'foo.com', 'host should be as optioned';
 is $fb->port, 98760, 'port should be as optioned';
 is $fb->sqitch_db, 'meta', 'sqitch_db should still be as configured';
 is_deeply [$fb->isql], [qw(
-    /some/other/isql-fb
+    /some/other/isql
     -host     foo.com
     -port     98760
     -user     anna
     -password s3cr3t
-), @std_opts, $fb->db_name], 'isql-fb command should be as optioned';
+), @std_opts, $fb->db_name], 'isql command should be as optioned';
 
 ##############################################################################
 # Test _run(), _capture(), and _spool().
@@ -258,10 +258,11 @@ DBIEngineTest->run(
     skip_unless => sub {
         my $self = shift;
         die $err if $err;
-        # Make sure we have isql-fb and can connect to the database.
-        # Adapted from the FirebirdMaker.pm module of DBD::Firebird.
+        # Make sure we have the right isql and can connect to the
+        # database.  Adapted from the FirebirdMaker.pm module of
+        # DBD::Firebird.
         my $cmd = $self->client;
-        my $cmd_echo = qx( echo 'quit;' | $cmd -z -quiet 2>&1 );
+        my $cmd_echo = qx( echo "quit;" | "$cmd" -z -quiet 2>&1 );
         return 0 unless $cmd_echo =~ m{Firebird}ims;
     },
     engine_err_regex  => qr/\QDynamic SQL Error\E/xms,

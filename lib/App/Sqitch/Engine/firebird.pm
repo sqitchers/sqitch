@@ -17,6 +17,8 @@ extends 'App::Sqitch::Engine';
 sub dbh; # required by DBIEngine;
 with 'App::Sqitch::Role::DBIEngine';
 
+use App::Sqitch::Engine::FirebirdUtils;
+
 our $VERSION = '0.983';
 
 has client => (
@@ -28,7 +30,7 @@ has client => (
         my $sqitch = shift->sqitch;
         $sqitch->db_client
             || $sqitch->config->get( key => 'core.firebird.client' )
-            || 'isql-fb' . ( $^O eq 'MSWin32' ? '.exe' : '' )
+            || App::Sqitch::Engine::FirebirdUtils::find_firebird_isql;
     },
 );
 
