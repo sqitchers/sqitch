@@ -121,6 +121,11 @@ sub process_etc_files {
     my $etc  = $self->_getetc;
     $self->install_path( etc => $etc );
 
+    if (my $ddir = $self->destdir) {
+        # Need to search the final destination directory.
+        $etc = File::Spec->catdir($ddir, $etc);
+    }
+
     for my $file ( @{ $self->rscan_dir( 'etc', sub { -f && !/\.\#/ } ) } ) {
         $file = $self->localize_file_path($file);
 

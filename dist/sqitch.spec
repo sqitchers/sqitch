@@ -140,13 +140,13 @@ Git.
 %setup -q -n App-Sqitch-%{version}
 
 %build
-%{__perl} Build.PL installdirs=vendor
+%{__perl} Build.PL installdirs=vendor destdir=$RPM_BUILD_ROOT
 ./Build
 
 %install
 rm -rf $RPM_BUILD_ROOT
 
-./Build install destdir=$RPM_BUILD_ROOT create_packlist=0
+./Build install create_packlist=0
 find $RPM_BUILD_ROOT -depth -type d -exec rmdir {} 2>/dev/null \;
 
 %{_fixperms} $RPM_BUILD_ROOT/*
@@ -159,11 +159,11 @@ rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-,root,root,-)
-%doc Changes etc META.json inc README.md
+%doc Changes META.json README.md
 %{perl_vendorlib}/*
 %{_mandir}/man3/*
 %{_bindir}/*
-%{etcdir}/*
+%config %{etcdir}/*
 
 %package pg
 Summary:        Sane database change management for PostgreSQL
@@ -230,6 +230,11 @@ package bundles the Sqitch MySQL support.
 # No additional files required.
 
 %changelog
+* Wed Sep 18 2013 David E. Wheeler <david.wheeler@iovation.com> 0.982-2
+- No longer include template files ending in .default in the RPM.
+- All files in the etc dir now treated as configuration files.
+- The etc and inc files are no longer treated as documentation.
+
 * Wed Sep 11 2013 David E. Wheeler <david.wheeler@iovation.com> 0.982-1
 - Upgrade to v0.982.
 - Require Clone.

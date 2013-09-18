@@ -5,6 +5,8 @@ Revision history for Perl extension App::Sqitch
        Jean-Michel REY for the report.
      - All tests now protect against failures due to the presence of the
        `$SQITCH_CONFIG` environment variable (issue #114).
+     - The installer now respects the `distdir` option to `Build.PL` when
+       searching for existing templates. Important for packaging.
 
 0.982  2013-09-11T18:26:07Z
      - Errors thrown by Template toolkit are no longer silently ignored.
