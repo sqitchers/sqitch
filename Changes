@@ -7,6 +7,9 @@ Revision history for Perl extension App::Sqitch
        `$SQITCH_CONFIG` environment variable (issue #114).
      - The installer now respects the `distdir` option to `Build.PL` when
        searching for existing templates. Important for packaging.
+     - Fixed the error "Table 'sqitch.changes' doesn't exist" when deploying
+       to a MySQL database that exists but has not been initialzed. Thanks to
+       Jean-Michel REY for the report!
 
 0.982  2013-09-11T18:26:07Z
      - Errors thrown by Template toolkit are no longer silently ignored.
