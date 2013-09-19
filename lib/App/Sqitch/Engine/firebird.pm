@@ -39,9 +39,10 @@ has username => (
     isa      => 'Maybe[Str]',
     lazy     => 1,
     required => 0,
-    default  => sub {
+    default => sub {
         my $sqitch = shift->sqitch;
-        $sqitch->db_username || $sqitch->config->get( key => 'core.firebird.username' );
+        $sqitch->db_username
+            || $sqitch->config->get( key => 'core.firebird.username' );
     },
 );
 
@@ -60,11 +61,12 @@ has db_name => (
     isa      => 'Maybe[Str]',
     lazy     => 1,
     required => 0,
-    default  => sub {
+    default => sub {
         my $self   = shift;
         my $sqitch = $self->sqitch;
-        $sqitch->db_name || $sqitch->config->get( key => 'core.firebird.db_name' );
-    },
+        $sqitch->db_name
+            || $sqitch->config->get( key => 'core.firebird.db_name' );
+        },
 );
 
 sub destination { shift->db_name }
@@ -74,9 +76,10 @@ has sqitch_db => (
     isa      => 'Maybe[Str]',
     lazy     => 1,
     required => 1,
-    default  => sub {
-        shift->sqitch->config->get( key => 'core.firebird.sqitch_db' ) || 'sqitch';
-    },
+    default => sub {
+        shift->sqitch->config->get( key => 'core.firebird.sqitch_db' )
+            || 'sqitch';
+        },
 );
 
 sub meta_destination { shift->sqitch_db }
@@ -86,10 +89,11 @@ has host => (
     isa      => 'Maybe[Str]',
     lazy     => 1,
     required => 0,
-    default  => sub {
+    default => sub {
         my $sqitch = shift->sqitch;
-        $sqitch->db_host || $sqitch->config->get( key => 'core.firebird.host' );
-    },
+        $sqitch->db_host
+            || $sqitch->config->get( key => 'core.firebird.host' );
+        },
 );
 
 has port => (
@@ -97,10 +101,11 @@ has port => (
     isa      => 'Maybe[Int]',
     lazy     => 1,
     required => 0,
-    default  => sub {
+    default => sub {
         my $sqitch = shift->sqitch;
-        $sqitch->db_port || $sqitch->config->get( key => 'core.firebird.port' );
-    },
+        $sqitch->db_port
+            || $sqitch->config->get( key => 'core.firebird.port' );
+        },
 );
 
 has dbh => (
@@ -109,13 +114,18 @@ has dbh => (
     lazy    => 1,
     default => sub {
         my $self = shift;
-        try { require DBD::Firebird } catch {
-            hurl firebird => __ 'DBD::Firebird module required to manage Firebird';
+        try { require DBD::Firebird }
+        catch {
+            hurl firebird => __
+                'DBD::Firebird module required to manage Firebird';
         };
 
-        my $dsn = 'dbi:Firebird:dbname=' . ($self->sqitch_db || hurl firebird => __(
-            'No database specified; use --db-name or set "core.firebird.db_name" via sqitch config'
-        ));
+        my $dsn = 'dbi:Firebird:dbname='
+            . (
+            $self->sqitch_db || hurl firebird => __(
+                'No database specified; use --db-name or set "core.firebird.db_name" via sqitch config'
+            )
+            );
 
         $dsn .= join '' => map {
             ";$_->[0]=$_->[1]"
