@@ -12,12 +12,13 @@ use Path::Class;
 use Mouse;
 use namespace::autoclean;
 use List::MoreUtils qw(firstidx);
+use File::Which ();
+use File::Spec::Functions qw(catfile catdir);
+use Try::Tiny;
 
 extends 'App::Sqitch::Engine';
 sub dbh; # required by DBIEngine;
 with 'App::Sqitch::Role::DBIEngine';
-
-use App::Sqitch::Engine::FirebirdUtils;
 
 our $VERSION = '0.983';
 
@@ -27,10 +28,11 @@ has client => (
     lazy     => 1,
     required => 1,
     default  => sub {
-        my $sqitch = shift->sqitch;
+        my $self   = shift;
+        my $sqitch = $self->sqitch;
         $sqitch->db_client
             || $sqitch->config->get( key => 'core.firebird.client' )
-            || App::Sqitch::Engine::FirebirdUtils::find_firebird_isql;
+            || $self->find_firebird_isql;
     },
 );
 
@@ -933,6 +935,169 @@ sub log_deploy_change {
     return $self->_log_event( deploy => $change );
 }
 
+#
+# Utility methods.
+# Try hard to return the full path to the Firebird ISQL utility tool.
+# Adapted from the FirebirdMaker.pm module of DBD::Firebird.
+#
+
+sub find_firebird_isql {
+    my $self = shift;
+
+    my $os = $^O;
+
+    my $isql_path;
+    if ($os eq 'MSWin32' || $os eq 'cygwin') {
+        $isql_path = $self->locate_firebird_ms();
+    }
+    elsif ($os eq 'darwin') {
+        # my $fb_res = '/Library/Frameworks/Firebird.framework/Resources';
+        die "Not implemented.  Contributions are welcomed!\n";
+    }
+    else {
+        # GNU/Linux and other
+        $isql_path = $self->locate_firebird();
+    }
+
+    return $isql_path;
+}
+
+sub locate_firebird {
+    my $self = shift;
+
+    #-- Check if there is a isql-fb in the PATH
+
+    if ( my $isql_bin = File::Which::which('isql-fb') ) {
+        if ( $self->check_if_is_fb_isql($isql_bin) ) {
+            return $isql_bin;
+        }
+    }
+
+    #-- Check if there is a fb_config in the PATH
+
+    if ( my $fb_config = File::Which::which('fb_config') ) {
+        my $fb_bin_path = qx(fb_config --bindir);
+        chomp $fb_bin_path;
+        foreach my $isql_bin (qw{fbsql isql-fb isql}) {
+            my $isql_path = catfile($fb_bin_path, $isql_bin);
+            if ( $self->check_if_is_fb_isql($isql_path) ) {
+                return $isql_path;
+            }
+        }
+    }
+
+    #-- Check in the standard home dirs
+
+    my @bd = $self->standard_fb_home_dirs();
+    foreach my $home_dir (@bd) {
+        if ( -d $home_dir ) {
+            my $fb_bin_path = catdir($home_dir, 'bin');
+            foreach my $isql_bin (qw{fbsql isql-fb isql}) {
+                my $isql_path = catfile($fb_bin_path, $isql_bin);
+                if ( $self->check_if_is_fb_isql($isql_path) ) {
+                    return $isql_path;
+                }
+            }
+        }
+    }
+
+    #-- Last, maybe one of the ISQLs in the PATH is the right one...
+
+    if ( my @isqls = File::Which::which('isql') ) {
+        foreach my $isql_bin (@isqls) {
+            if ( $self->check_if_is_fb_isql($isql_bin) ) {
+                return $isql_bin;
+            }
+        }
+    }
+
+    hurl firebird => __(
+        'Unable to locate Firebird ISQL; set "core.firebird.client" via sqitch config'
+        );
+
+    return;
+}
+
+sub check_if_is_fb_isql {
+    my ($self, $cmd) = @_;
+    if ( -f $cmd and -x $cmd ) {
+        my $cmd_echo = qx( echo "quit;" | "$cmd" -z -quiet 2>&1 );
+        return ( $cmd_echo =~ m{Firebird}ims ) ? 1 : 0;
+    }
+    return;
+}
+
+sub standard_fb_home_dirs {
+    my $self = shift;
+    # Please, contribute other standard Firebird HOME paths here!
+    return (
+        qw{
+          /opt/firebird
+          /usr/local/firebird
+          /usr/lib/firebird
+          },
+    );
+}
+
+sub locate_firebird_ms {
+    my $self = shift;
+
+    my $fb_path = $self->registry_lookup();
+    if ($fb_path) {
+        my $fb_home_path = File::Spec->canonpath($fb_path);
+        my $isql_path = catfile($fb_home_path, 'bin', 'isql.exe');
+        return $isql_path if $self->check_if_is_fb_isql($isql_path);
+    }
+
+    return;
+}
+
+sub registry_lookup {
+    my $self = shift;
+
+    my %reg_data = $self->registry_keys();
+
+    my $value;
+    while ( my ($key, $path) = each ( %reg_data ) ) {
+        $value = $self->read_registry($key, $path);
+        next unless defined $value;
+    }
+
+    return $value;
+}
+
+sub read_registry {
+    my ($key, $path) = @_;
+
+    my (@path, $value);
+    try {
+        require Win32::TieRegistry;
+        $value = Win32::TieRegistry->new( $path )->GetValue( $key );
+    }
+    catch {
+        # TieRegistry fails on this key sometimes for some reason
+        my $out = '';
+        try {
+            $out = qx( reg query "$path" /v $key );
+        };
+        ($value) = $out =~ /REG_\w+\s+(.*)/;
+    };
+    $value =~ s/[\r\n]+//g if $value;
+
+    return $value;
+}
+
+#-- Known MS Windows registry keys for the Firebird Project
+
+sub registry_keys {
+    return (
+        DefaultInstance => 'HKEY_LOCAL_MACHINE\SOFTWARE\Firebird Project\Firebird Server\Instances',
+    );
+}
+
+1;
+
+#---
 __PACKAGE__->meta->make_immutable;
 no Mouse;
 
