@@ -278,7 +278,7 @@ DBIEngineTest->run(
     engine_err_regex  => qr/\QDynamic SQL Error\E/xms,
     init_error        => __x(
         'Sqitch database {database} already initialized',
-        database => '__sqitchtest',
+        database => catfile($tmpdir, '__sqitchtest'),
     ),
     add_second_format => q{dateadd(1 second to %s)},
     test_dbh => sub {
