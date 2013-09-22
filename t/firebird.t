@@ -79,7 +79,7 @@ is_deeply [$fb->isql], [
 ##############################################################################
 # Make sure config settings override defaults.
 my %config = (
-    'core.firebird.client'    => file('/path/to/isql'),
+    'core.firebird.client'    => file(qw{/ path to isql}),
     'core.firebird.username'  => 'freddy',
     'core.firebird.password'  => 's3cr3t',
     'core.firebird.db_name'   => 'widgets',
@@ -91,7 +91,7 @@ my $mock_config = Test::MockModule->new('App::Sqitch::Config');
 $mock_config->mock(get => sub { $config{ $_[2] } });
 ok $fb = $CLASS->new(sqitch => $sqitch), 'Create another firebird';
 
-is $fb->client, file('/path/to/isql'), 'client should be as configured';
+is $fb->client, file(qw{/ path to isql}), 'client should be as configured';
 is $fb->username, 'freddy', 'username should be as configured';
 is $fb->password, 's3cr3t', 'password should be as configured';
 is $fb->db_name, 'widgets', 'db_name should be as configured';
@@ -121,7 +121,7 @@ $sqitch = App::Sqitch->new(
 ok $fb = $CLASS->new(sqitch => $sqitch),
     'Create a firebird with sqitch with options';
 
-is $fb->client, file('/some/other/isql'), 'client should be as optioned';
+is $fb->client, file(qw{/ some other isql}), 'client should be as optioned';
 is $fb->username, 'anna', 'username should be as optioned';
 is $fb->password, 's3cr3t', 'password should still be as configured';
 is $fb->db_name, 'widgets_dev', 'db_name should be as optioned';
