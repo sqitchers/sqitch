@@ -9,12 +9,10 @@ use App::Sqitch::X qw(hurl);
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::Plan::Change;
 use Path::Class;
-use Mouse;
-use namespace::autoclean;
 use List::MoreUtils qw(firstidx);
 use File::Which ();
-use File::Spec::Functions qw(catfile catdir);
-use Try::Tiny;
+use Mouse;
+use namespace::autoclean;
 
 extends 'App::Sqitch::Engine';
 sub dbh; # required by DBIEngine;
@@ -24,15 +22,17 @@ our $VERSION = '0.983';
 
 has client => (
     is       => 'ro',
-    isa      => 'Str',
+    isa      => 'Maybe[Path::Class::File]',
     lazy     => 1,
     required => 1,
     default  => sub {
         my $self   = shift;
         my $sqitch = $self->sqitch;
-        $sqitch->db_client
-            || $sqitch->config->get( key => 'core.firebird.client' )
-            || $self->find_firebird_isql;
+        my $name = $sqitch->db_client
+            || $self->sqitch->config->get( key => 'core.firebird.client' )
+            || $self->find_firebird_isql
+            || return undef;
+        return file $name;
     },
 );
 
@@ -979,7 +979,7 @@ sub locate_firebird {
         my $fb_bin_path = qx(fb_config --bindir);
         chomp $fb_bin_path;
         foreach my $isql_bin (qw{fbsql isql-fb isql}) {
-            my $isql_path = catfile($fb_bin_path, $isql_bin);
+            my $isql_path = file($fb_bin_path, $isql_bin);
             if ( $self->check_if_is_fb_isql($isql_path) ) {
                 return $isql_path;
             }
@@ -991,9 +991,9 @@ sub locate_firebird {
     my @bd = $self->standard_fb_home_dirs();
     foreach my $home_dir (@bd) {
         if ( -d $home_dir ) {
-            my $fb_bin_path = catdir($home_dir, 'bin');
+            my $fb_bin_path = dir($home_dir, 'bin');
             foreach my $isql_bin (qw{fbsql isql-fb isql}) {
-                my $isql_path = catfile($fb_bin_path, $isql_bin);
+                my $isql_path = file($fb_bin_path, $isql_bin);
                 if ( $self->check_if_is_fb_isql($isql_path) ) {
                     return $isql_path;
                 }
@@ -1044,8 +1044,8 @@ sub locate_firebird_ms {
 
     my $fb_path = $self->registry_lookup();
     if ($fb_path) {
-        my $fb_home_path = File::Spec->canonpath($fb_path);
-        my $isql_path = catfile($fb_home_path, 'bin', 'isql.exe');
+        #my $fb_home_path = File::Spec->canonpath($fb_path);
+        my $isql_path = file($fb_path, 'bin', 'isql.exe');
         return $isql_path if $self->check_if_is_fb_isql($isql_path);
     }
 
@@ -1098,8 +1098,8 @@ sub registry_keys {
 1;
 
 #---
-__PACKAGE__->meta->make_immutable;
 no Mouse;
+__PACKAGE__->meta->make_immutable;
 
 1;
 
