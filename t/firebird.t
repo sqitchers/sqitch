@@ -12,17 +12,26 @@ use Path::Class;
 use Try::Tiny;
 use Test::Exception;
 use Locale::TextDomain qw(App-Sqitch);
+use File::Spec::Functions;
 use File::Temp 'tempdir';
 use lib 't/lib';
 use DBIEngineTest;
 
 my $CLASS;
+my $user;
+my $pass;
+my $tmpdir;
 
 BEGIN {
     $CLASS = 'App::Sqitch::Engine::firebird';
     require_ok $CLASS or die;
     $ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.conf';
     $ENV{SQITCH_USER_CONFIG}   = 'nonexistent.conf';
+
+    $user = $ENV{DBI_USER} || 'SYSDBA';
+    $pass = $ENV{DBI_PASS} || '';
+
+    $tmpdir = File::Spec->tmpdir();
 }
 
 is_deeply [$CLASS->config_vars], [
@@ -70,7 +79,7 @@ is_deeply [$fb->isql], [
 ##############################################################################
 # Make sure config settings override defaults.
 my %config = (
-    'core.firebird.client'    => '/path/to/isql',
+    'core.firebird.client'    => file('/path/to/isql'),
     'core.firebird.username'  => 'freddy',
     'core.firebird.password'  => 's3cr3t',
     'core.firebird.db_name'   => 'widgets',
@@ -82,7 +91,7 @@ my $mock_config = Test::MockModule->new('App::Sqitch::Config');
 $mock_config->mock(get => sub { $config{ $_[2] } });
 ok $fb = $CLASS->new(sqitch => $sqitch), 'Create another firebird';
 
-is $fb->client, '/path/to/isql', 'client should be as configured';
+is $fb->client, file('/path/to/isql'), 'client should be as configured';
 is $fb->username, 'freddy', 'username should be as configured';
 is $fb->password, 's3cr3t', 'password should be as configured';
 is $fb->db_name, 'widgets', 'db_name should be as configured';
@@ -112,7 +121,7 @@ $sqitch = App::Sqitch->new(
 ok $fb = $CLASS->new(sqitch => $sqitch),
     'Create a firebird with sqitch with options';
 
-is $fb->client, '/some/other/isql', 'client should be as optioned';
+is $fb->client, file('/some/other/isql'), 'client should be as optioned';
 is $fb->username, 'anna', 'username should be as optioned';
 is $fb->password, 's3cr3t', 'password should still be as configured';
 is $fb->db_name, 'widgets_dev', 'db_name should be as optioned';
@@ -204,13 +213,12 @@ is $dt->time_zone->name, 'UTC', 'DateTime TZ should be set';
 ##############################################################################
 # Can we do live tests?
 my $dbh;
-my $user = $ENV{DBI_USER} || 'SYSDBA';
-my $pass = $ENV{DBI_PASS} || '';
 
 END {
-    foreach my $db (qw{__sqitchtest__ __sqitchtest __metasqitch}) {
-        # print "DROP DATABASE $db\n";
-        my $dsn = qq{dbi:Firebird:dbname=$db;host=localhost;port=3050};
+    foreach my $dbname (qw{__sqitchtest__ __sqitchtest __metasqitch}) {
+        my $dbpath = catfile($tmpdir, $dbname);
+        print "=t= DROP DATABASE $dbpath\n";
+        my $dsn = qq{dbi:Firebird:dbname=$dbpath;host=localhost;port=3050};
         $dsn .= q{;ib_dialect=3;ib_charset=UTF8};
 
         my $dbh = DBI->connect(
@@ -222,13 +230,15 @@ END {
             }
         ) or die $DBI::errstr;
 
+        # -lock time-out on wait transaction
+        # -object /tmp/__sqitchtest is in use at t/firebird.t line 234.
         $dbh->func('ib_drop_database')
-            or warn "Error dropping test database: $db";
+            or warn "Error dropping test database '$dbname': $DBI::errstr";
     }
 }
 
 my $err = try {
-    my $path = '__sqitchtest__';
+    my $path = catfile($tmpdir, '__sqitchtest__');
     print "=t= CREATE DATABASE ", $path, "\n";
     require DBD::Firebird;
     DBD::Firebird->create_database(
@@ -248,12 +258,12 @@ DBIEngineTest->run(
     class         => $CLASS,
     sqitch_params => [
         db_username => 'SYSDBA',
-        db_name     => '__sqitchtest__',
+        db_name     => catfile($tmpdir, '__sqitchtest__'),
         top_dir     => Path::Class::dir(qw(t engine)),
         plan_file   => Path::Class::file(qw(t engine sqitch.plan)),
     ],
-    engine_params     => [ password => $pass, sqitch_db => '__metasqitch' ],
-    alt_engine_params => [ password => $pass, sqitch_db => '__sqitchtest' ],
+    engine_params     => [ password => $pass, sqitch_db => catfile($tmpdir, '__metasqitch') ],
+    alt_engine_params => [ password => $pass, sqitch_db => catfile($tmpdir, '__sqitchtest') ],
 
     skip_unless => sub {
         my $self = shift;
@@ -273,11 +283,7 @@ DBIEngineTest->run(
     add_second_format => q{dateadd(1 second to %s)},
     test_dbh => sub {
         my $dbh = shift;
-        # Check the session configuration.
-        for my $spec ( [ib_enable_utf8   => 1], ) {
-            # is $dbh->selectcol_arrayref('SELECT @@SESSION.' . $spec->[0])->[0],
-            # $spec->[1], "Setting $spec->[0] should be set to $spec->[1]";
-        }
+        # Check the session configuration...
     },
 );
 
