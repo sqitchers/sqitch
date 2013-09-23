@@ -46,12 +46,13 @@ sub execute {
     my $engine = $self->sqitch->engine;
     $engine->with_verify( $self->verify );
     $engine->no_prompt( $self->no_prompt );
+    $engine->log_only( $self->log_only );
 
     # Revert.
     if (my %v = %{ $self->revert_variables }) { $engine->set_variables(%v) }
     my $to = $self->onto_target // shift;
     try {
-        $engine->revert( $to, $self->log_only );
+        $engine->revert( $to );
     } catch {
         # Rethrow unknown errors or errors with exitval > 1.
         die $_ if ! eval { $_->isa('App::Sqitch::X') }
@@ -63,7 +64,7 @@ sub execute {
 
     # Deploy.
     if (my %v = %{ $self->deploy_variables }) { $engine->set_variables(%v) }
-    $engine->deploy( $self->upto_target // shift, $self->mode, $self->log_only );
+    $engine->deploy( $self->upto_target // shift, $self->mode );
     return $self;
 }
 

@@ -129,12 +129,13 @@ $mock_engine->mock(set_variables => sub { shift; @vars = @_ });
 
 ok $revert->execute('@alpha'), 'Execute to "@alpha"';
 ok $sqitch->engine->no_prompt, 'Engine should be no_prompt';
-is_deeply \@args, ['@alpha', 0],
+ok !$sqitch->engine->log_only, 'Engine should not be log_only';
+is_deeply \@args, ['@alpha'],
     '"@alpha" and "all" should be passed to the engine';
 
 @args = ();
 ok $revert->execute, 'Execute';
-is_deeply \@args, [undef, 0],
+is_deeply \@args, [undef],
     'undef and "all" should be passed to the engine';
 is_deeply {@vars}, { },
     'No vars should have been passed through to the engine';
@@ -149,7 +150,8 @@ isa_ok $revert = $CLASS->new(
 @args = ();
 ok $revert->execute, 'Execute again';
 ok !$sqitch->engine->no_prompt, 'Engine should not be no_prompt';
-is_deeply \@args, ['foo', 1],
+ok $sqitch->engine->log_only, 'Engine should be log_only';
+is_deeply \@args, ['foo'],
     '"foo" and 1 should be passed to the engine';
 is_deeply {@vars}, { foo => 'bar', one => 1 },
     'Vars should have been passed through to the engine';

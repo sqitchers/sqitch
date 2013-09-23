@@ -316,18 +316,19 @@ is_deeply +MockOutput->get_info, [[__x(
 )]], 'Should have emitted info identifying the last common change';
 
 # Did it revert?
-is_deeply \@rev_args, [$sqitch->plan->get('users')->id, 1],
+is_deeply \@rev_args, [$sqitch->plan->get('users')->id],
     '"users" ID and 1 should be passed to the engine revert';
 is_deeply \@rev_changes, [qw(roles users widgets)],
     'Should have had the current changes for revision';
 
 # Did it deploy?
-is_deeply \@dep_args, [undef, 'tag', 1],
+is_deeply \@dep_args, [undef, 'tag'],
     'undef, "tag", and 1 should be passed to the engine deploy';
 is_deeply \@dep_changes, [qw(roles users thingíes)],
     'Should have had the other branch changes (decoded) for deploy';
 
 ok $sqitch->engine->with_verify, 'Engine should verify';
+ok $sqitch->engine->log_only, 'The engine should be set to log_only';
 is @vars, 2, 'Variables should have been passed to the engine twice';
 is_deeply { @{ $vars[0] } }, { hey => 'there' },
     'The revert vars should have been passed first';
@@ -336,12 +337,23 @@ is_deeply { @{ $vars[1] } }, { foo => 'bar', one => 1 },
 
 # If nothing is deployed, or we are already at the revert target, the revert
 # should be skipped.
+isa_ok $checkout = $CLASS->new(
+    log_only         => 0,
+    verify           => 0,
+    sqitch           => $sqitch,
+    mode             => 'tag',
+    deploy_variables => { foo => 'bar', one => 1 },
+    revert_variables => { hey => 'there' },
+), $CLASS, 'Object with to and variables';
+
 $mock_engine->mock(revert => sub { hurl { ident => 'revert', message => 'foo', exitval => 1 } });
 @dep_args = @rev_args = @vars = ();
 ok $checkout->execute('master'), 'Checkout master again';
 
 # Did it deploy?
-is_deeply \@dep_args, [undef, 'tag', 1],
+ok !$sqitch->engine->log_only, 'The engine should not be set to log_only';
+ok !$sqitch->engine->with_verify, 'The engine should not be set with_verfy';
+is_deeply \@dep_args, [undef, 'tag'],
     'undef, "tag", and 1 should be passed to the engine deploy again';
 is_deeply \@dep_changes, [qw(roles users thingíes)],
     'Should have had the other branch changes (decoded) for deploy again';

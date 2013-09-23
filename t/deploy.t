@@ -119,12 +119,13 @@ my @vars;
 $mock_engine->mock(set_variables => sub { shift; @vars = @_ });
 
 ok $deploy->execute('@alpha'), 'Execute to "@alpha"';
-is_deeply \@args, ['@alpha', 'all', 0],
+is_deeply \@args, ['@alpha', 'all'],
     '"@alpha" "all", and 0 should be passed to the engine';
+ok !$sqitch->engine->log_only, 'The engine should not be set log_only';
 
 @args = ();
 ok $deploy->execute, 'Execute';
-is_deeply \@args, [undef, 'all', 0],
+is_deeply \@args, [undef, 'all'],
     'undef, "all", and 0 should be passed to the engine';
 
 isa_ok $deploy = $CLASS->new(
@@ -139,7 +140,8 @@ isa_ok $deploy = $CLASS->new(
 @args = ();
 ok $deploy->execute, 'Execute again';
 ok $sqitch->engine->with_verify, 'Engine should verify';
-is_deeply \@args, ['foo', 'tag', 1],
+ok $sqitch->engine->log_only, 'The engine should be set log_only';
+is_deeply \@args, ['foo', 'tag'],
     '"foo", "tag", and 1 should be passed to the engine';
 is_deeply {@vars}, { foo => 'bar', one => 1 },
     'Vars should have been passed through to the engine';

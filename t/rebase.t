@@ -224,17 +224,18 @@ my @vars;
 $mock_engine->mock(set_variables => sub { shift; push @vars => [@_] });
 
 ok $rebase->execute('@alpha'), 'Execute to "@alpha"';
-is_deeply \@dep_args, [undef, 'all', 0],
+is_deeply \@dep_args, [undef, 'all'],
     'undef, "all", and 0 should be passed to the engine deploy';
-is_deeply \@rev_args, ['@alpha', 0],
+is_deeply \@rev_args, ['@alpha'],
     '"@alpha" and 0 should be passed to the engine revert';
 ok !$sqitch->engine->no_prompt, 'Engine should prompt';
+ok !$sqitch->engine->log_only, 'Engine should no be log only';
 
 @dep_args = @rev_args = ();
 ok $rebase->execute, 'Execute';
-is_deeply \@dep_args, [undef, 'all', 0],
+is_deeply \@dep_args, [undef, 'all'],
     'undef, "all", and 0 should be passed to the engine deploy';
-is_deeply \@rev_args, [undef, 0],
+is_deeply \@rev_args, [undef],
     'undef and = should be passed to the engine revert';
 is_deeply \@vars, [],
     'No vars should have been passed through to the engine';
@@ -254,10 +255,11 @@ isa_ok $rebase = $CLASS->new(
 @dep_args = @rev_args = ();
 ok $rebase->execute, 'Execute again';
 ok $sqitch->engine->no_prompt, 'Engine should be no_prompt';
+ok $sqitch->engine->log_only, 'Engine should be log_only';
 ok $sqitch->engine->with_verify, 'Engine should verify';
-is_deeply \@dep_args, ['bar', 'tag', 1],
+is_deeply \@dep_args, ['bar', 'tag'],
     '"bar", "tag", and 1 should be passed to the engine deploy';
-is_deeply \@rev_args, ['foo', 1], '"foo" and 1 should be passed to the engine revert';
+is_deeply \@rev_args, ['foo'], '"foo" and 1 should be passed to the engine revert';
 is @vars, 2, 'Variables should have been passed to the engine twice';
 is_deeply { @{ $vars[0] } }, { hey => 'there' },
     'The revert vars should have been passed first';
@@ -269,7 +271,7 @@ is_deeply { @{ $vars[1] } }, { foo => 'bar', one => 1 },
 @dep_args = @rev_args = @vars = ();
 $mock_engine->mock(revert => sub { hurl { ident => 'revert', message => 'foo', exitval => 1 } });
 ok $rebase->execute, 'Execute once more';
-is_deeply \@dep_args, ['bar', 'tag', 1],
+is_deeply \@dep_args, ['bar', 'tag'],
     '"bar", "tag", and 1 should be passed to the engine deploy';
 is @vars, 2, 'Variables should have been passed to the engine twice';
 is_deeply { @{ $vars[0] } }, { hey => 'there' },

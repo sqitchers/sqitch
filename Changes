@@ -10,6 +10,9 @@ Revision history for Perl extension App::Sqitch
      - Fixed the error "Table 'sqitch.changes' doesn't exist" when deploying
        to a MySQL database that exists but has not been initialzed. Thanks to
        Jean-Michel REY for the report!
+     - Refactored the handling of the C<--log-only> option so it sets an
+       engine atttribute, rather than passing the flag to a whole stack of
+       method calls.
 
 0.982  2013-09-11T18:26:07Z
      - Errors thrown by Template toolkit are no longer silently ignored.

@@ -86,8 +86,9 @@ sub execute {
     my $self   = shift;
     my $engine = $self->sqitch->engine;
     $engine->with_verify( $self->verify );
+    $engine->log_only( $self->log_only );
     if (my %v = %{ $self->variables }) { $engine->set_variables(%v) }
-    $engine->deploy( $self->to_target // shift, $self->mode, $self->log_only );
+    $engine->deploy( $self->to_target // shift, $self->mode );
     return $self;
 }
 

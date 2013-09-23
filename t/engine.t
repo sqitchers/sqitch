@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 564;
+use Test::More tests => 573;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -436,7 +436,8 @@ is_deeply +MockOutput->get_info, [[__ 'ok' ]],
     'Output should reflect success';
 
 # Have it log only.
-ok $engine->deploy_change($change, 1), 'Only log a change';
+$engine->log_only(1);
+ok $engine->deploy_change($change), 'Only log a change';
 is_deeply $engine->seen, [
     ['begin_work'],
     [log_deploy_change => $change ],
@@ -450,6 +451,7 @@ is_deeply +MockOutput->get_info, [[__ 'ok' ]],
 
 # Have it verify.
 ok $engine->with_verify(1), 'Enable verification';
+$engine->log_only(0);
 ok $engine->deploy_change($change), 'Deploy a change to be verified';
 is_deeply $engine->seen, [
     ['begin_work'],
@@ -465,7 +467,8 @@ is_deeply +MockOutput->get_info, [[__ 'ok' ]],
     'Output should reflect deploy success';
 
 # Have it verify *and* log-only.
-ok $engine->deploy_change($change, 1), 'Verify and log a change';
+ok $engine->log_only(1), 'Enable log_only';
+ok $engine->deploy_change($change), 'Verify and log a change';
 is_deeply $engine->seen, [
     ['begin_work'],
     [run_file => $change->verify_file ],
@@ -480,6 +483,7 @@ is_deeply +MockOutput->get_info, [[__ 'ok' ]],
 
 # Make it fail.
 $die = 'run_file';
+$engine->log_only(0);
 throws_ok { $engine->deploy_change($change) } 'App::Sqitch::X',
     'Deploy change with error';
 is $@->message, 'AAAH!', 'Error should be from run_file';
@@ -518,7 +522,8 @@ is_deeply +MockOutput->get_vent, [['WTF!']],
     'Verify error should have been vented';
 
 # Make the verify fail with log only.
-throws_ok { $engine->deploy_change($change, 1) } 'App::Sqitch::X',
+ok $engine->log_only(1), 'Enable log_only';
+throws_ok { $engine->deploy_change($change) } 'App::Sqitch::X',
     'Deploy change with log-only and failed verification';
 is $@->message, __ 'Deploy failed', 'Error should be from deploy_change';
 is_deeply $engine->seen, [
@@ -537,6 +542,7 @@ is_deeply +MockOutput->get_vent, [['WTF!']],
     'Verify error should have been vented';
 
 # Try a change with no verify file.
+$engine->log_only(0);
 $mock_engine->unmock( 'verify_change' );
 $change = App::Sqitch::Plan::Change->new( name => 'foo', plan => $sqitch->plan );
 ok $engine->deploy_change($change), 'Deploy a change with no verify script';
@@ -572,7 +578,8 @@ is_deeply +MockOutput->get_info, [[__ 'ok']],
     'Output should acknowldge revert success';
 
 # Revert with log-only.
-ok $engine->revert_change($change, 1), 'Revert a change with log-only';
+ok $engine->log_only(1), 'Enable log_only';
+ok $engine->revert_change($change), 'Revert a change with log-only';
 is_deeply $engine->seen, [
     ['begin_work'],
     [log_revert_change => $change ],
@@ -710,6 +717,7 @@ is_deeply +MockOutput->get_info_literal, [
 
 # Try with log-only in all modes.
 for my $mode (qw(change tag all)) {
+    ok $engine->log_only(1), 'Enable log_only';
     ok $engine->deploy('@alpha', $mode, 1), 'Log-only deploy in $mode mode to @alpha';
     is $plan->position, 1, 'Plan should be at position 1';
     is_deeply $engine->seen, [
@@ -746,6 +754,7 @@ for my $mode (qw(change tag all)) {
 # Try with no need to initialize.
 $initialized = 1;
 $plan->reset;
+$engine->log_only(0);
 ok $engine->deploy('@alpha', 'tag'), 'Deploy to @alpha with tag mode';
 is $plan->position, 1, 'Plan should again be at position 1';
 is_deeply $engine->seen, [
@@ -1022,6 +1031,7 @@ $mock_whu->unmock('log_deploy_change');
 
 # Make it die with log-only..
 $plan->position(1);
+ok $engine->log_only(1), 'Enable log_only';
 $mock_whu->mock(log_deploy_change => sub { hurl 'ROFL' if $_[1] eq $changes[-1] });
 throws_ok { $engine->_deploy_by_tag($plan, $#changes, 1) } 'App::Sqitch::X',
     'Die in log_deploy_change log-only';
@@ -1056,6 +1066,7 @@ $mock_whu->unmock('log_deploy_change');
 
 # Now have it fail back to the beginning.
 $plan->reset;
+$engine->log_only(0);
 $mock_whu->mock(run_file => sub { die 'ROFL' if $_[1]->basename eq 'users.sql' });
 throws_ok { $engine->_deploy_by_tag($plan, $plan->count -1 ) } 'App::Sqitch::X',
     'Die in _deploy_by_tag again';
@@ -1243,6 +1254,7 @@ $die = '';
 
 # Make it die with log-only.
 $plan->reset;
+ok $engine->log_only(1), 'Enable log_only';
 $mock_whu->mock(log_deploy_change => sub { hurl 'ROFL' if $_[1] eq $changes[2] });
 throws_ok { $engine->_deploy_all($plan, 3, 1) } 'App::Sqitch::X',
     'Die in log-only _deploy_all';
@@ -1276,6 +1288,7 @@ $die = '';
 
 # Now have it fail on a later change, should still go all the way back.
 $plan->reset;
+$engine->log_only(0);
 $mock_whu->mock(run_file => sub { hurl 'ROFL' if $_[1]->basename eq 'widgets.sql' });
 throws_ok { $engine->_deploy_all($plan, $plan->count -1 ) } 'App::Sqitch::X',
     'Die in _deploy_all again';
@@ -1603,6 +1616,7 @@ is_deeply +MockOutput->get_info, [
 ], 'And the revert successes should be emitted';
 
 # Try with log-only.
+ok $engine->log_only(1), 'Enable log_only';
 ok $engine->revert(undef, 1), 'Revert all changes log-only';
 delete @{ $_ }{qw(_path_segments _rework_tags)} for @dbchanges; # These need to be invisible.
 is_deeply $engine->seen, [
@@ -1653,6 +1667,7 @@ is_deeply +MockOutput->get_info, [
 # Revert all changes with no prompt.
 MockOutput->ask_y_n_returns(1);
 my $no_prompt = 1;
+$engine->log_only(0);
 $mock_engine->mock( no_prompt => sub { $no_prompt } );
 ok $engine->revert, 'Revert all changes with no prompt';
 is_deeply $engine->seen, [

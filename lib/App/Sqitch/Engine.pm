@@ -32,6 +32,12 @@ has no_prompt => (
     default => 0,
 );
 
+has log_only => (
+    is      => 'rw',
+    isa     => 'Bool',
+    default => 0,
+);
+
 has with_verify => (
     is      => 'rw',
     isa     => 'Bool',
@@ -87,7 +93,7 @@ sub name {
 sub config_vars { return }
 
 sub deploy {
-    my ( $self, $to, $mode, $log_only ) = @_;
+    my ( $self, $to, $mode ) = @_;
     my $sqitch   = $self->sqitch;
     my $plan     = $self->_sync_plan;
     my $to_index = $plan->count - 1;
@@ -163,11 +169,11 @@ sub deploy {
         } ($plan->changes)[$plan->position + 1..$to_index]
     );
 
-    $self->$meth( $plan, $to_index, $log_only );
+    $self->$meth( $plan, $to_index );
 }
 
 sub revert {
-    my ( $self, $to, $log_only ) = @_;
+    my ( $self, $to ) = @_;
     my $sqitch = $self->sqitch;
     my $plan   = $self->plan;
 
@@ -257,7 +263,7 @@ sub revert {
     $self->max_name_length(
         max map { length $_->format_name_with_tags } @changes
     );
-    $self->revert_change($_, $log_only) for @changes;
+    $self->revert_change($_) for @changes;
 
     return $self;
 }
@@ -641,18 +647,18 @@ sub _load_changes {
 }
 
 sub _deploy_by_change {
-    my ( $self, $plan, $to_index, $log_only ) = @_;
+    my ( $self, $plan, $to_index ) = @_;
 
     # Just deploy each change. If any fails, we just stop.
     while ($plan->position < $to_index) {
-        $self->deploy_change($plan->next, $log_only);
+        $self->deploy_change($plan->next);
     }
 
     return $self;
 }
 
 sub _rollback {
-    my ($self, $tagged, $log_only) = (shift, shift, shift);
+    my ($self, $tagged) = (shift, shift);
     my $sqitch = $self->sqitch;
 
     if (my @run = reverse @_) {
@@ -663,7 +669,7 @@ sub _rollback {
         );
 
         try {
-            $self->revert_change($_, $log_only) for @run;
+            $self->revert_change($_) for @run;
         } catch {
             # Sucks when this happens.
             $sqitch->vent(eval { $_->message } // $_);
@@ -675,13 +681,13 @@ sub _rollback {
 }
 
 sub _deploy_by_tag {
-    my ( $self, $plan, $to_index, $log_only ) = @_;
+    my ( $self, $plan, $to_index ) = @_;
 
     my ($last_tagged, @run);
     try {
         while ($plan->position < $to_index) {
             my $change = $plan->next;
-            $self->deploy_change($change, $log_only);
+            $self->deploy_change($change);
             push @run => $change;
             if ($change->tags) {
                 @run = ();
@@ -694,20 +700,20 @@ sub _deploy_by_tag {
         } else {
             $self->sqitch->vent($_);
         }
-        $self->_rollback($last_tagged, $log_only, @run);
+        $self->_rollback($last_tagged, @run);
     };
 
     return $self;
 }
 
 sub _deploy_all {
-    my ( $self, $plan, $to_index, $log_only ) = @_;
+    my ( $self, $plan, $to_index ) = @_;
 
     my @run;
     try {
         while ($plan->position < $to_index) {
             my $change = $plan->next;
-            $self->deploy_change($change, $log_only);
+            $self->deploy_change($change);
             push @run => $change;
         }
     } catch {
@@ -716,7 +722,7 @@ sub _deploy_all {
         } else {
             $self->sqitch->vent($_);
         }
-        $self->_rollback(undef, $log_only, @run);
+        $self->_rollback(undef, @run);
     };
 
     return $self;
@@ -771,7 +777,7 @@ sub is_deployed {
 }
 
 sub deploy_change {
-    my ( $self, $change, $log_only ) = @_;
+    my ( $self, $change ) = @_;
     my $sqitch = $self->sqitch;
     my $name = $change->format_name_with_tags;
     $sqitch->info_literal(
@@ -781,7 +787,7 @@ sub deploy_change {
     $self->begin_work($change);
 
     return try {
-        $self->run_deploy($change->deploy_file) unless $log_only;
+        $self->run_deploy($change->deploy_file) unless $self->log_only;
         try {
             $self->verify_change( $change ) if $self->with_verify;
             $self->log_deploy_change($change);
@@ -796,7 +802,7 @@ sub deploy_change {
                 # Don't bother displaying the reverting change name.
                 # $self->sqitch->info('  - ', $change->format_name_with_tags);
                 $self->begin_work($change);
-                $self->run_revert($change->revert_file) unless $log_only;
+                $self->run_revert($change->revert_file) unless $self->log_only;
             } catch {
                 # Oy, the revert failed. Just emit the error.
                 $sqitch->vent(eval { $_->message } // $_);
@@ -813,7 +819,7 @@ sub deploy_change {
 }
 
 sub revert_change {
-    my ( $self, $change, $log_only ) = @_;
+    my ( $self, $change ) = @_;
     my $sqitch = $self->sqitch;
     my $name   = $change->format_name_with_tags;
     $sqitch->info_literal(
@@ -824,7 +830,7 @@ sub revert_change {
     $self->begin_work($change);
 
     try {
-        $self->run_revert($change->revert_file) unless $log_only;
+        $self->run_revert($change->revert_file) unless $self->log_only;
         try {
             $self->log_revert_change($change);
             $sqitch->info(__ 'ok');
@@ -1091,6 +1097,12 @@ The point in the plan from which to start deploying changes.
 
 Boolean indicating whether or not to prompt for reverts. False by default.
 
+=head3 C<log_only>
+
+Boolean indicating whether or not to log changes I<without running deploy or
+revert scripts>. This is useful for an existing database schema that needs to
+be converted to Sqitch. False by default.
+
 =head3 C<with_verify>
 
 Boolean indicating whether or not to run the verification script after each
@@ -1153,7 +1165,7 @@ SQL*Plus C<DEFINE> command.
 
   $engine->deploy($to_target);
   $engine->deploy($to_target, $mode);
-  $engine->deploy($to_target, $mode, $log_only);
+  $engine->deploy($to_target, $mode);
 
 Deploys changes to the destination database, starting with the current
 deployment state, and continuing to C<$to_target>. C<$to_target> must be a
@@ -1184,10 +1196,6 @@ assumption that a change failure is total, and the change may be applied again.
 
 =back
 
-The C<$log_only> parameter, if passed a true values, causes the deploy to log
-the deployed changes I<without running the deploy scripts>. This is useful for
-an existing database schema that needs to be converted to Sqitch.
-
 Note that, in the event of failure, if a reversion fails, the destination
 database B<may be left in a corrupted state>. Write your revert scripts
 carefully!
@@ -1196,12 +1204,10 @@ carefully!
 
   $engine->revert;
   $engine->revert($tag);
-  $engine->revert($tag, $log_only);
+  $engine->revert($tag);
 
 Reverts the L<App::Sqitch::Plan::Tag> from the database, including all of its
-associated changes. The C<$log_only> parameter, if passed a true values,
-causes the revert to log the reverted changes I<without running the revert
-scripts>.
+associated changes.
 
 =head3 C<verify>
 
@@ -1264,14 +1270,14 @@ violated before revering any changes.
 =head3 C<deploy_change>
 
   $engine->deploy_change($change);
-  $engine->deploy_change($change, $log_only);
+  $engine->deploy_change($change);
 
 Used internally by C<deploy()> to deploy an individual change.
 
 =head3 C<revert_change>
 
   $engine->revert_change($change);
-  $engine->revert_change($change, $log_only);
+  $engine->revert_change($change);
 
 Used internally by C<revert()> (and, by C<deploy()> when a deploy fails) to
 revert an individual change.

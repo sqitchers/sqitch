@@ -40,6 +40,7 @@ sub execute {
     my $engine = $sqitch->engine;
     $engine->with_verify( $self->verify );
     $engine->no_prompt( $self->no_prompt );
+    $engine->log_only( $self->log_only );
 
     # What branch are we on?
     my $current_branch = $sqitch->probe($git, qw(rev-parse --abbrev-ref HEAD));
@@ -80,7 +81,7 @@ sub execute {
     if (my %v = %{ $self->revert_variables }) { $engine->set_variables(%v) }
     $engine->plan( $from_plan );
     try {
-        $engine->revert( $last_common_change->id, $self->log_only );
+        $engine->revert( $last_common_change->id );
     } catch {
         # Rethrow unknown errors or errors with exitval > 1.
         die $_ if ! eval { $_->isa('App::Sqitch::X') }
@@ -97,7 +98,7 @@ sub execute {
     # Deploy!
     if (my %v = %{ $self->deploy_variables}) { $engine->set_variables(%v) }
     $engine->plan( $to_plan );
-    $engine->deploy( undef, $self->mode, $self->log_only);
+    $engine->deploy( undef, $self->mode);
     return $self;
 }
 
