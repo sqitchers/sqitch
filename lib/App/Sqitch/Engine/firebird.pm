@@ -14,6 +14,8 @@ use File::Which ();
 use Mouse;
 use namespace::autoclean;
 
+use Data::Dumper;
+
 extends 'App::Sqitch::Engine';
 sub dbh; # required by DBIEngine;
 with 'App::Sqitch::Role::DBIEngine';
@@ -289,10 +291,25 @@ sub begin_work {
     my $dbh = $self->dbh;
 
     # Start transaction and lock all tables to disallow concurrent changes.
-    # $dbh->do('LOCK TABLES ' . join ', ', map {
-    #     "$_ WRITE"
-    # } qw(changes dependencies events projects tags));
+    # qw(changes dependencies events projects tags)
     $dbh->begin_work;
+    #local $dbh->{TraceLevel} = "1";
+    $dbh->{AutoCommit} = 0;  # enable transactions, if possible
+    # $dbh->func(
+    #     -access_mode     => 'read_write',
+    #     -isolation_level => 'read_committed',
+    #     -lock_resolution => 'no_wait',
+    #     -reserving       => {
+    #         changes => {
+    #             lock   => 'read',
+    #             access => 'protected',
+    #         },
+    #     },
+    #     'ib_set_tx_param'
+    # );
+    my $info = $dbh->func('ib_tx_info');
+    print "=== BEGIN TX:\n";
+    print Dumper($info);
     return $self;
 }
 
@@ -301,8 +318,10 @@ sub begin_work {
 sub finish_work {
     my $self = shift;
     my $dbh = $self->dbh;
+    my $info = $dbh->func('ib_tx_info');
+    print Dumper($info);
     $dbh->commit;
-    # $dbh->do('UNLOCK TABLES');
+    #$dbh->func( 'ib_set_tx_param' );         # reset parameters
     return $self;
 }
 
@@ -531,7 +550,7 @@ sub search_events {
         # FALSE.
         #
         # Maybe use the CONTAINING operator instead?
-        print "===REGEX: $regex\n";
+        # print "===REGEX: $regex\n";
         if ( $regex =~ m{^\^} and $regex =~ m{\$$} ) {
             $regex =~ s{\^}{};
             $regex =~ s{\$}{};
@@ -550,7 +569,7 @@ sub search_events {
             $regex =~ s{\^}{};
             $regex = "$regex%";
         }
-        print "== SIMILAR TO: $regex\n";
+        # print "== SIMILAR TO: $regex\n";
         push @wheres => "$spec->[1] $op ?";
         push @params => "$regex";
     }
@@ -612,9 +631,17 @@ sub search_events {
     });
     $sth->execute(@params);
     return sub {
-        my $row = $sth->fetchrow_hashref or return;
-        $row->{committed_at} = _dt $row->{committed_at};
-        $row->{planned_at}   = _dt $row->{planned_at};
+        my $info = $self->dbh->func('ib_tx_info');
+        print "=== TX INFO:\n";
+        print Dumper($info);
+        # my $row;
+        # With while... there is no '-invalid transaction handle' error
+        # while ($row = $sth->fetchrow_hashref) {
+            my $row = $sth->fetchrow_hashref or return;
+            $row->{committed_at} = _dt $row->{committed_at};
+            $row->{planned_at}   = _dt $row->{planned_at};
+            # print Dumper($row);
+        # }
         return $row;
     };
 }
