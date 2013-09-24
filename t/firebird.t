@@ -284,6 +284,7 @@ DBIEngineTest->run(
     test_dbh => sub {
         my $dbh = shift;
         # Check the session configuration...
+        # To try: http://www.firebirdsql.org/refdocs/langrefupd21-intfunc-get_context.html
     },
 );
 

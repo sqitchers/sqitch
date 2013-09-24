@@ -291,25 +291,17 @@ sub begin_work {
     my $dbh = $self->dbh;
 
     # Start transaction and lock all tables to disallow concurrent changes.
-    # qw(changes dependencies events projects tags)
+    # This should be equivalent to 'LOCK TABLE changes'?!
+    $dbh->func(
+        -reserving => {
+            changes => {
+                lock   => 'write',
+                access => 'protected',
+            },
+        },
+        'ib_set_tx_param'
+    );
     $dbh->begin_work;
-    #local $dbh->{TraceLevel} = "1";
-    $dbh->{AutoCommit} = 0;  # enable transactions, if possible
-    # $dbh->func(
-    #     -access_mode     => 'read_write',
-    #     -isolation_level => 'read_committed',
-    #     -lock_resolution => 'no_wait',
-    #     -reserving       => {
-    #         changes => {
-    #             lock   => 'read',
-    #             access => 'protected',
-    #         },
-    #     },
-    #     'ib_set_tx_param'
-    # );
-    my $info = $dbh->func('ib_tx_info');
-    print "=== BEGIN TX:\n";
-    print Dumper($info);
     return $self;
 }
 
@@ -318,15 +310,11 @@ sub begin_work {
 sub finish_work {
     my $self = shift;
     my $dbh = $self->dbh;
-    my $info = $dbh->func('ib_tx_info');
-    print Dumper($info);
     $dbh->commit;
-    #$dbh->func( 'ib_set_tx_param' );         # reset parameters
+    $dbh->func( 'ib_set_tx_param' );         # reset parameters
     return $self;
 }
 
-# Sometimes I get: Invalid second value (60) at
-# App/Sqitch/Engine/firebird.pm line 316. ???
 sub _dt($) {
     require App::Sqitch::DateTime;
     return App::Sqitch::DateTime->new(split /:/ => shift);
@@ -595,11 +583,6 @@ sub search_events {
             push @params => $lim;
         }
         if (my $off = delete $p{offset}) {
-            # if (!$lim && ($lim = $self->_limit_default)) {
-            #     # Some drivers require FIRST when SKIP is set.
-            #     $limits = " FIRST ? ";
-            #     push @params => $lim;
-            # }
             $limits .= " SKIP ? ";
             push @params => $off;
         }
@@ -607,6 +590,8 @@ sub search_events {
 
     hurl 'Invalid parameters passed to search_events(): '
         . join ', ', sort keys %p if %p;
+
+    $self->dbh->{ib_softcommit} = 1;
 
     # Prepare, execute, and return.
     my $cdtcol = sprintf $self->_ts2char_format, 'e.committed_at';
@@ -631,17 +616,9 @@ sub search_events {
     });
     $sth->execute(@params);
     return sub {
-        my $info = $self->dbh->func('ib_tx_info');
-        print "=== TX INFO:\n";
-        print Dumper($info);
-        # my $row;
-        # With while... there is no '-invalid transaction handle' error
-        # while ($row = $sth->fetchrow_hashref) {
-            my $row = $sth->fetchrow_hashref or return;
-            $row->{committed_at} = _dt $row->{committed_at};
-            $row->{planned_at}   = _dt $row->{planned_at};
-            # print Dumper($row);
-        # }
+        my $row = $sth->fetchrow_hashref or return;
+        $row->{committed_at} = _dt $row->{committed_at};
+        $row->{planned_at}   = _dt $row->{planned_at};
         return $row;
     };
 }
@@ -693,11 +670,6 @@ sub change_offset_from_id {
     my ($offset_expr, $limit_expr) = ('', '');
     if ($offset) {
         $offset_expr = "SKIP $offset";
-
-        # # Some engines require FIRST when there is an SKIP.
-        # if (my $lim = $self->_limit_default) {
-        #     $limit_expr = "FIRST $lim ";
-        # }
     }
 
     my $sql = qq{
