@@ -49,7 +49,7 @@ isa_ok my $fb = $CLASS->new(sqitch => $sqitch), $CLASS;
 
 #my $client = 'isql-fb' . ($^O eq 'MSWin32' ? '.exe' : '');
 like ( $fb->client, qr/isql/, 'client should default to isql');
-is $fb->sqitch_db, 'sqitch', 'sqitch_db default should be "sqitch"';
+is $fb->sqitch_db, 'sqitch.fdb', 'sqitch_db default should be "sqitch.fdb"';
 for my $attr (qw(username password db_name host port destination)) {
     is $fb->$attr, undef, "$attr default should be undef";
 }

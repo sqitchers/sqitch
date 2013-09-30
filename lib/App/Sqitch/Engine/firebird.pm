@@ -82,7 +82,7 @@ has sqitch_db => (
     required => 1,
     default => sub {
         shift->sqitch->config->get( key => 'core.firebird.sqitch_db' )
-            || 'sqitch';
+            || 'sqitch.fdb';
         },
 );
 
@@ -291,11 +291,13 @@ sub begin_work {
     my $dbh = $self->dbh;
 
     # Start transaction and lock all tables to disallow concurrent changes.
-    # This should be equivalent to 'LOCK TABLE changes'?!
+    # This should be equivalent to 'LOCK TABLE changes'
+    # http://conferences.embarcadero.com/article/32280#TableReservation
     $dbh->func(
+        -lock_resolution => 'no_wait',
         -reserving => {
             changes => {
-                lock   => 'write',
+                lock   => 'read',
                 access => 'protected',
             },
         },
