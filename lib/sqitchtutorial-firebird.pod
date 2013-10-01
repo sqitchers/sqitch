@@ -93,15 +93,25 @@ installation the command is:
 
   > sqitch config --user core.firebird.client /opt/firebird/bin/isql
 
+Note: On some GNU/Linux distributions the firebird client is renamed
+to C<isql-fb>, for example in Debian and Fedora.
+
 At this point we can save a lot of typing if we add the user name and
 the password to the configuration, for example:
 
   > sqitch config core.firebird.username SYSDBA
-  > sqitch config core.firebird.password mysecret
+  > sqitch config core.firebird.password <mysecret>
+
+of course, you have to replace <mysecret> with "your secret" password.
+
+The default database administrator name SYSDBA can be replaced with
+any other user with the proper privileges to create databases.
 
 Because of the way how Firebird is designed we need to add the path to
 the databases.  The flipr_test.fdb database have to exist, the
-sqitch.fdb database will be created if it doesn't exists.
+sqitch.fdb database will be created if it doesn't exists.  Supposing
+that L</home/fbdb/> is a directory owned by the Firebird user, the
+command is:
 
   > sqitch config core.firebird.db_name /home/fbdb/flipr_test.fdb
   > sqitch config core.firebird.sqitch_db /home/fbdb/sqitch.fdb
@@ -222,7 +232,7 @@ I<added> to the database.
 With this change deployed, if you connect to the database, you'll be able to
 see the schema:
 
-  > /opt/firebird/bin/isql -u SYSDBA -p mysecret
+  > /opt/firebird/bin/isql -u SYSDBA -p <mysecret>
   Use CONNECT or CREATE DATABASE to specify a database
   SQL> connect '/home/fbdb/flipr_test.fdb';
   Database:  '/home/fbdb/flipr_test.fdb', User: SYSDBA
@@ -314,7 +324,7 @@ pass the C<-y> option to disable the prompt. Also, notice the C<-> before the
 change name in the output, which reinforces that the change is being
 I<removed> from the database. And now the schema should be gone:
 
-  > /opt/firebird/bin/isql -u SYSDBA -p mysecret
+  > /opt/firebird/bin/isql -u SYSDBA -p <mysecret>
   Use CONNECT or CREATE DATABASE to specify a database
   SQL> connect '/home/fbdb/flipr_test.fdb';
   Database:  '/home/fbdb/flipr_test.fdb', User: SYSDBA
@@ -362,12 +372,12 @@ And then deploy again.  This time, let's use the C<--verify> option,
 so that the C<verify> script is applied when the change is deployed:
 
   > sqitch deploy --verify
-  Deploying changes to flipr_test.db
+  Deploying changes to /home/fbdb/flipr_test.fdb
     + users .. ok
 
 And now the C<users> table should be back:
 
-  > /opt/firebird/bin/isql -u SYSDBA -p mysecret
+  > /opt/firebird/bin/isql -u SYSDBA -p <mysecret>
   Use CONNECT or CREATE DATABASE to specify a database
   SQL> connect '/home/fbdb/flipr_test.fdb';
   Database:  '/home/fbdb/flipr_test.fdb', User: SYSDBA
@@ -474,7 +484,7 @@ We know, since verification is enabled, that the table must have been created.
 But for the purposes of visibility, let's have a quick look:
 
 
-  > /opt/firebird/bin/isql -u SYSDBA -p mysecret
+  > /opt/firebird/bin/isql -u SYSDBA -p <mysecret>
   Use CONNECT or CREATE DATABASE to specify a database
   SQL> connect '/home/fbdb/flipr_test.fdb';
   Database:  '/home/fbdb/flipr_test.fdb', User: SYSDBA
@@ -521,10 +531,10 @@ to C<users>, the penultimate change.  The other potentially useful
 symbolic tag is C<@ROOT>, which refers to the first change deployed to
 the database (or in the plan, depending on the command).
 
-Back to the database. The C<flips> table should be gone but the C<users> table
-should still be around:
+Back to the database. The C<flips> table should be gone but the
+C<users> table should still be around:
 
-  > /opt/firebird/bin/isql -u SYSDBA -p mysecret
+  > /opt/firebird/bin/isql -u SYSDBA -p <mysecret>
   Use CONNECT or CREATE DATABASE to specify a database
   SQL> connect '/home/fbdb/flipr_test.fdb';
   Database:  '/home/fbdb/flipr_test.fdb', User: SYSDBA
