@@ -189,6 +189,18 @@ has isql => (
     },
 );
 
+has tz_offset => (
+    is       => 'ro',
+    isa      => 'Maybe[Int]',
+    lazy     => 1,
+    required => 1,
+    default => sub {
+        my $dt = DateTime->now( time_zone => 'local' );
+        my $offset = -($dt->offset / 3600);
+        return $offset;
+    },
+);
+
 sub config_vars {
     return (
         client    => 'any',
@@ -217,7 +229,10 @@ sub _ts2char_format {
         || ':time_zone:UTC'};
 }
 
-sub _ts_default { 'current_timestamp' }
+sub _ts_default {
+    my $offset = shift->tz_offset;
+    return qq(DATEADD($offset HOUR TO CURRENT_TIMESTAMP));
+}
 
 sub is_deployed_change {
     my ( $self, $change ) = @_;
