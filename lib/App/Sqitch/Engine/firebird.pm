@@ -11,6 +11,7 @@ use App::Sqitch::Plan::Change;
 use Path::Class;
 use List::MoreUtils qw(firstidx);
 use File::Which ();
+use Time::Local;
 use Mouse;
 use namespace::autoclean;
 
@@ -195,8 +196,10 @@ has tz_offset => (
     lazy     => 1,
     required => 1,
     default => sub {
-        my $dt = DateTime->now( time_zone => 'local' );
-        my $offset = -($dt->offset / 3600);
+        # From: http://stackoverflow.com/questions/2143528/whats-the-best-way-to-get-the-utc-offset-in-perl
+        my @t = localtime(time);
+        my $gmt_offset_in_seconds = timegm(@t) - timelocal(@t);
+        my $offset = -($gmt_offset_in_seconds / 3600);
         return $offset;
     },
 );
