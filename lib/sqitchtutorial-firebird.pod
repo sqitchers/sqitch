@@ -107,14 +107,9 @@ of course, you have to replace <mysecret> with "your secret" password.
 The default database administrator name SYSDBA can be replaced with
 any other user with the proper privileges to create databases.
 
-Because of the way how Firebird is designed we need to add the path to
-the databases.  The flipr_test.fdb database have to exist, the
-sqitch.fdb database will be created if it doesn't exists.  Supposing
-that L</home/fbdb/> is a directory owned by the Firebird user, the
-command is:
-
-  > sqitch config core.firebird.db_name /home/fbdb/flipr_test.fdb
-  > sqitch config core.firebird.sqitch_db /home/fbdb/sqitch.fdb
+Because of the way how Firebird is designed we need to provide the
+path to the databases.  The flipr_test.fdb database have to exist, the
+L<sqitch.fdb> database will be created if it doesn't exists.
 
 And let's also tell it who we are, since this data will be used in all
 of our projects:
@@ -209,21 +204,26 @@ script, so we edit this to F<revert/users.sql> to look like this:
 Now we can try deploying this change:
 
 
-  > sqitch deploy
+  > sqitch --db-name /home/fbdb/flipr_test.fdb deploy
   Adding metadata tables to /home/fbdb/sqitch.fdb
   Deploying changes to /home/fbdb/flipr_test.fdb
     + users .. ok
 
 
 First Sqitch created the metadata database and tables used to track
-database changes.  This database is separate from the database to
-which the C<users> change was deployed; by default, its name is
-C<sqitch.fdb>.
+database changes. This database is separate from the database to which
+the C<users> change was deployed; by default, it's name is
+C<sqitch.fdb> and it's located in the same directory as the C<db_name>
+database, and will be used to manage I<all> projects on a single
+Firebird server. If you need a database to have its own Sqitch
+metadata database, set the C<core.firebird.sqitch_db> configuration
+variable, e.g.:
 
-If you'd like it to have a different name, use C<sqitch config
-core.firebird.sqitch_db $name> to configure it.  This will be useful
-if you don't want to use the same Sqitch database to manage multiple
-databases.
+  > sqitch config core.firebird.sqitch_db flipr_sqitch
+
+Ideally, only Sqitch data will be stored in this database, so it probably makes
+the most sense to create a superuser named C<sqitch> or something similar and
+use it to deploy changes.
 
 Next, Sqitch deploys changes to the destination database.  We only
 have one so far; the C<+> reinforces the idea that the change is being
@@ -258,7 +258,7 @@ from it. Put this query into F<verify/users.sql>:
 Now you can run the C<verify> script with the L<C<verify>|sqitch-verify>
 command:
 
-  > sqitch verify
+  > sqitch --db-name /home/fbdb/flipr_test.fdb verify
   Verifying flipr_test.db
     * users .. ok
   Verify successful
@@ -273,7 +273,7 @@ something that doesn't exist, something like:
 
 Then L<C<verify>|sqitch-verify> again:
 
-  > sqitch verify
+  > sqitch --db-name /home/fbdb/flipr_test.fdb verify
   Verifying /home/fbdb/flipr_test.fdb
     * users .. Statement failed, SQLSTATE = 42S02
   Dynamic SQL Error
@@ -301,7 +301,7 @@ For purely informational purposes, we can always see how a deployment was
 recorded via the L<C<status>|sqitch-status> command, which reads the tables
 from the metadata database:
 
-  > sqitch status
+  > sqitch --db-name /home/fbdb/flipr_test.fdb status
   # On database /home/fbdb/flipr_test.fdb
   # Project:  flipr
   # Change:   9f16dcacbf1bff22da823e174149e771df06e78b
@@ -314,7 +314,7 @@ from the metadata database:
 
 Let's make sure that we can revert the change:
 
-  > sqitch revert
+  > sqitch --db-name /home/fbdb/flipr_test.fdb revert
   Revert all changes from flipr_test.fdb? [Yes]
     - users .. ok
 
@@ -334,21 +334,21 @@ I<removed> from the database. And now the schema should be gone:
 
 And the status message should reflect as much:
 
-  > sqitch status
-  # On database flipr_test.db
+  > sqitch --db-name /home/fbdb/flipr_test.fdb status
+  # On database /home/fbdb/flipr_test.fdb
   No changes deployed
 
 Of course, since nothing is deployed, the L<C<verify>|sqitch-verify> command
 has nothing to verify:
 
-  > sqitch verify
-  Verifying flipr_test.db
+  > sqitch --db-name /home/fbdb/flipr_test.fdb verify
+  Verifying /home/fbdb/flipr_test.fdb
   No changes deployed
 
 However, we still have a record that the change happened, visible via the
 L<C<log>|sqitch-log> command:
 
-  > sqitch log
+  > sqitch --db-name /home/fbdb/flipr_test.fdb log
   On database /home/fbdb/flipr_test.fdb
   Revert 9f16dcacbf1bff22da823e174149e771df06e78b
   Name:      users
@@ -371,7 +371,7 @@ order, with the revert first and then the deploy.
 And then deploy again.  This time, let's use the C<--verify> option,
 so that the C<verify> script is applied when the change is deployed:
 
-  > sqitch deploy --verify
+  > sqitch --db-name /home/fbdb/flipr_test.fdb deploy --verify
   Deploying changes to /home/fbdb/flipr_test.fdb
     + users .. ok
 
@@ -386,7 +386,7 @@ And now the C<users> table should be back:
   SQL> quit;
 
 When we look at the status, the deployment will be there:
-  > sqitch status
+  > sqitch --db-name /home/fbdb/flipr_test.fdb status
   # On database /home/fbdb/flipr_test.fdb
   # Project:  flipr
   # Change:   9f16dcacbf1bff22da823e174149e771df06e78b
@@ -476,7 +476,7 @@ F<revert/flips.sql>:
 
 Couldn't be much simpler, right? Let's deploy this bad boy:
 
-  > sqitch deploy
+  > sqitch --db-name /home/fbdb/flipr_test.fdb deploy
   Deploying changes to flipr_test.fdb
     + flips .. ok
 
@@ -496,7 +496,7 @@ But for the purposes of visibility, let's have a quick look:
 We can also verify all currently deployed changes with the
 L<C<verify>|sqitch-verify> command:
 
-  > sqitch verify
+  > sqitch --db-name /home/fbdb/flipr_test.fdb verify
   Verifying flipr_test.db
     * users .. ok
     * flips .. ok
@@ -504,7 +504,7 @@ L<C<verify>|sqitch-verify> command:
 
 Now have a look at the status:
 
-  > sqitch status
+  > sqitch --db-name /home/fbdb/flipr_test.fdb status
   # On database /home/fbdb/flipr_test.fdb
   # Project:  flipr
   # Change:   756fa8f0bef459a870755a90896296157a3f1732
@@ -517,7 +517,7 @@ Now have a look at the status:
 
 Success! Let's make sure we can revert the change, as well:
 
-  > sqitch revert --to @HEAD^ -y
+  > sqitch --db-name /home/fbdb/flipr_test.fdb revert --to @HEAD^ -y
     Reverting changes to users from /home/fbdb/flipr_test.fdb
   - flips .. ok
 
@@ -545,7 +545,7 @@ C<users> table should still be around:
 The L<C<status>|sqitch-status> command politely informs us that we have
 undeployed changes:
 
-  > sqitch status
+  > sqitch --db-name /home/fbdb/flipr_test.fdb status
   # On database /home/fbdb/flipr_test.fdb
   # Project:  flipr
   # Change:   9f16dcacbf1bff22da823e174149e771df06e78b
@@ -558,7 +558,7 @@ undeployed changes:
 
 As does the L<C<verify>|sqitch-verify> command:
 
-  > sqitch verify
+  > sqitch --db-name /home/fbdb/flipr_test.fdb verify
   Verifying /home/fbdb/flipr_test.fdb
     * users .. ok
   Undeployed change:
@@ -578,13 +578,13 @@ Okay, let's commit and deploy again:
    create mode 100644 deploy/flips.sql
    create mode 100644 revert/flips.sql
    create mode 100644 verify/flips.sql
-  > sqitch deploy
+  > sqitch --db-name /home/fbdb/flipr_test.fdb deploy
   Deploying changes to flipr_test.db
     + flips .. ok
 
 Looks good. Check the status:
 
-  > sqitch status
+  > sqitch --db-name /home/fbdb/flipr_test.fdb status
   # On database /home/fbdb/flipr_test.fdb
   # Project:  flipr
   # Change:   756fa8f0bef459a870755a90896296157a3f1732
@@ -626,15 +626,15 @@ And add the C<DROP VIEW> statement to F<revert/userflips.sql>:
 
 Now Try it out!
 
-   > sqitch deploy
+   > sqitch --db-name /home/fbdb/flipr_test.fdb deploy
   Deploying changes to /home/fbdb/flipr_test.fdb
     + userflips .. ok
-  > sqitch revert -y
+  > sqitch --db-name /home/fbdb/flipr_test.fdb revert -y
   Reverting all changes from /home/fbdb/flipr_test.fdb
     - userflips .. ok
     - flips ...... ok
     - users ...... ok
-  > sqitch deploy
+  > sqitch --db-name /home/fbdb/flipr_test.fdb deploy
   Deploying changes to /home/fbdb/flipr_test.fdb
     + users ...... ok
     + flips ...... ok
@@ -653,20 +653,45 @@ Looks good! Commit it.
 
 =head1 Ship It!
 
-Now we're ready for the first development release of our app.  Let's
-call it C<1.0.0-dev1>.  Since we want to have it go out with
-deployments tied to the release, let's tag it:
+Let's do a first release of our app.  Let's call it C<1.0.0-dev1>.
+Since we want to have it go out with deployments tied to the release,
+let's tag it:
 
   > sqitch tag v1.0.0-dev1 -n 'Tag v1.0.0-dev1.'
-  Tagged "userflips" with @v1.0.0-dev1
+  Tagged "change_pass" with @v1.0.0-dev1
   > git commit -am 'Tag the database with v1.0.0-dev1.'
-  [master 2db2775] Tag the database with v1.0.0-dev1.
+  [master 384543e] Tag the database with v1.0.0-dev1.
    1 file changed, 1 insertion(+)
   > git tag v1.0.0-dev1 -am 'Tag v1.0.0-dev1'
 
+Now let's bundle everything up for release:
+
+  > sqitch bundle
+  Bundling into bundle
+  Writing config
+  Writing plan
+  Writing scripts
+    + users
+    + flips
+    + userflips @v1.0.0-dev1
+
+Now we can package the F<bundle> directory and distribute it. When it
+gets installed somewhere, users can use Sqitch to deploy to the
+database. We ought to try deploying it, but first we'll need to revert
+our existing databases, as a single Sqitch project cannot be deployed
+to two databases on the same server unless C<core.firebird.sqitch_db>
+is different.  Fortunately, it's easy to build the database again, so
+let's just revert it.
+
+  > sqitch --db-name /home/fbdb/flipr_test.fdb revert -y
+  Reverting all changes from /home/fbdb/flipr_test.fdb
+    - userflips .. ok
+    - flips ...... ok
+    - users ...... ok
+
+Now we can try deploying the bundle:
 
 ===  HERE I AM
-
 
 We can try deploying to make sure the tag gets picked up like so:
 
@@ -1228,3 +1253,10 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 =cut
+
+
+    Supposing that L</home/fbdb/> is a directory owned by the Firebird
+user, the command is:
+
+  > sqitch config core.firebird.db_name /home/fbdb/flipr_test.fdb
+  > sqitch config core.firebird.sqitch_db /home/fbdb/sqitch.fdb
