@@ -1156,23 +1156,28 @@ App::Sqitch::Engine::firebird provides the Firebird storage engine for Sqitch.
 Returns a hash of names and types to use for variables in the C<core.firebird>
 section of the a Sqitch configuration file. The variables and their types are:
 
-  client    => 'any'
-  db_name   => 'any'
-  sqitch_db => 'any'
+  client    => 'any',
+  username  => 'any',
+  password  => 'any',
+  db_name   => 'any',
+  host      => 'any',
+  port      => 'int',
+  sqitch_db => 'any',
 
 =head2 Accessors
 
 =head3 C<client>
 
-Returns the path to the Firebird client. If C<--db-client> was passed to
-C<sqitch>, that's what will be returned. Otherwise, it uses the
-C<core.firebird.client> configuration value, or else defaults to C<firebird> (or
-C<firebird.exe> on Windows), which should work if it's in your path.
+Returns the path to the Firebird client.  If C<--db-client> was passed
+to C<sqitch>, that's what will be returned.  Otherwise, it uses the
+C<core.firebird.client> configuration value, or else defaults to
+C<isql> (or C<isql.exe> on Windows), which should work if it's in your
+path.
 
 =head3 C<db_name>
 
-Returns the name of the database file. If C<--db-name> was passed to C<sqitch>
-that's what will be returned.
+Returns the name of the database file.  If C<--db-name> was passed to
+C<sqitch> that's what will be returned.
 
 =head3 C<sqitch_db>
 
@@ -1184,9 +1189,13 @@ defaults to F<sqitch.db> in the same directory as C<db_name>.
 
 David E. Wheeler <david@justatheory.com>
 
+Ștefan Suciu <stefan@s2i2.ro>
+
 =head1 License
 
 Copyright (c) 2012-2013 iovation Inc.
+
+Copyright (c) 2013 Ștefan Suciu
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
