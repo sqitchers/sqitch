@@ -9,13 +9,12 @@ use App::Sqitch::X qw(hurl);
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::Plan::Change;
 use Path::Class;
-use List::MoreUtils qw(firstidx);
 use File::Which ();
+use File::Basename;
+use File::Spec::Functions;
 use Time::Local;
 use Mouse;
 use namespace::autoclean;
-
-use Data::Dumper;
 
 extends 'App::Sqitch::Engine';
 sub dbh; # required by DBIEngine;
@@ -82,9 +81,19 @@ has sqitch_db => (
     lazy     => 1,
     required => 1,
     default => sub {
-        shift->sqitch->config->get( key => 'core.firebird.sqitch_db' )
-            || 'sqitch.fdb';
-        },
+        my $self = shift;
+        if ( my $db
+            = $self->sqitch->config->get( key => 'core.firebird.sqitch_db' ) )
+        {
+            return $db;
+        }
+        if ( my $db = $self->db_name ) {
+            # Defaults to sqitch.$ext in the same dir as db_name.$ext
+            my ($name, $path, $ext) = fileparse( $db, qr/\.[^\.]*/ );
+            return catfile($path, "sqitch$ext");
+        }
+        return undef;
+    },
 );
 
 sub meta_destination { shift->sqitch_db }

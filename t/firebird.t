@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 #
-# Made after mysql.t
+# Made after sqlite.t and mysql.t
 #
 use strict;
 use warnings;
@@ -45,12 +45,12 @@ is_deeply [$CLASS->config_vars], [
 ], 'config_vars should return seven vars';
 
 my $sqitch = App::Sqitch->new;
-isa_ok my $fb = $CLASS->new(sqitch => $sqitch), $CLASS;
+isa_ok my $fb = $CLASS->new(sqitch => $sqitch, db_name => 'foo.fdb'), $CLASS;
 
-#my $client = 'isql-fb' . ($^O eq 'MSWin32' ? '.exe' : '');
 like ( $fb->client, qr/isql/, 'client should default to isql');
-is $fb->sqitch_db, 'sqitch.fdb', 'sqitch_db default should be "sqitch.fdb"';
-for my $attr (qw(username password db_name host port destination)) {
+is $fb->db_name, file('foo.fdb'), 'db_name should be required';
+is $fb->sqitch_db, './sqitch.fdb', 'sqitch_db default should be "sqitch.fdb"';
+for my $attr (qw(username password host port)) {
     is $fb->$attr, undef, "$attr default should be undef";
 }
 
