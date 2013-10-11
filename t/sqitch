@@ -1,16 +1,16 @@
 #!/usr/bin/env perl -CAS
 
-use FindBin;
-use lib "$FindBin::Bin/../lib";
-use POSIX qw (setlocale);
+use POSIX qw(setlocale);
 BEGIN {
     if ($^O eq 'MSWin32') {
         require Win32::Locale;
-        setlocale Win32::Locale::get_locale(), '';
+        setlocale POSIX::LC_ALL, Win32::Locale::get_locale();
     } else {
-        setlocale POSIX::LC_MESSAGES, '';
+        setlocale POSIX::LC_ALL, '';
     }
 }
+use FindBin;
+use lib "$FindBin::Bin/../lib";
 use App::Sqitch;
 
 exit App::Sqitch->go;

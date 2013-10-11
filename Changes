@@ -13,6 +13,9 @@ Revision history for Perl extension App::Sqitch
      - Refactored the handling of the C<--log-only> option so it sets an
        engine atttribute, rather than passing the flag to a whole stack of
        method calls.
+     - Fixed "Argument "en_us" isn't numeric" error on Windows.
+     - Now using `LC_ALL` instead of `LC_MESSAGES` when setting the locale, as
+       the latter is not present on Windows.
 
 0.982  2013-09-11T18:26:07Z
      - Errors thrown by Template toolkit are no longer silently ignored.
