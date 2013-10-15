@@ -16,6 +16,7 @@ Revision history for Perl extension App::Sqitch
      - Fixed "Argument "en_us" isn't numeric" error on Windows.
      - Now using `LC_ALL` instead of `LC_MESSAGES` when setting the locale, as
        the latter is not present on Windows.
+     - The sqitch-pg RPM now requires DBD::Pg 2.0.0 or higher.
 
 0.982  2013-09-11T18:26:07Z
      - Errors thrown by Template toolkit are no longer silently ignored.

@@ -171,7 +171,7 @@ Group:          Development/Libraries
 Requires:       sqitch >= %{version}
 Requires:       postgresql >= 8.4.0
 Requires:       perl(DBI)
-Requires:       perl(DBD::Pg)
+Requires:       perl(DBD::Pg) >= 2.0.0
 
 %description pg
 Sqitch provides a simple yet robust interface for database change
