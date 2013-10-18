@@ -56,6 +56,7 @@ is_deeply [$CLASS->options], [qw(
     requires|r=s@
     conflicts|c=s@
     note|n|m=s@
+    open-editor|edit!
 )], 'Options should be set up';
 
 ##############################################################################

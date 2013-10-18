@@ -35,11 +35,24 @@ has note => (
     default  => sub { [] },
 );
 
+has open_editor => (
+    is       => 'ro',
+    isa      => 'ConfigBool',
+    coerce   => 1,
+    default  => sub {
+        shift->sqitch->config->get(
+            key => 'rework.open_editor',
+            as  => 'bool',
+        ) // 0;
+    },
+);
+
 sub options {
     return qw(
         requires|r=s@
         conflicts|c=s@
         note|n|m=s@
+        open-editor|edit!
     );
 }
 
@@ -114,6 +127,11 @@ sub execute {
         scalar @files,
     ));
     $self->info("  * $_") for @files;
+
+    # Let 'em at it.
+    if ($self->open_editor) {
+        $sqitch->shell( $sqitch->editor . ' ' . $sqitch->quote_shell(@files) );
+    }
 
     return $self;
 }

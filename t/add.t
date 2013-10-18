@@ -72,6 +72,7 @@ is_deeply [$CLASS->options], [qw(
     deploy!
     revert!
     verify|test!
+    open-editor|edit!
 )], 'Options should be set up';
 
 sub contents_of ($) {

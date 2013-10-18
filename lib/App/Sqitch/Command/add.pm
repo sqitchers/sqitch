@@ -83,6 +83,18 @@ for my $script (qw(deploy revert verify)) {
     );
 }
 
+has open_editor => (
+    is       => 'ro',
+    isa      => 'Bool',
+    lazy     => 1,
+    default  => sub {
+        shift->sqitch->config->get(
+            key => 'add.open_editor',
+            as  => 'bool',
+        ) // 0;
+    },
+);
+
 sub _find {
     my ( $self, $script ) = @_;
     my $config = $self->sqitch->config;
@@ -117,6 +129,7 @@ sub options {
         deploy!
         revert!
         verify|test!
+        open-editor|edit!
     );
 }
 
@@ -198,6 +211,8 @@ sub configure {
         };
     }
 
+    $params{open_editor} = $opt->{open_editor} if exists $opt->{open_editor};
+
     return \%params;
 }
 
@@ -213,14 +228,16 @@ sub execute {
         note      => join "\n\n" => @{ $self->note },
     );
 
+    my @files = (
+        ($self->with_deploy ? $change->deploy_file : ()),
+        ($self->with_revert ? $change->revert_file : ()),
+        ($self->with_verify ? $change->verify_file : ()),
+    );
+
     # Make sure we have a note.
     $change->request_note(
         for     => __ 'add',
-        scripts => [
-            ($self->with_deploy ? $change->deploy_file : ()),
-            ($self->with_revert ? $change->revert_file : ()),
-            ($self->with_verify ? $change->verify_file : ()),
-        ],
+        scripts => \@files,
     );
 
     $self->_add(
@@ -248,6 +265,12 @@ sub execute {
         change => $change->format_op_name_dependencies,
         file   => $sqitch->plan_file,
     ));
+
+    # Let 'em at it.
+    if ($self->open_editor) {
+        $sqitch->shell( $sqitch->editor . ' ' . $sqitch->quote_shell(@files) );
+    }
+
     return $self;
 }
 

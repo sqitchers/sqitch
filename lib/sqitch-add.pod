@@ -109,6 +109,19 @@ Do not generate the named script.
 
 Generate the named script. These are not mutually exclusive.
 
+=item C<--edit>
+
+=item C<--open-editor>
+
+Open the generated change scripts in an editor.
+
+=item C<--no-edit>
+
+=item C<--no-open-editor>
+
+Do not open the change scripts in an editor. Useful when L<C<add.open_editor>>
+is true.
+
 =back
 
 =head1 Templates
@@ -244,6 +257,11 @@ C<--deploy-template>, C<--revert-template>, or C<--verify-template>.
 A section defining template variables. Useful if you've customized templates
 with your own variables and want project-, user-, or system-specific defaults
 for them.
+
+=item C<add.open_editor>
+
+Boolean indicating if the add command should spawn an editor after generating
+change scripts.  When true, equivalent to passing C<--edit>.  Defaults off.
 
 =back
 

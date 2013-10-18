@@ -11,3 +11,5 @@ sqitch-rework-usage - Sqitch rework usage statement
     -r --requires             require change
     -c --conflicts            declare conflicting change
     -n --note                 a note describing the change
+
+       --edit, --open-editor  open change scripts in an editor
