@@ -198,12 +198,12 @@ The name of the change being added.
 =item C<requires>
 
 A list of required changes as passed via one or more instances of the
-C<--requiers> option.
+C<--requires> option.
 
 =item C<conflicts>
 
 A list of conflicting changes as passed via one or more instances of the
-C<--requiers> option.
+C<--conflicts> option.
 
 =back
 
