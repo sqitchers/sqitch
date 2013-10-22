@@ -215,6 +215,12 @@ is $dt->time_zone->name, 'UTC', 'DateTime TZ should be set';
 my $dbh;
 
 END {
+    return unless $dbh;
+    $dbh->{Driver}->visit_child_handles(sub {
+        my $h = shift;
+        $h->disconnect if $h->{Type} eq 'db' && $h->{Active} && $h ne $dbh;
+    });
+
     foreach my $dbname (qw{__sqitchtest__ __sqitchtest __metasqitch}) {
         my $dbpath = catfile($tmpdir, $dbname);
         print "=t= DROP DATABASE $dbpath\n";
