@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 96;
+use Test::More tests => 103;
 #use Test::More 'no_plan';
 
 $ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
@@ -111,15 +111,25 @@ ok $cmd = $CLASS->load({
 }), 'Load a "whu" command with "foo" config';
 is $cmd->foo, 'hi', 'The "foo" attribute should be set';
 
-# Test handling of an invalid command.
+# Test handling of nonexistent commands.
 throws_ok { $CLASS->load({ command => 'nonexistent', sqitch => $sqitch }) }
     'App::Sqitch::X', 'Should exit';
-is $@->ident, 'command', 'Invalid command error ident should be "config"';
+is $@->ident, 'command', 'Nonexistent command error ident should be "config"';
 is $@->message, __x(
     '"{command}" is not a valid command',
     command => 'nonexistent',
-), 'Should get proper mesage for invalid command';
-is $@->exitval, 1, 'Should have exitval of 1';
+), 'Should get proper mesage for nonexistent command';
+is $@->exitval, 1, 'Nonexistent command should yeidl exitval of 1';
+
+# Test command that evals to a syntax error.
+throws_ok { $CLASS->load({ command => 'foo.bar', sqitch => $sqitch }) }
+    'App::Sqitch::X', 'Should die on bad command';
+is $@->ident, 'command', 'Bad command error ident should be "config"';
+is $@->message, __x(
+    '"{command}" is not a valid command',
+    command => 'foo.bar',
+), 'Should get proper mesage for bad command';
+is $@->exitval, 1, 'Bad command should yield exitval of 1';
 
 NOCOMMAND: {
     # Test handling of no command.
@@ -133,7 +143,13 @@ NOCOMMAND: {
 
 # Test handling a bad command implementation.
 throws_ok { $CLASS->load({ command => 'bad', sqitch => $sqitch }) }
-    qr/^LOL BADZ/, 'Should die on bad command module';
+    'App::Sqitch::X', 'Should die on broken command module';
+is $@->ident, 'command', 'Broken command error ident should be "config"';
+is $@->message, __x(
+    '"{command}" is not a valid command',
+    command => 'bad',
+), 'Should get proper mesage for broken command';
+is $@->exitval, 1, 'Broken command should yield exitval of 1';
 
 # Test options processing.
 $cmock->mock(get_section => {foo => 'hi', feathers => 'yes'});

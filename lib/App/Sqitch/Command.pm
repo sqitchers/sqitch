@@ -57,6 +57,7 @@ sub command {
 
 sub load {
     my ( $class, $p ) = @_;
+    my $sqitch = $p->{sqitch};
 
     # We should have a command.
     $class->usage unless $p->{command};
@@ -68,9 +69,8 @@ sub load {
         eval "require $pkg" or die $@;
     }
     catch {
-
-        # Just die if something choked.
-        die $_ unless /^Can't locate/;
+        # Emit the original error for debugging.
+        $sqitch->debug($_);
 
         # Suggest help if it's not a valid command.
         hurl {
@@ -90,7 +90,7 @@ sub load {
     );
 
     # Instantiate and return the command.
-    $params->{sqitch} = $p->{sqitch};
+    $params->{sqitch} = $sqitch;
     return $pkg->new($params);
 }
 
