@@ -20,5 +20,5 @@ install:
    - dzil listdeps | grep -vP '[^\w:]' | cpanm --quiet
 
 script:
-   - export AUTOMATED_TESTING=1 HARNESS_OPTIONS=j10:c HARNESS_TIMER=1
-   - dzil smoke --release --author
+   - export HARNESS_OPTIONS=j10:c HARNESS_TIMER=1
+   - dzil smoke --release --author --automated
