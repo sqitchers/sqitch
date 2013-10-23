@@ -21,7 +21,7 @@ has note => (
 
 sub options {
     return qw(
-        note|n=s@
+        note|n|m=s@
     );
 }
 

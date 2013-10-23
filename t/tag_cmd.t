@@ -36,7 +36,7 @@ can_ok $CLASS, qw(
 );
 
 is_deeply [$CLASS->options], [qw(
-    note|n=s@
+    note|n|m=s@
 )], 'Should have note option';
 
 make_path 'test-tag_cmd';

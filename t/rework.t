@@ -55,7 +55,7 @@ can_ok $CLASS, qw(
 is_deeply [$CLASS->options], [qw(
     requires|r=s@
     conflicts|c=s@
-    note|n=s@
+    note|n|m=s@
 )], 'Options should be set up';
 
 ##############################################################################

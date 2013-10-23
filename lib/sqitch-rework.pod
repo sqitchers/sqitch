@@ -73,6 +73,8 @@ A brief note describing the purpose of the reworking. The note will be
 attached to the change as a comment. Multiple invocations will be concatenated
 together as separate paragraphs.
 
+For you Git folks out there, C<-m> also works.
+
 =back
 
 =head1 Sqitch

@@ -39,7 +39,7 @@ sub options {
     return qw(
         requires|r=s@
         conflicts|c=s@
-        note|n=s@
+        note|n|m=s@
     );
 }
 

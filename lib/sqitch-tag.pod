@@ -31,6 +31,8 @@ A brief note describing the tag. The note will be attached to the tag as a
 comment. Multiple invocations will be concatenated together as separate
 paragraphs.
 
+For you Git folks out there, C<-m> also works.
+
 =back
 
 =head1 Configuration Variables

@@ -63,7 +63,7 @@ can_ok $CLASS, qw(
 is_deeply [$CLASS->options], [qw(
     requires|r=s@
     conflicts|c=s@
-    note|n=s@
+    note|n|m=s@
     template-name|template|t=s
     template-directory=s
     deploy-template=s
