@@ -25,4 +25,4 @@ sqitch-add-usage - Sqitch add usage statement
        --deploy               create deploy script
        --revert               create revert script
        --verify               create verify script
-       --edit, --open-editor  open change scripts in an editor
+    -e --edit, --open-editor  open change scripts in an editor

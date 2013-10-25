@@ -129,7 +129,7 @@ sub options {
         deploy!
         revert!
         verify|test!
-        open-editor|edit!
+        open-editor|edit|e!
     );
 }
 

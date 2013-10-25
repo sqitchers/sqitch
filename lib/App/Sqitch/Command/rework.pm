@@ -52,7 +52,7 @@ sub options {
         requires|r=s@
         conflicts|c=s@
         note|n|m=s@
-        open-editor|edit!
+        open-editor|edit|e!
     );
 }
 

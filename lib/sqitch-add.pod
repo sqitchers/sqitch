@@ -109,6 +109,8 @@ Do not generate the named script.
 
 Generate the named script. These are not mutually exclusive.
 
+=item C<-e>
+
 =item C<--edit>
 
 =item C<--open-editor>

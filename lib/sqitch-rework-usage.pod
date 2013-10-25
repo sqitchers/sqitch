@@ -12,4 +12,4 @@ sqitch-rework-usage - Sqitch rework usage statement
     -c --conflicts            declare conflicting change
     -n --note                 a note describing the change
 
-       --edit, --open-editor  open change scripts in an editor
+    -e --edit, --open-editor  open change scripts in an editor

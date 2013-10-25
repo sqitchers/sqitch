@@ -75,6 +75,8 @@ together as separate paragraphs.
 
 For you Git folks out there, C<-m> also works.
 
+=item C<-e>
+
 =item C<--edit>
 
 =item C<--open-editor>
