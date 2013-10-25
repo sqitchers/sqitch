@@ -119,11 +119,13 @@ is $@->message, __x(
     '"{command}" is not a valid command',
     command => 'nonexistent',
 ), 'Should get proper mesage for nonexistent command';
-is $@->exitval, 1, 'Nonexistent command should yeidl exitval of 1';
+is $@->exitval, 1, 'Nonexistent command should yield exitval of 1';
 
 # Test command that evals to a syntax error.
-throws_ok { $CLASS->load({ command => 'foo.bar', sqitch => $sqitch }) }
-    'App::Sqitch::X', 'Should die on bad command';
+throws_ok {
+    local $SIG{__WARN__} = sub { } if $] < 5.11; # Warns on 5.10.
+    $CLASS->load({ command => 'foo.bar', sqitch => $sqitch })
+} 'App::Sqitch::X', 'Should die on bad command';
 is $@->ident, 'command', 'Bad command error ident should be "config"';
 is $@->message, __x(
     '"{command}" is not a valid command',
