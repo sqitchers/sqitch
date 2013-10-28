@@ -40,8 +40,12 @@ has open_editor => (
     isa      => 'ConfigBool',
     coerce   => 1,
     default  => sub {
-        shift->sqitch->config->get(
+        my $self = shift;
+        return $self->sqitch->config->get(
             key => 'rework.open_editor',
+            as  => 'bool',
+        ) // $self->sqitch->config->get(
+            key => 'add.open_editor',
             as  => 'bool',
         ) // 0;
     },
