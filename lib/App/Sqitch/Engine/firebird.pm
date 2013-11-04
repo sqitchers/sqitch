@@ -88,9 +88,9 @@ has sqitch_db => (
             return $db;
         }
         if ( my $db = $self->db_name ) {
-            # Defaults to sqitch.$ext in the same dir as db_name.$ext
+            # Defaults to sqitch-db_name.$ext in the same dir as db_name.$ext
             my ($name, $path, $ext) = fileparse( $db, qr/\.[^\.]*/ );
-            return catfile($path, "sqitch$ext");
+            return catfile($path, "sqitch-${name}$ext");
         }
         return undef;
     },

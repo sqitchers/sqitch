@@ -31,9 +31,9 @@ source code repository. So let's do that with Git:
   > touch README.md
   > git add .
   > git commit -am 'Initialize project, add README.'
-  [master (root-commit) be9b283] Initialize project, add README.
-   1 file changed, 37 insertions(+)
-   create mode 100644 README.md
+  [master (root-commit) dfadc74] Initialize project, add README.
+  1 file changed, 0 insertions(+), 0 deletions(-)
+  create mode 100644 README.md
 
 If you're a Git user and want to follow along the history, the
 repository used in these examples is L<on
@@ -71,7 +71,7 @@ Let's have a look at F<sqitch.conf>:
         # db_name =
         # host =
         # port =
-        # sqitch_db = sqitch.fdb
+        # sqitch_db = 
 
 Good, it picked up on the fact that we're creating changes for the
 Firebird engine, thanks to the C<--engine firebird> option, and saved
@@ -146,14 +146,17 @@ Let's commit these changes and start creating the database changes.
 
   > git add .
   > git commit -am 'Initialize Sqitch configuration.'
-  [master cd33d65] Initialize Sqitch configuration.
-  2 files changed, 25 insertions(+)
+  [master 1b5ee59] Initialize Sqitch configuration.
+  2 files changed, 23 insertions(+)
   create mode 100644 sqitch.conf
   create mode 100644 sqitch.plan
 
+Let's create our flipr test database using isql:
 
-TODO: Add example how to create flipr_test using isql?
-
+  > /opt/firebird/bin/isql -u SYSDBA -p <mysecret>
+  Use CONNECT or CREATE DATABASE to specify a database
+  SQL> CREATE DATABASE '/home/fbdb/flipr_test.fdb';
+  SQL> exit;
 
 =head1 Our First Change
 
@@ -183,7 +186,7 @@ statement, like so:
   -- Deploy users
 
   CREATE TABLE users (
-      nickname  VARCHAR(512) PRIMARY KEY,
+      nickname  VARCHAR(50)  PRIMARY KEY,
       password  VARCHAR(512) NOT NULL,
       fullname  VARCHAR(512) NOT NULL,
       twitter   VARCHAR(512) NOT NULL,
@@ -675,13 +678,13 @@ Now let's bundle everything up for release:
     + flips
     + userflips @v1.0.0-dev1
 
-Now we can package the F<bundle> directory and distribute it. When it
+Now we can package the F<bundle> directory and distribute it.  When it
 gets installed somewhere, users can use Sqitch to deploy to the
-database. We ought to try deploying it, but first we'll need to revert
-our existing databases, as a single Sqitch project cannot be deployed
-to two databases on the same server unless C<core.firebird.sqitch_db>
-is different.  Fortunately, it's easy to build the database again, so
-let's just revert it.
+database.  We ought to try deploying it, but first we'll need to
+revert our existing databases, as a single Sqitch project cannot be
+deployed to two databases on the same server unless
+C<core.firebird.sqitch_db> is different.  Fortunately, it's easy to
+build the database again, so let's just revert it.
 
   > sqitch --db-name /home/fbdb/flipr_test.fdb revert -y
   Reverting all changes from /home/fbdb/flipr_test.fdb
@@ -689,13 +692,17 @@ let's just revert it.
     - flips ...... ok
     - users ...... ok
 
-Now we can try deploying the bundle:
+Now we can try deploying the bundle, but first let's create the
+database:
 
-===  HERE I AM
+  > /opt/firebird/bin/isql -u SYSDBA -p <mysecret>
+  Use CONNECT or CREATE DATABASE to specify a database
+  SQL> CREATE DATABASE '/home/fbdb/flipr_dev.fdb';
+  SQL> exit;
 
 We can try deploying to make sure the tag gets picked up like so:
 
-  > sqitch -d flipr_dev.db deploy
+  > sqitch -d /home/fbdb/flipr_dev.fdb deploy
   Adding metadata tables to ./flipr_dev-sqitch.db
   Deploying changes to flipr_dev.db
     + users ................... ok
