@@ -49,7 +49,7 @@ isa_ok my $fb = $CLASS->new(sqitch => $sqitch, db_name => 'foo.fdb'), $CLASS;
 
 like ( $fb->client, qr/isql/, 'client should default to isql');
 is $fb->db_name, file('foo.fdb'), 'db_name should be required';
-is $fb->sqitch_db, './sqitch.fdb', 'sqitch_db default should be "sqitch.fdb"';
+is $fb->sqitch_db, './sqitch-foo.fdb', 'sqitch_db default should be "sqitch-foo.fdb"';
 for my $attr (qw(username password host port)) {
     is $fb->$attr, undef, "$attr default should be undef";
 }
