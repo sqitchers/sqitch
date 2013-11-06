@@ -71,7 +71,7 @@ Let's have a look at F<sqitch.conf>:
         # db_name =
         # host =
         # port =
-        # sqitch_db = 
+        # sqitch_db =
 
 Good, it picked up on the fact that we're creating changes for the
 Firebird engine, thanks to the C<--engine firebird> option, and saved
@@ -94,7 +94,8 @@ installation the command is:
   > sqitch config --user core.firebird.client /opt/firebird/bin/isql
 
 Note: On some GNU/Linux distributions the firebird client is renamed
-to C<isql-fb>, for example in Debian and Fedora.
+to C<isql-fb>, for example in Debian and Fedora, or C<fbsql> in
+Gentoo.
 
 At this point we can save a lot of typing if we add the user name and
 the password to the configuration, for example:
@@ -117,7 +118,8 @@ of our projects:
   > sqitch config --user user.name 'Marge N. O’Vera'
   > sqitch config --user user.email 'marge@example.com'
 
-Have a look at F<~/.sqitch/sqitch.conf> and you'll see this:
+Have a look at F<~/.sqitch/sqitch.conf> and you'll see something like
+this:
 
   > cat ~/.sqitch/sqitch.conf
   [core "firebird"]
@@ -212,17 +214,21 @@ Now we can try deploying this change:
   Deploying changes to /home/fbdb/flipr_test.fdb
     + users .. ok
 
-
 First Sqitch created the metadata database and tables used to track
 database changes. This database is separate from the database to which
 the C<users> change was deployed; by default, it's name is
-C<sqitch.fdb> and it's located in the same directory as the C<db_name>
-database, and will be used to manage I<all> projects on a single
-Firebird server. If you need a database to have its own Sqitch
-metadata database, set the C<core.firebird.sqitch_db> configuration
+C<< sqitch-<db_name>.fdb >> and it's located in the same directory as
+the C<db_name> database. By default every database will have its own Sqitch
+metadata database.
+
+TODO: check this:
+
+Alternatively one can set the C<core.firebird.sqitch_db> configuration
 variable, e.g.:
 
   > sqitch config core.firebird.sqitch_db flipr_sqitch
+
+to use a single database for all the projects.
 
 Ideally, only Sqitch data will be stored in this database, so it probably makes
 the most sense to create a superuser named C<sqitch> or something similar and
@@ -678,6 +684,8 @@ Now let's bundle everything up for release:
     + flips
     + userflips @v1.0.0-dev1
 
+HERE I AM AGAIN...
+    
 Now we can package the F<bundle> directory and distribute it.  When it
 gets installed somewhere, users can use Sqitch to deploy to the
 database.  We ought to try deploying it, but first we'll need to
