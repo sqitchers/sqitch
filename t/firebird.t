@@ -233,11 +233,18 @@ END {
             }
         ) or die $DBI::errstr;
 
-        # Error:
-        # -lock time-out on wait transaction
-        # -object /tmp/__sqitchtest is in use at t/firebird.t line 238.
-        $dbh->func('ib_drop_database')
-            or warn "Error dropping test database '$dbname': $DBI::errstr";
+        my $res = $dbh->selectall_arrayref(
+            q{ SELECT MON$USER FROM MON$ATTACHMENTS }
+        );
+        if (@{$res} > 1) {
+            # Why do we have more than 1 active connections ???
+            print "    Another active connection detected, can't DROP DATABASE!\n";
+        }
+        else {
+            $dbh->func('ib_drop_database')
+                or warn
+                "Error dropping test database '$dbname': $DBI::errstr";
+        }
     }
 }
 
