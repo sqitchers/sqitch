@@ -215,8 +215,11 @@ is $dt->time_zone->name, 'UTC', 'DateTime TZ should be set';
 my $dbh;
 
 END {
+    return unless $pass;
+
     foreach my $dbname (qw{__sqitchtest__ __sqitchtest __metasqitch}) {
         my $dbpath = catfile($tmpdir, $dbname);
+        next unless -f $dbpath;
         print "=t= DROP DATABASE $dbpath\n";
         my $dsn = qq{dbi:Firebird:dbname=$dbpath;host=localhost;port=3050};
         $dsn .= q{;ib_dialect=3;ib_charset=UTF8};
@@ -230,8 +233,9 @@ END {
             }
         ) or die $DBI::errstr;
 
+        # Error:
         # -lock time-out on wait transaction
-        # -object /tmp/__sqitchtest is in use at t/firebird.t line 234.
+        # -object /tmp/__sqitchtest is in use at t/firebird.t line 238.
         $dbh->func('ib_drop_database')
             or warn "Error dropping test database '$dbname': $DBI::errstr";
     }

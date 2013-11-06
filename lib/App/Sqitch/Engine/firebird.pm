@@ -318,7 +318,7 @@ sub begin_work {
     my $dbh = $self->dbh;
 
     # Start transaction and lock all tables to disallow concurrent changes.
-    # This should be equivalent to 'LOCK TABLE changes'
+    # This should be equivalent to 'LOCK TABLE changes' ???
     # http://conferences.embarcadero.com/article/32280#TableReservation
     $dbh->func(
         -lock_resolution => 'no_wait',
