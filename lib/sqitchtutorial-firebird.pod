@@ -684,23 +684,11 @@ Now let's bundle everything up for release:
     + flips
     + userflips @v1.0.0-dev1
 
-HERE I AM AGAIN...
-    
 Now we can package the F<bundle> directory and distribute it.  When it
 gets installed somewhere, users can use Sqitch to deploy to the
-database.  We ought to try deploying it, but first we'll need to
-revert our existing databases, as a single Sqitch project cannot be
-deployed to two databases on the same server unless
-C<core.firebird.sqitch_db> is different.  Fortunately, it's easy to
-build the database again, so let's just revert it.
+database.
 
-  > sqitch --db-name /home/fbdb/flipr_test.fdb revert -y
-  Reverting all changes from /home/fbdb/flipr_test.fdb
-    - userflips .. ok
-    - flips ...... ok
-    - users ...... ok
-
-Now we can try deploying the bundle, but first let's create the
+Now we can try deploying the bundle, but first let's create the C<dev>
 database:
 
   > /opt/firebird/bin/isql -u SYSDBA -p <mysecret>
@@ -711,8 +699,8 @@ database:
 We can try deploying to make sure the tag gets picked up like so:
 
   > sqitch -d /home/fbdb/flipr_dev.fdb deploy
-  Adding metadata tables to ./flipr_dev-sqitch.db
-  Deploying changes to flipr_dev.db
+  Adding metadata tables to /home/fbdb/sqitch-flipr_dev.fdb
+  Deploying changes to /home/fbdb/flipr_dev.fdb
     + users ................... ok
     + flips ................... ok
     + userflips @v1.0.0-dev1 .. ok
@@ -720,7 +708,7 @@ We can try deploying to make sure the tag gets picked up like so:
 Great, both changes were deployed and C<userflips> was tagged with
 C<@v1.0.0-dev1>. Let's have a look at the status:
 
-  > sqitch -d flipr_dev.db status
+  > sqitch -d /home/fbdb/flipr_dev.fdb status
   # On database flipr_dev.db
   # Project:  flipr
   # Change:   e98e18dced32f7ee090ea368510f923e538e719a
@@ -731,33 +719,10 @@ C<@v1.0.0-dev1>. Let's have a look at the status:
   #
   Nothing to deploy (up-to-date)
 
-Note the listing of the tag as part of the status message. Now let's bundle
-everything up for release:
+Note the listing of the tag as part of the status message.
 
-  > sqitch bundle
-  Bundling into bundle
-  Writing config
-  Writing plan
-  Writing scripts
-    + users
-    + flips
-    + userflips @v1.0.0-dev1
+Package it up and ship it!
 
-Now we can package the F<bundle> directory and distribute it. When it gets
-installed somewhere, users can use Sqitch to deploy to the database. Let's try
-deploying it:
-
-  > cd bundle
-  > sqitch --db-name flipr_prod.db deploy
-  Adding metadata tables to ./flipr_prod-sqitch.db
-  Deploying changes to flipr_prod.db
-    + users ................... ok
-    + flips ................... ok
-    + userflips @v1.0.0-dev1 .. ok
-
-Looks much the same as before, eh? Package it up and ship it!
-
-  > rm *.db
   > cd ..
   > mv bundle flipr-v1.0.0-dev1
   > tar -czf flipr-v1.0.0-dev1.tgz flipr-v1.0.0-dev1
@@ -783,8 +748,8 @@ Now we can add a new change to create a table for hashtags.
 You know the drill by now. Add this to F<deploy/hashtags.sql>
 
   CREATE TABLE hashtags (
-      flip_id   INTEGER   NOT NULL REFERENCES flips(id),
-      hashtag   TEXT      NOT NULL CHECK ( length(hashtag) > 0 ),
+      flip_id   INTEGER      NOT NULL REFERENCES flips(id),
+      hashtag   VARCHAR(512) NOT NULL CHECK(char_length(hashtag) > 0),
       PRIMARY KEY (flip_id, hashtag)
   );
 
@@ -798,14 +763,14 @@ And drop it in F<revert/hashtags.sql>
 
 And give it a whirl:
 
-  > sqitch deploy
+  > sqitch -d /home/fbdb/flipr_test.fdb deploy
   Deploying changes to flipr_test.db
     + hashtags .. ok
 
 Look good?
 
-  > sqitch status --show-tags
-  # On database flipr_test.db
+  > sqitch -d /home/fbdb/flipr_test.fdb status --show-tags
+  # On database /home/fbdb/flipr_test.db
   # Project:  flipr
   # Change:   6b55f1147898da3b46d3671062486e56fac26827
   # Name:     hashtags
@@ -828,6 +793,7 @@ Note the use of C<--show tags> to show all the deployed tags. Now make it so:
    create mode 100644 verify/hashtags.sql
 
 Good, we've finished this feature. Time to merge back into C<master>.
+
 
 =head2 Emergency
 
@@ -891,7 +857,6 @@ it on C<master>:
 
   > git checkout hashtags
   Switched to branch 'hashtags'
-  > git rebase master
   > git rebase master
   First, rewinding head to replay your work on top of it...
   Applying: Add hashtags table.
@@ -962,7 +927,7 @@ Note that it has appended the changes from the merged "lists" branch, and then
 merged the changes from our "hashtags" branch. Test it to make sure it works
 as expected:
 
-  > sqitch rebase -y
+  > sqitch -d /home/fbdb/flipr_test.fdb rebase -y
   Reverting all changes from flipr_test.db
     - hashtags ................ ok
     - userflips @v1.0.0-dev1 .. ok
@@ -1067,8 +1032,8 @@ Copy F<deploy/userflips.sql> to F<deploy/userflips_twitter.sql>.
 
 =item 2.
 
-Edit F<deploy/userflips_twitter.sql> to drop and re-create the view with the
-C<twitter> column to the view.
+Edit F<deploy/userflips_twitter.sql> to re-create the view with the
+new C<twitter> column added to the view.
 
 =item 3.
 
@@ -1095,7 +1060,7 @@ C<userflips_twitter> change.
 
 =back
 
-But you can have Sqitch do most of the work for you. The only requirement is
+But you can have Sqitch do most of the work for you.  The only requirement is
 that a tag appear between the two instances of a change we want to modify. In
 general, you're going to make a change like this after a release, which you've
 tagged anyway, right? Well we have, with C<@v1.0.0-dev2> added in the previous
@@ -1133,7 +1098,7 @@ of the C<userflips> change, which we can see via C<git status>:
   no changes added to commit (use "git add" and/or "git commit -a")
 
 The "untracked files" part of the output is the first thing to notice. They
-are all named C<userflips@v1.0.0-dev2.sql>. What that means is: "the
+are all named C<userflips@v1.0.0-dev2.sql>.  What that means is: "the
 C<userflips> change as it was implemented as of the C<@v1.0.0-dev2> tag."
 These are copies of the original scripts, and thereafter Sqitch will find them
 when it needs to run scripts for the first instance of the C<userflips>
@@ -1141,28 +1106,27 @@ change. As such, it's important not to change them again. But hey, if you're
 reworking the change, you shouldn't need to.
 
 The other thing to notice is that F<revert/userflips.sql> has changed. Sqitch
-replaced it with the original deploy script. As of now,
-F<deploy/userflips.sql> and F<revert/userflips.sql> are identical. This is on
+replaced it with the original deploy script.  As of now,
+F<deploy/userflips.sql> and F<revert/userflips.sql> are identical.  This is on
 the assumption that the deploy script will be changed (we're reworking it,
 remember?), and that the revert script should actually change things back to
-how they were before. Of course, the original deploy script won't be
-L<idempotent|http://en.wikipedia.org/wiki/Idempotence> -- that is, able to be
-applied multiple times without changing the result beyond the initial
-application. It could be if Firebird supported C<CREATE OR REPLACE VIEW>, but
-since it doesn't, we will have to edit the script to drop the view before
-creating it. Or, more simply, it needs to be updated to revert changes back to
-how they were as-of the deployment of F<deploy/userflips@v1.0.0-dev2.sql>.
+how they were before.
 
-Modify F<deploy/userflips.sql> to add the C<twitter> column; in fact, let's
-also add a C<DROP VIEW IF EXISTS> statement, in case we need to rework this
-change again in the future:
+Fortunately, our view deploy scripts are already
+L<idempotent|http://en.wikipedia.org/wiki/Idempotence> -- that is,
+able to be applied multiple times without changing the result beyond
+the initial application use, thanks to the Firebird's support for the
+C<CREATE OR ALTER VIEW> expression.  No matter how many times a
+deployment script is run, the end result will be the same instance of
+the view, with no duplicates or errors.
+
+Modify F<deploy/userflips.sql> to add the C<twitter> column; and also
+use the C<OR ALTER> statement:
 
   @@ -4,8 +4,9 @@
 
-   BEGIN;
-
-  +DROP VIEW IF EXISTS userflips;
-   CREATE VIEW userflips AS
+  -CREATE VIEW userflips AS
+  +CREATE OR ALTER VIEW userflips AS
   -SELECT f.id, u.nickname, u.fullname, f.body, f.timestmp
   +SELECT f.id, u.nickname, u.fullname, u.twitter, f.body, f.timestmp
      FROM users u
@@ -1173,22 +1137,18 @@ Here's the diff:
 
   @@ -2,7 +2,7 @@
 
-   BEGIN;
-
   -SELECT id, nickname, fullname, body, timestmp
   +SELECT id, nickname, fullname, twitter, body, timestmp
      FROM userflips
     WHERE 1=2;
 
-And finally, modify F<deploy/userflips@v1.0.0-dev2.sql> to drop the view
-before creating it:
+And finally, modify F<deploy/userflips@v1.0.0-dev2.sql> to add the
+C<OR ALTER> statement:
 
   @@ -4,6 +4,7 @@
 
-   BEGIN;
-
-  +DROP VIEW IF EXISTS userflips;
-   CREATE VIEW userflips AS
+   -CREATE VIEW userflips AS
+   +CREATE OR ALTER VIEW userflips AS
    SELECT f.id, u.nickname, u.fullname, f.body, f.timestmp
      FROM users u
 
@@ -1197,17 +1157,26 @@ C<userflips> change, we wouldn't have to change this file at all.
 
 Now try a deployment:
 
-  > sqitch deploy
-  Deploying changes to flipr_test.db
+  > sqitch -d /home/fbdb/flipr_test.fdb deploy
+  Deploying changes to /home/fbdb/flipr_test.db
     + userflips .. ok
 
 So, are the changes deployed?
 
-  > isql flipr_test.db '.schema userflips'
-  CREATE VIEW userflips AS
-  SELECT f.id, u.nickname, u.fullname, u.twitter, f.body, f.timestmp
-    FROM users u
-    JOIN flips f ON u.nickname = f.nickname;
+  # > isql flipr_test.db '.schema userflips'
+  # CREATE VIEW userflips AS
+  # SELECT f.id, u.nickname, u.fullname, u.twitter, f.body, f.timestmp
+  #   FROM users u
+  #   JOIN flips f ON u.nickname = f.nickname;
+
+  > /opt/firebird/bin/isql -u SYSDBA -p <mysecret>
+  Use CONNECT or CREATE DATABASE to specify a database
+  SQL> connect '/home/fbdb/flipr_test.fdb';
+  Database:  '/home/fbdb/flipr_test.fdb', User: SYSDBA
+  SQL> show table users;
+
+  SQL> quit;
+
 
 Awesome, the view now includes the C<twitter> column. But can we revert?
 
@@ -1268,10 +1237,3 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 =cut
-
-
-    Supposing that L</home/fbdb/> is a directory owned by the Firebird
-user, the command is:
-
-  > sqitch config core.firebird.db_name /home/fbdb/flipr_test.fdb
-  > sqitch config core.firebird.sqitch_db /home/fbdb/sqitch.fdb
