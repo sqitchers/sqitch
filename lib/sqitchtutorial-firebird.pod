@@ -228,7 +228,7 @@ variable, e.g.:
 
   > sqitch config core.firebird.sqitch_db flipr_sqitch
 
-to use a single database for all the projects.
+to use a single database for all the projects on a server.
 
 Ideally, only Sqitch data will be stored in this database, so it probably makes
 the most sense to create a superuser named C<sqitch> or something similar and
@@ -313,9 +313,9 @@ from the metadata database:
   > sqitch --db-name /home/fbdb/flipr_test.fdb status
   # On database /home/fbdb/flipr_test.fdb
   # Project:  flipr
-  # Change:   9f16dcacbf1bff22da823e174149e771df06e78b
+  # Change:   a701b93e92481c3f19336fff17920ccc965cc730
   # Name:     users
-  # Deployed: 2013-09-30 15:07:31 +0300
+  # Deployed: 2013-11-08 20:50:01 +0200
   # By:       Marge N. O’Vera <marge@example.com>
   #
   Nothing to deploy (up-to-date)
@@ -358,18 +358,20 @@ However, we still have a record that the change happened, visible via the
 L<C<log>|sqitch-log> command:
 
   > sqitch --db-name /home/fbdb/flipr_test.fdb log
+  # On database /home/fbdb/flipr_test.fdb
+  Verifying /home/fbdb/flipr_test.fdb
   On database /home/fbdb/flipr_test.fdb
-  Revert 9f16dcacbf1bff22da823e174149e771df06e78b
+  Revert a701b93e92481c3f19336fff17920ccc965cc730
   Name:      users
-  Committer: Marge N. O'Vera <marge@example.com>
-  Date:      2013-09-30 15:14:54 +0300
+  Committer: Marge N. O’Vera <marge@example.com>
+  Date:      2013-11-08 20:50:02 +0200
 
       Creates table to track our users.
 
-  Deploy 9f16dcacbf1bff22da823e174149e771df06e78b
+  Deploy a701b93e92481c3f19336fff17920ccc965cc730
   Name:      users
-  Committer: Marge N. O'Vera <marge@example.com>
-  Date:      2013-09-30 15:07:31 +0300
+  Committer: Marge N. O’Vera <marge@example.com>
+  Date:      2013-11-08 20:50:01 +0200
 
       Creates table to track our users.
 
@@ -398,10 +400,10 @@ When we look at the status, the deployment will be there:
   > sqitch --db-name /home/fbdb/flipr_test.fdb status
   # On database /home/fbdb/flipr_test.fdb
   # Project:  flipr
-  # Change:   9f16dcacbf1bff22da823e174149e771df06e78b
+  # Change:   a701b93e92481c3f19336fff17920ccc965cc730
   # Name:     users
-  # Deployed: 2013-09-30 15:17:43 +0300
-  # By:       Marge N. O'Vera <marge@example.com>
+  # Deployed: 2013-11-08 20:50:05 +0200
+  # By:       Marge N. O’Vera <marge@example.com>
   #
   Nothing to deploy (up-to-date)
 
@@ -447,7 +449,7 @@ look like this:
 
   CREATE TABLE flips (
       id        INTEGER       NOT NULL PRIMARY KEY,
-      nickname  VARCHAR(512)  NOT NULL REFERENCES users(nickname),
+      nickname  VARCHAR(50)   NOT NULL REFERENCES users(nickname),
       body      VARCHAR(512)  NOT NULL CHECK ( char_length(body) <= 180 ),
       timestmp  TIMESTAMP     DEFAULT CURRENT_TIMESTAMP
   );
@@ -516,9 +518,9 @@ Now have a look at the status:
   > sqitch --db-name /home/fbdb/flipr_test.fdb status
   # On database /home/fbdb/flipr_test.fdb
   # Project:  flipr
-  # Change:   756fa8f0bef459a870755a90896296157a3f1732
+  # Change:   51a52966c2a47f8899f9609ce4b1b9b956a3ec56
   # Name:     flips
-  # Deployed: 2013-09-30 15:23:54 +0300
+  # Deployed: 2013-11-08 20:50:08 +0200
   # By:       Marge N. O’Vera <marge@example.com>
   #
   Nothing to deploy (up-to-date)
@@ -557,13 +559,14 @@ undeployed changes:
   > sqitch --db-name /home/fbdb/flipr_test.fdb status
   # On database /home/fbdb/flipr_test.fdb
   # Project:  flipr
-  # Change:   9f16dcacbf1bff22da823e174149e771df06e78b
+  # Change:   a701b93e92481c3f19336fff17920ccc965cc730
   # Name:     users
-  # Deployed: 2013-09-30 15:17:43 +0300
+  # Deployed: 2013-11-08 20:50:05 +0200
   # By:       Marge N. O’Vera <marge@example.com>
   #
   Undeployed change:
     * flips
+
 
 As does the L<C<verify>|sqitch-verify> command:
 
@@ -596,9 +599,9 @@ Looks good. Check the status:
   > sqitch --db-name /home/fbdb/flipr_test.fdb status
   # On database /home/fbdb/flipr_test.fdb
   # Project:  flipr
-  # Change:   756fa8f0bef459a870755a90896296157a3f1732
+  # Change:   51a52966c2a47f8899f9609ce4b1b9b956a3ec56
   # Name:     flips
-  # Deployed: 2013-09-30 15:32:01 +0300
+  # Deployed: 2013-11-08 20:50:12 +0200
   # By:       Marge N. O’Vera <marge@example.com>
   #
   Nothing to deploy (up-to-date)
@@ -635,7 +638,7 @@ And add the C<DROP VIEW> statement to F<revert/userflips.sql>:
 
 Now Try it out!
 
-   > sqitch --db-name /home/fbdb/flipr_test.fdb deploy
+  > sqitch --db-name /home/fbdb/flipr_test.fdb deploy
   Deploying changes to /home/fbdb/flipr_test.fdb
     + userflips .. ok
   > sqitch --db-name /home/fbdb/flipr_test.fdb revert -y
@@ -709,15 +712,16 @@ Great, both changes were deployed and C<userflips> was tagged with
 C<@v1.0.0-dev1>. Let's have a look at the status:
 
   > sqitch -d /home/fbdb/flipr_dev.fdb status
-  # On database flipr_dev.db
+  # On database /home/fbdb/flipr_dev.fdb
   # Project:  flipr
-  # Change:   e98e18dced32f7ee090ea368510f923e538e719a
+  # Change:   840f8284a4d4528123ee701b40dbe7efc3c892f8
   # Name:     userflips
   # Tag:      @v1.0.0-dev1
-  # Deployed: 2013-04-05 13:36:52 -0700
+  # Deployed: 2013-11-08 20:50:26 +0200
   # By:       Marge N. O’Vera <marge@example.com>
   #
   Nothing to deploy (up-to-date)
+
 
 Note the listing of the tag as part of the status message.
 
@@ -770,17 +774,18 @@ And give it a whirl:
 Look good?
 
   > sqitch -d /home/fbdb/flipr_test.fdb status --show-tags
-  # On database /home/fbdb/flipr_test.db
+  # On database /home/fbdb/flipr_test.fdb
   # Project:  flipr
-  # Change:   6b55f1147898da3b46d3671062486e56fac26827
+  # Change:   e9cbeae58ababce19c86877f89de0ffdc568f9ed
   # Name:     hashtags
-  # Deployed: 2013-04-05 13:44:59 -0700
+  # Deployed: 2013-11-08 20:50:29 +0200
   # By:       Marge N. O’Vera <marge@example.com>
   #
   # Tag:
-  #   @v1.0.0-dev1 - 2013-04-05 13:42:26 -0700 - Marge N. O’Vera <marge@example.com>
+  #   @v1.0.0-dev1 - 2013-11-08 20:50:28 +0200 - Marge N. O’Vera <marge@example.com>
   #
   Nothing to deploy (up-to-date)
+
 
 Note the use of C<--show tags> to show all the deployed tags. Now make it so:
 
@@ -915,13 +920,13 @@ Ah, that looks a bit better. Let's have a look at the plan:
   %project=flipr
   %uri=https://github.com/theory/sqitch-firebird-intro/
 
-  users 2013-04-05T20:15:55Z Marge N. O’Vera <marge@example.com> # Creates table to track our users.
-  flips [users] 2013-04-05T20:21:23Z Marge N. O’Vera <marge@example.com> # Adds table for storing flips.
-  userflips [users flips] 2013-04-05T20:28:13Z Marge N. O’Vera <marge@example.com> # Creates the userflips view.
-  @v1.0.0-dev1 2013-04-05T20:36:13Z Marge N. O’Vera <marge@example.com> # Tag v1.0.0-dev1.
+  users 2013-11-08T20:15:55Z Marge N. O’Vera <marge@example.com> # Creates table to track our users.
+  flips [users] 2013-11-08T20:21:23Z Marge N. O’Vera <marge@example.com> # Adds table for storing flips.
+  userflips [users flips] 2013-11-08T20:28:13Z Marge N. O’Vera <marge@example.com> # Creates the userflips view.
+  @v1.0.0-dev1 2013-11-08T20:36:13Z Marge N. O’Vera <marge@example.com> # Tag v1.0.0-dev1.
 
-  lists [users] 2013-04-05T20:41:21Z Marge N. O’Vera <marge@example.com> # Adds table for storing lists.
-  hashtags [flips] 2013-04-05T20:43:26Z Marge N. O’Vera <marge@example.com> # Adds table for storing hashtags.
+  lists [users] 2013-11-08T20:41:21Z Marge N. O’Vera <marge@example.com> # Adds table for storing lists.
+  hashtags [flips] 2013-11-08T20:43:26Z Marge N. O’Vera <marge@example.com> # Adds table for storing hashtags.
 
 Note that it has appended the changes from the merged "lists" branch, and then
 merged the changes from our "hashtags" branch. Test it to make sure it works
@@ -978,13 +983,13 @@ And double-check our work:
   %project=flipr
   %uri=https://github.com/theory/sqitch-firebird-intro/
 
-  users 2013-04-05T20:15:55Z Marge N. O’Vera <marge@example.com> # Creates table to track our users.
-  flips [users] 2013-04-05T20:21:23Z Marge N. O’Vera <marge@example.com> # Adds table for storing flips.
-  userflips [users flips] 2013-04-05T20:28:13Z Marge N. O’Vera <marge@example.com> # Creates the userflips view.
-  @v1.0.0-dev1 2013-04-05T20:36:13Z Marge N. O’Vera <marge@example.com> # Tag v1.0.0-dev1.
+  users 2013-11-08T20:15:55Z Marge N. O’Vera <marge@example.com> # Creates table to track our users.
+  flips [users] 2013-11-08T20:21:23Z Marge N. O’Vera <marge@example.com> # Adds table for storing flips.
+  userflips [users flips] 2013-11-08T20:28:13Z Marge N. O’Vera <marge@example.com> # Creates the userflips view.
+  @v1.0.0-dev1 2013-11-08T20:36:13Z Marge N. O’Vera <marge@example.com> # Tag v1.0.0-dev1.
 
-  lists [users] 2013-04-05T20:41:21Z Marge N. O’Vera <marge@example.com> # Adds table for storing lists.
-  hashtags [flips] 2013-04-05T20:43:26Z Marge N. O’Vera <marge@example.com> # Adds table for storing hashtags.
+  lists [users] 2013-11-08T20:41:21Z Marge N. O’Vera <marge@example.com> # Adds table for storing lists.
+  hashtags [flips] 2013-11-08T20:43:26Z Marge N. O’Vera <marge@example.com> # Adds table for storing hashtags.
 
 Much much better, a nice clean master now. And because it is now identical to
 the "hashtags" branch, we can just carry on. Go ahead and tag it, bundle, and
@@ -1163,34 +1168,47 @@ Now try a deployment:
 
 So, are the changes deployed?
 
-  # > isql flipr_test.db '.schema userflips'
-  # CREATE VIEW userflips AS
-  # SELECT f.id, u.nickname, u.fullname, u.twitter, f.body, f.timestmp
-  #   FROM users u
-  #   JOIN flips f ON u.nickname = f.nickname;
-
   > /opt/firebird/bin/isql -u SYSDBA -p <mysecret>
   Use CONNECT or CREATE DATABASE to specify a database
   SQL> connect '/home/fbdb/flipr_test.fdb';
   Database:  '/home/fbdb/flipr_test.fdb', User: SYSDBA
   SQL> show table users;
+  NICKNAME                        VARCHAR(50) Not Null
+  PASSWORD                        VARCHAR(512) Not Null
+  FULLNAME                        VARCHAR(512) Not Null
+  TWITTER                         VARCHAR(512) Not Null
+  TIMESTMP                        TIMESTAMP Nullable DEFAULT CURRENT_TIMESTAMP
 
+  CONSTRAINT INTEG_24:
+  Primary key (NICKNAME)
   SQL> quit;
 
 
 Awesome, the view now includes the C<twitter> column. But can we revert?
 
-  > sqitch revert --to @HEAD^ -y
+  > sqitch -d /home/fbdb/flipr_test.fdb revert --to @HEAD^ -y
   Reverting changes to hashtags @v1.0.0-dev2 from flipr_test.db
     - userflips .. ok
 
 Did that work, is the C<twitter> column gone?
 
-  > isql flipr_test.db '.schema userflips'
-  CREATE VIEW userflips AS
-  SELECT f.id, u.nickname, u.fullname, f.body, f.timestmp
-    FROM users u
-    JOIN flips f ON u.nickname = f.nickname;
+  > /opt/firebird/bin/isql -u SYSDBA -p <mysecret>
+  Use CONNECT or CREATE DATABASE to specify a database
+  SQL>  connect '/home/fbdb/flipr_test.fdb';
+  Database:  '/home/fbdb/flipr_test.fdb', User: SYSDBA
+  SQL>  show view userflips;
+  ID                              INTEGER Not Null
+  NICKNAME                        VARCHAR(50) Not Null
+  FULLNAME                        VARCHAR(512) Not Null
+  BODY                            VARCHAR(512) Not Null
+  TIMESTMP                        TIMESTAMP Nullable
+  View Source:
+  ==== ======
+
+    SELECT f.id, u.nickname, u.fullname, f.body, f.timestmp
+        FROM users u
+        JOIN flips f ON u.nickname = f.nickname
+  SQL> quit;
 
 Yes, it works! Sqitch properly finds the original instances of these changes
 in the new script files that include tags.
