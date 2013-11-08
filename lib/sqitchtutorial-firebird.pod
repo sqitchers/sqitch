@@ -109,8 +109,8 @@ The default database administrator name SYSDBA can be replaced with
 any other user with the proper privileges to create databases.
 
 Because of the way how Firebird is designed we need to provide the
-path to the databases.  The flipr_test.fdb database have to exist, the
-L<sqitch.fdb> database will be created if it doesn't exists.
+path to the databases.  The C<flipr_test.fdb> database have to exist,
+the C<sqitch.fdb> database will be created if it doesn't exists.
 
 And let's also tell it who we are, since this data will be used in all
 of our projects:
@@ -221,12 +221,10 @@ C<< sqitch-<db_name>.fdb >> and it's located in the same directory as
 the C<db_name> database. By default every database will have its own Sqitch
 metadata database.
 
-TODO: check this:
-
 Alternatively one can set the C<core.firebird.sqitch_db> configuration
 variable, e.g.:
 
-  > sqitch config core.firebird.sqitch_db flipr_sqitch
+  > sqitch config core.firebird.sqitch_db /home/fbdb/flipr_sqitch.fdb
 
 to use a single database for all the projects on a server.
 
