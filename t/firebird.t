@@ -21,11 +21,12 @@ my $CLASS;
 my $user;
 my $pass;
 my $tmpdir;
-my $no_fb_driver;
+my $have_fb_driver = 1; # assume DBD::Firebird is installed and so is Firebird
+
+# Is DBD::Firebird realy installed?
+try { require DBD::Firebird; } catch { $have_fb_driver = 0; };
 
 BEGIN {
-    try { require DBD::Firebird; } catch { $no_fb_driver = 1; };
-
     $CLASS = 'App::Sqitch::Engine::firebird';
     require_ok $CLASS or die;
     $ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.conf';
@@ -50,7 +51,10 @@ is_deeply [$CLASS->config_vars], [
 my $sqitch = App::Sqitch->new;
 isa_ok my $fb = $CLASS->new(sqitch => $sqitch, db_name => 'foo.fdb'), $CLASS;
 
-like ( $fb->client, qr/isql|fbsql|isql-fb/, 'client should default to isql | fbsql | isql-fb') unless $no_fb_driver;
+like( $fb->client, qr/isql|fbsql|isql-fb/,
+    'client should default to isql | fbsql | isql-fb' )
+    if $have_fb_driver;
+
 is $fb->db_name, 'foo.fdb', 'db_name should be required';
 is $fb->sqitch_db, './sqitch-foo.fdb', 'sqitch_db default should be "sqitch-foo.fdb"';
 for my $attr (qw(username password host port)) {
@@ -67,17 +71,22 @@ my @std_opts = (
     '-pagelength' => '16384',
     '-charset'    => 'UTF8',
 );
-is_deeply [$fb->isql], [$fb->client, @std_opts, $fb->db_name],
-    'isql command should be std opts-only';
+
+is_deeply([$fb->isql], [$fb->client, @std_opts, $fb->db_name],
+          'isql command should be std opts-only') if $have_fb_driver;
 
 isa_ok $fb = $CLASS->new(sqitch => $sqitch, db_name => 'foo'), $CLASS;
 ok $fb->set_variables(foo => 'baz', whu => 'hi there', yo => 'stellar'),
     'Set some variables';
+
+is_deeply([$fb->isql], [$fb->client, @std_opts, $fb->db_name],
+          'isql command should be std opts-only') if $have_fb_driver;
+
 is_deeply [$fb->isql], [
     $fb->client,
     @std_opts,
     $fb->db_name
-], 'Variables should not be passed to firebird';
+], 'Variables should not be passed to firebird' if $have_fb_driver;
 
 ##############################################################################
 # Make sure config settings override defaults.
@@ -218,7 +227,7 @@ is $dt->time_zone->name, 'UTC', 'DateTime TZ should be set';
 
 END {
     return unless $pass;
-    return if $no_fb_driver;
+    return unless $have_fb_driver;
 
     foreach my $dbname (qw{__sqitchtest__ __sqitchtest __metasqitch}) {
         my $dbpath = catfile($tmpdir, $dbname);
@@ -289,7 +298,7 @@ DBIEngineTest->run(
         my $cmd_echo = qx( echo "quit;" | "$cmd" -z -quiet 2>&1 );
         return 0 unless $cmd_echo =~ m{Firebird}ims;
         # Skip if no DBD::Firebird.
-        return 0 if $no_fb_driver;
+        return 0 unless $have_fb_driver;
     },
     engine_err_regex  => qr/\QDynamic SQL Error\E/xms,
     init_error        => __x(
