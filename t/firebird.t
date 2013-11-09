@@ -21,8 +21,11 @@ my $CLASS;
 my $user;
 my $pass;
 my $tmpdir;
+my $no_fb_driver;
 
 BEGIN {
+    try { require DBD::Firebird; } catch { $no_fb_driver = 1; };
+
     $CLASS = 'App::Sqitch::Engine::firebird';
     require_ok $CLASS or die;
     $ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.conf';
@@ -212,10 +215,10 @@ is $dt->time_zone->name, 'UTC', 'DateTime TZ should be set';
 
 ##############################################################################
 # Can we do live tests?
-my $dbh;
 
 END {
     return unless $pass;
+    return if $no_fb_driver == 1;
 
     foreach my $dbname (qw{__sqitchtest__ __sqitchtest __metasqitch}) {
         my $dbpath = catfile($tmpdir, $dbname);
@@ -285,6 +288,8 @@ DBIEngineTest->run(
         my $cmd = $self->client;
         my $cmd_echo = qx( echo "quit;" | "$cmd" -z -quiet 2>&1 );
         return 0 unless $cmd_echo =~ m{Firebird}ims;
+        # Skip if no DBD::Firebird.
+        return 0 if $no_fb_driver == 1;
     },
     engine_err_regex  => qr/\QDynamic SQL Error\E/xms,
     init_error        => __x(
