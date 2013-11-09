@@ -79,7 +79,7 @@ sub initial_key {
 }
 
 __PACKAGE__->meta->make_immutable;
-no Mouse;
+no Moose;
 
 =head1 Name
 
@@ -209,4 +209,3 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 =cut
-

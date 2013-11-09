@@ -14,3 +14,4 @@
 /target
 .build/
 *.mo
+.al
