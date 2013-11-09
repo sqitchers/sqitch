@@ -993,11 +993,13 @@ sub find_firebird_isql {
 sub locate_firebird {
     my $self = shift;
 
-    #-- Check if there is a isql-fb in the PATH
+    #-- Check if there is an ISQL in the PATH
 
-    if ( my $isql_bin = File::Which::which('isql-fb') ) {
-        if ( $self->check_if_is_fb_isql($isql_bin) ) {
-            return $isql_bin;
+    foreach my $name (qw{fbsql isql-fb isql}) {
+        if ( my $isql_bin = File::Which::which($name) ) {
+            if ( $self->check_if_is_fb_isql($isql_bin) ) {
+                return $isql_bin;
+            }
         }
     }
 
@@ -1014,7 +1016,7 @@ sub locate_firebird {
         }
     }
 
-    #-- Check in the standard home dirs
+    #-- Last, check in the standard home dirs
 
     my @bd = $self->standard_fb_home_dirs();
     foreach my $home_dir (@bd) {
@@ -1025,16 +1027,6 @@ sub locate_firebird {
                 if ( $self->check_if_is_fb_isql($isql_path) ) {
                     return $isql_path;
                 }
-            }
-        }
-    }
-
-    #-- Last, maybe one of the ISQLs in the PATH is the right one...
-
-    if ( my @isqls = File::Which::which('isql') ) {
-        foreach my $isql_bin (@isqls) {
-            if ( $self->check_if_is_fb_isql($isql_bin) ) {
-                return $isql_bin;
             }
         }
     }
