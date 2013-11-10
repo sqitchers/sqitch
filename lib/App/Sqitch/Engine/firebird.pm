@@ -979,8 +979,8 @@ sub find_firebird_isql {
         $isql_path = $self->locate_firebird_ms();
     }
     elsif ($os eq 'darwin') {
-        # my $fb_res = '/Library/Frameworks/Firebird.framework/Resources';
-        die "Not implemented.  Contributions are welcomed!\n";
+        my $fb_res = '/Library/Frameworks/Firebird.framework/Resources';
+        $isql_path = file($fb_res, 'bin', 'isql');
     }
     else {
         # GNU/Linux and other
