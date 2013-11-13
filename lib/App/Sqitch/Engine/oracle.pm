@@ -408,9 +408,9 @@ sub initialized {
     return $self->dbh->selectcol_arrayref(q{
         SELECT 1
           FROM all_tables
-         WHERE owner = SYS_CONTEXT('USERENV', 'SESSION_SCHEMA')
+         WHERE owner = UPPER(?)
            AND table_name = 'CHANGES'
-    })->[0];
+    }, undef, $self->sqitch_schema || $self->username)->[0];
 }
 
 sub _log_event {
