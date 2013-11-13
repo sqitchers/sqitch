@@ -180,7 +180,13 @@ has dbh => (
             },
             Callbacks         => {
                 connected => sub {
-                    shift->do('SET search_path = ?', undef, $self->sqitch_schema);
+                    my $dbh = shift;
+                    try {
+                        $dbh->do(
+                            'SET search_path = ?',
+                            undef, $self->sqitch_schema
+                        );
+                    };
                     return;
                 },
             },

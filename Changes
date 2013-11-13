@@ -20,6 +20,9 @@ Revision history for Perl extension App::Sqitch
      - Improved handling of invalid command names so that the error message is
        less ambiguous when triggered by a Perl parse error.
      - Added `-m` as an alias for `--note`, for you Git folks out there.
+     - Added exception handling to the Postgres and Oracle engines to avoid
+       unexpected errors when deploying to a database that has not been
+       deployed to before.
 
 0.982  2013-09-11T18:26:07Z
      - Errors thrown by Template toolkit are no longer silently ignored.

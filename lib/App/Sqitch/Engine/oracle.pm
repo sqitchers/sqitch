@@ -180,7 +180,9 @@ has dbh => (
                         nls_timestamp_tz_format
                     );
                     if (my $schema = $self->sqitch_schema) {
-                        $dbh->do("ALTER SESSION SET CURRENT_SCHEMA = $schema");
+                        try {
+                            $dbh->do("ALTER SESSION SET CURRENT_SCHEMA = $schema");
+                        };
                     }
                     return;
                 },
