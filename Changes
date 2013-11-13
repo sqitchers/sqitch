@@ -23,6 +23,10 @@ Revision history for Perl extension App::Sqitch
      - Added exception handling to the Postgres and Oracle engines to avoid
        unexpected errors when deploying to a database that has not been
        deployed to before.
+     - Updated detection of an unitialized database to double-check with the
+       engine that it really thinks it's unitialized, not just that the
+       "chagnes" table is missing. This should catch the case where the
+       database has its own "changes" table unrelated to Sqitch.
 
 0.982  2013-09-11T18:26:07Z
      - Errors thrown by Template toolkit are no longer silently ignored.

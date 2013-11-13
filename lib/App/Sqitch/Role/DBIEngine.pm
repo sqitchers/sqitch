@@ -66,7 +66,7 @@ sub _cid {
             OFFSET COALESCE(?, 0)
         }, undef, $project || $self->plan->project, $offset)->[0];
     } catch {
-        return if $self->_no_table_error;
+        return if $self->_no_table_error && !$self->initialized;
         die $_;
     };
 }
