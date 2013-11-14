@@ -182,6 +182,8 @@ has dbh => (
                     if (my $schema = $self->sqitch_schema) {
                         try {
                             $dbh->do("ALTER SESSION SET CURRENT_SCHEMA = $schema");
+                            # http://www.nntp.perl.org/group/perl.dbi.dev/2013/11/msg7622.html
+                            $dbh->set_err(undef) if $dbh->err;
                         };
                     }
                     return;
