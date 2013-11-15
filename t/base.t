@@ -183,6 +183,7 @@ GO: {
 ##############################################################################
 # Test the editor.
 EDITOR: {
+    local $ENV{SQITCH_EDITOR};
     local $ENV{EDITOR} = 'edd';
     my $sqitch = App::Sqitch->new({editor => 'emacz' });
     is $sqitch->editor, 'emacz', 'editor should use use parameter';

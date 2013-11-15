@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 122;
+use Test::More tests => 135;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -72,6 +72,7 @@ is_deeply [$CLASS->options], [qw(
     deploy!
     revert!
     verify|test!
+    open-editor|edit|e!
 )], 'Options should be set up';
 
 sub contents_of ($) {
@@ -464,6 +465,51 @@ is_deeply +MockOutput->get_info, [
         file   => $sqitch->plan_file,
     ],
 ], 'Info should report skipping file and include dependencies';
+
+# Make sure --open-editor works
+MOCKSHELL: {
+    my $sqitch_mocker = Test::MockModule->new('App::Sqitch');
+    my $shell_cmd;
+    $sqitch_mocker->mock(shell =>       sub { $shell_cmd = $_[1] });
+    $sqitch_mocker->mock(quote_shell => sub { shift; join ' ' => @_ });
+
+    ok $add = $CLASS->new(
+        sqitch              => $sqitch,
+        template_directory  => Path::Class::dir(qw(etc templates)),
+        note                => ['Testing --open-editor'],
+        open_editor         => 1,
+    ), 'Create another add with open_editor';
+
+    my $deploy_file = file qw(test-add deploy open_editor.sql);
+    my $revert_file = file qw(test-add revert open_editor.sql);
+    my $verify_file = file qw(test-add verify open_editor.sql);
+
+    my $plan = $sqitch->plan;
+    is $plan->get('open_editor'), undef, 'Should not have "open_editor" in plan';
+    ok $add->execute('open_editor'), 'Add change "open_editor"';
+    isa_ok my $change = $plan->get('open_editor'), 'App::Sqitch::Plan::Change',
+        'Added change';
+    is $change->name, 'open_editor', 'Change name should be set';
+    is $shell_cmd, join(' ', $sqitch->editor, $deploy_file, $revert_file, $verify_file),
+        'It should have prompted to edit sql files';
+
+    file_exists_ok $_ for ($deploy_file, $revert_file, $verify_file);
+    file_contents_like +File::Spec->catfile(qw(test-add deploy open_editor.sql)),
+        qr/^-- Deploy open_editor/, 'Deploy script should look right';
+    file_contents_like +File::Spec->catfile(qw(test-add revert open_editor.sql)),
+        qr/^-- Revert open_editor/, 'Revert script should look right';
+    file_contents_like +File::Spec->catfile(qw(test-add verify open_editor.sql)),
+        qr/^-- Verify open_editor/, 'Verify script should look right';
+    is_deeply +MockOutput->get_info, [
+        [__x 'Created {file}', file => $deploy_file],
+        [__x 'Created {file}', file => $revert_file],
+        [__x 'Created {file}', file => $verify_file],
+        [__x 'Added "{change}" to {file}',
+            change => 'open_editor',
+            file   => $sqitch->plan_file,
+        ],
+    ], 'Info should have reported file creation';
+};
 
 ##############################################################################
 # Test options parsing.
