@@ -27,6 +27,9 @@ Revision history for Perl extension App::Sqitch
        engine that it really thinks it's unitialized, not just that the
        "chagnes" table is missing. This should catch the case where the
        database has its own "changes" table unrelated to Sqitch.
+     - Added `--open-editor` option (and aliases) to the `add` and `rework`
+       commands. This option will open the newly-added change scripts in the
+       preferred editor. Thanks to Thomas Sibley for the patch!
 
 0.982  2013-09-11T18:26:07Z
      - Errors thrown by Template toolkit are no longer silently ignored.
