@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 80;
+use Test::More tests => 95;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -56,6 +56,7 @@ is_deeply [$CLASS->options], [qw(
     requires|r=s@
     conflicts|c=s@
     note|n|m=s@
+    open-editor|edit|e!
 )], 'Options should be set up';
 
 ##############################################################################
@@ -72,6 +73,21 @@ is_deeply $CLASS->configure($config, {
     conflicts => ['baz'],
     note      => [qw(hi there)],
 }, 'Should have get requires, conflicts, and note options';
+
+# open_editor handling
+CONFIG: {
+    local $ENV{SQITCH_CONFIG} = File::Spec->catfile(qw(t rework.conf));
+    my $config = App::Sqitch::Config->new;
+    is_deeply $CLASS->configure($config, {}), { open_editor => 'true' },
+        'Grabs rework.open_editor from config';
+
+    isa_ok my $rework = App::Sqitch::Command->load({
+        sqitch  => $sqitch,
+        command => 'rework',
+        config  => $config,
+    }), $CLASS, 'rework command';
+    ok $rework->open_editor, 'Coerces rework.open_editor from config string boolean';
+}
 
 ##############################################################################
 # Test attributes.
@@ -305,3 +321,51 @@ is_deeply +MockOutput->get_debug, [
         src  => $revert_file3, # No previous revert, no need for new revert.
     )],
 ], 'Should have debug oputput for missing files';
+
+#"
+# Make sure --open-editor works
+MOCKSHELL: {
+    my $sqitch_mocker = Test::MockModule->new('App::Sqitch');
+    my $shell_cmd;
+    $sqitch_mocker->mock(shell =>       sub { $shell_cmd = $_[1] });
+    $sqitch_mocker->mock(quote_shell => sub { shift; join ' ' => @_ });
+
+    ok $rework = $CLASS->new(
+        sqitch              => $sqitch,
+        template_directory  => Path::Class::dir(qw(etc templates)),
+        note                => ['Testing --open-editor'],
+        open_editor         => 1,
+    ), 'Create another add with open_editor';
+
+    ok $plan->tag( name => '@gamma' ), 'Tag it';
+
+    my $rework_file = file qw(test-rework deploy bar.sql);
+    my $deploy_file = file qw(test-rework deploy bar@gamma.sql);
+    my $revert_file = file qw(test-rework revert bar@gamma.sql);
+    my $verify_file = file qw(test-rework verify bar@gamma.sql);
+    MockOutput->get_info;
+
+    file_not_exists_ok($_) for ($deploy_file, $revert_file, $verify_file);
+    ok $rework->execute('bar'), 'Rework "bar"';
+
+    # The files should have been copied.
+    file_exists_ok($_) for ($rework_file, $deploy_file);
+    file_not_exists_ok($_) for ($revert_file, $verify_file);
+
+    is $shell_cmd, join(' ', $sqitch->editor, $rework_file),
+        'It should have prompted to edit sql files';
+
+    is_deeply +MockOutput->get_info, [
+        [__x(
+            'Added "{change}" to {file}.',
+            change => 'bar [bar@gamma]',
+            file   => $sqitch->plan_file,
+        )],
+        [__n(
+            'Modify this file as appropriate:',
+            'Modify these files as appropriate:',
+            1,
+        )],
+        ["  * $rework_file"],
+    ], 'And the info message should suggest editing the old files';
+};

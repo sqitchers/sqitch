@@ -45,6 +45,14 @@ BEGIN {
         1;
     };
 
+    subtype 'ConfigBool', as 'Bool';
+    coerce  'ConfigBool', from 'Maybe[Value]', via {
+        my $bool = eval { App::Sqitch::Config->cast( value => $_, as => 'bool' ) };
+        hurl user => __x('Unknown value ({val}) for boolean config option', val => $_)
+            if $@;
+        $bool;
+    };
+
     # Force Locale::TextDomain to encode in UTF-8 and to decode all messages.
     $ENV{OUTPUT_CHARSET} = 'UTF-8';
     bind_textdomain_filter 'App-Sqitch' => \&Encode::decode_utf8;
