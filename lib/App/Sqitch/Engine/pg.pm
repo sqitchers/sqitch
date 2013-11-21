@@ -187,7 +187,7 @@ has dbh => (
                             undef, $self->sqitch_schema
                         );
                         # http://www.nntp.perl.org/group/perl.dbi.dev/2013/11/msg7622.html
-                        $dbh->set_err(undef) if $dbh->err;
+                        $dbh->set_err(undef, undef) if $dbh->err;
                     };
                     return;
                 },
