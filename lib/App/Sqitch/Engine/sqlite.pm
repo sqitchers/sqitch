@@ -16,7 +16,7 @@ extends 'App::Sqitch::Engine';
 sub dbh; # required by DBIEngine;
 with 'App::Sqitch::Role::DBIEngine';
 
-our $VERSION = '0.983';
+our $VERSION = '0.984';
 
 has client => (
     is       => 'ro',

@@ -1,5 +1,7 @@
 Revision history for Perl extension App::Sqitch
 
+0.984
+
 0.983  2013-11-21T21:50:12Z
      - Fixed "Use of uninitialized value" in the MySQL engine. Thanks to
        Jean-Michel REY for the report.
