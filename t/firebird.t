@@ -33,7 +33,7 @@ BEGIN {
     $ENV{SQITCH_USER_CONFIG}   = 'nonexistent.conf';
 
     $user = $ENV{DBI_USER} || 'SYSDBA';
-    $pass = $ENV{DBI_PASS} || '';
+    $pass = $ENV{DBI_PASS} || 'masterkey';
 
     $tmpdir = File::Spec->tmpdir();
 }
@@ -57,9 +57,10 @@ like( $fb->client, qr/isql|fbsql|isql-fb/,
 
 is $fb->db_name, 'foo.fdb', 'db_name should be required';
 is $fb->sqitch_db, './sqitch-foo.fdb', 'sqitch_db default should be "sqitch-foo.fdb"';
-for my $attr (qw(username password host port)) {
+for my $attr (qw(username password port)) {
     is $fb->$attr, undef, "$attr default should be undef";
 }
+is $fb->host, 'localhost', 'host default should be "localhost"';
 
 is $fb->meta_destination, $fb->sqitch_db,
     'meta_destination should be the same as sqitch_db';
@@ -72,20 +73,20 @@ my @std_opts = (
     '-charset'    => 'UTF8',
 );
 
-is_deeply([$fb->isql], [$fb->client, @std_opts, $fb->db_name],
+is_deeply([$fb->isql], [$fb->client, @std_opts, 'localhost:' . $fb->db_name],
           'isql command should be std opts-only') if $have_fb_driver;
 
 isa_ok $fb = $CLASS->new(sqitch => $sqitch, db_name => 'foo'), $CLASS;
 ok $fb->set_variables(foo => 'baz', whu => 'hi there', yo => 'stellar'),
     'Set some variables';
 
-is_deeply([$fb->isql], [$fb->client, @std_opts, $fb->db_name],
+is_deeply([$fb->isql], [$fb->client, @std_opts, 'localhost:' . $fb->db_name],
           'isql command should be std opts-only') if $have_fb_driver;
 
 is_deeply [$fb->isql], [
     $fb->client,
     @std_opts,
-    $fb->db_name
+    'localhost:' . $fb->db_name
 ], 'Variables should not be passed to firebird' if $have_fb_driver;
 
 ##############################################################################
@@ -114,11 +115,9 @@ is $fb->port, 1234, 'port should be as configured';
 is $fb->sqitch_db, 'meta', 'sqitch_db should be as configured';
 is_deeply [$fb->isql], [qw(
     /path/to/isql
-    -host db.example.com
-    -port 1234
     -user freddy
     -password s3cr3t
-), @std_opts, $fb->db_name], 'firebird command should be configured';
+), @std_opts, 'db.example.com:1234:' . $fb->db_name], 'firebird command should be configured';
 
 ##############################################################################
 # Now make sure that Sqitch options override configurations.
@@ -144,11 +143,9 @@ is $fb->port, 98760, 'port should be as optioned';
 is $fb->sqitch_db, 'meta', 'sqitch_db should still be as configured';
 is_deeply [$fb->isql], [qw(
     /some/other/isql
-    -host     foo.com
-    -port     98760
     -user     anna
     -password s3cr3t
-), @std_opts, $fb->db_name], 'isql command should be as optioned';
+), @std_opts, 'foo.com:98760:' . $fb->db_name], 'isql command should be as optioned';
 
 ##############################################################################
 # Test _run(), _capture(), and _spool().
@@ -262,7 +259,6 @@ END {
 
 my $err = try {
     my $path = catfile($tmpdir, '__sqitchtest__');
-    print "=t= CREATE DATABASE ", $path, "\n";
     require DBD::Firebird;
     DBD::Firebird->create_database(
         {   db_path       => $path,
