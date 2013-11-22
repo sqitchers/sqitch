@@ -106,7 +106,8 @@ has host => (
     default => sub {
         my $sqitch = shift->sqitch;
         $sqitch->db_host
-            || $sqitch->config->get( key => 'core.firebird.host' );
+            || $sqitch->config->get( key => 'core.firebird.host' )
+            || 'localhost';
         },
 );
 
@@ -180,8 +181,6 @@ has isql => (
         my $self = shift;
         my @ret  = ( $self->client );
         for my $spec (
-            [ host     => $self->host     ],
-            [ port     => $self->port     ],
             [ user     => $self->username ],
             [ password => $self->password ],
         ) {
@@ -193,7 +192,7 @@ has isql => (
             '-sqldialect' => '3',
             '-pagelength' => '16384',
             '-charset'    => 'UTF8',
-            $self->db_name
+            join ':', grep { defined } $self->host, $self->port, $self->db_name
         );
         return \@ret;
     },
@@ -287,7 +286,6 @@ sub initialize {
         database => $self->sqitch_db,
     ) if $self->initialized;
 
-    print "=m= Creating the '", $self->sqitch_db, "' database\n";
     # Create the Sqitch database if it does not exist.
     try {
         require DBD::Firebird;
@@ -306,7 +304,7 @@ sub initialize {
 
     # Load up our database. The database have to exist!
     my @cmd  = $self->isql;
-    $cmd[-1] = $self->sqitch_db;
+    $cmd[-1] = join ':', grep { defined } $self->host, $self->port, $self->sqitch_db;
     my $file = file(__FILE__)->dir->file('firebird.sql');
     $self->sqitch->run( @cmd, '-input' => $file );
 }
