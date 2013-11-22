@@ -16,7 +16,7 @@ extends 'App::Sqitch::Engine';
 sub dbh; # required by DBIEngine;
 with 'App::Sqitch::Role::DBIEngine';
 
-our $VERSION = '0.983';
+our $VERSION = '0.984';
 
 has client => (
     is       => 'ro',
@@ -180,7 +180,15 @@ has dbh => (
             },
             Callbacks         => {
                 connected => sub {
-                    shift->do('SET search_path = ?', undef, $self->sqitch_schema);
+                    my $dbh = shift;
+                    try {
+                        $dbh->do(
+                            'SET search_path = ?',
+                            undef, $self->sqitch_schema
+                        );
+                        # http://www.nntp.perl.org/group/perl.dbi.dev/2013/11/msg7622.html
+                        $dbh->set_err(undef, undef) if $dbh->err;
+                    };
                     return;
                 },
             },

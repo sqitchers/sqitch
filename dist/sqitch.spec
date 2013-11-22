@@ -1,5 +1,5 @@
 Name:           sqitch
-Version:        0.983
+Version:        0.984
 Release:        1%{?dist}
 Summary:        Sane database change management
 License:        MIT
@@ -230,6 +230,10 @@ package bundles the Sqitch MySQL support.
 # No additional files required.
 
 %changelog
+* Thu Nov 21 2013 David E. Wheeler <david.wheeler@iovation.com> 0.983-1
+- Upgrade to v0.983.
+- Require DBD::Pg 2.0.0 or higher.
+
 * Wed Sep 18 2013 David E. Wheeler <david.wheeler@iovation.com> 0.982-2
 - No longer include template files ending in .default in the RPM.
 - All files in the etc dir now treated as configuration files.

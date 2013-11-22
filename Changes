@@ -1,6 +1,8 @@
 Revision history for Perl extension App::Sqitch
 
-0.983
+0.984
+
+0.983  2013-11-21T21:50:12Z
      - Fixed "Use of uninitialized value" in the MySQL engine. Thanks to
        Jean-Michel REY for the report.
      - All tests now protect against failures due to the presence of the
@@ -8,10 +10,10 @@ Revision history for Perl extension App::Sqitch
      - The installer now respects the `distdir` option to `Build.PL` when
        searching for existing templates. Important for packaging.
      - Fixed the error "Table 'sqitch.changes' doesn't exist" when deploying
-       to a MySQL database that exists but has not been initialzed. Thanks to
+       to a MySQL database that exists but has not been initialized. Thanks to
        Jean-Michel REY for the report!
      - Refactored the handling of the C<--log-only> option so it sets an
-       engine atttribute, rather than passing the flag to a whole stack of
+       engine attribute, rather than passing the flag to a whole stack of
        method calls.
      - Fixed "Argument "en_us" isn't numeric" error on Windows.
      - Now using `LC_ALL` instead of `LC_MESSAGES` when setting the locale, as
@@ -20,6 +22,16 @@ Revision history for Perl extension App::Sqitch
      - Improved handling of invalid command names so that the error message is
        less ambiguous when triggered by a Perl parse error.
      - Added `-m` as an alias for `--note`, for you Git folks out there.
+     - Added exception handling to the Postgres and Oracle engines to avoid
+       unexpected errors when deploying to a database that has not been
+       deployed to before.
+     - Updated detection of an uninitialized database to double-check with the
+       engine that it really thinks it's uninitialized, not just that the
+       "changes" table is missing. This should catch the case where the
+       database has its own "changes" table unrelated to Sqitch.
+     - Added `--open-editor` option (and aliases) to the `add` and `rework`
+       commands. This option will open the newly-added change scripts in the
+       preferred editor. Thanks to Thomas Sibley for the patch!
 
 0.982  2013-09-11T18:26:07Z
      - Errors thrown by Template toolkit are no longer silently ignored.

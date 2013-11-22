@@ -12,7 +12,7 @@ use namespace::autoclean;
 
 extends 'App::Sqitch::Command';
 
-our $VERSION = '0.983';
+our $VERSION = '0.984';
 
 has requires => (
     is       => 'ro',
@@ -35,11 +35,28 @@ has note => (
     default  => sub { [] },
 );
 
+has open_editor => (
+    is       => 'ro',
+    isa      => 'ConfigBool',
+    coerce   => 1,
+    default  => sub {
+        my $self = shift;
+        return $self->sqitch->config->get(
+            key => 'rework.open_editor',
+            as  => 'bool',
+        ) // $self->sqitch->config->get(
+            key => 'add.open_editor',
+            as  => 'bool',
+        ) // 0;
+    },
+);
+
 sub options {
     return qw(
         requires|r=s@
         conflicts|c=s@
         note|n|m=s@
+        open-editor|edit|e!
     );
 }
 
@@ -114,6 +131,11 @@ sub execute {
         scalar @files,
     ));
     $self->info("  * $_") for @files;
+
+    # Let 'em at it.
+    if ($self->open_editor) {
+        $sqitch->shell( $sqitch->editor . ' ' . $sqitch->quote_shell(@files) );
+    }
 
     return $self;
 }

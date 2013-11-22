@@ -23,7 +23,7 @@ use Mouse::Util::TypeConstraints;
 use MouseX::Types::Path::Class 0.06;
 use namespace::autoclean 0.11;
 
-our $VERSION = '0.983';
+our $VERSION = '0.984';
 
 BEGIN {
     # Need to create types before loading other Sqitch classes.
@@ -43,6 +43,14 @@ BEGIN {
         hurl core => __x('Unknown engine: {engine}', engine => $_)
             unless first { $e eq $_ } qw(pg sqlite mysql oracle firebird);
         1;
+    };
+
+    subtype 'ConfigBool', as 'Bool';
+    coerce  'ConfigBool', from 'Maybe[Value]', via {
+        my $bool = eval { App::Sqitch::Config->cast( value => $_, as => 'bool' ) };
+        hurl user => __x('Unknown value ({val}) for boolean config option', val => $_)
+            if $@;
+        $bool;
     };
 
     # Force Locale::TextDomain to encode in UTF-8 and to decode all messages.

@@ -16,7 +16,7 @@ extends 'App::Sqitch::Engine';
 sub dbh; # required by DBIEngine;
 with 'App::Sqitch::Role::DBIEngine';
 
-our $VERSION = '0.983';
+our $VERSION = '0.984';
 
 BEGIN {
     # We tell the Oracle connector which encoding to use. The last part of the
@@ -180,7 +180,11 @@ has dbh => (
                         nls_timestamp_tz_format
                     );
                     if (my $schema = $self->sqitch_schema) {
-                        $dbh->do("ALTER SESSION SET CURRENT_SCHEMA = $schema");
+                        try {
+                            $dbh->do("ALTER SESSION SET CURRENT_SCHEMA = $schema");
+                            # http://www.nntp.perl.org/group/perl.dbi.dev/2013/11/msg7622.html
+                            $dbh->set_err(undef, undef) if $dbh->err;
+                        };
                     }
                     return;
                 },
@@ -406,9 +410,9 @@ sub initialized {
     return $self->dbh->selectcol_arrayref(q{
         SELECT 1
           FROM all_tables
-         WHERE owner = SYS_CONTEXT('USERENV', 'SESSION_SCHEMA')
+         WHERE owner = UPPER(?)
            AND table_name = 'CHANGES'
-    })->[0];
+    }, undef, $self->sqitch_schema || $self->username)->[0];
 }
 
 sub _log_event {
