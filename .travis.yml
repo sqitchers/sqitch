@@ -18,7 +18,7 @@ install:
    - dzil authordeps | grep -vP '[^\w:]' | xargs -n 5 -P 10 cpanm --quiet --notest --skip-satisfied
    - export AUTOMATED_TESTING=1 HARNESS_OPTIONS=j10:c HARNESS_TIMER=1
    - cpanm --quiet --notest --skip-installed Any::Moose Encode
-   - dzil listdeps | grep -vP '[^\w:]' | cpanm --quiet
+   - dzil listdeps | grep -vP '[^\w:]' | grep -v URI::db | cpanm --quiet
 
 script:
    - export HARNESS_OPTIONS=j10:c HARNESS_TIMER=1
