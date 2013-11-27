@@ -91,9 +91,9 @@ is $thing->db_uri->as_string, 'db:pg:foo', 'DB name should be merged into URI';
 $sqitch = App::Sqitch->new(@sqitch_params, db_name => 'foo', db_host => 'foo.com');
 isa_ok $thing = App::Sqitch::Thing->new({
     sqitch => $sqitch,
-    db_uri => URI->new('db:pg://localhost/blah'),
+    db_uri => URI->new('db:pg://localhost:1234/blah'),
 }), 'App::Sqitch::Thing', 'Thing with full URI';
-is $thing->db_uri->as_string, 'db:pg://foo.com/foo',
+is $thing->db_uri->as_string, 'db:pg://foo.com:1234/foo',
     'DB host and name should be merged into URI';
 
 done_testing;

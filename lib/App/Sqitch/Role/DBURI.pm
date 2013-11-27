@@ -6,7 +6,6 @@ use warnings;
 use utf8;
 use Mouse::Role;
 use URI::db;
-use Moose::Util::TypeConstraints;
 use namespace::autoclean;
 
 requires 'sqitch';
