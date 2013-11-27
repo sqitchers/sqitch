@@ -155,7 +155,7 @@ __END__
 
 =head1 Name
 
-App::Sqitch::Role::RevertDepoyCommand - A command that reverts and deploys
+App::Sqitch::Role::RevertDeployCommand - A command that reverts and deploys
 
 =head1 Synopsis
 
