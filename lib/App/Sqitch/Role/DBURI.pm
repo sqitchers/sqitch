@@ -12,7 +12,7 @@ requires 'sqitch';
 
 our $VERSION = '0.984';
 
-has db_uri => ( is => 'ro', isa => 'URI::db', lazy => 1, default => sub {
+has db_uri => ( is => 'rw', isa => 'URI::db', lazy => 1, default => sub {
     my $self = shift;
     my $engine = $self->sqitch->_engine;
     return $self->_merge( URI::db->new("db:$engine:") );
@@ -75,11 +75,12 @@ merged into the URI.
 =head3 C<db_uri>
 
   my $db_uri = $obj->db_uri;
+  $obj->db_uri( $new_uri );
 
-Returns a database URI. If none has been passed to the constructor, the URI
-will consist of parts passed via the C<db_*> attributes of the required
-App::Sqitch object. If one was passed to the constructor, those values will be
-merged into the URI.
+Get or set a database URI. The default URI will consist of parts passed via
+the C<db_*> attributes of the required App::Sqitch object. If a URI is passed
+to the constructor, the L<App::Sqitch> C<db_*> attributes will be merged into
+the URI. A URI passed to this accessor will not be modified.
 
 =head1 See Also
 

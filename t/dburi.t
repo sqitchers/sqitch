@@ -96,4 +96,10 @@ isa_ok $thing = App::Sqitch::Thing->new({
 is $thing->db_uri->as_string, 'db:pg://foo.com:1234/foo',
     'DB host and name should be merged into URI';
 
+# Make sure we can assign to db_uri.
+ok $thing->db_uri( URI->new('db:pg:foo' ) ),
+    'Assign new URI';
+is $thing->db_uri->as_string, 'db:pg:foo',
+    'Assigned URI should be unmodified';
+
 done_testing;
