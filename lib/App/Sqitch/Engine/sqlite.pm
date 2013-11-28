@@ -31,40 +31,37 @@ has client => (
     },
 );
 
-has db_name => (
-    is       => 'ro',
-    isa      => 'Maybe[Path::Class::File]',
-    lazy     => 1,
-    required => 1,
-    handles  => { destination => 'stringify' },
-    default  => sub {
-        my $self   = shift;
+sub BUILD {
+    my $self = shift;
+    my $uri  = $self->db_uri;
+    unless ($uri->dbname) {
         my $sqitch = $self->sqitch;
-        my $name = $self->db_uri->dbname
-            || $self->sqitch->config->get( key => 'core.sqlite.db_name' )
-            || try { $sqitch->plan->project . '.db' }
-            || return undef;
-        return file $name;
-    },
-);
+        my $name =  $sqitch->config->get( key => 'core.sqlite.db_name' )
+            || try { $sqitch->plan->project . '.db' };
+        $uri->dbname($name) if $name;
+    }
+}
 
-has sqitch_db => (
+has sqitch_db_uri => (
     is       => 'ro',
-    isa      => 'Maybe[Path::Class::File]',
+    isa      => 'URI::db',
     lazy     => 1,
     required => 1,
-    handles  => { meta_destination => 'stringify' },
+    handles  => { meta_destination => 'as_string' },
     default  => sub {
         my $self = shift;
+        my $uri  = $self->db_uri->clone;
+
         if (my $db = $self->sqitch->config->get( key => 'core.sqlite.sqitch_db' ) ) {
-            return file $db;
-        }
-        if (my $db = $self->db_name) {
+            $uri->dbname($db);
+        } elsif ($db = $uri->dbname) {
+            $db = file $db;
             my ($suffix) = $db->basename =~ /(.[^.]+)$/;
             $suffix //= '';
-            return $db->dir->file("sqitch$suffix");
+            $uri->dbname( $db->dir->file("sqitch$suffix")->stringify );
         }
-        return undef;
+
+        return $uri;
     },
 );
 
@@ -78,11 +75,13 @@ has dbh => (
             hurl sqlite => __ 'DBD::SQLite module required to manage SQLite';
         };
 
-        my $dsn = 'dbi:SQLite:dbname=' . ($self->sqitch_db || hurl sqlite => __(
-            'No database specified; use --db-name or set "core.sqlite.db_name" via sqitch config'
-        ));
+        my $uri = $self->sqitch_db_uri;
+        hurl sqlite => __x(
+            'Database name missing in URI {uri}',
+            uri => $uri
+        ) unless $uri->dbname;
 
-        my $dbh = DBI->connect($dsn, '', '', {
+        my $dbh = DBI->connect($uri->dbi_dsn, '', '', {
             PrintError        => 0,
             RaiseError        => 0,
             AutoCommit        => 1,
@@ -138,7 +137,7 @@ has sqlite3 => (
             '-noheader',
             '-bail',
             '-csv', # or -column or -line?
-            $self->db_name
+            $self->db_uri->dbname
         ];
     },
 );
@@ -164,12 +163,12 @@ sub initialize {
     my $self   = shift;
     hurl engine => __x(
         'Sqitch database {database} already initialized',
-        database => $self->sqitch_db,
+        database => $self->meta_destination,
     ) if $self->initialized;
 
     # Load up our database.
     my @cmd = $self->sqlite3;
-    $cmd[-1] = $self->sqitch_db;
+    $cmd[-1] = $self->sqitch_db_uri->dbname;
     my $file = file(__FILE__)->dir->file('sqlite.sql');
     $self->sqitch->run( @cmd, '.read ' . $self->dbh->quote($file) );
 }
@@ -275,17 +274,6 @@ Returns the path to the SQLite client. If C<--db-client> was passed to
 C<sqitch>, that's what will be returned. Otherwise, it uses the
 C<core.sqlite.client> configuration value, or else defaults to C<sqlite3> (or
 C<sqlite3.exe> on Windows), which should work if it's in your path.
-
-=head3 C<db_name>
-
-Returns the name of the database file. If C<--db-name> was passed to C<sqitch>
-that's what will be returned.
-
-=head3 C<sqitch_db>
-
-Name of the SQLite database file to use for the Sqitch metadata tables.
-Returns the value of the C<core.sqlite.sqitch_db> configuration value, or else
-defaults to F<sqitch.db> in the same directory as C<db_name>.
 
 =head1 Author
 
