@@ -30,7 +30,7 @@ is_deeply [$CLASS->config_vars], [
     sqitch_db => 'any',
 ], 'config_vars should return three vars';
 
-my $sqitch = App::Sqitch->new;
+my $sqitch = App::Sqitch->new( _engine => 'sqlite' );
 isa_ok my $sqlite = $CLASS->new(sqitch => $sqitch, db_name => file 'foo.db'), $CLASS;
 
 is $sqlite->client, 'sqlite3' . ($^O eq 'MSWin32' ? '.exe' : ''),
@@ -123,7 +123,7 @@ is_deeply [$sqlite->sqlite3], [$sqlite->client, @std_opts, $sqlite->db_name],
 
 ##############################################################################
 # Now make sure that Sqitch options override configurations.
-$sqitch = App::Sqitch->new(db_client => 'foo/bar', db_name => 'my.db');
+$sqitch = App::Sqitch->new(_engine => 'sqlite', db_client => 'foo/bar', db_name => 'my.db');
 ok $sqlite = $CLASS->new(sqitch => $sqitch),
     'Create sqlite with sqitch with --client and --db-name';
 is $sqlite->client, 'foo/bar', 'The client should be grabbed from sqitch';
@@ -136,7 +136,7 @@ is_deeply [$sqlite->sqlite3], [$sqlite->client, @std_opts, $sqlite->db_name],
 ##############################################################################
 # Test _run(), _capture(), and _spool().
 my $db_name = $tmp_dir->file('sqitch.db');
-$sqitch = App::Sqitch->new;
+$sqitch = App::Sqitch->new(_engine => 'sqlite');
 ok $sqlite = $CLASS->new(sqitch => $sqitch, db_name => $db_name),
     'Instantiate with a temporary database file';
 can_ok $sqlite, qw(_run _capture _spool);

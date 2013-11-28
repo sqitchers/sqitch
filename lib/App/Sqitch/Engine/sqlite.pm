@@ -40,7 +40,7 @@ has db_name => (
     default  => sub {
         my $self   = shift;
         my $sqitch = $self->sqitch;
-        my $name = $sqitch->db_name
+        my $name = $self->db_uri->dbname
             || $self->sqitch->config->get( key => 'core.sqlite.db_name' )
             || try { $sqitch->plan->project . '.db' }
             || return undef;
