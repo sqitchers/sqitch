@@ -16,9 +16,10 @@ has sqitch => (
     is       => 'ro',
     isa      => 'App::Sqitch',
     required => 1,
-    handles  => { destination => 'db_name' },
 );
 
+with 'App::Sqitch::Role::DBURI';
+sub destination      { shift->db_uri->as_string }
 sub meta_destination { shift->destination }
 
 has start_at => (
@@ -1123,15 +1124,22 @@ The name of the engine. Defaults to the last part of the package name, so as a
 rule you should not need to override it, since it is that string that Sqitch
 uses to find the engine class.
 
+=head3 C<db_uri>
+
+  my $uri = $engine->db_uri;
+
+A L<URI::db> object representing the destination database. Defaults to a URI
+constructed from the L<App::Sqitch> C<db_*> attributes.
+
 =head3 C<destination>
 
   my $destination = $engine->destination;
 
-Returns the name of the destination database. This will usually be the same as
-the configured database name or the value of the C<--db-name> option. However,
-subclasses may override it to provide other values, such as when neither of
-the above have values but there is nevertheless a default value assumed by the
-engine. Used internally to name the destination in status messages.
+Returns the name of the destination database. This will usually be the the
+string representation of the C<db_uri> attribute. However, subclasses may
+override it to provide other values, such as when a database name or host is
+implied but not physically represented in the URI. Used internally to name the
+destination in status messages.
 
 =head3 C<meta_destination>
 
@@ -1140,7 +1148,7 @@ engine. Used internally to name the destination in status messages.
 Returns the name of the metadata destination database. In other words, the
 database in which Sqitch's own data is stored. It will usually be the same as
 C<destination()>, but some engines, such as
-L<SQLite|App::Sqitch::Engine::sqlite>, may use a separate database. Uses
+L<SQLite|App::Sqitch::Engine::sqlite>, may use a separate database. Used
 internally to name the destination when the metadata tables are created.
 
 =head3 C<variables>

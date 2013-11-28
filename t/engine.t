@@ -597,7 +597,7 @@ $record_work = 0;
 chdir 't';
 my $plan_file = file qw(sql sqitch.plan);
 my $sqitch_old = $sqitch; # Hang on to this because $change does not retain it.
-$sqitch = App::Sqitch->new( plan_file => $plan_file, top_dir => dir 'sql' );
+$sqitch = App::Sqitch->new( _engine => 'sqlite', plan_file => $plan_file, top_dir => dir 'sql' );
 ok $engine = App::Sqitch::Engine::whu->new( sqitch => $sqitch ),
     'Engine with sqitch with plan file';
 $plan = $sqitch->plan;
@@ -890,7 +890,7 @@ NOSTEPS: {
     say $fh '%project=empty';
     $fh->close or die "Error closing $plan_file: $!";
     END { $plan_file->remove }
-    my $sqitch = App::Sqitch->new( plan_file => $plan_file );
+    my $sqitch = App::Sqitch->new( _engine => 'sqlite', plan_file => $plan_file );
     ok $engine = App::Sqitch::Engine::whu->new( sqitch => $sqitch ),
         'Engine with sqitch with no file';
     throws_ok { $engine->deploy } 'App::Sqitch::X', 'Should die with no changes';
