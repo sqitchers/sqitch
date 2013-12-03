@@ -162,8 +162,10 @@ is +App::Sqitch::Engine::whu->name, 'whu', 'Subclass class name should be "whu"'
 ##############################################################################
 # Test config_vars.
 can_ok $CLASS, 'config_vars';
-is_deeply [App::Sqitch::Engine->config_vars], [ db_uri => 'any' ],
-    'Should have one config var, db_uri, in engine base class';
+is_deeply [App::Sqitch::Engine->config_vars], [
+    db_uri => 'any',
+    client => 'any',
+], 'Should have db_uri and client in engine base class';
 
 ##############################################################################
 # Test variables.

@@ -155,7 +155,12 @@ sub name {
     return $class;
 }
 
-sub config_vars { return (db_uri => 'any' ) }
+sub config_vars {
+    return (
+        db_uri => 'any',
+        client => 'any'
+    );
+}
 
 sub deploy {
     my ( $self, $to, $mode ) = @_;
@@ -1121,8 +1126,14 @@ In this example, the C<port> variable will be stored and retrieved as an
 integer. The C<set> variable may be of any type and may be included multiple
 times. All the other variables may be of any type.
 
-By default, App::Sqitch::Engine returns an empty list. Subclasses for
-supported engines will return more.
+By default, App::Sqitch::Engine returns:
+
+  (
+      db_uri => 'any',
+      client => 'any',
+  )
+
+Subclasses for supported engines will return more.
 
 =head2 Constructors
 

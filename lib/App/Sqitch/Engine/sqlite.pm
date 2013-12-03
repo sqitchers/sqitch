@@ -151,8 +151,7 @@ has sqlite3 => (
 sub config_vars {
     return (
         shift->SUPER::config_vars,
-        sqitch_db_uri => 'any',
-        client        => 'any',
+        sqitch_db => 'any',
     );
 }
 

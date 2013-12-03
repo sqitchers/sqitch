@@ -543,18 +543,9 @@ Configuration properties for the SQLite engine.
 Path to the C<sqlite3> command-line client. Defaults to the first instance
 found in the path.
 
-=item C<core.sqlite.db_name>
+=item C<core.sqlite.db_uri>
 
-Path to the SQLite database file.
-
-=item C<core.sqlite.sqitch_db>
-
-Path to the file to use for the Sqitch database. This is where Sqitch will
-store all of its metadata. If you manage multiple databases with Sqitch, each
-should have its own corresponding Sqitch database. If you want the Sqitch
-metadata to be stored in the same file as the database it builds, make this
-value the same as C<core.sqlite.db_name>. Defaults to F<sqitch.db> in the same
-directory as C<db_name>.
+SQLite database connection URI.
 
 =back
 
