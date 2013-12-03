@@ -50,18 +50,20 @@ has sqitch_db_uri => (
     required => 1,
     handles  => { meta_destination => 'as_string' },
     default  => sub {
-        my $self = shift;
-        my $uri  = $self->db_uri->clone;
+        my $self   = shift;
+        my $config = $self->sqitch->config;
+        if (my $config_uri = $config->get( key => 'core.sqlite.sqitch_db_uri' )) {
+            return URI::db->new($config_uri);
+        }
 
-        if (my $db = $self->sqitch->config->get( key => 'core.sqlite.sqitch_db' ) ) {
-            # Custom Sqitch database name.
+        my $uri = $self->db_uri->clone;
+        if (my $db = $config->get( key => 'core.sqlite.sqitch_db' ) ) {
+            # ### Deprecated Sqitch database file name.
             $uri->dbname($db);
-        } elsif ($db = $uri->dbname) {
+        } elsif (my @segs = $uri->path_segments) {
             # Use the same name, but replace $name.$ext with sqitch.$ext.
-            $db = file $db;
-            my ($suffix) = $db->basename =~ /(.[^.]+)$/;
-            $suffix //= '';
-            $uri->dbname( $db->dir->file("sqitch$suffix")->stringify );
+            $segs[-1] =~ s/^[^.]+[.](.+)/sqitch.$1/;
+            $uri->path_segments(@segs);
         } else {
             # No known path, so no name.
             $uri->dbname(undef);
@@ -151,7 +153,7 @@ has sqlite3 => (
 sub config_vars {
     return (
         shift->SUPER::config_vars,
-        sqitch_db => 'any',
+        sqitch_db_uri => 'any',
     );
 }
 
@@ -267,8 +269,9 @@ App::Sqitch::Engine::sqlite provides the SQLite storage engine for Sqitch.
 Returns a hash of names and types to use for variables in the C<core.sqlite>
 section of the a Sqitch configuration file. The variables and their types are:
 
-  client    => 'any'
-  sqitch_db => 'any'
+  db_uri        => 'any',
+  client        => 'any',
+  sqitch_db_uri => 'any',
 
 =head2 Accessors
 

@@ -547,6 +547,10 @@ found in the path.
 
 SQLite database connection URI.
 
+=item C<core.sqlite.sqitch_db_uri>
+
+Sqitch metadata SQLite database connection URI.
+
 =back
 
 =head3 C<core.mysql>

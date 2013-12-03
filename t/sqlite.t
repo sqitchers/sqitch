@@ -25,9 +25,9 @@ BEGIN {
 }
 
 is_deeply [$CLASS->config_vars], [
-    db_uri    => 'any',
-    client    => 'any',
-    sqitch_db => 'any',
+    db_uri        => 'any',
+    client        => 'any',
+    sqitch_db_uri => 'any',
 ], 'config_vars should return three vars';
 
 my $sqitch = App::Sqitch->new( _engine => 'sqlite', db_name => 'foo.db' );
@@ -77,7 +77,7 @@ if ($have_sqlite) {
         # We have DBD::SQLite, but it is too old. Make sure we complain about that.
         isa_ok $sqlite = $CLASS->new(
             sqitch => $sqitch,
-            sqitch_db => $tmp_dir->file('_tmp.db')
+            sqitch_db_uri => 'db:sqlite:' . $tmp_dir->file('_tmp.db')
         ), $CLASS;
         throws_ok { $sqlite->dbh } 'App::Sqitch::X', 'Should get an error for old SQLite';
         is $@->ident, 'sqlite', 'Unsupported SQLite error ident should be "sqlite"';
@@ -98,9 +98,9 @@ if ($have_sqlite) {
 ##############################################################################
 # Make sure config settings override defaults.
 my %config = (
-    'core.sqlite.client'    => '/path/to/sqlite3',
-    'core.sqlite.db_name'   => '/path/to/sqlite.db',
-    'core.sqlite.sqitch_db' => 'meta.db',
+    'core.sqlite.client'        => '/path/to/sqlite3',
+    'core.sqlite.db_name'       => '/path/to/sqlite.db',
+    'core.sqlite.sqitch_db_uri' => 'db:sqlite:meta.db',
 );
 my $mock_config = Test::MockModule->new('App::Sqitch::Config');
 $mock_config->mock(get => sub { $config{ $_[2] } });
@@ -112,7 +112,7 @@ is $sqlite->db_uri->as_string, 'db:sqlite:' . file('/path/to/sqlite.db'),
     'dbname should fall back on config';
 is $sqlite->destination, $sqlite->db_uri->as_string,
     'Destination should be configured db_uri stringified';
-is $sqlite->sqitch_db_uri->as_string, 'db:sqlite:' . file('meta.db'),
+is $sqlite->sqitch_db_uri->as_string, 'db:sqlite:meta.db',
     'sqitch_db_uri should fall back on config';
 is $sqlite->meta_destination, $sqlite->sqitch_db_uri->as_string,
     'Meta destination should be configured sqitch_db_uri stringified';

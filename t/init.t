@@ -291,11 +291,10 @@ is_deeply read_config $conf_file, {
     'core.sqlite.client'  => '/to/sqlite3',
 }, 'The configuration should have been written with sqlite values';
 
-my $sqitch_db = file($sqitch->db_name)->dir->file('sqitch.db');
 file_contents_like $conf_file, qr/^\t# db_uri = \Qdb:sqlite:my.db\E\n/m,
     'db_uri should be included in a comment';
-file_contents_like $conf_file, qr/^\t# sqitch_db = \n/m,
-    'sqitch_db should be included in a comment';
+file_contents_like $conf_file, qr/^\t# sqitch_db_uri = db:sqlite:sqitch\.db\n/m,
+    'sqitch_db_uri should be included in a comment';
 
 # Try it with no options.
 unlink $conf_file;
@@ -313,7 +312,7 @@ is_deeply read_config $conf_file, {
 file_contents_like $conf_file, qr{^\Q# [core "sqlite"]
 	# db_uri = db:sqlite:
 	# client = sqlite3$exe_ext
-	# sqitch_db = 
+	# sqitch_db_uri = db:sqlite:
 }m, 'Engine section should be present but commented-out';
 
 # Now build it with other config.
@@ -341,8 +340,8 @@ USERCONF: {
         'Configured client should be included in a comment';
     file_contents_like $conf_file, qr/^\t# db_uri = db:sqlite:my\.db\n/m,
         'Configured db_uri should be included in a comment';
-    file_contents_like $conf_file, qr/^\t# sqitch_db = meta\.db\n/m,
-        'Configured sqitch_db should be included in a comment';
+    file_contents_like $conf_file, qr/^\t# sqitch_db_uri = db:sqlite:meta\.db\n/m,
+        'Configured sqitch_db_uri should be included in a comment';
 }
 
 ##############################################################################
