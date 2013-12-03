@@ -8,6 +8,7 @@ use Try::Tiny;
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use List::Util qw(first max);
+use URI::db;
 use namespace::autoclean;
 
 our $VERSION = '0.984';
@@ -18,7 +19,6 @@ has sqitch => (
     required => 1,
 );
 
-with 'App::Sqitch::Role::DBURI';
 sub destination      { shift->db_uri->as_string }
 sub meta_destination { shift->destination }
 
@@ -38,6 +38,12 @@ has log_only => (
     isa     => 'Bool',
     default => 0,
 );
+
+# Add db_uri. Precedence:
+# 1. Get URI in command.
+# 2. If not found, get URI from config file.
+# 3. If not found, construct from parts in config file. (deprecated)
+# 4. If command-line-options, override parts in URIs.
 
 has with_verify => (
     is      => 'rw',
@@ -71,6 +77,64 @@ has _variables => (
     },
 );
 
+
+# 1. Just accept if explicitly passed.
+# 2. If not passed
+#    a. Look for core.$engine.db_uri (and maybe core.db_uri?); or
+#    b. Construct from config.$engine.@parts (deprecated); or
+#    c. Default to "db:$engine"
+# 3. If command-line-options, override parts in URIs.
+
+has db_uri => ( is => 'rw', isa => 'URI::db', lazy => 1, default => sub {
+    my $self   = shift;
+    my $sqitch = $self->sqitch;
+    my $config = $sqitch->config;
+    my $engine = $self->sqitch->_engine;
+    my $uri;
+
+    if ( my $conf_uri = $config->get( key => "core.$engine.db_uri" ) ) {
+        # XXX Fall back on core.db_uri?
+        $uri = URI::db->new($conf_uri);
+    } else {
+        $uri = URI::db->new("db:$engine:");
+
+        # XXX Deprecated use of other config variables.
+        my %uri_meth_for = (
+            username      => 'user',
+            password      => 'password',
+            db_name       => 'dbname',
+            host          => 'host',
+            port          => 'port',
+        );
+
+        my %config_vars = $self->config_vars;
+        for my $key (keys %config_vars) {
+            my $meth = $uri_meth_for{$key} or next;
+            my $val = $config->get( key => "core.$engine.$key" ) or next;
+            $uri->$meth($val);
+        }
+    }
+
+    # Override parts with command-line options (deprecate?)
+    if (my $host = $sqitch->db_host) {
+        $uri->host($host);
+    }
+
+    if (my $port = $sqitch->db_port) {
+        $uri->port($port);
+    }
+
+    if (my $user = $sqitch->db_username) {
+        $uri->user($user);
+    }
+
+    if (my $name = $sqitch->db_name) {
+        $uri->dbname($name);
+    }
+
+    return $uri;
+});
+
 sub load {
     my ( $class, $p ) = @_;
 
@@ -91,7 +155,7 @@ sub name {
     return $class;
 }
 
-sub config_vars { return }
+sub config_vars { return (db_uri => 'any' ) }
 
 sub deploy {
     my ( $self, $to, $mode ) = @_;

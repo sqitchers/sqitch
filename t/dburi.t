@@ -8,19 +8,13 @@ use Path::Class qw(dir file);
 use App::Sqitch;
 use Test::Exception;
 use Locale::TextDomain qw(App-Sqitch);
+use App::Sqitch::Engine;
 
 $ENV{SQITCH_CONFIG} = 'nonexistent.conf';
 $ENV{SQITCH_USER_CONFIG} = 'nonexistent.user';
 $ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
 
-PACKAGE: {
-    package App::Sqitch::Thing;
-    use Mouse;
-    has sqitch => ( is => 'ro', isa => 'App::Sqitch', required => 1 );
-    with 'App::Sqitch::Role::DBURI';
-}
-
-can_ok 'App::Sqitch::Thing', 'db_uri';
+can_ok 'App::Sqitch::Engine', 'db_uri';
 my @sqitch_params = (
     plan_file => file(qw(t sql sqitch.plan)),
     top_dir   => dir(qw(t sql)),
@@ -30,8 +24,8 @@ my @sqitch_params = (
 # Test with no engine.
 my $sqitch = App::Sqitch->new(@sqitch_params);
 
-isa_ok my $thing = App::Sqitch::Thing->new({ sqitch => $sqitch }),
-    'App::Sqitch::Thing', 'Thing';
+isa_ok my $thing = App::Sqitch::Engine->new({ sqitch => $sqitch }),
+    'App::Sqitch::Engine', 'Thing';
 throws_ok { $thing->db_uri } 'App::Sqitch::X',
     'Should get an exception when no engine';
 is $@->ident, 'core', 'No _engine error ident should be "core"';
@@ -41,15 +35,15 @@ is $@->message, __ 'No engine specified; use --engine or set core.engine',
 ##############################################################################
 # Test with an engine.
 $sqitch = App::Sqitch->new(@sqitch_params, _engine => 'sqlite');
-isa_ok $thing = App::Sqitch::Thing->new({ sqitch => $sqitch }),
-    'App::Sqitch::Thing', 'Thing with SQLite engine';
+isa_ok $thing = App::Sqitch::Engine->new({ sqitch => $sqitch }),
+    'App::Sqitch::Engine', 'Thing with SQLite engine';
 isa_ok my $uri = $thing->db_uri, 'URI::db', 'SQLite URI';
 is $uri->as_string, 'db:sqlite:', 'SQLite URI should be correct';
 
 # Different engine.
 $sqitch = App::Sqitch->new(@sqitch_params, _engine => 'pg');
-isa_ok $thing = App::Sqitch::Thing->new({ sqitch => $sqitch }),
-    'App::Sqitch::Thing', 'Thing with Pg engine';
+isa_ok $thing = App::Sqitch::Engine->new({ sqitch => $sqitch }),
+    'App::Sqitch::Engine', 'Thing with Pg engine';
 isa_ok $uri = $thing->db_uri, 'URI::db', 'Pg URI';
 is $uri->as_string, 'db:pg:', 'Pg URI should be correct';
 
@@ -74,27 +68,27 @@ for my $spec (
 ) {
     my ($desc, $params, $uri) = @{ $spec };
     my $sqitch = App::Sqitch->new(@sqitch_params, @{ $params });
-    isa_ok my $thing = App::Sqitch::Thing->new({ sqitch => $sqitch }),
-    'App::Sqitch::Thing', "Thing with $desc";
+    isa_ok my $thing = App::Sqitch::Engine->new({ sqitch => $sqitch }),
+    'App::Sqitch::Engine', "Thing with $desc";
     is $thing->db_uri->as_string, $uri, "Default URI with $desc should be correct";
 }
 
 ##############################################################################
-# Make sure URIs passed to the construtor get merged, too.
+# Make sure URIs passed to the construtor do not get merged.
 $sqitch = App::Sqitch->new(@sqitch_params, db_name => 'foo');
-isa_ok $thing = App::Sqitch::Thing->new({
+isa_ok $thing = App::Sqitch::Engine->new({
     sqitch => $sqitch,
     db_uri => URI->new('db:pg:blah'),
-}), 'App::Sqitch::Thing', 'Thing with URI';
-is $thing->db_uri->as_string, 'db:pg:foo', 'DB name should be merged into URI';
+}), 'App::Sqitch::Engine', 'Thing with URI';
+is $thing->db_uri->as_string, 'db:pg:blah', 'DB name should not be merged into URI';
 
 $sqitch = App::Sqitch->new(@sqitch_params, db_name => 'foo', db_host => 'foo.com');
-isa_ok $thing = App::Sqitch::Thing->new({
+isa_ok $thing = App::Sqitch::Engine->new({
     sqitch => $sqitch,
     db_uri => URI->new('db:pg://localhost:1234/blah'),
-}), 'App::Sqitch::Thing', 'Thing with full URI';
-is $thing->db_uri->as_string, 'db:pg://foo.com:1234/foo',
-    'DB host and name should be merged into URI';
+}), 'App::Sqitch::Engine', 'Thing with full URI';
+is $thing->db_uri->as_string, 'db:pg://localhost:1234/blah',
+    'DB host and name should not be merged into URI';
 
 # Make sure we can assign to db_uri.
 ok $thing->db_uri( URI->new('db:pg:foo' ) ),
