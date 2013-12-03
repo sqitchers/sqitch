@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 158;
+use Test::More tests => 160;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -289,12 +289,12 @@ is_deeply +MockOutput->get_info, [
 is_deeply read_config $conf_file, {
     'core.engine'         => 'sqlite',
     'core.sqlite.client'  => '/to/sqlite3',
-    'core.sqlite.db_name' => 'my.db',
 }, 'The configuration should have been written with sqlite values';
 
 my $sqitch_db = file($sqitch->db_name)->dir->file('sqitch.db');
-diag `cat $conf_file`;
-file_contents_like $conf_file, qr/^\t# sqitch_db = \Q$sqitch_db\E\n/m,
+file_contents_like $conf_file, qr/^\t# db_uri = \Qdb:sqlite:my.db\E\n/m,
+    'db_uri should be included in a comment';
+file_contents_like $conf_file, qr/^\t# sqitch_db_uri = \Qdb:sqlite:$sqitch_db\E\n/m,
     'sqitch_db should be included in a comment';
 
 # Try it with no options.
@@ -311,9 +311,9 @@ is_deeply read_config $conf_file, {
 }, 'The configuration should have been written with only the engine var';
 
 file_contents_like $conf_file, qr{^\Q# [core "sqlite"]
+	# db_uri = db:sqlite:
+	# sqitch_db_uri = db:sqlite:
 	# client = sqlite3$exe_ext
-	# db_name = 
-	# sqitch_db = 
 }m, 'Engine section should be present but commented-out';
 
 # Now build it with other config.
@@ -335,14 +335,14 @@ USERCONF: {
 
     is_deeply read_config $conf_file, {
         'core.engine'         => 'sqlite',
-        'core.sqlite.db_name' => 'my.db',
     }, 'New config should have been written with sqlite values';
 
     file_contents_like $conf_file, qr{^\t\Q# client = /opt/local/bin/sqlite3\E\n}m,
         'Configured client should be included in a comment';
-
-    file_contents_like $conf_file, qr/^\t# sqitch_db = meta\.db\n/m,
-        'Configured sqitch_db should be included in a comment';
+    file_contents_like $conf_file, qr/^\t# db_uri = db:sqlite:my\.db\n/m,
+        'Configured db_uri should be included in a comment';
+    file_contents_like $conf_file, qr/^\t# sqitch_db_uri = db:sqlite:meta\.db\n/m,
+        'Configured sqitch_db_uri should be included in a comment';
 }
 
 ##############################################################################

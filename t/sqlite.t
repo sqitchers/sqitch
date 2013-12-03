@@ -25,9 +25,9 @@ BEGIN {
 }
 
 is_deeply [$CLASS->config_vars], [
-    client    => 'any',
-    db_name   => 'any',
-    sqitch_db => 'any',
+    db_uri        => 'any',
+    sqitch_db_uri => 'any',
+    client        => 'any',
 ], 'config_vars should return three vars';
 
 my $sqitch = App::Sqitch->new( _engine => 'sqlite', db_name => 'foo.db' );

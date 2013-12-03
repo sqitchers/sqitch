@@ -36,6 +36,7 @@ sub BUILD {
     my $uri  = $self->db_uri;
     unless ($uri->dbname) {
         my $sqitch = $self->sqitch;
+        # XXX Config var is for backcompat.
         my $name =  $sqitch->config->get( key => 'core.sqlite.db_name' )
             || try { $sqitch->plan->project . '.db' };
         $uri->dbname($name) if $name;
@@ -53,12 +54,17 @@ has sqitch_db_uri => (
         my $uri  = $self->db_uri->clone;
 
         if (my $db = $self->sqitch->config->get( key => 'core.sqlite.sqitch_db' ) ) {
+            # Custom Sqitch database name.
             $uri->dbname($db);
         } elsif ($db = $uri->dbname) {
+            # Use the same name, but replace $name.$ext with sqitch.$ext.
             $db = file $db;
             my ($suffix) = $db->basename =~ /(.[^.]+)$/;
             $suffix //= '';
             $uri->dbname( $db->dir->file("sqitch$suffix")->stringify );
+        } else {
+            # No known path, so no name.
+            $uri->dbname(undef);
         }
 
         return $uri;
@@ -144,9 +150,9 @@ has sqlite3 => (
 
 sub config_vars {
     return (
-        client    => 'any',
-        db_name   => 'any',
-        sqitch_db => 'any',
+        shift->SUPER::config_vars,
+        sqitch_db_uri => 'any',
+        client        => 'any',
     );
 }
 
@@ -263,7 +269,6 @@ Returns a hash of names and types to use for variables in the C<core.sqlite>
 section of the a Sqitch configuration file. The variables and their types are:
 
   client    => 'any'
-  db_name   => 'any'
   sqitch_db => 'any'
 
 =head2 Accessors
