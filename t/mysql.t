@@ -25,27 +25,24 @@ BEGIN {
 }
 
 is_deeply [$CLASS->config_vars], [
+    db_uri    => 'any',
     client    => 'any',
-    username  => 'any',
-    password  => 'any',
-    db_name   => 'any',
-    host      => 'any',
-    port      => 'int',
     sqitch_db => 'any',
 ], 'config_vars should return three vars';
 
-my $sqitch = App::Sqitch->new;
+my $sqitch = App::Sqitch->new(_engine => 'mysql');
 isa_ok my $mysql = $CLASS->new(sqitch => $sqitch), $CLASS;
 
 my $client = 'mysql' . ($^O eq 'MSWin32' ? '.exe' : '');
+my $uri = URI::db->new('db:mysql:');
 is $mysql->client, $client, 'client should default to mysql';
 is $mysql->sqitch_db, 'sqitch', 'sqitch_db default should be "sqitch"';
-for my $attr (qw(username password db_name host port destination)) {
-    is $mysql->$attr, undef, "$attr default should be undef";
-}
-
-is $mysql->meta_destination, $mysql->sqitch_db,
-    'meta_destination should be the same as sqitch_db';
+my $sqitch_uri = $uri->clone;
+$sqitch_uri->dbname('sqitch');
+is $mysql->sqitch_db_uri, $sqitch_uri, 'sqitch_db_uri should be correct';
+is $mysql->db_uri, $uri, qq{db_uri should be "$uri"};
+is $mysql->meta_destination, 'db:mysql:sqitch',
+    'meta_destination should be the same as sqitch_db_uri';
 
 my @std_opts = (
     '--skip-pager',
@@ -53,10 +50,21 @@ my @std_opts = (
     '--skip-column-names',
     '--skip-line-numbers',
 );
+my $mock_sqitch = Test::MockModule->new('App::Sqitch');
+my $warning;
+$mock_sqitch->mock(warn => sub { shift; $warning = [@_] });
 is_deeply [$mysql->mysql], [$client, @std_opts],
     'mysql command should be std opts-only';
+is_deeply $warning, [__x
+    'Database name missing in URI "{uri}"',
+     uri => $mysql->db_uri
+], 'Should have emitted a warning for no database name';
+$mock_sqitch->unmock_all;
 
-isa_ok $mysql = $CLASS->new(sqitch => $sqitch, db_name => 'foo'), $CLASS;
+isa_ok $mysql = $CLASS->new(
+    sqitch => $sqitch,
+    db_uri => URI::db->new('db:mysql:foo'),
+), $CLASS;
 ok $mysql->set_variables(foo => 'baz', whu => 'hi there', yo => 'stellar'),
     'Set some variables';
 is_deeply [$mysql->mysql], [
@@ -72,6 +80,32 @@ is_deeply [$mysql->mysql], [
 # Make sure config settings override defaults.
 my %config = (
     'core.mysql.client'    => '/path/to/mysql',
+    'core.mysql.db_uri'    => 'db:mysql://foo.com/widgets',
+    'core.mysql.sqitch_db' => 'meta',
+);
+my $mock_config = Test::MockModule->new('App::Sqitch::Config');
+$mock_config->mock(get => sub { $config{ $_[2] } });
+
+ok $mysql = $CLASS->new(sqitch => $sqitch), 'Create another mysql';
+is $mysql->client, '/path/to/mysql', 'client should be as configured';
+is $mysql->db_uri->as_string, 'db:mysql://foo.com/widgets',
+    'URI should be as configured';
+is $mysql->destination, $mysql->db_uri->as_string, 'destination should be the URI';
+is $mysql->sqitch_db, 'meta', 'sqitch_db should be as configured';
+is $mysql->sqitch_db_uri->as_string, 'db:mysql://foo.com/meta',
+    'Sqitch DB URI should be the same as db_uri but with DB name "meta"';
+is $mysql->meta_destination, $mysql->sqitch_db_uri->as_string,
+    'meta_destination should be the sqitch DB URL';
+is_deeply [$mysql->mysql], [qw(
+    /path/to/mysql
+    --database widgets
+    --host     foo.com
+), @std_opts], 'mysql command should be configured';
+
+##############################################################################
+# Make sure the deprecated configs are also respected.
+%config = (
+    'core.mysql.client'    => '/path/to/mysql',
     'core.mysql.username'  => 'freddy',
     'core.mysql.password'  => 's3cr3t',
     'core.mysql.db_name'   => 'widgets',
@@ -79,19 +113,17 @@ my %config = (
     'core.mysql.port'      => 1234,
     'core.mysql.sqitch_db' => 'meta',
 );
-my $mock_config = Test::MockModule->new('App::Sqitch::Config');
-$mock_config->mock(get => sub { $config{ $_[2] } });
-ok $mysql = $CLASS->new(sqitch => $sqitch), 'Create another mysql';
 
+ok $mysql = $CLASS->new(sqitch => $sqitch), 'Create yet another mysql';
 is $mysql->client, '/path/to/mysql', 'client should be as configured';
-is $mysql->username, 'freddy', 'username should be as configured';
-is $mysql->password, 's3cr3t', 'password should be as configured';
-is $mysql->db_name, 'widgets', 'db_name should be as configured';
-is $mysql->destination, 'widgets', 'destination should default to db_name';
-is $mysql->meta_destination, 'meta', 'meta_destination should be as configured';
-is $mysql->host, 'db.example.com', 'host should be as configured';
-is $mysql->port, 1234, 'port should be as configured';
+is $mysql->db_uri->as_string, 'db:mysql://freddy:s3cr3t@db.example.com:1234/widgets',
+    'URI should be as configured';
+is $mysql->destination, $mysql->db_uri->as_string, 'destination should be the URI';
 is $mysql->sqitch_db, 'meta', 'sqitch_db should be as configured';
+is $mysql->sqitch_db_uri->as_string, 'db:mysql://freddy:s3cr3t@db.example.com:1234/meta',
+    'Sqitch DB URI should be the same as db_uri but with DB name "meta"';
+is $mysql->meta_destination, $mysql->sqitch_db_uri->as_string,
+    'meta_destination should be the sqitch DB URL';
 is_deeply [$mysql->mysql], [qw(
     /path/to/mysql
     --user     freddy
@@ -104,6 +136,7 @@ is_deeply [$mysql->mysql], [qw(
 ##############################################################################
 # Now make sure that Sqitch options override configurations.
 $sqitch = App::Sqitch->new(
+    _engine      => 'mysql',
     db_client   => '/some/other/mysql',
     db_username => 'anna',
     db_name     => 'widgets_dev',
@@ -115,13 +148,14 @@ ok $mysql = $CLASS->new(sqitch => $sqitch),
     'Create a mysql with sqitch with options';
 
 is $mysql->client, '/some/other/mysql', 'client should be as optioned';
-is $mysql->username, 'anna', 'username should be as optioned';
-is $mysql->password, 's3cr3t', 'password should still be as configured';
-is $mysql->db_name, 'widgets_dev', 'db_name should be as optioned';
-is $mysql->destination, 'widgets_dev', 'destination should still default to db_name';
-is $mysql->meta_destination, 'meta', 'meta_destination should still be configured';
-is $mysql->host, 'foo.com', 'host should be as optioned';
-is $mysql->port, 98760, 'port should be as optioned';
+is $mysql->db_uri->as_string, 'db:mysql://anna:s3cr3t@foo.com:98760/widgets_dev',
+    'The DB URI should be as optioned';
+is $mysql->destination, $mysql->db_uri->as_string, 'destination should be the URI';
+is $mysql->sqitch_db, 'meta', 'sqitch_db should be as configured';
+is $mysql->sqitch_db_uri->as_string, 'db:mysql://anna:s3cr3t@foo.com:98760/meta',
+    'Sqitch DB URI should be the same as db_uri but with DB name "meta"';
+is $mysql->meta_destination, $mysql->sqitch_db_uri->as_string,
+    'meta_destination should be the sqitch DB URL';
 is $mysql->sqitch_db, 'meta', 'sqitch_db should still be as configured';
 is_deeply [$mysql->mysql], [qw(
     /some/other/mysql
@@ -135,7 +169,6 @@ is_deeply [$mysql->mysql], [qw(
 ##############################################################################
 # Test _run(), _capture(), and _spool().
 can_ok $mysql, qw(_run _capture _spool);
-my $mock_sqitch = Test::MockModule->new('App::Sqitch');
 my @run;
 $mock_sqitch->mock(run => sub { shift; @run = @_; });
 
@@ -237,6 +270,7 @@ my $err = try {
 DBIEngineTest->run(
     class         => $CLASS,
     sqitch_params => [
+        _engine     => 'mysql',
         db_username => 'root',
         db_name     => '__sqitchtest__',
         top_dir     => Path::Class::dir(qw(t engine)),

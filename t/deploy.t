@@ -138,9 +138,15 @@ isa_ok $deploy = $CLASS->new(
 ), $CLASS, 'Object with to, mode, log_only, and variables';
 
 @args = ();
+
+my $mock_sqitch = Test::MockModule->new(ref $sqitch);
+my ($engine, $orig_emethod);
+$mock_sqitch->mock(engine => sub { $engine = shift->$orig_emethod(@_) });
+$orig_emethod = $mock_sqitch->original('engine');
+
 ok $deploy->execute, 'Execute again';
-ok $sqitch->engine->with_verify, 'Engine should verify';
-ok $sqitch->engine->log_only, 'The engine should be set log_only';
+ok $engine->with_verify, 'Engine should verify';
+ok $engine->log_only, 'The engine should be set log_only';
 is_deeply \@args, ['foo', 'tag'],
     '"foo", "tag", and 1 should be passed to the engine';
 is_deeply {@vars}, { foo => 'bar', one => 1 },

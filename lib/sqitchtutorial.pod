@@ -66,13 +66,9 @@ Let's have a look at F<sqitch.conf>:
       # verify_dir = verify
       # extension = sql
   # [core "pg"]
-      # db_name = 
+      # db_uri = db:pg:
       # client = /usr/local/pgsql/bin/psql
       # sqitch_schema = sqitch
-      # password = 
-      # port = 
-      # host = 
-      # username = 
 
 Good, it picked up on the fact that we're creating changes for the PostgreSQL
 engine, thanks to the C<--engine pg> option, and saved it to the file.
@@ -360,9 +356,10 @@ When we look at the status, the deployment will be there:
 =head1 More Configuration
 
 I'm getting a little tired of always having to type C<--db-name flipr_test>,
-aren't you? Let's just make that the default, shall we?
+aren't you? Sqitch uses URIs to determine how to connect to the database, so
+let's give it a default URI, shall we?
 
-  > sqitch config core.pg.db_name flipr_test
+  > sqitch config core.pg.db_uri db:pg:flipr_test
 
 Now we can leave it out, unless we need to deploy to another database. Which
 we will, eventually, but at least our examples will be simpler from here on

@@ -9,6 +9,9 @@ use Test::Exception;
 use Time::HiRes qw(sleep);
 use Locale::TextDomain qw(App-Sqitch);
 
+# Just die on warnings.
+use Carp; BEGIN { $SIG{__WARN__} = \&Carp::confess }
+
 sub run {
     my ( $self, %p ) = @_;
 

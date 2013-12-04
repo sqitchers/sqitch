@@ -28,7 +28,7 @@ BEGIN {
     $ENV{SQITCH_CONFIG} = 'nonexistent.conf';
 }
 
-can_ok $CLASS, qw(load new name no_prompt run_deploy run_revert run_verify);
+can_ok $CLASS, qw(load new name no_prompt run_deploy run_revert run_verify db_uri);
 
 my ($is_deployed_tag, $is_deployed_change) = (0, 0);
 my @deployed_changes;
@@ -162,8 +162,10 @@ is +App::Sqitch::Engine::whu->name, 'whu', 'Subclass class name should be "whu"'
 ##############################################################################
 # Test config_vars.
 can_ok $CLASS, 'config_vars';
-is_deeply [App::Sqitch::Engine->config_vars], [],
-    'Should have no config vars in engine base class';
+is_deeply [App::Sqitch::Engine->config_vars], [
+    db_uri => 'any',
+    client => 'any',
+], 'Should have db_uri and client in engine base class';
 
 ##############################################################################
 # Test variables.
@@ -597,7 +599,7 @@ $record_work = 0;
 chdir 't';
 my $plan_file = file qw(sql sqitch.plan);
 my $sqitch_old = $sqitch; # Hang on to this because $change does not retain it.
-$sqitch = App::Sqitch->new( plan_file => $plan_file, top_dir => dir 'sql' );
+$sqitch = App::Sqitch->new( _engine => 'sqlite', plan_file => $plan_file, top_dir => dir 'sql' );
 ok $engine = App::Sqitch::Engine::whu->new( sqitch => $sqitch ),
     'Engine with sqitch with plan file';
 $plan = $sqitch->plan;
@@ -890,7 +892,7 @@ NOSTEPS: {
     say $fh '%project=empty';
     $fh->close or die "Error closing $plan_file: $!";
     END { $plan_file->remove }
-    my $sqitch = App::Sqitch->new( plan_file => $plan_file );
+    my $sqitch = App::Sqitch->new( _engine => 'sqlite', plan_file => $plan_file );
     ok $engine = App::Sqitch::Engine::whu->new( sqitch => $sqitch ),
         'Engine with sqitch with no file';
     throws_ok { $engine->deploy } 'App::Sqitch::X', 'Should die with no changes';

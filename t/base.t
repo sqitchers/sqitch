@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 168;
+use Test::More tests => 184;
 #use Test::More 'no_plan';
 use Test::MockModule;
 use Path::Class;
@@ -75,7 +75,7 @@ is $sqitch->user_email, do {
     $sqitch->sysuser . '@' . Sys::Hostname::hostname();
 }, 'Default user_email should be set from system';
 
-# Test engine.
+# Test _engine.
 throws_ok { $sqitch->_engine } 'App::Sqitch::X',
     'Should get exception for no _engine';
 is $@->ident, 'core', 'No _engine error ident should be "core"';
@@ -94,9 +94,19 @@ is $@->ident, 'core', 'Unknown engine error ident should be "core"';
 is $@->message, __x('Unknown engine: {engine}', engine => 'nonexistent'),
     'Unknown No engine error message should be correct';
 
-# Valid engines.
+# Valid engines and the engine constructor.
 for my $eng (qw(pg sqlite mysql oracle)) {
-    ok $CLASS->new(_engine => $eng), qq{Engine "$eng" should be valid};
+    ok my $sqitch = $CLASS->new(_engine => $eng),
+        qq{Engine "$eng" should be valid};
+
+    my $uri = URI->new("db:$eng:foo");
+    isa_ok my $engine = $sqitch->engine( db_uri => $uri ),
+        "App::Sqitch::Engine::$eng", "$eng engine";
+    is $engine->db_uri, $uri, "URI $uri should have been passed through";
+
+    ok $engine = $sqitch->engine({ db_uri => $uri }),
+        "Create another App::Sqitch::Engine::$eng with hash params";
+    is $engine->db_uri, $uri, "URI $uri should have been passed through again";
 }
 
 # Test invalid user name and email values.

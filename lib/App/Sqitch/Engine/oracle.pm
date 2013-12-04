@@ -43,39 +43,6 @@ has client => (
     },
 );
 
-has username => (
-    is       => 'ro',
-    isa      => 'Maybe[Str]',
-    lazy     => 1,
-    required => 0,
-    default  => sub {
-        my $sqitch = shift->sqitch;
-        $sqitch->db_username || $sqitch->config->get( key => 'core.oracle.username' );
-    },
-);
-
-has password => (
-    is       => 'ro',
-    isa      => 'Maybe[Str]',
-    lazy     => 1,
-    required => 0,
-    default  => sub {
-        shift->sqitch->config->get( key => 'core.oracle.password' );
-    },
-);
-
-has db_name => (
-    is       => 'ro',
-    isa      => 'Maybe[Str]',
-    lazy     => 1,
-    required => 0,
-    default  => sub {
-        my $self   = shift;
-        my $sqitch = $self->sqitch;
-        $sqitch->db_name || $sqitch->config->get( key => 'core.oracle.db_name' );
-    },
-);
-
 has destination => (
     is       => 'ro',
     isa      => 'Str',
@@ -83,34 +50,15 @@ has destination => (
     required => 1,
     default  => sub {
         my $self = shift;
-        $self->db_name
-            || $ENV{TWO_TASK}
+        my $uri = $self->db_uri->clone;
+        $uri->dbname(
+               $ENV{TWO_TASK}
             || ( $^O eq 'MSWin32' ? $ENV{LOCAL} : undef )
             || $ENV{ORACLE_SID}
-            || $self->username
+            || $uri->user
             || $self->sqitch->sysuser
-    },
-);
-
-has host => (
-    is       => 'ro',
-    isa      => 'Maybe[Str]',
-    lazy     => 1,
-    required => 0,
-    default  => sub {
-        my $sqitch = shift->sqitch;
-        $sqitch->db_host || $sqitch->config->get( key => 'core.oracle.host' );
-    },
-);
-
-has port => (
-    is       => 'ro',
-    isa      => 'Maybe[Int]',
-    lazy     => 1,
-    required => 0,
-    default  => sub {
-        my $sqitch = shift->sqitch;
-        $sqitch->db_port || $sqitch->config->get( key => 'core.oracle.port' );
+        ) unless $uri->dbname;
+        return $uri->as_string;
     },
 );
 
@@ -147,20 +95,8 @@ has dbh => (
             hurl oracle => __ 'DBD::Oracle module required to manage Oracle' if $@;
         };
 
-        my $dsn = 'dbi:Oracle:';
-        if ($self->host || $self->port) {
-            $dsn .=  join ';' => map {
-                "$_->[0]=$_->[1]"
-            } grep { $_->[1] } (
-                [ sid   => $self->db_name ],
-                [ host  => $self->host    ],
-                [ port  => $self->port    ],
-            );
-        } else {
-            $dsn .= $self->db_name if $self->db_name;
-        }
-
-        DBI->connect($dsn, $self->username, $self->password, {
+        my $uri = $self->db_uri;
+        DBI->connect($uri->dbi_dsn, $uri->user, $uri->password, {
             PrintError        => 0,
             RaiseError        => 0,
             AutoCommit        => 1,
@@ -195,12 +131,7 @@ has dbh => (
 
 sub config_vars {
     return (
-        client        => 'any',
-        username      => 'any',
-        password      => 'any',
-        db_name       => 'any',
-        host          => 'any',
-        port          => 'int',
+        shift->SUPER::config_vars,
         sqitch_schema => 'any',
     );
 }
@@ -412,7 +343,7 @@ sub initialized {
           FROM all_tables
          WHERE owner = UPPER(?)
            AND table_name = 'CHANGES'
-    }, undef, $self->sqitch_schema || $self->username)->[0];
+    }, undef, $self->sqitch_schema || $self->db_uri->user)->[0];
 }
 
 sub _log_event {
@@ -752,17 +683,18 @@ sub _no_table_error  {
 
 sub _script {
     my $self   = shift;
-    my $target = $self->username // '';
-    if (my $pass = $self->password) {
+    my $uri    = $self->db_uri;
+    my $target = $uri->user // '';
+    if (my $pass = $uri->password) {
         $pass =~ s/"/""/g;
         $target .= qq{/"$pass"};
     }
-    if (my $db = $self->db_name) {
+    if (my $db = $uri->dbname) {
         $target .= '@';
         $db =~ s/"/""/g;
-        if ($self->host || $self->port) {
-            $target .= '//' . ($self->host || '');
-            if (my $port = $self->port) {
+        if ($uri->host || $uri->_port) {
+            $target .= '//' . ($uri->host || '');
+            if (my $port = $uri->_port) {
                 $target .= ":$port";
             }
             $target .= qq{/"$db"};
@@ -838,13 +770,9 @@ supports Oracle 8.4.0 and higher.
 Returns a hash of names and types to use for variables in the C<core.oracle>
 section of the a Sqitch configuration file. The variables and their types are:
 
-  client        => 'any'
-  username      => 'any'
-  password      => 'any'
-  db_name       => 'any'
-  host          => 'any'
-  port          => 'int'
-  sqitch_schema => 'any'
+  db_uri        => 'any',
+  client        => 'any',
+  sqitch_schema => 'any',
 
 =head2 Instance Methods
 
