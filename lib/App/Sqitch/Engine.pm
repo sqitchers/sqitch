@@ -39,12 +39,6 @@ has log_only => (
     default => 0,
 );
 
-# Add db_uri. Precedence:
-# 1. Get URI in command.
-# 2. If not found, get URI from config file.
-# 3. If not found, construct from parts in config file. (deprecated)
-# 4. If command-line-options, override parts in URIs.
-
 has with_verify => (
     is      => 'rw',
     isa     => 'Bool',
@@ -76,7 +70,6 @@ has _variables => (
         clear_variables => 'clear',
     },
 );
-
 
 # 1. Just accept if explicitly passed.
 # 2. If not passed
