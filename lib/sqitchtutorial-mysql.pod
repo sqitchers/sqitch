@@ -61,12 +61,8 @@ Let's have a look at F<sqitch.conf>:
   	# verify_dir = verify
   	# extension = sql
   # [core "mysql"]
+  	# db_uri = db:mysql:
   	# client = /usr/local/mysql/bin/mysql
-  	# username = 
-  	# password = 
-  	# db_name = 
-  	# host = 
-  	# port = 
   	# sqitch_db = sqitch
 
 Good, it picked up on the fact that we're creating changes for the MySQL
@@ -369,12 +365,11 @@ When we look at the status, the deployment will be there:
 
 =head1 More Configuration
 
-I'm getting a little tired of always having to type
-C<--db-user root --db-name flipr_test>, aren't you? Let's just make that the
-default, shall we?
+I'm getting a little tired of always having to type C<--db-user root --db-name
+flipr_test>, aren't you? Sqitch uses URIs to determine how to connect to the
+database, so let's give it a default URI, shall we?
 
-  > sqitch config core.mysql.username root
-  > sqitch config core.mysql.db_name flipr_test
+  > sqitch config core.mysql.db_uri db:mysql://root@/flipr_test
 
 Now we can leave it out, unless we need to deploy to another database. Which
 we will, eventually, but at least our examples will be simpler from here on

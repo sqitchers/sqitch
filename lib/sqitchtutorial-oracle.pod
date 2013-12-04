@@ -64,12 +64,8 @@ Let's have a look at F<sqitch.conf>:
   	# verify_dir = verify
   	# extension = sql
   # [core "oracle"]
+  	# db_uri = db:oracle:
   	# client = /usr/local/instantclient_11_2/sqlplus
-  	# username = 
-  	# password = 
-  	# db_name = 
-  	# host = 
-  	# port = 
   	# sqitch_schema = 
 
 Good, it picked up on the fact that we're creating changes for the Oracle
@@ -371,16 +367,10 @@ When we look at the status, the deployment will be there:
 =head1 More Configuration
 
 I'm getting a little tired of always having to type C<--db-name flipr_test>,
-and C<--db-user scott/tiger>, aren't you? Let's just make these the default,
-shall we? Start with the database name:
+and C<--db-user scott/tiger>, aren't you? Sqitch uses URIs to determine how to
+connect to the database, so let's give it a default URI, shall we?
 
-  > sqitch config core.oracle.db_name flipr_test
-
-And set the database username and password in the Sqitch user config, since it
-might vary for other folks who have checked out our Git repository.
-
-  > sqitch config --user core.oracle.username scott
-  > sqitch config --user core.oracle.password tiger
+  > sqitch config core.oracle.db_uri db:oracle://scott:tiger@/flipr_test
 
 Now we can omit the those options, unless we need to deploy to another
 database or with a different username. Which we will, eventually, but at least
