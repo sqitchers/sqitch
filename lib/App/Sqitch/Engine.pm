@@ -99,15 +99,14 @@ has db_uri => ( is => 'rw', isa => 'URI::db', lazy => 1, default => sub {
         $uri = URI::db->new("db:$engine:");
 
         # XXX Deprecated use of other config variables.
-        my %uri_meth_for = (
-            username      => 'user',
-            password      => 'password',
-            db_name       => 'dbname',
-            host          => 'host',
-            port          => 'port',
-        );
-
-        while (my ($key, $meth) = each %uri_meth_for) {
+        for my $spec (
+            [username      => 'user'],
+            [password      => 'password'],
+            [db_name       => 'dbname'],
+            [host          => 'host'],
+            [port          => 'port'],
+        ) {
+            my ($key, $meth) = @{ $spec };
             my $val = $config->get( key => "core.$engine.$key" ) or next;
             $uri->$meth($val);
         }
