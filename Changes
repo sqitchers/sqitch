@@ -1,6 +1,6 @@
 Revision history for Perl extension App::Sqitch
 
-0.984
+0.990
      - Deprecated most engine-specific connection attributes configuration
        variables and replaced them with one, `db_uri`. This is a URI that
        conforms to a proposed standard for specifing database connections. Its

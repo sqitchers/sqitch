@@ -11,7 +11,7 @@ use List::Util qw(first max);
 use URI::db;
 use namespace::autoclean;
 
-our $VERSION = '0.984';
+our $VERSION = '0.990';
 
 has sqitch => (
     is       => 'ro',
