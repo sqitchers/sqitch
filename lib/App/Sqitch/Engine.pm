@@ -107,9 +107,7 @@ has db_uri => ( is => 'rw', isa => 'URI::db', lazy => 1, default => sub {
             port          => 'port',
         );
 
-        my %config_vars = $self->config_vars;
-        for my $key (keys %config_vars) {
-            my $meth = $uri_meth_for{$key} or next;
+        while (my ($key, $meth) = each %uri_meth_for) {
             my $val = $config->get( key => "core.$engine.$key" ) or next;
             $uri->$meth($val);
         }
