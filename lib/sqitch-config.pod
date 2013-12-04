@@ -566,31 +566,15 @@ Configuration properties for the Oracle engine.
 Path to the C<sqlplus> command-line client. Defaults to the first instance
 found in C<$ORACLE_HOME> or the path.
 
-=item C<core.oracle.username>
+=item C<core.oracle.db_uri>
 
-User name to use when connecting to the Oracle database
-
-=item C<core.oracle.password>
-
-Password to use when connecting to the Oracle database.
-
-=item C<core.oracle.db_name>
-
-Name of the Oracle database.
-
-=item C<core.oracle.host>
-
-Host name to use when connecting to the database.
-
-=item C<core.oracle.port>
-
-Port number to connect to.
+Oracle database connection URI.
 
 =item C<core.oracle.sqitch_schema>
 
 The name of the schema in which Sqitch metadata will be stored. No other data
 should be stored in this schema. Uses the current schema by default (usually
-the same name as C<core.oracle.username>.
+the same name as the connection user.
 
 =back
 
