@@ -67,11 +67,6 @@ has dbh => (
         };
 
         my $uri = $self->sqitch_db_uri;
-        hurl mysql => __x(
-            'Database name missing in URI {uri}',
-            uri => $uri
-        ) unless $uri->dbname;
-
         my $dbh = DBI->connect($uri->dbi_dsn, scalar $uri->user, scalar $uri->password, {
             PrintError           => 0,
             RaiseError           => 0,
@@ -129,6 +124,12 @@ has mysql => (
     default    => sub {
         my $self = shift;
         my $uri  = $self->db_uri;
+
+        $self->sqitch->warn(__x
+            'Database name missing in URI "{uri}"',
+            uri => $uri
+        ) unless $uri->dbname;
+
         my @ret  = ( $self->client );
         for my $spec (
             [ user     => $uri->user   ],

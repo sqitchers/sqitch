@@ -50,8 +50,16 @@ my @std_opts = (
     '--skip-column-names',
     '--skip-line-numbers',
 );
+my $mock_sqitch = Test::MockModule->new('App::Sqitch');
+my $warning;
+$mock_sqitch->mock(warn => sub { shift; $warning = [@_] });
 is_deeply [$mysql->mysql], [$client, @std_opts],
     'mysql command should be std opts-only';
+is_deeply $warning, [__x
+    'Database name missing in URI "{uri}"',
+     uri => $mysql->db_uri
+], 'Should have emitted a warning for no database name';
+$mock_sqitch->unmock_all;
 
 isa_ok $mysql = $CLASS->new(
     sqitch => $sqitch,
@@ -161,7 +169,6 @@ is_deeply [$mysql->mysql], [qw(
 ##############################################################################
 # Test _run(), _capture(), and _spool().
 can_ok $mysql, qw(_run _capture _spool);
-my $mock_sqitch = Test::MockModule->new('App::Sqitch');
 my @run;
 $mock_sqitch->mock(run => sub { shift; @run = @_; });
 
