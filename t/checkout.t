@@ -227,8 +227,10 @@ CONFIG: {
 
 # Mock the execution interface.
 my $mock_sqitch = Test::MockModule->new(ref $sqitch);
-my (@probe_args, $probed);
+my (@probe_args, $probed, $engine, $orig_emethod);
 $mock_sqitch->mock(probe => sub { shift; @probe_args = @_; $probed });
+$mock_sqitch->mock(engine => sub { $engine = shift->$orig_emethod(@_) });
+$orig_emethod = $mock_sqitch->original('engine');
 
 my @run_args;
 $mock_sqitch->mock(run => sub { shift; @run_args = @_ });
@@ -327,8 +329,8 @@ is_deeply \@dep_args, [undef, 'tag'],
 is_deeply \@dep_changes, [qw(roles users thingíes)],
     'Should have had the other branch changes (decoded) for deploy';
 
-ok $sqitch->engine->with_verify, 'Engine should verify';
-ok $sqitch->engine->log_only, 'The engine should be set to log_only';
+ok $engine->with_verify, 'Engine should verify';
+ok $engine->log_only, 'The engine should be set to log_only';
 is @vars, 2, 'Variables should have been passed to the engine twice';
 is_deeply { @{ $vars[0] } }, { hey => 'there' },
     'The revert vars should have been passed first';

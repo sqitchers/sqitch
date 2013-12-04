@@ -97,19 +97,15 @@ has _engine => (
     }
 );
 
-has engine => (
-    is      => 'ro',
-    isa     => 'App::Sqitch::Engine',
-    lazy    => 1,
-    default => sub {
-        my $self = shift;
-        require App::Sqitch::Engine;
-        App::Sqitch::Engine->load({
-            sqitch => $self,
-            engine => $self->_engine,
-        });
-    }
-);
+sub engine {
+    my $self = shift;
+    require App::Sqitch::Engine;
+    App::Sqitch::Engine->load({
+        sqitch => $self,
+        engine => $self->_engine,
+        @_,
+    });
+}
 
 # Attributes useful to engines; no defaults.
 has db_client   => ( is => 'ro', isa => 'Str' );
@@ -743,8 +739,6 @@ Constructs and returns a new Sqitch object. The supported parameters include:
 
 =item C<plan_file>
 
-=item C<engine>
-
 =item C<db_client>
 
 =item C<db_name>
@@ -778,8 +772,6 @@ Constructs and returns a new Sqitch object. The supported parameters include:
 =head2 Accessors
 
 =head3 C<plan_file>
-
-=head3 C<engine>
 
 =head3 C<db_client>
 
@@ -825,6 +817,13 @@ configuration files.
 Runs a system command and waits for it to finish. Throws an exception on
 error. Does not use the shell, so arguments must be passed as a list. Use
 C<shell> to run a command and its arguments as a single string.
+
+=head3 C<engine>
+
+  my $engine = $sqitch->engine(@params);
+
+Creates and returns an engine of the appropriate subclass. Pass in additional
+parameters to be passed through to the engine constructor.
 
 =head3 C<shell>
 

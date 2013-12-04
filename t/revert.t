@@ -127,9 +127,14 @@ $mock_engine->mock(revert => sub { shift; @args = @_ });
 my @vars;
 $mock_engine->mock(set_variables => sub { shift; @vars = @_ });
 
+my $mock_sqitch = Test::MockModule->new(ref $sqitch);
+my ($engine, $orig_emethod);
+$mock_sqitch->mock(engine => sub { $engine = shift->$orig_emethod(@_) });
+$orig_emethod = $mock_sqitch->original('engine');
+
 ok $revert->execute('@alpha'), 'Execute to "@alpha"';
-ok $sqitch->engine->no_prompt, 'Engine should be no_prompt';
-ok !$sqitch->engine->log_only, 'Engine should not be log_only';
+ok $engine->no_prompt, 'Engine should be no_prompt';
+ok !$engine->log_only, 'Engine should not be log_only';
 is_deeply \@args, ['@alpha'],
     '"@alpha" and "all" should be passed to the engine';
 
@@ -149,8 +154,8 @@ isa_ok $revert = $CLASS->new(
 
 @args = ();
 ok $revert->execute, 'Execute again';
-ok !$sqitch->engine->no_prompt, 'Engine should not be no_prompt';
-ok $sqitch->engine->log_only, 'Engine should be log_only';
+ok !$engine->no_prompt, 'Engine should not be no_prompt';
+ok $engine->log_only, 'Engine should be log_only';
 is_deeply \@args, ['foo'],
     '"foo" and 1 should be passed to the engine';
 is_deeply {@vars}, { foo => 'bar', one => 1 },
