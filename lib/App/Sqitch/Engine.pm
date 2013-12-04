@@ -136,12 +136,13 @@ sub load {
     my ( $class, $p ) = @_;
 
     # We should have a command.
-    hurl 'Missing "engine" parameter to load()' unless $p->{engine};
+    my $engine = delete $p->{engine}
+        or hurl 'Missing "engine" parameter to load()';
 
     # Load the engine class.
-    my $pkg = __PACKAGE__ . "::$p->{engine}";
+    my $pkg = __PACKAGE__ . "::$engine";
     eval "require $pkg" or hurl "Unable to load $pkg";
-    return $pkg->new( sqitch => $p->{sqitch} );
+    return $pkg->new( $p );
 }
 
 sub name {

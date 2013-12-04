@@ -103,7 +103,7 @@ sub engine {
     App::Sqitch::Engine->load({
         sqitch => $self,
         engine => $self->_engine,
-        @_,
+        ref $_[0] ? %{ $_[0] } : @_
     });
 }
 
