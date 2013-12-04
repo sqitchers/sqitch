@@ -1113,11 +1113,10 @@ the data types. Valid data types include:
 Values ending in C<+> (a plus sign) may be specified multiple times. Example:
 
   (
-      client  => 'any',
-      db_name => 'any',
-      host    => 'any',
-      port    => 'int',
-      set     => 'any+',
+      client => 'any',
+      host   => 'any',
+      port   => 'int',
+      set    => 'any+',
   )
 
 In this example, the C<port> variable will be stored and retrieved as an

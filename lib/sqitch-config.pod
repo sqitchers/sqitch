@@ -498,32 +498,9 @@ Configuration properties for the PostgreSQL engine.
 Path to the C<psql> command-line client. Defaults to the first instance
 found in the path.
 
-=item C<core.pg.username>
+=item C<core.pg.db_uri>
 
-User name to use when connecting to the PostgreSQL database. Defaults to the
-contents of the C<$PGUSER> environment variable or to the current system user
-name.
-
-=item C<core.pg.password>
-
-Password to use when connecting to the PostgreSQL database. Defaults to the
-contents of the C<$PGPASSWORD> environment variable or to the relevant line in
-F<~/.pgpass>, if available.
-
-=item C<core.pg.db_name>
-
-Name of the PostgreSQL database. Defaults to the same as C<--db-user> or to
-the contents of the C<PGDATABASE> environment variable.
-
-=item C<core.pg.host>
-
-Host name to use when connecting to the database. Defaults to the contents of
-the C<$PGHOST> environment variable.
-
-=item C<core.pg.port>
-
-Port number to connect to. Defaults to the contents of the C<$PGPORT>
-environment variable.
+PostgreSQL database connection URI.
 
 =item C<core.pg.sqitch_schema>
 

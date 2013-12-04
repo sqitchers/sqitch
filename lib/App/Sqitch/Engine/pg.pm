@@ -31,39 +31,6 @@ has client => (
     },
 );
 
-has username => (
-    is       => 'ro',
-    isa      => 'Maybe[Str]',
-    lazy     => 1,
-    required => 0,
-    default  => sub {
-        my $sqitch = shift->sqitch;
-        $sqitch->db_username || $sqitch->config->get( key => 'core.pg.username' );
-    },
-);
-
-has password => (
-    is       => 'ro',
-    isa      => 'Maybe[Str]',
-    lazy     => 1,
-    required => 0,
-    default  => sub {
-        shift->sqitch->config->get( key => 'core.pg.password' );
-    },
-);
-
-has db_name => (
-    is       => 'ro',
-    isa      => 'Maybe[Str]',
-    lazy     => 1,
-    required => 0,
-    default  => sub {
-        my $self   = shift;
-        my $sqitch = $self->sqitch;
-        $sqitch->db_name || $sqitch->config->get( key => 'core.pg.db_name' );
-    },
-);
-
 has destination => (
     is       => 'ro',
     isa      => 'Str',
@@ -71,33 +38,14 @@ has destination => (
     required => 1,
     default  => sub {
         my $self = shift;
-        $self->db_name
-            || $ENV{PGDATABASE}
-            || $self->username
+        my $uri = $self->db_uri->clone;
+        $uri->dbname(
+               $ENV{PGDATABASE}
+            || $uri->user
             || $ENV{PGUSER}
             || $self->sqitch->sysuser
-    },
-);
-
-has host => (
-    is       => 'ro',
-    isa      => 'Maybe[Str]',
-    lazy     => 1,
-    required => 0,
-    default  => sub {
-        my $sqitch = shift->sqitch;
-        $sqitch->db_host || $sqitch->config->get( key => 'core.pg.host' );
-    },
-);
-
-has port => (
-    is       => 'ro',
-    isa      => 'Maybe[Int]',
-    lazy     => 1,
-    required => 0,
-    default  => sub {
-        my $sqitch = shift->sqitch;
-        $sqitch->db_port || $sqitch->config->get( key => 'core.pg.port' );
+        ) unless $uri->dbname;
+        return $uri->as_string;
     },
 );
 
@@ -120,12 +68,13 @@ has psql => (
     auto_deref => 1,
     default    => sub {
         my $self = shift;
+        my $uri  = $self->db_uri;
         my @ret  = ( $self->client );
         for my $spec (
-            [ username => $self->username ],
-            [ dbname   => $self->db_name  ],
-            [ host     => $self->host     ],
-            [ port     => $self->port     ],
+            [ username => $uri->user   ],
+            [ dbname   => $uri->dbname ],
+            [ host     => $uri->host   ],
+            [ port     => $uri->_port  ],
             )
         {
             push @ret, "--$spec->[0]" => $spec->[1] if $spec->[1];
@@ -158,15 +107,8 @@ has dbh => (
             hurl pg => __ 'DBD::Pg module required to manage PostgreSQL' if $@;
         };
 
-        my $dsn = 'dbi:Pg:' . join ';' => map {
-            "$_->[0]=$_->[1]"
-        } grep { $_->[1] } (
-            [ dbname   => $self->db_name  ],
-            [ host     => $self->host     ],
-            [ port     => $self->port     ],
-        );
-
-        DBI->connect($dsn, $self->username, $self->password, {
+        my $uri = $self->db_uri;
+        DBI->connect($uri->dbi_dsn, scalar $uri->user, scalar $uri->password, {
             PrintError        => 0,
             RaiseError        => 0,
             AutoCommit        => 1,
@@ -198,12 +140,7 @@ has dbh => (
 
 sub config_vars {
     return (
-        client        => 'any',
-        username      => 'any',
-        password      => 'any',
-        db_name       => 'any',
-        host          => 'any',
-        port          => 'int',
+        shift->SUPER::config_vars,
         sqitch_schema => 'any',
     );
 }
@@ -531,7 +468,8 @@ sub _update_ids {
 sub _run {
     my $self   = shift;
     my $sqitch = $self->sqitch;
-    my $pass   = $self->password or return $sqitch->run( $self->psql, @_ );
+    my $uri    = $self->db_uri;
+    my $pass   = $uri->password or return $sqitch->run( $self->psql, @_ );
     local $ENV{PGPASSWORD} = $pass;
     return $sqitch->run( $self->psql, @_ );
 }
@@ -539,7 +477,8 @@ sub _run {
 sub _capture {
     my $self   = shift;
     my $sqitch = $self->sqitch;
-    my $pass   = $self->password or return $sqitch->capture( $self->psql, @_ );
+    my $uri    = $self->db_uri;
+    my $pass   = $uri->password or return $sqitch->capture( $self->psql, @_ );
     local $ENV{PGPASSWORD} = $pass;
     return $sqitch->capture( $self->psql, @_ );
 }
@@ -548,7 +487,8 @@ sub _spool {
     my $self   = shift;
     my $fh     = shift;
     my $sqitch = $self->sqitch;
-    my $pass   = $self->password or return $sqitch->spool( $fh, $self->psql, @_ );
+    my $uri    = $self->db_uri;
+    my $pass   = $uri->password or return $sqitch->spool( $fh, $self->psql, @_ );
     local $ENV{PGPASSWORD} = $pass;
     return $sqitch->spool( $fh, $self->psql, @_ );
 }
@@ -582,12 +522,8 @@ supports PostgreSQL 8.4.0 and higher.
 Returns a hash of names and types to use for variables in the C<core.pg>
 section of the a Sqitch configuration file. The variables and their types are:
 
+  db_uri        => 'any',
   client        => 'any'
-  username      => 'any'
-  password      => 'any'
-  db_name       => 'any'
-  host          => 'any'
-  port          => 'int'
   sqitch_schema => 'any'
 
 =head2 Instance Methods

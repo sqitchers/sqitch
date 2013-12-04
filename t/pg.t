@@ -25,26 +25,22 @@ BEGIN {
 }
 
 is_deeply [$CLASS->config_vars], [
+    db_uri        => 'any',
     client        => 'any',
-    username      => 'any',
-    password      => 'any',
-    db_name       => 'any',
-    host          => 'any',
-    port          => 'int',
     sqitch_schema => 'any',
 ], 'config_vars should return three vars';
 
-my $sqitch = App::Sqitch->new;
+my $sqitch = App::Sqitch->new(_engine => 'pg');
 isa_ok my $pg = $CLASS->new(sqitch => $sqitch), $CLASS;
 
+my $uri = URI::db->new('db:pg:');
 my $client = 'psql' . ($^O eq 'MSWin32' ? '.exe' : '');
 is $pg->client, $client, 'client should default to psql';
 is $pg->sqitch_schema, 'sqitch', 'sqitch_schema default should be "sqitch"';
-for my $attr (qw(username password db_name host port)) {
-    is $pg->$attr, undef, "$attr default should be undef";
-}
-
-is $pg->destination, $ENV{PGDATABASE} || $ENV{PGUSER} || $sqitch->sysuser,
+is $pg->db_uri, $uri, 'DB URI should be "db:pg:"';
+my $dest_uri = $uri->clone;
+$dest_uri->dbname($ENV{PGDATABASE} || $ENV{PGUSER} || $sqitch->sysuser);
+is $pg->destination, $dest_uri->as_string,
     'Destination should fall back on environment variables';
 is $pg->meta_destination, $pg->destination,
     'Meta destination should be the same as destination';
@@ -81,7 +77,7 @@ ENV: {
     for my $env (qw(PGDATABASE PGUSER)) {
         my $pg = $CLASS->new(sqitch => $sqitch);
         local $ENV{$env} = "\$ENV=whatever";
-        is $pg->destination, "\$ENV=whatever", "Destination should read \$$env";
+        is $pg->destination, "db:pg:\$ENV=whatever", "Destination should read \$$env";
         is $pg->meta_destination, $pg->destination,
             'Meta destination should be the same as destination';
     }
@@ -89,19 +85,15 @@ ENV: {
     my $mocker = Test::MockModule->new('App::Sqitch');
     $mocker->mock(sysuser => 'sysuser=whatever');
     my $pg = $CLASS->new(sqitch => $sqitch);
-    is $pg->destination, 'sysuser=whatever',
+    is $pg->destination, 'db:pg:sysuser=whatever',
         'Destination should fall back on sysuser';
-    is $pg->meta_destination, $pg->destination,
-        'Meta destination should be the same as destination';
-
-    $pg = $CLASS->new(sqitch => $sqitch, username => 'hi');
-    is $pg->destination, 'hi', 'Destination should read username';
     is $pg->meta_destination, $pg->destination,
         'Meta destination should be the same as destination';
 
     $ENV{PGDATABASE} = 'mydb';
     $pg = $CLASS->new(sqitch => $sqitch, username => 'hi');
-    is $pg->destination, 'mydb', 'Destination should prefer $PGDATABASE to username';
+    is $pg->destination, 'db:pg:mydb',
+        'Destination should prefer $PGDATABASE to username';
     is $pg->meta_destination, $pg->destination,
         'Meta destination should be the same as destination';
 }
@@ -110,6 +102,7 @@ ENV: {
 # Make sure config settings override defaults.
 my %config = (
     'core.pg.client'        => '/path/to/psql',
+    'core.pg.db_uri'        => 'db:pg://localhost/try',
     'core.pg.username'      => 'freddy',
     'core.pg.password'      => 's3cr3t',
     'core.pg.db_name'       => 'widgets',
@@ -120,28 +113,39 @@ my %config = (
 $std_opts[-1] = 'sqitch_schema=meta';
 my $mock_config = Test::MockModule->new('App::Sqitch::Config');
 $mock_config->mock(get => sub { $config{ $_[2] } });
-ok $pg = $CLASS->new(sqitch => $sqitch), 'Create another pg';
 
+ok $pg = $CLASS->new(sqitch => $sqitch), 'Create another pg';
 is $pg->client, '/path/to/psql', 'client should be as configured';
-is $pg->username, 'freddy', 'username should be as configured';
-is $pg->password, 's3cr3t', 'password should be as configured';
-is $pg->db_name, 'widgets', 'db_name should be as configured';
-is $pg->destination, 'widgets', 'destination should default to db_name';
-is $pg->meta_destination, 'widgets', 'meta_destination should default to db_name';
-is $pg->host, 'db.example.com', 'host should be as configured';
-is $pg->port, 1234, 'port should be as configured';
+is $pg->db_uri->as_string, 'db:pg://localhost/try',
+    'db_uri should be as configured';
 is $pg->sqitch_schema, 'meta', 'sqitch_schema should be as configured';
 is_deeply [$pg->psql], [qw(
     /path/to/psql
-    --username freddy
-    --dbname   widgets
-    --host     db.example.com
-    --port     1234
-), @std_opts], 'psql command should be configured';
+    --dbname   try
+    --host     localhost
+), @std_opts], 'psql command should be configured from URI config';
 
 ##############################################################################
-# Now make sure that Sqitch options override configurations.
+# Try deprecated config.
+%config = (
+    'core.pg.client'        => '/path/to/psql',
+    'core.pg.username'      => 'freddy',
+    'core.pg.password'      => 's3cr3t',
+    'core.pg.db_name'       => 'widgets',
+    'core.pg.host'          => 'db.example.com',
+    'core.pg.port'          => 1234,
+    'core.pg.sqitch_schema' => 'meta',
+);
+ok $pg = $CLASS->new(sqitch => $sqitch), 'Create yet another pg';
+is $pg->db_uri->as_string, 'db:pg://freddy:s3cr3t@db.example.com:1234/widgets',
+    'DB URI shoudl be derived from deprecated config vars';
+is $pg->destination, $pg->db_uri->as_string, 'destination should be the URI';
+is $pg->meta_destination, $pg->destination, 'meta_destination should default be the URI';
+
+##############################################################################
+# Now make sure that (deprecated?) Sqitch options override configurations.
 $sqitch = App::Sqitch->new(
+    _engine     => 'pg',
     db_client   => '/some/other/psql',
     db_username => 'anna',
     db_name     => 'widgets_dev',
@@ -152,13 +156,10 @@ $sqitch = App::Sqitch->new(
 ok $pg = $CLASS->new(sqitch => $sqitch), 'Create a pg with sqitch with options';
 
 is $pg->client, '/some/other/psql', 'client should be as optioned';
-is $pg->username, 'anna', 'username should be as optioned';
-is $pg->password, 's3cr3t', 'password should still be as configured';
-is $pg->db_name, 'widgets_dev', 'db_name should be as optioned';
-is $pg->destination, 'widgets_dev', 'destination should still default to db_name';
-is $pg->meta_destination, 'widgets_dev', 'meta_destination should still default to db_name';
-is $pg->host, 'foo.com', 'host should be as optioned';
-is $pg->port, 98760, 'port should be as optioned';
+is $pg->db_uri->as_string, 'db:pg://anna:s3cr3t@foo.com:98760/widgets_dev',
+    'db_uri should be as configured';
+is $pg->destination, $pg->db_uri->as_string, 'destination should still be URI';
+is $pg->meta_destination, $pg->destination, 'meta_destination should still be URI';
 is $pg->sqitch_schema, 'meta', 'sqitch_schema should still be as configured';
 is_deeply [$pg->psql], [qw(
     /some/other/psql
@@ -304,6 +305,7 @@ my $err = try {
 DBIEngineTest->run(
     class         => $CLASS,
     sqitch_params => [
+        _engine     => 'pg',
         db_username => 'postgres',
         db_name     => '__sqitchtest__',
         top_dir     => Path::Class::dir(qw(t engine)),
