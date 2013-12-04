@@ -541,26 +541,9 @@ Configuration properties for the MySQL engine.
 Path to the C<mysql> command-line client. Defaults to the first instance
 found in the path.
 
-=item C<core.mysql.username>
+=item C<core.mysql.db_uri>
 
-User name to use when connecting to the MySQL database.
-name.
-
-=item C<core.mysql.password>
-
-Password to use when connecting to the MySQL database.
-
-=item C<core.mysql.db_name>
-
-Name of the MySQL database.
-
-=item C<core.mysql.host>
-
-Host name to use when connecting to the database.
-
-=item C<core.mysql.port>
-
-Port number to connect to.
+MySQL database connection URI.
 
 =item C<core.mysql.sqitch_db>
 
