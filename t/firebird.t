@@ -229,7 +229,6 @@ END {
     foreach my $dbname (qw{__sqitchtest__ __sqitchtest __metasqitch}) {
         my $dbpath = catfile($tmpdir, $dbname);
         next unless -f $dbpath;
-        print "=t= DROP DATABASE $dbpath\n";
         my $dsn = qq{dbi:Firebird:dbname=$dbpath;host=localhost;port=3050};
         $dsn .= q{;ib_dialect=3;ib_charset=UTF8};
 
@@ -242,12 +241,20 @@ END {
             }
         ) or die $DBI::errstr;
 
+        $dbh->{Driver}->visit_child_handles(
+            sub {
+                my $h = shift;
+                $h->disconnect
+                    if $h->{Type} eq 'db' && $h->{Active} && $h ne $dbh;
+            }
+        );
+
         my $res = $dbh->selectall_arrayref(
             q{ SELECT MON$USER FROM MON$ATTACHMENTS }
         );
         if (@{$res} > 1) {
-            # Why do we have more than 1 active connections ???
-            print "    Another active connection detected, can't DROP DATABASE!\n";
+            # Do we have more than 1 active connections?
+            warn "    Another active connection detected, can't DROP DATABASE!\n";
         }
         else {
             $dbh->func('ib_drop_database')
