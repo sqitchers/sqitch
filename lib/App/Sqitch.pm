@@ -107,6 +107,29 @@ sub engine {
     });
 }
 
+sub string_for_db {
+    my ($self, $key) = @_;
+    return unless $key;
+    return $key if $key =~ /^db:/;
+    return $self->config->get( key => "database.$key" );
+}
+
+sub uri_for_db {
+    my ($self, $key) = @_;
+    return unless $key;
+    require URI::db;
+    return URI::db->new( $self->string_for_db($key) or hurl core => __x(
+        'Cannot find database connection "{key}"',
+        key => $key
+    ) );
+}
+
+sub engine_for_db {
+    my $self = shift;
+    my $uri  = $self->uri_for_db(shift) or return $self->engine;
+    return $self->engine( db_uri => $uri );
+}
+
 # Attributes useful to engines; no defaults.
 has db_client   => ( is => 'ro', isa => 'Str' );
 has db_name     => ( is => 'ro', isa => 'Str' );
@@ -824,6 +847,31 @@ C<shell> to run a command and its arguments as a single string.
 
 Creates and returns an engine of the appropriate subclass. Pass in additional
 parameters to be passed through to the engine constructor.
+
+=item C<string_for_db>
+
+  my $string = $sqitch->string_for_db($key);
+
+Returns a string representing a database URI. If C<$key> is a URI itself, it
+will simply be returned. If it is the key naming a database URI in the
+configuration, the value for that key will be returned. Otherwise returns
+C<undef>.
+
+=item C<uri_for_db>
+
+  my $uri = $sqitch->uri_for_db($key);
+
+Like C<string_for_db>, but returns a L<URI::db> object instead of a string.
+Returns C<undef> if C<$key> is undefined or empty. If C<$key> is defined and
+not itself a URI string, and no value can be found for it in the
+confifuration, an exception will be thrown.
+
+=item C<engine_for_db>
+
+  my $engine = $sqitch->engine_for($key);
+
+Like C<uri_for_db>, but returns an L<App::Sqitch::Engine> object. If C<$key>
+is not defined or is empty, an engine will be returned with the default URI.
 
 =head3 C<shell>
 
