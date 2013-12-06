@@ -126,6 +126,7 @@ has dbh => (
                     return;
                 },
             },
+            $uri->query_params,
         });
     }
 );
