@@ -102,21 +102,21 @@ for my $spec (
 }
 
 ##############################################################################
-# Make sure URIs passed to the construtor do not get merged.
+# Make sure URIs passed to the construtor get merged.
 $sqitch = App::Sqitch->new(@sqitch_params, db_name => 'foo');
 isa_ok $thing = App::Sqitch::Engine->new({
     sqitch => $sqitch,
     db_uri => URI->new('db:pg:blah'),
 }), 'App::Sqitch::Engine', 'Thing with URI';
-is $thing->db_uri->as_string, 'db:pg:blah', 'DB name should not be merged into URI';
+is $thing->db_uri->as_string, 'db:pg:foo', 'DB name should be merged into URI';
 
 $sqitch = App::Sqitch->new(@sqitch_params, db_name => 'foo', db_host => 'foo.com');
 isa_ok $thing = App::Sqitch::Engine->new({
     sqitch => $sqitch,
     db_uri => URI->new('db:pg://localhost:1234/blah'),
 }), 'App::Sqitch::Engine', 'Thing with full URI';
-is $thing->db_uri->as_string, 'db:pg://localhost:1234/blah',
-    'DB host and name should not be merged into URI';
+is $thing->db_uri->as_string, 'db:pg://foo.com:1234/foo',
+    'DB host and name should be merged into URI';
 
 # Make sure we can assign to db_uri.
 ok $thing->db_uri( URI->new('db:pg:foo' ) ),

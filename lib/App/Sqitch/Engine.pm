@@ -71,12 +71,18 @@ has _variables => (
     },
 );
 
-# 1. Just accept if explicitly passed.
-# 2. If not passed
-#    a. Look for core.$engine.database; or
-#    b. Construct from config.$engine.@parts (deprecated); or
-#    c. Default to "db:$engine:"
-# 3. If command-line-options, override parts in URIs.
+# * If not passed
+#   a. Look for core.$engine.database; or
+#   b. Construct from config.$engine.@parts (deprecated); or
+#   c. Default to "db:$engine:"
+# * If command-line-options, override parts in the URI.
+
+sub BUILD {
+    my ($self, $args) = @_;
+    if (my $uri = $args->{db_uri}) {
+        $self->_merge_options_into($uri);
+    }
+}
 
 has db_uri => ( is => 'rw', isa => 'URI::db', lazy => 1, default => sub {
     my $self   = shift;
@@ -104,6 +110,13 @@ has db_uri => ( is => 'rw', isa => 'URI::db', lazy => 1, default => sub {
         }
     }
 
+    return $self->_merge_options_into($uri);
+});
+
+sub _merge_options_into {
+    my ($self, $uri) = @_;
+    my $sqitch = $self->sqitch;
+
     # Override parts with command-line options (deprecate?)
     if (my $host = $sqitch->db_host) {
         $uri->host($host);
@@ -122,7 +135,7 @@ has db_uri => ( is => 'rw', isa => 'URI::db', lazy => 1, default => sub {
     }
 
     return $uri;
-});
+}
 
 # This is purely for configuration.
 has database => ( is => 'ro', isa => 'Str', lazy => 1, default => sub {
