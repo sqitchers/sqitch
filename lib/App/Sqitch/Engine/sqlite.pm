@@ -43,25 +43,36 @@ sub BUILD {
     }
 }
 
-has sqitch_db_uri => (
+has registry => (
+    is       => 'ro',
+    isa      => 'Str',
+    lazy     => 1,
+    required => 1,
+    default  => sub {
+        my $config = shift->sqitch->config;
+        return $config->get( key => 'core.sqlite.registry' ) || 'sqitch';
+    },
+);
+
+has registry_uri => (
     is       => 'ro',
     isa      => 'URI::db',
     lazy     => 1,
     required => 1,
     default  => sub {
         my $self   = shift;
-        my $config = $self->sqitch->config;
-        if (my $config_uri = $config->get( key => 'core.sqlite.sqitch_db_uri' )) {
-            return URI::db->new($config_uri);
-        }
-
         my $uri = $self->db_uri->clone;
-        if (my $db = $config->get( key => 'core.sqlite.sqitch_db' ) ) {
+        if (my $db = $self->sqitch->config->get( key => 'core.sqlite.sqitch_db' ) ) {
             # ### Deprecated Sqitch database file name.
             $uri->dbname($db);
         } elsif (my @segs = $uri->path_segments) {
-            # Use the same name, but replace $name.$ext with sqitch.$ext.
-            $segs[-1] =~ s/^[^.]+[.](.+)/sqitch.$1/;
+            # Use the same name, but replace $name.$ext with $reg.$ext.
+            my $reg = $self->registry;
+            if ($reg =~ /[.]/) {
+                $segs[-1] =~ s/^[^.]+(?:[.].+)?$/$reg/;
+            } else {
+                $segs[-1] =~ s/^[^.]+([.].+)?$/$reg$1/;
+            }
             $uri->path_segments(@segs);
         } else {
             # No known path, so no name.
@@ -73,7 +84,7 @@ has sqitch_db_uri => (
 );
 
 sub meta_destination {
-    my $uri = shift->sqitch_db_uri;
+    my $uri = shift->registry_uri;
     if ($uri->password) {
         $uri = $uri->clone;
         $uri->password(undef);
@@ -91,12 +102,7 @@ has dbh => (
             hurl sqlite => __ 'DBD::SQLite module required to manage SQLite';
         };
 
-        my $uri = $self->sqitch_db_uri;
-        hurl sqlite => __x(
-            'Database name missing in URI {uri}',
-            uri => $uri
-        ) unless $uri->dbname;
-
+        my $uri = $self->registry_uri;
         my $dbh = DBI->connect($uri->dbi_dsn, '', '', {
             PrintError        => 0,
             RaiseError        => 0,
@@ -149,12 +155,17 @@ has sqlite3 => (
             version => join( '.', @v)
         ) unless $v[0] > 3 || ($v[0] == 3 && ($v[1] > 3 || ($v[1] == 3 && $v[2] >= 9)));
 
+        my $dbname = $self->db_uri->dbname or hurl sqlite => __x(
+            'Database name missing in URI {uri}',
+            uri => $self->db_uri,
+        );
+
         return [
             $self->client,
             '-noheader',
             '-bail',
             '-csv', # or -column or -line?
-            $self->db_uri->dbname
+            $dbname,
         ];
     },
 );
@@ -162,7 +173,7 @@ has sqlite3 => (
 sub config_vars {
     return (
         shift->SUPER::config_vars,
-        sqitch_db_uri => 'any',
+        registry => 'any',
     );
 }
 
@@ -179,12 +190,12 @@ sub initialize {
     my $self   = shift;
     hurl engine => __x(
         'Sqitch database {database} already initialized',
-        database => $self->meta_destination,
+        database => $self->registry_uri->dbname,
     ) if $self->initialized;
 
     # Load up our database.
     my @cmd = $self->sqlite3;
-    $cmd[-1] = $self->sqitch_db_uri->dbname;
+    $cmd[-1] = $self->registry_uri->dbname;
     my $file = file(__FILE__)->dir->file('sqlite.sql');
     $self->sqitch->run( @cmd, '.read ' . $self->dbh->quote($file) );
 }
@@ -278,9 +289,9 @@ App::Sqitch::Engine::sqlite provides the SQLite storage engine for Sqitch.
 Returns a hash of names and types to use for variables in the C<core.sqlite>
 section of the a Sqitch configuration file. The variables and their types are:
 
-  database      => 'any',
-  client        => 'any',
-  sqitch_db_uri => 'any',
+  database  => 'any',
+  registry  => 'any',
+  client    => 'any',
 
 =head2 Accessors
 

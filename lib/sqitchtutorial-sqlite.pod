@@ -62,8 +62,8 @@ Let's have a look at F<sqitch.conf>:
 	# extension = sql
   # [core "sqlite"]
 	# database = db:sqlite:
+	# registry = sqitch
 	# client = sqlite3
-	# sqitch_db =
 
 Good, it picked up on the fact that we're creating changes for the SQLite
 engine, thanks to the C<--engine sqlite> option, and saved it to the file.
@@ -177,20 +177,20 @@ Now we can try deploying this change:
   Deploying changes to flipr_test.db
 	+ users .. ok
 
-First Sqitch created the metadata database and tables used to track database
-changes. This database is separate from the database to which the C<users>
+First Sqitch created the registry database and tables used to track database
+changes. The registry is separate from the database to which the C<users>
 change was deployed; by default, its name is C<sqitch.$suffix>, where
 C<$suffix> is the same as the suffix on the destination database, if any. It
 lives in the same directory as the destination database. This will be useful
 if you use the SQLite L<C<ATTACHDATABASE>|http://www.sqlite.org/lang_attach.html>
 command to manage multiple database files in a single project. In that case,
-you will want to use the same metadata file for all the databases. Keep them
-all in the same directory with the same suffix and you get just that with the
-default sqitch database.
+you will want to use the same file for all the databases. Keep them all in the
+same directory with the same suffix and you get just that with the default
+sqitch database.
 
-If you'd like it to have a different name, use
-C<sqitch config core.sqlite.sqitch_db $name> to configure it. This will be
-useful if you don't want to use the same Sqitch database to manage multiple
+If you'd like it to have a different name for the registry database, use
+C<sqitch config core.sqlite.registry $name> to configure it. This will be
+useful if you don't want to use the same registry database to manage multiple
 databases, or if you do, but they live in different directories.
 
 Next, Sqitch deploys changes to the destination database, which we specified
