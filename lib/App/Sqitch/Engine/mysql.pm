@@ -50,7 +50,6 @@ has registry_uri => (
     isa      => 'URI::db',
     lazy     => 1,
     required => 1,
-    handles  => { meta_destination => 'as_string' },
     default  => sub {
         my $self = shift;
         my $uri = $self->db_uri->clone;
@@ -58,6 +57,15 @@ has registry_uri => (
         return $uri;
     },
 );
+
+sub meta_destination {
+    my $uri = shift->registry_uri;
+    if ($uri->password) {
+        $uri = $uri->clone;
+        $uri->password(undef);
+    }
+    return $uri->as_string;
+}
 
 has dbh => (
     is      => 'rw',

@@ -123,8 +123,8 @@ like $mysql->destination, qr{^db:mysql://freddy"?:\@db\.example\.com:1234/widget
 is $mysql->registry, 'meta', 'registry should be as configured';
 is $mysql->registry_uri->as_string, 'db:mysql://freddy:s3cr3t@db.example.com:1234/meta',
     'Sqitch DB URI should be the same as db_uri but with DB name "meta"';
-is $mysql->meta_destination, $mysql->registry_uri->as_string,
-    'meta_destination should be the sqitch DB URL';
+like $mysql->meta_destination, qr{^db:mysql://freddy:?\@db\.example\.com:1234/meta$},
+    'meta_destination should be the sqitch DB URL sans password';
 is_deeply [$mysql->mysql], [qw(
     /path/to/mysql
     --user     freddy
@@ -156,8 +156,8 @@ like $mysql->destination, qr{^db:mysql://anna:?\@foo\.com:98760/widgets_dev$},
 is $mysql->registry, 'meta', 'registry should be as configured';
 is $mysql->registry_uri->as_string, 'db:mysql://anna:s3cr3t@foo.com:98760/meta',
     'Sqitch DB URI should be the same as db_uri but with DB name "meta"';
-is $mysql->meta_destination, $mysql->registry_uri->as_string,
-    'meta_destination should be the sqitch DB URL';
+like $mysql->meta_destination, qr{^db:mysql://anna:?\@foo\.com:98760/meta$},
+    'meta_destination should be the sqitch DB URL sans password';
 is $mysql->registry, 'meta', 'registry should still be as configured';
 is_deeply [$mysql->mysql], [qw(
     /some/other/mysql
