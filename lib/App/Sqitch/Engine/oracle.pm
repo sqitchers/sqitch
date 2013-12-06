@@ -51,6 +51,7 @@ has destination => (
     default  => sub {
         my $self = shift;
         my $uri = $self->db_uri->clone;
+        $uri->password(undef) if $uri->password;
         $uri->dbname(
                $ENV{TWO_TASK}
             || ( $^O eq 'MSWin32' ? $ENV{LOCAL} : undef )

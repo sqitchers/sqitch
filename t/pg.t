@@ -138,8 +138,9 @@ is_deeply [$pg->psql], [qw(
 );
 ok $pg = $CLASS->new(sqitch => $sqitch), 'Create yet another pg';
 is $pg->db_uri->as_string, 'db:pg://freddy:s3cr3t@db.example.com:1234/widgets',
-    'DB URI shoudl be derived from deprecated config vars';
-is $pg->destination, $pg->db_uri->as_string, 'destination should be the URI';
+    'DB URI should be derived from deprecated config vars';
+like $pg->destination, qr{^db:pg://freddy:?\@db\.example\.com:1234/widgets$},
+    'destination should be the URI without the password';
 is $pg->meta_destination, $pg->destination, 'meta_destination should default be the URI';
 
 ##############################################################################
@@ -158,7 +159,8 @@ ok $pg = $CLASS->new(sqitch => $sqitch), 'Create a pg with sqitch with options';
 is $pg->client, '/some/other/psql', 'client should be as optioned';
 is $pg->db_uri->as_string, 'db:pg://anna:s3cr3t@foo.com:98760/widgets_dev',
     'db_uri should be as configured';
-is $pg->destination, $pg->db_uri->as_string, 'destination should still be URI';
+like $pg->destination, qr{^db:pg://anna:?\@foo\.com:98760/widgets_dev$},
+    'destination should be the URI without the password';
 is $pg->meta_destination, $pg->destination, 'meta_destination should still be URI';
 is $pg->sqitch_schema, 'meta', 'sqitch_schema should still be as configured';
 is_deeply [$pg->psql], [qw(

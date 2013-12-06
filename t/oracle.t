@@ -193,7 +193,8 @@ ok $ora = $CLASS->new(sqitch => $sqitch), 'Create another ora';
 is $ora->client, '/path/to/sqlplus', 'client should be as configured';
 is $ora->db_uri->as_string, 'db:oracle://bob:hi@db.net:12/howdy',
     'DB URI should be as configured';
-is $ora->destination, $ora->db_uri->as_string, 'Destinations should be the URI';
+like $ora->destination, qr{^db:oracle://bob:?\@db\.net:12/howdy$},
+    'Destination should be the URI without the password';
 is $ora->meta_destination, $ora->destination,
     'meta_destination should replace be the same URI';
 is $ora->sqitch_schema, 'meta', 'sqitch_schema should be as configured';
@@ -214,7 +215,8 @@ ok $ora = $CLASS->new(sqitch => $sqitch), 'Create yet another ora';
 is $ora->client, '/path/to/sqlplus', 'client should be as configured';
 is $ora->db_uri->as_string, 'db:oracle://freddy:s3cr3t@db.example.com:1234/widgets',
     'DB URI should be constructed from old config variables';
-is $ora->destination, $ora->db_uri->as_string, 'Destinations should be the URI';
+like $ora->destination, qr{^db:oracle://freddy:?\@db\.example\.com:1234/widgets$},
+    'Destination should be the URI without the password';
 is $ora->meta_destination, $ora->destination,
     'meta_destination should be the same URI';
 is $ora->sqitch_schema, 'meta', 'sqitch_schema should be as configured';
@@ -237,8 +239,8 @@ ok $ora = $CLASS->new(sqitch => $sqitch), 'Create a ora with sqitch with options
 is $ora->client, '/some/other/sqlplus', 'client should be as optioned';
 is $ora->db_uri->as_string, 'db:oracle://anna:s3cr3t@foo.com:98760/widgets_dev',
     'DB URI should have attributes overridden by options';
-is $ora->destination, $ora->db_uri->as_string,
-    'Destinations should still be the URI';
+like $ora->destination, qr{^db:oracle://anna:?\@foo\.com:98760/widgets_dev$},
+    'Destination should be the URI without the password';
 is $ora->meta_destination, $ora->destination,
     'meta_destination should still be the same URI';
 is $ora->sqitch_schema, 'meta', 'sqitch_schema should still be as configured';

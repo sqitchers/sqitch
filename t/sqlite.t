@@ -41,6 +41,17 @@ is $sqlite->destination, $sqlite->db_uri->as_string,
 is $sqlite->meta_destination, $sqlite->sqitch_db_uri->as_string,
     'Meta destination should be sqitch_db_uri stringified';
 
+# Make sure the password is suppressed in the destination, should anyone be
+# silly enough to include on in an SQLite URI.
+isa_ok $sqlite = $CLASS->new(
+    sqitch => $sqitch,
+    db_uri => URI->new('db:sqlite://foo:bar@localhost/my.db'),
+), $CLASS;
+like $sqlite->destination, qr{^db:sqlite://foo:?\@localhost/foo.db$},
+    'Destination should exclude password';
+like $sqlite->meta_destination, qr{^db:sqlite://foo:?\@localhost/sqitch\.db$},
+    'Destination should also exclude password';
+
 # Pretend for now that we always have a valid SQLite.
 my $mock_sqitch = Test::MockModule->new(ref $sqitch);
 my $sqlite_version = '3.7.12 2012-04-03 19:43:07 86b8481be7e76cccc92d14ce762d21bfb69504af';

@@ -39,6 +39,7 @@ has destination => (
     default  => sub {
         my $self = shift;
         my $uri = $self->db_uri->clone;
+        $uri->password(undef) if $uri->password;
         $uri->dbname(
                $ENV{PGDATABASE}
             || $uri->user

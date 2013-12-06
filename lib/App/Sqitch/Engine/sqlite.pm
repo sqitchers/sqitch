@@ -48,7 +48,6 @@ has sqitch_db_uri => (
     isa      => 'URI::db',
     lazy     => 1,
     required => 1,
-    handles  => { meta_destination => 'as_string' },
     default  => sub {
         my $self   = shift;
         my $config = $self->sqitch->config;
@@ -72,6 +71,15 @@ has sqitch_db_uri => (
         return $uri;
     },
 );
+
+sub meta_destination {
+    my $uri = shift->sqitch_db_uri;
+    if ($uri->password) {
+        $uri = $uri->clone;
+        $uri->password(undef);
+    }
+    return $uri->as_string;
+}
 
 has dbh => (
     is      => 'rw',
