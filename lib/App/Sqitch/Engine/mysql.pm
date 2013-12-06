@@ -32,17 +32,20 @@ has client => (
     },
 );
 
-has sqitch_db => (
+has registry => (
     is       => 'ro',
     isa      => 'Str',
     lazy     => 1,
     required => 1,
     default  => sub {
-        shift->sqitch->config->get( key => 'core.mysql.sqitch_db' ) || 'sqitch';
+        my $config = shift->sqitch->config;
+        return $config->get( key => 'core.mysql.registry' )
+            || $config->get( key => 'core.mysql.sqitch_db' ) # deprecated
+            || 'sqitch';
     },
 );
 
-has sqitch_db_uri => (
+has registry_uri => (
     is       => 'ro',
     isa      => 'URI::db',
     lazy     => 1,
@@ -51,7 +54,7 @@ has sqitch_db_uri => (
     default  => sub {
         my $self = shift;
         my $uri = $self->db_uri->clone;
-        $uri->dbname($self->sqitch_db);
+        $uri->dbname($self->registry);
         return $uri;
     },
 );
@@ -66,7 +69,7 @@ has dbh => (
             hurl mysql => __ 'DBD::mysql module required to manage MySQL';
         };
 
-        my $uri = $self->sqitch_db_uri;
+        my $uri = $self->registry_uri;
         my $dbh = DBI->connect($uri->dbi_dsn, scalar $uri->user, scalar $uri->password, {
             PrintError           => 0,
             RaiseError           => 0,
@@ -163,7 +166,7 @@ has mysql => (
 sub config_vars {
     return (
         shift->SUPER::config_vars,
-        sqitch_db => 'any',
+        registry => 'any',
     );
 }
 
@@ -196,28 +199,28 @@ sub initialized {
           FROM information_schema.tables
          WHERE table_schema = ?
            AND table_name   = ?
-    }, undef, $self->sqitch_db, 'changes')->[0];
+    }, undef, $self->registry, 'changes')->[0];
 }
 
 sub initialize {
     my $self   = shift;
     hurl engine => __x(
         'Sqitch database {database} already initialized',
-        database => $self->sqitch_db,
+        database => $self->registry,
     ) if $self->initialized;
 
     # Create the Sqitch database if it does not exist.
-    (my $db = $self->sqitch_db) =~ s/"/""/g;
+    (my $db = $self->registry) =~ s/"/""/g;
     $self->_run(
         '--execute'  => sprintf(
             'SET sql_mode = ansi; CREATE DATABASE IF NOT EXISTS "%s"',
-            $self->sqitch_db
+            $self->registry
         ),
     );
 
     # Connect to the Sqitch database.
     my @cmd = $self->mysql;
-    $cmd[1 + firstidx { $_ eq '--database' } @cmd ] = $self->sqitch_db;
+    $cmd[1 + firstidx { $_ eq '--database' } @cmd ] = $self->registry;
     my $file = file(__FILE__)->dir->file('mysql.sql');
 
     $self->sqitch->run( @cmd, '--execute', "source $file" );
@@ -343,8 +346,8 @@ Returns a hash of names and types to use for variables in the C<core.mysql>
 section of the a Sqitch configuration file. The variables and their types are:
 
   database  => 'any',
+  registry  => 'any',
   client    => 'any',
-  sqitch_db => 'any',
 
 =head2 Accessors
 
@@ -355,11 +358,11 @@ C<sqitch>, that's what will be returned. Otherwise, it uses the
 C<core.mysql.client> configuration value, or else defaults to C<mysql> (or
 C<mysql.exe> on Windows), which should work if it's in your path.
 
-=head3 C<sqitch_db>
+=head3 C<registry>
 
-Name of the MySQL database file to use for the Sqitch metadata tables. Returns
-the value of the C<core.mysql.sqitch_db> configuration value, or else defaults
-to C<sqitch>.
+Name of the MySQL database to use for the Sqitch metadata tables. Returns the
+value of the C<core.mysql.registry> configuration value, or else defaults to
+C<sqitch>.
 
 =head1 Author
 

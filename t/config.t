@@ -443,7 +443,7 @@ bundle.tags_only=true
 core.engine=pg
 core.extension=ddl
 core.mysql.client=/opt/local/mysql/bin/mysql
-core.mysql.sqitch_prefix=meta
+core.mysql.registry=meta
 core.mysql.username=root
 core.pg.client=/opt/local/pgsql/bin/psql
 core.pg.db_name=widgets
@@ -501,7 +501,7 @@ revert.to=gamma
     ok $cmd->execute, 'List the user config';
     is_deeply \@emit, [[
         "core.mysql.client=/opt/local/mysql/bin/mysql
-core.mysql.sqitch_prefix=meta
+core.mysql.registry=meta
 core.mysql.username=root
 core.pg.client=/opt/local/pgsql/bin/psql
 core.pg.host=localhost

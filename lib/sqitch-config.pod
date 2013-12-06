@@ -545,13 +545,12 @@ found in the path.
 
 MySQL database key or connection URI.
 
-=item C<core.mysql.sqitch_db>
+=item C<core.mysql.registry>
 
-The name of the database (schema) in which Sqitch metadata will be stored. No
-other data should be stored in this database. Defaults to C<sqitch>. If you
-need to manage multiple databases on a single server, and don't want them all
-to share the same Sqitch metadata database, change this property to a value
-specific for your database.
+The name of the Sqitch registry database. Sqitch will store its metadata in
+this database. Defaults to C<sqitch>. If you need to manage multiple databases
+on a single server, and don't want them all to share the same registry, change
+this property to a value specific for your database.
 
 =back
 
