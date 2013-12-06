@@ -7,6 +7,7 @@ use Test::More;
 use Path::Class qw(dir file);
 use App::Sqitch;
 use Test::Exception;
+use Test::MockModule;
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::Engine;
 
@@ -46,6 +47,33 @@ isa_ok $thing = App::Sqitch::Engine->new({ sqitch => $sqitch }),
     'App::Sqitch::Engine', 'Thing with Pg engine';
 isa_ok $uri = $thing->db_uri, 'URI::db', 'Pg URI';
 is $uri->as_string, 'db:pg:', 'Pg URI should be correct';
+
+##############################################################################
+# Test with configuration key.
+CONFIG: {
+    my $mock_config = Test::MockModule->new('App::Sqitch::Config');
+    my @config_params;
+    my $config_ret = 'db:sqlite:hi';
+    $mock_config->mock(get => sub { shift; @config_params = @_; $config_ret });
+    my $e = App::Sqitch::Engine->new({ sqitch => $sqitch });
+    is $e->db_uri, URI->new('db:sqlite:hi'),
+        'URI should be the default for the engine';
+    is_deeply \@config_params, [key => 'core.pg.db_uri'],
+        'Should have asked for the Pg default database';
+
+    # Test with key that contains another key.
+    my $mock_sqitch = Test::MockModule->new('App::Sqitch');
+    my @sqitch_params;
+    my $sqitch_ret = URI::db->new('db:pg:yo');
+    $mock_sqitch->mock(uri_for_db => sub { shift; @sqitch_params = @_; $sqitch_ret });
+    $config_ret = 'yo';
+
+    $e = App::Sqitch::Engine->new({ sqitch => $sqitch });
+    is $e->db_uri, $sqitch_ret, 'URI should be from the database lookup';
+    is_deeply \@config_params, [key => 'core.pg.db_uri'],
+        'Should have asked for the Pg default database again';
+    is_deeply \@sqitch_params, ['yo'], 'Should have looked up the "yo" database';
+}
 
 ##############################################################################
 # Add some other attributes.

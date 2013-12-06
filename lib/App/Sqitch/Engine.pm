@@ -73,9 +73,9 @@ has _variables => (
 
 # 1. Just accept if explicitly passed.
 # 2. If not passed
-#    a. Look for core.$engine.db_uri (and maybe core.db_uri?); or
+#    a. Look for core.$engine.db_uri; or
 #    b. Construct from config.$engine.@parts (deprecated); or
-#    c. Default to "db:$engine"
+#    c. Default to "db:$engine:"
 # 3. If command-line-options, override parts in URIs.
 
 has db_uri => ( is => 'rw', isa => 'URI::db', lazy => 1, default => sub {
@@ -85,9 +85,8 @@ has db_uri => ( is => 'rw', isa => 'URI::db', lazy => 1, default => sub {
     my $engine = $self->sqitch->_engine;
     my $uri;
 
-    if ( my $conf_uri = $config->get( key => "core.$engine.db_uri" ) ) {
-        # XXX Fall back on core.db_uri?
-        $uri = URI::db->new($conf_uri);
+    if ( my $db = $config->get( key => "core.$engine.db_uri" ) ) {
+        $uri = $sqitch->uri_for_db($db);
     } else {
         $uri = URI::db->new("db:$engine:");
 
