@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 573;
+use Test::More tests => 579;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -90,7 +90,8 @@ ENGINE: {
 }
 
 ok my $sqitch = App::Sqitch->new(
-    db_name => 'mydb',
+    _engine   => 'sqlite',
+    db_name   => 'mydb',
     top_dir   => dir( qw(t sql) ),
     plan_file => file qw(t plans multi.plan)
 ), 'Load a sqitch sqitch object';
@@ -180,6 +181,26 @@ is_deeply {$engine->variables}, {foo => 'baz', whu => 'hi', yo => 'stellar'},
 $engine->clear_variables;
 is_deeply [$engine->variables], [], 'Should again have no variables';
 
+##############################################################################
+# Test destination.
+ok $engine = $CLASS->load({
+    sqitch => $sqitch,
+    engine => 'whu',
+}), 'Load engine';
+is $engine->destination, 'db:sqlite:mydb', 'Destination should be URI string';
+is $engine->meta_destination, $engine->destination,
+    'Meta destination should be the same as destination';
+
+# Make sure password is removed from the destination.
+ok $engine = $CLASS->load({
+    sqitch => $sqitch,
+    engine => 'whu',
+    db_uri => URI->new('db:whu://foo:bar@localhost/blah'),
+}), 'Load engine with URI with password';
+like $engine->destination, qr{^db:whu://foo:?\@localhost/mydb$},
+    'Destination should not include password';
+is $engine->meta_destination, $engine->destination,
+    'Meta destination should again be the same as destination';
 
 ##############################################################################
 # Test abstract methods.

@@ -118,7 +118,8 @@ ok $mysql = $CLASS->new(sqitch => $sqitch), 'Create yet another mysql';
 is $mysql->client, '/path/to/mysql', 'client should be as configured';
 is $mysql->db_uri->as_string, 'db:mysql://freddy:s3cr3t@db.example.com:1234/widgets',
     'URI should be as configured';
-is $mysql->destination, $mysql->db_uri->as_string, 'destination should be the URI';
+like $mysql->destination, qr{^db:mysql://freddy"?:\@db\.example\.com:1234/widgets$},
+    'destination should be the URI minus the password';
 is $mysql->sqitch_db, 'meta', 'sqitch_db should be as configured';
 is $mysql->sqitch_db_uri->as_string, 'db:mysql://freddy:s3cr3t@db.example.com:1234/meta',
     'Sqitch DB URI should be the same as db_uri but with DB name "meta"';
@@ -150,7 +151,8 @@ ok $mysql = $CLASS->new(sqitch => $sqitch),
 is $mysql->client, '/some/other/mysql', 'client should be as optioned';
 is $mysql->db_uri->as_string, 'db:mysql://anna:s3cr3t@foo.com:98760/widgets_dev',
     'The DB URI should be as optioned';
-is $mysql->destination, $mysql->db_uri->as_string, 'destination should be the URI';
+like $mysql->destination, qr{^db:mysql://anna:?\@foo\.com:98760/widgets_dev$},
+    'destination should be the URI minus the password';
 is $mysql->sqitch_db, 'meta', 'sqitch_db should be as configured';
 is $mysql->sqitch_db_uri->as_string, 'db:mysql://anna:s3cr3t@foo.com:98760/meta',
     'Sqitch DB URI should be the same as db_uri but with DB name "meta"';

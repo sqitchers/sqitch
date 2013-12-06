@@ -19,7 +19,16 @@ has sqitch => (
     required => 1,
 );
 
-sub destination      { shift->db_uri->as_string }
+# Remove password!
+sub destination {
+    my $uri = shift->db_uri;
+    if ($uri->password) {
+        $uri = $uri->clone;
+        $uri->password(undef);
+    }
+    return $uri->as_string;
+}
+
 sub meta_destination { shift->destination }
 
 has start_at => (
