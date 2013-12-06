@@ -78,9 +78,6 @@ has _variables => (
 #    c. Default to "db:$engine:"
 # 3. If command-line-options, override parts in URIs.
 
-# Change "db_uri" config to "database"
-# Merge sqitch options for non-default URI, too
-
 has db_uri => ( is => 'rw', isa => 'URI::db', lazy => 1, default => sub {
     my $self   = shift;
     my $sqitch = $self->sqitch;
@@ -95,11 +92,11 @@ has db_uri => ( is => 'rw', isa => 'URI::db', lazy => 1, default => sub {
 
         # XXX Deprecated use of other config variables.
         for my $spec (
-            [username      => 'user'],
-            [password      => 'password'],
-            [db_name       => 'dbname'],
-            [host          => 'host'],
-            [port          => 'port'],
+            [ username => 'user'     ],
+            [ password => 'password' ],
+            [ db_name  => 'dbname'   ],
+            [ host     => 'host'     ],
+            [ port     => 'port'     ],
         ) {
             my ($key, $meth) = @{ $spec };
             my $val = $config->get( key => "core.$engine.$key" ) or next;
