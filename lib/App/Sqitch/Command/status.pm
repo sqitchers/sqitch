@@ -16,6 +16,11 @@ extends 'App::Sqitch::Command';
 
 our $VERSION = '0.990';
 
+has database => (
+    is  => 'ro',
+    isa => 'Str',
+);
+
 has show_changes => (
     is      => 'ro',
     isa     => 'Bool',
@@ -74,6 +79,7 @@ has project => (
 sub options {
     return qw(
         project=s
+        database|db|d=s
         show-tags
         show-changes
         date-format|date=s
@@ -82,7 +88,7 @@ sub options {
 
 sub execute {
     my $self   = shift;
-    my $engine = $self->engine;
+    my $engine = $self->engine_for_db($self->database // shift);
 
     # Where are we?
     $self->comment( __x 'On database {db}', db => $engine->destination );

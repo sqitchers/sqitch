@@ -19,6 +19,9 @@ has sqitch => (
     handles  => [qw(
         plan
         engine
+        string_for_db
+        uri_for_db
+        engine_for_db
         run
         shell
         quote_shell

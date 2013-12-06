@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 94;
+use Test::More tests => 107;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -48,6 +48,7 @@ can_ok $status, qw(
 
 is_deeply [ $CLASS->options ], [qw(
     project=s
+    database|db|d=s
     show-tags
     show-changes
     date-format|date=s
@@ -125,6 +126,15 @@ ok $sqitch = App::Sqitch->new(
 isa_ok $status = $CLASS->new( sqitch => $sqitch ), $CLASS,
     'another status command';
 is $status->project, $sqitch->plan->project, 'Should have plan project';
+
+##############################################################################
+# Test database.
+is $status->database, undef, 'Default database should be undef';
+isa_ok $status = $CLASS->new(
+    sqitch   => $sqitch,
+    database => 'foo',
+), $CLASS, 'new status with database';
+is $status->database, 'foo', 'Should have database "foo"';
 
 ##############################################################################
 # Test configure().
@@ -439,24 +449,56 @@ is_deeply +MockOutput->get_vent, [
 
 ##############################################################################
 # Test execute().
+my $mock_status = Test::MockModule->new(ref $status);
+my ($db_arg, $orig_meth);
+$mock_status->mock(engine_for_db => sub {
+    $db_arg = $_[1];
+    shift->$orig_meth(@_);
+});
+$orig_meth = $mock_status->original('engine_for_db');
+my $dest = $sqitch->engine->destination;
+
+my $check_output = sub {
+    is_deeply +MockOutput->get_comment, [
+        [__x 'On database {db}', db => $dest ],
+        [__x 'Project:  {project}', project => 'mystatus'],
+        [__x 'Change:   {change_id}', change_id => $state->{change_id}],
+        [__x 'Name:     {change}',    change    => 'widgets_table'],
+        [__nx 'Tag:      {tags}', 'Tags:     {tags}', 3,
+         tags => join(__ ', ', qw(@alpha @beta @gamma))],
+        [__x 'Deployed: {date}',      date      => $ts],
+        [__x 'By:       {name} <{email}>', name => 'fred', email => 'fred@example.com'],
+        [''],
+    ], 'The state should have been emitted';
+    is_deeply +MockOutput->get_emit, [
+        [__n 'Undeployed change:', 'Undeployed changes:', 2],
+        map { ['  * ', $_->format_name_with_tags] } @changes[2..$#changes],
+    ], 'Should emit list of undeployed changes';
+};
+
 $state->{change_id} = $changes[1]->id;
 $engine_mocker->mock( current_state => $state );
 ok $status->execute, 'Execute';
-is_deeply +MockOutput->get_comment, [
-    [__x 'On database {db}', db => $sqitch->engine->destination ],
-    [__x 'Project:  {project}', project => 'mystatus'],
-    [__x 'Change:   {change_id}', change_id => $state->{change_id}],
-    [__x 'Name:     {change}',    change    => 'widgets_table'],
-    [__nx 'Tag:      {tags}', 'Tags:     {tags}', 3,
-     tags => join(__ ', ', qw(@alpha @beta @gamma))],
-    [__x 'Deployed: {date}',      date      => $ts],
-    [__x 'By:       {name} <{email}>', name => 'fred', email => 'fred@example.com'],
-    [''],
-], 'The state should have been emitted';
-is_deeply +MockOutput->get_emit, [
-    [__n 'Undeployed change:', 'Undeployed changes:', 2],
-    map { ['  * ', $_->format_name_with_tags] } @changes[2..$#changes],
-], 'Should emit list of undeployed changes';
+$check_output->();
+is $db_arg, undef, 'No DB arg should have been passed to engine_for_db';
+
+# Test with a database argument.
+ok $status->execute('db:sqlite:'), 'Execute with db arg';
+$dest = 'db:sqlite:multi.db';
+$check_output->();
+is $db_arg, 'db:sqlite:', 'DB arg "db:sqlite:" should have been passed to engine_for_db';
+
+# Pass the database in an option.
+ok $status = App::Sqitch::Command->load({
+    sqitch  => $sqitch,
+    command => 'status',
+    config  => $config,
+    args    => ['--database', 'db:pg:'],
+}), 'Create status command with a database attribute';
+ok $status->execute, 'Execute with db attribute';
+$dest = 'db:pg:multi.db';
+$check_output->();
+is $db_arg, 'db:pg:', 'DB arg "db:pg:" should have been passed to engine_for_db';
 
 # Test with unknown plan.
 for my $spec (

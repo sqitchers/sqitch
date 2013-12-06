@@ -4,10 +4,12 @@ sqitch-status-usage - Sqitch status usage statement
 
 =head1 Usage
 
-  sqitch [<db-options>] status [<options>]
+  sqitch [<db-options>] status [<options>] [<database>]
 
 =head1 Options
 
-    --show-changes        include a list of deployed changes
-    --show-tags           include a list of applied tags
-    --date-format FORMAT  display dates using the specified format
+    -d --db --database <database>   database to which to connect
+            --project  <project>    project for which to retrieve the status
+            --show-changes          include a list of deployed changes
+            --show-tags             include a list of applied tags
+            --date-format <format>  display dates using the specified format
