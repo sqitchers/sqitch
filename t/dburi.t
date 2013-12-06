@@ -58,7 +58,7 @@ CONFIG: {
     my $e = App::Sqitch::Engine->new({ sqitch => $sqitch });
     is $e->db_uri, URI->new('db:sqlite:hi'),
         'URI should be the default for the engine';
-    is_deeply \@config_params, [key => 'core.pg.db_uri'],
+    is_deeply \@config_params, [key => 'core.pg.database'],
         'Should have asked for the Pg default database';
 
     # Test with key that contains another key.
@@ -70,7 +70,7 @@ CONFIG: {
 
     $e = App::Sqitch::Engine->new({ sqitch => $sqitch });
     is $e->db_uri, $sqitch_ret, 'URI should be from the database lookup';
-    is_deeply \@config_params, [key => 'core.pg.db_uri'],
+    is_deeply \@config_params, [key => 'core.pg.database'],
         'Should have asked for the Pg default database again';
     is_deeply \@sqitch_params, ['yo'], 'Should have looked up the "yo" database';
 }

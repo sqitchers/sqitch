@@ -73,10 +73,13 @@ has _variables => (
 
 # 1. Just accept if explicitly passed.
 # 2. If not passed
-#    a. Look for core.$engine.db_uri; or
+#    a. Look for core.$engine.database; or
 #    b. Construct from config.$engine.@parts (deprecated); or
 #    c. Default to "db:$engine:"
 # 3. If command-line-options, override parts in URIs.
+
+# Change "db_uri" config to "database"
+# Merge sqitch options for non-default URI, too
 
 has db_uri => ( is => 'rw', isa => 'URI::db', lazy => 1, default => sub {
     my $self   = shift;
@@ -85,7 +88,7 @@ has db_uri => ( is => 'rw', isa => 'URI::db', lazy => 1, default => sub {
     my $engine = $self->sqitch->_engine;
     my $uri;
 
-    if ( my $db = $config->get( key => "core.$engine.db_uri" ) ) {
+    if ( my $db = $config->get( key => "core.$engine.database" ) ) {
         $uri = $sqitch->uri_for_db($db);
     } else {
         $uri = URI::db->new("db:$engine:");
@@ -124,6 +127,11 @@ has db_uri => ( is => 'rw', isa => 'URI::db', lazy => 1, default => sub {
     return $uri;
 });
 
+# This is purely for configuration.
+has database => ( is => 'ro', isa => 'Str', lazy => 1, default => sub {
+    shift->db_uri->as_string;
+});
+
 sub load {
     my ( $class, $p ) = @_;
 
@@ -147,8 +155,8 @@ sub name {
 
 sub config_vars {
     return (
-        db_uri => 'any',
-        client => 'any'
+        database => 'any',
+        client   => 'any'
     );
 }
 
@@ -1118,8 +1126,8 @@ times. All the other variables may be of any type.
 By default, App::Sqitch::Engine returns:
 
   (
-      db_uri => 'any',
-      client => 'any',
+      database => 'any',
+      client   => 'any',
   )
 
 Subclasses for supported engines will return more.

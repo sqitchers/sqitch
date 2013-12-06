@@ -770,7 +770,7 @@ supports Oracle 8.4.0 and higher.
 Returns a hash of names and types to use for variables in the C<core.oracle>
 section of the a Sqitch configuration file. The variables and their types are:
 
-  db_uri        => 'any',
+  database      => 'any',
   client        => 'any',
   sqitch_schema => 'any',
 

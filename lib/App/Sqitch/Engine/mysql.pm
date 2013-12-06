@@ -341,7 +341,7 @@ App::Sqitch::Engine::mysql provides the MySQL storage engine for Sqitch.
 Returns a hash of names and types to use for variables in the C<core.mysql>
 section of the a Sqitch configuration file. The variables and their types are:
 
-  db_uri    => 'any',
+  database  => 'any',
   client    => 'any',
   sqitch_db => 'any',
 

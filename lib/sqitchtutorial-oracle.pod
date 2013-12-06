@@ -64,7 +64,7 @@ Let's have a look at F<sqitch.conf>:
   	# verify_dir = verify
   	# extension = sql
   # [core "oracle"]
-  	# db_uri = db:oracle:
+  	# database = db:oracle:
   	# client = /usr/local/instantclient_11_2/sqlplus
   	# sqitch_schema = 
 
@@ -370,7 +370,7 @@ I'm getting a little tired of always having to type C<--db-name flipr_test>,
 and C<--db-user scott/tiger>, aren't you? Sqitch uses URIs to determine how to
 connect to the database, so let's give it a default URI, shall we?
 
-  > sqitch config core.oracle.db_uri db:oracle://scott:tiger@/flipr_test
+  > sqitch config core.oracle.database db:oracle://scott:tiger@/flipr_test
 
 Now we can omit the those options, unless we need to deploy to another
 database or with a different username. Which we will, eventually, but at least

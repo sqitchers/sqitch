@@ -498,9 +498,9 @@ Configuration properties for the PostgreSQL engine.
 Path to the C<psql> command-line client. Defaults to the first instance
 found in the path.
 
-=item C<core.pg.db_uri>
+=item C<core.pg.database>
 
-PostgreSQL database connection URI.
+PostgreSQL database key or connection URI.
 
 =item C<core.pg.sqitch_schema>
 
@@ -520,11 +520,11 @@ Configuration properties for the SQLite engine.
 Path to the C<sqlite3> command-line client. Defaults to the first instance
 found in the path.
 
-=item C<core.sqlite.db_uri>
+=item C<core.sqlite.database>
 
-SQLite database connection URI.
+SQLite database key or connection URI.
 
-=item C<core.sqlite.sqitch_db_uri>
+=item C<core.sqlite.sqitch_database>
 
 Sqitch metadata SQLite database connection URI.
 
@@ -541,9 +541,9 @@ Configuration properties for the MySQL engine.
 Path to the C<mysql> command-line client. Defaults to the first instance
 found in the path.
 
-=item C<core.mysql.db_uri>
+=item C<core.mysql.database>
 
-MySQL database connection URI.
+MySQL database key or connection URI.
 
 =item C<core.mysql.sqitch_db>
 
@@ -566,9 +566,9 @@ Configuration properties for the Oracle engine.
 Path to the C<sqlplus> command-line client. Defaults to the first instance
 found in C<$ORACLE_HOME> or the path.
 
-=item C<core.oracle.db_uri>
+=item C<core.oracle.database>
 
-Oracle database connection URI.
+Oracle database key or connection URI.
 
 =item C<core.oracle.sqitch_schema>
 

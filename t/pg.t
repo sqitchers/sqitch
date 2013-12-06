@@ -25,7 +25,7 @@ BEGIN {
 }
 
 is_deeply [$CLASS->config_vars], [
-    db_uri        => 'any',
+    database      => 'any',
     client        => 'any',
     sqitch_schema => 'any',
 ], 'config_vars should return three vars';
@@ -102,7 +102,7 @@ ENV: {
 # Make sure config settings override defaults.
 my %config = (
     'core.pg.client'        => '/path/to/psql',
-    'core.pg.db_uri'        => 'db:pg://localhost/try',
+    'core.pg.database'      => 'db:pg://localhost/try',
     'core.pg.username'      => 'freddy',
     'core.pg.password'      => 's3cr3t',
     'core.pg.db_name'       => 'widgets',

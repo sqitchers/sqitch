@@ -291,8 +291,8 @@ is_deeply read_config $conf_file, {
     'core.sqlite.client'  => '/to/sqlite3',
 }, 'The configuration should have been written with sqlite values';
 
-file_contents_like $conf_file, qr/^\t# db_uri = \Qdb:sqlite:my.db\E\n/m,
-    'db_uri should be included in a comment';
+file_contents_like $conf_file, qr/^\t# database = \Qdb:sqlite:my.db\E\n/m,
+    'database should be included in a comment';
 file_contents_like $conf_file, qr/^\t# sqitch_db_uri = db:sqlite:sqitch\.db\n/m,
     'sqitch_db_uri should be included in a comment';
 
@@ -310,7 +310,7 @@ is_deeply read_config $conf_file, {
 }, 'The configuration should have been written with only the engine var';
 
 file_contents_like $conf_file, qr{^\Q# [core "sqlite"]
-	# db_uri = db:sqlite:
+	# database = db:sqlite:
 	# client = sqlite3$exe_ext
 	# sqitch_db_uri = db:sqlite:
 }m, 'Engine section should be present but commented-out';
@@ -338,8 +338,8 @@ USERCONF: {
 
     file_contents_like $conf_file, qr{^\t\Q# client = /opt/local/bin/sqlite3\E\n}m,
         'Configured client should be included in a comment';
-    file_contents_like $conf_file, qr/^\t# db_uri = db:sqlite:my\.db\n/m,
-        'Configured db_uri should be included in a comment';
+    file_contents_like $conf_file, qr/^\t# database = db:sqlite:my\.db\n/m,
+        'Configured database should be included in a comment';
     file_contents_like $conf_file, qr/^\t# sqitch_db_uri = db:sqlite:meta\.db\n/m,
         'Configured sqitch_db_uri should be included in a comment';
 }
@@ -385,7 +385,7 @@ is_deeply read_config $conf_file, {
 }, 'The configuration should have been written with only the engine var' or diag $conf_file->slurp;
 
 file_contents_like $conf_file, qr{^\Q# [core "pg"]
-	# db_uri = db:pg:
+	# database = db:pg:
 	# client = psql$exe_ext
 	# sqitch_schema = sqitch
 }m, 'Engine section should be present but commented-out' or diag $conf_file->slurp;
@@ -413,8 +413,8 @@ USERCONF: {
     file_contents_like $conf_file, qr/^\t# sqitch_schema = meta\n/m,
         'Configured sqitch_schema should be in a comment';
     file_contents_like $conf_file,
-        qr{^\t# db_uri = db:pg://postgres\@localhost/thingies\n}m,
-        'Configured db_uri should be in a comment';
+        qr{^\t# database = db:pg://postgres\@localhost/thingies\n}m,
+        'Configured database should be in a comment';
 }
 
 ##############################################################################

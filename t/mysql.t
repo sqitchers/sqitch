@@ -25,7 +25,7 @@ BEGIN {
 }
 
 is_deeply [$CLASS->config_vars], [
-    db_uri    => 'any',
+    database  => 'any',
     client    => 'any',
     sqitch_db => 'any',
 ], 'config_vars should return three vars';
@@ -80,7 +80,7 @@ is_deeply [$mysql->mysql], [
 # Make sure config settings override defaults.
 my %config = (
     'core.mysql.client'    => '/path/to/mysql',
-    'core.mysql.db_uri'    => 'db:mysql://foo.com/widgets',
+    'core.mysql.database'  => 'db:mysql://foo.com/widgets',
     'core.mysql.sqitch_db' => 'meta',
 );
 my $mock_config = Test::MockModule->new('App::Sqitch::Config');

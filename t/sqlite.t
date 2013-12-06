@@ -25,7 +25,7 @@ BEGIN {
 }
 
 is_deeply [$CLASS->config_vars], [
-    db_uri        => 'any',
+    database      => 'any',
     client        => 'any',
     sqitch_db_uri => 'any',
 ], 'config_vars should return three vars';

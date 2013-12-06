@@ -59,7 +59,7 @@ BEGIN {
 }
 
 is_deeply [$CLASS->config_vars], [
-    db_uri        => 'any',
+    database      => 'any',
     client        => 'any',
     sqitch_schema => 'any',
 ], 'config_vars should return three vars';
@@ -183,7 +183,7 @@ ENV: {
 # Make sure config settings override defaults.
 my %config = (
     'core.oracle.client'        => '/path/to/sqlplus',
-    'core.oracle.db_uri'        => 'db:oracle://bob:hi@db.net:12/howdy',
+    'core.oracle.database'      => 'db:oracle://bob:hi@db.net:12/howdy',
     'core.oracle.sqitch_schema' => 'meta',
 );
 my $mock_config = Test::MockModule->new('App::Sqitch::Config');
