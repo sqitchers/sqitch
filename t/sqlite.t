@@ -163,6 +163,22 @@ is $sqlite->registry_uri->as_string, 'db:sqlite:/path/to/registry.db',
 is $sqlite->meta_destination, $sqlite->registry_uri->as_string,
     'Meta destination should be configured registry_uri stringified';
 
+# Try a registry with an absolute path.
+%config = (
+    'core.sqlite.db_name'  => '/path/to/sqitch.db',
+    'core.sqlite.registry' => '/some/other/path.db',
+);
+ok $sqlite = $CLASS->new(sqitch => $sqitch),
+    'Create another sqlite';
+is $sqlite->db_uri->as_string, 'db:sqlite:/path/to/sqitch.db',
+    'dbname should fall back on config with no extension';
+is $sqlite->destination, $sqlite->db_uri->as_string,
+    'Destination should be configured db_uri stringified';
+is $sqlite->registry_uri->as_string, 'db:sqlite:/some/other/path.db',
+    'registry_uri should fall back on config wth extension';
+is $sqlite->meta_destination, $sqlite->registry_uri->as_string,
+    'Meta destination should be configured registry_uri stringified';
+
 ##############################################################################
 # Now make sure that Sqitch options override configurations.
 $sqitch = App::Sqitch->new(_engine => 'sqlite', db_client => 'foo/bar', db_name => 'my.db');

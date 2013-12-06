@@ -524,9 +524,12 @@ found in the path.
 
 SQLite database key or connection URI.
 
-=item C<core.sqlite.sqitch_database>
+=item C<core.sqlite.registry>
 
-Sqitch metadata SQLite database connection URI.
+Name to use for the Sqitch registry database. Sqitch will store its metadata
+in this database. If the value look like an absolute path, then it will be the
+database file. Otherwise, it will be in the same directory as the database.
+Defaults to C<sqitch>.
 
 =back
 
