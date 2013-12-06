@@ -93,7 +93,7 @@ sub BUILD {
     }
 }
 
-has db_uri => ( is => 'rw', isa => 'URI::db', lazy => 1, default => sub {
+has db_uri => ( is => 'ro', isa => 'URI::db', lazy => 1, default => sub {
     my $self   = shift;
     my $sqitch = $self->sqitch;
     my $config = $sqitch->config;
