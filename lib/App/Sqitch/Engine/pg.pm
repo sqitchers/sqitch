@@ -50,13 +50,15 @@ has destination => (
     },
 );
 
-has sqitch_schema => (
+has registry => (
     is       => 'ro',
     isa      => 'Str',
     lazy     => 1,
     required => 1,
     default  => sub {
-        shift->sqitch->config->get( key => 'core.pg.sqitch_schema' )
+        my $config = shift->sqitch->config;
+        return $config->get( key => 'core.pg.registry' )
+            || $config->get( key => 'core.pg.sqitch_schema' ) # deprecated
             || 'sqitch';
     },
 );
@@ -92,7 +94,8 @@ has psql => (
             '--tuples-only',
             '--set' => 'ON_ERROR_ROLLBACK=1',
             '--set' => 'ON_ERROR_STOP=1',
-            '--set' => 'sqitch_schema=' . $self->sqitch_schema,
+            '--set' => 'registry=' . $self->registry,
+            '--set' => 'sqitch_schema=' . $self->registry, # deprecated
         );
         return \@ret;
     },
@@ -127,7 +130,7 @@ has dbh => (
                     try {
                         $dbh->do(
                             'SET search_path = ?',
-                            undef, $self->sqitch_schema
+                            undef, $self->registry
                         );
                         # http://www.nntp.perl.org/group/perl.dbi.dev/2013/11/msg7622.html
                         $dbh->set_err(undef, undef) if $dbh->err;
@@ -143,7 +146,7 @@ has dbh => (
 sub config_vars {
     return (
         shift->SUPER::config_vars,
-        sqitch_schema => 'any',
+        registry => 'any',
     );
 }
 
@@ -179,12 +182,12 @@ sub initialized {
         SELECT EXISTS(
             SELECT TRUE FROM pg_catalog.pg_namespace WHERE nspname = ?
         )
-    }, undef, $self->sqitch_schema)->[0];
+    }, undef, $self->registry)->[0];
 }
 
 sub initialize {
     my $self   = shift;
-    my $schema = $self->sqitch_schema;
+    my $schema = $self->registry;
     hurl engine => __x(
         'Sqitch schema "{schema}" already exists',
         schema => $schema
@@ -198,21 +201,21 @@ sub initialize {
     )[-1];
 
     if ($maj < 9) {
-        # Need to write a temp file; no :"sqitch_schema" variable syntax.
+        # Need to write a temp file; no :"registry" variable syntax.
         ($schema) = $self->dbh->selectrow_array(
             'SELECT quote_ident(?)', undef, $schema
         );
-        (my $sql = scalar $file->slurp) =~ s{:"sqitch_schema"}{$schema}g;
+        (my $sql = scalar $file->slurp) =~ s{:"registry"}{$schema}g;
         require File::Temp;
         my $fh = File::Temp->new;
         print $fh $sql;
         close $fh;
         $self->_run( '--file' => $fh->filename );
     } else {
-        # We can take advantage of the :"sqitch_schema" variable syntax.
+        # We can take advantage of the :"registry" variable syntax.
         $self->_run(
             '--file' => $file,
-            '--set'  => "sqitch_schema=$schema",
+            '--set'  => "registry=$schema",
         );
     }
 
@@ -524,9 +527,9 @@ supports PostgreSQL 8.4.0 and higher.
 Returns a hash of names and types to use for variables in the C<core.pg>
 section of the a Sqitch configuration file. The variables and their types are:
 
-  database      => 'any',
-  client        => 'any',
-  sqitch_schema => 'any',
+  database => 'any',
+  registry => 'any',
+  client   => 'any',
 
 =head2 Instance Methods
 

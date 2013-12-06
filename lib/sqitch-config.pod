@@ -502,10 +502,10 @@ found in the path.
 
 PostgreSQL database key or connection URI.
 
-=item C<core.pg.sqitch_schema>
+=item C<core.pg.registry>
 
-The name of the schema in which Sqitch metadata will be stored. No other data
-should be stored in this schema. Defaults to C<sqitch>.
+The name of the Sqitch registry schema. Sqitch will store its metadata in this
+schema. No other data should be stored there. Defaults to C<sqitch>.
 
 =back
 

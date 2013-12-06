@@ -27,7 +27,7 @@ BEGIN {
 is_deeply [$CLASS->config_vars], [
     database      => 'any',
     client        => 'any',
-    sqitch_schema => 'any',
+    registry => 'any',
 ], 'config_vars should return three vars';
 
 my $sqitch = App::Sqitch->new(_engine => 'pg');
@@ -36,7 +36,7 @@ isa_ok my $pg = $CLASS->new(sqitch => $sqitch), $CLASS;
 my $uri = URI::db->new('db:pg:');
 my $client = 'psql' . ($^O eq 'MSWin32' ? '.exe' : '');
 is $pg->client, $client, 'client should default to psql';
-is $pg->sqitch_schema, 'sqitch', 'sqitch_schema default should be "sqitch"';
+is $pg->registry, 'sqitch', 'registry default should be "sqitch"';
 is $pg->db_uri, $uri, 'DB URI should be "db:pg:"';
 my $dest_uri = $uri->clone;
 $dest_uri->dbname($ENV{PGDATABASE} || $ENV{PGUSER} || $sqitch->sysuser);
@@ -52,6 +52,7 @@ my @std_opts = (
     '--tuples-only',
     '--set' => 'ON_ERROR_ROLLBACK=1',
     '--set' => 'ON_ERROR_STOP=1',
+    '--set' => 'registry=sqitch',
     '--set' => 'sqitch_schema=sqitch',
 );
 is_deeply [$pg->psql], [$client, @std_opts],
@@ -108,8 +109,9 @@ my %config = (
     'core.pg.db_name'       => 'widgets',
     'core.pg.host'          => 'db.example.com',
     'core.pg.port'          => 1234,
-    'core.pg.sqitch_schema' => 'meta',
+    'core.pg.registry'      => 'meta',
 );
+$std_opts[-3] = 'registry=meta';
 $std_opts[-1] = 'sqitch_schema=meta';
 my $mock_config = Test::MockModule->new('App::Sqitch::Config');
 $mock_config->mock(get => sub { $config{ $_[2] } });
@@ -118,7 +120,7 @@ ok $pg = $CLASS->new(sqitch => $sqitch), 'Create another pg';
 is $pg->client, '/path/to/psql', 'client should be as configured';
 is $pg->db_uri->as_string, 'db:pg://localhost/try',
     'db_uri should be as configured';
-is $pg->sqitch_schema, 'meta', 'sqitch_schema should be as configured';
+is $pg->registry, 'meta', 'registry should be as configured';
 is_deeply [$pg->psql], [qw(
     /path/to/psql
     --dbname   try
@@ -162,7 +164,7 @@ is $pg->db_uri->as_string, 'db:pg://anna:s3cr3t@foo.com:98760/widgets_dev',
 like $pg->destination, qr{^db:pg://anna:?\@foo\.com:98760/widgets_dev$},
     'destination should be the URI without the password';
 is $pg->meta_destination, $pg->destination, 'meta_destination should still be URI';
-is $pg->sqitch_schema, 'meta', 'sqitch_schema should still be as configured';
+is $pg->registry, 'meta', 'registry should still be as configured';
 is_deeply [$pg->psql], [qw(
     /some/other/psql
     --username anna
@@ -314,7 +316,7 @@ DBIEngineTest->run(
         plan_file   => Path::Class::file(qw(t engine sqitch.plan)),
     ],
     engine_params     => [],
-    alt_engine_params => [ sqitch_schema => '__sqitchtest' ],
+    alt_engine_params => [ registry => '__sqitchtest' ],
     skip_unless       => sub {
         my $self = shift;
         die $err if $err;

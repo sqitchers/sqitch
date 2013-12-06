@@ -368,8 +368,8 @@ is_deeply read_config $conf_file, {
     'core.pg.client' => '/to/psql',
 }, 'The configuration should have been written with client values' or diag $conf_file->slurp;
 
-file_contents_like $conf_file, qr/^\t# sqitch_schema = sqitch\n/m,
-    'sqitch_schema should be included in a comment';
+file_contents_like $conf_file, qr/^\t# registry = sqitch\n/m,
+    'registry should be included in a comment';
 
 # Try it with no config or options.
 unlink $conf_file;
@@ -387,7 +387,7 @@ is_deeply read_config $conf_file, {
 file_contents_like $conf_file, qr{^\Q# [core "pg"]
 	# database = db:pg:
 	# client = psql$exe_ext
-	# sqitch_schema = sqitch
+	# registry = sqitch
 }m, 'Engine section should be present but commented-out' or diag $conf_file->slurp;
 
 USERCONF: {
@@ -410,8 +410,8 @@ USERCONF: {
         'core.engine'      => 'pg',
     }, 'The configuration should have been written with pg options' or diag $conf_file->slurp;
 
-    file_contents_like $conf_file, qr/^\t# sqitch_schema = meta\n/m,
-        'Configured sqitch_schema should be in a comment';
+    file_contents_like $conf_file, qr/^\t# registry = meta\n/m,
+        'Configured registry should be in a comment';
     file_contents_like $conf_file,
         qr{^\t# database = db:pg://postgres\@localhost/thingies\n}m,
         'Configured database should be in a comment';
