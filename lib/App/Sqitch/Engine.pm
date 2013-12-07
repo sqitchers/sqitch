@@ -170,9 +170,12 @@ has database => ( is => 'ro', isa => 'Str', lazy => 1, default => sub {
 sub load {
     my ( $class, $p ) = @_;
 
-    # We should have a command.
-    my $engine = delete $p->{engine}
-        or hurl 'Missing "engine" parameter to load()';
+    # We should have a URI or an engine param.
+    my $engine = delete $p->{engine};
+    if (my $uri = $p->{db_uri}) {
+        $engine = $uri->engine;
+    }
+    hurl 'Missing "db_uri" or "engine" parameter to load()' unless $engine;
 
     # Load the engine class.
     my $pkg = __PACKAGE__ . "::$engine";

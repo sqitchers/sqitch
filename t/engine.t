@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 580;
+use Test::More tests => 582;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -122,6 +122,13 @@ ok my $engine = $CLASS->load({
 isa_ok $engine, 'App::Sqitch::Engine::whu';
 is $engine->sqitch, $sqitch, 'The sqitch attribute should be set';
 
+# Try passing a URI.
+ok $engine = $CLASS->load({
+    sqitch => $sqitch,
+    db_uri => URI->new('db:whu:'),
+}), 'Load a "whu" engine via URI';
+isa_ok $engine, 'App::Sqitch::Engine::whu';
+
 # Test handling of an invalid engine.
 throws_ok { $CLASS->load({ engine => 'nonexistent', sqitch => $sqitch }) }
     'App::Sqitch::X', 'Should die on invalid engine';
@@ -135,7 +142,7 @@ NOENGINE: {
     throws_ok { $CLASS->load({ engine => '', sqitch => $sqitch }) }
         'App::Sqitch::X',
             'No engine should die';
-    is $@->message, 'Missing "engine" parameter to load()',
+    is $@->message, 'Missing "db_uri" or "engine" parameter to load()',
         'It should be the expected message';
 }
 
@@ -147,6 +154,7 @@ is $@->message, 'Unable to load App::Sqitch::Engine::bad',
     'Should get another load error message';
 like $@->previous_exception, qr/^LOL BADZ/,
     'Should have relevant previoius exception from the bad module';
+
 
 ##############################################################################
 # Test name.

@@ -493,12 +493,12 @@ ok $status = App::Sqitch::Command->load({
     sqitch  => $sqitch,
     command => 'status',
     config  => $config,
-    args    => ['--database', 'db:pg:'],
+    args    => ['--database', 'db:sqlite:'],
 }), 'Create status command with a database attribute';
 ok $status->execute, 'Execute with db attribute';
-$dest = 'db:pg:multi.db';
+$dest = 'db:sqlite:multi.db';
 $check_output->();
-is $db_arg, 'db:pg:', 'DB arg "db:pg:" should have been passed to engine_for_db';
+is $db_arg, 'db:sqlite:', 'DB arg "db:sqlite:" should have been passed to engine_for_db';
 
 # Test with unknown plan.
 for my $spec (
