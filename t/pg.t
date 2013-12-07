@@ -295,6 +295,7 @@ END {
 }
 
 my $err = try {
+    $pg->use_driver;
     $dbh = DBI->connect('dbi:Pg:dbname=template1', 'postgres', '', {
         PrintError => 0,
         RaiseError => 1,

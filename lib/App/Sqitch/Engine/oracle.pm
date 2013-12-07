@@ -83,16 +83,17 @@ has sqlplus => (
     },
 );
 
+sub key    { 'oracle' }
+sub name   { 'Oracle' }
+sub driver { 'DBD::Oracle 1.23' }
+
 has dbh => (
     is      => 'rw',
     isa     => 'DBI::db',
     lazy    => 1,
     default => sub {
         my $self = shift;
-        # XXX require DBD::Oracle 1.23.
-        try { require DBD::Oracle } catch {
-            hurl oracle => __ 'DBD::Oracle module required to manage Oracle' if $@;
-        };
+        $self->use_driver;
 
         my $uri = $self->db_uri;
         DBI->connect($uri->dbi_dsn, $uri->user, $uri->password, {

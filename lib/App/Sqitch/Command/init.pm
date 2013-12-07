@@ -137,7 +137,7 @@ sub write_config {
     if ($engine) {
         push @vars => {
             key   => "core.engine",
-            value => $engine->name,
+            value => $engine->key,
         };
     }
     else {
@@ -195,7 +195,7 @@ sub write_config {
     if ($engine) {
 
         # Write out the core.$engine section.
-        my $ekey        = 'core.' . $engine->name;
+        my $ekey        = 'core.' . $engine->key;
         my @config_vars = $engine->config_vars;
         my $emeta       = $engine->meta;
         @comments = @vars = ();
@@ -248,7 +248,7 @@ sub write_config {
         else {
 
             # Still want the section, emit it as a comment.
-            unshift @comments => '[core "' . $engine->name . '"]';
+            unshift @comments => '[core "' . $engine->key . '"]';
         }
 
         # Emit the comments.

@@ -93,15 +93,17 @@ sub reg_destination {
     return $uri->as_string;
 }
 
+sub key    { 'sqlite' }
+sub name   { 'SQLite' }
+sub driver { 'DBD::SQLite 1.37' }
+
 has dbh => (
     is      => 'rw',
     isa     => 'DBI::db',
     lazy    => 1,
     default => sub {
         my $self = shift;
-        try { require DBD::SQLite } catch {
-            hurl sqlite => __ 'DBD::SQLite module required to manage SQLite';
-        };
+        $self->use_driver;
 
         my $uri = $self->registry_uri;
         my $dbh = DBI->connect($uri->dbi_dsn, '', '', {

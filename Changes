@@ -22,7 +22,8 @@ Revision history for Perl extension App::Sqitch
        version. The `registry` variable identifies the storage location for
        Sqitch's own information. It's usually a schema name (database for
        MySQL), though for SQLite it can be a file path.
-
+     - Improved database driver loading to ensure the proper version of the
+       driver is required.
 
 0.983  2013-11-21T21:50:12Z
      - Fixed "Use of uninitialized value" in the MySQL engine. Thanks to

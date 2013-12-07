@@ -60,9 +60,7 @@ has dbh => (
     lazy    => 1,
     default => sub {
         my $self = shift;
-        try { require DBD::mysql } catch {
-            hurl mysql => __ 'DBD::mysql module required to manage MySQL';
-        };
+        $self->use_driver;
 
         my $uri = $self->registry_uri;
         my $dbh = DBI->connect($uri->dbi_dsn, scalar $uri->user, scalar $uri->password, {
@@ -157,6 +155,10 @@ has mysql => (
         return \@ret;
     },
 );
+
+sub key    { 'mysql' }
+sub name   { 'MySQL' }
+sub driver { 'DBD::mysql 4.018' }
 
 sub _char2ts {
     $_[1]->set_time_zone('UTC')->iso8601;

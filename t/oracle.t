@@ -381,6 +381,7 @@ END {
 my $user = $ENV{ORAUSER} || 'scott';
 my $pass = $ENV{ORAPASS} || 'tiger';
 my $err = try {
+    $ora->use_driver;
     my $dsn = 'dbi:Oracle:';
     $dbh = DBI->connect($dsn, $user, $pass, {
         PrintError => 0,

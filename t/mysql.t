@@ -253,6 +253,7 @@ END {
 }
 
 my $err = try {
+    $mysql->use_driver;
     $dbh = DBI->connect('dbi:mysql:database=information_schema', 'root', '', {
         PrintError => 0,
         RaiseError => 1,

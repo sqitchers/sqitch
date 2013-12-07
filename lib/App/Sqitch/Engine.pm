@@ -97,7 +97,7 @@ has db_uri => ( is => 'ro', isa => 'URI::db', lazy => 1, default => sub {
     my $self   = shift;
     my $sqitch = $self->sqitch;
     my $config = $sqitch->config;
-    my $engine = $self->name;
+    my $engine = $self->key;
     my $uri;
 
     if ( my $db = $config->get( key => "core.$engine.database" ) ) {
@@ -129,7 +129,7 @@ has registry => (
     required => 1,
     default  => sub {
         my $self   = shift;
-        my $engine = $self->name;
+        my $engine = $self->key;
         my $config = $self->sqitch->config;
         return $config->get( key => "core.$engine.registry" )
             || $config->get( key => "core.$engine.sqitch_schema" ) # deprecated
@@ -193,7 +193,9 @@ sub load {
     return $pkg->new( $p );
 }
 
-sub name {
+sub driver { shift->key }
+
+sub key {
     my $class = ref $_[0] || shift;
     hurl engine => __ 'No engine specified; use --engine or set core.engine'
         if $class eq __PACKAGE__;
@@ -202,12 +204,26 @@ sub name {
     return $class;
 }
 
+sub name { shift->key }
+
 sub config_vars {
     return (
         database => 'any',
         registry => 'any',
         client   => 'any'
     );
+}
+
+sub use_driver {
+    my $self = shift;
+    my $driver = $self->driver;
+    eval "use $driver";
+    hurl $self->key => __x(
+        '{driver} required to manage {engine}',
+        driver  => $driver,
+        engine  => $self->name,
+    ) if $@;
+    return $self;
 }
 
 sub deploy {
@@ -1135,6 +1151,35 @@ the engine code.
 
 =head2 Class Methods
 
+=head3 C<key>
+
+  my $name = App::Sqitch::Engine->key;
+
+The key name of the engine. Should be the last part of the package name.
+
+=head3 C<name>
+
+  my $name = App::Sqitch::Engine->name;
+
+The name of the engine. Returns the same value as C<key> by default, but
+should probably be overridden to return a display name for the engine.
+
+=head3 C<driver>
+
+  my $driver = App::Sqitch::Engine->driver;
+
+The name and version of the database driver to use with the engine, returned
+as a string suitable for passing to C<use>. Used internally by C<use_driver()>
+to C<use> the driver and, if it dies, to display an appropriate error message.
+Must be overridden by subclasses.
+
+=head3 C<use_driver>
+
+  App::Sqitch::Engine->use_driver;
+
+Uses the driver and version returned by C<driver>. Returns an error on failure
+and returns true on success.
+
 =head3 C<config_vars>
 
   my %vars = App::Sqitch::Engine->config_vars;
@@ -1213,6 +1258,14 @@ Instantiates and returns a App::Sqitch::Engine object.
 
 The current Sqitch object.
 
+=head3 C<database>
+
+A L<URI::db> object representing the database to which to connect.
+
+=head3 C<registry>
+
+The name of the registry schema or database.
+
 =head3 C<start_at>
 
 The point in the plan from which to start deploying changes.
@@ -1238,14 +1291,6 @@ A hash of engine client variables to be set. May be set and retrieved as a
 list.
 
 =head2 Instance Methods
-
-=head3 C<name>
-
-  my $name = $engine->name;
-
-The name of the engine. Defaults to the last part of the package name, so as a
-rule you should not need to override it, since it is that string that Sqitch
-uses to find the engine class.
 
 =head3 C<db_uri>
 

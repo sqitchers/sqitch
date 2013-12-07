@@ -79,7 +79,7 @@ is $@->message,
 ##############################################################################
 # Make sure we get an error for no database name.
 my $tmp_dir = Path::Class::dir( tempdir CLEANUP => 1 );
-my $have_sqlite = try { require DBD::SQLite };
+my $have_sqlite = try { $sqlite->use_driver };
 $sqitch = App::Sqitch->new( _engine => 'sqlite' );
 if ($have_sqlite) {
     # We have DBD::SQLite.
@@ -105,8 +105,11 @@ if ($have_sqlite) {
     throws_ok { $sqlite->dbh } 'App::Sqitch::X',
         'Should get an error without DBD::SQLite';
     is $@->ident, 'sqlite', 'No DBD::SQLite error ident should be "sqlite"';
-    is $@->message, __ 'DBD::SQLite module required to manage SQLite',
-        'No DBD::SQLite error message should be correct';
+    is $@->message, __x(
+        '{driver} required to manage {engine}',
+        driver  => $sqlite->driver,
+        engine  => $sqlite->name,
+    ), 'No DBD::SQLite error message should be correct';
 }
 
 ##############################################################################

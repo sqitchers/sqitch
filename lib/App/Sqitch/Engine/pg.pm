@@ -88,15 +88,17 @@ has psql => (
     },
 );
 
+sub key    { 'pg' }
+sub name   { 'PostgreSQL' }
+sub driver { 'DBD::Pg 2.0' }
+
 has dbh => (
     is      => 'rw',
     isa     => 'DBI::db',
     lazy    => 1,
     default => sub {
         my $self = shift;
-        try { require DBD::Pg } catch {
-            hurl pg => __ 'DBD::Pg module required to manage PostgreSQL' if $@;
-        };
+        $self->use_driver;
 
         my $uri = $self->db_uri;
         DBI->connect($uri->dbi_dsn, scalar $uri->user, scalar $uri->password, {
