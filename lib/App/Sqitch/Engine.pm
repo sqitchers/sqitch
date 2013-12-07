@@ -171,9 +171,21 @@ sub load {
     my ( $class, $p ) = @_;
 
     # We should have a URI or an engine param.
-    my $engine = delete $p->{engine}
-        || ( $p->{db_uri} ? $p->{db_uri}->engine : undef )
-        || hurl 'Missing "db_uri" or "engine" parameter to load()';
+    my $engine = delete $p->{engine} || do {
+        if (my $uri = $p->{db_uri}) {
+            hurl engine => __x(
+                'URI "{uri}" is not a database URI',
+                uri => $uri
+            ) unless $uri->isa('URI::db');
+            my $dbd = $uri->dbi_driver or hurl engine => __x(
+                'Unsupported datbase engine "{engine}"',
+                engine => scalar $uri->engine
+            );
+            lc $dbd;
+        } else {
+            undef;
+        }
+    } or hurl 'Missing "db_uri" or "engine" parameter to load()';
 
     # Load the engine class.
     my $pkg = __PACKAGE__ . "::$engine";
