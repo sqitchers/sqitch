@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 579;
+use Test::More tests => 580;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -152,8 +152,11 @@ like $@->previous_exception, qr/^LOL BADZ/,
 # Test name.
 can_ok $CLASS, 'name';
 ok $engine = $CLASS->new({ sqitch => $sqitch }), "Create a $CLASS object";
-is $CLASS->name, '', 'Base class name should be ""';
-is $engine->name, '', 'Base object name should be ""';
+throws_ok { $engine->name } 'App::Sqitch::X',
+    'Should get error from base engine name';
+is $@->ident, 'engine', 'Name error ident should be "engine"';
+is $@->message, __('No engine specified; use --engine or set core.engine'),
+    'Name error message should be correct';
 
 ok $engine = App::Sqitch::Engine::whu->new({sqitch => $sqitch}),
     'Create a subclass name object';
@@ -187,7 +190,7 @@ ok $engine = $CLASS->load({
     sqitch => $sqitch,
     engine => 'whu',
 }), 'Load engine';
-is $engine->destination, 'db:sqlite:mydb', 'Destination should be URI string';
+is $engine->destination, 'db:whu:mydb', 'Destination should be URI string';
 is $engine->meta_destination, $engine->destination,
     'Meta destination should be the same as destination';
 

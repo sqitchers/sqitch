@@ -50,19 +50,6 @@ has destination => (
     },
 );
 
-has registry => (
-    is       => 'ro',
-    isa      => 'Str',
-    lazy     => 1,
-    required => 1,
-    default  => sub {
-        my $config = shift->sqitch->config;
-        return $config->get( key => 'core.pg.registry' )
-            || $config->get( key => 'core.pg.sqitch_schema' ) # deprecated
-            || 'sqitch';
-    },
-);
-
 has psql => (
     is         => 'ro',
     isa        => 'ArrayRef',

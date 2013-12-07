@@ -32,19 +32,6 @@ has client => (
     },
 );
 
-has registry => (
-    is       => 'ro',
-    isa      => 'Str',
-    lazy     => 1,
-    required => 1,
-    default  => sub {
-        my $config = shift->sqitch->config;
-        return $config->get( key => 'core.mysql.registry' )
-            || $config->get( key => 'core.mysql.sqitch_db' ) # deprecated
-            || 'sqitch';
-    },
-);
-
 has registry_uri => (
     is       => 'ro',
     isa      => 'URI::db',

@@ -63,11 +63,7 @@ has destination => (
     },
 );
 
-has registry => (
-    is       => 'ro',
-    isa      => 'Maybe[Str]',
-    lazy     => 1,
-    required => 1,
+has '+registry' => (
     default  => sub {
         my $config = shift->sqitch->config;
         return $config->get( key => 'core.oracle.registry' )

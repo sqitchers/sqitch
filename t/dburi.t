@@ -25,27 +25,25 @@ my @sqitch_params = (
 # Test with no engine.
 my $sqitch = App::Sqitch->new(@sqitch_params);
 
-isa_ok my $thing = App::Sqitch::Engine->new({ sqitch => $sqitch }),
-    'App::Sqitch::Engine', 'Thing';
-throws_ok { $thing->db_uri } 'App::Sqitch::X',
+isa_ok my $engine = App::Sqitch::Engine->new({ sqitch => $sqitch }),
+    'App::Sqitch::Engine', 'Engine';
+throws_ok { $engine->db_uri } 'App::Sqitch::X',
     'Should get an exception when no engine';
-is $@->ident, 'core', 'No _engine error ident should be "core"';
+is $@->ident, 'engine', 'No _engine error ident should be "core"';
 is $@->message, __ 'No engine specified; use --engine or set core.engine',
     'No _engine error message should be correct';
 
 ##############################################################################
 # Test with an engine.
 $sqitch = App::Sqitch->new(@sqitch_params, _engine => 'sqlite');
-isa_ok $thing = App::Sqitch::Engine->new({ sqitch => $sqitch }),
-    'App::Sqitch::Engine', 'Thing with SQLite engine';
-isa_ok my $uri = $thing->db_uri, 'URI::db', 'SQLite URI';
-is $uri->as_string, 'db:sqlite:', 'SQLite URI should be correct';
+isa_ok $engine = $sqitch->engine, 'App::Sqitch::Engine::sqlite', 'SQLite Engine';
+isa_ok my $uri = $engine->db_uri, 'URI::db', 'SQLite URI';
+is $uri->as_string, 'db:sqlite:sql.db', 'SQLite URI should be correct';
 
 # Different engine.
 $sqitch = App::Sqitch->new(@sqitch_params, _engine => 'pg');
-isa_ok $thing = App::Sqitch::Engine->new({ sqitch => $sqitch }),
-    'App::Sqitch::Engine', 'Thing with Pg engine';
-isa_ok $uri = $thing->db_uri, 'URI::db', 'Pg URI';
+isa_ok $engine = $sqitch->engine, 'App::Sqitch::Engine', 'Engine with Pg engine';
+isa_ok $uri = $engine->db_uri, 'URI::db', 'Pg URI';
 is $uri->as_string, 'db:pg:', 'Pg URI should be correct';
 
 ##############################################################################
@@ -55,7 +53,7 @@ CONFIG: {
     my @config_params;
     my $config_ret = 'db:sqlite:hi';
     $mock_config->mock(get => sub { shift; @config_params = @_; $config_ret });
-    my $e = App::Sqitch::Engine->new({ sqitch => $sqitch });
+    my $e = $sqitch->engine;
     is $e->db_uri, URI->new('db:sqlite:hi'),
         'URI should be the default for the engine';
     is_deeply \@config_params, [key => 'core.pg.database'],
@@ -68,7 +66,7 @@ CONFIG: {
     $mock_sqitch->mock(uri_for_db => sub { shift; @sqitch_params = @_; $sqitch_ret });
     $config_ret = 'yo';
 
-    $e = App::Sqitch::Engine->new({ sqitch => $sqitch });
+    $e = $sqitch->engine;
     is $e->db_uri, $sqitch_ret, 'URI should be from the database lookup';
     is_deeply \@config_params, [key => 'core.pg.database'],
         'Should have asked for the Pg default database again';
@@ -96,26 +94,25 @@ for my $spec (
 ) {
     my ($desc, $params, $uri) = @{ $spec };
     my $sqitch = App::Sqitch->new(@sqitch_params, @{ $params });
-    isa_ok my $thing = App::Sqitch::Engine->new({ sqitch => $sqitch }),
-    'App::Sqitch::Engine', "Thing with $desc";
-    is $thing->db_uri->as_string, $uri, "Default URI with $desc should be correct";
+    isa_ok my $engine = $sqitch->engine, 'App::Sqitch::Engine', "Engine with $desc";
+    is $engine->db_uri->as_string, $uri, "Default URI with $desc should be correct";
 }
 
 ##############################################################################
 # Make sure URIs passed to the construtor get merged.
 $sqitch = App::Sqitch->new(@sqitch_params, db_name => 'foo');
-isa_ok $thing = App::Sqitch::Engine->new({
+isa_ok $engine = App::Sqitch::Engine->new({
     sqitch => $sqitch,
     db_uri => URI->new('db:pg:blah'),
-}), 'App::Sqitch::Engine', 'Thing with URI';
-is $thing->db_uri->as_string, 'db:pg:foo', 'DB name should be merged into URI';
+}), 'App::Sqitch::Engine', 'Engine with URI';
+is $engine->db_uri->as_string, 'db:pg:foo', 'DB name should be merged into URI';
 
 $sqitch = App::Sqitch->new(@sqitch_params, db_name => 'foo', db_host => 'foo.com');
-isa_ok $thing = App::Sqitch::Engine->new({
+isa_ok $engine = App::Sqitch::Engine->new({
     sqitch => $sqitch,
     db_uri => URI->new('db:pg://localhost:1234/blah'),
-}), 'App::Sqitch::Engine', 'Thing with full URI';
-is $thing->db_uri->as_string, 'db:pg://foo.com:1234/foo',
+}), 'App::Sqitch::Engine', 'Engine with full URI';
+is $engine->db_uri->as_string, 'db:pg://foo.com:1234/foo',
     'DB host and name should be merged into URI';
 
 done_testing;

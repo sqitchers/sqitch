@@ -97,7 +97,7 @@ has db_uri => ( is => 'ro', isa => 'URI::db', lazy => 1, default => sub {
     my $self   = shift;
     my $sqitch = $self->sqitch;
     my $config = $sqitch->config;
-    my $engine = $self->sqitch->_engine;
+    my $engine = $self->name;
     my $uri;
 
     if ( my $db = $config->get( key => "core.$engine.database" ) ) {
@@ -121,6 +121,22 @@ has db_uri => ( is => 'ro', isa => 'URI::db', lazy => 1, default => sub {
 
     return $self->_merge_options_into($uri);
 });
+
+has registry => (
+    is       => 'ro',
+    isa      => 'Maybe[Str]',
+    lazy     => 1,
+    required => 1,
+    default  => sub {
+        my $self   = shift;
+        my $engine = $self->name;
+        my $config = $self->sqitch->config;
+        return $config->get( key => "core.$engine.registry" )
+            || $config->get( key => "core.$engine.sqitch_schema" ) # deprecated
+            || $config->get( key => "core.$engine.sqitch_db" )     # deprecated
+            || 'sqitch';
+    },
+);
 
 sub _merge_options_into {
     my ($self, $uri) = @_;
@@ -166,7 +182,8 @@ sub load {
 
 sub name {
     my $class = ref $_[0] || shift;
-    return '' if $class eq __PACKAGE__;
+    hurl engine => __ 'No engine specified; use --engine or set core.engine'
+        if $class eq __PACKAGE__;
     my $pkg = quotemeta __PACKAGE__;
     $class =~ s/^$pkg\:://;
     return $class;
