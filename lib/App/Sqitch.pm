@@ -848,7 +848,7 @@ C<shell> to run a command and its arguments as a single string.
 Creates and returns an engine of the appropriate subclass. Pass in additional
 parameters to be passed through to the engine constructor.
 
-=item C<string_for_db>
+=head2 C<string_for_db>
 
   my $string = $sqitch->string_for_db($key);
 
@@ -857,16 +857,16 @@ will simply be returned. If it is the key naming a database URI in the
 configuration, the value for that key will be returned. Otherwise returns
 C<undef>.
 
-=item C<uri_for_db>
+=head3 C<uri_for_db>
 
   my $uri = $sqitch->uri_for_db($key);
 
 Like C<string_for_db>, but returns a L<URI::db> object instead of a string.
 Returns C<undef> if C<$key> is undefined or empty. If C<$key> is defined and
 not itself a URI string, and no value can be found for it in the
-confifuration, an exception will be thrown.
+configuration, an exception will be thrown.
 
-=item C<engine_for_db>
+=head3 C<engine_for_db>
 
   my $engine = $sqitch->engine_for($key);
 
