@@ -158,13 +158,6 @@ has mysql => (
     },
 );
 
-sub config_vars {
-    return (
-        shift->SUPER::config_vars,
-        registry => 'any',
-    );
-}
-
 sub _char2ts {
     $_[1]->set_time_zone('UTC')->iso8601;
 }
@@ -330,19 +323,6 @@ App::Sqitch::Engine::mysql - Sqitch MySQL Engine
 App::Sqitch::Engine::mysql provides the MySQL storage engine for Sqitch.
 
 =head1 Interface
-
-=head3 Class Methods
-
-=head3 C<config_vars>
-
-  my %vars = App::Sqitch::Engine::mysql->config_vars;
-
-Returns a hash of names and types to use for variables in the C<core.mysql>
-section of the a Sqitch configuration file. The variables and their types are:
-
-  database  => 'any',
-  registry  => 'any',
-  client    => 'any',
 
 =head2 Accessors
 

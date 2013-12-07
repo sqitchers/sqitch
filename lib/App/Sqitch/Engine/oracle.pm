@@ -129,13 +129,6 @@ has dbh => (
     }
 );
 
-sub config_vars {
-    return (
-        shift->SUPER::config_vars,
-        registry => 'any',
-    );
-}
-
 sub _log_tags_param {
     [ map { $_->format_name } $_[1]->tags ];
 }
@@ -760,19 +753,6 @@ App::Sqitch::Engine::oracle provides the Oracle storage engine for Sqitch. It
 supports Oracle 8.4.0 and higher.
 
 =head1 Interface
-
-=head3 Class Methods
-
-=head3 C<config_vars>
-
-  my %vars = App::Sqitch::Engine::oracle->config_vars;
-
-Returns a hash of names and types to use for variables in the C<core.oracle>
-section of the a Sqitch configuration file. The variables and their types are:
-
-  database  => 'any',
-  registry  => 'any',
-  client    => 'any',
 
 =head2 Instance Methods
 

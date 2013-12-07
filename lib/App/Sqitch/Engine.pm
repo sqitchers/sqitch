@@ -192,6 +192,7 @@ sub name {
 sub config_vars {
     return (
         database => 'any',
+        registry => 'any',
         client   => 'any'
     );
 }
@@ -1163,6 +1164,7 @@ By default, App::Sqitch::Engine returns:
 
   (
       database => 'any',
+      registry => 'any',
       client   => 'any',
   )
 

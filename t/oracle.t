@@ -60,8 +60,8 @@ BEGIN {
 
 is_deeply [$CLASS->config_vars], [
     database => 'any',
-    client   => 'any',
     registry => 'any',
+    client   => 'any',
 ], 'config_vars should return three vars';
 
 my $sqitch = App::Sqitch->new(_engine => 'oracle');

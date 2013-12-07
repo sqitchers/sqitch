@@ -311,8 +311,8 @@ is_deeply read_config $conf_file, {
 
 file_contents_like $conf_file, qr{^\Q# [core "sqlite"]
 	# database = db:sqlite:
-	# client = sqlite3$exe_ext
 	# registry = sqitch
+	# client = sqlite3$exe_ext
 }m, 'Engine section should be present but commented-out';
 
 # Now build it with other config.
@@ -386,8 +386,8 @@ is_deeply read_config $conf_file, {
 
 file_contents_like $conf_file, qr{^\Q# [core "pg"]
 	# database = db:pg:
-	# client = psql$exe_ext
 	# registry = sqitch
+	# client = psql$exe_ext
 }m, 'Engine section should be present but commented-out' or diag $conf_file->slurp;
 
 USERCONF: {
