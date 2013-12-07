@@ -171,11 +171,9 @@ sub load {
     my ( $class, $p ) = @_;
 
     # We should have a URI or an engine param.
-    my $engine = delete $p->{engine};
-    if (my $uri = $p->{db_uri}) {
-        $engine = $uri->engine;
-    }
-    hurl 'Missing "db_uri" or "engine" parameter to load()' unless $engine;
+    my $engine = delete $p->{engine}
+        || ( $p->{db_uri} ? $p->{db_uri}->engine : undef )
+        || hurl 'Missing "db_uri" or "engine" parameter to load()';
 
     # Load the engine class.
     my $pkg = __PACKAGE__ . "::$engine";
