@@ -11,7 +11,6 @@ Revision history for Perl extension App::Sqitch
        * `core.$engine.port`
        * `core.$engine.sqitch_schema`
        * `core.$engine.sqitch_db`
-
      - Replaced the deprecated config variables them with two,
        `core.$engine.database` and `core.$engine.registry`. The `database`
        variable is a URI that conforms to a proposed standard for specifing

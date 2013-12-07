@@ -42,7 +42,7 @@ my $dest_uri = $uri->clone;
 $dest_uri->dbname($ENV{PGDATABASE} || $ENV{PGUSER} || $sqitch->sysuser);
 is $pg->destination, $dest_uri->as_string,
     'Destination should fall back on environment variables';
-is $pg->meta_destination, $pg->destination,
+is $pg->reg_destination, $pg->destination,
     'Meta destination should be the same as destination';
 
 my @std_opts = (
@@ -79,7 +79,7 @@ ENV: {
         my $pg = $CLASS->new(sqitch => $sqitch);
         local $ENV{$env} = "\$ENV=whatever";
         is $pg->destination, "db:pg:\$ENV=whatever", "Destination should read \$$env";
-        is $pg->meta_destination, $pg->destination,
+        is $pg->reg_destination, $pg->destination,
             'Meta destination should be the same as destination';
     }
 
@@ -88,14 +88,14 @@ ENV: {
     my $pg = $CLASS->new(sqitch => $sqitch);
     is $pg->destination, 'db:pg:sysuser=whatever',
         'Destination should fall back on sysuser';
-    is $pg->meta_destination, $pg->destination,
+    is $pg->reg_destination, $pg->destination,
         'Meta destination should be the same as destination';
 
     $ENV{PGDATABASE} = 'mydb';
     $pg = $CLASS->new(sqitch => $sqitch, username => 'hi');
     is $pg->destination, 'db:pg:mydb',
         'Destination should prefer $PGDATABASE to username';
-    is $pg->meta_destination, $pg->destination,
+    is $pg->reg_destination, $pg->destination,
         'Meta destination should be the same as destination';
 }
 
@@ -143,7 +143,7 @@ is $pg->db_uri->as_string, 'db:pg://freddy:s3cr3t@db.example.com:1234/widgets',
     'DB URI should be derived from deprecated config vars';
 like $pg->destination, qr{^db:pg://freddy:?\@db\.example\.com:1234/widgets$},
     'destination should be the URI without the password';
-is $pg->meta_destination, $pg->destination, 'meta_destination should default be the URI';
+is $pg->reg_destination, $pg->destination, 'reg_destination should default be the URI';
 
 ##############################################################################
 # Now make sure that (deprecated?) Sqitch options override configurations.
@@ -163,7 +163,7 @@ is $pg->db_uri->as_string, 'db:pg://anna:s3cr3t@foo.com:98760/widgets_dev',
     'db_uri should be as configured';
 like $pg->destination, qr{^db:pg://anna:?\@foo\.com:98760/widgets_dev$},
     'destination should be the URI without the password';
-is $pg->meta_destination, $pg->destination, 'meta_destination should still be URI';
+is $pg->reg_destination, $pg->destination, 'reg_destination should still be URI';
 is $pg->registry, 'meta', 'registry should still be as configured';
 is_deeply [$pg->psql], [qw(
     /some/other/psql

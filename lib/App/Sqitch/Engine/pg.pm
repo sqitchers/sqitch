@@ -511,7 +511,7 @@ has not.
 
   $pg->initialize;
 
-Initializes a database for Sqitch by installing the Sqitch metadata schema.
+Initializes a database for Sqitch by installing the Sqitch registry schema.
 
 =head1 Author
 

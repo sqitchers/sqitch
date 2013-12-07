@@ -170,7 +170,7 @@ Now we can try deploying this change:
 
   > mysql -u root --execute 'CREATE DATABASE flipr_test'
   > sqitch --db-name flipr_test --db-user root deploy
-  Adding metadata tables to sqitch
+  Adding registry tables to sqitch
   Deploying to flipr_test
     + appuser .. ok
 
@@ -264,7 +264,7 @@ continuing!
 
 For purely informational purposes, we can always see how a deployment was
 recorded via the L<C<status>|sqitch-status> command, which reads the tables
-from the metadata database:
+from the registry database:
 
   > sqitch --db-name flipr_test --db-user root status
   # On database flipr_test
@@ -823,7 +823,7 @@ Now we can try deploying the bundle:
   > cd bundle
   > mysql -u root --execute 'CREATE DATABASE flipr_dev'
   > sqitch --db-name flipr_dev deploy
-  Adding metadata tables to sqitch
+  Adding registry tables to sqitch
   Deploying changes to flipr_dev
     + appuser ................... ok
     + users ..................... ok

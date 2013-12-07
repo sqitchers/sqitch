@@ -504,7 +504,7 @@ PostgreSQL database key or connection URI.
 
 =item C<core.pg.registry>
 
-The name of the Sqitch registry schema. Sqitch will store its metadata in this
+The name of the Sqitch registry schema. Sqitch will store its own data in this
 schema. No other data should be stored there. Defaults to C<sqitch>.
 
 =back
@@ -526,7 +526,7 @@ SQLite database key or connection URI.
 
 =item C<core.sqlite.registry>
 
-Name to use for the Sqitch registry database. Sqitch will store its metadata
+Name to use for the Sqitch registry database. Sqitch will store its own data
 in this database. If the value look like an absolute path, then it will be the
 database file. Otherwise, it will be in the same directory as the database.
 Defaults to C<sqitch>.
@@ -550,7 +550,7 @@ MySQL database key or connection URI.
 
 =item C<core.mysql.registry>
 
-The name of the Sqitch registry database. Sqitch will store its metadata in
+The name of the Sqitch registry database. Sqitch will store its own data in
 this database. Defaults to C<sqitch>. If you need to manage multiple databases
 on a single server, and don't want them all to share the same registry, change
 this property to a value specific for your database.
@@ -574,7 +574,7 @@ Oracle database key or connection URI.
 
 =item C<core.oracle.registry>
 
-The name of the Sqitch registry schema. Sqitch will store its metadata in this
+The name of the Sqitch registry schema. Sqitch will store its own data in this
 schema. No other data should be stored there. Uses the current schema by
 default (usually the same name as the connection user.
 

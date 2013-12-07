@@ -143,7 +143,7 @@ named C<flipr_test> set up in your
 C<F<TNSNAMES.ORA>|http://www.orafaq.com/wiki/Tnsnames.ora> file:
 
   > sqitch --db-name flipr_test --db-user scott/tiger deploy                   
-  Adding metadata tables to flipr_test
+  Adding registry tables to flipr_test
   Deploying changes to flipr_test
     + appschema .. ok
 
@@ -263,7 +263,7 @@ Don't forget to change the schema name back before continuing!
 =head2 Status, Revert, Log, Repeat
 
 For purely informational purposes, we can always see how a deployment was
-recorded via the L<C<status>|sqitch-status> command, which reads the metadata
+recorded via the L<C<status>|sqitch-status> command, which reads the registry
 tables from the database:
 
   > sqitch --db-name flipr_test --db-user scott/tiger status
@@ -842,7 +842,7 @@ We can try deploying to make sure the tag gets picked up by deploying to a new
 database, like so:
 
   > sqitch -d flipr_dev deploy
-  Adding metadata tables to flipr_dev
+  Adding registry tables to flipr_dev
   Deploying changes to flipr_dev
     + appschema ................. ok
     + users ..................... ok
@@ -884,7 +884,7 @@ deploying it to yet another database:
 
   > cd bundle
   > sqitch --db-name flipr_prod deploy
-  Adding metadata tables to flipr_prod
+  Adding registry tables to flipr_prod
   Deploying changes to flipr_prod
     + appschema ................. ok
     + users ..................... ok

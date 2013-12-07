@@ -38,7 +38,7 @@ is $sqlite->client, 'sqlite3' . ($^O eq 'MSWin32' ? '.exe' : ''),
 is $sqlite->db_uri->dbname, file('foo.db'), 'dbname should be filled in';
 is $sqlite->destination, $sqlite->db_uri->as_string,
     'Destination should be db_uri stringified';
-is $sqlite->meta_destination, $sqlite->registry_uri->as_string,
+is $sqlite->reg_destination, $sqlite->registry_uri->as_string,
     'Meta destination should be registry_uri stringified';
 
 # Make sure the password is suppressed in the destination, should anyone be
@@ -49,7 +49,7 @@ isa_ok $sqlite = $CLASS->new(
 ), $CLASS;
 like $sqlite->destination, qr{^db:sqlite://foo:?\@localhost/foo.db$},
     'Destination should exclude password';
-like $sqlite->meta_destination, qr{^db:sqlite://foo:?\@localhost/sqitch\.db$},
+like $sqlite->reg_destination, qr{^db:sqlite://foo:?\@localhost/sqitch\.db$},
     'Destination should also exclude password';
 
 # Pretend for now that we always have a valid SQLite.
@@ -128,7 +128,7 @@ is $sqlite->destination, $sqlite->db_uri->as_string,
     'Destination should be configured db_uri stringified';
 is $sqlite->registry_uri->as_string, 'db:sqlite:/path/to/meta.db',
     'registry_uri should fall back on config';
-is $sqlite->meta_destination, $sqlite->registry_uri->as_string,
+is $sqlite->reg_destination, $sqlite->registry_uri->as_string,
     'Meta destination should be configured registry_uri stringified';
 
 # Try a registry with an extension and a dbname without.
@@ -144,7 +144,7 @@ is $sqlite->destination, $sqlite->db_uri->as_string,
     'Destination should be configured db_uri stringified';
 is $sqlite->registry_uri->as_string, 'db:sqlite:/path/to/meta.db',
     'registry_uri should fall back on config wth extension';
-is $sqlite->meta_destination, $sqlite->registry_uri->as_string,
+is $sqlite->reg_destination, $sqlite->registry_uri->as_string,
     'Meta destination should be configured registry_uri stringified';
 
 # Also try a registry with no extension and a dbname with.
@@ -160,7 +160,7 @@ is $sqlite->destination, $sqlite->db_uri->as_string,
     'Destination should be configured db_uri stringified';
 is $sqlite->registry_uri->as_string, 'db:sqlite:/path/to/registry.db',
     'registry_uri should fall back on config wth extension';
-is $sqlite->meta_destination, $sqlite->registry_uri->as_string,
+is $sqlite->reg_destination, $sqlite->registry_uri->as_string,
     'Meta destination should be configured registry_uri stringified';
 
 # Try a registry with an absolute path.
@@ -176,7 +176,7 @@ is $sqlite->destination, $sqlite->db_uri->as_string,
     'Destination should be configured db_uri stringified';
 is $sqlite->registry_uri->as_string, 'db:sqlite:/some/other/path.db',
     'registry_uri should fall back on config wth extension';
-is $sqlite->meta_destination, $sqlite->registry_uri->as_string,
+is $sqlite->reg_destination, $sqlite->registry_uri->as_string,
     'Meta destination should be configured registry_uri stringified';
 
 ##############################################################################

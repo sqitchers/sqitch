@@ -29,7 +29,7 @@ sub destination {
     return $uri->as_string;
 }
 
-sub meta_destination { shift->destination }
+sub reg_destination { shift->destination }
 
 has start_at => (
     is  => 'rw',
@@ -233,8 +233,8 @@ sub deploy {
         # Initialize the database, if necessary.
         unless ($self->initialized) {
             $sqitch->info(__x(
-                'Adding metadata tables to {destination}',
-                destination => $self->meta_destination,
+                'Adding registry tables to {destination}',
+                destination => $self->reg_destination,
             ));
             $self->initialize;
         }
@@ -1246,20 +1246,20 @@ constructed from the L<App::Sqitch> C<db_*> attributes.
   my $destination = $engine->destination;
 
 Returns the name of the destination database. This will usually be the the
-string representation of the C<db_uri> attribute. However, subclasses may
-override it to provide other values, such as when a database name or host is
-implied but not physically represented in the URI. Used internally to name the
-destination in status messages.
+string representation of the C<db_uri> attribute with any password part
+removed. However, subclasses may override it to provide other values, such as
+when a database name or host is implied but not physically represented in the
+URI. Used internally to name the destination in status messages.
 
-=head3 C<meta_destination>
+=head3 C<reg_destination>
 
-  my $meta_destination = $engine->meta_destination;
+  my $reg_destination = $engine->reg_destination;
 
-Returns the name of the metadata destination database. In other words, the
-database in which Sqitch's own data is stored. It will usually be the same as
+Returns the name of the registration database. In other words, the database in
+which Sqitch's own data is stored. It will usually be the same as
 C<destination()>, but some engines, such as
 L<SQLite|App::Sqitch::Engine::sqlite>, may use a separate database. Used
-internally to name the destination when the metadata tables are created.
+internally to name the destination when the registration tables are created.
 
 =head3 C<variables>
 
@@ -1580,7 +1580,7 @@ has not.
 
   $engine->initialize;
 
-Initializes a database for Sqitch by installing the Sqitch metadata schema
+Initializes a database for Sqitch by installing the Sqitch registry schema
 and/or tables. Should be overridden by subclasses. This implementation throws
 an exception
 
@@ -1686,8 +1686,8 @@ if any.
 
   $engine->log_deploy_change($change);
 
-Should write to the database metadata and history the records necessary to
-indicate that the change has been deployed.
+Should write the records to the registry necessary to indicate that the change
+has been deployed.
 
 =head3 C<log_fail_change>
 
@@ -1700,8 +1700,8 @@ of the change failed.
 
   $engine->log_revert_change($change);
 
-Should write to and/or remove from the database metadata and history the
-records necessary to indicate that the change has been reverted.
+Should write to and/or remove from the registry the records necessary to
+indicate that the change has been reverted.
 
 =head3 C<log_new_tags>
 

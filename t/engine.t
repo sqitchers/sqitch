@@ -192,7 +192,7 @@ ok $engine = $CLASS->load({
     engine => 'whu',
 }), 'Load engine';
 is $engine->destination, 'db:whu:mydb', 'Destination should be URI string';
-is $engine->meta_destination, $engine->destination,
+is $engine->reg_destination, $engine->destination,
     'Meta destination should be the same as destination';
 
 # Make sure password is removed from the destination.
@@ -203,7 +203,7 @@ ok $engine = $CLASS->load({
 }), 'Load engine with URI with password';
 like $engine->destination, qr{^db:whu://foo:?\@localhost/mydb$},
     'Destination should not include password';
-is $engine->meta_destination, $engine->destination,
+is $engine->reg_destination, $engine->destination,
     'Meta destination should again be the same as destination';
 
 ##############################################################################
@@ -727,8 +727,8 @@ is_deeply $engine->seen, [
 
 is $deploy_meth, '_deploy_all', 'Should have called _deploy_all()';
 is_deeply +MockOutput->get_info, [
-    [__x 'Adding metadata tables to {destination}',
-        destination => $engine->meta_destination,
+    [__x 'Adding registry tables to {destination}',
+        destination => $engine->reg_destination,
     ],
     [__x 'Deploying changes through {target} to {destination}',
         destination =>  $engine->destination,
@@ -761,8 +761,8 @@ for my $mode (qw(change tag all)) {
     is $deploy_meth, "_deploy_$meth", "Should have called _deploy_$meth()";
     is_deeply +MockOutput->get_info, [
         [
-            __x 'Adding metadata tables to {destination}',
-            destination => $engine->meta_destination,
+            __x 'Adding registry tables to {destination}',
+            destination => $engine->reg_destination,
         ],
         [
             __x 'Deploying changes through {target} to {destination}',
@@ -798,7 +798,7 @@ is_deeply $engine->seen, [
 is $deploy_meth, '_deploy_by_tag', 'Should have called _deploy_by_tag()';
 is_deeply +MockOutput->get_info, [
     [__x 'Deploying changes through {target} to {destination}',
-        destination =>  $engine->meta_destination,
+        destination =>  $engine->reg_destination,
         target      => $plan->get('@alpha')->format_name_with_tags,
     ],
     [__ 'ok'],

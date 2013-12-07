@@ -173,7 +173,7 @@ script, so we edit this to F<revert/users.sql> to look like this:
 Now we can try deploying this change:
 
   > sqitch --db-name flipr_test.db deploy
-  Adding metadata tables to flipr_test-sqitch.db
+  Adding registry tables to flipr_test-sqitch.db
   Deploying changes to flipr_test.db
 	+ users .. ok
 
@@ -255,7 +255,7 @@ the table name back before continuing!
 
 For purely informational purposes, we can always see how a deployment was
 recorded via the L<C<status>|sqitch-status> command, which reads the tables
-from the metadata database:
+from the registry database:
 
   > sqitch --db-name flipr_test.db status
   # On database flipr_test.db
@@ -632,7 +632,7 @@ release, let's tag it:
 We can try deploying to make sure the tag gets picked up like so:
 
   > sqitch -d flipr_dev.db deploy
-  Adding metadata tables to ./flipr_dev-sqitch.db
+  Adding registry tables to ./flipr_dev-sqitch.db
   Deploying changes to flipr_dev.db
 	+ users ................... ok
 	+ flips ................... ok
@@ -670,7 +670,7 @@ deploying it:
 
   > cd bundle
   > sqitch --db-name flipr_prod.db deploy
-  Adding metadata tables to ./flipr_prod-sqitch.db
+  Adding registry tables to ./flipr_prod-sqitch.db
   Deploying changes to flipr_prod.db
 	+ users ................... ok
 	+ flips ................... ok

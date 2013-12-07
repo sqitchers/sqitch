@@ -88,7 +88,7 @@ $dest_uri->dbname(
 );
 is $ora->destination, $dest_uri->as_string,
     'Destination should fall back on environment variables';
-is $ora->meta_destination, $ora->destination,
+is $ora->reg_destination, $ora->destination,
     'Meta destination should be the same as destination';
 
 my @std_opts = qw(-S -L /nolog);
@@ -159,7 +159,7 @@ ENV: {
         my $ora = $CLASS->new(sqitch => $sqitch);
         local $ENV{$env} = '$ENV=whatever';
         is $ora->destination, "db:oracle:\$ENV=whatever", "Destination should read \$$env";
-        is $ora->meta_destination, $ora->destination,
+        is $ora->reg_destination, $ora->destination,
             'Meta destination should be the same as destination';
     }
 
@@ -168,14 +168,14 @@ ENV: {
     my $ora = $CLASS->new(sqitch => $sqitch);
     is $ora->destination, 'db:oracle:sysuser=whatever',
         'Destination should fall back on sysuser';
-    is $ora->meta_destination, $ora->destination,
+    is $ora->reg_destination, $ora->destination,
         'Meta destination should be the same as destination';
 
     $ENV{TWO_TASK} = 'mydb';
     $ora = $CLASS->new(sqitch => $sqitch, username => 'hi');
     is $ora->destination, 'db:oracle:mydb',
         'Destination should prefer $TWO_TASK to username';
-    is $ora->meta_destination, $ora->destination,
+    is $ora->reg_destination, $ora->destination,
         'Meta destination should be the same as destination';
 }
 
@@ -195,8 +195,8 @@ is $ora->db_uri->as_string, 'db:oracle://bob:hi@db.net:12/howdy',
     'DB URI should be as configured';
 like $ora->destination, qr{^db:oracle://bob:?\@db\.net:12/howdy$},
     'Destination should be the URI without the password';
-is $ora->meta_destination, $ora->destination,
-    'meta_destination should replace be the same URI';
+is $ora->reg_destination, $ora->destination,
+    'reg_destination should replace be the same URI';
 is $ora->registry, 'meta', 'registry should be as configured';
 is_deeply [$ora->sqlplus], ['/path/to/sqlplus', @std_opts],
     'sqlplus command should be configured';
@@ -217,8 +217,8 @@ is $ora->db_uri->as_string, 'db:oracle://freddy:s3cr3t@db.example.com:1234/widge
     'DB URI should be constructed from old config variables';
 like $ora->destination, qr{^db:oracle://freddy:?\@db\.example\.com:1234/widgets$},
     'Destination should be the URI without the password';
-is $ora->meta_destination, $ora->destination,
-    'meta_destination should be the same URI';
+is $ora->reg_destination, $ora->destination,
+    'reg_destination should be the same URI';
 is $ora->registry, 'meta', 'registry should be as configured';
 is_deeply [$ora->sqlplus], ['/path/to/sqlplus', @std_opts],
     'sqlplus command should be configured';
@@ -241,8 +241,8 @@ is $ora->db_uri->as_string, 'db:oracle://anna:s3cr3t@foo.com:98760/widgets_dev',
     'DB URI should have attributes overridden by options';
 like $ora->destination, qr{^db:oracle://anna:?\@foo\.com:98760/widgets_dev$},
     'Destination should be the URI without the password';
-is $ora->meta_destination, $ora->destination,
-    'meta_destination should still be the same URI';
+is $ora->reg_destination, $ora->destination,
+    'reg_destination should still be the same URI';
 is $ora->registry, 'meta', 'registry should still be as configured';
 is_deeply [$ora->sqlplus], ['/some/other/sqlplus', @std_opts],
     'sqlplus command should be as optioned';

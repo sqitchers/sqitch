@@ -45,7 +45,7 @@ has registry_uri => (
     },
 );
 
-sub meta_destination {
+sub reg_destination {
     my $uri = shift->registry_uri;
     if ($uri->password) {
         $uri = $uri->clone;
@@ -335,8 +335,8 @@ C<mysql.exe> on Windows), which should work if it's in your path.
 
 =head3 C<registry>
 
-Name of the MySQL database to use for the Sqitch metadata tables. Returns the
-value of the C<core.mysql.registry> configuration value, or else defaults to
+Name of the MySQL database to use for the Sqitch registry. Returns the value
+of the C<core.mysql.registry> configuration value, or else defaults to
 C<sqitch>.
 
 =head1 Author
