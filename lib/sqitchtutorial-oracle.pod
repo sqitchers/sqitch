@@ -65,8 +65,8 @@ Let's have a look at F<sqitch.conf>:
   	# extension = sql
   # [core "oracle"]
   	# database = db:oracle:
+  	# registry = sqitch
   	# client = /usr/local/instantclient_11_2/sqlplus
-  	# sqitch_schema = 
 
 Good, it picked up on the fact that we're creating changes for the Oracle
 engine, thanks to the C<--engine oracle> option, and saved it to the file.
@@ -147,14 +147,14 @@ C<F<TNSNAMES.ORA>|http://www.orafaq.com/wiki/Tnsnames.ora> file:
   Deploying changes to flipr_test
     + appschema .. ok
 
-First Sqitch created the metadata tables used to track database changes. The
-structure and name of the metadata tables varies between databases, but in Oracle
-they are simply stored in the current schema -- that is, the schema with the same
-name as the user you've connected as. In this example, that schema is C<scott>.
-If you'd like to keep the Sqitch metadata in some other schema, set the
-C<core.oracle.sqitch_schema> configuration variable:
+First Sqitch created the registry tables used to track database changes. The
+structure and name of the registry varies between databases, but in Oracle
+they are simply stored in the current schema -- that is, the schema with the
+same name as the user you've connected as. In this example, that schema is
+C<scott>. If you'd like to keep the registry in some other schema, set the
+C<core.oracle.registry> configuration variable:
 
-  > sqitch config core.oracle.sqitch_schema sqitch
+  > sqitch config core.oracle.registry sqitch
 
 Ideally, only Sqitch data will be stored in this schema, so it probably makes
 the most sense to create a superuser named C<sqitch> or something similar and

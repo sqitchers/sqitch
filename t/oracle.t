@@ -59,9 +59,9 @@ BEGIN {
 }
 
 is_deeply [$CLASS->config_vars], [
-    database      => 'any',
-    client        => 'any',
-    sqitch_schema => 'any',
+    database => 'any',
+    client   => 'any',
+    registry => 'any',
 ], 'config_vars should return three vars';
 
 my $sqitch = App::Sqitch->new(_engine => 'oracle');
@@ -76,7 +76,7 @@ ORACLE_HOME: {
         'client should use $ORACLE_HOME';
 }
 
-is $ora->sqitch_schema, undef, 'sqitch_schema default should be undefined';
+is $ora->registry, undef, 'registry default should be undefined';
 is $ora->db_uri, 'db:oracle:', 'Default URI should be "db:oracle"';
 
 my $dest_uri = $ora->db_uri->clone;
@@ -182,9 +182,9 @@ ENV: {
 ##############################################################################
 # Make sure config settings override defaults.
 my %config = (
-    'core.oracle.client'        => '/path/to/sqlplus',
-    'core.oracle.database'      => 'db:oracle://bob:hi@db.net:12/howdy',
-    'core.oracle.sqitch_schema' => 'meta',
+    'core.oracle.client'   => '/path/to/sqlplus',
+    'core.oracle.database' => 'db:oracle://bob:hi@db.net:12/howdy',
+    'core.oracle.registry' => 'meta',
 );
 my $mock_config = Test::MockModule->new('App::Sqitch::Config');
 $mock_config->mock(get => sub { $config{ $_[2] } });
@@ -197,18 +197,18 @@ like $ora->destination, qr{^db:oracle://bob:?\@db\.net:12/howdy$},
     'Destination should be the URI without the password';
 is $ora->meta_destination, $ora->destination,
     'meta_destination should replace be the same URI';
-is $ora->sqitch_schema, 'meta', 'sqitch_schema should be as configured';
+is $ora->registry, 'meta', 'registry should be as configured';
 is_deeply [$ora->sqlplus], ['/path/to/sqlplus', @std_opts],
     'sqlplus command should be configured';
 
 %config = (
-    'core.oracle.client'        => '/path/to/sqlplus',
-    'core.oracle.username'      => 'freddy',
-    'core.oracle.password'      => 's3cr3t',
-    'core.oracle.db_name'       => 'widgets',
-    'core.oracle.host'          => 'db.example.com',
-    'core.oracle.port'          => 1234,
-    'core.oracle.sqitch_schema' => 'meta',
+    'core.oracle.client'   => '/path/to/sqlplus',
+    'core.oracle.username' => 'freddy',
+    'core.oracle.password' => 's3cr3t',
+    'core.oracle.db_name'  => 'widgets',
+    'core.oracle.host'     => 'db.example.com',
+    'core.oracle.port'     => 1234,
+    'core.oracle.registry' => 'meta',
 );
 
 ok $ora = $CLASS->new(sqitch => $sqitch), 'Create yet another ora';
@@ -219,7 +219,7 @@ like $ora->destination, qr{^db:oracle://freddy:?\@db\.example\.com:1234/widgets$
     'Destination should be the URI without the password';
 is $ora->meta_destination, $ora->destination,
     'meta_destination should be the same URI';
-is $ora->sqitch_schema, 'meta', 'sqitch_schema should be as configured';
+is $ora->registry, 'meta', 'registry should be as configured';
 is_deeply [$ora->sqlplus], ['/path/to/sqlplus', @std_opts],
     'sqlplus command should be configured';
 
@@ -243,7 +243,7 @@ like $ora->destination, qr{^db:oracle://anna:?\@foo\.com:98760/widgets_dev$},
     'Destination should be the URI without the password';
 is $ora->meta_destination, $ora->destination,
     'meta_destination should still be the same URI';
-is $ora->sqitch_schema, 'meta', 'sqitch_schema should still be as configured';
+is $ora->registry, 'meta', 'registry should still be as configured';
 is_deeply [$ora->sqlplus], ['/some/other/sqlplus', @std_opts],
     'sqlplus command should be as optioned';
 
@@ -404,7 +404,7 @@ DBIEngineTest->run(
         plan_file => Path::Class::file(qw(t engine sqitch.plan)),
     ],
     engine_params     => [ db_uri => $uri ],
-    alt_engine_params => [ db_uri => $uri, sqitch_schema => 'oe' ],
+    alt_engine_params => [ db_uri => $uri, registry => 'oe' ],
     skip_unless       => sub {
         my $self = shift;
         die $err if $err;

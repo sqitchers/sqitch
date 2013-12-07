@@ -572,11 +572,11 @@ found in C<$ORACLE_HOME> or the path.
 
 Oracle database key or connection URI.
 
-=item C<core.oracle.sqitch_schema>
+=item C<core.oracle.registry>
 
-The name of the schema in which Sqitch metadata will be stored. No other data
-should be stored in this schema. Uses the current schema by default (usually
-the same name as the connection user.
+The name of the Sqitch registry schema. Sqitch will store its metadata in this
+schema. No other data should be stored there. Uses the current schema by
+default (usually the same name as the connection user.
 
 =back
 

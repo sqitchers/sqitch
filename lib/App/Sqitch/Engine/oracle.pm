@@ -63,13 +63,15 @@ has destination => (
     },
 );
 
-has sqitch_schema => (
+has registry => (
     is       => 'ro',
     isa      => 'Maybe[Str]',
     lazy     => 1,
     required => 1,
     default  => sub {
-        shift->sqitch->config->get( key => 'core.oracle.sqitch_schema' )
+        my $config = shift->sqitch->config;
+        return $config->get( key => 'core.oracle.registry' )
+            || $config->get( key => 'core.oracle.sqitch_schema' ); # deprecated
     },
 );
 
@@ -116,7 +118,7 @@ has dbh => (
                         nls_timestamp_format
                         nls_timestamp_tz_format
                     );
-                    if (my $schema = $self->sqitch_schema) {
+                    if (my $schema = $self->registry) {
                         try {
                             $dbh->do("ALTER SESSION SET CURRENT_SCHEMA = $schema");
                             # http://www.nntp.perl.org/group/perl.dbi.dev/2013/11/msg7622.html
@@ -134,7 +136,7 @@ has dbh => (
 sub config_vars {
     return (
         shift->SUPER::config_vars,
-        sqitch_schema => 'any',
+        registry => 'any',
     );
 }
 
@@ -345,7 +347,7 @@ sub initialized {
           FROM all_tables
          WHERE owner = UPPER(?)
            AND table_name = 'CHANGES'
-    }, undef, $self->sqitch_schema || $self->db_uri->user)->[0];
+    }, undef, $self->registry || $self->db_uri->user)->[0];
 }
 
 sub _log_event {
@@ -480,7 +482,7 @@ sub is_deployed_tag {
 
 sub initialize {
     my $self   = shift;
-    my $schema = $self->sqitch_schema;
+    my $schema = $self->registry;
     hurl engine => __ 'Sqitch already initialized' if $self->initialized;
 
     # Load up our database.
@@ -490,11 +492,11 @@ sub initialize {
     $self->$meth(
         (
             $schema ? (
-                "DEFINE sqitch_schema=$schema"
+                "DEFINE registry=$schema"
             ) : (
-                # Select the current schema into &sqitch_schema.
+                # Select the current schema into &registry.
                 # http://www.orafaq.com/node/515
-                'COLUMN sname for a30 new_value sqitch_schema',
+                'COLUMN sname for a30 new_value registry',
                 q{SELECT SYS_CONTEXT('USERENV', 'SESSION_SCHEMA') AS sname FROM DUAL;},
             )
         ),
@@ -772,9 +774,9 @@ supports Oracle 8.4.0 and higher.
 Returns a hash of names and types to use for variables in the C<core.oracle>
 section of the a Sqitch configuration file. The variables and their types are:
 
-  database      => 'any',
-  client        => 'any',
-  sqitch_schema => 'any',
+  database  => 'any',
+  registry  => 'any',
+  client    => 'any',
 
 =head2 Instance Methods
 
