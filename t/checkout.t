@@ -267,9 +267,9 @@ throws_ok { $checkout->execute('master') } 'App::Sqitch::X',
 is $@->ident, 'checkout',
     'The no common change error ident should be "checkout"';
 is $@->message, __x(
-    'Target branch {target} has no canges in common with source branch {source}',
-    target => 'master',
-    source => $probed,
+    'Branch {branch} has no changes in common with current branch {current}',
+    branch  => 'master',
+    current => $probed,
 ), 'The no common change error message should be correct';
 
 # Mock the engine interface.

@@ -53,7 +53,7 @@ sub execute {
     # Instantitate a plan without calling $sqitch->plan.
     my $from_plan = App::Sqitch::Plan->new( sqitch => $sqitch );
 
-    # Load the target plan from Git, assuming the same path.
+    # Load the branch plan from Git, assuming the same path.
     my $to_plan = App::Sqitch::Plan->new( sqitch => $sqitch )->parse(
         # XXX Handle missing file/no contents.
         scalar $sqitch->capture( $git, 'show', "$branch:" . $sqitch->plan_file)
@@ -67,9 +67,9 @@ sub execute {
     }
 
     hurl checkout => __x(
-        'Target branch {target} has no canges in common with source branch {source}',
-        target => $branch,
-        source => $current_branch,
+        'Branch {branch} has no changes in common with current branch {current}',
+        branch  => $branch,
+        current => $current_branch,
     ) unless $last_common_change;
 
     $sqitch->info(__x(

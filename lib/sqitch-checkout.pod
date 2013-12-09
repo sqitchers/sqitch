@@ -13,13 +13,13 @@ L<git|http://git-scm.org/>), while performing the necessary database changes
 to update your database for the new branch.
 
 More specifically, the C<checkout> command compares the plan in the current
-branch to that in the target branch, identifies the last common changes
+branch to that in the branch to check out, identifies the last common changes
 between them, reverts to that change as if L<C<sqitch revert>|sqitch-revert>
 was called (unless there have been no changes deployed since that change),
-checks out the target branch, and then deploys all changes in the new branch
-as if L<C<sqitch deploy>|sqitch-deploy> had been called.
+checks out the new branch, and then deploys all changes as if
+L<C<sqitch deploy>|sqitch-deploy> had been called.
 
-If the VCS is already on the target branch, nothing will be done.
+If the VCS is already on the specified branch, nothing will be done.
 
 =head1 Options
 
