@@ -27,16 +27,16 @@ L<sqitchchanges>.
 =item C<--requires>
 
 Name of a change that is required by the new change. May be specified multiple
-times. See L<sqitchchanges> for the various ways in which change targets can
-be specified.
+times. See L<sqitchchanges> for the various ways in which changes can be
+specified.
 
 =item C<-c>
 
 =item C<--conflicts>
 
 Name of a change that conflicts with the new change. May be specified multiple
-times. See L<sqitchchanges> for the various ways in which change targets can
-be specified.
+times. See L<sqitchchanges> for the various ways in which changes can be
+specified.
 
 =item C<-n>
 
