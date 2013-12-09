@@ -107,27 +107,39 @@ sub engine {
     });
 }
 
-sub string_for_db {
-    my ($self, $key) = @_;
-    return unless $key;
-    return $key if $key =~ /^db:/;
-    return $self->config->get( key => "database.$key" );
-}
-
-sub uri_for_db {
-    my ($self, $key) = @_;
-    return unless $key;
+sub config_for_target {
+    my ($self, $target) = @_;
+    return unless $target;
     require URI::db;
-    return URI::db->new( $self->string_for_db($key) or hurl core => __x(
-        'Cannot find database connection "{key}"',
-        key => $key
-    ) );
+    return {
+        target => "$target",
+        uri     => URI::db->new($target),
+    } if $target =~ /:/;
+    my $config = $self->config->get_section( section => "target.$target" )
+        or return;
+    $config->{target} = "$target";
+    $config->{uri} = URI::db->new( $config->{uri} ) if $config->{uri};
+    return $config;
 }
 
-sub engine_for_db {
-    my $self = shift;
-    my $uri  = $self->uri_for_db(shift) or return $self->engine;
-    return $self->engine( db_uri => $uri );
+sub config_for_target_strict {
+    my ($self, $target) = @_;
+    my $config = shift->config_for_target($target) or hurl core => __x(
+        'Cannot find target "{target}"',
+        target => $target
+    );
+    hurl core => __x(
+        'No URI associated with target "{target}"',
+        target => $target
+    ) unless $config->{uri};
+    return $config;
+}
+
+sub engine_for_target {
+    my ($self, $target) = @_;
+    return $self->engine unless $target;
+    my $config = $self->config_for_target_strict($target);
+    return $self->engine( %{ $config }, db_uri => $config->{uri} );
 }
 
 # Attributes useful to engines; no defaults.
@@ -848,30 +860,46 @@ C<shell> to run a command and its arguments as a single string.
 Creates and returns an engine of the appropriate subclass. Pass in additional
 parameters to be passed through to the engine constructor.
 
-=head2 C<string_for_db>
+=head2 C<config_for_target>
 
-  my $string = $sqitch->string_for_db($key);
+  my $config = $sqitch->config_for_target($target);
 
-Returns a string representing a database URI. If C<$key> is a URI itself, it
-will simply be returned. If it is the key naming a database URI in the
-configuration, the value for that key will be returned. Otherwise returns
-C<undef>.
+Returns a hash reference representing the configuration for the specified
+target name or URI. The supported keys in the hash reference are:
 
-=head3 C<uri_for_db>
+=over
 
-  my $uri = $sqitch->uri_for_db($key);
+=item C<uri>
 
-Like C<string_for_db>, but returns a L<URI::db> object instead of a string.
-Returns C<undef> if C<$key> is undefined or empty. If C<$key> is defined and
-not itself a URI string, and no value can be found for it in the
-configuration, an exception will be thrown.
+A L<database URI|URI::db> object, to be used to connect to the target
+database.
 
-=head3 C<engine_for_db>
+=item C<registry>
 
-  my $engine = $sqitch->engine_for($key);
+The name of the Sqitch registry in the target database.
 
-Like C<uri_for_db>, but returns an L<App::Sqitch::Engine> object. If C<$key>
-is not defined or is empty, an engine will be returned with the default URI.
+=back
+
+If the C<$target> argument looks like a database URI, it will simply returned
+in the hash reference. If the C<$target> argument corresponds to a target
+configuration key, the target configuration will be returned, with the C<uri>
+value a upgraded to a L<URI> object. Otherwise returns C<undef>.
+
+=head2 C<config_for_target_strict>
+
+  my $config = $sqitch->config_for_target_strict($target);
+
+Like C<config_for_target>, but throws an exception if C<$target> is not a URL,
+does not correspond to a target configuration section, or does not include a
+C<uri> key. Otherwise returns the target configuration.
+
+=head3 C<engine_for_target>
+
+  my $engine = $sqitch->engine_for($target);
+
+Like C<config_for_target_strict>, but returns an L<App::Sqitch::Engine>
+object. If C<$target> is not defined or is empty, an engine will be returned
+for the default target.
 
 =head3 C<shell>
 

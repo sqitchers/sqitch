@@ -451,11 +451,11 @@ is_deeply +MockOutput->get_vent, [
 # Test execute().
 my $mock_status = Test::MockModule->new(ref $status);
 my ($db_arg, $orig_meth);
-$mock_status->mock(engine_for_db => sub {
+$mock_status->mock(engine_for_target => sub {
     $db_arg = $_[1];
     shift->$orig_meth(@_);
 });
-$orig_meth = $mock_status->original('engine_for_db');
+$orig_meth = $mock_status->original('engine_for_target');
 my $dest = $sqitch->engine->destination;
 
 my $check_output = sub {

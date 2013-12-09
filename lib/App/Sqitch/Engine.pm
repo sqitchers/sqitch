@@ -101,7 +101,7 @@ has db_uri => ( is => 'ro', isa => 'URI::db', lazy => 1, default => sub {
     my $uri;
 
     if ( my $db = $config->get( key => "core.$engine.database" ) ) {
-        $uri = $sqitch->uri_for_db($db);
+        $uri = $sqitch->config_for_target_strict($db)->{uri};
     } else {
         $uri = URI::db->new("db:$engine:");
 

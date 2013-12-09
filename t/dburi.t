@@ -62,12 +62,12 @@ CONFIG: {
     # Test with key that contains another key.
     my $mock_sqitch = Test::MockModule->new('App::Sqitch');
     my @sqitch_params;
-    my $sqitch_ret = URI::db->new('db:pg:yo');
-    $mock_sqitch->mock(uri_for_db => sub { shift; @sqitch_params = @_; $sqitch_ret });
+    my $sqitch_ret = { uri => URI::db->new('db:pg:yo'), target => 'db:pg:yo' };
+    $mock_sqitch->mock(config_for_target_strict => sub { shift; @sqitch_params = @_; $sqitch_ret });
     $config_ret = 'yo';
 
     $e = $sqitch->engine;
-    is $e->db_uri, $sqitch_ret, 'URI should be from the database lookup';
+    is $e->db_uri, $sqitch_ret->{uri}, 'URI should be from the target lookup';
     is_deeply \@config_params, [key => 'core.pg.database'],
         'Should have asked for the Pg default database again';
     is_deeply \@sqitch_params, ['yo'], 'Should have looked up the "yo" database';

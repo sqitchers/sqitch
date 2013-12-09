@@ -88,7 +88,7 @@ sub options {
 
 sub execute {
     my $self   = shift;
-    my $engine = $self->engine_for_db($self->database // shift);
+    my $engine = $self->engine_for_target($self->database // shift);
 
     # Where are we?
     $self->comment( __x 'On database {db}', db => $engine->destination );
