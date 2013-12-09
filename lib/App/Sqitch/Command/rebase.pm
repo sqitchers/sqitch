@@ -43,22 +43,13 @@ sub configure {
         upto_change
     ) };
 
-    # Handle deprecated options and config variables.
+    # Handle deprecated options.
     for my $key (qw(onto upto)) {
         if (my $val = $opt->{"$key\_target"}) {
             App::Sqitch->warn(__x(
                 'Option --{old} has been deprecated; use --{new} instead',
                 old => "$key-target",
                 new => "$key-change",
-            ));
-            $p->{"$key\_change"} ||= $val;
-        }
-
-        if (my $val = $config->{"$key\_target"}) {
-            App::Sqitch->warn(__x(
-                'Config variable {old} has been deprecated; use {new} instead',
-                old => "deploy.$key\_target",
-                new => "deploy.$key\_change",
             ));
             $p->{"$key\_change"} ||= $val;
         }
