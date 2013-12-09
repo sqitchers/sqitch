@@ -23,14 +23,16 @@ can_ok $CLASS, qw(
     options
     configure
     new
-    from_target
-    to_target
+    from_change
+    to_change
     variables
 );
 
 is_deeply [$CLASS->options], [qw(
-    from-target|from=s
-    to-target|to=s
+    from-change|from=s
+    to-change|to=s
+    from-target=s
+    to-target=s
     set|s=s%
 )], 'Options should be correct';
 
@@ -46,14 +48,14 @@ is_deeply $CLASS->configure($config, {}), {
 }, 'Should have default configuration with no config or opts';
 
 is_deeply $CLASS->configure($config, {
-    from_target => 'foo',
-    to_target   => 'bar',
+    from_change => 'foo',
+    to_change   => 'bar',
     set  => { foo => 'bar' },
 }), {
-    from_target => 'foo',
-    to_target   => 'bar',
+    from_change => 'foo',
+    to_change   => 'bar',
     variables   => { foo => 'bar' },
-}, 'Should have targets and variables from options';
+}, 'Should have changes and variables from options';
 
 CONFIG: {
     my $mock_config = Test::MockModule->new(ref $config);
@@ -75,10 +77,10 @@ CONFIG: {
 
     # Try merging.
     is_deeply $CLASS->configure($config, {
-        to_target => 'whu',
+        to_change => 'whu',
         set       => { foo => 'yo', yo => 'stellar' },
     }), {
-        to_target => 'whu',
+        to_change => 'whu',
         variables => { foo => 'yo', yo => 'stellar', hi => 21 },
     }, 'Should have merged variables';
 
@@ -89,8 +91,8 @@ CONFIG: {
 
 isa_ok my $verify = $CLASS->new(sqitch => $sqitch), $CLASS;
 
-is $verify->from_target, undef, 'from_target should be undef';
-is $verify->to_target, undef, 'to_target should be undef';
+is $verify->from_change, undef, 'from_change should be undef';
+is $verify->to_change, undef, 'to_change should be undef';
 
 # Mock the engine interface.
 my $mock_engine = Test::MockModule->new('App::Sqitch::Engine::sqlite');
@@ -113,8 +115,8 @@ is_deeply \@args, ['@alpha', '@beta'],
 
 isa_ok $verify = $CLASS->new(
     sqitch      => $sqitch,
-    from_target => 'foo',
-    to_target   => 'bar',
+    from_change => 'foo',
+    to_change   => 'bar',
     variables => { foo => 'bar', one => 1 },
 ), $CLASS, 'Object with from, to, and variables';
 

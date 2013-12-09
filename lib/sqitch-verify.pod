@@ -5,9 +5,9 @@ sqitch-verify - Verify deployed database changes
 =head1 Synopsis
 
   sqitch [options] verify
-  sqitch [options] verify --from-target <target>
-  sqitch [options] verify --to-target <target>
-  sqitch [options] verify --from-target <target> --to-target <target>
+  sqitch [options] verify --from-change <change>
+  sqitch [options] verify --to-change <change>
+  sqitch [options] verify --from-change <change> --to-change <change>
 
 =head1 Description
 
@@ -15,7 +15,7 @@ Verify that a database is valid relative to the plan and the verification
 scripts for each deployed change.
 
 More specifically, C<verify> iterates over all deployed and planned changes
-(or the subset identified by C<--from-target> and/or C<--to-target>) and
+(or the subset identified by C<--from-change> and/or C<--to-change>) and
 checks that each:
 
 =over
@@ -53,21 +53,21 @@ if they fail.
 
 =over
 
-=item C<--from-target>
+=item C<--from-change>
 
 =item C<--from>
 
-Specify the change target with which to start the verification. Defaults to
-the earliest deployed change. See L<sqitchchanges> for the various ways in
-which change targets can be specified.
+Specify the change with which to start the verification. Defaults to the
+earliest deployed change. See L<sqitchchanges> for the various ways in which
+changes can be specified.
 
-=item C<--to-target>
+=item C<--to-change>
 
 =item C<--to>
 
-Specify the change target with which to complete the verification. Defaults to
-the last deployed change. See L<sqitchchanges> for the various ways in which
-change targets can be specified.
+Specify the change with which to complete the verification. Defaults to the
+last deployed change. See L<sqitchchanges> for the various ways in which
+changes can be specified.
 
 =item C<-s>
 

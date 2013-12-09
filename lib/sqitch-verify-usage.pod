@@ -8,6 +8,6 @@ sqitch-verify-usage - Sqitch verify usage statement
 
 =head1 Options
 
-       --from-target <change>  verify from change
-       --to-target   <change>  verify to change
+       --from-change <change>  verify from change
+       --to-change   <change>  verify to change
     -s --set                   set a database client variable
