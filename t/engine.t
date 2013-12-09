@@ -28,7 +28,7 @@ BEGIN {
     $ENV{SQITCH_CONFIG} = 'nonexistent.conf';
 }
 
-can_ok $CLASS, qw(load new name no_prompt run_deploy run_revert run_verify db_uri);
+can_ok $CLASS, qw(load new name no_prompt run_deploy run_revert run_verify uri);
 
 my ($is_deployed_tag, $is_deployed_change) = (0, 0);
 my @deployed_changes;
@@ -125,19 +125,19 @@ is $engine->sqitch, $sqitch, 'The sqitch attribute should be set';
 # Try passing a URI.
 ok $engine = $CLASS->load({
     sqitch => $sqitch,
-    db_uri => URI->new('db:sqlite:'),
+    uri => URI->new('db:sqlite:'),
 }), 'Load a SQLite engine via URI';
 isa_ok $engine, 'App::Sqitch::Engine::sqlite';
 
 # Try a URI with a driver that is not lowercase.
 ok $engine = $CLASS->load({
     sqitch => $sqitch,
-    db_uri => URI->new('db:pg:'),
+    uri => URI->new('db:pg:'),
 }), 'Load a Pg engine via URI';
 isa_ok $engine, 'App::Sqitch::Engine::pg';
 
 # Try an unknown engine.
-throws_ok { $CLASS->load({ db_uri => URI->new('db:unknown:') }) }
+throws_ok { $CLASS->load({ uri => URI->new('db:unknown:') }) }
     'App::Sqitch::X', 'Should get error for unsupported engine';
 is $@->ident, 'engine', 'Unsupported engine error ident should be "engine"';;
 is $@->message,  __x(
@@ -146,7 +146,7 @@ is $@->message,  __x(
 ), 'Unsupported engine error message should be correct';
 
 # Try a non-DB URI.
-throws_ok { $CLASS->load({ db_uri => URI->new('file:foo') }) }
+throws_ok { $CLASS->load({ uri => URI->new('file:foo') }) }
     'App::Sqitch::X', 'Should get error for non-DB URI';
 is $@->ident, 'engine', 'Non-DB URI error ident should be "engine"';;
 is $@->message,  __x(
@@ -167,7 +167,7 @@ NOENGINE: {
     throws_ok { $CLASS->load({ engine => '', sqitch => $sqitch }) }
         'App::Sqitch::X',
             'No engine should die';
-    is $@->message, 'Missing "db_uri" or "engine" parameter to load()',
+    is $@->message, 'Missing "uri" or "engine" parameter to load()',
         'It should be the expected message';
 }
 
@@ -232,7 +232,7 @@ is $engine->reg_destination, $engine->destination,
 ok $engine = $CLASS->load({
     sqitch => $sqitch,
     engine => 'whu',
-    db_uri => URI->new('db:whu://foo:bar@localhost/blah'),
+    uri => URI->new('db:whu://foo:bar@localhost/blah'),
 }), 'Load engine with URI with password';
 like $engine->destination, qr{^db:whu://foo:?\@localhost/mydb$},
     'Destination should not include password';

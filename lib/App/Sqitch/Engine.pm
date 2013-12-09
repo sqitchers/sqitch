@@ -21,7 +21,7 @@ has sqitch => (
 
 # Remove password!
 sub destination {
-    my $uri = shift->db_uri;
+    my $uri = shift->uri;
     if ($uri->password) {
         $uri = $uri->clone;
         $uri->password(undef);
@@ -88,12 +88,12 @@ has _variables => (
 
 sub BUILD {
     my ($self, $args) = @_;
-    if (my $uri = $args->{db_uri}) {
+    if (my $uri = $args->{uri}) {
         $self->_merge_options_into($uri);
     }
 }
 
-has db_uri => ( is => 'ro', isa => 'URI::db', lazy => 1, default => sub {
+has uri => ( is => 'ro', isa => 'URI::db', lazy => 1, default => sub {
     my $self   = shift;
     my $sqitch = $self->sqitch;
     my $config = $sqitch->config;
@@ -164,7 +164,7 @@ sub _merge_options_into {
 
 # This is purely for configuration.
 has database => ( is => 'ro', isa => 'Str', lazy => 1, default => sub {
-    shift->db_uri->as_string;
+    shift->uri->as_string;
 });
 
 sub load {
@@ -172,7 +172,7 @@ sub load {
 
     # We should have a URI or an engine param.
     my $engine = delete $p->{engine} || do {
-        if (my $uri = $p->{db_uri}) {
+        if (my $uri = $p->{uri}) {
             hurl engine => __x(
                 'URI "{uri}" is not a database URI',
                 uri => $uri
@@ -185,7 +185,7 @@ sub load {
         } else {
             undef;
         }
-    } or hurl 'Missing "db_uri" or "engine" parameter to load()';
+    } or hurl 'Missing "uri" or "engine" parameter to load()';
 
     # Load the engine class.
     my $pkg = __PACKAGE__ . "::$engine";
@@ -1292,9 +1292,9 @@ list.
 
 =head2 Instance Methods
 
-=head3 C<db_uri>
+=head3 C<uri>
 
-  my $uri = $engine->db_uri;
+  my $uri = $engine->uri;
 
 A L<URI::db> object representing the destination database. Defaults to a URI
 constructed from the L<App::Sqitch> C<db_*> attributes.
@@ -1304,7 +1304,7 @@ constructed from the L<App::Sqitch> C<db_*> attributes.
   my $destination = $engine->destination;
 
 Returns the name of the destination database. This will usually be the the
-string representation of the C<db_uri> attribute with any password part
+string representation of the C<uri> attribute with any password part
 removed. However, subclasses may override it to provide other values, such as
 when a database name or host is implied but not physically represented in the
 URI. Used internally to name the destination in status messages.

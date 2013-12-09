@@ -100,13 +100,13 @@ for my $eng (qw(pg sqlite mysql oracle)) {
         qq{Engine "$eng" should be valid};
 
     my $uri = URI->new("db:$eng:foo");
-    isa_ok my $engine = $sqitch->engine( db_uri => $uri ),
+    isa_ok my $engine = $sqitch->engine( uri => $uri ),
         "App::Sqitch::Engine::$eng", "$eng engine";
-    is $engine->db_uri, $uri, "URI $uri should have been passed through";
+    is $engine->uri, $uri, "URI $uri should have been passed through";
 
-    ok $engine = $sqitch->engine({ db_uri => $uri }),
+    ok $engine = $sqitch->engine({ uri => $uri }),
         "Create another App::Sqitch::Engine::$eng with hash params";
-    is $engine->db_uri, $uri, "URI $uri should have been passed through again";
+    is $engine->uri, $uri, "URI $uri should have been passed through again";
 }
 
 ##############################################################################
@@ -174,15 +174,15 @@ CONFIG: {
 ##############################################################################
 # Test engine_for_target.
 $sqitch = $CLASS->new( _engine => 'sqlite' );
-my $def_uri = $sqitch->engine->db_uri;
+my $def_uri = $sqitch->engine->uri;
 isa_ok $sqitch->engine_for_target, 'App::Sqitch::Engine', 'Engine for DB';
-is $sqitch->engine_for_target->db_uri,        $def_uri, 'Should get default engine for no DB param';
-is $sqitch->engine_for_target(undef)->db_uri, $def_uri, 'Should get default engine for undef DB param';
-is $sqitch->engine_for_target('')->db_uri,    $def_uri, 'Should get default engine for empty DB param';
-is $sqitch->engine_for_target(0)->db_uri,     $def_uri, 'Should get default engine for DB param 0';
+is $sqitch->engine_for_target->uri,        $def_uri, 'Should get default engine for no DB param';
+is $sqitch->engine_for_target(undef)->uri, $def_uri, 'Should get default engine for undef DB param';
+is $sqitch->engine_for_target('')->uri,    $def_uri, 'Should get default engine for empty DB param';
+is $sqitch->engine_for_target(0)->uri,     $def_uri, 'Should get default engine for DB param 0';
 
 # Pass a URI.
-is $sqitch->engine_for_target('db:pg:foo')->db_uri, URI->new('db:pg:foo'),
+is $sqitch->engine_for_target('db:pg:foo')->uri, URI->new('db:pg:foo'),
     'Should get properly configured engine for URI param';
 
 # Pass a key.
@@ -190,7 +190,7 @@ CONFIG: {
     my $mock = Test::MockModule->new('App::Sqitch::Config');
     my $ret = { uri => URI->new('db:sqlite:hi') };
     $mock->mock(get_section => sub { $ret });
-    is_deeply $sqitch->engine_for_target('grokker')->db_uri, 'db:sqlite:hi',
+    is_deeply $sqitch->engine_for_target('grokker')->uri, 'db:sqlite:hi',
         'Should get engine with URI for URI key';
     isa_ok $sqitch->engine_for_target('bob'), 'App::Sqitch::Engine',
         'Engine with URI from config';

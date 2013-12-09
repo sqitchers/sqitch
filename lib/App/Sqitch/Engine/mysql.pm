@@ -39,7 +39,7 @@ has registry_uri => (
     required => 1,
     default  => sub {
         my $self = shift;
-        my $uri = $self->db_uri->clone;
+        my $uri = $self->uri->clone;
         $uri->dbname($self->registry);
         return $uri;
     },
@@ -120,7 +120,7 @@ has mysql => (
     auto_deref => 1,
     default    => sub {
         my $self = shift;
-        my $uri  = $self->db_uri;
+        my $uri  = $self->uri;
 
         $self->sqitch->warn(__x
             'Database name missing in URI "{uri}"',

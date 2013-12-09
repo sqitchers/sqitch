@@ -92,9 +92,9 @@ ORACLE_HOME: {
 }
 
 is $ora->registry, undef, 'registry default should be undefined';
-is $ora->db_uri, 'db:oracle:', 'Default URI should be "db:oracle"';
+is $ora->uri, 'db:oracle:', 'Default URI should be "db:oracle"';
 
-my $dest_uri = $ora->db_uri->clone;
+my $dest_uri = $ora->uri->clone;
 $dest_uri->dbname(
         $ENV{TWO_TASK}
     || ($^O eq 'MSWin32' ? $ENV{LOCAL} : undef)
@@ -120,7 +120,7 @@ is $ora->_script, join( "\n" => (
 # Set up username, password, and db_name.
 isa_ok $ora = $CLASS->new(
     sqitch => $sqitch,
-    db_uri  => URI::db->new('db:oracle://fred:derf@/blah')
+    uri  => URI::db->new('db:oracle://fred:derf@/blah')
 ), $CLASS;
 
 is $ora->_script, join( "\n" => (
@@ -133,7 +133,7 @@ is $ora->_script, join( "\n" => (
 # Add a host name.
 isa_ok $ora = $CLASS->new(
     sqitch => $sqitch,
-    db_uri  => URI::db->new('db:oracle://fred:derf@there/blah')
+    uri  => URI::db->new('db:oracle://fred:derf@there/blah')
 ), $CLASS;
 
 is $ora->_script('@foo'), join( "\n" => (
@@ -147,7 +147,7 @@ is $ora->_script('@foo'), join( "\n" => (
 # Add a port and varibles.
 isa_ok $ora = $CLASS->new(
     sqitch => $sqitch,
-    db_uri => URI::db->new(
+    uri => URI::db->new(
         'db:oracle://fred:derf%20%22derf%22@there:1345/blah%20%22blah%22'
     ),
 ), $CLASS;
@@ -206,7 +206,7 @@ $mock_config->mock(get => sub { $config{ $_[2] } });
 ok $ora = $CLASS->new(sqitch => $sqitch), 'Create another ora';
 
 is $ora->client, '/path/to/sqlplus', 'client should be as configured';
-is $ora->db_uri->as_string, 'db:oracle://bob:hi@db.net:12/howdy',
+is $ora->uri->as_string, 'db:oracle://bob:hi@db.net:12/howdy',
     'DB URI should be as configured';
 like $ora->destination, qr{^db:oracle://bob:?\@db\.net:12/howdy$},
     'Destination should be the URI without the password';
@@ -228,7 +228,7 @@ is_deeply [$ora->sqlplus], ['/path/to/sqlplus', @std_opts],
 
 ok $ora = $CLASS->new(sqitch => $sqitch), 'Create yet another ora';
 is $ora->client, '/path/to/sqlplus', 'client should be as configured';
-is $ora->db_uri->as_string, 'db:oracle://freddy:s3cr3t@db.example.com:1234/widgets',
+is $ora->uri->as_string, 'db:oracle://freddy:s3cr3t@db.example.com:1234/widgets',
     'DB URI should be constructed from old config variables';
 like $ora->destination, qr{^db:oracle://freddy:?\@db\.example\.com:1234/widgets$},
     'Destination should be the URI without the password';
@@ -252,7 +252,7 @@ $sqitch = App::Sqitch->new(
 ok $ora = $CLASS->new(sqitch => $sqitch), 'Create a ora with sqitch with options';
 
 is $ora->client, '/some/other/sqlplus', 'client should be as optioned';
-is $ora->db_uri->as_string, 'db:oracle://anna:s3cr3t@foo.com:98760/widgets_dev',
+is $ora->uri->as_string, 'db:oracle://anna:s3cr3t@foo.com:98760/widgets_dev',
     'DB URI should have attributes overridden by options';
 like $ora->destination, qr{^db:oracle://anna:?\@foo\.com:98760/widgets_dev$},
     'Destination should be the URI without the password';
@@ -419,8 +419,8 @@ DBIEngineTest->run(
         top_dir   => Path::Class::dir(qw(t engine)),
         plan_file => Path::Class::file(qw(t engine sqitch.plan)),
     ],
-    engine_params     => [ db_uri => $uri ],
-    alt_engine_params => [ db_uri => $uri, registry => 'oe' ],
+    engine_params     => [ uri => $uri ],
+    alt_engine_params => [ uri => $uri, registry => 'oe' ],
     skip_unless       => sub {
         my $self = shift;
         die $err if $err;

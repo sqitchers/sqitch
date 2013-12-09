@@ -38,7 +38,7 @@ has destination => (
     required => 1,
     default  => sub {
         my $self = shift;
-        my $uri = $self->db_uri->clone;
+        my $uri = $self->uri->clone;
         $uri->password(undef) if $uri->password;
         $uri->dbname(
                $ENV{PGDATABASE}
@@ -58,7 +58,7 @@ has psql => (
     auto_deref => 1,
     default    => sub {
         my $self = shift;
-        my $uri  = $self->db_uri;
+        my $uri  = $self->uri;
         my @ret  = ( $self->client );
         for my $spec (
             [ username => $uri->user   ],
@@ -100,7 +100,7 @@ has dbh => (
         my $self = shift;
         $self->use_driver;
 
-        my $uri = $self->db_uri;
+        my $uri = $self->uri;
         DBI->connect($uri->dbi_dsn, scalar $uri->user, scalar $uri->password, {
             PrintError        => 0,
             RaiseError        => 0,
@@ -455,7 +455,7 @@ sub _update_ids {
 sub _run {
     my $self   = shift;
     my $sqitch = $self->sqitch;
-    my $uri    = $self->db_uri;
+    my $uri    = $self->uri;
     my $pass   = $uri->password or return $sqitch->run( $self->psql, @_ );
     local $ENV{PGPASSWORD} = $pass;
     return $sqitch->run( $self->psql, @_ );
@@ -464,7 +464,7 @@ sub _run {
 sub _capture {
     my $self   = shift;
     my $sqitch = $self->sqitch;
-    my $uri    = $self->db_uri;
+    my $uri    = $self->uri;
     my $pass   = $uri->password or return $sqitch->capture( $self->psql, @_ );
     local $ENV{PGPASSWORD} = $pass;
     return $sqitch->capture( $self->psql, @_ );
@@ -474,7 +474,7 @@ sub _spool {
     my $self   = shift;
     my $fh     = shift;
     my $sqitch = $self->sqitch;
-    my $uri    = $self->db_uri;
+    my $uri    = $self->uri;
     my $pass   = $uri->password or return $sqitch->spool( $fh, $self->psql, @_ );
     local $ENV{PGPASSWORD} = $pass;
     return $sqitch->spool( $fh, $self->psql, @_ );

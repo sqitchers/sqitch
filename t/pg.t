@@ -37,7 +37,7 @@ my $uri = URI::db->new('db:pg:');
 my $client = 'psql' . ($^O eq 'MSWin32' ? '.exe' : '');
 is $pg->client, $client, 'client should default to psql';
 is $pg->registry, 'sqitch', 'registry default should be "sqitch"';
-is $pg->db_uri, $uri, 'DB URI should be "db:pg:"';
+is $pg->uri, $uri, 'DB URI should be "db:pg:"';
 my $dest_uri = $uri->clone;
 $dest_uri->dbname($ENV{PGDATABASE} || $ENV{PGUSER} || $sqitch->sysuser);
 is $pg->destination, $dest_uri->as_string,
@@ -118,8 +118,8 @@ $mock_config->mock(get => sub { $config{ $_[2] } });
 
 ok $pg = $CLASS->new(sqitch => $sqitch), 'Create another pg';
 is $pg->client, '/path/to/psql', 'client should be as configured';
-is $pg->db_uri->as_string, 'db:pg://localhost/try',
-    'db_uri should be as configured';
+is $pg->uri->as_string, 'db:pg://localhost/try',
+    'uri should be as configured';
 is $pg->registry, 'meta', 'registry should be as configured';
 is_deeply [$pg->psql], [qw(
     /path/to/psql
@@ -139,7 +139,7 @@ is_deeply [$pg->psql], [qw(
     'core.pg.sqitch_schema' => 'meta',
 );
 ok $pg = $CLASS->new(sqitch => $sqitch), 'Create yet another pg';
-is $pg->db_uri->as_string, 'db:pg://freddy:s3cr3t@db.example.com:1234/widgets',
+is $pg->uri->as_string, 'db:pg://freddy:s3cr3t@db.example.com:1234/widgets',
     'DB URI should be derived from deprecated config vars';
 like $pg->destination, qr{^db:pg://freddy:?\@db\.example\.com:1234/widgets$},
     'destination should be the URI without the password';
@@ -159,8 +159,8 @@ $sqitch = App::Sqitch->new(
 ok $pg = $CLASS->new(sqitch => $sqitch), 'Create a pg with sqitch with options';
 
 is $pg->client, '/some/other/psql', 'client should be as optioned';
-is $pg->db_uri->as_string, 'db:pg://anna:s3cr3t@foo.com:98760/widgets_dev',
-    'db_uri should be as configured';
+is $pg->uri->as_string, 'db:pg://anna:s3cr3t@foo.com:98760/widgets_dev',
+    'uri should be as configured';
 like $pg->destination, qr{^db:pg://anna:?\@foo\.com:98760/widgets_dev$},
     'destination should be the URI without the password';
 is $pg->reg_destination, $pg->destination, 'reg_destination should still be URI';

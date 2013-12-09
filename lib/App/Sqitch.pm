@@ -138,8 +138,7 @@ sub config_for_target_strict {
 sub engine_for_target {
     my ($self, $target) = @_;
     return $self->engine unless $target;
-    my $config = $self->config_for_target_strict($target);
-    return $self->engine( %{ $config }, db_uri => $config->{uri} );
+    return $self->engine( $self->config_for_target_strict($target) );
 }
 
 # Attributes useful to engines; no defaults.

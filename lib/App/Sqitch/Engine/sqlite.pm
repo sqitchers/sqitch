@@ -33,7 +33,7 @@ has client => (
 
 sub BUILD {
     my $self = shift;
-    my $uri  = $self->db_uri;
+    my $uri  = $self->uri;
     unless ($uri->dbname) {
         my $sqitch = $self->sqitch;
         # XXX Config var is for backcompat.
@@ -57,7 +57,7 @@ has registry_uri => (
     required => 1,
     default  => sub {
         my $self = shift;
-        my $uri  = $self->db_uri->clone;
+        my $uri  = $self->uri->clone;
         my $reg  = $self->registry;
 
         if (my $db = $self->sqitch->config->get( key => 'core.sqlite.sqitch_db' ) ) {
@@ -158,9 +158,9 @@ has sqlite3 => (
             version => join( '.', @v)
         ) unless $v[0] > 3 || ($v[0] == 3 && ($v[1] > 3 || ($v[1] == 3 && $v[2] >= 9)));
 
-        my $dbname = $self->db_uri->dbname or hurl sqlite => __x(
+        my $dbname = $self->uri->dbname or hurl sqlite => __x(
             'Database name missing in URI {uri}',
-            uri => $self->db_uri,
+            uri => $self->uri,
         );
 
         return [

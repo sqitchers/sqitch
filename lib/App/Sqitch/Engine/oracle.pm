@@ -50,7 +50,7 @@ has destination => (
     required => 1,
     default  => sub {
         my $self = shift;
-        my $uri = $self->db_uri->clone;
+        my $uri = $self->uri->clone;
         $uri->password(undef) if $uri->password;
         $uri->dbname(
                $ENV{TWO_TASK}
@@ -95,7 +95,7 @@ has dbh => (
         my $self = shift;
         $self->use_driver;
 
-        my $uri = $self->db_uri;
+        my $uri = $self->uri;
         DBI->connect($uri->dbi_dsn, $uri->user, $uri->password, {
             PrintError        => 0,
             RaiseError        => 0,
@@ -337,7 +337,7 @@ sub initialized {
           FROM all_tables
          WHERE owner = UPPER(?)
            AND table_name = 'CHANGES'
-    }, undef, $self->registry || $self->db_uri->user)->[0];
+    }, undef, $self->registry || $self->uri->user)->[0];
 }
 
 sub _log_event {
@@ -677,7 +677,7 @@ sub _no_table_error  {
 
 sub _script {
     my $self   = shift;
-    my $uri    = $self->db_uri;
+    my $uri    = $self->uri;
     my $conn = $uri->user // '';
     if (my $pass = $uri->password) {
         $pass =~ s/"/""/g;

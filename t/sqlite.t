@@ -35,9 +35,9 @@ isa_ok my $sqlite = $CLASS->new(sqitch => $sqitch), $CLASS;
 
 is $sqlite->client, 'sqlite3' . ($^O eq 'MSWin32' ? '.exe' : ''),
     'client should default to sqlite3';
-is $sqlite->db_uri->dbname, file('foo.db'), 'dbname should be filled in';
-is $sqlite->destination, $sqlite->db_uri->as_string,
-    'Destination should be db_uri stringified';
+is $sqlite->uri->dbname, file('foo.db'), 'dbname should be filled in';
+is $sqlite->destination, $sqlite->uri->as_string,
+    'Destination should be uri stringified';
 is $sqlite->reg_destination, $sqlite->registry_uri->as_string,
     'Meta destination should be registry_uri stringified';
 
@@ -45,7 +45,7 @@ is $sqlite->reg_destination, $sqlite->registry_uri->as_string,
 # silly enough to include on in an SQLite URI.
 isa_ok $sqlite = $CLASS->new(
     sqitch => $sqitch,
-    db_uri => URI->new('db:sqlite://foo:bar@localhost/my.db'),
+    uri => URI->new('db:sqlite://foo:bar@localhost/my.db'),
 ), $CLASS;
 like $sqlite->destination, qr{^db:sqlite://foo:?\@localhost/foo.db$},
     'Destination should exclude password';
@@ -63,7 +63,7 @@ my @std_opts = (
     '-csv',
 );
 
-is_deeply [$sqlite->sqlite3], [$sqlite->client, @std_opts, $sqlite->db_uri->dbname],
+is_deeply [$sqlite->sqlite3], [$sqlite->client, @std_opts, $sqlite->uri->dbname],
     'sqlite3 command should have the proper opts';
 
 ##############################################################################
@@ -125,10 +125,10 @@ ok $sqlite = $CLASS->new(sqitch => $sqitch),
     'Create another sqlite';
 is $sqlite->client, '/path/to/sqlite3',
     'client should fall back on config';
-is $sqlite->db_uri->as_string, 'db:sqlite:/path/to/sqlite.db',
+is $sqlite->uri->as_string, 'db:sqlite:/path/to/sqlite.db',
     'dbname should fall back on config';
-is $sqlite->destination, $sqlite->db_uri->as_string,
-    'Destination should be configured db_uri stringified';
+is $sqlite->destination, $sqlite->uri->as_string,
+    'Destination should be configured uri stringified';
 is $sqlite->registry_uri->as_string, 'db:sqlite:/path/to/meta.db',
     'registry_uri should fall back on config';
 is $sqlite->reg_destination, $sqlite->registry_uri->as_string,
@@ -141,10 +141,10 @@ is $sqlite->reg_destination, $sqlite->registry_uri->as_string,
 );
 ok $sqlite = $CLASS->new(sqitch => $sqitch),
     'Create another sqlite';
-is $sqlite->db_uri->as_string, 'db:sqlite:/path/to/sqitch',
+is $sqlite->uri->as_string, 'db:sqlite:/path/to/sqitch',
     'dbname should fall back on config with no extension';
-is $sqlite->destination, $sqlite->db_uri->as_string,
-    'Destination should be configured db_uri stringified';
+is $sqlite->destination, $sqlite->uri->as_string,
+    'Destination should be configured uri stringified';
 is $sqlite->registry_uri->as_string, 'db:sqlite:/path/to/meta.db',
     'registry_uri should fall back on config wth extension';
 is $sqlite->reg_destination, $sqlite->registry_uri->as_string,
@@ -157,10 +157,10 @@ is $sqlite->reg_destination, $sqlite->registry_uri->as_string,
 );
 ok $sqlite = $CLASS->new(sqitch => $sqitch),
     'Create another sqlite';
-is $sqlite->db_uri->as_string, 'db:sqlite:/path/to/sqitch.db',
+is $sqlite->uri->as_string, 'db:sqlite:/path/to/sqitch.db',
     'dbname should fall back on config with no extension';
-is $sqlite->destination, $sqlite->db_uri->as_string,
-    'Destination should be configured db_uri stringified';
+is $sqlite->destination, $sqlite->uri->as_string,
+    'Destination should be configured uri stringified';
 is $sqlite->registry_uri->as_string, 'db:sqlite:/path/to/registry.db',
     'registry_uri should fall back on config wth extension';
 is $sqlite->reg_destination, $sqlite->registry_uri->as_string,
@@ -173,10 +173,10 @@ is $sqlite->reg_destination, $sqlite->registry_uri->as_string,
 );
 ok $sqlite = $CLASS->new(sqitch => $sqitch),
     'Create another sqlite';
-is $sqlite->db_uri->as_string, 'db:sqlite:/path/to/sqitch.db',
+is $sqlite->uri->as_string, 'db:sqlite:/path/to/sqitch.db',
     'dbname should fall back on config with no extension';
-is $sqlite->destination, $sqlite->db_uri->as_string,
-    'Destination should be configured db_uri stringified';
+is $sqlite->destination, $sqlite->uri->as_string,
+    'Destination should be configured uri stringified';
 is $sqlite->registry_uri->as_string, 'db:sqlite:/some/other/path.db',
     'registry_uri should fall back on config wth extension';
 is $sqlite->reg_destination, $sqlite->registry_uri->as_string,
@@ -188,12 +188,12 @@ $sqitch = App::Sqitch->new(_engine => 'sqlite', db_client => 'foo/bar', db_name 
 ok $sqlite = $CLASS->new(sqitch => $sqitch),
     'Create sqlite with sqitch with --client and --db-name';
 is $sqlite->client, 'foo/bar', 'The client should be grabbed from sqitch';
-is $sqlite->db_uri->as_string, 'db:sqlite:' . file('my.db'),
-    'The db_uri should be grabbed from sqitch';
-is $sqlite->destination, $sqlite->db_uri->as_string,
-    'Destination should be optioned db_uri stringified';
+is $sqlite->uri->as_string, 'db:sqlite:' . file('my.db'),
+    'The uri should be grabbed from sqitch';
+is $sqlite->destination, $sqlite->uri->as_string,
+    'Destination should be optioned uri stringified';
 is_deeply [$sqlite->sqlite3],
-    [$sqlite->client, @std_opts, $sqlite->db_uri->dbname],
+    [$sqlite->client, @std_opts, $sqlite->uri->dbname],
     'sqlite3 command should have option values';
 
 $mock_config->unmock_all;
@@ -202,7 +202,7 @@ $mock_config->unmock_all;
 # Test _run(), _capture(), and _spool().
 my $db_name = $tmp_dir->file('sqitch.db');
 $sqitch = App::Sqitch->new(_engine => 'sqlite');
-ok $sqlite = $CLASS->new(sqitch => $sqitch, db_uri => URI->new("db:sqlite:$db_name")),
+ok $sqlite = $CLASS->new(sqitch => $sqitch, uri => URI->new("db:sqlite:$db_name")),
     'Instantiate with a temporary database file';
 can_ok $sqlite, qw(_run _capture _spool);
 
@@ -284,7 +284,7 @@ for my $v (qw(
     $sqlite_version = "$v 2012-04-03 19:43:07 86b8481be7e76cccc92d14ce762d21bfb69504af";
     ok my $sqlite = $CLASS->new(
         sqitch => $sqitch,
-        db_uri => URI->new('db:sqlite:foo.db')
+        uri => URI->new('db:sqlite:foo.db')
     ), "Create command for v$v";
     ok $sqlite->sqlite3, "Should be okay with sqlite v$v";
 }
@@ -322,9 +322,9 @@ DBIEngineTest->run(
         plan_file => Path::Class::file(qw(t engine sqitch.plan)),
         _engine   => 'sqlite',
     ],
-    engine_params     => [ db_uri => URI->new("db:sqlite:$db_name") ],
+    engine_params     => [ uri => URI->new("db:sqlite:$db_name") ],
     alt_engine_params => [
-        db_uri        => URI->new("db:sqlite:$db_name"),
+        uri        => URI->new("db:sqlite:$db_name"),
         registry      => 'sqitchtest',
     ],
     skip_unless       => sub {
