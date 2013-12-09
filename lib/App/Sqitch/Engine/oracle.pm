@@ -618,8 +618,8 @@ sub run_verify {
 
 sub run_handle {
     my ($self, $fh) = @_;
-    my $target = $self->_script;
-    open my $tfh, '<:utf8_strict', \$target;
+    my $conn = $self->_script;
+    open my $tfh, '<:utf8_strict', \$conn;
     $self->sqitch->spool( [$tfh, $fh], $self->sqlplus );
 }
 
@@ -678,22 +678,22 @@ sub _no_table_error  {
 sub _script {
     my $self   = shift;
     my $uri    = $self->db_uri;
-    my $target = $uri->user // '';
+    my $conn = $uri->user // '';
     if (my $pass = $uri->password) {
         $pass =~ s/"/""/g;
-        $target .= qq{/"$pass"};
+        $conn .= qq{/"$pass"};
     }
     if (my $db = $uri->dbname) {
-        $target .= '@';
+        $conn .= '@';
         $db =~ s/"/""/g;
         if ($uri->host || $uri->_port) {
-            $target .= '//' . ($uri->host || '');
+            $conn .= '//' . ($uri->host || '');
             if (my $port = $uri->_port) {
-                $target .= ":$port";
+                $conn .= ":$port";
             }
-            $target .= qq{/"$db"};
+            $conn .= qq{/"$db"};
         } else {
-            $target .= qq{"$db"};
+            $conn .= qq{"$db"};
         }
     }
     my %vars = $self->variables;
@@ -703,7 +703,7 @@ sub _script {
         'WHENEVER OSERROR EXIT 9;',
         'WHENEVER SQLERROR EXIT SQL.SQLCODE;',
         (map {; (my $v = $vars{$_}) =~ s/"/""/g; qq{DEFINE $_="$v"} } sort keys %vars),
-        "connect $target",
+        "connect $conn",
         @_
     );
 }
@@ -717,11 +717,11 @@ sub _run {
 
 sub _capture {
     my $self = shift;
-    my $target = $self->_script(@_);
+    my $conn = $self->_script(@_);
     my @out;
 
     require IPC::Run3;
-    IPC::Run3::run3( [$self->sqlplus], \$target, \@out );
+    IPC::Run3::run3( [$self->sqlplus], \$conn, \@out );
     if (my $err = $?) {
         # Ugh, send everything to STDERR.
         $self->sqitch->vent(@out);

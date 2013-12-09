@@ -763,9 +763,9 @@ is_deeply +MockOutput->get_info, [
     [__x 'Adding registry tables to {destination}',
         destination => $engine->reg_destination,
     ],
-    [__x 'Deploying changes through {target} to {destination}',
+    [__x 'Deploying changes through {change} to {destination}',
         destination =>  $engine->destination,
-        target      => $plan->get('@alpha')->format_name_with_tags,
+        change      => $plan->get('@alpha')->format_name_with_tags,
     ],
     [__ 'ok'],
     [__ 'ok'],
@@ -798,9 +798,9 @@ for my $mode (qw(change tag all)) {
             destination => $engine->reg_destination,
         ],
         [
-            __x 'Deploying changes through {target} to {destination}',
+            __x 'Deploying changes through {change} to {destination}',
             destination =>  $engine->destination,
-            target      => $plan->get('@alpha')->format_name_with_tags,
+            change      => $plan->get('@alpha')->format_name_with_tags,
         ],
         [__ 'ok'],
         [__ 'ok'],
@@ -830,9 +830,9 @@ is_deeply $engine->seen, [
 
 is $deploy_meth, '_deploy_by_tag', 'Should have called _deploy_by_tag()';
 is_deeply +MockOutput->get_info, [
-    [__x 'Deploying changes through {target} to {destination}',
+    [__x 'Deploying changes through {change} to {destination}',
         destination =>  $engine->reg_destination,
-        target      => $plan->get('@alpha')->format_name_with_tags,
+        change      => $plan->get('@alpha')->format_name_with_tags,
     ],
     [__ 'ok'],
     [__ 'ok'],
@@ -842,13 +842,13 @@ is_deeply +MockOutput->get_info_literal, [
     ['  + users @alpha ..', '', ' '],
 ], 'Both change names should be output';
 
-# Try a bogus target.
+# Try a bogus change.
 throws_ok { $engine->deploy('nonexistent') } 'App::Sqitch::X',
-    'Should get an error for an unknown target';
+    'Should get an error for an unknown change';
 is $@->message, __x(
-    'Unknown deploy target: "{target}"',
-    target => 'nonexistent',
-), 'The exception should report the unknown target';
+    'Unknown change: "{change}"',
+    change => 'nonexistent',
+), 'The exception should report the unknown change';
 is_deeply $engine->seen, [
     [latest_change_id => undef],
 ], 'Only latest_item() should have been called';
@@ -861,15 +861,15 @@ is_deeply $engine->seen, [
     ['log_new_tags' => $changes[1]],
 ], 'Only latest_item() should have been called';
 is_deeply +MockOutput->get_info, [
-    [__x 'Nothing to deploy (already at "{target}"', target => '@alpha'],
+    [__x 'Nothing to deploy (already at "{change}"', change => '@alpha'],
 ], 'Should notify user that already at @alpha';
 
 # Start with widgets.
 $latest_change_id = $changes[2]->id;
 throws_ok { $engine->deploy('@alpha') } 'App::Sqitch::X',
-    'Should fail targeting older change';
+    'Should fail changeing older change';
 is $@->ident, 'deploy', 'Should be a "deploy" error';
-is $@->message,  __ 'Cannot deploy to an earlier target; use "revert" instead',
+is $@->message,  __ 'Cannot deploy to an earlier change; use "revert" instead',
     'It should suggest using "revert"';
 is_deeply $engine->seen, [
     [latest_change_id => undef],
@@ -1085,7 +1085,7 @@ is_deeply +MockOutput->get_info, [
 ], 'Output should reflect deploy successes and failure';
 is_deeply +MockOutput->get_vent, [
     ['ROFL'],
-    [__x 'Reverting to {target}', target => 'widgets @beta']
+    [__x 'Reverting to {change}', change => 'widgets @beta']
 ], 'The original error should have been vented';
 $mock_whu->unmock('log_deploy_change');
 
@@ -1120,7 +1120,7 @@ is_deeply +MockOutput->get_info, [
 ], 'Output should reflect deploy successes and failure';
 is_deeply +MockOutput->get_vent, [
     ['ROFL'],
-    [__x 'Reverting to {target}', target => 'widgets @beta']
+    [__x 'Reverting to {change}', change => 'widgets @beta']
 ], 'The original error should have been vented';
 $mock_whu->unmock('log_deploy_change');
 
@@ -1203,7 +1203,7 @@ is_deeply +MockOutput->get_info, [
 ], 'Output should reflect deploy successes and failure';
 is_deeply +MockOutput->get_vent, [
     ['ROFL'],
-    [__x 'Reverting to {target}', target => 'widgets @beta']
+    [__x 'Reverting to {change}', change => 'widgets @beta']
 ], 'Should see underlying error and reversion message';
 
 # Make it choke on change reversion.
@@ -1234,7 +1234,7 @@ is_deeply +MockOutput->get_info, [
 ], 'Output should reflect deploy successes and failure';
 is_deeply +MockOutput->get_vent, [
     ['ROFL'],
-    [__x 'Reverting to {target}', target => 'whatever'],
+    [__x 'Reverting to {change}', change => 'whatever'],
     ['BARF'],
     [__ 'The schema will need to be manually repaired']
 ], 'Should get reversion failure message';
@@ -1416,7 +1416,7 @@ is_deeply +MockOutput->get_info, [
 ], 'Output should reflect deploy successes and failures';
 is_deeply +MockOutput->get_vent, [
     ['ROFL'],
-    [__x 'Reverting to {target}', target => '@alpha'],
+    [__x 'Reverting to {change}', change => '@alpha'],
 ], 'Should notifiy user of error and rollback to @alpha';
 $mock_whu->unmock_all;
 
@@ -1538,9 +1538,9 @@ throws_ok { $engine->revert('nonexistent') } 'App::Sqitch::X',
     'Revert should die on unknown change';
 is $@->ident, 'revert', 'Should be another "revert" error';
 is $@->message, __x(
-    'Unknown revert target: "{target}"',
-    target => 'nonexistent',
-), 'The message should mention it is an unknown target';
+    'Unknown change: "{change}"',
+    change => 'nonexistent',
+), 'The message should mention it is an unknown change';
 is_deeply $engine->seen, [['change_id_for', {
     change_id => undef,
     change  => 'nonexistent',
@@ -1554,9 +1554,9 @@ throws_ok { $engine->revert('8d77c5f588b60bc0f2efcda6369df5cb0177521d') } 'App::
     'Revert should die on unknown change ID';
 is $@->ident, 'revert', 'Should be another "revert" error';
 is $@->message, __x(
-    'Unknown revert target: "{target}"',
-    target => '8d77c5f588b60bc0f2efcda6369df5cb0177521d',
-), 'The message should mention it is an unknown target';
+    'Unknown change: "{change}"',
+    change => '8d77c5f588b60bc0f2efcda6369df5cb0177521d',
+), 'The message should mention it is an unknown change';
 is_deeply $engine->seen, [['change_id_for', {
     change_id => '8d77c5f588b60bc0f2efcda6369df5cb0177521d',
     change  => undef,
@@ -1565,14 +1565,14 @@ is_deeply $engine->seen, [['change_id_for', {
 }]], 'Shoudl have called change_id_for() with change ID';
 is_deeply +MockOutput->get_info, [], 'Nothing should have been output';
 
-# Revert an undeployed target.
+# Revert an undeployed change.
 throws_ok { $engine->revert('@alpha') } 'App::Sqitch::X',
     'Revert should die on undeployed change';
 is $@->ident, 'revert', 'Should be another "revert" error';
 is $@->message, __x(
-    'Target not deployed: "{target}"',
-    target => '@alpha',
-), 'The message should mention that the target is not deployed';
+    'Change not deployed: "{change}"',
+    change => '@alpha',
+), 'The message should mention that the change is not deployed';
 is_deeply $engine->seen,  [['change_id_for', {
     change => '',
     change_id => undef,
@@ -1589,8 +1589,8 @@ throws_ok { $engine->revert($changes[0]->id) } 'App::Sqitch::X',
 is $@->ident, 'revert', 'No subsequent change error ident should be "revert"';
 is $@->exitval, 1, 'No subsequent change error exitval should be 1';
 is $@->message, __x(
-    'No changes deployed since: "{target}"',
-    target => $changes[0]->id,
+    'No changes deployed since: "{change}"',
+    change => $changes[0]->id,
 ), 'No subsequent change error message should be correct';
 
 delete $changes[0]->{_rework_tags}; # For deep comparison.
@@ -1780,11 +1780,11 @@ is_deeply $engine->seen, [
 ], 'Should have reverted only changes after @alpha';
 is_deeply +MockOutput->get_ask_y_n, [
     [__x(
-        'Revert changes to {target} from {destination}?',
+        'Revert changes to {change} from {destination}?',
         destination => $engine->destination,
-        target      => $dbchanges[1]->format_name_with_tags,
+        change      => $dbchanges[1]->format_name_with_tags,
     ), 'Yes'],
-], 'Should have prompt to revert to target';
+], 'Should have prompt to revert to change';
 is_deeply +MockOutput->get_info_literal, [
     ['  - lolz ..', '.........', ' '],
     ['  - widgets @beta ..', '', ' '],
@@ -1809,8 +1809,8 @@ is_deeply $engine->seen, [
 ], 'Should have called revert methods';
 is_deeply +MockOutput->get_ask_y_n, [
     [__x(
-        'Revert changes to {target} from {destination}?',
-        target      => $dbchanges[1]->format_name_with_tags,
+        'Revert changes to {change} from {destination}?',
+        change      => $dbchanges[1]->format_name_with_tags,
         destination => $engine->destination,
     ), 'Yes'],
 ], 'Should have prompt to revert to @alpha';
@@ -1839,9 +1839,9 @@ is_deeply +MockOutput->get_info_literal, [
 ], 'Output should show what it reverts to';
 is_deeply +MockOutput->get_info, [
     [__x(
-        'Reverting changes to {target} from {destination}',
+        'Reverting changes to {change} from {destination}',
         destination => $engine->destination,
-        target      => $dbchanges[-1]->format_name_with_tags,
+        change      => $dbchanges[-1]->format_name_with_tags,
     )],
     [__ 'ok'],
 ], 'And the header and "ok" should be emitted';

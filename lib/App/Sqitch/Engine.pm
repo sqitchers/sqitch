@@ -236,15 +236,15 @@ sub deploy {
 
     if (defined $to) {
         $to_index = $plan->index_of($to) // hurl plan => __x(
-            'Unknown deploy target: "{target}"',
-            target => $to,
+            'Unknown change: "{change}"',
+            change => $to,
         );
 
         # Just return if there is nothing to do.
         if ($to_index == $plan->position) {
             $sqitch->info(__x(
-                'Nothing to deploy (already at "{target}"',
-                target => $to
+                'Nothing to deploy (already at "{change}"',
+                change => $to
             ));
             return $self;
         }
@@ -271,15 +271,15 @@ sub deploy {
 
     } else {
         # Make sure that $to_index is greater than the current point.
-        hurl deploy => __ 'Cannot deploy to an earlier target; use "revert" instead'
+        hurl deploy => __ 'Cannot deploy to an earlier change; use "revert" instead'
             if $to_index < $plan->position;
     }
 
     $sqitch->info(
         defined $to ? __x(
-            'Deploying changes through {target} to {destination}',
+            'Deploying changes through {change} to {destination}',
+            change      => $plan->change_at($to_index)->format_name_with_tags,
             destination => $self->destination,
-            target      => $plan->change_at($to_index)->format_name_with_tags
         ) : __x(
             'Deploying changes to {destination}',
             destination => $self->destination,
@@ -321,14 +321,14 @@ sub revert {
             if ( $plan->get($to) ) {
                 # Known but not deployed.
                 hurl revert => __x(
-                    'Target not deployed: "{target}"',
-                    target => $to
+                    'Change not deployed: "{change}"',
+                    change => $to
                 );
             }
             # Never heard of it.
             hurl revert => __x(
-                'Unknown revert target: "{target}"',
-                target => $to,
+                'Unknown change: "{change}"',
+                change => $to,
             );
         };
 
@@ -337,16 +337,16 @@ sub revert {
         ) or hurl {
             ident => 'revert',
             message => __x(
-                'No changes deployed since: "{target}"',
-                target => $to,
+                'No changes deployed since: "{change}"',
+                change => $to,
             ),
             exitval => 1,
         };
 
         if ($self->no_prompt) {
             $sqitch->info(__x(
-                'Reverting changes to {target} from {destination}',
-                target      => $change->format_name_with_tags,
+                'Reverting changes to {change} from {destination}',
+                change      => $change->format_name_with_tags,
                 destination => $self->destination,
             ));
         } else {
@@ -355,8 +355,8 @@ sub revert {
                 message => __ 'Nothing reverted',
                 exitval => 1,
             } unless $sqitch->ask_y_n(__x(
-                'Revert changes to {target} from {destination}?',
-                target      => $change->format_name_with_tags,
+                'Revert changes to {change} from {destination}?',
+                change      => $change->format_name_with_tags,
                 destination => $self->destination,
             ), 'Yes');
         }
@@ -798,7 +798,7 @@ sub _rollback {
     if (my @run = reverse @_) {
         $tagged = $tagged ? $tagged->format_name_with_tags : $self->start_at;
         $sqitch->vent(
-            $tagged ? __x('Reverting to {target}', target => $tagged)
+            $tagged ? __x('Reverting to {change}', change => $tagged)
                  : __ 'Reverting all changes'
         );
 
@@ -868,8 +868,8 @@ sub _sync_plan {
 
     if (my $id = $self->latest_change_id) {
         my $idx = $plan->index_of($id) // hurl plan => __x(
-            'Cannot find {target} in the plan',
-            target => $id
+            'Cannot find {change} in the plan',
+            change => $id
         );
 
         my $change = $plan->change_at($idx);
@@ -1339,14 +1339,14 @@ SQL*Plus C<DEFINE> command.
 
 =head3 C<deploy>
 
-  $engine->deploy($to_target);
-  $engine->deploy($to_target, $mode);
-  $engine->deploy($to_target, $mode);
+  $engine->deploy($to_change);
+  $engine->deploy($to_change, $mode);
+  $engine->deploy($to_change, $mode);
 
 Deploys changes to the destination database, starting with the current
-deployment state, and continuing to C<$to_target>. C<$to_target> must be a
-valid target specification as passable to the C<index_of()> method of
-L<App::Sqitch::Plan>. If C<$to_target> is not specified, all changes will be
+deployment state, and continuing to C<$to_change>. C<$to_change> must be a
+valid change specification as passable to the C<index_of()> method of
+L<App::Sqitch::Plan>. If C<$to_change> is not specified, all changes will be
 applied.
 
 The second argument specifies the reversion mode in the case of deployment
