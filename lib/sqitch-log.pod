@@ -1,6 +1,6 @@
 =head1 Name
 
-sqitch-log - Show database change logs
+sqitch-log - Show Sqitch change logs
 
 =head1 Synopsis
 
@@ -9,10 +9,10 @@ sqitch-log - Show database change logs
 =head1 Description
 
 Sqitch keeps a record of the deployment, failed deployment, or reversion of
-all changes in a database. Even after a change has been reverted, a log of its
-earlier deployment is retained. The C<log> command is your key to accessing
-it. You can simply list all the events, search for events matching regular
-expressions, and limit the results.
+all changes in a target database. Even after a change has been reverted, a log
+of its earlier deployment is retained. The C<log> command is your key to
+accessing it. You can simply list all the events, search for events matching
+regular expressions, and limit the results.
 
 =head1 Options
 
