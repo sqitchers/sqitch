@@ -23,7 +23,7 @@ can_ok $CLASS, qw(
     options
     configure
     new
-    to_target
+    to_change
     mode
     log_only
     execute
@@ -31,11 +31,12 @@ can_ok $CLASS, qw(
 );
 
 is_deeply [$CLASS->options], [qw(
-    to-target|to|target=s
+    to-change|to|change=s
     mode=s
     set|s=s%
     log-only
     verify!
+    to-target=%s
 )], 'Options should be correct';
 
 my $sqitch = App::Sqitch->new(
@@ -89,12 +90,12 @@ CONFIG: {
 
     # Try merging.
     is_deeply $CLASS->configure($config, {
-        to_target => 'whu',
+        to_change => 'whu',
         mode      => 'tag',
         verify    => 0,
         set       => { foo => 'yo', yo => 'stellar' },
     }), {
-        to_target => 'whu',
+        to_change => 'whu',
         mode      => 'tag',
         verify    => 0,
         log_only  => 0,
@@ -108,7 +109,7 @@ CONFIG: {
 
 isa_ok my $deploy = $CLASS->new(sqitch => $sqitch), $CLASS;
 
-is $deploy->to_target, undef, 'to_target should be undef';
+is $deploy->to_change, undef, 'to_change should be undef';
 is $deploy->mode, 'all', 'mode should be "all"';
 
 # Mock the engine interface.
@@ -130,7 +131,7 @@ is_deeply \@args, [undef, 'all'],
 
 isa_ok $deploy = $CLASS->new(
     sqitch    => $sqitch,
-    to_target => 'foo',
+    to_change => 'foo',
     mode      => 'tag',
     log_only  => 1,
     verify    => 1,

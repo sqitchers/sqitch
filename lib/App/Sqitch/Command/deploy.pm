@@ -6,13 +6,14 @@ use warnings;
 use utf8;
 use Mouse;
 use Mouse::Util::TypeConstraints;
+use Locale::TextDomain qw(App-Sqitch);
 use List::Util qw(first);
 use namespace::autoclean;
 extends 'App::Sqitch::Command';
 
 our $VERSION = '0.990';
 
-has to_target => (
+has to_change => (
     is  => 'ro',
     isa => 'Str',
 );
@@ -53,11 +54,12 @@ has variables => (
 
 sub options {
     return qw(
-        to-target|to|target=s
+        to-change|to|change=s
         mode=s
         set|s=s%
         log-only
         verify!
+        to-target=%s
     );
 }
 
@@ -69,7 +71,15 @@ sub configure {
         verify   => $opt->{verify} // $config->get( key => 'deploy.verify', as => 'boolean' ) // 0,
         log_only => $opt->{log_only} || 0,
     );
-    $params{to_target} = $opt->{to_target} if exists $opt->{to_target};
+    $params{to_change} = $opt->{to_change} if exists $opt->{to_change};
+
+    if ( exists $opt->{to_target} ) {
+        # Deprecated option.
+        App::Sqitch->warn(
+            __ 'The --to-target and --target option has been deprecated; use --to-change instead.'
+        );
+        $params{to_change} ||= $opt->{to_target};
+    }
 
     if ( my $vars = $opt->{set} ) {
         # Merge with config.
@@ -88,7 +98,7 @@ sub execute {
     $engine->with_verify( $self->verify );
     $engine->log_only( $self->log_only );
     if (my %v = %{ $self->variables }) { $engine->set_variables(%v) }
-    $engine->deploy( $self->to_target // shift, $self->mode );
+    $engine->deploy( $self->to_change // shift, $self->mode );
     return $self;
 }
 

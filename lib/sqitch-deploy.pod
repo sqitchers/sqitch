@@ -5,18 +5,18 @@ sqitch-deploy - Deploy changes to a database
 =head1 Synopsis
 
   sqitch [options] deploy
-  sqitch [options] deploy <target>
-  sqitch [options] deploy --to-target <target>
+  sqitch [options] deploy <change>
+  sqitch [options] deploy --to-change <change>
 
 =head1 Description
 
 Deploy changes to the database. Changes will begin from the current deployment
-state. They will run to the latest change, unless a target is specified, either
-via C<--to> or with no option flag, in which case changes will be deployed
-up-to and including that target.
+state. They will run to the latest change, unless a change is specified,
+either via C<--to> or with no option flag, in which case changes will be
+deployed up-to and including that change.
 
-If the database it up-to-date or already deployed to the specified target, no
-changes will be made. If the target appears earlier in the plan than the
+If the database it up-to-date or already deployed to the specified change, no
+changes will be made. If the change appears earlier in the plan than the
 currently-deployed state, an error will be returned, along with a suggestion
 to instead use L<sqitch-revert>.
 
@@ -24,15 +24,14 @@ to instead use L<sqitch-revert>.
 
 =over
 
-=item C<--to-target>
+=item C<--to-change>
 
-=item C<--target>
+=item C<--change>
 
 =item C<--to>
 
-Specify the deployment target. Defaults to the last point in the plan. See
-L<sqitchchanges> for the various ways in which change targets can be
-specified.
+Specify the deployment change. Defaults to the last point in the plan. See
+L<sqitchchanges> for the various ways in which changes can be specified.
 
 =item C<--mode>
 
@@ -89,10 +88,6 @@ deployed by other means in the past.
 =head1 Configuration Variables
 
 =over
-
-=item C<deploy.to_target>
-
-Target to deploy to. You probably don't want to set this.
 
 =item C<deploy.mode>
 

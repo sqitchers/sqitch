@@ -4,11 +4,11 @@ sqitch-deploy-usage - Sqitch deploy usage statement
 
 =head1 Usage
 
-  sqitch [options] deploy [<target options>]
+  sqitch [options] deploy [<change options>]
 
 =head1 Options
 
-       --to-target <tag>    deploy to target
+       --to-change <change> deploy to change
        --mode <mode>        failure reversion mode
     -s --set                set a database client variable
        --verify             run verify scripts after each change
