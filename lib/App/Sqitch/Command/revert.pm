@@ -7,12 +7,13 @@ use utf8;
 use Mouse;
 use Mouse::Util::TypeConstraints;
 use List::Util qw(first);
+use Locale::TextDomain qw(App-Sqitch);
 use namespace::autoclean;
 extends 'App::Sqitch::Command';
 
 our $VERSION = '0.990';
 
-has to_target => (
+has to_change => (
     is  => 'ro',
     isa => 'Str',
 );
@@ -45,7 +46,8 @@ has variables => (
 
 sub options {
     return qw(
-        to-target|to|target=s
+        to-change|to|change=s
+        to-target=s
         set|s=s%
         log-only
         y
@@ -56,9 +58,18 @@ sub configure {
     my ( $class, $config, $opt ) = @_;
 
     my %params = map { $_ => $opt->{$_} } grep { exists $opt->{$_} } qw(
-        to_target
+        to_change
         log_only
     );
+
+    # Deprecated option.
+    if ( exists $opt->{to_target}  ) {
+        # Deprecated option.
+        App::Sqitch->warn(
+            __ 'The --to-target and --target option has been deprecated; use --to-change instead.'
+        );
+        $params{to_change} ||= $opt->{to_target};
+    }
 
     if ( my $vars = $opt->{set} ) {
         # Merge with config.
@@ -83,7 +94,7 @@ sub execute {
     $engine->no_prompt( $self->no_prompt );
     $engine->log_only( $self->log_only );
     if (my %v = %{ $self->variables }) { $engine->set_variables(%v) }
-    $engine->revert( $self->to_target // shift );
+    $engine->revert( $self->to_change // shift );
     return $self;
 }
 

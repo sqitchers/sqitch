@@ -5,18 +5,18 @@ sqitch-revert - Revert changes to a database
 =head1 Synopsis
 
   sqitch [options] revert
-  sqitch [options] revert <target>
-  sqitch [options] revert --to-target <target>
+  sqitch [options] revert <change>
+  sqitch [options] revert --to-change <change>
 
 =head1 Description
 
 Revert changes to the database. Starting from the current deployment state,
 changes will be reverted in reverse the order of application. All changes will
-be reverted unless a target is specified, either via C<--to> or with no option
-flag, in which case changes will be reverted back to that target.
+be reverted unless a change is specified, either via C<--to> or with no option
+flag, in which case changes will be reverted back to that change.
 
 If the database has not been deployed to, or its state already matches the
-specified target, no changes will be made. If the target appears later in the
+specified change, no changes will be made. If the change appears later in the
 plan than the currently-deployed state, an error will be returned, along with
 a suggestion to instead use L<sqitch-deploy>.
 
@@ -24,15 +24,14 @@ a suggestion to instead use L<sqitch-deploy>.
 
 =over
 
-=item C<--to-target>
+=item C<--to-change>
 
-=item C<--target>
+=item C<--change>
 
 =item C<--to>
 
-Specify the reversion target. Defaults to reverting all changes. See
-L<sqitchchanges> for the various ways in which change targets can be
-specified.
+Specify the reversion change. Defaults to reverting all changes. See
+L<sqitchchanges> for the various ways in which changes can be specified.
 
 =item C<-s>
 

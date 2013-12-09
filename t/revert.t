@@ -23,14 +23,15 @@ can_ok $CLASS, qw(
     options
     configure
     new
-    to_target
+    to_change
     log_only
     execute
     variables
 );
 
 is_deeply [$CLASS->options], [qw(
-    to-target|to|target=s
+    to-change|to|change=s
+    to-target=s
     set|s=s%
     log-only
     y
@@ -76,13 +77,13 @@ CONFIG: {
 
     # Try merging.
     is_deeply $CLASS->configure($config, {
-        to_target => 'whu',
+        to_change => 'whu',
         log_only  => 1,
         set       => { foo => 'yo', yo => 'stellar' },
     }), {
         no_prompt => 0,
         variables => { foo => 'yo', yo => 'stellar', hi => 21 },
-        to_target => 'whu',
+        to_change => 'whu',
         log_only  => 1,
     }, 'Should have merged variables';
 
@@ -118,7 +119,7 @@ CONFIG: {
 
 isa_ok my $revert = $CLASS->new(sqitch => $sqitch, no_prompt => 1), $CLASS;
 
-is $revert->to_target, undef, 'to_target should be undef';
+is $revert->to_change, undef, 'to_change should be undef';
 
 # Mock the engine interface.
 my $mock_engine = Test::MockModule->new('App::Sqitch::Engine::sqlite');
@@ -147,7 +148,7 @@ is_deeply {@vars}, { },
 
 isa_ok $revert = $CLASS->new(
     sqitch    => $sqitch,
-    to_target => 'foo',
+    to_change => 'foo',
     log_only  => 1,
     variables => { foo => 'bar', one => 1 },
 ), $CLASS, 'Object with to and variables';
