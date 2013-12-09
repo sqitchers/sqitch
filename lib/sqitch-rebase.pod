@@ -5,11 +5,11 @@ sqitch-rebase - Revert and redeploy database changes
 =head1 Synopsis
 
   sqitch [options] rebase
-  sqitch [options] rebase --onto-target <target>
-  sqitch [options] rebase --onto-target <target> --upto-target <target>
-  sqitch [options] rebase <target>
-  sqitch [options] rebase <target> --upto-target <target>
-  sqitch [options] rebase <target> <target>
+  sqitch [options] rebase --onto-change <change>
+  sqitch [options] rebase --onto-change <change> --upto-change <change>
+  sqitch [options] rebase <change>
+  sqitch [options] rebase <change> --upto-change <change>
+  sqitch [options] rebase <change> <change>
 
 =head1 Description
 
@@ -19,40 +19,38 @@ in succession.
 
 More specifically, starting from the current deployment state, changes will be
 reverted in reverse the order of application. All changes will be reverted
-unless a target is specified, either via C<--onto> or with no option flag, in
-which case changes will be reverted back to that target. If nothing needs to
+unless a change is specified, either via C<--onto> or with no option flag, in
+which case changes will be reverted back to that change. If nothing needs to
 be reverted, a message will be emitted explaining why and nothing will be
 reverted.
 
 Once the revert finishes, changes will be deployed starting from the deployed
 state through the rest of the deployment plan. They will run to the latest
-change in the plan, unless a target is specified, either via C<--upto> or with
+change in the plan, unless a change is specified, either via C<--upto> or with
 no option flag, in which case changes will be deployed up-to and including
-that target.
+that change.
 
 If the database has not been deployed to, or its state already matches the
-specified target, no reverts will be run. And if, at that point, the database
+specified change, no reverts will be run. And if, at that point, the database
 is up-to-date, no deploys will be run.
 
 =head1 Options
 
 =over
 
-=item C<--onto-target>
+=item C<--onto-change>
 
 =item C<--onto>
 
-Specify the reversion target. Defaults to reverting all changes. See
-L<sqitchchanges> for the various ways in which change targets can be
-specified.
+Specify the reversion change. Defaults to reverting all changes. See
+L<sqitchchanges> for the various ways in which changes can be specified.
 
-=item C<--upto-target>
+=item C<--upto-change>
 
 =item C<--upto>
 
-Specify the deployment target. Defaults to the last point in the plan. See
-L<sqitchchanges> for the various ways in which change targets can be
-specified.
+Specify the deployment change. Defaults to the last point in the plan. See
+L<sqitchchanges> for the various ways in which changes can be specified.
 
 =item C<--mode>
 
@@ -64,13 +62,13 @@ are:
 =item C<all>
 
 In the event of failure, revert all deployed changes, back to
-C<--onto-target>. This is the default.
+C<--onto-change>. This is the default.
 
 =item C<tag>
 
 In the event of failure, revert all deployed changes to the last
 successfully-applied tag. If no tags were applied, all changes will be
-reverted to C<--onto-target>.
+reverted to C<--onto-change>.
 
 =item C<change>
 

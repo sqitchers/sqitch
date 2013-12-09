@@ -6,6 +6,7 @@ use warnings;
 use utf8;
 use Mouse;
 use Mouse::Util::TypeConstraints;
+use Locale::TextDomain qw(App-Sqitch);
 use List::Util qw(first);
 use Try::Tiny;
 use namespace::autoclean;
@@ -15,30 +16,55 @@ with 'App::Sqitch::Role::RevertDeployCommand';
 
 our $VERSION = '0.990';
 
-has onto_target => (
+has onto_change => (
     is  => 'ro',
     isa => 'Str',
 );
 
-has upto_target => (
+has upto_change => (
     is  => 'ro',
     isa => 'Str',
 );
 
 sub options {
     return qw(
-        onto-target|onto=s
-        upto-target|upto=s
+        onto-change|onto=s
+        upto-change|upto=s
+        onto-target=s
+        upto-target=s
     );
 }
 
 sub configure {
     my ( $class, $config, $opt ) = @_;
 
-    return { map { $_ => $opt->{$_} } grep { exists $opt->{$_} } qw(
-        onto_target
-        upto_target
+    my $p = { map { $_ => $opt->{$_} } grep { exists $opt->{$_} } qw(
+        onto_change
+        upto_change
     ) };
+
+    # Handle deprecated options and config variables.
+    for my $key (qw(onto upto)) {
+        if (my $val = $opt->{"$key\_target"}) {
+            App::Sqitch->warn(__x(
+                'Option --{old} has been deprecated; use --{new} instead',
+                old => "$key-target",
+                new => "$key-change",
+            ));
+            $p->{"$key\_change"} ||= $val;
+        }
+
+        if (my $val = $config->{"$key\_target"}) {
+            App::Sqitch->warn(__x(
+                'Config variable {old} has been deprecated; use {new} instead',
+                old => "deploy.$key\_target",
+                new => "deploy.$key\_change",
+            ));
+            $p->{"$key\_change"} ||= $val;
+        }
+    }
+
+    return $p;
 }
 
 sub execute {
@@ -50,7 +76,7 @@ sub execute {
 
     # Revert.
     if (my %v = %{ $self->revert_variables }) { $engine->set_variables(%v) }
-    my $to = $self->onto_target // shift;
+    my $to = $self->onto_change // shift;
     try {
         $engine->revert( $to );
     } catch {
@@ -64,7 +90,7 @@ sub execute {
 
     # Deploy.
     if (my %v = %{ $self->deploy_variables }) { $engine->set_variables(%v) }
-    $engine->deploy( $self->upto_target // shift, $self->mode );
+    $engine->deploy( $self->upto_change // shift, $self->mode );
     return $self;
 }
 

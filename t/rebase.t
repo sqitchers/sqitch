@@ -24,8 +24,8 @@ can_ok $CLASS, qw(
     options
     configure
     new
-    onto_target
-    upto_target
+    onto_change
+    upto_change
     log_only
     execute
     deploy_variables
@@ -33,8 +33,10 @@ can_ok $CLASS, qw(
 );
 
 is_deeply [$CLASS->options], [qw(
-    onto-target|onto=s
-    upto-target|upto=s
+    onto-change|onto=s
+    upto-change|upto=s
+    onto-target=s
+    upto-target=s
     mode=s
     verify!
     set|s=s%
@@ -154,7 +156,7 @@ CONFIG: {
         verify           => 0,
         deploy_variables => { foo => 'yo', yo => 'stellar', hi => 21 },
         revert_variables => { foo => 'yo', yo => 'stellar', hi => 21 },
-        onto_target      => 'whu',
+        onto_change      => 'whu',
     }, 'Should have merged variables';
 
     # Try merging with rebase.variables, too.
@@ -211,8 +213,8 @@ CONFIG: {
 
 isa_ok my $rebase = $CLASS->new(sqitch => $sqitch), $CLASS;
 
-is $rebase->onto_target, undef, 'onto_target should be undef';
-is $rebase->upto_target, undef, 'upto_target should be undef';
+is $rebase->onto_change, undef, 'onto_change should be undef';
+is $rebase->upto_change, undef, 'upto_change should be undef';
 
 # Mock the engine interface.
 my $mock_engine = Test::MockModule->new('App::Sqitch::Engine::sqlite');
@@ -246,8 +248,8 @@ isa_ok $rebase = $CLASS->new(
     verify           => 1,
     sqitch           => $sqitch,
     mode             => 'tag',
-    onto_target      => 'foo',
-    upto_target      => 'bar',
+    onto_change      => 'foo',
+    upto_change      => 'bar',
     deploy_variables => { foo => 'bar', one => 1 },
     revert_variables => { hey => 'there' },
 ), $CLASS, 'Object with to and variables';
