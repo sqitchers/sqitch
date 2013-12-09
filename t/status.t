@@ -48,7 +48,7 @@ can_ok $status, qw(
 
 is_deeply [ $CLASS->options ], [qw(
     project=s
-    database|db|d=s
+    target|t=s
     show-tags
     show-changes
     date-format|date=s
@@ -129,12 +129,12 @@ is $status->project, $sqitch->plan->project, 'Should have plan project';
 
 ##############################################################################
 # Test database.
-is $status->database, undef, 'Default database should be undef';
+is $status->target, undef, 'Default target should be undef';
 isa_ok $status = $CLASS->new(
     sqitch   => $sqitch,
-    database => 'foo',
-), $CLASS, 'new status with database';
-is $status->database, 'foo', 'Should have database "foo"';
+    target => 'foo',
+), $CLASS, 'new status with target';
+is $status->target, 'foo', 'Should have target "foo"';
 
 ##############################################################################
 # Test configure().
@@ -493,8 +493,8 @@ ok $status = App::Sqitch::Command->load({
     sqitch  => $sqitch,
     command => 'status',
     config  => $config,
-    args    => ['--database', 'db:sqlite:'],
-}), 'Create status command with a database attribute';
+    args    => ['--target', 'db:sqlite:'],
+}), 'Create status command with a target option';
 ok $status->execute, 'Execute with db attribute';
 $dest = 'db:sqlite:multi.db';
 $check_output->();

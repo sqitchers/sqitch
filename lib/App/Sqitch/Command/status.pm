@@ -16,7 +16,7 @@ extends 'App::Sqitch::Command';
 
 our $VERSION = '0.990';
 
-has database => (
+has target => (
     is  => 'ro',
     isa => 'Str',
 );
@@ -61,7 +61,7 @@ has project => (
     default => sub {
         my $self = shift;
         try { $self->plan->project } || do {
-            # Try to extract a project name from the database.
+            # Try to extract a project name from the registry.
             my $engine = $self->engine;
             hurl status => __ 'Database not initialized for Sqitch'
                 unless $engine->initialized;
@@ -79,7 +79,7 @@ has project => (
 sub options {
     return qw(
         project=s
-        database|db|d=s
+        target|t=s
         show-tags
         show-changes
         date-format|date=s
@@ -88,10 +88,10 @@ sub options {
 
 sub execute {
     my $self   = shift;
-    my $engine = $self->engine_for_target($self->database // shift);
+    my $engine = $self->engine_for_target($self->target // shift);
 
     # Where are we?
-    $self->comment( __x 'On database {db}', db => $engine->destination );
+    $self->comment( __x 'On database {db}', db => $engine->target );
 
     # Exit with status 1 on no state, probably not expected.
     my $state = try {
@@ -306,8 +306,8 @@ works, read on.
 
   $status->execute;
 
-Executes the status command. The current state of the database will be compared
-to the plan in order to show where things stand.
+Executes the status command. The current state of the target database will be
+compared to the plan in order to show where things stand.
 
 =head3 C<emit_changes>
 
@@ -325,15 +325,15 @@ Emits a list of deployed tags if C<show_tags> is true.
 
   $status->emit_state($state);
 
-Emits the current state of the database. Pass in a state hash as returned by
-L<App::Sqitch::Engine> C<current_state()>.
+Emits the current state of the target database. Pass in a state hash as
+returned by L<App::Sqitch::Engine> C<current_state()>.
 
 =head3 C<emit_status>
 
   $status->emit_state($state);
 
-Emits information about the current status of the database compared to the
-plan. Pass in a state hash as returned by L<App::Sqitch::Engine>
+Emits information about the current status of the target database compared to
+the plan. Pass in a state hash as returned by L<App::Sqitch::Engine>
 C<current_state()>. Throws an exception if the current state's change cannot
 be found in the plan.
 
