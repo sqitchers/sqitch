@@ -111,13 +111,10 @@ sub config_for_target {
     my ($self, $target) = @_;
     return unless $target;
     require URI::db;
-    return {
-        target => "$target",
-        uri     => URI::db->new($target),
-    } if $target =~ /:/;
+    return { uri => URI::db->new($target) } if $target =~ /:/;
     my $config = $self->config->get_section( section => "target.$target" )
         or return;
-    $config->{target} = "$target";
+    $config->{target} = $target;
     $config->{uri} = URI::db->new( $config->{uri} ) if $config->{uri};
     return $config;
 }
@@ -868,10 +865,15 @@ target name or URI. The supported keys in the hash reference are:
 
 =over
 
+=item C<target>
+
+The name of the target, as passed.
+
 =item C<uri>
 
 A L<database URI|URI::db> object, to be used to connect to the target
 database.
+
 
 =item C<registry>
 

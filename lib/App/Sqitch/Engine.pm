@@ -19,17 +19,37 @@ has sqitch => (
     required => 1,
 );
 
-# Remove password!
-sub destination {
-    my $uri = shift->uri;
-    if ($uri->password) {
-        $uri = $uri->clone;
-        $uri->password(undef);
+has target => (
+    is      => 'ro',
+    isa     => 'Str',
+    lazy    => 1,
+    default => sub {
+        shift->uri->as_string;
     }
-    return $uri->as_string;
-}
+);
 
-sub reg_destination { shift->destination }
+has destination => (
+    is      => 'ro',
+    isa     => 'Str',
+    lazy    => 1,
+    default => sub {
+        my $self = shift;
+
+        # Just use the target unless it looks like a URI.
+        my $target = $self->target;
+        return $target if $target !~ /:/;
+
+        # Use the URI sans password.
+        my $uri = $self->uri;
+        if ($uri->password) {
+            $uri = $uri->clone;
+            $uri->password(undef);
+        }
+        return $uri->as_string;
+    }
+);
+
+sub registry_destination { shift->destination }
 
 has start_at => (
     is  => 'rw',
@@ -81,7 +101,7 @@ has _variables => (
 );
 
 # * If not passed
-#   a. Look for core.$engine.database; or
+#   a. Look for core.$engine.target; or
 #   b. Construct from config.$engine.@parts (deprecated); or
 #   c. Default to "db:$engine:"
 # * If command-line-options, override parts in the URI.
@@ -100,7 +120,7 @@ has uri => ( is => 'ro', isa => 'URI::db', lazy => 1, default => sub {
     my $engine = $self->key;
     my $uri;
 
-    if ( my $db = $config->get( key => "core.$engine.database" ) ) {
+    if ( my $db = $config->get( key => "core.$engine.target" ) ) {
         $uri = $sqitch->config_for_target_strict($db)->{uri};
     } else {
         $uri = URI::db->new("db:$engine:");
@@ -162,11 +182,6 @@ sub _merge_options_into {
     return $uri;
 }
 
-# This is purely for configuration.
-has database => ( is => 'ro', isa => 'Str', lazy => 1, default => sub {
-    shift->uri->as_string;
-});
-
 sub load {
     my ( $class, $p ) = @_;
 
@@ -208,7 +223,7 @@ sub name { shift->key }
 
 sub config_vars {
     return (
-        database => 'any',
+        target   => 'any',
         registry => 'any',
         client   => 'any'
     );
@@ -263,7 +278,7 @@ sub deploy {
         unless ($self->initialized) {
             $sqitch->info(__x(
                 'Adding registry tables to {destination}',
-                destination => $self->reg_destination,
+                destination => $self->registry_destination,
             ));
             $self->initialize;
         }
@@ -1221,7 +1236,7 @@ times. All the other variables may be of any type.
 By default, App::Sqitch::Engine returns:
 
   (
-      database => 'any',
+      target   => 'any',
       registry => 'any',
       client   => 'any',
   )
@@ -1258,13 +1273,36 @@ Instantiates and returns a App::Sqitch::Engine object.
 
 The current Sqitch object.
 
-=head3 C<database>
+=head3 C<target>
 
-A L<URI::db> object representing the database to which to connect.
+A string identifying the database target.
+
+Returns the name of the target database. This will usually be the name of
+target specified on the command-line, or the default.
+
+=head3 C<uri>
+
+A L<URI::db> object representing the target database. Defaults to a URI
+constructed from the L<App::Sqitch> C<db_*> attributes.
+
+=head3 C<destination>
+
+A string identifying the target database. Usually the same as the C<target>,
+unless it's a URI with the password included, in which case it returns the
+value of C<uri> with the password removed.
 
 =head3 C<registry>
 
 The name of the registry schema or database.
+
+=head3 C<registry_destination>
+
+A string idntifying the registry database. In other words, the database in
+which Sqitch's own data is stored. It will usually be the same as C<destination()>,
+but some engines, such as L<SQLite|App::Sqitch::Engine::sqlite>, may use a
+separate database. Used internally to name the target when the registration
+tables are created.
+
 
 =head3 C<start_at>
 
@@ -1292,32 +1330,15 @@ list.
 
 =head2 Instance Methods
 
-=head3 C<uri>
+=head3 C<registry_destination>
 
-  my $uri = $engine->uri;
+  my $registry_destination = $engine->registry_destination;
 
-A L<URI::db> object representing the destination database. Defaults to a URI
-constructed from the L<App::Sqitch> C<db_*> attributes.
-
-=head3 C<destination>
-
-  my $destination = $engine->destination;
-
-Returns the name of the destination database. This will usually be the the
-string representation of the C<uri> attribute with any password part
-removed. However, subclasses may override it to provide other values, such as
-when a database name or host is implied but not physically represented in the
-URI. Used internally to name the destination in status messages.
-
-=head3 C<reg_destination>
-
-  my $reg_destination = $engine->reg_destination;
-
-Returns the name of the registration database. In other words, the database in
-which Sqitch's own data is stored. It will usually be the same as
-C<destination()>, but some engines, such as
-L<SQLite|App::Sqitch::Engine::sqlite>, may use a separate database. Used
-internally to name the destination when the registration tables are created.
+Returns the name of the registry database. In other words, the database in
+which Sqitch's own data is stored. It will usually be the same as C<target()>,
+but some engines, such as L<SQLite|App::Sqitch::Engine::sqlite>, may use a
+separate database. Used internally to name the target when the registration
+tables are created.
 
 =head3 C<variables>
 
@@ -1343,11 +1364,10 @@ SQL*Plus C<DEFINE> command.
   $engine->deploy($to_change, $mode);
   $engine->deploy($to_change, $mode);
 
-Deploys changes to the destination database, starting with the current
-deployment state, and continuing to C<$to_change>. C<$to_change> must be a
-valid change specification as passable to the C<index_of()> method of
-L<App::Sqitch::Plan>. If C<$to_change> is not specified, all changes will be
-applied.
+Deploys changes to the target database, starting with the current deployment
+state, and continuing to C<$to_change>. C<$to_change> must be a valid change
+specification as passable to the C<index_of()> method of L<App::Sqitch::Plan>.
+If C<$to_change> is not specified, all changes will be applied.
 
 The second argument specifies the reversion mode in the case of deployment
 failure. The allowed values are:
@@ -1372,9 +1392,8 @@ assumption that a change failure is total, and the change may be applied again.
 
 =back
 
-Note that, in the event of failure, if a reversion fails, the destination
-database B<may be left in a corrupted state>. Write your revert scripts
-carefully!
+Note that, in the event of failure, if a reversion fails, the target database
+B<may be left in a corrupted state>. Write your revert scripts carefully!
 
 =head3 C<revert>
 
@@ -1638,24 +1657,24 @@ has not.
 
   $engine->initialize;
 
-Initializes a database for Sqitch by installing the Sqitch registry schema
-and/or tables. Should be overridden by subclasses. This implementation throws
-an exception
+Initializes the target database for Sqitch by installing the Sqitch registry
+schema and/or tables. Should be overridden by subclasses. This implementation
+throws an exception
 
 =head3 C<register_project>
 
   $engine->register_project;
 
-Registers the current project plan in the database. The implementation should
-insert the project name and URI if they have not already been inserted. If a
-project with the same name but different URI already exists, an exception
-should be thrown.
+Registers the current project plan in the registry database. The
+implementation should insert the project name and URI if they have not already
+been inserted. If a project with the same name but different URI already
+exists, an exception should be thrown.
 
 =head3 C<is_deployed_tag>
 
   say 'Tag deployed' if $engine->is_deployed_tag($tag);
 
-Should return true if the L<tag|App::Sqitch::Plan::Tag> has been applies to
+Should return true if the L<tag|App::Sqitch::Plan::Tag> has been applied to
 the database, and false if it has not.
 
 =head3 C<is_deployed_change>

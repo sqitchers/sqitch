@@ -118,8 +118,7 @@ is $sqitch->config_for_target(0), undef, 'Should get no string for DB param 0';
 
 # Pass a URI.
 is_deeply $sqitch->config_for_target('db:pg:'), {
-    uri    => URI->new('db:pg:'),
-    target => 'db:pg:',
+    uri => URI->new('db:pg:'),
 }, 'Should get target back from config_for_target()';
 
 # Pass a key.
@@ -142,8 +141,7 @@ CONFIG: {
 ##############################################################################
 # Test config_for_target_strict.
 is_deeply $sqitch->config_for_target_strict('db:pg:foo'), {
-    uri    => URI->new('db:pg:foo'),
-    target => 'db:pg:foo',
+    uri => URI->new('db:pg:foo'),
 }, 'Should get URI back for URI param';
 isa_ok $sqitch->config_for_target_strict('db:pg:foo')->{uri}, 'URI::db', 'DB URI';
 

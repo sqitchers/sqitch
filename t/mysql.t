@@ -25,9 +25,9 @@ BEGIN {
 }
 
 is_deeply [$CLASS->config_vars], [
-    database  => 'any',
-    registry  => 'any',
-    client    => 'any',
+    target   => 'any',
+    registry => 'any',
+    client   => 'any',
 ], 'config_vars should return three vars';
 
 my $sqitch = App::Sqitch->new(_engine => 'mysql');
@@ -41,8 +41,8 @@ my $sqitch_uri = $uri->clone;
 $sqitch_uri->dbname('sqitch');
 is $mysql->registry_uri, $sqitch_uri, 'registry_uri should be correct';
 is $mysql->uri, $uri, qq{uri should be "$uri"};
-is $mysql->reg_destination, 'db:mysql:sqitch',
-    'reg_destination should be the same as registry_uri';
+is $mysql->registry_destination, 'db:mysql:sqitch',
+    'registry_destination should be the same as registry_uri';
 
 my @std_opts = (
     '--skip-pager',
@@ -79,9 +79,9 @@ is_deeply [$mysql->mysql], [
 ##############################################################################
 # Make sure config settings override defaults.
 my %config = (
-    'core.mysql.client'    => '/path/to/mysql',
-    'core.mysql.database'  => 'db:mysql://foo.com/widgets',
-    'core.mysql.registry'  => 'meta',
+    'core.mysql.client'   => '/path/to/mysql',
+    'core.mysql.target'   => 'db:mysql://foo.com/widgets',
+    'core.mysql.registry' => 'meta',
 );
 my $mock_config = Test::MockModule->new('App::Sqitch::Config');
 $mock_config->mock(get => sub { $config{ $_[2] } });
@@ -90,12 +90,13 @@ ok $mysql = $CLASS->new(sqitch => $sqitch), 'Create another mysql';
 is $mysql->client, '/path/to/mysql', 'client should be as configured';
 is $mysql->uri->as_string, 'db:mysql://foo.com/widgets',
     'URI should be as configured';
+is $mysql->target, $mysql->uri->as_string, 'target should be the URI';
 is $mysql->destination, $mysql->uri->as_string, 'destination should be the URI';
 is $mysql->registry, 'meta', 'registry should be as configured';
 is $mysql->registry_uri->as_string, 'db:mysql://foo.com/meta',
     'Sqitch DB URI should be the same as uri but with DB name "meta"';
-is $mysql->reg_destination, $mysql->registry_uri->as_string,
-    'reg_destination should be the sqitch DB URL';
+is $mysql->registry_destination, $mysql->registry_uri->as_string,
+    'registry_destination should be the sqitch DB URL';
 is_deeply [$mysql->mysql], [qw(
     /path/to/mysql
     --database widgets
@@ -118,13 +119,14 @@ ok $mysql = $CLASS->new(sqitch => $sqitch), 'Create yet another mysql';
 is $mysql->client, '/path/to/mysql', 'client should be as configured';
 is $mysql->uri->as_string, 'db:mysql://freddy:s3cr3t@db.example.com:1234/widgets',
     'URI should be as configured';
+is $mysql->target, $mysql->uri->as_string, 'target should be the URI string';
 like $mysql->destination, qr{^db:mysql://freddy"?:\@db\.example\.com:1234/widgets$},
     'destination should be the URI minus the password';
 is $mysql->registry, 'meta', 'registry should be as configured';
 is $mysql->registry_uri->as_string, 'db:mysql://freddy:s3cr3t@db.example.com:1234/meta',
     'Sqitch DB URI should be the same as uri but with DB name "meta"';
-like $mysql->reg_destination, qr{^db:mysql://freddy:?\@db\.example\.com:1234/meta$},
-    'reg_destination should be the sqitch DB URL sans password';
+like $mysql->registry_destination, qr{^db:mysql://freddy:?\@db\.example\.com:1234/meta$},
+    'registry_destination should be the sqitch DB URL sans password';
 is_deeply [$mysql->mysql], [qw(
     /path/to/mysql
     --user     freddy
@@ -151,13 +153,14 @@ ok $mysql = $CLASS->new(sqitch => $sqitch),
 is $mysql->client, '/some/other/mysql', 'client should be as optioned';
 is $mysql->uri->as_string, 'db:mysql://anna:s3cr3t@foo.com:98760/widgets_dev',
     'The DB URI should be as optioned';
+is $mysql->target, $mysql->uri->as_string, 'target should be the URI stringified';
 like $mysql->destination, qr{^db:mysql://anna:?\@foo\.com:98760/widgets_dev$},
     'destination should be the URI minus the password';
 is $mysql->registry, 'meta', 'registry should be as configured';
 is $mysql->registry_uri->as_string, 'db:mysql://anna:s3cr3t@foo.com:98760/meta',
     'Sqitch DB URI should be the same as uri but with DB name "meta"';
-like $mysql->reg_destination, qr{^db:mysql://anna:?\@foo\.com:98760/meta$},
-    'reg_destination should be the sqitch DB URL sans password';
+like $mysql->registry_destination, qr{^db:mysql://anna:?\@foo\.com:98760/meta$},
+    'registry_destination should be the sqitch DB URL sans password';
 is $mysql->registry, 'meta', 'registry should still be as configured';
 is_deeply [$mysql->mysql], [qw(
     /some/other/mysql

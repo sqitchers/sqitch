@@ -45,7 +45,7 @@ has registry_uri => (
     },
 );
 
-sub reg_destination {
+sub registry_destination {
     my $uri = shift->registry_uri;
     if ($uri->password) {
         $uri = $uri->clone;

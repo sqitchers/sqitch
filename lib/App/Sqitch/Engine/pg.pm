@@ -31,13 +31,15 @@ has client => (
     },
 );
 
-has destination => (
-    is       => 'ro',
-    isa      => 'Str',
-    lazy     => 1,
-    required => 1,
+has '+destination' => (
     default  => sub {
         my $self = shift;
+
+        # Just use the target unless it looks like a URI.
+        my $target = $self->target;
+        return $target if $target !~ /:/;
+
+        # Use the URI sans password, and with the database name added.
         my $uri = $self->uri->clone;
         $uri->password(undef) if $uri->password;
         $uri->dbname(

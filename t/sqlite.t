@@ -25,7 +25,7 @@ BEGIN {
 }
 
 is_deeply [$CLASS->config_vars], [
-    database => 'any',
+    target   => 'any',
     registry => 'any',
     client   => 'any',
 ], 'config_vars should return three vars';
@@ -36,10 +36,12 @@ isa_ok my $sqlite = $CLASS->new(sqitch => $sqitch), $CLASS;
 is $sqlite->client, 'sqlite3' . ($^O eq 'MSWin32' ? '.exe' : ''),
     'client should default to sqlite3';
 is $sqlite->uri->dbname, file('foo.db'), 'dbname should be filled in';
+is $sqlite->target, $sqlite->uri->as_string,
+    'Target should be uri stringified';
 is $sqlite->destination, $sqlite->uri->as_string,
     'Destination should be uri stringified';
-is $sqlite->reg_destination, $sqlite->registry_uri->as_string,
-    'Meta destination should be registry_uri stringified';
+is $sqlite->registry_destination, $sqlite->registry_uri->as_string,
+    'Meta target should be registry_uri stringified';
 
 # Make sure the password is suppressed in the destination, should anyone be
 # silly enough to include on in an SQLite URI.
@@ -47,10 +49,11 @@ isa_ok $sqlite = $CLASS->new(
     sqitch => $sqitch,
     uri => URI->new('db:sqlite://foo:bar@localhost/my.db'),
 ), $CLASS;
+is $sqlite->target, $sqlite->uri->as_string, 'Target should be the URI stringified';
 like $sqlite->destination, qr{^db:sqlite://foo:?\@localhost/foo.db$},
     'Destination should exclude password';
-like $sqlite->reg_destination, qr{^db:sqlite://foo:?\@localhost/sqitch\.db$},
-    'Destination should also exclude password';
+like $sqlite->registry_destination, qr{^db:sqlite://foo:?\@localhost/sqitch\.db$},
+    'Registry destination should also exclude password';
 
 # Pretend for now that we always have a valid SQLite.
 my $mock_sqitch = Test::MockModule->new(ref $sqitch);
@@ -127,12 +130,14 @@ is $sqlite->client, '/path/to/sqlite3',
     'client should fall back on config';
 is $sqlite->uri->as_string, 'db:sqlite:/path/to/sqlite.db',
     'dbname should fall back on config';
+is $sqlite->target, $sqlite->uri->as_string,
+    'Target should be configured uri stringified';
 is $sqlite->destination, $sqlite->uri->as_string,
     'Destination should be configured uri stringified';
 is $sqlite->registry_uri->as_string, 'db:sqlite:/path/to/meta.db',
     'registry_uri should fall back on config';
-is $sqlite->reg_destination, $sqlite->registry_uri->as_string,
-    'Meta destination should be configured registry_uri stringified';
+is $sqlite->registry_destination, $sqlite->registry_uri->as_string,
+    'Meta target should be configured registry_uri stringified';
 
 # Try a registry with an extension and a dbname without.
 %config = (
@@ -143,12 +148,14 @@ ok $sqlite = $CLASS->new(sqitch => $sqitch),
     'Create another sqlite';
 is $sqlite->uri->as_string, 'db:sqlite:/path/to/sqitch',
     'dbname should fall back on config with no extension';
+is $sqlite->target, $sqlite->uri->as_string,
+    'Target should be configured uri stringified';
 is $sqlite->destination, $sqlite->uri->as_string,
     'Destination should be configured uri stringified';
 is $sqlite->registry_uri->as_string, 'db:sqlite:/path/to/meta.db',
     'registry_uri should fall back on config wth extension';
-is $sqlite->reg_destination, $sqlite->registry_uri->as_string,
-    'Meta destination should be configured registry_uri stringified';
+is $sqlite->registry_destination, $sqlite->registry_uri->as_string,
+    'Meta target should be configured registry_uri stringified';
 
 # Also try a registry with no extension and a dbname with.
 %config = (
@@ -159,12 +166,14 @@ ok $sqlite = $CLASS->new(sqitch => $sqitch),
     'Create another sqlite';
 is $sqlite->uri->as_string, 'db:sqlite:/path/to/sqitch.db',
     'dbname should fall back on config with no extension';
+is $sqlite->target, $sqlite->uri->as_string,
+    'Target should be configured uri stringified';
 is $sqlite->destination, $sqlite->uri->as_string,
     'Destination should be configured uri stringified';
 is $sqlite->registry_uri->as_string, 'db:sqlite:/path/to/registry.db',
     'registry_uri should fall back on config wth extension';
-is $sqlite->reg_destination, $sqlite->registry_uri->as_string,
-    'Meta destination should be configured registry_uri stringified';
+is $sqlite->registry_destination, $sqlite->registry_uri->as_string,
+    'Meta target should be configured registry_uri stringified';
 
 # Try a registry with an absolute path.
 %config = (
@@ -175,12 +184,14 @@ ok $sqlite = $CLASS->new(sqitch => $sqitch),
     'Create another sqlite';
 is $sqlite->uri->as_string, 'db:sqlite:/path/to/sqitch.db',
     'dbname should fall back on config with no extension';
+is $sqlite->target, $sqlite->uri->as_string,
+    'Target should be configured uri stringified';
 is $sqlite->destination, $sqlite->uri->as_string,
     'Destination should be configured uri stringified';
 is $sqlite->registry_uri->as_string, 'db:sqlite:/some/other/path.db',
     'registry_uri should fall back on config wth extension';
-is $sqlite->reg_destination, $sqlite->registry_uri->as_string,
-    'Meta destination should be configured registry_uri stringified';
+is $sqlite->registry_destination, $sqlite->registry_uri->as_string,
+    'Meta target should be configured registry_uri stringified';
 
 ##############################################################################
 # Now make sure that Sqitch options override configurations.
@@ -190,6 +201,8 @@ ok $sqlite = $CLASS->new(sqitch => $sqitch),
 is $sqlite->client, 'foo/bar', 'The client should be grabbed from sqitch';
 is $sqlite->uri->as_string, 'db:sqlite:' . file('my.db'),
     'The uri should be grabbed from sqitch';
+is $sqlite->target, $sqlite->uri->as_string,
+    'Target should be optioned uri stringified';
 is $sqlite->destination, $sqlite->uri->as_string,
     'Destination should be optioned uri stringified';
 is_deeply [$sqlite->sqlite3],

@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 590;
+use Test::More tests => 596;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -200,7 +200,7 @@ is +App::Sqitch::Engine::whu->name, 'whu', 'Subclass class name should be "whu"'
 # Test config_vars.
 can_ok $CLASS, 'config_vars';
 is_deeply [App::Sqitch::Engine->config_vars], [
-    database => 'any',
+    target   => 'any',
     registry => 'any',
     client   => 'any',
 ], 'Should have database and client in engine base class';
@@ -219,14 +219,38 @@ $engine->clear_variables;
 is_deeply [$engine->variables], [], 'Should again have no variables';
 
 ##############################################################################
+# Test target.
+ok $engine = $CLASS->load({
+    sqitch => $sqitch,
+    engine => 'whu',
+    target => 'foo',
+}), 'Load engine';
+is $engine->target, 'foo', 'Target should be as passed';
+
+ok $engine = $CLASS->load({
+    sqitch => $sqitch,
+    engine => 'whu',
+}), 'Load engine';
+is $engine->target, 'db:whu:mydb', 'Target should be URI string';
+
+# Make sure password is removed from the target.
+ok $engine = $CLASS->load({
+    sqitch => $sqitch,
+    engine => 'whu',
+    uri => URI->new('db:whu://foo:bar@localhost/blah'),
+}), 'Load engine with URI with password';
+is $engine->target, $engine->uri->as_string,
+    'Target should be the URI stringified';
+
+##############################################################################
 # Test destination.
 ok $engine = $CLASS->load({
     sqitch => $sqitch,
     engine => 'whu',
 }), 'Load engine';
 is $engine->destination, 'db:whu:mydb', 'Destination should be URI string';
-is $engine->reg_destination, $engine->destination,
-    'Meta destination should be the same as destination';
+is $engine->registry_destination, $engine->destination,
+    'Rgistry destination should be the same as destination';
 
 # Make sure password is removed from the destination.
 ok $engine = $CLASS->load({
@@ -236,7 +260,7 @@ ok $engine = $CLASS->load({
 }), 'Load engine with URI with password';
 like $engine->destination, qr{^db:whu://foo:?\@localhost/mydb$},
     'Destination should not include password';
-is $engine->reg_destination, $engine->destination,
+is $engine->registry_destination, $engine->destination,
     'Meta destination should again be the same as destination';
 
 ##############################################################################
@@ -761,7 +785,7 @@ is_deeply $engine->seen, [
 is $deploy_meth, '_deploy_all', 'Should have called _deploy_all()';
 is_deeply +MockOutput->get_info, [
     [__x 'Adding registry tables to {destination}',
-        destination => $engine->reg_destination,
+        destination => $engine->registry_destination,
     ],
     [__x 'Deploying changes through {change} to {destination}',
         destination =>  $engine->destination,
@@ -795,7 +819,7 @@ for my $mode (qw(change tag all)) {
     is_deeply +MockOutput->get_info, [
         [
             __x 'Adding registry tables to {destination}',
-            destination => $engine->reg_destination,
+            destination => $engine->registry_destination,
         ],
         [
             __x 'Deploying changes through {change} to {destination}',
@@ -831,7 +855,7 @@ is_deeply $engine->seen, [
 is $deploy_meth, '_deploy_by_tag', 'Should have called _deploy_by_tag()';
 is_deeply +MockOutput->get_info, [
     [__x 'Deploying changes through {change} to {destination}',
-        destination =>  $engine->reg_destination,
+        destination =>  $engine->registry_destination,
         change      => $plan->get('@alpha')->format_name_with_tags,
     ],
     [__ 'ok'],
