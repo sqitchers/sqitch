@@ -1085,7 +1085,7 @@ sub registry_lookup {
 }
 
 sub read_registry {
-    my ($key, $path) = @_;
+    my ($self, $key, $path) = @_;
 
     my (@path, $value);
     try {

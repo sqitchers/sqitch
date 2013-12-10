@@ -56,7 +56,7 @@ like( $fb->client, qr/isql|fbsql|isql-fb/,
     if $have_fb_driver;
 
 is $fb->db_name, 'foo.fdb', 'db_name should be required';
-is $fb->sqitch_db, './sqitch-foo.fdb', 'sqitch_db default should be "sqitch-foo.fdb"';
+is $fb->sqitch_db, catfile('.','sqitch-foo.fdb'), 'sqitch_db default should be "sqitch-foo.fdb"';
 for my $attr (qw(username password port)) {
     is $fb->$attr, undef, "$attr default should be undef";
 }
@@ -104,7 +104,7 @@ my $mock_config = Test::MockModule->new('App::Sqitch::Config');
 $mock_config->mock(get => sub { $config{ $_[2] } });
 ok $fb = $CLASS->new(sqitch => $sqitch), 'Create another firebird';
 
-is $fb->client, '/path/to/isql', 'client should be as configured';
+is $fb->client, catfile(qw{/path to isql}), 'client should be as configured';
 is $fb->username, 'freddy', 'username should be as configured';
 is $fb->password, 's3cr3t', 'password should be as configured';
 is $fb->db_name, 'widgets', 'db_name should be as configured';
@@ -113,10 +113,10 @@ is $fb->meta_destination, 'meta', 'meta_destination should be as configured';
 is $fb->host, 'db.example.com', 'host should be as configured';
 is $fb->port, 1234, 'port should be as configured';
 is $fb->sqitch_db, 'meta', 'sqitch_db should be as configured';
-is_deeply [$fb->isql], [qw(
-    /path/to/isql
-    -user freddy
-    -password s3cr3t
+is_deeply [$fb->isql], [(
+    catfile(qw{/path to isql}),
+    '-user', 'freddy',
+    '-password', 's3cr3t',
 ), @std_opts, 'db.example.com:1234:' . $fb->db_name], 'firebird command should be configured';
 
 ##############################################################################
@@ -132,7 +132,7 @@ $sqitch = App::Sqitch->new(
 ok $fb = $CLASS->new(sqitch => $sqitch),
     'Create a firebird with sqitch with options';
 
-is $fb->client, '/some/other/isql', 'client should be as optioned';
+is $fb->client, catfile(qw{/some other isql}), 'client should be as optioned';
 is $fb->username, 'anna', 'username should be as optioned';
 is $fb->password, 's3cr3t', 'password should still be as configured';
 is $fb->db_name, 'widgets_dev', 'db_name should be as optioned';
@@ -141,10 +141,10 @@ is $fb->meta_destination, 'meta', 'meta_destination should still be configured';
 is $fb->host, 'foo.com', 'host should be as optioned';
 is $fb->port, 98760, 'port should be as optioned';
 is $fb->sqitch_db, 'meta', 'sqitch_db should still be as configured';
-is_deeply [$fb->isql], [qw(
-    /some/other/isql
-    -user     anna
-    -password s3cr3t
+is_deeply [$fb->isql], [(
+    catfile(qw{/some other isql}),
+    '-user', 'anna',
+    '-password', 's3cr3t',
 ), @std_opts, 'foo.com:98760:' . $fb->db_name], 'isql command should be as optioned';
 
 ##############################################################################
