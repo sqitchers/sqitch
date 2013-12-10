@@ -27,22 +27,6 @@ BEGIN {
     $ENV{SQLPATH} = '';
 }
 
-has client => (
-    is       => 'ro',
-    isa      => 'Str',
-    lazy     => 1,
-    required => 1,
-    default  => sub {
-        my $sqitch = shift->sqitch;
-        $sqitch->db_client
-            || $sqitch->config->get( key => 'core.oracle.client' )
-            || file(
-                ($ENV{ORACLE_HOME} || ()),
-                'sqlplus' . ( $^O eq 'MSWin32' ? '.exe' : '' )
-            )->stringify;
-    },
-);
-
 has '+destination' => (
     default  => sub {
         my $self = shift;
@@ -88,6 +72,9 @@ has sqlplus => (
 sub key    { 'oracle' }
 sub name   { 'Oracle' }
 sub driver { 'DBD::Oracle 1.23' }
+sub default_client {
+    file( ($ENV{ORACLE_HOME} || ()), 'sqlplus' )->stringify
+}
 
 has dbh => (
     is      => 'rw',

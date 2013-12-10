@@ -19,19 +19,6 @@ with 'App::Sqitch::Role::DBIEngine';
 
 our $VERSION = '0.990';
 
-has client => (
-    is       => 'ro',
-    isa      => 'Str',
-    lazy     => 1,
-    required => 1,
-    default  => sub {
-        my $sqitch = shift->sqitch;
-        $sqitch->db_client
-            || $sqitch->config->get( key => 'core.mysql.client' )
-            || 'mysql' . ( $^O eq 'MSWin32' ? '.exe' : '' );
-    },
-);
-
 has registry_uri => (
     is       => 'ro',
     isa      => 'URI::db',
@@ -159,6 +146,7 @@ has mysql => (
 sub key    { 'mysql' }
 sub name   { 'MySQL' }
 sub driver { 'DBD::mysql 4.018' }
+sub default_client { 'mysql' }
 
 sub _char2ts {
     $_[1]->set_time_zone('UTC')->iso8601;

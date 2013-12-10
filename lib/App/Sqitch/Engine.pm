@@ -19,6 +19,21 @@ has sqitch => (
     required => 1,
 );
 
+has client => (
+    is       => 'ro',
+    isa      => 'Str',
+    lazy     => 1,
+    required => 1,
+    default  => sub {
+        my $self = shift;
+        my $sqitch = $self->sqitch;
+        my $engine = $self->key;
+        $sqitch->db_client
+            || $sqitch->config->get( key => "core.$engine.client" )
+            || $self->default_client . ( $^O eq 'MSWin32' ? '.exe' : '' );
+    },
+);
+
 has target => (
     is      => 'ro',
     isa     => 'Str',

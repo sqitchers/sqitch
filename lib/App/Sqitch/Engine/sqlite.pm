@@ -18,19 +18,6 @@ with 'App::Sqitch::Role::DBIEngine';
 
 our $VERSION = '0.990';
 
-has client => (
-    is       => 'ro',
-    isa      => 'Str',
-    lazy     => 1,
-    required => 1,
-    default  => sub {
-        my $sqitch = shift->sqitch;
-        $sqitch->db_client
-            || $sqitch->config->get( key => 'core.sqlite.client' )
-            || 'sqlite3' . ( $^O eq 'MSWin32' ? '.exe' : '' );
-    },
-);
-
 sub BUILD {
     my $self = shift;
     my $uri  = $self->uri;
@@ -96,6 +83,7 @@ sub registry_destination {
 sub key    { 'sqlite' }
 sub name   { 'SQLite' }
 sub driver { 'DBD::SQLite 1.37' }
+sub default_client { 'sqlite3' }
 
 has dbh => (
     is      => 'rw',

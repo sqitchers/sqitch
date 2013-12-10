@@ -18,19 +18,6 @@ with 'App::Sqitch::Role::DBIEngine';
 
 our $VERSION = '0.990';
 
-has client => (
-    is       => 'ro',
-    isa      => 'Str',
-    lazy     => 1,
-    required => 1,
-    default  => sub {
-        my $sqitch = shift->sqitch;
-        $sqitch->db_client
-            || $sqitch->config->get( key => 'core.pg.client' )
-            || 'psql' . ( $^O eq 'MSWin32' ? '.exe' : '' );
-    },
-);
-
 has '+destination' => (
     default  => sub {
         my $self = shift;
@@ -93,6 +80,7 @@ has psql => (
 sub key    { 'pg' }
 sub name   { 'PostgreSQL' }
 sub driver { 'DBD::Pg 2.0' }
+sub default_client { 'psql' }
 
 has dbh => (
     is      => 'rw',
