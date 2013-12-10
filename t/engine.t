@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 596;
+use Test::More tests => 598;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -241,6 +241,17 @@ ok $engine = $CLASS->load({
 }), 'Load engine with URI with password';
 is $engine->target, $engine->uri->as_string,
     'Target should be the URI stringified';
+
+# Try a target in the configuration.
+MOCKCONFIG: {
+    local $ENV{SQITCH_CONFIG} = file qw(t local.conf);
+    ok my $engine = $CLASS->load({
+        sqitch => App::Sqitch->new( _engine => 'sqlite' ),
+        engine => 'sqlite',
+        uri    => URI->new('db:sqlite:/var/db/widgets.db'),
+    }), 'Load engine';
+    is $engine->target, 'devdb', 'Target should be read from config';
+}
 
 ##############################################################################
 # Test destination.

@@ -452,6 +452,7 @@ core.pg.registry=meta
 core.pg.username=postgres
 core.sqlite.client=/opt/local/bin/sqlite3
 core.sqlite.registry=meta
+core.sqlite.target=devdb
 core.top_dir=migrations
 core.uri=https://github.com/theory/sqitch/
 revert.count=2
@@ -526,6 +527,7 @@ user.name=Michael Stonebraker
     is_deeply \@emit, [[
         "core.engine=pg
 core.pg.db_name=widgets
+core.sqlite.target=devdb
 "
     ]],  'Should only have emitted the local config list';
     @emit = ();

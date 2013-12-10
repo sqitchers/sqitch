@@ -24,7 +24,10 @@ has target => (
     isa     => 'Str',
     lazy    => 1,
     default => sub {
-        shift->uri->as_string;
+        my $self = shift;
+        my $engine = $self->key;
+        return $self->sqitch->config->get( key => "core.$engine.target")
+            || $self->uri->as_string;
     }
 );
 
@@ -120,8 +123,13 @@ has uri => ( is => 'ro', isa => 'URI::db', lazy => 1, default => sub {
     my $engine = $self->key;
     my $uri;
 
-    if ( my $db = $config->get( key => "core.$engine.target" ) ) {
-        $uri = $sqitch->config_for_target_strict($db)->{uri};
+    # Get the target, but only if it has been passed, not the default,
+    # because the default may call back into uri for an infinite loop!
+    my $target = $self->meta->find_attribute_by_name('target')->has_value($self)
+        ? $self->target : $config->get( key => "core.$engine.target" );
+
+    if ($target) {
+        $uri = $sqitch->config_for_target_strict($target)->{uri};
     } else {
         $uri = URI::db->new("db:$engine:");
 
