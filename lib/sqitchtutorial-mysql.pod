@@ -187,9 +187,9 @@ Ideally, only Sqitch data will be stored in this database, so it probably makes
 the most sense to create a superuser named C<sqitch> or something similar and
 use it to deploy changes.
 
-Next, Sqitch deploys changes to the destination database, which we specified
-on the command-line. We only have one so far; the C<+> reinforces the idea
-that the change is being I<added> to the database.
+Next, Sqitch deploys changes to the target database, which we specified on the
+command-line. We only have one so far; the C<+> reinforces the idea that the
+change is being I<added> to the database.
 
 With this change deployed, if you connect to the database, you'll be able to
 see the user:

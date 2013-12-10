@@ -180,22 +180,22 @@ Now we can try deploying this change:
 First Sqitch created the registry database and tables used to track database
 changes. The registry is separate from the database to which the C<users>
 change was deployed; by default, its name is C<sqitch.$suffix>, where
-C<$suffix> is the same as the suffix on the destination database, if any. It
-lives in the same directory as the destination database. This will be useful
-if you use the SQLite L<C<ATTACHDATABASE>|http://www.sqlite.org/lang_attach.html>
-command to manage multiple database files in a single project. In that case,
-you will want to use the same file for all the databases. Keep them all in the
-same directory with the same suffix and you get just that with the default
-sqitch database.
+C<$suffix> is the same as the suffix on the target database, if any. It lives
+in the same directory as the target database. This will be useful if you use
+the SQLite L<C<ATTACHDATABASE>|http://www.sqlite.org/lang_attach.html> command
+to manage multiple database files in a single project. In that case, you will
+want to use the same file for all the databases. Keep them all in the same
+directory with the same suffix and you get just that with the default sqitch
+database.
 
 If you'd like it to have a different name for the registry database, use
 C<sqitch config core.sqlite.registry $name> to configure it. This will be
 useful if you don't want to use the same registry database to manage multiple
 databases, or if you do, but they live in different directories.
 
-Next, Sqitch deploys changes to the destination database, which we specified
-on the command-line. We only have one so far; the C<+> reinforces the idea
-that the change is being I<added> to the database.
+Next, Sqitch deploys changes to the target database, which we specified on the
+command-line. We only have one so far; the C<+> reinforces the idea that the
+change is being I<added> to the database.
 
 With this change deployed, if you connect to the database, you'll be able to
 see the schema:
