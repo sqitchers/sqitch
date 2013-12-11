@@ -28,8 +28,22 @@ has client => (
         my $self = shift;
         my $sqitch = $self->sqitch;
         my $engine = $self->key;
-        $sqitch->db_client
-            || $sqitch->config->get( key => "core.$engine.client" )
+        my $config = $self->sqitch->config;
+
+        # Command-line option takes precedence.
+        if (my $client = $sqitch->db_client) {
+            return $client;
+        }
+
+        # Next look for it in the target.
+        if (my $target = $self->target) {
+            if (my $cli = $config->get( key => "target.$target.client" )) {
+                return $cli;
+            }
+        }
+
+        # Otherwise look for the defaults.
+        return $config->get( key => "core.$engine.client" )
             || $self->default_client . ( $^O eq 'MSWin32' ? '.exe' : '' );
     },
 );
