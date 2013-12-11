@@ -145,6 +145,8 @@ has uri => ( is => 'ro', isa => 'URI::db', lazy => 1, default => sub {
 
     if ($target) {
         $uri = $sqitch->config_for_target_strict($target)->{uri};
+    } elsif ( my $config_uri = $config->get( key => "core.$engine.uri" ) ) {
+        $uri = URI::db->new($config_uri);
     } else {
         $uri = URI::db->new("db:$engine:");
 

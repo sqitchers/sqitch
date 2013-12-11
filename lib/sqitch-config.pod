@@ -498,9 +498,15 @@ Configuration properties for the PostgreSQL engine.
 Path to the C<psql> command-line client. Defaults to the first instance
 found in the path.
 
-=item C<core.pg.database>
+=item C<core.pg.target>
 
-PostgreSQL database key or connection URI.
+PostgreSQL database target, either the name of target managed by the
+L<C<target>|sqitch-target> command, or a database connection URI.
+
+=item C<core.pg.uri>
+
+PostgreSQL database connection URI. Usually looked up from the associated
+target, but a default may be specified here.
 
 =item C<core.pg.registry>
 
@@ -520,9 +526,15 @@ Configuration properties for the SQLite engine.
 Path to the C<sqlite3> command-line client. Defaults to the first instance
 found in the path.
 
-=item C<core.sqlite.database>
+=item C<core.sqlite.target>
 
-SQLite database key or connection URI.
+SQLite database target, either the name of target managed by the
+L<C<target>|sqitch-target> command, or a database connection URI.
+
+=item C<core.sqlite.uri>
+
+SQLite database connection URI. Usually looked up from the associated target,
+but a default may be specified here.
 
 =item C<core.sqlite.registry>
 
@@ -544,9 +556,15 @@ Configuration properties for the MySQL engine.
 Path to the C<mysql> command-line client. Defaults to the first instance
 found in the path.
 
-=item C<core.mysql.database>
+=item C<core.mysql.target>
 
-MySQL database key or connection URI.
+MySQL database target, either the name of target managed by the
+L<C<target>|sqitch-target> command, or a database connection URI.
+
+=item C<core.mysql.uri>
+
+MySQL database connection URI. Usually looked up from the associated target,
+but a default may be specified here.
 
 =item C<core.mysql.registry>
 
@@ -568,9 +586,15 @@ Configuration properties for the Oracle engine.
 Path to the C<sqlplus> command-line client. Defaults to the first instance
 found in C<$ORACLE_HOME> or the path.
 
-=item C<core.oracle.database>
+=item C<core.oracle.target>
 
-Oracle database key or connection URI.
+Oracle database target, either the name of target managed by the
+L<C<target>|sqitch-target> command, or a database connection URI.
+
+=item C<core.oracle.uri>
+
+Oracle database connection URI. Usually looked up from the associated target,
+but a default may be specified here.
 
 =item C<core.oracle.registry>
 

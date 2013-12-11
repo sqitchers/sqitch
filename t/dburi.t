@@ -47,12 +47,12 @@ isa_ok $uri = $engine->uri, 'URI::db', 'Pg URI';
 is $uri->as_string, 'db:pg:', 'Pg URI should be correct';
 
 ##############################################################################
-# Test with configuration key.
+# Test with configuration keys.
 CONFIG: {
     my $mock_config = Test::MockModule->new('App::Sqitch::Config');
     my @config_params;
-    my $config_ret = 'db:sqlite:hi';
-    $mock_config->mock(get => sub { shift; @config_params = @_; $config_ret });
+    my @config_ret = ('db:sqlite:hi');
+    $mock_config->mock(get => sub { shift; @config_params = @_; shift @config_ret });
     my $e = $sqitch->engine;
     is $e->uri, URI->new('db:sqlite:hi'),
         'URI should be the default for the engine';
@@ -64,13 +64,21 @@ CONFIG: {
     my @sqitch_params;
     my $sqitch_ret = { uri => URI::db->new('db:pg:yo'), target => 'db:pg:yo' };
     $mock_sqitch->mock(config_for_target_strict => sub { shift; @sqitch_params = @_; $sqitch_ret });
-    $config_ret = 'yo';
+    @config_ret = ('yo');
 
     $e = $sqitch->engine;
     is $e->uri, $sqitch_ret->{uri}, 'URI should be from the target lookup';
     is_deeply \@config_params, [key => 'core.pg.target'],
         'Should have asked for the Pg default target again';
     is_deeply \@sqitch_params, ['yo'], 'Should have looked up the "yo" database';
+
+    # Test with uri configuration key.
+    @config_ret = (undef, 'db:pg:');
+    $e = $sqitch->engine;
+    is $e->uri, URI->new('db:pg:'),
+        'URI should get the engine-specific config key';
+    is_deeply \@config_params, [key => 'core.pg.uri'],
+        'Should have asked for the Pg default uri';
 }
 
 ##############################################################################
