@@ -575,19 +575,19 @@ is $@->message, __x(
 ##############################################################################
 # Test execute().
 my $emock = Test::MockModule->new('App::Sqitch::Engine::sqlite');
-$emock->mock(target => 'flipr');
+$emock->mock(destination => 'flipr');
 
-# First test for uninitialized TARGET.
+# First test for uninitialized DB.
 my $init = 0;
 $emock->mock(initialized => sub { $init });
 throws_ok { $log->execute } 'App::Sqitch::X',
-    'Should get exception for unititialied target';
-is $@->ident, 'log', 'Uninit target error ident should be "log"';
-is $@->exitval, 1, 'Uninit target exit val should be 1';
+    'Should get exception for unititialied db';
+is $@->ident, 'log', 'Uninit db error ident should be "log"';
+is $@->exitval, 1, 'Uninit db exit val should be 1';
 is $@->message, __x(
-    'Target {target} has not been initilized for Sqitch',
-    target => 'flipr',
-), 'Uninit target error message should be correct';
+    'Database {db} has not been initilized for Sqitch',
+    db => 'db:sqlite:',
+), 'Uninit db error message should be correct';
 
 # Next, test for no events.
 $init = 1;
@@ -604,8 +604,8 @@ throws_ok { $log->execute } 'App::Sqitch::X',
 is $@->ident, 'log', 'no events error ident should be "log"';
 is $@->exitval, 1, 'no events exit val should be 1';
 is $@->message, __x(
-    'No events logged to {target}',
-    target => 'flipr',
+    'No events logged to {db}',
+    db => 'db:sqlite:',
 ), 'no events error message should be correct';
 is_deeply $search_args, [limit => 1],
     'Search should have been limited to one row';
@@ -624,7 +624,7 @@ is_deeply $search_args, [
 ], 'The proper args should have been passed to search_events';
 
 is_deeply +MockOutput->get_page, [
-    [__x 'On target {target}', target => 'flipr'],
+    [__x 'On database {db}', db => 'flipr'],
     [ $log->formatter->format( $log->format, $event ) ],
 ], 'The change should have been paged';
 
@@ -663,7 +663,7 @@ is_deeply $search_args, [
 ], 'All params should have been passed to search_events';
 
 is_deeply +MockOutput->get_page, [
-    [__x 'On target {target}', target => 'flipr'],
+    [__x 'On database {db}', db => 'flipr'],
     [ $log->formatter->format( $log->format, $event ) ],
     [ $log->formatter->format( $log->format, $event2 ) ],
 ], 'Both changes should have been paged';

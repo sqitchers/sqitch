@@ -193,8 +193,8 @@ sub execute {
         ident   => 'log',
         exitval => 1,
         message => __x(
-            'Target {target} has not been initilized for Sqitch',
-            target => $engine->target,
+            'Database {db} has not been initilized for Sqitch',
+            db => $engine->registry_destination,
         ),
     } unless $engine->initialized;
 
@@ -204,8 +204,8 @@ sub execute {
         ident   => 'log',
         exitval => 1,
         message => __x(
-            'No events logged to {target}',
-            target => $engine->target,
+            'No events logged to {db}',
+            db => $engine->registry_destination,
         ),
     } unless $iter->();
 
@@ -223,7 +223,7 @@ sub execute {
     # Send the results.
     my $formatter = $self->formatter;
     my $format    = $self->format;
-    $self->page( __x 'On target {target}', target => $engine->target );
+    $self->page( __x 'On database {db}', db => $engine->destination );
     while ( my $change = $iter->() ) {
         $self->page( $formatter->format( $format, $change ) );
     }

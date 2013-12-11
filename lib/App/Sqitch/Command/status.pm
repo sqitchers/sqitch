@@ -91,7 +91,7 @@ sub execute {
     my $engine = $self->engine_for_target($self->target // shift);
 
     # Where are we?
-    $self->comment( __x 'On database {db}', db => $engine->target );
+    $self->comment( __x 'On database {db}', db => $engine->destination );
 
     # Exit with status 1 on no state, probably not expected.
     my $state = try {
