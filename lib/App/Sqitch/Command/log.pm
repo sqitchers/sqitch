@@ -204,7 +204,7 @@ sub execute {
         ident   => 'log',
         exitval => 1,
         message => __x(
-            'No events logged to {db}',
+            'No events logged for {db}',
             db => $engine->registry_destination,
         ),
     } unless $iter->();

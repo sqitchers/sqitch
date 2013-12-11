@@ -604,7 +604,7 @@ throws_ok { $log->execute } 'App::Sqitch::X',
 is $@->ident, 'log', 'no events error ident should be "log"';
 is $@->exitval, 1, 'no events exit val should be 1';
 is $@->message, __x(
-    'No events logged to {db}',
+    'No events logged for {db}',
     db => 'db:sqlite:',
 ), 'no events error message should be correct';
 is_deeply $search_args, [limit => 1],
