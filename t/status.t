@@ -545,5 +545,7 @@ $engine_mocker->mock( current_state => sub { die 'No Sqitch tables' } );
 throws_ok { $status->execute } 'App::Sqitch::X',
     'Should get an error for uninitialized db';
 is $@->ident, 'status', 'Uninitialized db error ident should be "status"';
-is $@->message, __ 'Database not initialized for Sqitch',
-    'Uninitialized db error message should be correct';
+is $@->message, __x(
+    'Database {db} has not been initialized for Sqitch',
+    db => 'db:sqlite:sqitch.db',
+), 'Uninitialized db error message should be correct';

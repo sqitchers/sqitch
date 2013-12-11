@@ -193,7 +193,7 @@ sub execute {
         ident   => 'log',
         exitval => 1,
         message => __x(
-            'Database {db} has not been initilized for Sqitch',
+            'Database {db} has not been initialized for Sqitch',
             db => $engine->registry_destination,
         ),
     } unless $engine->initialized;

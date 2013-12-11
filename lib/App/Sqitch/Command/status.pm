@@ -99,7 +99,10 @@ sub execute {
     } catch {
         # Hrm. Maybe not initialized?
         die $_ if $engine->initialized;
-        hurl status => __ 'Database not initialized for Sqitch';
+        hurl status => __x(
+            'Database {db} has not been initialized for Sqitch',
+            db => $engine->registry_destination
+        );
     };
 
     hurl {

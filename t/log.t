@@ -585,7 +585,7 @@ throws_ok { $log->execute } 'App::Sqitch::X',
 is $@->ident, 'log', 'Uninit db error ident should be "log"';
 is $@->exitval, 1, 'Uninit db exit val should be 1';
 is $@->message, __x(
-    'Database {db} has not been initilized for Sqitch',
+    'Database {db} has not been initialized for Sqitch',
     db => 'db:sqlite:',
 ), 'Uninit db error message should be correct';
 
