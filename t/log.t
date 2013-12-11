@@ -605,7 +605,7 @@ is $@->ident, 'log', 'no events error ident should be "log"';
 is $@->exitval, 1, 'no events exit val should be 1';
 is $@->message, __x(
     'No events logged for {db}',
-    db => 'db:sqlite:',
+    db => 'flipr',
 ), 'no events error message should be correct';
 is_deeply $search_args, [limit => 1],
     'Search should have been limited to one row';
