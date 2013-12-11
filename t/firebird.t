@@ -22,6 +22,7 @@ my $user;
 my $pass;
 my $tmpdir;
 my $have_fb_driver = 1; # assume DBD::Firebird is installed and so is Firebird
+my $live_testing   = 0;
 
 # Is DBD::Firebird realy installed?
 try { require DBD::Firebird; } catch { $have_fb_driver = 0; };
@@ -223,7 +224,7 @@ is $dt->time_zone->name, 'UTC', 'DateTime TZ should be set';
 # Can we do live tests?
 
 END {
-    return unless $pass;
+    return unless $live_testing;
     return unless $have_fb_driver;
 
     foreach my $dbname (qw{__sqitchtest__ __sqitchtest __metasqitch}) {
@@ -302,6 +303,7 @@ DBIEngineTest->run(
         return 0 unless $cmd_echo =~ m{Firebird}ims;
         # Skip if no DBD::Firebird.
         return 0 unless $have_fb_driver;
+        $live_testing = 1;
     },
     engine_err_regex  => qr/\QDynamic SQL Error\E/xms,
     init_error        => __x(
