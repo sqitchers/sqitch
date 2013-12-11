@@ -13,6 +13,7 @@ use File::Which ();
 use File::Basename;
 use File::Spec::Functions;
 use Time::Local;
+use Time::HiRes qw(sleep);
 use Mouse;
 use namespace::autoclean;
 
@@ -242,7 +243,8 @@ sub _ts2char_format {
 
 sub _ts_default {
     my $offset = shift->tz_offset;
-    return qq(DATEADD($offset HOUR TO CURRENT_TIMESTAMP));
+    sleep 0.01; # give Firebird a little time to tick microseconds.
+    return qq(DATEADD($offset HOUR TO CURRENT_TIMESTAMP(3)));
 }
 
 sub is_deployed_change {
@@ -287,10 +289,14 @@ sub initialize {
     ) if $self->initialized;
 
     # Create the Sqitch database if it does not exist.
+
+    my $sqitch_db = join ':', grep {defined}
+        $self->host, $self->port, $self->sqitch_db;
+
     try {
         require DBD::Firebird;
         DBD::Firebird->create_database(
-            {   db_path       => $self->sqitch_db,
+            {   db_path       => $sqitch_db,
                 user          => $self->username,
                 password      => $self->password,
                 character_set => 'UTF8',
@@ -302,11 +308,13 @@ sub initialize {
         hurl firebird => __ "DBD::Firebird failed to create test database: $_";
     };
 
+    #(my $db_path = $sqitch_db) =~ s{localhost:}{};
+
     # Load up our database. The database have to exist!
-    my @cmd  = $self->isql;
-    $cmd[-1] = join ':', grep { defined } $self->host, $self->port, $self->sqitch_db;
+    my @cmd = $self->isql;
+    $cmd[-1] = $sqitch_db;
     my $file = file(__FILE__)->dir->file('firebird.sql');
-    $self->sqitch->run( @cmd, '-input' => $file );
+    $self->sqitch->run( @cmd, '-input' => qq{"$file"} );
 }
 
 # Override to lock the Sqitch tables. This ensures that only one instance of
@@ -357,7 +365,7 @@ sub _regex_op { 'SIMILAR TO' }               # NOT good match for
 sub _limit_default { '18446744073709551615' }
 
 sub _listagg_format {
-    return q{LIST(ALL %s, ' ')}; # Firebird v2.1.4 minimum?
+    return q{LIST(ALL %s, ' ')}; # Firebird v2.1.4 minimum
 }
 
 sub _run {
@@ -498,7 +506,7 @@ sub register_project {
     } else {
         # Does the URI already exist?
 
-        # You have not provided a value for non-nullable parameter #0 ???
+        # Fix "You have not provided a value for non-nullable parameter #0"
         my $res;
         if (defined $uri) {
             $res = $dbh->selectcol_arrayref(
@@ -867,8 +875,6 @@ sub log_new_tags {
             $_->planner_name,
             $_->planner_email,
         ) } @tags;
-    # use Data::Printer; p @params;
-    #local $self->dbh->{TraceLevel} = "15";
     $self->dbh->do($sql, undef, @params );
     return $self;
 }
@@ -1060,11 +1066,15 @@ sub standard_fb_home_dirs {
 sub locate_firebird_ms {
     my $self = shift;
 
+    require Win32;
     my $fb_path = $self->registry_lookup();
     if ($fb_path) {
-        #my $fb_home_path = File::Spec->canonpath($fb_path);
         my $isql_path = file($fb_path, 'bin', 'isql.exe');
-        return $isql_path if $self->check_if_is_fb_isql($isql_path);
+        # A trick from ericp from ActiveState to fix:
+        # ""C:\Program Files\...\isql.exe"" failed to start:
+        # "The filename, directory name, or volume label syntax is incorrect"
+        return Win32::GetShortPathName($isql_path)
+            if $self->check_if_is_fb_isql($isql_path);
     }
 
     return;
