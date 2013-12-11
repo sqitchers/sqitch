@@ -312,23 +312,6 @@ App::Sqitch::Engine::mysql - Sqitch MySQL Engine
 
 App::Sqitch::Engine::mysql provides the MySQL storage engine for Sqitch.
 
-=head1 Interface
-
-=head2 Accessors
-
-=head3 C<client>
-
-Returns the path to the MySQL client. If C<--db-client> was passed to
-C<sqitch>, that's what will be returned. Otherwise, it uses the
-C<core.mysql.client> configuration value, or else defaults to C<mysql> (or
-C<mysql.exe> on Windows), which should work if it's in your path.
-
-=head3 C<registry>
-
-Name of the MySQL database to use for the Sqitch registry. Returns the value
-of the C<core.mysql.registry> configuration value, or else defaults to
-C<sqitch>.
-
 =head1 Author
 
 David E. Wheeler <david@justatheory.com>

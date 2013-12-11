@@ -30,13 +30,6 @@ sub BUILD {
     }
 }
 
-has '+registry' => (
-    default  => sub {
-        my $config = shift->sqitch->config;
-        return $config->get( key => 'core.sqlite.registry' ) || 'sqitch';
-    },
-);
-
 has registry_uri => (
     is       => 'ro',
     isa      => 'URI::db',

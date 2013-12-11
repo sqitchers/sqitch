@@ -49,14 +49,6 @@ has '+destination' => (
     },
 );
 
-has '+registry' => (
-    default  => sub {
-        my $config = shift->sqitch->config;
-        return $config->get( key => 'core.oracle.registry' )
-            || $config->get( key => 'core.oracle.sqitch_schema' ); # deprecated
-    },
-);
-
 has sqlplus => (
     is         => 'ro',
     isa        => 'ArrayRef',
@@ -72,6 +64,8 @@ has sqlplus => (
 sub key    { 'oracle' }
 sub name   { 'Oracle' }
 sub driver { 'DBD::Oracle 1.23' }
+sub default_registry { undef }
+
 sub default_client {
     file( ($ENV{ORACLE_HOME} || ()), 'sqlplus' )->stringify
 }

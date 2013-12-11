@@ -167,19 +167,28 @@ has uri => ( is => 'ro', isa => 'URI::db', lazy => 1, default => sub {
 
 has registry => (
     is       => 'ro',
-    isa      => 'Maybe[Str]',
+    isa      => 'Maybe[Str]', # May be undef in a subclass.
     lazy     => 1,
     required => 1,
     default  => sub {
         my $self   = shift;
         my $engine = $self->key;
         my $config = $self->sqitch->config;
+
+        if (my $target = $self->target) {
+            if (my $reg = $config->get( key => "target.$target.registry" )) {
+                return $reg;
+            }
+        }
+
         return $config->get( key => "core.$engine.registry" )
             || $config->get( key => "core.$engine.sqitch_schema" ) # deprecated
             || $config->get( key => "core.$engine.sqitch_db" )     # deprecated
-            || 'sqitch';
+            || $self->default_registry;
     },
 );
+
+sub default_registry { 'sqitch' }
 
 sub _merge_options_into {
     my ($self, $uri) = @_;
