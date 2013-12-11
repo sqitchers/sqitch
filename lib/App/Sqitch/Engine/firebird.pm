@@ -308,13 +308,12 @@ sub initialize {
         hurl firebird => __ "DBD::Firebird failed to create test database: $_";
     };
 
-    #(my $db_path = $sqitch_db) =~ s{localhost:}{};
-
     # Load up our database. The database have to exist!
-    my @cmd = $self->isql;
+    my @cmd  = $self->isql;
     $cmd[-1] = $sqitch_db;
-    my $file = file(__FILE__)->dir->file('firebird.sql');
-    $self->sqitch->run( @cmd, '-input' => qq{"$file"} );
+    my $file   = file(__FILE__)->dir->file('firebird.sql');
+    my $sqitch = $self->sqitch;
+    $sqitch->run( @cmd, '-input' => $sqitch->quote_shell($file) );
 }
 
 # Override to lock the Sqitch tables. This ensures that only one instance of
