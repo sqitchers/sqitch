@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 245;
+use Test::More tests => 248;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -716,6 +716,15 @@ is_deeply +MockOutput->get_page, [
     [ $log->formatter->format( $log->format, $event ) ],
     [ $log->formatter->format( $log->format, $event2 ) ],
 ], 'Both changes should have been paged';
+
+# Make sure we get a warning when both the option and the arg are specified.
+push @events => {}, $event;
+ok $log->execute('foo'), 'Execute log with attributes';
+is $db_arg, $log->target, 'Should have passed target to engine_for_target';
+is_deeply +MockOutput->get_warn, [[__x(
+    'Both the --target option and the target argument passed; using {option}',
+    option => $log->target,
+)]], 'Should have got warning for two targets';
 
 # Make sure we catch bad format codes.
 isa_ok $log = $CLASS->new(

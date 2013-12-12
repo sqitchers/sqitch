@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 107;
+use Test::More tests => 112;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -499,6 +499,16 @@ ok $status->execute, 'Execute with target attribute';
 $dest = 'db:sqlite:multi.db';
 $check_output->();
 is $db_arg, 'db:sqlite:', 'DB arg "db:sqlite:" should have been passed to engine_for_db';
+
+# Test with two targets.
+ok $status->execute('whatever'), 'Execute with target attribute and arg';
+$dest = 'db:sqlite:multi.db';
+$check_output->();
+is $db_arg, 'db:sqlite:', 'DB arg "db:sqlite:" should have been passed to engine_for_db';
+is_deeply +MockOutput->get_warn, [[__x(
+    'Both the --target option and the target argument passed; using {option}',
+    option => $status->target,
+)]], 'Should have got warning for two targets';
 
 # Test with unknown plan.
 for my $spec (

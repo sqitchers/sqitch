@@ -87,8 +87,15 @@ sub options {
 }
 
 sub execute {
-    my $self   = shift;
-    my $engine = $self->engine_for_target($self->target // shift);
+    my ( $self, $target ) = @_;
+
+    # Warn on multiple targets.
+    $self->warn(__x(
+        'Both the --target option and the target argument passed; using {option}',
+        option => $self->target,
+    )) if $target && $self->target;
+
+    my $engine = $self->engine_for_target($self->target // $target);
 
     # Where are we?
     $self->comment( __x 'On database {db}', db => $engine->destination );
