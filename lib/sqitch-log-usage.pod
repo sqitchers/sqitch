@@ -4,12 +4,13 @@ sqitch-log-usage - Sqitch log usage statement
 
 =head1 Usage
 
-  sqitch [<db-options>] log [<options>]
+  sqitch [<db-options>] log [<options>] [<database>]
 
 =head1 Options
 
 Search options:
 
+ -t --target                         database to which to connect
     --event                          type of event
     --change-pattern    --change     match regex against change names
     --committer-pattern --committer  match regex against committer names

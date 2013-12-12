@@ -4,7 +4,7 @@ sqitch-log - Show Sqitch change logs
 
 =head1 Synopsis
 
-  sqitch [options] log [<options>]
+  sqitch [options] log [<options>] [<database>]
 
 =head1 Description
 
@@ -14,9 +14,20 @@ of its earlier deployment is retained. The C<log> command is your key to
 accessing it. You can simply list all the events, search for events matching
 regular expressions, and limit the results.
 
+The C<< <database> >> parameter specifies the database to which to connect,
+and may also be specified as the C<--target> option. It can be either a URI or
+the name of a target in the configuration.
+
 =head1 Options
 
 =over
+
+=item C<--target>
+
+=item C<-t>
+
+The target database to which to connect. This option can be either a URI or
+the name of a target in the configuration.
 
 =item C<--event>
 

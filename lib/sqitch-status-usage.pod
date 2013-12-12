@@ -8,8 +8,8 @@ sqitch-status-usage - Sqitch status usage statement
 
 =head1 Options
 
-    -t --target <database>     database to which to connect
-       --project  <project>    project for which to retrieve the status
+    -t --target                database to which to connect
+       --project               project for which to retrieve the status
        --show-changes          include a list of deployed changes
        --show-tags             include a list of applied tags
-       --date-format <format>  display dates using the specified format
+       --date-format           display dates using the specified format

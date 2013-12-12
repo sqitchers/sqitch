@@ -483,7 +483,7 @@ $check_output->();
 is $db_arg, undef, 'No DB arg should have been passed to engine_for_db';
 
 # Test with a database argument.
-ok $status->execute('db:sqlite:'), 'Execute with db arg';
+ok $status->execute('db:sqlite:'), 'Execute with target arg';
 $dest = 'db:sqlite:multi.db';
 $check_output->();
 is $db_arg, 'db:sqlite:', 'DB arg "db:sqlite:" should have been passed to engine_for_db';
@@ -495,7 +495,7 @@ ok $status = App::Sqitch::Command->load({
     config  => $config,
     args    => ['--target', 'db:sqlite:'],
 }), 'Create status command with a target option';
-ok $status->execute, 'Execute with db attribute';
+ok $status->execute, 'Execute with target attribute';
 $dest = 'db:sqlite:multi.db';
 $check_output->();
 is $db_arg, 'db:sqlite:', 'DB arg "db:sqlite:" should have been passed to engine_for_db';
