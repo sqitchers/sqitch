@@ -1,6 +1,20 @@
 Revision history for Perl extension App::Sqitch
 
-0.984
+0.990
+     - Deprecated most engine-specific connection attributes configuration
+       variables and replaced them with one, `db_uri`. This is a URI that
+       conforms to a proposed standard for specifing database connections. Its
+       format is `db:{engine}://{user}:{password}@{host}:{port}/{dbname}`. All
+       parts are optional except for `db:{engine}:`, and all may be overridden
+       by the existing `--db-*` options. If no `db_uri` is passed or specified
+       in the configuration, a URI will be constructed from the deprecated
+       configuration options, which may be removed in a future version. Those
+       options are:
+       * `core.$engine.username`
+       * `core.$engine.password`
+       * `core.$engine.db_name`
+       * `core.$engine.host`
+       * `core.$engine.port`
 
 0.983  2013-11-21T21:50:12Z
      - Fixed "Use of uninitialized value" in the MySQL engine. Thanks to

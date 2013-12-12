@@ -8,17 +8,18 @@ use Try::Tiny;
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use List::Util qw(first max);
+use URI::db;
 use namespace::autoclean;
 
-our $VERSION = '0.984';
+our $VERSION = '0.990';
 
 has sqitch => (
     is       => 'ro',
     isa      => 'App::Sqitch',
     required => 1,
-    handles  => { destination => 'db_name' },
 );
 
+sub destination      { shift->db_uri->as_string }
 sub meta_destination { shift->destination }
 
 has start_at => (
@@ -70,16 +71,71 @@ has _variables => (
     },
 );
 
+# 1. Just accept if explicitly passed.
+# 2. If not passed
+#    a. Look for core.$engine.db_uri (and maybe core.db_uri?); or
+#    b. Construct from config.$engine.@parts (deprecated); or
+#    c. Default to "db:$engine"
+# 3. If command-line-options, override parts in URIs.
+
+has db_uri => ( is => 'rw', isa => 'URI::db', lazy => 1, default => sub {
+    my $self   = shift;
+    my $sqitch = $self->sqitch;
+    my $config = $sqitch->config;
+    my $engine = $self->sqitch->_engine;
+    my $uri;
+
+    if ( my $conf_uri = $config->get( key => "core.$engine.db_uri" ) ) {
+        # XXX Fall back on core.db_uri?
+        $uri = URI::db->new($conf_uri);
+    } else {
+        $uri = URI::db->new("db:$engine:");
+
+        # XXX Deprecated use of other config variables.
+        for my $spec (
+            [username      => 'user'],
+            [password      => 'password'],
+            [db_name       => 'dbname'],
+            [host          => 'host'],
+            [port          => 'port'],
+        ) {
+            my ($key, $meth) = @{ $spec };
+            my $val = $config->get( key => "core.$engine.$key" ) or next;
+            $uri->$meth($val);
+        }
+    }
+
+    # Override parts with command-line options (deprecate?)
+    if (my $host = $sqitch->db_host) {
+        $uri->host($host);
+    }
+
+    if (my $port = $sqitch->db_port) {
+        $uri->port($port);
+    }
+
+    if (my $user = $sqitch->db_username) {
+        $uri->user($user);
+    }
+
+    if (my $name = $sqitch->db_name) {
+        $uri->dbname($name);
+    }
+
+    return $uri;
+});
+
 sub load {
     my ( $class, $p ) = @_;
 
     # We should have a command.
-    hurl 'Missing "engine" parameter to load()' unless $p->{engine};
+    my $engine = delete $p->{engine}
+        or hurl 'Missing "engine" parameter to load()';
 
     # Load the engine class.
-    my $pkg = __PACKAGE__ . "::$p->{engine}";
+    my $pkg = __PACKAGE__ . "::$engine";
     eval "require $pkg" or hurl "Unable to load $pkg";
-    return $pkg->new( sqitch => $p->{sqitch} );
+    return $pkg->new( $p );
 }
 
 sub name {
@@ -90,7 +146,12 @@ sub name {
     return $class;
 }
 
-sub config_vars { return }
+sub config_vars {
+    return (
+        db_uri => 'any',
+        client => 'any'
+    );
+}
 
 sub deploy {
     my ( $self, $to, $mode ) = @_;
@@ -1045,19 +1106,24 @@ the data types. Valid data types include:
 Values ending in C<+> (a plus sign) may be specified multiple times. Example:
 
   (
-      client  => 'any',
-      db_name => 'any',
-      host    => 'any',
-      port    => 'int',
-      set     => 'any+',
+      client => 'any',
+      host   => 'any',
+      port   => 'int',
+      set    => 'any+',
   )
 
 In this example, the C<port> variable will be stored and retrieved as an
 integer. The C<set> variable may be of any type and may be included multiple
 times. All the other variables may be of any type.
 
-By default, App::Sqitch::Engine returns an empty list. Subclasses for
-supported engines will return more.
+By default, App::Sqitch::Engine returns:
+
+  (
+      db_uri => 'any',
+      client => 'any',
+  )
+
+Subclasses for supported engines will return more.
 
 =head2 Constructors
 
@@ -1123,15 +1189,22 @@ The name of the engine. Defaults to the last part of the package name, so as a
 rule you should not need to override it, since it is that string that Sqitch
 uses to find the engine class.
 
+=head3 C<db_uri>
+
+  my $uri = $engine->db_uri;
+
+A L<URI::db> object representing the destination database. Defaults to a URI
+constructed from the L<App::Sqitch> C<db_*> attributes.
+
 =head3 C<destination>
 
   my $destination = $engine->destination;
 
-Returns the name of the destination database. This will usually be the same as
-the configured database name or the value of the C<--db-name> option. However,
-subclasses may override it to provide other values, such as when neither of
-the above have values but there is nevertheless a default value assumed by the
-engine. Used internally to name the destination in status messages.
+Returns the name of the destination database. This will usually be the the
+string representation of the C<db_uri> attribute. However, subclasses may
+override it to provide other values, such as when a database name or host is
+implied but not physically represented in the URI. Used internally to name the
+destination in status messages.
 
 =head3 C<meta_destination>
 
@@ -1140,7 +1213,7 @@ engine. Used internally to name the destination in status messages.
 Returns the name of the metadata destination database. In other words, the
 database in which Sqitch's own data is stored. It will usually be the same as
 C<destination()>, but some engines, such as
-L<SQLite|App::Sqitch::Engine::sqlite>, may use a separate database. Uses
+L<SQLite|App::Sqitch::Engine::sqlite>, may use a separate database. Used
 internally to name the destination when the metadata tables are created.
 
 =head3 C<variables>

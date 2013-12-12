@@ -61,7 +61,7 @@ Let's have a look at F<sqitch.conf>:
 	# verify_dir = verify
 	# extension = sql
   # [core "sqlite"]
-	# db_name =
+	# db_uri = db:sqlite:
 	# client = sqlite3
 	# sqitch_db =
 
@@ -356,9 +356,10 @@ When we look at the status, the deployment will be there:
 
 I'm getting a little tired of always having to type
 C<--db-name flipr_test.db>, aren't you? We could use C<-d> instead, but even
-simpler it to just make that the default. Let's do that, shall we?
+simpler it to just make that the default. Sqitch uses URIs to determine how to
+connect to the database, so let's give it a default URI, shall we?
 
-  > sqitch config core.sqlite.db_name flipr_test.db
+  > sqitch config core.sqlite.db_uri db:sqlite:flipr_test.db
 
 Now we can leave it out, unless we need to deploy to another database. Which
 we will, eventually, but at least our examples will be simpler from here on

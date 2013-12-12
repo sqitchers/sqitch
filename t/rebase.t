@@ -253,10 +253,15 @@ isa_ok $rebase = $CLASS->new(
 ), $CLASS, 'Object with to and variables';
 
 @dep_args = @rev_args = ();
+my $mock_sqitch = Test::MockModule->new(ref $sqitch);
+my ($engine, $orig_emethod);
+$mock_sqitch->mock(engine => sub { $engine = shift->$orig_emethod(@_) });
+$orig_emethod = $mock_sqitch->original('engine');
+
 ok $rebase->execute, 'Execute again';
-ok $sqitch->engine->no_prompt, 'Engine should be no_prompt';
-ok $sqitch->engine->log_only, 'Engine should be log_only';
-ok $sqitch->engine->with_verify, 'Engine should verify';
+ok $engine->no_prompt, 'Engine should be no_prompt';
+ok $engine->log_only, 'Engine should be log_only';
+ok $engine->with_verify, 'Engine should verify';
 is_deeply \@dep_args, ['bar', 'tag'],
     '"bar", "tag", and 1 should be passed to the engine deploy';
 is_deeply \@rev_args, ['foo'], '"foo" and 1 should be passed to the engine revert';
