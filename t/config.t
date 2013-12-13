@@ -458,6 +458,7 @@ core.uri=https://github.com/theory/sqitch/
 revert.count=2
 revert.revision=1.1
 revert.to=gamma
+target.devdb.uri=db:sqlite:
 user.email=michael\@example.com
 user.name=Michael Stonebraker
 "
@@ -528,6 +529,7 @@ user.name=Michael Stonebraker
         "core.engine=pg
 core.pg.db_name=widgets
 core.sqlite.target=devdb
+target.devdb.uri=db:sqlite:
 "
     ]],  'Should only have emitted the local config list';
     @emit = ();
