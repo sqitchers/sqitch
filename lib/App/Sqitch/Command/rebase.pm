@@ -17,11 +17,6 @@ with 'App::Sqitch::Role::RevertDeployCommand';
 
 our $VERSION = '0.990';
 
-has target => (
-    is  => 'ro',
-    isa => 'Str',
-);
-
 has onto_change => (
     is  => 'ro',
     isa => 'Str',
@@ -34,7 +29,6 @@ has upto_change => (
 
 sub options {
     return qw(
-        target|t=s
         onto-change|onto=s
         upto-change|upto=s
         onto-target=s
@@ -48,7 +42,6 @@ sub configure {
     my $p = { map { $_ => $opt->{$_} } grep { exists $opt->{$_} } qw(
         onto_change
         upto_change
-        target
     ) };
 
     # Handle deprecated options.

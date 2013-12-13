@@ -15,6 +15,11 @@ requires 'configure';
 
 our $VERSION = '0.990';
 
+has target => (
+    is  => 'ro',
+    isa => 'Str',
+);
+
 has verify => (
     is       => 'ro',
     isa      => 'Bool',
@@ -74,6 +79,7 @@ has revert_variables => (
 around options => sub {
     my ($orig, $class) = @_;
     return ($class->$orig), qw(
+        target|t=s
         mode=s
         verify!
         set|s=s%
@@ -90,6 +96,7 @@ around configure => sub {
 
     my $params = $class->$orig($config, $opt);
     $params->{log_only} = $opt->{log_only} if $opt->{log_only};
+    $params->{target}   = $opt->{target}   if $opt->{target};
 
     # Verify?
     $params->{verify} = $opt->{verify}

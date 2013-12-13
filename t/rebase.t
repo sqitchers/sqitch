@@ -35,11 +35,11 @@ can_ok $CLASS, qw(
 );
 
 is_deeply [$CLASS->options], [qw(
-    target|t=s
     onto-change|onto=s
     upto-change|upto=s
     onto-target=s
     upto-target=s
+    target|t=s
     mode=s
     verify!
     set|s=s%
