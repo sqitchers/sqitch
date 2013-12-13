@@ -6,12 +6,18 @@ use warnings;
 use utf8;
 use Mouse;
 use Mouse::Util::TypeConstraints;
+use App::Sqitch::X qw(hurl);
 use Locale::TextDomain qw(App-Sqitch);
 use List::Util qw(first);
 use namespace::autoclean;
 extends 'App::Sqitch::Command';
 
 our $VERSION = '0.990';
+
+has target => (
+    is  => 'ro',
+    isa => 'Str',
+);
 
 has from_change => (
     is  => 'ro',
@@ -35,6 +41,7 @@ has variables => (
 
 sub options {
     return qw(
+        target|t=s
         from-change|from=s
         to-change|to=s
         from-target=s
@@ -50,7 +57,7 @@ sub configure {
         $_ => $opt->{$_}
     } grep {
         exists $opt->{$_}
-    } qw(from_change to_change);
+    } qw(target from_change to_change);
 
     # Handle deprecated options.
     for my $key (qw(from to)) {
@@ -76,10 +83,39 @@ sub configure {
 }
 
 sub execute {
-    my $self   = shift;
-    my $engine = $self->sqitch->engine;
+    my $self = shift;
+    my %args = $self->parse_args(@_);
+
+    # Die on unknowns.
+    if (my @unknown = @{ $args{unknown}} ) {
+        hurl verify => __nx(
+            'Unknown argument "{arg}"',
+            'Unknown arguments: {arg}',
+            scalar @unknown,
+            arg => join ', ', @unknown
+        );
+    }
+
+    # Warn on multiple targets.
+    my $target = $self->target // shift @{ $args{targets} };
+    $self->warn(__x(
+        'Too many targets specified; connecting to {target}',
+        target => $target,
+    )) if @{ $args{targets} };
+
+    # Warn on too many changes.
+    my $from = $self->from_change // shift @{ $args{changes} };
+    my $to   = $self->to_change   // shift @{ $args{changes} };
+    $self->warn(__x(
+        'Too many changes specified; verifying from "{from}" to "{to}"',
+        from => $from,
+        to   => $to,
+    )) if @{ $args{changes} };
+
+    # Now get to work.
+    my $engine = $self->engine_for_target($target);
     if (my %v = %{ $self->variables }) { $engine->set_variables(%v) }
-    $engine->verify( $self->from_change // shift, $self->to_change // shift );
+    $engine->verify($from, $to);
     return $self;
 }
 
