@@ -69,6 +69,11 @@ EOF
 
 $FORMATS{oneline} = '%{:event}C%h %l%{reset}C %o:%n %s';
 
+has target => (
+    is  => 'ro',
+    isa => 'Str',
+);
+
 has event => (
     is      => 'ro',
     isa     => 'ArrayRef',
@@ -123,6 +128,7 @@ has formatter => (
 sub options {
     return qw(
         event=s@
+        target|t=s
         change-pattern|change=s
         project-pattern|project=s
         committer-pattern|committer=s
@@ -185,16 +191,23 @@ sub configure {
 }
 
 sub execute {
-    my $self   = shift;
-    my $engine = $self->engine;
+    my ( $self, $target ) = @_;
+
+    # Warn on multiple targets.
+    $self->warn(__x(
+        'Both the --target option and the target argument passed; using {option}',
+        option => $self->target,
+    )) if $target && $self->target;
+
+    my $engine = $self->engine_for_target($self->target // $target);
 
     # Exit with status 1 on uninitialized database, probably not expected.
     hurl {
         ident   => 'log',
         exitval => 1,
         message => __x(
-            'Database {db} has not been initilized for Sqitch',
-            db => $engine->destination,
+            'Database {db} has not been initialized for Sqitch',
+            db => $engine->registry_destination,
         ),
     } unless $engine->initialized;
 
@@ -204,7 +217,7 @@ sub execute {
         ident   => 'log',
         exitval => 1,
         message => __x(
-            'No events logged to {db}',
+            'No events logged for {db}',
             db => $engine->destination,
         ),
     } unless $iter->();
@@ -258,8 +271,8 @@ works, read on.
 
   $log->execute;
 
-Executes the log command. The current state of the database will be compared
-to the plan in order to show where things stand.
+Executes the log command. The current log for the target database will be
+searched and the resulting change history displayed.
 
 =head1 See Also
 

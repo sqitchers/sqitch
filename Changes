@@ -1,20 +1,46 @@
 Revision history for Perl extension App::Sqitch
 
 0.990
-     - Deprecated most engine-specific connection attributes configuration
-       variables and replaced them with one, `db_uri`. This is a URI that
-       conforms to a proposed standard for specifing database connections. Its
-       format is `db:{engine}://{user}:{password}@{host}:{port}/{dbname}`. All
-       parts are optional except for `db:{engine}:`, and all may be overridden
-       by the existing `--db-*` options. If no `db_uri` is passed or specified
-       in the configuration, a URI will be constructed from the deprecated
-       configuration options, which may be removed in a future version. Those
+     - Deprecated engine-specific connection attributes and configuration
+       variables. See the next item for their replacments. The deprecated
        options are:
        * `core.$engine.username`
        * `core.$engine.password`
        * `core.$engine.db_name`
        * `core.$engine.host`
        * `core.$engine.port`
+       * `core.$engine.sqitch_schema`
+       * `core.$engine.sqitch_db`
+     - Replaced the engine-specific connection atttributes with three Engine
+       attributes use by every engine:
+       * `target`: The name of a target managed by the new `target` command.
+         Defaults to a value stored for the `core.$engine.target` config
+         variable. If that config does not exist, the target falls back on the
+         stringification of `uri`.
+       * `uri`: a database URI with the format `db:{engine}:{dbname}` or
+         `db:{engine}://{user}:{password}@{host}:{port}/{dbname}`. If its
+         value is not passed to the constructor, a `uri` value is looked up
+         for the associated `target`. If `target` is not passed or configured,
+         or if it has no URI associated with it, the `config.$engine.uri`
+         config variable is used. If that value does not exist, the URI
+         defaults to `db:$engine:`. In any of these cases, if any of the
+         `--db-*` options are passed, they will be merged into the URI.
+       * `registry`: the name to use for the Sqitch registry schema or
+         database, where Sqitch's own data will be stored, as appropriate to
+         each engine. If its value is not passed to the constructor, a
+         `registry` value is looked up for the associated `target`. If
+         `target` is not passed or configured, or if it has no registry
+         associated with it, the `config.$engine.registry` config variable is
+         used. If no value is found there, it defaults to "sqitch".
+     - Deprecated all command options with the string "target" in them, such
+       as `--to-target`, `--upto-target`, etc. They have been replaced with
+       options containing the string "change", instead, such as `--to-change`
+       and `--upto-change`.
+     - Added or replaced the `--target` option to commands the touch the
+       database to specify the name of target managed by the new `target`
+       command or a database URI.
+     - Improved database driver loading to ensure the proper version of the
+       driver is required.
 
 0.983  2013-11-21T21:50:12Z
      - Fixed "Use of uninitialized value" in the MySQL engine. Thanks to

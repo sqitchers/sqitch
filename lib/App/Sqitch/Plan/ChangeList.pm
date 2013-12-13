@@ -162,6 +162,14 @@ sub get {
     return $self->{list}[ $idx ];
 }
 
+sub contains {
+    my ( $self, $name ) = @_;
+    return defined (  $name =~ /@/
+        ? $self->index_of($name)
+        : $self->first_index_of($name)
+    );
+}
+
 sub find {
     my ( $self, $name ) = @_;
     my $idx   = $name =~ /@/
@@ -371,6 +379,13 @@ Returns the change for the specified ID or name. The name may be specified as
 described for C<index_of()>. An exception will be thrown if more than one change
 goes by a specified name. As such, it is best to specify it as unambiguously
 as possible: as a tag name, a tag-qualified change name, or an ID.
+
+=head3 C<contains>
+
+  say 'Yes!' if $plan->contains('6c2f28d125aff1deea615f8de774599acf39a7a1');
+
+Like C<index_of()>, but never throws an exception, and returns true if the
+plan contains the specified change, and false if it does not.
 
 =head3 C<find>
 

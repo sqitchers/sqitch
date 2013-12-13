@@ -33,7 +33,6 @@ sqitchtutorial
 sqitchchanges
 VCSes
 Versioning
-metadata
 namespace
 DDLs
 SHA

@@ -291,10 +291,10 @@ is_deeply read_config $conf_file, {
     'core.sqlite.client'  => '/to/sqlite3',
 }, 'The configuration should have been written with sqlite values';
 
-file_contents_like $conf_file, qr/^\t# db_uri = \Qdb:sqlite:my.db\E\n/m,
-    'db_uri should be included in a comment';
-file_contents_like $conf_file, qr/^\t# sqitch_db_uri = db:sqlite:sqitch\.db\n/m,
-    'sqitch_db_uri should be included in a comment';
+file_contents_like $conf_file, qr/^\t# target = \Qdb:sqlite:my.db\E\n/m,
+    'target should be included in a comment';
+file_contents_like $conf_file, qr/^\t# registry = sqitch\n/m,
+    'registry_uri should be included in a comment';
 
 # Try it with no options.
 unlink $conf_file;
@@ -310,9 +310,9 @@ is_deeply read_config $conf_file, {
 }, 'The configuration should have been written with only the engine var';
 
 file_contents_like $conf_file, qr{^\Q# [core "sqlite"]
-	# db_uri = db:sqlite:
+	# target = db:sqlite:
+	# registry = sqitch
 	# client = sqlite3$exe_ext
-	# sqitch_db_uri = db:sqlite:
 }m, 'Engine section should be present but commented-out';
 
 # Now build it with other config.
@@ -338,10 +338,10 @@ USERCONF: {
 
     file_contents_like $conf_file, qr{^\t\Q# client = /opt/local/bin/sqlite3\E\n}m,
         'Configured client should be included in a comment';
-    file_contents_like $conf_file, qr/^\t# db_uri = db:sqlite:my\.db\n/m,
-        'Configured db_uri should be included in a comment';
-    file_contents_like $conf_file, qr/^\t# sqitch_db_uri = db:sqlite:meta\.db\n/m,
-        'Configured sqitch_db_uri should be included in a comment';
+    file_contents_like $conf_file, qr/^\t# target = db:sqlite:my\.db\n/m,
+        'Configured target should be included in a comment';
+    file_contents_like $conf_file, qr/^\t# registry = meta\n/m,
+        'Configured registry should be included in a comment';
 }
 
 ##############################################################################
@@ -368,8 +368,8 @@ is_deeply read_config $conf_file, {
     'core.pg.client' => '/to/psql',
 }, 'The configuration should have been written with client values' or diag $conf_file->slurp;
 
-file_contents_like $conf_file, qr/^\t# sqitch_schema = sqitch\n/m,
-    'sqitch_schema should be included in a comment';
+file_contents_like $conf_file, qr/^\t# registry = sqitch\n/m,
+    'registry should be included in a comment';
 
 # Try it with no config or options.
 unlink $conf_file;
@@ -385,9 +385,9 @@ is_deeply read_config $conf_file, {
 }, 'The configuration should have been written with only the engine var' or diag $conf_file->slurp;
 
 file_contents_like $conf_file, qr{^\Q# [core "pg"]
-	# db_uri = db:pg:
+	# target = db:pg:
+	# registry = sqitch
 	# client = psql$exe_ext
-	# sqitch_schema = sqitch
 }m, 'Engine section should be present but commented-out' or diag $conf_file->slurp;
 
 USERCONF: {
@@ -410,11 +410,11 @@ USERCONF: {
         'core.engine'      => 'pg',
     }, 'The configuration should have been written with pg options' or diag $conf_file->slurp;
 
-    file_contents_like $conf_file, qr/^\t# sqitch_schema = meta\n/m,
-        'Configured sqitch_schema should be in a comment';
+    file_contents_like $conf_file, qr/^\t# registry = meta\n/m,
+        'Configured registry should be in a comment';
     file_contents_like $conf_file,
-        qr{^\t# db_uri = db:pg://postgres\@localhost/thingies\n}m,
-        'Configured db_uri should be in a comment';
+        qr{^\t# target = db:pg://postgres\@localhost/thingies\n}m,
+        'Configured target should be in a comment';
 }
 
 ##############################################################################

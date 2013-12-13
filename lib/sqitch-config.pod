@@ -259,7 +259,7 @@ Given a F<./sqitch.conf> like this:
           dest_dir  = _build/sql
 
   ; Revert command settings
-  [core "pg"]
+  [core "revert"]
           set        = foo=bar
           set        = baz=yo
 
@@ -267,16 +267,16 @@ You can set the the C<tags_only> setting to true with
 
   % sqitch config bundle.tags_only true
 
-The hypothetical C<set> key in the C<core.pg> section might need to set C<foo>
+The hypothetical C<set> key in the C<core.revert> section might need to set C<foo>
 to "hi" instead of "bar". Here's how to make that change:
 
-  % sqitch config core.pg.set foo=bar foo=hi
+  % sqitch config core.revert.set foo=bar foo=hi
 
 To delete the entry for C<bundle.from>, do
 
   % sqitch config --unset bundle.from
 
-If you want to delete an entry for a multivalue setting (like C<core.pg.set>),
+If you want to delete an entry for a multivalue setting (like C<core.revert.set>),
 provide a regex matching the value of exactly one line.
 
 To query the value for a given key, do:
@@ -289,21 +289,21 @@ Or:
 
 Or, to query a multivalue setting for only those values that match C</ba/>:
 
-  % sqitch config --get core.pg.set ba
+  % sqitch config --get core.revert.set ba
 
 If you want to know all the values for a multivalue setting, do:
 
-  % sqitch config --get-all core.pg.set
+  % sqitch config --get-all core.revert.set
 
-If you like to live dangerously, you can replace all C<core.pg.set> with a
+If you like to live dangerously, you can replace all C<core.revert.set> with a
 new one with
 
-  % sqitch config --replace-all core.pg.set bring=funk
+  % sqitch config --replace-all core.revert.set bring=funk
 
 However, if you only want to replace the line without C<baz>, do something
 like this:
 
-  % sqitch config core.pg.set = '!baz'
+  % sqitch config core.revert.set = '!baz'
 
 To match only values with an exclamation mark, you have to escape them:
 
@@ -311,7 +311,7 @@ To match only values with an exclamation mark, you have to escape them:
 
 To add a new setting without altering any of the existing ones, use:
 
-  % sqitch config core.pg.set widget=fred
+  % sqitch config core.revert.set widget=fred
 
 =head1 Configuration File
 
@@ -487,94 +487,67 @@ to to commits to the database.
 
 =back
 
-=head3 C<core.pg>
+=head3 C<core.$engine>
 
-Configuration properties for the PostgreSQL engine.
+Each supported engine offers a set of configuration variables, falling under
+the key C<core.$engine> where C<$engine> may be any value accepted for
+C<core.engine>.
 
 =over
 
-=item C<core.pg.client>
+=item C<core.$engine.target>
 
-Path to the C<psql> command-line client. Defaults to the first instance
-found in the path.
+A database target, either the name of target managed by the
+L<C<target>|sqitch-target> command, or a database connection URI. If it's a
+target name, then the associated C<uri>, C<registry>, and C<client> values
+will override any values specified for the values below. Targets are the
+preferred way to configure engines on a per-database basis, and the one
+specified here should be considered the default.
 
-=item C<core.pg.db_uri>
+=item C<core.$engine.uri>
 
-PostgreSQL database connection URI.
+A database connection URI.
 
-=item C<core.pg.sqitch_schema>
+=item C<core.$engine.registry>
 
-The name of the schema in which Sqitch metadata will be stored. No other data
-should be stored in this schema. Defaults to C<sqitch>.
+The name of the Sqitch registry schema or database. Sqitch will store its own
+data in this schema.
+
+=item C<core.$engine.client>
+
+Path to the engine command-line client. Defaults to the first instance found
+in the path.
 
 =back
 
-=head3 C<core.sqlite>
-
-Configuration properties for the SQLite engine.
+Notes on engine-specific configuration:
 
 =over
 
-=item C<core.sqlite.client>
+=item C<core.pg.registry>
 
-Path to the C<sqlite3> command-line client. Defaults to the first instance
-found in the path.
+For the PostgreSQL engine, the C<registry> value identifies the schema for
+Sqitch to use for its own data. No other data should be stored there. Defaults
+to C<sqitch>.
 
-=item C<core.sqlite.db_uri>
+=item C<core.sqlite.registry>
 
-SQLite database connection URI.
+For the SQLite engine, if the C<registry> value looks like an absolute path,
+then it will be the database file. Otherwise, it will be in the same directory
+as the database speciried by the C<uri>. Defaults to C<sqitch>.
 
-=item C<core.sqlite.sqitch_db_uri>
+=item C<core.mysql.registry>
 
-Sqitch metadata SQLite database connection URI.
+For the MySQL engine, the C<registry> value identifies the database for Sqitch
+to use for its own data. If you need to manage multiple databases on a single
+server, and don't want them all to share the same registry, change this
+property to a value specific for your database. Defaults to C<sqitch>.
 
-=back
+=item C<core.oracle.registry>
 
-=head3 C<core.mysql>
-
-Configuration properties for the MySQL engine.
-
-=over
-
-=item C<core.mysql.client>
-
-Path to the C<mysql> command-line client. Defaults to the first instance
-found in the path.
-
-=item C<core.mysql.db_uri>
-
-MySQL database connection URI.
-
-=item C<core.mysql.sqitch_db>
-
-The name of the database (schema) in which Sqitch metadata will be stored. No
-other data should be stored in this database. Defaults to C<sqitch>. If you
-need to manage multiple databases on a single server, and don't want them all
-to share the same Sqitch metadata database, change this property to a value
-specific for your database.
-
-=back
-
-=head3 C<core.oracle>
-
-Configuration properties for the Oracle engine.
-
-=over
-
-=item C<core.oracle.client>
-
-Path to the C<sqlplus> command-line client. Defaults to the first instance
-found in C<$ORACLE_HOME> or the path.
-
-=item C<core.oracle.db_uri>
-
-Oracle database connection URI.
-
-=item C<core.oracle.sqitch_schema>
-
-The name of the schema in which Sqitch metadata will be stored. No other data
-should be stored in this schema. Uses the current schema by default (usually
-the same name as the connection user.
+For Oracle, C<registry> value identifies the schema for Sqitch to use for its
+own data. No other data should be stored there. Uses the current schema by
+default (usually the same name as the connection user).
 
 =back
 

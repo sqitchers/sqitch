@@ -107,6 +107,37 @@ sub engine {
     });
 }
 
+sub config_for_target {
+    my ($self, $target) = @_;
+    return unless $target;
+    require URI::db;
+    return { uri => URI::db->new($target) } if $target =~ /:/;
+    my $config = $self->config->get_section( section => "target.$target" )
+        or return;
+    $config->{target} = $target;
+    $config->{uri} = URI::db->new( $config->{uri} ) if $config->{uri};
+    return $config;
+}
+
+sub config_for_target_strict {
+    my ($self, $target) = @_;
+    my $config = shift->config_for_target($target) or hurl core => __x(
+        'Cannot find target "{target}"',
+        target => $target
+    );
+    hurl core => __x(
+        'No URI associated with target "{target}"',
+        target => $target
+    ) unless $config->{uri};
+    return $config;
+}
+
+sub engine_for_target {
+    my ($self, $target) = @_;
+    return $self->engine unless $target;
+    return $self->engine( $self->config_for_target_strict($target) );
+}
+
 # Attributes useful to engines; no defaults.
 has db_client   => ( is => 'ro', isa => 'Str' );
 has db_name     => ( is => 'ro', isa => 'Str' );
@@ -824,6 +855,52 @@ C<shell> to run a command and its arguments as a single string.
 
 Creates and returns an engine of the appropriate subclass. Pass in additional
 parameters to be passed through to the engine constructor.
+
+=head2 C<config_for_target>
+
+  my $config = $sqitch->config_for_target($target);
+
+Returns a hash reference representing the configuration for the specified
+target name or URI. The supported keys in the hash reference are:
+
+=over
+
+=item C<target>
+
+The name of the target, as passed.
+
+=item C<uri>
+
+A L<database URI|URI::db> object, to be used to connect to the target
+database.
+
+
+=item C<registry>
+
+The name of the Sqitch registry in the target database.
+
+=back
+
+If the C<$target> argument looks like a database URI, it will simply returned
+in the hash reference. If the C<$target> argument corresponds to a target
+configuration key, the target configuration will be returned, with the C<uri>
+value a upgraded to a L<URI> object. Otherwise returns C<undef>.
+
+=head2 C<config_for_target_strict>
+
+  my $config = $sqitch->config_for_target_strict($target);
+
+Like C<config_for_target>, but throws an exception if C<$target> is not a URL,
+does not correspond to a target configuration section, or does not include a
+C<uri> key. Otherwise returns the target configuration.
+
+=head3 C<engine_for_target>
+
+  my $engine = $sqitch->engine_for($target);
+
+Like C<config_for_target_strict>, but returns an L<App::Sqitch::Engine>
+object. If C<$target> is not defined or is empty, an engine will be returned
+for the default target.
 
 =head3 C<shell>
 

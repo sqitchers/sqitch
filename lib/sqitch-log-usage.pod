@@ -4,24 +4,25 @@ sqitch-log-usage - Sqitch log usage statement
 
 =head1 Usage
 
-  sqitch [<db-options>] log [<options>]
+  sqitch [<db-options>] log [<options>] [<database>]
 
 =head1 Options
 
 Search options:
 
-    --event                          type of event
-    --change-pattern    --change     match regex against change names
-    --committer-pattern --committer  match regex against committer names
- -n --max-count                      show only specified number of events
-    --skip                           skip the specified number of events
-    --reverse                        show events in reverse order
-    --no-reverse                     don't show events in reverse order
+ -t --target <target>                       database to which to connect
+    --event <type>                          type of event
+    --change-pattern     --change <name>    match regex against change names
+    --committer-pattern --committer <name>  match regex against committer names
+ -n --max-count <count>                     show only specified number of events
+    --skip <number>                         skip the specified number of events
+    --reverse                               show events in reverse order
+    --no-reverse                            don't show events in reverse order
 
 Formatting
 
- -f --format                         show events in the specified format
-    --date-format       --date       show dates in the specified format
+ -f --format <format>                show events in the specified format
+    --date-format --date <format>    show dates in the specified format
     --color                          use ANSI colors
     --no-color                       never use ANSI colors
     --abrev                          abbreviate change IDs

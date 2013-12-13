@@ -6,6 +6,8 @@ use warnings;
 use utf8;
 use Mouse;
 use Mouse::Util::TypeConstraints;
+use Locale::TextDomain qw(App-Sqitch);
+use App::Sqitch::X qw(hurl);
 use List::Util qw(first);
 use Try::Tiny;
 use namespace::autoclean;
@@ -15,56 +17,101 @@ with 'App::Sqitch::Role::RevertDeployCommand';
 
 our $VERSION = '0.990';
 
-has onto_target => (
+has onto_change => (
     is  => 'ro',
     isa => 'Str',
 );
 
-has upto_target => (
+has upto_change => (
     is  => 'ro',
     isa => 'Str',
 );
 
 sub options {
     return qw(
-        onto-target|onto=s
-        upto-target|upto=s
+        onto-change|onto=s
+        upto-change|upto=s
+        onto-target=s
+        upto-target=s
     );
 }
 
 sub configure {
     my ( $class, $config, $opt ) = @_;
 
-    return { map { $_ => $opt->{$_} } grep { exists $opt->{$_} } qw(
-        onto_target
-        upto_target
+    my $p = { map { $_ => $opt->{$_} } grep { exists $opt->{$_} } qw(
+        onto_change
+        upto_change
     ) };
+
+    # Handle deprecated options.
+    for my $key (qw(onto upto)) {
+        if (my $val = $opt->{"$key\_target"}) {
+            App::Sqitch->warn(__x(
+                'Option --{old} has been deprecated; use --{new} instead',
+                old => "$key-target",
+                new => "$key-change",
+            ));
+            $p->{"$key\_change"} ||= $val;
+        }
+    }
+
+    return $p;
 }
 
 sub execute {
     my $self = shift;
-    my $engine = $self->sqitch->engine;
+    my %args = $self->parse_args(@_);
+
+    # Die on unknowns.
+    if (my @unknown = @{ $args{unknown}} ) {
+        hurl rebase => __nx(
+            'Unknown argument "{arg}"',
+            'Unknown arguments: {arg}',
+            scalar @unknown,
+            arg => join ', ', @unknown
+        );
+    }
+
+    # Warn on multiple targets.
+    my $target = $self->target // shift @{ $args{targets} };
+    $self->warn(__x(
+        'Too many targets specified; connecting to {target}',
+        target => $target,
+    )) if @{ $args{targets} };
+
+    # Warn on too many changes.
+    my $onto = $self->onto_change // shift @{ $args{changes} };
+    my $upto = $self->upto_change // shift @{ $args{changes} };
+    $self->warn(__x(
+        'Too many changes specified; rebasing onto "{onto}" up to "{upto}"',
+        onto => $onto,
+        upto => $upto,
+    )) if @{ $args{changes} };
+
+
+    # Now get to work.
+    my $engine = $self->engine_for_target($target);
     $engine->with_verify( $self->verify );
     $engine->no_prompt( $self->no_prompt );
     $engine->log_only( $self->log_only );
 
     # Revert.
     if (my %v = %{ $self->revert_variables }) { $engine->set_variables(%v) }
-    my $to = $self->onto_target // shift;
     try {
-        $engine->revert( $to );
+        $engine->revert( $onto );
     } catch {
         # Rethrow unknown errors or errors with exitval > 1.
         die $_ if ! eval { $_->isa('App::Sqitch::X') }
             || $_->exitval > 1
             || $_->ident eq 'revert:confirm';
-        # Emite notice of non-fatal errors (e.g., nothign to revert).
+        # Emit notice of non-fatal errors (e.g., nothign to revert).
         $self->info($_->message)
     };
 
     # Deploy.
     if (my %v = %{ $self->deploy_variables }) { $engine->set_variables(%v) }
-    $engine->deploy( $self->upto_target // shift, $self->mode );
+    $engine->deploy( $upto, $self->mode );
     return $self;
 }
 

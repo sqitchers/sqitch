@@ -66,9 +66,9 @@ Let's have a look at F<sqitch.conf>:
       # verify_dir = verify
       # extension = sql
   # [core "pg"]
-      # db_uri = db:pg:
+      # database = db:pg:
+      # registry = sqitch
       # client = /usr/local/pgsql/bin/psql
-      # sqitch_schema = sqitch
 
 Good, it picked up on the fact that we're creating changes for the PostgreSQL
 engine, thanks to the C<--engine pg> option, and saved it to the file.
@@ -150,13 +150,13 @@ Now we can try deploying this change:
 
   > createdb flipr_test
   > sqitch --db-name flipr_test deploy
-  Adding metadata tables to flipr_test
+  Adding registry tables to flipr_test
   Deploying to flipr_test
     + appschema .. ok
 
-First Sqitch created the metadata tables used to track database changes. The
-structure and name of the metadata tables varies between databases (PostgreSQL
-uses a schema to namespace its metadata, while SQLite and MySQL use separate
+First Sqitch created registry tables used to track database changes. The
+structure and name of the registry varies between databases (PostgreSQL uses a
+schema to namespace its registry, while SQLite and MySQL use separate
 databases). Next, Sqitch deploys changes. We only have one so far; the C<+>
 reinforces the idea that the change is being C<added> to the database.
 
@@ -250,7 +250,7 @@ Don't forget to change the schema name back before continuing!
 =head2 Status, Revert, Log, Repeat
 
 For purely informational purposes, we can always see how a deployment was
-recorded via the L<C<status>|sqitch-status> command, which reads the metadata
+recorded via the L<C<status>|sqitch-status> command, which reads the registry
 tables from the database:
 
   > sqitch -d flipr_test status
@@ -359,7 +359,7 @@ I'm getting a little tired of always having to type C<--db-name flipr_test>,
 aren't you? Sqitch uses URIs to determine how to connect to the database, so
 let's give it a default URI, shall we?
 
-  > sqitch config core.pg.db_uri db:pg:flipr_test
+  > sqitch config core.pg.database db:pg:flipr_test
 
 Now we can leave it out, unless we need to deploy to another database. Which
 we will, eventually, but at least our examples will be simpler from here on
@@ -765,7 +765,7 @@ We can try deploying to make sure the tag gets picked up like so:
 
   > createdb flipr_dev
   > sqitch -d flipr_dev deploy
-  Adding metadata tables to flipr_dev
+  Adding registry tables to flipr_dev
   Deploying changes to flipr_dev
     + appschema ................. ok
     + users ..................... ok
@@ -806,7 +806,7 @@ deploying it:
   > cd bundle
   > createdb flipr_prod
   > sqitch --db-name flipr_prod deploy
-  Adding metadata tables to flipr_prod
+  Adding registry tables to flipr_prod
   Deploying changes to flipr_prod
     + appschema ................. ok
     + users ..................... ok

@@ -585,6 +585,7 @@ sub tags           { shift->_changes->tags }
 sub count          { shift->_changes->count }
 sub index_of       { shift->_changes->index_of(shift) }
 sub get            { shift->_changes->get(shift) }
+sub contains       { shift->_changes->contains( shift ) }
 sub find           { shift->_changes->find(shift) }
 sub first_index_of { shift->_changes->first_index_of(@_) }
 sub change_at      { shift->_changes->change_at(shift) }
@@ -1098,6 +1099,13 @@ The name of a tag, including the leading C<@>.
 The named change as it was last seen in the list before the specified tag.
 
 =back
+
+=head3 C<contains>
+
+  say 'Yes!' if $plan->contains('6c2f28d125aff1deea615f8de774599acf39a7a1');
+
+Like C<index_of()>, but never throws an exception, and returns true if the
+plan contains the specified change, and false if it does not.
 
 =head3 C<get>
 

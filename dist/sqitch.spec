@@ -203,7 +203,7 @@ Group:          Development/Libraries
 Requires:       sqitch >= %{version}
 Requires:       oracle-instantclient11.2-sqlplus
 Requires:       perl(DBI)
-Requires:       perl(DBD::Oracle)
+Requires:       perl(DBD::Oracle) >= 1.23
 
 %description oracle
 Sqitch provides a simple yet robust interface for database change

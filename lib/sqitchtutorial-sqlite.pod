@@ -61,9 +61,9 @@ Let's have a look at F<sqitch.conf>:
 	# verify_dir = verify
 	# extension = sql
   # [core "sqlite"]
-	# db_uri = db:sqlite:
+	# database = db:sqlite:
+	# registry = sqitch
 	# client = sqlite3
-	# sqitch_db =
 
 Good, it picked up on the fact that we're creating changes for the SQLite
 engine, thanks to the C<--engine sqlite> option, and saved it to the file.
@@ -173,29 +173,29 @@ script, so we edit this to F<revert/users.sql> to look like this:
 Now we can try deploying this change:
 
   > sqitch --db-name flipr_test.db deploy
-  Adding metadata tables to flipr_test-sqitch.db
+  Adding registry tables to flipr_test-sqitch.db
   Deploying changes to flipr_test.db
 	+ users .. ok
 
-First Sqitch created the metadata database and tables used to track database
-changes. This database is separate from the database to which the C<users>
+First Sqitch created the registry database and tables used to track database
+changes. The registry is separate from the database to which the C<users>
 change was deployed; by default, its name is C<sqitch.$suffix>, where
-C<$suffix> is the same as the suffix on the destination database, if any. It
-lives in the same directory as the destination database. This will be useful
-if you use the SQLite L<C<ATTACHDATABASE>|http://www.sqlite.org/lang_attach.html>
-command to manage multiple database files in a single project. In that case,
-you will want to use the same metadata file for all the databases. Keep them
-all in the same directory with the same suffix and you get just that with the
-default sqitch database.
+C<$suffix> is the same as the suffix on the target database, if any. It lives
+in the same directory as the target database. This will be useful if you use
+the SQLite L<C<ATTACHDATABASE>|http://www.sqlite.org/lang_attach.html> command
+to manage multiple database files in a single project. In that case, you will
+want to use the same file for all the databases. Keep them all in the same
+directory with the same suffix and you get just that with the default sqitch
+database.
 
-If you'd like it to have a different name, use
-C<sqitch config core.sqlite.sqitch_db $name> to configure it. This will be
-useful if you don't want to use the same Sqitch database to manage multiple
+If you'd like it to have a different name for the registry database, use
+C<sqitch config core.sqlite.registry $name> to configure it. This will be
+useful if you don't want to use the same registry database to manage multiple
 databases, or if you do, but they live in different directories.
 
-Next, Sqitch deploys changes to the destination database, which we specified
-on the command-line. We only have one so far; the C<+> reinforces the idea
-that the change is being I<added> to the database.
+Next, Sqitch deploys changes to the target database, which we specified on the
+command-line. We only have one so far; the C<+> reinforces the idea that the
+change is being I<added> to the database.
 
 With this change deployed, if you connect to the database, you'll be able to
 see the schema:
@@ -255,7 +255,7 @@ the table name back before continuing!
 
 For purely informational purposes, we can always see how a deployment was
 recorded via the L<C<status>|sqitch-status> command, which reads the tables
-from the metadata database:
+from the registry database:
 
   > sqitch --db-name flipr_test.db status
   # On database flipr_test.db
@@ -359,7 +359,7 @@ C<--db-name flipr_test.db>, aren't you? We could use C<-d> instead, but even
 simpler it to just make that the default. Sqitch uses URIs to determine how to
 connect to the database, so let's give it a default URI, shall we?
 
-  > sqitch config core.sqlite.db_uri db:sqlite:flipr_test.db
+  > sqitch config core.sqlite.database db:sqlite:flipr_test.db
 
 Now we can leave it out, unless we need to deploy to another database. Which
 we will, eventually, but at least our examples will be simpler from here on
@@ -632,7 +632,7 @@ release, let's tag it:
 We can try deploying to make sure the tag gets picked up like so:
 
   > sqitch -d flipr_dev.db deploy
-  Adding metadata tables to ./flipr_dev-sqitch.db
+  Adding registry tables to ./flipr_dev-sqitch.db
   Deploying changes to flipr_dev.db
 	+ users ................... ok
 	+ flips ................... ok
@@ -670,7 +670,7 @@ deploying it:
 
   > cd bundle
   > sqitch --db-name flipr_prod.db deploy
-  Adding metadata tables to ./flipr_prod-sqitch.db
+  Adding registry tables to ./flipr_prod-sqitch.db
   Deploying changes to flipr_prod.db
 	+ users ................... ok
 	+ flips ................... ok

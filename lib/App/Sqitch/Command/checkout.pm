@@ -33,11 +33,34 @@ has client => (
 sub configure { {} }
 
 sub execute {
-    my ( $self, $branch) = @_;
-    $self->usage unless defined $branch;
+    my $self = shift;
+    my %args = $self->parse_args(@_);
+
+    # The branch arg will be the one parse_args does not recognize.
+    my $branch = shift @{ $args{unknown} } // $self->usage;
+
+    # Die on unknowns.
+    if (my @unknown = ( @{ $args{unknown} }, @{ $args{changes} } ) ) {
+        hurl checkout => __nx(
+            'Unknown argument "{arg}"',
+            'Unknown arguments: {arg}',
+            scalar @unknown,
+            arg => join ', ', @unknown
+        );
+    }
+
+    # Warn on multiple targets.
+    my $target = $self->target // shift @{ $args{targets} };
+    $self->warn(__x(
+        'Too many targets specified; connecting to {target}',
+        target => $target,
+    )) if @{ $args{targets} };
+
+
+    # Now get to work.
     my $sqitch = $self->sqitch;
     my $git    = $self->client;
-    my $engine = $sqitch->engine;
+    my $engine = $self->engine_for_target($target);
     $engine->with_verify( $self->verify );
     $engine->no_prompt( $self->no_prompt );
     $engine->log_only( $self->log_only );
@@ -53,7 +76,7 @@ sub execute {
     # Instantitate a plan without calling $sqitch->plan.
     my $from_plan = App::Sqitch::Plan->new( sqitch => $sqitch );
 
-    # Load the target plan from Git, assuming the same path.
+    # Load the branch plan from Git, assuming the same path.
     my $to_plan = App::Sqitch::Plan->new( sqitch => $sqitch )->parse(
         # XXX Handle missing file/no contents.
         scalar $sqitch->capture( $git, 'show', "$branch:" . $sqitch->plan_file)
@@ -67,9 +90,9 @@ sub execute {
     }
 
     hurl checkout => __x(
-        'Target branch {target} has no canges in common with source branch {source}',
-        target => $branch,
-        source => $current_branch,
+        'Branch {branch} has no changes in common with current branch {current}',
+        branch  => $branch,
+        current => $current_branch,
     ) unless $last_common_change;
 
     $sqitch->info(__x(

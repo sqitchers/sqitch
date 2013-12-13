@@ -18,27 +18,17 @@ with 'App::Sqitch::Role::DBIEngine';
 
 our $VERSION = '0.990';
 
-has client => (
-    is       => 'ro',
-    isa      => 'Str',
-    lazy     => 1,
-    required => 1,
-    default  => sub {
-        my $sqitch = shift->sqitch;
-        $sqitch->db_client
-            || $sqitch->config->get( key => 'core.pg.client' )
-            || 'psql' . ( $^O eq 'MSWin32' ? '.exe' : '' );
-    },
-);
-
-has destination => (
-    is       => 'ro',
-    isa      => 'Str',
-    lazy     => 1,
-    required => 1,
+has '+destination' => (
     default  => sub {
         my $self = shift;
-        my $uri = $self->db_uri->clone;
+
+        # Just use the target unless it looks like a URI.
+        my $target = $self->target;
+        return $target if $target !~ /:/;
+
+        # Use the URI sans password, and with the database name added.
+        my $uri = $self->uri->clone;
+        $uri->password(undef) if $uri->password;
         $uri->dbname(
                $ENV{PGDATABASE}
             || $uri->user
@@ -46,17 +36,6 @@ has destination => (
             || $self->sqitch->sysuser
         ) unless $uri->dbname;
         return $uri->as_string;
-    },
-);
-
-has sqitch_schema => (
-    is       => 'ro',
-    isa      => 'Str',
-    lazy     => 1,
-    required => 1,
-    default  => sub {
-        shift->sqitch->config->get( key => 'core.pg.sqitch_schema' )
-            || 'sqitch';
     },
 );
 
@@ -68,7 +47,7 @@ has psql => (
     auto_deref => 1,
     default    => sub {
         my $self = shift;
-        my $uri  = $self->db_uri;
+        my $uri  = $self->uri;
         my @ret  = ( $self->client );
         for my $spec (
             [ username => $uri->user   ],
@@ -91,11 +70,17 @@ has psql => (
             '--tuples-only',
             '--set' => 'ON_ERROR_ROLLBACK=1',
             '--set' => 'ON_ERROR_STOP=1',
-            '--set' => 'sqitch_schema=' . $self->sqitch_schema,
+            '--set' => 'registry=' . $self->registry,
+            '--set' => 'sqitch_schema=' . $self->registry, # deprecated
         );
         return \@ret;
     },
 );
+
+sub key    { 'pg' }
+sub name   { 'PostgreSQL' }
+sub driver { 'DBD::Pg 2.0' }
+sub default_client { 'psql' }
 
 has dbh => (
     is      => 'rw',
@@ -103,11 +88,9 @@ has dbh => (
     lazy    => 1,
     default => sub {
         my $self = shift;
-        try { require DBD::Pg } catch {
-            hurl pg => __ 'DBD::Pg module required to manage PostgreSQL' if $@;
-        };
+        $self->use_driver;
 
-        my $uri = $self->db_uri;
+        my $uri = $self->uri;
         DBI->connect($uri->dbi_dsn, scalar $uri->user, scalar $uri->password, {
             PrintError        => 0,
             RaiseError        => 0,
@@ -126,7 +109,7 @@ has dbh => (
                     try {
                         $dbh->do(
                             'SET search_path = ?',
-                            undef, $self->sqitch_schema
+                            undef, $self->registry
                         );
                         # http://www.nntp.perl.org/group/perl.dbi.dev/2013/11/msg7622.html
                         $dbh->set_err(undef, undef) if $dbh->err;
@@ -134,16 +117,10 @@ has dbh => (
                     return;
                 },
             },
+            $uri->query_params,
         });
     }
 );
-
-sub config_vars {
-    return (
-        shift->SUPER::config_vars,
-        sqitch_schema => 'any',
-    );
-}
 
 sub _log_tags_param {
     [ map { $_->format_name } $_[1]->tags ];
@@ -177,12 +154,12 @@ sub initialized {
         SELECT EXISTS(
             SELECT TRUE FROM pg_catalog.pg_namespace WHERE nspname = ?
         )
-    }, undef, $self->sqitch_schema)->[0];
+    }, undef, $self->registry)->[0];
 }
 
 sub initialize {
     my $self   = shift;
-    my $schema = $self->sqitch_schema;
+    my $schema = $self->registry;
     hurl engine => __x(
         'Sqitch schema "{schema}" already exists',
         schema => $schema
@@ -196,21 +173,21 @@ sub initialize {
     )[-1];
 
     if ($maj < 9) {
-        # Need to write a temp file; no :"sqitch_schema" variable syntax.
+        # Need to write a temp file; no :"registry" variable syntax.
         ($schema) = $self->dbh->selectrow_array(
             'SELECT quote_ident(?)', undef, $schema
         );
-        (my $sql = scalar $file->slurp) =~ s{:"sqitch_schema"}{$schema}g;
+        (my $sql = scalar $file->slurp) =~ s{:"registry"}{$schema}g;
         require File::Temp;
         my $fh = File::Temp->new;
         print $fh $sql;
         close $fh;
         $self->_run( '--file' => $fh->filename );
     } else {
-        # We can take advantage of the :"sqitch_schema" variable syntax.
+        # We can take advantage of the :"registry" variable syntax.
         $self->_run(
             '--file' => $file,
-            '--set'  => "sqitch_schema=$schema",
+            '--set'  => "registry=$schema",
         );
     }
 
@@ -468,7 +445,7 @@ sub _update_ids {
 sub _run {
     my $self   = shift;
     my $sqitch = $self->sqitch;
-    my $uri    = $self->db_uri;
+    my $uri    = $self->uri;
     my $pass   = $uri->password or return $sqitch->run( $self->psql, @_ );
     local $ENV{PGPASSWORD} = $pass;
     return $sqitch->run( $self->psql, @_ );
@@ -477,7 +454,7 @@ sub _run {
 sub _capture {
     my $self   = shift;
     my $sqitch = $self->sqitch;
-    my $uri    = $self->db_uri;
+    my $uri    = $self->uri;
     my $pass   = $uri->password or return $sqitch->capture( $self->psql, @_ );
     local $ENV{PGPASSWORD} = $pass;
     return $sqitch->capture( $self->psql, @_ );
@@ -487,7 +464,7 @@ sub _spool {
     my $self   = shift;
     my $fh     = shift;
     my $sqitch = $self->sqitch;
-    my $uri    = $self->db_uri;
+    my $uri    = $self->uri;
     my $pass   = $uri->password or return $sqitch->spool( $fh, $self->psql, @_ );
     local $ENV{PGPASSWORD} = $pass;
     return $sqitch->spool( $fh, $self->psql, @_ );
@@ -513,19 +490,6 @@ supports PostgreSQL 8.4.0 and higher.
 
 =head1 Interface
 
-=head3 Class Methods
-
-=head3 C<config_vars>
-
-  my %vars = App::Sqitch::Engine::pg->config_vars;
-
-Returns a hash of names and types to use for variables in the C<core.pg>
-section of the a Sqitch configuration file. The variables and their types are:
-
-  db_uri        => 'any',
-  client        => 'any',
-  sqitch_schema => 'any',
-
 =head2 Instance Methods
 
 =head3 C<initialized>
@@ -539,7 +503,7 @@ has not.
 
   $pg->initialize;
 
-Initializes a database for Sqitch by installing the Sqitch metadata schema.
+Initializes a database for Sqitch by installing the Sqitch registry schema.
 
 =head1 Author
 
