@@ -532,7 +532,7 @@ sub _trim_to {
 
     # Find the change in the database.
     my $to_id = $self->change_id_for_key( $key ) || hurl $ident => (
-        defined eval { $plan->index_of( $key ) } ? __x(
+        $plan->contains( $key ) ? __x(
             'Change "{change}" has not been deployed',
             change => $key,
         ) : __x(

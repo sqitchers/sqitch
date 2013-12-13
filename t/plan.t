@@ -898,6 +898,7 @@ is sorted, 2, 'Should have sorted changes twice';
 # Test the interator interface.
 can_ok $plan, qw(
     index_of
+    contains
     get
     seek
     reset
@@ -955,11 +956,13 @@ is $plan->next, $change, 'Next should return the first change again';
 is $plan->position, 0, 'Position should be at 0 again';
 is $plan->current, $change, 'Current should be first change';
 is $plan->index_of($change->name), 0, "Index of change should be 0";
+ok $plan->contains($change->name), 'Plan should contain change';
 is $plan->get($change->name), $change, 'Should be able to get change 0 by name';
 is $plan->find($change->name), $change, 'Should be able to find change 0 by name';
 is $plan->get($change->id), $change, 'Should be able to get change 0 by ID';
 is $plan->find($change->id), $change, 'Should be able to find change 0 by ID';
 is $plan->index_of('@bar'), 3, 'Index of @bar should be 3';
+ok $plan->contains('@bar'), 'Plan should contain @bar';
 is $plan->get('@bar'), $fourth, 'Should be able to get hey-there via @bar';
 is $plan->get($fourth->id), $fourth, 'Should be able to get hey-there via @bar ID';
 is $plan->find('@bar'), $fourth, 'Should be able to find hey-there via @bar';
@@ -968,13 +971,16 @@ ok $plan->seek('@bar'), 'Seek to the "@bar" change';
 is $plan->position, 3, 'Position should be at 3 again';
 is $plan->current, $fourth, 'Current should be fourth again';
 is $plan->index_of('you'), 1, 'Index of you should be 1';
+ok $plan->contains('you'), 'Plan should contain "you"';
 is $plan->get('you'), $next, 'Should be able to get change 1 by name';
 is $plan->find('you'), $next, 'Should be able to find change 1 by name';
 ok $plan->seek('you'), 'Seek to the "you" change';
 is $plan->position, 1, 'Position should be at 1 again';
 is $plan->current, $next, 'Current should be second again';
 is $plan->index_of('baz'), undef, 'Index of baz should be undef';
+ok !$plan->contains('baz'), 'Plan should not contain "baz"';
 is $plan->index_of('@baz'), 3, 'Index of @baz should be 3';
+ok $plan->contains('@baz'), 'Plan should contain @baz';
 ok $plan->seek('@baz'), 'Seek to the "baz" change';
 is $plan->position, 3, 'Position should be at 3 again';
  is $plan->current, $fourth, 'Current should be fourth again';
@@ -1197,7 +1203,8 @@ for my $name (
 # Try adding a tag.
 ok my $tag = $plan->tag( name => 'w00t' ), 'Add tag "w00t"';
 is $plan->count, 4, 'Should have 4 changes';
-is $plan->index_of('@w00t'), 3, 'Should find "@w00t at index 3';
+ok $plan->contains('@w00t'), 'Should find "@w00t" in plan';
+is $plan->index_of('@w00t'), 3, 'Should find "@w00t" at index 3';
 is $plan->last->name, 'hey-there', 'Last change should be "hey-there"';
 is_deeply [map { $_->name } $plan->last->tags], [qw(bar baz w00t)],
     'The w00t tag should be on the last change';
@@ -1214,7 +1221,8 @@ file_contents_is $to,
     'The contents should include the "w00t" tag';
 # Try passing the tag name with a leading @.
 ok my $tag2 = $plan->tag( name => '@alpha' ), 'Add tag "@alpha"';
-is $plan->index_of('@alpha'), 3, 'Should find "@alpha at index 3';
+ok $plan->contains('@alpha'), 'Should find "@alpha" in plan';
+is $plan->index_of('@alpha'), 3, 'Should find "@alpha" at index 3';
 is $tag2->name, 'alpha', 'The returned tag should be @alpha';
 is $tag2->change, $plan->last, 'The @alpha change should be the last change';
 
@@ -1222,7 +1230,8 @@ is $tag2->change, $plan->last, 'The @alpha change should be the last change';
 ok my $tag3 = $plan->tag(name => 'blarney', change => 'you'),
     'Tag change "you"';
 is $plan->count, 4, 'Should still have 4 changes';
-is $plan->index_of('@blarney'), 1, 'Should find "@blarney at index 1';
+ok $plan->contains('@blarney'), 'Should find "@blarney" in plan';
+is $plan->index_of('@blarney'), 1, 'Should find "@blarney" at index 1';
 is_deeply [map { $_->name } $plan->change_at(1)->tags], [qw(foo blarney)],
     'The blarney tag should be on the second change';
 isa_ok $tag3, 'App::Sqitch::Plan::Tag';
@@ -1275,7 +1284,8 @@ is $@->message, __x(
 ok my $new_change = $plan->add(name => 'booyah', note => 'Hi there'),
     'Add change "booyah"';
 is $plan->count, 5, 'Should have 5 changes';
-is $plan->index_of('booyah'), 4, 'Should find "booyah at index 4';
+ok $plan->contains('booyah'), 'Should find "booyah" in plan';
+is $plan->index_of('booyah'), 4, 'Should find "booyah" at index 4';
 is $plan->last->name, 'booyah', 'Last change should be "booyah"';
 isa_ok $new_change, 'App::Sqitch::Plan::Change';
 is $new_change->as_string, join (' ',
@@ -1301,6 +1311,7 @@ file_contents_is $to,
 ok $new_change = $plan->add(name => 'blow', requires => ['booyah']),
     'Add change "blow"';
 is $plan->count, 6, 'Should have 6 changes';
+ok $plan->contains('blow'), 'Should find "blow" in plan';
 is $plan->index_of('blow'), 5, 'Should find "blow" at index 5';
 is $plan->last->name, 'blow', 'Last change should be "blow"';
 is $new_change->as_string,
@@ -1314,6 +1325,7 @@ is [$plan->lines]->[-1], $new_change,
 ok $new_change = $plan->add(name => 'jive', requires => [qw(blow blow)]),
     'Add change "jive" with dupe dependency';
 is $plan->count, 7, 'Should have 7 changes';
+ok $plan->contains('jive'), 'Should find "jive" in plan';
 is $plan->index_of('jive'), 6, 'Should find "jive" at index 6';
 is $plan->last->name, 'jive', 'jive change should be "jive"';
 is_deeply [ map { $_->change } $new_change->requires ], ['blow'],
@@ -1333,6 +1345,7 @@ ok $new_change = $plan->add(
 ),  'Add change "moo" with dupe dependencies';
 
 is $plan->count, 8, 'Should have 8 changes';
+ok $plan->contains('moo'), 'Should find "moo" in plan';
 is $plan->index_of('moo'), 7, 'Should find "moo" at index 7';
 is $plan->last->name, 'moo', 'moo change should be "moo"';
 is_deeply [ map { $_->as_string } $new_change->requires ], ['ext:foo'],
@@ -1445,6 +1458,7 @@ is [$plan->lines]->[-1], $rev_change,
     'The new "you" should have been appended to the lines, too';
 
 # Make sure it was appended to the plan.
+ok $plan->contains('you@HEAD'), 'Should find "you@HEAD" in plan';
 is $plan->index_of('you@HEAD'), 8, 'It should be at position 8';
 is $plan->count, 9, 'The plan count should be 9';
 
@@ -1473,6 +1487,7 @@ is [$plan->lines]->[-1], $rev_change2,
     'The new reworking should have been appended to the lines';
 
 # Make sure it was appended to the plan.
+ok $plan->contains('you@HEAD'), 'Should find "you@HEAD" in plan';
 is $plan->index_of('you@HEAD'), 9, 'It should be at position 9';
 is $plan->count, 10, 'The plan count should be 10';
 
@@ -1557,6 +1572,7 @@ cmp_deeply [ $plan->changes ], [
 is sorted, 3, 'Should have sorted changes three times';
 
 # Try to find whatever.
+ok $plan->contains('whatever'), 'Should find "whatever" in plan';
 throws_ok { $plan->index_of('whatever') } 'App::Sqitch::X',
     'Should get an error trying to find dupe key.';
 is $@->ident, 'plan', 'Dupe key error ident should be "plan"';
