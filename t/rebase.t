@@ -7,6 +7,7 @@ use Test::More;
 use App::Sqitch;
 use Path::Class qw(dir file);
 use App::Sqitch::X qw(hurl);
+use Locale::TextDomain qw(App-Sqitch);
 use Test::MockModule;
 use Test::Exception;
 use lib 't/lib';
@@ -21,6 +22,7 @@ $ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
 
 isa_ok $CLASS, 'App::Sqitch::Command';
 can_ok $CLASS, qw(
+    target
     options
     configure
     new
@@ -33,6 +35,7 @@ can_ok $CLASS, qw(
 );
 
 is_deeply [$CLASS->options], [qw(
+    target|t=s
     onto-change|onto=s
     upto-change|upto=s
     onto-target=s
@@ -158,6 +161,11 @@ CONFIG: {
         revert_variables => { foo => 'yo', yo => 'stellar', hi => 21 },
         onto_change      => 'whu',
     }, 'Should have merged variables';
+    is_deeply +MockOutput->get_warn, [[__x(
+        'Option --{old} has been deprecated; use --{new} instead',
+        old => 'onto-target',
+        new => 'onto-change',
+    )]], 'Should get warning for deprecated --onto-target';
 
     # Try merging with rebase.variables, too.
     $config_vals{'revert.variables'} = { hi => 42 };
@@ -211,8 +219,16 @@ CONFIG: {
         'Should have no_prompt true with -y';
 }
 
-isa_ok my $rebase = $CLASS->new(sqitch => $sqitch), $CLASS;
+##############################################################################
+# Test accessors.
+isa_ok my $rebase = $CLASS->new(
+    sqitch   => $sqitch,
+    target => 'foo',
+), $CLASS, 'new status with target';
+is $rebase->target, 'foo', 'Should have target "foo"';
 
+isa_ok $rebase = $CLASS->new(sqitch => $sqitch), $CLASS;
+is $rebase->target,      undef, 'Should have undef target';
 is $rebase->onto_change, undef, 'onto_change should be undef';
 is $rebase->upto_change, undef, 'upto_change should be undef';
 
@@ -225,24 +241,68 @@ $mock_engine->mock(revert => sub { shift; @rev_args = @_ });
 my @vars;
 $mock_engine->mock(set_variables => sub { shift; push @vars => [@_] });
 
+my $mock_sqitch = Test::MockModule->new(ref $sqitch);
+my ($engine, $orig_emethod);
+$mock_sqitch->mock(engine => sub { $engine = shift->$orig_emethod(@_) });
+$orig_emethod = $mock_sqitch->original('engine');
+
 ok $rebase->execute('@alpha'), 'Execute to "@alpha"';
 is_deeply \@dep_args, [undef, 'all'],
-    'undef, "all", and 0 should be passed to the engine deploy';
+    'undef, and "all" should be passed to the engine deploy';
 is_deeply \@rev_args, ['@alpha'],
-    '"@alpha" and 0 should be passed to the engine revert';
+    '"@alpha" should be passed to the engine revert';
 ok !$sqitch->engine->no_prompt, 'Engine should prompt';
 ok !$sqitch->engine->log_only, 'Engine should no be log only';
+is_deeply +MockOutput->get_warn, [], 'Should have no warnings';
 
+# Pass a target.
+ok $rebase->execute('db:sqlite:yow'), 'Execute with target';
+is_deeply \@dep_args, [undef, 'all'],
+    'undef, and "all" should be passed to the engine deploy';
+is_deeply \@rev_args, [undef],
+    'undef should be passed to the engine revert';
+ok !$engine->no_prompt, 'Engine should prompt';
+ok !$engine->log_only, 'Engine should no be log only';
+is $engine->target, 'db:sqlite:yow', 'The engine should know the target';
+is_deeply +MockOutput->get_warn, [], 'Should have no warnings';
+
+# Pass both.
+ok $rebase->execute('widgets', 'db:sqlite:yow'), 'Execute with onto and target';
+is_deeply \@dep_args, [undef, 'all'],
+    'undef, and "all" should be passed to the engine deploy';
+is_deeply \@rev_args, ['widgets'],
+    '"widgets" should be passed to the engine revert';
+ok !$engine->no_prompt, 'Engine should prompt';
+ok !$engine->log_only, 'Engine should no be log only';
+is $engine->target, 'db:sqlite:yow', 'The engine should know the target';
+is_deeply +MockOutput->get_warn, [], 'Should have no warnings';
+
+# Pass all three!
+ok $rebase->execute('db:sqlite:yow', 'roles', 'widgets'),
+    'Execute with three args';
+is_deeply \@dep_args, ['widgets', 'all'],
+    '"widgets", and "all" should be passed to the engine deploy';
+is_deeply \@rev_args, ['roles'],
+    '"roles" should be passed to the engine revert';
+ok !$engine->no_prompt, 'Engine should prompt';
+ok !$engine->log_only, 'Engine should no be log only';
+is $engine->target, 'db:sqlite:yow', 'The engine should know the target';
+is_deeply +MockOutput->get_warn, [], 'Should have no warnings';
+
+# Pass no args.
 @dep_args = @rev_args = ();
 ok $rebase->execute, 'Execute';
 is_deeply \@dep_args, [undef, 'all'],
-    'undef, "all", and 0 should be passed to the engine deploy';
+    'undef and "all" should be passed to the engine deploy';
 is_deeply \@rev_args, [undef],
     'undef and = should be passed to the engine revert';
 is_deeply \@vars, [],
     'No vars should have been passed through to the engine';
+is_deeply +MockOutput->get_warn, [], 'Should have no warnings';
 
+# Mix it up with options.
 isa_ok $rebase = $CLASS->new(
+    target           => 'db:sqlite:lolwut',
     no_prompt        => 1,
     log_only         => 1,
     verify           => 1,
@@ -255,12 +315,8 @@ isa_ok $rebase = $CLASS->new(
 ), $CLASS, 'Object with to and variables';
 
 @dep_args = @rev_args = ();
-my $mock_sqitch = Test::MockModule->new(ref $sqitch);
-my ($engine, $orig_emethod);
-$mock_sqitch->mock(engine => sub { $engine = shift->$orig_emethod(@_) });
-$orig_emethod = $mock_sqitch->original('engine');
-
 ok $rebase->execute, 'Execute again';
+is $engine->target, 'db:sqlite:lolwut', 'ENgine should have target option';
 ok $engine->no_prompt, 'Engine should be no_prompt';
 ok $engine->log_only, 'Engine should be log_only';
 ok $engine->with_verify, 'Engine should verify';
@@ -272,6 +328,50 @@ is_deeply { @{ $vars[0] } }, { hey => 'there' },
     'The revert vars should have been passed first';
 is_deeply { @{ $vars[1] } }, { foo => 'bar', one => 1 },
     'The deploy vars should have been next';
+is_deeply +MockOutput->get_warn, [], 'Should have no warnings';
+
+# Make sure we get warnings for too many things.
+@dep_args = @rev_args, @vars = ();
+ok $rebase->execute('db:sqlite:yow', 'roles', 'widgets'),
+    'Execute with three args';
+is $engine->target, 'db:sqlite:lolwut', 'ENgine should have target option';
+ok $engine->no_prompt, 'Engine should be no_prompt';
+ok $engine->log_only, 'Engine should be log_only';
+ok $engine->with_verify, 'Engine should verify';
+is_deeply \@dep_args, ['bar', 'tag'],
+    '"bar", "tag", and 1 should be passed to the engine deploy';
+is_deeply \@rev_args, ['foo'], '"foo" and 1 should be passed to the engine revert';
+is @vars, 2, 'Variables should have been passed to the engine twice';
+is_deeply { @{ $vars[0] } }, { hey => 'there' },
+    'The revert vars should have been passed first';
+is_deeply { @{ $vars[1] } }, { foo => 'bar', one => 1 },
+    'The deploy vars should have been next';
+is_deeply +MockOutput->get_warn, [[__x(
+    'Too many targets specified; connecting to {target}',
+    target => 'db:sqlite:lolwut',
+)], [__x(
+    'Too many changes specified; rebasing onto "{onto}" up to "{upto}"',
+    onto => 'foo',
+    upto => 'bar',
+)]], 'Should have two warnings';
+
+# Make sure we get an exception for unknown args.
+throws_ok { $rebase->execute(qw(greg)) } 'App::Sqitch::X',
+    'Should get an exception for unknown arg';
+is $@->ident, 'rebase', 'Unknow arg ident should be "rebase"';
+is $@->message, __x(
+    'Unknown argument "{arg}"',
+    arg => 'greg',
+), 'Should get an exeption for two unknown arg';
+
+throws_ok { $rebase->execute(qw(greg jon)) } 'App::Sqitch::X',
+    'Should get an exception for unknown args';
+is $@->ident, 'rebase', 'Unknow args ident should be "rebase"';
+is $@->message, __x(
+    'Unknown arguments: {arg}',
+    arg => 'greg, jon',
+), 'Should get an exeption for two unknown args';
+
 
 # If nothing is deployed, or we are already at the revert target, the revert
 # should be skipped.

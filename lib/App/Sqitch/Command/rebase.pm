@@ -7,6 +7,7 @@ use utf8;
 use Mouse;
 use Mouse::Util::TypeConstraints;
 use Locale::TextDomain qw(App-Sqitch);
+use App::Sqitch::X qw(hurl);
 use List::Util qw(first);
 use Try::Tiny;
 use namespace::autoclean;
@@ -15,6 +16,11 @@ extends 'App::Sqitch::Command';
 with 'App::Sqitch::Role::RevertDeployCommand';
 
 our $VERSION = '0.990';
+
+has target => (
+    is  => 'ro',
+    isa => 'Str',
+);
 
 has onto_change => (
     is  => 'ro',
@@ -28,6 +34,7 @@ has upto_change => (
 
 sub options {
     return qw(
+        target|t=s
         onto-change|onto=s
         upto-change|upto=s
         onto-target=s
@@ -41,6 +48,7 @@ sub configure {
     my $p = { map { $_ => $opt->{$_} } grep { exists $opt->{$_} } qw(
         onto_change
         upto_change
+        target
     ) };
 
     # Handle deprecated options.
@@ -60,28 +68,57 @@ sub configure {
 
 sub execute {
     my $self = shift;
-    my $engine = $self->sqitch->engine;
+    my %args = $self->parse_args(@_);
+
+    # Die on unknowns.
+    if (my @unknown = @{ $args{unknown}} ) {
+        hurl rebase => __nx(
+            'Unknown argument "{arg}"',
+            'Unknown arguments: {arg}',
+            scalar @unknown,
+            arg => join ', ', @unknown
+        );
+    }
+
+    # Warn on multiple targets.
+    my $target = $self->target // shift @{ $args{targets} };
+    $self->warn(__x(
+        'Too many targets specified; connecting to {target}',
+        target => $target,
+    )) if @{ $args{targets} };
+
+    # Warn on too many changes.
+    my $onto = $self->onto_change // shift @{ $args{changes} };
+    my $upto = $self->upto_change // shift @{ $args{changes} };
+    $self->warn(__x(
+        'Too many changes specified; rebasing onto "{onto}" up to "{upto}"',
+        onto => $onto,
+        upto => $upto,
+    )) if @{ $args{changes} };
+
+
+    # Now get to work.
+    my $engine = $self->engine_for_target($target);
     $engine->with_verify( $self->verify );
     $engine->no_prompt( $self->no_prompt );
     $engine->log_only( $self->log_only );
 
     # Revert.
     if (my %v = %{ $self->revert_variables }) { $engine->set_variables(%v) }
-    my $to = $self->onto_change // shift;
     try {
-        $engine->revert( $to );
+        $engine->revert( $onto );
     } catch {
         # Rethrow unknown errors or errors with exitval > 1.
         die $_ if ! eval { $_->isa('App::Sqitch::X') }
             || $_->exitval > 1
             || $_->ident eq 'revert:confirm';
-        # Emite notice of non-fatal errors (e.g., nothign to revert).
+        # Emit notice of non-fatal errors (e.g., nothign to revert).
         $self->info($_->message)
     };
 
     # Deploy.
     if (my %v = %{ $self->deploy_variables }) { $engine->set_variables(%v) }
-    $engine->deploy( $self->upto_change // shift, $self->mode );
+    $engine->deploy( $upto, $self->mode );
     return $self;
 }
 

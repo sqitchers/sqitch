@@ -4,12 +4,12 @@ sqitch-rebase - Revert and redeploy database changes
 
 =head1 Synopsis
 
-  sqitch [options] rebase
-  sqitch [options] rebase --onto-change <change>
-  sqitch [options] rebase --onto-change <change> --upto-change <change>
-  sqitch [options] rebase <change>
-  sqitch [options] rebase <change> --upto-change <change>
-  sqitch [options] rebase <change> <change>
+  sqitch [options] rebase [<database>]
+  sqitch [options] rebase [<database>] --onto-change <change>
+  sqitch [options] rebase [<database>] --onto-change <change> --upto-change <change>
+  sqitch [options] rebase [<database>] <change>
+  sqitch [options] rebase [<database>] <change> --upto-change <change>
+  sqitch [options] rebase [<database>] <change> <change>
 
 =head1 Description
 
@@ -34,9 +34,20 @@ If the database has not been deployed to, or its state already matches the
 specified change, no reverts will be run. And if, at that point, the database
 is up-to-date, no deploys will be run.
 
+The C<< <database> >> parameter specifies the database to which to connect,
+and may also be specified as the C<--target> option. It can be either a URI or
+the name of a target in the configuration.
+
 =head1 Options
 
 =over
+
+=item C<-t>
+
+=item C<--target>
+
+The target database to which to connect. This option can be either a URI or
+the name of a target in the configuration.
 
 =item C<--onto-change>
 
