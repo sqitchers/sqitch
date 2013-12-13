@@ -20,13 +20,17 @@ specified change, no changes will be made. If the change appears later in the
 plan than the currently-deployed state, an error will be returned, along with
 a suggestion to instead use L<sqitch-deploy>.
 
+The C<< <database> >> parameter specifies the database to which to connect,
+and may also be specified as the C<--target> option. It can be either a URI or
+the name of a target in the configuration.
+
 =head1 Options
 
 =over
 
-=item C<--target>
-
 =item C<-t>
+
+=item C<--target>
 
 The target database to which to connect. This option can be either a URI or
 the name of a target in the configuration.

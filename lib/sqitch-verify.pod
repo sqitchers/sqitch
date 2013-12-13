@@ -57,9 +57,9 @@ if they fail.
 
 =over
 
-=item C<--target>
-
 =item C<-t>
+
+=item C<--target>
 
 The target database to which to connect. This option can be either a URI or
 the name of a target in the configuration.
