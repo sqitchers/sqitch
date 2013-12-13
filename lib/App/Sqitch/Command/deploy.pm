@@ -7,11 +7,17 @@ use utf8;
 use Mouse;
 use Mouse::Util::TypeConstraints;
 use Locale::TextDomain qw(App-Sqitch);
+use App::Sqitch::X qw(hurl);
 use List::Util qw(first);
 use namespace::autoclean;
 extends 'App::Sqitch::Command';
 
 our $VERSION = '0.990';
+
+has target => (
+    is  => 'ro',
+    isa => 'Str',
+);
 
 has to_change => (
     is  => 'ro',
@@ -54,6 +60,7 @@ has variables => (
 
 sub options {
     return qw(
+        target|t=s
         to-change|to|change=s
         mode=s
         set|s=s%
@@ -72,6 +79,7 @@ sub configure {
         log_only => $opt->{log_only} || 0,
     );
     $params{to_change} = $opt->{to_change} if exists $opt->{to_change};
+    $params{target}    = $opt->{target}    if exists $opt->{target};
 
     if ( exists $opt->{to_target} ) {
         # Deprecated option.
@@ -93,12 +101,39 @@ sub configure {
 }
 
 sub execute {
-    my $self   = shift;
-    my $engine = $self->sqitch->engine;
+    my $self = shift;
+    my %args = $self->parse_args(@_);
+
+    # Die on unknowns.
+    if (my @unknown = @{ $args{unknown}} ) {
+        hurl deploy => __nx(
+            'Unknown argument "{arg}"',
+            'Unknown arguments: {arg}',
+            scalar @unknown,
+            arg => join ', ', @unknown
+        );
+    }
+
+    # Warn on multiple targets.
+    my $target = $self->target // shift @{ $args{targets} };
+    $self->warn(__x(
+        'Too many targets specified; connecting to {target}',
+        target => $target,
+    )) if @{ $args{targets} };
+
+    # Warn on too many changes.
+    my $change = $self->to_change // shift @{ $args{changes} };
+    $self->warn(__x(
+        'Too many changes specified; deploying to "{change}"',
+        change => $change,
+    )) if @{ $args{changes} };
+
+    # Now get to work.
+    my $engine = $self->engine_for_target($target);
     $engine->with_verify( $self->verify );
     $engine->log_only( $self->log_only );
     if (my %v = %{ $self->variables }) { $engine->set_variables(%v) }
-    $engine->deploy( $self->to_change // shift, $self->mode );
+    $engine->deploy( $change, $self->mode );
     return $self;
 }
 

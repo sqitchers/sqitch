@@ -4,9 +4,9 @@ sqitch-deploy - Deploy changes to a database
 
 =head1 Synopsis
 
-  sqitch [options] deploy
-  sqitch [options] deploy <change>
-  sqitch [options] deploy --to-change <change>
+  sqitch [options] deploy [<database>]
+  sqitch [options] deploy [<database>] <change>
+  sqitch [options] deploy [<database>] --to-change <change>
 
 =head1 Description
 
@@ -23,6 +23,13 @@ to instead use L<sqitch-revert>.
 =head1 Options
 
 =over
+
+=item C<--target>
+
+=item C<-t>
+
+The target database to which to connect. This option can be either a URI or
+the name of a target in the configuration.
 
 =item C<--to-change>
 
