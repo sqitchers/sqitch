@@ -33,11 +33,34 @@ has client => (
 sub configure { {} }
 
 sub execute {
-    my ( $self, $branch) = @_;
-    $self->usage unless defined $branch;
+    my $self = shift;
+    my %args = $self->parse_args(@_);
+
+    # The branch arg will be the one parse_args does not recognize.
+    my $branch = shift @{ $args{unknown} } // $self->usage;
+
+    # Die on unknowns.
+    if (my @unknown = ( @{ $args{unknown} }, @{ $args{changes} } ) ) {
+        hurl checkout => __nx(
+            'Unknown argument "{arg}"',
+            'Unknown arguments: {arg}',
+            scalar @unknown,
+            arg => join ', ', @unknown
+        );
+    }
+
+    # Warn on multiple targets.
+    my $target = $self->target // shift @{ $args{targets} };
+    $self->warn(__x(
+        'Too many targets specified; connecting to {target}',
+        target => $target,
+    )) if @{ $args{targets} };
+
+
+    # Now get to work.
     my $sqitch = $self->sqitch;
     my $git    = $self->client;
-    my $engine = $sqitch->engine;
+    my $engine = $self->engine_for_target($target);
     $engine->with_verify( $self->verify );
     $engine->no_prompt( $self->no_prompt );
     $engine->log_only( $self->log_only );

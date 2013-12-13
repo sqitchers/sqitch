@@ -23,6 +23,7 @@ $ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
 
 isa_ok $CLASS, 'App::Sqitch::Command';
 can_ok $CLASS, qw(
+    target
     options
     configure
     log_only
@@ -32,6 +33,7 @@ can_ok $CLASS, qw(
 );
 
 is_deeply [$CLASS->options], [qw(
+    target|t=s
     mode=s
     verify!
     set|s=s%
@@ -309,8 +311,10 @@ ok $checkout->execute('master'), 'Checkout master';
 is_deeply \@probe_args, [$client, qw(rev-parse --abbrev-ref HEAD)],
     'The proper args should again have been passed to rev-parse';
 is_deeply \@capture_args, [$client, 'show', 'master:' . $sqitch->plan_file ],
+
     'Should have requested the plan file contents as of master';
 is_deeply \@run_args, [$client, qw(checkout master)], 'Should have checked out other branch';
+is_deeply +MockOutput->get_warn, [], 'Should have no warnings';
 
 is_deeply +MockOutput->get_info, [[__x(
     'Last change before the branches diverged: {last_change}',
@@ -337,9 +341,15 @@ is_deeply { @{ $vars[0] } }, { hey => 'there' },
 is_deeply { @{ $vars[1] } }, { foo => 'bar', one => 1 },
     'The deploy vars should have been next';
 
+# Try passing a target.
+ok $checkout->execute('master', 'db:sqlite:foo'), 'Checkout master with target';
+is $engine->target, 'db:sqlite:foo', 'Target should be passed to engine';
+is_deeply +MockOutput->get_warn, [], 'Should have no warnings';
+
 # If nothing is deployed, or we are already at the revert target, the revert
 # should be skipped.
 isa_ok $checkout = $CLASS->new(
+    target           => 'db:sqlite:hello',
     log_only         => 0,
     verify           => 0,
     sqitch           => $sqitch,
@@ -351,6 +361,8 @@ isa_ok $checkout = $CLASS->new(
 $mock_engine->mock(revert => sub { hurl { ident => 'revert', message => 'foo', exitval => 1 } });
 @dep_args = @rev_args = @vars = ();
 ok $checkout->execute('master'), 'Checkout master again';
+is $engine->target, 'db:sqlite:hello', 'Target should be passed to engine';
+is_deeply +MockOutput->get_warn, [], 'Should have no warnings';
 
 # Did it deploy?
 ok !$sqitch->engine->log_only, 'The engine should not be set to log_only';
@@ -364,6 +376,31 @@ is_deeply { @{ $vars[0] } }, { hey => 'there' },
     'The revert vars should again have been passed first';
 is_deeply { @{ $vars[1] } }, { foo => 'bar', one => 1 },
     'The deploy vars should again have been next';
+
+# Should get a warning for two targets.
+ok $checkout->execute('master', 'db:sqlite:'), 'Checkout master again with target';
+is $engine->target, 'db:sqlite:hello', 'Target should be passed to engine';
+is_deeply +MockOutput->get_warn, [[__x(
+    'Too many targets specified; connecting to {target}',
+    target => 'db:sqlite:hello',
+)]], 'Should have warning about two targets';
+
+# Make sure we get an exception for unknown args.
+throws_ok { $checkout->execute(qw(master greg)) } 'App::Sqitch::X',
+    'Should get an exception for unknown arg';
+is $@->ident, 'checkout', 'Unknow arg ident should be "checkout"';
+is $@->message, __x(
+    'Unknown argument "{arg}"',
+    arg => 'greg',
+), 'Should get an exeption for two unknown arg';
+
+throws_ok { $checkout->execute(qw(master greg widgets)) } 'App::Sqitch::X',
+    'Should get an exception for unknown args';
+is $@->ident, 'checkout', 'Unknow args ident should be "checkout"';
+is $@->message, __x(
+    'Unknown arguments: {arg}',
+    arg => 'greg, widgets',
+), 'Should get an exeption for two unknown args';
 
 # Should die for fatal, unknown, or confirmation errors.
 for my $spec (
