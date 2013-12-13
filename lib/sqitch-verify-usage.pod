@@ -8,7 +8,7 @@ sqitch-verify-usage - Sqitch verify usage statement
 
 =head1 Options
 
-    -t --target       database to which to connect
-       --from-change  verify from change
-       --to-change    verify to change
-    -s --set          set a database client variable
+    -t --target <target>       database to which to connect
+       --from-change <change>  verify from change
+       --to-change   <change>  verify to change
+    -s --set <key=value>       set a database client variable
