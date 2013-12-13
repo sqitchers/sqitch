@@ -180,6 +180,8 @@ sub parse_args {
     my $self   = shift;
     my $plan   = $self->plan;
     my $config = $self->sqitch->config;
+    require URI;
+
     my %ret    = (
         changes => [],
         targets => [],
@@ -187,6 +189,7 @@ sub parse_args {
     );
     for my $arg (@_) {
         my $ref = $plan->contains($arg)                   ? $ret{changes}
+                : URI->new($arg)->isa('URI::db')          ? $ret{targets}
                 : $config->get( key => "target.$arg.uri") ? $ret{targets}
                 :                                           $ret{unknown};
         push @{ $ref } => $arg;

@@ -266,6 +266,9 @@ ARGS: {
     is_deeply { $cmd->parse_args('devdb') },
         { changes => [], targets => ['devdb'], unknown => [] },
         'Single target should be recognized as target';
+    is_deeply { $cmd->parse_args('db:pg:') },
+        { changes => [], targets => ['db:pg:'], unknown => [] },
+        'URI target should be recognized as target, too';
     is_deeply { $cmd->parse_args('devdb', 'hey') },
         { changes => ['hey'], targets => ['devdb'], unknown => [] },
         'Target and change should be recognized';
@@ -278,6 +281,7 @@ ARGS: {
     is_deeply { $cmd->parse_args('hey', 'devdb', 'foo', 'hey-there') },
         { changes => ['hey', 'hey-there'], targets => ['devdb'], unknown => ['foo'] },
         'Multiple changes, target, and unknown should be recognized';
+
 }
 
 ##############################################################################
