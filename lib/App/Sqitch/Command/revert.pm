@@ -7,11 +7,17 @@ use utf8;
 use Mouse;
 use Mouse::Util::TypeConstraints;
 use List::Util qw(first);
+use App::Sqitch::X qw(hurl);
 use Locale::TextDomain qw(App-Sqitch);
 use namespace::autoclean;
 extends 'App::Sqitch::Command';
 
 our $VERSION = '0.990';
+
+has target => (
+    is  => 'ro',
+    isa => 'Str',
+);
 
 has to_change => (
     is  => 'ro',
@@ -46,6 +52,7 @@ has variables => (
 
 sub options {
     return qw(
+        target|t=s
         to-change|to|change=s
         to-target=s
         set|s=s%
@@ -60,6 +67,7 @@ sub configure {
     my %params = map { $_ => $opt->{$_} } grep { exists $opt->{$_} } qw(
         to_change
         log_only
+        target
     );
 
     # Deprecated option.
@@ -89,12 +97,39 @@ sub configure {
 }
 
 sub execute {
-    my $self   = shift;
-    my $engine = $self->sqitch->engine;
+    my $self = shift;
+    my %args = $self->parse_args(@_);
+
+    # Die on unknowns.
+    if (my @unknown = @{ $args{unknown}} ) {
+        hurl revert => __nx(
+            'Unknown argument "{arg}"',
+            'Unknown arguments: {arg}',
+            scalar @unknown,
+            arg => join ', ', @unknown
+        );
+    }
+
+    # Warn on multiple targets.
+    my $target = $self->target // shift @{ $args{targets} };
+    $self->warn(__x(
+        'Too many targets specified; connecting to {target}',
+        target => $target,
+    )) if @{ $args{targets} };
+
+    # Warn on too many changes.
+    my $change = $self->to_change // shift @{ $args{changes} };
+    $self->warn(__x(
+        'Too many changes specified; reverting to "{change}"',
+        change => $change,
+    )) if @{ $args{changes} };
+
+    # Now get to work.
+    my $engine = $self->engine_for_target($target);
     $engine->no_prompt( $self->no_prompt );
     $engine->log_only( $self->log_only );
     if (my %v = %{ $self->variables }) { $engine->set_variables(%v) }
-    $engine->revert( $self->to_change // shift );
+    $engine->revert( $change );
     return $self;
 }
 

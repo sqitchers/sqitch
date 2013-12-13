@@ -4,9 +4,9 @@ sqitch-revert - Revert changes to a database
 
 =head1 Synopsis
 
-  sqitch [options] revert
-  sqitch [options] revert <change>
-  sqitch [options] revert --to-change <change>
+  sqitch [options] revert [<database>]
+  sqitch [options] revert [<database>] <change>
+  sqitch [options] revert [<database>] --to-change <change>
 
 =head1 Description
 
@@ -23,6 +23,13 @@ a suggestion to instead use L<sqitch-deploy>.
 =head1 Options
 
 =over
+
+=item C<--target>
+
+=item C<-t>
+
+The target database to which to connect. This option can be either a URI or
+the name of a target in the configuration.
 
 =item C<--to-change>
 

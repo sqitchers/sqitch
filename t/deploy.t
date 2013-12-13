@@ -136,6 +136,7 @@ ok $deploy->execute('@alpha'), 'Execute to "@alpha"';
 is_deeply \@args, ['@alpha', 'all'],
     '"@alpha" "all", and 0 should be passed to the engine';
 ok !$sqitch->engine->log_only, 'The engine should not be set log_only';
+is_deeply +MockOutput->get_warn, [], 'Should have no warnings';
 
 @args = ();
 ok $deploy->execute, 'Execute';
