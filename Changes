@@ -41,6 +41,8 @@ Revision history for Perl extension App::Sqitch
        command or a database URI.
      - Improved database driver loading to ensure the proper version of the
        driver is required.
+     - Added Firebird engine. Three cheers to Ștefan Suciu for this
+       contribution!
 
 0.983  2013-11-21T21:50:12Z
      - Fixed "Use of uninitialized value" in the MySQL engine. Thanks to
