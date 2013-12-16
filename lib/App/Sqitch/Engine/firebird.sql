@@ -50,7 +50,7 @@ CREATE TABLE changes (
     change          VARCHAR(255)  NOT NULL,
     project         VARCHAR(255)  NOT NULL REFERENCES projects(project)
                                        ON UPDATE CASCADE,
-    note            VARCHAR(4000) DEFAULT '' NOT NULL,
+    note            BLOB SUB_TYPE TEXT DEFAULT '' NOT NULL,
     committed_at    TIMESTAMP     DEFAULT CURRENT_TIMESTAMP NOT NULL,
     committer_name  VARCHAR(255)  NOT NULL,
     committer_email VARCHAR(255)  NOT NULL,
@@ -114,7 +114,7 @@ CREATE TABLE tags (
                                        ON UPDATE CASCADE,
     change_id       CHAR(40)      NOT NULL REFERENCES changes(change_id)
                                        ON UPDATE CASCADE,
-    note            VARCHAR(4000) DEFAULT '' NOT NULL,
+    note            BLOB SUB_TYPE TEXT DEFAULT '' NOT NULL,
     committed_at    TIMESTAMP     DEFAULT CURRENT_TIMESTAMP NOT NULL,
     committer_name  VARCHAR(512)  NOT NULL,
     committer_email VARCHAR(512)  NOT NULL,
@@ -220,10 +220,10 @@ CREATE TABLE events (
     change          VARCHAR(512)  NOT NULL,
     project         VARCHAR(255)  NOT NULL REFERENCES projects(project)
                                        ON UPDATE CASCADE,
-    note            VARCHAR(4000) DEFAULT '' NOT NULL,
-    requires        BLOB          DEFAULT '' NOT NULL,
-    conflicts       BLOB          DEFAULT '' NOT NULL,
-    tags            BLOB          DEFAULT '' NOT NULL,
+    note            BLOB SUB_TYPE TEXT DEFAULT '' NOT NULL,
+    requires        BLOB SUB_TYPE TEXT DEFAULT '' NOT NULL,
+    conflicts       BLOB SUB_TYPE TEXT DEFAULT '' NOT NULL,
+    tags            BLOB SUB_TYPE TEXT DEFAULT '' NOT NULL,
     committed_at    TIMESTAMP     DEFAULT CURRENT_TIMESTAMP NOT NULL,
     committer_name  VARCHAR(512)  NOT NULL,
     committer_email VARCHAR(512)  NOT NULL,
