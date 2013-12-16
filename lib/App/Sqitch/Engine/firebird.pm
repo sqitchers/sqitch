@@ -186,7 +186,7 @@ sub initialized {
 
     # Try to connect.
     my $err = 0;
-    my $dbh = try { $self->dbh } catch { $err = $DBI::err; };
+    my $dbh = try { $self->dbh } catch { $err = $DBI::err; $self->debug($_); };
     return 0 if $err;
 
     return $self->dbh->selectcol_arrayref(qq{
@@ -224,7 +224,7 @@ sub initialize {
         hurl firebird => __ "DBD::Firebird failed to create test database: $_";
     };
 
-    # Load up our database. The database have to exist!
+    # Load up our database. The database must exist!
     my @cmd    = $self->isql;
     $cmd[-1]   = $sqitch_db;
     my $file   = file(__FILE__)->dir->file('firebird.sql');
