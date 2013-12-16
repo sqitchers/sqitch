@@ -186,7 +186,7 @@ sub initialized {
 
     # Try to connect.
     my $err = 0;
-    my $dbh = try { $self->dbh } catch { $err = $DBI::err; $self->debug($_); };
+    my $dbh = try { $self->dbh } catch { $err = $DBI::err; $self->sqitch->debug($_); };
     return 0 if $err;
 
     return $self->dbh->selectcol_arrayref(qq{
