@@ -308,9 +308,11 @@ sub register_project {
         }
     } else {
         # Does the URI already exist?
-        my $res = $dbh->selectcol_arrayref(
+        my $res = defined $uri ? $dbh->selectcol_arrayref(
             'SELECT project FROM projects WHERE uri = ?',
             undef, $uri
+        ) : $dbh->selectcol_arrayref(
+            'SELECT project FROM projects WHERE uri IS NULL',
         );
 
         hurl engine => __x(
