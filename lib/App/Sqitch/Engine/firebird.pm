@@ -140,7 +140,7 @@ has tz_offset => (
 
 sub key    { 'firebird' }
 sub name   { 'Firebird' }
-sub driver { 'DBD::Firebird 1.0' }
+sub driver { 'DBD::Firebird 1.15' }
 
 sub _char2ts {
     my $dt = $_[1];
