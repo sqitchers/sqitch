@@ -443,8 +443,7 @@ bundle.tags_only=true
 core.engine=pg
 core.extension=ddl
 core.firebird.client=/opt/firebird/bin/isql
-core.firebird.sqitch_prefix=meta
-core.firebird.username=sysdba
+core.firebird.registry=meta
 core.mysql.client=/opt/local/mysql/bin/mysql
 core.mysql.registry=meta
 core.mysql.username=root
@@ -506,8 +505,7 @@ revert.to=gamma
     ok $cmd->execute, 'List the user config';
     is_deeply \@emit, [[
         "core.firebird.client=/opt/firebird/bin/isql
-core.firebird.sqitch_prefix=meta
-core.firebird.username=sysdba
+core.firebird.registry=meta
 core.mysql.client=/opt/local/mysql/bin/mysql
 core.mysql.registry=meta
 core.mysql.username=root
