@@ -308,9 +308,11 @@ sub register_project {
         }
     } else {
         # Does the URI already exist?
-        my $res = $dbh->selectcol_arrayref(
+        my $res = defined $uri ? $dbh->selectcol_arrayref(
             'SELECT project FROM projects WHERE uri = ?',
             undef, $uri
+        ) : $dbh->selectcol_arrayref(
+            'SELECT project FROM projects WHERE uri IS NULL',
         );
 
         hurl engine => __x(
@@ -563,6 +565,7 @@ sub log_new_tags {
 
     my $ts = $self->_ts_default;
     my $sf = $self->_simple_from;
+
     $self->dbh->do(
         q{
             INSERT INTO tags (
@@ -660,7 +663,7 @@ sub deployed_changes {
         $_;
     } @{ $self->dbh->selectall_arrayref(qq{
         SELECT c.change_id AS id, c.change AS name, c.project, c.note,
-               $tscol AS timestamp, c.planner_name, c.planner_email,
+               $tscol AS "timestamp", c.planner_name, c.planner_email,
                $tagcol AS tags
           FROM changes   c
           LEFT JOIN tags t ON c.change_id = t.change_id
@@ -683,7 +686,7 @@ sub deployed_changes_since {
         $_;
     } @{ $self->dbh->selectall_arrayref(qq{
         SELECT c.change_id AS id, c.change AS name, c.project, c.note,
-               $tscol AS timestamp, c.planner_name, c.planner_email,
+               $tscol AS "timestamp", c.planner_name, c.planner_email,
                $tagcol AS tags
           FROM changes   c
           LEFT JOIN tags t ON c.change_id = t.change_id
@@ -701,7 +704,7 @@ sub load_change {
     my $tagcol = sprintf $self->_listagg_format, 't.tag';
     my $change = $self->dbh->selectrow_hashref(qq{
         SELECT c.change_id AS id, c.change AS name, c.project, c.note,
-               $tscol AS timestamp, c.planner_name, c.planner_email,
+               $tscol AS "timestamp", c.planner_name, c.planner_email,
                 $tagcol AS tags
           FROM changes   c
           LEFT JOIN tags t ON c.change_id = t.change_id
@@ -740,7 +743,7 @@ sub change_offset_from_id {
 
     my $change = $self->dbh->selectrow_hashref(qq{
         SELECT c.change_id AS id, c.change AS name, c.project, c.note,
-               $tscol AS timestamp, c.planner_name, c.planner_email,
+               $tscol AS "timestamp", c.planner_name, c.planner_email,
                $tagcol AS tags
           FROM changes   c
           LEFT JOIN tags t ON c.change_id = t.change_id

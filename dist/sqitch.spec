@@ -229,6 +229,23 @@ package bundles the Sqitch MySQL support.
 %files mysql
 # No additional files required.
 
+%package firebird
+Summary:        Sane database change management for Firebird
+Group:          Development/Libraries
+Requires:       sqitch >= %{version}
+Requires:       firebird >= 2.5.0
+Requires:       perl(DBI)
+Requires:       perl(DBD::Firebird) >= 1.15
+BuildRequires:  firebird-classic >= 2.5.0
+
+%description firebird
+Sqitch provides a simple yet robust interface for database change
+management. The philosophy and functionality is inspired by Git. This
+package bundles the Sqitch Firebird support.
+
+%files firebird
+# No additional files required.
+
 %changelog
 * Thu Nov 21 2013 David E. Wheeler <david.wheeler@iovation.com> 0.983-1
 - Upgrade to v0.983.
