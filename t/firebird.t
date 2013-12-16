@@ -40,31 +40,24 @@ BEGIN {
 }
 
 is_deeply [$CLASS->config_vars], [
-    client    => 'any',
-    username  => 'any',
-    password  => 'any',
-    db_name   => 'any',
-    host      => 'any',
-    port      => 'int',
-    sqitch_db => 'any',
-], 'config_vars should return seven vars';
+    target   => 'any',
+    registry => 'any',
+    client   => 'any',
+], 'config_vars should return three vars';
 
-my $sqitch = App::Sqitch->new;
-isa_ok my $fb = $CLASS->new(sqitch => $sqitch, db_name => 'foo.fdb'), $CLASS;
+my $sqitch = App::Sqitch->new(_engine => 'firebird', db_name => 'foo.fdb');
+isa_ok my $fb = $CLASS->new(sqitch  => $sqitch), $CLASS;
 
 like( $fb->client, qr/isql|fbsql|isql-fb/,
     'client should default to isql | fbsql | isql-fb' )
     if $have_fb_driver;
 
-is $fb->db_name, 'foo.fdb', 'db_name should be required';
-is $fb->sqitch_db, catfile('.','sqitch-foo.fdb'), 'sqitch_db default should be "sqitch-foo.fdb"';
-for my $attr (qw(username password port)) {
-    is $fb->$attr, undef, "$attr default should be undef";
-}
-is $fb->host, 'localhost', 'host default should be "localhost"';
+is $fb->uri->dbname, file('foo.fdb'), 'dbname should be filled in';
+is $fb->registry_uri->dbname, 'sqitch.fdb',
+    'registry dbname should be "sqitch.fdb"';
 
-is $fb->meta_destination, $fb->sqitch_db,
-    'meta_destination should be the same as sqitch_db';
+is $fb->registry_destination, $fb->registry_uri->as_string,
+    'registry_destination should be the same as registry URI';
 
 my @std_opts = (
     '-quiet',
@@ -74,55 +67,45 @@ my @std_opts = (
     '-charset'    => 'UTF8',
 );
 
-is_deeply([$fb->isql], [$fb->client, @std_opts, 'localhost:' . $fb->db_name],
+is_deeply([$fb->isql], [$fb->client, @std_opts, $fb->uri->dbname],
           'isql command should be std opts-only') if $have_fb_driver;
 
 isa_ok $fb = $CLASS->new(sqitch => $sqitch, db_name => 'foo'), $CLASS;
 ok $fb->set_variables(foo => 'baz', whu => 'hi there', yo => 'stellar'),
     'Set some variables';
 
-is_deeply([$fb->isql], [$fb->client, @std_opts, 'localhost:' . $fb->db_name],
+is_deeply([$fb->isql], [$fb->client, @std_opts, $fb->uri->dbname],
           'isql command should be std opts-only') if $have_fb_driver;
-
-is_deeply [$fb->isql], [
-    $fb->client,
-    @std_opts,
-    'localhost:' . $fb->db_name
-], 'Variables should not be passed to firebird' if $have_fb_driver;
 
 ##############################################################################
 # Make sure config settings override defaults.
 my %config = (
-    'core.firebird.client'    => '/path/to/isql',
-    'core.firebird.username'  => 'freddy',
-    'core.firebird.password'  => 's3cr3t',
-    'core.firebird.db_name'   => 'widgets',
-    'core.firebird.host'      => 'db.example.com',
-    'core.firebird.port'      => 1234,
-    'core.firebird.sqitch_db' => 'meta',
+    'core.firebird.client'   => '/path/to/isql',
+    'core.firebird.uri'      => 'db:firebird://freddy:s3cr3t@db.example.com:1234/widgets',
+    'core.firebird.registry' => 'meta',
 );
 my $mock_config = Test::MockModule->new('App::Sqitch::Config');
 $mock_config->mock(get => sub { $config{ $_[2] } });
+$sqitch = App::Sqitch->new( _engine => 'firebird' );
 ok $fb = $CLASS->new(sqitch => $sqitch), 'Create another firebird';
 
-is $fb->client, catfile(qw{/path to isql}), 'client should be as configured';
-is $fb->username, 'freddy', 'username should be as configured';
-is $fb->password, 's3cr3t', 'password should be as configured';
-is $fb->db_name, 'widgets', 'db_name should be as configured';
-is $fb->destination, 'widgets', 'destination should default to db_name';
-is $fb->meta_destination, 'meta', 'meta_destination should be as configured';
-is $fb->host, 'db.example.com', 'host should be as configured';
-is $fb->port, 1234, 'port should be as configured';
-is $fb->sqitch_db, 'meta', 'sqitch_db should be as configured';
+is $fb->client, '/path/to/isql', 'client should be as configured';
+is $fb->uri, URI::db->new('db:firebird://freddy:s3cr3t@db.example.com:1234/widgets'),
+    'URI should be as configured';
+like $fb->destination, qr{db:firebird://freddy:?\@db.example.com:1234/widgets},
+    'destination should default to URI without password';
+like $fb->registry_destination, qr{db:firebird://freddy:?\@db.example.com:1234/meta},
+    'registry_destination should be URI with configured registry and no password';
 is_deeply [$fb->isql], [(
-    catfile(qw{/path to isql}),
+    '/path/to/isql',
     '-user', 'freddy',
     '-password', 's3cr3t',
-), @std_opts, 'db.example.com:1234:' . $fb->db_name], 'firebird command should be configured';
+), @std_opts, 'db.example.com:1234:widgets'], 'firebird command should be configured';
 
 ##############################################################################
 # Now make sure that Sqitch options override configurations.
 $sqitch = App::Sqitch->new(
+    _engine     => 'firebird',
     db_client   => '/some/other/isql',
     db_username => 'anna',
     db_name     => 'widgets_dev',
@@ -133,20 +116,20 @@ $sqitch = App::Sqitch->new(
 ok $fb = $CLASS->new(sqitch => $sqitch),
     'Create a firebird with sqitch with options';
 
-is $fb->client, catfile(qw{/some other isql}), 'client should be as optioned';
-is $fb->username, 'anna', 'username should be as optioned';
-is $fb->password, 's3cr3t', 'password should still be as configured';
-is $fb->db_name, 'widgets_dev', 'db_name should be as optioned';
-is $fb->destination, 'widgets_dev', 'destination should still default to db_name';
-is $fb->meta_destination, 'meta', 'meta_destination should still be configured';
-is $fb->host, 'foo.com', 'host should be as optioned';
-is $fb->port, 98760, 'port should be as optioned';
-is $fb->sqitch_db, 'meta', 'sqitch_db should still be as configured';
+is $fb->client, '/some/other/isql', 'client should be as optioned';
+is $fb->uri, URI::db->new('db:firebird://anna:s3cr3t@foo.com:98760/widgets_dev'),
+    'URI should include option values.';
+like $fb->destination, qr{db:firebird://anna:?\@foo.com:98760/widgets_dev},
+    'destination should be URI without password_name';
+is $fb->registry_uri, URI::db->new('db:firebird://anna:s3cr3t@foo.com:98760/meta'),
+    'Registry URI should include option values.';
+like $fb->registry_destination, qr{db:firebird://anna:?\@foo.com:98760/meta},
+    'meta_destination should be correct';
 is_deeply [$fb->isql], [(
-    catfile(qw{/some other isql}),
+    '/some/other/isql',
     '-user', 'anna',
     '-password', 's3cr3t',
-), @std_opts, 'foo.com:98760:' . $fb->db_name], 'isql command should be as optioned';
+), @std_opts, 'foo.com:98760:widgets_dev'], 'isql command should be as optioned';
 
 ##############################################################################
 # Test _run(), _capture(), and _spool().
@@ -265,11 +248,11 @@ END {
     }
 }
 
+my $dbpath = catfile($tmpdir, '__sqitchtest__');
 my $err = try {
-    my $path = catfile($tmpdir, '__sqitchtest__');
     require DBD::Firebird;
     DBD::Firebird->create_database(
-        {   db_path       => $path,
+        {   db_path       => $dbpath,
             user          => $user,
             password      => $pass,
             character_set => 'UTF8',
@@ -281,16 +264,16 @@ my $err = try {
     eval { $_->message } || $_;
 };
 
+my $uri = URI::db->new("db:firebird://$user:$pass\@localhost/$dbpath");
 DBIEngineTest->run(
     class         => $CLASS,
     sqitch_params => [
-        db_username => 'SYSDBA',
-        db_name     => catfile($tmpdir, '__sqitchtest__'),
+	_engine     => 'firebird',
         top_dir     => Path::Class::dir(qw(t engine)),
         plan_file   => Path::Class::file(qw(t engine sqitch.plan)),
     ],
-    engine_params     => [ password => $pass, sqitch_db => catfile($tmpdir, '__metasqitch') ],
-    alt_engine_params => [ password => $pass, sqitch_db => catfile($tmpdir, '__sqitchtest') ],
+    engine_params     => [ uri => $uri, registry => catfile($tmpdir, '__metasqitch') ],
+    alt_engine_params => [ uri => $uri, registry => catfile($tmpdir, '__sqitchtest') ],
 
     skip_unless => sub {
         my $self = shift;

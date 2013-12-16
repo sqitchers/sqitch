@@ -21,108 +21,47 @@ extends 'App::Sqitch::Engine';
 sub dbh; # required by DBIEngine;
 with 'App::Sqitch::Role::DBIEngine';
 
-our $VERSION = '0.983';
+our $VERSION = '0.990';
 
-has client => (
+has registry_uri => (
     is       => 'ro',
-    isa      => 'Maybe[Path::Class::File]',
+    isa      => 'URI::db',
     lazy     => 1,
     required => 1,
     default  => sub {
-        my $self   = shift;
-        my $sqitch = $self->sqitch;
-        my $name = $sqitch->db_client
-            || $self->sqitch->config->get( key => 'core.firebird.client' )
-            || $self->find_firebird_isql
-            || return undef;
-        return file $name;
-    },
-);
-
-has username => (
-    is       => 'ro',
-    isa      => 'Maybe[Str]',
-    lazy     => 1,
-    required => 0,
-    default => sub {
-        my $sqitch = shift->sqitch;
-        $sqitch->db_username
-            || $sqitch->config->get( key => 'core.firebird.username' );
-    },
-);
-
-has password => (
-    is       => 'ro',
-    isa      => 'Maybe[Str]',
-    lazy     => 1,
-    required => 0,
-    default  => sub {
-        shift->sqitch->config->get( key => 'core.firebird.password' );
-    },
-);
-
-has db_name => (
-    is       => 'ro',
-    isa      => 'Maybe[Str]',
-    lazy     => 1,
-    required => 0,
-    default => sub {
-        my $self   = shift;
-        my $sqitch = $self->sqitch;
-        $sqitch->db_name
-            || $sqitch->config->get( key => 'core.firebird.db_name' );
-        },
-);
-
-sub destination { shift->db_name }
-
-has sqitch_db => (
-    is       => 'ro',
-    isa      => 'Maybe[Str]',
-    lazy     => 1,
-    required => 1,
-    default => sub {
         my $self = shift;
-        if ( my $db
-            = $self->sqitch->config->get( key => 'core.firebird.sqitch_db' ) )
-        {
-            return $db;
+        my $uri  = $self->uri->clone;
+        my $reg  = $self->registry;
+
+        if ( file($reg)->is_absolute ) {
+            # Just use an absolute path.
+            $uri->dbname($reg);
+        } elsif (my @segs = $uri->path_segments) {
+            # Use the same name, but replace $name.$ext with $reg.$ext.
+            my $reg = $self->registry;
+            if ($reg =~ /[.]/) {
+                $segs[-1] =~ s/^[^.]+(?:[.].+)?$/$reg/;
+            } else {
+                $segs[-1] =~ s{^[^.]+([.].+)?$}{$reg . ($1 // '')}e;
+            }
+            $uri->path_segments(@segs);
+        } else {
+            # No known path, so no name.
+            $uri->dbname(undef);
         }
-        if ( my $db = $self->db_name ) {
-            # Defaults to sqitch-db_name.$ext in the same dir as db_name.$ext
-            my ($name, $path, $ext) = fileparse( $db, qr/\.[^\.]*/ );
-            return catfile($path, "sqitch-${name}$ext");
-        }
-        return undef;
+
+        return $uri;
     },
 );
 
-sub meta_destination { shift->sqitch_db }
-
-has host => (
-    is       => 'ro',
-    isa      => 'Maybe[Str]',
-    lazy     => 1,
-    required => 0,
-    default => sub {
-        my $sqitch = shift->sqitch;
-        $sqitch->db_host
-            || $sqitch->config->get( key => 'core.firebird.host' )
-            || 'localhost';
-        },
-);
-
-has port => (
-    is       => 'ro',
-    isa      => 'Maybe[Int]',
-    lazy     => 1,
-    required => 0,
-    default => sub {
-        my $sqitch = shift->sqitch;
-        $sqitch->db_port
-            || $sqitch->config->get( key => 'core.firebird.port' );
-        },
-);
+sub registry_destination {
+    my $uri = shift->registry_uri;
+    if ($uri->password) {
+        $uri = $uri->clone;
+        $uri->password(undef);
+    }
+    return $uri->as_string;
+}
 
 has dbh => (
     is      => 'rw',
@@ -130,29 +69,12 @@ has dbh => (
     lazy    => 1,
     default => sub {
         my $self = shift;
-        try { require DBD::Firebird }
-        catch {
-            hurl firebird => __
-                'DBD::Firebird module required to manage Firebird';
-        };
+        my $uri  = $self->registry_uri;
+        $self->use_driver;
 
-        my $dsn = 'dbi:Firebird:dbname='
-            . (
-            $self->sqitch_db || hurl firebird => __(
-                'No database specified; use --db-name or set "core.firebird.db_name" via sqitch config'
-            )
-            );
-
-        $dsn .= join '' => map {
-            ";$_->[0]=$_->[1]"
-        } grep { $_->[1] } (
-            [ host       => $self->host ],
-            [ port       => $self->port ],
-            [ ib_dialect => 3           ],
-            [ ib_charset => 'UTF8'      ],
-        );
-
-        my $dbh = DBI->connect($dsn, $self->username, $self->password, {
+	my $dsn = $uri->dbi_dsn . ';ib_dialect=3;ib_charset=UTF8';
+        return DBI->connect($dsn, scalar $uri->user, scalar $uri->password, {
+	    $uri->query_params,
             PrintError       => 0,
             RaiseError       => 0,
             AutoCommit       => 1,
@@ -165,10 +87,6 @@ has dbh => (
                 goto &hurl;
             },
         });
-
-        # Make sure we support this version. ???
-
-        return $dbh;
     }
 );
 
@@ -180,20 +98,27 @@ has isql => (
     auto_deref => 1,
     default    => sub {
         my $self = shift;
+	my $uri  = $self->uri;
         my @ret  = ( $self->client );
         for my $spec (
-            [ user     => $self->username ],
-            [ password => $self->password ],
+            [ user     => $uri->user     ],
+            [ password => $uri->password ],
         ) {
             push @ret, "-$spec->[0]" => $spec->[1] if $spec->[1];
         }
+
+        my $dbname = $uri->dbname or hurl firebird => __x(
+            'Database name missing in URI {uri}',
+            uri => $uri,
+        );
+
         push @ret => (
             '-quiet',
             '-bail',
             '-sqldialect' => '3',
             '-pagelength' => '16384',
             '-charset'    => 'UTF8',
-            join ':', grep { defined } $self->host, $self->port, $self->db_name
+            join ':', grep { defined } $uri->host, $uri->_port, $dbname
         );
         return \@ret;
     },
@@ -213,17 +138,9 @@ has tz_offset => (
     },
 );
 
-sub config_vars {
-    return (
-        client    => 'any',
-        username  => 'any',
-        password  => 'any',
-        db_name   => 'any',
-        host      => 'any',
-        port      => 'int',
-        sqitch_db => 'any',
-    );
-}
+sub key    { 'firebird' }
+sub name   { 'Firebird' }
+sub driver { 'DBD::Firebird 1.0' }
 
 sub _char2ts {
     my $dt = $_[1];
@@ -282,35 +199,34 @@ sub initialized {
 }
 
 sub initialize {
-    my $self   = shift;
+    my $self = shift;
+    my $uri  = $self->registry_uri;
     hurl engine => __x(
         'Sqitch database {database} already initialized',
-        database => $self->sqitch_db,
+        database => $uri->dbname,
     ) if $self->initialized;
 
     # Create the Sqitch database if it does not exist.
-
     my $sqitch_db = join ':', grep {defined}
-        $self->host, $self->port, $self->sqitch_db;
+        $uri->host, $uri->_port, $uri->dbname;
 
     try {
         require DBD::Firebird;
-        DBD::Firebird->create_database(
-            {   db_path       => $sqitch_db,
-                user          => $self->username,
-                password      => $self->password,
-                character_set => 'UTF8',
-                page_size     => 16384,
-            }
-        );
+        DBD::Firebird->create_database({
+	    db_path       => $sqitch_db,
+	    user          => scalar $uri->user,
+	    password      => scalar $uri->password,
+	    character_set => 'UTF8',
+	    page_size     => 16384,
+        });
     }
     catch {
         hurl firebird => __ "DBD::Firebird failed to create test database: $_";
     };
 
     # Load up our database. The database have to exist!
-    my @cmd  = $self->isql;
-    $cmd[-1] = $sqitch_db;
+    my @cmd    = $self->isql;
+    $cmd[-1]   = $sqitch_db;
     my $file   = file(__FILE__)->dir->file('firebird.sql');
     my $sqitch = $self->sqitch;
     $sqitch->run( @cmd, '-input' => $sqitch->quote_shell($file) );
@@ -972,7 +888,7 @@ sub log_deploy_change {
 # Adapted from the FirebirdMaker.pm module of DBD::Firebird.
 #
 
-sub find_firebird_isql {
+sub default_client {
     my $self = shift;
 
     my $os = $^O;
@@ -1146,23 +1062,6 @@ App::Sqitch::Engine::firebird provides the Firebird storage engine for Sqitch.
 
 =head1 Interface
 
-=head3 Class Methods
-
-=head3 C<config_vars>
-
-  my %vars = App::Sqitch::Engine::firebird->config_vars;
-
-Returns a hash of names and types to use for variables in the C<core.firebird>
-section of the a Sqitch configuration file. The variables and their types are:
-
-  client    => 'any',
-  username  => 'any',
-  password  => 'any',
-  db_name   => 'any',
-  host      => 'any',
-  port      => 'int',
-  sqitch_db => 'any',
-
 =head2 Accessors
 
 =head3 C<client>
@@ -1172,17 +1071,6 @@ to C<sqitch>, that's what will be returned.  Otherwise, it uses the
 C<core.firebird.client> configuration value, or else defaults to
 C<isql> (or C<isql.exe> on Windows), which should work if it's in your
 path.
-
-=head3 C<db_name>
-
-Returns the name of the database file.  If C<--db-name> was passed to
-C<sqitch> that's what will be returned.
-
-=head3 C<sqitch_db>
-
-Name of the Firebird database file to use for the Sqitch metadata tables.
-Returns the value of the C<core.firebird.sqitch_db> configuration value, or else
-defaults to F<sqitch.db> in the same directory as C<db_name>.
 
 =head1 Author
 
