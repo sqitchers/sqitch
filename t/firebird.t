@@ -268,7 +268,7 @@ my $uri = URI::db->new("db:firebird://$user:$pass\@localhost/$dbpath");
 DBIEngineTest->run(
     class         => $CLASS,
     sqitch_params => [
-	_engine     => 'firebird',
+        _engine     => 'firebird',
         top_dir     => Path::Class::dir(qw(t engine)),
         plan_file   => Path::Class::file(qw(t engine sqitch.plan)),
     ],

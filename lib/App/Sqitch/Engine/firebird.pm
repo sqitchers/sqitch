@@ -72,9 +72,9 @@ has dbh => (
         my $uri  = $self->registry_uri;
         $self->use_driver;
 
-	my $dsn = $uri->dbi_dsn . ';ib_dialect=3;ib_charset=UTF8';
+        my $dsn = $uri->dbi_dsn . ';ib_dialect=3;ib_charset=UTF8';
         return DBI->connect($dsn, scalar $uri->user, scalar $uri->password, {
-	    $uri->query_params,
+            $uri->query_params,
             PrintError       => 0,
             RaiseError       => 0,
             AutoCommit       => 1,
@@ -98,7 +98,7 @@ has isql => (
     auto_deref => 1,
     default    => sub {
         my $self = shift;
-	my $uri  = $self->uri;
+        my $uri  = $self->uri;
         my @ret  = ( $self->client );
         for my $spec (
             [ user     => $uri->user     ],
@@ -213,11 +213,11 @@ sub initialize {
     try {
         require DBD::Firebird;
         DBD::Firebird->create_database({
-	    db_path       => $sqitch_db,
-	    user          => scalar $uri->user,
-	    password      => scalar $uri->password,
-	    character_set => 'UTF8',
-	    page_size     => 16384,
+            db_path       => $sqitch_db,
+            user          => scalar $uri->user,
+            password      => scalar $uri->password,
+            character_set => 'UTF8',
+            page_size     => 16384,
         });
     }
     catch {
