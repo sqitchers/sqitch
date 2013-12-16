@@ -12,7 +12,7 @@
 CREATE TABLE projects (
     project         VARCHAR(255)  NOT NULL PRIMARY KEY,
     uri             VARCHAR(255)  UNIQUE,
-    created_at      TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,
+    created_at      TIMESTAMP     DEFAULT CURRENT_TIMESTAMP NOT NULL,
     creator_name    VARCHAR(255)  NOT NULL,
     creator_email   VARCHAR(255)  NOT NULL
 );
@@ -50,8 +50,8 @@ CREATE TABLE changes (
     change          VARCHAR(255)  NOT NULL,
     project         VARCHAR(255)  NOT NULL REFERENCES projects(project)
                                        ON UPDATE CASCADE,
-    note            VARCHAR(4000) DEFAULT '',
-    committed_at    TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,
+    note            VARCHAR(4000) DEFAULT '' NOT NULL,
+    committed_at    TIMESTAMP     DEFAULT CURRENT_TIMESTAMP NOT NULL,
     committer_name  VARCHAR(255)  NOT NULL,
     committer_email VARCHAR(255)  NOT NULL,
     planned_at      TIMESTAMP     NOT NULL,
@@ -114,8 +114,8 @@ CREATE TABLE tags (
                                        ON UPDATE CASCADE,
     change_id       CHAR(40)      NOT NULL REFERENCES changes(change_id)
                                        ON UPDATE CASCADE,
-    note            VARCHAR(4000) DEFAULT '',
-    committed_at    TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,
+    note            VARCHAR(4000) DEFAULT '' NOT NULL,
+    committed_at    TIMESTAMP     DEFAULT CURRENT_TIMESTAMP NOT NULL,
     committer_name  VARCHAR(512)  NOT NULL,
     committer_email VARCHAR(512)  NOT NULL,
     planned_at      TIMESTAMP     NOT NULL,
@@ -220,11 +220,11 @@ CREATE TABLE events (
     change          VARCHAR(512)  NOT NULL,
     project         VARCHAR(255)  NOT NULL REFERENCES projects(project)
                                        ON UPDATE CASCADE,
-    note            VARCHAR(4000) DEFAULT '',
-    requires        BLOB          DEFAULT '',
-    conflicts       BLOB          DEFAULT '',
-    tags            BLOB          DEFAULT '',
-    committed_at    TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,
+    note            VARCHAR(4000) DEFAULT '' NOT NULL,
+    requires        BLOB          DEFAULT '' NOT NULL,
+    conflicts       BLOB          DEFAULT '' NOT NULL,
+    tags            BLOB          DEFAULT '' NOT NULL,
+    committed_at    TIMESTAMP     DEFAULT CURRENT_TIMESTAMP NOT NULL,
     committer_name  VARCHAR(512)  NOT NULL,
     committer_email VARCHAR(512)  NOT NULL,
     planned_at      TIMESTAMP     NOT NULL,
