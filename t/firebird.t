@@ -67,13 +67,7 @@ my @std_opts = (
     '-charset'    => 'UTF8',
 );
 
-my $host   = $fb->uri->host;
-my $port   = $fb->uri->port;
-my $dbname = $fb->uri->dbname;
-$dbname = $host
-        ? qq{$host/$port:$dbname}
-        : qq{localhost/$port:$dbname}
-        if $port;
+my $dbname = $fb->connection_string($fb->uri);
 is_deeply([$fb->isql], [$fb->client, @std_opts, $dbname],
           'isql command should be std opts-only') if $have_fb_driver;
 
