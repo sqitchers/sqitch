@@ -4,17 +4,18 @@ sqitch-rebase-usage - Sqitch rebase usage statement
 
 =head1 Usage
 
-  sqitch [options] rebase [<revert-target options> [<deploy-target options>]]
+  sqitch [options] rebase [<revert-change options> [<deploy-change options>]]
 
 =head1 Options
 
-       --onto-target <change>  revert to target
-       --upto-target <change>  deploy to target
-       --mode <mode>           deploy failure reversion mode (all, tag, or change)
-       --verify                run verify scripts after deploying each change
-       --no-verify             do not run verify scripts
-    -s --set                   set a database client variable
-    -r --set-revert            set a database client revert variable
-    -r --set-deploy            set a database client deploy variable
-       --log-only              log changes without running them
-    -y                         disable the prompt before reverting
+    -t --target <target>              database to which to connect
+       --onto --onto-change <change>  revert to change
+       --upto --upto-change <change>  deploy to change
+       --mode <mode>                  deploy reversion mode (all, tag, change)
+       --verify                       run verify scripts after each change
+       --no-verify                    do not run verify scripts
+    -s --set <key=value>              set a database client variable
+    -r --set-revert <key=value>       set a database client revert variable
+    -r --set-deploy <key=value>       set a database client deploy variable
+       --log-only                     log changes without running them
+    -y                                disable the prompt before reverting

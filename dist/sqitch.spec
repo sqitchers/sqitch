@@ -203,7 +203,7 @@ Group:          Development/Libraries
 Requires:       sqitch >= %{version}
 Requires:       oracle-instantclient11.2-sqlplus
 Requires:       perl(DBI)
-Requires:       perl(DBD::Oracle)
+Requires:       perl(DBD::Oracle) >= 1.23
 
 %description oracle
 Sqitch provides a simple yet robust interface for database change
@@ -227,6 +227,23 @@ management. The philosophy and functionality is inspired by Git. This
 package bundles the Sqitch MySQL support.
 
 %files mysql
+# No additional files required.
+
+%package firebird
+Summary:        Sane database change management for Firebird
+Group:          Development/Libraries
+Requires:       sqitch >= %{version}
+Requires:       firebird >= 2.5.0
+Requires:       perl(DBI)
+Requires:       perl(DBD::Firebird) >= 1.15
+BuildRequires:  firebird-classic >= 2.5.0
+
+%description firebird
+Sqitch provides a simple yet robust interface for database change
+management. The philosophy and functionality is inspired by Git. This
+package bundles the Sqitch Firebird support.
+
+%files firebird
 # No additional files required.
 
 %changelog

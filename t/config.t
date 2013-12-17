@@ -443,23 +443,24 @@ bundle.tags_only=true
 core.engine=pg
 core.extension=ddl
 core.firebird.client=/opt/firebird/bin/isql
-core.firebird.sqitch_prefix=meta
-core.firebird.username=sysdba
+core.firebird.registry=meta
 core.mysql.client=/opt/local/mysql/bin/mysql
-core.mysql.sqitch_prefix=meta
+core.mysql.registry=meta
 core.mysql.username=root
 core.pg.client=/opt/local/pgsql/bin/psql
 core.pg.db_name=widgets
 core.pg.host=localhost
-core.pg.sqitch_schema=meta
+core.pg.registry=meta
 core.pg.username=postgres
 core.sqlite.client=/opt/local/bin/sqlite3
-core.sqlite.sqitch_db=meta.db
+core.sqlite.registry=meta
+core.sqlite.target=devdb
 core.top_dir=migrations
 core.uri=https://github.com/theory/sqitch/
 revert.count=2
 revert.revision=1.1
 revert.to=gamma
+target.devdb.uri=db:sqlite:
 user.email=michael\@example.com
 user.name=Michael Stonebraker
 "
@@ -504,17 +505,16 @@ revert.to=gamma
     ok $cmd->execute, 'List the user config';
     is_deeply \@emit, [[
         "core.firebird.client=/opt/firebird/bin/isql
-core.firebird.sqitch_prefix=meta
-core.firebird.username=sysdba
+core.firebird.registry=meta
 core.mysql.client=/opt/local/mysql/bin/mysql
-core.mysql.sqitch_prefix=meta
+core.mysql.registry=meta
 core.mysql.username=root
 core.pg.client=/opt/local/pgsql/bin/psql
 core.pg.host=localhost
-core.pg.sqitch_schema=meta
+core.pg.registry=meta
 core.pg.username=postgres
 core.sqlite.client=/opt/local/bin/sqlite3
-core.sqlite.sqitch_db=meta.db
+core.sqlite.registry=meta
 user.email=michael\@example.com
 user.name=Michael Stonebraker
 "
@@ -532,6 +532,8 @@ user.name=Michael Stonebraker
     is_deeply \@emit, [[
         "core.engine=pg
 core.pg.db_name=widgets
+core.sqlite.target=devdb
+target.devdb.uri=db:sqlite:
 "
     ]],  'Should only have emitted the local config list';
     @emit = ();

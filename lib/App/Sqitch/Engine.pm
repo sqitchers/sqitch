@@ -19,8 +19,69 @@ has sqitch => (
     required => 1,
 );
 
-sub destination      { shift->db_uri->as_string }
-sub meta_destination { shift->destination }
+has client => (
+    is       => 'ro',
+    isa      => 'Str',
+    lazy     => 1,
+    required => 1,
+    default  => sub {
+        my $self = shift;
+        my $sqitch = $self->sqitch;
+        my $engine = $self->key;
+        my $config = $self->sqitch->config;
+
+        # Command-line option takes precedence.
+        if (my $client = $sqitch->db_client) {
+            return $client;
+        }
+
+        # Next look for it in the target.
+        if (my $target = $self->target) {
+            if (my $cli = $config->get( key => "target.$target.client" )) {
+                return $cli;
+            }
+        }
+
+        # Otherwise look for the defaults.
+        return $config->get( key => "core.$engine.client" )
+            || $self->default_client . ( $^O eq 'MSWin32' ? '.exe' : '' );
+    },
+);
+
+has target => (
+    is      => 'ro',
+    isa     => 'Str',
+    lazy    => 1,
+    default => sub {
+        my $self = shift;
+        my $engine = $self->key;
+        return $self->sqitch->config->get( key => "core.$engine.target")
+            || $self->uri->as_string;
+    }
+);
+
+has destination => (
+    is      => 'ro',
+    isa     => 'Str',
+    lazy    => 1,
+    default => sub {
+        my $self = shift;
+
+        # Just use the target unless it looks like a URI.
+        my $target = $self->target;
+        return $target if $target !~ /:/;
+
+        # Use the URI sans password.
+        my $uri = $self->uri;
+        if ($uri->password) {
+            $uri = $uri->clone;
+            $uri->password(undef);
+        }
+        return $uri->as_string;
+    }
+);
+
+sub registry_destination { shift->destination }
 
 has start_at => (
     is  => 'rw',
@@ -71,39 +132,83 @@ has _variables => (
     },
 );
 
-# 1. Just accept if explicitly passed.
-# 2. If not passed
-#    a. Look for core.$engine.db_uri (and maybe core.db_uri?); or
-#    b. Construct from config.$engine.@parts (deprecated); or
-#    c. Default to "db:$engine"
-# 3. If command-line-options, override parts in URIs.
+# * If not passed
+#   a. Look for core.$engine.target; or
+#   b. Construct from config.$engine.@parts (deprecated); or
+#   c. Default to "db:$engine:"
+# * If command-line-options, override parts in the URI.
 
-has db_uri => ( is => 'rw', isa => 'URI::db', lazy => 1, default => sub {
+sub BUILD {
+    my ($self, $args) = @_;
+    if (my $uri = $args->{uri}) {
+        $self->_merge_options_into($uri);
+    }
+}
+
+has uri => ( is => 'ro', isa => 'URI::db', lazy => 1, default => sub {
     my $self   = shift;
     my $sqitch = $self->sqitch;
     my $config = $sqitch->config;
-    my $engine = $self->sqitch->_engine;
+    my $engine = $self->key;
     my $uri;
 
-    if ( my $conf_uri = $config->get( key => "core.$engine.db_uri" ) ) {
-        # XXX Fall back on core.db_uri?
-        $uri = URI::db->new($conf_uri);
+    # Get the target, but only if it has been passed, not the default,
+    # because the default may call back into uri for an infinite loop!
+    my $target = $self->meta->find_attribute_by_name('target')->has_value($self)
+        ? $self->target : $config->get( key => "core.$engine.target" );
+
+    if ($target) {
+        $uri = $sqitch->config_for_target_strict($target)->{uri};
+    } elsif ( my $config_uri = $config->get( key => "core.$engine.uri" ) ) {
+        $uri = URI::db->new($config_uri);
     } else {
         $uri = URI::db->new("db:$engine:");
 
         # XXX Deprecated use of other config variables.
         for my $spec (
-            [username      => 'user'],
-            [password      => 'password'],
-            [db_name       => 'dbname'],
-            [host          => 'host'],
-            [port          => 'port'],
+            [ username => 'user'     ],
+            [ password => 'password' ],
+            [ db_name  => 'dbname'   ],
+            [ host     => 'host'     ],
+            [ port     => 'port'     ],
         ) {
             my ($key, $meth) = @{ $spec };
             my $val = $config->get( key => "core.$engine.$key" ) or next;
             $uri->$meth($val);
         }
     }
+
+    return $self->_merge_options_into($uri);
+});
+
+has registry => (
+    is       => 'ro',
+    isa      => 'Maybe[Str]', # May be undef in a subclass.
+    lazy     => 1,
+    required => 1,
+    default  => sub {
+        my $self   = shift;
+        my $engine = $self->key;
+        my $config = $self->sqitch->config;
+
+        if (my $target = $self->target) {
+            if (my $reg = $config->get( key => "target.$target.registry" )) {
+                return $reg;
+            }
+        }
+
+        return $config->get( key => "core.$engine.registry" )
+            || $config->get( key => "core.$engine.sqitch_schema" ) # deprecated
+            || $config->get( key => "core.$engine.sqitch_db" )     # deprecated
+            || $self->default_registry;
+    },
+);
+
+sub default_registry { 'sqitch' }
+
+sub _merge_options_into {
+    my ($self, $uri) = @_;
+    my $sqitch = $self->sqitch;
 
     # Override parts with command-line options (deprecate?)
     if (my $host = $sqitch->db_host) {
@@ -123,14 +228,27 @@ has db_uri => ( is => 'rw', isa => 'URI::db', lazy => 1, default => sub {
     }
 
     return $uri;
-});
+}
 
 sub load {
     my ( $class, $p ) = @_;
 
-    # We should have a command.
-    my $engine = delete $p->{engine}
-        or hurl 'Missing "engine" parameter to load()';
+    # We should have a URI or an engine param.
+    my $engine = delete $p->{engine} || do {
+        if (my $uri = $p->{uri}) {
+            hurl engine => __x(
+                'URI "{uri}" is not a database URI',
+                uri => $uri
+            ) unless $uri->isa('URI::db');
+            my $dbd = $uri->dbi_driver or hurl engine => __x(
+                'Unsupported datbase engine "{engine}"',
+                engine => scalar $uri->engine
+            );
+            lc $dbd;
+        } else {
+            undef;
+        }
+    } or hurl 'Missing "uri" or "engine" parameter to load()';
 
     # Load the engine class.
     my $pkg = __PACKAGE__ . "::$engine";
@@ -138,19 +256,37 @@ sub load {
     return $pkg->new( $p );
 }
 
-sub name {
+sub driver { shift->key }
+
+sub key {
     my $class = ref $_[0] || shift;
-    return '' if $class eq __PACKAGE__;
+    hurl engine => __ 'No engine specified; use --engine or set core.engine'
+        if $class eq __PACKAGE__;
     my $pkg = quotemeta __PACKAGE__;
     $class =~ s/^$pkg\:://;
     return $class;
 }
 
+sub name { shift->key }
+
 sub config_vars {
     return (
-        db_uri => 'any',
-        client => 'any'
+        target   => 'any',
+        registry => 'any',
+        client   => 'any'
     );
+}
+
+sub use_driver {
+    my $self = shift;
+    my $driver = $self->driver;
+    eval "use $driver";
+    hurl $self->key => __x(
+        '{driver} required to manage {engine}',
+        driver  => $driver,
+        engine  => $self->name,
+    ) if $@;
+    return $self;
 }
 
 sub deploy {
@@ -163,15 +299,15 @@ sub deploy {
 
     if (defined $to) {
         $to_index = $plan->index_of($to) // hurl plan => __x(
-            'Unknown deploy target: "{target}"',
-            target => $to,
+            'Unknown change: "{change}"',
+            change => $to,
         );
 
         # Just return if there is nothing to do.
         if ($to_index == $plan->position) {
             $sqitch->info(__x(
-                'Nothing to deploy (already at "{target}"',
-                target => $to
+                'Nothing to deploy (already at "{change}"',
+                change => $to
             ));
             return $self;
         }
@@ -189,8 +325,8 @@ sub deploy {
         # Initialize the database, if necessary.
         unless ($self->initialized) {
             $sqitch->info(__x(
-                'Adding metadata tables to {destination}',
-                destination => $self->meta_destination,
+                'Adding registry tables to {destination}',
+                destination => $self->registry_destination,
             ));
             $self->initialize;
         }
@@ -198,15 +334,15 @@ sub deploy {
 
     } else {
         # Make sure that $to_index is greater than the current point.
-        hurl deploy => __ 'Cannot deploy to an earlier target; use "revert" instead'
+        hurl deploy => __ 'Cannot deploy to an earlier change; use "revert" instead'
             if $to_index < $plan->position;
     }
 
     $sqitch->info(
         defined $to ? __x(
-            'Deploying changes through {target} to {destination}',
+            'Deploying changes through {change} to {destination}',
+            change      => $plan->change_at($to_index)->format_name_with_tags,
             destination => $self->destination,
-            target      => $plan->change_at($to_index)->format_name_with_tags
         ) : __x(
             'Deploying changes to {destination}',
             destination => $self->destination,
@@ -248,14 +384,14 @@ sub revert {
             if ( $plan->get($to) ) {
                 # Known but not deployed.
                 hurl revert => __x(
-                    'Target not deployed: "{target}"',
-                    target => $to
+                    'Change not deployed: "{change}"',
+                    change => $to
                 );
             }
             # Never heard of it.
             hurl revert => __x(
-                'Unknown revert target: "{target}"',
-                target => $to,
+                'Unknown change: "{change}"',
+                change => $to,
             );
         };
 
@@ -264,16 +400,16 @@ sub revert {
         ) or hurl {
             ident => 'revert',
             message => __x(
-                'No changes deployed since: "{target}"',
-                target => $to,
+                'No changes deployed since: "{change}"',
+                change => $to,
             ),
             exitval => 1,
         };
 
         if ($self->no_prompt) {
             $sqitch->info(__x(
-                'Reverting changes to {target} from {destination}',
-                target      => $change->format_name_with_tags,
+                'Reverting changes to {change} from {destination}',
+                change      => $change->format_name_with_tags,
                 destination => $self->destination,
             ));
         } else {
@@ -282,8 +418,8 @@ sub revert {
                 message => __ 'Nothing reverted',
                 exitval => 1,
             } unless $sqitch->ask_y_n(__x(
-                'Revert changes to {target} from {destination}?',
-                target      => $change->format_name_with_tags,
+                'Revert changes to {change} from {destination}?',
+                change      => $change->format_name_with_tags,
                 destination => $self->destination,
             ), 'Yes');
         }
@@ -396,7 +532,7 @@ sub _trim_to {
 
     # Find the change in the database.
     my $to_id = $self->change_id_for_key( $key ) || hurl $ident => (
-        defined eval { $plan->index_of( $key ) } ? __x(
+        $plan->contains( $key ) ? __x(
             'Change "{change}" has not been deployed',
             change => $key,
         ) : __x(
@@ -725,7 +861,7 @@ sub _rollback {
     if (my @run = reverse @_) {
         $tagged = $tagged ? $tagged->format_name_with_tags : $self->start_at;
         $sqitch->vent(
-            $tagged ? __x('Reverting to {target}', target => $tagged)
+            $tagged ? __x('Reverting to {change}', change => $tagged)
                  : __ 'Reverting all changes'
         );
 
@@ -795,8 +931,8 @@ sub _sync_plan {
 
     if (my $id = $self->latest_change_id) {
         my $idx = $plan->index_of($id) // hurl plan => __x(
-            'Cannot find {target} in the plan',
-            target => $id
+            'Cannot find {change} in the plan',
+            change => $id
         );
 
         my $change = $plan->change_at($idx);
@@ -1078,6 +1214,35 @@ the engine code.
 
 =head2 Class Methods
 
+=head3 C<key>
+
+  my $name = App::Sqitch::Engine->key;
+
+The key name of the engine. Should be the last part of the package name.
+
+=head3 C<name>
+
+  my $name = App::Sqitch::Engine->name;
+
+The name of the engine. Returns the same value as C<key> by default, but
+should probably be overridden to return a display name for the engine.
+
+=head3 C<driver>
+
+  my $driver = App::Sqitch::Engine->driver;
+
+The name and version of the database driver to use with the engine, returned
+as a string suitable for passing to C<use>. Used internally by C<use_driver()>
+to C<use> the driver and, if it dies, to display an appropriate error message.
+Must be overridden by subclasses.
+
+=head3 C<use_driver>
+
+  App::Sqitch::Engine->use_driver;
+
+Uses the driver and version returned by C<driver>. Returns an error on failure
+and returns true on success.
+
 =head3 C<config_vars>
 
   my %vars = App::Sqitch::Engine->config_vars;
@@ -1119,8 +1284,9 @@ times. All the other variables may be of any type.
 By default, App::Sqitch::Engine returns:
 
   (
-      db_uri => 'any',
-      client => 'any',
+      target   => 'any',
+      registry => 'any',
+      client   => 'any',
   )
 
 Subclasses for supported engines will return more.
@@ -1155,6 +1321,37 @@ Instantiates and returns a App::Sqitch::Engine object.
 
 The current Sqitch object.
 
+=head3 C<target>
+
+A string identifying the database target.
+
+Returns the name of the target database. This will usually be the name of
+target specified on the command-line, or the default.
+
+=head3 C<uri>
+
+A L<URI::db> object representing the target database. Defaults to a URI
+constructed from the L<App::Sqitch> C<db_*> attributes.
+
+=head3 C<destination>
+
+A string identifying the target database. Usually the same as the C<target>,
+unless it's a URI with the password included, in which case it returns the
+value of C<uri> with the password removed.
+
+=head3 C<registry>
+
+The name of the registry schema or database.
+
+=head3 C<registry_destination>
+
+A string idntifying the registry database. In other words, the database in
+which Sqitch's own data is stored. It will usually be the same as C<destination()>,
+but some engines, such as L<SQLite|App::Sqitch::Engine::sqlite>, may use a
+separate database. Used internally to name the target when the registration
+tables are created.
+
+
 =head3 C<start_at>
 
 The point in the plan from which to start deploying changes.
@@ -1181,40 +1378,15 @@ list.
 
 =head2 Instance Methods
 
-=head3 C<name>
+=head3 C<registry_destination>
 
-  my $name = $engine->name;
+  my $registry_destination = $engine->registry_destination;
 
-The name of the engine. Defaults to the last part of the package name, so as a
-rule you should not need to override it, since it is that string that Sqitch
-uses to find the engine class.
-
-=head3 C<db_uri>
-
-  my $uri = $engine->db_uri;
-
-A L<URI::db> object representing the destination database. Defaults to a URI
-constructed from the L<App::Sqitch> C<db_*> attributes.
-
-=head3 C<destination>
-
-  my $destination = $engine->destination;
-
-Returns the name of the destination database. This will usually be the the
-string representation of the C<db_uri> attribute. However, subclasses may
-override it to provide other values, such as when a database name or host is
-implied but not physically represented in the URI. Used internally to name the
-destination in status messages.
-
-=head3 C<meta_destination>
-
-  my $meta_destination = $engine->meta_destination;
-
-Returns the name of the metadata destination database. In other words, the
-database in which Sqitch's own data is stored. It will usually be the same as
-C<destination()>, but some engines, such as
-L<SQLite|App::Sqitch::Engine::sqlite>, may use a separate database. Used
-internally to name the destination when the metadata tables are created.
+Returns the name of the registry database. In other words, the database in
+which Sqitch's own data is stored. It will usually be the same as C<target()>,
+but some engines, such as L<SQLite|App::Sqitch::Engine::sqlite>, may use a
+separate database. Used internally to name the target when the registration
+tables are created.
 
 =head3 C<variables>
 
@@ -1236,15 +1408,14 @@ SQL*Plus C<DEFINE> command.
 
 =head3 C<deploy>
 
-  $engine->deploy($to_target);
-  $engine->deploy($to_target, $mode);
-  $engine->deploy($to_target, $mode);
+  $engine->deploy($to_change);
+  $engine->deploy($to_change, $mode);
+  $engine->deploy($to_change, $mode);
 
-Deploys changes to the destination database, starting with the current
-deployment state, and continuing to C<$to_target>. C<$to_target> must be a
-valid target specification as passable to the C<index_of()> method of
-L<App::Sqitch::Plan>. If C<$to_target> is not specified, all changes will be
-applied.
+Deploys changes to the target database, starting with the current deployment
+state, and continuing to C<$to_change>. C<$to_change> must be a valid change
+specification as passable to the C<index_of()> method of L<App::Sqitch::Plan>.
+If C<$to_change> is not specified, all changes will be applied.
 
 The second argument specifies the reversion mode in the case of deployment
 failure. The allowed values are:
@@ -1269,9 +1440,8 @@ assumption that a change failure is total, and the change may be applied again.
 
 =back
 
-Note that, in the event of failure, if a reversion fails, the destination
-database B<may be left in a corrupted state>. Write your revert scripts
-carefully!
+Note that, in the event of failure, if a reversion fails, the target database
+B<may be left in a corrupted state>. Write your revert scripts carefully!
 
 =head3 C<revert>
 
@@ -1535,24 +1705,24 @@ has not.
 
   $engine->initialize;
 
-Initializes a database for Sqitch by installing the Sqitch metadata schema
-and/or tables. Should be overridden by subclasses. This implementation throws
-an exception
+Initializes the target database for Sqitch by installing the Sqitch registry
+schema and/or tables. Should be overridden by subclasses. This implementation
+throws an exception
 
 =head3 C<register_project>
 
   $engine->register_project;
 
-Registers the current project plan in the database. The implementation should
-insert the project name and URI if they have not already been inserted. If a
-project with the same name but different URI already exists, an exception
-should be thrown.
+Registers the current project plan in the registry database. The
+implementation should insert the project name and URI if they have not already
+been inserted. If a project with the same name but different URI already
+exists, an exception should be thrown.
 
 =head3 C<is_deployed_tag>
 
   say 'Tag deployed' if $engine->is_deployed_tag($tag);
 
-Should return true if the L<tag|App::Sqitch::Plan::Tag> has been applies to
+Should return true if the L<tag|App::Sqitch::Plan::Tag> has been applied to
 the database, and false if it has not.
 
 =head3 C<is_deployed_change>
@@ -1641,8 +1811,8 @@ if any.
 
   $engine->log_deploy_change($change);
 
-Should write to the database metadata and history the records necessary to
-indicate that the change has been deployed.
+Should write the records to the registry necessary to indicate that the change
+has been deployed.
 
 =head3 C<log_fail_change>
 
@@ -1655,8 +1825,8 @@ of the change failed.
 
   $engine->log_revert_change($change);
 
-Should write to and/or remove from the database metadata and history the
-records necessary to indicate that the change has been reverted.
+Should write to and/or remove from the registry the records necessary to
+indicate that the change has been reverted.
 
 =head3 C<log_new_tags>
 

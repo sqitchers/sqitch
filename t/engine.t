@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 573;
+use Test::More tests => 598;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -28,7 +28,7 @@ BEGIN {
     $ENV{SQITCH_CONFIG} = 'nonexistent.conf';
 }
 
-can_ok $CLASS, qw(load new name no_prompt run_deploy run_revert run_verify db_uri);
+can_ok $CLASS, qw(load new name no_prompt run_deploy run_revert run_verify uri);
 
 my ($is_deployed_tag, $is_deployed_change) = (0, 0);
 my @deployed_changes;
@@ -90,7 +90,8 @@ ENGINE: {
 }
 
 ok my $sqitch = App::Sqitch->new(
-    db_name => 'mydb',
+    _engine   => 'sqlite',
+    db_name   => 'mydb',
     top_dir   => dir( qw(t sql) ),
     plan_file => file qw(t plans multi.plan)
 ), 'Load a sqitch sqitch object';
@@ -121,6 +122,38 @@ ok my $engine = $CLASS->load({
 isa_ok $engine, 'App::Sqitch::Engine::whu';
 is $engine->sqitch, $sqitch, 'The sqitch attribute should be set';
 
+# Try passing a URI.
+ok $engine = $CLASS->load({
+    sqitch => $sqitch,
+    uri => URI->new('db:sqlite:'),
+}), 'Load a SQLite engine via URI';
+isa_ok $engine, 'App::Sqitch::Engine::sqlite';
+
+# Try a URI with a driver that is not lowercase.
+ok $engine = $CLASS->load({
+    sqitch => $sqitch,
+    uri => URI->new('db:pg:'),
+}), 'Load a Pg engine via URI';
+isa_ok $engine, 'App::Sqitch::Engine::pg';
+
+# Try an unknown engine.
+throws_ok { $CLASS->load({ uri => URI->new('db:unknown:') }) }
+    'App::Sqitch::X', 'Should get error for unsupported engine';
+is $@->ident, 'engine', 'Unsupported engine error ident should be "engine"';;
+is $@->message,  __x(
+    'Unsupported datbase engine "{engine}"',
+    engine => 'unknown'
+), 'Unsupported engine error message should be correct';
+
+# Try a non-DB URI.
+throws_ok { $CLASS->load({ uri => URI->new('file:foo') }) }
+    'App::Sqitch::X', 'Should get error for non-DB URI';
+is $@->ident, 'engine', 'Non-DB URI error ident should be "engine"';;
+is $@->message,  __x(
+    'URI "{uri}" is not a database URI',
+    uri => 'file:foo'
+), 'Non-DB URI error message should be correct';
+
 # Test handling of an invalid engine.
 throws_ok { $CLASS->load({ engine => 'nonexistent', sqitch => $sqitch }) }
     'App::Sqitch::X', 'Should die on invalid engine';
@@ -134,7 +167,7 @@ NOENGINE: {
     throws_ok { $CLASS->load({ engine => '', sqitch => $sqitch }) }
         'App::Sqitch::X',
             'No engine should die';
-    is $@->message, 'Missing "engine" parameter to load()',
+    is $@->message, 'Missing "uri" or "engine" parameter to load()',
         'It should be the expected message';
 }
 
@@ -147,12 +180,16 @@ is $@->message, 'Unable to load App::Sqitch::Engine::bad',
 like $@->previous_exception, qr/^LOL BADZ/,
     'Should have relevant previoius exception from the bad module';
 
+
 ##############################################################################
 # Test name.
 can_ok $CLASS, 'name';
 ok $engine = $CLASS->new({ sqitch => $sqitch }), "Create a $CLASS object";
-is $CLASS->name, '', 'Base class name should be ""';
-is $engine->name, '', 'Base object name should be ""';
+throws_ok { $engine->name } 'App::Sqitch::X',
+    'Should get error from base engine name';
+is $@->ident, 'engine', 'Name error ident should be "engine"';
+is $@->message, __('No engine specified; use --engine or set core.engine'),
+    'Name error message should be correct';
 
 ok $engine = App::Sqitch::Engine::whu->new({sqitch => $sqitch}),
     'Create a subclass name object';
@@ -163,9 +200,10 @@ is +App::Sqitch::Engine::whu->name, 'whu', 'Subclass class name should be "whu"'
 # Test config_vars.
 can_ok $CLASS, 'config_vars';
 is_deeply [App::Sqitch::Engine->config_vars], [
-    db_uri => 'any',
-    client => 'any',
-], 'Should have db_uri and client in engine base class';
+    target   => 'any',
+    registry => 'any',
+    client   => 'any',
+], 'Should have database and client in engine base class';
 
 ##############################################################################
 # Test variables.
@@ -180,6 +218,61 @@ is_deeply {$engine->variables}, {foo => 'baz', whu => 'hi', yo => 'stellar'},
 $engine->clear_variables;
 is_deeply [$engine->variables], [], 'Should again have no variables';
 
+##############################################################################
+# Test target.
+ok $engine = $CLASS->load({
+    sqitch => $sqitch,
+    engine => 'whu',
+    target => 'foo',
+}), 'Load engine';
+is $engine->target, 'foo', 'Target should be as passed';
+
+ok $engine = $CLASS->load({
+    sqitch => $sqitch,
+    engine => 'whu',
+}), 'Load engine';
+is $engine->target, 'db:whu:mydb', 'Target should be URI string';
+
+# Make sure password is removed from the target.
+ok $engine = $CLASS->load({
+    sqitch => $sqitch,
+    engine => 'whu',
+    uri => URI->new('db:whu://foo:bar@localhost/blah'),
+}), 'Load engine with URI with password';
+is $engine->target, $engine->uri->as_string,
+    'Target should be the URI stringified';
+
+# Try a target in the configuration.
+MOCKCONFIG: {
+    local $ENV{SQITCH_CONFIG} = file qw(t local.conf);
+    ok my $engine = $CLASS->load({
+        sqitch => App::Sqitch->new( _engine => 'sqlite' ),
+        engine => 'sqlite',
+        uri    => URI->new('db:sqlite:/var/db/widgets.db'),
+    }), 'Load engine';
+    is $engine->target, 'devdb', 'Target should be read from config';
+}
+
+##############################################################################
+# Test destination.
+ok $engine = $CLASS->load({
+    sqitch => $sqitch,
+    engine => 'whu',
+}), 'Load engine';
+is $engine->destination, 'db:whu:mydb', 'Destination should be URI string';
+is $engine->registry_destination, $engine->destination,
+    'Rgistry destination should be the same as destination';
+
+# Make sure password is removed from the destination.
+ok $engine = $CLASS->load({
+    sqitch => $sqitch,
+    engine => 'whu',
+    uri => URI->new('db:whu://foo:bar@localhost/blah'),
+}), 'Load engine with URI with password';
+like $engine->destination, qr{^db:whu://foo:?\@localhost/mydb$},
+    'Destination should not include password';
+is $engine->registry_destination, $engine->destination,
+    'Meta destination should again be the same as destination';
 
 ##############################################################################
 # Test abstract methods.
@@ -702,12 +795,12 @@ is_deeply $engine->seen, [
 
 is $deploy_meth, '_deploy_all', 'Should have called _deploy_all()';
 is_deeply +MockOutput->get_info, [
-    [__x 'Adding metadata tables to {destination}',
-        destination => $engine->meta_destination,
+    [__x 'Adding registry tables to {destination}',
+        destination => $engine->registry_destination,
     ],
-    [__x 'Deploying changes through {target} to {destination}',
+    [__x 'Deploying changes through {change} to {destination}',
         destination =>  $engine->destination,
-        target      => $plan->get('@alpha')->format_name_with_tags,
+        change      => $plan->get('@alpha')->format_name_with_tags,
     ],
     [__ 'ok'],
     [__ 'ok'],
@@ -736,13 +829,13 @@ for my $mode (qw(change tag all)) {
     is $deploy_meth, "_deploy_$meth", "Should have called _deploy_$meth()";
     is_deeply +MockOutput->get_info, [
         [
-            __x 'Adding metadata tables to {destination}',
-            destination => $engine->meta_destination,
+            __x 'Adding registry tables to {destination}',
+            destination => $engine->registry_destination,
         ],
         [
-            __x 'Deploying changes through {target} to {destination}',
+            __x 'Deploying changes through {change} to {destination}',
             destination =>  $engine->destination,
-            target      => $plan->get('@alpha')->format_name_with_tags,
+            change      => $plan->get('@alpha')->format_name_with_tags,
         ],
         [__ 'ok'],
         [__ 'ok'],
@@ -772,9 +865,9 @@ is_deeply $engine->seen, [
 
 is $deploy_meth, '_deploy_by_tag', 'Should have called _deploy_by_tag()';
 is_deeply +MockOutput->get_info, [
-    [__x 'Deploying changes through {target} to {destination}',
-        destination =>  $engine->meta_destination,
-        target      => $plan->get('@alpha')->format_name_with_tags,
+    [__x 'Deploying changes through {change} to {destination}',
+        destination =>  $engine->registry_destination,
+        change      => $plan->get('@alpha')->format_name_with_tags,
     ],
     [__ 'ok'],
     [__ 'ok'],
@@ -784,13 +877,13 @@ is_deeply +MockOutput->get_info_literal, [
     ['  + users @alpha ..', '', ' '],
 ], 'Both change names should be output';
 
-# Try a bogus target.
+# Try a bogus change.
 throws_ok { $engine->deploy('nonexistent') } 'App::Sqitch::X',
-    'Should get an error for an unknown target';
+    'Should get an error for an unknown change';
 is $@->message, __x(
-    'Unknown deploy target: "{target}"',
-    target => 'nonexistent',
-), 'The exception should report the unknown target';
+    'Unknown change: "{change}"',
+    change => 'nonexistent',
+), 'The exception should report the unknown change';
 is_deeply $engine->seen, [
     [latest_change_id => undef],
 ], 'Only latest_item() should have been called';
@@ -803,15 +896,15 @@ is_deeply $engine->seen, [
     ['log_new_tags' => $changes[1]],
 ], 'Only latest_item() should have been called';
 is_deeply +MockOutput->get_info, [
-    [__x 'Nothing to deploy (already at "{target}"', target => '@alpha'],
+    [__x 'Nothing to deploy (already at "{change}"', change => '@alpha'],
 ], 'Should notify user that already at @alpha';
 
 # Start with widgets.
 $latest_change_id = $changes[2]->id;
 throws_ok { $engine->deploy('@alpha') } 'App::Sqitch::X',
-    'Should fail targeting older change';
+    'Should fail changeing older change';
 is $@->ident, 'deploy', 'Should be a "deploy" error';
-is $@->message,  __ 'Cannot deploy to an earlier target; use "revert" instead',
+is $@->message,  __ 'Cannot deploy to an earlier change; use "revert" instead',
     'It should suggest using "revert"';
 is_deeply $engine->seen, [
     [latest_change_id => undef],
@@ -1027,7 +1120,7 @@ is_deeply +MockOutput->get_info, [
 ], 'Output should reflect deploy successes and failure';
 is_deeply +MockOutput->get_vent, [
     ['ROFL'],
-    [__x 'Reverting to {target}', target => 'widgets @beta']
+    [__x 'Reverting to {change}', change => 'widgets @beta']
 ], 'The original error should have been vented';
 $mock_whu->unmock('log_deploy_change');
 
@@ -1062,7 +1155,7 @@ is_deeply +MockOutput->get_info, [
 ], 'Output should reflect deploy successes and failure';
 is_deeply +MockOutput->get_vent, [
     ['ROFL'],
-    [__x 'Reverting to {target}', target => 'widgets @beta']
+    [__x 'Reverting to {change}', change => 'widgets @beta']
 ], 'The original error should have been vented';
 $mock_whu->unmock('log_deploy_change');
 
@@ -1145,7 +1238,7 @@ is_deeply +MockOutput->get_info, [
 ], 'Output should reflect deploy successes and failure';
 is_deeply +MockOutput->get_vent, [
     ['ROFL'],
-    [__x 'Reverting to {target}', target => 'widgets @beta']
+    [__x 'Reverting to {change}', change => 'widgets @beta']
 ], 'Should see underlying error and reversion message';
 
 # Make it choke on change reversion.
@@ -1176,7 +1269,7 @@ is_deeply +MockOutput->get_info, [
 ], 'Output should reflect deploy successes and failure';
 is_deeply +MockOutput->get_vent, [
     ['ROFL'],
-    [__x 'Reverting to {target}', target => 'whatever'],
+    [__x 'Reverting to {change}', change => 'whatever'],
     ['BARF'],
     [__ 'The schema will need to be manually repaired']
 ], 'Should get reversion failure message';
@@ -1358,7 +1451,7 @@ is_deeply +MockOutput->get_info, [
 ], 'Output should reflect deploy successes and failures';
 is_deeply +MockOutput->get_vent, [
     ['ROFL'],
-    [__x 'Reverting to {target}', target => '@alpha'],
+    [__x 'Reverting to {change}', change => '@alpha'],
 ], 'Should notifiy user of error and rollback to @alpha';
 $mock_whu->unmock_all;
 
@@ -1480,9 +1573,9 @@ throws_ok { $engine->revert('nonexistent') } 'App::Sqitch::X',
     'Revert should die on unknown change';
 is $@->ident, 'revert', 'Should be another "revert" error';
 is $@->message, __x(
-    'Unknown revert target: "{target}"',
-    target => 'nonexistent',
-), 'The message should mention it is an unknown target';
+    'Unknown change: "{change}"',
+    change => 'nonexistent',
+), 'The message should mention it is an unknown change';
 is_deeply $engine->seen, [['change_id_for', {
     change_id => undef,
     change  => 'nonexistent',
@@ -1496,9 +1589,9 @@ throws_ok { $engine->revert('8d77c5f588b60bc0f2efcda6369df5cb0177521d') } 'App::
     'Revert should die on unknown change ID';
 is $@->ident, 'revert', 'Should be another "revert" error';
 is $@->message, __x(
-    'Unknown revert target: "{target}"',
-    target => '8d77c5f588b60bc0f2efcda6369df5cb0177521d',
-), 'The message should mention it is an unknown target';
+    'Unknown change: "{change}"',
+    change => '8d77c5f588b60bc0f2efcda6369df5cb0177521d',
+), 'The message should mention it is an unknown change';
 is_deeply $engine->seen, [['change_id_for', {
     change_id => '8d77c5f588b60bc0f2efcda6369df5cb0177521d',
     change  => undef,
@@ -1507,14 +1600,14 @@ is_deeply $engine->seen, [['change_id_for', {
 }]], 'Shoudl have called change_id_for() with change ID';
 is_deeply +MockOutput->get_info, [], 'Nothing should have been output';
 
-# Revert an undeployed target.
+# Revert an undeployed change.
 throws_ok { $engine->revert('@alpha') } 'App::Sqitch::X',
     'Revert should die on undeployed change';
 is $@->ident, 'revert', 'Should be another "revert" error';
 is $@->message, __x(
-    'Target not deployed: "{target}"',
-    target => '@alpha',
-), 'The message should mention that the target is not deployed';
+    'Change not deployed: "{change}"',
+    change => '@alpha',
+), 'The message should mention that the change is not deployed';
 is_deeply $engine->seen,  [['change_id_for', {
     change => '',
     change_id => undef,
@@ -1531,8 +1624,8 @@ throws_ok { $engine->revert($changes[0]->id) } 'App::Sqitch::X',
 is $@->ident, 'revert', 'No subsequent change error ident should be "revert"';
 is $@->exitval, 1, 'No subsequent change error exitval should be 1';
 is $@->message, __x(
-    'No changes deployed since: "{target}"',
-    target => $changes[0]->id,
+    'No changes deployed since: "{change}"',
+    change => $changes[0]->id,
 ), 'No subsequent change error message should be correct';
 
 delete $changes[0]->{_rework_tags}; # For deep comparison.
@@ -1722,11 +1815,11 @@ is_deeply $engine->seen, [
 ], 'Should have reverted only changes after @alpha';
 is_deeply +MockOutput->get_ask_y_n, [
     [__x(
-        'Revert changes to {target} from {destination}?',
+        'Revert changes to {change} from {destination}?',
         destination => $engine->destination,
-        target      => $dbchanges[1]->format_name_with_tags,
+        change      => $dbchanges[1]->format_name_with_tags,
     ), 'Yes'],
-], 'Should have prompt to revert to target';
+], 'Should have prompt to revert to change';
 is_deeply +MockOutput->get_info_literal, [
     ['  - lolz ..', '.........', ' '],
     ['  - widgets @beta ..', '', ' '],
@@ -1751,8 +1844,8 @@ is_deeply $engine->seen, [
 ], 'Should have called revert methods';
 is_deeply +MockOutput->get_ask_y_n, [
     [__x(
-        'Revert changes to {target} from {destination}?',
-        target      => $dbchanges[1]->format_name_with_tags,
+        'Revert changes to {change} from {destination}?',
+        change      => $dbchanges[1]->format_name_with_tags,
         destination => $engine->destination,
     ), 'Yes'],
 ], 'Should have prompt to revert to @alpha';
@@ -1781,9 +1874,9 @@ is_deeply +MockOutput->get_info_literal, [
 ], 'Output should show what it reverts to';
 is_deeply +MockOutput->get_info, [
     [__x(
-        'Reverting changes to {target} from {destination}',
+        'Reverting changes to {change} from {destination}',
         destination => $engine->destination,
-        target      => $dbchanges[-1]->format_name_with_tags,
+        change      => $dbchanges[-1]->format_name_with_tags,
     )],
     [__ 'ok'],
 ], 'And the header and "ok" should be emitted';

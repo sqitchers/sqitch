@@ -4,8 +4,8 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 103;
-#use Test::More 'no_plan';
+#use Test::More tests => 103;
+use Test::More 'no_plan';
 
 $ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
 $ENV{SQITCH_USER_CONFIG}   = 'nonexistent.user';
@@ -28,6 +28,7 @@ use Test::NoWarnings;
 use Test::MockModule;
 use Locale::TextDomain qw(App-Sqitch);
 use Capture::Tiny 0.12 ':all';
+use Path::Class;
 use lib 't/lib';
 
 my $CLASS;
@@ -37,7 +38,7 @@ BEGIN {
     use_ok $CLASS or die;
 }
 
-can_ok $CLASS, qw(load new options configure command prompt ask_y_n);
+can_ok $CLASS, qw(load new options configure command prompt ask_y_n parse_args);
 
 COMMAND: {
     # Stub out a command.
@@ -242,6 +243,45 @@ PARSEOPTSERR: {
     is_deeply \@warn, ["Unknown option: dont-do-this\n"],
         'Should get warning for unknown option when there are no options';
     is_deeply \@args, [$cmd], 'Should call _pod2usage on no options parse failure';
+}
+
+##############################################################################
+# Test argument passing.
+ARGS: {
+    local $ENV{SQITCH_CONFIG} = file qw(t local.conf);
+    ok $sqitch = App::Sqitch->new(
+        _engine   => 'sqlite',
+        plan_file => file(qw(t plans multi.plan)),
+        top_dir   => dir qw(t sql)
+    ), 'Load Sqitch with config and plan';
+    ok my $cmd = $CLASS->new({ sqitch => $sqitch }), 'Load cmd with config and plan';
+    is_deeply { $cmd->parse_args }, { changes => [], targets => [], unknown => [] },
+        'Parsing now args should return no results';
+    is_deeply { $cmd->parse_args('foo') },
+        { changes => [], targets => [], unknown => ['foo'] },
+        'Single unknown arg should be returned unknown';
+    is_deeply { $cmd->parse_args('hey') },
+        { changes => ['hey'], targets => [], unknown => [] },
+        'Single change should be recognized as change';
+    is_deeply { $cmd->parse_args('devdb') },
+        { changes => [], targets => ['devdb'], unknown => [] },
+        'Single target should be recognized as target';
+    is_deeply { $cmd->parse_args('db:pg:') },
+        { changes => [], targets => ['db:pg:'], unknown => [] },
+        'URI target should be recognized as target, too';
+    is_deeply { $cmd->parse_args('devdb', 'hey') },
+        { changes => ['hey'], targets => ['devdb'], unknown => [] },
+        'Target and change should be recognized';
+    is_deeply { $cmd->parse_args('hey', 'devdb') },
+        { changes => ['hey'], targets => ['devdb'], unknown => [] },
+        'Change and target should be recognized';
+    is_deeply { $cmd->parse_args('hey', 'devdb', 'foo') },
+        { changes => ['hey'], targets => ['devdb'], unknown => ['foo'] },
+        'Change, target, and unknown should be recognized';
+    is_deeply { $cmd->parse_args('hey', 'devdb', 'foo', 'hey-there') },
+        { changes => ['hey', 'hey-there'], targets => ['devdb'], unknown => ['foo'] },
+        'Multiple changes, target, and unknown should be recognized';
+
 }
 
 ##############################################################################

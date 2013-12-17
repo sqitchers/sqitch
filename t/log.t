@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 233;
+use Test::More tests => 248;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -35,6 +35,7 @@ isa_ok my $log = App::Sqitch::Command->load({
 }), $CLASS, 'log command';
 
 can_ok $log, qw(
+    target
     change_pattern
     project_pattern
     committer_pattern
@@ -49,6 +50,7 @@ can_ok $log, qw(
 
 is_deeply [$CLASS->options], [qw(
     event=s@
+    target|t=s
     change-pattern|change=s
     project-pattern|project=s
     committer-pattern|committer=s
@@ -62,6 +64,15 @@ is_deeply [$CLASS->options], [qw(
     abbrev=i
     oneline
 )], 'Options should be correct';
+
+##############################################################################
+# Test database.
+is $log->target, undef, 'Default target should be undef';
+isa_ok $log = $CLASS->new(
+    sqitch   => $sqitch,
+    target => 'foo',
+), $CLASS, 'new status with target';
+is $log->target, 'foo', 'Should have target "foo"';
 
 ##############################################################################
 # Test configure().
@@ -577,6 +588,15 @@ is $@->message, __x(
 my $emock = Test::MockModule->new('App::Sqitch::Engine::sqlite');
 $emock->mock(destination => 'flipr');
 
+my $mock_log = Test::MockModule->new(ref $log);
+my ($db_arg, $orig_meth);
+$db_arg = '_blah';
+$mock_log->mock(engine_for_target => sub {
+    $db_arg = $_[1];
+    shift->$orig_meth(@_);
+});
+$orig_meth = $mock_log->original('engine_for_target');
+
 # First test for uninitialized DB.
 my $init = 0;
 $emock->mock(initialized => sub { $init });
@@ -585,12 +605,14 @@ throws_ok { $log->execute } 'App::Sqitch::X',
 is $@->ident, 'log', 'Uninit db error ident should be "log"';
 is $@->exitval, 1, 'Uninit db exit val should be 1';
 is $@->message, __x(
-    'Database {db} has not been initilized for Sqitch',
-    db => 'flipr',
+    'Database {db} has not been initialized for Sqitch',
+    db => 'db:sqlite:',
 ), 'Uninit db error message should be correct';
+is $db_arg, undef, 'Should have passed undef to engine_for_target';
 
 # Next, test for no events.
 $init = 1;
+$db_arg = '_blah';
 my @events;
 my $iter = sub { shift @events };
 my $search_args;
@@ -604,15 +626,39 @@ throws_ok { $log->execute } 'App::Sqitch::X',
 is $@->ident, 'log', 'no events error ident should be "log"';
 is $@->exitval, 1, 'no events exit val should be 1';
 is $@->message, __x(
-    'No events logged to {db}',
+    'No events logged for {db}',
     db => 'flipr',
 ), 'no events error message should be correct';
 is_deeply $search_args, [limit => 1],
     'Search should have been limited to one row';
+is $db_arg, undef, 'Should have passed undef to engine_for_target again';
 
 # Okay, let's add some events.
 push @events => {}, $event;
+$db_arg = '_blah';
 ok $log->execute, 'Execute log';
+is $db_arg, undef, 'Should have passed undef to engine_for_target once more';
+is_deeply $search_args, [
+    event     => undef,
+    change    => undef,
+    project   => undef,
+    committer => undef,
+    limit     => undef,
+    offset    => undef,
+    direction => 'DESC'
+], 'The proper args should have been passed to search_events';
+
+is_deeply +MockOutput->get_page, [
+    [__x 'On database {db}', db => 'flipr'],
+    [ $log->formatter->format( $log->format, $event ) ],
+], 'The change should have been paged';
+
+# Make sure a passed target is processed.
+push @events => {}, $event;
+$db_arg = '_blah';
+ok $log->execute('db:sqlite:whatever.db'), 'Execute with target arg';
+is $db_arg, 'db:sqlite:whatever.db',
+    'target arg should have been passed to engine_for_target';
 is_deeply $search_args, [
     event     => undef,
     change    => undef,
@@ -642,6 +688,7 @@ my $event2 = {
 push @events => {}, $event, $event2;
 isa_ok $log = $CLASS->new(
     sqitch            => $sqitch,
+    target            => 'db:sqlite:foo.db',
     event             => [qw(revert fail)],
     change_pattern    => '.+',
     project_pattern   => '.+',
@@ -651,7 +698,9 @@ isa_ok $log = $CLASS->new(
     reverse           => 1,
 ), $CLASS, 'log with attributes';
 
+$db_arg = '_blah';
 ok $log->execute, 'Execute log with attributes';
+is $db_arg, $log->target, 'Should have passed target to engine_for_target';
 is_deeply $search_args, [
     event     => [qw(revert fail)],
     change    => '.+',
@@ -668,6 +717,15 @@ is_deeply +MockOutput->get_page, [
     [ $log->formatter->format( $log->format, $event2 ) ],
 ], 'Both changes should have been paged';
 
+# Make sure we get a warning when both the option and the arg are specified.
+push @events => {}, $event;
+ok $log->execute('foo'), 'Execute log with attributes';
+is $db_arg, $log->target, 'Should have passed target to engine_for_target';
+is_deeply +MockOutput->get_warn, [[__x(
+    'Both the --target option and the target argument passed; using {option}',
+    option => $log->target,
+)]], 'Should have got warning for two targets';
+
 # Make sure we catch bad format codes.
 isa_ok $log = $CLASS->new(
     sqitch => $sqitch,
@@ -675,6 +733,7 @@ isa_ok $log = $CLASS->new(
 ), $CLASS, 'log with bad format';
 
 push @events, {}, $event;
+$db_arg = '_blah';
 throws_ok { $log->execute } 'App::Sqitch::X',
     'Should get an exception for a bad format code';
 is $@->ident, 'format',
@@ -682,3 +741,4 @@ is $@->ident, 'format',
 is $@->message, __x(
     'Unknown format code "{code}"', code => 'Z',
 ), 'bad format code format error message should be correct';
+is $db_arg, $log->target, 'Should have passed target to engine_for_target again';

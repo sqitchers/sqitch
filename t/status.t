@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 94;
+use Test::More tests => 112;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -48,6 +48,7 @@ can_ok $status, qw(
 
 is_deeply [ $CLASS->options ], [qw(
     project=s
+    target|t=s
     show-tags
     show-changes
     date-format|date=s
@@ -125,6 +126,15 @@ ok $sqitch = App::Sqitch->new(
 isa_ok $status = $CLASS->new( sqitch => $sqitch ), $CLASS,
     'another status command';
 is $status->project, $sqitch->plan->project, 'Should have plan project';
+
+##############################################################################
+# Test database.
+is $status->target, undef, 'Default target should be undef';
+isa_ok $status = $CLASS->new(
+    sqitch   => $sqitch,
+    target => 'foo',
+), $CLASS, 'new status with target';
+is $status->target, 'foo', 'Should have target "foo"';
 
 ##############################################################################
 # Test configure().
@@ -439,24 +449,66 @@ is_deeply +MockOutput->get_vent, [
 
 ##############################################################################
 # Test execute().
+my $mock_status = Test::MockModule->new(ref $status);
+my ($db_arg, $orig_meth);
+$mock_status->mock(engine_for_target => sub {
+    $db_arg = $_[1];
+    shift->$orig_meth(@_);
+});
+$orig_meth = $mock_status->original('engine_for_target');
+my $dest = $sqitch->engine->destination;
+
+my $check_output = sub {
+    is_deeply +MockOutput->get_comment, [
+        [__x 'On database {db}', db => $dest ],
+        [__x 'Project:  {project}', project => 'mystatus'],
+        [__x 'Change:   {change_id}', change_id => $state->{change_id}],
+        [__x 'Name:     {change}',    change    => 'widgets_table'],
+        [__nx 'Tag:      {tags}', 'Tags:     {tags}', 3,
+         tags => join(__ ', ', qw(@alpha @beta @gamma))],
+        [__x 'Deployed: {date}',      date      => $ts],
+        [__x 'By:       {name} <{email}>', name => 'fred', email => 'fred@example.com'],
+        [''],
+    ], 'The state should have been emitted';
+    is_deeply +MockOutput->get_emit, [
+        [__n 'Undeployed change:', 'Undeployed changes:', 2],
+        map { ['  * ', $_->format_name_with_tags] } @changes[2..$#changes],
+    ], 'Should emit list of undeployed changes';
+};
+
 $state->{change_id} = $changes[1]->id;
 $engine_mocker->mock( current_state => $state );
 ok $status->execute, 'Execute';
-is_deeply +MockOutput->get_comment, [
-    [__x 'On database {db}', db => $sqitch->engine->destination ],
-    [__x 'Project:  {project}', project => 'mystatus'],
-    [__x 'Change:   {change_id}', change_id => $state->{change_id}],
-    [__x 'Name:     {change}',    change    => 'widgets_table'],
-    [__nx 'Tag:      {tags}', 'Tags:     {tags}', 3,
-     tags => join(__ ', ', qw(@alpha @beta @gamma))],
-    [__x 'Deployed: {date}',      date      => $ts],
-    [__x 'By:       {name} <{email}>', name => 'fred', email => 'fred@example.com'],
-    [''],
-], 'The state should have been emitted';
-is_deeply +MockOutput->get_emit, [
-    [__n 'Undeployed change:', 'Undeployed changes:', 2],
-    map { ['  * ', $_->format_name_with_tags] } @changes[2..$#changes],
-], 'Should emit list of undeployed changes';
+$check_output->();
+is $db_arg, undef, 'No DB arg should have been passed to engine_for_db';
+
+# Test with a database argument.
+ok $status->execute('db:sqlite:'), 'Execute with target arg';
+$dest = 'db:sqlite:multi.db';
+$check_output->();
+is $db_arg, 'db:sqlite:', 'DB arg "db:sqlite:" should have been passed to engine_for_db';
+
+# Pass the database in an option.
+ok $status = App::Sqitch::Command->load({
+    sqitch  => $sqitch,
+    command => 'status',
+    config  => $config,
+    args    => ['--target', 'db:sqlite:'],
+}), 'Create status command with a target option';
+ok $status->execute, 'Execute with target attribute';
+$dest = 'db:sqlite:multi.db';
+$check_output->();
+is $db_arg, 'db:sqlite:', 'DB arg "db:sqlite:" should have been passed to engine_for_db';
+
+# Test with two targets.
+ok $status->execute('whatever'), 'Execute with target attribute and arg';
+$dest = 'db:sqlite:multi.db';
+$check_output->();
+is $db_arg, 'db:sqlite:', 'DB arg "db:sqlite:" should have been passed to engine_for_db';
+is_deeply +MockOutput->get_warn, [[__x(
+    'Both the --target option and the target argument passed; using {option}',
+    option => $status->target,
+)]], 'Should have got warning for two targets';
 
 # Test with unknown plan.
 for my $spec (
@@ -503,5 +555,7 @@ $engine_mocker->mock( current_state => sub { die 'No Sqitch tables' } );
 throws_ok { $status->execute } 'App::Sqitch::X',
     'Should get an error for uninitialized db';
 is $@->ident, 'status', 'Uninitialized db error ident should be "status"';
-is $@->message, __ 'Database not initialized for Sqitch',
-    'Uninitialized db error message should be correct';
+is $@->message, __x(
+    'Database {db} has not been initialized for Sqitch',
+    db => 'db:sqlite:sqitch.db',
+), 'Uninitialized db error message should be correct';

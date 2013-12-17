@@ -4,11 +4,12 @@ sqitch-revert-usage - Sqitch revert usage statement
 
 =head1 Usage
 
-  sqitch [options] revert [<target options>]
+  sqitch [options] revert [<change options>]
 
 =head1 Options
 
-       --to-target <tag>    revert to target
-    -s --set                set a database client variable
+    -t --target <target>    database to which to connect
+       --to-change <change> revert to change
+    -s --set <key=value>    set a database client variable
        --log-only           log changes without running them
     -y                      disable the prompt before reverting

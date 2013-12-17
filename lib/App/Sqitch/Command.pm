@@ -19,6 +19,9 @@ has sqitch => (
     handles  => [qw(
         plan
         engine
+        config_for_target
+        config_for_target_strict
+        engine_for_target
         run
         shell
         quote_shell
@@ -173,6 +176,28 @@ sub usage {
     );
 }
 
+sub parse_args {
+    my $self   = shift;
+    my $plan   = $self->plan;
+    my $config = $self->sqitch->config;
+    require URI;
+
+    my %ret    = (
+        changes => [],
+        targets => [],
+        unknown => [],
+    );
+    for my $arg (@_) {
+        my $ref = $plan->contains($arg)                   ? $ret{changes}
+                : URI->new($arg)->isa('URI::db')          ? $ret{targets}
+                : $config->get( key => "target.$arg.uri") ? $ret{targets}
+                :                                           $ret{unknown};
+        push @{ $ref } => $arg;
+    }
+
+    return %ret;
+}
+
 __PACKAGE__->meta->make_immutable;
 no Mouse;
 
@@ -312,6 +337,17 @@ uses to find the command class.
 
 These methods are mainly provided as utilities for the command subclasses to
 use.
+
+=head3 C<parse_args>
+
+  my @parsed_args = $cmd->parse_args(@args);
+
+Examines each argument to determine whether it's a known change spec or
+target. Returns a list of two-value array references, one for each agument
+passed. For each array reference, the first item is the argument type, either
+"change", "target", or "unknown", and the second item is the orginal value.
+Useful for commands that take a number of parameters where the order may be
+mixed.
 
 =head3 C<run>
 

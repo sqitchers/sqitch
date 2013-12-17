@@ -61,9 +61,9 @@ Let's have a look at F<sqitch.conf>:
   	# verify_dir = verify
   	# extension = sql
   # [core "mysql"]
-  	# db_uri = db:mysql:
+  	# database = db:mysql:
+  	# registry = sqitch
   	# client = /usr/local/mysql/bin/mysql
-  	# sqitch_db = sqitch
 
 Good, it picked up on the fact that we're creating changes for the MySQL
 engine, thanks to the C<--engine mysql> option, and saved it to the file.
@@ -170,26 +170,26 @@ Now we can try deploying this change:
 
   > mysql -u root --execute 'CREATE DATABASE flipr_test'
   > sqitch --db-name flipr_test --db-user root deploy
-  Adding metadata tables to sqitch
+  Adding registry tables to sqitch
   Deploying to flipr_test
     + appuser .. ok
 
-First Sqitch created the metadata database and tables used to track database
-changes. This database is separate from the database to which the C<appuser>
-change was deployed; by default, it's name is C<sqitch>, and will be used to
-manage I<all> projects on a single MySQL server. If you need a database to
-have its own Sqitch metadata database, set the C<core.mysql.sqitch_db>
+First Sqitch created the registry database and tables used to track database
+changes. The registry database is separate from the database to which the
+C<appuser> change was deployed; by default, it's name is C<sqitch>, and will
+be used to manage I<all> projects on a single MySQL server. If you need a
+database to have its own Sqitch registry, set the C<core.mysql.registry>
 configuration variable, e.g.:
 
-  > sqitch config core.mysql.sqitch_db flipr_sqitch
+  > sqitch config core.mysql.registry flipr_sqitch
 
 Ideally, only Sqitch data will be stored in this database, so it probably makes
 the most sense to create a superuser named C<sqitch> or something similar and
 use it to deploy changes.
 
-Next, Sqitch deploys changes to the destination database, which we specified
-on the command-line. We only have one so far; the C<+> reinforces the idea
-that the change is being I<added> to the database.
+Next, Sqitch deploys changes to the target database, which we specified on the
+command-line. We only have one so far; the C<+> reinforces the idea that the
+change is being I<added> to the database.
 
 With this change deployed, if you connect to the database, you'll be able to
 see the user:
@@ -222,8 +222,8 @@ Give it a try. Put this query into F<verify/appuser.sql>:
   SELECT sqitch.checkit(COUNT(*), 'User "flipr" does not exist')
     FROM mysql.user WHERE user = 'flipr';
 
-This will work well as long as we know that the Sqitch database is named
-C<sqitch>. If you've set C<core.mysql.sqitch_db> to a different value, you
+This will work well as long as we know that the registry database is named
+C<sqitch>. If you've set C<core.mysql.registry> to a different value, you
 will need to make sure you specify the correct database name in the script.
 
 Now you can run the C<verify> script with the L<C<verify>|sqitch-verify>
@@ -264,7 +264,7 @@ continuing!
 
 For purely informational purposes, we can always see how a deployment was
 recorded via the L<C<status>|sqitch-status> command, which reads the tables
-from the metadata database:
+from the registry database:
 
   > sqitch --db-name flipr_test --db-user root status
   # On database flipr_test
@@ -369,7 +369,7 @@ I'm getting a little tired of always having to type C<--db-user root --db-name
 flipr_test>, aren't you? Sqitch uses URIs to determine how to connect to the
 database, so let's give it a default URI, shall we?
 
-  > sqitch config core.mysql.db_uri db:mysql://root@/flipr_test
+  > sqitch config core.mysql.database db:mysql://root@/flipr_test
 
 Now we can leave it out, unless we need to deploy to another database. Which
 we will, eventually, but at least our examples will be simpler from here on
@@ -806,7 +806,7 @@ Now we can package the F<bundle> directory and distribute it. When it gets
 installed somewhere, users can use Sqitch to deploy to the database. We ought
 to try deploying it, but first we'll need to revert our existing databases, as
 a single Sqitch project cannot be deployed to two databases on the same server
-unless C<core.mysql.sqitch_db> is different and the C<checkit()> function is
+unless C<core.mysql.registry> is different and the C<checkit()> function is
 not used in verify scripts. We have used C<checkit()> quite a bit, so we need
 to keep the Sqitch database name just where it is. Fortunately, it's easy to
 build the database again, so let's just revert it.
@@ -823,7 +823,7 @@ Now we can try deploying the bundle:
   > cd bundle
   > mysql -u root --execute 'CREATE DATABASE flipr_dev'
   > sqitch --db-name flipr_dev deploy
-  Adding metadata tables to sqitch
+  Adding registry tables to sqitch
   Deploying changes to flipr_dev
     + appuser ................... ok
     + users ..................... ok

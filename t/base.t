@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 184;
+use Test::More tests => 213;
 #use Test::More 'no_plan';
 use Test::MockModule;
 use Path::Class;
@@ -87,26 +87,119 @@ is $@->ident, 'core', 'No engine error ident should be "core"';
 is $@->message, __ 'No engine specified; use --engine or set core.engine',
     'No engine error message should be correct';
 
-# Try an uknown engine.
+# Try an unknown engine.
 throws_ok { $CLASS->new(_engine => 'nonexistent') } 'App::Sqitch::X',
     'Should get error for unknown engine';
 is $@->ident, 'core', 'Unknown engine error ident should be "core"';
 is $@->message, __x('Unknown engine: {engine}', engine => 'nonexistent'),
     'Unknown No engine error message should be correct';
 
-# Valid engines and the engine constructor.
+# Valid engines and the engine constructors.
 for my $eng (qw(pg sqlite mysql oracle)) {
     ok my $sqitch = $CLASS->new(_engine => $eng),
         qq{Engine "$eng" should be valid};
 
     my $uri = URI->new("db:$eng:foo");
-    isa_ok my $engine = $sqitch->engine( db_uri => $uri ),
+    isa_ok my $engine = $sqitch->engine( uri => $uri ),
         "App::Sqitch::Engine::$eng", "$eng engine";
-    is $engine->db_uri, $uri, "URI $uri should have been passed through";
+    is $engine->uri, $uri, "URI $uri should have been passed through";
 
-    ok $engine = $sqitch->engine({ db_uri => $uri }),
+    ok $engine = $sqitch->engine({ uri => $uri }),
         "Create another App::Sqitch::Engine::$eng with hash params";
-    is $engine->db_uri, $uri, "URI $uri should have been passed through again";
+    is $engine->uri, $uri, "URI $uri should have been passed through again";
+}
+
+##############################################################################
+# Test config_for_target.
+is $sqitch->config_for_target, undef, 'Should get no string for no DB param';
+is $sqitch->config_for_target(undef), undef, 'Should get no string for undef DB param';
+is $sqitch->config_for_target(''), undef, 'Should get no string for empty DB param';
+is $sqitch->config_for_target(0), undef, 'Should get no string for DB param 0';
+
+# Pass a URI.
+is_deeply $sqitch->config_for_target('db:pg:'), {
+    uri => URI->new('db:pg:'),
+}, 'Should get target back from config_for_target()';
+
+# Pass a key.
+CONFIG: {
+    my $mock = Test::MockModule->new('App::Sqitch::Config');
+    my @params;
+    my $ret = { uri => URI->new('db:sqlite:hi') };
+    $mock->mock(get_section => sub { shift; @params = @_; $ret });
+    is_deeply $sqitch->config_for_target('grokker'), $ret,
+        'Should get target for URI key';
+    is_deeply \@params, [section => 'target.grokker'],
+        'The URI should have been fetched from the config';
+    $ret = undef;
+    is $sqitch->config_for_target('whatever'), undef,
+        'Should get back undef when no URI for key';
+    is_deeply \@params, [section => 'target.whatever'],
+        'The URI should have been sought in the config';
+}
+
+##############################################################################
+# Test config_for_target_strict.
+is_deeply $sqitch->config_for_target_strict('db:pg:foo'), {
+    uri => URI->new('db:pg:foo'),
+}, 'Should get URI back for URI param';
+isa_ok $sqitch->config_for_target_strict('db:pg:foo')->{uri}, 'URI::db', 'DB URI';
+
+# Pass a key.
+CONFIG: {
+    my $mock = Test::MockModule->new('App::Sqitch::Config');
+    my @params;
+    my $ret = { uri => URI->new('db:sqlite:hi') };
+    $mock->mock(get_section => sub { shift; @params = @_; $ret });
+    is_deeply $sqitch->config_for_target_strict('grokker'), $ret,
+        'Should get target back for URI key';
+    is_deeply \@params, [section => 'target.grokker'],
+        'The target should have been fetched from the config';
+    isa_ok $sqitch->config_for_target_strict('bob')->{uri}, 'URI::db',
+        'DB URI from config';
+    is_deeply \@params, [section => 'target.bob'],
+        'The new URI should have been fetched from the config';
+    $ret = undef;
+    throws_ok { $sqitch->config_for_target_strict('grokker') } 'App::Sqitch::X',
+        'Should get an exception for unknown config DB key';
+    is $@->ident, 'core', 'Unknown key error ident should be "core"';
+    is $@->message, __x(
+        'Cannot find target "{target}"',
+        target => 'grokker'
+    ), 'The unknown key error message should be correct';
+}
+
+##############################################################################
+# Test engine_for_target.
+$sqitch = $CLASS->new( _engine => 'sqlite' );
+my $def_uri = $sqitch->engine->uri;
+isa_ok $sqitch->engine_for_target, 'App::Sqitch::Engine', 'Engine for DB';
+is $sqitch->engine_for_target->uri,        $def_uri, 'Should get default engine for no DB param';
+is $sqitch->engine_for_target(undef)->uri, $def_uri, 'Should get default engine for undef DB param';
+is $sqitch->engine_for_target('')->uri,    $def_uri, 'Should get default engine for empty DB param';
+is $sqitch->engine_for_target(0)->uri,     $def_uri, 'Should get default engine for DB param 0';
+
+# Pass a URI.
+is $sqitch->engine_for_target('db:pg:foo')->uri, URI->new('db:pg:foo'),
+    'Should get properly configured engine for URI param';
+
+# Pass a key.
+CONFIG: {
+    my $mock = Test::MockModule->new('App::Sqitch::Config');
+    my $ret = { uri => URI->new('db:sqlite:hi') };
+    $mock->mock(get_section => sub { $ret });
+    is_deeply $sqitch->engine_for_target('grokker')->uri, 'db:sqlite:hi',
+        'Should get engine with URI for URI key';
+    isa_ok $sqitch->engine_for_target('bob'), 'App::Sqitch::Engine',
+        'Engine with URI from config';
+    $ret = undef;
+    throws_ok { $sqitch->engine_for_target('grokker') } 'App::Sqitch::X',
+        'Should get an exception for unknown config DB key';
+    is $@->ident, 'core', 'Unknown key error ident should be "core"';
+    is $@->message, __x(
+        'Cannot find target "{key}"',
+        key => 'grokker'
+    ), 'The unknown key error message should be correct';
 }
 
 # Test invalid user name and email values.
