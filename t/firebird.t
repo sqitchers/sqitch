@@ -67,14 +67,21 @@ my @std_opts = (
     '-charset'    => 'UTF8',
 );
 
-is_deeply([$fb->isql], [$fb->client, @std_opts, $fb->uri->dbname],
+my $host   = $fb->uri->host;
+my $port   = $fb->uri->port;
+my $dbname = $fb->uri->dbname;
+$dbname = $host
+        ? qq{$host/$port:$dbname}
+        : qq{localhost/$port:$dbname}
+        if $port;
+is_deeply([$fb->isql], [$fb->client, @std_opts, $dbname],
           'isql command should be std opts-only') if $have_fb_driver;
 
 isa_ok $fb = $CLASS->new(sqitch => $sqitch, db_name => 'foo'), $CLASS;
 ok $fb->set_variables(foo => 'baz', whu => 'hi there', yo => 'stellar'),
     'Set some variables';
 
-is_deeply([$fb->isql], [$fb->client, @std_opts, $fb->uri->dbname],
+is_deeply([$fb->isql], [$fb->client, @std_opts, $dbname],
           'isql command should be std opts-only') if $have_fb_driver;
 
 ##############################################################################
@@ -100,7 +107,7 @@ is_deeply [$fb->isql], [(
     '/path/to/isql',
     '-user', 'freddy',
     '-password', 's3cr3t',
-), @std_opts, 'db.example.com:1234:widgets'], 'firebird command should be configured';
+), @std_opts, 'db.example.com/1234:widgets'], 'firebird command should be configured';
 
 ##############################################################################
 # Now make sure that Sqitch options override configurations.
@@ -129,7 +136,7 @@ is_deeply [$fb->isql], [(
     '/some/other/isql',
     '-user', 'anna',
     '-password', 's3cr3t',
-), @std_opts, 'foo.com:98760:widgets_dev'], 'isql command should be as optioned';
+), @std_opts, 'foo.com/98760:widgets_dev'], 'isql command should be as optioned';
 
 ##############################################################################
 # Test _run(), _capture(), and _spool().
