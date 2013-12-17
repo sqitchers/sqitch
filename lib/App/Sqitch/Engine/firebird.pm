@@ -112,14 +112,17 @@ has isql => (
             uri => $uri,
         );
 
+        $dbname = $self->format_uri($dbname);
+
         push @ret => (
             '-quiet',
             '-bail',
             '-sqldialect' => '3',
             '-pagelength' => '16384',
             '-charset'    => 'UTF8',
-            join ':', grep { defined } $uri->host, $uri->_port, $dbname
+            $dbname,
         );
+
         return \@ret;
     },
 );
@@ -206,10 +209,9 @@ sub initialize {
         database => $uri->dbname,
     ) if $self->initialized;
 
-    # Create the Sqitch database if it does not exist.
-    my $sqitch_db = join ':', grep {defined}
-        $uri->host, $uri->_port, $uri->dbname;
+    my $sqitch_db = $self->format_uri($uri->dbname);
 
+    # Create the Sqitch database if it does not exist.
     try {
         require DBD::Firebird;
         DBD::Firebird->create_database({
@@ -230,6 +232,18 @@ sub initialize {
     my $file   = file(__FILE__)->dir->file('firebird.sql');
     my $sqitch = $self->sqitch;
     $sqitch->run( @cmd, '-input' => $sqitch->quote_shell($file) );
+}
+
+sub format_uri {
+    my ($self, $dbname) = @_;
+    my $uri  = $self->registry_uri;
+    my $host = $uri->host;
+    my $port = $uri->port;
+    $dbname  = $host
+             ? qq{$host/$port:$dbname}
+             : qq{localhost/$port:$dbname}
+             if $port;
+    return $dbname;
 }
 
 # Override to lock the Sqitch tables. This ensures that only one instance of
