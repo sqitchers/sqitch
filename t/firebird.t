@@ -139,6 +139,34 @@ is_deeply [$fb->isql], [(
 ), @std_opts, 'foo.com/98760:widgets_dev'], 'isql command should be as optioned';
 
 ##############################################################################
+# Test connection_string.
+can_ok $fb, 'connection_string';
+for my $file (qw(
+    foo.fdb
+    /blah/hi.fdb
+    C:/blah/hi.fdb
+)) {
+    # DB name only.
+    is $fb->connection_string( URI::db->new("db:firebird:$file") ),
+        $file, "Connection for db:firebird:$file";
+    # DB name and host.
+    is $fb->connection_string( URI::db->new("db:firebird:foo.com/$file") ),
+        "foo.com/$file", "Connection for db:firebird:foo.com/$file";
+    # DB name, host, and port
+    is $fb->connection_string( URI::db->new("db:firebird:foo.com:1234/$file") ),
+        "foo.com:1234/$file", "Connection for db:firebird:foo.com/$file:1234";
+}
+
+throws_ok { $fb->connection_string( URI::db->new('db:firebird:') ) }
+    'App::Sqitch::X', 'Should get an exception for no db name';
+is $@->ident, 'firebird', 'No dbname exception ident should be "firebird"';
+is $@->message, __x(
+    'Database name missing in URI {uri}',
+    uri => 'db:firebird:',
+), 'No dbname exception message should be correct';
+
+
+##############################################################################
 # Test _run(), _capture(), and _spool().
 can_ok $fb, qw(_run _capture _spool);
 my $mock_sqitch = Test::MockModule->new('App::Sqitch');
