@@ -39,7 +39,7 @@ is_deeply [$CLASS->options], [qw(
     set|s=s%
     log-only
     verify!
-    to-target=%s
+    to-target=s
 )], 'Options should be correct';
 
 my $sqitch = App::Sqitch->new(

@@ -66,7 +66,7 @@ sub options {
         set|s=s%
         log-only
         verify!
-        to-target=%s
+        to-target=s
     );
 }
 

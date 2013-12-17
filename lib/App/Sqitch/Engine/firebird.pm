@@ -107,20 +107,13 @@ has isql => (
             push @ret, "-$spec->[0]" => $spec->[1] if $spec->[1];
         }
 
-        my $dbname = $uri->dbname or hurl firebird => __x(
-            'Database name missing in URI {uri}',
-            uri => $uri,
-        );
-
-        $dbname = $self->format_uri($dbname);
-
         push @ret => (
             '-quiet',
             '-bail',
             '-sqldialect' => '3',
             '-pagelength' => '16384',
             '-charset'    => 'UTF8',
-            $dbname,
+            $self->connection_string($uri),
         );
 
         return \@ret;
@@ -209,9 +202,9 @@ sub initialize {
         database => $uri->dbname,
     ) if $self->initialized;
 
-    my $sqitch_db = $self->format_uri($uri->dbname);
+    my $sqitch_db = $self->connection_string($uri);
 
-    # Create the Sqitch database if it does not exist.
+    # Create the registry database if it does not exist.
     try {
         require DBD::Firebird;
         DBD::Firebird->create_database({
@@ -234,16 +227,15 @@ sub initialize {
     $sqitch->run( @cmd, '-input' => $sqitch->quote_shell($file) );
 }
 
-sub format_uri {
-    my ($self, $dbname) = @_;
-    my $uri  = $self->registry_uri;
-    my $host = $uri->host;
-    my $port = $uri->port;
-    $dbname  = $host
-             ? qq{$host/$port:$dbname}
-             : qq{localhost/$port:$dbname}
-             if $port;
-    return $dbname;
+sub connection_string {
+    my ($self, $uri) = @_;
+    my $file = $uri->dbname or hurl firebird => __x(
+        'Database name missing in URI {uri}',
+        uri => $uri,
+    );
+    my $host = $uri->host   or return $file;
+    my $port = $uri->_port  or return "$host:$file";
+    return "$host/$port:$file";
 }
 
 # Override to lock the Sqitch tables. This ensures that only one instance of
