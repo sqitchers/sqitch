@@ -35,16 +35,23 @@ has client => (
             return $client;
         }
 
-        # Next look for it in the target.
+        # Next look for it in the target config.
         if (my $target = $self->target) {
             if (my $cli = $config->get( key => "target.$target.client" )) {
                 return $cli;
             }
         }
 
-        # Otherwise look for the defaults.
-        return $config->get( key => "core.$engine.client" )
-            || $self->default_client . ( $^O eq 'MSWin32' ? '.exe' : '' );
+        # Next look for it in the engine config.
+        if ( my $client = $config->get( key => "core.$engine.client" ) ) {
+            return $client;
+        }
+
+        # Otherwise, go with the default.
+        my $client = $self->default_client;
+        return $client if $^O ne 'MSWin32';
+        return $client if $client =~ /[.](?:exe|bat)$/;
+        return $client . '.exe';
     },
 );
 
