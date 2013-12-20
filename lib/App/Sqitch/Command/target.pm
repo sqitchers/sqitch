@@ -6,25 +6,87 @@ use warnings;
 use utf8;
 use Mouse;
 use Locale::TextDomain qw(App-Sqitch);
+use App::Sqitch::X qw(hurl);
 use namespace::autoclean;
 
 extends 'App::Sqitch::Command';
 
 our $VERSION = '0.990';
 
+has verbose => (
+    is      => 'ro',
+    isa     => 'Int',
+    default => 0,
+);
+
+has uri => (
+    is  => 'ro',
+    isa => 'Int',
+);
+
+has registry => (
+    is  => 'ro',
+    isa => 'Int',
+);
+
+has client => (
+    is  => 'ro',
+    isa => 'Int',
+);
+
 sub options {
     return qw(
-        set-uri|uri|u=s
-        set-registry|registry|r=s
-        set-client|client|c=s
+        uri|set-uri|u=s
+        registry|set-registry|r=s
+        client|set-client|c=s
         v|verbose+
     );
 }
 
 sub execute {
-    my ( $self, $action ) = @_;
+    my ( $self, $action ) = (shift, shift);
+    $action ||= 'list';
+    my $meth = $self->can($action) or hurl target => __x(
+        'Unknown action "{action}"',
+        action => $action,
+    );
+    return $self->$meth(@_);
+}
+
+sub list {
+    my $self    = shift;
+    my $sqitch  = $self->sqitch;
+    my %targets = $sqitch->config->get_regexp(key => qr/^target[.][^.]+[.]uri$/);
+
+    my $format = $self->verbose ? "%s\t%s" : '%s';
+    for my $key (sort keys %targets) {
+        my ($target) = $key =~ /target[.]([^.]+)/;
+        $sqitch->emit(sprintf $format, $target, $targets{$key});
+    }
 
     return $self;
+}
+
+sub add {
+    my ($self, $name, $uri) = @_;
+}
+
+sub update {
+    my ($self, $name, $uri) = @_;
+}
+
+sub remove {
+    my ($self, $name) = @_;
+}
+
+sub rm { shift->remove(@_) }
+
+sub rename {
+    my ($self, $old, $new) = @_;
+}
+
+sub show {
+    my ($self, $name) = @_;
 }
 
 1;
