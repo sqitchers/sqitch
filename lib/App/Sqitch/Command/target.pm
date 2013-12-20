@@ -43,6 +43,13 @@ sub options {
     );
 }
 
+sub configure {
+    my ( $class, $config, $options ) = @_;
+
+    # No config; target config is actually targets.
+    return $options;
+}
+
 sub execute {
     my ( $self, $action ) = (shift, shift);
     $action ||= 'list';

@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 50;
+use Test::More tests => 51;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -56,6 +56,11 @@ is $cmd->verbose,  0,     'Default verbosity should be 0';
 is $cmd->uri,      undef, 'Default URI should be undef';
 is $cmd->registry, undef, 'Default registry should be undef';
 is $cmd->client,   undef, 'Default client should be undef';
+
+# Make sure configure ignores config file.
+is_deeply $CLASS->configure({ foo => 'bar'}, { hi => 'there' }),
+    { hi => 'there' },
+    'configure() should ignore config file';
 
 ##############################################################################
 # Test list().
