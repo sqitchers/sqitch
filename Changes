@@ -43,6 +43,9 @@ Revision history for Perl extension App::Sqitch
        driver is required.
      - Added Firebird engine. Three cheers to Ștefan Suciu for this
        contribution!
+     - Non-fatal but possibly unexpected messages -- which correspond to exit
+       value 1 -- now send their messages to STDOUT instead of STDERR, and
+       respect the `--quiet` option. Thanks to @giorgio-v for the report!
 
 0.983  2013-11-21T21:50:12Z
      - Fixed "Use of uninitialized value" in the MySQL engine. Thanks to
