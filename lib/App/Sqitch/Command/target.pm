@@ -12,6 +12,15 @@ extends 'App::Sqitch::Command';
 
 our $VERSION = '0.990';
 
+sub options {
+    return qw(
+        set-uri|uri|u=s
+        set-registry|registry|r=s
+        set-client|client|c=s
+        v|verbose+
+    );
+}
+
 sub execute {
     my ( $self, $action ) = @_;
 

@@ -1,0 +1,131 @@
+=head1 Name
+
+sqitch-target - Mange set of target databases
+
+=head1 Synopsis
+
+  sqitch target [-v | --verbose]
+  sqitch target add [-u <uri>] [-r <registry>] [-c <client>] <name> <uri>
+  sqitch target update [-u <uri>] [-r <registry>] [-c <client>] <name> <uri>
+  sqitch target remove <name>
+  sqitch target rename <old> <new>
+  sqitch target show <name>
+
+=head1 Description
+
+Manage the set of databases ("targets") you deploy to. Each target has three
+attributes:
+
+=over
+
+=item C<uri>
+
+The L<database connection URI|URI::db> for the target. Required. Its format is:
+
+  db:engine:[dbname]
+  db:engine:[//[user[:password]@][host][:port]/][dbname][?params][#fragment]
+
+Some examples:
+
+=over
+
+=item C<db:sqlite:widgets.db>
+
+=item C<db:pg://dba@example.net/blanket>
+
+=item C<db:mysql://db.example.com/>
+
+=item C<db:firebird://localhost//tmp/test.fdb>
+
+=back
+
+See the L<DB URI Draft|https://github.com/theory/uri-db> for details.
+
+=item C<registry>
+
+The name of the registry schema or database. The default is C<sqitch>.
+
+=item C<client>
+
+The command-line client to use. If not specified, each engine looks in the OS
+Path for an appropriate client.
+
+=back
+
+Each of these overrides the corresponding engine-specific configuration --
+that is, the C<core.$engine.uri>, C<core.$engine.registry>, and
+C<core.$engine.client> L<config|sqitch-config> options.
+
+=head1 Options
+
+=over
+
+=item C<-v>
+
+=item C<--verbose>
+
+Be a little more verbose and show remote URI after name.
+
+=item C<-u>
+
+=item C<--uri>
+
+=item C<--set-uri>
+
+Set the URI for the target. Used only by the C<add> and C<update> actions.
+
+=item C<-r>
+
+=item C<--registry>
+
+=item C<--set-registry>
+
+Set the registry for the target. Used only by the C<add> and C<update>
+actions.
+
+=item C<-r>
+
+=item C<--client>
+
+=item C<--set-client>
+
+Set the client for the target. Used only by the C<add> and C<update> actions.
+
+=back
+
+=head1 Actions
+
+With no arguments, shows a list of existing targets. Several actions are
+available to perform operations on the targets.
+
+=head2 C<add>
+
+Add a target named C<< <name> >> for the database at C<< <uri> >>. The
+C<--registry> option specifies the Sqitch registry schema or database to use.
+The C<--client> option specifies the command-line client to use for deployment
+scripts.
+
+=head2 C<update>
+
+Update the URI, client, and/or registry configuration for target C<< <name> >>.
+
+=head2 C<remove>, C<rm>
+
+Remove the target named C<< <name> >>.
+
+=head2 C<rename>
+
+Rename the remote named C<< <old> >> to C<< <new> >>.
+
+=head2 C<show>
+
+Gives some information about the remote C<< <name> >>.
+
+=head1 Configuration Variables
+
+The targets are stored in the configuration file, but the command itself
+currently relies on no configuration variables.
+
+=head1 Sqitch
+
+Part of the L<sqitch> suite.
