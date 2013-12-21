@@ -20,11 +20,6 @@ has verbose => (
     default => 0,
 );
 
-has uri => (
-    is  => 'ro',
-    isa => 'URI::db',
-);
-
 has registry => (
     is  => 'ro',
     isa => 'Str',
@@ -37,9 +32,8 @@ has client => (
 
 sub options {
     return qw(
-        uri|set-uri|u=s
-        registry|set-registry|r=s
-        client|set-client|c=s
+        registry|r=s
+        client|c=s
         v|verbose+
     );
 }
@@ -48,13 +42,13 @@ sub configure {
     my ( $class, $config, $options ) = @_;
 
     # No config; target config is actually targets.
-    $options->{uri} = URI::db->new($options->{uri}, 'db:') if $options->{uri};
     return $options;
 }
 
 sub execute {
     my ( $self, $action ) = (shift, shift);
     $action ||= 'list';
+    $action =~ s/-/_/g;
     my $meth = $self->can($action) or hurl target => __x(
         'Unknown action "{action}"',
         action => $action,
@@ -79,32 +73,26 @@ sub list {
 
 sub _name_uri {
     my ($self, $name, $uri) = @_;
-    $self->usage unless $name;
-    my $opt = $self->uri;
-    $self->usage unless $uri or $opt;
-
-    if ($uri && $opt) {
-        # Warn if they're different.
-        $self->warn(__x(
-            'Both the --uri option and the uri argument passed; using {option}',
-            option => $opt,
-        )) unless $opt->eq(URI::db->new($uri, 'db:'));
-        # Prefer the option.
-        return ($name, $opt);
-    }
-
-    return ($name, $opt || URI::db->new($uri, 'db:'));
 }
 
 sub add {
-    my $self = shift;
-    my ($name, $uri) = $self->_name_uri(@_);
+    my ($self, $name, $uri) = @_;
+    $self->usage unless $name && $uri;
+    $uri = URI::db->new($uri, 'db:');
 
     return $self;
 }
 
-sub update {
+sub set_uri {
     my ($self, $name, $uri) = @_;
+}
+
+sub set_registry {
+    my ($self, $name, $registry) = @_;
+}
+
+sub set_client {
+    my ($self, $name, $client) = @_;
 }
 
 sub remove {
@@ -127,7 +115,7 @@ __END__
 
 =head1 Name
 
-App::Sqitch::Command::target - Add, update, or list Sqitch target databases
+App::Sqitch::Command::target - Add, modify, or list Sqitch target databases
 
 =head1 Synopsis
 
