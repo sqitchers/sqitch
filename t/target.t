@@ -9,6 +9,9 @@ use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
 use Test::Exception;
 use Test::NoWarnings;
+use File::Copy;
+use Path::Class;
+use File::Temp 'tempdir';
 use lib 't/lib';
 use MockOutput;
 
@@ -19,10 +22,16 @@ $ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
 my $CLASS = 'App::Sqitch::Command::target';
 
 ##############################################################################
-# Load a target command and test the basics.
-chdir 't';
+# Set up a test directory and config file.
+my $tmp_dir = tempdir CLEANUP => 1;
+
+File::Copy::syscopy file(qw(t target.conf))->stringify, "$tmp_dir"
+    or die "Cannot copy t/target.conf to $tmp_dir: $!\n";
+chdir $tmp_dir;
 $ENV{SQITCH_CONFIG} = 'target.conf';
 
+##############################################################################
+# Load a target command and test the basics.
 ok my $sqitch = App::Sqitch->new, 'Load a sqitch sqitch object';
 my $config = $sqitch->config;
 isa_ok my $cmd = App::Sqitch::Command->load({
@@ -77,6 +86,76 @@ is_deeply +MockOutput->get_emit, [
     ["prod\tdb:pg://prod.example.us/pr_widgets"],
     ["qa\tdb:pg://qa.example.com/qa_widgets"]
 ], 'The list of targets and their URIs should have been output';
+
+##############################################################################
+# Test add().
+MISSINGARGS: {
+    # Test handling of no name.
+    my $mock = Test::MockModule->new($CLASS);
+    my @args;
+    $mock->mock(usage => sub { @args = @_; die 'USAGE' });
+    throws_ok { $cmd->add } qr/USAGE/,
+        'No name arg to add() should yield usage';
+    is_deeply \@args, [$cmd], 'No args should be passed to usage';
+
+    @args = ();
+    throws_ok { $cmd->add('foo') } qr/USAGE/,
+        'No URI arg to add() should yield usage';
+    is_deeply \@args, [$cmd], 'No args should be passed to usage';
+}
+
+# Should die on existing key.
+throws_ok { $cmd->add('dev', 'db:pg:') } 'App::Sqitch::X',
+    'Should get error for existing target';
+is $@->ident, 'target', 'Existing target error ident should be "target"';
+is $@->message, __x(
+    'Target "{target}" already exists',
+    target => 'dev'
+), 'Existing target error message should be correct';
+
+# Now add a new target.
+ok $cmd->add('test', 'db:pg:test'), 'Add target "test"';
+$config->load;
+is $config->get(key => 'target.test.uri'), 'db:pg:test',
+    'Target "test" URI should have been set';
+is $config->get(key => 'target.test.registry'), undef,
+    'Target "test" should have no registry set';
+is $config->get(key => 'target.test.client'), undef,
+    'Target "test" should have no client set';
+
+# Try adding a target with a registry.
+isa_ok $cmd = $CLASS->new({ sqitch => $sqitch, registry => 'meta' }),
+    $CLASS, 'Target with registry';
+ok $cmd->add('withreg', 'db:pg:withreg'), 'Add target "withreg"';
+$config->load;
+is $config->get(key => 'target.withreg.uri'), 'db:pg:withreg',
+    'Target "withreg" URI should have been set';
+is $config->get(key => 'target.withreg.registry'), 'meta',
+    'Target "withreg" registry should have been set';
+
+# Try a client.
+isa_ok $cmd = $CLASS->new({ sqitch => $sqitch, client => 'hi.exe' }),
+    $CLASS, 'Target with client';
+ok $cmd->add('withcli', 'db:pg:withcli'), 'Add target "withcli"';
+$config->load;
+is $config->get(key => 'target.withcli.uri'), 'db:pg:withcli',
+    'Target "withcli" URI should have been set';
+is $config->get(key => 'target.withcli.registry'), undef,
+    'Target "withcli" registry should not have been set';
+is $config->get(key => 'target.withcli.client'), 'hi.exe',
+    'Target "withcli" should have client set';
+
+# Try both.
+isa_ok $cmd = $CLASS->new({ sqitch => $sqitch, client => 'ack', registry => 'foo' }),
+    $CLASS, 'Target with client and registry';
+ok $cmd->add('withboth', 'db:pg:withboth'), 'Add target "withboth"';
+$config->load;
+is $config->get(key => 'target.withboth.uri'), 'db:pg:withboth',
+    'Target "withboth" URI should have been set';
+is $config->get(key => 'target.withboth.registry'), 'foo',
+    'Target "withboth" registry should not been set';
+is $config->get(key => 'target.withboth.client'), 'ack',
+    'Target "withboth" should have client set';
 
 ##############################################################################
 # Test execute().

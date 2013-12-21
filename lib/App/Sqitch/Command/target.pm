@@ -71,14 +71,42 @@ sub list {
 }
 
 
-sub _name_uri {
-    my ($self, $name, $uri) = @_;
-}
-
 sub add {
     my ($self, $name, $uri) = @_;
     $self->usage unless $name && $uri;
-    $uri = URI::db->new($uri, 'db:');
+
+    my $key    = "target.$name";
+    my $config = $self->sqitch->config;
+
+    hurl target => __x(
+        'Target "{target}" already exists',
+        target => $name
+    ) if $config->get( key => "$key.uri");
+
+    # Set the URI.
+    $config->set(
+        key      => "$key.uri",
+        value    => URI::db->new($uri, 'db:')->as_string,
+        filename => $config->local_file,
+    );
+
+    # Set the registry, if specified.
+    if (my $reg = $self->registry) {
+        $config->set(
+            key      => "$key.registry",
+            value    => $reg,
+            filename => $config->local_file,
+        );
+    }
+
+    # Set the client, if specified.
+    if (my $reg = $self->client) {
+        $config->set(
+            key      => "$key.client",
+            value    => $reg,
+            filename => $config->local_file,
+        );
+    }
 
     return $self;
 }
