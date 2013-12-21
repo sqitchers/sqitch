@@ -7,6 +7,7 @@ use utf8;
 use Mouse;
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
+use URI::db;
 use namespace::autoclean;
 
 extends 'App::Sqitch::Command';
@@ -21,17 +22,17 @@ has verbose => (
 
 has uri => (
     is  => 'ro',
-    isa => 'Int',
+    isa => 'URI::db',
 );
 
 has registry => (
     is  => 'ro',
-    isa => 'Int',
+    isa => 'Str',
 );
 
 has client => (
     is  => 'ro',
-    isa => 'Int',
+    isa => 'Str',
 );
 
 sub options {
@@ -47,6 +48,7 @@ sub configure {
     my ( $class, $config, $options ) = @_;
 
     # No config; target config is actually targets.
+    $options->{uri} = URI::db->new($options->{uri}, 'db:') if $options->{uri};
     return $options;
 }
 
@@ -74,8 +76,31 @@ sub list {
     return $self;
 }
 
-sub add {
+
+sub _name_uri {
     my ($self, $name, $uri) = @_;
+    $self->usage unless $name;
+    my $opt = $self->uri;
+    $self->usage unless $uri or $opt;
+
+    if ($uri && $opt) {
+        # Warn if they're different.
+        $self->warn(__x(
+            'Both the --uri option and the uri argument passed; using {option}',
+            option => $opt,
+        )) unless $opt->eq(URI::db->new($uri, 'db:'));
+        # Prefer the option.
+        return ($name, $opt);
+    }
+
+    return ($name, $opt || URI::db->new($uri, 'db:'));
+}
+
+sub add {
+    my $self = shift;
+    my ($name, $uri) = $self->_name_uri(@_);
+
+    return $self;
 }
 
 sub update {

@@ -3,8 +3,8 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 51;
-#use Test::More 'no_plan';
+#use Test::More tests => 51;
+use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
 use Test::Exception;
@@ -62,6 +62,11 @@ is_deeply $CLASS->configure({ foo => 'bar'}, { hi => 'there' }),
     { hi => 'there' },
     'configure() should ignore config file';
 
+# Make sure configure() turns the URI into a URI::db object.
+ok my $opt = $CLASS->configure({}, { uri => 'pg:'}), 'Get config';
+isa_ok $opt->{uri}, 'URI::db', 'URI option';
+is $opt->{uri}->as_string, 'db:pg:', 'URI should look like a DB URI';
+
 ##############################################################################
 # Test list().
 ok $cmd->list, 'Run list()';
@@ -77,6 +82,49 @@ is_deeply +MockOutput->get_emit, [
     ["prod\tdb:pg://prod.example.us/pr_widgets"],
     ["qa\tdb:pg://qa.example.com/qa_widgets"]
 ], 'The list of targets and their URIs should have been output';
+
+##############################################################################
+# Test _name_uri().
+NAMEURI: {
+    # Test handling of no name.
+    my $mock = Test::MockModule->new($CLASS);
+    my @args;
+    $mock->mock(usage => sub { @args = @_; die 'USAGE' });
+    throws_ok { $cmd->_name_uri } qr/USAGE/,
+        'No name arg to add() should yield usage';
+    is_deeply \@args, [$cmd], 'No args should be passed to usage';
+
+    # Test handling of no URI.
+    @args = ();
+    throws_ok { $cmd->_name_uri('foo') } qr/USAGE/,
+        'No URI arg or option should yield usage';
+    is_deeply \@args, [$cmd], 'Usage should have been called';
+
+    # Try both URI option and arg.
+    isa_ok my $cmd = $CLASS->new({
+        sqitch => $sqitch, uri => URI::db->new('db:pg:')
+    }), $CLASS, 'Target with URI option';
+    is_deeply [$cmd->_name_uri('foo', 'db:pg:foo')],
+        ['foo', URI->new('db:pg:')],
+        'Should get URI option when also have URI arg';
+    is_deeply +MockOutput->get_warn, [[__x(
+        'Both the --uri option and the uri argument passed; using {option}',
+        option => 'db:pg:',
+    )]], 'Should get warning for two URIs';
+
+    # Should be okay if the dupes are the same.
+    is_deeply [$cmd->_name_uri('foo', 'db:pg:')],
+        ['foo', URI->new('db:pg:')],
+        'Should get URI option when have dupe URIs';
+    is_deeply +MockOutput->get_warn, [],
+        'Should have no warnings on dupe URI';
+
+    # Should be fine if just have the option.
+    is_deeply [$cmd->_name_uri('foo')], ['foo', URI->new('db:pg:')],
+        'Should get URI option when have just --uri';
+    is_deeply +MockOutput->get_warn, [],
+        'Should have no warnings on --uri only';
+}
 
 ##############################################################################
 # Test execute().
