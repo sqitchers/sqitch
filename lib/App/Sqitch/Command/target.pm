@@ -70,7 +70,6 @@ sub list {
     return $self;
 }
 
-
 sub add {
     my ($self, $name, $uri) = @_;
     $self->usage unless $name && $uri;
@@ -111,16 +110,42 @@ sub add {
     return $self;
 }
 
-sub set_uri {
-    my ($self, $name, $uri) = @_;
+sub _set {
+    my ($self, $key, $name, $value) = @_;
+    $self->usage unless $name && $value;
+
+    my $config = $self->sqitch->config;
+    my $target = "target.$name";
+
+    hurl target => __x(
+        'No such target "{target}"',
+        target => $name
+    ) unless $config->get( key => "$target.uri");
+
+    $config->set(
+        key      => "$target.$key",
+        value    => $value,
+        filename => $config->local_file,
+    );
 }
 
+sub set_uri {
+    my ($self, $name, $uri) = @_;
+    $self->_set(
+        'uri',
+        $name,
+        $uri ? URI::db->new($uri, 'db:')->as_string : undef
+    );
+}
+
+sub set_url { shift->set_uri(@_) };
+
 sub set_registry {
-    my ($self, $name, $registry) = @_;
+    shift->_set('registry', @_);
 }
 
 sub set_client {
-    my ($self, $name, $client) = @_;
+    shift->_set('client', @_);
 }
 
 sub remove {

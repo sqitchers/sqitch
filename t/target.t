@@ -158,19 +158,93 @@ is $config->get(key => 'target.withboth.client'), 'ack',
     'Target "withboth" should have client set';
 
 ##############################################################################
+# Test set_uri().
+MISSINGARGS: {
+    # Test handling of no name.
+    my $mock = Test::MockModule->new($CLASS);
+    my @args;
+    $mock->mock(usage => sub { @args = @_; die 'USAGE' });
+    throws_ok { $cmd->set_uri } qr/USAGE/,
+        'No name arg to set_uri() should yield usage';
+    is_deeply \@args, [$cmd], 'No args should be passed to usage';
+
+    @args = ();
+    throws_ok { $cmd->set_uri('foo') } qr/USAGE/,
+        'No URI arg to set_uri() should yield usage';
+    is_deeply \@args, [$cmd], 'No args should be passed to usage';
+}
+
+# Should get an error if the target does not exist.
+throws_ok { $cmd->set_uri('nonexistent', 'db:pg:' ) } 'App::Sqitch::X',
+    'Should get error for nonexistent target';
+is $@->ident, 'target', 'Nonexistent target error ident should be "target"';
+is $@->message, __x(
+    'No such target "{target}"',
+    target => 'nonexistent'
+), 'Nonexistent target error message should be correct';
+
+# Set one that exists.
+ok $cmd->set_uri('withboth', 'db:pg:newuri'), 'Set new URI';
+$config->load;
+is $config->get(key => 'target.withboth.uri'), 'db:pg:newuri',
+    'Target "withboth" should have new URI';
+
+# Make sure the URI is a database URI.
+ok $cmd->set_uri('withboth', 'postgres:stuff'), 'Set new URI';
+$config->load;
+is $config->get(key => 'target.withboth.uri'), 'db:postgres:stuff',
+    'Target "withboth" should have new DB URI';
+
+##############################################################################
+# Test set_registry() and set_client.
+for my $key (qw(registry client)) {
+    my $meth = "set_$key";
+    MISSINGARGS: {
+        # Test handling of no name.
+        my $mock = Test::MockModule->new($CLASS);
+        my @args;
+        $mock->mock(usage => sub { @args = @_; die 'USAGE' });
+        throws_ok { $cmd->$meth } qr/USAGE/,
+            "No name arg to $meth() should yield usage";
+        is_deeply \@args, [$cmd], 'No args should be passed to usage';
+
+        @args = ();
+        throws_ok { $cmd->$meth('foo') } qr/USAGE/,
+            "No $key arg to $meth() should yield usage";
+        is_deeply \@args, [$cmd], 'No args should be passed to usage';
+    }
+
+    # Should get an error if the target does not exist.
+    throws_ok { $cmd->$meth('nonexistent', 'shake' ) } 'App::Sqitch::X',
+        'Should get error for nonexistent target';
+    is $@->ident, 'target', 'Nonexistent target error ident should be "target"';
+    is $@->message, __x(
+        'No such target "{target}"',
+        target => 'nonexistent'
+    ), 'Nonexistent target error message should be correct';
+
+    # Set one that exists.
+    ok $cmd->$meth('withboth', 'rock'), 'Set new $key';
+    $config->load;
+    is $config->get(key => "target.withboth.$key"), 'rock',
+        qq{Target "withboth" should have new $key};
+}
+
+##############################################################################
 # Test execute().
 isa_ok $cmd = $CLASS->new({ sqitch => $sqitch }), $CLASS, 'Simple target';
 for my $spec (
-    [ undef,  'list'   ],
-    [ 'list'           ],
-    [ 'add'            ],
-    [ 'set-uri'        ],
-    [ 'set-registry'   ],
-    [ 'set-client'     ],
-    [ 'remove'         ],
-    [ 'rm',   'remove' ],
-    [ 'rename'         ],
-    [ 'show'           ],
+    [ undef,          'list'   ],
+    [ 'list'                   ],
+    [ 'add'                    ],
+    [ 'set-uri'                ],
+    [ 'set-url',     'set_uri' ],
+    [ 'set-registry'           ],
+    [ 'set-client'             ],
+    [ 'remove'                 ],
+    [ 'rm',          'remove'  ],
+    [ 'rename'                 ],
+    [ 'show'                   ],
 ) {
     my ($arg, $meth) = @{ $spec };
     $meth //= $arg;
