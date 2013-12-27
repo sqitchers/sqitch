@@ -14,7 +14,7 @@ This tutorial explains how to create a sqitch-enabled project, use a VCS for
 deployment planning, and work with other developers to make sure changes
 remain in sync and in the proper order.
 
-We'll start by creating new project from scratch, a fictional antisocial
+We'll start by creating a new project from scratch, a fictional antisocial
 networking site called Flipr. All examples use L<Git|http://git-scm.com/> as
 the VCS and L<PostgreSQL|http://www.postgresql.org/> as the storage engine,
 but for the most part you can substitute other VCSes and database engines in

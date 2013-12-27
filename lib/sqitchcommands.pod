@@ -59,10 +59,6 @@ Show the contents of a plan
 
 Revert and redeploy database changes
 
-=item L<C<checkout>|sqitch-checkout>
-
-Check out another VCS branch, rebasing the database onto the last common change
-
 =item L<C<revert>|sqitch-revert>
 
 Revert changes from a database
