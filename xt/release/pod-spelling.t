@@ -79,3 +79,8 @@ Unsets
 PDX
 PDXPUG
 username
+Firebird
+firebird
+Firebird's
+Gentoo
+Suciu

@@ -1367,7 +1367,7 @@ The name of the registry schema or database.
 
 =head3 C<registry_destination>
 
-A string idntifying the registry database. In other words, the database in
+A string identifying the registry database. In other words, the database in
 which Sqitch's own data is stored. It will usually be the same as C<destination()>,
 but some engines, such as L<SQLite|App::Sqitch::Engine::sqlite>, may use a
 separate database. Used internally to name the target when the registration

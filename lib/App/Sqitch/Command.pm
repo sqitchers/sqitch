@@ -343,9 +343,9 @@ use.
   my @parsed_args = $cmd->parse_args(@args);
 
 Examines each argument to determine whether it's a known change spec or
-target. Returns a list of two-value array references, one for each agument
+target. Returns a list of two-value array references, one for each argument
 passed. For each array reference, the first item is the argument type, either
-"change", "target", or "unknown", and the second item is the orginal value.
+"change", "target", or "unknown", and the second item is the original value.
 Useful for commands that take a number of parameters where the order may be
 mixed.
 
