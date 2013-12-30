@@ -354,12 +354,18 @@ sub go {
         # Just bail for unknown exceptions.
         $sqitch->vent($_) && return 2 unless eval { $_->isa('App::Sqitch::X') };
 
-        # It's one of ours. Vent.
-        $sqitch->vent($_->message);
+        # It's one of ours.
+        if ($_->exitval == 1) {
+            # Non-fatal exception; just send the message to info.
+            $sqitch->info($_->message);
+        } else {
+            # Fatal exception; vent.
+            $sqitch->vent($_->message);
 
-        # Emit the stack trace. DEV errors should be vented; otherwise trace.
-        my $meth = $_->ident eq 'DEV' ? 'vent' : 'trace';
-        $sqitch->$meth($_->stack_trace->as_string);
+            # Emit the stack trace. DEV errors should be vented; otherwise trace.
+            my $meth = $_->ident eq 'DEV' ? 'vent' : 'trace';
+            $sqitch->$meth($_->stack_trace->as_string);
+        }
 
         # Bail.
         return $_->exitval;
