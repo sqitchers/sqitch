@@ -8,6 +8,7 @@ use Mouse;
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use URI::db;
+use Try::Tiny;
 use namespace::autoclean;
 
 extends 'App::Sqitch::Command';
@@ -118,7 +119,7 @@ sub _set {
     my $target = "target.$name";
 
     hurl target => __x(
-        'No such target "{target}"',
+        'Unknown target "{target}"',
         target => $name
     ) unless $config->get( key => "$target.uri");
 
@@ -129,6 +130,7 @@ sub _set {
     );
 }
 
+sub set_url { shift->set_uri(@_) };
 sub set_uri {
     my ($self, $name, $uri) = @_;
     $self->_set(
@@ -138,8 +140,6 @@ sub set_uri {
     );
 }
 
-sub set_url { shift->set_uri(@_) };
-
 sub set_registry {
     shift->_set('registry', @_);
 }
@@ -148,14 +148,35 @@ sub set_client {
     shift->_set('client', @_);
 }
 
+sub rm { shift->remove(@_) }
 sub remove {
     my ($self, $name) = @_;
+    $self->usage unless $name;
+    $self->_rename($name);
 }
-
-sub rm { shift->remove(@_) }
 
 sub rename {
     my ($self, $old, $new) = @_;
+    $self->usage unless $old && $new;
+    $self->_rename($old, $new);
+}
+
+sub _rename {
+    my ($self, $old, $new) = @_;
+    my $config = $self->sqitch->config;
+    try {
+        $config->rename_section(
+            from     => "target.$old",
+            ($new ? (to => "target.$new") : ()),
+            filename => $config->local_file,
+        );
+    } catch {
+        die $_ unless /No such section/;
+        hurl target => __x(
+            'Unknown target "{target}"',
+            target => $old,
+        );
+    };
 }
 
 sub show {

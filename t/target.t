@@ -179,7 +179,7 @@ throws_ok { $cmd->set_uri('nonexistent', 'db:pg:' ) } 'App::Sqitch::X',
     'Should get error for nonexistent target';
 is $@->ident, 'target', 'Nonexistent target error ident should be "target"';
 is $@->message, __x(
-    'No such target "{target}"',
+    'Unknown target "{target}"',
     target => 'nonexistent'
 ), 'Nonexistent target error message should be correct';
 
@@ -219,7 +219,7 @@ for my $key (qw(registry client)) {
         'Should get error for nonexistent target';
     is $@->ident, 'target', 'Nonexistent target error ident should be "target"';
     is $@->message, __x(
-        'No such target "{target}"',
+        'Unknown target "{target}"',
         target => 'nonexistent'
     ), 'Nonexistent target error message should be correct';
 
@@ -229,6 +229,67 @@ for my $key (qw(registry client)) {
     is $config->get(key => "target.withboth.$key"), 'rock',
         qq{Target "withboth" should have new $key};
 }
+
+##############################################################################
+# Test rename.
+MISSINGARGS: {
+    # Test handling of no names.
+    my $mock = Test::MockModule->new($CLASS);
+    my @args;
+    $mock->mock(usage => sub { @args = @_; die 'USAGE' });
+    throws_ok { $cmd->rename } qr/USAGE/,
+        'No name args to rename() should yield usage';
+    is_deeply \@args, [$cmd], 'No args should be passed to usage';
+
+    @args = ();
+    throws_ok { $cmd->rename('foo') } qr/USAGE/,
+        'No second arg to rename() should yield usage';
+    is_deeply \@args, [$cmd], 'No args should be passed to usage';
+}
+
+# Should get an error if the target does not exist.
+throws_ok { $cmd->rename('nonexistent', 'existant' ) } 'App::Sqitch::X',
+    'Should get error for nonexistent target';
+is $@->ident, 'target', 'Nonexistent target error ident should be "target"';
+is $@->message, __x(
+    'Unknown target "{target}"',
+    target => 'nonexistent'
+), 'Nonexistent target error message should be correct';
+
+# Rename one that exists.
+ok $cmd->rename('withboth', 'àlafois'), 'Rename';
+$config->load;
+is $config->get(key => "target.àlafois.uri"), 'db:postgres:stuff',
+    qq{Target "àlafois" should now be present};
+is $config->get(key => "target.withboth.uri"), undef,
+    qq{Target "withboth" should no longer be present};
+
+##############################################################################
+# Test remove.
+MISSINGARGS: {
+    # Test handling of no names.
+    my $mock = Test::MockModule->new($CLASS);
+    my @args;
+    $mock->mock(usage => sub { @args = @_; die 'USAGE' });
+    throws_ok { $cmd->remove } qr/USAGE/,
+        'No name args to remove() should yield usage';
+    is_deeply \@args, [$cmd], 'No args should be passed to usage';
+}
+
+# Should get an error if the target does not exist.
+throws_ok { $cmd->remove('nonexistent', 'existant' ) } 'App::Sqitch::X',
+    'Should get error for nonexistent target';
+is $@->ident, 'target', 'Nonexistent target error ident should be "target"';
+is $@->message, __x(
+    'Unknown target "{target}"',
+    target => 'nonexistent'
+), 'Nonexistent target error message should be correct';
+
+# Remove one that exists.
+ok $cmd->remove('àlafois'), 'Remove';
+$config->load;
+is $config->get(key => "target.àlafois.uri"), undef,
+    qq{Target "àlafois" should now be gone};
 
 ##############################################################################
 # Test execute().
