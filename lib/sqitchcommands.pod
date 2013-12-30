@@ -79,4 +79,8 @@ Show information about changes and tags, or change script contents
 
 Add or list tags in the plan
 
+=item L<C<target>|sqitch-target>
+
+Manage target databases.
+
 =back
