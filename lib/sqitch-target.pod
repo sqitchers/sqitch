@@ -74,7 +74,7 @@ Be a little more verbose and show remote URI after name.
 
 =item C<--set-registry>
 
-Set the registry for the target. Used only by the C<add> actions.
+Set the registry for the target. Used only by the C<add> action.
 
 =item C<-r>
 
@@ -120,7 +120,9 @@ Rename the remote named C<< <old> >> to C<< <new> >>.
 
 =head2 C<show>
 
-Gives some information about the remote C<< <name> >>.
+Gives some information about the remote C<< <name> >>, including the
+associated URI, registry, and client. Specify multiple target names to see
+information for each.
 
 =head1 Configuration Variables
 
