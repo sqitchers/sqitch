@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 143;
+use Test::More tests => 142;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -374,11 +374,16 @@ for my $spec (
         "$meth() should have been passed args";
 }
 
-# Make sure an invalid action dies.
-throws_ok { $cmd->execute('nonexistent') } 'App::Sqitch::X',
-    'Should get an exception for a nonexistent action';
-is $@->ident, 'target', 'Nonexistent action error ident should be "target"';
-is $@->message, __x(
-    'Unknown action "{action}"',
-    action => 'nonexistent',
-), 'Nonexistent action error message should be correct';
+# Make sure an invalid action dies with a usage statement.
+MISSINGARGS: {
+    # Test handling of no names.
+    my $mock = Test::MockModule->new($CLASS);
+    my @args;
+    $mock->mock(usage => sub { @args = @_; die 'USAGE' });
+    throws_ok { $cmd->execute('nonexistent') } qr/USAGE/,
+        'Should get an exception for a nonexistent action';
+    is_deeply \@args, [$cmd, __x(
+        'Unknown action "{action}"',
+        action => 'nonexistent',
+    )], 'Nonexistent action message should be passed to usage';
+}

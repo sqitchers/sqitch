@@ -51,10 +51,10 @@ sub execute {
     my ( $self, $action ) = (shift, shift);
     $action ||= 'list';
     $action =~ s/-/_/g;
-    my $meth = $self->can($action) or hurl target => __x(
+    my $meth = $self->can($action) or $self->usage(__x(
         'Unknown action "{action}"',
         action => $action,
-    );
+    ));
     return $self->$meth(@_);
 }
 
