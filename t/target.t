@@ -3,8 +3,8 @@
 use strict;
 use warnings;
 use utf8;
-#use Test::More tests => 51;
-use Test::More 'no_plan';
+use Test::More tests => 143;
+#use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
 use Test::Exception;
@@ -290,6 +290,57 @@ ok $cmd->remove('àlafois'), 'Remove';
 $config->load;
 is $config->get(key => "target.àlafois.uri"), undef,
     qq{Target "àlafois" should now be gone};
+
+##############################################################################
+# Test show.
+ok $cmd->show, 'Run show()';
+is_deeply +MockOutput->get_emit, [
+    ['dev'], ['prod'], ['qa'], ['test'], ['withcli'], ['withreg']
+], 'Show with no names should emit the list of targets';
+
+# Try one target.
+ok $cmd->show('dev'), 'Show dev';
+is_deeply +MockOutput->get_emit, [
+    ['* dev'],
+    ['  ', 'URI:      ', 'db:pg:widgets'],
+    ['  ', 'Registry: ', 'sqitch'],
+    ['  ', 'Client:   ', 'psql'],
+], 'The "dev" target should have been shown';
+
+# Try a target with a non-default client.
+ok $cmd->show('withcli'), 'Show withcli';
+is_deeply +MockOutput->get_emit, [
+    ['* withcli'],
+    ['  ', 'URI:      ', 'db:pg:withcli'],
+    ['  ', 'Registry: ', 'sqitch'],
+    ['  ', 'Client:   ', 'hi.exe'],
+], 'The "with_cli" target should have been shown';
+
+# Try a target with a non-default registry.
+ok $cmd->show('withreg'), 'Show withreg';
+is_deeply +MockOutput->get_emit, [
+    ['* withreg'],
+    ['  ', 'URI:      ', 'db:pg:withreg'],
+    ['  ', 'Registry: ', 'meta'],
+    ['  ', 'Client:   ', 'psql'],
+], 'The "with_reg" target should have been shown';
+
+# Try multiples.
+ok $cmd->show(qw(dev qa withreg)), 'Show three targets';
+is_deeply +MockOutput->get_emit, [
+    ['* dev'],
+    ['  ', 'URI:      ', 'db:pg:widgets'],
+    ['  ', 'Registry: ', 'sqitch'],
+    ['  ', 'Client:   ', 'psql'],
+    ['* qa'],
+    ['  ', 'URI:      ', 'db:pg://qa.example.com/qa_widgets'],
+    ['  ', 'Registry: ', 'meta'],
+    ['  ', 'Client:   ', '/usr/sbin/psql'],
+    ['* withreg'],
+    ['  ', 'URI:      ', 'db:pg:withreg'],
+    ['  ', 'Registry: ', 'meta'],
+    ['  ', 'Client:   ', 'psql'],
+], 'All three targets should have been shown';
 
 ##############################################################################
 # Test execute().

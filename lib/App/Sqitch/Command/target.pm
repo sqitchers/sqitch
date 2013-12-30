@@ -9,6 +9,7 @@ use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use URI::db;
 use Try::Tiny;
+use List::Util qw(max);
 use namespace::autoclean;
 
 extends 'App::Sqitch::Command';
@@ -128,6 +129,7 @@ sub _set {
         value    => $value,
         filename => $config->local_file,
     );
+    return $self;
 }
 
 sub set_url { shift->set_uri(@_) };
@@ -177,10 +179,36 @@ sub _rename {
             target => $old,
         );
     };
+    return $self;
 }
 
 sub show {
-    my ($self, $name) = @_;
+    my ($self, @names) = @_;
+    return $self->list unless @names;
+    my $config = $self->sqitch->config;
+
+    # Set up labels.
+    my $len = max map { length } (
+        __ 'URI',
+        __ 'Registry',
+        __ 'Client',
+    );
+
+    my %label_for = (
+        uri      => __('URI')      . ': ' . ' ' x ($len - length __ 'URI'),
+        registry => __('Registry') . ': ' . ' ' x ($len - length __ 'Registry'),
+        client   => __('Client')   . ': ' . ' ' x ($len - length __ 'Client'),
+    );
+
+    for my $name (@names) {
+        my $engine = $self->engine_for_target($name);
+        $self->emit("* $name");
+        $self->emit('  ', $label_for{uri},      $engine->uri->as_string);
+        $self->emit('  ', $label_for{registry}, $engine->registry);
+        $self->emit('  ', $label_for{client},   $engine->client);
+    }
+
+    return $self;
 }
 
 1;
