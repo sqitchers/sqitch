@@ -1234,6 +1234,21 @@ The key name of the engine. Should be the last part of the package name.
 The name of the engine. Returns the same value as C<key> by default, but
 should probably be overridden to return a display name for the engine.
 
+=head3 C<default_registry>
+
+  my $reg = App::Sqitch::Engine->default_registry;
+
+Returns the name of the default registry for the engine. Most engines just
+inherit the default value, C<sqitch>, but some must do more munging, such as
+specifying a file name, to determine the default registry name.
+
+=head3 C<default_client>
+
+  my $cli = App::Sqitch::Engine->default_client;
+
+Returns the name of the default client for the engine. Must be implemented by
+each engine.
+
 =head3 C<driver>
 
   my $driver = App::Sqitch::Engine->driver;

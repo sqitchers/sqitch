@@ -238,6 +238,42 @@ Manages Sqitch targets, which are stored in the local configuration file.
 
 Executes the C<target> command.
 
+=head3 C<add>
+
+Implements the C<add> action.
+
+=head3 C<list>
+
+Implements the C<list> action.
+
+=head3 C<remove>
+
+=head3 C<rm>
+
+Implements the C<remove> action.
+
+=head3 C<rename>
+
+Implements the C<rename> action.
+
+=head3 C<set_client>
+
+Implements the C<set-client> action.
+
+=head3 C<set_registry>
+
+Implements the C<set-registry> action.
+
+=head3 C<set_uri>
+
+=head3 C<set_url>
+
+Implements the C<set-uri> action.
+
+=head3 C<show>
+
+Implements the C<show> action.
+
 =head1 See Also
 
 =over

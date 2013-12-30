@@ -994,6 +994,36 @@ App::Sqitch::Engine::firebird provides the Firebird storage engine for Sqitch.
 
 =head1 Interface
 
+=head2 Class Methods
+
+=head3 C<check_if_is_fb_isql>
+
+Checks to see if the a command-line client looks like Firebird C<isql>.
+
+=head3 C<locate_firebird>
+
+Searches for and returns the path to the C<isql> client.
+
+=head3 C<locate_firebird_ms>
+
+Searches for and returns the path to the C<isql> client on Windows.
+
+=head3 C<read_registry>
+
+Reads the Windows registry.
+
+=head3 C<registry_keys>
+
+Returns a list of Windows registry keys.
+
+=head3 C<registry_lookup>
+
+Looks up a value in the Windows registry.
+
+=head3 C<standard_fb_home_dirs>
+
+Returns a list of standard Firebird home directories.
+
 =head2 Accessors
 
 =head3 C<client>
@@ -1003,6 +1033,12 @@ to C<sqitch>, that's what will be returned.  Otherwise, it uses the
 C<core.firebird.client> configuration value, or else defaults to
 C<isql> (or C<isql.exe> on Windows), which should work if it's in your
 path.
+
+=head2 Instance Methods
+
+=head3 C<connection_string>
+
+Constructs a connection string from a database URI for passing to C<isql>.
 
 =head1 Author
 
