@@ -4,8 +4,8 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-#use Test::More tests => 103;
-use Test::More 'no_plan';
+use Test::More tests => 114;
+#use Test::More 'no_plan';
 
 $ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
 $ENV{SQITCH_USER_CONFIG}   = 'nonexistent.user';

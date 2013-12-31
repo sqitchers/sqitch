@@ -85,15 +85,24 @@ Ready to get started? Here's where:
 
 =over
 
-=item L<Sqitch PostgreSQL Tutorial|sqitchtutorial>
+=item Sqitch Tutorials
 
-A detailed tutorial demonstrating the creation, development, and maintenance
-of a PostgreSQL database with Sqitch.
+Detailed tutorials demonstrating the creation, development, and maintenance
+of a database with Sqitch.
 
-=item L<Sqitch SQLite Tutorial|sqitchtutorial-sqlite>
+=over
 
-A detailed tutorial demonstrating the creation, development, and maintenance
-of a SQLite database with Sqitch.
+=item * L<PostgreSQL Tutorial|sqitchtutorial>
+
+=item * L<SQLite Tutorial|sqitchtutorial-sqlite>
+
+=item * L<MySQL Tutorial|sqitchtutorial-mysql>
+
+=item * L<Oracle Tutorial|sqitchtutorial-oracle>
+
+=item * L<Firebird Tutorial|sqitchtutorial-firebird>
+
+=back
 
 =item L<PDX.pm Presentation|https://speakerdeck.com/theory/sane-database-change-management-with-sqitch>
 
@@ -141,6 +150,18 @@ A list of one or more changes and their dependencies that define the order of
 deployment execution. The plan is stored in a "plan file," usually named
 F<sqitch.plan>. Sqitch reads the plan file to determine what changes to
 execute to change the database from one state to another.
+
+=item C<target>
+
+A named database to which to deploy changes. Always has an associated
+connection URI, and may also have an associated command-line client and
+registry name.
+
+=item C<registry>
+
+The name of the database object where Sqitch's state and history data is
+stored. Typically a schema name (as in PostgreSQL and Oracle) or a database
+name (as in SQLite and MySQL).
 
 =item C<add>
 
@@ -222,6 +243,8 @@ The database engine to use. Supported engines include:
 =item * C<oracle> - L<Oracle|http://www.oracle.com/us/products/database/>
 
 =item * C<mysql> - L<MySQL|http://dev.mysql.com/>
+
+=item * C<firebird> - L<Firebird|http://www.firebirdsql.org/>
 
 =back
 
@@ -395,6 +418,10 @@ List tags or tag the latest change.
 =item L<C<rework>|sqitch-rework>
 
 Rework an existing change.
+
+=item L<C<target>|sqitch-target>
+
+Manage target databases.
 
 =item L<C<deploy>|sqitch-deploy>
 

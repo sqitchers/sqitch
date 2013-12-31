@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 598;
+use Test::More tests => 600;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -248,9 +248,15 @@ MOCKCONFIG: {
     ok my $engine = $CLASS->load({
         sqitch => App::Sqitch->new( _engine => 'sqlite' ),
         engine => 'sqlite',
-        uri    => URI->new('db:sqlite:/var/db/widgets.db'),
     }), 'Load engine';
     is $engine->target, 'devdb', 'Target should be read from config';
+
+    ok $engine = $CLASS->load({
+        sqitch => App::Sqitch->new( _engine => 'sqlite' ),
+        engine => 'sqlite',
+        uri    => URI->new('db:sqlite:/var/db/widgets.db'),
+    }), 'Load engine with URI';
+    is $engine->target, 'devdb', 'Target should still be "devdb"';
 }
 
 ##############################################################################

@@ -2,8 +2,7 @@
 
 =head1 Name
 
-sqitchtutorial-firebird - A tutorial introduction to Sqitch change
-management on Firebird
+sqitchtutorial-firebird - A tutorial introduction to Sqitch change management on Firebird
 
 =head1 Synopsis
 
@@ -39,7 +38,11 @@ If you're a Git user and want to follow along the history, the
 repository used in these examples is L<on
 GitHub|https://github.com/theory/sqitch-firebird-intro>.
 
+=begin comment
+
 TODO: create the repo on GitHub
+
+=end comment
 
 Now that we have a repository, let's get started with Sqitch. Every Sqitch
 project must have a name associated with it, and, optionally, a unique URI. We
@@ -80,8 +83,7 @@ settings. But it will also read F<~/.sqitch/sqitch.conf> for user-specific
 settings.
 
 The current implementation of the engine will try to find Firebird's
-L<C<firebird>
-client|http://www.firebirdsql.org/manual/isql-commands.html>
+L<C<firebird> client|http://www.firebirdsql.org/manual/isql-commands.html>
 (implemented for GNU/Linux and Microsoft Windows).  This might fail,
 so we go ahead an tell it where to find the client on our computer,
 for example on GNU/Linux with the standard location of the Firebird
@@ -102,7 +104,7 @@ we?
 
 of course, you have to replace <mysecret> with "your secret" password.
 
-The default database administrator name SYSDBA can be replaced with
+The default database administrator name C<SYSDBA> can be replaced with
 any other user with the proper privileges to create databases.
 
 Because of the way how Firebird is designed we need to provide the
@@ -150,7 +152,7 @@ Let's commit these changes and start creating the database changes.
   create mode 100644 sqitch.conf
   create mode 100644 sqitch.plan
 
-Let's create our flipr test database using isql:
+Let's create our flipr test database using C<isql>:
 
   > /opt/firebird/bin/isql -u SYSDBA -p <mysecret>
   Use CONNECT or CREATE DATABASE to specify a database
@@ -311,7 +313,7 @@ from the registry database:
   > sqitch --db-name /home/fbdb/flipr_test.fdb status
   # On database /home/fbdb/flipr_test.fdb
   # Project:  flipr
-  # Change:   a701b93e92481c3f19336fff17920ccc965cc730
+  # Change:   a701b93e92481c3f19336f1f17920c1c965cc730
   # Name:     users
   # Deployed: 2013-11-08 20:50:01 +0200
   # By:       Marge N. O’Vera <marge@example.com>
@@ -359,14 +361,14 @@ L<C<log>|sqitch-log> command:
   # On database /home/fbdb/flipr_test.fdb
   Verifying /home/fbdb/flipr_test.fdb
   On database /home/fbdb/flipr_test.fdb
-  Revert a701b93e92481c3f19336fff17920ccc965cc730
+  Revert a701b93e92481c3f19336f1f17920c1c965cc730
   Name:      users
   Committer: Marge N. O’Vera <marge@example.com>
   Date:      2013-11-08 20:50:02 +0200
 
       Creates table to track our users.
 
-  Deploy a701b93e92481c3f19336fff17920ccc965cc730
+  Deploy a701b93e92481c3f19336f1f17920c1c965cc730
   Name:      users
   Committer: Marge N. O’Vera <marge@example.com>
   Date:      2013-11-08 20:50:01 +0200
@@ -398,7 +400,7 @@ When we look at the status, the deployment will be there:
   > sqitch --db-name /home/fbdb/flipr_test.fdb status
   # On database /home/fbdb/flipr_test.fdb
   # Project:  flipr
-  # Change:   a701b93e92481c3f19336fff17920ccc965cc730
+  # Change:   a701b93e92481c3f19336f1f17920c1c965cc730
   # Name:     users
   # Deployed: 2013-11-08 20:50:05 +0200
   # By:       Marge N. O’Vera <marge@example.com>
@@ -557,7 +559,7 @@ undeployed changes:
   > sqitch --db-name /home/fbdb/flipr_test.fdb status
   # On database /home/fbdb/flipr_test.fdb
   # Project:  flipr
-  # Change:   a701b93e92481c3f19336fff17920ccc965cc730
+  # Change:   a701b93e92481c3f19336f1f17920c1c965cc730
   # Name:     users
   # Deployed: 2013-11-08 20:50:05 +0200
   # By:       Marge N. O’Vera <marge@example.com>

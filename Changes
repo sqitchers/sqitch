@@ -1,6 +1,9 @@
 Revision history for Perl extension App::Sqitch
 
 0.990
+     - Added new command and feature: `target`. Use it to manage multiple
+       database targets, each with an associate URI and, optionally, a
+       registry name and command-line client. Inspired by Git remotes.
      - Deprecated engine-specific connection attributes and configuration
        variables. See the next item for their replacments. The deprecated
        options are:
@@ -11,7 +14,7 @@ Revision history for Perl extension App::Sqitch
        * `core.$engine.port`
        * `core.$engine.sqitch_schema`
        * `core.$engine.sqitch_db`
-     - Replaced the engine-specific connection atttributes with three Engine
+     - Replaced the engine-specific connection attributes with three
        attributes use by every engine:
        * `target`: The name of a target managed by the new `target` command.
          Defaults to a value stored for the `core.$engine.target` config
@@ -31,18 +34,23 @@ Revision history for Perl extension App::Sqitch
          `registry` value is looked up for the associated `target`. If
          `target` is not passed or configured, or if it has no registry
          associated with it, the `config.$engine.registry` config variable is
-         used. If no value is found there, it defaults to "sqitch".
-     - Deprecated all command options with the string "target" in them, such
-       as `--to-target`, `--upto-target`, etc. They have been replaced with
-       options containing the string "change", instead, such as `--to-change`
-       and `--upto-change`.
-     - Added or replaced the `--target` option to commands the touch the
+         used. If no value is found there, it defaults to an engine-specific
+         value, usually "sqitch".
+     - Deprecated all command-specifid options with the string "target" in
+       them, such as `--to-target`, `--upto-target`, etc. They have been
+       replaced with options containing the string "change", instead, such as
+       `--to-change` and `--upto-change`. Few people used these options,
+       preferring their shorter aliases (`--to`, `--upto`, etc.).
+     - Added or replaced the `--target` option to commands that connect to a
        database to specify the name of target managed by the new `target`
        command or a database URI.
      - Improved database driver loading to ensure the proper version of the
        driver is required.
      - Added Firebird engine. Three cheers to Ștefan Suciu for this
        contribution!
+     - Non-fatal but possibly unexpected messages -- which correspond to exit
+       value 1 -- now send their messages to STDOUT instead of STDERR, and
+       respect the `--quiet` option. Thanks to @giorgio-v for the report!
 
 0.983  2013-11-21T21:50:12Z
      - Fixed "Use of uninitialized value" in the MySQL engine. Thanks to

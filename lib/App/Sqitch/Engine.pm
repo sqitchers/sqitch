@@ -35,16 +35,23 @@ has client => (
             return $client;
         }
 
-        # Next look for it in the target.
+        # Next look for it in the target config.
         if (my $target = $self->target) {
             if (my $cli = $config->get( key => "target.$target.client" )) {
                 return $cli;
             }
         }
 
-        # Otherwise look for the defaults.
-        return $config->get( key => "core.$engine.client" )
-            || $self->default_client . ( $^O eq 'MSWin32' ? '.exe' : '' );
+        # Next look for it in the engine config.
+        if ( my $client = $config->get( key => "core.$engine.client" ) ) {
+            return $client;
+        }
+
+        # Otherwise, go with the default.
+        my $client = $self->default_client;
+        return $client if $^O ne 'MSWin32';
+        return $client if $client =~ /[.](?:exe|bat)$/;
+        return $client . '.exe';
     },
 );
 
@@ -1227,6 +1234,21 @@ The key name of the engine. Should be the last part of the package name.
 The name of the engine. Returns the same value as C<key> by default, but
 should probably be overridden to return a display name for the engine.
 
+=head3 C<default_registry>
+
+  my $reg = App::Sqitch::Engine->default_registry;
+
+Returns the name of the default registry for the engine. Most engines just
+inherit the default value, C<sqitch>, but some must do more munging, such as
+specifying a file name, to determine the default registry name.
+
+=head3 C<default_client>
+
+  my $cli = App::Sqitch::Engine->default_client;
+
+Returns the name of the default client for the engine. Must be implemented by
+each engine.
+
 =head3 C<driver>
 
   my $driver = App::Sqitch::Engine->driver;
@@ -1345,7 +1367,7 @@ The name of the registry schema or database.
 
 =head3 C<registry_destination>
 
-A string idntifying the registry database. In other words, the database in
+A string identifying the registry database. In other words, the database in
 which Sqitch's own data is stored. It will usually be the same as C<destination()>,
 but some engines, such as L<SQLite|App::Sqitch::Engine::sqlite>, may use a
 separate database. Used internally to name the target when the registration
