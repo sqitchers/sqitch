@@ -111,7 +111,10 @@ sub config_for_target {
     my ($self, $target) = @_;
     return unless $target;
     require URI::db;
-    return { uri => URI::db->new($target) } if $target =~ /:/;
+    return {
+        target => $target,
+        uri    => URI::db->new($target)
+    } if $target =~ /:/;
     my $config = $self->config->get_section( section => "target.$target" )
         or return;
     $config->{target} = $target;

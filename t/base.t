@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 213;
+use Test::More tests => 224;
 #use Test::More 'no_plan';
 use Test::MockModule;
 use Path::Class;
@@ -118,7 +118,8 @@ is $sqitch->config_for_target(0), undef, 'Should get no string for DB param 0';
 
 # Pass a URI.
 is_deeply $sqitch->config_for_target('db:pg:'), {
-    uri => URI->new('db:pg:'),
+    target => 'db:pg:',
+    uri     => URI->new('db:pg:'),
 }, 'Should get target back from config_for_target()';
 
 # Pass a key.
@@ -141,7 +142,8 @@ CONFIG: {
 ##############################################################################
 # Test config_for_target_strict.
 is_deeply $sqitch->config_for_target_strict('db:pg:foo'), {
-    uri => URI->new('db:pg:foo'),
+    target => 'db:pg:foo',
+    uri    => URI->new('db:pg:foo'),
 }, 'Should get URI back for URI param';
 isa_ok $sqitch->config_for_target_strict('db:pg:foo')->{uri}, 'URI::db', 'DB URI';
 
@@ -178,10 +180,14 @@ is $sqitch->engine_for_target->uri,        $def_uri, 'Should get default engine 
 is $sqitch->engine_for_target(undef)->uri, $def_uri, 'Should get default engine for undef DB param';
 is $sqitch->engine_for_target('')->uri,    $def_uri, 'Should get default engine for empty DB param';
 is $sqitch->engine_for_target(0)->uri,     $def_uri, 'Should get default engine for DB param 0';
+is $sqitch->engine_for_target->target,     $def_uri, 'Should get default engine target';
 
 # Pass a URI.
-is $sqitch->engine_for_target('db:pg:foo')->uri, URI->new('db:pg:foo'),
-    'Should get properly configured engine for URI param';
+isa_ok my $engine = $sqitch->engine_for_target('db:pg:foo'),
+    'App::Sqitch::Engine';
+is $engine->uri, URI->new('db:pg:foo'),
+    'Should get properly configured engine URI';
+is $engine->uri, 'db:pg:foo', 'Should get properly-configured target for URI';
 
 # Pass a key.
 CONFIG: {
@@ -190,8 +196,24 @@ CONFIG: {
     $mock->mock(get_section => sub { $ret });
     is_deeply $sqitch->engine_for_target('grokker')->uri, 'db:sqlite:hi',
         'Should get engine with URI for URI key';
-    isa_ok $sqitch->engine_for_target('bob'), 'App::Sqitch::Engine',
+    isa_ok my $engine = $sqitch->engine_for_target('bob'), 'App::Sqitch::Engine',
         'Engine with URI from config';
+    is $engine->target, 'bob', 'Engine should know target as "bob"';
+    is $engine->uri, URI->new('db:sqlite:hi'), 'Engine should have bob URI';
+
+    # Should also work when specifying a URI.
+    isa_ok $engine = $sqitch->engine_for_target('db:sqlite:fred'), 'App::Sqitch::Engine',
+        'Engine with URI param';
+    is $engine->target, 'db:sqlite:fred', 'Engine should know target by URI';
+    is $engine->uri, URI->new('db:sqlite:fred'), 'Engine should have URI';
+
+    # Now set a default target.
+    $mock->mock(get => 'bob');
+    isa_ok $engine = $sqitch->engine_for_target('db:sqlite:fred'), 'App::Sqitch::Engine',
+        'Engine with URI param';
+    is $engine->target, 'db:sqlite:fred', 'Engine should know target by URI';
+    is $engine->uri, URI->new('db:sqlite:fred'), 'Engine should have URI';
+
     $ret = undef;
     throws_ok { $sqitch->engine_for_target('grokker') } 'App::Sqitch::X',
         'Should get an exception for unknown config DB key';
