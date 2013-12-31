@@ -19,6 +19,10 @@ use MockOutput;
 
 my $CLASS = 'App::Sqitch::Command::add';
 
+$ENV{SQITCH_CONFIG} = 'nonexistent.conf';
+$ENV{SQITCH_USER_CONFIG} = 'nonexistent.user';
+$ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
+
 ok my $sqitch = App::Sqitch->new(
     top_dir => Path::Class::Dir->new('test-add'),
     _engine => 'pg',
