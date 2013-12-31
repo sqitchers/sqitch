@@ -179,7 +179,7 @@ sub initialize {
 }
 
 sub _no_table_error  {
-    return $DBI::errstr =~ /^\Qno such table:/;
+    return $DBI::errstr && $DBI::errstr =~ /^\Qno such table:/;
 }
 
 sub _regex_op { 'REGEXP' }
