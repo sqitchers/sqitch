@@ -838,7 +838,7 @@ sub default_client {
         $isql_path = $self->locate_firebird();
     }
 
-    return $isql_path;
+    return $isql_path->stringify;
 }
 
 sub locate_firebird {
