@@ -403,8 +403,8 @@ changes are verified after deploying them:
 We'll see the L<C<rebase>|sqitch-rebase> command a bit later. In the meantime,
 let's commit the new configuration and and make some more changes!
 
-  > git commit -am 'Set default DB name and always verify.'
-  [master 5fb57ec] Set default DB name and always verify.
+  > git commit -am 'Set default target and always verify.'
+  [master 5fb57ec] Set default target and always verify.
    1 file changed, 8 insertions(+)
 
 =head1 Deploy with Dependency
