@@ -831,14 +831,14 @@ sub default_client {
     }
     elsif ($os eq 'darwin') {
         my $fb_res = '/Library/Frameworks/Firebird.framework/Resources';
-        $isql_path = file($fb_res, 'bin', 'isql');
+        $isql_path = file($fb_res, 'bin', 'isql')->stringify;
     }
     else {
         # GNU/Linux and other
         $isql_path = $self->locate_firebird();
     }
 
-    return $isql_path->stringify;
+    return $isql_path;
 }
 
 sub locate_firebird {
