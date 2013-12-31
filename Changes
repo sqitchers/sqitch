@@ -53,6 +53,8 @@ Revision history for Perl extension App::Sqitch
        respect the `--quiet` option. Thanks to @giorgio-v for the report!
      - Fixed a bug when installing under local::lib. Thanks to Thomas Sibley
        for the pull request!
+     - Eliminated "Wide character in print" warnings when piping the `log`
+       command.
 
 0.983  2013-11-21T21:50:12Z
      - Fixed "Use of uninitialized value" in the MySQL engine. Thanks to

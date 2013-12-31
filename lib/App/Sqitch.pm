@@ -317,7 +317,11 @@ has pager => (
         } unless IO::Pager->can('say');
 
         my $fh = IO::Pager->new(\*STDOUT);
-        $fh->binmode(':utf8_strict') if eval { $fh->isa('IO::Pager') };
+        if (eval { $fh->isa('IO::Pager') }) {
+            $fh->binmode(':utf8_strict');
+        } else {
+            binmode $fh, ':utf8_strict';
+        }
         $fh;
     },
 );
