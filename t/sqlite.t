@@ -63,6 +63,7 @@ $mock_sqitch->mock(probe => sub { $sqlite_version });
 my @std_opts = (
     '-noheader',
     '-bail',
+    '-batch',
     '-csv',
 );
 

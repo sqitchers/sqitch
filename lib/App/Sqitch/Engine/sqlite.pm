@@ -148,6 +148,7 @@ has sqlite3 => (
             $self->client,
             '-noheader',
             '-bail',
+            '-batch',
             '-csv', # or -column or -line?
             $dbname,
         ];
