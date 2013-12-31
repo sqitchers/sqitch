@@ -373,7 +373,7 @@ Sqitch to deploy to the C<flipr_test> target by default:
 
   > sqitch config core.pg.target flipr_test
 
-Now we can omit the target arugment altogether, unless we need to deploy to
+Now we can omit the target argument altogether, unless we need to deploy to
 another database. Which we will, eventually, but at least our examples will be
 simpler from here on in, e.g.:
 
