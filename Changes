@@ -55,6 +55,8 @@ Revision history for Perl extension App::Sqitch
        for the pull request!
      - Eliminated "Wide character in print" warnings when piping the `log`
        command.
+     - Documented that reworked changes do not have their verify tests run by
+       the `verify` command.
 
 0.983  2013-11-21T21:50:12Z
      - Fixed "Use of uninitialized value" in the MySQL engine. Thanks to

@@ -605,7 +605,7 @@ sub _verify_changes {
         }
 
         # Run the verify script.
-        try {  $self->verify_change( $change ) } catch {
+        try { $self->verify_change( $change ) } catch {
             $sqitch->comment(eval { $_->message } // $_);
             $errs++;
         } unless $reworked;

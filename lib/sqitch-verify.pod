@@ -34,7 +34,7 @@ Was deployed in the proper order.
 
 =item *
 
-Passes its verify test, if one exists.
+Passes its verify test, if one exists and the change has not been reworked.
 
 =back
 
@@ -44,7 +44,8 @@ the name of a target in the configuration.
 
 Verify tests are scripts that may be associated with each change. If a change
 has no verify script, a warning is emitted, but it is not considered a
-failure.
+failure. If a change has been reworked, only the most recent reworking will
+have its verify script executed.
 
 Verify scripts should make no assumptions about the contents of the database,
 as unit tests might. Rather, their job is to ensure that the state of a
