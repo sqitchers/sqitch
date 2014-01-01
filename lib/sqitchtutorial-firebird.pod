@@ -18,6 +18,14 @@ We'll start by creating new project from scratch, a fictional antisocial
 networking site called Flipr. All examples use L<Git|http://git-scm.com/> as
 the VCS and L<Firebird|http://www.firebirdsql.org/> as the storage engine.
 
+If you'd like to manage an PostgreSQL database, see L<sqitchtutorial>.
+
+If you'd like to manage an SQLite database, see L<sqitchtutorial-sqlite>.
+
+If you'd like to manage an Oracle database, see L<sqitchtutorial-oracle>.
+
+If you'd like to manage an MySQL database, see L<sqitchtutorial-mysql>.
+
 =head1 Starting a New Project
 
 Usually the first thing to do when starting a new project is to create a
@@ -30,19 +38,13 @@ source code repository. So let's do that with Git:
   > touch README.md
   > git add .
   > git commit -am 'Initialize project, add README.'
-  [master (root-commit) dfadc74] Initialize project, add README.
-  1 file changed, 0 insertions(+), 0 deletions(-)
-  create mode 100644 README.md
+  [master (root-commit) 0b85704] Initialize project, add README.
+   1 files changed, 39 insertions(+), 0 deletions(-)
+   create mode 100644 README.md
 
 If you're a Git user and want to follow along the history, the
-repository used in these examples is L<on
-GitHub|https://github.com/theory/sqitch-firebird-intro>.
-
-=begin comment
-
-TODO: create the repo on GitHub
-
-=end comment
+repository used in these examples is
+L<on GitHub|https://github.com/theory/sqitch-firebird-intro>.
 
 Now that we have a repository, let's get started with Sqitch. Every Sqitch
 project must have a name associated with it, and, optionally, a unique URI. We
@@ -59,23 +61,23 @@ identifiers internally, so let's specify one when we initialize Sqitch:
 Let's have a look at F<sqitch.conf>:
 
   > cat sqitch.conf
-[core]
-        engine = firebird
-        # plan_file = sqitch.plan
-        # top_dir = .
-        # deploy_dir = deploy
-        # revert_dir = revert
-        # verify_dir = verify
-        # extension = sql
-# [core "firebird"]
-        # client = /opt/firebird/bin/isql
-	# uri = db:firebird:
-	# registry = sqitch
+  [core]
+  	engine = firebird
+  	# plan_file = sqitch.plan
+  	# top_dir = .
+  	# deploy_dir = deploy
+  	# revert_dir = revert
+  	# verify_dir = verify
+  	# extension = sql
+  # [core "firebird"]
+  	# target = db:firebird:
+  	# registry = sqitch
+  	# client = /usr/bin/isql-fb
 
 Good, it picked up on the fact that we're creating changes for the
 Firebird engine, thanks to the C<--engine firebird> option, and saved
-it to the file.  Furthermore, it wrote a commented-out C<[core
-"firebird"]> section with all the available Firebird engine-specific
+it to the file.  Furthermore, it wrote a commented-out
+C<[core "firebird"]> section with all the available Firebird engine-specific
 settings commented out and ready to be edited as appropriate.
 
 By default, Sqitch will read F<sqitch.conf> in the current directory for
@@ -94,22 +96,6 @@ installation the command is:
 Note: On some GNU/Linux distributions the firebird client is renamed
 to C<isql-fb>, for example in Debian and Fedora, or C<fbsql> in
 Gentoo.
-
-At this point we can save a lot of typing if we set up a target that
-contains the username and the password. Sqitch uses URIs to determine
-how to connect to the database, so let's give it a default URI, shall
-we?
-
-  > sqitch config core.firebird.dev.uri db:firebird://SYSDBA<mysecret>@localhost/
-
-of course, you have to replace <mysecret> with "your secret" password.
-
-The default database administrator name C<SYSDBA> can be replaced with
-any other user with the proper privileges to create databases.
-
-Because of the way how Firebird is designed we need to provide the
-path to the databases.  The C<flipr_test.fdb> database have to exist,
-the C<sqitch.fdb> database will be created if it doesn't exists.
 
 And let's also tell it who we are, since this data will be used in all
 of our projects:
@@ -136,7 +122,7 @@ Back to the repository. Have a look at the plan file, F<sqitch.plan>:
   %syntax-version=1.0.0-b2
   %project=flipr
   %uri=https://github.com/theory/sqitch-firebird-intro/
-
+  
 
 Note that it has picked up on the name and URI of the app we're building.
 Sqitch uses this data to manage cross-project dependencies. The
@@ -147,16 +133,17 @@ Let's commit these changes and start creating the database changes.
 
   > git add .
   > git commit -am 'Initialize Sqitch configuration.'
-  [master 1b5ee59] Initialize Sqitch configuration.
-  2 files changed, 23 insertions(+)
-  create mode 100644 sqitch.conf
-  create mode 100644 sqitch.plan
+  [master 728f9af] Initialize Sqitch configuration.
+   2 files changed, 19 insertions(+), 0 deletions(-)
+   create mode 100644 sqitch.conf
+   create mode 100644 sqitch.plan
 
 Let's create our flipr test database using C<isql>:
 
+  > sudo -u firebird mkdir /tmp/flipr_test
   > /opt/firebird/bin/isql -u SYSDBA -p <mysecret>
   Use CONNECT or CREATE DATABASE to specify a database
-  SQL> CREATE DATABASE '/home/fbdb/flipr_test.fdb';
+  SQL> CREATE DATABASE 'localhost:/tmp/flipr_test/flipr_test.fdb';
   SQL> exit;
 
 =head1 Our First Change
@@ -1228,9 +1215,15 @@ Excellent. Let's go ahead and commit these changes:
 Sqitch is a work in progress. Better integration with version control systems
 is planned to make managing idempotent reworkings even easier. Stay tuned.
 
-=head1 Author
+=head1 Authors
 
-David E. Wheeler <david@justatheory.com>
+=over
+
+=item * Ștefan Suciu <stefbv70@gmail.com>
+
+=item * David E. Wheeler <david@justatheory.com>
+
+=back
 
 =head1 License
 
