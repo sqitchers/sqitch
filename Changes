@@ -57,6 +57,7 @@ Revision history for Perl extension App::Sqitch
        command.
      - Documented that reworked changes do not have their verify tests run by
        the `verify` command.
+     - Removed the undocumented `--test` option to `add
 
 0.983  2013-11-21T21:50:12Z
      - Fixed "Use of uninitialized value" in the MySQL engine. Thanks to

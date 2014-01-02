@@ -125,10 +125,10 @@ sub options {
         template-directory=s
         deploy-template=s
         revert-template=s
-        verify-template|test-template=s
+        verify-template=s
         deploy!
         revert!
-        verify|test!
+        verify!
         open-editor|edit|e!
     );
 }
