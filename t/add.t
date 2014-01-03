@@ -24,6 +24,12 @@ $ENV{SQITCH_CONFIG} = 'nonexistent.conf';
 $ENV{SQITCH_USER_CONFIG} = 'nonexistent.user';
 $ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
 
+my $config_mock = Test::MockModule->new('App::Sqitch::Config');
+my $sysdir = dir 'nonexistent';
+my $usrdir = dir 'nonexistent';
+$config_mock->mock(system_dir => sub { $sysdir });
+$config_mock->mock(user_dir   => sub { $usrdir });
+
 ok my $sqitch = App::Sqitch->new(
     top_dir => dir('test-add'),
     _engine => 'pg',
@@ -253,96 +259,89 @@ READCONFIG: {
 
 ##############################################################################
 # Test all_templates().
-MOCKCONFIG: {
-    my $config_mock = Test::MockModule->new('App::Sqitch::Config');
-    my $sysdir = dir 'nonexistent';
-    my $usrdir = dir 'nonexistent';
-    $config_mock->mock(system_dir => sub { $sysdir });
-    $config_mock->mock(user_dir   => sub { $usrdir });
-    my $tmpldir = dir 'etc/templates';
+my $tmpldir = dir 'etc/templates';
 
-    # First, specify template directory.
-    ok my $add = $CLASS->new(sqitch => $sqitch, template_directory => $tmpldir),
-        'Add object with template directory';
-    is $add->template_name, 'pg', 'Template name should be "pg"';
-    is_deeply $add->all_templates, {
-        deploy => file('etc/templates/deploy/pg.tmpl'),
-        revert => file('etc/templates/revert/pg.tmpl'),
-        verify => file('etc/templates/verify/pg.tmpl'),
-    }, 'Should find all templates in directory';
+# First, specify template directory.
+ok $add = $CLASS->new(sqitch => $sqitch, template_directory => $tmpldir),
+    'Add object with template directory';
+is $add->template_name, 'pg', 'Template name should be "pg"';
+is_deeply $add->all_templates, {
+    deploy => file('etc/templates/deploy/pg.tmpl'),
+    revert => file('etc/templates/revert/pg.tmpl'),
+    verify => file('etc/templates/verify/pg.tmpl'),
+}, 'Should find all templates in directory';
 
-    # Now let it find the templates in the user dir.
-    $usrdir = dir 'etc';
-    ok $add = $CLASS->new(sqitch => $sqitch, template_name => 'sqlite'),
-        'Add object with template name';
-    is_deeply $add->all_templates, {
-        deploy => file('etc/templates/deploy/sqlite.tmpl'),
-        revert => file('etc/templates/revert/sqlite.tmpl'),
-        verify => file('etc/templates/verify/sqlite.tmpl'),
-    }, 'Should find all templates in user directory';
+# Now let it find the templates in the user dir.
+$usrdir = dir 'etc';
+ok $add = $CLASS->new(sqitch => $sqitch, template_name => 'sqlite'),
+    'Add object with template name';
+is_deeply $add->all_templates, {
+    deploy => file('etc/templates/deploy/sqlite.tmpl'),
+    revert => file('etc/templates/revert/sqlite.tmpl'),
+    verify => file('etc/templates/verify/sqlite.tmpl'),
+}, 'Should find all templates in user directory';
 
-    # And then the system dir.
-    ($usrdir, $sysdir) = ($sysdir, $usrdir);
-    ok $add = $CLASS->new(sqitch => $sqitch, template_name => 'mysql'),
-        'Add object with another template name';
-    is_deeply $add->all_templates, {
-        deploy => file('etc/templates/deploy/mysql.tmpl'),
-        revert => file('etc/templates/revert/mysql.tmpl'),
-        verify => file('etc/templates/verify/mysql.tmpl'),
-    }, 'Should find all templates in systsem directory';
+# And then the system dir.
+($usrdir, $sysdir) = ($sysdir, $usrdir);
+ok $add = $CLASS->new(sqitch => $sqitch, template_name => 'mysql'),
+    'Add object with another template name';
+is_deeply $add->all_templates, {
+    deploy => file('etc/templates/deploy/mysql.tmpl'),
+    revert => file('etc/templates/revert/mysql.tmpl'),
+    verify => file('etc/templates/verify/mysql.tmpl'),
+}, 'Should find all templates in systsem directory';
 
-    # Now make sure it combines directories.
-    my $tmp_dir = dir tempdir CLEANUP => 1;
-    for my $script (qw(deploy whatev)) {
-        my $subdir = $tmp_dir->subdir($script);
-        $subdir->mkpath;
-        $subdir->file('pg.tmpl')->touch;
-    }
+# Now make sure it combines directories.
+my $tmp_dir = dir tempdir CLEANUP => 1;
+for my $script (qw(deploy whatev)) {
+    my $subdir = $tmp_dir->subdir($script);
+    $subdir->mkpath;
+    $subdir->file('pg.tmpl')->touch;
+}
 
-    ok $add = $CLASS->new(sqitch => $sqitch, template_directory => $tmp_dir),
-        'Add object with temporary template directory';
-    is_deeply $add->all_templates, {
-        deploy => $tmp_dir->file('deploy/pg.tmpl'),
-        whatev => $tmp_dir->file('whatev/pg.tmpl'),
-        revert => file('etc/templates/revert/pg.tmpl'),
-        verify => file('etc/templates/verify/pg.tmpl'),
-    }, 'Template dir files should override others';
+ok $add = $CLASS->new(sqitch => $sqitch, template_directory => $tmp_dir),
+    'Add object with temporary template directory';
+is_deeply $add->all_templates, {
+    deploy => $tmp_dir->file('deploy/pg.tmpl'),
+    whatev => $tmp_dir->file('whatev/pg.tmpl'),
+    revert => file('etc/templates/revert/pg.tmpl'),
+    verify => file('etc/templates/verify/pg.tmpl'),
+}, 'Template dir files should override others';
 
-    # Add in configured files.
+# Add in configured files.
+ok $add = $CLASS->new(
+    sqitch => $sqitch,
+    template_directory => $tmp_dir,
+    templates => {
+        foo => file('foo'),
+        verify => file('verify'),
+        deploy => file('deploy'),
+    },
+), 'Add object with configured templates';
+
+is_deeply $add->all_templates, {
+    deploy => file('deploy'),
+    verify => file('verify'),
+    foo => file('foo'),
+    whatev => $tmp_dir->file('whatev/pg.tmpl'),
+    revert => file('etc/templates/revert/pg.tmpl'),
+}, 'Template dir files should override others';
+
+# Should die when missing files.
+$sysdir = $usrdir;
+for my $script (qw(deploy revert verify)) {
     ok $add = $CLASS->new(
         sqitch => $sqitch,
-        template_directory => $tmp_dir,
-        templates => {
-            foo => file('foo'),
-            verify => file('verify'),
-            deploy => file('deploy'),
-        },
-    ), 'Add object with configured templates';
+        with_scripts => { deploy => 0, revert => 0, verify => 0, $script => 1 },
+    ), "Add object requiring $script template";
 
-    is_deeply $add->all_templates, {
-        deploy => file('deploy'),
-        verify => file('verify'),
-        foo => file('foo'),
-        whatev => $tmp_dir->file('whatev/pg.tmpl'),
-        revert => file('etc/templates/revert/pg.tmpl'),
-    }, 'Template dir files should override others';
-
-    # Should die when missing files.
-    $sysdir = $usrdir;
-    for my $script (qw(deploy revert verify)) {
-        ok $add = $CLASS->new(
-            sqitch => $sqitch,
-            with_scripts => { deploy => 0, revert => 0, verify => 0, $script => 1 },
-        ), "Add object requiring $script template";
-
-        throws_ok { $add->all_templates } 'App::Sqitch::X',
-            "Should get error for missing $script template";
-        is $@->ident, 'add', qq{Missing $script template ident should be "add"};
-        is $@->message, __x(
-            'Cannot find {script} template',
-            script => $script,
-        ), "Missing $script template message should be correct";
-    }
+    throws_ok { $add->all_templates } 'App::Sqitch::X',
+        "Should get error for missing $script template";
+    is $@->ident, 'add', qq{Missing $script template ident should be "add"};
+    is $@->message, __x(
+        'Cannot find {script} template',
+        script => $script,
+    ), "Missing $script template message should be correct";
 }
 
 ##############################################################################
