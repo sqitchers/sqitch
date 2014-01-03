@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: App-Sqitch 0.990\n"
 "Report-Msgid-Bugs-To: david@justatheory.com\n"
-"POT-Creation-Date: 2014-01-03 15:49-0800\n"
+"POT-Creation-Date: 2014-01-03 15:51-0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1065,12 +1065,12 @@ msgstr ""
 msgid "Cannot create database {database}: {error}"
 msgstr ""
 
-#: lib/App/Sqitch/Engine/firebird.pm:235 lib/App/Sqitch/Engine/sqlite.pm:143
+#: lib/App/Sqitch/Engine/firebird.pm:236 lib/App/Sqitch/Engine/sqlite.pm:143
 #, perl-brace-format
 msgid "Database name missing in URI {uri}"
 msgstr ""
 
-#: lib/App/Sqitch/Engine/firebird.pm:888
+#: lib/App/Sqitch/Engine/firebird.pm:889
 msgid ""
 "Unable to locate Firebird ISQL; set \"core.firebird.client\" via sqitch "
 "config"
