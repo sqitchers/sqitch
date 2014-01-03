@@ -57,7 +57,27 @@ Revision history for Perl extension App::Sqitch
        command.
      - Documented that reworked changes do not have their verify tests run by
        the `verify` command.
-     - Removed the undocumented `--test` option to `add
+     - Removed the undocumented `--test` option to the `add` command.
+     - Added support for the generation of arbitrary scripts from templates to
+       the `add` command. Just add template files to subdirectories of the
+       `templates` directory, and scripts will be created in a directory of
+       the same name based on those templates.
+     - Deprecated the `--deploy-template`, `--revert-template`, and
+       `--verify-template` options to the `add` command. They are replaced
+       with a single option, `--use` which takes a key/value pair for the
+       script name and template path. This makes it useful for arbitrary
+       script generation, as well.
+     - Deprecated the `--deploy`, `--revert`, and `--verify` options to the
+       `add` command, as well as their `--no-*` variants. They are replaced
+       with two new options, `--with` and `--without`, to which a script name
+       is passed. These are useful for arbitrary script generation, as well.
+     - Deprecated the `add.deploy_template`, `add.revert_template`, and
+       `add.verify_template` configuration settings. They have been replaced
+       with a section, `add.templates`, which is more general, and supports
+       arbitrary script generation, as well.
+     - Removed the documentation for the `add.with_deploy`, `add.with_revert`,
+       and `add.with_verify` configuration variables, which were never
+       implemented.
 
 0.983  2013-11-21T21:50:12Z
      - Fixed "Use of uninitialized value" in the MySQL engine. Thanks to

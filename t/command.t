@@ -41,7 +41,7 @@ BEGIN {
 can_ok $CLASS, qw(load new options configure command prompt ask_y_n parse_args);
 
 COMMAND: {
-    # Stub out a command.
+    # Stub out a couple of commands.
     package App::Sqitch::Command::whu;
     use Mouse;
     extends 'App::Sqitch::Command';
@@ -57,6 +57,11 @@ COMMAND: {
             feathers=s
         );
     }
+
+    package App::Sqitch::Command::wah_hoo;
+    use Mouse;
+    extends 'App::Sqitch::Command';
+    $INC{'App/Sqitch/Command/wah_hoo.pm'} = __FILE__;
 }
 
 ok my $sqitch = App::Sqitch->new, 'Load a sqitch sqitch object';
@@ -166,12 +171,12 @@ is $cmd->feathers, 'no', 'The "feathers" attribute should be set';
 
 # Test command with a dash in its name.
 ok $cmd = $CLASS->load({
-    command => 'add',
+    command => 'wah-hoo',
     sqitch  => $sqitch,
     config  => $config,
-}), 'Load an "add" command';
-isa_ok $cmd, "$CLASS\::add", 'It';
-is $cmd->command, 'add', 'command() should return hyphenated name';
+}), 'Load a "wah-hoo" command';
+isa_ok $cmd, "$CLASS\::wah_hoo", 'It';
+is $cmd->command, 'wah-hoo', 'command() should return hyphenated name';
 
 ##############################################################################
 # Test command and execute.

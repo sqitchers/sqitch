@@ -15,14 +15,8 @@ sqitch-add-usage - Sqitch add usage statement
 
     -t --template             name of the templates to use
        --template-directory   path to directory containing templates
-       --deploy-template      path to deploy template
-       --revert-template      path to revert template
-       --verify-template      path to verify template
+       --use [template=path]  path to named template
 
-       --no-deploy            do not create deploy script
-       --no-revert            do not create revert script
-       --no-verify            do not create verify script
-       --deploy               create deploy script
-       --revert               create revert script
-       --verify               create verify script
+       --with    [script]     create named script
+       --without [script]     do not create named script
     -e --edit, --open-editor  open change scripts in an editor

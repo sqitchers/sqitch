@@ -62,26 +62,23 @@ has template_name => (
     default  => sub { shift->sqitch->_engine },
 );
 
-for my $script (qw(deploy revert verify)) {
-    has "with_$script" => (
-        is      => 'ro',
-        isa     => 'Bool',
-        lazy    => 1,
-        default => sub {
-            shift->sqitch->config->get(
-                key => "add.with_$script",
-                as  => 'bool',
-            ) // 1;
-        }
-    );
+has with_scripts => (
+    is       => 'ro',
+    isa      => 'HashRef',
+    required => 1,
+    default  => sub { {} },
+);
 
-    has "$script\_template" => (
-        is      => 'ro',
-        isa     => 'Path::Class::File',
-        lazy    => 1,
-        default => sub { shift->_find($script) },
-    );
-}
+has templates => (
+    is       => 'ro',
+    isa      => 'HashRef',
+    required => 1,
+    lazy     => 1,
+    default  => sub {
+        my $self = shift;
+        $self->_config_templates($self->sqitch->config);
+    },
+);
 
 has open_editor => (
     is       => 'ro',
@@ -95,25 +92,68 @@ has open_editor => (
     },
 );
 
-sub _find {
-    my ( $self, $script ) = @_;
+sub _check_script($) {
+    my $file = file shift;
+
+    hurl add => __x(
+        'Template {template} does not exist',
+        template => $file,
+    ) unless -e $file;
+
+    hurl add => __x(
+        'Template {template} is not a file',
+        template => $file,
+    ) unless -f $file;
+
+    return $file;
+}
+
+sub _config_templates {
+    my ($self, $config) = @_;
+    my $tmpl = $config->get_section( section => 'add.templates' );
+    $_ = _check_script $_ for values %{ $tmpl };
+
+    # Get legacy config.
+    for my $script (qw(deploy revert verify)) {
+        next if $tmpl->{$script};
+        if (my $file = $config->get( key => "add.$script\_template")) {
+            $tmpl->{$script} = _check_script $file;
+        }
+    }
+    return $tmpl;
+}
+
+sub all_templates {
+    my $self   = shift;
     my $config = $self->sqitch->config;
     my $name   = $self->template_name;
-    $config->get( key => "add.$script\_template" ) || do {
-        for my $dir (
-            $self->template_directory,
-            $config->user_dir->subdir('templates'),
-            $config->system_dir->subdir('templates'),
-        ) {
-            next unless $dir;
-            my $tmpl = $dir->file($script, "$name.tmpl");
-            return $tmpl if -f $tmpl;
+    my $tmpl   = $self->templates;
+
+    # Read all the template directories.
+    for my $dir (
+        $self->template_directory,
+        $config->user_dir->subdir('templates'),
+        $config->system_dir->subdir('templates'),
+    ) {
+        next unless $dir && -d $dir;
+        for my $subdir($dir->children) {
+            next unless $subdir->is_dir;
+            next if $tmpl->{my $script = $subdir->basename};
+            my $file = $subdir->file("$name.tmpl");
+            $tmpl->{$script} = $file if -f $file
         }
+    }
+
+    # Make sure we have core templates.
+    my $with = $self->with_scripts;
+    for my $script (qw(deploy revert verify)) {
         hurl add => __x(
             'Cannot find {script} template',
             script => $script,
-        );
-    };
+        ) if !$tmpl->{$script} && ($with->{$script} || !exists $with->{$script});
+    }
+
+    return $tmpl;
 }
 
 sub options {
@@ -123,14 +163,19 @@ sub options {
         note|n|m=s@
         template-name|template|t=s
         template-directory=s
+        with=s@
+        without=s@
+        use=s%
+        open-editor|edit|e!
+
         deploy-template=s
         revert-template=s
         verify-template=s
         deploy!
         revert!
         verify!
-        open-editor|edit|e!
     );
+    # Those last six are deprecated.
 }
 
 # Override to convert multiple vars to an array.
@@ -153,6 +198,7 @@ sub _parse_opts {
             }
         }
     ) or $class->usage;
+    $opts{set} = \%vars if %vars;
 
     # Convert dashes to underscores.
     for my $k (keys %opts) {
@@ -160,7 +206,20 @@ sub _parse_opts {
         $opts{$nk} = delete $opts{$k};
     }
 
-    $opts{set} = \%vars if %vars;
+    # Merge with and without.
+    $opts{with_scripts} = {
+        ( map { $_ => delete $opts{$_} // 1 } qw(deploy revert verify) ),
+        ( map { $_ => 1 } @{ delete $opts{with}    || [] } ),
+        ( map { $_ => 0 } @{ delete $opts{without} || [] } ),
+    };
+
+    # Merge deprecated use options.
+    for my $script (qw(deploy revert verify)) {
+        next unless exists $opts{"$script\_template"};
+        $opts{use} ||= {};
+        $opts{use}{$script} = delete $opts{"$script\_template"}
+    }
+
     return \%opts;
 }
 
@@ -172,6 +231,8 @@ sub configure {
         conflicts => $opt->{conflicts} || [],
         note      => $opt->{note}      || [],
     );
+
+    $params{with_scripts} = $opt->{with_scripts} if $opt->{with_scripts};
 
     if (
         my $dir = $opt->{template_directory}
@@ -187,7 +248,6 @@ sub configure {
             '"{dir}" is not a directory',
             dir => $dir,
         ) unless -d $dir;
-
     }
 
     if (
@@ -197,19 +257,22 @@ sub configure {
         $params{template_name} = $name;
     }
 
-    for my $attr (qw(deploy revert verify)) {
-        $params{"with_$attr"} = $opt->{$attr} if exists $opt->{$attr};
-        my $t = "$attr\_template";
-        $params{$t} = file $opt->{$t} if $opt->{$t};
-    }
-
+    # Merge variables.
     if ( my $vars = $opt->{set} ) {
-        # Merge with config.
         $params{variables} = {
             %{ $config->get_section( section => 'add.variables' ) },
             %{ $vars },
         };
     }
+
+    # Merge template info.
+    my $tmpl = $class->_config_templates($config);
+    if ( my $use = delete $opt->{use} ) {
+        while (my ($k, $v) = each %{ $use }) {
+            $tmpl->{$k} = _check_script $v;
+        }
+    }
+    $params{templates} = $tmpl if %{ $tmpl };
 
     $params{open_editor} = $opt->{open_editor} if exists $opt->{open_editor};
 
@@ -221,6 +284,8 @@ sub execute {
     $self->usage unless defined $name;
     my $sqitch = $self->sqitch;
     my $plan   = $sqitch->plan;
+    my $with   = $self->with_scripts;
+    my $tmpl   = $self->all_templates;
     my $change = $plan->add(
         name      => $name,
         requires  => $self->requires,
@@ -228,11 +293,10 @@ sub execute {
         note      => join "\n\n" => @{ $self->note },
     );
 
-    my @files = (
-        ($self->with_deploy ? $change->deploy_file : ()),
-        ($self->with_revert ? $change->revert_file : ()),
-        ($self->with_verify ? $change->verify_file : ()),
-    );
+    my @scripts = grep {
+        !exists $with->{$_} || $with->{$_}
+    } sort keys %{ $tmpl };
+    my @files = map { $change->script_file($_ ) } @scripts;
 
     # Make sure we have a note.
     $change->request_note(
@@ -240,23 +304,9 @@ sub execute {
         scripts => \@files,
     );
 
-    $self->_add(
-        $name,
-        $change->deploy_file,
-        $self->deploy_template,
-    ) if $self->with_deploy;
-
-    $self->_add(
-        $name,
-        $change->revert_file,
-        $self->revert_template,
-    ) if $self->with_revert;
-
-    $self->_add(
-        $name,
-        $change->verify_file,
-        $self->verify_template,
-    ) if $self->with_verify;
+    # Add the scripts.
+    my $i = 0;
+    $self->_add( $name, $files[$i++], $tmpl->{$_} ) for @scripts;
 
     # We good, write the plan file back out.
     $plan->write_to( $sqitch->plan_file );
@@ -390,6 +440,11 @@ for the constructor.
   $add->execute($command);
 
 Executes the C<add> command.
+
+=head2 C<all_templates>
+
+Returns a hash reference of script names mapped to template files for all
+scripts that should be generated for the new change.
 
 =head1 See Also
 
