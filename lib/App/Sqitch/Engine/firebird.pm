@@ -11,7 +11,6 @@ use App::Sqitch::Plan::Change;
 use Path::Class;
 use File::Which ();
 use File::Basename;
-use File::Spec::Functions;
 use Time::Local;
 use Time::HiRes qw(sleep);
 use Mouse;
