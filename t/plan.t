@@ -983,7 +983,7 @@ is $plan->index_of('@baz'), 3, 'Index of @baz should be 3';
 ok $plan->contains('@baz'), 'Plan should contain @baz';
 ok $plan->seek('@baz'), 'Seek to the "baz" change';
 is $plan->position, 3, 'Position should be at 3 again';
- is $plan->current, $fourth, 'Current should be fourth again';
+is $plan->current, $fourth, 'Current should be fourth again';
 
 is $plan->change_at(0), $change,  'Should still get first change from change_at(0)';
 is $plan->change_at(1), $next,  'Should still get second change from change_at(1)';

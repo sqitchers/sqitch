@@ -78,6 +78,9 @@ Revision history for Perl extension App::Sqitch
      - Removed the documentation for the `add.with_deploy`, `add.with_revert`,
        and `add.with_verify` configuration variables, which were never
        implemented.
+     - `HEAD` and `ROOT` are now recognized as aliases for `@HEAD` and
+       `@ROOT`, respectively, since they are disallowed as change names,
+       anyway, and folks often use them out of habit from Git.
 
 0.983  2013-11-21T21:50:12Z
      - Fixed "Use of uninitialized value" in the MySQL engine. Thanks to

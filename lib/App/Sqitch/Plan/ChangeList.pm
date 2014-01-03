@@ -198,8 +198,8 @@ sub append {
         }
     }
 
-    $lookup->{'@HEAD'} = [$#$list];
-    $lookup->{'@ROOT'} = [0];
+    $lookup->{'HEAD'} = $lookup->{'@HEAD'} = [$#$list];
+    $lookup->{'ROOT'} = $lookup->{'@ROOT'} = [0];
 
     return $self;
 }
