@@ -1622,6 +1622,16 @@ file(qw(sql deploy baz.sql))->touch;
 ok $fh = $plan->open_script(file qw(sql deploy baz.sql)), 'Open baz.sql';
 is $fh->getline, undef, 'It should be empty';
 
+# Make sure it dies on an invalid file.
+throws_ok { $plan->open_script(file 'nonexistent' ) } 'App::Sqitch::X',
+    'open_script() should die on nonexistent file';
+is $@->ident, 'plan', 'Nonexistent file error ident should be "plan"';
+is $@->message, __x(
+    'Cannot open {file}: {error}',
+    file  => 'nonexistent',
+    error => $!,
+), 'Nonexistent file error message should be correct';
+
 ##############################################################################
 # Test check_changes()
 $mocker->unmock('check_changes');

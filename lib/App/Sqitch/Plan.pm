@@ -571,7 +571,8 @@ sub check_changes {
 
 sub open_script {
     my ( $self, $file ) = @_;
-    return $file->open('<:utf8_strict') or hurl plan => __x(
+    # return has higher precedence than or, so use ||.
+    return $file->open('<:utf8_strict') || hurl plan => __x(
         'Cannot open {file}: {error}',
         file  => $file,
         error => $!,
