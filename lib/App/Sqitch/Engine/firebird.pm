@@ -219,6 +219,7 @@ sub initialize {
             'Cannot create database {database}: {error}',
             database => $sqitch_db,
             error    => $_,
+        );
     };
 
     # Load up our database. The database must exist!
