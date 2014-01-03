@@ -1182,7 +1182,7 @@ in the new script files that include tags.
 Excellent. Let's go ahead and commit these changes:
 
   > git add .
-  > git ci -m 'Add the twitter column to the userflips view.'
+  > git commit -m 'Add the twitter column to the userflips view.'
   [master 3eb96d9] Add the twitter column to the userflips view.
    7 files changed, 40 insertions(+), 4 deletions(-)
    create mode 100644 deploy/userflips@v1.0.0-dev2.sql
