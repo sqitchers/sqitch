@@ -215,7 +215,10 @@ sub initialize {
         });
     }
     catch {
-        hurl firebird => __ "DBD::Firebird failed to create test database: $_";
+        hurl firebird => __x(
+            'Cannot create database {database}: {error}',
+            database => $sqitch_db,
+            error    => $_,
     };
 
     # Load up our database. The database must exist!
@@ -883,7 +886,7 @@ sub locate_firebird {
 
     hurl firebird => __(
         'Unable to locate Firebird ISQL; set "core.firebird.client" via sqitch config'
-        );
+    );
 
     return;
 }
