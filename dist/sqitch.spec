@@ -254,6 +254,13 @@ package bundles the Sqitch Firebird support.
 # No additional files required.
 
 %changelog
+* Fri Jan 4 2014 David E. Wheeler <david.wheeler@iovation.com> 0.990-1
+- Upgrade to v0.990.
+- Add sqitch-firebird.
+- Add target command and arguments.
+- Add support for arbitrary change script templating.
+- Add --open-editor option.
+
 * Thu Nov 21 2013 David E. Wheeler <david.wheeler@iovation.com> 0.983-1
 - Upgrade to v0.983.
 - Require DBD::Pg 2.0.0 or higher.

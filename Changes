@@ -1,6 +1,6 @@
 Revision history for Perl extension App::Sqitch
 
-0.990
+0.990  2014-01-04T01:14:24Z
      [New Features]
      - Added new command and feature: `target`. Use it to manage multiple
        database targets, each with an associated URI and, optionally, a
