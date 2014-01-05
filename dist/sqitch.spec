@@ -240,7 +240,6 @@ Requires:       sqitch >= %{version}
 Requires:       firebird >= 2.5.0
 Requires:       perl(DBI)
 Requires:       perl(DBD::Firebird) >= 1.15
-Requires:       perl(File::Which)
 Requires:       perl(Time::HiRes)
 Requires:       perl(Time::Local)
 BuildRequires:  firebird-classic >= 2.5.0
