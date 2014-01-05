@@ -5,6 +5,10 @@ Revision history for Perl extension App::Sqitch
        tries so hard to find a full path, but does seach through the path list
        for a likely candidate between fbsql, isql-fb, and isql (or equivalents
        ending in .exe on Windows).
+     - Removed a bunch of inappropriately pasted stuff from the Firebird
+       tutorial, and updated it a bit.
+     - `HEAD` and `ROOT` are now recognized as aliases for `@HEAD` and
+       `@ROOT`, when querying the database, too.
 
 0.990  2014-01-04T01:14:24Z
      [New Features]

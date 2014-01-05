@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 600;
+use Test::More tests => 604;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -2373,7 +2373,7 @@ is $engine->_trim_to('foo', $key, $to_trim, 1), 4,
 is_deeply [ map { $_->id } @{ $to_trim } ], [ map { $_->id } @changes[0..$#changes-2] ],
     'Last two changes should be popped off';
 
-# Make sure that @HEAD is handled relative to deployed changes, not the plan.
+# @HEAD and HEAD should be handled relative to deployed changes, not the plan.
 $to_trim  = [@changes];
 @resolved = ($changes[2]->id);
 $key      = '@HEAD';
@@ -2382,10 +2382,26 @@ is $engine->_trim_to('foo', $key, $to_trim), 2,
 is_deeply [ map { $_->id } @{ $to_trim } ], [ map { $_->id } @changes[2..$#changes] ],
     'First two changes should be shifted off';
 
-# Make sure that @ROOT is handled relative to deployed changes, not the plan.
+$to_trim  = [@changes];
+@resolved = ($changes[2]->id);
+$key      = 'HEAD';
+is $engine->_trim_to('foo', $key, $to_trim), 2,
+    qq{_trim_to should find "$key" at index 2};
+is_deeply [ map { $_->id } @{ $to_trim } ], [ map { $_->id } @changes[2..$#changes] ],
+    'First two changes should be shifted off';
+
+# @ROOT and ROOT should be handled relative to deployed changes, not the plan.
 $to_trim  = [@changes];
 @resolved = ($changes[2]->id);
 $key      = '@ROOT';
+is $engine->_trim_to('foo', $key, $to_trim, 1), 2,
+    qq{_trim_to should find "$key" at index 2};
+is_deeply [ map { $_->id } @{ $to_trim } ], [ map { $_->id } @changes[0,1,2] ],
+    'All but First three changes should be popped off';
+
+$to_trim  = [@changes];
+@resolved = ($changes[2]->id);
+$key      = 'ROOT';
 is $engine->_trim_to('foo', $key, $to_trim, 1), 2,
     qq{_trim_to should find "$key" at index 2};
 is_deeply [ map { $_->id } @{ $to_trim } ], [ map { $_->id } @changes[0,1,2] ],
