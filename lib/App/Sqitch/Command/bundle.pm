@@ -15,7 +15,7 @@ use namespace::autoclean;
 
 extends 'App::Sqitch::Command';
 
-our $VERSION = '0.990';
+our $VERSION = '0.991';
 
 has from => (
     is       => 'ro',

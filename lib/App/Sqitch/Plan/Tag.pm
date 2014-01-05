@@ -8,7 +8,7 @@ use Encode;
 use parent 'App::Sqitch::Plan::Line';
 use DateTime;
 
-our $VERSION = '0.990';
+our $VERSION = '0.991';
 
 sub format_name {
     '@' . shift->name;
