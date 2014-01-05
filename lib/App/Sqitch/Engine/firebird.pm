@@ -823,16 +823,14 @@ sub default_client {
 
     # Try to find a client in the path; use File::Which if we can.
     if (eval 'require File::Which;') {
-        for my $try (qw(fbsql isql-fb isql)) {
-            $try .= $ext;
+        for my $try (map { $_ . $ext }qw(fbsql isql-fb isql)) {
             if ( my $path = File::Which::which($try) ) {
                 return $try if $self->_check_if_is_fb_isql($path);
             }
         }
     } else {
         # Just search through the path.
-        for my $try (qw(fbsql isql-fb isql)) {
-            $try .= $ext;
+        for my $try (map { $_ . $ext }qw(fbsql isql-fb isql)) {
             for my $dir (File::Spec->path) {
                 return $try if $self->_check_if_is_fb_isql(file $dir, $try);
             }
