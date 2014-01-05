@@ -1,5 +1,11 @@
 Revision history for Perl extension App::Sqitch
 
+0.991
+     - Greatly simplified determining the Firebird ISQL client. It no longer
+       tries so hard to find a full path, but does seach through the path list
+       for a likely candidate between fbsql, isql-fb, and isql (or equivalents
+       ending in .exe on Windows).
+
 0.990  2014-01-04T01:14:24Z
      [New Features]
      - Added new command and feature: `target`. Use it to manage multiple
