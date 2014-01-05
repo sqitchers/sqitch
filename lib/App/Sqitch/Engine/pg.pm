@@ -325,7 +325,7 @@ sub _dt($) {
 }
 
 sub _no_table_error  {
-    return $DBI::state eq '42P01'; # undefined_table
+    return $DBI::state && $DBI::state eq '42P01'; # undefined_table
 }
 
 sub _in_expr {

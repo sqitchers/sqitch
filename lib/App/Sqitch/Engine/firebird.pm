@@ -279,7 +279,7 @@ sub _dt($) {
 }
 
 sub _no_table_error  {
-    return $DBI::errstr =~ /^\Q\-Table unknown/; # ???
+    return $DBI::errstr && $DBI::errstr =~ /^\Q\-Table unknown/; # ???
 }
 
 sub _regex_op { 'SIMILAR TO' }               # NOT good match for

@@ -655,7 +655,7 @@ sub _ts2char($) {
 }
 
 sub _no_table_error  {
-    return defined $DBI::err && $DBI::err == 942; # ORA-00942: table or view does not exist
+    return $DBI::err && $DBI::err == 942; # ORA-00942: table or view does not exist
 }
 
 sub _script {
