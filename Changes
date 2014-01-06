@@ -8,7 +8,9 @@ Revision history for Perl extension App::Sqitch
      - Removed a bunch of inappropriately pasted stuff from the Firebird
        tutorial, and updated it a bit.
      - `HEAD` and `ROOT` are now recognized as aliases for `@HEAD` and
-       `@ROOT`, when querying the database, too.
+       `@ROOT`, when querying the database, too. That means that `revert --to
+       HEAD` now works the same as `revert --to @HEAD`, as had been expected
+       in v0.990.
      - Eliminated "use of uninitialized value" warnings when database
        connections fail.
      - Reduced the minimum required DBD::Firebird to v1.11.
