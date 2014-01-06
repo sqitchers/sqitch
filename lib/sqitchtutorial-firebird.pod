@@ -142,8 +142,7 @@ Let's create our flipr test database using C<isql>:
 
   > sudo -u firebird mkdir /tmp/flipr_test
   > echo "CREATE DATABASE 'localhost:/tmp/flipr_test/flipr.fdb'; exit;" \
-    | isql-fb -u SYSDBA -p masterkey
-  Use CONNECT or CREATE DATABASE to specify a database
+    | isql-fb -q -u SYSDBA -p masterkey
 
 =head1 Our First Change
 
@@ -224,8 +223,7 @@ With this change deployed, if you connect to the database, you'll be able to
 see the C<users> table:
 
   > echo "CONNECT 'localhost:/tmp/flipr_test/flipr.fdb'; SHOW TABLES; quit;" \
-    | isql-fb -u SYSDBA -p masterkey
-  Use CONNECT or CREATE DATABASE to specify a database
+    | isql-fb -q -u SYSDBA -p masterkey
        USERS                        
 
 =head2 Trust, But Verify
@@ -311,8 +309,7 @@ change name in the output, which reinforces that the change is being
 I<removed> from the database. And now the C<users> table should be gone:
 
   > echo "CONNECT 'localhost:/tmp/flipr_test/flipr.fdb'; SHOW TABLES; quit;" \
-    | isql-fb -u SYSDBA -p masterkey
-  Use CONNECT or CREATE DATABASE to specify a database
+    | isql-fb -q -u SYSDBA -p masterkey
   There are no tables in this database
 
 And the status message should reflect as much:
@@ -371,8 +368,7 @@ the C<verify> script is applied when the change is deployed:
 And now the C<users> table should be back:
 
   > echo "CONNECT 'localhost:/tmp/flipr_test/flipr.fdb'; SHOW TABLES; quit;" \
-    | isql-fb -u SYSDBA -p masterkey
-  Use CONNECT or CREATE DATABASE to specify a database
+    | isql-fb -q -u SYSDBA -p masterkey
          USERS                           
 
 When we look at the status, the deployment will be there:
@@ -504,8 +500,7 @@ We know, since verification is enabled, that the table must have been created.
 But for the purposes of visibility, let's have a quick look:
 
   > echo "CONNECT 'localhost:/tmp/flipr_test/flipr.fdb'; SHOW TABLES; quit;" \
-    | isql-fb -u SYSDBA -p masterkey
-  Use CONNECT or CREATE DATABASE to specify a database
+    | isql-fb -q -u SYSDBA -p masterkey
          FLIPS                                  USERS
 
 We can also verify all currently deployed changes with the
@@ -548,8 +543,7 @@ Back to the database. The C<flips> table should be gone but the
 C<users> table should still be around:
 
   > echo "CONNECT 'localhost:/tmp/flipr_test/flipr.fdb'; SHOW TABLES; quit;" \
-    | isql-fb -u SYSDBA -p masterkey
-  Use CONNECT or CREATE DATABASE to specify a database
+    | isql-fb -q -u SYSDBA -p masterkey
        USERS                        
 
 The L<C<status>|sqitch-status> command politely informs us that we have
@@ -676,7 +670,7 @@ We can try deploying to make sure the tag gets picked up like so:
 
   > sudo -u firebird mkdir /tmp/flipr_dev
   > echo "CREATE DATABASE 'localhost:/tmp/flipr_dev/flipr.fdb'; exit;" \
-    | isql-fb -u SYSDBA -p masterkey
+    | isql-fb -q -u SYSDBA -p masterkey
   > sqitch deploy db:firebird://sysdba:masterkey@localhost//tmp/flipr_dev/flipr.fdb
   Adding registry tables to db:firebird://sysdba:@localhost//tmp/flipr_dev/sqitch.fdb
   Deploying changes to db:firebird://sysdba:@localhost//tmp/flipr_dev/flipr.fdb
@@ -717,7 +711,7 @@ deploying it:
   > cd bundle
   > sudo -u firebird mkdir /tmp/flipr_prod
   > echo "CREATE DATABASE 'localhost:/tmp/flipr_prod/flipr.fdb'; exit;" \
-    | isql-fb -u SYSDBA -p masterkey
+    | isql-fb -q -u SYSDBA -p masterkey
   > sqitch deploy db:firebird://sysdba:masterkey@localhost//tmp/flipr_prod/flipr.fdb
   Adding registry tables to db:firebird://sysdba:@localhost//tmp/flipr_prod/sqitch.fdb
   Deploying changes to db:firebird://sysdba:@localhost//tmp/flipr_prod/flipr.fdb
@@ -1165,8 +1159,7 @@ Now try a deployment:
 So, are the changes deployed?
 
   > echo "CONNECT 'localhost:/tmp/flipr_test/flipr.fdb'; SHOW VIEW userflips; quit;" \
-    | isql-fb -u SYSDBA -p masterkey
-  Use CONNECT or CREATE DATABASE to specify a database
+    | isql-fb -q -u SYSDBA -p masterkey
   ID                              INTEGER Not Null 
   NICKNAME                        VARCHAR(50) Not Null 
   FULLNAME                        VARCHAR(512) Not Null 
@@ -1189,9 +1182,7 @@ Awesome, the view now includes the C<twitter> column. But can we revert?
 Did that work, is the C<twitter> column gone?
 
   > echo "CONNECT 'localhost:/tmp/flipr_test/flipr.fdb'; SHOW VIEW userflips; quit;" \
-    | isql-fb -u SYSDBA -p masterkey
-  Use CONNECT or CREATE DATABASE to specify a database
-  Use CONNECT or CREATE DATABASE to specify a database
+    | isql-fb -q -u SYSDBA -p masterkey
   ID                              INTEGER Not Null 
   NICKNAME                        VARCHAR(50) Not Null 
   FULLNAME                        VARCHAR(512) Not Null 
