@@ -11,6 +11,7 @@ Revision history for Perl extension App::Sqitch
        `@ROOT`, when querying the database, too.
      - Eliminated "use of uninitialized value" warnings when database
        connections fail.
+     - Reduced the minimum required DBD::Firebird to v1.11.
 
 0.990  2014-01-04T01:14:24Z
      [New Features]
