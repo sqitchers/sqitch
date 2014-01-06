@@ -823,8 +823,14 @@ sub default_client {
 
     # Try to find a client in the path.
     for my $try ( map { $_ . $ext  } qw(fbsql isql-fb isql) ) {
+        my $loops = 0;
         for my $dir (File::Spec->path) {
-            return $try if $self->_check_if_is_fb_isql(file $dir, $try);
+            my $path = file $dir, $try;
+            if ( $self->_check_if_is_fb_isql($path) ) {
+                # Return the full path if it is not the first one found.
+                return $loops ? $path->stringify : $try;
+            }
+            $loops++;
         }
     }
 
