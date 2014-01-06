@@ -817,35 +817,33 @@ sub log_deploy_change {
 }
 
 sub default_client {
-    my $self = shift;
-    my $os = $^O;
-    my $ext = $os eq 'MSWin32' || $os eq 'cygwin' ? '.exe' : '';
+    my $self   = shift;
+    my $ext    = $^O eq 'MSWin32' || $^O eq 'cygwin' ? '.exe' : '';
+
+    # Create a script to run.
+    require File::Temp;
+    my $fh = File::Temp->new( CLEANUP => 1 );
+    my @opts = (qw(-z -q -i), $fh->filename);
+    $fh->print("quit;\n");
+    $fh->close;
 
     # Try to find a client in the path.
     for my $try ( map { $_ . $ext  } qw(fbsql isql-fb isql) ) {
         my $loops = 0;
         for my $dir (File::Spec->path) {
             my $path = file $dir, $try;
-            if ( $self->_check_if_is_fb_isql($path) ) {
-                # Return the full path if it is not the first one found.
-                return $loops ? $path->stringify : $try;
+            if (-f $path && -x $path) {
+                if (App::Sqitch->probe($path, @opts) =~ /Firebird/ ) {
+                    return $loops ? $path->stringify : $try;
+                }
+                $loops++;
             }
-            $loops++;
         }
     }
 
     hurl firebird => __(
         'Unable to locate Firebird ISQL; set "core.firebird.client" via sqitch config'
     );
-}
-
-sub _check_if_is_fb_isql {
-    my ($self, $cmd) = @_;
-    if ( -f $cmd and -x $cmd ) {
-        my $cmd_echo = qx( echo "quit;" | "$cmd" -z -quiet 2>&1 );
-        return ( $cmd_echo =~ m{Firebird}ims ) ? 1 : 0;
-    }
-    return;
 }
 
 1;
