@@ -833,7 +833,7 @@ sub default_client {
         for my $dir (File::Spec->path) {
             my $path = file $dir, $try;
             if (-f $path && -x $path) {
-                if (App::Sqitch->probe($path, @opts) =~ /Firebird/ ) {
+                if (try { App::Sqitch->probe($path, @opts) =~ /Firebird/ } ) {
                     return $loops ? $path->stringify : $try;
                 }
                 $loops++;

@@ -1629,7 +1629,7 @@ is $@->ident, 'plan', 'Nonexistent file error ident should be "plan"';
 is $@->message, __x(
     'Cannot open {file}: {error}',
     file  => 'nonexistent',
-    error => $!,
+    error => $! || 'No such file or directory',
 ), 'Nonexistent file error message should be correct';
 
 ##############################################################################
