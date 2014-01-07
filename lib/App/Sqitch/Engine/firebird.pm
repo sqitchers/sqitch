@@ -827,6 +827,15 @@ sub default_client {
     $fh->print("quit;\n");
     $fh->close;
 
+    # Suppress STDERR, including in subprocess.
+    open my $olderr, '>&', \*STDERR or hurl firebird => __x(
+        'Cannot dup STDERR: {error}', $!
+    );
+    close STDERR;
+    open STDERR, '>', \my $stderr or hurl firebird => __x(
+        'Cannot reirect STDERR: {error}', $!
+    );
+
     # Try to find a client in the path.
     for my $try ( map { $_ . $ext  } qw(fbsql isql-fb isql) ) {
         my $loops = 0;
@@ -834,6 +843,10 @@ sub default_client {
             my $path = file $dir, $try;
             if (-f $path && -x $path) {
                 if (try { App::Sqitch->probe($path, @opts) =~ /Firebird/ } ) {
+                    # Restore STDERR and return.
+                    open STDERR, '>&', $olderr or hurl firebird => __x(
+                        'Cannot dup STDERR: {error}', $!
+                    );
                     return $loops ? $path->stringify : $try;
                 }
                 $loops++;
@@ -841,6 +854,10 @@ sub default_client {
         }
     }
 
+    # Restore STDERR and die.
+    open STDERR, '>&', $olderr or hurl firebird => __x(
+        'Cannot dup STDERR: {error}', $!
+    );
     hurl firebird => __(
         'Unable to locate Firebird ISQL; set "core.firebird.client" via sqitch config'
     );
