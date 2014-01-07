@@ -203,8 +203,8 @@ sub initialize {
     my $sqitch_db = $self->connection_string($uri);
 
     # Create the registry database if it does not exist.
+    $self->use_driver;
     try {
-        require DBD::Firebird;
         DBD::Firebird->create_database({
             db_path       => $sqitch_db,
             user          => scalar $uri->user,
