@@ -52,6 +52,21 @@ Want to learn more? The best place to start is in the tutorials:
 * [Introduction to Sqitch on MySQL](lib/sqitchtutorial-mysql.pod)
 * [Introduction to Sqitch on Firebird](lib/sqitchtutorial-firebird.pod)
 
+There have also been a number of presentations on Sqitch:
+
+* [PDX.pm Presentation](https://speakerdeck.com/theory/sane-database-change-management-with-sqitch): 
+  Slides from "Sane Database Management with Sqitch", presented to the
+  Portland Perl Mongers in January, 2013.
+
+* [PDXPUG Presentation](https://vimeo.com/50104469): Movie of "Sane Database
+  Management with Sqitch", presented to the Portland PostgreSQL Users Group in
+  September, 2012.
+
+* [Agile Database Development](https://speakerdeck.com/theory/agile-database-development-2ed):
+  Slides from a three-hour tutorial session on using [Git](http://git-scm.org),
+  test-driven development with [pgTAP](http://pgtap.org), and change
+  management with Sqitch, updated in January, 2014.
+
 Installation
 ------------
 
