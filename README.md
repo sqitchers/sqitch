@@ -44,19 +44,13 @@ things:
     iterative approach to developing your database schema. Or, better, you can
     do test-driven database development.
 
-*   Reduced Duplication
-
-    If you're using a VCS to track your changes, you don't have to duplicate
-    entire change scripts for simple changes. As long as the changes are
-    [idempotent](http://en.wikipedia.org/wiki/Idempotence), you can change
-    your code directly, and Sqitch will know it needs to be updated.
-
 Want to learn more? The best place to start is in the tutorials:
 
 * [Introduction to Sqitch on PostgreSQL](lib/sqitchtutorial.pod)
 * [Introduction to Sqitch on SQLite](lib/sqitchtutorial-sqlite.pod)
 * [Introduction to Sqitch on Oracle](lib/sqitchtutorial-oracle.pod)
 * [Introduction to Sqitch on MySQL](lib/sqitchtutorial-mysql.pod)
+* [Introduction to Sqitch on Firebird](lib/sqitchtutorial-firebird.pod)
 
 Installation
 ------------
@@ -71,7 +65,10 @@ To install Sqitch from a distribution download, type the following:
     ./Build test
     ./Build install
 
-From a Git clone, first install
+If you're using [Homebrew](http://brew.sh), you can use the
+[Sqitch Homebrew Tap](https://github.com/theory/homebrew-sqitch/).
+
+To build from a Git clone, first install
 [Dist::Zilla](https://metacpan.org/module/Dist::Zilla), then use it to install
 Sqitch and its dependencies:
 
