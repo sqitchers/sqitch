@@ -33,7 +33,7 @@ from your typical <a href="http://guides.rubyonrails.org/migrations.html">migrat
 
 <h4>No opinions</h4>
 
-<p>Sqitch is not integrated with any framework, ORM, or platform. Rather, it is a standalone change management system with no opinions about your database engine, application framework, or your development environment.</p>
+<p>Sqitch is not integrated with any framework, ORM, or platform. Rather, it is a standalone change management system with no opinions about your database engine, application framework, or development environment.</p>
 
 <h4>Native scripting</h4>
 
@@ -51,10 +51,6 @@ from your typical <a href="http://guides.rubyonrails.org/migrations.html">migrat
 
 <p>Up until you tag and release your application, you can modify your change deployment scripts as often as you like. They're not locked in just because they've been committed to your VCS. This allows you to take an iterative approach to developing your database schema. Or, better, you can do test-driven database development.</p>
 
-<h4>Reduced Duplication</h4>
-
-<p>If you're using a VCS to track your changes, you don't have to duplicate entire change scripts for simple changes. As long as the changes are <a href="http://en.wikipedia.org/wiki/Idempotence">idempotent</a>, you can change your code directly, and Sqitch will know it needs to be updated.</p>
-
 <h2>Installation</h2>
 
 <p>There are a number of ways to install Sqitch. The PostgreSQL support requires <a href="http://www.postgresql.org/download/">PostgreSQL</a>; the Oracle support requires <a href="http://www.oracle.com/technetwork/database/features/instant-client/index-097480.html">Instant Client</a> (and the setting of the <code>$ORACLE_HOME</code> environment variable).</p>
@@ -65,6 +61,8 @@ from your typical <a href="http://guides.rubyonrails.org/migrations.html">migrat
   <li>PostgreSQL: <code>cpan App::Sqitch DBD::Pg</code></li>
   <li>SQLite: <code>cpan App::Sqitch DBD::SQLite</code></li>
   <li>Oracle: <code>cpan App::Sqitch DBD::Oracle</code></li>
+  <li>MySQL: <code>cpan App::Sqitch DBD::mysql</code></li>
+  <li>Firebird: <code>cpan App::Sqitch DBD::Firebird</code></li>
 </ul>
 
 <h4><a href="http://brew.sh">Homebrew</a></h4>
@@ -74,6 +72,8 @@ from your typical <a href="http://guides.rubyonrails.org/migrations.html">migrat
   <li>PostreSQL: <code> brew install sqitch_pg</code></li>
   <li>SQLite: <code> brew install sqitch_sqlite</code></li>
   <li>Oracle: <code> brew install sqitch_oracle</code></li>
+  <li>MySQL: <code> brew install sqitch_mysql</code></li>
+  <li>Firebird: <code> brew install sqitch_firebird</code></li>
 </ul>
 
 <h4><a href="http://code.activestate.com/ppm/">ActiveState PPM</a></h4>
@@ -82,6 +82,7 @@ from your typical <a href="http://guides.rubyonrails.org/migrations.html">migrat
   <li>Install <a href="http://www.activestate.com/activeperl/downloads">ActivePerl</a></li>
   <li>Run <code>ppm install App-Sqitch</code></li>
   <li>For Oracle support, also run <code>ppm install DBD-Oracle</code></li>
+  <li>For Firebird support, also run <code>ppm install DBD-Firebird</code></li>
 </ul>
 
 <h2>Getting Started</h2>
@@ -94,6 +95,8 @@ from your typical <a href="http://guides.rubyonrails.org/migrations.html">migrat
   <li><a href="https://metacpan.org/module/sqitchtutorial">PostgreSQL tutorial</a></li>
   <li><a href="https://metacpan.org/module/sqitchtutorial-sqlite">SQLite tutorial</a></li>
   <li><a href="https://metacpan.org/module/sqitchtutorial-oracle">Oracle tutorial</a></li>
+  <li><a href="https://metacpan.org/module/sqitchtutorial-mysql">MySQL tutorial</a></li>
+  <li><a href="https://metacpan.org/module/sqitchtutorial-firebird">Firebird tutorial</a></li>
 </ul>
 
 <h4><a href="https://groups.google.com/forum/#!forum/sqitch-users">Mail List</a></h4>
@@ -114,12 +117,12 @@ from your typical <a href="http://guides.rubyonrails.org/migrations.html">migrat
 
 <h3>Agile Database Development</h3>
 
-<p>Three hour technical tutorial <a href="http://www.pgcon.org/2013/schedule/events/615.en.html">presented at PGCon 2013</a>, covering source code control with <a href="http://git-scm.org/">Git</a>, database change control with Sqitch, and test-driven database development with <a href="http://pgtap.org/">pgTAP</a>.</p>
+<p>Three hour technical tutorial <a href="http://www.pgcon.org/2013/schedule/events/615.en.html">originally presented at PGCon 2013</a> and updated in January 2014, covering source code control with <a href="http://git-scm.org/">Git</a>, database change control with Sqitch, and test-driven database development with <a href="http://pgtap.org/">pgTAP</a>.</p>
 
 <ul>
-  <li><a href="http://www.pgcon.org/2013/schedule/attachments/270_agile_db_dev.key">Kenote</a></li>
-  <li><a href="http://www.pgcon.org/2013/schedule/attachments/271_agile_db_dev.pdf">PDF</a></li>
-  <li><a href="https://speakerdeck.com/theory/agile-database-development">Speaker Deck</a></li>
+  <li><a href="https://speakerdeck.com/theory/agile-database-development-2ed">Speaker Deck</a></li>
+  <li><a href="https://www.icloud.com/iw/#keynote/BAJN1kHfLmpMcwXIXOqByV75FvbX6AgfEbWE/agile_database_development_iovation.key">Kenote</a></li>
+  <li><a href="https://speakerd.s3.amazonaws.com/presentations/460b5b905af60131df53620ea5c6d896/agile_database_development_iovation.pdf">PDF</a></li>
 </ul>
 
 
