@@ -36,7 +36,7 @@ sub options {
     return qw(
         registry|r=s
         client|c=s
-        v|verbose+
+        verbose|v+
     );
 }
 
