@@ -841,6 +841,7 @@ sub default_client {
         my $loops = 0;
         for my $dir (File::Spec->path) {
             my $path = file $dir, $try;
+            $path = Win32::GetShortPathName($path) if $^O eq 'MSWin32';
             if (-f $path && -x $path) {
                 if (try { App::Sqitch->probe($path, @opts) =~ /Firebird/ } ) {
                     # Restore STDERR and return.
