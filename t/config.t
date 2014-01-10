@@ -18,6 +18,9 @@ BEGIN {
     use_ok $CLASS or die;
 }
 
+# protect against user's environment variables
+delete @ENV{qw( SQITCH_CONFIG SQITCH_USER_CONFIG SQITCH_SYSTEM_CONFIG )};
+
 ok my $sqitch = App::Sqitch->new, 'Load a sqitch object';
 isa_ok my $cmd = App::Sqitch::Command->load({
     sqitch  => $sqitch,
