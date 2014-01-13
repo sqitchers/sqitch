@@ -11,7 +11,7 @@ use List::Util qw(first max);
 use URI::db;
 use namespace::autoclean;
 
-our $VERSION = '0.990';
+our $VERSION = '0.991';
 
 has sqitch => (
     is       => 'ro',
@@ -605,7 +605,7 @@ sub _verify_changes {
         }
 
         # Run the verify script.
-        try {  $self->verify_change( $change ) } catch {
+        try { $self->verify_change( $change ) } catch {
             $sqitch->comment(eval { $_->message } // $_);
             $errs++;
         } unless $reworked;
@@ -789,13 +789,12 @@ sub _params_for_key {
     my ( $self, $key ) = @_;
     my $offset = App::Sqitch::Plan::ChangeList::_offset $key;
     my ( $cname, $tag ) = split /@/ => $key, 2;
-    return (
-        ( !$tag && $cname =~ /^[0-9a-f]{40}$/ ? (change_id => $cname) : (
-            change => $cname,
-            tag    => $tag,
-        )),
-        offset => $offset,
-    );
+
+    my @off = ( offset => $offset );
+    return ( @off, change => $cname, tag => $tag ) if $tag;
+    return ( @off, change_id => $cname ) if $cname =~ /^[0-9a-f]{40}$/;
+    return ( @off, tag => '@' . $cname ) if $cname eq 'HEAD' || $cname eq 'ROOT';
+    return ( @off, change => $cname );
 }
 
 sub change_id_for_key {

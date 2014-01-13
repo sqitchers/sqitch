@@ -233,8 +233,7 @@ $verify_file = file qw(test-rework verify bar.sql);
 ok $add = App::Sqitch::Command::add->new(
     sqitch => $sqitch,
     template_directory => Path::Class::dir(qw(etc templates)),
-    with_revert => 0,
-    with_verify => 0,
+    with_scripts => { revert => 0, verify => 0 },
 ), 'Create another add with template_directory';
 file_not_exists_ok($_) for ($deploy_file, $revert_file, $verify_file);
 $add->execute('bar');

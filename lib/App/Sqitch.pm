@@ -23,7 +23,7 @@ use Mouse::Util::TypeConstraints;
 use MouseX::Types::Path::Class 0.06;
 use namespace::autoclean 0.11;
 
-our $VERSION = '0.990';
+our $VERSION = '0.991';
 
 BEGIN {
     # Need to create types before loading other Sqitch classes.
@@ -317,7 +317,11 @@ has pager => (
         } unless IO::Pager->can('say');
 
         my $fh = IO::Pager->new(\*STDOUT);
-        $fh->binmode(':utf8_strict') if eval { $fh->isa('IO::Pager') };
+        if (eval { $fh->isa('IO::Pager') }) {
+            $fh->binmode(':utf8_strict');
+        } else {
+            binmode $fh, ':utf8_strict';
+        }
         $fh;
     },
 );

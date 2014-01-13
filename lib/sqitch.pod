@@ -114,6 +114,11 @@ Perl Mongers in January, 2013.
 Movie of "Sane Database Management with Sqitch", presented to the Portland
 PostgreSQL Users Group in September, 2012.
 
+=item L<Agile Database Development|https://speakerdeck.com/theory/agile-database-development-2ed>
+
+Three-hour tutorial session on using L<Git|http://git-scm.org/>, test-driven
+development with L<pgTAP|http://pgtap.org>, and change management with Sqitch.
+
 =back
 
 =begin comment

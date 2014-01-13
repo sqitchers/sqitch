@@ -226,6 +226,16 @@ sub verify_file {
     $self->sqitch->verify_dir->file( $self->path_segments );
 }
 
+sub script_file {
+    my ($self, $name) = @_;
+    if ( my $meth = $self->can("$name\_file") ) {
+        return $self->$meth;
+    }
+    return $self->sqitch->top_dir->subdir($name)->cleanup->file(
+        $self->path_segments
+    );
+}
+
 sub is_revert {
     shift->operator eq '-';
 }
@@ -419,6 +429,12 @@ Returns the path to the revert script file for the change.
   my $file = $change->verify_file;
 
 Returns the path to the verify script file for the change.
+
+=head3 C<script_file>
+
+  my $file = $sqitch->script_file($script_name);
+
+Returns the path to a script, for the change.
 
 =head3 C<rework_tags>
 

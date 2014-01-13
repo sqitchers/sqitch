@@ -14,7 +14,7 @@ use namespace::autoclean;
 
 extends 'App::Sqitch::Command';
 
-our $VERSION = '0.990';
+our $VERSION = '0.991';
 
 has verbose => (
     is      => 'ro',
@@ -36,7 +36,7 @@ sub options {
     return qw(
         registry|r=s
         client|c=s
-        v|verbose+
+        verbose|v+
     );
 }
 

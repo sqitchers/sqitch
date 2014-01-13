@@ -16,7 +16,7 @@ extends 'App::Sqitch::Engine';
 sub dbh; # required by DBIEngine;
 with 'App::Sqitch::Role::DBIEngine';
 
-our $VERSION = '0.990';
+our $VERSION = '0.991';
 
 sub BUILD {
     my $self = shift;
@@ -148,6 +148,7 @@ has sqlite3 => (
             $self->client,
             '-noheader',
             '-bail',
+            '-batch',
             '-csv', # or -column or -line?
             $dbname,
         ];
@@ -178,7 +179,7 @@ sub initialize {
 }
 
 sub _no_table_error  {
-    return $DBI::errstr =~ /^\Qno such table:/;
+    return $DBI::errstr && $DBI::errstr =~ /^\Qno such table:/;
 }
 
 sub _regex_op { 'REGEXP' }

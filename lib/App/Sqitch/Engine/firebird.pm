@@ -9,9 +9,7 @@ use App::Sqitch::X qw(hurl);
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::Plan::Change;
 use Path::Class;
-use File::Which ();
 use File::Basename;
-use File::Spec::Functions;
 use Time::Local;
 use Time::HiRes qw(sleep);
 use Mouse;
@@ -21,7 +19,7 @@ extends 'App::Sqitch::Engine';
 sub dbh; # required by DBIEngine;
 with 'App::Sqitch::Role::DBIEngine';
 
-our $VERSION = '0.990';
+our $VERSION = '0.991';
 
 has registry_uri => (
     is       => 'ro',
@@ -136,7 +134,7 @@ has tz_offset => (
 
 sub key    { 'firebird' }
 sub name   { 'Firebird' }
-sub driver { 'DBD::Firebird 1.15' }
+sub driver { 'DBD::Firebird 1.11' }
 
 sub _char2ts {
     my $dt = $_[1];
@@ -205,8 +203,8 @@ sub initialize {
     my $sqitch_db = $self->connection_string($uri);
 
     # Create the registry database if it does not exist.
+    $self->use_driver;
     try {
-        require DBD::Firebird;
         DBD::Firebird->create_database({
             db_path       => $sqitch_db,
             user          => scalar $uri->user,
@@ -216,7 +214,11 @@ sub initialize {
         });
     }
     catch {
-        hurl firebird => __ "DBD::Firebird failed to create test database: $_";
+        hurl firebird => __x(
+            'Cannot create database {database}: {error}',
+            database => $sqitch_db,
+            error    => $_,
+        );
     };
 
     # Load up our database. The database must exist!
@@ -277,7 +279,7 @@ sub _dt($) {
 }
 
 sub _no_table_error  {
-    return $DBI::errstr =~ /^\Q\-Table unknown/; # ???
+    return $DBI::errstr && $DBI::errstr =~ /^\Q\-Table unknown/; # ???
 }
 
 sub _regex_op { 'SIMILAR TO' }               # NOT good match for
@@ -814,163 +816,56 @@ sub log_deploy_change {
     return $self->_log_event( deploy => $change );
 }
 
-#
-# Utility methods.
-# Try hard to return the full path to the Firebird ISQL utility tool.
-# Adapted from the FirebirdMaker.pm module of DBD::Firebird.
-#
-
 sub default_client {
-    my $self = shift;
+    my $self   = shift;
+    my $ext    = $^O eq 'MSWin32' || $^O eq 'cygwin' ? '.exe' : '';
 
-    my $os = $^O;
+    # Create a script to run.
+    require File::Temp;
+    my $fh = File::Temp->new( CLEANUP => 1 );
+    my @opts = (qw(-z -q -i), $fh->filename);
+    $fh->print("quit;\n");
+    $fh->close;
 
-    my $isql_path;
-    if ($os eq 'MSWin32' || $os eq 'cygwin') {
-        $isql_path = $self->locate_firebird_ms();
-    }
-    elsif ($os eq 'darwin') {
-        my $fb_res = '/Library/Frameworks/Firebird.framework/Resources';
-        $isql_path = file($fb_res, 'bin', 'isql');
-    }
-    else {
-        # GNU/Linux and other
-        $isql_path = $self->locate_firebird();
-    }
+    # Suppress STDERR, including in subprocess.
+    open my $olderr, '>&', \*STDERR or hurl firebird => __x(
+        'Cannot dup STDERR: {error}', $!
+    );
+    close STDERR;
+    open STDERR, '>', \my $stderr or hurl firebird => __x(
+        'Cannot reirect STDERR: {error}', $!
+    );
 
-    return $isql_path;
-}
-
-sub locate_firebird {
-    my $self = shift;
-
-    #-- Check if there is an ISQL in the PATH
-
-    foreach my $name (qw{fbsql isql-fb isql}) {
-        if ( my $isql_bin = File::Which::which($name) ) {
-            if ( $self->check_if_is_fb_isql($isql_bin) ) {
-                return $isql_bin;
-            }
-        }
-    }
-
-    #-- Check if there is a fb_config in the PATH
-
-    if ( my $fb_config = File::Which::which('fb_config') ) {
-        my $fb_bin_path = qx(fb_config --bindir);
-        chomp $fb_bin_path;
-        foreach my $isql_bin (qw{fbsql isql-fb isql}) {
-            my $isql_path = file($fb_bin_path, $isql_bin);
-            if ( $self->check_if_is_fb_isql($isql_path) ) {
-                return $isql_path;
-            }
-        }
-    }
-
-    #-- Last, check in the standard home dirs
-
-    my @bd = $self->standard_fb_home_dirs();
-    foreach my $home_dir (@bd) {
-        if ( -d $home_dir ) {
-            my $fb_bin_path = dir($home_dir, 'bin');
-            foreach my $isql_bin (qw{fbsql isql-fb isql}) {
-                my $isql_path = file($fb_bin_path, $isql_bin);
-                if ( $self->check_if_is_fb_isql($isql_path) ) {
-                    return $isql_path;
+    # Try to find a client in the path.
+    for my $try ( map { $_ . $ext  } qw(fbsql isql-fb isql) ) {
+        my $loops = 0;
+        for my $dir (File::Spec->path) {
+            my $path = file $dir, $try;
+            $path = Win32::GetShortPathName($path) if $^O eq 'MSWin32';
+            if (-f $path && -x $path) {
+                if (try { App::Sqitch->probe($path, @opts) =~ /Firebird/ } ) {
+                    # Restore STDERR and return.
+                    open STDERR, '>&', $olderr or hurl firebird => __x(
+                        'Cannot dup STDERR: {error}', $!
+                    );
+                    return $loops ? $path->stringify : $try;
                 }
+                $loops++;
             }
         }
     }
 
+    # Restore STDERR and die.
+    open STDERR, '>&', $olderr or hurl firebird => __x(
+        'Cannot dup STDERR: {error}', $!
+    );
     hurl firebird => __(
         'Unable to locate Firebird ISQL; set "core.firebird.client" via sqitch config'
-        );
-
-    return;
-}
-
-sub check_if_is_fb_isql {
-    my ($self, $cmd) = @_;
-    if ( -f $cmd and -x $cmd ) {
-        my $cmd_echo = qx( echo "quit;" | "$cmd" -z -quiet 2>&1 );
-        return ( $cmd_echo =~ m{Firebird}ims ) ? 1 : 0;
-    }
-    return;
-}
-
-sub standard_fb_home_dirs {
-    my $self = shift;
-    # Please, contribute other standard Firebird HOME paths here!
-    return qw(
-        /opt/firebird
-        /usr/local/firebird
-        /usr/lib/firebird
-    );
-}
-
-sub locate_firebird_ms {
-    my $self = shift;
-
-    require Win32;
-    my $fb_path = $self->registry_lookup();
-    if ($fb_path) {
-        my $isql_path = file($fb_path, 'bin', 'isql.exe');
-        # A trick from ericp from ActiveState to fix:
-        # ""C:\Program Files\...\isql.exe"" failed to start:
-        # "The filename, directory name, or volume label syntax is incorrect"
-        return Win32::GetShortPathName($isql_path)
-            if $self->check_if_is_fb_isql($isql_path);
-    }
-
-    return;
-}
-
-sub registry_lookup {
-    my $self = shift;
-
-    my %reg_data = $self->registry_keys();
-
-    my $value;
-    while ( my ($key, $path) = each ( %reg_data ) ) {
-        $value = $self->read_registry($key, $path);
-        next unless defined $value;
-    }
-
-    return $value;
-}
-
-sub read_registry {
-    my ($self, $key, $path) = @_;
-
-    my (@path, $value);
-    try {
-        require Win32::TieRegistry;
-        $value = Win32::TieRegistry->new( $path )->GetValue( $key );
-    }
-    catch {
-        # TieRegistry fails on this key sometimes for some reason
-        my $out = '';
-        try {
-            $out = qx( reg query "$path" /v $key );
-        };
-        ($value) = $out =~ /REG_\w+\s+(.*)/;
-    };
-    $value =~ s/[\r\n]+//g if $value;
-
-    return $value;
-}
-
-#-- Known MS Windows registry keys for the Firebird Project
-
-sub registry_keys {
-    return (
-        DefaultInstance => 'HKEY_LOCAL_MACHINE\SOFTWARE\Firebird Project\Firebird Server\Instances',
     );
 }
 
 1;
 
-#---
 no Mouse;
 __PACKAGE__->meta->make_immutable;
 
@@ -994,45 +889,17 @@ App::Sqitch::Engine::firebird provides the Firebird storage engine for Sqitch.
 
 =head1 Interface
 
-=head2 Class Methods
-
-=head3 C<check_if_is_fb_isql>
-
-Checks to see if the a command-line client looks like Firebird C<isql>.
-
-=head3 C<locate_firebird>
-
-Searches for and returns the path to the C<isql> client.
-
-=head3 C<locate_firebird_ms>
-
-Searches for and returns the path to the C<isql> client on Windows.
-
-=head3 C<read_registry>
-
-Reads the Windows registry.
-
-=head3 C<registry_keys>
-
-Returns a list of Windows registry keys.
-
-=head3 C<registry_lookup>
-
-Looks up a value in the Windows registry.
-
-=head3 C<standard_fb_home_dirs>
-
-Returns a list of standard Firebird home directories.
-
 =head2 Accessors
 
 =head3 C<client>
 
-Returns the path to the Firebird client.  If C<--db-client> was passed
-to C<sqitch>, that's what will be returned.  Otherwise, it uses the
-C<core.firebird.client> configuration value, or else defaults to
-C<isql> (or C<isql.exe> on Windows), which should work if it's in your
-path.
+Returns the path to the Firebird client. If C<--db-client> was passed to
+C<sqitch>, that's what will be returned. Otherwise, it uses the
+C<core.firebird.client> configuration value, or else defaults to C<fbsql>,
+C<isql-fb>, or C<isql>, whichever appears first in the path and appears to be
+Firebird interactive SQL utility. The value will end in C<.exe> on Windows. An
+exception will be thrown if none of these can be found in the path, or if none
+look like the Firebird interactive SQL utility.
 
 =head2 Instance Methods
 

@@ -1,5 +1,5 @@
 Name:           sqitch
-Version:        0.990
+Version:        0.991
 Release:        1%{?dist}
 Summary:        Sane database change management
 License:        MIT
@@ -10,6 +10,7 @@ BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 BuildArch:      noarch
 BuildRequires:  perl >= 1:v5.10.0
 BuildRequires:  perl(Capture::Tiny) >= 0.12
+BuildRequires:  perl(Carp)
 BuildRequires:  perl(Clone)
 BuildRequires:  perl(Config)
 BuildRequires:  perl(Config::GitLike) >= 1.09
@@ -69,8 +70,10 @@ BuildRequires:  perl(Test::MockModule) >= 0.05
 BuildRequires:  perl(Test::More) >= 0.94
 BuildRequires:  perl(Test::NoWarnings) >= 0.083
 BuildRequires:  perl(Throwable)
+BuildRequires:  perl(Time::HiRes)
 BuildRequires:  perl(Try::Tiny)
 BuildRequires:  perl(URI)
+BuildRequires:  perl(URI::db)
 BuildRequires:  perl(User::pwent)
 BuildRequires:  perl(utf8)
 BuildRequires:  perl(warnings)
@@ -124,6 +127,7 @@ Requires:       perl(Term::ANSIColor) >= 2.02
 Requires:       perl(Throwable)
 Requires:       perl(Try::Tiny)
 Requires:       perl(URI)
+Requires:       perl(URI::db)
 Requires:       perl(User::pwent)
 Requires:       perl(utf8)
 Requires:       perl(warnings)
@@ -235,7 +239,9 @@ Group:          Development/Libraries
 Requires:       sqitch >= %{version}
 Requires:       firebird >= 2.5.0
 Requires:       perl(DBI)
-Requires:       perl(DBD::Firebird) >= 1.15
+Requires:       perl(DBD::Firebird) >= 1.11
+Requires:       perl(Time::HiRes)
+Requires:       perl(Time::Local)
 BuildRequires:  firebird-classic >= 2.5.0
 
 %description firebird
@@ -247,6 +253,13 @@ package bundles the Sqitch Firebird support.
 # No additional files required.
 
 %changelog
+* Fri Jan 4 2014 David E. Wheeler <david.wheeler@iovation.com> 0.990-1
+- Upgrade to v0.990.
+- Add sqitch-firebird.
+- Add target command and arguments.
+- Add support for arbitrary change script templating.
+- Add --open-editor option.
+
 * Thu Nov 21 2013 David E. Wheeler <david.wheeler@iovation.com> 0.983-1
 - Upgrade to v0.983.
 - Require DBD::Pg 2.0.0 or higher.

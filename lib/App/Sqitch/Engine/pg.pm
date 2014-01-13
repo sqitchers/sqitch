@@ -16,7 +16,7 @@ extends 'App::Sqitch::Engine';
 sub dbh; # required by DBIEngine;
 with 'App::Sqitch::Role::DBIEngine';
 
-our $VERSION = '0.990';
+our $VERSION = '0.991';
 
 has '+destination' => (
     default  => sub {
@@ -325,7 +325,7 @@ sub _dt($) {
 }
 
 sub _no_table_error  {
-    return $DBI::state eq '42P01'; # undefined_table
+    return $DBI::state && $DBI::state eq '42P01'; # undefined_table
 }
 
 sub _in_expr {

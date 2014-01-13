@@ -16,7 +16,7 @@ extends 'App::Sqitch::Engine';
 sub dbh; # required by DBIEngine;
 with 'App::Sqitch::Role::DBIEngine';
 
-our $VERSION = '0.990';
+our $VERSION = '0.991';
 
 BEGIN {
     # We tell the Oracle connector which encoding to use. The last part of the
@@ -655,7 +655,7 @@ sub _ts2char($) {
 }
 
 sub _no_table_error  {
-    return defined $DBI::err && $DBI::err == 942; # ORA-00942: table or view does not exist
+    return $DBI::err && $DBI::err == 942; # ORA-00942: table or view does not exist
 }
 
 sub _script {

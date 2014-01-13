@@ -1,4 +1,4 @@
-App/Sqitch version 0.990
+App/Sqitch version 0.991
 ========================
 
 [Sqitch](http://sqitch.org/) is a database change management application. It
@@ -44,19 +44,28 @@ things:
     iterative approach to developing your database schema. Or, better, you can
     do test-driven database development.
 
-*   Reduced Duplication
-
-    If you're using a VCS to track your changes, you don't have to duplicate
-    entire change scripts for simple changes. As long as the changes are
-    [idempotent](http://en.wikipedia.org/wiki/Idempotence), you can change
-    your code directly, and Sqitch will know it needs to be updated.
-
 Want to learn more? The best place to start is in the tutorials:
 
 * [Introduction to Sqitch on PostgreSQL](lib/sqitchtutorial.pod)
 * [Introduction to Sqitch on SQLite](lib/sqitchtutorial-sqlite.pod)
 * [Introduction to Sqitch on Oracle](lib/sqitchtutorial-oracle.pod)
 * [Introduction to Sqitch on MySQL](lib/sqitchtutorial-mysql.pod)
+* [Introduction to Sqitch on Firebird](lib/sqitchtutorial-firebird.pod)
+
+There have also been a number of presentations on Sqitch:
+
+* [PDX.pm Presentation](https://speakerdeck.com/theory/sane-database-change-management-with-sqitch): 
+  Slides from "Sane Database Management with Sqitch", presented to the
+  Portland Perl Mongers in January, 2013.
+
+* [PDXPUG Presentation](https://vimeo.com/50104469): Movie of "Sane Database
+  Management with Sqitch", presented to the Portland PostgreSQL Users Group in
+  September, 2012.
+
+* [Agile Database Development](https://speakerdeck.com/theory/agile-database-development-2ed):
+  Slides from a three-hour tutorial session on using [Git](http://git-scm.org),
+  test-driven development with [pgTAP](http://pgtap.org), and change
+  management with Sqitch, updated in January, 2014.
 
 Installation
 ------------
@@ -71,7 +80,10 @@ To install Sqitch from a distribution download, type the following:
     ./Build test
     ./Build install
 
-From a Git clone, first install
+If you're using [Homebrew](http://brew.sh), you can use the
+[Sqitch Homebrew Tap](https://github.com/theory/homebrew-sqitch/).
+
+To build from a Git clone, first install
 [Dist::Zilla](https://metacpan.org/module/Dist::Zilla), then use it to install
 Sqitch and its dependencies:
 

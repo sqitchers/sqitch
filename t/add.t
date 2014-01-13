@@ -3,13 +3,14 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 135;
+use Test::More tests => 163;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
 use Path::Class;
 use Test::Exception;
 use Test::Dir;
+use File::Temp 'tempdir';
 use Test::File qw(file_not_exists_ok file_exists_ok);
 use Test::File::Contents 0.05;
 use File::Path qw(make_path remove_tree);
@@ -23,8 +24,14 @@ $ENV{SQITCH_CONFIG} = 'nonexistent.conf';
 $ENV{SQITCH_USER_CONFIG} = 'nonexistent.user';
 $ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
 
+my $config_mock = Test::MockModule->new('App::Sqitch::Config');
+my $sysdir = dir 'nonexistent';
+my $usrdir = dir 'nonexistent';
+$config_mock->mock(system_dir => sub { $sysdir });
+$config_mock->mock(user_dir   => sub { $usrdir });
+
 ok my $sqitch = App::Sqitch->new(
-    top_dir => Path::Class::Dir->new('test-add'),
+    top_dir => dir('test-add'),
     _engine => 'pg',
 ), 'Load a sqitch sqitch object';
 my $config = $sqitch->config;
@@ -50,16 +57,15 @@ can_ok $CLASS, qw(
     requires
     conflicts
     variables
+    template_name
     template_directory
-    with_deploy
-    with_revert
-    with_verify
-    deploy_template
-    revert_template
-    verify_template
+    with_scripts
+    templates
+    open_editor
     configure
     execute
-    _find
+    _config_templates
+    all_templates
     _slurp
     _add
 );
@@ -70,13 +76,17 @@ is_deeply [$CLASS->options], [qw(
     note|n|m=s@
     template-name|template|t=s
     template-directory=s
+    with=s@
+    without=s@
+    use=s%
+    open-editor|edit|e!
+
     deploy-template=s
     revert-template=s
-    verify-template|test-template=s
+    verify-template=s
     deploy!
     revert!
-    verify|test!
-    open-editor|edit|e!
+    verify!
 )], 'Options should be set up';
 
 sub contents_of ($) {
@@ -88,7 +98,7 @@ sub contents_of ($) {
 
 ##############################################################################
 # Test configure().
-is_deeply $CLASS->configure($config, {}), {
+is_deeply $CLASS->configure($config, {}, $sqitch), {
     requires  => [],
     conflicts => [],
     note      => [],
@@ -108,7 +118,7 @@ is_deeply $CLASS->configure($config, { template_directory => 't' }), {
     requires  => [],
     conflicts => [],
     note      => [],
-    template_directory => Path::Class::dir('t'),
+    template_directory => dir('t'),
 }, 'Should set up template directory option';
 
 throws_ok {
@@ -137,22 +147,24 @@ is_deeply $CLASS->configure($config, { template_name => 'foo' }), {
 }, 'Should set up template name option';
 
 is_deeply $CLASS->configure($config, {
-    deploy => 1,
-    revert => 1,
-    verify => 0,
-    deploy_template => 'templates/deploy.tmpl',
-    revert_template => 'templates/revert.tmpl',
-    verify_template => 'templates/verify.tmpl',
+    with_scripts => { deploy => 1, revert => 1, verify => 0 },
+    use          => {
+        deploy => 'etc/templates/deploy/pg.tmpl',
+        revert => 'etc/templates/revert/pg.tmpl',
+        verify => 'etc/templates/verify/pg.tmpl',
+        whatev => 'etc/templates/verify/pg.tmpl',
+    },
 }), {
     requires  => [],
     conflicts => [],
     note      => [],
-    with_deploy => 1,
-    with_revert => 1,
-    with_verify => 0,
-    deploy_template => Path::Class::file('templates/deploy.tmpl'),
-    revert_template => Path::Class::file('templates/revert.tmpl'),
-    verify_template => Path::Class::file('templates/verify.tmpl'),
+    with_scripts => { deploy => 1, revert => 1, verify => 0 },
+    templates => {
+        deploy => file('etc/templates/deploy/pg.tmpl'),
+        revert => file('etc/templates/revert/pg.tmpl'),
+        verify => file('etc/templates/verify/pg.tmpl'),
+        whatev => file('etc/templates/verify/pg.tmpl'),
+    }
 }, 'Should have get template options';
 
 # Test variable configuration.
@@ -202,81 +214,139 @@ is_deeply $add->note, [], 'Notes should be an arrayref';
 is_deeply $add->variables, {}, 'Varibles should be a hashref';
 is $add->template_directory, undef, 'Default dir should be undef';
 is $add->template_name, $sqitch->_engine, 'Default temlate_name should be engine';
+is_deeply $add->with_scripts, {}, 'Default with_scripts should be empty';
+is_deeply $add->templates, {}, 'Default templates should be empty';
 
-MOCKCONFIG: {
-    my $config_mock = Test::MockModule->new('App::Sqitch::Config');
-    $config_mock->mock(system_dir => Path::Class::dir('nonexistent'));
-    $config_mock->mock(user_dir => Path::Class::dir('nonexistent'));
-    for my $script (qw(deploy revert verify)) {
-        my $with = "with_$script";
-        ok $add->$with, "$with should be true by default";
-        my $tmpl = "$script\_template";
-        throws_ok { $add->$tmpl } 'App::Sqitch::X', "Should die on $tmpl";
-        is $@->ident, 'add', 'Should be an "add" exception';
-        is $@->message, __x(
-            'Cannot find {script} template',
-            script => $script,
-        ), "Should get $tmpl failure note";;
-    }
-}
+##############################################################################
+# Test _check_script.
+isa_ok my $check = $CLASS->can('_check_script'), 'CODE', '_check_script';
+my $tmpl = 'etc/templates/verify/pg.tmpl';
+is $check->($tmpl), file($tmpl), '_check_script should be okay with script';
 
-# Point to a valid template directory.
-ok $add = $CLASS->new(
-    sqitch => $sqitch,
-    template_directory => Path::Class::dir(qw(etc templates)),
-), 'Create add with template_directory';
+throws_ok { $check->('nonexistent') } 'App::Sqitch::X',
+    '_check_script should die on nonexistent file';
+is $@->ident, 'add', 'Nonexistent file ident should be "add"';
+is $@->message, __x(
+    'Template {template} does not exist',
+    template => 'nonexistent',
+), 'Nonexistent file error message should be correct';
 
-for my $script (qw(deploy revert verify)) {
-    my $tmpl = "$script\_template";
-    is $add->$tmpl, Path::Class::file('etc', 'templates', $script, 'pg.tmpl'),
-        "Should find pg $script in templates directory";
-}
+throws_ok { $check->('lib') } 'App::Sqitch::X',
+    '_check_script should die on directory';
+is $@->ident, 'add', 'Directory error ident should be "add"';
+is $@->message, __x(
+    'Template {template} is not a file',
+    template => 'lib',
+), 'Directory error message should be correct';
 
-# Make sure it works if we override the template name.
-ok $add = $CLASS->new(
-    sqitch => $sqitch,
-    template_directory => Path::Class::dir(qw(etc templates)),
-    template_name      => 'sqlite',
-), 'Create add with template_directory and name';
-
-for my $script (qw(deploy revert verify)) {
-    my $tmpl = "$script\_template";
-    is $add->$tmpl, Path::Class::file('etc', 'templates', $script, 'sqlite.tmpl'),
-        "Should find sqlite $script in templates directory";
+##############################################################################
+# Test _config_templates.
+READCONFIG: {
+    local $ENV{SQITCH_CONFIG} = file('t/templates.conf')->stringify;
+    ok my $sqitch = App::Sqitch->new(
+        top_dir => dir('test-add'),
+    ), 'Load another sqitch sqitch object';
+    my $config = $sqitch->config;
+    ok $add = $CLASS->new(sqitch => $sqitch),
+        'Create add with template config';
+    is_deeply $add->_config_templates($config), {
+        deploy => file('etc/templates/deploy/pg.tmpl'),
+        revert => file('etc/templates/revert/pg.tmpl'),
+        test   => file('etc/templates/verify/pg.tmpl'),
+        verify => file('etc/templates/verify/pg.tmpl'),
+    }, 'Should load the config templates';
 }
 
 ##############################################################################
-# Test find().
-is $add->_find('deploy'), Path::Class::file(qw(etc templates deploy sqlite.tmpl)),
-    '_find should work with template_directory';
+# Test all_templates().
+my $tmpldir = dir 'etc/templates';
 
-ok $add = $CLASS->new(sqitch => $sqitch),
-    'Create add with no template directory';
+# First, specify template directory.
+ok $add = $CLASS->new(sqitch => $sqitch, template_directory => $tmpldir),
+    'Add object with template directory';
+is $add->template_name, 'pg', 'Template name should be "pg"';
+is_deeply $add->all_templates, {
+    deploy => file('etc/templates/deploy/pg.tmpl'),
+    revert => file('etc/templates/revert/pg.tmpl'),
+    verify => file('etc/templates/verify/pg.tmpl'),
+}, 'Should find all templates in directory';
 
-MOCKCONFIG: {
-    my $config_mock = Test::MockModule->new('App::Sqitch::Config');
-    $config_mock->mock(system_dir => Path::Class::dir('nonexistent'));
-    $config_mock->mock(user_dir => Path::Class::dir('etc'));
-    is $add->_find('deploy'), Path::Class::file(qw(etc templates deploy pg.tmpl)),
-        '_find should work with user_dir from Config';
+# Now let it find the templates in the user dir.
+$usrdir = dir 'etc';
+ok $add = $CLASS->new(sqitch => $sqitch, template_name => 'sqlite'),
+    'Add object with template name';
+is_deeply $add->all_templates, {
+    deploy => file('etc/templates/deploy/sqlite.tmpl'),
+    revert => file('etc/templates/revert/sqlite.tmpl'),
+    verify => file('etc/templates/verify/sqlite.tmpl'),
+}, 'Should find all templates in user directory';
 
-    $config_mock->mock(user_dir => Path::Class::dir('nonexistent'));
-    throws_ok { $add->_find('verify') } 'App::Sqitch::X',
-        "Should die trying to find template";
-    is $@->ident, 'add', 'Should be an "add" exception';
+# And then the system dir.
+($usrdir, $sysdir) = ($sysdir, $usrdir);
+ok $add = $CLASS->new(sqitch => $sqitch, template_name => 'mysql'),
+    'Add object with another template name';
+is_deeply $add->all_templates, {
+    deploy => file('etc/templates/deploy/mysql.tmpl'),
+    revert => file('etc/templates/revert/mysql.tmpl'),
+    verify => file('etc/templates/verify/mysql.tmpl'),
+}, 'Should find all templates in systsem directory';
+
+# Now make sure it combines directories.
+my $tmp_dir = dir tempdir CLEANUP => 1;
+for my $script (qw(deploy whatev)) {
+    my $subdir = $tmp_dir->subdir($script);
+    $subdir->mkpath;
+    $subdir->file('pg.tmpl')->touch;
+}
+
+ok $add = $CLASS->new(sqitch => $sqitch, template_directory => $tmp_dir),
+    'Add object with temporary template directory';
+is_deeply $add->all_templates, {
+    deploy => $tmp_dir->file('deploy/pg.tmpl'),
+    whatev => $tmp_dir->file('whatev/pg.tmpl'),
+    revert => file('etc/templates/revert/pg.tmpl'),
+    verify => file('etc/templates/verify/pg.tmpl'),
+}, 'Template dir files should override others';
+
+# Add in configured files.
+ok $add = $CLASS->new(
+    sqitch => $sqitch,
+    template_directory => $tmp_dir,
+    templates => {
+        foo => file('foo'),
+        verify => file('verify'),
+        deploy => file('deploy'),
+    },
+), 'Add object with configured templates';
+
+is_deeply $add->all_templates, {
+    deploy => file('deploy'),
+    verify => file('verify'),
+    foo => file('foo'),
+    whatev => $tmp_dir->file('whatev/pg.tmpl'),
+    revert => file('etc/templates/revert/pg.tmpl'),
+}, 'Template dir files should override others';
+
+# Should die when missing files.
+$sysdir = $usrdir;
+for my $script (qw(deploy revert verify)) {
+    ok $add = $CLASS->new(
+        sqitch => $sqitch,
+        with_scripts => { deploy => 0, revert => 0, verify => 0, $script => 1 },
+    ), "Add object requiring $script template";
+
+    throws_ok { $add->all_templates } 'App::Sqitch::X',
+        "Should get error for missing $script template";
+    is $@->ident, 'add', qq{Missing $script template ident should be "add"};
     is $@->message, __x(
         'Cannot find {script} template',
-        script => 'verify',
-    ), "Should get unfound verify template note";
-
-    $config_mock->mock(system_dir => Path::Class::dir('etc'));
-    is $add->_find('deploy'), Path::Class::file(qw(etc templates deploy pg.tmpl)),
-        '_find should work with system_dir from Config';
+        script => $script,
+    ), "Missing $script template message should be correct";
 }
 
 ##############################################################################
 # Test _slurp().
-my $tmpl = Path::Class::file(qw(etc templates deploy pg.tmpl));
+$tmpl = file(qw(etc templates deploy pg.tmpl));
 is $ { $add->_slurp($tmpl)}, contents_of $tmpl,
     '_slurp() should load a reference to file contents';
 
@@ -377,7 +447,7 @@ SKIP: {
 # Test execute.
 ok $add = $CLASS->new(
     sqitch => $sqitch,
-    template_directory => Path::Class::dir(qw(etc templates))
+    template_directory => dir(qw(etc templates))
 ), 'Create another add with template_directory';
 
 # Override request_note().
@@ -390,7 +460,7 @@ $change_mocker->mock(request_note => sub {
 
 my $deploy_file = file qw(test-add deploy widgets_table.sql);
 my $revert_file = file qw(test-add revert widgets_table.sql);
-my $verify_file = file qw(test-add verify   widgets_table.sql);
+my $verify_file = file qw(test-add verify widgets_table.sql);
 
 my $plan = $sqitch->plan;
 is $plan->get('widgets_table'), undef, 'Should not have "widgets_table" in plan';
@@ -407,12 +477,12 @@ is_deeply \%request_params, {
 }, 'It should have prompted for a note';
 
 file_exists_ok $_ for ($deploy_file, $revert_file, $verify_file);
-file_contents_like +File::Spec->catfile(qw(test-add deploy widgets_table.sql)),
-    qr/^-- Deploy widgets_table/, 'Deploy script should look right';
-file_contents_like +File::Spec->catfile(qw(test-add revert widgets_table.sql)),
-    qr/^-- Revert widgets_table/, 'Revert script should look right';
-file_contents_like +File::Spec->catfile(qw(test-add verify widgets_table.sql)),
-    qr/^-- Verify widgets_table/, 'Verify script should look right';
+file_contents_like $deploy_file, qr/^-- Deploy widgets_table/,
+    'Deploy script should look right';
+file_contents_like $revert_file, qr/^-- Revert widgets_table/,
+    'Revert script should look right';
+file_contents_like $verify_file, qr/^-- Verify widgets_table/,
+    'Verify script should look right';
 is_deeply +MockOutput->get_info, [
     [__x 'Created {file}', file => $deploy_file],
     [__x 'Created {file}', file => $revert_file],
@@ -434,8 +504,8 @@ ok $add = $CLASS->new(
     requires           => ['widgets_table'],
     conflicts          => [qw(dr_evil joker)],
     note               => [qw(hello there)],
-    with_verify        => 0,
-    template_directory => Path::Class::dir(qw(etc templates))
+    with_scripts       => { verify => 0 },
+    template_directory => dir(qw(etc templates))
 ), 'Create another add with template_directory and no verify script';
 
 $deploy_file = file qw(test-add deploy foo_table.sql);
@@ -479,7 +549,7 @@ MOCKSHELL: {
 
     ok $add = $CLASS->new(
         sqitch              => $sqitch,
-        template_directory  => Path::Class::dir(qw(etc templates)),
+        template_directory  => dir(qw(etc templates)),
         note                => ['Testing --open-editor'],
         open_editor         => 1,
     ), 'Create another add with open_editor';
@@ -515,13 +585,67 @@ MOCKSHELL: {
     ], 'Info should have reported file creation';
 };
 
+# Make sure an additional script and an exclusion work properly.
+EXTRAS: {
+    ok my $add = $CLASS->new(
+        sqitch              => $sqitch,
+        template_directory  => dir(qw(etc templates)),
+        with_scripts        => { verify => 0 },
+        templates           => { whatev => file(qw(etc templates verify mysql.tmpl)) },
+        note                => ['Testing custom scripts'],
+    ), 'Create another add with custom script and no verify';
+
+    my $deploy_file = file qw(test-add deploy custom_script.sql);
+    my $revert_file = file qw(test-add revert custom_script.sql);
+    my $verify_file = file qw(test-add verify custom_script.sql);
+    my $whatev_file = file qw(test-add whatev custom_script.sql);
+
+    ok $add->execute('custom_script'), 'Add change "custom_script"';
+    isa_ok my $change = $plan->get('custom_script'), 'App::Sqitch::Plan::Change',
+        'Added change';
+    is $change->name, 'custom_script', 'Change name should be set';
+    is_deeply [$change->requires],  [], 'It should have no requires';
+    is_deeply [$change->conflicts], [], 'It should have no conflicts';
+    is_deeply \%request_params, {
+        for => __ 'add',
+        scripts => [ map { $change->script_file($_) } qw(deploy revert whatev)]
+    }, 'It should have prompted for a note';
+
+    file_exists_ok $_ for ($deploy_file, $revert_file, $whatev_file);
+    file_not_exists_ok $verify_file;
+    file_contents_like $deploy_file, qr/^-- Deploy custom_script/,
+        'Deploy script should look right';
+    file_contents_like $revert_file, qr/^-- Revert custom_script/,
+        'Revert script should look right';
+    file_contents_like $whatev_file, qr/^-- Verify custom_script/,
+        'Whatev script should look right';
+    file_contents_unlike $whatev_file, qr/^BEGIN/,
+        'Whatev script should be based on the MySQL verify script';
+    is_deeply +MockOutput->get_info, [
+        [__x 'Created {file}', file => $deploy_file],
+        [__x 'Created {file}', file => $revert_file],
+        [__x 'Created {file}', file => $whatev_file],
+        [__x 'Added "{change}" to {file}',
+           change => 'custom_script',
+           file   => $sqitch->plan_file,
+        ],
+    ], 'Info should have reported file creation';
+
+    # Relod the plan file to make sure change is written to it.
+    $plan->load;
+    isa_ok $change = $plan->get('custom_script'), 'App::Sqitch::Plan::Change',
+        'Added change in reloaded plan';
+}
+
 ##############################################################################
 # Test options parsing.
 can_ok $CLASS, 'options', '_parse_opts';
 ok $add = $CLASS->new({ sqitch => $sqitch }), "Create a $CLASS object again";
 is_deeply $add->_parse_opts, {}, 'Base _parse_opts should return an empty hash';
 
-is_deeply $add->_parse_opts([1]), {}, '_parse_opts() hould use options spec';
+is_deeply $add->_parse_opts([1]), {
+    with_scripts => { deploy => 1, verify => 1, revert => 1 },
+}, '_parse_opts() hould use options spec';
 my $args = [qw(
     --note foo
     --template bar
@@ -530,6 +654,7 @@ my $args = [qw(
 is_deeply $add->_parse_opts($args), {
     note          => ['foo'],
     template_name => 'bar',
+    with_scripts  => { deploy => 1, verify => 1, revert => 1 },
 }, '_parse_opts() should parse options spec';
 is_deeply $args, ['whatever'], 'Args array should be cleared of options';
 
@@ -537,6 +662,7 @@ is_deeply $args, ['whatever'], 'Args array should be cleared of options';
 push @{ $args }, '--set' => 'schema=foo', '--set' => 'table=bar';
 is_deeply $add->_parse_opts($args), {
     set => { schema => 'foo', table => 'bar' },
+    with_scripts => { deploy => 1, verify => 1, revert => 1 },
 }, '_parse_opts() should parse --set options';
 is_deeply $args, ['whatever'], 'Args array should be cleared of options';
 
@@ -544,5 +670,15 @@ is_deeply $args, ['whatever'], 'Args array should be cleared of options';
 push @{ $args }, '--set' => 'column=id', '--set' => 'column=name';
 is_deeply $add->_parse_opts($args), {
     set => { column => [qw(id name)] },
+    with_scripts => { deploy => 1, verify => 1, revert => 1 },
 }, '_parse_opts() should parse --set options with repeting key';
+is_deeply $args, ['whatever'], 'Args array should be cleared of options';
+
+# Make sure --with and --use work.
+push @{ $args }, qw(--with deploy --without verify --use),
+    "foo=$tmpl";
+is_deeply $add->_parse_opts($args), {
+    with_scripts => { deploy => 1, verify => 0, revert => 1 },
+    use => { foo => $tmpl }
+}, '_parse_opts() should parse --with, --without, and --user';
 is_deeply $args, ['whatever'], 'Args array should be cleared of options';

@@ -58,7 +58,7 @@ can_ok $cmd, qw(
 is_deeply [$CLASS->options], [qw(
     registry|r=s
     client|c=s
-    v|verbose+
+    verbose|v+
 )], 'Options should be correct';
 
 # Check default attribute values.

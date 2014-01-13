@@ -15,6 +15,9 @@ BEGIN {
     use_ok $CLASS or die;
 }
 
+# protect against user's environment variables
+delete @ENV{qw( SQITCH_CONFIG SQITCH_USER_CONFIG SQITCH_SYSTEM_CONFIG )};
+
 isa_ok my $config = $CLASS->new, $CLASS, 'New config object';
 is $config->confname, 'sqitch.conf', 'confname should be "sqitch.conf"';
 

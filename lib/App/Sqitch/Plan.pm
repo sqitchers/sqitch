@@ -18,7 +18,7 @@ use namespace::autoclean;
 use Mouse;
 use constant SYNTAX_VERSION => '1.0.0-b2';
 
-our $VERSION = '0.990';
+our $VERSION = '0.991';
 
 # Like [:punct:], but excluding _. Copied from perlrecharclass.
 my $punct = q{-!"#$%&'()*+,./:;<=>?@[\\]^`{|}~};
@@ -571,7 +571,8 @@ sub check_changes {
 
 sub open_script {
     my ( $self, $file ) = @_;
-    return $file->open('<:utf8_strict') or hurl plan => __x(
+    # return has higher precedence than or, so use ||.
+    return $file->open('<:utf8_strict') || hurl plan => __x(
         'Cannot open {file}: {error}',
         file  => $file,
         error => $!,

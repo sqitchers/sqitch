@@ -1,31 +1,64 @@
 Revision history for Perl extension App::Sqitch
 
-0.990
+0.991
+     - Greatly simplified determining the Firebird ISQL client. It no longer
+       tries so hard to find a full path, but does seach through the path list
+       for a likely candidate between fbsql, isql-fb, and isql (or equivalents
+       ending in .exe on Windows).
+     - Removed a bunch of inappropriately pasted stuff from the Firebird
+       tutorial, and updated it a bit.
+     - `HEAD` and `ROOT` are now recognized as aliases for `@HEAD` and
+       `@ROOT`, when querying the database, too. That means that `revert --to
+       HEAD` now works the same as `revert --to @HEAD`, as had been expected
+       in v0.990.
+     - Eliminated "use of uninitialized value" warnings when database
+       connections fail.
+     - Reduced the minimum required DBD::Firebird to v1.11.
+     - Fixed the `--verbose` option to the `target` command.
+     - Eliminated more user-configuration issues in tests, thanks to
+       chromatic.
+
+0.990  2014-01-04T01:14:24Z
+     [New Features]
      - Added new command and feature: `target`. Use it to manage multiple
-       database targets, each with an associate URI and, optionally, a
+       database targets, each with an associated URI and, optionally, a
        registry name and command-line client. Inspired by Git remotes.
-     - Deprecated engine-specific connection attributes and configuration
-       variables. See the next item for their replacments. The deprecated
-       options are:
-       * `core.$engine.username`
-       * `core.$engine.password`
-       * `core.$engine.db_name`
-       * `core.$engine.host`
-       * `core.$engine.port`
-       * `core.$engine.sqitch_schema`
-       * `core.$engine.sqitch_db`
+     - Added Firebird engine. Three cheers to Ștefan Suciu for this
+       contribution!
+     - Added support for the generation of arbitrary scripts from templates to
+       the `add` command. Just add template files to subdirectories of the
+       `templates` directory, and scripts will be created in a directory of
+       the same name based on those templates.
+     - Added `--open-editor` option (and aliases) to the `add` and `rework`
+       commands. This option will open the newly-added change scripts in the
+       preferred editor. Thanks to Thomas Sibley for the patch!
+
+     [Improvements]
+     - Improved database driver loading to ensure the proper version of the
+       driver is required.
+     - Non-fatal but possibly unexpected messages -- which correspond to exit
+       value 1 -- now send their messages to STDOUT instead of STDERR, and
+       respect the `--quiet` option. Thanks to @giorgio-v for the report!
+     - Added or replaced the `--target` option to commands that connect to a
+       database to specify the name of target managed by the new `target`
+       command or a database URI.
+     - `HEAD` and `ROOT` are now recognized as aliases for `@HEAD` and
+       `@ROOT`, respectively, since they are disallowed as change names,
+       anyway, and folks often use them out of habit from Git.
+
+     [Internals]
      - Replaced the engine-specific connection attributes with three
        attributes use by every engine:
        * `target`: The name of a target managed by the new `target` command.
-         Defaults to a value stored for the `core.$engine.target` config
-         variable. If that config does not exist, the target falls back on the
-         stringification of `uri`.
+         Defaults to a value stored for the `core.$engine.target`
+         configuration variable. If that variable does not exist, the target
+         falls back on the stringification of `uri`.
        * `uri`: a database URI with the format `db:{engine}:{dbname}` or
          `db:{engine}://{user}:{password}@{host}:{port}/{dbname}`. If its
          value is not passed to the constructor, a `uri` value is looked up
          for the associated `target`. If `target` is not passed or configured,
          or if it has no URI associated with it, the `config.$engine.uri`
-         config variable is used. If that value does not exist, the URI
+         configuration variable is used. If that value does not exist, the URI
          defaults to `db:$engine:`. In any of these cases, if any of the
          `--db-*` options are passed, they will be merged into the URI.
        * `registry`: the name to use for the Sqitch registry schema or
@@ -33,24 +66,57 @@ Revision history for Perl extension App::Sqitch
          each engine. If its value is not passed to the constructor, a
          `registry` value is looked up for the associated `target`. If
          `target` is not passed or configured, or if it has no registry
-         associated with it, the `config.$engine.registry` config variable is
-         used. If no value is found there, it defaults to an engine-specific
-         value, usually "sqitch".
-     - Deprecated all command-specifid options with the string "target" in
+         associated with it, the `config.$engine.registry` configuration
+         variable is used. If no value is found there, it defaults to an
+         engine-specific value, usually "sqitch".
+
+     [Bug Fixes]
+     - Fixed a bug when installing under local::lib. Thanks to Thomas Sibley
+       for the pull request!
+     - Eliminated "Wide character in print" warnings when piping the `log`
+       command.
+     - Documented that reworked changes do not have their verify tests run by
+       the `verify` command. They do run when using the `--verify` deploy
+       option.
+     - Removed the documentation for the `add.with_deploy`, `add.with_revert`,
+       and `add.with_verify` configuration variables, which were never
+       implemented.
+
+     [Deprecations]
+     - Deprecated engine-specific connection attributes and configuration
+       variables. See the "Internals" section for their replacements. The
+       deprecated options are:
+       * `core.$engine.username`
+       * `core.$engine.password`
+       * `core.$engine.db_name`
+       * `core.$engine.host`
+       * `core.$engine.port`
+       * `core.$engine.sqitch_schema`
+       * `core.$engine.sqitch_db`
+     - Deprecated all command-specific options with the string "target" in
        them, such as `--to-target`, `--upto-target`, etc. They have been
        replaced with options containing the string "change", instead, such as
        `--to-change` and `--upto-change`. Few people used these options,
        preferring their shorter aliases (`--to`, `--upto`, etc.).
-     - Added or replaced the `--target` option to commands that connect to a
-       database to specify the name of target managed by the new `target`
-       command or a database URI.
-     - Improved database driver loading to ensure the proper version of the
-       driver is required.
-     - Added Firebird engine. Three cheers to Ștefan Suciu for this
-       contribution!
-     - Non-fatal but possibly unexpected messages -- which correspond to exit
-       value 1 -- now send their messages to STDOUT instead of STDERR, and
-       respect the `--quiet` option. Thanks to @giorgio-v for the report!
+     - Deprecated the `--deploy-template`, `--revert-template`, and
+       `--verify-template` options to the `add` command. They are replaced
+       with a single option, `--use` which takes a key/value pair for the
+       script name and template path. This makes it useful for arbitrary
+       script generation, as well.
+     - Deprecated the `--deploy`, `--revert`, and `--verify` options to the
+       `add` command, as well as their `--no-*` variants. They are replaced
+       with two new options, `--with` and `--without`, to which a script name
+       is passed. These are useful for arbitrary script generation, as well.
+     - Deprecated the `add.deploy_template`, `add.revert_template`, and
+       `add.verify_template` configuration settings. They have been replaced
+       with a section, `add.templates`, which is more general, and supports
+       arbitrary script generation, as well.
+
+     [Incompatibilities]
+     - Removed the undocumented `--test` option to the `add` command.
+     - Changed the meaning of `--target` from specifying a change to
+       specifying a deployment target. Use the new `--change` option to
+       specify a change.
 
 0.983  2013-11-21T21:50:12Z
      - Fixed "Use of uninitialized value" in the MySQL engine. Thanks to
@@ -79,9 +145,6 @@ Revision history for Perl extension App::Sqitch
        engine that it really thinks it's uninitialized, not just that the
        "changes" table is missing. This should catch the case where the
        database has its own "changes" table unrelated to Sqitch.
-     - Added `--open-editor` option (and aliases) to the `add` and `rework`
-       commands. This option will open the newly-added change scripts in the
-       preferred editor. Thanks to Thomas Sibley for the patch!
 
 0.982  2013-09-11T18:26:07Z
      - Errors thrown by Template toolkit are no longer silently ignored.

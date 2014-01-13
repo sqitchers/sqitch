@@ -166,9 +166,13 @@ the current project.
 
 =item C<@HEAD>
 
+=item C<HEAD>
+
 Special symbolic name for the last change in the plan.
 
 =item C<@ROOT>
+
+=item C<ROOT>
 
 Special symbolic name for the first change in the plan.
 

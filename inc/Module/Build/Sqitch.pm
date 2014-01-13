@@ -161,7 +161,7 @@ sub process_pm_files {
 
     $self->do_system(
         $self->perl, '-i.bak', '-pe',
-        qq{s{my \\\$SYSTEM_DIR = undef}{my \\\$SYSTEM_DIR = q{$etc}}},
+        qq{s{my \\\$SYSTEM_DIR = undef}{my \\\$SYSTEM_DIR = q{\Q$etc\E}}},
         $pm,
     );
     unlink "$pm.bak";

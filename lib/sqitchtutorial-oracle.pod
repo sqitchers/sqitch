@@ -21,6 +21,55 @@ storage engine. Note that you will need to set
 L<C<$ORACLE_HOME>|http://www.orafaq.com/wiki/ORACLE_HOME> so that all the
 database connections will work.
 
+If you'd like to manage an PostgreSQL database, see L<sqitchtutorial>.
+
+If you'd like to manage an SQLite database, see L<sqitchtutorial-sqlite>.
+
+If you'd like to manage an MySQL database, see L<sqitchtutorial-mysql>.
+
+If you'd like to manage an Firebird database, see L<sqitchtutorial-firebird>.
+
+=begin comment
+
+=head2 VM Configuration
+
+Some instructions for setting up a VM for following along in this tutorial.
+
+=over
+
+=item *
+
+See F<t/oracle.t> for instructions on downloading, installing, and configuring
+the Oracle developer days VM.
+
+=item *
+
+Connect as the DBA via SQL*Plus:
+
+  sqlplus sys/oracle@localhost/ORCL as sysdba
+
+=item *
+
+Give user C<scott> the access it needs:
+
+  ALTER USER scott IDENTIFIED BY tiger;
+  GRANT ALL PRIVILEGES TO scott;
+
+=item *
+
+Add this entry to F<tnsnames.ora>:
+
+  FLIPR_TEST =
+    (DESCRIPTION =
+      (ADDRESS = (PROTOCOL = TCP)(HOST = localhost)(PORT = 1521))
+      (CONNECT_DATA =
+        (SERVER = DEDICATED)
+        (SERVICE_NAME = orcl)
+      )
+    )
+
+=end comment
+
 =head1 Starting a New Project
 
 Usually the first thing to do when starting a new project is to create a
@@ -33,7 +82,7 @@ source code repository. So let's do that with Git:
   > touch README.md
   > git add .
   > git commit -am 'Initialize project, add README.'
-  [master (root-commit) 12ea2b4] Initialize project, add README.
+  [master (root-commit) 1bd134b] Initialize project, add README.
    1 file changed, 38 insertions(+)
    create mode 100644 README.md
 
@@ -64,8 +113,8 @@ Let's have a look at F<sqitch.conf>:
   	# verify_dir = verify
   	# extension = sql
   # [core "oracle"]
-  	# database = db:oracle:
-  	# registry = sqitch
+  	# target = db:oracle:
+  	# registry = 
   	# client = /usr/local/instantclient_11_2/sqlplus
 
 Good, it picked up on the fact that we're creating changes for the Oracle
@@ -98,7 +147,7 @@ F<sqitch.plan>:
   %syntax-version=1.0.0-b2
   %project=flipr
   %uri=https://github.com/theory/sqitch-oracle-intro/
-  
+
 
 Note that it has picked up on the name and URI of the app we're building.
 Sqitch uses this data to manage cross-project dependencies. The
@@ -109,8 +158,8 @@ Let's commit these changes and start creating the database changes.
 
   > git add .
   > git commit -am 'Initialize Sqitch configuration.'
-  [master 3480f19] Initialize Sqitch configuration.
-   2 files changed, 23 insertions(+)
+  [master bd82f41] Initialize Sqitch configuration.
+   2 files changed, 19 insertions(+)
    create mode 100644 sqitch.conf
    create mode 100644 sqitch.plan
 
@@ -142,26 +191,28 @@ Now we can try deploying this change. We'll assume you have an Oracle SID
 named C<flipr_test> set up in your
 C<F<TNSNAMES.ORA>|http://www.orafaq.com/wiki/Tnsnames.ora> file:
 
-  > sqitch --db-name flipr_test --db-user scott/tiger deploy                   
-  Adding registry tables to flipr_test
-  Deploying changes to flipr_test
+  > sqitch deploy db:oracle://scott:tiger@/flipr_test
+  Adding registry tables to db:oracle://scott:@/flipr_test
+  Deploying changes to db:oracle://scott:@/flipr_test
     + appschema .. ok
 
 First Sqitch created the registry tables used to track database changes. The
 structure and name of the registry varies between databases, but in Oracle
 they are simply stored in the current schema -- that is, the schema with the
 same name as the user you've connected as. In this example, that schema is
-C<scott>. If you'd like to keep the registry in some other schema, set the
-C<core.oracle.registry> configuration variable:
+C<scott>. Ideally, only Sqitch data will be stored in this schema, so it
+probably makes the most sense to create a superuser named C<sqitch> or
+something similar and use it to deploy changes.
 
-  > sqitch config core.oracle.registry sqitch
+If you'd like it to use a different database as the registry database, use
+C<sqitch config core.oracle.registry $name> to configure it (or via the
+L<C<target> command|sqitch-target>; more L<below|/On Target>). This will be
+useful if you don't want to use the same registry database to manage multiple
+databases on the same server.
 
-Ideally, only Sqitch data will be stored in this schema, so it probably makes
-the most sense to create a superuser named C<sqitch> or something similar and
-use it to deploy changes.
-
-Next, Sqitch deploys changes. We only have one so far; the C<+> reinforces the
-idea that the change is being C<added> to the database.
+Next, Sqitch deploys changes to the target database, which we specified on the
+command-line. We only have one change so far; the C<+> reinforces the idea
+that the change is being I<added> to the database.
 
 With this change deployed, if you connect to the database, you'll be able to
 see the schema:
@@ -199,8 +250,8 @@ do something like this:
 Either way, run the C<verify> script with the L<C<verify>|sqitch-verify>
 command:
 
-  > sqitch --db-name flipr_test --db-user scott/tiger verify
-  Verifying flipr_test
+  > sqitch verify db:oracle://scott:tiger@/flipr_test
+  Verifying db:oracle://scott:@/flipr_test
     * appschema .. ok
   Verify successful
 
@@ -212,8 +263,8 @@ something that doesn't exist, something like:
 
 Then L<C<verify>|sqitch-verify> again:
 
-  > sqitch --db-name flipr_test --db-user scott/tiger verify
-  Verifying flipr_test
+  > sqitch verify db:oracle://scott:tiger@/flipr_test
+  Verifying db:oracle://scott:@/flipr_test
     * appschema .. CREATE TABLE nonesuch.verify__ (id int)
   *
   ERROR at line 1:
@@ -237,8 +288,8 @@ divide-by-zero example, change the schema name:
 
 Then the verify will look something like:
 
-  > sqitch --db-name flipr_test verify
-  Verifying flipr_test
+  > sqitch verify db:oracle://scott:tiger@/flipr_test
+  Verifying db:oracle://scott:@/flipr_test
     * appschema ..   SELECT 1/COUNT(*) FROM sys.all_users WHERE username = 'NONESUCH'
             *
   ERROR at line 1:
@@ -266,20 +317,20 @@ For purely informational purposes, we can always see how a deployment was
 recorded via the L<C<status>|sqitch-status> command, which reads the registry
 tables from the database:
 
-  > sqitch --db-name flipr_test --db-user scott/tiger status
-  # On database flipr_test
+  > sqitch status db:oracle://scott:tiger@/flipr_test
+  # On database db:oracle://scott:@/flipr_test
   # Project:  flipr
-  # Change:   60e613ecd32beb168edeb9b823a91337b9018791
+  # Change:   c59e700589fc03568e8f35f592c0d9b7c638cbdd
   # Name:     appschema
-  # Deployed: 2013-05-08 13:34:21 -0700
+  # Deployed: 2013-12-31 15:25:23 -0800
   # By:       Marge N. O’Vera <marge@example.com>
   # 
   Nothing to deploy (up-to-date)
 
 Let's make sure that we can revert the change:
 
-  > sqitch -d flipr_test -u scott/tiger revert
-  Revert all changes from flipr_test? [Yes]
+  > sqitch revert db:oracle://scott:tiger@/flipr_test 
+  Revert all changes from db:oracle://scott:@/flipr_test? [Yes] 
     - appschema .. ok
 
 The L<C<revert>|sqitch-revert> command first prompts to make sure that we
@@ -294,33 +345,33 @@ I<removed> from the database. And now the schema should be gone:
   
 And the status message should reflect as much:
 
-  > sqitch -d flipr_test -u scott/tiger status
-  # On database flipr_test
+  > sqitch status db:oracle://scott:tiger@/flipr_test
+  # On database db:oracle://scott:@/flipr_test
   No changes deployed
 
 Of course, since nothing is deployed, the L<C<verify>|sqitch-verify> command
 has nothing to verify:
 
-  > sqitch -d flipr_test verify
-  # Verifying flipr_test
+  > sqitch verify db:oracle://scott:tiger@/flipr_test
+  Verifying db:oracle://scott:@/flipr_test
   No changes deployed
 
 However, we still have a record that the change happened, visible via the
 L<C<log>|sqitch-log> command:
 
-  > sqitch -d flipr_test log
-  On database flipr_test
-  Revert 60e613ecd32beb168edeb9b823a91337b9018791
+  > sqitch log db:oracle://scott:tiger@/flipr_test
+  On database db:oracle://scott:@/flipr_test
+  Revert c59e700589fc03568e8f35f592c0d9b7c638cbdd
   Name:      appschema
   Committer: Marge N. O’Vera <marge@example.com>
-  Date:      2013-05-08 13:38:29 -0700
+  Date:      2013-12-31 16:19:38 -0800
 
       App user and schema for all flipr objects.
 
-  Deploy 60e613ecd32beb168edeb9b823a91337b9018791
+  Deploy c59e700589fc03568e8f35f592c0d9b7c638cbdd
   Name:      appschema
   Committer: Marge N. O’Vera <marge@example.com>
-  Date:      2013-05-08 13:34:21 -0700
+  Date:      2013-12-31 15:25:23 -0800
 
       App user and schema for all flipr objects.
 
@@ -331,7 +382,7 @@ Cool. Now let's commit it.
 
   > git add .
   > git commit -m 'Add flipr schema.'
-  [master 308bf5a] Add flipr schema.
+  [master e0e0b11] Add flipr schema.
    4 files changed, 11 insertions(+)
    create mode 100644 deploy/appschema.sql
    create mode 100644 revert/appschema.sql
@@ -340,8 +391,8 @@ Cool. Now let's commit it.
 And then deploy again. This time, let's use the C<--verify> option, so that
 the C<verify> script is applied when the change is deployed:
 
-  > sqitch -d flipr_test -u scott/tiger deploy --verify
-  Deploying changes to flipr_test
+  > sqitch deploy --verify db:oracle://scott:tiger@/flipr_test
+  Deploying changes to db:oracle://scott:@/flipr_test
     + appschema .. ok
 
 And now the schema should be back:
@@ -354,34 +405,45 @@ And now the schema should be back:
 
 When we look at the status, the deployment will be there:
 
-  > sqitch -d flipr_test -u scott/tiger status
-  # On database flipr_test
+  > sqitch status db:oracle://scott:tiger@/flipr_test
+  # On database db:oracle://scott:@/flipr_test
   # Project:  flipr
-  # Change:   60e613ecd32beb168edeb9b823a91337b9018791
+  # Change:   c59e700589fc03568e8f35f592c0d9b7c638cbdd
   # Name:     appschema
-  # Deployed: 2013-05-08 13:40:22 -0700
+  # Deployed: 2013-12-31 16:22:01 -0800
   # By:       Marge N. O’Vera <marge@example.com>
   # 
   Nothing to deploy (up-to-date)
 
-=head1 More Configuration
+=head1 On Target
 
-I'm getting a little tired of always having to type C<--db-name flipr_test>,
-and C<--db-user scott/tiger>, aren't you? Sqitch uses URIs to determine how to
-connect to the database, so let's give it a default URI, shall we?
+I'm getting a little tired of always having to type
+C<db:oracle://scott:tiger@/flipr_test>, aren't you? This
+L<database connection URI|https://github.com/theory/uri-db/> tells Sqitch how
+to connect to the deployment target, but we don't have to keep using the URI.
+We can name the target:
 
-  > sqitch config core.oracle.database db:oracle://scott:tiger@/flipr_test
+  > sqitch target add flipr_test db:oracle://scott:tiger@/flipr_test
 
-Now we can omit the those options, unless we need to deploy to another
-database or with a different username. Which we will, eventually, but at least
-our examples will be simpler from here on in, e.g.:
+The L<C<target>|sqitch-target> command, inspired by
+L<C<git-remote>|http://git-scm.com/docs/git-remote>, allows management of one
+or more named deployment targets. We've just added a target named
+C<flipr_test>, which means we can use the string C<flipr_test> for the target,
+rather than the URI. But since we're doing so much testing, we can also tell
+Sqitch to deploy to the C<flipr_test> target by default:
+
+  > sqitch config core.oracle.target flipr_test
+
+Now we can omit the target argument altogether, unless we need to deploy to
+another database. Which we will, eventually, but at least our examples will be
+simpler from here on in, e.g.:
 
   > sqitch status
   # On database flipr_test
   # Project:  flipr
-  # Change:   60e613ecd32beb168edeb9b823a91337b9018791
+  # Change:   c59e700589fc03568e8f35f592c0d9b7c638cbdd
   # Name:     appschema
-  # Deployed: 2013-05-08 13:40:22 -0700
+  # Deployed: 2013-12-31 16:22:01 -0800
   # By:       Marge N. O’Vera <marge@example.com>
   # 
   Nothing to deploy (up-to-date)
@@ -395,9 +457,9 @@ changes are verified after deploying them:
 We'll see the L<C<rebase>|sqitch-rebase> command a bit later. In the meantime,
 let's commit the new configuration and and make some more changes!
 
-  > git commit -am 'Set default DB name and always verify.'
-  [master 58be3fc] Set default DB name and always verify.
-   1 file changed, 6 insertions(+)
+  > git commit -am 'Set default target and always verify.'
+  [master c4a308a] Set default target and always verify.
+   1 file changed, 8 insertions(+)
 
 =head1 Deploy with Dependency
 
@@ -492,9 +554,9 @@ Now have a look at the status:
   > sqitch status
   # On database flipr_test
   # Project:  flipr
-  # Change:   7d8363d2f950b7ef2dc7dea5441210ae95b2dda1
+  # Change:   6840dc13beb0cd716b8bd3979b03a259c1e94405
   # Name:     users
-  # Deployed: 2013-05-08 13:44:05 -0700
+  # Deployed: 2013-12-31 16:32:31 -0800
   # By:       Marge N. O’Vera <marge@example.com>
   # 
   Nothing to deploy (up-to-date)
@@ -529,9 +591,9 @@ undeployed changes:
   > sqitch status
   # On database flipr_test
   # Project:  flipr
-  # Change:   60e613ecd32beb168edeb9b823a91337b9018791
+  # Change:   c59e700589fc03568e8f35f592c0d9b7c638cbdd
   # Name:     appschema
-  # Deployed: 2013-05-08 13:40:22 -0700
+  # Deployed: 2013-12-31 16:22:01 -0800
   # By:       Marge N. O’Vera <marge@example.com>
   # 
   Undeployed change:
@@ -554,7 +616,7 @@ Okay, let's commit and deploy again:
 
   > git add .
   > git commit -am 'Add users table.'
-  [master 03b3839] Add users table.
+  [master 2506312] Add users table.
    4 files changed, 17 insertions(+)
    create mode 100644 deploy/users.sql
    create mode 100644 revert/users.sql
@@ -568,9 +630,9 @@ Looks good. Check the status:
   > sqitch status
   # On database flipr_test
   # Project:  flipr
-  # Change:   7d8363d2f950b7ef2dc7dea5441210ae95b2dda1
+  # Change:   6840dc13beb0cd716b8bd3979b03a259c1e94405
   # Name:     users
-  # Deployed: 2013-05-08 13:47:03 -0700
+  # Deployed: 2013-12-31 16:34:28 -0800
   # By:       Marge N. O’Vera <marge@example.com>
   # 
   Nothing to deploy (up-to-date)
@@ -602,10 +664,10 @@ Now might be a good time to have a look at the deployment plan:
   %project=flipr
   %uri=https://github.com/theory/sqitch-oracle-intro/
 
-  appschema 2013-05-08T20:27:45Z Marge N. O’Vera <marge@example.com> # App user and schema for all flipr objects.
-  users [appschema] 2013-05-08T20:42:15Z Marge N. O’Vera <marge@example.com> # Creates table to track our users.
-  insert_user [users appschema] 2013-05-08T20:47:36Z Marge N. O’Vera <marge@example.com> # Creates a function to insert a user.
-  change_pass [users appschema] 2013-05-08T20:47:45Z Marge N. O’Vera <marge@example.com> # Creates a function to change a user password.
+  appschema 2013-12-31T22:34:42Z Marge N. O’Vera <marge@example.com> # App user and schema for all flipr objects.
+  users [appschema] 2014-01-01T00:31:20Z Marge N. O’Vera <marge@example.com> # Creates table to track our users.
+  insert_user [users appschema] 2014-01-01T00:35:21Z Marge N. O’Vera <marge@example.com> # Creates a function to insert a user.
+  change_pass [users appschema] 2014-01-01T00:35:28Z Marge N. O’Vera <marge@example.com> # Creates a function to change a user password.
 
 Each change appears on a single line with the name of the change, a bracketed
 list of dependencies, a timestamp, the name and email address of the user who
@@ -764,9 +826,9 @@ And what's the status?
   > sqitch status 
   # On database flipr_test
   # Project:  flipr
-  # Change:   d972814cc04010b88dcd7ee4091344ab62c8a849
+  # Change:   e1c9df6a95da835769eb560790588c16174f78df
   # Name:     change_pass
-  # Deployed: 2013-05-08 13:51:51 -0700
+  # Deployed: 2013-12-31 16:37:22 -0800
   # By:       Marge N. O’Vera <marge@example.com>
   # 
   Nothing to deploy (up-to-date)
@@ -790,7 +852,7 @@ the last deployed change. Looks good. Let's do the commit and re-deploy dance:
 
   > git add .
   > git commit -m 'Add `insert_user()` and `change_pass()`.'
-  [master e3637c5] Add `insert_user()` and `change_pass()`.
+  [master 6b6797e] Add `insert_user()` and `change_pass()`.
    7 files changed, 92 insertions(+)
    create mode 100644 deploy/change_pass.sql
    create mode 100644 deploy/insert_user.sql
@@ -809,9 +871,9 @@ the last deployed change. Looks good. Let's do the commit and re-deploy dance:
   > sqitch status
   # On database flipr_test
   # Project:  flipr
-  # Change:   d972814cc04010b88dcd7ee4091344ab62c8a849
+  # Change:   e1c9df6a95da835769eb560790588c16174f78df
   # Name:     change_pass
-  # Deployed: 2013-05-08 13:57:18 -0700
+  # Deployed: 2013-12-31 16:38:46 -0800
   # By:       Marge N. O’Vera <marge@example.com>
   # 
   Nothing to deploy (up-to-date)
@@ -834,16 +896,17 @@ to have it go out with deployments tied to the release, let's tag it:
   > sqitch tag v1.0.0-dev1 -n 'Tag v1.0.0-dev1.'
   Tagged "change_pass" with @v1.0.0-dev1
   > git commit -am 'Tag the database with v1.0.0-dev1.'
-  [master a8ca4dc] Tag the database with v1.0.0-dev1.
+  [master eae5f71] Tag the database with v1.0.0-dev1.
    1 file changed, 1 insertion(+)
   > git tag v1.0.0-dev1 -am 'Tag v1.0.0-dev1'
 
 We can try deploying to make sure the tag gets picked up by deploying to a new
-database, like so:
+database, like so (assuming you have an Oracle SID named C<flipr_dev> that
+points to a different database):
 
-  > sqitch -d flipr_dev deploy
-  Adding registry tables to flipr_dev
-  Deploying changes to flipr_dev
+  > sqitch deploy db:oracle://scott:tiger@/flipr_dev
+  Adding registry tables to db:oracle://scott:@/flipr_dev
+  Deploying changes to db:oracle://scott:@/flipr_dev
     + appschema ................. ok
     + users ..................... ok
     + insert_user ............... No errors.
@@ -854,13 +917,12 @@ database, like so:
 Great, all four changes were deployed and C<change_pass> was tagged with
 C<@v1.0.0-dev1>. Let's have a look at the status:
 
-  > sqitch -d flipr_dev status
-  # On database flipr_dev
+  > sqitch status db:oracle://scott:tiger@/flipr_dev
+  # On database db:oracle://scott:tiger@/flipr_dev
   # Project:  flipr
-  # Change:   d972814cc04010b88dcd7ee4091344ab62c8a849
+  # Change:   e1c9df6a95da835769eb560790588c16174f78df
   # Name:     change_pass
-  # Tag:      @v1.0.0-dev1
-  # Deployed: 2013-05-08 13:59:04 -0700
+  # Deployed: 2013-12-31 16:40:02 -0800
   # By:       Marge N. O’Vera <marge@example.com>
   # 
   Nothing to deploy (up-to-date)
@@ -880,11 +942,11 @@ everything up for release:
 
 Now we can package the F<bundle> directory and distribute it. When it gets
 installed somewhere, users can use Sqitch to deploy to the database. Let's try
-deploying it to yet another database:
+deploying it to yet another database (again, assuming you have a SID named C<oracle_prod>:
 
   > cd bundle
-  > sqitch --db-name flipr_prod deploy
-  Adding registry tables to flipr_prod
+  > sqitch deploy db:oracle://scott:tiger@/flipr_prod
+  Adding registry tables to db:oracle://scott:@/flipr_prod
   Deploying changes to flipr_prod
     + appschema ................. ok
     + users ..................... ok
@@ -959,13 +1021,13 @@ Look good?
   > sqitch status --show-tags
   # On database flipr_test
   # Project:  flipr
-  # Change:   58bdc67e5e16e371d08a960352ddb79fb6b7d0cf
+  # Change:   8e1573bb5ce5dfc239d5370c33d6e10820234aad
   # Name:     flips
-  # Deployed: 2013-05-08 14:54:00 -0700
+  # Deployed: 2013-12-31 16:51:54 -0800
   # By:       Marge N. O’Vera <marge@example.com>
   # 
   # Tag:
-  #   @v1.0.0-dev1 - 2013-05-08 14:49:14 -0700 - Marge N. O’Vera <marge@example.com>
+  #   @v1.0.0-dev1 - 2013-12-31 16:44:00 -0800 - Marge N. O’Vera <marge@example.com>
   # 
   Nothing to deploy (up-to-date)
 
@@ -973,7 +1035,7 @@ Note the use of C<--show tags> to show all the deployed tags. Now make it so:
 
   > git add .
   > git commit -am 'Add flips table.'
-  [flips 4f87cd8] Add flips table.
+  [flips bbea131] Add flips table.
    4 files changed, 32 insertions(+)
    create mode 100644 deploy/flips.sql
    create mode 100644 revert/flips.sql
@@ -988,7 +1050,6 @@ and commit them. The C<insert_flip> deploy script might look something like:
   -- Deploy insert_flip
   -- requires: flips
   -- requires: appschema
-  -- requires: users
 
   CREATE OR REPLACE PROCEDURE flipr.insert_flip(
       nickname  VARCHAR2,
@@ -1024,7 +1085,6 @@ And the C<delete_flip> deploy script might look something like:
   -- Deploy delete_flip
   -- requires: flips
   -- requires: appschema
-  -- requires: users
 
   CREATE OR REPLACE PROCEDURE flipr.delete_flip(
       flip_id INTEGER
@@ -1083,13 +1143,13 @@ should end up looking something like this:
   > sqitch status --show-tags
   # On database flipr_test
   # Project:  flipr
-  # Change:   ee09ccd327a3c138d63f154d93c0a6f15ac10ce1
+  # Change:   a47be5a474eaad1a28546666eadeb0eba3ac12dc
   # Name:     delete_flip
-  # Deployed: 2013-05-08 15:03:29 -0700
+  # Deployed: 2013-12-31 16:54:31 -0800
   # By:       Marge N. O’Vera <marge@example.com>
   # 
   # Tag:
-  #   @v1.0.0-dev1 - 2013-05-08 14:49:14 -0700 - Marge N. O’Vera <marge@example.com>
+  #   @v1.0.0-dev1 - 2013-12-31 16:44:00 -0800 - Marge N. O’Vera <marge@example.com>
   # 
   Nothing to deploy (up-to-date)
 
@@ -1102,12 +1162,10 @@ Let's do it:
   > git checkout master
   Switched to branch 'master'
   > git pull
-  Updating a8ca4dc..f12f9e7
+  Updating eae5f71..a16f97c
   Fast-forward
-   deploy/change_pass.sql |  2 +-
-   deploy/delete_list.sql | 36 ++++++++++++++++++++++++++++++++++++
-   deploy/insert_list.sql | 34 ++++++++++++++++++++++++++++++++++
-   deploy/insert_user.sql |  2 +-
+   deploy/delete_list.sql | 35 +++++++++++++++++++++++++++++++++++
+   deploy/insert_list.sql | 33 +++++++++++++++++++++++++++++++++
    deploy/lists.sql       | 10 ++++++++++
    revert/delete_list.sql |  3 +++
    revert/insert_list.sql |  3 +++
@@ -1116,7 +1174,7 @@ Let's do it:
    verify/delete_list.sql |  3 +++
    verify/insert_list.sql |  3 +++
    verify/lists.sql       |  5 +++++
-   12 files changed, 106 insertions(+), 2 deletions(-)
+   10 files changed, 102 insertions(+)
    create mode 100644 deploy/delete_list.sql
    create mode 100644 deploy/insert_list.sql
    create mode 100644 deploy/lists.sql
@@ -1164,7 +1222,7 @@ VCS is not Git.
 So let's restore things to how they were at master:
 
   > git reset --hard HEAD
-  HEAD is now at f12f9e7 Merge branch 'lists'
+  HEAD is now at a16f97c Merge branch 'lists'
 
 That throws out our botched merge. Now let's go back to our branch and rebase
 it on C<master>:
@@ -1175,7 +1233,7 @@ it on C<master>:
   First, rewinding head to replay your work on top of it...
   Applying: Add flips table.
   Using index info to reconstruct a base tree...
-  M       sqitch.plan
+  M	sqitch.plan
   Falling back to patching base and 3-way merge...
   Auto-merging sqitch.plan
   CONFLICT (content): Merge conflict in sqitch.plan
@@ -1218,12 +1276,12 @@ and rebase again:
   First, rewinding head to replay your work on top of it...
   Applying: Add flips table.
   Using index info to reconstruct a base tree...
-  M       sqitch.plan
+  M	sqitch.plan
   Falling back to patching base and 3-way merge...
   Auto-merging sqitch.plan
   Applying: Add functions to insert and delete flips.
   Using index info to reconstruct a base tree...
-  M       sqitch.plan
+  M	sqitch.plan
   Falling back to patching base and 3-way merge...
   Auto-merging sqitch.plan
 
@@ -1234,18 +1292,18 @@ Ah, that looks a bit better. Let's have a look at the plan:
   %project=flipr
   %uri=https://github.com/theory/sqitch-oracle-intro/
 
-  appschema 2013-05-08T20:27:45Z Marge N. O’Vera <marge@example.com> # App user and schema for all flipr objects.
-  users [appschema] 2013-05-08T20:42:15Z Marge N. O’Vera <marge@example.com> # Creates table to track our users.
-  insert_user [users appschema] 2013-05-08T20:47:36Z Marge N. O’Vera <marge@example.com> # Creates a function to insert a user.
-  change_pass [users appschema] 2013-05-08T20:47:45Z Marge N. O’Vera <marge@example.com> # Creates a function to change a user password.
-  @v1.0.0-dev1 2013-05-08T20:58:21Z Marge N. O’Vera <marge@example.com> # Tag v1.0.0-dev1.
+  appschema 2013-12-31T22:34:42Z Marge N. O’Vera <marge@example.com> # App user and schema for all flipr objects.
+  users [appschema] 2014-01-01T00:31:20Z Marge N. O’Vera <marge@example.com> # Creates table to track our users.
+  insert_user [users appschema] 2014-01-01T00:35:21Z Marge N. O’Vera <marge@example.com> # Creates a function to insert a user.
+  change_pass [users appschema] 2014-01-01T00:35:28Z Marge N. O’Vera <marge@example.com> # Creates a function to change a user password.
+  @v1.0.0-dev1 2014-01-01T00:39:35Z Marge N. O’Vera <marge@example.com> # Tag v1.0.0-dev1.
 
-  lists [appschema users] 2013-05-08T21:04:52Z Marge N. O’Vera <marge@example.com> # Adds table for storing lists.
-  insert_list [lists appschema users] 2013-05-08T21:10:29Z Marge N. O’Vera <marge@example.com> # Creates a function to insert a list.
-  delete_list [lists appschema users] 2013-05-08T21:10:44Z Marge N. O’Vera <marge@example.com> # Creates a function to delete a list.
-  flips [appschema users] 2013-05-08T21:34:00Z Marge N. O’Vera <marge@example.com> # Adds table for storing flips.
-  insert_flip [flips appschema users] 2013-05-08T21:57:01Z Marge N. O’Vera <marge@example.com> # Creates a function to insert a flip.
-  delete_flip [flips appschema users] 2013-05-08T21:57:14Z Marge N. O’Vera <marge@example.com> # Creates a function to delete a flip.
+  lists [appschema users] 2014-01-01T00:43:46Z Marge N. O’Vera <marge@example.com> # Adds table for storing lists.
+  insert_list [lists appschema] 2014-01-01T00:45:24Z Marge N. O’Vera <marge@example.com> # Creates a function to insert a list.
+  delete_list [lists appschema] 2014-01-01T00:45:43Z Marge N. O’Vera <marge@example.com> # Creates a function to delete a list.
+  flips [appschema users] 2014-01-01T00:51:15Z Marge N. O’Vera <marge@example.com> # Adds table for storing flips.
+  insert_flip [flips appschema] 2014-01-01T00:53:00Z Marge N. O’Vera <marge@example.com> # Creates a function to insert a flip.
+  delete_flip [flips appschema] 2014-01-01T00:53:16Z Marge N. O’Vera <marge@example.com> # Creates a function to delete a flip.
 
 Note that it has appended the changes from the merged "lists" branch, and then
 merged the changes from our "flips" branch. Test it to make sure it works as
@@ -1286,7 +1344,7 @@ worthwhile to keep that change:
 
   > git add .
   > git commit -m 'Add `.gitattributes` with union merge for `sqitch.plan`.'
-  [flips 6237f20] Add `.gitattributes` with union merge for `sqitch.plan`.
+  [flips 383691f] Add `.gitattributes` with union merge for `sqitch.plan`.
    1 file changed, 1 insertion(+)
    create mode 100644 .gitattributes
 
@@ -1296,12 +1354,12 @@ And now, finally, we can merge into C<master>:
 
   > git checkout master
   Switched to branch 'master'
-  > git merge --no-ff flips
+  > git merge --no-ff flips -m "Merge branch 'flips'"
   Merge made by the 'recursive' strategy.
    .gitattributes         |  1 +
-   deploy/delete_flip.sql | 33 +++++++++++++++++++++++++++++++++
+   deploy/delete_flip.sql | 32 ++++++++++++++++++++++++++++++++
    deploy/flips.sql       | 22 ++++++++++++++++++++++
-   deploy/insert_flip.sql | 33 +++++++++++++++++++++++++++++++++
+   deploy/insert_flip.sql | 32 ++++++++++++++++++++++++++++++++
    revert/delete_flip.sql |  3 +++
    revert/flips.sql       |  5 +++++
    revert/insert_flip.sql |  3 +++
@@ -1309,7 +1367,7 @@ And now, finally, we can merge into C<master>:
    verify/delete_flip.sql |  3 +++
    verify/flips.sql       |  3 +++
    verify/insert_flip.sql |  3 +++
-   11 files changed, 112 insertions(+)
+   11 files changed, 110 insertions(+)
    create mode 100644 .gitattributes
    create mode 100644 deploy/delete_flip.sql
    create mode 100644 deploy/flips.sql
@@ -1328,18 +1386,18 @@ And double-check our work:
   %project=flipr
   %uri=https://github.com/theory/sqitch-oracle-intro/
 
-  appschema 2013-05-08T20:27:45Z Marge N. O’Vera <marge@example.com> # App user and schema for all flipr objects.
-  users [appschema] 2013-05-08T20:42:15Z Marge N. O’Vera <marge@example.com> # Creates table to track our users.
-  insert_user [users appschema] 2013-05-08T20:47:36Z Marge N. O’Vera <marge@example.com> # Creates a function to insert a user.
-  change_pass [users appschema] 2013-05-08T20:47:45Z Marge N. O’Vera <marge@example.com> # Creates a function to change a user password.
-  @v1.0.0-dev1 2013-05-08T20:58:21Z Marge N. O’Vera <marge@example.com> # Tag v1.0.0-dev1.
+  appschema 2013-12-31T22:34:42Z Marge N. O’Vera <marge@example.com> # App user and schema for all flipr objects.
+  users [appschema] 2014-01-01T00:31:20Z Marge N. O’Vera <marge@example.com> # Creates table to track our users.
+  insert_user [users appschema] 2014-01-01T00:35:21Z Marge N. O’Vera <marge@example.com> # Creates a function to insert a user.
+  change_pass [users appschema] 2014-01-01T00:35:28Z Marge N. O’Vera <marge@example.com> # Creates a function to change a user password.
+  @v1.0.0-dev1 2014-01-01T00:39:35Z Marge N. O’Vera <marge@example.com> # Tag v1.0.0-dev1.
 
-  lists [appschema users] 2013-05-08T21:04:52Z Marge N. O’Vera <marge@example.com> # Adds table for storing lists.
-  insert_list [lists appschema users] 2013-05-08T21:10:29Z Marge N. O’Vera <marge@example.com> # Creates a function to insert a list.
-  delete_list [lists appschema users] 2013-05-08T21:10:44Z Marge N. O’Vera <marge@example.com> # Creates a function to delete a list.
-  flips [appschema users] 2013-05-08T21:34:00Z Marge N. O’Vera <marge@example.com> # Adds table for storing flips.
-  insert_flip [flips appschema users] 2013-05-08T21:57:01Z Marge N. O’Vera <marge@example.com> # Creates a function to insert a flip.
-  delete_flip [flips appschema users] 2013-05-08T21:57:14Z Marge N. O’Vera <marge@example.com> # Creates a function to delete a flip.
+  lists [appschema users] 2014-01-01T00:43:46Z Marge N. O’Vera <marge@example.com> # Adds table for storing lists.
+  insert_list [lists appschema] 2014-01-01T00:45:24Z Marge N. O’Vera <marge@example.com> # Creates a function to insert a list.
+  delete_list [lists appschema] 2014-01-01T00:45:43Z Marge N. O’Vera <marge@example.com> # Creates a function to delete a list.
+  flips [appschema users] 2014-01-01T00:51:15Z Marge N. O’Vera <marge@example.com> # Adds table for storing flips.
+  insert_flip [flips appschema] 2014-01-01T00:53:00Z Marge N. O’Vera <marge@example.com> # Creates a function to insert a flip.
+  delete_flip [flips appschema] 2014-01-01T00:53:16Z Marge N. O’Vera <marge@example.com> # Creates a function to delete a flip.
 
 Much much better, a nice clean master now. And because it is now identical to
 the "flips" branch, we can just carry on. Go ahead and tag it, bundle, and
@@ -1348,7 +1406,7 @@ release:
   > sqitch tag v1.0.0-dev2 -n 'Tag v1.0.0-dev2.'
   Tagged "delete_flip" with @v1.0.0-dev2
   > git commit -am 'Tag the database with v1.0.0-dev2.'
-  [master 5a2d3d2] Tag the database with v1.0.0-dev2.
+  [master 5427456] Tag the database with v1.0.0-dev2.
    1 file changed, 1 insertion(+)
   > git tag v1.0.0-dev2 -am 'Tag v1.0.0-dev2'
   > sqitch bundle --dest-dir flipr-1.0.0-dev2 
@@ -1375,6 +1433,18 @@ F<bundle>.
 
 Uh-oh, someone just noticed that MD5 hashing is not particularly secure. Why?
 Have a look at this:
+
+=begin comment
+
+If you get this error:
+
+  ORA-01950: no privileges on tablespace 'USERS'
+
+Then connect as sysdba and grant unlimited quota to flipr:
+
+  ALTER USER flipr QUOTA UNLIMITED ON USERS;
+
+=end comment
 
   > echo "
       DELETE FROM flipr.users;
@@ -1404,10 +1474,10 @@ user "bar" has the same password and thus be able to exploit the account. Not
 a great idea. So we need to modify the C<insert_user()> and C<change_pass()>
 functions to fix that. How?
 
-We'll create a function that encrypts passwords using a L<cryptographic
-salt|https://en.wikipedia.org/wiki/Salt_(cryptography)>. This will allow the
-password hashes to be stored with random hashing. So we'll need to add the
-function. The deploy script should be:
+We'll create a function that encrypts passwords using a
+L<cryptographic salt|https://en.wikipedia.org/wiki/Salt_(cryptography)>. This
+will allow the password hashes to be stored with random hashing. So we'll need
+to add the function. The deploy script should be:
 
   -- Deploy crypt
   -- requires: appschema
@@ -1519,6 +1589,9 @@ of the C<insert_user> change, which we can see via C<git status>:
 
   > git status
   # On branch master
+  # Your branch is ahead of 'origin/master' by 2 commits.
+  #   (use "git push" to publish your local commits)
+  #
   # Changes not staged for commit:
   #   (use "git add <file>..." to update what will be committed)
   #   (use "git checkout -- <file>..." to discard changes in working directory)
@@ -1733,11 +1806,10 @@ Excellent. Let's go ahead and commit these changes:
 
   > git add .
   > git commit -m 'Use crypt to encrypt passwords.'
-  [master 9e22396] Use crypt to encrypt passwords.
-   14 files changed, 181 insertions(+), 15 deletions(-)
+  [master be46175] Use crypt to encrypt passwords.
+   13 files changed, 181 insertions(+), 15 deletions(-)
    create mode 100644 deploy/change_pass@v1.0.0-dev2.sql
    create mode 100644 deploy/insert_user@v1.0.0-dev2.sql
-   create mode 100644 echo
    rewrite revert/change_pass.sql (98%)
    rename revert/{change_pass.sql => change_pass@v1.0.0-dev2.sql} (100%)
    rewrite revert/insert_user.sql (98%)
@@ -1748,9 +1820,9 @@ Excellent. Let's go ahead and commit these changes:
   > sqitch status
   # On database flipr_test
   # Project:  flipr
-  # Change:   4216710aa417b706a4a3276d2d5ab5aac0d825b7
+  # Change:   8367dc3bff7a563ec27f145421a1ffdf724cb6de
   # Name:     change_pass
-  # Deployed: 2013-05-08 16:16:00 -0700
+  # Deployed: 2013-12-31 17:18:28 -0800
   # By:       Marge N. O’Vera <marge@example.com>
   # 
   Nothing to deploy (up-to-date)

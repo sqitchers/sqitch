@@ -8,12 +8,13 @@ sqitch-add - Add a database change to the plan
 
 =head1 Description
 
-Add a database change to the plan. This will result in the creation of a new
-script files with the C<--extension> extension in the C<--deploy-dir>,
-C<--revert-dir>, and C<--verify-dir> directories. The content of these files
-is determined by the evaluation of templates. By default, system templates in
-F<$(etc_path)/templates> are used. These can be overridden by a single user by
-creating templates in F<~/.sqitch/templates/> See L</Templates> for details.
+Add a database change to the plan. This will result in the creation of script
+files with the C<--extension> extension in the C<--deploy-dir>,
+C<--revert-dir>, and C<--verify-dir> directories, and possibly others. The
+content of these files is determined by the evaluation of templates. By
+default, system templates in F<$(etc_path)/templates> are used. These can be
+overridden by a single user by creating templates in F<~/.sqitch/templates/>
+See L</Templates> for details.
 
 Note that the name of the new change must adhere to the rules as defined in
 L<sqitchchanges>.
@@ -68,7 +69,8 @@ F<$($etc_prefix)/templates>.
 =item C<--template-name>
 
 Name of the templates to use for the scripts. When Sqitch searches the
-template directory for templates, it uses this name to find them as follows:
+template directory for templates, it uses this name to find them in subdirectories
+named for the various types of scripts, including:
 
 =over
 
@@ -80,34 +82,25 @@ template directory for templates, it uses this name to find them as follows:
 
 =back
 
-This allows one to define templates for specific tasks, such as creating a
-table, and then use them for changes that perform those tasks. Defaults to the
-name of the database engine (C<pg>, C<sqlite>, C<mysql>, or C<oracle>.
+Any templates found with the same name in additional subdirectories will also
+be evaluated.
 
-=item C<--deploy-template>
+This option allows one to define templates for specific tasks, such as
+creating a table, and then use them for changes that perform those tasks.
+Defaults to the name of the database engine (C<pg>, C<sqlite>, C<mysql>, or
+C<oracle>.
 
-=item C<--revert-template>
+=item C<--use script=template>
 
-=item C<--verify-template>
+Specify the path to a template for a specific type of script. Defaults to the
+individual templates and using C<--template-name>, found in
+C<--template-directory> and the configuration template directories.
 
-Path to the template for the given change script. Defaults to the individual
-templates found in C<--template-directory> and using C<--template-name>
+=item C<--with>
 
-=item C<--no-deploy>
+=item C<--without>
 
-=item C<--no-revert>
-
-=item C<--no-verify>
-
-Do not generate the named script.
-
-=item C<--deploy>
-
-=item C<--revert>
-
-=item C<--verify>
-
-Generate the named script. These are not mutually exclusive.
+Specify a type of template to generate or not generate.
 
 =item C<-e>
 
@@ -129,17 +122,80 @@ is true.
 =head1 Templates
 
 Sqitch contains a very simple set of templates for generating the deploy,
-revert, and verify scripts. By default, it uses system-wide templates
-installed in F<($etc_path)/templates>; call C<sqitch --etc-path> to find out
-where, exactly. Individual templates may be overridden on a user basis by
-copying templates to F<~/.sqitch/tempates> and making modifications. They may
-also be overridden by using the C<--template-directory> or C<--template-name>
-options, as well as the template-specific options.
+revert, and verify scripts, and you can create more of your own. By default,
+Sqitch uses system-wide templates installed in F<($etc_path)/templates>; call
+C<sqitch --etc-path> to find out where, exactly. Individual templates may be
+overridden on a user basis by copying templates to F<~/.sqitch/templates> and
+making modifications. They may also be overridden by using the
+C<--template-directory> or C<--template-name> options, as well as the
+template-specific options.
+
+=head2 Directory Layout
+
+Sqitch looks for templates in the following directories, and in this order:
+
+=over
+
+=item * C<--template-directory> or C<add.template_directory>
+
+=item * F<~/.sqitch/templates/>
+
+=item * F<($etc_path)/templates/>
+
+=back
+
+Each should consist of subdirectories named for the types of scripts to be
+generated. These should include F<deploy>, F<revert>, and F<verify>, but you
+can create any number of other directories to create additional scripts that
+will end up in a directory of the same name.
+
+Each directory should include one or more files ending in F<.tmpl>. The
+main part of the file name can be anything, but by default Sqitch will
+look for a file named for the database engine. Use the C<--template> option
+to have Sqitch use a different file.
+
+For example, say you have this directory structure:
+
+  templates/deploy/pg.tmpl
+  templates/deploy/create_table.tmpl
+  templates/revert/pg.tmpl
+  templates/revert/create_table.tmpl
+  templates/test/pg.tmpl
+  templates/verify/pg.tmpl
+  templates/verify/create_table.tmpl
+
+Assuming that you're using the PostgreSQL engine, the code for which is C<pg>,
+when you add a new change like so:
+
+  sqitch add schema -n 'Creates schema'
+
+Sqitch will use the C<pg.tmpl> files to create the following files in
+C<--top-dir>:
+
+  deploy/schema.sql
+  revert/schema.sql
+  test/schema.sql
+  verify/schema.sql
+
+If you want to use the C<create_table> templates, instead, use the
+C<--template> option, like so:
+
+  sqitch add user_table --template create_table -n 'Create user table'
+
+Sqitch will use the C<create_table.tmpl> files to create the following files
+in C<--top-dir>:
+
+  deploy/user_table.sql
+  revert/user_table.sql
+  verify/user_table.sql
+
+Note that the C<test> file was not created, because no
+F<test/crate_table.tmpl> file exists.
 
 =head2 Syntax
 
-The syntax of the templates is the very simple but limited language provided
-by L<Template::Tiny>, which is limited to:
+The syntax of Sqitch templates is the very simple language provided by
+L<Template::Tiny>, which is limited to:
 
 =over
 
@@ -228,31 +284,32 @@ C<--conflicts> option.
 
 =item C<add.template_directory>
 
-Directory in which to find the templates which should be named F<deploy.tmpl>,
-F<revert.tmpl>, and F<verify.tmpl>. This will override looking for user- or
-system-specific templates, and may in turn be overridden by the
-C<--template-directory>, C<--deploy-template>, C<--revert-template>, and
-C<--verify-template> options.
+Directory in which to find the templates. Any templates found in this
+directory take precedence over user- or system-specific templates, and may in
+turn be overridden by the C<--use> option.
 
-=item C<add.with_deploy>
+=item C<add.template_name>
 
-=item C<add.with_revert>
+Name used for template files. Should not include the F<.tmpl> suffix.
+Overrides the default, which is the name of the database engine, and may in
+turn be overridden by the C<--template> option.
 
-=item C<add.with_verify>
+=item C<[add.templates]>
 
-Boolean variable indicating whether or not to generate the specified script
-when adding a change. They are all enabled by default. If you've disabled them
-but wish to create them for a given call to C<add>, use the appropriate
-option: C<--deploy>, C<--revert>, or C<--verify>.
+Location of templates of different types. Core templates include:
 
-=item C<add.deploy_template>
+=over
 
-=item C<add.revert_template>
+=item C<add.templates.deploy>
 
-=item C<add.verify_template>
+=item C<add.templates.revert>
 
-Location of individual templates. My be overridden by the appropriate option:
-C<--deploy-template>, C<--revert-template>, or C<--verify-template>.
+=item C<add.templates.verify>
+
+=back
+
+But a custom template type can have its location specified here, as well,
+such as C<add.template.unit_test>. May be overridden by C<--use>.
 
 =item C<[add.variables]>
 
@@ -267,35 +324,6 @@ change scripts.  When true, equivalent to passing C<--edit>.  Defaults off.
 
 =back
 
-=head1 Files
-
-Unless explicitly told where to find templates via C<--template-directory> or
-C<--template-name>, or, as appropriate, C<--deploy-template>,
-C<--user-template> or C<--verify-template>, Sqitch looks for templates named
-for the current engine in two locations for templates: A system-wide location
-and a user-specific location:
-
-=over
-
-=item F<$(etc_path)/templates/deploy/$(engine).tmpl>
-
-=item F<$(etc_path)/templates/revert/$(engine).tmpl>
-
-=item F<$(etc_path)/templates/verify/$(engine).tmpl>
-
-The system-wide templates for creating deploy, revert, and verify scripts.
-
-=item F<~/.sqitch/templates/deploy/$(engine).tmpl>
-
-=item F<~/.sqitch/templates/revert/$(engine).tmpl>
-
-=item F<~/.sqitch/templates/verify/$(engine).tmpl>
-
-User-specific templates to override the system-wide templates.
-
-=back
-
 =head1 Sqitch
 
 Part of the L<sqitch> suite.
-x

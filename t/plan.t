@@ -983,7 +983,7 @@ is $plan->index_of('@baz'), 3, 'Index of @baz should be 3';
 ok $plan->contains('@baz'), 'Plan should contain @baz';
 ok $plan->seek('@baz'), 'Seek to the "baz" change';
 is $plan->position, 3, 'Position should be at 3 again';
- is $plan->current, $fourth, 'Current should be fourth again';
+is $plan->current, $fourth, 'Current should be fourth again';
 
 is $plan->change_at(0), $change,  'Should still get first change from change_at(0)';
 is $plan->change_at(1), $next,  'Should still get second change from change_at(1)';
@@ -1621,6 +1621,16 @@ $fh->close;
 file(qw(sql deploy baz.sql))->touch;
 ok $fh = $plan->open_script(file qw(sql deploy baz.sql)), 'Open baz.sql';
 is $fh->getline, undef, 'It should be empty';
+
+# Make sure it dies on an invalid file.
+throws_ok { $plan->open_script(file 'nonexistent' ) } 'App::Sqitch::X',
+    'open_script() should die on nonexistent file';
+is $@->ident, 'plan', 'Nonexistent file error ident should be "plan"';
+is $@->message, __x(
+    'Cannot open {file}: {error}',
+    file  => 'nonexistent',
+    error => $! || 'No such file or directory',
+), 'Nonexistent file error message should be correct';
 
 ##############################################################################
 # Test check_changes()
