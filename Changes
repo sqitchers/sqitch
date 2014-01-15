@@ -17,6 +17,8 @@ Revision history for Perl extension App::Sqitch
      - Fixed the `--verbose` option to the `target` command.
      - Eliminated more user-configuration issues in tests, thanks to
        chromatic.
+     - Fixed test failures when the `$PGPASSWORD` environment variable is set,
+       thanks to Ioan Rogers's test smoker.
 
 0.990  2014-01-04T01:14:24Z
      [New Features]
