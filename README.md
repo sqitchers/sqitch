@@ -1,4 +1,4 @@
-App/Sqitch version 0.991
+App/Sqitch version 0.992
 ========================
 
 [Sqitch](http://sqitch.org/) is a database change management application. It

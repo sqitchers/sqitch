@@ -6,7 +6,7 @@ use namespace::autoclean;
 use parent 'App::Sqitch::Plan::Line';
 use Mouse;
 
-our $VERSION = '0.991';
+our $VERSION = '0.992';
 
 has '+name' => ( default => '' );
 

@@ -10,7 +10,7 @@ use namespace::autoclean;
 
 extends 'App::Sqitch::Command';
 
-our $VERSION = '0.991';
+our $VERSION = '0.992';
 
 has note => (
     is       => 'ro',
