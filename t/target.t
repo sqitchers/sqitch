@@ -25,7 +25,7 @@ my $CLASS = 'App::Sqitch::Command::target';
 # Set up a test directory and config file.
 my $tmp_dir = tempdir CLEANUP => 1;
 
-File::Copy::syscopy file(qw(t target.conf))->stringify, "$tmp_dir"
+File::Copy::copy file(qw(t target.conf))->stringify, "$tmp_dir"
     or die "Cannot copy t/target.conf to $tmp_dir: $!\n";
 chdir $tmp_dir;
 $ENV{SQITCH_CONFIG} = 'target.conf';

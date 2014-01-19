@@ -22,7 +22,9 @@ BEGIN {
     $ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
     $ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.user';
     $ENV{SQITCH_USER_CONFIG}   = 'nonexistent.sys';
+    delete $ENV{PGPASSWORD};
 }
+
 
 is_deeply [$CLASS->config_vars], [
     target   => 'any',
