@@ -52,7 +52,6 @@ my @std_opts = (
     '--no-psqlrc',
     '--no-align',
     '--tuples-only',
-    '--set' => 'ON_ERROR_ROLLBACK=1',
     '--set' => 'ON_ERROR_STOP=1',
     '--set' => 'registry=sqitch',
     '--set' => 'sqitch_schema=sqitch',

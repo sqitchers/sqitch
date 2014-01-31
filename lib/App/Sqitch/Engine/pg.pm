@@ -68,7 +68,6 @@ has psql => (
             '--no-psqlrc',
             '--no-align',
             '--tuples-only',
-            '--set' => 'ON_ERROR_ROLLBACK=1',
             '--set' => 'ON_ERROR_STOP=1',
             '--set' => 'registry=' . $self->registry,
             '--set' => 'sqitch_schema=' . $self->registry, # deprecated
@@ -165,12 +164,18 @@ sub initialize {
         schema => $schema
     ) if $self->initialized;
 
-    my $file = file(__FILE__)->dir->file('pg.sql');
-
     # Check the client version.
-    my ($maj, $min) = split /[.]/ => (
-        split / / => $self->sqitch->probe( $self->client, '--version' )
-    )[-1];
+    my ($maj, $min);
+    my $fn = 'pg.sql';
+    for ( $self->sqitch->capture( $self->client, '--version' ) ) {
+        if (/PostgreSQL/) {
+            ( $maj, $min ) = split /[.]/ => (split / /)[-1];
+        } elsif (/Postgres-XC/) {
+            $fn = 'pgxc.sql';
+        }
+    }
+
+    my $file = file(__FILE__)->dir->file($fn);
 
     if ($maj < 9) {
         # Need to write a temp file; no :"registry" variable syntax.
