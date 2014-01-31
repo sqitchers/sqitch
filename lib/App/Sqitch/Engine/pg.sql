@@ -11,7 +11,7 @@ CREATE TABLE :"registry".projects (
     created_at      TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
     creator_name    TEXT        NOT NULL,
     creator_email   TEXT        NOT NULL
-);
+):tableopts;
 
 COMMENT ON TABLE :"registry".projects                 IS 'Sqitch projects deployed to this database.';
 COMMENT ON COLUMN :"registry".projects.project        IS 'Unique Name of a project.';
@@ -31,7 +31,7 @@ CREATE TABLE :"registry".changes (
     planned_at      TIMESTAMPTZ NOT NULL,
     planner_name    TEXT        NOT NULL,
     planner_email   TEXT        NOT NULL
-);
+):tableopts;
 
 COMMENT ON TABLE :"registry".changes                  IS 'Tracks the changes currently deployed to the database.';
 COMMENT ON COLUMN :"registry".changes.change_id       IS 'Change primary key.';
@@ -58,7 +58,7 @@ CREATE TABLE :"registry".tags (
     planner_name    TEXT        NOT NULL,
     planner_email   TEXT        NOT NULL,
     UNIQUE(project, tag)
-);
+):tableopts;
 
 COMMENT ON TABLE :"registry".tags                  IS 'Tracks the tags currently applied to the database.';
 COMMENT ON COLUMN :"registry".tags.tag_id          IS 'Tag primary key.';
@@ -82,7 +82,7 @@ CREATE TABLE :"registry".dependencies (
          OR (type = 'conflict' AND dependency_id IS NULL)
     ),
     PRIMARY KEY (change_id, dependency)
-);
+):tableopts;
 
 COMMENT ON TABLE :"registry".dependencies                IS 'Tracks the currently satisfied dependencies.';
 COMMENT ON COLUMN :"registry".dependencies.change_id     IS 'ID of the depending change.';
@@ -106,7 +106,7 @@ CREATE TABLE :"registry".events (
     planner_name    TEXT        NOT NULL,
     planner_email   TEXT        NOT NULL,
     PRIMARY KEY (change_id, committed_at)
-);
+):tableopts;
 
 COMMENT ON TABLE :"registry".events                  IS 'Contains full history of all deployment events.';
 COMMENT ON COLUMN :"registry".events.event           IS 'Type of event.';

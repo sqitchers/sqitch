@@ -166,16 +166,16 @@ sub initialize {
 
     # Check the client version.
     my ($maj, $min);
-    my $fn = 'pg.sql';
+    my $opts = '';
     for ( $self->sqitch->capture( $self->client, '--version' ) ) {
         if (/PostgreSQL/) {
             ( $maj, $min ) = split /[.]/ => (split / /)[-1];
         } elsif (/Postgres-XC/) {
-            $fn = 'pgxc.sql';
+            $opts = ' DISTRIBUTE BY REPLICATION';
         }
     }
 
-    my $file = file(__FILE__)->dir->file($fn);
+    my $file = file(__FILE__)->dir->file('pg.sql');
 
     if ($maj < 9) {
         # Need to write a temp file; no :"registry" variable syntax.
@@ -193,6 +193,7 @@ sub initialize {
         $self->_run(
             '--file' => $file,
             '--set'  => "registry=$schema",
+            '--set'  => "tableopts=$opts",
         );
     }
 
