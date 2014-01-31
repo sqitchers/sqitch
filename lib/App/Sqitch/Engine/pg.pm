@@ -258,13 +258,15 @@ sub log_new_tags {
                  , planner_name
                  , planner_email
             )
-            SELECT tid, tg, proj, chid, n, name, email, at, pname, pemail FROM ( VALUES
-        } . join( ",\n                ", ( q{(?, ?, ?, ?, ?, ?, ?, ?::timestamptz, ?, ?)} ) x @tags )
-        . q{
-            ) i(tid, tg, proj, chid, n, name, email, at, pname, pemail)
+            SELECT i.* FROM (
+                         } . join(
+                "\n               UNION ALL ",
+                ("SELECT ?::text AS tid, ?::text AS tname, ?::text AS proj, ?::text AS cid, ?::text AS note, ?::text AS cuser, ?::text AS cemail, ?::timestamptz AS tts, ?::text AS puser, ?::text AS pemail") x @tags
+            ) . q{
+            ) i
               LEFT JOIN tags ON i.tid = tags.tag_id
              WHERE tags.tag_id IS NULL
-         },
+        },
         undef,
         map { (
             $_->id,
