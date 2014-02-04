@@ -1,6 +1,7 @@
 Revision history for Perl extension App::Sqitch
 
 0.992
+     - Fixed target test failures on Windows.
 
 0.991  2014-01-16T23:24:33Z
      - Greatly simplified determining the Firebird ISQL client. It no longer

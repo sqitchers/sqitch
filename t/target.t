@@ -29,6 +29,7 @@ File::Copy::copy file(qw(t target.conf))->stringify, "$tmp_dir"
     or die "Cannot copy t/target.conf to $tmp_dir: $!\n";
 chdir $tmp_dir;
 $ENV{SQITCH_CONFIG} = 'target.conf';
+my $psql = 'psql' . ($^O eq 'MSWin32' ? '.exe' : '');
 
 ##############################################################################
 # Load a target command and test the basics.
@@ -304,7 +305,7 @@ is_deeply +MockOutput->get_emit, [
     ['* dev'],
     ['  ', 'URI:      ', 'db:pg:widgets'],
     ['  ', 'Registry: ', 'sqitch'],
-    ['  ', 'Client:   ', 'psql'],
+    ['  ', 'Client:   ', $psql],
 ], 'The "dev" target should have been shown';
 
 # Try a target with a non-default client.
@@ -322,7 +323,7 @@ is_deeply +MockOutput->get_emit, [
     ['* withreg'],
     ['  ', 'URI:      ', 'db:pg:withreg'],
     ['  ', 'Registry: ', 'meta'],
-    ['  ', 'Client:   ', 'psql'],
+    ['  ', 'Client:   ', $psql],
 ], 'The "with_reg" target should have been shown';
 
 # Try multiples.
@@ -331,7 +332,7 @@ is_deeply +MockOutput->get_emit, [
     ['* dev'],
     ['  ', 'URI:      ', 'db:pg:widgets'],
     ['  ', 'Registry: ', 'sqitch'],
-    ['  ', 'Client:   ', 'psql'],
+    ['  ', 'Client:   ', $psql],
     ['* qa'],
     ['  ', 'URI:      ', 'db:pg://qa.example.com/qa_widgets'],
     ['  ', 'Registry: ', 'meta'],
@@ -339,7 +340,7 @@ is_deeply +MockOutput->get_emit, [
     ['* withreg'],
     ['  ', 'URI:      ', 'db:pg:withreg'],
     ['  ', 'Registry: ', 'meta'],
-    ['  ', 'Client:   ', 'psql'],
+    ['  ', 'Client:   ', $psql],
 ], 'All three targets should have been shown';
 
 ##############################################################################
