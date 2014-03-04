@@ -89,11 +89,20 @@ has dbh => (
         });
 
         # Make sure we support this version.
-        hurl mysql => __x(
-            'Sqitch requires MySQL {want_version} or higher; this is {have_version}',
-            want_version => '5.6.4',
-            have_version => $dbh->selectcol_arrayref('SELECT version()')->[0],
-        ) unless $dbh->{mysql_serverversion} >= 50604;
+        if ($dbh->{mysql_serverinfo} =~ /mariadb/i) {
+            hurl mysql => __x(
+                'Sqitch requires MariaDB {want_version} or higher; this is {have_version}',
+                want_version => '5.3',
+                have_version => $dbh->selectcol_arrayref('SELECT version()')->[0],
+            ) unless $dbh->{mysql_serverversion} >= 50300;
+        }
+        else {
+            hurl mysql => __x(
+                'Sqitch requires MySQL {want_version} or higher; this is {have_version}',
+                want_version => '5.6.4',
+                have_version => $dbh->selectcol_arrayref('SELECT version()')->[0],
+            ) unless $dbh->{mysql_serverversion} >= 50604;
+        }
 
         return $dbh;
     }

@@ -264,8 +264,14 @@ my $err = try {
     });
 
     # Make sure we have a version we can use.
-    die "MySQL >= 50604 required; this is $dbh->{mysql_serverversion}\n"
-        unless $dbh->{mysql_serverversion} >= 50604;
+    if ($dbh->{mysql_serverinfo} =~ /mariadb/i) {
+        die "MariaDB >= 50300 required; this is $dbh->{mysql_serverversion}\n"
+            unless $dbh->{mysql_serverversion} >= 50300;
+    }
+    else {
+        die "MySQL >= 50604 required; this is $dbh->{mysql_serverversion}\n"
+            unless $dbh->{mysql_serverversion} >= 50604;
+    }
 
     $dbh->do('CREATE DATABASE __sqitchtest__');
     undef;
