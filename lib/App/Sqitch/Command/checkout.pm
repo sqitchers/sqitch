@@ -189,7 +189,7 @@ The Sqitch command-line client.
 
 =head1 License
 
-Copyright (c) 2012-2013 Ronan Dunklau & iovation Inc.
+Copyright (c) 2012-2014 Ronan Dunklau & iovation Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
