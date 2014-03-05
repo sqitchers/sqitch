@@ -175,7 +175,7 @@ sub initialize {
     }
 
     # Is this XC?
-    $opts = ' DISTRIBUTE BY REPLICATION' if $self->_capture('-c', q{
+    $opts = ' DISTRIBUTE BY REPLICATION' if $self->_probe('-c', q{
         SELECT count(*)
           FROM pg_catalog.pg_proc p
           JOIN pg_catalog.pg_namespace n ON p.pronamespace = n.oid
@@ -472,6 +472,15 @@ sub _capture {
     my $pass   = $uri->password or return $sqitch->capture( $self->psql, @_ );
     local $ENV{PGPASSWORD} = $pass;
     return $sqitch->capture( $self->psql, @_ );
+}
+
+sub _probe {
+    my $self   = shift;
+    my $sqitch = $self->sqitch;
+    my $uri    = $self->uri;
+    my $pass   = $uri->password or return $sqitch->probe( $self->psql, @_ );
+    local $ENV{PGPASSWORD} = $pass;
+    return $sqitch->probe( $self->psql, @_ );
 }
 
 sub _spool {
