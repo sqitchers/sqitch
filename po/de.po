@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Sqitch 0.932\n"
 "Report-Msgid-Bugs-To: david@justatheory.com\n"
-"POT-Creation-Date: 2014-01-16 15:10-0800\n"
+"POT-Creation-Date: 2014-03-04 16:31-0800\n"
 "PO-Revision-Date: 2012-08-31 17:15-0700\n"
 "Last-Translator: David Wheeler <david@justatheory.com>\n"
 "Language-Team: German <david@justatheory.com>\n"
@@ -1053,7 +1053,7 @@ msgstr ""
 msgid "Too many changes specified; verifying from \"{from}\" to \"{to}\""
 msgstr ""
 
-#: lib/App/Sqitch/Engine/firebird.pm:199 lib/App/Sqitch/Engine/mysql.pm:186
+#: lib/App/Sqitch/Engine/firebird.pm:199 lib/App/Sqitch/Engine/mysql.pm:190
 #: lib/App/Sqitch/Engine/sqlite.pm:170
 #, perl-brace-format
 msgid "Sqitch database {database} already initialized"
@@ -1086,12 +1086,13 @@ msgid ""
 "config"
 msgstr ""
 
-#: lib/App/Sqitch/Engine/mysql.pm:93
+#: lib/App/Sqitch/Engine/mysql.pm:96
 #, perl-brace-format
-msgid "Sqitch requires MySQL {want_version} or higher; this is {have_version}"
+msgid ""
+"Sqitch requires {rdbms} {want_version} or higher; this is {have_version}"
 msgstr ""
 
-#: lib/App/Sqitch/Engine/mysql.pm:113
+#: lib/App/Sqitch/Engine/mysql.pm:117
 #, perl-brace-format
 msgid "Database name missing in URI \"{uri}\""
 msgstr ""
@@ -1100,7 +1101,7 @@ msgstr ""
 msgid "Sqitch already initialized"
 msgstr ""
 
-#: lib/App/Sqitch/Engine/pg.pm:164
+#: lib/App/Sqitch/Engine/pg.pm:163
 #, perl-brace-format
 msgid "Sqitch schema \"{schema}\" already exists"
 msgstr ""
