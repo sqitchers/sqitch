@@ -170,10 +170,18 @@ sub initialize {
     for ( $self->sqitch->capture( $self->client, '--version' ) ) {
         if (/PostgreSQL/) {
             ( $maj, $min ) = split /[.]/ => (split / /)[-1];
-        } elsif (/Postgres-XC/) {
-            $opts = ' DISTRIBUTE BY REPLICATION';
+            last;
         }
     }
+
+    # Is this XC?
+    $opts = ' DISTRIBUTE BY REPLICATION' if $self->_capture('-c', q{
+        SELECT count(*)
+          FROM pg_catalog.pg_proc p
+          JOIN pg_catalog.pg_namespace n ON p.pronamespace = n.oid
+         WHERE nspname = 'pg_catalog'
+           AND proname = 'pgxc_version';
+    });
 
     my $file = file(__FILE__)->dir->file('pg.sql');
 
