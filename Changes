@@ -1,6 +1,6 @@
 Revision history for Perl extension App::Sqitch
 
-0.992
+0.992  2014-03-05T00:34:49Z
      - Fixed target test failures on Windows.
      - Added support for Postgres-XC to the PostgreSQL engine. Sqitch registry
        tables are distributed by replication to all data nodes.

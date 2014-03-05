@@ -253,6 +253,9 @@ package bundles the Sqitch Firebird support.
 # No additional files required.
 
 %changelog
+* Tue Mar 4 2014 David E. Wheeler <david.wheeler@iovation.com> 0.991-1
+- Upgrade to v0.992.
+
 * Thu Jan 16 2014 David E. Wheeler <david.wheeler@iovation.com> 0.991-1
 - Upgrade to v0.991.
 - Remove File::Which from sqitch-firebird.
