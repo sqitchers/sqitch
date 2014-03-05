@@ -13,7 +13,7 @@ requires 'command';
 requires 'options';
 requires 'configure';
 
-our $VERSION = '0.992';
+our $VERSION = '0.993';
 
 has target => (
     is  => 'ro',

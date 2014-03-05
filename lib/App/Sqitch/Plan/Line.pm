@@ -7,7 +7,7 @@ use Mouse;
 use App::Sqitch::X qw(hurl);
 use Locale::TextDomain qw(App-Sqitch);
 
-our $VERSION = '0.992';
+our $VERSION = '0.993';
 
 has name => (
     is       => 'ro',
