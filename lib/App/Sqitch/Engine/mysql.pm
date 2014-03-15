@@ -17,7 +17,7 @@ extends 'App::Sqitch::Engine';
 sub dbh; # required by DBIEngine;
 with 'App::Sqitch::Role::DBIEngine';
 
-our $VERSION = '0.992';
+our $VERSION = '0.993';
 
 has registry_uri => (
     is       => 'ro',
@@ -89,11 +89,15 @@ has dbh => (
         });
 
         # Make sure we support this version.
+        my ($dbms, $vnum, $vstr) = $dbh->{mysql_serverinfo} =~ /mariadb/i
+            ? ('MariaDB', 50300, '5.3')
+            : ('MySQL',   50604, '5.6.4');
         hurl mysql => __x(
-            'Sqitch requires MySQL {want_version} or higher; this is {have_version}',
-            want_version => '5.6.4',
+            'Sqitch requires {rdbms} {want_version} or higher; this is {have_version}',
+            rdbms        => $dbms,
+            want_version => $vstr,
             have_version => $dbh->selectcol_arrayref('SELECT version()')->[0],
-        ) unless $dbh->{mysql_serverversion} >= 50604;
+        ) unless $dbh->{mysql_serverversion} >= $vnum;
 
         return $dbh;
     }
@@ -310,7 +314,8 @@ App::Sqitch::Engine::mysql - Sqitch MySQL Engine
 
 =head1 Description
 
-App::Sqitch::Engine::mysql provides the MySQL storage engine for Sqitch.
+App::Sqitch::Engine::mysql provides the MySQL storage engine for Sqitch. It
+supports MySQL 5.6.4 and higher, as well as MariaDB 5.3.0 and higher.
 
 =head1 Author
 
@@ -318,7 +323,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2013 iovation Inc.
+Copyright (c) 2012-2014 iovation Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

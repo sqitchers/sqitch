@@ -16,7 +16,7 @@ extends 'App::Sqitch::Engine';
 sub dbh; # required by DBIEngine;
 with 'App::Sqitch::Role::DBIEngine';
 
-our $VERSION = '0.992';
+our $VERSION = '0.993';
 
 has '+destination' => (
     default  => sub {
@@ -68,7 +68,6 @@ has psql => (
             '--no-psqlrc',
             '--no-align',
             '--tuples-only',
-            '--set' => 'ON_ERROR_ROLLBACK=1',
             '--set' => 'ON_ERROR_STOP=1',
             '--set' => 'registry=' . $self->registry,
             '--set' => 'sqitch_schema=' . $self->registry, # deprecated
@@ -165,12 +164,26 @@ sub initialize {
         schema => $schema
     ) if $self->initialized;
 
-    my $file = file(__FILE__)->dir->file('pg.sql');
-
     # Check the client version.
-    my ($maj, $min) = split /[.]/ => (
-        split / / => $self->sqitch->probe( $self->client, '--version' )
-    )[-1];
+    my ($maj, $min);
+    my $opts = '';
+    for ( $self->sqitch->capture( $self->client, '--version' ) ) {
+        if (/PostgreSQL/) {
+            ( $maj, $min ) = split /[.]/ => (split / /)[-1];
+            last;
+        }
+    }
+
+    # Is this XC?
+    $opts = ' DISTRIBUTE BY REPLICATION' if $self->_probe('-c', q{
+        SELECT count(*)
+          FROM pg_catalog.pg_proc p
+          JOIN pg_catalog.pg_namespace n ON p.pronamespace = n.oid
+         WHERE nspname = 'pg_catalog'
+           AND proname = 'pgxc_version';
+    });
+
+    my $file = file(__FILE__)->dir->file('pg.sql');
 
     if ($maj < 9) {
         # Need to write a temp file; no :"registry" variable syntax.
@@ -188,6 +201,7 @@ sub initialize {
         $self->_run(
             '--file' => $file,
             '--set'  => "registry=$schema",
+            '--set'  => "tableopts=$opts",
         );
     }
 
@@ -460,6 +474,15 @@ sub _capture {
     return $sqitch->capture( $self->psql, @_ );
 }
 
+sub _probe {
+    my $self   = shift;
+    my $sqitch = $self->sqitch;
+    my $uri    = $self->uri;
+    my $pass   = $uri->password or return $sqitch->probe( $self->psql, @_ );
+    local $ENV{PGPASSWORD} = $pass;
+    return $sqitch->probe( $self->psql, @_ );
+}
+
 sub _spool {
     my $self   = shift;
     my $fh     = shift;
@@ -486,7 +509,7 @@ App::Sqitch::Engine::pg - Sqitch PostgreSQL Engine
 =head1 Description
 
 App::Sqitch::Engine::pg provides the PostgreSQL storage engine for Sqitch. It
-supports PostgreSQL 8.4.0 and higher.
+supports PostgreSQL 8.4.0 and higher as well as Postgres-XC 1.2 and higher.
 
 =head1 Interface
 
@@ -511,7 +534,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2013 iovation Inc.
+Copyright (c) 2012-2014 iovation Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

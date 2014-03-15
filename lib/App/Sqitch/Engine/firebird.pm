@@ -19,7 +19,7 @@ extends 'App::Sqitch::Engine';
 sub dbh; # required by DBIEngine;
 with 'App::Sqitch::Role::DBIEngine';
 
-our $VERSION = '0.992';
+our $VERSION = '0.993';
 
 has registry_uri => (
     is       => 'ro',
@@ -915,7 +915,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2013 iovation Inc.
+Copyright (c) 2012-2014 iovation Inc.
 
 Copyright (c) 2013 Ștefan Suciu
 

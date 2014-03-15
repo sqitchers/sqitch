@@ -84,3 +84,5 @@ firebird
 Firebird's
 Gentoo
 Suciu
+MariaDB
+XC

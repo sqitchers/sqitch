@@ -241,13 +241,13 @@ The database engine to use. Supported engines include:
 
 =over
 
-=item * C<pg> - L<PostgreSQL|http://postgresql.org/>
+=item * C<pg> - L<PostgreSQL|http://postgresql.org/> and L<Postgres-XC|http://sourceforge.net/>
 
 =item * C<sqlite> - L<SQLite|http://sqlite.org/>
 
 =item * C<oracle> - L<Oracle|http://www.oracle.com/us/products/database/>
 
-=item * C<mysql> - L<MySQL|http://dev.mysql.com/>
+=item * C<mysql> - L<MySQL|http://dev.mysql.com/> and L<MariaDB|https://mariadb.com/>
 
 =item * C<firebird> - L<Firebird|http://www.firebirdsql.org/>
 
@@ -560,7 +560,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2013 iovation Inc.
+Copyright (c) 2012-2014 iovation Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

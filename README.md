@@ -1,4 +1,4 @@
-App/Sqitch version 0.992
+App/Sqitch version 0.993
 ========================
 
 [Sqitch](http://sqitch.org/) is a database change management application. It
@@ -99,7 +99,7 @@ well:
 Licence
 -------
 
-Copyright © 2012-2013 iovation Inc.
+Copyright © 2012-2014 iovation Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
