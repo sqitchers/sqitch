@@ -133,7 +133,7 @@ sub write_config {
     my ( @vars, @comments );
 
     # Write the engine.
-    if (my $ekey = eval { $sqitch->_engine }) {
+    if (my $ekey = eval { $sqitch->engine_key }) {
         push @vars => {
             key   => "core.engine",
             value => $ekey,

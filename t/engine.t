@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 604;
+use Test::More tests => 594;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -121,38 +121,6 @@ ok my $engine = $CLASS->load({
 }), 'Load a "whu" engine';
 isa_ok $engine, 'App::Sqitch::Engine::whu';
 is $engine->sqitch, $sqitch, 'The sqitch attribute should be set';
-
-# Try passing a URI.
-ok $engine = $CLASS->load({
-    sqitch => $sqitch,
-    uri => URI->new('db:sqlite:'),
-}), 'Load a SQLite engine via URI';
-isa_ok $engine, 'App::Sqitch::Engine::sqlite';
-
-# Try a URI with a driver that is not lowercase.
-ok $engine = $CLASS->load({
-    sqitch => $sqitch,
-    uri => URI->new('db:pg:'),
-}), 'Load a Pg engine via URI';
-isa_ok $engine, 'App::Sqitch::Engine::pg';
-
-# Try an unknown engine.
-throws_ok { $CLASS->load({ uri => URI->new('db:unknown:') }) }
-    'App::Sqitch::X', 'Should get error for unsupported engine';
-is $@->ident, 'engine', 'Unsupported engine error ident should be "engine"';;
-is $@->message,  __x(
-    'Unsupported datbase engine "{engine}"',
-    engine => 'unknown'
-), 'Unsupported engine error message should be correct';
-
-# Try a non-DB URI.
-throws_ok { $CLASS->load({ uri => URI->new('file:foo') }) }
-    'App::Sqitch::X', 'Should get error for non-DB URI';
-is $@->ident, 'engine', 'Non-DB URI error ident should be "engine"';;
-is $@->message,  __x(
-    'URI "{uri}" is not a database URI',
-    uri => 'file:foo'
-), 'Non-DB URI error message should be correct';
 
 # Test handling of an invalid engine.
 throws_ok { $CLASS->load({ engine => 'nonexistent', sqitch => $sqitch }) }

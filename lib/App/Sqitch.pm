@@ -38,13 +38,6 @@ BEGIN {
         1;
     };
 
-    subtype 'CoreEngine', as 'Str', where {
-        my $e = $_;
-        hurl core => __x('Unknown engine: {engine}', engine => $_)
-            unless first { $e eq $_ } qw(pg sqlite mysql oracle firebird);
-        1;
-    };
-
     subtype 'ConfigBool', as 'Bool';
     coerce  'ConfigBool', from 'Maybe[Value]', via {
         my $bool = eval { App::Sqitch::Config->cast( value => $_, as => 'bool' ) };
@@ -87,23 +80,48 @@ has plan => (
 );
 
 has _engine => (
-    is      => 'ro',
-    lazy    => 1,
-    isa     => 'CoreEngine',
-    default => sub {
-        shift->config->get( key => 'core.engine' ) || hurl core => __(
-            'No engine specified; use --engine or set core.engine'
-        );
-    }
+    is       => 'ro',
+    isa      => 'Maybe[Str]',
+    required => 0,
 );
+
+sub engine_key {
+    my ($self, $uri) = @_;
+
+    # Figure out what engine to use. Precedence --engine, target, config.
+    my $key = $self->_engine || do {
+        if ($uri) {
+            hurl core => __x(
+                'URI "{uri}" is not a database URI',
+                uri => $uri
+            ) unless $uri->isa('URI::db');
+            my $dbd = $uri->dbi_driver or hurl core => __x(
+                'Unsupported database engine "{engine}"',
+                engine => scalar $uri->engine
+            );
+            lc $dbd;
+        } elsif ( my $key = $self->config->get( key => 'core.engine' ) ) {
+            $key =~ s/\s+\z//;
+            lc $key;
+        } else {
+            hurl core => __(
+                'No engine specified; use --engine or set core.engine'
+            );
+        }
+    };
+    hurl core => __x('Unknown engine "{engine}"', engine => $key)
+        unless first { $key eq $_ } qw(pg sqlite mysql oracle firebird);
+}
 
 sub engine {
     my $self = shift;
+    my %p = ref $_[0] ? %{ $_[0] } : @_;
+
     require App::Sqitch::Engine;
     App::Sqitch::Engine->load({
         sqitch => $self,
-        engine => $self->_engine,
-        ref $_[0] ? %{ $_[0] } : @_
+        engine => $self->engine_key($p{uri}),
+        %p,
     });
 }
 
@@ -898,6 +916,16 @@ If the C<$target> argument looks like a database URI, it will simply returned
 in the hash reference. If the C<$target> argument corresponds to a target
 configuration key, the target configuration will be returned, with the C<uri>
 value a upgraded to a L<URI> object. Otherwise returns C<undef>.
+
+=head2 C<engine_key>
+
+  my $key = $sqitch->engine_key;
+  my $key = $sqitch->engine_key($uri);
+
+Returns the key name of the engine. If C<--engine> was specified, its value
+will be used. If the C<$uri> argument is passed and is a L<URI::db> object,
+the key will be derived from its database driver. Otherwise, the value
+specified for the C<core.engine> variable will be used.
 
 =head2 C<config_for_target_strict>
 
