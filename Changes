@@ -5,6 +5,8 @@ Revision history for Perl extension App::Sqitch
        over the `core.engine` configuration variable. This means that you no
        longer have to pass `--engine` when using commands that accept a target
        option or argument, such as `deploy`.
+     - Fixed test failure when DBD::Firebird is installed but Firebird isql
+       cannot be found.
 
 0.992  2014-03-05T00:34:49Z
      - Fixed target test failures on Windows.

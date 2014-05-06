@@ -48,9 +48,10 @@ is_deeply [$CLASS->config_vars], [
 my $sqitch = App::Sqitch->new(_engine => 'firebird', db_name => 'foo.fdb');
 isa_ok my $fb = $CLASS->new(sqitch  => $sqitch), $CLASS;
 
-like( $fb->client, qr/isql|fbsql|isql-fb/,
-    'client should default to isql | fbsql | isql-fb' )
-    if $have_fb_driver;
+if ($have_fb_driver && (my $client = try { $fb->client })) {
+    like $client, qr/isql|fbsql|isql-fb/,
+        'client should default to isql | fbsql | isql-fb';
+}
 
 is $fb->uri->dbname, file('foo.fdb'), 'dbname should be filled in';
 is $fb->registry_uri->dbname, 'sqitch.fdb',
