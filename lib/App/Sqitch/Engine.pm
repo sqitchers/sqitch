@@ -368,6 +368,9 @@ sub revert {
     my $sqitch = $self->sqitch;
     my $plan   = $self->plan;
 
+    my $default_response = $self->sqitch->config->get(key => 'default_responses.revert');
+    $default_response ||= 'Yes';
+
     my @changes;
 
     if (defined $to) {
@@ -415,7 +418,7 @@ sub revert {
                 'Revert changes to {change} from {destination}?',
                 change      => $change->format_name_with_tags,
                 destination => $self->destination,
-            ), 'Yes');
+            ), $default_response);
         }
 
     } else {
@@ -438,7 +441,7 @@ sub revert {
             } unless $sqitch->ask_y_n(__x(
                 'Revert all changes from {destination}?',
                 destination => $self->destination,
-            ), 'Yes');
+            ), $default_response);
         }
     }
 

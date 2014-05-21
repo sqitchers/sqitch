@@ -148,7 +148,6 @@ is $@->message, 'Unable to load App::Sqitch::Engine::bad',
 like $@->previous_exception, qr/^LOL BADZ/,
     'Should have relevant previoius exception from the bad module';
 
-
 ##############################################################################
 # Test name.
 can_ok $CLASS, 'name';
@@ -1626,6 +1625,13 @@ is_deeply $engine->seen, [
     [deployed_changes => undef],
 ], 'Should have called deployed_changes';
 
+#UnSet the config variable for default response
+$engine->sqitch->config->define(
+    section => 'default_responses', 
+    name => 'revert', 
+    value => 'Yes', 
+    origin => 'default_responses.revert');
+
 # Now revert from a deployed change.
 my @dbchanges;
 @deployed_changes = map {
@@ -1665,12 +1671,14 @@ is_deeply $engine->seen, [
     [run_file => $dbchanges[0]->revert_file ],
     [log_revert_change => $dbchanges[0] ],
 ], 'Should have reverted the changes in reverse order';
+
 is_deeply +MockOutput->get_ask_y_n, [
     [__x(
         'Revert all changes from {destination}?',
         destination => $engine->destination,
     ), 'Yes'],
 ], 'Should have prompted to revert all changes';
+
 is_deeply +MockOutput->get_info_literal, [
     ['  - lolz ..', '.........', ' '],
     ['  - widgets @beta ..', '', ' '],
