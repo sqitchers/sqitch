@@ -140,7 +140,7 @@ sub _char2ts {
 
 sub _listagg_format {
     # http://stackoverflow.com/q/16313631/79202
-    return q{COLLECT(%s)};
+    return q{CAST(COLLECT(cast(%s as varchar2(512))) AS sqitch_array)};
 }
 
 sub _regex_op { 'REGEXP_LIKE(%s, ?)' }
@@ -622,17 +622,19 @@ sub log_revert_change {
         ora_type => DBD::Oracle::ORA_VARCHAR2()
     });
     $sth->execute;
+    
+    my $aggcol = sprintf $self->_listagg_format, 'dependency';
 
     # Retrieve dependencies.
-    my ($req, $conf) = $dbh->selectrow_array(q{
+    my ($req, $conf) = $dbh->selectrow_array(qq{
         SELECT (
-            SELECT COLLECT(dependency)
+            SELECT $aggcol
               FROM dependencies
              WHERE change_id = ?
                AND type = 'require'
         ),
         (
-            SELECT COLLECT(dependency)
+            SELECT $aggcol
               FROM dependencies
              WHERE change_id = ?
                AND type = 'conflict'
