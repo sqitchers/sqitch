@@ -617,6 +617,8 @@ sub log_revert_change {
         ora_type => DBD::Oracle::ORA_VARCHAR2()
     });
     $sth->execute;
+    
+    my $aggcol = sprintf $self->_listagg_format, 'dependency';
 
     # Retrieve dependencies.
     my $depcol = sprintf $self->_listagg_format, 'dependency';
