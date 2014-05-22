@@ -1184,6 +1184,12 @@ sub search_events {
     hurl "$class has not implemented search_events()";
 }
 
+# Run any engine-specific cleanup steps after command execution
+sub cmd_cleanup {
+    my $class = ref $_[0] || $_[0];
+    # No-op. Stub to be iplemented per engine
+}
+
 __PACKAGE__->meta->make_immutable;
 no Mouse;
 
