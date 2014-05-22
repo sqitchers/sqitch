@@ -153,7 +153,7 @@ sub _valid_sql_scriptname {
     $file =~ s/"/""/g;
     my $tmp_filename = '_tmp_this_change.sql';
     
-    if ($file =~ m{[!\w\.\-/\\]}) {
+    if ($file =~ m{[^\w\.\-/\\]}) {
         #Special characters may not be allowed for calling scripts from sqlplus.
         # If present, return a copy to a "safe" file name.
         copy("$file", $tmp_filename);
