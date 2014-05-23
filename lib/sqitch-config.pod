@@ -441,7 +441,7 @@ The database engine to use. Supported engines include:
 Path to directory containing deploy, revert, and verify SQL scripts. It
 should contain subdirectories named C<deploy>, C<revert>, and (optionally)
 C<verify>. These may be overridden by C<deploy_dir>, C<revert_dir>, and
-C<verify_dir>. Defaults to C<./sql>.
+C<verify_dir>. Defaults to C<.>.
 
 =item C<core.deploy_dir>
 
