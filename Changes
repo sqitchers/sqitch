@@ -13,6 +13,9 @@ Revision history for Perl extension App::Sqitch
        database. Thanks to Timothy Procter for the report (Issue #166).
      - Fixed issue with aggregating text values with `COLLECT()` on Oracle.
        Thanks to Timothy Procter for the spelunking (Issue #91).
+     - Fix issue where SQL*Plus could not run rework scripts because of the
+       `@` in the file name. Thanks to Timothy Procter for the report
+       (Issue #165).
 
 0.992  2014-03-05T00:34:49Z
      - Fixed target test failures on Windows.

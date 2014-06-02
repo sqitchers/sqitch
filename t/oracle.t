@@ -112,7 +112,7 @@ is_deeply [$ora->sqlplus], [$client, @std_opts],
     'sqlplus command should connect to /nolog';
 
 is $ora->_script, join( "\n" => (
-        'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF',
+        'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF ESCCHAR @',
         'WHENEVER OSERROR EXIT 9;',
         'WHENEVER SQLERROR EXIT SQL.SQLCODE;',
         'connect ',
@@ -125,7 +125,7 @@ isa_ok $ora = $CLASS->new(
 ), $CLASS;
 
 is $ora->_script, join( "\n" => (
-        'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF',
+        'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF ESCCHAR @',
         'WHENEVER OSERROR EXIT 9;',
         'WHENEVER SQLERROR EXIT SQL.SQLCODE;',
         'connect fred/"derf"@"blah"',
@@ -138,7 +138,7 @@ isa_ok $ora = $CLASS->new(
 ), $CLASS;
 
 is $ora->_script('@foo'), join( "\n" => (
-        'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF',
+        'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF ESCCHAR @',
         'WHENEVER OSERROR EXIT 9;',
         'WHENEVER SQLERROR EXIT SQL.SQLCODE;',
         'connect fred/"derf"@//there/"blah"',
@@ -156,7 +156,7 @@ ok $ora->set_variables(foo => 'baz', whu => 'hi there', yo => q{"stellar"}),
     'Set some variables';
 
 is $ora->_script, join( "\n" => (
-        'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF',
+        'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF ESCCHAR @',
         'WHENEVER OSERROR EXIT 9;',
         'WHENEVER SQLERROR EXIT SQL.SQLCODE;',
         'DEFINE foo="baz"',
