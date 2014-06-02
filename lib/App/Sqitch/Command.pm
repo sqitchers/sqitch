@@ -166,6 +166,13 @@ sub execute {
     hurl 'The execute() method has not been overridden in ' . ref $self;
 }
 
+sub cleanup {
+    my $self = shift;
+    
+    # invoke any engine-specific cleanup commands
+    $self->sqitch->engine->cmd_cleanup();
+}
+
 sub usage {
     my $self = shift;
     require Pod::Find;

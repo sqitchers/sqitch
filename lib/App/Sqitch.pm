@@ -374,7 +374,9 @@ sub go {
         });
 
         # 7. Execute command.
-        $command->execute( @{$cmd_args} ) ? 0 : 2;
+        my $return_code = $command->execute( @{$cmd_args} ) ? 0 : 2;
+        $command->cleanup();
+        $return_code;
     } catch {
         # Just bail for unknown exceptions.
         $sqitch->vent($_) && return 2 unless eval { $_->isa('App::Sqitch::X') };

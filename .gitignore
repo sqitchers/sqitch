@@ -15,3 +15,4 @@
 .build/
 *.mo
 .al
+*.komodoproject

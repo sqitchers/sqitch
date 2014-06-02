@@ -10,6 +10,7 @@ use App::Sqitch::X qw(hurl);
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::Plan::Change;
 use List::Util qw(first);
+use File::Copy;
 use namespace::autoclean;
 
 extends 'App::Sqitch::Engine';
@@ -140,12 +141,34 @@ sub _char2ts {
 
 sub _listagg_format {
     # http://stackoverflow.com/q/16313631/79202
-    return q{COLLECT(%s)};
+    return q{CAST(COLLECT(cast(%s as varchar2(512))) AS sqitch_array)};
 }
 
 sub _regex_op { 'REGEXP_LIKE(%s, ?)' }
 
 sub _simple_from { ' FROM dual' }
+
+sub _valid_sql_scriptname {
+    my ($self, $file) = @_;
+    $file =~ s/"/""/g;
+    my $tmp_filename = '_tmp_this_change.sql';
+    
+    if ($file =~ m{[^\w\.\-/\\]}) {
+        #Special characters may not be allowed for calling scripts from sqlplus.
+        # If present, return a copy to a "safe" file name.
+        copy("$file", $tmp_filename);
+        return $tmp_filename;
+    }
+    
+    return $file;
+}
+
+sub cmd_cleanup {
+    my $self = shift;
+    my $tmp_filename = '_tmp_this_change.sql';
+    
+    unlink $tmp_filename if -f $tmp_filename;
+}
 
 sub _multi_values {
     my ($self, $count, $expr) = @_;
@@ -586,14 +609,15 @@ sub begin_work {
 }
 
 sub run_file {
-    my $self = shift;
-    (my $file = shift) =~ s/"/""/g;
+    my ($self, $file) = @_;
+    $file = $self->_valid_sql_scriptname($file);
     $self->_run(qq{\@"$file"});
 }
 
 sub run_verify {
-    my $self = shift;
-    (my $file = shift) =~ s/"/""/g;
+    my ($self, $file) = @_;
+    $file = $self->_valid_sql_scriptname($file);
+
     # Suppress STDOUT unless we want extra verbosity.
     my $meth = $self->can($self->sqitch->verbosity > 1 ? '_run' : '_capture');
     $self->$meth(qq{\@"$file"});
@@ -622,17 +646,19 @@ sub log_revert_change {
         ora_type => DBD::Oracle::ORA_VARCHAR2()
     });
     $sth->execute;
+    
+    my $aggcol = sprintf $self->_listagg_format, 'dependency';
 
     # Retrieve dependencies.
-    my ($req, $conf) = $dbh->selectrow_array(q{
+    my ($req, $conf) = $dbh->selectrow_array(qq{
         SELECT (
-            SELECT COLLECT(dependency)
+            SELECT $aggcol
               FROM dependencies
              WHERE change_id = ?
                AND type = 'require'
         ),
         (
-            SELECT COLLECT(dependency)
+            SELECT $aggcol
               FROM dependencies
              WHERE change_id = ?
                AND type = 'conflict'
