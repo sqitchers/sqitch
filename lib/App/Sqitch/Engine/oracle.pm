@@ -140,7 +140,7 @@ sub _char2ts {
 
 sub _listagg_format {
     # http://stackoverflow.com/q/16313631/79202
-    return q{COLLECT(%s)};
+    return q{CAST(COLLECT(CAST(%s AS VARCHAR2(512))) AS sqitch_array)};
 }
 
 sub _regex_op { 'REGEXP_LIKE(%s, ?)' }
@@ -196,10 +196,6 @@ sub current_state {
     my $pdtcol = sprintf $self->_ts2char_format, 'c.planned_at';
     my $tagcol = sprintf $self->_listagg_format, 't.tag';
     my $dbh    = $self->dbh;
-    # XXX Oy, placeholders do not work with COLLECT() in this query.
-    # http://www.nntp.perl.org/group/perl.dbi.users/2013/05/msg36581.html
-    # http://stackoverflow.com/q/16407560/79202
-    my $qproj  = $dbh->quote($project // $self->plan->project);
     my $state  = $dbh->selectrow_hashref(qq{
         SELECT * FROM (
             SELECT c.change_id
@@ -215,7 +211,7 @@ sub current_state {
                  , $tagcol AS tags
               FROM changes   c
               LEFT JOIN tags t ON c.change_id = t.change_id
-             WHERE c.project = $qproj
+             WHERE c.project = ?
              GROUP BY c.change_id
                  , c.change
                  , c.project
@@ -228,81 +224,10 @@ sub current_state {
                  , c.planned_at
              ORDER BY c.committed_at DESC
         ) WHERE rownum = 1
-    }) or return undef;
+    }, undef, $project // $self->plan->project) or return undef;
     $state->{committed_at} = _dt $state->{committed_at};
     $state->{planned_at}   = _dt $state->{planned_at};
     return $state;
-}
-
-sub deployed_changes {
-    my $self   = shift;
-    my $tscol  = sprintf $self->_ts2char_format, 'c.planned_at';
-    my $tagcol = sprintf $self->_listagg_format, 't.tag';
-    # XXX Oy, placeholders do not work with COLLECT() in this query.
-    # http://www.nntp.perl.org/group/perl.dbi.users/2013/05/msg36581.html
-    # http://stackoverflow.com/q/16407560/79202
-    my $qproj  = $self->dbh->quote($self->plan->project);
-    return map {
-        $_->{timestamp} = _dt $_->{timestamp};
-        $_;
-    } @{ $self->dbh->selectall_arrayref(qq{
-        SELECT c.change_id AS id, c.change AS name, c.project, c.note,
-               $tscol AS timestamp, c.planner_name, c.planner_email,
-               $tagcol AS tags
-          FROM changes   c
-          LEFT JOIN tags t ON c.change_id = t.change_id
-         WHERE c.project = $qproj
-         GROUP BY c.change_id, c.change, c.project, c.note, c.planned_at,
-               c.planner_name, c.planner_email, c.committed_at
-         ORDER BY c.committed_at ASC
-    }, { Slice => {} } ) };
-}
-
-sub deployed_changes_since {
-    my ( $self, $change ) = @_;
-    my $tscol  = sprintf $self->_ts2char_format, 'c.planned_at';
-    my $tagcol = sprintf $self->_listagg_format, 't.tag';
-    # XXX Oy, placeholders do not work with COLLECT() in this query.
-    # http://www.nntp.perl.org/group/perl.dbi.users/2013/05/msg36581.html
-    # http://stackoverflow.com/q/16407560/79202
-    my $qproj  = $self->dbh->quote($self->plan->project);
-    return map {
-        $_->{timestamp} = _dt $_->{timestamp};
-        $_;
-    } @{ $self->dbh->selectall_arrayref(qq{
-        SELECT c.change_id AS id, c.change AS name, c.project, c.note,
-               $tscol AS timestamp, c.planner_name, c.planner_email,
-               $tagcol AS tags
-          FROM changes   c
-          LEFT JOIN tags t ON c.change_id = t.change_id
-         WHERE c.project = $qproj
-           AND c.committed_at > (SELECT committed_at FROM changes WHERE change_id = ?)
-         GROUP BY c.change_id, c.change, c.project, c.note, c.planned_at,
-               c.planner_name, c.planner_email, c.committed_at
-         ORDER BY c.committed_at ASC
-    }, { Slice => {} }, $change->id) };
-}
-
-sub load_change {
-    my ( $self, $change_id ) = @_;
-    my $tscol  = sprintf $self->_ts2char_format, 'c.planned_at';
-    my $tagcol = sprintf $self->_listagg_format, 't.tag';
-    # XXX Oy, placeholders do not work with COLLECT() in this query.
-    # http://www.nntp.perl.org/group/perl.dbi.users/2013/05/msg36581.html
-    # http://stackoverflow.com/q/16407560/79202
-    my $qcid   = $self->dbh->quote($change_id);
-    my $change = $self->dbh->selectrow_hashref(qq{
-        SELECT c.change_id AS id, c.change AS name, c.project, c.note,
-               $tscol AS timestamp, c.planner_name, c.planner_email,
-                $tagcol AS tags
-          FROM changes   c
-          LEFT JOIN tags t ON c.change_id = t.change_id
-         WHERE c.change_id = $qcid
-         GROUP BY c.change_id, c.change, c.project, c.note, c.planned_at,
-               c.planner_name, c.planner_email
-    }, undef) || return undef;
-    $change->{timestamp} = _dt $change->{timestamp};
-    return $change;
 }
 
 sub is_deployed_change {
@@ -624,15 +549,16 @@ sub log_revert_change {
     $sth->execute;
 
     # Retrieve dependencies.
-    my ($req, $conf) = $dbh->selectrow_array(q{
+    my $depcol = sprintf $self->_listagg_format, 'dependency';
+    my ($req, $conf) = $dbh->selectrow_array(qq{
         SELECT (
-            SELECT COLLECT(dependency)
+            SELECT $depcol
               FROM dependencies
              WHERE change_id = ?
                AND type = 'require'
         ),
         (
-            SELECT COLLECT(dependency)
+            SELECT $depcol
               FROM dependencies
              WHERE change_id = ?
                AND type = 'conflict'

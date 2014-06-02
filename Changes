@@ -11,6 +11,8 @@ Revision history for Perl extension App::Sqitch
        script. This can occur when a change has been reworked in the plan, but
        the reworked version of the change has not been deployed to the
        database. Thanks to Timothy Procter for the report (Issue #166).
+     - Fixed issue with aggregating text values with `COLLECT()` on Oracle.
+       Thanks to Timothy Procter for the spelunking (Issue #91).
 
 0.992  2014-03-05T00:34:49Z
      - Fixed target test failures on Windows.
