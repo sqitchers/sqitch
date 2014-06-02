@@ -581,9 +581,6 @@ for my $spec (
     } grep { $_ } @{ $args }], "Should load changes with $desc";
 }
 
-# diag $_->format_name_with_tags for $plan->changes;
-# diag $_->id for $plan->changes;
-
 ##############################################################################
 # Test deploy_change and revert_change.
 ok $engine = App::Sqitch::Engine::whu->new( sqitch => $sqitch ),
