@@ -241,21 +241,8 @@ sub load {
     my ( $class, $p ) = @_;
 
     # We should have a URI or an engine param.
-    my $engine = delete $p->{engine} || do {
-        if (my $uri = $p->{uri}) {
-            hurl engine => __x(
-                'URI "{uri}" is not a database URI',
-                uri => $uri
-            ) unless $uri->isa('URI::db');
-            my $dbd = $uri->dbi_driver or hurl engine => __x(
-                'Unsupported datbase engine "{engine}"',
-                engine => scalar $uri->engine
-            );
-            lc $dbd;
-        } else {
-            undef;
-        }
-    } or hurl 'Missing "uri" or "engine" parameter to load()';
+    my $engine = delete $p->{engine}
+        or hurl 'Missing "uri" or "engine" parameter to load()';
 
     # Load the engine class.
     my $pkg = __PACKAGE__ . "::$engine";
@@ -826,6 +813,7 @@ sub _load_changes {
     my $self = shift;
     my $plan = $self->plan;
     my (@changes, %seen);
+    my %rework_tags_for;
     for my $params (@_) {
         next unless $params;
         my $tags = $params->{tags} || [];
@@ -836,14 +824,45 @@ sub _load_changes {
             App::Sqitch::Plan::Tag->new(name => $_, plan => $plan, change => $c )
         ) for map { s/^@//; $_ } @{ $tags };
 
-        if ( defined ( my $idx = $seen{ $params->{name} } ) ) {
-            # It's reworked; add rework tags in reverse order by change.
-            my $dupe = $changes[$idx];
-            $dupe->add_rework_tags(map { $changes[$_]->tags } reverse $idx..$#changes);
+        if ( defined ( my $prev_idx = $seen{ $params->{name} } ) ) {
+            # It's reworked; grab all subsequent tags up to but not including
+            # the reworking change to the reworked change.
+            my $ctags = $rework_tags_for{ $prev_idx } ||= [];
+            my $i;
+            for my $x ($prev_idx..$#changes) {
+                my $rtags = $ctags->[$i++] ||= [];
+                my %s = map { $_->name => 1 } @{ $rtags };
+                push @{ $rtags } => grep { !$s{$_->name} } $changes[$x]->tags;
+            }
+        }
+
+        if ( defined ( my $reworked_idx = eval {
+            $plan->first_index_of( @{ $params }{qw(name id)} )
+        } ) ) {
+            # The plan has it reworked later; grab all tags from this change
+            # up to but not including the reworked change.
+            my $ctags = $rework_tags_for{ $#changes + 1 } ||= [];
+            my $idx = $plan->index_of($params->{id});
+            my $i;
+            for my $x ($idx..$reworked_idx - 1) {
+                my $c = $plan->change_at($x);
+                my $rtags = $ctags->[$i++] ||= [];
+                push @{ $rtags } => $plan->change_at($x)->tags;
+            }
         }
 
         push @changes => $c;
         $seen{ $params->{name} } = $#changes;
+    }
+
+    # Associate all rework tags in reverse order. Tags fetched from the plan
+    # have priority over tags fetched from the database.
+    while (my ($idx, $tags) = each %rework_tags_for) {
+        my %seen;
+        $changes[$idx]->add_rework_tags(
+            grep { !$seen{$_->name}++ }
+            map  { @{ $_ } } reverse @{ $tags }
+        );
     }
 
     return @changes;

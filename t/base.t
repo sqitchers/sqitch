@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 224;
+use Test::More tests => 232;
 #use Test::More 'no_plan';
 use Test::MockModule;
 use Path::Class;
@@ -75,12 +75,12 @@ is $sqitch->user_email, do {
     $sqitch->sysuser . '@' . Sys::Hostname::hostname();
 }, 'Default user_email should be set from system';
 
-# Test _engine.
-throws_ok { $sqitch->_engine } 'App::Sqitch::X',
-    'Should get exception for no _engine';
-is $@->ident, 'core', 'No _engine error ident should be "core"';
+# Test engine_key.
+throws_ok { $sqitch->engine_key } 'App::Sqitch::X',
+    'Should get exception for no engine_key';
+is $@->ident, 'core', 'No engine_key error ident should be "core"';
 is $@->message, __ 'No engine specified; use --engine or set core.engine',
-    'No _engine error message should be correct';
+    'No engine_key error message should be correct';
 throws_ok { $sqitch->engine } 'App::Sqitch::X',
     'Should get exception for no engine';
 is $@->ident, 'core', 'No engine error ident should be "core"';
@@ -88,15 +88,37 @@ is $@->message, __ 'No engine specified; use --engine or set core.engine',
     'No engine error message should be correct';
 
 # Try an unknown engine.
-throws_ok { $CLASS->new(_engine => 'nonexistent') } 'App::Sqitch::X',
+throws_ok { $CLASS->new(_engine => 'nonexistent')->engine_key } 'App::Sqitch::X',
     'Should get error for unknown engine';
 is $@->ident, 'core', 'Unknown engine error ident should be "core"';
-is $@->message, __x('Unknown engine: {engine}', engine => 'nonexistent'),
-    'Unknown No engine error message should be correct';
+is $@->message, __x('Unknown engine "{engine}"', engine => 'nonexistent'),
+    'Unknown engine error message should be correct';
+
+# Try engine key from URI.
+is $sqitch->engine_key(URI->new('db:sqlite:foo')), 'sqlite',
+    'Should derive sqlite engine key from URI';
+
+# Try a URI with a driver that is not lowercase.
+is $sqitch->engine_key(URI->new('db:pg:foo')), 'pg',
+    'Should derive pg engine key from URI';
+
+throws_ok { $sqitch->engine_key(URI->new('db:nonexistent:')) } 'App::Sqitch::X',
+    'Should get error for nonexistent engine';
+is $@->ident, 'core', 'Nonexistent engine error ident should be "core"';
+is $@->message, __x('Unsupported database engine "{engine}"', engine => 'nonexistent'),
+    'Nonexistent engine error message should be correct';
+
+throws_ok { $sqitch->engine_key(URI->new('file:foo:')) } 'App::Sqitch::X',
+    'Should get error for non-db URI';
+is $@->ident, 'core', 'Non-db URI error ident should be "core"';
+is $@->message,  __x(
+    'URI "{uri}" is not a database URI',
+    uri => 'file:foo:'
+), 'Non-DB URI error message should be correct';
 
 # Valid engines and the engine constructors.
 for my $eng (qw(pg sqlite mysql oracle)) {
-    ok my $sqitch = $CLASS->new(_engine => $eng),
+    ok my $sqitch = $CLASS->new(engine_key => $eng),
         qq{Engine "$eng" should be valid};
 
     my $uri = URI->new("db:$eng:foo");
@@ -260,7 +282,7 @@ GO: {
     is_deeply \@params, ['config'], 'Extra args should be passed to execute';
 
     isa_ok my $sqitch = $cmd->sqitch, 'App::Sqitch';
-    is $sqitch->_engine, 'sqlite', 'Engine should be set by option';
+    is $sqitch->engine_key, 'sqlite', 'Engine should be set by option';
     # isa $sqitch->engine, 'App::Sqitch::Engine::sqlite',
     #     'Engine object should be constructable';
     is $sqitch->extension, 'ddl', 'ddl should be set by config';
