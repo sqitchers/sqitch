@@ -7,6 +7,10 @@ Revision history for Perl extension App::Sqitch
        option or argument, such as `deploy`.
      - Fixed test failure when DBD::Firebird is installed but Firebird isql
        cannot be found.
+     - Fixed issue where the revert command fails to execute the proper revert
+       script. This can occur when a change has been reworked in the plan, but
+       the reworked version of the change has not been deployed to the
+       database. Thanks to Timothy Procter for the report (Issue #166).
 
 0.992  2014-03-05T00:34:49Z
      - Fixed target test failures on Windows.

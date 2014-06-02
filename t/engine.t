@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 594;
+use Test::More tests => 599;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -475,6 +475,104 @@ for my $spec (
             change    => $c,
             timestamp => $now,
         )) for map { s/^@//; $_ } @{ $tags };
+        if (my $dupe = $seen{ $_->{name} }) {
+            $dupe->add_rework_tags( map { $seen{$_}->tags } @{ $rtags });
+        }
+        $seen{ $_->{name} } = $c;
+        $c;
+    } grep { $_ } @{ $args }], "Should load changes with $desc";
+}
+
+# Rework a change in the plan.
+my $you = $plan->get('you');
+my $this_rocks = $plan->get('this/rocks');
+my $hey_there = $plan->get('hey-there');
+ok my $rev_change = $plan->rework( name => 'you' ), 'Rework change "you"';
+ok $plan->tag( name => '@beta1' ), 'Tag @beta1';
+
+# Load changes
+for my $spec (
+    [ 'Unplanned change' => [
+        {
+            id            => 'c8a60f1a4fdab2cf91ee7f6da08f4ac52a732b4d',
+            name          => 'you',
+            project       => 'engine',
+            note          => 'For realz',
+            planner_name  => 'Barack Obama',
+            planner_email => 'bo@whitehouse.gov',
+            timestamp     => $now,
+        },
+        {
+            id            => 'df18b5c9739772b210fcf2c4edae095e2f6a4163',
+            name          => 'this/rocks',
+            project       => 'engine',
+            note          => 'For realz',
+            planner_name  => 'Barack Obama',
+            planner_email => 'bo@whitehouse.gov',
+            timestamp     => $now,
+        },
+    ]],
+    [ 'reworked change without reworked version deployed' => [
+        {
+            id            => $you->id,
+            name          => $you->name,
+            project       => $you->project,
+            note          => $you->note,
+            planner_name  => $you->planner_name,
+            planner_email => $you->planner_email,
+            timestamp     => $you->timestamp,
+            ptags         => [ $hey_there->tags, $you->tags ],
+        },
+        {
+            id            => $this_rocks->id,
+            name          => 'this/rocks',
+            project       => 'engine',
+            note          => 'For realz',
+            planner_name  => 'Barack Obama',
+            planner_email => 'bo@whitehouse.gov',
+            timestamp     => $now,
+        },
+    ]],
+    [ 'reworked change with reworked version deployed' => [
+        {
+            id            => $you->id,
+            name          => $you->name,
+            project       => $you->project,
+            note          => $you->note,
+            planner_name  => $you->planner_name,
+            planner_email => $you->planner_email,
+            timestamp     => $you->timestamp,
+            tags          => [qw(@foo @bar)],
+            ptags         => [ $hey_there->tags, $you->tags ],
+        },
+        {
+            id            => $rev_change->id,
+            name          => $rev_change->name,
+            project       => 'engine',
+            note          => $rev_change->note,
+            planner_name  => $rev_change->planner_name,
+            planner_email => $rev_change->planner_email,
+            timestamp     => $rev_change->timestamp,
+        },
+    ]],
+) {
+    my ($desc, $args) = @{ $spec };
+    my %seen;
+    is_deeply [ $engine->_load_changes(@{ $args }) ], [ map {
+        my $tags  = $_->{tags}  || [];
+        my $rtags = $_->{rtags};
+        my $ptags = $_->{ptags};
+        my $c = App::Sqitch::Plan::Change->new(%{ $_ }, plan => $plan );
+        $c->add_tag(App::Sqitch::Plan::Tag->new(
+            name      => $_,
+            plan      => $plan,
+            change    => $c,
+            timestamp => $now,
+        )) for map { s/^@//; $_ } @{ $tags };
+        my %seen_tags;
+        if (@{ $ptags || [] }) {
+            $c->add_rework_tags( @{ $ptags });
+        }
         if (my $dupe = $seen{ $_->{name} }) {
             $dupe->add_rework_tags( map { $seen{$_}->tags } @{ $rtags });
         }
