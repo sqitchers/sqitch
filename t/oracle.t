@@ -112,7 +112,7 @@ is_deeply [$ora->sqlplus], [$client, @std_opts],
     'sqlplus command should connect to /nolog';
 
 is $ora->_script, join( "\n" => (
-        'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF ESCCHAR @',
+        'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF',
         'WHENEVER OSERROR EXIT 9;',
         'WHENEVER SQLERROR EXIT SQL.SQLCODE;',
         'connect ',
@@ -125,7 +125,7 @@ isa_ok $ora = $CLASS->new(
 ), $CLASS;
 
 is $ora->_script, join( "\n" => (
-        'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF ESCCHAR @',
+        'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF',
         'WHENEVER OSERROR EXIT 9;',
         'WHENEVER SQLERROR EXIT SQL.SQLCODE;',
         'connect fred/"derf"@"blah"',
@@ -138,7 +138,7 @@ isa_ok $ora = $CLASS->new(
 ), $CLASS;
 
 is $ora->_script('@foo'), join( "\n" => (
-        'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF ESCCHAR @',
+        'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF',
         'WHENEVER OSERROR EXIT 9;',
         'WHENEVER SQLERROR EXIT SQL.SQLCODE;',
         'connect fred/"derf"@//there/"blah"',
@@ -156,7 +156,7 @@ ok $ora->set_variables(foo => 'baz', whu => 'hi there', yo => q{"stellar"}),
     'Set some variables';
 
 is $ora->_script, join( "\n" => (
-        'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF ESCCHAR @',
+        'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF',
         'WHENEVER OSERROR EXIT 9;',
         'WHENEVER SQLERROR EXIT SQL.SQLCODE;',
         'DEFINE foo="baz"',
@@ -307,6 +307,30 @@ like capture_stderr {
         $ora->_capture('whatever'),
     } 'App::Sqitch::X', '_capture should die when sqlplus dies';
 }, qr/^OMGWTF/, 'STDERR should be emitted by _capture';
+
+##############################################################################
+# Test _file_for_script().
+can_ok $ora, '_file_for_script';
+is $ora->_file_for_script(Path::Class::file 'foo'), 'foo',
+    'File without special characters should be used directly';
+is $ora->_file_for_script(Path::Class::file '"foo"'), '""foo""',
+    'Double quotes should be SQL-escaped';
+
+# Get the temp dir used by the engine.
+ok my $tmpdir = $ora->tmpdir, 'Get temp dir';
+isa_ok $tmpdir, 'Path::Class::Dir', 'Temp dir';
+
+# Make sure a file with @ is aliased.
+my $file = $tmpdir->file('foo@bar.sql');
+$file->touch; # File must exist, because on Windows it gets copied.
+is $ora->_file_for_script($file), $tmpdir->file('foo_bar.sql'),
+    'File with special char should be aliased';
+
+# Make sure double-quotes are escaped.
+$file = $tmpdir->file('"foo$bar".sql');
+$file->touch; # File must exist, because on Windows it gets copied.
+is $ora->_file_for_script($file), $tmpdir->file('""foo_bar"".sql'),
+    'File with special char and quotes should be aliased';
 
 ##############################################################################
 # Test file and handle running.

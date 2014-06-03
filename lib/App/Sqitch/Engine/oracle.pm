@@ -61,6 +61,17 @@ has sqlplus => (
     },
 );
 
+has tmpdir => (
+    is       => 'ro',
+    isa      => 'Path::Class::Dir',
+    required => 1,
+    lazy     => 1,
+    default  => sub {
+        require File::Temp;
+        dir File::Temp::tempdir( CLEANUP => 1 );
+    },
+);
+
 sub key    { 'oracle' }
 sub name   { 'Oracle' }
 sub driver { 'DBD::Oracle 1.23' }
@@ -510,15 +521,40 @@ sub begin_work {
     return $self;
 }
 
+sub _file_for_script {
+    my ($self, $file) = @_;
+
+    # Just use the file if no special character.
+    if ($file !~ /[@?%\$]/) {
+        $file =~ s/"/""/g;
+        return $file;
+    }
+
+    # Alias or copy the file to a temporary directory that's removed on exit.
+    (my $alias = $file->basename) =~ s/[@?%\$]/_/g;
+    $alias = $self->tmpdir->file($alias);
+    if ($^O eq 'MSWin32') {
+        # Copy the file.
+        $file->copy_to($alias);
+    } else {
+        # Symlink!
+        symlink $file, $alias;
+    }
+
+    # Return the alias.
+    $alias =~ s/"/""/g;
+    return $alias;
+}
+
 sub run_file {
     my $self = shift;
-    (my $file = shift) =~ s/"/""/g;
+    my $file = $self->_file_for_script(shift);
     $self->_run(qq{\@"$file"});
 }
 
 sub run_verify {
     my $self = shift;
-    (my $file = shift) =~ s/"/""/g;
+    my $file = $self->_file_for_script(shift);
     # Suppress STDOUT unless we want extra verbosity.
     my $meth = $self->can($self->sqitch->verbosity > 1 ? '_run' : '_capture');
     $self->$meth(qq{\@"$file"});
@@ -608,7 +644,7 @@ sub _script {
     my %vars = $self->variables;
 
     return join "\n" => (
-        'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF ESCCHAR @',
+        'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF',
         'WHENEVER OSERROR EXIT 9;',
         'WHENEVER SQLERROR EXIT SQL.SQLCODE;',
         (map {; (my $v = $vars{$_}) =~ s/"/""/g; qq{DEFINE $_="$v"} } sort keys %vars),
