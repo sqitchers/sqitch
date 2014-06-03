@@ -533,13 +533,33 @@ sub _file_for_script {
     # Alias or copy the file to a temporary directory that's removed on exit.
     (my $alias = $file->basename) =~ s/[@?%\$]/_/g;
     $alias = $self->tmpdir->file($alias);
+
+    # Remove existing file.
+    if (-e $alias) {
+        $alias->remove or hurl oracle => __x(
+            'Cannot remove {file}: {error}',
+            file  => $alias,
+            error => $!
+        );
+    }
+
     if ($^O eq 'MSWin32') {
-        # Copy the file.
-        $file->copy_to($alias);
+        # Copy it.
+        $file->copy_to($alias) or hurl oracle => __x(
+            'Cannot copy {file} to {alias}: {error}',
+            file  => $file,
+            alias => $alias,
+            error => $!
+        );
     } else {
-        # Symlink!
-        unlink $alias;
-        symlink $file, $alias;
+        # Symlink it.
+        $alias->remove;
+        symlink $file, $alias or hurl oracle => __x(
+            'Cannot symlink {file} to {alias}: {error}',
+            file  => $file,
+            alias => $alias,
+            error => $!
+        );
     }
 
     # Return the alias.
