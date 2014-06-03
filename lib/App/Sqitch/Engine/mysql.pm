@@ -171,12 +171,13 @@ sub initialized {
     my $self = shift;
 
     # Try to connect.
-    my $err = 0;
-    my $dbh = try { $self->dbh } catch { $err = $DBI::err };
-    # MySQL error code 1049 (ER_BAD_DB_ERROR): Unknown database '%-.192s'
-    return 0 if $err && $err == 1049;
+    my $dbh = try { $self->dbh } catch {
+        # MySQL error code 1049 (ER_BAD_DB_ERROR): Unknown database '%-.192s'
+        return if $DBI::err && $DBI::err == 1049;
+        die $_;
+    } or return 0;
 
-    return $self->dbh->selectcol_arrayref(q{
+    return $dbh->selectcol_arrayref(q{
         SELECT COUNT(*)
           FROM information_schema.tables
          WHERE table_schema = ?
