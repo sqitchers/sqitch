@@ -538,6 +538,7 @@ sub _file_for_script {
         $file->copy_to($alias);
     } else {
         # Symlink!
+        unlink $alias;
         symlink $file, $alias;
     }
 
