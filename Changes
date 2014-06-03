@@ -19,6 +19,9 @@ Revision history for Perl extension App::Sqitch
      - Fix issue where, on first deploy, the MySQL engine would fail to notice
        that the server was not the right version of MySQL. Thanks to Luke
        Young for the report (Issue #158).
+     - Made the `checkit()` MySQL function DETERMINISTIC, to improve
+       compatability with MariaDB. Thanks to Jesse Luehrs for the report
+       (Issue #158).
 
 0.992  2014-03-05T00:34:49Z
      - Fixed target test failures on Windows.
