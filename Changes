@@ -12,9 +12,11 @@ Revision history for Perl extension App::Sqitch
        the reworked version of the change has not been deployed to the
        database. Thanks to Timothy Procter for the report (Issue #166).
      - Fixed issue with aggregating text values with `COLLECT()` on Oracle.
-       Thanks to Timothy Procter for the spelunking (Issue #91).
+       Thanks to Timothy Procter for the digging and invocation of an Oracle
+       support request (Issue #91).
      - Fixed issue where SQL*Plus could not run rework scripts because of the
-       `@` in the file name. Thanks to Timothy Procter for the report
+       `@` in the file name. It now uses a symlink (or copied file on Windows)
+       to circumvent the problem. Thanks to Timothy Procter for the report
        (Issue #165).
      - Fix issue where, on first deploy, the MySQL engine would fail to notice
        that the server was not the right version of MySQL. Thanks to Luke
