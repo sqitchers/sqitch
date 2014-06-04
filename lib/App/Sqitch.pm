@@ -23,7 +23,7 @@ use Mouse::Util::TypeConstraints;
 use MouseX::Types::Path::Class 0.06;
 use namespace::autoclean 0.11;
 
-our $VERSION = '0.993';
+our $VERSION = '0.994';
 
 BEGIN {
     # Need to create types before loading other Sqitch classes.

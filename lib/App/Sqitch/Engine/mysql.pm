@@ -17,7 +17,7 @@ extends 'App::Sqitch::Engine';
 sub dbh; # required by DBIEngine;
 with 'App::Sqitch::Role::DBIEngine';
 
-our $VERSION = '0.993';
+our $VERSION = '0.994';
 
 has registry_uri => (
     is       => 'ro',
