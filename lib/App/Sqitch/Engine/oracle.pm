@@ -554,7 +554,7 @@ sub _file_for_script {
     } else {
         # Symlink it.
         $alias->remove;
-        symlink $file, $alias or hurl oracle => __x(
+        symlink $file->absolute, $alias or hurl oracle => __x(
             'Cannot symlink {file} to {alias}: {error}',
             file  => $file,
             alias => $alias,
