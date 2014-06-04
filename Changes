@@ -22,6 +22,8 @@ Revision history for Perl extension App::Sqitch
      - Made the `checkit()` MySQL function DETERMINISTIC, to improve
        compatability with MariaDB. Thanks to Jesse Luehrs for the report
        (Issue #158).
+     - Fixed deployment to PostgreSQL 8.4 so that it no longer chokes on the
+       `:tableopts`. Thanks to Justin Hawkins for the report!
 
 0.992  2014-03-05T00:34:49Z
      - Fixed target test failures on Windows.

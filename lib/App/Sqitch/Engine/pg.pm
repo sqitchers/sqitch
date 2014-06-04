@@ -195,7 +195,10 @@ sub initialize {
         my $fh = File::Temp->new;
         print $fh $sql;
         close $fh;
-        $self->_run( '--file' => $fh->filename );
+        $self->_run(
+            '--file' => $fh->filename,
+            '--set'  => "tableopts=$opts",
+        );
     } else {
         # We can take advantage of the :"registry" variable syntax.
         $self->_run(
