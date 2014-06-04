@@ -1,6 +1,6 @@
 Revision history for Perl extension App::Sqitch
 
-0.993
+0.993  2014-06-04T20:14:34Z
      - Fixed engine loading to prefer the engine implied by the target URI
        over the `core.engine` configuration variable. This means that you no
        longer have to pass `--engine` when using commands that accept a target
