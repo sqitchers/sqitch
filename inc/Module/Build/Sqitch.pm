@@ -8,7 +8,7 @@ use IO::File ();
 use File::Spec ();
 use Config ();
 use File::Path ();
-use File::Copy ();)
+use File::Copy ();
 
 __PACKAGE__->add_property($_) for qw(etcdir installed_etcdir);
 
