@@ -327,10 +327,14 @@ is $ora->_file_for_script($file), $tmpdir->file('foo_bar.sql'),
     'File with special char should be aliased';
 
 # Make sure double-quotes are escaped.
-$file = $tmpdir->file('"foo$bar".sql');
-$file->touch; # File must exist, because on Windows it gets copied.
-is $ora->_file_for_script($file), $tmpdir->file('""foo_bar"".sql'),
-    'File with special char and quotes should be aliased';
+WIN32: {
+    $file = $tmpdir->file('"foo$bar".sql');
+    my $mock_file = Test::MockModule->new(ref $file);
+    # Windows doesn't like the quotation marks, so prevent it from writing.
+    $mock_file->mock(copy_to => 1) if $^O eq 'MSWin32';
+    is $ora->_file_for_script($file), $tmpdir->file('""foo_bar"".sql'),
+        'File with special char and quotes should be aliased';
+}
 
 ##############################################################################
 # Test file and handle running.
