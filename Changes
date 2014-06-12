@@ -5,6 +5,7 @@ Revision history for Perl extension App::Sqitch
      - Fixed file test failure for the Oracle engine on Windows.
      - Fixed bug where newer versions of Text::ANSIColor caused errors such as
        "Invalid object instance: 'yellow'".
+     - Fixed Oracle SQL*Plust capture test failure on Windows.
 
 0.993  2014-06-04T20:14:34Z
      - Fixed engine loading to prefer the engine implied by the target URI

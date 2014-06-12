@@ -287,8 +287,10 @@ is join('', <$fh> ), $ora->_script(qw(foo bar baz)),
     'The script should be spooled';
 
 ok $ora->_capture(qw(foo bar baz)), 'Call _capture';
-is_deeply \@capture, [[$ora->sqlplus], \$ora->_script(qw(foo bar baz)), []],
-    'Command and script should be passed to run3()';
+is_deeply \@capture, [
+    [$ora->sqlplus], \$ora->_script(qw(foo bar baz)), [], undef,
+    { return_if_system_error => 1 },
+], 'Command and script should be passed to run3()';
 
 # Let's make sure that IPC::Run3 actually works as expected.
 $mock_run3->unmock_all;
