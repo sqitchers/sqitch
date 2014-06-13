@@ -3,7 +3,7 @@ Revision history for Perl extension App::Sqitch
 0.994
      - Fixed installation failure due to missing IO::File module on Windows.
      - Fixed file test failure for the Oracle engine on Windows.
-     - Fixed bug where newer versions of Text::ANSIColor caused errors such as
+     - Fixed bug where namespace-autoclean: 0.16 caused errors such as
        "Invalid object instance: 'yellow'".
      - Fixed Oracle SQL*Plust capture test failure on Windows.
 
