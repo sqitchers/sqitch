@@ -13,7 +13,7 @@ use String::Formatter;
 use namespace::autoclean;
 use Try::Tiny;
 use Term::ANSIColor 2.02 qw(colorvalid);
-*encolor = \&Term::ANSIColor::color;
+my $encolor = \&Term::ANSIColor::color;
 
 use constant CAN_OUTPUT_COLOR => $^O eq 'MSWin32'
     ? try { require Win32::Console::ANSI }
@@ -141,7 +141,7 @@ has formatter => (
                 C => sub {
                     if (($_[1] // '') eq ':event') {
                         # Select a color based on some attribute.
-                        return encolor(
+                        return $encolor->(
                             $_[0]->{event} eq 'deploy' ? 'green'
                                 : $_[0]->{event} eq 'revert' ? 'blue'
                                 : 'red'
@@ -150,7 +150,7 @@ has formatter => (
                     hurl format => __x(
                         '{color} is not a valid ANSI color', color => $_[1]
                     ) unless $_[1] && colorvalid( $_[1] );
-                    encolor( $_[1] );
+                    $encolor->( $_[1] );
                 },
                 s => sub {
                     ( my $s = $_[0]->{note} ) =~ s/\v.*//ms;

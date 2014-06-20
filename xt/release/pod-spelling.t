@@ -28,6 +28,7 @@ blog
 depesz
 Flipr
 GitHub
+PostgreSQL
 PostgreSQL's
 sqitchtutorial
 sqitchchanges
@@ -86,3 +87,5 @@ Gentoo
 Suciu
 MariaDB
 XC
+pgTAP
+schemas
