@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Sqitch 0.932\n"
 "Report-Msgid-Bugs-To: david@justatheory.com\n"
-"POT-Creation-Date: 2014-06-04 13:07-0700\n"
+"POT-Creation-Date: 2014-06-19 19:55-0700\n"
 "PO-Revision-Date: 2012-10-12 11:28-0700\n"
 "Last-Translator: Arnaud Assad <arhuman@gmail.com>\n"
 "Language-Team: French <arhuman@gmail.com>\n"
@@ -95,7 +95,7 @@ msgstr "Impossible d'exécuter {command} : {error}"
 msgid "Error closing pipe to {command}: {error}"
 msgstr "Erreur en fermant le tube vers {command} : {error}"
 
-#: lib/App/Sqitch.pm:643 lib/App/Sqitch/Engine/oracle.pm:695
+#: lib/App/Sqitch.pm:643 lib/App/Sqitch/Engine/oracle.pm:698
 #, perl-brace-format
 msgid "{command} unexpectedly returned exit value {exitval}"
 msgstr "{command} a retourné de manière inattendue la valeur {exitval}"
@@ -362,102 +362,102 @@ msgstr "Impossible de trouver {target} dans le plan"
 msgid "Updating legacy change and tag IDs in {destination}"
 msgstr "Annulation de tous les changements de {destination}"
 
-#: lib/App/Sqitch/ItemFormatter.pm:61
+#: lib/App/Sqitch/ItemFormatter.pm:62
 msgid "Deploy"
 msgstr "Déploiement"
 
-#: lib/App/Sqitch/ItemFormatter.pm:62
+#: lib/App/Sqitch/ItemFormatter.pm:63
 msgid "Revert"
 msgstr "Annulation"
 
-#: lib/App/Sqitch/ItemFormatter.pm:63
+#: lib/App/Sqitch/ItemFormatter.pm:64
 msgid "Fail"
 msgstr "Echec"
 
-#: lib/App/Sqitch/ItemFormatter.pm:68
+#: lib/App/Sqitch/ItemFormatter.pm:69
 msgid "deploy"
 msgstr "déploiement"
 
-#: lib/App/Sqitch/ItemFormatter.pm:69
+#: lib/App/Sqitch/ItemFormatter.pm:70
 msgid "revert"
 msgstr "annulation"
 
-#: lib/App/Sqitch/ItemFormatter.pm:70
+#: lib/App/Sqitch/ItemFormatter.pm:71
 msgid "fail"
 msgstr "échec"
 
-#: lib/App/Sqitch/ItemFormatter.pm:75
+#: lib/App/Sqitch/ItemFormatter.pm:76
 msgid "Event:    "
 msgstr "Evènement :      "
 
-#: lib/App/Sqitch/ItemFormatter.pm:76
+#: lib/App/Sqitch/ItemFormatter.pm:77
 msgid "Change:   "
 msgstr "Changement :     "
 
-#: lib/App/Sqitch/ItemFormatter.pm:77
+#: lib/App/Sqitch/ItemFormatter.pm:78
 msgid "Committer:"
 msgstr "Committer :      "
 
-#: lib/App/Sqitch/ItemFormatter.pm:78
+#: lib/App/Sqitch/ItemFormatter.pm:79
 msgid "Planner:  "
 msgstr "Plannificateur : "
 
-#: lib/App/Sqitch/ItemFormatter.pm:79
+#: lib/App/Sqitch/ItemFormatter.pm:80
 msgid "By:       "
 msgstr "Par :            "
 
-#: lib/App/Sqitch/ItemFormatter.pm:80
+#: lib/App/Sqitch/ItemFormatter.pm:81
 msgid "Date:     "
 msgstr "Date :           "
 
-#: lib/App/Sqitch/ItemFormatter.pm:81
+#: lib/App/Sqitch/ItemFormatter.pm:82
 msgid "Committed:"
 msgstr "Committé :       "
 
-#: lib/App/Sqitch/ItemFormatter.pm:82
+#: lib/App/Sqitch/ItemFormatter.pm:83
 msgid "Planned:  "
 msgstr "Prévu :          "
 
-#: lib/App/Sqitch/ItemFormatter.pm:83
+#: lib/App/Sqitch/ItemFormatter.pm:84
 msgid "Name:     "
 msgstr "Nom :            "
 
-#: lib/App/Sqitch/ItemFormatter.pm:84
+#: lib/App/Sqitch/ItemFormatter.pm:85
 msgid "Project:  "
 msgstr "Projet :         "
 
-#: lib/App/Sqitch/ItemFormatter.pm:85
+#: lib/App/Sqitch/ItemFormatter.pm:86
 msgid "Email:    "
 msgstr "Email :          "
 
-#: lib/App/Sqitch/ItemFormatter.pm:86 lib/App/Sqitch/ItemFormatter.pm:174
+#: lib/App/Sqitch/ItemFormatter.pm:87 lib/App/Sqitch/ItemFormatter.pm:177
 msgid "Requires: "
 msgstr "Requis :         "
 
-#: lib/App/Sqitch/ItemFormatter.pm:87 lib/App/Sqitch/ItemFormatter.pm:185
+#: lib/App/Sqitch/ItemFormatter.pm:88 lib/App/Sqitch/ItemFormatter.pm:188
 msgid "Conflicts:"
 msgstr "Conflits :       "
 
-#: lib/App/Sqitch/ItemFormatter.pm:89
+#: lib/App/Sqitch/ItemFormatter.pm:90
 msgid "No label passed to the _ format"
 msgstr "Pas d'étiquette passée au format _ "
 
-#: lib/App/Sqitch/ItemFormatter.pm:93
+#: lib/App/Sqitch/ItemFormatter.pm:94
 #, perl-brace-format
 msgid "Unknown label \"{label}\" passed to the _ format"
 msgstr "Étiquette \"{label}\" inconnue passée au format _"
 
-#: lib/App/Sqitch/ItemFormatter.pm:148
+#: lib/App/Sqitch/ItemFormatter.pm:151
 #, perl-brace-format
 msgid "{color} is not a valid ANSI color"
 msgstr "{color} n'est pas une couleur ANSI valide"
 
-#: lib/App/Sqitch/ItemFormatter.pm:191
+#: lib/App/Sqitch/ItemFormatter.pm:194
 #, perl-brace-format
 msgid "{attr} is not a valid change attribute"
 msgstr "{attr} n'est pas un changement d'attribut valide"
 
-#: lib/App/Sqitch/ItemFormatter.pm:214
+#: lib/App/Sqitch/ItemFormatter.pm:217
 #, fuzzy, perl-brace-format
 msgid "Unknown format code \"{code}\""
 msgstr "Code de format de journalisation  \"{code}\" inconnu"
