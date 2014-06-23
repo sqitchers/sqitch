@@ -175,7 +175,7 @@ sub initialize {
     my @cmd = $self->sqlite3;
     $cmd[-1] = $self->registry_uri->dbname;
     my $file = file(__FILE__)->dir->file('sqlite.sql');
-    $self->sqitch->run( @cmd, '.read ' . $self->dbh->quote($file) );
+    $self->sqitch->run( @cmd, $self->_read($file) );
 }
 
 sub _no_table_error  {
@@ -222,19 +222,26 @@ sub _spool {
 
 sub run_file {
     my ($self, $file) = @_;
-    $self->_run( '.read ' . $self->dbh->quote($file) );
+    $self->_run( $self->_read($file) );
 }
 
 sub run_verify {
     my ($self, $file) = @_;
     # Suppress STDOUT unless we want extra verbosity.
     my $meth = $self->can($self->sqitch->verbosity > 1 ? '_run' : '_capture');
-    $self->$meth( '.read ' . $self->dbh->quote($file) );
+    $self->$meth( $self->_read($file) );
 }
 
 sub run_handle {
     my ($self, $fh) = @_;
     $self->_spool($fh);
+}
+
+sub _read {
+    my $self = shift;
+    my $cmd = '.read ' . $self->dbh->quote(shift);
+    return $cmd if $^O ne 'MSWin32';
+    return $self->sqitch->quote_shell($cmd);
 }
 
 __PACKAGE__->meta->make_immutable;
