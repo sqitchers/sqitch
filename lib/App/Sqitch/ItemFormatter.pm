@@ -7,6 +7,7 @@ use utf8;
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use App::Sqitch::DateTime;
+use List::Util qw(max);
 use Mouse;
 use Mouse::Util::TypeConstraints;
 use String::Formatter;
@@ -202,7 +203,7 @@ has formatter => (
                         $val = $val->as_string( format => 'raw' );
                     }
 
-                    my $sp = ' ' x (9 - length $_[1]);
+                    my $sp = ' ' x max(9 - length $_[1], 0);
                     return "$_[1]$sp $val\n";
                 }
             },

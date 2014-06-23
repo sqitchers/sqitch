@@ -117,6 +117,13 @@ has max_name_length => (
     is      => 'rw',
     isa     => 'Int',
     default => 0,
+    lazy    => 1,
+    default => sub {
+        my $plan = shift->plan;
+        max map {
+            length $_->format_name_with_tags
+        } $plan->changes;
+    },
 );
 
 has plan => (

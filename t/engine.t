@@ -16,6 +16,7 @@ use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use lib 't/lib';
 use MockOutput;
+use List::Util qw(max);
 
 my $CLASS;
 
@@ -588,6 +589,7 @@ ok $engine = App::Sqitch::Engine::whu->new( sqitch => $sqitch ),
 can_ok $engine, 'deploy_change', 'revert_change';
 
 my $change = App::Sqitch::Plan::Change->new( name => 'users', plan => $sqitch->plan );
+$engine->max_name_length(length $change->format_name_with_tags);
 
 ok $engine->deploy_change($change), 'Deploy a change';
 is_deeply $engine->seen, [
@@ -720,7 +722,7 @@ is_deeply $engine->seen, [
     ['finish_work'],
 ], 'deploy_change with no verify file should not run it';
 is_deeply +MockOutput->get_info_literal, [[
-    '  + foo ..', '' , ' '
+    '  + foo ..', '..' , ' '
 ]], 'Output should reflect the logging';
 is_deeply +MockOutput->get_info, [[__ 'ok' ]],
     'Output should reflect deploy success';
@@ -739,7 +741,7 @@ is_deeply $engine->seen, [
     ['finish_work'],
 ], 'revert_change should have called the proper methods';
 is_deeply +MockOutput->get_info_literal, [[
-    '  - foo ..', '', ' '
+    '  - foo ..', '..', ' '
 ]], 'Output should reflect reversion';
 is_deeply +MockOutput->get_info, [[__ 'ok']],
     'Output should acknowldge revert success';
@@ -753,7 +755,7 @@ is_deeply $engine->seen, [
     ['finish_work'],
 ], 'Log-only revert_change should not have run the change script';
 is_deeply +MockOutput->get_info_literal, [[
-    '  - foo ..', '', ' '
+    '  - foo ..', '..', ' '
 ]], 'Output should reflect logged reversion';
 is_deeply +MockOutput->get_info, [[__ 'ok']],
     'Output should acknowldge revert success';
@@ -1060,6 +1062,7 @@ NOSTEPS: {
     my $sqitch = App::Sqitch->new( _engine => 'sqlite', plan_file => $plan_file );
     ok $engine = App::Sqitch::Engine::whu->new( sqitch => $sqitch ),
         'Engine with sqitch with no file';
+    $engine->max_name_length(10);
     throws_ok { $engine->deploy } 'App::Sqitch::X', 'Should die with no changes';
     is $@->message, __"Nothing to deploy (empty plan)",
         'Should have the localized message';
@@ -1073,6 +1076,11 @@ NOSTEPS: {
 $plan->reset;
 $mock_engine->unmock('_deploy_by_change');
 ok $engine->_deploy_by_change($plan, 1), 'Deploy changewise to index 1';
+$engine->max_name_length(
+    max map {
+        length $_->format_name_with_tags
+    } $plan->changes
+);
 is_deeply $engine->seen, [
     [run_file => $changes[0]->deploy_file],
     [log_deploy_change => $changes[0]],
@@ -1080,7 +1088,7 @@ is_deeply $engine->seen, [
     [log_deploy_change => $changes[1]],
 ], 'Should changewise deploy to index 2';
 is_deeply +MockOutput->get_info_literal, [
-    ['  + roles ..', '', ' '],
+    ['  + roles ..', '.....', ' '],
     ['  + users @alpha ..', '', ' '],
 ], 'Should have seen output of each change';
 is_deeply +MockOutput->get_info, [[__ 'ok' ], [__ 'ok']],
@@ -1095,7 +1103,7 @@ is_deeply $engine->seen, [
 ], 'Should changewise deploy to from index 2 to index 3';
 is_deeply +MockOutput->get_info_literal, [
     ['  + widgets @beta ..', '', ' '],
-    ['  + lolz ..', '', ' '],
+    ['  + lolz ..', '.........', ' '],
 ], 'Should have seen output of changes 2-3';
 is_deeply +MockOutput->get_info, [[__ 'ok' ], [__ 'ok']],
     'Output should reflect deploy successes';
@@ -1110,7 +1118,7 @@ is_deeply $engine->seen, [
     [log_fail_change => $changes[0] ],
 ], 'It should have logged the failure';
 is_deeply +MockOutput->get_info_literal, [
-    ['  + roles ..', '', ' '],
+    ['  + roles ..', '........', ' '],
 ], 'Should have seen output for first change';
 is_deeply +MockOutput->get_info, [[__ 'not ok']],
     'Output should reflect deploy failure';
@@ -1129,8 +1137,8 @@ is_deeply $engine->seen, [
     [log_deploy_change => $changes[1]],
 ], 'Should tagwise deploy to index 1';
 is_deeply +MockOutput->get_info_literal, [
-    ['  + roles ..', '', ' '],
-    ['  + users @alpha ..', '', ' '],
+    ['  + roles ..', '........', ' '],
+    ['  + users @alpha ..', '.', ' '],
 ], 'Should have seen output of each change';
 is_deeply +MockOutput->get_info, [[__ 'ok' ], [__ 'ok']],
     'Output should reflect deploy successes';
@@ -1144,7 +1152,7 @@ is_deeply $engine->seen, [
 ], 'Should tagwise deploy from index 2 to index 3';
 is_deeply +MockOutput->get_info_literal, [
     ['  + widgets @beta ..', '', ' '],
-    ['  + lolz ..', '', ' '],
+    ['  + lolz ..', '.........', ' '],
 ], 'Should have seen output of changes 3-3';
 is_deeply +MockOutput->get_info, [[__ 'ok' ], [__ 'ok']],
     'Output should reflect deploy successes';
@@ -1176,11 +1184,11 @@ is_deeply $engine->seen, [
 
 is_deeply +MockOutput->get_info_literal, [
     ['  + widgets @beta ..', '', ' '],
-    ['  + lolz ..', '', ' '],
-    ['  + tacos ..', '', ' '],
-    ['  + curry ..', '', ' '],
-    ['  - tacos ..', '', ' '],
-    ['  - lolz ..', '', ' '],
+    ['  + lolz ..', '.........', ' '],
+    ['  + tacos ..', '........', ' '],
+    ['  + curry ..', '........', ' '],
+    ['  - tacos ..', '........', ' '],
+    ['  - lolz ..', '.........', ' '],
 ], 'Should have seen deploy and revert messages (excluding curry revert)';
 is_deeply +MockOutput->get_info, [
     [__ 'ok' ],
@@ -1211,11 +1219,11 @@ is_deeply $engine->seen, [
 
 is_deeply +MockOutput->get_info_literal, [
     ['  + widgets @beta ..', '', ' '],
-    ['  + lolz ..', '', ' '],
-    ['  + tacos ..', '', ' '],
-    ['  + curry ..', '', ' '],
-    ['  - tacos ..', '', ' '],
-    ['  - lolz ..', '', ' '],
+    ['  + lolz ..', '.........', ' '],
+    ['  + tacos ..', '........', ' '],
+    ['  + curry ..', '........', ' '],
+    ['  - tacos ..', '........', ' '],
+    ['  - lolz ..', '.........', ' '],
 ], 'Should have seen deploy and revert messages (excluding curry revert)';
 is_deeply +MockOutput->get_info, [
     [__ 'ok' ],
@@ -1244,9 +1252,9 @@ is_deeply $engine->seen, [
     [log_revert_change => $changes[0]],
 ], 'Should have logged back to the beginning';
 is_deeply +MockOutput->get_info_literal, [
-    ['  + roles ..', '', ' '],
-    ['  + users @alpha ..', '', ' '],
-    ['  - roles ..', '', ' '],
+    ['  + roles ..', '........', ' '],
+    ['  + users @alpha ..', '.', ' '],
+    ['  - roles ..', '........', ' '],
 ], 'Should have seen deploy and revert messages';
 is_deeply +MockOutput->get_info, [
     [__ 'ok' ],
@@ -1285,16 +1293,16 @@ is_deeply $engine->seen, [
 ], 'Should have reverted back to last tag';
 
 is_deeply +MockOutput->get_info_literal, [
-    ['  + roles ..', '', ' '],
-    ['  + users @alpha ..', '', ' '],
+    ['  + roles ..', '........', ' '],
+    ['  + users @alpha ..', '.', ' '],
     ['  + widgets @beta ..', '', ' '],
-    ['  + lolz ..', '', ' '],
-    ['  + tacos ..', '', ' '],
-    ['  + curry ..', '', ' '],
-    ['  + dr_evil ..', '', ' '],
-    ['  - curry ..', '', ' '],
-    ['  - tacos ..', '', ' '],
-    ['  - lolz ..', '', ' '],
+    ['  + lolz ..', '.........', ' '],
+    ['  + tacos ..', '........', ' '],
+    ['  + curry ..', '........', ' '],
+    ['  + dr_evil ..', '......', ' '],
+    ['  - curry ..', '........', ' '],
+    ['  - tacos ..', '........', ' '],
+    ['  - lolz ..', '.........', ' '],
 ], 'Should have user change reversion messages';
 is_deeply +MockOutput->get_info, [
     [__ 'ok' ],
@@ -1330,9 +1338,9 @@ is_deeply $engine->seen, [
     [log_fail_change => $changes[1] ],
 ], 'Should have tried to revert one change';
 is_deeply +MockOutput->get_info_literal, [
-    ['  + roles ..', '', ' '],
-    ['  + users @alpha ..', '', ' '],
-    ['  - roles ..', '', ' '],
+    ['  + roles ..', '........', ' '],
+    ['  + users @alpha ..', '.', ' '],
+    ['  - roles ..', '........', ' '],
 ], 'Should have seen revert message';
 is_deeply +MockOutput->get_info, [
     [__ 'ok' ],
@@ -1360,8 +1368,8 @@ is_deeply $engine->seen, [
     [log_deploy_change => $changes[1]],
 ], 'Should tagwise deploy to index 1';
 is_deeply +MockOutput->get_info_literal, [
-    ['  + roles ..', '', ' '],
-    ['  + users @alpha ..', '', ' '],
+    ['  + roles ..', '........', ' '],
+    ['  + users @alpha ..', '.', ' '],
 ], 'Should have seen output of each change';
 is_deeply +MockOutput->get_info, [
     [__ 'ok' ],
@@ -1400,11 +1408,11 @@ is_deeply $engine->seen, [
 ], 'It should have logged up to the failure';
 
 is_deeply +MockOutput->get_info_literal, [
-    ['  + roles ..', '', ' '],
-    ['  + users @alpha ..', '', ' '],
+    ['  + roles ..', '........', ' '],
+    ['  + users @alpha ..', '.', ' '],
     ['  + widgets @beta ..', '', ' '],
-    ['  - users @alpha ..', '', ' '],
-    ['  - roles ..', '', ' '],
+    ['  - users @alpha ..', '.', ' '],
+    ['  - roles ..', '........', ' '],
 ], 'Should have seen deploy and revert messages excluding revert for failed logging';
 is_deeply +MockOutput->get_info, [
     [__ 'ok' ],
@@ -1434,11 +1442,11 @@ is_deeply $engine->seen, [
 ], 'It should have run no deploys or reverts';
 
 is_deeply +MockOutput->get_info_literal, [
-    ['  + roles ..', '', ' '],
-    ['  + users @alpha ..', '', ' '],
+    ['  + roles ..', '........', ' '],
+    ['  + users @alpha ..', '.', ' '],
     ['  + widgets @beta ..', '', ' '],
-    ['  - users @alpha ..', '', ' '],
-    ['  - roles ..', '', ' '],
+    ['  - users @alpha ..', '.', ' '],
+    ['  - roles ..', '........', ' '],
 ], 'Should have seen deploy and revert messages excluding revert for failed logging';
 is_deeply +MockOutput->get_info, [
     [__ 'ok' ],
@@ -1468,11 +1476,11 @@ is_deeply $engine->seen, [
     [log_revert_change => $changes[0]],
 ], 'Should have reveted all changes and tags';
 is_deeply +MockOutput->get_info_literal, [
-    ['  + roles ..', '', ' '],
-    ['  + users @alpha ..', '', ' '],
+    ['  + roles ..', '........', ' '],
+    ['  + users @alpha ..', '.', ' '],
     ['  + widgets @beta ..', '', ' '],
-    ['  - users @alpha ..', '', ' '],
-    ['  - roles ..', '', ' '],
+    ['  - users @alpha ..', '.', ' '],
+    ['  - roles ..', '........', ' '],
 ], 'Should see all changes revert';
 is_deeply +MockOutput->get_info, [
     [__ 'ok' ],
@@ -1504,13 +1512,13 @@ is_deeply $engine->seen, [
 ], 'Should have deployed to dr_evil and revered down to @alpha';
 
 is_deeply +MockOutput->get_info_literal, [
-    ['  + lolz ..', '', ' '],
-    ['  + tacos ..', '', ' '],
-    ['  + curry ..', '', ' '],
-    ['  + dr_evil ..', '', ' '],
-    ['  - curry ..', '', ' '],
-    ['  - tacos ..', '', ' '],
-    ['  - lolz ..', '', ' '],
+    ['  + lolz ..', '.........', ' '],
+    ['  + tacos ..', '........', ' '],
+    ['  + curry ..', '........', ' '],
+    ['  + dr_evil ..', '......', ' '],
+    ['  - curry ..', '........', ' '],
+    ['  - tacos ..', '........', ' '],
+    ['  - lolz ..', '.........', ' '],
 ], 'Should see changes revert back to @alpha';
 is_deeply +MockOutput->get_info, [
     [__ 'ok' ],
@@ -1554,7 +1562,7 @@ is_deeply $engine->seen, [
     [log_deploy_change => $change],
 ], 'It should have been deployed';
 is_deeply +MockOutput->get_info_literal, [
-    ['  + foo ..', '', ' ']
+    ['  + foo ..', '..........', ' ']
 ], 'Should have shown change name';
 is_deeply +MockOutput->get_info, [
     [__ 'ok' ],
@@ -1599,7 +1607,7 @@ DEPLOYDIE: {
         ['AAAH!'],
     ], 'Should have vented the original error';
     is_deeply +MockOutput->get_info_literal, [
-        ['  + foo ..', '', ' '],
+        ['  + foo ..', '..........', ' '],
     ], 'Should have shown change name';
         is_deeply +MockOutput->get_info, [
             [__ 'not ok' ],
@@ -1616,7 +1624,7 @@ is_deeply $engine->seen, [
     [log_revert_change => $change],
 ], 'It should have been reverted';
 is_deeply +MockOutput->get_info_literal, [
-    ['  - foo ..', '', ' ']
+    ['  - foo ..', '..........', ' ']
 ], 'Should have shown reverted change name';
 is_deeply +MockOutput->get_info, [
     [__ 'ok'],
