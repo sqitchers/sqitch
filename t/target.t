@@ -19,6 +19,9 @@ $ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
 $ENV{SQITCH_USER_CONFIG}   = 'nonexistent.user';
 $ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
 
+# Circumvent Config::Gitlike bug on Windows.
+$ENV{HOME} ||= '~';
+
 my $CLASS = 'App::Sqitch::Command::target';
 
 ##############################################################################
