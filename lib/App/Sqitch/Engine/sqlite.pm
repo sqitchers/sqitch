@@ -48,11 +48,12 @@ has registry_uri => (
             $uri->dbname($reg);
         } elsif (my @segs = $uri->path_segments) {
             # Use the same name, but replace $name.$ext with $reg.$ext.
-            my $reg = $self->registry;
-            if ($reg =~ /[.]/) {
-                $segs[-1] =~ s/^[^.]+(?:[.].+)?$/$reg/;
+            my $bn = file( $segs[-1] )->basename;
+            if ($reg =~ /[.]/ || $bn !~ /[.]/) {
+                $segs[-1] =~ s/\Q$bn\E$/$reg/;
             } else {
-                $segs[-1] =~ s/^[^.]+([.].+)?$/$reg$1/;
+                my ($b, $e) = split /[.]/, $bn, 2;
+                $segs[-1] =~ s/\Q$b\E[.]$e$/$reg.$e/;
             }
             $uri->path_segments(@segs);
         } else {
