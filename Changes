@@ -7,6 +7,7 @@ Revision history for Perl extension App::Sqitch
        isql cannot be found.
      - Fixed registry file naming issues on Win32 for the SQLite engine, and
        as well as the tests that failed because of it.
+     - Worked around Config::GitLike bug on Windows in the target test.
 
 0.994  2014-06-20T02:58:10Z
      - Fixed installation failure due to missing IO::File module on Windows.
