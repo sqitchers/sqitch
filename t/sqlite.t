@@ -342,6 +342,16 @@ $mock_sqitch->unmock_all;
 ##############################################################################
 my $alt_db = $db_name->dir->file('sqitchtest.db');
 # Can we do live tests?
+END {
+    my %drivers = DBI->installed_drivers;
+    for my $driver (values %drivers) {
+        $driver->visit_child_handles(sub {
+            my $h = shift;
+            $h->disconnect if $h->{Type} eq 'db' && $h->{Active};
+        });
+    }
+}
+
 DBIEngineTest->run(
     class         => $CLASS,
     sqitch_params => [
