@@ -214,6 +214,10 @@ $mock_config->unmock_all;
 
 ##############################################################################
 # Test _read().
+my $db_name = $tmp_dir->file('sqitch.db');
+$sqitch = App::Sqitch->new(_engine => 'sqlite');
+ok $sqlite = $CLASS->new(sqitch => $sqitch, uri => URI->new("db:sqlite:$db_name")),
+    'Instantiate with a temporary database file';
 can_ok $sqlite, qw(_read);
 my $quote = $^O eq 'MSWin32' ? sub { $sqitch->quote_shell(shift) } : sub { shift };
 is $sqlite->_read('foo'), $quote->(q{.read 'foo'}), '_read() should work';
@@ -224,10 +228,6 @@ is $sqlite->_read('foo \'bar\''), $quote->(q{.read 'foo ''bar'''}),
 
 ##############################################################################
 # Test _run(), _capture(), and _spool().
-my $db_name = $tmp_dir->file('sqitch.db');
-$sqitch = App::Sqitch->new(_engine => 'sqlite');
-ok $sqlite = $CLASS->new(sqitch => $sqitch, uri => URI->new("db:sqlite:$db_name")),
-    'Instantiate with a temporary database file';
 can_ok $sqlite, qw(_run _capture _spool);
 
 my (@run, @capture, @spool);
