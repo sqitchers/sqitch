@@ -54,7 +54,7 @@ Want to learn more? The best place to start is in the tutorials:
 
 There have also been a number of presentations on Sqitch:
 
-* [PDX.pm Presentation](https://speakerdeck.com/theory/sane-database-change-management-with-sqitch): 
+* [PDX.pm Presentation](https://speakerdeck.com/theory/sane-database-change-management-with-sqitch):
   Slides from "Sane Database Management with Sqitch", presented to the
   Portland Perl Mongers in January, 2013.
 
@@ -95,6 +95,19 @@ development on Sqitch, you will need to install the autoring dependencies, as
 well:
 
     dzil listdeps | xargs cpan
+
+To install Sqitch on linux with apt and cpanm, run following commands:
+
+    sudo apt-get update
+    sudo apt-get install build-essential cpanminus perl perl-doc
+    cpanm --quiet --notest App::Sqitch
+
+You will need to install extra packages to support each database engine:
+
+- libdbd-pg-perl
+- libdbd-mysql-perl
+- libdbd-sqlite2-perl/libdbd-sqlite3-perl
+- libdbd-oracle-perl
 
 Licence
 -------
