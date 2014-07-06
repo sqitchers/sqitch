@@ -85,6 +85,26 @@ from your typical <a href="http://guides.rubyonrails.org/migrations.html">migrat
   <li>For Firebird support, also run <code>ppm install DBD-Firebird</code></li>
 </ul>
 
+<h4>Linux: Apt & cpanm</h4>
+
+Run:<br>
+<code>
+    sudo apt-get update<br>
+    sudo apt-get install build-essential cpanminus perl perl-doc<br>
+    cpanm --quiet --notest App::Sqitch<br>
+</code><br>
+
+For database engine support install the following packages with apt:
+
+<code>sudo apt-get install</code>
+
+<ul>
+    <li>libdbd-pg-perl</li>
+    <li>libdbd-mysql-perl</li>
+    <li>libdbd-sqlite2-perl or libdbd-sqlite3-perl</li>
+    <li>libdbd-oracle-perl</li>
+</ul>
+
 <h2>Getting Started</h2>
 
 <h4>Tutorials</h4>
