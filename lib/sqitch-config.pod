@@ -396,7 +396,7 @@ Some variables may require a special value format.
       extension = ddl
 
   [core "pg"]
-      db_name   = widgetopolis
+      registry  = widgetopolis
 
   [revert]
       to        = gamma
