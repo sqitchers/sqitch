@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 599;
+use Test::More tests => 598;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -1025,11 +1025,10 @@ is_deeply +MockOutput->get_info_literal, [
 
 # If we deploy again, it should be up-to-date.
 $latest_change_id = $changes[-1]->id;
-throws_ok { $engine->deploy } 'App::Sqitch::X',
-    'Should catch exception for attempt to deploy to up-to-date DB';
-is $@->ident, 'deploy', 'Should be a "deploy" error';
-is $@->message, __ 'Nothing to deploy (up-to-date)',
-    'And the message should reflect up-to-dateness';
+ok $engine->deploy, 'Should return success for deploy to up-to-date DB';
+is_deeply +MockOutput->get_info, [
+    [__ 'Nothing to deploy (up-to-date)' ],
+], 'Should have emitted deploy announcement and successes';
 is_deeply $engine->seen, [
     [latest_change_id => undef],
 ], 'It should have just fetched the latest change ID';

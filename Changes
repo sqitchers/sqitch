@@ -8,6 +8,9 @@ Revision history for Perl extension App::Sqitch
      - Fixed registry file naming issues on Win32 for the SQLite engine, and
        as well as the tests that failed because of it.
      - Worked around Config::GitLike bug on Windows in the target test.
+     - Changed the exit value for an attempt to deploy to an up-to-date
+       database from 1 to 0. In other words, it no longer looks like an error
+       (Issue #147).
 
 0.994  2014-06-20T02:58:10Z
      - Fixed installation failure due to missing IO::File module on Windows.
