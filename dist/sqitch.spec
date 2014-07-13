@@ -253,6 +253,9 @@ package bundles the Sqitch Firebird support.
 # No additional files required.
 
 %changelog
+* Sun Jul 13 2014 David E. Wheeler <david.wheeler@iovation.com> 0.995-1
+- Upgrade to v0.995.
+
 * Thu Jun 19 2014 David E. Wheeler <david.wheeler@iovation.com> 0.994-1
 - Upgrade to v0.994.
 
