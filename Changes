@@ -1,6 +1,8 @@
 Revision history for Perl extension App::Sqitch
 
 0.996
+     - Fixed one more test failure due to the introduction of "Negative repeat
+       count does nothing" warning in Perl 5.21.1.
 
 0.995  2014-07-13T22:24:53Z
      - Fixed test failures due to the introduction of "Negative repeat count

@@ -1074,12 +1074,12 @@ NOSTEPS: {
 # Test _deploy_by_change()
 $plan->reset;
 $mock_engine->unmock('_deploy_by_change');
-ok $engine->_deploy_by_change($plan, 1), 'Deploy changewise to index 1';
 $engine->max_name_length(
     max map {
         length $_->format_name_with_tags
     } $plan->changes
 );
+ok $engine->_deploy_by_change($plan, 1), 'Deploy changewise to index 1';
 is_deeply $engine->seen, [
     [run_file => $changes[0]->deploy_file],
     [log_deploy_change => $changes[0]],
@@ -1087,8 +1087,8 @@ is_deeply $engine->seen, [
     [log_deploy_change => $changes[1]],
 ], 'Should changewise deploy to index 2';
 is_deeply +MockOutput->get_info_literal, [
-    ['  + roles ..', '.....', ' '],
-    ['  + users @alpha ..', '', ' '],
+    ['  + roles ..', '........', ' '],
+    ['  + users @alpha ..', '.', ' '],
 ], 'Should have seen output of each change';
 is_deeply +MockOutput->get_info, [[__ 'ok' ], [__ 'ok']],
     'Output should reflect deploy successes';
