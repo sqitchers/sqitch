@@ -63,7 +63,7 @@ sub list {
     my $sqitch  = $self->sqitch;
     my %targets = $sqitch->config->get_regexp(key => qr/^target[.][^.]+[.]uri$/);
 
-    my $format = $self->verbose ? "%s\t%s" : '%s';
+    my $format = $self->verbose ? "%1\$s\t%2\$s" : '%1$s';
     for my $key (sort keys %targets) {
         my ($target) = $key =~ /target[.]([^.]+)/;
         $sqitch->emit(sprintf $format, $target, $targets{$key});
