@@ -604,8 +604,6 @@ sub log_new_tags {
     my @tags   = $change->tags or return $self;
     my $sqitch = $self->sqitch;
 
-    ### ???? make sure this is tested, not sure what it's doing
-
     my ($id, $name, $proj, $user, $email) = (
         $change->id,
         $change->format_name,

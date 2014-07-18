@@ -73,6 +73,8 @@ BEGIN {
     $ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.user';
     $ENV{SQITCH_USER_CONFIG}   = 'nonexistent.sys';
     #delete $ENV{ORACLE_HOME};
+    # I don't understand why ORACLE_HOME was being deliberately unset and never restored? my tests only pass if 
+    # I remove the above line. Maybe I'm missing something here - AEH
 }
 
 is_deeply [$CLASS->config_vars], [
