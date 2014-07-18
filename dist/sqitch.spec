@@ -18,7 +18,7 @@ BuildRequires:  perl(constant)
 BuildRequires:  perl(DateTime)
 BuildRequires:  perl(DBI)
 BuildRequires:  perl(Devel::StackTrace) >= 1.30
-BuildRequires:  perl(Digest::SHA1)
+BuildRequires:  perl(Digest::SHA)
 BuildRequires:  perl(Encode)
 BuildRequires:  perl(Encode::Locale)
 BuildRequires:  perl(File::Basename)
@@ -83,7 +83,7 @@ Requires:       perl(Config::GitLike) >= 1.09
 Requires:       perl(constant)
 Requires:       perl(DateTime)
 Requires:       perl(Devel::StackTrace) >= 1.30
-Requires:       perl(Digest::SHA1)
+Requires:       perl(Digest::SHA)
 Requires:       perl(Encode)
 Requires:       perl(Encode::Locale)
 Requires:       perl(File::Basename)

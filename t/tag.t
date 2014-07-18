@@ -11,7 +11,7 @@ use Path::Class;
 use App::Sqitch;
 use App::Sqitch::Plan;
 use Test::MockModule;
-use Digest::SHA1;
+use Digest::SHA;
 use URI;
 
 my $CLASS;
@@ -141,7 +141,7 @@ is $tag->info, join("\n",
 
 is $tag->id, do {
     my $content = $tag->info;
-    Digest::SHA1->new->add(
+    Digest::SHA->new(1)->add(
         'tag ' . length($content) . "\0" . $content
     )->hexdigest;
 },'Tag ID should be correct';
@@ -157,7 +157,7 @@ is $tag->old_info, join("\n",
 
 is $tag->old_id, do {
     my $content = $tag->old_info;
-    Digest::SHA1->new->add(
+    Digest::SHA->new(1)->add(
         'tag ' . length($content) . "\0" . $content
     )->hexdigest;
 },'Old tag ID should be correct';
@@ -181,7 +181,7 @@ is $tag->info, join("\n",
 
 is $tag->id, do {
     my $content = Encode::encode_utf8 $tag->info;
-    Digest::SHA1->new->add(
+    Digest::SHA->new(1)->add(
         'tag ' . length($content) . "\0" . $content
     )->hexdigest;
 },'Tag ID should be hahsed from encoded UTF-8';
@@ -197,7 +197,7 @@ is $tag->old_info, join("\n",
 
 is $tag->old_id, do {
     my $content = Encode::encode_utf8 $tag->old_info;
-    Digest::SHA1->new->add(
+    Digest::SHA->new(1)->add(
         'tag ' . length($content) . "\0" . $content
     )->hexdigest;
 },'Old tag ID should be hahsed from encoded UTF-8';

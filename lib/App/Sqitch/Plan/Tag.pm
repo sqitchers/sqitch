@@ -40,8 +40,8 @@ has id => (
     lazy     => 1,
     default  => sub {
         my $content = encode_utf8 shift->info;
-        require Digest::SHA1;
-        return Digest::SHA1->new->add(
+        require Digest::SHA;
+        return Digest::SHA->new(1)->add(
             'tag ' . length($content) . "\0" . $content
         )->hexdigest;
     }
@@ -72,8 +72,8 @@ has old_id => (
     lazy     => 1,
     default  => sub {
         my $content = encode_utf8 shift->old_info;
-        require Digest::SHA1;
-        return Digest::SHA1->new->add(
+        require Digest::SHA;
+        return Digest::SHA->new(1)->add(
             'tag ' . length($content) . "\0" . $content
         )->hexdigest;
     }

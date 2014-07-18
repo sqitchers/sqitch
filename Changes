@@ -4,6 +4,8 @@ Revision history for Perl extension App::Sqitch
      - Fixed one more test failure due to the introduction of "Negative repeat
        count does nothing" warning in Perl 5.21.1.
      - Fixed "Redundant argument in printf" warning on Perl 5.21.2.
+     - Switched from Digest::SHA1, which is deprecated, to Digest::SHA for
+       generating SHA-1 IDs.
 
 0.995  2014-07-13T22:24:53Z
      - Fixed test failures due to the introduction of "Negative repeat count
