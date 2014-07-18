@@ -420,7 +420,6 @@ sub initialize {
     hurl engine => __ 'Sqitch already initialized' if $self->initialized;
 
     # Load up our database.
-    $DB::single = 1;
     (my $file = file(__FILE__)->dir->file('oracle.sql')) =~ s/"/""/g;
     my $meth = $self->can($self->sqitch->verbosity > 1 ? '_run' : '_capture');
 
