@@ -292,7 +292,7 @@ sub search_events {
 
 sub registered_projects {
     my $self = shift;
-    my $projects = self->_get_registry_table('projects');
+    my $projects = $self->_get_registry_table('projects');
     return @{ $self->dbh->selectcol_arrayref(
         qq{SELECT project FROM $projects ORDER BY project}
     ) };
@@ -306,7 +306,7 @@ sub register_project {
     my $proj   = $plan->project;
     my $uri    = $plan->uri;
 
-    my $projects = self->_get_registry_table('projects');
+    my $projects = $self->_get_registry_table('projects');
     my $res = $dbh->selectcol_arrayref(
         qq{SELECT uri FROM $projects WHERE project = ?},
         undef, $proj
@@ -393,7 +393,7 @@ sub is_deployed_tag {
     my ( $self, $tag ) = @_;
     my $tags = $self->_get_registry_table('tags');
 
-    return $self->dbh->selectcol_arrayref(q{
+    return $self->dbh->selectcol_arrayref(qq{
         SELECT EXISTS(
             SELECT 1
               FROM $tags
@@ -454,7 +454,7 @@ sub log_deploy_change {
 
     if ( my @deps = $change->dependencies ) {
         my $dependencies = $self->_get_registry_table('dependencies');
-        $dbh->do(q{
+        $dbh->do(qq{
             INSERT INTO $dependencies(
                   change_id
                 , type
@@ -473,7 +473,7 @@ sub log_deploy_change {
 
     if ( my @tags = $change->tags ) {
         my $tags = $self->_get_registry_table('tags');
-        $dbh->do(q{
+        $dbh->do(qq{
             INSERT INTO $tags (
                   tag_id
                 , tag
@@ -619,7 +619,7 @@ sub log_new_tags {
     my $tags = $self->_get_registry_table('tags');
 
     $self->dbh->do(
-        q{
+        qq{
             INSERT INTO $tags (
                    tag_id
                  , tag
@@ -637,7 +637,7 @@ sub log_new_tags {
                          } . join(
                 "\n               UNION ALL ",
                 ("SELECT ? AS tid, ? AS tname, ? AS proj, ? AS cid, ? AS note, ? AS cuser, ? AS cemail, ? AS tts, ? AS puser, ? AS pemail, $ts$sf") x @tags
-            ) . q{
+            ) . qq{
             ) i
               LEFT JOIN $tags ON i.tid = $tags.tag_id
              WHERE $tags.tag_id IS NULL
@@ -870,8 +870,8 @@ sub change_id_for {
                 if $tag eq 'HEAD' || $tag eq 'LAST';
 
             # Find by change name and following tag.
-            return $dbh->selectcol_arrayref(q{
-                SELECT changes.change_id
+            return $dbh->selectcol_arrayref(qq{
+                SELECT c.change_id
                   FROM $changes c
                   JOIN $tags t
                     ON c.committed_at <= t.committed_at
@@ -903,7 +903,7 @@ sub change_id_for {
             if $tag eq 'ROOT' || $tag eq 'FIRST';
 
         # Find by tag name.
-        return $dbh->selectcol_arrayref(q{
+        return $dbh->selectcol_arrayref(qq{
             SELECT change_id
               FROM $tags
              WHERE project = ?

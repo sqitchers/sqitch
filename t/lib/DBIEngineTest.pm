@@ -80,6 +80,12 @@ sub run {
         ok $engine->initialize, 'Initialize the database again';
         ok $engine->initialized, 'Database should be initialized again';
 
+        my $changes      = $engine->_get_registry_table('changes');
+        my $tags         = $engine->_get_registry_table('tags');
+        my $dependencies = $engine->_get_registry_table('dependencies');
+        my $events       = $engine->_get_registry_table('events');
+        my $projects     = $engine->_get_registry_table('projects');
+
         is $engine->earliest_change_id, undef, 'Still no earlist change';
         is $engine->latest_change_id, undef, 'Still no latest changes';
 
@@ -120,7 +126,7 @@ sub run {
         is_deeply [ $engine->registered_projects ], ['engine'],
             'Should have one registered project, "engine"';
         is_deeply $engine->dbh->selectall_arrayref(
-            'SELECT project, uri, creator_name, creator_email FROM projects'
+            "SELECT project, uri, creator_name, creator_email FROM $projects"
         ), [['engine', undef, $sqitch->user_name, $sqitch->user_email]],
             'The project should be registered';
 
@@ -129,7 +135,7 @@ sub run {
         is_deeply [ $engine->registered_projects ], ['engine'],
             'Should still have one registered project, "engine"';
         is_deeply $engine->dbh->selectall_arrayref(
-            'SELECT project, uri, creator_name, creator_email FROM projects'
+            "SELECT project, uri, creator_name, creator_email FROM $projects"
         ), [['engine', undef, $sqitch->user_name, $sqitch->user_email]],
             'The project should still be registered only once';
 
@@ -144,7 +150,7 @@ sub run {
         is_deeply [ $engine->registered_projects ], ['engine', 'groovy'],
             'Should have both registered projects';
         is_deeply $engine->dbh->selectall_arrayref(
-            'SELECT project, uri, creator_name, creator_email FROM projects ORDER BY created_at'
+            "SELECT project, uri, creator_name, creator_email FROM $projects ORDER BY created_at"
         ), [
             ['engine', undef, $sqitch->user_name, $sqitch->user_email],
             ['groovy', 'http://example.com/', $sqitch->user_name, $sqitch->user_email],
@@ -195,7 +201,7 @@ sub run {
             is_deeply [ $engine->registered_projects ], ['engine', 'groovy'],
                 'Should still have two registered projects';
             is_deeply $engine->dbh->selectall_arrayref(
-                'SELECT project, uri, creator_name, creator_email FROM projects ORDER BY created_at'
+                "SELECT project, uri, creator_name, creator_email FROM $projects ORDER BY created_at"
             ), [
                 ['engine', undef, $sqitch->user_name, $sqitch->user_email],
                 ['groovy', 'http://example.com/', $sqitch->user_name, $sqitch->user_email],
@@ -350,7 +356,7 @@ sub run {
         ]], 'The tag should be the same';
 
         # Delete that tag.
-        $engine->dbh->do('DELETE FROM tags');
+        $engine->dbh->do("DELETE FROM $tags");
         is_deeply all_tags($engine), [], 'Should now have no tags';
 
         # Put it back.
@@ -501,7 +507,7 @@ sub run {
         ok $req->resolved_id($change->id),      'Set resolved ID in required depend';
         # Send this change back in time.
         $engine->dbh->do(
-            'UPDATE changes SET committed_at = ?',
+            "UPDATE $changes SET committed_at = ?",
                 undef, '2013-03-30 00:47:47',
         );
         ok $engine->log_deploy_change($change2),    'Deploy second change';
@@ -890,7 +896,7 @@ sub run {
         if (my $format = $p{add_second_format}) {
             my $set = sprintf $format, 'committed_at';
             $engine->dbh->do(
-                "UPDATE tags SET committed_at = $set WHERE tag = '\@gamma'"
+                "UPDATE $tags SET committed_at = $set WHERE tag = '\@gamma'"
             );
         }
         unshift @current_tags => {
@@ -1322,7 +1328,7 @@ sub run {
         ok $engine->log_deploy_change($ext_change2), 'Log the external change with tag';
 
         # Make sure name_for_change_id() works properly.
-        ok $engine->dbh->do(q{DELETE FROM tags WHERE project = 'engine'}),
+        ok $engine->dbh->do(qq{DELETE FROM $tags WHERE project = 'engine'}),
             'Delete the engine project tags';
         is $engine->name_for_change_id($change2->id), 'widgets',
             'name_for_change_id() should return "widgets" for its ID';
@@ -1485,10 +1491,10 @@ sub run {
                 'Deploy "' . $_->name . '" change' for @all_changes;
 
             my $upd_change = $engine->dbh->prepare(
-                'UPDATE changes SET change_id = ? WHERE change_id = ?'
+                "UPDATE $changes SET change_id = ? WHERE change_id = ?"
             );
             my $upd_tag = $engine->dbh->prepare(
-                'UPDATE tags SET tag_id = ? WHERE tag_id = ?'
+                "UPDATE $tags SET tag_id = ? WHERE tag_id = ?"
             );
 
             for my $change (@proj_changes) {
@@ -1557,9 +1563,10 @@ sub run {
 sub dt_for_change {
     my $engine = shift;
     my $col = sprintf $engine->_ts2char_format, 'committed_at';
+    my $changes = $engine->_get_registry_table('changes');
     my $dtfunc = $engine->can('_dt');
     $dtfunc->($engine->dbh->selectcol_arrayref(
-        "SELECT $col FROM changes WHERE change_id = ?",
+        "SELECT $col FROM $changes WHERE change_id = ?",
         undef, shift
     )->[0]);
 }
@@ -1567,9 +1574,10 @@ sub dt_for_change {
 sub dt_for_tag {
     my $engine = shift;
     my $col = sprintf $engine->_ts2char_format, 'committed_at';
+    my $tags = $engine->_get_registry_table('tags');
     my $dtfunc = $engine->can('_dt');
     $dtfunc->($engine->dbh->selectcol_arrayref(
-        "SELECT $col FROM tags WHERE tag_id = ?",
+        "SELECT $col FROM $tags WHERE tag_id = ?",
         undef, shift
     )->[0]);
 }
@@ -1586,56 +1594,65 @@ sub all {
 sub dt_for_event {
     my ($engine, $offset) = @_;
     my $col = sprintf $engine->_ts2char_format, 'committed_at';
+    my $events = $engine->_get_registry_table('events');
     my $dtfunc = $engine->can('_dt');
     my $dbh = $engine->dbh;
     return $dtfunc->($engine->dbh->selectcol_arrayref(qq{
         SELECT ts FROM (
             SELECT ts, rownum AS rnum FROM (
                 SELECT $col AS ts
-                  FROM events
+                  FROM $events
                  ORDER BY committed_at ASC
             )
         ) WHERE rnum = ?
     }, undef, $offset + 1)->[0]) if $dbh->{Driver}->{Name} eq 'Oracle';
     return $dtfunc->($engine->dbh->selectcol_arrayref(
-        "SELECT FIRST 1 SKIP $offset $col FROM events ORDER BY committed_at ASC",
+        "SELECT FIRST 1 SKIP $offset $col FROM $events ORDER BY committed_at ASC",
     )->[0]) if $dbh->{Driver}->{Name} eq 'Firebird';
     return $dtfunc->($engine->dbh->selectcol_arrayref(
-        "SELECT $col FROM events ORDER BY committed_at ASC LIMIT 1 OFFSET $offset",
+        "SELECT $col FROM $events ORDER BY committed_at ASC LIMIT 1 OFFSET $offset",
     )->[0]);
 }
 
 sub all_changes {
-    shift->dbh->selectall_arrayref(q{
+    my $engine = shift;
+    my $changes = $engine->_get_registry_table('changes');
+    $engine->dbh->selectall_arrayref(qq{
         SELECT change_id, c.change, project, note, committer_name, committer_email,
                planner_name, planner_email
-          FROM changes c
+          FROM $changes c
          ORDER BY committed_at
     });
 }
 
 sub all_tags {
-    shift->dbh->selectall_arrayref(q{
+    my $engine = shift;
+    my $tags = $engine->_get_registry_table('tags');
+    $engine->dbh->selectall_arrayref(qq{
         SELECT tag_id, tag, change_id, project, note,
                committer_name, committer_email, planner_name, planner_email
-          FROM tags
+          FROM $tags
          ORDER BY committed_at
     });
 }
 
 sub all_events {
-    shift->dbh->selectall_arrayref(q{
+    my $engine = shift;
+    my $events = $engine->_get_registry_table('events');
+    $engine->dbh->selectall_arrayref(qq{
         SELECT event, change_id, e.change, project, note, requires, conflicts, tags,
                committer_name, committer_email, planner_name, planner_email
-          FROM events e
+          FROM $events e
          ORDER BY committed_at
     });
 }
 
 sub get_dependencies {
-    shift->dbh->selectall_arrayref(q{
+    my $engine = shift;
+    my $dependencies = $engine->_get_registry_table('dependencies');
+    $engine->dbh->selectall_arrayref(qq{
         SELECT change_id, type, dependency, dependency_id
-          FROM dependencies
+          FROM $dependencies
          WHERE change_id = ?
          ORDER BY dependency
     }, undef, shift);
