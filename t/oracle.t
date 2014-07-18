@@ -43,6 +43,8 @@
 #
 #     CREATE USER sqitchtest IDENTIFIED BY oracle;
 #     GRANT ALL PRIVILEGES TO sqitchtest;
+#     CREATE USER oe IDENTIFIED BY oracle;
+#     GRANT ALL PRIVILEGES TO oe;
 #
 # Now the tests can be run with:
 #
@@ -70,7 +72,7 @@ BEGIN {
     $ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
     $ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.user';
     $ENV{SQITCH_USER_CONFIG}   = 'nonexistent.sys';
-    delete $ENV{ORACLE_HOME};
+    #delete $ENV{ORACLE_HOME};
 }
 
 is_deeply [$CLASS->config_vars], [
@@ -414,20 +416,13 @@ END {
 
     $dbh->{RaiseError} = 0;
     $dbh->{PrintError} = 1;
-    $dbh->do($_) for (
-        'DROP TABLE events',
-        'DROP TABLE dependencies',
-        'DROP TABLE tags',
-        'DROP TABLE changes',
-        'DROP TABLE projects',
-        'DROP TYPE  sqitch_array',
-        'DROP TABLE oe.events',
-        'DROP TABLE oe.dependencies',
-        'DROP TABLE oe.tags',
-        'DROP TABLE oe.changes',
-        'DROP TABLE oe.projects',
-        'DROP TYPE  oe.sqitch_array',
-    );
+    my @tables = qw /events dependencies tags changes projects/;
+    $dbh->do("DROP TABLE $_") for @tables;
+    $dbh->do("DROP TABLE oe.$_") for @tables;
+    $dbh->do("DROP TABLE sqitch_$_") for @tables;
+    $dbh->do("DROP TYPE sqitch_array");
+    $dbh->do("DROP TYPE oe.sqitch_array");
+    $dbh->do("DROP TYPE sqitch_sqitch_array");
 }
 
 my $user = $ENV{ORAUSER} || 'scott';
@@ -456,7 +451,7 @@ DBIEngineTest->run(
         top_dir   => Path::Class::dir(qw(t engine)),
         plan_file => Path::Class::file(qw(t engine sqitch.plan)),
     ],
-    engine_params     => [ uri => $uri ],
+    engine_params     => [ uri => $uri, ], # use_registry_prefix => 1
     alt_engine_params => [ uri => $uri, registry => 'oe' ],
     skip_unless       => sub {
         my $self = shift;

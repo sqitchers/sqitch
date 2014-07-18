@@ -170,13 +170,14 @@ sub _dt($) {
 
 sub _cid {
     my ( $self, $ord, $offset, $project ) = @_;
+    my $changes = $self->_get_registry_table('changes');
 
     return try {
         return $self->dbh->selectcol_arrayref(qq{
             SELECT change_id FROM (
                 SELECT change_id, rownum as rnum FROM (
                     SELECT change_id
-                      FROM changes
+                      FROM $changes
                      WHERE project = ?
                      ORDER BY committed_at $ord
                 )
@@ -190,10 +191,12 @@ sub _cid {
 
 sub _cid_head {
     my ($self, $project, $change) = @_;
+    my $changes = $self->_get_registry_table('changes');
+
     return $self->dbh->selectcol_arrayref(qq{
         SELECT change_id FROM (
             SELECT change_id
-              FROM changes
+              FROM $changes
              WHERE project = ?
                AND change  = ?
              ORDER BY committed_at DESC
@@ -206,7 +209,11 @@ sub current_state {
     my $cdtcol = sprintf $self->_ts2char_format, 'c.committed_at';
     my $pdtcol = sprintf $self->_ts2char_format, 'c.planned_at';
     my $tagcol = sprintf $self->_listagg_format, 't.tag';
+
     my $dbh    = $self->dbh;
+    my $changes = $self->_get_registry_table('changes');
+    my $tags    = $self->_get_registry_table('tags');
+
     my $state  = $dbh->selectrow_hashref(qq{
         SELECT * FROM (
             SELECT c.change_id
@@ -220,8 +227,8 @@ sub current_state {
                  , c.planner_email
                  , $pdtcol AS planned_at
                  , $tagcol AS tags
-              FROM changes   c
-              LEFT JOIN tags t ON c.change_id = t.change_id
+              FROM $changes   c
+              LEFT JOIN $tags t ON c.change_id = t.change_id
              WHERE c.project = ?
              GROUP BY c.change_id
                  , c.change
@@ -243,19 +250,23 @@ sub current_state {
 
 sub is_deployed_change {
     my ( $self, $change ) = @_;
+    my $changes = $self->_get_registry_table('changes');
+
     $self->dbh->selectcol_arrayref(
-        'SELECT 1 FROM changes WHERE change_id = ?',
+        qq{SELECT 1 FROM $changes WHERE change_id = ?},
         undef, $change->id
     )->[0];
 }
 
 sub initialized {
     my $self = shift;
-    return $self->dbh->selectcol_arrayref(q{
+    my $changes = $self->_get_registry_table('changes');
+
+    return $self->dbh->selectcol_arrayref(qq{
         SELECT 1
           FROM all_tables
          WHERE owner = UPPER(?)
-           AND table_name = 'CHANGES'
+           AND table_name = '$changes'
     }, undef, $self->registry || $self->uri->user)->[0];
 }
 
@@ -274,8 +285,9 @@ sub _log_event {
     my $con_ph = 'sqitch_array('. join(', ', ('?') x @{ $conflicts }) . ')';
     my $ts     = $self->_ts_default;
 
+    my $events = $self->_get_registry_table('events');
     $dbh->do(qq{
-        INSERT INTO events (
+        INSERT INTO $events (
               event
             , change_id
             , change
@@ -313,16 +325,20 @@ sub _log_event {
 
 sub changes_requiring_change {
     my ( $self, $change ) = @_;
+    my $changes      = $self->_get_registry_table('changes');
+    my $tags         = $self->_get_registry_table('tags');
+    my $dependencies = $self->_get_registry_table('dependencies');
+
     # Why CTE: https://forums.oracle.com/forums/thread.jspa?threadID=1005221
-    return @{ $self->dbh->selectall_arrayref(q{
+    return @{ $self->dbh->selectall_arrayref(qq{
         WITH tag AS (
             SELECT tag, committed_at, project,
                    ROW_NUMBER() OVER (partition by project ORDER BY committed_at) AS rnk
-              FROM tags
+              FROM $tags
         )
         SELECT c.change_id, c.project, c.change, t.tag AS asof_tag
-          FROM dependencies d
-          JOIN changes  c ON c.change_id = d.change_id
+          FROM $dependencies d
+          JOIN $changes  c ON c.change_id = d.change_id
           LEFT JOIN tag t ON t.project   = c.project AND t.committed_at >= c.committed_at
          WHERE d.dependency_id = ?
            AND (t.rnk IS NULL OR t.rnk = 1)
@@ -331,15 +347,18 @@ sub changes_requiring_change {
 
 sub name_for_change_id {
     my ( $self, $change_id ) = @_;
+    my $changes = $self->_get_registry_table('changes');
+    my $tags    = $self->_get_registry_table('tags');
+
     # Why CTE: https://forums.oracle.com/forums/thread.jspa?threadID=1005221
-    return $self->dbh->selectcol_arrayref(q{
+    return $self->dbh->selectcol_arrayref(qq{
         WITH tag AS (
             SELECT tag, committed_at, project,
                    ROW_NUMBER() OVER (partition by project ORDER BY committed_at) AS rnk
-              FROM tags
+              FROM $tags
         )
         SELECT change || COALESCE(t.tag, '')
-          FROM changes c
+          FROM $changes c
           LEFT JOIN tag t ON c.project = t.project AND t.committed_at >= c.committed_at
          WHERE change_id = ?
            AND (t.rnk IS NULL OR t.rnk = 1)
@@ -354,8 +373,10 @@ sub change_offset_from_id {
 
     # Are we offset forwards or backwards?
     my ( $dir, $op ) = $offset > 0 ? ( 'ASC', '>' ) : ( 'DESC' , '<' );
-    my $tscol  = sprintf $self->_ts2char_format, 'c.planned_at';
-    my $tagcol = sprintf $self->_listagg_format, 't.tag';
+    my $tscol   = sprintf $self->_ts2char_format, 'c.planned_at';
+    my $tagcol  = sprintf $self->_listagg_format, 't.tag';
+    my $changes = $self->_get_registry_table('changes');
+    my $tags    = $self->_get_registry_table('tags');
 
     my $change = $self->dbh->selectrow_hashref(qq{
         SELECT id, name, project, note, timestamp, planner_name, planner_email, tags
@@ -365,11 +386,11 @@ sub change_offset_from_id {
                   SELECT c.change_id AS id, c.change AS name, c.project, c.note,
                          $tscol AS timestamp, c.planner_name, c.planner_email,
                          $tagcol AS tags
-                    FROM changes   c
-                    LEFT JOIN tags t ON c.change_id = t.change_id
+                    FROM $changes   c
+                    LEFT JOIN $tags t ON c.change_id = t.change_id
                    WHERE c.project = ?
                      AND c.committed_at $op (
-                         SELECT committed_at FROM changes WHERE change_id = ?
+                         SELECT committed_at FROM $changes WHERE change_id = ?
                    )
                    GROUP BY c.change_id, c.change, c.project, c.note, c.planned_at,
                          c.planner_name, c.planner_email, c.committed_at
@@ -383,8 +404,10 @@ sub change_offset_from_id {
 
 sub is_deployed_tag {
     my ( $self, $tag ) = @_;
+    my $tags = $self->_get_registry_table('tags');
+
     return $self->dbh->selectcol_arrayref(
-        'SELECT 1 FROM tags WHERE tag_id = ?',
+        qq{SELECT 1 FROM $tags WHERE tag_id = ?},
         undef, $tag->id
     )->[0];
 }
@@ -392,9 +415,11 @@ sub is_deployed_tag {
 sub initialize {
     my $self   = shift;
     my $schema = $self->registry;
+    #my $registry_tables = $self->_registry_tables;
     hurl engine => __ 'Sqitch already initialized' if $self->initialized;
 
     # Load up our database.
+    $DB::single = 1;
     (my $file = file(__FILE__)->dir->file('oracle.sql')) =~ s/"/""/g;
     my $meth = $self->can($self->sqitch->verbosity > 1 ? '_run' : '_capture');
 
@@ -463,6 +488,7 @@ sub search_events {
     # Prepare, execute, and return.
     my $cdtcol = sprintf $self->_ts2char_format, 'committed_at';
     my $pdtcol = sprintf $self->_ts2char_format, 'planned_at';
+    my $events = $self->_get_registry_table('events');
     my $sql = qq{
         SELECT event
              , project
@@ -478,7 +504,7 @@ sub search_events {
              , planner_name
              , planner_email
              , $pdtcol AS planned_at
-          FROM events$where
+          FROM $events$where
          ORDER BY events.committed_at $dir
     };
 
@@ -595,9 +621,13 @@ sub log_revert_change {
     my $dbh = $self->dbh;
     my $cid = $change->id;
 
+    my $changes = $self->_get_registry_table('changes');
+    my $tags = $self->_get_registry_table('tags');
+    my $dependencies = $self->_get_registry_table('dependencies');
+
     # Delete tags.
     my $sth = $dbh->prepare(
-        'DELETE FROM tags WHERE change_id = ? RETURNING tag INTO ?',
+        'DELETE FROM $tags WHERE change_id = ? RETURNING tag INTO ?',
     );
     $sth->bind_param(1, $cid);
     $sth->bind_param_inout_array(2, my $del_tags = [], 0, {
@@ -610,13 +640,13 @@ sub log_revert_change {
     my ($req, $conf) = $dbh->selectrow_array(qq{
         SELECT (
             SELECT $depcol
-              FROM dependencies
+              FROM $dependencies
              WHERE change_id = ?
                AND type = 'require'
         ),
         (
             SELECT $depcol
-              FROM dependencies
+              FROM $dependencies
              WHERE change_id = ?
                AND type = 'conflict'
         ) FROM dual
@@ -624,7 +654,7 @@ sub log_revert_change {
 
     # Delete the change record.
     $dbh->do(
-        'DELETE FROM changes where change_id = ?',
+        'DELETE FROM $changes where change_id = ?',
         undef, $change->id,
     );
 
@@ -662,8 +692,8 @@ sub _script {
             $conn .= qq{"$db"};
         }
     }
-    my %vars = $self->variables;
-
+    my %vars = ( $self->variables, %{$self->_registry_tables} );
+    
     return join "\n" => (
         'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF',
         'WHENEVER OSERROR EXIT 9;',

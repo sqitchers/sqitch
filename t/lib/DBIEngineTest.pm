@@ -62,6 +62,7 @@ sub run {
 
         ok $engine, 'Engine initialized';
 
+        $DB::single = 1;
         ok !$engine->initialized, 'Database should not yet be initialized';
         ok $engine->initialize, 'Initialize the database';
         ok $engine->initialized, 'Database should now be initialized';
