@@ -260,7 +260,7 @@ sub is_deployed_change {
 
 sub initialized {
     my $self = shift;
-    my $changes = $self->_get_registry_table('changes');
+    my $changes = uc $self->_get_registry_table('changes');
 
     return $self->dbh->selectcol_arrayref(qq{
         SELECT 1
@@ -505,7 +505,7 @@ sub search_events {
              , planner_email
              , $pdtcol AS planned_at
           FROM $events$where
-         ORDER BY events.committed_at $dir
+         ORDER BY $events.committed_at $dir
     };
 
     if ($lim || $off) {
@@ -627,7 +627,7 @@ sub log_revert_change {
 
     # Delete tags.
     my $sth = $dbh->prepare(
-        'DELETE FROM $tags WHERE change_id = ? RETURNING tag INTO ?',
+        "DELETE FROM $tags WHERE change_id = ? RETURNING tag INTO ?",
     );
     $sth->bind_param(1, $cid);
     $sth->bind_param_inout_array(2, my $del_tags = [], 0, {
@@ -654,7 +654,7 @@ sub log_revert_change {
 
     # Delete the change record.
     $dbh->do(
-        'DELETE FROM $changes where change_id = ?',
+        "DELETE FROM $changes where change_id = ?",
         undef, $change->id,
     );
 

@@ -85,6 +85,7 @@ COMMENT ON COLUMN &registry..&dependencies..dependency    IS 'Dependency name.';
 COMMENT ON COLUMN &registry..&dependencies..dependency_id IS 'Change ID the dependency resolves to.';
 
 CREATE TYPE &registry..sqitch_array AS varray(1024) OF VARCHAR2(512);
+/
 
 CREATE TABLE &registry..&events (
     event           VARCHAR2(6)                   NOT NULL CHECK (event IN ('deploy', 'revert', 'fail')),

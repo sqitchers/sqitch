@@ -418,11 +418,9 @@ END {
     $dbh->{PrintError} = 1;
     my @tables = qw /events dependencies tags changes projects/;
     $dbh->do("DROP TABLE $_") for @tables;
-    $dbh->do("DROP TABLE oe.$_") for @tables;
-    $dbh->do("DROP TABLE sqitch_$_") for @tables;
+    $dbh->do("DROP TABLE oe.sqitch_$_") for @tables;
     $dbh->do("DROP TYPE sqitch_array");
     $dbh->do("DROP TYPE oe.sqitch_array");
-    $dbh->do("DROP TYPE sqitch_sqitch_array");
 }
 
 my $user = $ENV{ORAUSER} || 'scott';
@@ -451,8 +449,8 @@ DBIEngineTest->run(
         top_dir   => Path::Class::dir(qw(t engine)),
         plan_file => Path::Class::file(qw(t engine sqitch.plan)),
     ],
-    engine_params     => [ uri => $uri, ], # use_registry_prefix => 1
-    alt_engine_params => [ uri => $uri, registry => 'oe' ],
+    engine_params     => [ uri => $uri, ],
+    alt_engine_params => [ uri => $uri, registry => 'oe', use_registry_prefix => 1 ],
     skip_unless       => sub {
         my $self = shift;
         die $err if $err;
