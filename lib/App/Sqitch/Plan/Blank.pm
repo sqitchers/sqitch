@@ -8,12 +8,11 @@ use Moo;
 
 our $VERSION = '0.996';
 
-has '+name' => ( default => '' );
+has '+name' => ( default => '', required => 0 );
 
 sub format_name { '' }
 
-__PACKAGE__->meta->make_immutable;
-no Moo;
+1;
 
 __END__
 

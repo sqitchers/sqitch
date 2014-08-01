@@ -498,8 +498,7 @@ sub _spool {
     return $sqitch->spool( $fh, $self->psql, @_ );
 }
 
-__PACKAGE__->meta->make_immutable;
-no Moo;
+1;
 
 __END__
 

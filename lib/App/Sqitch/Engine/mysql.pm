@@ -300,8 +300,7 @@ sub _cid {
     };
 }
 
-__PACKAGE__->meta->make_immutable;
-no Moo;
+1;
 
 1;
 

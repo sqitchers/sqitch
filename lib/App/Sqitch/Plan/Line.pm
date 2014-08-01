@@ -19,42 +19,36 @@ has name => (
 has operator => (
     is       => 'ro',
     isa      => Str,
-    required => 1,
     default  => '',
 );
 
 has lspace => (
     is       => 'ro',
     isa      => Str,
-    required => 1,
     default  => '',
 );
 
 has rspace => (
     is       => 'ro',
     isa      => Str,
-    required => 1,
     default  => '',
 );
 
 has lopspace => (
     is       => 'ro',
     isa      => Str,
-    required => 1,
     default  => '',
 );
 
 has ropspace => (
     is       => 'ro',
     isa      => Str,
-    required => 1,
     default  => '',
 );
 
 has note => (
     is       => 'ro',
     isa      => Str,
-    required => 1,
     default  => '',
 );
 
@@ -162,8 +156,7 @@ sub as_string {
          . $self->format_note;
 }
 
-__PACKAGE__->meta->make_immutable;
-no Moo;
+1;
 
 __END__
 

@@ -121,8 +121,7 @@ sub format_content {
         $self->format_planner;
 }
 
-__PACKAGE__->meta->make_immutable;
-no Moo;
+1;
 
 __END__
 
@@ -136,8 +135,6 @@ App::Sqitch::Plan::Tag - Sqitch deployment plan tag
   for my $line ($plan->lines) {
       say $line->as_string;
   }
-
-=head1 Description
 
 =head1 Description
 

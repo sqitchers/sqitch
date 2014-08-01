@@ -199,8 +199,7 @@ sub parse_args {
     return %ret;
 }
 
-__PACKAGE__->meta->make_immutable;
-no Moo;
+1;
 
 __END__
 

@@ -62,7 +62,7 @@ sub as_string {
 }
 
 __PACKAGE__->meta->make_immutable(inline_constructor => 0);
-no Moo;
+1;
 
 __END__
 

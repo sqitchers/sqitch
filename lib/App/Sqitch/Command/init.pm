@@ -261,8 +261,7 @@ sub write_config {
     return $self;
 }
 
-__PACKAGE__->meta->make_immutable;
-no Moo;
+1;
 
 __END__
 

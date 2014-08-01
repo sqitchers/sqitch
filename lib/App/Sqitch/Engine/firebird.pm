@@ -868,8 +868,7 @@ sub default_client {
 
 1;
 
-no Moo;
-__PACKAGE__->meta->make_immutable;
+1;
 
 1;
 

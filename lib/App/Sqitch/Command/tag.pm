@@ -14,7 +14,7 @@ our $VERSION = '0.996';
 
 has note => (
     is       => 'ro',
-    isa      => 'ArrayRef[Str]',
+    isa      => ArrayRef[Str],
     required => 1,
     default  => sub { [] },
 );

@@ -16,21 +16,21 @@ our $VERSION = '0.996';
 
 has requires => (
     is       => 'ro',
-    isa      => 'ArrayRef[Str]',
+    isa      => ArrayRef[Str],
     required => 1,
     default  => sub { [] },
 );
 
 has conflicts => (
     is       => 'ro',
-    isa      => 'ArrayRef[Str]',
+    isa      => ArrayRef[Str],
     required => 1,
     default  => sub { [] },
 );
 
 has note => (
     is       => 'ro',
-    isa      => 'ArrayRef[Str]',
+    isa      => ArrayRef[Str],
     required => 1,
     default  => sub { [] },
 );

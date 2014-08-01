@@ -7,6 +7,7 @@ use utf8;
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use Moo;
+use App::Sqitch::Types qw(Str Int ArrayRef HashRef Dir Bool Maybe);
 use Path::Class;
 use Try::Tiny;
 use File::Path qw(make_path);
@@ -19,28 +20,28 @@ our $VERSION = '0.996';
 
 has requires => (
     is       => 'ro',
-    isa      => 'ArrayRef[Str]',
+    isa      => ArrayRef[Str],
     required => 1,
     default  => sub { [] },
 );
 
 has conflicts => (
     is       => 'ro',
-    isa      => 'ArrayRef[Str]',
+    isa      => ArrayRef[Str],
     required => 1,
     default  => sub { [] },
 );
 
 has note => (
     is       => 'ro',
-    isa      => 'ArrayRef[Str]',
+    isa      => ArrayRef[Str],
     required => 1,
     default  => sub { [] },
 );
 
 has variables => (
     is       => 'ro',
-    isa      => 'HashRef',
+    isa      => HashRef,
     required => 1,
     lazy     => 1,
     default  => sub {
@@ -50,7 +51,7 @@ has variables => (
 
 has template_directory => (
     is  => 'ro',
-    isa => 'Maybe[Path::Class::Dir]',
+    isa => Maybe[Dir],
 );
 
 has template_name => (
@@ -63,14 +64,14 @@ has template_name => (
 
 has with_scripts => (
     is       => 'ro',
-    isa      => 'HashRef',
+    isa      => HashRef,
     required => 1,
     default  => sub { {} },
 );
 
 has templates => (
     is       => 'ro',
-    isa      => 'HashRef',
+    isa      => HashRef,
     required => 1,
     lazy     => 1,
     default  => sub {

@@ -12,13 +12,11 @@ our $VERSION = '0.996';
 has value => (
     is       => 'ro',
     isa      => Str,
-    required => 0,
 );
 
 has hspace => (
     is       => 'ro',
     isa      => Str,
-    required => 1,
     default  => '',
 );
 
@@ -52,8 +50,7 @@ sub as_string {
          . $self->format_note;
 }
 
-__PACKAGE__->meta->make_immutable;
-no Moo;
+1;
 
 __END__
 

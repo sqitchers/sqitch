@@ -136,16 +136,14 @@ has plan => (
 );
 
 has _variables => (
-    traits  => ['Hash'],
     is      => 'rw',
     isa     => HashRef[Str],
     default => sub { {} },
-    handles => {
-        variables       => 'elements',
-        set_variables   => 'set',
-        clear_variables => 'clear',
-    },
 );
+
+sub variables { @{ shift->_variables } }
+sub set_variables { @{ shift->_variables } = @_ }
+sub clear_variables { @{ shift->_variables } = () }
 
 # * If not passed
 #   a. Look for core.$engine.target; or
@@ -1221,8 +1219,7 @@ sub search_events {
     hurl "$class has not implemented search_events()";
 }
 
-__PACKAGE__->meta->make_immutable;
-no Moo;
+1;
 
 __END__
 

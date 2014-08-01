@@ -16,22 +16,20 @@ our $VERSION = '0.970';
 has _requires => (
     is       => 'ro',
     isa      => ArrayRef[Depend],
-    traits   => ['Array'],
-    required => 1,
     init_arg => 'requires',
     default  => sub { [] },
-    handles  => { requires => 'elements' },
 );
+
+sub requires { @{ shift->_requires } }
 
 has _conflicts => (
     is       => 'ro',
     isa      => ArrayRef[Depend],
-    traits   => ['Array'],
-    required => 1,
     init_arg => 'conflicts',
     default  => sub { [] },
-    handles  => { conflicts => 'elements' },
 );
+
+sub conflicts { @{ shift->_conflicts } }
 
 has pspace => (
     is       => 'ro',
@@ -55,20 +53,15 @@ has parent => (
 has _rework_tags => (
     is       => 'ro',
     isa      => ArrayRef[Tag],
-    traits   => ['Array'],
-    required => 1,
     init_arg => 'rework_tags',
-    traits   => ['Array'],
     lazy     => 1,
     default  => sub { [] },
-    handles  => {
-        rework_tags       => 'elements',
-        add_rework_tags   => 'push',
-        clear_rework_tags => 'clear',
-    },
 );
 
-sub is_reworked { @{ shift->_rework_tags } > 0 }
+sub rework_tags       { @{ shift->_rework_tags } }
+sub add_rework_tags   { push @{ shift->_rework_tags } => @_ }
+sub clear_rework_tags { @{ shift->_rework_tags } = () }
+sub is_reworked       { @{ shift->_rework_tags } > 0 }
 
 after add_rework_tags => sub {
     my $self = shift;
@@ -78,24 +71,18 @@ after add_rework_tags => sub {
 
 has _tags => (
     is         => 'ro',
-    traits  => ['Array'],
     isa        => ArrayRef[Tag],
     lazy       => 1,
-    required   => 1,
     default    => sub { [] },
-    handles => {
-        tags    => 'elements',
-        add_tag => 'push',
-    },
 );
+
+sub tags    { @{ shift->_tags } }
+sub add_tag { push @{ shift->_tags } => @_ }
 
 has _path_segments => (
     is       => 'ro',
     isa      => ArrayRef[Str],
-    traits   => ['Array'],
-    required => 1,
     lazy     => 1,
-    handles  => { path_segments => 'elements' },
     default  => sub {
         my $self = shift;
         my @path = split m{/} => $self->name;
@@ -121,6 +108,8 @@ has _path_segments => (
         return \@path;
     },
 );
+
+sub path_segments { @{ shift->_path_segments } }
 
 has info => (
     is       => 'ro',
@@ -335,8 +324,7 @@ sub note_prompt {
     );
 }
 
-__PACKAGE__->meta->make_immutable;
-no Moo;
+1;
 
 __END__
 

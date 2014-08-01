@@ -78,8 +78,7 @@ sub initial_key {
     return ref $key ? $key->[0] : $key;
 }
 
-__PACKAGE__->meta->make_immutable;
-no Moo;
+1;
 
 =head1 Name
 

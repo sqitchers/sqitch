@@ -736,8 +736,7 @@ sub warn_literal {
     $self->vent_literal(_prepend 'warning:', @_);
 }
 
-__PACKAGE__->meta->make_immutable;
-no Moo;
+1;
 
 __END__
 

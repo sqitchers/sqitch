@@ -127,7 +127,7 @@ sub BUILDARGS {
 
 sub parse {
     my ( $class, $string ) = @_;
-    my $name_re = App::Sqitch::Plan->name_regex;
+    my $name_re = Plan->class->name_regex;
     return undef if $string !~ /
         \A                            # Beginning of string
         (?<conflicts>!?)              # Optional negation
@@ -177,8 +177,7 @@ sub as_plan_string {
     return ($self->conflicts ? '!' : '') . $self->as_string;
 }
 
-__PACKAGE__->meta->make_immutable;
-no Moo;
+1;
 
 __END__
 

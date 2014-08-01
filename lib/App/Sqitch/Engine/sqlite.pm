@@ -247,8 +247,7 @@ sub _read {
     return $self->sqitch->quote_shell($cmd);
 }
 
-__PACKAGE__->meta->make_immutable;
-no Moo;
+1;
 
 1;
 
