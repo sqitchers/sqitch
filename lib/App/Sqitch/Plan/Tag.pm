@@ -6,8 +6,9 @@ use namespace::autoclean;
 use Moo;
 use App::Sqitch::Types qw(Str Change UserEmail DateTime);
 use Encode;
-use parent 'App::Sqitch::Plan::Line';
 use DateTime;
+
+extends 'App::Sqitch::Plan::Line';
 
 our $VERSION = '0.996';
 

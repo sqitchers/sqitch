@@ -3,9 +3,9 @@ package App::Sqitch::Plan::Pragma;
 use 5.010;
 use utf8;
 use namespace::autoclean;
-use parent 'App::Sqitch::Plan::Line';
 use Moo;
 use App::Sqitch::Types qw(Str);
+extends 'App::Sqitch::Plan::Line';
 
 our $VERSION = '0.996';
 

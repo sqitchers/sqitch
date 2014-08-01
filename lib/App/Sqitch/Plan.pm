@@ -61,7 +61,6 @@ has _changes => (
     is       => 'ro',
     isa      => ChangeList,
     lazy     => 1,
-    required => 1,
     default  => sub {
         App::Sqitch::Plan::ChangeList->new(@{ shift->_plan->{changes} }),
     },
@@ -71,7 +70,6 @@ has _lines => (
     is       => 'ro',
     isa      => LineList,
     lazy     => 1,
-    required => 1,
     default  => sub {
         App::Sqitch::Plan::LineList->new(@{ shift->_plan->{lines} }),
     },
@@ -80,14 +78,12 @@ has _lines => (
 has position => (
     is       => 'rw',
     isa      => Int,
-    required => 1,
     default  => -1,
 );
 
 has project => (
     is       => 'ro',
     isa      => Str,
-    required => 1,
     lazy     => 1,
     default  => sub {
         shift->_plan->{pragmas}{project};
@@ -102,7 +98,7 @@ has uri => (
     default  => sub {
         my $uri = shift->_plan->{pragmas}{uri} || return;
         require URI;
-        URI->new($uri);
+        'URI'->new($uri);
     }
 );
 

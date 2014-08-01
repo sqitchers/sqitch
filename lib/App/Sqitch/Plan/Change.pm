@@ -3,13 +3,13 @@ package App::Sqitch::Plan::Change;
 use 5.010;
 use utf8;
 use namespace::autoclean;
-use parent 'App::Sqitch::Plan::Line';
 use Encode;
 use Moo;
 use App::Sqitch::Types qw(Str Bool Maybe Change Tag Depend UserEmail DateTime ArrayRef);
 use App::Sqitch::DateTime;
 use App::Sqitch::Plan::Depend;
 use Locale::TextDomain qw(App-Sqitch);
+extends 'App::Sqitch::Plan::Line';
 
 our $VERSION = '0.970';
 

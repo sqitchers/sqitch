@@ -14,7 +14,6 @@ our $VERSION = '0.996';
 has conflicts => (
     is       => 'ro',
     isa      => Bool,
-    required => 1,
     default  => 0,
 );
 
@@ -33,7 +32,6 @@ has got_project => (
 has project => (
     is       => 'ro',
     isa      => Maybe[Str],
-    required => 1,
     lazy     => 1,
     default  => sub {
         my $self = shift;
@@ -93,7 +91,6 @@ has resolved_id => (
 has is_external => (
     is       => 'ro',
     isa      => Bool,
-    required => 1,
     lazy     => 1,
     default  => sub {
         my $self = shift;

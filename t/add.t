@@ -445,7 +445,6 @@ SKIP: {
 
 ##############################################################################
 # Test execute.
-use Carp; $SIG{__DIE__} = \&Carp::confess;
 ok $add = $CLASS->new(
     sqitch => $sqitch,
     template_directory => dir(qw(etc templates))

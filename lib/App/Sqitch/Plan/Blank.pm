@@ -3,8 +3,8 @@ package App::Sqitch::Plan::Blank;
 use 5.010;
 use utf8;
 use namespace::autoclean;
-use parent 'App::Sqitch::Plan::Line';
 use Moo;
+extends 'App::Sqitch::Plan::Line';
 
 our $VERSION = '0.996';
 

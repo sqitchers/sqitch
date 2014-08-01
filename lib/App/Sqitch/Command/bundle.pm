@@ -5,6 +5,7 @@ use strict;
 use warnings;
 use utf8;
 use Moo;
+use App::Sqitch::Types qw(Str Dir Maybe);
 use File::Path qw(make_path);
 use Path::Class;
 use Locale::TextDomain qw(App-Sqitch);
@@ -18,25 +19,25 @@ our $VERSION = '0.996';
 
 has from => (
     is       => 'ro',
-    isa      => 'Maybe[Str]',
+    isa      => Maybe[Str],
 );
 
 has to => (
     is       => 'ro',
-    isa      => 'Maybe[Str]',
+    isa      => Maybe[Str],
 );
 
 has dest_dir => (
     is       => 'ro',
-    isa      => 'Path::Class::Dir',
-    required => 1,
+    isa      => Dir,
+    lazy     => 1,
     default  => sub { dir 'bundle' },
 );
 
 has dest_top_dir => (
     is       => 'ro',
-    isa      => 'Path::Class::Dir',
-    required => 1,
+    isa      => Dir,
+    lazy     => 1,
     default  => sub {
         my $self = shift;
         dir $self->dest_dir, $self->sqitch->top_dir->relative;
@@ -45,8 +46,7 @@ has dest_top_dir => (
 
 has dest_deploy_dir => (
     is       => 'ro',
-    isa      => 'Path::Class::Dir',
-    required => 1,
+    isa      => Dir,
     lazy     => 1,
     default  => sub {
         my $self = shift;
@@ -56,8 +56,7 @@ has dest_deploy_dir => (
 
 has dest_revert_dir => (
     is       => 'ro',
-    isa      => 'Path::Class::Dir',
-    required => 1,
+    isa      => Dir,
     lazy     => 1,
     default  => sub {
         my $self = shift;
@@ -67,8 +66,7 @@ has dest_revert_dir => (
 
 has dest_verify_dir => (
     is       => 'ro',
-    isa      => 'Path::Class::Dir',
-    required => 1,
+    isa      => Dir,
     lazy     => 1,
     default  => sub {
         my $self = shift;
