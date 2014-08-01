@@ -43,7 +43,7 @@ can_ok $CLASS, qw(load new options configure command prompt ask_y_n parse_args);
 COMMAND: {
     # Stub out a couple of commands.
     package App::Sqitch::Command::whu;
-    use Mouse;
+    use Moo;
     extends 'App::Sqitch::Command';
     has foo => (is => 'ro');
     has feathers => (is => 'ro');
@@ -59,7 +59,7 @@ COMMAND: {
     }
 
     package App::Sqitch::Command::wah_hoo;
-    use Mouse;
+    use Moo;
     extends 'App::Sqitch::Command';
     $INC{'App/Sqitch/Command/wah_hoo.pm'} = __FILE__;
 }

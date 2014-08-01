@@ -8,13 +8,14 @@ use Try::Tiny;
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use Hash::Merge 'merge';
-use Mouse;
+use Moo;
+use App::Sqitch::Types qw(Sqitch);
 
 our $VERSION = '0.996';
 
 has sqitch => (
     is       => 'ro',
-    isa      => 'App::Sqitch',
+    isa      => Sqitch,
     required => 1,
     handles  => [qw(
         plan
@@ -199,7 +200,7 @@ sub parse_args {
 }
 
 __PACKAGE__->meta->make_immutable;
-no Mouse;
+no Moo;
 
 __END__
 
@@ -300,8 +301,8 @@ An array reference of command-line arguments passed to the command.
 
 Instantiates and returns a App::Sqitch::Command object. This method is not
 designed to be overridden by subclasses; they should implement
-L<C<BUILDARGS>|Moose::Manual::Construction/BUILDARGS> or
-L<C<BUILD>|Moose::Manual::Construction/BUILD>, instead.
+L<C<BUILDARGS>|Moo::Manual::Construction/BUILDARGS> or
+L<C<BUILD>|Moo::Manual::Construction/BUILD>, instead.
 
 =head2 Accessors
 

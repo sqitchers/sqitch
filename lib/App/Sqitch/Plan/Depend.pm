@@ -2,7 +2,8 @@ package App::Sqitch::Plan::Depend;
 
 use 5.010;
 use utf8;
-use Mouse;
+use Moo;
+use App::Sqitch::Types qw(Str Bool Maybe Plan);
 use App::Sqitch::Plan;
 use App::Sqitch::X qw(hurl);
 use Locale::TextDomain qw(App-Sqitch);
@@ -12,26 +13,26 @@ our $VERSION = '0.996';
 
 has conflicts => (
     is       => 'ro',
-    isa      => 'Bool',
+    isa      => Bool,
     required => 1,
     default  => 0,
 );
 
 has got_id => (
     is       => 'ro',
-    isa      => 'Bool',
+    isa      => Bool,
     required => 1
 );
 
 has got_project => (
     is       => 'ro',
-    isa      => 'Bool',
+    isa      => Bool,
     required => 1
 );
 
 has project => (
     is       => 'ro',
-    isa      => 'Maybe[Str]',
+    isa      => Maybe[Str],
     required => 1,
     lazy     => 1,
     default  => sub {
@@ -51,24 +52,24 @@ has project => (
 
 has change => (
     is  => 'ro',
-    isa => 'Maybe[Str]',
+    isa => Maybe[Str],
 );
 
 has tag => (
     is  => 'ro',
-    isa => 'Maybe[Str]',
+    isa => Maybe[Str],
 );
 
 has plan => (
     is       => 'ro',
-    isa      => 'App::Sqitch::Plan',
+    isa      => Plan,
     weak_ref => 1,
     required => 1,
 );
 
 has id => (
     is       => 'ro',
-    isa      => 'Maybe[Str]',
+    isa      => Maybe[Str],
     lazy     => 1,
     default  => sub {
         my $self = shift;
@@ -86,12 +87,12 @@ has id => (
 
 has resolved_id => (
     is  => 'rw',
-    isa => 'Maybe[Str]',
+    isa => Maybe[Str],
 );
 
 has is_external => (
     is       => 'ro',
-    isa      => 'Bool',
+    isa      => Bool,
     required => 1,
     lazy     => 1,
     default  => sub {
@@ -177,7 +178,7 @@ sub as_plan_string {
 }
 
 __PACKAGE__->meta->make_immutable;
-no Mouse;
+no Moo;
 
 __END__
 

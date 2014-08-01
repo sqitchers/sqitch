@@ -2,7 +2,8 @@ package App::Sqitch::X;
 
 use 5.010;
 use utf8;
-use Moose;
+use Moo;
+use Types::Standard qw(Str Int);
 use Sub::Exporter::Util ();
 use Sub::Exporter -setup => [qw(hurl)];
 use Role::HasMessage 0.005;
@@ -14,13 +15,13 @@ our $VERSION = '0.996';
 
 has message => (
     is       => 'ro',
-    isa      => 'Str',
+    isa      => Str,
     required => 1,
 );
 
 has exitval => (
     is       => 'ro',
-    isa      => 'Int',
+    isa      => Int,
     required => 1,
     default  => 2,
 );
@@ -61,7 +62,7 @@ sub as_string {
 }
 
 __PACKAGE__->meta->make_immutable(inline_constructor => 0);
-no Moose;
+no Moo;
 
 __END__
 

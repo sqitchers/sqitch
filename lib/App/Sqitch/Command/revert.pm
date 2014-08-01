@@ -4,8 +4,7 @@ use 5.010;
 use strict;
 use warnings;
 use utf8;
-use Mouse;
-use Mouse::Util::TypeConstraints;
+use Moo;
 use List::Util qw(first);
 use App::Sqitch::X qw(hurl);
 use Locale::TextDomain qw(App-Sqitch);
@@ -16,22 +15,22 @@ our $VERSION = '0.996';
 
 has target => (
     is  => 'ro',
-    isa => 'Str',
+    isa => Str,
 );
 
 has to_change => (
     is  => 'ro',
-    isa => 'Str',
+    isa => Str,
 );
 
 has no_prompt => (
     is  => 'ro',
-    isa => 'Bool'
+    isa => Bool
 );
 
 has log_only => (
     is       => 'ro',
-    isa      => 'Bool',
+    isa      => Bool,
     required => 1,
     default  => 0,
 );

@@ -5,7 +5,7 @@ use strict;
 use warnings;
 use utf8;
 use DBI;
-use Mouse::Role;
+use Moo::Role;
 use Try::Tiny;
 use App::Sqitch::X qw(hurl);
 use Locale::TextDomain qw(App-Sqitch);

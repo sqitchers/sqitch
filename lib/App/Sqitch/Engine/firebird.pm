@@ -12,18 +12,17 @@ use Path::Class;
 use File::Basename;
 use Time::Local;
 use Time::HiRes qw(sleep);
-use Mouse;
+use Moo;
+use App::Sqitch::Types qw(DBI URIDB ArrayRef Maybe Int);
 use namespace::autoclean;
 
 extends 'App::Sqitch::Engine';
-sub dbh; # required by DBIEngine;
-with 'App::Sqitch::Role::DBIEngine';
 
 our $VERSION = '0.996';
 
 has registry_uri => (
     is       => 'ro',
-    isa      => 'URI::db',
+    isa      => URIDB,
     lazy     => 1,
     required => 1,
     default  => sub {
@@ -63,7 +62,7 @@ sub registry_destination {
 
 has dbh => (
     is      => 'rw',
-    isa     => 'DBI::db',
+    isa     => DBI,
     lazy    => 1,
     default => sub {
         my $self = shift;
@@ -88,9 +87,12 @@ has dbh => (
     }
 );
 
+# Need to wait until dbh is defined.
+with 'App::Sqitch::Role::DBIEngine';
+
 has isql => (
     is         => 'ro',
-    isa        => 'ArrayRef',
+    isa        => ArrayRef,
     lazy       => 1,
     required   => 1,
     auto_deref => 1,
@@ -120,7 +122,7 @@ has isql => (
 
 has tz_offset => (
     is       => 'ro',
-    isa      => 'Maybe[Int]',
+    isa      => Maybe[Int],
     lazy     => 1,
     required => 1,
     default => sub {
@@ -866,7 +868,7 @@ sub default_client {
 
 1;
 
-no Mouse;
+no Moo;
 __PACKAGE__->meta->make_immutable;
 
 1;

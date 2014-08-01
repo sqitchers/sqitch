@@ -1,7 +1,7 @@
 package App::Sqitch::Engine;
 
 use 5.010;
-use Mouse;
+use Moo;
 use strict;
 use utf8;
 use Try::Tiny;
@@ -9,19 +9,20 @@ use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use List::Util qw(first max);
 use URI::db;
+use App::Sqitch::Types qw(Str Int Sqitch Plan Bool HashRef URI Maybe);
 use namespace::autoclean;
 
 our $VERSION = '0.996';
 
 has sqitch => (
     is       => 'ro',
-    isa      => 'App::Sqitch',
+    isa      => Sqitch,
     required => 1,
 );
 
 has client => (
     is       => 'ro',
-    isa      => 'Str',
+    isa      => Str,
     lazy     => 1,
     required => 1,
     default  => sub {
@@ -57,7 +58,7 @@ has client => (
 
 has target => (
     is      => 'ro',
-    isa     => 'Str',
+    isa     => Str,
     lazy    => 1,
     default => sub {
         my $self = shift;
@@ -69,7 +70,7 @@ has target => (
 
 has destination => (
     is      => 'ro',
-    isa     => 'Str',
+    isa     => Str,
     lazy    => 1,
     default => sub {
         my $self = shift;
@@ -92,30 +93,30 @@ sub registry_destination { shift->destination }
 
 has start_at => (
     is  => 'rw',
-    isa => 'Str'
+    isa => Str
 );
 
 has no_prompt => (
     is      => 'rw',
-    isa     => 'Bool',
+    isa     => Bool,
     default => 0,
 );
 
 has log_only => (
     is      => 'rw',
-    isa     => 'Bool',
+    isa     => Bool,
     default => 0,
 );
 
 has with_verify => (
     is      => 'rw',
-    isa     => 'Bool',
+    isa     => Bool,
     default => 0,
 );
 
 has max_name_length => (
     is      => 'rw',
-    isa     => 'Int',
+    isa     => Int,
     default => 0,
     lazy    => 1,
     default => sub {
@@ -128,7 +129,7 @@ has max_name_length => (
 
 has plan => (
     is       => 'rw',
-    isa      => 'App::Sqitch::Plan',
+    isa      => Plan,
     required => 1,
     lazy     => 1,
     default  => sub { shift->sqitch->plan }
@@ -137,7 +138,7 @@ has plan => (
 has _variables => (
     traits  => ['Hash'],
     is      => 'rw',
-    isa     => 'HashRef[Str]',
+    isa     => HashRef[Str],
     default => sub { {} },
     handles => {
         variables       => 'elements',
@@ -159,7 +160,7 @@ sub BUILD {
     }
 }
 
-has uri => ( is => 'ro', isa => 'URI::db', lazy => 1, default => sub {
+has uri => ( is => 'ro', isa => URI, lazy => 1, default => sub {
     my $self   = shift;
     my $sqitch = $self->sqitch;
     my $config = $sqitch->config;
@@ -197,7 +198,7 @@ has uri => ( is => 'ro', isa => 'URI::db', lazy => 1, default => sub {
 
 has registry => (
     is       => 'ro',
-    isa      => 'Maybe[Str]', # May be undef in a subclass.
+    isa      => Maybe[Str], # May be undef in a subclass.
     lazy     => 1,
     required => 1,
     default  => sub {
@@ -1221,7 +1222,7 @@ sub search_events {
 }
 
 __PACKAGE__->meta->make_immutable;
-no Mouse;
+no Moo;
 
 __END__
 

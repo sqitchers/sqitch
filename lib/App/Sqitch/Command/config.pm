@@ -9,8 +9,7 @@ use Try::Tiny;
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use List::Util qw(first);
-use Mouse;
-use Mouse::Util::TypeConstraints;
+use Moo;
 use namespace::autoclean;
 extends 'App::Sqitch::Command';
 
@@ -376,7 +375,7 @@ sub _touch_dir {
 }
 
 __PACKAGE__->meta->make_immutable;
-no Mouse;
+no Moo;
 
 __END__
 

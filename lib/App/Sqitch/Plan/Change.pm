@@ -5,7 +5,8 @@ use utf8;
 use namespace::autoclean;
 use parent 'App::Sqitch::Plan::Line';
 use Encode;
-use Mouse;
+use Moo;
+use App::Sqitch::Types qw(Str Bool Maybe Change Tag Depend UserEmail DateTime ArrayRef);
 use App::Sqitch::DateTime;
 use App::Sqitch::Plan::Depend;
 use Locale::TextDomain qw(App-Sqitch);
@@ -14,7 +15,7 @@ our $VERSION = '0.970';
 
 has _requires => (
     is       => 'ro',
-    isa      => 'ArrayRef[App::Sqitch::Plan::Depend]',
+    isa      => ArrayRef[Depend],
     traits   => ['Array'],
     required => 1,
     init_arg => 'requires',
@@ -24,7 +25,7 @@ has _requires => (
 
 has _conflicts => (
     is       => 'ro',
-    isa      => 'ArrayRef[App::Sqitch::Plan::Depend]',
+    isa      => ArrayRef[Depend],
     traits   => ['Array'],
     required => 1,
     init_arg => 'conflicts',
@@ -34,26 +35,26 @@ has _conflicts => (
 
 has pspace => (
     is       => 'ro',
-    isa      => 'Str',
+    isa      => Str,
     required => 1,
     default  => ' ',
 );
 
 has since_tag => (
     is       => 'ro',
-    isa      => 'App::Sqitch::Plan::Tag',
+    isa      => Tag,
     required => 0,
 );
 
 has parent => (
     is       => 'ro',
-    isa      => 'App::Sqitch::Plan::Change',
+    isa      => Change,
     required => 0,
 );
 
 has _rework_tags => (
     is       => 'ro',
-    isa      => 'ArrayRef[App::Sqitch::Plan::Tag]',
+    isa      => ArrayRef[Tag],
     traits   => ['Array'],
     required => 1,
     init_arg => 'rework_tags',
@@ -78,7 +79,7 @@ after add_rework_tags => sub {
 has _tags => (
     is         => 'ro',
     traits  => ['Array'],
-    isa        => 'ArrayRef[App::Sqitch::Plan::Tag]',
+    isa        => ArrayRef[Tag],
     lazy       => 1,
     required   => 1,
     default    => sub { [] },
@@ -90,7 +91,7 @@ has _tags => (
 
 has _path_segments => (
     is       => 'ro',
-    isa      => 'ArrayRef[Str]',
+    isa      => ArrayRef[Str],
     traits   => ['Array'],
     required => 1,
     lazy     => 1,
@@ -123,7 +124,7 @@ has _path_segments => (
 
 has info => (
     is       => 'ro',
-    isa      => 'Str',
+    isa      => Str,
     lazy     => 1,
     default  => sub {
         my $self = shift;
@@ -145,7 +146,7 @@ has info => (
 
 has id => (
     is       => 'ro',
-    isa      => 'Str',
+    isa      => Str,
     lazy     => 1,
     default  => sub {
         my $content = encode_utf8 shift->info;
@@ -158,7 +159,7 @@ has id => (
 
 has old_info => (
     is       => 'ro',
-    isa      => 'Str',
+    isa      => Str,
     lazy     => 1,
     default  => sub {
         my $self = shift;
@@ -174,7 +175,7 @@ has old_info => (
 
 has old_id => (
     is       => 'ro',
-    isa      => 'Str',
+    isa      => Str,
     lazy     => 1,
     default  => sub {
         my $content = encode_utf8 shift->old_info;
@@ -187,21 +188,21 @@ has old_id => (
 
 has timestamp => (
     is       => 'ro',
-    isa      => 'App::Sqitch::DateTime',
+    isa      => DateTime,
     required => 1,
     default  => sub { App::Sqitch::DateTime->now },
 );
 
 has planner_name => (
     is       => 'ro',
-    isa      => 'Str',
+    isa      => Str,
     required => 1,
     default  => sub { shift->sqitch->user_name },
 );
 
 has planner_email => (
     is       => 'ro',
-    isa      => 'UserEmail',
+    isa      => UserEmail,
     required => 1,
     default  => sub { shift->sqitch->user_email },
 );
@@ -335,7 +336,7 @@ sub note_prompt {
 }
 
 __PACKAGE__->meta->make_immutable;
-no Mouse;
+no Moo;
 
 __END__
 

@@ -6,8 +6,7 @@ use warnings;
 use utf8;
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
-use Mouse;
-use MouseX::Types::Path::Class;
+use Moo;
 use Path::Class;
 use Try::Tiny;
 use File::Path qw(make_path);
@@ -56,7 +55,7 @@ has template_directory => (
 
 has template_name => (
     is       => 'ro',
-    isa      => 'Str',
+    isa      => Str,
     required => 1,
     lazy     => 1,
     default  => sub { shift->sqitch->engine_key },
@@ -82,7 +81,7 @@ has templates => (
 
 has open_editor => (
     is       => 'ro',
-    isa      => 'Bool',
+    isa      => Bool,
     lazy     => 1,
     default  => sub {
         shift->sqitch->config->get(

@@ -7,14 +7,14 @@ use utf8;
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use List::Util qw(first);
-use Mouse;
+use Moo;
 extends 'App::Sqitch::Command';
 
 our $VERSION = '0.996';
 
 has exists_only => (
     is       => 'ro',
-    isa      => 'Bool',
+    isa      => Bool,
     required => 1,
     default  => 0,
 );

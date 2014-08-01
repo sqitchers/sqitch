@@ -3,7 +3,8 @@ package App::Sqitch::Plan::Tag;
 use 5.010;
 use utf8;
 use namespace::autoclean;
-use Mouse;
+use Moo;
+use App::Sqitch::Types qw(Str Change UserEmail DateTime);
 use Encode;
 use parent 'App::Sqitch::Plan::Line';
 use DateTime;
@@ -16,7 +17,7 @@ sub format_name {
 
 has info => (
     is       => 'ro',
-    isa      => 'Str',
+    isa      => Str,
     lazy     => 1,
     default  => sub {
         my $self = shift;
@@ -36,7 +37,7 @@ has info => (
 
 has id => (
     is       => 'ro',
-    isa      => 'Str',
+    isa      => Str,
     lazy     => 1,
     default  => sub {
         my $content = encode_utf8 shift->info;
@@ -49,7 +50,7 @@ has id => (
 
 has old_info => (
     is       => 'ro',
-    isa      => 'Str',
+    isa      => Str,
     lazy     => 1,
     default  => sub {
         my $self = shift;
@@ -68,7 +69,7 @@ has old_info => (
 
 has old_id => (
     is       => 'ro',
-    isa      => 'Str',
+    isa      => Str,
     lazy     => 1,
     default  => sub {
         my $content = encode_utf8 shift->old_info;
@@ -81,28 +82,28 @@ has old_id => (
 
 has change => (
     is       => 'ro',
-    isa      => 'App::Sqitch::Plan::Change',
+    isa      => Change,
     weak_ref => 1,
     required => 1,
 );
 
 has timestamp => (
     is       => 'ro',
-    isa      => 'App::Sqitch::DateTime',
+    isa      => DateTime,
     required => 1,
     default  => sub { App::Sqitch::DateTime->now },
 );
 
 has planner_name => (
     is       => 'ro',
-    isa      => 'Str',
+    isa      => Str,
     required => 1,
     default  => sub { shift->sqitch->user_name },
 );
 
 has planner_email => (
     is       => 'ro',
-    isa      => 'UserEmail',
+    isa      => UserEmail,
     required => 1,
     default  => sub { shift->sqitch->user_email },
 );
@@ -121,7 +122,7 @@ sub format_content {
 }
 
 __PACKAGE__->meta->make_immutable;
-no Mouse;
+no Moo;
 
 __END__
 

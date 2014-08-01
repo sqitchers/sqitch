@@ -4,8 +4,7 @@ use 5.010;
 use strict;
 use warnings;
 use utf8;
-use Mouse::Role;
-use Mouse::Util::TypeConstraints;
+use Moo::Role;
 use namespace::autoclean;
 
 requires 'sqitch';
@@ -17,26 +16,26 @@ our $VERSION = '0.996';
 
 has target => (
     is  => 'ro',
-    isa => 'Str',
+    isa => Str,
 );
 
 has verify => (
     is       => 'ro',
-    isa      => 'Bool',
+    isa      => Bool,
     required => 1,
     default  => 0,
 );
 
 has log_only => (
     is       => 'ro',
-    isa      => 'Bool',
+    isa      => Bool,
     required => 1,
     default  => 0,
 );
 
 has no_prompt => (
     is  => 'ro',
-    isa => 'Bool'
+    isa => Bool
 );
 
 has mode => (

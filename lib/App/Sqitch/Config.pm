@@ -1,7 +1,7 @@
 package App::Sqitch::Config;
 
 use 5.010;
-use Moose;
+use Moo;
 use strict;
 use warnings;
 use Path::Class;
@@ -79,7 +79,7 @@ sub initial_key {
 }
 
 __PACKAGE__->meta->make_immutable;
-no Moose;
+no Moo;
 
 =head1 Name
 

@@ -15,7 +15,8 @@ use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use List::MoreUtils qw(uniq any);
 use namespace::autoclean;
-use Mouse;
+use Moo;
+use App::Sqitch::Types qw(Str Int HashRef ChangeList LineList Maybe Sqitch URI);
 use constant SYNTAX_VERSION => '1.0.0-b2';
 
 our $VERSION = '0.996';
@@ -42,14 +43,14 @@ sub name_regex { $name_re }
 
 has sqitch => (
     is       => 'ro',
-    isa      => 'App::Sqitch',
+    isa      => Sqitch,
     required => 1,
     weak_ref => 1,
 );
 
 has _plan => (
     is         => 'rw',
-    isa        => 'HashRef',
+    isa        => HashRef,
     builder    => 'load',
     init_arg   => 'plan',
     lazy       => 1,
@@ -58,7 +59,7 @@ has _plan => (
 
 has _changes => (
     is       => 'ro',
-    isa      => 'App::Sqitch::Plan::ChangeList',
+    isa      => ChangeList,
     lazy     => 1,
     required => 1,
     default  => sub {
@@ -68,7 +69,7 @@ has _changes => (
 
 has _lines => (
     is       => 'ro',
-    isa      => 'App::Sqitch::Plan::LineList',
+    isa      => LineList,
     lazy     => 1,
     required => 1,
     default  => sub {
@@ -78,14 +79,14 @@ has _lines => (
 
 has position => (
     is       => 'rw',
-    isa      => 'Int',
+    isa      => Int,
     required => 1,
     default  => -1,
 );
 
 has project => (
     is       => 'ro',
-    isa      => 'Str',
+    isa      => Str,
     required => 1,
     lazy     => 1,
     default  => sub {
@@ -95,7 +96,7 @@ has project => (
 
 has uri => (
     is       => 'ro',
-    isa      => 'Maybe[URI]',
+    isa      => Maybe[URI],
     required => 0,
     lazy     => 1,
     default  => sub {
@@ -972,7 +973,7 @@ sub write_to {
 }
 
 __PACKAGE__->meta->make_immutable;
-no Mouse;
+no Moo;
 
 __END__
 

@@ -45,7 +45,7 @@ my ( $earliest_change_id, $latest_change_id, $initialized );
 ENGINE: {
     # Stub out a engine.
     package App::Sqitch::Engine::whu;
-    use Mouse;
+    use Moo;
     use App::Sqitch::X qw(hurl);
     extends 'App::Sqitch::Engine';
     $INC{'App/Sqitch/Engine/whu.pm'} = __FILE__;

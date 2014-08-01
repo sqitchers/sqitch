@@ -8,8 +8,7 @@ use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use App::Sqitch::DateTime;
 use List::Util qw(max);
-use Mouse;
-use Mouse::Util::TypeConstraints;
+use Moo;
 use String::Formatter;
 use namespace::autoclean;
 use Try::Tiny;
@@ -28,13 +27,13 @@ our $VERSION = '0.996';
 
 has abbrev => (
     is      => 'ro',
-    isa     => 'Int',
+    isa     => Int,
     default => 0,
 );
 
 has date_format => (
     is       => 'ro',
-    isa      => 'Str',
+    isa      => Str,
     required => 1,
     default  => 'iso',
 );
