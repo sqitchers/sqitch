@@ -5,6 +5,8 @@ use strict;
 use warnings;
 use utf8;
 use Moo::Role;
+use App::Sqitch::Types qw(Str Bool HashRef);
+use Type::Utils qw(enum);
 use namespace::autoclean;
 
 requires 'sqitch';
@@ -22,14 +24,12 @@ has target => (
 has verify => (
     is       => 'ro',
     isa      => Bool,
-    required => 1,
     default  => 0,
 );
 
 has log_only => (
     is       => 'ro',
     isa      => Bool,
-    required => 1,
     default  => 0,
 );
 
@@ -50,8 +50,7 @@ has mode => (
 
 has deploy_variables => (
     is       => 'ro',
-    isa      => 'HashRef',
-    required => 1,
+    isa      => HashRef,
     lazy     => 1,
     default  => sub {
         my $self = shift;
@@ -63,8 +62,7 @@ has deploy_variables => (
 
 has revert_variables => (
     is       => 'ro',
-    isa      => 'HashRef',
-    required => 1,
+    isa      => HashRef,
     lazy     => 1,
     default  => sub {
         my $self = shift;

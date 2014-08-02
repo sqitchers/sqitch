@@ -30,7 +30,7 @@ has to_change => (
 
 has variables => (
     is       => 'ro',
-    isa      => 'HashRef',
+    isa      => HashRef,
     required => 1,
     lazy     => 1,
     default  => sub {

@@ -49,7 +49,7 @@ has verify => (
 
 has variables => (
     is       => 'ro',
-    isa      => 'HashRef',
+    isa      => HashRef,
     required => 1,
     lazy     => 1,
     default  => sub {
