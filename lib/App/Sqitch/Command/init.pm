@@ -5,6 +5,7 @@ use strict;
 use warnings;
 use utf8;
 use Moo;
+use App::Sqitch::Types qw(URI Maybe);
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use File::Path qw(make_path);
@@ -29,7 +30,7 @@ sub execute {
 
 has uri => (
     is       => 'ro',
-    isa      => 'Maybe[URI]',
+    isa      => Maybe[URI],
     required => 0,
 );
 
@@ -42,7 +43,7 @@ sub options {
 sub _validate_project {
     my ( $self, $project ) = @_;
     $self->usage unless $project;
-    my $name_re = App::Sqitch::Plan->name_regex;
+    my $name_re = 'App::Sqitch::Plan'->name_regex;
     hurl init => __x(
         qq{invalid project name "{project}": project names must not }
         . 'begin with punctuation, contain "@", ":", "#", or blanks, or end in '
@@ -56,7 +57,7 @@ sub configure {
 
     if ( my $uri = $opt->{uri} ) {
         require URI;
-        $opt->{uri} = URI->new($uri);
+        $opt->{uri} = 'URI'->new($uri);
     }
 
     return $opt;

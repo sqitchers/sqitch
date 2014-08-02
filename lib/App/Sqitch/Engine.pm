@@ -141,9 +141,9 @@ has _variables => (
     default => sub { {} },
 );
 
-sub variables { @{ shift->_variables } }
-sub set_variables { @{ shift->_variables } = @_ }
-sub clear_variables { @{ shift->_variables } = () }
+sub variables       { %{ shift->_variables }       }
+sub set_variables   {    shift->_variables({ @_ }) }
+sub clear_variables { %{ shift->_variables } = ()  }
 
 # * If not passed
 #   a. Look for core.$engine.target; or

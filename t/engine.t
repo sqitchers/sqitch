@@ -102,14 +102,14 @@ my $mock_engine = Test::MockModule->new($CLASS);
 ##############################################################################
 # Test new().
 throws_ok { $CLASS->new }
-    qr/\QAttribute (sqitch) is required/,
+    qr/\QMissing required arguments: sqitch/,
     'Should get an exception for missing sqitch param';
 my $array = [];
 throws_ok { $CLASS->new({ sqitch => $array }) }
-    qr/\QValidation failed for 'App::Sqitch' with value/,
+    qr/\QReference [] did not pass type constraint "Sqitch"/,
     'Should get an exception for array sqitch param';
 throws_ok { $CLASS->new({ sqitch => 'foo' }) }
-    qr/\QValidation failed for 'App::Sqitch' with value/,
+    qr/\QValue "foo" did not pass type constraint "Sqitch"/,
     'Should get an exception for string sqitch param';
 
 isa_ok $CLASS->new({sqitch => $sqitch}), $CLASS;

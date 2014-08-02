@@ -232,8 +232,10 @@ for my $mode (qw(all tag change)) {
 }
 
 for my $bad (qw(foo bad gar)) {
-    throws_ok { $CLASS->new( sqitch => $sqitch, mode => $bad ) } qr/Validation failed/,
-        qq{"$bad" should not be a valid mode};
+    throws_ok {
+        $CLASS->new( sqitch => $sqitch, mode => $bad )
+    } qr/\QValue "$bad" did not pass type constraint "Enum[all,change,tag]/,
+    qq{"$bad" should not be a valid mode};
 }
 
 # Make sure we get an exception for unknown args.
