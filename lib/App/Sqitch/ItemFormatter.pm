@@ -9,6 +9,8 @@ use App::Sqitch::X qw(hurl);
 use App::Sqitch::DateTime;
 use List::Util qw(max);
 use Moo;
+use Types::Standard qw(Str Int);
+use Type::Utils qw(enum class_type);
 use String::Formatter;
 use namespace::autoclean;
 use Try::Tiny;
@@ -34,21 +36,19 @@ has abbrev => (
 has date_format => (
     is       => 'ro',
     isa      => Str,
-    required => 1,
     default  => 'iso',
 );
 
 has color => (
     is       => 'ro',
     isa      => enum([ qw(always never auto) ]),
-    required => 1,
     default  => 'auto',
 );
 
 has formatter => (
     is      => 'ro',
     lazy    => 1,
-    isa     => 'String::Formatter',
+    isa     => class_type('String::Formatter'),
     default => sub {
         my $self = shift;
         no if $] >= 5.017011, warnings => 'experimental::smartmatch';
