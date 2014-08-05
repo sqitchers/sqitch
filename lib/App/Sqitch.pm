@@ -14,6 +14,7 @@ use Locale::TextDomain 1.20 qw(App-Sqitch);
 use Locale::Messages qw(bind_textdomain_filter);
 use App::Sqitch::X qw(hurl);
 use Moo;
+use Type::Utils -all;
 use App::Sqitch::Types qw(Str Int Plan UserName UserEmail Maybe File Dir Config);
 use Encode ();
 use Try::Tiny;
@@ -290,10 +291,10 @@ has editor => (
 has pager => (
     is       => 'ro',
     lazy     => 1,
-    # isa      => type('IO::Pager' => where {
-    #     # IO::Pager annoyingly just returns the file handle if there is no TTY.
-    #     eval { $_->isa('IO::Pager') || $_->isa('IO::Handle') } || ref $_ eq 'GLOB'
-    # }),
+    isa      => declare('Pager', where {
+        # IO::Pager annoyingly just returns the file handle if there is no TTY.
+        eval { $_->isa('IO::Pager') || $_->isa('IO::Handle') } || ref $_ eq 'GLOB'
+    }),
     default  => sub {
         require IO::Pager;
         # https://rt.cpan.org/Ticket/Display.html?id=78270
