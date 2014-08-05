@@ -6,6 +6,12 @@ Revision history for Perl extension App::Sqitch
      - Fixed "Redundant argument in printf" warning on Perl 5.21.2.
      - Switched from Digest::SHA1, which is deprecated, to Digest::SHA for
        generating SHA-1 IDs.
+     - Switched from Mouse and Moose to Moo. Sqitch no longer depends on any
+       modules that use Moose, either. This results in an approximately 40%
+       startup time speedup.
+     - Loading of App::Sqitch::DateTime is now deferred until it's needed.
+       This is because DateTime is rather expensive to load. Since a number of
+       commands don't need it, it seems silly to load it in those cases.
 
 0.995  2014-07-13T22:24:53Z
      - Fixed test failures due to the introduction of "Negative repeat count
