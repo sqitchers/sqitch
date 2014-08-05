@@ -7,6 +7,7 @@ use utf8;
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use Moo;
+use Types::Standard qw(Str Bool);
 use App::Sqitch::DateTime;
 use List::Util qw(max);
 use Try::Tiny;

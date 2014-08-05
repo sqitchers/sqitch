@@ -8,6 +8,7 @@ use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use List::Util qw(first);
 use Moo;
+use App::Sqitch::Types qw(Bool);
 extends 'App::Sqitch::Command';
 
 our $VERSION = '0.996';
@@ -15,7 +16,6 @@ our $VERSION = '0.996';
 has exists_only => (
     is       => 'ro',
     isa      => Bool,
-    required => 1,
     default  => 0,
 );
 
