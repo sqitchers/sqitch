@@ -11,6 +11,7 @@ BuildArch:      noarch
 BuildRequires:  perl >= 1:v5.10.0
 BuildRequires:  perl(Capture::Tiny) >= 0.12
 BuildRequires:  perl(Carp)
+BuildRequires:  perl(Class::XSAccessor) >= 1.18
 BuildRequires:  perl(Clone)
 BuildRequires:  perl(Config)
 BuildRequires:  perl(Config::GitLike) >= 1.09
@@ -36,11 +37,9 @@ BuildRequires:  perl(List::Util)
 BuildRequires:  perl(List::MoreUtils)
 BuildRequires:  perl(Locale::TextDomain) >= 1.20
 BuildRequires:  perl(Module::Build) >= 0.35
-BuildRequires:  perl(Moose) >= 2.0300
-BuildRequires:  perl(Moose::Meta::Attribute::Native) >= 2.0300
-BuildRequires:  perl(Moose::Meta::TypeConstraint::Parameterizable) >= 2.0300
-BuildRequires:  perl(Moose::Util::TypeConstraints) >= 2.0300
-BuildRequires:  perl(MooseX::Types::Path::Class) >= 0.05
+BuildRequires:  perl(Moo) >= 1.002000
+BuildRequires:  perl(Moo::Role)
+BuildRequires:  perl(Moo::sification)
 BuildRequires:  perl(namespace::autoclean) >= 0.11
 BuildRequires:  perl(parent)
 BuildRequires:  perl(overload)
@@ -49,9 +48,7 @@ BuildRequires:  perl(PerlIO::utf8_strict)
 BuildRequires:  perl(Pod::Find)
 BuildRequires:  perl(Pod::Usage)
 BuildRequires:  perl(POSIX)
-BuildRequires:  perl(Role::HasMessage) >= 0.005
-BuildRequires:  perl(Role::Identifiable::HasIdent) >= 0.005
-BuildRequires:  perl(Role::Identifiable::HasTags) >= 0.005
+BuildRequires:  perl(Scalar::Util)
 BuildRequires:  perl(StackTrace::Auto)
 BuildRequires:  perl(strict)
 BuildRequires:  perl(String::Formatter)
@@ -72,11 +69,15 @@ BuildRequires:  perl(Test::NoWarnings) >= 0.083
 BuildRequires:  perl(Throwable)
 BuildRequires:  perl(Time::HiRes)
 BuildRequires:  perl(Try::Tiny)
+BuildRequires:  perl(Type::Library) >= 0.040
+BuildRequires:  perl(Type::Utils)
+BuildRequires:  perl(Types::Standard)
 BuildRequires:  perl(URI)
 BuildRequires:  perl(URI::db)
 BuildRequires:  perl(User::pwent)
 BuildRequires:  perl(utf8)
 BuildRequires:  perl(warnings)
+Requires:       perl(Class::XSAccessor) >= 1.18
 Requires:       perl(Clone)
 Requires:       perl(Config)
 Requires:       perl(Config::GitLike) >= 1.09
@@ -99,11 +100,9 @@ Requires:       perl(IPC::System::Simple) >= 1.17
 Requires:       perl(List::Util)
 Requires:       perl(List::MoreUtils)
 Requires:       perl(Locale::TextDomain) >= 1.20
-Requires:       perl(Moose) >= 2.0300
-Requires:       perl(Moose::Meta::Attribute::Native) >= 2.0300
-Requires:       perl(Moose::Meta::TypeConstraint::Parameterizable) >= 2.0300
-Requires:       perl(Moose::Util::TypeConstraints) >= 2.0300
-Requires:       perl(MooseX::Types::Path::Class) >= 0.05
+Requires:       perl(Moo) => 1.002000
+Requires:       perl(Moo::Role)
+Requires:       perl(Moo::sification)
 Requires:       perl(namespace::autoclean) >= 0.11
 Requires:       perl(parent)
 Requires:       perl(overload)
@@ -112,9 +111,7 @@ Requires:       perl(PerlIO::utf8_strict)
 Requires:       perl(Pod::Find)
 Requires:       perl(Pod::Usage)
 Requires:       perl(POSIX)
-Requires:       perl(Role::HasMessage) >= 0.005
-Requires:       perl(Role::Identifiable::HasIdent) >= 0.005
-Requires:       perl(Role::Identifiable::HasTags) >= 0.005
+Requires:       perl(Scalar::Util)
 Requires:       perl(StackTrace::Auto)
 Requires:       perl(strict)
 Requires:       perl(String::Formatter)
@@ -126,6 +123,9 @@ Requires:       perl(Template::Tiny) >= 0.11
 Requires:       perl(Term::ANSIColor) >= 2.02
 Requires:       perl(Throwable)
 Requires:       perl(Try::Tiny)
+Requires:       perl(Type::Library) >= 0.040
+Requires:       perl(Type::Utils)
+Requires:       perl(Types::Standard)
 Requires:       perl(URI)
 Requires:       perl(URI::db)
 Requires:       perl(User::pwent)

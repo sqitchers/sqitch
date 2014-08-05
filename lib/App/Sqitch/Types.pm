@@ -4,7 +4,7 @@ use 5.010;
 use strict;
 use warnings;
 use utf8;
-use Type::Library -base, -declare => qw(
+use Type::Library 0.040 -base, -declare => qw(
     Sqitch
     UserName
     UserEmail
