@@ -70,6 +70,7 @@ BuildRequires:  perl(Throwable)
 BuildRequires:  perl(Time::HiRes)
 BuildRequires:  perl(Try::Tiny)
 BuildRequires:  perl(Type::Library) >= 0.040
+BuildRequires:  perl(Type::Tiny::XS) >= 0.010
 BuildRequires:  perl(Type::Utils)
 BuildRequires:  perl(Types::Standard)
 BuildRequires:  perl(URI)
@@ -124,6 +125,7 @@ Requires:       perl(Term::ANSIColor) >= 2.02
 Requires:       perl(Throwable)
 Requires:       perl(Try::Tiny)
 Requires:       perl(Type::Library) >= 0.040
+Requires:       perl(Type::Tiny::XS) >= 0.010
 Requires:       perl(Type::Utils)
 Requires:       perl(Types::Standard)
 Requires:       perl(URI)
