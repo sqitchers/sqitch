@@ -1203,7 +1203,7 @@ is_deeply +MockOutput->get_vent, [
 ], 'The original error should have been vented';
 $mock_whu->unmock('log_deploy_change');
 
-# Make it die with log-only..
+# Make it die with log-only.
 $plan->position(1);
 ok $engine->log_only(1), 'Enable log_only';
 $mock_whu->mock(log_deploy_change => sub { hurl 'ROFL' if $_[1] eq $changes[-1] });
@@ -1632,7 +1632,7 @@ is_deeply +MockOutput->get_info, [
 ##############################################################################
 # Test revert().
 can_ok $engine, 'revert';
-$mock_engine->mock(plan => $plan);
+$engine->plan($plan);
 
 # Start with no deployed IDs.
 @deployed_changes = ();
@@ -1840,9 +1840,8 @@ is_deeply +MockOutput->get_info, [
 
 # Revert all changes with no prompt.
 MockOutput->ask_y_n_returns(1);
-my $no_prompt = 1;
 $engine->log_only(0);
-$mock_engine->mock( no_prompt => sub { $no_prompt } );
+$engine->no_prompt(1);
 ok $engine->revert, 'Revert all changes with no prompt';
 is_deeply $engine->seen, [
     [deployed_changes => undef],
@@ -1857,6 +1856,7 @@ is_deeply $engine->seen, [
     [log_revert_change => $dbchanges[0] ],
 ], 'Should have reverted the changes in reverse order';
 is_deeply +MockOutput->get_ask_y_n, [], 'Should have no prompt';
+
 is_deeply +MockOutput->get_info_literal, [
     ['  - lolz ..', '.........', ' '],
     ['  - widgets @beta ..', '', ' '],
@@ -1875,7 +1875,7 @@ is_deeply +MockOutput->get_info, [
 ], 'And the revert successes should be emitted';
 
 # Now just revert to an earlier change.
-$no_prompt = 0;
+$engine->no_prompt(0);
 $offset_change = $dbchanges[1];
 push @resolved => $offset_change->id;
 @deployed_changes = @deployed_changes[2..3];
@@ -1933,7 +1933,7 @@ is_deeply +MockOutput->get_info, [
 
 # Try to revert just the last change with no prompt
 MockOutput->ask_y_n_returns(1);
-$no_prompt = 1;
+$engine->no_prompt(1);
 my $rtags = delete $dbchanges[-1]->{_rework_tags}; # These need to be invisible.
 $offset_change = $dbchanges[-1];
 push @resolved => $offset_change->id;

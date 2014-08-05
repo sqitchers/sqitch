@@ -24,7 +24,6 @@ has client => (
     is       => 'ro',
     isa      => Str,
     lazy     => 1,
-    required => 1,
     default  => sub {
         my $self = shift;
         my $sqitch = $self->sqitch;
@@ -130,7 +129,6 @@ has max_name_length => (
 has plan => (
     is       => 'rw',
     isa      => Plan,
-    required => 1,
     lazy     => 1,
     default  => sub { shift->sqitch->plan }
 );
@@ -198,7 +196,6 @@ has registry => (
     is       => 'ro',
     isa      => Maybe[Str], # May be undef in a subclass.
     lazy     => 1,
-    required => 1,
     default  => sub {
         my $self   = shift;
         my $engine = $self->key;
@@ -1392,7 +1389,6 @@ which Sqitch's own data is stored. It will usually be the same as C<destination(
 but some engines, such as L<SQLite|App::Sqitch::Engine::sqlite>, may use a
 separate database. Used internally to name the target when the registration
 tables are created.
-
 
 =head3 C<start_at>
 
