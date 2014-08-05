@@ -6,6 +6,7 @@ use 5.010;
 use strict;
 use warnings;
 use utf8;
+no Moo::sification;
 use Getopt::Long;
 use Hash::Merge qw(merge);
 use Path::Class;
@@ -15,7 +16,7 @@ use Locale::Messages qw(bind_textdomain_filter);
 use App::Sqitch::X qw(hurl);
 use Moo;
 use Type::Utils -all;
-use App::Sqitch::Types qw(Str Int Plan UserName UserEmail Maybe File Dir Config);
+use App::Sqitch::Types qw(Str Int Plan UserName UserEmail Maybe File Dir Config HashRef);
 use Encode ();
 use Try::Tiny;
 use List::Util qw(first);
@@ -35,10 +36,13 @@ use App::Sqitch::Config;
 use App::Sqitch::Command;
 use App::Sqitch::Plan;
 
+has _was_set => (is => 'ro', type => HashRef, default => sub {{}});
+
 has plan_file => (
     is       => 'ro',
     # XXX isa Path::Class::File?
     lazy     => 1,
+    trigger  => sub { shift->_was_set->{plan_file} = 1 },
     default  => sub {
         my $self = shift;
         if ( my $fn = $self->config->get( key => 'core.plan_file') ) {
@@ -147,6 +151,7 @@ has top_dir => (
     is       => 'ro',
     isa      => Maybe[Dir],
     lazy     => 1,
+    trigger => sub { shift->_was_set->{top_dir} = 1 },
     default => sub { dir shift->config->get( key => 'core.top_dir' ) || () },
 );
 
@@ -154,6 +159,7 @@ has deploy_dir => (
     is       => 'ro',
     isa      => Dir,
     lazy     => 1,
+    trigger  => sub { shift->_was_set->{deploy_dir} = 1 },
     default  => sub {
         my $self = shift;
         if ( my $dir = $self->config->get( key => 'core.deploy_dir' ) ) {
@@ -167,6 +173,7 @@ has revert_dir => (
     is       => 'ro',
     isa      => Dir,
     lazy     => 1,
+    trigger  => sub { shift->_was_set->{revert_dir} = 1 },
     default  => sub {
         my $self = shift;
         if ( my $dir = $self->config->get( key => 'core.revert_dir' ) ) {
@@ -180,6 +187,7 @@ has verify_dir => (
     is       => 'ro',
     isa      => Dir,
     lazy     => 1,
+    trigger  => sub { shift->_was_set->{verify_dir} = 1 },
     default  => sub {
         my $self = shift;
         if ( my $dir = $self->config->get( key => 'core.verify_dir' ) ) {
@@ -193,6 +201,7 @@ has extension => (
     is      => 'ro',
     isa     => Str,
     lazy    => 1,
+    trigger => sub { shift->_was_set->{extension} = 1 },
     default => sub {
         shift->config->get( key => 'core.extension' ) || 'sql';
     }
