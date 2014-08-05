@@ -7,6 +7,8 @@ use utf8;
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use Moo;
+use Types::Standard qw(Str Int ArrayRef Bool);
+use Type::Utils qw(class_type);
 use App::Sqitch::ItemFormatter;
 use namespace::autoclean;
 use Try::Tiny;
@@ -97,14 +99,12 @@ has reverse => (
 has format => (
     is       => 'ro',
     isa      => Str,
-    required => 1,
     default  => $FORMATS{medium},
 );
 
 has formatter => (
     is       => 'ro',
-    isa      => 'App::Sqitch::ItemFormatter',
-    required => 1,
+    isa      => class_type('App::Sqitch::ItemFormatter'),
     lazy     => 1,
     default  => sub { App::Sqitch::ItemFormatter->new },
 );

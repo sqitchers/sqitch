@@ -8,7 +8,7 @@ use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use Moo;
 use Types::Standard qw(Str Int ArrayRef Bool);
-use Type::Utils qw(enum class_type);
+use Type::Utils qw(class_type);
 use App::Sqitch::ItemFormatter;
 use namespace::autoclean;
 use Try::Tiny;
