@@ -6,9 +6,6 @@ use Moo;
 use Types::Standard qw(Str Int);
 use Sub::Exporter::Util ();
 use Sub::Exporter -setup => [qw(hurl)];
-use Role::HasMessage 0.005;
-use Role::Identifiable::HasIdent 0.005;
-use Role::Identifiable::HasTags 0.005;
 use overload '""' => 'as_string';
 
 our $VERSION = '0.996';
@@ -28,12 +25,15 @@ has exitval => (
 
 with qw(
     Throwable
-    Role::HasMessage
-    Role::Identifiable::HasIdent
     StackTrace::Auto
 );
 
-has '+ident' => (default => 'DEV');
+has ident => (
+  is      => 'ro',
+  isa     => Str,
+  default => 'DEV'
+);
+
 has '+previous_exception' => (init_arg => 'previous_exception')
     if Throwable->VERSION < 0.200007;
 
