@@ -4,7 +4,8 @@ use 5.010;
 use strict;
 use warnings;
 use utf8;
-use Mouse;
+use Moo;
+use Types::Standard qw(Str Int);
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use URI::db;
@@ -18,18 +19,18 @@ our $VERSION = '0.996';
 
 has verbose => (
     is      => 'ro',
-    isa     => 'Int',
+    isa     => Int,
     default => 0,
 );
 
 has registry => (
     is  => 'ro',
-    isa => 'Str',
+    isa => Str,
 );
 
 has client => (
     is  => 'ro',
-    isa => 'Str',
+    isa => Str,
 );
 
 sub options {

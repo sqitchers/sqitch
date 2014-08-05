@@ -6,8 +6,8 @@ use warnings;
 use utf8;
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
-use Mouse;
-use MouseX::Types::Path::Class;
+use Moo;
+use App::Sqitch::Types qw(Str Int ArrayRef HashRef Dir Bool Maybe);
 use Path::Class;
 use Try::Tiny;
 use File::Path qw(make_path);
@@ -20,29 +20,25 @@ our $VERSION = '0.996';
 
 has requires => (
     is       => 'ro',
-    isa      => 'ArrayRef[Str]',
-    required => 1,
+    isa      => ArrayRef[Str],
     default  => sub { [] },
 );
 
 has conflicts => (
     is       => 'ro',
-    isa      => 'ArrayRef[Str]',
-    required => 1,
+    isa      => ArrayRef[Str],
     default  => sub { [] },
 );
 
 has note => (
     is       => 'ro',
-    isa      => 'ArrayRef[Str]',
-    required => 1,
+    isa      => ArrayRef[Str],
     default  => sub { [] },
 );
 
 has variables => (
     is       => 'ro',
-    isa      => 'HashRef',
-    required => 1,
+    isa      => HashRef,
     lazy     => 1,
     default  => sub {
         shift->sqitch->config->get_section( section => 'add.variables' );
@@ -51,28 +47,25 @@ has variables => (
 
 has template_directory => (
     is  => 'ro',
-    isa => 'Maybe[Path::Class::Dir]',
+    isa => Maybe[Dir],
 );
 
 has template_name => (
     is       => 'ro',
-    isa      => 'Str',
-    required => 1,
+    isa      => Str,
     lazy     => 1,
     default  => sub { shift->sqitch->engine_key },
 );
 
 has with_scripts => (
     is       => 'ro',
-    isa      => 'HashRef',
-    required => 1,
+    isa      => HashRef,
     default  => sub { {} },
 );
 
 has templates => (
     is       => 'ro',
-    isa      => 'HashRef',
-    required => 1,
+    isa      => HashRef,
     lazy     => 1,
     default  => sub {
         my $self = shift;
@@ -82,7 +75,7 @@ has templates => (
 
 has open_editor => (
     is       => 'ro',
-    isa      => 'Bool',
+    isa      => Bool,
     lazy     => 1,
     default  => sub {
         shift->sqitch->config->get(

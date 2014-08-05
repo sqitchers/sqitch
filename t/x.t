@@ -21,9 +21,7 @@ isa_ok my $x = $CLASS->new(ident => 'test', message => 'Die'), $CLASS, 'X object
 
 for my $role(qw(
     Throwable
-    Role::HasMessage
     StackTrace::Auto
-    Role::Identifiable::HasIdent
 )) {
     ok $x->does($role), "X object does $role";
 }

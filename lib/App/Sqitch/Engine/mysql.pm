@@ -9,21 +9,19 @@ use App::Sqitch::X qw(hurl);
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::Plan::Change;
 use Path::Class;
-use Mouse;
+use Moo;
+use App::Sqitch::Types qw(DBI URIDB ArrayRef);
 use namespace::autoclean;
 use List::MoreUtils qw(firstidx);
 
 extends 'App::Sqitch::Engine';
-sub dbh; # required by DBIEngine;
-with 'App::Sqitch::Role::DBIEngine';
 
 our $VERSION = '0.996';
 
 has registry_uri => (
     is       => 'ro',
-    isa      => 'URI::db',
+    isa      => URIDB,
     lazy     => 1,
-    required => 1,
     default  => sub {
         my $self = shift;
         my $uri = $self->uri->clone;
@@ -43,14 +41,14 @@ sub registry_destination {
 
 has dbh => (
     is      => 'rw',
-    isa     => 'DBI::db',
+    isa     => DBI,
     lazy    => 1,
     default => sub {
         my $self = shift;
         $self->use_driver;
 
         my $uri = $self->registry_uri;
-        my $dbh = DBI->connect($uri->dbi_dsn, scalar $uri->user, scalar $uri->password, {
+        my $dbh = 'DBI'->connect($uri->dbi_dsn, scalar $uri->user, scalar $uri->password, {
             PrintError           => 0,
             RaiseError           => 0,
             AutoCommit           => 1,
@@ -103,12 +101,13 @@ has dbh => (
     }
 );
 
-has mysql => (
+# Need to wait until dbh is defined.
+with 'App::Sqitch::Role::DBIEngine';
+
+has _mysql => (
     is         => 'ro',
-    isa        => 'ArrayRef',
+    isa        => ArrayRef,
     lazy       => 1,
-    required   => 1,
-    auto_deref => 1,
     default    => sub {
         my $self = shift;
         my $uri  = $self->uri;
@@ -146,6 +145,8 @@ has mysql => (
         return \@ret;
     },
 );
+
+sub mysql { @{ shift->_mysql } }
 
 sub key    { 'mysql' }
 sub name   { 'MySQL' }
@@ -298,8 +299,7 @@ sub _cid {
     };
 }
 
-__PACKAGE__->meta->make_immutable;
-no Mouse;
+1;
 
 1;
 

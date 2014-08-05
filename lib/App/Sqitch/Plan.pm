@@ -2,7 +2,6 @@ package App::Sqitch::Plan;
 
 use 5.010;
 use utf8;
-use App::Sqitch::DateTime;
 use App::Sqitch::Plan::Tag;
 use App::Sqitch::Plan::Change;
 use App::Sqitch::Plan::Blank;
@@ -15,7 +14,8 @@ use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use List::MoreUtils qw(uniq any);
 use namespace::autoclean;
-use Mouse;
+use Moo;
+use App::Sqitch::Types qw(Str Int HashRef ChangeList LineList Maybe Sqitch URI);
 use constant SYNTAX_VERSION => '1.0.0-b2';
 
 our $VERSION = '0.996';
@@ -42,14 +42,14 @@ sub name_regex { $name_re }
 
 has sqitch => (
     is       => 'ro',
-    isa      => 'App::Sqitch',
+    isa      => Sqitch,
     required => 1,
     weak_ref => 1,
 );
 
 has _plan => (
     is         => 'rw',
-    isa        => 'HashRef',
+    isa        => HashRef,
     builder    => 'load',
     init_arg   => 'plan',
     lazy       => 1,
@@ -58,9 +58,8 @@ has _plan => (
 
 has _changes => (
     is       => 'ro',
-    isa      => 'App::Sqitch::Plan::ChangeList',
+    isa      => ChangeList,
     lazy     => 1,
-    required => 1,
     default  => sub {
         App::Sqitch::Plan::ChangeList->new(@{ shift->_plan->{changes} }),
     },
@@ -68,9 +67,8 @@ has _changes => (
 
 has _lines => (
     is       => 'ro',
-    isa      => 'App::Sqitch::Plan::LineList',
+    isa      => LineList,
     lazy     => 1,
-    required => 1,
     default  => sub {
         App::Sqitch::Plan::LineList->new(@{ shift->_plan->{lines} }),
     },
@@ -78,15 +76,13 @@ has _lines => (
 
 has position => (
     is       => 'rw',
-    isa      => 'Int',
-    required => 1,
+    isa      => Int,
     default  => -1,
 );
 
 has project => (
     is       => 'ro',
-    isa      => 'Str',
-    required => 1,
+    isa      => Str,
     lazy     => 1,
     default  => sub {
         shift->_plan->{pragmas}{project};
@@ -95,13 +91,12 @@ has project => (
 
 has uri => (
     is       => 'ro',
-    isa      => 'Maybe[URI]',
-    required => 0,
+    isa      => Maybe[URI],
     lazy     => 1,
     default  => sub {
         my $uri = shift->_plan->{pragmas}{uri} || return;
         require URI;
-        URI->new($uri);
+        'URI'->new($uri);
     }
 );
 
@@ -330,6 +325,7 @@ sub _parse {
         )) if $params{name} =~ /^[0-9a-f]{40}/;
 
         # Assemble the timestamp.
+        require App::Sqitch::DateTime;
         $params{timestamp} = App::Sqitch::DateTime->new(
             year      => delete $params{yr},
             month     => delete $params{mo},
@@ -594,7 +590,6 @@ sub last_tagged_change { shift->_changes->last_tagged_change }
 
 sub search_changes {
     my ( $self, %p ) = @_;
-    my $meta = App::Sqitch::Plan::Change->meta;
 
     my $reverse = 0;
     if (my $d = delete $p{direction}) {
@@ -605,14 +600,13 @@ sub search_changes {
 
     # Limit with regular expressions?
     my @filters;
-    for my $spec (
-        [ planner => 'planner_name' ],
-        [ name    => 'name'         ],
-    ) {
-        my $regex = delete $p{ $spec->[0] } // next;
+    if (my $regex = delete $p{planner}) {
         $regex = qr/$regex/;
-        my $attr = $meta->find_attribute_by_name( $spec->[1] );
-        push @filters => sub { $attr->get_value($_[0]) =~ $regex };
+        push @filters => sub { $_[0]->planner_name =~ $regex };
+    }
+    if (my $regex = delete $p{name}) {
+        $regex = qr/$regex/;
+        push @filters => sub { $_[0]->name =~ $regex };
     }
 
     # Match events?
@@ -971,8 +965,7 @@ sub write_to {
     return $self;
 }
 
-__PACKAGE__->meta->make_immutable;
-no Mouse;
+1;
 
 __END__
 

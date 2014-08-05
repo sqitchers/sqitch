@@ -12,9 +12,10 @@ use Test::Exception;
 use Test::MockModule;
 use Path::Class;
 use Term::ANSIColor qw(color);
+use App::Sqitch::DateTime;
+use Encode;
 use lib 't/lib';
 use MockOutput;
-use Encode;
 
 $ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
 $ENV{SQITCH_USER_CONFIG}   = 'nonexistent.user';

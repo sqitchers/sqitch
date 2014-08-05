@@ -21,7 +21,6 @@ BEGIN {
     };
 }
 
-
 use App::Sqitch;
 use Test::Exception;
 use Test::NoWarnings;
@@ -43,7 +42,7 @@ can_ok $CLASS, qw(load new options configure command prompt ask_y_n parse_args);
 COMMAND: {
     # Stub out a couple of commands.
     package App::Sqitch::Command::whu;
-    use Mouse;
+    use Moo;
     extends 'App::Sqitch::Command';
     has foo => (is => 'ro');
     has feathers => (is => 'ro');
@@ -59,7 +58,7 @@ COMMAND: {
     }
 
     package App::Sqitch::Command::wah_hoo;
-    use Mouse;
+    use Moo;
     extends 'App::Sqitch::Command';
     $INC{'App/Sqitch/Command/wah_hoo.pm'} = __FILE__;
 }
@@ -69,14 +68,14 @@ ok my $sqitch = App::Sqitch->new, 'Load a sqitch sqitch object';
 ##############################################################################
 # Test new().
 throws_ok { $CLASS->new }
-    qr/\QAttribute (sqitch) is required/,
+    qr/\QMissing required arguments: sqitch/,
     'Should get an exception for missing sqitch param';
 my $array = [];
 throws_ok { $CLASS->new({ sqitch => $array }) }
-    qr/\QValidation failed for 'App::Sqitch' with value/,
+    qr/\QReference [] did not pass type constraint "Sqitch"/,
     'Should get an exception for array sqitch param';
 throws_ok { $CLASS->new({ sqitch => 'foo' }) }
-    qr/\QValidation failed for 'App::Sqitch' with value/,
+    qr/\QValue "foo" did not pass type constraint "Sqitch"/,
     'Should get an exception for string sqitch param';
 
 isa_ok $CLASS->new({sqitch => $sqitch}), $CLASS;

@@ -1,7 +1,7 @@
 package App::Sqitch::Engine::oracle;
 
 use 5.010;
-use Mouse;
+use Moo;
 use utf8;
 use Path::Class;
 use DBI;
@@ -10,11 +10,10 @@ use App::Sqitch::X qw(hurl);
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::Plan::Change;
 use List::Util qw(first);
+use App::Sqitch::Types qw(DBI Dir ArrayRef);
 use namespace::autoclean;
 
 extends 'App::Sqitch::Engine';
-sub dbh; # required by DBIEngine;
-with 'App::Sqitch::Role::DBIEngine';
 
 our $VERSION = '0.996';
 
@@ -49,22 +48,21 @@ has '+destination' => (
     },
 );
 
-has sqlplus => (
+has _sqlplus => (
     is         => 'ro',
-    isa        => 'ArrayRef',
+    isa        => ArrayRef,
     lazy       => 1,
-    required   => 1,
-    auto_deref => 1,
     default    => sub {
         my $self = shift;
         [ $self->client, qw(-S -L /nolog) ];
     },
 );
 
+sub sqlplus { @{ shift->_sqlplus } }
+
 has tmpdir => (
     is       => 'ro',
-    isa      => 'Path::Class::Dir',
-    required => 1,
+    isa      => Dir,
     lazy     => 1,
     default  => sub {
         require File::Temp;
@@ -83,14 +81,14 @@ sub default_client {
 
 has dbh => (
     is      => 'rw',
-    isa     => 'DBI::db',
+    isa     => DBI,
     lazy    => 1,
     default => sub {
         my $self = shift;
         $self->use_driver;
 
         my $uri = $self->uri;
-        DBI->connect($uri->dbi_dsn, $uri->user, $uri->password, {
+        'DBI'->connect($uri->dbi_dsn, $uri->user, $uri->password, {
             PrintError        => 0,
             RaiseError        => 0,
             AutoCommit        => 1,
@@ -123,6 +121,9 @@ has dbh => (
         });
     }
 );
+
+# Need to wait until dbh is defined.
+with 'App::Sqitch::Role::DBIEngine';
 
 sub _log_tags_param {
     [ map { $_->format_name } $_[1]->tags ];
@@ -704,8 +705,7 @@ sub _capture {
     return wantarray ? @out : \@out;
 }
 
-__PACKAGE__->meta->make_immutable;
-no Mouse;
+1;
 
 __END__
 

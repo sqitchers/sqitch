@@ -6,9 +6,8 @@ use warnings;
 use utf8;
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
-use Mouse;
-use Mouse::Util::TypeConstraints;
-use App::Sqitch::DateTime;
+use Moo;
+use Types::Standard qw(Str Bool);
 use List::Util qw(max);
 use Try::Tiny;
 use namespace::autoclean;
@@ -18,12 +17,12 @@ our $VERSION = '0.996';
 
 has target => (
     is  => 'ro',
-    isa => 'Str',
+    isa => Str,
 );
 
 has show_changes => (
     is      => 'ro',
-    isa     => 'Bool',
+    isa     => Bool,
     lazy    => 1,
     default => sub {
         shift->sqitch->config->get(
@@ -35,7 +34,7 @@ has show_changes => (
 
 has show_tags => (
     is      => 'ro',
-    isa     => 'Bool',
+    isa     => Bool,
     lazy    => 1,
     default => sub {
         shift->sqitch->config->get(
@@ -48,7 +47,7 @@ has show_tags => (
 has date_format => (
     is      => 'ro',
     lazy    => 1,
-    isa     => 'Str',
+    isa     => Str,
     default => sub {
         shift->sqitch->config->get( key => 'status.date_format' ) || 'iso'
     }
@@ -56,7 +55,7 @@ has date_format => (
 
 has project => (
     is      => 'ro',
-    isa     => 'Str',
+    isa     => Str,
     lazy    => 1,
     default => sub {
         my $self = shift;
@@ -147,6 +146,7 @@ sub configure {
     if (my $format = $opt->{date_format}
         || $config->get(key => 'status.date_format')
     ) {
+        require App::Sqitch::DateTime;
         App::Sqitch::DateTime->validate_as_string_format($format);
     }
 

@@ -6,8 +6,9 @@ use warnings;
 use utf8;
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
-use Mouse;
-use Mouse::Util::TypeConstraints;
+use Moo;
+use Types::Standard qw(Str Int ArrayRef Bool);
+use Type::Utils qw(class_type);
 use App::Sqitch::ItemFormatter;
 use namespace::autoclean;
 use Try::Tiny;
@@ -66,46 +67,44 @@ $FORMATS{oneline} = '%{:event}C%h %l%{reset}C %n%{cyan}C%t%{reset}C';
 
 has event => (
     is      => 'ro',
-    isa     => 'Str',
+    isa     => Str,
 );
 
 has change_pattern => (
     is      => 'ro',
-    isa     => 'Str',
+    isa     => Str,
 );
 
 has planner_pattern => (
     is      => 'ro',
-    isa     => 'Str',
+    isa     => Str,
 );
 
 has max_count => (
     is      => 'ro',
-    isa     => 'Int',
+    isa     => Int,
 );
 
 has skip => (
     is      => 'ro',
-    isa     => 'Int',
+    isa     => Int,
 );
 
 has reverse => (
     is      => 'ro',
-    isa     => 'Bool',
+    isa     => Bool,
     default => 0,
 );
 
 has format => (
     is       => 'ro',
-    isa      => 'Str',
-    required => 1,
+    isa      => Str,
     default  => $FORMATS{medium},
 );
 
 has formatter => (
     is       => 'ro',
-    isa      => 'App::Sqitch::ItemFormatter',
-    required => 1,
+    isa      => class_type('App::Sqitch::ItemFormatter'),
     lazy     => 1,
     default  => sub { App::Sqitch::ItemFormatter->new },
 );
@@ -141,6 +140,7 @@ sub configure {
         key => 'plan.date_format'
     );
     if ($date_format) {
+        require App::Sqitch::DateTime;
         App::Sqitch::DateTime->validate_as_string_format($date_format);
     } else {
         $date_format = 'iso';

@@ -15,6 +15,7 @@ use Test::File::Contents;
 use Encode;
 #use Test::NoWarnings;
 use File::Path qw(make_path remove_tree);
+use App::Sqitch::DateTime;
 use lib 't/lib';
 use MockOutput;
 

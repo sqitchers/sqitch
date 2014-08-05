@@ -1,5 +1,5 @@
 package App::Sqitch::Engine::good;
-use parent 'App::Sqitch::Engine';
+extends 'App::Sqitch::Engine';
 1;
 
 =head1 NAME

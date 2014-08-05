@@ -4,9 +4,10 @@ use 5.010;
 use strict;
 use warnings;
 use utf8;
-use Mouse;
-use Mouse::Util::TypeConstraints;
+use Moo;
+use App::Sqitch::Types qw(URI Maybe Str Bool HashRef);
 use Locale::TextDomain qw(App-Sqitch);
+use Type::Utils qw(enum);
 use App::Sqitch::X qw(hurl);
 use List::Util qw(first);
 use namespace::autoclean;
@@ -16,12 +17,12 @@ our $VERSION = '0.996';
 
 has target => (
     is  => 'ro',
-    isa => 'Str',
+    isa => Str,
 );
 
 has to_change => (
     is  => 'ro',
-    isa => 'Str',
+    isa => Str,
 );
 
 has mode => (
@@ -36,22 +37,19 @@ has mode => (
 
 has log_only => (
     is       => 'ro',
-    isa      => 'Bool',
-    required => 1,
+    isa      => Bool,
     default  => 0,
 );
 
 has verify => (
     is       => 'ro',
-    isa      => 'Bool',
-    required => 1,
+    isa      => Bool,
     default  => 0,
 );
 
 has variables => (
     is       => 'ro',
-    isa      => 'HashRef',
-    required => 1,
+    isa      => HashRef,
     lazy     => 1,
     default  => sub {
         shift->sqitch->config->get_section( section => 'deploy.variables' );

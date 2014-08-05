@@ -4,7 +4,8 @@ use 5.010;
 use strict;
 use warnings;
 use utf8;
-use Mouse;
+use Moo;
+use Types::Standard qw(Str ArrayRef);
 use Locale::TextDomain qw(App-Sqitch);
 use namespace::autoclean;
 
@@ -14,8 +15,7 @@ our $VERSION = '0.996';
 
 has note => (
     is       => 'ro',
-    isa      => 'ArrayRef[Str]',
-    required => 1,
+    isa      => ArrayRef[Str],
     default  => sub { [] },
 );
 

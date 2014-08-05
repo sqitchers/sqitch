@@ -4,8 +4,8 @@ use 5.010;
 use strict;
 use warnings;
 use utf8;
-use Mouse;
-use Mouse::Util::TypeConstraints;
+use Moo;
+use Types::Standard qw(Str);
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use List::Util qw(first);
@@ -19,12 +19,12 @@ our $VERSION = '0.996';
 
 has onto_change => (
     is  => 'ro',
-    isa => 'Str',
+    isa => Str,
 );
 
 has upto_change => (
     is  => 'ro',
-    isa => 'Str',
+    isa => Str,
 );
 
 sub options {
