@@ -6,7 +6,6 @@ use namespace::autoclean;
 use Encode;
 use Moo;
 use App::Sqitch::Types qw(Str Bool Maybe Change Tag Depend UserEmail DateTime ArrayRef);
-use App::Sqitch::DateTime;
 use App::Sqitch::Plan::Depend;
 use Locale::TextDomain qw(App-Sqitch);
 extends 'App::Sqitch::Plan::Line';
@@ -176,7 +175,7 @@ has old_id => (
 has timestamp => (
     is       => 'ro',
     isa      => DateTime,
-    default  => sub { App::Sqitch::DateTime->now },
+    default  => sub { require App::Sqitch::DateTime && App::Sqitch::DateTime->now },
 );
 
 has planner_name => (

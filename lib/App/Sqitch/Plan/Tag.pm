@@ -6,7 +6,6 @@ use namespace::autoclean;
 use Moo;
 use App::Sqitch::Types qw(Str Change UserEmail DateTime);
 use Encode;
-use DateTime;
 
 extends 'App::Sqitch::Plan::Line';
 
@@ -91,7 +90,7 @@ has change => (
 has timestamp => (
     is       => 'ro',
     isa      => DateTime,
-    default  => sub { App::Sqitch::DateTime->now },
+    default  => sub { require App::Sqitch::DateTime && App::Sqitch::DateTime->now },
 );
 
 has planner_name => (

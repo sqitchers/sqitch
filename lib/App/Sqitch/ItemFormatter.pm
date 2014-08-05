@@ -6,7 +6,6 @@ use warnings;
 use utf8;
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
-use App::Sqitch::DateTime;
 use List::Util qw(max);
 use Moo;
 use Types::Standard qw(Str Int);

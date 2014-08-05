@@ -2,7 +2,6 @@ package App::Sqitch::Plan;
 
 use 5.010;
 use utf8;
-use App::Sqitch::DateTime;
 use App::Sqitch::Plan::Tag;
 use App::Sqitch::Plan::Change;
 use App::Sqitch::Plan::Blank;
@@ -326,6 +325,7 @@ sub _parse {
         )) if $params{name} =~ /^[0-9a-f]{40}/;
 
         # Assemble the timestamp.
+        require App::Sqitch::DateTime;
         $params{timestamp} = App::Sqitch::DateTime->new(
             year      => delete $params{yr},
             month     => delete $params{mo},

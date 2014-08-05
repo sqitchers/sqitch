@@ -157,6 +157,7 @@ sub configure {
         key => 'log.date_format'
     );
     if ($date_format) {
+        require App::Sqitch::DateTime;
         App::Sqitch::DateTime->validate_as_string_format($date_format);
     } else {
         $date_format = 'iso';

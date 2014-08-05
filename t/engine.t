@@ -14,9 +14,10 @@ use Test::NoWarnings;
 use Test::MockModule;
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
+use App::Sqitch::DateTime;
+use List::Util qw(max);
 use lib 't/lib';
 use MockOutput;
-use List::Util qw(max);
 
 my $CLASS;
 
