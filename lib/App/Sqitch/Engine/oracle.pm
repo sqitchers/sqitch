@@ -48,22 +48,21 @@ has '+destination' => (
     },
 );
 
-has sqlplus => (
+has _sqlplus => (
     is         => 'ro',
     isa        => ArrayRef,
     lazy       => 1,
-    required   => 1,
-    auto_deref => 1,
     default    => sub {
         my $self = shift;
         [ $self->client, qw(-S -L /nolog) ];
     },
 );
 
+sub sqlplus { @{ shift->_sqlplus } }
+
 has tmpdir => (
     is       => 'ro',
     isa      => Dir,
-    required => 1,
     lazy     => 1,
     default  => sub {
         require File::Temp;
@@ -89,7 +88,7 @@ has dbh => (
         $self->use_driver;
 
         my $uri = $self->uri;
-        DBI->connect($uri->dbi_dsn, $uri->user, $uri->password, {
+        'DBI'->connect($uri->dbi_dsn, $uri->user, $uri->password, {
             PrintError        => 0,
             RaiseError        => 0,
             AutoCommit        => 1,

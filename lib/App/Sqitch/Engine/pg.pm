@@ -38,12 +38,10 @@ has '+destination' => (
     },
 );
 
-has psql => (
+has _psql => (
     is         => 'ro',
     isa        => ArrayRef,
     lazy       => 1,
-    required   => 1,
-    auto_deref => 1,
     default    => sub {
         my $self = shift;
         my $uri  = $self->uri;
@@ -75,6 +73,9 @@ has psql => (
     },
 );
 
+sub psql { @{ shift->_psql } }
+
+
 sub key    { 'pg' }
 sub name   { 'PostgreSQL' }
 sub driver { 'DBD::Pg 2.0' }
@@ -89,7 +90,7 @@ has dbh => (
         $self->use_driver;
 
         my $uri = $self->uri;
-        DBI->connect($uri->dbi_dsn, scalar $uri->user, scalar $uri->password, {
+        'DBI'->connect($uri->dbi_dsn, scalar $uri->user, scalar $uri->password, {
             PrintError        => 0,
             RaiseError        => 0,
             AutoCommit        => 1,

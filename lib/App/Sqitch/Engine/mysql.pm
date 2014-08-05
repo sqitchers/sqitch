@@ -22,7 +22,6 @@ has registry_uri => (
     is       => 'ro',
     isa      => URIDB,
     lazy     => 1,
-    required => 1,
     default  => sub {
         my $self = shift;
         my $uri = $self->uri->clone;
@@ -49,7 +48,7 @@ has dbh => (
         $self->use_driver;
 
         my $uri = $self->registry_uri;
-        my $dbh = DBI->connect($uri->dbi_dsn, scalar $uri->user, scalar $uri->password, {
+        my $dbh = 'DBI'->connect($uri->dbi_dsn, scalar $uri->user, scalar $uri->password, {
             PrintError           => 0,
             RaiseError           => 0,
             AutoCommit           => 1,
@@ -105,12 +104,10 @@ has dbh => (
 # Need to wait until dbh is defined.
 with 'App::Sqitch::Role::DBIEngine';
 
-has mysql => (
+has _mysql => (
     is         => 'ro',
     isa        => ArrayRef,
     lazy       => 1,
-    required   => 1,
-    auto_deref => 1,
     default    => sub {
         my $self = shift;
         my $uri  = $self->uri;
@@ -148,6 +145,8 @@ has mysql => (
         return \@ret;
     },
 );
+
+sub mysql { @{ shift->_mysql } }
 
 sub key    { 'mysql' }
 sub name   { 'MySQL' }

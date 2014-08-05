@@ -24,7 +24,6 @@ has registry_uri => (
     is       => 'ro',
     isa      => URIDB,
     lazy     => 1,
-    required => 1,
     default  => sub {
         my $self = shift;
         my $uri  = $self->uri->clone;
@@ -70,7 +69,7 @@ has dbh => (
         $self->use_driver;
 
         my $dsn = $uri->dbi_dsn . ';ib_dialect=3;ib_charset=UTF8';
-        return DBI->connect($dsn, scalar $uri->user, scalar $uri->password, {
+        return 'DBI'->connect($dsn, scalar $uri->user, scalar $uri->password, {
             $uri->query_params,
             PrintError       => 0,
             RaiseError       => 0,
@@ -90,12 +89,10 @@ has dbh => (
 # Need to wait until dbh is defined.
 with 'App::Sqitch::Role::DBIEngine';
 
-has isql => (
+has _isql => (
     is         => 'ro',
     isa        => ArrayRef,
     lazy       => 1,
-    required   => 1,
-    auto_deref => 1,
     default    => sub {
         my $self = shift;
         my $uri  = $self->uri;
@@ -120,11 +117,12 @@ has isql => (
     },
 );
 
+sub isql { @{ shift->_isql } }
+
 has tz_offset => (
     is       => 'ro',
     isa      => Maybe[Int],
     lazy     => 1,
-    required => 1,
     default => sub {
         # From: http://stackoverflow.com/questions/2143528/whats-the-best-way-to-get-the-utc-offset-in-perl
         my @t = localtime(time);
