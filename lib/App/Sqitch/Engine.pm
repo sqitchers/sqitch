@@ -55,10 +55,13 @@ has client => (
     },
 );
 
+has _target_set => (is => 'rw');
+
 has target => (
     is      => 'ro',
     isa     => Str,
     lazy    => 1,
+    trigger => sub { shift->_target_set(1) }, # Excludes default and built values.
     default => sub {
         my $self = shift;
         my $engine = $self->key;
@@ -165,7 +168,7 @@ has uri => ( is => 'ro', isa => URI, lazy => 1, default => sub {
 
     # Get the target, but only if it has been passed, not the default,
     # because the default may call back into uri for an infinite loop!
-    my $target = $self->meta->find_attribute_by_name('target')->has_value($self)
+    my $target = $self->_target_set
         ? $self->target : $config->get( key => "core.$engine.target" );
 
     if ($target) {

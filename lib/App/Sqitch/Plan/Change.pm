@@ -63,7 +63,7 @@ sub is_reworked       { @{ shift->_rework_tags } > 0 }
 after add_rework_tags => sub {
     my $self = shift;
     # Need to reset the file name if a new value is passed.
-    $self->meta->get_attribute('_path_segments')->clear_value($self);
+    $self->_clear_path_segments(undef);
 };
 
 has _tags => (
@@ -80,6 +80,7 @@ has _path_segments => (
     is       => 'ro',
     isa      => ArrayRef[Str],
     lazy     => 1,
+    clearer  => 1, # Creates _clear_path_segments().
     default  => sub {
         my $self = shift;
         my @path = split m{/} => $self->name;

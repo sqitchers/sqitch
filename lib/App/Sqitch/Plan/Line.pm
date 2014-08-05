@@ -47,7 +47,7 @@ has ropspace => (
 );
 
 has note => (
-    is       => 'ro',
+    is       => 'rw',
     isa      => Str,
     default  => '',
 );
@@ -115,7 +115,7 @@ sub request_note {
     $note =~ s/\v+\z//;
 
     # Set the note via the meta API, bypassing the read-only constraint.
-    $self->meta->find_attribute_by_name('note')->set_value($self, $note);
+    $self->note($note);
     return $note;
 }
 

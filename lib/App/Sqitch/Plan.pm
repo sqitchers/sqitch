@@ -590,7 +590,6 @@ sub last_tagged_change { shift->_changes->last_tagged_change }
 
 sub search_changes {
     my ( $self, %p ) = @_;
-    my $meta = App::Sqitch::Plan::Change->meta;
 
     my $reverse = 0;
     if (my $d = delete $p{direction}) {
@@ -601,14 +600,13 @@ sub search_changes {
 
     # Limit with regular expressions?
     my @filters;
-    for my $spec (
-        [ planner => 'planner_name' ],
-        [ name    => 'name'         ],
-    ) {
-        my $regex = delete $p{ $spec->[0] } // next;
+    if (my $regex = delete $p{planner}) {
         $regex = qr/$regex/;
-        my $attr = $meta->find_attribute_by_name( $spec->[1] );
-        push @filters => sub { $attr->get_value($_[0]) =~ $regex };
+        push @filters => sub { $_[0]->planner_name =~ $regex };
+    }
+    if (my $regex = delete $p{name}) {
+        $regex = qr/$regex/;
+        push @filters => sub { $_[0]->name =~ $regex };
     }
 
     # Match events?
