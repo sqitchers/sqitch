@@ -10,7 +10,7 @@ use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::Plan::Change;
 use Path::Class;
 use Moo;
-use App::Sqitch::Types qw(DBI URIDB ArrayRef);
+use App::Sqitch::Types qw(DBH URIDB ArrayRef);
 use namespace::autoclean;
 use List::MoreUtils qw(firstidx);
 
@@ -41,14 +41,14 @@ sub registry_destination {
 
 has dbh => (
     is      => 'rw',
-    isa     => DBI,
+    isa     => DBH,
     lazy    => 1,
     default => sub {
         my $self = shift;
         $self->use_driver;
 
         my $uri = $self->registry_uri;
-        my $dbh = 'DBI'->connect($uri->dbi_dsn, scalar $uri->user, scalar $uri->password, {
+        my $dbh = DBI->connect($uri->dbi_dsn, scalar $uri->user, scalar $uri->password, {
             PrintError           => 0,
             RaiseError           => 0,
             AutoCommit           => 1,

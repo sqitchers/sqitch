@@ -13,7 +13,7 @@ use File::Basename;
 use Time::Local;
 use Time::HiRes qw(sleep);
 use Moo;
-use App::Sqitch::Types qw(DBI URIDB ArrayRef Maybe Int);
+use App::Sqitch::Types qw(DBH URIDB ArrayRef Maybe Int);
 use namespace::autoclean;
 
 extends 'App::Sqitch::Engine';
@@ -61,7 +61,7 @@ sub registry_destination {
 
 has dbh => (
     is      => 'rw',
-    isa     => DBI,
+    isa     => DBH,
     lazy    => 1,
     default => sub {
         my $self = shift;
@@ -69,7 +69,7 @@ has dbh => (
         $self->use_driver;
 
         my $dsn = $uri->dbi_dsn . ';ib_dialect=3;ib_charset=UTF8';
-        return 'DBI'->connect($dsn, scalar $uri->user, scalar $uri->password, {
+        return DBI->connect($dsn, scalar $uri->user, scalar $uri->password, {
             $uri->query_params,
             PrintError       => 0,
             RaiseError       => 0,

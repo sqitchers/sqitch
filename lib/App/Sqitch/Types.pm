@@ -21,7 +21,7 @@ use Type::Library -base, -declare => qw(
     File
     Dir
     Config
-    DBI
+    DBH
 );
 use Type::Utils -all;
 use Types::Standard -types;
@@ -46,7 +46,7 @@ class_type URIDB,      { class => 'URI::db'                         };
 class_type Config      { class => 'App::Sqitch::Config'             };
 class_type File        { class => 'Path::Class::File'               };
 class_type Dir         { class => 'Path::Class::Dir'                };
-class_type DBI         { class => 'DBI::db'                         };
+class_type DBH         { class => 'DBI::db'                         };
 
 subtype UserName, as Str, where {
     hurl user => __ 'User name may not contain "<" or start with "["'

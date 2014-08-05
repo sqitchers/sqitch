@@ -10,7 +10,7 @@ use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::Plan::Change;
 use Path::Class;
 use Moo;
-use App::Sqitch::Types qw(URIDB DBI ArrayRef);
+use App::Sqitch::Types qw(URIDB DBH ArrayRef);
 use namespace::autoclean;
 
 extends 'App::Sqitch::Engine';
@@ -79,14 +79,14 @@ sub default_client { 'sqlite3' }
 
 has dbh => (
     is      => 'rw',
-    isa     => DBI,
+    isa     => DBH,
     lazy    => 1,
     default => sub {
         my $self = shift;
         $self->use_driver;
 
         my $uri = $self->registry_uri;
-        my $dbh = 'DBI'->connect($uri->dbi_dsn, '', '', {
+        my $dbh = DBI->connect($uri->dbi_dsn, '', '', {
             PrintError        => 0,
             RaiseError        => 0,
             AutoCommit        => 1,

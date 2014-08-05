@@ -10,7 +10,7 @@ use App::Sqitch::X qw(hurl);
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::Plan::Change;
 use List::Util qw(first);
-use App::Sqitch::Types qw(DBI ArrayRef);
+use App::Sqitch::Types qw(DBH ArrayRef);
 use namespace::autoclean;
 
 extends 'App::Sqitch::Engine';
@@ -83,14 +83,14 @@ sub default_client { 'psql' }
 
 has dbh => (
     is      => 'rw',
-    isa     => DBI,
+    isa     => DBH,
     lazy    => 1,
     default => sub {
         my $self = shift;
         $self->use_driver;
 
         my $uri = $self->uri;
-        'DBI'->connect($uri->dbi_dsn, scalar $uri->user, scalar $uri->password, {
+        DBI->connect($uri->dbi_dsn, scalar $uri->user, scalar $uri->password, {
             PrintError        => 0,
             RaiseError        => 0,
             AutoCommit        => 1,
