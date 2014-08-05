@@ -91,21 +91,18 @@ has change => (
 has timestamp => (
     is       => 'ro',
     isa      => DateTime,
-    required => 1,
     default  => sub { App::Sqitch::DateTime->now },
 );
 
 has planner_name => (
     is       => 'ro',
     isa      => Str,
-    required => 1,
     default  => sub { shift->sqitch->user_name },
 );
 
 has planner_email => (
     is       => 'ro',
     isa      => UserEmail,
-    required => 1,
     default  => sub { shift->sqitch->user_email },
 );
 

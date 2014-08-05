@@ -29,9 +29,8 @@ sub execute {
 }
 
 has uri => (
-    is       => 'ro',
-    isa      => Maybe[URI],
-    required => 0,
+    is  => 'ro',
+    isa => Maybe[URI],
 );
 
 sub options {

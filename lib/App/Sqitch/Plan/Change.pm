@@ -34,20 +34,17 @@ sub conflicts { @{ shift->_conflicts } }
 has pspace => (
     is       => 'ro',
     isa      => Str,
-    required => 1,
     default  => ' ',
 );
 
 has since_tag => (
     is       => 'ro',
     isa      => Tag,
-    required => 0,
 );
 
 has parent => (
     is       => 'ro',
     isa      => Change,
-    required => 0,
 );
 
 has _rework_tags => (
@@ -178,21 +175,18 @@ has old_id => (
 has timestamp => (
     is       => 'ro',
     isa      => DateTime,
-    required => 1,
     default  => sub { App::Sqitch::DateTime->now },
 );
 
 has planner_name => (
     is       => 'ro',
     isa      => Str,
-    required => 1,
     default  => sub { shift->sqitch->user_name },
 );
 
 has planner_email => (
     is       => 'ro',
     isa      => UserEmail,
-    required => 1,
     default  => sub { shift->sqitch->user_email },
 );
 

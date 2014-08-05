@@ -32,7 +32,6 @@ has to_change => (
 has variables => (
     is       => 'ro',
     isa      => HashRef,
-    required => 1,
     lazy     => 1,
     default  => sub {
         shift->sqitch->config->get_section( section => 'verify.variables' );

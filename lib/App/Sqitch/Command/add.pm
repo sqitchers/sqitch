@@ -21,28 +21,24 @@ our $VERSION = '0.996';
 has requires => (
     is       => 'ro',
     isa      => ArrayRef[Str],
-    required => 1,
     default  => sub { [] },
 );
 
 has conflicts => (
     is       => 'ro',
     isa      => ArrayRef[Str],
-    required => 1,
     default  => sub { [] },
 );
 
 has note => (
     is       => 'ro',
     isa      => ArrayRef[Str],
-    required => 1,
     default  => sub { [] },
 );
 
 has variables => (
     is       => 'ro',
     isa      => HashRef,
-    required => 1,
     lazy     => 1,
     default  => sub {
         shift->sqitch->config->get_section( section => 'add.variables' );
@@ -57,7 +53,6 @@ has template_directory => (
 has template_name => (
     is       => 'ro',
     isa      => Str,
-    required => 1,
     lazy     => 1,
     default  => sub { shift->sqitch->engine_key },
 );
@@ -65,14 +60,12 @@ has template_name => (
 has with_scripts => (
     is       => 'ro',
     isa      => HashRef,
-    required => 1,
     default  => sub { {} },
 );
 
 has templates => (
     is       => 'ro',
     isa      => HashRef,
-    required => 1,
     lazy     => 1,
     default  => sub {
         my $self = shift;

@@ -22,7 +22,6 @@ has client => (
     is       => 'ro',
     isa      => Str,
     lazy     => 1,
-    required => 1,
     default  => sub {
         my $sqitch = shift->sqitch;
         return $sqitch->config->get( key => 'core.vcs.client' )

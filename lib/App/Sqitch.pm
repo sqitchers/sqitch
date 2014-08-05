@@ -37,7 +37,6 @@ use App::Sqitch::Plan;
 has plan_file => (
     is       => 'ro',
     # XXX isa Path::Class::File?
-    required => 1,
     lazy     => 1,
     default  => sub {
         my $self = shift;
@@ -51,7 +50,6 @@ has plan_file => (
 has plan => (
     is       => 'ro',
     isa      => Plan,
-    required => 1,
     lazy     => 1,
     default  => sub {
         App::Sqitch::Plan->new( sqitch => shift );
@@ -59,9 +57,8 @@ has plan => (
 );
 
 has _engine => (
-    is       => 'ro',
-    isa      => Maybe[Str],
-    required => 0,
+    is  => 'ro',
+    isa => Maybe[Str],
 );
 
 sub engine_key {
@@ -148,7 +145,6 @@ has db_port     => ( is => 'ro', isa => Int );
 has top_dir => (
     is       => 'ro',
     isa      => Maybe[Dir],
-    required => 1,
     lazy     => 1,
     default => sub { dir shift->config->get( key => 'core.top_dir' ) || () },
 );
@@ -156,7 +152,6 @@ has top_dir => (
 has deploy_dir => (
     is       => 'ro',
     isa      => Dir,
-    required => 1,
     lazy     => 1,
     default  => sub {
         my $self = shift;
@@ -170,7 +165,6 @@ has deploy_dir => (
 has revert_dir => (
     is       => 'ro',
     isa      => Dir,
-    required => 1,
     lazy     => 1,
     default  => sub {
         my $self = shift;
@@ -184,7 +178,6 @@ has revert_dir => (
 has verify_dir => (
     is       => 'ro',
     isa      => Dir,
-    required => 1,
     lazy     => 1,
     default  => sub {
         my $self = shift;
@@ -206,7 +199,6 @@ has extension => (
 
 has verbosity => (
     is       => 'ro',
-    required => 1,
     lazy     => 1,
     default  => sub {
         shift->config->get( key => 'core.verbosity' ) // 1;
@@ -297,7 +289,6 @@ has editor => (
 
 has pager => (
     is       => 'ro',
-    required => 1,
     lazy     => 1,
     # isa      => type('IO::Pager' => where {
     #     # IO::Pager annoyingly just returns the file handle if there is no TTY.

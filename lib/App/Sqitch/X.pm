@@ -20,10 +20,9 @@ has message => (
 );
 
 has exitval => (
-    is       => 'ro',
-    isa      => Int,
-    required => 1,
-    default  => 2,
+    is      => 'ro',
+    isa     => Int,
+    default => 2,
 );
 
 

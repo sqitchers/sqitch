@@ -93,7 +93,6 @@ has project => (
 has uri => (
     is       => 'ro',
     isa      => Maybe[URI],
-    required => 0,
     lazy     => 1,
     default  => sub {
         my $uri = shift->_plan->{pragmas}{uri} || return;

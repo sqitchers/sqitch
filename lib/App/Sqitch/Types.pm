@@ -34,19 +34,19 @@ use List::Util qw(first);
 # Inherit standar types.
 BEGIN { extends "Types::Standard" };
 
-class_type Sqitch,   { class => 'App::Sqitch'           };
-class_type Plan,     { class => 'App::Sqitch::Plan'     };
-class_type Change,   { class => 'App::Sqitch::Plan::Change'   };
+class_type Sqitch,     { class => 'App::Sqitch'                     };
+class_type Plan,       { class => 'App::Sqitch::Plan'               };
+class_type Change,     { class => 'App::Sqitch::Plan::Change'       };
 class_type ChangeList, { class => 'App::Sqitch::Plan::ChangeList'   };
-class_type LineList, { class => 'App::Sqitch::Plan::LineList'   };
-class_type Tag,      { class => 'App::Sqitch::Plan::Tag'   };
-class_type Depend,   { class => 'App::Sqitch::Plan::Depend'   };
-class_type DateTime, { class => 'App::Sqitch::DateTime' };
-class_type URIDB,    { class => 'URI::db' };
-class_type Config    { class => 'App::Sqitch::Config'   };
-class_type File      { class => 'Path::Class::File'   };
-class_type Dir       { class => 'Path::Class::Dir'   };
-class_type DBI       { class => 'DBI::db' };
+class_type LineList,   { class => 'App::Sqitch::Plan::LineList'     };
+class_type Tag,        { class => 'App::Sqitch::Plan::Tag'          };
+class_type Depend,     { class => 'App::Sqitch::Plan::Depend'       };
+class_type DateTime,   { class => 'App::Sqitch::DateTime'           };
+class_type URIDB,      { class => 'URI::db'                         };
+class_type Config      { class => 'App::Sqitch::Config'             };
+class_type File        { class => 'Path::Class::File'               };
+class_type Dir         { class => 'Path::Class::Dir'                };
+class_type DBI         { class => 'DBI::db'                         };
 
 subtype UserName, as Str, where {
     hurl user => __ 'User name may not contain "<" or start with "["'
