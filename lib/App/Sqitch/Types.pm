@@ -66,7 +66,7 @@ declare name => URI, constraint => sub {
 };
 
 subtype ConfigBool, as Bool;
-coerce  ConfigBool, from Maybe[Value], via {
+coerce ConfigBool, from Maybe[Value], via {
     my $bool = eval { App::Sqitch::Config->cast( value => $_, as => 'bool' ) };
     hurl user => __x('Unknown value ({val}) for boolean config option', val => $_)
         if $@;

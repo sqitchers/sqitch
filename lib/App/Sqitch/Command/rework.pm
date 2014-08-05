@@ -8,6 +8,7 @@ use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use File::Copy;
 use Moo;
+use App::Sqitch::Types qw(Str ArrayRef ConfigBool);
 use namespace::autoclean;
 
 extends 'App::Sqitch::Command';
@@ -17,28 +18,26 @@ our $VERSION = '0.996';
 has requires => (
     is       => 'ro',
     isa      => ArrayRef[Str],
-    required => 1,
     default  => sub { [] },
 );
 
 has conflicts => (
     is       => 'ro',
     isa      => ArrayRef[Str],
-    required => 1,
     default  => sub { [] },
 );
 
 has note => (
     is       => 'ro',
     isa      => ArrayRef[Str],
-    required => 1,
     default  => sub { [] },
 );
 
 has open_editor => (
     is       => 'ro',
-    isa      => 'ConfigBool',
-    coerce   => 1,
+    isa      => ConfigBool,
+    lazy     => 1,
+    coerce   => ConfigBool->coercion,
     default  => sub {
         my $self = shift;
         return $self->sqitch->config->get(

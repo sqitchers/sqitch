@@ -5,6 +5,7 @@ use strict;
 use warnings;
 use utf8;
 use Moo;
+use Types::Standard qw(Str Bool HashRef);
 use List::Util qw(first);
 use App::Sqitch::X qw(hurl);
 use Locale::TextDomain qw(App-Sqitch);
@@ -31,14 +32,12 @@ has no_prompt => (
 has log_only => (
     is       => 'ro',
     isa      => Bool,
-    required => 1,
     default  => 0,
 );
 
 has variables => (
     is       => 'ro',
     isa      => HashRef,
-    required => 1,
     lazy     => 1,
     default  => sub {
         my $self = shift;

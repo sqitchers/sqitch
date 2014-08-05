@@ -5,6 +5,7 @@ use strict;
 use warnings;
 use utf8;
 use Moo;
+use Types::Standard qw(Str);
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use List::Util qw(first);
