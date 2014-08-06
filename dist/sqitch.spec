@@ -40,7 +40,7 @@ BuildRequires:  perl(Module::Build) >= 0.35
 BuildRequires:  perl(Moo) >= 1.002000
 BuildRequires:  perl(Moo::Role)
 BuildRequires:  perl(Moo::sification)
-BuildRequires:  perl(namespace::autoclean) >= 0.11
+BuildRequires:  perl(namespace::autoclean) >= 0.16
 BuildRequires:  perl(parent)
 BuildRequires:  perl(overload)
 BuildRequires:  perl(Path::Class)
@@ -104,7 +104,7 @@ Requires:       perl(Locale::TextDomain) >= 1.20
 Requires:       perl(Moo) => 1.002000
 Requires:       perl(Moo::Role)
 Requires:       perl(Moo::sification)
-Requires:       perl(namespace::autoclean) >= 0.11
+Requires:       perl(namespace::autoclean) >= 0.16
 Requires:       perl(parent)
 Requires:       perl(overload)
 Requires:       perl(Path::Class)

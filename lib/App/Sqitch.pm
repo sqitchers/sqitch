@@ -21,7 +21,7 @@ use Encode ();
 use Try::Tiny;
 use List::Util qw(first);
 use IPC::System::Simple 1.17 qw(runx capturex $EXITVAL);
-use namespace::autoclean 0.11;
+use namespace::autoclean 0.16;
 
 our $VERSION = '0.996';
 
