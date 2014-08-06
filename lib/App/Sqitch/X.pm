@@ -5,6 +5,7 @@ use utf8;
 use Moo;
 use Types::Standard qw(Str Int);
 use Sub::Exporter::Util ();
+use Throwable 0.200009;
 use Sub::Exporter -setup => [qw(hurl)];
 use overload '""' => 'as_string';
 
