@@ -15,7 +15,7 @@ use Locale::TextDomain qw(App-Sqitch);
 use Test::Exception;
 use Path::Class;
 use File::Path qw(make_path remove_tree);
-use Digest::SHA1;
+use Digest::SHA;
 use Test::MockModule;
 use URI;
 
@@ -160,7 +160,7 @@ is $change->old_info, join("\n",
 ), 'Old change info should be correct';
 is $change->old_id, do {
     my $content = encode_utf8 $change->old_info;
-    Digest::SHA1->new->add(
+    Digest::SHA->new(1)->add(
         'change ' . length($content) . "\0" . $content
     )->hexdigest;
 },'Old change ID should be correct';
@@ -173,7 +173,7 @@ is $change->info, join("\n",
 ), 'Change info should be correct';
 is $change->id, do {
     my $content = encode_utf8 $change->info;
-    Digest::SHA1->new->add(
+    Digest::SHA->new(1)->add(
         'change ' . length($content) . "\0" . $content
     )->hexdigest;
 },'Change ID should be correct';
@@ -368,7 +368,7 @@ is $change2->old_info, join("\n",
 
 is $change2->old_id, do {
     my $content = Encode::encode_utf8 $change2->old_info;
-    Digest::SHA1->new->add(
+    Digest::SHA->new(1)->add(
         'change ' . length($content) . "\0" . $content
     )->hexdigest;
 },'Old change ID should be hashed from encoded UTF-8';
@@ -383,7 +383,7 @@ is $change2->info, join("\n",
 
 is $change2->id, do {
     my $content = Encode::encode_utf8 $change2->info;
-    Digest::SHA1->new->add(
+    Digest::SHA->new(1)->add(
         'change ' . length($content) . "\0" . $content
     )->hexdigest;
 },'Change ID should be hashed from encoded UTF-8';

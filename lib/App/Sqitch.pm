@@ -6,6 +6,7 @@ use 5.010;
 use strict;
 use warnings;
 use utf8;
+no Moo::sification;
 use Getopt::Long;
 use Hash::Merge qw(merge);
 use Path::Class;
@@ -13,39 +14,18 @@ use Config;
 use Locale::TextDomain 1.20 qw(App-Sqitch);
 use Locale::Messages qw(bind_textdomain_filter);
 use App::Sqitch::X qw(hurl);
-use Mouse 1.04;
-use Mouse::Meta::Attribute::Native 1.04;
+use Moo 1.002000;
+use Type::Utils -all;
+use App::Sqitch::Types qw(Str Int Plan UserName UserEmail Maybe File Dir Config HashRef);
 use Encode ();
 use Try::Tiny;
 use List::Util qw(first);
 use IPC::System::Simple 1.17 qw(runx capturex $EXITVAL);
-use Mouse::Util::TypeConstraints;
-use MouseX::Types::Path::Class 0.06;
-use namespace::autoclean 0.11;
+use namespace::autoclean 0.16;
 
-our $VERSION = '0.993';
+our $VERSION = '0.996';
 
 BEGIN {
-    # Need to create types before loading other Sqitch classes.
-    subtype 'UserName', as 'Str', where {
-        hurl user => __ 'User name may not contain "<" or start with "["'
-            if /^[[]/ || /</;
-        1;
-    };
-
-    subtype 'UserEmail', as 'Str', where {
-        hurl user => __ 'User email may not contain ">"' if />/;
-        1;
-    };
-
-    subtype 'ConfigBool', as 'Bool';
-    coerce  'ConfigBool', from 'Maybe[Value]', via {
-        my $bool = eval { App::Sqitch::Config->cast( value => $_, as => 'bool' ) };
-        hurl user => __x('Unknown value ({val}) for boolean config option', val => $_)
-            if $@;
-        $bool;
-    };
-
     # Force Locale::TextDomain to encode in UTF-8 and to decode all messages.
     $ENV{OUTPUT_CHARSET} = 'UTF-8';
     bind_textdomain_filter 'App-Sqitch' => \&Encode::decode_utf8;
@@ -56,10 +36,13 @@ use App::Sqitch::Config;
 use App::Sqitch::Command;
 use App::Sqitch::Plan;
 
+has _was_set => (is => 'ro', type => HashRef, default => sub {{}});
+
 has plan_file => (
     is       => 'ro',
-    required => 1,
+    # XXX isa Path::Class::File?
     lazy     => 1,
+    trigger  => sub { shift->_was_set->{plan_file} = 1 },
     default  => sub {
         my $self = shift;
         if ( my $fn = $self->config->get( key => 'core.plan_file') ) {
@@ -71,8 +54,7 @@ has plan_file => (
 
 has plan => (
     is       => 'ro',
-    isa      => 'App::Sqitch::Plan',
-    required => 1,
+    isa      => Plan,
     lazy     => 1,
     default  => sub {
         App::Sqitch::Plan->new( sqitch => shift );
@@ -80,9 +62,8 @@ has plan => (
 );
 
 has _engine => (
-    is       => 'ro',
-    isa      => 'Maybe[Str]',
-    required => 0,
+    is  => 'ro',
+    isa => Maybe[Str],
 );
 
 sub engine_key {
@@ -160,25 +141,25 @@ sub engine_for_target {
 }
 
 # Attributes useful to engines; no defaults.
-has db_client   => ( is => 'ro', isa => 'Str' );
-has db_name     => ( is => 'ro', isa => 'Str' );
-has db_username => ( is => 'ro', isa => 'Str' );
-has db_host     => ( is => 'ro', isa => 'Str' );
-has db_port     => ( is => 'ro', isa => 'Int' );
+has db_client   => ( is => 'ro', isa => Str );
+has db_name     => ( is => 'ro', isa => Str );
+has db_username => ( is => 'ro', isa => Str );
+has db_host     => ( is => 'ro', isa => Str );
+has db_port     => ( is => 'ro', isa => Int );
 
 has top_dir => (
     is       => 'ro',
-    isa      => 'Maybe[Path::Class::Dir]',
-    required => 1,
+    isa      => Maybe[Dir],
     lazy     => 1,
+    trigger => sub { shift->_was_set->{top_dir} = 1 },
     default => sub { dir shift->config->get( key => 'core.top_dir' ) || () },
 );
 
 has deploy_dir => (
     is       => 'ro',
-    isa      => 'Path::Class::Dir',
-    required => 1,
+    isa      => Dir,
     lazy     => 1,
+    trigger  => sub { shift->_was_set->{deploy_dir} = 1 },
     default  => sub {
         my $self = shift;
         if ( my $dir = $self->config->get( key => 'core.deploy_dir' ) ) {
@@ -190,9 +171,9 @@ has deploy_dir => (
 
 has revert_dir => (
     is       => 'ro',
-    isa      => 'Path::Class::Dir',
-    required => 1,
+    isa      => Dir,
     lazy     => 1,
+    trigger  => sub { shift->_was_set->{revert_dir} = 1 },
     default  => sub {
         my $self = shift;
         if ( my $dir = $self->config->get( key => 'core.revert_dir' ) ) {
@@ -204,9 +185,9 @@ has revert_dir => (
 
 has verify_dir => (
     is       => 'ro',
-    isa      => 'Path::Class::Dir',
-    required => 1,
+    isa      => Dir,
     lazy     => 1,
+    trigger  => sub { shift->_was_set->{verify_dir} = 1 },
     default  => sub {
         my $self = shift;
         if ( my $dir = $self->config->get( key => 'core.verify_dir' ) ) {
@@ -218,8 +199,9 @@ has verify_dir => (
 
 has extension => (
     is      => 'ro',
-    isa     => 'Str',
+    isa     => Str,
     lazy    => 1,
+    trigger => sub { shift->_was_set->{extension} = 1 },
     default => sub {
         shift->config->get( key => 'core.extension' ) || 'sql';
     }
@@ -227,7 +209,6 @@ has extension => (
 
 has verbosity => (
     is       => 'ro',
-    required => 1,
     lazy     => 1,
     default  => sub {
         shift->config->get( key => 'core.verbosity' ) // 1;
@@ -236,7 +217,7 @@ has verbosity => (
 
 has sysuser => (
     is       => 'ro',
-    isa      => 'Maybe[Str]',
+    isa      => Maybe[Str],
     lazy     => 1,
     default  => sub {
         # Adapted from User.pm.
@@ -256,7 +237,7 @@ has sysuser => (
 has user_name => (
     is      => 'ro',
     lazy    => 1,
-    isa     => 'UserName',
+    isa     => UserName,
     default => sub {
         my $self = shift;
         $self->config->get( key => 'user.name' ) || do {
@@ -282,7 +263,7 @@ has user_name => (
 has user_email => (
     is      => 'ro',
     lazy    => 1,
-    isa     => 'UserEmail',
+    isa     => UserEmail,
     default => sub {
         my $self = shift;
         $self->config->get( key => 'user.email' ) || do {
@@ -297,7 +278,7 @@ has user_email => (
 
 has config => (
     is      => 'ro',
-    isa     => 'App::Sqitch::Config',
+    isa     => Config,
     lazy    => 1,
     default => sub {
         App::Sqitch::Config->new;
@@ -318,9 +299,8 @@ has editor => (
 
 has pager => (
     is       => 'ro',
-    required => 1,
     lazy     => 1,
-    isa      => type('IO::Pager' => where {
+    isa      => declare('Pager', where {
         # IO::Pager annoyingly just returns the file handle if there is no TTY.
         eval { $_->isa('IO::Pager') || $_->isa('IO::Handle') } || ref $_ eq 'GLOB'
     }),
@@ -613,12 +593,14 @@ sub spool {
     local $SIG{__WARN__} = sub { }; # Silence warning.
     my $pipe;
     if ($^O eq 'MSWin32') {
+        no warnings;
         open $pipe, '|' . $self->quote_shell(@_) or hurl io => __x(
             'Cannot exec {command}: {error}',
             command => $_[0],
             error   => $!,
         );
     } else {
+        no warnings;
         open $pipe, '|-', @_ or hurl io => __x(
             'Cannot exec {command}: {error}',
             command => $_[0],
@@ -755,8 +737,7 @@ sub warn_literal {
     $self->vent_literal(_prepend 'warning:', @_);
 }
 
-__PACKAGE__->meta->make_immutable;
-no Mouse;
+1;
 
 __END__
 

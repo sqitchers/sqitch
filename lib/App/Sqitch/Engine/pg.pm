@@ -1,7 +1,7 @@
 package App::Sqitch::Engine::pg;
 
 use 5.010;
-use Mouse;
+use Moo;
 use utf8;
 use Path::Class;
 use DBI;
@@ -10,13 +10,12 @@ use App::Sqitch::X qw(hurl);
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::Plan::Change;
 use List::Util qw(first);
+use App::Sqitch::Types qw(DBH ArrayRef);
 use namespace::autoclean;
 
 extends 'App::Sqitch::Engine';
-sub dbh; # required by DBIEngine;
-with 'App::Sqitch::Role::DBIEngine';
 
-our $VERSION = '0.993';
+our $VERSION = '0.996';
 
 has '+destination' => (
     default  => sub {
@@ -39,12 +38,10 @@ has '+destination' => (
     },
 );
 
-has psql => (
+has _psql => (
     is         => 'ro',
-    isa        => 'ArrayRef',
+    isa        => ArrayRef,
     lazy       => 1,
-    required   => 1,
-    auto_deref => 1,
     default    => sub {
         my $self = shift;
         my $uri  = $self->uri;
@@ -76,6 +73,9 @@ has psql => (
     },
 );
 
+sub psql { @{ shift->_psql } }
+
+
 sub key    { 'pg' }
 sub name   { 'PostgreSQL' }
 sub driver { 'DBD::Pg 2.0' }
@@ -83,7 +83,7 @@ sub default_client { 'psql' }
 
 has dbh => (
     is      => 'rw',
-    isa     => 'DBI::db',
+    isa     => DBH,
     lazy    => 1,
     default => sub {
         my $self = shift;
@@ -120,6 +120,9 @@ has dbh => (
         });
     }
 );
+
+# Need to wait until dbh is defined.
+with 'App::Sqitch::Role::DBIEngine';
 
 sub _log_tags_param {
     [ map { $_->format_name } $_[1]->tags ];
@@ -195,7 +198,10 @@ sub initialize {
         my $fh = File::Temp->new;
         print $fh $sql;
         close $fh;
-        $self->_run( '--file' => $fh->filename );
+        $self->_run(
+            '--file' => $fh->filename,
+            '--set'  => "tableopts=$opts",
+        );
     } else {
         # We can take advantage of the :"registry" variable syntax.
         $self->_run(
@@ -493,8 +499,7 @@ sub _spool {
     return $sqitch->spool( $fh, $self->psql, @_ );
 }
 
-__PACKAGE__->meta->make_immutable;
-no Mouse;
+1;
 
 __END__
 

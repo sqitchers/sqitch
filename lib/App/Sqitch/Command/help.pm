@@ -7,10 +7,10 @@ use utf8;
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use Pod::Find;
-use Mouse;
+use Moo;
 extends 'App::Sqitch::Command';
 
-our $VERSION = '0.993';
+our $VERSION = '0.996';
 
 # XXX Add --all at some point, to output a list of all possible commands.
 

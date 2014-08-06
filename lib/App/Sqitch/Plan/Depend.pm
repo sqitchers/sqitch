@@ -2,37 +2,36 @@ package App::Sqitch::Plan::Depend;
 
 use 5.010;
 use utf8;
-use Mouse;
+use Moo;
+use App::Sqitch::Types qw(Str Bool Maybe Plan);
 use App::Sqitch::Plan;
 use App::Sqitch::X qw(hurl);
 use Locale::TextDomain qw(App-Sqitch);
 use namespace::autoclean;
 
-our $VERSION = '0.993';
+our $VERSION = '0.996';
 
 has conflicts => (
     is       => 'ro',
-    isa      => 'Bool',
-    required => 1,
+    isa      => Bool,
     default  => 0,
 );
 
 has got_id => (
     is       => 'ro',
-    isa      => 'Bool',
+    isa      => Bool,
     required => 1
 );
 
 has got_project => (
     is       => 'ro',
-    isa      => 'Bool',
+    isa      => Bool,
     required => 1
 );
 
 has project => (
     is       => 'ro',
-    isa      => 'Maybe[Str]',
-    required => 1,
+    isa      => Maybe[Str],
     lazy     => 1,
     default  => sub {
         my $self = shift;
@@ -51,24 +50,24 @@ has project => (
 
 has change => (
     is  => 'ro',
-    isa => 'Maybe[Str]',
+    isa => Maybe[Str],
 );
 
 has tag => (
     is  => 'ro',
-    isa => 'Maybe[Str]',
+    isa => Maybe[Str],
 );
 
 has plan => (
     is       => 'ro',
-    isa      => 'App::Sqitch::Plan',
+    isa      => Plan,
     weak_ref => 1,
     required => 1,
 );
 
 has id => (
     is       => 'ro',
-    isa      => 'Maybe[Str]',
+    isa      => Maybe[Str],
     lazy     => 1,
     default  => sub {
         my $self = shift;
@@ -86,13 +85,12 @@ has id => (
 
 has resolved_id => (
     is  => 'rw',
-    isa => 'Maybe[Str]',
+    isa => Maybe[Str],
 );
 
 has is_external => (
     is       => 'ro',
-    isa      => 'Bool',
-    required => 1,
+    isa      => Bool,
     lazy     => 1,
     default  => sub {
         my $self = shift;
@@ -126,7 +124,7 @@ sub BUILDARGS {
 
 sub parse {
     my ( $class, $string ) = @_;
-    my $name_re = App::Sqitch::Plan->name_regex;
+    my $name_re = Plan->class->name_regex;
     return undef if $string !~ /
         \A                            # Beginning of string
         (?<conflicts>!?)              # Optional negation
@@ -176,8 +174,7 @@ sub as_plan_string {
     return ($self->conflicts ? '!' : '') . $self->as_string;
 }
 
-__PACKAGE__->meta->make_immutable;
-no Mouse;
+1;
 
 __END__
 

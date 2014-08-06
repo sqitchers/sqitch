@@ -4,6 +4,11 @@ use strict;
 use warnings;
 use Module::Build 0.35;
 use base 'Module::Build';
+use IO::File ();
+use File::Spec ();
+use Config ();
+use File::Path ();
+use File::Copy ();
 
 __PACKAGE__->add_property($_) for qw(etcdir installed_etcdir);
 

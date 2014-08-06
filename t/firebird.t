@@ -48,7 +48,9 @@ is_deeply [$CLASS->config_vars], [
 my $sqitch = App::Sqitch->new(_engine => 'firebird', db_name => 'foo.fdb');
 isa_ok my $fb = $CLASS->new(sqitch  => $sqitch), $CLASS;
 
+my $have_fb_client;
 if ($have_fb_driver && (my $client = try { $fb->client })) {
+    $have_fb_client = 1;
     like $client, qr/isql|fbsql|isql-fb/,
         'client should default to isql | fbsql | isql-fb';
 }
@@ -70,14 +72,14 @@ my @std_opts = (
 
 my $dbname = $fb->connection_string($fb->uri);
 is_deeply([$fb->isql], [$fb->client, @std_opts, $dbname],
-          'isql command should be std opts-only') if $have_fb_driver;
+          'isql command should be std opts-only') if $have_fb_client;
 
 isa_ok $fb = $CLASS->new(sqitch => $sqitch, db_name => 'foo'), $CLASS;
 ok $fb->set_variables(foo => 'baz', whu => 'hi there', yo => 'stellar'),
     'Set some variables';
 
 is_deeply([$fb->isql], [$fb->client, @std_opts, $dbname],
-          'isql command should be std opts-only') if $have_fb_driver;
+          'isql command should be std opts-only') if $have_fb_client;
 
 ##############################################################################
 # Make sure config settings override defaults.

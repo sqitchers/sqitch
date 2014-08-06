@@ -9,14 +9,13 @@ use App::Sqitch::X qw(hurl);
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::Plan::Change;
 use Path::Class;
-use Mouse;
+use Moo;
+use App::Sqitch::Types qw(URIDB DBH ArrayRef);
 use namespace::autoclean;
 
 extends 'App::Sqitch::Engine';
-sub dbh; # required by DBIEngine;
-with 'App::Sqitch::Role::DBIEngine';
 
-our $VERSION = '0.993';
+our $VERSION = '0.996';
 
 sub BUILD {
     my $self = shift;
@@ -32,9 +31,8 @@ sub BUILD {
 
 has registry_uri => (
     is       => 'ro',
-    isa      => 'URI::db',
+    isa      => URIDB,
     lazy     => 1,
-    required => 1,
     default  => sub {
         my $self = shift;
         my $uri  = $self->uri->clone;
@@ -48,11 +46,12 @@ has registry_uri => (
             $uri->dbname($reg);
         } elsif (my @segs = $uri->path_segments) {
             # Use the same name, but replace $name.$ext with $reg.$ext.
-            my $reg = $self->registry;
-            if ($reg =~ /[.]/) {
-                $segs[-1] =~ s/^[^.]+(?:[.].+)?$/$reg/;
+            my $bn = file( $segs[-1] )->basename;
+            if ($reg =~ /[.]/ || $bn !~ /[.]/) {
+                $segs[-1] =~ s/\Q$bn\E$/$reg/;
             } else {
-                $segs[-1] =~ s/^[^.]+([.].+)?$/$reg$1/;
+                my ($b, $e) = split /[.]/, $bn, 2;
+                $segs[-1] =~ s/\Q$b\E[.]$e$/$reg.$e/;
             }
             $uri->path_segments(@segs);
         } else {
@@ -80,7 +79,7 @@ sub default_client { 'sqlite3' }
 
 has dbh => (
     is      => 'rw',
-    isa     => 'DBI::db',
+    isa     => DBH,
     lazy    => 1,
     default => sub {
         my $self = shift;
@@ -120,12 +119,13 @@ has dbh => (
     }
 );
 
-has sqlite3 => (
+# Need to wait until dbh is defined.
+with 'App::Sqitch::Role::DBIEngine';
+
+has _sqlite3 => (
     is         => 'ro',
-    isa        => 'ArrayRef',
+    isa        => ArrayRef,
     lazy       => 1,
-    required   => 1,
-    auto_deref => 1,
     default    => sub {
         my $self = shift;
 
@@ -155,6 +155,8 @@ has sqlite3 => (
     },
 );
 
+sub sqlite3 { @{ shift->_sqlite3 } }
+
 sub initialized {
     my $self = shift;
     return $self->dbh->selectcol_arrayref(q{
@@ -175,7 +177,7 @@ sub initialize {
     my @cmd = $self->sqlite3;
     $cmd[-1] = $self->registry_uri->dbname;
     my $file = file(__FILE__)->dir->file('sqlite.sql');
-    $self->sqitch->run( @cmd, '.read ' . $self->dbh->quote($file) );
+    $self->sqitch->run( @cmd, $self->_read($file) );
 }
 
 sub _no_table_error  {
@@ -222,14 +224,14 @@ sub _spool {
 
 sub run_file {
     my ($self, $file) = @_;
-    $self->_run( '.read ' . $self->dbh->quote($file) );
+    $self->_run( $self->_read($file) );
 }
 
 sub run_verify {
     my ($self, $file) = @_;
     # Suppress STDOUT unless we want extra verbosity.
     my $meth = $self->can($self->sqitch->verbosity > 1 ? '_run' : '_capture');
-    $self->$meth( '.read ' . $self->dbh->quote($file) );
+    $self->$meth( $self->_read($file) );
 }
 
 sub run_handle {
@@ -237,8 +239,14 @@ sub run_handle {
     $self->_spool($fh);
 }
 
-__PACKAGE__->meta->make_immutable;
-no Mouse;
+sub _read {
+    my $self = shift;
+    my $cmd = '.read ' . $self->dbh->quote(shift);
+    return $cmd if $^O ne 'MSWin32';
+    return $self->sqitch->quote_shell($cmd);
+}
+
+1;
 
 1;
 

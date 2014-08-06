@@ -4,7 +4,8 @@ use 5.010;
 use strict;
 use warnings;
 use utf8;
-use Mouse;
+use Moo;
+use Types::Standard qw(Str Int);
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use URI::db;
@@ -14,22 +15,22 @@ use namespace::autoclean;
 
 extends 'App::Sqitch::Command';
 
-our $VERSION = '0.993';
+our $VERSION = '0.996';
 
 has verbose => (
     is      => 'ro',
-    isa     => 'Int',
+    isa     => Int,
     default => 0,
 );
 
 has registry => (
     is  => 'ro',
-    isa => 'Str',
+    isa => Str,
 );
 
 has client => (
     is  => 'ro',
-    isa => 'Str',
+    isa => Str,
 );
 
 sub options {
@@ -63,7 +64,7 @@ sub list {
     my $sqitch  = $self->sqitch;
     my %targets = $sqitch->config->get_regexp(key => qr/^target[.][^.]+[.]uri$/);
 
-    my $format = $self->verbose ? "%s\t%s" : '%s';
+    my $format = $self->verbose ? "%1\$s\t%2\$s" : '%1$s';
     for my $key (sort keys %targets) {
         my ($target) = $key =~ /target[.]([^.]+)/;
         $sqitch->emit(sprintf $format, $target, $targets{$key});

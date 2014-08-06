@@ -9,12 +9,13 @@ use Try::Tiny;
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use List::Util qw(first);
-use Mouse;
-use Mouse::Util::TypeConstraints;
+use Moo;
+use App::Sqitch::Types qw(Str Dir Maybe);
+use Type::Utils qw(enum);
 use namespace::autoclean;
 extends 'App::Sqitch::Command';
 
-our $VERSION = '0.993';
+our $VERSION = '0.996';
 
 has file => (
     is      => 'ro',
@@ -46,11 +47,11 @@ has action => (
 
 has context => (
     is  => 'ro',
-    isa => maybe_type enum([qw(
+    isa => Maybe[enum([qw(
         local
         user
         system
-    )]),
+    )])],
 );
 
 has type => ( is => 'ro', isa => enum( [qw(int num bool bool-or-int)] ) );
@@ -375,8 +376,7 @@ sub _touch_dir {
     }
 }
 
-__PACKAGE__->meta->make_immutable;
-no Mouse;
+1;
 
 __END__
 

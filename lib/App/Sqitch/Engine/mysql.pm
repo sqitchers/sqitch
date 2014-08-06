@@ -9,21 +9,19 @@ use App::Sqitch::X qw(hurl);
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::Plan::Change;
 use Path::Class;
-use Mouse;
+use Moo;
+use App::Sqitch::Types qw(DBH URIDB ArrayRef);
 use namespace::autoclean;
 use List::MoreUtils qw(firstidx);
 
 extends 'App::Sqitch::Engine';
-sub dbh; # required by DBIEngine;
-with 'App::Sqitch::Role::DBIEngine';
 
-our $VERSION = '0.993';
+our $VERSION = '0.996';
 
 has registry_uri => (
     is       => 'ro',
-    isa      => 'URI::db',
+    isa      => URIDB,
     lazy     => 1,
-    required => 1,
     default  => sub {
         my $self = shift;
         my $uri = $self->uri->clone;
@@ -43,7 +41,7 @@ sub registry_destination {
 
 has dbh => (
     is      => 'rw',
-    isa     => 'DBI::db',
+    isa     => DBH,
     lazy    => 1,
     default => sub {
         my $self = shift;
@@ -103,12 +101,13 @@ has dbh => (
     }
 );
 
-has mysql => (
+# Need to wait until dbh is defined.
+with 'App::Sqitch::Role::DBIEngine';
+
+has _mysql => (
     is         => 'ro',
-    isa        => 'ArrayRef',
+    isa        => ArrayRef,
     lazy       => 1,
-    required   => 1,
-    auto_deref => 1,
     default    => sub {
         my $self = shift;
         my $uri  = $self->uri;
@@ -147,6 +146,8 @@ has mysql => (
     },
 );
 
+sub mysql { @{ shift->_mysql } }
+
 sub key    { 'mysql' }
 sub name   { 'MySQL' }
 sub driver { 'DBD::mysql 4.018' }
@@ -171,12 +172,13 @@ sub initialized {
     my $self = shift;
 
     # Try to connect.
-    my $err = 0;
-    my $dbh = try { $self->dbh } catch { $err = $DBI::err };
-    # MySQL error code 1049 (ER_BAD_DB_ERROR): Unknown database '%-.192s'
-    return 0 if $err && $err == 1049;
+    my $dbh = try { $self->dbh } catch {
+        # MySQL error code 1049 (ER_BAD_DB_ERROR): Unknown database '%-.192s'
+        return if $DBI::err && $DBI::err == 1049;
+        die $_;
+    } or return 0;
 
-    return $self->dbh->selectcol_arrayref(q{
+    return $dbh->selectcol_arrayref(q{
         SELECT COUNT(*)
           FROM information_schema.tables
          WHERE table_schema = ?
@@ -297,8 +299,7 @@ sub _cid {
     };
 }
 
-__PACKAGE__->meta->make_immutable;
-no Mouse;
+1;
 
 1;
 

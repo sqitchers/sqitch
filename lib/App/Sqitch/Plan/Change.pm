@@ -3,98 +3,83 @@ package App::Sqitch::Plan::Change;
 use 5.010;
 use utf8;
 use namespace::autoclean;
-use parent 'App::Sqitch::Plan::Line';
 use Encode;
-use Mouse;
-use App::Sqitch::DateTime;
+use Moo;
+use App::Sqitch::Types qw(Str Bool Maybe Change Tag Depend UserEmail DateTime ArrayRef);
 use App::Sqitch::Plan::Depend;
 use Locale::TextDomain qw(App-Sqitch);
+extends 'App::Sqitch::Plan::Line';
 
 our $VERSION = '0.970';
 
 has _requires => (
     is       => 'ro',
-    isa      => 'ArrayRef[App::Sqitch::Plan::Depend]',
-    traits   => ['Array'],
-    required => 1,
+    isa      => ArrayRef[Depend],
     init_arg => 'requires',
     default  => sub { [] },
-    handles  => { requires => 'elements' },
 );
+
+sub requires { @{ shift->_requires } }
 
 has _conflicts => (
     is       => 'ro',
-    isa      => 'ArrayRef[App::Sqitch::Plan::Depend]',
-    traits   => ['Array'],
-    required => 1,
+    isa      => ArrayRef[Depend],
     init_arg => 'conflicts',
     default  => sub { [] },
-    handles  => { conflicts => 'elements' },
 );
+
+sub conflicts { @{ shift->_conflicts } }
 
 has pspace => (
     is       => 'ro',
-    isa      => 'Str',
-    required => 1,
+    isa      => Str,
     default  => ' ',
 );
 
 has since_tag => (
     is       => 'ro',
-    isa      => 'App::Sqitch::Plan::Tag',
-    required => 0,
+    isa      => Tag,
 );
 
 has parent => (
     is       => 'ro',
-    isa      => 'App::Sqitch::Plan::Change',
-    required => 0,
+    isa      => Change,
 );
 
 has _rework_tags => (
     is       => 'ro',
-    isa      => 'ArrayRef[App::Sqitch::Plan::Tag]',
-    traits   => ['Array'],
-    required => 1,
+    isa      => ArrayRef[Tag],
     init_arg => 'rework_tags',
-    traits   => ['Array'],
     lazy     => 1,
     default  => sub { [] },
-    handles  => {
-        rework_tags       => 'elements',
-        add_rework_tags   => 'push',
-        clear_rework_tags => 'clear',
-    },
 );
 
-sub is_reworked { @{ shift->_rework_tags } > 0 }
+sub rework_tags       { @{ shift->_rework_tags } }
+sub add_rework_tags   { push @{ shift->_rework_tags } => @_ }
+sub clear_rework_tags { @{ shift->_rework_tags } = () }
+sub is_reworked       { @{ shift->_rework_tags } > 0 }
 
 after add_rework_tags => sub {
     my $self = shift;
     # Need to reset the file name if a new value is passed.
-    $self->meta->get_attribute('_path_segments')->clear_value($self);
+    $self->_clear_path_segments(undef);
 };
 
 has _tags => (
     is         => 'ro',
-    traits  => ['Array'],
-    isa        => 'ArrayRef[App::Sqitch::Plan::Tag]',
+    isa        => ArrayRef[Tag],
     lazy       => 1,
-    required   => 1,
     default    => sub { [] },
-    handles => {
-        tags    => 'elements',
-        add_tag => 'push',
-    },
 );
+
+sub tags    { @{ shift->_tags } }
+sub add_tag { push @{ shift->_tags } => @_ }
 
 has _path_segments => (
     is       => 'ro',
-    isa      => 'ArrayRef[Str]',
-    traits   => ['Array'],
-    required => 1,
+    isa      => ArrayRef[Str],
     lazy     => 1,
-    handles  => { path_segments => 'elements' },
+    clearer  => 1, # Creates _clear_path_segments().
     default  => sub {
         my $self = shift;
         my @path = split m{/} => $self->name;
@@ -121,9 +106,11 @@ has _path_segments => (
     },
 );
 
+sub path_segments { @{ shift->_path_segments } }
+
 has info => (
     is       => 'ro',
-    isa      => 'Str',
+    isa      => Str,
     lazy     => 1,
     default  => sub {
         my $self = shift;
@@ -145,12 +132,12 @@ has info => (
 
 has id => (
     is       => 'ro',
-    isa      => 'Str',
+    isa      => Str,
     lazy     => 1,
     default  => sub {
         my $content = encode_utf8 shift->info;
-        require Digest::SHA1;
-        return Digest::SHA1->new->add(
+        require Digest::SHA;
+        return Digest::SHA->new(1)->add(
             'change ' . length($content) . "\0" . $content
         )->hexdigest;
     }
@@ -158,7 +145,7 @@ has id => (
 
 has old_info => (
     is       => 'ro',
-    isa      => 'Str',
+    isa      => Str,
     lazy     => 1,
     default  => sub {
         my $self = shift;
@@ -174,12 +161,12 @@ has old_info => (
 
 has old_id => (
     is       => 'ro',
-    isa      => 'Str',
+    isa      => Str,
     lazy     => 1,
     default  => sub {
         my $content = encode_utf8 shift->old_info;
-        require Digest::SHA1;
-        return Digest::SHA1->new->add(
+        require Digest::SHA;
+        return Digest::SHA->new(1)->add(
             'change ' . length($content) . "\0" . $content
         )->hexdigest;
     }
@@ -187,22 +174,19 @@ has old_id => (
 
 has timestamp => (
     is       => 'ro',
-    isa      => 'App::Sqitch::DateTime',
-    required => 1,
-    default  => sub { App::Sqitch::DateTime->now },
+    isa      => DateTime,
+    default  => sub { require App::Sqitch::DateTime && App::Sqitch::DateTime->now },
 );
 
 has planner_name => (
     is       => 'ro',
-    isa      => 'Str',
-    required => 1,
+    isa      => Str,
     default  => sub { shift->sqitch->user_name },
 );
 
 has planner_email => (
     is       => 'ro',
-    isa      => 'UserEmail',
-    required => 1,
+    isa      => UserEmail,
     default  => sub { shift->sqitch->user_email },
 );
 
@@ -334,8 +318,7 @@ sub note_prompt {
     );
 }
 
-__PACKAGE__->meta->make_immutable;
-no Mouse;
+1;
 
 __END__
 

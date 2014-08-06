@@ -4,7 +4,8 @@ use 5.010;
 use strict;
 use warnings;
 use utf8;
-use Mouse;
+use Moo;
+use App::Sqitch::Types qw(URI Maybe);
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use File::Path qw(make_path);
@@ -12,12 +13,11 @@ use List::MoreUtils qw(natatime);
 use Path::Class;
 use Try::Tiny;
 use App::Sqitch::Plan;
-use Mouse::Util::TypeConstraints;
 use namespace::autoclean;
 
 extends 'App::Sqitch::Command';
 
-our $VERSION = '0.993';
+our $VERSION = '0.996';
 
 sub execute {
     my ( $self, $project ) = @_;
@@ -29,9 +29,8 @@ sub execute {
 }
 
 has uri => (
-    is       => 'ro',
-    isa      => 'Maybe[URI]',
-    required => 0,
+    is  => 'ro',
+    isa => Maybe[URI],
 );
 
 sub options {
@@ -43,7 +42,7 @@ sub options {
 sub _validate_project {
     my ( $self, $project ) = @_;
     $self->usage unless $project;
-    my $name_re = App::Sqitch::Plan->name_regex;
+    my $name_re = 'App::Sqitch::Plan'->name_regex;
     hurl init => __x(
         qq{invalid project name "{project}": project names must not }
         . 'begin with punctuation, contain "@", ":", "#", or blanks, or end in '
@@ -57,7 +56,7 @@ sub configure {
 
     if ( my $uri = $opt->{uri} ) {
         require URI;
-        $opt->{uri} = URI->new($uri);
+        $opt->{uri} = 'URI'->new($uri);
     }
 
     return $opt;
@@ -119,11 +118,11 @@ sub write_plan {
 }
 
 sub write_config {
-    my $self   = shift;
-    my $sqitch = $self->sqitch;
-    my $meta   = $sqitch->meta;
-    my $config = $sqitch->config;
-    my $file   = $config->local_file;
+    my $self    = shift;
+    my $sqitch  = $self->sqitch;
+    my $was_set = $sqitch->_was_set;
+    my $config  = $sqitch->config;
+    my $file    = $config->local_file;
     if ( -f $file ) {
 
         # Do nothing? Update config?
@@ -155,14 +154,11 @@ sub write_config {
 
         # Set core attributes that are not their default values and not
         # already in user or system config.
-        my $attr = $meta->find_attribute_by_name($name)
-            or hurl "Cannot find App::Sqitch attribute $name";
-        my $val = $attr->get_value($sqitch);
-        my $def = $attr->default($sqitch);
+        my $val = $sqitch->$name;
         my $var = $config->get( key => "core.$name" );
 
         no warnings 'uninitialized';
-        if ( $val ne $def && $val ne $var ) {
+        if ( $was_set->{$name} && $val ne $var ) {
 
             # It was specified on the command-line, so grab it to write out.
             push @vars => {
@@ -171,7 +167,7 @@ sub write_config {
             };
         }
         else {
-            $var //= $def // '';
+            $var //= $val // '';
             push @comments => "\t$name = $var";
         }
     }
@@ -196,7 +192,6 @@ sub write_config {
         # Write out the core.$engine section.
         my $ekey        = 'core.' . $engine->key;
         my @config_vars = $engine->config_vars;
-        my $emeta       = $engine->meta;
         @comments = @vars = ();
 
         my $iter = natatime 2, @config_vars;
@@ -204,8 +199,8 @@ sub write_config {
 
             # Was it passed as an option?
             my $core_key = $key =~ /^db_/ ? $key : "db_$key";
-            if ( my $attr = $meta->find_attribute_by_name($core_key) ) {
-                if ( my $val = $attr->get_value($sqitch) ) {
+            if ( my $acc = $sqitch->can($core_key) ) {
+                if ( my $val = $sqitch->$acc ) {
 
                     # It was passed as an option, so record that.
                     my $multiple = $type =~ s/[+]$//;
@@ -223,10 +218,10 @@ sub write_config {
             }
 
             # No value, but add it as a comment.
-            if ( my $attr = $emeta->find_attribute_by_name($key) ) {
+            if ( my $acc = $engine->can($key) ) {
 
                 # Add it as a comment, possibly with a default.
-                my $def = $attr->default($engine)
+                my $def = $engine->$acc
                     // $config->get( key => "$ekey.$key" )
                     // '';
                 push @comments => "\t$key = $def";
@@ -262,8 +257,7 @@ sub write_config {
     return $self;
 }
 
-__PACKAGE__->meta->make_immutable;
-no Mouse;
+1;
 
 __END__
 

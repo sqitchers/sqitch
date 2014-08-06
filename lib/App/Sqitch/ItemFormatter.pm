@@ -6,13 +6,15 @@ use warnings;
 use utf8;
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
-use App::Sqitch::DateTime;
-use Mouse;
-use Mouse::Util::TypeConstraints;
+use List::Util qw(max);
+use Moo;
+use Types::Standard qw(Str Int);
+use Type::Utils qw(enum class_type);
 use String::Formatter;
 use namespace::autoclean;
 use Try::Tiny;
-use Term::ANSIColor 2.02 qw(color colorvalid);
+use Term::ANSIColor 2.02 qw(colorvalid);
+my $encolor = \&Term::ANSIColor::color;
 
 use constant CAN_OUTPUT_COLOR => $^O eq 'MSWin32'
     ? try { require Win32::Console::ANSI }
@@ -22,32 +24,30 @@ BEGIN {
     $ENV{ANSI_COLORS_DISABLED} = 1 unless CAN_OUTPUT_COLOR;
 }
 
-our $VERSION = '0.993';
+our $VERSION = '0.996';
 
 has abbrev => (
     is      => 'ro',
-    isa     => 'Int',
+    isa     => Int,
     default => 0,
 );
 
 has date_format => (
     is       => 'ro',
-    isa      => 'Str',
-    required => 1,
+    isa      => Str,
     default  => 'iso',
 );
 
 has color => (
     is       => 'ro',
     isa      => enum([ qw(always never auto) ]),
-    required => 1,
     default  => 'auto',
 );
 
 has formatter => (
     is      => 'ro',
     lazy    => 1,
-    isa     => 'String::Formatter',
+    isa     => class_type('String::Formatter'),
     default => sub {
         my $self = shift;
         no if $] >= 5.017011, warnings => 'experimental::smartmatch';
@@ -140,14 +140,16 @@ has formatter => (
                 C => sub {
                     if (($_[1] // '') eq ':event') {
                         # Select a color based on some attribute.
-                        return color $_[0]->{event} eq 'deploy' ? 'green'
-                                   : $_[0]->{event} eq 'revert' ? 'blue'
-                                   : 'red';
+                        return $encolor->(
+                            $_[0]->{event} eq 'deploy' ? 'green'
+                                : $_[0]->{event} eq 'revert' ? 'blue'
+                                : 'red'
+                        );
                     }
                     hurl format => __x(
                         '{color} is not a valid ANSI color', color => $_[1]
-                    ) unless $_[1] && colorvalid $_[1];
-                    color $_[1];
+                    ) unless $_[1] && colorvalid( $_[1] );
+                    $encolor->( $_[1] );
                 },
                 s => sub {
                     ( my $s = $_[0]->{note} ) =~ s/\v.*//ms;
@@ -199,7 +201,7 @@ has formatter => (
                         $val = $val->as_string( format => 'raw' );
                     }
 
-                    my $sp = ' ' x (9 - length $_[1]);
+                    my $sp = ' ' x max(9 - length $_[1], 0);
                     return "$_[1]$sp $val\n";
                 }
             },

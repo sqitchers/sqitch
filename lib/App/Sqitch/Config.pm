@@ -1,7 +1,7 @@
 package App::Sqitch::Config;
 
 use 5.010;
-use Moose;
+use Moo;
 use strict;
 use warnings;
 use Path::Class;
@@ -12,7 +12,7 @@ use utf8;
 
 extends 'Config::GitLike';
 
-our $VERSION = '0.993';
+our $VERSION = '0.996';
 
 has '+confname' => ( default => 'sqitch.conf' );
 has '+encoding' => ( default => 'UTF-8' );
@@ -78,8 +78,7 @@ sub initial_key {
     return ref $key ? $key->[0] : $key;
 }
 
-__PACKAGE__->meta->make_immutable;
-no Moose;
+1;
 
 =head1 Name
 

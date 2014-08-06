@@ -287,8 +287,10 @@ is join('', <$fh> ), $ora->_script(qw(foo bar baz)),
     'The script should be spooled';
 
 ok $ora->_capture(qw(foo bar baz)), 'Call _capture';
-is_deeply \@capture, [[$ora->sqlplus], \$ora->_script(qw(foo bar baz)), []],
-    'Command and script should be passed to run3()';
+is_deeply \@capture, [
+    [$ora->sqlplus], \$ora->_script(qw(foo bar baz)), [], undef,
+    { return_if_system_error => 1 },
+], 'Command and script should be passed to run3()';
 
 # Let's make sure that IPC::Run3 actually works as expected.
 $mock_run3->unmock_all;
@@ -307,6 +309,34 @@ like capture_stderr {
         $ora->_capture('whatever'),
     } 'App::Sqitch::X', '_capture should die when sqlplus dies';
 }, qr/^OMGWTF/, 'STDERR should be emitted by _capture';
+
+##############################################################################
+# Test _file_for_script().
+can_ok $ora, '_file_for_script';
+is $ora->_file_for_script(Path::Class::file 'foo'), 'foo',
+    'File without special characters should be used directly';
+is $ora->_file_for_script(Path::Class::file '"foo"'), '""foo""',
+    'Double quotes should be SQL-escaped';
+
+# Get the temp dir used by the engine.
+ok my $tmpdir = $ora->tmpdir, 'Get temp dir';
+isa_ok $tmpdir, 'Path::Class::Dir', 'Temp dir';
+
+# Make sure a file with @ is aliased.
+my $file = $tmpdir->file('foo@bar.sql');
+$file->touch; # File must exist, because on Windows it gets copied.
+is $ora->_file_for_script($file), $tmpdir->file('foo_bar.sql'),
+    'File with special char should be aliased';
+
+# Make sure double-quotes are escaped.
+WIN32: {
+    $file = $tmpdir->file('"foo$bar".sql');
+    my $mock_file = Test::MockModule->new(ref $file);
+    # Windows doesn't like the quotation marks, so prevent it from writing.
+    $mock_file->mock(copy_to => 1) if $^O eq 'MSWin32';
+    is $ora->_file_for_script($file), $tmpdir->file('""foo_bar"".sql'),
+        'File with special char and quotes should be aliased';
+}
 
 ##############################################################################
 # Test file and handle running.

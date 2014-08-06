@@ -3,12 +3,13 @@ package App::Sqitch::Plan::Tag;
 use 5.010;
 use utf8;
 use namespace::autoclean;
-use Mouse;
+use Moo;
+use App::Sqitch::Types qw(Str Change UserEmail DateTime);
 use Encode;
-use parent 'App::Sqitch::Plan::Line';
-use DateTime;
 
-our $VERSION = '0.993';
+extends 'App::Sqitch::Plan::Line';
+
+our $VERSION = '0.996';
 
 sub format_name {
     '@' . shift->name;
@@ -16,7 +17,7 @@ sub format_name {
 
 has info => (
     is       => 'ro',
-    isa      => 'Str',
+    isa      => Str,
     lazy     => 1,
     default  => sub {
         my $self = shift;
@@ -36,12 +37,12 @@ has info => (
 
 has id => (
     is       => 'ro',
-    isa      => 'Str',
+    isa      => Str,
     lazy     => 1,
     default  => sub {
         my $content = encode_utf8 shift->info;
-        require Digest::SHA1;
-        return Digest::SHA1->new->add(
+        require Digest::SHA;
+        return Digest::SHA->new(1)->add(
             'tag ' . length($content) . "\0" . $content
         )->hexdigest;
     }
@@ -49,7 +50,7 @@ has id => (
 
 has old_info => (
     is       => 'ro',
-    isa      => 'Str',
+    isa      => Str,
     lazy     => 1,
     default  => sub {
         my $self = shift;
@@ -68,12 +69,12 @@ has old_info => (
 
 has old_id => (
     is       => 'ro',
-    isa      => 'Str',
+    isa      => Str,
     lazy     => 1,
     default  => sub {
         my $content = encode_utf8 shift->old_info;
-        require Digest::SHA1;
-        return Digest::SHA1->new->add(
+        require Digest::SHA;
+        return Digest::SHA->new(1)->add(
             'tag ' . length($content) . "\0" . $content
         )->hexdigest;
     }
@@ -81,29 +82,26 @@ has old_id => (
 
 has change => (
     is       => 'ro',
-    isa      => 'App::Sqitch::Plan::Change',
+    isa      => Change,
     weak_ref => 1,
     required => 1,
 );
 
 has timestamp => (
     is       => 'ro',
-    isa      => 'App::Sqitch::DateTime',
-    required => 1,
-    default  => sub { App::Sqitch::DateTime->now },
+    isa      => DateTime,
+    default  => sub { require App::Sqitch::DateTime && App::Sqitch::DateTime->now },
 );
 
 has planner_name => (
     is       => 'ro',
-    isa      => 'Str',
-    required => 1,
+    isa      => Str,
     default  => sub { shift->sqitch->user_name },
 );
 
 has planner_email => (
     is       => 'ro',
-    isa      => 'UserEmail',
-    required => 1,
+    isa      => UserEmail,
     default  => sub { shift->sqitch->user_email },
 );
 
@@ -120,8 +118,7 @@ sub format_content {
         $self->format_planner;
 }
 
-__PACKAGE__->meta->make_immutable;
-no Mouse;
+1;
 
 __END__
 
@@ -135,8 +132,6 @@ App::Sqitch::Plan::Tag - Sqitch deployment plan tag
   for my $line ($plan->lines) {
       say $line->as_string;
   }
-
-=head1 Description
 
 =head1 Description
 

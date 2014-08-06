@@ -1,7 +1,7 @@
 package App::Sqitch::Engine;
 
 use 5.010;
-use Mouse;
+use Moo;
 use strict;
 use utf8;
 use Try::Tiny;
@@ -9,21 +9,21 @@ use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use List::Util qw(first max);
 use URI::db;
+use App::Sqitch::Types qw(Str Int Sqitch Plan Bool HashRef URI Maybe);
 use namespace::autoclean;
 
-our $VERSION = '0.993';
+our $VERSION = '0.996';
 
 has sqitch => (
     is       => 'ro',
-    isa      => 'App::Sqitch',
+    isa      => Sqitch,
     required => 1,
 );
 
 has client => (
     is       => 'ro',
-    isa      => 'Str',
+    isa      => Str,
     lazy     => 1,
-    required => 1,
     default  => sub {
         my $self = shift;
         my $sqitch = $self->sqitch;
@@ -55,10 +55,13 @@ has client => (
     },
 );
 
+has _target_set => (is => 'rw');
+
 has target => (
     is      => 'ro',
-    isa     => 'Str',
+    isa     => Str,
     lazy    => 1,
+    trigger => sub { shift->_target_set(1) }, # Excludes default and built values.
     default => sub {
         my $self = shift;
         my $engine = $self->key;
@@ -69,7 +72,7 @@ has target => (
 
 has destination => (
     is      => 'ro',
-    isa     => 'Str',
+    isa     => Str,
     lazy    => 1,
     default => sub {
         my $self = shift;
@@ -92,52 +95,56 @@ sub registry_destination { shift->destination }
 
 has start_at => (
     is  => 'rw',
-    isa => 'Str'
+    isa => Str
 );
 
 has no_prompt => (
     is      => 'rw',
-    isa     => 'Bool',
+    isa     => Bool,
     default => 0,
 );
 
 has log_only => (
     is      => 'rw',
-    isa     => 'Bool',
+    isa     => Bool,
     default => 0,
 );
 
 has with_verify => (
     is      => 'rw',
-    isa     => 'Bool',
+    isa     => Bool,
     default => 0,
 );
 
 has max_name_length => (
     is      => 'rw',
-    isa     => 'Int',
+    isa     => Int,
     default => 0,
+    lazy    => 1,
+    default => sub {
+        my $plan = shift->plan;
+        max map {
+            length $_->format_name_with_tags
+        } $plan->changes;
+    },
 );
 
 has plan => (
     is       => 'rw',
-    isa      => 'App::Sqitch::Plan',
-    required => 1,
+    isa      => Plan,
     lazy     => 1,
     default  => sub { shift->sqitch->plan }
 );
 
 has _variables => (
-    traits  => ['Hash'],
     is      => 'rw',
-    isa     => 'HashRef[Str]',
+    isa     => HashRef[Str],
     default => sub { {} },
-    handles => {
-        variables       => 'elements',
-        set_variables   => 'set',
-        clear_variables => 'clear',
-    },
 );
+
+sub variables       { %{ shift->_variables }       }
+sub set_variables   {    shift->_variables({ @_ }) }
+sub clear_variables { %{ shift->_variables } = ()  }
 
 # * If not passed
 #   a. Look for core.$engine.target; or
@@ -152,7 +159,7 @@ sub BUILD {
     }
 }
 
-has uri => ( is => 'ro', isa => 'URI::db', lazy => 1, default => sub {
+has uri => ( is => 'ro', isa => URI, lazy => 1, default => sub {
     my $self   = shift;
     my $sqitch = $self->sqitch;
     my $config = $sqitch->config;
@@ -161,7 +168,7 @@ has uri => ( is => 'ro', isa => 'URI::db', lazy => 1, default => sub {
 
     # Get the target, but only if it has been passed, not the default,
     # because the default may call back into uri for an infinite loop!
-    my $target = $self->meta->find_attribute_by_name('target')->has_value($self)
+    my $target = $self->_target_set
         ? $self->target : $config->get( key => "core.$engine.target" );
 
     if ($target) {
@@ -190,9 +197,8 @@ has uri => ( is => 'ro', isa => 'URI::db', lazy => 1, default => sub {
 
 has registry => (
     is       => 'ro',
-    isa      => 'Maybe[Str]', # May be undef in a subclass.
+    isa      => Maybe[Str], # May be undef in a subclass.
     lazy     => 1,
-    required => 1,
     default  => sub {
         my $self   = shift;
         my $engine = $self->key;
@@ -309,11 +315,8 @@ sub deploy {
 
     if ($plan->position == $to_index) {
         # We are up-to-date.
-        hurl {
-            ident   => 'deploy',
-            message => __ 'Nothing to deploy (up-to-date)',
-            exitval => 1,
-        };
+        $sqitch->info( __ 'Nothing to deploy (up-to-date)' );
+        return $self;
 
     } elsif ($plan->position == -1) {
         # Initialize the database, if necessary.
@@ -1216,8 +1219,7 @@ sub search_events {
     hurl "$class has not implemented search_events()";
 }
 
-__PACKAGE__->meta->make_immutable;
-no Mouse;
+1;
 
 __END__
 
@@ -1390,7 +1392,6 @@ which Sqitch's own data is stored. It will usually be the same as C<destination(
 but some engines, such as L<SQLite|App::Sqitch::Engine::sqlite>, may use a
 separate database. Used internally to name the target when the registration
 tables are created.
-
 
 =head3 C<start_at>
 

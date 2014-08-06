@@ -5,13 +5,13 @@ use strict;
 use warnings;
 use utf8;
 use DBI;
-use Mouse::Role;
+use Moo::Role;
 use Try::Tiny;
 use App::Sqitch::X qw(hurl);
 use Locale::TextDomain qw(App-Sqitch);
 use namespace::autoclean;
 
-our $VERSION = '0.993';
+our $VERSION = '0.996';
 
 requires 'dbh';
 requires 'sqitch';

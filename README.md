@@ -1,4 +1,4 @@
-App/Sqitch version 0.993
+App/Sqitch version 0.996
 ========================
 
 [Sqitch](http://sqitch.org/) is a database change management application. It
@@ -54,7 +54,7 @@ Want to learn more? The best place to start is in the tutorials:
 
 There have also been a number of presentations on Sqitch:
 
-* [PDX.pm Presentation](https://speakerdeck.com/theory/sane-database-change-management-with-sqitch): 
+* [PDX.pm Presentation](https://speakerdeck.com/theory/sane-database-change-management-with-sqitch):
   Slides from "Sane Database Management with Sqitch", presented to the
   Portland Perl Mongers in January, 2013.
 
@@ -80,9 +80,6 @@ To install Sqitch from a distribution download, type the following:
     ./Build test
     ./Build install
 
-If you're using [Homebrew](http://brew.sh), you can use the
-[Sqitch Homebrew Tap](https://github.com/theory/homebrew-sqitch/).
-
 To build from a Git clone, first install
 [Dist::Zilla](https://metacpan.org/module/Dist::Zilla), then use it to install
 Sqitch and its dependencies:
@@ -95,6 +92,10 @@ development on Sqitch, you will need to install the autoring dependencies, as
 well:
 
     dzil listdeps | xargs cpan
+
+To install Sqitch on a specific platform, including Debian- and RedHat-derived
+Linux distributions and Windows, see the
+[Installation documentation](http://sqitch.org/#installation).
 
 Licence
 -------

@@ -1,6 +1,40 @@
 Revision history for Perl extension App::Sqitch
 
-0.993
+0.996
+     - Fixed one more test failure due to the introduction of "Negative repeat
+       count does nothing" warning in Perl 5.21.1.
+     - Fixed "Redundant argument in printf" warning on Perl 5.21.2.
+     - Switched from Digest::SHA1, which is deprecated, to Digest::SHA for
+       generating SHA-1 IDs.
+     - Switched from Mouse and Moose to Moo. Sqitch no longer depends on any
+       modules that use Moose, either. This results in an approximately 40%
+       startup time speedup.
+     - Loading of App::Sqitch::DateTime is now deferred until it's needed.
+       This is because DateTime is rather expensive to load. Since a number of
+       commands don't need it, it seems silly to load it in those cases.
+     - Now recommend Type::Tiny::XS and Class::XSAccessor for improved
+       performance.
+
+0.995  2014-07-13T22:24:53Z
+     - Fixed test failures due to the introduction of "Negative repeat count
+       does nothing" warning in Perl 5.21.1.
+     - Fixed more test failures when DBD::Firebird is installed but Firebird
+       isql cannot be found.
+     - Fixed registry file naming issues on Win32 for the SQLite engine, and
+       as well as the tests that failed because of it.
+     - Worked around Config::GitLike bug on Windows in the target test.
+     - Changed the exit value for an attempt to deploy to an up-to-date
+       database from 1 to 0. In other words, it no longer looks like an error
+       (Issue #147).
+
+0.994  2014-06-20T02:58:10Z
+     - Fixed installation failure due to missing IO::File module on Windows.
+     - Fixed file test failure for the Oracle engine on Windows.
+     - Fixed bug where namespace-autoclean: 0.16 caused errors such as
+       "Invalid object instance: 'yellow'".
+     - Fixed Oracle SQL*Plus capture test failure on Windows.
+
+0.993  2014-06-04T20:14:34Z
      - Fixed engine loading to prefer the engine implied by the target URI
        over the `core.engine` configuration variable. This means that you no
        longer have to pass `--engine` when using commands that accept a target
@@ -11,6 +45,21 @@ Revision history for Perl extension App::Sqitch
        script. This can occur when a change has been reworked in the plan, but
        the reworked version of the change has not been deployed to the
        database. Thanks to Timothy Procter for the report (Issue #166).
+     - Fixed issue with aggregating text values with `COLLECT()` on Oracle.
+       Thanks to Timothy Procter for the digging and invocation of an Oracle
+       support request (Issue #91).
+     - Fixed issue where SQL*Plus could not run rework scripts because of the
+       `@` in the file name. It now uses a symlink (or copied file on Windows)
+       to circumvent the problem. Thanks to Timothy Procter for the report
+       (Issue #165).
+     - Fix issue where, on first deploy, the MySQL engine would fail to notice
+       that the server was not the right version of MySQL. Thanks to Luke
+       Young for the report (Issue #158).
+     - Made the `checkit()` MySQL function DETERMINISTIC, to improve
+       compatability with MariaDB. Thanks to Jesse Luehrs for the report
+       (Issue #158).
+     - Fixed deployment to PostgreSQL 8.4 so that it no longer chokes on the
+       `:tableopts`. Thanks to Justin Hawkins for the report!
 
 0.992  2014-03-05T00:34:49Z
      - Fixed target test failures on Windows.

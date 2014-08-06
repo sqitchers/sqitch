@@ -1,5 +1,7 @@
 package App::Sqitch::Command::good;
-use parent 'App::Sqitch::Command';
+use Moo;
+extends 'App::Sqitch::Command';
+
 1;
 
 =head1 NAME

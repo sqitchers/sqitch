@@ -12,20 +12,18 @@ use Path::Class;
 use File::Basename;
 use Time::Local;
 use Time::HiRes qw(sleep);
-use Mouse;
+use Moo;
+use App::Sqitch::Types qw(DBH URIDB ArrayRef Maybe Int);
 use namespace::autoclean;
 
 extends 'App::Sqitch::Engine';
-sub dbh; # required by DBIEngine;
-with 'App::Sqitch::Role::DBIEngine';
 
-our $VERSION = '0.993';
+our $VERSION = '0.996';
 
 has registry_uri => (
     is       => 'ro',
-    isa      => 'URI::db',
+    isa      => URIDB,
     lazy     => 1,
-    required => 1,
     default  => sub {
         my $self = shift;
         my $uri  = $self->uri->clone;
@@ -63,7 +61,7 @@ sub registry_destination {
 
 has dbh => (
     is      => 'rw',
-    isa     => 'DBI::db',
+    isa     => DBH,
     lazy    => 1,
     default => sub {
         my $self = shift;
@@ -88,12 +86,13 @@ has dbh => (
     }
 );
 
-has isql => (
+# Need to wait until dbh is defined.
+with 'App::Sqitch::Role::DBIEngine';
+
+has _isql => (
     is         => 'ro',
-    isa        => 'ArrayRef',
+    isa        => ArrayRef,
     lazy       => 1,
-    required   => 1,
-    auto_deref => 1,
     default    => sub {
         my $self = shift;
         my $uri  = $self->uri;
@@ -118,11 +117,12 @@ has isql => (
     },
 );
 
+sub isql { @{ shift->_isql } }
+
 has tz_offset => (
     is       => 'ro',
-    isa      => 'Maybe[Int]',
+    isa      => Maybe[Int],
     lazy     => 1,
-    required => 1,
     default => sub {
         # From: http://stackoverflow.com/questions/2143528/whats-the-best-way-to-get-the-utc-offset-in-perl
         my @t = localtime(time);
@@ -866,8 +866,7 @@ sub default_client {
 
 1;
 
-no Mouse;
-__PACKAGE__->meta->make_immutable;
+1;
 
 1;
 

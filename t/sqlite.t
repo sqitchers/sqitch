@@ -213,11 +213,24 @@ is_deeply [$sqlite->sqlite3],
 $mock_config->unmock_all;
 
 ##############################################################################
-# Test _run(), _capture(), and _spool().
+# Test _read().
 my $db_name = $tmp_dir->file('sqitch.db');
 $sqitch = App::Sqitch->new(_engine => 'sqlite');
 ok $sqlite = $CLASS->new(sqitch => $sqitch, uri => URI->new("db:sqlite:$db_name")),
     'Instantiate with a temporary database file';
+can_ok $sqlite, qw(_read);
+my $quote = $^O eq 'MSWin32' ? sub { $sqitch->quote_shell(shift) } : sub { shift };
+SKIP: {
+    skip 'DBD::SQLite not available', 3 unless $have_sqlite;
+    is $sqlite->_read('foo'), $quote->(q{.read 'foo'}), '_read() should work';
+    is $sqlite->_read('foo bar'), $quote->(q{.read 'foo bar'}),
+        '_read() should SQL-quote the file name';
+    is $sqlite->_read('foo \'bar\''), $quote->(q{.read 'foo ''bar'''}),
+        '_read() should SQL-quote quotes, too';
+}
+
+##############################################################################
+# Test _run(), _capture(), and _spool().
 can_ok $sqlite, qw(_run _capture _spool);
 
 my (@run, @capture, @spool);
@@ -241,7 +254,7 @@ is_deeply \@capture, [$sqlite->sqlite3, qw(foo bar baz)],
 SKIP: {
     skip 'DBD::SQLite not available', 2 unless $have_sqlite;
     ok $sqlite->run_file('foo/bar.sql'), 'Run foo/bar.sql';
-    is_deeply \@run, [$sqlite->sqlite3, ".read 'foo/bar.sql'"],
+    is_deeply \@run, [$sqlite->sqlite3, $quote->(".read 'foo/bar.sql'")],
         'File should be passed to run()';
 }
 
@@ -254,12 +267,12 @@ SKIP: {
 
     # Verify should go to capture unless verosity is > 1.
     ok $sqlite->run_verify('foo/bar.sql'), 'Verify foo/bar.sql';
-    is_deeply \@capture, [$sqlite->sqlite3, ".read 'foo/bar.sql'"],
+    is_deeply \@capture, [$sqlite->sqlite3, $quote->(".read 'foo/bar.sql'")],
         'Verify file should be passed to capture()';
 
     $mock_sqitch->mock(verbosity => 2);
     ok $sqlite->run_verify('foo/bar.sql'), 'Verify foo/bar.sql again';
-    is_deeply \@run, [$sqlite->sqlite3, ".read 'foo/bar.sql'"],
+    is_deeply \@run, [$sqlite->sqlite3, $quote->(".read 'foo/bar.sql'")],
         'Verifile file should be passed to run() for high verbosity';
 }
 
@@ -329,6 +342,16 @@ $mock_sqitch->unmock_all;
 ##############################################################################
 my $alt_db = $db_name->dir->file('sqitchtest.db');
 # Can we do live tests?
+END {
+    my %drivers = DBI->installed_drivers;
+    for my $driver (values %drivers) {
+        $driver->visit_child_handles(sub {
+            my $h = shift;
+            $h->disconnect if $h->{Type} eq 'db' && $h->{Active};
+        });
+    }
+}
+
 DBIEngineTest->run(
     class         => $CLASS,
     sqitch_params => [

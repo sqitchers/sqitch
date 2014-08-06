@@ -3,63 +3,58 @@ package App::Sqitch::Plan::Line;
 use 5.010;
 use utf8;
 use namespace::autoclean;
-use Mouse;
+use Moo;
+use App::Sqitch::Types qw(Str Plan);
 use App::Sqitch::X qw(hurl);
 use Locale::TextDomain qw(App-Sqitch);
 
-our $VERSION = '0.993';
+our $VERSION = '0.996';
 
 has name => (
     is       => 'ro',
-    isa      => 'Str',
+    isa      => Str,
     required => 1,
 );
 
 has operator => (
     is       => 'ro',
-    isa      => 'Str',
-    required => 1,
+    isa      => Str,
     default  => '',
 );
 
 has lspace => (
     is       => 'ro',
-    isa      => 'Str',
-    required => 1,
+    isa      => Str,
     default  => '',
 );
 
 has rspace => (
     is       => 'ro',
-    isa      => 'Str',
-    required => 1,
+    isa      => Str,
     default  => '',
 );
 
 has lopspace => (
     is       => 'ro',
-    isa      => 'Str',
-    required => 1,
+    isa      => Str,
     default  => '',
 );
 
 has ropspace => (
     is       => 'ro',
-    isa      => 'Str',
-    required => 1,
+    isa      => Str,
     default  => '',
 );
 
 has note => (
-    is       => 'ro',
-    isa      => 'Str',
-    required => 1,
+    is       => 'rw',
+    isa      => Str,
     default  => '',
 );
 
 has plan => (
     is       => 'ro',
-    isa      => 'App::Sqitch::Plan',
+    isa      => Plan,
     weak_ref => 1,
     required => 1,
     handles  => [qw(sqitch project uri)],
@@ -120,7 +115,7 @@ sub request_note {
     $note =~ s/\v+\z//;
 
     # Set the note via the meta API, bypassing the read-only constraint.
-    $self->meta->find_attribute_by_name('note')->set_value($self, $note);
+    $self->note($note);
     return $note;
 }
 
@@ -161,8 +156,7 @@ sub as_string {
          . $self->format_note;
 }
 
-__PACKAGE__->meta->make_immutable;
-no Mouse;
+1;
 
 __END__
 
