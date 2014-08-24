@@ -314,7 +314,7 @@ $file = file qw(t plans bad-change.plan);
 $fh = $file->open('<:utf8_strict');
 throws_ok { $plan->_parse($file, $fh) } 'App::Sqitch::X',
     'Should die on plan with bad change name';
-is $@->ident, 'plan', 'Bad change name error ident should be "plan"';
+is $@->ident, 'parse', 'Bad change name error ident should be "parse"';
 is $@->message, __x(
     'Syntax error in {file} at line {lineno}: {error}',
     file => $file,
@@ -352,7 +352,7 @@ for my $name (@bad_names) {
         my $fh = IO::File->new(\$buf, '<:utf8_strict');
         throws_ok { $plan->_parse('baditem', $fh) } 'App::Sqitch::X',
             qq{Should die on plan with bad name "$line"};
-        is $@->ident, 'plan', 'Exception ident should be "plan"';
+        is $@->ident, 'parse', 'Exception ident should be "parse"';
         is $@->message, __x(
             'Syntax error in {file} at line {lineno}: {error}',
             file => 'baditem',
@@ -432,7 +432,7 @@ $file = file qw(t plans reserved-tag.plan);
 $fh = $file->open('<:utf8_strict');
 throws_ok { $plan->_parse($file, $fh) } 'App::Sqitch::X',
     'Should die on plan with reserved tag "@HEAD"';
-is $@->ident, 'plan', '@HEAD exception should have ident "plan"';
+is $@->ident, 'parse', '@HEAD exception should have ident "plan"';
 is $@->message, __x(
     'Syntax error in {file} at line {lineno}: {error}',
     file => $file,
@@ -451,7 +451,7 @@ for my $reserved (qw(ROOT FIRST LAST)) {
     $fh = IO::File->new(\$root, '<:utf8_strict');
     throws_ok { $plan->_parse($file, $fh) } 'App::Sqitch::X',
         qq{Should die on plan with reserved tag "\@$reserved"};
-    is $@->ident, 'plan', qq{\@$reserved exception should have ident "plan"};
+    is $@->ident, 'parse', qq{\@$reserved exception should have ident "plan"};
     is $@->message, __x(
         'Syntax error in {file} at line {lineno}: {error}',
         file => $file,
@@ -470,7 +470,7 @@ $file = file qw(t plans sha1.plan);
 $fh = IO::File->new(\"$prags$sha1 $tsnp", '<:utf8_strict');
 throws_ok { $plan->_parse($file, $fh) } 'App::Sqitch::X',
     'Should die on plan with SHA1 change name';
-is $@->ident, 'plan', 'The SHA1 error ident should be "plan"';
+is $@->ident, 'parse', 'The SHA1 error ident should be "parse"';
 is $@->message, __x(
     'Syntax error in {file} at line {lineno}: {error}',
     file => $file,
@@ -487,7 +487,7 @@ $file = file qw(t plans tag-no-change.plan);
 $fh = IO::File->new(\"$prags\@foo $tsnp\nbar $tsnp", '<:utf8_strict');
 throws_ok { $plan->_parse($file, $fh) } 'App::Sqitch::X',
     'Should die on plan with tag but no preceding change';
-is $@->ident, 'plan', 'The missing change error ident should be "plan"';
+is $@->ident, 'parse', 'The missing change error ident should be "parse"';
 is $@->message, __x(
     'Syntax error in {file} at line {lineno}: {error}',
     file => $file,
@@ -504,7 +504,7 @@ $file = file qw(t plans dupe-tag.plan);
 $fh = $file->open('<:utf8_strict');
 throws_ok { $plan->_parse($file, $fh) } 'App::Sqitch::X',
     'Should die on plan with dupe tag';
-is $@->ident, 'plan', 'The dupe tag error ident should be "plan"';
+is $@->ident, 'parse', 'The dupe tag error ident should be "parse"';
 is $@->message, __x(
     'Syntax error in {file} at line {lineno}: {error}',
     file => $file,
@@ -522,7 +522,7 @@ $file = file qw(t plans dupe-change.plan);
 $fh = $file->open('<:utf8_strict');
 throws_ok { $plan->_parse($file, $fh) } 'App::Sqitch::X',
     'Should die on plan with dupe change';
-is $@->ident, 'plan', 'The dupe change error ident should be "plan"';
+is $@->ident, 'parse', 'The dupe change error ident should be "parse"';
 is $@->message, __x(
     'Syntax error in {file} at line {lineno}: {error}',
     file => $file,
@@ -539,7 +539,7 @@ is sorted, 1, 'Should have sorted changes once';
 $fh = IO::File->new(\"\%project=foo\n\nfoo [^bar] $tsnp", '<:utf8_strict');
 throws_ok { $plan->_parse('badreq', $fh ) } 'App::Sqitch::X',
     'Should die on invalid  dependency';
-is $@->ident, 'plan', 'The invalid dependency error ident should be "plan"';
+is $@->ident, 'parse', 'The invalid dependency error ident should be "parse"';
 is $@->message, __x(
     'Syntax error in {file} at line {lineno}: {error}',
     file => 'badreq',
@@ -556,7 +556,7 @@ $file = file qw(t plans no-timestamp.plan);
 $fh = IO::File->new(\"${prags}foo hi <t\@heo.ry>", '<:utf8_strict');
 throws_ok { $plan->_parse($file, $fh) } 'App::Sqitch::X',
     'Should die on change with no timestamp';
-is $@->ident, 'plan', 'The missing timestamp error ident should be "plan"';
+is $@->ident, 'parse', 'The missing timestamp error ident should be "parse"';
 is $@->message, __x(
     'Syntax error in {file} at line {lineno}: {error}',
     file => $file,
@@ -570,7 +570,7 @@ $file = file qw(t plans no-planner.plan);
 $fh = IO::File->new(\"${prags}foo 2012-07-16T23:12:34Z", '<:utf8_strict');
 throws_ok { $plan->_parse($file, $fh) } 'App::Sqitch::X',
     'Should die on change with no planner';
-is $@->ident, 'plan', 'The missing planner error ident should be "plan"';
+is $@->ident, 'parse', 'The missing parsener error ident should be "parse"';
 is $@->message, __x(
     'Syntax error in {file} at line {lineno}: {error}',
     file => $file,
@@ -584,7 +584,7 @@ $file = file qw(t plans no-timestamp-or-planner.plan);
 $fh = IO::File->new(\"%project=foo\n\nfoo", '<:utf8_strict');
 throws_ok { $plan->_parse($file, $fh) } 'App::Sqitch::X',
     'Should die on change with no timestamp or planner';
-is $@->ident, 'plan', 'The missing timestamp or planner error ident should be "plan"';
+is $@->ident, 'parse', 'The missing timestamp or parsener error ident should be "parse"';
 is $@->message, __x(
     'Syntax error in {file} at line {lineno}: {error}',
     file => $file,
@@ -762,7 +762,7 @@ isa_ok $plan = App::Sqitch::Plan->new(sqitch => $sqitch), $CLASS,
     'Plan with sqitch with plan with tag dependencies';
 throws_ok { $plan->_parse($file, $fh) }  'App::Sqitch::X',
     'Should get an exception for tag with dependencies';
-is $@->ident, 'plan', 'The tag dependencies error ident should be "plan"';
+is $@->ident, 'parse', 'The tag dependencies error ident should be "plan"';
 is $@->message, __x(
     'Syntax error in {file} at line {lineno}: {error}',
     file => $file,
@@ -1984,7 +1984,7 @@ for my $bad (@bad_names) {
     my $fh = IO::File->new(\"%project=$bad\n\nfoo $tsnp", '<:utf8_strict');
     throws_ok { $plan->_parse(badproj => $fh) } 'App::Sqitch::X',
         qq{Should die on invalid project name "$bad"};
-    is $@->ident, 'plan', qq{Ident for bad proj "$bad" should be "plan"};
+    is $@->ident, 'parse', qq{Ident for bad proj "$bad" should be "parse"};
     my $error =  __x(
             'invalid project name "{project}": project names must not '
             . 'begin with punctuation, contain "@", ":", "#", or blanks, or end in '

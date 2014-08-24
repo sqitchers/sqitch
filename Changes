@@ -14,6 +14,8 @@ Revision history for Perl extension App::Sqitch
        commands don't need it, it seems silly to load it in those cases.
      - Now recommend Type::Tiny::XS and Class::XSAccessor for improved
        performance.
+     - The `check` command now properly fails on a plan parse error, instead
+       of blindly continuing on.
 
 0.995  2014-07-13T22:24:53Z
      - Fixed test failures due to the introduction of "Negative repeat count

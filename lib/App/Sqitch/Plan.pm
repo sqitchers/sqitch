@@ -163,7 +163,7 @@ sub _parse {
 
     # Use for raising syntax error exceptions.
     my $raise_syntax_error = sub {
-        hurl plan => __x(
+        hurl parse => __x(
             'Syntax error in {file} at line {lineno}: {error}',
             file   => $file,
             lineno => $fh->input_line_number,
