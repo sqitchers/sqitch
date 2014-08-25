@@ -104,6 +104,7 @@ sub execute {
     my $state = try {
         $engine->current_state( $self->project )
     } catch {
+        die $_ if $_->ident eq 'parse';
         # Hrm. Maybe not initialized?
         die $_ if $engine->initialized;
         hurl status => __x(
