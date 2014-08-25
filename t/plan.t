@@ -1626,7 +1626,7 @@ is $fh->getline, undef, 'It should be empty';
 # Make sure it dies on an invalid file.
 throws_ok { $plan->open_script(file 'nonexistent' ) } 'App::Sqitch::X',
     'open_script() should die on nonexistent file';
-is $@->ident, 'plan', 'Nonexistent file error ident should be "plan"';
+is $@->ident, 'io', 'Nonexistent file error ident should be "io"';
 is $@->message, __x(
     'Cannot open {file}: {error}',
     file  => 'nonexistent',
@@ -1687,7 +1687,7 @@ my $deperr = sub {
 throws_ok {
     $plan->check_changes('foo', changes qw(this that other))
 } 'App::Sqitch::X', 'Should get error for out-of-order dependency';
-is $@->ident, 'plan', 'Unordered dependency error ident should be "plan"';
+is $@->ident, 'parse', 'Unordered dependency error ident should be "parse"';
 is $@->message, $deperr->(__nx(
     'Change "{change}" planned {num} change before required change "{required}"',
     'Change "{change}" planned {num} changes before required change "{required}"',
@@ -1709,7 +1709,7 @@ is $@->message, $deperr->(__nx(
 throws_ok {
     $plan->check_changes('foo', changes qw(this that other));
 } 'App::Sqitch::X', 'Should get error for multiple dependency errors';
-is $@->ident, 'plan', 'Multiple dependency error ident should be "plan"';
+is $@->ident, 'parse', 'Multiple dependency error ident should be "parse"';
 is $@->message, $deperr->(
     __nx(
         'Change "{change}" planned {num} change before required change "{required}"',
@@ -1750,7 +1750,7 @@ cmp_deeply [$plan->check_changes('foo', {'foo' => 1, '@howdy' => 2 }, changes qw
 @deps = ({%ddep}, {%ddep, requires => [dep 'foo@howdy']}, {%ddep});
 throws_ok { $plan->check_changes('foo', {'foo' => 3, '@howdy' => 2 }, changes qw(this that other)) }
     'App::Sqitch::X', 'Should get failure for a step after a tag';
-is $@->ident, 'plan', 'Step after tag error ident should be "plan"';
+is $@->ident, 'parse', 'Step after tag error ident should be "parse"';
 is $@->message, $deperr->(__x(
     'Unknown change "{required}" required by change "{change}"',
     required => 'foo@howdy',
@@ -1761,7 +1761,7 @@ is $@->message, $deperr->(__x(
 @deps = ({%ddep, requires => [dep 'that']}, {%ddep, requires => [dep 'this']}, {%ddep});
 throws_ok { $plan->check_changes('foo', changes qw(this that other)) } 'App::Sqitch::X',
     'Should get failure for a cycle';
-is $@->ident, 'plan', 'Cycle error ident should be "plan"';
+is $@->ident, 'parse', 'Cycle error ident should be "parse"';
 is $@->message, $deperr->(
     __nx(
         'Change "{change}" planned {num} change before required change "{required}"',
@@ -1788,7 +1788,7 @@ is $@->message, $deperr->(
 );
 throws_ok { $plan->check_changes('foo', changes qw(this that other)) } 'App::Sqitch::X',
     'Should get failure for a two-hop cycle';
-is $@->ident, 'plan', 'Two-hope cycle error ident should be "plan"';
+is $@->ident, 'parse', 'Two-hope cycle error ident should be "parse"';
 is $@->message, $deperr->(
     __nx(
         'Change "{change}" planned {num} change before required change "{required}"',
@@ -1831,7 +1831,7 @@ cmp_deeply [$plan->check_changes('foo', { foo => 1}, changes qw(this that other)
 throws_ok {
     $plan->check_changes('foo', {sqitch => 1 }, changes qw(this that other))
 } 'App::Sqitch::X', 'Should get error with misordered and seen dependencies';
-is $@->ident, 'plan', 'Misorderd and seen error ident should be "plan"';
+is $@->ident, 'parse', 'Misorderd and seen error ident should be "parse"';
 is $@->message, $deperr->(
     __nx(
         'Change "{change}" planned {num} change before required change "{required}"',
@@ -1861,7 +1861,7 @@ is $@->message, $deperr->(
 @deps = ({%ddep, requires => [dep 'foo']}, {%ddep}, {%ddep});
 throws_ok { $plan->check_changes('foo', changes qw(this that other)) } 'App::Sqitch::X',
     'Should die on unknown dependency';
-is $@->ident, 'plan', 'Unknown dependency error ident should be "plan"';
+is $@->ident, 'parse', 'Unknown dependency error ident should be "parse"';
 is $@->message, $deperr->(__x(
     'Unknown change "{required}" required by change "{change}"',
     required => 'foo',
@@ -1872,7 +1872,7 @@ is $@->message, $deperr->(__x(
 @deps = ({%ddep, requires => [dep '@foo']}, {%ddep}, {%ddep});
 throws_ok { $plan->check_changes('foo', changes qw(this that other)) } 'App::Sqitch::X',
     'Should die on unknown tag dependency';
-is $@->ident, 'plan', 'Unknown tag dependency error ident should be "plan"';
+is $@->ident, 'parse', 'Unknown tag dependency error ident should be "parse"';
 is $@->message, $deperr->(__x(
     'Unknown change "{required}" required by change "{change}"',
     required => '@foo',
@@ -1889,7 +1889,7 @@ $project = undef;
 @deps = ({%ddep, requires => [dep 'this']}, {%ddep}, {%ddep});
 throws_ok { $plan->check_changes('foo', changes qw(this that other)) } 'App::Sqitch::X',
     'Should die on self dependency';
-is $@->ident, 'plan', 'Self dependency error ident should be "plan"';
+is $@->ident, 'parse', 'Self dependency error ident should be "parse"';
 is $@->message, $deperr->(__x(
     'Change "{change}" cannot require itself',
     change   => 'this',
@@ -1975,7 +1975,7 @@ isa_ok $plan->uri, 'URI', 'It';
 $fh = IO::File->new(\"%strict\n\nfoo $tsnp", '<:utf8_strict');
 throws_ok { $plan->_parse('noproject', $fh) } 'App::Sqitch::X',
     'Should die on plan with no project pragma';
-is $@->ident, 'plan', 'Missing prorject error ident should be "plan"';
+is $@->ident, 'parse', 'Missing prorject error ident should be "parse"';
 is $@->message, __x('Missing %project pragma in {file}', file => 'noproject'),
     'The missing project error message should be correct';
 

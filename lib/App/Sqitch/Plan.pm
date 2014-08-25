@@ -115,7 +115,7 @@ sub load {
             unless -e $file;
         hurl plan => __x('Plan file {file} is not a regular file', file => $file)
             unless -f $file;
-        $file->open('<:utf8_strict') or hurl plan => __x(
+        $file->open('<:utf8_strict') or hurl io => __x(
             'Cannot open {file}: {error}',
             file  => $file,
             error => $!
@@ -244,7 +244,7 @@ sub _parse {
     }
 
     # Should have valid project pragma.
-    hurl plan => __x(
+    hurl parse => __x(
         'Missing %project pragma in {file}',
         file => $file,
     ) unless $pragmas{project};
@@ -554,7 +554,7 @@ sub check_changes {
     }
 
     # Throw the exception with all of the errors.
-    hurl plan => join(
+    hurl parse => join(
         "\n  ",
         __n(
             'Dependency error detected:',
@@ -568,7 +568,7 @@ sub check_changes {
 sub open_script {
     my ( $self, $file ) = @_;
     # return has higher precedence than or, so use ||.
-    return $file->open('<:utf8_strict') || hurl plan => __x(
+    return $file->open('<:utf8_strict') || hurl io => __x(
         'Cannot open {file}: {error}',
         file  => $file,
         error => $!,
@@ -951,13 +951,13 @@ sub write_to {
         );
     }
 
-    my $fh = $file->open('>:utf8_strict') or hurl plan => __x(
+    my $fh = $file->open('>:utf8_strict') or hurl io => __x(
         'Cannot open {file}: {error}',
         file  => $file,
         error => $!
     );
     $fh->say($_->as_string) for @lines;
-    $fh->close or hurl plan => __x(
+    $fh->close or hurl io => __x(
         '"Error closing {file}: {error}',
         file => $file,
         error => $!,
