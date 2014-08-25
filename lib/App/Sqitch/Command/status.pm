@@ -60,7 +60,9 @@ has project => (
     default => sub {
         my $self = shift;
         try { $self->plan->project } catch {
-            die $_ if $_->ident eq 'parse';
+            # Just die on plan parse errors.
+            die $_ if try { $_->ident eq 'parse' };
+
             # Try to extract a project name from the registry.
             my $engine = $self->engine;
             hurl status => __ 'Database not initialized for Sqitch'
@@ -104,7 +106,9 @@ sub execute {
     my $state = try {
         $engine->current_state( $self->project )
     } catch {
-        die $_ if $_->ident eq 'parse';
+        # Just die on plan parse errors.
+        die $_ if try { $_->ident eq 'parse' };
+
         # Hrm. Maybe not initialized?
         die $_ if $engine->initialized;
         hurl status => __x(
