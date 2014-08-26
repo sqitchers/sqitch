@@ -16,6 +16,8 @@ Revision history for Perl extension App::Sqitch
        performance.
      - The `check` command now properly fails on a plan parse error, instead
        of blindly continuing on.
+     - Fixed a failing test on PosrgreSQL due to localization issues. Thanks
+       to Sven Schoberf for the report (Issue #171).
 
 0.995  2014-07-13T22:24:53Z
      - Fixed test failures due to the introduction of "Negative repeat count

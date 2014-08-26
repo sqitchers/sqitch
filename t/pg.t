@@ -304,7 +304,10 @@ my $err = try {
         RaiseError => 1,
         AutoCommit => 1,
     });
-    $dbh->do('CREATE DATABASE __sqitchtest__');
+    $dbh->do($_) for (
+        'CREATE DATABASE __sqitchtest__',
+        q{ALTER DATABASE __sqitchtest__ SET lc_messages = 'C'},
+    );
     undef;
 } catch {
     eval { $_->message } || $_;
