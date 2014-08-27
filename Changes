@@ -18,6 +18,12 @@ Revision history for Perl extension App::Sqitch
        of blindly continuing on.
      - Fixed a failing test on PosrgreSQL due to localization issues. Thanks
        to Sven Schoberf for the report (Issue #171).
+     - Added the `revert.prompt_accept`, `rebase.prompt_accept`, and
+       `checkout.prompt_accept` boolean configuration variables. Set these
+       variables to false to change the default answer to the revert prompt to
+       "No". When rebasing or checking out, if the variables specific to those
+       commands are not set, Sqitch will fall back on the value of
+       `revert.prompt_accept`. Suggested by Graeme Lawton (Issue #164).
 
 0.995  2014-07-13T22:24:53Z
      - Fixed test failures due to the introduction of "Negative repeat count

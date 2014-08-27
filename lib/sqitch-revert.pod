@@ -88,6 +88,12 @@ L<C<DEFINE> variables|http://docs.oracle.com/cd/B19306_01/server.102/b14357/ch12
 A boolean value indicating whether or not to disable the prompt before
 executing the revert. My be overridden by C<-y>.
 
+=item C<[revert.prompt_accept]>
+
+A boolean value indicating whether default reply to the prompt before
+executing the revert shoud be "yes" or "no". Defaults to true, meaning to
+accept the revert.
+
 =back
 
 =head1 Sqitch
