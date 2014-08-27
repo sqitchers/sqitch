@@ -24,6 +24,9 @@ Revision history for Perl extension App::Sqitch
        "No". When rebasing or checking out, if the variables specific to those
        commands are not set, Sqitch will fall back on the value of
        `revert.prompt_accept`. Suggested by Graeme Lawton (Issue #164).
+     - The MySQL engine now sets the `$MYSQL_PWD` if a password is provided in
+       a target. This should simplify authtentication when running MySQL
+       change scripts through the `mysql` client client.
 
 0.995  2014-07-13T22:24:53Z
      - Fixed test failures due to the introduction of "Negative repeat count

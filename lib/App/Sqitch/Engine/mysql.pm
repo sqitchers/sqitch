@@ -248,18 +248,30 @@ sub _listagg_format {
 
 sub _run {
     my $self = shift;
-    return $self->sqitch->run( $self->mysql, @_ );
+    my $sqitch = $self->sqitch;
+    my $uri    = $self->uri;
+    my $pass   = $uri->password or return $sqitch->run( $self->mysql, @_ );
+    local $ENV{MYSQL_PWD} = $pass;
+    return $sqitch->run( $self->mysql, @_ );
 }
 
 sub _capture {
-    my $self = shift;
-    return $self->sqitch->capture( $self->mysql, @_ );
+    my $self   = shift;
+    my $sqitch = $self->sqitch;
+    my $uri    = $self->uri;
+    my $pass   = $uri->password or return $sqitch->capture( $self->mysql, @_ );
+    local $ENV{MYSQL_PWD} = $pass;
+    return $sqitch->capture( $self->mysql, @_ );
 }
 
 sub _spool {
-    my $self = shift;
-    my $fh   = shift;
-    return $self->sqitch->spool( $fh, $self->mysql, @_ );
+    my $self   = shift;
+    my $fh     = shift;
+    my $sqitch = $self->sqitch;
+    my $uri    = $self->uri;
+    my $pass   = $uri->password or return $sqitch->spool( $fh, $self->mysql, @_ );
+    local $ENV{MYSQL_PWD} = $pass;
+    return $sqitch->spool( $fh, $self->mysql, @_ );
 }
 
 sub run_file {

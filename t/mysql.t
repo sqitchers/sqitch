@@ -21,8 +21,9 @@ BEGIN {
     require_ok $CLASS or die;
     $ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
     $ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.user';
-    $ENV{SQITCH_USER_CONFIG}   = 'nonexistent.sys';
-}
+    $ENV{SQITCH_USER_CONFIG}   = 'nonexistent.sys';}
+    delete $ENV{MYSQL_PWD};
+
 
 is_deeply [$CLASS->config_vars], [
     target   => 'any',
@@ -174,15 +175,40 @@ is_deeply [$mysql->mysql], [qw(
 ##############################################################################
 # Test _run(), _capture(), and _spool().
 can_ok $mysql, qw(_run _capture _spool);
-my @run;
-$mock_sqitch->mock(run => sub { shift; @run = @_; });
+my (@run, $exp_pass);
+$mock_sqitch->mock(run => sub {
+    shift;
+    @run = @_;
+    if (defined $exp_pass) {
+        is $ENV{MYSQL_PWD}, $exp_pass, qq{MYSQL_PWD should be "$exp_pass"};
+    } else {
+        ok !exists $ENV{MYSQL_PWD}, 'MYSQL_PWD should not exist';
+    }
+});
 
 my @capture;
-$mock_sqitch->mock(capture => sub { shift; @capture = @_; });
+$mock_sqitch->mock(capture => sub {
+    shift;
+    @capture = @_;
+    if (defined $exp_pass) {
+        is $ENV{MYSQL_PWD}, $exp_pass, qq{MYSQL_PWD should be "$exp_pass"};
+    } else {
+        ok !exists $ENV{MYSQL_PWD}, 'MYSQL_PWD should not exist';
+    }
+});
 
 my @spool;
-$mock_sqitch->mock(spool => sub { shift; @spool = @_; });
+$mock_sqitch->mock(spool => sub {
+    shift;
+    @spool = @_;
+    if (defined $exp_pass) {
+        is $ENV{MYSQL_PWD}, $exp_pass, qq{MYSQL_PWD should be "$exp_pass"};
+    } else {
+        ok !exists $ENV{MYSQL_PWD}, 'MYSQL_PWD should not exist';
+    }
+});
 
+$exp_pass = 's3cr3t';
 ok $mysql->_run(qw(foo bar baz)), 'Call _run';
 is_deeply \@run, [$mysql->mysql, qw(foo bar baz)],
     'Command should be passed to run()';
@@ -194,6 +220,22 @@ is_deeply \@spool, ['FH', $mysql->mysql],
 ok $mysql->_capture(qw(foo bar baz)), 'Call _capture';
 is_deeply \@capture, [$mysql->mysql, qw(foo bar baz)],
     'Command should be passed to capture()';
+
+# Remove the password.
+delete $config{'core.mysql.password'};
+ok $mysql = $CLASS->new(sqitch => $sqitch), 'Create a mysql with sqitch with no pw';
+$exp_pass = undef;
+ok $mysql->_run(qw(foo bar baz)), 'Call _run again';
+is_deeply \@run, [$mysql->mysql, qw(foo bar baz)],
+    'Command should be passed to run() again';
+
+ok $mysql->_spool('FH'), 'Call _spool again';
+is_deeply \@spool, ['FH', $mysql->mysql],
+    'Command should be passed to spool() again';
+
+ok $mysql->_capture(qw(foo bar baz)), 'Call _capture again';
+is_deeply \@capture, [$mysql->mysql, qw(foo bar baz)],
+    'Command should be passed to capture() again';
 
 ##############################################################################
 # Test file and handle running.
