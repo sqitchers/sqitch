@@ -26,7 +26,12 @@ Revision history for Perl extension App::Sqitch
        `revert.prompt_accept`. Suggested by Graeme Lawton (Issue #164).
      - The MySQL engine now sets the `$MYSQL_PWD` if a password is provided in
        a target. This should simplify authtentication when running MySQL
-       change scripts through the `mysql` client client.
+       change scripts through the `mysql` client client (Issue #150).
+     - The MySQL engine now reads `client` and `mysql` groups in the MySQL
+       configuration files for a password when connecting to the registry
+       database, and when the target URI includes no password. The MySQL
+       client already read those files, of course, but now the internal
+       database connection does as well (Issue #150).
 
 0.995  2014-07-13T22:24:53Z
      - Fixed test failures due to the introduction of "Negative repeat count
