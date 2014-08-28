@@ -38,6 +38,11 @@ has no_prompt => (
     isa => Bool
 );
 
+has prompt_accept => (
+    is  => 'ro',
+    isa => Bool
+);
+
 has mode => (
     is  => 'ro',
     isa => enum([qw(
@@ -149,6 +154,14 @@ around configure => sub {
         key => 'revert.no_prompt',
         as  => 'bool',
     ) // 0;
+
+    $params->{prompt_accept} = $config->get(
+        key => "$cmd.prompt_accept",
+        as  => 'bool',
+    ) // $config->get(
+        key => 'revert.prompt_accept',
+        as  => 'bool',
+    ) // 1;
 
     return $params;
 };
