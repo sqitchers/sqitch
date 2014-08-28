@@ -30,13 +30,16 @@ try { require DBD::Firebird; } catch { $have_fb_driver = 0; };
 BEGIN {
     $CLASS = 'App::Sqitch::Engine::firebird';
     require_ok $CLASS or die;
-    $ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.conf';
-    $ENV{SQITCH_USER_CONFIG}   = 'nonexistent.conf';
+    $ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
+    $ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.user';
+    $ENV{SQITCH_USER_CONFIG}   = 'nonexistent.sys';
 
-    $user = $ENV{DBI_USER} || 'SYSDBA';
-    $pass = $ENV{DBI_PASS} || 'masterkey';
+    $user = $ENV{ISC_USER}     || $ENV{DBI_USER} || 'SYSDBA';
+    $pass = $ENV{ISC_PASSWORD} || $ENV{DBI_PASS} || 'masterkey';
 
     $tmpdir = File::Spec->tmpdir();
+
+    delete $ENV{ISC_PASSWORD};
 }
 
 is_deeply [$CLASS->config_vars], [
@@ -107,7 +110,7 @@ is_deeply [$fb->isql], [(
 ), @std_opts, 'db.example.com/1234:widgets'], 'firebird command should be configured';
 
 ##############################################################################
-# Now make sure that Sqitch options override configurations.
+# Now make sure that (deprecated?) Sqitch options override configurations.
 $sqitch = App::Sqitch->new(
     _engine     => 'firebird',
     db_client   => '/some/other/isql',
@@ -167,15 +170,40 @@ is $@->message, __x(
 # Test _run(), _capture(), and _spool().
 can_ok $fb, qw(_run _capture _spool);
 my $mock_sqitch = Test::MockModule->new('App::Sqitch');
-my @run;
-$mock_sqitch->mock(run => sub { shift; @run = @_; });
+my (@run, $exp_pass);
+$mock_sqitch->mock(run => sub {
+    shift;
+    @run = @_;
+    if (defined $exp_pass) {
+        is $ENV{ISC_PASSWORD}, $exp_pass, qq{ISC_PASSWORD should be "$exp_pass"};
+    } else {
+        ok !exists $ENV{ISC_PASSWORD}, 'ISC_PASSWORD should not exist';
+    }
+});
 
 my @capture;
-$mock_sqitch->mock(capture => sub { shift; @capture = @_; });
+$mock_sqitch->mock(capture => sub {
+    shift;
+    @capture = @_;
+    if (defined $exp_pass) {
+        is $ENV{ISC_PASSWORD}, $exp_pass, qq{ISC_PASSWORD should be "$exp_pass"};
+    } else {
+        ok !exists $ENV{ISC_PASSWORD}, 'ISC_PASSWORD should not exist';
+    }
+});
 
 my @spool;
-$mock_sqitch->mock(spool => sub { shift; @spool = @_; });
+$mock_sqitch->mock(spool => sub {
+    shift;
+    @spool = @_;
+    if (defined $exp_pass) {
+        is $ENV{ISC_PASSWORD}, $exp_pass, qq{ISC_PASSWORD should be "$exp_pass"};
+    } else {
+        ok !exists $ENV{ISC_PASSWORD}, 'ISC_PASSWORD should not exist';
+    }
+});
 
+$exp_pass = 's3cr3t';
 ok $fb->_run(qw(foo bar baz)), 'Call _run';
 is_deeply \@run, [$fb->isql, qw(foo bar baz)],
     'Command should be passed to run()';
@@ -187,6 +215,23 @@ is_deeply \@spool, ['FH', $fb->isql],
 ok $fb->_capture(qw(foo bar baz)), 'Call _capture';
 is_deeply \@capture, [$fb->isql, qw(foo bar baz)],
     'Command should be passed to capture()';
+
+# Remove the password from the URI.
+$config{'core.firebird.uri'}
+    = 'db:firebird://freddy@db.example.com:1234/widgets';
+ok $fb = $CLASS->new(sqitch => $sqitch), 'Create a firebird with sqitch with no pw';
+$exp_pass = undef;
+ok $fb->_run(qw(foo bar baz)), 'Call _run again';
+is_deeply \@run, [$fb->isql, qw(foo bar baz)],
+    'Command should be passed to run() again';
+
+ok $fb->_spool('FH'), 'Call _spool again';
+is_deeply \@spool, ['FH', $fb->isql],
+    'Command should be passed to spool() again';
+
+ok $fb->_capture(qw(foo bar baz)), 'Call _capture again';
+is_deeply \@capture, [$fb->isql, qw(foo bar baz)],
+    'Command should be passed to capture() again';
 
 ##############################################################################
 # Test file and handle running.
