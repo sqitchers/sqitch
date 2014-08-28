@@ -10,7 +10,9 @@ use App::Sqitch::X qw(hurl);
 use List::Util qw(first max);
 use URI::db;
 use App::Sqitch::Types qw(Str Int Sqitch Plan Bool HashRef URI Maybe);
-use namespace::autoclean;
+use Class::Trigger;
+use Module::Pluggable require=>1, search_path=>['App::Sqitch::Engine::Plugins'];
+# use namespace::autoclean -except =>['plugins','call_trigger','add_trigger'];
 
 our $VERSION = '0.996';
 
@@ -157,6 +159,8 @@ sub BUILD {
     if (my $uri = $args->{uri}) {
         $self->_merge_options_into($uri);
     }
+    $self->plugins;
+    $self->call_trigger('init');
 }
 
 has uri => ( is => 'ro', isa => URI, lazy => 1, default => sub {
@@ -641,7 +645,11 @@ sub verify_change {
     my ( $self, $change ) = @_;
     my $file = $change->verify_file;
     if (-e $file) {
-        return try { $self->run_verify($file) }
+        return try { 
+            my $ret=$self->run_verify($file) ;
+            $self->call_trigger('run_verify',$change);
+            $ret;
+        }
         catch {
             hurl {
                 ident => 'verify',
@@ -1013,6 +1021,7 @@ sub deploy_change {
 
     return try {
         $self->run_deploy($change->deploy_file) unless $self->log_only;
+        $self->call_trigger('run_deploy',$change) unless $self->log_only;
         try {
             $self->verify_change( $change ) if $self->with_verify;
             $self->log_deploy_change($change);
@@ -1028,6 +1037,7 @@ sub deploy_change {
                 # $self->sqitch->info('  - ', $change->format_name_with_tags);
                 $self->begin_work($change);
                 $self->run_revert($change->revert_file) unless $self->log_only;
+                $self->call_trigger('run_revert',$change) unless $self->log_only;
             } catch {
                 # Oy, the revert failed. Just emit the error.
                 $sqitch->vent(eval { $_->message } // $_);
@@ -1056,6 +1066,7 @@ sub revert_change {
 
     try {
         $self->run_revert($change->revert_file) unless $self->log_only;
+        $self->call_trigger('run_revert',$change) unless $self->log_only;
         try {
             $self->log_revert_change($change);
             $sqitch->info(__ 'ok');
