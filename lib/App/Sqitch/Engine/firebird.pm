@@ -76,7 +76,7 @@ has dbh => (
             AutoCommit       => 1,
             ib_enable_utf8   => 1,
             FetchHashKeyName => 'NAME_lc',
-            HandleError          => sub {
+            HandleError      => sub {
                 my ($err, $dbh) = @_;
                 $@ = $err;
                 @_ = ($dbh->state || 'DEV' => $dbh->errstr);
@@ -292,19 +292,31 @@ sub _listagg_format {
 }
 
 sub _run {
-    my $self = shift;
-    return $self->sqitch->run( $self->isql, @_ );
+    my $self   = shift;
+    my $sqitch = $self->sqitch;
+    my $uri    = $self->uri;
+    my $pass   = $uri->password or return $sqitch->run( $self->isql, @_ );
+    local $ENV{ISC_PASSWORD} = $pass;
+    return $sqitch->run( $self->isql, @_ );
 }
 
 sub _capture {
-    my $self = shift;
-    return $self->sqitch->capture( $self->isql, @_ );
+    my $self   = shift;
+    my $sqitch = $self->sqitch;
+    my $uri    = $self->uri;
+    my $pass   = $uri->password or return $sqitch->capture( $self->isql, @_ );
+    local $ENV{ISC_PASSWORD} = $pass;
+    return $sqitch->capture( $self->isql, @_ );
 }
 
 sub _spool {
-    my $self = shift;
-    my $fh   = shift;
-    return $self->sqitch->spool( $fh, $self->isql, @_ );
+    my $self   = shift;
+    my $fh     = shift;
+    my $sqitch = $self->sqitch;
+    my $uri    = $self->uri;
+    my $pass   = $uri->password or return $sqitch->spool( $fh, $self->isql, @_ );
+    local $ENV{ISC_PASSWORD} = $pass;
+    return $sqitch->spool( $fh, $self->isql, @_ );
 }
 
 sub run_file {
@@ -863,10 +875,6 @@ sub default_client {
         'Unable to locate Firebird ISQL; set "core.firebird.client" via sqitch config'
     );
 }
-
-1;
-
-1;
 
 1;
 
