@@ -59,7 +59,10 @@ has project => (
     lazy    => 1,
     default => sub {
         my $self = shift;
-        try { $self->plan->project } || do {
+        try { $self->plan->project } catch {
+            # Just die on parse and I/O errors.
+            die $_ if try { $_->ident ne 'plan' };
+
             # Try to extract a project name from the registry.
             my $engine = $self->engine;
             hurl status => __ 'Database not initialized for Sqitch'
@@ -70,7 +73,7 @@ has project => (
                 'Use --project to select which project to query: {projects}',
                 projects => join __ ', ', @projs,
             ) if @projs > 1;
-            $projs[0];
+            return $projs[0];
         };
     },
 );
@@ -103,6 +106,9 @@ sub execute {
     my $state = try {
         $engine->current_state( $self->project )
     } catch {
+        # Just die on parse and I/O errors.
+        die $_ if try { $_->ident ne 'plan' };
+
         # Hrm. Maybe not initialized?
         die $_ if $engine->initialized;
         hurl status => __x(

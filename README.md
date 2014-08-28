@@ -1,9 +1,12 @@
 App/Sqitch version 0.996
 ========================
 
+[![CPAN version](https://badge.fury.io/pl/App-Sqitch.svg)](http://badge.fury.io/pl/App-Sqitch)
+[![Build Status](https://travis-ci.org/theory/sqitch.svg?branch=master)](https://travis-ci.org/theory/sqitch)
+
 [Sqitch](http://sqitch.org/) is a database change management application. It
-currently supports PostgreSQL 8.4 and higher, SQLite 3.7.11 and higher, MySQL
-5.6.4 and higher,, and Oracle 10g and higher.
+currently supports PostgreSQL 8.4+, SQLite 3.7.11+, MySQL 5.6.4+, Oracle 10g+,
+and Firebard 2.0+.
 
 What makes it different from your typical
 [migration](http://guides.rubyonrails.org/migrations.html) approaches? A few

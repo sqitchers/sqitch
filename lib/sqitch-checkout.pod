@@ -149,6 +149,15 @@ A boolean value indicating whether or not to disable the prompt before
 executing the revert. The C<checkout.no_prompt> variable takes precedence over
 C<revert.no_prompt>, and both may of course be overridden by C<-y>.
 
+=item C<[checkout.prompt_accept]>
+
+=item C<[revert.prompt_accept]>
+
+A boolean value indicating whether default reply to the prompt before
+executing the revert shoud be "yes" or "no". The C<checkout.prompt_accept>
+variable takes precedence over C<revert.prompt_accept>, and both default to
+true, meaning to accept the revert.
+
 =back
 
 =head1 Sqitch

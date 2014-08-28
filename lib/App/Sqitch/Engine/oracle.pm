@@ -720,7 +720,7 @@ App::Sqitch::Engine::oracle - Sqitch Oracle Engine
 =head1 Description
 
 App::Sqitch::Engine::oracle provides the Oracle storage engine for Sqitch. It
-supports Oracle 8.4.0 and higher.
+supports Oracle 10g and higher.
 
 =head1 Interface
 

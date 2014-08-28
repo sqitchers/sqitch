@@ -48,7 +48,14 @@ has dbh => (
         $self->use_driver;
 
         my $uri = $self->registry_uri;
-        my $dbh = DBI->connect($uri->dbi_dsn, scalar $uri->user, scalar $uri->password, {
+        my $pass = $uri->password || do {
+            # Read the default MySQL configuration.
+            # http://dev.mysql.com/doc/refman/5.0/en/option-file-options.html
+            require MySQL::Config;
+            my %cfg = MySQL::Config::parse_defaults('my', [qw(client mysql)]);
+            $cfg{password};
+        };
+        my $dbh = DBI->connect($uri->dbi_dsn, scalar $uri->user, $pass, {
             PrintError           => 0,
             RaiseError           => 0,
             AutoCommit           => 1,
@@ -248,18 +255,30 @@ sub _listagg_format {
 
 sub _run {
     my $self = shift;
-    return $self->sqitch->run( $self->mysql, @_ );
+    my $sqitch = $self->sqitch;
+    my $uri    = $self->uri;
+    my $pass   = $uri->password or return $sqitch->run( $self->mysql, @_ );
+    local $ENV{MYSQL_PWD} = $pass;
+    return $sqitch->run( $self->mysql, @_ );
 }
 
 sub _capture {
-    my $self = shift;
-    return $self->sqitch->capture( $self->mysql, @_ );
+    my $self   = shift;
+    my $sqitch = $self->sqitch;
+    my $uri    = $self->uri;
+    my $pass   = $uri->password or return $sqitch->capture( $self->mysql, @_ );
+    local $ENV{MYSQL_PWD} = $pass;
+    return $sqitch->capture( $self->mysql, @_ );
 }
 
 sub _spool {
-    my $self = shift;
-    my $fh   = shift;
-    return $self->sqitch->spool( $fh, $self->mysql, @_ );
+    my $self   = shift;
+    my $fh     = shift;
+    my $sqitch = $self->sqitch;
+    my $uri    = $self->uri;
+    my $pass   = $uri->password or return $sqitch->spool( $fh, $self->mysql, @_ );
+    local $ENV{MYSQL_PWD} = $pass;
+    return $sqitch->spool( $fh, $self->mysql, @_ );
 }
 
 sub run_file {

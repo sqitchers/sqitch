@@ -29,6 +29,11 @@ has no_prompt => (
     isa => Bool
 );
 
+has prompt_accept => (
+    is  => 'ro',
+    isa => Bool
+);
+
 has log_only => (
     is       => 'ro',
     isa      => Bool,
@@ -91,6 +96,11 @@ sub configure {
         as  => 'bool',
     ) // 0;
 
+    $params{prompt_accept} = $config->get(
+        key => 'revert.prompt_accept',
+        as  => 'bool',
+    ) // 1;
+
     return \%params;
 }
 
@@ -125,6 +135,7 @@ sub execute {
     # Now get to work.
     my $engine = $self->engine_for_target($target);
     $engine->no_prompt( $self->no_prompt );
+    $engine->prompt_accept( $self->prompt_accept );
     $engine->log_only( $self->log_only );
     if (my %v = %{ $self->variables }) { $engine->set_variables(%v) }
     $engine->revert( $change );

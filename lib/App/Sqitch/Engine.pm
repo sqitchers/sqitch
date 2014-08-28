@@ -104,6 +104,12 @@ has no_prompt => (
     default => 0,
 );
 
+has prompt_accept => (
+    is      => 'rw',
+    isa     => Bool,
+    default => 1,
+);
+
 has log_only => (
     is      => 'rw',
     isa     => Bool,
@@ -418,7 +424,7 @@ sub revert {
                 'Revert changes to {change} from {destination}?',
                 change      => $change->format_name_with_tags,
                 destination => $self->destination,
-            ), 'Yes');
+            ), $self->prompt_accept ? 'Yes' : 'No' );
         }
 
     } else {
@@ -441,7 +447,7 @@ sub revert {
             } unless $sqitch->ask_y_n(__x(
                 'Revert all changes from {destination}?',
                 destination => $self->destination,
-            ), 'Yes');
+            ), $self->prompt_accept ? 'Yes' : 'No' );
         }
     }
 

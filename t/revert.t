@@ -49,7 +49,7 @@ my $sqitch = App::Sqitch->new(
 my $config = $sqitch->config;
 
 # Test configure().
-is_deeply $CLASS->configure($config, {}), { no_prompt => 0 },
+is_deeply $CLASS->configure($config, {}), { no_prompt => 0, prompt_accept => 1 },
     'Should have empty default configuration with no config or opts';
 
 is_deeply $CLASS->configure($config, {
@@ -57,6 +57,7 @@ is_deeply $CLASS->configure($config, {
     set  => { foo => 'bar' },
 }), {
     no_prompt => 1,
+    prompt_accept => 1,
     variables => { foo => 'bar' },
 }, 'Should have set option';
 
@@ -75,8 +76,8 @@ CONFIG: {
         'deploy.variables' => { foo => 'bar', hi => 21 },
     );
 
-    is_deeply $CLASS->configure($config, {}), { no_prompt => 0 },
-        'Should have no_prompt false';
+    is_deeply $CLASS->configure($config, {}), { no_prompt => 0, prompt_accept => 1 },
+        'Should have no_prompt false, prompt_accept true';
 
     # Try merging.
     is_deeply $CLASS->configure($config, {
@@ -84,10 +85,11 @@ CONFIG: {
         log_only  => 1,
         set       => { foo => 'yo', yo => 'stellar' },
     }), {
-        no_prompt => 0,
-        variables => { foo => 'yo', yo => 'stellar', hi => 21 },
-        to_change => 'whu',
-        log_only  => 1,
+        no_prompt     => 0,
+        prompt_accept => 1,
+        variables     => { foo => 'yo', yo => 'stellar', hi => 21 },
+        to_change     => 'whu',
+        log_only       => 1,
     }, 'Should have merged variables';
 
     # Try merging with revert.variables, too.
@@ -95,8 +97,9 @@ CONFIG: {
     is_deeply $CLASS->configure($config, {
         set  => { yo => 'stellar' },
     }), {
-        no_prompt => 0,
-        variables => { foo => 'bar', yo => 'stellar', hi => 42 },
+        no_prompt     => 0,
+        prompt_accept => 1,
+        variables     => { foo => 'bar', yo => 'stellar', hi => 42 },
     }, 'Should have merged --set, deploy, revert';
 
     isa_ok my $revert = $CLASS->new(sqitch => $sqitch), $CLASS;
@@ -104,19 +107,19 @@ CONFIG: {
         'Should pick up variables from configuration';
 
     # Make sure we can override prompting.
-    %config_vals = ('revert.no_prompt' => 1);
-    is_deeply $CLASS->configure($config, {}), { no_prompt => 1 },
-        'Should have no_prompt true';
+    %config_vals = ('revert.no_prompt' => 1, 'revert.prompt_accept' => 0);
+    is_deeply $CLASS->configure($config, {}), { no_prompt => 1, prompt_accept => 0 },
+        'Should have no_prompt true, prompt_accept false';
 
     # But option should override.
-    is_deeply $CLASS->configure($config, {y => 0}), { no_prompt => 0 },
+    is_deeply $CLASS->configure($config, {y => 0}), { no_prompt => 0, prompt_accept => 0 },
         'Should have no_prompt false again';
 
-    %config_vals = ('revert.no_prompt' => 0);
-    is_deeply $CLASS->configure($config, {}), { no_prompt => 0 },
+    %config_vals = ('revert.no_prompt' => 0, 'revert.prompt_accept' => 1);
+    is_deeply $CLASS->configure($config, {}), { no_prompt => 0, prompt_accept => 1 },
         'Should have no_prompt false for false config';
 
-    is_deeply $CLASS->configure($config, {y => 1}), { no_prompt => 1 },
+    is_deeply $CLASS->configure($config, {y => 1}), { no_prompt => 1, prompt_accept => 1 },
         'Should have no_prompt true with -y';
 }
 
