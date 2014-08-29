@@ -60,21 +60,25 @@ has _psql => (
             push @ret => map {; '--set', "$_=$vars{$_}" } sort keys %vars;
         }
 
-        push @ret => (
-            '--quiet',
-            '--no-psqlrc',
-            '--no-align',
-            '--tuples-only',
-            '--set' => 'ON_ERROR_STOP=1',
-            '--set' => 'registry=' . $self->registry,
-            '--set' => 'sqitch_schema=' . $self->registry, # deprecated
-        );
+        push @ret => $self->_client_opts;
         return \@ret;
     },
 );
 
-sub psql { @{ shift->_psql } }
+sub _client_opts {
+    my $self = shift;
+    return (
+        '--quiet',
+        '--no-psqlrc',
+        '--no-align',
+        '--tuples-only',
+        '--set' => 'ON_ERROR_STOP=1',
+        '--set' => 'registry=' . $self->registry,
+        '--set' => 'sqitch_schema=' . $self->registry, # deprecated
+    );
+}
 
+sub psql { @{ shift->_psql } }
 
 sub key    { 'pg' }
 sub name   { 'PostgreSQL' }
