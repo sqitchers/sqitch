@@ -3,6 +3,11 @@ package App::Sqitch::Engine::vertica;
 use 5.010;
 use Moo;
 use utf8;
+use Path::Class;
+use DBI;
+use Try::Tiny;
+use App::Sqitch::X qw(hurl);
+use Locale::TextDomain qw(App-Sqitch);
 
 extends 'App::Sqitch::Engine::pg';
 
@@ -34,7 +39,7 @@ has '+destination' => (
     },
 );
 
-has dbh => (
+has '+dbh' => (
     default => sub {
         my $self = shift;
         $self->use_driver;
@@ -88,6 +93,41 @@ sub _client_opts {
         '--set' => 'ON_ERROR_STOP=1',
         '--set' => 'registry=' . shift->registry,
     );
+}
+
+sub initialized {
+    my $self = shift;
+    return $self->dbh->selectcol_arrayref(q{
+        SELECT EXISTS(
+            SELECT TRUE FROM v_catalog.schemata WHERE schema_name = ?
+        )
+    }, undef, $self->registry)->[0];
+}
+
+sub initialize {
+    my $self   = shift;
+    my $schema = $self->registry;
+    hurl engine => __x(
+        'Sqitch schema "{schema}" already exists',
+        schema => $schema
+    ) if $self->initialized;
+
+    my $file = file(__FILE__)->dir->file('vertica.sql');
+
+    # Need to write a temp file; no :"registry" variable syntax.
+    ($schema) = $self->dbh->selectrow_array(
+        'SELECT quote_ident(?)', undef, $schema
+    );
+    (my $sql = scalar $file->slurp) =~ s{:"registry"}{$schema}g;
+    require File::Temp;
+    my $fh = File::Temp->new;
+    print $fh $sql;
+    close $fh;
+
+    # Now we can execute the file.
+    $self->_run( '--file' => $fh->filename );
+    $self->dbh->do('SET search_path = ?', undef, $schema);
+    return $self;
 }
 
 sub _run {

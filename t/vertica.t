@@ -17,13 +17,13 @@ use DBIEngineTest;
 my $CLASS;
 
 my ($user, $pass, $dbname, $host, $port) = map {
-    delete $ENV{"VSQL_$_}"
+    delete $ENV{"VSQL_$_"}
 } qw(USER PASSWORD DATABASE HOST PORT);
 
-$user = ||= 'dbadmin';
-$pass = ||= 'password';
-$dbname = ||= $user;
-$host ||= 'localhost';
+$user   ||= 'dbadmin';
+$pass   ||= 'password';
+$dbname ||= $user;
+$host   ||= 'localhost';
 
 BEGIN {
     $CLASS = 'App::Sqitch::Engine::vertica';
@@ -116,8 +116,7 @@ my %config = (
     'core.vertica.port'     => 1234,
     'core.vertica.registry' => 'meta',
 );
-$std_opts[-3] = 'registry=meta';
-$std_opts[-1] = 'sqitch_schema=meta';
+$std_opts[-1] = 'registry=meta';
 my $mock_config = Test::MockModule->new('App::Sqitch::Config');
 $mock_config->mock(get => sub { $config{ $_[2] } });
 
@@ -191,9 +190,9 @@ $mock_sqitch->mock(run => sub {
     shift;
     @run = @_;
     if (defined $exp_pass) {
-        is $ENV{VERTICAPASSWORD}, $exp_pass, qq{VERTICAPASSWORD should be "$exp_pass"};
+        is $ENV{VSQL_PASSWORD}, $exp_pass, qq{VSQL_PASSWORD should be "$exp_pass"};
     } else {
-        ok !exists $ENV{VERTICAPASSWORD}, 'VERTICAPASSWORD should not exist';
+        ok !exists $ENV{VSQL_PASSWORD}, 'VSQL_PASSWORD should not exist';
     }
 });
 
@@ -202,9 +201,9 @@ $mock_sqitch->mock(capture => sub {
     shift;
     @capture = @_;
     if (defined $exp_pass) {
-        is $ENV{VERTICAPASSWORD}, $exp_pass, qq{VERTICAPASSWORD should be "$exp_pass"};
+        is $ENV{VSQL_PASSWORD}, $exp_pass, qq{VSQL_PASSWORD should be "$exp_pass"};
     } else {
-        ok !exists $ENV{VERTICAPASSWORD}, 'VERTICAPASSWORD should not exist';
+        ok !exists $ENV{VSQL_PASSWORD}, 'VSQL_PASSWORD should not exist';
     }
 });
 
@@ -213,9 +212,9 @@ $mock_sqitch->mock(spool => sub {
     shift;
     @spool = @_;
     if (defined $exp_pass) {
-        is $ENV{VERTICAPASSWORD}, $exp_pass, qq{VERTICAPASSWORD should be "$exp_pass"};
+        is $ENV{VSQL_PASSWORD}, $exp_pass, qq{VSQL_PASSWORD should be "$exp_pass"};
     } else {
-        ok !exists $ENV{VERTICAPASSWORD}, 'VERTICAPASSWORD should not exist';
+        ok !exists $ENV{VSQL_PASSWORD}, 'VSQL_PASSWORD should not exist';
     }
 });
 
@@ -308,7 +307,7 @@ END {
     );
 }
 
-my $uri = $URI->new('db:vertica:');
+$uri = URI->new('db:vertica:');
 $uri->host($host) if $host;
 $uri->port($port) if $port;
 $uri->dbname($dbname);
