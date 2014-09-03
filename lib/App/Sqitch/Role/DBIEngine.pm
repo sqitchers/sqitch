@@ -374,14 +374,14 @@ sub _dependency_placeholders {
     return '?, ?, ?, ?';
 }
 
-sub _tag_placholders {
+sub _tag_placeholders {
     my $self = shift;
     return '?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ' . $self->_ts_default;
 }
 
 sub _tag_subselect_columns {
     my $self = shift;
-    return join(
+    return join(', ',
         '? AS tid',
         '? AS tname',
         '? AS proj',
