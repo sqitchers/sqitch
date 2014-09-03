@@ -230,8 +230,19 @@ has with_registry_prefix => (
     isa => 'Maybe[Str]',
     lazy => 1,
     required => 1,
-    default => sub { 
-        my $p = shift->sqitch->config->get( key => 'core.$engine.with_registry_prefix' );
+    default => sub {
+        my $self = shift;
+        my $engine = $self->key;
+        
+        my $p = $self->sqitch->config->get( key => 'core.$engine.with_registry_prefix' );
+        
+        if ($p && $engine ne 'oracle') {
+            hurl engine => __x(
+                'config option with_registry_prefix not supported for {engine}',
+                engine => $engine,
+            );
+        }
+
         return $p if defined $p;
         return 0;
     },
