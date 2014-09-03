@@ -30,7 +30,7 @@ has '_registry_tables' => (
     lazy => 1,
     default => sub {
         my $self = shift;
-        my %h = map {$_ => ($self->use_registry_prefix ? "sqitch_$_" : $_) } qw /changes tags dependencies events projects/;
+        my %h = map {$_ => ($self->with_registry_prefix ? "sqitch_$_" : $_) } qw /changes tags dependencies events projects/;
         return \%h;        
     },
     handles => { 

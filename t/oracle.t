@@ -452,7 +452,7 @@ DBIEngineTest->run(
         plan_file => Path::Class::file(qw(t engine sqitch.plan)),
     ],
     engine_params     => [ uri => $uri, ],
-    alt_engine_params => [ uri => $uri, registry => 'oe', use_registry_prefix => 1 ],
+    alt_engine_params => [ uri => $uri, registry => 'oe', with_registry_prefix => 1 ],
     skip_unless       => sub {
         my $self = shift;
         die $err if $err;

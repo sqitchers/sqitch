@@ -225,13 +225,13 @@ has registry => (
 
 sub default_registry { 'sqitch' }
 
-has use_registry_prefix => (
+has with_registry_prefix => (
     is => 'ro',
     isa => 'Maybe[Str]',
     lazy => 1,
     required => 1,
     default => sub { 
-        my $p = shift->sqitch->config->get( key => 'core.$engine.use_registry_prefix' );
+        my $p = shift->sqitch->config->get( key => 'core.$engine.with_registry_prefix' );
         return $p if defined $p;
         return 0;
     },
