@@ -254,6 +254,22 @@ package bundles the Sqitch Firebird support.
 %files firebird
 # No additional files required.
 
+%package vertica
+Summary:        Sane database change management for Vertica
+Group:          Development/Libraries
+Requires:       sqitch >= %{version}
+Requires:       vertica-client >= 7.0.0
+Requires:       perl(DBI)
+Requires:       perl(DBD::ODBC) >= 1.43
+
+%description vertica
+Sqitch provides a simple yet robust interface for database change management.
+The philosophy and functionality is inspired by Git. This package bundles the
+Sqitch Vertica support.
+
+%files vertica
+# No additional files required.
+
 %changelog
 * Sun Jul 13 2014 David E. Wheeler <david.wheeler@iovation.com> 0.995-1
 - Upgrade to v0.995.

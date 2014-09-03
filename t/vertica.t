@@ -313,7 +313,6 @@ my $err = try {
     eval { $_->message } || $_;
 };
 
-use Carp; $SIG{__DIE__} = \&Carp::confess;
 DBIEngineTest->run(
     class         => $CLASS,
     sqitch_params => [
