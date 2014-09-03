@@ -87,8 +87,8 @@ be evaluated.
 
 This option allows one to define templates for specific tasks, such as
 creating a table, and then use them for changes that perform those tasks.
-Defaults to the name of the database engine (C<pg>, C<sqlite>, C<mysql>, or
-C<oracle>.
+Defaults to the name of the database engine (C<pg>, C<sqlite>, C<mysql>,
+C<oracle>, C<firebird>, or C<vertica>.
 
 =item C<--use script=template>
 

@@ -434,6 +434,8 @@ The database engine to use. Supported engines include:
 
 =item * C<firebird> - L<Firebird|http://www.firebirdsql.org/>
 
+=item * C<vertica> - L<Vertica|http://https://my.vertica.com/>
+
 =back
 
 =item C<core.top_dir>
@@ -550,6 +552,19 @@ property to a value specific for your database. Defaults to C<sqitch>.
 For Oracle, C<registry> value identifies the schema for Sqitch to use for its
 own data. No other data should be stored there. Uses the current schema by
 default (usually the same name as the connection user).
+
+=item C<core.firebird.registry>
+
+For the Firebird engine, if the C<registry> value looks like an absolute path,
+then it will be the database file. Otherwise, it will be in the same directory
+as the database specified by the C<uri>. Defaults to C<sqitch.$extension>,
+where C<$extension> is the same as that in the C<uri>, if any.
+
+=item C<core.vertica.registry>
+
+For the Vertica engine, the C<registry> value identifies the schema for Sqitch
+to use for its own data. No other data should be stored there. Defaults to
+C<sqitch>.
 
 =back
 

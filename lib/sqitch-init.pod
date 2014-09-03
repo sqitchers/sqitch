@@ -79,39 +79,11 @@ their default values. If no defaults are specified, they will still be
 written, commented out, with a bar C<=> and no value. This allows one to know
 what sorts of things are available to edit.
 
-Relatedly, the engine-specific L<sqitch> options will also be used to
-write variables, as follows:
-
-=over
-
-=item C<--db-client>
-
-Used to set C<core.pg.client>, C<core.sqlite.client>, C<core.mysql.client>, or
-C<core.oracle.client>.
-
-=item C<--db-name>
-
-Used to set C<core.pg.db_name>, C<core.sqlite.db_name>, C<core.mysql.db_name>,
-or C<core.oracle.db_name>.
-
-=item C<--db-user>
-
-Used to set C<core.pg.username>, C<core.mysql.username>, or
-C<core.oracle.username>.
-
-=item C<--db-host>
-
-Used to set C<core.pg.host>, C<core.mysql.host>, or C<core.oracle.host>.
-
-=item C<--db-port>
-
-Used to set C<core.pg.port>, C<core.mysql.port>, or C<core.oracle.port>.
-
-=back
-
-Again, if these are no specified, the engine-specific options will still be
-written out, but as comments with values either from user or system
-configuration, or default values.
+Relatedly, one engine-specific L<sqitch> option, C<--db-client> will also be
+used to write the engine-specific variable C<core.$engine.client>. Again, if
+this option is not specified, the engine-specific option will still be written
+out, but as a comment with the user or system configuration value, or a
+default value.
 
 =head1 Examples
 

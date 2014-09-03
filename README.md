@@ -6,7 +6,7 @@ App/Sqitch version 0.996
 
 [Sqitch](http://sqitch.org/) is a database change management application. It
 currently supports PostgreSQL 8.4+, SQLite 3.7.11+, MySQL 5.6.4+, Oracle 10g+,
-and Firebard 2.0+.
+Firebard 2.0+, and Vertica 6.0+.
 
 What makes it different from your typical
 [migration](http://guides.rubyonrails.org/migrations.html) approaches? A few
@@ -54,6 +54,7 @@ Want to learn more? The best place to start is in the tutorials:
 * [Introduction to Sqitch on Oracle](lib/sqitchtutorial-oracle.pod)
 * [Introduction to Sqitch on MySQL](lib/sqitchtutorial-mysql.pod)
 * [Introduction to Sqitch on Firebird](lib/sqitchtutorial-firebird.pod)
+* [Introduction to Sqitch on Vertica](lib/sqitchtutorial-vertica.pod)
 
 There have also been a number of presentations on Sqitch:
 
