@@ -227,7 +227,7 @@ sub default_registry { 'sqitch' }
 
 has with_registry_prefix => (
     is => 'ro',
-    isa => 'Maybe[Str]',
+    isa => Bool,
     lazy => 1,
     required => 1,
     default => sub {

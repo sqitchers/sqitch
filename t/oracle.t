@@ -72,9 +72,7 @@ BEGIN {
     $ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
     $ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.user';
     $ENV{SQITCH_USER_CONFIG}   = 'nonexistent.sys';
-    #delete $ENV{ORACLE_HOME};
-    # I don't understand why ORACLE_HOME was being deliberately unset and never restored? my tests only pass if 
-    # I remove the above line. Maybe I'm missing something here - AEH
+    delete $ENV{ORACLE_HOME};
 }
 
 is_deeply [$CLASS->config_vars], [
@@ -119,6 +117,11 @@ is $ora->_script, join( "\n" => (
         'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF',
         'WHENEVER OSERROR EXIT 9;',
         'WHENEVER SQLERROR EXIT SQL.SQLCODE;',
+        'DEFINE changes="changes"',
+        'DEFINE dependencies="dependencies"',
+        'DEFINE events="events"',
+        'DEFINE projects="projects"',
+        'DEFINE tags="tags"',
         'connect ',
 ) ), '_script should work';
 
@@ -132,6 +135,11 @@ is $ora->_script, join( "\n" => (
         'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF',
         'WHENEVER OSERROR EXIT 9;',
         'WHENEVER SQLERROR EXIT SQL.SQLCODE;',
+        'DEFINE changes="changes"',
+        'DEFINE dependencies="dependencies"',
+        'DEFINE events="events"',
+        'DEFINE projects="projects"',
+        'DEFINE tags="tags"',
         'connect fred/"derf"@"blah"',
 ) ), '_script should assemble connection string';
 
@@ -145,6 +153,11 @@ is $ora->_script('@foo'), join( "\n" => (
         'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF',
         'WHENEVER OSERROR EXIT 9;',
         'WHENEVER SQLERROR EXIT SQL.SQLCODE;',
+        'DEFINE changes="changes"',
+        'DEFINE dependencies="dependencies"',
+        'DEFINE events="events"',
+        'DEFINE projects="projects"',
+        'DEFINE tags="tags"',
         'connect fred/"derf"@//there/"blah"',
         '@foo',
 ) ), '_script should assemble connection string with host';
@@ -163,7 +176,12 @@ is $ora->_script, join( "\n" => (
         'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF',
         'WHENEVER OSERROR EXIT 9;',
         'WHENEVER SQLERROR EXIT SQL.SQLCODE;',
+        'DEFINE changes="changes"',
+        'DEFINE dependencies="dependencies"',
+        'DEFINE events="events"',
         'DEFINE foo="baz"',
+        'DEFINE projects="projects"',
+        'DEFINE tags="tags"',
         'DEFINE whu="hi there"',
         'DEFINE yo="""stellar"""',
         'connect fred/"derf ""derf"""@//there:1345/"blah ""blah"""',

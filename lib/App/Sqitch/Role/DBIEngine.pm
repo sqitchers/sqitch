@@ -6,6 +6,7 @@ use warnings;
 use utf8;
 use DBI;
 use Moo::Role;
+use Memoize;
 use Try::Tiny;
 use App::Sqitch::X qw(hurl);
 use Locale::TextDomain qw(App-Sqitch);
@@ -23,20 +24,33 @@ requires '_listagg_format';
 requires '_no_table_error';
 
 
-has '_registry_tables' => (
-    traits => ['Hash'],
-    is => 'ro',
-    isa => 'HashRef[Str]',
-    lazy => 1,
-    default => sub {
-        my $self = shift;
-        my %h = map {$_ => ($self->with_registry_prefix ? "sqitch_$_" : $_) } qw /changes tags dependencies events projects/;
-        return \%h;        
-    },
-    handles => { 
-        _get_registry_table => 'get',
-    },
-);
+memoize('_registry_tables');
+sub _registry_tables {
+    my $self = shift;
+    my %h = map {$_ => ($self->with_registry_prefix ? "sqitch_$_" : $_) } qw /changes tags dependencies events projects/;
+    return \%h;        
+}
+
+sub _get_registry_table {
+    my ($self, $key) = @_;
+    my $h = $self->_registry_tables;
+    return $h->{$key};
+}
+
+#has '_registry_tables' => (
+#    traits => ['Hash'],
+#    is => 'ro',
+#    isa => 'HashRef[Str]',
+#    lazy => 1,
+#    default => sub {
+#        my $self = shift;
+#        my %h = map {$_ => ($self->with_registry_prefix ? "sqitch_$_" : $_) } qw /changes tags dependencies events projects/;
+#        return \%h;        
+#    },
+#    handles => { 
+#        _get_registry_table => 'get',
+#    },
+#);
 
 
 sub _dt($) {
