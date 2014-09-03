@@ -37,22 +37,6 @@ sub _get_registry_table {
     return $h->{$key};
 }
 
-#has '_registry_tables' => (
-#    traits => ['Hash'],
-#    is => 'ro',
-#    isa => 'HashRef[Str]',
-#    lazy => 1,
-#    default => sub {
-#        my $self = shift;
-#        my %h = map {$_ => ($self->with_registry_prefix ? "sqitch_$_" : $_) } qw /changes tags dependencies events projects/;
-#        return \%h;        
-#    },
-#    handles => { 
-#        _get_registry_table => 'get',
-#    },
-#);
-
-
 sub _dt($) {
     require App::Sqitch::DateTime;
     return App::Sqitch::DateTime->new(split /:/ => shift);
