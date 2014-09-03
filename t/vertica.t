@@ -55,19 +55,19 @@ my @std_opts = (
     '--set' => 'ON_ERROR_STOP=1',
     '--set' => 'registry=sqitch',
 );
-is_deeply [$vta->psql], [$client, @std_opts],
-    'psql command should be std opts-only';
+is_deeply [$vta->vsql], [$client, @std_opts],
+    'vsql command should be std opts-only';
 
 isa_ok $vta = $CLASS->new(sqitch => $sqitch), $CLASS;
 ok $vta->set_variables(foo => 'baz', whu => 'hi there', yo => 'stellar'),
     'Set some variables';
-is_deeply [$vta->psql], [
+is_deeply [$vta->vsql], [
     $client,
     '--set' => 'foo=baz',
     '--set' => 'whu=hi there',
     '--set' => 'yo=stellar',
     @std_opts,
-], 'Variables should be passed to psql via --set';
+], 'Variables should be passed to vsql via --set';
 
 ##############################################################################
 # Test other configs for the target.
@@ -100,7 +100,7 @@ ENV: {
 ##############################################################################
 # Make sure config settings override defaults.
 my %config = (
-    'core.vertica.client'   => '/path/to/psql',
+    'core.vertica.client'   => '/path/to/vsql',
     'core.vertica.target'   => 'db:vertica://localhost/try',
     'core.vertica.username' => 'freddy',
     'core.vertica.password' => 's3cr3t',
@@ -114,20 +114,20 @@ my $mock_config = Test::MockModule->new('App::Sqitch::Config');
 $mock_config->mock(get => sub { $config{ $_[2] } });
 
 ok $vta = $CLASS->new(sqitch => $sqitch), 'Create another vertica';
-is $vta->client, '/path/to/psql', 'client should be as configured';
+is $vta->client, '/path/to/vsql', 'client should be as configured';
 is $vta->uri->as_string, 'db:vertica://localhost/try',
     'uri should be as configured';
 is $vta->registry, 'meta', 'registry should be as configured';
-is_deeply [$vta->psql], [qw(
-    /path/to/psql
+is_deeply [$vta->vsql], [qw(
+    /path/to/vsql
     --dbname   try
     --host     localhost
-), @std_opts], 'psql command should be configured from URI config';
+), @std_opts], 'vsql command should be configured from URI config';
 
 ##############################################################################
 # Try deprecated config.
 %config = (
-    'core.vertica.client'        => '/path/to/psql',
+    'core.vertica.client'        => '/path/to/vsql',
     'core.vertica.username'      => 'freddy',
     'core.vertica.password'      => 's3cr3t',
     'core.vertica.db_name'       => 'widgets',
@@ -148,7 +148,7 @@ is $vta->registry_destination, $vta->destination,
 # Now make sure that (deprecated?) Sqitch options override configurations.
 $sqitch = App::Sqitch->new(
     _engine     => 'vertica',
-    db_client   => '/some/other/psql',
+    db_client   => '/some/other/vsql',
     db_username => 'anna',
     db_name     => 'widgets_dev',
     db_host     => 'foo.com',
@@ -157,7 +157,7 @@ $sqitch = App::Sqitch->new(
 
 ok $vta = $CLASS->new(sqitch => $sqitch), 'Create a vertica with sqitch with options';
 
-is $vta->client, '/some/other/psql', 'client should be as optioned';
+is $vta->client, '/some/other/vsql', 'client should be as optioned';
 is $vta->uri->as_string, 'db:vertica://anna:s3cr3t@foo.com:98760/widgets_dev',
     'uri should be as configured';
 is $vta->target, $vta->uri->as_string, 'target should be the URI stringified';
@@ -166,13 +166,13 @@ like $vta->destination, qr{^db:vertica://anna:?\@foo\.com:98760/widgets_dev$},
 is $vta->registry_destination, $vta->destination,
     'registry_destination should be the same as destination';
 is $vta->registry, 'meta', 'registry should still be as configured';
-is_deeply [$vta->psql], [qw(
-    /some/other/psql
+is_deeply [$vta->vsql], [qw(
+    /some/other/vsql
     --username anna
     --dbname   widgets_dev
     --host     foo.com
     --port     98760
-), @std_opts], 'psql command should be as optioned';
+), @std_opts], 'vsql command should be as optioned';
 
 ##############################################################################
 # Test _run(), _capture(), and _spool().
@@ -213,15 +213,15 @@ $mock_sqitch->mock(spool => sub {
 
 $exp_pass = 's3cr3t';
 ok $vta->_run(qw(foo bar baz)), 'Call _run';
-is_deeply \@run, [$vta->psql, qw(foo bar baz)],
+is_deeply \@run, [$vta->vsql, qw(foo bar baz)],
     'Command should be passed to run()';
 
 ok $vta->_spool('FH'), 'Call _spool';
-is_deeply \@spool, ['FH', $vta->psql],
+is_deeply \@spool, ['FH', $vta->vsql],
     'Command should be passed to spool()';
 
 ok $vta->_capture(qw(foo bar baz)), 'Call _capture';
-is_deeply \@capture, [$vta->psql, qw(foo bar baz)],
+is_deeply \@capture, [$vta->vsql, qw(foo bar baz)],
     'Command should be passed to capture()';
 
 # Remove the password.
@@ -229,35 +229,35 @@ delete $config{'core.vertica.password'};
 ok $vta = $CLASS->new(sqitch => $sqitch), 'Create a vertica with sqitch with no pw';
 $exp_pass = undef;
 ok $vta->_run(qw(foo bar baz)), 'Call _run again';
-is_deeply \@run, [$vta->psql, qw(foo bar baz)],
+is_deeply \@run, [$vta->vsql, qw(foo bar baz)],
     'Command should be passed to run() again';
 
 ok $vta->_spool('FH'), 'Call _spool again';
-is_deeply \@spool, ['FH', $vta->psql],
+is_deeply \@spool, ['FH', $vta->vsql],
     'Command should be passed to spool() again';
 
 ok $vta->_capture(qw(foo bar baz)), 'Call _capture again';
-is_deeply \@capture, [$vta->psql, qw(foo bar baz)],
+is_deeply \@capture, [$vta->vsql, qw(foo bar baz)],
     'Command should be passed to capture() again';
 
 ##############################################################################
 # Test file and handle running.
 ok $vta->run_file('foo/bar.sql'), 'Run foo/bar.sql';
-is_deeply \@run, [$vta->psql, '--file', 'foo/bar.sql'],
+is_deeply \@run, [$vta->vsql, '--file', 'foo/bar.sql'],
     'File should be passed to run()';
 
 ok $vta->run_handle('FH'), 'Spool a "file handle"';
-is_deeply \@spool, ['FH', $vta->psql],
+is_deeply \@spool, ['FH', $vta->vsql],
     'Handle should be passed to spool()';
 
 # Verify should go to capture unless verosity is > 1.
 ok $vta->run_verify('foo/bar.sql'), 'Verify foo/bar.sql';
-is_deeply \@capture, [$vta->psql, '--file', 'foo/bar.sql'],
+is_deeply \@capture, [$vta->vsql, '--file', 'foo/bar.sql'],
     'Verify file should be passed to capture()';
 
 $mock_sqitch->mock(verbosity => 2);
 ok $vta->run_verify('foo/bar.sql'), 'Verify foo/bar.sql again';
-is_deeply \@run, [$vta->psql, '--file', 'foo/bar.sql'],
+is_deeply \@run, [$vta->vsql, '--file', 'foo/bar.sql'],
     'Verifile file should be passed to run() for high verbosity';
 
 $mock_sqitch->unmock_all;
@@ -303,7 +303,7 @@ END {
 $uri = URI->new($ENV{VSQL_URI} || 'db:dbadmin:password@localhost/dbadmin');
 my $err = try {
     $vta->use_driver;
-    $dbh = DBI->connect($uri->dbi_dsn, $uri->user, $uri->pass, {
+    $dbh = DBI->connect($uri->dbi_dsn, $uri->user, $uri->password, {
         PrintError => 0,
         RaiseError => 1,
         AutoCommit => 1,
@@ -313,6 +313,7 @@ my $err = try {
     eval { $_->message } || $_;
 };
 
+use Carp; $SIG{__DIE__} = \&Carp::confess;
 DBIEngineTest->run(
     class         => $CLASS,
     sqitch_params => [
@@ -329,7 +330,7 @@ DBIEngineTest->run(
         $self->sqitch->probe( $self->client, '--version' );
         $self->_capture('--command' => 'SELECT version()');
     },
-    engine_err_regex  => qr/^ERROR:  /,
+    engine_err_regex  => qr/\bERROR \d+:/,
     init_error        => __x(
         'Sqitch schema "{schema}" already exists',
         schema => '__sqitchtest',
