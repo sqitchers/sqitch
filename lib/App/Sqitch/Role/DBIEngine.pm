@@ -370,14 +370,30 @@ sub _multi_values {
     return 'VALUES ' . join(', ', ("($expr)") x $count)
 }
 
-sub _dependency_subselect_columns {
+sub _dependency_placeholders {
     return '?, ?, ?, ?';
+}
+
+sub _tag_placholders {
+    my $self = shift;
+    return '?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ' . $self->_ts_default;
 }
 
 sub _tag_subselect_columns {
     my $self = shift;
-    my $ts = $self->_ts_default;
-    return "? AS tid, ? AS tname, ? AS proj, ? AS cid, ? AS note, ? AS cuser, ? AS cemail, ? AS tts, ? AS puser, ? AS pemail, $ts"
+    return join(
+        '? AS tid',
+        '? AS tname',
+        '? AS proj',
+        '? AS cid',
+        '? AS note',
+        '? AS cuser',
+        '? AS cemail',
+        '? AS tts',
+        '? AS puser',
+        '? AS pemail',
+        $self->_ts_default,
+    );
 }
 
 sub log_deploy_change {
@@ -430,7 +446,7 @@ sub log_deploy_change {
                 , type
                 , dependency
                 , dependency_id
-           ) } . $self->_multi_values(scalar @deps, $self->_dependency_subselect_columns),
+           ) } . $self->_multi_values(scalar @deps, $self->_dependency_placeholders),
             undef,
             map { (
                 $id,
@@ -455,7 +471,7 @@ sub log_deploy_change {
                 , planner_name
                 , planner_email
                 , committed_at
-           ) } . $self->_multi_values(scalar @tags, $self->_tag_subselect_columns),
+           ) } . $self->_multi_values(scalar @tags, $self->_tag_placeholders),
             undef,
             map { (
                 $_->id,

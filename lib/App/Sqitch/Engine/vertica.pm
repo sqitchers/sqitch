@@ -191,8 +191,25 @@ sub _multi_values {
     return join "\nUNION ALL ", ("SELECT $expr") x $count;
 }
 
-sub _dependency_subselect_columns {
+sub _dependency_placeholders {
     return 'CAST(? AS CHAR(40)), CAST(? AS VARCHAR), CAST(? AS VARCHAR), CAST(? AS CHAR(40))';
+}
+
+sub _tag_placeholders {
+    my $self = shift;
+    return join(', ',
+        'CAST(? AS CHAR(40))',
+        'CAST(? AS VARCHAR)',
+        'CAST(? AS VARCHAR)',
+        'CAST(? AS CHAR(40))',
+        'CAST(? AS VARCHAR)',
+        'CAST(? AS VARCHAR)',
+        'CAST(? AS VARCHAR)',
+        'CAST(? AS TIMESTAMPTZ)',
+        'CAST(? AS VARCHAR)',
+        'CAST(? AS VARCHAR)',
+        $self->_ts_default,
+    );
 }
 
 sub _tag_subselect_columns {
