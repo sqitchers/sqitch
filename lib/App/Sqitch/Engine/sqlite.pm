@@ -105,7 +105,6 @@ has dbh => (
                     return;
                 },
             },
-            $uri->query_params,
         });
 
         # Make sure we support this version.
