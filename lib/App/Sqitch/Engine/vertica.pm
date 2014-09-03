@@ -57,8 +57,7 @@ has '+dbh' => (
             PrintError        => 0,
             RaiseError        => 0,
             AutoCommit        => 1,
-            pg_enable_utf8    => 1,
-            pg_server_prepare => 1,
+            odbc_utf8_on      => 1,
             HandleError       => sub {
                 my ($err, $dbh) = @_;
                 $@ = $err;
@@ -79,7 +78,6 @@ has '+dbh' => (
                     return;
                 },
             },
-            $uri->query_params,
         });
     }
 );

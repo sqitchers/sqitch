@@ -16,14 +16,7 @@ use DBIEngineTest;
 
 my $CLASS;
 
-my ($user, $pass, $dbname, $host, $port) = map {
-    delete $ENV{"VSQL_$_"}
-} qw(USER PASSWORD DATABASE HOST PORT);
-
-$user   ||= 'dbadmin';
-$pass   ||= 'password';
-$dbname ||= $user;
-$host   ||= 'localhost';
+delete $ENV{"VSQL_$_"} for qw(USER PASSWORD DATABASE HOST PORT);
 
 BEGIN {
     $CLASS = 'App::Sqitch::Engine::vertica';
@@ -307,15 +300,10 @@ END {
     );
 }
 
-$uri = URI->new('db:vertica:');
-$uri->host($host) if $host;
-$uri->port($port) if $port;
-$uri->dbname($dbname);
-$uri->user($user);
-$uri->password($pass);
+$uri = URI->new($ENV{VSQL_URI} || 'db:dbadmin:password@localhost/dbadmin');
 my $err = try {
     $vta->use_driver;
-    $dbh = DBI->connect($uri->dbi_dsn, $user, $pass, {
+    $dbh = DBI->connect($uri->dbi_dsn, $uri->user, $uri->pass, {
         PrintError => 0,
         RaiseError => 1,
         AutoCommit => 1,
