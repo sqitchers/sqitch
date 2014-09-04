@@ -76,11 +76,7 @@ sub engine_key {
                 'URI "{uri}" is not a database URI',
                 uri => $uri
             ) unless $uri->isa('URI::db');
-            my $dbd = $uri->dbi_driver or hurl core => __x(
-                'Unsupported database engine "{engine}"',
-                engine => scalar $uri->engine
-            );
-            lc $dbd;
+            $uri->canonical_engine;
         } elsif ( my $key = $self->config->get( key => 'core.engine' ) ) {
             $key =~ s/\s+\z//;
             lc $key;
