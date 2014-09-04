@@ -3,7 +3,7 @@ CREATE SCHEMA :"registry";
 COMMENT ON SCHEMA :"registry" IS 'Sqitch database deployment metadata v1.0.';
 
 CREATE TABLE :"registry".projects (
-    project         VARCHAR(1024) PRIMARY KEY,
+    project         VARCHAR(1024) PRIMARY KEY ENCODING AUTO,
     uri             VARCHAR(1024) NULL UNIQUE,
     created_at      TIMESTAMPTZ   NOT NULL DEFAULT clock_timestamp(),
     creator_name    VARCHAR(1024) NOT NULL,
@@ -13,7 +13,7 @@ CREATE TABLE :"registry".projects (
 COMMENT ON TABLE :"registry".projects                 IS 'Sqitch projects deployed to this database.';
 
 CREATE TABLE :"registry".changes (
-    change_id       CHAR(40)       PRIMARY KEY,
+    change_id       CHAR(40)       PRIMARY KEY ENCODING AUTO,
     change          VARCHAR(1024)  NOT NULL,
     project         VARCHAR(1024)  NOT NULL REFERENCES :"registry".projects(project),
     note            VARCHAR(65000) NOT NULL DEFAULT '',
@@ -28,7 +28,7 @@ CREATE TABLE :"registry".changes (
 COMMENT ON TABLE :"registry".changes                  IS 'Tracks the changes currently deployed to the database.';
 
 CREATE TABLE :"registry".tags (
-    tag_id          CHAR(40)       PRIMARY KEY,
+    tag_id          CHAR(40)       PRIMARY KEY ENCODING AUTO,
     tag             VARCHAR(1024)  NOT NULL,
     project         VARCHAR(1024)  NOT NULL REFERENCES :"registry".projects(project),
     change_id       CHAR(40)       NOT NULL REFERENCES :"registry".changes(change_id),
@@ -46,7 +46,7 @@ COMMENT ON TABLE :"registry".tags                  IS 'Tracks the tags currently
 
 CREATE TABLE :"registry".dependencies (
     change_id       CHAR(40)      NOT NULL REFERENCES :"registry".changes(change_id),
-    type            VARCHAR(8)    NOT NULL,
+    type            VARCHAR(8)    NOT NULL ENCODING AUTO,
     dependency      VARCHAR(2048) NOT NULL,
     dependency_id   CHAR(40)      NULL REFERENCES :"registry".changes(change_id),
     PRIMARY KEY (change_id, dependency)
@@ -55,7 +55,7 @@ CREATE TABLE :"registry".dependencies (
 COMMENT ON TABLE :"registry".dependencies                IS 'Tracks the currently satisfied dependencies.';
 
 CREATE TABLE :"registry".events (
-    event           VARCHAR(6)     NOT NULL,
+    event           VARCHAR(6)     NOT NULL ENCODING AUTO,
     change_id       CHAR(40)       NOT NULL,
     change          VARCHAR(1024)  NOT NULL,
     project         VARCHAR(1024)  NOT NULL REFERENCES :"registry".projects(project),
