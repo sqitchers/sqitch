@@ -234,7 +234,7 @@ has with_registry_prefix => (
         my $self = shift;
         my $engine = $self->key;
         
-        my $p = $self->sqitch->config->get( key => 'core.$engine.with_registry_prefix' );
+        my $p = $self->sqitch->config->get( key => "core.$engine.with_registry_prefix" );
         
         if ($p && $engine ne 'oracle') {
             hurl engine => __x(
