@@ -434,7 +434,7 @@ The database engine to use. Supported engines include:
 
 =item * C<firebird> - L<Firebird|http://www.firebirdsql.org/>
 
-=item * C<vertica> - L<Vertica|http://https://my.vertica.com/>
+=item * C<vertica> - L<Vertica|https://my.vertica.com/>
 
 =back
 
