@@ -16,7 +16,7 @@ our $VERSION = '0.997';
 
 sub key    { 'vertica' }
 sub name   { 'Vertica' }
-sub driver { 'DBD::Pg 2.0' }
+sub driver { 'DBD::ODBC 1.43' }
 sub default_client { 'vsql' }
 
 has '+destination' => (
@@ -154,6 +154,10 @@ sub initialize {
         schema => $schema
     ) if $self->initialized;
 
+    # Check the database version.
+    my $vline = $self->dbh->selectcol_arrayref('SELECT version()')->[0];
+    my ($maj) = $vline =~ /\bv?(\d+)/;
+
     my $file = file(__FILE__)->dir->file('vertica.sql');
 
     # Need to write a temp file; no :"registry" variable syntax.
@@ -161,6 +165,8 @@ sub initialize {
         'SELECT quote_ident(?)', undef, $schema
     );
     (my $sql = scalar $file->slurp) =~ s{:"registry"}{$schema}g;
+    # No LONG VARCHAR before Vertica 7.
+    $sql =~ s/LONG //g if $maj < 7;
     require File::Temp;
     my $fh = File::Temp->new;
     print $fh $sql;
