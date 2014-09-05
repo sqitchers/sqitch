@@ -11,7 +11,7 @@ use Hash::Merge 'merge';
 use Moo;
 use App::Sqitch::Types qw(Sqitch);
 
-our $VERSION = '0.996';
+our $VERSION = '0.997';
 
 has sqitch => (
     is       => 'ro',
