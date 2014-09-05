@@ -7,7 +7,7 @@ use warnings;
 use Path::Class;
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
-use Config::GitLike 1.09;
+use Config::GitLike 1.11;
 use utf8;
 
 extends 'Config::GitLike';
@@ -69,9 +69,6 @@ sub get_section {
         grep { s{^\Q$section.\E([^.]+)$}{$1} } keys %{$data}
     };
 }
-
-# Mock up original_key for older versions fo Config::GitLike.
-eval 'sub original_key { $_[1] }' unless __PACKAGE__->can('original_key');
 
 sub initial_key {
     my $key = shift->original_key(shift);

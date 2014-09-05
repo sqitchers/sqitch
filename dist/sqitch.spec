@@ -14,7 +14,7 @@ BuildRequires:  perl(Carp)
 BuildRequires:  perl(Class::XSAccessor) >= 1.18
 BuildRequires:  perl(Clone)
 BuildRequires:  perl(Config)
-BuildRequires:  perl(Config::GitLike) >= 1.09
+BuildRequires:  perl(Config::GitLike) >= 1.11
 BuildRequires:  perl(constant)
 BuildRequires:  perl(DateTime)
 BuildRequires:  perl(DBI)
@@ -74,14 +74,14 @@ BuildRequires:  perl(Type::Tiny::XS) >= 0.010
 BuildRequires:  perl(Type::Utils)
 BuildRequires:  perl(Types::Standard)
 BuildRequires:  perl(URI)
-BuildRequires:  perl(URI::db)
+BuildRequires:  perl(URI::db) >= 0.15
 BuildRequires:  perl(User::pwent)
 BuildRequires:  perl(utf8)
 BuildRequires:  perl(warnings)
 Requires:       perl(Class::XSAccessor) >= 1.18
 Requires:       perl(Clone)
 Requires:       perl(Config)
-Requires:       perl(Config::GitLike) >= 1.09
+Requires:       perl(Config::GitLike) >= 1.11
 Requires:       perl(constant)
 Requires:       perl(DateTime)
 Requires:       perl(Devel::StackTrace) >= 1.30
@@ -129,7 +129,7 @@ Requires:       perl(Type::Tiny::XS) >= 0.010
 Requires:       perl(Type::Utils)
 Requires:       perl(Types::Standard)
 Requires:       perl(URI)
-Requires:       perl(URI::db)
+Requires:       perl(URI::db) >= 0.15
 Requires:       perl(User::pwent)
 Requires:       perl(utf8)
 Requires:       perl(warnings)
@@ -252,6 +252,22 @@ management. The philosophy and functionality is inspired by Git. This
 package bundles the Sqitch Firebird support.
 
 %files firebird
+# No additional files required.
+
+%package vertica
+Summary:        Sane database change management for Vertica
+Group:          Development/Libraries
+Requires:       sqitch >= %{version}
+Requires:       vertica-client >= 7.0.0
+Requires:       perl(DBI)
+Requires:       perl(DBD::ODBC) >= 1.43
+
+%description vertica
+Sqitch provides a simple yet robust interface for database change management.
+The philosophy and functionality is inspired by Git. This package bundles the
+Sqitch Vertica support.
+
+%files vertica
 # No additional files required.
 
 %changelog

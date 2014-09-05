@@ -70,7 +70,6 @@ has dbh => (
 
         my $dsn = $uri->dbi_dsn . ';ib_dialect=3;ib_charset=UTF8';
         return DBI->connect($dsn, scalar $uri->user, scalar $uri->password, {
-            $uri->query_params,
             PrintError       => 0,
             RaiseError       => 0,
             AutoCommit       => 1,

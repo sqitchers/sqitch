@@ -29,7 +29,7 @@ If you'd like to manage an MySQL database, see L<sqitchtutorial-mysql>.
 
 If you'd like to manage an Firebird database, see L<sqitchtutorial-firebird>.
 
-=begin comment
+If you'd like to manage an Vertica database, see L<sqitchtutorial-vertica>.
 
 =head2 VM Configuration
 
@@ -67,8 +67,6 @@ Add this entry to F<tnsnames.ora>:
         (SERVICE_NAME = orcl)
       )
     )
-
-=end comment
 
 =head1 Starting a New Project
 

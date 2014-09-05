@@ -370,6 +370,32 @@ sub _multi_values {
     return 'VALUES ' . join(', ', ("($expr)") x $count)
 }
 
+sub _dependency_placeholders {
+    return '?, ?, ?, ?';
+}
+
+sub _tag_placeholders {
+    my $self = shift;
+    return '?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ' . $self->_ts_default;
+}
+
+sub _tag_subselect_columns {
+    my $self = shift;
+    return join(', ',
+        '? AS tid',
+        '? AS tname',
+        '? AS proj',
+        '? AS cid',
+        '? AS note',
+        '? AS cuser',
+        '? AS cemail',
+        '? AS tts',
+        '? AS puser',
+        '? AS pemail',
+        $self->_ts_default,
+    );
+}
+
 sub log_deploy_change {
     my ($self, $change) = @_;
     my $dbh    = $self->dbh;
@@ -420,7 +446,7 @@ sub log_deploy_change {
                 , type
                 , dependency
                 , dependency_id
-           ) } . $self->_multi_values(scalar @deps, '?, ?, ?, ?'),
+           ) } . $self->_multi_values(scalar @deps, $self->_dependency_placeholders),
             undef,
             map { (
                 $id,
@@ -445,7 +471,7 @@ sub log_deploy_change {
                 , planner_name
                 , planner_email
                 , committed_at
-           ) } . $self->_multi_values(scalar @tags, "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, $ts"),
+           ) } . $self->_multi_values(scalar @tags, $self->_tag_placeholders),
             undef,
             map { (
                 $_->id,
@@ -563,8 +589,7 @@ sub log_new_tags {
         $sqitch->user_email
     );
 
-    my $ts = $self->_ts_default;
-    my $sf = $self->_simple_from;
+    my $subselect = 'SELECT ' . $self->_tag_subselect_columns . $self->_simple_from;
 
     $self->dbh->do(
         q{
@@ -584,7 +609,7 @@ sub log_new_tags {
             SELECT i.* FROM (
                          } . join(
                 "\n               UNION ALL ",
-                ("SELECT ? AS tid, ? AS tname, ? AS proj, ? AS cid, ? AS note, ? AS cuser, ? AS cemail, ? AS tts, ? AS puser, ? AS pemail, $ts$sf") x @tags
+                ($subselect) x @tags
             ) . q{
             ) i
               LEFT JOIN tags ON i.tid = tags.tag_id
@@ -955,6 +980,10 @@ The Oracle engine.
 =item L<App::Sqitch::Engine::mysql>
 
 The MySQL engine.
+
+=item L<App::Sqitch::Engine::vertica>
+
+The Vertica engine.
 
 =back
 
