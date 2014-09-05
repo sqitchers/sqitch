@@ -271,6 +271,17 @@ Sqitch Vertica support.
 # No additional files required.
 
 %changelog
+* Fri Sep 5 2014 David E. Wheeler <david.wheeler@iovation.com> 0.99-1
+- Upgrade to v0.996.
+- Remove Moose and Mouse dependencies.
+- Add Moo dependencies.
+- Add Type::Library and related module dependencies.
+- Switch from Digest::SHA1 to Digest::SHA.
+- Require the Moo-backed version of Config::GitLike.
+- Remove Role module dependencies.
+- Require URI::db v0.15.
+- Add sqitch-vertica.
+
 * Sun Jul 13 2014 David E. Wheeler <david.wheeler@iovation.com> 0.995-1
 - Upgrade to v0.995.
 
