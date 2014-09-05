@@ -226,6 +226,7 @@ Requires:       sqitch >= %{version}
 Requires:       mysql >= 5.6.4
 Requires:       perl(DBI)
 Requires:       perl(DBD::mysql) >= 4.018
+Requires:       perl(MySQL::Config)
 
 %description mysql
 Sqitch provides a simple yet robust interface for database change

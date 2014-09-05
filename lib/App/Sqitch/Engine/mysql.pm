@@ -51,9 +51,10 @@ has dbh => (
         my $pass = $uri->password || do {
             # Read the default MySQL configuration.
             # http://dev.mysql.com/doc/refman/5.0/en/option-file-options.html
-            require MySQL::Config;
-            my %cfg = MySQL::Config::parse_defaults('my', [qw(client mysql)]);
-            $cfg{password};
+            if (eval 'require MySQL::Config; 1') {
+                my %cfg = MySQL::Config::parse_defaults('my', [qw(client mysql)]);
+                $cfg{password};
+            }
         };
         my $dbh = DBI->connect($uri->dbi_dsn, scalar $uri->user, $pass, {
             PrintError           => 0,
