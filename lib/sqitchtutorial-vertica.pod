@@ -241,7 +241,7 @@ F<verify/appschema.sql>:
   DROP   TABLE flipr.verify__;
 
 In truth, you can use I<any> query that generates an SQL error if the schema
-doesn't exist. nother handy way to do that is to divide by zero if an object
+doesn't exist. Another handy way to do that is to divide by zero if an object
 doesn't exist. For example, to throw an error when the C<flipr> schema does
 not exist, you could do something like this:
 

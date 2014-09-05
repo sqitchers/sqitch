@@ -148,6 +148,24 @@ works, read on.
 Returns a list of L<Getopt::Long> option specifications for the command-line
 options for the C<verify> command.
 
+=head2 Attributes
+
+=head3 C<onto_change>
+
+Change onto which to rebase the target.
+
+=head3 C<target>
+
+The verify target database URI.
+
+=head3 C<from_change>
+
+Change from which to verify changes.
+
+=head3 C<to_change>
+
+Change up to which to verify changes.
+
 =head2 Instance Methods
 
 =head3 C<execute>

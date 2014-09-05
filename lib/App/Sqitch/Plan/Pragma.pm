@@ -85,6 +85,10 @@ The value of the pragma.
 
 The operator, including surrounding white space.
 
+=head3 C<hspace>
+
+The horizontal space between the pragma and its value.
+
 =head2 Instance Methods
 
 =head3 C<format_value>

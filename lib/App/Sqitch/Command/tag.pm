@@ -74,6 +74,12 @@ Tags a Sqitch change. The tag will be added to the last change in the plan.
 
 =head1 Interface
 
+=head2 Attributes
+
+=head3 C<note>
+
+Text of the tag note.
+
 =head2 Instance Methods
 
 =head3 C<execute>

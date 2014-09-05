@@ -426,6 +426,28 @@ options for the C<add> command.
 Processes the configuration and command options and returns a hash suitable
 for the constructor.
 
+=head2 Attributes
+
+=head3 C<note>
+
+Text of the change note.
+
+=head3 C<requires>
+
+List of required changes.
+
+=head3 C<conflicts>
+
+List of conflicting changes.
+
+=head3 C<template_directory>
+
+Directory in which to find the change script templates.
+
+=head3 C<with_scripts>
+
+Hash reference indicating which scripts to create.
+
 =head2 Instance Methods
 
 =head3 C<execute>
@@ -434,7 +456,7 @@ for the constructor.
 
 Executes the C<add> command.
 
-=head2 C<all_templates>
+=head3 C<all_templates>
 
 Returns a hash reference of script names mapped to template files for all
 scripts that should be generated for the new change.

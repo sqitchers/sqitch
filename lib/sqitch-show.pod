@@ -45,8 +45,8 @@ A change verify script.
 
 =item C<--exists>
 
-Suppress all output; instead exit with zero status if <object> exists and is a
-valid object.
+Suppress all output; instead exit with zero status if C<< <object> >> exists
+and is a valid object.
 
 =back
 

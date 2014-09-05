@@ -256,6 +256,16 @@ and copying the configuration file, plan file, and change files into it.
 
 =head1 Interface
 
+=head2 Attributes
+
+=head3 C<from>
+
+Change from which to build the bundled plan.
+
+=head3 C<to>
+
+Change up to which to build the bundled plan.
+
 =head2 Instance Methods
 
 =head3 C<execute>

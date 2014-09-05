@@ -165,6 +165,28 @@ works, read on.
 Returns a list of L<Getopt::Long> option specifications for the command-line
 options for the C<deploy> command.
 
+=head2 Attributes
+
+=head3 C<log_only>
+
+Boolean indicating whether to log the deploy without running the scripts.
+
+=head3 C<mode>
+
+Deploy mode, one of "change", "tag", or "all".
+
+=head3 C<target>
+
+The deployment target URI.
+
+=head3 C<to_change>
+
+Change up to which to deploy.
+
+=head3 C<verify>
+
+Boolean indicating whether or not to run verify scripts after each change.
+
 =head2 Instance Methods
 
 =head3 C<execute>

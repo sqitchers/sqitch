@@ -233,6 +233,20 @@ Manages Sqitch targets, which are stored in the local configuration file.
 
 =head2 Instance Methods
 
+=head2 Attributes
+
+=head3 C<client>
+
+Value to set the client attribute.
+
+=head3 C<registry>
+
+Value to set the registry attribute.
+
+=head3 C<verbose>
+
+Verbosity.
+
 =head3 C<execute>
 
   $target->execute($command);

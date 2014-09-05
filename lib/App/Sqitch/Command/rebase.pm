@@ -146,6 +146,16 @@ works, read on.
 Returns a list of L<Getopt::Long> option specifications for the command-line
 options for the C<rebase> command.
 
+=head2 Attributes
+
+=head3 C<onto_change>
+
+Change onto which to rebase the target.
+
+=head3 C<upto_change>
+
+Change up to which to rebase the target.
+
 =head2 Instance Methods
 
 =head3 C<execute>

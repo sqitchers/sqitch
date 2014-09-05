@@ -316,6 +316,12 @@ works, read on.
 
 =head1 Interface
 
+=head2 Attributes
+
+=head3 C<target>
+
+URI of the database target from which to read the status.
+
 =head2 Instance Methods
 
 =head3 C<execute>

@@ -265,6 +265,44 @@ works, read on.
 
 =head1 Interface
 
+=head2 Attributes
+
+=head3 C<change_pattern>
+
+Regular expression to match against change names.
+
+=head3 C<committer_pattern>
+
+Regular expression to match against committer names.
+
+=head3 C<project_pattern>
+
+Regular expression to match against project names.
+
+=head3 C<event>
+
+Event type buy which to filter entries to display.
+
+=head3 C<format>
+
+Display format template.
+
+=head3 C<max_count>
+
+Maximum number of entries to display.
+
+=head3 C<reverse>
+
+Reverse the usual order of the display of entries.
+
+=head3 C<skip>
+
+Number of entries to skip before displaying entries.
+
+=head3 C<target>
+
+The database target from which to read the log.
+
 =head2 Instance Methods
 
 =head3 C<execute>

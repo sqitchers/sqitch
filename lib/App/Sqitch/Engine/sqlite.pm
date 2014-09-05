@@ -274,6 +274,13 @@ C<sqitch>, that's what will be returned. Otherwise, it uses the
 C<core.sqlite.client> configuration value, or else defaults to C<sqlite3> (or
 C<sqlite3.exe> on Windows), which should work if it's in your path.
 
+=head2 Instance Methods
+
+=head3 C<sqlite3>
+
+Returns a list containing the the C<sqlite3> client and options to be passed to
+it. Used internally when executing scripts.
+
 =head1 Author
 
 David E. Wheeler <david@justatheory.com>

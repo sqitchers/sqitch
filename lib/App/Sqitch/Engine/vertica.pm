@@ -513,6 +513,11 @@ has not.
 
 Initializes a database for Sqitch by installing the Sqitch registry schema.
 
+=head3 C<vsql>
+
+Returns a list containing the the C<vsql> client and options to be passed to
+it. Used internally when executing scripts.
+
 =head1 Author
 
 David E. Wheeler <david@justatheory.com>

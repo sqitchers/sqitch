@@ -93,7 +93,7 @@ executing the revert. My be overridden by C<-y>.
 =item C<[revert.prompt_accept]>
 
 A boolean value indicating whether default reply to the prompt before
-executing the revert shoud be "yes" or "no". Defaults to true, meaning to
+executing the revert should be "yes" or "no". Defaults to true, meaning to
 accept the revert.
 
 =back

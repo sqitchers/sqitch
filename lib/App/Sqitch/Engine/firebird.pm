@@ -913,6 +913,11 @@ look like the Firebird interactive SQL utility.
 
 Constructs a connection string from a database URI for passing to C<isql>.
 
+=head3 C<isql>
+
+Returns a list containing the the C<isql> client and options to be passed to
+it. Used internally when executing scripts.
+
 =head1 Author
 
 David E. Wheeler <david@justatheory.com>

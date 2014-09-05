@@ -132,6 +132,13 @@ works, read on.
 Returns a list of L<Getopt::Long> option specifications for the command-line
 options for the C<show> command.
 
+=head2 Attributes
+
+=head3 C<exists_only>
+
+Boolean indicating whether or not to suppress output and instead exit with
+zero status if object exists and is a valid object.
+
 =head2 Instance Methods
 
 =head3 C<execute>

@@ -207,6 +207,20 @@ options for the C<rework> command.
 Processes the configuration and command options and returns a hash suitable
 for the constructor.
 
+=head2 Attributes
+
+=head3 C<note>
+
+Text of the change note.
+
+=head3 C<requires>
+
+List of required changes.
+
+=head3 C<conflicts>
+
+List of conflicting changes.
+
 =head2 Instance Methods
 
 =head3 C<execute>

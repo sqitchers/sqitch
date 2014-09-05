@@ -287,6 +287,12 @@ scripts.
 Returns a list of L<Getopt::Long> option specifications for the command-line
 options for the C<config> command.
 
+=head2 Attributes
+
+=head3 C<uri>
+
+URI for the project.
+
 =head2 Instance Methods
 
 =head3 C<execute>
