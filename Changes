@@ -1,6 +1,6 @@
 Revision history for Perl extension App::Sqitch
 
-0.996
+0.996  2014-09-05T21:11:00Z
      - Fixed one more test failure due to the introduction of "Negative repeat
        count does nothing" warning in Perl 5.21.1.
      - Fixed "Redundant argument in printf" warning on Perl 5.21.2.
