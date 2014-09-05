@@ -1,5 +1,13 @@
 #!/usr/bin/perl -w
 
+# To test against a live Vertica database, you must set the VSQL_URI environment variable.
+# this is a stanard URI::db URI, and should look something like this:
+#
+#     export VSQL_URI=db:vertica://dbadmin:password@localhost:5433/dbadmin?Driver=Vertica
+#
+# Note that it must include the `?Driver=$driver` bit so that DBD::ODBC loads
+# the proper driver.
+
 use strict;
 use warnings;
 use 5.010;

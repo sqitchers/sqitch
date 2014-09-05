@@ -280,7 +280,6 @@ change name in the output, which reinforces that the change is being
 I<removed> from the database. And now the schema should be gone:
 
   > psql -d flipr_test -c '\dn flipr'
-              List of roles
   List of schemas
    Name | Owner 
   ------+-------

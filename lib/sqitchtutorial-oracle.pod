@@ -31,8 +31,6 @@ If you'd like to manage an Firebird database, see L<sqitchtutorial-firebird>.
 
 If you'd like to manage an Vertica database, see L<sqitchtutorial-vertica>.
 
-=begin comment
-
 =head2 VM Configuration
 
 Some instructions for setting up a VM for following along in this tutorial.
@@ -69,8 +67,6 @@ Add this entry to F<tnsnames.ora>:
         (SERVICE_NAME = orcl)
       )
     )
-
-=end comment
 
 =head1 Starting a New Project
 
