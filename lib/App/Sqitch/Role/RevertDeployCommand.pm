@@ -14,7 +14,7 @@ requires 'command';
 requires 'options';
 requires 'configure';
 
-our $VERSION = '0.996';
+our $VERSION = '0.997';
 
 has target => (
     is  => 'ro',
@@ -198,6 +198,35 @@ Adds options common to the commands that revert and deploy.
 =head3 C<configure>
 
 Configures the options common to commands that revert and deploy.
+
+=head2 Attributes
+
+=head3 C<log_only>
+
+Boolean indicating whether to log the deploy without running the scripts.
+
+=head3 C<no_prompt>
+
+Boolean indicating whether or not to prompt the user to really go through with
+the revert.
+
+=head3 C<prompt_accept>
+
+Boolean value to indicate whether or not the default value for the prompt,
+should the user hit C<return>, is to accept the prompt or deny it.
+
+=head3 C<target>
+
+The deployment target URI.
+
+=head3 C<verify>
+
+Boolean indicating whether or not to run verify scripts after deploying
+changes.
+
+=head3 C<mode>
+
+Deploy mode, one of "change", "tag", or "all".
 
 =head1 See Also
 

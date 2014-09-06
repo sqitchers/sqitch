@@ -18,7 +18,7 @@ use namespace::autoclean;
 
 extends 'App::Sqitch::Engine';
 
-our $VERSION = '0.996';
+our $VERSION = '0.997';
 
 has registry_uri => (
     is       => 'ro',
@@ -70,7 +70,6 @@ has dbh => (
 
         my $dsn = $uri->dbi_dsn . ';ib_dialect=3;ib_charset=UTF8';
         return DBI->connect($dsn, scalar $uri->user, scalar $uri->password, {
-            $uri->query_params,
             PrintError       => 0,
             RaiseError       => 0,
             AutoCommit       => 1,
@@ -913,6 +912,11 @@ look like the Firebird interactive SQL utility.
 =head3 C<connection_string>
 
 Constructs a connection string from a database URI for passing to C<isql>.
+
+=head3 C<isql>
+
+Returns a list containing the the C<isql> client and options to be passed to
+it. Used internally when executing scripts.
 
 =head1 Author
 

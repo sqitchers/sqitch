@@ -15,7 +15,7 @@ use namespace::autoclean;
 
 extends 'App::Sqitch::Engine';
 
-our $VERSION = '0.996';
+our $VERSION = '0.997';
 
 has '+destination' => (
     default  => sub {
@@ -60,21 +60,25 @@ has _psql => (
             push @ret => map {; '--set', "$_=$vars{$_}" } sort keys %vars;
         }
 
-        push @ret => (
-            '--quiet',
-            '--no-psqlrc',
-            '--no-align',
-            '--tuples-only',
-            '--set' => 'ON_ERROR_STOP=1',
-            '--set' => 'registry=' . $self->registry,
-            '--set' => 'sqitch_schema=' . $self->registry, # deprecated
-        );
+        push @ret => $self->_client_opts;
         return \@ret;
     },
 );
 
-sub psql { @{ shift->_psql } }
+sub _client_opts {
+    my $self = shift;
+    return (
+        '--quiet',
+        '--no-psqlrc',
+        '--no-align',
+        '--tuples-only',
+        '--set' => 'ON_ERROR_STOP=1',
+        '--set' => 'registry=' . $self->registry,
+        '--set' => 'sqitch_schema=' . $self->registry, # deprecated
+    );
+}
 
+sub psql { @{ shift->_psql } }
 
 sub key    { 'pg' }
 sub name   { 'PostgreSQL' }
@@ -116,7 +120,6 @@ has dbh => (
                     return;
                 },
             },
-            $uri->query_params,
         });
     }
 );
@@ -532,6 +535,11 @@ has not.
   $pg->initialize;
 
 Initializes a database for Sqitch by installing the Sqitch registry schema.
+
+=head3 C<psql>
+
+Returns a list containing the the C<psql> client and options to be passed to
+it. Used internally when executing scripts.
 
 =head1 Author
 

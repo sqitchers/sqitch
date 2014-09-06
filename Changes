@@ -1,6 +1,11 @@
 Revision history for Perl extension App::Sqitch
 
-0.996
+0.997
+     - At runtime, the Vertica engine now properly requires DBD::ODBC
+       instead of DBD::Pg.
+     - The Vertica engine now supports Vertica 6, as documented.
+
+0.996  2014-09-05T21:11:00Z
      - Fixed one more test failure due to the introduction of "Negative repeat
        count does nothing" warning in Perl 5.21.1.
      - Fixed "Redundant argument in printf" warning on Perl 5.21.2.
@@ -16,7 +21,7 @@ Revision history for Perl extension App::Sqitch
        performance.
      - The `check` command now properly fails on a plan parse error, instead
        of blindly continuing on.
-     - Fixed a failing test on PosrgreSQL due to localization issues. Thanks
+     - Fixed a failing test on PostgreSQL due to localization issues. Thanks
        to Sven Schoberf for the report (Issue #171).
      - Added the `revert.prompt_accept`, `rebase.prompt_accept`, and
        `checkout.prompt_accept` boolean configuration variables. Set these
@@ -25,7 +30,7 @@ Revision history for Perl extension App::Sqitch
        commands are not set, Sqitch will fall back on the value of
        `revert.prompt_accept`. Suggested by Graeme Lawton (Issue #164).
      - The MySQL engine now sets the `$MYSQL_PWD` environment variable if a
-       password is provided in a target. This should simplify authtentication
+       password is provided in a target. This should simplify authentication
        when running MySQL change scripts through the `mysql` client client
        (Issue #150).
      - The MySQL engine now reads `client` and `mysql` groups in the MySQL
@@ -35,8 +40,11 @@ Revision history for Perl extension App::Sqitch
        database connection does as well (Issue #150).
      - The Firebird engine now sets the `$ISC_PASSWORD` environment variable
        if a password is provided in a target. This should simplify
-       authtentication when running Firebird change scripts through the `isql`
+       authentication when running Firebird change scripts through the `isql`
        client client. Patch from Ștefan Suciu.
+     - No longer passing URI query params as DBI params, because they are
+       already included in the DSN provided by URI::db.
+     - Added the Vertica engine.
 
 0.995  2014-07-13T22:24:53Z
      - Fixed test failures due to the introduction of "Negative repeat count

@@ -11,7 +11,7 @@ use namespace::autoclean;
 
 extends 'App::Sqitch::Command';
 
-our $VERSION = '0.996';
+our $VERSION = '0.997';
 
 has note => (
     is       => 'ro',
@@ -73,6 +73,12 @@ App::Sqitch::Command::tag - Add or list tags in a Sqitch plan
 Tags a Sqitch change. The tag will be added to the last change in the plan.
 
 =head1 Interface
+
+=head2 Attributes
+
+=head3 C<note>
+
+Text of the tag note.
 
 =head2 Instance Methods
 

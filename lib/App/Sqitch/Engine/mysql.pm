@@ -16,7 +16,7 @@ use List::MoreUtils qw(firstidx);
 
 extends 'App::Sqitch::Engine';
 
-our $VERSION = '0.996';
+our $VERSION = '0.997';
 
 has registry_uri => (
     is       => 'ro',
@@ -51,9 +51,10 @@ has dbh => (
         my $pass = $uri->password || do {
             # Read the default MySQL configuration.
             # http://dev.mysql.com/doc/refman/5.0/en/option-file-options.html
-            require MySQL::Config;
-            my %cfg = MySQL::Config::parse_defaults('my', [qw(client mysql)]);
-            $cfg{password};
+            if (eval 'require MySQL::Config; 1') {
+                my %cfg = MySQL::Config::parse_defaults('my', [qw(client mysql)]);
+                $cfg{password};
+            }
         };
         my $dbh = DBI->connect($uri->dbi_dsn, scalar $uri->user, $pass, {
             PrintError           => 0,
@@ -90,7 +91,6 @@ has dbh => (
                     return;
                 },
             },
-            $uri->query_params,
         });
 
         # Make sure we support this version.
@@ -336,6 +336,15 @@ App::Sqitch::Engine::mysql - Sqitch MySQL Engine
 
 App::Sqitch::Engine::mysql provides the MySQL storage engine for Sqitch. It
 supports MySQL 5.6.4 and higher, as well as MariaDB 5.3.0 and higher.
+
+=head1 Interface
+
+=head2 Instance Methods
+
+=head3 C<mysql>
+
+Returns a list containing the the C<mysql> client and options to be passed to
+it. Used internally when executing scripts.
 
 =head1 Author
 

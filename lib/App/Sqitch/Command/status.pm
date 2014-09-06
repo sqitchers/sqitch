@@ -13,7 +13,7 @@ use Try::Tiny;
 use namespace::autoclean;
 extends 'App::Sqitch::Command';
 
-our $VERSION = '0.996';
+our $VERSION = '0.997';
 
 has target => (
     is  => 'ro',
@@ -315,6 +315,12 @@ reading C<sqitch-status>. But if you really want to know how the C<status> comma
 works, read on.
 
 =head1 Interface
+
+=head2 Attributes
+
+=head3 C<target>
+
+URI of the database target from which to read the status.
 
 =head2 Instance Methods
 

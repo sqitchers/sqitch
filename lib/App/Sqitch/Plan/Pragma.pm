@@ -7,7 +7,7 @@ use Moo;
 use App::Sqitch::Types qw(Str);
 extends 'App::Sqitch::Plan::Line';
 
-our $VERSION = '0.996';
+our $VERSION = '0.997';
 
 has value => (
     is       => 'ro',
@@ -84,6 +84,10 @@ The value of the pragma.
 =head3 C<op>
 
 The operator, including surrounding white space.
+
+=head3 C<hspace>
+
+The horizontal space between the pragma and its value.
 
 =head2 Instance Methods
 

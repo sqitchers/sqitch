@@ -13,7 +13,7 @@ use namespace::autoclean;
 
 extends 'App::Sqitch::Command';
 
-our $VERSION = '0.996';
+our $VERSION = '0.997';
 
 has requires => (
     is       => 'ro',
@@ -206,6 +206,20 @@ options for the C<rework> command.
 
 Processes the configuration and command options and returns a hash suitable
 for the constructor.
+
+=head2 Attributes
+
+=head3 C<note>
+
+Text of the change note.
+
+=head3 C<requires>
+
+List of required changes.
+
+=head3 C<conflicts>
+
+List of conflicting changes.
 
 =head2 Instance Methods
 

@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 232;
+use Test::More tests => 242;
 #use Test::More 'no_plan';
 use Test::MockModule;
 use Path::Class;
@@ -105,7 +105,7 @@ is $sqitch->engine_key(URI->new('db:pg:foo')), 'pg',
 throws_ok { $sqitch->engine_key(URI->new('db:nonexistent:')) } 'App::Sqitch::X',
     'Should get error for nonexistent engine';
 is $@->ident, 'core', 'Nonexistent engine error ident should be "core"';
-is $@->message, __x('Unsupported database engine "{engine}"', engine => 'nonexistent'),
+is $@->message, __x('Unknown engine "{engine}"', engine => 'nonexistent'),
     'Nonexistent engine error message should be correct';
 
 throws_ok { $sqitch->engine_key(URI->new('file:foo:')) } 'App::Sqitch::X',
@@ -117,7 +117,7 @@ is $@->message,  __x(
 ), 'Non-DB URI error message should be correct';
 
 # Valid engines and the engine constructors.
-for my $eng (qw(pg sqlite mysql oracle)) {
+for my $eng (qw(pg sqlite mysql oracle firebird vertica)) {
     ok my $sqitch = $CLASS->new(engine_key => $eng),
         qq{Engine "$eng" should be valid};
 

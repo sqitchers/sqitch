@@ -384,6 +384,14 @@ Returns the name of the user who added the change to the plan.
 
 Returns the email address of the user who added the change to the plan.
 
+=head3 C<parent>
+
+Parent change object.
+
+=head3 C<tags>
+
+A list of tag objects associated with the change.
+
 =head2 Instance Methods
 
 =head3 C<path_segments>
@@ -426,11 +434,23 @@ Returns the path to a script, for the change.
 Returns a list of tags that occur between a change and its next reworking.
 Returns an empty list if the change is not reworked.
 
+=head3 C<add_tag>
+
+  $change->add_tag($tag);
+
+Adds a tag object to the change.
+
 =head3 C<add_rework_tags>
 
   $change->add_rework_tags(@tags);
 
-Add to the list of rework tags.
+Adds tags to the list of rework tags.
+
+=head3 C<clear_rework_tags>
+
+  $change->clear_rework_tags(@tags);
+
+Clears the list of rework tags.
 
 =head3 C<requires>
 

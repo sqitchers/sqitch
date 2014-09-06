@@ -75,3 +75,117 @@ coerce ConfigBool, from Maybe[Value], via {
 
 1;
 __END__
+
+=head1 Name
+
+App::Sqitch::Types - Definition of attribute data types
+
+=head1 Synopsis
+
+  use App::Sqitch::Types qw(Bool);
+
+=head1 Description
+
+This module defines data types use in Sqitch object attributes. Supported types
+are:
+
+=over
+
+=item C<Sqitch>
+
+An L<App::Sqitch> object.
+
+=item C<UserName>
+
+A Sqitch user name.
+
+=item C<UserEmail>
+
+A Sqitch user email address.
+
+=item C<ConfigBool>
+
+A value that can be converted to a boolean value suitable for storage in
+Sqitch configuration files.
+
+=item C<Plan>
+
+A L<Sqitch::App::Plan> object.
+
+=item C<Change>
+
+A L<Sqitch::App::Plan::Change> object.
+
+=item C<ChangeList>
+
+A L<Sqitch::App::Plan::ChangeList> object.
+
+=item C<LineList>
+
+A L<Sqitch::App::Plan::LineList> object.
+
+=item C<Tag>
+
+A L<Sqitch::App::Plan::Tag> object.
+
+=item C<Depend>
+
+A L<Sqitch::App::Plan::Depend> object.
+
+=item C<DateTime>
+
+A L<Sqitch::App::DateTime> object.
+
+=item C<URI>
+
+A L<URI> object.
+
+=item C<URIDB>
+
+A L<URI::db> object.
+
+=item C<File>
+
+A C<Class::Path::File> object.
+
+=item C<Dir>
+
+A C<Class::Path::Dir> object.
+
+=item C<Config>
+
+A L<Sqitch::App::Config> object.
+
+=item C<DBH>
+
+A L<DBI> database handle.
+
+=back
+
+=head1 Author
+
+David E. Wheeler <david@justatheory.com>
+
+=head1 License
+
+Copyright (c) 2012-2014 iovation Inc.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+=cut

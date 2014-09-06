@@ -17,7 +17,7 @@ use namespace::autoclean;
 
 extends 'App::Sqitch::Command';
 
-our $VERSION = '0.996';
+our $VERSION = '0.997';
 
 sub execute {
     my ( $self, $project ) = @_;
@@ -286,6 +286,12 @@ scripts.
 
 Returns a list of L<Getopt::Long> option specifications for the command-line
 options for the C<config> command.
+
+=head2 Attributes
+
+=head3 C<uri>
+
+URI for the project.
 
 =head2 Instance Methods
 

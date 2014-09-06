@@ -23,7 +23,7 @@ use List::Util qw(first);
 use IPC::System::Simple 1.17 qw(runx capturex $EXITVAL);
 use namespace::autoclean 0.16;
 
-our $VERSION = '0.996';
+our $VERSION = '0.997';
 
 BEGIN {
     # Force Locale::TextDomain to encode in UTF-8 and to decode all messages.
@@ -76,11 +76,7 @@ sub engine_key {
                 'URI "{uri}" is not a database URI',
                 uri => $uri
             ) unless $uri->isa('URI::db');
-            my $dbd = $uri->dbi_driver or hurl core => __x(
-                'Unsupported database engine "{engine}"',
-                engine => scalar $uri->engine
-            );
-            lc $dbd;
+            $uri->canonical_engine;
         } elsif ( my $key = $self->config->get( key => 'core.engine' ) ) {
             $key =~ s/\s+\z//;
             lc $key;
@@ -91,7 +87,7 @@ sub engine_key {
         }
     };
     hurl core => __x('Unknown engine "{engine}"', engine => $key)
-        unless first { $key eq $_ } qw(pg sqlite mysql oracle firebird);
+        unless first { $key eq $_ } qw(pg sqlite mysql oracle firebird vertica);
 }
 
 sub engine {

@@ -1,0 +1,1382 @@
+=encoding UTF-8
+
+=head1 Name
+
+sqitchtutorial - A tutorial introduction to Sqitch change management on Vertica
+
+=head1 Synopsis
+
+  sqitch *
+
+=head1 Description
+
+This tutorial explains how to create a sqitch-enabled Vertica project, use a
+VCS for deployment planning, and work with other developers to make sure
+changes remain in sync and in the proper order.
+
+We'll start by creating a new project from scratch, a fictional antisocial
+networking site called Flipr. All examples use L<Git|http://git-scm.com/> as
+the VCS and L<Vertica|https://my.vertica.com/> as the storage engine, but for
+the most part you can substitute other VCSes and database engines in the
+examples as appropriate.
+
+If you'd like to manage an Vertica database, see L<sqitchtutorial>.
+
+If you'd like to manage an SQLite database, see L<sqitchtutorial-sqlite>.
+
+If you'd like to manage an Oracle database, see L<sqitchtutorial-oracle>.
+
+If you'd like to manage an MySQL database, see L<sqitchtutorial-mysql>.
+
+If you'd like to manage an Firebird database, see L<sqitchtutorial-firebird>.
+
+=head2 Connection Configuration
+
+Sqitch requires ODBC to connect to the Vertica database. As such, you'll need
+to make sure that the Vertica ODBC driver is properly configured. At its
+simplest, on Unix-like systems, name the driver "Vertica" by adding this entry
+to C<odbcainst.ini> (usually found in C</etc>, C</usr/etc>, or
+C</usr/local/etc>):
+
+  [Vertica]
+  Description = ODBC for Vertica
+  Driver      = /opt/vertica/lib64/libverticaodbc.so
+
+And also creating a C<vertica.ini> file in the same directory that contains:
+
+  [Driver]
+  DriverManagerEncoding=UTF-16
+  ODBCInstLib=/usr/lib64/libodbcinst.so
+  ErrorMessagesPath=/opt/vertica/lib64
+
+You might also consider naming your database connection by putting an entry in
+C<odbc.ini> (same directory), like so (assuming that Vertica is running on
+your local host):
+
+  [dbadmin]
+  Description = Vertica dbadmin connection
+  Driver = Vertica
+  Database = dbadmin
+  Servername = localhost
+  UserName = dbadmin
+  Password = password
+  Port = 5433
+  Locale = en_US
+
+See the
+L<Vertica ODBC Documentation|http://my.vertica.com/docs/7.1.x/HTML/index.htm#Authoring/ProgrammersGuide/InstallingDrivers/CreatingAnODBCDataSourceNameDSN.htm>
+for details. Specific links:
+
+=over
+
+=item * L<Unix ODBC Configuration|http://my.vertica.com/docs/7.1.x/HTML/index.htm#Authoring/ProgrammersGuide/InstallingDrivers/CreatingAnODBCDSNForLinuxSolarisAIXAndHP-UX.htm>
+
+=item * L<Additional Linux ODBC Configuration (C<vertica.ini>)|http://my.vertica.com/docs/7.1.x/HTML/index.htm#Authoring/ProgrammersGuide/ClientODBC/AdditionalODBCDriverConfigurationSettings.htm>
+
+=item * L<Windows ODBC Configuration|http://my.vertica.com/docs/7.1.x/HTML/index.htm#Authoring/ProgrammersGuide/InstallingDrivers/CreatingAnODBCDSNForWindowsClients.htm>
+
+=item * L<Mac OS X ODBC Configuration|http://my.vertica.com/docs/7.1.x/HTML/index.htm#Authoring/ProgrammersGuide/InstallingDrivers/CreatingAnODBCDSNForMacintoshOSXClients.htm>
+
+=back
+
+=head1 Starting a New Project
+
+Usually the first thing to do when starting a new project is to create a
+source code repository. So let's do that with Git:
+
+  > mkdir flipr
+  > cd flipr 
+  > git init .
+  Initialized empty Git repository in /flipr/.git/
+  > touch README.md
+  > git add .
+  > git commit -am 'Initialize project, add README.'
+
+If you're a Git user and want to follow along the history, the repository
+used in these examples is
+L<on GitHub|https://github.com/theory/sqitch-vertica-intro>.
+
+Now that we have a repository, let's get started with Sqitch. Every Sqitch
+project must have a name associated with it, and, optionally, a unique URI. We
+recommend including the URI, as it increases the uniqueness of object
+identifiers internally, so let's specify one when we initialize Sqitch:
+
+  > sqitch --engine vertica init flipr --uri https://github.com/theory/sqitch-vertica-intro/
+  Created sqitch.conf
+  Created sqitch.plan
+  Created deploy/
+  Created revert/
+  Created verify/
+
+Let's have a look at F<sqitch.conf>:
+
+  > cat sqitch.conf
+  [core]
+  	engine = vertica
+  	# plan_file = sqitch.plan
+  	# top_dir = .
+  	# deploy_dir = deploy
+  	# revert_dir = revert
+  	# verify_dir = verify
+  	# extension = sql
+  # [core "vertica"]
+  	# target = db:vertica:
+  	# registry = sqitch
+  	# client = vsql
+
+Good, it picked up on the fact that we're creating changes for the Vertica
+engine, thanks to the C<--engine vertica> option, and saved it to the file.
+Furthermore, it wrote a commented-out C<[core "vertica"]> section with all the
+available Vertica engine-specific settings commented out and ready to be
+edited as appropriate.
+
+By default, Sqitch will read F<sqitch.conf> in the current directory for
+settings. But it will also read F<~/.sqitch/sqitch.conf> for user-specific
+settings. Since Vertica's C<vsql> client is not in the path on my system,
+let's go ahead an tell it where to find the client on our computer:
+
+  > sqitch config --user core.vertica.client /opt/vertica/bin/vsql
+
+And let's also tell it who we are, since this data will be used in all
+of our projects:
+
+  > sqitch config --user user.name 'Marge N. O’Vera'
+  > sqitch config --user user.email 'marge@example.com'
+
+Have a look at F<~/.sqitch/sqitch.conf> and you'll see this:
+
+  > cat ~/.sqitch/sqitch.conf
+  [core "vertica"]
+  	client = /opt/vertica/bin/vsql
+  [user]
+  	name = Marge N. O’Vera
+  	email = marge@example.com
+
+Which means that Sqitch should be able to find C<vsql> for any project, and
+that it will always properly identify us when planning and committing changes.
+
+Back to the repository. Have a look at the plan file, F<sqitch.plan>:
+
+  > cat sqitch.plan
+  %syntax-version=1.0.0-b2
+  %project=flipr
+  %uri=https://github.com/theory/sqitch-vertica-intro/
+  
+
+Note that it has picked up on the name and URI of the app we're building.
+Sqitch uses this data to manage cross-project dependencies. The
+C<%syntax-version> pragma is always set by Sqitch, so that it always knows how
+to parse the plan, even if the format changes in the future.
+
+Let's commit these changes and start creating the database changes.
+
+  > git add .
+  > git commit -am 'Initialize Sqitch configuration.'
+  [master a42564d] Initialize Sqitch configuration.
+   2 files changed, 16 insertions(+), 0 deletions(-)
+   create mode 100644 sqitch.conf
+   create mode 100644 sqitch.plan
+
+=head1 Our First Change
+
+First, our project will need a schema. This creates a nice namespace for all
+of the objects that will be part of the flipr app. Run this command:
+
+  > sqitch add appschema -n 'Add schema for all flipr objects.'
+  Created deploy/appschema.sql
+  Created revert/appschema.sql
+  Created verify/appschema.sql
+  Added "appschema" to sqitch.plan
+
+The L<C<add>|sqitch-add> command adds a database change to the plan and writes
+deploy, revert, and verify scripts that represent the change. Now we edit
+these files. The C<deploy> script's job is to create the schema. So we add
+this to F<deploy/appschema.sql>:
+
+  CREATE SCHEMA flipr;
+
+The C<revert> script's job is to precisely revert the change to the deploy
+script, so we add this to F<revert/appschema.sql>:
+
+  DROP SCHEMA flipr;
+
+Now we can try deploying this change. We tell Sqitch where to send the change
+via a L<database URI|https://github.com/theory/uri-db/>, assuming the default
+C<dbadmin> database and user and an ODBC driver named C<Vertica> (see
+L</Connection Configuration> for details):
+
+  > sqitch deploy db:vertica://dbadmin:password@localhost:5433/dbadmin?Driver=Vertica
+  Adding registry tables to db:vertica://dbadmin:@localhost:5433/dbadmin?Driver=Vertica
+  Deploying changes to db:vertica://dbadmin:@localhost:5433/dbadmin?Driver=Vertica
+    + appschema .. ok
+
+First Sqitch created registry tables used to track database changes. The
+structure and name of the registry varies between databases (Vertica uses a
+schema to namespace its registry, while SQLite and MySQL use separate
+databases). Next, Sqitch deploys changes. We only have one so far; the C<+>
+reinforces the idea that the change is being C<added> to the database.
+
+With this change deployed, if you connect to the database, you'll be able to
+see the schema:
+
+  > vsql -U dbadmin -c '\dn flipr'
+        List of schemas
+   Name  |  Owner  | Comment 
+  -------+---------+---------
+   flipr | dbadmin | 
+
+=head2 Trust, But Verify
+
+But that's too much work. Do you really want to do something like that after
+every deploy?
+
+Here's where the C<verify> script comes in. Its job is to test that the deploy
+did was it was supposed to. It should do so without regard to any data that
+might be in the database, and should throw an error if the deploy was not
+successful. In Vertica, the simplest way to do so for schema is probably to
+simply create an object in the schema. Put this SQL into
+F<verify/appschema.sql>:
+
+  CREATE TABLE flipr.verify__ (id int);
+  DROP   TABLE flipr.verify__;
+
+In truth, you can use I<any> query that generates an SQL error if the schema
+doesn't exist. Another handy way to do that is to divide by zero if an object
+doesn't exist. For example, to throw an error when the C<flipr> schema does
+not exist, you could do something like this:
+
+  SELECT 1/COUNT(*) FROM v_catalog.schemata WHERE schema_name = 'flipr';
+
+Either way, run the C<verify> script with the L<C<verify>|sqitch-verify>
+command:
+
+  > sqitch verify db:vertica://dbadmin:password@localhost:5433/dbadmin?Driver=Vertica
+  Verifying db:vertica://dbadmin:@localhost:5433/dbadmin?Driver=Vertica
+    * appschema .. ok
+  Verify successful
+
+Looks good! If you want to make sure that the verify script correctly dies if
+the schema doesn't exist, temporarily change the schema name in the script to
+something that doesn't exist, something like:
+
+  CREATE TABLE nonesuch.verify__ (id int);
+
+Then L<C<verify>|sqitch-verify> again:
+
+  > sqitch verify db:vertica://dbadmin:password@localhost:5433/dbadmin?Driver=Vertica
+  Verifying db:vertica://dbadmin:@localhost:5433/dbadmin?Driver=Vertica
+    * appschema .. vsql:verify/appschema.sql:5: ROLLBACK 4650:  Schema "nonesuch" does not exist
+  # Verify script "verify/appschema.sql" failed.
+  not ok
+
+  Verify Summary Report
+  ---------------------
+  Changes: 1
+  Errors:  1
+  Verify failed
+
+It's even nice enough to tell us what the problem is. Or, for the
+divide-by-zero example, change the schema name:
+
+  SELECT 1/COUNT(*) FROM v_catalog.schemata WHERE schema_name = 'nonesuch';
+
+Then the verify will look something like:
+
+  > sqitch verify db:vertica://dbadmin:password@localhost:5433/dbadmin?Driver=Vertica
+  Verifying db:vertica://dbadmin:@localhost:5433/dbadmin?Driver=Vertica
+    * appschema .. vsql:verify/appschema.sql:5: ERROR 2005:  division by zero
+  # Verify script "verify/appschema.sql" failed.
+  not ok
+
+  Verify Summary Report
+  ---------------------
+  Changes: 1
+  Errors:  1
+  Verify failed
+
+Less useful error output, but enough to alert us that something has gone
+wrong.
+
+Don't forget to change the schema name back before continuing!
+
+=head2 Status, Revert, Log, Repeat
+
+For purely informational purposes, we can always see how a deployment was
+recorded via the L<C<status>|sqitch-status> command, which reads the registry
+tables from the database:
+
+  > sqitch status db:vertica://dbadmin:password@localhost:5433/dbadmin?Driver=Vertica
+  # On database db:vertica://dbadmin:@localhost:5433/dbadmin?Driver=Vertica
+  # Project:  flipr
+  # Change:   f9759f0ed77964b6a3b6c7aa3b6058b4bb7db764
+  # Name:     appschema
+  # Deployed: 2014-09-04 15:26:28 -0700
+  # By:       Marge N. O’Vera <marge@example.com>
+  # 
+  Nothing to deploy (up-to-date)
+
+Let's make sure that we can revert the change:
+
+  > sqitch revert db:vertica://dbadmin:password@localhost:5433/dbadmin?Driver=Vertica
+  Revert all changes from db:vertica://dbadmin:@localhost:5433/dbadmin?Driver=Vertica? [Yes] 
+    - appschema .. ok
+
+The L<C<revert>|sqitch-revert> command first prompts to make sure that we
+really do want to revert. This is to prevent unnecessary accidents. You can
+pass the C<-y> option to disable the prompt. Also, notice the C<-> before the
+change name in the output, which reinforces that the change is being
+I<removed> from the database. And now the schema should be gone:
+
+  > vsql -U dbadmin -c '\dn flipr'
+      List of schemas
+   Name | Owner | Comment 
+  ------+-------+---------
+  (0 rows)
+
+And the status message should reflect as much:
+
+  > sqitch status db:vertica://dbadmin:password@localhost:5433/dbadmin?Driver=Vertica
+  # On database db:vertica://dbadmin:@localhost:5433/dbadmin?Driver=Vertica
+  No changes deployed
+
+Of course, since nothing is deployed, the L<C<verify>|sqitch-verify> command
+has nothing to verify:
+
+  > sqitch verify db:vertica://dbadmin:password@localhost:5433/dbadmin?Driver=Vertica
+  Verifying db:vertica://dbadmin:@localhost:5433/dbadmin?Driver=Vertica
+  No changes deployed
+
+However, we still have a record that the change happened, visible via the
+L<C<log>|sqitch-log> command:
+
+  > sqitch log db:vertica://dbadmin:password@localhost:5433/dbadmin?Driver=Vertica
+  On database db:vertica://dbadmin:@localhost:5433/dbadmin?Driver=Vertica
+  Revert f9759f0ed77964b6a3b6c7aa3b6058b4bb7db764
+  Name:      appschema
+  Committer: Marge N. O’Vera <marge@example.com>
+  Date:      2014-09-04 16:33:02 -0700
+
+      Add schema for all flipr objects.
+
+  Deploy f9759f0ed77964b6a3b6c7aa3b6058b4bb7db764
+  Name:      appschema
+  Committer: Marge N. O’Vera <marge@example.com>
+  Date:      2014-09-04 15:26:28 -0700
+
+      Add schema for all flipr objects.
+
+Note that the actions we took are shown in reverse chronological order, with
+the revert first and then the deploy.
+
+Cool. Now let's commit it.
+
+  > git add .
+  > git commit -m 'Add flipr schema.'
+  [master 9bee4bd] Add flipr schema.
+   5 files changed, 197 insertions(+), 0 deletions(-)
+   create mode 100644 deploy/appschema.sql
+   create mode 100644 revert/appschema.sql
+   create mode 100644 sqitch.sql
+   create mode 100644 verify/appschema.sql
+
+And then deploy again. This time, let's use the C<--verify> option, so that
+the C<verify> script is applied when the change is deployed:
+
+  > sqitch deploy --verify db:vertica://dbadmin:password@localhost:5433/dbadmin?Driver=Vertica
+  Deploying changes to db:vertica://dbadmin:@localhost:5433/dbadmin?Driver=Vertica
+    + appschema .. ok
+
+And now the schema should be back:
+
+  > vsql -U dbadmin -c '\dn flipr'
+        List of schemas
+   Name  |  Owner  | Comment 
+  -------+---------+---------
+   flipr | dbadmin | 
+
+When we look at the status, the deployment will be there:
+
+  > sqitch status db:vertica://dbadmin:password@localhost:5433/dbadmin?Driver=Vertica
+  # On database db:vertica://dbadmin:@localhost:5433/dbadmin?Driver=Vertica
+  # Project:  flipr
+  # Change:   f9759f0ed77964b6a3b6c7aa3b6058b4bb7db764
+  # Name:     appschema
+  # Deployed: 2014-09-04 16:37:38 -0700
+  # By:       Marge N. O’Vera <marge@example.com>
+  # 
+  Nothing to deploy (up-to-date)
+
+=head1 On Target
+
+I'm getting a little tired of always having to type
+C<db:vertica://dbadmin:password@localhost:5433/dbadmin?Driver=Vertica>, aren't
+you? This L<database connection URI|https://github.com/theory/uri-db/> tells
+Sqitch how to connect to the deployment target, but we don't have to keep
+using the URI. We can name the target:
+
+  > sqitch target add flipr_test db:vertica://dbadmin:password@localhost:5433/dbadmin?Driver=Vertica
+
+The L<C<target>|sqitch-target> command, inspired by
+L<C<git-remote>|http://git-scm.com/docs/git-remote>, allows management of one
+or more named deployment targets. We've just added a target named
+C<flipr_test>, which means we can use the string C<flipr_test> for the target,
+rather than the URI. But since we're doing so much testing, we can also tell
+Sqitch to deploy to the C<flipr_test> target by default:
+
+  > sqitch config core.vertica.target flipr_test
+
+Now we can omit the target argument altogether, unless we need to deploy to
+another database. Which we will, eventually, but at least our examples will be
+simpler from here on in, e.g.:
+
+  > sqitch status
+  # On database flipr_test
+  # Project:  flipr
+  # Change:   f9759f0ed77964b6a3b6c7aa3b6058b4bb7db764
+  # Name:     appschema
+  # Deployed: 2014-09-04 16:37:38 -0700
+  # By:       Marge N. O’Vera <marge@example.com>
+  # 
+  Nothing to deploy (up-to-date)
+
+Yay, that allows things to be a little more concise. Let's also make sure that
+changes are verified after deploying them:
+
+  > sqitch config --bool deploy.verify true
+  > sqitch config --bool rebase.verify true
+
+We'll see the L<C<rebase>|sqitch-rebase> command a bit later. In the meantime,
+let's commit the new configuration and and make some more changes!
+
+  > git commit -am 'Set default deployment target and always verify.'     
+  [master 469779a] Set default deployment target and always verify.
+   1 files changed, 8 insertions(+), 0 deletions(-)
+
+=head1 Deploy with Dependency
+
+Let's add another change, this time to create a table. Our app will need
+users, of course, so we'll create a table for them. First, add the new change:
+
+  > sqitch add users --requires appschema -n 'Creates table to track our users.'
+  Created deploy/users.sql
+  Created revert/users.sql
+  Created verify/users.sql
+  Added "users [appschema]" to sqitch.plan
+
+Note that we're requiring the C<appschema> change as a dependency of the new
+C<users> change. Although that change has already been added to the plan and
+therefore should always be applied before the C<users> change, it's a good
+idea to be explicit about dependencies.
+
+Now edit the scripts. When you're done, F<deploy/users.sql> should look like
+this:
+
+  -- Deploy users                                                                                 
+  -- requires: appschema                                                                          
+
+  CREATE TABLE flipr.users (
+      nickname  VARCHAR      PRIMARY KEY,
+      password  VARCHAR      NOT NULL,
+      fullname  VARCHAR(256) NOT NULL,
+      twitter   VARCHAR      NOT NULL,
+      timestamp TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+  );
+
+A few things to notice here. On the second line, the dependence on the
+C<appschema> change has been listed. This doesn't do anything, but the default
+C<deploy> Vertica template lists it here for your reference while editing
+the file. Useful, right?
+
+The table itself will be created in the C<flipr> schema. This is why we need
+to require the C<appschema> change.
+
+Now for the verify script. The simplest way to check that the table was
+created and has the expected columns without touching the data? Just select
+from the table with a false C<WHERE> clause. Add this to F<verify/users.sql>:
+
+  SELECT nickname, password, twitter, timestamp
+    FROM flipr.users
+   WHERE FALSE;
+
+Now for the revert script: all we have to do is drop the table. Add this to
+F<revert/users.sql>:
+
+  DROP TABLE flipr.users;
+
+Couldn't be much simpler, right? Let's deploy this bad boy:
+
+  > sqitch deploy
+  Deploying changes to flipr_test
+    + users .. ok
+
+We know, since verification is enabled, that the table must have been created.
+But for the purposes of visibility, let's have a quick look:
+
+  > vsql -U dbadmin -c '\d flipr.users'
+                                        List of Fields by Tables
+   Schema | Table |   Column    |    Type     | Size | Default | Not Null | Primary Key | Foreign Key 
+  --------+-------+-------------+-------------+------+---------+----------+-------------+-------------
+   flipr  | users | nickname    | varchar(80) |   80 |         | t        | t           | 
+   flipr  | users | password    | varchar(80) |   80 |         | t        | f           | 
+   flipr  | users | "timestamp" | timestamptz |    8 | now()   | t        | f           | 
+
+We can also verify all currently deployed changes with the
+L<C<verify>|sqitch-verify> command:
+
+  > sqitch verify
+  Verifying flipr_test
+    * appschema .. ok
+    * users ...... ok
+  Verify successful
+
+Now have a look at the status:
+
+  > sqitch status
+  # On database flipr_test
+  # Project:  flipr
+  # Change:   d647ac8c130a7e0b12c9049789e46afb4a4f6e53
+  # Name:     users
+  # Deployed: 2014-09-04 16:42:45 -0700
+  # By:       Marge N. O’Vera <marge@example.com>
+  # 
+  Nothing to deploy (up-to-date)
+
+Success! Let's make sure we can revert the change, as well:
+
+  > sqitch revert --to @HEAD^ -y
+  Reverting changes to appschema from flipr_test
+    - users .. ok
+
+Note that we've used the C<--to> option to specify the change to revert to.
+And what do we revert to? The symbolic tag C<@HEAD>, when passed to
+L<C<revert>|sqitch-revert>, always refers to the last change deployed to the
+database. (For other commands, it refers to the last change in the plan.)
+Appending the caret (C<^>) tells Sqitch to select the change I<prior> to the
+last deployed change. So we revert to C<appschema>, the penultimate change.
+The other potentially useful symbolic tag is C<@ROOT>, which refers to the
+first change deployed to the database (or in the plan, depending on the
+command).
+
+Back to the database. The C<users> table should be gone but the C<flipr> schema
+should still be around:
+
+  > vsql -U dbadmin -c '\d flipr.users'
+  Did not find any relation.
+
+The L<C<status>|sqitch-status> command politely informs us that we have
+undeployed changes:
+
+  > sqitch status
+  # On database flipr_test
+  # Project:  flipr
+  # Change:   f9759f0ed77964b6a3b6c7aa3b6058b4bb7db764
+  # Name:     appschema
+  # Deployed: 2014-09-04 16:37:38 -0700
+  # By:       Marge N. O’Vera <marge@example.com>
+  # 
+  Undeployed change:
+    * users
+
+As does the L<C<verify>|sqitch-verify> command:
+
+  > sqitch verify
+  Verifying flipr_test
+    * appschema .. ok
+  Undeployed change:
+    * users
+  Verify successful
+
+Note that the verify is successful, because all currently-deployed changes are
+verified. The list of undeployed changes (just "users" here) reminds us about
+the current state.
+
+Okay, let's commit and deploy again:
+
+  > git add .
+  > git commit -am 'Add users table.'
+  [master c7c24c5] Add users table.
+   4 files changed, 18 insertions(+), 0 deletions(-)
+   create mode 100644 deploy/users.sql
+   create mode 100644 revert/users.sql
+   create mode 100644 verify/users.sql
+  Deploying changes to flipr_test
+    + users .. ok
+
+Looks good. Check the status:
+
+  > sqitch status
+  # On database flipr_test
+  # Project:  flipr
+  # Change:   d647ac8c130a7e0b12c9049789e46afb4a4f6e53
+  # Name:     users
+  # Deployed: 2014-09-04 17:42:53 -0700
+  # By:       Marge N. O’Vera <marge@example.com>
+  # 
+  Nothing to deploy (up-to-date)
+
+Excellent. Let's do some more!
+
+=head1 Add Two at Once
+
+Let's add a couple more changes. Our app will need to store status messages
+from users. Let's call them -- and the table to store them -- "flips". And
+we'll also need a view that lists user names with their flips. Let's add
+changes for them both:
+
+  > sqitch add flips -r appschema -r users -n 'Adds table for storing flips.'
+  Created deploy/flips.sql
+  Created revert/flips.sql
+  Created verify/flips.sql
+  Added "flips [appschema users]" to sqitch.plan
+
+  > sqitch add userflips -r appschema -r users -r flips \
+	-n 'Creates the userflips view.'
+  Created deploy/userflips.sql
+  Created revert/userflips.sql
+  Created verify/userflips.sql
+  Added "userflips [appschema users flips]" to sqitch.plan
+
+Now might be a good time to have a look at the deployment plan:
+
+  > cat sqitch.plan
+  %syntax-version=1.0.0-b2
+  %project=flipr
+  %uri=https://github.com/theory/sqitch-vertica-intro/
+
+  appschema 2014-09-04T18:40:34Z Marge N. O’Vera <marge@example.com> # Add schema for all flipr objects.
+  users [appschema] 2014-09-04T23:40:15Z Marge N. O’Vera <marge@example.com> # Creates table to track our users.
+  flips [appschema users] 2014-09-05T00:16:58Z Marge N. O’Vera <marge@example.com> # Adds table for storing flips.
+  userflips [appschema users flips] 2014-09-05T00:18:43Z Marge N. O’Vera <marge@example.com> # Creates the userflips view.
+
+Each change appears on a single line with the name of the change, a bracketed
+list of dependencies, a timestamp, the name and email address of the user who
+planned the change, and a note.
+
+Let's write the code for the new changes. Here's what F<deploy/flips.sql>
+should look like:
+
+  -- Deploy flips
+  -- requires: appschema
+  -- requires: users
+  
+  CREATE TABLE flipr.flips (
+      id        AUTO_INCREMENT PRIMARY KEY ,
+      nickname  VARCHAR        NOT NULL REFERENCES flipr.users(nickname),
+      body      VARCHAR(180)   NOT NULL DEFAULT '',
+      timestamp TIMESTAMPTZ    NOT NULL DEFAULT clock_timestamp()
+  );
+
+Here's what F<verify/flips.sql> might look like:
+
+  -- Verify flips                                                                                 
+  SELECT id, nickname, body, timestamp
+    FROM flipr.flips
+   WHERE FALSE;
+
+We simply take advantage of the fact that C<has_function_privilege()> throws
+an exception if the specified function does not exist.
+
+And F<revert/flips.sql> should look something like this:
+
+  -- Revert flips
+  DROP TABLE flipr.flips;
+
+Now for C<userflips>; F<deploy/userflips.sql> might look like this:
+
+  -- Deploy userflips
+  -- requires: appschema
+  -- requires: users
+  -- requires: flips
+
+  CREATE OR REPLACE VIEW flipr.userflips AS
+  SELECT f.id, u.nickname, u.fullname, f.body, f.timestamp
+    FROM flipr.users u
+    JOIN flipr.flips f ON u.nickname = f.nickname;
+
+Use a C<SELECT> statement in F<verify/userflips.sql> again:
+
+  -- Verify userflips
+  SELECT id, nickname, fullname, body, timestamp
+    FROM flipr.userflips
+   WHERE FALSE;
+
+And of course, its C<revert> script, F<revert/userflips.sql>, should look
+something like:
+
+  -- Revert userflips
+  DROP VIEW flipr.userflips;
+
+Try em out!
+
+  > sqitch deploy
+  Deploying changes to flipr_test
+    + flips ...... ok
+    + userflips .. ok
+
+Do we have the new table and view? Of course we do, they were verified. Still,
+have a look:
+
+  > vsql -U dbadmin -c '\dt flipr.flips'
+                 List of tables
+   Schema | Name  | Kind  |  Owner  | Comment 
+  --------+-------+-------+---------+---------
+   flipr  | flips | table | dbadmin | 
+
+  > vsql -U dbadmin -c '\dv flipr.userflips'
+                    List of View Fields
+   Schema |   View    |   Column    |     Type     | Size 
+  --------+-----------+-------------+--------------+------
+   flipr  | userflips | id          | int          |    8
+   flipr  | userflips | nickname    | varchar(80)  |   80
+   flipr  | userflips | fullname    | varchar(256) |  256
+   flipr  | userflips | body        | varchar(180) |  180
+   flipr  | userflips | "timestamp" | timestamptz  |    8
+
+And what's the status?
+
+  > sqitch status 
+  # On database flipr_test
+  # Project:  flipr
+  # Change:   d1f998618fb863d93049a724fd0d2b49a29add86
+  # Name:     userflips
+  # Deployed: 2014-09-04 17:51:21 -0700
+  # By:       Marge N. O’Vera <marge@example.com>
+  # 
+  Nothing to deploy (up-to-date)
+
+Looks good. Let's make sure revert works:
+
+  > sqitch revert -y --to @HEAD^
+  Reverting changes to users from flipr_test
+    - userflips .. ok
+    - flips ...... ok
+  >  vsql -U dbadmin -c '\d flipr.flips'
+  Did not find any relation.
+  > vsql -U dbadmin -c '\dv flipr.userflips'
+  No matching relations found.
+
+Note the use of C<@HEAD^^> to specify that the revert be to two changes prior
+the last deployed change. Looks good. Let's do the commit and re-deploy dance:
+
+  > git add .
+  > git commit -m 'Add flips table and userflips view.'
+  [master c40f23f] Add flips table and userflips view.
+   7 files changed, 41 insertions(+), 0 deletions(-)
+   create mode 100644 deploy/flips.sql
+   create mode 100644 deploy/userflips.sql
+   create mode 100644 revert/flips.sql
+   create mode 100644 revert/userflips.sql
+   create mode 100644 verify/flips.sql
+   create mode 100644 verify/userflips.sql
+ 
+  > sqitch deploy
+  Deploying changes to flipr_test
+    + flips ...... ok
+    + userflips .. ok
+
+  > sqitch status
+  # On database flipr_test
+  # Project:  flipr
+  # Change:   d1f998618fb863d93049a724fd0d2b49a29add86
+  # Name:     userflips
+  # Deployed: 2014-09-04 17:59:34 -0700
+  # By:       Marge N. O’Vera <marge@example.com>
+  # 
+  Nothing to deploy (up-to-date)
+  
+  > sqitch verify
+  Verifying flipr_test
+    * appschema .. ok
+    * users ...... ok
+    * flips ...... ok
+    * userflips .. ok
+  Verify successful
+
+Great, we're fully up-to-date!
+
+=head1 Ship It!
+
+Let's do a first release of our app. Let's call it C<1.0.0-dev1> Since we want
+to have it go out with deployments tied to the release, let's tag it:
+
+  > sqitch tag v1.0.0-dev1 -n 'Tag v1.0.0-dev1.'
+  Tagged "userflips" with @v1.0.0-dev1
+  > git commit -am 'Tag the database with v1.0.0-dev1.'
+  [master b07ce3d] Tag the database with v1.0.0-dev1.
+   1 files changed, 1 insertions(+), 0 deletions(-)
+  > git tag v1.0.0-dev1 -am 'Tag v1.0.0-dev1'
+
+We can try deploying to make sure the tag gets picked up like so:
+
+  > sqitch deploy
+  Nothing to deploy (up-to-date)
+  > sqitch status
+  # On database flipr_test
+  # Project:  flipr
+  # Change:   d1f998618fb863d93049a724fd0d2b49a29add86
+  # Name:     userflips
+  # Tag:      @v1.0.0-dev1
+  # Deployed: 2014-09-04 17:59:34 -0700
+  # By:       Marge N. O’Vera <marge@example.com>
+  # 
+  Nothing to deploy (up-to-date)
+
+Note the new "Tag" line in the output of C<sqitch status>: no new changes
+needed to be deployed, but Sqitch did deploy the tag on the C<userflips>
+change. Now let's bundle everything up for release:
+
+  > sqitch bundle
+  Bundling into bundle
+  Writing config
+  Writing plan
+  Writing scripts
+    + appschema
+    + users
+    + flips
+    + userflips @v1.0.0-dev1
+
+Now we can package the F<bundle> directory and distribute it. When it gets
+installed somewhere, users can use Sqitch to deploy to the database. Let's try
+deploying it to another database:
+
+  > cd bundle
+  > sqitch deploy db:vertica://dbadmin:password@db.example.com:5433/flipr?Driver=Vertica
+  Adding registry tables to db:vertica://dbadmin:@db.example.com:5433/flipr?Driver=Vertica
+  Deploying changes to db:vertica://dbadmin:@db.example.com:5433/flipr?Driver=Vertica
+    + appschema ............... ok
+    + users ................... ok
+    + flips ................... ok
+    + userflips @v1.0.0-dev1 .. ok
+
+Notice how the tag on C<userflips> now appears in the deploy output. Nice, eh?
+Now, package it up and ship it!
+
+=head1 Making a Hash of Things
+
+Now that we've got the basics of the app done, let's add a feature. Gotta
+track the hashtags associated with flips, right? Let's add a table for them.
+But since other folks are working on other tasks in the repository, we'll work
+on a branch, so we can all stay out of each other's way. So let's branch:
+
+=head1 Making a Hash of Things
+
+Now that we've got the basics of the app done, let's add a feature. Gotta
+track the hashtags associated with flips, right? Let's add a table for them.
+But since other folks are working on other tasks in the repository, we'll work
+on a branch, so we can all stay out of each other's way. So let's branch:
+
+  > git checkout -b hashtags
+  Switched to a new branch 'hashtags'
+
+Now we can add a new change to create a table for hashtags.
+
+  > sqitch add hashtags --requires flips -n 'Adds table for storing hashtags.'
+  Created deploy/hashtags.sql
+  Created revert/hashtags.sql
+  Created verify/hashtags.sql
+  Added "hashtags [appschema flips]" to sqitch.plan
+
+You know the drill by now. Add this to F<deploy/hashtags.sql>
+
+  CREATE TABLE flipr.hashtags (
+      flip_id   BIGINT  NOT   NULL REFERENCES flipr.Flips(id),
+      hashtag   VARCHAR(128)  NOT NULL,
+      PRIMARY KEY (flip_id, hashtag)
+  );
+
+Again, select from the table in F<verify/hashtags.sql>:
+
+  SELECT flip_id, hashtag FROM flipr.hashtags WHERE FALSE;
+
+And drop it in F<revert/hashtags.sql>
+
+  DROP TABLE flipr.hashtags;
+
+And give it a whirl:
+
+  > sqitch deploy
+  Deploying changes to flipr_test
+	+ hashtags .. ok
+
+Look good?
+
+  > sqitch status --show-tags
+  # On database flipr_test
+  # Project:  flipr
+  # Change:   fda6daef73e0ac12252bf6af5f259ccb207d4197
+  # Name:     hashtags
+  # Deployed: 2014-09-05 10:46:20 -0700
+  # By:       Marge N. O’Vera <marge@example.com>
+  # 
+  # Tag:
+  #   @v1.0.0-dev1 - 2014-09-05 09:09:38 -0700 - Marge N. O’Vera <marge@example.com>
+  # 
+  Nothing to deploy (up-to-date)
+
+Note the use of C<--show tags> to show all the deployed tags. Make sure we can
+revert, too:
+
+  > sqitch rebase -y --onto @HEAD^
+  Reverting changes to userflips @v1.0.0-dev1 from flipr_test
+    - hashtags .. ok
+  Deploying changes to flipr_test
+    + hashtags .. ok
+
+Great! Now make it so:
+
+  > git add .
+  > git commit -m 'Add hashtags table.'
+  [hashtags d893e9c] Add hashtags table.
+   4 files changed, 18 insertions(+), 0 deletions(-)
+   create mode 100644 deploy/hashtags.sql
+   create mode 100644 revert/hashtags.sql
+   create mode 100644 verify/hashtags.sql
+
+Good, we've finished this feature. Time to merge back into C<master>.
+
+=head2 Emergency
+
+Let's do it:
+
+  > git checkout master
+  Switched to branch 'master'
+  > git pull
+  Updating b07ce3d..05d3e5d
+  Fast-forward
+   deploy/lists.sql |   10 ++++++++++
+   revert/lists.sql |    3 +++
+   sqitch.plan      |    2 ++
+   verify/lists.sql |    5 +++++
+   4 files changed, 20 insertions(+), 0 deletions(-)
+   create mode 100644 deploy/lists.sql
+   create mode 100644 revert/lists.sql
+   create mode 100644 verify/lists.sql
+
+Hrm, that's interesting. Looks like someone made some changes to C<master>.
+They added list support. Well, let's see what happens when we merge our
+changes.
+
+  > git merge --no-ff hashtags
+  Auto-merging sqitch.plan
+  CONFLICT (content): Merge conflict in sqitch.plan
+  Automatic merge failed; fix conflicts and then commit the result.
+
+Oh, a conflict in F<sqitch.plan>. Not too surprising, since both the merged
+C<lists> branch and our C<hashtags> branch added changes to the plan. Let's
+try a different approach.
+
+The truth is, we got lazy. Those changes when we pulled master from the origin
+should have raised a red flag. It's considered a bad practice not to look at
+what's changed in C<master> before merging in a branch. What one I<should> do
+is either:
+
+=over
+
+=item *
+
+Rebase the F<hashtags> branch from master before merging. This "rewinds" the
+branch changes, pulls from C<master>, and then replays the changes back on top
+of the pulled changes.
+
+=item *
+
+Create a patch and apply I<that> to master. This is the sort of thing you
+might have to do if you're sending changes to another user, especially if the
+VCS is not Git.
+
+=back
+
+So let's restore things to how they were at master:
+
+  > git reset --hard HEAD
+  HEAD is now at 05d3e5d Merge branch 'lists'
+
+That throws out our botched merge. Now let's go back to our branch and rebase
+it on C<master>:
+
+  > git checkout hashtags
+  Switched to branch 'hashtags'
+  > git rebase master
+  First, rewinding head to replay your work on top of it...
+  Applying: Add hashtags table.
+  Using index info to reconstruct a base tree...
+  <stdin>:16: new blank line at EOF.
+  +
+  warning: 1 line adds whitespace errors.
+  Falling back to patching base and 3-way merge...
+  Auto-merging sqitch.plan
+  CONFLICT (content): Merge conflict in sqitch.plan
+  Failed to merge in the changes.
+  Patch failed at 0001 Add hashtags table.
+
+  When you have resolved this problem run "git rebase --continue".
+  If you would prefer to skip this patch, instead run "git rebase --skip".
+  To restore the original branch and stop rebasing run "git rebase --abort".
+
+Oy, that's kind of a pain. It seems like no matter what we do, we'll need to
+resolve conflicts in that file. Except in Git. Fortunately for us, we can tell
+Git to resolve conflicts in F<sqitch.plan> differently. Because we only ever
+append lines to the file, we can have it use the "union" merge driver, which,
+according to
+L<its docs|http://git-scm.com/docs/gitattributes#_built-in_merge_drivers>:
+
+=over
+
+Run 3-way file level merge for text files, but take lines from both versions,
+instead of leaving conflict markers. This tends to leave the added lines in
+the resulting file in random order and the user should verify the result. Do
+not use this if you do not understand the implications.
+
+=back
+
+This has the effect of appending lines from all the merging files, which is
+exactly what we need. So let's give it a try. First, back out the botched
+rebase:
+
+  > git rebase --abort
+  HEAD is now at d893e9c Add hashtags table.
+
+Now add the union merge driver to F<.gitattributes> for F<sqitch.plan>
+and rebase again:
+
+  > echo sqitch.plan merge=union > .gitattributes
+  > git rebase master
+  First, rewinding head to replay your work on top of it...
+  Applying: Add hashtags table.
+  Using index info to reconstruct a base tree...
+  <stdin>:16: new blank line at EOF.
+  +
+  warning: 1 line adds whitespace errors.
+  Falling back to patching base and 3-way merge...
+  Auto-merging sqitch.plan
+
+Ah, that looks a bit better. Let's have a look at the plan:
+
+  > cat sqitch.plan
+  %syntax-version=1.0.0-b2
+  %project=flipr
+  %uri=https://github.com/theory/sqitch-vertica-intro/
+
+  appschema 2014-09-04T18:40:34Z Marge N. O’Vera <marge@example.com> # Add schema for all flipr objects.
+  users [appschema] 2014-09-04T23:40:15Z Marge N. O’Vera <marge@example.com> # Creates table to track our users.
+  flips [appschema users] 2014-09-05T00:16:58Z Marge N. O’Vera <marge@example.com> # Adds table for storing flips.
+  userflips [appschema users flips] 2014-09-05T00:18:43Z Marge N. O’Vera <marge@example.com> # Creates the userflips view.
+  @v1.0.0-dev1 2014-09-05T16:04:48Z Marge N. O’Vera <marge@example.com> # Tag v1.0.0-dev1.
+
+  lists [appschema users] 2014-09-05T17:33:43Z Marge N. O’Vera <marge@example.com> # Adds table for storing lists.
+  hashtags [appschema flips] 2014-09-05T17:39:53Z Marge N. O’Vera <marge@example.com> # Adds table for storing hashtags.
+
+Note that it has appended the changes from the merged "lists" branch, and then
+merged the changes from our "hashtags" branch. Test it to make sure it works
+as expected:
+
+  > sqitch rebase -y
+  Reverting all changes from flipr_test
+    - hashtags ................ ok
+    - userflips @v1.0.0-dev1 .. ok
+    - flips ................... ok
+    - users ................... ok
+    - appschema ............... ok
+  Deploying changes to flipr_test
+    + appschema ............... ok
+    + users ................... ok
+    + flips ................... ok
+    + userflips @v1.0.0-dev1 .. ok
+    + lists ................... ok
+    + hashtags ................ ok
+
+Note the use of L<C<rebase>|sqitch-rebase>, which combines a
+L<C<revert>|sqitch-revert> and a L<C<deploy>|sqitch-deploy> into a single
+command. Handy, right? It correctly reverted our changes, and then deployed
+them all again in the proper order. So let's commit F<.gitattributes>; seems
+worthwhile to keep that change:
+
+  > git add .
+  > git commit -m 'Add `.gitattributes` with union merge for `sqitch.plan`.'
+  [hashtags 2f065a3] Add `.gitattributes` with union merge for `sqitch.plan`.
+   1 files changed, 1 insertions(+), 0 deletions(-)
+   create mode 100644 .gitattributes
+
+=head2 Merges Mastered
+
+And now, finally, we can merge into C<master>:
+
+  > git checkout master
+  Switched to branch 'master'
+  > git merge --no-ff hashtags -m "Merge branch 'hashtags'"
+  Merge made by recursive.
+   .gitattributes      |    1 +
+   deploy/hashtags.sql |   10 ++++++++++
+   revert/hashtags.sql |    3 +++
+   sqitch.plan         |    1 +
+   verify/hashtags.sql |    3 +++
+   5 files changed, 18 insertions(+), 0 deletions(-)
+   create mode 100644 .gitattributes
+   create mode 100644 deploy/hashtags.sql
+   create mode 100644 revert/hashtags.sql
+   create mode 100644 verify/hashtags.sql
+
+And double-check our work:
+
+  > cat sqitch.plan
+  %syntax-version=1.0.0-b2
+  %project=flipr
+  %uri=https://github.com/theory/sqitch-vertica-intro/
+
+  appschema 2014-09-04T18:40:34Z Marge N. O’Vera <marge@example.com> # Add schema for all flipr objects.
+  users [appschema] 2014-09-04T23:40:15Z Marge N. O’Vera <marge@example.com> # Creates table to track our users.
+  flips [appschema users] 2014-09-05T00:16:58Z Marge N. O’Vera <marge@example.com> # Adds table for storing flips.
+  userflips [appschema users flips] 2014-09-05T00:18:43Z Marge N. O’Vera <marge@example.com> # Creates the userflips view.
+  @v1.0.0-dev1 2014-09-05T16:04:48Z Marge N. O’Vera <marge@example.com> # Tag v1.0.0-dev1.
+
+  lists [appschema users] 2014-09-05T17:33:43Z Marge N. O’Vera <marge@example.com> # Adds table for storing lists.
+  hashtags [appschema flips] 2014-09-05T17:39:53Z Marge N. O’Vera <marge@example.com> # Adds table for storing hashtags.
+
+Much much better, a nice clean master now. And because it is now identical to
+the "hashtags" branch, we can just carry on. Go ahead and tag it, bundle, and
+release:
+
+  > sqitch tag v1.0.0-dev2 -n 'Tag v1.0.0-dev2.'
+  Tagged "hashtags" with @v1.0.0-dev2
+  > git commit -am 'Tag the database with v1.0.0-dev2.'
+  [master 8a6a73b] Tag the database with v1.0.0-dev2.
+   1 files changed, 1 insertions(+), 0 deletions(-)
+  > git tag v1.0.0-dev2 -am 'Tag v1.0.0-dev2'
+  > sqitch bundle --dest-dir flipr-1.0.0-dev2
+  Bundling into flipr-1.0.0-dev2
+  Writing config
+  Writing plan
+  Writing scripts
+    + appschema
+    + users
+    + flips
+    + userflips @v1.0.0-dev1
+    + lists
+    + hashtags @v1.0.0-dev2
+
+Note the use of the C<--dest-dir> option to C<sqitch bundle>. Just a nicer way
+to create the top-level directory name so we don't have to rename it from
+F<bundle>.
+
+=head1 In Place Changes
+
+Well, some folks have been testing the C<1.0.0-dev2> release and have demanded
+that Twitter user links be added to Flipr pages. Why anyone would want to
+include social network links in an anti-social networking app is beyond us
+programmers, but we're just the plumbers, right? Gotta go with what Product
+demands. The upshot is that we need to update the C<userflips> view, which is
+used for the feature in question, to include the Twitter user names.
+
+Normally, modifying views in database changes is a
+L<PITA|http://www.urbandictionary.com/define.php?term=pita>. You have to make
+changes like these:
+
+=over
+
+=item 1.
+
+Copy F<deploy/userflips.sql> to F<deploy/userflips_twitter.sql>.
+
+=item 2.
+
+Edit F<deploy/userflips_twitter.sql> to drop and re-create the view with the
+C<twitter> column to the view.
+
+=item 3.
+
+Copy F<deploy/userflips.sql> to F<revert/userflips_twitter.sql>.
+Yes, copy the original change script to the new revert change.
+
+=item 4.
+
+Add a C<DROP VIEW> statement to F<revert/userflips_twitter.sql>.
+
+=item 5.
+
+Copy F<verify/userflips.sql> to F<verify/userflips_twitter.sql>.
+
+=item 6.
+
+Modify F<verify/userflips_twitter.sql> to include a check for the C<twiter>
+column.
+
+=item 7.
+
+Test the changes to make sure you can deploy and revert the
+C<userflips_twitter> change.
+
+=back
+
+But you can have Sqitch do most of the work for you. The only requirement is
+that a tag appear between the two instances of a change we want to modify. In
+general, you're going to make a change like this after a release, which you've
+tagged anyway, right? Well we have, with C<@v1.0.0-dev2> added in the previous
+section. With that, we can let Sqitch do most of the hard work for us, thanks
+to the L<C<rework>|sqitch-rework> command, which is similar to
+L<C<add>|sqitch-add>:
+
+  > sqitch rework userflips -n 'Adds userflips.twitter.'
+  Added "userflips [userflips@v1.0.0-dev2]" to sqitch.plan.
+  Modify these files as appropriate:
+	* deploy/userflips.sql
+	* revert/userflips.sql
+	* verify/userflips.sql
+
+Oh, so we can edit those files in place. Nice! How does Sqitch do it? Well, in
+point of fact, it has copied the files to stand in for the previous instance
+of the C<userflips> change, which we can see via C<git status>:
+
+  > git status
+  # On branch master
+  # Changed but not updated:
+  #   (use "git add <file>..." to update what will be committed)
+  #   (use "git checkout -- <file>..." to discard changes in working directory)
+  #
+  #	modified:   revert/userflips.sql
+  #	modified:   sqitch.plan
+  #
+  # Untracked files:
+  #   (use "git add <file>..." to include in what will be committed)
+  #
+  #	deploy/userflips@v1.0.0-dev2.sql
+  #	revert/userflips@v1.0.0-dev2.sql
+  #	verify/userflips@v1.0.0-dev2.sql
+  no changes added to commit (use "git add" and/or "git commit -a")
+
+The "untracked files" part of the output is the first thing to notice. They're
+all named C<userflips@v1.0.0-dev2.sql>. What that means is: "the C<userflips>
+change as it was implemented as of the C<@v1.0.0-dev2> tag." These are copies
+of the original scripts, and thereafter Sqitch will find them when it needs to
+run scripts for the first instance of the C<userflips> change. As such, it's
+important not to change them again. But hey, if you're reworking the change,
+you shouldn't need to.
+
+The other thing to notice is that F<revert/userflips.sql> has changed. Sqitch
+replaced it with the original deploy script. As of now,
+F<deploy/userflips.sql> and F<revert/userflips.sql> are identical. This is on
+the assumption that the deploy script will be changed (we're reworking it,
+remember?), and that the revert script should actually change things back to
+how they were before. Of course, the original deploy script may not be
+L<idempotent|http://en.wikipedia.org/wiki/Idempotence> -- that is, able to be
+applied multiple times without changing the result beyond the initial
+application. If it's not, you will likely need to modify it so that it
+properly restores things to how they were after the original deploy script was
+deployed. Or, more simply, it should revert changes back to how they were
+as-of the deployment of F<deploy/userflips@v1.0.0-dev2.sql>.
+
+Fortunately, our function deploy scripts are already idempotent, thanks to the
+use of the C<OR REPLACE> expression. No matter how many times a deployment
+script is run, the end result will be the same instance of the function, with
+no duplicates or errors.
+
+As a result, there is no need to explicitly add changes. So go ahead. Modify
+the script to add the C<twitter> column to the view. Make this change to
+F<deploy/userflips.sql>:
+
+  @@ -4,8 +4,9 @@
+ 
+   BEGIN;
+ 
+  @@ -4,6 +4,6 @@
+   -- requires: flips
+ 
+   CREATE OR REPLACE VIEW flipr.userflips AS
+  -SELECT f.id, u.nickname, u.fullname, f.body, f.timestamp
+  +SELECT f.id, u.nickname, u.fullname, u.twitter, f.body, f.timestamp
+     FROM flipr.users u
+     JOIN flipr.flips f ON u.nickname = f.nickname;
+
+Next, modify F<verify/userflips.sql> to check for the C<twitter> column.
+Here's the diff:
+
+  @@ -1,6 +1,6 @@
+   -- Verify userflips
+ 
+  -SELECT id, nickname, fullname, body, timestamp
+  +SELECT id, nickname, fullname, twitter, body, timestamp
+     FROM flipr.userflips
+    WHERE FALSE;
+ 
+Now try a deployment:
+
+  > sqitch deploy
+  Deploying changes to flipr_test
+	+ userflips .. ok
+
+So, are the changes deployed?
+
+  > vsql -U dbadmin -c '\dv flipr.userflips'
+                    List of View Fields
+   Schema |   View    |   Column    |     Type     | Size 
+  --------+-----------+-------------+--------------+------
+   flipr  | userflips | id          | int          |    8
+   flipr  | userflips | nickname    | varchar(80)  |   80
+   flipr  | userflips | fullname    | varchar(256) |  256
+   flipr  | userflips | twitter     | varchar(80)  |   80
+   flipr  | userflips | body        | varchar(180) |  180
+   flipr  | userflips | "timestamp" | timestamptz  |    8
+
+Awesome, the view now includes the C<twitter> column. But can we revert?
+
+  > sqitch revert --to @HEAD^ -y
+  Reverting changes to hashtags @v1.0.0-dev2 from flipr_test
+	- userflips .. ok
+
+Did that work, is the C<twitter> column gone?
+
+  > vsql -U dbadmin -c '\dv flipr.userflips'
+                    List of View Fields
+   Schema |   View    |   Column    |     Type     | Size 
+  --------+-----------+-------------+--------------+------
+   flipr  | userflips | id          | int          |    8
+   flipr  | userflips | nickname    | varchar(80)  |   80
+   flipr  | userflips | fullname    | varchar(256) |  256
+   flipr  | userflips | twitter     | varchar(80)  |   80
+   flipr  | userflips | body        | varchar(180) |  180
+   flipr  | userflips | "timestamp" | timestamptz  |    8
+
+Yes, it works! Sqitch properly finds the original instances of these changes
+in the new script files that include tags.
+
+Excellent. Let's go ahead and commit these changes:
+
+  > git add .
+  > git commit -m 'Add the twitter column to the userflips view.'
+  [master 95d6dd0] Add the twitter column to the userflips view.
+   7 files changed, 30 insertions(+), 4 deletions(-)
+   create mode 100644 deploy/userflips@v1.0.0-dev2.sql
+   create mode 100644 revert/userflips@v1.0.0-dev2.sql
+   create mode 100644 verify/userflips@v1.0.0-dev2.sql
+
+=head1 More to Come
+
+Sqitch is a work in progress. Better integration with version control systems
+is planned to make managing idempotent reworkings even easier. Stay tuned.
+
+=head1 Author
+
+David E. Wheeler <david@justatheory.com>
+
+=head1 License
+
+Copyright (c) 2012-2014 iovation Inc.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+=cut

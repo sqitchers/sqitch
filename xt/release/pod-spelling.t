@@ -89,3 +89,7 @@ MariaDB
 XC
 pgTAP
 schemas
+Vertica
+DBA
+VM
+ODBC

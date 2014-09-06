@@ -14,7 +14,7 @@ use namespace::autoclean;
 use Try::Tiny;
 extends 'App::Sqitch::Command';
 
-our $VERSION = '0.996';
+our $VERSION = '0.997';
 
 my %FORMATS;
 $FORMATS{raw} = <<EOF;
@@ -242,6 +242,36 @@ reading C<sqitch-plan>. But if you really want to know how the C<plan> command
 works, read on.
 
 =head1 Interface
+
+=head2 Attributes
+
+=head3 C<change_pattern>
+
+Regular expression to match against change names.
+
+=head3 C<planner_pattern>
+
+Regular expression to match against planner names.
+
+=head3 C<event>
+
+Event type buy which to filter entries to display.
+
+=head3 C<format>
+
+Display format template.
+
+=head3 C<max_count>
+
+Maximum number of entries to display.
+
+=head3 C<reverse>
+
+Reverse the usual order of the display of entries.
+
+=head3 C<skip>
+
+Number of entries to skip before displaying entries.
 
 =head2 Instance Methods
 

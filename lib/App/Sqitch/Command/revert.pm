@@ -12,7 +12,7 @@ use Locale::TextDomain qw(App-Sqitch);
 use namespace::autoclean;
 extends 'App::Sqitch::Command';
 
-our $VERSION = '0.996';
+our $VERSION = '0.997';
 
 has target => (
     is  => 'ro',
@@ -171,6 +171,30 @@ works, read on.
 
 Returns a list of L<Getopt::Long> option specifications for the command-line
 options for the C<revert> command.
+
+=head2 Attributes
+
+=head3 C<log_only>
+
+Boolean indicating whether to log the deploy without running the scripts.
+
+=head3 C<no_prompt>
+
+Boolean indicating whether or not to prompt the user to really go through with
+the revert.
+
+=head3 C<prompt_accept>
+
+Boolean value to indicate whether or not the default value for the prompt,
+should the user hit C<return>, is to accept the prompt or deny it.
+
+=head3 C<target>
+
+The deployment target URI.
+
+=head3 C<to_change>
+
+Change to revert to.
 
 =head2 Instance Methods
 

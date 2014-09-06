@@ -123,9 +123,11 @@ configuration is read from the C<deploy> command configuration, on the
 assumption that the values will generally be the same. If they're not, use
 C<revert.variables> to override C<deploy.variables>.
 
-These variables are Useful if your database engine supports variables in
+These variables are useful if your database engine supports variables in
 scripts, such as PostgreSQL's
-L<C<psql> variables|http://www.postgresql.org/docs/current/static/app-psql.html#APP-PSQL-INTERPOLATION>
+L<C<psql> variables|http://www.postgresql.org/docs/current/static/app-psql.html#APP-PSQL-INTERPOLATION>,
+Vertica's
+L<C<vsql> variables|http://my.vertica.com/docs/7.1.x/HTML/index.htm#Authoring/ProgrammersGuide/vsql/Variables.htm>,
 and SQL*Plus's
 L<C<DEFINE> variables|http://docs.oracle.com/cd/B19306_01/server.102/b14357/ch12017.htm>.
 
@@ -154,7 +156,7 @@ C<revert.no_prompt>, and both may of course be overridden by C<-y>.
 =item C<[revert.prompt_accept]>
 
 A boolean value indicating whether default reply to the prompt before
-executing the revert shoud be "yes" or "no". The C<checkout.prompt_accept>
+executing the revert should be "yes" or "no". The C<checkout.prompt_accept>
 variable takes precedence over C<revert.prompt_accept>, and both default to
 true, meaning to accept the revert.
 

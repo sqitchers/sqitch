@@ -15,7 +15,7 @@ use namespace::autoclean;
 
 extends 'App::Sqitch::Command';
 
-our $VERSION = '0.996';
+our $VERSION = '0.997';
 
 has from => (
     is       => 'ro',
@@ -255,6 +255,16 @@ Bundles a Sqitch project for distribution. Done by creating a new directory
 and copying the configuration file, plan file, and change files into it.
 
 =head1 Interface
+
+=head2 Attributes
+
+=head3 C<from>
+
+Change from which to build the bundled plan.
+
+=head3 C<to>
+
+Change up to which to build the bundled plan.
 
 =head2 Instance Methods
 

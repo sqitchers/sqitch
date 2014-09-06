@@ -15,7 +15,7 @@ use namespace::autoclean;
 
 extends 'App::Sqitch::Command';
 
-our $VERSION = '0.996';
+our $VERSION = '0.997';
 
 has verbose => (
     is      => 'ro',
@@ -232,6 +232,20 @@ Manages Sqitch targets, which are stored in the local configuration file.
 =head1 Interface
 
 =head2 Instance Methods
+
+=head2 Attributes
+
+=head3 C<client>
+
+Value to set the client attribute.
+
+=head3 C<registry>
+
+Value to set the registry attribute.
+
+=head3 C<verbose>
+
+Verbosity.
 
 =head3 C<execute>
 

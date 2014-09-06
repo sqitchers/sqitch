@@ -15,7 +15,7 @@ use namespace::autoclean;
 
 extends 'App::Sqitch::Engine';
 
-our $VERSION = '0.996';
+our $VERSION = '0.997';
 
 BEGIN {
     # We tell the Oracle connector which encoding to use. The last part of the
@@ -117,7 +117,6 @@ has dbh => (
                     return;
                 },
             },
-            $uri->query_params,
         });
     }
 );
@@ -738,6 +737,11 @@ has not.
   $oracle->initialize;
 
 Initializes a database for Sqitch by installing the Sqitch registry schema.
+
+=head3 C<sqlplus>
+
+Returns a list containing the the C<sqlplus> client and options to be passed
+to it. Used internally when executing scripts.
 
 =head1 Author
 
