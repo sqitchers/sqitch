@@ -6,6 +6,7 @@ use warnings;
 use utf8;
 use DBI;
 use Moo::Role;
+use Memoize;
 use Try::Tiny;
 use App::Sqitch::X qw(hurl);
 use Locale::TextDomain qw(App-Sqitch);
@@ -21,6 +22,20 @@ requires '_ts2char_format';
 requires '_char2ts';
 requires '_listagg_format';
 requires '_no_table_error';
+
+
+memoize('_registry_tables');
+sub _registry_tables {
+    my $self = shift;
+    my %h = map {$_ => ($self->with_registry_prefix ? "sqitch_$_" : $_) } qw /changes tags dependencies events projects/;
+    return \%h;        
+}
+
+sub _get_registry_table {
+    my ($self, $key) = @_;
+    my $h = $self->_registry_tables;
+    return $h->{$key};
+}
 
 sub _dt($) {
     require App::Sqitch::DateTime;
@@ -81,10 +96,12 @@ sub registry_version {
 
 sub _cid {
     my ( $self, $ord, $offset, $project ) = @_;
+    my $changes = $self->_get_registry_table('changes');
+
     return try {
         $self->dbh->selectcol_arrayref(qq{
             SELECT change_id
-              FROM changes
+              FROM $changes
              WHERE project = ?
              ORDER BY committed_at $ord
              LIMIT 1
@@ -109,8 +126,10 @@ sub _select_state {
     my $cdtcol = sprintf $self->_ts2char_format, 'c.committed_at';
     my $pdtcol = sprintf $self->_ts2char_format, 'c.planned_at';
     my $tagcol = sprintf $self->_listagg_format, 't.tag';
-    my $hshcol = $with_hash ? "c.script_hash\n                 , " : '';
-    my $dbh    = $self->dbh;
+    my $hshcol = $with_hash ? "c.script_hash\n , " : '';
+    my $changes = $self->_get_registry_table('changes');
+    my $tags    = $self->_get_registry_table('tags');
+    my $dbh = $self->dbh;
     $dbh->selectrow_hashref(qq{
         SELECT c.change_id
              , ${hshcol}c.change
@@ -123,8 +142,8 @@ sub _select_state {
              , c.planner_email
              , $pdtcol AS planned_at
              , $tagcol AS tags
-          FROM changes   c
-          LEFT JOIN tags t ON c.change_id = t.change_id
+          FROM $changes c
+          LEFT JOIN $tags t ON c.change_id = t.change_id
          WHERE c.project = ?
          GROUP BY c.change_id
              , ${hshcol}c.change
@@ -143,16 +162,17 @@ sub _select_state {
 
 sub current_state {
     my ( $self, $project ) = @_;
-    my $state  = try {
-        $self->_select_state($project, 1)
-    } catch {
+    my $state = try {
+        $self->_select_state( $project, 1 );
+    }
+    catch {
         return if $self->_no_table_error && !$self->initialized;
-        return $self->_select_state($project, 0) if $self->_no_column_error;
+        return $self->_select_state( $project, 0 ) if $self->_no_column_error;
         die $_;
     } or return undef;
-
-    unless (ref $state->{tags}) {
-        $state->{tags} = $state->{tags} ? [ split / / => $state->{tags} ] : [];
+    unless ( ref $state->{tags} ) {
+        $state->{tags}
+            = $state->{tags} ? [ split / / => $state->{tags} ] : [];
     }
     $state->{committed_at} = _dt $state->{committed_at};
     $state->{planned_at}   = _dt $state->{planned_at};
@@ -161,8 +181,10 @@ sub current_state {
 
 sub current_changes {
     my ( $self, $project ) = @_;
-    my $cdtcol = sprintf $self->_ts2char_format, 'c.committed_at';
-    my $pdtcol = sprintf $self->_ts2char_format, 'c.planned_at';
+    my $cdtcol  = sprintf $self->_ts2char_format, 'c.committed_at';
+    my $pdtcol  = sprintf $self->_ts2char_format, 'c.planned_at';
+    my $changes = $self->_get_registry_table('changes');
+
     my $sth    = $self->dbh->prepare(qq{
         SELECT c.change_id
              , c.script_hash
@@ -173,7 +195,7 @@ sub current_changes {
              , c.planner_name
              , c.planner_email
              , $pdtcol AS planned_at
-          FROM changes c
+          FROM $changes c
          WHERE project = ?
          ORDER BY c.committed_at DESC
     });
@@ -190,6 +212,8 @@ sub current_tags {
     my ( $self, $project ) = @_;
     my $cdtcol = sprintf $self->_ts2char_format, 'committed_at';
     my $pdtcol = sprintf $self->_ts2char_format, 'planned_at';
+    my $tags   = $self->_get_registry_table('tags');
+
     my $sth    = $self->dbh->prepare(qq{
         SELECT tag_id
              , tag
@@ -199,9 +223,9 @@ sub current_tags {
              , planner_name
              , planner_email
              , $pdtcol AS planned_at
-          FROM tags
+          FROM $tags t
          WHERE project = ?
-         ORDER BY tags.committed_at DESC
+         ORDER BY t.committed_at DESC
     });
     $sth->execute($project // $self->plan->project);
     return sub {
@@ -274,6 +298,8 @@ sub search_events {
     # Prepare, execute, and return.
     my $cdtcol = sprintf $self->_ts2char_format, 'e.committed_at';
     my $pdtcol = sprintf $self->_ts2char_format, 'e.planned_at';
+    my $events = $self->_get_registry_table('events');
+
     my $sth = $self->dbh->prepare(qq{
         SELECT e.event
              , e.project
@@ -289,7 +315,7 @@ sub search_events {
              , e.planner_name
              , e.planner_email
              , $pdtcol AS planned_at
-          FROM events e$where
+          FROM $events e$where
          ORDER BY e.committed_at $dir$limits
     });
     $sth->execute(@params);
@@ -302,8 +328,10 @@ sub search_events {
 }
 
 sub registered_projects {
-    return @{ shift->dbh->selectcol_arrayref(
-        'SELECT project FROM projects ORDER BY project'
+    my $self = shift;
+    my $projects = $self->_get_registry_table('projects');
+    return @{ $self->dbh->selectcol_arrayref(
+        qq{SELECT project FROM $projects ORDER BY project}
     ) };
 }
 
@@ -315,8 +343,9 @@ sub register_project {
     my $proj   = $plan->project;
     my $uri    = $plan->uri;
 
+    my $projects = $self->_get_registry_table('projects');
     my $res = $dbh->selectcol_arrayref(
-        'SELECT uri FROM projects WHERE project = ?',
+        qq{SELECT uri FROM $projects WHERE project = ?},
         undef, $proj
     );
 
@@ -348,10 +377,10 @@ sub register_project {
     } else {
         # Does the URI already exist?
         my $res = defined $uri ? $dbh->selectcol_arrayref(
-            'SELECT project FROM projects WHERE uri = ?',
+            qq{SELECT project FROM $projects WHERE uri = ?},
             undef, $uri
         ) : $dbh->selectcol_arrayref(
-            'SELECT project FROM projects WHERE uri IS NULL',
+            qq{SELECT project FROM $projects WHERE uri IS NULL},
         );
 
         hurl engine => __x(
@@ -364,7 +393,7 @@ sub register_project {
         # Insert the project.
         my $ts = $self->_ts_default;
         $dbh->do(qq{
-            INSERT INTO projects (project, uri, creator_name, creator_email, created_at)
+            INSERT INTO $projects (project, uri, creator_name, creator_email, created_at)
             VALUES (?, ?, ?, ?, $ts)
         }, undef, $proj, $uri, $sqitch->user_name, $sqitch->user_email);
     }
@@ -374,10 +403,12 @@ sub register_project {
 
 sub is_deployed_change {
     my ( $self, $change ) = @_;
-    $self->dbh->selectcol_arrayref(q{
+    my $changes = $self->_get_registry_table('changes');
+
+    $self->dbh->selectcol_arrayref(qq{
         SELECT EXISTS(
             SELECT 1
-              FROM changes
+              FROM $changes
              WHERE change_id = ?
         )
     }, undef, $change->id)->[0];
@@ -385,9 +416,11 @@ sub is_deployed_change {
 
 sub are_deployed_changes {
     my $self = shift;
+    my $changes = $self->_get_registry_table('changes');
+
     my $qs = join ', ' => ('?') x @_;
     @{ $self->dbh->selectcol_arrayref(
-        "SELECT change_id FROM changes WHERE change_id IN ($qs)",
+        qq{SELECT change_id FROM $changes WHERE change_id IN ($qs)},
         undef,
         map { $_->id } @_,
     ) };
@@ -395,10 +428,12 @@ sub are_deployed_changes {
 
 sub is_deployed_tag {
     my ( $self, $tag ) = @_;
-    return $self->dbh->selectcol_arrayref(q{
+    my $tags = $self->_get_registry_table('tags');
+
+    return $self->dbh->selectcol_arrayref(qq{
         SELECT EXISTS(
             SELECT 1
-              FROM tags
+              FROM $tags
              WHERE tag_id = ?
         );
     }, undef, $tag->id)->[0];
@@ -462,8 +497,10 @@ sub log_deploy_change {
         planner_email
         committed_at
     ));
+
+    my $changes = $self->_get_registry_table('changes');
     $dbh->do(qq{
-        INSERT INTO changes (
+        INSERT INTO $changes (
             $cols
         )
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, $ts)
@@ -481,8 +518,9 @@ sub log_deploy_change {
     );
 
     if ( my @deps = $change->dependencies ) {
-        $dbh->do(q{
-            INSERT INTO dependencies(
+        my $dependencies = $self->_get_registry_table('dependencies');
+        $dbh->do(qq{
+            INSERT INTO $dependencies(
                   change_id
                 , type
                 , dependency
@@ -499,8 +537,9 @@ sub log_deploy_change {
     }
 
     if ( my @tags = $change->tags ) {
-        $dbh->do(q{
-            INSERT INTO tags (
+        my $tags = $self->_get_registry_table('tags');
+        $dbh->do(qq{
+            INSERT INTO $tags (
                   tag_id
                 , tag
                 , project
@@ -559,8 +598,9 @@ sub _log_event {
         committed_at
     ));
 
+    my $events = $self->_get_registry_table('events');
     $dbh->do(qq{
-        INSERT INTO events (
+        INSERT INTO $events (
             $cols
         )
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, $ts)
@@ -585,40 +625,48 @@ sub _log_event {
 
 sub changes_requiring_change {
     my ( $self, $change ) = @_;
-    return @{ $self->dbh->selectall_arrayref(q{
+    my $changes      = $self->_get_registry_table('changes');
+    my $tags         = $self->_get_registry_table('tags');
+    my $dependencies = $self->_get_registry_table('dependencies');
+
+    return @{ $self->dbh->selectall_arrayref(qq{
         SELECT c.change_id, c.project, c.change, (
             SELECT tag
-              FROM changes c2
-              JOIN tags ON c2.change_id = tags.change_id
+              FROM $changes c2
+              JOIN $tags ON c2.change_id = tags.change_id
              WHERE c2.project      = c.project
                AND c2.committed_at >= c.committed_at
              ORDER BY c2.committed_at
              LIMIT 1
         ) AS asof_tag
-          FROM dependencies d
-          JOIN changes c ON c.change_id = d.change_id
+          FROM $dependencies d
+          JOIN $changes c ON c.change_id = d.change_id
          WHERE d.dependency_id = ?
     }, { Slice => {} }, $change->id) };
 }
 
 sub name_for_change_id {
     my ( $self, $change_id ) = @_;
-    return $self->dbh->selectcol_arrayref(q{
+    my $changes = $self->_get_registry_table('changes');
+    my $tags    = $self->_get_registry_table('tags');
+
+    return $self->dbh->selectcol_arrayref(qq{
         SELECT c.change || COALESCE((
             SELECT tag
-              FROM changes c2
-              JOIN tags ON c2.change_id = tags.change_id
+              FROM $changes c2
+              JOIN $tags ON c2.change_id = $tags.change_id
              WHERE c2.committed_at >= c.committed_at
                AND c2.project = c.project
              LIMIT 1
         ), '')
-          FROM changes c
+          FROM $changes c
          WHERE change_id = ?
     }, undef, $change_id)->[0];
 }
 
 sub log_new_tags {
     my ( $self, $change ) = @_;
+    my $tags   = $self->_get_registry_table('tags');
     my @tags   = $change->tags or return $self;
     my $sqitch = $self->sqitch;
 
@@ -633,8 +681,8 @@ sub log_new_tags {
     my $subselect = 'SELECT ' . $self->_tag_subselect_columns . $self->_simple_from;
 
     $self->dbh->do(
-        q{
-            INSERT INTO tags (
+        qq{
+            INSERT INTO $tags (
                    tag_id
                  , tag
                  , project
@@ -651,10 +699,10 @@ sub log_new_tags {
                          } . join(
                 "\n               UNION ALL ",
                 ($subselect) x @tags
-            ) . q{
+            ) . qq{
             ) i
-              LEFT JOIN tags ON i.tid = tags.tag_id
-             WHERE tags.tag_id IS NULL
+              LEFT JOIN $tags t ON i.tid = t.tag_id
+             WHERE t.tag_id IS NULL
         },
         undef,
         map { (
@@ -679,21 +727,25 @@ sub log_revert_change {
     my $dbh = $self->dbh;
     my $cid = $change->id;
 
+    my $changes      = $self->_get_registry_table('changes');
+    my $tags         = $self->_get_registry_table('tags');
+    my $dependencies = $self->_get_registry_table('dependencies');
+
     # Retrieve and delete tags.
     my $del_tags = join ',' => @{ $dbh->selectcol_arrayref(
-        'SELECT tag FROM tags WHERE change_id = ?',
+        qq{SELECT tag FROM $tags WHERE change_id = ?},
         undef, $cid
     ) || [] };
 
     $dbh->do(
-        'DELETE FROM tags WHERE change_id = ?',
+        qq{DELETE FROM $tags WHERE change_id = ?},
         undef, $cid
     );
 
     # Retrieve dependencies and delete.
-    my $sth = $dbh->prepare(q{
+    my $sth = $dbh->prepare(qq{
         SELECT dependency
-          FROM dependencies
+          FROM $dependencies
          WHERE change_id = ?
            AND type      = ?
     });
@@ -705,11 +757,11 @@ sub log_revert_change {
         $sth, undef, $cid, 'conflict'
     ) };
 
-    $dbh->do('DELETE FROM dependencies WHERE change_id = ?', undef, $cid);
+    $dbh->do(qq{DELETE FROM $dependencies WHERE change_id = ?}, undef, $cid);
 
     # Delete the change record.
     $dbh->do(
-        'DELETE FROM changes where change_id = ?',
+        qq{DELETE FROM $changes where change_id = ?},
         undef, $cid,
     );
 
@@ -721,6 +773,9 @@ sub deployed_changes {
     my $self   = shift;
     my $tscol  = sprintf $self->_ts2char_format, 'c.planned_at';
     my $tagcol = sprintf $self->_listagg_format, 't.tag';
+    my $changes = $self->_get_registry_table('changes');
+    my $tags    = $self->_get_registry_table('tags');
+
     return map {
         $_->{timestamp} = _dt $_->{timestamp};
         unless (ref $_->{tags}) {
@@ -731,8 +786,8 @@ sub deployed_changes {
         SELECT c.change_id AS id, c.change AS name, c.project, c.note,
                $tscol AS "timestamp", c.planner_name, c.planner_email,
                $tagcol AS tags
-          FROM changes   c
-          LEFT JOIN tags t ON c.change_id = t.change_id
+          FROM $changes   c
+          LEFT JOIN $tags t ON c.change_id = t.change_id
          WHERE c.project = ?
          GROUP BY c.change_id, c.change, c.project, c.note, c.planned_at,
                c.planner_name, c.planner_email, c.committed_at
@@ -742,8 +797,10 @@ sub deployed_changes {
 
 sub deployed_changes_since {
     my ( $self, $change ) = @_;
-    my $tscol  = sprintf $self->_ts2char_format, 'c.planned_at';
-    my $tagcol = sprintf $self->_listagg_format, 't.tag';
+    my $changes = $self->_get_registry_table('changes');
+    my $tags    = $self->_get_registry_table('tags');
+    my $tscol   = sprintf $self->_ts2char_format, 'c.planned_at';
+    my $tagcol  = sprintf $self->_listagg_format, 't.tag';
     return map {
         $_->{timestamp} = _dt $_->{timestamp};
         unless (ref $_->{tags}) {
@@ -754,10 +811,10 @@ sub deployed_changes_since {
         SELECT c.change_id AS id, c.change AS name, c.project, c.note,
                $tscol AS "timestamp", c.planner_name, c.planner_email,
                $tagcol AS tags
-          FROM changes   c
-          LEFT JOIN tags t ON c.change_id = t.change_id
+          FROM $changes   c
+          LEFT JOIN $tags t ON c.change_id = t.change_id
          WHERE c.project = ?
-           AND c.committed_at > (SELECT committed_at FROM changes WHERE change_id = ?)
+           AND c.committed_at > (SELECT committed_at FROM $changes WHERE change_id = ?)
          GROUP BY c.change_id, c.change, c.project, c.note, c.planned_at,
                c.planner_name, c.planner_email, c.committed_at
          ORDER BY c.committed_at ASC
@@ -768,12 +825,15 @@ sub load_change {
     my ( $self, $change_id ) = @_;
     my $tscol  = sprintf $self->_ts2char_format, 'c.planned_at';
     my $tagcol = sprintf $self->_listagg_format, 't.tag';
+    my $changes = $self->_get_registry_table('changes');
+    my $tags = $self->_get_registry_table('tags');
+
     my $change = $self->dbh->selectrow_hashref(qq{
         SELECT c.change_id AS id, c.change AS name, c.project, c.note,
                $tscol AS "timestamp", c.planner_name, c.planner_email,
                 $tagcol AS tags
-          FROM changes   c
-          LEFT JOIN tags t ON c.change_id = t.change_id
+          FROM $changes   c
+          LEFT JOIN $tags t ON c.change_id = t.change_id
          WHERE c.change_id = ?
          GROUP BY c.change_id, c.change, c.project, c.note, c.planned_at,
                c.planner_name, c.planner_email
@@ -807,15 +867,17 @@ sub change_offset_from_id {
         }
     }
 
+    my $changes = $self->_get_registry_table('changes');
+    my $tags = $self->_get_registry_table('tags');
     my $change = $self->dbh->selectrow_hashref(qq{
         SELECT c.change_id AS id, c.change AS name, c.project, c.note,
                $tscol AS "timestamp", c.planner_name, c.planner_email,
                $tagcol AS tags
-          FROM changes   c
-          LEFT JOIN tags t ON c.change_id = t.change_id
+          FROM $changes   c
+          LEFT JOIN $tags t ON c.change_id = t.change_id
          WHERE c.project = ?
            AND c.committed_at $op (
-               SELECT committed_at FROM changes WHERE change_id = ?
+               SELECT committed_at FROM $changes WHERE change_id = ?
          )
          GROUP BY c.change_id, c.change, c.project, c.note, c.planned_at,
                c.planner_name, c.planner_email, c.committed_at
@@ -831,9 +893,11 @@ sub change_offset_from_id {
 
 sub _cid_head {
     my ($self, $project, $change) = @_;
-    return $self->dbh->selectcol_arrayref(q{
+    my $changes = $self->_get_registry_table('changes');
+
+    return $self->dbh->selectcol_arrayref(qq{
         SELECT change_id
-          FROM changes
+          FROM $changes
          WHERE project = ?
            AND changes.change  = ?
          ORDER BY committed_at DESC
@@ -844,12 +908,14 @@ sub _cid_head {
 sub change_id_for {
     my ( $self, %p) = @_;
     my $dbh = $self->dbh;
+    my $changes = $self->_get_registry_table('changes');
+    my $tags = $self->_get_registry_table('tags');
 
     if ( my $cid = $p{change_id} ) {
         # Find by ID.
-        return $dbh->selectcol_arrayref(q{
+        return $dbh->selectcol_arrayref(qq{
             SELECT change_id
-              FROM changes
+              FROM $changes
              WHERE change_id = ?
         }, undef, $cid)->[0];
     }
@@ -865,15 +931,15 @@ sub change_id_for {
                 if $tag eq 'HEAD' || $tag eq 'LAST';
 
             # Find by change name and following tag.
-            return $dbh->selectcol_arrayref(q{
-                SELECT changes.change_id
-                  FROM changes
-                  JOIN tags
-                    ON changes.committed_at <= tags.committed_at
-                   AND changes.project = tags.project
-                 WHERE changes.project = ?
-                   AND changes.change  = ?
-                   AND tags.tag        = ?
+            return $dbh->selectcol_arrayref(qq{
+                SELECT c.change_id
+                  FROM $changes c
+                  JOIN $tags t
+                    ON c.committed_at <= t.committed_at
+                   AND c.project = t.project
+                 WHERE c.project = ?
+                   AND c.change  = ?
+                   AND t.tag        = ?
             }, undef, $project, $change, '@' . $tag)->[0];
         }
 
@@ -881,10 +947,10 @@ sub change_id_for {
         my $limit = $self->_can_limit ? "\n             LIMIT 1" : '';
         return $dbh->selectcol_arrayref(qq{
             SELECT change_id
-              FROM changes
+              FROM $changes c
              WHERE project = ?
-               AND changes.change  = ?
-             ORDER BY changes.committed_at ASC$limit
+               AND c.change  = ?
+             ORDER BY c.committed_at ASC$limit
         }, undef, $project, $change)->[0];
     }
 
@@ -898,9 +964,9 @@ sub change_id_for {
             if $tag eq 'ROOT' || $tag eq 'FIRST';
 
         # Find by tag name.
-        return $dbh->selectcol_arrayref(q{
+        return $dbh->selectcol_arrayref(qq{
             SELECT change_id
-              FROM tags
+              FROM $tags
              WHERE project = ?
                AND tag     = ?
         }, undef, $project, '@' . $tag)->[0];

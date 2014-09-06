@@ -101,6 +101,52 @@ sub clear_variables { %{ shift->_variables } = ()  }
 
 sub default_registry { 'sqitch' }
 
+has with_registry_prefix => (
+    is => 'ro',
+    isa => Bool,
+    lazy => 1,
+    required => 1,
+    default => sub {
+        my $self = shift;
+        my $engine = $self->key;
+        my $p = $self->sqitch->config->get( key => "core.$engine.with_registry_prefix" );
+
+        if ( $p && ( $engine ne 'oracle' && $engine ne 'firebird' ) ) {
+            hurl engine => __x(
+                'config option with_registry_prefix not supported for {engine}',
+                engine => $engine,
+            );
+        }
+
+        return $p if defined $p;
+        return 0;
+    },
+);
+
+sub _merge_options_into {
+    my ($self, $uri) = @_;
+    my $sqitch = $self->sqitch;
+
+    # Override parts with command-line options (deprecate?)
+    if (my $host = $sqitch->db_host) {
+        $uri->host($host);
+    }
+
+    if (my $port = $sqitch->db_port) {
+        $uri->port($port);
+    }
+
+    if (my $user = $sqitch->db_username) {
+        $uri->user($user);
+    }
+
+    if (my $name = $sqitch->db_name) {
+        $uri->dbname($name);
+    }
+
+    return $uri;
+}
+
 sub load {
     my ( $class, $p ) = @_;
 
