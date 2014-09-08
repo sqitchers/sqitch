@@ -111,7 +111,8 @@ has with_registry_prefix => (
         my $engine = $self->key;
         my $p = $self->sqitch->config->get( key => "core.$engine.with_registry_prefix" );
 
-        if ( $p && ( $engine ne 'oracle' && $engine ne 'firebird' ) ) {
+        # Temporary code...
+        if ( $p && ( $engine ne 'oracle' && $engine ne 'firebird' && $engine ne 'mysql' ) ) {
             hurl engine => __x(
                 'config option with_registry_prefix not supported for {engine}',
                 engine => $engine,

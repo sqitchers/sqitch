@@ -293,6 +293,7 @@ my $err = try {
     }
 
     $dbh->do('CREATE DATABASE __sqitchtest__');
+    $dbh->do('CREATE DATABASE __sqitchtest');
     undef;
 } catch {
     eval { $_->message } || $_;
@@ -313,6 +314,10 @@ DBIEngineTest->run(
         registry => '__sqitchtest',
         uri => URI::db->new('db:mysql://root@/__sqitchtest__'),
     ],
+    prefix_target_params => [
+        uri => URI::db->new('db:mysql://root@/__sqitchtest__'),
+        with_registry_prefix => 1
+    ],
     skip_unless       => sub {
         my $self = shift;
         die $err if $err;
@@ -323,7 +328,7 @@ DBIEngineTest->run(
     engine_err_regex  => qr/^You have an error /,
     init_error        => __x(
         'Sqitch database {database} already initialized',
-        database => '__sqitchtest',
+        database => '__sqitchtest__',
     ),
     add_second_format => q{date_add(%s, interval 1 second)},
     test_dbh => sub {

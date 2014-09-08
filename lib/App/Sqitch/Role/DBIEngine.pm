@@ -633,7 +633,7 @@ sub changes_requiring_change {
         SELECT c.change_id, c.project, c.change, (
             SELECT tag
               FROM $changes c2
-              JOIN $tags ON c2.change_id = tags.change_id
+              JOIN $tags t ON c2.change_id = t.change_id
              WHERE c2.project      = c.project
                AND c2.committed_at >= c.committed_at
              ORDER BY c2.committed_at
@@ -896,11 +896,11 @@ sub _cid_head {
     my $changes = $self->_get_registry_table('changes');
 
     return $self->dbh->selectcol_arrayref(qq{
-        SELECT change_id
-          FROM $changes
-         WHERE project = ?
-           AND changes.change  = ?
-         ORDER BY committed_at DESC
+        SELECT c.change_id
+          FROM $changes c
+         WHERE c.project = ?
+           AND c.change  = ?
+         ORDER BY c.committed_at DESC
          LIMIT 1
     }, undef, $project, $change)->[0];
 }

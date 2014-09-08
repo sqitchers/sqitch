@@ -2,7 +2,8 @@ BEGIN;
 
 SET SESSION sql_mode = ansi;
 
-CREATE TABLE releases (
+<<<<<<< HEAD
+CREATE TABLE :prefix:releases (
     version         FLOAT         PRIMARY KEY
                     COMMENT 'Version of the Sqitch registry.',
     installed_at    TIMESTAMP     NOT NULL
@@ -16,7 +17,7 @@ CREATE TABLE releases (
   COMMENT 'Sqitch registry releases.'
 ;
 
-CREATE TABLE projects (
+CREATE TABLE :prefix:projects (
     project         VARCHAR(255) PRIMARY KEY
                     COMMENT 'Unique Name of a project.',
     uri             VARCHAR(255) NULL UNIQUE
@@ -32,7 +33,7 @@ CREATE TABLE projects (
   COMMENT 'Sqitch projects deployed to this database.'
 ;
 
-CREATE TABLE changes (
+CREATE TABLE :prefix:changes (
     change_id       VARCHAR(40)  PRIMARY KEY
                     COMMENT 'Change primary key.',
     script_hash     VARCHAR(40)      NULL UNIQUE
@@ -41,7 +42,7 @@ CREATE TABLE changes (
                     COMMENT 'Name of a deployed change.',
     project         VARCHAR(255) NOT NULL
                     COMMENT 'Name of the Sqitch project to which the change belongs.'
-                    REFERENCES projects(project) ON UPDATE CASCADE,
+                    REFERENCES :prefix:projects(project) ON UPDATE CASCADE,
     note            TEXT         NOT NULL
                     COMMENT 'Description of the change.',
     committed_at    DATETIME(6)  NOT NULL
@@ -61,17 +62,17 @@ CREATE TABLE changes (
   COMMENT 'Tracks the changes currently deployed to the database.'
 ;
 
-CREATE TABLE tags (
+CREATE TABLE :prefix:tags (
     tag_id          VARCHAR(40)  PRIMARY KEY
                     COMMENT 'Tag primary key.',
     tag             VARCHAR(255) NOT NULL
                     COMMENT 'Project-unique tag name.',
     project         VARCHAR(255) NOT NULL
                     COMMENT 'Name of the Sqitch project to which the tag belongs.'
-                    REFERENCES projects(project) ON UPDATE CASCADE,
+                    REFERENCES :prefix:projects(project) ON UPDATE CASCADE,
     change_id       VARCHAR(40)  NOT NULL
                     COMMENT 'ID of last change deployed before the tag was applied.'
-                    REFERENCES changes(change_id) ON UPDATE CASCADE,
+                    REFERENCES :prefix:changes(change_id) ON UPDATE CASCADE,
     note            VARCHAR(255) NOT NULL
                     COMMENT 'Description of the tag.',
     committed_at    DATETIME(6)  NOT NULL
@@ -92,24 +93,24 @@ CREATE TABLE tags (
   COMMENT 'Tracks the tags currently applied to the database.'
 ;
 
-CREATE TABLE dependencies (
+CREATE TABLE :prefix:dependencies (
     change_id       VARCHAR(40)  NOT NULL
                     COMMENT 'ID of the depending change.'
-                    REFERENCES changes(change_id) ON UPDATE CASCADE ON DELETE CASCADE,
+                    REFERENCES :prefix:changes(change_id) ON UPDATE CASCADE ON DELETE CASCADE,
     type            VARCHAR(8)   NOT NULL
                     COMMENT 'Type of dependency.',
     dependency      VARCHAR(255) NOT NULL
                     COMMENT 'Dependency name.',
     dependency_id   VARCHAR(40)      NULL
                     COMMENT 'Change ID the dependency resolves to.'
-                    REFERENCES changes(change_id) ON UPDATE CASCADE,
+                    REFERENCES :prefix:changes(change_id) ON UPDATE CASCADE,
     PRIMARY KEY (change_id, dependency)
 ) ENGINE  InnoDB,
   CHARACTER SET 'utf8',
   COMMENT 'Tracks the currently satisfied dependencies.'
 ;
 
-CREATE TABLE events (
+CREATE TABLE :prefix:events (
     event           ENUM ('deploy', 'fail', 'merge', 'revert') NOT NULL
                     COMMENT 'Type of event.',
     change_id       VARCHAR(40)  NOT NULL
@@ -118,7 +119,7 @@ CREATE TABLE events (
                     COMMENT 'Change name.',
     project         VARCHAR(255) NOT NULL
                     COMMENT 'Name of the Sqitch project to which the change belongs.'
-                    REFERENCES projects(project) ON UPDATE CASCADE,
+                    REFERENCES :prefix:projects(project) ON UPDATE CASCADE,
     note            TEXT         NOT NULL
                     COMMENT 'Description of the change.',
     requires        TEXT         NOT NULL
@@ -162,7 +163,7 @@ BEGIN
 END;
 |
 
-CREATE TRIGGER ck_insert_dependency BEFORE INSERT ON dependencies
+CREATE TRIGGER ck_insert_dependency BEFORE INSERT ON :prefix:dependencies
 FOR EACH ROW BEGIN
     -- DO does not work. http://bugs.mysql.com/bug.php?id=69647
     SET @dummy := checkit(
@@ -173,7 +174,7 @@ FOR EACH ROW BEGIN
 END;
 |
 
-CREATE TRIGGER ck_update_dependency BEFORE UPDATE ON dependencies
+CREATE TRIGGER ck_update_dependency BEFORE UPDATE ON :prefix:dependencies
 FOR EACH ROW BEGIN
     -- DO does not work. http://bugs.mysql.com/bug.php?id=69647
     SET @dummy := checkit(
