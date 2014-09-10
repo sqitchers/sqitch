@@ -63,6 +63,7 @@ from your typical <a href="http://guides.rubyonrails.org/migrations.html">migrat
   <li>Oracle: <code>cpan App::Sqitch DBD::Oracle</code></li>
   <li>MySQL: <code>cpan App::Sqitch DBD::mysql</code></li>
   <li>Firebird: <code>cpan App::Sqitch DBD::Firebird</code></li>
+  <li>Vertica: <code>cpan App::Sqitch DBD::ODBC</code></li>
 </ul>
 
 <h4><a href="http://brew.sh">Homebrew</a></h4>
@@ -74,6 +75,20 @@ from your typical <a href="http://guides.rubyonrails.org/migrations.html">migrat
   <li>Oracle: <code>brew install sqitch_oracle</code></li>
   <li>MySQL: <code>brew install sqitch_mysql</code></li>
   <li>Firebird: <code>brew install sqitch_firebird</code></li>
+  <li>Vertica: <code>brew install sqitch_vertica</code></li>
+</ul>
+
+<h4><a href="https://www.debian.org/releases/sid/">Debian sid</a> (unstable, testing)</h4>
+
+<ul>
+  <li>Apt: <code>apt-get install sqitch</code></li>
+  <li>PostreSQL: <code>apt-get install libdbd-pg-perl postgresql-client</code></li>
+  <li>SQLite: <code>apt-get install libdbd-sqlite3-perl sqlite3</code></li>
+  <li>Oracle: <code>apt-get install libdbd-oracle-perl</code></li>
+  <li>MySQL: <code>apt-get install libdbd-mysql-perl mysql-client</code></li>
+  <li>Firebird Classic: <code>apt-get install libdbd-firebird-perl firebird2.5-classic</code></li>
+  <li>Firebird Super: <code>apt-get install libdbd-firebird-perl firebird2.5-super</code></li>
+  <li>Vertica: <code>apt-get install libdbd-odbc-perl</code></li>
 </ul>
 
 <h4><a href="http://code.activestate.com/ppm/">ActiveState PPM</a></h4>
@@ -95,6 +110,7 @@ from your typical <a href="http://guides.rubyonrails.org/migrations.html">migrat
   <li>Oracle: <code>apt-get install libdbd-oracle-perl</code></li>
   <li>MySQL: <code>apt-get install mysql libdbd-mysql-perl</code></li>
   <li>Firebird: <code>apt-get install firebird libdbd-firebird-perl</code></li>
+  <li>Vertica: <code>apt-get install libdbd-odbc-perl</code></li>
 </ul>
 
 <h4><a href="http://en.wikipedia.org/wiki/Yellowdog_Updater,_Modified">Yum</a> + <a href="https://metacpan.org/pod/cpanm">cpanminus</a></h4>
@@ -103,11 +119,12 @@ from your typical <a href="http://guides.rubyonrails.org/migrations.html">migrat
   <li>Yum: <code>sudo yum install perl-devel perl-CPAN \<br />
       && curl -L http://cpanmin.us | perl - --sudo App::cpanminus</code></li>
   <li>Sqitch: <code>cpanm --quiet --notest App::Sqitch</code></li>
-  <li>PostreSQL: <code>apt-get install postgresql perl-DBD-Pg</code></li>
-  <li>SQLite: <code>apt-get install sqlite perl-DBD-SQLite</code></li>
-  <li>Oracle: <code>apt-get install perl-DBD-Oracle</code></li>
-  <li>MySQL: <code>apt-get install mysql perl-DBD--mysql</code></li>
-  <li>Firebird: <code>apt-get install firebird-classic perl-DBD-Firebird perl-Time-HiRes</code></li>
+  <li>PostreSQL: <code>yum install postgresql perl-DBD-Pg</code></li>
+  <li>SQLite: <code>yum install sqlite perl-DBD-SQLite</code></li>
+  <li>Oracle: <code>yum install perl-DBD-Oracle</code></li>
+  <li>MySQL: <code>yum install mysql perl-DBD--mysql</code></li>
+  <li>Firebird: <code>yum install firebird-classic perl-DBD-Firebird perl-Time-HiRes</code></li>
+  <li>Vertica: <code>yum install perl-DBD-ODBC</code></li>
 </ul>
 
 <h2 id="getting-started">Getting Started</h2>
@@ -122,6 +139,7 @@ from your typical <a href="http://guides.rubyonrails.org/migrations.html">migrat
   <li><a href="https://metacpan.org/module/sqitchtutorial-oracle">Oracle tutorial</a></li>
   <li><a href="https://metacpan.org/module/sqitchtutorial-mysql">MySQL tutorial</a></li>
   <li><a href="https://metacpan.org/module/sqitchtutorial-firebird">Firebird tutorial</a></li>
+  <li><a href="https://metacpan.org/module/sqitchtutorial-vertica">Vertica tutorial</a></li>
 </ul>
 
 <h4><a href="https://groups.google.com/forum/#!forum/sqitch-users">Mail List</a></h4>
