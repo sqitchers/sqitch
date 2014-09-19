@@ -4,6 +4,8 @@ Revision history for Perl extension App::Sqitch
      - At runtime, the Vertica engine now properly requires DBD::ODBC
        instead of DBD::Pg.
      - The Vertica engine now supports Vertica 6, as documented.
+     - Fixed a warning from Type::Utils, thanks to a report from Géraud
+       CONTINSOUZAS.
 
 0.996  2014-09-05T21:11:00Z
      - Fixed one more test failure due to the introduction of "Negative repeat
