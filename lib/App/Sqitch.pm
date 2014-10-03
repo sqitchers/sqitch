@@ -87,7 +87,7 @@ sub engine_key {
         }
     };
     hurl core => __x('Unknown engine "{engine}"', engine => $key)
-        unless first { $key eq $_ } qw(pg sqlite mysql oracle firebird vertica);
+        unless first { $key eq $_ } qw(pg sqlite mysql oracle firebird vertica sqlcmd);
 }
 
 sub engine {
