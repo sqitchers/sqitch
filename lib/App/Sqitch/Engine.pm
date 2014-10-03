@@ -70,6 +70,17 @@ has target => (
     }
 );
 
+has dsn => (
+    is      => 'ro',
+    isa     => Str,
+    lazy    => 1,
+    default => sub {
+        my $self = shift;
+        my $engine = $self->key;
+        return $self->sqitch->config->get( key => "core.$engine.dsn");
+    }
+);
+
 has destination => (
     is      => 'ro',
     isa     => Str,
