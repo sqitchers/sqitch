@@ -977,7 +977,9 @@ sub _sync_plan {
     my $self = shift;
     my $plan = $self->plan;
 
-    if (my $id = $self->latest_change_id) {
+    
+      if ($self->initialized == 1) {
+       if (my $id = $self->latest_change_id) {
         my $idx = $plan->index_of($id) // hurl plan => __x(
             'Cannot find {change} in the plan',
             change => $id
@@ -1000,6 +1002,7 @@ sub _sync_plan {
 
     } else {
         $plan->reset;
+    }
     }
     return $plan;
 }
