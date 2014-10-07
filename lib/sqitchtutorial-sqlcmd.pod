@@ -87,9 +87,9 @@ So, edit the comments out to get Sqitch to use the settings. Then type the
 following to change and add new settings for the target database and the uri 
 for SQL Server.
 
-> sqitch config core.sqlcmd.target db:sqlcmd:flipr_test
-> sqitch config core.sqlcmd.dsn flipr_test
-> sqitch config core.sqlcmd.uri "DBI:ODBC:Driver={SQL Server}"
+  > sqitch config core.sqlcmd.target db:sqlcmd:flipr_test
+  > sqitch config core.sqlcmd.dsn flipr_test
+  > sqitch config core.sqlcmd.uri "DBI:ODBC:Driver={SQL Server}"
 
 Let's have a look at F<sqitch.conf> now:
 
