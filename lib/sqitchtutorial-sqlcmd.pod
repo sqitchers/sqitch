@@ -420,8 +420,8 @@ the sqitch schema, so that any data is not lost.
 
 Now for the verify script. Add this to F<verify/users.sql>;
 
-sqitch.verify "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE
-TABLE_SCHEMA = 'dbo' AND TABLE_NAME = 'users'"
+  sqitch.verify "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE
+  TABLE_SCHEMA = 'dbo' AND TABLE_NAME = 'users'"
 
 Now for the revert script. Add this to
 F<revert/users.sql>:
@@ -751,10 +751,10 @@ First, create a new database, say flipr_dev. Then go to the bundle directory:
 
   > cd bundle
   
-Now enter the folloeing to repoint the deployment:
+Now enter the following to repoint the deployment:
 
-> sqitch config core.sqlcmd.target db:sqlcmd:flipr_dev
-> sqitch config core.sqlcmd.dsn flipr_dev
+  > sqitch config core.sqlcmd.target db:sqlcmd:flipr_dev
+  > sqitch config core.sqlcmd.dsn flipr_dev
 
 Let's have a look at F<sqitch.conf> now:
 
@@ -963,33 +963,32 @@ should end up looking something like this:
 
 Good, we've finished this feature. Now make it so:
 
-> git add .
-> git commit -am "Add manage flips procedures."
-
-[flips a44c2d5] Add manage flips procedures.
-7 files changed, 39 insertions(+)
-create mode 100644 deploy/delete_flip.sql
-create mode 100644 deploy/insert_flip.sql
-create mode 100644 revert/delete_flip.sql
-create mode 100644 revert/insert_flip.sql
-create mode 100644 verify/delete_flip.sql
-create mode 100644 verify/insert_flip.sql
+  > git add .
+  > git commit -am "Add manage flips procedures."
+  [flips a44c2d5] Add manage flips procedures.
+  7 files changed, 39 insertions(+)
+  create mode 100644 deploy/delete_flip.sql
+  create mode 100644 deploy/insert_flip.sql
+  create mode 100644 revert/delete_flip.sql
+  create mode 100644 revert/insert_flip.sql
+  create mode 100644 verify/delete_flip.sql
+  create mode 100644 verify/insert_flip.sql
 
 Time to merge back into C<master>.
 
 [However in the meantime someone else has been working on the master branch.
 
-> git checkout master
-Switched to branch 'master'
+  > git checkout master
+  Switched to branch 'master'
 
-> sqitch add flipr_schema -m "Add flipr schema."
-Created deploy\flipr_schema.sql
-Created revert\flipr_schema.sql
-Created verify\flipr_schema.sql
-Added "flipr_schema" to sqitch.plan
+  > sqitch add flipr_schema -m "Add flipr schema."
+  Created deploy\flipr_schema.sql
+  Created revert\flipr_schema.sql
+  Created verify\flipr_schema.sql
+  Added "flipr_schema" to sqitch.plan
 
-> git add .
-> git commit -am "Add flipr schema."]
+  > git add .
+  > git commit -am "Add flipr schema."]
 
 
 =head2 Emergency
