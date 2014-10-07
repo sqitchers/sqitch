@@ -988,7 +988,9 @@ Time to merge back into C<master>.
   Added "flipr_schema" to sqitch.plan
 
   > git add .
-  > git commit -am "Add flipr schema."]
+  > git commit -am "Add flipr schema."
+  
+]
 
 
 =head2 Emergency
