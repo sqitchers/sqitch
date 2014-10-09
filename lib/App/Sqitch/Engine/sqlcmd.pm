@@ -28,8 +28,10 @@ lazy => 1,
 required => 1,
 default => sub {
         my $self = shift;
-        my $uri = $self->uri->clone;
-	$uri->query("dsn=" . $self->dsn);
+        my @fields = split /\//, $uri;
+        my $db = $fields[3];
+        my @host = split /@/, $fields[2];
+	$uri->query("Provider=" . $self->provider . ";Integrated Security=" . $self->integrated_security . ";Initial Catalog=" . $db . ";Server=" . $host[1] . ";");
         return $uri;
     },
 );
@@ -96,7 +98,6 @@ has dbh => (
                     return;
                 },
             },
-            $uri->query_params,
         });
 
        
@@ -143,7 +144,7 @@ sub sqlcmd { @{ shift->_sqlcmd} }
 
 sub key { 'sqlcmd' }
 sub name { 'MSSQL' }
-sub driver { 'DBD::ODBC' }
+sub driver { 'DBD::ADO' }
 sub default_client { 'sqlcmd' }
 
 sub _char2ts {
