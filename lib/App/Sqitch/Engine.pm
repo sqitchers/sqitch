@@ -70,14 +70,25 @@ has target => (
     }
 );
 
-has dsn => (
+has integrated_security => (
     is      => 'ro',
     isa     => Str,
     lazy    => 1,
     default => sub {
         my $self = shift;
         my $engine = $self->key;
-        return $self->sqitch->config->get( key => "core.$engine.dsn");
+        return $self->sqitch->config->get( key => "core.$engine.integrated_security");
+    }
+);
+
+has provider => (
+    is      => 'ro',
+    isa     => Str,
+    lazy    => 1,
+    default => sub {
+        my $self = shift;
+        my $engine = $self->key;
+        return $self->sqitch->config->get( key => "core.$engine.provider");
     }
 );
 
