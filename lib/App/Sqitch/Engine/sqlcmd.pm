@@ -28,6 +28,7 @@ lazy => 1,
 required => 1,
 default => sub {
         my $self = shift;
+        my $uri = $self->uri->clone;
         my @fields = split /\//, $uri;
         my $db = $fields[3];
         my @host = split /@/, $fields[2];
