@@ -6,17 +6,33 @@ use warnings;
 use utf8;
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
+use Types::Standard qw(Bool);
 use Pod::Find;
 use Moo;
 extends 'App::Sqitch::Command';
 
 our $VERSION = '0.997';
 
-# XXX Add --all at some point, to output a list of all possible commands.
+has guide => (
+    is      => 'ro',
+    isa     => Bool,
+    default => 0,
+);
+
+sub options {
+    # XXX Add --all at some point, to output a list of all possible commands.
+    return qw(
+        guide|g
+    );
+}
 
 sub execute {
     my ( $self, $command ) = @_;
-    $self->find_and_show('sqitch' . ( $command ? "-$command" : 'commands' ));
+    $self->find_and_show('sqitch' . (
+          $command     ? ($command =~ /^changes|tutorial/ ? '' : '-') . $command
+        : $self->guide ? 'guides'
+                       : 'commands'
+    ));
 }
 
 sub find_and_show {

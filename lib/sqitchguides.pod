@@ -1,0 +1,23 @@
+=begin private
+
+Keep private so it's not displayed, but will still be indexed by the CPAN
+toolchain.
+
+=head1 Name
+
+sqitchguides - List of common sqitch guides
+
+=end private
+
+The common Sqitch guides are:
+
+  changes             Specifying changes for Sqitch
+  tutorial            PostgreSQL Tutorial
+  tutorial-firebird   Firebird Tutorial
+  tutorial-mysql      MySQL Tutorial
+  tutorial-oracle     Oracle Tutorial
+  tutorial-sqlite     SQLite Tutorial
+  tutorial-vertica    Vertica Tutorial
+
+See C<< sqitch help <command> >> or C<< sqitch help <concept> >> to read about
+a specific command or concept.
