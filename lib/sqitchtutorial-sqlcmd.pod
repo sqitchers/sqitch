@@ -112,7 +112,7 @@ Let's have a look at F<sqitch.conf> now:
   	provider = SQLNCLI10.1
   	uri = DBI:ADO
   [target "flipr_test"]
-    uri = db:sqlcmd://@sdh12991/flipr_test
+  	uri = db:sqlcmd://@sdh12991/flipr_test
 
 By default, Sqitch will read F<sqitch.conf> in the current directory for
 settings. But it will also read F<~/.sqitch/sqitch.conf> for user-specific
