@@ -87,9 +87,11 @@ So, edit the comments out to get Sqitch to use the settings. Then type the
 following to change and add new settings for the target database and the uri 
 for SQL Server.
 
-  > sqitch config core.sqlcmd.target db:sqlcmd:flipr_test
-  > sqitch config core.sqlcmd.dsn flipr_test
-  > sqitch config core.sqlcmd.uri "DBI:ODBC:Driver={SQL Server}"
+  > sqitch config core.sqlcmd.target flipr_test
+  > sqitch config core.sqlcmd.integrated_security SSPI
+  > sqitch config core.sqlcmd.provider SQLNCLI10.1
+  > sqitch config core.sqlcmd.uri DBI:ADO
+  > sqitch config target.flipr_test.uri db:sqlcmd://@sdh12991/flipr_test
 
 Let's have a look at F<sqitch.conf> now:
 
@@ -103,11 +105,14 @@ Let's have a look at F<sqitch.conf> now:
   	verify_dir = verify
   	extension = sql
   [core "sqlcmd"]
-  	target = db:sqlcmd:flipr_test
+  	target = flipr_test
   	registry = sqitch
   	client = sqlcmd.exe
-  	dsn = flipr_test
-  	uri = DBI:ODBC:Driver={SQL Server}
+  	integrated_security = SSPI
+  	provider = SQLNCLI10.1
+  	uri = DBI:ADO
+  [target "flipr_test"]
+    uri = db:sqlcmd://@sdh12991/flipr_test
 
 By default, Sqitch will read F<sqitch.conf> in the current directory for
 settings. But it will also read F<~/.sqitch/sqitch.conf> for user-specific
