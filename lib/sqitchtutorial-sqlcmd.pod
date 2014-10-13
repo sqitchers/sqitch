@@ -267,7 +267,7 @@ Then L<C<verify>|sqitch-verify> again:
 
   > sqitch verify
   Verifying flipr_test
-    
+    * appuser .. # Verify script "verify\appuser.sql" failed
   not ok
 
   Verify Summary Report
