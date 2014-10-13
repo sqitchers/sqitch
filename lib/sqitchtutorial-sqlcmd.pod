@@ -205,7 +205,7 @@ script, so we edit this to F<revert/appuser.sql> to look like this:
 Now we can try deploying this change. First create the flipr_test database and then run this command:
 
   > sqitch deploy
-  Deploying changes to db:sqlcmd:flipr_test
+  Deploying changes to flipr_test
     + appuser .. ok
 
 First Sqitch created the registry schema and tables used to track database
@@ -266,7 +266,7 @@ something that doesn't exist, something like:
 Then L<C<verify>|sqitch-verify> again:
 
   > sqitch verify
-  Verifying db:sqlcmd:flipr_test
+  Verifying flipr_test
     
   not ok
 
@@ -285,7 +285,7 @@ recorded via the L<C<status>|sqitch-status> command, which reads the tables
 from the registry database:
 
   > sqitch status
-  # On database db:sqlcmd:flipr_test
+  # On database flipr_test
   # Project:  flipr
   # Change:   f56dd1a1ab029f398cec2cebb2ecc527fa0332c2
   # Name:     appuser
@@ -297,7 +297,7 @@ from the registry database:
 Let's make sure that we can revert the change:
 
   > sqitch revert
-  Revert all changes from db:sqlcmd:flipr_test? [Yes] 
+  Revert all changes from flipr_test? [Yes] 
     - appuser .. ok
 
 The L<C<revert>|sqitch-revert> command first prompts to make sure that we
@@ -309,21 +309,21 @@ I<removed> from the database. And now the schema should be gone.
 And the status message should reflect as much:
 
   > sqitch status
-  # On database db:sqlcmd:flipr_test
+  # On database flipr_test
   No changes deployed
 
 Of course, since nothing is deployed, the L<C<verify>|sqitch-verify> command
 has nothing to verify:
 
   > sqitch verify
-  Verifying db:sqlcmd:flipr_test
+  Verifying flipr_test
   No changes deployed
 
 However, we still have a record that the change happened, visible via the
 L<C<log>|sqitch-log> command:
 
   > sqitch log
-  On database db:sqlcmd:flipr_test
+  On database flipr_test
   Revert f56dd1a1ab029f398cec2cebb2ecc527fa0332c2
   Name:      appuser
   Committer: Marge N. O’Vera <marge@example.com>
@@ -355,7 +355,7 @@ And then deploy again. This time, let's use the C<--verify> option, so that
 the C<verify> script is applied when the change is deployed:
 
   > sqitch deploy --verify
-  Deploying changes to db:sqlcmd:flipr_test
+  Deploying changes to flipr_test
     + appuser .. ok
 
 And now the C<flipr> user should be back.
@@ -363,7 +363,7 @@ And now the C<flipr> user should be back.
 When we look at the status, the deployment will be there:
 
   > sqitch status
-  # On database db:sqlcmd:flipr_test
+  # On database flipr_test
   # Project:  flipr
   # Change:   f56dd1a1ab029f398cec2cebb2ecc527fa0332c2
   # Name:     appuser
@@ -444,7 +444,7 @@ We first drop the backup table on sqitch and then take a backup of the users
 table before dropping it. Let's deploy this bad boy:
 
   > sqitch deploy
-  Deploying changes to db:sqlcmd:flipr_test
+  Deploying changes to flipr_test
     + users .. ok
 
 We know, since verification is enabled, that the table must have been created.
@@ -454,7 +454,7 @@ We can also verify all currently deployed changes with the
 L<C<verify>|sqitch-verify> command:
 
   > sqitch verify
-  Verifying db:sqlcmd:flipr_test
+  Verifying flipr_test
     * appuser .. ok
     * users .... ok
   Verify successful
@@ -462,7 +462,7 @@ L<C<verify>|sqitch-verify> command:
 Now have a look at the status:
 
   > sqitch status
-  # On database db:sqlcmd:flipr_test
+  # On database flipr_test
   # Project:  flipr
   # Change:   2bd1190fdb324c2609f0c7f0cef73d8cb434ba0e
   # Name:     users
@@ -493,7 +493,7 @@ The L<C<status>|sqitch-status> command politely informs us that we have
 undeployed changes:
 
   > sqitch status
-  # On database db:sqlcmd:flipr_test
+  # On database flipr_test
   # Project:  flipr
   # Change:   f56dd1a1ab029f398cec2cebb2ecc527fa0332c2
   # Name:     appuser
@@ -506,7 +506,7 @@ undeployed changes:
 As does the L<C<verify>|sqitch-verify> command:
 
   > sqitch verify
-  Verifying db:sqlcmd:flipr_test
+  Verifying flipr_test
     * appuser .. ok
   Undeployed change:
     * users
@@ -532,7 +532,7 @@ Okay, let's commit and deploy again:
 Looks good. Check the status:
 
   > sqitch status
-  # On database db:sqlcmd:flipr_test
+  # On database flipr_test
   # Project:  flipr
   # Change:   2bd1190fdb324c2609f0c7f0cef73d8cb434ba0e
   # Name:     users
@@ -653,7 +653,7 @@ something like:
 Try em out!
 
   > sqitch deploy
-  Deploying changes to db:sqlcmd:flipr_test
+  Deploying changes to flipr_test
     + insert_user .. ok
     + change_pass .. ok
 
@@ -664,7 +664,7 @@ look.
 And what's the status?
 
   > sqitch status
-  # On database db:sqlcmd:flipr_test
+  # On database flipr_test
   # Project:  flipr
   # Change:   b0a598b91ce97cf1b95ded97a6452bf03231a2cd
   # Name:     change_pass
@@ -699,12 +699,12 @@ the last deployed change. Looks good. Let's do the commit and re-deploy dance:
    create mode 100644 verify/insert_user.sql
 
   > sqitch deploy
-  Deploying changes to db:sqlcmd:flipr_test
+  Deploying changes to flipr_test
     + insert_user .. ok
     + change_pass .. ok
 
   > sqitch status
-  # On database db:sqlcmd:flipr_test
+  # On database flipr_test
   # Project:  flipr
   # Change:   b0a598b91ce97cf1b95ded97a6452bf03231a2cd
   # Name:     change_pass
@@ -714,7 +714,7 @@ the last deployed change. Looks good. Let's do the commit and re-deploy dance:
   Nothing to deploy (up-to-date)
 
   > sqitch verify
-  Verifying db:sqlcmd:flipr_test
+  Verifying flipr_test
     * appuser ...... ok
     * users ........ ok
     * insert_user .. ok
@@ -854,7 +854,7 @@ And edit F<revert/flips.sql>:
 And give it a whirl:
 
   > sqitch deploy
-  Deploying changes to db:sqlcmd:flipr_test
+  Deploying changes to flipr_test
     + appuser ................... ok
     + users ..................... ok
     + insert_user ............... ok
@@ -863,7 +863,7 @@ And give it a whirl:
 Look good?
 
   > sqitch status --show-tags
-  # On database db:sqlcmd:flipr_test
+  # On database flipr_test
   # Project:  flipr
   # Change:   b3ccd37da58ac232c23edfa0adaf2d6f483842fd
   # Name:     flips
@@ -954,7 +954,7 @@ L<C<revert>|sqitch-revert>, then commit it to the repository. The status
 should end up looking something like this:
 
   > sqitch status --show-tags
-  # On database db:sqlcmd:flipr_test
+  # On database flipr_test
   # Project:  flipr
   # Change:   7bf30e6b7b0a4e61f30dd4148f5b837bdddae086
   # Name:     delete_flip
@@ -1375,7 +1375,7 @@ We also need to change the revert script, F<revert/insert_user.sql> to use ALTER
 And now we're ready to try a deployment:
 
   >     sqitch deploy
-  Deploying changes to db:sqlcmd:flipr_test
+  Deploying changes to flipr_test
     + insert_user .. ok
     + change_pass .. ok
 
@@ -1424,7 +1424,7 @@ So the C<insert_user> verify script looks like this:
 Make sure these pass by re-deploying:
 
   > sqitch deploy
-  Deploying changes to db:sqlcmd:flipr_test
+  Deploying changes to flipr_test
     + insert_user .. ok
 
 Excellent. Let's go ahead and commit this change:
@@ -1439,7 +1439,7 @@ Excellent. Let's go ahead and commit this change:
    create mode 100644 verify/insert_user@v1.0.0-dev2.sql
 
   > sqitch status
-  # On database db:sqlcmd:flipr_test
+  # On database flipr_test
   # Project:  flipr
   # Change:   6f2e1cd4b1c031a66930811328cfcdb0389d8320
   # Name:     insert_user
