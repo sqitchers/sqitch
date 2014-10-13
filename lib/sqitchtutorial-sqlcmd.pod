@@ -161,7 +161,7 @@ Let's commit these changes and start creating the database changes.
 First, our app will need a database user, so let's create one. Run this
 command:
 
-  > sqitch add appuser -n 'Creates an application user.'
+  > sqitch add appuser -m 'Creates an application user.'
   Created deploy/appuser.sql
   Created revert/appuser.sql
   Created verify/appuser.sql
@@ -548,14 +548,14 @@ Excellent. Let's do some more!
 Let's add a couple more changes to add functions for managing users.
 
   > sqitch add insert_user --requires users --requires appuser \
-    -n 'Creates a function to insert a user.'
+    -m 'Creates a function to insert a user.'
   Created deploy/insert_user.sql
   Created revert/insert_user.sql
   Created verify/insert_user.sql
   Added "insert_user [users appuser]" to sqitch.plan
 
   > sqitch add change_pass --requires users --requires appuser \
-    -n 'Creates a function to change a user password.'
+    -m 'Creates a function to change a user password.'
   Created deploy/change_pass.sql
   Created revert/change_pass.sql
   Created verify/change_pass.sql
