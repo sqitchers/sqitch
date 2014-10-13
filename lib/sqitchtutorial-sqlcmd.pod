@@ -752,14 +752,14 @@ installed somewhere, users can use Sqitch to deploy to the database.
 
 Let's try deploying the bundle:
 
-First, create a new database, say flipr_dev. Then go to the bundle directory:
+First, create a new database on a server, say the flipr database on the sdhis4 server . Then go to the bundle directory:
 
   > cd bundle
   
 Now enter the following to repoint the deployment:
 
-  > sqitch config core.sqlcmd.target db:sqlcmd:flipr_dev
-  > sqitch config core.sqlcmd.dsn flipr_dev
+  > sqitch config core.sqlcmd.target flipr_live
+  > sqitch config target.flipr_live.uri db:sqlcmd:@//sdhis4/flipr
 
 Let's have a look at F<sqitch.conf> now:
 
@@ -773,16 +773,22 @@ Let's have a look at F<sqitch.conf> now:
   	verify_dir = verify
   	extension = sql
   [core "sqlcmd"]
-  	target = db:sqlcmd:flipr_dev
+  	target = flipr_live
   	registry = sqitch
   	client = sqlcmd.exe
-  	dsn = flipr_dev
-  	uri = DBI:ODBC:Driver={SQL Server}
+  	integrated_security = SSPI
+  	provider = SQLNCLI10.1
+  	uri = DBI:ADO
+  [target "flipr_test"]
+  	uri = db:sqlcmd://@sdh12991/flipr_test
+  [target "flipr_live"]
+  	uri = db:sqlcmd://@sdhis4/flipr
+
 
   Now deploy it:
   
   > sqitch deploy
-  Deploying changes to db:sqlcmd:flipr_dev
+  Deploying changes to flipr_live
     + appuser ................... ok
     + users ..................... ok
     + insert_user ............... ok
@@ -792,7 +798,7 @@ Great, all four changes were deployed and C<change_pass> was tagged with
 C<@v1.0.0-dev1>. Let's have a look at the status:
 
   > sqitch status
-  # On database db:sqlcmd:flipr_dev
+  # On database flipr_live
   # Project:  flipr
   # Change:   b0a598b91ce97cf1b95ded97a6452bf03231a2cd
   # Name:     change_pass
@@ -805,7 +811,7 @@ C<@v1.0.0-dev1>. Let's have a look at the status:
 Looks good, eh? Go ahead and revert it:
 
   > sqitch revert -y
-  Reverting all changes from db:sqlcmd:flipr_dev
+  Reverting all changes from flipr_live
     - change_pass @v1.0.0-dev1 .. ok
     - insert_user ............... ok
     - users ..................... ok
