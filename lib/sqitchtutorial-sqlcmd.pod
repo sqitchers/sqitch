@@ -1383,7 +1383,6 @@ And now we're ready to try a deployment:
   >     sqitch deploy
   Deploying changes to flipr_test
     + insert_user .. ok
-    + change_pass .. ok
 
 So, are the changes deployed?
 
