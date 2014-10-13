@@ -54,7 +54,7 @@ project must have a name associated with it, and, optionally, a unique URI. We
 recommend including the URI, as it increases the uniqueness of object
 identifiers internally, so let's specify one when we initialize Sqitch:
 
-  > sqitch --engine sqlcmd init flipr --uri https://github.com/theory/sqitch-sqlcmd-intro/
+  > sqitch --engine sqlcmd init flipr --uri flipr
   Created sqitch.conf
   Created sqitch.plan
   Created deploy/
@@ -134,7 +134,7 @@ Back to the repository. Have a look at the plan file, F<sqitch.plan>:
   > cat sqitch.plan
   %syntax-version=1.0.0-b2
   %project=flipr
-  %uri=https://github.com/theory/sqitch-sqlcmd-intro/
+  %uri=flipr
 
 
 Note that it has picked up on the name and URI of the app we're building.
@@ -561,7 +561,7 @@ Now might be a good time to have a look at the deployment plan:
   > cat sqitch.plan
   %syntax-version=1.0.0-b2
   %project=flipr
-  %uri=https://github.com/theory/sqitch-mysql-intro/
+  %uri=flipr
 
   appuser 2013-12-31T21:04:04Z Marge N. O’Vera <marge@example.com> # Creates a an application user.
   users [appuser] 2013-12-31T21:32:48Z Marge N. O’Vera <marge@example.com> # Creates table to track our users.
