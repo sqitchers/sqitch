@@ -5,7 +5,7 @@ toolchain.
 
 =head1 Name
 
-sqitchguides - List of common sqitch guides
+sqitchguides - List of common Sqitch guides
 
 =end private
 
