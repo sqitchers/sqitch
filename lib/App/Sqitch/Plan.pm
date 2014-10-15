@@ -15,7 +15,7 @@ use App::Sqitch::X qw(hurl);
 use List::MoreUtils qw(uniq any);
 use namespace::autoclean;
 use Moo;
-use App::Sqitch::Types qw(Str Int HashRef ChangeList LineList Maybe Sqitch URI);
+use App::Sqitch::Types qw(Str Int HashRef ChangeList LineList Maybe Sqitch URI File);
 use constant SYNTAX_VERSION => '1.0.0-b2';
 
 our $VERSION = '0.997';
@@ -45,6 +45,15 @@ has sqitch => (
     isa      => Sqitch,
     required => 1,
     weak_ref => 1,
+);
+
+has file => (
+    is      => 'ro',
+    isa     => File,
+    lazy    => 1,
+    default => sub {
+        shift->sqitch->plan_file
+    },
 );
 
 has _plan => (
@@ -109,7 +118,7 @@ sub parse {
 
 sub load {
     my $self = shift;
-    my $file = $self->sqitch->plan_file;
+    my $file = $self->file;
     my $fh = shift || do {
         hurl plan => __x('Plan file {file} does not exist', file => $file)
             unless -e $file;
@@ -548,7 +557,7 @@ sub check_changes {
                 $max_delta,
                 change => $change,
                 num    => $max_delta,
-                plan   => $self->sqitch->plan_file,
+                plan   => $self->file,
             );
         }
     }
