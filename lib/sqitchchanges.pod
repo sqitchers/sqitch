@@ -2,7 +2,7 @@
 
 =head1 Name
 
-sqitchchanges -Specifying changes for Sqitch
+sqitchchanges - Specifying changes for Sqitch
 
 =head1 Description
 

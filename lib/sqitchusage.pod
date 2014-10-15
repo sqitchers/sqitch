@@ -1,6 +1,6 @@
 =begin private
 
-Keep private to it's not displayed, but will still be indexed by the CPAN
+Keep private so it's not displayed, but will still be indexed by the CPAN
 toolchain.
 
 =head1 Name

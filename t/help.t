@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 11;
+use Test::More tests => 15;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -46,6 +46,22 @@ is_deeply \@args, [
     '-verbose' => 2,
     '-exitval' => 0,
 ], 'Should show "config" command docs';
+
+ok $help->execute('changes'), 'Execute "changes" help';
+is_deeply \@args, [
+    $help,
+    '-input'   => Pod::Find::pod_where({'-inc' => 1 }, 'sqitchchanges'),
+    '-verbose' => 2,
+    '-exitval' => 0,
+], 'Should show "changes" command docs';
+
+ok $help->execute('tutorial'), 'Execute "tutorial" help';
+is_deeply \@args, [
+    $help,
+    '-input'   => Pod::Find::pod_where({'-inc' => 1 }, 'sqitchtutorial'),
+    '-verbose' => 2,
+    '-exitval' => 0,
+], 'Should show "tutorial" command docs';
 
 my @fail;
 $mock->mock(fail => sub { @fail = @_ });

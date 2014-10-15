@@ -6,6 +6,9 @@ Revision history for Perl extension App::Sqitch
      - The Vertica engine now supports Vertica 6, as documented.
      - Fixed a warning from Type::Utils, thanks to a report from Géraud
        CONTINSOUZAS.
+     - Simplified the output of `sqitch help`, and added the more important
+       options to it.
+     - Added the `--guide` option to `sqitch help` to list Sqitch guides.
 
 0.996  2014-09-05T21:11:00Z
      - Fixed one more test failure due to the introduction of "Negative repeat

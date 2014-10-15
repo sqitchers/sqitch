@@ -4,13 +4,31 @@ sqitch-help - Display help for Sqitch and Sqitch commands
 
 =head1 Synopsis
 
-  sqitch help [command]
+  sqitch help [COMMAND]
+  sqitch help --guide
 
 =head1 Description
 
-With no command given, the L<sqitch documentation|sqitch> is printed to
-standard output. If a sqitch command is named, the documentation for that
-command will be displayed.
+With no options and no C<COMMAND> given, the synopsis of the C<sqitch> options
+and a list of the most commonly used Sqitch commands will be displayed.
+
+If the option C<--guide> or C<-g> is given, then a list of Sqitch guides will
+be displayed
+
+If a Sqitch command is named, the documentation for that command will be
+displayed.
+
+=head1 Options
+
+=over
+
+=item C<-g>
+
+=item C<--guide>
+
+Prints a list of available Sqitch guides.
+
+=back
 
 =head1 Sqitch
 

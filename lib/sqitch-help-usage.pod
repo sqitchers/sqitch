@@ -4,6 +4,9 @@ sqitch-help-usage - Sqitch help usage statement
 
 =head1 Usage
 
-  sqitch help [command]
+  sqitch help [--guide] [command]
 
+=head1 Options
+
+    -g --guide    Print list of guides
 
