@@ -219,24 +219,25 @@ sub BUILDARGS {
         );
     }
 
-    # Instantiate the URI and override parts with command-line options.
-    # TODO: Deprecate these.
+    # Instantiate the URI.
     $uri = $p->{uri} = URI::db->new( $uri );
 
-    # Override parts with command-line options (deprecate?)
-    if (my $host = $sqitch->db_host) {
+    # Override parts with command-line options.
+    # TODO: Deprecate these.
+    my $opts = $sqitch->options;
+    if (my $host = $opts->{db_host}) {
         $uri->host($host);
     }
 
-    if (my $port = $sqitch->db_port) {
+    if (my $port = $opts->{db_port}) {
         $uri->port($port);
     }
 
-    if (my $user = $sqitch->db_username) {
+    if (my $user = $opts->{db_username}) {
         $uri->user($user);
     }
 
-    if (my $db = $sqitch->db_name) {
+    if (my $db = $opts->{db_name}) {
         $uri->dbname($db);
     }
 

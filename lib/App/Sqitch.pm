@@ -61,6 +61,12 @@ has plan => (
     },
 );
 
+has options => (
+    is      => 'ro',
+    isa     => HashRef,
+    default => sub { {} },
+);
+
 has _engine => (
     is  => 'ro',
     isa => Maybe[Str],
@@ -336,6 +342,7 @@ sub go {
     my $config = App::Sqitch::Config->new;
 
     # 5. Instantiate Sqitch.
+    $opts->{options} = { %{ $opts }};
     $opts->{_engine} = delete $opts->{engine} if $opts->{engine};
     $opts->{config} = $config;
     my $sqitch = $class->new($opts);
@@ -776,6 +783,8 @@ Constructs and returns a new Sqitch object. The supported parameters include:
 
 =over
 
+=item C<options>
+
 =item C<plan_file>
 
 =item C<db_client>
@@ -837,6 +846,12 @@ Constructs and returns a new Sqitch object. The supported parameters include:
 =head3 C<extension>
 
 =head3 C<editor>
+
+=head3 C<options>
+
+  my $options = $sqitch->options;
+
+Returns a hashref of the core command-line options.
 
 =head3 C<config>
 

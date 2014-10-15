@@ -2,8 +2,8 @@
 
 use strict;
 use warnings;
-use Test::More tests => 242;
-#use Test::More 'no_plan';
+#use Test::More tests => 242;
+use Test::More 'no_plan';
 use Test::MockModule;
 use Path::Class;
 use Test::Exception;
@@ -25,6 +25,7 @@ $ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
 can_ok $CLASS, qw(
     go
     new
+    options
     plan_file
     plan
     engine
@@ -295,6 +296,7 @@ GO: {
         'Should have read user name from configuration';
     is $sqitch->user_email, 'michael@example.com',
         'Should have read user email from configuration';
+    is_deeply $sqitch->options, { engine => 'sqlite' }, 'Should have options';
 
     # Now make it die.
     sub puke { App::Sqitch::X->new(@_) } # Ensures we have trace frames.
