@@ -254,7 +254,7 @@ sub load {
 
     # We should have a URI or an engine param.
     my $engine = delete $p->{engine}
-        or hurl 'Missing "uri" or "engine" parameter to load()';
+        or hurl 'Missing "engine" parameter to load()';
 
     # Load the engine class.
     my $pkg = __PACKAGE__ . "::$engine";

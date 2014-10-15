@@ -34,11 +34,10 @@ has engine => (
     lazy    => 1,
     default => sub {
         my $self   = shift;
-        my $sqitch = $self->sqitch;
         require App::Sqitch::Engine;
         App::Sqitch::Engine->load({
-            sqitch => $sqitch,
-            engine => $sqitch->_engine || $self->uri->canonical_engine,
+            sqitch => $self->sqitch,
+            engine => $self->uri->canonical_engine,
         });
     },
 );
@@ -68,7 +67,7 @@ has client => (
         return $self->sqitch->config->get(
             key => "core.$ekey.registry"
         ) || do {
-            my $client = $self->default_client;
+            my $client = $engine->default_client;
             return $client if $^O ne 'MSWin32';
             return $client if $client =~ /[.](?:exe|bat)$/;
             return $client . '.exe';
@@ -95,7 +94,7 @@ has plan_file => (
     lazy     => 1,
     default => sub {
         my $self = shift;
-        if (my $f = shift->_fetch('plan_file') ) {
+        if (my $f = $self->_fetch('plan_file') ) {
             return file $f;
         }
         return $self->top_dir->file('sqitch.plan')->cleanup;
@@ -108,7 +107,7 @@ has plan => (
     lazy     => 1,
     default  => sub {
         # XXX Modify to use target.
-        App::Sqitch::Plan->new( sqitch => shift );
+        App::Sqitch::Plan->new( sqitch => shift->sqitch );
     },
 );
 
@@ -143,7 +142,7 @@ has revert_dir => (
         if ( my $dir = $self->_fetch('revert_dir') ) {
             return dir $dir;
         }
-        $self->top_dir->subdir('deploy')->cleanup;
+        $self->top_dir->subdir('revert')->cleanup;
     },
 );
 
@@ -207,7 +206,7 @@ sub BUILDARGS {
     # If no URI, we have to find one.
     if (!$name) {
         # Fall back on the default.
-        $p->{name} = $uri = "db:$ekey";
+        $p->{name} = $uri = "db:$ekey:";
     } elsif ($name =~ /:/) {
         # The name is a URI.
         $uri = URI::db->new($name);
