@@ -137,7 +137,7 @@ NOENGINE: {
     throws_ok { $CLASS->load({ engine => '', sqitch => $sqitch }) }
         'App::Sqitch::X',
             'No engine should die';
-    is $@->message, 'Missing "uri" or "engine" parameter to load()',
+    is $@->message, 'Missing "engine" parameter to load()',
         'It should be the expected message';
 }
 
