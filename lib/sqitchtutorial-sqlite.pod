@@ -28,6 +28,8 @@ If you'd like to manage an Firebird database, see L<sqitchtutorial-firebird>.
 
 If you'd like to manage an Vertica database, see L<sqitchtutorial-vertica>.
 
+If you'd like to manage an MS SQL Server database, see L<sqitchtutorial-sqlcmd>.
+
 =head1 Starting a New Project
 
 Usually the first thing to do when starting a new project is to create a
