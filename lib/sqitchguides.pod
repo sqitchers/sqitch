@@ -18,6 +18,7 @@ The common Sqitch guides are:
   tutorial-oracle     Oracle Tutorial
   tutorial-sqlite     SQLite Tutorial
   tutorial-vertica    Vertica Tutorial
+  tutorial-sqlcmd     MS SQL Server Tutorial
 
 See C<< sqitch help <command> >> or C<< sqitch help <concept> >> to read about
 a specific command or concept.
