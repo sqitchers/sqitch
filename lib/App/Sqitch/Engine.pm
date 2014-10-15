@@ -70,6 +70,28 @@ has target => (
     }
 );
 
+has integrated_security => (
+    is      => 'ro',
+    isa     => Str,
+    lazy    => 1,
+    default => sub {
+        my $self = shift;
+        my $engine = $self->key;
+        return $self->sqitch->config->get( key => "core.$engine.integrated_security");
+    }
+);
+
+has provider => (
+    is      => 'ro',
+    isa     => Str,
+    lazy    => 1,
+    default => sub {
+        my $self = shift;
+        my $engine = $self->key;
+        return $self->sqitch->config->get( key => "core.$engine.provider");
+    }
+);
+
 has destination => (
     is      => 'ro',
     isa     => Str,
@@ -298,9 +320,12 @@ sub use_driver {
 sub deploy {
     my ( $self, $to, $mode ) = @_;
     my $sqitch   = $self->sqitch;
+   
+    $self->initialize;
+   
     my $plan     = $self->_sync_plan;
     my $to_index = $plan->count - 1;
-
+    
     hurl plan => __ 'Nothing to deploy (empty plan)' if $to_index < 0;
 
     if (defined $to) {
@@ -963,7 +988,9 @@ sub _sync_plan {
     my $self = shift;
     my $plan = $self->plan;
 
-    if (my $id = $self->latest_change_id) {
+    
+      if ($self->initialized == 1) {
+       if (my $id = $self->latest_change_id) {
         my $idx = $plan->index_of($id) // hurl plan => __x(
             'Cannot find {change} in the plan',
             change => $id
@@ -986,6 +1013,7 @@ sub _sync_plan {
 
     } else {
         $plan->reset;
+    }
     }
     return $plan;
 }
