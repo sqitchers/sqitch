@@ -30,6 +30,8 @@ If you'd like to manage an MySQL database, see L<sqitchtutorial-mysql>.
 
 If you'd like to manage an Firebird database, see L<sqitchtutorial-firebird>.
 
+If you'd like to manage an MS SQL Server database, see L<sqitchtutorial-sqlcmd>.
+
 =head2 Connection Configuration
 
 Sqitch requires ODBC to connect to the Vertica database. As such, you'll need
