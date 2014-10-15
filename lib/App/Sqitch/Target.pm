@@ -4,8 +4,10 @@ use 5.010;
 use Moo;
 use strict;
 use warnings;
-use App::Sqitch::Types qw(Maybe URIDB Str Dir Engine);
-use Path::Class qw(dir);
+use App::Sqitch::Types qw(Maybe URIDB Str Dir Engine Sqitch File Plan);
+use App::Sqitch::X qw(hurl);
+use Locale::TextDomain 1.20 qw(App-Sqitch);
+use Path::Class qw(dir file);
 use namespace::autoclean;
 
 has name => (
@@ -65,7 +67,7 @@ has client => (
         my $ekey   = $engine->key;
         return $self->sqitch->config->get(
             key => "core.$ekey.registry"
-        ) or do {
+        ) || do {
             my $client = $self->default_client;
             return $client if $^O ne 'MSWin32';
             return $client if $client =~ /[.](?:exe|bat)$/;
@@ -93,7 +95,7 @@ has plan_file => (
     lazy     => 1,
     default => sub {
         my $self = shift;
-        if (my $f = shift->_fetch('plan_file') {
+        if (my $f = shift->_fetch('plan_file') ) {
             return file $f;
         }
         return $self->top_dir->file('sqitch.plan')->cleanup;
@@ -125,7 +127,7 @@ has deploy_dir => (
     lazy    => 1,
     default => sub {
         my $self = shift;
-        if ( my $dir = $self->_fetch('deploy_dir');
+        if ( my $dir = $self->_fetch('deploy_dir') ) {
             return dir $dir;
         }
         $self->top_dir->subdir('deploy')->cleanup;
@@ -138,7 +140,7 @@ has revert_dir => (
     lazy    => 1,
     default => sub {
         my $self = shift;
-        if ( my $dir = $self->_fetch('revert_dir');
+        if ( my $dir = $self->_fetch('revert_dir') ) {
             return dir $dir;
         }
         $self->top_dir->subdir('deploy')->cleanup;
@@ -151,7 +153,7 @@ has verify_dir => (
     lazy    => 1,
     default => sub {
         my $self = shift;
-        if ( my $dir = $self->_fetch('verify_dir');
+        if ( my $dir = $self->_fetch('verify_dir') ) {
             return dir $dir;
         }
         $self->top_dir->subdir('verify')->cleanup;
@@ -180,6 +182,7 @@ has extension => (
 # Remove attributes here from App::Sqitch and Engine.
 
 sub BUILDARGS {
+    my $class = shift;
     my $p = @_ == 1 && ref $_[0] ? { %{ +shift } } : { @_ };
     my $sqitch = $p->{sqitch} or return $p;
 
@@ -191,9 +194,14 @@ sub BUILDARGS {
 
     # If no name, try to find the default.
     my $uri;
-    my $ekey = $sqitch->_engine;
+    my $ekey = $sqitch->options->{engine} || $sqitch->config->get(
+        key => 'core.engine'
+    ) or hurl target => __(
+        'No engine specified; use --engine or set core.engine'
+    );
+
     my $name = $p->{name} ||= $sqitch->config->get(
-        key => "core.$engine.target"
+        key => "core.$ekey.target"
     );
 
     # If no URI, we have to find one.
@@ -206,20 +214,21 @@ sub BUILDARGS {
     } else {
         # Well then, we have a whole config to load up.
         my $config = $sqitch->config->get_section(
-            section => "target.$t"
+            section => "target.$name"
         ) or hurl target => __x(
             'Cannot find target "{target}"',
             target => $name
         );
 
         # There had best be a URI.
-        $uri = $config->{uri} or hurl target => __(
+        $uri = $config->{uri} or hurl target => __x(
             'No URI associated with target "{target}"',
             target => $name,
         );
     }
 
     # Instantiate the URI.
+    require URI::db;
     $uri = $p->{uri} = URI::db->new( $uri );
 
     # Override parts with command-line options.
