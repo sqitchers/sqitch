@@ -31,7 +31,7 @@ BEGIN {
     bind_textdomain_filter 'App-Sqitch' => \&Encode::decode_utf8;
 }
 
-# Okay to load Sqitch classes now that typess are created.
+# Okay to load Sqitch classes now that types are created.
 use App::Sqitch::Config;
 use App::Sqitch::Command;
 use App::Sqitch::Plan;
