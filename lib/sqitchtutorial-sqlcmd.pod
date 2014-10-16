@@ -84,8 +84,7 @@ available MSSQL engine-specific settings commented out and ready to be edited
 as appropriate.
 
 So, edit the comments out to get Sqitch to use the settings. Then type the
-following to change and add new settings for the target database and the uri 
-for SQL Server.
+following to add new settings.
 
   > sqitch config core.sqlcmd.target flipr_test
   > sqitch config core.sqlcmd.integrated_security SSPI
