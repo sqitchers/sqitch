@@ -48,39 +48,6 @@ has engine => (
     },
 );
 
-has registry => (
-    is  => 'ro',
-    isa => Str,
-    lazy => 1,
-    default => sub {
-        my $self   = shift;
-        my $engine = $self->engine;
-        my $ekey   = $engine->key;
-        return $self->sqitch->config->get(
-            key => "core.$ekey.registry"
-        ) || $engine->default_registry;
-    },
-);
-
-has client => (
-    is       => 'ro',
-    isa      => Str,
-    lazy     => 1,
-    default  => sub {
-        my $self   = shift;
-        my $engine = $self->engine;
-        my $ekey   = $engine->key;
-        return $self->sqitch->config->get(
-            key => "core.$ekey.registry"
-        ) || do {
-            my $client = $engine->default_client;
-            return $client if $^O ne 'MSWin32';
-            return $client if $client =~ /[.](?:exe|bat)$/;
-            return $client . '.exe';
-        };
-    },
-);
-
 sub _fetch {
     my ($self, $key) = @_;
     my $sqitch = $self->sqitch;
@@ -90,9 +57,34 @@ sub _fetch {
 
     my $config = $sqitch->config;
     return $config->get( key => "target." . $self->name . ".$key" )
-        || $config->get( key => "engine." . $self->engine->key . ".$key")
+        || $config->get( key => "core." . $self->engine->key . ".$key")
         || $config->get( key => "core.$key");
 }
+
+has registry => (
+    is  => 'ro',
+    isa => Str,
+    lazy => 1,
+    default => sub {
+        my $self = shift;
+        $self->_fetch('registry') || $self->engine->default_registry;
+    },
+);
+
+has client => (
+    is       => 'ro',
+    isa      => Str,
+    lazy     => 1,
+    default  => sub {
+        my $self = shift;
+        $self->_fetch('client') || do {
+            my $client = $self->engine->default_client;
+            return $client if $^O ne 'MSWin32';
+            return $client if $client =~ /[.](?:exe|bat)$/;
+            return $client . '.exe';
+        };
+    },
+);
 
 has plan_file => (
     is       => 'ro',

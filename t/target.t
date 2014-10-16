@@ -3,8 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-#use Test::More tests => 142;
-use Test::More 'no_plan';
+use Test::More;
 use App::Sqitch;
 use Path::Class qw(dir);
 use Test::Exception;
@@ -110,7 +109,7 @@ is $target->username, $uri->user, 'Username should be from URI';
 is $target->password, $uri->password, 'Password should be from URI';
 
 # Set up a config.
-CONFIG: {
+CONSTRUCTOR: {
     my $mock = Test::MockModule->new('App::Sqitch::Config');
     my @get_params;
     my @get_ret;
@@ -204,4 +203,146 @@ CONFIG: {
     )]], 'Should have warned on deprecated options';
 }
 
+CONFIG: {
+    # Look at how attributes are populated from options, config.
+    my $opts = { engine => 'pg' };
+    my $sqitch = App::Sqitch->new(options => $opts );
+
+    # Mock config.
+    my $mock = Test::MockModule->new('App::Sqitch::Config');
+    my %config;
+    $mock->mock(get => sub { $config{$_[2]} });
+
+    # Start with core config.
+    %config = (
+        'core.registry'   => 'myreg',
+        'core.client'     => 'pgsql',
+        'core.plan_file'  => 'my.plan',
+        'core.top_dir'    => 'top',
+        'core.deploy_dir' => 'dep',
+        'core.revert_dir' => 'rev',
+        'core.verify_dir' => 'ver',
+        'core.extension'  => 'ddl',
+    );
+    my $target = $CLASS->new(
+        sqitch => $sqitch,
+        name   => 'foo',
+        uri    => URI::db->new('db:pg:foo'),
+    );
+
+    is $target->registry, 'myreg', 'Registry should be "myreg"';
+    is $target->client, 'pgsql', 'Client should be "pgsql"';
+    is $target->plan_file, 'my.plan', 'Plan file should be "my.plan"';
+    isa_ok $target->plan_file, 'Path::Class::File', 'Plan file';
+    isa_ok my $plan = $target->plan, 'App::Sqitch::Plan', 'Plan';
+    is $plan->file, $target->plan_file, 'Plan should use target plan file';
+    is $target->top_dir, 'top', 'Top dir should be "top"';
+    isa_ok $target->top_dir, 'Path::Class::Dir', 'Top dir';
+    is $target->deploy_dir, 'dep', 'Deploy dir should be "dep"';
+    isa_ok $target->deploy_dir, 'Path::Class::Dir', 'Deploy dir';
+    is $target->revert_dir, 'rev', 'Revert dir should be "rev"';
+    isa_ok $target->revert_dir, 'Path::Class::Dir', 'Revert dir';
+    is $target->verify_dir, 'ver', 'Verify dir should be "ver"';
+    isa_ok $target->verify_dir, 'Path::Class::Dir', 'Verify dir';
+    is $target->extension, 'ddl', 'Extension should be "ddl"';
+
+    # Add engine config.
+    $config{'core.pg.registry'}   = 'yoreg';
+    $config{'core.pg.client'}     = 'mycli';
+    $config{'core.pg.plan_file'}  = 'pg.plan';
+    $config{'core.pg.top_dir'}    = 'pg';
+    $config{'core.pg.deploy_dir'} = 'pgdep';
+    $config{'core.pg.revert_dir'} = 'pgrev';
+    $config{'core.pg.verify_dir'} = 'pgver';
+    $config{'core.pg.extension'}  = 'pgddl';
+    $target = $CLASS->new(
+        sqitch => $sqitch,
+        name   => 'foo',
+        uri    => URI::db->new('db:pg:foo'),
+    );
+
+    is $target->registry, 'yoreg', 'Registry should be "yoreg"';
+    is $target->client, 'mycli', 'Client should be "mycli"';
+    is $target->plan_file, 'pg.plan', 'Plan file should be "pg.plan"';
+    isa_ok $target->plan_file, 'Path::Class::File', 'Plan file';
+    isa_ok my $plan = $target->plan, 'App::Sqitch::Plan', 'Plan';
+    is $plan->file, $target->plan_file, 'Plan should use target plan file';
+    is $target->top_dir, 'pg', 'Top dir should be "pg"';
+    isa_ok $target->top_dir, 'Path::Class::Dir', 'Top dir';
+    is $target->deploy_dir, 'pgdep', 'Deploy dir should be "pgdep"';
+    isa_ok $target->deploy_dir, 'Path::Class::Dir', 'Deploy dir';
+    is $target->revert_dir, 'pgrev', 'Revert dir should be "pgrev"';
+    isa_ok $target->revert_dir, 'Path::Class::Dir', 'Revert dir';
+    is $target->verify_dir, 'pgver', 'Verify dir should be "pgver"';
+    isa_ok $target->verify_dir, 'Path::Class::Dir', 'Verify dir';
+    is $target->extension, 'pgddl', 'Extension should be "pgddl"';
+
+    # Add target config.
+    $config{'target.foo.registry'}   = 'fooreg';
+    $config{'target.foo.client'}     = 'foocli';
+    $config{'target.foo.plan_file'}  = 'foo.plan';
+    $config{'target.foo.top_dir'}    = 'foo';
+    $config{'target.foo.deploy_dir'} = 'foodep';
+    $config{'target.foo.revert_dir'} = 'foorev';
+    $config{'target.foo.verify_dir'} = 'foover';
+    $config{'target.foo.extension'}  = 'fooddl';
+    $target = $CLASS->new(
+        sqitch => $sqitch,
+        name   => 'foo',
+        uri    => URI::db->new('db:pg:foo'),
+    );
+
+    is $target->registry, 'fooreg', 'Registry should be "fooreg"';
+    is $target->client, 'foocli', 'Client should be "foocli"';
+    is $target->plan_file, 'foo.plan', 'Plan file should be "foo.plan"';
+    isa_ok $target->plan_file, 'Path::Class::File', 'Plan file';
+    isa_ok my $plan = $target->plan, 'App::Sqitch::Plan', 'Plan';
+    is $plan->file, $target->plan_file, 'Plan should use target plan file';
+    is $target->top_dir, 'foo', 'Top dir should be "foo"';
+    isa_ok $target->top_dir, 'Path::Class::Dir', 'Top dir';
+    is $target->deploy_dir, 'foodep', 'Deploy dir should be "foodep"';
+    isa_ok $target->deploy_dir, 'Path::Class::Dir', 'Deploy dir';
+    is $target->revert_dir, 'foorev', 'Revert dir should be "foorev"';
+    isa_ok $target->revert_dir, 'Path::Class::Dir', 'Revert dir';
+    is $target->verify_dir, 'foover', 'Verify dir should be "foover"';
+    isa_ok $target->verify_dir, 'Path::Class::Dir', 'Verify dir';
+    is $target->extension, 'fooddl', 'Extension should be "fooddl"';
+
+    # Add command-line options.
+    $opts->{registry}   = 'optreg';
+    $opts->{client}     = 'optcli';
+    $opts->{plan_file}  = 'opt.plan';
+    $opts->{top_dir}    = 'top.dir';
+    $opts->{deploy_dir} = 'dep.dir';
+    $opts->{revert_dir} = 'rev.dir';
+    $opts->{verify_dir} = 'ver.dir';
+    $opts->{extension}  = 'opt';
+    $target = $CLASS->new(
+        sqitch => $sqitch,
+        name   => 'foo',
+        uri    => URI::db->new('db:pg:foo'),
+    );
+
+    TODO: {
+        local $TODO = 'NO --registry option yet';
+        is $target->registry, 'optreg', 'Registry should be "optreg"';
+    }
+
+    is $target->client, 'optcli', 'Client should be "optcli"';
+    is $target->plan_file, 'opt.plan', 'Plan file should be "opt.plan"';
+    isa_ok $target->plan_file, 'Path::Class::File', 'Plan file';
+    isa_ok my $plan = $target->plan, 'App::Sqitch::Plan', 'Plan';
+    is $plan->file, $target->plan_file, 'Plan should use target plan file';
+    is $target->top_dir, 'top.dir', 'Top dir should be "top.dir"';
+    isa_ok $target->top_dir, 'Path::Class::Dir', 'Top dir';
+    is $target->deploy_dir, 'dep.dir', 'Deploy dir should be "dep.dir"';
+    isa_ok $target->deploy_dir, 'Path::Class::Dir', 'Deploy dir';
+    is $target->revert_dir, 'rev.dir', 'Revert dir should be "rev.dir"';
+    isa_ok $target->revert_dir, 'Path::Class::Dir', 'Revert dir';
+    is $target->verify_dir, 'ver.dir', 'Verify dir should be "ver.dir"';
+    isa_ok $target->verify_dir, 'Path::Class::Dir', 'Verify dir';
+    is $target->extension, 'opt', 'Extension should be "opt"';
+}
+
+done_testing;
 
