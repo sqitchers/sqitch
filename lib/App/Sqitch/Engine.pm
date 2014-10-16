@@ -252,7 +252,7 @@ sub _merge_options_into {
 sub load {
     my ( $class, $p ) = @_;
 
-    # We should have a URI or an engine param.
+    # We should have an engine param.
     my $engine = delete $p->{engine}
         or hurl 'Missing "engine" parameter to load()';
 
