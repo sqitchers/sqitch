@@ -323,11 +323,7 @@ CONFIG: {
         uri    => URI::db->new('db:pg:foo'),
     );
 
-    TODO: {
-        local $TODO = 'NO --registry option yet';
-        is $target->registry, 'optreg', 'Registry should be "optreg"';
-    }
-
+    is $target->registry, 'optreg', 'Registry should be "optreg"';
     is $target->client, 'optcli', 'Client should be "optcli"';
     is $target->plan_file, 'opt.plan', 'Plan file should be "opt.plan"';
     isa_ok $target->plan_file, 'Path::Class::File', 'Plan file';
