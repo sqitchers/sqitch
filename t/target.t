@@ -265,7 +265,7 @@ CONFIG: {
     is $target->client, 'mycli', 'Client should be "mycli"';
     is $target->plan_file, 'pg.plan', 'Plan file should be "pg.plan"';
     isa_ok $target->plan_file, 'Path::Class::File', 'Plan file';
-    isa_ok my $plan = $target->plan, 'App::Sqitch::Plan', 'Plan';
+    isa_ok $plan = $target->plan, 'App::Sqitch::Plan', 'Plan';
     is $plan->file, $target->plan_file, 'Plan should use target plan file';
     is $target->top_dir, 'pg', 'Top dir should be "pg"';
     isa_ok $target->top_dir, 'Path::Class::Dir', 'Top dir';
@@ -296,7 +296,7 @@ CONFIG: {
     is $target->client, 'foocli', 'Client should be "foocli"';
     is $target->plan_file, 'foo.plan', 'Plan file should be "foo.plan"';
     isa_ok $target->plan_file, 'Path::Class::File', 'Plan file';
-    isa_ok my $plan = $target->plan, 'App::Sqitch::Plan', 'Plan';
+    isa_ok $plan = $target->plan, 'App::Sqitch::Plan', 'Plan';
     is $plan->file, $target->plan_file, 'Plan should use target plan file';
     is $target->top_dir, 'foo', 'Top dir should be "foo"';
     isa_ok $target->top_dir, 'Path::Class::Dir', 'Top dir';
@@ -331,7 +331,7 @@ CONFIG: {
     is $target->client, 'optcli', 'Client should be "optcli"';
     is $target->plan_file, 'opt.plan', 'Plan file should be "opt.plan"';
     isa_ok $target->plan_file, 'Path::Class::File', 'Plan file';
-    isa_ok my $plan = $target->plan, 'App::Sqitch::Plan', 'Plan';
+    isa_ok $plan = $target->plan, 'App::Sqitch::Plan', 'Plan';
     is $plan->file, $target->plan_file, 'Plan should use target plan file';
     is $target->top_dir, 'top.dir', 'Top dir should be "top.dir"';
     isa_ok $target->top_dir, 'Path::Class::Dir', 'Top dir';

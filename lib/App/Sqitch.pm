@@ -384,6 +384,7 @@ sub _core_opts {
     return qw(
         plan-file|f=s
         engine=s
+        registry=s
         db-client=s
         db-name|d=s
         db-username|db-user|u=s
