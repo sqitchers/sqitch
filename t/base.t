@@ -32,7 +32,6 @@ can_ok $CLASS, qw(
     _engine
     user_name
     user_email
-    db_client
     db_name
     db_username
     db_host
@@ -52,7 +51,6 @@ can_ok $CLASS, qw(
 isa_ok my $sqitch = $CLASS->new, $CLASS, 'A new object';
 
 for my $attr (qw(
-    db_client
     db_username
     db_name
     db_host

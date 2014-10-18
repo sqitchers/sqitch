@@ -18,7 +18,7 @@ sqitchusage - Sqitch usage statement
   -f --plan-file  FILE      Path to a deployment plan file.
      --engine     ENGINE    Database engine.
      --registry   REGISTRY  Registry schema or database.
-     --db-client  PATH      Path to the engine command-line client.
+     --client     PATH      Path to the engine command-line client.
   -d --db-name    NAME      Database name.
   -u --db-user    USER      Database user name.
   -h --db-host    HOST      Database server host name.

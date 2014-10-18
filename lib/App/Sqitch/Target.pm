@@ -43,7 +43,7 @@ has engine => (
         require App::Sqitch::Engine;
         App::Sqitch::Engine->load({
             sqitch => $self->sqitch,
-            engine => $self->uri->canonical_engine,
+            target => $self,
         });
     },
 );

@@ -275,7 +275,7 @@ is_deeply read_config $conf_file, {
 unlink $conf_file;
 $sqitch = App::Sqitch->new(
     _engine   => 'sqlite',
-    db_client => '/to/sqlite3',
+    client => '/to/sqlite3',
     db_name   => 'my.db',
 );
 
@@ -349,7 +349,7 @@ USERCONF: {
 unlink $conf_file;
 $sqitch = App::Sqitch->new(
     _engine     => 'pg',
-    db_client   => '/to/psql',
+    client      => '/to/psql',
     db_name     => 'thingies',
     db_username => 'anna',
     db_host     => 'banana',

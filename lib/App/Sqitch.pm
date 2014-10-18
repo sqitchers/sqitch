@@ -143,7 +143,7 @@ sub engine_for_target {
 }
 
 # Attributes useful to engines; no defaults.
-has db_client   => ( is => 'ro', isa => Str );
+has client      => ( is => 'ro', isa => Str );
 has db_name     => ( is => 'ro', isa => Str );
 has db_username => ( is => 'ro', isa => Str );
 has db_host     => ( is => 'ro', isa => Str );
@@ -385,7 +385,7 @@ sub _core_opts {
         plan-file|f=s
         engine=s
         registry=s
-        db-client=s
+        client|db-client=s
         db-name|d=s
         db-username|db-user|u=s
         db-host|h=s

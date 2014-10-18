@@ -7,6 +7,7 @@ use utf8;
 use Type::Library 0.040 -base, -declare => qw(
     Sqitch
     Engine
+    Target
     UserName
     UserEmail
     ConfigBool
@@ -37,6 +38,7 @@ BEGIN { extends "Types::Standard" };
 
 class_type Sqitch,     { class => 'App::Sqitch'                     };
 class_type Engine,     { class => 'App::Sqitch::Engine'             };
+class_type Target,     { class => 'App::Sqitch::Target'             };
 class_type Plan,       { class => 'App::Sqitch::Plan'               };
 class_type Change,     { class => 'App::Sqitch::Plan::Change'       };
 class_type ChangeList, { class => 'App::Sqitch::Plan::ChangeList'   };
@@ -100,6 +102,10 @@ An L<App::Sqitch> object.
 =item C<Engine>
 
 An L<App::Sqitch::Engine> object.
+
+=item C<Target>
+
+An L<App::Sqitch::Target> object.
 
 =item C<UserName>
 

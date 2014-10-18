@@ -261,9 +261,11 @@ The database engine to use. Supported engines include:
 The name of the Sqitch registry schema or database. Sqitch will store its own
 data here.
 
+=item C<--client>
+
 =item C<--db-client>
 
-  sqitch --db-client /usr/local/pgsql/bin/psql
+  sqitch --client /usr/local/pgsql/bin/psql
 
 Path to the command-line client for the database engine. Defaults to a client
 in the current path named appropriately for the specified engine.

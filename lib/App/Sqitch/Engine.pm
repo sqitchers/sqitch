@@ -9,7 +9,7 @@ use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use List::Util qw(first max);
 use URI::db 0.15;
-use App::Sqitch::Types qw(Str Int Sqitch Plan Bool HashRef URI Maybe);
+use App::Sqitch::Types qw(Str Int Sqitch Plan Bool HashRef URI Maybe Target);
 use namespace::autoclean;
 
 our $VERSION = '0.997';
@@ -18,80 +18,22 @@ has sqitch => (
     is       => 'ro',
     isa      => Sqitch,
     required => 1,
+    weak_ref => 1,
 );
-
-has client => (
-    is       => 'ro',
-    isa      => Str,
-    lazy     => 1,
-    default  => sub {
-        my $self = shift;
-        my $sqitch = $self->sqitch;
-        my $engine = $self->key;
-        my $config = $self->sqitch->config;
-
-        # Command-line option takes precedence.
-        if (my $client = $sqitch->db_client) {
-            return $client;
-        }
-
-        # Next look for it in the target config.
-        if (my $target = $self->target) {
-            if (my $cli = $config->get( key => "target.$target.client" )) {
-                return $cli;
-            }
-        }
-
-        # Next look for it in the engine config.
-        if ( my $client = $config->get( key => "core.$engine.client" ) ) {
-            return $client;
-        }
-
-        # Otherwise, go with the default.
-        my $client = $self->default_client;
-        return $client if $^O ne 'MSWin32';
-        return $client if $client =~ /[.](?:exe|bat)$/;
-        return $client . '.exe';
-    },
-);
-
-has _target_set => (is => 'rw');
 
 has target => (
-    is      => 'ro',
-    isa     => Str,
-    lazy    => 1,
-    trigger => sub { shift->_target_set(1) }, # Excludes default and built values.
-    default => sub {
-        my $self = shift;
-        my $engine = $self->key;
-        return $self->sqitch->config->get( key => "core.$engine.target")
-            || $self->uri->as_string;
+    is       => 'ro',
+    isa      => Target,
+    required => 1,
+    weak_ref => 1,
+    handles => {
+        uri                  => 'uri',
+        client               => 'client',
+        registry             => 'registry',
+        destination          => 'name',
+        registry_destination => 'name',
     }
 );
-
-has destination => (
-    is      => 'ro',
-    isa     => Str,
-    lazy    => 1,
-    default => sub {
-        my $self = shift;
-
-        # Just use the target unless it looks like a URI.
-        my $target = $self->target;
-        return $target if $target !~ /:/;
-
-        # Use the URI sans password.
-        my $uri = $self->uri;
-        if ($uri->password) {
-            $uri = $uri->clone;
-            $uri->password(undef);
-        }
-        return $uri->as_string;
-    }
-);
-
-sub registry_destination { shift->destination }
 
 has start_at => (
     is  => 'rw',
@@ -139,7 +81,7 @@ has plan => (
     is       => 'rw',
     isa      => Plan,
     lazy     => 1,
-    default  => sub { shift->sqitch->plan }
+    default  => sub { shift->target->plan }
 );
 
 has _variables => (
@@ -152,112 +94,16 @@ sub variables       { %{ shift->_variables }       }
 sub set_variables   {    shift->_variables({ @_ }) }
 sub clear_variables { %{ shift->_variables } = ()  }
 
-# * If not passed
-#   a. Look for core.$engine.target; or
-#   b. Construct from config.$engine.@parts (deprecated); or
-#   c. Default to "db:$engine:"
-# * If command-line-options, override parts in the URI.
-
-sub BUILD {
-    my ($self, $args) = @_;
-    if (my $uri = $args->{uri}) {
-        $self->_merge_options_into($uri);
-    }
-}
-
-has uri => ( is => 'ro', isa => URI, lazy => 1, default => sub {
-    my $self   = shift;
-    my $sqitch = $self->sqitch;
-    my $config = $sqitch->config;
-    my $engine = $self->key;
-    my $uri;
-
-    # Get the target, but only if it has been passed, not the default,
-    # because the default may call back into uri for an infinite loop!
-    my $target = $self->_target_set
-        ? $self->target : $config->get( key => "core.$engine.target" );
-
-    if ($target) {
-        $uri = $sqitch->config_for_target_strict($target)->{uri};
-    } elsif ( my $config_uri = $config->get( key => "core.$engine.uri" ) ) {
-        $uri = URI::db->new($config_uri);
-    } else {
-        $uri = URI::db->new("db:$engine:");
-
-        # XXX Deprecated use of other config variables.
-        for my $spec (
-            [ username => 'user'     ],
-            [ password => 'password' ],
-            [ db_name  => 'dbname'   ],
-            [ host     => 'host'     ],
-            [ port     => 'port'     ],
-        ) {
-            my ($key, $meth) = @{ $spec };
-            my $val = $config->get( key => "core.$engine.$key" ) or next;
-            $uri->$meth($val);
-        }
-    }
-
-    return $self->_merge_options_into($uri);
-});
-
-has registry => (
-    is       => 'ro',
-    isa      => Maybe[Str], # May be undef in a subclass.
-    lazy     => 1,
-    default  => sub {
-        my $self   = shift;
-        my $engine = $self->key;
-        my $config = $self->sqitch->config;
-
-        if (my $target = $self->target) {
-            if (my $reg = $config->get( key => "target.$target.registry" )) {
-                return $reg;
-            }
-        }
-
-        return $config->get( key => "core.$engine.registry" )
-            || $config->get( key => "core.$engine.sqitch_schema" ) # deprecated
-            || $config->get( key => "core.$engine.sqitch_db" )     # deprecated
-            || $self->default_registry;
-    },
-);
-
 sub default_registry { 'sqitch' }
-
-sub _merge_options_into {
-    my ($self, $uri) = @_;
-    my $sqitch = $self->sqitch;
-
-    # Override parts with command-line options (deprecate?)
-    if (my $host = $sqitch->db_host) {
-        $uri->host($host);
-    }
-
-    if (my $port = $sqitch->db_port) {
-        $uri->port($port);
-    }
-
-    if (my $user = $sqitch->db_username) {
-        $uri->user($user);
-    }
-
-    if (my $name = $sqitch->db_name) {
-        $uri->dbname($name);
-    }
-
-    return $uri;
-}
 
 sub load {
     my ( $class, $p ) = @_;
 
     # We should have an engine param.
-    my $engine = delete $p->{engine}
-        or hurl 'Missing "engine" parameter to load()';
+    my $target = $p->{target} or hurl 'Missing "target" parameter to load()';
 
     # Load the engine class.
-    my $pkg = __PACKAGE__ . "::$engine";
+    my $pkg = __PACKAGE__ . '::' . $target->engine_key;
     eval "require $pkg" or hurl "Unable to load $pkg";
     return $pkg->new( $p );
 }
@@ -896,7 +742,7 @@ sub _rollback {
         $tagged = $tagged ? $tagged->format_name_with_tags : $self->start_at;
         $sqitch->vent(
             $tagged ? __x('Reverting to {change}', change => $tagged)
-                 : __ 'Reverting all changes'
+                    : __ 'Reverting all changes'
         );
 
         try {

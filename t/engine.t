@@ -4,10 +4,11 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 598;
+use Test::More tests => 595;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
+use App::Sqitch::Target;
 use Path::Class;
 use Test::Exception;
 use Test::NoWarnings;
@@ -91,59 +92,85 @@ ENGINE: {
     sub name_for_change_id { return 'bugaboo' }
 }
 
+# XXX Remove attributes in favor of options.
 ok my $sqitch = App::Sqitch->new(
     _engine   => 'sqlite',
     db_name   => 'mydb',
     top_dir   => dir( qw(t sql) ),
-    plan_file => file qw(t plans multi.plan)
+    plan_file => file( qw(t plans multi.plan) ),
+    options => {
+        engine    => 'sqlite',
+        db_name   => 'mydb',
+        top_dir   => dir(qw(t sql))->stringify,
+        plan_file => file(qw(t plans multi.plan))->stringify,
+    }
 ), 'Load a sqitch sqitch object';
 
 my $mock_engine = Test::MockModule->new($CLASS);
 
 ##############################################################################
 # Test new().
-throws_ok { $CLASS->new }
+my $target = App::Sqitch::Target->new( sqitch => $sqitch );
+throws_ok { $CLASS->new( sqitch => $sqitch ) }
+    qr/\QMissing required arguments: target/,
+    'Should get an exception for missing sqitch param';
+throws_ok { $CLASS->new( target => $target ) }
     qr/\QMissing required arguments: sqitch/,
     'Should get an exception for missing sqitch param';
 my $array = [];
-throws_ok { $CLASS->new({ sqitch => $array }) }
+throws_ok { $CLASS->new({ sqitch => $array, target => $target }) }
     qr/\QReference [] did not pass type constraint "Sqitch"/,
     'Should get an exception for array sqitch param';
-throws_ok { $CLASS->new({ sqitch => 'foo' }) }
+throws_ok { $CLASS->new({ sqitch => $sqitch, target => $array }) }
+    qr/\QReference [] did not pass type constraint "Target"/,
+    'Should get an exception for array target param';
+throws_ok { $CLASS->new({ sqitch => 'foo', target => $target }) }
     qr/\QValue "foo" did not pass type constraint "Sqitch"/,
     'Should get an exception for string sqitch param';
+throws_ok { $CLASS->new({ sqitch => $sqitch, target => 'foo' }) }
+    qr/\QValue "foo" did not pass type constraint "Target"/,
+    'Should get an exception for string target param';
 
-isa_ok $CLASS->new({sqitch => $sqitch}), $CLASS;
+isa_ok $CLASS->new({sqitch => $sqitch, target => $target}), $CLASS, 'Engine';
 
 ##############################################################################
 # Test load().
+$sqitch->options->{engine} = 'whu';
+$target = App::Sqitch::Target->new( sqitch => $sqitch );
 ok my $engine = $CLASS->load({
     sqitch => $sqitch,
-    engine => 'whu',
-}), 'Load a "whu" engine';
+    target => $target,
+}), 'Load an engine';
 isa_ok $engine, 'App::Sqitch::Engine::whu';
 is $engine->sqitch, $sqitch, 'The sqitch attribute should be set';
 
 # Test handling of an invalid engine.
-throws_ok { $CLASS->load({ engine => 'nonexistent', sqitch => $sqitch }) }
-    'App::Sqitch::X', 'Should die on invalid engine';
+my $unknown_target = App::Sqitch::Target->new(
+    sqitch => $sqitch,
+    uri   => URI::db->new('db:nonexistent:')
+);
+throws_ok { $CLASS->load({ sqitch => $sqitch, target => $unknown_target }) }
+    'App::Sqitch::X', 'Should die on unknown target';
 is $@->message, 'Unable to load App::Sqitch::Engine::nonexistent',
     'Should get load error message';
 like $@->previous_exception, qr/\QCan't locate/,
     'Should have relevant previoius exception';
 
 NOENGINE: {
-    # Test handling of no engine.
-    throws_ok { $CLASS->load({ engine => '', sqitch => $sqitch }) }
-        'App::Sqitch::X',
-            'No engine should die';
-    is $@->message, 'Missing "engine" parameter to load()',
+    # Test handling of no target.
+    throws_ok { $CLASS->load({ sqitch => $sqitch }) } 'App::Sqitch::X',
+            'No target should die';
+    is $@->message, 'Missing "target" parameter to load()',
         'It should be the expected message';
 }
 
 # Test handling a bad engine implementation.
 use lib 't/lib';
-throws_ok { $CLASS->load({ engine => 'bad', sqitch => $sqitch }) }
+my $bad_target = App::Sqitch::Target->new(
+    sqitch => $sqitch,
+    uri   => URI::db->new('db:bad:')
+);
+throws_ok { $CLASS->load({ sqitch => $sqitch, target => $bad_target }) }
     'App::Sqitch::X', 'Should die on bad engine module';
 is $@->message, 'Unable to load App::Sqitch::Engine::bad',
     'Should get another load error message';
@@ -154,14 +181,15 @@ like $@->previous_exception, qr/^LOL BADZ/,
 ##############################################################################
 # Test name.
 can_ok $CLASS, 'name';
-ok $engine = $CLASS->new({ sqitch => $sqitch }), "Create a $CLASS object";
+ok $engine = $CLASS->new({ sqitch => $sqitch, target => $target }),
+    "Create a $CLASS object";
 throws_ok { $engine->name } 'App::Sqitch::X',
     'Should get error from base engine name';
 is $@->ident, 'engine', 'Name error ident should be "engine"';
 is $@->message, __('No engine specified; use --engine or set core.engine'),
     'Name error message should be correct';
 
-ok $engine = App::Sqitch::Engine::whu->new({sqitch => $sqitch}),
+ok $engine = App::Sqitch::Engine::whu->new({sqitch => $sqitch, target => $target}),
     'Create a subclass name object';
 is $engine->name, 'whu', 'Subclass oject name should be "whu"';
 is +App::Sqitch::Engine::whu->name, 'whu', 'Subclass class name should be "whu"';
@@ -192,67 +220,48 @@ is_deeply [$engine->variables], [], 'Should again have no variables';
 # Test target.
 ok $engine = $CLASS->load({
     sqitch => $sqitch,
-    engine => 'whu',
-    target => 'foo',
+    target => $target,
 }), 'Load engine';
-is $engine->target, 'foo', 'Target should be as passed';
-
-ok $engine = $CLASS->load({
-    sqitch => $sqitch,
-    engine => 'whu',
-}), 'Load engine';
-is $engine->target, 'db:whu:mydb', 'Target should be URI string';
+is $engine->target, $target, 'Target should be as passed';
 
 # Make sure password is removed from the target.
 ok $engine = $CLASS->load({
     sqitch => $sqitch,
-    engine => 'whu',
+    target => $target,
     uri => URI->new('db:whu://foo:bar@localhost/blah'),
 }), 'Load engine with URI with password';
-is $engine->target, $engine->uri->as_string,
-    'Target should be the URI stringified';
-
-# Try a target in the configuration.
-MOCKCONFIG: {
-    local $ENV{SQITCH_CONFIG} = file qw(t local.conf);
-    ok my $engine = $CLASS->load({
-        sqitch => App::Sqitch->new( _engine => 'sqlite' ),
-        engine => 'sqlite',
-    }), 'Load engine';
-    is $engine->target, 'devdb', 'Target should be read from config';
-
-    ok $engine = $CLASS->load({
-        sqitch => App::Sqitch->new( _engine => 'sqlite' ),
-        engine => 'sqlite',
-        uri    => URI->new('db:sqlite:/var/db/widgets.db'),
-    }), 'Load engine with URI';
-    is $engine->target, 'devdb', 'Target should still be "devdb"';
-}
+isa_ok $engine->target, 'App::Sqitch::Target', 'target attribute';
 
 ##############################################################################
 # Test destination.
 ok $engine = $CLASS->load({
     sqitch => $sqitch,
-    engine => 'whu',
+    target => $target,
 }), 'Load engine';
 is $engine->destination, 'db:whu:mydb', 'Destination should be URI string';
 is $engine->registry_destination, $engine->destination,
     'Rgistry destination should be the same as destination';
 
 # Make sure password is removed from the destination.
+my $long_target = App::Sqitch::Target->new(
+    sqitch => $sqitch,
+    uri   => URI->new('db:whu://foo:bar@localhost/blah'),
+);
 ok $engine = $CLASS->load({
     sqitch => $sqitch,
-    engine => 'whu',
-    uri => URI->new('db:whu://foo:bar@localhost/blah'),
+    target => $long_target,
 }), 'Load engine with URI with password';
-like $engine->destination, qr{^db:whu://foo:?\@localhost/mydb$},
+like $engine->destination, qr{^db:whu://foo:?\@localhost/blah$},
     'Destination should not include password';
 is $engine->registry_destination, $engine->destination,
     'Meta destination should again be the same as destination';
 
 ##############################################################################
 # Test abstract methods.
-ok $engine = $CLASS->new({ sqitch => $sqitch }), "Create a $CLASS object again";
+ok $engine = $CLASS->new({
+    sqitch => $sqitch,
+    target => $target,
+}), "Create a $CLASS object again";
 for my $abs (qw(
     initialized
     initialize
@@ -289,7 +298,7 @@ for my $abs (qw(
 # Test _load_changes().
 can_ok $engine, '_load_changes';
 my $now = App::Sqitch::DateTime->now;
-my $plan = $sqitch->plan;
+my $plan = $target->plan;
 
 # Mock App::Sqitch::DateTime so that dbchange tags all have the same
 # timestamps.
@@ -585,11 +594,11 @@ for my $spec (
 
 ##############################################################################
 # Test deploy_change and revert_change.
-ok $engine = App::Sqitch::Engine::whu->new( sqitch => $sqitch ),
+ok $engine = App::Sqitch::Engine::whu->new( sqitch => $sqitch, target => $target ),
     'Create a subclass name object again';
 can_ok $engine, 'deploy_change', 'revert_change';
 
-my $change = App::Sqitch::Plan::Change->new( name => 'users', plan => $sqitch->plan );
+my $change = App::Sqitch::Plan::Change->new( name => 'users', plan => $target->plan );
 $engine->max_name_length(length $change->format_name_with_tags);
 
 ok $engine->deploy_change($change), 'Deploy a change';
@@ -767,10 +776,21 @@ $record_work = 0;
 chdir 't';
 my $plan_file = file qw(sql sqitch.plan);
 my $sqitch_old = $sqitch; # Hang on to this because $change does not retain it.
-$sqitch = App::Sqitch->new( _engine => 'sqlite', plan_file => $plan_file, top_dir => dir 'sql' );
-ok $engine = App::Sqitch::Engine::whu->new( sqitch => $sqitch ),
+# XXX Remove attributes in favor of options.
+$sqitch = App::Sqitch->new(
+    _engine   => 'sqlite',
+    plan_file => $plan_file,
+    top_dir   => dir('sql'),
+    options => {
+        engine    => 'sqlite',
+        plan_file => $plan_file->stringify,
+        top_dir   => 'sql',
+    },
+);
+$target = App::Sqitch::Target->new( sqitch => $sqitch );
+ok $engine = App::Sqitch::Engine::whu->new( sqitch => $sqitch, target => $target ),
     'Engine with sqitch with plan file';
-$plan = $sqitch->plan;
+$plan = $target->plan;
 my @changes = $plan->changes;
 
 $latest_change_id = $changes[0]->id;
@@ -1059,9 +1079,19 @@ NOSTEPS: {
     say $fh '%project=empty';
     $fh->close or die "Error closing $plan_file: $!";
     END { $plan_file->remove }
-    my $sqitch = App::Sqitch->new( _engine => 'sqlite', plan_file => $plan_file );
-    ok $engine = App::Sqitch::Engine::whu->new( sqitch => $sqitch ),
-        'Engine with sqitch with no file';
+    my $sqitch = App::Sqitch->new(
+        _engine => 'sqlite',
+        plan_file => $plan_file,
+        options => {
+            engine => 'sqlite',
+            plan_file => $plan_file->stringify,
+        }
+    );
+    my $target = App::Sqitch::Target->new(sqitch => $sqitch );
+    ok my $engine = App::Sqitch::Engine::whu->new(
+        sqitch => $sqitch,
+        target => $target,
+    ), 'Engine with sqitch with no file';
     $engine->max_name_length(10);
     throws_ok { $engine->deploy } 'App::Sqitch::X', 'Should die with no changes';
     is $@->message, __"Nothing to deploy (empty plan)",
@@ -1073,6 +1103,7 @@ NOSTEPS: {
 
 ##############################################################################
 # Test _deploy_by_change()
+$engine = App::Sqitch::Engine::whu->new(sqitch => $sqitch, target => $target);
 $plan->reset;
 $mock_engine->unmock('_deploy_by_change');
 $engine->max_name_length(

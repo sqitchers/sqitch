@@ -206,7 +206,7 @@ CONSTRUCTOR: {
 CONFIG: {
     # Look at how attributes are populated from options, config.
     my $opts = { engine => 'pg' };
-    my $sqitch = App::Sqitch->new(options => $opts );
+    my $sqitch = App::Sqitch->new(options => $opts);
 
     # Mock config.
     my $mock = Test::MockModule->new('App::Sqitch::Config');
