@@ -27,13 +27,14 @@ has target => (
     required => 1,
     weak_ref => 1,
     handles => {
-        uri                  => 'uri',
-        client               => 'client',
-        registry             => 'registry',
-        destination          => 'name',
-        registry_destination => 'name',
+        uri         => 'uri',
+        client      => 'client',
+        registry    => 'registry',
+        destination => 'name',
     }
 );
+
+sub registry_destination { shift->destination }
 
 has start_at => (
     is  => 'rw',

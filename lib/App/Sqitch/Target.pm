@@ -243,40 +243,24 @@ sub BUILDARGS {
     $uri = $p->{uri} = URI::db->new( $uri );
 
     # Override parts with command-line options.
-    # TODO: Deprecate these.
     my $opts = $sqitch->options;
-    my @deprecated;
     if (my $host = $opts->{db_host}) {
-        push @deprecated => '--db-host';
         $uri->host($host);
     }
 
     if (my $port = $opts->{db_port}) {
-        push @deprecated => '--db-port';
         $uri->port($port);
     }
 
     if (my $user = $opts->{db_username}) {
-        push @deprecated => '--db-username';
         $uri->user($user);
     }
 
     if (my $db = $opts->{db_name}) {
-        push @deprecated => '--db-name';
         $uri->dbname($db);
     }
 
-    if (@deprecated) {
-        $sqitch->warn(__nx(
-            'Option {options} deprecated and will be removed in 1.0; use URI {uri} instead',
-            'Options {options} deprecated and will be removed in 1.0; use URI {uri} instead',
-            scalar @deprecated,
-            options => join(', ', @deprecated),
-            uri     => $uri->as_string,
-        ));
-    }
-
-    unless ($p->{name}) {
+    unless ($name) {
         # Set the name.
         if ($uri->password) {
             # Remove the password from the name.
