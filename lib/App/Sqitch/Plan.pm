@@ -15,7 +15,7 @@ use App::Sqitch::X qw(hurl);
 use List::MoreUtils qw(uniq any);
 use namespace::autoclean;
 use Moo;
-use App::Sqitch::Types qw(Str Int HashRef ChangeList LineList Maybe Sqitch URI File);
+use App::Sqitch::Types qw(Str Int HashRef ChangeList LineList Maybe Sqitch URI File Target);
 use constant SYNTAX_VERSION => '1.0.0-b2';
 
 our $VERSION = '0.997';
@@ -47,12 +47,19 @@ has sqitch => (
     weak_ref => 1,
 );
 
+has target => (
+    is       => 'ro',
+    isa      => Target,
+    required => 1,
+    weak_ref => 1,
+);
+
 has file => (
     is      => 'ro',
     isa     => File,
     lazy    => 1,
     default => sub {
-        shift->sqitch->plan_file
+        shift->target->plan_file
     },
 );
 

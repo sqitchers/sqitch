@@ -6,6 +6,7 @@ use 5.010;
 use utf8;
 use Test::More;
 use App::Sqitch;
+use App::Sqitch::Target;
 use Locale::TextDomain qw(App-Sqitch);
 use Path::Class;
 use Test::Exception;
@@ -32,6 +33,7 @@ $ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
 
 can_ok $CLASS, qw(
     sqitch
+    target
     file
     changes
     position
@@ -44,9 +46,11 @@ can_ok $CLASS, qw(
     open_script
 );
 
-my $sqitch = App::Sqitch->new;
-isa_ok my $plan = App::Sqitch::Plan->new(sqitch => $sqitch), $CLASS;
-is $plan->file, $sqitch->plan_file, 'File should be coopied from Sqitch';
+my $sqitch = App::Sqitch->new( options => { engine => 'sqlite' });
+my $target = App::Sqitch::Target->new( sqitch => $sqitch );
+isa_ok my $plan = App::Sqitch::Plan->new(sqitch => $sqitch, target => $target),
+    $CLASS;
+is $plan->file, $target->plan_file, 'File should be coopied from Target';
 
 # Set up some some utility functions for creating changes.
 sub blank {
@@ -684,8 +688,8 @@ cmp_deeply $parsed, {
 
 # Try a non-existent plan file with load().
 $file = file qw(t hi nonexistent.plan);
-$sqitch = App::Sqitch->new(plan_file => $file);
-throws_ok { App::Sqitch::Plan->new(sqitch => $sqitch)->load } 'App::Sqitch::X',
+$target = App::Sqitch::Target->new(sqitch => $sqitch, plan_file => $file);
+throws_ok { App::Sqitch::Plan->new(sqitch => $sqitch, target => $target)->load } 'App::Sqitch::X',
     'Should get exception for nonexistent plan file';
 is $@->ident, 'plan', 'Nonexistent plan file ident should be "plan"';
 is $@->message, __x(
@@ -695,10 +699,10 @@ is $@->message, __x(
 
 # Try a plan with dependencies.
 $file = file qw(t plans dependencies.plan);
-$sqitch = App::Sqitch->new(plan_file => $file);
-isa_ok $plan = App::Sqitch::Plan->new(sqitch => $sqitch), $CLASS,
+$target = App::Sqitch::Target->new(sqitch => $sqitch, plan_file => $file);
+isa_ok $plan = App::Sqitch::Plan->new(sqitch => $sqitch, target => $target), $CLASS,
     'Plan with sqitch with plan file with dependencies';
-is $plan->file, $sqitch->plan_file, 'File should be coopied from Sqitch';
+is $plan->file, $target->plan_file, 'File should be coopied from Sqitch';
 ok $parsed = $plan->load, 'Load plan with dependencies file';
 is_deeply $parsed->{changes}, [
     clear,
@@ -727,10 +731,10 @@ is sorted, 2, 'Should have sorted changes twice';
 
 # Try a plan with cross-project dependencies.
 $file = file qw(t plans project_deps.plan);
-$sqitch = App::Sqitch->new(plan_file => $file);
-isa_ok $plan = App::Sqitch::Plan->new(sqitch => $sqitch), $CLASS,
+$target = App::Sqitch::Target->new(sqitch => $sqitch, plan_file => $file);
+isa_ok $plan = App::Sqitch::Plan->new(sqitch => $sqitch, target => $target), $CLASS,
     'Plan with sqitch with plan file with project deps';
-is $plan->file, $sqitch->plan_file, 'File should be coopied from Sqitch';
+is $plan->file, $target->plan_file, 'File should be coopied from Sqitch';
 ok $parsed = $plan->load, 'Load plan with project deps file';
 is_deeply $parsed->{changes}, [
     clear,
@@ -760,11 +764,11 @@ is sorted, 2, 'Should have sorted changes twice';
 
 # Should fail with dependencies on tags.
 $file = file qw(t plans tag_dependencies.plan);
+$target = App::Sqitch::Target->new(sqitch => $sqitch, plan_file => $file);
 $fh = IO::File->new(\"%project=tagdep\n\nfoo $tsnp\n\@bar [:foo] $tsnp", '<:utf8_strict');
-$sqitch = App::Sqitch->new(plan_file => $file);
-isa_ok $plan = App::Sqitch::Plan->new(sqitch => $sqitch), $CLASS,
-    'Plan with sqitch with plan with tag dependencies';
-is $plan->file, $sqitch->plan_file, 'File should be coopied from Sqitch';
+isa_ok $plan = App::Sqitch::Plan->new(sqitch => $sqitch, target => $target),
+    $CLASS, 'Plan with sqitch with plan with tag dependencies';
+is $plan->file, $target->plan_file, 'File should be coopied from Sqitch';
 throws_ok { $plan->_parse($file, $fh) }  'App::Sqitch::X',
     'Should get an exception for tag with dependencies';
 is $@->ident, 'parse', 'The tag dependencies error ident should be "plan"';
@@ -777,10 +781,10 @@ is $@->message, __x(
 
 # Make sure that lines() loads the plan.
 $file = file qw(t plans multi.plan);
-$sqitch = App::Sqitch->new(plan_file => $file);
-isa_ok $plan = App::Sqitch::Plan->new(sqitch => $sqitch), $CLASS,
+$target = App::Sqitch::Target->new(sqitch => $sqitch, plan_file => $file);
+isa_ok $plan = App::Sqitch::Plan->new(sqitch => $sqitch, target => $target), $CLASS,
     'Plan with sqitch with plan file';
-is $plan->file, $sqitch->plan_file, 'File should be coopied from Sqitch';
+is $plan->file, $target->plan_file, 'File should be coopied from Sqitch';
 cmp_deeply [$plan->lines], [
     clear,
     version,
@@ -1547,10 +1551,10 @@ is $@->message, __x(
 ##############################################################################
 # Try a plan with a duplicate change in different tag sections.
 $file = file qw(t plans dupe-change-diff-tag.plan);
-$sqitch = App::Sqitch->new(plan_file => $file);
-isa_ok $plan = App::Sqitch::Plan->new(sqitch => $sqitch), $CLASS,
-    'Plan shoud work plan with dupe change across tags';
-is $plan->file, $sqitch->plan_file, 'File should be coopied from Sqitch';
+$target = App::Sqitch::Target->new(sqitch => $sqitch, plan_file => $file);
+isa_ok $plan = App::Sqitch::Plan->new(sqitch => $sqitch, target => $target),
+    $CLASS, 'Plan shoud work plan with dupe change across tags';
+is $plan->file, $target->plan_file, 'File should be coopied from Sqitch';
 is $plan->project, 'dupe_change_diff_tag', 'Project name should be set';
 cmp_deeply [ $plan->lines ], [
     clear,
@@ -1968,10 +1972,10 @@ for my $req (qw(wanker @blah greets@foo)) {
 # Test pragma accessors.
 is $plan->uri, undef, 'Should have undef URI when no pragma';
 $file = file qw(t plans pragmas.plan);
-$sqitch = App::Sqitch->new(plan_file => $file);
-isa_ok $plan = App::Sqitch::Plan->new(sqitch => $sqitch), $CLASS,
-    'Plan with sqitch with plan file with dependencies';
-is $plan->file, $sqitch->plan_file, 'File should be coopied from Sqitch';
+$target = App::Sqitch::Target->new(sqitch => $sqitch, plan_file => $file);
+isa_ok $plan = App::Sqitch::Plan->new(sqitch => $sqitch, target => $target),
+    $CLASS, 'Plan with sqitch with plan file with dependencies';
+is $plan->file, $target->plan_file, 'File should be coopied from Sqitch';
 is $plan->syntax_version, App::Sqitch::Plan::SYNTAX_VERSION,
     'syntax_version should be set';
 is $plan->project, 'pragmata', 'Project should be set';
