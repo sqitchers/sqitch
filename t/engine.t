@@ -723,7 +723,7 @@ is_deeply +MockOutput->get_vent, [['WTF!']],
 # Try a change with no verify file.
 $engine->log_only(0);
 $mock_engine->unmock( 'verify_change' );
-$change = App::Sqitch::Plan::Change->new( name => 'foo', plan => $sqitch->plan );
+$change = App::Sqitch::Plan::Change->new( name => 'foo', plan => $target->plan );
 ok $engine->deploy_change($change), 'Deploy a change with no verify script';
 is_deeply $engine->seen, [
     ['begin_work'],
@@ -788,6 +788,7 @@ $sqitch = App::Sqitch->new(
     },
 );
 $target = App::Sqitch::Target->new( sqitch => $sqitch );
+$change = App::Sqitch::Plan::Change->new( name => 'foo', plan => $target->plan );
 ok $engine = App::Sqitch::Engine::whu->new( sqitch => $sqitch, target => $target ),
     'Engine with sqitch with plan file';
 $plan = $target->plan;
@@ -1569,9 +1570,9 @@ $mock_whu->unmock_all;
 ##############################################################################
 # Test is_deployed().
 my $tag  = App::Sqitch::Plan::Tag->new(
-    name => 'foo',
+    name   => 'foo',
     change => $change,
-    plan => $sqitch->plan,
+    plan   => $target->plan,
 );
 $is_deployed_tag = $is_deployed_change = 1;
 ok $engine->is_deployed($tag), 'Test is_deployed(tag)';
@@ -1622,7 +1623,7 @@ DEPLOYDIE: {
     my @conflicts = $make_deps->( 1, qw(dr_evil) );
     my $change    = App::Sqitch::Plan::Change->new(
         name      => 'foo',
-        plan      => $sqitch->plan,
+        plan      => $target->plan,
         requires  => \@requires,
         conflicts => \@conflicts,
     );
@@ -2004,7 +2005,7 @@ is $@->ident, 'plan', 'Should get ident "plan" from change_id_for_depend';
 is $@->message, __x(
     'Unable to find change "{change}" in plan {file}',
     change => $dep->key_name,
-    file   => $sqitch->plan_file,
+    file   => $target->plan_file,
 ), 'Should have proper message from change_id_for_depend error';
 
 PLANOK: {
@@ -2074,7 +2075,7 @@ is_deeply $engine->seen, [
 ##############################################################################
 # Test verify_change().
 can_ok $CLASS, 'verify_change';
-$change = App::Sqitch::Plan::Change->new( name => 'users', plan => $sqitch->plan );
+$change = App::Sqitch::Plan::Change->new( name => 'users', plan => $target->plan );
 ok $engine->verify_change($change), 'Verify a change';
 is_deeply $engine->seen, [
     [run_file => $change->verify_file ],
@@ -2082,7 +2083,7 @@ is_deeply $engine->seen, [
 is_deeply +MockOutput->get_info, [], 'Should have no info output';
 
 # Try a change with no verify script.
-$change = App::Sqitch::Plan::Change->new( name => 'roles', plan => $sqitch->plan );
+$change = App::Sqitch::Plan::Change->new( name => 'roles', plan => $target->plan );
 ok $engine->verify_change($change), 'Verify a change with no verify script.';
 is_deeply $engine->seen, [], 'No abstract methods should be called';
 is_deeply +MockOutput->get_info, [], 'Should have no info output';
@@ -2134,7 +2135,7 @@ CHECK_DEPLOY_DEPEND: {
     my @conflicts = $make_deps->( 1, qw(foo bar) );
     $change = App::Sqitch::Plan::Change->new(
         name      => 'foo',
-        plan      => $sqitch->plan,
+        plan      => $target->plan,
         conflicts => \@conflicts,
     );
     $plan->_changes->append($change);
@@ -2213,7 +2214,7 @@ CHECK_DEPLOY_DEPEND: {
     my @requires = $make_deps->( 0, qw(foo bar) );
     $change = App::Sqitch::Plan::Change->new(
         name      => 'blah',
-        plan      => $sqitch->plan,
+        plan      => $target->plan,
         requires  => \@requires,
     );
     $plan->_changes->append($change);
