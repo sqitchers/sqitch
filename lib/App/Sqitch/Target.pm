@@ -242,27 +242,45 @@ sub BUILDARGS {
     require URI::db;
     $uri = $p->{uri} = URI::db->new( $uri );
 
-    # Override parts with command-line options.
-    # TODO: Deprecate these.
-    my $opts = $sqitch->options;
+    # Override parts with deprecated command-line options and config.
+    my $opts   = $sqitch->options;
+    my $config = $sqitch->config->get_section(section => "core.$ekey") || {};
+
     my @deprecated;
     if (my $host = $opts->{db_host}) {
         push @deprecated => '--db-host';
+        $uri->host($host);
+    } elsif ($host = $config->{host}) {
+        push @deprecated => "core.$ekey.host";
         $uri->host($host);
     }
 
     if (my $port = $opts->{db_port}) {
         push @deprecated => '--db-port';
         $uri->port($port);
+    } elsif ($port = $config->{port}) {
+        push @deprecated => "core.$ekey.port";
+        $uri->port($port);
     }
 
     if (my $user = $opts->{db_username}) {
         push @deprecated => '--db-username';
         $uri->user($user);
+    } elsif ($user = $config->{username}) {
+        push @deprecated => "core.$ekey.username";
+        $uri->user($user);
+    }
+
+    if (my $pass = $config->{password}) {
+        push @deprecated => "core.$ekey.password";
+        $uri->password($pass);
     }
 
     if (my $db = $opts->{db_name}) {
         push @deprecated => '--db-name';
+        $uri->dbname($db);
+    } elsif ($db = $config->{db_name}) {
+        push @deprecated => "core.$ekey.db_name";
         $uri->dbname($db);
     }
 

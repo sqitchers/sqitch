@@ -184,21 +184,55 @@ CONSTRUCTOR: {
     is $target->uri, URI::db->new('db:pg:foo'), 'URI should be "db:pg:foo"';
     is_deeply \@get_params, [[key => 'target.foo.uri']],
         'Should have requested target URI from config';
-    is_deeply \@sect_params, [], 'Should have requested no section';
+    is_deeply \@sect_params, [ [section => 'core.sqlite' ]],
+        'Should have requested sqlite section';
+
+    # Make sure deprecated config options work.
+    @sect_ret = ({
+        host     => 'hi.com',
+        port     => 5432,
+        username => 'bob',
+        password => 'ouch',
+        db_name  => 'sharks',
+    });
+    $sqitch->options->{engine}      = 'pg';
+    @get_params = @sect_params = ();
+    $uri = URI::db->new('db:pg://bob:ouch@hi.com:5432/sharks');
+    isa_ok $target = $CLASS->new(sqitch => $sqitch), $CLASS, 'Pg target';
+    is_deeply \@sect_params, [ [section => 'core.pg' ]],
+        'Should have requested pg section';
+    like $target->name, qr{db:pg://bob:?\@hi.com:5432/sharks},
+        'Name should be passwordless stringified URI';
+    is $target->uri, $uri, 'URI should be tweaked by config* options';
+    is_deeply +MockOutput->get_warn, [[__x(
+        'Options {options} deprecated and will be removed in 1.0; use URI {uri} instead',
+        options => 'core.pg.host, core.pg.port, core.pg.username, core.pg.password, core.pg.db_name',
+        uri     => $uri->as_string,
+    )]], 'Should have warned on deprecated config options';
 
     # Make sure deprecated --db-* options work.
-    $uri = URI::db->new('db:pg://fred@foo.com:12245/widget');
-    $sqitch->options->{engine}      = 'pg';
+    @sect_ret = ({
+        host     => 'hi.com',
+        port     => 5432,
+        username => 'bob',
+        password => 'ouch',
+        db_name  => 'sharks',
+    });
+    @get_params = @sect_params = ();
+    $uri = URI::db->new('db:pg://fred:ouch@foo.com:12245/widget');
     $sqitch->options->{db_host}     = 'foo.com';
     $sqitch->options->{db_port}     = 12245;
     $sqitch->options->{db_username} = 'fred';
     $sqitch->options->{db_name}     = 'widget';
     isa_ok $target = $CLASS->new(sqitch => $sqitch), $CLASS, 'SQLite target';
-    is $target->name, $uri->as_string, 'Name should be stringified URI';
+    is_deeply \@sect_params, [ [section => 'core.pg' ]],
+        'Should have requested sqlite section';
+    like $target->name, qr{db:pg://fred:?\@foo.com:12245/widget},
+        'Name should be passwordless stringified URI';
     is $target->uri, $uri, 'URI should be tweaked by --db-* options';
     is_deeply +MockOutput->get_warn, [[__x(
         'Options {options} deprecated and will be removed in 1.0; use URI {uri} instead',
-        options => '--db-host, --db-port, --db-username, --db-name',
+        options => '--db-host, --db-port, --db-username, core.pg.password, --db-name',
         uri     => $uri->as_string,
     )]], 'Should have warned on deprecated options';
 }
