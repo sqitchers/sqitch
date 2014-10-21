@@ -37,7 +37,7 @@ my $uri = URI::db->new('db:pg:');
 my $sqitch = App::Sqitch->new(options => { engine => 'pg' });
 my $target = App::Sqitch::Target->new(
     sqitch => $sqitch,
-    uri   => $uri,
+    uri    => $uri,
 );
 isa_ok my $pg = $CLASS->new(sqitch => $sqitch, target => $target), $CLASS;
 
