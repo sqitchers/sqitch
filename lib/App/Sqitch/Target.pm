@@ -220,7 +220,7 @@ sub BUILDARGS {
     } elsif ($name =~ /:/) {
         # The name is a URI.
         $uri = URI::db->new($name);
-        $name = undef;
+        $name = $p->{name} = undef;
     } else {
         # Well then, there had better be a config with a URI.
         $uri = $sqitch->config->get( key => "target.$name.uri" ) or do {
@@ -276,7 +276,7 @@ sub BUILDARGS {
         ));
     }
 
-    unless ($p->{name}) {
+    unless ($name) {
         # Set the name.
         if ($uri->password) {
             # Remove the password from the name.

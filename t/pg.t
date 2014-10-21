@@ -307,12 +307,16 @@ DBIEngineTest->run(
     class         => $CLASS,
     sqitch_params => [options => {
         engine     => 'pg',
-        db_username => 'postgres',
-        db_name     => '__sqitchtest__',
         top_dir     => Path::Class::dir(qw(t engine))->stringify,
         plan_file   => Path::Class::file(qw(t engine sqitch.plan))->stringify,
     }],
-    alt_target_params => [ registry => '__sqitchtest' ],
+    target_params => [
+        uri => URI::db->new('db:pg://postgres@/__sqitchtest__'),
+    ],
+    alt_target_params => [
+        registry => '__sqitchtest',
+        uri => URI::db->new('db:pg://postgres@/__sqitchtest__'),
+    ],
     skip_unless       => sub {
         my $self = shift;
         die $err if $err;
