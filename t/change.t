@@ -8,6 +8,7 @@ use Test::More tests => 85;
 #use Test::More 'no_plan';
 use Test::NoWarnings;
 use App::Sqitch;
+use App::Sqitch::Target;
 use App::Sqitch::Plan;
 use App::Sqitch::Plan::Tag;
 use Encode qw(encode_utf8);
@@ -64,11 +65,15 @@ can_ok $CLASS, qw(
     note_prompt
 );
 
-my $sqitch = App::Sqitch->new( top_dir => dir('test-change') );
-my $plan   = App::Sqitch::Plan->new(sqitch => $sqitch);
+my $sqitch = App::Sqitch->new( options => {
+    engine => 'sqlite',
+    top_dir => dir('test-change')->stringify,
+});
+my $target = App::Sqitch::Target->new(sqitch => $sqitch);
+my $plan   = App::Sqitch::Plan->new(sqitch => $sqitch, target => $target);
 make_path 'test-change';
 END { remove_tree 'test-change' };
-my $fn = $sqitch->plan_file;
+my $fn = $target->plan_file;
 open my $fh, '>', $fn or die "Cannot open $fn: $!";
 say $fh "%project=change\n\n";
 close $fh or die "Error closing $fn: $!";
@@ -92,11 +97,11 @@ my $tag = App::Sqitch::Plan::Tag->new(
 
 is_deeply [ $change->path_segments ], ['foo.sql'],
     'path_segments should have the file name';
-is $change->deploy_file, $sqitch->deploy_dir->file('foo.sql'),
+is $change->deploy_file, $target->deploy_dir->file('foo.sql'),
     'The deploy file should be correct';
-is $change->revert_file, $sqitch->revert_dir->file('foo.sql'),
+is $change->revert_file, $target->revert_dir->file('foo.sql'),
     'The revert file should be correct';
-is $change->verify_file, $sqitch->verify_dir->file('foo.sql'),
+is $change->verify_file, $target->verify_dir->file('foo.sql'),
     'The verify file should be correct';
 ok !$change->is_reworked, 'The change should not be reworked';
 is_deeply [ $change->path_segments ], ['foo.sql'],
@@ -106,8 +111,8 @@ is_deeply [ $change->path_segments ], ['foo.sql'],
 ok $change->add_rework_tags($tag), 'Add a rework tag';
 is_deeply [$change->rework_tags], [$tag], 'Reworked tag should be stored';
 ok $change->is_reworked, 'The change should be reworked';
-$sqitch->deploy_dir->mkpath;
-$sqitch->deploy_dir->file('foo@alpha.sql')->touch;
+$target->deploy_dir->mkpath;
+$target->deploy_dir->file('foo@alpha.sql')->touch;
 is_deeply [ $change->path_segments ], ['foo@alpha.sql'],
     'path_segments should now include suffix';
 
@@ -191,7 +196,7 @@ my $date = App::Sqitch::DateTime->new(
 sub dep($) {
     App::Sqitch::Plan::Depend->new(
         %{ App::Sqitch::Plan::Depend->parse(shift) },
-        plan    => $sqitch->plan,
+        plan    => $target->plan,
         project => 'change',
     )
 }
@@ -283,11 +288,11 @@ my @fn = ('yo', 'howdy@beta.sql');
 $change2->add_rework_tags($tag2);
 is_deeply [ $change2->path_segments ], \@fn,
     'path_segments should include directories';
-is $change2->deploy_file, $sqitch->deploy_dir->file(@fn),
+is $change2->deploy_file, $target->deploy_dir->file(@fn),
     'The deploy file should include the suffix';
-is $change2->revert_file, $sqitch->revert_dir->file(@fn),
+is $change2->revert_file, $target->revert_dir->file(@fn),
     'The revert file should include the suffix';
-is $change2->verify_file, $sqitch->verify_dir->file(@fn),
+is $change2->verify_file, $target->verify_dir->file(@fn),
     'The verify file should include the suffix';
 
 ##############################################################################
@@ -332,11 +337,13 @@ is $fh->getline, "-- verify it, baby\n", 'It should be the verify file';
 ##############################################################################
 # Test the requires/conflicts params.
 my $file = file qw(t plans multi.plan);
-my $sqitch2 = App::Sqitch->new(
-    top_dir   => dir('test-change'),
-    plan_file => $file,
-);
-my $plan2 = $sqitch2->plan;
+my $sqitch2 = App::Sqitch->new(options => {
+    engine    => 'sqlite',
+    top_dir   => dir('test-change')->stringify,
+    plan_file => $file->stringify,
+});
+my $target2 = App::Sqitch::Target->new(sqitch => $sqitch2);
+my $plan2 = $target2->plan;
 ok $change2 = $CLASS->new(
     name      => 'whatever',
     plan      => $plan2,

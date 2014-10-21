@@ -54,7 +54,7 @@ sub _lookup {
     my $symtag = _dbsymtag $key or return $self->{lookup}{$key};
     # XXX The rest of this only applies to the deprecated @FIRST & @LAST tags.
     my $change = $self->{list}[0] || return undef;
-    my $engine = $change->plan->sqitch->engine;
+    my $engine = $change->plan->target->engine;
     my $offset = _offset $key;
     $key = do {
         if ($symtag eq 'LAST') {

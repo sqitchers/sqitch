@@ -9,6 +9,7 @@ use Test::More tests => 27;
 use Test::NoWarnings;
 use Path::Class;
 use App::Sqitch;
+use App::Sqitch::Target;
 use App::Sqitch::Plan;
 use Test::MockModule;
 use Digest::SHA;
@@ -41,8 +42,12 @@ can_ok $CLASS, qw(
     format_planner
 );
 
-my $sqitch = App::Sqitch->new( top_dir => dir qw(t sql) );
-my $plan   = App::Sqitch::Plan->new(sqitch => $sqitch);
+my $sqitch = App::Sqitch->new(options => {
+    engine  => 'sqlite',
+    top_dir => dir(qw(t sql))->stringify,
+});
+my $target = App::Sqitch::Target->new(sqitch => $sqitch);
+my $plan   = App::Sqitch::Plan->new(sqitch => $sqitch, target => $target);
 my $change = App::Sqitch::Plan::Change->new( plan => $plan, name => 'roles' );
 
 isa_ok my $tag = $CLASS->new(

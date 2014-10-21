@@ -9,6 +9,7 @@ use Test::More tests => 28;
 use Test::NoWarnings;
 use Test::Exception;
 use App::Sqitch;
+use App::Sqitch::Target;
 use App::Sqitch::Plan;
 
 $ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
@@ -18,7 +19,8 @@ $ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
 BEGIN { require_ok 'App::Sqitch::Plan::LineList' or die }
 
 my $sqitch = App::Sqitch->new;
-my $plan   = App::Sqitch::Plan->new(sqitch => $sqitch);
+my $target = App::Sqitch::Target->new(sqitch => $sqitch);
+my $plan   = App::Sqitch::Plan->new(sqitch => $sqitch, target => $target);
 
 my $foo = App::Sqitch::Plan::Change->new(plan => $plan, name => 'foo');
 my $bar = App::Sqitch::Plan::Change->new(plan => $plan, name => 'bar');

@@ -108,7 +108,7 @@ has plan => (
         # XXX Update to reference target.
         App::Sqitch::Plan->new(
             sqitch => $self->sqitch,
-            file   => $self->plan_file,
+            target => $self,
         );
     },
 );

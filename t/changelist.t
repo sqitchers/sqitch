@@ -10,6 +10,7 @@ use Test::NoWarnings;
 use Test::Exception;
 use Path::Class;
 use App::Sqitch;
+use App::Sqitch::Target;
 use App::Sqitch::Plan;
 use Locale::TextDomain qw(App-Sqitch);
 use Test::MockModule;
@@ -20,8 +21,12 @@ $ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
 
 BEGIN { require_ok 'App::Sqitch::Plan::ChangeList' or die }
 
-my $sqitch = App::Sqitch->new( _engine => 'sqlite', top_dir => dir qw(t sql) );
-my $plan   = App::Sqitch::Plan->new(sqitch => $sqitch);
+my $sqitch = App::Sqitch->new(options => {
+    engine => 'sqlite',
+    top_dir => dir(qw(t sql))->stringify,
+});
+my $target = App::Sqitch::Target->new(sqitch => $sqitch);
+my $plan   = App::Sqitch::Plan->new(sqitch => $sqitch, target => $target);
 
 my $foo = App::Sqitch::Plan::Change->new(plan => $plan, name => 'foo');
 my $bar = App::Sqitch::Plan::Change->new(plan => $plan, name => 'bar', parent => $foo);
