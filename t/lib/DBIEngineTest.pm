@@ -146,7 +146,7 @@ sub run {
 
         # Register a different project name.
         MOCKPROJECT: {
-            my $plan_mocker = Test::MockModule->new(ref $sqitch->plan );
+            my $plan_mocker = Test::MockModule->new(ref $target->plan );
             $plan_mocker->mock(project => 'groovy');
             $plan_mocker->mock(uri     => 'http://example.com/');
             ok $engine->register_project, 'Register a second project';
@@ -163,7 +163,7 @@ sub run {
 
         # Try to register with a different URI.
         MOCKURI: {
-            my $plan_mocker = Test::MockModule->new(ref $sqitch->plan );
+            my $plan_mocker = Test::MockModule->new(ref $target->plan );
             my $plan_proj = 'engine';
             my $plan_uri = 'http://example.net/';
             $plan_mocker->mock(project => sub { $plan_proj });
@@ -1037,7 +1037,7 @@ sub run {
         # Add an external project event.
         ok my $ext_plan = App::Sqitch::Plan->new(
             sqitch  => $sqitch,
-            file    => $target->plan_file,
+            target  => $target,
             project => 'groovy',
         ), 'Create external plan';
         ok my $ext_change = $ext_plan->add(
