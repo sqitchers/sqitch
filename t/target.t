@@ -10,6 +10,7 @@ use Test::Exception;
 use Test::MockModule;
 use Locale::TextDomain qw(App-Sqitch);
 use lib 't/lib';
+use MockOutput;
 
 $ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
 $ENV{SQITCH_USER_CONFIG}   = 'nonexistent.user';
@@ -185,7 +186,7 @@ CONSTRUCTOR: {
         'Should have requested target URI from config';
     is_deeply \@sect_params, [], 'Should have requested no section';
 
-    # Make sure --db-* options work.
+    # Make sure deprecated --db-* options work.
     $uri = URI::db->new('db:pg://fred@foo.com:12245/widget');
     $sqitch->options->{engine}      = 'pg';
     $sqitch->options->{db_host}     = 'foo.com';
@@ -195,6 +196,11 @@ CONSTRUCTOR: {
     isa_ok $target = $CLASS->new(sqitch => $sqitch), $CLASS, 'SQLite target';
     is $target->name, $uri->as_string, 'Name should be stringified URI';
     is $target->uri, $uri, 'URI should be tweaked by --db-* options';
+    is_deeply +MockOutput->get_warn, [[__x(
+        'Options {options} deprecated and will be removed in 1.0; use URI {uri} instead',
+        options => '--db-host, --db-port, --db-username, --db-name',
+        uri     => $uri->as_string,
+    )]], 'Should have warned on deprecated options';
 }
 
 CONFIG: {
