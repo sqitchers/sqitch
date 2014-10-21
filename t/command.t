@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 114;
+use Test::More tests => 117;
 #use Test::More 'no_plan';
 
 $ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
@@ -253,11 +253,11 @@ PARSEOPTSERR: {
 # Test argument passing.
 ARGS: {
     local $ENV{SQITCH_CONFIG} = file qw(t local.conf);
-    ok $sqitch = App::Sqitch->new(
-        _engine   => 'sqlite',
-        plan_file => file(qw(t plans multi.plan)),
-        top_dir   => dir qw(t sql)
-    ), 'Load Sqitch with config and plan';
+    ok $sqitch = App::Sqitch->new(options => {
+        engine    => 'sqlite',
+        plan_file => file(qw(t plans multi.plan))->stringify,
+        top_dir   => dir(qw(t sql))->stringify
+    }), 'Load Sqitch with config and plan';
     ok my $cmd = $CLASS->new({ sqitch => $sqitch }), 'Load cmd with config and plan';
     is_deeply { $cmd->parse_args }, { changes => [], targets => [], unknown => [] },
         'Parsing now args should return no results';
@@ -286,6 +286,14 @@ ARGS: {
         { changes => ['hey', 'hey-there'], targets => ['devdb'], unknown => ['foo'] },
         'Multiple changes, target, and unknown should be recognized';
 
+    ok $sqitch = App::Sqitch->new(options => {
+        engine  => 'sqlite',
+        top_dir => dir(qw(t sql))->stringify
+    }), 'Load Sqitch with config';
+    ok $cmd = $CLASS->new({ sqitch => $sqitch }), 'Load cmd with config';
+    is_deeply { $cmd->parse_args('devdb', 'you', 'add_user') },
+        { changes => ['add_user'], targets => ['devdb'], unknown => ['you'] },
+        'Change following target should be recognized from target plan';
 }
 
 ##############################################################################

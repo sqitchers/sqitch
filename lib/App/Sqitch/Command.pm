@@ -18,7 +18,6 @@ has sqitch => (
     isa      => Sqitch,
     required => 1,
     handles  => [qw(
-        plan
         engine
         config_for_target
         config_for_target_strict
@@ -179,9 +178,11 @@ sub usage {
 
 sub parse_args {
     my $self   = shift;
-    my $plan   = $self->plan;
-    my $config = $self->sqitch->config;
+    my $sqitch = $self->sqitch;
+    my $config = $sqitch->config;
+    require App::Sqitch::Target;
     require URI;
+    my $target = try { App::Sqitch::Target->new(sqitch => $self->sqitch) };
 
     my %ret    = (
         changes => [],
@@ -189,11 +190,17 @@ sub parse_args {
         unknown => [],
     );
     for my $arg (@_) {
-        my $ref = $plan->contains($arg)                   ? $ret{changes}
-                : URI->new($arg)->isa('URI::db')          ? $ret{targets}
-                : $config->get( key => "target.$arg.uri") ? $ret{targets}
-                :                                           $ret{unknown};
-        push @{ $ref } => $arg;
+        if ( $target && $target->plan->contains($arg) ) {
+            # It's a change.
+            push @{ $ret{changes} } => $arg;
+        } elsif ($config->get( key => "target.$arg.uri") || URI->new($arg)->isa('URI::db')) {
+            # It's a target; load the plan to search for other change params.
+            push @{ $ret{targets} } => $arg;
+            $target = App::Sqitch::Target->new( sqitch => $sqitch, name => $arg );
+        } else {
+            # Who knows?
+            push @{ $ret{unknown} } => $arg;
+        }
     }
 
     return %ret;
