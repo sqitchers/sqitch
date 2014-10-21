@@ -307,13 +307,17 @@ DBIEngineTest->run(
     class         => $CLASS,
     sqitch_params => [options => {
         engine      => 'mysql',
-        db_username => 'root',
-        db_name     => '__sqitchtest__',
         top_dir     => Path::Class::dir(qw(t engine))->stringify,
         plan_file   => Path::Class::file(qw(t engine sqitch.plan))->stringify,
     }],
-    target_params     => [ registry => '__metasqitch' ],
-    alt_target_params => [ registry => '__sqitchtest' ],
+    target_params     => [
+        registry => '__metasqitch',
+        uri => URI::db->new('db:mysql://root@/__sqitchtest__'),
+    ],
+    alt_target_params => [
+        registry => '__sqitchtest',
+        uri => URI::db->new('db:mysql://root@/__sqitchtest__'),
+    ],
     skip_unless       => sub {
         my $self = shift;
         die $err if $err;
