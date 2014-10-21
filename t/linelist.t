@@ -18,7 +18,7 @@ $ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
 
 BEGIN { require_ok 'App::Sqitch::Plan::LineList' or die }
 
-my $sqitch = App::Sqitch->new;
+my $sqitch = App::Sqitch->new(options => { engine => 'sqlite' });
 my $target = App::Sqitch::Target->new(sqitch => $sqitch);
 my $plan   = App::Sqitch::Plan->new(sqitch => $sqitch, target => $target);
 
