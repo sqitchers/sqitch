@@ -140,6 +140,42 @@ CONSTRUCTOR: {
         'No engine specified; use --engine or set core.engine'
     ), 'Should have message about no specified engine';
 
+    # Try with engine-less URI.
+    @get_params = ();
+    isa_ok my $target = $CLASS->new(
+        sqitch => $sqitch,
+        uri    => URI::db->new('db:'),
+    ), $CLASS, 'Engineless target';
+    is $target->name, 'db:', 'Name should be "db:"';
+    is $target->uri, URI::db->new('db:'), 'URI should be "db:"';
+    is_deeply \@get_params, [], 'Should not have tried to get engine target';
+
+    is $target->sqitch, $sqitch, 'Sqitch should be as passed';
+    is $target->engine_key, undef, 'Engine key should be undef';
+    throws_ok { $target->engine } 'App::Sqitch::X',
+        'Should get exception for no engine';
+    is $@->ident, 'engine', 'Should have engine ident';
+    is $@->message, __(
+        'No engine specified; use --engine or set core.engine'
+    ), 'Should have message about no engine';
+
+    is $target->top_dir, dir, 'Should have default top_dir';
+    is $target->deploy_dir, $target->top_dir->subdir('deploy'),
+        'Should have default deploy_dir';
+    is $target->revert_dir, $target->top_dir->subdir('revert'),
+        'Should have default revert_dir';
+    is $target->verify_dir, $target->top_dir->subdir('verify'),
+        'Should have default verify_dir';
+    is $target->extension, 'sql', 'Should have default extension';
+    is $target->plan_file, $target->top_dir->file('sqitch.plan')->cleanup,
+        'Should have default plan file';
+    isa_ok $target->plan, 'App::Sqitch::Plan', 'Should get plan';
+    is $target->plan->file, $target->plan_file,
+        'Plan file should be copied from Target';
+    is $target->dsn, '', 'DSN should be empty';
+    is $target->username, undef, 'Username should be undef';
+    is $target->password, undef, 'Password should be undef';
+
     # Mock get_section.
     my @sect_params;
     my @sect_ret = ({});

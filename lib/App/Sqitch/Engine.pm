@@ -104,6 +104,10 @@ sub load {
     my $target = $p->{target} or hurl 'Missing "target" parameter to load()';
 
     # Load the engine class.
+    my $ekey = $target->engine_key or hurl engine => __(
+        'No engine specified; use --engine or set core.engine'
+    );
+
     my $pkg = __PACKAGE__ . '::' . $target->engine_key;
     eval "require $pkg" or hurl "Unable to load $pkg";
     return $pkg->new( $p );
