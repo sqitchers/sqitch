@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 117;
+use Test::More tests => 122;
 #use Test::More 'no_plan';
 
 $ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
@@ -22,6 +22,7 @@ BEGIN {
 }
 
 use App::Sqitch;
+use App::Sqitch::Target;
 use Test::Exception;
 use Test::NoWarnings;
 use Test::MockModule;
@@ -258,42 +259,68 @@ ARGS: {
         plan_file => file(qw(t plans multi.plan))->stringify,
         top_dir   => dir(qw(t sql))->stringify
     }), 'Load Sqitch with config and plan';
+
     ok my $cmd = $CLASS->new({ sqitch => $sqitch }), 'Load cmd with config and plan';
-    is_deeply { $cmd->parse_args }, { changes => [], targets => [], unknown => [] },
+    my $parsem = sub {
+        my %ret = $cmd->parse_args(@_);
+        $ret{targets} = [ map { $_->name } @{ $ret{targets} } ];
+        return \%ret;
+    };
+
+    is_deeply $parsem->(),
+        { changes => [], targets => ['devdb'], unknown => [] },
         'Parsing now args should return no results';
-    is_deeply { $cmd->parse_args('foo') },
-        { changes => [], targets => [], unknown => ['foo'] },
+    is_deeply $parsem->( args => ['foo'] ),
+        { changes => [], targets => ['devdb'], unknown => ['foo'] },
         'Single unknown arg should be returned unknown';
-    is_deeply { $cmd->parse_args('hey') },
-        { changes => ['hey'], targets => [], unknown => [] },
+    is_deeply $parsem->( args => ['hey'] ),
+        { changes => ['hey'], targets => ['devdb'], unknown => [] },
         'Single change should be recognized as change';
-    is_deeply { $cmd->parse_args('devdb') },
+    is_deeply $parsem->( args => ['devdb'] ),
         { changes => [], targets => ['devdb'], unknown => [] },
         'Single target should be recognized as target';
-    is_deeply { $cmd->parse_args('db:pg:') },
+    is_deeply $parsem->(args => ['db:pg:']),
         { changes => [], targets => ['db:pg:'], unknown => [] },
         'URI target should be recognized as target, too';
-    is_deeply { $cmd->parse_args('devdb', 'hey') },
+    is_deeply $parsem->(args => ['devdb', 'hey']),
         { changes => ['hey'], targets => ['devdb'], unknown => [] },
         'Target and change should be recognized';
-    is_deeply { $cmd->parse_args('hey', 'devdb') },
+    is_deeply $parsem->(args => ['hey', 'devdb']),
         { changes => ['hey'], targets => ['devdb'], unknown => [] },
         'Change and target should be recognized';
-    is_deeply { $cmd->parse_args('hey', 'devdb', 'foo') },
+    is_deeply $parsem->(args => ['hey', 'devdb', 'foo']),
         { changes => ['hey'], targets => ['devdb'], unknown => ['foo'] },
         'Change, target, and unknown should be recognized';
-    is_deeply { $cmd->parse_args('hey', 'devdb', 'foo', 'hey-there') },
+    is_deeply $parsem->(args => ['hey', 'devdb', 'foo', 'hey-there']),
         { changes => ['hey', 'hey-there'], targets => ['devdb'], unknown => ['foo'] },
         'Multiple changes, target, and unknown should be recognized';
 
+    # Make sure changes are found in previously-passed target.
     ok $sqitch = App::Sqitch->new(options => {
         engine  => 'sqlite',
         top_dir => dir(qw(t sql))->stringify
     }), 'Load Sqitch with config';
     ok $cmd = $CLASS->new({ sqitch => $sqitch }), 'Load cmd with config';
-    is_deeply { $cmd->parse_args('devdb', 'you', 'add_user') },
-        { changes => ['add_user'], targets => ['devdb'], unknown => ['you'] },
+    is_deeply $parsem->(args => ['mydb', 'you', 'add_user']),
+        { changes => ['add_user'], targets => ['mydb'], unknown => ['you'] },
         'Change following target should be recognized from target plan';
+
+    # Now pass a target.
+    is_deeply $parsem->(target => 'devdb'),
+        { changes => [], targets => ['devdb'], unknown => [] },
+        'Passed target should always be returned';
+    is_deeply $parsem->(target => 'devdb', args => ['mydb']),
+        { changes => [], targets => ['devdb', 'mydb'], unknown => [] },
+        'Passed and specified targets should always be returned';
+    is_deeply $parsem->(target => 'devdb', args => ['hey']),
+        { changes => [], targets => ['devdb'], unknown => ['hey'] },
+        'Change unknown to passed target should be returned as unknown';
+    is_deeply $parsem->(args => ['widgets', 'foo', '@beta']),
+        { changes => ['widgets', '@beta'], targets => ['devdb'], unknown => ['foo'] },
+        'Should get known changes from default target (t/sql/sqitch.plan)';
+    is_deeply $parsem->(args => ['widgets', 'mydb', 'foo', '@beta']),
+        { changes => ['widgets'], targets => ['devdb', 'mydb'], unknown => ['foo', '@beta'] },
+        'Change seen after target should be unknown if not in that target';
 }
 
 ##############################################################################

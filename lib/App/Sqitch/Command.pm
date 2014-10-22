@@ -8,6 +8,7 @@ use Try::Tiny;
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use Hash::Merge 'merge';
+use List::Util qw(first);
 use Moo;
 use App::Sqitch::Types qw(Sqitch);
 
@@ -177,31 +178,36 @@ sub usage {
 }
 
 sub parse_args {
-    my $self   = shift;
+    my ($self, %p) = @_;
     my $sqitch = $self->sqitch;
     my $config = $sqitch->config;
     require App::Sqitch::Target;
-    require URI;
-    my $target = try { App::Sqitch::Target->new(sqitch => $self->sqitch) };
+    my $target = App::Sqitch::Target->new( sqitch => $sqitch, name => $p{target} );
 
-    my %ret    = (
+    my %ret = (
         changes => [],
-        targets => [],
+        targets => [$p{target} ? $target : ()],
         unknown => [],
     );
-    for my $arg (@_) {
+    for my $arg (@{ $p{args} }) {
         if ( $target && $target->plan->contains($arg) ) {
-            # It's a change.
+            # A change. Keep the target if it's the default.
+            push @{ $ret{targets} } => $target unless @{ $ret{targets} };
             push @{ $ret{changes} } => $arg;
         } elsif ($config->get( key => "target.$arg.uri") || URI->new($arg)->isa('URI::db')) {
-            # It's a target; load the plan to search for other change params.
-            push @{ $ret{targets} } => $arg;
+            # A target. Instantiate and keep for subsequente change searches.
             $target = App::Sqitch::Target->new( sqitch => $sqitch, name => $arg );
+            push @{ $ret{targets} } => $target unless first {
+                $target->name eq $_->name
+            } @{ $ret{targets} };
         } else {
             # Who knows?
             push @{ $ret{unknown} } => $arg;
         }
     }
+
+    # Make sure we have the default target
+    push @{ $ret{targets} } => $target if $target && !@{ $ret{targets} };
 
     return %ret;
 }
@@ -347,7 +353,7 @@ use.
 
 =head3 C<parse_args>
 
-  my @parsed_args = $cmd->parse_args(@args);
+  my %parsed_args = $cmd->parse_args(target => $target_name, args => \@args);
 
 Examines each argument to determine whether it's a known change spec or
 target. Returns a list of two-value array references, one for each argument
@@ -355,6 +361,14 @@ passed. For each array reference, the first item is the argument type, either
 "change", "target", or "unknown", and the second item is the original value.
 Useful for commands that take a number of parameters where the order may be
 mixed.
+
+If a target param is passed, it is the default target and will always be
+returned instantiated, and arguments recognized as changes in that target will
+be returned as changes. If a target name is specified in the arguments, it
+will be instantiated and returned under the targets key and any subsequent
+changes must be recognized from I<its> plan. If no target is passed or appears
+in the arguments, the default target will be used and any changes must be
+recognized from it.
 
 =head3 C<run>
 
