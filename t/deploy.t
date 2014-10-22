@@ -43,9 +43,11 @@ is_deeply [$CLASS->options], [qw(
 )], 'Options should be correct';
 
 my $sqitch = App::Sqitch->new(
-    plan_file => file(qw(t sql sqitch.plan)),
-    top_dir   => dir(qw(t sql)),
-    _engine   => 'sqlite',
+    options => {
+        engine    => 'sqlite',
+        plan_file => file(qw(t sql sqitch.plan))->stringify,
+        top_dir   => dir(qw(t sql))->stringify,
+    },
 );
 my $config = $sqitch->config;
 
@@ -118,15 +120,25 @@ isa_ok my $deploy = $CLASS->new(
 ), $CLASS, 'new deploy with target';
 is $deploy->target, 'foo', 'Should have target "foo"';
 
-
 isa_ok $deploy = $CLASS->new(sqitch => $sqitch), $CLASS;
 is $deploy->target, undef, 'Should have undef default target';
 
 is $deploy->to_change, undef, 'to_change should be undef';
 is $deploy->mode, 'all', 'mode should be "all"';
 
+# Mock parse_args() so that we can grab the target it returns.
+my $mock_cmd = Test::MockModule->new($CLASS);
+my $parser;
+my $target;
+$mock_cmd->mock(parse_args => sub {
+    my %ret = $parser->(@_);
+    $target = $ret{targets}[0];
+    return %ret;
+});
+$parser = $mock_cmd->original('parse_args');
+
 # Mock the engine interface.
-my $mock_engine = Test::MockModule->new('App::Sqitch::Engine::sqlite');
+my $mock_engine = Test::MockModule->new('App::Sqitch::Engine');
 my @args;
 $mock_engine->mock(deploy => sub { shift; @args = @_ });
 my @vars;
@@ -135,7 +147,8 @@ $mock_engine->mock(set_variables => sub { shift; @vars = @_ });
 ok $deploy->execute('@alpha'), 'Execute to "@alpha"';
 is_deeply \@args, ['@alpha', 'all'],
     '"@alpha" "all", and 0 should be passed to the engine';
-ok !$sqitch->engine->log_only, 'The engine should not be set log_only';
+ok $target, 'Should have a target';
+ok !$target->engine->log_only, 'The engine should not be set log_only';
 is_deeply +MockOutput->get_warn, [], 'Should have no warnings';
 
 @args = ();
@@ -151,29 +164,24 @@ is_deeply \@args, ['widgets', 'all'],
 is_deeply +MockOutput->get_warn, [], 'Should have no warnings';
 
 # Try passing the target.
-my $mock_sqitch = Test::MockModule->new(ref $sqitch);
-my ($engine, $orig_emethod);
-$mock_sqitch->mock(engine => sub { $engine = shift->$orig_emethod(@_) });
-$orig_emethod = $mock_sqitch->original('engine');
-
 ok $deploy->execute('db:pg:foo'), 'Execute with target';
 is_deeply \@args, [undef, 'all'],
     'undef and "all" should be passed to the engine';
-is $engine->target, 'db:pg:foo', 'The engine should know the target';
+is $target->name, 'db:pg:foo', 'The target should be as specified';
 is_deeply +MockOutput->get_warn, [], 'Should have no warnings';
 
 # Pass both!
-ok $deploy->execute('widgets', 'db:pg:blah'), 'Execute with change and target';
+ok $deploy->execute('db:pg:blah', 'widgets'), 'Execute with change and target';
 is_deeply \@args, ['widgets', 'all'],
     '"widgets" and "all" should be passed to the engine';
-is $engine->target, 'db:pg:blah', 'The engine should know the target';
+is $target->name, 'db:pg:blah', 'The target should be as specified';
 is_deeply +MockOutput->get_warn, [], 'Should have no warnings';
 
 # Reverse them!
 ok $deploy->execute('db:pg:blah', 'widgets'), 'Execute with target and change';
 is_deeply \@args, ['widgets', 'all'],
     '"widgets" and "all" should be passed to the engine';
-is $engine->target, 'db:pg:blah', 'The engine should know the target';
+is $target->name, 'db:pg:blah', 'The target should be as specified';
 is_deeply +MockOutput->get_warn, [], 'Should have no warnings';
 
 # Now pass a bunch of options.
@@ -189,19 +197,19 @@ isa_ok $deploy = $CLASS->new(
 
 @args = ();
 ok $deploy->execute, 'Execute again';
-ok $engine->with_verify, 'Engine should verify';
-ok $engine->log_only, 'The engine should be set log_only';
+ok $target->engine->with_verify, 'Engine should verify';
+ok $target->engine->log_only, 'The engine should be set log_only';
 is_deeply \@args, ['foo', 'tag'],
     '"foo", "tag", and 1 should be passed to the engine';
 is_deeply {@vars}, { foo => 'bar', one => 1 },
     'Vars should have been passed through to the engine';
-is $engine->target, 'db:pg:hi', 'The engine should have the target option';
+is $target->name, 'db:pg:hi', 'The target name should be from the target option';
 is_deeply +MockOutput->get_warn, [], 'Should have no warnings';
 
 # Try passing the change.
 ok $deploy->execute('widgets'), 'Execute with change';
-ok $engine->with_verify, 'Engine should verify';
-ok $engine->log_only, 'The engine should be set log_only';
+ok $target->engine->with_verify, 'Engine should verify';
+ok $target->engine->log_only, 'The engine should be set log_only';
 is_deeply \@args, ['foo', 'tag'],
     '"foo", "tag", and 1 should be passed to the engine';
 is_deeply {@vars}, { foo => 'bar', one => 1 },
@@ -213,13 +221,13 @@ is_deeply +MockOutput->get_warn, [[__x(
 
 # Pass the target.
 ok $deploy->execute('db:pg:bye'), 'Execute with target again';
-ok $engine->with_verify, 'Engine should verify';
-ok $engine->log_only, 'The engine should be set log_only';
+ok $target->engine->with_verify, 'Engine should verify';
+ok $target->engine->log_only, 'The engine should be set log_only';
 is_deeply \@args, ['foo', 'tag'],
     '"foo", "tag", and 1 should be passed to the engine';
 is_deeply {@vars}, { foo => 'bar', one => 1 },
     'Vars should have been passed through to the engine';
-is $engine->target, 'db:pg:hi', 'The engine should have the target option';
+is $target->name, 'db:pg:hi', 'The target should be from the target option';
 is_deeply +MockOutput->get_warn, [[__x(
     'Too many targets specified; connecting to {target}',
     target => 'db:pg:hi',
