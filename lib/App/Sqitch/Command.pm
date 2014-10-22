@@ -10,7 +10,7 @@ use App::Sqitch::X qw(hurl);
 use Hash::Merge 'merge';
 use List::Util qw(first);
 use Moo;
-use App::Sqitch::Types qw(Sqitch);
+use App::Sqitch::Types qw(Sqitch Target);
 
 our $VERSION = '0.997';
 
@@ -48,6 +48,26 @@ has sqitch => (
         prompt
         ask_y_n
     )],
+);
+
+has default_target => (
+    is      => 'ro',
+    isa     => Target,
+    lazy    => 1,
+    default => sub {
+        my $sqitch = shift->sqitch;
+        my @params = (sqitch => $sqitch);
+        unless (
+            $sqitch->options->{engine}
+            || $sqitch->config->get(key => 'core.engine')
+        ) {
+            # No specified engine, so specify an engineless URI.
+            require URI::db;
+            push @params, uri => URI::db->new('db:');
+        }
+        require App::Sqitch::Target;
+        return App::Sqitch::Target->new(@params);
+    },
 );
 
 sub command {
@@ -351,6 +371,21 @@ uses to find the command class.
 These methods are mainly provided as utilities for the command subclasses to
 use.
 
+=head3 C<default_target>
+
+  my $target = $cmd->default_target;
+
+This method returns the default target. It should only be used by commands
+that don't use a C<parse_args()> to find and load a target.
+
+This method should always return a target option, never C<undef>. If the
+C<--engine> option or C<core.engine> configuration option has been set, then
+the target will support that engine. In the latter case, if
+C<core.$engine.target> is set, that value will be used. Otherwise, the
+returned target will have a URI of C<db:> and no associated engine; the
+C<engine> method will throw an exception. This behavior sould be fine for
+commands that don't need to load the engine.
+
 =head3 C<parse_args>
 
   my %parsed_args = $cmd->parse_args(target => $target_name, args => \@args);
@@ -362,13 +397,21 @@ passed. For each array reference, the first item is the argument type, either
 Useful for commands that take a number of parameters where the order may be
 mixed.
 
-If a target param is passed, it is the default target and will always be
-returned instantiated, and arguments recognized as changes in that target will
-be returned as changes. If a target name is specified in the arguments, it
-will be instantiated and returned under the targets key and any subsequent
-changes must be recognized from I<its> plan. If no target is passed or appears
-in the arguments, the default target will be used and any changes must be
-recognized from it.
+If a target parameter is passed, it will always be instantiated and returned
+under the "target" key, and arguments recognized as changes in the plan
+associated with that target will be returned as changes.
+
+If a target name is specified in the arguments, it will be instantiated and
+returned under the "target" key and any subsequent changes must be recognized
+from I<its> plan.
+
+If no target is passed or appears in the arguments, a default target will be
+intantiated based on the comnad-line options and configuration. Unlike the
+target returned by C<default_target>, however, it B<must> have an associated
+engine specified by the C<--engine> option or configuration. This is on the
+assumption that it will be used by commands that require an engine to do their
+work. Of course, any changes must be recognized from the plan associated with
+this target.
 
 =head3 C<run>
 

@@ -4,8 +4,8 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 122;
-#use Test::More 'no_plan';
+#use Test::More tests => 135;
+use Test::More 'no_plan';
 
 $ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
 $ENV{SQITCH_USER_CONFIG}   = 'nonexistent.user';
@@ -38,7 +38,17 @@ BEGIN {
     use_ok $CLASS or die;
 }
 
-can_ok $CLASS, qw(load new options configure command prompt ask_y_n parse_args);
+can_ok $CLASS, qw(
+    load
+    new
+    options
+    configure
+    command
+    prompt
+    ask_y_n
+    parse_args
+    default_target
+);
 
 COMMAND: {
     # Stub out a couple of commands.
@@ -177,6 +187,53 @@ ok $cmd = $CLASS->load({
 }), 'Load a "wah-hoo" command';
 isa_ok $cmd, "$CLASS\::wah_hoo", 'It';
 is $cmd->command, 'wah-hoo', 'command() should return hyphenated name';
+
+##############################################################################
+# Test default_target.
+ok $cmd = $CLASS->new({ sqitch => $sqitch }), "Create a $CLASS object";
+isa_ok my $target = $cmd->default_target, 'App::Sqitch::Target',
+    'default target';
+is $target->name, 'db:', 'Default target name should be "db:"';
+is $target->uri, URI->new('db:'), 'Default target URI should be "db:"';
+
+# Make sure the core.engine config option gets used.
+my @get_ret;
+my @get_expect;
+$cmock->mock(get => sub {
+    my $self = shift;
+    my $exp = shift @get_expect;
+    is_deeply \@_, [key => $exp], "Should try to fetch $exp";
+    return shift @get_ret;
+});
+@get_ret = ('sqlite', 'sqlite');
+@get_expect = ('core.engine', 'core.engine', 'core.sqlite.target');
+ok $cmd = $CLASS->new({ sqitch => $sqitch }), "Create a $CLASS object";
+isa_ok $target = $cmd->default_target, 'App::Sqitch::Target',
+    'default target';
+is $target->name, 'db:sqlite:', 'Default target name should be "db:sqlite:"';
+is $target->uri, URI->new('db:sqlite:'), 'Default target URI should be "db:sqlite:"';
+
+# Make sure --engine is higher precedence.
+$sqitch->options->{engine} = 'pg';
+@get_expect = ('core.pg.target');
+ok $cmd = $CLASS->new({ sqitch => $sqitch }), "Create a $CLASS object";
+isa_ok $target = $cmd->default_target, 'App::Sqitch::Target',
+    'default target';
+is $target->name, 'db:pg:', 'Default target name should be "db:pg:"';
+is $target->uri, URI->new('db:pg:'), 'Default target URI should be "db:pg:"';
+
+# We should get stuff from the engine section of the config.
+@get_expect = ('core.pg.target');
+@get_ret = ('db:pg:foo');
+ok $cmd = $CLASS->new({ sqitch => $sqitch }), "Create a $CLASS object";
+isa_ok $target = $cmd->default_target, 'App::Sqitch::Target',
+    'default target';
+is $target->name, 'db:pg:foo', 'Default target name should be "db:pg:foo"';
+is $target->uri, URI->new('db:pg:foo'), 'Default target URI should be "db:pg:foo"';
+
+# Cleanup.
+delete $sqitch->options->{engine};
+$cmock->unmock('get');
 
 ##############################################################################
 # Test command and execute.
