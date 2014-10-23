@@ -71,5 +71,4 @@ is_deeply $config->get_section(section => 'core'), {
 
 is_deeply $config->get_section(section => 'core.pg'), {
     client => "/usr/local/pgsql/bin/psql",
-    username => "theory",
 }, 'get_section("core.pg") should work';
