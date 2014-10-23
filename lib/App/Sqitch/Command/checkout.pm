@@ -33,7 +33,7 @@ sub configure { {} }
 
 sub execute {
     my $self = shift;
-    my %args = $self->parse_args(@_);
+    my %args = $self->parse_args(target => $self->target, args => \@_);
 
     # The branch arg will be the one parse_args does not recognize.
     my $branch = shift @{ $args{unknown} } // $self->usage;
@@ -49,17 +49,17 @@ sub execute {
     }
 
     # Warn on multiple targets.
-    my $target = $self->target // shift @{ $args{targets} };
+    my $target = shift @{ $args{targets} };
     $self->warn(__x(
         'Too many targets specified; connecting to {target}',
-        target => $target,
+        target => $target->name,
     )) if @{ $args{targets} };
 
 
     # Now get to work.
     my $sqitch = $self->sqitch;
     my $git    = $self->client;
-    my $engine = $self->engine_for_target($target);
+    my $engine = $target->engine;
     $engine->with_verify( $self->verify );
     $engine->no_prompt( $self->no_prompt );
     $engine->prompt_accept( $self->prompt_accept );
@@ -73,13 +73,19 @@ sub execute {
         exitval => 1,
     } if $current_branch eq $branch;
 
-    # Instantitate a plan without calling $sqitch->plan.
-    my $from_plan = App::Sqitch::Plan->new( sqitch => $sqitch );
+    # Instantitate a plan without calling $target->plan.
+    my $from_plan = App::Sqitch::Plan->new(
+        sqitch => $sqitch,
+        target => $target,
+    );
 
     # Load the branch plan from Git, assuming the same path.
-    my $to_plan = App::Sqitch::Plan->new( sqitch => $sqitch )->parse(
+    my $to_plan = App::Sqitch::Plan->new(
+        sqitch => $sqitch,
+        target => $target,
+      )->parse(
         # XXX Handle missing file/no contents.
-        scalar $sqitch->capture( $git, 'show', "$branch:" . $sqitch->plan_file)
+        scalar $sqitch->capture( $git, 'show', "$branch:" . $target->plan_file)
     );
 
     # Find the last change the plans have in common.
