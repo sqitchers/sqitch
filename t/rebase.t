@@ -16,8 +16,8 @@ use MockOutput;
 my $CLASS = 'App::Sqitch::Command::rebase';
 require_ok $CLASS or die;
 
-$ENV{SQITCH_CONFIG} = 'nonexistent.conf';
-$ENV{SQITCH_USER_CONFIG} = 'nonexistent.user';
+$ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
+$ENV{SQITCH_USER_CONFIG}   = 'nonexistent.user';
 $ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
 
 isa_ok $CLASS, 'App::Sqitch::Command';
@@ -50,9 +50,11 @@ is_deeply [$CLASS->options], [qw(
 )], 'Options should be correct';
 
 my $sqitch = App::Sqitch->new(
-    plan_file => file(qw(t sql sqitch.plan)),
-    top_dir   => dir(qw(t sql)),
-    _engine   => 'sqlite',
+    options => {
+        engine    => 'sqlite',
+        plan_file => file(qw(t sql sqitch.plan))->stringify,
+        top_dir   => dir(qw(t sql))->stringify,
+    }
 );
 
 my $config = $sqitch->config;
@@ -282,18 +284,22 @@ $mock_engine->mock(revert => sub { shift; @rev_args = @_ });
 my @vars;
 $mock_engine->mock(set_variables => sub { shift; push @vars => [@_] });
 
-my $mock_sqitch = Test::MockModule->new(ref $sqitch);
-my ($engine, $orig_emethod);
-$mock_sqitch->mock(engine => sub { $engine = shift->$orig_emethod(@_) });
-$orig_emethod = $mock_sqitch->original('engine');
+my $mock_cmd = Test::MockModule->new($CLASS);
+my ($target, $orig_method);
+$mock_cmd->mock(parse_args => sub {
+    my %ret = shift->$orig_method(@_);
+    $target = $ret{targets}[0];
+    %ret;
+});
+$orig_method = $mock_cmd->original('parse_args');
 
 ok $rebase->execute('@alpha'), 'Execute to "@alpha"';
 is_deeply \@dep_args, [undef, 'all'],
     'undef, and "all" should be passed to the engine deploy';
 is_deeply \@rev_args, ['@alpha'],
     '"@alpha" should be passed to the engine revert';
-ok !$sqitch->engine->no_prompt, 'Engine should prompt';
-ok !$sqitch->engine->log_only, 'Engine should no be log only';
+ok !$target->engine->no_prompt, 'Engine should prompt';
+ok !$target->engine->log_only, 'Engine should no be log only';
 is_deeply +MockOutput->get_warn, [], 'Should have no warnings';
 
 # Pass a target.
@@ -302,20 +308,20 @@ is_deeply \@dep_args, [undef, 'all'],
     'undef, and "all" should be passed to the engine deploy';
 is_deeply \@rev_args, [undef],
     'undef should be passed to the engine revert';
-ok !$engine->no_prompt, 'Engine should prompt';
-ok !$engine->log_only, 'Engine should no be log only';
-is $engine->target, 'db:sqlite:yow', 'The engine should know the target';
+ok !$target->engine->no_prompt, 'Engine should prompt';
+ok !$target->engine->log_only, 'Engine should no be log only';
+is $target->name, 'db:sqlite:yow', 'The target name should be as passed';
 is_deeply +MockOutput->get_warn, [], 'Should have no warnings';
 
 # Pass both.
-ok $rebase->execute('widgets', 'db:sqlite:yow'), 'Execute with onto and target';
+ok $rebase->execute('db:sqlite:yow', 'widgets'), 'Execute with onto and target';
 is_deeply \@dep_args, [undef, 'all'],
     'undef, and "all" should be passed to the engine deploy';
 is_deeply \@rev_args, ['widgets'],
     '"widgets" should be passed to the engine revert';
-ok !$engine->no_prompt, 'Engine should prompt';
-ok !$engine->log_only, 'Engine should no be log only';
-is $engine->target, 'db:sqlite:yow', 'The engine should know the target';
+ok !$target->engine->no_prompt, 'Engine should prompt';
+ok !$target->engine->log_only, 'Engine should no be log only';
+is $target->name, 'db:sqlite:yow', 'The target name should be as passed';
 is_deeply +MockOutput->get_warn, [], 'Should have no warnings';
 
 # Pass all three!
@@ -325,9 +331,9 @@ is_deeply \@dep_args, ['widgets', 'all'],
     '"widgets", and "all" should be passed to the engine deploy';
 is_deeply \@rev_args, ['roles'],
     '"roles" should be passed to the engine revert';
-ok !$engine->no_prompt, 'Engine should prompt';
-ok !$engine->log_only, 'Engine should no be log only';
-is $engine->target, 'db:sqlite:yow', 'The engine should know the target';
+ok !$target->engine->no_prompt, 'Engine should prompt';
+ok !$target->engine->log_only, 'Engine should no be log only';
+is $target->name, 'db:sqlite:yow', 'The target name should be as passed';
 is_deeply +MockOutput->get_warn, [], 'Should have no warnings';
 
 # Pass no args.
@@ -357,10 +363,10 @@ isa_ok $rebase = $CLASS->new(
 
 @dep_args = @rev_args = ();
 ok $rebase->execute, 'Execute again';
-is $engine->target, 'db:sqlite:lolwut', 'ENgine should have target option';
-ok $engine->no_prompt, 'Engine should be no_prompt';
-ok $engine->log_only, 'Engine should be log_only';
-ok $engine->with_verify, 'Engine should verify';
+is $target->name, 'db:sqlite:lolwut', 'Target name should be from option';
+ok $target->engine->no_prompt, 'Engine should be no_prompt';
+ok $target->engine->log_only, 'Engine should be log_only';
+ok $target->engine->with_verify, 'Engine should verify';
 is_deeply \@dep_args, ['bar', 'tag'],
     '"bar", "tag", and 1 should be passed to the engine deploy';
 is_deeply \@rev_args, ['foo'], '"foo" and 1 should be passed to the engine revert';
@@ -375,10 +381,10 @@ is_deeply +MockOutput->get_warn, [], 'Should have no warnings';
 @dep_args = @rev_args, @vars = ();
 ok $rebase->execute('db:sqlite:yow', 'roles', 'widgets'),
     'Execute with three args';
-is $engine->target, 'db:sqlite:lolwut', 'ENgine should have target option';
-ok $engine->no_prompt, 'Engine should be no_prompt';
-ok $engine->log_only, 'Engine should be log_only';
-ok $engine->with_verify, 'Engine should verify';
+is $target->name, 'db:sqlite:lolwut', 'Target name should be from option';
+ok $target->engine->no_prompt, 'Engine should be no_prompt';
+ok $target->engine->log_only, 'Engine should be log_only';
+ok $target->engine->with_verify, 'Engine should verify';
 is_deeply \@dep_args, ['bar', 'tag'],
     '"bar", "tag", and 1 should be passed to the engine deploy';
 is_deeply \@rev_args, ['foo'], '"foo" and 1 should be passed to the engine revert';
