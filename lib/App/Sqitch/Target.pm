@@ -15,6 +15,7 @@ has name => (
     isa      => Str,
     required => 1,
 );
+sub target { shift->name }
 
 has uri  => (
     is   => 'ro',

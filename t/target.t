@@ -30,6 +30,7 @@ isa_ok my $target = $CLASS->new(sqitch => $sqitch), $CLASS;
 can_ok $target, qw(
     new
     name
+    target
     uri
     sqitch
     engine
@@ -46,6 +47,7 @@ can_ok $target, qw(
 
 # Look at default values.
 is $target->name, 'db:sqlite:', 'Name should be "db:sqlite:"';
+is $target->target, $target->name, 'Target should be alias for name';
 is $target->uri, URI::db->new('db:sqlite:'), 'URI should be "db:sqlite:"';
 is $target->sqitch, $sqitch, 'Sqitch should be as passed';
 is $target->engine_key, 'sqlite', 'Engine key should be "sqlite"';
@@ -87,6 +89,7 @@ isa_ok $target = $CLASS->new(
 ), $CLASS, 'Target with name and URI';
 
 is $target->name, 'foo', 'Name should be "foo"';
+is $target->target, $target->name, 'Target should be alias for name';
 is $target->uri, $uri, 'URI should be set as passed';
 is $target->sqitch, $sqitch, 'Sqitch should be as passed';
 is $target->engine_key, 'pg', 'Engine key should be "pg"';
@@ -102,6 +105,7 @@ isa_ok $target = $CLASS->new(
 ), $CLASS, 'Target with URI';
 like $target->name, qr{db:pg://hi:?\@localhost/blah},
     'Name should be URI without password';
+is $target->target, $target->name, 'Target should be alias for name';
 is $target->engine_key, 'pg', 'Engine key should be "pg"';
 isa_ok $target->engine, 'App::Sqitch::Engine::pg', 'Engine';
 is $target->dsn, $uri->dbi_dsn, 'DSN should be from URI';
