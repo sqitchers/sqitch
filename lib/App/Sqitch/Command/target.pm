@@ -186,7 +186,8 @@ sub _rename {
 sub show {
     my ($self, @names) = @_;
     return $self->list unless @names;
-    my $config = $self->sqitch->config;
+    my $sqitch = $self->sqitch;
+    my $config = $sqitch->config;
 
     # Set up labels.
     my $len = max map { length } (
@@ -201,12 +202,16 @@ sub show {
         client   => __('Client')   . ': ' . ' ' x ($len - length __ 'Client'),
     );
 
+    require App::Sqitch::Target;
     for my $name (@names) {
-        my $engine = $self->engine_for_target($name);
+        my $target = App::Sqitch::Target->new(
+            sqitch => $sqitch,
+            name   => $name,
+        );
         $self->emit("* $name");
-        $self->emit('  ', $label_for{uri},      $engine->uri->as_string);
-        $self->emit('  ', $label_for{registry}, $engine->registry);
-        $self->emit('  ', $label_for{client},   $engine->client);
+        $self->emit('  ', $label_for{uri},      $target->uri->as_string);
+        $self->emit('  ', $label_for{registry}, $target->registry);
+        $self->emit('  ', $label_for{client},   $target->client);
     }
 
     return $self;
