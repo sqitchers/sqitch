@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 112;
+use Test::More tests => 113;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -17,13 +17,15 @@ use MockOutput;
 my $CLASS = 'App::Sqitch::Command::status';
 require_ok $CLASS;
 
-$ENV{SQITCH_CONFIG} = 'nonexistent.conf';
-$ENV{SQITCH_USER_CONFIG} = 'nonexistent.user';
+$ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
+$ENV{SQITCH_USER_CONFIG}   = 'nonexistent.user';
 $ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
 
 ok my $sqitch = App::Sqitch->new(
-    top_dir => Path::Class::Dir->new('test-status'),
-    _engine => 'sqlite',
+    options => {
+        engine  => 'sqlite',
+        top_dir => Path::Class::Dir->new('test-status'),
+    },
 ), 'Load a sqitch object';
 my $config = $sqitch->config;
 isa_ok my $status = App::Sqitch::Command->load({
@@ -63,11 +65,17 @@ $engine_mocker->mock( initialized => sub {
     $initialized;
 } );
 
+my $mock_target = Test::MockModule->new('App::Sqitch::Target');
+my ($target, $orig_new);
+$mock_target->mock(new => sub { $target = shift->$orig_new(@_); });
+$orig_new = $mock_target->original('new');
+
 # Start with uninitialized database.
 $initialized = 0;
 
 ##############################################################################
 # Test project.
+$status->target($status->default_target);
 throws_ok { $status->project } 'App::Sqitch::X',
     'Should have error for uninitialized database';
 is $@->ident, 'status', 'Uninitialized database error ident should be "status"';
@@ -84,11 +92,14 @@ is $status->project, 'foo', 'Should have project "foo"';
 
 # Look up the project in the database.
 ok $sqitch = App::Sqitch->new(
-    _engine => 'sqlite',
-    top_dir => Path::Class::Dir->new('test-status'),
+    options => {
+        engine  => 'sqlite',
+        top_dir => Path::Class::Dir->new('test-status')->stringify,
+    },
 ), 'Load a sqitch object with SQLite';
-ok $status = $CLASS->new(sqitch => $sqitch), 'Create another status command';
 
+ok $status = $CLASS->new(sqitch => $sqitch), 'Create another status command';
+$status->target($status->default_target);
 throws_ok { $status->project } 'App::Sqitch::X',
     'Should get an error for uninitialized db';
 is $@->ident, 'status', 'Uninitialized db error ident should be "status"';
@@ -120,21 +131,22 @@ $engine_mocker->unmock_all;
 
 # Fall back on plan project name.
 ok $sqitch = App::Sqitch->new(
-    top_dir => Path::Class::Dir->new(qw(t sql)),
+    options => { top_dir => Path::Class::Dir->new(qw(t sql))->stringify },
 ), 'Load another sqitch object';
 
 isa_ok $status = $CLASS->new( sqitch => $sqitch ), $CLASS,
     'another status command';
-is $status->project, $sqitch->plan->project, 'Should have plan project';
+$status->target($status->default_target);
+is $status->project, $target->plan->project, 'Should have plan project';
 
 ##############################################################################
 # Test database.
-is $status->target, undef, 'Default target should be undef';
+is $status->target_name, undef, 'Default target should be undef';
 isa_ok $status = $CLASS->new(
-    sqitch   => $sqitch,
-    target => 'foo',
+    sqitch      => $sqitch,
+    target_name => 'foo',
 ), $CLASS, 'new status with target';
-is $status->target, 'foo', 'Should have target "foo"';
+is $status->target_name, 'foo', 'Should have target "foo"';
 
 ##############################################################################
 # Test configure().
@@ -241,7 +253,7 @@ $engine_mocker->mock(current_changes => sub {
     planner_email   => 'anna@example.com',
     planned_at      => $dt->clone->subtract( hours => 4 ),
 });
-$sqitch = App::Sqitch->new(_engine  => 'sqlite');
+$sqitch = App::Sqitch->new(options => { engine  => 'sqlite' });
 ok $status = App::Sqitch::Command->load({
     sqitch  => $sqitch,
     command => 'status',
@@ -257,6 +269,7 @@ ok $status = App::Sqitch::Command::status->new(
     show_changes => 1,
     project      => 'foo',
 ), 'Create change-showing status command';
+$status->target($status->default_target);
 
 ok $status->emit_changes, 'Emit changes again';
 is $project, 'foo', 'Project "foo" should have been passed to current_changes';
@@ -327,6 +340,7 @@ ok $status = App::Sqitch::Command::status->new(
     show_tags => 1,
     project   => 'bar',
 ), 'Create tag-showing status command';
+$status->target($status->default_target);
 
 # Try with no tags.
 ok $status->emit_tags, 'Try to emit tags again';
@@ -402,13 +416,16 @@ is_deeply +MockOutput->get_comment, [
 ##############################################################################
 # Test emit_status().
 my $file = file qw(t plans multi.plan);
-$sqitch = App::Sqitch->new(plan_file => $file, _engine  => 'sqlite');
-my @changes = $sqitch->plan->changes;
+$sqitch = App::Sqitch->new(options => {
+    plan_file => $file->stringify,
+    engine  => 'sqlite',
+});
 ok $status = App::Sqitch::Command->load({
     sqitch  => $sqitch,
     command => 'status',
-    config  => $config,
-}), 'Create status command with actual plan command';
+    config  => $config,}), 'Create status command with actual plan command';
+$status->target($target = $status->default_target);
+my @changes = $target->plan->changes;
 
 # Start with an up-to-date state.
 $state->{change_id} = $changes[-1]->id;
@@ -449,18 +466,25 @@ is_deeply +MockOutput->get_vent, [
 
 ##############################################################################
 # Test execute().
-my $mock_status = Test::MockModule->new(ref $status);
-my ($db_arg, $orig_meth);
-$mock_status->mock(engine_for_target => sub {
-    $db_arg = $_[1];
-    shift->$orig_meth(@_);
+my ($target_name_arg, $orig_meth);
+$target_name_arg = '_blah';
+$mock_target->mock(new => sub {
+    my $self = shift;
+    my %p = @_;
+    $target_name_arg = $p{name};
+    $self->$orig_meth(@_);
 });
-$orig_meth = $mock_status->original('engine_for_target');
-my $dest = $sqitch->engine->destination;
+$orig_meth = $mock_target->original('new');
+
+ok $status = App::Sqitch::Command::status->new(
+    sqitch  => $sqitch,
+    config  => $config,
+), 'Recreate status command';
 
 my $check_output = sub {
+    local $Test::Builder::Level = $Test::Builder::Level + 1;
     is_deeply +MockOutput->get_comment, [
-        [__x 'On database {db}', db => $dest ],
+        [__x 'On database {db}', db => $target->engine->destination ],
         [__x 'Project:  {project}', project => 'mystatus'],
         [__x 'Change:   {change_id}', change_id => $state->{change_id}],
         [__x 'Name:     {change}',    change    => 'widgets_table'],
@@ -476,17 +500,17 @@ my $check_output = sub {
     ], 'Should emit list of undeployed changes';
 };
 
+
 $state->{change_id} = $changes[1]->id;
 $engine_mocker->mock( current_state => $state );
 ok $status->execute, 'Execute';
 $check_output->();
-is $db_arg, undef, 'No DB arg should have been passed to engine_for_db';
+is $target_name_arg, undef, 'No target name should have been passed to Target';
 
 # Test with a database argument.
 ok $status->execute('db:sqlite:'), 'Execute with target arg';
-$dest = 'db:sqlite:multi.db';
 $check_output->();
-is $db_arg, 'db:sqlite:', 'DB arg "db:sqlite:" should have been passed to engine_for_db';
+is $target_name_arg, 'db:sqlite:', 'Name "db:sqlite:" should have been passed to Target';
 
 # Pass the database in an option.
 ok $status = App::Sqitch::Command->load({
@@ -496,23 +520,21 @@ ok $status = App::Sqitch::Command->load({
     args    => ['--target', 'db:sqlite:'],
 }), 'Create status command with a target option';
 ok $status->execute, 'Execute with target attribute';
-$dest = 'db:sqlite:multi.db';
 $check_output->();
-is $db_arg, 'db:sqlite:', 'DB arg "db:sqlite:" should have been passed to engine_for_db';
+is $target_name_arg, 'db:sqlite:', 'Name "db:sqlite:" should have been passed to Target';
 
 # Test with two targets.
 ok $status->execute('whatever'), 'Execute with target attribute and arg';
-$dest = 'db:sqlite:multi.db';
 $check_output->();
-is $db_arg, 'db:sqlite:', 'DB arg "db:sqlite:" should have been passed to engine_for_db';
+is $target_name_arg, 'db:sqlite:', 'Name "db:sqlite:" should have been passed to Target';
 is_deeply +MockOutput->get_warn, [[__x(
     'Both the --target option and the target argument passed; using {option}',
-    option => $status->target,
+    option => $status->target_name,
 )]], 'Should have got warning for two targets';
 
 # Test with unknown plan.
 for my $spec (
-    [ 'specified', App::Sqitch->new( _engine => 'sqlite', db_name => 'whatever.db') ],
+    [ 'specified', App::Sqitch->new( options => { engine => 'sqlite' }) ],
     [ 'external', $sqitch ],
 ) {
     my ( $desc, $sqitch ) = @{ $spec };
@@ -523,7 +545,7 @@ for my $spec (
 
     ok $status->execute, "Execute for $desc project";
     is_deeply +MockOutput->get_comment, [
-        [__x 'On database {db}', db => $sqitch->engine->destination ],
+        [__x 'On database {db}', db => $target->engine->destination ],
         [__x 'Project:  {project}', project => 'mystatus'],
         [__x 'Change:   {change_id}', change_id => $state->{change_id}],
         [__x 'Name:     {change}',    change    => 'widgets_table'],
@@ -545,7 +567,7 @@ is $@->ident, 'status', 'No state error ident should be "status"';
 is $@->message, __ 'No changes deployed',
     'No state error message should be correct';
 is_deeply +MockOutput->get_comment, [
-    [__x 'On database {db}', db => $sqitch->engine->destination ],
+    [__x 'On database {db}', db => $target->engine->destination ],
 ], 'The "On database" comment should have been emitted';
 
 # Test with no initilization.
@@ -557,5 +579,5 @@ throws_ok { $status->execute } 'App::Sqitch::X',
 is $@->ident, 'status', 'Uninitialized db error ident should be "status"';
 is $@->message, __x(
     'Database {db} has not been initialized for Sqitch',
-    db => 'db:sqlite:sqitch.db',
+    db => $status->engine->destination,
 ), 'Uninitialized db error message should be correct';

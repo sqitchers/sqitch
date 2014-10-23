@@ -7,7 +7,7 @@ use utf8;
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use Moo;
-use Types::Standard qw(Str Bool);
+use App::Sqitch::Types qw(Str Bool Target);
 use List::Util qw(max);
 use Try::Tiny;
 use namespace::autoclean;
@@ -15,9 +15,15 @@ extends 'App::Sqitch::Command';
 
 our $VERSION = '0.997';
 
-has target => (
+has target_name => (
     is  => 'ro',
     isa => Str,
+);
+
+has target => (
+    is      => 'rw',
+    isa     => Target,
+    handles => [qw(engine plan plan_file)],
 );
 
 has show_changes => (
@@ -91,13 +97,19 @@ sub options {
 sub execute {
     my ( $self, $target ) = @_;
 
-    # Warn on multiple targets.
-    $self->warn(__x(
-        'Both the --target option and the target argument passed; using {option}',
-        option => $self->target,
-    )) if $target && $self->target;
-
-    my $engine = $self->engine_for_target($self->target // $target);
+    # Need to set up the target before we do anything else.
+    if (my $t = $self->target_name // $target) {
+        $self->warn(__x(
+            'Both the --target option and the target argument passed; using {option}',
+            option => $self->target_name,
+        )) if $target && $self->target_name;
+        require App::Sqitch::Target;
+        $target = App::Sqitch::Target->new(sqitch => $self->sqitch, name => $t);
+    } else {
+        $target = $self->default_target;
+    }
+    $self->target($target);
+    my $engine = $target->engine;
 
     # Where are we?
     $self->comment( __x 'On database {db}', db => $engine->destination );
@@ -130,7 +142,7 @@ sub execute {
     $self->emit_changes;
     $self->emit_tags;
 
-    my $plan_proj = try { $self->plan->project };
+    my $plan_proj = try { $target->plan->project };
     if (defined $plan_proj && $self->project eq $plan_proj ) {
         $self->emit_status($state);
     } else {
@@ -156,7 +168,9 @@ sub configure {
         App::Sqitch::DateTime->validate_as_string_format($format);
     }
 
-    return $class->SUPER::configure( $config, $opt );
+    my $ret = $class->SUPER::configure( $config, $opt );
+    $ret->{target_name} = delete $ret->{target} if exists $ret->{target};
+    return $ret;
 }
 
 sub emit_state {
@@ -272,7 +286,7 @@ sub emit_status {
     my $idx = $plan->index_of( $state->{change_id} ) // do {
         $self->vent(__x(
             'Cannot find this change in {file}',
-            file => $self->sqitch->plan_file
+            file => $self->plan_file
         ));
         hurl status => __ 'Make sure you are connected to the proper '
                         . 'database for this project.';
