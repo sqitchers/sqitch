@@ -19,10 +19,6 @@ has sqitch => (
     isa      => Sqitch,
     required => 1,
     handles  => [qw(
-        engine
-        config_for_target
-        config_for_target_strict
-        engine_for_target
         run
         shell
         quote_shell

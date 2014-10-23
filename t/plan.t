@@ -1459,7 +1459,7 @@ ok my $orig = $plan->change_at($plan->first_index_of('you')),
 is $orig->name, 'you', 'It should also be named "you"';
 is_deeply [ map { $_->format_name } $orig->rework_tags ],
     [qw(@bar)], 'And it should have the one rework tag';
-is $orig->deploy_file, $sqitch->deploy_dir->file('you@bar.sql'),
+is $orig->deploy_file, $target->deploy_dir->file('you@bar.sql'),
     'The original file should now be named you@bar.sql';
 is $rev_change->as_string,
     'you [you@bar] ' . $rev_change->timestamp->as_string . ' '

@@ -36,31 +36,6 @@ use App::Sqitch::Config;
 use App::Sqitch::Command;
 use App::Sqitch::Plan;
 
-has _was_set => (is => 'ro', type => HashRef, default => sub {{}});
-
-has plan_file => (
-    is       => 'ro',
-    # XXX isa Path::Class::File?
-    lazy     => 1,
-    trigger  => sub { shift->_was_set->{plan_file} = 1 },
-    default  => sub {
-        my $self = shift;
-        if ( my $fn = $self->config->get( key => 'core.plan_file') ) {
-            return file $fn;
-        }
-        return $self->top_dir->file('sqitch.plan')->cleanup;
-    }
-);
-
-has plan => (
-    is       => 'ro',
-    isa      => Plan,
-    lazy     => 1,
-    default  => sub {
-        App::Sqitch::Plan->new( sqitch => shift );
-    },
-);
-
 has options => (
     is      => 'ro',
     isa     => HashRef,
@@ -70,143 +45,6 @@ has options => (
 has _engine => (
     is  => 'ro',
     isa => Maybe[Str],
-);
-
-sub engine_key {
-    my ($self, $uri) = @_;
-
-    # Figure out what engine to use. Precedence --engine, target, config.
-    my $key = $self->_engine || do {
-        if ($uri) {
-            hurl core => __x(
-                'URI "{uri}" is not a database URI',
-                uri => $uri
-            ) unless $uri->isa('URI::db');
-            $uri->canonical_engine;
-        } elsif ( my $key = $self->config->get( key => 'core.engine' ) ) {
-            $key =~ s/\s+\z//;
-            lc $key;
-        } else {
-            hurl core => __(
-                'No engine specified; use --engine or set core.engine'
-            );
-        }
-    };
-    hurl core => __x('Unknown engine "{engine}"', engine => $key)
-        unless first { $key eq $_ } qw(pg sqlite mysql oracle firebird vertica);
-}
-
-sub engine {
-    my $self = shift;
-    my %p = ref $_[0] ? %{ $_[0] } : @_;
-
-    require App::Sqitch::Engine;
-    App::Sqitch::Engine->load({
-        sqitch => $self,
-        engine => $self->engine_key($p{uri}),
-        %p,
-    });
-}
-
-sub config_for_target {
-    my ($self, $target) = @_;
-    return unless $target;
-    require URI::db;
-    return {
-        target => $target,
-        uri    => URI::db->new($target)
-    } if $target =~ /:/;
-    my $config = $self->config->get_section( section => "target.$target" )
-        or return;
-    $config->{target} = $target;
-    $config->{uri} = URI::db->new( $config->{uri} ) if $config->{uri};
-    return $config;
-}
-
-sub config_for_target_strict {
-    my ($self, $target) = @_;
-    my $config = shift->config_for_target($target) or hurl core => __x(
-        'Cannot find target "{target}"',
-        target => $target
-    );
-    hurl core => __x(
-        'No URI associated with target "{target}"',
-        target => $target
-    ) unless $config->{uri};
-    return $config;
-}
-
-sub engine_for_target {
-    my ($self, $target) = @_;
-    return $self->engine unless $target;
-    return $self->engine( $self->config_for_target_strict($target) );
-}
-
-# Attributes useful to engines; no defaults.
-has client      => ( is => 'ro', isa => Str );
-has db_name     => ( is => 'ro', isa => Str );
-has db_username => ( is => 'ro', isa => Str );
-has db_host     => ( is => 'ro', isa => Str );
-has db_port     => ( is => 'ro', isa => Int );
-
-has top_dir => (
-    is       => 'ro',
-    isa      => Maybe[Dir],
-    lazy     => 1,
-    trigger => sub { shift->_was_set->{top_dir} = 1 },
-    default => sub { dir shift->config->get( key => 'core.top_dir' ) || () },
-);
-
-has deploy_dir => (
-    is       => 'ro',
-    isa      => Dir,
-    lazy     => 1,
-    trigger  => sub { shift->_was_set->{deploy_dir} = 1 },
-    default  => sub {
-        my $self = shift;
-        if ( my $dir = $self->config->get( key => 'core.deploy_dir' ) ) {
-            return dir $dir;
-        }
-        $self->top_dir->subdir('deploy')->cleanup;
-    },
-);
-
-has revert_dir => (
-    is       => 'ro',
-    isa      => Dir,
-    lazy     => 1,
-    trigger  => sub { shift->_was_set->{revert_dir} = 1 },
-    default  => sub {
-        my $self = shift;
-        if ( my $dir = $self->config->get( key => 'core.revert_dir' ) ) {
-            return dir $dir;
-        }
-        $self->top_dir->subdir('revert')->cleanup;
-    },
-);
-
-has verify_dir => (
-    is       => 'ro',
-    isa      => Dir,
-    lazy     => 1,
-    trigger  => sub { shift->_was_set->{verify_dir} = 1 },
-    default  => sub {
-        my $self = shift;
-        if ( my $dir = $self->config->get( key => 'core.verify_dir' ) ) {
-            return dir $dir;
-        }
-        $self->top_dir->subdir('verify')->cleanup;
-    },
-);
-
-has extension => (
-    is      => 'ro',
-    isa     => Str,
-    lazy    => 1,
-    trigger => sub { shift->_was_set->{extension} = 1 },
-    default => sub {
-        shift->config->get( key => 'core.extension' ) || 'sql';
-    }
 );
 
 has verbosity => (
@@ -786,31 +624,9 @@ Constructs and returns a new Sqitch object. The supported parameters include:
 
 =item C<options>
 
-=item C<plan_file>
-
-=item C<db_client>
-
-=item C<db_name>
-
-=item C<db_username>
-
 =item C<user_name>
 
 =item C<user_email>
-
-=item C<db_host>
-
-=item C<db_port>
-
-=item C<top_dir>
-
-=item C<deploy_dir>
-
-=item C<revert_dir>
-
-=item C<verify_dir>
-
-=item C<extension>
 
 =item C<editor>
 
@@ -820,31 +636,9 @@ Constructs and returns a new Sqitch object. The supported parameters include:
 
 =head2 Accessors
 
-=head3 C<plan_file>
-
-=head3 C<db_client>
-
-=head3 C<db_name>
-
-=head3 C<db_username>
-
 =head3 C<user_name>
 
 =head3 C<user_email>
-
-=head3 C<db_host>
-
-=head3 C<db_port>
-
-=head3 C<top_dir>
-
-=head3 C<deploy_dir>
-
-=head3 C<revert_dir>
-
-=head3 C<verify_dir>
-
-=head3 C<extension>
 
 =head3 C<editor>
 
