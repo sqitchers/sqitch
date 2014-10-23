@@ -62,8 +62,8 @@ sub options {
 sub execute {
     my ( $self, $name ) = @_;
     $self->usage unless defined $name;
-    my $sqitch = $self->sqitch;
-    my $plan   = $sqitch->plan;
+    my $target = $self->default_target;
+    my $plan   = $target->plan;
 
     # Rework it.
     my $reworked = $plan->rework(
@@ -116,13 +116,13 @@ sub execute {
     );
 
     # We good, write the plan file back out.
-    $plan->write_to( $sqitch->plan_file );
+    $plan->write_to( $target->plan_file );
 
     # Let the user knnow what to do.
     $self->info(__x(
         'Added "{change}" to {file}.',
         change => $reworked->format_op_name_dependencies,
-        file   => $sqitch->plan_file,
+        file   => $target->plan_file,
     ));
     $self->info(__n(
         'Modify this file as appropriate:',
@@ -133,6 +133,7 @@ sub execute {
 
     # Let 'em at it.
     if ($self->open_editor) {
+        my $sqitch = $self->sqitch;
         $sqitch->shell( $sqitch->editor . ' ' . $sqitch->quote_shell(@files) );
     }
 
