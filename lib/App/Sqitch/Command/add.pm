@@ -54,7 +54,7 @@ has template_name => (
     is       => 'ro',
     isa      => Str,
     lazy     => 1,
-    default  => sub { shift->sqitch->engine_key },
+    default  => sub { shift->default_target->engine_key },
 );
 
 has with_scripts => (
@@ -275,8 +275,8 @@ sub configure {
 sub execute {
     my ( $self, $name ) = @_;
     $self->usage unless defined $name;
-    my $sqitch = $self->sqitch;
-    my $plan   = $sqitch->plan;
+    my $target = $self->default_target;
+    my $plan   = $target->plan;
     my $with   = $self->with_scripts;
     my $tmpl   = $self->all_templates;
     my $change = $plan->add(
@@ -302,15 +302,16 @@ sub execute {
     $self->_add( $name, $files[$i++], $tmpl->{$_} ) for @scripts;
 
     # We good, write the plan file back out.
-    $plan->write_to( $sqitch->plan_file );
+    $plan->write_to( $target->plan_file );
     $self->info(__x(
         'Added "{change}" to {file}',
         change => $change->format_op_name_dependencies,
-        file   => $sqitch->plan_file,
+        file   => $target->plan_file,
     ));
 
     # Let 'em at it.
     if ($self->open_editor) {
+        my $sqitch = $self->sqitch;
         $sqitch->shell( $sqitch->editor . ' ' . $sqitch->quote_shell(@files) );
     }
 

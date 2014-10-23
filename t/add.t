@@ -6,6 +6,7 @@ use utf8;
 use Test::More tests => 163;
 #use Test::More 'no_plan';
 use App::Sqitch;
+use App::Sqitch::Target;
 use Locale::TextDomain qw(App-Sqitch);
 use Path::Class;
 use Test::Exception;
@@ -20,8 +21,8 @@ use MockOutput;
 
 my $CLASS = 'App::Sqitch::Command::add';
 
-$ENV{SQITCH_CONFIG} = 'nonexistent.conf';
-$ENV{SQITCH_USER_CONFIG} = 'nonexistent.user';
+$ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
+$ENV{SQITCH_USER_CONFIG}   = 'nonexistent.user';
 $ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
 
 my $config_mock = Test::MockModule->new('App::Sqitch::Config');
@@ -31,26 +32,29 @@ $config_mock->mock(system_dir => sub { $sysdir });
 $config_mock->mock(user_dir   => sub { $usrdir });
 
 ok my $sqitch = App::Sqitch->new(
-    top_dir => dir('test-add'),
-    _engine => 'pg',
+    options => {
+        top_dir => dir('test-add')->stringify,
+        engine => 'pg',
+    }
 ), 'Load a sqitch sqitch object';
 my $config = $sqitch->config;
-
-sub dep($$) {
-    my $dep = App::Sqitch::Plan::Depend->new(
-        %{ App::Sqitch::Plan::Depend->parse( $_[1] ) },
-        plan      => $sqitch->plan,
-        conflicts => $_[0],
-    );
-    $dep->project;
-    return $dep;
-}
 
 isa_ok my $add = App::Sqitch::Command->load({
     sqitch  => $sqitch,
     command => 'add',
     config  => $config,
 }), $CLASS, 'add command';
+my $target = $add->default_target;
+
+sub dep($$) {
+    my $dep = App::Sqitch::Plan::Depend->new(
+        %{ App::Sqitch::Plan::Depend->parse( $_[1] ) },
+        plan      => $add->default_target->plan,
+        conflicts => $_[0],
+    );
+    $dep->project;
+    return $dep;
+}
 
 can_ok $CLASS, qw(
     options
@@ -213,7 +217,7 @@ is_deeply $add->conflicts, [], 'Conflicts should be an arrayref';
 is_deeply $add->note, [], 'Notes should be an arrayref';
 is_deeply $add->variables, {}, 'Varibles should be a hashref';
 is $add->template_directory, undef, 'Default dir should be undef';
-is $add->template_name, $sqitch->_engine, 'Default temlate_name should be engine';
+is $add->template_name, 'pg', 'Default temlate_name should be engine';
 is_deeply $add->with_scripts, {}, 'Default with_scripts should be empty';
 is_deeply $add->templates, {}, 'Default templates should be empty';
 
@@ -244,7 +248,7 @@ is $@->message, __x(
 READCONFIG: {
     local $ENV{SQITCH_CONFIG} = file('t/templates.conf')->stringify;
     ok my $sqitch = App::Sqitch->new(
-        top_dir => dir('test-add'),
+        options => { top_dir => dir('test-add')->stringify },
     ), 'Load another sqitch sqitch object';
     my $config = $sqitch->config;
     ok $add = $CLASS->new(sqitch => $sqitch),
@@ -356,7 +360,7 @@ is $ { $add->_slurp($tmpl)}, contents_of $tmpl,
 my $test_add = sub {
     my $engine = shift;
     make_path 'test-add';
-    my $fn = $sqitch->plan_file;
+    my $fn = $target->plan_file;
     open my $fh, '>', $fn or die "Cannot open $fn: $!";
     say $fh "%project=add\n\n";
     close $fh or die "Error closing $fn: $!";
@@ -462,7 +466,7 @@ my $deploy_file = file qw(test-add deploy widgets_table.sql);
 my $revert_file = file qw(test-add revert widgets_table.sql);
 my $verify_file = file qw(test-add verify widgets_table.sql);
 
-my $plan = $sqitch->plan;
+my $plan = $add->default_target->plan;
 is $plan->get('widgets_table'), undef, 'Should not have "widgets_table" in plan';
 dir_not_exists_ok +File::Spec->catdir('test-add', $_) for qw(deploy revert verify);
 ok $add->execute('widgets_table'), 'Add change "widgets_table"';
@@ -489,7 +493,7 @@ is_deeply +MockOutput->get_info, [
     [__x 'Created {file}', file => $verify_file],
     [__x 'Added "{change}" to {file}',
         change => 'widgets_table',
-        file   => $sqitch->plan_file,
+        file   => $target->plan_file,
     ],
 ], 'Info should have reported file creation';
 
@@ -519,6 +523,7 @@ is $plan->get('foo_table'), undef, 'Should not have "foo_table" in plan';
 ok $add->execute('foo_table'), 'Add change "foo_table"';
 file_exists_ok $_ for ($deploy_file, $revert_file);
 file_not_exists_ok $verify_file;
+$plan = $add->default_target->plan;
 isa_ok $change = $plan->get('foo_table'), 'App::Sqitch::Plan::Change',
     '"foo_table" change';
 is_deeply \%request_params, {
@@ -536,7 +541,7 @@ is_deeply +MockOutput->get_info, [
     [__x 'Created {file}', file => $revert_file],
     [__x 'Added "{change}" to {file}',
         change => 'foo_table [widgets_table !dr_evil !joker]',
-        file   => $sqitch->plan_file,
+        file   => $target->plan_file,
     ],
 ], 'Info should report skipping file and include dependencies';
 
@@ -558,7 +563,7 @@ MOCKSHELL: {
     my $revert_file = file qw(test-add revert open_editor.sql);
     my $verify_file = file qw(test-add verify open_editor.sql);
 
-    my $plan = $sqitch->plan;
+    my $plan = $add->default_target->plan;
     is $plan->get('open_editor'), undef, 'Should not have "open_editor" in plan';
     ok $add->execute('open_editor'), 'Add change "open_editor"';
     isa_ok my $change = $plan->get('open_editor'), 'App::Sqitch::Plan::Change',
@@ -580,7 +585,7 @@ MOCKSHELL: {
         [__x 'Created {file}', file => $verify_file],
         [__x 'Added "{change}" to {file}',
             change => 'open_editor',
-            file   => $sqitch->plan_file,
+            file   => $target->plan_file,
         ],
     ], 'Info should have reported file creation';
 };
@@ -601,6 +606,7 @@ EXTRAS: {
     my $whatev_file = file qw(test-add whatev custom_script.sql);
 
     ok $add->execute('custom_script'), 'Add change "custom_script"';
+    my $plan = $add->default_target->plan;
     isa_ok my $change = $plan->get('custom_script'), 'App::Sqitch::Plan::Change',
         'Added change';
     is $change->name, 'custom_script', 'Change name should be set';
@@ -627,7 +633,7 @@ EXTRAS: {
         [__x 'Created {file}', file => $whatev_file],
         [__x 'Added "{change}" to {file}',
            change => 'custom_script',
-           file   => $sqitch->plan_file,
+           file   => $target->plan_file,
         ],
     ], 'Info should have reported file creation';
 
