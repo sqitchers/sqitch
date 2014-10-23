@@ -4,8 +4,8 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 157;
-#use Test::More 'no_plan';
+#use Test::More tests => 157;
+use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
 use Path::Class;
@@ -37,13 +37,15 @@ sub read_config($) {
     $conf->data;
 }
 
-$ENV{SQITCH_CONFIG} = 'nonexistent.conf';
-$ENV{SQITCH_USER_CONFIG} = 'nonexistent.user';
+$ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
+$ENV{SQITCH_USER_CONFIG}   = 'nonexistent.user';
 $ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
 
 ##############################################################################
 # Test options and configuration.
-my $sqitch = App::Sqitch->new(top_dir => dir 'init.mkdir');
+my $sqitch = App::Sqitch->new(
+    options => { top_dir => dir('init.mkdir')->stringify },
+);
 isa_ok my $init = $CLASS->new( sqitch => $sqitch ), $CLASS, 'New init object';
 
 can_ok $init, qw(uri options configure);
@@ -57,24 +59,25 @@ is_deeply $CLASS->configure({}, { uri => 'http://example.com' }),
     'Should accept a URI in options';
 isa_ok $CLASS->configure({}, { uri => 'http://example.com' })->{uri}, 'URI',
     'processed uri option';
+isa_ok my $target = $init->default_target, 'App::Sqitch::Target', 'default target';
 
 ##############################################################################
 # Test make_directories.
 can_ok $init, 'make_directories';
 for my $attr (map { "$_\_dir"} qw(top deploy revert verify)) {
-    dir_not_exists_ok $sqitch->$attr;
+    dir_not_exists_ok $target->$attr;
 }
 
-my $top_dir_string = $sqitch->top_dir->stringify;
+my $top_dir_string = $target->top_dir->stringify;
 END { remove_tree $top_dir_string }
 
 ok $init->make_directories, 'Make the directories';
 for my $attr (map { "$_\_dir"} qw(top deploy revert verify)) {
-    dir_exists_ok $sqitch->$attr;
+    dir_exists_ok $target->$attr;
 }
 my $sep = dir('')->stringify;
 is_deeply +MockOutput->get_info, [
-    map { [__x "Created {file}", file => $sqitch->$_ . $sep] }
+    map { [__x "Created {file}", file => $target->$_ . $sep] }
     map { "$_\_dir" } qw(deploy revert verify)
 ], 'Each should have been sent to info';
 
@@ -83,11 +86,11 @@ ok $init->make_directories, 'Make the directories again';
 is_deeply +MockOutput->get_info, [], 'Nothing should have been sent to info';
 
 # Delete one of them.
-remove_tree $sqitch->revert_dir->stringify;
+remove_tree $target->revert_dir->stringify;
 ok $init->make_directories, 'Make the directories once more';
-dir_exists_ok $sqitch->revert_dir, 'revert dir exists again';
+dir_exists_ok $target->revert_dir, 'revert dir exists again';
 is_deeply +MockOutput->get_info, [
-    [__x 'Created {file}', file => $sqitch->revert_dir . $sep],
+    [__x 'Created {file}', file => $target->revert_dir . $sep],
 ], 'Should have noted creation of revert dir';
 
 remove_tree $top_dir_string;
@@ -107,7 +110,7 @@ FSERR: {
     is $@->ident, 'init', 'Permission error should have ident "init"';
     is $@->message, __x(
         'Error creating {path}: {error}',
-        path  => $sqitch->deploy_dir,
+        path  => $target->deploy_dir,
         error => 'Permission denied yo',
     ), 'The permission error should be formatted properly';
 }
@@ -130,6 +133,7 @@ ok $init = $CLASS->new(
     sqitch  => $sqitch,
 ), 'Another init object';
 file_not_exists_ok $conf_file;
+$target = $init->default_target;
 
 # Write empty config.
 ok $init->write_config, 'Write the config';
@@ -143,7 +147,7 @@ my $top_dir    = File::Spec->curdir;
 my $deploy_dir = File::Spec->catdir(qw(deploy));
 my $revert_dir = File::Spec->catdir(qw(revert));
 my $verify_dir   = File::Spec->catdir(qw(verify));
-my $plan_file  = $sqitch->top_dir->file('sqitch.plan')->cleanup->stringify;
+my $plan_file  = $target->top_dir->file('sqitch.plan')->cleanup->stringify;
 file_contents_like $conf_file, qr{\Q[core]
 	# engine = 
 	# plan_file = $plan_file
@@ -156,8 +160,9 @@ file_contents_like $conf_file, qr{\Q[core]
 unlink $conf_file;
 
 # Set two options.
-$sqitch = App::Sqitch->new( extension => 'foo' );
+$sqitch = App::Sqitch->new(options => { extension => 'foo' });
 ok $init = $CLASS->new( sqitch => $sqitch ), 'Another init object';
+$target = $init->default_target;
 ok $init->write_config, 'Write the config';
 file_exists_ok $conf_file;
 is_deeply read_config $conf_file, {
@@ -188,7 +193,7 @@ USERCONF: {
     # Delete the file and write with a user config loaded.
     unlink $conf_file;
     local $ENV{SQITCH_USER_CONFIG} = file +File::Spec->updir, 'user.conf';
-    my $sqitch = App::Sqitch->new(extension => 'foo');
+    my $sqitch = App::Sqitch->new(options => { extension => 'foo' });
     ok my $init = $CLASS->new( sqitch => $sqitch),
         'Make an init object with user config';
     file_not_exists_ok $conf_file;
@@ -214,9 +219,10 @@ SYSTEMCONF: {
     # Delete the file and write with a system config loaded.
     unlink $conf_file;
     local $ENV{SQITCH_SYSTEM_CONFIG} = file +File::Spec->updir, 'sqitch.conf';
-    my $sqitch = App::Sqitch->new(extension => 'foo');
+    my $sqitch = App::Sqitch->new(options => { extension => 'foo' });
     ok my $init = $CLASS->new( sqitch => $sqitch),
         'Make an init object with system config';
+    ok $target = $init->default_target, 'Get target';
     file_not_exists_ok $conf_file;
     ok $init->write_config, 'Write the config with a system conf';
     file_exists_ok $conf_file;
@@ -231,7 +237,7 @@ SYSTEMCONF: {
     my $deploy_dir = File::Spec->catdir(qw(migrations deploy));
     my $revert_dir = File::Spec->catdir(qw(migrations revert));
     my $verify_dir = File::Spec->catdir(qw(migrations verify));
-    my $plan_file  = $sqitch->top_dir->file('sqitch.plan')->stringify;
+    my $plan_file  = $target->top_dir->file('sqitch.plan')->stringify;
 
     file_contents_like $conf_file, qr{\Q
 	# plan_file = $plan_file
@@ -246,12 +252,14 @@ SYSTEMCONF: {
 # Now get it to write a bunch of other stuff.
 unlink $conf_file;
 $sqitch = App::Sqitch->new(
-    plan_file  => 'my.plan',
-    deploy_dir => dir('dep'),
-    revert_dir => dir('rev'),
-    verify_dir => dir('tst'),
-    extension  => 'ddl',
-    _engine    => 'sqlite',
+    options => {
+        plan_file  => 'my.plan',
+        deploy_dir => dir('dep')->stringify,
+        revert_dir => dir('rev')->stringify,
+        verify_dir => dir('tst')->stringify,
+        extension  => 'ddl',
+        engine    => 'sqlite',
+    },
 );
 
 ok $init = $CLASS->new( sqitch  => $sqitch ),
@@ -274,9 +282,10 @@ is_deeply read_config $conf_file, {
 # Now get it to write core.sqlite stuff.
 unlink $conf_file;
 $sqitch = App::Sqitch->new(
-    _engine   => 'sqlite',
-    client => '/to/sqlite3',
-    db_name   => 'my.db',
+    options => {
+        engine => 'sqlite',
+        client => '/to/sqlite3',
+    },
 );
 
 ok $init = $CLASS->new( sqitch => $sqitch ),
@@ -291,14 +300,14 @@ is_deeply read_config $conf_file, {
     'core.sqlite.client'  => '/to/sqlite3',
 }, 'The configuration should have been written with sqlite values';
 
-file_contents_like $conf_file, qr/^\t# target = \Qdb:sqlite:my.db\E\n/m,
-    'target should be included in a comment';
+file_contents_like $conf_file, qr{^\tclient = /to/sqlite3\n}m,
+    'Client should be included';
 file_contents_like $conf_file, qr/^\t# registry = sqitch\n/m,
     'registry_uri should be included in a comment';
 
 # Try it with no options.
 unlink $conf_file;
-$sqitch = App::Sqitch->new(_engine => 'sqlite');
+$sqitch = App::Sqitch->new(options => { engine => 'sqlite' });
 ok $init = $CLASS->new( sqitch => $sqitch ),
     'Create new init with sqitch with default engine attributes';
 ok $init->write_config, 'Write the config with engine attrs';
@@ -320,10 +329,7 @@ USERCONF: {
     # Delete the file and write with a user config loaded.
     unlink $conf_file;
     local $ENV{SQITCH_USER_CONFIG} = file +File::Spec->updir, 'user.conf';
-    my $sqitch = App::Sqitch->new(
-        _engine => 'sqlite',
-        db_name => 'my.db',
-    );
+    my $sqitch = App::Sqitch->new(options => { engine => 'sqlite' });
     ok my $init = $CLASS->new( sqitch => $sqitch ),
         'Make an init with sqlite and user config';
     file_not_exists_ok $conf_file;
@@ -348,12 +354,14 @@ USERCONF: {
 # Now get it to write core.pg stuff.
 unlink $conf_file;
 $sqitch = App::Sqitch->new(
-    _engine     => 'pg',
-    client      => '/to/psql',
-    db_name     => 'thingies',
-    db_username => 'anna',
-    db_host     => 'banana',
-    db_port     => 93453,
+    options => {
+        engine     => 'pg',
+        client      => '/to/psql',
+        # db_name     => 'thingies',
+        # db_username => 'anna',
+        # db_host     => 'banana',
+        # db_port     => 93453,
+    },
 );
 
 ok $init = $CLASS->new( sqitch => $sqitch ),
@@ -373,7 +381,7 @@ file_contents_like $conf_file, qr/^\t# registry = sqitch\n/m,
 
 # Try it with no config or options.
 unlink $conf_file;
-$sqitch = App::Sqitch->new(_engine => 'pg');
+$sqitch = App::Sqitch->new(options => { engine => 'pg' });
 ok $init = $CLASS->new( sqitch => $sqitch ),
     'Create new init with sqitch with default engine attributes';
 ok $init->write_config, 'Write the config with engine attrs';
@@ -394,10 +402,7 @@ USERCONF: {
     # Delete the file and write with a user config loaded.
     unlink $conf_file;
     local $ENV{SQITCH_USER_CONFIG} = file +File::Spec->updir, 'user.conf';
-    my $sqitch = App::Sqitch->new(
-        _engine  => 'pg',
-        db_name  => 'thingies',
-    );
+    my $sqitch = App::Sqitch->new(options => { engine => 'pg' });
     ok my $init = $CLASS->new( sqitch  => $sqitch ),
         'Make an init with pg and user config';
     file_not_exists_ok $conf_file;
@@ -420,7 +425,8 @@ USERCONF: {
 ##############################################################################
 # Test write_plan().
 can_ok $init, 'write_plan';
-$plan_file = $sqitch->plan_file;
+$target = $init->default_target;
+$plan_file = $target->plan_file;
 file_not_exists_ok $plan_file, 'Plan file should not yet exist';
 ok $init->write_plan( 'nada' ), 'Write the plan file';
 is_deeply +MockOutput->get_info, [
@@ -444,13 +450,14 @@ file_contents_like $plan_file, qr/testing 1, 2, 3/,
 
 # Make sure a URI gets written, if present.
 $plan_file->remove;
-$sqitch = App::Sqitch->new(top_dir => dir 'plan.dir');
-END { remove_tree dir('plan.dir')->stringify }
-$plan_file = $sqitch->plan_file;
+$sqitch = App::Sqitch->new(options => { top_dir => dir('plan.dir')->stringify });
+END { remove_tree dir('plan.dir')->stringify };
 ok $init = $CLASS->new(
     sqitch => $sqitch,
     uri    => $uri,
 ), 'Create new init with sqitch with project and URI';
+$target = $init->default_target;
+$plan_file = $target->plan_file;
 ok $init->write_plan( 'howdy' ), 'Write the plan file again';
 is_deeply +MockOutput->get_info, [
     [__x 'Created {file}', file => $plan_file->dir . $sep],
@@ -510,7 +517,7 @@ ok $init->execute('foofoo'), 'Execute!';
 
 # Should have directories.
 for my $attr (map { "$_\_dir"} qw(top deploy revert verify)) {
-    dir_exists_ok $sqitch->$attr;
+    dir_exists_ok $target->$attr;
 }
 
 # Should have config and plan.
@@ -519,7 +526,7 @@ file_exists_ok $plan_file;
 
 # Should have the output.
 my @dir_messages = map {
-    [__x 'Created {file}', file => $sqitch->$_ . $sep]
+    [__x 'Created {file}', file => $target->$_ . $sep]
 } map { "$_\_dir" } qw(deploy revert verify);
 is_deeply +MockOutput->get_info, [
     [__x 'Created {file}', file => $conf_file],

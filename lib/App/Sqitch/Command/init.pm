@@ -64,9 +64,9 @@ sub configure {
 
 sub make_directories {
     my $self   = shift;
-    my $sqitch = $self->sqitch;
+    my $target = $self->default_target;
     for my $attr (qw(deploy_dir revert_dir verify_dir)) {
-        $self->_mkdir( $sqitch->$attr );
+        $self->_mkdir( $target->$attr );
     }
     return $self;
 }
@@ -91,8 +91,8 @@ sub _mkdir {
 
 sub write_plan {
     my ( $self, $project ) = @_;
-    my $sqitch = $self->sqitch;
-    my $file   = $sqitch->plan_file;
+    my $target = $self->default_target;
+    my $file   = $target->plan_file;
     return $self if -f $file;
     $self->_mkdir( $file->dir ) unless -d $file->dir;
 
@@ -120,8 +120,9 @@ sub write_plan {
 sub write_config {
     my $self    = shift;
     my $sqitch  = $self->sqitch;
-    my $was_set = $sqitch->_was_set;
     my $config  = $sqitch->config;
+    my $options = $sqitch->options;
+    my $target  = $self->default_target;
     my $file    = $config->local_file;
     if ( -f $file ) {
 
@@ -131,8 +132,9 @@ sub write_config {
 
     my ( @vars, @comments );
 
-    # Write the engine.
-    if (my $ekey = eval { $sqitch->engine_key }) {
+    # Write the engine from --engine or core.engine.
+    my $ekey = $target->engine_key;
+    if ($ekey) {
         push @vars => {
             key   => "core.engine",
             value => $ekey,
@@ -154,12 +156,10 @@ sub write_config {
 
         # Set core attributes that are not their default values and not
         # already in user or system config.
-        my $val = $sqitch->$name;
+        my $val = $options->{$name};
         my $var = $config->get( key => "core.$name" );
 
-        no warnings 'uninitialized';
-        if ( $was_set->{$name} && $val ne $var ) {
-
+        if ( $val && $val ne ($var // '') ) {
             # It was specified on the command-line, so grab it to write out.
             push @vars => {
                 key   => "core.$name",
@@ -167,7 +167,7 @@ sub write_config {
             };
         }
         else {
-            $var //= $val // '';
+            $var //= $target->$name // '';
             push @comments => "\t$name = $var";
         }
     }
@@ -187,51 +187,31 @@ sub write_config {
         comment  => join "\n" => @comments,
     ) if @comments;
 
-    if ( my $engine = try { $sqitch->engine } ) {
-
+    if ($ekey) {
         # Write out the core.$engine section.
-        my $ekey        = 'core.' . $engine->key;
-        my @config_vars = $engine->config_vars;
+        my $config_key  = "core.$ekey";
         @comments = @vars = ();
 
-        my $iter = natatime 2, @config_vars;
-        while ( my ( $key, $type ) = $iter->() ) {
+        for my $key (qw(target registry client)) {
 
             # Was it passed as an option?
-            my $core_key = $key =~ /^db_/ ? $key : "db_$key";
-            if ( my $acc = $sqitch->can($core_key) ) {
-                if ( my $val = $sqitch->$acc ) {
+            if ( my $val = $options->{$key} ) {
 
-                    # It was passed as an option, so record that.
-                    my $multiple = $type =~ s/[+]$//;
-                    $type = undef if $type eq 'any';
-                    push @vars => {
-                        key      => "$ekey.$key",
-                        value    => $val,
-                        as       => $type,
-                        multiple => $multiple,
-                    };
+                # It was passed as an option, so record that.
+                push @vars => {
+                    key   => "$config_key.$key",
+                    value => $val,
+                };
 
-                    # We're good on this one.
-                    next;
-                }
+                # We're good on this one.
+                next;
             }
 
-            # No value, but add it as a comment.
-            if ( my $acc = $engine->can($key) ) {
-
-                # Add it as a comment, possibly with a default.
-                my $def = $engine->$acc
-                    // $config->get( key => "$ekey.$key" )
-                    // '';
-                push @comments => "\t$key = $def";
-            }
-            else {
-
-                # Add it as a comment, with the config, if possible.
-                my $val = $config->get( key => "$ekey.$key" ) // '';
-                push @comments => "\t$key = $val";
-            }
+            # No value, but add it as a comment, possibly with a default.
+            my $def = $target->$key
+                // $config->get( key => "$config_key.$key" )
+                // '';
+            push @comments => "\t$key = $def";
         }
 
         if (@vars) {
@@ -242,7 +222,7 @@ sub write_config {
         else {
 
             # Still want the section, emit it as a comment.
-            unshift @comments => '[core "' . $engine->key . '"]';
+            unshift @comments => qq{[core "$ekey"]};
         }
 
         # Emit the comments.
