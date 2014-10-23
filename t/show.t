@@ -27,9 +27,11 @@ is_deeply [$CLASS->options], [qw(
 )], 'Options should be correct';
 
 my $sqitch = App::Sqitch->new(
-    plan_file => file(qw(t engine sqitch.plan)),
-    top_dir   => dir(qw(t engine)),
-    _engine   => 'pg',
+    options => {
+        plan_file => file(qw(t engine sqitch.plan))->stringify,
+        top_dir   => dir(qw(t engine))->stringify,
+        engine    => 'pg',
+    },
 );
 
 isa_ok my $show = $CLASS->new(sqitch => $sqitch), $CLASS;
@@ -50,7 +52,7 @@ is_deeply $CLASS->configure($config, {exists => 1}), { exists_only => 1 },
 
 ##############################################################################
 # Start with the change.
-ok my $change = $sqitch->plan->get('users'), 'Get a change';
+ok my $change = $show->default_target->plan->get('users'), 'Get a change';
 
 ok $show->execute( change => $change->id ), 'Find change by id';
 is_deeply +MockOutput->get_emit, [[ $change->info ]],

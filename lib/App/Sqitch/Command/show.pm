@@ -36,11 +36,12 @@ sub configure {
 sub execute {
     my ( $self, $type, $key ) = @_;
     $self->usage unless $type && $key;
+    my $plan = $self->default_target->plan;
 
     # Handle tags first.
     if ( $type eq 'tag' ) {
         my $is_id = $key =~ /^[0-9a-f]{40}/;
-        my $change = $self->plan->get(
+        my $change = $plan->get(
             $is_id ? $key : ($key =~ /^@/ ? '' : '@') . $key
         );
 
@@ -69,7 +70,7 @@ sub execute {
     ) unless first { $type eq $_ } qw(change deploy revert verify);
 
     # Make sure we have a change object.
-    my $change = $self->plan->get($key) or do {
+    my $change = $plan->get($key) or do {
         return if $self->exists_only;
         hurl show => __x(
             'Unknown change "{change}"',
