@@ -136,6 +136,26 @@ CONSTRUCTOR: {
     is_deeply \@get_params, [[key => 'core.engine'], [key => 'core.mysql.target']],
         'Should have tried to get core engine and its target';
 
+    # Try with no engine option but a name that looks like a URI.
+    @get_params = ();
+    delete $sqitch->options->{engine};
+    isa_ok $target = $CLASS->new(
+        sqitch => $sqitch,
+        name   => 'db:pg:',
+    ), $CLASS, 'Target with URI in name';
+    is $target->name, 'db:pg:', 'Name should be "db:pg:"';
+    is $target->uri, URI::db->new('db:pg:'), 'URI should be "db:pg"';
+    is_deeply \@get_params, [], 'Should have fetched no config';
+
+    # Try it with a name with no engine.
+    throws_ok { $CLASS->new(sqitch => $sqitch, name => 'db:') } 'App::Sqitch::X',
+        'Should have error for no engine in URI';
+    is $@->ident, 'target', 'Should have target ident';
+    is $@->message, __x(
+        'No engine specified by URI {uri}; URI must start with "db:$engine:"',
+        uri => 'db:',
+    ), 'Should have message about no engine-less URI';
+
     # Try it with no configured core engine or target.
     throws_ok { $CLASS->new(sqitch => $sqitch) } 'App::Sqitch::X',
         'Should have error for no engine or target';
@@ -224,8 +244,20 @@ CONSTRUCTOR: {
     is $target->uri, URI::db->new('db:pg:foo'), 'URI should be "db:pg:foo"';
     is_deeply \@get_params, [[key => 'target.foo.uri']],
         'Should have requested target URI from config';
+    is_deeply \@sect_params, [ [section => 'core.pg' ]],
+        'Should have requested pg section';
+
+    # Let the name be looked up by the engine.
+    @get_params = @sect_params = ();
+    @get_ret = ('foo', 'db:sqlite:foo');
+    isa_ok $target = $CLASS->new(sqitch => $sqitch), $CLASS,
+        'Engine named target';
+    is $target->name, 'foo', 'Name should be "foo"';
+    is $target->uri, URI::db->new('db:sqlite:foo'), 'URI should be "db:sqlite:foo"';
+    is_deeply \@get_params, [[key => 'core.sqlite.target'], [key => 'target.foo.uri']],
+        'Should have requested engine target and target URI from config';
     is_deeply \@sect_params, [ [section => 'core.sqlite' ]],
-        'Should have requested sqlite section';
+        'Should have requested pg section';
 
     # Make sure deprecated config options work.
     @sect_ret = ({

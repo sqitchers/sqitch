@@ -202,24 +202,27 @@ sub BUILDARGS {
         return $p;
     }
 
-    # If no name, try to find the default.
-    my $uri;
-    my $ekey = $sqitch->options->{engine} || $sqitch->config->get(
-        key => 'core.engine'
-    ) or hurl target => __(
-        'No engine specified; use --engine or set core.engine'
-    );
+    my ($uri, $ekey);
+    my $name = $p->{name};
 
-    my $name = $p->{name} ||= $sqitch->config->get(
-        key => "core.$ekey.target"
-    );
-
-    # If no URI, we have to find one.
+    # If no name, try to find one.
     if (!$name) {
-        # Fall back on the default.
-        $uri = "db:$ekey:";
-    } elsif ($name =~ /:/) {
+        # Look for an engine key.
+        $ekey = $sqitch->options->{engine} || $sqitch->config->get(
+            key => 'core.engine'
+        ) or hurl target => __(
+            'No engine specified; use --engine or set core.engine'
+        );
+
+        # Find the name in the engine config, or fall back on a simple URI.
+        $uri = $sqitch->config->get(key => "core.$ekey.target") || "db:$ekey:";
+        $p->{name} = $name = $uri;
+    }
+
+    # Now we should have a name. What is it?
+    if ($name =~ /:/) {
         # The name is a URI.
+        require URI::db;
         $uri = URI::db->new($name);
         $name = $p->{name} = undef;
     } else {
@@ -241,7 +244,11 @@ sub BUILDARGS {
 
     # Instantiate the URI.
     require URI::db;
-    $uri = $p->{uri} = URI::db->new( $uri );
+    $uri    = $p->{uri} = URI::db->new( $uri );
+    $ekey ||= $uri->canonical_engine or hurl target => __x(
+        'No engine specified by URI {uri}; URI must start with "db:$engine:"',
+        uri => $uri->as_string,
+    );
 
     # Override parts with deprecated command-line options and config.
     my $opts   = $sqitch->options;
