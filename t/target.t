@@ -146,7 +146,7 @@ CONSTRUCTOR: {
 
     # Try with engine-less URI.
     @get_params = ();
-    isa_ok my $target = $CLASS->new(
+    isa_ok $target = $CLASS->new(
         sqitch => $sqitch,
         uri    => URI::db->new('db:'),
     ), $CLASS, 'Engineless target';

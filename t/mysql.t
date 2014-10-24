@@ -116,37 +116,26 @@ is_deeply [$mysql->mysql], [qw(
 # Now make sure that Sqitch options override configurations.
 $sqitch = App::Sqitch->new(
     options => {
-        engine      => 'mysql',
-        client      => '/some/other/mysql',
-        db_username => 'anna',
-        db_name     => 'widgets_dev',
-        db_host     => 'foo.com',
-        db_port     => 98760,
-});
+        engine   => 'mysql',
+        client   => '/some/other/mysql',
+    },
+);
 
 $target = App::Sqitch::Target->new(sqitch => $sqitch);
 ok $mysql = $CLASS->new(sqitch => $sqitch, target => $target),
     'Create a mysql with sqitch with options';
 
 is $mysql->client, '/some/other/mysql', 'client should be as optioned';
-is $mysql->uri->as_string, 'db:mysql://anna@foo.com:98760/widgets_dev',
-    'The DB URI should be as optioned';
-is $mysql->target->name, $mysql->uri->as_string,
-    'target name should be the URI stringified';
-like $mysql->destination, qr{^db:mysql://anna:?\@foo\.com:98760/widgets_dev$},
-    'destination should be the URI minus the password';
 is $mysql->registry, 'meta', 'registry should be as configured';
-is $mysql->registry_uri->as_string, 'db:mysql://anna@foo.com:98760/meta',
+is $mysql->registry_uri->as_string, 'db:mysql://foo.com/meta',
     'Sqitch DB URI should be the same as uri but with DB name "meta"';
-like $mysql->registry_destination, qr{^db:mysql://anna:?\@foo\.com:98760/meta$},
+is $mysql->registry_destination, 'db:mysql://foo.com/meta',
     'registry_destination should be the sqitch DB URL sans password';
 is $mysql->registry, 'meta', 'registry should still be as configured';
 is_deeply [$mysql->mysql], [qw(
     /some/other/mysql
-    --user     anna
-    --database widgets_dev
+    --database widgets
     --host     foo.com
-    --port     98760
 ), @std_opts], 'mysql command should be as optioned';
 
 ##############################################################################

@@ -131,34 +131,23 @@ is_deeply [$pg->psql], [qw(
 # Now make sure that (deprecated?) Sqitch options override configurations.
 $sqitch = App::Sqitch->new(
     options => {
-        engine      => 'pg',
-        client      => '/some/other/psql',
-        db_username => 'anna',
-        db_name     => 'widgets_dev',
-        db_host     => 'foo.com',
-        db_port     => 98760,
-});
+        engine => 'pg',
+        client => '/some/other/psql',
+    }
+);
 
 $target = App::Sqitch::Target->new( sqitch => $sqitch );
 ok $pg = $CLASS->new(sqitch => $sqitch, target => $target),
     'Create a pg with sqitch with options';
 
 is $pg->client, '/some/other/psql', 'client should be as optioned';
-is $pg->uri->as_string, 'db:pg://anna@foo.com:98760/widgets_dev',
-    'uri should be as configured';
-is $pg->target->name, $pg->uri->as_string,
-    'target name should be the URI stringified';
-like $pg->destination, qr{^db:pg://anna:?\@foo\.com:98760/widgets_dev$},
-    'destination should be the URI without the password';
 is $pg->registry_destination, $pg->destination,
     'registry_destination should be the same as destination';
 is $pg->registry, 'meta', 'registry should still be as configured';
 is_deeply [$pg->psql], [qw(
     /some/other/psql
-    --username anna
-    --dbname   widgets_dev
-    --host     foo.com
-    --port     98760
+    --dbname   try
+    --host     localhost
 ), @std_opts], 'psql command should be as optioned';
 
 ##############################################################################

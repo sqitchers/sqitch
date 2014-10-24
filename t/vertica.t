@@ -147,10 +147,6 @@ $sqitch = App::Sqitch->new(
     options => {
         engine     => 'vertica',
         client     => '/some/other/vsql',
-        db_username => 'anna',
-        db_name     => 'widgets_dev',
-        db_host     => 'foo.com',
-        db_port     => 98760,
     },
 );
 
@@ -159,21 +155,10 @@ ok $vta = $CLASS->new(sqitch => $sqitch, target => $target),
     'Create a vertica with sqitch with options';
 
 is $vta->client, '/some/other/vsql', 'client should be as optioned';
-is $vta->uri->as_string, 'db:vertica://anna@foo.com:98760/widgets_dev',
-    'uri should be as configured';
-is $vta->target->name, $vta->uri->as_string,
-    'Target name should be the URI stringified';
-like $vta->destination, qr{^db:vertica://anna:?\@foo\.com:98760/widgets_dev$},
-    'destination should be the URI without the password';
-is $vta->registry_destination, $vta->destination,
-    'registry_destination should be the same as destination';
-is $vta->registry, 'meta', 'registry should still be as configured';
 is_deeply [$vta->vsql], [qw(
     /some/other/vsql
-    --username anna
-    --dbname   widgets_dev
-    --host     foo.com
-    --port     98760
+    --dbname   try
+    --host     localhost
 ), @std_opts], 'vsql command should be as optioned';
 
 ##############################################################################

@@ -257,12 +257,8 @@ is_deeply [$ora->sqlplus], ['/path/to/sqlplus', @std_opts],
 # Now make sure that Sqitch options override configurations.
 $sqitch = App::Sqitch->new(
     options => {
-        engine      => 'oracle',
-        client      => '/some/other/sqlplus',
-        db_username => 'anna',
-        db_name     => 'widgets_dev',
-        db_host     => 'foo.com',
-        db_port     => 98760,
+        engine => 'oracle',
+        client => '/some/other/sqlplus',
     },
 );
 
@@ -271,14 +267,6 @@ ok $ora = $CLASS->new(sqitch => $sqitch, target => $target),
     'Create a ora with sqitch with options';
 
 is $ora->client, '/some/other/sqlplus', 'client should be as optioned';
-is $ora->uri->as_string, 'db:oracle://anna@foo.com:98760/widgets_dev',
-    'DB URI should have attributes overridden by options';
-is $ora->target->name, $ora->uri->as_string,
-    'Target name should be the URI stringified';
-like $ora->destination, qr{^db:oracle://anna:?\@foo\.com:98760/widgets_dev$},
-    'Destination should be the URI without the password';
-is $ora->registry_destination, $ora->destination,
-    'registry_destination should still be the same URI';
 is $ora->registry, 'meta', 'registry should still be as configured';
 is_deeply [$ora->sqlplus], ['/some/other/sqlplus', @std_opts],
     'sqlplus command should be as optioned';
