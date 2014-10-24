@@ -1,16 +1,94 @@
 Revision history for Perl extension App::Sqitch
 
 0.997
+     [New Features]
+     - Added support for new target properties. In addition to the existing
+       `uri`, `client`, and `registry` properties, targets may also configure
+       these properties via the new `--set` option to and `set-*` actions on
+       the `target` command:
+       * `top_dir`
+       * `plan_file`
+       * `extension`
+       * `deploy_dir`
+       * `revert_dir`
+       * `verify_dir`
+     - Added support for new engine configuration variables. In addition to
+       the existing `target`, `client`, and `registry` variables, engine
+       configuration may also include these variables:
+       * `top_dir`
+       * `plan_file`
+       * `extension`
+       * `deploy_dir`
+       * `revert_dir`
+       * `verify_dir`
+     - Rationalized the hierarchical configuration of deployment targets. The
+       properties of any given target will now be determined by examining
+       values in the following order:
+       * Command-line options
+       * Target properties
+       * Engine configuration variables
+       * Core configuration variables
+       * Reasonable engine-specific defaults
+     [Internals]
+     - Moved target and engine configuration from App::Sqitch and
+       App::Sqitch::Engine to a new class, App::Sqitch::Target. This new class
+       is solely responsible for finding the appropriate values for attributes
+       on every run. The target knows what plan and engine to use, based on
+       those attributes. App::Sqitch is now responsible solely for
+       encapsulating command-line options, configuration, and utilities.
+       Classes are now responsible for instantiating both an App::Sqitch and
+       App::Sqitch::Target options as appropriate.
+     - Updated all classes to create both Sqitch and Target objects as
+       appropriate.
+     - Replaced attributes in App::Sqitch that were previously set from
+       command-line options or configuration with a single attribute,
+       `options`, which is a hash only of the command-line options. Classes
+       are now responsible for finding the proper values in config or options.
+       Mostly this requirement is encapsulated by the new App::Sqitch::Target
+       class.
+     - Updated the command classes to use either a "default target" derived
+       from command-line options, engine configuration, and core
+       configuration, or a target looked up by name in the configuration
+       maintained by the `target` command.
+     [Bug Fixes]
      - At runtime, the Vertica engine now properly requires DBD::ODBC
        instead of DBD::Pg.
      - The Vertica engine now supports Vertica 6, as documented.
      - Fixed a warning from Type::Utils, thanks to a report from Géraud
        CONTINSOUZAS.
+     - The `status` command once again notices if the specified database is
+       uninitialized and says as much, rather than dying with an SQL error.
+     [Improvements]
      - Simplified the output of `sqitch help`, and added the more important
        options to it.
      - Added the `--guide` option to `sqitch help` to list Sqitch guides.
-     - The `status` command once again notices if the specified database is
-       uninitialized and says as much, rather than dying with an SQL error.
+     - Renamed the `--db-client` option to `--client`. `--db-client` still
+       works, but is deprecated.
+     - Added the `--registry` core option for parity with `--client`,
+       `--top-dir`, `--plan-file`, and the rest of the hierarchical
+       configuration properties.
+     - Updated the `init` documentation to better cover all the options
+       processed.
+     [Deprecations ]
+     - Formally deprecated the database connection options in favor of target
+       URIs. If any of these options is used, a warning will be issued. They
+       will be dropped in 1.0:
+       * `--db-host`
+       * `--db-port`
+       * `--db-username`
+       * `--db-password`
+       * `--db-name`
+     - Formally deprecated the database connection configuration variables in
+       favor of target URIs. If any of these variables is used, a warning will
+       be issued. They will be dropped in 1.0:
+       * `core.$engine.host`
+       * `core.$engine.port`
+       * `core.$engine.username`
+       * `core.$engine.password`
+       * `core.$engine.db_name`
+     - Deprecated the `--registry` and `--client` options of the `target`
+       command. All target properties may now be set via the new `--set`
+       option, such as `--set registry=reg`.
 
 0.996  2014-09-05T21:11:00Z
      - Fixed one more test failure due to the introduction of "Negative repeat

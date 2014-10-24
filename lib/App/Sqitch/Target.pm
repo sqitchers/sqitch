@@ -106,7 +106,6 @@ has plan => (
     lazy     => 1,
     default  => sub {
         my $self = shift;
-        # XXX Update to reference target.
         App::Sqitch::Plan->new(
             sqitch => $self->sqitch,
             target => $self,
