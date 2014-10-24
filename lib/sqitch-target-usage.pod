@@ -5,16 +5,21 @@ sqitch-target-usage - Sqitch target usage statement
 =head1 Usage
 
   sqitch target [-v | --verbose]
-  sqitch target add [-r <registry>] [-c <client>] <name> <uri>
+  sqitch target add [-s <property>=<value> ...] <name> <uri>
   sqitch target set-uri <name> <newuri>
-  sqitch target set-registry <name> <newregistry>
-  sqitch target set-client <name> <newclient>
+  sqitch target set-registry <name> <registry>
+  sqitch target set-client <name> <client>
+  sqitch target set-top-dir <name> <directory>
+  sqitch target set-plan-file <name> <file>
+  sqitch target set-deploy-dir <name> <directory>
+  sqitch target set-revert-dir <name> <directory>
+  sqitch target set-verify-dir <name> <directory>
+  sqitch target set-extension <name> <extension>
   sqitch target remove <name>
   sqitch target rename <old> <new>
   sqitch target show <name>
 
 =head1 Options
 
-    -v, --verbose                    be verbose; must be placed before an action
-    -r, --registry, --set-registry   set the registry when adding a target
-    -r, --client,   --set-client     set the client when adding a target
+    -v, --verbose             be verbose; must be placed before an action
+    -s, --set     KEY=VALUE   set target property when adding a target

@@ -3,8 +3,8 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 142;
-#use Test::More 'no_plan';
+#use Test::More tests => 142;
+use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
 use Test::Exception;
@@ -61,15 +61,15 @@ can_ok $cmd, qw(
 );
 
 is_deeply [$CLASS->options], [qw(
+    set|s=s%
     registry|r=s
     client|c=s
     verbose|v+
 )], 'Options should be correct';
 
-# Check default attribute values.
+# Check default property values.
 is $cmd->verbose,  0,     'Default verbosity should be 0';
-is $cmd->registry, undef, 'Default registry should be undef';
-is $cmd->client,   undef, 'Default client should be undef';
+is_deeply $cmd->properties, {}, 'Default properties should be empty';
 
 # Make sure configure ignores config file.
 is_deeply $CLASS->configure({ foo => 'bar'}, { hi => 'there' }),
@@ -123,44 +123,114 @@ ok $cmd->add('test', 'db:pg:test'), 'Add target "test"';
 $config->load;
 is $config->get(key => 'target.test.uri'), 'db:pg:test',
     'Target "test" URI should have been set';
-is $config->get(key => 'target.test.registry'), undef,
-    'Target "test" should have no registry set';
-is $config->get(key => 'target.test.client'), undef,
-    'Target "test" should have no client set';
+for my $key (qw(
+    client
+    registry
+    top_dir
+    plan_file
+    deploy_dir
+    revert_dir
+    verify_dir
+    extension)
+) {
+    is $config->get(key => "target.test.$key"), undef,
+        qq{Target "test" should have no $key set};
+}
 
 # Try adding a target with a registry.
-isa_ok $cmd = $CLASS->new({ sqitch => $sqitch, registry => 'meta' }),
-    $CLASS, 'Target with registry';
+isa_ok $cmd = $CLASS->new({
+    sqitch     => $sqitch,
+    properties => { registry => 'meta' },
+}), $CLASS, 'Target with registry';
 ok $cmd->add('withreg', 'db:pg:withreg'), 'Add target "withreg"';
 $config->load;
 is $config->get(key => 'target.withreg.uri'), 'db:pg:withreg',
     'Target "withreg" URI should have been set';
 is $config->get(key => 'target.withreg.registry'), 'meta',
     'Target "withreg" registry should have been set';
+for my $key (qw(
+    client
+    top_dir
+    plan_file
+    deploy_dir
+    revert_dir
+    verify_dir
+    extension)
+) {
+    is $config->get(key => "target.withreg.$key"), undef,
+        qq{Target "test" should have no $key set};
+}
 
 # Try a client.
-isa_ok $cmd = $CLASS->new({ sqitch => $sqitch, client => 'hi.exe' }),
-    $CLASS, 'Target with client';
+isa_ok $cmd = $CLASS->new({
+    sqitch     => $sqitch,
+    properties => { client => 'hi.exe' },
+}), $CLASS, 'Target with client';
 ok $cmd->add('withcli', 'db:pg:withcli'), 'Add target "withcli"';
 $config->load;
 is $config->get(key => 'target.withcli.uri'), 'db:pg:withcli',
     'Target "withcli" URI should have been set';
-is $config->get(key => 'target.withcli.registry'), undef,
-    'Target "withcli" registry should not have been set';
 is $config->get(key => 'target.withcli.client'), 'hi.exe',
     'Target "withcli" should have client set';
+for my $key (qw(
+    registry
+    top_dir
+    plan_file
+    deploy_dir
+    revert_dir
+    verify_dir
+    extension)
+) {
+    is $config->get(key => "target.withcli.$key"), undef,
+        qq{Target "withcli" should have no $key set};
+}
 
 # Try both.
-isa_ok $cmd = $CLASS->new({ sqitch => $sqitch, client => 'ack', registry => 'foo' }),
-    $CLASS, 'Target with client and registry';
+isa_ok $cmd = $CLASS->new({
+    sqitch => $sqitch,
+    properties => { client => 'ack', registry => 'foo' },
+}), $CLASS, 'Target with client and registry';
 ok $cmd->add('withboth', 'db:pg:withboth'), 'Add target "withboth"';
 $config->load;
 is $config->get(key => 'target.withboth.uri'), 'db:pg:withboth',
     'Target "withboth" URI should have been set';
 is $config->get(key => 'target.withboth.registry'), 'foo',
-    'Target "withboth" registry should not been set';
+    'Target "withboth" registry should have been set';
 is $config->get(key => 'target.withboth.client'), 'ack',
     'Target "withboth" should have client set';
+for my $key (qw(
+    top_dir
+    plan_file
+    deploy_dir
+    revert_dir
+    verify_dir
+    extension)
+) {
+    is $config->get(key => "target.withboth.$key"), undef,
+        qq{Target "withboth" should have no $key set};
+}
+
+# Try all the properties.
+my %props = (
+    client     => 'poo',
+    registry   => 'reg',
+    top_dir    => 'top',
+    plan_file  => 'my.plan',
+    deploy_dir => 'dep',
+    revert_dir => 'rev',
+    verify_dir => 'ver',
+    extension  => 'ddl',
+);
+isa_ok $cmd = $CLASS->new({
+    sqitch     => $sqitch,
+    properties => { %props },
+}), $CLASS, 'Target with all properties';
+ok $cmd->add('withall', 'db:pg:withall'), 'Add target "withall"';
+$config->load;
+while (my ($k, $v) = each %props) {
+    is $config->get(key => "target.withall.$k"), $v,
+        qq{Target "withall" should have $k set};
+}
 
 ##############################################################################
 # Test set_uri().
@@ -201,8 +271,8 @@ is $config->get(key => 'target.withboth.uri'), 'db:postgres:stuff',
     'Target "withboth" should have new DB URI';
 
 ##############################################################################
-# Test set_registry() and set_client.
-for my $key (qw(registry client)) {
+# Test other set_* methods
+for my $key (keys %props) {
     my $meth = "set_$key";
     MISSINGARGS: {
         # Test handling of no name.
@@ -300,7 +370,7 @@ is $config->get(key => "target.àlafois.uri"), undef,
 # Test show.
 ok $cmd->show, 'Run show()';
 is_deeply +MockOutput->get_emit, [
-    ['dev'], ['prod'], ['qa'], ['test'], ['withcli'], ['withreg']
+    ['dev'], ['prod'], ['qa'], ['test'], ['withall'], ['withcli'], ['withreg']
 ], 'Show with no names should emit the list of targets';
 
 # Try one target.

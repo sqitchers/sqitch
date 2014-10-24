@@ -559,7 +559,7 @@ comes from one of these options, searched in this order:
   my $extension = $target->extension;
 
 The file name extension to append to change names to create script file names.
- The value comes from one of these options, searched in this order:
+The value comes from one of these options, searched in this order:
 
 =over
 

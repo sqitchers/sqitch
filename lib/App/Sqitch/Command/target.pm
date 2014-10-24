@@ -5,11 +5,12 @@ use strict;
 use warnings;
 use utf8;
 use Moo;
-use Types::Standard qw(Str Int);
+use Types::Standard qw(Str Int HashRef);
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use URI::db;
 use Try::Tiny;
+use Path::Class qw(file dir);
 use List::Util qw(max);
 use namespace::autoclean;
 
@@ -23,26 +24,47 @@ has verbose => (
     default => 0,
 );
 
-has registry => (
-    is  => 'ro',
-    isa => Str,
-);
-
-has client => (
-    is  => 'ro',
-    isa => Str,
+has properties => (
+    is      => 'ro',
+    isa     => HashRef,
+    default => sub { {} },
 );
 
 sub options {
     return qw(
+        set|s=s%
         registry|r=s
         client|c=s
         verbose|v+
     );
 }
 
+my %normalizer_for = (
+    top_dir   => sub { $_[0] ? dir($_[0])->cleanup : undef },
+    plan_file => sub { $_[0] ? file($_[0])->cleanup : undef },
+    client    => sub { $_[0] },
+);
+
+$normalizer_for{"$_\_dir"} = $normalizer_for{top_dir} for qw(deploy revert verify);
+$normalizer_for{$_} = $normalizer_for{client} for qw(registry extension);
+
 sub configure {
     my ( $class, $config, $options ) = @_;
+
+    # Handle deprecated options.
+    for my $key (qw(registry client)) {
+        my $val = delete $options->{$key} or next;
+        App::Sqitch->warn(__x(
+            'Option --{key} has been deprecated; use "--set {key}={val}" instead',
+            key => $key,
+            val => $val
+        ));
+        my $set = $options->{set} ||= {};
+        $set->{$key} = $val;
+    }
+
+    $options->{properties} = delete $options->{set}
+        if $options->{set};
 
     # No config; target config is actually targets.
     return $options;
@@ -85,27 +107,22 @@ sub add {
         target => $name
     ) if $config->get( key => "$key.uri");
 
-    # Set the URI.
     $config->set(
         key      => "$key.uri",
         value    => URI::db->new($uri, 'db:')->as_string,
         filename => $config->local_file,
     );
 
-    # Set the registry, if specified.
-    if (my $reg = $self->registry) {
+    # Set properties.
+    my $props = $self->properties;
+    while (my ($prop, $val) = each %{ $props } ) {
+        my $normalizer = $normalizer_for{$prop} or $self->usage(__x(
+            'Unknown property "{property}"',
+            property => $prop,
+        ));
         $config->set(
-            key      => "$key.registry",
-            value    => $reg,
-            filename => $config->local_file,
-        );
-    }
-
-    # Set the client, if specified.
-    if (my $reg = $self->client) {
-        $config->set(
-            key      => "$key.client",
-            value    => $reg,
+            key      => "$key.$prop",
+            value    => $normalizer->($val),
             filename => $config->local_file,
         );
     }
@@ -143,12 +160,23 @@ sub set_uri {
     );
 }
 
-sub set_registry {
-    shift->_set('registry', @_);
+sub set_registry  { shift->_set('registry',  @_) }
+sub set_client    { shift->_set('client',    @_) }
+sub set_extension { shift->_set('extension', @_) }
+
+sub _set_dir {
+    my ($self, $key, $name, $dir) = @_;
+    $self->_set( $key, $name, $normalizer_for{top_dir}->($dir) );
 }
 
-sub set_client {
-    shift->_set('client', @_);
+sub set_top_dir    { shift->_set_dir('top_dir',    @_) }
+sub set_deploy_dir { shift->_set_dir('deploy_dir', @_) }
+sub set_revert_dir { shift->_set_dir('revert_dir', @_) }
+sub set_verify_dir { shift->_set_dir('verify_dir', @_) }
+
+sub set_plan_file {
+    my ($self, $name, $file) = @_;
+    $self->_set( 'plan_file', $name, $normalizer_for{plan_file}->($file) );
 }
 
 sub rm { shift->remove(@_) }
@@ -240,13 +268,9 @@ Manages Sqitch targets, which are stored in the local configuration file.
 
 =head2 Attributes
 
-=head3 C<client>
+=head3 C<properties>
 
-Value to set the client attribute.
-
-=head3 C<registry>
-
-Value to set the registry attribute.
+Hash of property values to set.
 
 =head3 C<verbose>
 
@@ -289,6 +313,30 @@ Implements the C<set-registry> action.
 =head3 C<set_url>
 
 Implements the C<set-uri> action.
+
+=head3 C<set_top_dir>
+
+Implements the C<set-top-dir> action.
+
+=head3 C<set_plan_file>
+
+Implements the C<set-plan-file> action.
+
+=head3 C<set_deploy_dir>
+
+Implements the C<set-deploy-dir> action.
+
+=head3 C<set_revert_dir>
+
+Implements the C<set-revert-dir> action.
+
+=head3 C<set_verify_dir>
+
+Implements the C<set-verify-dir> action.
+
+=head3 C<set_extension>
+
+Implements the C<set-extension> action.
 
 =head3 C<show>
 
