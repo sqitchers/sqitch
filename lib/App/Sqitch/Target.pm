@@ -311,4 +311,152 @@ sub BUILDARGS {
 }
 
 1;
+
 __END__
+
+=head1 Name
+
+App::Sqitch::Target - Sqitch deployment target
+
+=head1 Synopsis
+
+  my $plan = App::Sqitch::Target->new(
+      sqitch => $sqitch,
+      name   => 'development',
+  );
+  $target->engine->deploy;
+
+=head1 Description
+
+App::Sqitch::Target provides collects, in one place, the
+L<engine|App::Sqitch::Engine>, L<plan|App::Sqitch::Engine>, and file locations
+required to carry out Sqitch commands. All commands should instantiate a
+target to work with the plan or database.
+
+=head1 Interface
+
+=head3 C<new>
+
+  my $target = App::Sqitch::Target->new( sqitch => $sqitch );
+
+Instantiates and returns an App::Sqitch::Target object. The most important
+parameters are C<sqitch>, C<name> and C<uri>. The constructor tries really hard
+to figure out the proper name and URI during construction by taking the
+following steps:
+
+XXX 
+
+=head2 Accessors
+
+=head3 C<sqitch>
+
+  my $sqitch = $target->sqitch;
+
+Returns the L<App::Sqitch> object that instantiated the target.
+
+=head3 C<name>
+
+=head3 C<target>
+
+  my $name = $target->name;
+  $name = $target->target;
+
+
+
+=head3 C<uri>
+
+  my $uri = $target->uri;
+
+
+
+=head3 C<engine>
+
+  my $engine = $target->engine;
+
+
+
+=head3 C<registry>
+
+  my $registry = $target->registry;
+
+
+
+=head3 C<client>
+
+  my $client = $target->client;
+
+
+
+=head3 C<plan_file>
+
+  my $plan_file = $target->plan_file;
+
+
+
+=head3 C<top_dir>
+
+  my $top_dir = $target->top_dir;
+
+
+
+=head3 C<deploy_dir>
+
+  my $deploy_dir = $target->deploy_dir;
+
+
+
+=head3 C<revert_dir>
+
+  my $revert_dir = $target->revert_dir;
+
+
+
+=head3 C<verify_dir>
+
+  my $verify_dir = $target->verify_dir;
+
+
+
+=head3 C<extension>
+
+  my $extension = $target->extension;
+
+
+
+=head1 See Also
+
+=over
+
+=item L<sqitch>
+
+The Sqitch command-line client.
+
+=back
+
+=head1 Author
+
+David E. Wheeler <david@justatheory.com>
+
+=head1 License
+
+Copyright (c) 2012-2014 iovation Inc.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+=cut
