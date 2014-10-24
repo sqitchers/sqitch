@@ -92,7 +92,6 @@ ENGINE: {
     sub name_for_change_id { return 'bugaboo' }
 }
 
-# XXX Remove attributes in favor of options.
 ok my $sqitch = App::Sqitch->new(
     options => {
         engine    => 'sqlite',
@@ -771,11 +770,7 @@ $record_work = 0;
 chdir 't';
 my $plan_file = file qw(sql sqitch.plan);
 my $sqitch_old = $sqitch; # Hang on to this because $change does not retain it.
-# XXX Remove attributes in favor of options.
 $sqitch = App::Sqitch->new(
-    _engine   => 'sqlite',
-    plan_file => $plan_file,
-    top_dir   => dir('sql'),
     options => {
         engine    => 'sqlite',
         plan_file => $plan_file->stringify,
