@@ -171,18 +171,6 @@ has extension => (
     },
 );
 
-# If no name:
-#   a. use URI for name; or
-#   b. Look for core.$engine.target.
-# If no URI:
-#   a. Use name if it exists and contains a colon; or
-#   b. If name exists: look for target.$name.uri or die; or
-#   c. Default to "db:$engine:"
-# If still no name, use URI.
-
-# Need to move command-line options into a hash, remove accessors in App::Sqitch.
-# Remove attributes here from App::Sqitch and Engine.
-
 sub BUILDARGS {
     my $class = shift;
     my $p = @_ == 1 && ref $_[0] ? { %{ +shift } } : { @_ };
@@ -222,8 +210,7 @@ sub BUILDARGS {
     # Now we should have a name. What is it?
     if ($name =~ /:/) {
         # The name is a URI.
-        require URI::db;
-        $uri = URI::db->new($name);
+        $uri = $name;
         $name = $p->{name} = undef;
     } else {
         # Well then, there had better be a config with a URI.
@@ -347,11 +334,43 @@ target to work with the plan or database.
   my $target = App::Sqitch::Target->new( sqitch => $sqitch );
 
 Instantiates and returns an App::Sqitch::Target object. The most important
-parameters are C<sqitch>, C<name> and C<uri>. The constructor tries really hard
-to figure out the proper name and URI during construction by taking the
-following steps:
+parameters are C<sqitch>, C<name> and C<uri>. The constructor tries really
+hard to figure out the proper name and URI during construction. If the C<uri>
+parameter is passed, this is straight-forward: if no C<name> is passed,
+C<name> will be set to the stringified format of the URI (minus the password,
+if present).
 
-XXX 
+Otherwise, when no URI is passed, the name and URI are determined by taking
+the following steps:
+
+=over
+
+=item *
+
+If there is no name, get the engine key from from C<--engine> or the
+C<core.engine> configuration option. If no key can be determined, an exception
+will be thrown.
+
+=item *
+
+Use the key to look up the target name in the C<core.$engine.target>
+configuration option. If none is found, use C<db:$key:>.
+
+=item *
+
+If the name contains a colon (C<:>), assume it is also the value for the URI.
+
+=item *
+
+Otherwise, it should be the name of a configured target, so look for a URI in
+the C<target.$name.uri> configuration option.
+
+=back
+
+As a general rule, then, pass either a target name or URI string in the
+C<name> parameter, and Sqitch will do its best to find all the relevant target
+information. And if there is no name or URI, it will try to construct a
+reasonable default from the command-line options or engine configuration.
 
 =head2 Accessors
 
@@ -368,67 +387,221 @@ Returns the L<App::Sqitch> object that instantiated the target.
   my $name = $target->name;
   $name = $target->target;
 
-
+The name of the target. If there was no name specified, the URI will be used
+(minus the password, if there is one).
 
 =head3 C<uri>
 
   my $uri = $target->uri;
 
-
+The L<URI::db> object encapsulating the database connection information.
 
 =head3 C<engine>
 
   my $engine = $target->engine;
 
-
+A L<App::Sqitch::Engine> object to use for database interactions with the
+target.
 
 =head3 C<registry>
 
   my $registry = $target->registry;
 
+The name of the registry used by the database. The value comes from one of
+these options, searched in this order:
 
+=over
+
+=item * C<--registry>
+
+=item * C<target.$name.registry>
+
+=item * C<core.$engine.registry>
+
+=item * C<core.registry>
+
+=item * Engine-specific default
+
+=back
 
 =head3 C<client>
 
   my $client = $target->client;
 
+Path to the engine command-line client. The value comes from one of these
+options, searched in this order:
 
+=over
 
-=head3 C<plan_file>
+=item * C<--client>
 
-  my $plan_file = $target->plan_file;
+=item * C<target.$name.client>
 
+=item * C<core.$engine.client>
 
+=item * C<core.client>
+
+=item * Engine-and-OS-specific default
+
+=back
 
 =head3 C<top_dir>
 
   my $top_dir = $target->top_dir;
 
+The path to the top directory of the project. This directory generally
+contains the plan file and subdirectories for deploy, revert, and verify
+scripts. The value comes from one of these options, searched in this order:
 
+=over
+
+=item * C<--top-dir>
+
+=item * C<target.$name.top_dir>
+
+=item * C<core.$engine.top_dir>
+
+=item * C<core.top_dir>
+
+=item * F<.>
+
+=back
+
+=head3 C<plan_file>
+
+  my $plan_file = $target->plan_file;
+
+The path to the plan file. The value comes from one of these options, searched
+in this order:
+
+=over
+
+=item * C<--plan-file>
+
+=item * C<target.$name.plan_file>
+
+=item * C<core.$engine.plan_file>
+
+=item * C<core.plan_file>
+
+=item * F<C<$top_dir>/sqitch.plan>
+
+=back
 
 =head3 C<deploy_dir>
 
   my $deploy_dir = $target->deploy_dir;
 
+The path to the deploy directory of the project. This directory contains all
+of the deploy scripts referenced by changes in the C<plan_file>. The value
+comes from one of these options, searched in this order:
 
+=over
+
+=item * C<--deploy-dir>
+
+=item * C<target.$name.deploy_dir>
+
+=item * C<core.$engine.deploy_dir>
+
+=item * C<core.deploy_dir>
+
+=item * F<C<$top_dir/deploy>>
+
+=back
 
 =head3 C<revert_dir>
 
   my $revert_dir = $target->revert_dir;
 
+The path to the revert directory of the project. This directory contains all
+of the revert scripts referenced by changes the C<plan_file>. The value comes
+from one of these options, searched in this order:
 
+=over
+
+=item * C<--revert-dir>
+
+=item * C<target.$name.revert_dir>
+
+=item * C<core.$engine.revert_dir>
+
+=item * C<core.revert_dir>
+
+=item * F<C<$top_dir/revert>>
+
+=back
 
 =head3 C<verify_dir>
 
   my $verify_dir = $target->verify_dir;
 
+The path to the verify directory of the project. This directory contains all
+of the verify scripts referenced by changes in the C<plan_file>. The value
+comes from one of these options, searched in this order:
 
+=over
+
+=item * C<--verify-dir>
+
+=item * C<target.$name.verify_dir>
+
+=item * C<core.$engine.verify_dir>
+
+=item * C<core.verify_dir>
+
+=item * F<C<$top_dir/verify>>
+
+=back
 
 =head3 C<extension>
 
   my $extension = $target->extension;
 
+The file name extension to append to change names to create script file names.
+ The value comes from one of these options, searched in this order:
 
+=over
+
+=item * C<--extension>
+
+=item * C<target.$name.extension>
+
+=item * C<core.$engine.extension>
+
+=item * C<core.extension>
+
+=item * C<"sql">
+
+=back
+
+=head3 C<engine_key>
+
+  my $key = $target->engine_key;
+
+The key defining which engine to use. This value defines the class loaded by
+C<engine>. Convenience method for C<< $target->uri->canonical_engine >>.
+
+=head3 C<dsn>
+
+  my $dsn = $target->dsn;
+
+The DSN to use when connecting to the target via the DBI. Convenience method
+for C<< $target->uri->dbi_dsn >>.
+
+=head3 C<username>
+
+  my $username = $target->username;
+
+The username to use when connecting to the target via the DBI. Convenience
+method for C<< $target->uri->user >>.
+
+=head3 C<password>
+
+  my $password = $target->password;
+
+The password to use when connecting to the target via the DBI. Convenience
+method for C<< $target->uri->password >>.
 
 =head1 See Also
 
