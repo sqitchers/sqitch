@@ -120,7 +120,7 @@ is $ora->_script, join( "\n" => (
         'connect ',
 ) ), '_script should work';
 
-# Set up username, password, and db_name.
+# Set up a target URI.
 $target = App::Sqitch::Target->new(
     sqitch => $sqitch,
     uri    => URI::db->new('db:oracle://fred:derf@/blah')

@@ -376,8 +376,8 @@ CONTEXT: {
     }), 'Create local config get command';
     @emit = ();
 
-    ok $cmd->execute('core.pg.db_name'), 'Get local core.pg.db_name';
-    is_deeply \@emit, [['widgets']], 'Should have emitted the local core.pg.db_name';
+    ok $cmd->execute('core.pg.target'), 'Get local core.pg.target';
+    is_deeply \@emit, [['mydb']], 'Should have emitted the local core.pg.target';
     @emit = ();
 
     ok $cmd->execute('core.engine'), 'Get local core.engine';
@@ -450,9 +450,8 @@ core.firebird.registry=meta
 core.mysql.client=/opt/local/mysql/bin/mysql
 core.mysql.registry=meta
 core.pg.client=/opt/local/pgsql/bin/psql
-core.pg.db_name=widgets
 core.pg.registry=meta
-core.pg.target=db:pg://postgres@localhost/thingies
+core.pg.target=mydb
 core.sqlite.client=/opt/local/bin/sqlite3
 core.sqlite.registry=meta
 core.sqlite.target=devdb
@@ -532,7 +531,7 @@ user.name=Michael Stonebraker
     ok $cmd->execute, 'List the local config';
     is_deeply \@emit, [[
         'core.engine=pg
-core.pg.db_name=widgets
+core.pg.target=mydb
 core.sqlite.target=devdb
 target.devdb.uri=db:sqlite:
 target.mydb.plan_file=t/plans/dependencies.plan

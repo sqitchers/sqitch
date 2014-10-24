@@ -357,10 +357,6 @@ $sqitch = App::Sqitch->new(
     options => {
         engine     => 'pg',
         client      => '/to/psql',
-        # db_name     => 'thingies',
-        # db_username => 'anna',
-        # db_host     => 'banana',
-        # db_port     => 93453,
     },
 );
 

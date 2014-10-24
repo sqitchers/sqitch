@@ -17,18 +17,6 @@ extends 'App::Sqitch::Engine';
 
 our $VERSION = '0.997';
 
-sub BUILD {
-    my $self = shift;
-    my $uri  = $self->uri;
-    unless ($uri->dbname) {
-        my $sqitch = $self->sqitch;
-        # XXX Config var is for backcompat.
-        my $name =  $sqitch->config->get( key => 'core.sqlite.db_name' )
-            || try { $sqitch->plan->project . '.db' };
-        $uri->dbname($name) if $name;
-    }
-}
-
 has registry_uri => (
     is       => 'ro',
     isa      => URIDB,

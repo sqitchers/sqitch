@@ -203,11 +203,7 @@ User who adds a change to the plan.
   -f --plan-file  FILE      Path to a deployment plan file.
      --engine     ENGINE    Database engine.
      --registry   REGISTRY  Registry schema or database.
-     --db-client  PATH      Path to the engine command-line client.
-  -d --db-name    NAME      Database name.
-  -u --db-user    USER      Database user name.
-  -h --db-host    HOST      Database server host name.
-  -p --db-port    PORT      Database server port number.
+     --client     PATH      Path to the engine command-line client.
      --top-dir    DIR       Path to directory with plan and scripts.
      --deploy-dir DIR       Path to directory with deployment scripts.
      --revert-dir DIR       Path to directory with reversion scripts.
@@ -263,56 +259,10 @@ data here.
 
 =item C<--client>
 
-=item C<--db-client>
-
   sqitch --client /usr/local/pgsql/bin/psql
 
 Path to the command-line client for the database engine. Defaults to a client
 in the current path named appropriately for the specified engine.
-
-=item C<-d>
-
-=item C<--db-name>
-
-  sqitch --db-name widgets
-  sqitch -d bricolage
-
-Name of the database. For some engines, such as
-L<PostgreSQL|http://postgresql.org/>, L<MySQL|http://dev.mysql.com/>, and
-L<Oracle|http://www.oracle.com/us/products/database/>, the database must
-already exist. For others, such as L<SQLite|http://sqlite.org/>, the database
-will be automatically created on first connect.
-
-=item C<-u>
-
-=item C<--db-user>
-
-=item C<--db-username>
-
-  sqitch --db-username root
-  sqitch --db-user postgres
-  sqitch -u Mom
-
-User name to use when connecting to the database. Does not apply to all engines.
-
-=item C<-h>
-
-=item C<--db-host>
-
-  sqitch --db-host db.example.com
-  sqitch -h appdb.example.net
-
-Host name to use when connecting to the database. Does not apply to all
-engines.
-
-=item C<-p>
-
-=item C<--db-port>
-
-  sqitch --db-port 7654
-  sqitch -p 5431
-
-Port number to connect to. Does not apply to all engines.
 
 =item C<--top-dir>
 
@@ -485,7 +435,7 @@ with the "gamma" tag:
       extension = ddl
 
   [core "pg"]
-      db_name   = widgetopolis
+      target    = widgetopolis
 
   [revert]
       to        = gamma
@@ -494,6 +444,9 @@ with the "gamma" tag:
       from      = gamma
       tags_only = yes
       dest_dir  = _build/sql
+
+  [target "widgetopolis"]
+      uri       = db:pg:widgetopolis
 
 And here's an example of useful configuration in F<~/.sqitch/sqitch.conf>, to
 point to system-specific engine information:
@@ -504,15 +457,12 @@ point to system-specific engine information:
 
   [core "pg"]
       client    = /usr/local/pgsql/bin/psql
-      username  = theory
 
   [core "mysql"]
       client    = /usr/local/mysql/bin/mysql
-      username  = root
 
   [core "oracle"]
       client    = /usr/local/instantclient_11_2/sqlplus
-      username  = scott
 
   [core "sqlite"]
       client    = /usr/local/bin/sqlite3

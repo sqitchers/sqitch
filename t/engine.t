@@ -94,13 +94,8 @@ ENGINE: {
 
 # XXX Remove attributes in favor of options.
 ok my $sqitch = App::Sqitch->new(
-    _engine   => 'sqlite',
-    db_name   => 'mydb',
-    top_dir   => dir( qw(t sql) ),
-    plan_file => file( qw(t plans multi.plan) ),
     options => {
         engine    => 'sqlite',
-        db_name   => 'mydb',
         top_dir   => dir(qw(t sql))->stringify,
         plan_file => file(qw(t plans multi.plan))->stringify,
     }
@@ -238,7 +233,7 @@ ok $engine = $CLASS->load({
     sqitch => $sqitch,
     target => $target,
 }), 'Load engine';
-is $engine->destination, 'db:whu:mydb', 'Destination should be URI string';
+is $engine->destination, 'db:whu:', 'Destination should be URI string';
 is $engine->registry_destination, $engine->destination,
     'Rgistry destination should be the same as destination';
 
