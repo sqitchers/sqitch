@@ -3,15 +3,12 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 142;
-#use Test::More 'no_plan';
+use Test::More;
 use App::Sqitch;
-use Locale::TextDomain qw(App-Sqitch);
+use Path::Class qw(dir);
 use Test::Exception;
-use Test::NoWarnings;
-use File::Copy;
-use Path::Class;
-use File::Temp 'tempdir';
+use Test::MockModule;
+use Locale::TextDomain qw(App-Sqitch);
 use lib 't/lib';
 use MockOutput;
 
@@ -19,376 +16,435 @@ $ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
 $ENV{SQITCH_USER_CONFIG}   = 'nonexistent.user';
 $ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
 
-# Circumvent Config::Gitlike bug on Windows.
-# https://rt.cpan.org/Ticket/Display.html?id=96670
-$ENV{HOME} ||= '~';
-
-my $CLASS = 'App::Sqitch::Command::target';
-
-##############################################################################
-# Set up a test directory and config file.
-my $tmp_dir = tempdir CLEANUP => 1;
-
-File::Copy::copy file(qw(t target.conf))->stringify, "$tmp_dir"
-    or die "Cannot copy t/target.conf to $tmp_dir: $!\n";
-chdir $tmp_dir;
-$ENV{SQITCH_CONFIG} = 'target.conf';
-my $psql = 'psql' . ($^O eq 'MSWin32' ? '.exe' : '');
+my $CLASS;
+BEGIN {
+    $CLASS = 'App::Sqitch::Target';
+    use_ok $CLASS or die;
+}
 
 ##############################################################################
-# Load a target command and test the basics.
-ok my $sqitch = App::Sqitch->new, 'Load a sqitch sqitch object';
-my $config = $sqitch->config;
-isa_ok my $cmd = App::Sqitch::Command->load({
-    sqitch  => $sqitch,
-    command => 'target',
-    config  => $config,
-}), $CLASS, 'Target command';
-
-can_ok $cmd, qw(
-    options
-    configure
-    execute
-    list
-    add
-    set_uri
-    set_registry
-    set_client
-    remove
-    rename
-    rm
-    show
+# Load a target and test the basics.
+ok my $sqitch = App::Sqitch->new(options => { engine => 'sqlite'}),
+    'Load a sqitch sqitch object';
+isa_ok my $target = $CLASS->new(sqitch => $sqitch), $CLASS;
+can_ok $target, qw(
+    new
+    name
+    target
+    uri
+    sqitch
+    engine
+    registry
+    client
+    plan_file
+    plan
+    top_dir
+    deploy_dir
+    revert_dir
+    verify_dir
+    extension
 );
 
-is_deeply [$CLASS->options], [qw(
-    registry|r=s
-    client|c=s
-    verbose|v+
-)], 'Options should be correct';
-
-# Check default attribute values.
-is $cmd->verbose,  0,     'Default verbosity should be 0';
-is $cmd->registry, undef, 'Default registry should be undef';
-is $cmd->client,   undef, 'Default client should be undef';
-
-# Make sure configure ignores config file.
-is_deeply $CLASS->configure({ foo => 'bar'}, { hi => 'there' }),
-    { hi => 'there' },
-    'configure() should ignore config file';
-
-##############################################################################
-# Test list().
-ok $cmd->list, 'Run list()';
-is_deeply +MockOutput->get_emit, [['dev'], ['prod'], ['qa']],
-    'The list of targets should have been output';
-
-# Make it verbose.
-isa_ok $cmd = $CLASS->new({ sqitch => $sqitch, verbose => 1 }),
-    $CLASS, 'Verbose target';
-ok $cmd->list, 'Run verbose list()';
-is_deeply +MockOutput->get_emit, [
-    ["dev\tdb:pg:widgets"],
-    ["prod\tdb:pg://prod.example.us/pr_widgets"],
-    ["qa\tdb:pg://qa.example.com/qa_widgets"]
-], 'The list of targets and their URIs should have been output';
+# Look at default values.
+is $target->name, 'db:sqlite:', 'Name should be "db:sqlite:"';
+is $target->target, $target->name, 'Target should be alias for name';
+is $target->uri, URI::db->new('db:sqlite:'), 'URI should be "db:sqlite:"';
+is $target->sqitch, $sqitch, 'Sqitch should be as passed';
+is $target->engine_key, 'sqlite', 'Engine key should be "sqlite"';
+isa_ok $target->engine, 'App::Sqitch::Engine::sqlite', 'Engine';
+is $target->registry, $target->engine->default_registry,
+    'Should have default registry';
+is $target->client, $target->engine->default_client,
+    'Should have default client';
+is $target->top_dir, dir, 'Should have default top_dir';
+is $target->deploy_dir, $target->top_dir->subdir('deploy'),
+    'Should have default deploy_dir';
+is $target->revert_dir, $target->top_dir->subdir('revert'),
+    'Should have default revert_dir';
+is $target->verify_dir, $target->top_dir->subdir('verify'),
+    'Should have default verify_dir';
+is $target->extension, 'sql', 'Should have default extension';
+is $target->plan_file, $target->top_dir->file('sqitch.plan')->cleanup,
+    'Should have default plan file';
+isa_ok $target->plan, 'App::Sqitch::Plan', 'Should get plan';
+is $target->plan->file, $target->plan_file,
+    'Plan file should be copied from Target';
+my $uri = $target->uri;
+is $target->dsn, $uri->dbi_dsn, 'DSN should be from URI';
+is $target->username, $uri->user, 'Username should be from URI';
+is $target->password, $uri->password, 'Password should be from URI';
 
 ##############################################################################
-# Test add().
-MISSINGARGS: {
-    # Test handling of no name.
-    my $mock = Test::MockModule->new($CLASS);
-    my @args;
-    $mock->mock(usage => sub { @args = @_; die 'USAGE' });
-    throws_ok { $cmd->add } qr/USAGE/,
-        'No name arg to add() should yield usage';
-    is_deeply \@args, [$cmd], 'No args should be passed to usage';
+# Let's look at how the object is created based on the params to new().
+# First try no params.
+throws_ok { $CLASS->new } qr/^Missing required arguments:/,
+    'Should get error for missing params';
 
-    @args = ();
-    throws_ok { $cmd->add('foo') } qr/USAGE/,
-        'No URI arg to add() should yield usage';
-    is_deeply \@args, [$cmd], 'No args should be passed to usage';
-}
+# Pass both name and URI.
+$uri = URI::db->new('db:pg://hi:@there@localhost/blah'),
+isa_ok $target = $CLASS->new(
+    sqitch => $sqitch,
+    name   => 'foo',
+    uri    => $uri,
+), $CLASS, 'Target with name and URI';
 
-# Should die on existing key.
-throws_ok { $cmd->add('dev', 'db:pg:') } 'App::Sqitch::X',
-    'Should get error for existing target';
-is $@->ident, 'target', 'Existing target error ident should be "target"';
-is $@->message, __x(
-    'Target "{target}" already exists',
-    target => 'dev'
-), 'Existing target error message should be correct';
+is $target->name, 'foo', 'Name should be "foo"';
+is $target->target, $target->name, 'Target should be alias for name';
+is $target->uri, $uri, 'URI should be set as passed';
+is $target->sqitch, $sqitch, 'Sqitch should be as passed';
+is $target->engine_key, 'pg', 'Engine key should be "pg"';
+isa_ok $target->engine, 'App::Sqitch::Engine::pg', 'Engine';
+is $target->dsn, $uri->dbi_dsn, 'DSN should be from URI';
+is $target->username, $uri->user, 'Username should be from URI';
+is $target->password, $uri->password, 'Password should be from URI';
 
-# Now add a new target.
-ok $cmd->add('test', 'db:pg:test'), 'Add target "test"';
-$config->load;
-is $config->get(key => 'target.test.uri'), 'db:pg:test',
-    'Target "test" URI should have been set';
-is $config->get(key => 'target.test.registry'), undef,
-    'Target "test" should have no registry set';
-is $config->get(key => 'target.test.client'), undef,
-    'Target "test" should have no client set';
+# Pass a URI but no name.
+isa_ok $target = $CLASS->new(
+    sqitch => $sqitch,
+    uri    => $uri,
+), $CLASS, 'Target with URI';
+like $target->name, qr{db:pg://hi:?\@localhost/blah},
+    'Name should be URI without password';
+is $target->target, $target->name, 'Target should be alias for name';
+is $target->engine_key, 'pg', 'Engine key should be "pg"';
+isa_ok $target->engine, 'App::Sqitch::Engine::pg', 'Engine';
+is $target->dsn, $uri->dbi_dsn, 'DSN should be from URI';
+is $target->username, $uri->user, 'Username should be from URI';
+is $target->password, $uri->password, 'Password should be from URI';
 
-# Try adding a target with a registry.
-isa_ok $cmd = $CLASS->new({ sqitch => $sqitch, registry => 'meta' }),
-    $CLASS, 'Target with registry';
-ok $cmd->add('withreg', 'db:pg:withreg'), 'Add target "withreg"';
-$config->load;
-is $config->get(key => 'target.withreg.uri'), 'db:pg:withreg',
-    'Target "withreg" URI should have been set';
-is $config->get(key => 'target.withreg.registry'), 'meta',
-    'Target "withreg" registry should have been set';
+# Set up a config.
+CONSTRUCTOR: {
+    my $mock = Test::MockModule->new('App::Sqitch::Config');
+    my @get_params;
+    my @get_ret;
+    $mock->mock(get => sub { shift; push @get_params => \@_; shift @get_ret; });
 
-# Try a client.
-isa_ok $cmd = $CLASS->new({ sqitch => $sqitch, client => 'hi.exe' }),
-    $CLASS, 'Target with client';
-ok $cmd->add('withcli', 'db:pg:withcli'), 'Add target "withcli"';
-$config->load;
-is $config->get(key => 'target.withcli.uri'), 'db:pg:withcli',
-    'Target "withcli" URI should have been set';
-is $config->get(key => 'target.withcli.registry'), undef,
-    'Target "withcli" registry should not have been set';
-is $config->get(key => 'target.withcli.client'), 'hi.exe',
-    'Target "withcli" should have client set';
+    # Pass neither, but rely on the engine in the Sqitch object.
+    isa_ok my $target = $CLASS->new(sqitch => $sqitch), $CLASS, 'Default target';
+    is $target->name, 'db:sqlite:', 'Name should be "db:sqlite:"';
+    is $target->uri, URI::db->new('db:sqlite:'), 'URI should be "db:sqlite:"';
+    is_deeply \@get_params, [[key => 'core.sqlite.target']],
+        'Should have tried to get engine target';
 
-# Try both.
-isa_ok $cmd = $CLASS->new({ sqitch => $sqitch, client => 'ack', registry => 'foo' }),
-    $CLASS, 'Target with client and registry';
-ok $cmd->add('withboth', 'db:pg:withboth'), 'Add target "withboth"';
-$config->load;
-is $config->get(key => 'target.withboth.uri'), 'db:pg:withboth',
-    'Target "withboth" URI should have been set';
-is $config->get(key => 'target.withboth.registry'), 'foo',
-    'Target "withboth" registry should not been set';
-is $config->get(key => 'target.withboth.client'), 'ack',
-    'Target "withboth" should have client set';
+    # Try with no engine option.
+    @get_params = ();
+    delete $sqitch->options->{engine};
+    push @get_ret => 'mysql';
+    isa_ok $target = $CLASS->new(sqitch => $sqitch), $CLASS, 'Default target';
+    is $target->name, 'db:mysql:', 'Name should be "db:mysql:"';
+    is $target->uri, URI::db->new('db:mysql:'), 'URI should be "db:mysql"';
+    is_deeply \@get_params, [[key => 'core.engine'], [key => 'core.mysql.target']],
+        'Should have tried to get core engine and its target';
 
-##############################################################################
-# Test set_uri().
-MISSINGARGS: {
-    # Test handling of no name.
-    my $mock = Test::MockModule->new($CLASS);
-    my @args;
-    $mock->mock(usage => sub { @args = @_; die 'USAGE' });
-    throws_ok { $cmd->set_uri } qr/USAGE/,
-        'No name arg to set_uri() should yield usage';
-    is_deeply \@args, [$cmd], 'No args should be passed to usage';
+    # Try with no engine option but a name that looks like a URI.
+    @get_params = ();
+    delete $sqitch->options->{engine};
+    isa_ok $target = $CLASS->new(
+        sqitch => $sqitch,
+        name   => 'db:pg:',
+    ), $CLASS, 'Target with URI in name';
+    is $target->name, 'db:pg:', 'Name should be "db:pg:"';
+    is $target->uri, URI::db->new('db:pg:'), 'URI should be "db:pg"';
+    is_deeply \@get_params, [], 'Should have fetched no config';
 
-    @args = ();
-    throws_ok { $cmd->set_uri('foo') } qr/USAGE/,
-        'No URI arg to set_uri() should yield usage';
-    is_deeply \@args, [$cmd], 'No args should be passed to usage';
-}
-
-# Should get an error if the target does not exist.
-throws_ok { $cmd->set_uri('nonexistent', 'db:pg:' ) } 'App::Sqitch::X',
-    'Should get error for nonexistent target';
-is $@->ident, 'target', 'Nonexistent target error ident should be "target"';
-is $@->message, __x(
-    'Unknown target "{target}"',
-    target => 'nonexistent'
-), 'Nonexistent target error message should be correct';
-
-# Set one that exists.
-ok $cmd->set_uri('withboth', 'db:pg:newuri'), 'Set new URI';
-$config->load;
-is $config->get(key => 'target.withboth.uri'), 'db:pg:newuri',
-    'Target "withboth" should have new URI';
-
-# Make sure the URI is a database URI.
-ok $cmd->set_uri('withboth', 'postgres:stuff'), 'Set new URI';
-$config->load;
-is $config->get(key => 'target.withboth.uri'), 'db:postgres:stuff',
-    'Target "withboth" should have new DB URI';
-
-##############################################################################
-# Test set_registry() and set_client.
-for my $key (qw(registry client)) {
-    my $meth = "set_$key";
-    MISSINGARGS: {
-        # Test handling of no name.
-        my $mock = Test::MockModule->new($CLASS);
-        my @args;
-        $mock->mock(usage => sub { @args = @_; die 'USAGE' });
-        throws_ok { $cmd->$meth } qr/USAGE/,
-            "No name arg to $meth() should yield usage";
-        is_deeply \@args, [$cmd], 'No args should be passed to usage';
-
-        @args = ();
-        throws_ok { $cmd->$meth('foo') } qr/USAGE/,
-            "No $key arg to $meth() should yield usage";
-        is_deeply \@args, [$cmd], 'No args should be passed to usage';
-    }
-
-    # Should get an error if the target does not exist.
-    throws_ok { $cmd->$meth('nonexistent', 'shake' ) } 'App::Sqitch::X',
-        'Should get error for nonexistent target';
-    is $@->ident, 'target', 'Nonexistent target error ident should be "target"';
+    # Try it with a name with no engine.
+    throws_ok { $CLASS->new(sqitch => $sqitch, name => 'db:') } 'App::Sqitch::X',
+        'Should have error for no engine in URI';
+    is $@->ident, 'target', 'Should have target ident';
     is $@->message, __x(
-        'Unknown target "{target}"',
-        target => 'nonexistent'
-    ), 'Nonexistent target error message should be correct';
+        'No engine specified by URI {uri}; URI must start with "db:$engine:"',
+        uri => 'db:',
+    ), 'Should have message about no engine-less URI';
 
-    # Set one that exists.
-    ok $cmd->$meth('withboth', 'rock'), 'Set new $key';
-    $config->load;
-    is $config->get(key => "target.withboth.$key"), 'rock',
-        qq{Target "withboth" should have new $key};
+    # Try it with no configured core engine or target.
+    throws_ok { $CLASS->new(sqitch => $sqitch) } 'App::Sqitch::X',
+        'Should have error for no engine or target';
+    is $@->ident, 'target', 'Should have target ident';
+    is $@->message, __(
+        'No engine specified; use --engine or set core.engine'
+    ), 'Should have message about no specified engine';
+
+    # Try with engine-less URI.
+    @get_params = ();
+    isa_ok $target = $CLASS->new(
+        sqitch => $sqitch,
+        uri    => URI::db->new('db:'),
+    ), $CLASS, 'Engineless target';
+    is $target->name, 'db:', 'Name should be "db:"';
+    is $target->uri, URI::db->new('db:'), 'URI should be "db:"';
+    is_deeply \@get_params, [], 'Should not have tried to get engine target';
+
+    is $target->sqitch, $sqitch, 'Sqitch should be as passed';
+    is $target->engine_key, undef, 'Engine key should be undef';
+    throws_ok { $target->engine } 'App::Sqitch::X',
+        'Should get exception for no engine';
+    is $@->ident, 'engine', 'Should have engine ident';
+    is $@->message, __(
+        'No engine specified; use --engine or set core.engine'
+    ), 'Should have message about no engine';
+
+    is $target->top_dir, dir, 'Should have default top_dir';
+    is $target->deploy_dir, $target->top_dir->subdir('deploy'),
+        'Should have default deploy_dir';
+    is $target->revert_dir, $target->top_dir->subdir('revert'),
+        'Should have default revert_dir';
+    is $target->verify_dir, $target->top_dir->subdir('verify'),
+        'Should have default verify_dir';
+    is $target->extension, 'sql', 'Should have default extension';
+    is $target->plan_file, $target->top_dir->file('sqitch.plan')->cleanup,
+        'Should have default plan file';
+    isa_ok $target->plan, 'App::Sqitch::Plan', 'Should get plan';
+    is $target->plan->file, $target->plan_file,
+        'Plan file should be copied from Target';
+    is $target->dsn, '', 'DSN should be empty';
+    is $target->username, undef, 'Username should be undef';
+    is $target->password, undef, 'Password should be undef';
+
+    # Mock get_section.
+    my @sect_params;
+    my @sect_ret = ({});
+    $mock->mock(get_section => sub { shift; push @sect_params => \@_; shift @sect_ret; });
+
+    # Try it with a name.
+    $sqitch->options->{engine} = 'sqlite';
+    @get_params = ();
+    throws_ok { $CLASS->new(sqitch => $sqitch, name => 'foo') } 'App::Sqitch::X',
+        'Should have exception for unknown named target';
+    is $@->ident, 'target', 'Unknown target error ident should be "target"';
+    is $@->message, __x(
+        'Cannot find target "{target}"',
+        target => 'foo',
+    ), 'Unknown target error message should be correct';
+    is_deeply \@get_params, [[key => 'target.foo.uri']],
+        'Should have requested target URI from config';
+    is_deeply \@sect_params, [[section => 'target.foo']],
+        'Should have requested target.foo section';
+
+    # Let the name section exist, but without a URI.
+    @get_params = @sect_params = ();
+    @sect_ret = ({ foo => 1});
+    throws_ok { $CLASS->new(sqitch => $sqitch, name => 'foo') } 'App::Sqitch::X',
+        'Should have exception for URL-less named target';
+    is $@->ident, 'target', 'URL-less target error ident should be "target"';
+    is $@->message, __x(
+        'No URI associated with target "{target}"',
+        target => 'foo',
+    ), 'URL-less target error message should be correct';
+    is_deeply \@get_params, [[key => 'target.foo.uri']],
+        'Should have requested target URI from config';
+    is_deeply \@sect_params, [[section => 'target.foo']],
+        'Should have requested target.foo section';
+
+    # Now give it a URI.
+    @get_params = @sect_params = ();
+    @get_ret = ('db:pg:foo');
+    isa_ok $target = $CLASS->new(sqitch => $sqitch, name => 'foo'), $CLASS,
+        'Named target';
+    is $target->name, 'foo', 'Name should be "foo"';
+    is $target->uri, URI::db->new('db:pg:foo'), 'URI should be "db:pg:foo"';
+    is_deeply \@get_params, [[key => 'target.foo.uri']],
+        'Should have requested target URI from config';
+    is_deeply \@sect_params, [ [section => 'core.pg' ]],
+        'Should have requested pg section';
+
+    # Let the name be looked up by the engine.
+    @get_params = @sect_params = ();
+    @get_ret = ('foo', 'db:sqlite:foo');
+    isa_ok $target = $CLASS->new(sqitch => $sqitch), $CLASS,
+        'Engine named target';
+    is $target->name, 'foo', 'Name should be "foo"';
+    is $target->uri, URI::db->new('db:sqlite:foo'), 'URI should be "db:sqlite:foo"';
+    is_deeply \@get_params, [[key => 'core.sqlite.target'], [key => 'target.foo.uri']],
+        'Should have requested engine target and target URI from config';
+    is_deeply \@sect_params, [ [section => 'core.sqlite' ]],
+        'Should have requested pg section';
+
+    # Make sure deprecated config options work.
+    @sect_ret = ({
+        host     => 'hi.com',
+        port     => 5432,
+        username => 'bob',
+        password => 'ouch',
+        db_name  => 'sharks',
+    });
+    $sqitch->options->{engine}      = 'pg';
+    @get_params = @sect_params = ();
+    $uri = URI::db->new('db:pg://bob:ouch@hi.com:5432/sharks');
+    isa_ok $target = $CLASS->new(sqitch => $sqitch), $CLASS, 'Pg target';
+    is_deeply \@sect_params, [ [section => 'core.pg' ]],
+        'Should have requested pg section';
+    like $target->name, qr{db:pg://bob:?\@hi.com:5432/sharks},
+        'Name should be passwordless stringified URI';
+    is $target->uri, $uri, 'URI should be tweaked by config* options';
+    is_deeply +MockOutput->get_warn, [[__x(
+        'Options {options} deprecated and will be removed in 1.0; use URI {uri} instead',
+        options => 'core.pg.host, core.pg.port, core.pg.username, core.pg.password, core.pg.db_name',
+        uri     => $uri->as_string,
+    )]], 'Should have warned on deprecated config options';
+
+    # Make sure deprecated --db-* options work.
+    @sect_ret = ({
+        host     => 'hi.com',
+        port     => 5432,
+        username => 'bob',
+        password => 'ouch',
+        db_name  => 'sharks',
+    });
+    @get_params = @sect_params = ();
+    $uri = URI::db->new('db:pg://fred:ouch@foo.com:12245/widget');
+    $sqitch->options->{db_host}     = 'foo.com';
+    $sqitch->options->{db_port}     = 12245;
+    $sqitch->options->{db_username} = 'fred';
+    $sqitch->options->{db_name}     = 'widget';
+    isa_ok $target = $CLASS->new(sqitch => $sqitch), $CLASS, 'SQLite target';
+    is_deeply \@sect_params, [ [section => 'core.pg' ]],
+        'Should have requested sqlite section';
+    like $target->name, qr{db:pg://fred:?\@foo.com:12245/widget},
+        'Name should be passwordless stringified URI';
+    is $target->uri, $uri, 'URI should be tweaked by --db-* options';
+    is_deeply +MockOutput->get_warn, [[__x(
+        'Options {options} deprecated and will be removed in 1.0; use URI {uri} instead',
+        options => '--db-host, --db-port, --db-username, core.pg.password, --db-name',
+        uri     => $uri->as_string,
+    )]], 'Should have warned on deprecated options';
 }
 
-##############################################################################
-# Test rename.
-MISSINGARGS: {
-    # Test handling of no names.
-    my $mock = Test::MockModule->new($CLASS);
-    my @args;
-    $mock->mock(usage => sub { @args = @_; die 'USAGE' });
-    throws_ok { $cmd->rename } qr/USAGE/,
-        'No name args to rename() should yield usage';
-    is_deeply \@args, [$cmd], 'No args should be passed to usage';
+CONFIG: {
+    # Look at how attributes are populated from options, config.
+    my $opts = { engine => 'pg' };
+    my $sqitch = App::Sqitch->new(options => $opts);
 
-    @args = ();
-    throws_ok { $cmd->rename('foo') } qr/USAGE/,
-        'No second arg to rename() should yield usage';
-    is_deeply \@args, [$cmd], 'No args should be passed to usage';
+    # Mock config.
+    my $mock = Test::MockModule->new('App::Sqitch::Config');
+    my %config;
+    $mock->mock(get => sub { $config{$_[2]} });
+
+    # Start with core config.
+    %config = (
+        'core.registry'   => 'myreg',
+        'core.client'     => 'pgsql',
+        'core.plan_file'  => 'my.plan',
+        'core.top_dir'    => 'top',
+        'core.deploy_dir' => 'dep',
+        'core.revert_dir' => 'rev',
+        'core.verify_dir' => 'ver',
+        'core.extension'  => 'ddl',
+    );
+    my $target = $CLASS->new(
+        sqitch => $sqitch,
+        name   => 'foo',
+        uri    => URI::db->new('db:pg:foo'),
+    );
+
+    is $target->registry, 'myreg', 'Registry should be "myreg"';
+    is $target->client, 'pgsql', 'Client should be "pgsql"';
+    is $target->plan_file, 'my.plan', 'Plan file should be "my.plan"';
+    isa_ok $target->plan_file, 'Path::Class::File', 'Plan file';
+    isa_ok my $plan = $target->plan, 'App::Sqitch::Plan', 'Plan';
+    is $plan->file, $target->plan_file, 'Plan should use target plan file';
+    is $target->top_dir, 'top', 'Top dir should be "top"';
+    isa_ok $target->top_dir, 'Path::Class::Dir', 'Top dir';
+    is $target->deploy_dir, 'dep', 'Deploy dir should be "dep"';
+    isa_ok $target->deploy_dir, 'Path::Class::Dir', 'Deploy dir';
+    is $target->revert_dir, 'rev', 'Revert dir should be "rev"';
+    isa_ok $target->revert_dir, 'Path::Class::Dir', 'Revert dir';
+    is $target->verify_dir, 'ver', 'Verify dir should be "ver"';
+    isa_ok $target->verify_dir, 'Path::Class::Dir', 'Verify dir';
+    is $target->extension, 'ddl', 'Extension should be "ddl"';
+
+    # Add engine config.
+    $config{'core.pg.registry'}   = 'yoreg';
+    $config{'core.pg.client'}     = 'mycli';
+    $config{'core.pg.plan_file'}  = 'pg.plan';
+    $config{'core.pg.top_dir'}    = 'pg';
+    $config{'core.pg.deploy_dir'} = 'pgdep';
+    $config{'core.pg.revert_dir'} = 'pgrev';
+    $config{'core.pg.verify_dir'} = 'pgver';
+    $config{'core.pg.extension'}  = 'pgddl';
+    $target = $CLASS->new(
+        sqitch => $sqitch,
+        name   => 'foo',
+        uri    => URI::db->new('db:pg:foo'),
+    );
+
+    is $target->registry, 'yoreg', 'Registry should be "yoreg"';
+    is $target->client, 'mycli', 'Client should be "mycli"';
+    is $target->plan_file, 'pg.plan', 'Plan file should be "pg.plan"';
+    isa_ok $target->plan_file, 'Path::Class::File', 'Plan file';
+    isa_ok $plan = $target->plan, 'App::Sqitch::Plan', 'Plan';
+    is $plan->file, $target->plan_file, 'Plan should use target plan file';
+    is $target->top_dir, 'pg', 'Top dir should be "pg"';
+    isa_ok $target->top_dir, 'Path::Class::Dir', 'Top dir';
+    is $target->deploy_dir, 'pgdep', 'Deploy dir should be "pgdep"';
+    isa_ok $target->deploy_dir, 'Path::Class::Dir', 'Deploy dir';
+    is $target->revert_dir, 'pgrev', 'Revert dir should be "pgrev"';
+    isa_ok $target->revert_dir, 'Path::Class::Dir', 'Revert dir';
+    is $target->verify_dir, 'pgver', 'Verify dir should be "pgver"';
+    isa_ok $target->verify_dir, 'Path::Class::Dir', 'Verify dir';
+    is $target->extension, 'pgddl', 'Extension should be "pgddl"';
+
+    # Add target config.
+    $config{'target.foo.registry'}   = 'fooreg';
+    $config{'target.foo.client'}     = 'foocli';
+    $config{'target.foo.plan_file'}  = 'foo.plan';
+    $config{'target.foo.top_dir'}    = 'foo';
+    $config{'target.foo.deploy_dir'} = 'foodep';
+    $config{'target.foo.revert_dir'} = 'foorev';
+    $config{'target.foo.verify_dir'} = 'foover';
+    $config{'target.foo.extension'}  = 'fooddl';
+    $target = $CLASS->new(
+        sqitch => $sqitch,
+        name   => 'foo',
+        uri    => URI::db->new('db:pg:foo'),
+    );
+
+    is $target->registry, 'fooreg', 'Registry should be "fooreg"';
+    is $target->client, 'foocli', 'Client should be "foocli"';
+    is $target->plan_file, 'foo.plan', 'Plan file should be "foo.plan"';
+    isa_ok $target->plan_file, 'Path::Class::File', 'Plan file';
+    isa_ok $plan = $target->plan, 'App::Sqitch::Plan', 'Plan';
+    is $plan->file, $target->plan_file, 'Plan should use target plan file';
+    is $target->top_dir, 'foo', 'Top dir should be "foo"';
+    isa_ok $target->top_dir, 'Path::Class::Dir', 'Top dir';
+    is $target->deploy_dir, 'foodep', 'Deploy dir should be "foodep"';
+    isa_ok $target->deploy_dir, 'Path::Class::Dir', 'Deploy dir';
+    is $target->revert_dir, 'foorev', 'Revert dir should be "foorev"';
+    isa_ok $target->revert_dir, 'Path::Class::Dir', 'Revert dir';
+    is $target->verify_dir, 'foover', 'Verify dir should be "foover"';
+    isa_ok $target->verify_dir, 'Path::Class::Dir', 'Verify dir';
+    is $target->extension, 'fooddl', 'Extension should be "fooddl"';
+
+    # Add command-line options.
+    $opts->{registry}   = 'optreg';
+    $opts->{client}     = 'optcli';
+    $opts->{plan_file}  = 'opt.plan';
+    $opts->{top_dir}    = 'top.dir';
+    $opts->{deploy_dir} = 'dep.dir';
+    $opts->{revert_dir} = 'rev.dir';
+    $opts->{verify_dir} = 'ver.dir';
+    $opts->{extension}  = 'opt';
+    $target = $CLASS->new(
+        sqitch => $sqitch,
+        name   => 'foo',
+        uri    => URI::db->new('db:pg:foo'),
+    );
+
+    is $target->registry, 'optreg', 'Registry should be "optreg"';
+    is $target->client, 'optcli', 'Client should be "optcli"';
+    is $target->plan_file, 'opt.plan', 'Plan file should be "opt.plan"';
+    isa_ok $target->plan_file, 'Path::Class::File', 'Plan file';
+    isa_ok $plan = $target->plan, 'App::Sqitch::Plan', 'Plan';
+    is $plan->file, $target->plan_file, 'Plan should use target plan file';
+    is $target->top_dir, 'top.dir', 'Top dir should be "top.dir"';
+    isa_ok $target->top_dir, 'Path::Class::Dir', 'Top dir';
+    is $target->deploy_dir, 'dep.dir', 'Deploy dir should be "dep.dir"';
+    isa_ok $target->deploy_dir, 'Path::Class::Dir', 'Deploy dir';
+    is $target->revert_dir, 'rev.dir', 'Revert dir should be "rev.dir"';
+    isa_ok $target->revert_dir, 'Path::Class::Dir', 'Revert dir';
+    is $target->verify_dir, 'ver.dir', 'Verify dir should be "ver.dir"';
+    isa_ok $target->verify_dir, 'Path::Class::Dir', 'Verify dir';
+    is $target->extension, 'opt', 'Extension should be "opt"';
 }
 
-# Should get an error if the target does not exist.
-throws_ok { $cmd->rename('nonexistent', 'existant' ) } 'App::Sqitch::X',
-    'Should get error for nonexistent target';
-is $@->ident, 'target', 'Nonexistent target error ident should be "target"';
-is $@->message, __x(
-    'Unknown target "{target}"',
-    target => 'nonexistent'
-), 'Nonexistent target error message should be correct';
+done_testing;
 
-# Rename one that exists.
-ok $cmd->rename('withboth', 'àlafois'), 'Rename';
-$config->load;
-is $config->get(key => "target.àlafois.uri"), 'db:postgres:stuff',
-    qq{Target "àlafois" should now be present};
-is $config->get(key => "target.withboth.uri"), undef,
-    qq{Target "withboth" should no longer be present};
-
-##############################################################################
-# Test remove.
-MISSINGARGS: {
-    # Test handling of no names.
-    my $mock = Test::MockModule->new($CLASS);
-    my @args;
-    $mock->mock(usage => sub { @args = @_; die 'USAGE' });
-    throws_ok { $cmd->remove } qr/USAGE/,
-        'No name args to remove() should yield usage';
-    is_deeply \@args, [$cmd], 'No args should be passed to usage';
-}
-
-# Should get an error if the target does not exist.
-throws_ok { $cmd->remove('nonexistent', 'existant' ) } 'App::Sqitch::X',
-    'Should get error for nonexistent target';
-is $@->ident, 'target', 'Nonexistent target error ident should be "target"';
-is $@->message, __x(
-    'Unknown target "{target}"',
-    target => 'nonexistent'
-), 'Nonexistent target error message should be correct';
-
-# Remove one that exists.
-ok $cmd->remove('àlafois'), 'Remove';
-$config->load;
-is $config->get(key => "target.àlafois.uri"), undef,
-    qq{Target "àlafois" should now be gone};
-
-##############################################################################
-# Test show.
-ok $cmd->show, 'Run show()';
-is_deeply +MockOutput->get_emit, [
-    ['dev'], ['prod'], ['qa'], ['test'], ['withcli'], ['withreg']
-], 'Show with no names should emit the list of targets';
-
-# Try one target.
-ok $cmd->show('dev'), 'Show dev';
-is_deeply +MockOutput->get_emit, [
-    ['* dev'],
-    ['  ', 'URI:      ', 'db:pg:widgets'],
-    ['  ', 'Registry: ', 'sqitch'],
-    ['  ', 'Client:   ', $psql],
-], 'The "dev" target should have been shown';
-
-# Try a target with a non-default client.
-ok $cmd->show('withcli'), 'Show withcli';
-is_deeply +MockOutput->get_emit, [
-    ['* withcli'],
-    ['  ', 'URI:      ', 'db:pg:withcli'],
-    ['  ', 'Registry: ', 'sqitch'],
-    ['  ', 'Client:   ', 'hi.exe'],
-], 'The "with_cli" target should have been shown';
-
-# Try a target with a non-default registry.
-ok $cmd->show('withreg'), 'Show withreg';
-is_deeply +MockOutput->get_emit, [
-    ['* withreg'],
-    ['  ', 'URI:      ', 'db:pg:withreg'],
-    ['  ', 'Registry: ', 'meta'],
-    ['  ', 'Client:   ', $psql],
-], 'The "with_reg" target should have been shown';
-
-# Try multiples.
-ok $cmd->show(qw(dev qa withreg)), 'Show three targets';
-is_deeply +MockOutput->get_emit, [
-    ['* dev'],
-    ['  ', 'URI:      ', 'db:pg:widgets'],
-    ['  ', 'Registry: ', 'sqitch'],
-    ['  ', 'Client:   ', $psql],
-    ['* qa'],
-    ['  ', 'URI:      ', 'db:pg://qa.example.com/qa_widgets'],
-    ['  ', 'Registry: ', 'meta'],
-    ['  ', 'Client:   ', '/usr/sbin/psql'],
-    ['* withreg'],
-    ['  ', 'URI:      ', 'db:pg:withreg'],
-    ['  ', 'Registry: ', 'meta'],
-    ['  ', 'Client:   ', $psql],
-], 'All three targets should have been shown';
-
-##############################################################################
-# Test execute().
-isa_ok $cmd = $CLASS->new({ sqitch => $sqitch }), $CLASS, 'Simple target';
-for my $spec (
-    [ undef,          'list'   ],
-    [ 'list'                   ],
-    [ 'add'                    ],
-    [ 'set-uri'                ],
-    [ 'set-url',     'set_uri' ],
-    [ 'set-registry'           ],
-    [ 'set-client'             ],
-    [ 'remove'                 ],
-    [ 'rm',          'remove'  ],
-    [ 'rename'                 ],
-    [ 'show'                   ],
-) {
-    my ($arg, $meth) = @{ $spec };
-    $meth //= $arg;
-    $meth =~ s/-/_/g;
-    my $mocker = Test::MockModule->new($CLASS);
-    my @args;
-    $mocker->mock($meth => sub { @args = @_ });
-    ok $cmd->execute($spec->[0]), "Execute " . ($spec->[0] // 'undef');
-    is_deeply \@args, [$cmd], "$meth() should have been called";
-
-    # Make sure args are passed.
-    ok $cmd->execute($spec->[0], qw(foo bar)),
-        "Execute " . ($spec->[0] // 'undef') . ' with args';
-    is_deeply \@args, [$cmd, qw(foo bar)],
-        "$meth() should have been passed args";
-}
-
-# Make sure an invalid action dies with a usage statement.
-MISSINGARGS: {
-    # Test handling of no names.
-    my $mock = Test::MockModule->new($CLASS);
-    my @args;
-    $mock->mock(usage => sub { @args = @_; die 'USAGE' });
-    throws_ok { $cmd->execute('nonexistent') } qr/USAGE/,
-        'Should get an exception for a nonexistent action';
-    is_deeply \@args, [$cmd, __x(
-        'Unknown action "{action}"',
-        action => 'nonexistent',
-    )], 'Nonexistent action message should be passed to usage';
-}

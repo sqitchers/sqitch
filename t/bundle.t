@@ -75,7 +75,7 @@ chdir 't';
 $ENV{SQITCH_CONFIG} = 'sqitch.conf';
 END { remove_tree 'bundle' if -d 'bundle' }
 ok $sqitch = App::Sqitch->new(
-    top_dir => dir 'sql',
+    options => { top_dir => dir('sql')->stringify },
 ), 'Load a sqitch object with top_dir';
 $config = $sqitch->config;
 my $dir = dir qw(_build sql);
@@ -102,7 +102,7 @@ for my $sub (qw(deploy revert verify)) {
 
 # Try engine project.
 ok $sqitch = App::Sqitch->new(
-    top_dir => dir 'engine',
+    options => { top_dir => dir('engine')->stringify },
 ), 'Load a sqitch object with engine top_dir';
 isa_ok $bundle = App::Sqitch::Command->load({
     sqitch  => $sqitch,
@@ -255,7 +255,7 @@ isa_ok $bundle = App::Sqitch::Command->load({
 }), $CLASS, '--from bundle command';
 is $bundle->from, 'widgets', 'From should be "widgets"';
 ok $bundle->bundle_plan, 'Bundle the plan file with --from';
-my $plan = $sqitch->plan;
+my $plan = $bundle->default_target->plan;
 is_deeply +MockOutput->get_info, [[__x(
     'Writing plan from {from} to {to}',
     from => 'widgets',
@@ -303,8 +303,10 @@ my @files = (
 );
 file_not_exists_ok $_ for @files;
 ok $sqitch = App::Sqitch->new(
-    extension => 'sql',
-    top_dir => dir 'engine',
+    options => {
+        extension => 'sql',
+        top_dir   => dir('engine')->stringify,
+    },
 ), 'Load engine sqitch object';
 isa_ok $bundle = App::Sqitch::Command->load({
     sqitch  => $sqitch,

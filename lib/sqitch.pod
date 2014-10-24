@@ -200,24 +200,25 @@ User who adds a change to the plan.
 
 =head1 Options
 
-  -f --plan-file  FILE    Path to a deployment plan file.
-     --engine     ENGINE  Database engine.
-     --db-client  PATH    Path to the engine command-line client.
-  -d --db-name    NAME    Database name.
-  -u --db-user    USER    Database user name.
-  -h --db-host    HOST    Database server host name.
-  -p --db-port    PORT    Database server port number.
-     --top-dir    DIR     Path to directory with plan and scripts.
-     --deploy-dir DIR     Path to directory with deployment scripts.
-     --revert-dir DIR     Path to directory with reversion scripts.
-     --verify-dir DIR     Path to directory with verify scripts.
-     --extension  EXT     SQL script file name extension.
-     --etc-path           Print the path to the etc directory and exit.
-     --quiet              Quiet mode with non-error output suppressed.
-  -v --verbose            Increment verbosity.
-     --version            Print the version number and exit.
-     --help               Show a list of commands and exit.
-     --man                Print the introductory documentation and exit.
+  -f --plan-file  FILE      Path to a deployment plan file.
+     --engine     ENGINE    Database engine.
+     --registry   REGISTRY  Registry schema or database.
+     --db-client  PATH      Path to the engine command-line client.
+  -d --db-name    NAME      Database name.
+  -u --db-user    USER      Database user name.
+  -h --db-host    HOST      Database server host name.
+  -p --db-port    PORT      Database server port number.
+     --top-dir    DIR       Path to directory with plan and scripts.
+     --deploy-dir DIR       Path to directory with deployment scripts.
+     --revert-dir DIR       Path to directory with reversion scripts.
+     --verify-dir DIR       Path to directory with verify scripts.
+     --extension  EXT       SQL script file name extension.
+     --etc-path             Print the path to the etc directory and exit.
+     --quiet                Quiet mode with non-error output suppressed.
+  -v --verbose              Increment verbosity.
+     --version              Print the version number and exit.
+     --help                 Show a list of commands and exit.
+     --man                  Print the introductory documentation and exit.
 
 =head1 Options Details
 
@@ -253,9 +254,18 @@ The database engine to use. Supported engines include:
 
 =back
 
+=item C<--registry>
+
+  sqitch --registry registry
+
+The name of the Sqitch registry schema or database. Sqitch will store its own
+data here.
+
+=item C<--client>
+
 =item C<--db-client>
 
-  sqitch --db-client /usr/local/pgsql/bin/psql
+  sqitch --client /usr/local/pgsql/bin/psql
 
 Path to the command-line client for the database engine. Defaults to a client
 in the current path named appropriately for the specified engine.

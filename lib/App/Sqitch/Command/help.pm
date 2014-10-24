@@ -76,6 +76,12 @@ works, read on.
 
 =head1 Interface
 
+=head2 Attributes
+
+=head3 C<guide>
+
+Boolean indicating whether to list the guides.
+
 =head2 Instance Methods
 
 =head3 C<execute>

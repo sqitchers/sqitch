@@ -9,6 +9,7 @@ use Test::More tests => 326;
 use Test::Exception;
 #use Test::NoWarnings;
 use App::Sqitch;
+use App::Sqitch::Target;
 use App::Sqitch::Plan;
 use Locale::TextDomain qw(App-Sqitch);
 
@@ -23,10 +24,12 @@ BEGIN {
     require_ok $CLASS or die;
 }
 
-ok my $sqitch = App::Sqitch->new(
-    top_dir => Path::Class::Dir->new(qw(t sql)),
-), 'Load a sqitch sqitch object';
-my $plan = App::Sqitch::Plan->new(sqitch => $sqitch, project => 'depend');
+ok my $sqitch = App::Sqitch->new(options => {
+    engine => 'sqlite',
+    top_dir => Path::Class::Dir->new(qw(t sql))->stringify,
+}), 'Load a sqitch sqitch object';
+my $target = App::Sqitch::Target->new( sqitch => $sqitch );
+my $plan = App::Sqitch::Plan->new(sqitch => $sqitch, project => 'depend', target => $target);
 
 can_ok $CLASS, qw(
     conflicts
@@ -206,7 +209,7 @@ is $@->ident, 'plan', 'Nonexistent change error ident should be "plan"';
 is $@->message, __x(
     'Unable to find change "{change}" in plan {file}',
     change => 'nonexistent',
-    file   => $plan->sqitch->plan_file,
+    file   => $target->plan_file,
 ), 'Nonexistent change error message should be correct';
 
 ##############################################################################

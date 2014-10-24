@@ -8,6 +8,7 @@ use Test::More tests => 10;
 #use Test::More 'no_plan';
 use Test::NoWarnings;
 use App::Sqitch;
+use App::Sqitch::Target;
 use App::Sqitch::Plan;
 
 $ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
@@ -33,8 +34,9 @@ can_ok $CLASS, qw(
     value
 );
 
-my $sqitch = App::Sqitch->new;
-my $plan   = App::Sqitch::Plan->new(sqitch => $sqitch);
+my $sqitch = App::Sqitch->new(options => { engine => 'sqlite' });
+my $target = App::Sqitch::Target->new(sqitch => $sqitch);
+my $plan   = App::Sqitch::Plan->new(sqitch => $sqitch, target => $target);
 isa_ok my $dir = $CLASS->new(
     name  => 'foo',
     plan  => $plan,

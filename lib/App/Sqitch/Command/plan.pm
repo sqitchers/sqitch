@@ -175,7 +175,7 @@ sub configure {
 
 sub execute {
     my $self   = shift;
-    my $plan = $self->plan;
+    my $plan = $self->default_target->plan;
 
     # Exit with status 1 on no changes, probably not expected.
     hurl {
@@ -183,7 +183,7 @@ sub execute {
         exitval => 1,
         message => __x(
             'No changes in {file}',
-            file => $self->sqitch->plan_file,
+            file => $plan->file,
         ),
     } unless $plan->count;
 
@@ -201,7 +201,7 @@ sub execute {
     my $formatter = $self->formatter;
     my $format    = $self->format;
     $self->page( '# ', __x 'Project: {project}', project => $plan->project );
-    $self->page( '# ', __x 'File:    {file}', file => $self->sqitch->plan_file );
+    $self->page( '# ', __x 'File:    {file}', file => $plan->file );
     $self->page('');
     while ( my $change = $iter->() ) {
         $self->page( $formatter->format( $format, {

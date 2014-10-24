@@ -27,8 +27,8 @@ sub options {
 
 sub execute {
     my ( $self, $name, $change ) = @_;
-    my $sqitch = $self->sqitch;
-    my $plan   = $sqitch->plan;
+    my $target = $self->default_target;
+    my $plan   = $target->plan;
 
     if (defined $name) {
         my $tag = $plan->tag(
@@ -41,7 +41,7 @@ sub execute {
         $tag->request_note( for => __ 'tag');
 
         # We good, write the plan file back out.
-        $plan->write_to( $sqitch->plan_file );
+        $plan->write_to( $target->plan_file );
         $self->info(__x(
             'Tagged "{change}" with {tag}',
             change => $tag->change->format_name,

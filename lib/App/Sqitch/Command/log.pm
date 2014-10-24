@@ -193,13 +193,17 @@ sub configure {
 sub execute {
     my ( $self, $target ) = @_;
 
-    # Warn on multiple targets.
-    $self->warn(__x(
-        'Both the --target option and the target argument passed; using {option}',
-        option => $self->target,
-    )) if $target && $self->target;
-
-    my $engine = $self->engine_for_target($self->target // $target);
+    if (my $t = $self->target // $target) {
+        $self->warn(__x(
+            'Both the --target option and the target argument passed; using {option}',
+            option => $self->target,
+        )) if $target && $self->target;
+        require App::Sqitch::Target;
+        $target = App::Sqitch::Target->new(sqitch => $self->sqitch, name => $t);
+    } else {
+        $target = $self->default_target;
+    }
+    my $engine = $target->engine;
 
     # Exit with status 1 on uninitialized database, probably not expected.
     hurl {

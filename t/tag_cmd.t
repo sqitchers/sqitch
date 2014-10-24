@@ -19,7 +19,9 @@ $ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
 my $CLASS = 'App::Sqitch::Command::tag';
 
 ok my $sqitch = App::Sqitch->new(
-    top_dir => Path::Class::Dir->new('test-tag_cmd'),
+    options => {
+        top_dir => Path::Class::Dir->new('test-tag_cmd')->stringify,
+    },
 ), 'Load a sqitch sqitch object';
 my $config = $sqitch->config;
 isa_ok my $tag = App::Sqitch::Command->load({
@@ -41,7 +43,7 @@ is_deeply [$CLASS->options], [qw(
 
 make_path 'test-tag_cmd';
 END { remove_tree 'test-tag_cmd' };
-my $plan_file = $sqitch->plan_file;
+my $plan_file = $tag->default_target->plan_file;
 my $fh = $plan_file->open('>') or die "Cannot open $plan_file: $!";
 say $fh "%project=empty\n\n";
 $fh->close or die "Error closing $plan_file: $!";
@@ -54,7 +56,7 @@ $tag_mocker->mock(request_note => sub {
     %request_params = @_;
 });
 
-my $plan = $sqitch->plan;
+my $plan = $tag->default_target->plan;
 ok $plan->add( name => 'foo' ), 'Add change "foo"';
 
 ok $tag->execute('alpha'), 'Tag @alpha';
@@ -93,6 +95,7 @@ isa_ok $tag = App::Sqitch::Command::tag->new({
     sqitch => $sqitch,
     note   => [qw(hello there)],
 }), $CLASS, 'tag command with note';
+$plan = $tag->default_target->plan;
 
 ok $tag->execute( 'gamma' ), 'Tag @gamma';
 is $plan->get('@gamma')->name, 'foo', 'Gamma tag should be on change "foo"';
@@ -115,6 +118,7 @@ isa_ok $tag = App::Sqitch::Command::tag->new({
     sqitch => $sqitch,
     note   => ['here we go'],
 }), $CLASS, 'tag command with note';
+$plan = $tag->default_target->plan;
 
 ok $plan->add( name => 'bar' ), 'Add change "bar"';
 ok $plan->add( name => 'baz' ), 'Add change "baz"';

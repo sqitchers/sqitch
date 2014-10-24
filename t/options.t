@@ -95,7 +95,8 @@ HELP: {
 my $opts = $CLASS->_parse_core_opts([
     '--plan-file'  => 'plan.txt',
     '--engine'     => 'pg',
-    '--db-client'  => 'psql',
+    '--registry'   => 'reg',
+    '--client'     => 'psql',
     '--db-name'    => 'try',
     '--db-user'    => 'bob',
     '--db-host'    => 'local',
@@ -111,7 +112,8 @@ my $opts = $CLASS->_parse_core_opts([
 is_deeply $opts, {
     'plan_file'   => 'plan.txt',
     'engine'      => 'pg',
-    'db_client'   => 'psql',
+    'registry'    => 'reg',
+    'client'      => 'psql',
     'db_name'     => 'try',
     'db_username' => 'bob',
     'db_host'     => 'local',

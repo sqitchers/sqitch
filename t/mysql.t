@@ -5,6 +5,7 @@ use warnings;
 use 5.010;
 use Test::More;
 use App::Sqitch;
+use App::Sqitch::Target;
 use Test::MockModule;
 use Path::Class;
 use Try::Tiny;
@@ -31,8 +32,9 @@ is_deeply [$CLASS->config_vars], [
     client   => 'any',
 ], 'config_vars should return three vars';
 
-my $sqitch = App::Sqitch->new(_engine => 'mysql');
-isa_ok my $mysql = $CLASS->new(sqitch => $sqitch), $CLASS;
+my $sqitch = App::Sqitch->new( options => { engine => 'mysql'} );
+my $target = App::Sqitch::Target->new(sqitch => $sqitch);
+isa_ok my $mysql = $CLASS->new(sqitch => $sqitch, target => $target), $CLASS;
 
 my $client = 'mysql' . ($^O eq 'MSWin32' ? '.exe' : '');
 my $uri = URI::db->new('db:mysql:');
@@ -62,9 +64,13 @@ is_deeply $warning, [__x
 ], 'Should have emitted a warning for no database name';
 $mock_sqitch->unmock_all;
 
-isa_ok $mysql = $CLASS->new(
+$target = App::Sqitch::Target->new(
     sqitch => $sqitch,
     uri => URI::db->new('db:mysql:foo'),
+);
+isa_ok $mysql = $CLASS->new(
+    sqitch => $sqitch,
+    target => $target,
 ), $CLASS;
 ok $mysql->set_variables(foo => 'baz', whu => 'hi there', yo => 'stellar'),
     'Set some variables';
@@ -87,11 +93,13 @@ my %config = (
 my $mock_config = Test::MockModule->new('App::Sqitch::Config');
 $mock_config->mock(get => sub { $config{ $_[2] } });
 
-ok $mysql = $CLASS->new(sqitch => $sqitch), 'Create another mysql';
+$target = App::Sqitch::Target->new(sqitch => $sqitch);
+ok $mysql = $CLASS->new(sqitch => $sqitch, target => $target),
+    'Create another mysql';
 is $mysql->client, '/path/to/mysql', 'client should be as configured';
 is $mysql->uri->as_string, 'db:mysql://foo.com/widgets',
     'URI should be as configured';
-is $mysql->target, $mysql->uri->as_string, 'target should be the URI';
+is $mysql->target->name, $mysql->uri->as_string, 'target name should be the URI';
 is $mysql->destination, $mysql->uri->as_string, 'destination should be the URI';
 is $mysql->registry, 'meta', 'registry should be as configured';
 is $mysql->registry_uri->as_string, 'db:mysql://foo.com/meta',
@@ -105,71 +113,29 @@ is_deeply [$mysql->mysql], [qw(
 ), @std_opts], 'mysql command should be configured';
 
 ##############################################################################
-# Make sure the deprecated configs are also respected.
-%config = (
-    'core.mysql.client'    => '/path/to/mysql',
-    'core.mysql.username'  => 'freddy',
-    'core.mysql.password'  => 's3cr3t',
-    'core.mysql.db_name'   => 'widgets',
-    'core.mysql.host'      => 'db.example.com',
-    'core.mysql.port'      => 1234,
-    'core.mysql.registry'  => 'meta',
-);
-
-ok $mysql = $CLASS->new(sqitch => $sqitch), 'Create yet another mysql';
-is $mysql->client, '/path/to/mysql', 'client should be as configured';
-is $mysql->uri->as_string, 'db:mysql://freddy:s3cr3t@db.example.com:1234/widgets',
-    'URI should be as configured';
-is $mysql->target, $mysql->uri->as_string, 'target should be the URI string';
-like $mysql->destination, qr{^db:mysql://freddy"?:\@db\.example\.com:1234/widgets$},
-    'destination should be the URI minus the password';
-is $mysql->registry, 'meta', 'registry should be as configured';
-is $mysql->registry_uri->as_string, 'db:mysql://freddy:s3cr3t@db.example.com:1234/meta',
-    'Sqitch DB URI should be the same as uri but with DB name "meta"';
-like $mysql->registry_destination, qr{^db:mysql://freddy:?\@db\.example\.com:1234/meta$},
-    'registry_destination should be the sqitch DB URL sans password';
-is_deeply [$mysql->mysql], [qw(
-    /path/to/mysql
-    --user     freddy
-    --database widgets
-    --host     db.example.com
-    --port     1234
-    --password=s3cr3t
-), @std_opts], 'mysql command should be configured';
-
-##############################################################################
 # Now make sure that Sqitch options override configurations.
 $sqitch = App::Sqitch->new(
-    _engine      => 'mysql',
-    db_client   => '/some/other/mysql',
-    db_username => 'anna',
-    db_name     => 'widgets_dev',
-    db_host     => 'foo.com',
-    db_port     => 98760,
+    options => {
+        engine   => 'mysql',
+        client   => '/some/other/mysql',
+    },
 );
 
-ok $mysql = $CLASS->new(sqitch => $sqitch),
+$target = App::Sqitch::Target->new(sqitch => $sqitch);
+ok $mysql = $CLASS->new(sqitch => $sqitch, target => $target),
     'Create a mysql with sqitch with options';
 
 is $mysql->client, '/some/other/mysql', 'client should be as optioned';
-is $mysql->uri->as_string, 'db:mysql://anna:s3cr3t@foo.com:98760/widgets_dev',
-    'The DB URI should be as optioned';
-is $mysql->target, $mysql->uri->as_string, 'target should be the URI stringified';
-like $mysql->destination, qr{^db:mysql://anna:?\@foo\.com:98760/widgets_dev$},
-    'destination should be the URI minus the password';
 is $mysql->registry, 'meta', 'registry should be as configured';
-is $mysql->registry_uri->as_string, 'db:mysql://anna:s3cr3t@foo.com:98760/meta',
+is $mysql->registry_uri->as_string, 'db:mysql://foo.com/meta',
     'Sqitch DB URI should be the same as uri but with DB name "meta"';
-like $mysql->registry_destination, qr{^db:mysql://anna:?\@foo\.com:98760/meta$},
+is $mysql->registry_destination, 'db:mysql://foo.com/meta',
     'registry_destination should be the sqitch DB URL sans password';
 is $mysql->registry, 'meta', 'registry should still be as configured';
 is_deeply [$mysql->mysql], [qw(
     /some/other/mysql
-    --user     anna
-    --database widgets_dev
+    --database widgets
     --host     foo.com
-    --port     98760
-    --password=s3cr3t
 ), @std_opts], 'mysql command should be as optioned';
 
 ##############################################################################
@@ -177,6 +143,7 @@ is_deeply [$mysql->mysql], [qw(
 can_ok $mysql, qw(_run _capture _spool);
 my (@run, $exp_pass);
 $mock_sqitch->mock(run => sub {
+    local $Test::Builder::Level = $Test::Builder::Level + 2;
     shift;
     @run = @_;
     if (defined $exp_pass) {
@@ -188,6 +155,7 @@ $mock_sqitch->mock(run => sub {
 
 my @capture;
 $mock_sqitch->mock(capture => sub {
+    local $Test::Builder::Level = $Test::Builder::Level + 2;
     shift;
     @capture = @_;
     if (defined $exp_pass) {
@@ -199,6 +167,7 @@ $mock_sqitch->mock(capture => sub {
 
 my @spool;
 $mock_sqitch->mock(spool => sub {
+    local $Test::Builder::Level = $Test::Builder::Level + 2;
     shift;
     @spool = @_;
     if (defined $exp_pass) {
@@ -209,6 +178,7 @@ $mock_sqitch->mock(spool => sub {
 });
 
 $exp_pass = 's3cr3t';
+$target->uri->password($exp_pass);
 ok $mysql->_run(qw(foo bar baz)), 'Call _run';
 is_deeply \@run, [$mysql->mysql, qw(foo bar baz)],
     'Command should be passed to run()';
@@ -222,8 +192,9 @@ is_deeply \@capture, [$mysql->mysql, qw(foo bar baz)],
     'Command should be passed to capture()';
 
 # Remove the password.
-delete $config{'core.mysql.password'};
-ok $mysql = $CLASS->new(sqitch => $sqitch), 'Create a mysql with sqitch with no pw';
+$target->uri->password(undef);
+ok $mysql = $CLASS->new(sqitch => $sqitch, target => $target),
+    'Create a mysql with sqitch with no pw';
 $exp_pass = undef;
 ok $mysql->_run(qw(foo bar baz)), 'Call _run again';
 is_deeply \@run, [$mysql->mysql, qw(foo bar baz)],
@@ -323,15 +294,19 @@ my $err = try {
 
 DBIEngineTest->run(
     class         => $CLASS,
-    sqitch_params => [
-        _engine     => 'mysql',
-        db_username => 'root',
-        db_name     => '__sqitchtest__',
-        top_dir     => Path::Class::dir(qw(t engine)),
-        plan_file   => Path::Class::file(qw(t engine sqitch.plan)),
+    sqitch_params => [options => {
+        engine      => 'mysql',
+        top_dir     => Path::Class::dir(qw(t engine))->stringify,
+        plan_file   => Path::Class::file(qw(t engine sqitch.plan))->stringify,
+    }],
+    target_params     => [
+        registry => '__metasqitch',
+        uri => URI::db->new('db:mysql://root@/__sqitchtest__'),
     ],
-    engine_params     => [ registry => '__metasqitch' ],
-    alt_engine_params => [ registry => '__sqitchtest' ],
+    alt_target_params => [
+        registry => '__sqitchtest',
+        uri => URI::db->new('db:mysql://root@/__sqitchtest__'),
+    ],
     skip_unless       => sub {
         my $self = shift;
         die $err if $err;

@@ -46,8 +46,15 @@ sub run {
             user_name  => $user1_name,
             user_email => $user1_email,
         );
-
-        my $engine = $class->new(sqitch => $sqitch, @{ $p{engine_params} || [] });
+        my $target = App::Sqitch::Target->new(
+            sqitch => $sqitch,
+            @{ $p{target_params} || [] },
+        );
+        my $engine = $class->new(
+            sqitch => $sqitch,
+            target => $target,
+            @{ $p{engine_params} || [] },
+        );
         if (my $code = $p{skip_unless}) {
             try {
                 $code->( $engine ) || die 'NO';
@@ -67,8 +74,13 @@ sub run {
         ok $engine->initialized, 'Database should now be initialized';
 
         # Try it with a different Sqitch DB.
+        $target = App::Sqitch::Target->new(
+            sqitch => $sqitch,
+            @{ $p{alt_target_params} || [] },
+        );
         ok $engine = $class->new(
             sqitch    => $sqitch,
+            target => $target,
             @{ $p{alt_engine_params} || [] },
         ), 'Create engine with alternate params';
 
@@ -134,7 +146,7 @@ sub run {
 
         # Register a different project name.
         MOCKPROJECT: {
-            my $plan_mocker = Test::MockModule->new(ref $sqitch->plan );
+            my $plan_mocker = Test::MockModule->new(ref $target->plan );
             $plan_mocker->mock(project => 'groovy');
             $plan_mocker->mock(uri     => 'http://example.com/');
             ok $engine->register_project, 'Register a second project';
@@ -151,7 +163,7 @@ sub run {
 
         # Try to register with a different URI.
         MOCKURI: {
-            my $plan_mocker = Test::MockModule->new(ref $sqitch->plan );
+            my $plan_mocker = Test::MockModule->new(ref $target->plan );
             my $plan_proj = 'engine';
             my $plan_uri = 'http://example.net/';
             $plan_mocker->mock(project => sub { $plan_proj });
@@ -206,7 +218,7 @@ sub run {
                 'Should get error for an project with the URI';
             is $@->ident, 'engine', 'Existing URI error ident should be "engine"';
             is $@->message, __x(
-                'Cannot register "{project}" with URI {uri}: project "{reg_prog}" already using that URI',
+                'Cannot register "{project}" with URI {uri}: project "{reg_proj}" already using that URI',
                 project => $plan_proj,
                 uri     => $plan_uri,
                 reg_proj => 'groovy',
@@ -215,7 +227,7 @@ sub run {
 
         ######################################################################
         # Test log_deploy_change().
-        my $plan = $sqitch->plan;
+        my $plan = $target->plan;
         my $change = $plan->change_at(0);
         my ($tag) = $change->tags;
         is $change->name, 'users', 'Should have "users" change';
@@ -1024,7 +1036,8 @@ sub run {
 
         # Add an external project event.
         ok my $ext_plan = App::Sqitch::Plan->new(
-            sqitch => $sqitch,
+            sqitch  => $sqitch,
+            target  => $target,
             project => 'groovy',
         ), 'Create external plan';
         ok my $ext_change = $ext_plan->add(

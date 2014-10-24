@@ -18,6 +18,7 @@ use Locale::TextDomain qw(App-Sqitch);
 use Capture::Tiny 0.12 qw(:all);
 use Try::Tiny;
 use App::Sqitch;
+use App::Sqitch::Target;
 use App::Sqitch::Plan;
 use lib 't/lib';
 use DBIEngineTest;
@@ -40,10 +41,17 @@ is_deeply [$CLASS->config_vars], [
     client   => 'any',
 ], 'config_vars should return three vars';
 
-my $sqitch = App::Sqitch->new(_engine => 'vertica');
-isa_ok my $vta = $CLASS->new(sqitch => $sqitch), $CLASS;
-
 my $uri = URI::db->new('db:vertica:');
+my $sqitch = App::Sqitch->new(options => { engine => 'vertica' });
+my $target = App::Sqitch::Target->new(
+    sqitch => $sqitch,
+    uri    => $uri,
+);
+isa_ok my $vta = $CLASS->new(
+    sqitch => $sqitch,
+    target => $target,
+), $CLASS;
+
 my $client = 'vsql' . ($^O eq 'MSWin32' ? '.exe' : '');
 is $vta->client, $client, 'client should default to vsql';
 is $vta->registry, 'sqitch', 'registry default should be "sqitch"';
@@ -66,7 +74,10 @@ my @std_opts = (
 is_deeply [$vta->vsql], [$client, @std_opts],
     'vsql command should be std opts-only';
 
-isa_ok $vta = $CLASS->new(sqitch => $sqitch), $CLASS;
+isa_ok $vta = $CLASS->new(
+    sqitch => $sqitch,
+    target => $target,
+), $CLASS;
 ok $vta->set_variables(foo => 'baz', whu => 'hi there', yo => 'stellar'),
     'Set some variables';
 is_deeply [$vta->vsql], [
@@ -84,23 +95,24 @@ ENV: {
     local $ENV{VERTICADATABASE};
     local $ENV{VERTICAUSER};
     for my $env (qw(VERTICADATABASE VERTICAUSER)) {
-        my $vta = $CLASS->new(sqitch => $sqitch);
+        my $vta = $CLASS->new(sqitch => $sqitch, target => $target);
         local $ENV{$env} = "\$ENV=whatever";
-        is $vta->target, "db:vertica:", "Target should not read \$$env";
+        is $vta->target->name, "db:vertica:", "Target name should not read \$$env";
         is $vta->registry_destination, $vta->destination,
             'Meta target should be the same as destination';
     }
 
     my $mocker = Test::MockModule->new('App::Sqitch');
     $mocker->mock(sysuser => 'sysuser=whatever');
-    my $vta = $CLASS->new(sqitch => $sqitch);
-    is $vta->target, 'db:vertica:', 'Target should not fall back on sysuser';
+    my $vta = $CLASS->new(sqitch => $sqitch, target => $target);
+    is $vta->target->name, 'db:vertica:',
+        'Target name should not fall back on sysuser';
     is $vta->registry_destination, $vta->destination,
         'Meta target should be the same as destination';
 
     $ENV{VERTICADATABASE} = 'mydb';
-    $vta = $CLASS->new(sqitch => $sqitch, username => 'hi');
-    is $vta->target, 'db:vertica:',  'Target should be the default';
+    $vta = $CLASS->new(sqitch => $sqitch, username => 'hi', target => $target);
+    is $vta->target->name, 'db:vertica:',  'Target name should be the default';
     is $vta->registry_destination, $vta->destination,
         'Meta target should be the same as destination';
 }
@@ -110,18 +122,15 @@ ENV: {
 my %config = (
     'core.vertica.client'   => '/path/to/vsql',
     'core.vertica.target'   => 'db:vertica://localhost/try',
-    'core.vertica.username' => 'freddy',
-    'core.vertica.password' => 's3cr3t',
-    'core.vertica.db_name'  => 'widgets',
-    'core.vertica.host'     => 'db.example.com',
-    'core.vertica.port'     => 1234,
     'core.vertica.registry' => 'meta',
 );
 $std_opts[-1] = 'registry=meta';
 my $mock_config = Test::MockModule->new('App::Sqitch::Config');
 $mock_config->mock(get => sub { $config{ $_[2] } });
 
-ok $vta = $CLASS->new(sqitch => $sqitch), 'Create another vertica';
+$target = App::Sqitch::Target->new( sqitch => $sqitch );
+ok $vta = $CLASS->new(sqitch => $sqitch, target => $target),
+    'Create another vertica';
 is $vta->client, '/path/to/vsql', 'client should be as configured';
 is $vta->uri->as_string, 'db:vertica://localhost/try',
     'uri should be as configured';
@@ -133,53 +142,23 @@ is_deeply [$vta->vsql], [qw(
 ), @std_opts], 'vsql command should be configured from URI config';
 
 ##############################################################################
-# Try deprecated config.
-%config = (
-    'core.vertica.client'        => '/path/to/vsql',
-    'core.vertica.username'      => 'freddy',
-    'core.vertica.password'      => 's3cr3t',
-    'core.vertica.db_name'       => 'widgets',
-    'core.vertica.host'          => 'db.example.com',
-    'core.vertica.port'          => 1234,
-    'core.vertica.sqitch_schema' => 'meta',
-);
-ok $vta = $CLASS->new(sqitch => $sqitch), 'Create yet another vertica';
-is $vta->uri->as_string, 'db:vertica://freddy:s3cr3t@db.example.com:1234/widgets',
-    'DB URI should be derived from deprecated config vars';
-is $vta->target, $vta->uri->as_string, 'target should be the URI';
-like $vta->destination, qr{^db:vertica://freddy:?\@db\.example\.com:1234/widgets$},
-    'destination should be the URI without the password';
-is $vta->registry_destination, $vta->destination,
-    'registry_destination should default be the URI';
-
-##############################################################################
 # Now make sure that (deprecated?) Sqitch options override configurations.
 $sqitch = App::Sqitch->new(
-    _engine     => 'vertica',
-    db_client   => '/some/other/vsql',
-    db_username => 'anna',
-    db_name     => 'widgets_dev',
-    db_host     => 'foo.com',
-    db_port     => 98760,
+    options => {
+        engine     => 'vertica',
+        client     => '/some/other/vsql',
+    },
 );
 
-ok $vta = $CLASS->new(sqitch => $sqitch), 'Create a vertica with sqitch with options';
+$target = App::Sqitch::Target->new( sqitch => $sqitch );
+ok $vta = $CLASS->new(sqitch => $sqitch, target => $target),
+    'Create a vertica with sqitch with options';
 
 is $vta->client, '/some/other/vsql', 'client should be as optioned';
-is $vta->uri->as_string, 'db:vertica://anna:s3cr3t@foo.com:98760/widgets_dev',
-    'uri should be as configured';
-is $vta->target, $vta->uri->as_string, 'target should be the URI stringified';
-like $vta->destination, qr{^db:vertica://anna:?\@foo\.com:98760/widgets_dev$},
-    'destination should be the URI without the password';
-is $vta->registry_destination, $vta->destination,
-    'registry_destination should be the same as destination';
-is $vta->registry, 'meta', 'registry should still be as configured';
 is_deeply [$vta->vsql], [qw(
     /some/other/vsql
-    --username anna
-    --dbname   widgets_dev
-    --host     foo.com
-    --port     98760
+    --dbname   try
+    --host     localhost
 ), @std_opts], 'vsql command should be as optioned';
 
 ##############################################################################
@@ -188,6 +167,7 @@ can_ok $vta, qw(_run _capture _spool);
 my $mock_sqitch = Test::MockModule->new('App::Sqitch');
 my (@run, $exp_pass);
 $mock_sqitch->mock(run => sub {
+    local $Test::Builder::Level = $Test::Builder::Level + 2;
     shift;
     @run = @_;
     if (defined $exp_pass) {
@@ -199,6 +179,7 @@ $mock_sqitch->mock(run => sub {
 
 my @capture;
 $mock_sqitch->mock(capture => sub {
+    local $Test::Builder::Level = $Test::Builder::Level + 2;
     shift;
     @capture = @_;
     if (defined $exp_pass) {
@@ -210,6 +191,7 @@ $mock_sqitch->mock(capture => sub {
 
 my @spool;
 $mock_sqitch->mock(spool => sub {
+    local $Test::Builder::Level = $Test::Builder::Level + 2;
     shift;
     @spool = @_;
     if (defined $exp_pass) {
@@ -220,6 +202,7 @@ $mock_sqitch->mock(spool => sub {
 });
 
 $exp_pass = 's3cr3t';
+$target->uri->password($exp_pass);
 ok $vta->_run(qw(foo bar baz)), 'Call _run';
 is_deeply \@run, [$vta->vsql, qw(foo bar baz)],
     'Command should be passed to run()';
@@ -233,8 +216,9 @@ is_deeply \@capture, [$vta->vsql, qw(foo bar baz)],
     'Command should be passed to capture()';
 
 # Remove the password.
-delete $config{'core.vertica.password'};
-ok $vta = $CLASS->new(sqitch => $sqitch), 'Create a vertica with sqitch with no pw';
+$target->uri->password(undef);
+ok $vta = $CLASS->new(sqitch => $sqitch, target => $target),
+    'Create a vertica with sqitch with no pw';
 $exp_pass = undef;
 ok $vta->_run(qw(foo bar baz)), 'Call _run again';
 is_deeply \@run, [$vta->vsql, qw(foo bar baz)],
@@ -323,13 +307,13 @@ my $err = try {
 
 DBIEngineTest->run(
     class         => $CLASS,
-    sqitch_params => [
-        _engine   => 'vertica',
+    sqitch_params => [options => {
+        engine    => 'vertica',
         top_dir   => Path::Class::dir(qw(t engine)),
         plan_file => Path::Class::file(qw(t engine sqitch.plan)),
-    ],
-    engine_params     => [ uri => $uri ],
-    alt_engine_params => [ uri => $uri, registry => '__sqitchtest' ],
+    }],
+    target_params     => [ uri => $uri ],
+    alt_target_params => [ uri => $uri, registry => '__sqitchtest' ],
     skip_unless       => sub {
         my $self = shift;
         die $err if $err;

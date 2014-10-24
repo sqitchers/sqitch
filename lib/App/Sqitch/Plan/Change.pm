@@ -83,10 +83,10 @@ has _path_segments => (
     default  => sub {
         my $self = shift;
         my @path = split m{/} => $self->name;
-        my $ext  = '.' . $self->sqitch->extension;
+        my $ext  = '.' . $self->target->extension;
         if (my @rework_tags = $self->rework_tags) {
             # Determine suffix based on the first one found in the deploy dir.
-            my $dir = $self->sqitch->deploy_dir;
+            my $dir = $self->target->deploy_dir;
             my $bn  = pop @path;
             my $first;
             for my $tag (@rework_tags) {
@@ -197,17 +197,17 @@ sub dependencies {
 
 sub deploy_file {
     my $self   = shift;
-    $self->sqitch->deploy_dir->file( $self->path_segments );
+    $self->target->deploy_dir->file( $self->path_segments );
 }
 
 sub revert_file {
     my $self   = shift;
-    $self->sqitch->revert_dir->file( $self->path_segments );
+    $self->target->revert_dir->file( $self->path_segments );
 }
 
 sub verify_file {
     my $self   = shift;
-    $self->sqitch->verify_dir->file( $self->path_segments );
+    $self->target->verify_dir->file( $self->path_segments );
 }
 
 sub script_file {
@@ -215,7 +215,7 @@ sub script_file {
     if ( my $meth = $self->can("$name\_file") ) {
         return $self->$meth;
     }
-    return $self->sqitch->top_dir->subdir($name)->cleanup->file(
+    return $self->target->top_dir->subdir($name)->cleanup->file(
         $self->path_segments
     );
 }

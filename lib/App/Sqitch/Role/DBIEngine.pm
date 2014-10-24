@@ -316,7 +316,7 @@ sub register_project {
         );
 
         hurl engine => __x(
-            'Cannot register "{project}" with URI {uri}: project "{reg_prog}" already using that URI',
+            'Cannot register "{project}" with URI {uri}: project "{reg_proj}" already using that URI',
             project => $proj,
             uri     => $uri,
             reg_proj => $res->[0],

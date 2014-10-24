@@ -26,27 +26,26 @@ BEGIN {
     $ENV{SQLPATH} = '';
 }
 
-has '+destination' => (
-    default  => sub {
-        my $self = shift;
+sub destination {
+    my $self = shift;
 
-        # Just use the target unless it looks like a URI.
-        my $target = $self->target;
-        return $target if $target !~ /:/;
+    # Just use the target name if it doesn't look like a URI or if the URI
+    # includes the database name.
+    return $self->target->name if $self->target->name !~ /:/
+        || $self->target->uri->dbname;
 
-        # Use the URI sans password, and with the database name added.
-        my $uri = $self->uri->clone;
-        $uri->password(undef) if $uri->password;
-        $uri->dbname(
-               $ENV{TWO_TASK}
-            || ( $^O eq 'MSWin32' ? $ENV{LOCAL} : undef )
-            || $ENV{ORACLE_SID}
-            || $uri->user
-            || $self->sqitch->sysuser
-        ) unless $uri->dbname;
-        return $uri->as_string;
-    },
-);
+    # Use the URI sans password, and with the database name added.
+    my $uri = $self->target->uri->clone;
+    $uri->password(undef) if $uri->password;
+    $uri->dbname(
+           $ENV{TWO_TASK}
+        || ( $^O eq 'MSWin32' ? $ENV{LOCAL} : undef )
+        || $ENV{ORACLE_SID}
+        || $uri->user
+        || $self->sqitch->sysuser
+    );
+    return $uri->as_string;
+}
 
 has _sqlplus => (
     is         => 'ro',
@@ -73,7 +72,7 @@ has tmpdir => (
 sub key    { 'oracle' }
 sub name   { 'Oracle' }
 sub driver { 'DBD::Oracle 1.23' }
-sub default_registry { undef }
+sub default_registry { '' }
 
 sub default_client {
     file( ($ENV{ORACLE_HOME} || ()), 'sqlplus' )->stringify

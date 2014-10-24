@@ -8,8 +8,9 @@ use Try::Tiny;
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use Hash::Merge 'merge';
+use List::Util qw(first);
 use Moo;
-use App::Sqitch::Types qw(Sqitch);
+use App::Sqitch::Types qw(Sqitch Target);
 
 our $VERSION = '0.997';
 
@@ -18,11 +19,6 @@ has sqitch => (
     isa      => Sqitch,
     required => 1,
     handles  => [qw(
-        plan
-        engine
-        config_for_target
-        config_for_target_strict
-        engine_for_target
         run
         shell
         quote_shell
@@ -48,6 +44,26 @@ has sqitch => (
         prompt
         ask_y_n
     )],
+);
+
+has default_target => (
+    is      => 'ro',
+    isa     => Target,
+    lazy    => 1,
+    default => sub {
+        my $sqitch = shift->sqitch;
+        my @params = (sqitch => $sqitch);
+        unless (
+            $sqitch->options->{engine}
+            || $sqitch->config->get(key => 'core.engine')
+        ) {
+            # No specified engine, so specify an engineless URI.
+            require URI::db;
+            push @params, uri => URI::db->new('db:');
+        }
+        require App::Sqitch::Target;
+        return App::Sqitch::Target->new(@params);
+    },
 );
 
 sub command {
@@ -178,23 +194,36 @@ sub usage {
 }
 
 sub parse_args {
-    my $self   = shift;
-    my $plan   = $self->plan;
-    my $config = $self->sqitch->config;
-    require URI;
+    my ($self, %p) = @_;
+    my $sqitch = $self->sqitch;
+    my $config = $sqitch->config;
+    require App::Sqitch::Target;
+    my $target = App::Sqitch::Target->new( sqitch => $sqitch, name => $p{target} );
 
-    my %ret    = (
+    my %ret = (
         changes => [],
-        targets => [],
+        targets => [$p{target} ? $target : ()],
         unknown => [],
     );
-    for my $arg (@_) {
-        my $ref = $plan->contains($arg)                   ? $ret{changes}
-                : URI->new($arg)->isa('URI::db')          ? $ret{targets}
-                : $config->get( key => "target.$arg.uri") ? $ret{targets}
-                :                                           $ret{unknown};
-        push @{ $ref } => $arg;
+    for my $arg (@{ $p{args} }) {
+        if ( $target && $target->plan->contains($arg) ) {
+            # A change. Keep the target if it's the default.
+            push @{ $ret{targets} } => $target unless @{ $ret{targets} };
+            push @{ $ret{changes} } => $arg;
+        } elsif ($config->get( key => "target.$arg.uri") || URI->new($arg)->isa('URI::db')) {
+            # A target. Instantiate and keep for subsequente change searches.
+            $target = App::Sqitch::Target->new( sqitch => $sqitch, name => $arg );
+            push @{ $ret{targets} } => $target unless first {
+                $target->name eq $_->name
+            } @{ $ret{targets} };
+        } else {
+            # Who knows?
+            push @{ $ret{unknown} } => $arg;
+        }
     }
+
+    # Make sure we have the default target
+    push @{ $ret{targets} } => $target if $target && !@{ $ret{targets} };
 
     return %ret;
 }
@@ -338,9 +367,24 @@ uses to find the command class.
 These methods are mainly provided as utilities for the command subclasses to
 use.
 
+=head3 C<default_target>
+
+  my $target = $cmd->default_target;
+
+This method returns the default target. It should only be used by commands
+that don't use a C<parse_args()> to find and load a target.
+
+This method should always return a target option, never C<undef>. If the
+C<--engine> option or C<core.engine> configuration option has been set, then
+the target will support that engine. In the latter case, if
+C<core.$engine.target> is set, that value will be used. Otherwise, the
+returned target will have a URI of C<db:> and no associated engine; the
+C<engine> method will throw an exception. This behavior should be fine for
+commands that don't need to load the engine.
+
 =head3 C<parse_args>
 
-  my @parsed_args = $cmd->parse_args(@args);
+  my %parsed_args = $cmd->parse_args(target => $target_name, args => \@args);
 
 Examines each argument to determine whether it's a known change spec or
 target. Returns a list of two-value array references, one for each argument
@@ -348,6 +392,22 @@ passed. For each array reference, the first item is the argument type, either
 "change", "target", or "unknown", and the second item is the original value.
 Useful for commands that take a number of parameters where the order may be
 mixed.
+
+If a target parameter is passed, it will always be instantiated and returned
+under the "target" key, and arguments recognized as changes in the plan
+associated with that target will be returned as changes.
+
+If a target name is specified in the arguments, it will be instantiated and
+returned under the "target" key and any subsequent changes must be recognized
+from I<its> plan.
+
+If no target is passed or appears in the arguments, a default target will be
+instantiated based on the command-line options and configuration. Unlike the
+target returned by C<default_target>, however, it B<must> have an associated
+engine specified by the C<--engine> option or configuration. This is on the
+assumption that it will be used by commands that require an engine to do their
+work. Of course, any changes must be recognized from the plan associated with
+this target.
 
 =head3 C<run>
 

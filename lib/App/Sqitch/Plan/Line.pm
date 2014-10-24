@@ -57,7 +57,7 @@ has plan => (
     isa      => Plan,
     weak_ref => 1,
     required => 1,
-    handles  => [qw(sqitch project uri)],
+    handles  => [qw(sqitch project uri target)],
 );
 
 my %escape = (

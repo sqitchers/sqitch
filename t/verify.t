@@ -15,8 +15,8 @@ use MockOutput;
 my $CLASS = 'App::Sqitch::Command::verify';
 require_ok $CLASS or die;
 
-$ENV{SQITCH_CONFIG} = 'nonexistent.conf';
-$ENV{SQITCH_USER_CONFIG} = 'nonexistent.user';
+$ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
+$ENV{SQITCH_USER_CONFIG}   = 'nonexistent.user';
 $ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
 
 isa_ok $CLASS, 'App::Sqitch::Command';
@@ -40,9 +40,11 @@ is_deeply [$CLASS->options], [qw(
 )], 'Options should be correct';
 
 my $sqitch = App::Sqitch->new(
-    plan_file => file(qw(t sql sqitch.plan)),
-    top_dir   => dir(qw(t sql)),
-    _engine   => 'sqlite',
+    options => {
+        engine    => 'sqlite',
+        plan_file => file(qw(t sql sqitch.plan))->stringify,
+        top_dir   => dir(qw(t sql))->stringify,
+    },
 );
 my $config = $sqitch->config;
 
@@ -154,12 +156,21 @@ is_deeply +MockOutput->get_warn, [[__x(
 )]], 'Should have warning about which roles are used';
 
 # Pass a target.
-my $mock_sqitch = Test::MockModule->new('App::Sqitch');
-my $earg;
 my $target = 'db:pg:';
-$mock_sqitch->mock(engine_for_target => sub { $earg = $_[1]; shift->engine });
+my $mock_cmd = Test::MockModule->new(ref $verify);
+my ($target_name_arg, $orig_meth);
+$mock_cmd->mock(parse_args => sub {
+    my $self = shift;
+    my %p = @_;
+    my %ret = $self->$orig_meth(@_);
+    $target_name_arg = $ret{targets}->[0]->name;
+    $ret{targets}->[0] = $self->default_target;
+    return %ret;
+});
+$orig_meth = $mock_cmd->original('parse_args');
+
 ok $verify->execute($target), 'Execute with target arg';
-is $earg, $target, 'The target should have been passed to the engine';
+is $target_name_arg, $target, 'The target should have been passed to the engine';
 is_deeply \@args, ['foo', 'bar'],
     '"foo" and "bar" should be passed to the engine';
 is_deeply {@vars}, { foo => 'bar', one => 1 },
@@ -171,10 +182,10 @@ isa_ok $verify = $CLASS->new(
     sqitch => $sqitch,
     target => $target,
 ), $CLASS, 'Object with target';
-$earg = undef;
+$target_name_arg = undef;
 @vars = ();
 ok $verify->execute, 'Execute with no args';
-is $earg, $target, 'The target option should have been passed to the engine';
+is $target_name_arg, $target, 'The target option should have been passed to the engine';
 is_deeply \@args, [undef, undef], 'Undefs should be passed to the engine';
 is_deeply {@vars}, {}, 'No vars should have been passed through to the engine';
 is_deeply +MockOutput->get_warn, [], 'Should once again have no warnings';
@@ -182,13 +193,13 @@ is_deeply +MockOutput->get_warn, [], 'Should once again have no warnings';
 # Pass a target, get a warning.
 ok $verify->execute('db:sqlite:', 'roles', 'widgets'),
     'Execute with two targegs and two changes';
-is $earg, $target, 'The target option should have been passed to the engine';
+is $target_name_arg, $target, 'The target option should have been passed to the engine';
 is_deeply \@args, ['roles', 'widgets'],
     'The two changes should be passed to the engine';
 is_deeply {@vars}, {}, 'No vars should have been passed through to the engine';
 is_deeply +MockOutput->get_warn, [[__x(
     'Too many targets specified; connecting to {target}',
-    target => $target,
+    target => $verify->default_target->name,
 )]], 'Should have warning about too many targets';
 
 # Make sure we get an exception for unknown args.

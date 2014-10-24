@@ -10,6 +10,7 @@ use Locale::TextDomain qw(App-Sqitch);
 use Capture::Tiny 0.12 qw(:all);
 use Try::Tiny;
 use App::Sqitch;
+use App::Sqitch::Target;
 use App::Sqitch::Plan;
 use lib 't/lib';
 use DBIEngineTest;
@@ -32,10 +33,14 @@ is_deeply [$CLASS->config_vars], [
     client   => 'any',
 ], 'config_vars should return three vars';
 
-my $sqitch = App::Sqitch->new(_engine => 'pg');
-isa_ok my $pg = $CLASS->new(sqitch => $sqitch), $CLASS;
-
 my $uri = URI::db->new('db:pg:');
+my $sqitch = App::Sqitch->new(options => { engine => 'pg' });
+my $target = App::Sqitch::Target->new(
+    sqitch => $sqitch,
+    uri    => $uri,
+);
+isa_ok my $pg = $CLASS->new(sqitch => $sqitch, target => $target), $CLASS;
+
 my $client = 'psql' . ($^O eq 'MSWin32' ? '.exe' : '');
 is $pg->client, $client, 'client should default to psql';
 is $pg->registry, 'sqitch', 'registry default should be "sqitch"';
@@ -59,7 +64,7 @@ my @std_opts = (
 is_deeply [$pg->psql], [$client, @std_opts],
     'psql command should be std opts-only';
 
-isa_ok $pg = $CLASS->new(sqitch => $sqitch), $CLASS;
+isa_ok $pg = $CLASS->new(sqitch => $sqitch, target => $target), $CLASS;
 ok $pg->set_variables(foo => 'baz', whu => 'hi there', yo => 'stellar'),
     'Set some variables';
 is_deeply [$pg->psql], [
@@ -77,23 +82,23 @@ ENV: {
     local $ENV{PGDATABASE};
     local $ENV{PGUSER};
     for my $env (qw(PGDATABASE PGUSER)) {
-        my $pg = $CLASS->new(sqitch => $sqitch);
+        my $pg = $CLASS->new(sqitch => $sqitch, target => $target);
         local $ENV{$env} = "\$ENV=whatever";
-        is $pg->target, "db:pg:", "Target should not read \$$env";
+        is $pg->target->uri, "db:pg:", "Target should not read \$$env";
         is $pg->registry_destination, $pg->destination,
             'Meta target should be the same as destination';
     }
 
     my $mocker = Test::MockModule->new('App::Sqitch');
     $mocker->mock(sysuser => 'sysuser=whatever');
-    my $pg = $CLASS->new(sqitch => $sqitch);
-    is $pg->target, 'db:pg:', 'Target should not fall back on sysuser';
+    my $pg = $CLASS->new(sqitch => $sqitch, target => $target);
+    is $pg->target->uri, 'db:pg:', 'Target should not fall back on sysuser';
     is $pg->registry_destination, $pg->destination,
         'Meta target should be the same as destination';
 
     $ENV{PGDATABASE} = 'mydb';
-    $pg = $CLASS->new(sqitch => $sqitch, username => 'hi');
-    is $pg->target, 'db:pg:',  'Target should be the default';
+    $pg = $CLASS->new(sqitch => $sqitch, username => 'hi', target => $target);
+    is $pg->target->uri, 'db:pg:',  'Target should be the default';
     is $pg->registry_destination, $pg->destination,
         'Meta target should be the same as destination';
 }
@@ -103,11 +108,6 @@ ENV: {
 my %config = (
     'core.pg.client'   => '/path/to/psql',
     'core.pg.target'   => 'db:pg://localhost/try',
-    'core.pg.username' => 'freddy',
-    'core.pg.password' => 's3cr3t',
-    'core.pg.db_name'  => 'widgets',
-    'core.pg.host'     => 'db.example.com',
-    'core.pg.port'     => 1234,
     'core.pg.registry' => 'meta',
 );
 $std_opts[-3] = 'registry=meta';
@@ -115,7 +115,8 @@ $std_opts[-1] = 'sqitch_schema=meta';
 my $mock_config = Test::MockModule->new('App::Sqitch::Config');
 $mock_config->mock(get => sub { $config{ $_[2] } });
 
-ok $pg = $CLASS->new(sqitch => $sqitch), 'Create another pg';
+$target = App::Sqitch::Target->new( sqitch => $sqitch );
+ok $pg = $CLASS->new(sqitch => $sqitch, target => $target), 'Create another pg';
 is $pg->client, '/path/to/psql', 'client should be as configured';
 is $pg->uri->as_string, 'db:pg://localhost/try',
     'uri should be as configured';
@@ -127,53 +128,26 @@ is_deeply [$pg->psql], [qw(
 ), @std_opts], 'psql command should be configured from URI config';
 
 ##############################################################################
-# Try deprecated config.
-%config = (
-    'core.pg.client'        => '/path/to/psql',
-    'core.pg.username'      => 'freddy',
-    'core.pg.password'      => 's3cr3t',
-    'core.pg.db_name'       => 'widgets',
-    'core.pg.host'          => 'db.example.com',
-    'core.pg.port'          => 1234,
-    'core.pg.sqitch_schema' => 'meta',
-);
-ok $pg = $CLASS->new(sqitch => $sqitch), 'Create yet another pg';
-is $pg->uri->as_string, 'db:pg://freddy:s3cr3t@db.example.com:1234/widgets',
-    'DB URI should be derived from deprecated config vars';
-is $pg->target, $pg->uri->as_string, 'target should be the URI';
-like $pg->destination, qr{^db:pg://freddy:?\@db\.example\.com:1234/widgets$},
-    'destination should be the URI without the password';
-is $pg->registry_destination, $pg->destination,
-    'registry_destination should default be the URI';
-
-##############################################################################
 # Now make sure that (deprecated?) Sqitch options override configurations.
 $sqitch = App::Sqitch->new(
-    _engine     => 'pg',
-    db_client   => '/some/other/psql',
-    db_username => 'anna',
-    db_name     => 'widgets_dev',
-    db_host     => 'foo.com',
-    db_port     => 98760,
+    options => {
+        engine => 'pg',
+        client => '/some/other/psql',
+    }
 );
 
-ok $pg = $CLASS->new(sqitch => $sqitch), 'Create a pg with sqitch with options';
+$target = App::Sqitch::Target->new( sqitch => $sqitch );
+ok $pg = $CLASS->new(sqitch => $sqitch, target => $target),
+    'Create a pg with sqitch with options';
 
 is $pg->client, '/some/other/psql', 'client should be as optioned';
-is $pg->uri->as_string, 'db:pg://anna:s3cr3t@foo.com:98760/widgets_dev',
-    'uri should be as configured';
-is $pg->target, $pg->uri->as_string, 'target should be the URI stringified';
-like $pg->destination, qr{^db:pg://anna:?\@foo\.com:98760/widgets_dev$},
-    'destination should be the URI without the password';
 is $pg->registry_destination, $pg->destination,
     'registry_destination should be the same as destination';
 is $pg->registry, 'meta', 'registry should still be as configured';
 is_deeply [$pg->psql], [qw(
     /some/other/psql
-    --username anna
-    --dbname   widgets_dev
-    --host     foo.com
-    --port     98760
+    --dbname   try
+    --host     localhost
 ), @std_opts], 'psql command should be as optioned';
 
 ##############################################################################
@@ -182,6 +156,7 @@ can_ok $pg, qw(_run _capture _spool);
 my $mock_sqitch = Test::MockModule->new('App::Sqitch');
 my (@run, $exp_pass);
 $mock_sqitch->mock(run => sub {
+    local $Test::Builder::Level = $Test::Builder::Level + 2;
     shift;
     @run = @_;
     if (defined $exp_pass) {
@@ -193,6 +168,7 @@ $mock_sqitch->mock(run => sub {
 
 my @capture;
 $mock_sqitch->mock(capture => sub {
+    local $Test::Builder::Level = $Test::Builder::Level + 2;
     shift;
     @capture = @_;
     if (defined $exp_pass) {
@@ -204,6 +180,7 @@ $mock_sqitch->mock(capture => sub {
 
 my @spool;
 $mock_sqitch->mock(spool => sub {
+    local $Test::Builder::Level = $Test::Builder::Level + 2;
     shift;
     @spool = @_;
     if (defined $exp_pass) {
@@ -213,6 +190,7 @@ $mock_sqitch->mock(spool => sub {
     }
 });
 
+$target->uri->password('s3cr3t');
 $exp_pass = 's3cr3t';
 ok $pg->_run(qw(foo bar baz)), 'Call _run';
 is_deeply \@run, [$pg->psql, qw(foo bar baz)],
@@ -227,8 +205,9 @@ is_deeply \@capture, [$pg->psql, qw(foo bar baz)],
     'Command should be passed to capture()';
 
 # Remove the password.
-delete $config{'core.pg.password'};
-ok $pg = $CLASS->new(sqitch => $sqitch), 'Create a pg with sqitch with no pw';
+$target->uri->password(undef);
+ok $pg = $CLASS->new(sqitch => $sqitch, target => $target),
+    'Create a pg with sqitch with no pw';
 $exp_pass = undef;
 ok $pg->_run(qw(foo bar baz)), 'Call _run again';
 is_deeply \@run, [$pg->psql, qw(foo bar baz)],
@@ -315,15 +294,18 @@ my $err = try {
 
 DBIEngineTest->run(
     class         => $CLASS,
-    sqitch_params => [
-        _engine     => 'pg',
-        db_username => 'postgres',
-        db_name     => '__sqitchtest__',
-        top_dir     => Path::Class::dir(qw(t engine)),
-        plan_file   => Path::Class::file(qw(t engine sqitch.plan)),
+    sqitch_params => [options => {
+        engine     => 'pg',
+        top_dir     => Path::Class::dir(qw(t engine))->stringify,
+        plan_file   => Path::Class::file(qw(t engine sqitch.plan))->stringify,
+    }],
+    target_params => [
+        uri => URI::db->new('db:pg://postgres@/__sqitchtest__'),
     ],
-    engine_params     => [],
-    alt_engine_params => [ registry => '__sqitchtest' ],
+    alt_target_params => [
+        registry => '__sqitchtest',
+        uri => URI::db->new('db:pg://postgres@/__sqitchtest__'),
+    ],
     skip_unless       => sub {
         my $self = shift;
         die $err if $err;

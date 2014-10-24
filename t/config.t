@@ -223,8 +223,8 @@ ok $cmd->execute('core.engine'), 'Get core.engine';
 is_deeply \@emit, [['pg']], 'Should have emitted the merged core.engine';
 @emit = ();
 
-ok $cmd->execute('core.pg.host'), 'Get core.pg.host';
-is_deeply \@emit, [['localhost']], 'Should have emitted the merged core.pg.host';
+ok $cmd->execute('core.pg.registry'), 'Get core.pg.registry';
+is_deeply \@emit, [['meta']], 'Should have emitted the merged core.pg.registry';
 @emit = ();
 
 ok $cmd->execute('core.pg.client'), 'Get core.pg.client';
@@ -358,8 +358,8 @@ CONTEXT: {
     }), 'Create user config get command';
     @emit = ();
 
-    ok $cmd->execute('core.pg.host'), 'Get user core.pg.host';
-    is_deeply \@emit, [['localhost']], 'Should have emitted the user core.pg.host';
+    ok $cmd->execute('core.pg.registry'), 'Get user core.pg.registry';
+    is_deeply \@emit, [['meta']], 'Should have emitted the user core.pg.registry';
     @emit = ();
 
     ok $cmd->execute('core.pg.client'), 'Get user core.pg.client';
@@ -440,7 +440,7 @@ ok $cmd = App::Sqitch::Command::config->new({
 }), 'Create config list command';
 ok $cmd->execute, 'Execute the list action';
 is_deeply \@emit, [[
-    "bundle.dest_dir=_build/sql
+    'bundle.dest_dir=_build/sql
 bundle.from=gamma
 bundle.tags_only=true
 core.engine=pg
@@ -449,12 +449,10 @@ core.firebird.client=/opt/firebird/bin/isql
 core.firebird.registry=meta
 core.mysql.client=/opt/local/mysql/bin/mysql
 core.mysql.registry=meta
-core.mysql.username=root
 core.pg.client=/opt/local/pgsql/bin/psql
 core.pg.db_name=widgets
-core.pg.host=localhost
 core.pg.registry=meta
-core.pg.username=postgres
+core.pg.target=db:pg://postgres@localhost/thingies
 core.sqlite.client=/opt/local/bin/sqlite3
 core.sqlite.registry=meta
 core.sqlite.target=devdb
@@ -464,9 +462,11 @@ revert.count=2
 revert.revision=1.1
 revert.to=gamma
 target.devdb.uri=db:sqlite:
-user.email=michael\@example.com
+target.mydb.plan_file=t/plans/dependencies.plan
+target.mydb.uri=db:pg:mydb
+user.email=michael@example.com
 user.name=Michael Stonebraker
-"
+'
 ]], 'Should have emitted the merged config';
 @emit = ();
 
@@ -482,19 +482,18 @@ CONTEXT: {
     }), 'Create system config list command';
     ok $cmd->execute, 'List the system config';
     is_deeply \@emit, [[
-    "bundle.dest_dir=_build/sql
+        'bundle.dest_dir=_build/sql
 bundle.from=gamma
 bundle.tags_only=true
 core.engine=pg
 core.extension=ddl
 core.pg.client=/usr/local/pgsql/bin/psql
-core.pg.username=theory
 core.top_dir=migrations
 core.uri=https://github.com/theory/sqitch/
 revert.count=2
 revert.revision=1.1
 revert.to=gamma
-"
+'
     ]], 'Should have emitted the system config list';
     @emit = ();
 
@@ -507,20 +506,19 @@ revert.to=gamma
     }), 'Create user config list command';
     ok $cmd->execute, 'List the user config';
     is_deeply \@emit, [[
-        "core.firebird.client=/opt/firebird/bin/isql
+        'core.firebird.client=/opt/firebird/bin/isql
 core.firebird.registry=meta
 core.mysql.client=/opt/local/mysql/bin/mysql
 core.mysql.registry=meta
-core.mysql.username=root
 core.pg.client=/opt/local/pgsql/bin/psql
-core.pg.host=localhost
 core.pg.registry=meta
-core.pg.username=postgres
+core.pg.target=db:pg://postgres@localhost/thingies
 core.sqlite.client=/opt/local/bin/sqlite3
 core.sqlite.registry=meta
-user.email=michael\@example.com
+core.sqlite.target=db:sqlite:my.db
+user.email=michael@example.com
 user.name=Michael Stonebraker
-"
+'
     ]],  'Should only have emitted the user config list';
     @emit = ();
 
@@ -533,11 +531,13 @@ user.name=Michael Stonebraker
     }), 'Create local config list command';
     ok $cmd->execute, 'List the local config';
     is_deeply \@emit, [[
-        "core.engine=pg
+        'core.engine=pg
 core.pg.db_name=widgets
 core.sqlite.target=devdb
 target.devdb.uri=db:sqlite:
-"
+target.mydb.plan_file=t/plans/dependencies.plan
+target.mydb.uri=db:pg:mydb
+'
     ]],  'Should only have emitted the local config list';
     @emit = ();
 }
@@ -790,7 +790,6 @@ core.extension=ddl
 core.foo=[bar, baz]
 core.pg.client=/usr/local/pgsql/bin/psql
 core.pg.user=theory
-core.pg.username=theory
 core.top_dir=migrations
 core.uri=https://github.com/theory/sqitch/}
 ]], 'Should match all core options';
@@ -798,15 +797,13 @@ core.uri=https://github.com/theory/sqitch/}
 
 ok $cmd->execute('core\\.pg\\..+'), 'Call get_regex on core\\.pg\\..+';
 is_deeply \@emit, [[q{core.pg.client=/usr/local/pgsql/bin/psql
-core.pg.user=theory
-core.pg.username=theory}
+core.pg.user=theory}
 ]], 'Should match all core.pg options';
 @emit = ();
 
 ok $cmd->execute('core\\.pg\\..+', 'theory$'),
     'Call get_regex on core\\.pg\\..+ and value regex';
-is_deeply \@emit, [[q{core.pg.user=theory
-core.pg.username=theory}
+is_deeply \@emit, [[q{core.pg.user=theory}
 ]], 'Should match all core.pg options that match';
 @emit = ();
 

@@ -79,11 +79,11 @@ their default values. If no defaults are specified, they will still be
 written, commented out, with a bar C<=> and no value. This allows one to know
 what sorts of things are available to edit.
 
-Relatedly, one engine-specific L<sqitch> option, C<--db-client> will also be
-used to write the engine-specific variable C<core.$engine.client>. Again, if
-this option is not specified, the engine-specific option will still be written
-out, but as a comment with the user or system configuration value, or a
-default value.
+Relatedly, one engine-specific L<sqitch> option, C<--client> will also be used
+to write the engine-specific variable C<core.$engine.client>. Again, if this
+option is not specified, the engine-specific option will still be written out,
+but as a comment with the user or system configuration value, or a default
+value.
 
 =head1 Examples
 
@@ -97,9 +97,9 @@ database name "widgets", the default user name "postgres", and a
 version-specific client:
 
   sqitch --engine pg \
-  --db-name   widgets \
-  --db-user   postgres \
-  --db-client /opt/pgsql-9.1/bin/psql init
+  --db-name widgets \
+  --db-user postgres \
+  --client  /opt/pgsql-9.1/bin/psql init
 
 =head1 Sqitch
 

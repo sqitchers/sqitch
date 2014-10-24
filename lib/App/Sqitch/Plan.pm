@@ -15,7 +15,7 @@ use App::Sqitch::X qw(hurl);
 use List::MoreUtils qw(uniq any);
 use namespace::autoclean;
 use Moo;
-use App::Sqitch::Types qw(Str Int HashRef ChangeList LineList Maybe Sqitch URI);
+use App::Sqitch::Types qw(Str Int HashRef ChangeList LineList Maybe Sqitch URI File Target);
 use constant SYNTAX_VERSION => '1.0.0-b2';
 
 our $VERSION = '0.997';
@@ -45,6 +45,22 @@ has sqitch => (
     isa      => Sqitch,
     required => 1,
     weak_ref => 1,
+);
+
+has target => (
+    is       => 'ro',
+    isa      => Target,
+    required => 1,
+    weak_ref => 1,
+);
+
+has file => (
+    is      => 'ro',
+    isa     => File,
+    lazy    => 1,
+    default => sub {
+        shift->target->plan_file
+    },
 );
 
 has _plan => (
@@ -109,7 +125,7 @@ sub parse {
 
 sub load {
     my $self = shift;
-    my $file = $self->sqitch->plan_file;
+    my $file = $self->file;
     my $fh = shift || do {
         hurl plan => __x('Plan file {file} does not exist', file => $file)
             unless -e $file;
@@ -548,7 +564,7 @@ sub check_changes {
                 $max_delta,
                 change => $change,
                 num    => $max_delta,
-                plan   => $self->sqitch->plan_file,
+                plan   => $self->file,
             );
         }
     }
@@ -1020,9 +1036,21 @@ an L<App::Sqitch> object.
 
 =head3 C<sqitch>
 
-  my $sqitch = $cmd->sqitch;
+  my $sqitch = $plan->sqitch;
 
 Returns the L<App::Sqitch> object that instantiated the plan.
+
+=head3 C<target>
+
+  my $target = $plan->target
+
+Returns the L<App::Sqitch::Target> passed to the constructor.
+
+=head3 C<file>
+
+  my $file = $plan->file;
+
+The file name from which to read the plan.
 
 =head3 C<position>
 

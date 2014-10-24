@@ -24,19 +24,11 @@ $ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
 my $CLASS = 'App::Sqitch::Command::rework';
 
 ok my $sqitch = App::Sqitch->new(
-    top_dir => Path::Class::Dir->new('test-rework'),
-    _engine => 'pg',
+    options => {
+        engine  => 'pg',
+        top_dir => Path::Class::Dir->new('test-rework')->stringify,
+    },
 ), 'Load a sqitch sqitch object';
-
-sub dep($) {
-    my $dep = App::Sqitch::Plan::Depend->new(
-        conflicts => 0,
-        %{ App::Sqitch::Plan::Depend->parse(shift) },
-        plan      => $sqitch->plan,
-    );
-    $dep->project;
-    return $dep;
-}
 
 my $config = $sqitch->config;
 isa_ok my $rework = App::Sqitch::Command->load({
@@ -44,6 +36,18 @@ isa_ok my $rework = App::Sqitch::Command->load({
     command => 'rework',
     config  => $config,
 }), $CLASS, 'rework command';
+my $target = $rework->default_target;
+
+sub dep($) {
+    my $dep = App::Sqitch::Plan::Depend->new(
+        conflicts => 0,
+        %{ App::Sqitch::Plan::Depend->parse(shift) },
+        plan      => $rework->default_target->plan,
+    );
+    $dep->project;
+    return $dep;
+}
+
 
 can_ok $CLASS, qw(
     requires
@@ -99,12 +103,12 @@ is_deeply $rework->note, [], 'Note should be an arrayref';
 # Test execute().
 make_path 'test-rework';
 END { remove_tree 'test-rework' };
-my $plan_file = $sqitch->plan_file;
+my $plan_file = $target->plan_file;
 my $fh = $plan_file->open('>') or die "Cannot open $plan_file: $!";
 say $fh "%project=empty\n\n";
 $fh->close or die "Error closing $plan_file: $!";
 
-my $plan = $sqitch->plan;
+my $plan = $target->plan;
 
 throws_ok { $rework->execute('foo') } 'App::Sqitch::X',
     'Should get an example for nonexistent change';
@@ -126,6 +130,10 @@ $change_mocker->mock(request_note => sub {
     shift;
     %request_params = @_;
 });
+
+# Use the same plan.
+my $mock_plan = Test::MockModule->new(ref $target);
+$mock_plan->mock(plan => $plan);
 
 ok my $add = App::Sqitch::Command::add->new(
     sqitch => $sqitch,
@@ -191,7 +199,7 @@ is_deeply +MockOutput->get_info, [
     [__x(
         'Added "{change}" to {file}.',
         change => 'foo [foo@alpha]',
-        file   => $sqitch->plan_file,
+        file   => $target->plan_file,
     )],
     [__n(
         'Modify this file as appropriate:',
@@ -288,7 +296,7 @@ is_deeply +MockOutput->get_info, [
     [__x(
         'Added "{change}" to {file}.',
         change => 'bar [bar@beta foo !dr_evil]',
-        file   => $sqitch->plan_file,
+        file   => $target->plan_file,
     )],
     [__n(
         'Modify this file as appropriate:',
@@ -358,7 +366,7 @@ MOCKSHELL: {
         [__x(
             'Added "{change}" to {file}.',
             change => 'bar [bar@gamma]',
-            file   => $sqitch->plan_file,
+            file   => $target->plan_file,
         )],
         [__n(
             'Modify this file as appropriate:',

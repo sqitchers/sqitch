@@ -17,8 +17,8 @@ use MockOutput;
 my $CLASS = 'App::Sqitch::Command::checkout';
 require_ok $CLASS or die;
 
-$ENV{SQITCH_CONFIG} = 'nonexistent.conf';
-$ENV{SQITCH_USER_CONFIG} = 'nonexistent.user';
+$ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
+$ENV{SQITCH_USER_CONFIG}   = 'nonexistent.user';
 $ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
 
 isa_ok $CLASS, 'App::Sqitch::Command';
@@ -44,9 +44,11 @@ is_deeply [$CLASS->options], [qw(
 )], 'Options should be correct';
 
 ok my $sqitch = App::Sqitch->new(
-    plan_file => file(qw(t sql sqitch.plan)),
-    top_dir   => dir(qw(t sql)),
-    _engine => 'sqlite',
+    options => {
+        plan_file => file(qw(t sql sqitch.plan))->stringify,
+        top_dir   => dir(qw(t sql))->stringify,
+        engine    => 'sqlite',
+    },
 ), 'Load a sqitch object';
 
 my $config = $sqitch->config;
@@ -252,10 +254,15 @@ CONFIG: {
 
 # Mock the execution interface.
 my $mock_sqitch = Test::MockModule->new(ref $sqitch);
-my (@probe_args, $probed, $engine, $orig_emethod);
+my (@probe_args, $probed, $target, $orig_method);
 $mock_sqitch->mock(probe => sub { shift; @probe_args = @_; $probed });
-$mock_sqitch->mock(engine => sub { $engine = shift->$orig_emethod(@_) });
-$orig_emethod = $mock_sqitch->original('engine');
+my $mock_cmd = Test::MockModule->new($CLASS);
+$mock_cmd->mock(parse_args => sub {
+    my %ret = shift->$orig_method(@_);
+    $target = $ret{targets}[0];
+    %ret;
+});
+$orig_method = $mock_cmd->original('parse_args');
 
 my @run_args;
 $mock_sqitch->mock(run => sub { shift; @run_args = @_ });
@@ -333,7 +340,7 @@ isa_ok $checkout = $CLASS->new(
 ok $checkout->execute('master'), 'Checkout master';
 is_deeply \@probe_args, [$client, qw(rev-parse --abbrev-ref HEAD)],
     'The proper args should again have been passed to rev-parse';
-is_deeply \@capture_args, [$client, 'show', 'master:' . $sqitch->plan_file ],
+is_deeply \@capture_args, [$client, 'show', 'master:' . $checkout->default_target->plan_file ],
 
     'Should have requested the plan file contents as of master';
 is_deeply \@run_args, [$client, qw(checkout master)], 'Should have checked out other branch';
@@ -345,7 +352,7 @@ is_deeply +MockOutput->get_info, [[__x(
 )]], 'Should have emitted info identifying the last common change';
 
 # Did it revert?
-is_deeply \@rev_args, [$sqitch->plan->get('users')->id],
+is_deeply \@rev_args, [$checkout->default_target->plan->get('users')->id],
     '"users" ID and 1 should be passed to the engine revert';
 is_deeply \@rev_changes, [qw(roles users widgets)],
     'Should have had the current changes for revision';
@@ -356,8 +363,8 @@ is_deeply \@dep_args, [undef, 'tag'],
 is_deeply \@dep_changes, [qw(roles users thingíes)],
     'Should have had the other branch changes (decoded) for deploy';
 
-ok $engine->with_verify, 'Engine should verify';
-ok $engine->log_only, 'The engine should be set to log_only';
+ok $target->engine->with_verify, 'Engine should verify';
+ok $target->engine->log_only, 'The engine should be set to log_only';
 is @vars, 2, 'Variables should have been passed to the engine twice';
 is_deeply { @{ $vars[0] } }, { hey => 'there' },
     'The revert vars should have been passed first';
@@ -366,7 +373,7 @@ is_deeply { @{ $vars[1] } }, { foo => 'bar', one => 1 },
 
 # Try passing a target.
 ok $checkout->execute('master', 'db:sqlite:foo'), 'Checkout master with target';
-is $engine->target, 'db:sqlite:foo', 'Target should be passed to engine';
+is $target->name, 'db:sqlite:foo', 'Target should be passed to engine';
 is_deeply +MockOutput->get_warn, [], 'Should have no warnings';
 
 # If nothing is deployed, or we are already at the revert target, the revert
@@ -384,12 +391,12 @@ isa_ok $checkout = $CLASS->new(
 $mock_engine->mock(revert => sub { hurl { ident => 'revert', message => 'foo', exitval => 1 } });
 @dep_args = @rev_args = @vars = ();
 ok $checkout->execute('master'), 'Checkout master again';
-is $engine->target, 'db:sqlite:hello', 'Target should be passed to engine';
+is $target->name, 'db:sqlite:hello', 'Target should be passed to engine';
 is_deeply +MockOutput->get_warn, [], 'Should have no warnings';
 
 # Did it deploy?
-ok !$sqitch->engine->log_only, 'The engine should not be set to log_only';
-ok !$sqitch->engine->with_verify, 'The engine should not be set with_verfy';
+ok !$target->engine->log_only, 'The engine should not be set to log_only';
+ok !$target->engine->with_verify, 'The engine should not be set with_verfy';
 is_deeply \@dep_args, [undef, 'tag'],
     'undef, "tag", and 1 should be passed to the engine deploy again';
 is_deeply \@dep_changes, [qw(roles users thingíes)],
@@ -402,7 +409,7 @@ is_deeply { @{ $vars[1] } }, { foo => 'bar', one => 1 },
 
 # Should get a warning for two targets.
 ok $checkout->execute('master', 'db:sqlite:'), 'Checkout master again with target';
-is $engine->target, 'db:sqlite:hello', 'Target should be passed to engine';
+is $target->name, 'db:sqlite:hello', 'Target should be passed to engine';
 is_deeply +MockOutput->get_warn, [[__x(
     'Too many targets specified; connecting to {target}',
     target => 'db:sqlite:hello',

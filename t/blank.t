@@ -10,6 +10,7 @@ use Locale::TextDomain qw(App-Sqitch);
 use Test::NoWarnings;
 use Test::Exception;
 use App::Sqitch;
+use App::Sqitch::Target;
 use App::Sqitch::Plan;
 use Test::MockModule;
 use Test::File;
@@ -36,8 +37,9 @@ can_ok $CLASS, qw(
     note_prompt
 );
 
-my $sqitch = App::Sqitch->new;
-my $plan   = App::Sqitch::Plan->new(sqitch => $sqitch);
+my $sqitch = App::Sqitch->new(options => { engine => 'sqlite'});
+my $target = App::Sqitch::Target->new(sqitch => $sqitch);
+my $plan   = App::Sqitch::Plan->new(sqitch => $sqitch, target => $target);
 isa_ok my $blank = $CLASS->new(
     name  => 'foo',
     plan  => $plan,

@@ -40,7 +40,7 @@ has dest_top_dir => (
     lazy     => 1,
     default  => sub {
         my $self = shift;
-        dir $self->dest_dir, $self->sqitch->top_dir->relative;
+        dir $self->dest_dir, $self->default_target->top_dir->relative;
     },
 );
 
@@ -50,7 +50,7 @@ has dest_deploy_dir => (
     lazy     => 1,
     default  => sub {
         my $self = shift;
-        dir $self->dest_dir, $self->sqitch->deploy_dir->relative;
+        dir $self->dest_dir, $self->default_target->deploy_dir->relative;
     },
 );
 
@@ -60,7 +60,7 @@ has dest_revert_dir => (
     lazy     => 1,
     default  => sub {
         my $self = shift;
-        dir $self->dest_dir, $self->sqitch->revert_dir->relative;
+        dir $self->dest_dir, $self->default_target->revert_dir->relative;
     },
 );
 
@@ -70,7 +70,7 @@ has dest_verify_dir => (
     lazy     => 1,
     default  => sub {
         my $self = shift;
-        dir $self->dest_dir, $self->sqitch->verify_dir->relative;
+        dir $self->dest_dir, $self->default_target->verify_dir->relative;
     },
 );
 
@@ -164,10 +164,11 @@ sub bundle_config {
 
 sub bundle_plan {
     my $self   = shift;
-    my $sqitch = $self->sqitch;
+    my $target = $self->default_target;
+
     if (!defined $self->from && !defined $self->to) {
         $self->info(__ 'Writing plan');
-        my $file = $self->sqitch->plan_file;
+        my $file = $target->plan_file;
         return $self->_copy_if_modified(
             $file,
             $self->dest_top_dir->file( $file->basename ),
@@ -180,8 +181,8 @@ sub bundle_plan {
         to   => $self->to   // '@HEAD',
     ));
 
-    $sqitch->plan->write_to(
-        $self->dest_top_dir->file( $sqitch->plan_file->basename ),
+    $target->plan->write_to(
+        $self->dest_top_dir->file( $target->plan_file->basename ),
         $self->from,
         $self->to,
     );
@@ -189,8 +190,9 @@ sub bundle_plan {
 
 sub bundle_scripts {
     my $self = shift;
-    my $top  = $self->sqitch->top_dir;
-    my $plan = $self->plan;
+    my $target = $self->default_target;
+    my $top  = $target->top_dir;
+    my $plan = $target->plan;
     my $dir  = $self->dest_dir;
 
     my $from_index = $plan->index_of(

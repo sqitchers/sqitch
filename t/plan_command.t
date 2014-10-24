@@ -24,9 +24,11 @@ my $CLASS = 'App::Sqitch::Command::plan';
 require_ok $CLASS;
 
 ok my $sqitch = App::Sqitch->new(
-    top_dir => Path::Class::Dir->new('test-plan_command'),
-    _engine => 'sqlite',
-    plan_file => file(qw(t sql sqitch.plan)),
+    options => {
+        engine   => 'sqlite',
+        top_dir   => Path::Class::Dir->new('test-plan_command')->stringify,
+        plan_file => file(qw(t sql sqitch.plan))->stringify,
+    },
 ), 'Load a sqitch sqitch object';
 my $config = $sqitch->config;
 isa_ok my $cmd = App::Sqitch::Command->load({
@@ -543,13 +545,14 @@ my $pmock = Test::MockModule->new('App::Sqitch::Plan');
 # First, test for no changes.
 $pmock->mock(count => 0);
 
+my $plan = $cmd->default_target->plan;
 throws_ok { $cmd->execute } 'App::Sqitch::X',
     'Should get error for no changes';
 is $@->ident, 'plan', 'no changes error ident should be "plan"';
 is $@->exitval, 1, 'no changes exit val should be 1';
 is $@->message, __x(
     'No changes in {file}',
-    file => $sqitch->plan_file
+    file => $plan->file,
 ), 'no changes error message should be correct';
 $pmock->unmock('count');
 
@@ -563,7 +566,7 @@ $pmock->mock(search_changes => sub {
     return $iter;
 });
 
-$change = $sqitch->plan->change_at(0);
+$change = $plan->change_at(0);
 push @changes => $change;
 ok $cmd->execute, 'Execute plan';
 is_deeply $search_args, [
@@ -589,14 +592,14 @@ my $fmt_params = {
     planner_email => $change->planner_email,
 };
 is_deeply +MockOutput->get_page, [
-    ['# ', __x 'Project: {project}', project => $sqitch->plan->project ],
-    ['# ', __x 'File:    {file}', file => $sqitch->plan_file ],
+    ['# ', __x 'Project: {project}', project => $plan->project ],
+    ['# ', __x 'File:    {file}', file => $plan->file ],
     [''],
     [ $cmd->formatter->format( $cmd->format, $fmt_params ) ],
 ], 'The event should have been paged';
 
 # Set attributes and add more events.
-my $change2 = $sqitch->plan->change_at(1);
+my $change2 = $plan->change_at(1);
 push @changes => $change, $change2;
 isa_ok $cmd = $CLASS->new(
     sqitch            => $sqitch,
@@ -634,8 +637,8 @@ my $fmt_params2 = {
 };
 
 is_deeply +MockOutput->get_page, [
-    ['# ', __x 'Project: {project}', project => $sqitch->plan->project ],
-    ['# ', __x 'File:    {file}', file => $sqitch->plan_file ],
+    ['# ', __x 'Project: {project}', project => $plan->project ],
+    ['# ', __x 'File:    {file}', file => $plan->file ],
     [''],
     [ $cmd->formatter->format( $cmd->format, $fmt_params  ) ],
     [ $cmd->formatter->format( $cmd->format, $fmt_params2 ) ],

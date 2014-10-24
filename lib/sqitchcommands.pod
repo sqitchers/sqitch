@@ -12,13 +12,13 @@ sqitchcommands - List of common sqitch commands
 =head1 Usage
 
   sqitch [--plan-file <file>] [--engine <engine>] [--top-dir <dir> ]
-         [--extension <ext>] [--etc-path] [--quiet] [--verbose] [--version]
+         [--top-dir <dir> ] [--extension <ext>] [--registry <registry>]
+         [--etc-path] [--quiet] [--verbose] [--version]
          <command> [<command-options>] [<args>]
 
 =head1 Common Commands
 
 The most commonly used sqitch commands are:
-
 
   add        Add a new change to the plan
   bundle     Bundle a Sqitch project for distribution
