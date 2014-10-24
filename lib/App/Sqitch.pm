@@ -42,11 +42,6 @@ has options => (
     default => sub { {} },
 );
 
-has _engine => (
-    is  => 'ro',
-    isa => Maybe[Str],
-);
-
 has verbosity => (
     is       => 'ro',
     lazy     => 1,
@@ -180,10 +175,7 @@ sub go {
     my $config = App::Sqitch::Config->new;
 
     # 5. Instantiate Sqitch.
-    $opts->{options} = { %{ $opts }};
-    $opts->{_engine} = delete $opts->{engine} if $opts->{engine};
-    $opts->{config} = $config;
-    my $sqitch = $class->new($opts);
+    my $sqitch = $class->new({ options => $opts, config  => $config });
 
     return try {
         # 6. Instantiate the command object.
@@ -219,6 +211,7 @@ sub go {
 }
 
 sub _core_opts {
+    # TODO: Deprecate --db-client.
     return qw(
         plan-file|f=s
         engine=s
