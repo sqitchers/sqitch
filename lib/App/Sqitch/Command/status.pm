@@ -332,9 +332,14 @@ works, read on.
 
 =head2 Attributes
 
+=head3 C<target_name>
+
+The name or URI of the database target as specified by the C<--target> option.
+
 =head3 C<target>
 
-URI of the database target from which to read the status.
+An L<App::Sqitch::Target> object from which to read the status. Must be
+instantiated by C<execute()>.
 
 =head2 Instance Methods
 

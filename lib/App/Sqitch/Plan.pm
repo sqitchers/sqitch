@@ -1036,9 +1036,21 @@ an L<App::Sqitch> object.
 
 =head3 C<sqitch>
 
-  my $sqitch = $cmd->sqitch;
+  my $sqitch = $plan->sqitch;
 
 Returns the L<App::Sqitch> object that instantiated the plan.
+
+=head3 C<target>
+
+  my $target = $plan->target
+
+Returns the L<App::Sqitch::Target> passed to the constructor.
+
+=head3 C<file>
+
+  my $file = $plan->file;
+
+The file name from which to read the plan.
 
 =head3 C<position>
 
