@@ -379,7 +379,7 @@ C<--engine> option or C<core.engine> configuration option has been set, then
 the target will support that engine. In the latter case, if
 C<core.$engine.target> is set, that value will be used. Otherwise, the
 returned target will have a URI of C<db:> and no associated engine; the
-C<engine> method will throw an exception. This behavior sould be fine for
+C<engine> method will throw an exception. This behavior should be fine for
 commands that don't need to load the engine.
 
 =head3 C<parse_args>
@@ -402,7 +402,7 @@ returned under the "target" key and any subsequent changes must be recognized
 from I<its> plan.
 
 If no target is passed or appears in the arguments, a default target will be
-intantiated based on the comnad-line options and configuration. Unlike the
+instantiated based on the command-line options and configuration. Unlike the
 target returned by C<default_target>, however, it B<must> have an associated
 engine specified by the C<--engine> option or configuration. This is on the
 assumption that it will be used by commands that require an engine to do their
