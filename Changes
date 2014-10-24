@@ -9,6 +9,8 @@ Revision history for Perl extension App::Sqitch
      - Simplified the output of `sqitch help`, and added the more important
        options to it.
      - Added the `--guide` option to `sqitch help` to list Sqitch guides.
+     - The `status` command once again notices if the specified database is
+       uninitialized and says as much, rather than dying with an SQL error.
 
 0.996  2014-09-05T21:11:00Z
      - Fixed one more test failure due to the introduction of "Negative repeat

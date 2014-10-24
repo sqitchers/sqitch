@@ -67,7 +67,7 @@ has project => (
         my $self = shift;
         try { $self->plan->project } catch {
             # Just die on parse and I/O errors.
-            die $_ if try { $_->ident ne 'plan' };
+            die $_ if try { $_->ident eq 'parse' || $_->ident eq 'io' };
 
             # Try to extract a project name from the registry.
             my $engine = $self->engine;
@@ -119,7 +119,7 @@ sub execute {
         $engine->current_state( $self->project )
     } catch {
         # Just die on parse and I/O errors.
-        die $_ if try { $_->ident ne 'plan' };
+        die $_ if try { $_->ident eq 'parse' || $_->ident eq 'io' };
 
         # Hrm. Maybe not initialized?
         die $_ if $engine->initialized;
