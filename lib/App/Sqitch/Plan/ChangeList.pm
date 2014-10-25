@@ -41,7 +41,7 @@ sub _dbsymtag($) {
         old => $t,
         new => $t eq 'LAST' ? 'HEAD' : 'ROOT',
     ));
-    return $1;
+    return $t;
 }
 
 sub _offset($) {
