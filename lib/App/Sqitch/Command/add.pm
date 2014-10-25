@@ -201,7 +201,17 @@ sub _parse_opts {
 
     # Merge with and without.
     $opts{with_scripts} = {
-        ( map { $_ => delete $opts{$_} // 1 } qw(deploy revert verify) ),
+        ( map {
+            if (exists $opts{$_}) {
+                App::Sqitch->warn(__x(
+                    'Option --{opt} has been deprecated; use "--{with} {val}" instead',
+                    opt  => $_,
+                    with => $opts{$_} ? 'with' : 'without',
+                    val  => $_
+                ));
+            }
+            $_ => delete $opts{$_} // 1;
+        } qw(deploy revert verify) ),
         ( map { $_ => 1 } @{ delete $opts{with}    || [] } ),
         ( map { $_ => 0 } @{ delete $opts{without} || [] } ),
     };
@@ -210,7 +220,13 @@ sub _parse_opts {
     for my $script (qw(deploy revert verify)) {
         next unless exists $opts{"$script\_template"};
         $opts{use} ||= {};
-        $opts{use}{$script} = delete $opts{"$script\_template"}
+        $opts{use}{$script} = delete $opts{"$script\_template"};
+        App::Sqitch->warn(__x(
+            'Option --{opt} has been deprecated; use "--use {key}={val}" instead',
+            opt => "$script-template",
+            key => $script,
+            val => $opts{use}{$script},
+        ));
     }
 
     return \%opts;

@@ -89,6 +89,19 @@ Revision history for Perl extension App::Sqitch
      - Deprecated the `--registry` and `--client` options of the `target`
        command. All target properties may now be set via the new `--set`
        option, such as `--set registry=reg`.
+     - Formally deprecated the following options of the `add` command. They
+       have been replaced with the `--with`, `--without`, and `--use` options
+       since v0.991. Their use will emit a warning, and they will be removed
+       in v1.0:
+       * `--deploy-template`
+       * `--revert-template`
+       * `--verify-template`
+       * `--deploy`
+       * `--no-deploy`
+       * `--revert`
+       * `--no-revert`
+       * `--verify`
+       * `--no-verify`
 
 0.996  2014-09-05T21:11:00Z
      - Fixed one more test failure due to the introduction of "Negative repeat
