@@ -40,6 +40,8 @@ Revision history for Perl extension App::Sqitch
        configuration properties.
      - Updated the `init` documentation to better cover all the options
        processed.
+     - Incremented the version plan file format version to v1.0.0. No changes;
+       it has been stable for at least a year, so it's time.
      [Bug Fixes]
      - At runtime, the Vertica engine now properly requires DBD::ODBC
        instead of DBD::Pg.

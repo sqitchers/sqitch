@@ -16,7 +16,7 @@ use List::MoreUtils qw(uniq any);
 use namespace::autoclean;
 use Moo;
 use App::Sqitch::Types qw(Str Int HashRef ChangeList LineList Maybe Sqitch URI File Target);
-use constant SYNTAX_VERSION => '1.0.0-b2';
+use constant SYNTAX_VERSION => '1.0.0';
 
 our $VERSION = '0.997';
 
