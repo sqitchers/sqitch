@@ -102,6 +102,10 @@ Revision history for Perl extension App::Sqitch
        * `--no-revert`
        * `--verify`
        * `--no-verify`
+     - Dropped support for the long-deprecated (and likely never used outside
+       ancient tests long deleted) engine configuration variables
+       `core.sqlite.sqitch_db` and `core.pg.sqitch_schema`. Both have been
+       replaced with `core.$engine.registry`, which applies to all engines.
 
 0.996  2014-09-05T21:11:00Z
      - Fixed one more test failure due to the introduction of "Negative repeat

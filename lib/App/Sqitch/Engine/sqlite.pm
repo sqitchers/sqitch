@@ -26,10 +26,7 @@ has registry_uri => (
         my $uri  = $self->uri->clone;
         my $reg  = $self->registry;
 
-        if (my $db = $self->sqitch->config->get( key => 'core.sqlite.sqitch_db' ) ) {
-            # ### Deprecated Sqitch database file name.
-            $uri->dbname($db);
-        } elsif ( file($reg)->is_absolute ) {
+        if ( file($reg)->is_absolute ) {
             # Just use an absolute path.
             $uri->dbname($reg);
         } elsif (my @segs = $uri->path_segments) {

@@ -73,7 +73,6 @@ sub _client_opts {
         '--tuples-only',
         '--set' => 'ON_ERROR_STOP=1',
         '--set' => 'registry=' . $self->registry,
-        '--set' => 'sqitch_schema=' . $self->registry, # deprecated
     );
 }
 

@@ -59,7 +59,6 @@ my @std_opts = (
     '--tuples-only',
     '--set' => 'ON_ERROR_STOP=1',
     '--set' => 'registry=sqitch',
-    '--set' => 'sqitch_schema=sqitch',
 );
 is_deeply [$pg->psql], [$client, @std_opts],
     'psql command should be std opts-only';
@@ -110,8 +109,7 @@ my %config = (
     'core.pg.target'   => 'db:pg://localhost/try',
     'core.pg.registry' => 'meta',
 );
-$std_opts[-3] = 'registry=meta';
-$std_opts[-1] = 'sqitch_schema=meta';
+$std_opts[-1] = 'registry=meta';
 my $mock_config = Test::MockModule->new('App::Sqitch::Config');
 $mock_config->mock(get => sub { $config{ $_[2] } });
 
