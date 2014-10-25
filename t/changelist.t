@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 351;
+use Test::More tests => 257;
 #use Test::More 'no_plan';
 use Test::NoWarnings;
 use Test::Exception;
@@ -102,105 +102,6 @@ is $changes->index_of('baz^3'), 0, 'Should not find baz^3 at 0';
 is $changes->index_of('baz^4'), undef, 'Should not find baz^4';
 is $changes->index_of($baz->id . '^'), 2, 'Should find baz by ID^ at 2';
 is $changes->index_of($baz->old_id . '^'), 2, 'Should find baz by old ID^ at 2';
-
-# Test @FIRST.
-$earliest_id = $bar->id;
-is $changes->index_of('@FIRST'), 1, 'Should find @FIRST at 1';
-is $offset, 0, 'Should have no offset for @FIRST';
-$offset = undef;
-is $changes->index_of('@FIRST^'), undef, 'Should find undef for @FIRST^';
-is $offset, undef, 'Offset should not be set';
-is $changes->index_of('@FIRST~'), 2, 'Should find @FIRST~ at 2';
-is $offset, 1, 'Should have offset 1 for @FIRST~';
-is $changes->index_of('@FIRST~~'), 3, 'Should find @FIRST~~ at 3';
-is $offset, 2, 'Should have offset 2 for @FIRST~';
-$offset = undef;
-is $changes->index_of('@FIRST~~~'), undef, 'Should not find @FIRST~~~';
-is $offset, undef, 'Offset should not be set';
-is $changes->index_of('@FIRST~2'), 3, 'Should find @FIRST~2 at 3';
-is $offset, 2, 'Should have offset 2 for @FIRST~2';
-is $changes->index_of('@FIRST~3'), 4, 'Should find @FIRST~3 at 4';
-is $offset, 3, 'Should have offset 3 for @FIRST~3';
-
-is $changes->first_index_of('@FIRST'), 1, 'Should find @FIRST at 1';
-is $offset, 0, 'Should have no offset for @FIRST';
-$offset = undef;
-is $changes->first_index_of('@FIRST^'), undef, 'Should find undef for @FIRST^';
-is $offset, undef, 'Offset should not be set';
-is $changes->first_index_of('@FIRST~'), 2, 'Should find @FIRST~ at 2';
-is $offset, 1, 'Should have offset 1 for @FIRST~';
-is $changes->first_index_of('@FIRST~~'), 3, 'Should find @FIRST~~ at 3';
-is $offset, 2, 'Should have offset 2 for @FIRST~';
-$offset = undef;
-is $changes->first_index_of('@FIRST~~~'), undef, 'Should not find @FIRST~~~';
-is $offset, undef, 'Offset should not be set';
-is $changes->first_index_of('@FIRST~2'), 3, 'Should find @FIRST~2 at 3';
-is $offset, 2, 'Should have offset 2 for @FIRST~2';
-is $changes->first_index_of('@FIRST~3'), 4, 'Should find @FIRST~3 at 4';
-is $offset, 3, 'Should have offset 3 for @FIRST~3';
-
-is $changes->get('@FIRST'), $bar, 'Should get bar for @FIRST';
-is $offset, 0, 'Should have no offset for @FIRST';
-$offset = undef;
-is $changes->get('@FIRST^'), undef, 'Should get nothing for @FIRST^';
-is $offset, undef, 'Offset should not be set';
-is $changes->get('@FIRST~'), $yo1, 'Should get yo1 for @FIRST~';
-is $offset, 1, 'Should have offset 1 for @FIRST~';
-
-ok $changes->contains('@FIRST'), 'Should contain @FIRST';
-is $changes->find('@FIRST'), $bar, 'Should find bar for @FIRST';
-is $offset, 0, 'Should have no offset for @FIRST';
-$offset = undef;
-ok !$changes->contains('@FIRST^'), 'Should not contain @FIRST^';
-is $changes->find('@FIRST^'), undef, 'Should find nothing for @FIRST^';
-is $offset, undef, 'Offset should not be set';
-ok $changes->contains('@FIRST~'), 'Should contain @FIRST~';
-is $changes->find('@FIRST~'), $yo1, 'Should find yo1 for @FIRST~';
-is $offset, 1, 'Should have offset 1 for @FIRST~';
-$earliest_id = undef;
-
-# Test @LAST.
-$latest_id = $yo1->id;
-$offset = undef;
-is $changes->index_of('@LAST'), 2, 'Should find @LAST at 2';
-is $offset, 0, 'Should have offset 0 for @LAST';
-is $changes->index_of('@LAST^'), 1, 'Should find @LAST^ at 1';
-is $offset, 1, 'Should have offset 1 for @LAST^';
-is $changes->index_of('@LAST^^'), 0, 'Should find @LAST^^ at 1';
-is $offset, 2, 'Should have offset 2 for @LAST^^';
-$offset = undef;
-is $changes->index_of('@LAST^^^'), undef, 'Should not find @LAST^^^';
-is $offset, undef, 'Offset should not be set';
-
-is $changes->first_index_of('@LAST'), 2, 'Should find @LAST at 2';
-is $offset, 0, 'Should have offset 0 for @LAST';
-is $changes->first_index_of('@LAST^'), 1, 'Should find @LAST^ at 1';
-is $offset, 1, 'Should have offset 1 for @LAST^';
-is $changes->first_index_of('@LAST^^'), 0, 'Should find @LAST^^ at 1';
-is $offset, 2, 'Should have offset 2 for @LAST^^';
-$offset = undef;
-is $changes->first_index_of('@LAST^^^'), undef, 'Should not find @LAST^^^';
-is $offset, undef, 'Offset should not be set';
-
-is $changes->get('@LAST'), $yo1, 'Should get yo1 for @LAST';
-is $offset, 0, 'Should have offset 0 for @LAST';
-is $changes->get('@LAST^'), $bar, 'should get bar for @LAST^';
-is $offset, 1, 'Should have offset 1 for @LAST^';
-$offset = undef;
-is $changes->get('@LAST~'), undef, 'should get nothing for @LAST~';
-is $offset, undef, 'Offset should not be set';
-
-ok $changes->contains('@LAST'), 'Should contain @LAST';
-is $changes->find('@LAST'), $yo1, 'Should find yo1 for @LAST';
-is $offset, 0, 'Should have offset 0 for @LAST';
-ok $changes->contains('@LAST^'), 'Should contain @LAST^';
-is $changes->find('@LAST^'), $bar, 'should find bar for @LAST^';
-is $offset, 1, 'Should have offset 1 for @LAST^';
-$offset = undef;
-ok !$changes->contains('@LAST~'), 'Should not contain @LAST~';
-is $changes->find('@LAST~'), undef, 'should find nothing for @LAST~';
-is $offset, undef, 'Offset should not be set';
-$latest_id = undef;
 
 throws_ok { $changes->index_of('yo') } 'App::Sqitch::X',
     'Should get multiple indexes error looking for index of "yo"';
@@ -451,10 +352,6 @@ for my $ref (qw(
     @ROOT
     alpha
     @alpha
-    FIRST
-    @FIRST
-    LAST
-    @LAST
 )) {
     is $changes->index_of($ref), undef,
         qq{Should not find index of "$ref" in empty list};

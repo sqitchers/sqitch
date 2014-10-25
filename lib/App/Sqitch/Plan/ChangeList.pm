@@ -35,6 +35,12 @@ my $punct = q{-!"#$%&'()*+,./:;<=>?@[\\]^`{|}~};
 sub _dbsymtag($) {
     # Return LAST or FIRST if it is a DB symbolic tag.
     $_[0] =~ /\A[@]?((?:LA|FIR)ST)(?:(?<![$punct])([~^])(?:(\2)|(\d+))?)?\z/ or return;
+    my $t = $1;
+    App::Sqitch->warn(__x(
+        'The @{old} symbolic tag has been deprecated; use @{new} instead',
+        old => $t,
+        new => $t eq 'LAST' ? 'HEAD' : 'ROOT',
+    ));
     return $1;
 }
 
