@@ -395,7 +395,7 @@ Some variables may require a special value format.
       top_dir   = migrations
       extension = ddl
 
-  [core "pg"]
+  [engine "pg"]
       registry  = widgetopolis
 
   [revert]

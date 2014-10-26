@@ -70,14 +70,14 @@ Let's have a look at F<sqitch.conf>:
   	# revert_dir = revert
   	# verify_dir = verify
   	# extension = sql
-  # [core "sqlite"]
+  # [engine "sqlite"]
   	# target = db:sqlite:
   	# registry = sqitch
   	# client = sqlite3
 
 Good, it picked up on the fact that we're creating changes for the SQLite
 engine, thanks to the C<--engine sqlite> option, and saved it to the file.
-Furthermore, it wrote a commented-out C<[core "sqlite"]> section with all the
+Furthermore, it wrote a commented-out C<[engine "sqlite"]> section with all the
 available SQLite engine-specific settings commented out and ready to be edited
 as appropriate.
 
@@ -97,7 +97,7 @@ of our projects:
 Have a look at F<~/.sqitch/sqitch.conf> and you'll see this:
 
   > cat ~/.sqitch/sqitch.conf
-  [core "sqlite"]
+  [engine "sqlite"]
 	client = /opt/local/bin/sqlite3
   [user]
 	name = Marge N. O’Vera

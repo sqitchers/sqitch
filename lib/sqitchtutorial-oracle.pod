@@ -112,14 +112,14 @@ Let's have a look at F<sqitch.conf>:
   	# revert_dir = revert
   	# verify_dir = verify
   	# extension = sql
-  # [core "oracle"]
+  # [engine "oracle"]
   	# target = db:oracle:
   	# registry = 
   	# client = /usr/local/instantclient_11_2/sqlplus
 
 Good, it picked up on the fact that we're creating changes for the Oracle
 engine, thanks to the C<--engine oracle> option, and saved it to the file.
-Furthermore, it wrote a commented-out C<[core "oracle"]> section with all the
+Furthermore, it wrote a commented-out C<[engine "oracle"]> section with all the
 available Oracle engine-specific settings commented out and ready to be edited
 as appropriate. This includes the path to
 L<SQL*Plus|http://www.orafaq.com/wiki/SQL*Plus> in my C<$ORACLE_HOME>.

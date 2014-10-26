@@ -71,7 +71,7 @@ Let's have a look at F<sqitch.conf>:
   	# revert_dir = revert
   	# verify_dir = verify
   	# extension = sql
-  # [core "firebird"]
+  # [engine "firebird"]
   	# target = db:firebird:
   	# registry = sqitch
   	# client = isql-fb
@@ -79,7 +79,7 @@ Let's have a look at F<sqitch.conf>:
 Good, it picked up on the fact that we're creating changes for the
 Firebird engine, thanks to the C<--engine firebird> option, and saved
 it to the file.  Furthermore, it wrote a commented-out
-C<[core "firebird"]> section with all the available Firebird engine-specific
+C<[engine "firebird"]> section with all the available Firebird engine-specific
 settings commented out and ready to be edited as appropriate.
 
 By default, Sqitch will read F<sqitch.conf> in the current directory for
@@ -109,7 +109,7 @@ Have a look at F<~/.sqitch/sqitch.conf> and you'll see something like
 this:
 
   > cat ~/.sqitch/sqitch.conf
-  [core "firebird"]
+  [engine "firebird"]
     client = /opt/local/bin/isql
   [user]
     name = Marge N. O’Vera
