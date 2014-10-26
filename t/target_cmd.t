@@ -377,44 +377,80 @@ is_deeply +MockOutput->get_emit, [
 ok $cmd->show('dev'), 'Show dev';
 is_deeply +MockOutput->get_emit, [
     ['* dev'],
-    ['  ', 'URI:      ', 'db:pg:widgets'],
-    ['  ', 'Registry: ', 'sqitch'],
-    ['  ', 'Client:   ', $psql],
+    ['  ', 'URI:              ', 'db:pg:widgets'],
+    ['  ', 'Registry:         ', 'sqitch'],
+    ['  ', 'Client:           ', $psql],
+    ['  ', 'Top Directory:    ', '.'],
+    ['  ', 'Plan File:        ', 'sqitch.plan'],
+    ['  ', 'Deploy Directory: ', 'deploy'],
+    ['  ', 'Revert Directory: ', 'revert'],
+    ['  ', 'Verify Directory: ', 'verify'],
+    ['  ', 'Extension:        ', 'sql'],
 ], 'The "dev" target should have been shown';
 
 # Try a target with a non-default client.
 ok $cmd->show('withcli'), 'Show withcli';
 is_deeply +MockOutput->get_emit, [
     ['* withcli'],
-    ['  ', 'URI:      ', 'db:pg:withcli'],
-    ['  ', 'Registry: ', 'sqitch'],
-    ['  ', 'Client:   ', 'hi.exe'],
+    ['  ', 'URI:              ', 'db:pg:withcli'],
+    ['  ', 'Registry:         ', 'sqitch'],
+    ['  ', 'Client:           ', 'hi.exe'],
+    ['  ', 'Top Directory:    ', '.'],
+    ['  ', 'Plan File:        ', 'sqitch.plan'],
+    ['  ', 'Deploy Directory: ', 'deploy'],
+    ['  ', 'Revert Directory: ', 'revert'],
+    ['  ', 'Verify Directory: ', 'verify'],
+    ['  ', 'Extension:        ', 'sql'],
 ], 'The "with_cli" target should have been shown';
 
 # Try a target with a non-default registry.
 ok $cmd->show('withreg'), 'Show withreg';
 is_deeply +MockOutput->get_emit, [
     ['* withreg'],
-    ['  ', 'URI:      ', 'db:pg:withreg'],
-    ['  ', 'Registry: ', 'meta'],
-    ['  ', 'Client:   ', $psql],
+    ['  ', 'URI:              ', 'db:pg:withreg'],
+    ['  ', 'Registry:         ', 'meta'],
+    ['  ', 'Client:           ', $psql],
+    ['  ', 'Top Directory:    ', '.'],
+    ['  ', 'Plan File:        ', 'sqitch.plan'],
+    ['  ', 'Deploy Directory: ', 'deploy'],
+    ['  ', 'Revert Directory: ', 'revert'],
+    ['  ', 'Verify Directory: ', 'verify'],
+    ['  ', 'Extension:        ', 'sql'],
 ], 'The "with_reg" target should have been shown';
 
 # Try multiples.
 ok $cmd->show(qw(dev qa withreg)), 'Show three targets';
 is_deeply +MockOutput->get_emit, [
     ['* dev'],
-    ['  ', 'URI:      ', 'db:pg:widgets'],
-    ['  ', 'Registry: ', 'sqitch'],
-    ['  ', 'Client:   ', $psql],
+    ['  ', 'URI:              ', 'db:pg:widgets'],
+    ['  ', 'Registry:         ', 'sqitch'],
+    ['  ', 'Client:           ', $psql],
+    ['  ', 'Top Directory:    ', '.'],
+    ['  ', 'Plan File:        ', 'sqitch.plan'],
+    ['  ', 'Deploy Directory: ', 'deploy'],
+    ['  ', 'Revert Directory: ', 'revert'],
+    ['  ', 'Verify Directory: ', 'verify'],
+    ['  ', 'Extension:        ', 'sql'],
     ['* qa'],
-    ['  ', 'URI:      ', 'db:pg://qa.example.com/qa_widgets'],
-    ['  ', 'Registry: ', 'meta'],
-    ['  ', 'Client:   ', '/usr/sbin/psql'],
+    ['  ', 'URI:              ', 'db:pg://qa.example.com/qa_widgets'],
+    ['  ', 'Registry:         ', 'meta'],
+    ['  ', 'Client:           ', '/usr/sbin/psql'],
+    ['  ', 'Top Directory:    ', '.'],
+    ['  ', 'Plan File:        ', 'sqitch.plan'],
+    ['  ', 'Deploy Directory: ', 'deploy'],
+    ['  ', 'Revert Directory: ', 'revert'],
+    ['  ', 'Verify Directory: ', 'verify'],
+    ['  ', 'Extension:        ', 'sql'],
     ['* withreg'],
-    ['  ', 'URI:      ', 'db:pg:withreg'],
-    ['  ', 'Registry: ', 'meta'],
-    ['  ', 'Client:   ', $psql],
+    ['  ', 'URI:              ', 'db:pg:withreg'],
+    ['  ', 'Registry:         ', 'meta'],
+    ['  ', 'Client:           ', $psql],
+    ['  ', 'Top Directory:    ', '.'],
+    ['  ', 'Plan File:        ', 'sqitch.plan'],
+    ['  ', 'Deploy Directory: ', 'deploy'],
+    ['  ', 'Revert Directory: ', 'revert'],
+    ['  ', 'Verify Directory: ', 'verify'],
+    ['  ', 'Extension:        ', 'sql'],
 ], 'All three targets should have been shown';
 
 ##############################################################################

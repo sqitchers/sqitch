@@ -223,12 +223,24 @@ sub show {
         __ 'URI',
         __ 'Registry',
         __ 'Client',
+        __ 'Top Directory',
+        __ 'Plan File',
+        __ 'Deploy Directory',
+        __ 'Revert Directory',
+        __ 'Verify Directory',
+        __ 'Extension',
     );
 
     my %label_for = (
-        uri      => __('URI')      . ': ' . ' ' x ($len - length __ 'URI'),
-        registry => __('Registry') . ': ' . ' ' x ($len - length __ 'Registry'),
-        client   => __('Client')   . ': ' . ' ' x ($len - length __ 'Client'),
+        uri      => __('URI')                . ': ' . ' ' x ($len - length __ 'URI'),
+        registry => __('Registry')           . ': ' . ' ' x ($len - length __ 'Registry'),
+        client   => __('Client')             . ': ' . ' ' x ($len - length __ 'Client'),
+        top_dir    => __('Top Directory')    . ': ' . ' ' x ($len - length __ 'Top Directory'),
+        plan_file  => __('Plan File')        . ': ' . ' ' x ($len - length __ 'Plan File'),
+        deploy_dir => __('Deploy Directory') . ': ' . ' ' x ($len - length __ 'Deploy Directory'),
+        revert_dir => __('Revert Directory') . ': ' . ' ' x ($len - length __ 'Revert Directory'),
+        verify_dir => __('Verify Directory') . ': ' . ' ' x ($len - length __ 'Verify Directory'),
+        extension  => __('Extension')        . ': ' . ' ' x ($len - length __ 'Extension'),
     );
 
     require App::Sqitch::Target;
@@ -238,9 +250,15 @@ sub show {
             name   => $name,
         );
         $self->emit("* $name");
-        $self->emit('  ', $label_for{uri},      $target->uri->as_string);
-        $self->emit('  ', $label_for{registry}, $target->registry);
-        $self->emit('  ', $label_for{client},   $target->client);
+        $self->emit('  ', $label_for{uri},        $target->uri->as_string);
+        $self->emit('  ', $label_for{registry},   $target->registry);
+        $self->emit('  ', $label_for{client},     $target->client);
+        $self->emit('  ', $label_for{top_dir},    $target->top_dir);
+        $self->emit('  ', $label_for{plan_file},  $target->plan_file);
+        $self->emit('  ', $label_for{deploy_dir}, $target->deploy_dir);
+        $self->emit('  ', $label_for{revert_dir}, $target->revert_dir);
+        $self->emit('  ', $label_for{verify_dir}, $target->verify_dir);
+        $self->emit('  ', $label_for{extension},  $target->extension);
     }
 
     return $self;
