@@ -33,10 +33,11 @@ The most commonly used sqitch commands are:
   rebase     Revert and redeploy database changes
   revert     Revert changes from a database
   rework     Duplicate a change in the plan and revise its scripts
-  status     Show the current deployment status of a database
   show       Show information about changes and tags, or change script contents
+  status     Show the current deployment status of a database
   tag        Add or list tags in the plan
   target     Manage target database configuration
+  verify     Verify changes to a database
 
 See C<< sqitch help <command> >> or C<< sqitch help <concept> >> to read about
 a specific command or concept.
