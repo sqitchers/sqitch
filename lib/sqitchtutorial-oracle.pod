@@ -205,7 +205,7 @@ probably makes the most sense to create a superuser named C<sqitch> or
 something similar and use it to deploy changes.
 
 If you'd like it to use a different database as the registry database, use
-C<sqitch config engine.oracle.registry $name> to configure it (or via the
+C<sqitch engine add oracle $name> to configure it (or via the
 L<C<target> command|sqitch-target>; more L<below|/On Target>). This will be
 useful if you don't want to use the same registry database to manage multiple
 databases on the same server.
@@ -432,7 +432,7 @@ C<flipr_test>, which means we can use the string C<flipr_test> for the target,
 rather than the URI. But since we're doing so much testing, we can also tell
 Sqitch to deploy to the C<flipr_test> target by default:
 
-  > sqitch config engine.oracle.target flipr_test
+  > sqitch engine add oracle flipr_test
 
 Now we can omit the target argument altogether, unless we need to deploy to
 another database. Which we will, eventually, but at least our examples will be
