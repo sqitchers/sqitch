@@ -103,7 +103,7 @@ MISSINGARGS: {
 # Should die on existing key.
 throws_ok { $cmd->add('pg') } 'App::Sqitch::X',
     'Should get error for existing engine';
-is $@->ident, 'enginecmd', 'Existing engine error ident should be "engine"';
+is $@->ident, 'engine', 'Existing engine error ident should be "engine"';
 is $@->message, __x(
     'Engine "{engine}" already exists',
     engine => 'pg'
@@ -171,7 +171,7 @@ MISSINGARGS: {
 # Should get an error if the engine does not exist.
 throws_ok { $cmd->set_target('nonexistent', 'db:pg:' ) } 'App::Sqitch::X',
     'Should get error for nonexistent engine';
-is $@->ident, 'enginecmd', 'Nonexistent engine error ident should be "engine"';
+is $@->ident, 'engine', 'Nonexistent engine error ident should be "engine"';
 is $@->message, __x(
     'Unknown engine "{engine}"',
     engine => 'nonexistent'
@@ -211,7 +211,7 @@ for my $key (keys %props) {
     # Should get an error if the engine does not exist.
     throws_ok { $cmd->$meth('nonexistent', 'shake' ) } 'App::Sqitch::X',
         'Should get error for nonexistent engine';
-    is $@->ident, 'enginecmd', 'Nonexistent engine error ident should be "engine"';
+    is $@->ident, 'engine', 'Nonexistent engine error ident should be "engine"';
     is $@->message, __x(
         'Unknown engine "{engine}"',
         engine => 'nonexistent'
@@ -239,7 +239,7 @@ MISSINGARGS: {
 # Should get an error if the engine does not exist.
 throws_ok { $cmd->remove('nonexistent', 'existant' ) } 'App::Sqitch::X',
     'Should get error for nonexistent engine';
-is $@->ident, 'enginecmd', 'Nonexistent engine error ident should be "engine"';
+is $@->ident, 'engine', 'Nonexistent engine error ident should be "engine"';
 is $@->message, __x(
     'Unknown engine "{engine}"',
     engine => 'nonexistent'

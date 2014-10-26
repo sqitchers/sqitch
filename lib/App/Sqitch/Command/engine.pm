@@ -48,7 +48,7 @@ sub options {
 
 sub _chk_engine($) {
     my $engine = shift;
-    hurl enginecmd => __x(
+    hurl engine => __x(
         'Unknown engine "{engine}"', engine => $engine
     ) unless first { $engine eq $_ } ENGINES;
 }
@@ -105,7 +105,7 @@ sub add {
     my $key    = "engine.$engine";
     my $config = $self->sqitch->config;
 
-    hurl enginecmd => __x(
+    hurl engine => __x(
         'Engine "{engine}" already exists',
         engine => $engine
     ) if $config->get( key => "$key.target");
@@ -146,7 +146,7 @@ sub _set {
 
     my $config = $self->sqitch->config;
 
-    hurl enginecmd => __x(
+    hurl engine => __x(
         'Unknown engine "{engine}"',
         engine => $engine
     ) unless $config->get( key => "engine.$engine.target");
@@ -196,7 +196,7 @@ sub remove {
         );
     } catch {
         die $_ unless /No such section/;
-        hurl enginecmd => __x(
+        hurl engine => __x(
             'Unknown engine "{engine}"',
             engine => $engine,
         );
