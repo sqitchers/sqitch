@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 190;
+use Test::More tests => 199;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -57,6 +57,7 @@ can_ok $cmd, qw(
     remove
     rm
     show
+    update_config
 );
 
 is_deeply [$CLASS->options], [qw(
@@ -363,3 +364,71 @@ MISSINGARGS: {
         action => 'nonexistent',
     )], 'Nonexistent action message should be passed to usage';
 }
+
+##############################################################################
+# Test update_config.
+$config->group_set($config->local_file, [
+    {key => 'core.mysql.target',   value => 'widgets'   },
+    {key => 'core.mysql.client',   value => 'mysql.exe' },
+    {key => 'core.mysql.registry', value => 'spliff'    },
+    {key => 'core.mysql.host',     value => 'localhost' },
+    {key => 'core.mysql.port',     value => 1234        },
+    {key => 'core.mysql.username', value => 'fred'      },
+    {key => 'core.mysql.password', value => 'barb'      },
+    {key => 'core.mysql.db_name',  value => 'ouch'      },
+]);
+$cmd->sqitch->config->load;
+ok $cmd->update_config, 'Update the config';
+$cmd->sqitch->config->load;
+is_deeply $cmd->sqitch->config->get_section(section => 'core.mysql'), {},
+    'The core.mysql config should be gone';
+is_deeply $cmd->sqitch->config->get_section(section => 'engine.mysql'), {
+    target => 'widgets',
+    client => 'mysql.exe',
+    registry => 'spliff',
+}, 'MySQL config should have been rewritten without deprecated keys';
+
+# Try with no target.
+$config->rename_section(
+    from     => 'engine.mysql',
+    filename => $config->local_file,
+);
+$config->group_set($config->local_file, [
+    {key => 'core.mysql.client',   value => 'mysql.exe' },
+    {key => 'core.mysql.registry', value => 'spliff'    },
+    {key => 'core.mysql.host',     value => 'localhost' },
+    {key => 'core.mysql.port',     value => 1234        },
+    {key => 'core.mysql.username', value => 'fred'      },
+    {key => 'core.mysql.password', value => 'barb'      },
+    {key => 'core.mysql.db_name',  value => 'ouch'      },
+]);
+$cmd->sqitch->config->load;
+ok $cmd->update_config, 'Update the config again';
+$cmd->sqitch->config->load;
+is_deeply $cmd->sqitch->config->get_section(section => 'core.mysql'), {},
+    'The core.mysql config should again be gone';
+is_deeply $cmd->sqitch->config->get_section(section => 'engine.mysql'), {
+    target => 'db:mysql://fred:barb@localhost:1234/ouch',
+    client => 'mysql.exe',
+    registry => 'spliff',
+}, 'MySQL config should have been rewritten with an integrated target';
+
+# Try with no deprecated keys.
+$config->rename_section(
+    from     => 'engine.mysql',
+    filename => $config->local_file,
+);
+$config->group_set($config->local_file, [
+    {key => 'core.mysql.client',   value => 'mysql.exe' },
+    {key => 'core.mysql.registry', value => 'spliff'    },
+]);
+$cmd->sqitch->config->load;
+ok $cmd->update_config, 'Update the config again';
+$cmd->sqitch->config->load;
+is_deeply $cmd->sqitch->config->get_section(section => 'core.mysql'), {},
+    'The core.mysql config should again be gone';
+is_deeply $cmd->sqitch->config->get_section(section => 'engine.mysql'), {
+    target => 'db:mysql:',
+    client => 'mysql.exe',
+    registry => 'spliff',
+}, 'MySQL config should have been rewritten with a default target';
