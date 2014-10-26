@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 187;
+use Test::More tests => 190;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -189,6 +189,15 @@ $config->load;
 is $config->get(key => 'engine.pg.target'), 'db:postgres:stuff',
     'Engine "pg" should have new DB target';
 
+# Make sure we die for an unknown target.
+throws_ok { $cmd->set_target('pg', 'unknown') } 'App::Sqitch::X',
+    'Should get an error for an unknown target';
+is $@->ident, 'engine', 'Nonexistent target error ident should be "engine"';
+is $@->message, __x(
+    'Unknown target "{target}"',
+    target => 'unknown'
+), 'Nonexistent target error message should be correct';
+
 ##############################################################################
 # Test other set_* methods
 for my $key (keys %props) {
@@ -209,7 +218,7 @@ for my $key (keys %props) {
     }
 
     # Should get an error if the engine does not exist.
-    throws_ok { $cmd->$meth('nonexistent', 'shake' ) } 'App::Sqitch::X',
+    throws_ok { $cmd->$meth('nonexistent', 'widgets' ) } 'App::Sqitch::X',
         'Should get error for nonexistent engine';
     is $@->ident, 'engine', 'Nonexistent engine error ident should be "engine"';
     is $@->message, __x(
@@ -218,9 +227,9 @@ for my $key (keys %props) {
     ), 'Nonexistent engine error message should be correct';
 
     # Set one that exists.
-    ok $cmd->$meth('pg', 'rock'), 'Set new $key';
+    ok $cmd->$meth('pg', 'widgets'), 'Set new $key';
     $config->load;
-    is $config->get(key => "engine.pg.$key"), 'rock',
+    is $config->get(key => "engine.pg.$key"), 'widgets',
         qq{Engine "pg" should have new $key};
 }
 

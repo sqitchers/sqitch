@@ -54,10 +54,21 @@ sub _chk_engine($) {
 }
 
 my %normalizer_for = (
-    target    => sub { $_[0] && $_[0] =~ /:/ ? URI::db->new($_[0], 'db:')->as_string : $_[0] },
     top_dir   => sub { $_[0] ? dir($_[0])->cleanup : undef },
     plan_file => sub { $_[0] ? file($_[0])->cleanup : undef },
     client    => sub { $_[0] },
+    target    => sub {
+        my $target = shift or return undef;
+        # Return a normalized URI if it looks like a URI.
+        return URI::db->new($target, 'db:')->as_string if $target =~ /:/;
+        # Otherwise, it needs to be a known target from the config.
+        my $config = shift;
+        return $target if $config->get(key => "target.$target.uri");
+        hurl engine => __x(
+            'Unknown target "{target}"',
+            target => $target
+        );
+    },
 );
 
 $normalizer_for{"$_\_dir"} = $normalizer_for{top_dir} for qw(deploy revert verify);
@@ -121,14 +132,14 @@ sub add {
         $got_target++ if $prop eq 'target';
         push @vars => {
             key   => "$key.$prop",
-            value => $normalizer->($val),
+            value => $normalizer->($val, $config),
         };
     }
 
     # Gotta have a target.
     unshift @vars => {
         key   => "$key.target",
-        value => $normalizer_for{target}->($target || "db:$engine:"),
+        value => $normalizer_for{target}->($target || "db:$engine:", $config),
     } unless $got_target;
 
     # Make it so.
@@ -161,7 +172,9 @@ sub _set {
 
 sub set_target {
     my ($self, $engine, $target) = @_;
-    $self->_set( 'target', $engine, $normalizer_for{target}->($target) );
+    $self->_set( 'target', $engine, $normalizer_for{target}->(
+        $target, $self->sqitch->config,
+    ) );
 }
 
 sub set_registry  { shift->_set('registry',  @_) }
