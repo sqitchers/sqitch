@@ -86,11 +86,11 @@ sub list {
     my $self    = shift;
     my $sqitch  = $self->sqitch;
     my $rx = join '|' => ENGINES;
-    my %engines = $sqitch->config->get_regexp(key => qr/^core[.](?:$rx)[.]target$/);
+    my %engines = $sqitch->config->get_regexp(key => qr/^engine[.](?:$rx)[.]target$/);
 
     my $format = $self->verbose ? "%1\$s\t%2\$s" : '%1$s';
     for my $key (sort keys %engines) {
-        my ($engine) = $key =~ /core[.]([^.]+)/;
+        my ($engine) = $key =~ /engine[.]([^.]+)/;
         $sqitch->emit(sprintf $format, $engine, $engines{$key})
     }
 
@@ -102,7 +102,7 @@ sub add {
     $self->usage unless $engine;
     _chk_engine $engine;
 
-    my $key    = "core.$engine";
+    my $key    = "engine.$engine";
     my $config = $self->sqitch->config;
 
     hurl enginecmd => __x(
@@ -149,10 +149,10 @@ sub _set {
     hurl enginecmd => __x(
         'Unknown engine "{engine}"',
         engine => $engine
-    ) unless $config->get( key => "core.$engine.target");
+    ) unless $config->get( key => "engine.$engine.target");
 
     $config->set(
-        key      => "core.$engine.$key",
+        key      => "engine.$engine.$key",
         value    => $value,
         filename => $config->local_file,
     );
@@ -191,7 +191,7 @@ sub remove {
     my $config = $self->sqitch->config;
     try {
         $config->rename_section(
-            from     => "core.$engine",
+            from     => "engine.$engine",
             filename => $config->local_file,
         );
     } catch {
@@ -239,7 +239,7 @@ sub show {
     for my $engine (@names) {
         my $target = App::Sqitch::Target->new(
             sqitch => $sqitch,
-            name   => $config->get(key => "core.$engine.target") || "db:$engine",
+            name   => $config->get(key => "engine.$engine.target") || "db:$engine",
         );
 
         $self->emit("* $engine");
@@ -254,6 +254,101 @@ sub show {
         $self->emit('  ', $label_for{extension},  $target->extension);
     }
 
+    return $self;
+}
+
+sub update_config {
+    my $self = shift;
+    my $sqitch = $self->sqitch;
+    my $config = $sqitch->config;
+
+    my $rx = join '|' => ENGINES;
+    $rx = qr/^core[.](?:$rx)[.]/;
+
+    my $local_file = $config->local_file;
+    for my $file (
+        $local_file,
+        $config->user_file,
+        $config->system_file,
+    ) {
+        $sqitch->emit(__x( 'Loading {file}', file => $file ));
+        my $c = App::Sqitch::Config->new;
+        $c->load_file($file);
+        my %engines;
+        for my $ekey (ENGINES) {
+            my $sect = $c->get_section( section => "core.$ekey");
+            $engines{$ekey} = $sect if %{ $sect };
+        }
+        unless (%engines) {
+            $sqitch->emit(__ '  No engines to update');
+            next;
+        }
+
+        # Make sure we can write to the file.
+        unless (-w $file) {
+            $sqitch->warn(__x(
+                'Cannot update {file}. Please make it writable',
+                file => $file,
+            ));
+            next;
+        }
+
+        # Move all of the engines.
+        for my $ekey (sort keys %engines) {
+            my $old = $engines{$ekey};
+
+            my @new;
+            if ( my $target = delete $old->{target} ) {
+                # Good, there is already a specific target.
+                push @new => {
+                    key => "engine.$ekey.target",
+                    value => $target,
+                };
+                # Kill off deprecated variables.
+                for (qw(host port username password db_name)) { delete $old->{$_} }
+            } elsif ( $file eq $local_file ) {
+                # Start with a default and migrate deprecated configs.
+                my $uri = URI::db->new("db:$ekey:");
+                for my $spec (
+                    [host     => 'host'],
+                    [port     => 'port'],
+                    [username => 'user'],
+                    [password => 'password'],
+                    [db_name  => 'dbname'],
+                ) {
+                    my ($key, $meth) = @{ $spec };
+                    my $val = delete $old->{$key} or next;
+                    $uri->$meth($val);
+                }
+                push @new => {
+                    key => "engine.$ekey.target",
+                    value => $uri->as_string,
+                };
+            } else {
+                # Just kill off any of the deprecated variables.
+                for (qw(host port username password db_name)) { delete $old->{$_} }
+            }
+
+            # Copy over the remaining variabls.
+            push @new => map {{
+                key => "engine.$ekey.$_",
+                value => $old->{$_},
+            }} keys %{ $old };
+
+            # Create the new variables and delete the old section.
+            $config->group_set( $file, \@new );
+            $c->rename_section(
+                from     => "core.$ekey",
+                filename => $file,
+            );
+
+            $sqitch->emit(__x(
+                'Renamed {old} to {new}',
+                old => "core.$ekey",
+                new => "engine.$ekey",
+            ));
+        }
+    }
     return $self;
 }
 

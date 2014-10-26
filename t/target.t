@@ -123,7 +123,7 @@ CONSTRUCTOR: {
     isa_ok my $target = $CLASS->new(sqitch => $sqitch), $CLASS, 'Default target';
     is $target->name, 'db:sqlite:', 'Name should be "db:sqlite:"';
     is $target->uri, URI::db->new('db:sqlite:'), 'URI should be "db:sqlite:"';
-    is_deeply \@get_params, [[key => 'core.sqlite.target']],
+    is_deeply \@get_params, [[key => 'engine.sqlite.target'],[key => 'core.sqlite.target']],
         'Should have tried to get engine target';
 
     # Try with no engine option.
@@ -133,8 +133,11 @@ CONSTRUCTOR: {
     isa_ok $target = $CLASS->new(sqitch => $sqitch), $CLASS, 'Default target';
     is $target->name, 'db:mysql:', 'Name should be "db:mysql:"';
     is $target->uri, URI::db->new('db:mysql:'), 'URI should be "db:mysql"';
-    is_deeply \@get_params, [[key => 'core.engine'], [key => 'core.mysql.target']],
-        'Should have tried to get core engine and its target';
+    is_deeply \@get_params, [
+        [key => 'core.engine'],
+        [key => 'engine.mysql.target'],
+        [key => 'core.mysql.target'],
+    ], 'Should have tried to get core engine and its target';
 
     # Try with no engine option but a name that looks like a URI.
     @get_params = ();
@@ -245,7 +248,7 @@ CONSTRUCTOR: {
     is_deeply \@get_params, [[key => 'target.foo.uri']],
         'Should have requested target URI from config';
     is_deeply \@sect_params, [ [section => 'core.pg' ]],
-        'Should have requested pg section';
+        'Should have requested deprecated pg section';
 
     # Let the name be looked up by the engine.
     @get_params = @sect_params = ();
@@ -254,12 +257,13 @@ CONSTRUCTOR: {
         'Engine named target';
     is $target->name, 'foo', 'Name should be "foo"';
     is $target->uri, URI::db->new('db:sqlite:foo'), 'URI should be "db:sqlite:foo"';
-    is_deeply \@get_params, [[key => 'core.sqlite.target'], [key => 'target.foo.uri']],
+    is_deeply \@get_params, [[key => 'engine.sqlite.target'], [key => 'target.foo.uri']],
         'Should have requested engine target and target URI from config';
     is_deeply \@sect_params, [ [section => 'core.sqlite' ]],
         'Should have requested pg section';
 
     # Make sure deprecated config options work.
+    local $ENV{HARNESS_ACTIVE} = 0;
     @sect_ret = ({
         host     => 'hi.com',
         port     => 5432,
@@ -267,7 +271,7 @@ CONSTRUCTOR: {
         password => 'ouch',
         db_name  => 'sharks',
     });
-    $sqitch->options->{engine}      = 'pg';
+    $sqitch->options->{engine} = 'pg';
     @get_params = @sect_params = ();
     $uri = URI::db->new('db:pg://bob:ouch@hi.com:5432/sharks');
     isa_ok $target = $CLASS->new(sqitch => $sqitch), $CLASS, 'Pg target';
@@ -277,9 +281,9 @@ CONSTRUCTOR: {
         'Name should be passwordless stringified URI';
     is $target->uri, $uri, 'URI should be tweaked by config* options';
     is_deeply +MockOutput->get_warn, [[__x(
-        'Options {options} deprecated and will be removed in 1.0; use URI {uri} instead',
-        options => 'core.pg.host, core.pg.port, core.pg.username, core.pg.password, core.pg.db_name',
-        uri     => $uri->as_string,
+        "The core.{engine} config has been deprecated in favor of engine.{engine}.\n"
+         . q{Run 'sqitch engine update-config' to update your configurations.},
+        engine => 'pg',
     )]], 'Should have warned on deprecated config options';
 
     # Make sure deprecated --db-* options work.
@@ -302,11 +306,18 @@ CONSTRUCTOR: {
     like $target->name, qr{db:pg://fred:?\@foo.com:12245/widget},
         'Name should be passwordless stringified URI';
     is $target->uri, $uri, 'URI should be tweaked by --db-* options';
-    is_deeply +MockOutput->get_warn, [[__x(
-        'Options {options} deprecated and will be removed in 1.0; use URI {uri} instead',
-        options => '--db-host, --db-port, --db-username, core.pg.password, --db-name',
-        uri     => $uri->as_string,
-    )]], 'Should have warned on deprecated options';
+    is_deeply +MockOutput->get_warn, [
+        [__x(
+            "The core.{engine} config has been deprecated in favor of engine.{engine}.\n"
+            . q{Run 'sqitch engine update-config' to update your configurations.},
+            engine => 'pg',
+        )],
+        [__x(
+            'Options {options} deprecated and will be removed in 1.0; use URI {uri} instead',
+            options => '--db-host, --db-port, --db-username, --db-name',
+            uri     => $uri->as_string,
+        )],
+    ], 'Should have warned on deprecated options';
 }
 
 CONFIG: {
@@ -353,14 +364,14 @@ CONFIG: {
     is $target->extension, 'ddl', 'Extension should be "ddl"';
 
     # Add engine config.
-    $config{'core.pg.registry'}   = 'yoreg';
-    $config{'core.pg.client'}     = 'mycli';
-    $config{'core.pg.plan_file'}  = 'pg.plan';
-    $config{'core.pg.top_dir'}    = 'pg';
-    $config{'core.pg.deploy_dir'} = 'pgdep';
-    $config{'core.pg.revert_dir'} = 'pgrev';
-    $config{'core.pg.verify_dir'} = 'pgver';
-    $config{'core.pg.extension'}  = 'pgddl';
+    $config{'engine.pg.registry'}   = 'yoreg';
+    $config{'engine.pg.client'}     = 'mycli';
+    $config{'engine.pg.plan_file'}  = 'pg.plan';
+    $config{'engine.pg.top_dir'}    = 'pg';
+    $config{'engine.pg.deploy_dir'} = 'pgdep';
+    $config{'engine.pg.revert_dir'} = 'pgrev';
+    $config{'engine.pg.verify_dir'} = 'pgver';
+    $config{'engine.pg.extension'}  = 'pgddl';
     $target = $CLASS->new(
         sqitch => $sqitch,
         name   => 'foo',

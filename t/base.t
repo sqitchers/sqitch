@@ -63,9 +63,9 @@ GO: {
     isa_ok my $sqitch = $cmd->sqitch, 'App::Sqitch';
     is $sqitch->options->{engine}, 'sqlite', 'Should have collected --engine';
     ok my $config = $sqitch->config, 'Get the Sqitch config';
-    is $config->get(key => 'core.pg.client'), '/usr/local/pgsql/bin/psql',
+    is $config->get(key => 'engine.pg.client'), '/usr/local/pgsql/bin/psql',
         'Should have local config overriding user';
-    is $config->get(key => 'core.pg.registry'), 'meta',
+    is $config->get(key => 'engine.pg.registry'), 'meta',
         'Should fall back on user config';
     is $sqitch->user_name, 'Michael Stonebraker',
         'Should have read user name from configuration';

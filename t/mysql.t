@@ -86,9 +86,9 @@ is_deeply [$mysql->mysql], [
 ##############################################################################
 # Make sure config settings override defaults.
 my %config = (
-    'core.mysql.client'   => '/path/to/mysql',
-    'core.mysql.target'   => 'db:mysql://foo.com/widgets',
-    'core.mysql.registry' => 'meta',
+    'engine.mysql.client'   => '/path/to/mysql',
+    'engine.mysql.target'   => 'db:mysql://foo.com/widgets',
+    'engine.mysql.registry' => 'meta',
 );
 my $mock_config = Test::MockModule->new('App::Sqitch::Config');
 $mock_config->mock(get => sub { $config{ $_[2] } });

@@ -120,9 +120,9 @@ ENV: {
 ##############################################################################
 # Make sure config settings override defaults.
 my %config = (
-    'core.vertica.client'   => '/path/to/vsql',
-    'core.vertica.target'   => 'db:vertica://localhost/try',
-    'core.vertica.registry' => 'meta',
+    'engine.vertica.client'   => '/path/to/vsql',
+    'engine.vertica.target'   => 'db:vertica://localhost/try',
+    'engine.vertica.registry' => 'meta',
 );
 $std_opts[-1] = 'registry=meta';
 my $mock_config = Test::MockModule->new('App::Sqitch::Config');

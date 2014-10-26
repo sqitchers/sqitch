@@ -112,7 +112,7 @@ is $@->message, __x(
 # Now add a new engine.
 ok $cmd->add('vertica'), 'Add engine "vertica"';
 $config->load;
-is $config->get(key => 'core.vertica.target'), 'db:vertica:',
+is $config->get(key => 'engine.vertica.target'), 'db:vertica:',
     'Engine "test" target should have been set';
 for my $key (qw(
     client
@@ -124,7 +124,7 @@ for my $key (qw(
     verify_dir
     extension)
 ) {
-    is $config->get(key => "core.test.$key"), undef,
+    is $config->get(key => "engine.test.$key"), undef,
         qq{Engine "test" should have no $key set};
 }
 
@@ -147,7 +147,7 @@ isa_ok $cmd = $CLASS->new({
 ok $cmd->add('firebird'), 'Add engine "firebird"';
 $config->load;
 while (my ($k, $v) = each %props) {
-    is $config->get(key => "core.firebird.$k"), $v,
+    is $config->get(key => "engine.firebird.$k"), $v,
         qq{Engine "firebird" should have $k set};
 }
 
@@ -180,13 +180,13 @@ is $@->message, __x(
 # Set one that exists.
 ok $cmd->set_target('pg', 'db:pg:newtarget'), 'Set new target';
 $config->load;
-is $config->get(key => 'core.pg.target'), 'db:pg:newtarget',
+is $config->get(key => 'engine.pg.target'), 'db:pg:newtarget',
     'Engine "pg" should have new target';
 
 # Make sure the target is a database target.
 ok $cmd->set_target('pg', 'postgres:stuff'), 'Set new target';
 $config->load;
-is $config->get(key => 'core.pg.target'), 'db:postgres:stuff',
+is $config->get(key => 'engine.pg.target'), 'db:postgres:stuff',
     'Engine "pg" should have new DB target';
 
 ##############################################################################
@@ -220,7 +220,7 @@ for my $key (keys %props) {
     # Set one that exists.
     ok $cmd->$meth('pg', 'rock'), 'Set new $key';
     $config->load;
-    is $config->get(key => "core.pg.$key"), 'rock',
+    is $config->get(key => "engine.pg.$key"), 'rock',
         qq{Engine "pg" should have new $key};
 }
 
@@ -248,7 +248,7 @@ is $@->message, __x(
 # Remove one that exists.
 ok $cmd->remove('mysql'), 'Remove';
 $config->load;
-is $config->get(key => "core.mysql.target"), undef,
+is $config->get(key => "engine.mysql.target"), undef,
     qq{Engine "mysql" should now be gone};
 
 ##############################################################################
@@ -259,7 +259,7 @@ is_deeply +MockOutput->get_emit, [
 ], 'Show with no names should emit the list of engines';
 
 # Try one engine.
-ok $cmd->show('sqlite'), 'Show dev';
+ok $cmd->show('sqlite'), 'Show sqlite';
 is_deeply +MockOutput->get_emit, [
     ['* sqlite'],
     ['  ', 'Target:           ', 'widgets'],

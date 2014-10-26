@@ -871,7 +871,7 @@ sub default_client {
         'Cannot dup STDERR: {error}', $!
     );
     hurl firebird => __(
-        'Unable to locate Firebird ISQL; set "core.firebird.client" via sqitch config'
+        'Unable to locate Firebird ISQL; set "engine.firebird.client" via sqitch config'
     );
 }
 

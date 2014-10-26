@@ -4,8 +4,9 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 143;
+use Test::More tests => 145;
 #use Test::More 'no_plan';
+use Test::NoWarnings;
 
 $ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
 $ENV{SQITCH_USER_CONFIG}   = 'nonexistent.user';
@@ -206,7 +207,7 @@ $cmock->mock(get => sub {
     return shift @get_ret;
 });
 @get_ret = ('sqlite', 'sqlite');
-@get_expect = ('core.engine', 'core.engine', 'core.sqlite.target');
+@get_expect = ('core.engine', 'core.engine', 'engine.sqlite.target', 'core.sqlite.target');
 ok $cmd = $CLASS->new({ sqitch => $sqitch }), "Create a $CLASS object";
 isa_ok $target = $cmd->default_target, 'App::Sqitch::Target',
     'default target';
@@ -215,7 +216,7 @@ is $target->uri, URI->new('db:sqlite:'), 'Default target URI should be "db:sqlit
 
 # Make sure --engine is higher precedence.
 $sqitch->options->{engine} = 'pg';
-@get_expect = ('core.pg.target');
+@get_expect = ('engine.pg.target', 'core.pg.target');
 ok $cmd = $CLASS->new({ sqitch => $sqitch }), "Create a $CLASS object";
 isa_ok $target = $cmd->default_target, 'App::Sqitch::Target',
     'default target';
@@ -223,7 +224,7 @@ is $target->name, 'db:pg:', 'Default target name should be "db:pg:"';
 is $target->uri, URI->new('db:pg:'), 'Default target URI should be "db:pg:"';
 
 # We should get stuff from the engine section of the config.
-@get_expect = ('core.pg.target');
+@get_expect = ('engine.pg.target');
 @get_ret = ('db:pg:foo');
 ok $cmd = $CLASS->new({ sqitch => $sqitch }), "Create a $CLASS object";
 isa_ok $target = $cmd->default_target, 'App::Sqitch::Target',

@@ -1147,7 +1147,7 @@ and returns true on success.
   my %vars = App::Sqitch::Engine->config_vars;
 
 Returns a hash of names and types to use for configuration variables for the
-engine. These can be set under the C<core.$engine_name> section in any
+engine. These can be set under the C<engine.$engine_name> section in any
 configuration file.
 
 The keys in the returned hash are the names of the variables. The values are

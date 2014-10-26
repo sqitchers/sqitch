@@ -297,7 +297,7 @@ is_deeply +MockOutput->get_info, [
 
 is_deeply read_config $conf_file, {
     'core.engine'         => 'sqlite',
-    'core.sqlite.client'  => '/to/sqlite3',
+    'engine.sqlite.client'  => '/to/sqlite3',
 }, 'The configuration should have been written with sqlite values';
 
 file_contents_like $conf_file, qr{^\tclient = /to/sqlite3\n}m,
@@ -318,7 +318,7 @@ is_deeply read_config $conf_file, {
     'core.engine' => 'sqlite',
 }, 'The configuration should have been written with only the engine var';
 
-file_contents_like $conf_file, qr{^\Q# [core "sqlite"]
+file_contents_like $conf_file, qr{^\Q# [engine "sqlite"]
 	# target = db:sqlite:
 	# registry = sqitch
 	# client = sqlite3$exe_ext
@@ -351,7 +351,7 @@ USERCONF: {
 }
 
 ##############################################################################
-# Now get it to write core.pg stuff.
+# Now get it to write engine.pg stuff.
 unlink $conf_file;
 $sqitch = App::Sqitch->new(
     options => {
@@ -369,7 +369,7 @@ is_deeply +MockOutput->get_info, [
 
 is_deeply read_config $conf_file, {
     'core.engine'    => 'pg',
-    'core.pg.client' => '/to/psql',
+    'engine.pg.client' => '/to/psql',
 }, 'The configuration should have been written with client values' or diag $conf_file->slurp;
 
 file_contents_like $conf_file, qr/^\t# registry = sqitch\n/m,
@@ -388,7 +388,7 @@ is_deeply read_config $conf_file, {
     'core.engine' => 'pg',
 }, 'The configuration should have been written with only the engine var' or diag $conf_file->slurp;
 
-file_contents_like $conf_file, qr{^\Q# [core "pg"]
+file_contents_like $conf_file, qr{^\Q# [engine "pg"]
 	# target = db:pg:
 	# registry = sqitch
 	# client = psql$exe_ext

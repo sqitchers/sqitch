@@ -92,9 +92,9 @@ is_deeply([$fb->isql], [$fb->client, @std_opts, $dbname],
 ##############################################################################
 # Make sure config settings override defaults.
 my %config = (
-    'core.firebird.client'   => '/path/to/isql',
-    'core.firebird.target'   => 'db:firebird://freddy:s3cr3t@db.example.com:1234/widgets',
-    'core.firebird.registry' => 'meta',
+    'engine.firebird.client'   => '/path/to/isql',
+    'engine.firebird.target'   => 'db:firebird://freddy:s3cr3t@db.example.com:1234/widgets',
+    'engine.firebird.registry' => 'meta',
 );
 my $mock_config = Test::MockModule->new('App::Sqitch::Config');
 $mock_config->mock(get => sub { $config{ $_[2] } });

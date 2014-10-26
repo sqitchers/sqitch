@@ -4,7 +4,7 @@ use 5.010;
 use Moo;
 use strict;
 use warnings;
-use App::Sqitch::Types qw(Maybe URIDB Str Dir Engine Sqitch File Plan);
+use App::Sqitch::Types qw(Maybe URIDB Str Dir Engine Sqitch File Plan Bool);
 use App::Sqitch::X qw(hurl);
 use Locale::TextDomain qw(App-Sqitch);
 use Path::Class qw(dir file);
@@ -49,6 +49,33 @@ has engine => (
     },
 );
 
+# TODO: core.$engine is deprecated. Remove this workaround and warning
+# when it is removed.
+has _warned => (
+    is      => 'rw',
+    isa     => Bool,
+    default => $ENV{HARNESS_ACTIVE},
+);
+
+sub _engine_var {
+    my ($self, $config, $ekey, $akey) = @_;
+    return unless $ekey;
+    if (my $val = $config->get( key => "engine.$ekey.$akey" )) {
+        return $val;
+    }
+
+    # Look for the deprecated config section.
+    my $val = $config->get( key => "core.$ekey.$akey" ) or return;
+    return $val if $self->_warned;
+    App::Sqitch->warn(__x(
+        "The core.{engine} config has been deprecated in favor of engine.{engine}.\n"
+        . q{Run 'sqitch engine update-config' to update your configurations.},
+        engine => $ekey,
+    ));
+    $self->_warned(1);
+    return $val;
+}
+
 sub _fetch {
     my ($self, $key) = @_;
     my $sqitch = $self->sqitch;
@@ -58,7 +85,7 @@ sub _fetch {
 
     my $config = $sqitch->config;
     return $config->get( key => "target." . $self->name . ".$key" )
-        || $config->get( key => "core." .($self->engine_key || '') . ".$key")
+        || $self->_engine_var($config, $self->engine_key, $key)
         || $config->get( key => "core.$key");
 }
 
@@ -202,7 +229,8 @@ sub BUILDARGS {
         );
 
         # Find the name in the engine config, or fall back on a simple URI.
-        $uri = $sqitch->config->get(key => "core.$ekey.target") || "db:$ekey:";
+        my $config = $sqitch->config;
+        $uri = $class->_engine_var($config, $ekey, 'target') || "db:$ekey:";
         $p->{name} = $name = $uri;
     }
 
@@ -240,12 +268,20 @@ sub BUILDARGS {
     my $opts   = $sqitch->options;
     my $config = $sqitch->config->get_section(section => "core.$ekey") || {};
 
+    if (%{ $config }) {
+        App::Sqitch->warn(__x(
+            "The core.{engine} config has been deprecated in favor of engine.{engine}.\n"
+            . q{Run 'sqitch engine update-config' to update your configurations.},
+            engine => $ekey,
+        )) unless $ENV{HARNESS_ACTIVE};
+        $p->{_warned} = 1;
+    }
+
     my @deprecated;
     if (my $host = $opts->{db_host}) {
         push @deprecated => '--db-host';
         $uri->host($host);
     } elsif ($host = $config->{host}) {
-        push @deprecated => "core.$ekey.host";
         $uri->host($host);
     }
 
@@ -253,7 +289,6 @@ sub BUILDARGS {
         push @deprecated => '--db-port';
         $uri->port($port);
     } elsif ($port = $config->{port}) {
-        push @deprecated => "core.$ekey.port";
         $uri->port($port);
     }
 
@@ -261,12 +296,10 @@ sub BUILDARGS {
         push @deprecated => '--db-username';
         $uri->user($user);
     } elsif ($user = $config->{username}) {
-        push @deprecated => "core.$ekey.username";
         $uri->user($user);
     }
 
     if (my $pass = $config->{password}) {
-        push @deprecated => "core.$ekey.password";
         $uri->password($pass);
     }
 
@@ -274,7 +307,6 @@ sub BUILDARGS {
         push @deprecated => '--db-name';
         $uri->dbname($db);
     } elsif ($db = $config->{db_name}) {
-        push @deprecated => "core.$ekey.db_name";
         $uri->dbname($db);
     }
 
@@ -352,7 +384,7 @@ will be thrown.
 
 =item *
 
-Use the key to look up the target name in the C<core.$engine.target>
+Use the key to look up the target name in the C<engine.$engine.target>
 configuration option. If none is found, use C<db:$key:>.
 
 =item *
@@ -415,7 +447,7 @@ these options, searched in this order:
 
 =item * C<target.$name.registry>
 
-=item * C<core.$engine.registry>
+=item * C<engine.$engine.registry>
 
 =item * C<core.registry>
 
@@ -436,7 +468,7 @@ options, searched in this order:
 
 =item * C<target.$name.client>
 
-=item * C<core.$engine.client>
+=item * C<engine.$engine.client>
 
 =item * C<core.client>
 
@@ -458,7 +490,7 @@ scripts. The value comes from one of these options, searched in this order:
 
 =item * C<target.$name.top_dir>
 
-=item * C<core.$engine.top_dir>
+=item * C<engine.$engine.top_dir>
 
 =item * C<core.top_dir>
 
@@ -479,7 +511,7 @@ in this order:
 
 =item * C<target.$name.plan_file>
 
-=item * C<core.$engine.plan_file>
+=item * C<engine.$engine.plan_file>
 
 =item * C<core.plan_file>
 
@@ -501,7 +533,7 @@ comes from one of these options, searched in this order:
 
 =item * C<target.$name.deploy_dir>
 
-=item * C<core.$engine.deploy_dir>
+=item * C<engine.$engine.deploy_dir>
 
 =item * C<core.deploy_dir>
 
@@ -523,7 +555,7 @@ from one of these options, searched in this order:
 
 =item * C<target.$name.revert_dir>
 
-=item * C<core.$engine.revert_dir>
+=item * C<engine.$engine.revert_dir>
 
 =item * C<core.revert_dir>
 
@@ -545,7 +577,7 @@ comes from one of these options, searched in this order:
 
 =item * C<target.$name.verify_dir>
 
-=item * C<core.$engine.verify_dir>
+=item * C<engine.$engine.verify_dir>
 
 =item * C<core.verify_dir>
 
@@ -566,7 +598,7 @@ The value comes from one of these options, searched in this order:
 
 =item * C<target.$name.extension>
 
-=item * C<core.$engine.extension>
+=item * C<engine.$engine.extension>
 
 =item * C<core.extension>
 

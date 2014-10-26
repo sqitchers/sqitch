@@ -217,9 +217,9 @@ ENV: {
 ##############################################################################
 # Make sure config settings override defaults.
 my %config = (
-    'core.oracle.client'   => '/path/to/sqlplus',
-    'core.oracle.target'   => 'db:oracle://bob:hi@db.net:12/howdy',
-    'core.oracle.registry' => 'meta',
+    'engine.oracle.client'   => '/path/to/sqlplus',
+    'engine.oracle.target'   => 'db:oracle://bob:hi@db.net:12/howdy',
+    'engine.oracle.registry' => 'meta',
 );
 my $mock_config = Test::MockModule->new('App::Sqitch::Config');
 $mock_config->mock(get => sub { $config{ $_[2] } });
@@ -241,8 +241,8 @@ is_deeply [$ora->sqlplus], ['/path/to/sqlplus', @std_opts],
     'sqlplus command should be configured';
 
 %config = (
-    'core.oracle.client'   => '/path/to/sqlplus',
-    'core.oracle.registry' => 'meta',
+    'engine.oracle.client'   => '/path/to/sqlplus',
+    'engine.oracle.registry' => 'meta',
 );
 
 $target = App::Sqitch::Target->new(sqitch => $sqitch);

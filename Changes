@@ -53,6 +53,9 @@ Revision history for Perl extension App::Sqitch
      - The `status` command once again notices if the specified database is
        uninitialized and says as much, rather than dying with an SQL error.
      [Deprecations ]
+     - Deprecated `core.$engine` configuration in favor of `engine.$engine`. A
+       warning will be emitted if Sqitch sees the former. Run `sqitch engine
+       update-config` to update your configurations.
      - Formally deprecated the database connection options in favor of target
        URIs. If any of these options is used, a warning will be issued. They
        will be dropped in 1.0:
@@ -64,11 +67,11 @@ Revision history for Perl extension App::Sqitch
      - Formally deprecated the database connection configuration variables in
        favor of target URIs. If any of these variables is used, a warning will
        be issued. They will be dropped in 1.0:
-       * `core.$engine.host`
-       * `core.$engine.port`
-       * `core.$engine.username`
-       * `core.$engine.password`
-       * `core.$engine.db_name`
+       * `engine.$engine.host`
+       * `engine.$engine.port`
+       * `engine.$engine.username`
+       * `engine.$engine.password`
+       * `engine.$engine.db_name`
      - Deprecated the `--registry` and `--client` options of the `target`
        command. All target properties may now be set via the new `--set`
        option, such as `--set registry=reg`.
@@ -88,7 +91,7 @@ Revision history for Perl extension App::Sqitch
      - Dropped support for the long-deprecated (and likely never used outside
        ancient tests long deleted) engine configuration variables
        `core.sqlite.sqitch_db` and `core.pg.sqitch_schema`. Both have been
-       replaced with `core.$engine.registry`, which applies to all engines.
+       replaced with `engine.$engine.registry`, which applies to all engines.
      - Formally deprecated the `@FIRST` and `@LAST` symbolic tags. Their use
        will trigger a warning to use `@ROOT` and `@HEAD`, instead. They will
        be removed in v1.0.

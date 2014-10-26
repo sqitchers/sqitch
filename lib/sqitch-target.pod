@@ -93,9 +93,8 @@ The default is C<sql>.
 
 =back
 
-Each of these overrides the corresponding engine-specific configuration -- for
-example, the C<core.$engine.uri>, C<core.$engine.registry>,
-C<core.$engine.client> L<engine|sqitch-engine> options.
+Each of these overrides the corresponding engine-specific configuration
+managed by L<engine|sqitch-engine>.
 
 =head1 Options
 

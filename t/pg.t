@@ -105,9 +105,9 @@ ENV: {
 ##############################################################################
 # Make sure config settings override defaults.
 my %config = (
-    'core.pg.client'   => '/path/to/psql',
-    'core.pg.target'   => 'db:pg://localhost/try',
-    'core.pg.registry' => 'meta',
+    'engine.pg.client'   => '/path/to/psql',
+    'engine.pg.target'   => 'db:pg://localhost/try',
+    'engine.pg.registry' => 'meta',
 );
 $std_opts[-1] = 'registry=meta';
 my $mock_config = Test::MockModule->new('App::Sqitch::Config');

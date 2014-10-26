@@ -491,15 +491,15 @@ to to commits to the database.
 
 =back
 
-=head3 C<core.$engine>
+=head3 C<engine.$engine>
 
 Each supported engine offers a set of configuration variables, falling under
-the key C<core.$engine> where C<$engine> may be any value accepted for
+the key C<engine.$engine> where C<$engine> may be any value accepted for
 C<core.engine>.
 
 =over
 
-=item C<core.$engine.target>
+=item C<engine.$engine.target>
 
 A database target, either the name of target managed by the
 L<C<target>|sqitch-target> command, or a database connection URI. If it's a
@@ -508,16 +508,16 @@ will override any values specified for the values below. Targets are the
 preferred way to configure engines on a per-database basis, and the one
 specified here should be considered the default.
 
-=item C<core.$engine.uri>
+=item C<engine.$engine.uri>
 
 A database connection URI.
 
-=item C<core.$engine.registry>
+=item C<engine.$engine.registry>
 
 The name of the Sqitch registry schema or database. Sqitch will store its own
 data in this schema.
 
-=item C<core.$engine.client>
+=item C<engine.$engine.client>
 
 Path to the engine command-line client. Defaults to the first instance found
 in the path.
@@ -528,39 +528,39 @@ Notes on engine-specific configuration:
 
 =over
 
-=item C<core.pg.registry>
+=item C<engine.pg.registry>
 
 For the PostgreSQL engine, the C<registry> value identifies the schema for
 Sqitch to use for its own data. No other data should be stored there. Defaults
 to C<sqitch>.
 
-=item C<core.sqlite.registry>
+=item C<engine.sqlite.registry>
 
 For the SQLite engine, if the C<registry> value looks like an absolute path,
 then it will be the database file. Otherwise, it will be in the same directory
 as the database specified by the C<uri>. Defaults to C<sqitch>.
 
-=item C<core.mysql.registry>
+=item C<engine.mysql.registry>
 
 For the MySQL engine, the C<registry> value identifies the database for Sqitch
 to use for its own data. If you need to manage multiple databases on a single
 server, and don't want them all to share the same registry, change this
 property to a value specific for your database. Defaults to C<sqitch>.
 
-=item C<core.oracle.registry>
+=item C<engine.oracle.registry>
 
 For Oracle, C<registry> value identifies the schema for Sqitch to use for its
 own data. No other data should be stored there. Uses the current schema by
 default (usually the same name as the connection user).
 
-=item C<core.firebird.registry>
+=item C<engine.firebird.registry>
 
 For the Firebird engine, if the C<registry> value looks like an absolute path,
 then it will be the database file. Otherwise, it will be in the same directory
 as the database specified by the C<uri>. Defaults to C<sqitch.$extension>,
 where C<$extension> is the same as that in the C<uri>, if any.
 
-=item C<core.vertica.registry>
+=item C<engine.vertica.registry>
 
 For the Vertica engine, the C<registry> value identifies the schema for Sqitch
 to use for its own data. No other data should be stored there. Defaults to

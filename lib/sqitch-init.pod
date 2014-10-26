@@ -68,12 +68,12 @@ Sets the C<core.engine> configuration variable.
 
 =item C<--client>
 
-Sets the C<core.$engine.client> configuration variable if C<--engine> is also
+Sets the C<engine.$engine.client> configuration variable if C<--engine> is also
 passed.
 
 =item C<--registry>
 
-Sets the C<core.$engine.registry> configuration variable if C<--engine> is also
+Sets the C<engine.$engine.registry> configuration variable if C<--engine> is also
 passed.
 
 =back

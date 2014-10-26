@@ -69,6 +69,6 @@ is_deeply $config->get_section(section => 'core'), {
     uri       => 'https://github.com/theory/sqitch/',
 }, 'get_section("core") should work';
 
-is_deeply $config->get_section(section => 'core.pg'), {
+is_deeply $config->get_section(section => 'engine.pg'), {
     client => "/usr/local/pgsql/bin/psql",
-}, 'get_section("core.pg") should work';
+}, 'get_section("engine.pg") should work';

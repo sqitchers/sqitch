@@ -188,8 +188,8 @@ sub write_config {
     ) if @comments;
 
     if ($ekey) {
-        # Write out the core.$engine section.
-        my $config_key  = "core.$ekey";
+        # Write out the engine.$engine section.
+        my $config_key  = "engine.$ekey";
         @comments = @vars = ();
 
         for my $key (qw(target registry client)) {
@@ -222,7 +222,7 @@ sub write_config {
         else {
 
             # Still want the section, emit it as a comment.
-            unshift @comments => qq{[core "$ekey"]};
+            unshift @comments => qq{[engine "$ekey"]};
         }
 
         # Emit the comments.

@@ -377,7 +377,7 @@ that don't use a C<parse_args()> to find and load a target.
 This method should always return a target option, never C<undef>. If the
 C<--engine> option or C<core.engine> configuration option has been set, then
 the target will support that engine. In the latter case, if
-C<core.$engine.target> is set, that value will be used. Otherwise, the
+C<engine.$engine.target> is set, that value will be used. Otherwise, the
 returned target will have a URI of C<db:> and no associated engine; the
 C<engine> method will throw an exception. This behavior should be fine for
 commands that don't need to load the engine.

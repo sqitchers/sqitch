@@ -255,7 +255,7 @@ App::Sqitch::Engine::sqlite provides the SQLite storage engine for Sqitch.
 =head3 C<client>
 
 Returns the path to the SQLite client. If C<--client> was passed to C<sqitch>,
-that's what will be returned. Otherwise, it uses the C<core.sqlite.client>
+that's what will be returned. Otherwise, it uses the C<engine.sqlite.client>
 configuration value, or else defaults to C<sqlite3> (or C<sqlite3.exe> on
 Windows), which should work if it's in your path.
 

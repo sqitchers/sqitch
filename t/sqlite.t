@@ -101,10 +101,10 @@ if ($have_sqlite) {
 ##############################################################################
 # Make sure config settings override defaults.
 my %config = (
-    'core.sqlite.client'   => '/path/to/sqlite3',
-    'core.sqlite.target'   => 'test',
-    'core.sqlite.registry' => 'meta',
-    'target.test.uri'      => 'db:sqlite:/path/to/sqlite.db',
+    'engine.sqlite.client'   => '/path/to/sqlite3',
+    'engine.sqlite.target'   => 'test',
+    'engine.sqlite.registry' => 'meta',
+    'target.test.uri'        => 'db:sqlite:/path/to/sqlite.db',
 );
 my $mock_config = Test::MockModule->new('App::Sqitch::Config');
 $mock_config->mock(get => sub { $config{ $_[2] } });
@@ -125,9 +125,9 @@ is $sqlite->registry_destination, $sqlite->registry_uri->as_string,
 
 # Try a registry with an extension and a dbname without.
 %config = (
-    'core.sqlite.registry' => 'meta.db',
-    'core.sqlite.target'   => 'test',
-    'target.test.uri'      => 'db:sqlite:/path/to/sqitch',
+    'engine.sqlite.registry' => 'meta.db',
+    'engine.sqlite.target'   => 'test',
+    'target.test.uri'        => 'db:sqlite:/path/to/sqitch',
 );
 $target = ref($target)->new( sqitch => $sqitch );
 ok $sqlite = $CLASS->new(sqitch => $sqitch, target => $target),
@@ -144,9 +144,9 @@ is $sqlite->registry_destination, $sqlite->registry_uri->as_string,
 
 # Also try a registry with no extension and a dbname with.
 %config = (
-    'core.sqlite.registry' => 'registry',
-    'core.sqlite.target'   => 'noext',
-    'target.noext.uri'     => 'db:sqlite:/path/to/sqitch.db',
+    'engine.sqlite.registry' => 'registry',
+    'engine.sqlite.target'   => 'noext',
+    'target.noext.uri'       => 'db:sqlite:/path/to/sqitch.db',
 );
 $target = ref($target)->new( sqitch => $sqitch );
 ok $sqlite = $CLASS->new(sqitch => $sqitch, target => $target),
@@ -163,9 +163,9 @@ is $sqlite->registry_destination, $sqlite->registry_uri->as_string,
 
 # Try a registry with an absolute path.
 %config = (
-    'core.sqlite.registry' => '/some/other/path.db',
-    'core.sqlite.target'   => 'abs',
-    'target.abs.uri'       => 'db:sqlite:/path/to/sqitch.db',
+    'engine.sqlite.registry' => '/some/other/path.db',
+    'engine.sqlite.target'   => 'abs',
+    'target.abs.uri'         => 'db:sqlite:/path/to/sqitch.db',
 );
 $target = ref($target)->new( sqitch => $sqitch );
 ok $sqlite = $CLASS->new(sqitch => $sqitch, target => $target),
