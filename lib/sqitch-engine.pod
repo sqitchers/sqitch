@@ -1,0 +1,200 @@
+=head1 Name
+
+sqitch-engine - Manage database engine configuration
+
+=head1 Synopsis
+
+  sqitch engine
+  sqitch engine add [-s <property>=<value> ...] <name>
+  sqitch engine set-target <name> <target>
+  sqitch engine set-registry <name> <registry>
+  sqitch engine set-client <name> <client>
+  sqitch engine set-top-dir <name> <directory>
+  sqitch engine set-plan-file <name> <file>
+  sqitch engine set-deploy-dir <name> <directory>
+  sqitch engine set-revert-dir <name> <directory>
+  sqitch engine set-verify-dir <name> <directory>
+  sqitch engine set-extension <name> <extension>
+  sqitch engine remove <name>
+  sqitch engine show <name>
+
+=head1 Description
+
+Manage the the database engines you deploy to. The list of supported engines
+inclues:
+
+=over
+
+=item * C<firebird>
+
+=item * C<mysql>
+
+=item * C<oracle>
+
+=item * C<pg>
+
+=item * C<sqlite>
+
+=item * C<vertica>
+
+=back
+
+Each engine may have a number of properties:
+
+=over
+
+=item C<target>
+
+The name or URI of the database target. The default is C<db:$engine>.
+See L<sqitch-target> for details on target configuration.
+
+=item C<registry>
+
+The name of the registry schema or database. The default is C<sqitch>.
+
+=item C<client>
+
+The command-line client to use. If not specified, each engine looks in the OS
+Path for an appropriate client.
+
+=item C<top_dir>
+
+The path to the top directory for the engine. This directory generally
+contains the plan file and subdirectories for deploy, revert, and verify
+scripts. The default is F<.>, the current directory.
+
+=item C<plan_file>
+
+The plan file to use for this engine. The default is C<$top_dir/sqitch.plan>.
+
+=item C<deploy_dir>
+
+The path to the deploy directory for the engine. This directory contains all
+of the deploy scripts referenced by changes in the C<plan_file>. The default
+is C<$top_dir/deploy>.
+
+=item C<revert_dir>
+
+The path to the revert directory for the engine. This directory contains all
+of the revert scripts referenced by changes in the C<plan_file>. The default
+is C<$top_dir/revert>.
+
+=item C<verify_dir>
+
+The path to the verify directory for the engine. This directory contains all
+of the verify scripts referenced by changes in the C<plan_file>. The default
+is C<$top_dir/verify>.
+
+=item C<extension>
+
+The file name extension to append to change names to create script file names.
+The default is C<sql>.
+
+=back
+
+Each of these overrides the corresponding core configuration -- for example,
+the C<core.target>, C<core.plan_file>, C<core.registry>, and C<core.client>
+L<config|sqitch-config> options.
+
+=head1 Options
+
+=over
+
+=item C<-s>
+
+=item C<--set>
+
+  sqitch engine add pg -s top_dir=pg -s client=/usr/local/pgsql/bin/psql
+
+Set a engine property key/value pair. May be specified multiple times. Used
+only by the C<add> action. Supported keys are:
+
+=over
+
+=item C<target>
+
+=item C<registry>
+
+=item C<client>
+
+=item C<top_dir>
+
+=item C<plan_file>
+
+=item C<deploy_dir>
+
+=item C<revert_dir>
+
+=item C<verify_dir>
+
+=item C<extension>
+
+=back
+
+=back
+
+=head1 Actions
+
+With no arguments, shows a list of existing engines. Several actions are
+available to perform operations on the engines.
+
+=head2 C<add>
+
+Add a engine named C<< <name> >> for the database at C<< <uri> >>. The
+C<--set> option specifies engine-specific properties.
+
+
+=head2 C<set-target>
+
+Set the target for engine C<< <name> >>.
+
+=head2 C<set-registry>
+
+Set the registry for engine C<< <name> >>.
+
+=head2 C<set-client>
+
+Set the client for engine C<< <name> >>.
+
+=head2 C<set-top-dir>
+
+Set the top directory for engine C<< <name> >>.
+
+=head2 C<set-plan-file>
+
+Set the plan file for engine C<< <name> >>.
+
+=head2 C<set-deploy-dir>
+
+Set the deploy directory for engine C<< <name> >>.
+
+=head2 C<set-revert-dir>
+
+Set the revert directory for engine C<< <name> >>.
+
+=head2 C<set-verify-dir>
+
+Set the verify directory for engine C<< <name> >>.
+
+=head2 C<set-extension>
+
+Set the extension for engine C<< <name> >>.
+
+=head2 C<remove>, C<rm>
+
+Remove the engine named C<< <name> >>.
+
+=head2 C<show>
+
+Gives some information about the engine C<< <name> >>, including the
+associated properties. Specify multiple engine names to see information for
+each.
+
+=head1 Configuration Variables
+
+The engines are stored in the configuration file, but the command itself
+currently relies on no configuration variables.
+
+=head1 Sqitch
+
+Part of the L<sqitch> suite.

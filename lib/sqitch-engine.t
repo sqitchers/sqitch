@@ -1,11 +1,11 @@
 =head1 Name
 
-sqitch-target - Manage target database configuration
+sqitch-target - Mange set of target databases
 
 =head1 Synopsis
 
   sqitch target [-v | --verbose]
-  sqitch target add <name> <uri> [-s <property>=<value> ...]
+  sqitch target add [-s <property>=<value> ...] <name> <uri>
   sqitch target set-uri <name> <newuri>
   sqitch target set-registry <name> <registry>
   sqitch target set-client <name> <client>
@@ -95,7 +95,7 @@ The default is C<sql>.
 
 Each of these overrides the corresponding engine-specific configuration -- for
 example, the C<core.$engine.uri>, C<core.$engine.registry>,
-C<core.$engine.client> L<engine|sqitch-engine> options.
+C<core.$engine.client> L<config|sqitch-config> options.
 
 =head1 Options
 
@@ -105,7 +105,7 @@ C<core.$engine.client> L<engine|sqitch-engine> options.
 
 =item C<--verbose>
 
-Be a little more verbose and show the database URI after name.
+Be a little more verbose and show remote URI after name.
 
 =item C<-s>
 
@@ -190,13 +190,13 @@ Remove the target named C<< <name> >>.
 
 =head2 C<rename>
 
-Rename the target named C<< <old> >> to C<< <new> >>.
+Rename the remote named C<< <old> >> to C<< <new> >>.
 
 =head2 C<show>
 
-Gives some information about the target C<< <name> >>, including the
-associated properties. Specify multiple target names to see information for
-each.
+Gives some information about the remote C<< <name> >>, including the
+associated URI, registry, and client. Specify multiple target names to see
+information for each.
 
 =head1 Configuration Variables
 

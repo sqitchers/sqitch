@@ -29,6 +29,8 @@ Revision history for Perl extension App::Sqitch
        * Engine configuration variables
        * Core configuration variables
        * Reasonable engine-specific defaults
+     - Added the `engine` command to simplify engine configuration. This
+       complements the newly-improved `target` command.
      [Improvements]
      - Simplified the output of `sqitch help`, and added the more important
        options to it.

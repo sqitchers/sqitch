@@ -5,7 +5,7 @@ sqitch-target-usage - Sqitch target usage statement
 =head1 Usage
 
   sqitch target [-v | --verbose]
-  sqitch target add [-s <property>=<value> ...] <name> <uri>
+  sqitch target add <name> <uri> [-s <property>=<value> ...]
   sqitch target set-uri <name> <newuri>
   sqitch target set-registry <name> <registry>
   sqitch target set-client <name> <client>

@@ -1,0 +1,24 @@
+=head1 Name
+
+sqitch-engine-usage - Sqitch engine usage statement
+
+=head1 Usage
+
+  sqitch engine
+  sqitch engine add <name> [-s <property>=<value> ...]
+  sqitch engine set-target <name> <target>
+  sqitch engine set-registry <name> <registry>
+  sqitch engine set-client <name> <client>
+  sqitch engine set-top-dir <name> <directory>
+  sqitch engine set-plan-file <name> <file>
+  sqitch engine set-deploy-dir <name> <directory>
+  sqitch engine set-revert-dir <name> <directory>
+  sqitch engine set-verify-dir <name> <directory>
+  sqitch engine set-extension <name> <extension>
+  sqitch engine remove <name>
+  sqitch engine show <name>
+
+=head1 Options
+
+    -v, --verbose             be verbose; must be placed before an action
+    -s, --set     KEY=VALUE   set engine property when adding a engine

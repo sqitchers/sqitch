@@ -25,6 +25,7 @@ The most commonly used sqitch commands are:
   checkout   Revert, checkout another VCS branch, and re-deploy changes
   config     Get and set local, user, or system options
   deploy     Deploy changes to a database
+  engine     Manage database engine configuration
   help       Display help information about Sqitch commands
   init       Initialize a project
   log        Show change logs for a database
@@ -35,7 +36,7 @@ The most commonly used sqitch commands are:
   status     Show the current deployment status of a database
   show       Show information about changes and tags, or change script contents
   tag        Add or list tags in the plan
-  target     Manage target databases
+  target     Manage target database configuration
 
 See C<< sqitch help <command> >> or C<< sqitch help <concept> >> to read about
 a specific command or concept.

@@ -1,4 +1,4 @@
-package App::Sqitch::Command::target;
+package App::Sqitch::Command::engine;
 
 use 5.010;
 use strict;
@@ -8,11 +8,20 @@ use Moo;
 use Types::Standard qw(Str Int HashRef);
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
-use URI::db;
 use Try::Tiny;
+use URI::db;
 use Path::Class qw(file dir);
-use List::Util qw(max);
+use List::Util qw(max first);
 use namespace::autoclean;
+
+use constant ENGINES => qw(
+    pg
+    sqlite
+    mysql
+    oracle
+    firebird
+    vertica
+);
 
 extends 'App::Sqitch::Command';
 
@@ -33,13 +42,19 @@ has properties => (
 sub options {
     return qw(
         set|s=s%
-        registry|r=s
-        client|c=s
         verbose|v+
     );
 }
 
+sub _chk_engine($) {
+    my $engine = shift;
+    hurl enginecmd => __x(
+        'Unknown engine "{engine}"', engine => $engine
+    ) unless first { $engine eq $_ } ENGINES;
+}
+
 my %normalizer_for = (
+    target    => sub { $_[0] && $_[0] =~ /:/ ? URI::db->new($_[0], 'db:')->as_string : $_[0] },
     top_dir   => sub { $_[0] ? dir($_[0])->cleanup : undef },
     plan_file => sub { $_[0] ? file($_[0])->cleanup : undef },
     client    => sub { $_[0] },
@@ -50,23 +65,8 @@ $normalizer_for{$_} = $normalizer_for{client} for qw(registry extension);
 
 sub configure {
     my ( $class, $config, $options ) = @_;
-
-    # Handle deprecated options.
-    for my $key (qw(registry client)) {
-        my $val = delete $options->{$key} or next;
-        App::Sqitch->warn(__x(
-            'Option --{key} has been deprecated; use "--set {key}={val}" instead',
-            key => $key,
-            val => $val
-        ));
-        my $set = $options->{set} ||= {};
-        $set->{$key} = $val;
-    }
-
-    $options->{properties} = delete $options->{set}
-        if $options->{set};
-
-    # No config; target config is actually targets.
+    $options->{properties} = delete $options->{set} if $options->{set};
+    # No config; engine config is actually engines.
     return $options;
 }
 
@@ -78,52 +78,58 @@ sub execute {
         'Unknown action "{action}"',
         action => $action,
     ));
+
     return $self->$meth(@_);
 }
 
 sub list {
     my $self    = shift;
     my $sqitch  = $self->sqitch;
-    my %targets = $sqitch->config->get_regexp(key => qr/^target[.][^.]+[.]uri$/);
+    my $rx = join '|' => ENGINES;
+    my %engines = $sqitch->config->get_regexp(key => qr/^core[.](?:$rx)[.]target$/);
 
     my $format = $self->verbose ? "%1\$s\t%2\$s" : '%1$s';
-    for my $key (sort keys %targets) {
-        my ($target) = $key =~ /target[.]([^.]+)/;
-        $sqitch->emit(sprintf $format, $target, $targets{$key});
+    for my $key (sort keys %engines) {
+        my ($engine) = $key =~ /core[.]([^.]+)/;
+        $sqitch->emit(sprintf $format, $engine, $engines{$key})
     }
 
     return $self;
 }
 
 sub add {
-    my ($self, $name, $uri) = @_;
-    $self->usage unless $name && $uri;
+    my ($self, $engine, $target) = @_;
+    $self->usage unless $engine;
+    _chk_engine $engine;
 
-    my $key    = "target.$name";
+    my $key    = "core.$engine";
     my $config = $self->sqitch->config;
 
-    hurl target => __x(
-        'Target "{target}" already exists',
-        target => $name
-    ) if $config->get( key => "$key.uri");
-
-    my @vars = ({
-        key   => "$key.uri",
-        value => URI::db->new($uri, 'db:')->as_string,
-    });
+    hurl enginecmd => __x(
+        'Engine "{engine}" already exists',
+        engine => $engine
+    ) if $config->get( key => "$key.target");
 
     # Collect properties.
+    my (@vars, $got_target);
     my $props = $self->properties;
     while (my ($prop, $val) = each %{ $props } ) {
         my $normalizer = $normalizer_for{$prop} or $self->usage(__x(
             'Unknown property "{property}"',
             property => $prop,
         ));
+        $got_target++ if $prop eq 'target';
         push @vars => {
             key   => "$key.$prop",
             value => $normalizer->($val),
         };
     }
+
+    # Gotta have a target.
+    unshift @vars => {
+        key   => "$key.target",
+        value => $normalizer_for{target}->($target || "db:$engine:"),
+    } unless $got_target;
 
     # Make it so.
     $config->group_set( $config->local_file, \@vars );
@@ -131,34 +137,31 @@ sub add {
     return $self;
 }
 
+
 sub _set {
-    my ($self, $key, $name, $value) = @_;
-    $self->usage unless $name && $value;
+    my ($self, $key, $engine, $value) = @_;
+    $self->usage unless $engine && $value;
+
+    _chk_engine $engine;
 
     my $config = $self->sqitch->config;
-    my $target = "target.$name";
 
-    hurl target => __x(
-        'Unknown target "{target}"',
-        target => $name
-    ) unless $config->get( key => "$target.uri");
+    hurl enginecmd => __x(
+        'Unknown engine "{engine}"',
+        engine => $engine
+    ) unless $config->get( key => "core.$engine.target");
 
     $config->set(
-        key      => "$target.$key",
+        key      => "core.$engine.$key",
         value    => $value,
         filename => $config->local_file,
     );
     return $self;
 }
 
-sub set_url { shift->set_uri(@_) };
-sub set_uri {
-    my ($self, $name, $uri) = @_;
-    $self->_set(
-        'uri',
-        $name,
-        $uri ? URI::db->new($uri, 'db:')->as_string : undef
-    );
+sub set_target {
+    my ($self, $engine, $target) = @_;
+    $self->_set( 'target', $engine, $normalizer_for{target}->($target) );
 }
 
 sub set_registry  { shift->_set('registry',  @_) }
@@ -166,8 +169,8 @@ sub set_client    { shift->_set('client',    @_) }
 sub set_extension { shift->_set('extension', @_) }
 
 sub _set_dir {
-    my ($self, $key, $name, $dir) = @_;
-    $self->_set( $key, $name, $normalizer_for{top_dir}->($dir) );
+    my ($self, $key, $engine, $dir) = @_;
+    $self->_set( $key, $engine, $normalizer_for{top_dir}->($dir) );
 }
 
 sub set_top_dir    { shift->_set_dir('top_dir',    @_) }
@@ -176,37 +179,26 @@ sub set_revert_dir { shift->_set_dir('revert_dir', @_) }
 sub set_verify_dir { shift->_set_dir('verify_dir', @_) }
 
 sub set_plan_file {
-    my ($self, $name, $file) = @_;
-    $self->_set( 'plan_file', $name, $normalizer_for{plan_file}->($file) );
+    my ($self, $engine, $file) = @_;
+    $self->_set( 'plan_file', $engine, $normalizer_for{plan_file}->($file) );
 }
 
 sub rm { shift->remove(@_) }
 sub remove {
-    my ($self, $name) = @_;
-    $self->usage unless $name;
-    $self->_rename($name);
-}
+    my ($self, $engine) = @_;
+    $self->usage unless $engine;
 
-sub rename {
-    my ($self, $old, $new) = @_;
-    $self->usage unless $old && $new;
-    $self->_rename($old, $new);
-}
-
-sub _rename {
-    my ($self, $old, $new) = @_;
     my $config = $self->sqitch->config;
     try {
         $config->rename_section(
-            from     => "target.$old",
-            ($new ? (to => "target.$new") : ()),
+            from     => "core.$engine",
             filename => $config->local_file,
         );
     } catch {
         die $_ unless /No such section/;
-        hurl target => __x(
-            'Unknown target "{target}"',
-            target => $old,
+        hurl enginecmd => __x(
+            'Unknown engine "{engine}"',
+            engine => $engine,
         );
     };
     return $self;
@@ -220,27 +212,46 @@ sub show {
 
     # Set up labels.
     my $len = max map { length } (
-        __ 'URI',
+        __ 'Target',
         __ 'Registry',
         __ 'Client',
+        __ 'Top Directory',
+        __ 'Plan File',
+        __ 'Deploy Directory',
+        __ 'Revert Directory',
+        __ 'Verify Directory',
+        __ 'Extension',
     );
 
     my %label_for = (
-        uri      => __('URI')      . ': ' . ' ' x ($len - length __ 'URI'),
-        registry => __('Registry') . ': ' . ' ' x ($len - length __ 'Registry'),
-        client   => __('Client')   . ': ' . ' ' x ($len - length __ 'Client'),
+        target     => __('Target')           . ': ' . ' ' x ($len - length __ 'Target'),
+        registry   => __('Registry')         . ': ' . ' ' x ($len - length __ 'Registry'),
+        client     => __('Client')           . ': ' . ' ' x ($len - length __ 'Client'),
+        top_dir    => __('Top Directory')    . ': ' . ' ' x ($len - length __ 'Top Directory'),
+        plan_file  => __('Plan File')        . ': ' . ' ' x ($len - length __ 'Plan File'),
+        deploy_dir => __('Deploy Directory') . ': ' . ' ' x ($len - length __ 'Deploy Directory'),
+        revert_dir => __('Revert Directory') . ': ' . ' ' x ($len - length __ 'Revert Directory'),
+        verify_dir => __('Verify Directory') . ': ' . ' ' x ($len - length __ 'Verify Directory'),
+        extension  => __('Extension')        . ': ' . ' ' x ($len - length __ 'Extension'),
     );
 
     require App::Sqitch::Target;
-    for my $name (@names) {
+    for my $engine (@names) {
         my $target = App::Sqitch::Target->new(
             sqitch => $sqitch,
-            name   => $name,
+            name   => $config->get(key => "core.$engine.target") || "db:$engine",
         );
-        $self->emit("* $name");
-        $self->emit('  ', $label_for{uri},      $target->uri->as_string);
-        $self->emit('  ', $label_for{registry}, $target->registry);
-        $self->emit('  ', $label_for{client},   $target->client);
+
+        $self->emit("* $engine");
+        $self->emit('  ', $label_for{target},     $target->target);
+        $self->emit('  ', $label_for{registry},   $target->registry);
+        $self->emit('  ', $label_for{client},     $target->client);
+        $self->emit('  ', $label_for{top_dir},    $target->top_dir);
+        $self->emit('  ', $label_for{plan_file},  $target->plan_file);
+        $self->emit('  ', $label_for{deploy_dir}, $target->deploy_dir);
+        $self->emit('  ', $label_for{revert_dir}, $target->revert_dir);
+        $self->emit('  ', $label_for{verify_dir}, $target->verify_dir);
+        $self->emit('  ', $label_for{extension},  $target->extension);
     }
 
     return $self;
@@ -252,16 +263,16 @@ __END__
 
 =head1 Name
 
-App::Sqitch::Command::target - Add, modify, or list Sqitch target databases
+App::Sqitch::Command::engine - Add, modify, or list Sqitch database engines
 
 =head1 Synopsis
 
-  my $cmd = App::Sqitch::Command::target->new(%params);
+  my $cmd = App::Sqitch::Command::engine->new(%params);
   $cmd->execute;
 
 =head1 Description
 
-Manages Sqitch targets, which are stored in the local configuration file.
+Manages Sqitch database engines, which are stored in the local configuration file.
 
 =head1 Interface
 
@@ -279,9 +290,9 @@ Verbosity.
 
 =head3 C<execute>
 
-  $target->execute($command);
+  $engine->execute($command);
 
-Executes the C<target> command.
+Executes the C<engine> command.
 
 =head3 C<add>
 
@@ -297,9 +308,9 @@ Implements the C<list> action.
 
 Implements the C<remove> action.
 
-=head3 C<rename>
+=head3 C<set_target>
 
-Implements the C<rename> action.
+Implements the C<set-target> action.
 
 =head3 C<set_client>
 
@@ -308,12 +319,6 @@ Implements the C<set-client> action.
 =head3 C<set_registry>
 
 Implements the C<set-registry> action.
-
-=head3 C<set_uri>
-
-=head3 C<set_url>
-
-Implements the C<set-uri> action.
 
 =head3 C<set_top_dir>
 
@@ -347,9 +352,9 @@ Implements the C<show> action.
 
 =over
 
-=item L<sqitch-target>
+=item L<sqitch-engine>
 
-Documentation for the C<target> command to the Sqitch command-line client.
+Documentation for the C<engine> command to the Sqitch command-line client.
 
 =item L<sqitch>
 
