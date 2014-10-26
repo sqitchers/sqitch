@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 230;
+use Test::More tests => 236;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -339,6 +339,22 @@ is $config->get(key => "target.àlafois.uri"), 'db:postgres:stuff',
 is $config->get(key => "target.withboth.uri"), undef,
     qq{Target "withboth" should no longer be present};
 
+# Make sure we die on dependencies.
+$config->group_set( $config->local_file, [
+    {key => 'core.target', value => 'prod'},
+    {key => 'engine.firebird.target', value => 'prod'},
+]);
+$cmd->sqitch->config->load;
+# Should get an error for a target with dependencies.
+throws_ok { $cmd->rename('prod', 'fodder' ) } 'App::Sqitch::X',
+    'Should get error renaming a target with dependencies';
+is $@->ident, 'target', 'Dependency target error ident should be "target"';
+is $@->message, __x(
+    q{Cannot rename target "{target}" because it's refereneced by: {engines}},
+    target => 'prod',
+    engines => 'core.target, engine.firebird.target',
+), 'Dependency target error message should be correct';
+
 ##############################################################################
 # Test remove.
 MISSINGARGS: {
@@ -365,6 +381,15 @@ ok $cmd->remove('àlafois'), 'Remove';
 $config->load;
 is $config->get(key => "target.àlafois.uri"), undef,
     qq{Target "àlafois" should now be gone};
+
+throws_ok { $cmd->remove('prod' ) } 'App::Sqitch::X',
+    'Should get error removing a target with dependencies';
+is $@->ident, 'target', 'Dependency target error ident should be "target"';
+is $@->message, __x(
+    q{Cannot rename target "{target}" because it's refereneced by: {engines}},
+    target => 'prod',
+    engines => 'core.target, engine.firebird.target',
+), 'Dependency target error message should be correct';
 
 ##############################################################################
 # Test show.

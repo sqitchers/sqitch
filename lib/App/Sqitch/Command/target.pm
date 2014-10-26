@@ -184,18 +184,41 @@ sub rm { shift->remove(@_) }
 sub remove {
     my ($self, $name) = @_;
     $self->usage unless $name;
+    if ( my @deps = $self->_dependencies($name) ) {
+        hurl target => __x(
+            q{Cannot rename target "{target}" because it's refereneced by: {engines}},
+            target => $name,
+            engines => join ', ', @deps
+        );
+    }
     $self->_rename($name);
 }
 
 sub rename {
     my ($self, $old, $new) = @_;
     $self->usage unless $old && $new;
+    if ( my @deps = $self->_dependencies($old) ) {
+        hurl target => __x(
+            q{Cannot rename target "{target}" because it's refereneced by: {engines}},
+            target => $old,
+            engines => join ', ', @deps
+        );
+    }
     $self->_rename($old, $new);
+}
+
+sub _dependencies {
+    my ($self, $name) = @_;
+    my %depends = $self->sqitch->config->get_regexp(
+        key => qr/^(?:core|engine[.][^.]+)[.]target$/
+    );
+    return grep { $depends{$_} eq $name } sort keys %depends;
 }
 
 sub _rename {
     my ($self, $old, $new) = @_;
     my $config = $self->sqitch->config;
+
     try {
         $config->rename_section(
             from     => "target.$old",
