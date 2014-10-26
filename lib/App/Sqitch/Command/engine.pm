@@ -276,6 +276,28 @@ Manages Sqitch database engines, which are stored in the local configuration fil
 
 =head1 Interface
 
+=head2 Constants
+
+=head3 C<ENGINES>
+
+Returns the list of supported engines, currently:
+
+=over
+
+=item * C<firebird>
+
+=item * C<mysql>
+
+=item * C<oracle>
+
+=item * C<pg>
+
+=item * C<sqlite>
+
+=item * C<vertica>
+
+=back
+
 =head2 Instance Methods
 
 =head2 Attributes
