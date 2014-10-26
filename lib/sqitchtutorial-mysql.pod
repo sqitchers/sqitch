@@ -88,7 +88,7 @@ L<C<mysql> client|https://dev.mysql.com/doc/refman/5.6/en/mysql.html> is not
 in the path on my system, let's go ahead an tell it where to find the client
 on our computer:
 
-  > sqitch config --user core.mysql.client /usr/local/mysql/bin/mysql
+  > sqitch config --user engine.mysql.client /usr/local/mysql/bin/mysql
 
 And let's also tell it who we are, since this data will be used in all
 of our projects:
@@ -192,7 +192,7 @@ create a superuser named C<sqitch> or something similar and use it to deploy
 changes.
 
 If you'd like it to use a different database as the registry database, use
-C<sqitch config core.mysql.registry $name> to configure it (or via the
+C<sqitch config engine.mysql.registry $name> to configure it (or via the
 L<C<target> command|sqitch-target>; more L<below|/On Target>). This will be
 useful if you don't want to use the same registry database to manage multiple
 databases on the same server.
@@ -233,7 +233,7 @@ Give it a try. Put this query into F<verify/appuser.sql>:
     FROM mysql.user WHERE user = 'flipr';
 
 This will work well as long as we know that the registry database is named
-C<sqitch>. If you've set C<core.mysql.registry> to a different value, you
+C<sqitch>. If you've set C<engine.mysql.registry> to a different value, you
 will need to make sure you specify the correct database name in the script.
 
 Now you can run the C<verify> script with the L<C<verify>|sqitch-verify>
@@ -389,7 +389,7 @@ C<flipr_test>, which means we can use the string C<flipr_test> for the target,
 rather than the URI. But since we're doing so much testing, we can also tell
 Sqitch to deploy to the C<flipr_test> target by default:
 
-  > sqitch config core.mysql.target flipr_test
+  > sqitch config engine.mysql.target flipr_test
 
 Now we can omit the target argument altogether, unless we need to deploy to
 another database. Which we will, eventually, but at least our examples will be

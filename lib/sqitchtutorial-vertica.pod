@@ -135,7 +135,7 @@ settings. But it will also read F<~/.sqitch/sqitch.conf> for user-specific
 settings. Since Vertica's C<vsql> client is not in the path on my system,
 let's go ahead an tell it where to find the client on our computer:
 
-  > sqitch config --user core.vertica.client /opt/vertica/bin/vsql
+  > sqitch config --user engine.vertica.client /opt/vertica/bin/vsql
 
 And let's also tell it who we are, since this data will be used in all
 of our projects:
@@ -423,7 +423,7 @@ C<flipr_test>, which means we can use the string C<flipr_test> for the target,
 rather than the URI. But since we're doing so much testing, we can also tell
 Sqitch to deploy to the C<flipr_test> target by default:
 
-  > sqitch config core.vertica.target flipr_test
+  > sqitch config engine.vertica.target flipr_test
 
 Now we can omit the target argument altogether, unless we need to deploy to
 another database. Which we will, eventually, but at least our examples will be

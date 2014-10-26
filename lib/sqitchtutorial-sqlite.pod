@@ -86,7 +86,7 @@ settings. But it will also read F<~/.sqitch/sqitch.conf> for user-specific
 settings. Since SQLite's C<sqlite3> client is not in the path on my system,
 let's go ahead an tell it where to find the client on our computer.
 
-  > sqitch config --user core.sqlite.client /opt/local/bin/sqlite3
+  > sqitch config --user engine.sqlite.client /opt/local/bin/sqlite3
 
 And let's also tell it who we are, since this data will be used in all
 of our projects:
@@ -199,7 +199,7 @@ directory with the same suffix and you get just that with the default sqitch
 database.
 
 If you'd like it to have a different name for the registry database, use
-C<sqitch config core.sqlite.registry $name> to configure it (or via the
+C<sqitch config engine.sqlite.registry $name> to configure it (or via the
 L<C<target> command|sqitch-target>; more L<below|/On Target>). This will be
 useful if you don't want to use the same registry database to manage multiple
 databases, or if you do, but they live in different directories.
@@ -380,7 +380,7 @@ C<flipr_test>, which means we can use the string C<flipr_test> for the target,
 rather than the URI. But since we're doing so much testing, we can also tell
 Sqitch to deploy to the C<flipr_test> target by default:
 
-  > sqitch config core.sqlite.target flipr_test
+  > sqitch config engine.sqlite.target flipr_test
 
 Now we can omit the target argument altogether, unless we need to deploy to
 another database. Which we will, eventually, but at least our examples will be

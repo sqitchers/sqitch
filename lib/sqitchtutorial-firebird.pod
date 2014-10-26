@@ -93,7 +93,7 @@ so we go ahead an tell it where to find the client on our computer,
 for example on GNU/Linux with the standard location of the Firebird
 installation the command is:
 
-  > sqitch config --user core.firebird.client /opt/firebird/bin/isql
+  > sqitch config --user engine.firebird.client /opt/firebird/bin/isql
 
 Note: On some GNU/Linux distributions the firebird client is renamed
 to C<isql-fb>, for example in Debian and Fedora, or C<fbsql> in
@@ -212,7 +212,7 @@ so far; the C<+> reinforces the idea that the change is being I<added> to the
 database.
 
 If you'd like it to have a different name for the registry database, use
-C<sqitch config core.firebird.registry $name> to configure it (or via the
+C<sqitch config engine.firebird.registry $name> to configure it (or via the
 L<C<target> command|sqitch-target>; more L<below|/On Target>). This will be
 useful if you don't want to use the same registry database to manage multiple
 databases, or if you do, but they live in different directories.
@@ -402,7 +402,7 @@ C<flipr_test>, which means we can use the string C<flipr_test> for the target,
 rather than the URI. But since we're doing so much testing, we can also tell
 Sqitch to deploy to the C<flipr_test> target by default:
 
-  > sqitch config core.firebird.target flipr_test
+  > sqitch config engine.firebird.target flipr_test
 
 Now we can omit the target argument altogether, unless we need to deploy to
 another database. Which we will, eventually, but at least our examples will be
