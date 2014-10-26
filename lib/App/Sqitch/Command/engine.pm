@@ -262,9 +262,6 @@ sub update_config {
     my $sqitch = $self->sqitch;
     my $config = $sqitch->config;
 
-    my $rx = join '|' => ENGINES;
-    $rx = qr/^core[.](?:$rx)[.]/;
-
     my $local_file = $config->local_file;
     for my $file (
         $local_file,
@@ -280,13 +277,13 @@ sub update_config {
             $engines{$ekey} = $sect if %{ $sect };
         }
         unless (%engines) {
-            $sqitch->emit(__ '  No engines to update');
+            $sqitch->emit(__ '  - No engines to update');
             next;
         }
 
         # Make sure we can write to the file.
         unless (-w $file) {
-            $sqitch->warn(__x(
+            $sqitch->warn('  - ' . __x(
                 'Cannot update {file}. Please make it writable',
                 file => $file,
             ));
@@ -305,7 +302,7 @@ sub update_config {
                     value => $target,
                 };
                 # Kill off deprecated variables.
-                for (qw(host port username password db_name)) { delete $old->{$_} }
+                delete $old->{$_} for qw(host port username password db_name);
             } elsif ( $file eq $local_file ) {
                 # Start with a default and migrate deprecated configs.
                 my $uri = URI::db->new("db:$ekey:");
@@ -326,7 +323,7 @@ sub update_config {
                 };
             } else {
                 # Just kill off any of the deprecated variables.
-                for (qw(host port username password db_name)) { delete $old->{$_} }
+                delete $old->{$_} for qw(host port username password db_name);
             }
 
             # Copy over the remaining variabls.
@@ -342,7 +339,7 @@ sub update_config {
                 filename => $file,
             );
 
-            $sqitch->emit(__x(
+            $sqitch->emit('  - ' . __x(
                 'Renamed {old} to {new}',
                 old => "core.$ekey",
                 new => "engine.$ekey",
