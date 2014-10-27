@@ -85,7 +85,7 @@ sub _fetch {
 
     my $config = $sqitch->config;
     return $config->get( key => "target." . $self->name . ".$key" )
-        || $self->_engine_var($config, $self->engine_key, $key)
+        || $self->_engine_var($config, scalar $self->engine_key, $key)
         || $config->get( key => "core.$key");
 }
 
