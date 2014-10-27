@@ -264,7 +264,7 @@ CONSTRUCTOR: {
         'Should have requested pg section';
 
     # Make sure deprecated config options work.
-    local $ENV{HARNESS_ACTIVE} = 0;
+    local $App::Sqitch::Target::WARNED = 0;
     @sect_ret = ({
         host     => 'hi.com',
         port     => 5432,
@@ -288,6 +288,7 @@ CONSTRUCTOR: {
     )]], 'Should have warned on deprecated config options';
 
     # Make sure deprecated --db-* options work.
+    $App::Sqitch::Target::WARNED = 0;
     @sect_ret = ({
         host     => 'hi.com',
         port     => 5432,
