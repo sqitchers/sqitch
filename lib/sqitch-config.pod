@@ -39,7 +39,7 @@ transformations are performed on the value.
 The C<file-option> can be one of C<--local>, C<--user>, C<--system>, or
 C<--file>, which specify where the values will be read from or written to. The
 default is to assume the local config file in the current project directory,
-for editing, and the all files merged for fetching (see L<Files>).
+for editing, and the all files merged for fetching (see L</Files>).
 
 =begin comment
 
@@ -125,7 +125,7 @@ the default if no file option is specified.
 For reading options: read only from the local F<./sqitch.conf> file rather
 than from all available files.
 
-See also L<Files>.
+See also L</Files>.
 
 =item C<--user>
 
@@ -135,7 +135,7 @@ than the repository F<./sqitch.conf>.
 For reading options: read only from the user F<~/.sqitch/sqitch.conf> file
 rather than from all available files.
 
-See also L<Files>.
+See also L</Files>.
 
 =item C<--system>
 
@@ -145,7 +145,7 @@ rather than the repository F<./sqitch.conf>.
 For reading options: read only from system-wide F<$($etc_prefix)/sqitch.conf>
 file rather than from all available files.
 
-See also L<Files>.
+See also L</Files>.
 
 =item C<-f config-file, --file config-file>
 
