@@ -25,12 +25,15 @@ Revision history for Perl extension App::Sqitch
        properties of any given target will now be determined by examining
        values in the following order:
        * Command-line options
-       * Target properties
-       * Engine configuration variables
-       * Core configuration variables
+       * Target configuration
+       * Engine configuration
+       * Core configuration
        * Reasonable engine-specific defaults
      - Added the `engine` command to simplify engine configuration. This
        complements the newly-improved `target` command.
+     - Added the sqitch-configuration guide to provide an overview of core,
+       engine, and target configuration. Includes some use-case examples and
+       best suggested practices.
      [Improvements]
      - Simplified the output of `sqitch help`, and added the more important
        options to it.
@@ -67,14 +70,15 @@ Revision history for Perl extension App::Sqitch
        * `--db-name`
      - Formally deprecated the database connection configuration variables in
        favor of target URIs. If any of these variables is used, a warning will
-       be issued. They will be dropped in 1.0:
-       * `engine.$engine.host`
-       * `engine.$engine.port`
-       * `engine.$engine.username`
-       * `engine.$engine.password`
-       * `engine.$engine.db_name`
+       be issued.Run `sqitch engine update-config` to update your
+       configurations. They will be dropped in 1.0:
+       * `core.$engine.host`
+       * `core.$engine.port`
+       * `core.$engine.username`
+       * `core.$engine.password`
+       * `core.$engine.db_name`
      - Deprecated the `--registry` and `--client` options of the `target`
-       command. All target properties may now be set via the new `--set`
+       command. All target properties should now be set via the new `--set`
        option, such as `--set registry=reg`.
      - Formally deprecated the following options of the `add` command. They
        have been replaced with the `--with`, `--without`, and `--use` options
@@ -98,12 +102,12 @@ Revision history for Perl extension App::Sqitch
        be removed in v1.0.
      [Internals]
      - Moved target and engine configuration from App::Sqitch and
-       App::Sqitch::Engine to a new class, App::Sqitch::Target. This new class
-       is solely responsible for finding the appropriate values for attributes
-       on every run. The target knows what plan and engine to use, based on
-       those attributes. App::Sqitch is now responsible solely for
-       encapsulating command-line options, configuration, and utilities.
-       Classes are now responsible for instantiating both an App::Sqitch and
+       App::Sqitch::Engine to a new class, App::Sqitch::Target. This class is
+       solely responsible for finding the appropriate values for attributes on
+       every run. The target knows what plan and engine to use, based on those
+       properties. App::Sqitch is now responsible solely for encapsulating
+       command-line options, configuration, and utilities. Classes are now
+       responsible for instantiating both an App::Sqitch and
        App::Sqitch::Target options as appropriate.
      - Updated all classes to create both Sqitch and Target objects as
        appropriate.
