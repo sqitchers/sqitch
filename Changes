@@ -52,6 +52,7 @@ Revision history for Perl extension App::Sqitch
        CONTINSOUZAS.
      - The `status` command once again notices if the specified database is
        uninitialized and says as much, rather than dying with an SQL error.
+     - The `--etc-path` option works again.
      [Deprecations ]
      - Deprecated `core.$engine` configuration in favor of `engine.$engine`. A
        warning will be emitted if Sqitch sees the former. Run `sqitch engine

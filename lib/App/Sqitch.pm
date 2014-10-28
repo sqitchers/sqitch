@@ -288,7 +288,7 @@ sub _parse_core_opts {
 
     # Handle --etc-path.
     if ( $opts{etc_path} ) {
-        say App::Sqitch::Config->system_dir;
+        say App::Sqitch::Config->class->system_dir;
         exit;
     }
 
