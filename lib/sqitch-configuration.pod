@@ -38,10 +38,10 @@ A reasonable default
 
 =back
 
-This document explains how this evaulation works, and how to use the
+This document explains how this evaluation works, and how to use the
 L<C<init>|sqitch-init>, L<C<config>|sqitch-config>,
 L<C<engine>|sqitch-engine>, and L<C<target>|sqitch-target> commands to
-configure these values for various deployment scenearios.
+configure these values for various deployment scenarios.
 
 =head2 Project Initialization
 
@@ -76,7 +76,7 @@ commented out, like so:
     # registry = sqitch
     # client = psql
 
-The C<[core]> section contins default configurations, the most important of
+The C<[core]> section contains default configurations, the most important of
 which is the default engine, C<pg>. Of course, it's the I<only> engine this
 project supports, and the values of the other configuration variables are
 reasonable for a single-engine project. If your Sqitch project never needs to
@@ -91,7 +91,7 @@ The C<[engine "pg"]> section houses the variables more specific to the engine.
 The C<target> defines the default L<database URI|https://github.com/theory/uri-db>
 for connecting to a PostgreSQL database. As you can see there isn't much here,
 but if you were to distribute this project, it's likely that your users would
-specify a target URI when deploying to their own databasses. The C<registry>
+specify a target URI when deploying to their own databases. The C<registry>
 determines where Sqitch will store its own metadata when managing a database;
 generally the default, "sqitch", is fine.
 
@@ -151,7 +151,7 @@ the existing PostgreSQL stuff to a subdirectory.
   deploy/ revert/ verify/
 
 Now we need to tell Sqitch where things are. To create an engine-specific
-configuration, use the L<C<engine>|sqitch-engine> command's C<add> acction:
+configuration, use the L<C<engine>|sqitch-engine> command's C<add> action:
 
   sqitch engine add pg --set top_dir=pg
 
@@ -190,7 +190,7 @@ start with the more obvious one.
 =head3 Separate Plans
 
 The first approach is to create an entirely independent SQLite project with
-its own plan and scripts. This is I<almost) like starting from scratch: just
+its own plan and scripts. This is I<almost> like starting from scratch: just
 create a new directory and add initialize it as a new Sqitch project:
 
   > sqitch --top-dir sqlite --engine sqlite init widgets
@@ -226,7 +226,7 @@ by passing the C<--engine> option, to force it to use the SQLite configuration:
   Added "users" to sqlite/sqitch.plan
 
 Use C<--engine pg> when adding PostgreSQL changes, or omit it, in which case
-Sqitch will fall back on the default engine, defind by the C<core.engine>
+Sqitch will fall back on the default engine, defined by the C<core.engine>
 variable set when we created the PostgreSQL project.
 
 =head3 Shared Plan
@@ -279,7 +279,7 @@ Later, when you want to add a new change to both projects, just do it:
   Created pg/verify/users.sql
   Added "users" to sqitch.plan
 
-Then copy the templated scripts to the F<sqlite> directory:
+Then copy the scripts to the F<sqlite> directory:
 
   > cp pg/deploy/users.sql sqlite/deploy
   > cp pg/revert/users.sql sqlite/revert
@@ -292,7 +292,7 @@ L<fixed soon|https://github.com/theory/sqitch/issues/201>.
 
 With either of these two approaches, you can now manage database interactions
 by passing a L<database URI|https://github.com/theory/uri-db> to the database
-commands. For example, to deploy to a PostgresSQL database named "widgets" on
+commands. For example, to deploy to a PostgreSQL database named "widgets" on
 host C<db.example.com>:
 
   sqitch deploy db:pg://db.example.com/widgets
@@ -363,7 +363,7 @@ the URI. Thus the configuration all comes together:
     Extension:        sql
 
 Note the use of the shared plan and the F<pg> directory for scripts. We can
-add a target for our SQLite database, too. Maybe it's used for dev?
+add a target for our SQLite database, too. Maybe it's used for development?
 
   > sqitch target add dev-sqlite db:sqlite:/var/db/widgets_dev.db
   > sqitch target show dev-sqlite
