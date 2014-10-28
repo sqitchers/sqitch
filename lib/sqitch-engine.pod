@@ -17,6 +17,7 @@ sqitch-engine - Manage database engine configuration
   sqitch engine set-extension <name> <extension>
   sqitch engine remove <name>
   sqitch engine show <name>
+  sqitch engine update-config
 
 =head1 Description
 
@@ -189,6 +190,11 @@ Remove the engine named C<< <name> >>.
 Gives some information about the engine C<< <name> >>, including the
 associated properties. Specify multiple engine names to see information for
 each.
+
+=head2 C<update-config>
+
+Update the configuration from a configuration file that predates the addition
+of the C<engine> command to Sqitch.
 
 =head1 Configuration Variables
 

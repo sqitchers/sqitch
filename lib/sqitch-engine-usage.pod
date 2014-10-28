@@ -17,6 +17,7 @@ sqitch-engine-usage - Sqitch engine usage statement
   sqitch engine set-extension <name> <extension>
   sqitch engine remove <name>
   sqitch engine show <name>
+  sqitch engine update-config
 
 =head1 Options
 

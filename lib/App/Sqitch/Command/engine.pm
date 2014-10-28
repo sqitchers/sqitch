@@ -475,6 +475,10 @@ Implements the C<set-extension> action.
 
 Implements the C<show> action.
 
+=head3 C<update_config>
+
+Implements the C<update_config> action.
+
 =head1 See Also
 
 =over
