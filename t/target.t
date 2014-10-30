@@ -130,15 +130,16 @@ CONSTRUCTOR: {
     # Try with no engine option.
     @get_params = ();
     delete $sqitch->options->{engine};
-    push @get_ret => 'mysql';
+    push @get_ret => undef, 'mysql';
     isa_ok $target = $CLASS->new(sqitch => $sqitch), $CLASS, 'Default target';
     is $target->name, 'db:mysql:', 'Name should be "db:mysql:"';
     is $target->uri, URI::db->new('db:mysql:'), 'URI should be "db:mysql"';
     is_deeply \@get_params, [
+        [key => 'core.target'],
         [key => 'core.engine'],
         [key => 'engine.mysql.target'],
         [key => 'core.mysql.target'],
-    ], 'Should have tried to get core engine and its target';
+    ], 'Should have tried to get core.target, core.engine and then the target';
 
     # Try with no engine option but a name that looks like a URI.
     @get_params = ();
@@ -204,6 +205,39 @@ CONSTRUCTOR: {
     is $target->username, undef, 'Username should be undef';
     is $target->password, undef, 'Password should be undef';
 
+    # Try passing a proper URI via the name.
+    @get_params = ();
+    isa_ok $target = $CLASS->new(sqitch => $sqitch, name => 'db:pg://a:b@foo/scat'), $CLASS,
+        'Engine URI target';
+    like $target->name, qr{db:pg://a:?\@foo/scat}, 'Name should be "db:pg://a@foo/scat"';
+    is $target->uri, URI::db->new('db:pg://a:b@foo/scat'),
+        'URI should be "db:pg://a:b@foo/scat"';
+    is_deeply \@get_params, [], 'Nothing should have been fetched from config';
+
+    # Pass nothing, but let a URI be in core.target.
+    @get_params = ();
+    push @get_ret => 'db:pg://s:b@ack/shi';
+    isa_ok $target = $CLASS->new(sqitch => $sqitch), $CLASS,
+        'Engine URI core.target';
+    like $target->name, qr{db:pg://s:?\@ack/shi}, 'Name should be "db:pg://s@ack/shi"';
+    is $target->uri, URI::db->new('db:pg://s:b@ack/shi'),
+        'URI should be "db:pg://s:b@ack/shi"';
+    is_deeply \@get_params, [[key => 'core.target']],
+        'Should have fetched core.target from config';
+
+    # Pass nothing, but let a target name be in core.target.
+    @get_params = ();
+    push @get_ret => 'shout', 'db:pg:w:e@we/bar';
+    isa_ok $target = $CLASS->new(sqitch => $sqitch), $CLASS,
+        'Engine name core.target';
+    is $target->name, 'shout', 'Name should be "shout"';
+    is $target->uri, URI::db->new('db:pg:w:e@we/bar'),
+        'URI should be "db:pg:w:e@we/bar"';
+    is_deeply \@get_params, [
+        [key => 'core.target'],
+        [key => 'target.shout.uri']
+    ], 'Should have fetched target.shout.uri from config';
+
     # Mock get_section.
     my @sect_params;
     my @sect_ret = ({});
@@ -248,8 +282,8 @@ CONSTRUCTOR: {
     is $target->uri, URI::db->new('db:pg:foo'), 'URI should be "db:pg:foo"';
     is_deeply \@get_params, [[key => 'target.foo.uri']],
         'Should have requested target URI from config';
-    is_deeply \@sect_params, [ [section => 'core.pg' ]],
-        'Should have requested deprecated pg section';
+    is_deeply \@sect_params, [],
+        'Should not have requested deprecated pg section';
 
     # Let the name be looked up by the engine.
     @get_params = @sect_params = ();
@@ -260,8 +294,7 @@ CONSTRUCTOR: {
     is $target->uri, URI::db->new('db:sqlite:foo'), 'URI should be "db:sqlite:foo"';
     is_deeply \@get_params, [[key => 'engine.sqlite.target'], [key => 'target.foo.uri']],
         'Should have requested engine target and target URI from config';
-    is_deeply \@sect_params, [ [section => 'core.sqlite' ]],
-        'Should have requested pg section';
+    is_deeply \@sect_params, [], 'Should not have requested pg section';
 
     # Make sure deprecated config options work.
     local $App::Sqitch::Target::WARNED = 0;

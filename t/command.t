@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 145;
+use Test::More tests => 146;
 #use Test::More 'no_plan';
 use Test::NoWarnings;
 
@@ -206,8 +206,8 @@ $cmock->mock(get => sub {
     is_deeply \@_, [key => $exp], "Should try to fetch $exp";
     return shift @get_ret;
 });
-@get_ret = ('sqlite', 'sqlite');
-@get_expect = ('core.engine', 'core.engine', 'engine.sqlite.target', 'core.sqlite.target');
+@get_ret = ('sqlite', undef, 'sqlite');
+@get_expect = ('core.engine', 'core.target', 'core.engine', 'engine.sqlite.target', 'core.sqlite.target');
 ok $cmd = $CLASS->new({ sqitch => $sqitch }), "Create a $CLASS object";
 isa_ok $target = $cmd->default_target, 'App::Sqitch::Target',
     'default target';

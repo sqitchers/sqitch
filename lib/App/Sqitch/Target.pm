@@ -8,6 +8,7 @@ use App::Sqitch::Types qw(Maybe URIDB Str Dir Engine Sqitch File Plan Bool);
 use App::Sqitch::X qw(hurl);
 use Locale::TextDomain qw(App-Sqitch);
 use Path::Class qw(dir file);
+use URI::db;
 use namespace::autoclean;
 
 has name => (
@@ -195,53 +196,80 @@ has extension => (
 sub BUILDARGS {
     my $class = shift;
     my $p = @_ == 1 && ref $_[0] ? { %{ +shift } } : { @_ };
-    my $sqitch = $p->{sqitch} or return $p;
 
-    # The name defaults to the URI, if we have one.
-    if (my $uri = $p->{uri}) {
-        if (!$p->{name}) {
+    # Fetch params. URI can come from passed name.
+    my $sqitch = $p->{sqitch} or return $p;
+    my $name   = $p->{name} || '';
+    my $uri    = $p->{uri} ||= do {
+        if ($name =~ /:/) {
+            my $u = URI::db->new($name);
+            if ($u && $u->canonical_engine) {
+                $name = '';
+                $u;
+            }
+        }
+    };
+
+    # If we have a URI up-front, it's all good.
+    if ($uri) {
+        unless ($name) {
             # Set the URI as the name, sans password.
             if ($uri->password) {
                 $uri = $uri->clone;
                 $uri->password(undef);
             }
             $p->{name} = $uri->as_string;
-
         }
         return $p;
     }
 
-    my ($uri, $ekey);
-    my $name = $p->{name};
+    # XXX $merge for deprecated options and config.
+    # Can also move $ekey just to block below when deprecated merge is removed.
+    my ($ekey, $merge);
+    my $config = $sqitch->config;
 
     # If no name, try to find one.
     if (!$name) {
-        # Look for an engine key.
-        $ekey = $sqitch->options->{engine} || $sqitch->config->get(
-            key => 'core.engine'
-        ) or hurl target => __(
-            'No engine specified; use --engine or set core.engine'
-        );
+        # There are a couple of places to look for a name.
+        NAME: {
+            # Look for an engine key.
+            $ekey = $sqitch->options->{engine};
+            unless ($ekey) {
+                # No --engine, look for core target.
+                if ( $uri = $config->get( key => 'core.target' ) ) {
+                    # We got core.target.
+                    $p->{name} = $name = $uri;
+                    last NAME;
+                }
 
-        # Find the name in the engine config, or fall back on a simple URI.
-        my $config = $sqitch->config;
-        $uri = $class->_engine_var($config, $ekey, 'target') || "db:$ekey:";
-        $p->{name} = $name = $uri;
+                # No core target, look for an engine key.
+                $ekey = $config->get(
+                    key => 'core.engine'
+                ) or hurl target => __(
+                    'No engine specified; use --engine or set core.engine'
+                );
+            }
+
+            # Find the name in the engine config, or fall back on a simple URI.
+            $uri = $class->_engine_var($config, $ekey, 'target') || "db:$ekey:";
+            $p->{name} = $name = $uri;
+        }
     }
 
     # Now we should have a name. What is it?
     if ($name =~ /:/) {
-        # The name is a URI.
+        # The name is a URI from core.target or core.engine.target.
         $uri = $name;
-        $name = $p->{name} = undef;
+        $name  = $p->{name} = undef;
+        $merge = 1; # Always merge in deprecated stuff.
     } else {
         # Well then, there had better be a config with a URI.
-        $uri = $sqitch->config->get( key => "target.$name.uri" ) or do {
+        $uri = $config->get( key => "target.$name.uri" ) or do {
             # Die on no section or no URI.
             hurl target => __x(
                 'Cannot find target "{target}"',
                 target => $name
-            ) unless %{ $sqitch->config->get_section(
+            ) unless %{ $config->get_section(
                 section => "target.$name"
             ) };
             hurl target => __x(
@@ -252,67 +280,68 @@ sub BUILDARGS {
     }
 
     # Instantiate the URI.
-    require URI::db;
-    $uri    = $p->{uri} = URI::db->new( $uri );
+    $uri = $p->{uri} = URI::db->new( $uri );
     $ekey ||= $uri->canonical_engine or hurl target => __x(
         'No engine specified by URI {uri}; URI must start with "db:$engine:"',
         uri => $uri->as_string,
     );
 
-    # Override parts with deprecated command-line options and config.
-    my $opts   = $sqitch->options;
-    my $config = $sqitch->config->get_section(section => "core.$ekey") || {};
+    if ($merge) {
+        # Override parts with deprecated command-line options and config.
+        my $opts    = $sqitch->options;
+        my $econfig = $sqitch->config->get_section(section => "core.$ekey") || {};
 
-    if (%{ $config }) {
-        App::Sqitch->warn(__x(
-            "The core.{engine} config has been deprecated in favor of engine.{engine}.\n"
-            . q{Run 'sqitch engine update-config' to update your configurations.},
-            engine => $ekey,
-        )) unless $WARNED;
-        $WARNED = 1;
-    }
+        if (%{ $econfig }) {
+            App::Sqitch->warn(__x(
+                "The core.{engine} config has been deprecated in favor of engine.{engine}.\n"
+                . q{Run 'sqitch engine update-config' to update your configurations.},
+                engine => $ekey,
+            )) unless $WARNED;
+            $WARNED = 1;
+        }
 
-    my @deprecated;
-    if (my $host = $opts->{db_host}) {
-        push @deprecated => '--db-host';
-        $uri->host($host);
-    } elsif ($host = $config->{host}) {
-        $uri->host($host);
-    }
+        my @deprecated;
+        if (my $host = $opts->{db_host}) {
+            push @deprecated => '--db-host';
+            $uri->host($host);
+        } elsif ($host = $econfig->{host}) {
+            $uri->host($host);
+        }
 
-    if (my $port = $opts->{db_port}) {
-        push @deprecated => '--db-port';
-        $uri->port($port);
-    } elsif ($port = $config->{port}) {
-        $uri->port($port);
-    }
+        if (my $port = $opts->{db_port}) {
+            push @deprecated => '--db-port';
+            $uri->port($port);
+        } elsif ($port = $econfig->{port}) {
+            $uri->port($port) if $merge;
+        }
 
-    if (my $user = $opts->{db_username}) {
-        push @deprecated => '--db-username';
-        $uri->user($user);
-    } elsif ($user = $config->{username}) {
-        $uri->user($user);
-    }
+        if (my $user = $opts->{db_username}) {
+            push @deprecated => '--db-username';
+            $uri->user($user);
+        } elsif ($user = $econfig->{username}) {
+            $uri->user($user) if $merge;
+        }
 
-    if (my $pass = $config->{password}) {
-        $uri->password($pass);
-    }
+        if (my $pass = $econfig->{password}) {
+            $uri->password($pass) if $merge;
+        }
 
-    if (my $db = $opts->{db_name}) {
-        push @deprecated => '--db-name';
-        $uri->dbname($db);
-    } elsif ($db = $config->{db_name}) {
-        $uri->dbname($db);
-    }
+        if (my $db = $opts->{db_name}) {
+            push @deprecated => '--db-name';
+            $uri->dbname($db);
+        } elsif ($db = $econfig->{db_name}) {
+            $uri->dbname($db) if $merge;
+        }
 
-    if (@deprecated) {
-        $sqitch->warn(__nx(
-            'Option {options} deprecated and will be removed in 1.0; use URI {uri} instead',
-            'Options {options} deprecated and will be removed in 1.0; use URI {uri} instead',
-            scalar @deprecated,
-            options => join(', ', @deprecated),
-            uri     => $uri->as_string,
-        ));
+        if (@deprecated) {
+            $sqitch->warn(__nx(
+                'Option {options} deprecated and will be removed in 1.0; use URI {uri} instead',
+                'Options {options} deprecated and will be removed in 1.0; use URI {uri} instead',
+                scalar @deprecated,
+                options => join(', ', @deprecated),
+                uri     => $uri->as_string,
+            ));
+        }
     }
 
     unless ($name) {
