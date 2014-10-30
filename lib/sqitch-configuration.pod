@@ -10,7 +10,7 @@ The specification of database targets is core to Sqitch database change
 management. A target consists of a
 L<database connection URI|https://github.com/theory/uri-db>, a plan file,
 change script directories, a registry schema or database name, and the path to
-a database engine command-line client.. Sqitch determines the values for these
+a database engine command-line client. Sqitch determines the values for these
 attributes via a hierarchical evaluation of the runtime configuration,
 examining and selecting from these values:
 
@@ -423,8 +423,8 @@ Then add targets for the specific servers and plans:
     Verify Directory: pg/verify
     Extension:        sql
 
-Now, any management of the C<prod-billing> target target will use the
-F<target.plan> plan file.
+Now, any management of the C<prod-billing> target will use the F<target.plan>
+plan file.
 
 =head2 Other Options
 
