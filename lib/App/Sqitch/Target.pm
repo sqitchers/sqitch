@@ -261,7 +261,7 @@ sub BUILDARGS {
         # The name is a URI from core.target or core.engine.target.
         $uri = $name;
         $name  = $p->{name} = undef;
-        $merge = 1; # Always merge in deprecated stuff.
+        $merge = 2; # Merge all deprecated stuff.
     } else {
         # Well then, there had better be a config with a URI.
         $uri = $config->get( key => "target.$name.uri" ) or do {
@@ -277,6 +277,7 @@ sub BUILDARGS {
                 target => $name,
             );
         };
+        $merge = 1; # Merge only options.
     }
 
     # Instantiate the URI.
@@ -289,7 +290,9 @@ sub BUILDARGS {
     if ($merge) {
         # Override parts with deprecated command-line options and config.
         my $opts    = $sqitch->options;
-        my $econfig = $sqitch->config->get_section(section => "core.$ekey") || {};
+        my $econfig = $merge > 1
+            ? $sqitch->config->get_section(section => "core.$ekey") || {}
+            : {};
 
         if (%{ $econfig }) {
             App::Sqitch->warn(__x(
@@ -305,32 +308,32 @@ sub BUILDARGS {
             push @deprecated => '--db-host';
             $uri->host($host);
         } elsif ($host = $econfig->{host}) {
-            $uri->host($host);
+            $uri->host($host) if $merge > 1;
         }
 
         if (my $port = $opts->{db_port}) {
             push @deprecated => '--db-port';
             $uri->port($port);
         } elsif ($port = $econfig->{port}) {
-            $uri->port($port) if $merge;
+            $uri->port($port) if $merge > 1;
         }
 
         if (my $user = $opts->{db_username}) {
             push @deprecated => '--db-username';
             $uri->user($user);
         } elsif ($user = $econfig->{username}) {
-            $uri->user($user) if $merge;
+            $uri->user($user) if $merge > 1;
         }
 
         if (my $pass = $econfig->{password}) {
-            $uri->password($pass) if $merge;
+            $uri->password($pass) if $merge > 1;
         }
 
         if (my $db = $opts->{db_name}) {
             push @deprecated => '--db-name';
             $uri->dbname($db);
         } elsif ($db = $econfig->{db_name}) {
-            $uri->dbname($db) if $merge;
+            $uri->dbname($db) if $merge > 1;
         }
 
         if (@deprecated) {

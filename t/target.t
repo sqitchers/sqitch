@@ -335,7 +335,7 @@ CONSTRUCTOR: {
     $sqitch->options->{db_port}     = 12245;
     $sqitch->options->{db_username} = 'fred';
     $sqitch->options->{db_name}     = 'widget';
-    isa_ok $target = $CLASS->new(sqitch => $sqitch), $CLASS, 'SQLite target';
+    isa_ok $target = $CLASS->new(sqitch => $sqitch), $CLASS, 'Postgres target';
     is_deeply \@sect_params, [ [section => 'core.pg' ]],
         'Should have requested sqlite section';
     like $target->name, qr{db:pg://fred:?\@foo.com:12245/widget},
@@ -350,6 +350,32 @@ CONSTRUCTOR: {
         [__x(
             'Options {options} deprecated and will be removed in 1.0; use URI {uri} instead',
             options => '--db-host, --db-port, --db-username, --db-name',
+            uri     => $uri->as_string,
+        )],
+    ], 'Should have warned on deprecated options';
+
+    # Options should work, but not config, when URI read from target config.
+    $App::Sqitch::Target::WARNED = 0;
+    @sect_ret = ({
+        host     => 'hi.com',
+    });
+    $uri = URI::db->new('db:pg://foo.com/widget');
+    @get_ret = ('db:pg:');
+    @get_params = @sect_params = ();
+    delete $sqitch->{options}->{$_} for qw(engine db_port db_username);
+    $sqitch->options->{db_host} = 'foo.com';
+    $sqitch->options->{db_name} = 'widget';
+    isa_ok $target = $CLASS->new(sqitch => $sqitch, name => 'foo'), $CLASS,
+        'Foo target';
+    is_deeply \@get_params, [ [key => 'target.foo.uri' ]],
+        'Should have requested target URI';
+    is_deeply \@sect_params, [], 'Should have fetched no section';
+    is $target->name, 'foo', 'Name should be as passed';
+    is $target->uri, $uri, 'URI should be tweaked by --db-* options';
+    is_deeply +MockOutput->get_warn, [
+        [__x(
+            'Options {options} deprecated and will be removed in 1.0; use URI {uri} instead',
+            options => '--db-host, --db-name',
             uri     => $uri->as_string,
         )],
     ], 'Should have warned on deprecated options';
