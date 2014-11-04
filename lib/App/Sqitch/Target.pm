@@ -64,7 +64,7 @@ sub _engine_var {
     my $val = $config->get( key => "core.$ekey.$akey" ) or return;
     return $val if $WARNED;
     App::Sqitch->warn(__x(
-        q{The core.{engine} config has been deprecated in favor of engine.{engine}.\nRun '{sqitch} engine update-config' to update your configurations.},
+        "The core.{engine} config has been deprecated in favor of engine.{engine}.\nRun '{sqitch} engine update-config' to update your configurations.",
         engine => $ekey,
         sqitch => $0,
     ));
@@ -296,7 +296,7 @@ sub BUILDARGS {
 
         if (%{ $econfig } && !%{ $sqitch->config->get_section(section => "engine.$ekey") || {} }) {
             App::Sqitch->warn(__x(
-                q{The core.{engine} config has been deprecated in favor of engine.{engine}.\nRun '{sqitch} engine update-config' to update your configurations.},
+                "The core.{engine} config has been deprecated in favor of engine.{engine}.\nRun '{sqitch} engine update-config' to update your configurations.",
                 engine => $ekey,
                 sqitch => $0,
             )) unless $WARNED;

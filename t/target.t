@@ -315,7 +315,7 @@ CONSTRUCTOR: {
         'Name should be passwordless stringified URI';
     is $target->uri, $uri, 'URI should be tweaked by config* options';
     is_deeply +MockOutput->get_warn, [[__x(
-        q{The core.{engine} config has been deprecated in favor of engine.{engine}.\nRun '{sqitch} engine update-config' to update your configurations.},
+        "The core.{engine} config has been deprecated in favor of engine.{engine}.\nRun '{sqitch} engine update-config' to update your configurations.",
         engine => 'pg',
         sqitch => $0,
     )]], 'Should have warned on deprecated config options';
@@ -343,7 +343,7 @@ CONSTRUCTOR: {
     is $target->uri, $uri, 'URI should be tweaked by --db-* options';
     is_deeply +MockOutput->get_warn, [
         [__x(
-            q{The core.{engine} config has been deprecated in favor of engine.{engine}.\nRun '{sqitch} engine update-config' to update your configurations.},
+            "The core.{engine} config has been deprecated in favor of engine.{engine}.\nRun '{sqitch} engine update-config' to update your configurations.",
             engine => 'pg',
             sqitch => $0,
         )],
