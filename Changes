@@ -1,5 +1,7 @@
 Revision history for Perl extension App::Sqitch
 
+0.998
+
 0.997 2014-11-04T22:52:23Z
      [New Features]
      - Added support for new target properties. In addition to the existing

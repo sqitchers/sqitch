@@ -12,7 +12,7 @@ use URI::db 0.15;
 use App::Sqitch::Types qw(Str Int Sqitch Plan Bool HashRef URI Maybe Target);
 use namespace::autoclean;
 
-our $VERSION = '0.997';
+our $VERSION = '0.998';
 
 has sqitch => (
     is       => 'ro',
