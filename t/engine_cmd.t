@@ -378,10 +378,11 @@ $config->group_set($config->local_file, [
     {key => 'core.mysql.db_name',  value => 'ouch'      },
 ]);
 $cmd->sqitch->config->load;
+my $core = $cmd->sqitch->config->get_section(section => 'core.mysql');
 ok $cmd->update_config, 'Update the config';
 $cmd->sqitch->config->load;
-is_deeply $cmd->sqitch->config->get_section(section => 'core.mysql'), {},
-    'The core.mysql config should be gone';
+is_deeply $cmd->sqitch->config->get_section(section => 'core.mysql'), $core,
+    'The core.mysql config should still be present';
 is_deeply $cmd->sqitch->config->get_section(section => 'engine.mysql'), {
     target => 'widgets',
     client => 'mysql.exe',
@@ -394,6 +395,7 @@ $config->rename_section(
     filename => $config->local_file,
 );
 $config->group_set($config->local_file, [
+    {key => 'core.mysql.target',   value => undef       },
     {key => 'core.mysql.client',   value => 'mysql.exe' },
     {key => 'core.mysql.registry', value => 'spliff'    },
     {key => 'core.mysql.host',     value => 'localhost' },
@@ -403,10 +405,11 @@ $config->group_set($config->local_file, [
     {key => 'core.mysql.db_name',  value => 'ouch'      },
 ]);
 $cmd->sqitch->config->load;
+$core = $cmd->sqitch->config->get_section(section => 'core.mysql');
 ok $cmd->update_config, 'Update the config again';
 $cmd->sqitch->config->load;
-is_deeply $cmd->sqitch->config->get_section(section => 'core.mysql'), {},
-    'The core.mysql config should again be gone';
+is_deeply $cmd->sqitch->config->get_section(section => 'core.mysql'), $core,
+    'The core.mysql config should again remain';
 is_deeply $cmd->sqitch->config->get_section(section => 'engine.mysql'), {
     target => 'db:mysql://fred:barb@localhost:1234/ouch',
     client => 'mysql.exe',
@@ -421,12 +424,18 @@ $config->rename_section(
 $config->group_set($config->local_file, [
     {key => 'core.mysql.client',   value => 'mysql.exe' },
     {key => 'core.mysql.registry', value => 'spliff'    },
+    {key => 'core.mysql.host',     value => undef       },
+    {key => 'core.mysql.port',     value => undef       },
+    {key => 'core.mysql.username', value => undef       },
+    {key => 'core.mysql.password', value => undef       },
+    {key => 'core.mysql.db_name',  value => undef       },
 ]);
 $cmd->sqitch->config->load;
+$core = $cmd->sqitch->config->get_section(section => 'core.mysql');
 ok $cmd->update_config, 'Update the config again';
 $cmd->sqitch->config->load;
-is_deeply $cmd->sqitch->config->get_section(section => 'core.mysql'), {},
-    'The core.mysql config should again be gone';
+is_deeply $cmd->sqitch->config->get_section(section => 'core.mysql'), $core,
+    'The core.mysql config should again remain';
 is_deeply $cmd->sqitch->config->get_section(section => 'engine.mysql'), {
     target => 'db:mysql:',
     client => 'mysql.exe',

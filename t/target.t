@@ -309,15 +309,15 @@ CONSTRUCTOR: {
     @get_params = @sect_params = ();
     $uri = URI::db->new('db:pg://bob:ouch@hi.com:5432/sharks');
     isa_ok $target = $CLASS->new(sqitch => $sqitch), $CLASS, 'Pg target';
-    is_deeply \@sect_params, [ [section => 'core.pg' ]],
-        'Should have requested pg section';
+    is_deeply \@sect_params, [ [section => 'core.pg' ], [section => 'engine.pg' ]],
+        'Should have requested core and engine pg sections';
     like $target->name, qr{db:pg://bob:?\@hi.com:5432/sharks},
         'Name should be passwordless stringified URI';
     is $target->uri, $uri, 'URI should be tweaked by config* options';
     is_deeply +MockOutput->get_warn, [[__x(
-        "The core.{engine} config has been deprecated in favor of engine.{engine}.\n"
-         . q{Run 'sqitch engine update-config' to update your configurations.},
+        q{The core.{engine} config has been deprecated in favor of engine.{engine}.\nRun '{sqitch} engine update-config' to update your configurations.},
         engine => 'pg',
+        sqitch => $0,
     )]], 'Should have warned on deprecated config options';
 
     # Make sure deprecated --db-* options work.
@@ -336,16 +336,16 @@ CONSTRUCTOR: {
     $sqitch->options->{db_username} = 'fred';
     $sqitch->options->{db_name}     = 'widget';
     isa_ok $target = $CLASS->new(sqitch => $sqitch), $CLASS, 'Postgres target';
-    is_deeply \@sect_params, [ [section => 'core.pg' ]],
-        'Should have requested sqlite section';
+    is_deeply \@sect_params, [ [section => 'core.pg' ], [section => 'engine.pg' ] ],
+        'Should have requested sqlite core and engine sections';
     like $target->name, qr{db:pg://fred:?\@foo.com:12245/widget},
         'Name should be passwordless stringified URI';
     is $target->uri, $uri, 'URI should be tweaked by --db-* options';
     is_deeply +MockOutput->get_warn, [
         [__x(
-            "The core.{engine} config has been deprecated in favor of engine.{engine}.\n"
-            . q{Run 'sqitch engine update-config' to update your configurations.},
+            q{The core.{engine} config has been deprecated in favor of engine.{engine}.\nRun '{sqitch} engine update-config' to update your configurations.},
             engine => 'pg',
+            sqitch => $0,
         )],
         [__x(
             'Options {options} deprecated and will be removed in 1.0; use URI {uri} instead',

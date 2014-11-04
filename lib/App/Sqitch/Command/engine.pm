@@ -347,13 +347,13 @@ sub update_config {
 
             # Create the new variables and delete the old section.
             $config->group_set( $file, \@new );
-            $c->rename_section(
-                from     => "core.$ekey",
-                filename => $file,
-            );
+            # $c->rename_section(
+            #     from     => "core.$ekey",
+            #     filename => $file,
+            # );
 
             $sqitch->emit('  - ' . __x(
-                'Renamed {old} to {new}',
+                'Migrated {old} to {new}',
                 old => "core.$ekey",
                 new => "engine.$ekey",
             ));
