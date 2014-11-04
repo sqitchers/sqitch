@@ -275,7 +275,6 @@ Sqitch Vertica support.
 * Tue Nov 4 2014 David E. Wheeler <david.wheeler@iovation.com> 0.997-1
 - Upgrade to v0.997.
 
-
 * Fri Sep 5 2014 David E. Wheeler <david.wheeler@iovation.com> 0.996-1
 - Upgrade to v0.996.
 - Remove Moose and Mouse dependencies.
