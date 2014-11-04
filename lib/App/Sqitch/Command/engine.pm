@@ -287,7 +287,19 @@ sub update_config {
         my %engines;
         for my $ekey (ENGINES) {
             my $sect = $c->get_section( section => "core.$ekey");
-            $engines{$ekey} = $sect if %{ $sect };
+            if (%{ $sect }) {
+                if (%{ $c->get_section( section => "engine.$ekey") }) {
+                    $sqitch->warn('  - ' . __x(
+                        "Deprecated {section} found in {file}; to remove it, run\n    {sqitch} config --file {file} --remove-section {section}",
+                        section => "core.$ekey",
+                        file    => $file,
+                        sqitch  => $0,
+                    ));
+                    next;
+                }
+                # Migrate this one.
+                $engines{$ekey} = $sect;
+            }
         }
         unless (%engines) {
             $sqitch->emit(__ '  - No engines to update');
@@ -353,9 +365,11 @@ sub update_config {
             # );
 
             $sqitch->emit('  - ' . __x(
-                'Migrated {old} to {new}',
-                old => "core.$ekey",
-                new => "engine.$ekey",
+                "Migrated {old} to {new}; To remove {old}, run\n    {sqitch} config --file {file} --remove-section {old}",
+                old    => "core.$ekey",
+                new    => "engine.$ekey",
+                sqitch => $0,
+                file   => $file,
             ));
         }
     }
