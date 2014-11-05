@@ -1,6 +1,9 @@
 Revision history for Perl extension App::Sqitch
 
 0.998
+     - Fixed a bug in `sqitch engine update-config` where it would add data to
+       config files that did not previously have them, or report that data was
+       present in nonexistent config files.
 
 0.997 2014-11-04T22:52:23Z
      [New Features]

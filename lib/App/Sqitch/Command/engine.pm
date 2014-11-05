@@ -282,6 +282,10 @@ sub update_config {
         $config->system_file,
     ) {
         $sqitch->emit(__x( 'Loading {file}', file => $file ));
+        # Hide all other files. Just want to deal with the one.
+        local $ENV{SQITCH_CONFIG}        = '/dev/null/not.conf';
+        local $ENV{SQITCH_USER_CONFIG}   = '/dev/null/not.user';
+        local $ENV{SQITCH_SYSTEM_CONFIG} = '/dev/null/not.sys';
         my $c = App::Sqitch::Config->new;
         $c->load_file($file);
         my %engines;
