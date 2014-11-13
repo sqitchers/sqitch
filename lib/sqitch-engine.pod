@@ -5,7 +5,7 @@ sqitch-engine - Manage database engine configuration
 =head1 Synopsis
 
   sqitch engine
-  sqitch engine add [-s <property>=<value> ...] <name>
+  sqitch engine add <name> <target> [-s <property>=<value> ...]
   sqitch engine set-target <name> <target>
   sqitch engine set-registry <name> <registry>
   sqitch engine set-client <name> <client>
