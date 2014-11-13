@@ -111,7 +111,7 @@ that it will always properly identify us when planning and committing changes.
 Back to the repository. Have a look at the plan file, F<sqitch.plan>:
 
   > cat sqitch.plan
-  %syntax-version=1.0.0-b2
+  %syntax-version=1.0.0
   %project=flipr
   %uri=https://github.com/theory/sqitch-mysql-intro/
 
@@ -612,7 +612,7 @@ Let's add a couple more changes to add functions for managing users.
 Now might be a good time to have a look at the deployment plan:
 
   > cat sqitch.plan
-  %syntax-version=1.0.0-b2
+  %syntax-version=1.0.0
   %project=flipr
   %uri=https://github.com/theory/sqitch-mysql-intro/
 
@@ -1227,7 +1227,7 @@ and rebase again:
 Ah, that looks a bit better. Let's have a look at the plan:
 
   > cat sqitch.plan
-  %syntax-version=1.0.0-b2
+  %syntax-version=1.0.0
   %project=flipr
   %uri=https://github.com/theory/sqitch-mysql-intro/
 
@@ -1315,7 +1315,7 @@ And now, finally, we can merge into C<master>:
 And double-check our work:
 
   > cat sqitch.plan
-  %syntax-version=1.0.0-b2
+  %syntax-version=1.0.0
   %project=flipr
   %uri=https://github.com/theory/sqitch-mysql-intro/
 
