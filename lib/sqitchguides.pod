@@ -12,7 +12,7 @@ sqitchguides - List of common Sqitch guides
 The common Sqitch guides are:
 
   changes             Specifying changes for Sqitch
-  targets             Configuring deployment targets
+  configuration       Hierarchical engine and target configuration
   tutorial            PostgreSQL Tutorial
   tutorial-firebird   Firebird Tutorial
   tutorial-mysql      MySQL Tutorial
