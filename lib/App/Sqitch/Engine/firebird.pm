@@ -226,6 +226,7 @@ sub initialize {
     my $file   = file(__FILE__)->dir->file('firebird.sql');
     my $sqitch = $self->sqitch;
     $sqitch->run( @cmd, '-input' => $sqitch->quote_shell($file) );
+    $self->_register_release;
 }
 
 sub connection_string {

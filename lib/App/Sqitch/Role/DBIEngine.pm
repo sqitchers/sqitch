@@ -54,6 +54,20 @@ sub _in_expr {
     return $in, @{ $vals };
 }
 
+sub _register_release {
+    my $self    = shift;
+    my $sqitch  = $self->sqitch;
+    my $ts      = $self->_ts_default;
+
+    $self->begin_work;
+    $self->dbh->do(qq{
+        INSERT INTO releases (version, installed_at, installer_name, installer_email)
+        VALUES (?, $ts, ?, ?)
+    }, undef, $self->registry_version, $sqitch->user_name, $sqitch->user_email);
+    $self->finish_work;
+    return $self;
+}
+
 sub _cid {
     my ( $self, $ord, $offset, $project ) = @_;
     return try {

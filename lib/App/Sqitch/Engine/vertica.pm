@@ -38,6 +38,7 @@ sub destination {
     );
     return $uri->as_string;
 }
+
 has _vsql => (
     is         => 'ro',
     isa        => ArrayRef,
@@ -173,7 +174,7 @@ sub initialize {
     # Now we can execute the file.
     $self->_run( '--file' => $fh->filename );
     $self->dbh->do('SET search_path = ' . $self->dbh->quote($schema));
-    return $self;
+    $self->_register_release;
 }
 
 sub _no_table_error  {

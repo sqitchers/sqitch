@@ -1,3 +1,17 @@
+CREATE TABLE &registry..releases (
+    version           FLOAT                    PRIMARY KEY,
+    installed_at      TIMESTAMP WITH TIME ZONE DEFAULT current_timestamp NOT NULL,
+    installer_name    VARCHAR2(512 CHAR)       NOT NULL,
+    installer_email   VARCHAR2(512 CHAR)       NOT NULL
+);
+
+COMMENT ON TABLE  &registry..releases                 IS 'Sqitch registry releases.';
+COMMENT ON COLUMN &registry..releases.version         IS 'Version of the Sqitch registry.';
+COMMENT ON COLUMN &registry..releases.installed_at    IS 'Date the registry release was installed.';
+COMMENT ON COLUMN &registry..releases.installer_name  IS 'Name of the user who installed the registry release.';
+COMMENT ON COLUMN &registry..releases.installer_email IS 'Email address of the user who installed the registry release.';
+
+
 CREATE TABLE &registry..projects (
     project         VARCHAR2(512 CHAR)       PRIMARY KEY,
     uri             VARCHAR2(512 CHAR)       NULL UNIQUE,
@@ -6,7 +20,7 @@ CREATE TABLE &registry..projects (
     creator_email   VARCHAR2(512 CHAR)       NOT NULL
 );
 
-COMMENT ON TABLE &registry..projects                 IS 'Sqitch projects deployed to this database.';
+COMMENT ON TABLE  &registry..projects                IS 'Sqitch projects deployed to this database.';
 COMMENT ON COLUMN &registry..projects.project        IS 'Unique Name of a project.';
 COMMENT ON COLUMN &registry..projects.uri            IS 'Optional project URI';
 COMMENT ON COLUMN &registry..projects.created_at     IS 'Date the project was added to the database.';
@@ -26,7 +40,7 @@ CREATE TABLE &registry..changes (
     planner_email   VARCHAR2(512 CHAR)       NOT NULL
 );
 
-COMMENT ON TABLE &registry..changes                  IS 'Tracks the changes currently deployed to the database.';
+COMMENT ON TABLE  &registry..changes                 IS 'Tracks the changes currently deployed to the database.';
 COMMENT ON COLUMN &registry..changes.change_id       IS 'Change primary key.';
 COMMENT ON COLUMN &registry..changes.change          IS 'Name of a deployed change.';
 COMMENT ON COLUMN &registry..changes.project         IS 'Name of the Sqitch project to which the change belongs.';
@@ -53,7 +67,7 @@ CREATE TABLE &registry..tags (
     UNIQUE(project, tag)
 );
 
-COMMENT ON TABLE &registry..tags                  IS 'Tracks the tags currently applied to the database.';
+COMMENT ON TABLE  &registry..tags                 IS 'Tracks the tags currently applied to the database.';
 COMMENT ON COLUMN &registry..tags.tag_id          IS 'Tag primary key.';
 COMMENT ON COLUMN &registry..tags.tag             IS 'Project-unique tag name.';
 COMMENT ON COLUMN &registry..tags.project         IS 'Name of the Sqitch project to which the tag belongs.';
@@ -78,7 +92,7 @@ CREATE TABLE &registry..dependencies (
     PRIMARY KEY (change_id, dependency)
 );
 
-COMMENT ON TABLE &registry..dependencies                IS 'Tracks the currently satisfied dependencies.';
+COMMENT ON TABLE  &registry..dependencies               IS 'Tracks the currently satisfied dependencies.';
 COMMENT ON COLUMN &registry..dependencies.change_id     IS 'ID of the depending change.';
 COMMENT ON COLUMN &registry..dependencies.type          IS 'Type of dependency.';
 COMMENT ON COLUMN &registry..dependencies.dependency    IS 'Dependency name.';
@@ -106,7 +120,7 @@ CREATE TABLE &registry..events (
 
 CREATE UNIQUE INDEX &registry..events_pkey ON &registry..events(change_id, committed_at);
 
-COMMENT ON TABLE &registry..events                  IS 'Contains full history of all deployment events.';
+COMMENT ON TABLE  &registry..events                 IS 'Contains full history of all deployment events.';
 COMMENT ON COLUMN &registry..events.event           IS 'Type of event.';
 COMMENT ON COLUMN &registry..events.change_id       IS 'Change ID.';
 COMMENT ON COLUMN &registry..events.change          IS 'Change name.';

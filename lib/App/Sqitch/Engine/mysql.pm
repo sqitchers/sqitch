@@ -215,6 +215,7 @@ sub initialize {
     my $file = file(__FILE__)->dir->file('mysql.sql');
 
     $self->sqitch->run( @cmd, '--execute', "source $file" );
+    $self->_register_release;
 }
 
 # Override to lock the Sqitch tables. This ensures that only one instance of
@@ -226,7 +227,7 @@ sub begin_work {
     # Start transaction and lock all tables to disallow concurrent changes.
     $dbh->do('LOCK TABLES ' . join ', ', map {
         "$_ WRITE"
-    } qw(changes dependencies events projects tags));
+    } qw(releases changes dependencies events projects tags));
     $dbh->begin_work;
     return $self;
 }

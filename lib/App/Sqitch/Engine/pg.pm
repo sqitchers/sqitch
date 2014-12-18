@@ -213,7 +213,7 @@ sub initialize {
     }
 
     $self->dbh->do('SET search_path = ?', undef, $schema);
-    return $self;
+    $self->_register_release;
 }
 
 # Override to lock the changes table. This ensures that only one instance of

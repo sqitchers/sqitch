@@ -162,6 +162,7 @@ sub initialize {
     $cmd[-1] = $self->registry_uri->dbname;
     my $file = file(__FILE__)->dir->file('sqlite.sql');
     $self->sqitch->run( @cmd, $self->_read($file) );
+    $self->_register_release;
 }
 
 sub _no_table_error  {

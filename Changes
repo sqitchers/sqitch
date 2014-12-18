@@ -4,6 +4,8 @@ Revision history for Perl extension App::Sqitch
      - Fixed a bug in `sqitch engine update-config` where it would add data to
        config files that did not previously have them, or report that data was
        present in nonexistent config files.
+     - Added the `releases` table to the databases. This table will keep track
+       of releases of the Sqitch registry schema.
 
 0.997 2014-11-04T22:52:23Z
      [New Features]

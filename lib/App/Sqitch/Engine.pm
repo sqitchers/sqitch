@@ -11,6 +11,7 @@ use List::Util qw(first max);
 use URI::db 0.15;
 use App::Sqitch::Types qw(Str Int Sqitch Plan Bool HashRef URI Maybe Target);
 use namespace::autoclean;
+use constant registry_version => 0.9;
 
 our $VERSION = '0.998';
 

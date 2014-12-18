@@ -412,7 +412,7 @@ sub initialize {
     );
 
     $self->dbh->do("ALTER SESSION SET CURRENT_SCHEMA = $schema") if $schema;
-    return $self;
+    $self->_register_release;
 }
 
 # Override for special handling of regular the expression operator and

@@ -422,12 +422,13 @@ END {
         'DROP TABLE tags',
         'DROP TABLE changes',
         'DROP TABLE projects',
+        'DROP TABLE releases',
         'DROP TYPE  sqitch_array',
         'DROP TABLE oe.events',
         'DROP TABLE oe.dependencies',
         'DROP TABLE oe.tags',
         'DROP TABLE oe.changes',
-        'DROP TABLE oe.projects',
+        'DROP TABLE oe.releases',
         'DROP TYPE  oe.sqitch_array',
     );
 }

@@ -72,6 +72,10 @@ sub run {
         ok !$engine->initialized, 'Database should not yet be initialized';
         ok $engine->initialize, 'Initialize the database';
         ok $engine->initialized, 'Database should now be initialized';
+        is_deeply $engine->dbh->selectall_arrayref(
+            'SELECT version, installer_name, installer_email FROM releases'
+        ), [[0.9, $sqitch->user_name, $sqitch->user_email]],
+            'The release should be registered';
 
         # Try it with a different Sqitch DB.
         $target = App::Sqitch::Target->new(

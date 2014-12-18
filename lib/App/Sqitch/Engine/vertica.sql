@@ -2,6 +2,15 @@ CREATE SCHEMA :"registry";
 
 COMMENT ON SCHEMA :"registry" IS 'Sqitch database deployment metadata v1.0.';
 
+CREATE TABLE :"registry".releases (
+    version         REAL           PRIMARY KEY,
+    installed_at    TIMESTAMPTZ    NOT NULL DEFAULT clock_timestamp(),
+    installer_name  VARCHAR(1024)  NOT NULL,
+    installer_email VARCHAR(1024)  NOT NULL
+);
+
+COMMENT ON TABLE  :"registry".releases                 IS 'Sqitch registry releases.';
+
 CREATE TABLE :"registry".projects (
     project         VARCHAR(1024) PRIMARY KEY ENCODING AUTO,
     uri             VARCHAR(1024) NULL UNIQUE,
