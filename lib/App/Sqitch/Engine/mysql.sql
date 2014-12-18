@@ -3,7 +3,7 @@ BEGIN;
 SET SESSION sql_mode = ansi;
 
 CREATE TABLE releases (
-    version         REAL          PRIMARY KEY
+    version         FLOAT         PRIMARY KEY
                     COMMENT 'Version of the Sqitch registry.',
     installed_at    TIMESTAMP     NOT NULL
                     COMMENT 'Date the registry release was installed.',
