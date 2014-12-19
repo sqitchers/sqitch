@@ -194,6 +194,8 @@ sub deploy {
         # Make sure that $to_index is greater than the current point.
         hurl deploy => __ 'Cannot deploy to an earlier change; use "revert" instead'
             if $to_index < $plan->position;
+        # Upgrade database if it needs it.
+        $self->upgrade_registry if $self->needs_upgrade;
     }
 
     $sqitch->info(
