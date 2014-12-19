@@ -4,8 +4,8 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 595;
-#use Test::More 'no_plan';
+#use Test::More tests => 595;
+use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
 use App::Sqitch::Target;
@@ -44,6 +44,7 @@ my $die = '';
 my $record_work = 1;
 my $updated_idx;
 my ( $earliest_change_id, $latest_change_id, $initialized );
+my $registry_version = $CLASS->registry_release;
 ENGINE: {
     # Stub out a engine.
     package App::Sqitch::Engine::whu;
@@ -90,6 +91,7 @@ ENGINE: {
     after seen => sub { @SEEN = () };
 
     sub name_for_change_id { return 'bugaboo' }
+    sub registry_version { $registry_version }
 }
 
 ok my $sqitch = App::Sqitch->new(
@@ -249,6 +251,37 @@ like $engine->destination, qr{^db:whu://foo:?\@localhost/blah$},
     'Destination should not include password';
 is $engine->registry_destination, $engine->destination,
     'Meta destination should again be the same as destination';
+
+##############################################################################
+# Test _check_registry.
+can_ok $engine, '_check_registry';
+ok $engine->_check_registry, 'Registry should be fine at current version';
+
+# Make the registry out-of-date.
+$registry_version = 0.1;
+throws_ok { $engine->_check_registry } 'App::Sqitch::X',
+    'Should get error for out-of-date registry';
+is $@->ident, 'engine', 'Out-of-date registry error ident should be "engine"';
+is $@->message, __x(
+    'Registry is at version {old} but latest is {new}. Please run the "upgrade" conmand',
+    old => 0.1,
+    new => $engine->registry_release,
+), 'Out-of-date registry error message should be correct';
+
+# Send the registry to the future.
+$registry_version = 999.99;
+throws_ok { $engine->_check_registry } 'App::Sqitch::X',
+    'Should get error for future registry';
+is $@->ident, 'engine', 'Future registry error ident should be "engine"';
+is $@->message, __x(
+    'Registry version is {old} but {new} is the latest known. Please upgrade Sqitch',
+    old => 999.99,
+    new => $engine->registry_release,
+), 'Future registry error message should be correct';
+
+
+# Restore the registry version.
+$registry_version = $CLASS->registry_release;
 
 ##############################################################################
 # Test abstract methods.

@@ -231,6 +231,7 @@ sub deploy {
 
 sub revert {
     my ( $self, $to ) = @_;
+    $self->_check_registry;
     my $sqitch = $self->sqitch;
     my $plan   = $self->plan;
 
@@ -955,7 +956,26 @@ sub latest_change {
 
 sub needs_upgrade {
     my $self = shift;
-    $self->registry_version < $self->registry_release;
+    $self->registry_version != $self->registry_release;
+}
+
+sub _check_registry {
+    my $self   = shift;
+    my $newver = $self->registry_release;
+    my $oldver = $self->registry_version;
+    return $self if $newver == $oldver;
+
+    hurl engine => __x(
+        'Registry version is {old} but {new} is the latest known. Please upgrade Sqitch',
+        old => $oldver,
+        new => $newver,
+    ) if $newver < $oldver;
+
+    hurl engine => __x(
+        'Registry is at version {old} but latest is {new}. Please run the "upgrade" conmand',
+        old => $oldver,
+        new => $newver,
+    ) if $newver > $oldver;
 }
 
 sub upgrade_registry {
@@ -965,6 +985,13 @@ sub upgrade_registry {
     my $sqitch = $self->sqitch;
     my $newver = $self->registry_release;
     my $oldver = $self->registry_version;
+
+    hurl __x(
+        'Registry version is {old} but {new} is the latest known. Please upgrade Sqitch',
+        old => $oldver,
+        new => $newver,
+    ) if $newver < $oldver;
+
     my $key    = $self->key;
     my $dir    = file(__FILE__)->dir->subdir(qw(Engine Upgrade));
 
