@@ -114,10 +114,11 @@ is_deeply [$ora->sqlplus], [$client, @std_opts],
     'sqlplus command should connect to /nolog';
 
 is $ora->_script, join( "\n" => (
-        'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF',
-        'WHENEVER OSERROR EXIT 9;',
-        'WHENEVER SQLERROR EXIT SQL.SQLCODE;',
-        'connect ',
+    'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF',
+    'WHENEVER OSERROR EXIT 9;',
+    'WHENEVER SQLERROR EXIT SQL.SQLCODE;',
+    'connect ',
+    $ora->_registry_variable,
 ) ), '_script should work';
 
 # Set up a target URI.
@@ -131,10 +132,11 @@ isa_ok $ora = $CLASS->new(
 ), $CLASS;
 
 is $ora->_script, join( "\n" => (
-        'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF',
-        'WHENEVER OSERROR EXIT 9;',
-        'WHENEVER SQLERROR EXIT SQL.SQLCODE;',
-        'connect fred/"derf"@"blah"',
+    'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF',
+    'WHENEVER OSERROR EXIT 9;',
+    'WHENEVER SQLERROR EXIT SQL.SQLCODE;',
+    'connect fred/"derf"@"blah"',
+    $ora->_registry_variable,
 ) ), '_script should assemble connection string';
 
 # Add a host name.
@@ -148,11 +150,12 @@ isa_ok $ora = $CLASS->new(
 ), $CLASS;
 
 is $ora->_script('@foo'), join( "\n" => (
-        'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF',
-        'WHENEVER OSERROR EXIT 9;',
-        'WHENEVER SQLERROR EXIT SQL.SQLCODE;',
-        'connect fred/"derf"@//there/"blah"',
-        '@foo',
+    'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF',
+    'WHENEVER OSERROR EXIT 9;',
+    'WHENEVER SQLERROR EXIT SQL.SQLCODE;',
+    'connect fred/"derf"@//there/"blah"',
+    $ora->_registry_variable,
+    '@foo',
 ) ), '_script should assemble connection string with host';
 
 # Add a port and varibles.
@@ -170,13 +173,14 @@ ok $ora->set_variables(foo => 'baz', whu => 'hi there', yo => q{"stellar"}),
     'Set some variables';
 
 is $ora->_script, join( "\n" => (
-        'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF',
-        'WHENEVER OSERROR EXIT 9;',
-        'WHENEVER SQLERROR EXIT SQL.SQLCODE;',
-        'DEFINE foo="baz"',
-        'DEFINE whu="hi there"',
-        'DEFINE yo="""stellar"""',
-        'connect fred/"derf ""derf"""@//there:1345/"blah ""blah"""',
+    'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF',
+    'WHENEVER OSERROR EXIT 9;',
+    'WHENEVER SQLERROR EXIT SQL.SQLCODE;',
+    'DEFINE foo="baz"',
+    'DEFINE whu="hi there"',
+    'DEFINE yo="""stellar"""',
+    'connect fred/"derf ""derf"""@//there:1345/"blah ""blah"""',
+    $ora->_registry_variable,
 ) ), '_script should assemble connection string with host, port, and vars';
 
 ##############################################################################
@@ -428,6 +432,7 @@ END {
         'DROP TABLE oe.dependencies',
         'DROP TABLE oe.tags',
         'DROP TABLE oe.changes',
+        'DROP TABLE oe.projects',
         'DROP TABLE oe.releases',
         'DROP TYPE  oe.sqitch_array',
     );

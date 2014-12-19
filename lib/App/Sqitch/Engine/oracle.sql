@@ -11,7 +11,6 @@ COMMENT ON COLUMN &registry..releases.installed_at    IS 'Date the registry rele
 COMMENT ON COLUMN &registry..releases.installer_name  IS 'Name of the user who installed the registry release.';
 COMMENT ON COLUMN &registry..releases.installer_email IS 'Email address of the user who installed the registry release.';
 
-
 CREATE TABLE &registry..projects (
     project         VARCHAR2(512 CHAR)       PRIMARY KEY,
     uri             VARCHAR2(512 CHAR)       NULL UNIQUE,

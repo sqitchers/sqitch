@@ -6,6 +6,8 @@ Revision history for Perl extension App::Sqitch
        present in nonexistent config files.
      - Added the `releases` table to the databases. This table will keep track
        of releases of the Sqitch registry schema.
+     - The Oracle `registry` variable is now always `DEFINE`d when Oracle
+       scripts run.
 
 0.997 2014-11-04T22:52:23Z
      [New Features]

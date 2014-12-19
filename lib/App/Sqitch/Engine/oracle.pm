@@ -388,6 +388,17 @@ sub is_deployed_tag {
     )->[0];
 }
 
+sub _registry_variable {
+    my $self   = shift;
+    my $schema = $self->registry;
+    return $schema ? ("DEFINE registry=$schema") : (
+        # Select the current schema into &registry.
+        # http://www.orafaq.com/node/515
+        'COLUMN sname for a30 new_value registry',
+        q{SELECT SYS_CONTEXT('USERENV', 'SESSION_SCHEMA') AS sname FROM DUAL;},
+    );
+}
+
 sub initialize {
     my $self   = shift;
     my $schema = $self->registry;
@@ -395,22 +406,7 @@ sub initialize {
 
     # Load up our database.
     (my $file = file(__FILE__)->dir->file('oracle.sql')) =~ s/"/""/g;
-    my $meth = $self->can($self->sqitch->verbosity > 1 ? '_run' : '_capture');
-
-    $self->$meth(
-        (
-            $schema ? (
-                "DEFINE registry=$schema"
-            ) : (
-                # Select the current schema into &registry.
-                # http://www.orafaq.com/node/515
-                'COLUMN sname for a30 new_value registry',
-                q{SELECT SYS_CONTEXT('USERENV', 'SESSION_SCHEMA') AS sname FROM DUAL;},
-            )
-        ),
-        qq{\@"$file"}
-    );
-
+    $self->_run_with_verbosity($file);
     $self->dbh->do("ALTER SESSION SET CURRENT_SCHEMA = $schema") if $schema;
     $self->_register_release;
 }
@@ -572,13 +568,16 @@ sub run_file {
     $self->_run(qq{\@"$file"});
 }
 
-sub run_verify {
+sub _run_with_verbosity {
     my $self = shift;
     my $file = $self->_file_for_script(shift);
     # Suppress STDOUT unless we want extra verbosity.
     my $meth = $self->can($self->sqitch->verbosity > 1 ? '_run' : '_capture');
     $self->$meth(qq{\@"$file"});
 }
+
+sub run_upgrade { shift->_run_with_verbosity(@_) }
+sub run_verify  { shift->_run_with_verbosity(@_) }
 
 sub run_handle {
     my ($self, $fh) = @_;
@@ -669,6 +668,7 @@ sub _script {
         'WHENEVER SQLERROR EXIT SQL.SQLCODE;',
         (map {; (my $v = $vars{$_}) =~ s/"/""/g; qq{DEFINE $_="$v"} } sort keys %vars),
         "connect $conn",
+        $self->_registry_variable,
         @_
     );
 }

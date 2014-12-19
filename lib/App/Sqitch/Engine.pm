@@ -6,12 +6,13 @@ use strict;
 use utf8;
 use Try::Tiny;
 use Locale::TextDomain qw(App-Sqitch);
+use Path::Class qw(file);
 use App::Sqitch::X qw(hurl);
 use List::Util qw(first max);
 use URI::db 0.15;
 use App::Sqitch::Types qw(Str Int Sqitch Plan Bool HashRef URI Maybe Target);
 use namespace::autoclean;
-use constant registry_version => 0.9;
+use constant registry_release => 1.0;
 
 our $VERSION = '0.998';
 
@@ -177,8 +178,10 @@ sub deploy {
         return $self;
 
     } elsif ($plan->position == -1) {
-        # Initialize the database, if necessary.
-        unless ($self->initialized) {
+        # Initialize or upgrade the database, if necessary.
+        if ($self->initialized) {
+            $self->upgrade_registry if $self->needs_upgrade;
+        } else {
             $sqitch->info(__x(
                 'Adding registry tables to {destination}',
                 destination => $self->registry_destination,
@@ -521,9 +524,10 @@ sub verify_change {
     return $self;
 }
 
-sub run_deploy { shift->run_file(@_) }
-sub run_revert { shift->run_file(@_) }
-sub run_verify { shift->run_file(@_) }
+sub run_deploy  { shift->run_file(@_) }
+sub run_revert  { shift->run_file(@_) }
+sub run_verify  { shift->run_file(@_) }
+sub run_upgrade { shift->run_file(@_) }
 
 sub check_deploy_dependencies {
     my ( $self, $plan, $to_index ) = @_;
@@ -947,6 +951,49 @@ sub latest_change {
     return $self->plan->get( $change_id );
 }
 
+sub needs_upgrade {
+    my $self = shift;
+    $self->registry_version < $self->registry_release;
+}
+
+sub upgrade_registry {
+    my $self    = shift;
+    return $self unless $self->needs_upgrade;
+
+    my $sqitch = $self->sqitch;
+    my $newver = $self->registry_release;
+    my $oldver = $self->registry_version;
+    my $key    = $self->key;
+    my $dir    = file(__FILE__)->dir->subdir(qw(Engine Upgrade));
+
+    my @scripts = sort { $a->[0] <=> $b->[0] } grep { $_->[0] > $oldver } map {
+       $_->basename =~ /\A\Q$key\E-(\d(?:[.]\d*)?)/;
+       [ $1 || 0, $_ ];
+    } $dir->children;
+
+    # Make sure we're upgrading to where we want to be.
+    hurl engine => __x(
+        'Cannot upgrade to {version}: Cannot find upgrade script "{file}"',
+        version => $newver,
+        file    => $dir->file("$key-$newver.*"),
+    ) unless @scripts && $scripts[-1]->[0] == $newver;
+
+    # Run the upgrades.
+    for my $script (@scripts) {
+        my ($version, $file) = @{ $script };
+        $sqitch->info(__x(
+            'Upgrading from: {old} to {new}',
+            old => $oldver,
+            new => $version,
+        ));
+        $self->run_upgrade($file);
+        $self->_register_release($version);
+        $oldver = $version;
+    }
+
+    return $self;
+}
+
 sub initialized {
     my $class = ref $_[0] || $_[0];
     hurl "$class has not implemented initialized()";
@@ -1075,6 +1122,11 @@ sub current_tags {
 sub search_events {
     my $class = ref $_[0] || $_[0];
     hurl "$class has not implemented search_events()";
+}
+
+sub registry_version {
+    my $class = ref $_[0] || $_[0];
+    hurl "$class has not implemented registry_version()";
 }
 
 1;
