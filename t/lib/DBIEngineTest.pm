@@ -75,7 +75,7 @@ sub run {
         ok !$engine->needs_upgrade, 'Engine should not need upgrading';
         is_deeply $engine->dbh->selectall_arrayref(
             'SELECT version, installer_name, installer_email FROM releases'
-        ), [[$engine->registry_release, $sqitch->user_name, $sqitch->user_email]],
+        ), [[$engine->registry_release + 0, $sqitch->user_name, $sqitch->user_email]],
             'The release should be registered';
 
         # Let's make sure upgrades work.
@@ -86,8 +86,8 @@ sub run {
             my @args;
             $sqitch_mocker->mock(info => sub { shift; push @args => @_ });
             ok $engine->upgrade_registry, 'Upgrade the registry';
-            is_deeply \@args, [__x(
-                'Upgrading from: {old} to {new}',
+            is_deeply \@args, ['  * ' . __x(
+                'From {old} to {new}',
                 old => 0,
                 new => '1.0',
             )], 'Should have info output for upgrade';
@@ -95,7 +95,7 @@ sub run {
         ok !$engine->needs_upgrade, 'Engine should no longer need upgrading';
         is_deeply $engine->dbh->selectall_arrayref(
             'SELECT version, installer_name, installer_email FROM releases'
-        ), [[$engine->registry_release, $sqitch->user_name, $sqitch->user_email]],
+        ), [[$engine->registry_release + 0, $sqitch->user_name, $sqitch->user_email]],
             'The release should be registered again';
 
         # Try it with a different Sqitch DB.
@@ -104,7 +104,7 @@ sub run {
             @{ $p{alt_target_params} || [] },
         );
         ok $engine = $class->new(
-            sqitch    => $sqitch,
+            sqitch => $sqitch,
             target => $target,
             @{ $p{alt_engine_params} || [] },
         ), 'Create engine with alternate params';

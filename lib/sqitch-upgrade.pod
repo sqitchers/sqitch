@@ -1,0 +1,35 @@
+=head1 Name
+
+sqitch-upgrade - Upgrade the registry to the current version
+
+=head1 Synopsis
+
+  sqitch [options] upgrade [<options>] [<database>]
+
+=head1 Description
+
+Upgrades the Sqitch registry for a database. That is, it makes sure that the
+schema the Sqitch uses for its registry is up-to-date. This will occaisionally
+be necessary when new features are added to Sqitch that require registry
+schema changes.
+
+The C<< <database> >> parameter specifies the database to which to connect, and
+may also be specified as the C<--target> option. It can be either a URI or the
+name of a target in the configuration.
+
+=head1 Options
+
+=over
+
+=item C<-t>
+
+=item C<--target>
+
+The target database to which to connect. This option can be either a URI or
+the name of a target in the configuration.
+
+=back
+
+=head1 Sqitch
+
+Part of the L<sqitch> suite.

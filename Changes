@@ -8,6 +8,8 @@ Revision history for Perl extension App::Sqitch
        of releases of the Sqitch registry schema.
      - The Oracle `registry` variable is now always `DEFINE`d when Oracle
        scripts run.
+     - Added the `upgrade` command, which upgrades the schema for the Sqitch
+       registry for a target database.
 
 0.997 2014-11-04T22:52:23Z
      [New Features]

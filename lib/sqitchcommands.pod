@@ -37,6 +37,7 @@ The most commonly used sqitch commands are:
   status     Show the current deployment status of a database
   tag        Add or list tags in the plan
   target     Manage target database configuration
+  upgrade    Upgrade the registry to the current version
   verify     Verify changes to a database
 
 See C<< sqitch help <command> >> or C<< sqitch help <concept> >> to read about

@@ -1,0 +1,11 @@
+=head1 Name
+
+sqitch-upgrade-usage - Sqitch upgrade usage statement
+
+=head1 Usage
+
+  sqitch [<db-options>] upgrade [<options>] [<database>]
+
+=head1 Options
+
+    -t --target <target>       database to which to connect

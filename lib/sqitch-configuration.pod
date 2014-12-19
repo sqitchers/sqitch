@@ -321,6 +321,8 @@ The commands that take URI arguments include:
 
 =item * L<C<verify>|sqitch-verify>
 
+=item * L<C<verify>|sqitch-upgrade>
+
 =back
 
 All other commands rely on the C<--engine> option or the C<core.engine>

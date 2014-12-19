@@ -12,7 +12,7 @@ use List::Util qw(first max);
 use URI::db 0.15;
 use App::Sqitch::Types qw(Str Int Sqitch Plan Bool HashRef URI Maybe Target);
 use namespace::autoclean;
-use constant registry_release => 1.0;
+use constant registry_release => '1.0';
 
 our $VERSION = '0.998';
 
@@ -987,7 +987,7 @@ sub upgrade_registry {
     my $oldver = $self->registry_version;
 
     hurl __x(
-        'Registry version is {old} but {new} is the latest known. Please upgrade Sqitch',
+        'Registry version is {old} but {new} is the latest known. Please upgrade Sqitch.',
         old => $oldver,
         new => $newver,
     ) if $newver < $oldver;
@@ -1010,8 +1010,8 @@ sub upgrade_registry {
     # Run the upgrades.
     for my $script (@scripts) {
         my ($version, $file) = @{ $script };
-        $sqitch->info(__x(
-            'Upgrading from: {old} to {new}',
+        $sqitch->info('  * ' . __x(
+            'From {old} to {new}',
             old => $oldver,
             new => $version,
         ));
