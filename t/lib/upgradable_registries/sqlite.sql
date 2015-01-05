@@ -17,7 +17,6 @@ CREATE TABLE projects (
 
 CREATE TABLE changes (
     change_id       TEXT        PRIMARY KEY,
-    script_hash     TEXT        NOT NULL UNIQUE,
     change          TEXT        NOT NULL,
     project         TEXT        NOT NULL REFERENCES projects(project) ON UPDATE CASCADE,
     note            TEXT        NOT NULL DEFAULT '',

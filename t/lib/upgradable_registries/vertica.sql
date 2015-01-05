@@ -23,7 +23,6 @@ COMMENT ON TABLE :"registry".projects                 IS 'Sqitch projects deploy
 
 CREATE TABLE :"registry".changes (
     change_id       CHAR(40)       PRIMARY KEY ENCODING AUTO,
-    script_hash     CHAR(40)       NOT NULL UNIQUE,
     change          VARCHAR(1024)  NOT NULL,
     project         VARCHAR(1024)  NOT NULL REFERENCES :"registry".projects(project),
     note            VARCHAR(65000) NOT NULL DEFAULT '',

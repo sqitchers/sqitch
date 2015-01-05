@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 85;
+use Test::More tests => 87;
 #use Test::More 'no_plan';
 use Test::NoWarnings;
 use App::Sqitch;
@@ -49,6 +49,7 @@ can_ok $CLASS, qw(
     add_tag
     plan
     deploy_file
+    script_hash
     revert_file
     verify_file
     requires
@@ -106,6 +107,14 @@ is $change->verify_file, $target->verify_dir->file('foo.sql'),
 ok !$change->is_reworked, 'The change should not be reworked';
 is_deeply [ $change->path_segments ], ['foo.sql'],
     'path_segments should not include suffix';
+
+# Test script_hash.
+is $change->script_hash, '0000000000000000000000000000000000000000',
+    'Nonexistent deploy script hash should be null hash';
+make_path $change->deploy_file->dir->stringify;
+$change->deploy_file->spew(iomode => '>:utf8', "Foo\nBar\nBøz\n亜唖娃阿" );
+is $change->script_hash, 'd48866b846300912570f643c99b2ceec4ba29f5c',
+    'Deploy script hash should be correct';
 
 # Identify it as reworked.
 ok $change->add_rework_tags($tag), 'Add a rework tag';

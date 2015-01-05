@@ -10,6 +10,9 @@ Revision history for Perl extension App::Sqitch
        scripts run.
      - Added the `upgrade` command, which upgrades the schema for the Sqitch
        registry for a target database.
+     - Added the `script_hash` column to the `changes` registry table. This
+       column contains a SHA-1 hash of the deploy script for the change at the
+       time it was deployed.
 
 0.997 2014-11-04T22:52:23Z
      [New Features]

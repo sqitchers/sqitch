@@ -35,7 +35,6 @@ COMMENT ON COLUMN :"registry".projects.creator_email  IS 'Email address of the u
 
 CREATE TABLE :"registry".changes (
     change_id       TEXT        PRIMARY KEY,
-    script_hash     TEXT        NOT NULL UNIQUE,
     change          TEXT        NOT NULL,
     project         TEXT        NOT NULL REFERENCES :"registry".projects(project) ON UPDATE CASCADE,
     note            TEXT        NOT NULL DEFAULT '',
@@ -49,7 +48,6 @@ CREATE TABLE :"registry".changes (
 
 COMMENT ON TABLE  :"registry".changes                 IS 'Tracks the changes currently deployed to the database.';
 COMMENT ON COLUMN :"registry".changes.change_id       IS 'Change primary key.';
-COMMENT ON COLUMN :"registry".changes.script_hash     IS 'Deploy script SHA-1 hash.';
 COMMENT ON COLUMN :"registry".changes.change          IS 'Name of a deployed change.';
 COMMENT ON COLUMN :"registry".changes.project         IS 'Name of the Sqitch project to which the change belongs.';
 COMMENT ON COLUMN :"registry".changes.note            IS 'Description of the change.';

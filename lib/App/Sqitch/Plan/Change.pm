@@ -200,6 +200,15 @@ sub deploy_file {
     $self->target->deploy_dir->file( $self->path_segments );
 }
 
+sub script_hash {
+    my $path = shift->deploy_file;
+    return '0000000000000000000000000000000000000000' unless -e $path;
+    require Digest::SHA;
+    my $sha = Digest::SHA->new(1);
+    $sha->add( $path->slurp(iomode => '<:raw') );
+    return $sha->hexdigest;
+}
+
 sub revert_file {
     my $self   = shift;
     $self->target->revert_dir->file( $self->path_segments );
@@ -426,6 +435,12 @@ Returns the path to the verify script file for the change.
   my $file = $sqitch->script_file($script_name);
 
 Returns the path to a script, for the change.
+
+=head3 C<script_hash>
+
+  my $hash = $change->script_hash;
+
+Returns the hex digest of the SHA-1 hash for the deploy script.
 
 =head3 C<rework_tags>
 

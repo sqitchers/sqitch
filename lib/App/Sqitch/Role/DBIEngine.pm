@@ -437,6 +437,7 @@ sub log_deploy_change {
     my $ts = $self->_ts_default;
     my $cols = join "\n            , ", $self->_quote_idents(qw(
         change_id
+        script_hash
         change
         project
         note
@@ -451,9 +452,10 @@ sub log_deploy_change {
         INSERT INTO changes (
             $cols
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, $ts)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, $ts)
     }, undef,
         $id,
+        $change->script_hash,
         $name,
         $proj,
         $change->note,

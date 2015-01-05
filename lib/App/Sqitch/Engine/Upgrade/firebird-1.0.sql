@@ -24,3 +24,17 @@ UPDATE RDB$RELATION_FIELDS
 UPDATE RDB$RELATION_FIELDS
     SET RDB$DESCRIPTION = 'Email address of the user who installed the registry release.'
     WHERE RDB$RELATION_NAME = 'VERSIONS' AND RDB$FIELD_NAME = 'INSTALLER_EMAIL';
+
+-- Add the script_hash column to the changes table. Copy change_id for now.
+ALTER TABLE changes ADD script_hash VARCHAR(40);
+UPDATE changes SET script_hash = change_id;
+
+-- Make the column NOT NULL UNIQUE.
+UPDATE RDB$RELATION_FIELDS SET RDB$NULL_FLAG = 1
+ WHERE RDB$RELATION_NAME = 'CHANGES' AND RDB$FIELD_NAME = 'SCRIPT_HASH';
+ALTER TABLE changes ADD CONSTRAINT UNIQUE (script_hash);
+
+-- Add a comment on the new column.
+UPDATE RDB$RELATION_FIELDS
+    SET RDB$DESCRIPTION = 'Deploy script SHA-1 hash.'
+    WHERE RDB$RELATION_NAME = 'CHANGES' AND RDB$FIELD_NAME = 'SCRIPT_HASH';

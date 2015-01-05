@@ -7,6 +7,8 @@ use Try::Tiny;
 use Test::More;
 use Test::Exception;
 use Time::HiRes qw(sleep);
+use Path::Class qw(file dir);
+use Digest::SHA qw(sha1_hex);
 use Locale::TextDomain qw(App-Sqitch);
 
 # Just die on warnings.
@@ -20,6 +22,14 @@ sub run {
     my $user1_name    = 'Marge Simpson';
     my $user1_email   = 'marge@example.com';
     my $mock_sqitch   = Test::MockModule->new('App::Sqitch');
+
+    # Mock script hashes using lines from the README.
+    my $mock_change = Test::MockModule->new('App::Sqitch::Plan::Change');
+    my @lines = grep { $_ } file('README.md')->slurp(
+        chomp  => 1,
+        iomode => '<:encoding(UTF-8)'
+     );
+    $mock_change->mock(script_hash => sub { sha1_hex shift @lines });
 
     can_ok $class, qw(
         initialized
@@ -67,12 +77,17 @@ sub run {
             };
         }
 
-        ok $engine, 'Engine initialized';
+        ok $engine, 'Engine instantiated';
 
         ok !$engine->initialized, 'Database should not yet be initialized';
-        ok $engine->initialize, 'Initialize the database';
+        OLDREG: {
+            my $mock_file = Test::MockModule->new('Path::Class::File');
+            my $dir = file(__FILE__)->dir->subdir('upgradable_registries');
+            $mock_file->mock( dir => sub { $dir } );
+            ok $engine->initialize, 'Initialize the database';
+        };
         ok $engine->initialized, 'Database should now be initialized';
-        ok !$engine->needs_upgrade, 'Engine should not need upgrading';
+        ok !$engine->needs_upgrade, 'Registry should not need upgrading';
         is_deeply $engine->dbh->selectall_arrayref(
             'SELECT version, installer_name, installer_email FROM releases'
         ), [[$engine->registry_release + 0, $sqitch->user_name, $sqitch->user_email]],
@@ -80,7 +95,7 @@ sub run {
 
         # Let's make sure upgrades work.
         $engine->dbh->do('DROP TABLE releases');
-        ok $engine->needs_upgrade, 'Engine should need upgrading';
+        ok $engine->needs_upgrade, 'Registry should need upgrading';
         MOCKINFO: {
             my $sqitch_mocker = Test::MockModule->new(ref $sqitch);
             my @args;
@@ -92,7 +107,7 @@ sub run {
                 new => '1.0',
             )], 'Should have info output for upgrade';
         }
-        ok !$engine->needs_upgrade, 'Engine should no longer need upgrading';
+        ok !$engine->needs_upgrade, 'Registry should no longer need upgrading';
         is_deeply $engine->dbh->selectall_arrayref(
             'SELECT version, installer_name, installer_email FROM releases'
         ), [[$engine->registry_release + 0, $sqitch->user_name, $sqitch->user_email]],
@@ -115,6 +130,7 @@ sub run {
         ok !$engine->initialized, 'Database should no longer seem initialized';
         ok $engine->initialize, 'Initialize the database again';
         ok $engine->initialized, 'Database should be initialized again';
+        ok !$engine->needs_upgrade, 'Registry should not need upgrading';
 
         is $engine->earliest_change_id, undef, 'Still no earlist change';
         is $engine->latest_change_id, undef, 'Still no latest changes';
