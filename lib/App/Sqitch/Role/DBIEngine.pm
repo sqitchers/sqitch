@@ -154,6 +154,7 @@ sub current_changes {
     my $pdtcol = sprintf $self->_ts2char_format, 'c.planned_at';
     my $sth    = $self->dbh->prepare(qq{
         SELECT c.change_id
+             , c.script_hash
              , c.change
              , c.committer_name
              , c.committer_email

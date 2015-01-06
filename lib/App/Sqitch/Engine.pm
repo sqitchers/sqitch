@@ -1987,6 +1987,10 @@ reference containing the following keys:
 
 The current change ID.
 
+=item C<script_hash>
+
+The deploy script SHA-1 hash.
+
 =item C<change>
 
 The current change name.

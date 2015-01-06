@@ -353,6 +353,7 @@ sub run {
         }, 'The rest of the state should look right';
         is_deeply all( $engine->current_changes ), [{
             change_id       => $change->id,
+            script_hash     => $change->script_hash,
             change          => 'users',
             committer_name  => $sqitch->user_name,
             committer_email => $sqitch->user_email,
@@ -678,6 +679,7 @@ sub run {
         my @current_changes = (
             {
                 change_id       => $change2->id,
+                script_hash     => $change2->script_hash,
                 change          => 'widgets',
                 committer_name  => $user2_name,
                 committer_email => $user2_email,
@@ -688,6 +690,7 @@ sub run {
             },
             {
                 change_id       => $change->id,
+                script_hash     => $change->script_hash,
                 change          => 'users',
                 committer_name  => $user2_name,
                 committer_email => $user2_email,
@@ -927,6 +930,7 @@ sub run {
 
         unshift @current_changes => {
             change_id       => $barney->id,
+            script_hash     => $barney->script_hash,
             change          => 'barney',
             committer_name  => $user2_name,
             committer_email => $user2_email,
@@ -936,6 +940,7 @@ sub run {
             planned_at      => $barney->timestamp,
         }, {
             change_id       => $fred->id,
+            script_hash     => $fred->script_hash,
             change          => 'fred',
             committer_name  => $user2_name,
             committer_email => $user2_email,
@@ -1399,6 +1404,7 @@ sub run {
         is_deeply all( $engine->current_changes('groovy') ), [
             {
                 change_id       => $ext_change2->id,
+                script_hash     => $ext_change2->script_hash,
                 change          => $ext_change2->name,
                 committer_name  => $user2_name,
                 committer_email => $user2_email,
@@ -1408,6 +1414,7 @@ sub run {
                 planned_at      => $ext_change2->timestamp,
             }, {
                 change_id       => $ext_change->id,
+                script_hash     => $ext_change->script_hash,
                 change          => $ext_change->name,
                 committer_name  => $user2_name,
                 committer_email => $user2_email,
