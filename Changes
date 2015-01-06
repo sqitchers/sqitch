@@ -13,6 +13,10 @@ Revision history for Perl extension App::Sqitch
      - Added the `script_hash` column to the `changes` registry table. This
        column contains a SHA-1 hash of the deploy script for the change at the
        time it was deployed.
+     - The error message when `deploy` cannot find the currently-deployed
+       change ID in the plan now includes more contextual information,
+       including the change name, associated tags, and the plan file name.
+       Suggested by Curtis Poe (Issue #205).
 
 0.997 2014-11-04T22:52:23Z
      [New Features]

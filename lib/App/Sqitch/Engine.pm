@@ -822,14 +822,16 @@ sub _sync_plan {
     my $self = shift;
     my $plan = $self->plan;
 
-    if (my $id = $self->latest_change_id) {
-        my $idx = $plan->index_of($id) // hurl plan => __x(
-            'Cannot find {change} in the plan',
-            change => $id
+    if (my $state = $self->current_state) {
+        my $idx = $plan->index_of($state->{change_id}) // hurl plan => __x(
+            'Cannot find change {id} ({change}) in {file}',
+            id     => $state->{change_id},
+            change => join(' ', $state->{change}, map @{ $state->{tags} }),
+            file   => $plan->file,
         );
 
         my $change = $plan->change_at($idx);
-        if ($id eq $change->old_id) {
+        if ($state->{change_id} eq $change->old_id) {
             # Old IDs need to be replaced.
             $idx    = $self->_update_ids;
             $change = $plan->change_at($idx);

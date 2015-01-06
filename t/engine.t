@@ -74,6 +74,7 @@ ENGINE: {
     sub changes_requiring_change { push @SEEN => [ changes_requiring_change => $_[1] ]; @{ shift @requiring } }
     sub earliest_change_id { push @SEEN => [ earliest_change_id  => $_[1] ]; $earliest_change_id }
     sub latest_change_id   { push @SEEN => [ latest_change_id    => $_[1] ]; $latest_change_id }
+    sub current_state      { push @SEEN => [ current_state => $_[1] ]; $latest_change_id ? { change => 'what', change_id => $latest_change_id } : undef }
     sub initialized        { push @SEEN => 'initialized'; $initialized }
     sub initialize         { push @SEEN => 'initialize' }
     sub register_project   { push @SEEN => 'register_project' }
@@ -851,13 +852,13 @@ ok $engine->_sync_plan, 'Sync the plan';
 is $plan->position, -1, 'Plan should still be at position -1';
 is $engine->start_at, undef, 'start_at should still be undef';
 $plan->position(4);
-is_deeply $engine->seen, [['latest_change_id', undef]],
+is_deeply $engine->seen, [['current_state', undef]],
     'Should not have updated IDs';
 
 ok $engine->_sync_plan, 'Sync the plan again';
 is $plan->position, -1, 'Plan should again be at position -1';
 is $engine->start_at, undef, 'start_at should again be undef';
-is_deeply $engine->seen, [['latest_change_id', undef]],
+is_deeply $engine->seen, [['current_state', undef]],
     'Still should not have updated IDs';
 
 # Have latest_item return a tag.
@@ -867,7 +868,7 @@ ok $engine->_sync_plan, 'Sync the plan to a tag';
 is $plan->position, 2, 'Plan should now be at position 1';
 is $engine->start_at, 'widgets@beta', 'start_at should now be widgets@beta';
 is_deeply $engine->seen, [
-    ['latest_change_id', undef],
+    ['current_state', undef],
     ['_update_ids'],
     ['log_new_tags' => $plan->change_at(2)],
 ], 'Should have updated IDs';
@@ -901,7 +902,7 @@ $mock_engine->mock( check_revert_dependencies => sub {
 ok $engine->deploy('@alpha'), 'Deploy to @alpha';
 is $plan->position, 1, 'Plan should be at position 1';
 is_deeply $engine->seen, [
-    [latest_change_id => undef],
+    [current_state => undef],
     'initialized',
     'initialize',
     'register_project',
@@ -935,7 +936,7 @@ for my $mode (qw(change tag all)) {
     ok $engine->deploy('@alpha', $mode, 1), 'Log-only deploy in $mode mode to @alpha';
     is $plan->position, 1, 'Plan should be at position 1';
     is_deeply $engine->seen, [
-        [latest_change_id => undef],
+        [current_state => undef],
         'initialized',
         'initialize',
         'register_project',
@@ -972,7 +973,7 @@ $engine->log_only(0);
 ok $engine->deploy('@alpha', 'tag'), 'Deploy to @alpha with tag mode';
 is $plan->position, 1, 'Plan should again be at position 1';
 is_deeply $engine->seen, [
-    [latest_change_id => undef],
+    [current_state => undef],
     'initialized',
     'register_project',
     [check_deploy_dependencies => [$plan, 1]],
@@ -1004,14 +1005,14 @@ is $@->message, __x(
     change => 'nonexistent',
 ), 'The exception should report the unknown change';
 is_deeply $engine->seen, [
-    [latest_change_id => undef],
+    [current_state => undef],
 ], 'Only latest_item() should have been called';
 
 # Start with @alpha.
 $latest_change_id = ($changes[1]->tags)[0]->id;
 ok $engine->deploy('@alpha'), 'Deploy to alpha thrice';
 is_deeply $engine->seen, [
-    [latest_change_id => undef],
+    [current_state => undef],
     ['log_new_tags' => $changes[1]],
 ], 'Only latest_item() should have been called';
 is_deeply +MockOutput->get_info, [
@@ -1026,7 +1027,7 @@ is $@->ident, 'deploy', 'Should be a "deploy" error';
 is $@->message,  __ 'Cannot deploy to an earlier change; use "revert" instead',
     'It should suggest using "revert"';
 is_deeply $engine->seen, [
-    [latest_change_id => undef],
+    [current_state => undef],
     ['log_new_tags' => $changes[2]],
 ], 'Should have called latest_item() and latest_tag()';
 
@@ -1038,7 +1039,7 @@ $plan->add( name => 'lolz', note => 'ha ha' );
 ok $engine->deploy(undef, 'change'), 'Deploy everything by change';
 is $plan->position, 3, 'Plan should be at position 3';
 is_deeply $engine->seen, [
-    [latest_change_id => undef],
+    [current_state => undef],
     'initialized',
     'register_project',
     [check_deploy_dependencies => [$plan, 3]],
@@ -1075,7 +1076,7 @@ is_deeply +MockOutput->get_info, [
     [__ 'Nothing to deploy (up-to-date)' ],
 ], 'Should have emitted deploy announcement and successes';
 is_deeply $engine->seen, [
-    [latest_change_id => undef],
+    [current_state => undef],
 ], 'It should have just fetched the latest change ID';
 
 $latest_change_id = undef;
@@ -1087,7 +1088,7 @@ is $@->ident, 'deploy', 'Should be a "deploy" error';
 is $@->message, __x('Unknown deployment mode: "{mode}"', mode => 'evil_mode'),
     'And the message should reflect the unknown mode';
 is_deeply $engine->seen, [
-    [latest_change_id => undef],
+    [current_state => undef],
     'initialized',
     'register_project',
     [check_deploy_dependencies => [$plan, 3]],
@@ -1121,7 +1122,7 @@ NOSTEPS: {
     is $@->message, __"Nothing to deploy (empty plan)",
         'Should have the localized message';
     is_deeply $engine->seen, [
-        [latest_change_id => undef],
+        [current_state => undef],
     ], 'It should have checked for the latest item';
 }
 
