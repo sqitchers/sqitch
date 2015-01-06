@@ -185,7 +185,7 @@ sub _run_registry_file {
     close $fh;
 
     # Now we can execute the file.
-    $self->_run( '--file' => $fh->filename );
+    $self->_run_with_verbosity( $fh->filename );
 }
 
 sub _no_table_error  {
@@ -400,9 +400,10 @@ sub run_file {
     $self->_run('--file' => $file);
 }
 
-sub run_verify {
+sub run_verify { shift->_run_with_verbosity(@_) }
+
+sub _run_with_verbosity {
     my $self = shift;
-    # Suppress STDOUT unless we want extra verbosity.
     my $meth = $self->can($self->sqitch->verbosity > 1 ? '_run' : '_capture');
     return $self->$meth('--file' => @_);
 }
