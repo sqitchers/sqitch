@@ -12,7 +12,9 @@ Revision history for Perl extension App::Sqitch
        registry for a target database.
      - Added the `script_hash` column to the `changes` registry table. This
        column contains a SHA-1 hash of the deploy script for the change at the
-       time it was deployed.
+       time it was deployed. For existing registries, the upgrade script sets
+       its value to be the same as the change ID. This value is update the
+       next time a project is deployed to the database.
      - The error message when `deploy` cannot find the currently-deployed
        change ID in the plan now includes more contextual information,
        including the change name, associated tags, and the plan file name.
