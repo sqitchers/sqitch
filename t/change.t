@@ -109,8 +109,8 @@ is_deeply [ $change->path_segments ], ['foo.sql'],
     'path_segments should not include suffix';
 
 # Test script_hash.
-is $change->script_hash, '0000000000000000000000000000000000000000',
-    'Nonexistent deploy script hash should be null hash';
+is $change->script_hash, undef,
+    'Nonexistent deploy script hash should be undef';
 make_path $change->deploy_file->dir->stringify;
 $change->deploy_file->spew(iomode => '>:utf8', "Foo\nBar\nBøz\n亜唖娃阿" );
 is $change->script_hash, 'd48866b846300912570f643c99b2ceec4ba29f5c',

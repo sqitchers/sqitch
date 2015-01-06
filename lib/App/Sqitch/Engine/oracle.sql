@@ -28,7 +28,7 @@ COMMENT ON COLUMN &registry..projects.creator_email  IS 'Email address of the us
 
 CREATE TABLE &registry..changes (
     change_id       CHAR(40)                 PRIMARY KEY,
-    script_hash     CHAR(40)                 NOT NULL UNIQUE,
+    script_hash     CHAR(40)                     NULL UNIQUE,
     change          VARCHAR2(512 CHAR)       NOT NULL,
     project         VARCHAR2(512 CHAR)       NOT NULL REFERENCES &registry..projects(project),
     note            VARCHAR2(4000 CHAR)      DEFAULT '',

@@ -202,7 +202,7 @@ sub deploy_file {
 
 sub script_hash {
     my $path = shift->deploy_file;
-    return '0000000000000000000000000000000000000000' unless -e $path;
+    return undef unless -f $path;
     require Digest::SHA;
     my $sha = Digest::SHA->new(1);
     $sha->add( $path->slurp(iomode => '<:raw') );

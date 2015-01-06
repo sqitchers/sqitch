@@ -76,7 +76,7 @@ UPDATE RDB$RELATION_FIELDS
 
 CREATE TABLE changes (
     change_id       VARCHAR(40)   NOT NULL PRIMARY KEY,
-    script_hash     VARCHAR(40)   NOT NULL UNIQUE,
+    script_hash     VARCHAR(40)       NULL UNIQUE,
     change          VARCHAR(255)  NOT NULL,
     project         VARCHAR(255)  NOT NULL REFERENCES projects(project)
                                        ON UPDATE CASCADE,

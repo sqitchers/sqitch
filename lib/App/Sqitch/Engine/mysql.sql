@@ -35,7 +35,7 @@ CREATE TABLE projects (
 CREATE TABLE changes (
     change_id       VARCHAR(40)  PRIMARY KEY
                     COMMENT 'Change primary key.',
-    script_hash     VARCHAR(40)  NOT NULL UNIQUE
+    script_hash     VARCHAR(40)      NULL UNIQUE
                     COMMENT 'Deploy script SHA-1 hash.',
     "change"        VARCHAR(255) NOT NULL
                     COMMENT 'Name of a deployed change.',
