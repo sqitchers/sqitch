@@ -364,36 +364,41 @@ sub current_state {
     my $pdtcol = sprintf $self->_ts2char_format, 'c.planned_at';
     my $tagcol = sprintf $self->_listagg_format, 't.tag';
     my $dbh    = $self->dbh;
+    my $state  = try {
+        $dbh->selectrow_hashref(qq{
+            SELECT FIRST 1 c.change_id
+                 , c.script_hash
+                 , c.change
+                 , c.project
+                 , c.note
+                 , c.committer_name
+                 , c.committer_email
+                 , $cdtcol AS committed_at
+                 , c.planner_name
+                 , c.planner_email
+                 , $pdtcol AS planned_at
+                 , $tagcol AS tags
+              FROM changes   c
+              LEFT JOIN tags t ON c.change_id = t.change_id
+             WHERE c.project = ?
+             GROUP BY c.change_id
+                 , c.script_hash
+                 , c.change
+                 , c.project
+                 , c.note
+                 , c.committer_name
+                 , c.committer_email
+                 , c.committed_at
+                 , c.planner_name
+                 , c.planner_email
+                 , c.planned_at
+             ORDER BY c.committed_at DESC
+        }, undef, $project // $self->plan->project );
+    } catch {
+        return if $self->_no_table_error && !$self->initialized;
+        die $_;
+    } or return undef;
 
-    my $state  = $dbh->selectrow_hashref(qq{
-        SELECT FIRST 1 c.change_id
-             , c.script_hash
-             , c.change
-             , c.project
-             , c.note
-             , c.committer_name
-             , c.committer_email
-             , $cdtcol AS committed_at
-             , c.planner_name
-             , c.planner_email
-             , $pdtcol AS planned_at
-             , $tagcol AS tags
-          FROM changes   c
-          LEFT JOIN tags t ON c.change_id = t.change_id
-         WHERE c.project = ?
-         GROUP BY c.change_id
-             , c.script_hash
-             , c.change
-             , c.project
-             , c.note
-             , c.committer_name
-             , c.committer_email
-             , c.committed_at
-             , c.planner_name
-             , c.planner_email
-             , c.planned_at
-         ORDER BY c.committed_at DESC
-    }, undef, $project // $self->plan->project ) or return undef;
     unless (ref $state->{tags}) {
         $state->{tags} = $state->{tags} ? [ split / / => $state->{tags} ] : [];
     }
