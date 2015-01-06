@@ -9,7 +9,7 @@ sqitch-upgrade - Upgrade the registry to the current version
 =head1 Description
 
 Upgrades the Sqitch registry for a database. That is, it makes sure that the
-schema the Sqitch uses for its registry is up-to-date. This will occaisionally
+schema the Sqitch uses for its registry is up-to-date. This will occasionally
 be necessary when new features are added to Sqitch that require registry
 schema changes.
 

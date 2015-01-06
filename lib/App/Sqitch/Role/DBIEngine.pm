@@ -1018,6 +1018,8 @@ DBI-powered engines.
 
 =head3 C<change_id_for>
 
+=head3 C<registry_version>
+
 =head1 See Also
 
 =over

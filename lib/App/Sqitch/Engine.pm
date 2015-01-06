@@ -1282,6 +1282,13 @@ By default, App::Sqitch::Engine returns:
 
 Subclasses for supported engines will return more.
 
+=head3 C<registry_release>
+
+Returns the version of the registry understood by this release of Sqitch. The
+C<needs_upgrade()> method compares this value to that returned by
+C<registry_version()> to determine whether the target's registry needs
+upgrading.
+
 =head2 Constructors
 
 =head3 C<load>
@@ -1333,14 +1340,6 @@ value of C<uri> with the password removed.
 =head3 C<registry>
 
 The name of the registry schema or database.
-
-=head3 C<registry_destination>
-
-A string identifying the registry database. In other words, the database in
-which Sqitch's own data is stored. It will usually be the same as C<destination()>,
-but some engines, such as L<SQLite|App::Sqitch::Engine::sqlite>, may use a
-separate database. Used internally to name the target when the registration
-tables are created.
 
 =head3 C<start_at>
 
@@ -1654,8 +1653,31 @@ subclasses may override as appropriate.
 
   $engine->run_verify($verify_file);
 
-Runs a deploy script. The implementation is just an alias for C<run_file()>;
+Runs a verify script. The implementation is just an alias for C<run_file()>;
 subclasses may override as appropriate.
+
+=head3 C<run_upgrade>
+
+  $engine->run_upgrade($upgrade_file);
+
+Runs an upgrade script. The implementation is just an alias for C<run_file()>;
+subclasses may override as appropriate.
+
+=head3 C<needs_upgrade>
+
+  if ($engine->needs_upgrade) {
+      $engine->upgrade_registry;
+  }
+
+Determines if the target's registry needs upgrading and returns true if it
+does.
+
+=head3 C<upgrade_registry>
+
+  $engine->upgrade_registry;
+
+Upgrades the target's registry, if it needs upgrading. Used by the
+L<C<upgrade>|App::Sqitch::Command::upgrade> command.
 
 =head2 Abstract Instance Methods
 
@@ -2248,6 +2270,10 @@ Otherwise, the change returned should be C<$offset> steps from that change ID,
 where C<$offset> may be positive (later step) or negative (earlier step).
 Returns C<undef> if the change was not found or if the offset is more than the
 number of changes before or after the change, as appropriate.
+
+=head3 C<registry_version>
+
+Should return the current version of the target's registry.
 
 =head1 See Also
 
