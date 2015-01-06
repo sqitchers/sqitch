@@ -14,8 +14,6 @@ use File::Temp 'tempdir';
 
 # Just die on warnings.
 use Carp; BEGIN { $SIG{__WARN__} = \&Carp::confess }
-my $tmp_dir = dir( tempdir CLEANUP => 1 );
-my $deploy_file;
 
 sub run {
     my ( $self, %p ) = @_;
@@ -1614,14 +1612,19 @@ sub run {
         ######################################################################
         # Add a reworked change.
         ok my $rev_change = $plan->rework( name => 'users' ), 'Rework change "users"';
-        $deploy_file = $rev_change->deploy_file;
+        my $deploy_file = $rev_change->deploy_file;
+        my $tmp_dir = dir( tempdir CLEANUP => 1 );
         $deploy_file->copy_to($tmp_dir);
-        END { $tmp_dir->file( $deploy_file->basename )->move_to($deploy_file); }
         my $fh = $rev_change->deploy_file->opena or die "Cannot open $deploy_file: $!\n";
-        say $fh '-- Append line to reworked script so it gets a new SHA-1 hash';
-        close $fh;
-        $_->resolved_id( $engine->change_id_for_depend($_) ) for $rev_change->requires;
-        ok $engine->log_deploy_change($rev_change),  'Deploy the reworked change';
+        try {
+            say $fh '-- Append line to reworked script so it gets a new SHA-1 hash';
+            close $fh;
+            $_->resolved_id( $engine->change_id_for_depend($_) ) for $rev_change->requires;
+            ok $engine->log_deploy_change($rev_change),  'Deploy the reworked change';
+        } finally {
+            # Restore the reworked script.
+            $tmp_dir->file( $deploy_file->basename )->move_to($deploy_file);
+        };
 
         # Make sure that change_id_for() is okay with the dupe.
         is $engine->change_id_for( change => 'users'), $change->id,
