@@ -905,6 +905,27 @@ sub change_id_for {
     return undef;
 }
 
+sub _update_script_hashes {
+    my $self = shift;
+    my $plan = $self->plan;
+    my $proj = $plan->project;
+    my $dbh  = $self->dbh;
+    my $sth  = $dbh->prepare(
+        'UPDATE changes SET script_hash = ? WHERE change_id = ?'
+    );
+
+    $self->begin_work;
+    $sth->execute($_->script_hash, $_->id) for $plan->changes;
+    $dbh->do(q{
+        UPDATE changes SET script_hash = NULL
+         WHERE project = ? AND script_hash = change_id
+    }, undef, $proj);
+
+    $self->finish_work;
+    return $self;
+}
+
+
 sub begin_work {
     my $self = shift;
     # Note: Engines should acquire locks to prevent concurrent Sqitch activity.

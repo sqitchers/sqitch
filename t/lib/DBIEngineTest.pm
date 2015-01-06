@@ -1633,6 +1633,36 @@ sub run {
         # Unmock everything and call it a day.
         $mock_dbh->unmock_all;
         $mock_sqitch->unmock_all;
+
+        ######################################################################
+        # Let's make sure script_hash upgrades work.
+        $engine->dbh->do('UPDATE changes SET script_hash = change_id');
+        ok $engine->_update_script_hashes, 'Update script hashes';
+
+        # Make sure they were updated properly.
+        my $sth = $engine->dbh->prepare(
+            'SELECT change_id, script_hash FROM changes WHERE project = ?',
+        );
+        $sth->execute($plan->project);
+        while (my $row = $sth->fetch) {
+            my $change = $plan->get($row->[0]);
+            is $row->[1], $change->script_hash,
+                'Should have updated script hash for ' . $change->name;
+        }
+
+        # Make sure no other projects were updated.
+        $sth = $engine->dbh->prepare(
+            'SELECT change_id, script_hash FROM changes WHERE project <> ?',
+        );
+        $sth->execute($plan->project);
+        while (my $row = $sth->fetch) {
+            is $row->[1], $row->[0],
+                'Change ID and script hash should be ' . substr $row->[0], 0, 6;
+        }
+
+
+        ######################################################################
+        # All done.
         done_testing;
     };
 }

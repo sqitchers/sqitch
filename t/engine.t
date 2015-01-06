@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 603;
+use Test::More tests => 615;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -45,6 +45,7 @@ my $record_work = 1;
 my $updated_idx;
 my ( $earliest_change_id, $latest_change_id, $initialized );
 my $registry_version = $CLASS->registry_release;
+my $script_hash;
 ENGINE: {
     # Stub out a engine.
     package App::Sqitch::Engine::whu;
@@ -74,7 +75,7 @@ ENGINE: {
     sub changes_requiring_change { push @SEEN => [ changes_requiring_change => $_[1] ]; @{ shift @requiring } }
     sub earliest_change_id { push @SEEN => [ earliest_change_id  => $_[1] ]; $earliest_change_id }
     sub latest_change_id   { push @SEEN => [ latest_change_id    => $_[1] ]; $latest_change_id }
-    sub current_state      { push @SEEN => [ current_state => $_[1] ]; $latest_change_id ? { change => 'what', change_id => $latest_change_id } : undef }
+    sub current_state      { push @SEEN => [ current_state => $_[1] ]; $latest_change_id ? { change => 'what', change_id => $latest_change_id, script_hash => $script_hash } : undef }
     sub initialized        { push @SEEN => 'initialized'; $initialized }
     sub initialize         { push @SEEN => 'initialize' }
     sub register_project   { push @SEEN => 'register_project' }
@@ -87,6 +88,7 @@ ENGINE: {
     sub finish_work        { push @SEEN => ['finish_work'] if $record_work }
     sub _update_ids        { push @SEEN => ['_update_ids']; $updated_idx }
     sub log_new_tags       { push @SEEN => [ log_new_tags => $_[1] ]; $_[0] }
+    sub _update_script_hashes { push @SEEN => ['_update_script_hashes']; $_[0] }
 
     sub seen { [@SEEN] }
     after seen => sub { @SEEN = () };
@@ -853,13 +855,13 @@ is $plan->position, -1, 'Plan should still be at position -1';
 is $engine->start_at, undef, 'start_at should still be undef';
 $plan->position(4);
 is_deeply $engine->seen, [['current_state', undef]],
-    'Should not have updated IDs';
+    'Should not have updated IDs or hashes';
 
 ok $engine->_sync_plan, 'Sync the plan again';
 is $plan->position, -1, 'Plan should again be at position -1';
 is $engine->start_at, undef, 'start_at should again be undef';
 is_deeply $engine->seen, [['current_state', undef]],
-    'Still should not have updated IDs';
+    'Still should not have updated IDs or hashes';
 
 # Have latest_item return a tag.
 $latest_change_id = $changes[1]->old_id;
@@ -873,9 +875,44 @@ is_deeply $engine->seen, [
     ['log_new_tags' => $plan->change_at(2)],
 ], 'Should have updated IDs';
 
+# Have current_state return a script hash.
+$script_hash = '550aeeab2ae39cba45840888b12a70820a2d6f83';
+ok $engine->_sync_plan, 'Sync the plan with a random script hash';
+is $plan->position, 2, 'Plan should now be at position 1';
+is $engine->start_at, 'widgets@beta', 'start_at should now be widgets@beta';
+is_deeply $engine->seen, [
+    ['current_state', undef],
+    ['_update_ids'],
+    ['log_new_tags' => $plan->change_at(2)],
+], 'Should have updated IDs but not hashes';
+
+# Have current_state return the last deployed ID as script_hash.
+$script_hash = $latest_change_id;
+ok $engine->_sync_plan, 'Sync the plan with a random script hash';
+is $plan->position, 2, 'Plan should now be at position 1';
+is $engine->start_at, 'widgets@beta', 'start_at should now be widgets@beta';
+is_deeply $engine->seen, [
+    ['current_state', undef],
+    ['_update_ids'],
+    ['_update_script_hashes'],
+    ['log_new_tags' => $plan->change_at(2)],
+], 'Should have updated IDs and hashes';
+
+# Return no change ID, now.
+$script_hash = $latest_change_id = $changes[1]->id;
+ok $engine->_sync_plan, 'Sync the plan';
+is $plan->position, 1, 'Plan should be at position 1';
+is $engine->start_at, 'users@alpha', 'start_at should be users@alpha';
+is_deeply $engine->seen, [
+    ['current_state', undef],
+    ['_update_script_hashes'],
+    ['log_new_tags' => $plan->change_at(1)],
+], 'Should have updated hashes but not IDs';
+
 ##############################################################################
 # Test deploy.
 can_ok $CLASS, 'deploy';
+$script_hash = undef;
 $latest_change_id = undef;
 $plan->reset;
 $engine->seen;

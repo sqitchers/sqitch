@@ -826,7 +826,7 @@ sub _sync_plan {
         my $idx = $plan->index_of($state->{change_id}) // hurl plan => __x(
             'Cannot find change {id} ({change}) in {file}',
             id     => $state->{change_id},
-            change => join(' ', $state->{change}, @{ $state->{tags} }),
+            change => join(' ', $state->{change}, @{ $state->{tags} || [] }),
             file   => $plan->file,
         );
 
@@ -836,6 +836,9 @@ sub _sync_plan {
             $idx    = $self->_update_ids;
             $change = $plan->change_at($idx);
         }
+
+        $self->_update_script_hashes if $state->{script_hash}
+            && $state->{script_hash} eq $state->{change_id};
 
         $plan->position($idx);
         if (my @tags = $change->tags) {
@@ -1158,6 +1161,11 @@ sub search_events {
 sub registry_version {
     my $class = ref $_[0] || $_[0];
     hurl "$class has not implemented registry_version()";
+}
+
+sub _update_script_hashes {
+    my $class = ref $_[0] || $_[0];
+    hurl "$class has not implemented _update_script_hashes()";
 }
 
 1;
