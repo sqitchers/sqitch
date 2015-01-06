@@ -10,9 +10,12 @@ use Time::HiRes qw(sleep);
 use Path::Class qw(file dir);
 use Digest::SHA qw(sha1_hex);
 use Locale::TextDomain qw(App-Sqitch);
+use File::Temp 'tempdir';
 
 # Just die on warnings.
 use Carp; BEGIN { $SIG{__WARN__} = \&Carp::confess }
+my $tmp_dir = dir( tempdir CLEANUP => 1 );
+my $deploy_file;
 
 sub run {
     my ( $self, %p ) = @_;
@@ -1611,8 +1614,10 @@ sub run {
         ######################################################################
         # Add a reworked change.
         ok my $rev_change = $plan->rework( name => 'users' ), 'Rework change "users"';
-        my $fn = $rev_change->deploy_file;
-        my $fh = $rev_change->deploy_file->opena or die "Cannot open $fn: $!\n";
+        $deploy_file = $rev_change->deploy_file;
+        $deploy_file->copy_to($tmp_dir);
+        END { $tmp_dir->file( $deploy_file->basename )->move_to($deploy_file); }
+        my $fh = $rev_change->deploy_file->opena or die "Cannot open $deploy_file: $!\n";
         say $fh '-- Append line to reworked script so it gets a new SHA-1 hash';
         close $fh;
         $_->resolved_id( $engine->change_id_for_depend($_) ) for $rev_change->requires;
