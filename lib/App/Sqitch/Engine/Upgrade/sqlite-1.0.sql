@@ -24,7 +24,7 @@ CREATE TABLE new_changes (
 
 -- Copy all the data to the new table and move it into place.
 INSERT INTO new_changes
-SELECT change_id, NULL, change, project, note,
+SELECT change_id, change_id, change, project, note,
        committed_at, committer_name, committer_email,
        planned_at, planner_name, planner_email
   FROM changes;
