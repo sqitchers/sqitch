@@ -826,7 +826,7 @@ sub _sync_plan {
         my $idx = $plan->index_of($state->{change_id}) // hurl plan => __x(
             'Cannot find change {id} ({change}) in {file}',
             id     => $state->{change_id},
-            change => join(' ', $state->{change}, map @{ $state->{tags} }),
+            change => join(' ', $state->{change}, @{ $state->{tags} }),
             file   => $plan->file,
         );
 
