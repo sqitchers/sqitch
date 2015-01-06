@@ -200,14 +200,19 @@ sub deploy_file {
     $self->target->deploy_dir->file( $self->path_segments );
 }
 
-sub script_hash {
-    my $path = shift->deploy_file;
-    return undef unless -f $path;
-    require Digest::SHA;
-    my $sha = Digest::SHA->new(1);
-    $sha->add( $path->slurp(iomode => '<:raw') );
-    return $sha->hexdigest;
-}
+has script_hash => (
+    is       => 'ro',
+    isa      => Maybe[Str],
+    lazy     => 1,
+    default  => sub {
+        my $path = shift->deploy_file;
+        return undef unless -f $path;
+        require Digest::SHA;
+        my $sha = Digest::SHA->new(1);
+        $sha->add( $path->slurp(iomode => '<:raw') );
+        return $sha->hexdigest;
+    }
+);
 
 sub revert_file {
     my $self   = shift;
