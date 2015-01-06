@@ -7,7 +7,7 @@ use Try::Tiny;
 use Test::More;
 use Test::Exception;
 use Time::HiRes qw(sleep);
-use Path::Class qw(file dir);
+use Path::Class 0.33 qw(file dir);
 use Digest::SHA qw(sha1_hex);
 use Locale::TextDomain qw(App-Sqitch);
 use File::Temp 'tempdir';

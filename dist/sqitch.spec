@@ -43,7 +43,7 @@ BuildRequires:  perl(Moo::sification)
 BuildRequires:  perl(namespace::autoclean) >= 0.16
 BuildRequires:  perl(parent)
 BuildRequires:  perl(overload)
-BuildRequires:  perl(Path::Class)
+BuildRequires:  perl(Path::Class) >= 0.33
 BuildRequires:  perl(PerlIO::utf8_strict)
 BuildRequires:  perl(Pod::Find)
 BuildRequires:  perl(Pod::Usage)
