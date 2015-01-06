@@ -209,6 +209,7 @@ sub current_state {
     my $state  = $dbh->selectrow_hashref(qq{
         SELECT * FROM (
             SELECT c.change_id
+                 , c.script_hash
                  , c.change
                  , c.project
                  , c.note
@@ -223,6 +224,7 @@ sub current_state {
               LEFT JOIN tags t ON c.change_id = t.change_id
              WHERE c.project = ?
              GROUP BY c.change_id
+                 , c.script_hash
                  , c.change
                  , c.project
                  , c.note

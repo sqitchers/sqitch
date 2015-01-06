@@ -28,8 +28,14 @@ sub run {
     my @lines = grep { $_ } file('README.md')->slurp(
         chomp  => 1,
         iomode => '<:encoding(UTF-8)'
-     );
-    $mock_change->mock(script_hash => sub { sha1_hex shift @lines });
+    );
+    # Each change should retain its own hash.
+    my $orig_deploy_hash;
+    $mock_change->mock(_deploy_hash => sub {
+        my $self = shift;
+        $self->$orig_deploy_hash || sha1_hex shift @lines;
+    });
+    $orig_deploy_hash = $mock_change->original('_deploy_hash');
 
     can_ok $class, qw(
         initialized
@@ -335,6 +341,7 @@ sub run {
         is_deeply $state, {
             project         => 'engine',
             change_id       => $change->id,
+            script_hash     => $change->script_hash,
             change          => 'users',
             note            => 'User roles',
             committer_name  => $sqitch->user_name,
@@ -657,6 +664,7 @@ sub run {
         is_deeply $state, {
             project         => 'engine',
             change_id       => $change2->id,
+            script_hash     => $change2->script_hash,
             change          => 'widgets',
             note            => 'All in',
             committer_name  => $user2_name,
@@ -821,6 +829,7 @@ sub run {
         is_deeply $state, {
             project         => 'engine',
             change_id       => $change2->id,
+            script_hash     => $change2->script_hash,
             change          => 'widgets',
             note            => 'All in',
             committer_name  => $sqitch->user_name,
@@ -904,6 +913,7 @@ sub run {
         is_deeply $state, {
             project         => 'engine',
             change_id       => $barney->id,
+            script_hash     => $barney->script_hash,
             change          => 'barney',
             note            => 'Hello Barney',
             committer_name  => $sqitch->user_name,
@@ -1144,6 +1154,7 @@ sub run {
         is_deeply $state, {
             project         => 'groovy',
             change_id       => $ext_change->id,
+            script_hash     => $ext_change->script_hash,
             change          => $ext_change->name,
             note            => $ext_change->note,
             committer_name  => $sqitch->user_name,
@@ -1593,6 +1604,10 @@ sub run {
         ######################################################################
         # Add a reworked change.
         ok my $rev_change = $plan->rework( name => 'users' ), 'Rework change "users"';
+        my $fn = $rev_change->deploy_file;
+        my $fh = $rev_change->deploy_file->opena or die "Cannot open $fn: $!\n";
+        say $fh '-- Append line to reworked script so it gets a new SHA-1 hash';
+        close $fh;
         $_->resolved_id( $engine->change_id_for_depend($_) ) for $rev_change->requires;
         ok $engine->log_deploy_change($rev_change),  'Deploy the reworked change';
 

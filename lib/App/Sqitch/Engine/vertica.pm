@@ -241,6 +241,7 @@ sub current_state {
     my $dbh    = $self->dbh;
     my $state  = $dbh->selectrow_hashref(qq{
         SELECT c.change_id
+             , c.script_hash
              , c.change
              , c.project
              , c.note
@@ -250,7 +251,7 @@ sub current_state {
              , c.planner_name
              , c.planner_email
              , $pdtcol AS planned_at
-          FROM changes   c
+          FROM changes c
          WHERE c.project = ?
          ORDER BY c.committed_at DESC
          LIMIT 1

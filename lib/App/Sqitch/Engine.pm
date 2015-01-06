@@ -1924,6 +1924,10 @@ The name of the project for which the state is reported.
 
 The current change ID.
 
+=item C<script_hash>
+
+The deploy script SHA-1 hash.
+
 =item C<change>
 
 The current change name.
