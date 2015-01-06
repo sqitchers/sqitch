@@ -153,19 +153,32 @@ sub initialize {
         schema => $schema
     ) if $self->initialized;
 
+    $self->_run_registry_file( file(__FILE__)->dir->file('vertica.sql') );
+    $self->dbh->do('SET search_path = ' . $self->dbh->quote($schema));
+    $self->_register_release;
+}
+
+sub run_upgrade {
+    shift->_run_registry_file(@_);
+}
+
+sub _run_registry_file {
+    my ($self, $file) = @_;
+
     # Check the database version.
     my $vline = $self->dbh->selectcol_arrayref('SELECT version()')->[0];
     my ($maj) = $vline =~ /\bv?(\d+)/;
 
-    my $file = file(__FILE__)->dir->file('vertica.sql');
-
     # Need to write a temp file; no :"registry" variable syntax.
-    ($schema) = $self->dbh->selectrow_array(
-        'SELECT quote_ident(?)', undef, $schema
+    my ($schema) = $self->dbh->selectrow_array(
+        'SELECT quote_ident(?)', undef, $self->registry
     );
     (my $sql = scalar $file->slurp) =~ s{:"registry"}{$schema}g;
+
     # No LONG VARCHAR before Vertica 7.
     $sql =~ s/LONG //g if $maj < 7;
+
+    # Write out the temporary file.
     require File::Temp;
     my $fh = File::Temp->new;
     print $fh $sql;
@@ -173,8 +186,6 @@ sub initialize {
 
     # Now we can execute the file.
     $self->_run( '--file' => $fh->filename );
-    $self->dbh->do('SET search_path = ' . $self->dbh->quote($schema));
-    $self->_register_release;
 }
 
 sub _no_table_error  {
