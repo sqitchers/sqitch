@@ -5,29 +5,13 @@ CREATE TABLE releases (
     installer_email VARCHAR(255)  NOT NULL
 );
 
-UPDATE RDB$RELATIONS SET
-    RDB$DESCRIPTION = 'Sqitch registry releases.'
-    WHERE RDB$RELATION_NAME = 'RELEASES';
-
-UPDATE RDB$RELATION_FIELDS
-    SET RDB$DESCRIPTION = 'Version of the Sqitch registry.'
-    WHERE RDB$RELATION_NAME = 'RELEASES' AND RDB$FIELD_NAME = 'VERSION';
-
-UPDATE RDB$RELATION_FIELDS
-    SET RDB$DESCRIPTION = 'Date the registry release was installed.'
-    WHERE RDB$RELATION_NAME = 'VERSIONS' AND RDB$FIELD_NAME = 'INSTALLED_AT';
-
-UPDATE RDB$RELATION_FIELDS
-    SET RDB$DESCRIPTION = 'Name of the user who installed the registry release.'
-    WHERE RDB$RELATION_NAME = 'VERSIONS' AND RDB$FIELD_NAME = 'INSTALLER_NAME';
-
-UPDATE RDB$RELATION_FIELDS
-    SET RDB$DESCRIPTION = 'Email address of the user who installed the registry release.'
-    WHERE RDB$RELATION_NAME = 'VERSIONS' AND RDB$FIELD_NAME = 'INSTALLER_EMAIL';
+COMMENT ON TABLE  releases                 IS 'Sqitch registry releases.';
+COMMENT ON COLUMN releases.version         IS 'Version of the Sqitch registry.';
+COMMENT ON COLUMN releases.installed_at    IS 'Date the registry release was installed.';
+COMMENT ON COLUMN releases.installer_name  IS 'Name of the user who installed the registry release.';
+COMMENT ON COLUMN releases.installer_email IS 'Email address of the user who installed the registry release.';
 
 -- Add the script_hash column to the changes table.
 ALTER TABLE changes ADD script_hash VARCHAR(40) UNIQUE;
 UPDATE changes SET script_hash = change_id;
-UPDATE RDB$RELATION_FIELDS
-    SET RDB$DESCRIPTION = 'Deploy script SHA-1 hash.'
-    WHERE RDB$RELATION_NAME = 'CHANGES' AND RDB$FIELD_NAME = 'SCRIPT_HASH';
+COMMENT ON COLUMN changes.script_hash IS 'Deploy script SHA-1 hash.';

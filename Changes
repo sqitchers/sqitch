@@ -19,6 +19,8 @@ Revision history for Perl extension App::Sqitch
        change ID in the plan now includes more contextual information,
        including the change name, associated tags, and the plan file name.
        Suggested by Curtis Poe (Issue #205).
+     - Comments on Firebird registry objects are now created with the
+       `COMMENT` command, rather than INSERTs into catalog tables.
 
 0.997 2014-11-04T22:52:23Z
      [New Features]
