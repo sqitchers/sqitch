@@ -249,7 +249,7 @@ UPDATE RDB$RELATION_FIELDS
 
 CREATE TABLE events (
     event           VARCHAR(6)    NOT NULL
-                               CHECK (event IN ('deploy', 'revert', 'fail')),
+                                  CHECK (event IN ('deploy', 'revert', 'fail', 'merge')),
     change_id       CHAR(40)      NOT NULL,
     change          VARCHAR(512)  NOT NULL,
     project         VARCHAR(255)  NOT NULL REFERENCES projects(project)

@@ -110,7 +110,7 @@ CREATE TABLE dependencies (
 ;
 
 CREATE TABLE events (
-    event           ENUM ('deploy', 'fail', 'revert') NOT NULL
+    event           ENUM ('deploy', 'fail', 'merge', 'revert') NOT NULL
                     COMMENT 'Type of event.',
     change_id       VARCHAR(40)  NOT NULL
                     COMMENT 'Change ID.',

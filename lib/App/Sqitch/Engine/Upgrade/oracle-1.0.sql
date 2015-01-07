@@ -15,3 +15,22 @@ COMMENT ON COLUMN &registry..releases.installer_email IS 'Email address of the u
 ALTER TABLE &registry..changes ADD script_hash CHAR(40) NULL UNIQUE;
 UPDATE &registry..changes SET script_hash = change_id;
 COMMENT ON COLUMN &registry..changes.script_hash IS 'Deploy script SHA-1 hash.';
+
+-- Allow "merge" events.
+SELECT CONSTRAINT_NAME
+  FROM user_constraints
+ WHERE table_name = 'EVENTS'
+   AND SEARCH_CONDITION_VC = 'event IN (''deploy'', ''revert'', ''fail'')';
+
+-- Fetch the name of the event check constraint.
+-- http://www.orafaq.com/node/515
+COLUMN cname for a30 new_value check_name;
+SELECT CONSTRAINT_NAME AS cname
+  FROM user_constraints
+ WHERE table_name = 'EVENTS'
+   AND SEARCH_CONDITION_VC = 'event IN (''deploy'', ''revert'', ''fail'')';
+
+-- Allow "merge" events.
+ALTER TABLE &registry..events DROP CONSTRAINT &check_name;
+ALTER TABLE &registry..events ADD  CONSTRAINT &check_name
+      CHECK (event IN ('deploy', 'revert', 'fail', 'merge'));

@@ -56,7 +56,7 @@ CREATE TABLE dependencies (
 );
 
 CREATE TABLE events (
-    event           TEXT        NOT NULL CHECK (event IN ('deploy', 'revert', 'fail')),
+    event           TEXT        NOT NULL CHECK (event IN ('deploy', 'revert', 'fail', 'merge')),
     change_id       TEXT        NOT NULL,
     change          TEXT        NOT NULL,
     project         TEXT        NOT NULL REFERENCES projects(project) ON UPDATE CASCADE,

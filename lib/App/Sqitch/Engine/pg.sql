@@ -106,7 +106,7 @@ COMMENT ON COLUMN :"registry".dependencies.dependency    IS 'Dependency name.';
 COMMENT ON COLUMN :"registry".dependencies.dependency_id IS 'Change ID the dependency resolves to.';
 
 CREATE TABLE :"registry".events (
-    event           TEXT        NOT NULL CHECK (event IN ('deploy', 'revert', 'fail')),
+    event           TEXT        NOT NULL CHECK (event IN ('deploy', 'revert', 'fail', 'merge')),
     change_id       TEXT        NOT NULL,
     change          TEXT        NOT NULL,
     project         TEXT        NOT NULL REFERENCES :"registry".projects(project) ON UPDATE CASCADE,

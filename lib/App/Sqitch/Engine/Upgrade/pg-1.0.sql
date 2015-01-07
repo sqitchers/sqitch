@@ -20,4 +20,9 @@ ALTER TABLE :"registry".changes ADD COLUMN script_hash TEXT NULL UNIQUE;
 UPDATE :"registry".changes SET script_hash = change_id;
 COMMENT ON COLUMN :"registry".changes.script_hash IS 'Deploy script SHA-1 hash.';
 
+-- Allow "merge" events.
+ALTER TABLE :"registry".events DROP CONSTRAINT events_event_check;
+ALTER TABLE :"registry".events ADD  CONSTRAINT events_event_check
+      CHECK (event IN ('deploy', 'revert', 'fail', 'merge'));
+
 COMMIT;

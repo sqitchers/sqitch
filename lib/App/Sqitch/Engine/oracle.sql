@@ -103,14 +103,14 @@ CREATE TYPE &registry..sqitch_array AS varray(1024) OF VARCHAR2(512);
 /
 
 CREATE TABLE &registry..events (
-    event           VARCHAR2(6)                   NOT NULL CHECK (event IN ('deploy', 'revert', 'fail')),
+    event           VARCHAR2(6)                   NOT NULL CHECK (event IN ('deploy', 'revert', 'fail', 'merge')),
     change_id       CHAR(40)                      NOT NULL,
     change          VARCHAR2(512 CHAR)            NOT NULL,
     project         VARCHAR2(512 CHAR)            NOT NULL REFERENCES &registry..projects(project),
     note            VARCHAR2(4000 CHAR)           DEFAULT '',
-    requires        &registry..SQITCH_ARRAY  DEFAULT &registry..SQITCH_ARRAY() NOT NULL,
-    conflicts       &registry..SQITCH_ARRAY  DEFAULT &registry..SQITCH_ARRAY() NOT NULL,
-    tags            &registry..SQITCH_ARRAY  DEFAULT &registry..SQITCH_ARRAY() NOT NULL,
+    requires        &registry..SQITCH_ARRAY       DEFAULT &registry..SQITCH_ARRAY() NOT NULL,
+    conflicts       &registry..SQITCH_ARRAY       DEFAULT &registry..SQITCH_ARRAY() NOT NULL,
+    tags            &registry..SQITCH_ARRAY       DEFAULT &registry..SQITCH_ARRAY() NOT NULL,
     committed_at    TIMESTAMP WITH TIME ZONE      DEFAULT current_timestamp NOT NULL,
     committer_name  VARCHAR2(512 CHAR)            NOT NULL,
     committer_email VARCHAR2(512 CHAR)            NOT NULL,

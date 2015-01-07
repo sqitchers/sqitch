@@ -33,4 +33,30 @@ DROP TABLE changes;
 ALTER TABLE new_changes RENAME TO changes;
 PRAGMA foreign_keys = ON;
 
+-- Create a new events table with support for "merge" events.
+CREATE TABLE new_events (
+    event           TEXT        NOT NULL CHECK (event IN ('deploy', 'revert', 'fail', 'merge')),
+    change_id       TEXT        NOT NULL,
+    change          TEXT        NOT NULL,
+    project         TEXT        NOT NULL REFERENCES projects(project) ON UPDATE CASCADE,
+    note            TEXT        NOT NULL DEFAULT '',
+    requires        TEXT        NOT NULL DEFAULT '',
+    conflicts       TEXT        NOT NULL DEFAULT '',
+    tags            TEXT        NOT NULL DEFAULT '',
+    committed_at    DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    committer_name  TEXT        NOT NULL,
+    committer_email TEXT        NOT NULL,
+    planned_at      DATETIME    NOT NULL,
+    planner_name    TEXT        NOT NULL,
+    planner_email   TEXT        NOT NULL,
+    PRIMARY KEY (change_id, committed_at)
+);
+
+INSERT INTO new_events
+SELECT * FROM events;
+PRAGMA foreign_keys = OFF;
+DROP TABLE events;
+ALTER TABLE new_events RENAME TO events;
+PRAGMA foreign_keys = ON;
+
 COMMIT;
