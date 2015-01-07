@@ -889,6 +889,27 @@ sub default_client {
     );
 }
 
+sub _update_script_hashes {
+    my $self = shift;
+    my $plan = $self->plan;
+    my $proj = $plan->project;
+    my $dbh  = $self->dbh;
+
+    $self->begin_work;
+    # Firebird refuses to update via a prepared statement, so use do(). :-(
+    $dbh->do(
+        'UPDATE changes SET script_hash = ? WHERE change_id = ?',
+        undef, $_->script_hash, $_->id
+    ) for $plan->changes;
+    $dbh->do(q{
+        UPDATE changes SET script_hash = NULL
+         WHERE project = ? AND script_hash = change_id
+    }, undef, $proj);
+
+    $self->finish_work;
+    return $self;
+}
+
 1;
 
 __END__
