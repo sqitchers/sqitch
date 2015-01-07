@@ -26,7 +26,7 @@ UPDATE RDB$RELATION_FIELDS
     WHERE RDB$RELATION_NAME = 'VERSIONS' AND RDB$FIELD_NAME = 'INSTALLER_EMAIL';
 
 -- Add the script_hash column to the changes table.
-ALTER TABLE changes ADD script_hash VARCHAR(40) NULL UNIQUE;
+ALTER TABLE changes ADD script_hash VARCHAR(40) UNIQUE;
 UPDATE changes SET script_hash = change_id;
 UPDATE RDB$RELATION_FIELDS
     SET RDB$DESCRIPTION = 'Deploy script SHA-1 hash.'

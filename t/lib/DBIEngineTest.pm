@@ -1660,7 +1660,6 @@ sub run {
                 'Change ID and script hash should be ' . substr $row->[0], 0, 6;
         }
 
-
         ######################################################################
         # All done.
         done_testing;

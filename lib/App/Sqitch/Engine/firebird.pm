@@ -221,11 +221,7 @@ sub initialize {
     };
 
     # Load up our database. The database must exist!
-    my @cmd    = $self->isql;
-    $cmd[-1]   = $sqitch_db;
-    my $file   = file(__FILE__)->dir->file('firebird.sql');
-    my $sqitch = $self->sqitch;
-    $sqitch->run( @cmd, '-input' => $sqitch->quote_shell($file) );
+    $self->run_upgrade( file(__FILE__)->dir->file('firebird.sql') );
     $self->_register_release;
 }
 
@@ -279,7 +275,7 @@ sub _dt($) {
 }
 
 sub _no_table_error  {
-    return $DBI::errstr && $DBI::errstr =~ /^\Q\-Table unknown/; # ???
+    return $DBI::errstr && $DBI::errstr =~ /^-Table unknown|No such file or directory/m;
 }
 
 sub _regex_op { 'SIMILAR TO' }               # NOT good match for
@@ -331,6 +327,15 @@ sub run_verify {
     $self->$meth( '-input' => $file );
 }
 
+sub run_upgrade {
+    my ($self, $file) = @_;
+    my $uri    = $self->registry_uri;
+    my @cmd    = $self->isql;
+    $cmd[-1]   = $self->connection_string($uri);
+    my $sqitch = $self->sqitch;
+    $sqitch->run( @cmd, '-input' => $sqitch->quote_shell($file) );
+}
+
 sub run_handle {
     my ($self, $fh) = @_;
     $self->_spool($fh);
@@ -363,9 +368,8 @@ sub current_state {
     my $cdtcol = sprintf $self->_ts2char_format, 'c.committed_at';
     my $pdtcol = sprintf $self->_ts2char_format, 'c.planned_at';
     my $tagcol = sprintf $self->_listagg_format, 't.tag';
-    my $dbh    = $self->dbh;
     my $state  = try {
-        $dbh->selectrow_hashref(qq{
+        $self->dbh->selectrow_hashref(qq{
             SELECT FIRST 1 c.change_id
                  , c.script_hash
                  , c.change
@@ -763,6 +767,7 @@ sub log_deploy_change {
     my $ts = $self->_ts_default;
     my $cols = join "\n            , ", $self->_quote_idents(qw(
         change_id
+        script_hash
         change
         project
         note
@@ -777,9 +782,10 @@ sub log_deploy_change {
         INSERT INTO changes (
             $cols
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, $ts)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, $ts)
     }, undef,
         $id,
+        $change->script_hash,
         $name,
         $proj,
         $change->note,
