@@ -21,6 +21,7 @@ Revision history for Perl extension App::Sqitch
        Suggested by Curtis Poe (Issue #205).
      - Comments on Firebird registry objects are now created with the
        `COMMENT` command, rather than INSERTs into catalog tables.
+     - Added support for "merge" events, though none are logged, yet.
 
 0.997 2014-11-04T22:52:23Z
      [New Features]
