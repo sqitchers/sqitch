@@ -272,6 +272,10 @@ Sqitch Vertica support.
 # No additional files required.
 
 %changelog
+* Thu Jan 15 2015 David E. Wheeler <david.wheeler@iovation.com> 0.998-1
+- Upgrade to v0.998.
+- Require Path::Class v0.33 when building.
+
 * Tue Nov 4 2014 David E. Wheeler <david.wheeler@iovation.com> 0.997-1
 - Upgrade to v0.997.
 
