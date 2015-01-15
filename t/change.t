@@ -112,7 +112,7 @@ is_deeply [ $change->path_segments ], ['foo.sql'],
 is $change->script_hash, undef,
     'Nonexistent deploy script hash should be undef';
 make_path $change->deploy_file->dir->stringify;
-$change->deploy_file->spew(iomode => '>:utf8', "Foo\nBar\nBøz\n亜唖娃阿" );
+$change->deploy_file->spew(iomode => '>:raw', encode_utf8 "Foo\nBar\nBøz\n亜唖娃阿" );
 $change = $CLASS->new( name => 'foo', plan => $plan );
 is $change->script_hash, 'd48866b846300912570f643c99b2ceec4ba29f5c',
     'Deploy script hash should be correct';
