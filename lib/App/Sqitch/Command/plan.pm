@@ -14,7 +14,7 @@ use namespace::autoclean;
 use Try::Tiny;
 extends 'App::Sqitch::Command';
 
-our $VERSION = '0.998';
+our $VERSION = '0.999';
 
 my %FORMATS;
 $FORMATS{raw} = <<EOF;

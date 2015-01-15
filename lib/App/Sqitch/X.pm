@@ -9,7 +9,7 @@ use Throwable 0.200009;
 use Sub::Exporter -setup => [qw(hurl)];
 use overload '""' => 'as_string';
 
-our $VERSION = '0.998';
+our $VERSION = '0.999';
 
 has message => (
     is       => 'ro',

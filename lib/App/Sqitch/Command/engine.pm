@@ -25,7 +25,7 @@ use constant ENGINES => qw(
 
 extends 'App::Sqitch::Command';
 
-our $VERSION = '0.998';
+our $VERSION = '0.999';
 
 has verbose => (
     is      => 'ro',
