@@ -263,6 +263,9 @@ is $dt->time_zone->name, 'UTC', 'DateTime TZ should be set';
 
 ##############################################################################
 # Can we do live tests?
+$sqitch = App::Sqitch->new( options => { engine => 'pg' } );
+$target = App::Sqitch::Target->new( sqitch => $sqitch );
+$pg     = $CLASS->new(sqitch => $sqitch, target => $target);
 my $dbh;
 END {
     return unless $dbh;
@@ -275,6 +278,7 @@ END {
 }
 
 my $err = try {
+    $pg->_capture('--version');
     $pg->use_driver;
     $dbh = DBI->connect('dbi:Pg:dbname=template1', 'postgres', '', {
         PrintError => 0,

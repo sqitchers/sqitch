@@ -8,6 +8,8 @@ Revision history for Perl extension App::Sqitch
        and updating them.
      - Fixed an issue where the `status` command would return an error when
        run against a an older version of the registry.
+     - Fixed a Postgres test failure when DBD::Pg is installed but psql is not
+       in the path.
 
 0.998  2015-01-15T22:17:44Z
      - Fixed a bug in `sqitch engine update-config` where it would add data to
