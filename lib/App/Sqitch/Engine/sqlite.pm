@@ -169,6 +169,10 @@ sub _no_table_error  {
     return $DBI::errstr && $DBI::errstr =~ /^\Qno such table:/;
 }
 
+sub _no_column_error  {
+    return try { $_->message =~ /^\Qno such column:/ };
+}
+
 sub _regex_op { 'REGEXP' }
 
 sub _limit_default { -1 }

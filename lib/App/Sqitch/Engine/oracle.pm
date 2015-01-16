@@ -200,52 +200,42 @@ sub _cid_head {
     }, undef, $project, $change)->[0];
 }
 
-sub current_state {
-    my ( $self, $project ) = @_;
+sub _select_state {
+    my ( $self, $project, $with_hash ) = @_;
     my $cdtcol = sprintf $self->_ts2char_format, 'c.committed_at';
     my $pdtcol = sprintf $self->_ts2char_format, 'c.planned_at';
     my $tagcol = sprintf $self->_listagg_format, 't.tag';
+    my $hshcol = $with_hash ? "c.script_hash\n                 , " : '';
     my $dbh    = $self->dbh;
-    my $state  = try { 
-        $dbh->selectrow_hashref(qq{
-            SELECT * FROM (
-                SELECT c.change_id
-                     , c.script_hash
-                     , c.change
-                     , c.project
-                     , c.note
-                     , c.committer_name
-                     , c.committer_email
-                     , $cdtcol AS committed_at
-                     , c.planner_name
-                     , c.planner_email
-                     , $pdtcol AS planned_at
-                     , $tagcol AS tags
-                  FROM changes   c
-                  LEFT JOIN tags t ON c.change_id = t.change_id
-                 WHERE c.project = ?
-                 GROUP BY c.change_id
-                     , c.script_hash
-                     , c.change
-                     , c.project
-                     , c.note
-                     , c.committer_name
-                     , c.committer_email
-                     , c.committed_at
-                     , c.planner_name
-                     , c.planner_email
-                     , c.planned_at
-                 ORDER BY c.committed_at DESC
-            ) WHERE rownum = 1
-        }, undef, $project // $self->plan->project);
-    } catch {
-        return if $self->_no_table_error && !$self->initialized;
-        die $_;
-    } or return undef;
-
-    $state->{committed_at} = _dt $state->{committed_at};
-    $state->{planned_at}   = _dt $state->{planned_at};
-    return $state;
+    return $dbh->selectrow_hashref(qq{
+        SELECT * FROM (
+            SELECT c.change_id
+                 , ${hshcol}c.change
+                 , c.project
+                 , c.note
+                 , c.committer_name
+                 , c.committer_email
+                 , $cdtcol AS committed_at
+                 , c.planner_name
+                 , c.planner_email
+                 , $pdtcol AS planned_at
+                 , $tagcol AS tags
+              FROM changes   c
+              LEFT JOIN tags t ON c.change_id = t.change_id
+             WHERE c.project = ?
+             GROUP BY c.change_id
+                 , ${hshcol}c.change
+                 , c.project
+                 , c.note
+                 , c.committer_name
+                 , c.committer_email
+                 , c.committed_at
+                 , c.planner_name
+                 , c.planner_email
+                 , c.planned_at
+             ORDER BY c.committed_at DESC
+        ) WHERE rownum = 1
+    }, undef, $project // $self->plan->project);
 }
 
 sub is_deployed_change {
@@ -645,6 +635,10 @@ sub _ts2char($) {
 
 sub _no_table_error  {
     return $DBI::err && $DBI::err == 942; # ORA-00942: table or view does not exist
+}
+
+sub _no_column_error  {
+    return $DBI::err && $DBI::err == 904; # ORA-00904: invalid identifier
 }
 
 sub _script {

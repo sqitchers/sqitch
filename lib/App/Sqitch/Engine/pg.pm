@@ -349,6 +349,10 @@ sub _no_table_error  {
     return $DBI::state && $DBI::state eq '42P01'; # undefined_table
 }
 
+sub _no_column_error  {
+    return $DBI::state && $DBI::state eq '42703'; # undefined_column
+}
+
 sub _in_expr {
     my ($self, $vals) = @_;
     return '= ANY(?)', $vals;

@@ -104,45 +104,50 @@ sub latest_change_id {
     shift->_cid('DESC', @_);
 }
 
-sub current_state {
-    my ( $self, $project ) = @_;
+sub _select_state {
+    my ( $self, $project, $with_hash ) = @_;
     my $cdtcol = sprintf $self->_ts2char_format, 'c.committed_at';
     my $pdtcol = sprintf $self->_ts2char_format, 'c.planned_at';
     my $tagcol = sprintf $self->_listagg_format, 't.tag';
+    my $hshcol = $with_hash ? "c.script_hash\n                 , " : '';
     my $dbh    = $self->dbh;
+    $dbh->selectrow_hashref(qq{
+        SELECT c.change_id
+             , ${hshcol}c.change
+             , c.project
+             , c.note
+             , c.committer_name
+             , c.committer_email
+             , $cdtcol AS committed_at
+             , c.planner_name
+             , c.planner_email
+             , $pdtcol AS planned_at
+             , $tagcol AS tags
+          FROM changes   c
+          LEFT JOIN tags t ON c.change_id = t.change_id
+         WHERE c.project = ?
+         GROUP BY c.change_id
+             , ${hshcol}c.change
+             , c.project
+             , c.note
+             , c.committer_name
+             , c.committer_email
+             , c.committed_at
+             , c.planner_name
+             , c.planner_email
+             , c.planned_at
+         ORDER BY c.committed_at DESC
+         LIMIT 1
+    }, undef, $project // $self->plan->project );
+}
+
+sub current_state {
+    my ( $self, $project ) = @_;
     my $state  = try {
-        $dbh->selectrow_hashref(qq{
-            SELECT c.change_id
-                 , c.script_hash
-                 , c.change
-                 , c.project
-                 , c.note
-                 , c.committer_name
-                 , c.committer_email
-                 , $cdtcol AS committed_at
-                 , c.planner_name
-                 , c.planner_email
-                 , $pdtcol AS planned_at
-                 , $tagcol AS tags
-              FROM changes   c
-              LEFT JOIN tags t ON c.change_id = t.change_id
-             WHERE c.project = ?
-             GROUP BY c.change_id
-                 , c.script_hash
-                 , c.change
-                 , c.project
-                 , c.note
-                 , c.committer_name
-                 , c.committer_email
-                 , c.committed_at
-                 , c.planner_name
-                 , c.planner_email
-                 , c.planned_at
-             ORDER BY c.committed_at DESC
-             LIMIT 1
-        }, undef, $project // $self->plan->project );
+        $self->_select_state($project, 1)
     } catch {
         return if $self->_no_table_error && !$self->initialized;
+        return $self->_select_state($project, 0) if $self->_no_column_error;
         die $_;
     } or return undef;
 
@@ -911,11 +916,11 @@ sub _update_script_hashes {
     my $proj = $plan->project;
     my $dbh  = $self->dbh;
     my $sth  = $dbh->prepare(
-        'UPDATE changes SET script_hash = ? WHERE change_id = ?'
+        'UPDATE changes SET script_hash = ? WHERE change_id = ? AND script_hash = ?'
     );
 
     $self->begin_work;
-    $sth->execute($_->script_hash, $_->id) for $plan->changes;
+    $sth->execute($_->script_hash, $_->id, $_->id) for $plan->changes;
     $dbh->do(q{
         UPDATE changes SET script_hash = NULL
          WHERE project = ? AND script_hash = change_id

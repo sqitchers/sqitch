@@ -192,6 +192,10 @@ sub _no_table_error  {
     return $DBI::state && $DBI::state eq '42V01'; # ERRCODE_UNDEFINED_TABLE
 }
 
+sub _no_column_error  {
+    return $DBI::state && $DBI::state eq '42703'; # ERRCODE_UNDEFINED_COLUMN
+}
+
 sub _ts2char($) {
     my $col = shift;
     return qq{to_char($col AT TIME ZONE 'UTC', '"year":YYYY:"month":MM:"day":DD:"hour":HH24:"minute":MI:"second":SS:"time_zone":"UTC"')};
@@ -245,31 +249,37 @@ sub _tag_subselect_columns {
     );
 }
 
-sub current_state {
-    my ( $self, $project ) = @_;
+sub _select_state {
+    my ( $self, $project, $with_hash ) = @_;
     my $cdtcol = sprintf $self->_ts2char_format, 'c.committed_at';
     my $pdtcol = sprintf $self->_ts2char_format, 'c.planned_at';
+    my $hshcol = $with_hash ? "c.script_hash\n             , " : '';
+    return $self->dbh->selectrow_hashref(qq{
+        SELECT c.change_id
+             , ${hshcol}c.change
+             , c.project
+             , c.note
+             , c.committer_name
+             , c.committer_email
+             , $cdtcol AS committed_at
+             , c.planner_name
+             , c.planner_email
+             , $pdtcol AS planned_at
+          FROM changes c
+         WHERE c.project = ?
+         ORDER BY c.committed_at DESC
+         LIMIT 1
+    }, undef, $project // $self->plan->project );
+}
+
+sub current_state {
+    my ( $self, $project ) = @_;
     my $dbh    = $self->dbh;
     my $state  = try {
-        $dbh->selectrow_hashref(qq{
-            SELECT c.change_id
-                 , c.script_hash
-                 , c.change
-                 , c.project
-                 , c.note
-                 , c.committer_name
-                 , c.committer_email
-                 , $cdtcol AS committed_at
-                 , c.planner_name
-                 , c.planner_email
-                 , $pdtcol AS planned_at
-              FROM changes c
-             WHERE c.project = ?
-             ORDER BY c.committed_at DESC
-             LIMIT 1
-        }, undef, $project // $self->plan->project );
+        $self->_select_state($project, 1)
     } catch {
         return if $self->_no_table_error && !$self->initialized;
+        return $self->_select_state($project, 0) if $self->_no_column_error;
         die $_;
     } or return undef;
 

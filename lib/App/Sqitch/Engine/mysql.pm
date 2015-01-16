@@ -239,8 +239,15 @@ sub finish_work {
 }
 
 sub _no_table_error  {
-    return $DBI::errstr
-        && $DBI::errstr =~ /^(?:\Qno such table:\E|Table '[^']+' doesn't exist)/;
+    return $DBI::state && (
+        $DBI::state eq '42S02' # ER_BAD_TABLE_ERROR
+     ||
+        ($DBI::state eq '42000' && $DBI::err == '1049') # ER_BAD_DB_ERROR
+    )
+}
+
+sub _no_column_error  {
+    return $DBI::state && $DBI::state eq '42S22' && $DBI::err == '1054'; # ER_BAD_FIELD_ERROR
 }
 
 sub _regex_op { 'REGEXP' }

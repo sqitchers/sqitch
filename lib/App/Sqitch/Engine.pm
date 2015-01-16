@@ -180,7 +180,7 @@ sub deploy {
     } elsif ($plan->position == -1) {
         # Initialize or upgrade the database, if necessary.
         if ($self->initialized) {
-            $self->upgrade_registry if $self->needs_upgrade;
+            $self->upgrade_registry;
         } else {
             $sqitch->info(__x(
                 'Adding registry tables to {destination}',
@@ -195,7 +195,7 @@ sub deploy {
         hurl deploy => __ 'Cannot deploy to an earlier change; use "revert" instead'
             if $to_index < $plan->position;
         # Upgrade database if it needs it.
-        $self->upgrade_registry if $self->needs_upgrade;
+        $self->upgrade_registry;
     }
 
     $sqitch->info(
@@ -837,6 +837,13 @@ sub _sync_plan {
             $change = $plan->change_at($idx);
         }
 
+        # Upgrade the registry if there is no script_hash column.
+        unless ( exists $state->{script_hash} ) {
+            $self->upgrade_registry;
+            $state->{script_hash} = $state->{change_id};
+        }
+
+        # Update the script hashes if they're the same as the change ID.
         $self->_update_script_hashes if $state->{script_hash}
             && $state->{script_hash} eq $state->{change_id};
 
