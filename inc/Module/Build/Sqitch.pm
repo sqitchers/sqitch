@@ -23,6 +23,7 @@ sub new {
         );
         $p{requires}{'Win32::Locale'} = 0;
         $p{requires}{'Win32::ShellQuote'} = 0;
+        $p{build_requires}{'Config::GitLike'} = '1.15';
     }
     my $self = $class->SUPER::new(%p);
     $self->add_build_element('etc');

@@ -10,6 +10,8 @@ Revision history for Perl extension App::Sqitch
        run against a an older version of the registry.
      - Fixed a Postgres test failure when DBD::Pg is installed but psql is not
        in the path.
+     - Now require Config::GitLike 1.15 to build on Windows in order to avoid
+       test failures when Cwd::abs_path dies on non-existant paths.
 
 0.998  2015-01-15T22:17:44Z
      - Fixed a bug in `sqitch engine update-config` where it would add data to
