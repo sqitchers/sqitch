@@ -46,7 +46,8 @@ L<sqitchchanges> for the various ways in which changes can be specified.
 
 =item C<--mode>
 
-Specify the reversion mode to use in case of failure. Possible values are:
+Specify the reversion mode to use in case of deploy or verify failure.
+Possible values are:
 
 =over
 
@@ -63,10 +64,14 @@ changes will be reverted to the point at which deployment began.
 
 =item C<change>
 
-In the event of failure, no changes will be reverted. This is on the
-assumption that a change is atomic, and thus may may be deployed again.
+In the event of deploy failure, no changes will be reverted; for a verify
+failure, only the failed change will be reverted.
 
 =back
+
+Note that Sqitch assumes that each change is atomic. Therefore, when a deploy
+script fails, it assumes there is nothing to revert. If a verify script fails,
+it will of course run the revert script for the failed change.
 
 =item C<--verify>
 

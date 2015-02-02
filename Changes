@@ -12,6 +12,9 @@ Revision history for Perl extension App::Sqitch
        in the path.
      - Now require Config::GitLike 1.15 to build on Windows in order to avoid
        test failures when Cwd::abs_path dies on non-existant paths.
+     - Clarified the behavior of each `deploy` reversion mode with regard to
+       deploy script vs. verify script failures, and with the expectation that
+       deploy scripts are atomic.
 
 0.998  2015-01-15T22:17:44Z
      - Fixed a bug in `sqitch engine update-config` where it would add data to
