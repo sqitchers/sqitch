@@ -30,7 +30,7 @@ sub destination {
     $uri->password(undef) if $uri->password;
     $uri->dbname(
         $ENV{PGDATABASE}
-        || $uri->user
+        || $self->username
         || $ENV{PGUSER}
         || $self->sqitch->sysuser
     );
@@ -46,10 +46,10 @@ has _psql => (
         my $uri  = $self->uri;
         my @ret  = ( $self->client );
         for my $spec (
-            [ username => $uri->user   ],
-            [ dbname   => $uri->dbname ],
-            [ host     => $uri->host   ],
-            [ port     => $uri->_port  ],
+            [ username => $self->username ],
+            [ dbname   => $uri->dbname    ],
+            [ host     => $uri->host      ],
+            [ port     => $uri->_port     ],
             )
         {
             push @ret, "--$spec->[0]" => $spec->[1] if $spec->[1];
@@ -92,7 +92,7 @@ has dbh => (
         $self->use_driver;
 
         my $uri = $self->uri;
-        DBI->connect($uri->dbi_dsn, scalar $uri->user, scalar $uri->password, {
+        DBI->connect($uri->dbi_dsn, scalar $self->username, scalar $self->password, {
             PrintError        => 0,
             RaiseError        => 0,
             AutoCommit        => 1,
@@ -470,8 +470,7 @@ sub _update_ids {
 sub _run {
     my $self   = shift;
     my $sqitch = $self->sqitch;
-    my $uri    = $self->uri;
-    my $pass   = $uri->password or return $sqitch->run( $self->psql, @_ );
+    my $pass   = $self->password or return $sqitch->run( $self->psql, @_ );
     local $ENV{PGPASSWORD} = $pass;
     return $sqitch->run( $self->psql, @_ );
 }
@@ -479,8 +478,7 @@ sub _run {
 sub _capture {
     my $self   = shift;
     my $sqitch = $self->sqitch;
-    my $uri    = $self->uri;
-    my $pass   = $uri->password or return $sqitch->capture( $self->psql, @_ );
+    my $pass   = $self->password or return $sqitch->capture( $self->psql, @_ );
     local $ENV{PGPASSWORD} = $pass;
     return $sqitch->capture( $self->psql, @_ );
 }
@@ -488,8 +486,7 @@ sub _capture {
 sub _probe {
     my $self   = shift;
     my $sqitch = $self->sqitch;
-    my $uri    = $self->uri;
-    my $pass   = $uri->password or return $sqitch->probe( $self->psql, @_ );
+    my $pass   = $self->password or return $sqitch->probe( $self->psql, @_ );
     local $ENV{PGPASSWORD} = $pass;
     return $sqitch->probe( $self->psql, @_ );
 }
@@ -498,8 +495,7 @@ sub _spool {
     my $self   = shift;
     my $fh     = shift;
     my $sqitch = $self->sqitch;
-    my $uri    = $self->uri;
-    my $pass   = $uri->password or return $sqitch->spool( $fh, $self->psql, @_ );
+    my $pass   = $self->password or return $sqitch->spool( $fh, $self->psql, @_ );
     local $ENV{PGPASSWORD} = $pass;
     return $sqitch->spool( $fh, $self->psql, @_ );
 }

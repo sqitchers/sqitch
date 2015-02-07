@@ -69,7 +69,7 @@ has dbh => (
         $self->use_driver;
 
         my $dsn = $uri->dbi_dsn . ';ib_dialect=3;ib_charset=UTF8';
-        return DBI->connect($dsn, scalar $uri->user, scalar $uri->password, {
+        return DBI->connect($dsn, scalar $self->username, scalar $self->password, {
             PrintError       => 0,
             RaiseError       => 0,
             AutoCommit       => 1,
@@ -97,8 +97,8 @@ has _isql => (
         my $uri  = $self->uri;
         my @ret  = ( $self->client );
         for my $spec (
-            [ user     => $uri->user     ],
-            [ password => $uri->password ],
+            [ user     => $self->username ],
+            [ password => $self->password ],
         ) {
             push @ret, "-$spec->[0]" => $spec->[1] if $spec->[1];
         }
@@ -206,8 +206,8 @@ sub initialize {
     try {
         DBD::Firebird->create_database({
             db_path       => $sqitch_db,
-            user          => scalar $uri->user,
-            password      => scalar $uri->password,
+            user          => scalar $self->username,
+            password      => scalar $self->password,
             character_set => 'UTF8',
             page_size     => 16384,
         });
@@ -294,8 +294,7 @@ sub _listagg_format {
 sub _run {
     my $self   = shift;
     my $sqitch = $self->sqitch;
-    my $uri    = $self->uri;
-    my $pass   = $uri->password or return $sqitch->run( $self->isql, @_ );
+    my $pass   = $self->password or return $sqitch->run( $self->isql, @_ );
     local $ENV{ISC_PASSWORD} = $pass;
     return $sqitch->run( $self->isql, @_ );
 }
@@ -303,8 +302,7 @@ sub _run {
 sub _capture {
     my $self   = shift;
     my $sqitch = $self->sqitch;
-    my $uri    = $self->uri;
-    my $pass   = $uri->password or return $sqitch->capture( $self->isql, @_ );
+    my $pass   = $self->password or return $sqitch->capture( $self->isql, @_ );
     local $ENV{ISC_PASSWORD} = $pass;
     return $sqitch->capture( $self->isql, @_ );
 }
@@ -313,8 +311,7 @@ sub _spool {
     my $self   = shift;
     my $fh     = shift;
     my $sqitch = $self->sqitch;
-    my $uri    = $self->uri;
-    my $pass   = $uri->password or return $sqitch->spool( $fh, $self->isql, @_ );
+    my $pass   = $self->password or return $sqitch->spool( $fh, $self->isql, @_ );
     local $ENV{ISC_PASSWORD} = $pass;
     return $sqitch->spool( $fh, $self->isql, @_ );
 }

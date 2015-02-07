@@ -18,16 +18,25 @@ has name => (
 );
 sub target { shift->name }
 
-has uri  => (
-    is   => 'ro',
-    isa  => URIDB,
+has uri      => (
+    is       => 'ro',
+    isa      => URIDB,
     required => 1,
-    handles => {
+    handles  => {
         engine_key => 'canonical_engine',
         dsn        => 'dbi_dsn',
-        username   => 'user',
-        password   => 'password',
     },
+);
+
+sub username { scalar shift->uri->user }
+
+has password => (
+    is       => 'ro',
+    isa      => Maybe[Str],
+    lazy    => 1,
+    default => sub {
+        shift->uri->password || $ENV{SQITCH_PASSWORD};
+    }
 );
 
 has sqitch => (
@@ -453,6 +462,20 @@ The name of the target. If there was no name specified, the URI will be used
   my $uri = $target->uri;
 
 The L<URI::db> object encapsulating the database connection information.
+
+=head3 C<username>
+
+  my $username = $target->username;
+
+Returns the target username, if any. The username is looked up from the URI
+or the C<$SQITCH_USERNAME> environment variable.
+
+=head3 C<password>
+
+  my $password = $target->password;
+
+Returns the target password, if any. The password is looked up from the URI
+or the C<$SQITCH_PASSWORD> environment variable.
 
 =head3 C<engine>
 

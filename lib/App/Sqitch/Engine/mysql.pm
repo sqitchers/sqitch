@@ -48,7 +48,7 @@ has dbh => (
         $self->use_driver;
 
         my $uri = $self->registry_uri;
-        my $pass = $uri->password || do {
+        my $pass = $self->password || do {
             # Read the default MySQL configuration.
             # http://dev.mysql.com/doc/refman/5.0/en/option-file-options.html
             if (eval 'require MySQL::Config; 1') {
@@ -56,7 +56,7 @@ has dbh => (
                 $cfg{password};
             }
         };
-        my $dbh = DBI->connect($uri->dbi_dsn, scalar $uri->user, $pass, {
+        my $dbh = DBI->connect($uri->dbi_dsn, scalar $self->username, $pass, {
             PrintError           => 0,
             RaiseError           => 0,
             AutoCommit           => 1,
@@ -126,16 +126,16 @@ has _mysql => (
 
         my @ret  = ( $self->client );
         for my $spec (
-            [ user     => $uri->user   ],
-            [ database => $uri->dbname ],
-            [ host     => $uri->host   ],
-            [ port     => $uri->_port  ],
+            [ user     => $self->username ],
+            [ database => $uri->dbname    ],
+            [ host     => $uri->host      ],
+            [ port     => $uri->_port     ],
         ) {
             push @ret, "--$spec->[0]" => $spec->[1] if $spec->[1];
         }
 
         # Special-case --password, which requires = before the value. O_o
-        if (my $pw = $uri->password) {
+        if (my $pw = $self->password) {
             push @ret, "--password=$pw";
         }
 
@@ -261,8 +261,7 @@ sub _listagg_format {
 sub _run {
     my $self = shift;
     my $sqitch = $self->sqitch;
-    my $uri    = $self->uri;
-    my $pass   = $uri->password or return $sqitch->run( $self->mysql, @_ );
+    my $pass   = $self->password or return $sqitch->run( $self->mysql, @_ );
     local $ENV{MYSQL_PWD} = $pass;
     return $sqitch->run( $self->mysql, @_ );
 }
@@ -270,8 +269,7 @@ sub _run {
 sub _capture {
     my $self   = shift;
     my $sqitch = $self->sqitch;
-    my $uri    = $self->uri;
-    my $pass   = $uri->password or return $sqitch->capture( $self->mysql, @_ );
+    my $pass   = $self->password or return $sqitch->capture( $self->mysql, @_ );
     local $ENV{MYSQL_PWD} = $pass;
     return $sqitch->capture( $self->mysql, @_ );
 }
@@ -280,8 +278,7 @@ sub _spool {
     my $self   = shift;
     my $fh     = shift;
     my $sqitch = $self->sqitch;
-    my $uri    = $self->uri;
-    my $pass   = $uri->password or return $sqitch->spool( $fh, $self->mysql, @_ );
+    my $pass   = $self->password or return $sqitch->spool( $fh, $self->mysql, @_ );
     local $ENV{MYSQL_PWD} = $pass;
     return $sqitch->spool( $fh, $self->mysql, @_ );
 }

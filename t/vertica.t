@@ -215,8 +215,8 @@ ok $vta->_capture(qw(foo bar baz)), 'Call _capture';
 is_deeply \@capture, [$vta->vsql, qw(foo bar baz)],
     'Command should be passed to capture()';
 
-# Remove the password.
-$target->uri->password(undef);
+# Without password.
+$target = App::Sqitch::Target->new( sqitch => $sqitch );
 ok $vta = $CLASS->new(sqitch => $sqitch, target => $target),
     'Create a vertica with sqitch with no pw';
 $exp_pass = undef;

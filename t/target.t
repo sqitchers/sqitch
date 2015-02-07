@@ -75,6 +75,13 @@ is $target->dsn, $uri->dbi_dsn, 'DSN should be from URI';
 is $target->username, $uri->user, 'Username should be from URI';
 is $target->password, $uri->password, 'Password should be from URI';
 
+do {
+    isa_ok my $target = $CLASS->new(sqitch => $sqitch), $CLASS;
+    local $ENV{SQITCH_PASSWORD} = 'S3cre7s';
+    is $target->password, $ENV{SQITCH_PASSWORD},
+        'Password should be from environment variable';
+};
+
 ##############################################################################
 # Let's look at how the object is created based on the params to new().
 # First try no params.
@@ -82,7 +89,7 @@ throws_ok { $CLASS->new } qr/^Missing required arguments:/,
     'Should get error for missing params';
 
 # Pass both name and URI.
-$uri = URI::db->new('db:pg://hi:@there@localhost/blah'),
+$uri = URI::db->new('db:pg://hi:there@localhost/blah'),
 isa_ok $target = $CLASS->new(
     sqitch => $sqitch,
     name   => 'foo',
@@ -96,8 +103,11 @@ is $target->sqitch, $sqitch, 'Sqitch should be as passed';
 is $target->engine_key, 'pg', 'Engine key should be "pg"';
 isa_ok $target->engine, 'App::Sqitch::Engine::pg', 'Engine';
 is $target->dsn, $uri->dbi_dsn, 'DSN should be from URI';
-is $target->username, $uri->user, 'Username should be from URI';
-is $target->password, $uri->password, 'Password should be from URI';
+is $target->username, 'hi', 'Username should be from URI';
+do {
+    local $ENV{SQITCH_PASSWORD} = 'lolz';
+    is $target->password, 'there', 'Password should be from URI, not environment';
+};
 
 # Pass a URI but no name.
 isa_ok $target = $CLASS->new(

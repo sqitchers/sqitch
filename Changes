@@ -15,6 +15,9 @@ Revision history for Perl extension App::Sqitch
      - Clarified the behavior of each `deploy` reversion mode with regard to
        deploy script vs. verify script failures, and with the expectation that
        deploy scripts are atomic.
+     - Target passwords can now be set via a single environment variable,
+       `$SQITCH_PASSWORD`, in addition to existing target-specific environment
+       variables.
 
 0.998  2015-01-15T22:17:44Z
      - Fixed a bug in `sqitch engine update-config` where it would add data to

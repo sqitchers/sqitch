@@ -41,7 +41,7 @@ sub destination {
            $ENV{TWO_TASK}
         || ( $^O eq 'MSWin32' ? $ENV{LOCAL} : undef )
         || $ENV{ORACLE_SID}
-        || $uri->user
+        || $self->username
         || $self->sqitch->sysuser
     );
     return $uri->as_string;
@@ -87,7 +87,7 @@ has dbh => (
         $self->use_driver;
 
         my $uri = $self->uri;
-        DBI->connect($uri->dbi_dsn, $uri->user, $uri->password, {
+        DBI->connect($uri->dbi_dsn, $self->username, $self->password, {
             PrintError        => 0,
             RaiseError        => 0,
             AutoCommit        => 1,
@@ -253,7 +253,7 @@ sub initialized {
           FROM all_tables
          WHERE owner = UPPER(?)
            AND table_name = 'CHANGES'
-    }, undef, $self->registry || $self->uri->user)->[0];
+    }, undef, $self->registry || $self->username)->[0];
 }
 
 sub _log_event {
@@ -642,10 +642,10 @@ sub _no_column_error  {
 }
 
 sub _script {
-    my $self   = shift;
-    my $uri    = $self->uri;
-    my $conn = $uri->user // '';
-    if (my $pass = $uri->password) {
+    my $self = shift;
+    my $uri  = $self->uri;
+    my $conn = $self->username // '';
+    if (my $pass = $self->password) {
         $pass =~ s/"/""/g;
         $conn .= qq{/"$pass"};
     }

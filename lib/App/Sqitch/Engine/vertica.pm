@@ -32,7 +32,7 @@ sub destination {
     $uri->password(undef) if $uri->password;
     $uri->dbname(
            $ENV{VSQL_DATABASE}
-        || $uri->user
+        || $self->username
         || $ENV{VSQL_USER}
         || $self->sqitch->sysuser
     );
@@ -48,10 +48,10 @@ has _vsql => (
         my $uri  = $self->uri;
         my @ret  = ( $self->client );
         for my $spec (
-            [ username => $uri->user   ],
-            [ dbname   => $uri->dbname ],
-            [ host     => $uri->host   ],
-            [ port     => $uri->_port  ],
+            [ username => $self->username ],
+            [ dbname   => $uri->dbname    ],
+            [ host     => $uri->host      ],
+            [ port     => $uri->_port     ],
             )
         {
             push @ret, "--$spec->[0]" => $spec->[1] if $spec->[1];
@@ -90,7 +90,8 @@ has dbh => (
         $uri->host($ENV{VSQL_HOST})         if !$uri->host     && $ENV{VSQL_HOST};
         $uri->port($ENV{VSQL_PORT})         if !$uri->_port    && $ENV{VSQL_PORT};
         $uri->user($ENV{VSQL_USER})         if !$uri->user     && $ENV{VSQL_USER};
-        $uri->password($ENV{VSQL_PASSWORD}) if !$uri->password && $ENV{VSQL_PASSWORD};
+        $uri->password($ENV{VSQL_PASSWORD} || $ENV{SQITCH_PASSWORD})
+            if !$uri->password && ($ENV{VSQL_PASSWORD} || $ENV{SQITCH_PASSWORD} );
 
         DBI->connect($uri->dbi_dsn, scalar $uri->user, scalar $uri->password, {
             PrintError        => 0,
@@ -479,8 +480,7 @@ sub name_for_change_id {
 sub _run {
     my $self   = shift;
     my $sqitch = $self->sqitch;
-    my $uri    = $self->uri;
-    my $pass   = $uri->password or return $sqitch->run( $self->vsql, @_ );
+    my $pass   = $self->password or return $sqitch->run( $self->vsql, @_ );
     local $ENV{VSQL_PASSWORD} = $pass;
     return $sqitch->run( $self->vsql, @_ );
 }
@@ -488,8 +488,7 @@ sub _run {
 sub _capture {
     my $self   = shift;
     my $sqitch = $self->sqitch;
-    my $uri    = $self->uri;
-    my $pass   = $uri->password or return $sqitch->capture( $self->vsql, @_ );
+    my $pass   = $self->password or return $sqitch->capture( $self->vsql, @_ );
     local $ENV{VSQL_PASSWORD} = $pass;
     return $sqitch->capture( $self->vsql, @_ );
 }
@@ -497,8 +496,7 @@ sub _capture {
 sub _probe {
     my $self   = shift;
     my $sqitch = $self->sqitch;
-    my $uri    = $self->uri;
-    my $pass   = $uri->password or return $sqitch->probe( $self->vsql, @_ );
+    my $pass   = $self->password or return $sqitch->probe( $self->vsql, @_ );
     local $ENV{VSQL_PASSWORD} = $pass;
     return $sqitch->probe( $self->vsql, @_ );
 }
@@ -507,8 +505,7 @@ sub _spool {
     my $self   = shift;
     my $fh     = shift;
     my $sqitch = $self->sqitch;
-    my $uri    = $self->uri;
-    my $pass   = $uri->password or return $sqitch->spool( $fh, $self->vsql, @_ );
+    my $pass   = $self->password or return $sqitch->spool( $fh, $self->vsql, @_ );
     local $ENV{VSQL_PASSWORD} = $pass;
     return $sqitch->spool( $fh, $self->vsql, @_ );
 }

@@ -177,6 +177,9 @@ $mock_sqitch->mock(spool => sub {
     }
 });
 
+$target = App::Sqitch::Target->new(sqitch => $sqitch);
+ok $mysql = $CLASS->new(sqitch => $sqitch, target => $target),
+    'Create a mysql with sqitch with options';
 $exp_pass = 's3cr3t';
 $target->uri->password($exp_pass);
 ok $mysql->_run(qw(foo bar baz)), 'Call _run';
@@ -191,11 +194,12 @@ ok $mysql->_capture(qw(foo bar baz)), 'Call _capture';
 is_deeply \@capture, [$mysql->mysql, qw(foo bar baz)],
     'Command should be passed to capture()';
 
-# Remove the password.
-$target->uri->password(undef);
+# Without password.
+$target = App::Sqitch::Target->new( sqitch => $sqitch );
 ok $mysql = $CLASS->new(sqitch => $sqitch, target => $target),
     'Create a mysql with sqitch with no pw';
 $exp_pass = undef;
+$target->uri->password($exp_pass);
 ok $mysql->_run(qw(foo bar baz)), 'Call _run again';
 is_deeply \@run, [$mysql->mysql, qw(foo bar baz)],
     'Command should be passed to run() again';
