@@ -27,3 +27,4 @@ install:
 script:
    - export HARNESS_OPTIONS=j10:c HARNESS_TIMER=1
    - dzil smoke --release --author --automated
+   - prove -lv t/item_formatter.t t/plan_command.t
