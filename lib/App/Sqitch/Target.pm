@@ -35,7 +35,7 @@ has password => (
     isa      => Maybe[Str],
     lazy    => 1,
     default => sub {
-        shift->uri->password || $ENV{SQITCH_PASSWORD};
+        $ENV{SQITCH_PASSWORD} || shift->uri->password
     }
 );
 

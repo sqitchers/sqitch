@@ -16,8 +16,7 @@ Revision history for Perl extension App::Sqitch
        deploy script vs. verify script failures, and with the expectation that
        deploy scripts are atomic.
      - Target passwords can now be set via a single environment variable,
-       `$SQITCH_PASSWORD`, in addition to existing target-specific environment
-       variables.
+       `$SQITCH_PASSWORD`. Its value will override URI-specified password.
      - Added the sqitch-passwords and sqitch-environment guides.
 
 0.998  2015-01-15T22:17:44Z

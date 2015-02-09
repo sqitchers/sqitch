@@ -106,7 +106,7 @@ is $target->dsn, $uri->dbi_dsn, 'DSN should be from URI';
 is $target->username, 'hi', 'Username should be from URI';
 do {
     local $ENV{SQITCH_PASSWORD} = 'lolz';
-    is $target->password, 'there', 'Password should be from URI, not environment';
+    is $target->password, 'lolz', 'Password should be from environment';
 };
 
 # Pass a URI but no name.
