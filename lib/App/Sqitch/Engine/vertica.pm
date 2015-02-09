@@ -84,14 +84,15 @@ has dbh => (
         $self->use_driver;
 
         # Set defaults in the URI.
+        my $target = $self->target;
         my $uri = $self->uri;
         # https://my.vertica.com/docs/5.1.6/HTML/index.htm#2736.htm
         $uri->dbname($ENV{VSQL_DATABASE})   if !$uri->dbname   && $ENV{VSQL_DATABASE};
         $uri->host($ENV{VSQL_HOST})         if !$uri->host     && $ENV{VSQL_HOST};
         $uri->port($ENV{VSQL_PORT})         if !$uri->_port    && $ENV{VSQL_PORT};
         $uri->user($ENV{VSQL_USER})         if !$uri->user     && $ENV{VSQL_USER};
-        $uri->password($ENV{VSQL_PASSWORD} || $ENV{SQITCH_PASSWORD})
-            if !$uri->password && ($ENV{VSQL_PASSWORD} || $ENV{SQITCH_PASSWORD} );
+        $uri->password($target->password || $ENV{VSQL_PASSWORD})
+            if !$uri->password && ($target->password || $ENV{VSQL_PASSWORD});
 
         DBI->connect($uri->dbi_dsn, scalar $uri->user, scalar $uri->password, {
             PrintError        => 0,
