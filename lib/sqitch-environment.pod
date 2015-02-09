@@ -1,0 +1,60 @@
+=encoding UTF-8
+
+=head1 Name
+
+sqitch-environment - Environment variables recognized by Sqitch
+
+=head1 Description
+
+Sqitch supports a number of environment variables that affect its
+functionality. This document lists them all, along with brief descriptions of
+their purposes and pointers to relevant documentation.
+
+=over
+
+=item C<SQITCH_CONFIG>
+
+Path to the project configuration file. Overrides the defaut, which is
+F<./sqitch.conf>. See L<sqitch-config> for details.
+
+=item C<SQITCH_USER_CONFIG>
+
+Path to the user's configuration file. Overrides the defaut, which is
+F<./.sqitch/sqitch.conf>. See L<sqitch-config> for details.
+
+=item C<SQITCH_SYSTEM_CONFIG>
+
+Path to the system's configuration file. Overrides the defaut, which is a file
+named C<sqitch.conf> in the directory identified by C<sqitch --etc>. See
+L<sqitch-config> for details.
+
+=item C<SQITCH_PASSWORD>
+
+Password to use when connecting to a database, for those database engines that
+support it. See L<sqitch-passwords> for details.
+
+=item C<SQITCH_EDITOR>
+
+The editor that Sqitch will launch when the user needs to edit some text (a
+change note, for example). If unset, C<$EDITOR> will be used; and if
+C<$EDITOR> is not set, the C<core.editor> configuration variable will be
+consulted, and if it's not set, Sqitch will invoke C<notepad.exe> on Windows
+and C<vi> elsewhere.
+
+=back
+
+=head1 See Also
+
+=over
+
+=item * L<sqitch-configuration>
+
+=item * L<sqitch-config>
+
+=item * L<sqitch-passwords>
+
+=back
+
+=head1 Sqitch
+
+Part of the L<sqitch> suite.

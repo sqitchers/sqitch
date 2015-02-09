@@ -94,3 +94,8 @@ DBA
 VM
 ODBC
 DSN
+GSS
+GSSAPI
+TLS
+ident
+passwordless

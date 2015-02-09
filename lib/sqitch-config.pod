@@ -223,17 +223,17 @@ System-wide configuration file.
 
 =item C<SQITCH_CONFIG>
 
-Take the local configuration from the given file instead of C<./sqitch.conf>.
+Take the local configuration from the given file instead of F<./sqitch.conf>.
 
 =item C<SQITCH_USER_CONFIG>
 
 Take the user configuration from the given file instead of
-C<~/.sqitch/sqitch.conf>.
+F<~/.sqitch/sqitch.conf>.
 
 =item C<SQITCH_SYSTEM_CONFIG>
 
 Take the system configuration from the given file instead of
-C<$($etc_prefix)/sqitch.conf>.
+F<$($etc_prefix)/sqitch.conf>.
 
 =back
 

@@ -467,8 +467,7 @@ The L<URI::db> object encapsulating the database connection information.
 
   my $username = $target->username;
 
-Returns the target username, if any. The username is looked up from the URI
-or the C<$SQITCH_USERNAME> environment variable.
+Returns the target username, if any. The username is looked up from the URI.
 
 =head3 C<password>
 
