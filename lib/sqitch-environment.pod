@@ -14,18 +14,18 @@ their purposes and pointers to relevant documentation.
 
 =item C<SQITCH_CONFIG>
 
-Path to the project configuration file. Overrides the defaut, which is
+Path to the project configuration file. Overrides the default, which is
 F<./sqitch.conf>. See L<sqitch-config> for details.
 
 =item C<SQITCH_USER_CONFIG>
 
-Path to the user's configuration file. Overrides the defaut, which is
+Path to the user's configuration file. Overrides the default, which is
 F<./.sqitch/sqitch.conf>. See L<sqitch-config> for details.
 
 =item C<SQITCH_SYSTEM_CONFIG>
 
-Path to the system's configuration file. Overrides the defaut, which is a file
-named C<sqitch.conf> in the directory identified by C<sqitch --etc>. See
+Path to the system's configuration file. Overrides the default, which is a
+file named C<sqitch.conf> in the directory identified by C<sqitch --etc>. See
 L<sqitch-config> for details.
 
 =item C<SQITCH_PASSWORD>
