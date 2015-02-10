@@ -25,6 +25,5 @@ install:
    - dzil listdeps | grep -vP '[^\w:]' | cpanm --quiet
 
 script:
-   - prove -lv t/item_formatter.t t/plan_command.t
-   - export HARNESS_OPTIONS=j10:c HARNESS_TIMER=1
+   - export AUTOMATED_TESTING=1 HARNESS_OPTIONS= HARNESS_TIMER=
    - dzil smoke --release --author --automated
