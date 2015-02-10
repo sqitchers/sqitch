@@ -26,4 +26,4 @@ install:
 
 script:
    - export AUTOMATED_TESTING=1 HARNESS_OPTIONS= HARNESS_TIMER=
-   - dzil smoke --release --author --automated
+   - prove -lv
