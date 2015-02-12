@@ -15,7 +15,7 @@ use namespace::autoclean;
 
 extends 'App::Sqitch::Engine';
 
-our $VERSION = '0.999';
+our $VERSION = '0.999_1';
 
 sub destination {
     my $self = shift;

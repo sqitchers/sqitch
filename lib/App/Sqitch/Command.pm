@@ -12,7 +12,7 @@ use List::Util qw(first);
 use Moo;
 use App::Sqitch::Types qw(Sqitch Target);
 
-our $VERSION = '0.999';
+our $VERSION = '0.999_1';
 
 has sqitch => (
     is       => 'ro',

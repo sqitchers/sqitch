@@ -15,7 +15,7 @@ use namespace::autoclean;
 extends 'App::Sqitch::Command';
 with 'App::Sqitch::Role::RevertDeployCommand';
 
-our $VERSION = '0.999';
+our $VERSION = '0.999_1';
 
 has onto_change => (
     is  => 'ro',
