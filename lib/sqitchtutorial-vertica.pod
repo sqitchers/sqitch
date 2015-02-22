@@ -2,7 +2,7 @@
 
 =head1 Name
 
-sqitchtutorial - A tutorial introduction to Sqitch change management on Vertica
+sqitchtutorial-vertica - A tutorial introduction to Sqitch change management on Vertica
 
 =head1 Synopsis
 
