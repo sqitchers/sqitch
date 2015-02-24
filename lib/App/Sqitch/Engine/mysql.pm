@@ -143,8 +143,11 @@ has _mysql => (
         #     push @ret => map {; "--$_", $vars{$_} } sort keys %vars;
         # }
 
+        my $is_maria = $self->sqitch->probe( $self->client, '--version' )
+            =~ /mariadb/i;
+
         push @ret => (
-            '--skip-pager',
+            ($is_maria ? '--disable-pager' : '--skip-pager' ),
             '--silent',
             '--skip-column-names',
             '--skip-line-numbers',
