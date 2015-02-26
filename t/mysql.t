@@ -48,7 +48,7 @@ is $mysql->registry_destination, 'db:mysql:sqitch',
     'registry_destination should be the same as registry_uri';
 
 my @std_opts = (
-    '--skip-pager',
+    ($^O eq 'MSWin32' ? () : '--skip-pager' ),
     '--silent',
     '--skip-column-names',
     '--skip-line-numbers',
@@ -94,7 +94,6 @@ my $mock_config = Test::MockModule->new('App::Sqitch::Config');
 $mock_config->mock(get => sub { $config{ $_[2] } });
 my $mysql_version = 'mysql  Ver 15.1 Distrib 10.0.15-MariaDB';
 $mock_sqitch->mock(probe => sub { $mysql_version });
-$std_opts[0] = '--disable-pager';
 
 $target = App::Sqitch::Target->new(sqitch => $sqitch);
 ok $mysql = $CLASS->new(sqitch => $sqitch, target => $target),

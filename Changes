@@ -2,8 +2,9 @@ Revision history for Perl extension App::Sqitch
 
 1.0
      - DateTime::TimeZone::Local::Win32 is now required on Windows.
-     - The MySQL engine now passes `--disable-pager` instead of `--skip-pager`
-       to the `mysql` client when it's a MariaDB client.
+     - The MySQL engine no longer passes `--skip-pager` on Windows, since
+       it is not supported there. Thanks to Gabriel Potkány for the report
+       (Issue #213).
 
 0.999  2015-02-12T19:43:45Z
      - Improved MySQL missing table error detection by relying on error codes
