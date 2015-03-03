@@ -950,7 +950,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2014 iovation Inc.
+Copyright (c) 2012-2015 iovation Inc.
 
 Copyright (c) 2013 Ștefan Suciu
 
