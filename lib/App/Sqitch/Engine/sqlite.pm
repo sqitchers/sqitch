@@ -228,14 +228,19 @@ sub run_handle {
     $self->_spool($fh);
 }
 
+sub run_upgrade {
+    my ($self, $file) = @_;
+    my @cmd = $self->sqlite3;
+    $cmd[-1] = $self->registry_uri->dbname;
+    return $self->sqitch->run( @cmd, $self->_read($file) );
+}
+
 sub _read {
     my $self = shift;
     my $cmd = '.read ' . $self->dbh->quote(shift);
     return $cmd if $^O ne 'MSWin32';
     return $self->sqitch->quote_shell($cmd);
 }
-
-1;
 
 1;
 

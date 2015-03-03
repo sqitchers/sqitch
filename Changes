@@ -5,6 +5,8 @@ Revision history for Perl extension App::Sqitch
      - The MySQL engine no longer passes `--skip-pager` on Windows, since
        it is not supported there. Thanks to Gabriel Potkány for the report
        (Issue #213).
+     - Fixed "no such table: changes" error when upgrading the SQLite
+       registry.
 
 0.999  2015-02-12T19:43:45Z
      - Improved MySQL missing table error detection by relying on error codes
