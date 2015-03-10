@@ -1630,6 +1630,43 @@ sub run {
         is $engine->change_id_for( change => 'users'), $change->id,
             'change_id_for() should find the earliest change ID';
 
+        ######################################################################
+        # Test the with_registry_prefix feature
+
+        subtest 'Test the with_registry_prefix feature' => sub {
+            unless ( exists $p{prefix_engine_params} ) {
+                plan skip_all => 'feature not implemented';
+            }
+
+            ok $engine = $class->new(
+                sqitch => $sqitch,
+                @{ $p{prefix_engine_params} || [] },
+                ),
+                'Create engine with alternate params';
+
+            is $engine->earliest_change_id, undef, 'No init, earliest change';
+            is $engine->latest_change_id, undef, 'No init, no latest change';
+
+            ok !$engine->initialized,
+                'Database should no longer seem initialized';
+            ok $engine->initialize,  'Initialize the database again';
+            ok $engine->initialized, 'Database should be initialized again';
+
+            foreach my $name ( keys %{ $engine->_registry_tables } ) {
+                my $table = $engine->_get_registry_table($name);
+                like $table, qr/^sqitch_/,
+                    "Registry table '$table' has a 'sqitch_' prefix";
+                my $success = try {
+                    $engine->dbh->selectcol_arrayref(
+                        qq{ SELECT COUNT(*) FROM $table} );
+                }
+                catch {
+                    return;
+                };
+                ok $success, "Registry table '$table' exists";
+            }
+        };
+
         # Unmock everything and call it a day.
         $mock_dbh->unmock_all;
         $mock_sqitch->unmock_all;
