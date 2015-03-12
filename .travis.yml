@@ -1,17 +1,18 @@
 language: perl
 perl:
-  - "blead"
-  - "dev"
-  - "5.20"
-  - "5.18"
-  - "5.16"
-  - "5.14"
-  - "5.12"
-  - "5.10.1"
   - "5.10.0"
+  - "5.10.1"
+  - "5.12"
+  - "5.14"
+  - "5.16"
+  - "5.18"
+  - "5.20"
+  - "dev"
+  - "blead"
 
 matrix:
   include:
+    - perl: 5.20
       env: COVERAGE=1
   allow_failures:
     - perl: "blead"
@@ -19,4 +20,31 @@ matrix:
 sudo: false
 
 before_install:
-  - eval $(curl https://travis-perl.github.io/init) --auto
+  - git clone git://github.com/travis-perl/helpers ~/travis-perl-helpers
+  - source ~/travis-perl-helpers/init
+  - build-perl
+  - perl -V
+  - build-dist
+  - cd $BUILD_DIR
+
+install:
+  - cpan-install --deps
+  - cpan-install --coverage
+
+before_script:
+  - coverage-setup
+script:
+  - prove -lv -j$(test-jobs) $(test-dirs)
+after_success:
+  - coverage-report
+
+notifications:
+  email: false
+  irc:
+    channels:
+      - "irc.freenode.net#sqitch"
+    template:
+      - "%{repository}#%{build_number} %{branch} by %{author}: %{message} (%{build_url})"
+    on_success: change
+    on_failure: always
+    skip_join: true
