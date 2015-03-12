@@ -227,8 +227,6 @@ sub initialize {
     # Deploy the registry to the Sqitch database.
     my $file_new = $fh->filename;
     $self->sqitch->run( @cmd, '--execute', "source $file_new" );
-
-    $self->run_upgrade( file(__FILE__)->dir->file('mysql.sql') );
     $self->_register_release;
 }
 
@@ -238,13 +236,10 @@ sub begin_work {
     my $self = shift;
     my $dbh  = $self->dbh;
 
-    my @tables = map { $self->_get_registry_table($_) }
-        ( qw(releases changes dependencies events projects tags) );
-
     # Start transaction and lock all tables to disallow concurrent changes.
     $dbh->do('LOCK TABLES ' . join ', ', map {
         "$_ WRITE"
-    } @tables );
+    } values %{$self->_registry_tables} );
 
     $dbh->begin_work;
     return $self;

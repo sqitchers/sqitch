@@ -27,7 +27,8 @@ requires '_no_table_error';
 memoize('_registry_tables');
 sub _registry_tables {
     my $self = shift;
-    my %h = map {$_ => ($self->with_registry_prefix ? "sqitch_$_" : $_) } qw /changes tags dependencies events projects/;
+    my %h = map { $_ => ( $self->with_registry_prefix ? "sqitch_$_" : $_ ) }
+        qw /releases changes tags dependencies events projects/;
     return \%h;        
 }
 

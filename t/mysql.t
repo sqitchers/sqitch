@@ -328,7 +328,7 @@ DBIEngineTest->run(
     engine_err_regex  => qr/^You have an error /,
     init_error        => __x(
         'Sqitch database {database} already initialized',
-        database => '__sqitchtest__',
+        database => '__sqitchtest',
     ),
     add_second_format => q{date_add(%s, interval 1 second)},
     test_dbh => sub {

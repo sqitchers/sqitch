@@ -2,7 +2,6 @@ BEGIN;
 
 SET SESSION sql_mode = ansi;
 
-<<<<<<< HEAD
 CREATE TABLE :prefix:releases (
     version         FLOAT         PRIMARY KEY
                     COMMENT 'Version of the Sqitch registry.',
