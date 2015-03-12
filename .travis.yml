@@ -35,6 +35,8 @@ before_script:
   - coverage-setup
 script:
   - prove -lr -j$(test-jobs) $(test-dirs)
+  - prove -lv t/mysql.t
+
 after_success:
   - coverage-report
 
