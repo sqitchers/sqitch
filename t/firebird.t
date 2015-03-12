@@ -355,6 +355,7 @@ DBIEngineTest->run(
     }],
     target_params     => [ uri => $uri, registry => catfile($tmpdir, '__metasqitch') ],
     alt_target_params => [ uri => $uri, registry => catfile($tmpdir, '__sqitchtest') ],
+    prefix_target_params => [ uri => $uri, with_registry_prefix => 1 ],
 
     skip_unless => sub {
         my $self = shift;

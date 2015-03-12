@@ -177,6 +177,7 @@ sub _quote_idents {
 
 sub initialized {
     my $self = shift;
+    my $changes = $self->_get_registry_table('changes');
 
     # Try to connect.
     my $dbh = try { $self->dbh } catch {
@@ -190,7 +191,7 @@ sub initialized {
           FROM information_schema.tables
          WHERE table_schema = ?
            AND table_name   = ?
-    }, undef, $self->registry, 'changes')->[0];
+    }, undef, $self->registry, $changes)->[0];
 }
 
 sub initialize {
@@ -200,17 +201,32 @@ sub initialize {
         database => $self->registry,
     ) if $self->initialized;
 
-    # Create the Sqitch database if it does not exist.
-    (my $db = $self->registry) =~ s/"/""/g;
-    $self->_run(
-        '--execute'  => sprintf(
-            'SET sql_mode = ansi; CREATE DATABASE IF NOT EXISTS "%s"',
-            $self->registry
-        ),
-    );
+    if ( !$self->with_registry_prefix ) {
+
+        # Create the Sqitch database if it does not exist.
+        ( my $db = $self->registry ) =~ s/"/""/g;
+        $self->_run(
+            '--execute' =>
+                sprintf(
+                'SET sql_mode = ansi; CREATE DATABASE IF NOT EXISTS "%s"',
+                $self->registry ),
+        );
+    }
+
+    my $file = file(__FILE__)->dir->file('mysql.sql');
+    my $prefix = $self->with_registry_prefix ? 'sqitch_' : '';
+    ( my $sql = scalar $file->slurp ) =~ s/:prefix:/$prefix/g;
+    require File::Temp;
+    my $fh = File::Temp->new;
+    print { $fh } $sql;
+
+    # Connect to the Sqitch database.
+    my @cmd = $self->mysql;
+    $cmd[1 + firstidx { $_ eq '--database' } @cmd ] = $self->registry;
 
     # Deploy the registry to the Sqitch database.
-    $self->run_upgrade( file(__FILE__)->dir->file('mysql.sql') );
+    my $file_new = $fh->filename;
+    $self->sqitch->run( @cmd, '--execute', "source $file_new" );
     $self->_register_release;
 }
 
@@ -218,12 +234,13 @@ sub initialize {
 # Sqitch runs at one time.
 sub begin_work {
     my $self = shift;
-    my $dbh = $self->dbh;
+    my $dbh  = $self->dbh;
 
     # Start transaction and lock all tables to disallow concurrent changes.
     $dbh->do('LOCK TABLES ' . join ', ', map {
         "$_ WRITE"
-    } qw(releases changes dependencies events projects tags));
+    } values %{$self->_registry_tables} );
+
     $dbh->begin_work;
     return $self;
 }
@@ -309,12 +326,13 @@ sub run_handle {
 
 sub _cid {
     my ( $self, $ord, $offset, $project ) = @_;
+    my $changes = $self->_get_registry_table('changes');
 
     my $offexpr = $offset ? " OFFSET $offset" : '';
     return try {
         return $self->dbh->selectcol_arrayref(qq{
             SELECT change_id
-              FROM changes
+              FROM $changes
              WHERE project = ?
              ORDER BY committed_at $ord
              LIMIT 1$offexpr
@@ -326,8 +344,6 @@ sub _cid {
         die $_;
     };
 }
-
-1;
 
 1;
 
