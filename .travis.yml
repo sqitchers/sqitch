@@ -19,8 +19,6 @@ matrix:
 sudo: false
 
 before_install:
-  - sudo apt-get update -qq
-  - sudo apt-get install -y aspell-en
   - git clone git://github.com/travis-perl/helpers ~/travis-perl-helpers
   - source ~/travis-perl-helpers/init
   - build-perl
