@@ -28,6 +28,7 @@ before_install:
   - cd $BUILD_DIR
 
 install:
+  - cpanm --verbose --no-interactive --no-man-pages --notest Params::Validate
   - cpan-install --deps
   - cpan-install --coverage
 
