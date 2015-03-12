@@ -1,29 +1,22 @@
 language: perl
 perl:
-  - "5.21"
+  - "blead"
+  - "dev"
   - "5.20"
-  - "5.20-extras"
   - "5.18"
-  - "5.18-extras"
   - "5.16"
   - "5.14"
   - "5.12"
-  - "5.10"
+  - "5.10.1"
+  - "5.10.0"
+
+matrix:
+  include:
+      env: COVERAGE=1
+  allow_failures:
+    - perl: "blead"
+
+sudo: false
 
 before_install:
-   # Prevent "Please tell me who you are" errors for certain DZIL configs
-   - git config --global user.name  "Travis CI"
-   - git config --global user.email "support@travis-ci.com"
-
-install:
-   - cpanm --quiet --notest --skip-satisfied Dist::Zilla
-   - cpanm --quiet --notest Test::MockModule
-   - cpanm --quiet Inline::C
-   - dzil authordeps | grep -vP '[^\w:]' | xargs -n 5 -P 10 cpanm --quiet --notest --skip-satisfied
-   - export AUTOMATED_TESTING=1 HARNESS_OPTIONS=j10:c HARNESS_TIMER=1
-   - cpanm --quiet --notest --skip-installed Encode
-   - dzil listdeps | grep -vP '[^\w:]' | cpanm --quiet
-
-script:
-   - export HARNESS_OPTIONS=j10:c HARNESS_TIMER=1
-   - dzil smoke --release --author --automated
+  - eval $(curl https://travis-perl.github.io/init) --auto
