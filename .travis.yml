@@ -34,12 +34,12 @@ install:
   - cpanm --verbose --no-interactive --no-man-pages --notest Params::Validate
   - cpan-install --deps
   - cpan-install --coverage
+  - perl -e 'eval { require DBI::DBD; }; print "$@\n" if $@;'
 
 before_script:
   - coverage-setup
 script:
   - prove -lr -j$(test-jobs) $(test-dirs)
-  - prove -lv t/firebird.t t/vertica.t
 
 after_success:
   - coverage-report
