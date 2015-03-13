@@ -7,6 +7,8 @@ Revision history for Perl extension App::Sqitch
        (Issue #213).
      - Fixed "no such table: changes" error when upgrading the SQLite
        registry.
+     - Fixed upgrade failure on PostgreSQL 8.4. Thanks to Phillip Smith for
+       the report!
 
 0.999  2015-02-12T19:43:45Z
      - Improved MySQL missing table error detection by relying on error codes
