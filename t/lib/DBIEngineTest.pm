@@ -1102,6 +1102,17 @@ sub run {
             name => 'crazyman',
             note => 'Crazy, right?',
         ), "Create external change";
+
+        # Because we're gonna use a regular expression on events.project to
+        # get events from multiple projects, we need to make sure that we get
+        # things in the proper order, such as on MySQL 5.5, where there is no
+        # datetime precision. So pretend we're about to insert another
+        # "engine" project record to get the MySQL engine to wait out a clock
+        # second tick before inserting our "groovy" change. This is purely so
+        # we get things back in the proper order for the `project => 'g'` test
+        # below. In reality it shouldn't matter much.
+        $engine->_prepare_to_log(events => $barney);
+
         ok $engine->log_deploy_change($ext_change), 'Log the external change';
         my $ext_event = {
             event           => 'deploy',
