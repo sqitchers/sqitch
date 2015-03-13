@@ -1334,6 +1334,10 @@ sub run {
 
             # Now test as an external dependency.
             EXTERNAL: {
+                # Make sure we have unique IDs.
+                $_->{id} = 'dcb10d16276c9be8956274740d9f332bd71344ed'
+                    for grep { $_->{id} } $dep_params, $chg_params;
+
                 # Make Change and Tag return registered external project "groovy".
                 $dep_params->{project} = 'groovy';
                 my $line_mocker = Test::MockModule->new('App::Sqitch::Plan::Line');

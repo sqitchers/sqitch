@@ -9,6 +9,13 @@ Revision history for Perl extension App::Sqitch
        registry.
      - Fixed upgrade failure on PostgreSQL 8.4. Thanks to Phillip Smith for
        the report!
+     - Reduced minimum required MySQL engine from 5.6.4 to 5.5.0. the feature
+       lost for versions less than 5.6.4 is fractional second precision on
+       registry `DATETIME` columns. Since the ordering of those timestamps is
+       so important to the functioning of Sqitch, it will sleep in 100 ms
+       increments between logging changes to the registry until the time has
+       ticked over to the next second. Naturally, reverts and deploys will be
+       a little slower on versions of MySQL before 5.6.4, but accurate.
 
 0.999  2015-02-12T19:43:45Z
      - Improved MySQL missing table error detection by relying on error codes

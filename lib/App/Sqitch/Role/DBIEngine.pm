@@ -435,6 +435,8 @@ sub _tag_subselect_columns {
     );
 }
 
+sub _prepare_to_log { $_[0] }
+
 sub log_deploy_change {
     my ($self, $change) = @_;
     my $dbh    = $self->dbh;
@@ -462,6 +464,8 @@ sub log_deploy_change {
         planner_email
         committed_at
     ));
+
+    $self->_prepare_to_log(changes => $change);
     $dbh->do(qq{
         INSERT INTO changes (
             $cols
@@ -559,6 +563,7 @@ sub _log_event {
         committed_at
     ));
 
+    $self->_prepare_to_log(events => $change);
     $dbh->do(qq{
         INSERT INTO events (
             $cols

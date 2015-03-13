@@ -10,7 +10,7 @@ use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::Plan::Change;
 use Path::Class;
 use Moo;
-use App::Sqitch::Types qw(DBH URIDB ArrayRef);
+use App::Sqitch::Types qw(DBH URIDB ArrayRef Bool);
 use namespace::autoclean;
 use List::MoreUtils qw(firstidx);
 
@@ -96,7 +96,7 @@ has dbh => (
         # Make sure we support this version.
         my ($dbms, $vnum, $vstr) = $dbh->{mysql_serverinfo} =~ /mariadb/i
             ? ('MariaDB', 50300, '5.3')
-            : ('MySQL',   50604, '5.6.4');
+            : ('MySQL',   50500, '5.5.0');
         hurl mysql => __x(
             'Sqitch requires {rdbms} {want_version} or higher; this is {have_version}',
             rdbms        => $dbms,
@@ -152,6 +152,18 @@ has _mysql => (
         return \@ret;
     },
 );
+
+has _fractional_seconds => (
+    is      => 'ro',
+    isa     => Bool,
+    lazy    => 1,
+    default => sub {
+        my $dbh = shift->dbh;
+        return $dbh->{mysql_serverinfo} !~ /mariadb/i
+            && $dbh->{mysql_serverversion} >= 50604;
+    },
+);
+
 
 sub mysql { @{ shift->_mysql } }
 
@@ -258,6 +270,28 @@ sub _listagg_format {
     return q{group_concat(%s SEPARATOR ' ')};
 }
 
+sub _prepare_to_log {
+    my ($self, $table, $change) = @_;
+    return $self if $self->_fractional_seconds;
+
+    # No sub-second precision, so delay logging a change until a second has passed.
+    my $dbh = $self->dbh;
+    my $sth = $dbh->prepare(qq{
+        SELECT UNIX_TIMESTAMP(committed_at) >= UNIX_TIMESTAMP()
+          FROM $table
+         WHERE project = ?
+         ORDER BY committed_at DESC
+         LIMIT 1
+    });
+    while ($dbh->selectcol_arrayref($sth, undef, $change->project)->[0]) {
+        # Sleep for 100 ms.
+        require Time::HiRes;
+        Time::HiRes::sleep(0.1);
+    }
+
+    return $self;
+}
+
 sub _run {
     my $self = shift;
     my $sqitch = $self->sqitch;
@@ -297,9 +331,19 @@ sub run_verify {
 
 sub run_upgrade {
     my ($self, $file) = @_;
+    my $dbh = $self->dbh;
     my @cmd = $self->mysql;
     $cmd[1 + firstidx { $_ eq '--database' } @cmd ] = $self->registry;
-    $self->sqitch->run( @cmd, '--execute', "source $file" );
+    return $self->sqitch->run( @cmd, '--execute', "source $file" )
+        if $self->_fractional_seconds;
+
+    # Need to strip out datetime precision.
+    (my $sql = scalar $file->slurp) =~ s{DATETIME\(\d+\)}{DATETIME}g;
+    require File::Temp;
+    my $fh = File::Temp->new;
+    print $fh $sql;
+    close $fh;
+    $self->sqitch->run( @cmd, '--execute', "source $fh" );
 }
 
 sub run_handle {
@@ -344,7 +388,7 @@ App::Sqitch::Engine::mysql - Sqitch MySQL Engine
 =head1 Description
 
 App::Sqitch::Engine::mysql provides the MySQL storage engine for Sqitch. It
-supports MySQL 5.6.4 and higher, as well as MariaDB 5.3.0 and higher.
+supports MySQL 5.5.0 and higher, as well as MariaDB 5.3.0 and higher.
 
 =head1 Interface
 
