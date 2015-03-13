@@ -288,8 +288,8 @@ my $err = try {
             unless $dbh->{mysql_serverversion} >= 50300;
     }
     else {
-        die "MySQL >= 50604 required; this is $dbh->{mysql_serverversion}\n"
-            unless $dbh->{mysql_serverversion} >= 50604;
+        die "MySQL >= 50500 required; this is $dbh->{mysql_serverversion}\n"
+            unless $dbh->{mysql_serverversion} >= 50500;
     }
 
     $dbh->do('CREATE DATABASE __sqitchtest__');
