@@ -16,9 +16,13 @@ matrix:
   allow_failures:
     - perl: "blead"
 
-sudo: false
-
 before_install:
+  - sudo apt-get update -qq
+  - sudo apt-get install -qq firebird2.5-superclassic firebird2.5-dev aspell-en unixodbc-dev
+  - sudo sed /ENABLE_FIREBIRD_SERVER=/s/no/yes/ -i /etc/default/firebird2.5
+  - cat /etc/default/firebird2.5 | grep ENABLE_FIREBIRD_SERVER
+  - sudo service firebird2.5-superclassic start
+
   - git clone git://github.com/travis-perl/helpers ~/travis-perl-helpers
   - source ~/travis-perl-helpers/init
   - build-perl
