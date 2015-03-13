@@ -10,7 +10,7 @@ use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::Plan::Change;
 use Path::Class;
 use Moo;
-use App::Sqitch::Types qw(DBH URIDB ArrayRef Bool);
+use App::Sqitch::Types qw(DBH URIDB ArrayRef Bool Str);
 use namespace::autoclean;
 use List::MoreUtils qw(firstidx);
 
@@ -108,7 +108,17 @@ has dbh => (
     }
 );
 
-# Need to wait until dbh is defined.
+has _ts_default => (
+    is      => 'ro',
+    isa     => Str,
+    lazy    => 1,
+    default => sub {
+        return 'utc_timestamp(6)' if shift->_fractional_seconds;
+        return 'utc_timestamp';
+    },
+);
+
+# Need to wait until dbh and _ts_default are defined.
 with 'App::Sqitch::Role::DBIEngine';
 
 has _mysql => (
@@ -179,8 +189,6 @@ sub _char2ts {
 sub _ts2char_format {
     return q{date_format(%s, 'year:%%Y:month:%%m:day:%%d:hour:%%H:minute:%%i:second:%%S:time_zone:UTC')};
 }
-
-sub _ts_default { 'utc_timestamp(6)' }
 
 sub _quote_idents {
     shift;
