@@ -31,10 +31,9 @@ before_install:
   - cd $BUILD_DIR
 
 install:
-  - cpanm --verbose --no-interactive --no-man-pages --notest Params::Validate
+  - cpanm --verbose --no-interactive --no-man-pages --notest Params::Validate DBI
   - cpan-install --deps
   - cpan-install --coverage
-  - perl -e 'eval { require DBI::DBD; }; print "$@\n" if $@;'
 
 before_script:
   - coverage-setup
