@@ -37,6 +37,7 @@ install:
 
 before_script:
   - coverage-setup
+
 script:
   - prove -lr -j$(test-jobs) $(test-dirs)
 

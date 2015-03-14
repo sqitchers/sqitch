@@ -2,7 +2,8 @@ App/Sqitch version 0.999_1
 ========================
 
 [![CPAN version](https://badge.fury.io/pl/App-Sqitch.svg)](http://badge.fury.io/pl/App-Sqitch)
-[![Build Status](https://travis-ci.org/theory/sqitch.svg?branch=master)](https://travis-ci.org/theory/sqitch)
+[![Build Status](https://travis-ci.org/theory/sqitch.svg)](https://travis-ci.org/theory/sqitch)
+
 [![Coverage Status](https://coveralls.io/repos/theory/sqitch/badge.svg)](https://coveralls.io/r/theory/sqitch)
 
 [Sqitch](http://sqitch.org/) is a database change management application. It
@@ -74,8 +75,6 @@ There have also been a number of presentations on Sqitch:
 
 Installation
 ------------
-
-[![Build Status](https://travis-ci.org/theory/sqitch.png)](https://travis-ci.org/theory/sqitch)
 
 To install Sqitch from a distribution download, type the following:
 
