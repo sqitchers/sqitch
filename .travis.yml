@@ -31,7 +31,7 @@ before_install:
   - cd $BUILD_DIR
 
 install:
-  - cpanm --verbose --no-interactive --no-man-pages --notest Params::Validate DBI
+  - cpanm --verbose --no-interactive --no-man-pages --notest Params::Validate DBI File::Which Test::More Test::Exception Time::HiRes
   - cpan-install --deps
   - cpan-install --coverage
 
