@@ -168,6 +168,13 @@ sub configure {
         App::Sqitch::DateTime->validate_as_string_format($format);
     }
 
+    # Set boolean options from config.
+    for my $key (qw(show_changes show_tags)) {
+        next if exists $opt->{$key};
+        my $val = $config->get(key => "status.$key", as => 'bool') // next;
+        $opt->{$key} = $val;
+    }
+
     my $ret = $class->SUPER::configure( $config, $opt );
     $ret->{target_name} = delete $ret->{target} if exists $ret->{target};
     return $ret;
