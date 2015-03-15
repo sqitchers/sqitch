@@ -401,7 +401,7 @@ App::Sqitch::Engine::mysql - Sqitch MySQL Engine
 =head1 Description
 
 App::Sqitch::Engine::mysql provides the MySQL storage engine for Sqitch. It
-supports MySQL 5.1.0 and higher (best on 5.6.4 and higer), as well as MariaDB
+supports MySQL 5.1.0 and higher (best on 5.6.4 and higher), as well as MariaDB
 5.3.0 and higher.
 
 =head1 Interface
