@@ -288,8 +288,8 @@ my $err = try {
             unless $dbh->{mysql_serverversion} >= 50300;
     }
     else {
-        die "MySQL >= 50500 required; this is $dbh->{mysql_serverversion}\n"
-            unless $dbh->{mysql_serverversion} >= 50500;
+        die "MySQL >= 50100 required; this is $dbh->{mysql_serverversion}\n"
+            unless $dbh->{mysql_serverversion} >= 50100;
     }
 
     $dbh->do('CREATE DATABASE __sqitchtest__');
@@ -332,7 +332,7 @@ DBIEngineTest->run(
         for my $spec (
             [character_set_client   => 'utf8'],
             [character_set_server   => 'utf8'],
-            [default_storage_engine => 'InnoDB'],
+            ($dbh->{mysql_serverversion} < 50500 ? () : ([default_storage_engine => 'InnoDB'])),
             [time_zone              => '+00:00'],
             [group_concat_max_len   => 32768],
         ) {

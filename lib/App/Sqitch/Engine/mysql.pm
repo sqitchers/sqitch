@@ -75,7 +75,7 @@ has dbh => (
                     $dbh->do("SET SESSION $_") for (
                         q{character_set_client   = 'utf8'},
                         q{character_set_server   = 'utf8'},
-                        q{default_storage_engine = 'InnoDB'},
+                        ($dbh->{mysql_serverversion} < 50500 ? () : (q{default_storage_engine = 'InnoDB'})),
                         q{time_zone              = '+00:00'},
                         q{group_concat_max_len   = 32768},
                         q{sql_mode = '} . join(',', qw(
@@ -96,7 +96,7 @@ has dbh => (
         # Make sure we support this version.
         my ($dbms, $vnum, $vstr) = $dbh->{mysql_serverinfo} =~ /mariadb/i
             ? ('MariaDB', 50300, '5.3')
-            : ('MySQL',   50500, '5.5.0');
+            : ('MySQL',   50100, '5.1.0');
         hurl mysql => __x(
             'Sqitch requires {rdbms} {want_version} or higher; this is {have_version}',
             rdbms        => $dbms,
@@ -347,6 +347,11 @@ sub run_upgrade {
 
     # Need to strip out datetime precision.
     (my $sql = scalar $file->slurp) =~ s{DATETIME\(\d+\)}{DATETIME}g;
+
+    # Strip out 5.5 stuff on earlier versions.
+    $sql =~ s/-- ## BEGIN 5[.]5.+?-- ## END 5[.]5//ms if $dbh->{mysql_serverversion} < 50500;
+
+    # Write out a temp file and execute it.
     require File::Temp;
     my $fh = File::Temp->new;
     print $fh $sql;
@@ -396,7 +401,8 @@ App::Sqitch::Engine::mysql - Sqitch MySQL Engine
 =head1 Description
 
 App::Sqitch::Engine::mysql provides the MySQL storage engine for Sqitch. It
-supports MySQL 5.5.0 and higher, as well as MariaDB 5.3.0 and higher.
+supports MySQL 5.1.0 and higher (best on 5.6.4 and higer), as well as MariaDB
+5.3.0 and higher.
 
 =head1 Interface
 

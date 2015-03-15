@@ -221,11 +221,12 @@ did was it was supposed to. It should do so without regard to any data that
 might be in the database, and should throw an error if the deploy was not
 successful. The simplest way to see if a user exists is to check the
 C<mysql.user> table. However, throwing an error in the event that the user
-does not exist is tricky in MySQL. To simplify things, Sqitch provides a
-custom function you can use in your tests, C<checkit()>. It works kind of like
-a C<CHECK> constraint in other databases: pass an expression as the first
-argument, and an error message as the second. If the expression evaluates to
-false, an exception will be thrown with the error message.
+does not exist is tricky in MySQL. To simplify things, on MySQL 5.5.0 and
+higher, Sqitch provides a custom function you can use in your tests,
+C<checkit()>. It works kind of like a C<CHECK> constraint in other databases:
+pass an expression as the first argument, and an error message as the second.
+If the expression evaluates to false, an exception will be thrown with the
+error message.
 
 Give it a try. Put this query into F<verify/appuser.sql>:
 
