@@ -25,5 +25,5 @@ Formatting
     --date-format --date <format>    show dates in the specified format
     --color                          use ANSI colors
     --no-color                       never use ANSI colors
-    --abrev                          abbreviate change IDs
+    --abbrev                         abbreviate change IDs
     --oneline                        shorthand for --format oneline --abbrev 6

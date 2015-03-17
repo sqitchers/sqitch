@@ -33,6 +33,8 @@ Revision history for Perl extension App::Sqitch
      - Fixed an error when the `status` command `show_changes` and `show_tags`
        configuration variables were set. Thanks to Adrian Klaver for the
        report (Issue #219).
+     - Fixed `log` and `plan` usage statements to properly spell `--abbrev`.
+       Thanks to Adrian Klaver for the report (Issue #220).
 
 0.999  2015-02-12T19:43:45Z
      - Improved MySQL missing table error detection by relying on error codes
