@@ -29,7 +29,7 @@ has lspace => (
 );
 
 has rspace => (
-    is       => 'ro',
+    is       => 'rwp',
     isa      => Str,
     default  => '',
 );
@@ -51,6 +51,11 @@ has note => (
     isa      => Str,
     default  => '',
 );
+
+after note => sub {
+    my $self = shift;
+    $self->_set_rspace(' ') if $_[0] && !$self->rspace;
+};
 
 has plan => (
     is       => 'ro',
@@ -77,6 +82,7 @@ sub BUILDARGS {
         $note =~ s/\s+\z//;
         $note =~ s/(\\[\\nr])/$unescape{$1}/g;
         $p->{note} = $note;
+        $p->{rspace} //= ' ' if $note && $p->{name};
     }
     return $p;
 }
@@ -114,7 +120,7 @@ sub request_note {
     $note =~ s/\A\v+//;
     $note =~ s/\v+\z//;
 
-    # Set the note via the meta API, bypassing the read-only constraint.
+    # Set the note.
     $self->note($note);
     return $note;
 }

@@ -748,7 +748,6 @@ sub tag {
         plan   => $self,
         name   => $name,
         change => $change,
-        rspace => $p{note} ? ' ' : '',
     );
 
     $change->add_tag($tag);
@@ -803,8 +802,6 @@ sub add {
     }
 
     $self->_parse_deps(\%p);
-
-    $p{rspace} //= ' ' if $p{note};
     my $change = App::Sqitch::Plan::Change->new( %p, plan => $self );
 
     # Make sure dependencies are valid.
