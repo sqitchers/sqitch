@@ -93,7 +93,33 @@ sub write_plan {
     my ( $self, $project ) = @_;
     my $target = $self->default_target;
     my $file   = $target->plan_file;
-    return $self if -f $file;
+
+    if (-e $file) {
+        hurl init => __x(
+            'Cannot initialize because {file} already exists and is not a file',
+            file => $file,
+        ) unless -f $file;
+
+        # Try to load the plan file.
+        my $plan = App::Sqitch::Plan->new(
+            sqitch => $self->sqitch,
+            file   => $file,
+            target => $self->default_target,
+        );
+        my $file_proj = try { $plan->project } or hurl init => __x(
+            'Cannot initialize because {file} already exists and is not a valid plan file',
+            file => $file,
+        );
+
+        # Bail if this plan file looks like it's for a different project.
+        hurl init => __x(
+            'Cannot initialize because project "{project}" already initialized in {file}',
+            project => $plan->project,
+            file    => $file,
+        ) if $plan->project ne $project;
+        return $self;
+    }
+
     $self->_mkdir( $file->dir ) unless -d $file->dir;
 
     my $fh = $file->open('>:utf8_strict') or hurl init => __x(

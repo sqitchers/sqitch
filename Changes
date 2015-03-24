@@ -38,6 +38,9 @@ Revision history for Perl extension App::Sqitch
      - Fixed the formatting of change notes so that a space preceeds the `#`
        character whether the note was added by the `--note` option or via an
        editor.
+     - The `init` command now throws an error when the plan file already
+       exists and is invalid or defined for a different project. Thanks to
+       Gabriel Potkány for the suggestion (Issue #214).
 
 0.999  2015-02-12T19:43:45Z
      - Improved MySQL missing table error detection by relying on error codes
