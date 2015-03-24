@@ -315,6 +315,17 @@ cmp_deeply $parsed, {
     ],
 }, 'Should have lines and changes for tagless plan';
 
+# Try plans with DOS line endings.
+$file = file qw(t plans dos.plan);
+$fh = $file->open('<:utf8_strict');
+ok $parsed = $plan->_parse($file, $fh), 'Should read plan with DOS line endings';
+is sorted, 1, 'Should have sorted changes';
+cmp_deeply delete $parsed->{pragmas}, {
+    syntax_version => App::Sqitch::Plan::SYNTAX_VERSION,
+    project        => 'dos',
+}, 'Should have captured the dos pragmas';
+
+
 # Try a plan with a bad change name.
 $file = file qw(t plans bad-change.plan);
 $fh = $file->open('<:utf8_strict');

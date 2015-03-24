@@ -41,6 +41,8 @@ Revision history for Perl extension App::Sqitch
      - The `init` command now throws an error when the plan file already
        exists and is invalid or defined for a different project. Thanks to
        Gabriel Potkány for the suggestion (Issue #214).
+     - Fixed a bug when parsing plan files with DOS/Windows line endings.
+       Thanks to Timothy Procter for the report (Issue #212).
 
 0.999  2015-02-12T19:43:45Z
      - Improved MySQL missing table error detection by relying on error codes

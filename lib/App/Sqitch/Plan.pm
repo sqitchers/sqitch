@@ -189,7 +189,7 @@ sub _parse {
 
     # First, find pragmas.
     HEADER: while ( my $line = $fh->getline ) {
-        chomp $line;
+        $line =~ s/\r?\n\z//;
 
         # Grab blank lines first.
         if ($line =~ /\A(?<lspace>[[:blank:]]*)(?:#[[:blank:]]*(?<note>.+)|$)/) {
@@ -266,7 +266,7 @@ sub _parse {
     ) unless $pragmas{project};
 
     LINE: while ( my $line = $fh->getline ) {
-        chomp $line;
+        $line =~ s/\r?\n\z//;
 
         # Grab blank lines first.
         if ($line =~ /\A(?<lspace>[[:blank:]]*)(?:#[[:blank:]]*(?<note>.+)|$)/) {
