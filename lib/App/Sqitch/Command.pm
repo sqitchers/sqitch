@@ -225,7 +225,8 @@ sub parse_args {
     }
 
     # Make sure we have the default target
-    push @{ $ret{targets} } => $target if $target && !@{ $ret{targets} };
+    push @{ $ret{targets} } => $target
+        if $target && !$p{no_default} && !@{ $ret{targets} };
 
     return %ret;
 }

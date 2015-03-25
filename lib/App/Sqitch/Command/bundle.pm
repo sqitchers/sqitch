@@ -34,45 +34,25 @@ has dest_dir => (
     default  => sub { dir 'bundle' },
 );
 
-has dest_top_dir => (
-    is       => 'ro',
-    isa      => Dir,
-    lazy     => 1,
-    default  => sub {
-        my $self = shift;
-        dir $self->dest_dir, $self->default_target->top_dir->relative;
-    },
-);
+sub dest_top_dir {
+    my $self = shift;
+    dir $self->dest_dir, shift->top_dir->relative;
+}
 
-has dest_deploy_dir => (
-    is       => 'ro',
-    isa      => Dir,
-    lazy     => 1,
-    default  => sub {
-        my $self = shift;
-        dir $self->dest_dir, $self->default_target->deploy_dir->relative;
-    },
-);
+sub dest_deploy_dir {
+    my $self = shift;
+    dir $self->dest_dir, shift->deploy_dir->relative;
+}
 
-has dest_revert_dir => (
-    is       => 'ro',
-    isa      => Dir,
-    lazy     => 1,
-    default  => sub {
-        my $self = shift;
-        dir $self->dest_dir, $self->default_target->revert_dir->relative;
-    },
-);
+sub dest_revert_dir {
+    my $self = shift;
+    dir $self->dest_dir, shift->revert_dir->relative;
+}
 
-has dest_verify_dir => (
-    is       => 'ro',
-    isa      => Dir,
-    lazy     => 1,
-    default  => sub {
-        my $self = shift;
-        dir $self->dest_dir, $self->default_target->verify_dir->relative;
-    },
-);
+sub dest_verify_dir {
+    my $self = shift;
+    dir $self->dest_dir, shift->verify_dir->relative;
+}
 
 sub options {
     return qw(
@@ -99,12 +79,43 @@ sub configure {
     return \%params;
 }
 
+sub _targets {
+    my $self = shift;
+    my %args = $self->parse_args(args => shift, no_default => 1);
+
+    # Die on unknowns and changes.
+    if (my @unknown = (@{ $args{unknown} }, @{ $args{changes} }) ) {
+        hurl deploy => __nx(
+            'Unknown argument "{arg}"',
+            'Unknown arguments: {arg}',
+            scalar @unknown,
+            arg => join ', ', @unknown
+        );
+    }
+
+    # Return targets if we've got them.
+    return @{ $args{targets} } if @{ $args{targets} };
+
+    # Return the default target if --engine was passed.
+    return $self->default_target if $self->sqitch->options->{engine};
+
+    # Return all configured targets.
+    return App::Sqitch::Target->all_targets( sqitch => $self->sqitch );
+}
+
 sub execute {
     my $self = shift;
     $self->info(__x 'Bundling into {dir}', dir => $self->dest_dir );
     $self->bundle_config;
-    $self->bundle_plan;
-    $self->bundle_scripts;
+
+    my %seen;
+    for my $target( $self->_targets(\@_) ) {
+        next if $seen{$target->plan_file}++;
+        $self->bundle_plan($target);
+        $self->bundle_scripts($target);
+    }
+
+    return $self;
 }
 
 sub _mkpath {
@@ -163,15 +174,16 @@ sub bundle_config {
 }
 
 sub bundle_plan {
-    my $self   = shift;
-    my $target = $self->default_target;
+    my ($self, $target) = @_;
+
+    my $dir = $self->dest_top_dir($target);
 
     if (!defined $self->from && !defined $self->to) {
         $self->info(__ 'Writing plan');
         my $file = $target->plan_file;
         return $self->_copy_if_modified(
             $file,
-            $self->dest_top_dir->file( $file->basename ),
+            $dir->file( $file->basename ),
         );
     }
 
@@ -182,18 +194,15 @@ sub bundle_plan {
     ));
 
     $target->plan->write_to(
-        $self->dest_top_dir->file( $target->plan_file->basename ),
+        $dir->file( $target->plan_file->basename ),
         $self->from,
         $self->to,
     );
 }
 
 sub bundle_scripts {
-    my $self = shift;
-    my $target = $self->default_target;
-    my $top  = $target->top_dir;
+    my ($self, $target) = @_;
     my $plan = $target->plan;
-    my $dir  = $self->dest_dir;
 
     my $from_index = $plan->index_of(
         $self->from // '@ROOT'
@@ -217,19 +226,19 @@ sub bundle_scripts {
         if (-e ( my $file = $change->deploy_file )) {
             $self->_copy_if_modified(
                 $file,
-                $self->dest_deploy_dir->file( $change->path_segments )
+                $self->dest_deploy_dir($target)->file( $change->path_segments )
             );
         }
         if (-e ( my $file = $change->revert_file )) {
             $self->_copy_if_modified(
                 $file,
-                $self->dest_revert_dir->file( $change->path_segments )
+                $self->dest_revert_dir($target)->file( $change->path_segments )
             );
         }
         if (-e ( my $file = $change->verify_file )) {
             $self->_copy_if_modified(
                 $file,
-                $self->dest_verify_dir->file( $change->path_segments )
+                $self->dest_verify_dir($target)->file( $change->path_segments )
             );
         }
         $plan->next;
@@ -284,17 +293,17 @@ Copies the configuration file to the bundle directory.
 
 =head3 C<bundle_plan>
 
- $bundle->bundle_plan;
+ $bundle->bundle_plan($target);
 
-Copies the plan file to the bundle directory.
+Copies the plan file for the specified target to the bundle directory.
 
 =head3 C<bundle_scripts>
 
- $bundle->bundle_scripts;
+ $bundle->bundle_scripts($target);
 
-Copies the deploy, revert, and verify scripts for each step in the plan to the
-bundle directory. Files in the script directories that do not correspond to
-changes in the plan will not be copied.
+Copies the deploy, revert, and verify scripts for each step in the plan for
+the specified target to the bundle directory. Files in the script directories
+that do not correspond to changes in the plan will not be copied.
 
 =head1 See Also
 

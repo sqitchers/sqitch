@@ -43,6 +43,9 @@ Revision history for Perl extension App::Sqitch
        Gabriel Potkány for the suggestion (Issue #214).
      - Fixed a bug when parsing plan files with DOS/Windows line endings.
        Thanks to Timothy Procter for the report (Issue #212).
+     - The `bundle` command now bundles the files for all plans known from the
+       configuration, not just the default plan. Pass target names to limit
+       the bundle to the plans for specific targets.
 
 0.999  2015-02-12T19:43:45Z
      - Improved MySQL missing table error detection by relying on error codes
