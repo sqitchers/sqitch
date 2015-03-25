@@ -371,6 +371,49 @@ sub BUILDARGS {
     return $p;
 }
 
+sub all_targets {
+    my ($class, %p) = @_;
+    my $sqitch = $p{sqitch} or hurl 'Missing required argument: sqitch';
+    my (@targets, %seen);
+    my %dump = $sqitch->config->dump;
+
+    # First, load the default target.
+    my $core = $dump{'core.target'} || do {
+        if ( my $engine = $sqitch->options->{engine} || $dump{'core.engine'} ) {
+            $dump{"engine.$engine.target"} || "db:$engine:";
+        }
+    };
+    push @targets => $seen{$core} = $class->new(sqitch => $sqitch, name => $core)
+        if $core;
+
+    # Next, load named targets.
+    for my $key (keys %dump) {
+        next if $key !~ /^target[.]([^.]+)[.]uri$/;
+        push @targets => $seen{$1} = $class->new(sqitch => $sqitch, name => $1)
+            unless $seen{$1};
+    }
+
+    # Now, load the engine targets.
+    while ( my ($key, $val) = each %dump ) {
+        next if $key !~ /^engine[.]([^.]+)[.]target$/;
+        push @targets => $seen{$val} = $class->new(sqitch => $sqitch, name => $val)
+            unless $seen{$val};
+        $seen{$1} = $seen{$val};
+    }
+
+    # Finally, load any engines for which no target name was specified.
+    while ( my ($key, $val) = each %dump ) {
+        my ($engine) = $key =~ /^engine[.]([^.]+)/ or next;
+        next if $seen{$engine}++;
+        my $uri = URI->new("db:$engine:");
+        push @targets => $seen{$uri} = $class->new(sqitch => $sqitch, uri => $uri)
+            unless $seen{$uri};
+    }
+
+    # Return all the targets.
+    return @targets;
+}
+
 1;
 
 __END__
@@ -396,12 +439,14 @@ target to work with the plan or database.
 
 =head1 Interface
 
+=head2 Constructors
+
 =head3 C<new>
 
   my $target = App::Sqitch::Target->new( sqitch => $sqitch );
 
 Instantiates and returns an App::Sqitch::Target object. The most important
-parameters are C<sqitch>, C<name> and C<uri>. The constructor tries really
+parameters are C<sqitch>, C<name>, and C<uri>. The constructor tries really
 hard to figure out the proper name and URI during construction. If the C<uri>
 parameter is passed, this is straight-forward: if no C<name> is passed,
 C<name> will be set to the stringified format of the URI (minus the password,
@@ -438,6 +483,26 @@ As a general rule, then, pass either a target name or URI string in the
 C<name> parameter, and Sqitch will do its best to find all the relevant target
 information. And if there is no name or URI, it will try to construct a
 reasonable default from the command-line options or engine configuration.
+
+=head3 C<all_targets>
+
+Returns a list of all the targets defined by the Sqitch configuration files.
+Done by examining the configuration object to find all defined targets and
+engines, as well as the the default "core" target. Duplicates are removed and
+the list returned. This method takes two parameters:
+
+=over
+
+=item * C<sqitch>
+
+An L<App::Sqitch> object. Required.
+
+=item * C<config>
+
+An L<App::Sqitch::Config> object. If not passed, the object stored in the
+Sqitch object's C<config> attribute will be used.
+
+=back
 
 =head2 Accessors
 

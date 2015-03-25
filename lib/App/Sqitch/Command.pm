@@ -54,8 +54,9 @@ has default_target => (
         my $sqitch = shift->sqitch;
         my @params = (sqitch => $sqitch);
         unless (
-            $sqitch->options->{engine}
+               $sqitch->options->{engine}
             || $sqitch->config->get(key => 'core.engine')
+            || $sqitch->config->get(key => 'core.target')
         ) {
             # No specified engine, so specify an engineless URI.
             require URI::db;
@@ -192,6 +193,7 @@ sub usage {
         '-message' => join '', @_
     );
 }
+
 
 sub parse_args {
     my ($self, %p) = @_;

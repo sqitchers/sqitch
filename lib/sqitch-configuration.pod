@@ -571,7 +571,7 @@ you need a custom directory, specify it via the following:
 
 =item C<plan_file>
 
-The project deployment plan file, which defaults toF<C<$top_dir/sqitch.plan>>.
+The project deployment plan file, which defaults to F<C<$top_dir/sqitch.plan>>.
 If you need a different file, specify it via the following:
 
 =over

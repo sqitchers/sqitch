@@ -5,7 +5,7 @@ use warnings;
 use utf8;
 use Test::More;
 use App::Sqitch;
-use Path::Class qw(dir);
+use Path::Class qw(dir file);
 use Test::Exception;
 use Test::MockModule;
 use Locale::TextDomain qw(App-Sqitch);
@@ -528,5 +528,74 @@ CONFIG: {
     is $target->extension, 'opt', 'Extension should be "opt"';
 }
 
-done_testing;
+sub _load($) {
+    my $config = App::Sqitch::Config->new;
+    $config->load_file(file 't', "$_[0].conf");
+    return $config;
+}
 
+ALL: {
+    # Let's test loading all targets. Start with only core.
+    local $ENV{SQITCH_CONFIG} = file qw(t core.conf);
+    my $sqitch = App::Sqitch->new;
+    ok my @targets = $CLASS->all_targets(sqitch => $sqitch), 'Load all targets';
+    is @targets, 1, 'Should have one target';
+    is $targets[0]->name, 'db:pg:',
+        'It should be the generic core enginetarget';
+
+    # Now load one with a core target defined.
+    $ENV{SQITCH_CONFIG} = file qw(t core_target.conf);
+    $sqitch = App::Sqitch->new;
+    ok @targets = $CLASS->all_targets(sqitch => $sqitch),
+        'Load all targets with core target config';
+    is @targets, 1, 'Should again have one target';
+    is $targets[0]->name, 'db:pg:whatever', 'It should be the named target';
+
+    # Try it with both engine and target defined.
+    $sqitch->config->load_file(file 't', 'core.conf');
+    ok @targets = $CLASS->all_targets(sqitch => $sqitch),
+        'Load all targets with core engine and target config';
+    is @targets, 1, 'Should still have one target';
+    is $targets[0]->name, 'db:pg:whatever', 'It should again be the named target';
+
+    # Great, now let's load one with some engines in it.
+    $ENV{SQITCH_CONFIG} = file qw(t user.conf);
+    $sqitch = App::Sqitch->new;
+    ok @targets = $CLASS->all_targets(sqitch => $sqitch), 'Load all user conf targets';
+    is @targets, 4, 'Should have four user targets';
+    is_deeply [ sort map { $_->name } @targets ], [
+        'db:firebird:',
+        'db:mysql:',
+        'db:pg://postgres@localhost/thingies',
+        'db:sqlite:my.db',
+    ], 'Should have all the engine targets';
+
+    # Load one with targets.
+    $ENV{SQITCH_CONFIG} = file qw(t target.conf);
+    $sqitch = App::Sqitch->new;
+    ok @targets = $CLASS->all_targets(sqitch => $sqitch), 'Load all target conf targets';
+    is @targets, 4, 'Should have three targets';
+    is $targets[0]->name, 'db:pg:', 'Core engine should be default target';
+    is_deeply [ sort map { $_->name } @targets ], [qw(db:pg: dev prod qa)],
+        'Should have the core target plus the named targets';
+
+    # Load one with engins and targets.
+    $ENV{SQITCH_CONFIG} = file qw(t local.conf);
+    $sqitch = App::Sqitch->new;
+    ok @targets = $CLASS->all_targets(sqitch => $sqitch), 'Load all local conf targets';
+    is @targets, 2, 'Should have two local targets';
+    is $targets[0]->name, 'mydb', 'Core engine should be lead to default target';
+    is_deeply [ sort map { $_->name } @targets ], [qw(devdb mydb)],
+        'Should have the core target plus the named targets';
+
+    # Mix up a core engine, engines, and targets.
+    $ENV{SQITCH_CONFIG} = file qw(t engine.conf);
+    $sqitch = App::Sqitch->new;
+    ok @targets = $CLASS->all_targets(sqitch => $sqitch), 'Load all engine conf targets';
+    is @targets, 3, 'Should have three engine conf targets';
+    is_deeply [ sort map { $_->name } @targets ], [qw(db:mysql://root@/foo db:pg:try widgets)],
+        'Should have the engine and target targets';
+}
+
+
+done_testing;
