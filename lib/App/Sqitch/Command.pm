@@ -14,6 +14,15 @@ use App::Sqitch::Types qw(Sqitch Target);
 
 our $VERSION = '0.999_1';
 
+use constant ENGINES => qw(
+    pg
+    sqlite
+    mysql
+    oracle
+    firebird
+    vertica
+);
+
 has sqitch => (
     is       => 'ro',
     isa      => Sqitch,
@@ -249,6 +258,28 @@ App::Sqitch::Command - Sqitch Command support
 App::Sqitch::Command is the base class for all Sqitch commands.
 
 =head1 Interface
+
+=head2 Constants
+
+=head3 C<ENGINES>
+
+Returns the list of supported engines, currently:
+
+=over
+
+=item * C<firebird>
+
+=item * C<mysql>
+
+=item * C<oracle>
+
+=item * C<pg>
+
+=item * C<sqlite>
+
+=item * C<vertica>
+
+=back
 
 =head2 Class Methods
 

@@ -11,6 +11,7 @@ use Path::Class;
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use File::Copy ();
+use List::Util qw(first);
 use namespace::autoclean;
 
 extends 'App::Sqitch::Command';
@@ -82,25 +83,55 @@ sub configure {
 sub _targets {
     my $self = shift;
     my %args = $self->parse_args(args => shift, no_default => 1);
+    my $sqitch = $self->sqitch;
 
     # Die on unknowns and changes.
-    if (my @unknown = (@{ $args{unknown} }, @{ $args{changes} }) ) {
-        hurl deploy => __nx(
+    if (my @others = (@{ $args{unknown} }, @{ $args{changes} }) ) {
+        # Well, see if they're not actually engine names or plan files.
+        my %engines = map { $_ => 1 } App::Sqitch::Command::ENGINES;
+        my $config = $sqitch->config;
+        my %target_for = map {
+            $_->plan_file => $_
+        } App::Sqitch::Target->all_targets(sqitch => $sqitch);
+        my @unknown;
+        for my $arg (@others) {
+            if ($engines{$arg}) {
+                # It's an engine. Add its target.
+                my $name = $config->get(key => "engine.$arg.target") || "db:$arg:";
+                unless (first { $_->name eq $name }) {
+                    push @{ $args{targets} } => App::Sqitch::Target->new(
+                        sqitch => $sqitch,
+                        name   => $name,
+                    );
+                }
+            } elsif (my $target = $target_for{$arg}) {
+                # Ah, seems to be a plan file.
+                push @{ $args{targets} } => $target unless first {
+                    $_->name eq $target->name
+                } @{ $args{targets} };
+            } else {
+                # It really is unknown.
+                push @unknown => $arg;
+            }
+        }
+
+        # Just die on any unknowns.
+        hurl bundle => __nx(
             'Unknown argument "{arg}"',
             'Unknown arguments: {arg}',
             scalar @unknown,
             arg => join ', ', @unknown
-        );
+        ) if @unknown;
     }
 
     # Return targets if we've got them.
     return @{ $args{targets} } if @{ $args{targets} };
 
     # Return the default target if --engine was passed.
-    return $self->default_target if $self->sqitch->options->{engine};
+    return $self->default_target if $sqitch->options->{engine};
 
     # Return all configured targets.
-    return App::Sqitch::Target->all_targets( sqitch => $self->sqitch );
+    return App::Sqitch::Target->all_targets( sqitch => $sqitch );
 }
 
 sub execute {

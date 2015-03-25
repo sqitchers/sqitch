@@ -3,7 +3,8 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 160;
+use lib '/Users/david/dev/cpan/config-gitlike/lib';
+use Test::More tests => 222;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Path::Class;
@@ -401,17 +402,17 @@ is_deeply +MockOutput->get_info, [
 ], 'Should have all notices';
 
 # Try a configuration with multiple plans.
-my $multidir = dir '_build';
+my $multidir = $dir->parent;
 END { remove_tree $multidir->stringify }
 remove_tree $multidir->stringify;
-@scripts = (
-    $multidir->file('multiplan.conf'),
+my @sql = (
     $multidir->file(qw(sql sqitch.plan)),
     $multidir->file(qw(sql deploy roles.sql)),
     $multidir->file(qw(sql deploy users.sql)),
     $multidir->file(qw(sql verify users.sql)),
     $multidir->file(qw(sql deploy widgets.sql)),
-
+);
+my @engine = (
     $multidir->file(qw(engine sqitch.plan)),
     $multidir->file(qw(engine deploy users.sql)),
     $multidir->file(qw(engine revert users.sql)),
@@ -420,7 +421,8 @@ remove_tree $multidir->stringify;
     $multidir->file(qw(engine deploy func add_user.sql)),
     $multidir->file(qw(engine revert func add_user.sql)),
 );
-file_not_exists_ok $_ for @scripts;
+my $conf_file = $multidir->file('multiplan.conf'),;
+file_not_exists_ok $_ for ($conf_file, @sql, @engine);
 
 local $ENV{SQITCH_CONFIG} = 'multiplan.conf';
 $sqitch = App::Sqitch->new;
@@ -430,4 +432,36 @@ isa_ok $bundle = $CLASS->new(
     dest_dir => dir '_build',
 ), $CLASS, 'multiplan bundle command';
 ok $bundle->execute, 'Execute multi-target bundle!';
-file_exists_ok $_ for @scripts;
+file_exists_ok $_ for ($conf_file, @sql, @engine);
+
+# Try limiting it in various ways.
+for my $spec (
+    [target => 'pg', {include => \@engine, exclude => \@sql }],
+    ['plan file' => 'engine/sqitch.plan', {include => \@engine, exclude => \@sql }],
+    [target => 'mysql', {include => \@sql, exclude => \@engine }],
+    ['plan file' => 'sql/sqitch.plan', {include => \@sql, exclude => \@engine }],
+) {
+    my ($type, $arg, $files) = @{ $spec };
+    remove_tree $multidir->stringify;
+    ok $bundle->execute($arg), qq{Execute with $type arg "$arg"};
+    file_exists_ok $_ for ($conf_file, @{ $files->{include} });
+    file_not_exists_ok $_ for @{ $files->{exclude} };
+}
+
+# Should die on unknown argument.
+throws_ok { $bundle->execute('nonesuch') } 'App::Sqitch::X',
+    'Should get an exception for unknown argument';
+is $@->ident, 'bundle', 'Unknown argument error ident shoud be "bundel"';
+is $@->message, __x(
+    'Unknown argument "{arg}"',
+    arg => 'nonesuch',
+), 'Unknown argument error message should be correct';
+
+# Should handle multiple arguments, too.
+throws_ok { $bundle->execute(qw(ba da dum)) } 'App::Sqitch::X',
+    'Should get an exception for unknown arguments';
+is $@->ident, 'bundle', 'Unknown arguments error ident shoud be "bundel"';
+is $@->message, __x(
+    'Unknown arguments: {arg}',
+    arg => join ', ', qw(ba da dum)
+), 'Unknown arguments error message should be correct';
