@@ -6,14 +6,34 @@ sqitch-bundle - Bundle a Sqitch project for distribution
 
   sqitch [options] bundle project
   sqitch [options] bundle --dest-dir widgets-1.0.0
+  sqitch [options] bundle pg mysql
 
 =head1 Description
 
 This command bundles up a sqitch project for distribution. At its simplest, it
-copies the project configuration file, the plan file, and all of the change
+copies the project configuration file, plan files, and all of the change
 scripts to a directory. This directory can then be packaged up for
 distribution (as a tarball, RPM, etc.). Options allow for the list of changes
 to be bundled to be a subset of the plan.
+
+By default, all project plans known to the Sqitch configuration will be
+bundled, along with their scripts. This is useful for packaging up a project
+for multiple database engines. If, however, you'd like to limit a bundle to
+just a subset of plans, identify the plans on the command-line by passing one
+or more of the following arguments:
+
+=over
+
+=item * Engine names
+
+=item * Target names
+
+=item * Plan file names
+
+=back
+
+You can also pass the core C<--engine> option to limit the bundle to the plan
+for a single engine.
 
 =head1 Options
 
@@ -22,20 +42,22 @@ to be bundled to be a subset of the plan.
 =item C<--dest-dir>
 
 The name of the directory in which to bundle the project. The configuration
-file will be created in this directory, and the top, deploy, revert, and verify
-directories will be created relative to it. Defaults to F<bundle>.
+file will be created in this directory, and all top, deploy, revert, and
+verify directories will be created relative to it. Defaults to F<bundle>.
 
 =item C<--from>
 
 The change from which to start bundling. If you need to bundle up only a subset
-of your plan, specify a change (using a supported L<change specification|sqitchchanges>
-from which to start the bundling via this option.
+of a plan, specify a change (using a supported L<change specification|sqitchchanges>
+from which to start the bundling via this option. This option is probably only
+useful when bundling a single plan.
 
 =item C<--to>
 
 The change to which to end bundling. If you need to bundle up only a subset
-of your plan, specify a change (using a supported L<change specification|sqitchchanges>
-that should be the last change to be included in the bundle.
+of a plan, specify a change (using a supported L<change specification|sqitchchanges>
+that should be the last change to be included in the bundle. This option is
+probably only useful when bundling a single plan.
 
 =back
 
@@ -58,6 +80,14 @@ Bundle a Sqitch project into F<BUILDROOT/MyProj>:
 Bundle a project including changes C<adduser> through C<@v1.0>:
 
   sqitch bundle --from adduser --to @v1.0
+
+Bundle just the files necessary to execute the plan for the C<pg> engine:
+
+  sqitch bundle pg
+
+Bundle the files necessary for two plan files:
+
+  sqitch bundle sqlite/sqitch.plan mysql/sqitch.plan
 
 =head1 Sqitch
 

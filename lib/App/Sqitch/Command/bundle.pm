@@ -336,6 +336,30 @@ Copies the deploy, revert, and verify scripts for each step in the plan for
 the specified target to the bundle directory. Files in the script directories
 that do not correspond to changes in the plan will not be copied.
 
+=head3 C<dest_top_dir>
+
+  my $top_dir = $bundle->top_dir($target);
+
+Returns the destination top directory for the specified target.
+
+=head3 C<dest_deploy_dir>
+
+  my $deploy_dir = $bundle->deploy_dir($target);
+
+Returns the destination deploy directory for the specified target.
+
+=head3 C<dest_revert_dir>
+
+  my $revert_dir = $bundle->revert_dir($target);
+
+Returns the destination revert directory for the specified target.
+
+=head3 C<dest_verify_dir>
+
+  my $verify_dir = $bundle->verify_dir($target);
+
+Returns the destination verify directory for the specified target.
+
 =head1 See Also
 
 =over
