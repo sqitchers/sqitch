@@ -22,8 +22,8 @@ L<C<sqitch deploy>|sqitch-deploy> had been called.
 If the VCS is already on the specified branch, nothing will be done.
 
 The C<< <database> >> parameter specifies the database to which to connect,
-and may also be specified as the C<--target> option. It can be either a URI or
-the name of a target in the configuration.
+and may also be specified as the C<--target> option. It can be target name,
+a URI, an engine name, or plan file path.
 
 =head1 Options
 

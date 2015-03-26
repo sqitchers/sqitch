@@ -35,8 +35,8 @@ specified change, no reverts will be run. And if, at that point, the database
 is up-to-date, no deploys will be run.
 
 The C<< <database> >> parameter specifies the database to which to connect,
-and may also be specified as the C<--target> option. It can be either a URI or
-the name of a target in the configuration.
+and may also be specified as the C<--target> option. It can be target name,
+a URI, an engine name, or plan file path.
 
 =head1 Options
 

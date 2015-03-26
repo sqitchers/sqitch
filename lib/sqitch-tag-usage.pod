@@ -4,7 +4,7 @@ sqitch-tag-usage - Sqitch tag usage statement
 
 =head1 Usage
 
-  sqitch [options] tag [name] [change]
+  sqitch [options] tag [tag options] <name> [<change>]
 
 =head1 Options
 

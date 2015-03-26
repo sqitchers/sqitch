@@ -94,16 +94,11 @@ sub execute {
         );
     }
 
+    # Figure out what targets we're bundling. Default to --engine's or all.
     my $sqitch = $self->sqitch;
-    my @targets = do {
-        if (@{ $args{targets} }) {
-            @{ $args{targets} }
-        } elsif ($sqitch->options->{engine}) {
-            $self->default_target;
-        } else {
-            App::Sqitch::Target->all_targets( sqitch => $sqitch );
-        }
-    };
+    my @targets = @{ $args{targets} } ? @{ $args{targets} }
+        : $sqitch->options->{engine}  ? ($self->default_target)
+        : App::Sqitch::Target->all_targets( sqitch => $sqitch );
 
     $self->info(__x 'Bundling into {dir}', dir => $self->dest_dir );
     $self->bundle_config;

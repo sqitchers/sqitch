@@ -4,7 +4,7 @@ sqitch-rebase-usage - Sqitch rebase usage statement
 
 =head1 Usage
 
-  sqitch [options] rebase [<revert-change options> [<deploy-change options>]]
+  sqitch [options] rebase [revert-change options [deploy-change options]] [<database>]
 
 =head1 Options
 

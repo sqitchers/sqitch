@@ -13,9 +13,9 @@ schema the Sqitch uses for its registry is up-to-date. This will occasionally
 be necessary when new features are added to Sqitch that require registry
 schema changes.
 
-The C<< <database> >> parameter specifies the database to which to connect, and
-may also be specified as the C<--target> option. It can be either a URI or the
-name of a target in the configuration.
+The C<< <database> >> parameter specifies the database to which to connect,
+and may also be specified as the C<--target> option. It can be target name,
+a URI, an engine name, or plan file path.
 
 =head1 Options
 

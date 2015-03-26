@@ -4,7 +4,7 @@ sqitch-add-usage - Sqitch add usage statement
 
 =head1 Usage
 
-  sqitch [options] add [<change-options>] [<template-options>] changename
+  sqitch [options] add [change options] [<template options>] changename
 
 =head1 Options
 

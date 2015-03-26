@@ -4,7 +4,7 @@ sqitch-rework-usage - Sqitch rework usage statement
 
 =head1 Usage
 
-  sqitch [options] rework [<change-options>] changename
+  sqitch [options] rework [change-options] changename
 
 =head1 Options
 

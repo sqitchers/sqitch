@@ -4,7 +4,7 @@ sqitch-verify-usage - Sqitch verify usage statement
 
 =head1 Usage
 
-  sqitch [options] verify [<verify options>] [<database>]
+  sqitch [options] verify [verify options] [<database>]
 
 =head1 Options
 

@@ -4,7 +4,7 @@ sqitch-log-usage - Sqitch log usage statement
 
 =head1 Usage
 
-  sqitch [<db-options>] log [<options>] [<database>]
+  sqitch [options] log [log options] [<database>]
 
 =head1 Options
 
