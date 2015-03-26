@@ -80,68 +80,35 @@ sub configure {
     return \%params;
 }
 
-sub _targets {
+sub execute {
     my $self = shift;
-    my %args = $self->parse_args(args => shift, no_default => 1);
-    my $sqitch = $self->sqitch;
+    my %args = $self->parse_args(args => \@_, no_default => 1);
 
-    # Die on unknowns and changes.
-    if (my @others = (@{ $args{unknown} }, @{ $args{changes} }) ) {
-        # Well, see if they're not actually engine names or plan files.
-        my %engines = map { $_ => 1 } App::Sqitch::Command::ENGINES;
-        my $config = $sqitch->config;
-        my %target_for = map {
-            $_->plan_file => $_
-        } App::Sqitch::Target->all_targets(sqitch => $sqitch);
-        my @unknown;
-        for my $arg (@others) {
-            if ($engines{$arg}) {
-                # It's an engine. Add its target.
-                my $name = $config->get(key => "engine.$arg.target") || "db:$arg:";
-                unless (first { $_->name eq $name }) {
-                    push @{ $args{targets} } => App::Sqitch::Target->new(
-                        sqitch => $sqitch,
-                        name   => $name,
-                    );
-                }
-            } elsif (my $target = $target_for{$arg}) {
-                # Ah, seems to be a plan file.
-                push @{ $args{targets} } => $target unless first {
-                    $_->name eq $target->name
-                } @{ $args{targets} };
-            } else {
-                # It really is unknown.
-                push @unknown => $arg;
-            }
-        }
-
-        # Just die on any unknowns.
+    # Die on unknowns.
+    if (my @unknown = @{ $args{unknown} } ) {
         hurl bundle => __nx(
             'Unknown argument "{arg}"',
             'Unknown arguments: {arg}',
             scalar @unknown,
             arg => join ', ', @unknown
-        ) if @unknown;
+        );
     }
 
-    # Return targets if we've got them.
-    return @{ $args{targets} } if @{ $args{targets} };
+    my $sqitch = $self->sqitch;
+    my @targets = do {
+        if (@{ $args{targets} }) {
+            @{ $args{targets} }
+        } elsif ($sqitch->options->{engine}) {
+            $self->default_target;
+        } else {
+            App::Sqitch::Target->all_targets( sqitch => $sqitch );
+        }
+    };
 
-    # Return the default target if --engine was passed.
-    return $self->default_target if $sqitch->options->{engine};
-
-    # Return all configured targets.
-    return App::Sqitch::Target->all_targets( sqitch => $sqitch );
-}
-
-sub execute {
-    my $self = shift;
     $self->info(__x 'Bundling into {dir}', dir => $self->dest_dir );
     $self->bundle_config;
 
-    my %seen;
-    for my $target( $self->_targets(\@_) ) {
-        next if $seen{$target->plan_file}++;
+    for my $target (@targets) {
         $self->bundle_plan($target);
         $self->bundle_scripts($target);
     }

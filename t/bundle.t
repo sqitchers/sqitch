@@ -451,7 +451,7 @@ for my $spec (
 # Should die on unknown argument.
 throws_ok { $bundle->execute('nonesuch') } 'App::Sqitch::X',
     'Should get an exception for unknown argument';
-is $@->ident, 'bundle', 'Unknown argument error ident shoud be "bundel"';
+is $@->ident, 'bundle', 'Unknown argument error ident shoud be "bundle"';
 is $@->message, __x(
     'Unknown argument "{arg}"',
     arg => 'nonesuch',
@@ -460,7 +460,7 @@ is $@->message, __x(
 # Should handle multiple arguments, too.
 throws_ok { $bundle->execute(qw(ba da dum)) } 'App::Sqitch::X',
     'Should get an exception for unknown arguments';
-is $@->ident, 'bundle', 'Unknown arguments error ident shoud be "bundel"';
+is $@->ident, 'bundle', 'Unknown arguments error ident shoud be "bundle"';
 is $@->message, __x(
     'Unknown arguments: {arg}',
     arg => join ', ', qw(ba da dum)
