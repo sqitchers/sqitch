@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use utf8;
 use lib '/Users/david/dev/cpan/config-gitlike/lib';
-use Test::More tests => 222;
+use Test::More tests => 244;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Path::Class;
@@ -259,8 +259,8 @@ isa_ok $bundle = App::Sqitch::Command->load({
     args    => ['--from', 'widgets'],
 }), $CLASS, '--from bundle command';
 is $bundle->from, 'widgets', 'From should be "widgets"';
-ok $bundle->bundle_plan($bundle->default_target),
-    'Bundle the default target plan file with --from';
+ok $bundle->bundle_plan($bundle->default_target, 'widgets'),
+    'Bundle the default target plan file with from arg';
 my $plan = $bundle->default_target->plan;
 is_deeply +MockOutput->get_info, [[__x(
     'Writing plan from {from} to {to}',
@@ -273,7 +273,7 @@ file_contents_is $dest,
     . "\n"
     . $plan->find('widgets')->as_string . "\n"
     . $plan->find('func/add_user')->as_string . "\n",
-    'Plan should have written only "widgets"';
+    'Plan should have written only "widgets" and "func/add_user"';
 
 # Make sure that --to works.
 isa_ok $bundle = App::Sqitch::Command->load({
@@ -283,8 +283,8 @@ isa_ok $bundle = App::Sqitch::Command->load({
     args    => ['--to', 'users'],
 }), $CLASS, '--to bundle command';
 is $bundle->to, 'users', 'To should be "users"';
-ok $bundle->bundle_plan($bundle->default_target),
-    'Bundle the default target plan file with --to';
+ok $bundle->bundle_plan($bundle->default_target, undef, 'users'),
+    'Bundle the default target plan file with to arg';
 is_deeply +MockOutput->get_info, [[__x(
     'Writing plan from {from} to {to}',
     from => '@ROOT',
@@ -337,7 +337,7 @@ isa_ok $bundle = App::Sqitch::Command::bundle->new(
     dest_dir => $bundle->dest_dir,
     from     => 'widgets',
 ), $CLASS, 'bundle from "widgets"';
-ok $bundle->bundle_scripts($bundle->default_target), 'Bundle scripts';
+ok $bundle->bundle_scripts($bundle->default_target, 'widgets'), 'Bundle scripts';
 file_not_exists_ok $_ for @scripts[0,1];
 file_exists_ok $_ for @scripts[2,3];
 is_deeply +MockOutput->get_info, [
@@ -353,7 +353,7 @@ isa_ok $bundle = App::Sqitch::Command::bundle->new(
     dest_dir => $bundle->dest_dir,
     to       => 'users',
 ), $CLASS, 'bundle to "users"';
-ok $bundle->bundle_scripts($bundle->default_target), 'Bundle scripts';
+ok $bundle->bundle_scripts($bundle->default_target, undef, 'users'), 'Bundle scripts';
 file_exists_ok $_ for @scripts[0,1];
 file_not_exists_ok $_ for @scripts[2,3];
 is_deeply +MockOutput->get_info, [
@@ -365,7 +365,7 @@ is_deeply +MockOutput->get_info, [
 for my $key (qw(from to)) {
     my $bundle = $CLASS->new( sqitch => $sqitch, $key => 'nonexistent' );
     throws_ok {
-        $bundle->bundle_scripts($bundle->default_target)
+        $bundle->bundle_scripts($bundle->default_target, 'nonexistent')
     } 'App::Sqitch::X', "Should die on nonexistent $key change";
     is $@->ident, 'bundle', qq{Nonexistent $key change ident should be "bundle"};
     is $@->message, __x(
@@ -447,6 +447,43 @@ for my $spec (
     file_exists_ok $_ for ($conf_file, @{ $files->{include} });
     file_not_exists_ok $_ for @{ $files->{exclude} };
 }
+
+# Make sure we handle --to and --from.
+isa_ok $bundle = $CLASS->new(
+    sqitch  => $sqitch,
+    config  => $sqitch->config,
+    from     => 'widgets',
+    to       => 'widgets',
+    dest_dir => dir '_build',
+), $CLASS, 'to/from bundle command';
+remove_tree $multidir->stringify;
+ok $bundle->execute('pg'), 'Execute to/from bundle!';
+file_exists_ok $_ for ($conf_file, @engine[0,3,4]);
+file_not_exists_ok $_ for (@engine[1,2,5..$#engine]);
+file_contents_is $engine[0],
+    '%syntax-version=' . App::Sqitch::Plan::SYNTAX_VERSION . "\n"
+    . '%project=engine' . "\n"
+    . "\n"
+    . $plan->find('widgets')->as_string . "\n",
+    'Plan should have written only "widgets"';
+
+# Make sure we handle to and from args.
+isa_ok $bundle = $CLASS->new(
+    sqitch  => $sqitch,
+    config  => $sqitch->config,
+    dest_dir => dir '_build',
+), $CLASS, 'another bundle command';
+remove_tree $multidir->stringify;
+ok $bundle->execute(qw(pg widgets @HEAD)), 'Execute bundle with to/from args!';
+file_exists_ok $_ for ($conf_file, @engine[0,3..$#engine]);
+file_not_exists_ok $_ for (@engine[1,2]);
+file_contents_is $engine[0],
+    '%syntax-version=' . App::Sqitch::Plan::SYNTAX_VERSION . "\n"
+    . '%project=engine' . "\n"
+    . "\n"
+    . $plan->find('widgets')->as_string . "\n"
+    . $plan->find('func/add_user')->as_string . "\n",
+    'Plan should have written "widgets" and "func/add_user"';
 
 # Should die on unknown argument.
 throws_ok { $bundle->execute('nonesuch') } 'App::Sqitch::X',

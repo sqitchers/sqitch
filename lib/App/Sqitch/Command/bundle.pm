@@ -100,12 +100,37 @@ sub execute {
         : $sqitch->options->{engine}  ? ($self->default_target)
         : App::Sqitch::Target->all_targets( sqitch => $sqitch );
 
+    # Warn if --to or --from is specified for more thane one target.
+    if ( @targets > 1 && ($self->from || $self->to) ) {
+        $sqitch->warn(__(
+            "Use of --to or --from to bundle multiple targets is not recommended.\nPass them as arguments after each target argument, instead."
+        ));
+    }
+
+    # Die if --to or --from and changes are specified.
+    if ( @{ $args{changes} } && ($self->from || $self->to) ) {
+        hurl bundle => __(
+            'Cannot specify both --from or --to and change arguments'
+        );
+    }
+
+    # Time to get started!
     $self->info(__x 'Bundling into {dir}', dir => $self->dest_dir );
     $self->bundle_config;
 
-    for my $target (@targets) {
-        $self->bundle_plan($target);
-        $self->bundle_scripts($target);
+    if (my @fromto = grep { $_ } $self->from, $self->to) {
+        # One set of from/to options for all targets.
+        for my $target (@targets) {
+            $self->bundle_plan($target, @fromto);
+            $self->bundle_scripts($target, @fromto);
+        }
+    } else {
+        # Separate from/to options for all targets.
+        for my $target (@targets) {
+            my @fromto = splice @{ $args{changes} }, 0, 2;
+            $self->bundle_plan($target, @fromto);
+            $self->bundle_scripts($target, @fromto);
+        }
     }
 
     return $self;
@@ -167,11 +192,11 @@ sub bundle_config {
 }
 
 sub bundle_plan {
-    my ($self, $target) = @_;
+    my ($self, $target, $from, $to) = @_;
 
     my $dir = $self->dest_top_dir($target);
 
-    if (!defined $self->from && !defined $self->to) {
+    if (!defined $from && !defined $to) {
         $self->info(__ 'Writing plan');
         my $file = $target->plan_file;
         return $self->_copy_if_modified(
@@ -182,33 +207,34 @@ sub bundle_plan {
 
     $self->info(__x(
         'Writing plan from {from} to {to}',
-        from => $self->from // '@ROOT',
-        to   => $self->to   // '@HEAD',
+        from => $from // '@ROOT',
+        to   => $to   // '@HEAD',
     ));
 
+    $self->_mkpath( $dir );
     $target->plan->write_to(
         $dir->file( $target->plan_file->basename ),
-        $self->from,
-        $self->to,
+        $from,
+        $to,
     );
 }
 
 sub bundle_scripts {
-    my ($self, $target) = @_;
+    my ($self, $target, $from, $to) = @_;
     my $plan = $target->plan;
 
     my $from_index = $plan->index_of(
-        $self->from // '@ROOT'
+        $from // '@ROOT'
     ) // hurl bundle => __x(
         'Cannot find change {change}',
-        change => $self->from,
+        change => $from,
     );
 
     my $to_index = $plan->index_of(
-        $self->to // '@HEAD'
+        $to // '@HEAD'
     ) // hurl bundle => __x(
         'Cannot find change {change}',
-        change => $self->to,
+        change => $to,
     );
 
     $self->info(__ 'Writing scripts');

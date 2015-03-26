@@ -13,8 +13,7 @@ sqitch-bundle - Bundle a Sqitch project for distribution
 This command bundles up a sqitch project for distribution. At its simplest, it
 copies the project configuration file, plan files, and all of the change
 scripts to a directory. This directory can then be packaged up for
-distribution (as a tarball, RPM, etc.). Options allow for the list of changes
-to be bundled to be a subset of the plan.
+distribution (as a tarball, RPM, etc.).
 
 By default, all project plans known to the Sqitch configuration will be
 bundled, along with their scripts. This is useful for packaging up a project
@@ -34,6 +33,12 @@ or more of the following arguments:
 
 You can also pass the core C<--engine> option to limit the bundle to the plan
 for a single engine.
+
+The bundle command also allows you to limit bundled changes to a subset of
+those in a plan. When bundling a single plan, use the C<--from> and/or C<--to>
+options to do the limiting. When using multiple plans, specify the changes
+after each target agument. In either case, the changes can be specified in any
+way documented on L<sqitchchanges>. See L</Examples> for examples.
 
 =head1 Options
 
@@ -80,6 +85,11 @@ Bundle a Sqitch project into F<BUILDROOT/MyProj>:
 Bundle a project including changes C<adduser> through C<@v1.0>:
 
   sqitch bundle --from adduser --to @v1.0
+
+Bundle a the C<pg> engine plans with changes C<adduser> through C<@v1.0>, and
+the C<sqlite> engine with changes from the start of the plan up to C<widgets>:
+
+  sqitch bundle pg adduser @v1.0 sqlite @ROOT wigets
 
 Bundle just the files necessary to execute the plan for the C<pg> engine:
 
