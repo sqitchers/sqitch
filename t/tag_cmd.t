@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 59;
+use Test::More tests => 71;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -43,9 +43,42 @@ can_ok $CLASS, qw(
 is_deeply [$CLASS->options], [qw(
     tag-name|tag|t=s
     change-name|change|c=s
+    all|a!
     note|n|m=s@
 )], 'Should have note option';
 
+##############################################################################
+# Test configure().
+my $cmock = Test::MockModule->new('App::Sqitch::Config');
+my (@vals, @params);
+$cmock->mock( get => sub { shift; push @params, \@_; shift @vals } );
+
+is_deeply $CLASS->configure($config, {}), {},
+    'Should get empty hash for no config or options';
+is_deeply \@params, [[key => 'tag.all', as => 'bool']],
+    'Should have fetched boolean tag.all config';
+@params = ();
+is_deeply $CLASS->configure(
+    $config,
+    { tag_name => 'foo', change_name => 'bar', all => 1}
+),
+    { tag_name => 'foo', change_name => 'bar', all => 1 },
+    'Should get populated hash for no all options';
+
+is_deeply \@params, [], 'Should not have fetched boolean tag.all config';
+@params = ();
+
+@vals = (1);
+is_deeply $CLASS->configure($config, {}), {all => 1},
+    'Should get hash with all config value';
+is_deeply \@params, [[key => 'tag.all', as => 'bool']],
+    'Should have fetched boolean tag.all config again';
+@params = ();
+
+$cmock->unmock_all;
+
+##############################################################################
+# Test tagging a single plan.
 make_path $dir->stringify;
 END { remove_tree $dir->stringify };
 my $plan_file = $tag->default_target->plan_file;
@@ -193,6 +226,7 @@ ok $sqitch = App::Sqitch->new(
 
 isa_ok $tag = App::Sqitch::Command::tag->new({
     sqitch => $sqitch,
+    all    => 1,
     note   => ['here we go again'],
 }), $CLASS, 'another tag command';
 $plan = $tag->default_target->plan;
@@ -231,6 +265,7 @@ ok $sqitch = App::Sqitch->new,
 isa_ok $tag = App::Sqitch::Command::tag->new({
     sqitch => $sqitch,
     note   => ['here we go again'],
+    all    => 1,
 }), $CLASS, 'yet another tag command';
 ok $tag->execute('dubdub'), 'Tag with @dubdub';
 my @targets = App::Sqitch::Target->all_targets(sqitch => $sqitch);
@@ -254,3 +289,25 @@ is_deeply +MockOutput->get_info, [
         file   => $targets[1]->plan_file,
     ],
 ], 'The dubdub info message should show both plans tagged';
+
+# Without --all, we should just get the default target.
+isa_ok $tag = App::Sqitch::Command::tag->new({
+    sqitch => $sqitch,
+    note   => ['here we go again'],
+}), $CLASS, 'yet another tag command';
+ok $tag->execute('huwah'), 'Tag with @huwah';
+@targets = App::Sqitch::Target->all_targets(sqitch => $sqitch);
+is @targets, 2, 'Should still have two targets';
+is $targets[0]->plan->get('@huwah')->name, 'pg_change',
+    'Should have tagged pg plan change "pg_change" with @huwah';
+ok !$targets[1]->plan->get('@huwah'),
+    'Should not have tagged sqlite plan change "sqlite_change" with @huwah';
+
+is_deeply +MockOutput->get_info, [
+    [__x
+        'Tagged "{change}" with {tag} in {file}',
+        change => 'pg_change',
+        tag    => '@huwah',
+        file   => $targets[0]->plan_file,
+    ],
+], 'The huwah info message should the pg plan getting tagged';

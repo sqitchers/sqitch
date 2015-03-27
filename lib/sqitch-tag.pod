@@ -5,14 +5,14 @@ sqitch-tag - Create or list tag objects
 =head1 Synopsis
 
   sqitch [options] tag
-  sqitch [options] tag name
-  sqitch [options] tag name change
-  sqitch [options] tag --tag name --change change
-  sqitch [options] tag [-n MESSAGE] name
+  sqitch [options] tag <name>
+  sqitch [options] tag <name> change --note <note>
+  sqitch [options] tag --tag <name> --change <change>
+  sqitch [options] tag <name> --all
 
 =head1 Description
 
-This command tags the last change or lists existing tags in one or more plans.
+Tags a change or outputs a list of existing tags in one or more project plans.
 Tagging is useful for preparing for a release. Tags are also required in order
 to rework a change.
 
@@ -24,9 +24,11 @@ of the current tags will be output.
 Note that the name of the new tag must adhere to the rules as defined in
 L<sqitchchanges>.
 
-By default, the C<tag> command will add a new tag to all plans in the Sqitch
-configuration. It will iterate over all known targets and add it to all the
-plans. This works well to keep tags in sync in all plan files.
+By default, the C<tag> command will add a new tag to the project's default
+plan, as defined by the core configuration and command-line options. Pass the
+C<--all> option to have it iterate over all known targets and list tags or add
+a tag to all the plans. This works well to keep tags in sync in all plan
+files.
 
 To limit which plans to tag, specify the target, engine, or plan file names to
 tag. Simply pass them as arguments after the change name. Use C<--tag> and
@@ -57,6 +59,15 @@ The name of the change to tag. The name can be specified with or without this
 option, but the option can be useful for disambiguating the change name from
 other arguments.
 
+=item C<-a>
+
+=item C<--all>
+
+List the tags or add the new tag to all the plans in a project. Useful for
+multi-plan projects in which tags should be kept in sync. Overrides the value
+of the C<tag.all> configuration; use C<--no-all> to override a true C<tag.all>
+configuration.
+
 =item C<-n>
 
 =item C<--note>
@@ -69,13 +80,28 @@ For you Git folks out there, C<-m> also works.
 
 =back
 
+=head1 Configuration Variables
+
+=over
+
+=item C<tag.all>
+
+List the tags or add the new tag to all the plans in a project. Useful for
+multi-plan projects in which tags should be kept in sync.
+
+=back
+
 =head1 Examples
 
-Get a list of all tags in the project:
+Get a list of tags in the default project plan:
 
   sqitch tag
 
-Get a list of just the tags in the plan used by the C<pg> engine:
+Get a list of all tags in the project:
+
+  sqitch tag --all
+
+Get a list of the tags in the plan used by the C<pg> engine:
 
   sqitch tag pg
 
@@ -83,24 +109,28 @@ Get a list of the tags in two specific plans:
 
   sqitch tag sqlite.plan pg.plan
 
-Tag the latest change in all project plans and be prompted for a note.
+Tag the latest change in the default project plan and be prompted for a note.
 
   sqitch tag alpha1
 
-Tag the latest change in all project plans and and specify the note.
+Tag the latest change in all project plans and be prompted for a note.
+
+  sqitch tag alpha1 --all
+
+Tag the latest change in the default project plan and and specify the note.
 
   sqitch tag alpha2 -n 'Tag @alpha2.'
 
-Tag change C<users>:
+Tag change C<users> in the default plan:
 
   sqitch tag --tag alpha3 --change users
 
-Tat the latest change change only in the plan used by the C<vertica> engine in
-a project:
+Tag the latest change change in the project plan used by the C<vertica>
+engine:
 
   sqitch tag --tag beta1 vertica -n 'Tag the Vertica with @beta1.'
 
-Tag the latest change in just two plans in a project:
+Tag the latest change in two plans in a project:
 
   sqitch tag -t v1.0.1 sqlite.plan pg.plan -n 'Tag @v1.0.1.'
 

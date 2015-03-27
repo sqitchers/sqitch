@@ -6,7 +6,7 @@ use warnings;
 use utf8;
 use Moo;
 use App::Sqitch::X qw(hurl);
-use Types::Standard qw(Str ArrayRef Maybe);
+use Types::Standard qw(Str ArrayRef Maybe Bool);
 use Locale::TextDomain qw(App-Sqitch);
 use namespace::autoclean;
 
@@ -30,12 +30,31 @@ has note => (
     default  => sub { [] },
 );
 
+has all => (
+    is      => 'ro',
+    isa     => Bool,
+    derault => 0
+);
+
 sub options {
     return qw(
         tag-name|tag|t=s
         change-name|change|c=s
+        all|a!
         note|n|m=s@
     );
+}
+
+sub configure {
+    my ( $class, $config, $opt ) = @_;
+
+    # Set all from config boolean.
+    unless (exists $opt->{all}) {
+        my $val = $config->get(key => 'tag.all', as => 'bool');
+        $opt->{all} = $val if defined $val;
+    }
+
+    return $opt;
 }
 
 sub execute {
@@ -57,7 +76,7 @@ sub execute {
     # Figure out what targets to acces. Default to --engine's or all.
     my $sqitch = $self->sqitch;
     my @targets = @{ $args{targets} } ? @{ $args{targets} }
-        : $sqitch->options->{engine}  ? ($self->default_target)
+        : !$self->all ? ($self->default_target)
         : App::Sqitch::Target->all_targets( sqitch => $sqitch );
 
     if (defined $name) {
@@ -132,6 +151,11 @@ The name of the tag to add.
 =head3 C<change_name>
 
 The name of the change to tag.
+
+=head3 C<all>
+
+Boolean indicating whether or not to run the command against all plans in the
+project.
 
 =head3 C<note>
 
