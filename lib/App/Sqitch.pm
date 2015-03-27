@@ -16,7 +16,7 @@ use Locale::Messages qw(bind_textdomain_filter);
 use App::Sqitch::X qw(hurl);
 use Moo 1.002000;
 use Type::Utils qw(where declare);
-use App::Sqitch::Types qw(Str Int Plan UserName UserEmail Maybe File Dir Config HashRef);
+use App::Sqitch::Types qw(Str Int UserName UserEmail Maybe File Dir Config HashRef);
 use Encode ();
 use Try::Tiny;
 use List::Util qw(first);

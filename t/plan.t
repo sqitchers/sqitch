@@ -1386,8 +1386,9 @@ throws_ok { $plan->add(name => 'blow') } 'App::Sqitch::X',
     'Should get error trying to add duplicate change';
 is $@->ident, 'plan', 'Duplicate change error ident should be "plan"';
 is $@->message, __x(
-    qq{Change "{change}" already exists.\nUse "sqitch rework" to copy and rework it},
+    qq{Change "{change}" already exists in plan {file}.\nUse "sqitch rework" to copy and rework it},
     change => 'blow',
+    file   => $plan->file,
 ), 'And the error message should suggest "rework"';
 
 # Should choke on an invalid change names.

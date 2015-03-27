@@ -795,9 +795,10 @@ sub add {
     if ( defined( my $idx = $changes->index_of( $p{name} . '@HEAD' ) ) ) {
         my $tag_idx = $changes->index_of_last_tagged;
         hurl plan => __x(
-            qq{Change "{change}" already exists.\n}
+            qq{Change "{change}" already exists in plan {file}.\n}
             . 'Use "sqitch rework" to copy and rework it',
             change => $p{name},
+            file   => $self->file,
         );
     }
 

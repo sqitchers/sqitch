@@ -18,6 +18,11 @@ extends 'App::Sqitch::Command';
 
 our $VERSION = '0.999_1';
 
+has change_name => (
+    is  => 'ro',
+    isa => Maybe[Str],
+);
+
 has requires => (
     is       => 'ro',
     isa      => ArrayRef[Str],
@@ -51,10 +56,8 @@ has template_directory => (
 );
 
 has template_name => (
-    is       => 'ro',
-    isa      => Str,
-    lazy     => 1,
-    default  => sub { shift->default_target->engine_key },
+    is  => 'ro',
+    isa => Maybe[Str],
 );
 
 has with_scripts => (
@@ -117,9 +120,8 @@ sub _config_templates {
 }
 
 sub all_templates {
-    my $self   = shift;
+    my ($self, $name) = @_;
     my $config = $self->sqitch->config;
-    my $name   = $self->template_name;
     my $tmpl   = $self->templates;
 
     # Read all the template directories.
@@ -151,6 +153,7 @@ sub all_templates {
 
 sub options {
     return qw(
+        change-name|change|a=s
         requires|r=s@
         conflicts|c=s@
         note|n|m=s@
@@ -289,47 +292,94 @@ sub configure {
 }
 
 sub execute {
-    my ( $self, $name ) = @_;
-    $self->usage unless defined $name;
-    my $target = $self->default_target;
-    my $plan   = $target->plan;
-    my $with   = $self->with_scripts;
-    my $tmpl   = $self->all_templates;
-    my $change = $plan->add(
-        name      => $name,
-        requires  => $self->requires,
-        conflicts => $self->conflicts,
-        note      => join "\n\n" => @{ $self->note },
-    );
+    my $self = shift;
+    my %args =  $self->parse_args(args => \@_, no_default => 1);
+    my $name = $self->change_name || shift @{ $args{unknown} } or $self->usage;
 
-    my @scripts = grep {
-        !exists $with->{$_} || $with->{$_}
-    } sort keys %{ $tmpl };
-    my @files = map { $change->script_file($_ ) } @scripts;
+    # Die on unknowns.
+    if (my @unknown = @{ $args{unknown} } ) {
+        hurl add => __nx(
+            'Unknown argument "{arg}"',
+            'Unknown arguments: {arg}',
+            scalar @unknown,
+            arg => join ', ', @unknown
+        );
+    }
+
+    # Figure out what targets to add to. Default to --engine's or all.
+    my $sqitch = $self->sqitch;
+    my @targets = @{ $args{targets} } ? @{ $args{targets} }
+        : $sqitch->options->{engine}  ? ($self->default_target)
+        : App::Sqitch::Target->all_targets( sqitch => $sqitch );
+
+    my $note = join "\n\n", => @{ $self->note };
+    my ($first_change, %added, @files);
+
+    for my $target (@targets) {
+        my $plan = $target->plan;
+        my $with = $self->with_scripts;
+        my $tmpl = $self->all_templates($self->template_name || $target->engine_key);
+        my $file = $plan->file;
+        my $spec = $added{$file} ||= { scripts => [], seen => {} };
+        my $change = $spec->{change};
+        if ($change) {
+            # Need a dupe for *this* target so script names are right.
+            $change = ref($change)->new(
+                plan => $plan,
+                name => $change->name,
+            );
+        } else {
+            $change = $spec->{change} = $plan->add(
+                name      => $name,
+                requires  => $self->requires,
+                conflicts => $self->conflicts,
+                note      => $note,
+            );
+            $first_change ||= $change;
+        }
+
+        # Suss out the files we'll need to write.
+        push @{ $spec->{scripts} } => map {
+            push @files => $_->[1];
+            [ $_->[1], $tmpl->{ $_->[0] } ];
+        } grep {
+            !$spec->{seen}{ $_->[1] }++;
+        } map {
+            [$_ => $change->script_file($_)];
+        } grep {
+            !exists $with->{$_} || $with->{$_}
+        } sort keys %{ $tmpl };
+    }
 
     # Make sure we have a note.
-    $change->request_note(
+    $note = $first_change->request_note(
         for     => __ 'add',
         scripts => \@files,
     );
 
-    # Add the scripts.
-    my $i = 0;
-    $self->_add( $name, $files[$i++], $tmpl->{$_} ) for @scripts;
+    # Time to write everything out.
+    for my $target (@targets) {
+        my $plan = $target->plan;
+        my $file = $plan->file;
+        my $spec = delete $added{$file} or next;
 
-    # We good, write the plan file back out.
-    $plan->write_to( $target->plan_file );
-    $self->info(__x(
-        'Added "{change}" to {file}',
-        change => $change->format_op_name_dependencies,
-        file   => $target->plan_file,
-    ));
+        # Write out the scripts.
+        $self->_add($name, @{ $_ }) for @{ $spec->{scripts} };
+
+        # We good. Set the note on all changes and write out the plan files.
+        my $change = $spec->{change};
+        $change->note($note);
+        $plan->write_to( $plan->file );
+        $self->info(__x(
+            'Added "{change}" to {file}',
+            change => $first_change->format_op_name_dependencies,
+            file   => $plan->file,
+        ));
+    }
 
     # Let 'em at it.
-    if ($self->open_editor) {
-        my $sqitch = $self->sqitch;
-        $sqitch->shell( $sqitch->editor . ' ' . $sqitch->quote_shell(@files) );
-    }
+    $sqitch->shell( $sqitch->editor . ' ' . $sqitch->quote_shell(@files) )
+        if $self->open_editor;
 
     return $self;
 }
@@ -445,6 +495,10 @@ for the constructor.
 
 =head2 Attributes
 
+=head3 C<change_name>
+
+The name of the change to be added.
+
 =head3 C<note>
 
 Text of the change note.
@@ -456,6 +510,11 @@ List of required changes.
 =head3 C<conflicts>
 
 List of conflicting changes.
+
+=head3 C<template_name>
+
+The name of the templates to use when generating scripts. Defaults to the
+engine for which the scripts are being generated.
 
 =head3 C<template_directory>
 

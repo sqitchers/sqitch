@@ -4,24 +4,54 @@ sqitch-add - Add a database change to the plan
 
 =head1 Synopsis
 
-  sqitch [options] add [<dependency-options>] [<template-options>] name
+  sqitch [options] add widgets
+  sqitch [options] add --change --name sprockets pg sql
+  sqitch [options] add slinkies --require sprockets --set schema=industry
 
 =head1 Description
 
-Add a database change to the plan. This will result in the creation of script
-files with the C<--extension> extension in the C<--deploy-dir>,
-C<--revert-dir>, and C<--verify-dir> directories, and possibly others. The
-content of these files is determined by the evaluation of templates. By
-default, system templates in F<$(etc_path)/templates> are used. These can be
-overridden by a single user by creating templates in F<~/.sqitch/templates/>
-See L</Templates> for details.
+This command adds a database change to one or more plans. This will result in
+the creation of script files in the deploy, revert, and verify directories,
+and possibly others. The content of these files is determined by the
+evaluation of templates. By default, system templates in
+F<$(etc_path)/templates> are used. These can be overridden by a single user by
+creating templates in F<~/.sqitch/templates/> See L</Templates> for details.
+
+The paths and extensions of the generated scripts depend on the configuration
+of Sqitch targets, engines, and the core. They can also be overridden by the
+use of the core C<--engine>, C<--top-dir>, C<--plan-file>, C<--extension>,
+C<--deploy-dir>, C<--revert-dir>, and C<--verify-dir> directories. You
+probably don't want to often use any of those, but should define alternatives
+on a per-engine or per-target basis. See L<sqitch-configuration> for details.
 
 Note that the name of the new change must adhere to the rules as defined in
 L<sqitchchanges>.
 
+By default, the C<add> command will add the change to all plans in the Sqitch
+configuration. It will iterate over all known targets, add it to all the
+plans, and write the files required for each target. This works well for
+projects in which there is a single plan with separate top directories for
+each engine, for example.
+
+To limit the plans and top directories to which changes and their scripts will
+be added, specify the target, engine, or plan file names to add to. Simply
+pass them as arguments after the change name. Use C<--change> to disambiguate
+the change name from the other parameters if necessary (or preferable). See
+L</Examples> for examples.
+
 =head1 Options
 
 =over
+
+=item C<-a>
+
+=item C<--change>
+
+=item C<--change-name>
+
+The name of the change to add. The name can be specified with or without this
+option, but the option can be useful for disambiguating the change name from
+other arguments.
 
 =item C<-r>
 
@@ -119,6 +149,47 @@ is true.
 
 =back
 
+=head1 Examples
+
+Add a change to a project and be prompted for a note.
+
+  sqitch add widgets
+
+Add a change and specify the note.
+
+  sqitch add sprockets --note 'Adds the sprockets table.'
+
+Add a change that requires the C<users> change from earlier in the plan.
+
+  sqitch add contacts --requires users -n 'Adds the contacts table'
+
+Add a change that requires multiple changes, including the change named
+C<extract> from a completely different Sqitch project named C<utilities>:
+
+  sqitch add coffee -r users -r utilities:extract -n 'Mmmmm...coffee!'
+
+Add a change that uses the C<createtable> templates to generate the scripts,
+as well as variables to be used in that template (See
+L<http://theory.so/sqitch/2013/09/06/sqitch-templating/> for a custom template
+tutorial):
+
+  sqitch add corp_widgets --template createtable \
+    -s schema=corp -s table=widgets \
+    -s column=id -s type=SERIAL \
+    -s column=name -s type=TEXT \
+    -s column=quantity -s type=INTEGER \
+    -n 'Add corp.widgets table.'
+
+Add a change only to the plan used by the C<vertica> engine in a project:
+
+  sqitch add --name logs vertica -n 'Adds the logs table to Vertica.'
+
+Add a change to just two plans in a project, and generate the scripts only for
+those plans:
+
+  sqitch add -a coolfunctions sqlite.plan pg.plan -n 'Adds functions.'
+
+
 =head1 Templates
 
 Sqitch contains a very simple set of templates for generating the deploy,
@@ -190,7 +261,7 @@ in C<--top-dir>:
   verify/user_table.sql
 
 Note that the C<test> file was not created, because no
-F<test/crate_table.tmpl> file exists.
+F<test/create_table.tmpl> template file exists.
 
 =head2 Syntax
 

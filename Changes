@@ -43,13 +43,18 @@ Revision history for Perl extension App::Sqitch
        Gabriel Potkány for the suggestion (Issue #214).
      - Fixed a bug when parsing plan files with DOS/Windows line endings.
        Thanks to Timothy Procter for the report (Issue #212).
-     - The `bundle` command now bundles the files for all plans known from the
-       configuration, not just the default plan.
+     - The `bundle` command by default now bundles the files for all plans
+       known from the configuration, not just the default plan.
      - Pass engine names, target names, or plan file names to the `bundle`
        command to limit the bundle to the plans for those engines, targets,
        and plans.
      - All commands that take target arguments can now specify them as engine
        names or plan file paths as well as target names and URIs.
+     - The `add` command by default now adds the change to all plans known
+       from the configuration, not just the default plan.
+     - Pass engine names, target names, or plan file names to the `add`
+       command to limit the the plan files to which the changes will be added,
+       as well as the scripts that will be generated.
 
 0.999  2015-02-12T19:43:45Z
      - Improved MySQL missing table error detection by relying on error codes

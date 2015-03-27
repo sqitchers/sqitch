@@ -37,8 +37,8 @@ for a single engine.
 The bundle command also allows you to limit bundled changes to a subset of
 those in a plan. When bundling a single plan, use the C<--from> and/or C<--to>
 options to do the limiting. When using multiple plans, specify the changes
-after each target agument. In either case, the changes can be specified in any
-way documented on L<sqitchchanges>. See L</Examples> for examples.
+after each target argument. In either case, the changes can be specified in
+any way documented on L<sqitchchanges>. See L</Examples> for examples.
 
 =head1 Options
 
