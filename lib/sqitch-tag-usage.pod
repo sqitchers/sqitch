@@ -4,8 +4,10 @@ sqitch-tag-usage - Sqitch tag usage statement
 
 =head1 Usage
 
-  sqitch [options] tag [tag options] <name> [<change>]
+  sqitch [options] tag [tag options] <tagname> [<change>] [<target>]
 
 =head1 Options
 
     -n --note                 a note describing the tag
+    -t --tag                  name of the tag to add
+    -c --change               name of the change to tag

@@ -1,11 +1,11 @@
 =head1 Name
 
-sqitch-add - Add a database change to the plan
+sqitch-add - Add a database change to plans
 
 =head1 Synopsis
 
   sqitch [options] add widgets
-  sqitch [options] add --change --name sprockets pg sql
+  sqitch [options] add --change sprockets pg sql
   sqitch [options] add slinkies --require sprockets --set schema=industry
 
 =head1 Description
@@ -182,13 +182,12 @@ tutorial):
 
 Add a change only to the plan used by the C<vertica> engine in a project:
 
-  sqitch add --name logs vertica -n 'Adds the logs table to Vertica.'
+  sqitch add --change logs vertica -n 'Adds the logs table to Vertica.'
 
 Add a change to just two plans in a project, and generate the scripts only for
 those plans:
 
   sqitch add -a coolfunctions sqlite.plan pg.plan -n 'Adds functions.'
-
 
 =head1 Templates
 

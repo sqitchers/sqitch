@@ -458,7 +458,7 @@ __END__
 
 =head1 Name
 
-App::Sqitch::Command::add - Add a new change to a Sqitch plan
+App::Sqitch::Command::add - Add a new change to Sqitch plans
 
 =head1 Synopsis
 

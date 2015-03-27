@@ -5,13 +5,24 @@ use strict;
 use warnings;
 use utf8;
 use Moo;
-use Types::Standard qw(Str ArrayRef);
+use App::Sqitch::X qw(hurl);
+use Types::Standard qw(Str ArrayRef Maybe);
 use Locale::TextDomain qw(App-Sqitch);
 use namespace::autoclean;
 
 extends 'App::Sqitch::Command';
 
 our $VERSION = '0.999_1';
+
+has tag_name => (
+    is  => 'ro',
+    isa => Maybe[Str],
+);
+
+has change_name => (
+    is  => 'ro',
+    isa => Maybe[Str],
+);
 
 has note => (
     is       => 'ro',
@@ -21,35 +32,73 @@ has note => (
 
 sub options {
     return qw(
+        tag-name|tag|t=s
+        change-name|change|c=s
         note|n|m=s@
     );
 }
 
 sub execute {
-    my ( $self, $name, $change ) = @_;
-    my $target = $self->default_target;
-    my $plan   = $target->plan;
+    my $self   = shift;
+    my %args   = $self->parse_args(args => \@_, no_default => 1);
+    my $name   = $self->tag_name    || shift @{ $args{unknown} };
+    my $change = $self->change_name || shift @{ $args{unknown} };
+
+    # Die on unknowns.
+    if (my @unknown = @{ $args{unknown} } ) {
+        hurl tag => __nx(
+            'Unknown argument "{arg}"',
+            'Unknown arguments: {arg}',
+            scalar @unknown,
+            arg => join ', ', @unknown
+        );
+    }
+
+    # Figure out what targets to acces. Default to --engine's or all.
+    my $sqitch = $self->sqitch;
+    my @targets = @{ $args{targets} } ? @{ $args{targets} }
+        : $sqitch->options->{engine}  ? ($self->default_target)
+        : App::Sqitch::Target->all_targets( sqitch => $sqitch );
 
     if (defined $name) {
-        my $tag = $plan->tag(
-            name   => $name,
-            change => $change,
-            note   => join "\n\n" => @{ $self->note },
-        );
+        my $note = join "\n\n" => @{ $self->note };
+        my (%seen, @plans, @tags);
+        for my $target (@targets) {
+            next if $seen{$target->plan_file}++;
+            my $plan = $target->plan;
+            push @tags => $plan->tag(
+                name   => $name,
+                change => $change,
+                note   => $note,
+            );
+            push @plans => $plan;
+        }
 
         # Make sure we have a note.
-        $tag->request_note( for => __ 'tag');
+        $note = $tags[0]->request_note(for => __ 'tag');
 
-        # We good, write the plan file back out.
-        $plan->write_to( $target->plan_file );
-        $self->info(__x(
-            'Tagged "{change}" with {tag}',
-            change => $tag->change->format_name,
-            tag    => $tag->format_name,
-        ));
+        # We good, write the plan files back out.
+        for my $plan (@plans) {
+            my $tag = shift @tags;
+            $tag->note($note);
+            $plan->write_to( $plan->file );
+            $self->info(__x(
+                'Tagged "{change}" with {tag} in {file}',
+                change => $tag->change->format_name,
+                tag    => $tag->format_name,
+                file   => $plan->file,
+            ));
+        }
     } else {
-        # Emit a list of tags.
-        $self->info($_->format_name) for $plan->tags;
+        # Show unique tags.
+        my %seen;
+        for my $target (@targets) {
+            my $plan = $target->plan;
+            for my $tag ($plan->tags) {
+                my $name = $tag->format_name;
+                $self->info($name) unless $seen{$name}++;
+            }
+        }
     }
 
     return $self;
@@ -61,7 +110,7 @@ __END__
 
 =head1 Name
 
-App::Sqitch::Command::tag - Add or list tags in a Sqitch plan
+App::Sqitch::Command::tag - Add or list tags in Sqitch plans
 
 =head1 Synopsis
 
@@ -75,6 +124,14 @@ Tags a Sqitch change. The tag will be added to the last change in the plan.
 =head1 Interface
 
 =head2 Attributes
+
+=head3 C<tag_name>
+
+The name of the tag to add.
+
+=head3 C<change_name>
+
+The name of the change to tag.
 
 =head3 C<note>
 
