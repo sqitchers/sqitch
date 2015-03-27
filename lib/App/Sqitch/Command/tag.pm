@@ -24,16 +24,16 @@ has change_name => (
     isa => Maybe[Str],
 );
 
-has note => (
-    is       => 'ro',
-    isa      => ArrayRef[Str],
-    default  => sub { [] },
-);
-
 has all => (
     is      => 'ro',
     isa     => Bool,
     default => 0
+);
+
+has note => (
+    is       => 'ro',
+    isa      => ArrayRef[Str],
+    default  => sub { [] },
 );
 
 sub options {
@@ -47,13 +47,7 @@ sub options {
 
 sub configure {
     my ( $class, $config, $opt ) = @_;
-
-    # Set all from config boolean.
-    unless (exists $opt->{all}) {
-        my $val = $config->get(key => 'tag.all', as => 'bool');
-        $opt->{all} = $val if defined $val;
-    }
-
+    # Just keep options.
     return $opt;
 }
 
@@ -73,11 +67,21 @@ sub execute {
         );
     }
 
-    # Figure out what targets to acces. Default to --engine's or all.
+    # Figure out what targets to access. Use default unless --all.
     my $sqitch = $self->sqitch;
-    my @targets = @{ $args{targets} } ? @{ $args{targets} }
-        : !$self->all ? ($self->default_target)
-        : App::Sqitch::Target->all_targets( sqitch => $sqitch );
+    my @targets = @{ $args{targets} };
+    if ($self->all) {
+        # Got --all.
+        hurl tag => __(
+            'Cannot specify both --all and engine, target, or plan arugments'
+        ) if @targets;
+        @targets = App::Sqitch::Target->all_targets( sqitch => $sqitch );
+    } elsif (!@targets) {
+        # Use all if tag.all is set, otherwise just the default.
+        @targets = $self->sqitch->config->get(key => 'tag.all', as => 'bool')
+            ? App::Sqitch::Target->all_targets( sqitch => $sqitch )
+            : ($self->default_target);
+    }
 
     if (defined $name) {
         my $note = join "\n\n" => @{ $self->note };

@@ -3,10 +3,11 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 72;
+use Test::More tests => 78;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
+use Test::Exception;
 use Test::NoWarnings;
 use Path::Class qw(file dir);
 use File::Path qw(make_path remove_tree);
@@ -56,8 +57,7 @@ $cmock->mock( get => sub { shift; push @params, \@_; shift @vals } );
 
 is_deeply $CLASS->configure($config, {}), {},
     'Should get empty hash for no config or options';
-is_deeply \@params, [[key => 'tag.all', as => 'bool']],
-    'Should have fetched boolean tag.all config';
+is_deeply \@params, [], 'Should not have fetched boolean tag.all config';
 @params = ();
 is_deeply $CLASS->configure(
     $config,
@@ -67,13 +67,6 @@ is_deeply $CLASS->configure(
     'Should get populated hash for no all options';
 
 is_deeply \@params, [], 'Should not have fetched boolean tag.all config';
-@params = ();
-
-@vals = (1);
-is_deeply $CLASS->configure($config, {}), {all => 1},
-    'Should get hash with all config value';
-is_deeply \@params, [[key => 'tag.all', as => 'bool']],
-    'Should have fetched boolean tag.all config again';
 @params = ();
 
 $cmock->unmock_all;
@@ -243,6 +236,14 @@ is_deeply +MockOutput->get_info, [
     ]
 ], 'The whacko info message should be correct';
 
+# With --all and args, should get an error.
+throws_ok { $tag->execute('fred', 'pg') } 'App::Sqitch::X',
+    'Should get an error for --all and a target arg';
+is $@->ident, 'tag', 'Mixed arguments error ident should be "tag"';
+is $@->message, __(
+    'Cannot specify both --all and engine, target, or plan arugments'
+), 'Mixed arguments error message should be correct';
+
 # Great. Now try two plans!
 my $pg = $dir->file('pg.plan');
 my $sqlite = $dir->file('sqlite.plan');
@@ -263,10 +264,17 @@ $dir->file("$_.plan")->spew(
 ok $sqitch = App::Sqitch->new,
     'Load another sqitch sqitch object';
 
+# Mock getting tag.all.
+my $get;
+$cmock->mock( get => sub {
+    return 1 if $_[2] eq 'tag.all';
+    return $get->(@_);
+});
+$get = $cmock->original('get');
+
 isa_ok $tag = App::Sqitch::Command::tag->new({
     sqitch => $sqitch,
     note   => ['here we go again'],
-    all    => 1,
 }), $CLASS, 'yet another tag command';
 ok $tag->execute('dubdub'), 'Tag with @dubdub';
 my @targets = App::Sqitch::Target->all_targets(sqitch => $sqitch);
@@ -291,7 +299,27 @@ is_deeply +MockOutput->get_info, [
     ],
 ], 'The dubdub info message should show both plans tagged';
 
-# Without --all, we should just get the default target.
+# With tag.all and an argument, we should just get the argument.
+ok $tag->execute('shoot', 'sqlite'), 'Tag sqlite plan with @shoot';
+@targets = App::Sqitch::Target->all_targets(sqitch => $sqitch);
+is @targets, 2, 'Should still have two targets';
+ok !$targets[0]->plan->get('@shoot'),
+    'Should not have tagged pg plan change "sqlite_change" with @shoot';
+is $targets[1]->plan->get('@shoot')->name, 'sqlite_change',
+    'Should have tagged sqlite plan change "sqlite_change" with @shoot';
+
+is_deeply +MockOutput->get_info, [
+    [__x
+        'Tagged "{change}" with {tag} in {file}',
+        change => 'sqlite_change',
+        tag    => '@shoot',
+        file   => $targets[1]->plan_file,
+    ],
+], 'The shoot info message should the sqlite plan getting tagged';
+
+$cmock->unmock_all;
+
+# Without --all or tag.all, we should just get the default target.
 isa_ok $tag = App::Sqitch::Command::tag->new({
     sqitch => $sqitch,
     note   => ['here we go again'],
