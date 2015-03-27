@@ -8,9 +8,9 @@ sqitch-add-usage - Sqitch add usage statement
 
 =head1 Options
 
-    -a --change               name of the change to add
+    -c --change               name of the change to add
     -r --requires             require change
-    -c --conflicts            declare conflicting change
+    -x --conflicts            declare conflicting change
     -s --set                  set a template variable
     -n --note                 a note describing the change
 

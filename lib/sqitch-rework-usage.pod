@@ -9,7 +9,7 @@ sqitch-rework-usage - Sqitch rework usage statement
 =head1 Options
 
     -r --requires             require change
-    -c --conflicts            declare conflicting change
+    -x --conflicts            declare conflicting change
     -n --note                 a note describing the change
 
     -e --edit, --open-editor  open change scripts in an editor

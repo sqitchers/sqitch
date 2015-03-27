@@ -43,7 +43,7 @@ L</Examples> for examples.
 
 =over
 
-=item C<-a>
+=item C<-c>
 
 =item C<--change>
 
@@ -61,7 +61,7 @@ Name of a change that is required by the new change. May be specified multiple
 times. See L<sqitchchanges> for the various ways in which changes can be
 specified.
 
-=item C<-c>
+=item C<-x>
 
 =item C<--conflicts>
 

@@ -58,7 +58,7 @@ can_ok $CLASS, qw(
 
 is_deeply [$CLASS->options], [qw(
     requires|r=s@
-    conflicts|c=s@
+    conflicts|x=s@
     note|n|m=s@
     open-editor|edit|e!
 )], 'Options should be set up';

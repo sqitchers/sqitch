@@ -153,9 +153,9 @@ sub all_templates {
 
 sub options {
     return qw(
-        change-name|change|a=s
+        change-name|change|c=s
         requires|r=s@
-        conflicts|c=s@
+        conflicts|x=s@
         note|n|m=s@
         template-name|template|t=s
         template-directory=s

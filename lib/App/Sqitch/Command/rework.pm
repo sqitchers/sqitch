@@ -53,7 +53,7 @@ has open_editor => (
 sub options {
     return qw(
         requires|r=s@
-        conflicts|c=s@
+        conflicts|x=s@
         note|n|m=s@
         open-editor|edit|e!
     );
