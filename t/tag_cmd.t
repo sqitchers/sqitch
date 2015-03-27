@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 71;
+use Test::More tests => 72;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -32,6 +32,7 @@ isa_ok my $tag = App::Sqitch::Command->load({
     command => 'tag',
     config  => $config,
 }), $CLASS, 'tag command';
+ok !$tag->all, 'The all attribute should be false by default';
 
 can_ok $CLASS, qw(
     options

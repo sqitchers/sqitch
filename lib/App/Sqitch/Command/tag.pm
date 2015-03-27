@@ -33,7 +33,7 @@ has note => (
 has all => (
     is      => 'ro',
     isa     => Bool,
-    derault => 0
+    default => 0
 );
 
 sub options {
