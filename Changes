@@ -55,11 +55,16 @@ Revision history for Perl extension App::Sqitch
      - Pass engine names, target names, or plan file names to the `add`
        command to limit the the plan files to which the changes will be added,
        as well as the scripts that will be generated.
+     - Added the `--change` option to the `add` command to distinguish the
+       change to be added from plan-specifying arguments, if necessary.
      - The `tag` command by default lists tags in or adds a tags to all plans
        known from the configuration, not just the default plan.
      - Pass engine names, target names, or plan file names to the `tag`
        command to limit the the plan files from which to list tags or to which
        to add a tag.
+     - Added the `--tag` ane `--change` options to the `tag` command to
+       distinguish the tag to be added, as well as the change to which to
+       apply it, from plan-specifying arguments, if necessary.
 
 0.999  2015-02-12T19:43:45Z
      - Improved MySQL missing table error detection by relying on error codes
