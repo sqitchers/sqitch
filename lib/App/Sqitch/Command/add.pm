@@ -35,6 +35,12 @@ has conflicts => (
     default  => sub { [] },
 );
 
+has all => (
+    is      => 'ro',
+    isa     => Bool,
+    default => 0
+);
+
 has note => (
     is       => 'ro',
     isa      => ArrayRef[Str],
@@ -157,6 +163,7 @@ sub options {
         requires|r=s@
         conflicts|x=s@
         note|n|m=s@
+        all|a!
         template-name|template|t=s
         template-directory=s
         with=s@
@@ -277,6 +284,10 @@ sub configure {
         };
     }
 
+    # Set all from config boolean.
+    my $all = $opt->{all} // $config->get(key => 'add.all', as => 'bool');
+    $params{all} = $all if defined $all;
+
     # Merge template info.
     my $tmpl = $class->_config_templates($config);
     if ( my $use = delete $opt->{use} ) {
@@ -293,29 +304,16 @@ sub configure {
 
 sub execute {
     my $self = shift;
-    my %args =  $self->parse_args(args => \@_, no_default => 1);
-    my $name = $self->change_name || shift @{ $args{unknown} } or $self->usage;
-
-    # Die on unknowns.
-    if (my @unknown = @{ $args{unknown} } ) {
-        hurl add => __nx(
-            'Unknown argument "{arg}"',
-            'Unknown arguments: {arg}',
-            scalar @unknown,
-            arg => join ', ', @unknown
-        );
-    }
-
-    # Figure out what targets to add to. Default to --engine's or all.
-    my $sqitch = $self->sqitch;
-    my @targets = @{ $args{targets} } ? @{ $args{targets} }
-        : $sqitch->options->{engine}  ? ($self->default_target)
-        : App::Sqitch::Target->all_targets( sqitch => $sqitch );
+    my ($name, $targets) = $self->parse_target_args(
+        names => [$self->change_name],
+        all   => $self->all,
+        args  => \@_
+    );
 
     my $note = join "\n\n", => @{ $self->note };
     my ($first_change, %added, @files);
 
-    for my $target (@targets) {
+    for my $target (@{ $targets }) {
         my $plan = $target->plan;
         my $with = $self->with_scripts;
         my $tmpl = $self->all_templates($self->template_name || $target->engine_key);
@@ -358,7 +356,7 @@ sub execute {
     );
 
     # Time to write everything out.
-    for my $target (@targets) {
+    for my $target (@{ $targets }) {
         my $plan = $target->plan;
         my $file = $plan->file;
         my $spec = delete $added{$file} or next;
@@ -378,8 +376,10 @@ sub execute {
     }
 
     # Let 'em at it.
-    $sqitch->shell( $sqitch->editor . ' ' . $sqitch->quote_shell(@files) )
-        if $self->open_editor;
+    if ($self->open_editor) {
+        my $sqitch = $self->sqitch;
+        $sqitch->shell( $sqitch->editor . ' ' . $sqitch->quote_shell(@files) );
+    }
 
     return $self;
 }
@@ -510,6 +510,11 @@ List of required changes.
 =head3 C<conflicts>
 
 List of conflicting changes.
+
+=head3 C<all>
+
+Boolean indicating whether or not to run the command against all plans in the
+project.
 
 =head3 C<template_name>
 

@@ -5,6 +5,7 @@ sqitch-add - Add a database change to plans
 =head1 Synopsis
 
   sqitch [options] add widgets
+  sqitch [options] add blankets --all
   sqitch [options] add --change sprockets pg sql
   sqitch [options] add slinkies --require sprockets --set schema=industry
 
@@ -68,6 +69,16 @@ specified.
 Name of a change that conflicts with the new change. May be specified multiple
 times. See L<sqitchchanges> for the various ways in which changes can be
 specified.
+
+=item C<-a>
+
+=item C<--all>
+
+Add the change to all plans in the project. Cannot be mixed with target,
+engine, or plan file name arguments; doing so will result in an error. Useful
+for multi-plan projects in which changes should be kept in sync. Overrides the
+value of the C<add.all> configuration; use C<--no-all> to override a true
+C<add.all> configuration.
 
 =item C<-n>
 
@@ -352,7 +363,11 @@ C<--conflicts> option.
 
 =over
 
-=item C<add.template_directory>
+=item C<add.all>
+
+Add the change to all the plans in the project. Useful for multi-plan projects
+in which changes should be kept in sync. May be overridden by C<--all>,
+C<--no-all>, or target, engine, and plan file name arguments.
 
 Directory in which to find the templates. Any templates found in this
 directory take precedence over user- or system-specific templates, and may in

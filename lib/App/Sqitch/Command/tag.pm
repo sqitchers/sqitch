@@ -53,40 +53,16 @@ sub configure {
 
 sub execute {
     my $self   = shift;
-    my %args   = $self->parse_args(args => \@_, no_default => 1);
-    my $name   = $self->tag_name    || shift @{ $args{unknown} };
-    my $change = $self->change_name || shift @{ $args{unknown} };
-
-    # Die on unknowns.
-    if (my @unknown = @{ $args{unknown} } ) {
-        hurl tag => __nx(
-            'Unknown argument "{arg}"',
-            'Unknown arguments: {arg}',
-            scalar @unknown,
-            arg => join ', ', @unknown
-        );
-    }
-
-    # Figure out what targets to access. Use default unless --all.
-    my $sqitch = $self->sqitch;
-    my @targets = @{ $args{targets} };
-    if ($self->all) {
-        # Got --all.
-        hurl tag => __(
-            'Cannot specify both --all and engine, target, or plan arugments'
-        ) if @targets;
-        @targets = App::Sqitch::Target->all_targets( sqitch => $sqitch );
-    } elsif (!@targets) {
-        # Use all if tag.all is set, otherwise just the default.
-        @targets = $self->sqitch->config->get(key => 'tag.all', as => 'bool')
-            ? App::Sqitch::Target->all_targets( sqitch => $sqitch )
-            : ($self->default_target);
-    }
+    my ($name, $change, $targets) = $self->parse_target_args(
+        names => [$self->tag_name, $self->change_name],
+        all   => $self->all,
+        args  => \@_
+    );
 
     if (defined $name) {
         my $note = join "\n\n" => @{ $self->note };
         my (%seen, @plans, @tags);
-        for my $target (@targets) {
+        for my $target (@{ $targets }) {
             next if $seen{$target->plan_file}++;
             my $plan = $target->plan;
             push @tags => $plan->tag(
@@ -115,7 +91,7 @@ sub execute {
     } else {
         # Show unique tags.
         my %seen;
-        for my $target (@targets) {
+        for my $target (@{ $targets }) {
             my $plan = $target->plan;
             for my $tag ($plan->tags) {
                 my $name = $tag->format_name;

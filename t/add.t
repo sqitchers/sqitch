@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 205;
+use Test::More tests => 224;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Target;
@@ -79,6 +79,7 @@ is_deeply [$CLASS->options], [qw(
     requires|r=s@
     conflicts|x=s@
     note|n|m=s@
+    all|a!
     template-name|template|t=s
     template-directory=s
     with=s@
@@ -687,6 +688,7 @@ MULTIPLAN: {
     ok my $add = $CLASS->new(
         sqitch             => $sqitch,
         note               => ['Testing multiple plans'],
+        all                => 1,
         template_directory => dir->parent->subdir(qw(etc templates))
     ), 'Create another add with custom multiplan config';
 
@@ -730,6 +732,46 @@ MULTIPLAN: {
             file   => $targets[2]->plan_file,
         ],
     ], 'Info should have reported all script creations and plan updates';
+
+    # Make sure we get an error using --all and a target arg.
+    throws_ok { $add->execute('foo', 'pg' ) } 'App::Sqitch::X',
+        'Should get an error for --all and a target arg';
+    is $@->ident, 'add', 'Mixed arguments error ident should be "add"';
+    is $@->message, __(
+        'Cannot specify both --all and engine, target, or plan arugments'
+    ), 'Mixed arguments error message should be correct';
+
+    # Now try adding a change to just one engine. Remove --all
+    ok $add = $CLASS->new(
+        sqitch             => $sqitch,
+        note               => ['Testing multiple plans'],
+        template_directory => dir->parent->subdir(qw(etc templates))
+    ), 'Create yet another add with custom multiplan config';
+
+    ok $add->execute('choc', 'sqlite'), 'Add change "choc" to the sqlite plan';
+    my %targets = map { $_->engine_key => $_ }
+        App::Sqitch::Target->all_targets(sqitch => $sqitch);
+    is keys %targets, 3, 'Should still have three targets';
+    ok !$targets{pg}->plan->get('choc'), 'Should not have "choc" in the pg plan';
+    ok !$targets{mysql}->plan->get('choc'), 'Should not have "choc" in the mysql plan';
+    ok $targets{sqlite}->plan->get('choc'), 'Should have "choc" in the sqlite plan';
+
+    @scripts = map {
+        my $dir = dir $_;
+        $dir->mkpath;
+        map { $dir->file($_, 'choc.sql') } qw(deploy revert verify);
+    } qw(sqlite pg mysql);
+    file_exists_ok $_ for @scripts[0..2];
+    file_not_exists_ok $_ for @scripts[3..8];
+    is_deeply +MockOutput->get_info, [
+        (map { [__x 'Created {file}', file => $_] } @scripts[0..2]),
+        [
+            __x 'Added "{change}" to {file}',
+            change => 'choc',
+            file   => $targets{sqlite}->plan_file,
+        ],
+    ], 'Info should have reported sqlite choc script creations and plan updates';
+
     chdir File::Spec->updir;
 }
 
@@ -747,6 +789,8 @@ MULTITARGET: {
         'top_dir = pg',
         '[engine "sqlite"]',
         'top_dir = sqlite',
+        '[add]',
+        'all = true',
     );
     file('sqitch.plan')->spew("%project=add\n\n");
 
@@ -812,6 +856,7 @@ ONETOP: {
     ok my $add = $CLASS->new(
         sqitch             => $sqitch,
         note               => ['Testing two targets, one top_dir'],
+        all                => 1,
         template_directory => dir->parent->subdir(qw(etc templates))
     ), 'Create another add with two targets, one top dir';
 

@@ -11,6 +11,7 @@ sqitch-add-usage - Sqitch add usage statement
     -c --change               name of the change to add
     -r --requires             require change
     -x --conflicts            declare conflicting change
+    -a --all                  add change to all project plans
     -s --set                  set a template variable
     -n --note                 a note describing the change
 

@@ -258,6 +258,43 @@ sub parse_args {
     return %ret;
 }
 
+sub parse_target_args {
+    my ($self, %p) = @_;
+    my %args = $self->parse_args(args => $p{args}, no_default => 1);
+
+    # Replace missing names with unnknown values.
+    my @names = map { $_ || shift @{ $args{unknown} } } @{ $p{names} };
+
+    # Die on unknowns.
+    if (my @unknown = @{ $args{unknown} } ) {
+        hurl $self->command => __nx(
+            'Unknown argument "{arg}"',
+            'Unknown arguments: {arg}',
+            scalar @unknown,
+            arg => join ', ', @unknown
+        );
+    }
+
+    # Figure out what targets to access. Use default unless --all.
+    my $sqitch = $self->sqitch;
+    my @targets = @{ $args{targets} };
+    if ($p{all}) {
+        # Got --all.
+        hurl $self->command => __(
+            'Cannot specify both --all and engine, target, or plan arugments'
+        ) if @targets;
+        @targets = App::Sqitch::Target->all_targets( sqitch => $sqitch );
+    } elsif (!@targets) {
+        # Use all if tag.all is set, otherwise just the default.
+        my $key = $self->command . '.all';
+        @targets = $self->sqitch->config->get(key => $key, as => 'bool')
+            ? App::Sqitch::Target->all_targets( sqitch => $sqitch )
+            : ($self->default_target);
+    }
+
+    return (@names, \@targets, $args{changes});
+}
+
 1;
 
 __END__

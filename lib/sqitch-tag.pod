@@ -88,8 +88,8 @@ For you Git folks out there, C<-m> also works.
 =item C<tag.all>
 
 List the tags or add the new tag to all the plans in a project. Useful for
-multi-plan projects in which tags should be kept in sync. May be overridden
-by C<--all>, C<--no-all>, or taget, engine, and plan file name arguments.
+multi-plan projects in which tags should be kept in sync. May be overridden by
+C<--all>, C<--no-all>, or target, engine, and plan file name arguments.
 
 =back
 
