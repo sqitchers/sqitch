@@ -5,7 +5,7 @@ use strict;
 use warnings;
 use utf8;
 use Moo;
-use App::Sqitch::Types qw(Str Dir Maybe);
+use App::Sqitch::Types qw(Str Dir Maybe Bool);
 use File::Path qw(make_path);
 use Path::Class;
 use Locale::TextDomain qw(App-Sqitch);
@@ -35,6 +35,12 @@ has dest_dir => (
     default  => sub { dir 'bundle' },
 );
 
+has all => (
+    is      => 'ro',
+    isa     => Bool,
+    default => 0
+);
+
 sub dest_top_dir {
     my $self = shift;
     dir $self->dest_dir, shift->top_dir->relative;
@@ -58,6 +64,7 @@ sub dest_verify_dir {
 sub options {
     return qw(
         dest-dir|dir=s
+        all|a!
         from=s
         to=s
     );
@@ -72,8 +79,8 @@ sub configure {
         $params{dest_dir} = dir $dir;
     }
 
-    # Make sure we get the --from and --to options passed through.
-    for my $key (qw(from to)) {
+    # Make sure we get the --all, --from and --to options passed through.
+    for my $key (qw(all from to)) {
         $params{$key} = $opt->{$key} if exists $opt->{$key};
     }
 
@@ -82,33 +89,20 @@ sub configure {
 
 sub execute {
     my $self = shift;
-    my %args = $self->parse_args(args => \@_, no_default => 1);
-
-    # Die on unknowns.
-    if (my @unknown = @{ $args{unknown} } ) {
-        hurl bundle => __nx(
-            'Unknown argument "{arg}"',
-            'Unknown arguments: {arg}',
-            scalar @unknown,
-            arg => join ', ', @unknown
-        );
-    }
-
-    # Figure out what targets we're bundling. Default to --engine's or all.
-    my $sqitch = $self->sqitch;
-    my @targets = @{ $args{targets} } ? @{ $args{targets} }
-        : $sqitch->options->{engine}  ? ($self->default_target)
-        : App::Sqitch::Target->all_targets( sqitch => $sqitch );
+    my ($targets, $changes) = $self->parse_target_args(
+        all  => $self->all,
+        args => \@_
+    );
 
     # Warn if --to or --from is specified for more thane one target.
-    if ( @targets > 1 && ($self->from || $self->to) ) {
-        $sqitch->warn(__(
+    if ( @{ $targets } > 1 && ($self->from || $self->to) ) {
+        $self->sqitch->warn(__(
             "Use of --to or --from to bundle multiple targets is not recommended.\nPass them as arguments after each target argument, instead."
         ));
     }
 
     # Die if --to or --from and changes are specified.
-    if ( @{ $args{changes} } && ($self->from || $self->to) ) {
+    if ( @{ $changes } && ($self->from || $self->to) ) {
         hurl bundle => __(
             'Cannot specify both --from or --to and change arguments'
         );
@@ -120,14 +114,14 @@ sub execute {
 
     if (my @fromto = grep { $_ } $self->from, $self->to) {
         # One set of from/to options for all targets.
-        for my $target (@targets) {
+        for my $target (@{ $targets }) {
             $self->bundle_plan($target, @fromto);
             $self->bundle_scripts($target, @fromto);
         }
     } else {
         # Separate from/to options for all targets.
-        for my $target (@targets) {
-            my @fromto = splice @{ $args{changes} }, 0, 2;
+        for my $target (@{ $ targets }) {
+            my @fromto = splice @{ $changes }, 0, 2;
             $self->bundle_plan($target, @fromto);
             $self->bundle_scripts($target, @fromto);
         }
@@ -295,6 +289,11 @@ Change from which to build the bundled plan.
 =head3 C<to>
 
 Change up to which to build the bundled plan.
+
+=head3 C<all>
+
+Boolean indicating whether or not to run the command against all plans in the
+project.
 
 =head2 Instance Methods
 

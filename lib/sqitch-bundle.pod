@@ -4,8 +4,9 @@ sqitch-bundle - Bundle a Sqitch project for distribution
 
 =head1 Synopsis
 
-  sqitch [options] bundle project
+  sqitch [options] bundle
   sqitch [options] bundle --dest-dir widgets-1.0.0
+  sqitch [options] bundle --all
   sqitch [options] bundle pg mysql
 
 =head1 Description
@@ -15,11 +16,16 @@ copies the project configuration file, plan files, and all of the change
 scripts to a directory. This directory can then be packaged up for
 distribution (as a tarball, RPM, etc.).
 
-By default, all project plans known to the Sqitch configuration will be
-bundled, along with their scripts. This is useful for packaging up a project
-for multiple database engines. If, however, you'd like to limit a bundle to
-just a subset of plans, identify the plans on the command-line by passing one
-or more of the following arguments:
+By default, the C<bundle> command will bundle the plan and scripts for the
+default plan and top directory, as defined by the core configuration and
+command-line options. Pass the C<--all> option to have it iterate over all
+known plans and top directories (as specified for engines and targets) and
+bundle them all. This works well for creating a a single bundle with all
+plans and scripts.
+
+To limit the plans and top directories to bundle, specify the target, engine,
+or plan file names to bundle. Simply pass them as arguments on the
+command-line. See L</Examples> for examples.
 
 =over
 
@@ -64,6 +70,16 @@ of a plan, specify a change (using a supported L<change specification|sqitchchan
 that should be the last change to be included in the bundle. This option is
 probably only useful when bundling a single plan.
 
+=item C<-a>
+
+=item C<--all>
+
+Bundle all the project plans and their associated scripts. Cannot be mixed
+with target, engine, or plan file name arguments; doing so will result in an
+error. Useful for multi-plan projects that should have all the plans bundled
+together. Overrides the value of the C<bundle.all> configuration; use
+C<--no-all> to override a true C<bundle.all> configuration.
+
 =back
 
 =head1 Configuration Variables
@@ -77,6 +93,14 @@ The name of the directory in which to bundle the project.
 =back
 
 =head1 Examples
+
+Bundle a Sqitch project with the default plan and scripts into F<bundle>:
+
+  sqitch bundle
+
+Bundle a Sqitch project with all plans and scripts into F<bundle>:
+
+  sqitch bundle --all
 
 Bundle a Sqitch project into F<BUILDROOT/MyProj>:
 

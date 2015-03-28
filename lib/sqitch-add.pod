@@ -28,11 +28,13 @@ on a per-engine or per-target basis. See L<sqitch-configuration> for details.
 Note that the name of the new change must adhere to the rules as defined in
 L<sqitchchanges>.
 
-By default, the C<add> command will add the change to all plans in the Sqitch
-configuration. It will iterate over all known targets, add it to all the
-plans, and write the files required for each target. This works well for
-projects in which there is a single plan with separate top directories for
-each engine, for example.
+By default, the C<add> command will add the change to the default plan and the
+scripts to any top directories for that plan, as defined by the core
+configuration and command-line options. This works well for projects in which
+there is a single plan with separate top directories for each engine, for
+example. Pass the C<--all> option to have it iterate over all known plans and
+top directories (as specified for engines and targets) and add the change to
+them all.
 
 To limit the plans and top directories to which changes and their scripts will
 be added, specify the target, engine, or plan file names to add to. Simply

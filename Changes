@@ -43,23 +43,24 @@ Revision history for Perl extension App::Sqitch
        Gabriel Potkány for the suggestion (Issue #214).
      - Fixed a bug when parsing plan files with DOS/Windows line endings.
        Thanks to Timothy Procter for the report (Issue #212).
-     - The `bundle` command by default now bundles the files for all plans
-       known from the configuration, not just the default plan.
-     - Pass engine names, target names, or plan file names to the `bundle`
-       command to limit the bundle to the plans for those engines, targets,
-       and plans.
      - All commands that take target arguments can now specify them as engine
        names or plan file paths as well as target names and URIs.
-     - Added the `--all` option to the `add` command to add a change to all
-       plans known from the configuration, not just the default plan.
+     - Added the `--all` option and the `bundle.all` configuration variable to
+       the `bundle` command to bundle all plans known from the configuration,
+       not just the default plan.
+     - Pass engine, target, or plan file names to the `bundle` command to
+       specify specif targets, engines, and plans to bundle.
+     - Added the `--all` option and the `add.all` configuration variable to
+       the `add` command to add a change to all plans known from the
+       configuration, not just the default plan.
      - Pass engine, target, or plan file names to the `add` command to specify
        specific plans to which the changes will be added, as well as the
        directories in which scripts that will be generated.
      - Added the `--change` option to the `add` command to distinguish the
        change to be added from plan-specifying arguments, if necessary.
-     - Added the `--all` option to the `tag` command to lists tags in or add a
-       tags to all plans known from the configuration, not just the default
-       plan.
+     - Added the `--all` option and the `tag.all` configuration variable to
+       the `tag` command to lists tags in or add a tags to all plans known
+       from the configuration, not just the default plan.
      - Pass engine, target, or plan file names to the `tag` command to specify
        specific plans from which to list tags or to which to add a tag.
      - Added the `--tag` and `--change` options to the `tag` command to
@@ -69,7 +70,6 @@ Revision history for Perl extension App::Sqitch
        `rework` commands from `-c` to `-x`. The `-c` option is now used as the
        short variant for `--change` (and `--conflicts` has almost certainly
        never been used, anyway).
-
 
 0.999  2015-02-12T19:43:45Z
      - Improved MySQL missing table error detection by relying on error codes

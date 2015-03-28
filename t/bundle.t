@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use utf8;
 use lib '/Users/david/dev/cpan/config-gitlike/lib';
-use Test::More tests => 244;
+use Test::More tests => 276;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Path::Class;
@@ -51,6 +51,7 @@ can_ok $CLASS, qw(
 
 is_deeply [$CLASS->options], [qw(
     dest-dir|dir=s
+    all|a!
     from=s
     to=s
 )], 'Should have dest_dir option';
@@ -429,10 +430,43 @@ $sqitch = App::Sqitch->new;
 isa_ok $bundle = $CLASS->new(
     sqitch  => $sqitch,
     config  => $sqitch->config,
+    all     => 1,
     dest_dir => dir '_build',
-), $CLASS, 'multiplan bundle command';
+), $CLASS, 'all xmultiplan bundle command';
 ok $bundle->execute, 'Execute multi-target bundle!';
 file_exists_ok $_ for ($conf_file, @sql, @engine);
+
+# Make sure we get an error with both --all and a specified target.
+throws_ok { $bundle->execute('pg' ) } 'App::Sqitch::X',
+    'Should get an error for --all and a target arg';
+is $@->ident, 'bundle', 'Mixed arguments error ident should be "bundle"';
+is $@->message, __(
+    'Cannot specify both --all and engine, target, or plan arugments'
+), 'Mixed arguments error message should be correct';
+
+# Try without --all.
+isa_ok $bundle = $CLASS->new(
+    sqitch  => $sqitch,
+    config  => $sqitch->config,
+    dest_dir => dir '_build',
+), $CLASS, 'multiplan bundle command';
+remove_tree $multidir->stringify;
+ok $bundle->execute, qq{Execute with no arg};
+file_exists_ok $_ for ($conf_file, @engine);
+file_not_exists_ok $_ for @sql;
+
+# Make sure it works with bundle.all set, as well.
+my $cmock = Test::MockModule->new('App::Sqitch::Config');
+my $get;
+$cmock->mock( get => sub {
+    return 1 if $_[2] eq 'bundle.all';
+    return $get->(@_);
+});
+$get = $cmock->original('get');
+remove_tree $multidir->stringify;
+ok $bundle->execute, qq{Execute with bundle.all config};
+file_exists_ok $_ for ($conf_file, @engine, @sql);
+$cmock->unmock_all;
 
 # Try limiting it in various ways.
 for my $spec (
