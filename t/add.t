@@ -153,6 +153,7 @@ is_deeply $CLASS->configure($config, { template_name => 'foo' }), {
 }, 'Should set up template name option';
 
 is_deeply $CLASS->configure($config, {
+    all          => 1,
     with_scripts => { deploy => 1, revert => 1, verify => 0 },
     use          => {
         deploy => 'etc/templates/deploy/pg.tmpl',
@@ -161,6 +162,7 @@ is_deeply $CLASS->configure($config, {
         whatev => 'etc/templates/verify/pg.tmpl',
     },
 }), {
+    all       => 1,
     requires  => [],
     conflicts => [],
     note      => [],

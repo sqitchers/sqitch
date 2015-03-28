@@ -284,10 +284,6 @@ sub configure {
         };
     }
 
-    # Set all from config boolean.
-    my $all = $opt->{all} // $config->get(key => 'add.all', as => 'bool');
-    $params{all} = $all if defined $all;
-
     # Merge template info.
     my $tmpl = $class->_config_templates($config);
     if ( my $use = delete $opt->{use} ) {
@@ -297,7 +293,10 @@ sub configure {
     }
     $params{templates} = $tmpl if %{ $tmpl };
 
-    $params{open_editor} = $opt->{open_editor} if exists $opt->{open_editor};
+    # Copy other options.
+    for my $key (qw(all open_editor)) {
+        $params{$key} = $opt->{$key} if exists $opt->{$key};
+    }
 
     return \%params;
 }
