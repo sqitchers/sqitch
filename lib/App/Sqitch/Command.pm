@@ -263,7 +263,7 @@ sub parse_target_args {
     my %args = $self->parse_args(args => $p{args}, no_default => 1);
 
     # Replace missing names with unnknown values.
-    my @names = map { $_ || shift @{ $args{unknown} } } @{ $p{names} };
+    my @names = map { $_ || shift @{ $args{unknown} } } @{ $p{names} || [] };
 
     # Die on unknowns.
     if (my @unknown = @{ $args{unknown} } ) {
@@ -539,6 +539,10 @@ In the case of plan files, C<parse_args()> will return the first target it
 finds for that plan file, even if multiple targets use the same plan file. The
 order of precedence for this determination is the default project target,
 followed by named targets, then engine targets.
+
+=head3 C<parse_target_args>
+
+Parses targets from args. To be merged into C<parse_args()>.
 
 =head3 C<run>
 
