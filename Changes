@@ -55,7 +55,7 @@ Revision history for Perl extension App::Sqitch
        configuration, not just the default plan.
      - Pass engine, target, or plan file names to the `add` command to specify
        specific plans to which the changes will be added, as well as the
-       directories in which scripts that will be generated.
+       directories in which scripts will be generated.
      - Added the `--change` option to the `add` command to distinguish the
        change to be added from plan-specifying arguments, if necessary.
      - Added the `--all` option and the `tag.all` configuration variable to
@@ -70,6 +70,14 @@ Revision history for Perl extension App::Sqitch
        `rework` commands from `-c` to `-x`. The `-c` option is now used as the
        short variant for `--change` (and `--conflicts` has almost certainly
        never been used, anyway).
+     - Added the `--all` option and the `rework.all` configuration variable to
+       the `rework` command to rework a change in all plans known from the
+       configuration, not just the default plan.
+     - Pass engine, target, or plan file names to the `rework` command to
+       specify specific plans inwhich which the change will be reworked, as
+       well as the directories in which scripts will be copied.
+     - Added the `--change` option to the `rework` command to distinguish the
+       change to be reworked from plan-specifying arguments, if necessary.
 
 0.999  2015-02-12T19:43:45Z
      - Improved MySQL missing table error detection by relying on error codes

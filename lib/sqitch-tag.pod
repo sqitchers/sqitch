@@ -30,10 +30,10 @@ C<--all> option to have it iterate over all known targets and list tags or add
 a tag to all the plans. This works well to keep tags in sync in all plan
 files.
 
-To limit which plans to tag, specify the target, engine, or plan file names to
-tag. Simply pass them as arguments after the change name. Use C<--tag> and
-C<--change> to disambiguate the tag and change names from the other parameters
-if necessary (or preferable). See L</Examples> for examples.
+To specify which plans to tag, pass the target, engine, or plan file names to
+tag as arguments. Use C<--tag> and C<--change> to disambiguate the tag and
+change names from the other parameters if necessary (or preferable). See
+L</Examples> for examples.
 
 =head1 Options
 

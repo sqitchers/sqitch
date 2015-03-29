@@ -552,7 +552,7 @@ is_deeply +MockOutput->get_info, [
     ],
 ], 'Info should report skipping file and include dependencies';
 
-# Make sure we die on an unkonwn argument.
+# Make sure we die on an unknown argument.
 throws_ok { $add->execute(qw(foo bar)) } 'App::Sqitch::X',
     'Should get an error on unkonwn argument';
 is $@->ident, 'add', 'Unkown argument error ident should be "add"';

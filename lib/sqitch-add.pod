@@ -36,11 +36,10 @@ example. Pass the C<--all> option to have it iterate over all known plans and
 top directories (as specified for engines and targets) and add the change to
 them all.
 
-To limit the plans and top directories to which changes and their scripts will
-be added, specify the target, engine, or plan file names to add to. Simply
-pass them as arguments after the change name. Use C<--change> to disambiguate
-the change name from the other parameters if necessary (or preferable). See
-L</Examples> for examples.
+To specify which plans an top directories to which the change and its scripts
+will be added, pass the target, engine, or plan file names as arguments. Use
+C<--change> to disambiguate the tag and change names from the other parameters
+if necessary (or preferable). See L</Examples> for examples.
 
 =head1 Options
 
@@ -370,6 +369,8 @@ C<--conflicts> option.
 Add the change to all the plans in the project. Useful for multi-plan projects
 in which changes should be kept in sync. May be overridden by C<--all>,
 C<--no-all>, or target, engine, and plan file name arguments.
+
+=item C<add.template_directory>
 
 Directory in which to find the templates. Any templates found in this
 directory take precedence over user- or system-specific templates, and may in

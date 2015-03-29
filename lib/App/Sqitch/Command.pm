@@ -221,7 +221,7 @@ sub parse_args {
     for my $arg (@{ $p{args} }) {
         if ( $target && $target->plan->contains($arg) ) {
             # A change. Keep the target if it's the default.
-            push @{ $ret{targets} } => $target unless $seen{$target->name}++;
+            push @{ $ret{targets} } => $target unless $p{no_default} || $seen{$target->name}++;
             push @{ $ret{changes} } => $arg;
         } elsif ($config->get( key => "target.$arg.uri") || URI->new($arg)->isa('URI::db')) {
             # A target. Instantiate and keep for subsequente change searches.
@@ -497,7 +497,7 @@ C<--target> option.
 =item C<no_default>
 
 If true, no default target will be returned, even if no other targets are
-found. See below for details.
+found or a change is found in that target. See below for details.
 
 =back
 

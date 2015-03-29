@@ -1519,8 +1519,9 @@ throws_ok { $plan->rework( name => 'nonexistent' ) } 'App::Sqitch::X',
     'rework should die on nonexistent change';
 is $@->ident, 'plan', 'Nonexistent change error ident should be "plan"';
 is $@->message, __x(
-    qq{Change "{change}" does not exist.\nUse "sqitch add {change}" to add it to the plan},
+    qq{Change "{change}" does not exist in {file}.\nUse "sqitch add {change}" to add it to the plan},
     change => 'nonexistent',
+    file   => $plan->file,
 ), 'And the error should suggest "sqitch add"';
 
 # Try reworking without an intervening tag.

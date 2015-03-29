@@ -369,7 +369,7 @@ sub execute {
         $plan->write_to( $plan->file );
         $self->info(__x(
             'Added "{change}" to {file}',
-            change => $first_change->format_op_name_dependencies,
+            change => $spec->{change}->format_op_name_dependencies,
             file   => $plan->file,
         ));
     }

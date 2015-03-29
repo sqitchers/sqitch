@@ -10,7 +10,6 @@ use Type::Library 0.040 -base, -declare => qw(
     Target
     UserName
     UserEmail
-    ConfigBool
     Plan
     Change
     ChangeList
@@ -69,14 +68,6 @@ declare name => URI, constraint => sub {
     return blessed $o && first { $o->isa($_)} qw(URI URI::Nested URI::WithBase)
 };
 
-subtype ConfigBool, as Bool;
-coerce ConfigBool, from Maybe[Value], via {
-    my $bool = eval { App::Sqitch::Config->cast( value => $_, as => 'bool' ) };
-    hurl user => __x('Unknown value ({val}) for boolean config option', val => $_)
-        if $@;
-    $bool;
-};
-
 1;
 __END__
 
@@ -114,11 +105,6 @@ A Sqitch user name.
 =item C<UserEmail>
 
 A Sqitch user email address.
-
-=item C<ConfigBool>
-
-A value that can be converted to a boolean value suitable for storage in
-Sqitch configuration files.
 
 =item C<Plan>
 

@@ -828,9 +828,10 @@ sub rework {
     my ( $self, %p ) = @_;
     my $changes = $self->_changes;
     my $idx   = $changes->index_of( $p{name} . '@HEAD') // hurl plan => __x(
-        qq{Change "{change}" does not exist.\n}
+        qq{Change "{change}" does not exist in {file}.\n}
         . 'Use "sqitch add {change}" to add it to the plan',
         change => $p{name},
+        file   => $self->file,
     );
 
     my $tag_idx = $changes->index_of_last_tagged;
