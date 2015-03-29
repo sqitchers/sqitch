@@ -211,10 +211,10 @@ sub parse_args {
     my $target = App::Sqitch::Target->new( sqitch => $sqitch, name => $p{target} );
     my (%seen, %target_for);
 
-    my %ret = map { $_ => [] } qw(targets unknown);
-    $ret{changes} = [] unless $p{no_changes};
+    my %rec = map { $_ => [] } qw(targets unknown);
+    $rec{changes} = [] unless $p{no_changes};
     if ($p{target}) {
-        push @{ $ret{targets} } => $target;
+        push @{ $rec{targets} } => $target;
         $seen{$target->name}++;
     }
 
@@ -222,17 +222,17 @@ sub parse_args {
     for my $arg (@{ $p{args} }) {
         if ( !$p{no_changes} && $target && $target->plan->contains($arg) ) {
             # A change. Keep the target if it's the default.
-            push @{ $ret{targets} } => $target unless $seen{$target->name}++;
-            push @{ $ret{changes} } => $arg;
+            push @{ $rec{targets} } => $target unless $seen{$target->name}++;
+            push @{ $rec{changes} } => $arg;
         } elsif ($config->get( key => "target.$arg.uri") || URI->new($arg)->isa('URI::db')) {
             # A target. Instantiate and keep for subsequente change searches.
             $target = App::Sqitch::Target->new( sqitch => $sqitch, name => $arg );
-            push @{ $ret{targets} } => $target unless $seen{$target->name}++;
+            push @{ $rec{targets} } => $target unless $seen{$target->name}++;
         } elsif ($engines{$arg}) {
             # An engine. Add its target.
             my $name = $config->get(key => "engine.$arg.target") || "db:$arg:";
             $target = App::Sqitch::Target->new( sqitch => $sqitch, name => $name );
-            push @{ $ret{targets} } => $target unless $seen{$target->name}++;
+            push @{ $rec{targets} } => $target unless $seen{$target->name}++;
         } elsif (-e $arg) {
             # Maybe it's a plan file?
             %target_for = map {
@@ -241,33 +241,26 @@ sub parse_args {
             if ($target_for{$arg}) {
                 # It *is* a plan file.
                 $target = $target_for{$arg};
-                push @{ $ret{targets} } => $target unless $seen{$target->name}++;
+                push @{ $rec{targets} } => $target unless $seen{$target->name}++;
             } else {
                 # Nah, who knows.
-                push @{ $ret{unknown} } => $arg;
+                push @{ $rec{unknown} } => $arg;
             }
         } else {
             # Who knows?
-            push @{ $ret{unknown} } => $arg;
+            push @{ $rec{unknown} } => $arg;
         }
     }
 
     # Make sure we have the default target
-    push @{ $ret{targets} } => $target
-        if $target && !$p{no_default} && !@{ $ret{targets} };
-
-    return %ret;
-}
-
-sub parse_target_args {
-    my ($self, %p) = @_;
-    my %args = $self->parse_args(%p);
+    push @{ $rec{targets} } => $target
+        if $target && !$p{no_default} && !@{ $rec{targets} };
 
     # Replace missing names with unnknown values.
-    my @names = map { $_ || shift @{ $args{unknown} } } @{ $p{names} || [] };
+    my @names = map { $_ || shift @{ $rec{unknown} } } @{ $p{names} || [] };
 
     # Die on unknowns.
-    if (my @unknown = @{ $args{unknown} } ) {
+    if (my @unknown = @{ $rec{unknown} } ) {
         hurl $self->command => __nx(
             'Unknown argument "{arg}"',
             'Unknown arguments: {arg}',
@@ -277,8 +270,7 @@ sub parse_target_args {
     }
 
     # Figure out what targets to access. Use default unless --all.
-    my $sqitch = $self->sqitch;
-    my @targets = @{ $args{targets} };
+    my @targets = @{ $rec{targets} };
     if ($p{all}) {
         # Got --all.
         hurl $self->command => __(
@@ -293,7 +285,7 @@ sub parse_target_args {
             : ($self->default_target);
     }
 
-    return (@names, \@targets, $args{changes});
+    return (@names, \@targets, $rec{changes});
 }
 
 1;
@@ -474,13 +466,22 @@ commands that don't need to load the engine.
 
 =head3 C<parse_args>
 
-  my %parsed_args = $cmd->parse_args(target => $target_name, args => \@args);
+  my ($name1, $name2, $targets, $changes) = $cmd->parse_args(
+    names  => \@names,
+    target => $target_name,
+    args   => \@args
+  );
 
 Examines each argument to determine whether it's a known change spec or
-identifies a target. Returns a hash of string keys and array values. The keys
-are "change", "target", and "unknown", while the values are the original
-arguments or, for targets, the resolved target objects. Useful for commands
-that take a number of parameters where the order may be mixed.
+identifies a target. Unrecognized arguments will replace false values in the
+C<names> array reference. Any remaining unknown arguments will trigger an
+error.
+
+Returns a list consisting all the desired names, followed by an array
+reference of target objects and an array reference of change specs.
+
+This method is useful for commands that take a number of arguments where the
+order may be mixed.
 
 The supported parameters are:
 
@@ -493,15 +494,31 @@ An array reference of the command arguments.
 =item C<target>
 
 The name of a target, if any. Useful for commands that offer their own
-C<--target> option.
+C<--target> option. This target will be the default target, and the first
+returned in the targets array.
+
+=item C<names>
+
+An array reference of names. If any is false, its place will be taken by an
+otherwise unrecognized argument. The number of values in this array reference
+determines the number of values returned as names in the return values. Such
+values may still be false or undefined; it's up to the caller to decide what
+to do about that.
+
+=item C<all>
+
+In the event that no targets are recognized (or changes that implicitly
+recognize the default target), if this parameter is true, then all known
+targets from the configuration will be returned.
 
 =item C<no_changes>
 
 If true, the parser will not check to see if any argument corresponds to a
-change. The C<changes> key will not be included in the returned hash. Any
-argument that might have been recognized as a change will instead be included
-in either the C<targets> array, if it's recognized as a target, or else in the
-the C<unknown> array.
+change. The last value returned will be C<undef> instead of the usual array
+reference. Any argument that might have been recognized as a change will
+instead be included in either the C<targets> array -- if it's recognized as a
+target -- or used to set names to return. Any remaining are considered
+unknown arguments and will result in an exception.
 
 =item C<no_default>
 
@@ -514,10 +531,6 @@ If a target parameter is passed, it will always be instantiated and returned
 as the first item in the "target" array, and arguments recognized as changes
 in the plan associated with that target will be returned as changes.
 
-If a target is specified in the arguments, it will be instantiated and
-returned under in the "target" array and any subsequent changes must be
-recognized from I<its> plan.
-
 If no target is passed or appears in the arguments, a default target will be
 instantiated based on the command-line options and configuration -- unless the
 C<no_default> parameter is true. Unlike the target returned by
@@ -527,8 +540,9 @@ will be used by commands that require an engine to do their work. Of course,
 any changes must be recognized from the plan associated with this target.
 
 Changes are only recognized if they're found in the plan of the target that
-precedes them. Such changes can be specified in any way documented in
-L<sqitchchanges>.
+precedes them. If no target precedes them, the target specified by the
+C<target> parameter or the default target will be searched. Such changes can
+be specified in any way documented in L<sqitchchanges>.
 
 Targets may be recognized by any one of these types of arguments:
 
@@ -536,7 +550,7 @@ Targets may be recognized by any one of these types of arguments:
 
 =item * Target Name
 
-=item * Target URI
+=item * Database URI
 
 =item * Engine Name
 
@@ -548,10 +562,6 @@ In the case of plan files, C<parse_args()> will return the first target it
 finds for that plan file, even if multiple targets use the same plan file. The
 order of precedence for this determination is the default project target,
 followed by named targets, then engine targets.
-
-=head3 C<parse_target_args>
-
-Parses targets from args. To be merged into C<parse_args()>.
 
 =head3 C<run>
 

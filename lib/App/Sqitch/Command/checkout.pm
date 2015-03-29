@@ -33,7 +33,7 @@ sub configure { {} }
 
 sub execute {
     my $self = shift;
-    my ($branch, $targets) = $self->parse_target_args(
+    my ($branch, $targets) = $self->parse_args(
         target     => $self->target,
         names      => [undef],
         args       => \@_,

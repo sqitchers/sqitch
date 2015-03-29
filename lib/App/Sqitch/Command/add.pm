@@ -303,7 +303,7 @@ sub configure {
 
 sub execute {
     my $self = shift;
-    my ($name, $targets) = $self->parse_target_args(
+    my ($name, $targets) = $self->parse_args(
         names      => [$self->change_name],
         all        => $self->all,
         args       => \@_,

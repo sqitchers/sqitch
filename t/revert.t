@@ -149,9 +149,9 @@ $mock_engine->mock(set_variables => sub { shift; @vars = @_ });
 my $mock_cmd = Test::MockModule->new($CLASS);
 my ($target, $orig_method);
 $mock_cmd->mock(parse_args => sub {
-    my %ret = shift->$orig_method(@_);
-    $target = $ret{targets}[0];
-    %ret;
+    my @ret = shift->$orig_method(@_);
+    $target = $ret[0][0];
+    @ret;
 });
 $orig_method = $mock_cmd->original('parse_args');
 

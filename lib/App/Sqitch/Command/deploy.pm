@@ -100,7 +100,7 @@ sub configure {
 
 sub execute {
     my $self = shift;
-    my ($targets, $changes) = $self->parse_target_args(
+    my ($targets, $changes) = $self->parse_args(
         target     => $self->target,
         args       => \@_,
     );

@@ -53,7 +53,7 @@ sub configure {
 
 sub execute {
     my $self   = shift;
-    my ($name, $change, $targets) = $self->parse_target_args(
+    my ($name, $change, $targets) = $self->parse_args(
         names      => [$self->tag_name, $self->change_name],
         all        => $self->all,
         args       => \@_,
