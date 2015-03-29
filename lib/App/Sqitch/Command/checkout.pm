@@ -33,28 +33,19 @@ sub configure { {} }
 
 sub execute {
     my $self = shift;
-    my %args = $self->parse_args(target => $self->target, args => \@_);
-
-    # The branch arg will be the one parse_args does not recognize.
-    my $branch = shift @{ $args{unknown} } // $self->usage;
-
-    # Die on unknowns.
-    if (my @unknown = ( @{ $args{unknown} }, @{ $args{changes} } ) ) {
-        hurl checkout => __nx(
-            'Unknown argument "{arg}"',
-            'Unknown arguments: {arg}',
-            scalar @unknown,
-            arg => join ', ', @unknown
-        );
-    }
+    my ($branch, $targets) = $self->parse_target_args(
+        target     => $self->target,
+        names      => [undef],
+        args       => \@_,
+        no_changes => 1,
+    );
 
     # Warn on multiple targets.
-    my $target = shift @{ $args{targets} };
+    my $target = shift @{ $targets };
     $self->warn(__x(
         'Too many targets specified; connecting to {target}',
         target => $target->name,
-    )) if @{ $args{targets} };
-
+    )) if @{ $targets };
 
     # Now get to work.
     my $sqitch = $self->sqitch;

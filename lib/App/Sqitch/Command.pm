@@ -261,11 +261,7 @@ sub parse_args {
 
 sub parse_target_args {
     my ($self, %p) = @_;
-    my %args = $self->parse_args(
-        args       => $p{args},
-        no_default => 1,
-        no_changes => $p{no_changes},
-    );
+    my %args = $self->parse_args(%p);
 
     # Replace missing names with unnknown values.
     my @names = map { $_ || shift @{ $args{unknown} } } @{ $p{names} || [] };

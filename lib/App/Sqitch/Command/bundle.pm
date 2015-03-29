@@ -90,8 +90,9 @@ sub configure {
 sub execute {
     my $self = shift;
     my ($targets, $changes) = $self->parse_target_args(
-        all  => $self->all,
-        args => \@_
+        all        => $self->all,
+        args       => \@_,
+        no_default => 1,
     );
 
     # Warn if --to or --from is specified for more thane one target.

@@ -83,6 +83,7 @@ sub execute {
         names      => [$self->change_name],
         all        => $self->all,
         args       => \@_,
+        no_default => 1,
         no_changes => 1,
     );
 
