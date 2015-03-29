@@ -54,9 +54,10 @@ sub configure {
 sub execute {
     my $self   = shift;
     my ($name, $change, $targets) = $self->parse_target_args(
-        names => [$self->tag_name, $self->change_name],
-        all   => $self->all,
-        args  => \@_
+        names      => [$self->tag_name, $self->change_name],
+        all        => $self->all,
+        args       => \@_,
+        no_changes => 1,
     );
 
     if (defined $name) {

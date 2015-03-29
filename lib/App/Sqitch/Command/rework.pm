@@ -80,9 +80,10 @@ sub configure {
 sub execute {
     my $self = shift;
     my ($name, $targets, $changes) = $self->parse_target_args(
-        names => [$self->change_name],
-        all   => $self->all,
-        args  => \@_
+        names      => [$self->change_name],
+        all        => $self->all,
+        args       => \@_,
+        no_changes => 1,
     );
 
     # Check if the name is identified as a change.

@@ -180,7 +180,7 @@ isa_ok $tag = App::Sqitch::Command::tag->new({
 }), $CLASS, 'tag command with change name';
 $plan = $tag->default_target->plan;
 
-ok $tag->execute('zeta', 'bar'), 'Tag change "bar" with @zeta';
+ok $tag->execute('zeta'), 'Tag change "bar" with @zeta';
 is $plan->get('@zeta')->name, 'bar', 'Should have tagged "bar" with @zeta';
 ok $plan->load, 'Reload plan';
 is $plan->get('@zeta')->name, 'bar', 'Tag @zeta should have been written';

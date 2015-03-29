@@ -211,7 +211,8 @@ sub parse_args {
     my $target = App::Sqitch::Target->new( sqitch => $sqitch, name => $p{target} );
     my (%seen, %target_for);
 
-    my %ret = map { $_ => [] } qw(changes targets unknown);
+    my %ret = map { $_ => [] } qw(targets unknown);
+    $ret{changes} = [] unless $p{no_changes};
     if ($p{target}) {
         push @{ $ret{targets} } => $target;
         $seen{$target->name}++;
@@ -219,9 +220,9 @@ sub parse_args {
 
     my %engines = map { $_ => 1 } ENGINES;
     for my $arg (@{ $p{args} }) {
-        if ( $target && $target->plan->contains($arg) ) {
+        if ( !$p{no_changes} && $target && $target->plan->contains($arg) ) {
             # A change. Keep the target if it's the default.
-            push @{ $ret{targets} } => $target unless $p{no_default} || $seen{$target->name}++;
+            push @{ $ret{targets} } => $target unless $seen{$target->name}++;
             push @{ $ret{changes} } => $arg;
         } elsif ($config->get( key => "target.$arg.uri") || URI->new($arg)->isa('URI::db')) {
             # A target. Instantiate and keep for subsequente change searches.
@@ -260,7 +261,11 @@ sub parse_args {
 
 sub parse_target_args {
     my ($self, %p) = @_;
-    my %args = $self->parse_args(args => $p{args}, no_default => 1);
+    my %args = $self->parse_args(
+        args       => $p{args},
+        no_default => 1,
+        no_changes => $p{no_changes},
+    );
 
     # Replace missing names with unnknown values.
     my @names = map { $_ || shift @{ $args{unknown} } } @{ $p{names} || [] };
@@ -494,10 +499,18 @@ An array reference of the command arguments.
 The name of a target, if any. Useful for commands that offer their own
 C<--target> option.
 
+=item C<no_changes>
+
+If true, the parser will not check to see if any argument corresponds to a
+change. The C<changes> key will not be included in the returned hash. Any
+argument that might have been recognized as a change will instead be included
+in either the C<targets> array, if it's recognized as a target, or else in the
+the C<unknown> array.
+
 =item C<no_default>
 
 If true, no default target will be returned, even if no other targets are
-found or a change is found in that target. See below for details.
+found. See below for details.
 
 =back
 
