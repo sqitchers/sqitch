@@ -106,31 +106,24 @@ sub configure {
 
 sub execute {
     my $self = shift;
-    my %args = $self->parse_args(target => $self->target, args => \@_);
-
-    # Die on unknowns.
-    if (my @unknown = @{ $args{unknown}} ) {
-        hurl revert => __nx(
-            'Unknown argument "{arg}"',
-            'Unknown arguments: {arg}',
-            scalar @unknown,
-            arg => join ', ', @unknown
-        );
-    }
+    my ($targets, $changes) = $self->parse_target_args(
+        target => $self->target,
+        args   => \@_,
+    );
 
     # Warn on multiple targets.
-    my $target = shift @{ $args{targets} };
+    my $target = shift @{ $targets };
     $self->warn(__x(
         'Too many targets specified; connecting to {target}',
         target => $target->name,
-    )) if @{ $args{targets} };
+    )) if @{ $targets };
 
     # Warn on too many changes.
-    my $change = $self->to_change // shift @{ $args{changes} };
+    my $change = $self->to_change // shift @{ $changes };
     $self->warn(__x(
         'Too many changes specified; reverting to "{change}"',
         change => $change,
-    )) if @{ $args{changes} };
+    )) if @{ $changes };
 
     # Now get to work.
     my $engine = $target->engine;
