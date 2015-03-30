@@ -473,7 +473,8 @@ App::Sqitch::Command::add - Add a new change to Sqitch plans
 Adds a new deployment change. This will result in the creation of a scripts in
 the deploy, revert, and verify directories. The scripts are based on
 L<Template::Tiny> templates in F<~/.sqitch/templates/> or
-C<$(etc_path)/templates>.
+C<$(prefix)/etc/sqitch/templates> (call C<sqitch --etc-path> to find out
+where, exactly (e.g., C<$(sqitch --etc-path)/sqitch.conf>).
 
 =head1 Interface
 

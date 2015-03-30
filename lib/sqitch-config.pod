@@ -139,11 +139,14 @@ See also L</Files>.
 
 =item C<--system>
 
-For writing options: write to system-wide F<$(etc_path)/sqitch.conf> file
-rather than the repository F<./sqitch.conf>.
+For writing options: write to system-wide F<$(prefix)/etc/sqitch/sqitch.plan>
+file rather than the repository F<./sqitch.conf>.
 
-For reading options: read only from system-wide F<$($etc_prefix)/sqitch.conf>
-file rather than from all available files.
+For reading options: read only from system-wide
+F<$(prefix)/etc/sqitch/sqitch.plan> file rather than from all available files.
+
+Call C<sqitch --etc-path> to find out exactly where the system configuration
+file lives (e.g., C<$(sqitch --etc-path)/sqitch.conf>).
 
 See also L</Files>.
 
@@ -211,7 +214,7 @@ Local, project-specific configuration file.
 
 User-specific configuration file.
 
-=item F<$($etc_prefix)/sqitch.conf>
+=item F<$(prefix)/etc/sqitch/sqitch.plan>
 
 System-wide configuration file.
 

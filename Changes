@@ -84,6 +84,10 @@ Revision history for Perl extension App::Sqitch
        * -- Deploy [% project %]:[% change %] to [% engine]
        * -- Revert [% project %]:[% change %] from [% engine]
        * -- Verify [% project %]:[% change %] on [% engine]
+     - Updated docs to be consistent in refering to the location of the system
+       configuration and template location as `$(prefix)/etc/sqitch`. Also
+       added notes pointing to the `--etc-dir` to find out exactly what that
+       resolves to. Suggested by Joseph Anthony Pasquale Holsten (Issue #167).
 
 0.999  2015-02-12T19:43:45Z
      - Improved MySQL missing table error detection by relying on error codes

@@ -103,7 +103,8 @@ Returns the configuration file base name, which is F<sqitch.conf>.
 =head3 C<system_dir>
 
 Returns the path to the system configuration directory, which is
-C<$Config{prefix}/etc/sqitch/>.
+F<$(prefix)/etc/sqitch/templates>. Call C<sqitch --etc-path> to find out
+where, exactly (e.g., C<$(sqitch --etc-path)/sqitch.plan>).
 
 =head3 C<user_dir>
 
@@ -113,7 +114,8 @@ Returns the path to the user configuration directory, which is F<~/.sqitch/>.
 
 Returns the path to the system configuration file. The value returned will be
 the contents of the C<$SQITCH_SYSTEM_CONFIG> environment variable, if it's
-defined, or else C<$Config{prefix}/etc/sqitch/sqitch.conf>.
+defined, or else F<$(prefix)/etc/sqitch/templates>. Call C<sqitch --etc-path>
+to find out where, exactly (e.g., C<$(sqitch --etc-path)/sqitch.plan>).
 
 =head3 C<global_file>
 

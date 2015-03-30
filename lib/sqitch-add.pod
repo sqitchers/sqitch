@@ -15,8 +15,9 @@ This command adds a database change to one or more plans. This will result in
 the creation of script files in the deploy, revert, and verify directories,
 and possibly others. The content of these files is determined by the
 evaluation of templates. By default, system templates in
-F<$(etc_path)/templates> are used. These can be overridden by a single user by
-creating templates in F<~/.sqitch/templates/> See L</Templates> for details.
+F<$(prefix)/etc/sqitch/templates> are used. These can be overridden by a
+single user by creating templates in F<~/.sqitch/templates/> See L</Templates>
+for details.
 
 The paths and extensions of the generated scripts depend on the configuration
 of Sqitch targets, engines, and the core. They can also be overridden by the
@@ -102,7 +103,7 @@ C<name=value>, e.g., C<--set comment='This one is for you, babe.'>.
 
 Location to look for the templates. If none is specified, C<add> will
 first look in F<~/.sqitch/templates/> for each template, and fall back on
-F<$($etc_prefix)/templates>.
+F<$(prefix)/etc/sqitch/templates>.
 
 =item C<-t>
 
@@ -205,12 +206,13 @@ those plans:
 
 Sqitch contains a very simple set of templates for generating the deploy,
 revert, and verify scripts, and you can create more of your own. By default,
-Sqitch uses system-wide templates installed in F<($etc_path)/templates>; call
-C<sqitch --etc-path> to find out where, exactly. Individual templates may be
-overridden on a user basis by copying templates to F<~/.sqitch/templates> and
-making modifications. They may also be overridden by using the
-C<--template-directory> or C<--template-name> options, as well as the
-template-specific options.
+Sqitch uses system-wide templates installed in
+F<$(prefix)/etc/sqitch/templates>; call C<sqitch --etc-path> to find out
+where, exactly (e.g., C<$(sqitch --etc-path)/templates>). Individual templates
+may be overridden on a user basis by copying templates to
+F<~/.sqitch/templates> and making modifications. They may also be overridden
+by using the C<--template-directory> or C<--template-name> options, as well as
+the template-specific options.
 
 =head2 Directory Layout
 
@@ -222,7 +224,7 @@ Sqitch looks for templates in the following directories, and in this order:
 
 =item * F<~/.sqitch/templates/>
 
-=item * F<($etc_path)/templates/>
+=item * F<$(prefix)/etc/sqitch/templates>
 
 =back
 
