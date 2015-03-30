@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 226;
+use Test::More tests => 231;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -470,12 +470,16 @@ MULTIPLAN: {
 
     # Make sure we see the proper output.
     my $info = MockOutput->get_info;
+    my $note = $request_params{scripts};
     my $ekey = $targets[1]->engine_key;
     if ($info->[1][0] !~ /$ekey/) {
         # Got the targets in a different order. So reorder results to match.
         ($info->[1], $info->[2]) = ($info->[2], $info->[1]);
         push @{ $info } => splice @{ $info }, 7, 3;
+        push @{ $note } => splice @{ $note }, 3, 3;
     }
+    is_deeply $note, [map { @{ $scripts{$_}{change} }} qw(pg sqlite mysql)],
+        'Should have listed the files in the note prompt';
     is_deeply $info, [
         [__x(
             'Added "{change}" to {file}.',
@@ -598,6 +602,11 @@ MULTIPLAN: {
         files_eq $v->{change}[1], $v->{reworked}[0];
     }
 
+    is_deeply \%request_params, {
+        for => __ 'rework',
+        scripts => $scripts{sqlite}{change},
+    }, 'Should have listed SQLite scripts in the note prompt';
+
     # Clear the output.
     MockOutput->get_info;
     MockOutput->get_debug;
@@ -682,6 +691,11 @@ MULTITARGET: {
         # New revert should be the same as old deploy.
         files_eq $v->{change}[1], $v->{reworked}[0];
     }
+
+    is_deeply \%request_params, {
+        for => __ 'rework',
+        scripts => [ map {@{ $scripts{$_}{change} }} qw(pg sqlite)],
+    }, 'Should have listed all the files to edit in the note prompt';
 
     # And the output should be correct.
     is_deeply +MockOutput->get_info, [
@@ -789,6 +803,11 @@ MULTITAG: {
         cmp_ok $head->id, 'ne', $prev->id,
             "The two $ekey widgets should be different changes";
     }
+
+    is_deeply \%request_params, {
+        for => __ 'rework',
+        scripts => [ map {@{ $scripts{$_}{change} }} qw(pg sqlite)],
+    }, 'Should have listed all the files to edit in the note prompt';
 
     # And the output should be correct.
     is_deeply +MockOutput->get_info, [
@@ -899,6 +918,11 @@ ONETOP: {
     files_eq $change[2], $reworked[2];
     # New revert should be the same as old deploy.
     files_eq $change[1], $reworked[0];
+
+    is_deeply \%request_params, {
+        for => __ 'rework',
+        scripts => \@change,
+    }, 'Should have listed the files to edit in the note prompt';
 
     # And the output should be correct.
     is_deeply +MockOutput->get_info, [
