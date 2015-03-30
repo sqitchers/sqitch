@@ -376,11 +376,11 @@ my $test_add = sub {
         sqitch => $sqitch,
         template_directory => $tmpldir,
     ), 'Create add command';
-    ok $add->_add('sqitch_change_test', $out, $tmpl, 'sqlite'),
+    ok $add->_add('sqitch_change_test', $out, $tmpl, 'sqlite', 'add'),
         'Write out a script';
     file_exists_ok $out;
     file_contents_is $out, <<EOF, 'The template should have been evaluated';
--- Deploy sqitch_change_test to sqlite
+-- Deploy add:sqitch_change_test to sqlite
 
 BEGIN;
 
@@ -401,12 +401,12 @@ EOF
     ), 'Create add cmd with requires and conflicts';
 
     $out = file 'test-add', 'another_change_test.sql';
-    ok $add->_add('another_change_test', $out, $tmpl, 'sqlite'),
+    ok $add->_add('another_change_test', $out, $tmpl, 'sqlite', 'add'),
         'Write out a script with requires and conflicts';
     is_deeply +MockOutput->get_info, [[__x 'Created {file}', file => $out ]],
         'Info should show $out created';
     file_contents_is $out, <<EOF, 'The template should have been evaluated with requires and conflicts';
--- Deploy another_change_test to sqlite
+-- Deploy add:another_change_test to sqlite
 -- requires: foo
 -- requires: bar
 -- conflicts: baz
@@ -492,11 +492,11 @@ is_deeply \%request_params, {
 }, 'It should have prompted for a note';
 
 file_exists_ok $_ for ($deploy_file, $revert_file, $verify_file);
-file_contents_like $deploy_file, qr/^-- Deploy widgets_table/,
+file_contents_like $deploy_file, qr/^-- Deploy add:widgets_table/,
     'Deploy script should look right';
-file_contents_like $revert_file, qr/^-- Revert widgets_table/,
+file_contents_like $revert_file, qr/^-- Revert add:widgets_table/,
     'Revert script should look right';
-file_contents_like $verify_file, qr/^-- Verify widgets_table/,
+file_contents_like $verify_file, qr/^-- Verify add:widgets_table/,
     'Verify script should look right';
 is_deeply +MockOutput->get_info, [
     [__x 'Created {file}', file => $deploy_file],
@@ -595,11 +595,11 @@ MOCKSHELL: {
 
     file_exists_ok $_ for ($deploy_file, $revert_file, $verify_file);
     file_contents_like +File::Spec->catfile(qw(test-add deploy open_editor.sql)),
-        qr/^-- Deploy open_editor/, 'Deploy script should look right';
+        qr/^-- Deploy add:open_editor/, 'Deploy script should look right';
     file_contents_like +File::Spec->catfile(qw(test-add revert open_editor.sql)),
-        qr/^-- Revert open_editor/, 'Revert script should look right';
+        qr/^-- Revert add:open_editor/, 'Revert script should look right';
     file_contents_like +File::Spec->catfile(qw(test-add verify open_editor.sql)),
-        qr/^-- Verify open_editor/, 'Verify script should look right';
+        qr/^-- Verify add:open_editor/, 'Verify script should look right';
     is_deeply +MockOutput->get_info, [
         [__x 'Created {file}', file => $deploy_file],
         [__x 'Created {file}', file => $revert_file],
@@ -640,11 +640,11 @@ EXTRAS: {
 
     file_exists_ok $_ for ($deploy_file, $revert_file, $whatev_file);
     file_not_exists_ok $verify_file;
-    file_contents_like $deploy_file, qr/^-- Deploy custom_script/,
+    file_contents_like $deploy_file, qr/^-- Deploy add:custom_script/,
         'Deploy script should look right';
-    file_contents_like $revert_file, qr/^-- Revert custom_script/,
+    file_contents_like $revert_file, qr/^-- Revert add:custom_script/,
         'Revert script should look right';
-    file_contents_like $whatev_file, qr/^-- Verify custom_script/,
+    file_contents_like $whatev_file, qr/^-- Verify add:custom_script/,
         'Whatev script should look right';
     file_contents_unlike $whatev_file, qr/^BEGIN/,
         'Whatev script should be based on the MySQL verify script';

@@ -286,7 +286,7 @@ L<Template::Tiny>, which is limited to:
 This is the directive syntax. By default, the return value of the expression
 is output:
 
-  -- Deploy [% change %] to [% engine %]
+  -- Deploy [% project %]:[% change %] to [% engine %]
 
 You can add C<-> to the immediate start or end of a directive tag to control
 the whitespace chomping options:
@@ -326,7 +326,7 @@ details, especially the L<syntax docs|http://tt2.org/docs/manual/Syntax.html>
 
 =head2 Variables
 
-Sqitch defines four variables for all templates. Any number of additional
+Sqitch defines five variables for all templates. Any number of additional
 variables can be added via the C<--set> option, like so:
 
   sqitch add --set transactions=1 --set schema=foo
@@ -339,7 +339,7 @@ they will be ignored. Variables may also be specified in a C<add.variables>
 L<config|sqitch-config> section (see L</Configuration Variables>). Variables
 specified via C<--set> will override configuration variables.
 
-The four core variables are:
+The five core variables are:
 
 =over
 
@@ -351,6 +351,11 @@ The name of the change being added.
 
 The name of the engine for which the change was added. One of C<pg>,
 C<sqlite>, C<mysql>, C<oracle>, C<firebird>, or C<vertica>.
+
+=item C<project>
+
+The name of the Sqitch project to which the change was added. The project name
+is set in the plan by the L<C<init> command>|sqitch-init>.
 
 =item C<requires>
 

@@ -178,7 +178,7 @@ file_contents_identical($deploy_file2, $deploy_file);
 file_contents_identical($verify_file2, $verify_file);
 file_contents_identical($revert_file, $deploy_file);
 file_contents_is($revert_file2, <<'EOF', 'New revert should revert');
--- Revert foo from pg
+-- Revert empty:foo from pg
 
 BEGIN;
 
