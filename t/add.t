@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 224;
+use Test::More tests => 226;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Target;
@@ -822,6 +822,11 @@ MULTITARGET: {
     ok $targets[0]->plan->get('widgets'), 'Should have "widgets" in the plan';
     file_exists_ok $_ for @scripts;
 
+    is_deeply \%request_params, {
+        for => __ 'add',
+        scripts => \@scripts,
+    }, 'Should have the proper files listed in the note promt';
+
     is_deeply +MockOutput->get_info, [
         (map { [__x 'Created {file}', file => $_] } @scripts),
         [
@@ -875,6 +880,11 @@ ONETOP: {
          for @targets;
     file_exists_ok $_ for @scripts;
 
+    is_deeply \%request_params, {
+        for => __ 'add',
+        scripts => \@scripts,
+    }, 'Should have the proper files listed in the note promt';
+
     is_deeply my $info = MockOutput->get_info, [
         (map { [__x 'Created {file}', file => $_] } @scripts),
         [
@@ -889,6 +899,7 @@ ONETOP: {
             file   => $targets[1]->plan_file,
         ],
     ], 'Info should have script creations and skips';
+
     chdir File::Spec->updir;
 }
 

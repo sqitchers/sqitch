@@ -312,7 +312,7 @@ sub execute {
     );
 
     my $note = join "\n\n", => @{ $self->note };
-    my ($first_change, %added, @files);
+    my ($first_change, %added, @files, %seen);
 
     for my $target (@{ $targets }) {
         my $plan = $target->plan;
@@ -339,7 +339,7 @@ sub execute {
 
         # Suss out the files we'll need to write.
         push @{ $spec->{scripts} } => map {
-            push @files => $_->[1];
+            push @files => $_->[1] unless $seen{$_->[1]}++;
             [ $_->[1], $tmpl->{ $_->[0] } ];
         } grep {
             !$spec->{seen}{ $_->[1] }++;
