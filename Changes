@@ -78,6 +78,12 @@ Revision history for Perl extension App::Sqitch
        well as the directories in which scripts will be copied.
      - Added the `--change` option to the `rework` command to distinguish the
        change to be reworked from plan-specifying arguments, if necessary.
+     - Added the `engine` variable to the execution of script templates by the
+       `add` command. The default templates now use it to make their first
+       lines one of:
+       * -- Deploy [% change %] to [% engine]
+       * -- Revert [% change %] from [% engine]
+       * -- Verify [% change %] on [% engine]
 
 0.999  2015-02-12T19:43:45Z
      - Improved MySQL missing table error detection by relying on error codes

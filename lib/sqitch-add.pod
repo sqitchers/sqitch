@@ -130,7 +130,7 @@ be evaluated.
 This option allows one to define templates for specific tasks, such as
 creating a table, and then use them for changes that perform those tasks.
 Defaults to the name of the database engine (C<pg>, C<sqlite>, C<mysql>,
-C<oracle>, C<firebird>, or C<vertica>.
+C<oracle>, C<firebird>, or C<vertica>).
 
 =item C<--use script=template>
 
@@ -286,7 +286,7 @@ L<Template::Tiny>, which is limited to:
 This is the directive syntax. By default, the return value of the expression
 is output:
 
-  -- Deploy [% change %]
+  -- Deploy [% change %] to [% engine %]
 
 You can add C<-> to the immediate start or end of a directive tag to control
 the whitespace chomping options:
@@ -326,8 +326,8 @@ details, especially the L<syntax docs|http://tt2.org/docs/manual/Syntax.html>
 
 =head2 Variables
 
-Sqitch defines three variables for all templates. Any number of additional variables
-can be added via the C<--set> option, like so:
+Sqitch defines four variables for all templates. Any number of additional
+variables can be added via the C<--set> option, like so:
 
   sqitch add --set transactions=1 --set schema=foo
 
@@ -335,18 +335,22 @@ Any number of variables may be specified in this manner. You may then use
 those variables in custom templates. Variables that appear multiple times will
 be passed to the templates as lists of values for which you will likely want
 to use C<[% FOREACH %]>. If the templates do not reference your variables,
-they will be ignored. Variables may also be specified in a
-C<[add "variables]> L<config|sqitch-config> section (see 
-L</Configuration Variables>). Variables specified via C<--set> will override
-configuration variables.
+they will be ignored. Variables may also be specified in a C<add.variables>
+L<config|sqitch-config> section (see L</Configuration Variables>). Variables
+specified via C<--set> will override configuration variables.
 
-The three core variables are:
+The four core variables are:
 
 =over
 
 =item C<change>
 
 The name of the change being added.
+
+=item C<engine>
+
+The name of the engine for which the change was added. One of C<pg>,
+C<sqlite>, C<mysql>, C<oracle>, C<firebird>, or C<vertica>.
 
 =item C<requires>
 

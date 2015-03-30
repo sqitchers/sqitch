@@ -340,7 +340,7 @@ sub execute {
         # Suss out the files we'll need to write.
         push @{ $spec->{scripts} } => map {
             push @files => $_->[1] unless $seen{$_->[1]}++;
-            [ $_->[1], $tmpl->{ $_->[0] } ];
+            [ $_->[1], $tmpl->{ $_->[0] }, $target->engine_key ];
         } grep {
             !$spec->{seen}{ $_->[1] }++;
         } map {
@@ -386,7 +386,7 @@ sub execute {
 }
 
 sub _add {
-    my ( $self, $name, $file, $tmpl ) = @_;
+    my ( $self, $name, $file, $tmpl, $engine ) = @_;
     if (-e $file) {
         $self->info(__x(
             'Skipped {file}: already exists',
@@ -410,6 +410,7 @@ sub _add {
     my $vars = clone {
         %{ $self->variables },
         change    => $name,
+        engine    => $engine,
         requires  => $self->requires,
         conflicts => $self->conflicts,
     };

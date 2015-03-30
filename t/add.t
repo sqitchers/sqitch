@@ -372,12 +372,15 @@ my $test_add = sub {
     END { remove_tree 'test-add' };
     my $out = file 'test-add', 'sqitch_change_test.sql';
     file_not_exists_ok $out;
-    ok my $add = $CLASS->new(sqitch => $sqitch), 'Create add command';
-    ok $add->_add('sqitch_change_test', $out, $tmpl),
+    ok my $add = $CLASS->new(
+        sqitch => $sqitch,
+        template_directory => $tmpldir,
+    ), 'Create add command';
+    ok $add->_add('sqitch_change_test', $out, $tmpl, 'sqlite'),
         'Write out a script';
     file_exists_ok $out;
     file_contents_is $out, <<EOF, 'The template should have been evaluated';
--- Deploy sqitch_change_test
+-- Deploy sqitch_change_test to sqlite
 
 BEGIN;
 
@@ -394,15 +397,16 @@ EOF
         sqitch    => $sqitch,
         requires  => [qw(foo bar)],
         conflicts => ['baz'],
+        template_directory => $tmpldir,
     ), 'Create add cmd with requires and conflicts';
 
     $out = file 'test-add', 'another_change_test.sql';
-    ok $add->_add('another_change_test', $out, $tmpl),
+    ok $add->_add('another_change_test', $out, $tmpl, 'sqlite'),
         'Write out a script with requires and conflicts';
     is_deeply +MockOutput->get_info, [[__x 'Created {file}', file => $out ]],
         'Info should show $out created';
     file_contents_is $out, <<EOF, 'The template should have been evaluated with requires and conflicts';
--- Deploy another_change_test
+-- Deploy another_change_test to sqlite
 -- requires: foo
 -- requires: bar
 -- conflicts: baz
@@ -437,7 +441,8 @@ SKIP: {
     $test_add->('Template Toolkit');
 
     # Template Toolkit should throw an error on template syntax errors.
-    ok my $add = $CLASS->new(sqitch => $sqitch), 'Create add command';
+    ok my $add = $CLASS->new(sqitch => $sqitch, template_directory => $tmpldir),
+        'Create add command';
     my $mock_add = Test::MockModule->new($CLASS);
     $mock_add->mock(_slurp => sub { \'[% IF foo %]' });
     my $out = file 'test-add', 'sqitch_change_test.sql';
@@ -456,7 +461,7 @@ SKIP: {
 # Test execute.
 ok $add = $CLASS->new(
     sqitch => $sqitch,
-    template_directory => dir(qw(etc templates))
+    template_directory => $tmpldir,
 ), 'Create another add with template_directory';
 
 # Override request_note().
@@ -516,7 +521,7 @@ ok $add = $CLASS->new(
     conflicts          => [qw(dr_evil joker)],
     note               => [qw(hello there)],
     with_scripts       => { verify => 0 },
-    template_directory => dir(qw(etc templates))
+    template_directory => $tmpldir,
 ), 'Create another add with template_directory and no verify script';
 
 $deploy_file = file qw(test-add deploy foo_table.sql);
@@ -570,7 +575,7 @@ MOCKSHELL: {
 
     ok $add = $CLASS->new(
         sqitch              => $sqitch,
-        template_directory  => dir(qw(etc templates)),
+        template_directory  => $tmpldir,
         note                => ['Testing --open-editor'],
         open_editor         => 1,
     ), 'Create another add with open_editor';
@@ -610,7 +615,7 @@ MOCKSHELL: {
 EXTRAS: {
     ok my $add = $CLASS->new(
         sqitch              => $sqitch,
-        template_directory  => dir(qw(etc templates)),
+        template_directory  => $tmpldir,
         with_scripts        => { verify => 0 },
         templates           => { whatev => file(qw(etc templates verify mysql.tmpl)) },
         note                => ['Testing custom scripts'],
