@@ -15,7 +15,7 @@ use namespace::autoclean;
 
 extends 'App::Sqitch::Engine';
 
-our $VERSION = '0.999_1';
+our $VERSION = '0.9991';
 
 BEGIN {
     # We tell the Oracle connector which encoding to use. The last part of the

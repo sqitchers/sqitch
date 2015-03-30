@@ -1,6 +1,6 @@
 Revision history for Perl extension App::Sqitch
 
-1.0
+0.9991
      - DateTime::TimeZone::Local::Win32 is now required on Windows.
      - The MySQL engine no longer passes `--skip-pager` on Windows, since
        it is not supported there. Thanks to Gabriel Potkány for the report

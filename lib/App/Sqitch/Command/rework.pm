@@ -13,7 +13,7 @@ use namespace::autoclean;
 
 extends 'App::Sqitch::Command';
 
-our $VERSION = '0.999_1';
+our $VERSION = '0.9991';
 
 has change_name => (
     is  => 'ro',

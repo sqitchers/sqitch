@@ -1,5 +1,5 @@
 Name:           sqitch
-Version:        0.999_1
+Version:        0.9991
 Release:        1%{?dist}
 Summary:        Sane database change management
 License:        MIT

@@ -1,5 +1,5 @@
-App/Sqitch version 0.999_1
-========================
+App/Sqitch version 0.9991
+=========================
 
 [![CPAN version](https://badge.fury.io/pl/App-Sqitch.svg)](http://badge.fury.io/pl/App-Sqitch)
 [![Build Status](https://travis-ci.org/theory/sqitch.svg)](https://travis-ci.org/theory/sqitch)
