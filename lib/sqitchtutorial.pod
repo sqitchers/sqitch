@@ -421,7 +421,7 @@ idea to be explicit about dependencies.
 Now edit the scripts. When you're done, F<deploy/users.sql> should look like
 this:
 
-  -- Deploy users to pg
+  -- Deploy flipr:users to pg
   -- requires: appschema
 
   BEGIN;
@@ -615,7 +615,7 @@ planned the change, and a note.
 Let's write the code for the new changes. Here's what
 F<deploy/insert_user.sql> should look like:
 
-  -- Deploy insert_user to pg
+  -- Deploy flipr:insert_user to pg
   -- requires: users
   -- requires: appschema
   
@@ -641,14 +641,14 @@ an exception if the specified function does not exist.
 
 And F<revert/insert_user.sql> should look something like this:
 
-  -- Revert insert_user from pg
+  -- Revert flipr:insert_user from pg
   BEGIN;
   DROP FUNCTION flipr.insert_user(TEXT, TEXT);
   COMMIT;
 
 Now for C<change_pass>; F<deploy/change_pass.sql> might look like this:
 
-  -- Deploy change_pass to pg
+  -- Deploy flipr:change_pass to pg
   -- requires: users
   -- requires: appschema
 
@@ -679,7 +679,7 @@ Use C<has_function_privilege()> in F<verify/change_pass.sql> again:
 And of course, its C<revert> script, F<revert/change_pass.sql>, should look
 something like:
 
-  -- Revert change_pass from pg
+  -- Revert flipr:change_pass from pg
   BEGIN;
   DROP FUNCTION flipr.change_pass(TEXT, TEXT, TEXT);
   REVERT;
@@ -850,7 +850,7 @@ Now we can add a new change to create a table for our flips.
 
 You know the drill by now. Edit F<deploy/flips.sql>:
 
-  -- Deploy flips to pg
+  -- Deploy flipr:flips to pg
   -- requires: appschema
   -- requires: users
 
@@ -869,7 +869,7 @@ You know the drill by now. Edit F<deploy/flips.sql>:
 
 Edit F<verify/flips.sql>:
 
-  -- Verify flips on pg
+  -- Verify flipr:flips on pg
 
   BEGIN;
 
@@ -884,7 +884,7 @@ Edit F<verify/flips.sql>:
 
 And edit F<revert/flips.sql>:
 
-  -- Revert flips from pg
+  -- Revert flipr:flips from pg
 
   BEGIN;
 
@@ -929,7 +929,7 @@ Now comes the time to add functions to manage flips. I'm sure you have things
 nailed down now. Go ahead and add C<insert_flip> and C<delete_flip> changes
 and commit them. The C<insert_flip> deploy script might look something like:
 
-  -- Deploy insert_flip to pg
+  -- Deploy flipr:insert_flip to pg
   -- requires: flips
   -- requires: appschema
   -- requires: users
@@ -949,7 +949,7 @@ and commit them. The C<insert_flip> deploy script might look something like:
 
 And the C<delete_flip> deploy script might look something like:
 
-  -- Deploy delete_flip to pg
+  -- Deploy flipr:delete_flip to pg
   -- requires: flips
   -- requires: appschema
   -- requires: users
@@ -969,7 +969,7 @@ And the C<delete_flip> deploy script might look something like:
 
 The C<verify> scripts are:
 
-  -- Verify insert_flip on pg
+  -- Verify flipr:insert_flip on pg
 
   BEGIN;
 
@@ -979,7 +979,7 @@ The C<verify> scripts are:
 
 And:
 
-  -- Verify delete_flip on pg
+  -- Verify flipr:delete_flip on pg
 
   BEGIN;
 
@@ -989,7 +989,7 @@ And:
 
 The C<revert> scripts are:
 
-  -- Revert insert_flip from pg
+  -- Revert flipr:insert_flip from pg
 
   BEGIN;
 
@@ -999,7 +999,7 @@ The C<revert> scripts are:
 
 And:
 
-  -- Revert delete_flip from pg
+  -- Revert flipr:delete_flip from pg
 
   BEGIN;
 
@@ -1461,7 +1461,7 @@ script to switch to C<crypt()>. Make this change to
 F<deploy/insert_user.sql>:
 
   @@ -1,6 +1,7 @@
-   -- Deploy insert_user to pg
+   -- Deploy flipr:insert_user to pg
    -- requires: users
    -- requires: appschema
   +-- requires: pgcrypto
@@ -1490,7 +1490,7 @@ Go ahead and rework the C<change_pass> change, too:
 And make this change to F<deploy/change_pass.sql>:
 
   @@ -1,6 +1,7 @@
-   -- Deploy change_pass to pg
+   -- Deploy flipr:change_pass to pg
    -- requires: users
    -- requires: appschema
   +-- requires: pgcrypto
@@ -1557,7 +1557,7 @@ been modified to use C<crypt()>? I think the simplest thing to do is to
 examine the body of the function, using
 L<C<pg_get_functiondef()>|http://www.postgresql.org/docs/9.2/static/functions-info.html#FUNCTIONS-INFO-CATALOG-TABLE>. So the C<insert_user> verify script looks like this:
 
-  -- Verify insert_user on pg
+  -- Verify flipr:insert_user on pg
 
   BEGIN;
 
@@ -1572,7 +1572,7 @@ L<C<pg_get_functiondef()>|http://www.postgresql.org/docs/9.2/static/functions-in
 
 And the C<change_pass> verify script looks like this:
 
-  -- Verify change_pass on pg
+  -- Verify flipr:change_pass on pg
 
   BEGIN;
 

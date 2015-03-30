@@ -162,7 +162,7 @@ deploy, revert, and verify scripts that represent the change. Now we edit
 these files. The C<deploy> script's job is to create the table. By default,
 the F<deploy/users.sql> file looks like this:
 
-  -- Deploy users to firebird
+  -- Deploy flipr:users to firebird
 
   -- XXX Add DDLs here.
 
@@ -171,7 +171,7 @@ the F<deploy/users.sql> file looks like this:
 What we want to do is to replace the C<XXX> comment with the C<CREATE TABLE>
 statement, like so:
 
-  -- Deploy users to firebird
+  -- Deploy flipr:users to firebird
 
   CREATE TABLE users (
       nickname   VARCHAR(50)  PRIMARY KEY,
@@ -186,7 +186,7 @@ statement, like so:
 The C<revert> script's job is to precisely revert the change to the deploy
 script, so we edit this to F<revert/users.sql> to look like this:
 
-  -- Revert users from firebird
+  -- Revert flipr:users from firebird
 
   DROP TABLE users;
 
@@ -451,7 +451,7 @@ idea to be explicit about dependencies.
 Now edit the scripts. When you're done, F<deploy/flips.sql> should look like
 this:
 
-  -- Deploy flips to firebird
+  -- Deploy flipr:flips to firebird
   -- requires: users
 
   CREATE TABLE flips (
@@ -475,7 +475,7 @@ Now for the verify script. Again, all we need to do is C<SELECT> from the
 table. I recommend selecting each column by name, too, to be sure that no
 column is missing. Here's the F<verify/flips.sql>:
 
-  -- Verify flips on firebird
+  -- Verify flipr:flips on firebird
 
   SELECT id, nickname, body, created_at
     FROM flips
@@ -486,7 +486,7 @@ column is missing. Here's the F<verify/flips.sql>:
 Now for the revert script: all we have to do is drop the table. Add this to
 F<revert/flips.sql>:
 
-  -- Revert flips from firebird
+  -- Revert flipr:flips from firebird
 
   DROP TABLE flips;
 
@@ -1144,7 +1144,7 @@ Next, modify F<verify/userflips.sql> to check for the C<twitter> column.
 Here's the diff:
 
   @@ -1,6 +1,6 @@
-   -- Verify userflips on firebird
+   -- Verify flipr:userflips on firebird
  
   -SELECT id, nickname, fullname, body, created_at
   +SELECT id, nickname, twitter, fullname, body, created_at

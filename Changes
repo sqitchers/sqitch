@@ -45,45 +45,28 @@ Revision history for Perl extension App::Sqitch
        Thanks to Timothy Procter for the report (Issue #212).
      - All commands that take target arguments can now specify them as engine
        names or plan file paths as well as target names and URIs.
-     - Added the `--all` option and the `bundle.all` configuration variable to
-       the `bundle` command to bundle all plans known from the configuration,
-       not just the default plan.
-     - Pass engine, target, or plan file names to the `bundle` command to
-       specify specif targets, engines, and plans to bundle.
-     - Added the `--all` option and the `add.all` configuration variable to
-       the `add` command to add a change to all plans known from the
+     - Added the `--all` option and the `$comand.all` configuration variable
+       to the `add`, `rework`, `tag`, and `bundle` commands. This option tells
+       the commands to do their thing for all plans known from the
        configuration, not just the default plan.
-     - Pass engine, target, or plan file names to the `add` command to specify
-       specific plans to which the changes will be added, as well as the
-       directories in which scripts will be generated.
-     - Added the `--change` option to the `add` command to distinguish the
-       change to be added from plan-specifying arguments, if necessary.
-     - Added the `--all` option and the `tag.all` configuration variable to
-       the `tag` command to lists tags in or add a tags to all plans known
-       from the configuration, not just the default plan.
-     - Pass engine, target, or plan file names to the `tag` command to specify
-       specific plans from which to list tags or to which to add a tag.
-     - Added the `--tag` and `--change` options to the `tag` command to
-       distinguish the tag to be added, as well as the change to which to
-       apply it, from plan-specifying arguments, if necessary.
+     - Pass engine, target, or plan file names to the `add`, `rework`, `tag`,
+       and `bundle` commands` commands to specify specify one or more targets,
+       engines, and plans to act on.
+     - Added the `--change` option to the `add`, `rework`, and `tag` commands
+       to distinguish the change to be added, reworked, or tagged from
+       plan-specifying arguments, if necessary.
+     - Added the `--tag` option to the `tag` command to distinguish the tag to
+       be added from plan-specifying arguments, if necessary.
      - Changed the short variant of the `--conflicts` option to the `add` and
        `rework` commands from `-c` to `-x`. The `-c` option is now used as the
        short variant for `--change` (and `--conflicts` has almost certainly
        never been used, anyway).
-     - Added the `--all` option and the `rework.all` configuration variable to
-       the `rework` command to rework a change in all plans known from the
-       configuration, not just the default plan.
-     - Pass engine, target, or plan file names to the `rework` command to
-       specify specific plans inwhich which the change will be reworked, as
-       well as the directories in which scripts will be copied.
-     - Added the `--change` option to the `rework` command to distinguish the
-       change to be reworked from plan-specifying arguments, if necessary.
      - Added the `engine` and `project` variables to the execution of script
        templates by the `add` command. The default templates now use it to
        make their first lines one of:
-       * -- Deploy [% project %]:[% change %] to [% engine]
-       * -- Revert [% project %]:[% change %] from [% engine]
-       * -- Verify [% project %]:[% change %] on [% engine]
+       * -- Deploy flipr:flipr:flipr:lipr:[% project %]:[% change %] to [% engine]
+       * -- Revert flipr:flipr:flipr:lipr:[% project %]:[% change %] from [% engine]
+       * -- Verify flipr:flipr:flipr:lipr:[% project %]:[% change %] on [% engine]
      - Updated docs to be consistent in refering to the location of the system
        configuration and template location as `$(prefix)/etc/sqitch`. Also
        added notes pointing to the `--etc-dir` to find out exactly what that
