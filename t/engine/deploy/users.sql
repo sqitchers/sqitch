@@ -26,3 +26,5 @@ CREATE TABLE __myapp.users (
 -- Append another line to reworked script for a new SHA-1 hash
 -- Append another line to reworked script for a new SHA-1 hash
 -- Append another line to reworked script for a new SHA-1 hash
+-- Append another line to reworked script for a new SHA-1 hash
+-- Append another line to reworked script for a new SHA-1 hash

@@ -232,7 +232,7 @@ sub BUILDARGS {
         return $p;
     }
 
-    # XXX $merge for deprecated options and config.
+    # XXX $merge for deprecated config.
     # Can also move $ekey just to block below when deprecated merge is removed.
     my ($ekey, $merge);
     my $config = $sqitch->config;
@@ -312,23 +312,19 @@ sub BUILDARGS {
             $WARNED = 1;
         }
 
-        my @deprecated;
         if (my $host = $opts->{db_host}) {
-            push @deprecated => '--db-host';
             $uri->host($host);
         } elsif ($host = $econfig->{host}) {
             $uri->host($host) if $merge > 1;
         }
 
         if (my $port = $opts->{db_port}) {
-            push @deprecated => '--db-port';
             $uri->port($port);
         } elsif ($port = $econfig->{port}) {
             $uri->port($port) if $merge > 1;
         }
 
         if (my $user = $opts->{db_username}) {
-            push @deprecated => '--db-username';
             $uri->user($user);
         } elsif ($user = $econfig->{username}) {
             $uri->user($user) if $merge > 1;
@@ -339,21 +335,11 @@ sub BUILDARGS {
         }
 
         if (my $db = $opts->{db_name}) {
-            push @deprecated => '--db-name';
             $uri->dbname($db);
         } elsif ($db = $econfig->{db_name}) {
             $uri->dbname($db) if $merge > 1;
         }
 
-        if (@deprecated) {
-            $sqitch->warn(__nx(
-                'Option {options} deprecated and will be removed in 1.0; use URI {uri} instead',
-                'Options {options} deprecated and will be removed in 1.0; use URI {uri} instead',
-                scalar @deprecated,
-                options => join(', ', @deprecated),
-                uri     => $uri->as_string,
-            ));
-        }
     }
 
     unless ($name) {

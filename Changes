@@ -75,6 +75,17 @@ Revision history for Perl extension App::Sqitch
        `rebase` or the `--to` option to `revert`, among others) would
        sometimes return the incorrect change if the change has been reworked
        two or more times. Thanks toBryLo for the report!
+     - Reverted deprecation of the database connection options. Target URIs
+       are still generally preferred, but sometimes you want to use a target
+       but just change the username or database name. Retaining the options is
+       the easiest way to do this. Plus, a fair number of people have scripts
+       that use these options, and it seems petty to break them. Sorry for the
+       double-take here! The list of un-deprecated options is:
+       * `--db-host`
+       * `--db-port`
+       * `--db-username`
+       * `--db-password`
+       * `--db-name`
 
 0.999  2015-02-12T19:43:45Z
      - Improved MySQL missing table error detection by relying on error codes

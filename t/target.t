@@ -306,7 +306,7 @@ CONSTRUCTOR: {
         'Should have requested engine target and target URI from config';
     is_deeply \@sect_params, [], 'Should not have requested pg section';
 
-    # Make sure deprecated config options work.
+    # Make sure db options and deprecated config variables work.
     local $App::Sqitch::Target::WARNED = 0;
     @sect_ret = ({
         host     => 'hi.com',
@@ -330,7 +330,7 @@ CONSTRUCTOR: {
         sqitch => $0,
     )]], 'Should have warned on deprecated config options';
 
-    # Make sure deprecated --db-* options work.
+    # Make sure --db-* options work.
     $App::Sqitch::Target::WARNED = 0;
     @sect_ret = ({
         host     => 'hi.com',
@@ -357,12 +357,7 @@ CONSTRUCTOR: {
             engine => 'pg',
             sqitch => $0,
         )],
-        [__x(
-            'Options {options} deprecated and will be removed in 1.0; use URI {uri} instead',
-            options => '--db-host, --db-port, --db-username, --db-name',
-            uri     => $uri->as_string,
-        )],
-    ], 'Should have warned on deprecated options';
+    ], 'Should have warned on deprecated config';
 
     # Options should work, but not config, when URI read from target config.
     $App::Sqitch::Target::WARNED = 0;
@@ -382,13 +377,8 @@ CONSTRUCTOR: {
     is_deeply \@sect_params, [], 'Should have fetched no section';
     is $target->name, 'foo', 'Name should be as passed';
     is $target->uri, $uri, 'URI should be tweaked by --db-* options';
-    is_deeply +MockOutput->get_warn, [
-        [__x(
-            'Options {options} deprecated and will be removed in 1.0; use URI {uri} instead',
-            options => '--db-host, --db-name',
-            uri     => $uri->as_string,
-        )],
-    ], 'Should have warned on deprecated options';
+    is_deeply +MockOutput->get_warn, [],
+        'Should have emitted no warnigns';
 }
 
 CONFIG: {
