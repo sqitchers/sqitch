@@ -81,6 +81,7 @@ Revision history for Perl extension App::Sqitch
        the easiest way to do this. Plus, a fair number of people have scripts
        that use these options, and it seems petty to break them. Sorry for the
        double-take here! The list of un-deprecated options is:
+       * `--db-client`
        * `--db-host`
        * `--db-port`
        * `--db-username`

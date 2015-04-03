@@ -211,7 +211,6 @@ sub go {
 }
 
 sub _core_opts {
-    # TODO: Deprecate --db-client.
     return qw(
         plan-file|f=s
         engine=s

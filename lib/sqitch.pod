@@ -203,7 +203,11 @@ User who adds a change to the plan.
   -f --plan-file  FILE      Path to a deployment plan file.
      --engine     ENGINE    Database engine.
      --registry   REGISTRY  Registry schema or database.
-     --client     PATH      Path to the engine command-line client.
+     --db-client  PATH      Path to the engine command-line client.
+  -d --db-name    NAME      Database name.
+  -u --db-user    USER      Database user name.
+  -h --db-host    HOST      Database server host name.
+  -p --db-port    PORT      Database server port number.
      --top-dir    DIR       Path to directory with plan and scripts.
      --deploy-dir DIR       Path to directory with deployment scripts.
      --revert-dir DIR       Path to directory with reversion scripts.
@@ -257,12 +261,61 @@ The database engine to use. Supported engines include:
 The name of the Sqitch registry schema or database. Sqitch will store its own
 data here.
 
+=item C<--db-client>
+
 =item C<--client>
 
   sqitch --client /usr/local/pgsql/bin/psql
 
 Path to the command-line client for the database engine. Defaults to a client
 in the current path named appropriately for the specified engine.
+
+=item C<-d>
+
+=item C<--db-name>
+
+  sqitch --db-name widgets
+  sqitch -d bricolage
+
+Name of the database. In general, L<targets|sqitch-target> and URIs are
+preferred, but this option can be used to override the database name in a
+target.
+
+=item C<-u>
+
+=item C<--db-user>
+
+=item C<--db-username>
+
+  sqitch --db-username root
+  sqitch --db-user postgres
+  sqitch -u Mom
+
+User name to use when connecting to the database. Does not apply to all
+engines. In general, L<targets|sqitch-target> and URIs are preferred, but this
+option can be used to override the user name in a target.
+
+=item C<-h>
+
+=item C<--db-host>
+
+  sqitch --db-host db.example.com
+  sqitch -h appdb.example.net
+
+Host name to use when connecting to the database. Does not apply to all
+engines. In general, L<targets|sqitch-target> and URIs are preferred, but this
+option can be used to override the host name in a target.
+
+=item C<-p>
+
+=item C<--db-port>
+
+  sqitch --db-port 7654
+  sqitch -p 5431
+
+Port number to connect to. Does not apply to all engines.In general,
+L<targets|sqitch-target> and URIs are preferred, but this option can be used
+to override the port in a target.
 
 =item C<--top-dir>
 
