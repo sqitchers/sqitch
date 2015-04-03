@@ -1,6 +1,6 @@
 Revision history for Perl extension App::Sqitch
 
-0.9991
+0.9991 2015-04-03T23:14:39Z
      [Improvements]
      - Reduced minimum required MySQL engine from 5.6.4 to 5.1.0. Versions
        prior to 5.6.4 lose the following features:
