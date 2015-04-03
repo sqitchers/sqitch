@@ -1,14 +1,7 @@
 Revision history for Perl extension App::Sqitch
 
 0.9991
-     - DateTime::TimeZone::Local::Win32 is now required on Windows.
-     - The MySQL engine no longer passes `--skip-pager` on Windows, since
-       it is not supported there. Thanks to Gabriel Potkány for the report
-       (Issue #213).
-     - Fixed "no such table: changes" error when upgrading the SQLite
-       registry.
-     - Fixed upgrade failure on PostgreSQL 8.4. Thanks to Phillip Smith for
-       the report!
+     [Improvements]
      - Reduced minimum required MySQL engine from 5.6.4 to 5.1.0. Versions
        prior to 5.6.4 lose the following features:
        * Versions earlier than 5.6.4 is fractional second precision on
@@ -30,19 +23,9 @@ Revision history for Perl extension App::Sqitch
        to MySQL 5.5.0 or higher. It will be installed as
        `tools/upgrade-registry-to-mysql-5.5.0.sql` in the directory returned
        by `sqitch --etc`.
-     - Fixed an error when the `status` command `show_changes` and `show_tags`
-       configuration variables were set. Thanks to Adrian Klaver for the
-       report (Issue #219).
-     - Fixed `log` and `plan` usage statements to properly spell `--abbrev`.
-       Thanks to Adrian Klaver for the report (Issue #220).
-     - Fixed the formatting of change notes so that a space precedes the `#`
-       character whether the note was added by the `--note` option or via an
-       editor.
      - The `init` command now throws an error when the plan file already
        exists and is invalid or defined for a different project. Thanks to
        Gabriel Potkány for the suggestion (Issue #214).
-     - Fixed a bug when parsing plan files with DOS/Windows line endings.
-       Thanks to Timothy Procter for the report (Issue #212).
      - All commands that take target arguments can now specify them as engine
        names or plan file paths as well as target names and URIs.
      - Added the `--all` option and the `$command.all` configuration variable
@@ -67,14 +50,35 @@ Revision history for Perl extension App::Sqitch
        * -- Deploy [% project %]:[% change %] to [% engine]
        * -- Revert [% project %]:[% change %] from [% engine]
        * -- Verify [% project %]:[% change %] on [% engine]
-     - Updated docs to be consistent in referring to the location of the system
-       configuration and template location as `$(prefix)/etc/sqitch`. Also
-       added notes pointing to the `--etc-dir` to find out exactly what that
-       resolves to. Suggested by Joseph Anthony Pasquale Holsten (Issue #167).
+     [Bug Fixes]
+     - DateTime::TimeZone::Local::Win32 is now required on Windows.
+     - The MySQL engine no longer passes `--skip-pager` on Windows, since
+       it is not supported there. Thanks to Gabriel Potkány for the report
+       (Issue #213).
+     - Fixed "no such table: changes" error when upgrading the SQLite
+       registry.
+     - Fixed upgrade failure on PostgreSQL 8.4. Thanks to Phillip Smith for
+       the report!
+     - Fixed an error when the `status` command `show_changes` and `show_tags`
+       configuration variables were set. Thanks to Adrian Klaver for the
+       report (Issue #219).
+     - Fixed `log` and `plan` usage statements to properly spell `--abbrev`.
+       Thanks to Adrian Klaver for the report (Issue #220).
+     - Fixed the formatting of change notes so that a space precedes the `#`
+       character whether the note was added by the `--note` option or via an
+       editor.
+     - Fixed a bug when parsing plan files with DOS/Windows line endings.
+       Thanks to Timothy Procter for the report (Issue #212).
      - Looking up a change and tag in the database (via the `--onto` option to
        `rebase` or the `--to` option to `revert`, among others) would
        sometimes return the incorrect change if the change has been reworked
        two or more times. Thanks to BryLo for the report!
+     [Documentation]
+     - Updated docs to be consistent in referring to the location of the system
+       configuration and template location as `$(prefix)/etc/sqitch`. Also
+       added notes pointing to the `--etc-dir` to find out exactly what that
+       resolves to. Suggested by Joseph Anthony Pasquale Holsten (Issue #167).
+     [Deprecations]
      - Reverted deprecation of the database connection options. Target URIs
        are still generally preferred, but sometimes you want to use a target
        but just change the user name or database name. Retaining the options
