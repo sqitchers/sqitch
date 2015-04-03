@@ -71,6 +71,10 @@ Revision history for Perl extension App::Sqitch
        configuration and template location as `$(prefix)/etc/sqitch`. Also
        added notes pointing to the `--etc-dir` to find out exactly what that
        resolves to. Suggested by Joseph Anthony Pasquale Holsten (Issue #167).
+     - Looking up a change and tag in the database (via the `--onto` option to
+       `rebase` or the `--to` option to `revert`, among others) would
+       sometimes return the incorrect change if the change has been reworked
+       two or more times. Thanks toBryLo for the report!
 
 0.999  2015-02-12T19:43:45Z
      - Improved MySQL missing table error detection by relying on error codes
