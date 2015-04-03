@@ -272,6 +272,10 @@ Sqitch Vertica support.
 # No additional files required.
 
 %changelog
+* Fri Mar 3 2015 David E. Wheeler <david.wheeler@iovation.com> 0.9991-1
+- Upgrade to v0.9991.
+- Reduced required MySQL version to 5.1.
+
 * Thu Feb 12 2015 David E. Wheeler <david.wheeler@iovation.com> 0.999-1
 - Upgrade to v0.999.
 

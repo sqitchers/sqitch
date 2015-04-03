@@ -1630,7 +1630,7 @@ sub run {
         my $deploy_file = $rev_change->deploy_file;
         my $tmp_dir = dir( tempdir CLEANUP => 1 );
         $deploy_file->copy_to($tmp_dir);
-        my $fh = $rev_change->deploy_file->opena or die "Cannot open $deploy_file: $!\n";
+        my $fh = $deploy_file->opena or die "Cannot open $deploy_file: $!\n";
         try {
             say $fh '-- Append line to reworked script so it gets a new SHA-1 hash';
             close $fh;
@@ -1638,7 +1638,7 @@ sub run {
             ok $engine->log_deploy_change($rev_change),  'Deploy the reworked change';
         } finally {
             # Restore the reworked script.
-            $tmp_dir->file( $deploy_file->basename )->move_to($deploy_file);
+            $tmp_dir->file( $deploy_file->basename )->copy_to($deploy_file);
         };
 
         # Make sure that change_id_for() is okay with the dupe.
@@ -1652,7 +1652,7 @@ sub run {
 
         ok my $rev_change2 = $plan->rework( name => 'users' ),
             'Rework change "users" again';
-        $fh = $rev_change2->deploy_file->opena or die "Cannot open $deploy_file: $!\n";
+        $fh = $deploy_file->opena or die "Cannot open $deploy_file: $!\n";
         try {
             say $fh '-- Append another line to reworked script for a new SHA-1 hash';
             close $fh;
@@ -1660,7 +1660,7 @@ sub run {
             ok $engine->log_deploy_change($rev_change2),  'Deploy the reworked change';
         } finally {
             # Restore the reworked script.
-            $tmp_dir->file( $deploy_file->basename )->move_to($deploy_file);
+            $tmp_dir->file( $deploy_file->basename )->copy_to($deploy_file);
         };
 
         # make sure that change_id_for is still good with things.
