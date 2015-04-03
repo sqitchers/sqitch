@@ -15,7 +15,7 @@ use namespace::autoclean;
 
 extends 'App::Sqitch::Engine';
 
-our $VERSION = '0.9991';
+our $VERSION = '0.9992';
 
 has registry_uri => (
     is       => 'ro',
