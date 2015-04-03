@@ -26,7 +26,7 @@ Revision history for Perl extension App::Sqitch
        installed as `tools/upgrade-registry-to-mysql-5.6.4.sql` in the
        directory returned by `sqitch --etc`.
      - Added a script to add the `checkit()` function and registry triggers to
-       emulate CHECK constraintsto a MySQL Sqitch registry that was upgraded
+       emulate CHECK constraints to a MySQL Sqitch registry that was upgraded
        to MySQL 5.5.0 or higher. It will be installed as
        `tools/upgrade-registry-to-mysql-5.5.0.sql` in the directory returned
        by `sqitch --etc`.
@@ -35,7 +35,7 @@ Revision history for Perl extension App::Sqitch
        report (Issue #219).
      - Fixed `log` and `plan` usage statements to properly spell `--abbrev`.
        Thanks to Adrian Klaver for the report (Issue #220).
-     - Fixed the formatting of change notes so that a space preceeds the `#`
+     - Fixed the formatting of change notes so that a space precedes the `#`
        character whether the note was added by the `--note` option or via an
        editor.
      - The `init` command now throws an error when the plan file already
@@ -45,7 +45,7 @@ Revision history for Perl extension App::Sqitch
        Thanks to Timothy Procter for the report (Issue #212).
      - All commands that take target arguments can now specify them as engine
        names or plan file paths as well as target names and URIs.
-     - Added the `--all` option and the `$comand.all` configuration variable
+     - Added the `--all` option and the `$command.all` configuration variable
        to the `add`, `rework`, `tag`, and `bundle` commands. This option tells
        the commands to do their thing for all plans known from the
        configuration, not just the default plan.
@@ -67,20 +67,20 @@ Revision history for Perl extension App::Sqitch
        * -- Deploy [% project %]:[% change %] to [% engine]
        * -- Revert [% project %]:[% change %] from [% engine]
        * -- Verify [% project %]:[% change %] on [% engine]
-     - Updated docs to be consistent in refering to the location of the system
+     - Updated docs to be consistent in referring to the location of the system
        configuration and template location as `$(prefix)/etc/sqitch`. Also
        added notes pointing to the `--etc-dir` to find out exactly what that
        resolves to. Suggested by Joseph Anthony Pasquale Holsten (Issue #167).
      - Looking up a change and tag in the database (via the `--onto` option to
        `rebase` or the `--to` option to `revert`, among others) would
        sometimes return the incorrect change if the change has been reworked
-       two or more times. Thanks toBryLo for the report!
+       two or more times. Thanks to BryLo for the report!
      - Reverted deprecation of the database connection options. Target URIs
        are still generally preferred, but sometimes you want to use a target
-       but just change the username or database name. Retaining the options is
-       the easiest way to do this. Plus, a fair number of people have scripts
-       that use these options, and it seems petty to break them. Sorry for the
-       double-take here! The list of un-deprecated options is:
+       but just change the user name or database name. Retaining the options
+       is the easiest way to do this. Plus, a fair number of people have
+       scripts that use these options, and it seems petty to break them. Sorry
+       for the double-take here! The list of un-deprecated options is:
        * `--db-client`
        * `--db-host`
        * `--db-port`
