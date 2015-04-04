@@ -112,6 +112,7 @@ has dbh => (
                             'SET search_path = ?',
                             undef, $self->registry
                         );
+                        $dbh->do(qq{SET client_encoding = 'UTF8'});
                         # http://www.nntp.perl.org/group/perl.dbi.dev/2013/11/msg7622.html
                         $dbh->set_err(undef, undef) if $dbh->err;
                     };

@@ -1,6 +1,9 @@
 Revision history for Perl extension App::Sqitch
 
 0.9992
+     - On PostgreSQL, Sqitch now sets the `client_encoding` parameter to
+       `UTF8`. This ensures that data sent to and from the databse should
+       always be properly encoded and decoded.
 
 0.9991 2015-04-03T23:14:39Z
      [Improvements]
