@@ -92,6 +92,7 @@ has dbh => (
         $self->use_driver;
 
         my $uri = $self->uri;
+        local $ENV{PGOPTIONS} = "-c client_encoding=UTF8";
         DBI->connect($uri->dbi_dsn, scalar $self->username, scalar $self->password, {
             PrintError        => 0,
             RaiseError        => 0,
@@ -107,22 +108,11 @@ has dbh => (
             Callbacks         => {
                 connected => sub {
                     my $dbh = shift;
-                    $dbh->do(qq{SET client_encoding = 'UTF8'}) or do {
-                        # Prior to DBI 1.631, HandleError was not called in callbacks,
-                        # so we have to deal with it ourselves. Return to trigger it.
-                        return if DBI->VERSION >= 1.630;
-                        # Prior to 1.630, errors were ignored in callbacks so throw one.
-                        @_ = ($dbh->state || 'DEV' => $dbh->errstr);
-                        goto &hurl;
-                    };
                     try {
                         $dbh->do(
                             'SET search_path = ?',
                             undef, $self->registry
                         );
-                        # Prior to 1.630, errors are ignored in calbacks.
-                        # For 1.630, we have to delete the error to prevent
-                        # its propagation.
                         # http://www.nntp.perl.org/group/perl.dbi.dev/2013/11/msg7622.html
                         $dbh->set_err(undef, undef) if $dbh->err;
                     };
