@@ -92,7 +92,7 @@ has dbh => (
         $self->use_driver;
 
         my $uri = $self->uri;
-        local $ENV{PGOPTIONS} = "-c client_encoding=UTF8";
+        local $ENV{PGCLIENTENCODING} = 'UTF8';
         DBI->connect($uri->dbi_dsn, scalar $self->username, scalar $self->password, {
             PrintError        => 0,
             RaiseError        => 0,
