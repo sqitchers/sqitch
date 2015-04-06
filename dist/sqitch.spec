@@ -17,6 +17,7 @@ BuildRequires:  perl(Config)
 BuildRequires:  perl(Config::GitLike) >= 1.11
 BuildRequires:  perl(constant)
 BuildRequires:  perl(DateTime)
+BuildRequires:  perl(DateTime::TimeZone)
 BuildRequires:  perl(DBI)
 BuildRequires:  perl(Devel::StackTrace) >= 1.30
 BuildRequires:  perl(Digest::SHA)
@@ -84,6 +85,7 @@ Requires:       perl(Config)
 Requires:       perl(Config::GitLike) >= 1.11
 Requires:       perl(constant)
 Requires:       perl(DateTime)
+Requires:       perl(DateTime::TimeZone)
 Requires:       perl(Devel::StackTrace) >= 1.30
 Requires:       perl(Digest::SHA)
 Requires:       perl(Encode)
