@@ -470,10 +470,22 @@ $cmock->unmock_all;
 
 # Try limiting it in various ways.
 for my $spec (
-    [target => 'pg', {include => \@engine, exclude => \@sql }],
-    ['plan file' => 'engine/sqitch.plan', {include => \@engine, exclude => \@sql }],
-    [target => 'mysql', {include => \@sql, exclude => \@engine }],
-    ['plan file' => 'sql/sqitch.plan', {include => \@sql, exclude => \@engine }],
+    [
+        target => 'pg',
+        { include => \@engine, exclude => \@sql },
+    ],
+    [
+        'plan file' => file(qw(engine sqitch.plan))->stringify,
+        { include => \@engine, exclude => \@sql },
+    ],
+    [
+        target => 'mysql',
+        { include => \@sql, exclude => \@engine },
+    ],
+    [
+        'plan file' => file(qw(sql sqitch.plan))->stringify,
+        { include => \@sql, exclude => \@engine },
+    ],
 ) {
     my ($type, $arg, $files) = @{ $spec };
     remove_tree $multidir->stringify;

@@ -246,7 +246,7 @@ is $@->message, __(
 
 # Great. Now try two plans!
 my $pg = $dir->file('pg.plan');
-my $sqlite = $dir->file('sqlite.plan');
+(my $sqlite = $dir->file('sqlite.plan')->stringify) =~ s{\\}{\\\\}g;
 $conf->spew(join "\n",
     '[core]',
     'engine = pg',
