@@ -47,7 +47,7 @@ the Oracle developer days VM.
 Connect as the DBA via SQL*Plus:
 
   sqlplus sys/oracle@localhost/ORCL as sysdba
-
+  
 =item *
 
 Give user C<scott> the access it needs:
@@ -943,6 +943,10 @@ everything up for release:
 Now we can package the F<bundle> directory and distribute it. When it gets
 installed somewhere, users can use Sqitch to deploy to the database. Let's try
 deploying it to yet another database (again, assuming you have a SID named C<oracle_prod>:
+
+=for comment
+I think that the example below uses the SID C<flipr_prod> but the prose above
+mentions C<oracle_prod>
 
   > cd bundle
   > sqitch deploy db:oracle://scott:tiger@/flipr_prod
