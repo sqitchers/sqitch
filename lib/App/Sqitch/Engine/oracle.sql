@@ -103,7 +103,8 @@ CREATE TYPE &registry..sqitch_array AS varray(1024) OF VARCHAR2(512);
 /
 
 CREATE TABLE &registry..events (
-    event           VARCHAR2(6)                   NOT NULL CHECK (event IN ('deploy', 'revert', 'fail', 'merge')),
+    event           VARCHAR2(6)                   NOT NULL
+                    CONSTRAINT check_event_type CHECK (event IN ('deploy', 'revert', 'fail', 'merge')),
     change_id       CHAR(40)                      NOT NULL,
     change          VARCHAR2(512 CHAR)            NOT NULL,
     project         VARCHAR2(512 CHAR)            NOT NULL REFERENCES &registry..projects(project),

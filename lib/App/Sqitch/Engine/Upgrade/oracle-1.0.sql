@@ -16,21 +16,26 @@ ALTER TABLE &registry..changes ADD script_hash CHAR(40) NULL UNIQUE;
 UPDATE &registry..changes SET script_hash = change_id;
 COMMENT ON COLUMN &registry..changes.script_hash IS 'Deploy script SHA-1 hash.';
 
--- Allow "merge" events.
-SELECT CONSTRAINT_NAME
-  FROM user_constraints
- WHERE table_name = 'EVENTS'
-   AND SEARCH_CONDITION_VC = 'event IN (''deploy'', ''revert'', ''fail'')';
+DECLARE
+    CURSOR c_event_constraints IS
+        SELECT constraint_name
+          FROM user_cons_columns
+         WHERE table_name = 'EVENTS' AND column_name = 'EVENT';
+    rec_consname c_event_constraints%ROWTYPE;
+BEGIN
+    OPEN c_event_constraints;
+    LOOP
+        FETCH c_event_constraints INTO rec_consname;
+        IF c_event_constraints%NOTFOUND THEN EXIT; END IF;
 
--- Fetch the name of the event check constraint.
--- http://www.orafaq.com/node/515
-COLUMN cname for a30 new_value check_name;
-SELECT CONSTRAINT_NAME AS cname
-  FROM user_constraints
- WHERE table_name = 'EVENTS'
-   AND SEARCH_CONDITION_VC = 'event IN (''deploy'', ''revert'', ''fail'')';
+        -- Drop the constraint.
+        EXECUTE IMMEDIATE 'ALTER TABLE &registry..events DROP CONSTRAINT '
+                       || rec_consname.constraint_name;
+    END LOOP;
+    CLOSE c_event_constraints;
 
--- Allow "merge" events.
-ALTER TABLE &registry..events DROP CONSTRAINT &check_name;
-ALTER TABLE &registry..events ADD  CONSTRAINT &check_name
-      CHECK (event IN ('deploy', 'revert', 'fail', 'merge'));
+    -- Use EXECUTE IMMEDIATE because ALTER isn't allowed in PL/SQL.
+    EXECUTE IMMEDIATE 'ALTER TABLE &registry..events MODIFY event NOT NULL';
+    EXECUTE IMMEDIATE 'ALTER TABLE &registry..events ADD CONSTRAINT check_event_type CHECK (event IN (''deploy'', ''revert'', ''fail'', ''merge''))';
+END;
+/

@@ -9,6 +9,8 @@ Revision history for Perl extension App::Sqitch
        "Cannot determine local time zone" errors.
      - Corrected some typos and thinkos in `sqitchtutorial-oracle`, thanks to
        George Hartzell.
+     - Improved the script to upgrade an Oracle registry to v1.0 to support
+       versions prior to Oracle 12, thanks to Timothy Procter.
 
 0.9991 2015-04-03T23:14:39Z
      [Improvements]
