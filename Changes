@@ -7,6 +7,8 @@ Revision history for Perl extension App::Sqitch
      - Fixed test failures due to path differences on Windows.
      - DateTime::TimeZone is now explicitly required in an attempt to head off
        "Cannot determine local time zone" errors.
+     - Corrected some typos and thinkos in `sqitchtutorial-oracle`, thanks to
+       George Hartzell.
 
 0.9991 2015-04-03T23:14:39Z
      [Improvements]
