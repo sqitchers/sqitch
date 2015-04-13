@@ -940,7 +940,8 @@ everything up for release:
 
 Now we can package the F<bundle> directory and distribute it. When it gets
 installed somewhere, users can use Sqitch to deploy to the database. Let's try
-deploying it to yet another database (again, assuming you have a SID named C<oracle_prod>:
+deploying it to yet another database (again, assuming you have a SID named
+C<flipr_prod>:
 
   > cd bundle
   > sqitch deploy db:oracle://scott:tiger@/flipr_prod
