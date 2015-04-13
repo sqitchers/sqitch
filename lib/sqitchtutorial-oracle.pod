@@ -919,6 +919,7 @@ C<@v1.0.0-dev1>. Let's have a look at the status:
   # Project:  flipr
   # Change:   e1c9df6a95da835769eb560790588c16174f78df
   # Name:     change_pass
+  # Tag:      @v1.0.0-dev1
   # Deployed: 2013-12-31 16:40:02 -0800
   # By:       Marge N. O’Vera <marge@example.com>
   # 
