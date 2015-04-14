@@ -11,6 +11,8 @@ Revision history for Perl extension App::Sqitch
        George Hartzell.
      - Improved the script to upgrade an Oracle registry to v1.0 to support
        versions prior to Oracle 12, thanks to Timothy Procter.
+     - Added missing closing parenthesis to the "Nothing to deploy" message.
+       Thanks to George Hartzell for the pull request (Issue #226).
 
 0.9991 2015-04-03T23:14:39Z
      [Improvements]
