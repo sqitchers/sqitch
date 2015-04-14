@@ -167,7 +167,7 @@ sub deploy {
         # Just return if there is nothing to do.
         if ($to_index == $plan->position) {
             $sqitch->info(__x(
-                'Nothing to deploy (already at "{change}"',
+                'Nothing to deploy (already at "{change}")',
                 change => $to
             ));
             return $self;
