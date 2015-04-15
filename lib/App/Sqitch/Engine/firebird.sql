@@ -54,7 +54,7 @@ CREATE TABLE changes (
     planned_at      TIMESTAMP     NOT NULL,
     planner_name    VARCHAR(255)  NOT NULL,
     planner_email   VARCHAR(255)  NOT NULL,
-    CONSTRAINT changes_script_hash_unique UNIQUE(project, script_hash)
+    CONSTRAINT changes_project_script_hash_key UNIQUE(project, script_hash)
 );
 
 COMMENT ON TABLE  changes                 IS 'Tracks the changes currently deployed to the database.';
@@ -76,9 +76,9 @@ CREATE TABLE tags (
     tag_id          CHAR(40)      NOT NULL PRIMARY KEY,
     tag             VARCHAR(250)  NOT NULL,
     project         VARCHAR(255)  NOT NULL REFERENCES projects(project)
-                                       ON UPDATE CASCADE,
+                                        ON UPDATE CASCADE,
     change_id       CHAR(40)      NOT NULL REFERENCES changes(change_id)
-                                       ON UPDATE CASCADE,
+                                        ON UPDATE CASCADE,
     note            BLOB SUB_TYPE TEXT DEFAULT '' NOT NULL,
     committed_at    TIMESTAMP     DEFAULT CURRENT_TIMESTAMP NOT NULL,
     committer_name  VARCHAR(512)  NOT NULL,
@@ -86,7 +86,7 @@ CREATE TABLE tags (
     planned_at      TIMESTAMP     NOT NULL,
     planner_name    VARCHAR(512)  NOT NULL,
     planner_email   VARCHAR(512)  NOT NULL,
-    UNIQUE(project, tag)
+    CONSTRAINT tags_project_tag_key UNIQUE(project, tag)
 );
 
 COMMENT ON TABLE  tags                 IS 'Tracks the tags currently applied to the database.';
@@ -106,11 +106,11 @@ COMMENT ON COLUMN tags.planner_email   IS 'Email address of the user who planned
 
 CREATE TABLE dependencies (
     change_id       CHAR(40)      NOT NULL REFERENCES changes(change_id)
-                                       ON UPDATE CASCADE ON DELETE CASCADE,
+                                        ON UPDATE CASCADE ON DELETE CASCADE,
     type            VARCHAR(8)    NOT NULL,
     dependency      VARCHAR(512)  NOT NULL,
     dependency_id   CHAR(40)      REFERENCES changes(change_id)
-                                       ON UPDATE CASCADE CHECK (
+                                        ON UPDATE CASCADE CONSTRAINT dependencies_check CHECK (
                           (type = 'require'  AND dependency_id IS NOT NULL)
                        OR (type = 'conflict' AND dependency_id IS NULL)
     ),
@@ -127,11 +127,11 @@ COMMENT ON COLUMN dependencies.dependency_id IS 'Change ID the dependency resolv
 
 CREATE TABLE events (
     event           VARCHAR(6)    NOT NULL
-                    CONSTRAINT check_event_type CHECK (event IN ('deploy', 'revert', 'fail', 'merge')),
+                    CONSTRAINT events_event_check CHECK (event IN ('deploy', 'revert', 'fail', 'merge')),
     change_id       CHAR(40)      NOT NULL,
     change          VARCHAR(512)  NOT NULL,
     project         VARCHAR(255)  NOT NULL REFERENCES projects(project)
-                                       ON UPDATE CASCADE,
+                                        ON UPDATE CASCADE,
     note            BLOB SUB_TYPE TEXT DEFAULT '' NOT NULL,
     requires        BLOB SUB_TYPE TEXT DEFAULT '' NOT NULL,
     conflicts       BLOB SUB_TYPE TEXT DEFAULT '' NOT NULL,
