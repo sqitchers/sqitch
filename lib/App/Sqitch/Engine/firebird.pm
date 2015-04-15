@@ -174,18 +174,6 @@ sub is_deployed_tag {
     }, undef, $tag->id)->[0];
 }
 
-sub registry_version {
-    my $self = shift;
-    try {
-        sprintf '%.1f', $self->dbh->selectcol_arrayref(
-            'SELECT MAX(version) FROM releases'
-        )->[0];
-    } catch {
-        return 0 if $self->_no_table_error;
-        die $_;
-    };
-}
-
 sub initialized {
     my $self = shift;
 

@@ -72,7 +72,9 @@ sub _register_release {
 sub registry_version {
     my $self = shift;
     try {
-        $self->dbh->selectcol_arrayref('SELECT MAX(version) FROM releases')->[0];
+        sprintf '%.1f', $self->dbh->selectcol_arrayref(
+            'SELECT MAX(version) FROM releases'
+        )->[0];
     } catch {
         return 0 if $self->_no_table_error;
         die $_;
