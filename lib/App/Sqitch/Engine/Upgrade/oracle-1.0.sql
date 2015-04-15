@@ -36,6 +36,9 @@ BEGIN
 
     -- Use EXECUTE IMMEDIATE because ALTER isn't allowed in PL/SQL.
     EXECUTE IMMEDIATE 'ALTER TABLE &registry..events MODIFY event NOT NULL';
-    EXECUTE IMMEDIATE 'ALTER TABLE &registry..events ADD CONSTRAINT check_event_type CHECK (event IN (''deploy'', ''revert'', ''fail'', ''merge''))';
 END;
 /
+
+ALTER TABLE &registry..events ADD CONSTRAINT check_event_type CHECK (
+    event IN ('deploy', 'revert', 'fail', 'merge')
+);

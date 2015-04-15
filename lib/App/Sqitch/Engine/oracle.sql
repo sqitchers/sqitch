@@ -87,7 +87,7 @@ CREATE TABLE &registry..dependencies (
     type            VARCHAR2(8)              NOT NULL,
     dependency      VARCHAR2(1024 CHAR)      NOT NULL,
     dependency_id   CHAR(40)                     NULL REFERENCES &registry..changes(change_id),
-    CHECK (
+    CONSTRAINT dependencies_check CHECK (
             (type = 'require'  AND dependency_id IS NOT NULL)
          OR (type = 'conflict' AND dependency_id IS NULL)
     ),
@@ -105,7 +105,9 @@ CREATE TYPE &registry..sqitch_array AS varray(1024) OF VARCHAR2(512);
 
 CREATE TABLE &registry..events (
     event           VARCHAR2(6)                   NOT NULL
-                    CONSTRAINT check_event_type CHECK (event IN ('deploy', 'revert', 'fail', 'merge')),
+    CONSTRAINT events_event_check CHECK (
+        event IN ('deploy', 'revert', 'fail', 'merge')
+    ),
     change_id       CHAR(40)                      NOT NULL,
     change          VARCHAR2(512 CHAR)            NOT NULL,
     project         VARCHAR2(512 CHAR)            NOT NULL REFERENCES &registry..projects(project),

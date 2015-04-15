@@ -111,8 +111,8 @@ CREATE TABLE dependencies (
     dependency      VARCHAR(512)  NOT NULL,
     dependency_id   CHAR(40)      REFERENCES changes(change_id)
                                         ON UPDATE CASCADE CONSTRAINT dependencies_check CHECK (
-                          (type = 'require'  AND dependency_id IS NOT NULL)
-                       OR (type = 'conflict' AND dependency_id IS NULL)
+           (type = 'require'  AND dependency_id IS NOT NULL)
+        OR (type = 'conflict' AND dependency_id IS NULL)
     ),
     PRIMARY KEY (change_id, dependency)
 );
@@ -127,7 +127,9 @@ COMMENT ON COLUMN dependencies.dependency_id IS 'Change ID the dependency resolv
 
 CREATE TABLE events (
     event           VARCHAR(6)    NOT NULL
-                    CONSTRAINT events_event_check CHECK (event IN ('deploy', 'revert', 'fail', 'merge')),
+    CONSTRAINT events_event_check CHECK (
+        event IN ('deploy', 'revert', 'fail', 'merge')
+    ),
     change_id       CHAR(40)      NOT NULL,
     change          VARCHAR(512)  NOT NULL,
     project         VARCHAR(255)  NOT NULL REFERENCES projects(project)
