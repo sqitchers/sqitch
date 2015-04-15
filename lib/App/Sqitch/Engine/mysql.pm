@@ -197,7 +197,9 @@ sub _quote_idents {
 sub registry_version {
     my $self = shift;
     try {
-        $self->dbh->selectcol_arrayref('SELECT TRUNCATE(MAX(version), 1) FROM releases')->[0];
+        $self->dbh->selectcol_arrayref(
+            'SELECT ROUND(MAX(version), 1) FROM releases'
+        )->[0];
     } catch {
         return 0 if $self->_no_table_error;
         die $_;

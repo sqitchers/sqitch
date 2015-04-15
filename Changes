@@ -21,7 +21,6 @@ Revision history for Perl extension App::Sqitch
      - Updated the registry check constraints to have consistent names on the
        engines that support them. This will make it easier to modify the
        constraints in the future.
-       
 
 0.9991 2015-04-03T23:14:39Z
      [Improvements]
