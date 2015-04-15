@@ -174,7 +174,6 @@ has _fractional_seconds => (
     },
 );
 
-
 sub mysql { @{ shift->_mysql } }
 
 sub key    { 'mysql' }
@@ -193,6 +192,16 @@ sub _ts2char_format {
 sub _quote_idents {
     shift;
     map { $_ eq 'change' ? '"change"' : $_ } @_;
+}
+
+sub registry_version {
+    my $self = shift;
+    try {
+        $self->dbh->selectcol_arrayref('SELECT TRUNCATE(MAX(version), 1) FROM releases')->[0];
+    } catch {
+        return 0 if $self->_no_table_error;
+        die $_;
+    };
 }
 
 sub initialized {

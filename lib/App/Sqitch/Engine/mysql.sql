@@ -3,7 +3,7 @@ BEGIN;
 SET SESSION sql_mode = ansi;
 
 CREATE TABLE releases (
-    version         FLOAT         PRIMARY KEY
+    version         FLOAT(4, 1)   PRIMARY KEY
                     COMMENT 'Version of the Sqitch registry.',
     installed_at    DATETIME(6)   NOT NULL
                     COMMENT 'Date the registry release was installed.',
@@ -35,7 +35,7 @@ CREATE TABLE projects (
 CREATE TABLE changes (
     change_id       VARCHAR(40)  PRIMARY KEY
                     COMMENT 'Change primary key.',
-    script_hash     VARCHAR(40)      NULL UNIQUE
+    script_hash     VARCHAR(40)      NULL
                     COMMENT 'Deploy script SHA-1 hash.',
     "change"        VARCHAR(255) NOT NULL
                     COMMENT 'Name of a deployed change.',
@@ -55,7 +55,8 @@ CREATE TABLE changes (
     planner_name    VARCHAR(255) NOT NULL
                     COMMENT 'Name of the user who planed the change.',
     planner_email   VARCHAR(255) NOT NULL
-                    COMMENT 'Email address of the user who planned the change.'
+                    COMMENT 'Email address of the user who planned the change.',
+    UNIQUE(project, script_hash)
 ) ENGINE  InnoDB,
   CHARACTER SET 'utf8',
   COMMENT 'Tracks the changes currently deployed to the database.'

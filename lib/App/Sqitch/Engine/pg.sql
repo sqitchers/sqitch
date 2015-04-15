@@ -35,7 +35,7 @@ COMMENT ON COLUMN :"registry".projects.creator_email  IS 'Email address of the u
 
 CREATE TABLE :"registry".changes (
     change_id       TEXT        PRIMARY KEY,
-    script_hash     TEXT            NULL UNIQUE,
+    script_hash     TEXT            NULL,
     change          TEXT        NOT NULL,
     project         TEXT        NOT NULL REFERENCES :"registry".projects(project) ON UPDATE CASCADE,
     note            TEXT        NOT NULL DEFAULT '',
@@ -44,7 +44,8 @@ CREATE TABLE :"registry".changes (
     committer_email TEXT        NOT NULL,
     planned_at      TIMESTAMPTZ NOT NULL,
     planner_name    TEXT        NOT NULL,
-    planner_email   TEXT        NOT NULL
+    planner_email   TEXT        NOT NULL,
+    UNIQUE (project, script_hash)
 ):tableopts;
 
 COMMENT ON TABLE  :"registry".changes                 IS 'Tracks the changes currently deployed to the database.';

@@ -43,7 +43,7 @@ COMMENT ON COLUMN projects.creator_email  IS 'Email address of the user who adde
 
 CREATE TABLE changes (
     change_id       VARCHAR(40)   NOT NULL PRIMARY KEY,
-    script_hash     VARCHAR(40)            UNIQUE,
+    script_hash     VARCHAR(40),
     change          VARCHAR(255)  NOT NULL,
     project         VARCHAR(255)  NOT NULL REFERENCES projects(project)
                                        ON UPDATE CASCADE,
@@ -53,7 +53,8 @@ CREATE TABLE changes (
     committer_email VARCHAR(255)  NOT NULL,
     planned_at      TIMESTAMP     NOT NULL,
     planner_name    VARCHAR(255)  NOT NULL,
-    planner_email   VARCHAR(255)  NOT NULL
+    planner_email   VARCHAR(255)  NOT NULL,
+    CONSTRAINT changes_script_hash_unique UNIQUE(project, script_hash)
 );
 
 COMMENT ON TABLE  changes                 IS 'Tracks the changes currently deployed to the database.';

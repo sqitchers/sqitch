@@ -112,13 +112,21 @@ sub run {
                 'From {old} to {new}',
                 old => 0,
                 new => '1.0',
+            ), '  * ' . __x(
+                'From {old} to {new}',
+                old => '1.0',
+                new => '1.1',
             )], 'Should have info output for upgrade';
         }
         ok !$engine->needs_upgrade, 'Registry should no longer need upgrading';
-        is_deeply $engine->dbh->selectall_arrayref(
-            'SELECT version, installer_name, installer_email FROM releases'
-        ), [[$engine->registry_release + 0, $sqitch->user_name, $sqitch->user_email]],
-            'The release should be registered again';
+        my $releases = $engine->dbh->selectall_arrayref(
+            'SELECT version, installer_name, installer_email FROM releases ORDER BY version'
+        );
+        $_->[0] += 0 for @{ $releases };
+        is_deeply $releases, [
+            [ 1.0, $sqitch->user_name, $sqitch->user_email ],
+            [ 1.1, $sqitch->user_name, $sqitch->user_email ],
+        ], 'The release should be registered again';
 
         # Try it with a different Sqitch DB.
         $target = App::Sqitch::Target->new(

@@ -28,7 +28,7 @@ COMMENT ON COLUMN &registry..projects.creator_email  IS 'Email address of the us
 
 CREATE TABLE &registry..changes (
     change_id       CHAR(40)                 PRIMARY KEY,
-    script_hash     CHAR(40)                     NULL UNIQUE,
+    script_hash     CHAR(40)                     NULL,
     change          VARCHAR2(512 CHAR)       NOT NULL,
     project         VARCHAR2(512 CHAR)       NOT NULL REFERENCES &registry..projects(project),
     note            VARCHAR2(4000 CHAR)      DEFAULT '',
@@ -37,7 +37,8 @@ CREATE TABLE &registry..changes (
     committer_email VARCHAR2(512 CHAR)       NOT NULL,
     planned_at      TIMESTAMP WITH TIME ZONE NOT NULL,
     planner_name    VARCHAR2(512 CHAR)       NOT NULL,
-    planner_email   VARCHAR2(512 CHAR)       NOT NULL
+    planner_email   VARCHAR2(512 CHAR)       NOT NULL,
+    UNIQUE(project, script_hash)
 );
 
 COMMENT ON TABLE  &registry..changes                 IS 'Tracks the changes currently deployed to the database.';

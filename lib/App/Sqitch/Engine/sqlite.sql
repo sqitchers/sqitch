@@ -17,7 +17,7 @@ CREATE TABLE projects (
 
 CREATE TABLE changes (
     change_id       TEXT        PRIMARY KEY,
-    script_hash     TEXT            NULL UNIQUE,
+    script_hash     TEXT            NULL,
     change          TEXT        NOT NULL,
     project         TEXT        NOT NULL REFERENCES projects(project) ON UPDATE CASCADE,
     note            TEXT        NOT NULL DEFAULT '',
@@ -26,7 +26,8 @@ CREATE TABLE changes (
     committer_email TEXT        NOT NULL,
     planned_at      DATETIME    NOT NULL,
     planner_name    TEXT        NOT NULL,
-    planner_email   TEXT        NOT NULL
+    planner_email   TEXT        NOT NULL,
+    UNIQUE(project, script_hash)
 );
 
 CREATE TABLE tags (

@@ -13,6 +13,11 @@ Revision history for Perl extension App::Sqitch
        versions prior to Oracle 12, thanks to Timothy Procter.
      - Added missing closing parenthesis to the "Nothing to deploy" message.
        Thanks to George Hartzell for the pull request (Issue #226).
+     - Replaced the unique constraint on the `script_hash` colum in the
+       registry `changes` table with a unique constraint on `project` and
+       `script_hash`. This is to allow a deploy script to be used in more than
+       one project in a single database. Thanks to Timothy Procter for the
+       report.
 
 0.9991 2015-04-03T23:14:39Z
      [Improvements]
