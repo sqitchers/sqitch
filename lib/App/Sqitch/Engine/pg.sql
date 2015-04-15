@@ -45,7 +45,7 @@ CREATE TABLE :"registry".changes (
     planned_at      TIMESTAMPTZ NOT NULL,
     planner_name    TEXT        NOT NULL,
     planner_email   TEXT        NOT NULL,
-    CONSTRAINT changes_project_script_hash_key UNIQUE(project, script_hash)
+    UNIQUE(project, script_hash)
 ):tableopts;
 
 COMMENT ON TABLE  :"registry".changes                 IS 'Tracks the changes currently deployed to the database.';
@@ -73,7 +73,7 @@ CREATE TABLE :"registry".tags (
     planned_at      TIMESTAMPTZ NOT NULL,
     planner_name    TEXT        NOT NULL,
     planner_email   TEXT        NOT NULL,
-    CONSTRAINT tags_project_tag_key UNIQUE(project, tag)
+    UNIQUE(project, tag)
 ):tableopts;
 
 COMMENT ON TABLE  :"registry".tags                 IS 'Tracks the tags currently applied to the database.';

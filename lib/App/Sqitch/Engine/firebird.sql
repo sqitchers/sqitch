@@ -54,7 +54,7 @@ CREATE TABLE changes (
     planned_at      TIMESTAMP     NOT NULL,
     planner_name    VARCHAR(255)  NOT NULL,
     planner_email   VARCHAR(255)  NOT NULL,
-    CONSTRAINT changes_project_script_hash_key UNIQUE(project, script_hash)
+    UNIQUE(project, script_hash)
 );
 
 COMMENT ON TABLE  changes                 IS 'Tracks the changes currently deployed to the database.';
@@ -86,7 +86,7 @@ CREATE TABLE tags (
     planned_at      TIMESTAMP     NOT NULL,
     planner_name    VARCHAR(512)  NOT NULL,
     planner_email   VARCHAR(512)  NOT NULL,
-    CONSTRAINT tags_project_tag_key UNIQUE(project, tag)
+    UNIQUE(project, tag)
 );
 
 COMMENT ON TABLE  tags                 IS 'Tracks the tags currently applied to the database.';

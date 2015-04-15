@@ -13,17 +13,6 @@ BEGIN
 END^
 
 EXECUTE BLOCK AS
-    DECLARE uniq VARCHAR(64);
-BEGIN
-    SELECT TRIM(rdb$constraint_name)
-      FROM rdb$relation_constraints
-     WHERE rdb$relation_name   = 'TAGS'
-       AND rdb$constraint_type = 'UNIQUE'
-      INTO uniq;
-    EXECUTE STATEMENT 'ALTER TABLE TAGS DROP CONSTRAINT ' || uniq;
-END^
-
-EXECUTE BLOCK AS
     DECLARE trig VARCHAR(64);
 BEGIN
     SELECT TRIM(cc.rdb$constraint_name)
@@ -40,15 +29,14 @@ END^
 SET TERM ;^
 COMMIT;
 
+-- Drop check_event_type; we give it a new name below.
 ALTER TABLE events DROP CONSTRAINT check_event_type;
 COMMIT;
 
-ALTER TABLE changes ADD CONSTRAINT changes_project_script_hash_key
-      UNIQUE (project, script_hash);
+-- Create the new unique constraint.
+ALTER TABLE changes ADD UNIQUE (project, script_hash);
 
-ALTER TABLE tags ADD CONSTRAINT tags_project_tag_key
-      UNIQUE (project, tag);
-
+-- Give the check constraints name consistent with other engines.
 ALTER TABLE dependencies ADD CONSTRAINT dependencies_check CHECK (
        (type = 'require'  AND dependency_id IS NOT NULL)
     OR (type = 'conflict' AND dependency_id IS NULL)
