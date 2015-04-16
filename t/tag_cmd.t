@@ -245,7 +245,7 @@ is $@->message, __(
 ), 'Mixed arguments error message should be correct';
 
 # Great. Now try two plans!
-my $pg = $dir->file('pg.plan');
+(my $pg = $dir->file('pg.plan')->stringify) =~ s{\\}{\\\\}g;
 (my $sqlite = $dir->file('sqlite.plan')->stringify) =~ s{\\}{\\\\}g;
 $conf->spew(join "\n",
     '[core]',
