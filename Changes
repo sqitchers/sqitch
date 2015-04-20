@@ -24,6 +24,9 @@ Revision history for Perl extension App::Sqitch
        engines that support them. This will make it easier to modify the
        constraints in the future.
      - Fixed precision issues with the registry version on MySQL and Firebird.
+     - Added comment to sqitch-passwords guide that MySQL::Config is required
+       to read passwords from the MySQL configuration files. Thanks to
+       Sterling Hanenkamp for the patch!
 
 0.9991 2015-04-03T23:14:39Z
      [Improvements]
