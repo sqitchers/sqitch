@@ -247,7 +247,7 @@ Requires:       perl(DBI)
 Requires:       perl(DBD::Firebird) >= 1.11
 Requires:       perl(Time::HiRes)
 Requires:       perl(Time::Local)
-BuildRequires:  firebird-classic >= 2.5.0
+BuildRequires:  firebird >= 2.5.0
 
 %description firebird
 Sqitch provides a simple yet robust interface for database change
