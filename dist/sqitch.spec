@@ -136,6 +136,7 @@ Requires:       perl(User::pwent)
 Requires:       perl(utf8)
 Requires:       perl(warnings)
 Requires:       perl(:MODULE_COMPAT_%(eval "`%{__perl} -V:version`"; echo $version))
+Provides:       sqitch
 
 %define etcdir %(%{__perl} -MConfig -E 'say "$Config{prefix}/etc"')
 
@@ -180,6 +181,7 @@ Requires:       sqitch >= %{version}
 Requires:       postgresql >= 8.4.0
 Requires:       perl(DBI)
 Requires:       perl(DBD::Pg) >= 2.0.0
+Provides:       sqitch-pg
 
 %description pg
 Sqitch provides a simple yet robust interface for database change
@@ -196,6 +198,7 @@ Requires:       sqitch >= %{version}
 Requires:       sqlite
 Requires:       perl(DBI)
 Requires:       perl(DBD::SQLite) >= 1.37
+Provides:       sqitch-sqlite
 
 %description sqlite
 Sqitch provides a simple yet robust interface for database change
@@ -212,6 +215,7 @@ Requires:       sqitch >= %{version}
 Requires:       oracle-instantclient11.2-sqlplus
 Requires:       perl(DBI)
 Requires:       perl(DBD::Oracle) >= 1.23
+Provides:       sqitch-oracle
 
 %description oracle
 Sqitch provides a simple yet robust interface for database change
@@ -229,6 +233,7 @@ Requires:       mysql >= 5.1.0
 Requires:       perl(DBI)
 Requires:       perl(DBD::mysql) >= 4.018
 Requires:       perl(MySQL::Config)
+Provides:       sqitch-mysql
 
 %description mysql
 Sqitch provides a simple yet robust interface for database change
@@ -248,6 +253,7 @@ Requires:       perl(DBD::Firebird) >= 1.11
 Requires:       perl(Time::HiRes)
 Requires:       perl(Time::Local)
 BuildRequires:  firebird >= 2.5.0
+Provides:       sqitch-firebird
 
 %description firebird
 Sqitch provides a simple yet robust interface for database change
@@ -264,6 +270,7 @@ Requires:       sqitch >= %{version}
 Requires:       vertica-client >= 7.0.0
 Requires:       perl(DBI)
 Requires:       perl(DBD::ODBC) >= 1.43
+Provides:       sqitch-vertica
 
 %description vertica
 Sqitch provides a simple yet robust interface for database change management.
