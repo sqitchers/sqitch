@@ -8,7 +8,7 @@ use App::Sqitch::Types qw(Str Plan);
 use App::Sqitch::X qw(hurl);
 use Locale::TextDomain qw(App-Sqitch);
 
-our $VERSION = '0.9992';
+our $VERSION = '0.9993';
 
 has name => (
     is       => 'ro',

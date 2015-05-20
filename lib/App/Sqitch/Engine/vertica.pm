@@ -12,7 +12,7 @@ use App::Sqitch::Types qw(DBH ArrayRef);
 
 extends 'App::Sqitch::Engine';
 
-our $VERSION = '0.9992';
+our $VERSION = '0.9993';
 
 sub key    { 'vertica' }
 sub name   { 'Vertica' }
