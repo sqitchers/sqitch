@@ -282,6 +282,14 @@ Sqitch Vertica support.
 # No additional files required.
 
 %changelog
+* Wed May 20 2015 David E. Wheeler <david.wheeler@iovation.com> 0.9992-1
+- Upgrade to v0.9992.
+- Add perl(DateTime::TimeZone).
+- Add Provides.
+- Replace requirement for firebird-classic with firebird.
+- Replace requirement for vertica-client with /opt/vertica/bin/vsql and
+  libverticaodbc.so.
+
 * Fri Mar 3 2015 David E. Wheeler <david.wheeler@iovation.com> 0.9991-1
 - Upgrade to v0.9991.
 - Reduced required MySQL version to 5.1.
