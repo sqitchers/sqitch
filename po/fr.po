@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Sqitch 0.932\n"
 "Report-Msgid-Bugs-To: david@justatheory.com\n"
-"POT-Creation-Date: 2015-04-03 16:02-0700\n"
+"POT-Creation-Date: 2015-05-20 16:29-0700\n"
 "PO-Revision-Date: 2012-10-12 11:28-0700\n"
 "Last-Translator: Arnaud Assad <arhuman@gmail.com>\n"
 "Language-Team: French <arhuman@gmail.com>\n"
@@ -682,7 +682,7 @@ msgstr "Changement inconnu \"{change}\" "
 
 #: lib/App/Sqitch/Engine.pm:170
 #, fuzzy, perl-brace-format
-msgid "Nothing to deploy (already at \"{change}\""
+msgid "Nothing to deploy (already at \"{change}\")"
 msgstr "Rien à déployer (déjà sur \"{target}\""
 
 #: lib/App/Sqitch/Engine.pm:188
@@ -930,7 +930,7 @@ msgstr ""
 msgid "From {old} to {new}"
 msgstr ""
 
-#: lib/App/Sqitch/Engine/firebird.pm:198 lib/App/Sqitch/Engine/mysql.pm:219
+#: lib/App/Sqitch/Engine/firebird.pm:198 lib/App/Sqitch/Engine/mysql.pm:218
 #: lib/App/Sqitch/Engine/sqlite.pm:156
 #, perl-brace-format
 msgid "Sqitch database {database} already initialized"
@@ -993,7 +993,7 @@ msgstr "Impossible de copier {src} vers {dest} : {error}"
 msgid "Cannot symlink {file} to {alias}: {error}"
 msgstr "Impossible d'ouvrir {file} : {error}"
 
-#: lib/App/Sqitch/Engine/pg.pm:166 lib/App/Sqitch/Engine/vertica.pm:154
+#: lib/App/Sqitch/Engine/pg.pm:167 lib/App/Sqitch/Engine/vertica.pm:154
 #, perl-brace-format
 msgid "Sqitch schema \"{schema}\" already exists"
 msgstr "Le schéma Sqitch \"{schema}\" existe déjà"
@@ -1358,7 +1358,7 @@ msgstr ""
 "Écrivez une note pour {command}.\n"
 "Les lignes commençant par '#' seront ignorées."
 
-#: lib/App/Sqitch/Role/DBIEngine.pm:328
+#: lib/App/Sqitch/Role/DBIEngine.pm:330
 #, perl-brace-format
 msgid ""
 "Cannot register \"{project}\" with URI {uri}: already exists with NULL URI"
@@ -1366,7 +1366,7 @@ msgstr ""
 "Impossible d'enregistrer \"{project}\" avec l'URI {uri} : il existe déjà "
 "avec un URI NULL"
 
-#: lib/App/Sqitch/Role/DBIEngine.pm:334
+#: lib/App/Sqitch/Role/DBIEngine.pm:336
 #, perl-brace-format
 msgid ""
 "Cannot register \"{project}\" without URI: already exists with URI {uri}"
@@ -1374,7 +1374,7 @@ msgstr ""
 "Impossible d'enregistrer \"{project}\" sans URI : il existe déjà avec l'URI "
 "{uri}"
 
-#: lib/App/Sqitch/Role/DBIEngine.pm:340
+#: lib/App/Sqitch/Role/DBIEngine.pm:342
 #, perl-brace-format
 msgid ""
 "Cannot register \"{project}\" with URI {uri}: already exists with URI "
@@ -1383,7 +1383,7 @@ msgstr ""
 "Impossible d'enregistrer \"{project}\" avec l'URI {uri} : il existe déjà "
 "avec l'URI {reg_uri}"
 
-#: lib/App/Sqitch/Role/DBIEngine.pm:358
+#: lib/App/Sqitch/Role/DBIEngine.pm:360
 #, fuzzy, perl-brace-format
 msgid ""
 "Cannot register \"{project}\" with URI {uri}: project \"{reg_proj}\" already "

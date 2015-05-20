@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Sqitch 0.932\n"
 "Report-Msgid-Bugs-To: david@justatheory.com\n"
-"POT-Creation-Date: 2015-04-03 16:02-0700\n"
+"POT-Creation-Date: 2015-05-20 16:29-0700\n"
 "PO-Revision-Date: 2012-08-31 17:15-0700\n"
 "Last-Translator: David Wheeler <david@justatheory.com>\n"
 "Language-Team: German <david@justatheory.com>\n"
@@ -671,7 +671,7 @@ msgstr ""
 
 #: lib/App/Sqitch/Engine.pm:170
 #, perl-brace-format
-msgid "Nothing to deploy (already at \"{change}\""
+msgid "Nothing to deploy (already at \"{change}\")"
 msgstr ""
 
 #: lib/App/Sqitch/Engine.pm:188
@@ -911,7 +911,7 @@ msgstr ""
 msgid "From {old} to {new}"
 msgstr ""
 
-#: lib/App/Sqitch/Engine/firebird.pm:198 lib/App/Sqitch/Engine/mysql.pm:219
+#: lib/App/Sqitch/Engine/firebird.pm:198 lib/App/Sqitch/Engine/mysql.pm:218
 #: lib/App/Sqitch/Engine/sqlite.pm:156
 #, perl-brace-format
 msgid "Sqitch database {database} already initialized"
@@ -974,7 +974,7 @@ msgstr ""
 msgid "Cannot symlink {file} to {alias}: {error}"
 msgstr ""
 
-#: lib/App/Sqitch/Engine/pg.pm:166 lib/App/Sqitch/Engine/vertica.pm:154
+#: lib/App/Sqitch/Engine/pg.pm:167 lib/App/Sqitch/Engine/vertica.pm:154
 #, perl-brace-format
 msgid "Sqitch schema \"{schema}\" already exists"
 msgstr ""
@@ -1306,26 +1306,26 @@ msgid ""
 "Lines starting with '#' will be ignored."
 msgstr ""
 
-#: lib/App/Sqitch/Role/DBIEngine.pm:328
+#: lib/App/Sqitch/Role/DBIEngine.pm:330
 #, perl-brace-format
 msgid ""
 "Cannot register \"{project}\" with URI {uri}: already exists with NULL URI"
 msgstr ""
 
-#: lib/App/Sqitch/Role/DBIEngine.pm:334
+#: lib/App/Sqitch/Role/DBIEngine.pm:336
 #, perl-brace-format
 msgid ""
 "Cannot register \"{project}\" without URI: already exists with URI {uri}"
 msgstr ""
 
-#: lib/App/Sqitch/Role/DBIEngine.pm:340
+#: lib/App/Sqitch/Role/DBIEngine.pm:342
 #, perl-brace-format
 msgid ""
 "Cannot register \"{project}\" with URI {uri}: already exists with URI "
 "{reg_uri}"
 msgstr ""
 
-#: lib/App/Sqitch/Role/DBIEngine.pm:358
+#: lib/App/Sqitch/Role/DBIEngine.pm:360
 #, perl-brace-format
 msgid ""
 "Cannot register \"{project}\" with URI {uri}: project \"{reg_proj}\" already "
