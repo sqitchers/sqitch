@@ -9,6 +9,8 @@ use Locale::TextDomain qw(App-Sqitch);
 use Test::NoWarnings;
 use Test::Exception;
 use Encode;
+use lib 't/lib';
+use LC;
 
 $ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
 $ENV{SQITCH_USER_CONFIG}   = 'nonexistent.user';
@@ -47,13 +49,7 @@ my $iso = do {
 my $ldt = do {
     my $clone = $dt->clone;
     $clone->set_time_zone('local');
-    if ($^O eq 'MSWin32') {
-        require Win32::Locale;
-        $clone->set( locale => Win32::Locale::get_locale() );
-    } else {
-        require POSIX;
-        $clone->set( locale => POSIX::setlocale( POSIX::LC_TIME() ) );
-    }
+    $clone->set( locale => $LC::TIME );
     $clone;
 };
 

@@ -1,6 +1,9 @@
 Revision history for Perl extension App::Sqitch
 
 0.9993
+     - Eliminated test failures due to warnings from DateTime::Locale when
+       `LC_TIME` is set to C.UTF-8. Thanks to Shantanu Bhadoria for the report
+       and Dave Rolsky for the workaround.
 
 0.9992 2015-05-20T23:51:41Z
      - On PostgreSQL, Sqitch now sets the `client_encoding` parameter to

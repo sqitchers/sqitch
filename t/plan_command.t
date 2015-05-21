@@ -12,9 +12,10 @@ use Test::Exception;
 use Test::MockModule;
 use Path::Class;
 use Term::ANSIColor qw(color);
+use Encode;
 use lib 't/lib';
 use MockOutput;
-use Encode;
+use LC;
 
 $ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
 $ENV{SQITCH_USER_CONFIG}   = 'nonexistent.user';
@@ -289,14 +290,7 @@ for my $spec (
 # Test all formatting characters.
 my $local_pdt = $pdt->clone;
 $local_pdt->set_time_zone('local');
-
-if ($^O eq 'MSWin32') {
-    require Win32::Locale;
-    $local_pdt->set( locale => Win32::Locale::get_locale() );
-} else {
-    require POSIX;
-    $local_pdt->set( locale =>POSIX::setlocale( POSIX::LC_TIME() ) );
-}
+$local_pdt->set( locale => $LC::TIME );
 
 my $formatter = $cmd->formatter;
 for my $spec (
