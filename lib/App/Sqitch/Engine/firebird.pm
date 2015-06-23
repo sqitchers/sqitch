@@ -157,6 +157,11 @@ sub _ts_default {
     return qq(DATEADD($offset HOUR TO CURRENT_TIMESTAMP(3)));
 }
 
+sub _version_query {
+    # This is nasty, but the Firebird ROUND() function sucks.
+    'SELECT SUBSTRING(ROUND(MAX(version), 1) FROM 1 FOR 3) FROM releases'
+}
+
 sub is_deployed_change {
     my ( $self, $change ) = @_;
     return $self->dbh->selectcol_arrayref(

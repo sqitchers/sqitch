@@ -363,7 +363,7 @@ DBIEngineTest->run(
         # database.  Adapted from the FirebirdMaker.pm module of
         # DBD::Firebird.
         my $cmd = $self->client;
-        my $cmd_echo = qx( echo "quit;" | "$cmd" -z -quiet 2>&1 );
+        my $cmd_echo = qx(echo "quit;" | "$cmd" -z -quiet 2>&1 );
         return 0 unless $cmd_echo =~ m{Firebird}ims;
         # Skip if no DBD::Firebird.
         return 0 unless $have_fb_driver;
