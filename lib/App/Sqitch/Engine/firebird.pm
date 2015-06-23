@@ -158,8 +158,9 @@ sub _ts_default {
 }
 
 sub _version_query {
-    # This is nasty, but the Firebird ROUND() function sucks.
-    'SELECT SUBSTRING(ROUND(MAX(version), 1) FROM 1 FOR 3) FROM releases'
+    # Turns out, if you cast to varchar, the trailing 0s get removed. So value
+    # 1.1, represented as 1.10000002384186, returns as preferred value 1.1.
+    'SELECT CAST(ROUND(MAX(version), 1) AS VARCHAR(24)) AS v FROM releases',
 }
 
 sub is_deployed_change {
