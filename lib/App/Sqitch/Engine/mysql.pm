@@ -88,6 +88,15 @@ has dbh => (
                             error_for_division_by_zero
                         )) . q{'},
                     );
+                    if (!$dbh->{mysql_serverversion} && DBI->VERSION < 1.631) {
+                        # Prior to 1.631, callbacks were inner handles and
+                        # mysql_* aren't set yet. So set InnoDB in a try block.
+                        try {
+                            $dbh->do(q{SET SESSION default_storage_engine = 'InnoDB'});
+                        };
+                        # http://www.nntp.perl.org/group/perl.dbi.dev/2013/11/msg7622.html
+                        $dbh->set_err(undef, undef) if $dbh->err;
+                    }
                     return;
                 },
             },

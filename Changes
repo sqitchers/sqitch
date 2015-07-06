@@ -7,6 +7,8 @@ Revision history for Perl extension App::Sqitch
      - Fixed an error checking the registry version when the local uses a
        comma for decimal values. Thanks to Steffen Müller for the report
        (Issue #234).
+     - Worked around an error setting the MySQL storeage engine using versions
+       of DBI prior to 1.631. Thanks to melon-babak for the report!
 
 0.9992 2015-05-20T23:51:41Z
      - On PostgreSQL, Sqitch now sets the `client_encoding` parameter to
