@@ -386,6 +386,23 @@ sub is_deployed_tag {
     )->[0];
 }
 
+sub are_deployed_changes {
+    my $self = shift;
+    my @qs;
+    my $i = @_;
+    while ($i > 250) {
+        push @qs => 'change_id IN (' . join(', ' => ('?') x 250) . ')';
+        $i -= 250;
+    }
+    push @qs => 'change_id IN (' . join(', ' => ('?') x @_) . ')';
+    my $expr = join ' OR ', @qs;
+    @{ $self->dbh->selectcol_arrayref(
+        "SELECT change_id FROM changes WHERE $expr",
+        undef,
+        map { $_->id } @_,
+    ) };
+}
+
 sub _registry_variable {
     my $self   = shift;
     my $schema = $self->registry;

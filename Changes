@@ -9,6 +9,9 @@ Revision history for Perl extension App::Sqitch
        (Issue #234).
      - Worked around an error setting the MySQL storeage engine using versions
        of DBI prior to 1.631. Thanks to melon-babak for the report!
+     - Fixed an error from the Oracle engine when deploying more than 1000
+       changes. Thanks to Timothy Procter and Minh Hoang for the report and
+       testing the fix.
 
 0.9992 2015-05-20T23:51:41Z
      - On PostgreSQL, Sqitch now sets the `client_encoding` parameter to
