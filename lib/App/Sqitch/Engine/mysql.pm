@@ -75,7 +75,7 @@ has dbh => (
                     $dbh->do("SET SESSION $_") for (
                         q{character_set_client   = 'utf8'},
                         q{character_set_server   = 'utf8'},
-                        ($dbh->{mysql_serverversion} < 50500 ? () : (q{default_storage_engine = 'InnoDB'})),
+                        ($dbh->{mysql_serverversion} || 0 < 50500 ? () : (q{default_storage_engine = 'InnoDB'})),
                         q{time_zone              = '+00:00'},
                         q{group_concat_max_len   = 32768},
                         q{sql_mode = '} . join(',', qw(
