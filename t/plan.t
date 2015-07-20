@@ -1218,7 +1218,7 @@ for my $name (
 ) {
     local $ENV{FOO} = 1;
     my $disp = Encode::encode_utf8($name);
-    ok $plan->_is_valid(change => $name), qq{Name "$disp" sould be valid};
+    ok $plan->_is_valid(change => $name), qq{Name "$disp" should be valid};
 }
 
 ##############################################################################
@@ -1845,7 +1845,7 @@ is $@->message, $deperr->(
     ),
 ), 'The two-hop cycle error message should be correct';
 
-# Okay, now deal with depedencies from ealier change sections.
+# Okay, now deal with depedencies from earlier change sections.
 @deps = ({%ddep, requires => [dep 'foo']}, {%ddep}, {%ddep});
 cmp_deeply [$plan->check_changes('foo', { foo => 1}, changes qw(this that other))],
     [changes qw(this that other)], 'Should get original order with earlier dependency';
@@ -1892,7 +1892,7 @@ is $@->message, $deperr->(__x(
     change   => 'this',
 )), 'And the error should point to the offending change';
 
-# Okay, now deal with depedencies from ealier change sections.
+# Okay, now deal with depedencies from earlier change sections.
 @deps = ({%ddep, requires => [dep '@foo']}, {%ddep}, {%ddep});
 throws_ok { $plan->check_changes('foo', changes qw(this that other)) } 'App::Sqitch::X',
     'Should die on unknown tag dependency';

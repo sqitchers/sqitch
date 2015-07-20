@@ -273,8 +273,8 @@ Windows), which should work if it's in your path.
 
 =head3 C<sqlite3>
 
-Returns a list containing the the C<sqlite3> client and options to be passed to
-it. Used internally when executing scripts.
+Returns a list containing the C<sqlite3> client and options to be passed to it.
+Used internally when executing scripts.
 
 =head1 Author
 

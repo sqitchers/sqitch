@@ -1159,7 +1159,7 @@ but will return the first instance.
 
 Returns the index of the first instance of the named change in the plan. If a
 second argument is passed, the index of the first instance of the change
-I<after> the the index of the second argument will be returned. This is useful
+I<after> the index of the second argument will be returned. This is useful
 for getting the index of a change as it was deployed after a particular tag, for
 example, to get the first index of the F<foo> change since the C<@beta> tag, do
 this:

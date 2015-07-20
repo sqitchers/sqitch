@@ -266,7 +266,7 @@ Given a F<./sqitch.conf> like this:
           set        = foo=bar
           set        = baz=yo
 
-You can set the the C<tags_only> setting to true with
+You can set the C<tags_only> setting to true with
 
   % sqitch config bundle.tags_only true
 
@@ -485,12 +485,12 @@ Configuration properties that identify the user.
 =item C<user.name>
 
 Your full name, to be recorded in changes and tags added to the plan,
-and to to commits to the database.
+and to commits to the database.
 
 =item C<user.email>
 
 Your email address, to be recorded in changes and tags added to the plan, and
-to to commits to the database.
+to commits to the database.
 
 =back
 

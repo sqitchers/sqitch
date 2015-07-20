@@ -318,7 +318,7 @@ hash string must be specified.
 
   my $index = $changelist->index_of('users_table');
 
-The name of a change. Will throw an exception if the more then one change in the
+The name of a change. Will throw an exception if the more than one change in the
 list goes by that name.
 
 =item * A tag name
@@ -342,7 +342,7 @@ The named change as it was last seen in the list before the specified tag.
 
 Returns the index of the first instance of the named change in the list. If a
 second argument is passed, the index of the first instance of the change
-I<after> the the index of the second argument will be returned. This is useful
+I<after> the index of the second argument will be returned. This is useful
 for getting the index of a change as it was deployed after a particular tag, for
 example:
 

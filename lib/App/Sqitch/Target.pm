@@ -445,9 +445,8 @@ the following steps:
 
 =item *
 
-If there is no name, get the engine key from from C<--engine> or the
-C<core.engine> configuration option. If no key can be determined, an exception
-will be thrown.
+If there is no name, get the engine key from C<--engine> or the C<core.engine>
+configuration option. If no key can be determined, an exception will be thrown.
 
 =item *
 
@@ -474,7 +473,7 @@ reasonable default from the command-line options or engine configuration.
 
 Returns a list of all the targets defined by the Sqitch configuration files.
 Done by examining the configuration object to find all defined targets and
-engines, as well as the the default "core" target. Duplicates are removed and
+engines, as well as the default "core" target. Duplicates are removed and
 the list returned. This method takes two parameters:
 
 =over

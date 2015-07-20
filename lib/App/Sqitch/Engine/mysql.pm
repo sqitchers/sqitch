@@ -420,8 +420,8 @@ supports MySQL 5.1.0 and higher (best on 5.6.4 and higher), as well as MariaDB
 
 =head3 C<mysql>
 
-Returns a list containing the the C<mysql> client and options to be passed to
-it. Used internally when executing scripts.
+Returns a list containing the C<mysql> client and options to be passed to it.
+Used internally when executing scripts.
 
 =head1 Author
 

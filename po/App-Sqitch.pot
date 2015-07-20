@@ -620,7 +620,7 @@ msgstr ""
 #: lib/App/Sqitch/Command/target.pm:189 lib/App/Sqitch/Command/target.pm:202
 #, perl-brace-format
 msgid ""
-"Cannot rename target \"{target}\" because it's refereneced by: {engines}"
+"Cannot rename target \"{target}\" because it's referenced by: {engines}"
 msgstr ""
 
 #: lib/App/Sqitch/Command/target.pm:246 lib/App/Sqitch/Command/target.pm:258

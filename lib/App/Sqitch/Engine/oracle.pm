@@ -758,8 +758,8 @@ Initializes a database for Sqitch by installing the Sqitch registry schema.
 
 =head3 C<sqlplus>
 
-Returns a list containing the the C<sqlplus> client and options to be passed
-to it. Used internally when executing scripts.
+Returns a list containing the C<sqlplus> client and options to be passed to it.
+Used internally when executing scripts.
 
 =head1 Author
 

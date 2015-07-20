@@ -318,7 +318,7 @@ sub revert {
     # Do we want to support modes, where failures would re-deploy to previous
     # tag or all the way back to the starting point? This would be very much
     # like deploy() mode. I'm thinking not, as a failure on a revert is not
-    # something you generaly want to recover from by deploying back to where
+    # something you generally want to recover from by deploying back to where
     # you started. But maybe I'm wrong?
     $self->max_name_length(
         max map { length $_->format_name_with_tags } @changes

@@ -544,8 +544,8 @@ Initializes a database for Sqitch by installing the Sqitch registry schema.
 
 =head3 C<psql>
 
-Returns a list containing the the C<psql> client and options to be passed to
-it. Used internally when executing scripts.
+Returns a list containing the C<psql> client and options to be passed to it.
+Used internally when executing scripts.
 
 =head1 Author
 
