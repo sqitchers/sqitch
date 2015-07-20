@@ -12,6 +12,8 @@ Revision history for Perl extension App::Sqitch
      - Fixed an error from the Oracle engine when deploying more than 1000
        changes. Thanks to Timothy Procter and Minh Hoang for the report and
        testing the fix.
+     - Fixed a bunch of typos in error messages, comments, and documentation.
+       Thanks to Dmitriy for the pull request!
 
 0.9992 2015-05-20T23:51:41Z
      - On PostgreSQL, Sqitch now sets the `client_encoding` parameter to
