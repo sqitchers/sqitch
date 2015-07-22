@@ -69,7 +69,7 @@ for my $attr (map { "$_\_dir"} qw(top deploy revert verify)) {
 }
 
 my $top_dir_string = $target->top_dir->stringify;
-END { remove_tree $top_dir_string }
+END { remove_tree $top_dir_string if -e $top_dir_string }
 
 ok $init->make_directories, 'Make the directories';
 for my $attr (map { "$_\_dir"} qw(top deploy revert verify)) {

@@ -14,6 +14,8 @@ Revision history for Perl extension App::Sqitch
        testing the fix.
      - Fixed a bunch of typos in error messages, comments, and documentation.
        Thanks to Dmitriy for the pull request!
+     - Fixed test failiures due to new warnings from File::Path on Perl
+       5.23.1.
 
 0.9992 2015-05-20T23:51:41Z
      - On PostgreSQL, Sqitch now sets the `client_encoding` parameter to

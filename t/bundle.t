@@ -232,7 +232,10 @@ COPYDIE: {
 
 ##############################################################################
 # Test bundle_config().
-END { remove_tree $dir->parent->stringify }
+END {
+    my $to_remove = $dir->parent->stringify;
+    remove_tree $to_remove if -e $to_remove;
+}
 $dest = file $dir, qw(sqitch.conf);
 file_not_exists_ok $dest;
 ok $bundle->bundle_config, 'Bundle the config file';

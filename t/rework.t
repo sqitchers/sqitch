@@ -106,7 +106,7 @@ is_deeply $rework->note, [], 'Note should be an arrayref';
 ##############################################################################
 # Test execute().
 make_path $test_dir->stringify;
-END { remove_tree $test_dir->stringify };
+END { remove_tree $test_dir->stringify if -e $test_dir->stringify };
 my $plan_file = $target->plan_file;
 my $fh = $plan_file->open('>') or die "Cannot open $plan_file: $!";
 say $fh "%project=empty\n\n";
@@ -387,10 +387,12 @@ MOCKSHELL: {
 # Make sure a configuration with multiple plans works.
 $mock_plan->unmock('plan');
 MULTIPLAN: {
-    remove_tree $test_dir->stringify;
-    make_path $test_dir->stringify;
-    END { remove_tree $test_dir->stringify };
-    chdir $test_dir->stringify;
+    my $dstring = $test_dir->stringify;
+    remove_tree $dstring;
+    make_path $dstring;
+    END { remove_tree $dstring if -e $dstring };
+    chdir $dstring;
+
     my $conf = file 'multirework.conf';
     $conf->spew(join "\n",
         '[core]',
@@ -615,10 +617,11 @@ MULTIPLAN: {
 
 # Make sure we update only one plan but write out multiple target files.
 MULTITARGET: {
-    remove_tree $test_dir->stringify;
-    make_path $test_dir->stringify;
-    END { remove_tree $test_dir->stringify };
-    chdir $test_dir->stringify;
+    my $dstring = $test_dir->stringify;
+    remove_tree $dstring;
+    make_path $dstring;
+    END { remove_tree $dstring if -e $dstring };
+    chdir $dstring;
 
     my $conf = file 'multiadd.conf';
     $conf->spew(join "\n",
@@ -738,10 +741,12 @@ MULTITARGET: {
 
 # Try two plans with different tags.
 MULTITAG: {
-    remove_tree $test_dir->stringify;
-    make_path $test_dir->stringify;
-    END { remove_tree $test_dir->stringify };
+    my $dstring = $test_dir->stringify;
+    remove_tree $dstring;
+    make_path $dstring;
+    END { remove_tree $dstring if -e $dstring };
     chdir $test_dir->stringify;
+
     my $conf = file 'multirework.conf';
     $conf->spew(join "\n",
         '[core]',
