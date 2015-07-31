@@ -154,44 +154,45 @@ has top_dir => (
     },
 );
 
-has deploy_dir => (
+has reworked_dir => (
     is      => 'ro',
     isa     => Dir,
     lazy    => 1,
     default => sub {
         my $self = shift;
-        if ( my $dir = $self->_fetch('deploy_dir') ) {
+        if ( my $dir = $self->_fetch('reworked_dir') ) {
             return dir $dir;
         }
-        $self->top_dir->subdir('deploy')->cleanup;
+        $self->top_dir;
     },
 );
 
-has revert_dir => (
-    is      => 'ro',
-    isa     => Dir,
-    lazy    => 1,
-    default => sub {
-        my $self = shift;
-        if ( my $dir = $self->_fetch('revert_dir') ) {
-            return dir $dir;
-        }
-        $self->top_dir->subdir('revert')->cleanup;
-    },
-);
-
-has verify_dir => (
-    is      => 'ro',
-    isa     => Dir,
-    lazy    => 1,
-    default => sub {
-        my $self = shift;
-        if ( my $dir = $self->_fetch('verify_dir') ) {
-            return dir $dir;
-        }
-        $self->top_dir->subdir('verify')->cleanup;
-    },
-);
+for my $script (qw(deploy revert verify)) {
+    has "$script\_dir" => (
+        is      => 'ro',
+        isa     => Dir,
+        lazy    => 1,
+        default => sub {
+            my $self = shift;
+            if ( my $dir = $self->_fetch("$script\_dir") ) {
+                return dir $dir;
+            }
+            $self->top_dir->subdir($script)->cleanup;
+        },
+    );
+    has "reworked_$script\_dir" => (
+        is      => 'ro',
+        isa     => Dir,
+        lazy    => 1,
+        default => sub {
+            my $self = shift;
+            if ( my $dir = $self->_fetch("reworked_$script\_dir") ) {
+                return dir $dir;
+            }
+            $self->reworked_dir->subdir($script)->cleanup;
+        },
+    );
+}
 
 has extension => (
     is      => 'ro',
@@ -681,6 +682,97 @@ comes from one of these options, searched in this order:
 =item * C<core.verify_dir>
 
 =item * F<C<$top_dir/verify>>
+
+=back
+
+=head3 C<reworked_dir>
+
+  my $reworked_dir = $target->reworked_dir;
+
+The path to the reworked directory of the project. This directory contains
+subdirectories for reworked deploy, revert, and verify scripts. The value
+comes from one of these options, searched in this order:
+
+=over
+
+=item * C<--reworked-dir>
+
+=item * C<target.$name.reworked_dir>
+
+=item * C<engine.$engine.reworked_dir>
+
+=item * C<core.reworked_dir>
+
+=item * C<$top_dir>
+
+=back
+
+=head3 C<reworked_deploy_dir>
+
+  my $reworked_deploy_dir = $target->reworked_deploy_dir;
+
+The path to the reworked deploy directory of the project. This directory
+contains all of the reworked deploy scripts referenced by changes in the
+C<plan_file>. The value comes from one of these options, searched in this
+order:
+
+=over
+
+=item * C<--reworked_deploy-dir>
+
+=item * C<target.$name.reworked_deploy_dir>
+
+=item * C<engine.$engine.reworked_deploy_dir>
+
+=item * C<core.reworked_deploy_dir>
+
+=item * F<C<$reworked_dir/reworked_deploy>>
+
+=back
+
+=head3 C<reworked_revert_dir>
+
+  my $reworked_revert_dir = $target->reworked_revert_dir;
+
+The path to the reworked revert directory of the project. This directory
+contains all of the reworked revert scripts referenced by changes the
+C<plan_file>. The value comes from one of these options, searched in this
+order:
+
+=over
+
+=item * C<--reworked_revert-dir>
+
+=item * C<target.$name.reworked_revert_dir>
+
+=item * C<engine.$engine.reworked_revert_dir>
+
+=item * C<core.reworked_revert_dir>
+
+=item * F<C<$reworked_dir/reworked_revert>>
+
+=back
+
+=head3 C<reworked_verify_dir>
+
+  my $reworked_verify_dir = $target->reworked_verify_dir;
+
+The path to the reworked verify directory of the project. This directory
+contains all of the reworked verify scripts referenced by changes in the
+C<plan_file>. The value comes from one of these options, searched in this
+order:
+
+=over
+
+=item * C<--reworked_verify-dir>
+
+=item * C<target.$name.reworked_verify_dir>
+
+=item * C<engine.$engine.reworked_verify_dir>
+
+=item * C<core.reworked_verify_dir>
+
+=item * F<C<$reworked_dir/reworked_verify>>
 
 =back
 

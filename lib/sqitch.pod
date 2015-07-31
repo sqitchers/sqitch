@@ -369,7 +369,7 @@ directory.
 
   sqitch --reworked-deploy-dir db/prev/up
 
-Path to a directory containing rewokrked deploy scripts. Overrides the
+Path to a directory containing reworked deploy scripts. Overrides the
 value implied by C<--reworked-dir>.
 
 =item C<--reworked-revert-dir>
