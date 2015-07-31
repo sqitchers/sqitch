@@ -158,10 +158,6 @@ has _mysql => (
             push @ret, "--password=$pw";
         }
 
-        # if (my %vars = $self->variables) {
-        #     push @ret => map {; "--$_", $vars{$_} } sort keys %vars;
-        # }
-
         push @ret => (
             ($^O eq 'MSWin32' ? () : '--skip-pager' ),
             '--silent',
@@ -310,6 +306,21 @@ sub _prepare_to_log {
     return $self;
 }
 
+sub _set_vars {
+    my %vars = shift->variables or return;
+    return 'SET ' . join(', ', map {
+        (my $k = $_) =~ s/"/""/g;
+        (my $v = $vars{$_}) =~ s/'/''/g;
+        qq{\@"$k" = '$v'};
+    } sort keys %vars) . ";\n";
+}
+
+sub _source {
+    my ($self, $file) = @_;
+    my $set = $self->_set_vars || '';
+    return ('--execute' => "${set}source $file");
+}
+
 sub _run {
     my $self = shift;
     my $sqitch = $self->sqitch;
@@ -328,23 +339,27 @@ sub _capture {
 
 sub _spool {
     my $self   = shift;
-    my $fh     = shift;
+    my @fh     = (shift);
     my $sqitch = $self->sqitch;
-    my $pass   = $self->password or return $sqitch->spool( $fh, $self->mysql, @_ );
+    if (my $set = $self->_set_vars) {
+        open my $sfh, '<:utf8_strict', \$set;
+        unshift @fh, $sfh;
+    }
+    my $pass   = $self->password or return $sqitch->spool( \@fh, $self->mysql, @_ );
     local $ENV{MYSQL_PWD} = $pass;
-    return $sqitch->spool( $fh, $self->mysql, @_ );
+    return $sqitch->spool( \@fh, $self->mysql, @_ );
 }
 
 sub run_file {
-    my ($self, $file) = @_;
-    $self->_run( '--execute' => "source $file" );
+    my $self = shift;
+    $self->_run( $self->_source(@_) );
 }
 
 sub run_verify {
-    my ($self, $file) = @_;
+    my $self = shift;
     # Suppress STDOUT unless we want extra verbosity.
     my $meth = $self->can($self->sqitch->verbosity > 1 ? '_run' : '_capture');
-    $self->$meth( '--execute' => "source $file" );
+    $self->$meth( $self->_source(@_) );
 }
 
 sub run_upgrade {
@@ -352,7 +367,7 @@ sub run_upgrade {
     my $dbh = $self->dbh;
     my @cmd = $self->mysql;
     $cmd[1 + firstidx { $_ eq '--database' } @cmd ] = $self->registry;
-    return $self->sqitch->run( @cmd, '--execute', "source $file" )
+    return $self->sqitch->run( @cmd, $self->_source($file) )
         if $self->_fractional_seconds;
 
     # Need to strip out datetime precision.
@@ -366,7 +381,7 @@ sub run_upgrade {
     my $fh = File::Temp->new;
     print $fh $sql;
     close $fh;
-    $self->sqitch->run( @cmd, '--execute', "source $fh" );
+    $self->sqitch->run( @cmd, $self->_source($fh) );
 }
 
 sub run_handle {

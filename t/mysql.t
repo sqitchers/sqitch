@@ -72,16 +72,6 @@ isa_ok $mysql = $CLASS->new(
     sqitch => $sqitch,
     target => $target,
 ), $CLASS;
-ok $mysql->set_variables(foo => 'baz', whu => 'hi there', yo => 'stellar'),
-    'Set some variables';
-is_deeply [$mysql->mysql], [
-    $client,
-    # '--foo' => 'baz',
-    # '--whu' => 'hi there',
-    # '--yo'  => 'stellar',
-    '--database' => 'foo',
-    @std_opts,
-], 'Variables should not be passed to mysql';
 
 ##############################################################################
 # Make sure config settings override defaults.
@@ -189,8 +179,16 @@ is_deeply \@run, [$mysql->mysql, qw(foo bar baz)],
     'Command should be passed to run()';
 
 ok $mysql->_spool('FH'), 'Call _spool';
-is_deeply \@spool, ['FH', $mysql->mysql],
+is_deeply \@spool, [['FH'], $mysql->mysql],
     'Command should be passed to spool()';
+$mysql->set_variables(foo => 'bar', '"that"' => "'this'");
+ok $mysql->_spool('FH'), 'Call _spool with variables';
+ok my $fh = shift @{ $spool[0] }, 'Get variables file handle';
+is_deeply \@spool, [['FH'], $mysql->mysql],
+    'Command should be passed to spool() after variables handle';
+is join("\n", <$fh>), qq{SET \@"""that""" = '''this''', \@"foo" = 'bar';\n},
+    'Variables should have been escaped and set';
+$mysql->clear_variables;
 
 ok $mysql->_capture(qw(foo bar baz)), 'Call _capture';
 is_deeply \@capture, [$mysql->mysql, qw(foo bar baz)],
@@ -207,7 +205,7 @@ is_deeply \@run, [$mysql->mysql, qw(foo bar baz)],
     'Command should be passed to run() again';
 
 ok $mysql->_spool('FH'), 'Call _spool again';
-is_deeply \@spool, ['FH', $mysql->mysql],
+is_deeply \@spool, [['FH'], $mysql->mysql],
     'Command should be passed to spool() again';
 
 ok $mysql->_capture(qw(foo bar baz)), 'Call _capture again';
@@ -219,21 +217,54 @@ is_deeply \@capture, [$mysql->mysql, qw(foo bar baz)],
 ok $mysql->run_file('foo/bar.sql'), 'Run foo/bar.sql';
 is_deeply \@run, [$mysql->mysql, '--execute', 'source foo/bar.sql'],
     'File should be passed to run()';
+@run = ();
 
 ok $mysql->run_handle('FH'), 'Spool a "file handle"';
-is_deeply \@spool, ['FH', $mysql->mysql],
+is_deeply \@spool, [['FH'], $mysql->mysql],
     'Handle should be passed to spool()';
+@spool = ();
 
 # Verify should go to capture unless verosity is > 1.
 ok $mysql->run_verify('foo/bar.sql'), 'Verify foo/bar.sql';
 is_deeply \@capture, [$mysql->mysql, '--execute', 'source foo/bar.sql'],
     'Verify file should be passed to capture()';
+@capture = ();
 
 $mock_sqitch->mock(verbosity => 2);
 ok $mysql->run_verify('foo/bar.sql'), 'Verify foo/bar.sql again';
 is_deeply \@run, [$mysql->mysql, '--execute', 'source foo/bar.sql'],
     'Verifile file should be passed to run() for high verbosity';
+@run = ();
 
+# Try with variables.
+$mysql->set_variables(foo => 'bar', '"that"' => "'this'");
+my $set = qq{SET \@"""that""" = '''this''', \@"foo" = 'bar';\n};
+
+ok $mysql->run_file('foo/bar.sql'), 'Run foo/bar.sql with vars';
+is_deeply \@run, [$mysql->mysql, '--execute', "${set}source foo/bar.sql"],
+    'Variabls and file should be passed to run()';
+@run = ();
+
+ok $mysql->run_handle('FH'), 'Spool a "file handle"';
+ok $fh = shift @{ $spool[0] }, 'Get variables file handle';
+is_deeply \@spool, [['FH'], $mysql->mysql],
+    'File handle should be passed to spool() after variables handle';
+is join("\n", <$fh>), $set, 'Variables should have been escaped and set';
+@spool = ();
+
+ok $mysql->run_verify('foo/bar.sql'), 'Verbosely verify foo/bar.sql with vars';
+is_deeply \@run, [$mysql->mysql, '--execute', "${set}source foo/bar.sql"],
+    'Variables and verify file should be passed to run()';
+@run = ();
+
+# Reset verbosity to send verify to spool.
+$mock_sqitch->unmock('verbosity');
+ok $mysql->run_verify('foo/bar.sql'), 'Verify foo/bar.sql with vars';
+is_deeply \@capture, [$mysql->mysql, '--execute', "${set}source foo/bar.sql"],
+    'Verify file should be passed to capture()';
+@capture = ();
+
+$mysql->clear_variables;
 $mock_sqitch->unmock_all;
 $mock_config->unmock_all;
 

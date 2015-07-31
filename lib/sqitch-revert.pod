@@ -49,8 +49,8 @@ L<sqitchchanges> for the various ways in which changes can be specified.
 =item C<--set>
 
 Set a variable name and value for use by the database engine client, if it
-supports variables. The format must be C<name=value>, e.g., C<--set
-defuser='Homer Simpson'>. Overrides any values loaded from the
+supports variables. The format must be C<name=value>, e.g.,
+C<--set defuser='Homer Simpson'>. Overrides any values loaded from the
 C<deploy.variables> or C<revert.variables> configurations.
 
 =item C<--log-only>
@@ -82,6 +82,8 @@ scripts, such as PostgreSQL's
 L<C<psql> variables|http://www.postgresql.org/docs/current/static/app-psql.html#APP-PSQL-INTERPOLATION>,
 Vertica's
 L<C<vsql> variables|http://my.vertica.com/docs/7.1.x/HTML/index.htm#Authoring/ProgrammersGuide/vsql/Variables.htm>,
+MySQL's
+L<user variables|http://dev.mysql.com/doc/refman/5.6/en/user-variables.html>,
 and SQL*Plus's
 L<C<DEFINE> variables|http://docs.oracle.com/cd/B19306_01/server.102/b14357/ch12017.htm>.
 
