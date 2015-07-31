@@ -224,6 +224,10 @@ sub _core_opts {
         deploy-dir=s
         revert-dir=s
         verify-dir|test-dir=s
+        reworked-dir=s
+        reworked-deploy-dir=s
+        reworked-revert-dir=s
+        reworked-verify-dir=s
         extension=s
         etc-path
         quiet
@@ -292,7 +296,16 @@ sub _parse_core_opts {
     }
 
     # Convert files and dirs to objects.
-    for my $dir (qw(top_dir deploy_dir revert_dir verify_dir)) {
+    for my $dir (qw(
+        top_dir
+        deploy_dir
+        revert_dir
+        verify_dir
+        reworked_dir
+        reworked_deploy_dir
+        reworked_revert_dir
+        reworked_verify_dir
+    )) {
         $opts{$dir} = dir $opts{$dir} if defined $opts{$dir};
     }
     $opts{plan_file} = file $opts{plan_file} if defined $opts{plan_file};

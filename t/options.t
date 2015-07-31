@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 26;
+use Test::More tests => 30;
 #use Test::More 'no_plan';
 use Test::MockModule;
 use Capture::Tiny 0.12 ':all';
@@ -93,40 +93,57 @@ HELP: {
 ##############################################################################
 # Try lots of options.
 my $opts = $CLASS->_parse_core_opts([
-    '--plan-file'  => 'plan.txt',
-    '--engine'     => 'pg',
-    '--registry'   => 'reg',
-    '--client'     => 'psql',
-    '--db-name'    => 'try',
-    '--db-user'    => 'bob',
-    '--db-host'    => 'local',
-    '--db-port'    => 2020,
-    '--top-dir'    => 'ddl',
-    '--deploy-dir' => 'dep',
-    '--revert-dir' => 'rev',
-    '--verify-dir' => 'tst',
-    '--extension'  => 'ext',
+    '--plan-file'           => 'plan.txt',
+    '--engine'              => 'pg',
+    '--registry'            => 'reg',
+    '--client'              => 'psql',
+    '--db-name'             => 'try',
+    '--db-user'             => 'bob',
+    '--db-host'             => 'local',
+    '--db-port'             => 2020,
+    '--top-dir'             => 'ddl',
+    '--deploy-dir'          => 'dep',
+    '--revert-dir'          => 'rev',
+    '--verify-dir'          => 'tst',
+    '--reworked-dir'        => 'wrk',
+    '--reworked-deploy-dir' => 'rdep',
+    '--reworked-revert-dir' => 'rrev',
+    '--reworked-verify-dir' => 'rtst',
+    '--extension'           => 'ext',
     '--verbose', '--verbose',
 ]);
 
 is_deeply $opts, {
-    'plan_file'   => 'plan.txt',
-    'engine'      => 'pg',
-    'registry'    => 'reg',
-    'client'      => 'psql',
-    'db_name'     => 'try',
-    'db_username' => 'bob',
-    'db_host'     => 'local',
-    'db_port'     => 2020,
-    'top_dir'     => 'ddl',
-    'deploy_dir'  => 'dep',
-    'revert_dir'  => 'rev',
-    'verify_dir'  => 'tst',
-    'extension'   => 'ext',
-    verbosity     => 2,
+    plan_file           => 'plan.txt',
+    engine              => 'pg',
+    registry            => 'reg',
+    client              => 'psql',
+    db_name             => 'try',
+    db_username         => 'bob',
+    db_host             => 'local',
+    db_port             => 2020,
+    top_dir             => 'ddl',
+    deploy_dir          => 'dep',
+    revert_dir          => 'rev',
+    verify_dir          => 'tst',
+    reworked_dir        => 'wrk',
+    reworked_deploy_dir => 'rdep',
+    reworked_revert_dir => 'rrev',
+    reworked_verify_dir => 'rtst',
+    extension           => 'ext',
+    verbosity           => 2,
 }, 'Should parse lots of options';
 
-for my $dir (qw(top_dir deploy_dir revert_dir verify_dir)) {
+for my $dir (qw(
+    top_dir
+    deploy_dir
+    revert_dir
+    verify_dir
+    reworked_dir
+    reworked_deploy_dir
+    reworked_revert_dir
+    reworked_verify_dir
+)) {
     isa_ok $opts->{$dir}, 'Path::Class::Dir', $dir;
 }
 
