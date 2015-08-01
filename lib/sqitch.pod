@@ -205,7 +205,7 @@ User who adds a change to the plan.
   -f --plan-file           FILE      Path to a deployment plan file.
      --engine              ENGINE    Database engine.
      --registry            REGISTRY  Registry schema or database.
-     --db-client           PATH      Path to the engine command-line client.
+     --db-client           PATH      Path to engine command-line client.
   -d --db-name             NAME      Database name.
   -u --db-user             USER      Database user name.
   -h --db-host             HOST      Database server host name.
@@ -214,17 +214,17 @@ User who adds a change to the plan.
      --deploy-dir          DIR       Path to deploy scripts directory.
      --revert-dir          DIR       Path to revert scripts directory.
      --verify-dir          DIR       Path to verify scripts directory.
-     --reworked-dir        DIR       Path to directory with reworked scripts.
+     --reworked-dir        DIR       Path to reworked scripts top directory.
      --reworked-deploy-dir DIR       Path to reworked deploy scripts directory.
      --reworked-revert-dir DIR       Path to reworked revert scripts directory.
      --reworked-verify-dir DIR       Path to reworked verify scripts directory.
      --extension           EXT       Change script file name extension.
-     --etc-path                      Print the path to the etc directory and exit.
+     --etc-path                      Print path to etc directory and exit.
      --quiet                         Quiet mode with non-error output suppressed.
   -v --verbose                       Increment verbosity.
-     --version                       Print the version number and exit.
+     --version                       Print version number and exit.
      --help                          Show a list of commands and exit.
-     --man                           Print the introductory documentation and exit.
+     --man                           Print introductory documentation and exit.
 
 =head1 Options Details
 

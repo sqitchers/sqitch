@@ -1399,10 +1399,13 @@ tables are created.
 Get, set, and clear engine variables. Variables are defined as key/value pairs
 to be passed to the engine client in calls to C<deploy> and C<revert>, if the
 client supports variables. For example, the
-L<PostgreSQL|App::Sqitch::Engine::pg> and L<Vertica|App::Sqitch::Engine::vertica>
-engines pass all the variables to their C<psql> and C<vsql> clients via the
-C<--set> option, while the L<Oracle engine|App::Sqitch::Engine::oracle> engine
-sets them via the SQL*Plus C<DEFINE> command.
+L<PostgreSQL|App::Sqitch::Engine::pg> and
+L<Vertica|App::Sqitch::Engine::vertica> engines pass all the variables to
+their C<psql> and C<vsql> clients via the C<--set> option, while the
+L<MySQL engine|App::Sqitch::Engine::mysql> engine sets them via the C<SET>
+command and the L<Oracle engine|App::Sqitch::Engine::oracle> engine sets them
+via the SQL*Plus C<DEFINE> command.
+
 
 =head3 C<deploy>
 
