@@ -42,6 +42,8 @@
 #
 #     CREATE USER sqitchtest IDENTIFIED BY oracle;
 #     GRANT ALL PRIVILEGES TO sqitchtest;
+#     CREATE USER oe IDENTIFIED BY oracle;
+#     GRANT ALL PRIVILEGES TO oe;
 #
 # Now the tests can be run with:
 #
@@ -70,7 +72,9 @@ BEGIN {
     $ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
     $ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.user';
     $ENV{SQITCH_USER_CONFIG}   = 'nonexistent.sys';
-    delete $ENV{ORACLE_HOME};
+    #delete $ENV{ORACLE_HOME};
+    # I don't understand why ORACLE_HOME was being deliberately unset and never restored? my tests only pass if 
+    # I remove the above line. Maybe I'm missing something here - AEH
 }
 
 is_deeply [$CLASS->config_vars], [
@@ -117,6 +121,11 @@ is $ora->_script, join( "\n" => (
     'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF',
     'WHENEVER OSERROR EXIT 9;',
     'WHENEVER SQLERROR EXIT SQL.SQLCODE;',
+    'DEFINE changes="changes"',
+    'DEFINE dependencies="dependencies"',
+    'DEFINE events="events"',
+    'DEFINE projects="projects"',
+    'DEFINE tags="tags"',
     'connect ',
     $ora->_registry_variable,
 ) ), '_script should work';
@@ -136,6 +145,12 @@ is $ora->_script, join( "\n" => (
     'WHENEVER OSERROR EXIT 9;',
     'WHENEVER SQLERROR EXIT SQL.SQLCODE;',
     'connect fred/"derf"@"blah"',
+    'DEFINE changes="changes"',
+    'DEFINE dependencies="dependencies"',
+    'DEFINE events="events"',
+    'DEFINE projects="projects"',
+    'DEFINE tags="tags"',
+    'connect fred/"derf"@"blah"',
     $ora->_registry_variable,
 ) ), '_script should assemble connection string';
 
@@ -153,9 +168,14 @@ is $ora->_script('@foo'), join( "\n" => (
     'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF',
     'WHENEVER OSERROR EXIT 9;',
     'WHENEVER SQLERROR EXIT SQL.SQLCODE;',
+    'DEFINE changes="changes"',
+    'DEFINE dependencies="dependencies"',
+    'DEFINE events="events"',
+    'DEFINE projects="projects"',
+    'DEFINE tags="tags"',
     'connect fred/"derf"@//there/"blah"',
     $ora->_registry_variable,
-    '@foo',
+        '@foo',
 ) ), '_script should assemble connection string with host';
 
 # Add a port and varibles.
@@ -176,7 +196,12 @@ is $ora->_script, join( "\n" => (
     'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF',
     'WHENEVER OSERROR EXIT 9;',
     'WHENEVER SQLERROR EXIT SQL.SQLCODE;',
+    'DEFINE changes="changes"',
+    'DEFINE dependencies="dependencies"',
+    'DEFINE events="events"',
     'DEFINE foo="baz"',
+    'DEFINE projects="projects"',
+    'DEFINE tags="tags"',
     'DEFINE whu="hi there"',
     'DEFINE yo="""stellar"""',
     'connect fred/"derf ""derf"""@//there:1345/"blah ""blah"""',
@@ -420,6 +445,7 @@ END {
 
     $dbh->{RaiseError} = 0;
     $dbh->{PrintError} = 1;
+
     $dbh->do($_) for (
         'DROP TABLE events',
         'DROP TABLE dependencies',
@@ -465,7 +491,7 @@ DBIEngineTest->run(
         plan_file => Path::Class::file(qw(t engine sqitch.plan)),
     }],
     target_params     => [ uri => $uri ],
-    alt_target_params => [ uri => $uri, registry => 'oe' ],
+    alt_engine_params => [ uri => $uri, registry => 'oe', with_registry_prefix => 1 ],
     skip_unless       => sub {
         my $self = shift;
         die $err if $err;

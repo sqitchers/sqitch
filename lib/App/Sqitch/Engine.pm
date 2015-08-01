@@ -101,6 +101,29 @@ sub clear_variables { %{ shift->_variables } = ()  }
 
 sub default_registry { 'sqitch' }
 
+has with_registry_prefix => (
+    is       => 'ro',
+    isa      => Bool,
+    lazy     => 1,
+    required => 1,
+    default  => sub {
+        my $self   = shift;
+        my $engine = $self->key;
+        my $p      = $self->sqitch->config->get(
+            key => "core.$engine.with_registry_prefix" );
+
+        if ( $p && $engine ne 'oracle' ) {
+            hurl engine => __x(
+                'config option with_registry_prefix not supported for {engine}',
+                engine => $engine,
+            );
+        }
+
+        return $p if defined $p;
+        return 0;
+    },
+);
+
 sub load {
     my ( $class, $p ) = @_;
 
