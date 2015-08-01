@@ -12,8 +12,8 @@ sqitchcommands - List of common sqitch commands
 =head1 Usage
 
   sqitch [--plan-file <file>] [--engine <engine>] [--top-dir <dir> ]
-         [--top-dir <dir> ] [--extension <ext>] [--registry <registry>]
-         [--etc-path] [--quiet] [--verbose] [--version]
+         [--extension <ext>] [--registry <registry>] [--etc-path]
+         [--quiet] [--verbose] [--version]
          <command> [<command-options>] [<args>]
 
 =head1 Common Commands
