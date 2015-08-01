@@ -12,9 +12,10 @@ use Test::Exception;
 use Test::MockModule;
 use Path::Class;
 use Term::ANSIColor qw(color);
+use Encode;
 use lib 't/lib';
 use MockOutput;
-use Encode;
+use LC;
 
 $ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
 $ENV{SQITCH_USER_CONFIG}   = 'nonexistent.user';
@@ -316,16 +317,10 @@ for my $spec (
 # Test all formatting characters.
 my $local_cdt = $cdt->clone;
 $local_cdt->set_time_zone('local');
+$local_cdt->set( locale => $LC::TIME );
 my $local_pdt = $pdt->clone;
 $local_pdt->set_time_zone('local');
-
-if ($^O eq 'MSWin32') {
-    require Win32::Locale;
-    $_->set( locale => Win32::Locale::get_locale() ) for ($local_cdt, $local_pdt);
-} else {
-    require POSIX;
-    $_->set( locale =>POSIX::setlocale( POSIX::LC_TIME() ) ) for ($local_cdt, $local_pdt);
-}
+$local_pdt->set( locale => $LC::TIME );
 
 my $formatter = $log->formatter;
 for my $spec (

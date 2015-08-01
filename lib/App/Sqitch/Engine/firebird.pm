@@ -18,7 +18,7 @@ use namespace::autoclean;
 
 extends 'App::Sqitch::Engine';
 
-our $VERSION = '0.999_1';
+our $VERSION = '0.9993';
 
 has registry_uri => (
     is       => 'ro',
@@ -155,6 +155,12 @@ sub _ts_default {
     my $offset = shift->tz_offset;
     sleep 0.01; # give Firebird a little time to tick microseconds.
     return qq(DATEADD($offset HOUR TO CURRENT_TIMESTAMP(3)));
+}
+
+sub _version_query {
+    # Turns out, if you cast to varchar, the trailing 0s get removed. So value
+    # 1.1, represented as 1.10000002384186, returns as preferred value 1.1.
+    'SELECT CAST(ROUND(MAX(version), 1) AS VARCHAR(24)) AS v FROM releases',
 }
 
 sub is_deployed_change {
@@ -939,8 +945,8 @@ Constructs a connection string from a database URI for passing to C<isql>.
 
 =head3 C<isql>
 
-Returns a list containing the the C<isql> client and options to be passed to
-it. Used internally when executing scripts.
+Returns a list containing the C<isql> client and options to be passed to it.
+Used internally when executing scripts.
 
 =head1 Author
 

@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 163;
+use Test::More tests => 226;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Target;
@@ -75,9 +75,11 @@ can_ok $CLASS, qw(
 );
 
 is_deeply [$CLASS->options], [qw(
+    change-name|change|c=s
     requires|r=s@
-    conflicts|c=s@
+    conflicts|x=s@
     note|n|m=s@
+    all|a!
     template-name|template|t=s
     template-directory=s
     with=s@
@@ -151,6 +153,7 @@ is_deeply $CLASS->configure($config, { template_name => 'foo' }), {
 }, 'Should set up template name option';
 
 is_deeply $CLASS->configure($config, {
+    all          => 1,
     with_scripts => { deploy => 1, revert => 1, verify => 0 },
     use          => {
         deploy => 'etc/templates/deploy/pg.tmpl',
@@ -159,6 +162,7 @@ is_deeply $CLASS->configure($config, {
         whatev => 'etc/templates/verify/pg.tmpl',
     },
 }), {
+    all       => 1,
     requires  => [],
     conflicts => [],
     note      => [],
@@ -217,7 +221,7 @@ is_deeply $add->conflicts, [], 'Conflicts should be an arrayref';
 is_deeply $add->note, [], 'Notes should be an arrayref';
 is_deeply $add->variables, {}, 'Varibles should be a hashref';
 is $add->template_directory, undef, 'Default dir should be undef';
-is $add->template_name, 'pg', 'Default temlate_name should be engine';
+is $add->template_name, undef, 'Default temlate_name should be undef';
 is_deeply $add->with_scripts, {}, 'Default with_scripts should be empty';
 is_deeply $add->templates, {}, 'Default templates should be empty';
 
@@ -268,8 +272,9 @@ my $tmpldir = dir 'etc/templates';
 # First, specify template directory.
 ok $add = $CLASS->new(sqitch => $sqitch, template_directory => $tmpldir),
     'Add object with template directory';
-is $add->template_name, 'pg', 'Template name should be "pg"';
-is_deeply $add->all_templates, {
+is $add->template_name, undef, 'Template name should be undef';
+my $tname = $add->template_name || $target->engine_key;
+is_deeply $add->all_templates($tname), {
     deploy => file('etc/templates/deploy/pg.tmpl'),
     revert => file('etc/templates/revert/pg.tmpl'),
     verify => file('etc/templates/verify/pg.tmpl'),
@@ -279,7 +284,7 @@ is_deeply $add->all_templates, {
 $usrdir = dir 'etc';
 ok $add = $CLASS->new(sqitch => $sqitch, template_name => 'sqlite'),
     'Add object with template name';
-is_deeply $add->all_templates, {
+is_deeply $add->all_templates($add->template_name), {
     deploy => file('etc/templates/deploy/sqlite.tmpl'),
     revert => file('etc/templates/revert/sqlite.tmpl'),
     verify => file('etc/templates/verify/sqlite.tmpl'),
@@ -289,7 +294,7 @@ is_deeply $add->all_templates, {
 ($usrdir, $sysdir) = ($sysdir, $usrdir);
 ok $add = $CLASS->new(sqitch => $sqitch, template_name => 'mysql'),
     'Add object with another template name';
-is_deeply $add->all_templates, {
+is_deeply $add->all_templates($add->template_name), {
     deploy => file('etc/templates/deploy/mysql.tmpl'),
     revert => file('etc/templates/revert/mysql.tmpl'),
     verify => file('etc/templates/verify/mysql.tmpl'),
@@ -305,7 +310,7 @@ for my $script (qw(deploy whatev)) {
 
 ok $add = $CLASS->new(sqitch => $sqitch, template_directory => $tmp_dir),
     'Add object with temporary template directory';
-is_deeply $add->all_templates, {
+is_deeply $add->all_templates($tname), {
     deploy => $tmp_dir->file('deploy/pg.tmpl'),
     whatev => $tmp_dir->file('whatev/pg.tmpl'),
     revert => file('etc/templates/revert/pg.tmpl'),
@@ -323,7 +328,7 @@ ok $add = $CLASS->new(
     },
 ), 'Add object with configured templates';
 
-is_deeply $add->all_templates, {
+is_deeply $add->all_templates($tname), {
     deploy => file('deploy'),
     verify => file('verify'),
     foo => file('foo'),
@@ -339,7 +344,7 @@ for my $script (qw(deploy revert verify)) {
         with_scripts => { deploy => 0, revert => 0, verify => 0, $script => 1 },
     ), "Add object requiring $script template";
 
-    throws_ok { $add->all_templates } 'App::Sqitch::X',
+    throws_ok { $add->all_templates($tname) } 'App::Sqitch::X',
         "Should get error for missing $script template";
     is $@->ident, 'add', qq{Missing $script template ident should be "add"};
     is $@->message, __x(
@@ -367,12 +372,15 @@ my $test_add = sub {
     END { remove_tree 'test-add' };
     my $out = file 'test-add', 'sqitch_change_test.sql';
     file_not_exists_ok $out;
-    ok my $add = $CLASS->new(sqitch => $sqitch), 'Create add command';
-    ok $add->_add('sqitch_change_test', $out, $tmpl),
+    ok my $add = $CLASS->new(
+        sqitch => $sqitch,
+        template_directory => $tmpldir,
+    ), 'Create add command';
+    ok $add->_add('sqitch_change_test', $out, $tmpl, 'sqlite', 'add'),
         'Write out a script';
     file_exists_ok $out;
     file_contents_is $out, <<EOF, 'The template should have been evaluated';
--- Deploy sqitch_change_test
+-- Deploy add:sqitch_change_test to sqlite
 
 BEGIN;
 
@@ -389,15 +397,16 @@ EOF
         sqitch    => $sqitch,
         requires  => [qw(foo bar)],
         conflicts => ['baz'],
+        template_directory => $tmpldir,
     ), 'Create add cmd with requires and conflicts';
 
     $out = file 'test-add', 'another_change_test.sql';
-    ok $add->_add('another_change_test', $out, $tmpl),
+    ok $add->_add('another_change_test', $out, $tmpl, 'sqlite', 'add'),
         'Write out a script with requires and conflicts';
     is_deeply +MockOutput->get_info, [[__x 'Created {file}', file => $out ]],
         'Info should show $out created';
     file_contents_is $out, <<EOF, 'The template should have been evaluated with requires and conflicts';
--- Deploy another_change_test
+-- Deploy add:another_change_test to sqlite
 -- requires: foo
 -- requires: bar
 -- conflicts: baz
@@ -432,7 +441,8 @@ SKIP: {
     $test_add->('Template Toolkit');
 
     # Template Toolkit should throw an error on template syntax errors.
-    ok my $add = $CLASS->new(sqitch => $sqitch), 'Create add command';
+    ok my $add = $CLASS->new(sqitch => $sqitch, template_directory => $tmpldir),
+        'Create add command';
     my $mock_add = Test::MockModule->new($CLASS);
     $mock_add->mock(_slurp => sub { \'[% IF foo %]' });
     my $out = file 'test-add', 'sqitch_change_test.sql';
@@ -451,15 +461,16 @@ SKIP: {
 # Test execute.
 ok $add = $CLASS->new(
     sqitch => $sqitch,
-    template_directory => dir(qw(etc templates))
+    template_directory => $tmpldir,
 ), 'Create another add with template_directory';
 
 # Override request_note().
 my $change_mocker = Test::MockModule->new('App::Sqitch::Plan::Change');
 my %request_params;
 $change_mocker->mock(request_note => sub {
-    shift;
+    my $self = shift;
     %request_params = @_;
+    return $self->note;
 });
 
 my $deploy_file = file qw(test-add deploy widgets_table.sql);
@@ -481,11 +492,11 @@ is_deeply \%request_params, {
 }, 'It should have prompted for a note';
 
 file_exists_ok $_ for ($deploy_file, $revert_file, $verify_file);
-file_contents_like $deploy_file, qr/^-- Deploy widgets_table/,
+file_contents_like $deploy_file, qr/^-- Deploy add:widgets_table/,
     'Deploy script should look right';
-file_contents_like $revert_file, qr/^-- Revert widgets_table/,
+file_contents_like $revert_file, qr/^-- Revert add:widgets_table/,
     'Revert script should look right';
-file_contents_like $verify_file, qr/^-- Verify widgets_table/,
+file_contents_like $verify_file, qr/^-- Verify add:widgets_table/,
     'Verify script should look right';
 is_deeply +MockOutput->get_info, [
     [__x 'Created {file}', file => $deploy_file],
@@ -504,12 +515,13 @@ isa_ok $change = $plan->get('widgets_table'), 'App::Sqitch::Plan::Change',
 
 # Make sure conflicts are avoided and conflicts and requires are respected.
 ok $add = $CLASS->new(
+    change_name        => 'foo_table',
     sqitch             => $sqitch,
     requires           => ['widgets_table'],
     conflicts          => [qw(dr_evil joker)],
     note               => [qw(hello there)],
     with_scripts       => { verify => 0 },
-    template_directory => dir(qw(etc templates))
+    template_directory => $tmpldir,
 ), 'Create another add with template_directory and no verify script';
 
 $deploy_file = file qw(test-add deploy foo_table.sql);
@@ -520,7 +532,7 @@ $deploy_file->touch;
 file_exists_ok $deploy_file;
 file_not_exists_ok $_ for ($revert_file, $verify_file);
 is $plan->get('foo_table'), undef, 'Should not have "foo_table" in plan';
-ok $add->execute('foo_table'), 'Add change "foo_table"';
+ok $add->execute, 'Add change "foo_table"';
 file_exists_ok $_ for ($deploy_file, $revert_file);
 file_not_exists_ok $verify_file;
 $plan = $add->default_target->plan;
@@ -545,6 +557,15 @@ is_deeply +MockOutput->get_info, [
     ],
 ], 'Info should report skipping file and include dependencies';
 
+# Make sure we die on an unknown argument.
+throws_ok { $add->execute(qw(foo bar)) } 'App::Sqitch::X',
+    'Should get an error on unkonwn argument';
+is $@->ident, 'add', 'Unkown argument error ident should be "add"';
+is $@->message, __x(
+    'Unknown arguments: {arg}',
+    arg => 'foo, bar',
+), 'Unknown argument error message should be correct';
+
 # Make sure --open-editor works
 MOCKSHELL: {
     my $sqitch_mocker = Test::MockModule->new('App::Sqitch');
@@ -554,7 +575,7 @@ MOCKSHELL: {
 
     ok $add = $CLASS->new(
         sqitch              => $sqitch,
-        template_directory  => dir(qw(etc templates)),
+        template_directory  => $tmpldir,
         note                => ['Testing --open-editor'],
         open_editor         => 1,
     ), 'Create another add with open_editor';
@@ -574,11 +595,11 @@ MOCKSHELL: {
 
     file_exists_ok $_ for ($deploy_file, $revert_file, $verify_file);
     file_contents_like +File::Spec->catfile(qw(test-add deploy open_editor.sql)),
-        qr/^-- Deploy open_editor/, 'Deploy script should look right';
+        qr/^-- Deploy add:open_editor/, 'Deploy script should look right';
     file_contents_like +File::Spec->catfile(qw(test-add revert open_editor.sql)),
-        qr/^-- Revert open_editor/, 'Revert script should look right';
+        qr/^-- Revert add:open_editor/, 'Revert script should look right';
     file_contents_like +File::Spec->catfile(qw(test-add verify open_editor.sql)),
-        qr/^-- Verify open_editor/, 'Verify script should look right';
+        qr/^-- Verify add:open_editor/, 'Verify script should look right';
     is_deeply +MockOutput->get_info, [
         [__x 'Created {file}', file => $deploy_file],
         [__x 'Created {file}', file => $revert_file],
@@ -594,7 +615,7 @@ MOCKSHELL: {
 EXTRAS: {
     ok my $add = $CLASS->new(
         sqitch              => $sqitch,
-        template_directory  => dir(qw(etc templates)),
+        template_directory  => $tmpldir,
         with_scripts        => { verify => 0 },
         templates           => { whatev => file(qw(etc templates verify mysql.tmpl)) },
         note                => ['Testing custom scripts'],
@@ -619,11 +640,11 @@ EXTRAS: {
 
     file_exists_ok $_ for ($deploy_file, $revert_file, $whatev_file);
     file_not_exists_ok $verify_file;
-    file_contents_like $deploy_file, qr/^-- Deploy custom_script/,
+    file_contents_like $deploy_file, qr/^-- Deploy add:custom_script/,
         'Deploy script should look right';
-    file_contents_like $revert_file, qr/^-- Revert custom_script/,
+    file_contents_like $revert_file, qr/^-- Revert add:custom_script/,
         'Revert script should look right';
-    file_contents_like $whatev_file, qr/^-- Verify custom_script/,
+    file_contents_like $whatev_file, qr/^-- Verify add:custom_script/,
         'Whatev script should look right';
     file_contents_unlike $whatev_file, qr/^BEGIN/,
         'Whatev script should be based on the MySQL verify script';
@@ -641,6 +662,250 @@ EXTRAS: {
     $plan->load;
     isa_ok $change = $plan->get('custom_script'), 'App::Sqitch::Plan::Change',
         'Added change in reloaded plan';
+}
+
+# Make sure a configuration with multiple plans works.
+MULTIPLAN: {
+    make_path 'test-multiadd';
+    END { remove_tree 'test-multiadd' };
+    chdir 'test-multiadd';
+    my $conf = file 'multiadd.conf';
+    $conf->spew(join "\n",
+        '[core]',
+        'engine = pg',
+        '[engine "pg"]',
+        'top_dir = pg',
+        '[engine "sqlite"]',
+        'top_dir = sqlite',
+        '[engine "mysql"]',
+        'top_dir = mysql',
+    );
+
+    # Create plan files and determine the scripts that to be created.
+    my @scripts = map {
+        my $dir = dir $_;
+        $dir->mkpath;
+        $dir->file('sqitch.plan')->spew("%project=add\n\n");
+        map { $dir->file($_, 'widgets.sql') } qw(deploy revert verify);
+    } qw(pg sqlite mysql);
+
+    # Load up the configuration for this project.
+    local $ENV{SQITCH_CONFIG} = $conf;
+    my $sqitch = App::Sqitch->new;
+    ok my $add = $CLASS->new(
+        sqitch             => $sqitch,
+        note               => ['Testing multiple plans'],
+        all                => 1,
+        template_directory => dir->parent->subdir(qw(etc templates))
+    ), 'Create another add with custom multiplan config';
+
+    my @targets = App::Sqitch::Target->all_targets(sqitch => $sqitch);
+    is @targets, 3, 'Should have three targets';
+
+    # Make sure the target list matches our script list order (by engine).
+    # pg always comes first, as primary engine, but the other two are random.
+    push @targets, splice @targets, 1, 1 if $targets[1]->engine_key ne 'sqlite';
+
+    # Let's do this thing!
+    ok $add->execute('widgets'), 'Add change "widgets" to all plans';
+    ok $_->plan->get('widgets'), 'Should have "widgets" in ' . $_->engine_key . ' plan'
+         for @targets;
+    file_exists_ok $_ for @scripts;
+
+    # Make sure we see the proper output.
+    my $info = MockOutput->get_info;
+    my $ekey = $targets[1]->engine_key;
+    if ($info->[4][0] !~ /$ekey/) {
+        # Got the targets in a different order. So reorder results to match.
+        push @{ $info } => splice @{ $info }, 4, 4;
+    }
+    is_deeply $info, [
+        (map { [__x 'Created {file}', file => $_] } @scripts[0..2]),
+        [
+            __x 'Added "{change}" to {file}',
+            change => 'widgets',
+            file   => $targets[0]->plan_file,
+        ],
+        (map { [__x 'Created {file}', file => $_] } @scripts[3..5]),
+        [
+            __x 'Added "{change}" to {file}',
+            change => 'widgets',
+            file   => $targets[1]->plan_file,
+        ],
+        (map { [__x 'Created {file}', file => $_] } @scripts[6..8]),
+        [
+            __x 'Added "{change}" to {file}',
+            change => 'widgets',
+            file   => $targets[2]->plan_file,
+        ],
+    ], 'Info should have reported all script creations and plan updates';
+
+    # Make sure we get an error using --all and a target arg.
+    throws_ok { $add->execute('foo', 'pg' ) } 'App::Sqitch::X',
+        'Should get an error for --all and a target arg';
+    is $@->ident, 'add', 'Mixed arguments error ident should be "add"';
+    is $@->message, __(
+        'Cannot specify both --all and engine, target, or plan arugments'
+    ), 'Mixed arguments error message should be correct';
+
+    # Now try adding a change to just one engine. Remove --all
+    ok $add = $CLASS->new(
+        sqitch             => $sqitch,
+        note               => ['Testing multiple plans'],
+        template_directory => dir->parent->subdir(qw(etc templates))
+    ), 'Create yet another add with custom multiplan config';
+
+    ok $add->execute('choc', 'sqlite'), 'Add change "choc" to the sqlite plan';
+    my %targets = map { $_->engine_key => $_ }
+        App::Sqitch::Target->all_targets(sqitch => $sqitch);
+    is keys %targets, 3, 'Should still have three targets';
+    ok !$targets{pg}->plan->get('choc'), 'Should not have "choc" in the pg plan';
+    ok !$targets{mysql}->plan->get('choc'), 'Should not have "choc" in the mysql plan';
+    ok $targets{sqlite}->plan->get('choc'), 'Should have "choc" in the sqlite plan';
+
+    @scripts = map {
+        my $dir = dir $_;
+        $dir->mkpath;
+        map { $dir->file($_, 'choc.sql') } qw(deploy revert verify);
+    } qw(sqlite pg mysql);
+    file_exists_ok $_ for @scripts[0..2];
+    file_not_exists_ok $_ for @scripts[3..8];
+    is_deeply +MockOutput->get_info, [
+        (map { [__x 'Created {file}', file => $_] } @scripts[0..2]),
+        [
+            __x 'Added "{change}" to {file}',
+            change => 'choc',
+            file   => $targets{sqlite}->plan_file,
+        ],
+    ], 'Info should have reported sqlite choc script creations and plan updates';
+
+    chdir File::Spec->updir;
+}
+
+# Make sure we update only one plan but write out multiple target files.
+MULTITARGET: {
+    remove_tree 'test-multiadd';
+    make_path 'test-multiadd';
+    chdir 'test-multiadd';
+    my $conf = file 'multiadd.conf';
+    $conf->spew(join "\n",
+        '[core]',
+        'engine = pg',
+        'plan_file = sqitch.plan',
+        '[engine "pg"]',
+        'top_dir = pg',
+        '[engine "sqlite"]',
+        'top_dir = sqlite',
+        '[add]',
+        'all = true',
+    );
+    file('sqitch.plan')->spew("%project=add\n\n");
+
+    # Create list of scripts to be created.
+    my @scripts = map {
+        my $dir = dir $_;
+        $dir->mkpath;
+        map { $dir->file($_, 'widgets.sql') } qw(deploy revert verify);
+    } qw(pg sqlite);
+
+    # Load up the configuration for this project.
+    local $ENV{SQITCH_CONFIG} = $conf;
+    my $sqitch = App::Sqitch->new;
+    ok my $add = $CLASS->new(
+        sqitch             => $sqitch,
+        note               => ['Testing multiple targets'],
+        template_directory => dir->parent->subdir(qw(etc templates))
+    ), 'Create another add with single plan, multi-target config';
+
+    my @targets = App::Sqitch::Target->all_targets(sqitch => $sqitch);
+    is @targets, 2, 'Should have two targets';
+    is $targets[0]->plan_file, $targets[1]->plan_file,
+        'Targets should use the same plan file';
+
+    # Let's do this thing!
+    ok $add->execute('widgets'), 'Add change "widgets" to all plans';
+    ok $targets[0]->plan->get('widgets'), 'Should have "widgets" in the plan';
+    file_exists_ok $_ for @scripts;
+
+    is_deeply \%request_params, {
+        for => __ 'add',
+        scripts => \@scripts,
+    }, 'Should have the proper files listed in the note promt';
+
+    is_deeply +MockOutput->get_info, [
+        (map { [__x 'Created {file}', file => $_] } @scripts),
+        [
+            __x 'Added "{change}" to {file}',
+            change => 'widgets',
+            file   => $targets[0]->plan_file,
+        ],
+    ], 'Info should have reported all script creations and one plan update';
+    chdir File::Spec->updir;
+}
+
+# Make sure we're okay with multiple plans sharing the same top dir.
+ONETOP: {
+    remove_tree 'test-multiadd';
+    make_path 'test-multiadd';
+    chdir 'test-multiadd';
+    my $conf = file 'multiadd.conf';
+    $conf->spew(join "\n",
+        '[core]',
+        'engine = pg',
+        '[engine "pg"]',
+        'plan_file = pg.plan',
+        '[engine "sqlite"]',
+        'plan_file = sqlite.plan',
+    );
+    file("$_.plan")->spew("%project=add\n\n") for qw(pg sqlite);
+
+    # Create list of scripts to be created.
+    my @scripts = map { file $_, 'widgets.sql' } qw(deploy revert verify);
+
+    # Load up the configuration for this project.
+    local $ENV{SQITCH_CONFIG} = $conf;
+    my $sqitch = App::Sqitch->new;
+    ok my $add = $CLASS->new(
+        sqitch             => $sqitch,
+        note               => ['Testing two targets, one top_dir'],
+        all                => 1,
+        template_directory => dir->parent->subdir(qw(etc templates))
+    ), 'Create another add with two targets, one top dir';
+
+    my @targets = App::Sqitch::Target->all_targets(sqitch => $sqitch);
+    is @targets, 2, 'Should have two targets';
+    is $targets[0]->plan_file, file('pg.plan'),
+        'First target plan should be in pg.plan';
+    is $targets[1]->plan_file, file('sqlite.plan'),
+        'Second target plan should be in sqlite.plan';
+
+    # Let's do this thing!
+    ok $add->execute('widgets'), 'Add change "widgets" to all plans';
+    ok $_->plan->get('widgets'), 'Should have "widgets" in ' . $_->engine_key . ' plan'
+         for @targets;
+    file_exists_ok $_ for @scripts;
+
+    is_deeply \%request_params, {
+        for => __ 'add',
+        scripts => \@scripts,
+    }, 'Should have the proper files listed in the note promt';
+
+    is_deeply my $info = MockOutput->get_info, [
+        (map { [__x 'Created {file}', file => $_] } @scripts),
+        [
+            __x 'Added "{change}" to {file}',
+            change => 'widgets',
+            file   => $targets[0]->plan_file,
+        ],
+        (map { [__x 'Skipped {file}: already exists', file => $_] } @scripts),
+        [
+            __x 'Added "{change}" to {file}',
+            change => 'widgets',
+            file   => $targets[1]->plan_file,
+        ],
+    ], 'Info should have script creations and skips';
+
+    chdir File::Spec->updir;
 }
 
 ##############################################################################

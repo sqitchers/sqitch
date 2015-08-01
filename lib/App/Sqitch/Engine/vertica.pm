@@ -12,7 +12,7 @@ use App::Sqitch::Types qw(DBH ArrayRef);
 
 extends 'App::Sqitch::Engine';
 
-our $VERSION = '0.999_1';
+our $VERSION = '0.9993';
 
 sub key    { 'vertica' }
 sub name   { 'Vertica' }
@@ -547,8 +547,8 @@ Initializes a database for Sqitch by installing the Sqitch registry schema.
 
 =head3 C<vsql>
 
-Returns a list containing the the C<vsql> client and options to be passed to
-it. Used internally when executing scripts.
+Returns a list containing the C<vsql> client and options to be passed to it.
+Used internally when executing scripts.
 
 =head1 Author
 

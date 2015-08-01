@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 159;
+use Test::More tests => 167;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -69,7 +69,7 @@ for my $attr (map { "$_\_dir"} qw(top deploy revert verify)) {
 }
 
 my $top_dir_string = $target->top_dir->stringify;
-END { remove_tree $top_dir_string }
+END { remove_tree $top_dir_string if -e $top_dir_string }
 
 ok $init->make_directories, 'Make the directories';
 for my $attr (map { "$_\_dir"} qw(top deploy revert verify)) {
@@ -434,13 +434,37 @@ file_contents_is $plan_file,
     '%project=nada' . "\n\n",
  'The contents should be correct';
 
-# Write more to the plan.
+# Make sure we don't overwrite the file when initializing again.
+ok $init->write_plan( 'nada' ), 'Write the plan file again';
+file_exists_ok $plan_file, 'Plan file should still exist';
+file_contents_is $plan_file,
+    '%syntax-version=' . App::Sqitch::Plan::SYNTAX_VERSION() . "\n" .
+    '%project=nada' . "\n\n",
+ 'The contents should be identical';
+
+# Make sure we get an error trying to initalize a different plan.
+throws_ok { $init->write_plan( 'oopsie' ) } 'App::Sqitch::X',
+    'Should get an error initialing a different project';
+is $@->ident, 'init', 'Initialization error ident should be "init"';
+is $@->message, __x(
+    'Cannot initialize because project "{project}" already initialized in {file}',
+    project => 'nada',
+    file    => $plan_file,
+), 'Initialzation error message should be correct';
+
+# Write a different file.
 my $fh = $plan_file->open('>:utf8_strict') or die "Cannot open $plan_file: $!\n";
 $fh->say('# testing 1, 2, 3');
 $fh->close;
 
 # Try writing again.
-ok $init->write_plan( 'foofoo' ), 'Write the plan file again';
+throws_ok { $init->write_plan( 'foofoo' ) } 'App::Sqitch::X',
+    'Should get an error initialzing a non-plan file';
+is $@->ident, 'init', 'Non-plan file error ident should be "init"';
+is $@->message, __x(
+    'Cannot initialize because {file} already exists and is not a valid plan file',
+    file    => $plan_file,
+), 'Non-plan file error message should be correct';
 file_contents_like $plan_file, qr/testing 1, 2, 3/,
     'The file should not be overwritten';
 

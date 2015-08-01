@@ -15,7 +15,7 @@ use namespace::autoclean;
 
 extends 'App::Sqitch::Engine';
 
-our $VERSION = '0.999_1';
+our $VERSION = '0.9993';
 
 has registry_uri => (
     is       => 'ro',
@@ -273,8 +273,8 @@ Windows), which should work if it's in your path.
 
 =head3 C<sqlite3>
 
-Returns a list containing the the C<sqlite3> client and options to be passed to
-it. Used internally when executing scripts.
+Returns a list containing the C<sqlite3> client and options to be passed to it.
+Used internally when executing scripts.
 
 =head1 Author
 

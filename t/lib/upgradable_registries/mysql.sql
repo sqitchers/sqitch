@@ -143,11 +143,12 @@ CREATE TABLE events (
   COMMENT 'Contains full history of all deployment events.'
 ;
 
+-- ## BEGIN 5.5
 -- MySQL does not support checks, so we kind of create our own. The checkit()
 -- function works sort of like a CHECK: if the first argument is 0 or NULL, it
 -- throws the second argument as an exception. Conveniently, verify scripts
 -- can also use it to ensure an error is thrown when a change cannot be
--- verified.
+-- verified. Requires MySQL 5.5.0.
 
 DELIMITER |
 
@@ -183,5 +184,6 @@ END;
 |
 
 DELIMITER ;
+-- ## END 5.5
 
 COMMIT;

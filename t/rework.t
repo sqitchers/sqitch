@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 95;
+use Test::More tests => 231;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -11,7 +11,7 @@ use Test::Exception;
 use App::Sqitch::Command::add;
 use Path::Class;
 use Test::File qw(file_not_exists_ok file_exists_ok);
-use Test::File::Contents qw(file_contents_identical file_contents_is);
+use Test::File::Contents qw(file_contents_identical file_contents_is files_eq);
 use File::Path qw(make_path remove_tree);
 use Test::NoWarnings;
 use lib 't/lib';
@@ -22,11 +22,12 @@ $ENV{SQITCH_USER_CONFIG}   = 'nonexistent.user';
 $ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
 
 my $CLASS = 'App::Sqitch::Command::rework';
+my $test_dir = dir 'test-rework';
 
 ok my $sqitch = App::Sqitch->new(
     options => {
         engine  => 'pg',
-        top_dir => Path::Class::Dir->new('test-rework')->stringify,
+        top_dir => $test_dir->stringify,
     },
 ), 'Load a sqitch sqitch object';
 
@@ -50,6 +51,7 @@ sub dep($) {
 
 
 can_ok $CLASS, qw(
+    change_name
     requires
     conflicts
     note
@@ -57,8 +59,10 @@ can_ok $CLASS, qw(
 );
 
 is_deeply [$CLASS->options], [qw(
+    change-name|change|c=s
     requires|r=s@
-    conflicts|c=s@
+    conflicts|x=s@
+    all|a!
     note|n|m=s@
     open-editor|edit|e!
 )], 'Options should be set up';
@@ -82,9 +86,9 @@ is_deeply $CLASS->configure($config, {
 CONFIG: {
     local $ENV{SQITCH_CONFIG} = File::Spec->catfile(qw(t rework.conf));
     my $config = App::Sqitch::Config->new;
-    is_deeply $CLASS->configure($config, {}), { open_editor => 'true' },
-        'Grabs rework.open_editor from config';
+    is_deeply $CLASS->configure($config, {}), {}, 'Grabs nothing from config';
 
+    ok my $sqitch = App::Sqitch->new, 'Load default Sqitch project';
     isa_ok my $rework = App::Sqitch::Command->load({
         sqitch  => $sqitch,
         command => 'rework',
@@ -101,8 +105,8 @@ is_deeply $rework->note, [], 'Note should be an arrayref';
 
 ##############################################################################
 # Test execute().
-make_path 'test-rework';
-END { remove_tree 'test-rework' };
+make_path $test_dir->stringify;
+END { remove_tree $test_dir->stringify if -e $test_dir->stringify };
 my $plan_file = $target->plan_file;
 my $fh = $plan_file->open('>') or die "Cannot open $plan_file: $!";
 say $fh "%project=empty\n\n";
@@ -114,9 +118,10 @@ throws_ok { $rework->execute('foo') } 'App::Sqitch::X',
     'Should get an example for nonexistent change';
 is $@->ident, 'plan', 'Nonexistent change error ident should be "plan"';
 is $@->message, __x(
-    qq{Change "{change}" does not exist.\n}
+    qq{Change "{change}" does not exist in {file}.\n}
     . 'Use "sqitch add {change}" to add it to the plan',
     change => 'foo',
+    file   => $plan->file,
 ), 'Fail message should say the step does not exist';
 
 # Use the add command to create a step.
@@ -127,8 +132,9 @@ my $verify_file = file qw(test-rework verify foo.sql);
 my $change_mocker = Test::MockModule->new('App::Sqitch::Plan::Change');
 my %request_params;
 $change_mocker->mock(request_note => sub {
-    shift;
+    my $self = shift;
     %request_params = @_;
+    return $self->note;
 });
 
 # Use the same plan.
@@ -137,10 +143,11 @@ $mock_plan->mock(plan => $plan);
 
 ok my $add = App::Sqitch::Command::add->new(
     sqitch => $sqitch,
+    change_name => 'foo',,
     template_directory => Path::Class::dir(qw(etc templates))
 ), 'Create another add with template_directory';
 file_not_exists_ok($_) for ($deploy_file, $revert_file, $verify_file);
-$add->execute('foo');
+ok $add->execute, 'Execute with the --change option';
 file_exists_ok($_) for ($deploy_file, $revert_file, $verify_file);
 ok my $foo = $plan->get('foo'), 'Get the "foo" change';
 
@@ -171,7 +178,7 @@ file_contents_identical($deploy_file2, $deploy_file);
 file_contents_identical($verify_file2, $verify_file);
 file_contents_identical($revert_file, $deploy_file);
 file_contents_is($revert_file2, <<'EOF', 'New revert should revert');
--- Revert foo
+-- Revert empty:foo from pg
 
 BEGIN;
 
@@ -329,7 +336,6 @@ is_deeply +MockOutput->get_debug, [
     )],
 ], 'Should have debug oputput for missing files';
 
-#"
 # Make sure --open-editor works
 MOCKSHELL: {
     my $sqitch_mocker = Test::MockModule->new('App::Sqitch');
@@ -375,4 +381,589 @@ MOCKSHELL: {
         )],
         ["  * $rework_file"],
     ], 'And the info message should suggest editing the old files';
+    MockOutput->get_debug; # empty debug.
 };
+
+# Make sure a configuration with multiple plans works.
+$mock_plan->unmock('plan');
+MULTIPLAN: {
+    my $dstring = $test_dir->stringify;
+    remove_tree $dstring;
+    make_path $dstring;
+    END { remove_tree $dstring if -e $dstring };
+    chdir $dstring;
+
+    my $conf = file 'multirework.conf';
+    $conf->spew(join "\n",
+        '[core]',
+        'engine = pg',
+        '[engine "pg"]',
+        'top_dir = pg',
+        '[engine "sqlite"]',
+        'top_dir = sqlite',
+        '[engine "mysql"]',
+        'top_dir = mysql',
+    );
+
+    # Create plan files and determine the scripts that to be created.
+    my %scripts = map {
+        my $dir = dir $_;
+        $dir->mkpath;
+        $dir->file('sqitch.plan')->spew(join "\n",
+            '%project=rework', '',
+            'widgets 2012-07-16T17:25:07Z anna <a@n.na>',
+            'gadgets 2012-07-16T18:25:07Z anna <a@n.na>',
+            '@foo 2012-07-16T17:24:07Z julie <j@ul.ie>', '',
+        );
+
+        # Make the script files.
+        my (@change, @reworked);
+        for my $type (qw(deploy revert verify)) {
+            my $subdir = $dir->subdir($type);
+            $subdir->mkpath;
+            my $script = $subdir->file('widgets.sql');
+            $script->spew("-- $subdir widgets");
+            push @change => $script;
+            push @reworked => $subdir->file('widgets@foo.sql');
+        }
+
+        # Return the scripts.
+        $_ => { change => \@change, reworked => \@reworked };
+    } qw(pg sqlite mysql);
+
+    # Load up the configuration for this project.
+    local $ENV{SQITCH_CONFIG} = $conf;
+    my $sqitch = App::Sqitch->new;
+    ok my $rework = $CLASS->new(
+        sqitch             => $sqitch,
+        note               => ['Testing multiple plans'],
+        all                => 1,
+        template_directory => dir->parent->subdir(qw(etc templates))
+    ), 'Create another rework with custom multiplan config';
+
+    my @targets = App::Sqitch::Target->all_targets(sqitch => $sqitch);
+    is @targets, 3, 'Should have three targets';
+
+    # Make sure the target list matches our script list order (by engine).
+    # pg always comes first, as primary engine, but the other two are random.
+    push @targets, splice @targets, 1, 1 if $targets[1]->engine_key ne 'sqlite';
+
+    # Let's do this thing!
+    ok $rework->execute('widgets'), 'Rework change "widgets" in all plans';
+    for my $target(@targets) {
+        my $ekey = $target->engine_key;
+        ok my $head = $target->plan->get('widgets@HEAD'),
+            "Get widgets\@HEAD from the $ekey plan";
+        ok my $foo = $target->plan->get('widgets@foo'),
+            "Get widgets\@foo from the $ekey plan";
+        cmp_ok $head->id, 'ne', $foo->id,
+            "The two $ekey widgets should be different changes";
+    }
+
+    # All the files should exist, now.
+    while (my ($k, $v) = each %scripts) {
+        file_exists_ok $_ for map { @{ $v->{$_} } } qw(change reworked);
+        # Deploy and verify files should be the same.
+        files_eq $v->{change}[0], $v->{reworked}[0];
+        files_eq $v->{change}[2], $v->{reworked}[2];
+        # New revert should be the same as old deploy.
+        files_eq $v->{change}[1], $v->{reworked}[0];
+    }
+
+    # Make sure we see the proper output.
+    my $info = MockOutput->get_info;
+    my $note = $request_params{scripts};
+    my $ekey = $targets[1]->engine_key;
+    if ($info->[1][0] !~ /$ekey/) {
+        # Got the targets in a different order. So reorder results to match.
+        ($info->[1], $info->[2]) = ($info->[2], $info->[1]);
+        push @{ $info } => splice @{ $info }, 7, 3;
+        push @{ $note } => splice @{ $note }, 3, 3;
+    }
+    is_deeply $note, [map { @{ $scripts{$_}{change} }} qw(pg sqlite mysql)],
+        'Should have listed the files in the note prompt';
+    is_deeply $info, [
+        [__x(
+            'Added "{change}" to {file}.',
+            change => 'widgets [widgets@foo]',
+            file   => $targets[0]->plan_file,
+        )],
+        [__x(
+            'Added "{change}" to {file}.',
+            change => 'widgets [widgets@foo]',
+            file   => $targets[1]->plan_file,
+        )],
+        [__x(
+            'Added "{change}" to {file}.',
+            change => 'widgets [widgets@foo]',
+            file   => $targets[2]->plan_file,
+        )],
+        [__n(
+            'Modify this file as appropriate:',
+            'Modify these files as appropriate:',
+            3,
+        )],
+        map {
+            map { ["  * $_" ] } @{ $scripts{$_}{change} }
+        } qw(pg sqlite mysql)
+    ], 'And the info message should show the two files to modify';
+
+    my $debug = +MockOutput->get_debug;
+    if ($debug->[4][0] !~ /$ekey/) {
+        # Got the targets in a different order. So reorder results to match.
+        push @{ $debug } => splice @{ $debug }, 4, 4;
+    }
+    is_deeply $debug, [
+        map {
+            my ($c, $r) = @{ $scripts{$_} }{qw(change reworked)};
+            (
+                map { [__x(
+                    'Copied {src} to {dest}',
+                    src  => $c->[$_],
+                    dest => $r->[$_],
+                )] } (0..2)
+            ),
+            [__x(
+                'Copied {src} to {dest}',
+                src  => $c->[0],
+                dest => $c->[1],
+            )]
+        } qw(pg sqlite mysql)
+    ], 'Should have debug oputput for all copied files';
+
+    # # Make sure we get an error using --all and a target arg.
+    throws_ok { $rework->execute('foo', 'pg' ) } 'App::Sqitch::X',
+        'Should get an error for --all and a target arg';
+    is $@->ident, 'rework', 'Mixed arguments error ident should be "rework"';
+    is $@->message, __(
+        'Cannot specify both --all and engine, target, or plan arugments'
+    ), 'Mixed arguments error message should be correct';
+
+    # # Now try reworking a change to just one engine. Remove --all
+    %scripts = map {
+        my $dir = dir $_;
+        $dir->mkpath;
+
+        # Make the script files.
+        my (@change, @reworked);
+        for my $type (qw(deploy revert verify)) {
+            my $subdir = $dir->subdir($type);
+            $subdir->mkpath;
+            my $script = $subdir->file('gadgets.sql');
+            $script->spew("-- $subdir gadgets");
+            push @change => $script;
+            # Only SQLite is reworked.
+            push @reworked => $subdir->file('gadgets@foo.sql')
+                if $_ eq 'sqlite';
+        }
+
+        # Return the scripts.
+        $_ => { change => \@change, reworked => \@reworked };
+    } qw(pg sqlite mysql);
+
+    ok $rework = $CLASS->new(
+        sqitch             => $sqitch,
+        note               => ['Testing multiple plans'],
+        template_directory => dir->parent->subdir(qw(etc templates))
+    ), 'Create yet another rework with custom multiplan config';
+
+    ok $rework->execute('gadgets', 'sqlite'),
+        'Rework change "gadgets" in the sqlite plan';
+    my %targets = map { $_->engine_key => $_ }
+        App::Sqitch::Target->all_targets(sqitch => $sqitch);
+    is keys %targets, 3, 'Should still have three targets';
+    my $name = 'gadgets@foo';
+    for my $ekey(qw(pg mysql)) {
+        my $target = $targets{$ekey};
+        ok my $head = $target->plan->get('gadgets@HEAD'),
+            "Get gadgets\@HEAD from the $ekey plan";
+        ok my $foo = $target->plan->get('gadgets@foo'),
+            "Get gadgets\@foo from the $ekey plan";
+        cmp_ok $head->id, 'eq', $foo->id,
+            "The two $ekey gadgets should be the same change";
+    }
+    do {
+        my $ekey = 'sqlite';
+        my $target = $targets{$ekey};
+        ok my $head = $target->plan->get('gadgets@HEAD'),
+            "Get gadgets\@HEAD from the $ekey plan";
+        ok my $foo = $target->plan->get('gadgets@foo'),
+            "Get gadgets\@foo from the $ekey plan";
+        cmp_ok $head->id, 'ne', $foo->id,
+            "The two $ekey gadgets should be different changes";
+    };
+
+    # All the files should exist, now.
+    while (my ($k, $v) = each %scripts) {
+        file_exists_ok $_ for map { @{ $v->{$_} } } qw(change reworked);
+        next if $k ne 'sqlite';
+        # Deploy and verify files should be the same.
+        files_eq $v->{change}[0], $v->{reworked}[0];
+        files_eq $v->{change}[2], $v->{reworked}[2];
+        # New revert should be the same as old deploy.
+        files_eq $v->{change}[1], $v->{reworked}[0];
+    }
+
+    is_deeply \%request_params, {
+        for => __ 'rework',
+        scripts => $scripts{sqlite}{change},
+    }, 'Should have listed SQLite scripts in the note prompt';
+
+    # Clear the output.
+    MockOutput->get_info;
+    MockOutput->get_debug;
+    chdir File::Spec->updir;
+}
+
+# Make sure we update only one plan but write out multiple target files.
+MULTITARGET: {
+    my $dstring = $test_dir->stringify;
+    remove_tree $dstring;
+    make_path $dstring;
+    END { remove_tree $dstring if -e $dstring };
+    chdir $dstring;
+
+    my $conf = file 'multiadd.conf';
+    $conf->spew(join "\n",
+        '[core]',
+        'engine = pg',
+        'plan_file = sqitch.plan',
+        '[engine "pg"]',
+        'top_dir = pg',
+        '[engine "sqlite"]',
+        'top_dir = sqlite',
+        '[add]',
+        'all = true',
+    );
+    file('sqitch.plan')->spew(join "\n",
+        '%project=rework', '',
+        'widgets 2012-07-16T17:25:07Z anna <a@n.na>',
+        'gadgets 2012-07-16T18:25:07Z anna <a@n.na>',
+        '@foo 2012-07-16T17:24:07Z julie <j@ul.ie>', '',
+    );
+
+    # Create the scripts.
+    my %scripts = map {
+        my $dir = dir $_;
+        my (@change, @reworked);
+        for my $type (qw(deploy revert verify)) {
+            my $subdir = $dir->subdir($type);
+            $subdir->mkpath;
+            my $script = $subdir->file('widgets.sql');
+            $script->spew("-- $subdir widgets");
+            push @change => $script;
+            push @reworked => $subdir->file('widgets@foo.sql');
+        }
+
+        # Return the scripts.
+        $_ => { change => \@change, reworked => \@reworked };
+    } qw(pg sqlite);
+
+    # Load up the configuration for this project.
+    local $ENV{SQITCH_CONFIG} = $conf;
+    my $sqitch = App::Sqitch->new;
+    ok my $rework = $CLASS->new(
+        sqitch             => $sqitch,
+        note               => ['Testing multiple plans'],
+        all                => 1,
+        template_directory => dir->parent->subdir(qw(etc templates))
+    ), 'Create another rework with custom multiplan config';
+
+    my @targets = App::Sqitch::Target->all_targets(sqitch => $sqitch);
+    is @targets, 2, 'Should have two targets';
+    is $targets[0]->plan_file, $targets[1]->plan_file,
+        'Targets should use the same plan file';
+    my $target = $targets[0];
+
+    # Let's do this thing!
+    ok $rework->execute('widgets'), 'Rework change "widgets" in all plans';
+
+    ok my $head = $target->plan->get('widgets@HEAD'),
+        "Get widgets\@HEAD from the plan";
+    ok my $foo = $target->plan->get('widgets@foo'),
+        "Get widgets\@foo from the plan";
+    cmp_ok $head->id, 'ne', $foo->id,
+        "The two widgets should be different changes";
+
+    # All the files should exist, now.
+    while (my ($k, $v) = each %scripts) {
+        file_exists_ok $_ for map { @{ $v->{$_} } } qw(change reworked);
+        # Deploy and verify files should be the same.
+        files_eq $v->{change}[0], $v->{reworked}[0];
+        files_eq $v->{change}[2], $v->{reworked}[2];
+        # New revert should be the same as old deploy.
+        files_eq $v->{change}[1], $v->{reworked}[0];
+    }
+
+    is_deeply \%request_params, {
+        for => __ 'rework',
+        scripts => [ map {@{ $scripts{$_}{change} }} qw(pg sqlite)],
+    }, 'Should have listed all the files to edit in the note prompt';
+
+    # And the output should be correct.
+    is_deeply +MockOutput->get_info, [
+        [__x(
+            'Added "{change}" to {file}.',
+            change => 'widgets [widgets@foo]',
+            file   => $target->plan_file,
+        )],
+        [__n(
+            'Modify this file as appropriate:',
+            'Modify these files as appropriate:',
+            3,
+        )],
+        map {
+            map { ["  * $_" ] } @{ $scripts{$_}{change} }
+        } qw(pg sqlite)
+    ], 'And the info message should show the two files to modify';
+
+    # As should the debug output
+    is_deeply +MockOutput->get_debug, [
+        map {
+            my ($c, $r) = @{ $scripts{$_} }{qw(change reworked)};
+            (
+                map { [__x(
+                    'Copied {src} to {dest}',
+                    src  => $c->[$_],
+                    dest => $r->[$_],
+                )] } (0..2)
+            ),
+            [__x(
+                'Copied {src} to {dest}',
+                src  => $c->[0],
+                dest => $c->[1],
+            )]
+        } qw(pg sqlite)
+    ], 'Should have debug oputput for all copied files';
+
+    chdir File::Spec->updir;
+}
+
+# Try two plans with different tags.
+MULTITAG: {
+    my $dstring = $test_dir->stringify;
+    remove_tree $dstring;
+    make_path $dstring;
+    END { remove_tree $dstring if -e $dstring };
+    chdir $test_dir->stringify;
+
+    my $conf = file 'multirework.conf';
+    $conf->spew(join "\n",
+        '[core]',
+        'engine = pg',
+        '[engine "pg"]',
+        'top_dir = pg',
+        '[engine "sqlite"]',
+        'top_dir = sqlite',
+    );
+
+    # Create plan files and determine the scripts that to be created.
+    my %scripts = map {
+        my $dir = dir $_;
+        $dir->mkpath;
+        my $tag = $_ eq 'pg' ? 'foo' : 'bar';
+        $dir->file('sqitch.plan')->spew(join "\n",
+            '%project=rework', '',
+            'widgets 2012-07-16T17:25:07Z anna <a@n.na>',
+            "\@$tag 2012-07-16T17:24:07Z julie <j\@ul.ie>", '',
+        );
+
+        # Make the script files.
+        my (@change, @reworked);
+        for my $type (qw(deploy revert verify)) {
+            my $subdir = $dir->subdir($type);
+            $subdir->mkpath;
+            my $script = $subdir->file('widgets.sql');
+            $script->spew("-- $subdir widgets");
+            push @change => $script;
+            push @reworked => $subdir->file("widgets\@$tag.sql");
+        }
+
+        # Return the scripts.
+        $_ => { change => \@change, reworked => \@reworked };
+    } qw(pg sqlite);
+
+    # Load up the configuration for this project.
+    local $ENV{SQITCH_CONFIG} = $conf;
+    my $sqitch = App::Sqitch->new;
+    ok my $rework = $CLASS->new(
+        sqitch             => $sqitch,
+        note               => ['Testing multiple plans'],
+        all                => 1,
+        template_directory => dir->parent->subdir(qw(etc templates))
+    ), 'Create another rework with custom multiplan config';
+
+    my @targets = App::Sqitch::Target->all_targets(sqitch => $sqitch);
+    is @targets, 2, 'Should have two targets';
+
+    # Let's do this thing!
+    ok $rework->execute('widgets'), 'Rework change "widgets" in all plans';
+    for my $target(@targets) {
+        my $ekey = $target->engine_key;
+        my $tag = $ekey eq 'pg' ? 'foo' : 'bar';
+        ok my $head = $target->plan->get('widgets@HEAD'),
+            "Get widgets\@HEAD from the $ekey plan";
+        ok my $prev = $target->plan->get("widgets\@$tag"),
+            "Get widgets\@$tag from the $ekey plan";
+        cmp_ok $head->id, 'ne', $prev->id,
+            "The two $ekey widgets should be different changes";
+    }
+
+    is_deeply \%request_params, {
+        for => __ 'rework',
+        scripts => [ map {@{ $scripts{$_}{change} }} qw(pg sqlite)],
+    }, 'Should have listed all the files to edit in the note prompt';
+
+    # And the output should be correct.
+    is_deeply +MockOutput->get_info, [
+        [__x(
+            'Added "{change}" to {file}.',
+            change => 'widgets [widgets@foo]',
+            file   => $targets[0]->plan_file,
+        )],
+        [__x(
+            'Added "{change}" to {file}.',
+            change => 'widgets [widgets@bar]',
+            file   => $targets[1]->plan_file,
+        )],
+        [__n(
+            'Modify this file as appropriate:',
+            'Modify these files as appropriate:',
+            2,
+        )],
+        map {
+            map { ["  * $_" ] } @{ $scripts{$_}{change} }
+        } qw(pg sqlite)
+    ], 'And the info message should show the two files to modify';
+
+    # As should the debug output
+    is_deeply +MockOutput->get_debug, [
+        map {
+            my ($c, $r) = @{ $scripts{$_} }{qw(change reworked)};
+            (
+                map { [__x(
+                    'Copied {src} to {dest}',
+                    src  => $c->[$_],
+                    dest => $r->[$_],
+                )] } (0..2)
+            ),
+            [__x(
+                'Copied {src} to {dest}',
+                src  => $c->[0],
+                dest => $c->[1],
+            )]
+        } qw(pg sqlite)
+    ], 'Should have debug oputput for all copied files';
+
+    chdir File::Spec->updir;
+}
+
+# Make sure we're okay with multiple plans sharing the same top dir.
+ONETOP: {
+    remove_tree $test_dir->stringify;
+    make_path $test_dir->stringify;
+    END { remove_tree $test_dir->stringify };
+    chdir $test_dir->stringify;
+    my $conf = file 'multirework.conf';
+    $conf->spew(join "\n",
+        '[core]',
+        'engine = pg',
+        '[engine "pg"]',
+        'plan_file = pg.plan',
+        '[engine "sqlite"]',
+        'plan_file = sqlite.plan',
+    );
+
+    # Write the two plan files.
+    file("$_.plan")->spew(join "\n",
+        '%project=rework', '',
+        'widgets 2012-07-16T17:25:07Z anna <a@n.na>',
+        '@foo 2012-07-16T17:24:07Z julie <j@ul.ie>', '',
+    ) for qw(pg sqlite);
+
+    # One set of scripts for both.
+    my (@change, @reworked);
+    for my $type (qw(deploy revert verify)) {
+        my $dir = dir $type;
+        $dir->mkpath;
+        my $script = $dir->file('widgets.sql');
+        $script->spew("-- $dir widgets");
+        push @change => $script;
+        push @reworked => $dir->file('widgets@foo.sql');
+    }
+
+    # Load up the configuration for this project.
+    local $ENV{SQITCH_CONFIG} = $conf;
+    my $sqitch = App::Sqitch->new;
+    ok my $rework = $CLASS->new(
+        sqitch             => $sqitch,
+        note               => ['Testing multiple plans'],
+        all                => 1,
+        template_directory => dir->parent->subdir(qw(etc templates))
+    ), 'Create another rework with custom multiplan config';
+
+    my @targets = App::Sqitch::Target->all_targets(sqitch => $sqitch);
+    is @targets, 2, 'Should have two targets';
+
+    ok $rework->execute('widgets'), 'Rework change "widgets" in all plans';
+    for my $target(@targets) {
+        my $ekey = $target->engine_key;
+        ok my $head = $target->plan->get('widgets@HEAD'),
+            "Get widgets\@HEAD from the $ekey plan";
+        ok my $foo = $target->plan->get('widgets@foo'),
+            "Get widgets\@foo from the $ekey plan";
+        cmp_ok $head->id, 'ne', $foo->id,
+            "The two $ekey widgets should be different changes";
+    }
+
+    # Make sure the files were written properly.
+    file_exists_ok $_ for (@change, @reworked);
+    # Deploy and verify files should be the same.
+    files_eq $change[0], $reworked[0];
+    files_eq $change[2], $reworked[2];
+    # New revert should be the same as old deploy.
+    files_eq $change[1], $reworked[0];
+
+    is_deeply \%request_params, {
+        for => __ 'rework',
+        scripts => \@change,
+    }, 'Should have listed the files to edit in the note prompt';
+
+    # And the output should be correct.
+    is_deeply +MockOutput->get_info, [
+        [__x(
+            'Added "{change}" to {file}.',
+            change => 'widgets [widgets@foo]',
+            file   => $targets[0]->plan_file,
+        )],
+        [__x(
+            'Added "{change}" to {file}.',
+            change => 'widgets [widgets@foo]',
+            file   => $targets[1]->plan_file,
+        )],
+        [__n(
+            'Modify this file as appropriate:',
+            'Modify these files as appropriate:',
+            2,
+        )],
+        map { ["  * $_" ] } @change,
+    ], 'And the info message should show the two files to modify';
+
+    # As should the debug output
+    is_deeply +MockOutput->get_debug, [
+        (
+            map { [__x(
+                'Copied {src} to {dest}',
+                src  => $change[$_],
+                dest => $reworked[$_],
+            )] } (0..2)
+        ),
+        [__x(
+            'Copied {src} to {dest}',
+            src  => $change[0],
+            dest => $change[1],
+        )],
+    ], 'Should have debug oputput for all copied files';
+
+    chdir File::Spec->updir;
+}

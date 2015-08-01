@@ -1,27 +1,60 @@
 =head1 Name
 
-sqitch-add - Add a database change to the plan
+sqitch-add - Add a database change to plans
 
 =head1 Synopsis
 
-  sqitch [options] add [<dependency-options>] [<template-options>] name
+  sqitch [options] add widgets
+  sqitch [options] add blankets --all
+  sqitch [options] add --change sprockets pg sql
+  sqitch [options] add slinkies --require sprockets --set schema=industry
 
 =head1 Description
 
-Add a database change to the plan. This will result in the creation of script
-files with the C<--extension> extension in the C<--deploy-dir>,
-C<--revert-dir>, and C<--verify-dir> directories, and possibly others. The
-content of these files is determined by the evaluation of templates. By
-default, system templates in F<$(etc_path)/templates> are used. These can be
-overridden by a single user by creating templates in F<~/.sqitch/templates/>
-See L</Templates> for details.
+This command adds a database change to one or more plans. This will result in
+the creation of script files in the deploy, revert, and verify directories,
+and possibly others. The content of these files is determined by the
+evaluation of templates. By default, system templates in
+F<$(prefix)/etc/sqitch/templates> are used. These can be overridden by a
+single user by creating templates in F<~/.sqitch/templates/> See L</Templates>
+for details.
+
+The paths and extensions of the generated scripts depend on the configuration
+of Sqitch targets, engines, and the core. They can also be overridden by the
+use of the core C<--engine>, C<--top-dir>, C<--plan-file>, C<--extension>,
+C<--deploy-dir>, C<--revert-dir>, and C<--verify-dir> directories. You
+probably don't want to often use any of those, but should define alternatives
+on a per-engine or per-target basis. See L<sqitch-configuration> for details.
 
 Note that the name of the new change must adhere to the rules as defined in
 L<sqitchchanges>.
 
+By default, the C<add> command will add the change to the default plan and the
+scripts to any top directories for that plan, as defined by the core
+configuration and command-line options. This works well for projects in which
+there is a single plan with separate top directories for each engine, for
+example. Pass the C<--all> option to have it iterate over all known plans and
+top directories (as specified for engines and targets) and add the change to
+them all.
+
+To specify which plans an top directories to which the change and its scripts
+will be added, pass the target, engine, or plan file names as arguments. Use
+C<--change> to disambiguate the tag and change names from the other parameters
+if necessary (or preferable). See L</Examples> for examples.
+
 =head1 Options
 
 =over
+
+=item C<-c>
+
+=item C<--change>
+
+=item C<--change-name>
+
+The name of the change to add. The name can be specified with or without this
+option, but the option can be useful for disambiguating the change name from
+other arguments.
 
 =item C<-r>
 
@@ -31,13 +64,23 @@ Name of a change that is required by the new change. May be specified multiple
 times. See L<sqitchchanges> for the various ways in which changes can be
 specified.
 
-=item C<-c>
+=item C<-x>
 
 =item C<--conflicts>
 
 Name of a change that conflicts with the new change. May be specified multiple
 times. See L<sqitchchanges> for the various ways in which changes can be
 specified.
+
+=item C<-a>
+
+=item C<--all>
+
+Add the change to all plans in the project. Cannot be mixed with target,
+engine, or plan file name arguments; doing so will result in an error. Useful
+for multi-plan projects in which changes should be kept in sync. Overrides the
+value of the C<add.all> configuration; use C<--no-all> to override a true
+C<add.all> configuration.
 
 =item C<-n>
 
@@ -60,7 +103,7 @@ C<name=value>, e.g., C<--set comment='This one is for you, babe.'>.
 
 Location to look for the templates. If none is specified, C<add> will
 first look in F<~/.sqitch/templates/> for each template, and fall back on
-F<$($etc_prefix)/templates>.
+F<$(prefix)/etc/sqitch/templates>.
 
 =item C<-t>
 
@@ -88,7 +131,7 @@ be evaluated.
 This option allows one to define templates for specific tasks, such as
 creating a table, and then use them for changes that perform those tasks.
 Defaults to the name of the database engine (C<pg>, C<sqlite>, C<mysql>,
-C<oracle>, C<firebird>, or C<vertica>.
+C<oracle>, C<firebird>, or C<vertica>).
 
 =item C<--use script=template>
 
@@ -119,16 +162,57 @@ is true.
 
 =back
 
+=head1 Examples
+
+Add a change to a project and be prompted for a note.
+
+  sqitch add widgets
+
+Add a change and specify the note.
+
+  sqitch add sprockets --note 'Adds the sprockets table.'
+
+Add a change that requires the C<users> change from earlier in the plan.
+
+  sqitch add contacts --requires users -n 'Adds the contacts table'
+
+Add a change that requires multiple changes, including the change named
+C<extract> from a completely different Sqitch project named C<utilities>:
+
+  sqitch add coffee -r users -r utilities:extract -n 'Mmmmm...coffee!'
+
+Add a change that uses the C<createtable> templates to generate the scripts,
+as well as variables to be used in that template (See
+L<http://theory.so/sqitch/2013/09/06/sqitch-templating/> for a custom template
+tutorial):
+
+  sqitch add corp_widgets --template createtable \
+    -s schema=corp -s table=widgets \
+    -s column=id -s type=SERIAL \
+    -s column=name -s type=TEXT \
+    -s column=quantity -s type=INTEGER \
+    -n 'Add corp.widgets table.'
+
+Add a change only to the plan used by the C<vertica> engine in a project:
+
+  sqitch add --change logs vertica -n 'Adds the logs table to Vertica.'
+
+Add a change to just two plans in a project, and generate the scripts only for
+those plans:
+
+  sqitch add -a coolfunctions sqlite.plan pg.plan -n 'Adds functions.'
+
 =head1 Templates
 
 Sqitch contains a very simple set of templates for generating the deploy,
 revert, and verify scripts, and you can create more of your own. By default,
-Sqitch uses system-wide templates installed in F<($etc_path)/templates>; call
-C<sqitch --etc-path> to find out where, exactly. Individual templates may be
-overridden on a user basis by copying templates to F<~/.sqitch/templates> and
-making modifications. They may also be overridden by using the
-C<--template-directory> or C<--template-name> options, as well as the
-template-specific options.
+Sqitch uses system-wide templates installed in
+F<$(prefix)/etc/sqitch/templates>; call C<sqitch --etc-path> to find out
+where, exactly (e.g., C<$(sqitch --etc-path)/templates>). Individual templates
+may be overridden on a user basis by copying templates to
+F<~/.sqitch/templates> and making modifications. They may also be overridden
+by using the C<--template-directory> or C<--template-name> options, as well as
+the template-specific options.
 
 =head2 Directory Layout
 
@@ -140,7 +224,7 @@ Sqitch looks for templates in the following directories, and in this order:
 
 =item * F<~/.sqitch/templates/>
 
-=item * F<($etc_path)/templates/>
+=item * F<$(prefix)/etc/sqitch/templates>
 
 =back
 
@@ -190,7 +274,7 @@ in C<--top-dir>:
   verify/user_table.sql
 
 Note that the C<test> file was not created, because no
-F<test/crate_table.tmpl> file exists.
+F<test/create_table.tmpl> template file exists.
 
 =head2 Syntax
 
@@ -204,7 +288,7 @@ L<Template::Tiny>, which is limited to:
 This is the directive syntax. By default, the return value of the expression
 is output:
 
-  -- Deploy [% change %]
+  -- Deploy [% project %]:[% change %] to [% engine %]
 
 You can add C<-> to the immediate start or end of a directive tag to control
 the whitespace chomping options:
@@ -244,8 +328,8 @@ details, especially the L<syntax docs|http://tt2.org/docs/manual/Syntax.html>
 
 =head2 Variables
 
-Sqitch defines three variables for all templates. Any number of additional variables
-can be added via the C<--set> option, like so:
+Sqitch defines five variables for all templates. Any number of additional
+variables can be added via the C<--set> option, like so:
 
   sqitch add --set transactions=1 --set schema=foo
 
@@ -253,18 +337,27 @@ Any number of variables may be specified in this manner. You may then use
 those variables in custom templates. Variables that appear multiple times will
 be passed to the templates as lists of values for which you will likely want
 to use C<[% FOREACH %]>. If the templates do not reference your variables,
-they will be ignored. Variables may also be specified in a
-C<[add "variables]> L<config|sqitch-config> section (see 
-L</Configuration Variables>). Variables specified via C<--set> will override
-configuration variables.
+they will be ignored. Variables may also be specified in a C<add.variables>
+L<config|sqitch-config> section (see L</Configuration Variables>). Variables
+specified via C<--set> will override configuration variables.
 
-The three core variables are:
+The five core variables are:
 
 =over
 
 =item C<change>
 
 The name of the change being added.
+
+=item C<engine>
+
+The name of the engine for which the change was added. One of C<pg>,
+C<sqlite>, C<mysql>, C<oracle>, C<firebird>, or C<vertica>.
+
+=item C<project>
+
+The name of the Sqitch project to which the change was added. The project name
+is set in the plan by the L<C<init> command>|sqitch-init>.
 
 =item C<requires>
 
@@ -281,6 +374,12 @@ C<--conflicts> option.
 =head1 Configuration Variables
 
 =over
+
+=item C<add.all>
+
+Add the change to all the plans in the project. Useful for multi-plan projects
+in which changes should be kept in sync. May be overridden by C<--all>,
+C<--no-all>, or target, engine, and plan file name arguments.
 
 =item C<add.template_directory>
 

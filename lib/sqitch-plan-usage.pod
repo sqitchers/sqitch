@@ -4,7 +4,7 @@ sqitch-plan-usage - Sqitch plan usage statement
 
 =head1 Usage
 
-  sqitch [<db-options>] plan [<options>]
+  sqitch [options] plan [plan options]
 
 =head1 Options
 
@@ -24,5 +24,5 @@ Formatting
     --date-format     --date      show dates in the specified format
     --color                       use ANSI colors
     --no-color                    never use ANSI colors
-    --abrev                       abbreviate change IDs
+    --abbrev                      abbreviate change IDs
     --oneline                     shorthand for --format oneline --abbrev 6

@@ -1,12 +1,143 @@
 Revision history for Perl extension App::Sqitch
 
-1.0
+0.9993
+     - Eliminated test failures due to warnings from DateTime::Locale when
+       `LC_TIME` is set to C.UTF-8. Thanks to Shantanu Bhadoria for the report
+       and Dave Rolsky for the workaround.
+     - Fixed an error checking the registry version when the local uses a
+       comma for decimal values. Thanks to Steffen Müller for the report
+       (Issue #234).
+     - Worked around an error setting the MySQL storeage engine using versions
+       of DBI prior to 1.631. Thanks to melon-babak for the report!
+     - Fixed an error from the Oracle engine when deploying more than 1000
+       changes. Thanks to Timothy Procter and Minh Hoang for the report and
+       testing the fix.
+     - Fixed a bunch of typos in error messages, comments, and documentation.
+       Thanks to Dmitriy for the pull request!
+     - Fixed test failiures due to new warnings from File::Path on Perl
+       5.23.1.
+     - Added support for the `--set` option when deploying to MySQL. Thanks to
+       Chris Bandy for figuring out how to do it!
+
+0.9992 2015-05-20T23:51:41Z
+     - On PostgreSQL, Sqitch now sets the `client_encoding` parameter to
+       `UTF8` for its own connection to the database. This ensures that data
+       sent to and from the databse should always be properly encoded and
+       decoded. Users should still set the proper encodings for change scripts
+       as appropriate.
+     - Fixed test failures due to path differences on Windows.
+     - DateTime::TimeZone is now explicitly required in an attempt to head off
+       "Cannot determine local time zone" errors.
+     - Corrected some typos and thinkos in `sqitchtutorial-oracle`, thanks to
+       George Hartzell.
+     - Improved the script to upgrade an Oracle registry to v1.0 to support
+       versions prior to Oracle 12, thanks to Timothy Procter.
+     - Added missing closing parenthesis to the "Nothing to deploy" message.
+       Thanks to George Hartzell for the pull request (Issue #226).
+     - Replaced the unique constraint on the `script_hash` column in the
+       `changes` registry table with a unique constraint on `project` and
+       `script_hash`. This is to allow a deploy script to be used in more than
+       one project in a single database. This change increments the registry
+       version to v1.1. Thanks to Timothy Procter for the report.
+     - Updated the registry check constraints to have consistent names on the
+       engines that support them. This will make it easier to modify the
+       constraints in the future.
+     - Fixed precision issues with the registry version on MySQL and Firebird.
+     - Added comment to sqitch-passwords guide that MySQL::Config is required
+       to read passwords from the MySQL configuration files. Thanks to
+       Sterling Hanenkamp for the patch!
+
+0.9991 2015-04-03T23:14:39Z
+     [Improvements]
+     - Reduced minimum required MySQL engine from 5.6.4 to 5.1.0. Versions
+       prior to 5.6.4 lose the following features:
+       * Versions earlier than 5.6.4 is fractional second precision on
+         registry `DATETIME` columns. Since the ordering of those timestamps
+         is so important to the functioning of Sqitch, it will sleep in 100 ms
+         increments between logging changes to the registry until the time has
+         ticked over to the next second. Naturally, reverts and deploys will
+         be a little slower on versions of MySQL before 5.6.4, but accurate.
+       * Versions earlier than 5.5.0 lose the `checkit()` functions, which
+         would otherwise be used to emulate CHECK constraints in the registry,
+         as well as in user-created verify scripts, as recommended in the
+         MySQL tutorial, `sqitchtutorial-mysql`.
+     - Added a script to update the `DATETIME` columns in a MySQL Sqitch
+       registry that was upgraded to MySQL 5.6.4 or higher. It will be
+       installed as `tools/upgrade-registry-to-mysql-5.6.4.sql` in the
+       directory returned by `sqitch --etc`.
+     - Added a script to add the `checkit()` function and registry triggers to
+       emulate CHECK constraints to a MySQL Sqitch registry that was upgraded
+       to MySQL 5.5.0 or higher. It will be installed as
+       `tools/upgrade-registry-to-mysql-5.5.0.sql` in the directory returned
+       by `sqitch --etc`.
+     - The `init` command now throws an error when the plan file already
+       exists and is invalid or defined for a different project. Thanks to
+       Gabriel Potkány for the suggestion (Issue #214).
+     - All commands that take target arguments can now specify them as engine
+       names or plan file paths as well as target names and URIs.
+     - Added the `--all` option and the `$command.all` configuration variable
+       to the `add`, `rework`, `tag`, and `bundle` commands. This option tells
+       the commands to do their thing for all plans known from the
+       configuration, not just the default plan.
+     - Pass engine, target, or plan file names to the `add`, `rework`, `tag`,
+       and `bundle` commands` commands to specify specify one or more targets,
+       engines, and plans to act on.
+     - Added the `--change` option to the `add`, `rework`, and `tag` commands
+       to distinguish the change to be added, reworked, or tagged from
+       plan-specifying arguments, if necessary.
+     - Added the `--tag` option to the `tag` command to distinguish the tag to
+       be added from plan-specifying arguments, if necessary.
+     - Changed the short variant of the `--conflicts` option to the `add` and
+       `rework` commands from `-c` to `-x`. The `-c` option is now used as the
+       short variant for `--change` (and `--conflicts` has almost certainly
+       never been used, anyway).
+     - Added the `engine` and `project` variables to the execution of script
+       templates by the `add` command. The default templates now use it to
+       make their first lines one of:
+       * -- Deploy [% project %]:[% change %] to [% engine]
+       * -- Revert [% project %]:[% change %] from [% engine]
+       * -- Verify [% project %]:[% change %] on [% engine]
+     [Bug Fixes]
      - DateTime::TimeZone::Local::Win32 is now required on Windows.
      - The MySQL engine no longer passes `--skip-pager` on Windows, since
        it is not supported there. Thanks to Gabriel Potkány for the report
        (Issue #213).
      - Fixed "no such table: changes" error when upgrading the SQLite
        registry.
+     - Fixed upgrade failure on PostgreSQL 8.4. Thanks to Phillip Smith for
+       the report!
+     - Fixed an error when the `status` command `show_changes` and `show_tags`
+       configuration variables were set. Thanks to Adrian Klaver for the
+       report (Issue #219).
+     - Fixed `log` and `plan` usage statements to properly spell `--abbrev`.
+       Thanks to Adrian Klaver for the report (Issue #220).
+     - Fixed the formatting of change notes so that a space precedes the `#`
+       character whether the note was added by the `--note` option or via an
+       editor.
+     - Fixed a bug when parsing plan files with DOS/Windows line endings.
+       Thanks to Timothy Procter for the report (Issue #212).
+     - Looking up a change and tag in the database (via the `--onto` option to
+       `rebase` or the `--to` option to `revert`, among others) would
+       sometimes return the incorrect change if the change has been reworked
+       two or more times. Thanks to BryLo for the report!
+     [Documentation]
+     - Updated docs to be consistent in referring to the location of the system
+       configuration and template location as `$(prefix)/etc/sqitch`. Also
+       added notes pointing to the `--etc-dir` to find out exactly what that
+       resolves to. Suggested by Joseph Anthony Pasquale Holsten (Issue #167).
+     [Deprecations]
+     - Reverted deprecation of the database connection options. Target URIs
+       are still generally preferred, but sometimes you want to use a target
+       but just change the user name or database name. Retaining the options
+       is the easiest way to do this. Plus, a fair number of people have
+       scripts that use these options, and it seems petty to break them. Sorry
+       for the double-take here! The list of un-deprecated options is:
+       * `--db-client`
+       * `--db-host`
+       * `--db-port`
+       * `--db-username`
+       * `--db-password`
+       * `--db-name`
 
 0.999  2015-02-12T19:43:45Z
      - Improved MySQL missing table error detection by relying on error codes

@@ -10,13 +10,13 @@ use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::Plan::Change;
 use Path::Class;
 use Moo;
-use App::Sqitch::Types qw(DBH URIDB ArrayRef);
+use App::Sqitch::Types qw(DBH URIDB ArrayRef Bool Str);
 use namespace::autoclean;
 use List::MoreUtils qw(firstidx);
 
 extends 'App::Sqitch::Engine';
 
-our $VERSION = '0.999_1';
+our $VERSION = '0.9993';
 
 has registry_uri => (
     is       => 'ro',
@@ -75,7 +75,7 @@ has dbh => (
                     $dbh->do("SET SESSION $_") for (
                         q{character_set_client   = 'utf8'},
                         q{character_set_server   = 'utf8'},
-                        q{default_storage_engine = 'InnoDB'},
+                        ($dbh->{mysql_serverversion} || 0 < 50500 ? () : (q{default_storage_engine = 'InnoDB'})),
                         q{time_zone              = '+00:00'},
                         q{group_concat_max_len   = 32768},
                         q{sql_mode = '} . join(',', qw(
@@ -88,6 +88,15 @@ has dbh => (
                             error_for_division_by_zero
                         )) . q{'},
                     );
+                    if (!$dbh->{mysql_serverversion} && DBI->VERSION < 1.631) {
+                        # Prior to 1.631, callbacks were inner handles and
+                        # mysql_* aren't set yet. So set InnoDB in a try block.
+                        try {
+                            $dbh->do(q{SET SESSION default_storage_engine = 'InnoDB'});
+                        };
+                        # http://www.nntp.perl.org/group/perl.dbi.dev/2013/11/msg7622.html
+                        $dbh->set_err(undef, undef) if $dbh->err;
+                    }
                     return;
                 },
             },
@@ -96,7 +105,7 @@ has dbh => (
         # Make sure we support this version.
         my ($dbms, $vnum, $vstr) = $dbh->{mysql_serverinfo} =~ /mariadb/i
             ? ('MariaDB', 50300, '5.3')
-            : ('MySQL',   50604, '5.6.4');
+            : ('MySQL',   50100, '5.1.0');
         hurl mysql => __x(
             'Sqitch requires {rdbms} {want_version} or higher; this is {have_version}',
             rdbms        => $dbms,
@@ -108,7 +117,17 @@ has dbh => (
     }
 );
 
-# Need to wait until dbh is defined.
+has _ts_default => (
+    is      => 'ro',
+    isa     => Str,
+    lazy    => 1,
+    default => sub {
+        return 'utc_timestamp(6)' if shift->_fractional_seconds;
+        return 'utc_timestamp';
+    },
+);
+
+# Need to wait until dbh and _ts_default are defined.
 with 'App::Sqitch::Role::DBIEngine';
 
 has _mysql => (
@@ -139,10 +158,6 @@ has _mysql => (
             push @ret, "--password=$pw";
         }
 
-        # if (my %vars = $self->variables) {
-        #     push @ret => map {; "--$_", $vars{$_} } sort keys %vars;
-        # }
-
         push @ret => (
             ($^O eq 'MSWin32' ? () : '--skip-pager' ),
             '--silent',
@@ -150,6 +165,17 @@ has _mysql => (
             '--skip-line-numbers',
         );
         return \@ret;
+    },
+);
+
+has _fractional_seconds => (
+    is      => 'ro',
+    isa     => Bool,
+    lazy    => 1,
+    default => sub {
+        my $dbh = shift->dbh;
+        return $dbh->{mysql_serverinfo} !~ /mariadb/i
+            && $dbh->{mysql_serverversion} >= 50604;
     },
 );
 
@@ -168,12 +194,12 @@ sub _ts2char_format {
     return q{date_format(%s, 'year:%%Y:month:%%m:day:%%d:hour:%%H:minute:%%i:second:%%S:time_zone:UTC')};
 }
 
-sub _ts_default { 'utc_timestamp(6)' }
-
 sub _quote_idents {
     shift;
     map { $_ eq 'change' ? '"change"' : $_ } @_;
 }
+
+sub _version_query { 'SELECT ROUND(MAX(version), 1) FROM releases' }
 
 sub initialized {
     my $self = shift;
@@ -258,6 +284,43 @@ sub _listagg_format {
     return q{group_concat(%s SEPARATOR ' ')};
 }
 
+sub _prepare_to_log {
+    my ($self, $table, $change) = @_;
+    return $self if $self->_fractional_seconds;
+
+    # No sub-second precision, so delay logging a change until a second has passed.
+    my $dbh = $self->dbh;
+    my $sth = $dbh->prepare(qq{
+        SELECT UNIX_TIMESTAMP(committed_at) >= UNIX_TIMESTAMP()
+          FROM $table
+         WHERE project = ?
+         ORDER BY committed_at DESC
+         LIMIT 1
+    });
+    while ($dbh->selectcol_arrayref($sth, undef, $change->project)->[0]) {
+        # Sleep for 100 ms.
+        require Time::HiRes;
+        Time::HiRes::sleep(0.1);
+    }
+
+    return $self;
+}
+
+sub _set_vars {
+    my %vars = shift->variables or return;
+    return 'SET ' . join(', ', map {
+        (my $k = $_) =~ s/"/""/g;
+        (my $v = $vars{$_}) =~ s/'/''/g;
+        qq{\@"$k" = '$v'};
+    } sort keys %vars) . ";\n";
+}
+
+sub _source {
+    my ($self, $file) = @_;
+    my $set = $self->_set_vars || '';
+    return ('--execute' => "${set}source $file");
+}
+
 sub _run {
     my $self = shift;
     my $sqitch = $self->sqitch;
@@ -276,30 +339,49 @@ sub _capture {
 
 sub _spool {
     my $self   = shift;
-    my $fh     = shift;
+    my @fh     = (shift);
     my $sqitch = $self->sqitch;
-    my $pass   = $self->password or return $sqitch->spool( $fh, $self->mysql, @_ );
+    if (my $set = $self->_set_vars) {
+        open my $sfh, '<:utf8_strict', \$set;
+        unshift @fh, $sfh;
+    }
+    my $pass   = $self->password or return $sqitch->spool( \@fh, $self->mysql, @_ );
     local $ENV{MYSQL_PWD} = $pass;
-    return $sqitch->spool( $fh, $self->mysql, @_ );
+    return $sqitch->spool( \@fh, $self->mysql, @_ );
 }
 
 sub run_file {
-    my ($self, $file) = @_;
-    $self->_run( '--execute' => "source $file" );
+    my $self = shift;
+    $self->_run( $self->_source(@_) );
 }
 
 sub run_verify {
-    my ($self, $file) = @_;
+    my $self = shift;
     # Suppress STDOUT unless we want extra verbosity.
     my $meth = $self->can($self->sqitch->verbosity > 1 ? '_run' : '_capture');
-    $self->$meth( '--execute' => "source $file" );
+    $self->$meth( $self->_source(@_) );
 }
 
 sub run_upgrade {
     my ($self, $file) = @_;
+    my $dbh = $self->dbh;
     my @cmd = $self->mysql;
     $cmd[1 + firstidx { $_ eq '--database' } @cmd ] = $self->registry;
-    $self->sqitch->run( @cmd, '--execute', "source $file" );
+    return $self->sqitch->run( @cmd, $self->_source($file) )
+        if $self->_fractional_seconds;
+
+    # Need to strip out datetime precision.
+    (my $sql = scalar $file->slurp) =~ s{DATETIME\(\d+\)}{DATETIME}g;
+
+    # Strip out 5.5 stuff on earlier versions.
+    $sql =~ s/-- ## BEGIN 5[.]5.+?-- ## END 5[.]5//ms if $dbh->{mysql_serverversion} < 50500;
+
+    # Write out a temp file and execute it.
+    require File::Temp;
+    my $fh = File::Temp->new;
+    print $fh $sql;
+    close $fh;
+    $self->sqitch->run( @cmd, $self->_source($fh) );
 }
 
 sub run_handle {
@@ -344,7 +426,8 @@ App::Sqitch::Engine::mysql - Sqitch MySQL Engine
 =head1 Description
 
 App::Sqitch::Engine::mysql provides the MySQL storage engine for Sqitch. It
-supports MySQL 5.6.4 and higher, as well as MariaDB 5.3.0 and higher.
+supports MySQL 5.1.0 and higher (best on 5.6.4 and higher), as well as MariaDB
+5.3.0 and higher.
 
 =head1 Interface
 
@@ -352,8 +435,8 @@ supports MySQL 5.6.4 and higher, as well as MariaDB 5.3.0 and higher.
 
 =head3 C<mysql>
 
-Returns a list containing the the C<mysql> client and options to be passed to
-it. Used internally when executing scripts.
+Returns a list containing the C<mysql> client and options to be passed to it.
+Used internally when executing scripts.
 
 =head1 Author
 

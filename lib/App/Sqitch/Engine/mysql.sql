@@ -3,9 +3,9 @@ BEGIN;
 SET SESSION sql_mode = ansi;
 
 CREATE TABLE releases (
-    version         FLOAT         PRIMARY KEY
+    version         FLOAT(4, 1)   PRIMARY KEY
                     COMMENT 'Version of the Sqitch registry.',
-    installed_at    TIMESTAMP     NOT NULL
+    installed_at    DATETIME(6)   NOT NULL
                     COMMENT 'Date the registry release was installed.',
     installer_name  VARCHAR(255)  NOT NULL
                     COMMENT 'Name of the user who installed the registry release.',
@@ -35,7 +35,7 @@ CREATE TABLE projects (
 CREATE TABLE changes (
     change_id       VARCHAR(40)  PRIMARY KEY
                     COMMENT 'Change primary key.',
-    script_hash     VARCHAR(40)      NULL UNIQUE
+    script_hash     VARCHAR(40)      NULL
                     COMMENT 'Deploy script SHA-1 hash.',
     "change"        VARCHAR(255) NOT NULL
                     COMMENT 'Name of a deployed change.',
@@ -55,7 +55,8 @@ CREATE TABLE changes (
     planner_name    VARCHAR(255) NOT NULL
                     COMMENT 'Name of the user who planed the change.',
     planner_email   VARCHAR(255) NOT NULL
-                    COMMENT 'Email address of the user who planned the change.'
+                    COMMENT 'Email address of the user who planned the change.',
+    UNIQUE(project, script_hash)
 ) ENGINE  InnoDB,
   CHARACTER SET 'utf8',
   COMMENT 'Tracks the changes currently deployed to the database.'
@@ -145,11 +146,12 @@ CREATE TABLE events (
   COMMENT 'Contains full history of all deployment events.'
 ;
 
+-- ## BEGIN 5.5
 -- MySQL does not support checks, so we kind of create our own. The checkit()
 -- function works sort of like a CHECK: if the first argument is 0 or NULL, it
 -- throws the second argument as an exception. Conveniently, verify scripts
 -- can also use it to ensure an error is thrown when a change cannot be
--- verified.
+-- verified. Requires MySQL 5.5.0.
 
 DELIMITER |
 
@@ -185,5 +187,6 @@ END;
 |
 
 DELIMITER ;
+-- ## END 5.5
 
 COMMIT;

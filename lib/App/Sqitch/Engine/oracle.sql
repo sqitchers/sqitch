@@ -28,7 +28,7 @@ COMMENT ON COLUMN &registry..projects.creator_email  IS 'Email address of the us
 
 CREATE TABLE &registry..changes (
     change_id       CHAR(40)                 PRIMARY KEY,
-    script_hash     CHAR(40)                     NULL UNIQUE,
+    script_hash     CHAR(40)                     NULL,
     change          VARCHAR2(512 CHAR)       NOT NULL,
     project         VARCHAR2(512 CHAR)       NOT NULL REFERENCES &registry..projects(project),
     note            VARCHAR2(4000 CHAR)      DEFAULT '',
@@ -37,7 +37,8 @@ CREATE TABLE &registry..changes (
     committer_email VARCHAR2(512 CHAR)       NOT NULL,
     planned_at      TIMESTAMP WITH TIME ZONE NOT NULL,
     planner_name    VARCHAR2(512 CHAR)       NOT NULL,
-    planner_email   VARCHAR2(512 CHAR)       NOT NULL
+    planner_email   VARCHAR2(512 CHAR)       NOT NULL,
+    UNIQUE(project, script_hash)
 );
 
 COMMENT ON TABLE  &registry..changes                 IS 'Tracks the changes currently deployed to the database.';
@@ -86,7 +87,7 @@ CREATE TABLE &registry..dependencies (
     type            VARCHAR2(8)              NOT NULL,
     dependency      VARCHAR2(1024 CHAR)      NOT NULL,
     dependency_id   CHAR(40)                     NULL REFERENCES &registry..changes(change_id),
-    CHECK (
+    CONSTRAINT dependencies_check CHECK (
             (type = 'require'  AND dependency_id IS NOT NULL)
          OR (type = 'conflict' AND dependency_id IS NULL)
     ),
@@ -103,7 +104,10 @@ CREATE TYPE &registry..sqitch_array AS varray(1024) OF VARCHAR2(512);
 /
 
 CREATE TABLE &registry..events (
-    event           VARCHAR2(6)                   NOT NULL CHECK (event IN ('deploy', 'revert', 'fail', 'merge')),
+    event           VARCHAR2(6)                   NOT NULL
+    CONSTRAINT events_event_check CHECK (
+        event IN ('deploy', 'revert', 'fail', 'merge')
+    ),
     change_id       CHAR(40)                      NOT NULL,
     change          VARCHAR2(512 CHAR)            NOT NULL,
     project         VARCHAR2(512 CHAR)            NOT NULL REFERENCES &registry..projects(project),

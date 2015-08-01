@@ -258,9 +258,9 @@ my (@probe_args, $probed, $target, $orig_method);
 $mock_sqitch->mock(probe => sub { shift; @probe_args = @_; $probed });
 my $mock_cmd = Test::MockModule->new($CLASS);
 $mock_cmd->mock(parse_args => sub {
-    my %ret = shift->$orig_method(@_);
-    $target = $ret{targets}[0];
-    %ret;
+    my @ret = shift->$orig_method(@_);
+    $target = $ret[1][0];
+    @ret;
 });
 $orig_method = $mock_cmd->original('parse_args');
 

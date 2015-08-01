@@ -15,7 +15,7 @@ use namespace::autoclean;
 
 extends 'App::Sqitch::Engine';
 
-our $VERSION = '0.999_1';
+our $VERSION = '0.9993';
 
 sub destination {
     my $self = shift;
@@ -92,6 +92,7 @@ has dbh => (
         $self->use_driver;
 
         my $uri = $self->uri;
+        local $ENV{PGCLIENTENCODING} = 'UTF8';
         DBI->connect($uri->dbi_dsn, scalar $self->username, scalar $self->password, {
             PrintError        => 0,
             RaiseError        => 0,
@@ -162,11 +163,17 @@ sub initialized {
 
 sub initialize {
     my $self   = shift;
-    my $schema = $self->registry;
     hurl engine => __x(
         'Sqitch schema "{schema}" already exists',
-        schema => $schema
+        schema => $self->registry
     ) if $self->initialized;
+    $self->_run_registry_file( file(__FILE__)->dir->file('pg.sql') );
+    $self->_register_release;
+}
+
+sub _run_registry_file {
+    my ($self, $file) = @_;
+    my $schema = $self->registry;
 
     # Check the client version.
     my ($maj, $min);
@@ -186,8 +193,6 @@ sub initialize {
          WHERE nspname = 'pg_catalog'
            AND proname = 'pgxc_version';
     });
-
-    my $file = file(__FILE__)->dir->file('pg.sql');
 
     if ($maj < 9) {
         # Need to write a temp file; no :"registry" variable syntax.
@@ -213,7 +218,6 @@ sub initialize {
     }
 
     $self->dbh->do('SET search_path = ?', undef, $schema);
-    $self->_register_release;
 }
 
 # Override to lock the changes table. This ensures that only one instance of
@@ -243,6 +247,10 @@ sub run_verify {
 sub run_handle {
     my ($self, $fh) = @_;
     $self->_spool($fh);
+}
+
+sub run_upgrade {
+    shift->_run_registry_file(@_);
 }
 
 # Override to avoid cast errors, and to use VALUES instead of a UNION query.
@@ -536,8 +544,8 @@ Initializes a database for Sqitch by installing the Sqitch registry schema.
 
 =head3 C<psql>
 
-Returns a list containing the the C<psql> client and options to be passed to
-it. Used internally when executing scripts.
+Returns a list containing the C<psql> client and options to be passed to it.
+Used internally when executing scripts.
 
 =head1 Author
 

@@ -21,7 +21,7 @@ sqitch-engine - Manage database engine configuration
 
 =head1 Description
 
-Manage the the database engines you deploy to. The list of supported engines
+Manage the database engines you deploy to. The list of supported engines
 includes:
 
 =over

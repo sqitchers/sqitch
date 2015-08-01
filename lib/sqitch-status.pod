@@ -13,9 +13,9 @@ most recently deployed change information is displayed, as well as any related
 tags. If there are undeployed changes in the plan, they will be listed.
 Otherwise, a message will indicate that the database is up-to-date.
 
-The C<< <database> >> parameter specifies the database to which to connect, and
-may also be specified as the C<--target> option. It can be either a URI or the
-name of a target in the configuration.
+The C<< <database> >> parameter specifies the database to which to connect,
+and may also be specified as the C<--target> option. It can be target name,
+a URI, an engine name, or plan file path.
 
 =head1 Options
 

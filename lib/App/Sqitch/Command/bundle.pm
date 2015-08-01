@@ -5,17 +5,18 @@ use strict;
 use warnings;
 use utf8;
 use Moo;
-use App::Sqitch::Types qw(Str Dir Maybe);
+use App::Sqitch::Types qw(Str Dir Maybe Bool);
 use File::Path qw(make_path);
 use Path::Class;
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use File::Copy ();
+use List::Util qw(first);
 use namespace::autoclean;
 
 extends 'App::Sqitch::Command';
 
-our $VERSION = '0.999_1';
+our $VERSION = '0.9993';
 
 has from => (
     is       => 'ro',
@@ -34,49 +35,36 @@ has dest_dir => (
     default  => sub { dir 'bundle' },
 );
 
-has dest_top_dir => (
-    is       => 'ro',
-    isa      => Dir,
-    lazy     => 1,
-    default  => sub {
-        my $self = shift;
-        dir $self->dest_dir, $self->default_target->top_dir->relative;
-    },
+has all => (
+    is      => 'ro',
+    isa     => Bool,
+    default => 0
 );
 
-has dest_deploy_dir => (
-    is       => 'ro',
-    isa      => Dir,
-    lazy     => 1,
-    default  => sub {
-        my $self = shift;
-        dir $self->dest_dir, $self->default_target->deploy_dir->relative;
-    },
-);
+sub dest_top_dir {
+    my $self = shift;
+    dir $self->dest_dir, shift->top_dir->relative;
+}
 
-has dest_revert_dir => (
-    is       => 'ro',
-    isa      => Dir,
-    lazy     => 1,
-    default  => sub {
-        my $self = shift;
-        dir $self->dest_dir, $self->default_target->revert_dir->relative;
-    },
-);
+sub dest_deploy_dir {
+    my $self = shift;
+    dir $self->dest_dir, shift->deploy_dir->relative;
+}
 
-has dest_verify_dir => (
-    is       => 'ro',
-    isa      => Dir,
-    lazy     => 1,
-    default  => sub {
-        my $self = shift;
-        dir $self->dest_dir, $self->default_target->verify_dir->relative;
-    },
-);
+sub dest_revert_dir {
+    my $self = shift;
+    dir $self->dest_dir, shift->revert_dir->relative;
+}
+
+sub dest_verify_dir {
+    my $self = shift;
+    dir $self->dest_dir, shift->verify_dir->relative;
+}
 
 sub options {
     return qw(
         dest-dir|dir=s
+        all|a!
         from=s
         to=s
     );
@@ -91,8 +79,8 @@ sub configure {
         $params{dest_dir} = dir $dir;
     }
 
-    # Make sure we get the --from and --to options passed through.
-    for my $key (qw(from to)) {
+    # Make sure we get the --all, --from and --to options passed through.
+    for my $key (qw(all from to)) {
         $params{$key} = $opt->{$key} if exists $opt->{$key};
     }
 
@@ -101,10 +89,46 @@ sub configure {
 
 sub execute {
     my $self = shift;
+    my ($targets, $changes) = $self->parse_args(
+        all        => $self->all,
+        args       => \@_,
+        no_default => 1,
+    );
+
+    # Warn if --to or --from is specified for more thane one target.
+    if ( @{ $targets } > 1 && ($self->from || $self->to) ) {
+        $self->sqitch->warn(__(
+            "Use of --to or --from to bundle multiple targets is not recommended.\nPass them as arguments after each target argument, instead."
+        ));
+    }
+
+    # Die if --to or --from and changes are specified.
+    if ( @{ $changes } && ($self->from || $self->to) ) {
+        hurl bundle => __(
+            'Cannot specify both --from or --to and change arguments'
+        );
+    }
+
+    # Time to get started!
     $self->info(__x 'Bundling into {dir}', dir => $self->dest_dir );
     $self->bundle_config;
-    $self->bundle_plan;
-    $self->bundle_scripts;
+
+    if (my @fromto = grep { $_ } $self->from, $self->to) {
+        # One set of from/to options for all targets.
+        for my $target (@{ $targets }) {
+            $self->bundle_plan($target, @fromto);
+            $self->bundle_scripts($target, @fromto);
+        }
+    } else {
+        # Separate from/to options for all targets.
+        for my $target (@{ $ targets }) {
+            my @fromto = splice @{ $changes }, 0, 2;
+            $self->bundle_plan($target, @fromto);
+            $self->bundle_scripts($target, @fromto);
+        }
+    }
+
+    return $self;
 }
 
 sub _mkpath {
@@ -163,50 +187,49 @@ sub bundle_config {
 }
 
 sub bundle_plan {
-    my $self   = shift;
-    my $target = $self->default_target;
+    my ($self, $target, $from, $to) = @_;
 
-    if (!defined $self->from && !defined $self->to) {
+    my $dir = $self->dest_top_dir($target);
+
+    if (!defined $from && !defined $to) {
         $self->info(__ 'Writing plan');
         my $file = $target->plan_file;
         return $self->_copy_if_modified(
             $file,
-            $self->dest_top_dir->file( $file->basename ),
+            $dir->file( $file->basename ),
         );
     }
 
     $self->info(__x(
         'Writing plan from {from} to {to}',
-        from => $self->from // '@ROOT',
-        to   => $self->to   // '@HEAD',
+        from => $from // '@ROOT',
+        to   => $to   // '@HEAD',
     ));
 
+    $self->_mkpath( $dir );
     $target->plan->write_to(
-        $self->dest_top_dir->file( $target->plan_file->basename ),
-        $self->from,
-        $self->to,
+        $dir->file( $target->plan_file->basename ),
+        $from,
+        $to,
     );
 }
 
 sub bundle_scripts {
-    my $self = shift;
-    my $target = $self->default_target;
-    my $top  = $target->top_dir;
+    my ($self, $target, $from, $to) = @_;
     my $plan = $target->plan;
-    my $dir  = $self->dest_dir;
 
     my $from_index = $plan->index_of(
-        $self->from // '@ROOT'
+        $from // '@ROOT'
     ) // hurl bundle => __x(
         'Cannot find change {change}',
-        change => $self->from,
+        change => $from,
     );
 
     my $to_index = $plan->index_of(
-        $self->to // '@HEAD'
+        $to // '@HEAD'
     ) // hurl bundle => __x(
         'Cannot find change {change}',
-        change => $self->to,
+        change => $to,
     );
 
     $self->info(__ 'Writing scripts');
@@ -217,19 +240,19 @@ sub bundle_scripts {
         if (-e ( my $file = $change->deploy_file )) {
             $self->_copy_if_modified(
                 $file,
-                $self->dest_deploy_dir->file( $change->path_segments )
+                $self->dest_deploy_dir($target)->file( $change->path_segments )
             );
         }
         if (-e ( my $file = $change->revert_file )) {
             $self->_copy_if_modified(
                 $file,
-                $self->dest_revert_dir->file( $change->path_segments )
+                $self->dest_revert_dir($target)->file( $change->path_segments )
             );
         }
         if (-e ( my $file = $change->verify_file )) {
             $self->_copy_if_modified(
                 $file,
-                $self->dest_verify_dir->file( $change->path_segments )
+                $self->dest_verify_dir($target)->file( $change->path_segments )
             );
         }
         $plan->next;
@@ -268,6 +291,11 @@ Change from which to build the bundled plan.
 
 Change up to which to build the bundled plan.
 
+=head3 C<all>
+
+Boolean indicating whether or not to run the command against all plans in the
+project.
+
 =head2 Instance Methods
 
 =head3 C<execute>
@@ -284,17 +312,41 @@ Copies the configuration file to the bundle directory.
 
 =head3 C<bundle_plan>
 
- $bundle->bundle_plan;
+ $bundle->bundle_plan($target);
 
-Copies the plan file to the bundle directory.
+Copies the plan file for the specified target to the bundle directory.
 
 =head3 C<bundle_scripts>
 
- $bundle->bundle_scripts;
+ $bundle->bundle_scripts($target);
 
-Copies the deploy, revert, and verify scripts for each step in the plan to the
-bundle directory. Files in the script directories that do not correspond to
-changes in the plan will not be copied.
+Copies the deploy, revert, and verify scripts for each step in the plan for
+the specified target to the bundle directory. Files in the script directories
+that do not correspond to changes in the plan will not be copied.
+
+=head3 C<dest_top_dir>
+
+  my $top_dir = $bundle->top_dir($target);
+
+Returns the destination top directory for the specified target.
+
+=head3 C<dest_deploy_dir>
+
+  my $deploy_dir = $bundle->deploy_dir($target);
+
+Returns the destination deploy directory for the specified target.
+
+=head3 C<dest_revert_dir>
+
+  my $revert_dir = $bundle->revert_dir($target);
+
+Returns the destination revert directory for the specified target.
+
+=head3 C<dest_verify_dir>
+
+  my $verify_dir = $bundle->verify_dir($target);
+
+Returns the destination verify directory for the specified target.
 
 =head1 See Also
 

@@ -1,11 +1,12 @@
-App/Sqitch version 0.999_1
-========================
+App/Sqitch version 0.9993
+=========================
 
 [![CPAN version](https://badge.fury.io/pl/App-Sqitch.svg)](http://badge.fury.io/pl/App-Sqitch)
-[![Build Status](https://travis-ci.org/theory/sqitch.svg?branch=master)](https://travis-ci.org/theory/sqitch)
+[![Build Status](https://travis-ci.org/theory/sqitch.svg)](https://travis-ci.org/theory/sqitch)
+[![Coverage Status](https://coveralls.io/repos/theory/sqitch/badge.svg)](https://coveralls.io/r/theory/sqitch)
 
 [Sqitch](http://sqitch.org/) is a database change management application. It
-currently supports PostgreSQL 8.4+, SQLite 3.7.11+, MySQL 5.6.4+, Oracle 10g+,
+currently supports PostgreSQL 8.4+, SQLite 3.7.11+, MySQL 5.1+, Oracle 10g+,
 Firebird 2.0+, and Vertica 6.0+.
 
 What makes it different from your typical
@@ -41,7 +42,7 @@ things:
 
 *   Iterative Development
 
-    Up until you tag and release your application, you can modify your change
+    Up until you tag and release your project, you can modify your change
     deployment scripts as often as you like. They're not locked in just
     because they've been committed to your VCS. This allows you to take an
     iterative approach to developing your database schema. Or, better, you can
@@ -73,8 +74,6 @@ There have also been a number of presentations on Sqitch:
 
 Installation
 ------------
-
-[![Build Status](https://travis-ci.org/theory/sqitch.png)](https://travis-ci.org/theory/sqitch)
 
 To install Sqitch from a distribution download, type the following:
 

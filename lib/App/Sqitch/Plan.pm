@@ -18,7 +18,7 @@ use Moo;
 use App::Sqitch::Types qw(Str Int HashRef ChangeList LineList Maybe Sqitch URI File Target);
 use constant SYNTAX_VERSION => '1.0.0';
 
-our $VERSION = '0.999_1';
+our $VERSION = '0.9993';
 
 # Like [:punct:], but excluding _. Copied from perlrecharclass.
 my $punct = q{-!"#$%&'()*+,./:;<=>?@[\\]^`{|}~};
@@ -189,7 +189,7 @@ sub _parse {
 
     # First, find pragmas.
     HEADER: while ( my $line = $fh->getline ) {
-        chomp $line;
+        $line =~ s/\r?\n\z//;
 
         # Grab blank lines first.
         if ($line =~ /\A(?<lspace>[[:blank:]]*)(?:#[[:blank:]]*(?<note>.+)|$)/) {
@@ -266,7 +266,7 @@ sub _parse {
     ) unless $pragmas{project};
 
     LINE: while ( my $line = $fh->getline ) {
-        chomp $line;
+        $line =~ s/\r?\n\z//;
 
         # Grab blank lines first.
         if ($line =~ /\A(?<lspace>[[:blank:]]*)(?:#[[:blank:]]*(?<note>.+)|$)/) {
@@ -748,7 +748,6 @@ sub tag {
         plan   => $self,
         name   => $name,
         change => $change,
-        rspace => $p{note} ? ' ' : '',
     );
 
     $change->add_tag($tag);
@@ -796,15 +795,14 @@ sub add {
     if ( defined( my $idx = $changes->index_of( $p{name} . '@HEAD' ) ) ) {
         my $tag_idx = $changes->index_of_last_tagged;
         hurl plan => __x(
-            qq{Change "{change}" already exists.\n}
+            qq{Change "{change}" already exists in plan {file}.\n}
             . 'Use "sqitch rework" to copy and rework it',
             change => $p{name},
+            file   => $self->file,
         );
     }
 
     $self->_parse_deps(\%p);
-
-    $p{rspace} //= ' ' if $p{note};
     my $change = App::Sqitch::Plan::Change->new( %p, plan => $self );
 
     # Make sure dependencies are valid.
@@ -830,9 +828,10 @@ sub rework {
     my ( $self, %p ) = @_;
     my $changes = $self->_changes;
     my $idx   = $changes->index_of( $p{name} . '@HEAD') // hurl plan => __x(
-        qq{Change "{change}" does not exist.\n}
+        qq{Change "{change}" does not exist in {file}.\n}
         . 'Use "sqitch add {change}" to add it to the plan',
         change => $p{name},
+        file   => $self->file,
     );
 
     my $tag_idx = $changes->index_of_last_tagged;
@@ -1160,7 +1159,7 @@ but will return the first instance.
 
 Returns the index of the first instance of the named change in the plan. If a
 second argument is passed, the index of the first instance of the change
-I<after> the the index of the second argument will be returned. This is useful
+I<after> the index of the second argument will be returned. This is useful
 for getting the index of a change as it was deployed after a particular tag, for
 example, to get the first index of the F<foo> change since the C<@beta> tag, do
 this:

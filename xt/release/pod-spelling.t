@@ -90,6 +90,7 @@ XC
 pgTAP
 schemas
 Vertica
+vertica
 DBA
 VM
 ODBC

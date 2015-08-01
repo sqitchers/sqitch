@@ -16,14 +16,14 @@ use Locale::Messages qw(bind_textdomain_filter);
 use App::Sqitch::X qw(hurl);
 use Moo 1.002000;
 use Type::Utils qw(where declare);
-use App::Sqitch::Types qw(Str Int Plan UserName UserEmail Maybe File Dir Config HashRef);
+use App::Sqitch::Types qw(Str Int UserName UserEmail Maybe File Dir Config HashRef);
 use Encode ();
 use Try::Tiny;
 use List::Util qw(first);
 use IPC::System::Simple 1.17 qw(runx capturex $EXITVAL);
 use namespace::autoclean 0.16;
 
-our $VERSION = '0.999_1';
+our $VERSION = '0.9993';
 
 BEGIN {
     # Force Locale::TextDomain to encode in UTF-8 and to decode all messages.
@@ -211,7 +211,6 @@ sub go {
 }
 
 sub _core_opts {
-    # TODO: Deprecate --db-client.
     return qw(
         plan-file|f=s
         engine=s

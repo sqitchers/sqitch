@@ -1053,7 +1053,7 @@ is_deeply $engine->seen, [
     ['log_new_tags' => $changes[1]],
 ], 'Only latest_item() should have been called';
 is_deeply +MockOutput->get_info, [
-    [__x 'Nothing to deploy (already at "{change}"', change => '@alpha'],
+    [__x 'Nothing to deploy (already at "{change}")', change => '@alpha'],
 ], 'Should notify user that already at @alpha';
 
 # Start with widgets.

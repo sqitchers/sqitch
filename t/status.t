@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 113;
+use Test::More tests => 114;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -153,7 +153,8 @@ is $status->target_name, 'foo', 'Should have target "foo"';
 my $cmock = Test::MockModule->new('App::Sqitch::Config');
 is_deeply $CLASS->configure($config, {}), {},
     'Should get empty hash for no config or options';
-$cmock->mock( get => 'nonesuch' );
+my @vals = ('nonesuch');
+$cmock->mock( get => sub { shift @vals } );
 throws_ok { $CLASS->configure($config, {}), {} } 'App::Sqitch::X',
     'Should get error for invalid date format in config';
 is $@->ident, 'datetime',
@@ -162,6 +163,12 @@ is $@->message, __x(
     'Unknown date format "{format}"',
     format => 'nonesuch',
 ), 'Invalid date format error message should be correct';
+
+@vals = (undef, 1, 0);
+is_deeply $CLASS->configure($config, {}), {
+    show_changes => 1,
+    show_tags    => 0,
+}, 'Should get bool values set from config';
 $cmock->unmock_all;
 
 throws_ok { $CLASS->configure($config, { date_format => 'non'}), {} }

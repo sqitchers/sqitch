@@ -139,11 +139,14 @@ See also L</Files>.
 
 =item C<--system>
 
-For writing options: write to system-wide F<$(etc_path)/sqitch.conf> file
-rather than the repository F<./sqitch.conf>.
+For writing options: write to system-wide F<$(prefix)/etc/sqitch/sqitch.plan>
+file rather than the repository F<./sqitch.conf>.
 
-For reading options: read only from system-wide F<$($etc_prefix)/sqitch.conf>
-file rather than from all available files.
+For reading options: read only from system-wide
+F<$(prefix)/etc/sqitch/sqitch.plan> file rather than from all available files.
+
+Call C<sqitch --etc-path> to find out exactly where the system configuration
+file lives (e.g., C<$(sqitch --etc-path)/sqitch.conf>).
 
 See also L</Files>.
 
@@ -211,7 +214,7 @@ Local, project-specific configuration file.
 
 User-specific configuration file.
 
-=item F<$($etc_prefix)/sqitch.conf>
+=item F<$(prefix)/etc/sqitch/sqitch.plan>
 
 System-wide configuration file.
 
@@ -263,7 +266,7 @@ Given a F<./sqitch.conf> like this:
           set        = foo=bar
           set        = baz=yo
 
-You can set the the C<tags_only> setting to true with
+You can set the C<tags_only> setting to true with
 
   % sqitch config bundle.tags_only true
 
@@ -482,12 +485,12 @@ Configuration properties that identify the user.
 =item C<user.name>
 
 Your full name, to be recorded in changes and tags added to the plan,
-and to to commits to the database.
+and to commits to the database.
 
 =item C<user.email>
 
 Your email address, to be recorded in changes and tags added to the plan, and
-to to commits to the database.
+to commits to the database.
 
 =back
 

@@ -350,7 +350,7 @@ throws_ok { $cmd->rename('prod', 'fodder' ) } 'App::Sqitch::X',
     'Should get error renaming a target with dependencies';
 is $@->ident, 'target', 'Dependency target error ident should be "target"';
 is $@->message, __x(
-    q{Cannot rename target "{target}" because it's refereneced by: {engines}},
+    q{Cannot rename target "{target}" because it's referenced by: {engines}},
     target => 'prod',
     engines => 'core.target, engine.firebird.target',
 ), 'Dependency target error message should be correct';
@@ -386,7 +386,7 @@ throws_ok { $cmd->remove('prod' ) } 'App::Sqitch::X',
     'Should get error removing a target with dependencies';
 is $@->ident, 'target', 'Dependency target error ident should be "target"';
 is $@->message, __x(
-    q{Cannot rename target "{target}" because it's refereneced by: {engines}},
+    q{Cannot rename target "{target}" because it's referenced by: {engines}},
     target => 'prod',
     engines => 'core.target, engine.firebird.target',
 ), 'Dependency target error message should be correct';

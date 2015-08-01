@@ -16,7 +16,7 @@ use namespace::autoclean;
 
 extends 'App::Sqitch::Command';
 
-our $VERSION = '0.999_1';
+our $VERSION = '0.9993';
 
 has verbose => (
     is      => 'ro',
@@ -186,7 +186,7 @@ sub remove {
     $self->usage unless $name;
     if ( my @deps = $self->_dependencies($name) ) {
         hurl target => __x(
-            q{Cannot rename target "{target}" because it's refereneced by: {engines}},
+            q{Cannot rename target "{target}" because it's referenced by: {engines}},
             target => $name,
             engines => join ', ', @deps
         );
@@ -199,7 +199,7 @@ sub rename {
     $self->usage unless $old && $new;
     if ( my @deps = $self->_dependencies($old) ) {
         hurl target => __x(
-            q{Cannot rename target "{target}" because it's refereneced by: {engines}},
+            q{Cannot rename target "{target}" because it's referenced by: {engines}},
             target => $old,
             engines => join ', ', @deps
         );

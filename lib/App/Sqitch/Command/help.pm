@@ -11,7 +11,7 @@ use Pod::Find;
 use Moo;
 extends 'App::Sqitch::Command';
 
-our $VERSION = '0.999_1';
+our $VERSION = '0.9993';
 
 has guide => (
     is      => 'ro',
@@ -90,7 +90,7 @@ Boolean indicating whether to list the guides.
 
 Executes the help command. If a command is passed, the help for that command will
 be shown. If it cannot be found, Sqitch will throw an error and exit. If no
-command is specified, the the L<Sqitch core documentation|sqitch> will be shown.
+command is specified, the L<Sqitch core documentation|sqitch> will be shown.
 
 =head3 C<find_and_show>
 

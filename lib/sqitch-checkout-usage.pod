@@ -4,7 +4,7 @@ sqitch-checkout-usage - Sqitch checkout usage statement
 
 =head1 Usage
 
-  sqitch [options] checkout branchname
+  sqitch [options] checkout [checkout options] [<database>] <branch>
 
 =head1 Options
 

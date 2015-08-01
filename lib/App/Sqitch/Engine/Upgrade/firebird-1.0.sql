@@ -41,4 +41,5 @@ COMMIT;
 ALTER TABLE events ADD CONSTRAINT check_event_type CHECK (
     event IN ('deploy', 'revert', 'fail', 'merge')
 );
+
 COMMIT;

@@ -12,9 +12,9 @@ use List::Util qw(first max);
 use URI::db 0.15;
 use App::Sqitch::Types qw(Str Int Sqitch Plan Bool HashRef URI Maybe Target);
 use namespace::autoclean;
-use constant registry_release => '1.0';
+use constant registry_release => '1.1';
 
-our $VERSION = '0.999_1';
+our $VERSION = '0.9993';
 
 has sqitch => (
     is       => 'ro',
@@ -167,7 +167,7 @@ sub deploy {
         # Just return if there is nothing to do.
         if ($to_index == $plan->position) {
             $sqitch->info(__x(
-                'Nothing to deploy (already at "{change}"',
+                'Nothing to deploy (already at "{change}")',
                 change => $to
             ));
             return $self;
@@ -318,7 +318,7 @@ sub revert {
     # Do we want to support modes, where failures would re-deploy to previous
     # tag or all the way back to the starting point? This would be very much
     # like deploy() mode. I'm thinking not, as a failure on a revert is not
-    # something you generaly want to recover from by deploying back to where
+    # something you generally want to recover from by deploying back to where
     # you started. But maybe I'm wrong?
     $self->max_name_length(
         max map { length $_->format_name_with_tags } @changes

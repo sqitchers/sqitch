@@ -17,7 +17,7 @@ CREATE TABLE projects (
 
 CREATE TABLE changes (
     change_id       TEXT        PRIMARY KEY,
-    script_hash     TEXT            NULL UNIQUE,
+    script_hash     TEXT            NULL,
     change          TEXT        NOT NULL,
     project         TEXT        NOT NULL REFERENCES projects(project) ON UPDATE CASCADE,
     note            TEXT        NOT NULL DEFAULT '',
@@ -26,7 +26,8 @@ CREATE TABLE changes (
     committer_email TEXT        NOT NULL,
     planned_at      DATETIME    NOT NULL,
     planner_name    TEXT        NOT NULL,
-    planner_email   TEXT        NOT NULL
+    planner_email   TEXT        NOT NULL,
+    UNIQUE(project, script_hash)
 );
 
 CREATE TABLE tags (
@@ -48,7 +49,8 @@ CREATE TABLE dependencies (
     change_id       TEXT        NOT NULL REFERENCES changes(change_id) ON UPDATE CASCADE ON DELETE CASCADE,
     type            TEXT        NOT NULL,
     dependency      TEXT        NOT NULL,
-    dependency_id   TEXT            NULL REFERENCES changes(change_id) ON UPDATE CASCADE CHECK (
+    dependency_id   TEXT            NULL REFERENCES changes(change_id) ON UPDATE CASCADE
+                                         CONSTRAINT dependencies_check CHECK (
             (type = 'require'  AND dependency_id IS NOT NULL)
          OR (type = 'conflict' AND dependency_id IS NULL)
     ),
@@ -56,7 +58,9 @@ CREATE TABLE dependencies (
 );
 
 CREATE TABLE events (
-    event           TEXT        NOT NULL CHECK (event IN ('deploy', 'revert', 'fail', 'merge')),
+    event           TEXT        NOT NULL CONSTRAINT events_event_check CHECK (
+        event IN ('deploy', 'revert', 'fail', 'merge')
+    ),
     change_id       TEXT        NOT NULL,
     change          TEXT        NOT NULL,
     project         TEXT        NOT NULL REFERENCES projects(project) ON UPDATE CASCADE,

@@ -35,8 +35,8 @@ specified change, no reverts will be run. And if, at that point, the database
 is up-to-date, no deploys will be run.
 
 The C<< <database> >> parameter specifies the database to which to connect,
-and may also be specified as the C<--target> option. It can be either a URI or
-the name of a target in the configuration.
+and may also be specified as the C<--target> option. It can be target name,
+a URI, an engine name, or plan file path.
 
 =head1 Options
 
@@ -104,8 +104,8 @@ Don't verify each change. This is the default.
 =item C<--set>
 
 Set a variable name and value for use by the database engine client, if it
-supports variables. The format must be C<name=value>, e.g., C<--set
-defuser='Homer Simpson'>. Overrides any values loaded from the
+supports variables. The format must be C<name=value>, e.g.,
+C<--set defuser='Homer Simpson'>. Overrides any values loaded from the
 C<deploy.variables> or C<revert.variables> configurations.
 
 =item C<-d>
@@ -152,7 +152,13 @@ C<revert.variables> to override C<deploy.variables>.
 
 These variables are Useful if your database engine supports variables in
 scripts, such as PostgreSQL's
-L<C<psql> variables|http://www.postgresql.org/docs/current/static/app-psql.html#APP-PSQL-INTERPOLATION>.
+L<C<psql> variables|http://www.postgresql.org/docs/current/static/app-psql.html#APP-PSQL-INTERPOLATION>,
+Vertica's
+L<C<vsql> variables|http://my.vertica.com/docs/7.1.x/HTML/index.htm#Authoring/ProgrammersGuide/vsql/Variables.htm>,
+MySQL's
+L<user variables|http://dev.mysql.com/doc/refman/5.6/en/user-variables.html>,
+and SQL*Plus's
+L<C<DEFINE> variables|http://docs.oracle.com/cd/B19306_01/server.102/b14357/ch12017.htm>.
 
 =item C<rebase.verify>
 

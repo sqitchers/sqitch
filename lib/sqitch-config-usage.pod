@@ -4,7 +4,7 @@ sqitch-config-usage - Sqitch config usage statement
 
 =head1 Usage
 
-  sqitch config [options]
+  sqitch [options] config [config options]
 
 =head1 Options
 

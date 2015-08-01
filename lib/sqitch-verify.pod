@@ -39,8 +39,8 @@ Passes its verify test, if one exists and the change has not been reworked.
 =back
 
 The C<< <database> >> parameter specifies the database to which to connect,
-and may also be specified as the C<--target> option. It can be either a URI or
-the name of a target in the configuration.
+and may also be specified as the C<--target> option. It can be target name,
+a URI, an engine name, or plan file path.
 
 Verify tests are scripts that may be associated with each change. If a change
 has no verify script, a warning is emitted, but it is not considered a
@@ -103,6 +103,8 @@ supports variables in scripts, such as PostgreSQL's
 L<C<psql> variables|http://www.postgresql.org/docs/current/static/app-psql.html#APP-PSQL-INTERPOLATION>,
 Vertica's
 L<C<vsql> variables|http://my.vertica.com/docs/7.1.x/HTML/index.htm#Authoring/ProgrammersGuide/vsql/Variables.htm>,
+MySQL's
+L<user variables|http://dev.mysql.com/doc/refman/5.6/en/user-variables.html>,
 and SQL*Plus's
 L<C<DEFINE> variables|http://docs.oracle.com/cd/B19306_01/server.102/b14357/ch12017.htm>.
 

@@ -16,6 +16,7 @@ use App::Sqitch::DateTime;
 use Encode;
 use lib 't/lib';
 use MockOutput;
+use LC;
 
 $ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
 $ENV{SQITCH_USER_CONFIG}   = 'nonexistent.user';
@@ -63,13 +64,7 @@ my $event = {
     conflicts       => []
 };
 
-if ($^O eq 'MSWin32') {
-    require Win32::Locale;
-    $_->set( locale => Win32::Locale::get_locale() ) for ($local_cdt, $local_pdt);
-} else {
-    require POSIX;
-    $_->set( locale =>POSIX::setlocale( POSIX::LC_TIME() ) ) for ($local_cdt, $local_pdt);
-}
+$_->set( locale => $LC::TIME ) for ($local_cdt, $local_pdt);
 
 for my $spec (
     ['%e', { event => 'deploy' }, 'deploy' ],

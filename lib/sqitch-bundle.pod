@@ -4,16 +4,46 @@ sqitch-bundle - Bundle a Sqitch project for distribution
 
 =head1 Synopsis
 
-  sqitch [options] bundle project
+  sqitch [options] bundle
   sqitch [options] bundle --dest-dir widgets-1.0.0
+  sqitch [options] bundle --all
+  sqitch [options] bundle pg mysql
 
 =head1 Description
 
 This command bundles up a sqitch project for distribution. At its simplest, it
-copies the project configuration file, the plan file, and all of the change
+copies the project configuration file, plan files, and all of the change
 scripts to a directory. This directory can then be packaged up for
-distribution (as a tarball, RPM, etc.). Options allow for the list of changes
-to be bundled to be a subset of the plan.
+distribution (as a tarball, RPM, etc.).
+
+By default, the C<bundle> command will bundle the plan and scripts for the
+default plan and top directory, as defined by the core configuration and
+command-line options. Pass the C<--all> option to have it iterate over all
+known plans and top directories (as specified for engines and targets) and
+bundle them all. This works well for creating a a single bundle with all
+plans and scripts.
+
+To specify which plans an top directories to bundle, pass the target, engine,
+or plan file names as arguments. See L</Examples> for examples.
+
+=over
+
+=item * Engine names
+
+=item * Target names
+
+=item * Plan file names
+
+=back
+
+You can also pass the core C<--engine> option to limit the bundle to the plan
+for a single engine.
+
+The bundle command also allows you to limit bundled changes to a subset of
+those in a plan. When bundling a single plan, use the C<--from> and/or C<--to>
+options to do the limiting. When using multiple plans, specify the changes
+after each target argument. In either case, the changes can be specified in
+any way documented on L<sqitchchanges>. See L</Examples> for examples.
 
 =head1 Options
 
@@ -22,20 +52,32 @@ to be bundled to be a subset of the plan.
 =item C<--dest-dir>
 
 The name of the directory in which to bundle the project. The configuration
-file will be created in this directory, and the top, deploy, revert, and verify
-directories will be created relative to it. Defaults to F<bundle>.
+file will be created in this directory, and all top, deploy, revert, and
+verify directories will be created relative to it. Defaults to F<bundle>.
 
 =item C<--from>
 
 The change from which to start bundling. If you need to bundle up only a subset
-of your plan, specify a change (using a supported L<change specification|sqitchchanges>
-from which to start the bundling via this option.
+of a plan, specify a change (using a supported L<change specification|sqitchchanges>
+from which to start the bundling via this option. This option is probably only
+useful when bundling a single plan.
 
 =item C<--to>
 
 The change to which to end bundling. If you need to bundle up only a subset
-of your plan, specify a change (using a supported L<change specification|sqitchchanges>
-that should be the last change to be included in the bundle.
+of a plan, specify a change (using a supported L<change specification|sqitchchanges>
+that should be the last change to be included in the bundle. This option is
+probably only useful when bundling a single plan.
+
+=item C<-a>
+
+=item C<--all>
+
+Bundle all the project plans and their associated scripts. Cannot be mixed
+with target, engine, or plan file name arguments; doing so will result in an
+error. Useful for multi-plan projects that should have all the plans bundled
+together. Overrides the value of the C<bundle.all> configuration; use
+C<--no-all> to override a true C<bundle.all> configuration.
 
 =back
 
@@ -51,6 +93,14 @@ The name of the directory in which to bundle the project.
 
 =head1 Examples
 
+Bundle a Sqitch project with the default plan and scripts into F<bundle>:
+
+  sqitch bundle
+
+Bundle a Sqitch project with all plans and scripts into F<bundle>:
+
+  sqitch bundle --all
+
 Bundle a Sqitch project into F<BUILDROOT/MyProj>:
 
   sqitch bundle --dest-dir BUILDROOT/MyProj
@@ -58,6 +108,19 @@ Bundle a Sqitch project into F<BUILDROOT/MyProj>:
 Bundle a project including changes C<adduser> through C<@v1.0>:
 
   sqitch bundle --from adduser --to @v1.0
+
+Bundle a the C<pg> engine plans with changes C<adduser> through C<@v1.0>, and
+the C<sqlite> engine with changes from the start of the plan up to C<widgets>:
+
+  sqitch bundle pg adduser @v1.0 sqlite @ROOT wigets
+
+Bundle just the files necessary to execute the plan for the C<pg> engine:
+
+  sqitch bundle pg
+
+Bundle the files necessary for two plan files:
+
+  sqitch bundle sqlite/sqitch.plan mysql/sqitch.plan
 
 =head1 Sqitch
 

@@ -45,9 +45,33 @@ files for the existing change. The new files are named with the tag that comes
 between the changes, and serves as the file for the original change. This
 leaves you free to edit the existing files.
 
+By default, the C<rework> command will rework the change in the default plan
+and the scripts to any top directories for that plan, as defined by the core
+configuration and command-line options. This works well for projects in which
+there is a single plan with separate top directories for each engine, for
+example. Pass the C<--all> option to have it iterate over all known plans and
+top directories (as specified for engines and targets) and rework the change
+to them all. Of course, the a change by that name must exist in all the plans
+of the reworking will fail.
+
+To specify which plans to in which to rework the change, pass the target,
+engine, or plan file names to tag as arguments. Use C<--change> to
+disambiguate the and change name from the other parameters if necessary (or
+preferable). See L</Examples> for examples.
+
 =head1 Options
 
 =over
+
+=item C<-c>
+
+=item C<--change>
+
+=item C<--change-name>
+
+The name of the change to rework. The name can be specified with or without
+this option, but the option can be useful for disambiguating the change name
+from other arguments.
 
 =item C<-r>
 
@@ -57,13 +81,23 @@ Name of a change that is required by the new change. May be specified multiple
 times. See L<sqitchchanges> for the various ways in which changes can be
 specified.
 
-=item C<-c>
+=item C<-x>
 
 =item C<--conflicts>
 
 Name of a change that conflicts with the new change. May be specified multiple
 times. See L<sqitchchanges> for the various ways in which changes can be
 specified.
+
+=item C<-a>
+
+=item C<--all>
+
+Rework the change in all plans in the project. Cannot be mixed with target,
+engine, or plan file name arguments; doing so will result in an error. Useful
+for multi-plan projects in which changes should be kept in sync. Overrides the
+value of the C<add.all> configuration; use C<--no-all> to override a true
+C<add.all> configuration.
 
 =item C<-n>
 
@@ -92,9 +126,43 @@ is true.
 
 =back
 
+=head1 Examples
+
+Rework a change in a project and be prompted for a note.
+
+  sqitch rework widgets
+
+Rework a change and specify the note.
+
+  sqitch rework sprockets --note 'Reworks the sprockets view.'
+
+Rework a change that requires the C<users> change from earlier in the plan.
+
+  sqitch rework contacts --requires users -n 'Reworks the contacts view.'
+
+Rework a change that requires multiple changes, including the change named
+C<extract> from a completely different Sqitch project named C<utilities>:
+
+  sqitch rework coffee -r users -r utilities:extract -n 'Mmmmm...coffee!'
+
+Rework a change only to the plan used by the C<vertica> engine in a project:
+
+  sqitch rework --change logs vertica -n 'Reworks the logs view in Vertica.'
+
+Rework a change in two plans in a project, and generate the scripts only for
+those plans:
+
+  sqitch rework -a coolfunctions sqlite.plan pg.plan -n 'Reworks functions.'
+
 =head1 Configuration Variables
 
 =over
+
+=item C<rework.all>
+
+Rework the change to all the plans in the project. Useful for multi-plan projects
+in which changes should be kept in sync. May be overridden by C<--all>,
+C<--no-all>, or target, engine, and plan file name arguments.
 
 =item C<rework.open_editor>
 

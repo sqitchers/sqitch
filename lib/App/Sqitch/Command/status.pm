@@ -13,7 +13,7 @@ use Try::Tiny;
 use namespace::autoclean;
 extends 'App::Sqitch::Command';
 
-our $VERSION = '0.999_1';
+our $VERSION = '0.9993';
 
 has target_name => (
     is  => 'ro',
@@ -166,6 +166,13 @@ sub configure {
     ) {
         require App::Sqitch::DateTime;
         App::Sqitch::DateTime->validate_as_string_format($format);
+    }
+
+    # Set boolean options from config.
+    for my $key (qw(show_changes show_tags)) {
+        next if exists $opt->{$key};
+        my $val = $config->get(key => "status.$key", as => 'bool') // next;
+        $opt->{$key} = $val;
     }
 
     my $ret = $class->SUPER::configure( $config, $opt );

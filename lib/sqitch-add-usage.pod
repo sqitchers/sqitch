@@ -4,12 +4,14 @@ sqitch-add-usage - Sqitch add usage statement
 
 =head1 Usage
 
-  sqitch [options] add [<change-options>] [<template-options>] changename
+  sqitch [options] add [change options] [<template options>] <change> [<target>]
 
 =head1 Options
 
+    -c --change               name of the change to add
     -r --requires             require change
-    -c --conflicts            declare conflicting change
+    -x --conflicts            declare conflicting change
+    -a --all                  add change to all project plans
     -s --set                  set a template variable
     -n --note                 a note describing the change
 

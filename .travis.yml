@@ -1,29 +1,53 @@
 language: perl
 perl:
-  - "5.21"
-  - "5.20"
-  - "5.20-extras"
-  - "5.18"
-  - "5.18-extras"
-  - "5.16"
-  - "5.14"
-  - "5.12"
   - "5.10"
+  - "5.12"
+  - "5.14"
+  - "5.16"
+  - "5.18"
+  - "5.20"
+  - "dev"
+  - "blead"
+
+matrix:
+  include:
+    - perl: "5.20"
+      env: COVERAGE=1
+  allow_failures:
+    - perl: "blead"
 
 before_install:
-   # Prevent "Please tell me who you are" errors for certain DZIL configs
-   - git config --global user.name  "Travis CI"
-   - git config --global user.email "support@travis-ci.com"
+  - sudo apt-get update -qq
+  - sudo apt-get install -qq firebird2.5-superclassic firebird2.5-dev aspell-en unixodbc-dev
+  - sudo sed /ENABLE_FIREBIRD_SERVER=/s/no/yes/ -i /etc/default/firebird2.5
+  - cat /etc/default/firebird2.5 | grep ENABLE_FIREBIRD_SERVER
+  - sudo service firebird2.5-superclassic start
+
+  - git clone git://github.com/travis-perl/helpers ~/travis-perl-helpers
+  - source ~/travis-perl-helpers/init
+  - build-perl
+  - perl -V
+  - build-dist
+  - cd $BUILD_DIR
 
 install:
-   - cpanm --quiet --notest --skip-satisfied Dist::Zilla
-   - cpanm --quiet --notest Test::MockModule
-   - cpanm --quiet Inline::C
-   - dzil authordeps | grep -vP '[^\w:]' | xargs -n 5 -P 10 cpanm --quiet --notest --skip-satisfied
-   - export AUTOMATED_TESTING=1 HARNESS_OPTIONS=j10:c HARNESS_TIMER=1
-   - cpanm --quiet --notest --skip-installed Encode
-   - dzil listdeps | grep -vP '[^\w:]' | cpanm --quiet
+  - cpanm --verbose --no-interactive --no-man-pages --notest Params::Validate DBI File::Which Test::More Test::Exception Time::HiRes
+  - cpan-install --deps
+  - cpan-install --coverage
+
+before_script:
+  - coverage-setup
 
 script:
-   - export HARNESS_OPTIONS=j10:c HARNESS_TIMER=1
-   - dzil smoke --release --author --automated
+  - prove -lr -j$(test-jobs) $(test-dirs)
+
+after_success:
+  - coverage-report
+
+notifications:
+  email: false
+  irc:
+    channels:
+      - "irc.freenode.net#sqitch"
+    on_success: change
+    on_failure: always

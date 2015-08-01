@@ -14,18 +14,9 @@ use Path::Class qw(file dir);
 use List::Util qw(max first);
 use namespace::autoclean;
 
-use constant ENGINES => qw(
-    pg
-    sqlite
-    mysql
-    oracle
-    firebird
-    vertica
-);
-
 extends 'App::Sqitch::Command';
 
-our $VERSION = '0.999_1';
+our $VERSION = '0.9993';
 
 has verbose => (
     is      => 'ro',
@@ -50,7 +41,7 @@ sub _chk_engine($) {
     my $engine = shift;
     hurl engine => __x(
         'Unknown engine "{engine}"', engine => $engine
-    ) unless first { $engine eq $_ } ENGINES;
+    ) unless first { $engine eq $_ } App::Sqitch::Command::ENGINES;
 }
 
 my %normalizer_for = (
@@ -96,7 +87,7 @@ sub execute {
 sub list {
     my $self    = shift;
     my $sqitch  = $self->sqitch;
-    my $rx = join '|' => ENGINES;
+    my $rx = join '|' => App::Sqitch::Command::ENGINES;
     my %engines = $sqitch->config->get_regexp(key => qr/^engine[.](?:$rx)[.]target$/);
 
     my $format = $self->verbose ? "%1\$s\t%2\$s" : '%1$s';
@@ -289,7 +280,7 @@ sub update_config {
         my $c = App::Sqitch::Config->new;
         $c->load_file($file);
         my %engines;
-        for my $ekey (ENGINES) {
+        for my $ekey (App::Sqitch::Command::ENGINES) {
             my $sect = $c->get_section( section => "core.$ekey");
             if (%{ $sect }) {
                 if (%{ $c->get_section( section => "engine.$ekey") }) {
@@ -398,28 +389,6 @@ App::Sqitch::Command::engine - Add, modify, or list Sqitch database engines
 Manages Sqitch database engines, which are stored in the local configuration file.
 
 =head1 Interface
-
-=head2 Constants
-
-=head3 C<ENGINES>
-
-Returns the list of supported engines, currently:
-
-=over
-
-=item * C<firebird>
-
-=item * C<mysql>
-
-=item * C<oracle>
-
-=item * C<pg>
-
-=item * C<sqlite>
-
-=item * C<vertica>
-
-=back
 
 =head2 Instance Methods
 

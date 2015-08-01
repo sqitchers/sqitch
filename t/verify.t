@@ -162,10 +162,10 @@ my ($target_name_arg, $orig_meth);
 $mock_cmd->mock(parse_args => sub {
     my $self = shift;
     my %p = @_;
-    my %ret = $self->$orig_meth(@_);
-    $target_name_arg = $ret{targets}->[0]->name;
-    $ret{targets}->[0] = $self->default_target;
-    return %ret;
+    my @ret = $self->$orig_meth(@_);
+    $target_name_arg = $ret[0][0]->name;
+    $ret[0][0] = $self->default_target;
+    return @ret;
 });
 $orig_meth = $mock_cmd->original('parse_args');
 

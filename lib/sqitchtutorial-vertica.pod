@@ -471,7 +471,7 @@ idea to be explicit about dependencies.
 Now edit the scripts. When you're done, F<deploy/users.sql> should look like
 this:
 
-  -- Deploy users                                                                                 
+  -- Deploy flipr:users                                                                                  to vertica
   -- requires: appschema                                                                          
 
   CREATE TABLE flipr.users (
@@ -655,7 +655,7 @@ planned the change, and a note.
 Let's write the code for the new changes. Here's what F<deploy/flips.sql>
 should look like:
 
-  -- Deploy flips
+  -- Deploy flipr:flips to vertica
   -- requires: appschema
   -- requires: users
   
@@ -668,7 +668,7 @@ should look like:
 
 Here's what F<verify/flips.sql> might look like:
 
-  -- Verify flips                                                                                 
+  -- Verify flipr:flips                                                                                  on vertica
   SELECT id, nickname, body, timestamp
     FROM flipr.flips
    WHERE FALSE;
@@ -678,12 +678,12 @@ an exception if the specified function does not exist.
 
 And F<revert/flips.sql> should look something like this:
 
-  -- Revert flips
+  -- Revert flipr:flips from vertica
   DROP TABLE flipr.flips;
 
 Now for C<userflips>; F<deploy/userflips.sql> might look like this:
 
-  -- Deploy userflips
+  -- Deploy flipr:userflips to vertica
   -- requires: appschema
   -- requires: users
   -- requires: flips
@@ -695,7 +695,7 @@ Now for C<userflips>; F<deploy/userflips.sql> might look like this:
 
 Use a C<SELECT> statement in F<verify/userflips.sql> again:
 
-  -- Verify userflips
+  -- Verify flipr:userflips on vertica
   SELECT id, nickname, fullname, body, timestamp
     FROM flipr.userflips
    WHERE FALSE;
@@ -703,7 +703,7 @@ Use a C<SELECT> statement in F<verify/userflips.sql> again:
 And of course, its C<revert> script, F<revert/userflips.sql>, should look
 something like:
 
-  -- Revert userflips
+  -- Revert flipr:userflips from vertica
   DROP VIEW flipr.userflips;
 
 Try em out!
@@ -1290,7 +1290,7 @@ Next, modify F<verify/userflips.sql> to check for the C<twitter> column.
 Here's the diff:
 
   @@ -1,6 +1,6 @@
-   -- Verify userflips
+   -- Verify flipr:userflips on vertica
  
   -SELECT id, nickname, fullname, body, timestamp
   +SELECT id, nickname, fullname, twitter, body, timestamp

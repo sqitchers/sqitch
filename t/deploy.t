@@ -131,9 +131,9 @@ my $mock_cmd = Test::MockModule->new($CLASS);
 my $parser;
 my $target;
 $mock_cmd->mock(parse_args => sub {
-    my %ret = $parser->(@_);
-    $target = $ret{targets}[0];
-    return %ret;
+    my @ret = $parser->(@_);
+    $target = $ret[0][0];
+    return @ret;
 });
 $parser = $mock_cmd->original('parse_args');
 

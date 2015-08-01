@@ -3,7 +3,8 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 132;
+use lib '/Users/david/dev/cpan/config-gitlike/lib';
+use Test::More tests => 276;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Path::Class;
@@ -50,6 +51,7 @@ can_ok $CLASS, qw(
 
 is_deeply [$CLASS->options], [qw(
     dest-dir|dir=s
+    all|a!
     from=s
     to=s
 )], 'Should have dest_dir option';
@@ -57,7 +59,8 @@ is_deeply [$CLASS->options], [qw(
 is $bundle->dest_dir, dir('bundle'),
     'Default dest_dir should be bundle/';
 
-is $bundle->dest_top_dir, dir('bundle'), 'Should have dest top dir';
+is $bundle->dest_top_dir($bundle->default_target), dir('bundle'),
+    'Should have dest top dir';
 
 ##############################################################################
 # Test configure().
@@ -92,11 +95,12 @@ isa_ok $bundle = App::Sqitch::Command->load({
 }), $CLASS, 'another bundle command';
 
 is $bundle->dest_dir, $dir, qq{dest_dir should be "$dir"};
-is $bundle->dest_top_dir, dir(qw(_build sql sql)),
+is $bundle->dest_top_dir($bundle->default_target), dir(qw(_build sql sql)),
     'Dest top dir should be _build/sql/sql/';
+my $target = $bundle->default_target;
 for my $sub (qw(deploy revert verify)) {
     my $attr = "dest_$sub\_dir";
-    is $bundle->$attr, $dir->subdir('sql', $sub),
+    is $bundle->$attr($target), $dir->subdir('sql', $sub),
         "Dest $sub dir should be _build/sql/sql/$sub";
 }
 
@@ -109,11 +113,12 @@ isa_ok $bundle = App::Sqitch::Command->load({
     command => 'bundle',
     config  => $config,
 }), $CLASS, 'engine bundle command';
+$target = $bundle->default_target;
 
 is $bundle->dest_dir, $dir, qq{dest_dir should again be "$dir"};
 for my $sub (qw(deploy revert verify)) {
     my $attr = "dest_$sub\_dir";
-    is $bundle->$attr, $dir->subdir('engine', $sub),
+    is $bundle->$attr($target), $dir->subdir('engine', $sub),
         "Dest $sub dir should be _build/sql/engine/$sub";
 }
 
@@ -227,7 +232,10 @@ COPYDIE: {
 
 ##############################################################################
 # Test bundle_config().
-END { remove_tree $dir->parent->stringify }
+END {
+    my $to_remove = $dir->parent->stringify;
+    remove_tree $to_remove if -e $to_remove;
+}
 $dest = file $dir, qw(sqitch.conf);
 file_not_exists_ok $dest;
 ok $bundle->bundle_config, 'Bundle the config file';
@@ -238,9 +246,10 @@ is_deeply +MockOutput->get_info, [[__ 'Writing config']],
 
 ##############################################################################
 # Test bundle_plan().
-$dest = file $bundle->dest_top_dir, qw(sqitch.plan);
+$dest = file $bundle->dest_top_dir($bundle->default_target), qw(sqitch.plan);
 file_not_exists_ok $dest;
-ok $bundle->bundle_plan, 'Bundle the plan file';
+ok $bundle->bundle_plan($bundle->default_target),
+    'Bundle the default target plan file';
 file_exists_ok $dest;
 file_contents_identical $dest, file(qw(engine sqitch.plan));
 is_deeply +MockOutput->get_info, [[__ 'Writing plan']],
@@ -254,7 +263,8 @@ isa_ok $bundle = App::Sqitch::Command->load({
     args    => ['--from', 'widgets'],
 }), $CLASS, '--from bundle command';
 is $bundle->from, 'widgets', 'From should be "widgets"';
-ok $bundle->bundle_plan, 'Bundle the plan file with --from';
+ok $bundle->bundle_plan($bundle->default_target, 'widgets'),
+    'Bundle the default target plan file with from arg';
 my $plan = $bundle->default_target->plan;
 is_deeply +MockOutput->get_info, [[__x(
     'Writing plan from {from} to {to}',
@@ -267,7 +277,7 @@ file_contents_is $dest,
     . "\n"
     . $plan->find('widgets')->as_string . "\n"
     . $plan->find('func/add_user')->as_string . "\n",
-    'Plan should have written only "widgets"';
+    'Plan should have written only "widgets" and "func/add_user"';
 
 # Make sure that --to works.
 isa_ok $bundle = App::Sqitch::Command->load({
@@ -277,7 +287,8 @@ isa_ok $bundle = App::Sqitch::Command->load({
     args    => ['--to', 'users'],
 }), $CLASS, '--to bundle command';
 is $bundle->to, 'users', 'To should be "users"';
-ok $bundle->bundle_plan, 'Bundle the plan file with --to';
+ok $bundle->bundle_plan($bundle->default_target, undef, 'users'),
+    'Bundle the default target plan file with to arg';
 is_deeply +MockOutput->get_info, [[__x(
     'Writing plan from {from} to {to}',
     from => '@ROOT',
@@ -293,15 +304,15 @@ file_contents_is $dest,
 
 ##############################################################################
 # Test bundle_scripts().
-my @files = (
-    $bundle->dest_deploy_dir->file('users.sql'),
-    $bundle->dest_revert_dir->file('users.sql'),
-    $bundle->dest_deploy_dir->file('widgets.sql'),
-    $bundle->dest_revert_dir->file('widgets.sql'),
-    $bundle->dest_deploy_dir->file(qw(func add_user.sql)),
-    $bundle->dest_revert_dir->file(qw(func add_user.sql)),
+my @scripts = (
+    $bundle->dest_deploy_dir($target)->file('users.sql'),
+    $bundle->dest_revert_dir($target)->file('users.sql'),
+    $bundle->dest_deploy_dir($target)->file('widgets.sql'),
+    $bundle->dest_revert_dir($target)->file('widgets.sql'),
+    $bundle->dest_deploy_dir($target)->file(qw(func add_user.sql)),
+    $bundle->dest_revert_dir($target)->file(qw(func add_user.sql)),
 );
-file_not_exists_ok $_ for @files;
+file_not_exists_ok $_ for @scripts;
 ok $sqitch = App::Sqitch->new(
     options => {
         extension => 'sql',
@@ -313,8 +324,9 @@ isa_ok $bundle = App::Sqitch::Command->load({
     command => 'bundle',
     config  => $config,
 }), $CLASS, 'another bundle command';
-ok $bundle->bundle_scripts, 'Bundle scripts';
-file_exists_ok $_ for @files;
+ok $bundle->bundle_scripts($bundle->default_target),
+    'Bundle default target scripts';
+file_exists_ok $_ for @scripts;
 is_deeply +MockOutput->get_info, [
     [__ 'Writing scripts'],
     ['  + ', 'users @alpha'],
@@ -329,9 +341,9 @@ isa_ok $bundle = App::Sqitch::Command::bundle->new(
     dest_dir => $bundle->dest_dir,
     from     => 'widgets',
 ), $CLASS, 'bundle from "widgets"';
-ok $bundle->bundle_scripts, 'Bundle scripts';
-file_not_exists_ok $_ for @files[0,1];
-file_exists_ok $_ for @files[2,3];
+ok $bundle->bundle_scripts($bundle->default_target, 'widgets'), 'Bundle scripts';
+file_not_exists_ok $_ for @scripts[0,1];
+file_exists_ok $_ for @scripts[2,3];
 is_deeply +MockOutput->get_info, [
     [__ 'Writing scripts'],
     ['  + ', 'widgets'],
@@ -345,9 +357,9 @@ isa_ok $bundle = App::Sqitch::Command::bundle->new(
     dest_dir => $bundle->dest_dir,
     to       => 'users',
 ), $CLASS, 'bundle to "users"';
-ok $bundle->bundle_scripts, 'Bundle scripts';
-file_exists_ok $_ for @files[0,1];
-file_not_exists_ok $_ for @files[2,3];
+ok $bundle->bundle_scripts($bundle->default_target, undef, 'users'), 'Bundle scripts';
+file_exists_ok $_ for @scripts[0,1];
+file_not_exists_ok $_ for @scripts[2,3];
 is_deeply +MockOutput->get_info, [
     [__ 'Writing scripts'],
     ['  + ', 'users @alpha'],
@@ -355,8 +367,9 @@ is_deeply +MockOutput->get_info, [
 
 # Should throw exceptions on unknonw changes.
 for my $key (qw(from to)) {
+    my $bundle = $CLASS->new( sqitch => $sqitch, $key => 'nonexistent' );
     throws_ok {
-        $CLASS->new( sqitch => $sqitch, $key => 'nonexistent' )->bundle_scripts
+        $bundle->bundle_scripts($bundle->default_target, 'nonexistent')
     } 'App::Sqitch::X', "Should die on nonexistent $key change";
     is $@->ident, 'bundle', qq{Nonexistent $key change ident should be "bundle"};
     is $@->message, __x(
@@ -369,19 +382,19 @@ for my $key (qw(from to)) {
 # Test execute().
 MockOutput->get_debug;
 remove_tree $dir->parent->stringify;
-@files = (
+@scripts = (
     file($dir, 'sqitch.conf'),
-    file($bundle->dest_top_dir, 'sqitch.plan'),
-    @files,
+    file($bundle->dest_top_dir($bundle->default_target), 'sqitch.plan'),
+    @scripts,
 );
-file_not_exists_ok $_ for @files;
+file_not_exists_ok $_ for @scripts;
 isa_ok $bundle = App::Sqitch::Command->load({
     sqitch  => $sqitch,
     command => 'bundle',
     config  => $config,
 }), $CLASS, 'another bundle command';
 ok $bundle->execute, 'Execute!';
-file_exists_ok $_ for @files;
+file_exists_ok $_ for @scripts;
 is_deeply +MockOutput->get_info, [
     [__x 'Bundling into {dir}', dir => $bundle->dest_dir ],
     [__ 'Writing config'],
@@ -392,3 +405,149 @@ is_deeply +MockOutput->get_info, [
     ['  + ', 'func/add_user'],
 ], 'Should have all notices';
 
+# Try a configuration with multiple plans.
+my $multidir = $dir->parent;
+END { remove_tree $multidir->stringify }
+remove_tree $multidir->stringify;
+my @sql = (
+    $multidir->file(qw(sql sqitch.plan)),
+    $multidir->file(qw(sql deploy roles.sql)),
+    $multidir->file(qw(sql deploy users.sql)),
+    $multidir->file(qw(sql verify users.sql)),
+    $multidir->file(qw(sql deploy widgets.sql)),
+);
+my @engine = (
+    $multidir->file(qw(engine sqitch.plan)),
+    $multidir->file(qw(engine deploy users.sql)),
+    $multidir->file(qw(engine revert users.sql)),
+    $multidir->file(qw(engine deploy widgets.sql)),
+    $multidir->file(qw(engine revert widgets.sql)),
+    $multidir->file(qw(engine deploy func add_user.sql)),
+    $multidir->file(qw(engine revert func add_user.sql)),
+);
+my $conf_file = $multidir->file('multiplan.conf'),;
+file_not_exists_ok $_ for ($conf_file, @sql, @engine);
+
+local $ENV{SQITCH_CONFIG} = 'multiplan.conf';
+$sqitch = App::Sqitch->new;
+isa_ok $bundle = $CLASS->new(
+    sqitch  => $sqitch,
+    config  => $sqitch->config,
+    all     => 1,
+    dest_dir => dir '_build',
+), $CLASS, 'all xmultiplan bundle command';
+ok $bundle->execute, 'Execute multi-target bundle!';
+file_exists_ok $_ for ($conf_file, @sql, @engine);
+
+# Make sure we get an error with both --all and a specified target.
+throws_ok { $bundle->execute('pg' ) } 'App::Sqitch::X',
+    'Should get an error for --all and a target arg';
+is $@->ident, 'bundle', 'Mixed arguments error ident should be "bundle"';
+is $@->message, __(
+    'Cannot specify both --all and engine, target, or plan arugments'
+), 'Mixed arguments error message should be correct';
+
+# Try without --all.
+isa_ok $bundle = $CLASS->new(
+    sqitch  => $sqitch,
+    config  => $sqitch->config,
+    dest_dir => dir '_build',
+), $CLASS, 'multiplan bundle command';
+remove_tree $multidir->stringify;
+ok $bundle->execute, qq{Execute with no arg};
+file_exists_ok $_ for ($conf_file, @engine);
+file_not_exists_ok $_ for @sql;
+
+# Make sure it works with bundle.all set, as well.
+my $cmock = Test::MockModule->new('App::Sqitch::Config');
+my $get;
+$cmock->mock( get => sub {
+    return 1 if $_[2] eq 'bundle.all';
+    return $get->(@_);
+});
+$get = $cmock->original('get');
+remove_tree $multidir->stringify;
+ok $bundle->execute, qq{Execute with bundle.all config};
+file_exists_ok $_ for ($conf_file, @engine, @sql);
+$cmock->unmock_all;
+
+# Try limiting it in various ways.
+for my $spec (
+    [
+        target => 'pg',
+        { include => \@engine, exclude => \@sql },
+    ],
+    [
+        'plan file' => file(qw(engine sqitch.plan))->stringify,
+        { include => \@engine, exclude => \@sql },
+    ],
+    [
+        target => 'mysql',
+        { include => \@sql, exclude => \@engine },
+    ],
+    [
+        'plan file' => file(qw(sql sqitch.plan))->stringify,
+        { include => \@sql, exclude => \@engine },
+    ],
+) {
+    my ($type, $arg, $files) = @{ $spec };
+    remove_tree $multidir->stringify;
+    ok $bundle->execute($arg), qq{Execute with $type arg "$arg"};
+    file_exists_ok $_ for ($conf_file, @{ $files->{include} });
+    file_not_exists_ok $_ for @{ $files->{exclude} };
+}
+
+# Make sure we handle --to and --from.
+isa_ok $bundle = $CLASS->new(
+    sqitch  => $sqitch,
+    config  => $sqitch->config,
+    from     => 'widgets',
+    to       => 'widgets',
+    dest_dir => dir '_build',
+), $CLASS, 'to/from bundle command';
+remove_tree $multidir->stringify;
+ok $bundle->execute('pg'), 'Execute to/from bundle!';
+file_exists_ok $_ for ($conf_file, @engine[0,3,4]);
+file_not_exists_ok $_ for (@engine[1,2,5..$#engine]);
+file_contents_is $engine[0],
+    '%syntax-version=' . App::Sqitch::Plan::SYNTAX_VERSION . "\n"
+    . '%project=engine' . "\n"
+    . "\n"
+    . $plan->find('widgets')->as_string . "\n",
+    'Plan should have written only "widgets"';
+
+# Make sure we handle to and from args.
+isa_ok $bundle = $CLASS->new(
+    sqitch  => $sqitch,
+    config  => $sqitch->config,
+    dest_dir => dir '_build',
+), $CLASS, 'another bundle command';
+remove_tree $multidir->stringify;
+ok $bundle->execute(qw(pg widgets @HEAD)), 'Execute bundle with to/from args!';
+file_exists_ok $_ for ($conf_file, @engine[0,3..$#engine]);
+file_not_exists_ok $_ for (@engine[1,2]);
+file_contents_is $engine[0],
+    '%syntax-version=' . App::Sqitch::Plan::SYNTAX_VERSION . "\n"
+    . '%project=engine' . "\n"
+    . "\n"
+    . $plan->find('widgets')->as_string . "\n"
+    . $plan->find('func/add_user')->as_string . "\n",
+    'Plan should have written "widgets" and "func/add_user"';
+
+# Should die on unknown argument.
+throws_ok { $bundle->execute('nonesuch') } 'App::Sqitch::X',
+    'Should get an exception for unknown argument';
+is $@->ident, 'bundle', 'Unknown argument error ident shoud be "bundle"';
+is $@->message, __x(
+    'Unknown argument "{arg}"',
+    arg => 'nonesuch',
+), 'Unknown argument error message should be correct';
+
+# Should handle multiple arguments, too.
+throws_ok { $bundle->execute(qw(ba da dum)) } 'App::Sqitch::X',
+    'Should get an exception for unknown arguments';
+is $@->ident, 'bundle', 'Unknown arguments error ident shoud be "bundle"';
+is $@->message, __x(
+    'Unknown arguments: {arg}',
+    arg => join ', ', qw(ba da dum)
+), 'Unknown arguments error message should be correct';

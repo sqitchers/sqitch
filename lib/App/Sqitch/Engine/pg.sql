@@ -35,7 +35,7 @@ COMMENT ON COLUMN :"registry".projects.creator_email  IS 'Email address of the u
 
 CREATE TABLE :"registry".changes (
     change_id       TEXT        PRIMARY KEY,
-    script_hash     TEXT            NULL UNIQUE,
+    script_hash     TEXT            NULL,
     change          TEXT        NOT NULL,
     project         TEXT        NOT NULL REFERENCES :"registry".projects(project) ON UPDATE CASCADE,
     note            TEXT        NOT NULL DEFAULT '',
@@ -44,7 +44,8 @@ CREATE TABLE :"registry".changes (
     committer_email TEXT        NOT NULL,
     planned_at      TIMESTAMPTZ NOT NULL,
     planner_name    TEXT        NOT NULL,
-    planner_email   TEXT        NOT NULL
+    planner_email   TEXT        NOT NULL,
+    UNIQUE(project, script_hash)
 ):tableopts;
 
 COMMENT ON TABLE  :"registry".changes                 IS 'Tracks the changes currently deployed to the database.';
@@ -92,7 +93,7 @@ CREATE TABLE :"registry".dependencies (
     change_id       TEXT        NOT NULL REFERENCES :"registry".changes(change_id) ON UPDATE CASCADE ON DELETE CASCADE,
     type            TEXT        NOT NULL,
     dependency      TEXT        NOT NULL,
-    dependency_id   TEXT            NULL REFERENCES :"registry".changes(change_id) ON UPDATE CASCADE CHECK (
+    dependency_id   TEXT            NULL REFERENCES :"registry".changes(change_id) ON UPDATE CASCADE CONSTRAINT dependencies_check CHECK (
             (type = 'require'  AND dependency_id IS NOT NULL)
          OR (type = 'conflict' AND dependency_id IS NULL)
     ),
@@ -106,7 +107,9 @@ COMMENT ON COLUMN :"registry".dependencies.dependency    IS 'Dependency name.';
 COMMENT ON COLUMN :"registry".dependencies.dependency_id IS 'Change ID the dependency resolves to.';
 
 CREATE TABLE :"registry".events (
-    event           TEXT        NOT NULL CHECK (event IN ('deploy', 'revert', 'fail', 'merge')),
+    event           TEXT        NOT NULL CONSTRAINT events_event_check CHECK (
+        event IN ('deploy', 'revert', 'fail', 'merge')
+    ),
     change_id       TEXT        NOT NULL,
     change          TEXT        NOT NULL,
     project         TEXT        NOT NULL REFERENCES :"registry".projects(project) ON UPDATE CASCADE,

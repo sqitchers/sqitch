@@ -95,10 +95,18 @@ sub run {
         };
         ok $engine->initialized, 'Database should now be initialized';
         ok !$engine->needs_upgrade, 'Registry should not need upgrading';
-        is_deeply $engine->dbh->selectall_arrayref(
-            'SELECT version, installer_name, installer_email FROM releases'
-        ), [[$engine->registry_release + 0, $sqitch->user_name, $sqitch->user_email]],
-            'The release should be registered';
+        my $get_releases = sub {
+            my $releases = $engine->dbh->selectall_arrayref(q{
+                SELECT version, installer_name, installer_email
+                  FROM releases
+                 ORDER BY version
+            });
+            $_->[0] = sprintf '%.1f', $_->[0] for @{ $releases };
+            return $releases;
+        };
+        is_deeply $get_releases->(), [
+            [$engine->registry_release + 0, $sqitch->user_name, $sqitch->user_email]
+        ], 'The release should be registered';
 
         # Let's make sure upgrades work.
         $engine->dbh->do('DROP TABLE releases');
@@ -112,13 +120,17 @@ sub run {
                 'From {old} to {new}',
                 old => 0,
                 new => '1.0',
+            ), '  * ' . __x(
+                'From {old} to {new}',
+                old => '1.0',
+                new => '1.1',
             )], 'Should have info output for upgrade';
         }
         ok !$engine->needs_upgrade, 'Registry should no longer need upgrading';
-        is_deeply $engine->dbh->selectall_arrayref(
-            'SELECT version, installer_name, installer_email FROM releases'
-        ), [[$engine->registry_release + 0, $sqitch->user_name, $sqitch->user_email]],
-            'The release should be registered again';
+        is_deeply $get_releases->(), [
+            [ '1.0', $sqitch->user_name, $sqitch->user_email ],
+            [ '1.1', $sqitch->user_name, $sqitch->user_email ],
+        ], 'The release should be registered again';
 
         # Try it with a different Sqitch DB.
         $target = App::Sqitch::Target->new(
@@ -1102,6 +1114,17 @@ sub run {
             name => 'crazyman',
             note => 'Crazy, right?',
         ), "Create external change";
+
+        # Because we're gonna use a regular expression on events.project to
+        # get events from multiple projects, we need to make sure that we get
+        # things in the proper order, such as on MySQL 5.5, where there is no
+        # datetime precision. So pretend we're about to insert another
+        # "engine" project record to get the MySQL engine to wait out a clock
+        # second tick before inserting our "groovy" change. This is purely so
+        # we get things back in the proper order for the `project => 'g'` test
+        # below. In reality it shouldn't matter much.
+        $engine->_prepare_to_log(events => $barney);
+
         ok $engine->log_deploy_change($ext_change), 'Log the external change';
         my $ext_event = {
             event           => 'deploy',
@@ -1334,6 +1357,10 @@ sub run {
 
             # Now test as an external dependency.
             EXTERNAL: {
+                # Make sure we have unique IDs.
+                $_->{id} = 'dcb10d16276c9be8956274740d9f332bd71344ed'
+                    for grep { $_->{id} } $dep_params, $chg_params;
+
                 # Make Change and Tag return registered external project "groovy".
                 $dep_params->{project} = 'groovy';
                 my $line_mocker = Test::MockModule->new('App::Sqitch::Plan::Line');
@@ -1615,7 +1642,7 @@ sub run {
         my $deploy_file = $rev_change->deploy_file;
         my $tmp_dir = dir( tempdir CLEANUP => 1 );
         $deploy_file->copy_to($tmp_dir);
-        my $fh = $rev_change->deploy_file->opena or die "Cannot open $deploy_file: $!\n";
+        my $fh = $deploy_file->opena or die "Cannot open $deploy_file: $!\n";
         try {
             say $fh '-- Append line to reworked script so it gets a new SHA-1 hash';
             close $fh;
@@ -1623,12 +1650,52 @@ sub run {
             ok $engine->log_deploy_change($rev_change),  'Deploy the reworked change';
         } finally {
             # Restore the reworked script.
-            $tmp_dir->file( $deploy_file->basename )->move_to($deploy_file);
+            $tmp_dir->file( $deploy_file->basename )->copy_to($deploy_file);
         };
 
         # Make sure that change_id_for() is okay with the dupe.
         is $engine->change_id_for( change => 'users'), $change->id,
             'change_id_for() should find the earliest change ID';
+
+        ######################################################################
+        # Tag and Rework the change again.
+        ok $plan->tag(name => 'theta'), 'Tag the plan "theta"';
+        ok $engine->log_new_tags($rev_change), 'Log new tag';
+
+        ok my $rev_change2 = $plan->rework( name => 'users' ),
+            'Rework change "users" again';
+        $fh = $deploy_file->opena or die "Cannot open $deploy_file: $!\n";
+        try {
+            say $fh '-- Append another line to reworked script for a new SHA-1 hash';
+            close $fh;
+            $_->resolved_id( $engine->change_id_for_depend($_) ) for $rev_change2->requires;
+            ok $engine->log_deploy_change($rev_change2),  'Deploy the reworked change';
+        } finally {
+            # Restore the reworked script.
+            $tmp_dir->file( $deploy_file->basename )->copy_to($deploy_file);
+        };
+
+        # make sure that change_id_for is still good with things.
+        for my $spec (
+            [
+                'first instance of change',
+                { change => 'users' },
+                $change->id,
+            ],
+            [
+                'HEAD instance of change',
+                { change => 'users', tag => 'HEAD' },
+                $rev_change2->id,
+            ],
+            [
+                'second instance of change by tag',
+                { change => 'users', tag => 'theta' },
+                $rev_change->id,
+            ],
+        ) {
+            my ( $desc, $params, $exp_id ) = @{ $spec };
+            is $engine->change_id_for(%{ $params }), $exp_id, "Should find id for $desc";
+        }
 
         # Unmock everything and call it a day.
         $mock_dbh->unmock_all;

@@ -4,7 +4,7 @@ sqitch-status-usage - Sqitch status usage statement
 
 =head1 Usage
 
-  sqitch [<db-options>] status [<options>] [<database>]
+  sqitch [db-options] status [status options] [<database>]
 
 =head1 Options
 

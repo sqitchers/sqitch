@@ -15,7 +15,7 @@ use namespace::autoclean;
 
 extends 'App::Sqitch::Engine';
 
-our $VERSION = '0.999_1';
+our $VERSION = '0.9993';
 
 BEGIN {
     # We tell the Oracle connector which encoding to use. The last part of the
@@ -386,6 +386,23 @@ sub is_deployed_tag {
     )->[0];
 }
 
+sub are_deployed_changes {
+    my $self = shift;
+    my @qs;
+    my $i = @_;
+    while ($i > 250) {
+        push @qs => 'change_id IN (' . join(', ' => ('?') x 250) . ')';
+        $i -= 250;
+    }
+    push @qs => 'change_id IN (' . join(', ' => ('?') x @_) . ')';
+    my $expr = join ' OR ', @qs;
+    @{ $self->dbh->selectcol_arrayref(
+        "SELECT change_id FROM changes WHERE $expr",
+        undef,
+        map { $_->id } @_,
+    ) };
+}
+
 sub _registry_variable {
     my $self   = shift;
     my $schema = $self->registry;
@@ -741,8 +758,8 @@ Initializes a database for Sqitch by installing the Sqitch registry schema.
 
 =head3 C<sqlplus>
 
-Returns a list containing the the C<sqlplus> client and options to be passed
-to it. Used internally when executing scripts.
+Returns a list containing the C<sqlplus> client and options to be passed to it.
+Used internally when executing scripts.
 
 =head1 Author
 

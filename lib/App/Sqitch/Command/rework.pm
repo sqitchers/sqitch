@@ -8,12 +8,17 @@ use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use File::Copy;
 use Moo;
-use App::Sqitch::Types qw(Str ArrayRef ConfigBool);
+use App::Sqitch::Types qw(Str ArrayRef Bool Maybe);
 use namespace::autoclean;
 
 extends 'App::Sqitch::Command';
 
-our $VERSION = '0.999_1';
+our $VERSION = '0.9993';
+
+has change_name => (
+    is  => 'ro',
+    isa => Maybe[Str],
+);
 
 has requires => (
     is       => 'ro',
@@ -27,6 +32,12 @@ has conflicts => (
     default  => sub { [] },
 );
 
+has all => (
+    is      => 'ro',
+    isa     => Bool,
+    default => 0
+);
+
 has note => (
     is       => 'ro',
     isa      => ArrayRef[Str],
@@ -35,9 +46,8 @@ has note => (
 
 has open_editor => (
     is       => 'ro',
-    isa      => ConfigBool,
+    isa      => Bool,
     lazy     => 1,
-    coerce   => ConfigBool->coercion,
     default  => sub {
         my $self = shift;
         return $self->sqitch->config->get(
@@ -52,78 +62,119 @@ has open_editor => (
 
 sub options {
     return qw(
+        change-name|change|c=s
         requires|r=s@
-        conflicts|c=s@
+        conflicts|x=s@
+        all|a!
         note|n|m=s@
         open-editor|edit|e!
     );
 }
 
+sub configure {
+    my ( $class, $config, $opt ) = @_;
+    # Just keep the options.
+    return $opt;
+}
+
 sub execute {
-    my ( $self, $name ) = @_;
-    $self->usage unless defined $name;
-    my $target = $self->default_target;
-    my $plan   = $target->plan;
-
-    # Rework it.
-    my $reworked = $plan->rework(
-        name      => $name,
-        requires  => $self->requires,
-        conflicts => $self->conflicts,
-        note      => join "\n\n" => @{ $self->note },
+    my $self = shift;
+    my ($name, $targets, $changes) = $self->parse_args(
+        names      => [$self->change_name],
+        all        => $self->all,
+        args       => \@_,
+        no_default => 1,
+        no_changes => 1,
     );
 
-    # Get the latest instance of the change.
-    my $prev = $plan->get(
-        $name . [$plan->last_tagged_change->tags]->[-1]->format_name
-    );
+    # Check if the name is identified as a change.
+    $name ||= shift @{ $changes } || $self->usage;
 
-    # Make sure we have a note.
-    $reworked->request_note(
-        for     => __ 'rework',
-        scripts => [
-            (-e $reworked->deploy_file ? $reworked->deploy_file : ()),
-            (-e $reworked->revert_file ? $reworked->revert_file : ()),
-            (-e $reworked->verify_file ? $reworked->verify_file : ()),
-        ],
-    );
+    my $note = join "\n\n", => @{ $self->note };
+    my ($first_change, %reworked, @files, %seen);
 
-    # Copy files to the new names for the previous instance of the change.
-    my @files = (
-        $self->_copy(
-            $name,
+    for my $target (@{ $targets }) {
+        my $plan   = $target->plan;
+        my $file = $plan->file;
+        my $spec = $reworked{$file} ||= { scripts => [] };
+        my ($prev, $reworked);
+        if ($prev = $spec->{prev}) {
+            # Need a dupe for *this* target so script names are right.
+            $reworked = ref($prev)->new(
+                plan => $plan,
+                name => $name,
+            );
+
+            # Copy the rework tags to the previous instance in this plan.
+            my $new_prev = $spec->{prev} = $plan->get(
+                $name . [$plan->last_tagged_change->tags]->[-1]->format_name
+            );
+            $new_prev->add_rework_tags($prev->rework_tags);
+            $prev = $new_prev;
+
+        } else {
+            # Rework it.
+            $reworked = $spec->{change} = $plan->rework(
+                name      => $name,
+                requires  => $self->requires,
+                conflicts => $self->conflicts,
+                note      => $note,
+            );
+            $first_change ||= $reworked;
+
+            # Get the latest instance of the change.
+            $prev = $spec->{prev} = $plan->get(
+                $name . [$plan->last_tagged_change->tags]->[-1]->format_name
+            );
+        }
+
+        # Record the files to be copied to the previous change name.
+        push @{ $spec->{scripts} } => map {
+            push @files => $_->[0] if -e $_->[0];
+            $_;
+        } grep {
+            !$seen{ $_->[0] }++;
+        } (
+            [ $reworked->deploy_file, $prev->deploy_file ],
+            [ $reworked->revert_file, $prev->revert_file ],
+            [ $reworked->verify_file, $prev->verify_file ],
+        );
+
+        # Replace the revert file with the previous deploy file.
+        push @{ $spec->{scripts} } => [
             $reworked->deploy_file,
-            $prev->deploy_file,
-        ),
-        $self->_copy(
-            $name,
             $reworked->revert_file,
             $prev->revert_file,
-        ),
-        $self->_copy(
-            $name,
-            $reworked->verify_file,
-            $prev->verify_file,
-        ),
+        ] unless $seen{$prev->revert_file}++;
+    }
+
+    # Make sure we have a note.
+    $note = $first_change->request_note(
+        for     => __ 'rework',
+        scripts => \@files,
     );
 
-    # Replace the revert file with the previous deploy file.
-    $self->_copy(
-        $name,
-        $reworked->deploy_file,
-        $reworked->revert_file,
-        $prev->revert_file,
-    );
+    # Time to write everything out.
+    for my $target (@{ $targets }) {
+        my $plan = $target->plan;
+        my $file = $plan->file;
+        my $spec = delete $reworked{$file} or next;
 
-    # We good, write the plan file back out.
-    $plan->write_to( $target->plan_file );
+        # Copy the files for this spec.
+        $self->_copy(@{ $_ }) for @{ $spec->{scripts } };
 
-    # Let the user knnow what to do.
-    $self->info(__x(
-        'Added "{change}" to {file}.',
-        change => $reworked->format_op_name_dependencies,
-        file   => $target->plan_file,
-    ));
+        # We good, write the plan file back out.
+        $plan->write_to( $plan->file );
+
+        # Let the user know.
+        $self->info(__x(
+            'Added "{change}" to {file}.',
+            change => $spec->{change}->format_op_name_dependencies,
+            file   => $plan->file,
+        ));
+    }
+
+    # Now tell them what to do.
     $self->info(__n(
         'Modify this file as appropriate:',
         'Modify these files as appropriate:',
@@ -141,7 +192,7 @@ sub execute {
 }
 
 sub _copy {
-    my ( $self, $name, $src, $dest, $orig ) = @_;
+    my ( $self, $src, $dest, $orig ) = @_;
     $orig ||= $src;
     if (!-e $orig) {
         $self->debug(__x(
@@ -210,6 +261,10 @@ for the constructor.
 
 =head2 Attributes
 
+=head3 C<change_name>
+
+The name of the change to be reworked.
+
 =head3 C<note>
 
 Text of the change note.
@@ -221,6 +276,11 @@ List of required changes.
 =head3 C<conflicts>
 
 List of conflicting changes.
+
+=head3 C<all>
+
+Boolean indicating whether or not to run the command against all plans in the
+project.
 
 =head2 Instance Methods
 

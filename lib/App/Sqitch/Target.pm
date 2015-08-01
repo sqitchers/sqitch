@@ -232,7 +232,7 @@ sub BUILDARGS {
         return $p;
     }
 
-    # XXX $merge for deprecated options and config.
+    # XXX $merge for deprecated config.
     # Can also move $ekey just to block below when deprecated merge is removed.
     my ($ekey, $merge);
     my $config = $sqitch->config;
@@ -312,23 +312,19 @@ sub BUILDARGS {
             $WARNED = 1;
         }
 
-        my @deprecated;
         if (my $host = $opts->{db_host}) {
-            push @deprecated => '--db-host';
             $uri->host($host);
         } elsif ($host = $econfig->{host}) {
             $uri->host($host) if $merge > 1;
         }
 
         if (my $port = $opts->{db_port}) {
-            push @deprecated => '--db-port';
             $uri->port($port);
         } elsif ($port = $econfig->{port}) {
             $uri->port($port) if $merge > 1;
         }
 
         if (my $user = $opts->{db_username}) {
-            push @deprecated => '--db-username';
             $uri->user($user);
         } elsif ($user = $econfig->{username}) {
             $uri->user($user) if $merge > 1;
@@ -339,21 +335,11 @@ sub BUILDARGS {
         }
 
         if (my $db = $opts->{db_name}) {
-            push @deprecated => '--db-name';
             $uri->dbname($db);
         } elsif ($db = $econfig->{db_name}) {
             $uri->dbname($db) if $merge > 1;
         }
 
-        if (@deprecated) {
-            $sqitch->warn(__nx(
-                'Option {options} deprecated and will be removed in 1.0; use URI {uri} instead',
-                'Options {options} deprecated and will be removed in 1.0; use URI {uri} instead',
-                scalar @deprecated,
-                options => join(', ', @deprecated),
-                uri     => $uri->as_string,
-            ));
-        }
     }
 
     unless ($name) {
@@ -369,6 +355,49 @@ sub BUILDARGS {
     }
 
     return $p;
+}
+
+sub all_targets {
+    my ($class, %p) = @_;
+    my $sqitch = $p{sqitch} or hurl 'Missing required argument: sqitch';
+    my (@targets, %seen);
+    my %dump = $sqitch->config->dump;
+
+    # First, load the default target.
+    my $core = $dump{'core.target'} || do {
+        if ( my $engine = $sqitch->options->{engine} || $dump{'core.engine'} ) {
+            $dump{"engine.$engine.target"} || "db:$engine:";
+        }
+    };
+    push @targets => $seen{$core} = $class->new(sqitch => $sqitch, name => $core)
+        if $core;
+
+    # Next, load named targets.
+    for my $key (keys %dump) {
+        next if $key !~ /^target[.]([^.]+)[.]uri$/;
+        push @targets => $seen{$1} = $class->new(sqitch => $sqitch, name => $1)
+            unless $seen{$1};
+    }
+
+    # Now, load the engine targets.
+    while ( my ($key, $val) = each %dump ) {
+        next if $key !~ /^engine[.]([^.]+)[.]target$/;
+        push @targets => $seen{$val} = $class->new(sqitch => $sqitch, name => $val)
+            unless $seen{$val};
+        $seen{$1} = $seen{$val};
+    }
+
+    # Finally, load any engines for which no target name was specified.
+    while ( my ($key, $val) = each %dump ) {
+        my ($engine) = $key =~ /^engine[.]([^.]+)/ or next;
+        next if $seen{$engine}++;
+        my $uri = URI->new("db:$engine:");
+        push @targets => $seen{$uri} = $class->new(sqitch => $sqitch, uri => $uri)
+            unless $seen{$uri};
+    }
+
+    # Return all the targets.
+    return @targets;
 }
 
 1;
@@ -396,12 +425,14 @@ target to work with the plan or database.
 
 =head1 Interface
 
+=head2 Constructors
+
 =head3 C<new>
 
   my $target = App::Sqitch::Target->new( sqitch => $sqitch );
 
 Instantiates and returns an App::Sqitch::Target object. The most important
-parameters are C<sqitch>, C<name> and C<uri>. The constructor tries really
+parameters are C<sqitch>, C<name>, and C<uri>. The constructor tries really
 hard to figure out the proper name and URI during construction. If the C<uri>
 parameter is passed, this is straight-forward: if no C<name> is passed,
 C<name> will be set to the stringified format of the URI (minus the password,
@@ -414,9 +445,8 @@ the following steps:
 
 =item *
 
-If there is no name, get the engine key from from C<--engine> or the
-C<core.engine> configuration option. If no key can be determined, an exception
-will be thrown.
+If there is no name, get the engine key from C<--engine> or the C<core.engine>
+configuration option. If no key can be determined, an exception will be thrown.
 
 =item *
 
@@ -438,6 +468,26 @@ As a general rule, then, pass either a target name or URI string in the
 C<name> parameter, and Sqitch will do its best to find all the relevant target
 information. And if there is no name or URI, it will try to construct a
 reasonable default from the command-line options or engine configuration.
+
+=head3 C<all_targets>
+
+Returns a list of all the targets defined by the Sqitch configuration files.
+Done by examining the configuration object to find all defined targets and
+engines, as well as the default "core" target. Duplicates are removed and
+the list returned. This method takes two parameters:
+
+=over
+
+=item * C<sqitch>
+
+An L<App::Sqitch> object. Required.
+
+=item * C<config>
+
+An L<App::Sqitch::Config> object. If not passed, the object stored in the
+Sqitch object's C<config> attribute will be used.
+
+=back
 
 =head2 Accessors
 
