@@ -70,7 +70,10 @@ my $sqitch = App::Sqitch->new( options => {
     engine => 'sqlite',
     top_dir => dir('test-change')->stringify,
 });
-my $target = App::Sqitch::Target->new(sqitch => $sqitch);
+my $target = App::Sqitch::Target->new(
+    sqitch => $sqitch,
+    reworked_dir => dir('reworked'),
+);
 my $plan   = App::Sqitch::Plan->new(sqitch => $sqitch, target => $target);
 make_path 'test-change';
 END { remove_tree 'test-change' };
@@ -298,12 +301,12 @@ my @fn = ('yo', 'howdy@beta.sql');
 $change2->add_rework_tags($tag2);
 is_deeply [ $change2->path_segments ], \@fn,
     'path_segments should include directories';
-is $change2->deploy_file, $target->deploy_dir->file(@fn),
-    'The deploy file should include the suffix';
-is $change2->revert_file, $target->revert_dir->file(@fn),
-    'The revert file should include the suffix';
-is $change2->verify_file, $target->verify_dir->file(@fn),
-    'The verify file should include the suffix';
+is $change2->deploy_file, $target->reworked_deploy_dir->file(@fn),
+    'Deploy file should be in rworked dir and include suffix';
+is $change2->revert_file, $target->reworked_revert_dir->file(@fn),
+    'Revert file should be in rworked dir and include suffix';
+is $change2->verify_file, $target->reworked_verify_dir->file(@fn),
+    'Verify file should be in rworked dir and include suffix';
 
 ##############################################################################
 # Test open_script.

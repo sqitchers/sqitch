@@ -2028,6 +2028,7 @@ is_deeply +MockOutput->get_info, [
 # Try to revert just the last change with no prompt
 MockOutput->ask_y_n_returns(1);
 $engine->no_prompt(1);
+my $rev_file = $dbchanges[-1]->revert_file; # Grab before deleting _rework_tags.
 my $rtags = delete $dbchanges[-1]->{_rework_tags}; # These need to be invisible.
 $offset_change = $dbchanges[-1];
 push @resolved => $offset_change->id;
@@ -2038,7 +2039,7 @@ is_deeply $engine->seen, [
     [change_offset_from_id => [$dbchanges[-1]->id, -1] ],
     [deployed_changes_since => $dbchanges[-1]],
     [check_revert_dependencies => [{ %{ $dbchanges[-1] }, _rework_tags => $rtags }] ],
-    [run_file => $dbchanges[-1]->revert_file ],
+    [run_file => $rev_file ],
     [log_revert_change => { %{ $dbchanges[-1] }, _rework_tags => $rtags } ],
 ], 'Should have reverted one changes for @HEAD^';
 is_deeply +MockOutput->get_ask_y_n, [], 'Should have no prompt';

@@ -204,7 +204,11 @@ sub dependencies {
 
 sub deploy_file {
     my $self   = shift;
-    $self->target->deploy_dir->file( $self->path_segments );
+    my $target = $self->target;
+    my $dest = $self->is_reworked
+        ? $target->reworked_deploy_dir
+        : $target->deploy_dir;
+    $dest->file( $self->path_segments );
 }
 
 sub _deploy_hash {
@@ -218,12 +222,20 @@ sub _deploy_hash {
 
 sub revert_file {
     my $self   = shift;
-    $self->target->revert_dir->file( $self->path_segments );
+    my $target = $self->target;
+    my $dest = $self->is_reworked
+        ? $target->reworked_revert_dir
+        : $target->revert_dir;
+    $dest->file( $self->path_segments );
 }
 
 sub verify_file {
     my $self   = shift;
-    $self->target->verify_dir->file( $self->path_segments );
+    my $target = $self->target;
+    my $dest = $self->is_reworked
+        ? $target->reworked_verify_dir
+        : $target->verify_dir;
+    $dest->file( $self->path_segments );
 }
 
 sub script_file {
