@@ -29,6 +29,9 @@ has registry_uri => (
         my $uri  = $self->uri->clone;
         my $reg  = $self->registry;
 
+        return $uri if $self->with_registry_prefix;    # Use the DB as
+                                                       # registry
+
         if ( file($reg)->is_absolute ) {
             # Just use an absolute path.
             $uri->dbname($reg);
@@ -165,8 +168,11 @@ sub _version_query {
 
 sub is_deployed_change {
     my ( $self, $change ) = @_;
+    my $changes = $self->_get_registry_table('changes');
     return $self->dbh->selectcol_arrayref(
-        'SELECT 1 FROM changes WHERE change_id = ?',
+        qq{SELECT 1
+               FROM $changes
+               WHERE change_id = ?},
         undef, $change->id
     )->[0];
 }
@@ -182,6 +188,7 @@ sub is_deployed_tag {
 
 sub initialized {
     my $self = shift;
+    my $changes = $self->_get_registry_table('changes');
 
     # Try to connect.
     my $err = 0;
@@ -194,7 +201,7 @@ sub initialized {
             WHERE RDB\$SYSTEM_FLAG=0
                   AND RDB\$VIEW_BLR IS NULL
                   AND RDB\$RELATION_NAME = ?
-    }, undef, 'CHANGES')->[0];
+    }, undef, uc($changes) )->[0];
 }
 
 sub initialize {
@@ -206,28 +213,69 @@ sub initialize {
     ) if $self->initialized;
 
     my $sqitch_db = $self->connection_string($uri);
-
-    # Create the registry database if it does not exist.
-    $self->use_driver;
-    try {
-        DBD::Firebird->create_database({
-            db_path       => $sqitch_db,
-            user          => scalar $self->username,
-            password      => scalar $self->password,
-            character_set => 'UTF8',
-            page_size     => 16384,
-        });
+    if ( $self->with_registry_prefix ) {
+        my @cmd      = $self->isql;
+        my $cmd_echo = qx( echo "SHOW DATABASE;" | @cmd 2>&1 );
+        if ( my ($ps) = $cmd_echo =~ m{PAGE_SIZE\s+(\d+)}gm ) {
+            hurl firebird => __x(
+                'The current page_size ({pagesize}) in {database} is lower then the minimum required value (16384).',
+                database => $sqitch_db,
+                pagesize => $ps,
+            ) if $ps < 16384;
+        }
     }
-    catch {
-        hurl firebird => __x(
-            'Cannot create database {database}: {error}',
-            database => $sqitch_db,
-            error    => $_,
-        );
-    };
+    else {
+        # Create the registry database if it does not exist.
+        $self->use_driver;
+        try {
+            DBD::Firebird->create_database(
+                {   db_path       => $sqitch_db,
+                    user          => scalar $uri->user,
+                    password      => scalar $uri->password,
+                    character_set => 'UTF8',
+                    page_size     => 16384,
+                }
+            );
+        }
+        catch {
+            if ( $_ =~ m{database.+exists} ) {
+                $self->sqitch->warn(
+                    __x('Database {database} exists',
+                        database => $sqitch_db
+                    )
+                );
+            }
+            else {
+                hurl firebird => __x(
+                    'Cannot create database {database}: {error}',
+                    database => $sqitch_db,
+                    error    => $_,
+                );
+            }
+        };
+    }
 
     # Load up our database. The database must exist!
-    $self->run_upgrade( file(__FILE__)->dir->file('firebird.sql') );
+    my @cmd    = $self->isql;
+    $cmd[-1]   = $sqitch_db;
+    my $file   = file(__FILE__)->dir->file('firebird.sql');
+    my $sqitch = $self->sqitch;
+    my $prefix = $self->with_registry_prefix ? 'sqitch_' : '';
+    ( my $sql = scalar $file->slurp ) =~ s/:prefix:/$prefix/g;
+    require File::Temp;
+    my $fh = File::Temp->new;
+    print { $fh } $sql;
+
+    ### DEBUG
+    my $file_sql = '/tmp/firebird.sql';
+    open my $file_fh, '>:encoding(utf8)', $file_sql
+        or die "Can't open file ", $file_sql, ": $!";
+    print { $file_fh } $sql;
+    close $file_fh;
+    ###
+
+    $sqitch->run( @cmd, '-input' => $sqitch->quote_shell( $fh->filename ) );
+    close $fh;
     $self->_register_release;
 }
 
@@ -247,6 +295,7 @@ sub connection_string {
 sub begin_work {
     my $self = shift;
     my $dbh = $self->dbh;
+    my $changes = $self->_get_registry_table('changes');
 
     # Start transaction and lock all tables to disallow concurrent changes.
     # This should be equivalent to 'LOCK TABLE changes' ???
@@ -254,12 +303,12 @@ sub begin_work {
     $dbh->func(
         -lock_resolution => 'no_wait',
         -reserving => {
-            changes => {
+            $changes => {
                 lock   => 'read',
                 access => 'protected',
             },
         },
-        'ib_set_tx_param'
+        'ib_set_tx_param',
     );
     $dbh->begin_work;
     return $self;
@@ -350,12 +399,12 @@ sub run_handle {
 
 sub _cid {
     my ( $self, $ord, $offset, $project ) = @_;
-
+    my $changes = $self->_get_registry_table('changes');
     my $offexpr = $offset ? " SKIP $offset" : '';
     return try {
         return $self->dbh->selectcol_arrayref(qq{
             SELECT FIRST 1$offexpr change_id
-              FROM changes
+              FROM $changes
              WHERE project = ?
              ORDER BY committed_at $ord;
         }, undef, $project || $self->plan->project)->[0];
@@ -365,13 +414,17 @@ sub _cid {
         # -Error while trying to open file
         # -No such file or directory
         # print "===DBI ERROR: $DBI::err\n";
-        return if $DBI::err == -902;       # can't connect to database
+        # Can't connect to the database OR undefined name (sqitch_changes)
+        return if $DBI::err == -902 or $DBI::err == -204;
         die $_;
     };
 }
 
 sub current_state {
     my ( $self, $project ) = @_;
+    my $changes = $self->_get_registry_table('changes');
+    my $tags    = $self->_get_registry_table('tags');
+
     my $cdtcol = sprintf $self->_ts2char_format, 'c.committed_at';
     my $pdtcol = sprintf $self->_ts2char_format, 'c.planned_at';
     my $tagcol = sprintf $self->_listagg_format, 't.tag';
@@ -389,8 +442,8 @@ sub current_state {
                  , c.planner_email
                  , $pdtcol AS planned_at
                  , $tagcol AS tags
-              FROM changes   c
-              LEFT JOIN tags t ON c.change_id = t.change_id
+              FROM $changes   c
+              LEFT JOIN $tags t ON c.change_id = t.change_id
              WHERE c.project = ?
              GROUP BY c.change_id
                  , c.script_hash
@@ -420,6 +473,7 @@ sub current_state {
 
 sub search_events {
     my ( $self, %p ) = @_;
+    my $events = $self->_get_registry_table('events');
 
     # Determine order direction.
     my $dir = 'DESC';
@@ -525,7 +579,7 @@ sub search_events {
              , e.planner_name
              , e.planner_email
              , $pdtcol AS planned_at
-          FROM events e$where
+          FROM $events e$where
          ORDER BY e.committed_at $dir
     });
     $sth->execute(@params);
@@ -539,38 +593,45 @@ sub search_events {
 
 sub changes_requiring_change {
     my ( $self, $change ) = @_;
-    return @{ $self->dbh->selectall_arrayref(q{
+    my $changes      = $self->_get_registry_table('changes');
+    my $tags         = $self->_get_registry_table('tags');
+    my $dependencies = $self->_get_registry_table('dependencies');
+    return @{ $self->dbh->selectall_arrayref(qq{
         SELECT c.change_id, c.project, c.change, (
             SELECT FIRST 1 tag
-              FROM changes c2
-              JOIN tags ON c2.change_id = tags.change_id
+              FROM $changes c2
+              JOIN $tags t ON c2.change_id = t.change_id
              WHERE c2.project      = c.project
                AND c2.committed_at >= c.committed_at
              ORDER BY c2.committed_at
         ) AS asof_tag
-          FROM dependencies d
-          JOIN changes c ON c.change_id = d.change_id
+          FROM $dependencies d
+          JOIN $changes c ON c.change_id = d.change_id
          WHERE d.dependency_id = ?
     }, { Slice => {} }, $change->id) };
 }
 
 sub name_for_change_id {
     my ( $self, $change_id ) = @_;
-    return $self->dbh->selectcol_arrayref(q{
+    my $changes = $self->_get_registry_table('changes');
+    my $tags    = $self->_get_registry_table('tags');
+    return $self->dbh->selectcol_arrayref(qq{
         SELECT c.change || COALESCE((
             SELECT FIRST 1 tag
-              FROM changes c2
-              JOIN tags ON c2.change_id = tags.change_id
+              FROM $changes c2
+              JOIN $tags t ON c2.change_id = t.change_id
              WHERE c2.committed_at >= c.committed_at
                AND c2.project = c.project
         ), '')
-          FROM changes c
+          FROM $changes c
          WHERE change_id = ?
     }, undef, $change_id)->[0];
 }
 
 sub change_offset_from_id {
     my ( $self, $change_id, $offset ) = @_;
+    my $changes = $self->_get_registry_table('changes');
+    my $tags    = $self->_get_registry_table('tags');
 
     # Just return the object if there is no offset.
     return $self->load_change($change_id) unless $offset;
@@ -591,11 +652,11 @@ sub change_offset_from_id {
                c.change_id AS "id", c.change AS name, c.project, c.note,
                $tscol AS "timestamp", c.planner_name, c.planner_email,
                $tagcol AS tags
-          FROM changes   c
-          LEFT JOIN tags t ON c.change_id = t.change_id
+          FROM $changes c
+          LEFT JOIN $tags t ON c.change_id = t.change_id
          WHERE c.project = ?
            AND c.committed_at $op (
-               SELECT committed_at FROM changes WHERE change_id = ?
+               SELECT committed_at FROM $changes WHERE change_id = ?
          )
          GROUP BY c.change_id, c.change, c.project, c.note, c.planned_at,
                c.planner_name, c.planner_email, c.committed_at
@@ -615,24 +676,27 @@ sub change_offset_from_id {
 
 sub _cid_head {
     my ($self, $project, $change) = @_;
-    return $self->dbh->selectcol_arrayref(q{
-        SELECT FIRST 1 change_id
-          FROM changes
-         WHERE project = ?
-           AND changes.change  = ?
-         ORDER BY committed_at DESC
+    my $changes = $self->_get_registry_table('changes');
+    return $self->dbh->selectcol_arrayref(qq{
+        SELECT FIRST 1 c.change_id
+          FROM $changes c
+         WHERE c.project = ?
+           AND c.change  = ?
+         ORDER BY c.committed_at DESC
     }, undef, $project, $change)->[0];
 }
 
 sub change_id_for {
     my ( $self, %p) = @_;
-    my $dbh = $self->dbh;
+    my $changes = $self->_get_registry_table('changes');
+    my $tags    = $self->_get_registry_table('tags');
+    my $dbh     = $self->dbh;
 
     if ( my $cid = $p{change_id} ) {
         # Find by ID.
-        return $dbh->selectcol_arrayref(q{
+        return $dbh->selectcol_arrayref(qq{
             SELECT change_id
-              FROM changes
+              FROM $changes
              WHERE change_id = ?
         }, undef, $cid)->[0];
     }
@@ -648,26 +712,26 @@ sub change_id_for {
                 if $tag eq 'HEAD' || $tag eq 'LAST';
 
             # Find by change name and following tag.
-            return $dbh->selectcol_arrayref(q{
-                SELECT changes.change_id
-                  FROM changes
-                  JOIN tags
-                    ON changes.committed_at <= tags.committed_at
-                   AND changes.project = tags.project
-                 WHERE changes.project = ?
-                   AND changes.change  = ?
-                   AND tags.tag        = ?
+            return $dbh->selectcol_arrayref(qq{
+                SELECT c.change_id
+                  FROM $changes c
+                  JOIN $tags t
+                    ON c.committed_at <= t.committed_at
+                   AND c.project = t.project
+                 WHERE c.project = ?
+                   AND c.change  = ?
+                   AND t.tag     = ?
             }, undef, $project, $change, '@' . $tag)->[0];
         }
 
         # Find earliest by change name.
         my $limit = $self->_can_limit ? " FIRST 1" : '';
         return $dbh->selectcol_arrayref(qq{
-            SELECT $limit change_id
-              FROM changes
-             WHERE project = ?
-               AND changes.change  = ?
-             ORDER BY changes.committed_at ASC
+            SELECT $limit c.change_id
+              FROM $changes c
+             WHERE c.project = ?
+               AND c.change  = ?
+             ORDER BY c.committed_at ASC
         }, undef, $project, $change)->[0];
     }
 
@@ -681,9 +745,9 @@ sub change_id_for {
             if $tag eq 'ROOT' || $tag eq 'FIRST';
 
         # Find by tag name.
-        return $dbh->selectcol_arrayref(q{
+        return $dbh->selectcol_arrayref(qq{
             SELECT change_id
-              FROM tags
+              FROM $tags
              WHERE project = ?
                AND tag     = ?
         }, undef, $project, '@' . $tag)->[0];
@@ -695,6 +759,8 @@ sub change_id_for {
 
 sub log_new_tags {
     my ( $self, $change ) = @_;
+    my $tags = $self->_get_registry_table('tags');
+
     my @tags   = $change->tags or return $self;
     my $sqitch = $self->sqitch;
 
@@ -709,8 +775,8 @@ sub log_new_tags {
     my $ts = $self->_ts_default;
     my $sf = $self->_simple_from;
 
-    my $sql = q{
-            INSERT INTO tags (
+    my $sql = qq{
+            INSERT INTO $tags (
                    tag_id
                  , tag
                  , project
@@ -737,10 +803,10 @@ sub log_new_tags {
                        , CAST(? AS VARCHAR(512)) AS puser
                        , CAST(? AS VARCHAR(512)) AS pemail
                        , CAST($ts$sf AS TIMESTAMP) AS cts"
-             ) x @tags ) . q{
-               FROM RDB$DATABASE ) i
-               LEFT JOIN tags ON i.tid = tags.tag_id
-               WHERE tags.tag_id IS NULL
+             ) x @tags ) . qq{
+               FROM RDB\$DATABASE ) i
+               LEFT JOIN $tags t ON i.tid = t.tag_id
+               WHERE t.tag_id IS NULL
         };
     my @params = map { (
             $_->id,
@@ -760,6 +826,10 @@ sub log_new_tags {
 
 sub log_deploy_change {
     my ($self, $change) = @_;
+    my $dependencies = $self->_get_registry_table('dependencies');
+    my $changes      = $self->_get_registry_table('changes');
+    my $tags         = $self->_get_registry_table('tags');
+
     my $dbh    = $self->dbh;
     my $sqitch = $self->sqitch;
 
@@ -786,7 +856,7 @@ sub log_deploy_change {
         committed_at
     ));
     $dbh->do(qq{
-        INSERT INTO changes (
+        INSERT INTO $changes (
             $cols
         )
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, $ts)
@@ -805,8 +875,8 @@ sub log_deploy_change {
 
     if ( my @deps = $change->dependencies ) {
         foreach my $dep (@deps) {
-            my $sql = q{
-            INSERT INTO dependencies (
+            my $sql = qq{
+            INSERT INTO $dependencies (
                   change_id
                 , type
                 , dependency
@@ -820,7 +890,7 @@ sub log_deploy_change {
     if ( my @tags = $change->tags ) {
         foreach my $tag (@tags) {
             my $sql = qq{
-            INSERT INTO tags (
+            INSERT INTO $tags (
                   tag_id
                 , tag
                 , project
@@ -856,7 +926,7 @@ sub default_client {
     require File::Temp;
     my $fh = File::Temp->new( CLEANUP => 1 );
     my @opts = (qw(-z -q -i), $fh->filename);
-    $fh->print("quit;\n");
+    $fh->print("exit;\n");
     $fh->close;
 
     # Suppress STDERR, including in subprocess.
