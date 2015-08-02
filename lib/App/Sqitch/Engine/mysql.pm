@@ -203,6 +203,7 @@ sub _version_query { 'SELECT ROUND(MAX(version), 1) FROM releases' }
 
 sub initialized {
     my $self = shift;
+    my $changes = $self->_get_registry_table('changes');
 
     # Try to connect.
     my $dbh = try { $self->dbh } catch {
@@ -216,7 +217,7 @@ sub initialized {
           FROM information_schema.tables
          WHERE table_schema = ?
            AND table_name   = ?
-    }, undef, $self->registry, 'changes')->[0];
+    }, undef, $self->registry, $changes)->[0];
 }
 
 sub initialize {
@@ -226,14 +227,21 @@ sub initialize {
         database => $self->registry,
     ) if $self->initialized;
 
-    # Create the Sqitch database if it does not exist.
-    (my $db = $self->registry) =~ s/"/""/g;
-    $self->_run(
-        '--execute'  => sprintf(
-            'SET sql_mode = ansi; CREATE DATABASE IF NOT EXISTS "%s"',
-            $self->registry
-        ),
-    );
+    if ( !$self->with_registry_prefix ) {
+
+        # Create the Sqitch database if it does not exist.
+        ( my $db = $self->registry ) =~ s/"/""/g;
+        $self->_run(
+            '--execute' =>
+                sprintf(
+                'SET sql_mode = ansi; CREATE DATABASE IF NOT EXISTS "%s"',
+                $self->registry ),
+        );
+    }
+
+    # Connect to the Sqitch database.
+    my @cmd = $self->mysql;
+    $cmd[1 + firstidx { $_ eq '--database' } @cmd ] = $self->registry;
 
     # Deploy the registry to the Sqitch database.
     $self->run_upgrade( file(__FILE__)->dir->file('mysql.sql') );
@@ -249,7 +257,8 @@ sub begin_work {
     # Start transaction and lock all tables to disallow concurrent changes.
     $dbh->do('LOCK TABLES ' . join ', ', map {
         "$_ WRITE"
-    } qw(releases changes dependencies events projects tags));
+    } values %{$self->_registry_tables} );
+
     $dbh->begin_work;
     return $self;
 }
@@ -373,6 +382,10 @@ sub run_upgrade {
     # Need to strip out datetime precision.
     (my $sql = scalar $file->slurp) =~ s{DATETIME\(\d+\)}{DATETIME}g;
 
+    # Replace the prefix
+    my $prefix = $self->with_registry_prefix ? 'sqitch_' : '';
+    $sql =~ s/:prefix:/$prefix/g;
+
     # Strip out 5.5 stuff on earlier versions.
     $sql =~ s/-- ## BEGIN 5[.]5.+?-- ## END 5[.]5//ms if $dbh->{mysql_serverversion} < 50500;
 
@@ -391,12 +404,13 @@ sub run_handle {
 
 sub _cid {
     my ( $self, $ord, $offset, $project ) = @_;
+    my $changes = $self->_get_registry_table('changes');
 
     my $offexpr = $offset ? " OFFSET $offset" : '';
     return try {
         return $self->dbh->selectcol_arrayref(qq{
             SELECT change_id
-              FROM changes
+              FROM $changes
              WHERE project = ?
              ORDER BY committed_at $ord
              LIMIT 1$offexpr

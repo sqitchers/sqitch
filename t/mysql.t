@@ -324,6 +324,7 @@ my $err = try {
     }
 
     $dbh->do('CREATE DATABASE __sqitchtest__');
+    $dbh->do('CREATE DATABASE __sqitchtest');
     undef;
 } catch {
     eval { $_->message } || $_;
@@ -343,6 +344,10 @@ DBIEngineTest->run(
     alt_target_params => [
         registry => '__sqitchtest',
         uri => URI::db->new('db:mysql://root@/__sqitchtest__'),
+    ],
+    prefix_target_params => [
+        uri => URI::db->new('db:mysql://root@/__sqitchtest__'),
+        with_registry_prefix => 1
     ],
     skip_unless       => sub {
         my $self = shift;
