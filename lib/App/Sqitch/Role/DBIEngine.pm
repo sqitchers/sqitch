@@ -28,7 +28,7 @@ memoize('_registry_tables');
 sub _registry_tables {
     my $self = shift;
     my %h = map {$_ => ($self->with_registry_prefix ? "sqitch_$_" : $_) } qw /changes tags dependencies events projects releases/;
-    return \%h;        
+    return \%h;
 }
 
 sub _get_registry_table {
@@ -909,12 +909,11 @@ sub change_offset_from_id {
 sub _cid_head {
     my ($self, $project, $change) = @_;
     my $changes = $self->_get_registry_table('changes');
-
     return $self->dbh->selectcol_arrayref(qq{
         SELECT change_id
           FROM $changes
          WHERE project = ?
-           AND changes.change  = ?
+           AND change  = ?
          ORDER BY committed_at DESC
          LIMIT 1
     }, undef, $project, $change)->[0];
@@ -948,26 +947,26 @@ sub change_id_for {
             # Find by change name and following tag.
             my $limit = $self->_can_limit ? "\n                 LIMIT 1" : '';
             return $dbh->selectcol_arrayref(qq{
-                SELECT changes.change_id
-                  FROM $changes changes
-                  JOIN $tags tags
-                    ON changes.committed_at <= tags.committed_at
-                   AND changes.project = tags.project
-                 WHERE changes.project = ?
-                   AND changes.change  = ?
-                   AND tags.tag        = ?
-                 ORDER BY changes.committed_at DESC$limit
+                SELECT c.change_id
+                  FROM $changes c
+                  JOIN $tags t
+                    ON c.committed_at <= t.committed_at
+                   AND c.project = t.project
+                 WHERE c.project = ?
+                   AND c.change  = ?
+                   AND t.tag     = ?
+                 ORDER BY c.committed_at DESC$limit
             }, undef, $project, $change, '@' . $tag)->[0];
         }
 
         # Find earliest by change name.
         my $limit = $self->_can_limit ? "\n             LIMIT 1" : '';
         return $dbh->selectcol_arrayref(qq{
-            SELECT changes.change_id
-              FROM $changes changes
-             WHERE changes.project = ?
-               AND changes.change  = ?
-             ORDER BY changes.committed_at ASC$limit
+            SELECT c.change_id
+              FROM $changes c
+             WHERE c.project = ?
+               AND c.change  = ?
+             ORDER BY c.committed_at ASC$limit
         }, undef, $project, $change)->[0];
     }
 
@@ -982,10 +981,10 @@ sub change_id_for {
 
         # Find by tag name.
         return $dbh->selectcol_arrayref(qq{
-            SELECT tags.change_id
-              FROM $tags tags
-             WHERE tags.project = ?
-               AND tags.tag     = ?
+            SELECT t.change_id
+              FROM $tags t
+             WHERE t.project = ?
+               AND t.tag     = ?
         }, undef, $project, '@' . $tag)->[0];
     }
 
