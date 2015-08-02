@@ -41,7 +41,6 @@ CREATE TABLE &registry..&changes (
     UNIQUE(project, script_hash)
 );
 
-<<<<<<< HEAD
 COMMENT ON TABLE  &registry..&changes                 IS 'Tracks the changes currently deployed to the database.';
 COMMENT ON COLUMN &registry..&changes.change_id       IS 'Change primary key.';
 COMMENT ON COLUMN &registry..&changes.script_hash     IS 'Deploy script SHA-1 hash.';
@@ -95,7 +94,6 @@ CREATE TABLE &registry..&dependencies (
     PRIMARY KEY (change_id, dependency)
 );
 
-<<<<<<< HEAD
 COMMENT ON TABLE  &registry..&dependencies               IS 'Tracks the currently satisfied dependencies.';
 COMMENT ON COLUMN &registry..&dependencies.change_id     IS 'ID of the depending change.';
 COMMENT ON COLUMN &registry..&dependencies.type          IS 'Type of dependency.';
@@ -127,7 +125,6 @@ CREATE TABLE &registry..&events (
 
 CREATE UNIQUE INDEX &registry..events_pkey ON &registry..&events.(change_id, committed_at);
 
-<<<<<<< HEAD
 COMMENT ON TABLE  &registry..&events                 IS 'Contains full history of all deployment events.';
 COMMENT ON COLUMN &registry..&events.event           IS 'Type of event.';
 COMMENT ON COLUMN &registry..&events.change_id       IS 'Change ID.';
