@@ -27,7 +27,7 @@ requires '_no_table_error';
 memoize('_registry_tables');
 sub _registry_tables {
     my $self = shift;
-    my %h = map {$_ => ($self->with_registry_prefix ? "sqitch_$_" : $_) } qw /changes tags dependencies events projects/;
+    my %h = map {$_ => ($self->with_registry_prefix ? "sqitch_$_" : $_) } qw /changes tags dependencies events projects releases/;
     return \%h;        
 }
 
@@ -70,21 +70,27 @@ sub _in_expr {
 }
 
 sub _register_release {
-    my $self    = shift;
-    my $version = shift || $self->registry_release;
-    my $sqitch  = $self->sqitch;
-    my $ts      = $self->_ts_default;
-
+    my $self     = shift;
+    my $version  = shift || $self->registry_release;
+    my $sqitch   = $self->sqitch;
+    my $ts       = $self->_ts_default;
+    my $releases = $self->_get_registry_table('releases');
     $self->begin_work;
     $self->dbh->do(qq{
-        INSERT INTO releases (version, installed_at, installer_name, installer_email)
-        VALUES (?, $ts, ?, ?)
+        INSERT INTO $releases
+            (version, installed_at, installer_name, installer_email)
+        VALUES
+            (?, $ts, ?, ?)
     }, undef, $version, $sqitch->user_name, $sqitch->user_email);
     $self->finish_work;
     return $self;
 }
 
-sub _version_query { 'SELECT MAX(version) FROM releases' }
+sub _version_query {
+    my $self     = shift;
+    my $releases = $self->_get_registry_table('releases');
+    return qq{SELECT MAX(version) FROM $releases};
+}
 
 sub registry_version {
     my $self = shift;
@@ -707,7 +713,7 @@ sub log_new_tags {
                          } . join(
                 "\n               UNION ALL ",
                 ($subselect) x @tags
-            ) . q{
+            ) . qq{
             ) i
               LEFT JOIN $tags ON i.tid = $tags.tag_id
              WHERE $tags.tag_id IS NULL
@@ -992,6 +998,7 @@ sub _update_script_hashes {
     my $plan = $self->plan;
     my $proj = $plan->project;
     my $dbh  = $self->dbh;
+    my $changes = $self->_get_registry_table('changes');
     my $sth  = $dbh->prepare(qq{
         UPDATE $changes SET script_hash = ? WHERE change_id = ? AND script_hash = ?}
     );
