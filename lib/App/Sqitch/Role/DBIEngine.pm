@@ -108,10 +108,10 @@ sub _cid {
 
     return try {
         $self->dbh->selectcol_arrayref(qq{
-            SELECT change_id
-              FROM $changes
-             WHERE project = ?
-             ORDER BY committed_at $ord
+            SELECT c.change_id
+              FROM $changes c
+             WHERE c.project = ?
+             ORDER BY c.committed_at $ord
              LIMIT 1
             OFFSET COALESCE(?, 0)
         }, undef, $project || $self->plan->project, $offset)->[0];
@@ -222,16 +222,16 @@ sub current_tags {
     my $tags   = $self->_get_registry_table('tags');
 
     my $sth    = $self->dbh->prepare(qq{
-        SELECT tag_id
-             , tag
-             , committer_name
-             , committer_email
+        SELECT t.tag_id
+             , t.tag
+             , t.committer_name
+             , t.committer_email
              , $cdtcol AS committed_at
-             , planner_name
-             , planner_email
+             , t.planner_name
+             , t.planner_email
              , $pdtcol AS planned_at
           FROM $tags t
-         WHERE project = ?
+         WHERE t.project = ?
          ORDER BY t.committed_at DESC
     });
     $sth->execute($project // $self->plan->project);
@@ -415,8 +415,8 @@ sub is_deployed_change {
     $self->dbh->selectcol_arrayref(qq{
         SELECT EXISTS(
             SELECT 1
-              FROM $changes
-             WHERE change_id = ?
+              FROM $changes c
+             WHERE c.change_id = ?
         )
     }, undef, $change->id)->[0];
 }
@@ -440,8 +440,8 @@ sub is_deployed_tag {
     return $self->dbh->selectcol_arrayref(qq{
         SELECT EXISTS(
             SELECT 1
-              FROM $tags
-             WHERE tag_id = ?
+              FROM $tags t
+             WHERE t.tag_id = ?
         );
     }, undef, $tag->id)->[0];
 }
@@ -910,11 +910,11 @@ sub _cid_head {
     my ($self, $project, $change) = @_;
     my $changes = $self->_get_registry_table('changes');
     return $self->dbh->selectcol_arrayref(qq{
-        SELECT change_id
-          FROM $changes
-         WHERE project = ?
-           AND change  = ?
-         ORDER BY committed_at DESC
+        SELECT c.change_id
+          FROM $changes c
+         WHERE c.project = ?
+           AND c.change  = ?
+         ORDER BY c.committed_at DESC
          LIMIT 1
     }, undef, $project, $change)->[0];
 }
@@ -924,13 +924,12 @@ sub change_id_for {
     my $dbh     = $self->dbh;
     my $changes = $self->_get_registry_table('changes');
     my $tags    = $self->_get_registry_table('tags');
-
     if ( my $cid = $p{change_id} ) {
         # Find by ID.
         return $dbh->selectcol_arrayref(qq{
-            SELECT change_id
-              FROM $changes
-             WHERE change_id = ?
+            SELECT c.change_id
+              FROM $changes c
+             WHERE c.change_id = ?
         }, undef, $cid)->[0];
     }
 
