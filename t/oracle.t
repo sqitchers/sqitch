@@ -36,7 +36,7 @@
 #     > hostname
 #     stickywicket
 #     > grep 127 /etc/hosts
-#     127.0.0.1	localhost stickywicket
+#     127.0.0.1 localhost stickywicket
 #
 # Once connected, execute this SQL to create the user and give it access:
 #
@@ -73,7 +73,7 @@ BEGIN {
     $ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.user';
     $ENV{SQITCH_USER_CONFIG}   = 'nonexistent.sys';
     #delete $ENV{ORACLE_HOME};
-    # I don't understand why ORACLE_HOME was being deliberately unset and never restored? my tests only pass if 
+    # I don't understand why ORACLE_HOME was being deliberately unset and never restored? my tests only pass if
     # I remove the above line. Maybe I'm missing something here - AEH
 }
 
@@ -125,6 +125,7 @@ is $ora->_script, join( "\n" => (
     'DEFINE dependencies="dependencies"',
     'DEFINE events="events"',
     'DEFINE projects="projects"',
+    'DEFINE releases="releases"',
     'DEFINE tags="tags"',
     'connect ',
     $ora->_registry_variable,
@@ -144,11 +145,11 @@ is $ora->_script, join( "\n" => (
     'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF',
     'WHENEVER OSERROR EXIT 9;',
     'WHENEVER SQLERROR EXIT SQL.SQLCODE;',
-    'connect fred/"derf"@"blah"',
     'DEFINE changes="changes"',
     'DEFINE dependencies="dependencies"',
     'DEFINE events="events"',
     'DEFINE projects="projects"',
+    'DEFINE releases="releases"',
     'DEFINE tags="tags"',
     'connect fred/"derf"@"blah"',
     $ora->_registry_variable,
@@ -172,6 +173,7 @@ is $ora->_script('@foo'), join( "\n" => (
     'DEFINE dependencies="dependencies"',
     'DEFINE events="events"',
     'DEFINE projects="projects"',
+    'DEFINE releases="releases"',
     'DEFINE tags="tags"',
     'connect fred/"derf"@//there/"blah"',
     $ora->_registry_variable,
@@ -201,6 +203,7 @@ is $ora->_script, join( "\n" => (
     'DEFINE events="events"',
     'DEFINE foo="baz"',
     'DEFINE projects="projects"',
+    'DEFINE releases="releases"',
     'DEFINE tags="tags"',
     'DEFINE whu="hi there"',
     'DEFINE yo="""stellar"""',
