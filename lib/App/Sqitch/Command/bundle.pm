@@ -46,19 +46,17 @@ sub dest_top_dir {
     dir $self->dest_dir, shift->top_dir->relative;
 }
 
-sub dest_deploy_dir {
-    my $self = shift;
-    dir $self->dest_dir, shift->deploy_dir->relative;
-}
-
-sub dest_revert_dir {
-    my $self = shift;
-    dir $self->dest_dir, shift->revert_dir->relative;
-}
-
-sub dest_verify_dir {
-    my $self = shift;
-    dir $self->dest_dir, shift->verify_dir->relative;
+sub dest_dirs_for {
+    my ($self, $target) = @_;
+    my $dest = $self->dest_dir;
+    return {
+        deploy          => dir($dest, $target->deploy_dir->relative),
+        revert          => dir($dest, $target->revert_dir->relative),
+        verify          => dir($dest, $target->verify_dir->relative),
+        reworked_deploy => dir($dest, $target->reworked_deploy_dir->relative),
+        reworked_revert => dir($dest, $target->reworked_revert_dir->relative),
+        reworked_verify => dir($dest, $target->reworked_verify_dir->relative),
+    };
 }
 
 sub options {
@@ -234,25 +232,29 @@ sub bundle_scripts {
 
     $self->info(__ 'Writing scripts');
     $plan->position( $from_index );
+    my $dir_for = $self->dest_dirs_for($target);
+
     while ( $plan->position <= $to_index ) {
         my $change = $plan->current // last;
         $self->info('  + ', $change->format_name_with_tags);
+        my $prefix = $change->is_reworked ? 'reworked_' : '';
+        my @path = $change->path_segments;
         if (-e ( my $file = $change->deploy_file )) {
             $self->_copy_if_modified(
                 $file,
-                $self->dest_deploy_dir($target)->file( $change->path_segments )
+                $dir_for->{"${prefix}deploy"}->file(@path)
             );
         }
         if (-e ( my $file = $change->revert_file )) {
             $self->_copy_if_modified(
                 $file,
-                $self->dest_revert_dir($target)->file( $change->path_segments )
+                $dir_for->{"${prefix}revert"}->file(@path)
             );
         }
         if (-e ( my $file = $change->verify_file )) {
             $self->_copy_if_modified(
                 $file,
-                $self->dest_verify_dir($target)->file( $change->path_segments )
+                $dir_for->{"${prefix}verify"}->file(@path)
             );
         }
         $plan->next;
@@ -324,29 +326,28 @@ Copies the deploy, revert, and verify scripts for each step in the plan for
 the specified target to the bundle directory. Files in the script directories
 that do not correspond to changes in the plan will not be copied.
 
-=head3 C<dest_top_dir>
+=head3 C<dest_dirs_for>
 
-  my $top_dir = $bundle->top_dir($target);
+  my $dirs = $bundle->dest__dirs_for($target);
 
-Returns the destination top directory for the specified target.
+Returns a hash of change script destination directories for the specified
+target. The keys are the types of scripts, and include:
 
-=head3 C<dest_deploy_dir>
+=over
 
-  my $deploy_dir = $bundle->deploy_dir($target);
+=item C<deploy>
 
-Returns the destination deploy directory for the specified target.
+=item C<revert>
 
-=head3 C<dest_revert_dir>
+=item C<verfiy>
 
-  my $revert_dir = $bundle->revert_dir($target);
+=item C<reworked_deploy>
 
-Returns the destination revert directory for the specified target.
+=item C<reworked_revert>
 
-=head3 C<dest_verify_dir>
+=item C<reworked_verfiy>
 
-  my $verify_dir = $bundle->verify_dir($target);
-
-Returns the destination verify directory for the specified target.
+=back
 
 =head1 See Also
 
