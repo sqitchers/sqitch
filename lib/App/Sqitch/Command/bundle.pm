@@ -326,6 +326,12 @@ Copies the deploy, revert, and verify scripts for each step in the plan for
 the specified target to the bundle directory. Files in the script directories
 that do not correspond to changes in the plan will not be copied.
 
+=head3 C<dest_top_dir>
+
+  my $top_dir = $bundle->top_dir($target);
+
+Returns the destination top directory for the specified target.
+
 =head3 C<dest_dirs_for>
 
   my $dirs = $bundle->dest__dirs_for($target);
