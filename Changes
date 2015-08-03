@@ -18,6 +18,17 @@ Revision history for Perl extension App::Sqitch
        5.23.1.
      - Added support for the `--set` option when deploying to MySQL. Thanks to
        Chris Bandy for figuring out how to do it!
+     - Added support for a "reworked directory". By default, reworked change
+       scripts live in the deploy, revert, and verify directories along with
+       all the other change scripts. But if that starts to get too messy, or
+       you simply don't want to see them, add a `reworked_dir` setting to the
+       core, engine, or target config and reworked scripts will be stored
+       there, instead. Also supported are `reworked_deploy_dir`,
+       `reworked_revert_dir`, and `reworked_verify_dir`.
+     - The `init` command on longer writes out commented values for the core
+       `deploy_dir`, `revert_dir`, or `verify_dir` settings. I think these
+       settings are not commonly used, and it would start to get crowded if we
+       also added their "reworked" variants, which will be used still less.
 
 0.9992 2015-05-20T23:51:41Z
      - On PostgreSQL, Sqitch now sets the `client_encoding` parameter to
