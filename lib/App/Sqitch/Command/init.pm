@@ -66,7 +66,9 @@ sub make_directories {
     my $self   = shift;
     my $target = $self->default_target;
     for my $attr (qw(deploy_dir revert_dir verify_dir)) {
-        $self->_mkdir( $target->$attr );
+        for my $meth ($attr, "reworked_$attr") {
+            $self->_mkdir( $target->$meth );
+        }
     }
     return $self;
 }
@@ -177,6 +179,10 @@ sub write_config {
         deploy_dir
         revert_dir
         verify_dir
+        reworked_dir
+        reworked_deploy_dir
+        reworked_revert_dir
+        reworked_verify_dir
         extension
     )) {
 
@@ -192,7 +198,7 @@ sub write_config {
                 value => $val,
             };
         }
-        else {
+        elsif ($name !~ /(?<!top)_dir$/) {
             $var //= $target->$name // '';
             push @comments => "\t$name = $var";
         }

@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 167;
+use Test::More tests => 170;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -44,7 +44,10 @@ $ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
 ##############################################################################
 # Test options and configuration.
 my $sqitch = App::Sqitch->new(
-    options => { top_dir => dir('init.mkdir')->stringify },
+    options => {
+        top_dir      => dir('init.mkdir')->stringify,
+        reworked_dir => dir('init.mkdir/reworked')->stringify,
+    },
 );
 isa_ok my $init = $CLASS->new( sqitch => $sqitch ), $CLASS, 'New init object';
 
@@ -64,7 +67,8 @@ isa_ok my $target = $init->default_target, 'App::Sqitch::Target', 'default targe
 ##############################################################################
 # Test make_directories.
 can_ok $init, 'make_directories';
-for my $attr (map { "$_\_dir"} qw(top deploy revert verify)) {
+dir_not_exists_ok $target->top_dir;
+for my $attr (map { ("$_\_dir", "reworked_$_\_dir") } qw(deploy revert verify)) {
     dir_not_exists_ok $target->$attr;
 }
 
@@ -78,7 +82,7 @@ for my $attr (map { "$_\_dir"} qw(top deploy revert verify)) {
 my $sep = dir('')->stringify;
 is_deeply +MockOutput->get_info, [
     map { [__x "Created {file}", file => $target->$_ . $sep] }
-    map { "$_\_dir" } qw(deploy revert verify)
+    map { ("$_\_dir", "reworked_$_\_dir") } qw(deploy revert verify)
 ], 'Each should have been sent to info';
 
 # Do it again.
@@ -152,9 +156,6 @@ file_contents_like $conf_file, qr{\Q[core]
 	# engine = 
 	# plan_file = $plan_file
 	# top_dir = $top_dir
-	# deploy_dir = $deploy_dir
-	# revert_dir = $revert_dir
-	# verify_dir = $verify_dir
 	# extension = sql
 }m, 'All in core section should be commented-out';
 unlink $conf_file;
@@ -176,9 +177,6 @@ file_contents_like $conf_file, qr{
 	# engine = 
 	# plan_file = $plan_file
 	# top_dir = $top_dir
-	# deploy_dir = $deploy_dir
-	# revert_dir = $revert_dir
-	# verify_dir = $verify_dir
 }m, 'Other settings should be commented-out';
 
 # Go again.
@@ -209,9 +207,6 @@ USERCONF: {
 	# engine = 
 	# plan_file = $plan_file
 	# top_dir = $top_dir
-	# deploy_dir = $deploy_dir
-	# revert_dir = $revert_dir
-	# verify_dir = $verify_dir
 }m, 'Other settings should be commented-out';
 }
 
@@ -234,17 +229,10 @@ SYSTEMCONF: {
         [__x 'Created {file}', file => $conf_file]
     ], 'The creation should be sent to info again';
 
-    my $deploy_dir = File::Spec->catdir(qw(migrations deploy));
-    my $revert_dir = File::Spec->catdir(qw(migrations revert));
-    my $verify_dir = File::Spec->catdir(qw(migrations verify));
     my $plan_file  = $target->top_dir->file('sqitch.plan')->stringify;
-
     file_contents_like $conf_file, qr{\Q
 	# plan_file = $plan_file
 	# top_dir = migrations
-	# deploy_dir = $deploy_dir
-	# revert_dir = $revert_dir
-	# verify_dir = $verify_dir
 }m, 'Other settings should be commented-out';
 }
 
@@ -253,12 +241,15 @@ SYSTEMCONF: {
 unlink $conf_file;
 $sqitch = App::Sqitch->new(
     options => {
-        plan_file  => 'my.plan',
-        deploy_dir => dir('dep')->stringify,
-        revert_dir => dir('rev')->stringify,
-        verify_dir => dir('tst')->stringify,
-        extension  => 'ddl',
-        engine    => 'sqlite',
+        plan_file           => 'my.plan',
+        deploy_dir          => dir('dep')->stringify,
+        revert_dir          => dir('rev')->stringify,
+        verify_dir          => dir('tst')->stringify,
+        reworked_deploy_dir => dir('rdep')->stringify,
+        reworked_revert_dir => dir('rrev')->stringify,
+        reworked_verify_dir => dir('rtst')->stringify,
+        extension           => 'ddl',
+        engine              => 'sqlite',
     },
 );
 
@@ -270,12 +261,15 @@ is_deeply +MockOutput->get_info, [
 ], 'The creation should be sent to info once more';
 
 is_deeply read_config $conf_file, {
-    'core.plan_file'  => 'my.plan',
-    'core.deploy_dir' => 'dep',
-    'core.revert_dir' => 'rev',
-    'core.verify_dir' => 'tst',
-    'core.extension'  => 'ddl',
-    'core.engine'     => 'sqlite',
+    'core.plan_file'           => 'my.plan',
+    'core.deploy_dir'          => 'dep',
+    'core.revert_dir'          => 'rev',
+    'core.verify_dir'          => 'tst',
+    'core.reworked_deploy_dir' => 'rdep',
+    'core.reworked_revert_dir' => 'rrev',
+    'core.reworked_verify_dir' => 'rtst',
+    'core.extension'           => 'ddl',
+    'core.engine'              => 'sqlite',
 }, 'The configuration should have been written with all the core values';
 
 ##############################################################################
