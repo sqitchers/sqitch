@@ -67,6 +67,33 @@ around configure => sub {
     return $class->$orig($config, $opt);
 };
 
+sub script_config {
+    my $self = shift;
+    my $config = {};
+    for my $attr (
+        'reworked_dir',
+        (map { ("$_\_dir", "reworked_$_\_dir") } qw(deploy revert verify)),
+        'extension'
+    ) {
+        if (my $val = $self->$attr) {
+            $config->{$attr} = $val;
+        }
+    }
+    return $config;
+}
+
+sub directories_for {
+    my ($self, $target) = @_;
+    return (
+        $self->deploy_dir          || $target->deploy_dir,
+        $self->revert_dir          || $target->revert_dir,
+        $self->verify_dir          || $target->verify_dir,
+        $self->reworked_deploy_dir || $target->reworked_deploy_dir,
+        $self->reworked_revert_dir || $target->reworked_revert_dir,
+        $self->reworked_verify_dir || $target->reworked_verify_dir,
+    );
+}
+
 1;
 
 __END__
@@ -134,6 +161,24 @@ Path to the directory containing reworked verify scripts.
 =head3 C<extension>
 
 The file extension to use for change script files.
+
+=head2 Instance Methods
+
+=head3 C<script_config>
+
+  my $config = $cmd->script_config;
+
+Returns a hash reference of script configuration values. They keys are
+suitable for use in L<App::Sqitch::Config> sections, while the keys are the
+values. All but the C<extension> key are L<Path::Class::Dir> objects.
+
+=head3 C<directories_for>
+
+  my @dirs = $cmd->directories_for($target);
+
+Returns a list of script directories for the target. Options passed to the
+command are preferred. Paths are pulled from the command only when they have
+not been passed as options.
 
 =head1 See Also
 

@@ -118,14 +118,12 @@ for my $attr (map { "$_\_dir"} qw(top deploy revert verify)) {
 }
 my $sep = dir('')->stringify;
 is_deeply +MockOutput->get_info, [
-    map {
-        my $attr = "$_\_dir";
-        my $rwrk = "reworked_$_\_dir";
-        (
-            [__x "Created {file}", file => $target->$attr . $sep],
-            [__x "Created {file}", file => $init->$rwrk . $sep]
-        )
-    } qw(deploy revert verify)
+    [__x "Created {file}", file => $target->deploy_dir . $sep],
+    [__x "Created {file}", file => $target->revert_dir . $sep],
+    [__x "Created {file}", file => $target->verify_dir . $sep],
+    [__x "Created {file}", file => $init->reworked_deploy_dir . $sep],
+    [__x "Created {file}", file => $init->reworked_revert_dir . $sep],
+    [__x "Created {file}", file => $init->reworked_verify_dir . $sep],
 ], 'Each should have been sent to info';
 
 # Do it again.

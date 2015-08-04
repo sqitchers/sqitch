@@ -63,9 +63,7 @@ sub configure {
 
 sub make_directories {
     my $self   = shift;
-    my $target = $self->default_target;
-    for my $attr (map { ("$_\_dir", "reworked_$_\_dir") } qw(deploy revert verify)) {
-        my $dir = $self->$attr || $target->$attr;
+    for my $dir ($self->directories_for( $self->default_target )) {
         $self->_mkdir($dir) unless -e $dir;
     }
     return $self;
@@ -194,17 +192,9 @@ sub write_config {
     }
 
     # Add in options passed to the init command.
-    for my $attr (
-        'reworked_dir',
-        (map { ("$_\_dir", "reworked_$_\_dir") } qw(deploy revert verify)),
-        'extension'
-    ) {
-        if (my $val = $self->$attr) {
-            push @vars => {
-                key   => "core.$attr",
-                value => $val
-            };
-        }
+    my $script_config = $self->script_config;
+    while (my ($attr, $val) = each %{ $script_config }) {
+        push @vars => { key => "core.$attr", value => $val };
     }
 
     # Emit them.
