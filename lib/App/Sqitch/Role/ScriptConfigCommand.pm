@@ -5,16 +5,20 @@ use strict;
 use warnings;
 use utf8;
 use Moo::Role;
-use App::Sqitch::Types qw(Maybe Dir Str);
+use App::Sqitch::Types qw(Maybe HashRef Str);
+use App::Sqitch::X qw(hurl);
 use Path::Class;
+use Locale::TextDomain qw(App-Sqitch);
 use namespace::autoclean;
 
+requires 'command';
 requires 'options';
 requires 'configure';
 
-has reworked_dir => (
+has directories => (
     is  => 'ro',
-    isa => Maybe[Dir],
+    isa => HashRef,
+    default => sub { {} },
 );
 
 has extension => (
@@ -22,75 +26,73 @@ has extension => (
     isa => Maybe[Str],
 );
 
-for my $script (qw(deploy revert verify)) {
-    has "$script\_dir" => (
-        is      => 'ro',
-        isa     => Maybe[Dir],
-    );
-    has "reworked_$script\_dir" => (
-        is      => 'ro',
-        isa     => Maybe[Dir],
-        lazy    => 1,
-        default => sub {
-            my $dir = shift->reworked_dir or return undef;
-            $dir->subdir($script);
-        },
-    );
-}
-
 around options => sub {
     my ($orig, $class) = @_;
     return ($class->$orig), qw(
-        deploy-dir=s
-        revert-dir=s
-        verify-dir=s
-        reworked-dir=s
-        reworked-deploy-dir=s
-        reworked-revert-dir=s
-        reworked-verify-dir=s
+        directory|dir=s%
         extension=s
     );
 };
 
 around configure => sub {
     my ( $orig, $class, $config, $opt ) = @_;
+    my $dirs = delete $opt->{directory};
+    my $ext  = delete $opt->{extension};
+    my $params = $class->$orig($config, $opt);
+    $params->{extension} = $ext if defined $ext;
 
-    for my $dir (
-        'reworked_dir',
-        map { ("$_\_dir", "reworked_$_\_dir") } qw(deploy revert verify)
-    ) {
-        if ( my $str = $opt->{$dir} ) {
-            $opt->{$dir} = dir $str;
+    if ($dirs) {
+        my $cdirs = {};
+        for my $name (qw(
+            deploy
+            revert
+            verify
+            reworked
+            reworked_deploy
+            reworked_revert
+            reworked_verify
+        )) {
+            if ( my $dir = delete $dirs->{$name} ) {
+                $cdirs->{$name} = dir $dir;
+            }
         }
+
+        if (my @keys = keys %{ $dirs }) {
+            hurl $class->command => __nx(
+                'Unknown directory name: {dirs}',
+                'Unknown directory names: {dirs}',
+                @keys,
+                dirs => join(__ ', ', sort @keys),
+            );
+        }
+
+        $params->{directories} = $cdirs;
     }
 
-    return $class->$orig($config, $opt);
+    return $params;
 };
 
-sub script_config {
+sub BUILD {
     my $self = shift;
-    my $config = {};
-    for my $attr (
-        'reworked_dir',
-        (map { ("$_\_dir", "reworked_$_\_dir") } qw(deploy revert verify)),
-        'extension'
-    ) {
-        if (my $val = $self->$attr) {
-            $config->{$attr} = $val;
+    my $dirs = $self->directories;
+    if (my $reworked = $dirs->{reworked}) {
+        # Generate reworked script directories.
+        for my $name (qw(deploy revert verify)) {
+            $dirs->{"reworked_$name"} ||= $reworked->subdir($name);
         }
     }
-    return $config;
 }
 
 sub directories_for {
     my ($self, $target) = @_;
+    my $dirs = $self->directories;
     return (
-        $self->deploy_dir          || $target->deploy_dir,
-        $self->revert_dir          || $target->revert_dir,
-        $self->verify_dir          || $target->verify_dir,
-        $self->reworked_deploy_dir || $target->reworked_deploy_dir,
-        $self->reworked_revert_dir || $target->reworked_revert_dir,
-        $self->reworked_verify_dir || $target->reworked_verify_dir,
+        $dirs->{deploy}          || $target->deploy_dir,
+        $dirs->{revert}          || $target->revert_dir,
+        $dirs->{verify}          || $target->verify_dir,
+        $dirs->{reworked_deploy} || $target->reworked_deploy_dir,
+        $dirs->{reworked_revert} || $target->reworked_revert_dir,
+        $dirs->{reworked_verify} || $target->reworked_verify_dir,
     );
 }
 
@@ -130,47 +132,33 @@ Configures the options common to commands manage script configuration.
 
 =head2 Attributes
 
-=head3 C<deploy_dir>
+=head3 C<directories>
 
-Path to the directory containing deploy scripts.
+A hash reference of directory configurations. The keys may be as follows:
 
-=head3 C<revert_dir>
+=over
 
-Path to the directory containing revert scripts.
+=item C<deploy>
 
-=head3 C<verify_dir>
+=item C<revert>
 
-Path to the directory containing verify scripts.
+=item C<verify>
 
-=head3 C<reworked_dir>
+=item C<reworked>
 
-Path to the directory containing subdirectories for reworked change scripts.
+=item C<reworked_deploy>
 
-=head3 C<reworked_deploy_dir>
+=item C<reworked_revert>
 
-Path to the directory containing reworked deploy scripts.
+=item C<reworked_verify>
 
-=head3 C<reworked_revert_dir>
-
-Path to the directory containing reworked revert scripts.
-
-=head3 C<reworked_verify_dir>
-
-Path to the directory containing reworked verify scripts.
+=back
 
 =head3 C<extension>
 
 The file extension to use for change script files.
 
 =head2 Instance Methods
-
-=head3 C<script_config>
-
-  my $config = $cmd->script_config;
-
-Returns a hash reference of script configuration values. They keys are
-suitable for use in L<App::Sqitch::Config> sections, while the keys are the
-values. All but the C<extension> key are L<Path::Class::Dir> objects.
 
 =head3 C<directories_for>
 

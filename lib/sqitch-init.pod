@@ -26,58 +26,53 @@ Optional URI to associate with the project. If present, the URI will be
 written to the project plan and used for added uniqueness in hashed object
 IDs.
 
-=item C<--deploy-dir>
+=item C<--dir>
 
-  sqitch --deploy-dir db/up
+=item C<--directory>
+
+Configure one or more change script directories. The directory names
+may be on of the following:
+
+=over
+
+=item C<deploy>
 
 Path to a directory containing deploy scripts. Overrides the value implied by
 C<--top-dir>.
 
-=item C<--revert-dir>
-
-  sqitch --revert-dir db/down
+=item C<revert>
 
 Path to a directory containing revert scripts. Overrides the value implied by
 C<--top-dir>.
 
-=item C<--verify-dir>
-
-  sqitch --verify-dir db/t
+=item C<verify>
 
 Path to a directory containing verify scripts. Overrides the value implied by
 C<--top-dir>.
 
-=item C<--reworked-dir>
+=item C<reworked>
 
-  sqitch --reworked-dir db/prev
+Path to a directory containing reworked script subdirectories. Overrides the
+value implied by the core Sqitch C<--top-dir> option.
 
-Path to a directory containing reworked scripts. Overrides the value implied by
-the core Sqitch C<--top-dir> option.
-
-=item C<--reworked-deploy-dir>
-
-  sqitch --reworked-deploy-dir db/prev/up
+=item C<reworked_deploy>
 
 Path to a directory containing reworked deploy scripts. Overrides the value
-implied by C<--reworked-dir>.
+implied by C<reworked>.
 
-=item C<--reworked-revert-dir>
-
-  sqitch --reworked-revert-dir db/prev/down
+=item C<reworked_revert>
 
 Path to a directory containing reworked revert scripts. Overrides the value
-implied by C<--reworked-dir>.
+implied by C<reworked>.
 
-=item C<--reworked-verify-dir>
-
-  sqitch --reworked-verify-dir db/prev/t
+=item C<reworked_verify>
 
 Path to a directory containing reworked verify scripts. Overrides the value
-implied by C<--reworked-dir>.
+implied by C<reworked>.
+
+=back
 
 =item C<--extension>
-
-  sqitch --extension ddl
 
 The file name extension on deploy, revert, and verify scripts. Defaults to
 C<sql>.
@@ -126,33 +121,27 @@ passed.
 
 =over
 
-=item C<--deploy-dir>
+=item C<--directory>
 
-Sets the C<core.deploy_dir> configuration variable.
+Sets the following script directory variables:
 
-=item C<--revert-dir>
+=over
 
-Sets the C<core.revert_dir> configuration variable.
+=item C<core.deploy_dir>
 
-=item C<--verify-dir>
+=item C<core.revert_dir>
 
-Sets the C<core.verify_dir> configuration variable.
+=item C<core.verify_dir>
 
-=item C<--reworked-dir>
+=item C<core.reworked_dir>
 
-Sets the C<core.reworked_dir> configuration variable.
+=item C<core.reworked_deploy_dir>
 
-=item C<--reworked-deploy-dir>
+=item C<core.reworked_revert_dir>
 
-Sets the C<core.reworked_deploy_dir> configuration variable.
+=item C<core.reworked_verify_dir>
 
-=item C<--reworked-revert-dir>
-
-Sets the C<core.reworked_revert_dir> configuration variable.
-
-=item C<--reworked-verify-dir>
-
-Sets the C<core.reworked_verify_dir> configuration variable.
+=back
 
 =item C<--extension>
 
@@ -181,13 +170,13 @@ for the project to F<sqlite>:
   sqitch --engine sqlite --top-dir sqlite init
 
 Start a new Sqitch project using the PostgreSQL engine, setting the top
-directory to F<postgres>, a script extension of C<ddl>, and a version-specific
-client:
+directory to F<postgres>, script extension to C<ddl>, reworked directory to
+C<reworked> and a version-specific client:
 
   sqitch --engine  pg \
          --top-dir postgres \
          --client  /opt/pgsql-9.1/bin/psql \
-         init --extension ddl \
+         init --extension ddl --dir reworked=reworked
 
 =head1 Sqitch
 

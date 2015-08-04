@@ -25,15 +25,7 @@ Revision history for Perl extension App::Sqitch
        core, engine, or target config and reworked scripts will be stored
        there, instead. Also supported are `reworked_deploy_dir`,
        `reworked_revert_dir`, and `reworked_verify_dir`.
-     - Added these directory options to the `init` command.
-       * `--deploy-dir`
-       * `--revert-dir`
-       * `--verify-dir`
-       * `--reworked-dir`
-       * `--reworked-deploy-dir`
-       * `--reworked-revert-dir`
-       * `--reworked-verify-dir`
-       * `--extension`
+     - Added the `--directory` option to the `init` command.
      - The `init` command on longer writes out commented values for the
        `deploy_dir`, `revert_dir`, or `verify_dir` settings. I think these
        settings are not commonly used, and it would start to get crowded if we

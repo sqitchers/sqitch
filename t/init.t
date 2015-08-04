@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 183;
+use Test::More tests => 191;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -48,32 +48,20 @@ my $sqitch = App::Sqitch->new(
 );
 
 isa_ok my $init = $CLASS->new(
-    sqitch       => $sqitch,
-    reworked_dir => dir('init.mkdir/reworked'),
+    sqitch      => $sqitch,
+    directories => { reworked => dir('init.mkdir/reworked') },
 ), $CLASS, 'New init object';
 
 can_ok $init, qw(
     uri
-    deploy_dir
-    revert_dir
-    verify_dir
-    reworked_dir
-    reworked_deploy_dir
-    reworked_revert_dir
-    reworked_verify_dir
+    directories
     extension
     options
     configure
 );
 is_deeply [$init->options], [qw(
     uri=s
-    deploy-dir=s
-    revert-dir=s
-    verify-dir=s
-    reworked-dir=s
-    reworked-deploy-dir=s
-    reworked-revert-dir=s
-    reworked-verify-dir=s
+    directory|dir=s%
     extension=s
 )], 'Options should be correct';
 
@@ -83,21 +71,42 @@ is_deeply $CLASS->configure({}, { uri => 'http://example.com' }),
     'Should accept a URI in options';
 ok my $config = $CLASS->configure({}, {
     uri                 => 'http://example.com',
-    deploy_dir          => 'dep',
-    revert_dir          => 'rev',
-    verify_dir          => 'ver',
-    reworked_dir        => 'wrk',
-    reworked_deploy_dir => 'rdep',
-    reworked_revert_dir => 'rrev',
-    reworked_verify_dir => 'rver',
     extension           => 'ddl',
+    directory => {
+        deploy          => 'dep',
+        revert          => 'rev',
+        verify          => 'ver',
+        reworked        => 'wrk',
+        reworked_deploy => 'rdep',
+        reworked_revert => 'rrev',
+        reworked_verify => 'rver',
+    },
 }), 'Get full config';
 
 isa_ok $config->{uri}, 'URI',
-isa_ok $config->{$_}, 'Path::Class::Dir', "$_ attribute" for map {
-    ("$_\_dir", "reworked_$_\_dir")
+isa_ok $config->{directories}{$_}, 'Path::Class::Dir', "$_ directory attribute" for map {
+    ($_, "reworked_$_")
 } qw(deploy revert verify);
 is $config->{extension}, 'ddl', 'Should have extension';
+
+# Make sure invalid directories are ignored.
+throws_ok { $CLASS->configure({}, {
+    directory => { foo => 'bar' },
+}) } 'App::Sqitch::X',  'Should fail on invalid directory name';
+is $@->ident, 'init', 'Invalid directory ident should be "init"';
+is $@->message, __x(
+    'Unknown directory name: {dirs}',
+    dirs => 'foo',
+), 'The invalid directory messsage should be correct';
+
+throws_ok { $CLASS->configure({}, {
+    directory => { foo => 'bar', cavort => 'ha' },
+}) } 'App::Sqitch::X',  'Should fail on invalid directory names';
+is $@->ident, 'init', 'Invalid directories ident should be "init"';
+is $@->message, __x(
+    'Unknown directory names: {dirs}',
+    dirs => 'cavort, foo',
+), 'The invalid directories messsage should be correct';
 
 isa_ok my $target = $init->default_target, 'App::Sqitch::Target', 'default target';
 
@@ -105,25 +114,23 @@ isa_ok my $target = $init->default_target, 'App::Sqitch::Target', 'default targe
 # Test make_directories.
 can_ok $init, 'make_directories';
 dir_not_exists_ok $target->top_dir;
-for my $attr (map { ("$_\_dir", "reworked_$_\_dir") } qw(deploy revert verify)) {
-    dir_not_exists_ok $target->$attr;
-}
+dir_not_exists_ok $_ for $init->directories_for($target);
 
 my $top_dir_string = $target->top_dir->stringify;
 END { remove_tree $top_dir_string if -e $top_dir_string }
 
 ok $init->make_directories, 'Make the directories';
-for my $attr (map { "$_\_dir"} qw(top deploy revert verify)) {
-    dir_exists_ok $target->$attr;
-}
+dir_exists_ok $_ for $init->directories_for($target);
+
 my $sep = dir('')->stringify;
+my $dirs = $init->directories;
 is_deeply +MockOutput->get_info, [
     [__x "Created {file}", file => $target->deploy_dir . $sep],
     [__x "Created {file}", file => $target->revert_dir . $sep],
     [__x "Created {file}", file => $target->verify_dir . $sep],
-    [__x "Created {file}", file => $init->reworked_deploy_dir . $sep],
-    [__x "Created {file}", file => $init->reworked_revert_dir . $sep],
-    [__x "Created {file}", file => $init->reworked_verify_dir . $sep],
+    [__x "Created {file}", file => $dirs->{reworked_deploy} . $sep],
+    [__x "Created {file}", file => $dirs->{reworked_revert} . $sep],
+    [__x "Created {file}", file => $dirs->{reworked_verify} . $sep],
 ], 'Each should have been sent to info';
 
 # Do it again.
@@ -288,13 +295,15 @@ $sqitch = App::Sqitch->new(
 
 ok $init = $CLASS->new(
     sqitch              => $sqitch,
-    deploy_dir          => dir('dep'),
-    revert_dir          => dir('rev'),
-    verify_dir          => dir('tst'),
-    reworked_deploy_dir => dir('rdep'),
-    reworked_revert_dir => dir('rrev'),
-    reworked_verify_dir => dir('rtst'),
     extension           => 'ddl',
+    directories => {
+        deploy          => dir('dep'),
+        revert          => dir('rev'),
+        verify          => dir('tst'),
+        reworked_deploy => dir('rdep'),
+        reworked_revert => dir('rrev'),
+        reworked_verify => dir('rtst'),
+    }
 ), 'Create new init with sqitch non-default attributes';
 
 ok $init->write_config, 'Write the config with core attrs';
