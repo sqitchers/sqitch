@@ -65,7 +65,7 @@ implied by C<--reworked-dir>.
 
   sqitch --reworked-revert-dir db/prev/down
 
-Path to a directory containing rewroekd revert scripts. Overrides the value
+Path to a directory containing reworked revert scripts. Overrides the value
 implied by C<--reworked-dir>.
 
 =item C<--reworked-verify-dir>

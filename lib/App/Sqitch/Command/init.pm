@@ -5,7 +5,7 @@ use strict;
 use warnings;
 use utf8;
 use Moo;
-use App::Sqitch::Types qw(URI Maybe Dir Str);
+use App::Sqitch::Types qw(URI Maybe);
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use File::Path qw(make_path);
@@ -16,6 +16,7 @@ use App::Sqitch::Plan;
 use namespace::autoclean;
 
 extends 'App::Sqitch::Command';
+with 'App::Sqitch::Role::ScriptConfigCommand';
 
 our $VERSION = '0.9993';
 
@@ -33,44 +34,8 @@ has uri => (
     isa => Maybe[URI],
 );
 
-has reworked_dir => (
-    is  => 'ro',
-    isa => Maybe[Dir],
-);
-
-has extension => (
-    is  => 'ro',
-    isa => Maybe[Str],
-);
-
-for my $script (qw(deploy revert verify)) {
-    has "$script\_dir" => (
-        is      => 'ro',
-        isa     => Maybe[Dir],
-    );
-    has "reworked_$script\_dir" => (
-        is      => 'ro',
-        isa     => Maybe[Dir],
-        lazy    => 1,
-        default => sub {
-            my $dir = shift->reworked_dir or return undef;
-            $dir->subdir($script);
-        },
-    );
-}
-
 sub options {
-    return qw(
-        uri=s
-        deploy-dir=s
-        revert-dir=s
-        verify-dir=s
-        reworked-dir=s
-        reworked-deploy-dir=s
-        reworked-revert-dir=s
-        reworked-verify-dir=s
-        extension=s
-    );
+    return qw(uri=s);
 }
 
 sub _validate_project {
@@ -91,15 +56,6 @@ sub configure {
     if ( my $uri = $opt->{uri} ) {
         require URI;
         $opt->{uri} = 'URI'->new($uri);
-    }
-
-    for my $dir (
-        'reworked_dir',
-        map { ("$_\_dir", "reworked_$_\_dir") } qw(deploy revert verify)
-    ) {
-        if ( my $str = $opt->{$dir} ) {
-            $opt->{$dir} = dir $str;
-        }
     }
 
     return $opt;
