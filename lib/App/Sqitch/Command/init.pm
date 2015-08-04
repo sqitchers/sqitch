@@ -5,7 +5,7 @@ use strict;
 use warnings;
 use utf8;
 use Moo;
-use App::Sqitch::Types qw(URI Maybe);
+use App::Sqitch::Types qw(URI Maybe Dir Str);
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use File::Path qw(make_path);
@@ -33,9 +33,43 @@ has uri => (
     isa => Maybe[URI],
 );
 
+has reworked_dir => (
+    is  => 'ro',
+    isa => Maybe[Dir],
+);
+
+has extension => (
+    is  => 'ro',
+    isa => Maybe[Str],
+);
+
+for my $script (qw(deploy revert verify)) {
+    has "$script\_dir" => (
+        is      => 'ro',
+        isa     => Maybe[Dir],
+    );
+    has "reworked_$script\_dir" => (
+        is      => 'ro',
+        isa     => Maybe[Dir],
+        lazy    => 1,
+        default => sub {
+            my $dir = shift->reworked_dir or return undef;
+            $dir->subdir($script);
+        },
+    );
+}
+
 sub options {
     return qw(
         uri=s
+        deploy-dir=s
+        revert-dir=s
+        verify-dir=s
+        reworked-dir=s
+        reworked-deploy-dir=s
+        reworked-revert-dir=s
+        reworked-verify-dir=s
+        extension=s
     );
 }
 
@@ -59,16 +93,24 @@ sub configure {
         $opt->{uri} = 'URI'->new($uri);
     }
 
+    for my $dir (
+        'reworked_dir',
+        map { ("$_\_dir", "reworked_$_\_dir") } qw(deploy revert verify)
+    ) {
+        if ( my $str = $opt->{$dir} ) {
+            $opt->{$dir} = dir $str;
+        }
+    }
+
     return $opt;
 }
 
 sub make_directories {
     my $self   = shift;
     my $target = $self->default_target;
-    for my $attr (qw(deploy_dir revert_dir verify_dir)) {
-        for my $meth ($attr, "reworked_$attr") {
-            $self->_mkdir( $target->$meth );
-        }
+    for my $attr (map { ("$_\_dir", "reworked_$_\_dir") } qw(deploy revert verify)) {
+        my $dir = $self->$attr || $target->$attr;
+        $self->_mkdir($dir) unless -e $dir;
     }
     return $self;
 }
@@ -176,16 +218,7 @@ sub write_config {
     for my $name (qw(
         plan_file
         top_dir
-        deploy_dir
-        revert_dir
-        verify_dir
-        reworked_dir
-        reworked_deploy_dir
-        reworked_revert_dir
-        reworked_verify_dir
-        extension
     )) {
-
         # Set core attributes that are not their default values and not
         # already in user or system config.
         my $val = $options->{$name};
@@ -201,6 +234,20 @@ sub write_config {
         elsif ($name !~ /(?<!top)_dir$/) {
             $var //= $target->$name // '';
             push @comments => "\t$name = $var";
+        }
+    }
+
+    # Add in options passed to the init command.
+    for my $attr (
+        'reworked_dir',
+        (map { ("$_\_dir", "reworked_$_\_dir") } qw(deploy revert verify)),
+        'extension'
+    ) {
+        if (my $val = $self->$attr) {
+            push @vars => {
+                key   => "core.$attr",
+                value => $val
+            };
         }
     }
 

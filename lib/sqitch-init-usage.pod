@@ -9,4 +9,12 @@ sqitch-init-usage - Sqitch init usage statement
 
 =head1 Options
 
-    --uri   associate a URI with the project plan
+    --uri                  URI  associate a URI with the project plan
+    --deploy-dir           DIR  path to deploy scripts directory
+    --revert-dir           DIR  path to revert scripts directory
+    --verify-dir           DIR  path to verify scripts directory
+    --reworked-dir         DIR  path to reworked scripts parent directory
+    --reworked-deploy-dir  DIR  path to reworked deploy scripts directory
+    --reworked-revert-dir  DIR  path to reworked revert scripts directory
+    --reworked-verify-dir  DIR  path to reworked verify scripts directory
+    --extension            EXT  change script file name extension
