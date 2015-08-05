@@ -30,6 +30,9 @@ Revision history for Perl extension App::Sqitch
        `deploy_dir`, `revert_dir`, or `verify_dir` settings. I think these
        settings are not commonly used, and it would start to get crowded if we
        also added their "reworked" variants, which will be used still less.
+     - Added support for setting reworked directories to the `engine` command.
+     - Reformatted the output of the `engine` command's `show` action include
+       reworked directories, and to bit a bit less flat.
 
 0.9992 2015-05-20T23:51:41Z
      - On PostgreSQL, Sqitch now sets the `client_encoding` parameter to

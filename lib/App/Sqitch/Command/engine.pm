@@ -62,7 +62,9 @@ my %normalizer_for = (
     },
 );
 
-$normalizer_for{"$_\_dir"} = $normalizer_for{top_dir} for qw(deploy revert verify);
+$normalizer_for{"$_\_dir"} = $normalizer_for{"reworked_$_\_dir"} = $normalizer_for{top_dir}
+    for qw(deploy revert verify);
+$normalizer_for{reworked_dir} = $normalizer_for{top_dir};
 $normalizer_for{$_} = $normalizer_for{client} for qw(registry extension);
 
 sub configure {
@@ -181,6 +183,10 @@ sub set_top_dir    { shift->_set_dir('top_dir',    @_) }
 sub set_deploy_dir { shift->_set_dir('deploy_dir', @_) }
 sub set_revert_dir { shift->_set_dir('revert_dir', @_) }
 sub set_verify_dir { shift->_set_dir('verify_dir', @_) }
+sub set_reworked_dir { shift->_set_dir('reworked_dir', @_) }
+sub set_reworked_deploy_dir { shift->_set_dir('reworked_deploy_dir', @_) }
+sub set_reworked_revert_dir { shift->_set_dir('reworked_revert_dir', @_) }
+sub set_reworked_verify_dir { shift->_set_dir('reworked_verify_dir', @_) }
 
 sub set_plan_file {
     my ($self, $engine, $file) = @_;
@@ -215,29 +221,24 @@ sub show {
     my $config = $sqitch->config;
 
     # Set up labels.
-    my $len = max map { length } (
-        __ 'Target',
-        __ 'Registry',
-        __ 'Client',
-        __ 'Top Directory',
-        __ 'Plan File',
-        __ 'Deploy Directory',
-        __ 'Revert Directory',
-        __ 'Verify Directory',
-        __ 'Extension',
-    );
-
     my %label_for = (
-        target     => __('Target')           . ': ' . ' ' x ($len - length __ 'Target'),
-        registry   => __('Registry')         . ': ' . ' ' x ($len - length __ 'Registry'),
-        client     => __('Client')           . ': ' . ' ' x ($len - length __ 'Client'),
-        top_dir    => __('Top Directory')    . ': ' . ' ' x ($len - length __ 'Top Directory'),
-        plan_file  => __('Plan File')        . ': ' . ' ' x ($len - length __ 'Plan File'),
-        deploy_dir => __('Deploy Directory') . ': ' . ' ' x ($len - length __ 'Deploy Directory'),
-        revert_dir => __('Revert Directory') . ': ' . ' ' x ($len - length __ 'Revert Directory'),
-        verify_dir => __('Verify Directory') . ': ' . ' ' x ($len - length __ 'Verify Directory'),
-        extension  => __('Extension')        . ': ' . ' ' x ($len - length __ 'Extension'),
+        target       => __ 'Target',
+        registry     => __ 'Registry',
+        client       => __ 'Client',
+        top_dir      => __ 'Top Directory',
+        plan_file    => __ 'Plan File',
+        extension    => __ 'Extension',
+        revert       => '  ' . __ 'Revert',
+        deploy       => '  ' . __ 'Deploy',
+        verify       => '  ' . __ 'Verify',
+        reworked     => '  ' . __ 'Reworked',
     );
+    my $len = max map { length } values %label_for;
+    $_ .= ': ' . ' ' x ($len - length $_) for values %label_for;
+
+    # Header labels.
+    $label_for{script_dirs} = __('Script Directories') . ':';
+    $label_for{reworked_dirs} = __('Reworked Script Directories') . ':';
 
     require App::Sqitch::Target;
     for my $engine (@names) {
@@ -247,15 +248,21 @@ sub show {
         );
 
         $self->emit("* $engine");
-        $self->emit('  ', $label_for{target},     $target->target);
-        $self->emit('  ', $label_for{registry},   $target->registry);
-        $self->emit('  ', $label_for{client},     $target->client);
-        $self->emit('  ', $label_for{top_dir},    $target->top_dir);
-        $self->emit('  ', $label_for{plan_file},  $target->plan_file);
-        $self->emit('  ', $label_for{deploy_dir}, $target->deploy_dir);
-        $self->emit('  ', $label_for{revert_dir}, $target->revert_dir);
-        $self->emit('  ', $label_for{verify_dir}, $target->verify_dir);
-        $self->emit('  ', $label_for{extension},  $target->extension);
+        $self->emit('    ', $label_for{target},     $target->target);
+        $self->emit('    ', $label_for{registry},   $target->registry);
+        $self->emit('    ', $label_for{client},     $target->client);
+        $self->emit('    ', $label_for{top_dir},    $target->top_dir);
+        $self->emit('    ', $label_for{plan_file},  $target->plan_file);
+        $self->emit('    ', $label_for{extension},  $target->extension);
+        $self->emit('    ', $label_for{script_dirs});
+        $self->emit('    ', $label_for{deploy}, $target->deploy_dir);
+        $self->emit('    ', $label_for{revert}, $target->revert_dir);
+        $self->emit('    ', $label_for{verify}, $target->verify_dir);
+        $self->emit('    ', $label_for{reworked_dirs});
+        $self->emit('    ', $label_for{reworked}, $target->reworked_dir);
+        $self->emit('    ', $label_for{deploy}, $target->reworked_deploy_dir);
+        $self->emit('    ', $label_for{revert}, $target->reworked_revert_dir);
+        $self->emit('    ', $label_for{verify}, $target->reworked_verify_dir);
     }
 
     return $self;
@@ -453,6 +460,22 @@ Implements the C<set-revert-dir> action.
 =head3 C<set_verify_dir>
 
 Implements the C<set-verify-dir> action.
+
+=head3 C<set_reworked_dir>
+
+Implements the C<set-reworked-dir> action.
+
+=head3 C<set_reworked_deploy_dir>
+
+Implements the C<set-reworked-deploy-dir> action.
+
+=head3 C<set_reworked_revert_dir>
+
+Implements the C<set-reworked-revert-dir> action.
+
+=head3 C<set_reworked_verify_dir>
+
+Implements the C<set-reworked-verify-dir> action.
 
 =head3 C<set_extension>
 

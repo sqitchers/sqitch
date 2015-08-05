@@ -14,6 +14,10 @@ sqitch-engine - Manage database engine configuration
   sqitch engine set-deploy-dir <name> <directory>
   sqitch engine set-revert-dir <name> <directory>
   sqitch engine set-verify-dir <name> <directory>
+  sqitch engine set-reworked-dir <name> <directory>
+  sqitch engine set-reworked-deploy-dir <name> <directory>
+  sqitch engine set-reworked-revert-dir <name> <directory>
+  sqitch engine set-reworked-verify-dir <name> <directory>
   sqitch engine set-extension <name> <extension>
   sqitch engine remove <name>
   sqitch engine show <name>
@@ -62,7 +66,8 @@ Path for an appropriate client.
 
 The path to the top directory for the engine. This directory generally
 contains the plan file and subdirectories for deploy, revert, and verify
-scripts. The default is F<.>, the current directory.
+scripts, as well as reworked instances of those scripts. The default is F<.>,
+the current directory.
 
 =item C<plan_file>
 
@@ -85,6 +90,30 @@ is C<$top_dir/revert>.
 The path to the verify directory for the engine. This directory contains all
 of the verify scripts referenced by changes in the C<plan_file>. The default
 is C<$top_dir/verify>.
+
+=item C<reworked_dir>
+
+The path to the reworked directory for the engine. This directory contains all
+subdirectories for all reworked scripts referenced by changes in the
+C<plan_file>. The default is C<$top_dir>.
+
+=item C<reworked_deploy_dir>
+
+The path to the reworked deploy directory for the engine. This directory
+contains all of the reworked deploy scripts referenced by changes in the
+C<plan_file>. The default is C<$reworked_dir/deploy>.
+
+=item C<reworked_revert_dir>
+
+The path to the reworked revert directory for the engine. This directory
+contains all of the reworked revert scripts referenced by changes in the
+C<plan_file>. The default is C<$reworked_dir/revert>.
+
+=item C<reworked_verify_dir>
+
+The path to the reworked verify directory for the engine. This directory
+contains all of the reworked verify scripts referenced by changes in the
+C<plan_file>. The default is C<$reworked_dir/verify>.
 
 =item C<extension>
 
@@ -127,6 +156,14 @@ only by the C<add> action. Supported keys are:
 =item C<revert_dir>
 
 =item C<verify_dir>
+
+=item C<reworked_dir>
+
+=item C<reworked_deploy_dir>
+
+=item C<reworked_revert_dir>
+
+=item C<reworked_verify_dir>
 
 =item C<extension>
 
@@ -176,6 +213,22 @@ Set the revert directory for engine C<< <name> >>.
 =head2 C<set-verify-dir>
 
 Set the verify directory for engine C<< <name> >>.
+
+=head2 C<set-reworked-dir>
+
+Set the reworked directory for engine C<< <name> >>.
+
+=head2 C<set-reworked-deploy-dir>
+
+Set the reworked deploy directory for engine C<< <name> >>.
+
+=head2 C<set-reworked-revert-dir>
+
+Set the reworked revert directory for engine C<< <name> >>.
+
+=head2 C<set-reworked-verify-dir>
+
+Set the reworked verify directory for engine C<< <name> >>.
 
 =head2 C<set-extension>
 

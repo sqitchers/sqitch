@@ -3,8 +3,8 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 199;
-#use Test::More 'no_plan';
+#use Test::More tests => 199;
+use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
 use Test::Exception;
@@ -123,6 +123,10 @@ for my $key (qw(
     deploy_dir
     revert_dir
     verify_dir
+    reworked_dir
+    reworked_deploy_dir
+    reworked_revert_dir
+    reworked_verify_dir
     extension)
 ) {
     is $config->get(key => "engine.test.$key"), undef,
@@ -131,15 +135,17 @@ for my $key (qw(
 
 # Try all the properties.
 my %props = (
-    target     => 'db:firebird:foo',
-    client     => 'poo',
-    registry   => 'reg',
-    top_dir    => 'top',
-    plan_file  => 'my.plan',
-    deploy_dir => 'dep',
-    revert_dir => 'rev',
-    verify_dir => 'ver',
-    extension  => 'ddl',
+    target              => 'db:firebird:foo',
+    client              => 'poo',
+    registry            => 'reg',
+    top_dir             => 'top',
+    plan_file           => 'my.plan',
+    deploy_dir          => 'dep',
+    revert_dir          => 'rev',
+    verify_dir          => 'ver',
+    reworked_dir        => 'r',
+    reworked_deploy_dir => 'r/d',
+    extension           => 'ddl',
 );
 isa_ok $cmd = $CLASS->new({
     sqitch     => $sqitch,
@@ -272,15 +278,21 @@ is_deeply +MockOutput->get_emit, [
 ok $cmd->show('sqlite'), 'Show sqlite';
 is_deeply +MockOutput->get_emit, [
     ['* sqlite'],
-    ['  ', 'Target:           ', 'widgets'],
-    ['  ', 'Registry:         ', 'sqitch'],
-    ['  ', 'Client:           ', '/usr/sbin/sqlite3'],
-    ['  ', 'Top Directory:    ', '.'],
-    ['  ', 'Plan File:        ', 'foo.plan'],
-    ['  ', 'Deploy Directory: ', 'deploy'],
-    ['  ', 'Revert Directory: ', 'revert'],
-    ['  ', 'Verify Directory: ', 'verify'],
-    ['  ', 'Extension:        ', 'sql'],
+    ['    ', 'Target:        ', 'widgets'],
+    ['    ', 'Registry:      ', 'sqitch'],
+    ['    ', 'Client:        ', '/usr/sbin/sqlite3'],
+    ['    ', 'Top Directory: ', '.'],
+    ['    ', 'Plan File:     ', 'foo.plan'],
+    ['    ', 'Extension:     ', 'sql'],
+    ['    ', 'Script Directories:'],
+    ['    ', '  Deploy:      ', 'deploy'],
+    ['    ', '  Revert:      ', 'revert'],
+    ['    ', '  Verify:      ', 'verify'],
+    ['    ', 'Reworked Script Directories:'],
+    ['    ', '  Reworked:    ', '.'],
+    ['    ', '  Deploy:      ', 'deploy'],
+    ['    ', '  Revert:      ', 'revert'],
+    ['    ', '  Verify:      ', 'verify'],
 ], 'The full "sqlite" engine should have been shown';
 
 # Try multiples.
@@ -289,35 +301,54 @@ $config->load;
 ok $cmd->show(qw(sqlite vertica firebird)), 'Show three engines';
 is_deeply +MockOutput->get_emit, [
     ['* sqlite'],
-    ['  ', 'Target:           ', 'widgets'],
-    ['  ', 'Registry:         ', 'sqitch'],
-    ['  ', 'Client:           ', '/usr/sbin/sqlite3'],
-    ['  ', 'Top Directory:    ', '.'],
-    ['  ', 'Plan File:        ', 'foo.plan'],
-    ['  ', 'Deploy Directory: ', 'deploy'],
-    ['  ', 'Revert Directory: ', 'revert'],
-    ['  ', 'Verify Directory: ', 'verify'],
-    ['  ', 'Extension:        ', 'sql'],
+    ['    ', 'Target:        ', 'widgets'],
+    ['    ', 'Registry:      ', 'sqitch'],
+    ['    ', 'Client:        ', '/usr/sbin/sqlite3'],
+    ['    ', 'Top Directory: ', '.'],
+    ['    ', 'Plan File:     ', 'foo.plan'],
+    ['    ', 'Extension:     ', 'sql'],
+    ['    ', 'Script Directories:'],
+    ['    ', '  Deploy:      ', 'deploy'],
+    ['    ', '  Revert:      ', 'revert'],
+    ['    ', '  Verify:      ', 'verify'],
+    ['    ', 'Reworked Script Directories:'],
+    ['    ', '  Reworked:    ', '.'],
+    ['    ', '  Deploy:      ', 'deploy'],
+    ['    ', '  Revert:      ', 'revert'],
+    ['    ', '  Verify:      ', 'verify'],
     ['* vertica'],
-    ['  ', 'Target:           ', 'db:vertica:'],
-    ['  ', 'Registry:         ', 'sqitch'],
-    ['  ', 'Client:           ', 'vsql.exe'],
-    ['  ', 'Top Directory:    ', '.'],
-    ['  ', 'Plan File:        ', 'sqitch.plan'],
-    ['  ', 'Deploy Directory: ', 'deploy'],
-    ['  ', 'Revert Directory: ', 'revert'],
-    ['  ', 'Verify Directory: ', 'verify'],
-    ['  ', 'Extension:        ', 'sql'],
+    ['    ', 'Target:        ', 'db:vertica:'],
+    ['    ', 'Registry:      ', 'sqitch'],
+    ['    ', 'Client:        ', 'vsql.exe'],
+    ['    ', 'Top Directory: ', '.'],
+    ['    ', 'Plan File:     ', 'sqitch.plan'],
+    ['    ', 'Extension:     ', 'sql'],
+    ['    ', 'Script Directories:'],
+    ['    ', '  Deploy:      ', 'deploy'],
+    ['    ', '  Revert:      ', 'revert'],
+    ['    ', '  Verify:      ', 'verify'],
+    ['    ', 'Reworked Script Directories:'],
+    ['    ', '  Reworked:    ', '.'],
+    ['    ', '  Deploy:      ', 'deploy'],
+    ['    ', '  Revert:      ', 'revert'],
+    ['    ', '  Verify:      ', 'verify'],
     ['* firebird'],
-    ['  ', 'Target:           ', 'db:firebird:foo'],
-    ['  ', 'Registry:         ', 'reg'],
-    ['  ', 'Client:           ', 'poo'],
-    ['  ', 'Top Directory:    ', 'top'],
-    ['  ', 'Plan File:        ', 'my.plan'],
-    ['  ', 'Deploy Directory: ', 'dep'],
-    ['  ', 'Revert Directory: ', 'rev'],
-    ['  ', 'Verify Directory: ', 'ver'],
-    ['  ', 'Extension:        ', 'ddl'],
+    ['    ', 'Target:        ', 'db:firebird:foo'],
+    ['    ', 'Registry:      ', 'reg'],
+    ['    ', 'Client:        ', 'poo'],
+    ['    ', 'Top Directory: ', 'top'],
+    ['    ', 'Plan File:     ', 'my.plan'],
+    ['    ', 'Extension:     ', 'ddl'],
+    ['    ', 'Script Directories:'],
+    ['    ', '  Deploy:      ', 'dep'],
+    ['    ', '  Revert:      ', 'rev'],
+    ['    ', '  Verify:      ', 'ver'],
+    ['    ', 'Reworked Script Directories:'],
+    ['    ', '  Reworked:    ', 'r'],
+    ['    ', '  Deploy:      ', 'r/d'],
+    ['    ', '  Revert:      ', 'r/revert'],
+    ['    ', '  Verify:      ', 'r/verify'],
+
 ], 'All three engines should have been shown';
 
 ##############################################################################

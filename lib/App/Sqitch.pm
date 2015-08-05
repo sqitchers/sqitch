@@ -302,6 +302,8 @@ sub _parse_core_opts {
     }
     $opts{plan_file} = file $opts{plan_file} if defined $opts{plan_file};
 
+    # XXX Deprecate *_dir and extension options?
+
     # Normalize the options (remove undefs) and return.
     $opts{verbosity} = delete $opts{verbose};
     $opts{verbosity} = 0 if delete $opts{quiet};

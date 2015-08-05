@@ -166,15 +166,21 @@ show you:
 
   > sqitch engine show pg
   * pg
-    Target:           db:pg:
-    Registry:         sqitch
-    Client:           /usr/local/pgsql/bin/psql
-    Top Directory:    pg
-    Plan File:        pg/sqitch.plan
-    Deploy Directory: pg/deploy
-    Revert Directory: pg/revert
-    Verify Directory: pg/verify
-    Extension:        sql
+      Target:        db:pg:
+      Registry:      sqitch
+      Client:        /usr/local/pgsql/bin/psql
+      Top Directory: pg
+      Plan File:     pg/sqitch.plan
+      Extension:     sql
+      Script Directories:
+        Deploy:      pg/deploy
+        Revert:      pg/revert
+        Verify:      pg/verify
+      Reworked Script Directories:
+        Reworked:    pg
+        Deploy:      pg/deploy
+        Revert:      pg/revert
+        Verify:      pg/verify
 
 The C<show> action nicely presents the result of the fully-evaluated
 configuration, even though only the top directory and client have been set.
@@ -202,15 +208,21 @@ engine:
   > sqitch engine add sqlite -s top_dir=sqlite
   > sqitch engine show sqlite
   * sqlite
-    Target:           db:sqlite:
-    Registry:         sqitch
-    Client:           sqlite3
-    Top Directory:    sqlite
-    Plan File:        sqlite/sqitch.plan
-    Deploy Directory: sqlite/deploy
-    Revert Directory: sqlite/revert
-    Verify Directory: sqlite/verify
-    Extension:        sql
+      Target:        db:sqlite:
+      Registry:      sqitch
+      Client:        sqlite3
+      Top Directory: sqlite
+      Plan File:     sqlite/sqitch.plan
+      Extension:     sql
+      Script Directories:
+        Deploy:      sqlite/deploy
+        Revert:      sqlite/revert
+        Verify:      sqlite/verify
+      Reworked Script Directories:
+        Reworked:    sqlite
+        Deploy:      sqlite/deploy
+        Revert:      sqlite/revert
+        Verify:      sqlite/verify
 
 Good, everything's in the right place. Start adding changes to the SQLite plan
 by passing the engine name to the C<add> command:
@@ -248,15 +260,21 @@ PostgreSQL directory:
   > sqitch engine set-plan-file pg sqitch.plan
   > sqitch engine show pg
   * pg
-    Target:           db:pg:
-    Registry:         sqitch
-    Client:           /usr/local/pgsql/bin/psql
-    Top Directory:    pg
-    Plan File:        sqitch.plan
-    Deploy Directory: pg/deploy
-    Revert Directory: pg/revert
-    Verify Directory: pg/verify
-    Extension:        sql
+      Target:        db:pg:
+      Registry:      sqitch
+      Client:        /usr/local/pgsql/bin/psql
+      Top Directory: pg
+      Plan File:     sqitch.plan
+      Extension:     sql
+      Script Directories:
+        Deploy:      pg/deploy
+        Revert:      pg/revert
+        Verify:      pg/verify
+      Reworked Script Directories:
+        Reworked:    pg
+        Deploy:      pg/deploy
+        Revert:      pg/revert
+        Verify:      pg/verify
 
 Good, it's now using F<./sqitch.plan>. Now let's start the SQLite project.
 Since we're going to use the same plan, we'll need to port all the scripts
@@ -267,15 +285,21 @@ use the shared plan file:
   > sqitch engine add sqlite --set plan_file=sqitch.plan --set top_dir=sqlite
   > sqitch engine show sqlite
   * sqlite
-    Target:           db:sqlite:
-    Registry:         sqitch
-    Client:           sqlite3
-    Top Directory:    sqlite
-    Plan File:        sqitch.plan
-    Deploy Directory: sqlite/deploy
-    Revert Directory: sqlite/revert
-    Verify Directory: sqlite/verify
-    Extension:        sql
+      Target:           db:sqlite:
+      Registry:         sqitch
+      Client:           sqlite3
+      Top Directory:    sqlite
+      Plan File:        sqitch.plan
+      Extension:        sql
+      Script Directories:
+        Deploy:      sqlite/deploy
+        Revert:      sqlite/revert
+        Verify:      sqlite/verify
+      Reworked Script Directories:
+        Reworked:    sqlite
+        Deploy:      sqlite/deploy
+        Revert:      sqlite/revert
+        Verify:      sqlite/verify
 
 Looks good! Now port all the scripts in the F<sqlite> directory from
 PostgreSQL to SQLite and you're ready to go.
