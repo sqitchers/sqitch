@@ -49,7 +49,7 @@ Typically, the first thing you do with Sqitch is use the
 L<C<init>|sqitch-init> command to start a new project. Now, the most important
 thing Sqitch needs to know is what database engine you'll be managing, so it's
 best to use the C<--engine> option right up front to start off on the right
-food. Here, we start a project called "widgets" to manage PostgreSQL
+foot. Here, we start a project called "widgets" to manage PostgreSQL
 databases:
 
   > sqitch --engine pg init widgets
@@ -67,10 +67,6 @@ commented out, like so:
     engine = pg
     # plan_file = sqitch.plan
     # top_dir = .
-    # deploy_dir = deploy
-    # revert_dir = revert
-    # verify_dir = verify
-    # extension = sql
   # [engine "pg"]
     # target = db:pg:
     # registry = sqitch
@@ -128,7 +124,7 @@ a new host:
   > sqitch config --user engine.sqlite.client /sbin/sqlite3
 
 If you'd like to make the configuration global to all accounts on your host,
-use the `--system` option, instead:
+use the C<--system> option, instead:
 
   > sudo sqitch config --system engine.pg.client /usr/local/pgsql/bin/psql
   > sudo sqitch config --system engine.mysql.client /usr/local/mysql/bin/mysql
@@ -148,7 +144,7 @@ the existing PostgreSQL stuff to a subdirectory.
   > mkdir pg
   > mv deploy revert verify sqitch.plan pg
   > ls  pg  
-  deploy/ revert/ verify/
+  deploy/ revert/ sqitch.plan verify/
 
 Now we need to tell Sqitch where things are. To create an engine-specific
 configuration, use the L<C<engine>|sqitch-engine> command's C<add> action:
@@ -199,7 +195,7 @@ create a new directory and add initialize it as a new Sqitch project:
   Created sqlite/revert/
   Created sqlite/verify/
 
-Note that no F<sqitch.plan> file is created. We can use the same configuration
+Note that no F<sqitch.conf> file is created. We can use the same configuration
 file to manage both the PostgreSQL and the SQLite engines. Just add the SQLite
 engine:
 
@@ -217,17 +213,30 @@ engine:
     Extension:        sql
 
 Good, everything's in the right place. Start adding changes to the SQLite plan
-by passing the C<--engine> option, to force it to use the SQLite configuration:
+by passing the engine name to the C<add> command:
 
-  > sqitch --engine sqlite add users
+  > sqitch add users sqlite -m 'Creates users table.'
   Created sqlite/deploy/users.sql
   Created sqlite/revert/users.sql
   Created sqlite/verify/users.sql
   Added "users" to sqlite/sqitch.plan
 
-Use C<--engine pg> when adding PostgreSQL changes, or omit it, in which case
-Sqitch will fall back on the default engine, defined by the C<core.engine>
-variable set when we created the PostgreSQL project.
+Pass C<pg> when adding PostgreSQL changes, or omit it, in which case Sqitch
+will fall back on the default engine, defined by the C<core.engine> variable
+set when we created the PostgreSQL project. Want to add a change with the same
+name to both engines? Simply pass them both, or specify the C<--all> option:
+
+  > sqitch add --all users -m 'Creates users table.'
+  Created pg/deploy/users.sql
+  Created pg/revert/users.sql
+  Created pg/test/users.sql
+  Created pg/verify/users.sql
+  Added "users" to pg/sqitch.plan
+  Created sqlite/deploy/users.sql
+  Created sqlite/revert/users.sql
+  Created sqlite/test/users.sql
+  Created sqlite/verify/users.sql
+  Added "users" to sqlite/sqitch.plan
 
 =head3 Shared Plan
 
@@ -271,29 +280,39 @@ use the shared plan file:
 Looks good! Now port all the scripts in the F<sqlite> directory from
 PostgreSQL to SQLite and you're ready to go.
 
-Later, when you want to add a new change to both projects, just do it:
+Later, when you want to add a new change to both projects, just pass the
+C<--all> option to the C<add> command:
 
-  > sqitch add users -n 'Creates users table.'
+  > sqitch add users --all -n 'Creates users table.'
   Created pg/deploy/users.sql
   Created pg/revert/users.sql
   Created pg/verify/users.sql
+  Created sqlite/deploy/users.sql
+  Created sqlite/revert/users.sql
+  Created sqlite/verify/users.sql
   Added "users" to sqitch.plan
 
-Then copy the scripts to the F<sqlite> directory:
+This option also works for the C<tag>, C<rework>, and C<bundle> commands. If
+you know you always want to act on all plans, set the C<all> configuration
+variable for each command:
 
-  > cp pg/deploy/users.sql sqlite/deploy
-  > cp pg/revert/users.sql sqlite/revert
-  > cp pg/verify/users.sql sqlite/verify
-
-Yeah, this last bit is slightly annoying; it will be
-L<fixed soon|https://github.com/theory/sqitch/issues/201>.
+  sqitch config --bool add.all 1
+  sqitch config --bool tag.all 1
+  sqitch config --bool rework.all 1
+  sqitch config --bool bundle.all 1
 
 =head3 Database Interactions
 
 With either of these two approaches, you can now manage database interactions
-by passing a L<database URI|https://github.com/theory/uri-db> to the database
-commands. For example, to deploy to a PostgreSQL database named "widgets" on
-host C<db.example.com>:
+by passing an engine name or a L<database URI|https://github.com/theory/uri-db>
+to the database commands. For example, to deploy to a PostgreSQL database
+to the default PostgreSQL database:
+
+  sqitch deploy pg
+
+You usually won't want to use the default database in production, though.
+Here's how to deploy to a PostgreSQL database named "widgets" on host
+C<db.example.com>:
 
   sqitch deploy db:pg://db.example.com/widgets
 
@@ -303,7 +322,7 @@ changes. Use a C<db:sqlite:> URI to interact with an SQLite database:
 
   sqitch log db:sqlite:/var/db/widgets.db
 
-The commands that take URI arguments include:
+The commands that take engine and target URI arguments include:
 
 =over
 
@@ -324,9 +343,6 @@ The commands that take URI arguments include:
 =item * L<C<verify>|sqitch-upgrade>
 
 =back
-
-All other commands rely on the C<--engine> option or the C<core.engine>
-configuration variable to determine path locations.
 
 =head2 Target Configuration
 
@@ -388,6 +404,9 @@ for a password):
   > sqitch deploy prod-primary
   > sqitch deploy prod-standby
 
+The commands that accept a target name are identical to those that take
+an engine name or target URI, as described in L</Database Interactions>.
+
 =head3 Different Target, Different Plan
 
 What about a project that manages different -- but related -- schemas on the
@@ -433,7 +452,7 @@ plan file.
 You can see by the output of the L<C<engine>|sqitch-engine> and
 L<C<target>|sqitch-target> commands that there are quite a few other
 properties that can be set on a per-engine or per-target database. To
-determine the value of each Sqitch looks at a combination of command-line
+determine the value of each, Sqitch looks at a combination of command-line
 options and configuration variables. Here's a complete list, including
 specification of their values and how to set them.
 
@@ -452,14 +471,14 @@ its value will be determined by examining each of the following in turn:
   sqitch deploy $target
   sqitch revert --target $target
 
-=item C<core.target>
-
-  sqitch config core.target $target
-
 =item C<engine.$engine.target>
 
   sqitch engine add $engine --set target=$target
   sqitch engine set-target $engine $target
+
+=item C<core.target>
+
+  sqitch config core.target $target
 
 =back
 
@@ -494,10 +513,11 @@ can specify it via the following:
 
   sqitch --client $client deploy
 
-=item C<core.client>
+=item C<target.$target.client>
 
-  sqitch config --user core.client $client
-  sqitch config core.client $client
+  sqitch target add $target --set client=$client
+  sqitch target set-client $target $client
+  sqitch config --user target.$target.client $client
 
 =item C<engine.$engine.client>
 
@@ -505,11 +525,10 @@ can specify it via the following:
   sqitch engine set-client $engine $client
   sqitch config --user engine.$engine.client $client
 
-=item C<target.$target.client>
+=item C<core.client>
 
-  sqitch target add $target --set client=$client
-  sqitch target set-client $target $client
-  sqitch config --user target.$target.client $client
+  sqitch config --user core.client $client
+  sqitch config core.client $client
 
 =back
 
@@ -525,19 +544,19 @@ the following:
 
   sqitch --registry $registry
 
-=item C<core.registry>
+=item C<target.$target.registry>
 
-  sqitch config core.registry $registry
+  sqitch target add $target --set registry=$registry
+  sqitch target set-registry $target $registry
 
 =item C<engine.$engine.registry>
 
   sqitch engine add $engine --set registry=$registry
   sqitch engine set-registry $engine $registry
 
-=item C<target.$target.registry>
+=item C<core.registry>
 
-  sqitch target add $target --set registry=$registry
-  sqitch target set-registry $target $registry
+  sqitch config core.registry $registry
 
 =back
 
@@ -553,19 +572,19 @@ you need a custom directory, specify it via the following:
 
   sqitch --top-dir $top_dir
 
-=item C<core.top_dir>
+=item C<target.$target.top_dir>
 
-  sqitch config core.top_dir $top_dir
+  sqitch target add $target --set top_dir=$top_dir
+  sqitch target set-top-dir $target $top_dir
 
 =item C<engine.$engine.top_dir>
 
   sqitch engine add $engine --set top_dir=$top_dir
   sqitch engine set-top-dir $engine $top_dir
 
-=item C<target.$target.top_dir>
+=item C<core.top_dir>
 
-  sqitch target add $target --set top_dir=$top_dir
-  sqitch target set-top-dir $target $top_dir
+  sqitch config core.top_dir $top_dir
 
 =back
 
@@ -580,19 +599,19 @@ If you need a different file, specify it via the following:
 
   sqitch --plan-file $plan_file
 
-=item C<core.plan_file>
+=item C<target.$target.plan_file>
 
-  sqitch config core.plan_file $plan_file
+  sqitch target add $target --set plan_file=$plan_file
+  sqitch target set-plan-file $target $plan_file
 
 =item C<engine.$engine.plan_file>
 
   sqitch engine add $engine --set plan_file=$plan_file
   sqitch engine set-plan-file $engine $plan_file
 
-=item C<target.$target.plan_file>
+=item C<core.plan_file>
 
-  sqitch target add $target --set plan_file=$plan_file
-  sqitch target set-plan-file $target $plan_file
+  sqitch config core.plan_file $plan_file
 
 =back
 
@@ -604,23 +623,19 @@ following:
 
 =over
 
-=item C<--deploy-dir>
+=item C<target.$target.deploy_dir>
 
-  sqitch --deploy-dir $deploy_dir
-
-=item C<core.deploy_dir>
-
-  sqitch config core.deploy_dir $deploy_dir
+  sqitch target add $target --set deploy_dir=$deploy_dir
+  sqitch target set-deploy-dir $target $deploy_dir
 
 =item C<engine.$engine.deploy_dir>
 
   sqitch engine add $engine --set deploy_dir=$deploy_dir
   sqitch engine set-deploy-dir $engine $deploy_dir
 
-=item C<target.$target.deploy_dir>
+=item C<core.deploy_dir>
 
-  sqitch target add $target --set deploy_dir=$deploy_dir
-  sqitch target set-deploy-dir $target $deploy_dir
+  sqitch config core.deploy_dir $deploy_dir
 
 =back
 
@@ -635,28 +650,23 @@ following:
 
 =over
 
-=item C<--revert-dir>
+=item C<target.$target.revert_dir>
 
-  sqitch --revert-dir $revert_dir
-
-=item C<core.revert_dir>
-
-  sqitch config core.revert_dir $revert_dir
+  sqitch target add $target --set revert_dir=$revert_dir
+  sqitch target set-revert-dir $target $revert_dir
 
 =item C<engine.$engine.revert_dir>
 
   sqitch engine add $engine --set revert_dir=$revert_dir
   sqitch engine set-revert-dir $engine $revert_dir
 
-=item C<target.$target.revert_dir>
+=item C<core.revert_dir>
 
-  sqitch target add $target --set revert_dir=$revert_dir
-  sqitch target set-revert-dir $target $revert_dir
+  sqitch config core.revert_dir $revert_dir
 
 =back
 
 =item C<verify_dir>
-
 
 The directory in which project verify scripts can be found. Defaults to
 F<C<$top_dir/verify>>. If you need a different directory, specify it via the
@@ -664,23 +674,19 @@ following:
 
 =over
 
-=item C<--verify-dir>
+=item C<target.$target.verify_dir>
 
-  sqitch --verify-dir $verify_dir
-
-=item C<core.verify_dir>
-
-  sqitch config core.verify_dir $verify_dir
+  sqitch target add $target --set verify_dir=$verify_dir
+  sqitch target set-verify-dir $target $verify_dir
 
 =item C<engine.$engine.verify_dir>
 
   sqitch engine add $engine --set verify_dir=$verify_dir
   sqitch engine set-verify-dir $engine $verify_dir
 
-=item C<target.$target.verify_dir>
+=item C<core.verify_dir>
 
-  sqitch target add $target --set verify_dir=$verify_dir
-  sqitch target set-verify-dir $target $verify_dir
+  sqitch config core.verify_dir $verify_dir
 
 =back
 
@@ -692,21 +698,19 @@ following:
 
 =over
 
-=item C<--extension>
+=item C<target.$target.extension>
 
-=item C<core.extension>
-
-  sqitch config core.extension $extension
+  sqitch target add $target --set extension=$extension
+  sqitch target set-extension $target $extension
 
 =item C<engine.$engine.extension>
 
   sqitch engine add $engine --set extension=$extension
   sqitch engine set-extension $engine $extension
 
-=item C<target.$target.extension>
+=item C<core.extension>
 
-  sqitch target add $target --set extension=$extension
-  sqitch target set-extension $target $extension
+  sqitch config core.extension $extension
 
 =back
 
