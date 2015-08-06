@@ -4,8 +4,9 @@ sqitch-init - Create a new Sqitch project
 
 =head1 Synopsis
 
-  sqitch [options] init project
-  sqitch [options] init --uri uri project
+  sqitch [options] init <project>
+  sqitch [options] init --uri <uri> <project>
+  sqitch [options] init <project> [-s <property>=<value> ...]
 
 =head1 Description
 
@@ -26,56 +27,34 @@ Optional URI to associate with the project. If present, the URI will be
 written to the project plan and used for added uniqueness in hashed object
 IDs.
 
-=item C<--dir>
+=item C<-s>
 
-=item C<--directory>
+=item C<--set>
 
-Configure one or more change script directories. The directory names
-may be on of the following:
+  sqitch init widgets -s top_dir=sql -s extension=ddl
+
+Set a core property key/value pair. May be specified multiple times. Supported
+keys are:
 
 =over
 
-=item C<deploy>
+=item C<deploy_dir>
 
-Path to a directory containing deploy scripts. Overrides the value implied by
-C<--top-dir>.
+=item C<revert_dir>
 
-=item C<revert>
+=item C<verify_dir>
 
-Path to a directory containing revert scripts. Overrides the value implied by
-C<--top-dir>.
+=item C<reworked_dir>
 
-=item C<verify>
+=item C<reworked_deploy_dir>
 
-Path to a directory containing verify scripts. Overrides the value implied by
-C<--top-dir>.
+=item C<reworked_revert_dir>
 
-=item C<reworked>
+=item C<reworked_verify_dir>
 
-Path to a directory containing reworked script subdirectories. Overrides the
-value implied by the core Sqitch C<--top-dir> option.
-
-=item C<reworked_deploy>
-
-Path to a directory containing reworked deploy scripts. Overrides the value
-implied by C<reworked>.
-
-=item C<reworked_revert>
-
-Path to a directory containing reworked revert scripts. Overrides the value
-implied by C<reworked>.
-
-=item C<reworked_verify>
-
-Path to a directory containing reworked verify scripts. Overrides the value
-implied by C<reworked>.
+=item C<extension>
 
 =back
-
-=item C<--extension>
-
-The file name extension on deploy, revert, and verify scripts. Defaults to
-C<sql>.
 
 =back
 
@@ -121,9 +100,9 @@ passed.
 
 =over
 
-=item C<--directory>
+=item C<--set>
 
-Sets the following script directory variables:
+Sets the following script variables:
 
 =over
 
@@ -141,11 +120,9 @@ Sets the following script directory variables:
 
 =item C<core.reworked_verify_dir>
 
+=item C<core.extrension>
+
 =back
-
-=item C<--extension>
-
-Sets the C<core.extension> configuration variable.
 
 =back
 
@@ -176,7 +153,29 @@ C<reworked> and a version-specific client:
   sqitch --engine  pg \
          --top-dir postgres \
          --client  /opt/pgsql-9.1/bin/psql \
-         init --extension ddl --dir reworked=reworked
+         init --set extension=ddl --set reworked_dir=reworked
+
+=head1 See Also
+
+=over
+
+=item L<sqitch-configuration>
+
+Describes how Sqitch hierarchical engine and target configuration works.
+
+=item L<sqitch-engine>
+
+Command to manage database engine configuration.
+
+=item L<sqitch-target>
+
+Command to manage target database configuration.
+
+=item L<sqitch-config>
+
+Command to manage all Sqitch configuration.
+
+=back
 
 =head1 Sqitch
 

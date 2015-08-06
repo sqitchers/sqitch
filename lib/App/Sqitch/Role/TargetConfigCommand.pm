@@ -15,49 +15,43 @@ requires 'command';
 requires 'options';
 requires 'configure';
 
-has directories => (
+has properties => (
     is  => 'ro',
     isa => HashRef,
     default => sub { {} },
 );
 
-has extension => (
-    is  => 'ro',
-    isa => Maybe[Str],
-);
-
 around options => sub {
     my ($orig, $class) = @_;
-    return ($class->$orig), qw(
-        directory|dir=s%
-        extension=s
-    );
+    return ($class->$orig), qw(set|s=s%);
 };
 
 around configure => sub {
     my ( $orig, $class, $config, $opt ) = @_;
-    my $dirs = delete $opt->{directory};
-    my $ext  = delete $opt->{extension};
+    my $set = delete $opt->{set};
     my $params = $class->$orig($config, $opt);
-    $params->{extension} = $ext if defined $ext;
 
-    if ($dirs) {
-        my $cdirs = {};
+    if ($set) {
+        my $props = {};
+        $props->{extension} = delete $set->{extension} if exists $set->{extension};
+
+        # Convert directory properties to Class::Path::Dir objects.
         for my $name (qw(
-            deploy
-            revert
-            verify
-            reworked
-            reworked_deploy
-            reworked_revert
-            reworked_verify
+            deploy_dir
+            revert_dir
+            verify_dir
+            reworked_dir
+            reworked_deploy_dir
+            reworked_revert_dir
+            reworked_verify_dir
         )) {
-            if ( my $dir = delete $dirs->{$name} ) {
-                $cdirs->{$name} = dir $dir;
+            if ( my $dir = delete $set->{$name} ) {
+                $props->{$name} = dir($dir)->cleanup;
             }
         }
 
-        if (my @keys = keys %{ $dirs }) {
+        # Set reworked subdirectories if reworked directory specified.
+        if (my @keys = keys %{ $set }) {
             hurl $class->command => __nx(
                 'Unknown directory name: {dirs}',
                 'Unknown directory names: {dirs}',
@@ -66,7 +60,7 @@ around configure => sub {
             );
         }
 
-        $params->{directories} = $cdirs;
+        $params->{properties} = $props;
     }
 
     return $params;
@@ -74,18 +68,18 @@ around configure => sub {
 
 sub BUILD {
     my $self = shift;
-    my $dirs = $self->directories;
-    if (my $reworked = $dirs->{reworked}) {
+    my $props = $self->properties;
+    if (my $reworked = $props->{reworked}) {
         # Generate reworked script directories.
         for my $name (qw(deploy revert verify)) {
-            $dirs->{"reworked_$name"} ||= $reworked->subdir($name);
+            $props->{"reworked_$name"} ||= $reworked->subdir($name);
         }
     }
 }
 
 sub directories_for {
     my ($self, $target) = @_;
-    my $dirs = $self->directories;
+    my $dirs = $self->properties;
     return (
         $dirs->{deploy}          || $target->deploy_dir,
         $dirs->{revert}          || $target->revert_dir,
@@ -132,9 +126,9 @@ Configures the options common to commands manage script configuration.
 
 =head2 Attributes
 
-=head3 C<directories>
+=head3 C<properties>
 
-A hash reference of directory configurations. The keys may be as follows:
+A hash reference of target configurations. The keys may be as follows:
 
 =over
 
@@ -152,11 +146,9 @@ A hash reference of directory configurations. The keys may be as follows:
 
 =item C<reworked_verify>
 
+=item C<extension>
+
 =back
-
-=head3 C<extension>
-
-The file extension to use for change script files.
 
 =head2 Instance Methods
 

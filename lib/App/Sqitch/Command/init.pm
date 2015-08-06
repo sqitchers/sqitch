@@ -192,12 +192,9 @@ sub write_config {
     }
 
     # Add in options passed to the init command.
-    my $dirs = $self->directories;
-    while (my ($attr, $val) = each %{ $dirs }) {
-        push @vars => { key => "core.$attr\_dir", value => $val };
-    }
-    if (my $ext = $self->extension) {
-        push @vars => { key => 'core.extension', value => $ext };
+    my $props = $self->properties;
+    while (my ($attr, $val) = each %{ $props }) {
+        push @vars => { key => "core.$attr", value => $val };
     }
 
     # Emit them.
