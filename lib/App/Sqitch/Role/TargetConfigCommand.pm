@@ -1,4 +1,4 @@
-package App::Sqitch::Role::ScriptConfigCommand;
+package App::Sqitch::Role::TargetConfigCommand;
 
 use 5.010;
 use strict;
@@ -102,13 +102,13 @@ __END__
 
 =head1 Name
 
-App::Sqitch::Role::ScriptConfigCommand - A command that reverts and deploys
+App::Sqitch::Role::TargetConfigCommand - A command that handles target-related configuration
 
 =head1 Synopsis
 
   package App::Sqitch::Command::init;
   extends 'App::Sqitch::Command';
-  with 'App::Sqitch::Role::ScriptConfigCommand';
+  with 'App::Sqitch::Role::TargetConfigCommand';
 
 =head1 Description
 

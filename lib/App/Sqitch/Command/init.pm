@@ -16,7 +16,7 @@ use App::Sqitch::Plan;
 use namespace::autoclean;
 
 extends 'App::Sqitch::Command';
-with 'App::Sqitch::Role::ScriptConfigCommand';
+with 'App::Sqitch::Role::TargetConfigCommand';
 
 our $VERSION = '0.9993';
 
