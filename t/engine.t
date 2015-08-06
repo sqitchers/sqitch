@@ -47,7 +47,7 @@ my ( $earliest_change_id, $latest_change_id, $initialized );
 my $registry_version = $CLASS->registry_release;
 my $script_hash;
 ENGINE: {
-    # Stub out a engine.
+    # Stub out an engine.
     package App::Sqitch::Engine::whu;
     use Moo;
     use App::Sqitch::X qw(hurl);

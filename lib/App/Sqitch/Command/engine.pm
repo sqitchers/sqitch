@@ -141,10 +141,47 @@ sub add {
     return $self;
 }
 
+sub alter {
+    my ($self, $engine, $target) = @_;
+    $self->usage unless $engine;
+    _chk_engine $engine;
 
+    my $key    = "engine.$engine";
+    my $config = $self->sqitch->config;
+    my $props  = $self->properties;
+
+    hurl engine => __x(
+        'Missing Engine "{engine}"; use "{command}" to add it',
+        engine  => $engine,
+        command => "add $engine " . ($props->{target} || "db:$engine:"),
+    ) unless $config->get( key => "engine.$engine.target");
+
+    my @vars;
+    while (my ($prop, $val) = each %{ $props } ) {
+        my $normalizer = $normalizer_for{$prop} or $self->usage(__x(
+            'Unknown property "{property}"',
+            property => $prop,
+        ));
+        push @vars => {
+            key   => "$key.$prop",
+            value => $normalizer->($val, $config),
+        };
+    }
+
+    # Make it so.
+    $config->group_set( $config->local_file, \@vars );
+}
+
+# XXX Remove deprecated _set method and everything that uses it.
 sub _set {
     my ($self, $key, $engine, $value) = @_;
+    (my $action = $key) =~ s/_/-/g;
     $self->usage unless $engine && $value;
+    $self->sqitch->warn(__x(
+        qq{  The "{old}" action is deprecated;\n  Instead use "{new}".},
+        old => "set-$action $engine $value",
+        new => "alter $engine --set $action=$value",
+    ));
 
     _chk_engine $engine;
 
@@ -183,10 +220,6 @@ sub set_top_dir    { shift->_set_dir('top_dir',    @_) }
 sub set_deploy_dir { shift->_set_dir('deploy_dir', @_) }
 sub set_revert_dir { shift->_set_dir('revert_dir', @_) }
 sub set_verify_dir { shift->_set_dir('verify_dir', @_) }
-sub set_reworked_dir { shift->_set_dir('reworked_dir', @_) }
-sub set_reworked_deploy_dir { shift->_set_dir('reworked_deploy_dir', @_) }
-sub set_reworked_revert_dir { shift->_set_dir('reworked_revert_dir', @_) }
-sub set_reworked_verify_dir { shift->_set_dir('reworked_verify_dir', @_) }
 
 sub set_plan_file {
     my ($self, $engine, $file) = @_;
@@ -419,6 +452,10 @@ Executes the C<engine> command.
 
 Implements the C<add> action.
 
+=head3 C<alter>
+
+Implements the C<alter> action.
+
 =head3 C<list>
 
 Implements the C<list> action.
@@ -428,6 +465,10 @@ Implements the C<list> action.
 =head3 C<rm>
 
 Implements the C<remove> action.
+
+=begin comment
+
+Deprecated methods.
 
 =head3 C<set_target>
 
@@ -480,6 +521,8 @@ Implements the C<set-reworked-verify-dir> action.
 =head3 C<set_extension>
 
 Implements the C<set-extension> action.
+
+=end comment
 
 =head3 C<show>
 

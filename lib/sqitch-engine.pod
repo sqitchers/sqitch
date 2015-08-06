@@ -6,21 +6,9 @@ sqitch-engine - Manage database engine configuration
 
   sqitch engine
   sqitch engine add <name> <target> [-s <property>=<value> ...]
-  sqitch engine set-target <name> <target>
-  sqitch engine set-registry <name> <registry>
-  sqitch engine set-client <name> <client>
-  sqitch engine set-top-dir <name> <directory>
-  sqitch engine set-plan-file <name> <file>
-  sqitch engine set-deploy-dir <name> <directory>
-  sqitch engine set-revert-dir <name> <directory>
-  sqitch engine set-verify-dir <name> <directory>
-  sqitch engine set-reworked-dir <name> <directory>
-  sqitch engine set-reworked-deploy-dir <name> <directory>
-  sqitch engine set-reworked-revert-dir <name> <directory>
-  sqitch engine set-reworked-verify-dir <name> <directory>
-  sqitch engine set-extension <name> <extension>
+  sqitch engine alter <name> [-s <property>=<value> ...]
   sqitch engine remove <name>
-  sqitch engine show <name>
+  sqitch engine show <name> [...]
   sqitch engine update-config
 
 =head1 Description
@@ -136,8 +124,8 @@ L<config|sqitch-config> options.
 
   sqitch engine add pg -s top_dir=pg -s client=/usr/local/pgsql/bin/psql
 
-Set a engine property key/value pair. May be specified multiple times. Used
-only by the C<add> action. Supported keys are:
+Set an engine property key/value pair. May be specified multiple times. Used
+only by the C<add> and C<alter> actions. Supported keys are:
 
 =over
 
@@ -178,61 +166,13 @@ available to perform operations on the engines.
 
 =head2 C<add>
 
-Add a engine named C<< <name> >> for the database at C<< <uri> >>. The
+Add an engine named C<< <name> >> for the database at C<< <uri> >>. The
 C<--set> option specifies engine-specific properties.
 
+=head2 C<alter>
 
-=head2 C<set-target>
-
-Set the target for engine C<< <name> >>.
-
-=head2 C<set-registry>
-
-Set the registry for engine C<< <name> >>.
-
-=head2 C<set-client>
-
-Set the client for engine C<< <name> >>.
-
-=head2 C<set-top-dir>
-
-Set the top directory for engine C<< <name> >>.
-
-=head2 C<set-plan-file>
-
-Set the plan file for engine C<< <name> >>.
-
-=head2 C<set-deploy-dir>
-
-Set the deploy directory for engine C<< <name> >>.
-
-=head2 C<set-revert-dir>
-
-Set the revert directory for engine C<< <name> >>.
-
-=head2 C<set-verify-dir>
-
-Set the verify directory for engine C<< <name> >>.
-
-=head2 C<set-reworked-dir>
-
-Set the reworked directory for engine C<< <name> >>.
-
-=head2 C<set-reworked-deploy-dir>
-
-Set the reworked deploy directory for engine C<< <name> >>.
-
-=head2 C<set-reworked-revert-dir>
-
-Set the reworked revert directory for engine C<< <name> >>.
-
-=head2 C<set-reworked-verify-dir>
-
-Set the reworked verify directory for engine C<< <name> >>.
-
-=head2 C<set-extension>
-
-Set the extension for engine C<< <name> >>.
+Alter an engine named C<< <name> >>. The C<--set> option specifies
+engine-specific properties to set.
 
 =head2 C<remove>, C<rm>
 

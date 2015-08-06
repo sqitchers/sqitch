@@ -257,7 +257,7 @@ share the same plan. In that case, we should move the plan file out of the
 PostgreSQL directory:
 
   > mv pg/sqitch.plan .
-  > sqitch engine set-plan-file pg sqitch.plan
+  > sqitch engine pg --set plan_file=sqitch.plan
   > sqitch engine show pg
   * pg
       Target:        db:pg:
@@ -498,7 +498,7 @@ its value will be determined by examining each of the following in turn:
 =item C<engine.$engine.target>
 
   sqitch engine add $engine --set target=$target
-  sqitch engine set-target $engine $target
+  sqitch engine alter $engine --set=$target
 
 =item C<core.target>
 
@@ -546,7 +546,7 @@ can specify it via the following:
 =item C<engine.$engine.client>
 
   sqitch engine add $engine --set client=$client
-  sqitch engine set-client $engine $client
+  sqitch engine alter $engine --set client=$client
   sqitch config --user engine.$engine.client $client
 
 =item C<core.client>
@@ -576,7 +576,7 @@ the following:
 =item C<engine.$engine.registry>
 
   sqitch engine add $engine --set registry=$registry
-  sqitch engine set-registry $engine $registry
+  sqitch engine alter $engine --set registry=$registry
 
 =item C<core.registry>
 
@@ -604,7 +604,7 @@ you need a custom directory, specify it via the following:
 =item C<engine.$engine.top_dir>
 
   sqitch engine add $engine --set top_dir=$top_dir
-  sqitch engine set-top-dir $engine $top_dir
+  sqitch engine alter $engine --set=top_dir=$top_dir
 
 =item C<core.top_dir>
 
@@ -631,7 +631,7 @@ If you need a different file, specify it via the following:
 =item C<engine.$engine.plan_file>
 
   sqitch engine add $engine --set plan_file=$plan_file
-  sqitch engine set-plan-file $engine $plan_file
+  sqitch engine alter $engine --set plan_file=$plan_file
 
 =item C<core.plan_file>
 
@@ -655,7 +655,7 @@ following:
 =item C<engine.$engine.deploy_dir>
 
   sqitch engine add $engine --set deploy_dir=$deploy_dir
-  sqitch engine set-deploy-dir $engine $deploy_dir
+  sqitch engine alter --set deploy_dir=$deploy_dir
 
 =item C<core.deploy_dir>
 
@@ -682,7 +682,7 @@ following:
 =item C<engine.$engine.revert_dir>
 
   sqitch engine add $engine --set revert_dir=$revert_dir
-  sqitch engine set-revert-dir $engine $revert_dir
+  sqitch engine alter --set revert_dir=$revert_dir
 
 =item C<core.revert_dir>
 
@@ -706,7 +706,7 @@ following:
 =item C<engine.$engine.verify_dir>
 
   sqitch engine add $engine --set verify_dir=$verify_dir
-  sqitch engine set-verify-dir $engine $verify_dir
+  sqitch engine alter $engine --set verify_dir=$verify_dir
 
 =item C<core.verify_dir>
 
@@ -730,7 +730,7 @@ following:
 =item C<engine.$engine.extension>
 
   sqitch engine add $engine --set extension=$extension
-  sqitch engine set-extension $engine $extension
+  sqitch engine alter $engine --set extension=$extension
 
 =item C<core.extension>
 

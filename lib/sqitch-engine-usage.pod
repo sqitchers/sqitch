@@ -6,15 +6,7 @@ sqitch-engine-usage - Sqitch engine usage statement
 
   sqitch [options] engine
   sqitch engine add <name> [-s <property>=<value> ...]
-  sqitch engine set-target <name> <target>
-  sqitch engine set-registry <name> <registry>
-  sqitch engine set-client <name> <client>
-  sqitch engine set-top-dir <name> <directory>
-  sqitch engine set-plan-file <name> <file>
-  sqitch engine set-deploy-dir <name> <directory>
-  sqitch engine set-revert-dir <name> <directory>
-  sqitch engine set-verify-dir <name> <directory>
-  sqitch engine set-extension <name> <extension>
+  sqitch engine alter <name> [-s <property>=<value> ...]
   sqitch engine remove <name>
   sqitch engine show <name>
   sqitch engine update-config
@@ -22,4 +14,4 @@ sqitch-engine-usage - Sqitch engine usage statement
 =head1 Options
 
     -v, --verbose             be verbose; must be placed before an action
-    -s, --set     KEY=VALUE   set engine property when adding a engine
+    -s, --set     KEY=VALUE   set engine property when adding or altering

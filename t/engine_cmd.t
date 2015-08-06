@@ -36,7 +36,7 @@ $ENV{SQITCH_CONFIG} = 'engine.conf';
 my $psql = 'psql' . ($^O eq 'MSWin32' ? '.exe' : '');
 
 ##############################################################################
-# Load a engine command and test the basics.
+# Load an engine command and test the basics.
 ok my $sqitch = App::Sqitch->new, 'Load a sqitch sqitch object';
 my $config = $sqitch->config;
 isa_ok my $cmd = App::Sqitch::Command->load({
@@ -123,12 +123,8 @@ for my $key (qw(
     deploy_dir
     revert_dir
     verify_dir
-    reworked_dir
-    reworked_deploy_dir
-    reworked_revert_dir
-    reworked_verify_dir
-    extension)
-) {
+    extension
+)) {
     is $config->get(key => "engine.test.$key"), undef,
         qq{Engine "test" should have no $key set};
 }
@@ -157,6 +153,76 @@ while (my ($k, $v) = each %props) {
     is $config->get(key => "engine.firebird.$k"), $v,
         qq{Engine "firebird" should have $k set};
 }
+
+##############################################################################
+# Test alter().
+isa_ok $cmd = $CLASS->new({
+    sqitch     => $sqitch,
+}), $CLASS, 'Engine with no properties';
+
+MISSINGARGS: {
+    # Test handling of no name.
+    my $mock = Test::MockModule->new($CLASS);
+    my @args;
+    $mock->mock(usage => sub { @args = @_; die 'USAGE' });
+    throws_ok { $cmd->alter } qr/USAGE/,
+        'No name arg to add() should yield usage';
+    is_deeply \@args, [$cmd], 'No args should be passed to usage';
+}
+
+throws_ok { $cmd->alter('nonexistent' ) } 'App::Sqitch::X',
+    'Should get error from alter for nonexistent engine';
+is $@->ident, 'engine', 'Nonexistent engine error ident should be "engine"';
+is $@->message, __x(
+    'Unknown engine "{engine}"',
+    engine => 'nonexistent'
+), 'Nonexistent engine error message should be correct';
+
+# Should die on missing key.
+throws_ok { $cmd->alter('oracle') } 'App::Sqitch::X',
+    'Should get error for missing engine';
+is $@->ident, 'engine', 'Missing engine error ident should be "engine"';
+is $@->message, __x(
+    'Missing Engine "{engine}"; use "{command}" to add it',
+    engine  => 'oracle',
+    command => 'add oracle db:oracle:',
+), 'Missing engine error message should be correct';
+
+# Try all the properties.
+%props = (
+    target              => 'db:firebird:bar',
+    client              => 'argh',
+    registry            => 'migrations',
+    top_dir             => 'fb',
+    plan_file           => 'fb.plan',
+    deploy_dir          => 'fb/dep',
+    revert_dir          => 'fb/rev',
+    verify_dir          => 'fb/ver',
+    reworked_dir        => 'fb/r',
+    reworked_deploy_dir => 'fb/r/d',
+    extension           => 'fbsql',
+);
+isa_ok $cmd = $CLASS->new({
+    sqitch     => $sqitch,
+    properties => { %props },
+}), $CLASS, 'Engine with more properties';
+ok $cmd->alter('firebird'), 'Alter engine "firebird"';
+$config->load;
+while (my ($k, $v) = each %props) {
+    is $config->get(key => "engine.firebird.$k"), $v,
+        qq{Engine "firebird" should have $k set};
+}
+
+# An attempt to alter a missing engine should show the target if in props.
+throws_ok { $cmd->alter('oracle') } 'App::Sqitch::X',
+    'Should again get error for missing engine';
+is $@->ident, 'engine', 'Missing engine error ident should still be "engine"';
+is $@->message, __x(
+    'Missing Engine "{engine}"; use "{command}" to add it',
+    engine  => 'oracle',
+    command => 'add oracle db:firebird:bar',
+), 'Missing engine error message should include target property';
+
 
 ##############################################################################
 # Test set_target().
@@ -208,6 +274,7 @@ is $@->message, __x(
 ##############################################################################
 # Test other set_* methods
 for my $key (keys %props) {
+    next if $key =~ /^reworked/;
     my $meth = "set_$key";
     MISSINGARGS: {
         # Test handling of no name.
@@ -333,22 +400,21 @@ is_deeply +MockOutput->get_emit, [
     ['    ', '  Revert:      ', 'revert'],
     ['    ', '  Verify:      ', 'verify'],
     ['* firebird'],
-    ['    ', 'Target:        ', 'db:firebird:foo'],
-    ['    ', 'Registry:      ', 'reg'],
-    ['    ', 'Client:        ', 'poo'],
-    ['    ', 'Top Directory: ', 'top'],
-    ['    ', 'Plan File:     ', 'my.plan'],
-    ['    ', 'Extension:     ', 'ddl'],
+    ['    ', 'Target:        ', 'db:firebird:bar'],
+    ['    ', 'Registry:      ', 'migrations'],
+    ['    ', 'Client:        ', 'argh'],
+    ['    ', 'Top Directory: ', 'fb'],
+    ['    ', 'Plan File:     ', 'fb.plan'],
+    ['    ', 'Extension:     ', 'fbsql'],
     ['    ', 'Script Directories:'],
-    ['    ', '  Deploy:      ', 'dep'],
-    ['    ', '  Revert:      ', 'rev'],
-    ['    ', '  Verify:      ', 'ver'],
+    ['    ', '  Deploy:      ', 'fb/dep'],
+    ['    ', '  Revert:      ', 'fb/rev'],
+    ['    ', '  Verify:      ', 'fb/ver'],
     ['    ', 'Reworked Script Directories:'],
-    ['    ', '  Reworked:    ', 'r'],
-    ['    ', '  Deploy:      ', 'r/d'],
-    ['    ', '  Revert:      ', 'r/revert'],
-    ['    ', '  Verify:      ', 'r/verify'],
-
+    ['    ', '  Reworked:    ', 'fb/r'],
+    ['    ', '  Deploy:      ', 'fb/r/d'],
+    ['    ', '  Revert:      ', 'fb/r/revert'],
+    ['    ', '  Verify:      ', 'fb/r/verify'],
 ], 'All three engines should have been shown';
 
 ##############################################################################
