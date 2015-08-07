@@ -48,11 +48,11 @@ configure these values for various deployment scenarios.
 Typically, the first thing you do with Sqitch is use the
 L<C<init>|sqitch-init> command to start a new project. Now, the most important
 thing Sqitch needs to know is what database engine you'll be managing, so it's
-best to use the C<--engine> option right up front to start off on the right
-foot. Here, we start a project called "widgets" to manage PostgreSQL
+best to use C<--set> to configure the engine right up front to start off on
+the right foot. Here, we start a project called "widgets" to manage PostgreSQL
 databases:
 
-  > sqitch --engine pg init widgets
+  > sqitch init widgets --set engine=pg
   Created sqitch.conf
   Created sqitch.plan
   Created deploy/
@@ -195,7 +195,7 @@ The first approach is to create an entirely independent SQLite project with
 its own plan and scripts. This is I<almost> like starting from scratch: just
 create a new directory and add initialize it as a new Sqitch project:
 
-  > sqitch --top-dir sqlite --engine sqlite init widgets
+  > sqitch init widgets -s top_dir=sqlite -s engine=sqlite
   Created sqlite/sqitch.plan
   Created sqlite/deploy/
   Created sqlite/revert/
@@ -497,6 +497,7 @@ its value will be determined by examining each of the following in turn:
 
 =item C<engine.$engine.target>
 
+  sqitch init $project --set engine=$engine --set target=$target
   sqitch engine add $engine --set target=$target
   sqitch engine alter $engine --set=$target
 
@@ -520,6 +521,7 @@ only be specified as a target argument or via a named target:
 
 =item C<target.$target.uri>
 
+  sqitch init $project --set engine=$engine --set target=$target
   sqitch target add $target --set uri=$uri
   sqitch target set-target $target $target
 
@@ -545,14 +547,15 @@ can specify it via the following:
 
 =item C<engine.$engine.client>
 
+  sqitch init $project --set engine=$engine --set client=client
   sqitch engine add $engine --set client=$client
   sqitch engine alter $engine --set client=$client
   sqitch config --user engine.$engine.client $client
 
 =item C<core.client>
 
-  sqitch config --user core.client $client
   sqitch config core.client $client
+  sqitch config --user core.client $client
 
 =back
 
@@ -575,6 +578,7 @@ the following:
 
 =item C<engine.$engine.registry>
 
+  sqitch init $project --set engine=$engine --set registry=$registry
   sqitch engine add $engine --set registry=$registry
   sqitch engine alter $engine --set registry=$registry
 
@@ -608,6 +612,7 @@ you need a custom directory, specify it via the following:
 
 =item C<core.top_dir>
 
+  sqitch init $project --set top_dir=$top_dir
   sqitch config core.top_dir $top_dir
 
 =back
@@ -635,6 +640,7 @@ If you need a different file, specify it via the following:
 
 =item C<core.plan_file>
 
+  sqitch init $project --set plan_file=$plan_file
   sqitch config core.plan_file $plan_file
 
 =back
@@ -659,6 +665,7 @@ following:
 
 =item C<core.deploy_dir>
 
+  sqitch init $project --set deploy_dir=$deploy_dir
   sqitch config core.deploy_dir $deploy_dir
 
 =back
@@ -686,6 +693,7 @@ following:
 
 =item C<core.revert_dir>
 
+  sqitch init $project --set revert_dir=$revert_dir
   sqitch config core.revert_dir $revert_dir
 
 =back
@@ -710,6 +718,7 @@ following:
 
 =item C<core.verify_dir>
 
+  sqitch init $project --set verify_dir=$verify_dir
   sqitch config core.verify_dir $verify_dir
 
 =back
@@ -734,6 +743,7 @@ following:
 
 =item C<core.extension>
 
+  sqitch init $project --set extension=$extension
   sqitch config core.extension $extension
 
 =back

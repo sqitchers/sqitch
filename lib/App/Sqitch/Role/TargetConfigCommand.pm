@@ -9,11 +9,14 @@ use App::Sqitch::Types qw(Maybe HashRef Str);
 use App::Sqitch::X qw(hurl);
 use Path::Class;
 use Locale::TextDomain qw(App-Sqitch);
+use List::Util qw(first);
 use namespace::autoclean;
 
 requires 'command';
 requires 'options';
 requires 'configure';
+requires 'sqitch';
+requires 'property_keys';
 
 has properties => (
     is  => 'ro',
@@ -32,11 +35,33 @@ around configure => sub {
     my $params = $class->$orig($config, $opt);
 
     if ($set) {
+        # Make sure we ahve only allowed keys.
+        my $ok_keys = { map { $_ => undef } $class->property_keys };
+        if (my @keys = grep { !exists $ok_keys->{$_} } keys %{ $set }) {
+            hurl $class->command => __nx(
+                'Unknown property name: {props}',
+                'Unknown property names: {props}',
+                @keys,
+                props => join(__ ', ', sort @keys),
+            );
+        }
+
+        # Copy plain string properties.
         my $props = {};
-        $props->{extension} = delete $set->{extension} if exists $set->{extension};
+        for my $name (qw(engine extension target registry)) {
+            $props->{$name} = delete $set->{$name} if exists $set->{$name};
+        }
+
+        # Convert file properties to Class::Path::File objects.
+        for my $name (qw(plan_file client)) {
+            if ( my $file = delete $set->{$name} ) {
+                $props->{$name} = file($file)->cleanup;
+            }
+        }
 
         # Convert directory properties to Class::Path::Dir objects.
         for my $name (qw(
+            top_dir
             deploy_dir
             revert_dir
             verify_dir
@@ -50,16 +75,6 @@ around configure => sub {
             }
         }
 
-        # Set reworked subdirectories if reworked directory specified.
-        if (my @keys = keys %{ $set }) {
-            hurl $class->command => __nx(
-                'Unknown directory name: {dirs}',
-                'Unknown directory names: {dirs}',
-                @keys,
-                dirs => join(__ ', ', sort @keys),
-            );
-        }
-
         $params->{properties} = $props;
     }
 
@@ -69,25 +84,62 @@ around configure => sub {
 sub BUILD {
     my $self = shift;
     my $props = $self->properties;
-    if (my $reworked = $props->{reworked}) {
-        # Generate reworked script directories.
-        for my $name (qw(deploy revert verify)) {
-            $props->{"reworked_$name"} ||= $reworked->subdir($name);
-        }
+
+    if (my $engine = $props->{engine}) {
+        # Validate engine.
+        hurl $self->command => __x(
+            'Unknown engine "{engine}"', engine => $engine
+        ) unless first { $engine eq $_ } App::Sqitch::Command::ENGINES;
+    }
+
+    # Copy core options.
+    my $opts = $self->sqitch->options;
+    for my $name (qw(
+        top_dir
+        plan_file
+        engine
+        registry
+        client
+        target
+        extension
+        deploy_dir
+        revert_dir
+        verify_dir
+    )) {
+        $props->{$name} ||= $opts->{$name} if exists $opts->{$name};
     }
 }
 
 sub directories_for {
     my ($self, $target) = @_;
-    my $dirs = $self->properties;
-    return (
-        $dirs->{deploy}          || $target->deploy_dir,
-        $dirs->{revert}          || $target->revert_dir,
-        $dirs->{verify}          || $target->verify_dir,
-        $dirs->{reworked_deploy} || $target->reworked_deploy_dir,
-        $dirs->{reworked_revert} || $target->reworked_revert_dir,
-        $dirs->{reworked_verify} || $target->reworked_verify_dir,
-    );
+    my $props = $self->properties;
+    my (@dirs, %seen);
+
+    # Script directories.
+    if (my $top_dir = $props->{top_dir}) {
+        push @dirs => grep { !$seen{$_}++ } map {
+            $props->{"$_\_$_"} || $top_dir->subdir($_);
+        } qw(deploy revert verify);
+    } else {
+        push @dirs => grep { !$seen{$_}++ } map {
+            my $name = "$_\_dir";
+            $props->{$name} || $target->$name;
+        } qw(deploy revert verify);
+    }
+
+    # Reworked script directories.
+    if (my $reworked_dir = $props->{reworked_dir} || $props->{top_dir}) {
+        push @dirs => grep { !$seen{$_}++ } map {
+            $props->{"reworked_$_\_dir"} || $reworked_dir->subdir($_);
+        } qw(deploy revert verify);
+    } else {
+        push @dirs => grep { !$seen{$_}++ } map {
+            my $name = "reworked_$_\_dir";
+            $props->{$name} || $target->$name;
+        } qw(deploy revert verify);
+    }
+
+    return @dirs;
 }
 
 1;

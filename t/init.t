@@ -4,8 +4,8 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 186;
-#use Test::More 'no_plan';
+#use Test::More tests => 186;
+use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
 use Path::Class;
@@ -44,12 +44,12 @@ $ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
 ##############################################################################
 # Test options and configuration.
 my $sqitch = App::Sqitch->new(
-    options => { top_dir => dir('init.mkdir')->stringify },
+    options => { top_dir => dir('init.mkdir') },
 );
 
 isa_ok my $init = $CLASS->new(
     sqitch     => $sqitch,
-    properties => { reworked => dir('init.mkdir/reworked') },
+    properties => { reworked_dir => dir('init.mkdir/reworked') },
 ), $CLASS, 'New init object';
 
 can_ok $init, qw(
@@ -70,7 +70,13 @@ is_deeply $CLASS->configure({}, { uri => 'http://example.com' }),
 ok my $config = $CLASS->configure({}, {
     uri                 => 'http://example.com',
     set => {
+        engine              => 'pg',
+        top_dir             => 'top',
+        plan_file           => 'my.plan',
+        registry            => 'bats',
+        client              => 'cli',
         extension           => 'ddl',
+        target              => 'db:pg:foo',
         deploy_dir          => 'dep',
         revert_dir          => 'rev',
         verify_dir          => 'ver',
@@ -82,29 +88,49 @@ ok my $config = $CLASS->configure({}, {
 }), 'Get full config';
 
 isa_ok $config->{uri}, 'URI',
-is delete $config->{properties}{extension}, 'ddl', 'Should have extension';
-isa_ok $config->{properties}{$_}, 'Path::Class::Dir', "$_ directory attribute" for map {
-    ($_, "reworked_$_")
-} qw(deploy_dir revert_dir verify_dir);
+is_deeply $config->{properties}, {
+        engine              => 'pg',
+        top_dir             => 'top',
+        plan_file           => 'my.plan',
+        registry            => 'bats',
+        client              => 'cli',
+        extension           => 'ddl',
+        target              => 'db:pg:foo',
+        deploy_dir          => 'dep',
+        revert_dir          => 'rev',
+        verify_dir          => 'ver',
+        reworked_dir        => 'wrk',
+        reworked_deploy_dir => 'rdep',
+        reworked_revert_dir => 'rrev',
+        reworked_verify_dir => 'rver',
+}, 'Should have properties';
+isa_ok $config->{properties}{$_}, 'Path::Class::File', "$_ file attribute" for qw(
+    plan_file
+    client
+);
+isa_ok $config->{properties}{$_}, 'Path::Class::Dir', "$_ directory attribute" for (
+    'top_dir',
+    map { ($_, "reworked_$_") } qw(deploy_dir revert_dir verify_dir)
+);
 
 # Make sure invalid directories are ignored.
-throws_ok { $CLASS->configure({}, {
+throws_ok { $CLASS->new($CLASS->configure({}, {
     set => { foo => 'bar' },
-}) } 'App::Sqitch::X',  'Should fail on invalid directory name';
+})) } 'App::Sqitch::X',  'Should fail on invalid directory name';
 is $@->ident, 'init', 'Invalid directory ident should be "init"';
 is $@->message, __x(
-    'Unknown directory name: {dirs}',
-    dirs => 'foo',
-), 'The invalid directory messsage should be correct';
+    'Unknown property name: {prop}',
+    prop => 'foo',
+), 'The invalid property messsage should be correct';
 
-throws_ok { $CLASS->configure({}, {
+throws_ok { $CLASS->new($CLASS->configure({}, {
     set => { foo => 'bar', cavort => 'ha' },
-}) } 'App::Sqitch::X',  'Should fail on invalid directory names';
+})) } 'App::Sqitch::X',  'Should fail on invalid directory names';
 is $@->ident, 'init', 'Invalid directories ident should be "init"';
 is $@->message, __x(
-    'Unknown directory names: {dirs}',
-    dirs => 'cavort, foo',
-), 'The invalid directories messsage should be correct';
+    'Unknown property names: {props}',
+    props => 'cavort, foo',
+), 'The invalid properties messsage should be correct';
 
 isa_ok my $target = $init->default_target, 'App::Sqitch::Target', 'default target';
 
@@ -126,9 +152,9 @@ is_deeply +MockOutput->get_info, [
     [__x "Created {file}", file => $target->deploy_dir . $sep],
     [__x "Created {file}", file => $target->revert_dir . $sep],
     [__x "Created {file}", file => $target->verify_dir . $sep],
-    [__x "Created {file}", file => $dirs->{reworked_deploy} . $sep],
-    [__x "Created {file}", file => $dirs->{reworked_revert} . $sep],
-    [__x "Created {file}", file => $dirs->{reworked_verify} . $sep],
+    [__x "Created {file}", file => $dirs->{reworked_dir}->subdir('deploy') . $sep],
+    [__x "Created {file}", file => $dirs->{reworked_dir}->subdir('revert') . $sep],
+    [__x "Created {file}", file => $dirs->{reworked_dir}->subdir('verify') . $sep],
 ], 'Each should have been sent to info';
 
 # Do it again.
@@ -285,16 +311,17 @@ SYSTEMCONF: {
 ##############################################################################
 # Now get it to write a bunch of other stuff.
 unlink $conf_file;
-$sqitch = App::Sqitch->new(
-    options => {
-        plan_file => 'my.plan',
-        engine    => 'sqlite',
-    },
-);
+$sqitch = App::Sqitch->new;
 
 ok $init = $CLASS->new(
     sqitch              => $sqitch,
     properties => {
+        engine              => 'sqlite',
+        top_dir             => dir('top'),
+        plan_file           => file('my.plan'),
+        registry            => 'bats',
+        client              => file('cli'),
+        target              => 'db:sqlite:foo',
         extension           => 'ddl',
         deploy_dir          => dir('dep'),
         revert_dir          => dir('rev'),
@@ -311,6 +338,7 @@ is_deeply +MockOutput->get_info, [
 ], 'The creation should be sent to info once more';
 
 is_deeply read_config $conf_file, {
+    'core.top_dir'             => 'top',
     'core.plan_file'           => 'my.plan',
     'core.deploy_dir'          => 'dep',
     'core.revert_dir'          => 'rev',
@@ -320,15 +348,20 @@ is_deeply read_config $conf_file, {
     'core.reworked_verify_dir' => 'rtst',
     'core.extension'           => 'ddl',
     'core.engine'              => 'sqlite',
-}, 'The configuration should have been written with all the core values';
+    'engine.sqlite.registry'   => 'bats',
+    'engine.sqlite.client'     => 'cli',
+    'engine.sqlite.target'     => 'db:sqlite:foo',
+}, 'The configuration should have been written with core and engine values';
 
 ##############################################################################
-# Now get it to write core.sqlite stuff.
+# Now get it to write core.sqlite stuff with main options.
 unlink $conf_file;
 $sqitch = App::Sqitch->new(
     options => {
         engine => 'sqlite',
         client => '/to/sqlite3',
+        registry => 'foo',
+        target  => 'bar',
     },
 );
 
@@ -340,14 +373,12 @@ is_deeply +MockOutput->get_info, [
 ], 'The creation should be sent to info yet again';
 
 is_deeply read_config $conf_file, {
-    'core.engine'         => 'sqlite',
-    'engine.sqlite.client'  => '/to/sqlite3',
-}, 'The configuration should have been written with sqlite values';
-
-file_contents_like $conf_file, qr{^\tclient = /to/sqlite3\n}m,
-    'Client should be included';
-file_contents_like $conf_file, qr/^\t# registry = sqitch\n/m,
-    'registry_uri should be included in a comment';
+    'core.engine'            => 'sqlite',
+    'engine.sqlite.client'   => '/to/sqlite3',
+    'engine.sqlite.registry' => 'foo',
+    'engine.sqlite.target'   => 'bar',
+    'target.bar.uri'         => 'db:sqlite:',
+}, 'Config should have been written with sqlite and target values';
 
 # Try it with no options.
 unlink $conf_file;
@@ -514,7 +545,7 @@ file_contents_like $plan_file, qr/testing 1, 2, 3/,
 
 # Make sure a URI gets written, if present.
 $plan_file->remove;
-$sqitch = App::Sqitch->new(options => { top_dir => dir('plan.dir')->stringify });
+$sqitch = App::Sqitch->new(options => { top_dir => dir('plan.dir') });
 END { remove_tree dir('plan.dir')->stringify };
 ok $init = $CLASS->new(
     sqitch => $sqitch,

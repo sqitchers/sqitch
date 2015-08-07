@@ -14,6 +14,22 @@ use Path::Class;
 use Try::Tiny;
 use App::Sqitch::Plan;
 use namespace::autoclean;
+use constant property_keys => qw(
+    top_dir
+    plan_file
+    engine
+    registry
+    client
+    target
+    deploy_dir
+    revert_dir
+    verify_dir
+    reworked_dir
+    reworked_deploy_dir
+    reworked_revert_dir
+    reworked_verify_dir
+    extension
+);
 
 extends 'App::Sqitch::Command';
 with 'App::Sqitch::Role::TargetConfigCommand';
@@ -145,8 +161,6 @@ sub write_config {
     my $self    = shift;
     my $sqitch  = $self->sqitch;
     my $config  = $sqitch->config;
-    my $options = $sqitch->options;
-    my $target  = $self->default_target;
     my $file    = $config->local_file;
     if ( -f $file ) {
 
@@ -156,8 +170,13 @@ sub write_config {
 
     my ( @vars, @comments );
 
-    # Write the engine from --engine or core.engine.
-    my $ekey = $target->engine_key;
+    # Get the props, and make sure the target can find the engine.
+    my $props  = $self->properties;
+    $sqitch->options->{engine} ||= $props->{engine};
+    my $target = $self->default_target;
+
+    # Write the engine from --engine, engine=engine, or core.engine.
+    my $ekey   = $props->{engine} || $target->engine_key;
     if ($ekey) {
         push @vars => {
             key   => "core.engine",
@@ -168,33 +187,37 @@ sub write_config {
         push @comments => "\tengine = ";
     }
 
-    # Add in the other stuff.
+    # Add core properties.
     for my $name (qw(
         plan_file
         top_dir
     )) {
-        # Set core attributes that are not their default values and not
-        # already in user or system config.
-        my $val = $options->{$name};
-        my $var = $config->get( key => "core.$name" );
-
-        if ( $val && $val ne ($var // '') ) {
-            # It was specified on the command-line, so grab it to write out.
+        # Set properties passed on the command-line.
+        if ( my $val = $props->{$name} ) {
             push @vars => {
                 key   => "core.$name",
                 value => $val,
             };
         }
-        elsif ($name !~ /(?<!top)_dir$/) {
-            $var //= $target->$name // '';
-            push @comments => "\t$name = $var";
+        else {
+            my $val //= $target->$name // '';
+            push @comments => "\t$name = $val";
         }
     }
 
-    # Add in options passed to the init command.
-    my $props = $self->properties;
-    while (my ($attr, $val) = each %{ $props }) {
-        push @vars => { key => "core.$attr", value => $val };
+    # Add script options passed to the init command. No comments if not set.
+    for my $attr (qw(
+        extension
+        deploy_dir
+        revert_dir
+        verify_dir
+        reworked_dir
+        reworked_deploy_dir
+        reworked_revert_dir
+        reworked_verify_dir
+    )) {
+        push @vars => { key => "core.$attr", value => $props->{$attr} }
+            if defined $props->{$attr};
     }
 
     # Emit them.
@@ -218,16 +241,12 @@ sub write_config {
         @comments = @vars = ();
 
         for my $key (qw(target registry client)) {
-
             # Was it passed as an option?
-            if ( my $val = $options->{$key} ) {
-
-                # It was passed as an option, so record that.
+            if ( my $val = $props->{$key} ) {
                 push @vars => {
                     key   => "$config_key.$key",
                     value => $val,
                 };
-
                 # We're good on this one.
                 next;
             }
@@ -240,12 +259,10 @@ sub write_config {
         }
 
         if (@vars) {
-
             # Emit them.
             $config->group_set( $file => \@vars ) if @vars;
         }
         else {
-
             # Still want the section, emit it as a comment.
             unshift @comments => qq{[engine "$ekey"]};
         }
@@ -256,6 +273,16 @@ sub write_config {
             indented => 1,
             comment  => join "\n" => @comments,
         ) if @comments;
+    }
+
+    # Is there are target?
+    if (my $target_name = $props->{target}) {
+        # If it's a named target, add it to the configuration.
+        $config->set(
+            filename => $file,
+            key      => "target.$target_name.uri",
+            value    => $target->uri,
+        ) if $target_name !~ /:/
     }
 
     $self->info( __x 'Created {file}', file => $file );
@@ -291,6 +318,10 @@ scripts.
 
 Returns a list of L<Getopt::Long> option specifications for the command-line
 options for the C<config> command.
+
+=head3 C<property_keys>
+
+Returns a list of keys that may be specified in the C<--set> option.
 
 =head2 Attributes
 
