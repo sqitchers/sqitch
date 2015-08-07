@@ -445,6 +445,12 @@ Manages Sqitch database engines, which are stored in the local configuration fil
 
 =head1 Interface
 
+=head3 Class Methods
+
+=head3 C<property_keys>
+
+Returns a list of keys that may be specified in the C<--set> option.
+
 =head2 Instance Methods
 
 =head2 Attributes
