@@ -129,6 +129,20 @@ for my $key (qw(
         qq{Engine "test" should have no $key set};
 }
 
+# Should die on target that doesn't match the engine.
+isa_ok $cmd = $CLASS->new({
+    sqitch     => $sqitch,
+    properties => { target => 'db:sqlite:' },
+}), $CLASS, 'Engine with target property';
+throws_ok { $cmd->add('firebird' ) } 'App::Sqitch::X',
+    'Should get error for engine/target mismatch';
+is $@->ident, 'engine', 'Target mismatch ident should be "engine"';
+is $@->message, __x(
+    'Cannot assign URI using engine "{new}" to engine "{old}"',
+    new => 'sqlite',
+    old => 'firebird',
+), 'Target mismatch message should be correct';
+
 # Try all the properties.
 my %props = (
     target              => 'db:firebird:foo',
@@ -223,6 +237,19 @@ is $@->message, __x(
     command => 'add oracle db:firebird:bar',
 ), 'Missing engine error message should include target property';
 
+# Should die on target mismatch engine.
+isa_ok $cmd = $CLASS->new({
+    sqitch     => $sqitch,
+    properties => { target => 'db:sqlite:' },
+}), $CLASS, 'Engine with target property';
+throws_ok { $cmd->alter('firebird' ) } 'App::Sqitch::X',
+    'Should get error for engine/target mismatch';
+is $@->ident, 'engine', 'Target mismatch ident should be "engine"';
+is $@->message, __x(
+    'Cannot assign URI using engine "{new}" to engine "{old}"',
+    new => 'sqlite',
+    old => 'firebird',
+), 'Target mismatch message should be correct';
 
 ##############################################################################
 # Test set_target().

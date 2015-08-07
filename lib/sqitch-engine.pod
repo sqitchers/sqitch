@@ -38,8 +38,9 @@ Each engine may have a number of properties:
 
 =item C<target>
 
-The name or URI of the database target. The default is C<db:$engine>.
-See L<sqitch-target> for details on target configuration.
+The name or URI of the database target. Note that if the value is a URI, the
+engine in the URI must match the engine being added or altered. The default is
+C<db:$engine>. See L<sqitch-target> for details on target configuration.
 
 =item C<registry>
 

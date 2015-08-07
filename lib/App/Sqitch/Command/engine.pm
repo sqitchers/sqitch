@@ -84,9 +84,20 @@ sub list {
 }
 
 sub _target {
-    my $self = shift;
-    my $target = $self->properties->{target} || shift || return;
-    return URI::db->new($target, 'db:')->as_string if $target =~ /:/;
+    my ($self, $engine, $name) = @_;
+    my $target = $self->properties->{target} || $name || return;
+
+    if ($target =~ /:/) {
+        # It's  URI. Return it if it uses the proper engine.
+        my $uri = URI::db->new($target, 'db:');
+        hurl engine => __x(
+            'Cannot assign URI using engine "{new}" to engine "{old}"',
+            new => $uri->engine,
+            old => $engine,
+        ) if $uri->engine ne $engine;
+        return $uri->as_string;
+    }
+
     # Otherwise, it needs to be a known target from the config.
     return $target if $self->config->get(key => "target.$target.uri");
     hurl engine => __x(
@@ -111,7 +122,7 @@ sub add {
     # Set up the target.
     my @vars = ({
         key   => "$key.target",
-        value => $self->_target($target) || "db:$engine:",
+        value => $self->_target($engine, $target) || "db:$engine:",
     });
 
     # Add the other properties.
@@ -147,7 +158,7 @@ sub alter {
     my @vars;
     while (my ($prop, $val) = each %{ $props } ) {
         if ($prop eq 'target') {
-            $val = $self->_target($val) or hurl engine => __(
+            $val = $self->_target($engine, $val) or hurl engine => __(
                 'Cannot unset an engine target'
             );
         }

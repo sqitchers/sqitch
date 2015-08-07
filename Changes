@@ -37,6 +37,9 @@ Revision history for Perl extension App::Sqitch
      - Added support for setting reworked directories to the `engine` command.
      - Reformatted the output of the `engine` command's `show` action include
        reworked directories, and to bit a bit less flat.
+     - Attempting to add or alter an engine with a target URI that connects to
+       a different engine now triggers an error. For example, you can't set
+       the target for engine `pg` to `db:sqlite:`.
 
 0.9992 2015-05-20T23:51:41Z
      - On PostgreSQL, Sqitch now sets the `client_encoding` parameter to

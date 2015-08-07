@@ -154,6 +154,7 @@ sub mkdirs {
     my $self = shift;
 
     for my $dir (@_) {
+        next if -d $dir;
         my $sep = dir('')->stringify; # OS-specific directory separator.
         $self->info(__x(
             'Created {file}',
@@ -255,8 +256,9 @@ not been passed as options.
 
    $cmd->directories_for(@dirs);
 
-Creates the list of directories on the file system. Messages are sent to
-C<info()> for each directory, and an error is thrown on the first to fail.
+Creates the list of directories on the file system. Directories that already
+exist are skipped. Messages are sent to C<info()> for each directory, and an
+error is thrown on the first to fail.
 
 =head1 See Also
 
