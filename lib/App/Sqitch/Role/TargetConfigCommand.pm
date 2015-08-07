@@ -10,6 +10,7 @@ use App::Sqitch::X qw(hurl);
 use Path::Class;
 use Locale::TextDomain qw(App-Sqitch);
 use List::Util qw(first);
+use File::Path qw(make_path);
 use namespace::autoclean;
 
 requires 'command';
@@ -111,35 +112,65 @@ sub BUILD {
 }
 
 sub directories_for {
-    my ($self, $target) = @_;
+    my $self = shift;
     my $props = $self->properties;
     my (@dirs, %seen);
 
-    # Script directories.
-    if (my $top_dir = $props->{top_dir}) {
-        push @dirs => grep { !$seen{$_}++ } map {
-            $props->{"$_\_$_"} || $top_dir->subdir($_);
-        } qw(deploy revert verify);
-    } else {
-        push @dirs => grep { !$seen{$_}++ } map {
-            my $name = "$_\_dir";
-            $props->{$name} || $target->$name;
-        } qw(deploy revert verify);
-    }
+    for my $target (@_) {
+        # Script directories.
+        if (my $top_dir = $props->{top_dir}) {
+            push @dirs => grep { !$seen{$_}++ } map {
+                $props->{"$_\_$_"} || $top_dir->subdir($_);
+            } qw(deploy revert verify);
+        } else {
+            push @dirs => grep { !$seen{$_}++ } map {
+                my $name = "$_\_dir";
+                $props->{$name} || $target->$name;
+            } qw(deploy revert verify);
+        }
 
-    # Reworked script directories.
-    if (my $reworked_dir = $props->{reworked_dir} || $props->{top_dir}) {
-        push @dirs => grep { !$seen{$_}++ } map {
-            $props->{"reworked_$_\_dir"} || $reworked_dir->subdir($_);
-        } qw(deploy revert verify);
-    } else {
-        push @dirs => grep { !$seen{$_}++ } map {
-            my $name = "reworked_$_\_dir";
-            $props->{$name} || $target->$name;
-        } qw(deploy revert verify);
+        # Reworked script directories.
+        if (my $reworked_dir = $props->{reworked_dir} || $props->{top_dir}) {
+            push @dirs => grep { !$seen{$_}++ } map {
+                $props->{"reworked_$_\_dir"} || $reworked_dir->subdir($_);
+            } qw(deploy revert verify);
+        } else {
+            push @dirs => grep { !$seen{$_}++ } map {
+                my $name = "reworked_$_\_dir";
+                $props->{$name} || $target->$name;
+            } qw(deploy revert verify);
+        }
     }
 
     return @dirs;
+}
+
+sub make_directories_for {
+    my $self  = shift;
+    $self->mkdirs( $self->directories_for(@_) );
+}
+
+sub mkdirs {
+    my $self = shift;
+
+    for my $dir (@_) {
+        my $sep = dir('')->stringify; # OS-specific directory separator.
+        $self->info(__x(
+            'Created {file}',
+            file => "$dir$sep"
+        )) if make_path $dir, { error => \my $err };
+        if ( my $diag = shift @{ $err } ) {
+            my ( $path, $msg ) = %{ $diag };
+            hurl $self->command => __x(
+                'Error creating {path}: {error}',
+                path  => $path,
+                error => $msg,
+            ) if $path;
+            hurl $self->command => $msg;
+        }
+    }
+
+    return $self;
 }
 
 1;
@@ -206,11 +237,26 @@ A hash reference of target configurations. The keys may be as follows:
 
 =head3 C<directories_for>
 
-  my @dirs = $cmd->directories_for($target);
+  my @dirs = $cmd->directories_for(@targets);
 
-Returns a list of script directories for the target. Options passed to the
+Returns a set of script directories for a list of targets. Options passed to
+the command are preferred. Paths are pulled from the command only when they
+have not been passed as options.
+
+=head3 C<make_directories_for>
+
+  $cmd->directories_for(@targets);
+n
+Creates scipt directories for one or more targets. Options passed to the
 command are preferred. Paths are pulled from the command only when they have
 not been passed as options.
+
+=head3 C<mkdirs>
+
+   $cmd->directories_for(@dirs);
+
+Creates the list of directories on the file system. Messages are sent to
+C<info()> for each directory, and an error is thrown on the first to fail.
 
 =head1 See Also
 

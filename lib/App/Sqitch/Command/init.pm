@@ -8,7 +8,6 @@ use Moo;
 use App::Sqitch::Types qw(URI Maybe);
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
-use File::Path qw(make_path);
 use List::MoreUtils qw(natatime);
 use Path::Class;
 use Try::Tiny;
@@ -41,7 +40,7 @@ sub execute {
     $self->_validate_project($project);
     $self->write_config;
     $self->write_plan($project);
-    $self->make_directories;
+    $self->make_directories_for($self->default_target);
     return $self;
 }
 
@@ -77,32 +76,6 @@ sub configure {
     return $opt;
 }
 
-sub make_directories {
-    my $self   = shift;
-    for my $dir ($self->directories_for( $self->default_target )) {
-        $self->_mkdir($dir) unless -e $dir;
-    }
-    return $self;
-}
-
-sub _mkdir {
-    my ( $self, $dir ) = @_;
-    my $sep    = dir('')->stringify; # OS-specific directory separator.
-    $self->info(__x(
-        'Created {file}',
-        file => "$dir$sep"
-    )) if make_path $dir, { error => \my $err };
-    if ( my $diag = shift @{ $err } ) {
-        my ( $path, $msg ) = %{ $diag };
-        hurl init => __x(
-            'Error creating {path}: {error}',
-            path  => $path,
-            error => $msg,
-        ) if $path;
-        hurl init => $msg;
-    }
-}
-
 sub write_plan {
     my ( $self, $project ) = @_;
     my $target = $self->default_target;
@@ -134,7 +107,7 @@ sub write_plan {
         return $self;
     }
 
-    $self->_mkdir( $file->dir ) unless -d $file->dir;
+    $self->mkdirs( $file->dir ) unless -d $file->dir;
 
     my $fh = $file->open('>:utf8_strict') or hurl init => __x(
         'Cannot open {file}: {error}',
@@ -340,12 +313,6 @@ Hash of property values to set.
   $init->execute($project);
 
 Executes the C<init> command.
-
-=head3 C<make_directories>
-
-  $init->make_directories;
-
-Creates the deploy and revert directories.
 
 =head3 C<write_config>
 

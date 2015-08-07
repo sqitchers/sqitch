@@ -135,15 +135,15 @@ is $@->message, __x(
 isa_ok my $target = $init->default_target, 'App::Sqitch::Target', 'default target';
 
 ##############################################################################
-# Test make_directories.
-can_ok $init, 'make_directories';
+# Test make_directories_for.
+can_ok $init, 'make_directories_for';
 dir_not_exists_ok $target->top_dir;
 dir_not_exists_ok $_ for $init->directories_for($target);
 
 my $top_dir_string = $target->top_dir->stringify;
 END { remove_tree $top_dir_string if -e $top_dir_string }
 
-ok $init->make_directories, 'Make the directories';
+ok $init->make_directories_for($target), 'Make the directories';
 dir_exists_ok $_ for $init->directories_for($target);
 
 my $sep = dir('')->stringify;
@@ -158,12 +158,12 @@ is_deeply +MockOutput->get_info, [
 ], 'Each should have been sent to info';
 
 # Do it again.
-ok $init->make_directories, 'Make the directories again';
+ok $init->make_directories_for($target), 'Make the directories again';
 is_deeply +MockOutput->get_info, [], 'Nothing should have been sent to info';
 
 # Delete one of them.
 remove_tree $target->revert_dir->stringify;
-ok $init->make_directories, 'Make the directories once more';
+ok $init->make_directories_for($target), 'Make the directories once more';
 dir_exists_ok $target->revert_dir, 'revert dir exists again';
 is_deeply +MockOutput->get_info, [
     [__x 'Created {file}', file => $target->revert_dir . $sep],
@@ -181,7 +181,7 @@ FSERR: {
         return;
     });
 
-    throws_ok { $init->make_directories } 'App::Sqitch::X',
+    throws_ok { $init->make_directories_for($target) } 'App::Sqitch::X',
         'Should fail on permission issue';
     is $@->ident, 'init', 'Permission error should have ident "init"';
     is $@->message, __x(
