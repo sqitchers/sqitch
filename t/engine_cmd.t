@@ -146,15 +146,15 @@ is $@->message, __x(
 # Try all the properties.
 my %props = (
     target              => 'db:firebird:foo',
-    client              => 'poo',
+    client              => file('poo'),
     registry            => 'reg',
-    top_dir             => 'top',
-    plan_file           => 'my.plan',
-    deploy_dir          => 'dep',
-    revert_dir          => 'rev',
-    verify_dir          => 'ver',
-    reworked_dir        => 'r',
-    reworked_deploy_dir => 'r/d',
+    top_dir             => dir('top'),
+    plan_file           => file('my.plan'),
+    deploy_dir          => dir('dep'),
+    revert_dir          => dir('rev'),
+    verify_dir          => dir('ver'),
+    reworked_dir        => dir('r'),
+    reworked_deploy_dir => dir('r/d'),
     extension           => 'ddl',
 );
 isa_ok $cmd = $CLASS->new({
@@ -205,15 +205,15 @@ is $@->message, __x(
 # Try all the properties.
 %props = (
     target              => 'db:firebird:bar',
-    client              => 'argh',
+    client              => file('argh'),
     registry            => 'migrations',
-    top_dir             => 'fb',
-    plan_file           => 'fb.plan',
-    deploy_dir          => 'fb/dep',
-    revert_dir          => 'fb/rev',
-    verify_dir          => 'fb/ver',
-    reworked_dir        => 'fb/r',
-    reworked_deploy_dir => 'fb/r/d',
+    top_dir             => dir('fb'),
+    plan_file           => file('fb.plan'),
+    deploy_dir          => dir('fb/dep'),
+    revert_dir          => dir('fb/rev'),
+    verify_dir          => dir('fb/ver'),
+    reworked_dir        => dir('fb/r'),
+    reworked_deploy_dir => dir('fb/r/d'),
     extension           => 'fbsql',
 );
 isa_ok $cmd = $CLASS->new({

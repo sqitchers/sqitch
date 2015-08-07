@@ -40,7 +40,7 @@ sub execute {
     $self->_validate_project($project);
     $self->write_config;
     $self->write_plan($project);
-    $self->make_directories_for($self->default_target);
+    $self->make_directories_for($self->config_target);
     return $self;
 }
 
@@ -78,7 +78,7 @@ sub configure {
 
 sub write_plan {
     my ( $self, $project ) = @_;
-    my $target = $self->default_target;
+    my $target = $self->config_target;
     my $file   = $target->plan_file;
 
     if (-e $file) {
@@ -91,7 +91,7 @@ sub write_plan {
         my $plan = App::Sqitch::Plan->new(
             sqitch => $self->sqitch,
             file   => $file,
-            target => $self->default_target,
+            target => $target,
         );
         my $file_proj = try { $plan->project } or hurl init => __x(
             'Cannot initialize because {file} already exists and is not a valid plan file',
@@ -145,8 +145,7 @@ sub write_config {
 
     # Get the props, and make sure the target can find the engine.
     my $props  = $self->properties;
-    $sqitch->options->{engine} ||= $props->{engine};
-    my $target = $self->default_target;
+    my $target = $self->config_target;
 
     # Write the engine from --engine, engine=engine, or core.engine.
     my $ekey   = $props->{engine} || $target->engine_key;

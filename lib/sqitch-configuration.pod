@@ -168,7 +168,7 @@ show you:
   * pg
       Target:        db:pg:
       Registry:      sqitch
-      Client:        /usr/local/pgsql/bin/psql
+      Client:        psql
       Top Directory: pg
       Plan File:     pg/sqitch.plan
       Extension:     sql
@@ -262,7 +262,7 @@ PostgreSQL directory:
   * pg
       Target:        db:pg:
       Registry:      sqitch
-      Client:        /usr/local/pgsql/bin/psql
+      Client:        psql
       Top Directory: pg
       Plan File:     sqitch.plan
       Extension:     sql
@@ -386,7 +386,7 @@ the URI. Thus the configuration all comes together:
   * prod-primary
     URI:              db:pg://sqitch@db1.example.com/widgets
     Registry:         sqitch
-    Client:           /usr/local/pgsql/bin/psql
+    Client:           psql
     Top Directory:    pg
     Plan File:        sqitch.plan
     Deploy Directory: pg/deploy
@@ -396,7 +396,7 @@ the URI. Thus the configuration all comes together:
   * prod-standby
     URI:              db:pg://sqitch@db2.example.com/widgets
     Registry:         sqitch
-    Client:           /usr/local/pgsql/bin/psql
+    Client:           psql
     Top Directory:    pg
     Plan File:        sqitch.plan
     Deploy Directory: pg/deploy
@@ -450,7 +450,7 @@ Then add targets for the specific servers and plans:
   * prod-primary
     URI:              db:pg://db1.example.com/widgets
     Registry:         sqitch
-    Client:           /usr/local/pgsql/bin/psql
+    Client:           psql
     Top Directory:    pg
     Plan File:        sqitch.plan
     Deploy Directory: pg/deploy
@@ -460,7 +460,7 @@ Then add targets for the specific servers and plans:
   * prod-billing
     URI:              db:pg://cpa.example.com/billing
     Registry:         sqitch
-    Client:           /usr/local/pgsql/bin/psql
+    Client:           psql
     Top Directory:    pg
     Plan File:        target.plan
     Deploy Directory: pg/deploy

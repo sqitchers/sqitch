@@ -18,12 +18,64 @@ requires 'options';
 requires 'configure';
 requires 'sqitch';
 requires 'property_keys';
+requires 'default_target';
 
 has properties => (
     is  => 'ro',
     isa => HashRef,
     default => sub { {} },
 );
+
+sub config_target {
+    my $self = shift;
+    my $sqitch = $self->sqitch;
+    my $props  = $self->properties;
+    my @params = (sqitch => $sqitch);
+
+    if (my $name = shift || $props->{target}) {
+        push @params => (name => $name);
+        my $config = $sqitch->config;
+        if ($name !~ /:/ && !$config->get(key => "target.$name.uri")) {
+            # No URI. Give it one.
+            my $engine = shift || $props->{engine} || $config->get('core.engine');
+            push @params => (uri => URI::db->new("db:$engine:"));
+        }
+    } elsif (my $engine = shift || $props->{engine}) {
+        my $config = $sqitch->config;
+        push @params => (
+            name => $config->get(key => "engine.$engine.target")
+                 || $config->get(key => 'core.target')
+                 || "db:$engine:"
+        );
+    } else {
+        # Get the name and URI from the default target.
+        my $default = $self->default_target;
+        push @params => (
+            name => $default->name,
+            uri  => $default->uri,
+        );
+    }
+
+    # Return the target with all relevant attributes overridden.
+    require App::Sqitch::Target;
+    return App::Sqitch::Target->new(
+        @params,
+        map { $_ => $props->{$_} } grep { $props->{$_} } qw(
+            top_dir
+            plan_file
+            registry
+            client
+            deploy_dir
+            revert_dir
+            verify_dir
+            reworked_dir
+            reworked_deploy_dir
+            reworked_revert_dir
+            reworked_verify_dir
+            extension
+        )
+    );
+}
 
 around options => sub {
     my ($orig, $class) = @_;
