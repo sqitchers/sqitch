@@ -61,16 +61,16 @@ can_ok $cmd, qw(
 );
 
 is_deeply [$CLASS->options], [qw(
-    set|s=s%
     verbose|v+
+    set|s=s%
 )], 'Options should be correct';
 
 # Check default property values.
 is_deeply $cmd->properties, {}, 'Default properties should be empty';
 
 # Make sure configure ignores config file.
-is_deeply $CLASS->configure({ foo => 'bar'}, { hi => 'there' }),
-    { hi => 'there' },
+is_deeply $CLASS->configure({ foo => 'bar'}, { verbose => 1 }),
+    { verbose => 1 },
     'configure() should ignore config file';
 
 ##############################################################################

@@ -12,9 +12,25 @@ use Try::Tiny;
 use URI::db;
 use Path::Class qw(file dir);
 use List::Util qw(max first);
+use constant property_keys => qw(
+    top_dir
+    plan_file
+    registry
+    client
+    target
+    deploy_dir
+    revert_dir
+    verify_dir
+    reworked_dir
+    reworked_deploy_dir
+    reworked_revert_dir
+    reworked_verify_dir
+    extension
+);
 use namespace::autoclean;
 
 extends 'App::Sqitch::Command';
+with 'App::Sqitch::Role::TargetConfigCommand';
 
 our $VERSION = '0.9993';
 
@@ -24,18 +40,7 @@ has verbose => (
     default => 0,
 );
 
-has properties => (
-    is      => 'ro',
-    isa     => HashRef,
-    default => sub { {} },
-);
-
-sub options {
-    return qw(
-        set|s=s%
-        verbose|v+
-    );
-}
+sub options { qw(verbose|v+) }
 
 sub _chk_engine($) {
     my $engine = shift;
@@ -44,34 +49,11 @@ sub _chk_engine($) {
     ) unless first { $engine eq $_ } App::Sqitch::Command::ENGINES;
 }
 
-my %normalizer_for = (
-    top_dir   => sub { $_[0] ? dir($_[0])->cleanup : undef },
-    plan_file => sub { $_[0] ? file($_[0])->cleanup : undef },
-    client    => sub { $_[0] },
-    target    => sub {
-        my $target = shift or return undef;
-        # Return a normalized URI if it looks like a URI.
-        return URI::db->new($target, 'db:')->as_string if $target =~ /:/;
-        # Otherwise, it needs to be a known target from the config.
-        my $config = shift;
-        return $target if $config->get(key => "target.$target.uri");
-        hurl engine => __x(
-            'Unknown target "{target}"',
-            target => $target
-        );
-    },
-);
-
-$normalizer_for{"$_\_dir"} = $normalizer_for{"reworked_$_\_dir"} = $normalizer_for{top_dir}
-    for qw(deploy revert verify);
-$normalizer_for{reworked_dir} = $normalizer_for{top_dir};
-$normalizer_for{$_} = $normalizer_for{client} for qw(registry extension);
-
 sub configure {
     my ( $class, $config, $options ) = @_;
-    $options->{properties} = delete $options->{set} if $options->{set};
     # No config; engine config is actually engines.
-    return $options;
+    return { verbose => $options->{verbose} } if exists $options->{verbose};
+    return {};
 }
 
 sub execute {
@@ -101,6 +83,18 @@ sub list {
     return $self;
 }
 
+sub _target {
+    my $self = shift;
+    my $target = $self->properties->{target} || shift || return;
+    return URI::db->new($target, 'db:')->as_string if $target =~ /:/;
+    # Otherwise, it needs to be a known target from the config.
+    return $target if $self->config->get(key => "target.$target.uri");
+    hurl engine => __x(
+        'Unknown target "{target}"',
+        target => $target
+    );
+}
+
 sub add {
     my ($self, $engine, $target) = @_;
     $self->usage unless $engine;
@@ -114,26 +108,20 @@ sub add {
         engine => $engine
     ) if $config->get( key => "$key.target");
 
-    # Collect properties.
-    my (@vars, $got_target);
+    # Set up the target.
+    my @vars = ({
+        key   => "$key.target",
+        value => $self->_target($target) || "db:$engine:",
+    });
+
+    # Add the other properties.
     my $props = $self->properties;
     while (my ($prop, $val) = each %{ $props } ) {
-        my $normalizer = $normalizer_for{$prop} or $self->usage(__x(
-            'Unknown property "{property}"',
-            property => $prop,
-        ));
-        $got_target++ if $prop eq 'target';
         push @vars => {
             key   => "$key.$prop",
-            value => $normalizer->($val, $config),
-        };
+            value => $val,
+        } if $prop ne 'target'
     }
-
-    # Gotta have a target.
-    unshift @vars => {
-        key   => "$key.target",
-        value => $normalizer_for{target}->($target || "db:$engine:", $config),
-    } unless $got_target;
 
     # Make it so.
     $config->group_set( $config->local_file, \@vars );
@@ -158,13 +146,14 @@ sub alter {
 
     my @vars;
     while (my ($prop, $val) = each %{ $props } ) {
-        my $normalizer = $normalizer_for{$prop} or $self->usage(__x(
-            'Unknown property "{property}"',
-            property => $prop,
-        ));
+        if ($prop eq 'target') {
+            $val = $self->_target($val) or hurl engine => __(
+                'Cannot unset an engine target'
+            );
+        }
         push @vars => {
             key   => "$key.$prop",
-            value => $normalizer->($val, $config),
+            value => $val,
         };
     }
 
@@ -172,7 +161,8 @@ sub alter {
     $config->group_set( $config->local_file, \@vars );
 }
 
-# XXX Remove deprecated _set method and everything that uses it.
+# XXX Begin deprecated.
+
 sub _set {
     my ($self, $key, $engine, $value) = @_;
     (my $action = $key) =~ s/_/-/g;
@@ -200,6 +190,29 @@ sub _set {
     return $self;
 }
 
+my %normalizer_for = (
+    top_dir   => sub { $_[0] ? dir($_[0])->cleanup : undef },
+    plan_file => sub { $_[0] ? file($_[0])->cleanup : undef },
+    client    => sub { $_[0] },
+    target    => sub {
+        my $target = shift or return undef;
+        # Return a normalized URI if it looks like a URI.
+        return URI::db->new($target, 'db:')->as_string if $target =~ /:/;
+        # Otherwise, it needs to be a known target from the config.
+        my $config = shift;
+        return $target if $config->get(key => "target.$target.uri");
+        hurl engine => __x(
+            'Unknown target "{target}"',
+            target => $target
+        );
+    },
+);
+
+$normalizer_for{"$_\_dir"} = $normalizer_for{"reworked_$_\_dir"} = $normalizer_for{top_dir}
+    for qw(deploy revert verify);
+$normalizer_for{reworked_dir} = $normalizer_for{top_dir};
+$normalizer_for{$_} = $normalizer_for{client} for qw(registry extension);
+
 sub set_target {
     my ($self, $engine, $target) = @_;
     $self->_set( 'target', $engine, $normalizer_for{target}->(
@@ -225,6 +238,8 @@ sub set_plan_file {
     my ($self, $engine, $file) = @_;
     $self->_set( 'plan_file', $engine, $normalizer_for{plan_file}->($file) );
 }
+
+# XXX End deprecated.
 
 sub rm { shift->remove(@_) }
 sub remove {

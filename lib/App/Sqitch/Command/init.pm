@@ -329,6 +329,10 @@ Returns a list of keys that may be specified in the C<--set> option.
 
 URI for the project.
 
+=head3 C<properties>
+
+Hash of property values to set.
+
 =head2 Instance Methods
 
 =head3 C<execute>
