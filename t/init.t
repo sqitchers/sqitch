@@ -4,8 +4,8 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-#use Test::More tests => 186;
-use Test::More 'no_plan';
+use Test::More tests => 186;
+#use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
 use Path::Class;
@@ -106,7 +106,6 @@ is_deeply $config->{properties}, {
 }, 'Should have properties';
 isa_ok $config->{properties}{$_}, 'Path::Class::File', "$_ file attribute" for qw(
     plan_file
-    client
 );
 isa_ok $config->{properties}{$_}, 'Path::Class::Dir', "$_ directory attribute" for (
     'top_dir',

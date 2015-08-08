@@ -102,12 +102,12 @@ around configure => sub {
 
         # Copy plain string properties.
         my $props = {};
-        for my $name (qw(engine extension target registry)) {
+        for my $name (qw(engine extension target registry client)) {
             $props->{$name} = delete $set->{$name} if exists $set->{$name};
         }
 
         # Convert file properties to Class::Path::File objects.
-        for my $name (qw(plan_file client)) {
+        for my $name (qw(plan_file)) {
             if ( my $file = delete $set->{$name} ) {
                 $props->{$name} = file($file)->cleanup;
             }
