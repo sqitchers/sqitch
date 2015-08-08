@@ -233,10 +233,15 @@ sub write_plan {
     my $file   = $target->plan_file;
 
     unless ($project && $uri) {
-        my $def_plan = $self->default_target->plan;
+        # Find a plan to copy the project name and URI from.
+        my $conf_plan = $target->plan;
+        my $def_plan  = $self->default_target->plan;
         if (try { $def_plan->project }) {
             $project ||= $def_plan->project;
             $uri     ||= $def_plan->uri;
+        } elsif (try { $conf_plan->project }) {
+            $project ||= $conf_plan->project;
+            $uri     ||= $conf_plan->uri;
         } else {
             hurl $self->command => __x(
                 'Cannot write a plan file without a project name'

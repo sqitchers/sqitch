@@ -40,6 +40,10 @@ Revision history for Perl extension App::Sqitch
      - Attempting to add or alter an engine with a target URI that connects to
        a different engine now triggers an error. For example, you can't set
        the target for engine `pg` to `db:sqlite:`.
+     - The `add` and `alter` actions of the `engine` commmand now create
+       script directories if they don't already exist.
+     - The `add` action of the `engine` commmand now creates a plan file if
+       one does not exist in the specified location for the engine.
 
 0.9992 2015-05-20T23:51:41Z
      - On PostgreSQL, Sqitch now sets the `client_encoding` parameter to

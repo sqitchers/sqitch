@@ -3,11 +3,13 @@
 use strict;
 use warnings;
 use utf8;
-#use Test::More tests => 199;
+#use Test::More tests => 265;
 use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
 use Test::Exception;
+use Test::Dir;
+use Test::File qw(file_not_exists_ok file_exists_ok);
 use Test::NoWarnings;
 use File::Copy;
 use Path::Class;
@@ -31,6 +33,8 @@ my $tmp_dir = tempdir CLEANUP => 1;
 
 File::Copy::copy file(qw(t engine.conf))->stringify, "$tmp_dir"
     or die "Cannot copy t/engine.conf to $tmp_dir: $!\n";
+File::Copy::copy file(qw(t engine sqitch.plan))->stringify, "$tmp_dir"
+    or die "Cannot copy t/engine/sqitch.plan to $tmp_dir: $!\n";
 chdir $tmp_dir;
 $ENV{SQITCH_CONFIG} = 'engine.conf';
 my $psql = 'psql' . ($^O eq 'MSWin32' ? '.exe' : '');
@@ -111,7 +115,9 @@ is $@->message, __x(
 ), 'Existing engine error message should be correct';
 
 # Now add a new engine.
+dir_not_exists_ok $_ for qw(deploy revert verify);
 ok $cmd->add('vertica'), 'Add engine "vertica"';
+dir_exists_ok $_ for qw(deploy revert verify);
 $config->load;
 is $config->get(key => 'engine.vertica.target'), 'db:vertica:',
     'Engine "test" target should have been set';
@@ -146,7 +152,7 @@ is $@->message, __x(
 # Try all the properties.
 my %props = (
     target              => 'db:firebird:foo',
-    client              => file('poo'),
+    client              => 'poo',
     registry            => 'reg',
     top_dir             => dir('top'),
     plan_file           => file('my.plan'),
@@ -161,7 +167,11 @@ isa_ok $cmd = $CLASS->new({
     sqitch     => $sqitch,
     properties => { %props },
 }), $CLASS, 'Engine with all properties';
+file_not_exists_ok 'my.plan';
+dir_not_exists_ok dir $_ for qw(top/deploy top/revert top/verify r/d r/revert r/verify);
 ok $cmd->add('firebird'), 'Add engine "firebird"';
+dir_exists_ok dir $_ for qw(top/deploy top/revert top/verify r/d r/revert r/verify);
+file_exists_ok 'my.plan';
 $config->load;
 while (my ($k, $v) = each %props) {
     is $config->get(key => "engine.firebird.$k"), $v,
@@ -205,7 +215,7 @@ is $@->message, __x(
 # Try all the properties.
 %props = (
     target              => 'db:firebird:bar',
-    client              => file('argh'),
+    client              => 'argh',
     registry            => 'migrations',
     top_dir             => dir('fb'),
     plan_file           => file('fb.plan'),
@@ -227,6 +237,18 @@ while (my ($k, $v) = each %props) {
         qq{Engine "firebird" should have $k set};
 }
 
+# Try changing the top directory.
+isa_ok $cmd = $CLASS->new({
+    sqitch     => $sqitch,
+    properties => { top_dir => dir 'pg' },
+}), $CLASS, 'Engine with new top_dir property';
+dir_not_exists_ok dir $_ for qw(pg pg/deploy pg/revert pg/verify);
+ok $cmd->alter('pg'), 'Alter engine "pg"';
+dir_exists_ok dir $_ for qw(pg pg/deploy pg/revert pg/verify);
+$config->load;
+is $config->get(key => 'engine.pg.top_dir'), 'pg',
+    'The pg top_dir should have been set';
+
 # An attempt to alter a missing engine should show the target if in props.
 throws_ok { $cmd->alter('oracle') } 'App::Sqitch::X',
     'Should again get error for missing engine';
@@ -234,7 +256,7 @@ is $@->ident, 'engine', 'Missing engine error ident should still be "engine"';
 is $@->message, __x(
     'Missing Engine "{engine}"; use "{command}" to add it',
     engine  => 'oracle',
-    command => 'add oracle db:firebird:bar',
+    command => 'add oracle db:oracle:',
 ), 'Missing engine error message should include target property';
 
 # Should die on target mismatch engine.

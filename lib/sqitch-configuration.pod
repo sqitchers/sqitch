@@ -193,19 +193,20 @@ start with the more obvious one.
 
 The first approach is to create an entirely independent SQLite project with
 its own plan and scripts. This is I<almost> like starting from scratch: just
-create a new directory and add initialize it as a new Sqitch project:
+create a new directory and add the Sqitch engine using it for its top directory:
+ add initialize it as a new Sqitch project:
 
-  > sqitch init widgets -s top_dir=sqlite -s engine=sqlite
+  > sqitch engine add sqlite -s top_dir=sqlite
+  Created sqlite/
   Created sqlite/sqitch.plan
   Created sqlite/deploy/
   Created sqlite/revert/
   Created sqlite/verify/
 
-Note that no F<sqitch.conf> file is created. We can use the same configuration
-file to manage both the PostgreSQL and the SQLite engines. Just add the SQLite
-engine:
+Note the creation of a new F<sqitch.conf> file. It will have copied the
+project name and URI from the existing plan file. The SQLite configuration is
+now added to the configuration file:
 
-  > sqitch engine add sqlite -s top_dir=sqlite
   > sqitch engine show sqlite
   * sqlite
       Target:        db:sqlite:

@@ -168,16 +168,19 @@ available to perform operations on the engines.
 =head2 C<add>
 
 Add an engine named C<< <name> >> for the database at C<< <uri> >>. The
-C<--set> option specifies engine-specific properties.
+C<--set> option specifies engine-specific properties. A new plan file and
+new script script directories will be created if they don't already exist.
 
 =head2 C<alter>
 
 Alter an engine named C<< <name> >>. The C<--set> option specifies
-engine-specific properties to set.
+engine-specific properties to set. New script script directories will be
+created if they don't already exist.
 
 =head2 C<remove>, C<rm>
 
-Remove the engine named C<< <name> >>.
+Remove the engine named C<< <name> >> from the configuration. The plan file
+and script directories will not be affected.
 
 =head2 C<show>
 

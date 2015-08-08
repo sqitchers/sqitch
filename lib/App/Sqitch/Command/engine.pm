@@ -136,12 +136,12 @@ sub add {
 
     # Make it so.
     $config->group_set( $config->local_file, \@vars );
-
-    return $self;
+    $self->write_plan;
+    $self->make_directories_for( $self->config_target );
 }
 
 sub alter {
-    my ($self, $engine, $target) = @_;
+    my ($self, $engine) = @_;
     $self->usage unless $engine;
     _chk_engine $engine;
 
@@ -170,6 +170,7 @@ sub alter {
 
     # Make it so.
     $config->group_set( $config->local_file, \@vars );
+    $self->make_directories_for( $self->config_target );
 }
 
 # XXX Begin deprecated.
