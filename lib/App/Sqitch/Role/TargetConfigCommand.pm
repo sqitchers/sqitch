@@ -8,6 +8,7 @@ use Moo::Role;
 use App::Sqitch::Types qw(Maybe HashRef Str);
 use App::Sqitch::X qw(hurl);
 use Path::Class;
+use Try::Tiny;
 use Locale::TextDomain qw(App-Sqitch);
 use List::Util qw(first);
 use File::Path qw(make_path);
@@ -226,6 +227,72 @@ sub mkdirs {
     return $self;
 }
 
+sub write_plan {
+    my ( $self, $project, $uri ) = @_;
+    my $target = $self->config_target;
+    my $file   = $target->plan_file;
+
+    unless ($project && $uri) {
+        my $def_plan = $self->default_target->plan;
+        if (try { $def_plan->project }) {
+            $project ||= $def_plan->project;
+            $uri     ||= $def_plan->uri;
+        } else {
+            hurl $self->command => __x(
+                'Cannot write a plan file without a project name'
+            ) unless $project;
+        }
+    }
+
+    if (-e $file) {
+        hurl init => __x(
+            'Cannot initialize because {file} already exists and is not a file',
+            file => $file,
+        ) unless -f $file;
+
+        # Try to load the plan file.
+        my $plan = App::Sqitch::Plan->new(
+            sqitch => $self->sqitch,
+            file   => $file,
+            target => $target,
+        );
+        my $file_proj = try { $plan->project } or hurl init => __x(
+            'Cannot initialize because {file} already exists and is not a valid plan file',
+            file => $file,
+        );
+
+        # Bail if this plan file looks like it's for a different project.
+        hurl init => __x(
+            'Cannot initialize because project "{project}" already initialized in {file}',
+            project => $plan->project,
+            file    => $file,
+        ) if $plan->project ne $project;
+        return $self;
+    }
+
+    $self->mkdirs( $file->dir ) unless -d $file->dir;
+
+    my $fh = $file->open('>:utf8_strict') or hurl init => __x(
+        'Cannot open {file}: {error}',
+        file => $file,
+        error => $!,
+    );
+    require App::Sqitch::Plan;
+    $fh->print(
+        '%syntax-version=', App::Sqitch::Plan::SYNTAX_VERSION(), "\n",
+        '%project=', "$project\n",
+        ( $uri ? ('%uri=', $uri->canonical, "\n") : () ), "\n",
+    );
+    $fh->close or hurl add => __x(
+        'Error closing {file}: {error}',
+        file  => $file,
+        error => $!
+    );
+
+    $self->sqitch->info( __x 'Created {file}', file => $file );
+    return $self;
+}
+
 1;
 
 __END__
@@ -288,6 +355,21 @@ A hash reference of target configurations. The keys may be as follows:
 
 =head2 Instance Methods
 
+=head3 C<config_target>
+
+  my $target = $cmd->config_target($name, $engine);
+
+Constructs a target based on the contents of C<properties>. The passed target
+and engine names take highest precedence, falling back on the properties and
+the C<default_target>. All other properties are applied to the target before
+returning it.
+
+=head3 C<write_plan>
+
+  $cmd->write_plan($project);
+
+Writes out the plan file. Called by C<execute()>.
+
 =head3 C<directories_for>
 
   my @dirs = $cmd->directories_for(@targets);
@@ -299,8 +381,8 @@ have not been passed as options.
 =head3 C<make_directories_for>
 
   $cmd->directories_for(@targets);
-n
-Creates scipt directories for one or more targets. Options passed to the
+
+Creates script directories for one or more targets. Options passed to the
 command are preferred. Paths are pulled from the command only when they have
 not been passed as options.
 

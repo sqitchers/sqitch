@@ -10,7 +10,6 @@ use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use List::MoreUtils qw(natatime);
 use Path::Class;
-use Try::Tiny;
 use App::Sqitch::Plan;
 use namespace::autoclean;
 use constant property_keys => qw(
@@ -39,7 +38,7 @@ sub execute {
     my ( $self, $project ) = @_;
     $self->_validate_project($project);
     $self->write_config;
-    $self->write_plan($project);
+    $self->write_plan($project, $self->uri);
     $self->make_directories_for($self->config_target);
     return $self;
 }
@@ -74,60 +73,6 @@ sub configure {
     }
 
     return $opt;
-}
-
-sub write_plan {
-    my ( $self, $project ) = @_;
-    my $target = $self->config_target;
-    my $file   = $target->plan_file;
-
-    if (-e $file) {
-        hurl init => __x(
-            'Cannot initialize because {file} already exists and is not a file',
-            file => $file,
-        ) unless -f $file;
-
-        # Try to load the plan file.
-        my $plan = App::Sqitch::Plan->new(
-            sqitch => $self->sqitch,
-            file   => $file,
-            target => $target,
-        );
-        my $file_proj = try { $plan->project } or hurl init => __x(
-            'Cannot initialize because {file} already exists and is not a valid plan file',
-            file => $file,
-        );
-
-        # Bail if this plan file looks like it's for a different project.
-        hurl init => __x(
-            'Cannot initialize because project "{project}" already initialized in {file}',
-            project => $plan->project,
-            file    => $file,
-        ) if $plan->project ne $project;
-        return $self;
-    }
-
-    $self->mkdirs( $file->dir ) unless -d $file->dir;
-
-    my $fh = $file->open('>:utf8_strict') or hurl init => __x(
-        'Cannot open {file}: {error}',
-        file => $file,
-        error => $!,
-    );
-    require App::Sqitch::Plan;
-    $fh->print(
-        '%syntax-version=', App::Sqitch::Plan::SYNTAX_VERSION(), "\n",
-        '%project=', "$project\n",
-        ( $self->uri ? ('%uri=', $self->uri->canonical, "\n") : () ), "\n",
-    );
-    $fh->close or hurl add => __x(
-        'Error closing {file}: {error}',
-        file  => $file,
-        error => $!
-    );
-
-    $self->info( __x 'Created {file}', file => $file );
-    return $self;
 }
 
 sub write_config {
@@ -318,12 +263,6 @@ Executes the C<init> command.
   $init->write_config;
 
 Writes out the configuration file. Called by C<execute()>.
-
-=head3 C<write_plan>
-
-  $init->write_plan($project);
-
-Writes out the plan file. Called by C<execute()>.
 
 =head1 Author
 

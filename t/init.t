@@ -553,7 +553,7 @@ ok $init = $CLASS->new(
 ), 'Create new init with sqitch with project and URI';
 $target = $init->default_target;
 $plan_file = $target->plan_file;
-ok $init->write_plan( 'howdy' ), 'Write the plan file again';
+ok $init->write_plan( 'howdy', $init->uri ), 'Write the plan file again';
 is_deeply +MockOutput->get_info, [
     [__x 'Created {file}', file => $plan_file->dir . $sep],
     [__x 'Created {file}', file => $plan_file]
