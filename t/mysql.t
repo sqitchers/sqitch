@@ -345,7 +345,7 @@ DBIEngineTest->run(
         registry => '__sqitchtest',
         uri => URI::db->new('db:mysql://root@/__sqitchtest__'),
     ],
-    prefix_target_params => [
+    prefix_engine_params => [
         uri => URI::db->new('db:mysql://root@/__sqitchtest__'),
         with_registry_prefix => 1
     ],

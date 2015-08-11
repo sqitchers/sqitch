@@ -1709,12 +1709,12 @@ sub run {
 
         ######################################################################
         # Let's make sure script_hash upgrades work.
-        $engine->dbh->do('UPDATE changes SET script_hash = change_id');
+        $engine->dbh->do("UPDATE $changes SET script_hash = change_id");
         ok $engine->_update_script_hashes, 'Update script hashes';
 
         # Make sure they were updated properly.
         my $sth = $engine->dbh->prepare(
-            'SELECT change_id, script_hash FROM changes WHERE project = ?',
+            "SELECT change_id, script_hash FROM $changes WHERE project = ?",
         );
         $sth->execute($plan->project);
         while (my $row = $sth->fetch) {
@@ -1725,13 +1725,51 @@ sub run {
 
         # Make sure no other projects were updated.
         $sth = $engine->dbh->prepare(
-            'SELECT change_id, script_hash FROM changes WHERE project <> ?',
+            "SELECT change_id, script_hash FROM $changes WHERE project <> ?",
         );
         $sth->execute($plan->project);
         while (my $row = $sth->fetch) {
             is $row->[1], $row->[0],
                 'Change ID and script hash should be ' . substr $row->[0], 0, 6;
         }
+
+        ######################################################################
+        # Test the with_registry_prefix feature
+
+        subtest 'Test the with_registry_prefix feature' => sub {
+            unless ( exists $p{prefix_engine_params} ) {
+                plan skip_all => 'feature not implemented';
+            }
+
+            ok $engine = $class->new(
+                sqitch => $sqitch,
+                target => $target,
+                @{ $p{prefix_engine_params} || [] },
+                ),
+                'Create engine with alternate params';
+
+            is $engine->earliest_change_id, undef, 'No init, earliest change';
+            is $engine->latest_change_id, undef, 'No init, no latest change';
+
+            ok !$engine->initialized,
+                'Database should no longer seem initialized';
+            ok $engine->initialize,  'Initialize the database again';
+            ok $engine->initialized, 'Database should be initialized again';
+
+            foreach my $name ( keys %{ $engine->_registry_tables } ) {
+                my $table = $engine->_get_registry_table($name);
+                like $table, qr/^sqitch_/,
+                    "Registry table '$table' has a 'sqitch_' prefix";
+                my $success = try {
+                    $engine->dbh->selectcol_arrayref(
+                        qq{ SELECT COUNT(*) FROM $table} );
+                }
+                catch {
+                    return;
+                };
+                ok $success, "Registry table '$table' exists";
+            }
+        };
 
         ######################################################################
         # All done.
