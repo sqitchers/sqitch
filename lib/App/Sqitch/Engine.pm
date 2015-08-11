@@ -1253,6 +1253,22 @@ Returns the name of the default registry for the engine. Most engines just
 inherit the default value, C<sqitch>, but some must do more munging, such as
 specifying a file name, to determine the default registry name.
 
+=head3 C<ENGINES_WITH_REGISTRY_PREFIX>
+
+Returns the list of engines with support for the C<with_registry_prefix>
+configuration option, currently:
+
+=over
+
+=item * C<firebird>
+
+=item * C<mysql>
+
+=item * C<oracle>
+
+=back
+
+
 =head3 C<default_client>
 
   my $cli = App::Sqitch::Engine->default_client;
