@@ -13,6 +13,11 @@ use URI::db 0.15;
 use App::Sqitch::Types qw(Str Int Sqitch Plan Bool HashRef URI Maybe Target);
 use namespace::autoclean;
 use constant registry_release => '1.1';
+use constant ENGINES_WITH_REGISTRY_PREFIX => qw(
+    firebird
+    mysql
+    oracle
+);
 
 our $VERSION = '0.9993';
 
@@ -101,6 +106,11 @@ sub clear_variables { %{ shift->_variables } = ()  }
 
 sub default_registry { 'sqitch' }
 
+sub _chk_engine_rp_support($) {
+    my $engine = shift;
+    return first { $engine eq $_ } ENGINES_WITH_REGISTRY_PREFIX;
+}
+
 has with_registry_prefix => (
     is       => 'ro',
     isa      => Bool,
@@ -110,11 +120,11 @@ has with_registry_prefix => (
         my $self   = shift;
         my $engine = $self->key;
         my $p      = $self->sqitch->config->get(
-            key => "core.$engine.with_registry_prefix" );
+            key => "engine.$engine.with_registry_prefix" );
 
-        if ( $p && $engine ne 'oracle' ) {
+        if ( $p && ! _chk_engine_rp_support($engine) ) {
             hurl engine => __x(
-                'config option with_registry_prefix not supported for {engine}',
+                'The config option "with_registry_prefix" is not supported for {engine}',
                 engine => $engine,
             );
         }
