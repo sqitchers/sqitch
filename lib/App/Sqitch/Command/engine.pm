@@ -12,6 +12,8 @@ use Try::Tiny;
 use URI::db;
 use Path::Class qw(file dir);
 use List::Util qw(max first);
+use namespace::autoclean;
+
 use constant property_keys => qw(
     top_dir
     plan_file
@@ -27,7 +29,6 @@ use constant property_keys => qw(
     reworked_verify_dir
     extension
 );
-use namespace::autoclean;
 
 extends 'App::Sqitch::Command';
 with 'App::Sqitch::Role::TargetConfigCommand';
@@ -131,7 +132,7 @@ sub add {
         push @vars => {
             key   => "$key.$prop",
             value => $val,
-        } if $prop ne 'target'
+        } if $prop ne 'target';
     }
 
     # Make it so.
@@ -293,6 +294,7 @@ sub show {
         verify       => '  ' . __ 'Verify',
         reworked     => '  ' . __ 'Reworked',
     );
+
     my $len = max map { length } values %label_for;
     $_ .= ': ' . ' ' x ($len - length $_) for values %label_for;
 

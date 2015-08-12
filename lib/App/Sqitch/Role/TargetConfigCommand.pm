@@ -113,6 +113,12 @@ around configure => sub {
             }
         }
 
+        # Convert URI.
+        if ( my $uri = delete $set->{uri} || delete $set->{url} ) {
+            require URI::db;
+            $props->{uri} = URI::db->new($uri, 'db:');
+        }
+
         # Convert directory properties to Class::Path::Dir objects.
         for my $name (qw(
             top_dir

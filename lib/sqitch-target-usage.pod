@@ -7,15 +7,7 @@ sqitch-target-usage - Sqitch target usage statement
   sqitch [options] target
   sqitch target [-v | --verbose]
   sqitch target add <name> <uri> [-s <property>=<value> ...]
-  sqitch target set-uri <name> <newuri>
-  sqitch target set-registry <name> <registry>
-  sqitch target set-client <name> <client>
-  sqitch target set-top-dir <name> <directory>
-  sqitch target set-plan-file <name> <file>
-  sqitch target set-deploy-dir <name> <directory>
-  sqitch target set-revert-dir <name> <directory>
-  sqitch target set-verify-dir <name> <directory>
-  sqitch target set-extension <name> <extension>
+  sqitch target alter <name> [-s <property>=<value> ...]
   sqitch target remove <name>
   sqitch target rename <old> <new>
   sqitch target show <name>

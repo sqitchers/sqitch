@@ -30,20 +30,22 @@ Revision history for Perl extension App::Sqitch
        `deploy_dir`, `revert_dir`, or `verify_dir` settings. I think these
        settings are not commonly used, and it would start to get crowded if we
        also added their "reworked" variants, which will be used still less.
-     - Added the `alter` action to the `engine` command to set engine
-       properties.
-     - Deprecated the `set-*` actions in the `engine` command in favor of the
-       new `alter` action.
-     - Added support for setting reworked directories to the `engine` command.
-     - Reformatted the output of the `engine` command's `show` action include
-       reworked directories, and to bit a bit less flat.
+     - Added the `alter` action to the `engine` and `target` commands to set
+       engine and target properties.
+     - Deprecated the `set-*` actions in the `engine` and `target` commands in
+       favor of the new `alter` action.
+     - Added support for setting reworked directories to the `engine` and
+       `target` commands.
+     - Reformatted the output of the `engine` and `target` command `show`
+       actions to include reworked directories, and to bit a bit less flat.
      - Attempting to add or alter an engine with a target URI that connects to
        a different engine now triggers an error. For example, you can't set
        the target for engine `pg` to `db:sqlite:`.
-     - The `add` and `alter` actions of the `engine` commmand now create
-       script directories if they don't already exist.
-     - The `add` action of the `engine` commmand now creates a plan file if
-       one does not exist in the specified location for the engine.
+     - The `add` and `alter` actions of the `engine` and `target` commmands
+       now create script directories if they don't already exist.
+     - The `add` action of the `engine` and `target` commmands now creates a
+       plan file if one does not exist in the specified location for the
+       engine or target.
 
 0.9992 2015-05-20T23:51:41Z
      - On PostgreSQL, Sqitch now sets the `client_encoding` parameter to

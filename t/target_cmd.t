@@ -3,11 +3,13 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 236;
-#use Test::More 'no_plan';
+#use Test::More tests => 236;
+use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
 use Test::Exception;
+use Test::Dir;
+use Test::File qw(file_not_exists_ok file_exists_ok);
 use Test::NoWarnings;
 use File::Copy;
 use Path::Class;
@@ -31,6 +33,8 @@ my $tmp_dir = tempdir CLEANUP => 1;
 
 File::Copy::copy file(qw(t target.conf))->stringify, "$tmp_dir"
     or die "Cannot copy t/target.conf to $tmp_dir: $!\n";
+File::Copy::copy file(qw(t engine sqitch.plan))->stringify, "$tmp_dir"
+    or die "Cannot copy t/engine/sqitch.plan to $tmp_dir: $!\n";
 chdir $tmp_dir;
 $ENV{SQITCH_CONFIG} = 'target.conf';
 my $psql = 'psql' . ($^O eq 'MSWin32' ? '.exe' : '');
@@ -61,10 +65,8 @@ can_ok $cmd, qw(
 );
 
 is_deeply [$CLASS->options], [qw(
-    set|s=s%
-    registry|r=s
-    client|c=s
     verbose|v+
+    set|s=s%
 )], 'Options should be correct';
 
 # Check default property values.
@@ -72,8 +74,8 @@ is $cmd->verbose,  0,     'Default verbosity should be 0';
 is_deeply $cmd->properties, {}, 'Default properties should be empty';
 
 # Make sure configure ignores config file.
-is_deeply $CLASS->configure({ foo => 'bar'}, { hi => 'there' }),
-    { hi => 'there' },
+is_deeply $CLASS->configure({ foo => 'bar'}, { verbose => 2 }),
+    { verbose => 2 },
     'configure() should ignore config file';
 
 ##############################################################################
@@ -119,7 +121,9 @@ is $@->message, __x(
 ), 'Existing target error message should be correct';
 
 # Now add a new target.
+dir_not_exists_ok $_ for qw(deploy revert verify);
 ok $cmd->add('test', 'db:pg:test'), 'Add target "test"';
+dir_exists_ok $_ for qw(deploy revert verify);
 $config->load;
 is $config->get(key => 'target.test.uri'), 'db:pg:test',
     'Target "test" URI should have been set';
@@ -131,8 +135,8 @@ for my $key (qw(
     deploy_dir
     revert_dir
     verify_dir
-    extension)
-) {
+    extension
+)) {
     is $config->get(key => "target.test.$key"), undef,
         qq{Target "test" should have no $key set};
 }
@@ -212,25 +216,37 @@ for my $key (qw(
 
 # Try all the properties.
 my %props = (
-    client     => 'poo',
-    registry   => 'reg',
-    top_dir    => 'top',
-    plan_file  => 'my.plan',
-    deploy_dir => 'dep',
-    revert_dir => 'rev',
-    verify_dir => 'ver',
-    extension  => 'ddl',
+    client              => 'poo',
+    registry            => 'reg',
+    top_dir             => dir('top'),
+    plan_file           => file('my.plan'),
+    deploy_dir          => dir('dep'),
+    revert_dir          => dir('rev'),
+    verify_dir          => dir('ver'),
+    reworked_dir        => dir('r'),
+    reworked_deploy_dir => dir('r/d'),
+    extension           => 'ddl',
 );
 isa_ok $cmd = $CLASS->new({
     sqitch     => $sqitch,
     properties => { %props },
 }), $CLASS, 'Target with all properties';
+file_not_exists_ok 'my.plan';
+dir_not_exists_ok dir $_ for qw(top/deploy top/revert top/verify r/d r/revert r/verify);
 ok $cmd->add('withall', 'db:pg:withall'), 'Add target "withall"';
+dir_exists_ok dir $_ for qw(top/deploy top/revert top/verify r/d r/revert r/verify);
+file_exists_ok 'my.plan';
 $config->load;
 while (my ($k, $v) = each %props) {
     is $config->get(key => "target.withall.$k"), $v,
         qq{Target "withall" should have $k set};
 }
+
+##############################################################################
+# Test alter().
+isa_ok $cmd = $CLASS->new({
+    sqitch     => $sqitch,
+}), $CLASS, 'Target with no properties';
 
 ##############################################################################
 # Test set_uri().
@@ -273,6 +289,7 @@ is $config->get(key => 'target.withboth.uri'), 'db:postgres:stuff',
 ##############################################################################
 # Test other set_* methods
 for my $key (keys %props) {
+    next if $key =~ /^reworked/;
     my $meth = "set_$key";
     MISSINGARGS: {
         # Test handling of no name.
@@ -402,80 +419,116 @@ is_deeply +MockOutput->get_emit, [
 ok $cmd->show('dev'), 'Show dev';
 is_deeply +MockOutput->get_emit, [
     ['* dev'],
-    ['  ', 'URI:              ', 'db:pg:widgets'],
-    ['  ', 'Registry:         ', 'sqitch'],
-    ['  ', 'Client:           ', $psql],
-    ['  ', 'Top Directory:    ', '.'],
-    ['  ', 'Plan File:        ', 'sqitch.plan'],
-    ['  ', 'Deploy Directory: ', 'deploy'],
-    ['  ', 'Revert Directory: ', 'revert'],
-    ['  ', 'Verify Directory: ', 'verify'],
-    ['  ', 'Extension:        ', 'sql'],
+    ['    ', 'URI:           ', 'db:pg:widgets'],
+    ['    ', 'Registry:      ', 'sqitch'],
+    ['    ', 'Client:        ', $psql],
+    ['    ', 'Top Directory: ', '.'],
+    ['    ', 'Plan File:     ', 'sqitch.plan'],
+    ['    ', 'Extension:     ', 'sql'],
+    ['    ', 'Script Directories:'],
+    ['    ', '  Deploy:      ', 'deploy'],
+    ['    ', '  Revert:      ', 'revert'],
+    ['    ', '  Verify:      ', 'verify'],
+    ['    ', 'Reworked Script Directories:'],
+    ['    ', '  Reworked:    ', '.'],
+    ['    ', '  Deploy:      ', 'deploy'],
+    ['    ', '  Revert:      ', 'revert'],
+    ['    ', '  Verify:      ', 'verify'],
 ], 'The "dev" target should have been shown';
 
 # Try a target with a non-default client.
 ok $cmd->show('withcli'), 'Show withcli';
 is_deeply +MockOutput->get_emit, [
     ['* withcli'],
-    ['  ', 'URI:              ', 'db:pg:withcli'],
-    ['  ', 'Registry:         ', 'sqitch'],
-    ['  ', 'Client:           ', 'hi.exe'],
-    ['  ', 'Top Directory:    ', '.'],
-    ['  ', 'Plan File:        ', 'sqitch.plan'],
-    ['  ', 'Deploy Directory: ', 'deploy'],
-    ['  ', 'Revert Directory: ', 'revert'],
-    ['  ', 'Verify Directory: ', 'verify'],
-    ['  ', 'Extension:        ', 'sql'],
+    ['    ', 'URI:           ', 'db:pg:withcli'],
+    ['    ', 'Registry:      ', 'sqitch'],
+    ['    ', 'Client:        ', 'hi.exe'],
+    ['    ', 'Top Directory: ', '.'],
+    ['    ', 'Plan File:     ', 'sqitch.plan'],
+    ['    ', 'Extension:     ', 'sql'],
+    ['    ', 'Script Directories:'],
+    ['    ', '  Deploy:      ', 'deploy'],
+    ['    ', '  Revert:      ', 'revert'],
+    ['    ', '  Verify:      ', 'verify'],
+    ['    ', 'Reworked Script Directories:'],
+    ['    ', '  Reworked:    ', '.'],
+    ['    ', '  Deploy:      ', 'deploy'],
+    ['    ', '  Revert:      ', 'revert'],
+    ['    ', '  Verify:      ', 'verify'],
 ], 'The "with_cli" target should have been shown';
 
 # Try a target with a non-default registry.
 ok $cmd->show('withreg'), 'Show withreg';
 is_deeply +MockOutput->get_emit, [
     ['* withreg'],
-    ['  ', 'URI:              ', 'db:pg:withreg'],
-    ['  ', 'Registry:         ', 'meta'],
-    ['  ', 'Client:           ', $psql],
-    ['  ', 'Top Directory:    ', '.'],
-    ['  ', 'Plan File:        ', 'sqitch.plan'],
-    ['  ', 'Deploy Directory: ', 'deploy'],
-    ['  ', 'Revert Directory: ', 'revert'],
-    ['  ', 'Verify Directory: ', 'verify'],
-    ['  ', 'Extension:        ', 'sql'],
+    ['    ', 'URI:           ', 'db:pg:withreg'],
+    ['    ', 'Registry:      ', 'meta'],
+    ['    ', 'Client:        ', $psql],
+    ['    ', 'Top Directory: ', '.'],
+    ['    ', 'Plan File:     ', 'sqitch.plan'],
+    ['    ', 'Extension:     ', 'sql'],
+    ['    ', 'Script Directories:'],
+    ['    ', '  Deploy:      ', 'deploy'],
+    ['    ', '  Revert:      ', 'revert'],
+    ['    ', '  Verify:      ', 'verify'],
+    ['    ', 'Reworked Script Directories:'],
+    ['    ', '  Reworked:    ', '.'],
+    ['    ', '  Deploy:      ', 'deploy'],
+    ['    ', '  Revert:      ', 'revert'],
+    ['    ', '  Verify:      ', 'verify'],
 ], 'The "with_reg" target should have been shown';
 
 # Try multiples.
 ok $cmd->show(qw(dev qa withreg)), 'Show three targets';
 is_deeply +MockOutput->get_emit, [
     ['* dev'],
-    ['  ', 'URI:              ', 'db:pg:widgets'],
-    ['  ', 'Registry:         ', 'sqitch'],
-    ['  ', 'Client:           ', $psql],
-    ['  ', 'Top Directory:    ', '.'],
-    ['  ', 'Plan File:        ', 'sqitch.plan'],
-    ['  ', 'Deploy Directory: ', 'deploy'],
-    ['  ', 'Revert Directory: ', 'revert'],
-    ['  ', 'Verify Directory: ', 'verify'],
-    ['  ', 'Extension:        ', 'sql'],
+    ['    ', 'URI:           ', 'db:pg:widgets'],
+    ['    ', 'Registry:      ', 'sqitch'],
+    ['    ', 'Client:        ', $psql],
+    ['    ', 'Top Directory: ', '.'],
+    ['    ', 'Plan File:     ', 'sqitch.plan'],
+    ['    ', 'Extension:     ', 'sql'],
+    ['    ', 'Script Directories:'],
+    ['    ', '  Deploy:      ', 'deploy'],
+    ['    ', '  Revert:      ', 'revert'],
+    ['    ', '  Verify:      ', 'verify'],
+    ['    ', 'Reworked Script Directories:'],
+    ['    ', '  Reworked:    ', '.'],
+    ['    ', '  Deploy:      ', 'deploy'],
+    ['    ', '  Revert:      ', 'revert'],
+    ['    ', '  Verify:      ', 'verify'],
     ['* qa'],
-    ['  ', 'URI:              ', 'db:pg://qa.example.com/qa_widgets'],
-    ['  ', 'Registry:         ', 'meta'],
-    ['  ', 'Client:           ', '/usr/sbin/psql'],
-    ['  ', 'Top Directory:    ', '.'],
-    ['  ', 'Plan File:        ', 'sqitch.plan'],
-    ['  ', 'Deploy Directory: ', 'deploy'],
-    ['  ', 'Revert Directory: ', 'revert'],
-    ['  ', 'Verify Directory: ', 'verify'],
-    ['  ', 'Extension:        ', 'sql'],
+    ['    ', 'URI:           ', 'db:pg://qa.example.com/qa_widgets'],
+    ['    ', 'Registry:      ', 'meta'],
+    ['    ', 'Client:        ', '/usr/sbin/psql'],
+    ['    ', 'Top Directory: ', '.'],
+    ['    ', 'Plan File:     ', 'sqitch.plan'],
+    ['    ', 'Extension:     ', 'sql'],
+    ['    ', 'Script Directories:'],
+    ['    ', '  Deploy:      ', 'deploy'],
+    ['    ', '  Revert:      ', 'revert'],
+    ['    ', '  Verify:      ', 'verify'],
+    ['    ', 'Reworked Script Directories:'],
+    ['    ', '  Reworked:    ', '.'],
+    ['    ', '  Deploy:      ', 'deploy'],
+    ['    ', '  Revert:      ', 'revert'],
+    ['    ', '  Verify:      ', 'verify'],
     ['* withreg'],
-    ['  ', 'URI:              ', 'db:pg:withreg'],
-    ['  ', 'Registry:         ', 'meta'],
-    ['  ', 'Client:           ', $psql],
-    ['  ', 'Top Directory:    ', '.'],
-    ['  ', 'Plan File:        ', 'sqitch.plan'],
-    ['  ', 'Deploy Directory: ', 'deploy'],
-    ['  ', 'Revert Directory: ', 'revert'],
-    ['  ', 'Verify Directory: ', 'verify'],
-    ['  ', 'Extension:        ', 'sql'],
+    ['    ', 'URI:           ', 'db:pg:withreg'],
+    ['    ', 'Registry:      ', 'meta'],
+    ['    ', 'Client:        ', $psql],
+    ['    ', 'Top Directory: ', '.'],
+    ['    ', 'Plan File:     ', 'sqitch.plan'],
+    ['    ', 'Extension:     ', 'sql'],
+    ['    ', 'Script Directories:'],
+    ['    ', '  Deploy:      ', 'deploy'],
+    ['    ', '  Revert:      ', 'revert'],
+    ['    ', '  Verify:      ', 'verify'],
+    ['    ', 'Reworked Script Directories:'],
+    ['    ', '  Reworked:    ', '.'],
+    ['    ', '  Deploy:      ', 'deploy'],
+    ['    ', '  Revert:      ', 'revert'],
+    ['    ', '  Verify:      ', 'verify'],
 ], 'All three targets should have been shown';
 
 ##############################################################################

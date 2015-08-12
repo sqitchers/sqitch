@@ -524,7 +524,7 @@ only be specified as a target argument or via a named target:
 
   sqitch init $project --set engine=$engine --set target=$target
   sqitch target add $target --set uri=$uri
-  sqitch target set-target $target $target
+  sqitch target alter $target --set uri=$uri
 
 =back
 
@@ -543,7 +543,7 @@ can specify it via the following:
 =item C<target.$target.client>
 
   sqitch target add $target --set client=$client
-  sqitch target set-client $target $client
+  sqitch target alter $target --set client=$client
   sqitch config --user target.$target.client $client
 
 =item C<engine.$engine.client>
@@ -575,7 +575,7 @@ the following:
 =item C<target.$target.registry>
 
   sqitch target add $target --set registry=$registry
-  sqitch target set-registry $target $registry
+  sqitch target alter $target --set registry=$registry
 
 =item C<engine.$engine.registry>
 
@@ -604,7 +604,7 @@ you need a custom directory, specify it via the following:
 =item C<target.$target.top_dir>
 
   sqitch target add $target --set top_dir=$top_dir
-  sqitch target set-top-dir $target $top_dir
+  sqitch target alter $target --set top_dir=$top_dir
 
 =item C<engine.$engine.top_dir>
 
@@ -632,7 +632,7 @@ If you need a different file, specify it via the following:
 =item C<target.$target.plan_file>
 
   sqitch target add $target --set plan_file=$plan_file
-  sqitch target set-plan-file $target $plan_file
+  sqitch target alter $target --set plan_file=$plan_file
 
 =item C<engine.$engine.plan_file>
 
@@ -657,7 +657,7 @@ following:
 =item C<target.$target.deploy_dir>
 
   sqitch target add $target --set deploy_dir=$deploy_dir
-  sqitch target set-deploy-dir $target $deploy_dir
+  sqitch target alter $target --set deploy_dir=$deploy_dir
 
 =item C<engine.$engine.deploy_dir>
 
@@ -685,7 +685,7 @@ following:
 =item C<target.$target.revert_dir>
 
   sqitch target add $target --set revert_dir=$revert_dir
-  sqitch target set-revert-dir $target $revert_dir
+  sqitch target alter $target --set revert_dir=$revert_dir
 
 =item C<engine.$engine.revert_dir>
 
@@ -710,7 +710,7 @@ following:
 =item C<target.$target.verify_dir>
 
   sqitch target add $target --set verify_dir=$verify_dir
-  sqitch target set-verify-dir $target $verify_dir
+  sqitch target alter $target --set verify_dir=$verify_dir
 
 =item C<engine.$engine.verify_dir>
 
@@ -735,7 +735,7 @@ following:
 =item C<target.$target.extension>
 
   sqitch target add $target --set extension=$extension
-  sqitch target set-extension $target $extension
+  sqitch target alter $target --set extension=$extension
 
 =item C<engine.$engine.extension>
 
