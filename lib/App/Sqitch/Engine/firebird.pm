@@ -661,9 +661,8 @@ sub change_id_for {
         }
 
         # Find earliest by change name.
-        my $limit = $self->_can_limit ? " FIRST 1" : '';
         return $dbh->selectcol_arrayref(qq{
-            SELECT $limit change_id
+            SELECT FIRST 1 change_id
               FROM changes
              WHERE project = ?
                AND changes.change  = ?
