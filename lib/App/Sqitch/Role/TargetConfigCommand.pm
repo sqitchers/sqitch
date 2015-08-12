@@ -239,9 +239,11 @@ sub mkdirs {
 }
 
 sub write_plan {
-    my ( $self, $project, $uri ) = @_;
-    my $target = $self->config_target;
-    my $file   = $target->plan_file;
+    my ( $self, %p ) = @_;
+    my $project = $p{project};
+    my $uri     = $p{uri};
+    my $target  = $p{target} || $self->config_target;
+    my $file    = $target->plan_file;
 
     unless ($project && $uri) {
         # Find a plan to copy the project name and URI from.
@@ -401,9 +403,28 @@ the target before returning it.
 
 =head3 C<write_plan>
 
-  $cmd->write_plan($project);
+  $cmd->write_plan(%params);
 
-Writes out the plan file. Called by C<execute()>.
+Writes out the plan file. Supported parameters are:
+
+=over
+
+=item C<target>
+
+The target for which the plan will be written. Defaults to the target returned
+by C<config_target()>.
+
+=item C<project>
+
+The project name. If not passed, the project name will be read from the
+default target's plan, if it exists. Otherwise an error will be thrown.
+
+=item C<uri>
+
+The project URI. Optional. If not passed, the URI will be read from the
+default target's plan, if it exists. Optional.
+
+=back
 
 =head3 C<directories_for>
 

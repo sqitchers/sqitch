@@ -38,8 +38,13 @@ sub execute {
     my ( $self, $project ) = @_;
     $self->_validate_project($project);
     $self->write_config;
-    $self->write_plan($project, $self->uri);
-    $self->make_directories_for($self->config_target);
+    my $target = $self->config_target;
+    $self->write_plan(
+        project => $project,
+        uri     => $self->uri,
+        target  => $target,
+    );
+    $self->make_directories_for($target);
     return $self;
 }
 

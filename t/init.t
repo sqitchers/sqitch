@@ -498,7 +498,7 @@ can_ok $init, 'write_plan';
 $target = $init->default_target;
 $plan_file = $target->plan_file;
 file_not_exists_ok $plan_file, 'Plan file should not yet exist';
-ok $init->write_plan( 'nada' ), 'Write the plan file';
+ok $init->write_plan( project => 'nada' ), 'Write the plan file';
 is_deeply +MockOutput->get_info, [
     [__x 'Created {file}', file => $plan_file]
 ], 'The plan creation should be sent to info';
@@ -509,7 +509,7 @@ file_contents_is $plan_file,
  'The contents should be correct';
 
 # Make sure we don't overwrite the file when initializing again.
-ok $init->write_plan( 'nada' ), 'Write the plan file again';
+ok $init->write_plan( project => 'nada' ), 'Write the plan file again';
 file_exists_ok $plan_file, 'Plan file should still exist';
 file_contents_is $plan_file,
     '%syntax-version=' . App::Sqitch::Plan::SYNTAX_VERSION() . "\n" .
@@ -517,7 +517,7 @@ file_contents_is $plan_file,
  'The contents should be identical';
 
 # Make sure we get an error trying to initalize a different plan.
-throws_ok { $init->write_plan( 'oopsie' ) } 'App::Sqitch::X',
+throws_ok { $init->write_plan( project => 'oopsie' ) } 'App::Sqitch::X',
     'Should get an error initialing a different project';
 is $@->ident, 'init', 'Initialization error ident should be "init"';
 is $@->message, __x(
@@ -532,7 +532,7 @@ $fh->say('# testing 1, 2, 3');
 $fh->close;
 
 # Try writing again.
-throws_ok { $init->write_plan( 'foofoo' ) } 'App::Sqitch::X',
+throws_ok { $init->write_plan( project => 'foofoo' ) } 'App::Sqitch::X',
     'Should get an error initialzing a non-plan file';
 is $@->ident, 'init', 'Non-plan file error ident should be "init"';
 is $@->message, __x(
@@ -552,7 +552,7 @@ ok $init = $CLASS->new(
 ), 'Create new init with sqitch with project and URI';
 $target = $init->default_target;
 $plan_file = $target->plan_file;
-ok $init->write_plan( 'howdy', $init->uri ), 'Write the plan file again';
+ok $init->write_plan( project => 'howdy', uri => $init->uri ), 'Write the plan file again';
 is_deeply +MockOutput->get_info, [
     [__x 'Created {file}', file => $plan_file->dir . $sep],
     [__x 'Created {file}', file => $plan_file]

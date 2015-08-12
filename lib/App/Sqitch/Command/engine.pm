@@ -137,11 +137,12 @@ sub add {
 
     # Make it so.
     $config->group_set( $config->local_file, \@vars );
-    $self->write_plan;
-    $self->make_directories_for($self->config_target(
+    $target = $self->config_target(
         name   => $target,
         engine => $engine,
-    ));
+    );
+    $self->write_plan(target => $target);
+    $self->make_directories_for($target);
 }
 
 sub alter {
