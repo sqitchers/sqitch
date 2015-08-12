@@ -3,8 +3,8 @@
 use strict;
 use warnings;
 use utf8;
-#use Test::More tests => 236;
-use Test::More 'no_plan';
+use Test::More tests => 301;
+#use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
 use Test::Exception;
@@ -237,6 +237,8 @@ ok $cmd->add('withall', 'db:pg:withall'), 'Add target "withall"';
 dir_exists_ok dir $_ for qw(top/deploy top/revert top/verify r/d r/revert r/verify);
 file_exists_ok 'my.plan';
 $config->load;
+is $config->get(key => "target.withall.uri"), 'db:pg:withall',
+        qq{Target "withall" should have uri set};
 while (my ($k, $v) = each %props) {
     is $config->get(key => "target.withall.$k"), $v,
         qq{Target "withall" should have $k set};
@@ -247,6 +249,75 @@ while (my ($k, $v) = each %props) {
 isa_ok $cmd = $CLASS->new({
     sqitch     => $sqitch,
 }), $CLASS, 'Target with no properties';
+
+MISSINGARGS: {
+    # Test handling of no name.
+    my $mock = Test::MockModule->new($CLASS);
+    my @args;
+    $mock->mock(usage => sub { @args = @_; die 'USAGE' });
+    throws_ok { $cmd->alter } qr/USAGE/,
+        'No name arg to alter() should yield usage';
+    is_deeply \@args, [$cmd], 'No args should be passed to usage';
+}
+
+# Should die on missing key.
+throws_ok { $cmd->alter('nonesuch') } 'App::Sqitch::X',
+    'Should get error for missing target';
+is $@->ident, 'target', 'Missing target error ident should be "target"';
+is $@->message, __x(
+    'Missing Target "{target}"; use "{command}" to add it',
+    target  => 'nonesuch',
+    command => 'add nonesuch $uri',
+), 'Missing target error message should be correct';
+
+# Should include the URI, if present, in the error message.
+$cmd->properties->{uri} = URI::db->new('db:pg:');
+throws_ok { $cmd->alter('nonesuch') } 'App::Sqitch::X',
+    'Should get error for missing target with URI';
+is $@->ident, 'target', 'Missing target with URI error ident should be "target"';
+is $@->message, __x(
+    'Missing Target "{target}"; use "{command}" to add it',
+    target  => 'nonesuch',
+    command => 'add nonesuch db:pg:',
+), 'Missing target error message should include URI';
+
+
+# Try all the properties.
+%props = (
+    uri                 => URI->new('db:firebird:bar'),
+    client              => 'argh',
+    registry            => 'migrations',
+    top_dir             => dir('fb'),
+    plan_file           => file('fb.plan'),
+    deploy_dir          => dir('fb/dep'),
+    revert_dir          => dir('fb/rev'),
+    verify_dir          => dir('fb/ver'),
+    reworked_dir        => dir('fb/r'),
+    reworked_deploy_dir => dir('fb/r/d'),
+    extension           => 'fbsql',
+);
+isa_ok $cmd = $CLASS->new({
+    sqitch     => $sqitch,
+    properties => { %props },
+}), $CLASS, 'Target with more properties';
+ok $cmd->alter('withall'), 'Alter target "withall"';
+$config->load;
+while (my ($k, $v) = each %props) {
+    is $config->get(key => "target.withall.$k"), $v,
+        qq{Target "withall" should have $k set};
+}
+
+# Try changing the top directory.
+isa_ok $cmd = $CLASS->new({
+    sqitch     => $sqitch,
+    properties => { top_dir => dir 'big' },
+}), $CLASS, 'Target with new top_dir property';
+dir_not_exists_ok dir $_ for qw(big big/deploy big/revert big/verify);
+ok $cmd->alter('withall'), 'Alter target "withall"';
+dir_exists_ok dir $_ for qw(big big/deploy big/revert big/verify);
+$config->load;
+is $config->get(key => 'target.withall.top_dir'), 'big',
+    'The withall top_dir should have been set';
 
 ##############################################################################
 # Test set_uri().
@@ -318,7 +389,8 @@ for my $key (keys %props) {
     # Set one that exists.
     ok $cmd->$meth('withboth', 'rock'), 'Set new $key';
     $config->load;
-    is $config->get(key => "target.withboth.$key"), 'rock',
+    my $exp = $key eq 'uri' ? 'db:rock' : 'rock';
+    is $config->get(key => "target.withboth.$key"), $exp,
         qq{Target "withboth" should have new $key};
 }
 
@@ -351,7 +423,7 @@ is $@->message, __x(
 # Rename one that exists.
 ok $cmd->rename('withboth', 'àlafois'), 'Rename';
 $config->load;
-is $config->get(key => "target.àlafois.uri"), 'db:postgres:stuff',
+ok $config->get(key => "target.àlafois.uri"),
     qq{Target "àlafois" should now be present};
 is $config->get(key => "target.withboth.uri"), undef,
     qq{Target "withboth" should no longer be present};

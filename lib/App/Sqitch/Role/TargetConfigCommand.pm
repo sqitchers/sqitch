@@ -120,8 +120,12 @@ around configure => sub {
 
         # Convert URI.
         if ( my $uri = delete $set->{uri} || delete $set->{url} ) {
-            require URI::db;
-            $props->{uri} = URI::db->new($uri, 'db:');
+            require URI;
+            $props->{uri} = URI::db->new($uri);
+            hurl $class->command => __x(
+                'URI {uri} is not a database URI',
+                uri => $uri,
+            ) unless $props->{uri}->isa('URI::_db');
         }
 
         # Convert directory properties to Class::Path::Dir objects.

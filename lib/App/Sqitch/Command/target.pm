@@ -120,8 +120,8 @@ sub alter {
     hurl target => __x(
         'Missing Target "{target}"; use "{command}" to add it',
         target  => $target,
-        command => "add $target " . ($props->{uri} || ""),
-    ) unless $config->get( key => "target.$target.target");
+        command => "add $target " . ($props->{uri} || '$uri'),
+    ) unless $config->get( key => "target.$target.uri");
 
     my @vars;
     while (my ($prop, $val) = each %{ $props } ) {
@@ -141,6 +141,11 @@ sub alter {
 sub _set {
     my ($self, $key, $name, $value) = @_;
     $self->usage unless $name && $value;
+    $self->sqitch->warn(__x(
+        qq{  The "{old}" action is deprecated;\n  Instead use "{new}".},
+        old => "set-$key $name $value",
+        new => "alter $key --set $key=$value",
+    ));
 
     my $config = $self->sqitch->config;
     my $target = "target.$name";
