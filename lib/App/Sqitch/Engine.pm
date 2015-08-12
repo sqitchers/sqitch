@@ -921,7 +921,7 @@ sub deploy_change {
         "  + $name ..",
         '.' x ($self->max_name_length - length $name), ' '
     );
-    $self->begin_work($change);
+    $self->begin_work;
 
     return try {
         $self->run_deploy($change->deploy_file) unless $self->log_only;
@@ -932,13 +932,13 @@ sub deploy_change {
         } catch {
             # Oy, logging or verify failed. Rollback.
             $sqitch->vent(eval { $_->message } // $_);
-            $self->rollback_work($change);
+            $self->rollback_work;
 
             # Begin work and run the revert.
             try {
                 # Don't bother displaying the reverting change name.
                 # $self->sqitch->info('  - ', $change->format_name_with_tags);
-                $self->begin_work($change);
+                $self->begin_work;
                 $self->run_revert($change->revert_file) unless $self->log_only;
             } catch {
                 # Oy, the revert failed. Just emit the error.
@@ -947,7 +947,7 @@ sub deploy_change {
             hurl private => __ 'Deploy failed';
         };
     } finally {
-        $self->finish_work($change);
+        $self->finish_work;
     } catch {
         $self->log_fail_change($change);
         $sqitch->info(__ 'not ok');
@@ -964,7 +964,7 @@ sub revert_change {
         '.' x ($self->max_name_length - length $name), ' '
     );
 
-    $self->begin_work($change);
+    $self->begin_work;
 
     try {
         $self->run_revert($change->revert_file) unless $self->log_only;
@@ -974,11 +974,11 @@ sub revert_change {
         } catch {
             # Oy, our logging died. Rollback and revert this change.
             $self->sqitch->vent(eval { $_->message } // $_);
-            $self->rollback_work($change);
+            $self->rollback_work;
             hurl revert => 'Revert failed';
         };
     } finally {
-        $self->finish_work($change);
+        $self->finish_work;
     } catch {
         $sqitch->info(__ 'not ok');
         die $_;
@@ -1743,7 +1743,7 @@ These methods must be overridden in subclasses.
 
 =head3 C<begin_work>
 
-  $engine->begin_work($change);
+  $engine->begin_work;
 
 This method is called just before a change is deployed or reverted. It should
 create a lock to prevent any other processes from making changes to the
@@ -1751,7 +1751,7 @@ database, to be freed in C<finish_work> or C<rollback_work>.
 
 =head3 C<finish_work>
 
-  $engine->finish_work($change);
+  $engine->finish_work;
 
 This method is called after a change has been deployed or reverted. It should
 unlock the lock created by C<begin_work>.

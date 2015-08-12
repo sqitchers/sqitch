@@ -1,2 +1,2 @@
-DROP INDEX script_hash ON changes;
-ALTER TABLE changes ADD UNIQUE(project, script_hash);
+DROP INDEX script_hash ON :prefix:changes;
+ALTER TABLE :prefix:changes ADD UNIQUE(project, script_hash);

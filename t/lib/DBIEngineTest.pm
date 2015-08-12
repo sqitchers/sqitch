@@ -1734,10 +1734,10 @@ sub run {
         }
 
         ######################################################################
-        # Test the with_registry_prefix feature
+        # The 'with_registry_prefix' feature
 
-        subtest 'Test the with_registry_prefix feature' => sub {
-            unless ( exists $p{prefix_engine_params} ) {
+        subtest 'with_registry_prefix feature' => sub {
+           unless ( exists $p{prefix_engine_params} ) {
                 plan skip_all => 'feature not implemented';
             }
 

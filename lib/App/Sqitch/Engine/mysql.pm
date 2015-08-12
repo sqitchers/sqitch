@@ -25,10 +25,19 @@ has registry_uri => (
     default  => sub {
         my $self = shift;
         my $uri = $self->uri->clone;
+
+        return $uri if $self->with_registry_prefix;    # Use the DB as
+                                                       # registry
         $uri->dbname($self->registry);
         return $uri;
     },
 );
+
+sub registry_db {
+    my $self = shift;
+    my $uri  = $self->registry_uri;
+    return $uri->dbname;
+}
 
 sub registry_destination {
     my $uri = shift->registry_uri;
@@ -199,7 +208,11 @@ sub _quote_idents {
     map { $_ eq 'change' ? '"change"' : $_ } @_;
 }
 
-sub _version_query { 'SELECT ROUND(MAX(version), 1) FROM releases' }
+sub _version_query {
+    my $self = shift;
+    my $releases = $self->_get_registry_table('releases');
+    return qq{SELECT ROUND(MAX(version), 1) FROM $releases};
+}
 
 sub initialized {
     my $self = shift;
@@ -217,14 +230,14 @@ sub initialized {
           FROM information_schema.tables
          WHERE table_schema = ?
            AND table_name   = ?
-    }, undef, $self->registry, $changes)->[0];
+    }, undef, $self->registry_db, $changes)->[0];
 }
 
 sub initialize {
     my $self   = shift;
     hurl engine => __x(
         'Sqitch database {database} already initialized',
-        database => $self->registry,
+        database => $self->registry_db,
     ) if $self->initialized;
 
     if ( !$self->with_registry_prefix ) {
@@ -241,7 +254,7 @@ sub initialize {
 
     # Connect to the Sqitch database.
     my @cmd = $self->mysql;
-    $cmd[1 + firstidx { $_ eq '--database' } @cmd ] = $self->registry;
+    $cmd[1 + firstidx { $_ eq '--database' } @cmd ] = $self->registry_db;
 
     # Deploy the registry to the Sqitch database.
     $self->run_upgrade( file(__FILE__)->dir->file('mysql.sql') );
@@ -253,7 +266,6 @@ sub initialize {
 sub begin_work {
     my $self = shift;
     my $dbh = $self->dbh;
-
     # Start transaction and lock all tables to disallow concurrent changes.
     $dbh->do('LOCK TABLES ' . join ', ', map {
         "$_ WRITE"
@@ -375,7 +387,7 @@ sub run_upgrade {
     my ($self, $file) = @_;
     my $dbh = $self->dbh;
     my @cmd = $self->mysql;
-    $cmd[1 + firstidx { $_ eq '--database' } @cmd ] = $self->registry;
+    $cmd[1 + firstidx { $_ eq '--database' } @cmd ] = $self->registry_db;
     return $self->sqitch->run( @cmd, $self->_source($file) )
         if $self->_fractional_seconds;
 
@@ -451,6 +463,11 @@ supports MySQL 5.1.0 and higher (best on 5.6.4 and higher), as well as MariaDB
 
 Returns a list containing the C<mysql> client and options to be passed to it.
 Used internally when executing scripts.
+
+=head3 C<registry_db>
+
+Returns the name of the Sqitch registry or the database name if
+C<with_registry_prefix> is set.
 
 =head1 Author
 

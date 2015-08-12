@@ -507,9 +507,8 @@ sub log_deploy_change {
         committed_at
     ));
 
-    $self->_prepare_to_log(changes => $change);
     my $changes = $self->_get_registry_table('changes');
-
+    $self->_prepare_to_log( $changes => $change );
     $dbh->do(qq{
         INSERT INTO $changes (
             $cols
@@ -609,8 +608,8 @@ sub _log_event {
         committed_at
     ));
 
-    $self->_prepare_to_log(events => $change);
     my $events = $self->_get_registry_table('events');
+    $self->_prepare_to_log( $events => $change );
     $dbh->do(qq{
         INSERT INTO $events (
             $cols
@@ -645,7 +644,7 @@ sub changes_requiring_change {
         SELECT c.change_id, c.project, c.change, (
             SELECT tag
               FROM $changes c2
-              JOIN $tags ON c2.change_id = tags.change_id
+              JOIN $tags t ON c2.change_id = t.change_id
              WHERE c2.project      = c.project
                AND c2.committed_at >= c.committed_at
              ORDER BY c2.committed_at

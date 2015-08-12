@@ -27,17 +27,18 @@ has registry_uri => (
     default  => sub {
         my $self = shift;
         my $uri  = $self->uri->clone;
-        my $reg  = $self->registry;
 
         return $uri if $self->with_registry_prefix;    # Use the DB as
                                                        # registry
 
+        my $reg  = $self->registry;
         if ( file($reg)->is_absolute ) {
+
             # Just use an absolute path.
             $uri->dbname($reg);
         } elsif (my @segs = $uri->path_segments) {
+
             # Use the same name, but replace $name.$ext with $reg.$ext.
-            my $reg = $self->registry;
             if ($reg =~ /[.]/) {
                 $segs[-1] =~ s/^[^.]+(?:[.].+)?$/$reg/;
             } else {
@@ -45,6 +46,7 @@ has registry_uri => (
             }
             $uri->path_segments(@segs);
         } else {
+
             # No known path, so no name.
             $uri->dbname(undef);
         }
@@ -163,7 +165,10 @@ sub _ts_default {
 sub _version_query {
     # Turns out, if you cast to varchar, the trailing 0s get removed. So value
     # 1.1, represented as 1.10000002384186, returns as preferred value 1.1.
-    'SELECT CAST(ROUND(MAX(version), 1) AS VARCHAR(24)) AS v FROM releases',
+    my $self     = shift;
+    my $releases = $self->_get_registry_table('releases');
+    return qq{SELECT CAST(ROUND(MAX(version), 1) AS VARCHAR(24)) AS v
+                  FROM $releases};
 }
 
 sub is_deployed_change {
@@ -192,7 +197,8 @@ sub initialized {
 
     # Try to connect.
     my $err = 0;
-    my $dbh = try { $self->dbh } catch { $err = $DBI::err; $self->sqitch->debug($_); };
+    my $dbh = try   { $self->dbh }
+              catch { $err = $DBI::err; $self->sqitch->debug($_); };
     return 0 if $err;
 
     return $self->dbh->selectcol_arrayref(qq{
@@ -265,14 +271,6 @@ sub initialize {
     require File::Temp;
     my $fh = File::Temp->new;
     print { $fh } $sql;
-
-    ### DEBUG
-    my $file_sql = '/tmp/firebird.sql';
-    open my $file_fh, '>:encoding(utf8)', $file_sql
-        or die "Can't open file ", $file_sql, ": $!";
-    print { $file_fh } $sql;
-    close $file_fh;
-    ###
 
     $sqitch->run( @cmd, '-input' => $sqitch->quote_shell( $fh->filename ) );
     close $fh;
@@ -385,11 +383,16 @@ sub run_verify {
 
 sub run_upgrade {
     my ($self, $file) = @_;
+    my $prefix = $self->with_registry_prefix ? 'sqitch_' : '';
+    ( my $sql = scalar $file->slurp ) =~ s/:prefix:/$prefix/g;
+    require File::Temp;
+    my $fh = File::Temp->new;
+    print { $fh } $sql;
     my $uri    = $self->registry_uri;
     my @cmd    = $self->isql;
     $cmd[-1]   = $self->connection_string($uri);
     my $sqitch = $self->sqitch;
-    $sqitch->run( @cmd, '-input' => $sqitch->quote_shell($file) );
+    $sqitch->run( @cmd, '-input' => $sqitch->quote_shell( $fh->filename ) );
 }
 
 sub run_handle {
