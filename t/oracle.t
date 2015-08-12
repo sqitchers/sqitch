@@ -495,7 +495,7 @@ DBIEngineTest->run(
     }],
     target_params     => [ uri => $uri ],
     alt_engine_params => [ uri => $uri, registry => 'oe' ],
-    prefix_engine_params => [ uri => $uri, with_registry_prefix => 1 ],
+    prefix_engine_params => [ uri => $uri, registry => 'oe', with_registry_prefix => 1 ],
     skip_unless       => sub {
         my $self = shift;
         die $err if $err;
