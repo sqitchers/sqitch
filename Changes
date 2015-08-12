@@ -49,6 +49,9 @@ Revision history for Perl extension App::Sqitch
      - Removed the depreated `--registry` and `--client` options from the
        `target` command. Use `--set registry=$registry` and `--set
        client=$client`, instead.
+     - Added the `deploy_dir`, `revert_dir`, and `verify_dir` methods to
+       App::Sqitch::Plan::Change. Each points to the proper directory for the
+       target depending on whether or not the change has been reworked.
 
 0.9992 2015-05-20T23:51:41Z
      - On PostgreSQL, Sqitch now sets the `client_encoding` parameter to
