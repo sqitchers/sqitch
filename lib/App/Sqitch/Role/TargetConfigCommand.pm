@@ -121,11 +121,7 @@ around configure => sub {
         # Convert URI.
         if ( my $uri = delete $set->{uri} || delete $set->{url} ) {
             require URI;
-            $props->{uri} = URI::db->new($uri);
-            hurl $class->command => __x(
-                'URI {uri} is not a database URI',
-                uri => $uri,
-            ) unless $props->{uri}->isa('URI::_db');
+            $props->{uri} = URI->new($uri);
         }
 
         # Convert directory properties to Class::Path::Dir objects.
@@ -161,6 +157,24 @@ sub BUILD {
         ) unless first { $engine eq $_ } App::Sqitch::Command::ENGINES;
     }
 
+    if (my $uri = $props->{uri}) {
+        # Validate URI.
+        hurl $self->command => __x(
+            'URI "{uri}" is not a database URI',
+            uri => $uri,
+        ) unless eval { $uri->isa('URI::db') };
+
+        my $engine = $uri->engine or hurl $self->command => __x(
+            'No database engine in URI "{uri}"',
+            uri => $uri,
+        );
+        hurl $self->command => __x(
+            'Unknown engine "{engine}" in URI "{uri}"',
+            engine => $engine,
+            uri    => $uri,
+        ) unless first { $engine eq $_ } App::Sqitch::Command::ENGINES;
+
+    }
     # Copy core options.
     my $opts = $self->sqitch->options;
     for my $name (qw(

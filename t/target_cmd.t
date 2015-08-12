@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 301;
+use Test::More tests => 313;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -648,3 +648,41 @@ MISSINGARGS: {
         action => 'nonexistent',
     )], 'Nonexistent action message should be passed to usage';
 }
+
+##############################################################################
+# Test URI validation.
+for my $val (
+    'rock',
+    'http://www.google.com/',
+) {
+    my $uri = URI->new($val);
+    throws_ok {
+        $CLASS->new({ sqitch => $sqitch, properties => { uri => $uri } })
+    } 'App::Sqitch::X', "Invalid URI $val should throw an error";
+    is $@->ident, 'target', qq{Invalid URI $val error ident should be "target"};
+    is $@->message, __x(
+        'URI "{uri}" is not a database URI',
+        uri => $uri,
+    ), qq{Invalid URI $val error message should be correct};
+}
+
+my $uri = URI->new('db:');
+throws_ok {
+    $CLASS->new({ sqitch => $sqitch, properties => { uri => $uri } })
+} 'App::Sqitch::X', 'Engineless URI should throw an error';
+is $@->ident, 'target', 'Engineless URI error ident should be "target"';
+is $@->message, __x(
+    'No database engine in URI "{uri}"',
+    uri => $uri,
+), 'Engineless URI error message should be correct';
+
+$uri = URI->new('db:nonesuch:foo');
+throws_ok {
+    $CLASS->new({ sqitch => $sqitch, properties => { uri => $uri } })
+} 'App::Sqitch::X', 'Unknown engine URI should throw an error';
+is $@->ident, 'target', 'Unknown engine URI error ident should be "target"';
+is $@->message, __x(
+    'Unknown engine "{engine}" in URI "{uri}"',
+    uri => $uri,
+    engine => 'nonesuch',
+), 'Unknown engine URI error message should be correct';
