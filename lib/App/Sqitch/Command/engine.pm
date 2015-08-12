@@ -138,7 +138,10 @@ sub add {
     # Make it so.
     $config->group_set( $config->local_file, \@vars );
     $self->write_plan;
-    $self->make_directories_for( $self->config_target );
+    $self->make_directories_for($self->config_target(
+        name   => $target,
+        engine => $engine,
+    ));
 }
 
 sub alter {
@@ -171,7 +174,7 @@ sub alter {
 
     # Make it so.
     $config->group_set( $config->local_file, \@vars );
-    $self->make_directories_for( $self->config_target );
+    $self->make_directories_for( $self->config_target( engine => $engine) );
 }
 
 # XXX Begin deprecated.

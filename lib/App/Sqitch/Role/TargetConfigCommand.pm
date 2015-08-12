@@ -28,20 +28,25 @@ has properties => (
 );
 
 sub config_target {
-    my $self = shift;
+    my ($self, %p) = @_;
     my $sqitch = $self->sqitch;
     my $props  = $self->properties;
     my @params = (sqitch => $sqitch);
 
-    if (my $name = shift || $props->{target}) {
+    if (my $name = $p{name} || $props->{target}) {
         push @params => (name => $name);
-        my $config = $sqitch->config;
-        if ($name !~ /:/ && !$config->get(key => "target.$name.uri")) {
-            # No URI. Give it one.
-            my $engine = shift || $props->{engine} || $config->get('core.engine');
-            push @params => (uri => URI::db->new("db:$engine:"));
+        if (my $uri = $p{uri}) {
+            push @params => (uri => $uri);
+        } else {
+            my $config = $sqitch->config;
+            if ($name !~ /:/ && !$config->get(key => "target.$name.uri")) {
+                # No URI. Give it one.
+                my $engine = $p{engine} || $props->{engine}
+                          || $config->get(key => 'core.engine');
+                push @params => (uri => URI::db->new("db:$engine:"));
+            }
         }
-    } elsif (my $engine = shift || $props->{engine}) {
+    } elsif (my $engine = $p{engine} || $props->{engine}) {
         my $config = $sqitch->config;
         push @params => (
             name => $config->get(key => "engine.$engine.target")
@@ -368,12 +373,31 @@ A hash reference of target configurations. The keys may be as follows:
 
 =head3 C<config_target>
 
-  my $target = $cmd->config_target($name, $engine);
+  my $target = $cmd->config_target;
+  my $target = $cmd->config_target(%params);
 
-Constructs a target based on the contents of C<properties>. The passed target
-and engine names take highest precedence, falling back on the properties and
-the C<default_target>. All other properties are applied to the target before
-returning it.
+Constructs a target based on the contents of C<properties>. The supported
+parameters are:
+
+=over
+
+=item C<name>
+
+A target name.
+
+=item C<uri>
+
+A target URI.
+
+=item C<engine>
+
+An engine name.
+
+=back
+
+The passed target and engine names take highest precedence, falling back on
+the properties and the C<default_target>. All other properties are applied to
+the target before returning it.
 
 =head3 C<write_plan>
 
