@@ -58,6 +58,10 @@ Revision history for Perl extension App::Sqitch
        others) would sometimes return the incorrect change if the change has
        been reworked two or more times. Was fixed for the other engines in
        v0.9991.
+     - Fixed the `--all` option used to apply a command to all known targets
+       so that it loads only targets specified by the local configuration.
+       Otherwise, user and system configuration can get in the way when they
+       specify engines and targets not used by the current project.
 
 0.9992 2015-05-20T23:51:41Z
      - On PostgreSQL, Sqitch now sets the `client_encoding` parameter to
