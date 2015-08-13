@@ -13,22 +13,7 @@ use Try::Tiny;
 use Path::Class qw(file dir);
 use List::Util qw(max);
 use namespace::autoclean;
-
-use constant property_keys => qw(
-    top_dir
-    plan_file
-    registry
-    client
-    uri
-    deploy_dir
-    revert_dir
-    verify_dir
-    reworked_dir
-    reworked_deploy_dir
-    reworked_revert_dir
-    reworked_verify_dir
-    extension
-);
+use constant extra_target_keys => qw(uri);
 
 extends 'App::Sqitch::Command';
 with 'App::Sqitch::Role::TargetConfigCommand';
@@ -332,9 +317,9 @@ Manages Sqitch targets, which are stored in the local configuration file.
 
 =head3 Class Methods
 
-=head3 C<property_keys>
+=head3 C<extra_target_keys>
 
-Returns a list of keys that may be specified in the C<--set> option.
+Returns a list of additional option keys to be specified via options.
 
 =head2 Instance Methods
 

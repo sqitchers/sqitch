@@ -48,11 +48,11 @@ configure these values for various deployment scenarios.
 Typically, the first thing you do with Sqitch is use the
 L<C<init>|sqitch-init> command to start a new project. Now, the most important
 thing Sqitch needs to know is what database engine you'll be managing, so it's
-best to use C<--set> to configure the engine right up front to start off on
+best to use C<--engine> to configure the engine right up front to start off on
 the right foot. Here, we start a project called "widgets" to manage PostgreSQL
 databases:
 
-  > sqitch init widgets --set engine=pg
+  > sqitch init widgets --engine=pg
   Created sqitch.conf
   Created sqitch.plan
   Created deploy/
@@ -149,7 +149,7 @@ the existing PostgreSQL stuff to a subdirectory.
 Now we need to tell Sqitch where things are. To create an engine-specific
 configuration, use the L<C<engine>|sqitch-engine> command's C<add> action:
 
-  sqitch engine add pg --set top_dir=pg
+  sqitch engine add pg --top-dir pg
 
 The C<add> action adds the C<pg> engine to the configuration, setting the top
 directory to our newly-created C<pg> directory. The configuration looks like
@@ -196,7 +196,7 @@ its own plan and scripts. This is I<almost> like starting from scratch: just
 create a new directory and add the Sqitch engine using it for its top directory:
  add initialize it as a new Sqitch project:
 
-  > sqitch engine add sqlite -s top_dir=sqlite
+  > sqitch engine add sqlite --top-dir sqlite
   Created sqlite/
   Created sqlite/sqitch.plan
   Created sqlite/deploy/
@@ -258,7 +258,7 @@ share the same plan. In that case, we should move the plan file out of the
 PostgreSQL directory:
 
   > mv pg/sqitch.plan .
-  > sqitch engine pg --set plan_file=sqitch.plan
+  > sqitch engine alter pg --plan-file sqitch.plan
   > sqitch engine show pg
   * pg
       Target:        db:pg:
@@ -283,7 +283,7 @@ from PostgreSQL. Let's just copy them, and then configure the SQLite engine to
 use the shared plan file:
 
   > cp -rf pg sqlite
-  > sqitch engine add sqlite --set plan_file=sqitch.plan --set top_dir=sqlite
+  > sqitch engine add sqlite --plan-file sqitch.plan --top-dir sqlite
   > sqitch engine show sqlite
   * sqlite
       Target:           db:sqlite:
@@ -498,9 +498,9 @@ its value will be determined by examining each of the following in turn:
 
 =item C<engine.$engine.target>
 
-  sqitch init $project --set engine=$engine --set target=$target
-  sqitch engine add $engine --set target=$target
-  sqitch engine alter $engine --set=$target
+  sqitch init $project --engine $engine --target $target
+  sqitch engine add $engine --target $target
+  sqitch engine alter $engine --target target
 
 =item C<core.target>
 
@@ -522,9 +522,9 @@ only be specified as a target argument or via a named target:
 
 =item C<target.$target.uri>
 
-  sqitch init $project --set engine=$engine --set target=$target
-  sqitch target add $target --set uri=$uri
-  sqitch target alter $target --set uri=$uri
+  sqitch init $project --engine $engine --target $target
+  sqitch target add $target --uri $uri
+  sqitch target alter $target --uri $uri
 
 =back
 
@@ -542,15 +542,15 @@ can specify it via the following:
 
 =item C<target.$target.client>
 
-  sqitch target add $target --set client=$client
-  sqitch target alter $target --set client=$client
+  sqitch target add $target --client $client
+  sqitch target alter $target --client $client
   sqitch config --user target.$target.client $client
 
 =item C<engine.$engine.client>
 
-  sqitch init $project --set engine=$engine --set client=client
-  sqitch engine add $engine --set client=$client
-  sqitch engine alter $engine --set client=$client
+  sqitch init $project --engine $engine --set client=client
+  sqitch engine add $engine --client $client
+  sqitch engine alter $engine --client $client
   sqitch config --user engine.$engine.client $client
 
 =item C<core.client>
@@ -574,14 +574,14 @@ the following:
 
 =item C<target.$target.registry>
 
-  sqitch target add $target --set registry=$registry
-  sqitch target alter $target --set registry=$registry
+  sqitch target add $target --registry $registry
+  sqitch target alter $target --registry $registry
 
 =item C<engine.$engine.registry>
 
-  sqitch init $project --set engine=$engine --set registry=$registry
-  sqitch engine add $engine --set registry=$registry
-  sqitch engine alter $engine --set registry=$registry
+  sqitch init $project --engine $engine --registry $registry
+  sqitch engine add $engine --registry $registry
+  sqitch engine alter $engine --registry $registry
 
 =item C<core.registry>
 
@@ -603,17 +603,17 @@ you need a custom directory, specify it via the following:
 
 =item C<target.$target.top_dir>
 
-  sqitch target add $target --set top_dir=$top_dir
-  sqitch target alter $target --set top_dir=$top_dir
+  sqitch target add $target --top-dir $top_dir
+  sqitch target alter $target --top-dir $top_dir
 
 =item C<engine.$engine.top_dir>
 
-  sqitch engine add $engine --set top_dir=$top_dir
+  sqitch engine add $engine --top-dir $top_dir
   sqitch engine alter $engine --set=top_dir=$top_dir
 
 =item C<core.top_dir>
 
-  sqitch init $project --set top_dir=$top_dir
+  sqitch init $project --top-dir $top_dir
   sqitch config core.top_dir $top_dir
 
 =back
@@ -631,18 +631,43 @@ If you need a different file, specify it via the following:
 
 =item C<target.$target.plan_file>
 
-  sqitch target add $target --set plan_file=$plan_file
-  sqitch target alter $target --set plan_file=$plan_file
+  sqitch target add $target --plan-file $plan_file
+  sqitch target alter $target --plan-file $plan_file
 
 =item C<engine.$engine.plan_file>
 
-  sqitch engine add $engine --set plan_file=$plan_file
-  sqitch engine alter $engine --set plan_file=$plan_file
+  sqitch engine add $engine --plan-file $plan_file
+  sqitch engine alter $engine --plan-file $plan_file
 
 =item C<core.plan_file>
 
-  sqitch init $project --set plan_file=$plan_file
+  sqitch init $project --plan-file $plan_file
   sqitch config core.plan_file $plan_file
+
+=back
+
+=item C<extension>
+
+The file name extension to append to change names for change script file
+names. Defaults to C<sql>. If you need a custom extension, specify it via the
+following:
+
+=over
+
+=item C<target.$target.extension>
+
+  sqitch target add $target --extension $extension
+  sqitch target alter $target --extension $extension
+
+=item C<engine.$engine.extension>
+
+  sqitch engine add $engine --extension $extension
+  sqitch engine alter $engine --extension $extension
+
+=item C<core.extension>
+
+  sqitch init $project --extension $extension
+  sqitch config core.extension $extension
 
 =back
 
@@ -656,17 +681,17 @@ following:
 
 =item C<target.$target.deploy_dir>
 
-  sqitch target add $target --set deploy_dir=$deploy_dir
-  sqitch target alter $target --set deploy_dir=$deploy_dir
+  sqitch target add $target --dir deploy=$deploy_dir
+  sqitch target alter $target --dir deploy=$deploy_dir
 
 =item C<engine.$engine.deploy_dir>
 
-  sqitch engine add $engine --set deploy_dir=$deploy_dir
-  sqitch engine alter --set deploy_dir=$deploy_dir
+  sqitch engine add $engine --dir deploy=$deploy_dir
+  sqitch engine alter --dir deploy=$deploy_dir
 
 =item C<core.deploy_dir>
 
-  sqitch init $project --set deploy_dir=$deploy_dir
+  sqitch init $project --dir deploy=$deploy_dir
   sqitch config core.deploy_dir $deploy_dir
 
 =back
@@ -684,17 +709,17 @@ following:
 
 =item C<target.$target.revert_dir>
 
-  sqitch target add $target --set revert_dir=$revert_dir
-  sqitch target alter $target --set revert_dir=$revert_dir
+  sqitch target add $target --dir revert=$revert_dir
+  sqitch target alter $target --dir revert=$revert_dir
 
 =item C<engine.$engine.revert_dir>
 
-  sqitch engine add $engine --set revert_dir=$revert_dir
-  sqitch engine alter --set revert_dir=$revert_dir
+  sqitch engine add $engine --dir revert=$revert_dir
+  sqitch engine alter --dir revert=$revert_dir
 
 =item C<core.revert_dir>
 
-  sqitch init $project --set revert_dir=$revert_dir
+  sqitch init $project --dir revert=$revert_dir
   sqitch config core.revert_dir $revert_dir
 
 =back
@@ -709,43 +734,118 @@ following:
 
 =item C<target.$target.verify_dir>
 
-  sqitch target add $target --set verify_dir=$verify_dir
-  sqitch target alter $target --set verify_dir=$verify_dir
+  sqitch target add $target --dir verify=$verify_dir
+  sqitch target alter $target --dir verify=$verify_dir
 
 =item C<engine.$engine.verify_dir>
 
-  sqitch engine add $engine --set verify_dir=$verify_dir
-  sqitch engine alter $engine --set verify_dir=$verify_dir
+  sqitch engine add $engine --dir verify=$verify_dir
+  sqitch engine alter $engine --dir verify=$verify_dir
 
 =item C<core.verify_dir>
 
-  sqitch init $project --set verify_dir=$verify_dir
+  sqitch init $project --dir verify=$verify_dir
   sqitch config core.verify_dir $verify_dir
 
 =back
 
-=item C<extension>
+=item C<reworked_dir>
 
-The file name extension to append to change names for change script file
-names. Defaults to C<sql>. If you need a custom extension, specify it via the
+The directory in which subdirectories for reworked scripts can be found.
+Defaults to F<C<$top_dir>>. If you need a different directory, specify it via
+the following:
+
+=over
+
+=item C<target.$target.reworked_dir>
+
+  sqitch target add $target --dir reworked=$reworked_dir
+  sqitch target alter $target --dir reworked=$reworked_dir
+
+=item C<engine.$engine.reworked_dir>
+
+  sqitch engine add $engine --dir reworked=$reworked_dir
+  sqitch engine alter $engine --dir reworked=$reworked_dir
+
+=item C<core.reworked_dir>
+
+  sqitch init $project --dir reworked=$reworked_dir
+  sqitch config core.reworked_dir $reworked_dir
+
+=back
+
+=item C<reworked_deploy_dir>
+
+The directory in which project deploy scripts can be found. Defaults to
+F<C<reworked_dir/deploy>>. If you need a different directory, specify it via the
 following:
 
 =over
 
-=item C<target.$target.extension>
+=item C<target.$target.reworked_deploy_dir>
 
-  sqitch target add $target --set extension=$extension
-  sqitch target alter $target --set extension=$extension
+  sqitch target add $target --dir deploy=$reworked_deploy_dir
+  sqitch target alter $target --dir deploy=$reworked_deploy_dir
 
-=item C<engine.$engine.extension>
+=item C<engine.$engine.reworked_deploy_dir>
 
-  sqitch engine add $engine --set extension=$extension
-  sqitch engine alter $engine --set extension=$extension
+  sqitch engine add $engine --dir deploy=$reworked_deploy_dir
+  sqitch engine alter --dir deploy=$reworked_deploy_dir
 
-=item C<core.extension>
+=item C<core.reworked_deploy_dir>
 
-  sqitch init $project --set extension=$extension
-  sqitch config core.extension $extension
+  sqitch init $project --dir deploy=$reworked_deploy_dir
+  sqitch config core.reworked_deploy_dir $reworked_deploy_dir
+
+=back
+
+=item C<reworked_revert_dir>
+
+The directory in which project revert scripts can be found. Defaults to
+F<C<reworked_dir/revert>>. If you need a different directory, specify it via the
+following:
+
+=over
+
+=item C<target.$target.reworked_revert_dir>
+
+  sqitch target add $target --dir revert=$reworked_revert_dir
+  sqitch target alter $target --dir revert=$reworked_revert_dir
+
+=item C<engine.$engine.reworked_revert_dir>
+
+  sqitch engine add $engine --dir revert=$reworked_revert_dir
+  sqitch engine alter --dir revert=$reworked_revert_dir
+
+=item C<core.reworked_revert_dir>
+
+  sqitch init $project --dir revert=$reworked_revert_dir
+  sqitch config core.reworked_revert_dir $reworked_revert_dir
+
+=back
+
+=item C<reworked_verify_dir>
+
+The directory in which project verify scripts can be found. Defaults to
+F<C<reworked_dir/verify>>. If you need a different directory, specify it via the
+following:
+
+=over
+
+=item C<target.$target.reworked_verify_dir>
+
+  sqitch target add $target --dir verify=$reworked_verify_dir
+  sqitch target alter $target --dir verify=$reworked_verify_dir
+
+=item C<engine.$engine.reworked_verify_dir>
+
+  sqitch engine add $engine --dir verify=$reworked_verify_dir
+  sqitch engine alter $engine --dir verify=$reworked_verify_dir
+
+=item C<core.reworked_verify_dir>
+
+  sqitch init $project --dir verify=$reworked_verify_dir
+  sqitch config core.reworked_verify_dir $reworked_verify_dir
 
 =back
 

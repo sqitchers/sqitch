@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 265;
+use Test::More tests => 282;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -66,16 +66,84 @@ can_ok $cmd, qw(
 
 is_deeply [$CLASS->options], [qw(
     verbose|v+
-    set|s=s%
+    target=s
+    plan-file=s
+    registry=s
+    client=s
+    extension=s
+    top-dir=s
+    dir|d=s%
 )], 'Options should be correct';
 
 # Check default property values.
-is_deeply $cmd->properties, {}, 'Default properties should be empty';
+is_deeply $CLASS->configure({}, {}), { properties => {}},
+    'Default config should contain empty properties';
 
 # Make sure configure ignores config file.
 is_deeply $CLASS->configure({ foo => 'bar'}, { verbose => 1 }),
-    { verbose => 1 },
+    { verbose => 1, properties => {} },
     'configure() should ignore config file';
+
+ok my $conf = $CLASS->configure({}, {
+    top_dir             => 'top',
+    plan_file           => 'my.plan',
+    registry            => 'bats',
+    client              => 'cli',
+    extension           => 'ddl',
+    target              => 'db:pg:foo',
+    dir => {
+        deploy          => 'dep',
+        revert          => 'rev',
+        verify          => 'ver',
+        reworked        => 'wrk',
+        reworked_deploy => 'rdep',
+        reworked_revert => 'rrev',
+        reworked_verify => 'rver',
+    },
+}), 'Get full config';
+
+is_deeply $conf->{properties}, {
+        top_dir             => 'top',
+        plan_file           => 'my.plan',
+        registry            => 'bats',
+        client              => 'cli',
+        extension           => 'ddl',
+        target              => 'db:pg:foo',
+        deploy_dir          => 'dep',
+        revert_dir          => 'rev',
+        verify_dir          => 'ver',
+        reworked_dir        => 'wrk',
+        reworked_deploy_dir => 'rdep',
+        reworked_revert_dir => 'rrev',
+        reworked_verify_dir => 'rver',
+}, 'Should have properties';
+isa_ok $conf->{properties}{$_}, 'Path::Class::File', "$_ file attribute" for qw(
+    plan_file
+);
+isa_ok $conf->{properties}{$_}, 'Path::Class::Dir', "$_ directory attribute" for (
+    'top_dir',
+    'reworked_dir',
+    map { ($_, "reworked_$_") } qw(deploy_dir revert_dir verify_dir)
+);
+
+# Make sure invalid directories are ignored.
+throws_ok { $CLASS->new($CLASS->configure({}, {
+    dir => { foo => 'bar' },
+})) } 'App::Sqitch::X',  'Should fail on invalid directory name';
+is $@->ident, 'engine', 'Invalid directory ident should be "engine"';
+is $@->message, __x(
+    'Unknown directory name: {prop}',
+    prop => 'foo',
+), 'The invalid directory messsage should be correct';
+
+throws_ok { $CLASS->new($CLASS->configure({}, {
+    dir => { foo => 'bar', cavort => 'ha' },
+})) } 'App::Sqitch::X',  'Should fail on invalid directory names';
+is $@->ident, 'engine', 'Invalid directories ident should be "engine"';
+is $@->message, __x(
+    'Unknown directory names: {props}',
+    props => 'cavort, foo',
+), 'The invalid properties messsage should be correct';
 
 ##############################################################################
 # Test list().

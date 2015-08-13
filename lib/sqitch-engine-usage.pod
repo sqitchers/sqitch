@@ -4,14 +4,21 @@ sqitch-engine-usage - Sqitch engine usage statement
 
 =head1 Usage
 
-  sqitch [options] engine
-  sqitch engine add <name> [-s <property>=<value> ...]
-  sqitch engine alter <name> [-s <property>=<value> ...]
+  sqitch engine
+  sqitch engine [-v | --verbose]
+  sqitch engine add <name> [engine-options]
+  sqitch engine alter <name> [engine-options]
   sqitch engine remove <name>
   sqitch engine show <name>
   sqitch engine update-config
 
 =head1 Options
 
-    -v, --verbose             be verbose; must be placed before an action
-    -s, --set     KEY=VALUE   set engine property when adding or altering
+    -v, --verbose               be verbose; must be placed before an action
+    --target     <target>       database target
+    --registry   <registry>     registry schema or database
+    --client     <path>         path to engine command-line client
+    --plan-file  <file>         path to deployment plan file
+    --top-dir    <dir>          path to directory with plan and scripts
+    --extension  <ext>          change script file name extension
+    --dir        <name>=<path>  path to named directory

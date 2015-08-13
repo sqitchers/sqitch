@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 186;
+use Test::More tests => 187;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -58,36 +58,46 @@ can_ok $init, qw(
     options
     configure
 );
+
 is_deeply [$init->options], [qw(
     uri=s
-    set|s=s%
+    engine=s
+    target=s
+    plan-file=s
+    registry=s
+    client=s
+    extension=s
+    top-dir=s
+    dir|d=s%
 )], 'Options should be correct';
 
-is_deeply $CLASS->configure({}, {}), {}, 'Default config should be empty';
-is_deeply $CLASS->configure({}, { uri => 'http://example.com' }),
-    { uri => URI->new('http://example.com') },
-    'Should accept a URI in options';
+is_deeply $CLASS->configure({}, {}), { properties => {}},
+    'Default config should contain empty properties';
+is_deeply $CLASS->configure({}, { uri => 'http://example.com' }), {
+    uri        => URI->new('http://example.com'),
+    properties => {},
+}, 'Should accept a URI in options';
 ok my $config = $CLASS->configure({}, {
     uri                 => 'http://example.com',
-    set => {
-        engine              => 'pg',
-        top_dir             => 'top',
-        plan_file           => 'my.plan',
-        registry            => 'bats',
-        client              => 'cli',
-        extension           => 'ddl',
-        target              => 'db:pg:foo',
-        deploy_dir          => 'dep',
-        revert_dir          => 'rev',
-        verify_dir          => 'ver',
-        reworked_dir        => 'wrk',
-        reworked_deploy_dir => 'rdep',
-        reworked_revert_dir => 'rrev',
-        reworked_verify_dir => 'rver',
+    engine              => 'pg',
+    top_dir             => 'top',
+    plan_file           => 'my.plan',
+    registry            => 'bats',
+    client              => 'cli',
+    extension           => 'ddl',
+    target              => 'db:pg:foo',
+    dir => {
+        deploy          => 'dep',
+        revert          => 'rev',
+        verify          => 'ver',
+        reworked        => 'wrk',
+        reworked_deploy => 'rdep',
+        reworked_revert => 'rrev',
+        reworked_verify => 'rver',
     },
 }), 'Get full config';
 
-isa_ok $config->{uri}, 'URI',
+isa_ok $config->{uri}, 'URI', 'uri propertiy';
 is_deeply $config->{properties}, {
         engine              => 'pg',
         top_dir             => 'top',
@@ -109,25 +119,26 @@ isa_ok $config->{properties}{$_}, 'Path::Class::File', "$_ file attribute" for q
 );
 isa_ok $config->{properties}{$_}, 'Path::Class::Dir', "$_ directory attribute" for (
     'top_dir',
+    'reworked_dir',
     map { ($_, "reworked_$_") } qw(deploy_dir revert_dir verify_dir)
 );
 
 # Make sure invalid directories are ignored.
 throws_ok { $CLASS->new($CLASS->configure({}, {
-    set => { foo => 'bar' },
+    dir => { foo => 'bar' },
 })) } 'App::Sqitch::X',  'Should fail on invalid directory name';
 is $@->ident, 'init', 'Invalid directory ident should be "init"';
 is $@->message, __x(
-    'Unknown property name: {prop}',
+    'Unknown directory name: {prop}',
     prop => 'foo',
-), 'The invalid property messsage should be correct';
+), 'The invalid directory messsage should be correct';
 
 throws_ok { $CLASS->new($CLASS->configure({}, {
-    set => { foo => 'bar', cavort => 'ha' },
+    dir => { foo => 'bar', cavort => 'ha' },
 })) } 'App::Sqitch::X',  'Should fail on invalid directory names';
 is $@->ident, 'init', 'Invalid directories ident should be "init"';
 is $@->message, __x(
-    'Unknown property names: {props}',
+    'Unknown directory names: {props}',
     props => 'cavort, foo',
 ), 'The invalid properties messsage should be correct';
 

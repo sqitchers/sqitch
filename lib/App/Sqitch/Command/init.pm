@@ -12,22 +12,7 @@ use List::MoreUtils qw(natatime);
 use Path::Class;
 use App::Sqitch::Plan;
 use namespace::autoclean;
-use constant property_keys => qw(
-    top_dir
-    plan_file
-    engine
-    registry
-    client
-    target
-    deploy_dir
-    revert_dir
-    verify_dir
-    reworked_dir
-    reworked_deploy_dir
-    reworked_revert_dir
-    reworked_verify_dir
-    extension
-);
+use constant extra_target_keys => qw(engine target);
 
 extends 'App::Sqitch::Command';
 with 'App::Sqitch::Role::TargetConfigCommand';
@@ -241,9 +226,9 @@ scripts.
 Returns a list of L<Getopt::Long> option specifications for the command-line
 options for the C<config> command.
 
-=head3 C<property_keys>
+=head3 C<extra_target_keys>
 
-Returns a list of keys that may be specified in the C<--set> option.
+Returns a list of additional option keys to be specified via options.
 
 =head2 Attributes
 

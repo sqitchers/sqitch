@@ -118,46 +118,91 @@ managed by L<engine|sqitch-engine>.
 
 =over
 
+=item List Option
+
+=over
+
 =item C<-v>
 
 =item C<--verbose>
 
-Be a little more verbose and show the database URI after name.
+  sqitch engine --verbose
 
-=item C<-s>
+Be more verbose when listing engines.
 
-=item C<--set>
+=back
 
-  sqitch target add foo uri=db:pg:try -s top_dir=db -s registry=meta
-
-Set a target property key/value pair. May be specified multiple times. Used
-only by the C<add> action. Supported keys are:
+=item Add and Alter Options
 
 =over
 
-=item C<uri>
+=item C<--uri>
 
-=item C<client>
+  sqitch target add devwidgets --uri db:pg:widgets
 
-=item C<top_dir>
+Specifies the L<URI|https://github.com/theory/uri-db/> of the target database.
 
-=item C<plan_file>
+=item C<--top-dir>
 
-=item C<deploy_dir>
+  sqitch target add devwidgets --top-dir sql
 
-=item C<revert_dir>
+Specifies the top directory to use for the target. Typically contains the
+deployment plan file and the change script directories.
 
-=item C<verify_dir>
+=item C<--plan-file>
 
-=item C<reworked_dir>
+  sqitch target add devwidgets --plan-file my.plan
 
-=item C<reworked_deploy_dir>
+Specifies the path to the deployment plan file. Defaults to
+C<$top_dir/sqitch.plan>.
 
-=item C<reworked_revert_dir>
+=item C<--extension>
 
-=item C<reworked_verify_dir>
+  sqitch target add devwidgets --extension ddl
 
-=item C<extension>
+Specifies the file name extension to use for change script file names.
+Defaults to C<sql>.
+
+=item C<--dir>
+
+  sqitch target add devwidgets --dir deploy=dep --dir revert=rev --dir verify=tst
+
+Sets the path to a script directory. May be specified multiple times.
+Supported keys are:
+
+=over
+
+=item * C<deploy>
+
+=item * C<revert>
+
+=item * C<verify>
+
+=item * C<reworked>
+
+=item * C<reworked_deploy>
+
+=item * C<reworked_revert>
+
+=item * C<reworked_verify>
+
+=back
+
+=item C<--registry>
+
+  sqitch target add devwidgets --registry meta
+  
+Specifies the name of the database object where Sqitch's state and history
+data is stored. Typically a schema name (as in PostgreSQL and Oracle) or a
+database name (as in SQLite and MySQL). Defaults to C<sqitch>.
+
+=item C<--client>
+
+  sqitch target add devwidgets --client /usr/local/pgsql/bin/psql
+
+Specifies the path to the command-line client for the target. Defaults to a
+client in the current path named appropriately for the engine specified by the
+URI.
 
 =back
 

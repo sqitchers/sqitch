@@ -5,7 +5,7 @@ use strict;
 use warnings;
 use utf8;
 use Moo::Role;
-use App::Sqitch::Types qw(Maybe HashRef Str);
+use App::Sqitch::Types qw(HashRef);
 use App::Sqitch::X qw(hurl);
 use Path::Class;
 use Try::Tiny;
@@ -13,12 +13,13 @@ use Locale::TextDomain qw(App-Sqitch);
 use List::Util qw(first);
 use File::Path qw(make_path);
 use namespace::autoclean;
+use constant extra_target_keys => ();
 
 requires 'command';
 requires 'options';
 requires 'configure';
 requires 'sqitch';
-requires 'property_keys';
+requires 'extra_target_keys';
 requires 'default_target';
 
 has properties => (
@@ -26,6 +27,128 @@ has properties => (
     isa => HashRef,
     default => sub { {} },
 );
+
+around options => sub {
+    my ($orig, $class) = @_;
+    return ($class->$orig), (map { "$_=s" } $class->extra_target_keys), qw(
+        plan-file=s
+        registry=s
+        client=s
+        extension=s
+        top-dir=s
+        dir|d=s%
+    );
+};
+
+around configure => sub {
+    my ( $orig, $class, $config, $opt ) = @_;
+
+    # Grab the options we're responsible for.
+    my $props = {};
+    for my $key (
+        $class->extra_target_keys,
+        qw(plan_file registry client extension top_dir dir)
+    ) {
+        $props->{$key} = delete $opt->{$key} if exists $opt->{$key};
+    }
+
+    # Let the command take care of its options.
+    my $params = $class->$orig($config, $opt);
+
+    # Convert file option to Class::Path::File object.
+    if ( my $file = $props->{plan_file} ) {
+        $props->{plan_file} = file($file)->cleanup;
+    }
+
+    # Convert directory option to Class::Path::Dir object.
+    if ( my $file = $props->{top_dir} ) {
+        $props->{top_dir} = dir($file)->cleanup;
+    }
+
+    # Convert URI.
+    if ( my $uri = $props->{uri} ) {
+        require URI;
+        $props->{uri} = URI->new($uri);
+    }
+
+    # Convert directory properties to Class::Path::Dir objects.
+    if (my $dirs = delete $props->{dir}) {
+        my %ok_keys = map {; $_ => undef } (
+            qw(reworked),
+            map { ($_, "reworked_$_") } qw(deploy revert verify)
+        );
+
+        my @unknown;
+        for my $key (keys %{ $dirs }) {
+            unless (exists $ok_keys{$key}) {
+                push @unknown => $key;
+                next;
+            }
+            $props->{"$key\_dir"} = dir(delete $dirs->{$key})->cleanup
+        }
+
+        if (@unknown) {
+            hurl $class->command => __nx(
+                'Unknown directory name: {dirs}',
+                'Unknown directory names: {dirs}',
+                @unknown,
+                dirs => join(__ ', ', sort @unknown),
+            );
+        }
+    }
+
+    # All done.
+    $params->{properties} = $props;
+    return $params;
+};
+
+sub BUILD {
+    my $self = shift;
+    my $props = $self->properties;
+
+    if (my $engine = $props->{engine}) {
+        # Validate engine.
+        hurl $self->command => __x(
+            'Unknown engine "{engine}"', engine => $engine
+        ) unless first { $engine eq $_ } App::Sqitch::Command::ENGINES;
+    }
+
+    if (my $uri = $props->{uri}) {
+        # Validate URI.
+        hurl $self->command => __x(
+            'URI "{uri}" is not a database URI',
+            uri => $uri,
+        ) unless eval { $uri->isa('URI::db') };
+
+        my $engine = $uri->canonical_engine or hurl $self->command => __x(
+            'No database engine in URI "{uri}"',
+            uri => $uri,
+        );
+        hurl $self->command => __x(
+            'Unknown engine "{engine}" in URI "{uri}"',
+            engine => $engine,
+            uri    => $uri,
+        ) unless first { $engine eq $_ } App::Sqitch::Command::ENGINES;
+
+    }
+
+    # Copy core options.
+    my $opts = $self->sqitch->options;
+    for my $name (qw(
+        top_dir
+        plan_file
+        engine
+        registry
+        client
+        target
+        extension
+        deploy_dir
+        revert_dir
+        verify_dir
+    )) {
+        $props->{$name} ||= $opts->{$name} if exists $opts->{$name};
+    }
+}
 
 sub config_target {
     my ($self, %p) = @_;
@@ -81,116 +204,6 @@ sub config_target {
             extension
         )
     );
-}
-
-around options => sub {
-    my ($orig, $class) = @_;
-    return ($class->$orig), qw(set|s=s%);
-};
-
-around configure => sub {
-    my ( $orig, $class, $config, $opt ) = @_;
-    my $set = delete $opt->{set};
-    my $params = $class->$orig($config, $opt);
-
-    if ($set) {
-        # Make sure we ahve only allowed keys.
-        my $ok_keys = { map { $_ => undef } $class->property_keys };
-        if (my @keys = grep { !exists $ok_keys->{$_} } keys %{ $set }) {
-            hurl $class->command => __nx(
-                'Unknown property name: {props}',
-                'Unknown property names: {props}',
-                @keys,
-                props => join(__ ', ', sort @keys),
-            );
-        }
-
-        # Copy plain string properties.
-        my $props = {};
-        for my $name (qw(engine extension target registry client)) {
-            $props->{$name} = delete $set->{$name} if exists $set->{$name};
-        }
-
-        # Convert file properties to Class::Path::File objects.
-        for my $name (qw(plan_file)) {
-            if ( my $file = delete $set->{$name} ) {
-                $props->{$name} = file($file)->cleanup;
-            }
-        }
-
-        # Convert URI.
-        if ( my $uri = delete $set->{uri} || delete $set->{url} ) {
-            require URI;
-            $props->{uri} = URI->new($uri);
-        }
-
-        # Convert directory properties to Class::Path::Dir objects.
-        for my $name (qw(
-            top_dir
-            deploy_dir
-            revert_dir
-            verify_dir
-            reworked_dir
-            reworked_deploy_dir
-            reworked_revert_dir
-            reworked_verify_dir
-        )) {
-            if ( my $dir = delete $set->{$name} ) {
-                $props->{$name} = dir($dir)->cleanup;
-            }
-        }
-
-        $params->{properties} = $props;
-    }
-
-    return $params;
-};
-
-sub BUILD {
-    my $self = shift;
-    my $props = $self->properties;
-
-    if (my $engine = $props->{engine}) {
-        # Validate engine.
-        hurl $self->command => __x(
-            'Unknown engine "{engine}"', engine => $engine
-        ) unless first { $engine eq $_ } App::Sqitch::Command::ENGINES;
-    }
-
-    if (my $uri = $props->{uri}) {
-        # Validate URI.
-        hurl $self->command => __x(
-            'URI "{uri}" is not a database URI',
-            uri => $uri,
-        ) unless eval { $uri->isa('URI::db') };
-
-        my $engine = $uri->canonical_engine or hurl $self->command => __x(
-            'No database engine in URI "{uri}"',
-            uri => $uri,
-        );
-        hurl $self->command => __x(
-            'Unknown engine "{engine}" in URI "{uri}"',
-            engine => $engine,
-            uri    => $uri,
-        ) unless first { $engine eq $_ } App::Sqitch::Command::ENGINES;
-
-    }
-    # Copy core options.
-    my $opts = $self->sqitch->options;
-    for my $name (qw(
-        top_dir
-        plan_file
-        engine
-        registry
-        client
-        target
-        extension
-        deploy_dir
-        revert_dir
-        verify_dir
-    )) {
-        $props->{$name} ||= $opts->{$name} if exists $opts->{$name};
-    }
 }
 
 sub directories_for {
