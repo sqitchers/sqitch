@@ -67,10 +67,6 @@ Let's have a look at F<sqitch.conf>:
   	engine = firebird
   	# plan_file = sqitch.plan
   	# top_dir = .
-  	# deploy_dir = deploy
-  	# revert_dir = revert
-  	# verify_dir = verify
-  	# extension = sql
   # [engine "firebird"]
   	# target = db:firebird:
   	# registry = sqitch

@@ -115,10 +115,6 @@ Let's have a look at F<sqitch.conf>:
   	engine = vertica
   	# plan_file = sqitch.plan
   	# top_dir = .
-  	# deploy_dir = deploy
-  	# revert_dir = revert
-  	# verify_dir = verify
-  	# extension = sql
   # [engine "vertica"]
   	# target = db:vertica:
   	# registry = sqitch
