@@ -93,9 +93,9 @@ sub _target {
         my $uri = URI::db->new($target, 'db:');
         hurl engine => __x(
             'Cannot assign URI using engine "{new}" to engine "{old}"',
-            new => $uri->engine,
+            new => $uri->canonical_engine,
             old => $engine,
-        ) if $uri->engine ne $engine;
+        ) if $uri->canonical_engine ne $engine;
         return $uri->as_string;
     }
 

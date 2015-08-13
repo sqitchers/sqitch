@@ -164,7 +164,7 @@ sub BUILD {
             uri => $uri,
         ) unless eval { $uri->isa('URI::db') };
 
-        my $engine = $uri->engine or hurl $self->command => __x(
+        my $engine = $uri->canonical_engine or hurl $self->command => __x(
             'No database engine in URI "{uri}"',
             uri => $uri,
         );
