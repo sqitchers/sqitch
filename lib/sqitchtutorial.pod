@@ -51,7 +51,7 @@ project must have a name associated with it, and, optionally, a unique URI. We
 recommend including the URI, as it increases the uniqueness of object
 identifiers internally, so let's specify one when we initialize Sqitch:
 
-  > sqitch --engine pg init flipr --uri https://github.com/theory/sqitch-intro/
+  > sqitch init flipr --uri https://github.com/theory/sqitch-intro/ --set engine=pg
   Created sqitch.conf
   Created sqitch.plan
   Created deploy/
@@ -71,7 +71,7 @@ Let's have a look at F<sqitch.conf>:
   	# client = /usr/local/pgsql/bin/psql
 
 Good, it picked up on the fact that we're creating changes for the PostgreSQL
-engine, thanks to the C<--engine pg> option, and saved it to the file.
+engine, thanks to the C<--set engine=pg> option, and saved it to the file.
 Furthermore, it wrote a commented-out C<[engine "pg"]> section with all the
 available PostgreSQL engine-specific settings commented out and ready to be
 edited as appropriate.

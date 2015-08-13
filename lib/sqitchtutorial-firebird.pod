@@ -53,7 +53,7 @@ project must have a name associated with it, and, optionally, a unique URI. We
 recommend including the URI, as it increases the uniqueness of object
 identifiers internally, so let's specify one when we initialize Sqitch:
 
-  > sqitch --engine firebird init flipr --uri https://github.com/theory/sqitch-firebird-intro/
+  > sqitch init flipr --uri https://github.com/theory/sqitch-firebird-intro/ --set engine=firebird
   Created sqitch.conf
   Created sqitch.plan
   Created deploy/
@@ -72,11 +72,11 @@ Let's have a look at F<sqitch.conf>:
   	# registry = sqitch
   	# client = isql-fb
 
-Good, it picked up on the fact that we're creating changes for the
-Firebird engine, thanks to the C<--engine firebird> option, and saved
-it to the file.  Furthermore, it wrote a commented-out
-C<[engine "firebird"]> section with all the available Firebird engine-specific
-settings commented out and ready to be edited as appropriate.
+Good, it picked up on the fact that we're creating changes for the Firebird
+engine, thanks to the C<--set engine=firebird> option, and saved it to the
+file. Furthermore, it wrote a commented-out C<[engine "firebird"]> section
+with all the available Firebird engine-specific settings commented out and
+ready to be edited as appropriate.
 
 By default, Sqitch will read F<sqitch.conf> in the current directory for
 settings. But it will also read F<~/.sqitch/sqitch.conf> for user-specific

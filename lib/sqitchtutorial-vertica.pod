@@ -101,7 +101,7 @@ project must have a name associated with it, and, optionally, a unique URI. We
 recommend including the URI, as it increases the uniqueness of object
 identifiers internally, so let's specify one when we initialize Sqitch:
 
-  > sqitch --engine vertica init flipr --uri https://github.com/theory/sqitch-vertica-intro/
+  > sqitch init flipr --uri https://github.com/theory/sqitch-vertica-intro/ --set engine=vertica
   Created sqitch.conf
   Created sqitch.plan
   Created deploy/
@@ -121,10 +121,10 @@ Let's have a look at F<sqitch.conf>:
   	# client = vsql
 
 Good, it picked up on the fact that we're creating changes for the Vertica
-engine, thanks to the C<--engine vertica> option, and saved it to the file.
-Furthermore, it wrote a commented-out C<[engine "vertica"]> section with all the
-available Vertica engine-specific settings commented out and ready to be
-edited as appropriate.
+engine, thanks to the C<--set engine=vertica> option, and saved it to the
+file. Furthermore, it wrote a commented-out C<[engine "vertica"]> section with
+all the available Vertica engine-specific settings commented out and ready to
+be edited as appropriate.
 
 By default, Sqitch will read F<sqitch.conf> in the current directory for
 settings. But it will also read F<~/.sqitch/sqitch.conf> for user-specific

@@ -55,7 +55,7 @@ Revision history for Perl extension App::Sqitch
      - On Firebird, Looking up a change and tag in the database (via the
        `--onto` option to `rebase` or the `--to` option to `revert`, among
        others) would sometimes return the incorrect change if the change has
-       been reworked two or more times. Was fixed in the other engines in
+       been reworked two or more times. Was fixed for the other engines in
        v0.9991.
 
 0.9992 2015-05-20T23:51:41Z
