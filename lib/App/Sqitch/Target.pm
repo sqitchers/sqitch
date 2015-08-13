@@ -361,8 +361,9 @@ sub BUILDARGS {
 sub all_targets {
     my ($class, %p) = @_;
     my $sqitch = $p{sqitch} or hurl 'Missing required argument: sqitch';
+    my $config = $p{config} || $sqitch->config;
     my (@targets, %seen);
-    my %dump = $sqitch->config->dump;
+    my %dump = %{ App::Sqitch::Config->load_file($config->local_file) };
 
     # First, load the default target.
     my $core = $dump{'core.target'} || do {
@@ -472,9 +473,9 @@ reasonable default from the command-line options or engine configuration.
 
 =head3 C<all_targets>
 
-Returns a list of all the targets defined by the Sqitch configuration files.
-Done by examining the configuration object to find all defined targets and
-engines, as well as the default "core" target. Duplicates are removed and
+Returns a list of all the targets defined by the local Sqitch configuration
+file. Done by examining the configuration object to find all defined targets
+and engines, as well as the default "core" target. Duplicates are removed and
 the list returned. This method takes two parameters:
 
 =over
