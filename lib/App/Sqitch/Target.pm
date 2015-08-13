@@ -629,7 +629,7 @@ comes from one of these options, searched in this order:
 
 =over
 
-=item * C<--deploy-dir>
+=item * C<--set deploy_dir=$deploy_dir>
 
 =item * C<target.$name.deploy_dir>
 
@@ -651,7 +651,7 @@ from one of these options, searched in this order:
 
 =over
 
-=item * C<--revert-dir>
+=item * C<--set revert_dir=$revert_dir>
 
 =item * C<target.$name.revert_dir>
 
@@ -673,7 +673,7 @@ comes from one of these options, searched in this order:
 
 =over
 
-=item * C<--verify-dir>
+=item * C<--set verify_dir=$verify_dir>
 
 =item * C<target.$name.verify_dir>
 
@@ -695,7 +695,7 @@ comes from one of these options, searched in this order:
 
 =over
 
-=item * C<--reworked-dir>
+=item * C<--set reworked_dir=$reworked_dir>
 
 =item * C<target.$name.reworked_dir>
 
@@ -718,7 +718,7 @@ order:
 
 =over
 
-=item * C<--reworked_deploy-dir>
+=item * C<--set reworked_deploy_dir=$reworked_deploy_dir>
 
 =item * C<target.$name.reworked_deploy_dir>
 
@@ -741,7 +741,7 @@ order:
 
 =over
 
-=item * C<--reworked_revert-dir>
+=item * C<--set reworked_revert_dir=$reworked_revert_dir>
 
 =item * C<target.$name.reworked_revert_dir>
 
@@ -764,7 +764,7 @@ order:
 
 =over
 
-=item * C<--reworked_verify-dir>
+=item * C<--set reworked_verify_dir=$reworked_verify_dir>
 
 =item * C<target.$name.reworked_verify_dir>
 

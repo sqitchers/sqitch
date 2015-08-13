@@ -90,6 +90,10 @@ HELP: {
         'Should have been manned';
 }
 
+# Silence warnings.
+my $mock = Test::MockModule->new($CLASS);
+$mock->mock(warn => undef);
+
 ##############################################################################
 # Try lots of options.
 my $opts = $CLASS->_parse_core_opts([

@@ -298,11 +298,20 @@ sub _parse_core_opts {
         revert_dir
         verify_dir
     )) {
+        next unless defined $opts{$dir};
+        if ($dir ne 'top_dir') {
+            # XXX deprecated.
+            (my $opt = $dir) =~ s/_/-/;
+            $self->warn(__x(
+                qq{  The "{opt}" option is deprecated;\n  Instead use "--set {dir}={val}" if available.},
+                opt => $opt,
+                dir => $dir,
+                val => $opts{$dir},
+            ));
+        }
         $opts{$dir} = dir $opts{$dir} if defined $opts{$dir};
     }
     $opts{plan_file} = file $opts{plan_file} if defined $opts{plan_file};
-
-    # XXX Deprecate *_dir and extension options?
 
     # Normalize the options (remove undefs) and return.
     $opts{verbosity} = delete $opts{verbose};

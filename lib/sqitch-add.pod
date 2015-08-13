@@ -21,8 +21,7 @@ for details.
 
 The paths and extensions of the generated scripts depend on the configuration
 of Sqitch targets, engines, and the core. They can also be overridden by the
-use of the core C<--engine>, C<--top-dir>, C<--plan-file>, C<--extension>,
-C<--deploy-dir>, C<--revert-dir>, and C<--verify-dir> directories. You
+use of the core C<--engine>, C<--top-dir>, and C<--plan-file> options. You
 probably don't want to often use any of those, but should define alternatives
 on a per-engine or per-target basis. See L<sqitch-configuration> for details.
 

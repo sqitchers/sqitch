@@ -211,10 +211,6 @@ User who adds a change to the plan.
   -h --db-host    HOST      Database server host name.
   -p --db-port    PORT      Database server port number.
      --top-dir    DIR       Path to directory with plan and scripts.
-     --deploy-dir DIR       Path to deploy scripts directory.
-     --revert-dir DIR       Path to revert scripts directory.
-     --verify-dir DIR       Path to verify scripts directory.
-     --extension  EXT       Change script file name extension.
      --etc-path             Print path to etc directory and exit.
      --quiet                Quiet mode with non-error output suppressed.
   -v --verbose              Increment verbosity.
@@ -327,36 +323,7 @@ to override the port in a target.
 
 Path to directory containing deploy, revert, and verify scripts. It should
 contain subdirectories named C<deploy>, C<revert>, and (optionally) C<verify>.
-These may be overridden by C<--deploy-dir>, C<--revert-dir>, and
-C<--verify-dir>. Defaults to C<./sql>.
-
-=item C<--deploy-dir>
-
-  sqitch --deploy-dir db/up
-
-Path to a directory containing deploy scripts. Overrides the value implied by
-C<--top-dir>.
-
-=item C<--revert-dir>
-
-  sqitch --revert-dir db/up
-
-Path to a directory containing revert scripts. Overrides the value implied by
-C<--top-dir>.
-
-=item C<--verify-dir>
-
-  sqitch --verify-dir db/t
-
-Path to a directory containing verify scripts. Overrides the value implied by
-C<--top-dir>.
-
-=item C<--extension>
-
-  sqitch --extension ddl
-
-The file name extension on deploy, revert, and verify scripts. Defaults to
-C<sql>.
+Defaults to C<.>.
 
 =item C<--etc-path>
 
