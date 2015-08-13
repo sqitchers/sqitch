@@ -126,10 +126,11 @@ sub alter {
 sub _set {
     my ($self, $key, $name, $value) = @_;
     $self->usage unless $name && $value;
+    (my $opt = $key) =~ s/_/-/g;
     $self->sqitch->warn(__x(
         qq{  The "{old}" action is deprecated;\n  Instead use "{new}".},
         old => "set-$key $name $value",
-        new => "alter $key --set $key=$value",
+        new => "alter $key --$opt $value",
     ));
 
     my $config = $self->sqitch->config;

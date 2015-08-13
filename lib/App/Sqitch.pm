@@ -303,7 +303,7 @@ sub _parse_core_opts {
             # XXX deprecated.
             (my $opt = $dir) =~ s/_/-/;
             $self->warn(__x(
-                qq{  The "{opt}" option is deprecated;\n  Instead use "--set {dir}={val}" if available.},
+                qq{  The "{opt}" option is deprecated;\n  Instead use "--dir {dir}={val}" if available.},
                 opt => $opt,
                 dir => $dir,
                 val => $opts{$dir},

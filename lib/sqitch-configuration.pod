@@ -548,7 +548,7 @@ can specify it via the following:
 
 =item C<engine.$engine.client>
 
-  sqitch init $project --engine $engine --set client=client
+  sqitch init $project --engine $engine --client client
   sqitch engine add $engine --client $client
   sqitch engine alter $engine --client $client
   sqitch config --user engine.$engine.client $client
@@ -609,7 +609,7 @@ you need a custom directory, specify it via the following:
 =item C<engine.$engine.top_dir>
 
   sqitch engine add $engine --top-dir $top_dir
-  sqitch engine alter $engine --set=top_dir=$top_dir
+  sqitch engine alter $engine --top-dir $top_dir
 
 =item C<core.top_dir>
 

@@ -169,10 +169,11 @@ sub _set {
     my ($self, $key, $engine, $value) = @_;
     (my $action = $key) =~ s/_/-/g;
     $self->usage unless $engine && $value;
+    (my $opt = $key) =~ s/_/-/g;
     $self->sqitch->warn(__x(
         qq{  The "{old}" action is deprecated;\n  Instead use "{new}".},
         old => "set-$action $engine $value",
-        new => "alter $engine --set $action=$value",
+        new => "alter $engine --$opt $value",
     ));
 
     _chk_engine $engine;
