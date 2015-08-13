@@ -52,6 +52,11 @@ Revision history for Perl extension App::Sqitch
      - Added the `deploy_dir`, `revert_dir`, and `verify_dir` methods to
        App::Sqitch::Plan::Change. Each points to the proper directory for the
        target depending on whether or not the change has been reworked.
+     - On Firebird, Looking up a change and tag in the database (via the
+       `--onto` option to `rebase` or the `--to` option to `revert`, among
+       others) would sometimes return the incorrect change if the change has
+       been reworked two or more times. Was fixed in the other engines in
+       v0.9991.
 
 0.9992 2015-05-20T23:51:41Z
      - On PostgreSQL, Sqitch now sets the `client_encoding` parameter to
