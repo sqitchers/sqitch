@@ -3,11 +3,13 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 199;
+use Test::More tests => 282;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
 use Test::Exception;
+use Test::Dir;
+use Test::File qw(file_not_exists_ok file_exists_ok);
 use Test::NoWarnings;
 use File::Copy;
 use Path::Class;
@@ -31,12 +33,14 @@ my $tmp_dir = tempdir CLEANUP => 1;
 
 File::Copy::copy file(qw(t engine.conf))->stringify, "$tmp_dir"
     or die "Cannot copy t/engine.conf to $tmp_dir: $!\n";
+File::Copy::copy file(qw(t engine sqitch.plan))->stringify, "$tmp_dir"
+    or die "Cannot copy t/engine/sqitch.plan to $tmp_dir: $!\n";
 chdir $tmp_dir;
 $ENV{SQITCH_CONFIG} = 'engine.conf';
 my $psql = 'psql' . ($^O eq 'MSWin32' ? '.exe' : '');
 
 ##############################################################################
-# Load a engine command and test the basics.
+# Load an engine command and test the basics.
 ok my $sqitch = App::Sqitch->new, 'Load a sqitch sqitch object';
 my $config = $sqitch->config;
 isa_ok my $cmd = App::Sqitch::Command->load({
@@ -61,17 +65,85 @@ can_ok $cmd, qw(
 );
 
 is_deeply [$CLASS->options], [qw(
-    set|s=s%
     verbose|v+
+    target=s
+    plan-file=s
+    registry=s
+    client=s
+    extension=s
+    top-dir=s
+    dir|d=s%
 )], 'Options should be correct';
 
 # Check default property values.
-is_deeply $cmd->properties, {}, 'Default properties should be empty';
+is_deeply $CLASS->configure({}, {}), { properties => {}},
+    'Default config should contain empty properties';
 
 # Make sure configure ignores config file.
-is_deeply $CLASS->configure({ foo => 'bar'}, { hi => 'there' }),
-    { hi => 'there' },
+is_deeply $CLASS->configure({ foo => 'bar'}, { verbose => 1 }),
+    { verbose => 1, properties => {} },
     'configure() should ignore config file';
+
+ok my $conf = $CLASS->configure({}, {
+    top_dir             => 'top',
+    plan_file           => 'my.plan',
+    registry            => 'bats',
+    client              => 'cli',
+    extension           => 'ddl',
+    target              => 'db:pg:foo',
+    dir => {
+        deploy          => 'dep',
+        revert          => 'rev',
+        verify          => 'ver',
+        reworked        => 'wrk',
+        reworked_deploy => 'rdep',
+        reworked_revert => 'rrev',
+        reworked_verify => 'rver',
+    },
+}), 'Get full config';
+
+is_deeply $conf->{properties}, {
+        top_dir             => 'top',
+        plan_file           => 'my.plan',
+        registry            => 'bats',
+        client              => 'cli',
+        extension           => 'ddl',
+        target              => 'db:pg:foo',
+        deploy_dir          => 'dep',
+        revert_dir          => 'rev',
+        verify_dir          => 'ver',
+        reworked_dir        => 'wrk',
+        reworked_deploy_dir => 'rdep',
+        reworked_revert_dir => 'rrev',
+        reworked_verify_dir => 'rver',
+}, 'Should have properties';
+isa_ok $conf->{properties}{$_}, 'Path::Class::File', "$_ file attribute" for qw(
+    plan_file
+);
+isa_ok $conf->{properties}{$_}, 'Path::Class::Dir', "$_ directory attribute" for (
+    'top_dir',
+    'reworked_dir',
+    map { ($_, "reworked_$_") } qw(deploy_dir revert_dir verify_dir)
+);
+
+# Make sure invalid directories are ignored.
+throws_ok { $CLASS->new($CLASS->configure({}, {
+    dir => { foo => 'bar' },
+})) } 'App::Sqitch::X',  'Should fail on invalid directory name';
+is $@->ident, 'engine', 'Invalid directory ident should be "engine"';
+is $@->message, __x(
+    'Unknown directory name: {prop}',
+    prop => 'foo',
+), 'The invalid directory messsage should be correct';
+
+throws_ok { $CLASS->new($CLASS->configure({}, {
+    dir => { foo => 'bar', cavort => 'ha' },
+})) } 'App::Sqitch::X',  'Should fail on invalid directory names';
+is $@->ident, 'engine', 'Invalid directories ident should be "engine"';
+is $@->message, __x(
+    'Unknown directory names: {props}',
+    props => 'cavort, foo',
+), 'The invalid properties messsage should be correct';
 
 ##############################################################################
 # Test list().
@@ -111,7 +183,9 @@ is $@->message, __x(
 ), 'Existing engine error message should be correct';
 
 # Now add a new engine.
+dir_not_exists_ok $_ for qw(deploy revert verify);
 ok $cmd->add('vertica'), 'Add engine "vertica"';
+dir_exists_ok $_ for qw(deploy revert verify);
 $config->load;
 is $config->get(key => 'engine.vertica.target'), 'db:vertica:',
     'Engine "test" target should have been set';
@@ -123,34 +197,149 @@ for my $key (qw(
     deploy_dir
     revert_dir
     verify_dir
-    extension)
-) {
+    extension
+)) {
     is $config->get(key => "engine.test.$key"), undef,
         qq{Engine "test" should have no $key set};
 }
 
+# Should die on target that doesn't match the engine.
+isa_ok $cmd = $CLASS->new({
+    sqitch     => $sqitch,
+    properties => { target => 'db:sqlite:' },
+}), $CLASS, 'Engine with target property';
+throws_ok { $cmd->add('firebird' ) } 'App::Sqitch::X',
+    'Should get error for engine/target mismatch';
+is $@->ident, 'engine', 'Target mismatch ident should be "engine"';
+is $@->message, __x(
+    'Cannot assign URI using engine "{new}" to engine "{old}"',
+    new => 'sqlite',
+    old => 'firebird',
+), 'Target mismatch message should be correct';
+
 # Try all the properties.
 my %props = (
-    target     => 'db:firebird:foo',
-    client     => 'poo',
-    registry   => 'reg',
-    top_dir    => 'top',
-    plan_file  => 'my.plan',
-    deploy_dir => 'dep',
-    revert_dir => 'rev',
-    verify_dir => 'ver',
-    extension  => 'ddl',
+    target              => 'db:firebird:foo',
+    client              => 'poo',
+    registry            => 'reg',
+    top_dir             => dir('top'),
+    plan_file           => file('my.plan'),
+    deploy_dir          => dir('dep'),
+    revert_dir          => dir('rev'),
+    verify_dir          => dir('ver'),
+    reworked_dir        => dir('r'),
+    reworked_deploy_dir => dir('r/d'),
+    extension           => 'ddl',
 );
 isa_ok $cmd = $CLASS->new({
     sqitch     => $sqitch,
     properties => { %props },
 }), $CLASS, 'Engine with all properties';
+file_not_exists_ok 'my.plan';
+dir_not_exists_ok dir $_ for qw(top/deploy top/revert top/verify r/d r/revert r/verify);
 ok $cmd->add('firebird'), 'Add engine "firebird"';
+dir_exists_ok dir $_ for qw(top/deploy top/revert top/verify r/d r/revert r/verify);
+file_exists_ok 'my.plan';
 $config->load;
 while (my ($k, $v) = each %props) {
     is $config->get(key => "engine.firebird.$k"), $v,
         qq{Engine "firebird" should have $k set};
 }
+
+##############################################################################
+# Test alter().
+isa_ok $cmd = $CLASS->new({
+    sqitch     => $sqitch,
+}), $CLASS, 'Engine with no properties';
+
+MISSINGARGS: {
+    # Test handling of no name.
+    my $mock = Test::MockModule->new($CLASS);
+    my @args;
+    $mock->mock(usage => sub { @args = @_; die 'USAGE' });
+    throws_ok { $cmd->alter } qr/USAGE/,
+        'No name arg to add() should yield usage';
+    is_deeply \@args, [$cmd], 'No args should be passed to usage';
+}
+
+throws_ok { $cmd->alter('nonexistent' ) } 'App::Sqitch::X',
+    'Should get error from alter for nonexistent engine';
+is $@->ident, 'engine', 'Nonexistent engine error ident should be "engine"';
+is $@->message, __x(
+    'Unknown engine "{engine}"',
+    engine => 'nonexistent'
+), 'Nonexistent engine error message should be correct';
+
+# Should die on missing key.
+throws_ok { $cmd->alter('oracle') } 'App::Sqitch::X',
+    'Should get error for missing engine';
+is $@->ident, 'engine', 'Missing engine error ident should be "engine"';
+is $@->message, __x(
+    'Missing Engine "{engine}"; use "{command}" to add it',
+    engine  => 'oracle',
+    command => 'add oracle db:oracle:',
+), 'Missing engine error message should be correct';
+
+# Try all the properties.
+%props = (
+    target              => 'db:firebird:bar',
+    client              => 'argh',
+    registry            => 'migrations',
+    top_dir             => dir('fb'),
+    plan_file           => file('fb.plan'),
+    deploy_dir          => dir('fb/dep'),
+    revert_dir          => dir('fb/rev'),
+    verify_dir          => dir('fb/ver'),
+    reworked_dir        => dir('fb/r'),
+    reworked_deploy_dir => dir('fb/r/d'),
+    extension           => 'fbsql',
+);
+isa_ok $cmd = $CLASS->new({
+    sqitch     => $sqitch,
+    properties => { %props },
+}), $CLASS, 'Engine with more properties';
+ok $cmd->alter('firebird'), 'Alter engine "firebird"';
+$config->load;
+while (my ($k, $v) = each %props) {
+    is $config->get(key => "engine.firebird.$k"), $v,
+        qq{Engine "firebird" should have $k set};
+}
+
+# Try changing the top directory.
+isa_ok $cmd = $CLASS->new({
+    sqitch     => $sqitch,
+    properties => { top_dir => dir 'pg' },
+}), $CLASS, 'Engine with new top_dir property';
+dir_not_exists_ok dir $_ for qw(pg pg/deploy pg/revert pg/verify);
+ok $cmd->alter('pg'), 'Alter engine "pg"';
+dir_exists_ok dir $_ for qw(pg pg/deploy pg/revert pg/verify);
+$config->load;
+is $config->get(key => 'engine.pg.top_dir'), 'pg',
+    'The pg top_dir should have been set';
+
+# An attempt to alter a missing engine should show the target if in props.
+throws_ok { $cmd->alter('oracle') } 'App::Sqitch::X',
+    'Should again get error for missing engine';
+is $@->ident, 'engine', 'Missing engine error ident should still be "engine"';
+is $@->message, __x(
+    'Missing Engine "{engine}"; use "{command}" to add it',
+    engine  => 'oracle',
+    command => 'add oracle db:oracle:',
+), 'Missing engine error message should include target property';
+
+# Should die on target mismatch engine.
+isa_ok $cmd = $CLASS->new({
+    sqitch     => $sqitch,
+    properties => { target => 'db:sqlite:' },
+}), $CLASS, 'Engine with target property';
+throws_ok { $cmd->alter('firebird' ) } 'App::Sqitch::X',
+    'Should get error for engine/target mismatch';
+is $@->ident, 'engine', 'Target mismatch ident should be "engine"';
+is $@->message, __x(
+    'Cannot assign URI using engine "{new}" to engine "{old}"',
+    new => 'sqlite',
+    old => 'firebird',
+), 'Target mismatch message should be correct';
 
 ##############################################################################
 # Test set_target().
@@ -202,6 +391,7 @@ is $@->message, __x(
 ##############################################################################
 # Test other set_* methods
 for my $key (keys %props) {
+    next if $key =~ /^reworked/;
     my $meth = "set_$key";
     MISSINGARGS: {
         # Test handling of no name.
@@ -272,15 +462,21 @@ is_deeply +MockOutput->get_emit, [
 ok $cmd->show('sqlite'), 'Show sqlite';
 is_deeply +MockOutput->get_emit, [
     ['* sqlite'],
-    ['  ', 'Target:           ', 'widgets'],
-    ['  ', 'Registry:         ', 'sqitch'],
-    ['  ', 'Client:           ', '/usr/sbin/sqlite3'],
-    ['  ', 'Top Directory:    ', '.'],
-    ['  ', 'Plan File:        ', 'foo.plan'],
-    ['  ', 'Deploy Directory: ', 'deploy'],
-    ['  ', 'Revert Directory: ', 'revert'],
-    ['  ', 'Verify Directory: ', 'verify'],
-    ['  ', 'Extension:        ', 'sql'],
+    ['    ', 'Target:        ', 'widgets'],
+    ['    ', 'Registry:      ', 'sqitch'],
+    ['    ', 'Client:        ', '/usr/sbin/sqlite3'],
+    ['    ', 'Top Directory: ', '.'],
+    ['    ', 'Plan File:     ', 'foo.plan'],
+    ['    ', 'Extension:     ', 'sql'],
+    ['    ', 'Script Directories:'],
+    ['    ', '  Deploy:      ', 'deploy'],
+    ['    ', '  Revert:      ', 'revert'],
+    ['    ', '  Verify:      ', 'verify'],
+    ['    ', 'Reworked Script Directories:'],
+    ['    ', '  Reworked:    ', '.'],
+    ['    ', '  Deploy:      ', 'deploy'],
+    ['    ', '  Revert:      ', 'revert'],
+    ['    ', '  Verify:      ', 'verify'],
 ], 'The full "sqlite" engine should have been shown';
 
 # Try multiples.
@@ -289,35 +485,53 @@ $config->load;
 ok $cmd->show(qw(sqlite vertica firebird)), 'Show three engines';
 is_deeply +MockOutput->get_emit, [
     ['* sqlite'],
-    ['  ', 'Target:           ', 'widgets'],
-    ['  ', 'Registry:         ', 'sqitch'],
-    ['  ', 'Client:           ', '/usr/sbin/sqlite3'],
-    ['  ', 'Top Directory:    ', '.'],
-    ['  ', 'Plan File:        ', 'foo.plan'],
-    ['  ', 'Deploy Directory: ', 'deploy'],
-    ['  ', 'Revert Directory: ', 'revert'],
-    ['  ', 'Verify Directory: ', 'verify'],
-    ['  ', 'Extension:        ', 'sql'],
+    ['    ', 'Target:        ', 'widgets'],
+    ['    ', 'Registry:      ', 'sqitch'],
+    ['    ', 'Client:        ', '/usr/sbin/sqlite3'],
+    ['    ', 'Top Directory: ', '.'],
+    ['    ', 'Plan File:     ', 'foo.plan'],
+    ['    ', 'Extension:     ', 'sql'],
+    ['    ', 'Script Directories:'],
+    ['    ', '  Deploy:      ', 'deploy'],
+    ['    ', '  Revert:      ', 'revert'],
+    ['    ', '  Verify:      ', 'verify'],
+    ['    ', 'Reworked Script Directories:'],
+    ['    ', '  Reworked:    ', '.'],
+    ['    ', '  Deploy:      ', 'deploy'],
+    ['    ', '  Revert:      ', 'revert'],
+    ['    ', '  Verify:      ', 'verify'],
     ['* vertica'],
-    ['  ', 'Target:           ', 'db:vertica:'],
-    ['  ', 'Registry:         ', 'sqitch'],
-    ['  ', 'Client:           ', 'vsql.exe'],
-    ['  ', 'Top Directory:    ', '.'],
-    ['  ', 'Plan File:        ', 'sqitch.plan'],
-    ['  ', 'Deploy Directory: ', 'deploy'],
-    ['  ', 'Revert Directory: ', 'revert'],
-    ['  ', 'Verify Directory: ', 'verify'],
-    ['  ', 'Extension:        ', 'sql'],
+    ['    ', 'Target:        ', 'db:vertica:'],
+    ['    ', 'Registry:      ', 'sqitch'],
+    ['    ', 'Client:        ', 'vsql.exe'],
+    ['    ', 'Top Directory: ', '.'],
+    ['    ', 'Plan File:     ', 'sqitch.plan'],
+    ['    ', 'Extension:     ', 'sql'],
+    ['    ', 'Script Directories:'],
+    ['    ', '  Deploy:      ', 'deploy'],
+    ['    ', '  Revert:      ', 'revert'],
+    ['    ', '  Verify:      ', 'verify'],
+    ['    ', 'Reworked Script Directories:'],
+    ['    ', '  Reworked:    ', '.'],
+    ['    ', '  Deploy:      ', 'deploy'],
+    ['    ', '  Revert:      ', 'revert'],
+    ['    ', '  Verify:      ', 'verify'],
     ['* firebird'],
-    ['  ', 'Target:           ', 'db:firebird:foo'],
-    ['  ', 'Registry:         ', 'reg'],
-    ['  ', 'Client:           ', 'poo'],
-    ['  ', 'Top Directory:    ', 'top'],
-    ['  ', 'Plan File:        ', 'my.plan'],
-    ['  ', 'Deploy Directory: ', 'dep'],
-    ['  ', 'Revert Directory: ', 'rev'],
-    ['  ', 'Verify Directory: ', 'ver'],
-    ['  ', 'Extension:        ', 'ddl'],
+    ['    ', 'Target:        ', 'db:firebird:bar'],
+    ['    ', 'Registry:      ', 'migrations'],
+    ['    ', 'Client:        ', 'argh'],
+    ['    ', 'Top Directory: ', 'fb'],
+    ['    ', 'Plan File:     ', 'fb.plan'],
+    ['    ', 'Extension:     ', 'fbsql'],
+    ['    ', 'Script Directories:'],
+    ['    ', '  Deploy:      ', 'fb/dep'],
+    ['    ', '  Revert:      ', 'fb/rev'],
+    ['    ', '  Verify:      ', 'fb/ver'],
+    ['    ', 'Reworked Script Directories:'],
+    ['    ', '  Reworked:    ', 'fb/r'],
+    ['    ', '  Deploy:      ', 'fb/r/d'],
+    ['    ', '  Revert:      ', 'fb/r/revert'],
+    ['    ', '  Verify:      ', 'fb/r/verify'],
 ], 'All three engines should have been shown';
 
 ##############################################################################

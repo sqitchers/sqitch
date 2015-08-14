@@ -3,8 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use lib '/Users/david/dev/cpan/config-gitlike/lib';
-use Test::More tests => 276;
+use Test::More tests => 304;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Path::Class;
@@ -39,9 +38,7 @@ can_ok $CLASS, qw(
     to
     dest_dir
     dest_top_dir
-    dest_deploy_dir
-    dest_revert_dir
-    dest_verify_dir
+    dest_dirs_for
     bundle_config
     bundle_plan
     bundle_scripts
@@ -98,15 +95,18 @@ is $bundle->dest_dir, $dir, qq{dest_dir should be "$dir"};
 is $bundle->dest_top_dir($bundle->default_target), dir(qw(_build sql sql)),
     'Dest top dir should be _build/sql/sql/';
 my $target = $bundle->default_target;
+my $dir_for = $bundle->dest_dirs_for($target);
 for my $sub (qw(deploy revert verify)) {
-    my $attr = "dest_$sub\_dir";
-    is $bundle->$attr($target), $dir->subdir('sql', $sub),
+    is $dir_for->{$sub}, $dir->subdir('sql', $sub),
         "Dest $sub dir should be _build/sql/sql/$sub";
 }
 
 # Try engine project.
 ok $sqitch = App::Sqitch->new(
-    options => { top_dir => dir('engine')->stringify },
+    options => {
+        top_dir      => dir('engine')->stringify,
+        reworked_dir => dir(qw(engine reworked))->stringify,
+ },
 ), 'Load a sqitch object with engine top_dir';
 isa_ok $bundle = App::Sqitch::Command->load({
     sqitch  => $sqitch,
@@ -116,9 +116,9 @@ isa_ok $bundle = App::Sqitch::Command->load({
 $target = $bundle->default_target;
 
 is $bundle->dest_dir, $dir, qq{dest_dir should again be "$dir"};
+$dir_for = $bundle->dest_dirs_for($target);
 for my $sub (qw(deploy revert verify)) {
-    my $attr = "dest_$sub\_dir";
-    is $bundle->$attr($target), $dir->subdir('engine', $sub),
+    is $dir_for->{$sub}, $dir->subdir('engine', $sub),
         "Dest $sub dir should be _build/sql/engine/$sub";
 }
 
@@ -276,8 +276,9 @@ file_contents_is $dest,
     . '%project=engine' . "\n"
     . "\n"
     . $plan->find('widgets')->as_string . "\n"
-    . $plan->find('func/add_user')->as_string . "\n",
-    'Plan should have written only "widgets" and "func/add_user"';
+    . $plan->find('func/add_user')->as_string . "\n"
+    . $plan->find('users@HEAD')->as_string . "\n",
+    'Plan should contain only changes from "widgets" on';
 
 # Make sure that --to works.
 isa_ok $bundle = App::Sqitch::Command->load({
@@ -305,18 +306,21 @@ file_contents_is $dest,
 ##############################################################################
 # Test bundle_scripts().
 my @scripts = (
-    $bundle->dest_deploy_dir($target)->file('users.sql'),
-    $bundle->dest_revert_dir($target)->file('users.sql'),
-    $bundle->dest_deploy_dir($target)->file('widgets.sql'),
-    $bundle->dest_revert_dir($target)->file('widgets.sql'),
-    $bundle->dest_deploy_dir($target)->file(qw(func add_user.sql)),
-    $bundle->dest_revert_dir($target)->file(qw(func add_user.sql)),
+    $dir_for->{reworked_deploy}->file('users@alpha.sql'),
+    $dir_for->{reworked_revert}->file('users@alpha.sql'),
+    $dir_for->{deploy}->file('widgets.sql'),
+    $dir_for->{revert}->file('widgets.sql'),
+    $dir_for->{deploy}->file(qw(func add_user.sql)),
+    $dir_for->{revert}->file(qw(func add_user.sql)),
+    $dir_for->{deploy}->file('users.sql'),
+    $dir_for->{revert}->file('users.sql'),
 );
 file_not_exists_ok $_ for @scripts;
 ok $sqitch = App::Sqitch->new(
     options => {
         extension => 'sql',
         top_dir   => dir('engine')->stringify,
+        reworked_dir => dir(qw(engine reworked))->stringify,
     },
 ), 'Load engine sqitch object';
 isa_ok $bundle = App::Sqitch::Command->load({
@@ -332,6 +336,7 @@ is_deeply +MockOutput->get_info, [
     ['  + ', 'users @alpha'],
     ['  + ', 'widgets'],
     ['  + ', 'func/add_user'],
+    ['  + ', 'users'],
 ], 'Should have change notices';
 
 # Make sure that --from works.
@@ -348,16 +353,17 @@ is_deeply +MockOutput->get_info, [
     [__ 'Writing scripts'],
     ['  + ', 'widgets'],
     ['  + ', 'func/add_user'],
-], 'Should have only "widets" in change notices';
+    ['  + ', 'users'],
+], 'Should have changes only from "widets" onward in notices';
 
 # Make sure that --to works.
 remove_tree $dir->parent->stringify;
 isa_ok $bundle = App::Sqitch::Command::bundle->new(
     sqitch   => $sqitch,
     dest_dir => $bundle->dest_dir,
-    to       => 'users',
+    to       => 'users@alpha',
 ), $CLASS, 'bundle to "users"';
-ok $bundle->bundle_scripts($bundle->default_target, undef, 'users'), 'Bundle scripts';
+ok $bundle->bundle_scripts($bundle->default_target, undef, 'users@alpha'), 'Bundle scripts';
 file_exists_ok $_ for @scripts[0,1];
 file_not_exists_ok $_ for @scripts[2,3];
 is_deeply +MockOutput->get_info, [
@@ -403,6 +409,7 @@ is_deeply +MockOutput->get_info, [
     ['  + ', 'users @alpha'],
     ['  + ', 'widgets'],
     ['  + ', 'func/add_user'],
+    ['  + ', 'users'],
 ], 'Should have all notices';
 
 # Try a configuration with multiple plans.
@@ -418,12 +425,14 @@ my @sql = (
 );
 my @engine = (
     $multidir->file(qw(engine sqitch.plan)),
-    $multidir->file(qw(engine deploy users.sql)),
-    $multidir->file(qw(engine revert users.sql)),
+    $multidir->file(qw(engine reworked deploy users@alpha.sql)),
+    $multidir->file(qw(engine reworked revert users@alpha.sql)),
     $multidir->file(qw(engine deploy widgets.sql)),
     $multidir->file(qw(engine revert widgets.sql)),
     $multidir->file(qw(engine deploy func add_user.sql)),
     $multidir->file(qw(engine revert func add_user.sql)),
+    $multidir->file(qw(engine deploy users.sql)),
+    $multidir->file(qw(engine revert users.sql)),
 );
 my $conf_file = $multidir->file('multiplan.conf'),;
 file_not_exists_ok $_ for ($conf_file, @sql, @engine);
@@ -531,7 +540,8 @@ file_contents_is $engine[0],
     . '%project=engine' . "\n"
     . "\n"
     . $plan->find('widgets')->as_string . "\n"
-    . $plan->find('func/add_user')->as_string . "\n",
+    . $plan->find('func/add_user')->as_string . "\n"
+    . $plan->find('users@HEAD')->as_string . "\n",
     'Plan should have written "widgets" and "func/add_user"';
 
 # Should die on unknown argument.

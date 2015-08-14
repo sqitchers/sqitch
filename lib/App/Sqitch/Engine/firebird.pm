@@ -649,7 +649,7 @@ sub change_id_for {
 
             # Find by change name and following tag.
             return $dbh->selectcol_arrayref(q{
-                SELECT changes.change_id
+                SELECT FIRST 1 changes.change_id
                   FROM changes
                   JOIN tags
                     ON changes.committed_at <= tags.committed_at
@@ -657,13 +657,13 @@ sub change_id_for {
                  WHERE changes.project = ?
                    AND changes.change  = ?
                    AND tags.tag        = ?
+                 ORDER BY changes.committed_at DESC
             }, undef, $project, $change, '@' . $tag)->[0];
         }
 
         # Find earliest by change name.
-        my $limit = $self->_can_limit ? " FIRST 1" : '';
         return $dbh->selectcol_arrayref(qq{
-            SELECT $limit change_id
+            SELECT FIRST 1 change_id
               FROM changes
              WHERE project = ?
                AND changes.change  = ?

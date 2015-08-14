@@ -1602,7 +1602,7 @@ sub run {
             $mock_engine->mock(plan => $plan);
             $mock_engine->mock(_update_ids => sub { shift });
 
-            is $engine->_update_ids, 9, 'Update IDs by old ID should return 9';
+            is $engine->_update_ids, 10, 'Update IDs by old ID should return 10';
 
             # All of the current project changes should be updated.
             is_deeply [ map { [@{$_}[0,1]] } @{ all_changes($engine) }],
@@ -1623,7 +1623,7 @@ sub run {
                 $upd_tag->execute($tag->old_id . $i++, $tag->id);
             }
 
-            is $engine->_update_ids, 9, 'Update IDs by name should also return 9';
+            is $engine->_update_ids, 10, 'Update IDs by name should also return 10';
 
             # All of the current project changes should be updated.
             is_deeply [ map { [@{$_}[0,1]] } @{ all_changes($engine) }],

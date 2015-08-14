@@ -8,14 +8,14 @@ use Moo;
 use App::Sqitch::Types qw(URI Maybe);
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
-use File::Path qw(make_path);
 use List::MoreUtils qw(natatime);
 use Path::Class;
-use Try::Tiny;
 use App::Sqitch::Plan;
 use namespace::autoclean;
+use constant extra_target_keys => qw(engine target);
 
 extends 'App::Sqitch::Command';
+with 'App::Sqitch::Role::TargetConfigCommand';
 
 our $VERSION = '0.9993';
 
@@ -23,8 +23,13 @@ sub execute {
     my ( $self, $project ) = @_;
     $self->_validate_project($project);
     $self->write_config;
-    $self->write_plan($project);
-    $self->make_directories;
+    my $target = $self->config_target;
+    $self->write_plan(
+        project => $project,
+        uri     => $self->uri,
+        target  => $target,
+    );
+    $self->make_directories_for($target);
     return $self;
 }
 
@@ -34,9 +39,7 @@ has uri => (
 );
 
 sub options {
-    return qw(
-        uri=s
-    );
+    return qw(uri=s);
 }
 
 sub _validate_project {
@@ -62,93 +65,10 @@ sub configure {
     return $opt;
 }
 
-sub make_directories {
-    my $self   = shift;
-    my $target = $self->default_target;
-    for my $attr (qw(deploy_dir revert_dir verify_dir)) {
-        $self->_mkdir( $target->$attr );
-    }
-    return $self;
-}
-
-sub _mkdir {
-    my ( $self, $dir ) = @_;
-    my $sep    = dir('')->stringify; # OS-specific directory separator.
-    $self->info(__x(
-        'Created {file}',
-        file => "$dir$sep"
-    )) if make_path $dir, { error => \my $err };
-    if ( my $diag = shift @{ $err } ) {
-        my ( $path, $msg ) = %{ $diag };
-        hurl init => __x(
-            'Error creating {path}: {error}',
-            path  => $path,
-            error => $msg,
-        ) if $path;
-        hurl init => $msg;
-    }
-}
-
-sub write_plan {
-    my ( $self, $project ) = @_;
-    my $target = $self->default_target;
-    my $file   = $target->plan_file;
-
-    if (-e $file) {
-        hurl init => __x(
-            'Cannot initialize because {file} already exists and is not a file',
-            file => $file,
-        ) unless -f $file;
-
-        # Try to load the plan file.
-        my $plan = App::Sqitch::Plan->new(
-            sqitch => $self->sqitch,
-            file   => $file,
-            target => $self->default_target,
-        );
-        my $file_proj = try { $plan->project } or hurl init => __x(
-            'Cannot initialize because {file} already exists and is not a valid plan file',
-            file => $file,
-        );
-
-        # Bail if this plan file looks like it's for a different project.
-        hurl init => __x(
-            'Cannot initialize because project "{project}" already initialized in {file}',
-            project => $plan->project,
-            file    => $file,
-        ) if $plan->project ne $project;
-        return $self;
-    }
-
-    $self->_mkdir( $file->dir ) unless -d $file->dir;
-
-    my $fh = $file->open('>:utf8_strict') or hurl init => __x(
-        'Cannot open {file}: {error}',
-        file => $file,
-        error => $!,
-    );
-    require App::Sqitch::Plan;
-    $fh->print(
-        '%syntax-version=', App::Sqitch::Plan::SYNTAX_VERSION(), "\n",
-        '%project=', "$project\n",
-        ( $self->uri ? ('%uri=', $self->uri->canonical, "\n") : () ), "\n",
-    );
-    $fh->close or hurl add => __x(
-        'Error closing {file}: {error}',
-        file  => $file,
-        error => $!
-    );
-
-    $self->info( __x 'Created {file}', file => $file );
-    return $self;
-}
-
 sub write_config {
     my $self    = shift;
     my $sqitch  = $self->sqitch;
     my $config  = $sqitch->config;
-    my $options = $sqitch->options;
-    my $target  = $self->default_target;
     my $file    = $config->local_file;
     if ( -f $file ) {
 
@@ -158,8 +78,12 @@ sub write_config {
 
     my ( @vars, @comments );
 
-    # Write the engine from --engine or core.engine.
-    my $ekey = $target->engine_key;
+    # Get the props, and make sure the target can find the engine.
+    my $props  = $self->properties;
+    my $target = $self->config_target;
+
+    # Write the engine from --engine, engine=engine, or core.engine.
+    my $ekey   = $props->{engine} || $target->engine_key;
     if ($ekey) {
         push @vars => {
             key   => "core.engine",
@@ -170,32 +94,37 @@ sub write_config {
         push @comments => "\tengine = ";
     }
 
-    # Add in the other stuff.
+    # Add core properties.
     for my $name (qw(
         plan_file
         top_dir
-        deploy_dir
-        revert_dir
-        verify_dir
-        extension
     )) {
-
-        # Set core attributes that are not their default values and not
-        # already in user or system config.
-        my $val = $options->{$name};
-        my $var = $config->get( key => "core.$name" );
-
-        if ( $val && $val ne ($var // '') ) {
-            # It was specified on the command-line, so grab it to write out.
+        # Set properties passed on the command-line.
+        if ( my $val = $props->{$name} ) {
             push @vars => {
                 key   => "core.$name",
                 value => $val,
             };
         }
         else {
-            $var //= $target->$name // '';
-            push @comments => "\t$name = $var";
+            my $val //= $target->$name // '';
+            push @comments => "\t$name = $val";
         }
+    }
+
+    # Add script options passed to the init command. No comments if not set.
+    for my $attr (qw(
+        extension
+        deploy_dir
+        revert_dir
+        verify_dir
+        reworked_dir
+        reworked_deploy_dir
+        reworked_revert_dir
+        reworked_verify_dir
+    )) {
+        push @vars => { key => "core.$attr", value => $props->{$attr} }
+            if defined $props->{$attr};
     }
 
     # Emit them.
@@ -219,16 +148,12 @@ sub write_config {
         @comments = @vars = ();
 
         for my $key (qw(target registry client)) {
-
             # Was it passed as an option?
-            if ( my $val = $options->{$key} ) {
-
-                # It was passed as an option, so record that.
+            if ( my $val = $props->{$key} ) {
                 push @vars => {
                     key   => "$config_key.$key",
                     value => $val,
                 };
-
                 # We're good on this one.
                 next;
             }
@@ -241,12 +166,10 @@ sub write_config {
         }
 
         if (@vars) {
-
             # Emit them.
             $config->group_set( $file => \@vars ) if @vars;
         }
         else {
-
             # Still want the section, emit it as a comment.
             unshift @comments => qq{[engine "$ekey"]};
         }
@@ -257,6 +180,16 @@ sub write_config {
             indented => 1,
             comment  => join "\n" => @comments,
         ) if @comments;
+    }
+
+    # Is there are target?
+    if (my $target_name = $props->{target}) {
+        # If it's a named target, add it to the configuration.
+        $config->set(
+            filename => $file,
+            key      => "target.$target_name.uri",
+            value    => $target->uri,
+        ) if $target_name !~ /:/
     }
 
     $self->info( __x 'Created {file}', file => $file );
@@ -293,11 +226,19 @@ scripts.
 Returns a list of L<Getopt::Long> option specifications for the command-line
 options for the C<config> command.
 
+=head3 C<extra_target_keys>
+
+Returns a list of additional option keys to be specified via options.
+
 =head2 Attributes
 
 =head3 C<uri>
 
 URI for the project.
+
+=head3 C<properties>
+
+Hash of property values to set.
 
 =head2 Instance Methods
 
@@ -307,23 +248,11 @@ URI for the project.
 
 Executes the C<init> command.
 
-=head3 C<make_directories>
-
-  $init->make_directories;
-
-Creates the deploy and revert directories.
-
 =head3 C<write_config>
 
   $init->write_config;
 
 Writes out the configuration file. Called by C<execute()>.
-
-=head3 C<write_plan>
-
-  $init->write_plan($project);
-
-Writes out the plan file. Called by C<execute()>.
 
 =head1 Author
 

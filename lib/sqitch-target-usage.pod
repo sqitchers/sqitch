@@ -4,23 +4,21 @@ sqitch-target-usage - Sqitch target usage statement
 
 =head1 Usage
 
-  sqitch [options] target
+  sqitch target
   sqitch target [-v | --verbose]
-  sqitch target add <name> <uri> [-s <property>=<value> ...]
-  sqitch target set-uri <name> <newuri>
-  sqitch target set-registry <name> <registry>
-  sqitch target set-client <name> <client>
-  sqitch target set-top-dir <name> <directory>
-  sqitch target set-plan-file <name> <file>
-  sqitch target set-deploy-dir <name> <directory>
-  sqitch target set-revert-dir <name> <directory>
-  sqitch target set-verify-dir <name> <directory>
-  sqitch target set-extension <name> <extension>
+  sqitch target add <name> <uri> [target-options]
+  sqitch target alter <name> [target-options]
   sqitch target remove <name>
   sqitch target rename <old> <new>
   sqitch target show <name>
 
 =head1 Options
 
-    -v, --verbose             be verbose; must be placed before an action
-    -s, --set     KEY=VALUE   set target property when adding a target
+    -v, --verbose               be verbose; must be placed before an action
+    --uri        <uri>          dabase URI
+    --registry   <registry>     registry schema or database
+    --client     <path>         path to engine command-line client
+    --plan-file  <file>         path to deployment plan file
+    --top-dir    <dir>          path to directory with plan and scripts
+    --extension  <ext>          change script file name extension
+    --dir        <name>=<path>  path to named directory

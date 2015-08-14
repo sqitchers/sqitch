@@ -4,14 +4,13 @@ sqitch-init - Create a new Sqitch project
 
 =head1 Synopsis
 
-  sqitch [options] init project
-  sqitch [options] init --uri uri project
+  sqitch init <project>
+  sqitch init <project> --uri <uri>
 
 =head1 Description
 
 This command creates an new Sqitch project -- basically a F<sqitch.conf> file,
-a F<sqitch.plan> file, and a F<sql> directory with F<deploy>, F<revert>, and
-F<verify> subdirectories.
+a F<sqitch.plan> file, and F<deploy>, F<revert>, and F<verify> subdirectories.
 
 Running sqitch init in an existing project is safe. It will not overwrite
 things that are already there.
@@ -22,68 +21,175 @@ things that are already there.
 
 =item C<--uri>
 
+  sqitch init widgets --uri https://github.com/me/wigets
+
 Optional URI to associate with the project. If present, the URI will be
 written to the project plan and used for added uniqueness in hashed object
 IDs.
+
+=item C<--engine>
+
+  sqitch init widgets --engine pg
+
+Specifies the default database engine to use in the project. Supported engines
+include:
+
+=over
+
+=item * C<pg> - L<PostgreSQL|http://postgresql.org/> and L<Postgres-XC|http://sourceforge.net/>
+
+=item * C<sqlite> - L<SQLite|http://sqlite.org/>
+
+=item * C<oracle> - L<Oracle|http://www.oracle.com/us/products/database/>
+
+=item * C<mysql> - L<MySQL|http://dev.mysql.com/> and L<MariaDB|https://mariadb.com/>
+
+=item * C<firebird> - L<Firebird|http://www.firebirdsql.org/>
+
+=item * C<vertica> - L<Vertica|https://my.vertica.com/>
+
+=back
+
+=item C<--top-dir>
+
+  sqitch init widgets --top-dir sql
+
+Specifies the top directory to use for the project. Typically contains the
+deployment plan file and the change script directories.
+
+=item C<--plan-file>
+
+  sqitch init widgets --plan-file my.plan
+
+Specifies the path to the deployment plan file. Defaults to
+C<$top_dir/sqitch.plan>.
+
+=item C<--extension>
+
+  sqitch init widgets --extension ddl
+
+Specifies the file name extension to use for change script file names.
+Defaults to C<sql>.
+
+=item C<--dir>
+
+  sqitch init widgets --dir deploy=dep --dir revert=rev --dir verify=tst
+
+Sets the path to a script directory. May be specified multiple times.
+Supported keys are:
+
+=over
+
+=item * C<deploy>
+
+=item * C<revert>
+
+=item * C<verify>
+
+=item * C<reworked>
+
+=item * C<reworked_deploy>
+
+=item * C<reworked_revert>
+
+=item * C<reworked_verify>
+
+=back
+
+=item C<--target>
+
+  sqitch init widgets --target db:pg:widgets
+
+Specifies the name or L<URI|https://github.com/theory/uri-db/> of the default
+target database. If specified as a name, the default URI for the target will
+be C<db:$engine:>.
+
+=item C<--registry>
+
+  sqitch init widgets --registry meta
+  
+Specifies the name of the database object where Sqitch's state and history
+data is stored. Typically a schema name (as in PostgreSQL and Oracle) or a
+database name (as in SQLite and MySQL). Defaults to C<sqitch>.
+
+=item C<--client>
+
+  sqitch init widgets --client /usr/local/pgsql/bin/psql
+
+Specifies the path to the command-line client for the database engine.
+Defaults to a client in the current path named appropriately for the specified
+engine.
 
 =back
 
 =head1 Configuration
 
 The most important thing C<sqitch init> does is create the project plan file,
-F<sqitch.conf>. While the C<init> command has no options of its own, it relies
-on several of the options to C<sqitch> to determine what to write to this file:
+F<sqitch.conf>. The options determine what gets written to the file:
 
 =over
-
-=item C<--plan-file>
-
-Sets the C<core.plan_file> configuration variable.
-
-=item C<--top-dir>
-
-Determines the top-level directory to use when writing the plan and
-theC<core.deploy_dir>, C<core.revert_dir>, and C<core.verify_dir> variables --
-unless they are overridden by their more-specific options, detailed below.
-
-=item C<--deploy-dir>
-
-Sets the C<core.deploy_dir> configuration variable.
-
-=item C<--revert-dir>
-
-Sets the C<core.revert_dir> configuration variable.
-
-=item C<--verify-dir>
-
-Sets the C<core.verify_dir> configuration variable.
-
-=item C<--extension>
-
-Sets the C<core.extension> configuration variable.
 
 =item C<--engine>
 
 Sets the C<core.engine> configuration variable.
 
-=item C<--client>
+=item C<--top-dir>
 
-Sets the C<engine.$engine.client> configuration variable if C<--engine> is also
-passed.
+Sets the C<core.top_dir> configuration variable.
+
+=item C<--plan-file>
+
+Sets the C<core.plan_file> configuration variable.
+
+=item C<--extension>
+
+Sets the C<core.extension> configuration variable.
+
+=item C<--dir>
+
+Sets the following configuration variables:
+
+=over
+
+=item * C<deploy> sets C<core.deploy_dir>
+
+=item * C<revert> sets C<core.revert_dir>
+
+=item * C<verify> sets C<core.verify_dir>
+
+=item * C<reworked> sets C<core.reworked_dir>
+
+=item * C<reworked_deplpoy> sets C<core.reworked_deploy_dir>
+
+=item * C<reworked_deplpoy> sets C<core.reworked_revert_dir>
+
+=item * C<reworked_deplpoy> sets C<core.reworked_verify_dir>
+
+=back
+
+=item C<--target>
+
+Sets the C<engine.$engine.target> configuration variable if C<--engine> is
+also passed and, if it's a target name, C<target.$target.uri>
 
 =item C<--registry>
 
 Sets the C<engine.$engine.registry> configuration variable if C<--engine> is also
 passed.
 
+=item C<--client>
+
+Sets the C<engine.$engine.client> configuration variable if C<--engine> is
+also passed.
+
 =back
 
-As a general rule, you likely won't need any of them except for C<--engine>,
-since many commands need to know what engine to use, and specifying it on the
-command-line forever after would be annoying.
+As a general rule, you likely won't need any of these options except for
+C<--engine>, since many commands need to know what engine to use, and
+specifying it on the command-line forever after would be annoying.
 
 These variables will only be written if their corresponding options are
-specified. Otherwise, they get written as comments with user or system
+specified. Otherwise, core options get written as comments with user or system
 configuration settings, or, failing any values from those locations, from
 their default values. If no defaults are specified, they will still be
 written, commented out, with a bar C<=> and no value. This allows one to know
@@ -94,16 +200,38 @@ what sorts of things are available to edit.
 Start a new Sqitch project using the SQLite engine, setting the top directory
 for the project to F<sqlite>:
 
-  sqitch --engine sqlite --top-dir sqlite init
+  sqitch init --engine sqlite --top-dir sqlite
 
 Start a new Sqitch project using the PostgreSQL engine, setting the top
-directory to F<postgres>, a script extension of C<ddl>, and a version-specific
-client:
+directory to F<postgres>, script extension to C<ddl>, reworked directory to
+C<reworked> and a version-specific client:
 
-  sqitch --engine    pg \
-         --top-dir   postgres \
-         --extension ddl \
-         --client    /opt/pgsql-9.1/bin/psql init
+  sqitch init --engine  pg \
+              --top-dir postgres \
+              --client  /opt/pgsql-9.1/bin/psql \
+              --extension ddl --dir reworked=reworked
+
+=head1 See Also
+
+=over
+
+=item L<sqitch-configuration>
+
+Describes how Sqitch hierarchical engine and target configuration works.
+
+=item L<sqitch-engine>
+
+Command to manage database engine configuration.
+
+=item L<sqitch-target>
+
+Command to manage target database configuration.
+
+=item L<sqitch-config>
+
+Command to manage all Sqitch configuration.
+
+=back
 
 =head1 Sqitch
 

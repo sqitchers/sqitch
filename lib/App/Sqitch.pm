@@ -292,7 +292,23 @@ sub _parse_core_opts {
     }
 
     # Convert files and dirs to objects.
-    for my $dir (qw(top_dir deploy_dir revert_dir verify_dir)) {
+    for my $dir (qw(
+        top_dir
+        deploy_dir
+        revert_dir
+        verify_dir
+    )) {
+        next unless defined $opts{$dir};
+        if ($dir ne 'top_dir') {
+            # XXX deprecated.
+            (my $opt = $dir) =~ s/_/-/;
+            $self->warn(__x(
+                qq{  The "{opt}" option is deprecated;\n  Instead use "--dir {dir}={val}" if available.},
+                opt => $opt,
+                dir => $dir,
+                val => $opts{$dir},
+            ));
+        }
         $opts{$dir} = dir $opts{$dir} if defined $opts{$dir};
     }
     $opts{plan_file} = file $opts{plan_file} if defined $opts{plan_file};

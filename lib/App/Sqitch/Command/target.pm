@@ -13,8 +13,10 @@ use Try::Tiny;
 use Path::Class qw(file dir);
 use List::Util qw(max);
 use namespace::autoclean;
+use constant extra_target_keys => qw(uri);
 
 extends 'App::Sqitch::Command';
+with 'App::Sqitch::Role::TargetConfigCommand';
 
 our $VERSION = '0.9993';
 
@@ -24,50 +26,13 @@ has verbose => (
     default => 0,
 );
 
-has properties => (
-    is      => 'ro',
-    isa     => HashRef,
-    default => sub { {} },
-);
-
-sub options {
-    return qw(
-        set|s=s%
-        registry|r=s
-        client|c=s
-        verbose|v+
-    );
-}
-
-my %normalizer_for = (
-    top_dir   => sub { $_[0] ? dir($_[0])->cleanup : undef },
-    plan_file => sub { $_[0] ? file($_[0])->cleanup : undef },
-    client    => sub { $_[0] },
-);
-
-$normalizer_for{"$_\_dir"} = $normalizer_for{top_dir} for qw(deploy revert verify);
-$normalizer_for{$_} = $normalizer_for{client} for qw(registry extension);
+sub options { qw(verbose|v+) }
 
 sub configure {
     my ( $class, $config, $options ) = @_;
-
-    # Handle deprecated options.
-    for my $key (qw(registry client)) {
-        my $val = delete $options->{$key} or next;
-        App::Sqitch->warn(__x(
-            'Option --{key} has been deprecated; use "--set {key}={val}" instead',
-            key => $key,
-            val => $val
-        ));
-        my $set = $options->{set} ||= {};
-        $set->{$key} = $val;
-    }
-
-    $options->{properties} = delete $options->{set}
-        if $options->{set};
-
     # No config; target config is actually targets.
-    return $options;
+    return { verbose => $options->{verbose} } if exists $options->{verbose};
+    return {};
 }
 
 sub execute {
@@ -112,28 +77,61 @@ sub add {
         value => URI::db->new($uri, 'db:')->as_string,
     });
 
-    # Collect properties.
+    # Add the other properties.
     my $props = $self->properties;
     while (my ($prop, $val) = each %{ $props } ) {
-        my $normalizer = $normalizer_for{$prop} or $self->usage(__x(
-            'Unknown property "{property}"',
-            property => $prop,
-        ));
         push @vars => {
             key   => "$key.$prop",
-            value => $normalizer->($val),
+            value => $val,
+        } if $prop ne 'uri';
+    }
+
+    # Make it so.
+    $config->group_set( $config->local_file, \@vars );
+    my $target = $self->config_target(name => $name);
+    $self->write_plan(target => $target);
+    $self->make_directories_for( $target );
+    return $self;
+}
+
+sub alter {
+    my ($self, $target) = @_;
+    $self->usage unless $target;
+
+    my $key    = "target.$target";
+    my $config = $self->sqitch->config;
+    my $props  = $self->properties;
+
+    hurl target => __x(
+        'Missing Target "{target}"; use "{command}" to add it',
+        target  => $target,
+        command => "add $target " . ($props->{uri} || '$uri'),
+    ) unless $config->get( key => "target.$target.uri");
+
+    my @vars;
+    while (my ($prop, $val) = each %{ $props } ) {
+        push @vars => {
+            key   => "$key.$prop",
+            value => $val,
         };
     }
 
     # Make it so.
     $config->group_set( $config->local_file, \@vars );
-
-    return $self;
+    $self->make_directories_for( $self->config_target(name => $target) );
 }
+
+# XXX Begin deprecated.
 
 sub _set {
     my ($self, $key, $name, $value) = @_;
     $self->usage unless $name && $value;
+    (my $opt = $key) =~ s/_/-/g;
+    $self->sqitch->warn(__x(
+        qq{  The "{old}" action is deprecated;\n  Instead use "{new}".},
+        old => "set-$key $name $value",
+        new => "alter $key --$opt $value",
+    ));
 
     my $config = $self->sqitch->config;
     my $target = "target.$name";
@@ -150,6 +148,15 @@ sub _set {
     );
     return $self;
 }
+
+my %normalizer_for = (
+    top_dir   => sub { $_[0] ? dir($_[0])->cleanup : undef },
+    plan_file => sub { $_[0] ? file($_[0])->cleanup : undef },
+    client    => sub { $_[0] },
+);
+
+$normalizer_for{"$_\_dir"} = $normalizer_for{top_dir} for qw(deploy revert verify);
+$normalizer_for{$_} = $normalizer_for{client} for qw(registry extension);
 
 sub set_url { shift->set_uri(@_) };
 sub set_uri {
@@ -179,6 +186,8 @@ sub set_plan_file {
     my ($self, $name, $file) = @_;
     $self->_set( 'plan_file', $name, $normalizer_for{plan_file}->($file) );
 }
+
+# XXX End deprecated.
 
 sub rm { shift->remove(@_) }
 sub remove {
@@ -241,30 +250,25 @@ sub show {
     my $sqitch = $self->sqitch;
     my $config = $sqitch->config;
 
-    # Set up labels.
-    my $len = max map { length } (
-        __ 'URI',
-        __ 'Registry',
-        __ 'Client',
-        __ 'Top Directory',
-        __ 'Plan File',
-        __ 'Deploy Directory',
-        __ 'Revert Directory',
-        __ 'Verify Directory',
-        __ 'Extension',
+    my %label_for = (
+        uri      => __('URI'),
+        registry => __('Registry'),
+        client   => __('Client'),
+        top_dir    => __('Top Directory'),
+        plan_file  => __('Plan File'),
+        extension  => __('Extension'),
+        revert       => '  ' . __ 'Revert',
+        deploy       => '  ' . __ 'Deploy',
+        verify       => '  ' . __ 'Verify',
+        reworked     => '  ' . __ 'Reworked',
     );
 
-    my %label_for = (
-        uri      => __('URI')                . ': ' . ' ' x ($len - length __ 'URI'),
-        registry => __('Registry')           . ': ' . ' ' x ($len - length __ 'Registry'),
-        client   => __('Client')             . ': ' . ' ' x ($len - length __ 'Client'),
-        top_dir    => __('Top Directory')    . ': ' . ' ' x ($len - length __ 'Top Directory'),
-        plan_file  => __('Plan File')        . ': ' . ' ' x ($len - length __ 'Plan File'),
-        deploy_dir => __('Deploy Directory') . ': ' . ' ' x ($len - length __ 'Deploy Directory'),
-        revert_dir => __('Revert Directory') . ': ' . ' ' x ($len - length __ 'Revert Directory'),
-        verify_dir => __('Verify Directory') . ': ' . ' ' x ($len - length __ 'Verify Directory'),
-        extension  => __('Extension')        . ': ' . ' ' x ($len - length __ 'Extension'),
-    );
+    my $len = max map { length } values %label_for;
+    $_ .= ': ' . ' ' x ($len - length $_) for values %label_for;
+
+    # Header labels.
+    $label_for{script_dirs} = __('Script Directories') . ':';
+    $label_for{reworked_dirs} = __('Reworked Script Directories') . ':';
 
     require App::Sqitch::Target;
     for my $name (@names) {
@@ -273,15 +277,21 @@ sub show {
             name   => $name,
         );
         $self->emit("* $name");
-        $self->emit('  ', $label_for{uri},        $target->uri->as_string);
-        $self->emit('  ', $label_for{registry},   $target->registry);
-        $self->emit('  ', $label_for{client},     $target->client);
-        $self->emit('  ', $label_for{top_dir},    $target->top_dir);
-        $self->emit('  ', $label_for{plan_file},  $target->plan_file);
-        $self->emit('  ', $label_for{deploy_dir}, $target->deploy_dir);
-        $self->emit('  ', $label_for{revert_dir}, $target->revert_dir);
-        $self->emit('  ', $label_for{verify_dir}, $target->verify_dir);
-        $self->emit('  ', $label_for{extension},  $target->extension);
+        $self->emit('    ', $label_for{uri},        $target->uri->as_string);
+        $self->emit('    ', $label_for{registry},   $target->registry);
+        $self->emit('    ', $label_for{client},     $target->client);
+        $self->emit('    ', $label_for{top_dir},    $target->top_dir);
+        $self->emit('    ', $label_for{plan_file},  $target->plan_file);
+        $self->emit('    ', $label_for{extension},  $target->extension);
+        $self->emit('    ', $label_for{script_dirs});
+        $self->emit('    ', $label_for{deploy}, $target->deploy_dir);
+        $self->emit('    ', $label_for{revert}, $target->revert_dir);
+        $self->emit('    ', $label_for{verify}, $target->verify_dir);
+        $self->emit('    ', $label_for{reworked_dirs});
+        $self->emit('    ', $label_for{reworked}, $target->reworked_dir);
+        $self->emit('    ', $label_for{deploy}, $target->reworked_deploy_dir);
+        $self->emit('    ', $label_for{revert}, $target->reworked_revert_dir);
+        $self->emit('    ', $label_for{verify}, $target->reworked_verify_dir);
     }
 
     return $self;
@@ -306,6 +316,12 @@ Manages Sqitch targets, which are stored in the local configuration file.
 
 =head1 Interface
 
+=head3 Class Methods
+
+=head3 C<extra_target_keys>
+
+Returns a list of additional option keys to be specified via options.
+
 =head2 Instance Methods
 
 =head2 Attributes
@@ -327,6 +343,10 @@ Executes the C<target> command.
 =head3 C<add>
 
 Implements the C<add> action.
+
+=head3 C<alter>
+
+Implements the C<alter> action.
 
 =head3 C<list>
 

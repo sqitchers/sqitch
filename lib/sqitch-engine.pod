@@ -5,16 +5,9 @@ sqitch-engine - Manage database engine configuration
 =head1 Synopsis
 
   sqitch engine
-  sqitch engine add <name> <target> [-s <property>=<value> ...]
-  sqitch engine set-target <name> <target>
-  sqitch engine set-registry <name> <registry>
-  sqitch engine set-client <name> <client>
-  sqitch engine set-top-dir <name> <directory>
-  sqitch engine set-plan-file <name> <file>
-  sqitch engine set-deploy-dir <name> <directory>
-  sqitch engine set-revert-dir <name> <directory>
-  sqitch engine set-verify-dir <name> <directory>
-  sqitch engine set-extension <name> <extension>
+  sqitch engine [-v | --verbose]
+  sqitch engine add <name> [engine-options]
+  sqitch engine alter <name> [engine-options]
   sqitch engine remove <name>
   sqitch engine show <name>
   sqitch engine update-config
@@ -46,8 +39,9 @@ Each engine may have a number of properties:
 
 =item C<target>
 
-The name or URI of the database target. The default is C<db:$engine>.
-See L<sqitch-target> for details on target configuration.
+The name or URI of the database target. Note that if the value is a URI, the
+engine in the URI must match the engine being added or altered. The default is
+C<db:$engine>. See L<sqitch-target> for details on target configuration.
 
 =item C<registry>
 
@@ -62,7 +56,8 @@ Path for an appropriate client.
 
 The path to the top directory for the engine. This directory generally
 contains the plan file and subdirectories for deploy, revert, and verify
-scripts. The default is F<.>, the current directory.
+scripts, as well as reworked instances of those scripts. The default is F<.>,
+the current directory.
 
 =item C<plan_file>
 
@@ -86,6 +81,30 @@ The path to the verify directory for the engine. This directory contains all
 of the verify scripts referenced by changes in the C<plan_file>. The default
 is C<$top_dir/verify>.
 
+=item C<reworked_dir>
+
+The path to the reworked directory for the engine. This directory contains all
+subdirectories for all reworked scripts referenced by changes in the
+C<plan_file>. The default is C<$top_dir>.
+
+=item C<reworked_deploy_dir>
+
+The path to the reworked deploy directory for the engine. This directory
+contains all of the reworked deploy scripts referenced by changes in the
+C<plan_file>. The default is C<$reworked_dir/deploy>.
+
+=item C<reworked_revert_dir>
+
+The path to the reworked revert directory for the engine. This directory
+contains all of the reworked revert scripts referenced by changes in the
+C<plan_file>. The default is C<$reworked_dir/revert>.
+
+=item C<reworked_verify_dir>
+
+The path to the reworked verify directory for the engine. This directory
+contains all of the reworked verify scripts referenced by changes in the
+C<plan_file>. The default is C<$reworked_dir/verify>.
+
 =item C<extension>
 
 The file name extension to append to change names to create script file names.
@@ -101,34 +120,91 @@ L<config|sqitch-config> options.
 
 =over
 
-=item C<-s>
-
-=item C<--set>
-
-  sqitch engine add pg -s top_dir=pg -s client=/usr/local/pgsql/bin/psql
-
-Set a engine property key/value pair. May be specified multiple times. Used
-only by the C<add> action. Supported keys are:
+=item List Option
 
 =over
 
-=item C<target>
+=item C<-v>
 
-=item C<registry>
+=item C<--verbose>
 
-=item C<client>
+  sqitch engine --verbose
 
-=item C<top_dir>
+Be more verbose when listing engines.
 
-=item C<plan_file>
+=back
 
-=item C<deploy_dir>
+=item Add and Alter Options
 
-=item C<revert_dir>
+=over
 
-=item C<verify_dir>
+=item C<--top-dir>
 
-=item C<extension>
+  sqitch engine add pg --top-dir sql
+
+Specifies the top directory to use for the engine. Typically contains the
+deployment plan file and the change script directories.
+
+=item C<--plan-file>
+
+  sqitch engine add pg --plan-file my.plan
+
+Specifies the path to the deployment plan file. Defaults to
+C<$top_dir/sqitch.plan>.
+
+=item C<--extension>
+
+  sqitch engine add pg --extension ddl
+
+Specifies the file name extension to use for change script file names.
+Defaults to C<sql>.
+
+=item C<--dir>
+
+  sqitch engine add pg --dir deploy=dep --dir revert=rev --dir verify=tst
+
+Sets the path to a script directory. May be specified multiple times.
+Supported keys are:
+
+=over
+
+=item * C<deploy>
+
+=item * C<revert>
+
+=item * C<verify>
+
+=item * C<reworked>
+
+=item * C<reworked_deploy>
+
+=item * C<reworked_revert>
+
+=item * C<reworked_verify>
+
+=back
+
+=item C<--target>
+
+  sqitch engine add pg --target db:pg:widgets
+
+Specifies the name or L<URI|https://github.com/theory/uri-db/> of the target
+database for the engine.
+
+=item C<--registry>
+
+  sqitch engine add pg --registry meta
+  
+Specifies the name of the database object where Sqitch's state and history
+data is stored. Typically a schema name (as in PostgreSQL and Oracle) or a
+database name (as in SQLite and MySQL). Defaults to C<sqitch>.
+
+=item C<--client>
+
+  sqitch engine add pg --client /usr/local/pgsql/bin/psql
+
+Specifies the path to the command-line client for the engine. Defaults to a
+client in the current path named appropriately for the engine.
 
 =back
 
@@ -141,49 +217,20 @@ available to perform operations on the engines.
 
 =head2 C<add>
 
-Add a engine named C<< <name> >> for the database at C<< <uri> >>. The
-C<--set> option specifies engine-specific properties.
+Add an engine named C<< <name> >> for the database at C<< <uri> >>. The
+C<--set> option specifies engine-specific properties. A new plan file and
+new script script directories will be created if they don't already exist.
 
+=head2 C<alter>
 
-=head2 C<set-target>
-
-Set the target for engine C<< <name> >>.
-
-=head2 C<set-registry>
-
-Set the registry for engine C<< <name> >>.
-
-=head2 C<set-client>
-
-Set the client for engine C<< <name> >>.
-
-=head2 C<set-top-dir>
-
-Set the top directory for engine C<< <name> >>.
-
-=head2 C<set-plan-file>
-
-Set the plan file for engine C<< <name> >>.
-
-=head2 C<set-deploy-dir>
-
-Set the deploy directory for engine C<< <name> >>.
-
-=head2 C<set-revert-dir>
-
-Set the revert directory for engine C<< <name> >>.
-
-=head2 C<set-verify-dir>
-
-Set the verify directory for engine C<< <name> >>.
-
-=head2 C<set-extension>
-
-Set the extension for engine C<< <name> >>.
+Alter an engine named C<< <name> >>. The C<--set> option specifies
+engine-specific properties to set. New script script directories will be
+created if they don't already exist.
 
 =head2 C<remove>, C<rm>
 
-Remove the engine named C<< <name> >>.
+Remove the engine named C<< <name> >> from the configuration. The plan file
+and script directories will not be affected.
 
 =head2 C<show>
 

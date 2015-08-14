@@ -7,17 +7,63 @@ Revision history for Perl extension App::Sqitch
      - Fixed an error checking the registry version when the local uses a
        comma for decimal values. Thanks to Steffen Müller for the report
        (Issue #234).
-     - Worked around an error setting the MySQL storeage engine using versions
+     - Worked around an error setting the MySQL storage engine using versions
        of DBI prior to 1.631. Thanks to melon-babak for the report!
      - Fixed an error from the Oracle engine when deploying more than 1000
        changes. Thanks to Timothy Procter and Minh Hoang for the report and
        testing the fix.
      - Fixed a bunch of typos in error messages, comments, and documentation.
        Thanks to Dmitriy for the pull request!
-     - Fixed test failiures due to new warnings from File::Path on Perl
+     - Fixed test failures due to new warnings from File::Path on Perl
        5.23.1.
      - Added support for the `--set` option when deploying to MySQL. Thanks to
        Chris Bandy for figuring out how to do it!
+     - Added support for a "reworked directory". By default, reworked change
+       scripts live in the deploy, revert, and verify directories along with
+       all the other change scripts. But if that starts to get too messy, or
+       you simply don't want to see them, add a `reworked_dir` setting to the
+       core, engine, or target config and reworked scripts will be stored
+       there, instead. Also supported are `reworked_deploy_dir`,
+       `reworked_revert_dir`, and `reworked_verify_dir`.
+     - Added the "Overworked" section to sqitch-configuration guide with an
+       example of how to move reworked change scripts into a `reworked_dir`.
+     - Added the `--dir` option to the `init`, `engine`, and `target`
+       commands.
+     - Copied the core configuration options to the `init`, `engine`, and
+       `target` commands. This means that they can be specified after the
+       command, which is a bit more natural.
+     - The `init` command on longer writes out commented values for the
+       `deploy_dir`, `revert_dir`, or `verify_dir` settings. I think these
+       settings are not commonly used, and it would start to get crowded if we
+       also added their "reworked" variants, which will be used still less.
+     - Added the `alter` action to the `engine` and `target` commands to set
+       engine and target properties.
+     - Deprecated the `set-*` actions in the `engine` and `target` commands in
+       favor of the new `alter` action.
+     - Added support for setting reworked directories to the `engine` and
+       `target` commands.
+     - Reformatted the output of the `engine` and `target` command `show`
+       actions to include reworked directories, and to bit a bit less flat.
+     - Attempting to add or alter an engine with a target URI that connects to
+       a different engine now triggers an error. For example, you can't set
+       the target for engine `pg` to `db:sqlite:`.
+     - The `add` and `alter` actions of the `engine` and `target` commands
+       now create script directories if they don't already exist.
+     - The `add` action of the `engine` and `target` commands now creates a
+       plan file if one does not exist in the specified location for the
+       engine or target.
+     - Added the `deploy_dir`, `revert_dir`, and `verify_dir` methods to
+       App::Sqitch::Plan::Change. Each points to the proper directory for the
+       target depending on whether or not the change has been reworked.
+     - On Firebird, Looking up a change and tag in the database (via the
+       `--onto` option to `rebase` or the `--to` option to `revert`, among
+       others) would sometimes return the incorrect change if the change has
+       been reworked two or more times. Was fixed for the other engines in
+       v0.9991.
+     - Fixed the `--all` option used to apply a command to all known targets
+       so that it loads only targets specified by the local configuration.
+       Otherwise, user and system configuration can get in the way when they
+       specify engines and targets not used by the current project.
 
 0.9992 2015-05-20T23:51:41Z
      - On PostgreSQL, Sqitch now sets the `client_encoding` parameter to
