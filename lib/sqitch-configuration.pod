@@ -43,7 +43,7 @@ L<C<init>|sqitch-init>, L<C<config>|sqitch-config>,
 L<C<engine>|sqitch-engine>, and L<C<target>|sqitch-target> commands to
 configure these values for various deployment scenarios.
 
-=head2 Project Initialization
+=head1 Project Initialization
 
 Typically, the first thing you do with Sqitch is use the
 L<C<init>|sqitch-init> command to start a new project. Now, the most important
@@ -95,7 +95,7 @@ More interesting, perhaps, is the C<client> setting, which defaults to the
 appropriate engine-specific client name appropriate for your OS. In this
 example, sqitch will assume it can find F<psql> in your path.
 
-=head2 Global Configuration
+=head1 Global Configuration
 
 But sometimes that's not the case. Let's say that the C<psql> client on your
 system is not in the path, but instead in F</usr/local/pgsql/bin/psql>. You
@@ -132,7 +132,7 @@ use the C<--system> option, instead:
 That will put the values into the global Sqitch configuration file, which is
 in C<`sqitch --etc-path`/sqitch.conf>.
 
-=head2 Engine Configuration
+=head1 Engine Configuration
 
 So you've got the widgets project well developed, and now you've been asked to
 port it to SQLite. Fundamentally, that means porting all of your deploy,
@@ -188,7 +188,7 @@ Nice, right?
 Now, to add the SQLite support. There are two basic ways to go about it. We'll
 start with the more obvious one.
 
-=head3 Separate Plans
+=head2 Separate Plans
 
 The first approach is to create an entirely independent SQLite project with
 its own plan and scripts. This is I<almost> like starting from scratch: just
@@ -250,7 +250,7 @@ name to both engines? Simply pass them both, or use the C<--all> option:
   Created sqlite/verify/users.sql
   Added "users" to sqlite/sqitch.plan
 
-=head3 Shared Plan
+=head2 Shared Plan
 
 The other approach is to have both the PostgreSQL and the SQLite projects
 share the same plan. In that case, we should move the plan file out of the
@@ -325,7 +325,7 @@ variable for each command:
   sqitch config --bool rework.all 1
   sqitch config --bool bundle.all 1
 
-=head3 Database Interactions
+=head2 Database Interactions
 
 With either of these two approaches, you can now manage database interactions
 by passing an engine name or a L<database URI|https://github.com/theory/uri-db>
@@ -368,7 +368,7 @@ The commands that take engine and target URI arguments include:
 
 =back
 
-=head2 Target Configuration
+=head1 Target Configuration
 
 Great, now we can easily manage changes for multiple database engines. But
 what about multiple databases for the same engine? For example, you might want
@@ -499,7 +499,84 @@ an example that re-uses the existing change scripts:
   Skipped pg/verify/users.sql: already exists
   Added "users" to target.plan
 
-=head2 Other Options
+=head1 Overworked
+
+Say you've been working on your project for some time, and now you have a slew
+of changes you've L<reworked|sqitch-rework>. (You really only do that with
+procedures and views, right? Because it's silly to use for C<ALTER>
+statements; just add new changes in those cases.) As a result, your deploy,
+revert, and verify directories are full of files representing older versions
+of the changes, all containing the C<@> symbol, and they're starting to get in
+the way (in general you'll never modify them). Here's an example adapted from
+a real project:
+
+  > find pg -name '*@*'
+  pg/deploy/extensions@v2.9.0.sql
+  pg/deploy/jobs/func_enabler@v2.6.1.sql
+  pg/deploy/stem/func_check_all_widgets@v2.11.0.sql
+  pg/deploy/stem/func_check_all_widgets@v2.12.2.sql
+  pg/deploy/stem/func_check_all_widgets@v2.12.3.sql
+  pg/deploy/crank/func_update_jobs@v2.12.0.sql
+  pg/deploy/crank/func_update_jobs@v2.8.0.sql
+  pg/deploy/utility/func_get_sleepercell@v2.9.0.sql
+  pg/deploy/utility/func_update_connection@v2.10.0.sql
+  pg/deploy/utility/func_update_connection@v2.10.1.sql
+  pg/deploy/utility/func_update_connection@v2.11.0.sql
+  pg/revert/extensions@v2.9.0.sql
+  pg/revert/jobs/func_enabler@v2.6.1.sql
+  pg/revert/stem/func_check_all_widgets@v2.11.0.sql
+  pg/revert/stem/func_check_all_widgets@v2.12.2.sql
+  pg/revert/stem/func_check_all_widgets@v2.12.3.sql
+  pg/revert/crank/func_update_jobs@v2.12.0.sql
+  pg/revert/crank/func_update_jobs@v2.8.0.sql
+  pg/revert/utility/func_get_sleepercell@v2.9.0.sql
+  pg/revert/utility/func_update_connection@v2.10.0.sql
+  pg/revert/utility/func_update_connection@v2.10.1.sql
+  pg/revert/utility/func_update_connection@v2.11.0.sql
+  pg/verify/extensions@v2.9.0.sql
+  pg/verify/jobs/func_enabler@v2.6.1.sql
+  pg/verify/stem/func_check_all_widgets@v2.11.0.sql
+  pg/verify/stem/func_check_all_widgets@v2.12.2.sql
+  pg/verify/stem/func_check_all_widgets@v2.12.3.sql
+  pg/verify/crank/func_update_jobs@v2.12.0.sql
+  pg/verify/crank/func_update_jobs@v2.8.0.sql
+  pg/verify/utility/func_get_sleepercell@v2.9.0.sql
+  pg/verify/utility/func_update_connection@v2.10.0.sql
+  pg/verify/utility/func_update_connection@v2.10.1.sql
+  pg/verify/utility/func_update_connection@v2.11.0.sql
+
+Ugh. Wouldn't it be nice to move them out of the way? Of course it would! So
+let's do that. We want all of the PostgreSQL engine's reworked scripts all to
+go into to a new directory named "reworked", so tell Sqitch where to find
+them:
+
+  > sqitch engine alter pg --dir reworked=pg/reworked
+  Created pg/reworked/deploy/
+  Created pg/reworked/revert/
+  Created pg/reworked/verify/
+
+Great, it created the new directories. Note that if you wanted the directories
+to have different names or locations, you can use the C<reworked_deploy>,
+C<reworked_revert>, and C<reworked_verify> options.
+
+Now all we have to do is move the files:
+
+  cd pg
+  for file in `find . -name '*@*'`
+  do
+      mkdir -p reworked/`dirname $file`
+      mv $file reworked/`dirname $file`
+  done
+  cd ..
+
+Now all the reworked deploy files are in F<pg/reworked/deploy>, the reworked
+revert files are in F<pg/reworked/revert>, and the reworked verify files are
+in F<pg/reworked/verify>. And you're good to go! From here on in Sqitch always
+knows to find the reworked scripts when doing a L<deploy|sqitch-deploy>,
+L<revert|sqitch-revert>, or L<bundle|sqitch-bundle>. And meanwhile, they're
+tucked out of the way, less likely to break your brain or your IDE.
+
+=head1 Other Options
 
 You can see by the output of the L<C<init>|sqitch-init>,
 L<C<engine>|sqitch-engine>, and L<C<target>|sqitch-target> commands that there

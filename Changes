@@ -25,6 +25,8 @@ Revision history for Perl extension App::Sqitch
        core, engine, or target config and reworked scripts will be stored
        there, instead. Also supported are `reworked_deploy_dir`,
        `reworked_revert_dir`, and `reworked_verify_dir`.
+     - Added the "Overworked" section to sqitch-configuration guide with an
+       example of how to move reworked change scripts into a `reworked_dir`.
      - Added the `--dir` option to the `init`, `engine`, and `target`
        commands.
      - Copied the core configuration options to the `init`, `engine`, and
