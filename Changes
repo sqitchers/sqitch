@@ -64,6 +64,18 @@ Revision history for Perl extension App::Sqitch
        so that it loads only targets specified by the local configuration.
        Otherwise, user and system configuration can get in the way when they
        specify engines and targets not used by the current project.
+     - In the MySQL engine, the following URI query params will be converted
+       to options passed to the command-line client, if they're present:
+       * mysql_compression=1   => --compress
+       * mysql_ssl=1           => --ssl
+       * mysql_connect_timeout => --connect_timeout
+       * mysql_init_command    => --init-command
+       * mysql_socket          => --socket
+       * mysql_ssl_client_key  => --ssl-key
+       * mysql_ssl_client_cert => --ssl-cert
+       * mysql_ssl_ca_file     => --ssl-ca
+       * mysql_ssl_ca_path     => --ssl-capath
+       * mysql_ssl_cipher      => --ssl-cipher
 
 0.9992 2015-05-20T23:51:41Z
      - On PostgreSQL, Sqitch now sets the `client_encoding` parameter to

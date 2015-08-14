@@ -105,6 +105,66 @@ is_deeply [$mysql->mysql], [qw(
 ), @std_opts], 'mysql command should be configured';
 
 ##############################################################################
+# Make sure URI params get passed through to the client.
+$target = App::Sqitch::Target->new(
+    sqitch => $sqitch,
+    uri    => URI->new('db:mysql://foo.com/widgets?' . join(
+        '&',
+        'mysql_compression=1',
+        'mysql_ssl=1',
+        'mysql_connect_timeout=20',
+        'mysql_init_command=BEGIN',
+        'mysql_socket=/dev/null',
+        'mysql_ssl_client_key=/foo/key',
+        'mysql_ssl_client_cert=/foo/cert',
+        'mysql_ssl_ca_file=/foo/cafile',
+        'mysql_ssl_ca_path=/foo/capath',
+        'mysql_ssl_cipher=blowfeld',
+        'mysql_client_found_rows=20',
+        'mysql_foo=bar',
+    ),
+));
+ok $mysql = $CLASS->new(sqitch => $sqitch, target => $target),
+    'Create a mysql with query params';
+is_deeply [$mysql->mysql], [qw(
+    /path/to/mysql
+    --database widgets
+    --host     foo.com
+), @std_opts, qw(
+    --compress
+    --ssl
+    --connect_timeout 20
+    --init-command BEGIN
+    --socket /dev/null
+    --ssl-key /foo/key
+    --ssl-cert /foo/cert
+    --ssl-ca /foo/cafile
+    --ssl-capath /foo/capath
+    --ssl-cipher blowfeld
+)], 'mysql command should be configured with query vals';
+
+$target = App::Sqitch::Target->new(
+    sqitch => $sqitch,
+    uri    => URI->new('db:mysql://foo.com/widgets?' . join(
+        '&',
+        'mysql_compression=0',
+        'mysql_ssl=0',
+        'mysql_connect_timeout=20',
+        'mysql_client_found_rows=20',
+        'mysql_foo=bar',
+    ),
+));
+ok $mysql = $CLASS->new(sqitch => $sqitch, target => $target),
+    'Create a mysql with disabled query params';
+is_deeply [$mysql->mysql], [qw(
+    /path/to/mysql
+    --database widgets
+    --host     foo.com
+), @std_opts, qw(
+    --connect_timeout 20
+)], 'mysql command should not have disabled param options';
+
+##############################################################################
 # Now make sure that Sqitch options override configurations.
 $sqitch = App::Sqitch->new(
     options => {
