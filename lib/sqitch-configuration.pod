@@ -52,7 +52,7 @@ best to use C<--engine> to configure the engine right up front to start off on
 the right foot. Here, we start a project called "widgets" to manage PostgreSQL
 databases:
 
-  > sqitch init widgets --engine=pg
+  > sqitch init widgets --engine pg
   Created sqitch.conf
   Created sqitch.plan
   Created deploy/
@@ -83,8 +83,8 @@ you start using the L<C<add>|sqitch-add> command to add changes, and the
 L<C<deploy>|sqitch-deploy> command to deploy changes to a database, these
 variables will be used extensively.
 
-The C<[engine "pg"]> section houses the variables more specific to the engine.
-The C<target> defines the default L<database URI|https://github.com/theory/uri-db>
+The C<[engine "pg"]> section houses the variables specific to the engine. The
+C<target> defines the default L<database URI|https://github.com/theory/uri-db>
 for connecting to a PostgreSQL database. As you can see there isn't much here,
 but if you were to distribute this project, it's likely that your users would
 specify a target URI when deploying to their own databases. The C<registry>
@@ -92,8 +92,8 @@ determines where Sqitch will store its own metadata when managing a database;
 generally the default, "sqitch", is fine.
 
 More interesting, perhaps, is the C<client> setting, which defaults to the
-appropriate engine-specific client name appropriate for your OS. Sqitch will
-assume it can find F<psql> in your path.
+appropriate engine-specific client name appropriate for your OS. In this
+example, sqitch will assume it can find F<psql> in your path.
 
 =head2 Global Configuration
 
@@ -114,8 +114,7 @@ This won't change the project configuration file at all, but add the value to
 F<~/.sqitch/sqitch.conf>, which is your personal cross-project Sqitch
 configuration. In other words, it sets the PostgreSQL client for all Sqitch
 projects you manage on this host. In fact, it can be a good idea to configure
-yourself and clients not in the path first thing whenever you start working on
-a new host:
+clients not in the path first thing whenever you start working on a new host:
 
   > sqitch config --user user.name 'Marge N. O’Vera'
   > sqitch config --user user.email 'marge@example.com'
@@ -193,8 +192,8 @@ start with the more obvious one.
 
 The first approach is to create an entirely independent SQLite project with
 its own plan and scripts. This is I<almost> like starting from scratch: just
-create a new directory and add the Sqitch engine using it for its top directory:
- add initialize it as a new Sqitch project:
+create a new directory and add the Sqitch engine using it for its top
+directory: add initialize it as a new Sqitch project:
 
   > sqitch engine add sqlite --top-dir sqlite
   Created sqlite/
@@ -203,7 +202,7 @@ create a new directory and add the Sqitch engine using it for its top directory:
   Created sqlite/revert/
   Created sqlite/verify/
 
-Note the creation of a new F<sqitch.conf> file. It will have copied the
+Note the creation of a new F<sqlite/sqitch.conf> file. It will have copied the
 project name and URI from the existing plan file. The SQLite configuration is
 now added to the configuration file:
 
@@ -237,9 +236,9 @@ by passing the engine name to the C<add> command:
 Pass C<pg> when adding PostgreSQL changes, or omit it, in which case Sqitch
 will fall back on the default engine, defined by the C<core.engine> variable
 set when we created the PostgreSQL project. Want to add a change with the same
-name to both engines? Simply pass them both, or specify the C<--all> option:
+name to both engines? Simply pass them both, or use the C<--all> option:
 
-  > sqitch add --all users -m 'Creates users table.'
+  > sqitch add users --all -m 'Creates users table.'
   Created pg/deploy/users.sql
   Created pg/revert/users.sql
   Created pg/test/users.sql
@@ -385,25 +384,37 @@ the URI. Thus the configuration all comes together:
 
   > sqitch target show prod-primary prod-standby
   * prod-primary
-    URI:              db:pg://sqitch@db1.example.com/widgets
-    Registry:         sqitch
-    Client:           psql
-    Top Directory:    pg
-    Plan File:        sqitch.plan
-    Deploy Directory: pg/deploy
-    Revert Directory: pg/revert
-    Verify Directory: pg/verify
-    Extension:        sql
+      URI:           db:pg://sqitch@db1.example.com/widgets
+      Registry:      sqitch
+      Client:        psql
+      Top Directory: pg
+      Plan File:     sqitch.plan
+      Extension:     sql
+      Script Directories:
+        Deploy:      pg/deploy
+        Revert:      pg/revert
+        Verify:      pg/verify
+      Reworked Script Directories:
+        Reworked:    pg
+        Deploy:      pg/deploy
+        Revert:      pg/revert
+        Verify:      pg/verify
   * prod-standby
-    URI:              db:pg://sqitch@db2.example.com/widgets
-    Registry:         sqitch
-    Client:           psql
-    Top Directory:    pg
-    Plan File:        sqitch.plan
-    Deploy Directory: pg/deploy
-    Revert Directory: pg/revert
-    Verify Directory: pg/verify
-    Extension:        sql
+      URI:           db:pg://sqitch@db2.example.com/widgets
+      Registry:      sqitch
+      Client:        psql
+      Top Directory: pg
+      Plan File:     sqitch.plan
+      Extension:     sql
+      Script Directories:
+        Deploy:      pg/deploy
+        Revert:      pg/revert
+        Verify:      pg/verify
+      Reworked Script Directories:
+        Reworked:    pg
+        Deploy:      pg/deploy
+        Revert:      pg/revert
+        Verify:      pg/verify
 
 Note the use of the shared plan and the F<pg> directory for scripts. We can
 add a target for our SQLite database, too. Maybe it's used for development?
@@ -411,15 +422,21 @@ add a target for our SQLite database, too. Maybe it's used for development?
   > sqitch target add dev-sqlite db:sqlite:/var/db/widgets_dev.db
   > sqitch target show dev-sqlite
   * dev-sqlite
-    URI:              db:sqlite:/var/db/widgets_dev.db
-    Registry:         sqitch
-    Client:           sqlite3
-    Top Directory:    sqlite
-    Plan File:        sqitch.plan
-    Deploy Directory: sqlite/deploy
-    Revert Directory: sqlite/revert
-    Verify Directory: sqlite/verify
-    Extension:        sql
+      URI:           db:sqlite:/var/db/widgets_dev.db
+      Registry:      sqitch
+      Client:        sqlite3
+      Top Directory: sqlite
+      Plan File:     sqitch.plan
+      Extension:     sql
+      Script Directories:
+        Deploy:      sqlite/deploy
+        Revert:      sqlite/revert
+        Verify:      sqlite/verify
+      Reworked Script Directories:
+        Reworked:    sqlite
+        Deploy:      sqlite/deploy
+        Revert:      sqlite/revert
+        Verify:      sqlite/verify
 
 Now deploying any of these databases is as simple as specifying the target
 name when executing the L<C<deploy>|sqitch-deploy> command (assuming the
@@ -428,6 +445,12 @@ for a password):
 
   > sqitch deploy prod-primary
   > sqitch deploy prod-standby
+
+Want them all? Just query the targets and pass each in turn:
+
+  for target in `sqitch target | grep prod-`; do
+      sqitch deploy $target
+  done
 
 The commands that accept a target name are identical to those that take
 an engine name or target URI, as described in L</Database Interactions>.
@@ -446,40 +469,44 @@ some of each. Just be sure all of its scripts are in the same top directory.
 Then add targets for the specific servers and plans:
 
   > sqitch target add prod-primary db:pg://db1.example.com/widgets
-  > sqitch target add prod-billing db:pg://cpa.example.com/billing -s plan_file=target.plan
+  > sqitch target add prod-billing db:pg://cpa.example.com/billing --plan-file target.plan
   > sqitch target show prod-billing
-  * prod-primary
-    URI:              db:pg://db1.example.com/widgets
-    Registry:         sqitch
-    Client:           psql
-    Top Directory:    pg
-    Plan File:        sqitch.plan
-    Deploy Directory: pg/deploy
-    Revert Directory: pg/revert
-    Verify Directory: pg/verify
-    Extension:        sql
   * prod-billing
-    URI:              db:pg://cpa.example.com/billing
-    Registry:         sqitch
-    Client:           psql
-    Top Directory:    pg
-    Plan File:        target.plan
-    Deploy Directory: pg/deploy
-    Revert Directory: pg/revert
-    Verify Directory: pg/verify
-    Extension:        sql
+      URI:           db:pg://cpa.example.com/billing
+      Registry:      sqitch
+      Client:        psql
+      Top Directory: pg
+      Plan File:     target.plan
+      Extension:     sql
+      Script Directories:
+        Deploy:      pg/deploy
+        Revert:      pg/revert
+        Verify:      pg/verify
+      Reworked Script Directories:
+        Reworked:    pg
+        Deploy:      pg/deploy
+        Revert:      pg/revert
+        Verify:      pg/verify
 
 Now, any management of the C<prod-billing> target will use the F<target.plan>
-plan file.
+plan file. Want to add changes to that plan? specify the plan file. Here's
+an example that re-uses the existing change scripts:
+
+  > sqitch add users target.plan -n 'Creates users table.'
+  Skipped pg/deploy/users.sql: already exists
+  Skipped pg/revert/users.sql: already exists
+  Skipped pg/test/users.sql: already exists
+  Skipped pg/verify/users.sql: already exists
+  Added "users" to target.plan
 
 =head2 Other Options
 
-You can see by the output of the L<C<engine>|sqitch-engine> and
-L<C<target>|sqitch-target> commands that there are quite a few other
-properties that can be set on a per-engine or per-target database. To
-determine the value of each, Sqitch looks at a combination of command-line
-options and configuration variables. Here's a complete list, including
-specification of their values and how to set them.
+You can see by the output of the L<C<init>|sqitch-init>,
+L<C<engine>|sqitch-engine>, and L<C<target>|sqitch-target> commands that there
+are quite a few other properties that can be set on a per-engine or per-target
+database. To determine the value of each, Sqitch looks at a combination of
+command-line options and configuration variables. Here's a complete list,
+including specification of their values and how to set them.
 
 =over
 
@@ -522,7 +549,7 @@ only be specified as a target argument or via a named target:
 
 =item C<target.$target.uri>
 
-  sqitch init $project --engine $engine --target $target
+  sqitch init $project --engine $engine --target $uri
   sqitch target add $target --uri $uri
   sqitch target alter $target --uri $uri
 
