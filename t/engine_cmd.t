@@ -524,14 +524,14 @@ is_deeply +MockOutput->get_emit, [
     ['    ', 'Plan File:     ', 'fb.plan'],
     ['    ', 'Extension:     ', 'fbsql'],
     ['    ', 'Script Directories:'],
-    ['    ', '  Deploy:      ', 'fb/dep'],
-    ['    ', '  Revert:      ', 'fb/rev'],
-    ['    ', '  Verify:      ', 'fb/ver'],
+    ['    ', '  Deploy:      ', dir 'fb/dep'],
+    ['    ', '  Revert:      ', dir 'fb/rev'],
+    ['    ', '  Verify:      ', dir 'fb/ver'],
     ['    ', 'Reworked Script Directories:'],
-    ['    ', '  Reworked:    ', 'fb/r'],
-    ['    ', '  Deploy:      ', 'fb/r/d'],
-    ['    ', '  Revert:      ', 'fb/r/revert'],
-    ['    ', '  Verify:      ', 'fb/r/verify'],
+    ['    ', '  Reworked:    ', dir 'fb/r'],
+    ['    ', '  Deploy:      ', dir 'fb/r/d'],
+    ['    ', '  Revert:      ', dir 'fb/r/revert'],
+    ['    ', '  Verify:      ', dir 'fb/r/verify'],
 ], 'All three engines should have been shown';
 
 ##############################################################################

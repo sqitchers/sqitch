@@ -487,7 +487,7 @@ CONFIG: {
     isa_ok $target->revert_dir, 'Path::Class::Dir', 'Revert dir';
     is $target->verify_dir, 'pgver', 'Verify dir should be "pgver"';
     isa_ok $target->verify_dir, 'Path::Class::Dir', 'Verify dir';
-    is $target->reworked_dir, 'pg/r', 'Reworked dir should be "pg/r"';
+    is $target->reworked_dir, dir('pg/r'), 'Reworked dir should be "pg/r"';
     isa_ok $target->reworked_dir, 'Path::Class::Dir', 'Reworked dir';
     is $target->reworked_deploy_dir, 'pgrdep', 'Reworked deploy dir should be "pgrdep"';
     isa_ok $target->reworked_deploy_dir, 'Path::Class::Dir', 'Reworked deploy dir';
@@ -530,7 +530,7 @@ CONFIG: {
     isa_ok $target->revert_dir, 'Path::Class::Dir', 'Revert dir';
     is $target->verify_dir, 'foover', 'Verify dir should be "foover"';
     isa_ok $target->verify_dir, 'Path::Class::Dir', 'Verify dir';
-    is $target->reworked_dir, 'foo/r', 'Reworked dir should be "foo/r"';
+    is $target->reworked_dir, dir('foo/r'), 'Reworked dir should be "foo/r"';
     isa_ok $target->reworked_dir, 'Path::Class::Dir', 'Reworked dir';
     is $target->reworked_deploy_dir, 'foodepr', 'Reworked deploy dir should be "foodepr"';
     isa_ok $target->reworked_deploy_dir, 'Path::Class::Dir', 'Reworked deploy dir';
@@ -652,6 +652,5 @@ ALL: {
     is_deeply [ sort map { $_->name } @targets ], [qw(db:mysql://root@/foo db:pg:try widgets)],
         'Should have the engine and target targets';
 }
-
 
 done_testing;
