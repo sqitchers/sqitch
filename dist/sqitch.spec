@@ -282,6 +282,9 @@ Sqitch Vertica support.
 # No additional files required.
 
 %changelog
+* Mon Aug 17 2015 David E. Wheeler <david.wheeler@iovation.com> 0.9993-1
+- Upgrade to v0.9993.
+
 * Wed May 20 2015 David E. Wheeler <david.wheeler@iovation.com> 0.9992-1
 - Upgrade to v0.9992.
 - Add perl(DateTime::TimeZone).
