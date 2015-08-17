@@ -11,7 +11,7 @@ use App::Sqitch::X qw(hurl);
 use Locale::TextDomain qw(App-Sqitch);
 use namespace::autoclean;
 
-our $VERSION = '0.9993';
+our $VERSION = '0.9994';
 
 requires 'dbh';
 requires 'sqitch';

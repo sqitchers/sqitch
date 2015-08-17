@@ -13,7 +13,7 @@ use Try::Tiny;
 use namespace::autoclean;
 extends 'App::Sqitch::Command';
 
-our $VERSION = '0.9993';
+our $VERSION = '0.9994';
 
 has target_name => (
     is  => 'ro',
