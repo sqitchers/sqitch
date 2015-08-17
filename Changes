@@ -1,6 +1,6 @@
 Revision history for Perl extension App::Sqitch
 
-0.9993
+0.9993  2015-08-17T17:55:26Z
      [Bug Fixes]
      - Eliminated test failures due to warnings from DateTime::Locale when
        `LC_TIME` is set to C.UTF-8. Thanks to Shantanu Bhadoria for the report
