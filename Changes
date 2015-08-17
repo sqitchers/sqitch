@@ -1,6 +1,7 @@
 Revision history for Perl extension App::Sqitch
 
 0.9993
+     [Bug Fixes]
      - Eliminated test failures due to warnings from DateTime::Locale when
        `LC_TIME` is set to C.UTF-8. Thanks to Shantanu Bhadoria for the report
        and Dave Rolsky for the workaround.
@@ -16,6 +17,16 @@ Revision history for Perl extension App::Sqitch
        Thanks to Dmitriy for the pull request!
      - Fixed test failures due to new warnings from File::Path on Perl
        5.23.1.
+     - On Firebird, Looking up a change and tag in the database (via the
+       `--onto` option to `rebase` or the `--to` option to `revert`, among
+       others) would sometimes return the incorrect change if the change has
+       been reworked two or more times. Was fixed for the other engines in
+       v0.9991.
+     - Fixed the `--all` option used to apply a command to all known targets
+       so that it loads only targets specified by the local configuration.
+       Otherwise, user and system configuration can get in the way when they
+       specify engines and targets not used by the current project.
+     [Improvements]
      - Added support for the `--set` option when deploying to MySQL. Thanks to
        Chris Bandy for figuring out how to do it!
      - Added support for a "reworked directory". By default, reworked change
@@ -25,21 +36,20 @@ Revision history for Perl extension App::Sqitch
        core, engine, or target config and reworked scripts will be stored
        there, instead. Also supported are `reworked_deploy_dir`,
        `reworked_revert_dir`, and `reworked_verify_dir`.
-     - Added the "Overworked" section to sqitch-configuration guide with an
-       example of how to move reworked change scripts into a `reworked_dir`.
      - Added the `--dir` option to the `init`, `engine`, and `target`
        commands.
-     - Copied the core configuration options to the `init`, `engine`, and
+     - Copied the core configuration options (`--engine`, `--target`,
+       `--plan-file`, `--registry`, etc.) to the `init`, `engine`, and
        `target` commands. This means that they can be specified after the
-       command, which is a bit more natural.
+       command, which is a bit more natural. It also means that the
+       `--registry` and `--client` options of the `target` are no longer
+       deprecated.
      - The `init` command on longer writes out commented values for the
        `deploy_dir`, `revert_dir`, or `verify_dir` settings. I think these
        settings are not commonly used, and it would start to get crowded if we
        also added their "reworked" variants, which will be used still less.
      - Added the `alter` action to the `engine` and `target` commands to set
        engine and target properties.
-     - Deprecated the `set-*` actions in the `engine` and `target` commands in
-       favor of the new `alter` action.
      - Added support for setting reworked directories to the `engine` and
        `target` commands.
      - Reformatted the output of the `engine` and `target` command `show`
@@ -55,15 +65,6 @@ Revision history for Perl extension App::Sqitch
      - Added the `deploy_dir`, `revert_dir`, and `verify_dir` methods to
        App::Sqitch::Plan::Change. Each points to the proper directory for the
        target depending on whether or not the change has been reworked.
-     - On Firebird, Looking up a change and tag in the database (via the
-       `--onto` option to `rebase` or the `--to` option to `revert`, among
-       others) would sometimes return the incorrect change if the change has
-       been reworked two or more times. Was fixed for the other engines in
-       v0.9991.
-     - Fixed the `--all` option used to apply a command to all known targets
-       so that it loads only targets specified by the local configuration.
-       Otherwise, user and system configuration can get in the way when they
-       specify engines and targets not used by the current project.
      - In the MySQL engine, the following URI query params will be converted
        to options passed to the command-line client, if they're present:
        * mysql_compression=1   => --compress
@@ -76,6 +77,15 @@ Revision history for Perl extension App::Sqitch
        * mysql_ssl_ca_file     => --ssl-ca
        * mysql_ssl_ca_path     => --ssl-capath
        * mysql_ssl_cipher      => --ssl-cipher
+     [Documentation]
+     - Added the "Overworked" section to sqitch-configuration guide with an
+       example of how to move reworked change scripts into a `reworked_dir`.
+     [Deprecations]
+     - Deprecated the `set-*` actions in the `engine` and `target` commands in
+       favor of the new `alter` action.
+     - The core `--deployed-dir`, `--revert-dir`, and `--verify-dir` options
+       are deprecated in favor of the `--dir` option on the `init`, `engine`,
+       and `target` command.
 
 0.9992 2015-05-20T23:51:41Z
      - On PostgreSQL, Sqitch now sets the `client_encoding` parameter to
