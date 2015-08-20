@@ -105,7 +105,7 @@ has dbh => (
         # Make sure we support this version.
         my ($dbms, $vnum, $vstr) = $dbh->{mysql_serverinfo} =~ /mariadb/i
             ? ('MariaDB', 50300, '5.3')
-            : ('MySQL',   50100, '5.1.0');
+            : ('MySQL',   50000, '5.0.0');
         hurl mysql => __x(
             'Sqitch requires {rdbms} {want_version} or higher; this is {have_version}',
             rdbms        => $dbms,
