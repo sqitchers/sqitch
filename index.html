@@ -31,23 +31,23 @@
           <p>Sqitch is a database change management application. What makes it different
 from your typical <a href="http://guides.rubyonrails.org/migrations.html">migration</a>-<a href="http://metacpan.org/module/Module::Build::DB">style</a> approaches? A few things:</p>
 
-<h4>No opinions</h4>
+<h4 id="no-opinions">No opinions</h4>
 
 <p>Sqitch is not integrated with any framework, ORM, or platform. Rather, it is a standalone change management system with no opinions about your database engine, application framework, or development environment.</p>
 
-<h4>Native scripting</h4>
+<h4 id="native-scripting">Native scripting</h4>
 
 <p>Changes are implemented as scripts native to your selected database engine. Writing a <a href="http://postgresql.org/">PostgreSQL</a> application? Write SQL scripts for <a href="http://www.postgresql.org/docs/current/static/app-psql.html"><code>psql</code></a>. Writing a <a href="http://mysql.com/">MySQL</a>-backed app? Write SQL scripts for <a href="http://dev.mysql.com/doc/refman/5.6/en/mysql.html"><code>mysql</code></a>.</p>
 
-<h4>Dependency resolution</h4>
+<h4 id="dependency-resolution">Dependency resolution</h4>
 
 <p>Database changes may declare dependencies on other changes—even on changes from other Sqitch projects. This ensures proper order of execution, even when you’ve committed changes to your VCS out-of-order.</p>
 
-<h4>No numbering</h4>
+<h4 id="no-numbering">No numbering</h4>
 
 <p>Change deployment is managed by maintaining a plan file. As such, there is no need to number your changes, although you can if you want. Sqitch doesn’t much care how you name your changes.</p>
 
-<h4>Iterative development</h4>
+<h4 id="iterative-development">Iterative development</h4>
 
 <p>Up until you tag and release your application, you can modify your change deployment scripts as often as you like. They’re not locked in just because they’ve been committed to your VCS. This allows you to take an iterative approach to developing your database schema. Or, better, you can do test-driven database development.</p>
 
@@ -55,7 +55,7 @@ from your typical <a href="http://guides.rubyonrails.org/migrations.html">migrat
 
 <p>There are a number of ways to install Sqitch. The PostgreSQL support requires <a href="http://www.postgresql.org/download/">PostgreSQL</a>; the Oracle support requires <a href="http://www.oracle.com/technetwork/database/features/instant-client/index-097480.html">Instant Client</a> (and the setting of the <code>$ORACLE_HOME</code> environment variable).</p>
 
-<h4><a href="https://metacpan.org/dist/App-Sqitch">CPAN</a></h4>
+<h4 id="cpan"><a href="https://metacpan.org/dist/App-Sqitch">CPAN</a></h4>
 
 <ul>
   <li>PostgreSQL: <code>cpan App::Sqitch DBD::Pg</code></li>
