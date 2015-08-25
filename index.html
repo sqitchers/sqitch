@@ -66,13 +66,13 @@ from your typical <a href="http://guides.rubyonrails.org/migrations.html">migrat
   <li>Vertica: <code>cpan App::Sqitch DBD::ODBC</code></li>
 </ul>
 
-<h4><a href="https://registry.hub.docker.com/u/docteurklein/sqitch/">Docker</a></h4>
+<h4 id="docker"><a href="https://registry.hub.docker.com/u/docteurklein/sqitch/">Docker</a></h4>
 
 <ul>
   <li>PostreSQL: <code>docker run --rm docteurklein/sqitch:pgsql</code></li>
 </ul>
 
-<h4><a href="http://brew.sh">Homebrew</a></h4>
+<h4 id="homebrew"><a href="http://brew.sh">Homebrew</a></h4>
 
 <ul>
   <li>Tap: <code>brew tap theory/sqitch</code></li>
@@ -84,7 +84,7 @@ from your typical <a href="http://guides.rubyonrails.org/migrations.html">migrat
   <li>Vertica: <code>brew install sqitch_vertica</code></li>
 </ul>
 
-<h4><a href="https://www.debian.org/releases/sid/">Debian sid</a> (unstable, testing)</h4>
+<h4 id="debian"><a href="https://www.debian.org/releases/sid/">Debian sid</a> (unstable, testing)</h4>
 
 <ul>
   <li>Apt: <code>apt-get install sqitch</code></li>
@@ -97,7 +97,14 @@ from your typical <a href="http://guides.rubyonrails.org/migrations.html">migrat
   <li>Vertica: <code>apt-get install libdbd-odbc-perl</code></li>
 </ul>
 
-<h4><a href="http://code.activestate.com/ppm/">ActiveState PPM</a></h4>
+<h4 id="strawberry">Windows</h4>
+
+<ul>
+  <li>Install <a href="http://strawberryperl.com/">Strawberry Perl</a></li>
+  <li>Follow the steps for <a href="#cpan">CPAN</a> or <a href="#cpanminus">cpanminus</a></li>
+</ul>
+
+<h4 id="activestate"><a href="http://code.activestate.com/ppm/">ActiveState PPM</a></h4>
 
 <ul>
   <li>Install <a href="http://www.activestate.com/activeperl/downloads">ActivePerl</a></li>
@@ -106,7 +113,7 @@ from your typical <a href="http://guides.rubyonrails.org/migrations.html">migrat
   <li>For Firebird support, also run <code>ppm install DBD-Firebird</code></li>
 </ul>
 
-<h4><a href="http://en.wikipedia.org/wiki/Advanced_Packaging_Tool">Apt</a> + <a href="https://metacpan.org/pod/cpanm">cpanminus</a></h4>
+<h4 id="apt"><a href="http://en.wikipedia.org/wiki/Advanced_Packaging_Tool">Apt</a> + <a href="https://metacpan.org/pod/cpanm">cpanminus</a></h4>
 
 <ul>
   <li>Apt: <code>apt-get install build-essential cpanminus perl perl-doc</code></li>
@@ -119,7 +126,7 @@ from your typical <a href="http://guides.rubyonrails.org/migrations.html">migrat
   <li>Vertica: <code>apt-get install libdbd-odbc-perl</code></li>
 </ul>
 
-<h4><a href="http://en.wikipedia.org/wiki/Yellowdog_Updater,_Modified">Yum</a> + <a href="https://metacpan.org/pod/cpanm">cpanminus</a></h4>
+<h4 id="cpanminus"><a href="http://en.wikipedia.org/wiki/Yellowdog_Updater,_Modified">Yum</a> + <a href="https://metacpan.org/pod/cpanm">cpanminus</a></h4>
 
 <ul>
   <li>Yum: <code>sudo yum install perl-devel perl-CPAN \<br />
@@ -135,7 +142,7 @@ from your typical <a href="http://guides.rubyonrails.org/migrations.html">migrat
 
 <h2 id="getting-started">Getting Started</h2>
 
-<h4>Tutorials</h4>
+<h4 id="tutorials">Tutorials</h4>
 
 <p>The documentation includes an tutorial for each database engine demonstrating the creation, development, and maintenance of a database with Sqitch.</p>
 
@@ -148,13 +155,13 @@ from your typical <a href="http://guides.rubyonrails.org/migrations.html">migrat
   <li><a href="https://metacpan.org/module/sqitchtutorial-vertica">Vertica tutorial</a></li>
 </ul>
 
-<h4><a href="https://groups.google.com/forum/#!forum/sqitch-users">Mail List</a></h4>
+<h4 id="maillist"><a href="https://groups.google.com/forum/#!forum/sqitch-users">Mail List</a></h4>
 
 <p>Need help? <a href="mailto:sqitch-users+subscribe@googlegroups.com">subscribe to the mail list</a>.
 
 <h2 id="presentation">Presentations</h2>
 
-<h3>Sane Database Change Management with Sqitch</h3>
+<h3 id="sane">Sane Database Change Management with Sqitch</h3>
 
 <p>A one hour technical introduction to Sqitch, with detailed usage examples to help get you started.</p>
 
@@ -164,7 +171,7 @@ from your typical <a href="http://guides.rubyonrails.org/migrations.html">migrat
   <li><a href="https://speakerdeck.com/theory/sane-database-change-management-with-sqitch">Speaker Deck</a></li>
 </ul>
 
-<h3>Agile Database Development</h3>
+<h3 id="agile">Agile Database Development</h3>
 
 <p>Three hour technical tutorial <a href="http://www.pgcon.org/2013/schedule/events/615.en.html">originally presented at PGCon 2013</a> and updated in January 2014, covering source code control with <a href="http://git-scm.org/">Git</a>, database change control with Sqitch, and test-driven database development with <a href="http://pgtap.org/">pgTAP</a>.</p>
 
