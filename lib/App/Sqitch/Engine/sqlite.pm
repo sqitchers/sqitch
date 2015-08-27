@@ -141,6 +141,8 @@ has _sqlite3 => (
 
 sub sqlite3 { @{ shift->_sqlite3 } }
 
+sub _version_query { 'SELECT CAST(ROUND(MAX(version), 1) AS TEXT) FROM releases' }
+
 sub initialized {
     my $self = shift;
     return $self->dbh->selectcol_arrayref(q{
