@@ -72,6 +72,7 @@ sub list {
 sub _target {
     my ($self, $engine, $name) = @_;
     my $target = $self->properties->{target} || $name || return;
+    my $config = $self->sqitch->config;
 
     if ($target =~ /:/) {
         # It's  URI. Return it if it uses the proper engine.
@@ -85,7 +86,7 @@ sub _target {
     }
 
     # Otherwise, it needs to be a known target from the config.
-    return $target if $self->config->get(key => "target.$target.uri");
+    return $target if $config->get(key => "target.$target.uri");
     hurl engine => __x(
         'Unknown target "{target}"',
         target => $target
