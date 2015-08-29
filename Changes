@@ -6,6 +6,8 @@ Revision history for Perl extension App::Sqitch
      - Fixed floating-point rounding issue with SQLite registry versions on
        Perls with 16-byte doubles. Thanks to H. Merijn Brand for the report
        and testing.
+     - Fixed an error when adding an engine with the `engine` command. Thanks
+       to Victor Mours for the report and fix!
 
 0.9993  2015-08-17T17:55:26Z
      [Bug Fixes]
