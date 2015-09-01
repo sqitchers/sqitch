@@ -91,7 +91,7 @@ Sqitch and its dependencies:
     dzil install
 
 To run Sqitch directly from the Git clone execute `t/sqitch`. If you're doing
-development on Sqitch, you will need to install the autoring dependencies, as
+development on Sqitch, you will need to install the authoring dependencies, as
 well:
 
     dzil listdeps | xargs cpan
