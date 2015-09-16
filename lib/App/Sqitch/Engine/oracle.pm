@@ -667,16 +667,22 @@ sub _script {
         $conn .= qq{/"$pass"};
     }
     if (my $db = $uri->dbname) {
-        $conn .= '@';
-        $db =~ s/"/""/g;
-        if ($uri->host || $uri->_port) {
-            $conn .= '//' . ($uri->host || '');
-            if (my $port = $uri->_port) {
-                $conn .= ":$port";
+        if ( ( ! $conn ) and ( ! $uri->host ) ) {
+            # OS authentication or Oracle wallet (no username or password)
+            $conn = '/@' . $uri->dbname;
+		}
+		else {
+            $conn .= '@';
+            $db =~ s/"/""/g;
+            if ($uri->host || $uri->_port) {
+                $conn .= '//' . ($uri->host || '');
+                if (my $port = $uri->_port) {
+                    $conn .= ":$port";
+                }
+                $conn .= qq{/"$db"};
+            } else {
+                $conn .= qq{"$db"};
             }
-            $conn .= qq{/"$db"};
-        } else {
-            $conn .= qq{"$db"};
         }
     }
     my %vars = $self->variables;
@@ -702,16 +708,16 @@ sub _run {
 sub _capture {
     my $self = shift;
     my $conn = $self->_script(@_);
-    my @out;
+    my (@out, @err);
 
     require IPC::Run3;
     IPC::Run3::run3(
-        [$self->sqlplus], \$conn, \@out, undef,
+        [$self->sqlplus], \$conn, \@out, \@err,
         { return_if_system_error => 1 },
     );
-    if (my $err = $?) {
+    if (my $err = $? or @err) { 
         # Ugh, send everything to STDERR.
-        $self->sqitch->vent(@out);
+        $self->sqitch->vent(@out, @err);
         hurl io => __x(
             '{command} unexpectedly returned exit value {exitval}',
             command => $self->client,
