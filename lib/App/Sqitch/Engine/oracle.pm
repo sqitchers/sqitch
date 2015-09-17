@@ -708,16 +708,16 @@ sub _run {
 sub _capture {
     my $self = shift;
     my $conn = $self->_script(@_);
-    my (@out, @err);
+    my @out;
 
     require IPC::Run3;
     IPC::Run3::run3(
-        [$self->sqlplus], \$conn, \@out, \@err,
+        [$self->sqlplus], \$conn, \@out, undef,
         { return_if_system_error => 1 },
     );
-    if (my $err = $? or @err) { 
+    if (my $err = $?) {
         # Ugh, send everything to STDERR.
-        $self->sqitch->vent(@out, @err);
+        $self->sqitch->vent(@out);
         hurl io => __x(
             '{command} unexpectedly returned exit value {exitval}',
             command => $self->client,
