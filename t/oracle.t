@@ -294,7 +294,7 @@ is join('', <$fh> ), $ora->_script(qw(foo bar baz)),
 
 ok $ora->_capture(qw(foo bar baz)), 'Call _capture';
 is_deeply \@capture, [
-    [$ora->sqlplus], \$ora->_script(qw(foo bar baz)), [], undef,
+    [$ora->sqlplus], \$ora->_script(qw(foo bar baz)), [],
     { return_if_system_error => 1 },
 ], 'Command and script should be passed to run3()';
 

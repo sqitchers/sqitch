@@ -715,7 +715,7 @@ sub _capture {
 
     require IPC::Run3;
     IPC::Run3::run3(
-        [$self->sqlplus], \$conn, \@out, undef,
+        [$self->sqlplus], \$conn, \@out, @out,
         { return_if_system_error => 1 },
     );
     if (my $err = $?) {
