@@ -661,18 +661,16 @@ sub _no_column_error  {
 sub _script {
     my $self = shift;
     my $uri  = $self->uri;
-    my $conn = $self->username // '';
-    if (my $pass = $self->password) {
-        $pass =~ s/"/""/g;
-        $conn .= qq{/"$pass"};
-    }
-    if (my $db = $uri->dbname) {
-        $db =~ s/"/""/g;
-        if ( !$uri->authority ) {
-            # OS authentication or Oracle wallet (no username or password).
-            $conn = qq{/"$db"};
-		} else {
+    my $conn = '';
+    if ($uri->authority) {
+        $conn = $self->username // '';
+        if (my $pass = $self->password) {
+            $pass =~ s/"/""/g;
+            $conn .= qq{/"$pass"};
+        }
+        if (my $db = $uri->dbname) {
             $conn .= '@';
+            $db =~ s/"/""/g;
             if ($uri->host || $uri->_port) {
                 $conn .= '//' . ($uri->host || '');
                 if (my $port = $uri->_port) {
@@ -682,6 +680,12 @@ sub _script {
             } else {
                 $conn .= qq{"$db"};
             }
+        }
+    } else {
+        # OS authentication or Oracle wallet (no username or password).
+        if (my $db = $uri->dbname) {
+            $db =~ s/"/""/g;
+            $conn = qq{/"$db"};
         }
     }
     my %vars = $self->variables;
