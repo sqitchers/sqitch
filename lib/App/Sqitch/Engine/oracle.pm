@@ -667,12 +667,12 @@ sub _script {
         $conn .= qq{/"$pass"};
     }
     if (my $db = $uri->dbname) {
-        if ( $conn && !$uri->host ) {
+        $db =~ s/"/""/g;
+        if ( !$uri->authority ) {
             # OS authentication or Oracle wallet (no username or password).
-            $conn = '/@' . $uri->dbname;
+            $conn = qq{/"$db"};
 		} else {
             $conn .= '@';
-            $db =~ s/"/""/g;
             if ($uri->host || $uri->_port) {
                 $conn .= '//' . ($uri->host || '');
                 if (my $port = $uri->_port) {
