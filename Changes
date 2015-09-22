@@ -8,6 +8,9 @@ Revision history for Perl extension App::Sqitch
        and testing.
      - Fixed an error when adding an engine with the `engine` command. Thanks
        to Victor Mours for the report and fix!
+     - Updated the Google engine to support Oracle Wallet connection strings,
+       where no username or host is in the connection URI. Thanks to Timothy
+       Procter for the patch!
 
 0.9993  2015-08-17T17:55:26Z
      [Bug Fixes]
