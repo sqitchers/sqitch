@@ -662,18 +662,21 @@ sub _script {
     my $self = shift;
     my $uri  = $self->uri;
     my $conn = '';
-    if ($self->username || $self->password || $uri->host || $uri->_port) {
-        $conn = $self->username // '';
-        if (my $pass = $self->password) {
+    my ($user, $pass, $host, $port) = (
+        $self->username, $self->password, $uri->host, $uri->_port
+    );
+    if ($user || $pass || $host || $port) {
+        $conn = $user // '';
+        if ($pass) {
             $pass =~ s/"/""/g;
             $conn .= qq{/"$pass"};
         }
         if (my $db = $uri->dbname) {
             $conn .= '@';
             $db =~ s/"/""/g;
-            if ($uri->host || $uri->_port) {
-                $conn .= '//' . ($uri->host || '');
-                if (my $port = $uri->_port) {
+            if ($host || $port) {
+                $conn .= '//' . ($host || '');
+                if ($port) {
                     $conn .= ":$port";
                 }
                 $conn .= qq{/"$db"};
