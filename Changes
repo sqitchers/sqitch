@@ -11,6 +11,10 @@ Revision history for Perl extension App::Sqitch
      - Updated the Google engine to support Oracle Wallet connection strings,
        where no username or host is in the connection URI. Thanks to Timothy
        Procter for the patch!
+     - Improved the installer's selection of the prefix in which to install
+       `etc` files to better match the `--installdirs` option, which defaults
+       to the "site" directories. Thanks to @carragom for the pull request
+       (#265).
 
 0.9993  2015-08-17T17:55:26Z
      [Bug Fixes]
