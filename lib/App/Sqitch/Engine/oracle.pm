@@ -662,7 +662,7 @@ sub _script {
     my $self = shift;
     my $uri  = $self->uri;
     my $conn = '';
-    if ($uri->authority) {
+    if ($self->username || $self->password || $uri->host || $uri->_port) {
         $conn = $self->username // '';
         if (my $pass = $self->password) {
             $pass =~ s/"/""/g;
@@ -685,7 +685,7 @@ sub _script {
         # OS authentication or Oracle wallet (no username or password).
         if (my $db = $uri->dbname) {
             $db =~ s/"/""/g;
-            $conn = qq{/"$db"};
+            $conn = qq{/@"$db"};
         }
     }
     my %vars = $self->variables;

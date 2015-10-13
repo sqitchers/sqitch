@@ -183,6 +183,47 @@ is $ora->_script, join( "\n" => (
     $ora->_registry_variable,
 ) ), '_script should assemble connection string with host, port, and vars';
 
+# Try a URI with nothing but the database name.
+$target = App::Sqitch::Target->new(
+    sqitch => $sqitch,
+    uri    => URI::db->new('db:oracle:secure_user_tns.tpg'),
+);
+is $target->uri->dbi_dsn, 'dbi:Oracle:secure_user_tns.tpg',
+    'Database-only URI should produce proper DSN';
+isa_ok $ora = $CLASS->new(
+    sqitch => $sqitch,
+    target => $target,
+), $CLASS;
+is $ora->_script('@foo'), join( "\n" => (
+    'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF',
+    'WHENEVER OSERROR EXIT 9;',
+    'WHENEVER SQLERROR EXIT SQL.SQLCODE;',
+    'connect /@"secure_user_tns.tpg"',
+    $ora->_registry_variable,
+    '@foo',
+) ), '_script should assemble connection string with just dbname';
+
+# Try a URI with double slash, but otherwise just the db name.
+$target = App::Sqitch::Target->new(
+    sqitch => $sqitch,
+    uri    => URI::db->new('db:oracle://:@/wallet_tns_name'),
+);
+is $target->uri->dbi_dsn, 'dbi:Oracle:wallet_tns_name',
+    'Database and double-slash URI should produce proper DSN';
+isa_ok $ora = $CLASS->new(
+    sqitch => $sqitch,
+    target => $target,
+), $CLASS;
+is $ora->_script('@foo'), join( "\n" => (
+    'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF',
+    'WHENEVER OSERROR EXIT 9;',
+    'WHENEVER SQLERROR EXIT SQL.SQLCODE;',
+    'connect /@"wallet_tns_name"',
+    $ora->_registry_variable,
+    '@foo',
+) ), '_script should assemble connection string with double-slash and dbname';
+
+
 ##############################################################################
 # Test other configs for the destination.
 $target = App::Sqitch::Target->new(sqitch => $sqitch);
