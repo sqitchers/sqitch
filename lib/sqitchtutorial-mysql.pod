@@ -34,7 +34,7 @@ Usually the first thing to do when starting a new project is to create a
 source code repository. So let's do that with Git:
 
   > mkdir flipr
-  > cd flipr 
+  > cd flipr
   > git init .
   Initialized empty Git repository in /flipr/.git/
   > touch README.md
@@ -279,13 +279,13 @@ from the registry database:
   # Name:     appuser
   # Deployed: 2013-12-31 13:13:17 -0800
   # By:       Marge N. O’Vera <marge@example.com>
-  # 
+  #
   Nothing to deploy (up-to-date)
 
 Let's make sure that we can revert the change:
 
   > sqitch revert db:mysql://root@/flipr_test
-  Revert all changes from db:mysql://root@/flipr_test? [Yes] 
+  Revert all changes from db:mysql://root@/flipr_test? [Yes]
     - appuser .. ok
 
 The L<C<revert>|sqitch-revert> command first prompts to make sure that we
@@ -366,7 +366,7 @@ When we look at the status, the deployment will be there:
   # Name:     appuser
   # Deployed: 2013-12-31 13:28:23 -0800
   # By:       Marge N. O’Vera <marge@example.com>
-  # 
+  #
   Nothing to deploy (up-to-date)
 
 =head1 On Target
@@ -399,7 +399,7 @@ simpler from here on in, e.g.:
   # Name:     appuser
   # Deployed: 2013-12-31 13:28:23 -0800
   # By:       Marge N. O’Vera <marge@example.com>
-  # 
+  #
   Nothing to deploy (up-to-date)
 
 Yay, that allows things to be a little more concise. Let's also make sure that
@@ -505,7 +505,7 @@ Now have a look at the status:
   # Name:     users
   # Deployed: 2013-12-31 13:34:25 -0800
   # By:       Marge N. O’Vera <marge@example.com>
-  # 
+  #
   Nothing to deploy (up-to-date)
 
 Success! Let's make sure we can revert the change, as well:
@@ -544,7 +544,7 @@ undeployed changes:
   # Name:     appuser
   # Deployed: 2013-12-31 13:28:23 -0800
   # By:       Marge N. O’Vera <marge@example.com>
-  # 
+  #
   Undeployed change:
     * users
 
@@ -583,7 +583,7 @@ Looks good. Check the status:
   # Name:     users
   # Deployed: 2013-12-31 13:37:02 -0800
   # By:       Marge N. O’Vera <marge@example.com>
-  # 
+  #
   Nothing to deploy (up-to-date)
 
 Excellent. Let's do some more!
@@ -718,7 +718,7 @@ something like:
   -- Revert flipr:change_pass from mysql
   BEGIN;
   DROP FUNCTION change_pass;
-  REVERT;
+  COMMIT;
 
 Try em out!
 
@@ -747,7 +747,7 @@ And what's the status?
   # Name:     change_pass
   # Deployed: 2013-12-31 13:39:49 -0800
   # By:       Marge N. O’Vera <marge@example.com>
-  # 
+  #
   Nothing to deploy (up-to-date)
 
 Looks good. Let's make sure revert works:
@@ -784,7 +784,7 @@ the last deployed change. Looks good. Let's do the commit and re-deploy dance:
   # Name:     change_pass
   # Deployed: 2013-12-31 13:40:40 -0800
   # By:       Marge N. O’Vera <marge@example.com>
-  # 
+  #
   Nothing to deploy (up-to-date)
 
   > sqitch verify
@@ -859,7 +859,7 @@ C<@v1.0.0-dev1>. Let's have a look at the status:
   # Tag:      @v1.0.0-dev1
   # Deployed: 2013-12-31 13:44:04 -0800
   # By:       Marge N. O’Vera <marge@example.com>
-  # 
+  #
   Nothing to deploy (up-to-date)
 
 Looks good, eh? Go ahead and revert it:
@@ -953,10 +953,10 @@ Look good?
   # Name:     flips
   # Deployed: 2013-12-31 13:55:04 -0800
   # By:       Marge N. O’Vera <marge@example.com>
-  # 
+  #
   # Tag:
   #   @v1.0.0-dev1 - 2013-12-31 13:55:04 -0800 - Marge N. O’Vera <marge@example.com>
-  # 
+  #
   Nothing to deploy (up-to-date)
 
 Note the use of C<--show tags> to show all the deployed tags. Now make it so:
@@ -1083,10 +1083,10 @@ should end up looking something like this:
   # Name:     delete_flip
   # Deployed: 2013-12-31 13:58:54 -0800
   # By:       Marge N. O’Vera <marge@example.com>
-  # 
+  #
   # Tag:
   #   @v1.0.0-dev1 - 2013-12-31 13:55:04 -0800 - Marge N. O’Vera <marge@example.com>
-  # 
+  #
   Nothing to deploy (up-to-date)
 
 Good, we've finished this feature. Time to merge back into C<master>.
@@ -1496,9 +1496,9 @@ scripts drop and re-create the functions with to use C<ENCRYPT()>. Make this
 change to F<deploy/insert_user.sql>:
 
   @@ -6,13 +6,14 @@ BEGIN;
- 
+
    DELIMITER //
- 
+
   +DROP PROCEDURE insert_user;
    CREATE PROCEDURE insert_user(
        nickname VARCHAR(512),
@@ -1510,14 +1510,14 @@ change to F<deploy/insert_user.sql>:
   +    VALUES (nickname, ENCRYPT(md5(password), md5(FLOOR(RAND() * 0xFFFFFFFF))), UTC_TIMESTAMP(6));
    END
    //
- 
+
 We just need to add the C<DROP> statement to the revert script,
 F<revert/insert_user.sql>:
 
   @@ -6,6 +6,7 @@ BEGIN;
- 
+
    DELIMITER //
- 
+
   +DROP PROCEDURE insert_user;
    CREATE PROCEDURE insert_user(
        nickname VARCHAR(512),
@@ -1535,9 +1535,9 @@ Go ahead and rework the C<change_pass> change, too:
 And make this change to F<deploy/change_pass.sql>:
 
   @@ -6,6 +6,7 @@ BEGIN;
- 
+
    DELIMITER //
- 
+
   +DROP FUNCTION change_pass;
    CREATE FUNCTION change_pass(
        nickname VARCHAR(512),
@@ -1558,9 +1558,9 @@ And make this change to F<deploy/change_pass.sql>:
 And add the C<DROP FUNCTION> statement to its revert script, too:
 
   @@ -6,6 +6,7 @@ BEGIN;
- 
+
    DELIMITER //
- 
+
   +DROP FUNCTION change_pass;
    CREATE FUNCTION change_pass(
        nickname VARCHAR(512),
@@ -1673,7 +1673,7 @@ Excellent. Let's go ahead and commit these changes:
   # Name:     change_pass
   # Deployed: 2013-12-31 14:16:45 -0800
   # By:       Marge N. O’Vera <marge@example.com>
-  # 
+  #
   Nothing to deploy (up-to-date)
 
 =head1 More to Come
