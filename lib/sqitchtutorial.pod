@@ -36,7 +36,7 @@ Usually the first thing to do when starting a new project is to create a
 source code repository. So let's do that with Git:
 
   > mkdir flipr
-  > cd flipr 
+  > cd flipr
   > git init .
   Initialized empty Git repository in /flipr/.git/
   > touch README.md
@@ -394,7 +394,7 @@ changes are verified after deploying them:
 We'll see the L<C<rebase>|sqitch-rebase> command a bit later. In the meantime,
 let's commit the new configuration and and make some more changes!
 
-  > git commit -am 'Set default deployment target and always verify.'     
+  > git commit -am 'Set default deployment target and always verify.'
   [master a6267d3] Set default deployment target and always verify.
    1 file changed, 8 insertions(+)
 
@@ -678,7 +678,7 @@ something like:
   -- Revert flipr:change_pass from pg
   BEGIN;
   DROP FUNCTION flipr.change_pass(TEXT, TEXT, TEXT);
-  REVERT;
+  COMMIT;
 
 Try em out!
 
@@ -699,7 +699,7 @@ look:
 
 And what's the status?
 
-  > sqitch status 
+  > sqitch status
   # On database flipr_test
   # Project:  flipr
   # Change:   01a4f6964b89284525cb5877d222df8be70d1647
@@ -1155,7 +1155,7 @@ and rebase again:
 
 Ah, that looks a bit better. Let's have a look at the plan:
 
-  > cat sqitch.plan 
+  > cat sqitch.plan
   %syntax-version=1.0.0
   %project=flipr
   %uri=https://github.com/theory/sqitch-intro/
@@ -1247,7 +1247,7 @@ And now, finally, we can merge into C<master>:
 
 And double-check our work:
 
-  > cat sqitch.plan 
+  > cat sqitch.plan
   %syntax-version=1.0.0
   %project=flipr
   %uri=https://github.com/theory/sqitch-intro/
@@ -1275,7 +1275,7 @@ release:
   [master 230603b] Tag the database with v1.0.0-dev2.
    1 file changed, 1 insertion(+)
   > git tag v1.0.0-dev2 -am 'Tag v1.0.0-dev2'
-  > sqitch bundle --dest-dir flipr-1.0.0-dev2 
+  > sqitch bundle --dest-dir flipr-1.0.0-dev2
   Bundling into flipr-1.0.0-dev2
   Writing config
   Writing plan
@@ -1476,7 +1476,7 @@ F<deploy/insert_user.sql>:
 
 Go ahead and rework the C<change_pass> change, too:
 
-  > sqitch rework change_pass --requires pgcrypto -n 'Change change_pass to use pgcrypto.' 
+  > sqitch rework change_pass --requires pgcrypto -n 'Change change_pass to use pgcrypto.'
   Added "change_pass [change_pass@v1.0.0-dev2 pgcrypto]" to sqitch.plan.
   Modify these files as appropriate:
     * deploy/change_pass.sql

@@ -34,7 +34,7 @@ Usually the first thing to do when starting a new project is to create a
 source code repository. So let's do that with Git:
 
   > mkdir flipr
-  > cd flipr 
+  > cd flipr
   > git init .
   Initialized empty Git repository in /flipr/.git/
   > touch README.md
@@ -718,7 +718,7 @@ something like:
   -- Revert flipr:change_pass from mysql
   BEGIN;
   DROP FUNCTION change_pass;
-  REVERT;
+  COMMIT;
 
 Try em out!
 
