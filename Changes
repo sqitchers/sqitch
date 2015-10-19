@@ -15,6 +15,8 @@ Revision history for Perl extension App::Sqitch
        `etc` files to better match the `--installdirs` option, which defaults
        to the "site" directories. Thanks to @carragom for the pull request
        (#265).
+     - Added missing dash to `-engine` in sample calls to `sqitch init` in the
+       tutorials. Thanks to Andrew Dunstan for the spot (Issue #268).
 
 0.9993  2015-08-17T17:55:26Z
      [Bug Fixes]
