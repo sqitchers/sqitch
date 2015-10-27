@@ -127,7 +127,7 @@ These variables are useful if your database engine supports variables in
 scripts, such as PostgreSQL's
 L<C<psql> variables|http://www.postgresql.org/docs/current/static/app-psql.html#APP-PSQL-INTERPOLATION>,
 Vertica's
-L<C<vsql> variables|http://my.vertica.com/docs/7.1.x/HTML/index.htm#Authoring/ProgrammersGuide/vsql/Variables.htm>,
+L<C<vsql> variables|http://my.vertica.com/docs/7.1.x/HTML/index.htm#Authoring/ConnectingToHPVertica/vsql/Variables.htm>,
 and SQL*Plus's
 L<C<DEFINE> variables|http://docs.oracle.com/cd/B19306_01/server.102/b14357/ch12017.htm>.
 

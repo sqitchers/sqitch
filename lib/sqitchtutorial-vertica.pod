@@ -64,18 +64,18 @@ your local host):
   Locale = en_US
 
 See the
-L<Vertica ODBC Documentation|http://my.vertica.com/docs/7.1.x/HTML/index.htm#Authoring/ProgrammersGuide/InstallingDrivers/CreatingAnODBCDataSourceNameDSN.htm>
+L<Vertica ODBC Documentation|http://my.vertica.com/docs/7.1.x/HTML/index.htm#Authoring/ConnectingToHPVertica/InstallingDrivers/CreatingAnODBCDataSourceNameDSN.htm>
 for details. Specific links:
 
 =over
 
-=item * L<Unix ODBC Configuration|http://my.vertica.com/docs/7.1.x/HTML/index.htm#Authoring/ProgrammersGuide/InstallingDrivers/CreatingAnODBCDSNForLinuxSolarisAIXAndHP-UX.htm>
+=item * L<Unix ODBC Configuration|http://my.vertica.com/docs/7.1.x/HTML/index.htm#Authoring/ConnectingToHPVertica/InstallingDrivers/CreatingAnODBCDSNForLinuxSolarisAIXAndHP-UX.htm>
 
-=item * L<Additional Linux ODBC Configuration (C<vertica.ini>)|http://my.vertica.com/docs/7.1.x/HTML/index.htm#Authoring/ProgrammersGuide/ClientODBC/AdditionalODBCDriverConfigurationSettings.htm>
+=item * L<Additional Linux ODBC Configuration (C<vertica.ini>)|http://my.vertica.com/docs/7.1.x/HTML/index.htm#Authoring/ConnectingToHPVertica/ClientODBC/AdditionalODBCDriverConfigurationSettings.htm>
 
-=item * L<Windows ODBC Configuration|http://my.vertica.com/docs/7.1.x/HTML/index.htm#Authoring/ProgrammersGuide/InstallingDrivers/CreatingAnODBCDSNForWindowsClients.htm>
+=item * L<Windows ODBC Configuration|http://my.vertica.com/docs/7.1.x/HTML/index.htm#Authoring/ConnectingToHPVertica/InstallingDrivers/CreatingAnODBCDSNForWindowsClients.htm>
 
-=item * L<Mac OS X ODBC Configuration|http://my.vertica.com/docs/7.1.x/HTML/index.htm#Authoring/ProgrammersGuide/InstallingDrivers/CreatingAnODBCDSNForMacintoshOSXClients.htm>
+=item * L<Mac OS X ODBC Configuration|http://my.vertica.com/docs/7.1.x/HTML/index.htm#Authoring/ConnectingToHPVertica/InstallingDrivers/CreatingAnODBCDSNForMacintoshOSXClients.htm>
 
 =back
 
