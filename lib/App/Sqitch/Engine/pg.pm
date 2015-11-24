@@ -108,6 +108,7 @@ has dbh => (
             Callbacks         => {
                 connected => sub {
                     my $dbh = shift;
+                    $dbh->do('SET client_min_messages = WARNING');
                     try {
                         $dbh->do(
                             'SET search_path = ?',
