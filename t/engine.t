@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 615;
+use Test::More tests => 618;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -259,6 +259,18 @@ is $engine->registry_destination, $engine->destination,
 # Test _check_registry.
 can_ok $engine, '_check_registry';
 ok $engine->_check_registry, 'Registry should be fine at current version';
+
+# Make the registry non-existent.
+$registry_version = 0;
+$initialized = 0;
+throws_ok { $engine->_check_registry } 'App::Sqitch::X',
+    'Should get error for non-existent registry';
+is $@->ident, 'engine', 'Non-existent registry error ident should be "engine"';
+is $@->message, __x(
+    'No registry found in {destination}. Have you ever deployed?',
+    destination => $engine->registry_destination,
+), 'Non-existent registry error message should be correct';
+$engine->seen;
 
 # Make the registry out-of-date.
 $registry_version = 0.1;
@@ -2523,7 +2535,7 @@ is $engine->_trim_to('foo', $key, $to_trim), 2,
 is_deeply [ map { $_->id } @{ $to_trim } ], [ map { $_->id } @changes[2..$#changes] ],
     'First two changes should be shifted off';
 
-# Try poppipng nothing.
+# Try popping nothing.
 $to_trim  = [@changes];
 @resolved = ($changes[-1]->id);
 $key      = $changes[-1]->name;

@@ -980,6 +980,11 @@ sub _check_registry {
     return $self if $newver == $oldver;
 
     hurl engine => __x(
+        'No registry found in {destination}. Have you ever deployed?',
+        destination => $self->registry_destination,
+    ) if $oldver == 0 && !$self->initialized;
+
+    hurl engine => __x(
         'Registry version is {old} but {new} is the latest known. Please upgrade Sqitch',
         old => $oldver,
         new => $newver,

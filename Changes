@@ -18,6 +18,9 @@ Revision history for Perl extension App::Sqitch
      - Added missing dash to `-engine` in sample calls to `sqitch init` in the
        tutorials. Thanks to Andrew Dunstan for the spot (Issue #268).
      - Fixed broken Vertica documentation links.
+     - Attempting to revert a database with no associated registry no longer
+       reports the registry as version, but correctly reports that no registry
+       can be found. Thanks to Arnaldo Piccinelli for the spot (Issue #271).
 
 0.9993  2015-08-17T17:55:26Z
      [Bug Fixes]
