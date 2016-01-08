@@ -792,6 +792,38 @@ sub load_change {
     return $change;
 }
 
+sub _offset_op {
+    my ( $self, $offset ) = @_;
+    my ( $dir, $op ) = $offset > 0 ? ( 'ASC', '>' ) : ( 'DESC' , '<' );
+    $offset = abs($offset) - 1;
+    my $offset_expr = "OFFSET $offset";
+
+    # Some engines require LIMIT when there is an OFFSET.
+    if (my $lim = $self->_limit_default) {
+        return $dir, $op, $offset_expr, "LIMIT $lim ";
+    }
+    return $dir, $op, $offset_expr, '';
+}
+
+sub change_id_offset_from_id {
+    my ( $self, $change_id, $offset ) = @_;
+
+    # Just return the ID if there is no offset.
+    return $change_id unless $offset;
+
+    my ($dir, $op, $offset_expr, $limit_expr) = $self->_offset_op($offset);
+    return $self->dbh->selectcol_arrayref(qq{
+        SELECT change_id
+          FROM changes
+         WHERE project = ?
+           AND committed_at $op (
+               SELECT committed_at FROM changes WHERE change_id = ?
+         )
+         ORDER BY committed_at $dir
+         $limit_expr $offset_expr
+    }, undef, $self->plan->project, $change_id)->[0];
+}
+
 sub change_offset_from_id {
     my ( $self, $change_id, $offset ) = @_;
 
@@ -799,20 +831,9 @@ sub change_offset_from_id {
     return $self->load_change($change_id) unless $offset;
 
     # Are we offset forwards or backwards?
-    my ( $dir, $op ) = $offset > 0 ? ( 'ASC', '>' ) : ( 'DESC' , '<' );
+    my ($dir, $op, $offset_expr, $limit_expr) = $self->_offset_op($offset);
     my $tscol  = sprintf $self->_ts2char_format, 'c.planned_at';
     my $tagcol = sprintf $self->_listagg_format, 't.tag';
-
-    $offset = abs($offset) - 1;
-    my ($offset_expr, $limit_expr) = ('', '');
-    if ($offset) {
-        $offset_expr = "OFFSET $offset";
-
-        # Some engines require LIMIT when there is an OFFSET.
-        if (my $lim = $self->_limit_default) {
-            $limit_expr = "LIMIT $lim ";
-        }
-    }
 
     my $change = $self->dbh->selectrow_hashref(qq{
         SELECT c.change_id AS id, c.change AS name, c.project, c.note,
@@ -1029,6 +1050,8 @@ DBI-powered engines.
 =head3 C<load_change>
 
 =head3 C<change_offset_from_id>
+
+=head3 C<change_id_offset_from_id>
 
 =head3 C<change_id_for>
 

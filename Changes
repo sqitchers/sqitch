@@ -21,6 +21,13 @@ Revision history for Perl extension App::Sqitch
      - Attempting to revert a database with no associated registry no longer
        reports the registry as version, but correctly reports that no registry
        can be found. Thanks to Arnaldo Piccinelli for the spot (Issue #271).
+     - Fixed engine change ID search to match change search, in that it
+       properly handles the offset characters, `~` and `^`. This bug mainly
+       affected the verify command, but it's good to address the
+       inconsistency, done mainly by adding the `find_change_id` and
+       `change_id_offset_from_id` methods to complement the `find_change` and
+       `change_offset_from_id` methods. Thanks to Andrew Dunstan for the spot
+       (Issue #272).
 
 0.9993  2015-08-17T17:55:26Z
      [Bug Fixes]

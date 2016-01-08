@@ -343,6 +343,29 @@ sub name_for_change_id {
     }, undef, $change_id)->[0];
 }
 
+sub change_id_offset_from_id {
+    my ( $self, $change_id, $offset ) = @_;
+
+    # Just return the ID if there is no offset.
+    return $change_id unless $offset;
+
+    # Are we offset forwards or backwards?
+    my ( $dir, $op ) = $offset > 0 ? ( 'ASC', '>' ) : ( 'DESC' , '<' );
+    return $self->dbh->selectcol_arrayref(qq{
+        SELECT id FROM (
+            SELECT id, rownum AS rnum FROM (
+                SELECT change_id AS id
+                  FROM changes
+                 WHERE project = ?
+                   AND committed_at $op (
+                       SELECT committed_at FROM changes WHERE change_id = ?
+                 )
+                 ORDER BY committed_at $dir
+            )
+        ) WHERE rnum = ?
+    }, undef, $self->plan->project, $change_id, abs $offset)->[0];
+}
+
 sub change_offset_from_id {
     my ( $self, $change_id, $offset ) = @_;
 

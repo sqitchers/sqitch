@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 618;
+use Test::More tests => 639;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -72,6 +72,7 @@ ENGINE: {
     sub are_deployed_changes { shift; push @SEEN => [ are_deployed_changes  => [@_] ]; @deployed_change_ids }
     sub change_id_for      { shift; push @SEEN => [ change_id_for => {@_} ]; shift @resolved }
     sub change_offset_from_id { shift; push @SEEN => [ change_offset_from_id => [@_] ]; $offset_change }
+    sub change_id_offset_from_id { shift; push @SEEN => [ change_id_offset_from_id => [@_] ]; $_[0] }
     sub changes_requiring_change { push @SEEN => [ changes_requiring_change => $_[1] ]; @{ shift @requiring } }
     sub earliest_change_id { push @SEEN => [ earliest_change_id  => $_[1] ]; $earliest_change_id }
     sub latest_change_id   { push @SEEN => [ latest_change_id    => $_[1] ]; $latest_change_id }
@@ -331,6 +332,7 @@ for my $abs (qw(
     search_events
     registered_projects
     change_offset_from_id
+    change_id_offset_from_id
 )) {
     throws_ok { $engine->$abs } qr/\Q$CLASS has not implemented $abs()/,
         "Should get an unimplemented exception from $abs()"
@@ -2147,6 +2149,42 @@ is_deeply $engine->seen, [
 ], 'Project and offset should have been passed off';
 
 ##############################################################################
+# Test find_change_id().
+can_ok $CLASS, 'find_change_id';
+push @resolved => $dbchanges[1]->id;
+is $engine->find_change_id(
+    change_id => $resolved[0],
+    change    => 'hi',
+    tag       => 'yo',
+), $dbchanges[1]->id, 'find_change_id() should work';
+is_deeply $engine->seen, [
+    [change_id_for => {
+        change_id => $dbchanges[1]->id,
+        change    => 'hi',
+        tag       => 'yo',
+        project   => 'sql',
+    }],
+    [change_id_offset_from_id => [ $dbchanges[1]->id, undef ]],
+], 'Its parameters should have been passed to change_id_for and change_offset_from_id';
+
+# Pass a project and an ofset.
+push @resolved => $dbchanges[1]->id;
+is $engine->find_change_id(
+    change    => 'hi',
+    offset    => 1,
+    project   => 'fred',
+), $dbchanges[1]->id, 'find_change_id() should work';
+is_deeply $engine->seen, [
+    [change_id_for => {
+        change_id => undef,
+        change    => 'hi',
+        tag       => undef,
+        project   => 'fred',
+    }],
+    [change_id_offset_from_id => [ $dbchanges[1]->id, 1 ]],
+], 'Project and offset should have been passed off';
+
+##############################################################################
 # Test verify_change().
 can_ok $CLASS, 'verify_change';
 $change = App::Sqitch::Plan::Change->new( name => 'users', plan => $target->plan );
@@ -2497,6 +2535,14 @@ is $@->message, __x(
     'Cannot find "{change}" in the database or the plan',
     change => 'nonexistent',
 ), '_trim_to nonexistent key error message should be correct';
+is_deeply $engine->seen, [
+    [ change_id_for => {
+        change => 'nonexistent',
+        change_id => undef,
+        project => 'sql',
+        tag => undef,
+    } ]
+], 'It should have passed the change name to change_id_for';
 
 # Should get an error when it's in the plan but not the database.
 throws_ok { $engine->_trim_to( 'yep', 'blah', [] ) } 'App::Sqitch::X',
@@ -2506,6 +2552,14 @@ is $@->message, __x(
     'Change "{change}" has not been deployed',
     change => 'blah',
 ), '_trim_to undeployed change error message should be correct';
+is_deeply $engine->seen, [
+    [ change_id_for => {
+        change => 'blah',
+        change_id => undef,
+        project => 'sql',
+        tag => undef,
+    } ]
+], 'It should have passed change "blah" change_id_for';
 
 # Should get an error when it's deployed but not in the plan.
 @resolved = ('whatever');
@@ -2516,6 +2570,15 @@ is $@->message, __x(
     'Change "{change}" is deployed, but not planned',
     change => 'whatever',
 ), '_trim_to unplanned change error message should be correct';
+is_deeply $engine->seen, [
+    [ change_id_for => {
+        change => 'whatever',
+        change_id => undef,
+        project => 'sql',
+        tag => undef,
+    } ],
+    [ change_id_offset_from_id => ['whatever', 0]],
+], 'It should have passed "whatever" to change_id_offset_from_id';
 
 # Let's mess with changes. Start by shifting nothing.
 my $to_trim = [@changes];
@@ -2525,6 +2588,15 @@ is $engine->_trim_to('foo', $key, $to_trim), 0,
     qq{_trim_to should find "$key" at index 0};
 is_deeply [ map { $_->id } @{ $to_trim } ], [ map { $_->id } @changes ],
     'Changes should be untrimmed';
+is_deeply $engine->seen, [
+    [ change_id_for => {
+        change => $key,
+        change_id => undef,
+        project => 'sql',
+        tag => undef,
+    } ],
+    [ change_id_offset_from_id => [$changes[0]->id, 0]],
+], 'It should have passed change 0 ID to change_id_offset_from_id';
 
 # Try shifting to the third change.
 $to_trim  = [@changes];
@@ -2534,6 +2606,15 @@ is $engine->_trim_to('foo', $key, $to_trim), 2,
     qq{_trim_to should find "$key" at index 2};
 is_deeply [ map { $_->id } @{ $to_trim } ], [ map { $_->id } @changes[2..$#changes] ],
     'First two changes should be shifted off';
+is_deeply $engine->seen, [
+    [ change_id_for => {
+        change => $key,
+        change_id => undef,
+        project => 'sql',
+        tag => undef,
+    } ],
+    [ change_id_offset_from_id => [$changes[2]->id, 0]],
+], 'It should have passed change 2 ID to change_id_offset_from_id';
 
 # Try popping nothing.
 $to_trim  = [@changes];
@@ -2543,6 +2624,15 @@ is $engine->_trim_to('foo', $key, $to_trim, 1), $#changes,
     qq{_trim_to should find "$key" at last index};
 is_deeply [ map { $_->id } @{ $to_trim } ], [ map { $_->id } @changes ],
     'Changes should be untrimmed';
+is_deeply $engine->seen, [
+    [ change_id_for => {
+        change => $key,
+        change_id => undef,
+        project => 'sql',
+        tag => undef,
+    } ],
+    [ change_id_offset_from_id => [$changes[-1]->id, 0]],
+], 'It should have passed change -1 ID to change_id_offset_from_id';
 
 # Try shifting to the third-to-last change.
 $to_trim  = [@changes];
@@ -2552,6 +2642,47 @@ is $engine->_trim_to('foo', $key, $to_trim, 1), 4,
     qq{_trim_to should find "$key" at index 4};
 is_deeply [ map { $_->id } @{ $to_trim } ], [ map { $_->id } @changes[0..$#changes-2] ],
     'Last two changes should be popped off';
+is_deeply $engine->seen, [
+    [ change_id_for => {
+        change => $key,
+        change_id => undef,
+        project => 'sql',
+        tag => undef,
+    } ],
+    [ change_id_offset_from_id => [$changes[-3]->id, 0]],
+], 'It should have passed change -3 ID to change_id_offset_from_id';
+
+# ^ should be handled relative to deployed changes.
+$to_trim  = [@changes];
+@resolved = ($changes[-3]->id);
+$key      = $changes[-4]->name;
+is $engine->_trim_to('foo', "$key^", $to_trim, 1), 4,
+    qq{_trim_to should find "$key^" at index 4};
+is_deeply $engine->seen, [
+    [ change_id_for => {
+        change => $key,
+        change_id => undef,
+        project => 'sql',
+        tag => undef,
+    } ],
+    [ change_id_offset_from_id => [$changes[-3]->id, -1]],
+], 'Should pass change -3 ID and offset -1 to change_id_offset_from_id';
+
+# ~ should be handled relative to deployed changes.
+$to_trim  = [@changes];
+@resolved = ($changes[-3]->id);
+$key      = $changes[-2]->name;
+is $engine->_trim_to('foo', "$key~", $to_trim, 1), 4,
+    qq{_trim_to should find "$key~" at index 4};
+is_deeply $engine->seen, [
+    [ change_id_for => {
+        change => $key,
+        change_id => undef,
+        project => 'sql',
+        tag => undef,
+    } ],
+    [ change_id_offset_from_id => [$changes[-3]->id, 1]],
+], 'Should pass change -3 ID and offset 1 to change_id_offset_from_id';
 
 # @HEAD and HEAD should be handled relative to deployed changes, not the plan.
 $to_trim  = [@changes];
@@ -2561,6 +2692,15 @@ is $engine->_trim_to('foo', $key, $to_trim), 2,
     qq{_trim_to should find "$key" at index 2};
 is_deeply [ map { $_->id } @{ $to_trim } ], [ map { $_->id } @changes[2..$#changes] ],
     'First two changes should be shifted off';
+is_deeply $engine->seen, [
+    [ change_id_for => {
+        change => '',
+        change_id => undef,
+        project => 'sql',
+        tag => 'HEAD',
+    } ],
+    [ change_id_offset_from_id => [$changes[2]->id, 0]],
+], 'Should pass tag HEAD to change_id_for';
 
 $to_trim  = [@changes];
 @resolved = ($changes[2]->id);
@@ -2569,6 +2709,15 @@ is $engine->_trim_to('foo', $key, $to_trim), 2,
     qq{_trim_to should find "$key" at index 2};
 is_deeply [ map { $_->id } @{ $to_trim } ], [ map { $_->id } @changes[2..$#changes] ],
     'First two changes should be shifted off';
+is_deeply $engine->seen, [
+    [ change_id_for => {
+        change => undef,
+        change_id => undef,
+        project => 'sql',
+        tag => '@HEAD',
+    } ],
+    [ change_id_offset_from_id => [$changes[2]->id, 0]],
+], 'Should pass tag @HEAD to change_id_for';
 
 # @ROOT and ROOT should be handled relative to deployed changes, not the plan.
 $to_trim  = [@changes];
@@ -2578,6 +2727,15 @@ is $engine->_trim_to('foo', $key, $to_trim, 1), 2,
     qq{_trim_to should find "$key" at index 2};
 is_deeply [ map { $_->id } @{ $to_trim } ], [ map { $_->id } @changes[0,1,2] ],
     'All but First three changes should be popped off';
+is_deeply $engine->seen, [
+    [ change_id_for => {
+        change => '',
+        change_id => undef,
+        project => 'sql',
+        tag => 'ROOT',
+    } ],
+    [ change_id_offset_from_id => [$changes[2]->id, 0]],
+], 'Should pass tag ROOT to change_id_for';
 
 $to_trim  = [@changes];
 @resolved = ($changes[2]->id);
@@ -2586,6 +2744,15 @@ is $engine->_trim_to('foo', $key, $to_trim, 1), 2,
     qq{_trim_to should find "$key" at index 2};
 is_deeply [ map { $_->id } @{ $to_trim } ], [ map { $_->id } @changes[0,1,2] ],
     'All but First three changes should be popped off';
+is_deeply $engine->seen, [
+    [ change_id_for => {
+        change => undef,
+        change_id => undef,
+        project => 'sql',
+        tag => '@ROOT',
+    } ],
+    [ change_id_offset_from_id => [$changes[2]->id, 0]],
+], 'Should pass tag @ROOT to change_id_for';
 
 ##############################################################################
 # Test _verify_changes().
