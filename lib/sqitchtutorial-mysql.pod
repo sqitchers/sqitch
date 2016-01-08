@@ -899,14 +899,14 @@ You know the drill by now. Edit F<deploy/flips.sql>:
 
   BEGIN;
 
-  SET client_min_messages = 'warning';
-
-  CREATE TABLE flipr.flips (
-      id        BIGSERIAL   PRIMARY KEY,
-      nickname  TEXT        NOT NULL REFERENCES flipr.users(nickname),
-      body      TEXT        NOT NULL DEFAULT '' CHECK ( length(body) <= 180 ),
-      timestamp TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp()
+  CREATE TABLE flips (
+      id        BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+      nickname  VARCHAR(512) NOT NULL REFERENCES users(nickname),
+      body      VARCHAR(180) NOT NULL,
+      timestamp DATETIME(6)  NOT NULL
   );
+
+  GRANT SELECT ON TABLE flips TO flipr;
 
   COMMIT;
 
@@ -931,7 +931,7 @@ And edit F<revert/flips.sql>:
 
   BEGIN;
 
-  DROP TABLE flipr.flips;
+  DROP TABLE flips;
 
   COMMIT;
 
