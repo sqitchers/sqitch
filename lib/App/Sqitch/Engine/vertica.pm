@@ -366,7 +366,7 @@ sub change_id_offset_from_id {
     my ( $self, $change_id, $offset ) = @_;
 
     # Just return the ID if there is no offset.
-    return $self->load_change($change_id) unless $offset;
+    return $change_id unless $offset;
 
     # Are we offset forwards or backwards?
     my ($dir, $op, $offset_expr) = $self->_offset_op($offset);
