@@ -583,7 +583,7 @@ sub change_id_offset_from_id {
 
     my ($dir, $op, $offset_expr) = $self->_offset_op($offset);
     return $self->dbh->selectcol_arrayref(qq{
-        SELECT $offset_expr change_id AS "id"
+        SELECT FIRST 1 $offset_expr change_id AS "id"
           FROM changes
          WHERE project = ?
            AND committed_at $op (
@@ -605,7 +605,7 @@ sub change_offset_from_id {
     my $tagcol = sprintf $self->_listagg_format, 't.tag';
 
     my $change = $self->dbh->selectrow_hashref(qq{
-        SELECT $offset_expr
+        SELECT FIRST 1 $offset_expr
                c.change_id AS "id", c.change AS name, c.project, c.note,
                $tscol AS "timestamp", c.planner_name, c.planner_email,
                $tagcol AS tags

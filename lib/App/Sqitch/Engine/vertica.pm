@@ -378,7 +378,7 @@ sub change_id_offset_from_id {
                SELECT committed_at FROM changes WHERE change_id = ?
          )
          ORDER BY committed_at $dir
-         $offset_expr
+         LIMIT 1 $offset_expr
     }, $self->plan->project, $change_id)->[0];
 }
 
