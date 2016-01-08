@@ -1,6 +1,6 @@
 Revision history for Perl extension App::Sqitch
 
-0.9994
+0.9994 2016-01-08T19:46:43Z
      - Reduced minimum required MySQL engine from 5.1.0 to 5.0.0. Thanks to
        @dgc-wh for testing it (Issue #251).
      - Fixed floating-point rounding issue with SQLite registry versions on
@@ -19,15 +19,16 @@ Revision history for Perl extension App::Sqitch
        tutorials. Thanks to Andrew Dunstan for the spot (Issue #268).
      - Fixed broken Vertica documentation links.
      - Attempting to revert a database with no associated registry no longer
-       reports the registry as version, but correctly reports that no registry
-       can be found. Thanks to Arnaldo Piccinelli for the spot (Issue #271).
-     - Fixed engine change ID search to match change search, in that it
-       properly handles the offset characters, `~` and `^`. This bug mainly
-       affected the verify command, but it's good to address the
-       inconsistency, done mainly by adding the `find_change_id` and
-       `change_id_offset_from_id` methods to complement the `find_change` and
-       `change_offset_from_id` methods. Thanks to Andrew Dunstan for the spot
-       (Issue #272).
+       reports the registry as version 0, but correctly reports that no
+       registry can be found. Thanks to Arnaldo Piccinelli for the spot (Issue
+       #271).
+     - Fixed the search for change IDs in engines to match the search for
+       changes. Specifically, change ID seaerch now properly handles the
+       offset characters `~` and `^`. This bug mainly affected the `verify`
+       command, but it's good to address the inconsistency, done mainly by
+       adding the `find_change_id` and `change_id_offset_from_id` methods to
+       complement the `find_change` and `change_offset_from_id` methods.
+       Thanks to Andrew Dunstan for the spot (Issue #272).
      - Fixed the `flips` table example in the MySQL tutorial. It was
        inappropriately copied from the PostgreSQL tutorial at some point.
        Thanks to Jeff Carpenter for the spot (Issue #254)!
