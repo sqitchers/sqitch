@@ -11,7 +11,7 @@ use Hash::Merge 'merge';
 use Moo;
 use App::Sqitch::Types qw(Sqitch Target);
 
-our $VERSION = '0.9994';
+our $VERSION = '0.9995';
 
 use constant ENGINES => qw(
     pg

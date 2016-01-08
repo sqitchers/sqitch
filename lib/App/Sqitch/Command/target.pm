@@ -18,7 +18,7 @@ use constant extra_target_keys => qw(uri);
 extends 'App::Sqitch::Command';
 with 'App::Sqitch::Role::TargetConfigCommand';
 
-our $VERSION = '0.9994';
+our $VERSION = '0.9995';
 
 has verbose => (
     is      => 'ro',
