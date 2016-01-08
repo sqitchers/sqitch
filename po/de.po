@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Sqitch 0.932\n"
 "Report-Msgid-Bugs-To: david@justatheory.com\n"
-"POT-Creation-Date: 2015-08-17 10:51-0700\n"
+"POT-Creation-Date: 2016-01-08 11:36-0800\n"
 "PO-Revision-Date: 2012-08-31 17:15-0700\n"
 "Last-Translator: David Wheeler <david@justatheory.com>\n"
 "Language-Team: German <david@justatheory.com>\n"
@@ -56,7 +56,7 @@ msgstr ""
 msgid "Error closing pipe to {command}: {error}"
 msgstr ""
 
-#: lib/App/Sqitch.pm:475 lib/App/Sqitch/Engine/oracle.pm:716
+#: lib/App/Sqitch.pm:475 lib/App/Sqitch/Engine/oracle.pm:751
 #, perl-brace-format
 msgid "{command} unexpectedly returned exit value {exitval}"
 msgstr ""
@@ -812,12 +812,12 @@ msgid "Not present in the plan"
 msgstr "Cannot find {script} template"
 
 #: lib/App/Sqitch/Engine.pm:470 lib/App/Sqitch/Engine.pm:482
-#: lib/App/Sqitch/Engine.pm:920 lib/App/Sqitch/Engine.pm:950
+#: lib/App/Sqitch/Engine.pm:935 lib/App/Sqitch/Engine.pm:965
 msgid "not ok"
 msgstr ""
 
-#: lib/App/Sqitch/Engine.pm:470 lib/App/Sqitch/Engine.pm:898
-#: lib/App/Sqitch/Engine.pm:940
+#: lib/App/Sqitch/Engine.pm:470 lib/App/Sqitch/Engine.pm:913
+#: lib/App/Sqitch/Engine.pm:955
 msgid "ok"
 msgstr ""
 
@@ -869,66 +869,71 @@ msgstr[1] ""
 msgid "Invalid dependency: {dependency}"
 msgstr ""
 
-#: lib/App/Sqitch/Engine.pm:759
+#: lib/App/Sqitch/Engine.pm:774
 #, perl-brace-format
 msgid "Reverting to {change}"
 msgstr ""
 
-#: lib/App/Sqitch/Engine.pm:760
+#: lib/App/Sqitch/Engine.pm:775
 msgid "Reverting all changes"
 msgstr ""
 
-#: lib/App/Sqitch/Engine.pm:768
+#: lib/App/Sqitch/Engine.pm:783
 msgid "The schema will need to be manually repaired"
 msgstr ""
 
-#: lib/App/Sqitch/Engine.pm:772 lib/App/Sqitch/Engine.pm:914
+#: lib/App/Sqitch/Engine.pm:787 lib/App/Sqitch/Engine.pm:929
 msgid "Deploy failed"
 msgstr ""
 
-#: lib/App/Sqitch/Engine.pm:829
+#: lib/App/Sqitch/Engine.pm:844
 #, fuzzy, perl-brace-format
 msgid "Cannot find change {id} ({change}) in {file}"
 msgstr "Cannot find {script} template"
 
-#: lib/App/Sqitch/Engine.pm:870
+#: lib/App/Sqitch/Engine.pm:885
 #, perl-brace-format
 msgid "Updating legacy change and tag IDs in {destination}"
 msgstr ""
 
-#: lib/App/Sqitch/Engine.pm:983
+#: lib/App/Sqitch/Engine.pm:998
+#, perl-brace-format
+msgid "No registry found in {destination}. Have you ever deployed?"
+msgstr ""
+
+#: lib/App/Sqitch/Engine.pm:1003
 #, perl-brace-format
 msgid ""
 "Registry version is {old} but {new} is the latest known. Please upgrade "
 "Sqitch"
 msgstr ""
 
-#: lib/App/Sqitch/Engine.pm:989
+#: lib/App/Sqitch/Engine.pm:1009
 #, perl-brace-format
 msgid ""
 "Registry is at version {old} but latest is {new}. Please run the \"upgrade\" "
 "conmand"
 msgstr ""
 
-#: lib/App/Sqitch/Engine.pm:1004
+#: lib/App/Sqitch/Engine.pm:1024
 #, perl-brace-format
 msgid ""
 "Registry version is {old} but {new} is the latest known. Please upgrade "
 "Sqitch."
 msgstr ""
 
-#: lib/App/Sqitch/Engine.pm:1019
+#: lib/App/Sqitch/Engine.pm:1039
 #, perl-brace-format
 msgid "Cannot upgrade to {version}: Cannot find upgrade script \"{file}\""
 msgstr ""
 
-#: lib/App/Sqitch/Engine.pm:1028
+#: lib/App/Sqitch/Engine.pm:1048
 #, perl-brace-format
 msgid "From {old} to {new}"
 msgstr ""
 
 #: lib/App/Sqitch/Engine/firebird.pm:204 lib/App/Sqitch/Engine/mysql.pm:248
-#: lib/App/Sqitch/Engine/sqlite.pm:156
+#: lib/App/Sqitch/Engine/sqlite.pm:158
 #, perl-brace-format
 msgid "Sqitch database {database} already initialized"
 msgstr ""
@@ -943,18 +948,18 @@ msgstr ""
 msgid "Database name missing in URI {uri}"
 msgstr ""
 
-#: lib/App/Sqitch/Engine/firebird.pm:864 lib/App/Sqitch/Engine/firebird.pm:881
-#: lib/App/Sqitch/Engine/firebird.pm:892
+#: lib/App/Sqitch/Engine/firebird.pm:877 lib/App/Sqitch/Engine/firebird.pm:894
+#: lib/App/Sqitch/Engine/firebird.pm:905
 #, perl-brace-format
 msgid "Cannot dup STDERR: {error}"
 msgstr ""
 
-#: lib/App/Sqitch/Engine/firebird.pm:868
+#: lib/App/Sqitch/Engine/firebird.pm:881
 #, perl-brace-format
 msgid "Cannot reirect STDERR: {error}"
 msgstr ""
 
-#: lib/App/Sqitch/Engine/firebird.pm:895
+#: lib/App/Sqitch/Engine/firebird.pm:908
 msgid ""
 "Unable to locate Firebird ISQL; set \"engine.firebird.client\" via sqitch "
 "config"
@@ -971,26 +976,26 @@ msgstr ""
 msgid "Database name missing in URI \"{uri}\""
 msgstr ""
 
-#: lib/App/Sqitch/Engine/oracle.pm:420
+#: lib/App/Sqitch/Engine/oracle.pm:443
 msgid "Sqitch already initialized"
 msgstr ""
 
-#: lib/App/Sqitch/Engine/oracle.pm:550
+#: lib/App/Sqitch/Engine/oracle.pm:573
 #, perl-brace-format
 msgid "Cannot remove {file}: {error}"
 msgstr ""
 
-#: lib/App/Sqitch/Engine/oracle.pm:559
+#: lib/App/Sqitch/Engine/oracle.pm:582
 #, perl-brace-format
 msgid "Cannot copy {file} to {alias}: {error}"
 msgstr ""
 
-#: lib/App/Sqitch/Engine/oracle.pm:568
+#: lib/App/Sqitch/Engine/oracle.pm:591
 #, perl-brace-format
 msgid "Cannot symlink {file} to {alias}: {error}"
 msgstr ""
 
-#: lib/App/Sqitch/Engine/pg.pm:167 lib/App/Sqitch/Engine/vertica.pm:154
+#: lib/App/Sqitch/Engine/pg.pm:168 lib/App/Sqitch/Engine/vertica.pm:154
 #, perl-brace-format
 msgid "Sqitch schema \"{schema}\" already exists"
 msgstr ""
