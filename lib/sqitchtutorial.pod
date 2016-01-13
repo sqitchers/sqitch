@@ -630,7 +630,7 @@ Here's what F<verify/insert_user.sql> might look like:
 
   BEGIN;
   SELECT has_function_privilege('flipr.insert_user(text, text)', 'execute');
-  COMMIT;
+  ROLLBACK;
 
 We simply take advantage of the fact that C<has_function_privilege()> throws
 an exception if the specified function does not exist.
@@ -670,7 +670,7 @@ Use C<has_function_privilege()> in F<verify/change_pass.sql> again:
 
   BEGIN;
   SELECT has_function_privilege('flipr.change_pass(text, text, text)', 'execute');
-  COMMIT;
+  ROLLBACK;
 
 And of course, its C<revert> script, F<revert/change_pass.sql>, should look
 something like:
