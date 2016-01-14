@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 226;
+use Test::More tests => 232;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Target;
@@ -126,6 +126,13 @@ is_deeply $CLASS->configure($config, { template_directory => 't' }), {
     note      => [],
     template_directory => dir('t'),
 }, 'Should set up template directory option';
+
+is_deeply $CLASS->configure($config, { change_name => 'blog' }), {
+    requires  => [],
+    conflicts => [],
+    note      => [],
+    change_name => 'blog',
+}, 'Should set up change name option';
 
 throws_ok {
     $CLASS->configure($config, { template_directory => '__nonexistent__' });
@@ -565,6 +572,36 @@ is $@->message, __x(
     'Unknown arguments: {arg}',
     arg => 'foo, bar',
 ), 'Unknown argument error message should be correct';
+
+# Make sure we die if the passed name conflicts with a target.
+TARGET: {
+    my $mock_add = Test::MockModule->new($CLASS);
+    $mock_add->mock(parse_args => sub {
+        return undef, [$target];
+    });
+    $mock_add->mock(name => 'blog');
+    my $mock_target = Test::MockModule->new('App::Sqitch::Target');
+    $mock_target->mock(name => 'blog');
+
+    throws_ok { $add->execute('blog') } 'App::Sqitch::X',
+        'Should get an error for conflict with target name';
+    is $@->ident, 'add', 'Conflicting target error ident should be "add"';
+    is $@->message, __x(
+        'Name "{name}" identifies a target; use "--change {name}" to use it for the change name',
+        name => 'blog',
+    ), 'Conflicting target error message should be correct';
+}
+
+# Make sure we get a usage message when no name specified.
+USAGE: {
+    my @args;
+    my $mock_add = Test::MockModule->new($CLASS);
+    $mock_add->mock(usage => sub { @args = @_; die 'USAGE' });
+    my $add = $CLASS->new(sqitch => $sqitch);
+    throws_ok { $add->execute } qr/USAGE/,
+        'No name arg or option should yield usage';
+    is_deeply \@args, [$add], 'No args should be passed to usage';
+}
 
 # Make sure --open-editor works
 MOCKSHELL: {

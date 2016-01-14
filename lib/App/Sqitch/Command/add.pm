@@ -12,6 +12,7 @@ use Path::Class;
 use Try::Tiny;
 use File::Path qw(make_path);
 use Clone qw(clone);
+use List::Util qw(first);
 use namespace::autoclean;
 
 extends 'App::Sqitch::Command';
@@ -251,7 +252,9 @@ sub configure {
         note      => $opt->{note}      || [],
     );
 
-    $params{with_scripts} = $opt->{with_scripts} if $opt->{with_scripts};
+    for my $key (qw(with_scripts change_name)) {
+        $params{$key} = $opt->{$key} if $opt->{$key};
+    }
 
     if (
         my $dir = $opt->{template_directory}
@@ -310,6 +313,18 @@ sub execute {
         no_default => 1,
         no_changes => 1,
     );
+
+    # Check for missing name.
+    unless (defined $name) {
+        if (my $target = first { my $n = $_->name; first { $_ eq $n } @_ } @{ $targets }) {
+            # Name conflicts with a target.
+            hurl add => __x(
+                'Name "{name}" identifies a target; use "--change {name}" to use it for the change name',
+                name => $target->name,
+            );
+        }
+        $self->usage;
+    }
 
     my $note = join "\n\n", => @{ $self->note };
     my ($first_change, %added, @files, %seen);

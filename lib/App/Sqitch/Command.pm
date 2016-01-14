@@ -256,7 +256,7 @@ sub parse_args {
     push @{ $rec{targets} } => $target
         if $target && !$p{no_default} && !@{ $rec{targets} };
 
-    # Replace missing names with unnknown values.
+    # Replace missing names with unknown values.
     my @names = map { $_ || shift @{ $rec{unknown} } } @{ $p{names} || [] };
 
     # Die on unknowns.
