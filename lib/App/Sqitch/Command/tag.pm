@@ -8,6 +8,7 @@ use Moo;
 use App::Sqitch::X qw(hurl);
 use Types::Standard qw(Str ArrayRef Maybe Bool);
 use Locale::TextDomain qw(App-Sqitch);
+use List::Util qw(first);
 use namespace::autoclean;
 
 extends 'App::Sqitch::Command';
@@ -91,6 +92,17 @@ sub execute {
             ));
         }
     } else {
+        # Check for missing name.
+        if (@_) {
+            if (my $target = first { my $n = $_->name; first { $_ eq $n } @_ } @{ $targets }) {
+                # Name conflicts with a target.
+                hurl tag => __x(
+                    'Name "{name}" identifies a target; use "--tag {name}" to use it for the tag name',
+                    name => $target->name,
+                );
+            }
+        }
+
         # Show unique tags.
         my %seen;
         for my $target (@{ $targets }) {
