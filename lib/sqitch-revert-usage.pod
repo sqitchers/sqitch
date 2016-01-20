@@ -4,7 +4,7 @@ sqitch-revert-usage - Sqitch revert usage statement
 
 =head1 Usage
 
-  sqitch [options] revert [change options] [<datbase>]
+  sqitch [options] revert [change options] [<database>]
 
 =head1 Options
 
