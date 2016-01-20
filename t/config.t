@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 344;
+use Test::More tests => 347;
 #use Test::More 'no_plan';
 use File::Spec;
 use Test::MockModule;
@@ -538,6 +538,49 @@ target.mydb.plan_file=t/plans/dependencies.plan
 target.mydb.uri=db:pg:mydb
 '
     ]],  'Should only have emitted the local config list';
+    @emit = ();
+}
+
+CONTEXT: {
+    # what happens when the file is dos-formatted text on a Unix system?
+    local $ENV{SQITCH_SYSTEM_CONFIG} = file qw(t sqitch_dos.conf);
+    local $ENV{SQITCH_USER_CONFIG} = undef;
+    local $ENV{SQITCH_CONFIG} = undef;
+    $sqitch->config->load;
+    ok $cmd = App::Sqitch::Command::config->new({
+        sqitch  => $sqitch,
+        context => 'system',
+        action  => 'list',
+    }), 'Create system config list command';
+    ok $cmd->execute, 'List the system config';
+    my @expected = [[
+        'bundle.dest_dir=_build/sql
+bundle.from=gamma
+bundle.tags_only=true
+core.engine=pg
+core.extension=ddl
+core.top_dir=migrations
+core.uri=https://github.com/theory/sqitch/
+engine.pg.client=/usr/local/pgsql/bin/psql
+revert.count=2
+revert.revision=1.1
+revert.to=gamma
+'
+    ]];
+    is_deeply \@emit, [[
+        'bundle.dest_dir=_build/sql
+bundle.from=gamma
+bundle.tags_only=true
+core.engine=pg
+core.extension=ddl
+core.top_dir=migrations
+core.uri=https://github.com/theory/sqitch/
+engine.pg.client=/usr/local/pgsql/bin/psql
+revert.count=2
+revert.revision=1.1
+revert.to=gamma
+'
+    ]], 'Config list should be independent of input file line endings';
     @emit = ();
 }
 
