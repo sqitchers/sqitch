@@ -137,6 +137,10 @@ rather than from all available files.
 
 See also L</Files>.
 
+=item C<--global>
+
+An alias for C<--user> for the benefit of the muscle memory of Git users.
+
 =item C<--system>
 
 For writing options: write to system-wide F<$(prefix)/etc/sqitch/sqitch.conf>

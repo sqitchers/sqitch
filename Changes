@@ -9,6 +9,8 @@ Revision history for Perl extension App::Sqitch
        Ivan Nunes for the report!
      - The `tag` command now helpfully suggests using the --tag option when
        attempting to add a tag with the same name as a target.
+     - Added `--global` as an alias for `--user` to the `config` command. This
+       alias benefits the muscle memory of Git users.
 
 0.9994 2016-01-08T19:46:43Z
      - Reduced minimum required MySQL engine from 5.1.0 to 5.0.0. Thanks to

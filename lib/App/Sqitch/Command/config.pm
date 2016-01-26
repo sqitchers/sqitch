@@ -60,7 +60,7 @@ sub options {
     return qw(
         file|config-file|f=s
         local
-        user
+        user|global
         system
 
         int
