@@ -1,6 +1,6 @@
 Name:           sqitch
 Version:        0.9995
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        Sane database change management
 License:        MIT
 Group:          Development/Libraries
@@ -46,6 +46,7 @@ BuildRequires:  perl(parent)
 BuildRequires:  perl(overload)
 BuildRequires:  perl(Path::Class) >= 0.33
 BuildRequires:  perl(PerlIO::utf8_strict)
+BuildRequires:  perl(Pod::Escapes)
 BuildRequires:  perl(Pod::Find)
 BuildRequires:  perl(Pod::Usage)
 BuildRequires:  perl(POSIX)
@@ -111,6 +112,7 @@ Requires:       perl(parent)
 Requires:       perl(overload)
 Requires:       perl(Path::Class)
 Requires:       perl(PerlIO::utf8_strict)
+Requires:       perl(Pod::Escapes)
 Requires:       perl(Pod::Find)
 Requires:       perl(Pod::Usage)
 Requires:       perl(POSIX)
@@ -282,6 +284,10 @@ Sqitch Vertica support.
 # No additional files required.
 
 %changelog
+* Thu Feb 11 2016 David E. Wheeler <david.wheeler@iovation.com> 0.9994-2
+- Add perl(Pod::Escapes) to work around missing dependencies in Pod::Simple.
+  https://github.com/perl-pod/pod-simple/issues/84.
+
 * Fri Jan 8 2016 David E. Wheeler <david.wheeler@iovation.com> 0.9994-1
 - Reduced required MySQL version to 5.0.
 - Upgrade to v0.9994.
