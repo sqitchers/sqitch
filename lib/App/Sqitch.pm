@@ -481,7 +481,7 @@ sub spool {
 
 sub probe {
     my ($ret) = shift->capture(@_);
-    chomp $ret;
+    chomp $ret if $ret;
     return $ret;
 }
 

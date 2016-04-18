@@ -14,6 +14,8 @@ Revision history for Perl extension App::Sqitch
      - Added a note for Git users to the `sqitch-revert` documentation, to
        head off potential confusion with `git revert`. Thanks to Eric
        Bréchemier for the "time travel" analogy and wording.
+     - Fixed an "uninitialized value" error when creating a registry database
+       on Windows. Thanks to Steven C. Buttgereit for the report (Issue #289).
 
 0.9994 2016-01-08T19:46:43Z
      - Reduced minimum required MySQL engine from 5.1.0 to 5.0.0. Thanks to
