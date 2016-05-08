@@ -36,9 +36,9 @@ support it. See L<sqitch-passwords> for details.
 =item C<SQITCH_EDITOR>
 
 The editor that Sqitch will launch when the user needs to edit some text (a
-change note, for example). If unset, C<$EDITOR> will be used; and if
-C<$EDITOR> is not set, the C<core.editor> configuration variable will be
-consulted, and if it's not set, Sqitch will invoke C<notepad.exe> on Windows
+change note, for example). If unset, C<$VISUAL> or C<$EDITOR> will be used. If
+C<$VISUAL> and C<$EDITOR> are not set, the C<core.editor> configuration variable
+will be consulted. If it's not set, Sqitch will invoke C<notepad.exe> on Windows
 and C<vi> elsewhere.
 
 =back

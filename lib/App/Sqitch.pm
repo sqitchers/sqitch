@@ -126,6 +126,7 @@ has editor => (
     default => sub {
         return
              $ENV{SQITCH_EDITOR}
+          || $ENV{VISUAL}
           || $ENV{EDITOR}
           || shift->config->get( key => 'core.editor' )
           || ( $^O eq 'MSWin32' ? 'notepad.exe' : 'vi' );
