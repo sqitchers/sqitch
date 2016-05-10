@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 134;
+use Test::More tests => 136;
 #use Test::More 'no_plan';
 use Test::MockModule;
 use Path::Class;
@@ -108,17 +108,31 @@ GO: {
 # Test the editor.
 EDITOR: {
     local $ENV{SQITCH_EDITOR};
+    local $ENV{VISUAL};
+
     local $ENV{EDITOR} = 'edd';
-    my $sqitch = App::Sqitch->new({editor => 'emacz' });
-    is $sqitch->editor, 'emacz', 'editor should use use parameter';
-    $sqitch = App::Sqitch->new;
+    my $sqitch = App::Sqitch->new;
     is $sqitch->editor, 'edd', 'editor should use $EDITOR';
+
+    local $ENV{VISUAL} = 'gvim';
+    $sqitch = App::Sqitch->new;
+    is $sqitch->editor, 'gvim', 'editor should prefer $VISUAL over $EDITOR';
+
+    local $ENV{SQITCH_CONFIG} = File::Spec->catfile(qw(t editor.conf));
+    my $config = App::Sqitch::Config->new;
+    $sqitch = App::Sqitch->new;
+    is $sqitch->editor, 'config_specified_editor', 'editor should prefer core.editor over $VISUAL';
 
     local $ENV{SQITCH_EDITOR} = 'vimz';
     $sqitch = App::Sqitch->new;
-    is $sqitch->editor, 'vimz', 'editor should prefer $SQITCH_EDITOR';
+    is $sqitch->editor, 'vimz', 'editor should prefer $SQITCH_EDITOR over $VISUAL';
+
+    $sqitch = App::Sqitch->new({editor => 'emacz' });
+    is $sqitch->editor, 'emacz', 'editor should use use parameter regardless of environment';
 
     delete $ENV{SQITCH_EDITOR};
+    delete $ENV{SQITCH_CONFIG};
+    delete $ENV{VISUAL};
     delete $ENV{EDITOR};
     local $^O = 'NotWin32';
     $sqitch = App::Sqitch->new;
