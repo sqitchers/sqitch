@@ -106,19 +106,7 @@ has dbh => (
                 goto &hurl;
             },
             Callbacks         => {
-                connected => sub {
-                    my $dbh = shift;
-                    $dbh->do('SET client_min_messages = WARNING');
-                    try {
-                        $dbh->do(
-                            'SET search_path = ?',
-                            undef, $self->registry
-                        );
-                        # http://www.nntp.perl.org/group/perl.dbi.dev/2013/11/msg7622.html
-                        $dbh->set_err(undef, undef) if $dbh->err;
-                    };
-                    return;
-                },
+                connected => sub { $self->_dbh_callback_connected(@_) },
             },
         });
     }
@@ -154,6 +142,20 @@ sub _listagg_format {
 sub _regex_op { '~' }
 
 sub _version_query { 'SELECT MAX(version)::TEXT FROM releases' }
+
+sub _dbh_callback_connected {
+    my ($self, $dbh) = @_;
+    $dbh->do('SET client_min_messages = WARNING');
+    try {
+        $dbh->do(
+            'SET search_path = ?',
+            undef, $self->registry
+        );
+        # http://www.nntp.perl.org/group/perl.dbi.dev/2013/11/msg7622.html
+        $dbh->set_err(undef, undef) if $dbh->err;
+    };
+    return;
+}
 
 sub initialized {
     my $self = shift;
