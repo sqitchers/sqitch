@@ -956,7 +956,7 @@ And the C<delete_flip> deploy script might look something like:
      flip_id BIGINT
   ) RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER AS $$
   BEGIN
-      DELETE FROM flipe.flips WHERE id = flip_id;
+      DELETE FROM flipr.flips WHERE id = flip_id;
       RETURN FOUND;
   END;
   $$;
