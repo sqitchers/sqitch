@@ -268,11 +268,13 @@ sub log_new_tags {
         $sqitch->user_email
     );
 
+    my $tagcol = $self->_tag_column();
+
     $self->dbh->do(
-        q{
+        qq{
             INSERT INTO tags (
                    tag_id
-                 , tag
+                 , $tagcol
                  , project
                  , change_id
                  , note
@@ -314,8 +316,9 @@ sub log_revert_change {
     my $dbh = $self->dbh;
 
     # Delete tags.
+    my $tagcol = $self->_tag_column();
     my $del_tags = $dbh->selectcol_arrayref(
-        'DELETE FROM tags WHERE change_id = ? RETURNING tag',
+        "DELETE FROM tags WHERE change_id = ? RETURNING $tagcol",
         undef, $change->id
     ) || [];
 
@@ -374,6 +377,7 @@ sub _update_ids {
     my $plan = $self->plan;
     my $proj = $plan->project;
     my $maxi = 0;
+    my $tagcol = $self->_tag_column();
 
     $self->SUPER::_update_ids;
     my $dbh = $self->dbh;
@@ -392,15 +396,15 @@ sub _update_ids {
               FROM changes
              WHERE project = ?
         });
-        my $atag_sth = $dbh->prepare(q{
-            SELECT tag
+        my $atag_sth = $dbh->prepare(qq{
+            SELECT $tagcol
               FROM tags
              WHERE project = ?
                AND committed_at < ?
              LIMIT 1
         });
-        my $btag_sth = $dbh->prepare(q{
-            SELECT tag
+        my $btag_sth = $dbh->prepare(qq{
+            SELECT $tagcol
               FROM tags
              WHERE project = ?
                AND committed_at >= ?
@@ -453,7 +457,7 @@ sub _update_ids {
         }
 
         # Now update tags.
-        $sth = $dbh->prepare('SELECT tag_id, tag FROM tags WHERE project = ?');
+        $sth = $dbh->prepare("SELECT tag_id, $tagcol FROM tags WHERE project = ?");
         $upd = $dbh->prepare('UPDATE tags SET tag_id = ? WHERE tag_id = ?');
         $sth->execute($proj);
         $sth->bind_columns(\($old_id, $name));

@@ -55,6 +55,13 @@ sub _in_expr {
     return $in, @{ $vals };
 }
 
+sub _tag_column {
+    my ($self, $prefix) = @_;
+    $prefix ||= '';
+    $prefix &&= "${prefix}.";
+    return "${prefix}tag";
+}
+
 sub _register_release {
     my $self    = shift;
     my $version = shift || $self->registry_release;
@@ -111,7 +118,7 @@ sub _select_state {
     my ( $self, $project, $with_hash ) = @_;
     my $cdtcol = sprintf $self->_ts2char_format, 'c.committed_at';
     my $pdtcol = sprintf $self->_ts2char_format, 'c.planned_at';
-    my $tagcol = sprintf $self->_listagg_format, 't.tag';
+    my $tagcol = sprintf $self->_listagg_format, $self->_tag_column('t');
     my $hshcol = $with_hash ? "c.script_hash\n                 , " : '';
     my $dbh    = $self->dbh;
     $dbh->selectrow_hashref(qq{
@@ -193,9 +200,10 @@ sub current_tags {
     my ( $self, $project ) = @_;
     my $cdtcol = sprintf $self->_ts2char_format, 'committed_at';
     my $pdtcol = sprintf $self->_ts2char_format, 'planned_at';
+    my $tagcol = $self->_tag_column;
     my $sth    = $self->dbh->prepare(qq{
         SELECT tag_id
-             , tag
+             , $tagcol
              , committer_name
              , committer_email
              , $cdtcol AS committed_at
@@ -444,6 +452,7 @@ sub log_deploy_change {
     my ($self, $change) = @_;
     my $dbh    = $self->dbh;
     my $sqitch = $self->sqitch;
+    my $tagcol = $self->_tag_column;
 
     my ($id, $name, $proj, $user, $email) = (
         $change->id,
@@ -506,10 +515,10 @@ sub log_deploy_change {
     }
 
     if ( my @tags = $change->tags ) {
-        $dbh->do(q{
+        $dbh->do(qq{
             INSERT INTO tags (
                   tag_id
-                , tag
+                , $tagcol
                 , project
                 , change_id
                 , note
@@ -593,9 +602,10 @@ sub _log_event {
 
 sub changes_requiring_change {
     my ( $self, $change ) = @_;
-    return @{ $self->dbh->selectall_arrayref(q{
+    my $tagcol = $self->_tag_column;
+    return @{ $self->dbh->selectall_arrayref(qq{
         SELECT c.change_id, c.project, c.change, (
-            SELECT tag
+            SELECT $tagcol
               FROM changes c2
               JOIN tags ON c2.change_id = tags.change_id
              WHERE c2.project      = c.project
@@ -611,15 +621,16 @@ sub changes_requiring_change {
 
 sub name_for_change_id {
     my ( $self, $change_id ) = @_;
-    return $self->dbh->selectcol_arrayref(q{
+    my $tagcol = $self->_tag_column;
+    return $self->dbh->selectcol_arrayref(qq{
         SELECT c.change || COALESCE((
-            SELECT tag
+            SELECT $tagcol
               FROM changes c2
               JOIN tags ON c2.change_id = tags.change_id
              WHERE c2.committed_at >= c.committed_at
                AND c2.project = c.project
              LIMIT 1
-        ), '@HEAD')
+        ), '\@HEAD')
           FROM changes c
          WHERE change_id = ?
     }, undef, $change_id)->[0];
@@ -629,6 +640,7 @@ sub log_new_tags {
     my ( $self, $change ) = @_;
     my @tags   = $change->tags or return $self;
     my $sqitch = $self->sqitch;
+    my $tagcol = $self->_tag_column;
 
     my ($id, $name, $proj, $user, $email) = (
         $change->id,
@@ -641,10 +653,10 @@ sub log_new_tags {
     my $subselect = 'SELECT ' . $self->_tag_subselect_columns . $self->_simple_from;
 
     $self->dbh->do(
-        q{
+        qq{
             INSERT INTO tags (
                    tag_id
-                 , tag
+                 , $tagcol
                  , project
                  , change_id
                  , note
@@ -686,10 +698,11 @@ sub log_revert_change {
     my ($self, $change) = @_;
     my $dbh = $self->dbh;
     my $cid = $change->id;
+    my $tagcol = $self->_tag_column;
 
     # Retrieve and delete tags.
     my $del_tags = join ',' => @{ $dbh->selectcol_arrayref(
-        'SELECT tag FROM tags WHERE change_id = ?',
+        "SELECT $tagcol FROM tags WHERE change_id = ?",
         undef, $cid
     ) || [] };
 
@@ -728,7 +741,7 @@ sub log_revert_change {
 sub deployed_changes {
     my $self   = shift;
     my $tscol  = sprintf $self->_ts2char_format, 'c.planned_at';
-    my $tagcol = sprintf $self->_listagg_format, 't.tag';
+    my $tagcol = sprintf $self->_listagg_format, $self->_tag_column('t');
     return map {
         $_->{timestamp} = _dt $_->{timestamp};
         unless (ref $_->{tags}) {
@@ -751,7 +764,7 @@ sub deployed_changes {
 sub deployed_changes_since {
     my ( $self, $change ) = @_;
     my $tscol  = sprintf $self->_ts2char_format, 'c.planned_at';
-    my $tagcol = sprintf $self->_listagg_format, 't.tag';
+    my $tagcol = sprintf $self->_listagg_format, $self->_tag_column('t');
     return map {
         $_->{timestamp} = _dt $_->{timestamp};
         unless (ref $_->{tags}) {
@@ -775,7 +788,7 @@ sub deployed_changes_since {
 sub load_change {
     my ( $self, $change_id ) = @_;
     my $tscol  = sprintf $self->_ts2char_format, 'c.planned_at';
-    my $tagcol = sprintf $self->_listagg_format, 't.tag';
+    my $tagcol = sprintf $self->_listagg_format, $self->_tag_column('t');
     my $change = $self->dbh->selectrow_hashref(qq{
         SELECT c.change_id AS id, c.change AS name, c.project, c.note,
                $tscol AS "timestamp", c.planner_name, c.planner_email,
@@ -827,7 +840,7 @@ sub change_offset_from_id {
     # Are we offset forwards or backwards?
     my ($dir, $op, $offset_expr) = $self->_offset_op($offset);
     my $tscol  = sprintf $self->_ts2char_format, 'c.planned_at';
-    my $tagcol = sprintf $self->_listagg_format, 't.tag';
+    my $tagcol = sprintf $self->_listagg_format, $self->_tag_column('t');
 
     my $change = $self->dbh->selectrow_hashref(qq{
         SELECT c.change_id AS id, c.change AS name, c.project, c.note,
@@ -866,6 +879,7 @@ sub _cid_head {
 sub change_id_for {
     my ( $self, %p) = @_;
     my $dbh = $self->dbh;
+    my $tagcol = $self->_tag_column;
 
     if ( my $cid = $p{change_id} ) {
         # Find by ID.
@@ -896,7 +910,7 @@ sub change_id_for {
                    AND changes.project = tags.project
                  WHERE changes.project = ?
                    AND changes.change  = ?
-                   AND tags.tag        = ?
+                   AND tags.$tagcol    = ?
                  ORDER BY changes.committed_at DESC$limit
             }, undef, $project, $change, '@' . $tag)->[0];
         }
@@ -924,11 +938,11 @@ sub change_id_for {
             if $tag eq 'ROOT' || $tag eq 'FIRST';
 
         # Find by tag name.
-        return $dbh->selectcol_arrayref(q{
+        return $dbh->selectcol_arrayref(qq{
             SELECT change_id
               FROM tags
              WHERE project = ?
-               AND tag     = ?
+               AND $tagcol = ?
         }, undef, $project, '@' . $tag)->[0];
     }
 
