@@ -92,13 +92,14 @@ sub registry_version {
 sub _cid {
     my ( $self, $ord, $offset, $project ) = @_;
     return try {
+        $offset //= 0;
         $self->dbh->selectcol_arrayref(qq{
             SELECT change_id
               FROM changes
              WHERE project = ?
              ORDER BY committed_at $ord
              LIMIT 1
-            OFFSET COALESCE(?, 0)
+            OFFSET ?
         }, undef, $project || $self->plan->project, $offset)->[0];
     } catch {
         return if $self->_no_table_error && !$self->initialized;
