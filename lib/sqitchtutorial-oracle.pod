@@ -509,7 +509,7 @@ from the table with a false C<WHERE> clause. Add this to F<verify/users.sql>:
 
   SELECT nickname, password, timestamp
     FROM flipr.users
-   WHERE 1 = 1;
+   WHERE 0 = 1;
 
 Now for the revert script: all we have to do is drop the table. Add this to
 F<revert/users.sql>:
