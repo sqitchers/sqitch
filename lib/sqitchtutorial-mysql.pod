@@ -923,7 +923,7 @@ Edit F<verify/flips.sql>:
     FROM flipr.flips
    WHERE 0;
 
-  COMMIT;
+  ROLLBACK;
 
 And edit F<revert/flips.sql>:
 

@@ -876,7 +876,7 @@ Edit F<verify/flips.sql>:
     FROM flipr.flips
    WHERE FALSE;
 
-  COMMIT;
+  ROLLBACK;
 
 And edit F<revert/flips.sql>:
 
@@ -971,7 +971,7 @@ The C<verify> scripts are:
 
   SELECT has_function_privilege('flipr.insert_flip(text, text)', 'execute');
 
-  COMMIT;
+  ROLLBACK;
 
 And:
 
@@ -981,7 +981,7 @@ And:
 
   SELECT has_function_privilege('flipr.delete_flip(bigint)', 'execute');
 
-  COMMIT;
+  ROLLBACK;
 
 The C<revert> scripts are:
 
@@ -1564,7 +1564,7 @@ L<C<pg_get_functiondef()>|http://www.postgresql.org/docs/9.2/static/functions-in
    WHERE proname = 'insert_user'
      AND pg_get_functiondef(oid) LIKE $$%crypt($2, gen_salt('md5'))%$$;
 
-  COMMIT;
+  ROLLBACK;
 
 And the C<change_pass> verify script looks like this:
 
@@ -1579,7 +1579,7 @@ And the C<change_pass> verify script looks like this:
    WHERE proname = 'change_pass'
      AND pg_get_functiondef(oid) LIKE $$%crypt($3, gen_salt('md5'))%$$;
 
-  COMMIT;
+  ROLLBACK;
 
 Make sure these pass by re-deploying:
 

@@ -664,7 +664,7 @@ should look like:
 
 Here's what F<verify/flips.sql> might look like:
 
-  -- Verify flipr:flips                                                                                  on vertica
+  -- Verify flipr:flips on vertica
   SELECT id, nickname, body, timestamp
     FROM flipr.flips
    WHERE FALSE;

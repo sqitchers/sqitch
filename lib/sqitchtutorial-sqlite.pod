@@ -459,7 +459,7 @@ column is missing. Here's the F<verify/flips.sql>:
 	FROM flips
    WHERE 0;
 
-  COMMIT;
+  ROLLBACK;
 
 Now for the revert script: all we have to do is drop the table. Add this to
 F<revert/flips.sql>:
