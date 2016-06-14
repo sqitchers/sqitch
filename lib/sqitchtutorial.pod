@@ -68,7 +68,7 @@ Let's have a look at F<sqitch.conf>:
   # [engine "pg"]
   	# target = db:pg:
   	# registry = sqitch
-  	# client = /usr/local/pgsql/bin/psql
+  	# client = psql
 
 Good, it picked up on the fact that we're creating changes for the PostgreSQL
 engine, thanks to the C<-engine pg> option, and saved it to the file.

@@ -111,7 +111,7 @@ Let's have a look at F<sqitch.conf>:
   # [engine "oracle"]
   	# target = db:oracle:
   	# registry = 
-  	# client = /usr/local/instantclient_11_2/sqlplus
+  	# client = sqlplus
 
 Good, it picked up on the fact that we're creating changes for the Oracle
 engine, thanks to the C<-engine oracle> option, and saved it to the file.
