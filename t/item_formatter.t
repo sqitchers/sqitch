@@ -64,7 +64,7 @@ my $event = {
     conflicts       => []
 };
 
-$_->set( locale => $LC::TIME ) for ($local_cdt, $local_pdt);
+$_->set_locale($LC::TIME) for ($local_cdt, $local_pdt);
 
 for my $spec (
     ['%e', { event => 'deploy' }, 'deploy' ],

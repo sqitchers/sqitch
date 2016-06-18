@@ -1,5 +1,9 @@
 Revision history for Perl extension App::Sqitch
 
+     - Use DateTime->set_locale instead of ->set to set the locale. Using
+       ->set may actually change the local time unintentionally. Patch by Dave
+       Rolsky. GitHub PR #303.
+
 0.9995
      - Taught the `add` command not to ignore the `--change` option.
      - The `add` command now emits a usage statement when no change name is
