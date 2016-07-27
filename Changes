@@ -24,9 +24,10 @@ Revision history for Perl extension App::Sqitch
        selection, prioritzed after the `core.editor` configuration variable
        and before the `$EDITOR` environment variable. Thanks to Jim Nasby for
        the pull request (#296).
-     - Use DateTime->set_locale instead of ->set to set the locale. Using
-       ->set may actually change the local time unintentionally. Patch by Dave
-       Rolsky. GitHub PR #304.
+     - Updated the DateTime code to set the locale via `set_locale()` instead
+       of `set()`, as the latter may actually change the local time
+       unintentionally, and has been deprecated since DateTime v1.04. Thanks
+       to Dave Rolsky for the pull request (Issue #304).
 
 0.9994 2016-01-08T19:46:43Z
      - Reduced minimum required MySQL engine from 5.1.0 to 5.0.0. Thanks to
