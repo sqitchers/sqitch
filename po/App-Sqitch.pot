@@ -6,9 +6,9 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: App-Sqitch 0.9994\n"
+"Project-Id-Version: App-Sqitch 0.9995\n"
 "Report-Msgid-Bugs-To: david@justatheory.com\n"
-"POT-Creation-Date: 2016-01-08 11:36-0800\n"
+"POT-Creation-Date: 2016-07-27 10:14+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -28,37 +28,37 @@ msgid ""
 "you@host.com"
 msgstr ""
 
-#: lib/App/Sqitch.pm:306
+#: lib/App/Sqitch.pm:307
 #, perl-brace-format
 msgid ""
 "  The \"{opt}\" option is deprecated;\n"
 "  Instead use \"--dir {dir}={val}\" if available."
 msgstr ""
 
-#: lib/App/Sqitch.pm:406
+#: lib/App/Sqitch.pm:407
 msgid ""
 "Sqitch seems to be unattended and there is no default value for this question"
 msgstr ""
 
-#: lib/App/Sqitch.pm:435
+#: lib/App/Sqitch.pm:436
 msgid "Please answer \"y\" or \"n\"."
 msgstr ""
 
-#: lib/App/Sqitch.pm:438
+#: lib/App/Sqitch.pm:439
 msgid "No valid answer after 3 attempts; aborting"
 msgstr ""
 
-#: lib/App/Sqitch.pm:448 lib/App/Sqitch.pm:455
+#: lib/App/Sqitch.pm:449 lib/App/Sqitch.pm:456
 #, perl-brace-format
 msgid "Cannot exec {command}: {error}"
 msgstr ""
 
-#: lib/App/Sqitch.pm:471
+#: lib/App/Sqitch.pm:472
 #, perl-brace-format
 msgid "Error closing pipe to {command}: {error}"
 msgstr ""
 
-#: lib/App/Sqitch.pm:475 lib/App/Sqitch/Engine/oracle.pm:751
+#: lib/App/Sqitch.pm:476 lib/App/Sqitch/Engine/oracle.pm:751
 #, perl-brace-format
 msgid "{command} unexpectedly returned exit value {exitval}"
 msgstr ""
@@ -79,62 +79,69 @@ msgstr[1] ""
 msgid "Cannot specify both --all and engine, target, or plan arugments"
 msgstr ""
 
-#: lib/App/Sqitch/Command/add.pm:101
+#: lib/App/Sqitch/Command/add.pm:102
 #, perl-brace-format
 msgid "Template {template} does not exist"
 msgstr ""
 
-#: lib/App/Sqitch/Command/add.pm:106
+#: lib/App/Sqitch/Command/add.pm:107
 #, perl-brace-format
 msgid "Template {template} is not a file"
 msgstr ""
 
-#: lib/App/Sqitch/Command/add.pm:152
+#: lib/App/Sqitch/Command/add.pm:153
 #, perl-brace-format
 msgid "Cannot find {script} template"
 msgstr ""
 
-#: lib/App/Sqitch/Command/add.pm:217
+#: lib/App/Sqitch/Command/add.pm:218
 #, perl-brace-format
 msgid "Option --{opt} has been deprecated; use \"--{with} {val}\" instead"
 msgstr ""
 
-#: lib/App/Sqitch/Command/add.pm:235
+#: lib/App/Sqitch/Command/add.pm:236
 #, perl-brace-format
 msgid "Option --{opt} has been deprecated; use \"--use {key}={val}\" instead"
 msgstr ""
 
-#: lib/App/Sqitch/Command/add.pm:262
+#: lib/App/Sqitch/Command/add.pm:265
 #, perl-brace-format
 msgid "Directory \"{dir}\" does not exist"
 msgstr ""
 
-#: lib/App/Sqitch/Command/add.pm:267
+#: lib/App/Sqitch/Command/add.pm:270
 #, perl-brace-format
 msgid "\"{dir}\" is not a directory"
 msgstr ""
 
-#: lib/App/Sqitch/Command/add.pm:355
+#: lib/App/Sqitch/Command/add.pm:322
+#, perl-brace-format
+msgid ""
+"Name \"{name}\" identifies a target; use \"--change {name}\" to use it for "
+"the change name"
+msgstr ""
+
+#: lib/App/Sqitch/Command/add.pm:370
 msgid "add"
 msgstr ""
 
-#: lib/App/Sqitch/Command/add.pm:373
+#: lib/App/Sqitch/Command/add.pm:388
 #, perl-brace-format
 msgid "Added \"{change}\" to {file}"
 msgstr ""
 
-#: lib/App/Sqitch/Command/add.pm:392
+#: lib/App/Sqitch/Command/add.pm:407
 #, perl-brace-format
 msgid "Skipped {file}: already exists"
 msgstr ""
 
-#: lib/App/Sqitch/Command/add.pm:403 lib/App/Sqitch/Command/bundle.pm:141
+#: lib/App/Sqitch/Command/add.pm:418 lib/App/Sqitch/Command/bundle.pm:141
 #: lib/App/Sqitch/Role/TargetConfigCommand.pm:261
 #, perl-brace-format
 msgid "Error creating {path}: {error}"
 msgstr ""
 
-#: lib/App/Sqitch/Command/add.pm:420 lib/App/Sqitch/Command/add.pm:450
+#: lib/App/Sqitch/Command/add.pm:435 lib/App/Sqitch/Command/add.pm:465
 #: lib/App/Sqitch/Plan.pm:135 lib/App/Sqitch/Plan.pm:588
 #: lib/App/Sqitch/Plan.pm:970 lib/App/Sqitch/Plan/Line.pm:107
 #: lib/App/Sqitch/Role/TargetConfigCommand.pm:325
@@ -142,18 +149,18 @@ msgstr ""
 msgid "Cannot open {file}: {error}"
 msgstr ""
 
-#: lib/App/Sqitch/Command/add.pm:428
+#: lib/App/Sqitch/Command/add.pm:443
 #, perl-brace-format
 msgid "Error executing {template}: {error}"
 msgstr ""
 
-#: lib/App/Sqitch/Command/add.pm:440
+#: lib/App/Sqitch/Command/add.pm:455
 #: lib/App/Sqitch/Role/TargetConfigCommand.pm:336
 #, perl-brace-format
 msgid "Error closing {file}: {error}"
 msgstr ""
 
-#: lib/App/Sqitch/Command/add.pm:444 lib/App/Sqitch/Command/bundle.pm:134
+#: lib/App/Sqitch/Command/add.pm:459 lib/App/Sqitch/Command/bundle.pm:134
 #: lib/App/Sqitch/Command/init.pm:195
 #: lib/App/Sqitch/Role/TargetConfigCommand.pm:255
 #: lib/App/Sqitch/Role/TargetConfigCommand.pm:341
@@ -614,13 +621,20 @@ msgid_plural "Undeployed changes:"
 msgstr[0] ""
 msgstr[1] ""
 
-#: lib/App/Sqitch/Command/tag.pm:79
+#: lib/App/Sqitch/Command/tag.pm:80
 msgid "tag"
 msgstr ""
 
-#: lib/App/Sqitch/Command/tag.pm:87
+#: lib/App/Sqitch/Command/tag.pm:88
 #, perl-brace-format
 msgid "Tagged \"{change}\" with {tag} in {file}"
+msgstr ""
+
+#: lib/App/Sqitch/Command/tag.pm:100
+#, perl-brace-format
+msgid ""
+"Name \"{name}\" identifies a target; use \"--tag {name}\" to use it for the "
+"tag name"
 msgstr ""
 
 #: lib/App/Sqitch/Command/target.pm:71
@@ -661,7 +675,7 @@ msgstr ""
 msgid "Could not determine home directory"
 msgstr ""
 
-#: lib/App/Sqitch/DateTime.pm:31 lib/App/Sqitch/DateTime.pm:69
+#: lib/App/Sqitch/DateTime.pm:32 lib/App/Sqitch/DateTime.pm:70
 #, perl-brace-format
 msgid "Unknown date format \"{format}\""
 msgstr ""
