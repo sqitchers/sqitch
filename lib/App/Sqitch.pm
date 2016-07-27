@@ -23,7 +23,7 @@ use List::Util qw(first);
 use IPC::System::Simple 1.17 qw(runx capturex $EXITVAL);
 use namespace::autoclean 0.16;
 
-our $VERSION = '0.9995';
+our $VERSION = '0.9996';
 
 BEGIN {
     # Force Locale::TextDomain to encode in UTF-8 and to decode all messages.
