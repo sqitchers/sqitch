@@ -1,6 +1,6 @@
 Name:           sqitch
 Version:        0.9995
-Release:        2%{?dist}
+Release:        1%{?dist}
 Summary:        Sane database change management
 License:        MIT
 Group:          Development/Libraries
@@ -16,7 +16,7 @@ BuildRequires:  perl(Clone)
 BuildRequires:  perl(Config)
 BuildRequires:  perl(Config::GitLike) >= 1.11
 BuildRequires:  perl(constant)
-BuildRequires:  perl(DateTime)
+BuildRequires:  perl(DateTime) >= 1.04
 BuildRequires:  perl(DateTime::TimeZone)
 BuildRequires:  perl(DBI)
 BuildRequires:  perl(Devel::StackTrace) >= 1.30
@@ -85,7 +85,7 @@ Requires:       perl(Clone)
 Requires:       perl(Config)
 Requires:       perl(Config::GitLike) >= 1.11
 Requires:       perl(constant)
-Requires:       perl(DateTime)
+Requires:       perl(DateTime) >= 1.04
 Requires:       perl(DateTime::TimeZone)
 Requires:       perl(Devel::StackTrace) >= 1.30
 Requires:       perl(Digest::SHA)
@@ -284,6 +284,10 @@ Sqitch Vertica support.
 # No additional files required.
 
 %changelog
+* Tue Jul 27 2016 David E. Wheeler <david.wheeler@iovation.com> 0.9995-1
+- Require DateTime v1.04.
+- Upgrade to v0.9995.
+
 * Thu Feb 11 2016 David E. Wheeler <david.wheeler@iovation.com> 0.9994-2
 - Add perl(Pod::Escapes) to work around missing dependencies in Pod::Simple.
   https://github.com/perl-pod/pod-simple/issues/84.
