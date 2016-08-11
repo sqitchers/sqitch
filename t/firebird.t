@@ -9,12 +9,10 @@ use Test::More;
 use App::Sqitch;
 use App::Sqitch::Target;
 use Test::MockModule;
-use Path::Class;
+use Path::Class qw(file dir);
 use Try::Tiny;
 use Test::Exception;
 use Locale::TextDomain qw(App-Sqitch);
-use File::Spec::Functions;
-use File::Temp 'tempdir';
 use lib 't/lib';
 use DBIEngineTest;
 
@@ -63,7 +61,7 @@ if ($have_fb_driver && (my $client = try { $fb->client })) {
         'client should default to isql | fbsql | isql-fb';
 }
 
-is $fb->uri->dbname, file('foo.fdb'), 'dbname should be filled in';
+is $fb->uri->dbname, file('foo.fdb')->stringify, 'dbname should be filled in';
 is $fb->registry_uri->dbname, 'sqitch.fdb',
     'registry dbname should be "sqitch.fdb"';
 
@@ -292,7 +290,7 @@ END {
     return unless $have_fb_driver;
 
     foreach my $dbname (qw{__sqitchtest__ __sqitchtest __metasqitch}) {
-        my $dbpath = catfile($tmpdir, $dbname);
+        my $dbpath = file($tmpdir, $dbname)->stringify;
         next unless -f $dbpath;
         my $dsn = qq{dbi:Firebird:dbname=$dbpath;host=localhost;port=3050};
         $dsn .= q{;ib_dialect=3;ib_charset=UTF8};
@@ -329,7 +327,7 @@ END {
     }
 }
 
-my $dbpath = catfile($tmpdir, '__sqitchtest__');
+my $dbpath = file($tmpdir, '__sqitchtest__')->stringify;
 my $err = try {
     require DBD::Firebird;
     DBD::Firebird->create_database(
@@ -350,11 +348,11 @@ DBIEngineTest->run(
     class         => $CLASS,
     sqitch_params => [options => {
         _engine     => 'firebird',
-        top_dir     => Path::Class::dir(qw(t engine))->stringify,
-        plan_file   => Path::Class::file(qw(t engine sqitch.plan))->stringify,
+        top_dir     => dir(qw(t engine))->stringify,
+        plan_file   => file(qw(t engine sqitch.plan))->stringify,
     }],
-    target_params     => [ uri => $uri, registry => catfile($tmpdir, '__metasqitch') ],
-    alt_target_params => [ uri => $uri, registry => catfile($tmpdir, '__sqitchtest') ],
+    target_params     => [ uri => $uri, registry => file($tmpdir, '__metasqitch')->stringify ],
+    alt_target_params => [ uri => $uri, registry => file($tmpdir, '__sqitchtest')->stringify ],
     prefix_engine_params => [ uri => $uri, with_registry_prefix => 1 ],
 
     skip_unless => sub {
@@ -373,7 +371,7 @@ DBIEngineTest->run(
     engine_err_regex  => qr/\QDynamic SQL Error\E/xms,
     init_error        => __x(
         'Sqitch database {database} already initialized',
-        database => catfile($tmpdir, '__sqitchtest'),
+        database => file($tmpdir, '__sqitchtest')->stringify,
     ),
     add_second_format => q{dateadd(1 second to %s)},
     test_dbh => sub {
