@@ -768,7 +768,7 @@ sub change_id_for {
         }, undef, $project, '@' . $tag)->[0];
     }
 
-    # We got nothin.
+    # We got nothing.
     return undef;
 }
 
