@@ -32,8 +32,8 @@ use App::Sqitch::Config;
 use Scalar::Util qw(blessed);
 use List::Util qw(first);
 
-# Inherit standar types.
-BEGIN { extends "Types::Standard" };
+# Inherit standard types.
+BEGIN { extends 'Types::Standard' };
 
 class_type Sqitch,     { class => 'App::Sqitch'                     };
 class_type Engine,     { class => 'App::Sqitch::Engine'             };

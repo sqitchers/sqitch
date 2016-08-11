@@ -15,7 +15,7 @@ use namespace::autoclean;
 
 extends 'App::Sqitch::Engine';
 
-our $VERSION = '0.9993';
+our $VERSION = '0.9996';
 
 has registry_uri => (
     is       => 'ro',
@@ -140,6 +140,8 @@ has _sqlite3 => (
 );
 
 sub sqlite3 { @{ shift->_sqlite3 } }
+
+sub _version_query { 'SELECT CAST(ROUND(MAX(version), 1) AS TEXT) FROM releases' }
 
 sub initialized {
     my $self = shift;

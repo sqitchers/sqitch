@@ -19,7 +19,7 @@ use constant ENGINES_WITH_REGISTRY_PREFIX => qw(
     oracle
 );
 
-our $VERSION = '0.9993';
+our $VERSION = '0.9996';
 
 has sqitch => (
     is       => 'ro',
@@ -689,7 +689,22 @@ sub _params_for_key {
 
 sub change_id_for_key {
     my $self = shift;
-    return $self->change_id_for( $self->_params_for_key(shift) );
+    return $self->find_change_id( $self->_params_for_key(shift) );
+}
+
+sub find_change_id {
+    my ( $self, %p ) = @_;
+
+    # Find the change ID or return undef.
+    my $change_id = $self->change_id_for(
+        change_id => $p{change_id},
+        change    => $p{change},
+        tag       => $p{tag},
+        project   => $p{project} || $self->plan->project,
+    ) // return;
+
+    # Return relative to the offset.
+    return $self->change_id_offset_from_id($change_id, $p{offset});
 }
 
 sub change_for_key {
@@ -1013,6 +1028,11 @@ sub _check_registry {
     return $self if $newver == $oldver;
 
     hurl engine => __x(
+        'No registry found in {destination}. Have you ever deployed?',
+        destination => $self->registry_destination,
+    ) if $oldver == 0 && !$self->initialized;
+
+    hurl engine => __x(
         'Registry version is {old} but {new} is the latest known. Please upgrade Sqitch',
         old => $oldver,
         new => $newver,
@@ -1173,6 +1193,11 @@ sub name_for_change_id {
 sub change_offset_from_id {
     my $class = ref $_[0] || $_[0];
     hurl "$class has not implemented change_offset_from_id()";
+}
+
+sub change_id_offset_from_id {
+    my $class = ref $_[0] || $_[0];
+    hurl "$class has not implemented change_id_offset_from_id()";
 }
 
 sub registered_projects {
@@ -1448,10 +1473,13 @@ tables are created.
 Get, set, and clear engine variables. Variables are defined as key/value pairs
 to be passed to the engine client in calls to C<deploy> and C<revert>, if the
 client supports variables. For example, the
-L<PostgreSQL|App::Sqitch::Engine::pg> and L<Vertica|App::Sqitch::Engine::vertica>
-engines pass all the variables to their C<psql> and C<vsql> clients via the
-C<--set> option, while the L<Oracle engine|App::Sqitch::Engine::oracle> engine
-sets them via the SQL*Plus C<DEFINE> command.
+L<PostgreSQL|App::Sqitch::Engine::pg> and
+L<Vertica|App::Sqitch::Engine::vertica> engines pass all the variables to
+their C<psql> and C<vsql> clients via the C<--set> option, while the
+L<MySQL engine|App::Sqitch::Engine::mysql> engine sets them via the C<SET>
+command and the L<Oracle engine|App::Sqitch::Engine::oracle> engine sets them
+via the SQL*Plus C<DEFINE> command.
+
 
 =head3 C<deploy>
 
@@ -1608,7 +1636,7 @@ will be the offset number of changes before the latest change.
 
 =head3 C<change_for_key>
 
-  my $change = if $engine->change_for_key(key);
+  my $change = if $engine->change_for_key($key);
 
 Searches the deployed changes for a change corresponding to the specified key,
 which should be in a format as described in L<sqitchchanges>. Throws an
@@ -1617,7 +1645,7 @@ matches no changes.
 
 =head3 C<change_id_for_key>
 
-  my $change_id = if $engine->change_id_for_key(key);
+  my $change_id = if $engine->change_id_for_key($key);
 
 Searches the deployed changes for a change corresponding to the specified key,
 which should be in a format as described in L<sqitchchanges>, and returns the
@@ -1626,7 +1654,7 @@ Returns C<undef> if it matches no changes.
 
 =head3 C<change_for_key>
 
-  my $change = if $engine->change_for_key(key);
+  my $change = if $engine->change_for_key($key);
 
 Searches the list of deployed changes for a change corresponding to the
 specified key, which should be in a format as described in L<sqitchchanges>.
@@ -1692,6 +1720,13 @@ Search by change name or tag.
 
 The offset, if passed, will be applied relative to whatever change is found by
 the above algorithm.
+
+=head3 C<find_change_id>
+
+  my $change_id = $engine->find_change_id(%params);
+
+Like C<find_change()>, taking the same parameters, but returning an ID instead
+of a change.
 
 =head3 C<run_deploy>
 
@@ -2328,6 +2363,13 @@ Otherwise, the change returned should be C<$offset> steps from that change ID,
 where C<$offset> may be positive (later step) or negative (earlier step).
 Returns C<undef> if the change was not found or if the offset is more than the
 number of changes before or after the change, as appropriate.
+
+=head3 C<change_id_offset_from_id>
+
+  my $id = $engine->change_id_offset_from_id( $change_id, $offset );
+
+Like C<change_offset_from_id()> but returns the change ID rather than the
+change object.
 
 =head3 C<registry_version>
 

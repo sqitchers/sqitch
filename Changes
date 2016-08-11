@@ -1,23 +1,153 @@
 Revision history for Perl extension App::Sqitch
 
-0.9993
+0.9995 2016-07-27T09:23:55Z
+     - Taught the `add` command not to ignore the `--change` option.
+     - The `add` command now emits a usage statement when no change name is
+       passed to it.
+     - The `add` command now helpfully suggests using the --change option when
+       attempting to add a change with the same name as a target. Thanks to
+       Ivan Nunes for the report!
+     - The `tag` command now helpfully suggests using the --tag option when
+       attempting to add a tag with the same name as a target.
+     - Added `--global` as an alias for `--user` to the `config` command. This
+       alias benefits the muscle memory of Git users.
+     - Added a note for Git users to the `sqitch-revert` documentation, to
+       head off potential confusion with `git revert`. Thanks to Eric
+       Bréchemier for the "time travel" analogy and wording.
+     - Fixed an "uninitialized value" error when creating a registry database
+       on Windows. Thanks to Steven C. Buttgereit for the report (Issue #289).
+     - Fixed editor selection to prioritize the `core.editor` configuration
+       variable over the `$EDITOR` environment variable. The `$SQITCH_EDITOR`
+       environment variable still trumps all. Thanks to Jim Nasby for the pull
+       request (#296).
+     - Added detection of the `$VISUAL` environment variable to Editor
+       selection, prioritzed after the `core.editor` configuration variable
+       and before the `$EDITOR` environment variable. Thanks to Jim Nasby for
+       the pull request (#296).
+     - Updated the DateTime code to set the locale via `set_locale()` instead
+       of `set()`, as the latter may actually change the local time
+       unintentionally, and has been deprecated since DateTime v1.04. Thanks
+       to Dave Rolsky for the pull request (#304).
+
+0.9994 2016-01-08T19:46:43Z
+     - Reduced minimum required MySQL engine from 5.1.0 to 5.0.0. Thanks to
+       @dgc-wh for testing it (Issue #251).
+     - Fixed floating-point rounding issue with SQLite registry versions on
+       Perls with 16-byte doubles. Thanks to H. Merijn Brand for the report
+       and testing.
+     - Fixed an error when adding an engine with the `engine` command. Thanks
+       to Victor Mours for the report and fix!
+     - Updated the Oracle engine to support Oracle Wallet connection strings,
+       where no username or host is in the connection URI. Thanks to Timothy
+       Procter for the patch!
+     - Improved the installer's selection of the prefix in which to install
+       `etc` files to better match the `--installdirs` option, which defaults
+       to the "site" directories. Thanks to @carragom for the pull request
+       (#265).
+     - Added missing dash to `-engine` in sample calls to `sqitch init` in the
+       tutorials. Thanks to Andrew Dunstan for the spot (Issue #268).
+     - Fixed broken Vertica documentation links.
+     - Attempting to revert a database with no associated registry no longer
+       reports the registry as version 0, but correctly reports that no
+       registry can be found. Thanks to Arnaldo Piccinelli for the spot (Issue
+       #271).
+     - Fixed the search for change IDs in engines to match the search for
+       changes. Specifically, change ID seaerch now properly handles the
+       offset characters `~` and `^`. This bug mainly affected the `verify`
+       command, but it's good to address the inconsistency, done mainly by
+       adding the `find_change_id` and `change_id_offset_from_id` methods to
+       complement the `find_change` and `change_offset_from_id` methods.
+       Thanks to Andrew Dunstan for the spot (Issue #272).
+     - Fixed the `flips` table example in the MySQL tutorial. It was
+       inappropriately copied from the PostgreSQL tutorial at some point.
+       Thanks to Jeff Carpenter for the spot (Issue #254)!
+
+0.9993  2015-08-17T17:55:26Z
+     [Bug Fixes]
      - Eliminated test failures due to warnings from DateTime::Locale when
        `LC_TIME` is set to C.UTF-8. Thanks to Shantanu Bhadoria for the report
        and Dave Rolsky for the workaround.
      - Fixed an error checking the registry version when the local uses a
        comma for decimal values. Thanks to Steffen Müller for the report
        (Issue #234).
-     - Worked around an error setting the MySQL storeage engine using versions
+     - Worked around an error setting the MySQL storage engine using versions
        of DBI prior to 1.631. Thanks to melon-babak for the report!
      - Fixed an error from the Oracle engine when deploying more than 1000
        changes. Thanks to Timothy Procter and Minh Hoang for the report and
        testing the fix.
      - Fixed a bunch of typos in error messages, comments, and documentation.
        Thanks to Dmitriy for the pull request!
-     - Fixed test failiures due to new warnings from File::Path on Perl
+     - Fixed test failures due to new warnings from File::Path on Perl
        5.23.1.
+     - On Firebird, Looking up a change and tag in the database (via the
+       `--onto` option to `rebase` or the `--to` option to `revert`, among
+       others) would sometimes return the incorrect change if the change has
+       been reworked two or more times. Was fixed for the other engines in
+       v0.9991.
+     - Fixed the `--all` option used to apply a command to all known targets
+       so that it loads only targets specified by the local configuration.
+       Otherwise, user and system configuration can get in the way when they
+       specify engines and targets not used by the current project.
+     [Improvements]
      - Added support for the `--set` option when deploying to MySQL. Thanks to
        Chris Bandy for figuring out how to do it!
+     - Added support for a "reworked directory". By default, reworked change
+       scripts live in the deploy, revert, and verify directories along with
+       all the other change scripts. But if that starts to get too messy, or
+       you simply don't want to see them, add a `reworked_dir` setting to the
+       core, engine, or target config and reworked scripts will be stored
+       there, instead. Also supported are `reworked_deploy_dir`,
+       `reworked_revert_dir`, and `reworked_verify_dir`.
+     - Added the `--dir` option to the `init`, `engine`, and `target`
+       commands.
+     - Copied the core configuration options (`--engine`, `--target`,
+       `--plan-file`, `--registry`, etc.) to the `init`, `engine`, and
+       `target` commands. This means that they can be specified after the
+       command, which is a bit more natural. It also means that the
+       `--registry` and `--client` options of the `target` are no longer
+       deprecated.
+     - The `init` command on longer writes out commented values for the
+       `deploy_dir`, `revert_dir`, or `verify_dir` settings. I think these
+       settings are not commonly used, and it would start to get crowded if we
+       also added their "reworked" variants, which will be used still less.
+     - Added the `alter` action to the `engine` and `target` commands to set
+       engine and target properties.
+     - Added support for setting reworked directories to the `engine` and
+       `target` commands.
+     - Reformatted the output of the `engine` and `target` command `show`
+       actions to include reworked directories, and to bit a bit less flat.
+     - Attempting to add or alter an engine with a target URI that connects to
+       a different engine now triggers an error. For example, you can't set
+       the target for engine `pg` to `db:sqlite:`.
+     - The `add` and `alter` actions of the `engine` and `target` commands
+       now create script directories if they don't already exist.
+     - The `add` action of the `engine` and `target` commands now creates a
+       plan file if one does not exist in the specified location for the
+       engine or target.
+     - Added the `deploy_dir`, `revert_dir`, and `verify_dir` methods to
+       App::Sqitch::Plan::Change. Each points to the proper directory for the
+       target depending on whether or not the change has been reworked.
+     - In the MySQL engine, the following URI query params will be converted
+       to options passed to the command-line client, if they're present:
+       * mysql_compression=1   => --compress
+       * mysql_ssl=1           => --ssl
+       * mysql_connect_timeout => --connect_timeout
+       * mysql_init_command    => --init-command
+       * mysql_socket          => --socket
+       * mysql_ssl_client_key  => --ssl-key
+       * mysql_ssl_client_cert => --ssl-cert
+       * mysql_ssl_ca_file     => --ssl-ca
+       * mysql_ssl_ca_path     => --ssl-capath
+       * mysql_ssl_cipher      => --ssl-cipher
+     [Documentation]
+     - Added the "Overworked" section to sqitch-configuration guide with an
+       example of how to move reworked change scripts into a `reworked_dir`.
+     [Deprecations]
+     - Deprecated the `set-*` actions in the `engine` and `target` commands in
+       favor of the new `alter` action.
+     - The core `--deployed-dir`, `--revert-dir`, and `--verify-dir` options
+       are deprecated in favor of the `--dir` option on the `init`, `engine`,
+       and `target` command.
 
 0.9992 2015-05-20T23:51:41Z
      - On PostgreSQL, Sqitch now sets the `client_encoding` parameter to

@@ -21,8 +21,7 @@ for details.
 
 The paths and extensions of the generated scripts depend on the configuration
 of Sqitch targets, engines, and the core. They can also be overridden by the
-use of the core C<--engine>, C<--top-dir>, C<--plan-file>, C<--extension>,
-C<--deploy-dir>, C<--revert-dir>, and C<--verify-dir> directories. You
+use of the core C<--engine>, C<--top-dir>, and C<--plan-file> options. You
 probably don't want to often use any of those, but should define alternatives
 on a per-engine or per-target basis. See L<sqitch-configuration> for details.
 
@@ -37,7 +36,7 @@ example. Pass the C<--all> option to have it iterate over all known plans and
 top directories (as specified for engines and targets) and add the change to
 them all.
 
-To specify which plans an top directories to which the change and its scripts
+To specify which plans and top directories to which the change and its scripts
 will be added, pass the target, engine, or plan file names as arguments. Use
 C<--change> to disambiguate the tag and change names from the other parameters
 if necessary (or preferable). See L</Examples> for examples.

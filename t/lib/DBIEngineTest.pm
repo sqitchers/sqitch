@@ -54,6 +54,7 @@ sub run {
         change_id_for_depend
         name_for_change_id
         change_offset_from_id
+        change_id_offset_from_id
         load_change
     );
 
@@ -773,12 +774,13 @@ sub run {
 
         ######################################################################
         # Test deployed_changes(), deployed_changes_since(), load_change, and
-        # change_offset_from_id().
+        # change_offset_from_id(), and change_id_offset_from_id()
         can_ok $engine, qw(
             deployed_changes
             deployed_changes_since
             load_change
             change_offset_from_id
+            change_id_offset_from_id
         );
         my $change_hash = {
             id            => $change->id,
@@ -820,6 +822,11 @@ sub run {
         is_deeply $engine->change_offset_from_id($change2->id, 0), $change2_hash,
             'Should load change with offset 0';
 
+        is_deeply $engine->change_id_offset_from_id($change->id, undef), $change->id,
+            'Should get change ID with no offset';
+        is_deeply $engine->change_id_offset_from_id($change2->id, 0), $change2->id,
+            'Should get change ID with offset 0';
+
         # Now try some offsets.
         is_deeply $engine->change_offset_from_id($change->id, 1), $change2_hash,
             'Should find change with offset 1';
@@ -827,6 +834,13 @@ sub run {
             'Should find change with offset -1';
         is_deeply $engine->change_offset_from_id($change->id, 2), undef,
             'Should find undef change with offset 2';
+
+        is_deeply $engine->change_id_offset_from_id($change->id, 1), $change2->id,
+            'Should find change ID with offset 1';
+        is_deeply $engine->change_id_offset_from_id($change2->id, -1), $change->id,
+            'Should find change ID with offset -1';
+        is_deeply $engine->change_id_offset_from_id($change->id, 2), undef,
+            'Should find undef change ID with offset 2';
 
         # Revert change 2.
         ok $engine->log_revert_change($change2), 'Revert "widgets"';
@@ -1608,7 +1622,7 @@ sub run {
             $mock_engine->mock(plan => $plan);
             $mock_engine->mock(_update_ids => sub { shift });
 
-            is $engine->_update_ids, 9, 'Update IDs by old ID should return 9';
+            is $engine->_update_ids, 10, 'Update IDs by old ID should return 10';
 
             # All of the current project changes should be updated.
             is_deeply [ map { [@{$_}[0,1]] } @{ all_changes($engine) }],
@@ -1629,7 +1643,7 @@ sub run {
                 $upd_tag->execute($tag->old_id . $i++, $tag->id);
             }
 
-            is $engine->_update_ids, 9, 'Update IDs by name should also return 9';
+            is $engine->_update_ids, 10, 'Update IDs by name should also return 10';
 
             # All of the current project changes should be updated.
             is_deeply [ map { [@{$_}[0,1]] } @{ all_changes($engine) }],

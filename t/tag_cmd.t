@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 78;
+use Test::More tests => 81;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -340,3 +340,22 @@ is_deeply +MockOutput->get_info, [
         file   => $targets[0]->plan_file,
     ],
 ], 'The huwah info message should the pg plan getting tagged';
+
+# Make sure we die if the passed name conflicts with a target.
+TARGET: {
+    my $mock_add = Test::MockModule->new($CLASS);
+    $mock_add->mock(parse_args => sub {
+        return undef, undef, [$tag->default_target];
+    });
+    $mock_add->mock(name => 'blog');
+    my $mock_target = Test::MockModule->new('App::Sqitch::Target');
+    $mock_target->mock(name => 'blog');
+
+    throws_ok { $tag->execute('blog') } 'App::Sqitch::X',
+        'Should get an error for conflict with target name';
+    is $@->ident, 'tag', 'Conflicting target error ident should be "tag"';
+    is $@->message, __x(
+        'Name "{name}" identifies a target; use "--tag {name}" to use it for the tag name',
+        name => 'blog',
+    ), 'Conflicting target error message should be correct';
+}

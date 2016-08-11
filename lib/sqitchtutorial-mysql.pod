@@ -34,7 +34,7 @@ Usually the first thing to do when starting a new project is to create a
 source code repository. So let's do that with Git:
 
   > mkdir flipr
-  > cd flipr 
+  > cd flipr
   > git init .
   Initialized empty Git repository in /flipr/.git/
   > touch README.md
@@ -52,7 +52,7 @@ project must have a name associated with it, and, optionally, a unique URI. We
 recommend including the URI, as it increases the uniqueness of object
 identifiers internally, so let's specify one when we initialize Sqitch:
 
-  > sqitch --engine mysql init flipr --uri https://github.com/theory/sqitch-mysql-intro/
+  > sqitch init flipr --uri https://github.com/theory/sqitch-mysql-intro/ --engine mysql
   Created sqitch.conf
   Created sqitch.plan
   Created deploy/
@@ -66,14 +66,10 @@ Let's have a look at F<sqitch.conf>:
   	engine = mysql
   	# plan_file = sqitch.plan
   	# top_dir = .
-  	# deploy_dir = deploy
-  	# revert_dir = revert
-  	# verify_dir = verify
-  	# extension = sql
   # [engine "mysql"]
   	# target = db:mysql:
   	# registry = sqitch
-  	# client = /usr/local/mysql/bin/mysql
+  	# client = mysql
 
 Good, it picked up on the fact that we're creating changes for the MySQL
 engine, thanks to the C<--engine mysql> option, and saved it to the file.
@@ -722,7 +718,7 @@ something like:
   -- Revert flipr:change_pass from mysql
   BEGIN;
   DROP FUNCTION change_pass;
-  REVERT;
+  COMMIT;
 
 Try em out!
 
@@ -903,14 +899,14 @@ You know the drill by now. Edit F<deploy/flips.sql>:
 
   BEGIN;
 
-  SET client_min_messages = 'warning';
-
-  CREATE TABLE flipr.flips (
-      id        BIGSERIAL   PRIMARY KEY,
-      nickname  TEXT        NOT NULL REFERENCES flipr.users(nickname),
-      body      TEXT        NOT NULL DEFAULT '' CHECK ( length(body) <= 180 ),
-      timestamp TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp()
+  CREATE TABLE flips (
+      id        BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+      nickname  VARCHAR(512) NOT NULL REFERENCES users(nickname),
+      body      VARCHAR(180) NOT NULL,
+      timestamp DATETIME(6)  NOT NULL
   );
+
+  GRANT SELECT ON TABLE flips TO flipr;
 
   COMMIT;
 
@@ -927,7 +923,7 @@ Edit F<verify/flips.sql>:
     FROM flipr.flips
    WHERE 0;
 
-  COMMIT;
+  ROLLBACK;
 
 And edit F<revert/flips.sql>:
 
@@ -935,7 +931,7 @@ And edit F<revert/flips.sql>:
 
   BEGIN;
 
-  DROP TABLE flipr.flips;
+  DROP TABLE flips;
 
   COMMIT;
 

@@ -6,12 +6,13 @@ perl:
   - "5.16"
   - "5.18"
   - "5.20"
+  - "5.22"
   - "dev"
   - "blead"
 
 matrix:
   include:
-    - perl: "5.20"
+    - perl: "5.22"
       env: COVERAGE=1
   allow_failures:
     - perl: "blead"

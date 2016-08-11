@@ -64,18 +64,18 @@ your local host):
   Locale = en_US
 
 See the
-L<Vertica ODBC Documentation|http://my.vertica.com/docs/7.1.x/HTML/index.htm#Authoring/ProgrammersGuide/InstallingDrivers/CreatingAnODBCDataSourceNameDSN.htm>
+L<Vertica ODBC Documentation|http://my.vertica.com/docs/7.1.x/HTML/index.htm#Authoring/ConnectingToHPVertica/InstallingDrivers/CreatingAnODBCDataSourceNameDSN.htm>
 for details. Specific links:
 
 =over
 
-=item * L<Unix ODBC Configuration|http://my.vertica.com/docs/7.1.x/HTML/index.htm#Authoring/ProgrammersGuide/InstallingDrivers/CreatingAnODBCDSNForLinuxSolarisAIXAndHP-UX.htm>
+=item * L<Unix ODBC Configuration|http://my.vertica.com/docs/7.1.x/HTML/index.htm#Authoring/ConnectingToHPVertica/InstallingDrivers/CreatingAnODBCDSNForLinuxSolarisAIXAndHP-UX.htm>
 
-=item * L<Additional Linux ODBC Configuration (C<vertica.ini>)|http://my.vertica.com/docs/7.1.x/HTML/index.htm#Authoring/ProgrammersGuide/ClientODBC/AdditionalODBCDriverConfigurationSettings.htm>
+=item * L<Additional Linux ODBC Configuration (C<vertica.ini>)|http://my.vertica.com/docs/7.1.x/HTML/index.htm#Authoring/ConnectingToHPVertica/ClientODBC/AdditionalODBCDriverConfigurationSettings.htm>
 
-=item * L<Windows ODBC Configuration|http://my.vertica.com/docs/7.1.x/HTML/index.htm#Authoring/ProgrammersGuide/InstallingDrivers/CreatingAnODBCDSNForWindowsClients.htm>
+=item * L<Windows ODBC Configuration|http://my.vertica.com/docs/7.1.x/HTML/index.htm#Authoring/ConnectingToHPVertica/InstallingDrivers/CreatingAnODBCDSNForWindowsClients.htm>
 
-=item * L<Mac OS X ODBC Configuration|http://my.vertica.com/docs/7.1.x/HTML/index.htm#Authoring/ProgrammersGuide/InstallingDrivers/CreatingAnODBCDSNForMacintoshOSXClients.htm>
+=item * L<Mac OS X ODBC Configuration|http://my.vertica.com/docs/7.1.x/HTML/index.htm#Authoring/ConnectingToHPVertica/InstallingDrivers/CreatingAnODBCDSNForMacintoshOSXClients.htm>
 
 =back
 
@@ -101,7 +101,7 @@ project must have a name associated with it, and, optionally, a unique URI. We
 recommend including the URI, as it increases the uniqueness of object
 identifiers internally, so let's specify one when we initialize Sqitch:
 
-  > sqitch --engine vertica init flipr --uri https://github.com/theory/sqitch-vertica-intro/
+  > sqitch init flipr --uri https://github.com/theory/sqitch-vertica-intro/ --engine vertica
   Created sqitch.conf
   Created sqitch.plan
   Created deploy/
@@ -115,20 +115,16 @@ Let's have a look at F<sqitch.conf>:
   	engine = vertica
   	# plan_file = sqitch.plan
   	# top_dir = .
-  	# deploy_dir = deploy
-  	# revert_dir = revert
-  	# verify_dir = verify
-  	# extension = sql
   # [engine "vertica"]
   	# target = db:vertica:
   	# registry = sqitch
   	# client = vsql
 
 Good, it picked up on the fact that we're creating changes for the Vertica
-engine, thanks to the C<--engine vertica> option, and saved it to the file.
-Furthermore, it wrote a commented-out C<[engine "vertica"]> section with all the
-available Vertica engine-specific settings commented out and ready to be
-edited as appropriate.
+engine, thanks to the C<-engine vertica> option, and saved it to the
+file. Furthermore, it wrote a commented-out C<[engine "vertica"]> section with
+all the available Vertica engine-specific settings commented out and ready to
+be edited as appropriate.
 
 By default, Sqitch will read F<sqitch.conf> in the current directory for
 settings. But it will also read F<~/.sqitch/sqitch.conf> for user-specific
@@ -668,7 +664,7 @@ should look like:
 
 Here's what F<verify/flips.sql> might look like:
 
-  -- Verify flipr:flips                                                                                  on vertica
+  -- Verify flipr:flips on vertica
   SELECT id, nickname, body, timestamp
     FROM flipr.flips
    WHERE FALSE;

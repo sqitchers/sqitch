@@ -13,7 +13,6 @@ Config file location
     --local               use local config file
     --user                use user config file
     --system              use system config file
-    --local               use repository config file
     -f, --file <file>     use given config file
 
 Action

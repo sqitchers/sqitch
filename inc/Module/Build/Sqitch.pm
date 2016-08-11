@@ -35,6 +35,16 @@ sub new {
 
 sub _getetc {
     my $self = shift;
+    my $prefix;
+
+    if ($self->installdirs eq 'site') {
+        $prefix = $Config::Config{siteprefix} // $Config::Config{prefix};
+    } elsif ($self->installdirs eq 'vendor') {
+        $prefix = $Config::Config{vendorprefix} // $Config::Config{siteprefix} // $Config::Config{prefix};
+    } else {
+        $prefix = $Config::Config{prefix};
+    }
+
     # Prefer the user-specified directory.
     if (my $etc = $self->etcdir) {
         return $etc;
@@ -42,12 +52,12 @@ sub _getetc {
 
     # Use a directory under the install base (or prefix).
     my @subdirs = qw(etc sqitch);
-    if ( my $dir = $self->prefix || $self->install_base ) {
+    if ( my $dir = $self->install_base || $self->prefix ) {
         return File::Spec->catdir( $dir, @subdirs );
     }
 
     # Go under Perl's prefix.
-    return File::Spec->catdir( $Config::Config{prefix}, @subdirs );
+    return File::Spec->catdir( $prefix, @subdirs );
 }
 
 sub ACTION_move_old_templates {

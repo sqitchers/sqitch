@@ -14,7 +14,7 @@ requires 'command';
 requires 'options';
 requires 'configure';
 
-our $VERSION = '0.9993';
+our $VERSION = '0.9996';
 
 has target => (
     is  => 'ro',

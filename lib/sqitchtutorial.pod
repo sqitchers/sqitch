@@ -36,7 +36,7 @@ Usually the first thing to do when starting a new project is to create a
 source code repository. So let's do that with Git:
 
   > mkdir flipr
-  > cd flipr 
+  > cd flipr
   > git init .
   Initialized empty Git repository in /flipr/.git/
   > touch README.md
@@ -51,7 +51,7 @@ project must have a name associated with it, and, optionally, a unique URI. We
 recommend including the URI, as it increases the uniqueness of object
 identifiers internally, so let's specify one when we initialize Sqitch:
 
-  > sqitch --engine pg init flipr --uri https://github.com/theory/sqitch-intro/
+  > sqitch init flipr --uri https://github.com/theory/sqitch-intro/ --engine pg
   Created sqitch.conf
   Created sqitch.plan
   Created deploy/
@@ -65,17 +65,13 @@ Let's have a look at F<sqitch.conf>:
   	engine = pg
   	# plan_file = sqitch.plan
   	# top_dir = .
-  	# deploy_dir = deploy
-  	# revert_dir = revert
-  	# verify_dir = verify
-  	# extension = sql
   # [engine "pg"]
   	# target = db:pg:
   	# registry = sqitch
-  	# client = /usr/local/pgsql/bin/psql
+  	# client = psql
 
 Good, it picked up on the fact that we're creating changes for the PostgreSQL
-engine, thanks to the C<--engine pg> option, and saved it to the file.
+engine, thanks to the C<-engine pg> option, and saved it to the file.
 Furthermore, it wrote a commented-out C<[engine "pg"]> section with all the
 available PostgreSQL engine-specific settings commented out and ready to be
 edited as appropriate.
@@ -398,7 +394,7 @@ changes are verified after deploying them:
 We'll see the L<C<rebase>|sqitch-rebase> command a bit later. In the meantime,
 let's commit the new configuration and and make some more changes!
 
-  > git commit -am 'Set default deployment target and always verify.'     
+  > git commit -am 'Set default deployment target and always verify.'
   [master a6267d3] Set default deployment target and always verify.
    1 file changed, 8 insertions(+)
 
@@ -634,7 +630,7 @@ Here's what F<verify/insert_user.sql> might look like:
 
   BEGIN;
   SELECT has_function_privilege('flipr.insert_user(text, text)', 'execute');
-  COMMIT;
+  ROLLBACK;
 
 We simply take advantage of the fact that C<has_function_privilege()> throws
 an exception if the specified function does not exist.
@@ -674,7 +670,7 @@ Use C<has_function_privilege()> in F<verify/change_pass.sql> again:
 
   BEGIN;
   SELECT has_function_privilege('flipr.change_pass(text, text, text)', 'execute');
-  COMMIT;
+  ROLLBACK;
 
 And of course, its C<revert> script, F<revert/change_pass.sql>, should look
 something like:
@@ -682,7 +678,7 @@ something like:
   -- Revert flipr:change_pass from pg
   BEGIN;
   DROP FUNCTION flipr.change_pass(TEXT, TEXT, TEXT);
-  REVERT;
+  COMMIT;
 
 Try em out!
 
@@ -703,7 +699,7 @@ look:
 
 And what's the status?
 
-  > sqitch status 
+  > sqitch status
   # On database flipr_test
   # Project:  flipr
   # Change:   01a4f6964b89284525cb5877d222df8be70d1647
@@ -880,7 +876,7 @@ Edit F<verify/flips.sql>:
     FROM flipr.flips
    WHERE FALSE;
 
-  COMMIT;
+  ROLLBACK;
 
 And edit F<revert/flips.sql>:
 
@@ -960,7 +956,7 @@ And the C<delete_flip> deploy script might look something like:
      flip_id BIGINT
   ) RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER AS $$
   BEGIN
-      DELETE FROM flipe.flips WHERE id = flip_id;
+      DELETE FROM flipr.flips WHERE id = flip_id;
       RETURN FOUND;
   END;
   $$;
@@ -975,7 +971,7 @@ The C<verify> scripts are:
 
   SELECT has_function_privilege('flipr.insert_flip(text, text)', 'execute');
 
-  COMMIT;
+  ROLLBACK;
 
 And:
 
@@ -985,7 +981,7 @@ And:
 
   SELECT has_function_privilege('flipr.delete_flip(bigint)', 'execute');
 
-  COMMIT;
+  ROLLBACK;
 
 The C<revert> scripts are:
 
@@ -1159,7 +1155,7 @@ and rebase again:
 
 Ah, that looks a bit better. Let's have a look at the plan:
 
-  > cat sqitch.plan 
+  > cat sqitch.plan
   %syntax-version=1.0.0
   %project=flipr
   %uri=https://github.com/theory/sqitch-intro/
@@ -1251,7 +1247,7 @@ And now, finally, we can merge into C<master>:
 
 And double-check our work:
 
-  > cat sqitch.plan 
+  > cat sqitch.plan
   %syntax-version=1.0.0
   %project=flipr
   %uri=https://github.com/theory/sqitch-intro/
@@ -1279,7 +1275,7 @@ release:
   [master 230603b] Tag the database with v1.0.0-dev2.
    1 file changed, 1 insertion(+)
   > git tag v1.0.0-dev2 -am 'Tag v1.0.0-dev2'
-  > sqitch bundle --dest-dir flipr-1.0.0-dev2 
+  > sqitch bundle --dest-dir flipr-1.0.0-dev2
   Bundling into flipr-1.0.0-dev2
   Writing config
   Writing plan
@@ -1480,7 +1476,7 @@ F<deploy/insert_user.sql>:
 
 Go ahead and rework the C<change_pass> change, too:
 
-  > sqitch rework change_pass --requires pgcrypto -n 'Change change_pass to use pgcrypto.' 
+  > sqitch rework change_pass --requires pgcrypto -n 'Change change_pass to use pgcrypto.'
   Added "change_pass [change_pass@v1.0.0-dev2 pgcrypto]" to sqitch.plan.
   Modify these files as appropriate:
     * deploy/change_pass.sql
@@ -1568,7 +1564,7 @@ L<C<pg_get_functiondef()>|http://www.postgresql.org/docs/9.2/static/functions-in
    WHERE proname = 'insert_user'
      AND pg_get_functiondef(oid) LIKE $$%crypt($2, gen_salt('md5'))%$$;
 
-  COMMIT;
+  ROLLBACK;
 
 And the C<change_pass> verify script looks like this:
 
@@ -1583,7 +1579,7 @@ And the C<change_pass> verify script looks like this:
    WHERE proname = 'change_pass'
      AND pg_get_functiondef(oid) LIKE $$%crypt($3, gen_salt('md5'))%$$;
 
-  COMMIT;
+  ROLLBACK;
 
 Make sure these pass by re-deploying:
 

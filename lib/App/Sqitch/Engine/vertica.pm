@@ -12,7 +12,7 @@ use App::Sqitch::Types qw(DBH ArrayRef);
 
 extends 'App::Sqitch::Engine';
 
-our $VERSION = '0.9993';
+our $VERSION = '0.9996';
 
 sub key    { 'vertica' }
 sub name   { 'Vertica' }
@@ -356,6 +356,32 @@ sub load_change {
     return $res[0];
 }
 
+sub _offset_op {
+    my ( $self, $offset ) = @_;
+    my ( $dir, $op ) = $offset > 0 ? ( 'ASC', '>' ) : ( 'DESC' , '<' );
+    return $dir, $op, 'OFFSET ' . (abs($offset) - 1);
+}
+
+sub change_id_offset_from_id {
+    my ( $self, $change_id, $offset ) = @_;
+
+    # Just return the ID if there is no offset.
+    return $change_id unless $offset;
+
+    # Are we offset forwards or backwards?
+    my ($dir, $op, $offset_expr) = $self->_offset_op($offset);
+    return $self->dbh->selectcol_arrayref(qq{
+        SELECT change_id
+          FROM changes
+         WHERE project = ?
+           AND committed_at $op (
+               SELECT committed_at FROM changes WHERE change_id = ?
+         )
+         ORDER BY committed_at $dir
+         LIMIT 1 $offset_expr
+    }, undef, $self->plan->project, $change_id)->[0];
+}
+
 sub change_offset_from_id {
     my ( $self, $change_id, $offset ) = @_;
 
@@ -363,11 +389,8 @@ sub change_offset_from_id {
     return $self->load_change($change_id) unless $offset;
 
     # Are we offset forwards or backwards?
-    my ( $dir, $op ) = $offset > 0 ? ( 'ASC', '>' ) : ( 'DESC' , '<' );
+    my ($dir, $op, $offset_expr) = $self->_offset_op($offset);
     my $tscol  = sprintf $self->_ts2char_format, 'c.planned_at';
-
-    $offset = abs($offset) - 1;
-    my $offset_expr = $offset ? "OFFSET $offset" : '';
 
     my @res = $self->_deployed_changes(qq{
         SELECT c.change_id AS id, c.change AS name, c.project, c.note,

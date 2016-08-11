@@ -1,4 +1,4 @@
-App/Sqitch version 0.9993
+App/Sqitch version 0.9996
 =========================
 
 [![CPAN version](https://badge.fury.io/pl/App-Sqitch.svg)](http://badge.fury.io/pl/App-Sqitch)
@@ -6,7 +6,7 @@ App/Sqitch version 0.9993
 [![Coverage Status](https://coveralls.io/repos/theory/sqitch/badge.svg)](https://coveralls.io/r/theory/sqitch)
 
 [Sqitch](http://sqitch.org/) is a database change management application. It
-currently supports PostgreSQL 8.4+, SQLite 3.7.11+, MySQL 5.1+, Oracle 10g+,
+currently supports PostgreSQL 8.4+, SQLite 3.7.11+, MySQL 5.0+, Oracle 10g+,
 Firebird 2.0+, and Vertica 6.0+.
 
 What makes it different from your typical
@@ -91,7 +91,7 @@ Sqitch and its dependencies:
     dzil install
 
 To run Sqitch directly from the Git clone execute `t/sqitch`. If you're doing
-development on Sqitch, you will need to install the autoring dependencies, as
+development on Sqitch, you will need to install the authoring dependencies, as
 well:
 
     dzil listdeps | xargs cpan

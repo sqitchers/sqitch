@@ -11,7 +11,7 @@ use Moo;
 use App::Sqitch::Types qw(Bool);
 extends 'App::Sqitch::Command';
 
-our $VERSION = '0.9993';
+our $VERSION = '0.9996';
 
 has exists_only => (
     is       => 'ro',

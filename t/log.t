@@ -317,10 +317,10 @@ for my $spec (
 # Test all formatting characters.
 my $local_cdt = $cdt->clone;
 $local_cdt->set_time_zone('local');
-$local_cdt->set( locale => $LC::TIME );
+$local_cdt->set_locale($LC::TIME);
 my $local_pdt = $pdt->clone;
 $local_pdt->set_time_zone('local');
-$local_pdt->set( locale => $LC::TIME );
+$local_pdt->set_locale($LC::TIME);
 
 my $formatter = $log->formatter;
 for my $spec (

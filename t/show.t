@@ -28,9 +28,10 @@ is_deeply [$CLASS->options], [qw(
 
 my $sqitch = App::Sqitch->new(
     options => {
-        plan_file => file(qw(t engine sqitch.plan))->stringify,
-        top_dir   => dir(qw(t engine))->stringify,
-        engine    => 'pg',
+        plan_file    => file(qw(t engine sqitch.plan))->stringify,
+        top_dir      => dir(qw(t engine))->stringify,
+        reworked_dir => dir(qw(t engine reworked))->stringify,
+        engine       => 'pg',
     },
 );
 
@@ -52,7 +53,7 @@ is_deeply $CLASS->configure($config, {exists => 1}), { exists_only => 1 },
 
 ##############################################################################
 # Start with the change.
-ok my $change = $show->default_target->plan->get('users'), 'Get a change';
+ok my $change = $show->default_target->plan->get('widgets'), 'Get a change';
 
 ok $show->execute( change => $change->id ), 'Find change by id';
 is_deeply +MockOutput->get_emit, [[ $change->info ]],
@@ -75,8 +76,9 @@ ok !$eshow->execute( change => 'nonexistent' ),
     'Should return false for uknown change and exists_only';
 is_deeply +MockOutput->get_emit, [], 'Nothing should have been emitted';
 
-# Let's find it by tag.
-my $tag = ($change->tags)[0];
+# Let's find a change by tag.
+my $tag = ($show->default_target->plan->tags)[0];
+$change = $tag->change;
 ok $show->execute( change => $tag->id ), 'Find change by tag id';
 is_deeply +MockOutput->get_emit, [[ $change->info ]],
     'The change info should have been emitted';

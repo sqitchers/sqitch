@@ -24,6 +24,16 @@ The C<< <database> >> parameter specifies the database to which to connect,
 and may also be specified as the C<--target> option. It can be target name,
 a URI, an engine name, or plan file path.
 
+=head3 Attention Git Users
+
+If you're a git user thinking this is like C<git revert>, it's not.
+C<sqitch revert> is more like time travel. It takes your database back to the
+state it had just after applying the target change. It feels like magic, but
+it's actually all the time you spent writing revert scripts that finally pays
+off. Starting from the last change currently deployed, C<sqitch revert> runs
+each revert script in turn until the target change is reached and becomes the
+last change deployed.
+
 =head1 Options
 
 =over
@@ -81,7 +91,7 @@ These variables are useful if your database engine supports variables in
 scripts, such as PostgreSQL's
 L<C<psql> variables|http://www.postgresql.org/docs/current/static/app-psql.html#APP-PSQL-INTERPOLATION>,
 Vertica's
-L<C<vsql> variables|http://my.vertica.com/docs/7.1.x/HTML/index.htm#Authoring/ProgrammersGuide/vsql/Variables.htm>,
+L<C<vsql> variables|http://my.vertica.com/docs/7.1.x/HTML/index.htm#Authoring/ConnectingToHPVertica/vsql/Variables.htm>,
 MySQL's
 L<user variables|http://dev.mysql.com/doc/refman/5.6/en/user-variables.html>,
 and SQL*Plus's

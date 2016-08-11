@@ -5,11 +5,12 @@ use strict;
 use warnings;
 use utf8;
 use parent 'DateTime';
+use DateTime 1.04;
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use List::Util qw(first);
 
-our $VERSION = '0.9993';
+our $VERSION = '0.9996';
 
 sub as_string_formats {
     return qw(
@@ -50,17 +51,17 @@ sub as_string {
     if ( first { $format eq $_ } qw(iso iso8601) ) {
         return join ' ', $dt->ymd('-'), $dt->hms(':'), $dt->strftime('%z');
     } elsif ( first { $format eq $_ } qw(rfc rfc2822) ) {
-        $dt->set( locale => 'en_US' );
+        $dt->set_locale('en_US');
         ( my $rv = $dt->strftime('%a, %d %b %Y %H:%M:%S %z') ) =~
             s/\+0000$/-0000/;
         return $rv;
     } else {
         if ($^O eq 'MSWin32') {
             require Win32::Locale;
-            $dt->set( locale => Win32::Locale::get_locale() );
+            $dt->set_locale( Win32::Locale::get_locale() );
         } else {
             require POSIX;
-            $dt->set( locale => POSIX::setlocale( POSIX::LC_TIME() ) );
+            $dt->set_locale( POSIX::setlocale( POSIX::LC_TIME() ) );
         }
         return $dt->format_cldr($format) if $format =~ s/^cldr://;
         return $dt->strftime($format) if $format =~ s/^strftime://;

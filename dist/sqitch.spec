@@ -1,5 +1,5 @@
 Name:           sqitch
-Version:        0.9993
+Version:        0.9996
 Release:        1%{?dist}
 Summary:        Sane database change management
 License:        MIT
@@ -16,7 +16,7 @@ BuildRequires:  perl(Clone)
 BuildRequires:  perl(Config)
 BuildRequires:  perl(Config::GitLike) >= 1.11
 BuildRequires:  perl(constant)
-BuildRequires:  perl(DateTime)
+BuildRequires:  perl(DateTime) >= 1.04
 BuildRequires:  perl(DateTime::TimeZone)
 BuildRequires:  perl(DBI)
 BuildRequires:  perl(Devel::StackTrace) >= 1.30
@@ -46,6 +46,7 @@ BuildRequires:  perl(parent)
 BuildRequires:  perl(overload)
 BuildRequires:  perl(Path::Class) >= 0.33
 BuildRequires:  perl(PerlIO::utf8_strict)
+BuildRequires:  perl(Pod::Escapes)
 BuildRequires:  perl(Pod::Find)
 BuildRequires:  perl(Pod::Usage)
 BuildRequires:  perl(POSIX)
@@ -84,7 +85,7 @@ Requires:       perl(Clone)
 Requires:       perl(Config)
 Requires:       perl(Config::GitLike) >= 1.11
 Requires:       perl(constant)
-Requires:       perl(DateTime)
+Requires:       perl(DateTime) >= 1.04
 Requires:       perl(DateTime::TimeZone)
 Requires:       perl(Devel::StackTrace) >= 1.30
 Requires:       perl(Digest::SHA)
@@ -111,6 +112,7 @@ Requires:       perl(parent)
 Requires:       perl(overload)
 Requires:       perl(Path::Class)
 Requires:       perl(PerlIO::utf8_strict)
+Requires:       perl(Pod::Escapes)
 Requires:       perl(Pod::Find)
 Requires:       perl(Pod::Usage)
 Requires:       perl(POSIX)
@@ -229,7 +231,7 @@ package bundles the Sqitch Oracle support.
 Summary:        Sane database change management for MySQL
 Group:          Development/Libraries
 Requires:       sqitch >= %{version}
-Requires:       mysql >= 5.1.0
+Requires:       mysql >= 5.0.0
 Requires:       perl(DBI)
 Requires:       perl(DBD::mysql) >= 4.018
 Requires:       perl(MySQL::Config)
@@ -282,6 +284,21 @@ Sqitch Vertica support.
 # No additional files required.
 
 %changelog
+* Tue Jul 27 2016 David E. Wheeler <david.wheeler@iovation.com> 0.9995-1
+- Require DateTime v1.04.
+- Upgrade to v0.9995.
+
+* Thu Feb 11 2016 David E. Wheeler <david.wheeler@iovation.com> 0.9994-2
+- Add perl(Pod::Escapes) to work around missing dependencies in Pod::Simple.
+  https://github.com/perl-pod/pod-simple/issues/84.
+
+* Fri Jan 8 2016 David E. Wheeler <david.wheeler@iovation.com> 0.9994-1
+- Reduced required MySQL version to 5.0.
+- Upgrade to v0.9994.
+
+* Mon Aug 17 2015 David E. Wheeler <david.wheeler@iovation.com> 0.9993-1
+- Upgrade to v0.9993.
+
 * Wed May 20 2015 David E. Wheeler <david.wheeler@iovation.com> 0.9992-1
 - Upgrade to v0.9992.
 - Add perl(DateTime::TimeZone).

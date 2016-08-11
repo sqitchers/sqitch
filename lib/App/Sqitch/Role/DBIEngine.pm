@@ -12,7 +12,7 @@ use App::Sqitch::X qw(hurl);
 use Locale::TextDomain qw(App-Sqitch);
 use namespace::autoclean;
 
-our $VERSION = '0.9993';
+our $VERSION = '0.9996';
 
 requires 'dbh';
 requires 'sqitch';
@@ -859,6 +859,31 @@ sub load_change {
     return $change;
 }
 
+sub _offset_op {
+    my ( $self, $offset ) = @_;
+    my ( $dir, $op ) = $offset > 0 ? ( 'ASC', '>' ) : ( 'DESC' , '<' );
+    return $dir, $op, 'OFFSET ' . (abs($offset) - 1);
+}
+
+sub change_id_offset_from_id {
+    my ( $self, $change_id, $offset ) = @_;
+
+    # Just return the ID if there is no offset.
+    return $change_id unless $offset;
+
+    my ($dir, $op, $offset_expr) = $self->_offset_op($offset);
+    return $self->dbh->selectcol_arrayref(qq{
+        SELECT change_id
+          FROM changes
+         WHERE project = ?
+           AND committed_at $op (
+               SELECT committed_at FROM changes WHERE change_id = ?
+         )
+         ORDER BY committed_at $dir
+         LIMIT 1 $offset_expr
+    }, undef, $self->plan->project, $change_id)->[0];
+}
+
 sub change_offset_from_id {
     my ( $self, $change_id, $offset ) = @_;
 
@@ -866,23 +891,13 @@ sub change_offset_from_id {
     return $self->load_change($change_id) unless $offset;
 
     # Are we offset forwards or backwards?
-    my ( $dir, $op ) = $offset > 0 ? ( 'ASC', '>' ) : ( 'DESC' , '<' );
+    my ($dir, $op, $offset_expr) = $self->_offset_op($offset);
     my $tscol  = sprintf $self->_ts2char_format, 'c.planned_at';
     my $tagcol = sprintf $self->_listagg_format, 't.tag';
 
-    $offset = abs($offset) - 1;
-    my ($offset_expr, $limit_expr) = ('', '');
-    if ($offset) {
-        $offset_expr = "OFFSET $offset";
-
-        # Some engines require LIMIT when there is an OFFSET.
-        if (my $lim = $self->_limit_default) {
-            $limit_expr = "LIMIT $lim ";
-        }
-    }
-
     my $changes = $self->_get_registry_table('changes');
-    my $tags = $self->_get_registry_table('tags');
+    my $tags    = $self->_get_registry_table('tags');
+
     my $change = $self->dbh->selectrow_hashref(qq{
         SELECT c.change_id AS id, c.change AS name, c.project, c.note,
                $tscol AS "timestamp", c.planner_name, c.planner_email,
@@ -896,7 +911,7 @@ sub change_offset_from_id {
          GROUP BY c.change_id, c.change, c.project, c.note, c.planned_at,
                c.planner_name, c.planner_email, c.committed_at
          ORDER BY c.committed_at $dir
-         $limit_expr $offset_expr
+         LIMIT 1 $offset_expr
     }, undef, $self->plan->project, $change_id) || return undef;
     $change->{timestamp} = _dt $change->{timestamp};
     unless (ref $change->{tags}) {
@@ -1100,6 +1115,8 @@ DBI-powered engines.
 =head3 C<load_change>
 
 =head3 C<change_offset_from_id>
+
+=head3 C<change_id_offset_from_id>
 
 =head3 C<change_id_for>
 

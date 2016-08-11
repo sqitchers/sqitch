@@ -16,7 +16,7 @@ use List::MoreUtils qw(firstidx);
 
 extends 'App::Sqitch::Engine';
 
-our $VERSION = '0.9993';
+our $VERSION = '0.9996';
 
 has registry_uri => (
     is       => 'ro',
@@ -114,7 +114,7 @@ has dbh => (
         # Make sure we support this version.
         my ($dbms, $vnum, $vstr) = $dbh->{mysql_serverinfo} =~ /mariadb/i
             ? ('MariaDB', 50300, '5.3')
-            : ('MySQL',   50100, '5.1.0');
+            : ('MySQL',   50000, '5.0.0');
         hurl mysql => __x(
             'Sqitch requires {rdbms} {want_version} or higher; this is {have_version}',
             rdbms        => $dbms,
@@ -167,12 +167,35 @@ has _mysql => (
             push @ret, "--password=$pw";
         }
 
+        # Options to keep things quiet.
         push @ret => (
             ($^O eq 'MSWin32' ? () : '--skip-pager' ),
             '--silent',
             '--skip-column-names',
             '--skip-line-numbers',
         );
+
+        # Add relevant query args.
+        if (my @p = $uri->query_params) {
+            my %option_for = (
+                mysql_compression     => sub { $_[0] ? '--compress' : ()  },
+                mysql_ssl             => sub { $_[0] ? '--ssl'      : ()  },
+                mysql_connect_timeout => sub { '--connect_timeout', $_[0] },
+                mysql_init_command    => sub { '--init-command',    $_[0] },
+                mysql_socket          => sub { '--socket',          $_[0] },
+                mysql_ssl_client_key  => sub { '--ssl-key',         $_[0] },
+                mysql_ssl_client_cert => sub { '--ssl-cert',        $_[0] },
+                mysql_ssl_ca_file     => sub { '--ssl-ca',          $_[0] },
+                mysql_ssl_ca_path     => sub { '--ssl-capath',      $_[0] },
+                mysql_ssl_cipher      => sub { '--ssl-cipher',      $_[0] },
+            );
+            while (@p) {
+                my ($k, $v) = (shift @p, shift @p);
+                my $code = $option_for{$k} or next;
+                push @ret => $code->($v);
+            }
+        }
+
         return \@ret;
     },
 );
@@ -462,7 +485,32 @@ supports MySQL 5.1.0 and higher (best on 5.6.4 and higher), as well as MariaDB
 =head3 C<mysql>
 
 Returns a list containing the C<mysql> client and options to be passed to it.
-Used internally when executing scripts.
+Used internally when executing scripts. Query parameters in the URI that map
+to C<mysql> client options will be passed to the client, as follows:
+
+=over
+
+=item * C<mysql_compression=1>: C<--compress>
+
+=item * C<mysql_ssl=1>: C<--ssl>
+
+=item * C<mysql_connect_timeout>: C<--connect_timeout>
+
+=item * C<mysql_init_command>: C<--init-command>
+
+=item * C<mysql_socket>: C<--socket>
+
+=item * C<mysql_ssl_client_key>: C<--ssl-key>
+
+=item * C<mysql_ssl_client_cert>: C<--ssl-cert>
+
+=item * C<mysql_ssl_ca_file>: C<--ssl-ca>
+
+=item * C<mysql_ssl_ca_path>: C<--ssl-capath>
+
+=item * C<mysql_ssl_cipher>: C<--ssl-cipher>
+
+=back
 
 =head3 C<registry_db>
 

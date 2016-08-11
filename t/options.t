@@ -90,6 +90,10 @@ HELP: {
         'Should have been manned';
 }
 
+# Silence warnings.
+my $mock = Test::MockModule->new($CLASS);
+$mock->mock(warn => undef);
+
 ##############################################################################
 # Try lots of options.
 my $opts = $CLASS->_parse_core_opts([
@@ -110,23 +114,28 @@ my $opts = $CLASS->_parse_core_opts([
 ]);
 
 is_deeply $opts, {
-    'plan_file'   => 'plan.txt',
-    'engine'      => 'pg',
-    'registry'    => 'reg',
-    'client'      => 'psql',
-    'db_name'     => 'try',
-    'db_username' => 'bob',
-    'db_host'     => 'local',
-    'db_port'     => 2020,
-    'top_dir'     => 'ddl',
-    'deploy_dir'  => 'dep',
-    'revert_dir'  => 'rev',
-    'verify_dir'  => 'tst',
-    'extension'   => 'ext',
-    verbosity     => 2,
+    plan_file   => 'plan.txt',
+    engine      => 'pg',
+    registry    => 'reg',
+    client      => 'psql',
+    db_name     => 'try',
+    db_username => 'bob',
+    db_host     => 'local',
+    db_port     => 2020,
+    top_dir     => 'ddl',
+    deploy_dir  => 'dep',
+    revert_dir  => 'rev',
+    verify_dir  => 'tst',
+    extension   => 'ext',
+    verbosity   => 2,
 }, 'Should parse lots of options';
 
-for my $dir (qw(top_dir deploy_dir revert_dir verify_dir)) {
+for my $dir (qw(
+    top_dir
+    deploy_dir
+    revert_dir
+    verify_dir
+)) {
     isa_ok $opts->{$dir}, 'Path::Class::Dir', $dir;
 }
 

@@ -42,6 +42,10 @@ can_ok $target, qw(
     deploy_dir
     revert_dir
     verify_dir
+    reworked_dir
+    reworked_deploy_dir
+    reworked_revert_dir
+    reworked_verify_dir
     extension
 );
 
@@ -64,6 +68,13 @@ is $target->revert_dir, $target->top_dir->subdir('revert'),
     'Should have default revert_dir';
 is $target->verify_dir, $target->top_dir->subdir('verify'),
     'Should have default verify_dir';
+is $target->reworked_dir, $target->top_dir, 'Should have default reworked_dir';
+is $target->reworked_deploy_dir, $target->reworked_dir->subdir('deploy'),
+    'Should have default reworked_deploy_dir';
+is $target->reworked_revert_dir, $target->reworked_dir->subdir('revert'),
+    'Should have default reworked_revert_dir';
+is $target->reworked_verify_dir, $target->reworked_dir->subdir('verify'),
+    'Should have default reworked_verify_dir';
 is $target->extension, 'sql', 'Should have default extension';
 is $target->plan_file, $target->top_dir->file('sqitch.plan')->cleanup,
     'Should have default plan file';
@@ -205,6 +216,13 @@ CONSTRUCTOR: {
         'Should have default revert_dir';
     is $target->verify_dir, $target->top_dir->subdir('verify'),
         'Should have default verify_dir';
+    is $target->reworked_dir, $target->top_dir, 'Should have default reworked_dir';
+    is $target->reworked_deploy_dir, $target->reworked_dir->subdir('deploy'),
+        'Should have default reworked_deploy_dir';
+    is $target->reworked_revert_dir, $target->reworked_dir->subdir('revert'),
+        'Should have default reworked_revert_dir';
+    is $target->reworked_verify_dir, $target->reworked_dir->subdir('verify'),
+        'Should have default reworked_verify_dir';
     is $target->extension, 'sql', 'Should have default extension';
     is $target->plan_file, $target->top_dir->file('sqitch.plan')->cleanup,
         'Should have default plan file';
@@ -393,14 +411,18 @@ CONFIG: {
 
     # Start with core config.
     %config = (
-        'core.registry'   => 'myreg',
-        'core.client'     => 'pgsql',
-        'core.plan_file'  => 'my.plan',
-        'core.top_dir'    => 'top',
-        'core.deploy_dir' => 'dep',
-        'core.revert_dir' => 'rev',
-        'core.verify_dir' => 'ver',
-        'core.extension'  => 'ddl',
+        'core.registry'            => 'myreg',
+        'core.client'              => 'pgsql',
+        'core.plan_file'           => 'my.plan',
+        'core.top_dir'             => 'top',
+        'core.deploy_dir'          => 'dep',
+        'core.revert_dir'          => 'rev',
+        'core.verify_dir'          => 'ver',
+        'core.reworked_dir'        => 'wrk',
+        'core.reworked_deploy_dir' => 'rdep',
+        'core.reworked_revert_dir' => 'rrev',
+        'core.reworked_verify_dir' => 'rver',
+        'core.extension'           => 'ddl',
     );
     my $target = $CLASS->new(
         sqitch => $sqitch,
@@ -422,17 +444,29 @@ CONFIG: {
     isa_ok $target->revert_dir, 'Path::Class::Dir', 'Revert dir';
     is $target->verify_dir, 'ver', 'Verify dir should be "ver"';
     isa_ok $target->verify_dir, 'Path::Class::Dir', 'Verify dir';
+    is $target->reworked_dir, 'wrk', 'Reworked dir should be "wrk"';
+    isa_ok $target->reworked_dir, 'Path::Class::Dir', 'Reworked dir';
+    is $target->reworked_deploy_dir, 'rdep', 'Reworked deploy dir should be "rdep"';
+    isa_ok $target->reworked_deploy_dir, 'Path::Class::Dir', 'Reworked deploy dir';
+    is $target->reworked_revert_dir, 'rrev', 'Reworked revert dir should be "rrev"';
+    isa_ok $target->reworked_revert_dir, 'Path::Class::Dir', 'Reworked revert dir';
+    is $target->reworked_verify_dir, 'rver', 'Reworked verify dir should be "rver"';
+    isa_ok $target->reworked_verify_dir, 'Path::Class::Dir', 'Reworked verify dir';
     is $target->extension, 'ddl', 'Extension should be "ddl"';
 
     # Add engine config.
-    $config{'engine.pg.registry'}   = 'yoreg';
-    $config{'engine.pg.client'}     = 'mycli';
-    $config{'engine.pg.plan_file'}  = 'pg.plan';
-    $config{'engine.pg.top_dir'}    = 'pg';
-    $config{'engine.pg.deploy_dir'} = 'pgdep';
-    $config{'engine.pg.revert_dir'} = 'pgrev';
-    $config{'engine.pg.verify_dir'} = 'pgver';
-    $config{'engine.pg.extension'}  = 'pgddl';
+    $config{'engine.pg.registry'}           = 'yoreg';
+    $config{'engine.pg.client'}             = 'mycli';
+    $config{'engine.pg.plan_file'}          = 'pg.plan';
+    $config{'engine.pg.top_dir'}            = 'pg';
+    $config{'engine.pg.deploy_dir'}         = 'pgdep';
+    $config{'engine.pg.revert_dir'}         = 'pgrev';
+    $config{'engine.pg.verify_dir'}         = 'pgver';
+    $config{'engine.pg.reworked_dir'}       = 'pg/r';
+    $config{'engine.pg.reworked_deploy_dir'} = 'pgrdep';
+    $config{'engine.pg.reworked_revert_dir'} = 'pgrrev';
+    $config{'engine.pg.reworked_verify_dir'} = 'pgrver';
+    $config{'engine.pg.extension'}           = 'pgddl';
     $target = $CLASS->new(
         sqitch => $sqitch,
         name   => 'foo',
@@ -453,17 +487,29 @@ CONFIG: {
     isa_ok $target->revert_dir, 'Path::Class::Dir', 'Revert dir';
     is $target->verify_dir, 'pgver', 'Verify dir should be "pgver"';
     isa_ok $target->verify_dir, 'Path::Class::Dir', 'Verify dir';
+    is $target->reworked_dir, dir('pg/r'), 'Reworked dir should be "pg/r"';
+    isa_ok $target->reworked_dir, 'Path::Class::Dir', 'Reworked dir';
+    is $target->reworked_deploy_dir, 'pgrdep', 'Reworked deploy dir should be "pgrdep"';
+    isa_ok $target->reworked_deploy_dir, 'Path::Class::Dir', 'Reworked deploy dir';
+    is $target->reworked_revert_dir, 'pgrrev', 'Reworked revert dir should be "pgrrev"';
+    isa_ok $target->reworked_revert_dir, 'Path::Class::Dir', 'Reworked revert dir';
+    is $target->reworked_verify_dir, 'pgrver', 'Reworked verify dir should be "pgrver"';
+    isa_ok $target->reworked_verify_dir, 'Path::Class::Dir', 'Reworked verify dir';
     is $target->extension, 'pgddl', 'Extension should be "pgddl"';
 
     # Add target config.
-    $config{'target.foo.registry'}   = 'fooreg';
-    $config{'target.foo.client'}     = 'foocli';
-    $config{'target.foo.plan_file'}  = 'foo.plan';
-    $config{'target.foo.top_dir'}    = 'foo';
-    $config{'target.foo.deploy_dir'} = 'foodep';
-    $config{'target.foo.revert_dir'} = 'foorev';
-    $config{'target.foo.verify_dir'} = 'foover';
-    $config{'target.foo.extension'}  = 'fooddl';
+    $config{'target.foo.registry'}            = 'fooreg';
+    $config{'target.foo.client'}              = 'foocli';
+    $config{'target.foo.plan_file'}           = 'foo.plan';
+    $config{'target.foo.top_dir'}             = 'foo';
+    $config{'target.foo.deploy_dir'}          = 'foodep';
+    $config{'target.foo.revert_dir'}          = 'foorev';
+    $config{'target.foo.verify_dir'}          = 'foover';
+    $config{'target.foo.reworked_dir'}        = 'foo/r';
+    $config{'target.foo.reworked_deploy_dir'} = 'foodepr';
+    $config{'target.foo.reworked_revert_dir'} = 'foorevr';
+    $config{'target.foo.reworked_verify_dir'} = 'fooverr';
+    $config{'target.foo.extension'}           = 'fooddl';
     $target = $CLASS->new(
         sqitch => $sqitch,
         name   => 'foo',
@@ -484,17 +530,29 @@ CONFIG: {
     isa_ok $target->revert_dir, 'Path::Class::Dir', 'Revert dir';
     is $target->verify_dir, 'foover', 'Verify dir should be "foover"';
     isa_ok $target->verify_dir, 'Path::Class::Dir', 'Verify dir';
+    is $target->reworked_dir, dir('foo/r'), 'Reworked dir should be "foo/r"';
+    isa_ok $target->reworked_dir, 'Path::Class::Dir', 'Reworked dir';
+    is $target->reworked_deploy_dir, 'foodepr', 'Reworked deploy dir should be "foodepr"';
+    isa_ok $target->reworked_deploy_dir, 'Path::Class::Dir', 'Reworked deploy dir';
+    is $target->reworked_revert_dir, 'foorevr', 'Reworked revert dir should be "foorevr"';
+    isa_ok $target->reworked_revert_dir, 'Path::Class::Dir', 'Reworked revert dir';
+    is $target->reworked_verify_dir, 'fooverr', 'Reworked verify dir should be "fooverr"';
+    isa_ok $target->reworked_verify_dir, 'Path::Class::Dir', 'Reworked verify dir';
     is $target->extension, 'fooddl', 'Extension should be "fooddl"';
 
     # Add command-line options.
-    $opts->{registry}   = 'optreg';
-    $opts->{client}     = 'optcli';
-    $opts->{plan_file}  = 'opt.plan';
-    $opts->{top_dir}    = 'top.dir';
-    $opts->{deploy_dir} = 'dep.dir';
-    $opts->{revert_dir} = 'rev.dir';
-    $opts->{verify_dir} = 'ver.dir';
-    $opts->{extension}  = 'opt';
+    $opts->{registry}            = 'optreg';
+    $opts->{client}              = 'optcli';
+    $opts->{plan_file}           = 'opt.plan';
+    $opts->{top_dir}             = 'top.dir';
+    $opts->{deploy_dir}          = 'dep.dir';
+    $opts->{revert_dir}          = 'rev.dir';
+    $opts->{verify_dir}          = 'ver.dir';
+    $opts->{reworked_dir}        = 'wrk.dir';
+    $opts->{reworked_deploy_dir} = 'rdep.dir';
+    $opts->{reworked_revert_dir} = 'rrev.dir';
+    $opts->{reworked_verify_dir} = 'rver.dir';
+    $opts->{extension}           = 'opt';
     $target = $CLASS->new(
         sqitch => $sqitch,
         name   => 'foo',
@@ -515,6 +573,14 @@ CONFIG: {
     isa_ok $target->revert_dir, 'Path::Class::Dir', 'Revert dir';
     is $target->verify_dir, 'ver.dir', 'Verify dir should be "ver.dir"';
     isa_ok $target->verify_dir, 'Path::Class::Dir', 'Verify dir';
+    is $target->reworked_dir, 'wrk.dir', 'Reworked dir should be "wrk.dir"';
+    isa_ok $target->reworked_dir, 'Path::Class::Dir', 'Reworked dir';
+    is $target->reworked_deploy_dir, 'rdep.dir', 'Reworked deploy dir should be "rdep.dir"';
+    isa_ok $target->reworked_deploy_dir, 'Path::Class::Dir', 'Reworked deploy dir';
+    is $target->reworked_revert_dir, 'rrev.dir', 'Reworked revert dir should be "rrev.dir"';
+    isa_ok $target->reworked_revert_dir, 'Path::Class::Dir', 'Reworked revert dir';
+    is $target->reworked_verify_dir, 'rver.dir', 'Reworked verify dir should be "rver.dir"';
+    isa_ok $target->reworked_verify_dir, 'Path::Class::Dir', 'Reworked verify dir';
     is $target->extension, 'opt', 'Extension should be "opt"';
 }
 
@@ -586,6 +652,5 @@ ALL: {
     is_deeply [ sort map { $_->name } @targets ], [qw(db:mysql://root@/foo db:pg:try widgets)],
         'Should have the engine and target targets';
 }
-
 
 done_testing;

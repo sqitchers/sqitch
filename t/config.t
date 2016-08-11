@@ -34,7 +34,7 @@ can_ok $cmd, qw(file action context get get_all get_regex set add unset unset_al
 is_deeply [$cmd->options], [qw(
     file|config-file|f=s
     local
-    user
+    user|global
     system
     int
     bool

@@ -11,7 +11,7 @@ use Hash::Merge 'merge';
 use Moo;
 use App::Sqitch::Types qw(Sqitch Target);
 
-our $VERSION = '0.9993';
+our $VERSION = '0.9996';
 
 use constant ENGINES => qw(
     pg
@@ -256,7 +256,7 @@ sub parse_args {
     push @{ $rec{targets} } => $target
         if $target && !$p{no_default} && !@{ $rec{targets} };
 
-    # Replace missing names with unnknown values.
+    # Replace missing names with unknown values.
     my @names = map { $_ || shift @{ $rec{unknown} } } @{ $p{names} || [] };
 
     # Die on unknowns.
