@@ -742,7 +742,7 @@ sub change_id_for {
 
         # Find earliest by change name.
         return $dbh->selectcol_arrayref(qq{
-            SELECT FIRST 1 $limit c.change_id
+            SELECT FIRST 1 c.change_id
               FROM $changes c
              WHERE c.project = ?
                AND c.change  = ?
