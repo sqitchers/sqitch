@@ -1777,9 +1777,7 @@ sub run {
                 my $success = try {
                     $engine->dbh->selectcol_arrayref(
                         qq{ SELECT COUNT(*) FROM $table} );
-                }
-                catch {
-                    return;
+                    1;
                 };
                 ok $success, "Registry table '$table' exists";
             }
