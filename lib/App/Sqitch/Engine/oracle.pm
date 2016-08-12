@@ -367,15 +367,16 @@ sub change_id_offset_from_id {
     return $change_id unless $offset;
 
     # Are we offset forwards or backwards?
+    my $changes = $self->_get_registry_table('changes');
     my ( $dir, $op ) = $offset > 0 ? ( 'ASC', '>' ) : ( 'DESC' , '<' );
     return $self->dbh->selectcol_arrayref(qq{
         SELECT id FROM (
             SELECT id, rownum AS rnum FROM (
                 SELECT change_id AS id
-                  FROM changes
+                  FROM $changes
                  WHERE project = ?
                    AND committed_at $op (
-                       SELECT committed_at FROM changes WHERE change_id = ?
+                       SELECT committed_at FROM $changes WHERE change_id = ?
                  )
                  ORDER BY committed_at $dir
             )
@@ -440,8 +441,9 @@ sub are_deployed_changes {
     }
     push @qs => 'change_id IN (' . join(', ' => ('?') x @_) . ')';
     my $expr = join ' OR ', @qs;
+    my $changes = $self->_get_registry_table('changes');
     @{ $self->dbh->selectcol_arrayref(
-        "SELECT change_id FROM changes WHERE $expr",
+        qq{SELECT change_id FROM $changes WHERE $expr},
         undef,
         map { $_->id } @_,
     ) };
@@ -660,7 +662,7 @@ sub log_revert_change {
 
     # Delete tags.
     my $sth = $dbh->prepare(
-        "DELETE FROM $tags WHERE change_id = ? RETURNING tag INTO ?",
+        qq{DELETE FROM $tags WHERE change_id = ? RETURNING tag INTO ?},
     );
     $sth->bind_param(1, $cid);
     $sth->bind_param_inout_array(2, my $del_tags = [], 0, {
@@ -742,7 +744,7 @@ sub _script {
         }
     }
     my %vars = ( $self->variables, %{$self->_registry_tables} );
-    
+
     return join "\n" => (
         'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF',
         'WHENEVER OSERROR EXIT 9;',

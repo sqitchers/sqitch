@@ -427,7 +427,7 @@ sub run_upgrade {
     # Write out a temp file and execute it.
     require File::Temp;
     my $fh = File::Temp->new;
-    print $fh $sql;
+    print { $fh } $sql;
     close $fh;
     $self->sqitch->run( @cmd, $self->_source($fh) );
 }
@@ -457,8 +457,6 @@ sub _cid {
         die $_;
     };
 }
-
-1;
 
 1;
 

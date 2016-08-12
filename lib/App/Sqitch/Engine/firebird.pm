@@ -184,9 +184,10 @@ sub is_deployed_change {
 
 sub is_deployed_tag {
     my ( $self, $tag ) = @_;
-    return $self->dbh->selectcol_arrayref(q{
+    my $tags = $self->_get_registry_table('tags');
+    return $self->dbh->selectcol_arrayref(qq{
             SELECT 1
-              FROM tags
+              FROM $tags
              WHERE tag_id = ?
     }, undef, $tag->id)->[0];
 }
@@ -643,13 +644,14 @@ sub change_id_offset_from_id {
     # Just return the ID if there is no offset.
     return $change_id unless $offset;
 
+    my $changes = $self->_get_registry_table('changes');
     my ($dir, $op, $offset_expr) = $self->_offset_op($offset);
     return $self->dbh->selectcol_arrayref(qq{
         SELECT FIRST 1 $offset_expr change_id AS "id"
-          FROM changes
+          FROM $changes
          WHERE project = ?
            AND committed_at $op (
-               SELECT committed_at FROM changes WHERE change_id = ?
+               SELECT committed_at FROM $changes WHERE change_id = ?
          )
          ORDER BY committed_at $dir
     }, undef, $self->plan->project, $change_id )->[0];
