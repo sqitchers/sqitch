@@ -739,6 +739,7 @@ sub change_id_for {
                  WHERE c.project = ?
                    AND c.change  = ?
                    AND t.tag     = ?
+                 ORDER BY c.committed_at DESC
             }, undef, $project, $change, '@' . $tag)->[0];
         }
 
@@ -763,10 +764,10 @@ sub change_id_for {
 
         # Find by tag name.
         return $dbh->selectcol_arrayref(qq{
-            SELECT change_id
-              FROM $tags
-             WHERE project = ?
-               AND tag     = ?
+            SELECT t.change_id
+              FROM $tags t
+             WHERE t.project = ?
+               AND t.tag     = ?
         }, undef, $project, '@' . $tag)->[0];
     }
 
