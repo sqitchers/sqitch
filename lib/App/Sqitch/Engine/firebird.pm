@@ -405,23 +405,18 @@ sub _cid {
     my ( $self, $ord, $offset, $project ) = @_;
     my $changes = $self->_get_registry_table('changes');
     my $offexpr = $offset ? " SKIP $offset" : '';
-    return try {
-        return $self->dbh->selectcol_arrayref(qq{
+    my $cid = try {
+        $self->dbh->selectcol_arrayref(qq{
             SELECT FIRST 1$offexpr change_id
               FROM $changes
              WHERE project = ?
              ORDER BY committed_at $ord;
         }, undef, $project || $self->plan->project)->[0];
     } catch {
-        # Firebird generic error code -902, one possible message:
-        # -I/O error during "open" operation for file...
-        # -Error while trying to open file
-        # -No such file or directory
-        # print "===DBI ERROR: $DBI::err\n";
-        # Can't connect to the database OR undefined name (sqitch_changes)
-        return if $DBI::err == -902 or $DBI::err == -204;
+        return if $self->_no_table_error && !$self->initialized;
         die $_;
-    };
+    } or return undef;
+    return $cid;
 }
 
 sub current_state {
