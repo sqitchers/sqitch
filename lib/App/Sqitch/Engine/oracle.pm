@@ -139,9 +139,18 @@ sub _log_conflicts_param {
 }
 
 sub _ts2char_format {
-    q{CAST(to_char(%1$s AT TIME ZONE 'UTC', '"year":YYYY:"month":MM:"day":DD') AS VARCHAR2(100 byte)) || CAST(to_char(%1$s AT TIME ZONE 'UTC', ':"hour":HH24:"minute":MI:"second":SS:"time_zone":"UTC"')  AS VARCHAR2(168 byte))}
+    # q{CAST(to_char(%1$s AT TIME ZONE 'UTC', '"year":YYYY:"month":MM:"day":DD') AS VARCHAR2(100 byte)) || CAST(to_char(%1$s AT TIME ZONE 'UTC', ':"hour":HH24:"minute":MI:"second":SS:"time_zone":"UTC"')  AS VARCHAR2(168 byte))}
+    # Good grief, Oracle, WTF? https://github.com/sqitchers/sqitch/issues/316
+    join ' || ', (
+        q{to_char(%1$s AT TIME ZONE 'UTC', '"year":YYYY')},
+        q{to_char(%1$s AT TIME ZONE 'UTC', ':"month":MM')},
+        q{to_char(%1$s AT TIME ZONE 'UTC', ':"day":DD')},
+        q{to_char(%1$s AT TIME ZONE 'UTC', ':"hour":HH24')},
+        q{to_char(%1$s AT TIME ZONE 'UTC', ':"minute":MI')},
+        q{to_char(%1$s AT TIME ZONE 'UTC', ':"second":SS')},
+        q{':time_zone:UTC'},
+    );
 }
-
 sub _ts_default { 'current_timestamp' }
 
 sub _can_limit { 0 }

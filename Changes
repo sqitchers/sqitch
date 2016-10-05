@@ -63,6 +63,9 @@ Revision history for Perl extension App::Sqitch
      - Refactored config handling in tests to use a custom subclass of
        App::Sqitch::Config instead of various mocks, temporary files, and the
        like.
+     - Added aesthetically offensive attempt at another fix for Oracle 10g
+       buffer allocation bug when selecting timestamp strings on. Thanks to
+       @johannwilfling for the hack (#316).
 
 0.9998 2018-10-03T20:53:58Z
      - Fixed an issue where Sqitch would sometimes truncate the registry
