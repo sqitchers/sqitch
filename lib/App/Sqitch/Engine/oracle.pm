@@ -136,7 +136,7 @@ sub _log_conflicts_param {
 }
 
 sub _ts2char_format {
-    q{to_char(%1$s AT TIME ZONE 'UTC', '"year":YYYY:"month":MM:"day":DD') || to_char(%1$s AT TIME ZONE 'UTC', ':"hour":HH24:"minute":MI:"second":SS:"time_zone":"UTC"')}
+    q{CAST(to_char(%1$s AT TIME ZONE 'UTC', '"year":YYYY:"month":MM:"day":DD') || to_char(%1$s AT TIME ZONE 'UTC', ':"hour":HH24:"minute":MI:"second":SS:"time_zone":"UTC"')  AS VARCHAR2(92 char))}
 }
 
 sub _ts_default { 'current_timestamp' }

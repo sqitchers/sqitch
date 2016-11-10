@@ -1,5 +1,11 @@
 Revision history for Perl extension App::Sqitch
 
+
+0.9996
+     - Fixed an error where Oracle sometimes truncated timestamp formats so
+       that date parsing failed. Thanks to Johann Wilfling for the report and
+       @nmaqsudov for the solution (#316).
+
 0.9995 2016-07-27T09:23:55Z
      - Taught the `add` command not to ignore the `--change` option.
      - The `add` command now emits a usage statement when no change name is
