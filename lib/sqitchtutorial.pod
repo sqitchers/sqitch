@@ -366,7 +366,7 @@ L<C<git-remote>|http://git-scm.com/docs/git-remote>, allows management of one
 or more named deployment targets. We've just added a target named
 C<flipr_test>, which means we can use the string C<flipr_test> for the target,
 rather than the URI. But since we're doing so much testing, we can also use
-the The L<C<engine>|sqitch-engine> command to tell Sqitch to deploy to the
+the L<C<engine>|sqitch-engine> command to tell Sqitch to deploy to the
 C<flipr_test> target by default:
 
   > sqitch engine add pg flipr_test
