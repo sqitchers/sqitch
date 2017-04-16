@@ -21,7 +21,7 @@ CREATE TABLE projects (
                     COMMENT 'Unique Name of a project.',
     uri             VARCHAR(255) NULL UNIQUE
                     COMMENT 'Optional project URI',
-    created_at      DATETIME(6)  NOT NULL
+    created_at      DATETIME  NOT NULL
                     COMMENT 'Date the project was added to the database.',
     creator_name    VARCHAR(255) NOT NULL
                     COMMENT 'Name of the user who added the project.',
@@ -44,13 +44,13 @@ CREATE TABLE changes (
                     REFERENCES projects(project) ON UPDATE CASCADE,
     note            TEXT         NOT NULL
                     COMMENT 'Description of the change.',
-    committed_at    DATETIME(6)  NOT NULL
+    committed_at    DATETIME  NOT NULL
                     COMMENT 'Date the change was deployed.',
     committer_name  VARCHAR(255) NOT NULL
                     COMMENT 'Name of the user who deployed the change.',
     committer_email VARCHAR(255) NOT NULL
                     COMMENT 'Email address of the user who deployed the change.',
-    planned_at      DATETIME(6)  NOT NULL
+    planned_at      DATETIME  NOT NULL
                     COMMENT 'Date the change was added to the plan.',
     planner_name    VARCHAR(255) NOT NULL
                     COMMENT 'Name of the user who planed the change.',
@@ -75,13 +75,13 @@ CREATE TABLE tags (
                     REFERENCES changes(change_id) ON UPDATE CASCADE,
     note            VARCHAR(255) NOT NULL
                     COMMENT 'Description of the tag.',
-    committed_at    DATETIME(6)  NOT NULL
+    committed_at    DATETIME  NOT NULL
                     COMMENT 'Date the tag was applied to the database.',
     committer_name  VARCHAR(255) NOT NULL
                     COMMENT 'Name of the user who applied the tag.',
     committer_email VARCHAR(255) NOT NULL
                     COMMENT 'Email address of the user who applied the tag.',
-    planned_at      DATETIME(6)  NOT NULL
+    planned_at      DATETIME  NOT NULL
                     COMMENT 'Date the tag was added to the plan.',
     planner_name    VARCHAR(255) NOT NULL
                     COMMENT 'Name of the user who planed the tag.',
@@ -128,13 +128,13 @@ CREATE TABLE events (
                     COMMENT 'List of the names of conflicting changes.',
     tags            TEXT         NOT NULL
                     COMMENT 'List of tags associated with the change.',
-    committed_at    DATETIME(6)  NOT NULL
+    committed_at    DATETIME  NOT NULL
                     COMMENT 'Date the event was committed.',
     committer_name  VARCHAR(255) NOT NULL
                     COMMENT 'Name of the user who committed the event.',
     committer_email VARCHAR(255) NOT NULL
                     COMMENT 'Email address of the user who committed the event.',
-    planned_at      DATETIME(6)  NOT NULL
+    planned_at      DATETIME  NOT NULL
                     COMMENT 'Date the event was added to the plan.',
     planner_name    VARCHAR(255) NOT NULL
                     COMMENT 'Name of the user who planed the change.',
