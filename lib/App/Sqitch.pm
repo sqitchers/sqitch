@@ -187,6 +187,10 @@ sub go {
             args    => $cmd_args,
         });
 
+        # IO::Pager respects the PAGER environment variable.
+        local $ENV{PAGER} = $config->get_last_value(key => "core.pager") //
+            $ENV{PAGER};
+
         # 7. Execute command.
         $command->execute( @{$cmd_args} ) ? 0 : 2;
     } catch {

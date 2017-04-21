@@ -478,6 +478,13 @@ An integer determining how verbose Sqitch should be. Defaults to 1. Set to 0
 to silence status messages and to 2 or three to increase verbosity. Error
 message output will not be affected by this property.
 
+=item C<core.pager>
+
+The command to use as a pager program. This overrides the C<PAGER> environment
+variable on UNIX like systems. In case both C<core.pager> and C<PAGER> are
+not set, a best-effort search among the commonly installed pager programs like
+C<less>, C<more> is performed.
+
 =back
 
 =head3 C<user>
