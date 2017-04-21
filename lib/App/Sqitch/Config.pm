@@ -70,6 +70,13 @@ sub get_section {
     };
 }
 
+sub get_last_value {
+    my ($self, %query) = @_;
+    my $values = $self->get_all(%query);
+    return unless @{$values // []};
+    return $values->[-1];
+}
+
 sub initial_key {
     my $key = shift->original_key(shift);
     return ref $key ? $key->[0] : $key;
