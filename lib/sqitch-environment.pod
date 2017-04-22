@@ -41,6 +41,14 @@ will be used. If it's not set, C<$VISUAL> or C<$EDITOR> will be consulted (in
 that order).  Finally, if none of these are set, Sqitch will invoke
 C<notepad.exe> on Windows and C<vi> elsewhere.
 
+=item C<SQITCH_PAGER>
+
+The pager program that Sqitch will use when a command (like C<sqitch log>)
+produces multi-page output. If unset, the C<core.pager> configuration variable
+will be used. If this is also not set, the C<PAGER> environment variable will be
+used. Finally, if none of these are set, Sqitch will attempt to find and use one
+of the commonly used pager programs like C<less> and C<more>.
+
 =back
 
 =head1 See Also

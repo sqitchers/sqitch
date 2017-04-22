@@ -133,6 +133,18 @@ has editor => (
     }
 );
 
+has pager_program => (
+    is      => "ro",
+    lazy    => 1,
+    default => sub {
+        my $self = shift;
+        return
+            $ENV{SQITCH_PAGER}
+         || $self->config->get_last_value(key => "core.pager")
+         || $ENV{PAGER};
+    },
+);
+
 has pager => (
     is       => 'ro',
     lazy     => 1,
@@ -188,8 +200,7 @@ sub go {
         });
 
         # IO::Pager respects the PAGER environment variable.
-        local $ENV{PAGER} = $config->get_last_value(key => "core.pager") //
-            $ENV{PAGER};
+        local $ENV{PAGER} = $sqitch->pager_program;
 
         # 7. Execute command.
         $command->execute( @{$cmd_args} ) ? 0 : 2;
