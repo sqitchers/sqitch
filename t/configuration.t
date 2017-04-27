@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 18;
+use Test::More tests => 17;
 #use Test::More 'no_plan';
 use File::Spec;
 use Test::MockModule;
@@ -67,11 +67,10 @@ is_deeply $config->get_section(section => 'core'), {
     extension => "ddl",
     top_dir   => "migrations",
     uri       => 'https://github.com/theory/sqitch/',
-    pager     => ['more', 'less -r'],
+    pager     => "less -r",
 }, 'get_section("core") should work';
 
 is_deeply $config->get_section(section => 'engine.pg'), {
     client => "/usr/local/pgsql/bin/psql",
 }, 'get_section("engine.pg") should work';
 
-is $config->get_last_value(key => "core.pager"), "less -r";

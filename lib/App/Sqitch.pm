@@ -140,7 +140,7 @@ has pager_program => (
         my $self = shift;
         return
             $ENV{SQITCH_PAGER}
-         || $self->config->get_last_value(key => "core.pager")
+         || $self->config->get(key => "core.pager")
          || $ENV{PAGER};
     },
 );
