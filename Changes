@@ -5,6 +5,11 @@ Revision history for Perl extension App::Sqitch
      - Fixed an error where Oracle sometimes truncated timestamp formats so
        that date parsing failed. Thanks to Johann Wilfling for the report and
        @nmaqsudov for the solution (#316).
+     - Added pager configuration, prioritizing the new `core.pager`
+       configuration variable over the `$PAGER` environment variable. The new
+       `$SQITCH_PAGER` environment variable trumps all. Thanks to Yati Sagade
+       for the pull request (#329).
+     - Documented the `core.editor` configuration variable.
 
 0.9995 2016-07-27T09:23:55Z
      - Taught the `add` command not to ignore the `--change` option.

@@ -480,10 +480,18 @@ message output will not be affected by this property.
 
 =item C<core.pager>
 
-The command to use as a pager program. This overrides the C<PAGER> environment
-variable on UNIX like systems. In case both C<core.pager> and C<PAGER> are
-not set, a best-effort search among the commonly installed pager programs like
-C<less>, C<more> is performed.
+The command to use as a pager program. This overrides the C<PAGER>
+environment variable on UNIX like systems. Both can be overridden by setting
+the C<$SQITCH_PAGER> environment variable. If none of these variables are
+set, Sqitch makes a best-effort search among the commonly installed pager
+programs like C<less> and C<more>.
+
+=item C<core.editor>
+
+The command to use as a editor program. This overrides the C<EDITOR>
+environment variable on UNIX like systems. Both can be overridden by setting
+the C<$SQITCH_EDITOR> environment variable. If none of these variables are
+set, Sqitch defaults to C<notepad.exe> on Windows and C<vi> elsewhere.
 
 =back
 
