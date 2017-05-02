@@ -67,8 +67,10 @@ is_deeply $config->get_section(section => 'core'), {
     extension => "ddl",
     top_dir   => "migrations",
     uri       => 'https://github.com/theory/sqitch/',
+    pager     => "less -r",
 }, 'get_section("core") should work';
 
 is_deeply $config->get_section(section => 'engine.pg'), {
     client => "/usr/local/pgsql/bin/psql",
 }, 'get_section("engine.pg") should work';
+

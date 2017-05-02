@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 136;
+use Test::More tests => 140;
 #use Test::More 'no_plan';
 use Test::MockModule;
 use Path::Class;
@@ -141,6 +141,48 @@ EDITOR: {
     $^O = 'MSWin32';
     $sqitch = App::Sqitch->new;
     is $sqitch->editor, 'notepad.exe', 'editor fall back on notepad on Windows';
+}
+
+##############################################################################
+# Test the pager program config. We want to pick up from one of the following
+# places, earlier in the list more preferred.
+# - SQITCH_PAGER environment variable.
+# - core.pager configuration prop.
+# - PAGER environment variable.
+#
+PAGER_PROGRAM: {
+    {
+        local $ENV{SQITCH_PAGER};
+        local $ENV{PAGER} = "morez";
+        my $sqitch = App::Sqitch->new;
+        is $sqitch->pager_program, "morez", "pager program should be picked up from PAGER when SQITCH_PAGER and core.pager are not set";
+    }
+
+    {
+        local $ENV{SQITCH_PAGER} = "less -myway";
+        local $ENV{PAGER}        = "morezz";
+
+        my $sqitch = App::Sqitch->new;
+        is $sqitch->pager_program, "less -myway", "SQITCH_PAGER should take precedence over PAGER";
+    }
+
+    {
+        local $ENV{SQITCH_PAGER};
+        local $ENV{PAGER}         = "morezz";
+        local $ENV{SQITCH_CONFIG} = File::Spec->catfile(qw/t sqitch.conf/);
+
+        my $sqitch = App::Sqitch->new;
+        is $sqitch->pager_program, "less -r", "`core.pager' setting should take precedence over PAGER when SQITCH_PAGER is not set.";
+    }
+
+    {
+        local $ENV{SQITCH_PAGER}  = "less -rules";
+        local $ENV{PAGER}         = "more -dontcare";
+        local $ENV{SQITCH_CONFIG} = File::Spec->catfile(qw/t sqitch.conf/);
+
+        my $sqitch = App::Sqitch->new;
+        is $sqitch->pager_program, "less -rules", "SQITCH_PAGER should take precedence over both PAGER and the `core.pager' setting.";
+    }
 }
 
 ##############################################################################
