@@ -196,12 +196,16 @@ sub _run_registry_file {
            AND proname = 'pgxc_version';
     });
 
-    if ($maj < 9) {
-        # Need to write a temp file; no :"registry" variable syntax.
-        ($schema) = $self->dbh->selectrow_array(
-            'SELECT quote_ident(?)', undef, $schema
-        );
-        (my $sql = scalar $file->slurp) =~ s{:"registry"}{$schema}g;
+    if ("$maj.$min" < 9.3) {
+        # Need to write a temp file; no CREATE SCHEMA IF NOT EXISTS syntax.
+        (my $sql = scalar $file->slurp) =~ s/SCHEMA IF NOT EXISTS/SCHEMA/;
+        if ($maj < 9) {
+            # Also no :"registry" variable syntax.
+            ($schema) = $self->dbh->selectrow_array(
+                'SELECT quote_ident(?)', undef, $schema
+            );
+            $sql =~ s{:"registry"}{$schema}g;
+        }
         require File::Temp;
         my $fh = File::Temp->new;
         print $fh $sql;

@@ -11,10 +11,11 @@ Revision history for Perl extension App::Sqitch
        for the pull request (#329).
      - Documented the `core.editor` configuration variable.
      - Updated PostgreSQL registry detection to avoid errors when not running
-       Sqitch as a superuser. Done by looking for the `changes` table in the
-       `pg_tables` view instead of looking for the registry schema in the
-       `pg_namespace` catalog table. Thanks to @djk447 for the pull request
-       (#307).
+       Sqitch as a superuser and the registry schema already exists. Done by
+       looking for the `changes` table in the `pg_tables` view instead of
+       looking for the registry schema in the `pg_namespace` catalog table,
+       and by using `CREATE SCHEMA IF NOT EXISTS` on PostgreSQL 9.3 and
+       higher. Thanks to @djk447 for the pull request (#307).
 
 0.9995 2016-07-27T09:23:55Z
      - Taught the `add` command not to ignore the `--change` option.
