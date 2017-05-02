@@ -157,9 +157,9 @@ sub initialized {
     my $self = shift;
     return $self->dbh->selectcol_arrayref(q{
         SELECT EXISTS(
-            SELECT TRUE FROM pg_catalog.pg_namespace WHERE nspname = ?
+            SELECT TRUE FROM pg_catalog.pg_tables WHERE schemaname = ? AND tablename = ?
         )
-    }, undef, $self->registry)->[0];
+    }, undef, $self->registry,'changes')->[0];
 }
 
 sub initialize {
