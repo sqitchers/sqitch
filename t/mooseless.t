@@ -4,12 +4,9 @@ use strict;
 use warnings;
 use utf8;
 use Test::More;
-use Module::Runtime qw(use_module);
-use Test::Exception;
 
-no Moo::sification;
+use App::Sqitch;
 
-lives_ok { use_module 'App::Sqitch';  };
-
+ok ! exists($INC{'Moose.pm'}), 'no moose here';
 
 done_testing();
