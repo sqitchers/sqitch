@@ -177,29 +177,22 @@ sub _run_registry_file {
     my ($self, $file) = @_;
     my $schema = $self->registry;
 
-    # Check the client version.
-    my ($maj, $min);
-    my $opts = '';
-    for ( $self->sqitch->capture( $self->client, '--version' ) ) {
-        if (/PostgreSQL/) {
-            ( $maj, $min ) = split /[.]/ => (split / /)[-1];
-            last;
-        }
-    }
+    # Fetch the client version. 8.4 == 80400
+    my $version =  $self->_probe('-c', 'SHOW server_version_num');
 
     # Is this XC?
-    $opts = ' DISTRIBUTE BY REPLICATION' if $self->_probe('-c', q{
+    my $opts =  $self->_probe('-c', q{
         SELECT count(*)
           FROM pg_catalog.pg_proc p
           JOIN pg_catalog.pg_namespace n ON p.pronamespace = n.oid
          WHERE nspname = 'pg_catalog'
            AND proname = 'pgxc_version';
-    });
+    }) ? ' DISTRIBUTE BY REPLICATION' : '';
 
-    if ("$maj.$min" < 9.3) {
+    if ($version < 90300) {
         # Need to write a temp file; no CREATE SCHEMA IF NOT EXISTS syntax.
         (my $sql = scalar $file->slurp) =~ s/SCHEMA IF NOT EXISTS/SCHEMA/;
-        if ($maj < 9) {
+        if ($version < 90000) {
             # Also no :"registry" variable syntax.
             ($schema) = $self->dbh->selectrow_array(
                 'SELECT quote_ident(?)', undef, $schema

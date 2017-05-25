@@ -16,6 +16,9 @@ Revision history for Perl extension App::Sqitch
        looking for the registry schema in the `pg_namespace` catalog table,
        and by using `CREATE SCHEMA IF NOT EXISTS` on PostgreSQL 9.3 and
        higher. Thanks to @djk447 for the pull request (#307).
+     - Updated PostgreSQL registry detection to avoid errors when the `psql`
+       client is newer than the server version. Sqitch now fetches the version
+       from the server instead of parsing it from the client.
 
 0.9995 2016-07-27T09:23:55Z
      - Taught the `add` command not to ignore the `--change` option.
