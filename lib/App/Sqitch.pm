@@ -6,7 +6,6 @@ use 5.010;
 use strict;
 use warnings;
 use utf8;
-no Moo::sification;
 use Getopt::Long;
 use Hash::Merge qw(merge);
 use Path::Class;
