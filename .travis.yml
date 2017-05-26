@@ -8,7 +8,7 @@ perl:
   - "5.20"
   - "5.22"
   - "dev"
-  - "blead"
+#  - "blead" https://github.com/travis-perl/helpers/issues/44
 
 matrix:
   include:
@@ -16,7 +16,6 @@ matrix:
       env: COVERAGE=1
   allow_failures:
     - perl: "blead"
-    - env: TRAVIS_PERL_DEBUG=1
 
 before_install:
   - sudo apt-get update -qq
