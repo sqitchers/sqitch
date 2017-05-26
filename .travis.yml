@@ -16,7 +16,7 @@ matrix:
       env: COVERAGE=1
   allow_failures:
     - perl: "blead"
-      env: TRAVIS_PERL_DEBUG=1
+    - env: TRAVIS_PERL_DEBUG=1
 
 before_install:
   - sudo apt-get update -qq
