@@ -17,6 +17,15 @@ our $VERSION = '0.9996';
 has '+confname' => ( default => 'sqitch.conf' );
 has '+encoding' => ( default => 'UTF-8' );
 
+after 'load_file' => sub {
+    my $self = shift;
+    return unless ref $self;
+    return unless $self->data;
+    for my $key (keys %{$self->data}) {
+        $self->data->{$key} =~ s/\cM$//;
+    }
+};
+
 # Set by ./Build; see Module::Build::Sqitch for details.
 my $SYSTEM_DIR = undef;
 
