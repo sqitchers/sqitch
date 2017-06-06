@@ -921,6 +921,9 @@ C<@v1.0.0-dev1>. Let's have a look at the status:
   # 
   Nothing to deploy (up-to-date)
 
+=for comment
+I do not see a tag as part of the status message displayed above.
+
 Note the listing of the tag as part of the status message. Now let's bundle
 everything up for release:
 
