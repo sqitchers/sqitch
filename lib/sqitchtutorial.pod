@@ -107,7 +107,7 @@ Back to the repository. Have a look at the plan file, F<sqitch.plan>:
   %syntax-version=1.0.0
   %project=flipr
   %uri=https://github.com/theory/sqitch-intro/
-  
+
 
 Note that it has picked up on the name and URI of the app we're building.
 Sqitch uses this data to manage cross-project dependencies. The
@@ -166,7 +166,7 @@ see the schema:
 
   > psql -d flipr_test -c '\dn flipr'
   List of schemas
-   Name  | Owner 
+   Name  | Owner
   -------+-------
    flipr | marge
 
@@ -216,7 +216,7 @@ Then L<C<verify>|sqitch-verify> again:
     * appschema .. psql:verify/appschema.sql:5: ERROR:  schema "nonesuch" does not exist
   # Verify script "verify/appschema.sql" failed.
   not ok
-  
+
   Verify Summary Report
   ---------------------
   Changes: 1
@@ -260,7 +260,7 @@ tables from the database:
   # Name:     appschema
   # Deployed: 2013-12-30 15:27:15 -0800
   # By:       Marge N. O’Vera <marge@example.com>
-  # 
+  #
   Nothing to deploy (up-to-date)
 
 Let's make sure that we can revert the change:
@@ -277,7 +277,7 @@ I<removed> from the database. And now the schema should be gone:
 
   > psql -d flipr_test -c '\dn flipr'
   List of schemas
-   Name | Owner 
+   Name | Owner
   ------+-------
 
 And the status message should reflect as much:
@@ -336,7 +336,7 @@ And now the schema should be back:
 
   > psql -d flipr_test -c '\dn flipr'
   List of schemas
-   Name  | Owner 
+   Name  | Owner
   -------+-------
    flipr | marge
 
@@ -349,7 +349,7 @@ When we look at the status, the deployment will be there:
   # Name:     appschema
   # Deployed: 2013-12-30 15:40:53 -0800
   # By:       Marge N. O’Vera <marge@example.com>
-  # 
+  #
   Nothing to deploy (up-to-date)
 
 =head1 On Target
@@ -382,7 +382,7 @@ simpler from here on in, e.g.:
   # Name:     appschema
   # Deployed: 2013-12-30 15:40:53 -0800
   # By:       Marge N. O’Vera <marge@example.com>
-  # 
+  #
   Nothing to deploy (up-to-date)
 
 Yay, that allows things to be a little more concise. Let's also make sure that
@@ -469,7 +469,7 @@ But for the purposes of visibility, let's have a quick look:
 
   > psql -d flipr_test -c '\d flipr.users'
                         Table "flipr.users"
-    Column   |           Type           |       Modifiers        
+    Column   |           Type           |       Modifiers
   -----------+--------------------------+------------------------
    nickname  | text                     | not null
    password  | text                     | not null
@@ -495,7 +495,7 @@ Now have a look at the status:
   # Name:     users
   # Deployed: 2013-12-30 15:51:09 -0800
   # By:       Marge N. O’Vera <marge@example.com>
-  # 
+  #
   Nothing to deploy (up-to-date)
 
 Success! Let's make sure we can revert the change, as well:
@@ -530,7 +530,7 @@ undeployed changes:
   # Name:     appschema
   # Deployed: 2013-12-30 15:40:53 -0800
   # By:       Marge N. O’Vera <marge@example.com>
-  # 
+  #
   Undeployed change:
     * users
 
@@ -569,7 +569,7 @@ Looks good. Check the status:
   # Name:     users
   # Deployed: 2013-12-30 15:57:14 -0800
   # By:       Marge N. O’Vera <marge@example.com>
-  # 
+  #
   Nothing to deploy (up-to-date)
 
 Excellent. Let's do some more!
@@ -614,7 +614,7 @@ F<deploy/insert_user.sql> should look like:
   -- Deploy flipr:insert_user to pg
   -- requires: users
   -- requires: appschema
-  
+
   BEGIN;
 
   CREATE OR REPLACE FUNCTION flipr.insert_user(
@@ -692,7 +692,7 @@ look:
 
   > psql -d flipr_test -c '\df flipr.*'
                                       List of functions
-   Schema |    Name     | Result data type |          Argument data types          |  Type  
+   Schema |    Name     | Result data type |          Argument data types          |  Type
   --------+-------------+------------------+---------------------------------------+--------
    flipr  | change_pass | boolean          | nick text, oldpass text, newpass text | normal
    flipr  | insert_user | void             | nickname text, password text          | normal
@@ -706,7 +706,7 @@ And what's the status?
   # Name:     change_pass
   # Deployed: 2013-12-30 15:59:44 -0800
   # By:       Marge N. O’Vera <marge@example.com>
-  # 
+  #
   Nothing to deploy (up-to-date)
 
 Looks good. Let's make sure revert works:
@@ -717,7 +717,7 @@ Looks good. Let's make sure revert works:
     - insert_user .. ok
   > psql -d flipr_test -c '\df flipr.*'
                          List of functions
-   Schema | Name | Result data type | Argument data types | Type 
+   Schema | Name | Result data type | Argument data types | Type
   --------+------+------------------+---------------------+------
 
 Note the use of C<@HEAD^^> to specify that the revert be to two changes prior
@@ -733,7 +733,7 @@ the last deployed change. Looks good. Let's do the commit and re-deploy dance:
    create mode 100644 revert/insert_user.sql
    create mode 100644 verify/change_pass.sql
    create mode 100644 verify/insert_user.sql
- 
+
   > sqitch deploy
   Deploying changes to flipr_test
     + insert_user .. ok
@@ -746,9 +746,9 @@ the last deployed change. Looks good. Let's do the commit and re-deploy dance:
   # Name:     change_pass
   # Deployed: 2013-12-30 16:00:50 -0800
   # By:       Marge N. O’Vera <marge@example.com>
-  # 
+  #
   Nothing to deploy (up-to-date)
-  
+
   > sqitch verify
   Verifying flipr_test
     * appschema .... ok
@@ -793,7 +793,7 @@ C<@v1.0.0-dev1>. Let's have a look at the status:
   # Tag:      @v1.0.0-dev1
   # Deployed: 2013-12-30 16:02:19 -0800
   # By:       Marge N. O’Vera <marge@example.com>
-  # 
+  #
   Nothing to deploy (up-to-date)
 
 
@@ -903,10 +903,10 @@ Look good?
   # Name:     flips
   # Deployed: 2013-12-30 16:34:38 -0800
   # By:       Marge N. O’Vera <marge@example.com>
-  # 
+  #
   # Tag:
   #   @v1.0.0-dev1 - 2013-12-30 16:34:38 -0800 - Marge N. O’Vera <marge@example.com>
-  # 
+  #
   Nothing to deploy (up-to-date)
 
 Note the use of C<--show tags> to show all the deployed tags. Now make it so:
@@ -1015,10 +1015,10 @@ should end up looking something like this:
   # Name:     delete_flip
   # Deployed: 2013-12-30 16:37:51 -0800
   # By:       Marge N. O’Vera <marge@example.com>
-  # 
+  #
   # Tag:
   #   @v1.0.0-dev1 - 2013-12-30 16:34:38 -0800 - Marge N. O’Vera <marge@example.com>
-  # 
+  #
   Nothing to deploy (up-to-date)
 
 Good, we've finished this feature. Time to merge back into C<master>.
@@ -1140,7 +1140,7 @@ Now add the union merge driver to F<.gitattributes> for F<sqitch.plan>
 and rebase again:
 
   > echo sqitch.plan merge=union > .gitattributes
-  > git rebase master                            
+  > git rebase master
   First, rewinding head to replay your work on top of it...
   Applying: Add flips table.
   Using index info to reconstruct a base tree...
@@ -1304,7 +1304,7 @@ Have a look at this:
       SELECT flipr.insert_user('foo', 'secr3t'), flipr.insert_user('bar', 'secr3t');
       SELECT * FROM flipr.users;
   "
-   nickname |             password             |           timestamp           
+   nickname |             password             |           timestamp
   ----------+----------------------------------+-------------------------------
    foo      | 9695da4dd567a19f9b92065f240c6725 | 2013-12-31 00:56:20.240481+00
    bar      | 9695da4dd567a19f9b92065f240c6725 | 2013-12-31 00:56:20.240481+00
@@ -1461,9 +1461,9 @@ F<deploy/insert_user.sql>:
    -- requires: users
    -- requires: appschema
   +-- requires: pgcrypto
- 
+
    BEGIN;
- 
+
   @@ -8,7 +9,7 @@ CREATE OR REPLACE FUNCTION flipr.insert_user(
        nickname TEXT,
        password TEXT
@@ -1471,7 +1471,7 @@ F<deploy/insert_user.sql>:
   -    INSERT INTO flipr.users VALUES($1, md5($2));
   +    INSERT INTO flipr.users values($1, crypt($2, gen_salt('md5')));
    $$;
- 
+
    COMMIT;
 
 Go ahead and rework the C<change_pass> change, too:
@@ -1490,9 +1490,9 @@ And make this change to F<deploy/change_pass.sql>:
    -- requires: users
    -- requires: appschema
   +-- requires: pgcrypto
- 
+
    BEGIN;
- 
+
   @@ -11,9 +12,9 @@ CREATE OR REPLACE FUNCTION flipr.change_pass(
    ) RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER AS $$
    BEGIN
@@ -1520,7 +1520,7 @@ So, are the changes deployed?
       SELECT flipr.insert_user('foo', 'secr3t'), flipr.insert_user('bar', 'secr3t');
       SELECT * FROM flipr.users;
   "
-   nickname |              password              |           timestamp           
+   nickname |              password              |           timestamp
   ----------+------------------------------------+-------------------------------
    foo      | $1$pRNfJjI9$CdcEXJ9xCoJPD.R5Z/7.R1 | 2013-12-31 01:03:15.398572+00
    bar      | $1$Nf1LcU.p$B9sKzdu8vMgu5oxbimo5P1 | 2013-12-31 01:03:15.398572+00
@@ -1540,7 +1540,7 @@ Did that work, are the C<MD5()> passwords back?
       SELECT flipr.insert_user('foo', 'secr3t'), flipr.insert_user('bar', 'secr3t');
       SELECT * FROM flipr.users;
   "
-   nickname |             password             |           timestamp           
+   nickname |             password             |           timestamp
   ----------+----------------------------------+-------------------------------
    foo      | 9695da4dd567a19f9b92065f240c6725 | 2013-12-31 01:03:57.263583+00
    bar      | 9695da4dd567a19f9b92065f240c6725 | 2013-12-31 01:03:57.263583+00
@@ -1608,7 +1608,7 @@ Excellent. Let's go ahead and commit these changes:
   # Name:     change_pass
   # Deployed: 2013-12-30 17:05:08 -0800
   # By:       Marge N. O’Vera <marge@example.com>
-  # 
+  #
   Nothing to deploy (up-to-date)
 
 =head1 More to Come
