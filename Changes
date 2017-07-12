@@ -21,6 +21,8 @@ Revision history for Perl extension App::Sqitch
        from the server instead of parsing it from the client.
      - Specifying a change before a target name on the command-line no longer
        ignores the target (#281).
+     - The `--db-*` options are now more consistently applied to a target,
+       including when the target is specified as a URI (#293).
 
 0.9995 2016-07-27T09:23:55Z
      - Taught the `add` command not to ignore the `--change` option.
