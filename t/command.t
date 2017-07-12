@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 163;
+use Test::More tests => 165;
 #use Test::More 'no_plan';
 use Test::NoWarnings;
 use List::Util qw(first);
@@ -352,6 +352,13 @@ ARGS: {
         'Target and change should be recognized';
     is_deeply $parsem->(args => ['hey', 'devdb']), [['devdb'], ['hey']],
         'Change and target should be recognized';
+
+    is_deeply $parsem->(args => ['mydb', 'hey']), [['mydb'], ['hey']],
+        'Alternate Target and change should be recognized';
+    is_deeply $parsem->(args => ['hey', 'mydb']), [['mydb'], ['hey']],
+        'Change and alternate target should be recognized';
+
+
     is_deeply $parsem->(args => ['hey', 'devdb', 'foo'], names => [undef]),
         ['foo', ['devdb'], ['hey']],
         'Change, target, and unknown name should be recognized';

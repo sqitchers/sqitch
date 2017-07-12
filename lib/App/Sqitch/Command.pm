@@ -221,8 +221,7 @@ sub parse_args {
     my %engines = map { $_ => 1 } ENGINES;
     for my $arg (@{ $p{args} }) {
         if ( !$p{no_changes} && $target && $target->plan->contains($arg) ) {
-            # A change. Keep the target if it's the default.
-            push @{ $rec{targets} } => $target unless $seen{$target->name}++;
+            # A change.
             push @{ $rec{changes} } => $arg;
         } elsif ($config->get( key => "target.$arg.uri") || URI->new($arg)->isa('URI::db')) {
             # A target. Instantiate and keep for subsequente change searches.
@@ -252,7 +251,7 @@ sub parse_args {
         }
     }
 
-    # Make sure we have the default target
+    # Make sure we have the default target if none was specified.
     push @{ $rec{targets} } => $target
         if $target && !$p{no_default} && !@{ $rec{targets} };
 
