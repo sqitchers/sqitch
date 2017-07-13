@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 165;
+use Test::More tests => 166;
 #use Test::More 'no_plan';
 use Test::NoWarnings;
 use List::Util qw(first);
@@ -424,6 +424,12 @@ ARGS: {
 
     is_deeply $parsem->(args => ['sqlite']), [['devdb'], []],
         'Should resolve engine "sqlite" file to its target';
+
+    # Make sure we don't get an error when the default target has no plan file.
+    my $mock_target = Test::MockModule->new('App::Sqitch::Target');
+    $mock_target->mock(plan_file => file 'no-such-file.txt');
+    is_deeply $parsem->( args => ['devdb'] ),  [['devdb'], []],
+        'Should recognize target when default target has no plan file';
 }
 
 ##############################################################################

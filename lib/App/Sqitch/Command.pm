@@ -220,7 +220,7 @@ sub parse_args {
 
     my %engines = map { $_ => 1 } ENGINES;
     for my $arg (@{ $p{args} }) {
-        if ( !$p{no_changes} && $target && $target->plan->contains($arg) ) {
+        if ( !$p{no_changes} && $target && -e $target->plan_file && $target->plan->contains($arg) ) {
             # A change.
             push @{ $rec{changes} } => $arg;
         } elsif ($config->get( key => "target.$arg.uri") || URI->new($arg)->isa('URI::db')) {

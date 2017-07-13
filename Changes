@@ -32,6 +32,8 @@ Revision history for Perl extension App::Sqitch
        that follows them (#312).
      - The `verify` command now looks for the most recent variant of a `--to`
        change if it's not tag-qualified.
+     - Sqitch no longer returns an error when specifying a target name to
+       commands when the default target's plan file does not exist (#324).
 
 0.9995 2016-07-27T09:23:55Z
      - Taught the `add` command not to ignore the `--change` option.
