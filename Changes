@@ -34,6 +34,8 @@ Revision history for Perl extension App::Sqitch
        change if it's not tag-qualified.
      - Sqitch no longer returns an error when specifying a target name to
        commands when the default target's plan file does not exist (#324).
+     - Added missing options to the `rework` usage statement. Thanks to Jay
+       Hannah for the PR (#342).
 
 0.9995 2016-07-27T09:23:55Z
      - Taught the `add` command not to ignore the `--change` option.
