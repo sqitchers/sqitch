@@ -1766,7 +1766,7 @@ is $@->message, __x(
 is_deeply $engine->seen, [['change_id_for', {
     change_id => undef,
     change  => 'nonexistent',
-    tag     => undef,
+    tag     => 'HEAD',
     project => 'sql',
 }]], 'Should have called change_id_for() with change name';
 is_deeply +MockOutput->get_info, [], 'Nothing should have been output';
@@ -1782,9 +1782,9 @@ is $@->message, __x(
 is_deeply $engine->seen, [['change_id_for', {
     change_id => '8d77c5f588b60bc0f2efcda6369df5cb0177521d',
     change  => undef,
-    tag     => undef,
+    tag     => 'HEAD',
     project => 'sql',
-}]], 'Shoudl have called change_id_for() with change ID';
+}]], 'Should have called change_id_for() with change ID';
 is_deeply +MockOutput->get_info, [], 'Nothing should have been output';
 
 # Revert an undeployed change.
@@ -1820,7 +1820,7 @@ is_deeply $engine->seen, [
     [change_id_for => {
         change_id => $changes[0]->id,
         change => undef,
-        tag => undef,
+        tag => 'HEAD',
         project => 'sql',
     }],
     [ change_offset_from_id => [$changes[0]->id, 0] ],
@@ -2542,7 +2542,7 @@ is_deeply $engine->seen, [
         project => 'sql',
         tag => undef,
     } ]
-], 'It should have passed the change name to change_id_for';
+], 'It should have passed the change name and ROOT tag to change_id_for';
 
 # Should get an error when it's in the plan but not the database.
 throws_ok { $engine->_trim_to( 'yep', 'blah', [] ) } 'App::Sqitch::X',
@@ -2629,7 +2629,7 @@ is_deeply $engine->seen, [
         change => $key,
         change_id => undef,
         project => 'sql',
-        tag => undef,
+        tag => 'HEAD',
     } ],
     [ change_id_offset_from_id => [$changes[-1]->id, 0]],
 ], 'It should have passed change -1 ID to change_id_offset_from_id';
@@ -2647,7 +2647,7 @@ is_deeply $engine->seen, [
         change => $key,
         change_id => undef,
         project => 'sql',
-        tag => undef,
+        tag => 'HEAD',
     } ],
     [ change_id_offset_from_id => [$changes[-3]->id, 0]],
 ], 'It should have passed change -3 ID to change_id_offset_from_id';
@@ -2663,7 +2663,7 @@ is_deeply $engine->seen, [
         change => $key,
         change_id => undef,
         project => 'sql',
-        tag => undef,
+        tag => 'HEAD',
     } ],
     [ change_id_offset_from_id => [$changes[-3]->id, -1]],
 ], 'Should pass change -3 ID and offset -1 to change_id_offset_from_id';
@@ -2679,7 +2679,7 @@ is_deeply $engine->seen, [
         change => $key,
         change_id => undef,
         project => 'sql',
-        tag => undef,
+        tag => 'HEAD',
     } ],
     [ change_id_offset_from_id => [$changes[-3]->id, 1]],
 ], 'Should pass change -3 ID and offset 1 to change_id_offset_from_id';
@@ -2714,7 +2714,7 @@ is_deeply $engine->seen, [
         change => undef,
         change_id => undef,
         project => 'sql',
-        tag => '@HEAD',
+        tag => 'HEAD',
     } ],
     [ change_id_offset_from_id => [$changes[2]->id, 0]],
 ], 'Should pass tag @HEAD to change_id_for';
@@ -2749,7 +2749,7 @@ is_deeply $engine->seen, [
         change => undef,
         change_id => undef,
         project => 'sql',
-        tag => '@ROOT',
+        tag => 'ROOT',
     } ],
     [ change_id_offset_from_id => [$changes[2]->id, 0]],
 ], 'Should pass tag @ROOT to change_id_for';

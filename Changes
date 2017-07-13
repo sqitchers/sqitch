@@ -23,6 +23,15 @@ Revision history for Perl extension App::Sqitch
        ignores the target (#281).
      - The `--db-*` options are now more consistently applied to a target,
        including when the target is specified as a URI (#293).
+     - `HEAD` and `ROOT` are now properly recognized as aliases for `@HEAD` and
+       `@ROOT`, when querying the database, too. This was supposedly done in
+       v0.991, but due to a bug, it wasn't really. Sorry about that.
+     - The `revert` command will now search for the most recent variant of a
+       named change , rather than the earliest. This goes along with the
+       convention of earlier changes generally being referred to as of the tag
+       that follows them (#312).
+     - The `verify` command now looks for the most recent variant of a `--to`
+       change if it's not tag-qualified.
 
 0.9995 2016-07-27T09:23:55Z
      - Taught the `add` command not to ignore the `--change` option.

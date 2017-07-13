@@ -241,7 +241,8 @@ sub revert {
 
     if (defined $to) {
         my ($change) = $self->_load_changes(
-            $self->change_for_key($to)
+            # If no tag, default to HEAD to find most recent variant.
+            $self->find_change( tag => 'HEAD', $self->_params_for_key($to) )
         ) or do {
             # Not deployed. Is it in the plan?
             if ( $plan->get($to) ) {
@@ -394,7 +395,9 @@ sub _trim_to {
     my $plan   = $self->plan;
 
     # Find the change in the database.
-    my $to_id = $self->change_id_for_key( $key ) || hurl $ident => (
+    my $to_id =  $self->find_change_id(
+        ($pop ? (tag => 'HEAD') : ()), $self->_params_for_key($key)
+    ) || hurl $ident => (
         $plan->contains( $key ) ? __x(
             'Change "{change}" has not been deployed',
             change => $key,
@@ -410,7 +413,7 @@ sub _trim_to {
         change => $key,
     );
 
-    # Pope or shift changes till we find the change we want.
+    # Pop or shift changes till we find the change we want.
     if ($pop) {
         pop @{ $changes }   while $changes->[-1]->id ne $to_id;
     } else {
@@ -650,7 +653,7 @@ sub _params_for_key {
     my @off = ( offset => $offset );
     return ( @off, change => $cname, tag => $tag ) if $tag;
     return ( @off, change_id => $cname ) if $cname =~ /^[0-9a-f]{40}$/;
-    return ( @off, tag => '@' . $cname ) if $cname eq 'HEAD' || $cname eq 'ROOT';
+    return ( @off, tag => $cname ) if $cname eq 'HEAD' || $cname eq 'ROOT';
     return ( @off, change => $cname );
 }
 
