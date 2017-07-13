@@ -37,8 +37,8 @@ Revision history for Perl extension App::Sqitch
      - Added missing options to the `rework` usage statement. Thanks to Jay
        Hannah for the PR (#342).
      - Passing an engine name or plan file as the `<database>` parameter to
-       the `log` and `upgrade` commands now works correctly, matching what the
-       documention has said for some time (#324). 
+       the `log`, `status`, and `upgrade` commands now works correctly,
+       matching what the documention has said for some time (#324).
      - Added the `--target` option and `<database>` parameter to the `plan`
        command.
      - Sqitch now loads targets from all config files, not just the local
