@@ -39,8 +39,8 @@ Revision history for Perl extension App::Sqitch
      - Passing an engine name or plan file as the `<database>` parameter to
        the `log`, `status`, and `upgrade` commands now works correctly,
        matching what the documention has said for some time (#324).
-     - Added the `--target` option and `<database>` parameter to the `plan`
-       command.
+     - Added the `--target` option to the `plan` and `show` commands.
+     - Added the `<database>` parameter to the `plan` command.
      - Sqitch now loads targets from all config files, not just the local
        file, when trying to determine if a `<database>` parameter is a plan
        file name.
