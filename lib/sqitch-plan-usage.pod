@@ -4,12 +4,13 @@ sqitch-plan-usage - Sqitch plan usage statement
 
 =head1 Usage
 
-  sqitch [options] plan [plan options]
+  sqitch [options] plan [plan options] [<database>]
 
 =head1 Options
 
 Search options:
 
+ -t --target <target>             database target specifying the plan
     --event                       type of event
     --change-pattern  --change    match regex against change names
     --planner-pattern --planner   match regex against committer names

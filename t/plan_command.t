@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 215;
+use Test::More tests => 227;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -39,6 +39,7 @@ isa_ok my $cmd = App::Sqitch::Command->load({
 }), $CLASS, 'plan command';
 
 can_ok $cmd, qw(
+    target
     change_pattern
     planner_pattern
     max_count
@@ -52,6 +53,7 @@ can_ok $cmd, qw(
 
 is_deeply [$CLASS->options], [qw(
     event=s
+    target|t=s
     change-pattern|change=s
     planner-pattern|planner=s
     format|f=s
@@ -652,3 +654,41 @@ is $@->ident, 'format',
 is $@->message, __x(
     'Unknown format code "{code}"', code => 'Z',
 ), 'bad format code format error message should be correct';
+
+# Gotta make sure params are parsed.
+my $mock_cmd = Test::MockModule->new($CLASS);
+my (@params, $orig_parse);
+$mock_cmd->mock(parse_args => sub {
+    my $self = shift;
+    @params = @_;
+    $self->$orig_parse(@_);
+});
+$orig_parse = $mock_cmd->original('parse_args');
+
+# Try specifying an unkonwn target.
+ok $cmd = $CLASS->new( sqitch => $sqitch, target => 'foo'),
+    'Create plan command with unknown target option';
+throws_ok { $cmd->execute } 'App::Sqitch::X',
+    'Should get error for unknown target';
+is $@->ident, 'target', 'Unknown target error ident should be "plan"';
+is $@->exitval, 2, 'Unknown target changes exit val should be 2';
+is $@->message, __x('Cannot find target "{target}"', target => 'foo'),
+    'Unknown target error message should be correct';
+is_deeply \@params, [ target => 'foo', args => [] ],
+    'Should have passed target for parsing';
+
+# Try passing an engine target.
+ok $cmd = $CLASS->new( sqitch => $sqitch),
+    'Create plan command with target option';
+ok $cmd->execute('sqlite'), 'Execute with engine arg';
+is_deeply \@params, [ target => undef, args => [qw(sqlite)] ],
+    'Should have passed engine for parsing';
+
+# Try both --target and arg..
+ok $cmd = $CLASS->new( sqitch => $sqitch, target => 'db:pg:'),
+    'Create plan command with target option';
+ok $cmd->execute('sqlite'), 'Execute with multiple targets';
+is_deeply +MockOutput->get_warn, [[__x(
+    'Too many targets specified; using {target}',
+    target => 'db:pg:',
+)]], 'Should have got warning for two targets';

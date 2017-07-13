@@ -357,7 +357,7 @@ sub all_targets {
     my $sqitch = $p{sqitch} or hurl 'Missing required argument: sqitch';
     my $config = $p{config} || $sqitch->config;
     my (@targets, %seen);
-    my %dump = %{ App::Sqitch::Config->load_file($config->local_file) };
+    my %dump = $config->dump;
 
     # First, load the default target.
     my $core = $dump{'core.target'} || do {

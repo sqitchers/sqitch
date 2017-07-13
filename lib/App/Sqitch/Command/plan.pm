@@ -65,6 +65,11 @@ EOF
 
 $FORMATS{oneline} = '%{:event}C%h %l%{reset}C %n%{cyan}C%t%{reset}C';
 
+has target => (
+    is      => 'ro',
+    isa     => Str,
+);
+
 has event => (
     is      => 'ro',
     isa     => Str,
@@ -112,6 +117,7 @@ has formatter => (
 sub options {
     return qw(
         event=s
+        target|t=s
         change-pattern|change=s
         planner-pattern|planner=s
         format|f=s
@@ -174,8 +180,19 @@ sub configure {
 }
 
 sub execute {
-    my $self   = shift;
-    my $plan = $self->default_target->plan;
+    my $self = shift;
+    my ($targets) = $self->parse_args(
+        target => $self->target,
+        args   => \@_,
+    );
+
+    # Warn on multiple targets.
+    my $target = shift @{ $targets };
+    $self->warn(__x(
+        'Too many targets specified; using {target}',
+        target => $target->name,
+    )) if @{ $targets };
+    my $plan = $target->plan;
 
     # Exit with status 1 on no changes, probably not expected.
     hurl {

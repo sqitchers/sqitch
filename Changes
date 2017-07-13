@@ -36,6 +36,14 @@ Revision history for Perl extension App::Sqitch
        commands when the default target's plan file does not exist (#324).
      - Added missing options to the `rework` usage statement. Thanks to Jay
        Hannah for the PR (#342).
+     - Passing an engine name or plan file as the `<database>` parameter to
+       the `log` and `upgrade` commands now works correctly, matching what the
+       documention has said for some time (#324). 
+     - Added the `--target` option and `<database>` parameter to the `plan`
+       command.
+     - Sqitch now loads targets from all config files, not just the local
+       file, when trying to determine if a `<database>` parameter is a plan
+       file name.
 
 0.9995 2016-07-27T09:23:55Z
      - Taught the `add` command not to ignore the `--change` option.

@@ -191,18 +191,18 @@ sub configure {
 }
 
 sub execute {
-    my ( $self, $target ) = @_;
+    my $self = shift;
+    my ($targets) = $self->parse_args(
+        target => $self->target,
+        args   => \@_,
+    );
 
-    if (my $t = $self->target // $target) {
-        $self->warn(__x(
-            'Both the --target option and the target argument passed; using {option}',
-            option => $self->target,
-        )) if $target && $self->target;
-        require App::Sqitch::Target;
-        $target = App::Sqitch::Target->new(sqitch => $self->sqitch, name => $t);
-    } else {
-        $target = $self->default_target;
-    }
+    # Warn on multiple targets.
+    my $target = shift @{ $targets };
+    $self->warn(__x(
+        'Too many targets specified; connecting to {target}',
+        target => $target->name,
+    )) if @{ $targets };
     my $engine = $target->engine;
 
     # Exit with status 1 on uninitialized database, probably not expected.

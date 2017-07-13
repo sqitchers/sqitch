@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 248;
+use Test::More tests => 252;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -676,6 +676,29 @@ is_deeply +MockOutput->get_page, [
     [ $log->formatter->format( $log->format, $event ) ],
 ], 'The change should have been paged';
 
+# Make sure we can pass a plan file.
+push @events => {}, $event;
+$target_name_arg = '_blah';
+ok $log->execute('t/sql/sqitch.plan'), 'Execute with plan arg';
+is $target_name_arg, 'db:sqlite:',
+    'Default engine target should have been passed to Target';
+is_deeply $search_args, [
+    event     => undef,
+    change    => undef,
+    project   => undef,
+    committer => undef,
+    limit     => undef,
+    offset    => undef,
+    direction => 'DESC'
+], 'The proper args should have been passed to search_events';
+
+is_deeply +MockOutput->get_page, [
+    [__x 'On database {db}', db => 'flipr'],
+    [ $log->formatter->format( $log->format, $event ) ],
+], 'The change should have been paged';
+
+
+
 # Set attributes and add more events.
 my $event2 = {
     event           => 'revert',
@@ -721,11 +744,11 @@ is_deeply +MockOutput->get_page, [
 
 # Make sure we get a warning when both the option and the arg are specified.
 push @events => {}, $event;
-ok $log->execute('foo'), 'Execute log with attributes';
-is $target_name_arg, $log->target, 'Should have passed target name to Target';
+ok $log->execute('pg'), 'Execute log with attributes';
+is $target_name_arg, 'db:pg:', 'Should have passed enginetarget to Target';
 is_deeply +MockOutput->get_warn, [[__x(
-    'Both the --target option and the target argument passed; using {option}',
-    option => $log->target,
+    'Too many targets specified; connecting to {target}',
+    target => $log->target,
 )]], 'Should have got warning for two targets';
 
 # Make sure we catch bad format codes.
