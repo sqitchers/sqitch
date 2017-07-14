@@ -241,11 +241,10 @@ sub revert {
 
     if (defined $to) {
         my ($change) = $self->_load_changes(
-            # If no tag, default to HEAD to find most recent variant.
-            $self->find_change( tag => 'HEAD', $self->_params_for_key($to) )
+            $self->change_for_key($to)
         ) or do {
             # Not deployed. Is it in the plan?
-            if ( $plan->get($to) ) {
+            if ( $plan->find($to) ) {
                 # Known but not deployed.
                 hurl revert => __x(
                     'Change not deployed: "{change}"',
@@ -259,6 +258,7 @@ sub revert {
             );
         };
 
+        say "Lookup";
         @changes = $self->deployed_changes_since(
             $self->_load_changes($change)
         ) or hurl {
@@ -394,10 +394,8 @@ sub _trim_to {
     my $sqitch = $self->sqitch;
     my $plan   = $self->plan;
 
-    # Find the change in the database.
-    my $to_id =  $self->find_change_id(
-        ($pop ? (tag => 'HEAD') : ()), $self->_params_for_key($key)
-    ) || hurl $ident => (
+    # Find the to change in the database.
+    my $to_id = $self->change_id_for_key( $key ) || hurl $ident => (
         $plan->contains( $key ) ? __x(
             'Change "{change}" has not been deployed',
             change => $key,
@@ -1603,7 +1601,7 @@ matches no changes.
 
 Searches the deployed changes for a change corresponding to the specified key,
 which should be in a format as described in L<sqitchchanges>, and returns the
-change's ID. Throws an exception if the key matches more than one changes.
+change's ID. Throws an exception if the key matches more than one change.
 Returns C<undef> if it matches no changes.
 
 =head3 C<change_for_key>
@@ -1809,7 +1807,8 @@ re-deployed.
 );
 
 Searches the database for the change with the specified name, tag, and offset.
-The parameters are as follows:
+Throws an exception if the key matches more than one changes. Returns C<undef>
+if it matches no changes. The parameters are as follows:
 
 =over
 
@@ -1968,9 +1967,10 @@ should be the same as for those returned by C<deployed_changes()>.
 
   my $change_name = $engine->name_for_change_id($change_id);
 
-Returns the name of the change identified by the ID argument. If a tag was
-applied to a change after that change, the name will be returned with the tag
-qualification, e.g., C<app_user@beta>. This value should be suitable for
+Returns the tag-qualified name of the change identified by the ID. If a tag
+was applied to a change after that change, the name will be returned with the
+tag qualification, e.g., C<app_user@beta>. Otherwise, it will include the
+symbolic tag C<@HEAD. e.g., C<widgets@HEAD>. This value should be suitable for
 uniquely identifying the change, and passing to the C<get> or C<index_of>
 methods of L<App::Sqitch::Plan>.
 

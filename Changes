@@ -26,16 +26,15 @@ Revision history for Perl extension App::Sqitch
      - `HEAD` and `ROOT` are now properly recognized as aliases for `@HEAD` and
        `@ROOT`, when querying the database, too. This was supposedly done in
        v0.991, but due to a bug, it wasn't really. Sorry about that.
-     - The `revert` command will now search for the most recent variant of a
-       named change , rather than the earliest. This goes along with the
-       convention of earlier changes generally being referred to as of the tag
-       that follows them (#312).
-     - The `verify` command now looks for the most recent variant of a `--to`
-       change if it's not tag-qualified.
-     - Sqitch no longer returns an error when specifying a target name to
-       commands when the default target's plan file does not exist (#324).
+     - The `revert` and `verify` commands will now fail if a change is
+       specified and matches multiple changes. This happens when a change has
+       been reworked and referenced only by its name. In this case, Sqitch
+       will emit an error listing properly tag-qualified changes to use.
+       Suggested by Jay Hannah (#312).
+     - Sqitch no longer returns an error when a target name is passed to a
+       command and the default target's plan file does not exist (#324).
      - Added missing options to the `rework` usage statement. Thanks to Jay
-       Hannah for the PR (#342).
+       Hannahw for the PR (#342).
      - Passing an engine name or plan file as the `<database>` parameter to
        the `log`, `status`, and `upgrade` commands now works correctly,
        matching what the documention has said for some time (#324).

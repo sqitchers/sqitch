@@ -563,7 +563,7 @@ sub name_for_change_id {
               JOIN tags ON c2.change_id = tags.change_id
              WHERE c2.committed_at >= c.committed_at
                AND c2.project = c.project
-        ), '')
+        ), '@HEAD')
           FROM changes c
          WHERE change_id = ?
     }, undef, $change_id)->[0];
@@ -675,13 +675,27 @@ sub change_id_for {
         }
 
         # Find earliest by change name.
-        return $dbh->selectcol_arrayref(qq{
+        my $ids = $dbh->selectcol_arrayref(qq{
             SELECT FIRST 1 change_id
               FROM changes
              WHERE project = ?
                AND changes.change  = ?
              ORDER BY changes.committed_at ASC
-        }, undef, $project, $change)->[0];
+        }, undef, $project, $change);
+
+        # Return if 0 or 1 ID.
+        return $ids->[0] if @{ $ids } <= 1;
+
+        # Too many found! Let the user know.
+        $self->sqitch->vent(__x(
+            'Change "{change}" is ambiguous. Please specify a tag-qualified change:',
+            change => $change,
+        ));
+
+        # Lookup, emit reverse-chron list of tag-qualified changes, and die.
+        $self->sqitch->vent( '  * ', $self->name_for_change_id($_) // '' )
+            for reverse @{ $ids };
+        hurl engine => __ 'Change Lookup Failed';
     }
 
     if ( my $tag = $p{tag} ) {

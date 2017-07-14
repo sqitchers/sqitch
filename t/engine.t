@@ -1766,7 +1766,7 @@ is $@->message, __x(
 is_deeply $engine->seen, [['change_id_for', {
     change_id => undef,
     change  => 'nonexistent',
-    tag     => 'HEAD',
+    tag     => undef,
     project => 'sql',
 }]], 'Should have called change_id_for() with change name';
 is_deeply +MockOutput->get_info, [], 'Nothing should have been output';
@@ -1782,7 +1782,7 @@ is $@->message, __x(
 is_deeply $engine->seen, [['change_id_for', {
     change_id => '8d77c5f588b60bc0f2efcda6369df5cb0177521d',
     change  => undef,
-    tag     => 'HEAD',
+    tag     => undef,
     project => 'sql',
 }]], 'Should have called change_id_for() with change ID';
 is_deeply +MockOutput->get_info, [], 'Nothing should have been output';
@@ -1820,7 +1820,7 @@ is_deeply $engine->seen, [
     [change_id_for => {
         change_id => $changes[0]->id,
         change => undef,
-        tag => 'HEAD',
+        tag => undef,
         project => 'sql',
     }],
     [ change_offset_from_id => [$changes[0]->id, 0] ],
@@ -2629,7 +2629,7 @@ is_deeply $engine->seen, [
         change => $key,
         change_id => undef,
         project => 'sql',
-        tag => 'HEAD',
+        tag => undef,
     } ],
     [ change_id_offset_from_id => [$changes[-1]->id, 0]],
 ], 'It should have passed change -1 ID to change_id_offset_from_id';
@@ -2647,7 +2647,7 @@ is_deeply $engine->seen, [
         change => $key,
         change_id => undef,
         project => 'sql',
-        tag => 'HEAD',
+        tag => undef,
     } ],
     [ change_id_offset_from_id => [$changes[-3]->id, 0]],
 ], 'It should have passed change -3 ID to change_id_offset_from_id';
@@ -2663,7 +2663,7 @@ is_deeply $engine->seen, [
         change => $key,
         change_id => undef,
         project => 'sql',
-        tag => 'HEAD',
+        tag => undef,
     } ],
     [ change_id_offset_from_id => [$changes[-3]->id, -1]],
 ], 'Should pass change -3 ID and offset -1 to change_id_offset_from_id';
@@ -2679,7 +2679,7 @@ is_deeply $engine->seen, [
         change => $key,
         change_id => undef,
         project => 'sql',
-        tag => 'HEAD',
+        tag => undef,
     } ],
     [ change_id_offset_from_id => [$changes[-3]->id, 1]],
 ], 'Should pass change -3 ID and offset 1 to change_id_offset_from_id';

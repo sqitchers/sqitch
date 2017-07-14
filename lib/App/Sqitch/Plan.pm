@@ -729,7 +729,6 @@ sub tag {
         tag => $key
     ) if defined $changes->index_of($key);
 
-
     my $change;
     if (my $spec = $p{change}) {
         $change = $changes->get($spec) or hurl plan => __x(
