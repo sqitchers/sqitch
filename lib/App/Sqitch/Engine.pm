@@ -258,7 +258,6 @@ sub revert {
             );
         };
 
-        say "Lookup";
         @changes = $self->deployed_changes_since(
             $self->_load_changes($change)
         ) or hurl {

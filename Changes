@@ -34,7 +34,7 @@ Revision history for Perl extension App::Sqitch
      - Sqitch no longer returns an error when a target name is passed to a
        command and the default target's plan file does not exist (#324).
      - Added missing options to the `rework` usage statement. Thanks to Jay
-       Hannahw for the PR (#342).
+       Hannah for the PR (#342).
      - Passing an engine name or plan file as the `<database>` parameter to
        the `log`, `status`, and `upgrade` commands now works correctly,
        matching what the documention has said for some time (#324).
