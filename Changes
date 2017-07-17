@@ -1,7 +1,7 @@
 Revision history for Perl extension App::Sqitch
 
 
-0.9996
+0.9996 2017-07-17T18:33:12Z
      - Fixed an error where Oracle sometimes truncated timestamp formats so
        that date parsing failed. Thanks to Johann Wilfling for the report and
        @nmaqsudov for the solution (#316).

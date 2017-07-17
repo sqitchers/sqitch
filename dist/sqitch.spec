@@ -282,6 +282,9 @@ Sqitch Vertica support.
 # No additional files required.
 
 %changelog
+* Mon Jul 17 2017 David E. Wheeler <david.wheeler@iovation.com> 0.9996-1
+- Upgrade to v0.9996.
+
 * Tue Jul 27 2016 David E. Wheeler <david.wheeler@iovation.com> 0.9995-1
 - Require DateTime v1.04.
 - Upgrade to v0.9995.
