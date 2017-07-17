@@ -23,14 +23,14 @@ Revision history for Perl extension App::Sqitch
        ignores the target (#281).
      - The `--db-*` options are now more consistently applied to a target,
        including when the target is specified as a URI (#293).
-     - `HEAD` and `ROOT` are now properly recognized as aliases for `@HEAD` and
-       `@ROOT`, when querying the database, too. This was supposedly done in
+     - `HEAD` and `ROOT` are now properly recognized as aliases for `@HEAD`
+       and `@ROOT`, when querying the database. This was supposedly done in
        v0.991, but due to a bug, it wasn't really. Sorry about that.
      - The `revert` and `verify` commands will now fail if a change is
-       specified and matches multiple changes. This happens when a change has
-       been reworked and referenced only by its name. In this case, Sqitch
-       will emit an error listing properly tag-qualified changes to use.
-       Suggested by Jay Hannah (#312).
+       specified and matches multiple changes. This happens when referencing a
+       reworked change only by its name. In this case, Sqitch will emit an
+       error listing properly tag-qualified changes to use. Suggested by Jay
+       Hannah (#312).
      - Sqitch no longer returns an error when a target name is passed to a
        command and the default target's plan file does not exist (#324).
      - Added missing options to the `rework` usage statement. Thanks to Jay
@@ -44,13 +44,13 @@ Revision history for Perl extension App::Sqitch
        file, when trying to determine if a `<database>` parameter is a plan
        file name.
      - Improved the error message when a change is found more than once in a
-       plan, typically because it has been reworked and passed to a command by
-       name only. The error will no longer be "Key at multiple indexes", but
-       "Change is ambiguous. Please specify a tag-qualified change:", followed
-       by a list of tag-qualified variants of the change.
+       plan, typically a reworked changed referenced only by name. The error
+       will no longer be "Key at multiple indexes", but "Change is ambiguous.
+       Please specify a tag-qualified change:", followed by a list of
+       tag-qualified variants of the change.
      - Fixed a bug where the verify command would return a database error when
-       the database has no registory. Now it reports that the registry wasn't
-       found in the database.
+       it finds no registory. Now it reports that the registry wasn't found in
+       the database.
 
 0.9995 2016-07-27T09:23:55Z
      - Taught the `add` command not to ignore the `--change` option.
