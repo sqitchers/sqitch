@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 93;
+use Test::More tests => 97;
 #use Test::More 'no_plan';
 use Test::NoWarnings;
 use App::Sqitch;
@@ -63,6 +63,7 @@ can_ok $CLASS, qw(
     format_name
     format_dependencies
     format_name_with_tags
+    format_tag_qualified_name
     format_name_with_dependencies
     format_op_name_dependencies
     format_planner
@@ -128,6 +129,8 @@ $change->deploy_file->spew(iomode => '>:raw', encode_utf8 "Foo\nBar\nBøz\n亜�
 $change = $CLASS->new( name => 'foo', plan => $plan );
 is $change->script_hash, 'd48866b846300912570f643c99b2ceec4ba29f5c',
     'Deploy script hash should be correct';
+is $change->format_tag_qualified_name, 'foo@HEAD',
+    'Tag-qualified name should be tagged with @HEAD';
 
 # Identify it as reworked.
 ok $change->add_rework_tags($tag), 'Add a rework tag';
@@ -153,8 +156,10 @@ is_deeply [ $change->path_segments ], ['foo@alpha.sql'],
     'path_segments should now include the correct suffixc';
 
 is $change->format_name, 'foo', 'Name should format as "foo"';
-is $change->format_name_with_tags,
-    'foo', 'Name should format with tags as "foo"';
+is $change->format_name_with_tags, 'foo',
+    'Name should format with tags as "foo"';
+is $change->format_tag_qualified_name, 'foo@beta',
+    'Tag-qualified Name should format as "foo@beta"';
 is $change->format_dependencies, '', 'Dependencies should format as ""';
 is $change->format_name_with_dependencies, 'foo',
     'Name should format with dependencies as "foo"';
@@ -286,12 +291,16 @@ ok $change2->add_tag($tag), 'Add a tag';
 is_deeply [$change2->tags], [$tag], 'Should have the tag';
 is $change2->format_name_with_tags, 'yo/howdy @alpha',
     'Should format name with tags';
+is $change2->format_tag_qualified_name, 'yo/howdy@alpha',
+    'Should format tag-qualiified name';
 
 # Add another tag.
 ok $change2->add_tag($tag2), 'Add another tag';
 is_deeply [$change2->tags], [$tag, $tag2], 'Should have both tags';
 is $change2->format_name_with_tags, 'yo/howdy @alpha @beta',
     'Should format name with both tags';
+is $change2->format_tag_qualified_name, 'yo/howdy@alpha',
+    'Should format tag-qualified name with first tag';
 
 is $change2->format_planner, 'Barack Obama <potus@whitehouse.gov>',
     'Planner name and email should format properly';

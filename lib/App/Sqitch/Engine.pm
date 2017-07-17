@@ -753,6 +753,33 @@ sub _load_changes {
     return @changes;
 }
 
+sub _handle_lookup_index {
+    my ( $self, $change, $ids ) = @_;
+
+    # Return if 0 or 1 ID.
+    return $ids->[0] if @{ $ids } <= 1;
+
+    # Too many found! Let the user know.
+    my $sqitch = $self->sqitch;
+    $sqitch->vent(__x(
+        'Change "{change}" is ambiguous. Please specify a tag-qualified change:',
+        change => $change,
+    ));
+
+    # Lookup, emit reverse-chron list of tag-qualified changes, and die.
+    my $plan = $self->plan;
+    for my $id ( reverse @{ $ids } ) {
+        # Look in the plan, first.
+        if ( my $change = $plan->find($id) ) {
+            $self->sqitch->vent( '  * ', $change->format_tag_qualified_name($id) )
+        } else {
+            # Look it up in the database.
+            $self->sqitch->vent( '  * ', $self->name_for_change_id($id) // '' )
+        }
+    }
+    hurl engine => __ 'Change Lookup Failed';
+}
+
 sub _deploy_by_change {
     my ( $self, $plan, $to_index ) = @_;
 

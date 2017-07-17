@@ -277,6 +277,15 @@ sub format_name_with_tags {
     return join ' ', $self->format_name, map { $_->format_name } $self->tags;
 }
 
+sub format_tag_qualified_name {
+    my $self = shift;
+    my ($tag) = $self->tags;
+    unless ($tag) {
+        ($tag) = $self->rework_tags or return $self->format_name . '@HEAD';
+    }
+    return join '', $self->format_name, $tag->format_name;
+}
+
 sub format_dependencies {
     my $self = shift;
     my $deps = join(

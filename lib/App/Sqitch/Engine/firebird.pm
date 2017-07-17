@@ -683,19 +683,8 @@ sub change_id_for {
              ORDER BY changes.committed_at ASC
         }, undef, $project, $change);
 
-        # Return if 0 or 1 ID.
-        return $ids->[0] if @{ $ids } <= 1;
-
-        # Too many found! Let the user know.
-        $self->sqitch->vent(__x(
-            'Change "{change}" is ambiguous. Please specify a tag-qualified change:',
-            change => $change,
-        ));
-
-        # Lookup, emit reverse-chron list of tag-qualified changes, and die.
-        $self->sqitch->vent( '  * ', $self->name_for_change_id($_) // '' )
-            for reverse @{ $ids };
-        hurl engine => __ 'Change Lookup Failed';
+        # Return the ID.
+        return $self->_handle_lookup_index($change, $ids);
     }
 
     if ( my $tag = $p{tag} ) {
