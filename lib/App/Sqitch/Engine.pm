@@ -1997,8 +1997,8 @@ should be the same as for those returned by C<deployed_changes()>.
 Returns the tag-qualified name of the change identified by the ID. If a tag
 was applied to a change after that change, the name will be returned with the
 tag qualification, e.g., C<app_user@beta>. Otherwise, it will include the
-symbolic tag C<@HEAD. e.g., C<widgets@HEAD>. This value should be suitable for
-uniquely identifying the change, and passing to the C<get> or C<index_of>
+symbolic tag C<@HEAD>. e.g., C<widgets@HEAD>. This value should be suitable
+for uniquely identifying the change, and passing to the C<get> or C<index_of>
 methods of L<App::Sqitch::Plan>.
 
 =head3 C<registered_projects>
