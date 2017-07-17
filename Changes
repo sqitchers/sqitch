@@ -48,6 +48,9 @@ Revision history for Perl extension App::Sqitch
        name only. The error will no longer be "Key at multiple indexes", but
        "Change is ambiguous. Please specify a tag-qualified change:", followed
        by a list of tag-qualified variants of the change.
+     - Fixed a bug where the verify command would return a database error when
+       the database has no registory. Now it reports that the registry wasn't
+       found in the database.
 
 0.9995 2016-07-27T09:23:55Z
      - Taught the `add` command not to ignore the `--change` option.

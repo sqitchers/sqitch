@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 639;
+use Test::More tests => 645;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -272,6 +272,17 @@ is $@->message, __x(
     destination => $engine->registry_destination,
 ), 'Non-existent registry error message should be correct';
 $engine->seen;
+
+# Make sure it's checked on revert and verify.
+for my $meth (qw(revert verify)) {
+    throws_ok { $engine->$meth } 'App::Sqitch::X', "Should get error from $meth";
+    is $@->ident, 'engine', qq{$meth registry error ident should be "engine"};
+    is $@->message, __x(
+        'No registry found in {destination}. Have you ever deployed?',
+        destination => $engine->registry_destination,
+    ), "$meth registry error message should be correct";
+    $engine->seen;
+}
 
 # Make the registry out-of-date.
 $registry_version = 0.1;

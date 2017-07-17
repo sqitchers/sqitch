@@ -330,6 +330,7 @@ sub revert {
 
 sub verify {
     my ( $self, $from, $to ) = @_;
+    $self->_check_registry;
     my $sqitch   = $self->sqitch;
     my $plan     = $self->plan;
     my @changes  = $self->_load_changes( $self->deployed_changes );
