@@ -43,6 +43,11 @@ Revision history for Perl extension App::Sqitch
      - Sqitch now loads targets from all config files, not just the local
        file, when trying to determine if a `<database>` parameter is a plan
        file name.
+     - Improved the error message when a change is found more than once in a
+       plan, typically because it has been reworked and passed to a command by
+       name only. The error will no longer be "Key at multiple indexes", but
+       "Change is ambiguous. Please specify a tag-qualified change:", followed
+       by a list of tag-qualified variants of the change.
 
 0.9995 2016-07-27T09:23:55Z
      - Taught the `add` command not to ignore the `--change` option.

@@ -771,7 +771,7 @@ sub _handle_lookup_index {
     for my $id ( reverse @{ $ids } ) {
         # Look in the plan, first.
         if ( my $change = $plan->find($id) ) {
-            $self->sqitch->vent( '  * ', $change->format_tag_qualified_name($id) )
+            $self->sqitch->vent( '  * ', $change->format_tag_qualified_name )
         } else {
             # Look it up in the database.
             $self->sqitch->vent( '  * ', $self->name_for_change_id($id) // '' )

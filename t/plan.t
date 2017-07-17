@@ -1601,10 +1601,17 @@ ok $plan->contains('whatever'), 'Should find "whatever" in plan';
 throws_ok { $plan->index_of('whatever') } 'App::Sqitch::X',
     'Should get an error trying to find dupe key.';
 is $@->ident, 'plan', 'Dupe key error ident should be "plan"';
-is $@->message, __x(
-    'Key {key} at multiple indexes',
-    key => 'whatever',
-), 'Dupe key error message should be correct';
+is $@->message, __ 'Change lookup failed',
+    'Dupe key error message should be correct';
+is_deeply +MockOutput->get_vent, [
+    [__x(
+        'Change "{change}" is ambiguous. Please specify a tag-qualified change:',
+        change => 'whatever',
+    )],
+    [ '  * ', 'whatever@HEAD' ],
+    [ '  * ', 'whatever@foo' ],
+], 'Should have output listing tag-qualified changes';
+
 is $plan->index_of('whatever@HEAD'), 3, 'Should get 3 for whatever@HEAD';
 is $plan->index_of('whatever@bar'), 0, 'Should get 0 for whatever@bar';
 
@@ -1612,10 +1619,16 @@ is $plan->index_of('whatever@bar'), 0, 'Should get 0 for whatever@bar';
 throws_ok { $plan->seek('whatever') } 'App::Sqitch::X',
     'Should get an error seeking dupe key.';
 is $@->ident, 'plan', 'Dupe key error ident should be "plan"';
-is $@->message, __x(
-    'Key {key} at multiple indexes',
-    key => 'whatever',
-), 'Dupe key error message should be correct';
+is $@->message, __ 'Change lookup failed',
+    'Dupe key error message should be correct';
+is_deeply +MockOutput->get_vent, [
+    [__x(
+        'Change "{change}" is ambiguous. Please specify a tag-qualified change:',
+        change => 'whatever',
+    )],
+    [ '  * ', 'whatever@HEAD' ],
+    [ '  * ', 'whatever@foo' ],
+], 'Should have output listing tag-qualified changes';
 
 is $plan->index_of('whatever@HEAD'), 3, 'Should find whatever@HEAD at index 3';
 is $plan->index_of('whatever@bar'), 0, 'Should find whatever@HEAD at index 0';

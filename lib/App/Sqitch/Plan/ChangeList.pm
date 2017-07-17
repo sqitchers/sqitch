@@ -111,14 +111,23 @@ sub _index_of {
             return $i if $i <= $tag_idx;
         }
         return undef;
-    } else {
-        # Just want index for a change name. Fail if there are multiple.
-        return $idx->[0] if @{ $idx } < 2;
-        hurl plan => __x(
-            'Key {key} at multiple indexes',
-            key => $key,
-        );
-    }
+    };
+
+    # Just want index for a change name. Return if we have 0 or 1.
+    return $idx->[0] if @{ $idx } < 2;
+
+
+    # Too many changes found. Give the user some options and die.
+    App::Sqitch->vent(__x(
+        'Change "{change}" is ambiguous. Please specify a tag-qualified change:',
+        change => $key,
+    ));
+
+    my $list = $self->{list};
+    App::Sqitch->vent( '  * ', $list->[$_]->format_tag_qualified_name )
+        for reverse @{ $idx };
+
+    hurl plan => __ 'Change lookup failed';
 }
 
 sub first_index_of {
