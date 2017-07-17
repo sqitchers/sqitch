@@ -21,6 +21,9 @@ Revision history for Perl extension App::Sqitch
      - Updated PostgreSQL registry detection to avoid errors when the `psql`
        client is newer than the server version. Sqitch now fetches the version
        from the server instead of parsing it from the client.
+     - Removed `no Moo::sification`, to allow modules to be used by Moose
+       applications. Replaced with tests to make sure Sqitch itself never uses
+       Moose. Thanks to @perigrin for the PR (#332).
      - Specifying a change before a target name on the command-line no longer
        ignores the target (#281).
      - The `--db-*` options are now more consistently applied to a target,
