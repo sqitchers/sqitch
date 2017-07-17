@@ -16,7 +16,7 @@ use namespace::autoclean;
 extends 'App::Sqitch::Command';
 with 'App::Sqitch::Role::RevertDeployCommand';
 
-our $VERSION = '0.9996';
+our $VERSION = '0.9997';
 
 has client => (
     is       => 'ro',
