@@ -24,11 +24,12 @@ $ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
 my $CLASS = 'App::Sqitch::Command::log';
 require_ok $CLASS;
 
+my $plan_file = Path::Class::File->new('t/sql/sqitch.plan')->stringify;
 ok my $sqitch = App::Sqitch->new(
     options => {
         engine    => 'sqlite',
         top_dir   => Path::Class::Dir->new('test-log')->stringify,
-        plan_file => Path::Class::File->new('t/sql/sqitch.plan')->stringify,
+        plan_file => $plan_file,
     },
 ), 'Load a sqitch sqitch object';
 my $config = $sqitch->config;
@@ -679,7 +680,7 @@ is_deeply +MockOutput->get_page, [
 # Make sure we can pass a plan file.
 push @events => {}, $event;
 $target_name_arg = '_blah';
-ok $log->execute('t/sql/sqitch.plan'), 'Execute with plan arg';
+ok $log->execute($plan_file), 'Execute with plan file arg';
 is $target_name_arg, 'db:sqlite:',
     'Default engine target should have been passed to Target';
 is_deeply $search_args, [

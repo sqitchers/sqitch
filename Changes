@@ -5,7 +5,7 @@ Revision history for Perl extension App::Sqitch
        change specified to `revert` and `verify`, matching the behavior of
        displaying tag-qualified alternates added to the other engines in
        v0.9996.
-
+     - Fixed test failure on Windows.
 
 0.9996 2017-07-17T18:33:12Z
      - Fixed an error where Oracle sometimes truncated timestamp formats so
