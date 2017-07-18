@@ -6,6 +6,9 @@ Revision history for Perl extension App::Sqitch
        displaying tag-qualified alternates added to the other engines in
        v0.9996.
      - Fixed test failure on Windows.
+     - Updated MySQL test to use process-specific database names, to try to
+       avoid conflicts when tests are being run by multiple processes on the
+       same box, as happens with CPAN smoke testing boxes.
 
 0.9996 2017-07-17T18:33:12Z
      - Fixed an error where Oracle sometimes truncated timestamp formats so
