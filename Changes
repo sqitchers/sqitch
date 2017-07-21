@@ -9,6 +9,11 @@ Revision history for Perl extension App::Sqitch
      - Updated the MySQL and PostgreSQL tests to use process-specific database
        names, to try to avoid conflicts when tests are being run by multiple
        processes on the same box, as happens with CPAN smoke testing boxes.
+     - Fixed an issue where Sqitch would sometimes truncate the registry
+       version number fetched from Postgres, most likely because the Perl
+       runtime was using 32-bit integers. Fix by casting the version to text
+       in the query, before Perl ever see it. Thanks to Malte Legenhausen for
+       the report (#343).
 
 0.9996 2017-07-17T18:33:12Z
      - Fixed an error where Oracle sometimes truncated timestamp formats so

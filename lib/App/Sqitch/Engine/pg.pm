@@ -153,6 +153,8 @@ sub _listagg_format {
 
 sub _regex_op { '~' }
 
+sub _version_query { 'SELECT MAX(version)::TEXT FROM releases' }
+
 sub initialized {
     my $self = shift;
     return $self->dbh->selectcol_arrayref(q{
