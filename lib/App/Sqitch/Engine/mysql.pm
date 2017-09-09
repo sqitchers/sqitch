@@ -10,7 +10,7 @@ use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::Plan::Change;
 use Path::Class;
 use Moo;
-use App::Sqitch::Types qw(DBH URIDB ArrayRef Bool Str);
+use App::Sqitch::Types qw(DBH URIDB ArrayRef Bool Str HashRef);
 use namespace::autoclean;
 use List::MoreUtils qw(firstidx);
 
@@ -39,6 +39,25 @@ sub registry_destination {
     return $uri->as_string;
 }
 
+has _mycnf => (
+    is => 'rw',
+    isa     => HashRef,
+    default => sub {
+        eval 'require MySQL::Config; 1' or return {};
+        return scalar MySQL::Config::parse_defaults('my', [qw(client mysql)]);
+    },
+);
+
+sub username {
+    my $self = shift;
+    return $self->SUPER::username || $self->_mycnf->{user};
+}
+
+sub password {
+    my $self = shift;
+    return $self->SUPER::password || $self->_mycnf->{password};
+}
+
 has dbh => (
     is      => 'rw',
     isa     => DBH,
@@ -46,17 +65,8 @@ has dbh => (
     default => sub {
         my $self = shift;
         $self->use_driver;
-
         my $uri = $self->registry_uri;
-        my $pass = $self->password || do {
-            # Read the default MySQL configuration.
-            # http://dev.mysql.com/doc/refman/5.0/en/option-file-options.html
-            if (eval 'require MySQL::Config; 1') {
-                my %cfg = MySQL::Config::parse_defaults('my', [qw(client mysql)]);
-                $cfg{password};
-            }
-        };
-        my $dbh = DBI->connect($uri->dbi_dsn, scalar $self->username, $pass, {
+        my $dbh = DBI->connect($uri->dbi_dsn, scalar $self->username, $self->password, {
             PrintError           => 0,
             RaiseError           => 0,
             AutoCommit           => 1,

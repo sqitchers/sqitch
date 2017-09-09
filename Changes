@@ -14,6 +14,8 @@ Revision history for Perl extension App::Sqitch
        runtime was using 32-bit integers. Fix by casting the version to text
        in the query, before Perl ever see it. Thanks to Malte Legenhausen for
        the report (#343).
+     - The MySQL engine will now read the username from MySQL configuration
+       files. Thanks to Eliot Alter for the bug report (#353).
 
 0.9996 2017-07-17T18:33:12Z
      - Fixed an error where Oracle sometimes truncated timestamp formats so
