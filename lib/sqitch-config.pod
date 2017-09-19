@@ -318,7 +318,7 @@ To match only values with an exclamation mark, you have to escape them:
 
 To add a new setting without altering any of the existing ones, use:
 
-  % sqitch config core.revert.set widget=fred
+  % sqitch config --add core.revert.set widget=fred
 
 =head1 Configuration File
 
