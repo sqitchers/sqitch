@@ -176,7 +176,7 @@ But that's too much work. Do you really want to do something like that after
 every deploy?
 
 Here's where the C<verify> script comes in. Its job is to test that the deploy
-did was it was supposed to. It should do so without regard to any data that
+did what it was supposed to. It should do so without regard to any data that
 might be in the database, and should throw an error if the deploy was not
 successful. In PostgreSQL, the simplest way to do so for non-queryable objects
 such as schemas is to take advantage the
