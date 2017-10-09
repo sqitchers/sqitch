@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: App-Sqitch 0.9996\n"
 "Report-Msgid-Bugs-To: david@justatheory.com\n"
 "POT-Creation-Date: 2017-10-04 13:34+0200\n"
-"PO-Revision-Date: 2017-10-09 10:43+0200\n"
+"PO-Revision-Date: 2017-10-09 11:43+0200\n"
 "Language-Team: \n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -1284,40 +1284,48 @@ msgid_plural ""
 "Change \"{change}\" planned {num} changes before required change "
 "\"{required}\""
 msgstr[0] ""
+"La modifica \"{change}\" ha pianificato {num} modifica prima della richiesta "
+"\"{required}\""
 msgstr[1] ""
+"La modifica \"{change}\" ha pianificato {num} modifiche prima della "
+"richiesta \"{required}\""
 
 #: lib/App/Sqitch/Plan.pm:552
 #, perl-brace-format
 msgid "Unknown change \"{required}\" required by change \"{change}\""
 msgstr ""
+"La modifica \"{required}\" rechiesta dalla modifica \"{change}\" è "
+"sconosciuta"
 
 #: lib/App/Sqitch/Plan.pm:562
 #, perl-brace-format
 msgid "HINT: move \"{change}\" down {num} line in {plan}"
 msgid_plural "HINT: move \"{change}\" down {num} lines in {plan}"
 msgstr[0] ""
+"Suggerimento: sposta \"{change}\" di {num} linea in basso nel piano {plan}"
 msgstr[1] ""
+"Suggerimento: sposta \"{change}\" di {num} linee in basso nel piano {plan}"
 
 #: lib/App/Sqitch/Plan.pm:576
 msgid "Dependency error detected:"
 msgid_plural "Dependency errors detected:"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Errore di dipendenza rilevato:"
+msgstr[1] "Errori di dipendenza rilevati:"
 
 #: lib/App/Sqitch/Plan.pm:673
 #, perl-brace-format
 msgid "Cannot find change \"{change}\" in plan"
-msgstr ""
+msgstr "Non trovo la modifica \"{change}\" nel piano di esecuzione"
 
 #: lib/App/Sqitch/Plan.pm:728
 #, perl-brace-format
 msgid "Tag \"{tag}\" already exists"
-msgstr ""
+msgstr "Il tag \"{tag}\" esiste già"
 
 #: lib/App/Sqitch/Plan.pm:740
 #, perl-brace-format
 msgid "Cannot apply tag \"{tag}\" to a plan with no changes"
-msgstr ""
+msgstr "Non posso applicare il tag \"{tag}\" a un piano privo di modifiche"
 
 #: lib/App/Sqitch/Plan.pm:797
 #, perl-brace-format
@@ -1325,6 +1333,8 @@ msgid ""
 "Change \"{change}\" already exists in plan {file}.\n"
 "Use \"sqitch rework\" to copy and rework it"
 msgstr ""
+"La modifica \"{change}\" esiste già nel piano {file}.\n"
+"Usa \"sqitch rework\" per copiarla and rielaborarla."
 
 #: lib/App/Sqitch/Plan.pm:830
 #, perl-brace-format
@@ -1332,6 +1342,8 @@ msgid ""
 "Change \"{change}\" does not exist in {file}.\n"
 "Use \"sqitch add {change}\" to add it to the plan"
 msgstr ""
+"La modifica \"{change}\" non esiste in {file}.\n"
+"Usa \"sqitch add {change}\" per aggiungerla al piano di esecuzione."
 
 #: lib/App/Sqitch/Plan.pm:838
 #, perl-brace-format
@@ -1339,16 +1351,22 @@ msgid ""
 "Cannot rework \"{change}\" without an intervening tag.\n"
 "Use \"sqitch tag\" to create a tag and try again"
 msgstr ""
+"Non posso rielaborare \"{change}\" senza un tag di intervento.\n"
+"Usa \"sqitch tag\" per creare un tag e riprova."
 
 #: lib/App/Sqitch/Plan.pm:876
 #, perl-brace-format
 msgid "Cannot add change \"{change}\": requires unknown change \"{req}\""
 msgstr ""
+"Non posso aggiungere la modifica \"{change}\"_ è richiesta una modifica "
+"sconosciuta \"{req}\""
 
 #: lib/App/Sqitch/Plan.pm:882
 #, perl-brace-format
 msgid "Cannot rework change \"{change}\": requires unknown change \"{req}\""
 msgstr ""
+"Non posso rielaborare la modifica \"{change}\"_ è richiesta una modifica "
+"sconosciuta \"{req}\""
 
 #: lib/App/Sqitch/Plan.pm:905
 #, perl-brace-format
@@ -1357,6 +1375,9 @@ msgid ""
 "\", \":\", \"#\", or blanks, or end in punctuation or digits following "
 "punctuation"
 msgstr ""
+"\"{name}\" non è valido: le modifiche non devono iniziare con segni di "
+"punteggiatura, contenere \"@\", \":\", \"#\" o spazi bianchi o finire con "
+"segni di punteggiatura o cifre numeriche dopo segni di punteggiatura."
 
 #: lib/App/Sqitch/Plan.pm:911
 #, perl-brace-format
@@ -1365,11 +1386,14 @@ msgid ""
 "\":\", \"#\", or blanks, or end in punctuation or digits following "
 "punctuation"
 msgstr ""
+"\"{name}\" non è valido: i tag non devono iniziare con segni di "
+"punteggiatura, contenere \"@\", \":\", \"#\" o spazi bianchi o finire con "
+"segni di punteggiatura o cifre numeriche dopo segni di punteggiatura."
 
 #: lib/App/Sqitch/Plan.pm:975
 #, perl-brace-format
 msgid "\"Error closing {file}: {error}"
-msgstr ""
+msgstr "Errore nella chiusura di {file}: {error}"
 
 #: lib/App/Sqitch/Plan/Change.pm:357
 #, perl-brace-format
@@ -1377,29 +1401,32 @@ msgid ""
 "Please enter a note for your change. Lines starting with '#' will\n"
 "be ignored, and an empty message aborts the {command}."
 msgstr ""
+"per favore inserisci un commento per la tua modifica. \n"
+"Le righe che iniziano con \"#\" saranno ignorate, e una nota priva di testo "
+"farà abortire {command}."
 
 #: lib/App/Sqitch/Plan/Change.pm:362
 #, perl-brace-format
 msgid "Change to {command}:"
-msgstr ""
+msgstr "Modifica a {command}:"
 
 #: lib/App/Sqitch/Plan/ChangeList.pm:40
 #, perl-brace-format
 msgid "The @{old} symbolic tag has been deprecated; use @{new} instead"
-msgstr ""
+msgstr "Il tag simbolico @{old} è stato deprecato; usa @{new} al suo posto."
 
 #: lib/App/Sqitch/Plan/ChangeList.pm:130
 msgid "Change lookup failed"
-msgstr ""
+msgstr "Lookup della modifica fallito"
 
 #: lib/App/Sqitch/Plan/Depend.pm:78
 #, perl-brace-format
 msgid "Unable to find change \"{change}\" in plan {file}"
-msgstr ""
+msgstr "Non trovo la modifica \"{change}\" nel piano di esecuzione {file}"
 
 #: lib/App/Sqitch/Plan/Line.pm:115
 msgid "Aborting due to empty note"
-msgstr ""
+msgstr "Commento vuoto, aborto."
 
 #: lib/App/Sqitch/Plan/Line.pm:131
 #, perl-brace-format
@@ -1407,18 +1434,24 @@ msgid ""
 "Write a {command} note.\n"
 "Lines starting with '#' will be ignored."
 msgstr ""
+"Scrivi un commento per {command}.\n"
+"Le righe che iniziano con \"#\" saranno ignorate."
 
 #: lib/App/Sqitch/Role/DBIEngine.pm:331
 #, perl-brace-format
 msgid ""
 "Cannot register \"{project}\" with URI {uri}: already exists with NULL URI"
 msgstr ""
+"Non posso registrare \"{project}\" con l'URI {uri}: è già esistente con URI "
+"NULL."
 
 #: lib/App/Sqitch/Role/DBIEngine.pm:337
 #, perl-brace-format
 msgid ""
 "Cannot register \"{project}\" without URI: already exists with URI {uri}"
 msgstr ""
+"Non posso registrare \"{project}\" senza un URI: è già esistente con URI "
+"{uri}."
 
 #: lib/App/Sqitch/Role/DBIEngine.pm:343
 #, perl-brace-format
@@ -1426,6 +1459,8 @@ msgid ""
 "Cannot register \"{project}\" with URI {uri}: already exists with URI "
 "{reg_uri}"
 msgstr ""
+"Non posso registrare \"{project}\" con URI {uri}: è già esistente con URI "
+"{reg_uri}."
 
 #: lib/App/Sqitch/Role/DBIEngine.pm:361
 #, perl-brace-format
@@ -1433,49 +1468,55 @@ msgid ""
 "Cannot register \"{project}\" with URI {uri}: project \"{reg_proj}\" already "
 "using that URI"
 msgstr ""
+"Non posso registrare \"{project}\" con URI {uri}: il progetto \"{reg_proj}\" "
+"esiste già con l'URI specificato"
 
 #: lib/App/Sqitch/Role/TargetConfigCommand.pm:92
 #, perl-brace-format
 msgid "Unknown directory name: {dirs}"
 msgid_plural "Unknown directory names: {dirs}"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Directory sconosciuta: {dirs}"
+msgstr[1] "Directory sconosciuta: {dirs}"
 
 #: lib/App/Sqitch/Role/TargetConfigCommand.pm:119
 #, perl-brace-format
 msgid "URI \"{uri}\" is not a database URI"
-msgstr ""
+msgstr "L'URI \"{uri}\" non è un URI di database"
 
 #: lib/App/Sqitch/Role/TargetConfigCommand.pm:124
 #, perl-brace-format
 msgid "No database engine in URI \"{uri}\""
-msgstr ""
+msgstr "Nessun motore di database nell'URI \"{uri}\""
 
 #: lib/App/Sqitch/Role/TargetConfigCommand.pm:128
 #, perl-brace-format
 msgid "Unknown engine \"{engine}\" in URI \"{uri}\""
-msgstr ""
+msgstr "Motore \"{engine}\" sconosciuto nell'URI \"{uri}\""
 
 #: lib/App/Sqitch/Role/TargetConfigCommand.pm:291
 msgid "Cannot write a plan file without a project name"
-msgstr ""
+msgstr "Non posso scrivere un file di piano senza un nome di progetto"
 
 #: lib/App/Sqitch/Role/TargetConfigCommand.pm:298
 #, perl-brace-format
 msgid "Cannot initialize because {file} already exists and is not a file"
-msgstr ""
+msgstr "Impossibile inizializzare poiché {file} eisste già e non è un file"
 
 #: lib/App/Sqitch/Role/TargetConfigCommand.pm:309
 #, perl-brace-format
 msgid ""
 "Cannot initialize because {file} already exists and is not a valid plan file"
 msgstr ""
+"Impossibile inizializzare poiché {file} esiste già e non è un file "
+"contenente un piano di esecuzione valido."
 
 #: lib/App/Sqitch/Role/TargetConfigCommand.pm:315
 #, perl-brace-format
 msgid ""
 "Cannot initialize because project \"{project}\" already initialized in {file}"
 msgstr ""
+"Impossibile inziializzare poiché il progetto \"{project}\" è già stato "
+"inizializzato in {file}"
 
 #: lib/App/Sqitch/Target.pm:76 lib/App/Sqitch/Target.pm:303
 #, perl-brace-format
@@ -1483,26 +1524,31 @@ msgid ""
 "The core.{engine} config has been deprecated in favor of engine.{engine}.\n"
 "Run '{sqitch} engine update-config' to update your configurations."
 msgstr ""
+"La configurazione core.{engine} è stata deprecata a favore di engine."
+"{engine}.\n"
+"Esegui '{sqitch} engine update-config` per aggiornare la tua configurazione."
 
 #: lib/App/Sqitch/Target.pm:274
 #, perl-brace-format
 msgid "Cannot find target \"{target}\""
-msgstr ""
+msgstr "Non posso trovare il target specificato \"{target}\""
 
 #: lib/App/Sqitch/Target.pm:280
 #, perl-brace-format
 msgid "No URI associated with target \"{target}\""
-msgstr ""
+msgstr "Nessun URI associato al target \"{target}\""
 
 #: lib/App/Sqitch/Target.pm:290
 #, perl-brace-format
 msgid "No engine specified by URI {uri}; URI must start with \"db:$engine:\""
 msgstr ""
+"Nessun motore specificato nell'URI {uri}; gli URI devono iniziare con \"db:"
+"$engine:\"."
 
 #: lib/App/Sqitch/Types.pm:55
 msgid "User name may not contain \"<\" or start with \"[\""
-msgstr ""
+msgstr "Lo username non può contenere \"<\" o iniziare con \"|\""
 
 #: lib/App/Sqitch/Types.pm:61
 msgid "User email may not contain \">\""
-msgstr ""
+msgstr "L'email utente non può contenere \">\"."
