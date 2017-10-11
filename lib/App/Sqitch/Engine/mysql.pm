@@ -496,6 +496,17 @@ to C<mysql> client options will be passed to the client, as follows:
 
 =back
 
+=head3 C<username>
+
+=head3 C<password>
+
+Overrides the methods provided by the target so that, if the target has
+no username or password, Sqitch looks them up in the
+L<F</etc/my.cnf> and F<~/.my.cnf> files|https://dev.mysql.com/doc/refman/5.7/en/password-security-user.html>.
+These files must limit access only to the current user (C<0600>). Sqitch will
+look for a username and password under the C<[client]> and C<[mysql]>
+sections, in that order.
+
 =head1 Author
 
 David E. Wheeler <david@justatheory.com>

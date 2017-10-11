@@ -101,3 +101,10 @@ TLS
 ident
 passwordless
 IDE
+cryptographic
+findable
+incrementing
+verifications
+transactional
+disambiguating
+MERCHANTABILITY
