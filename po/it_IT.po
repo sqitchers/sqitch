@@ -1135,7 +1135,7 @@ msgstr "Data:"
 
 #: lib/App/Sqitch/ItemFormatter.pm:81
 msgid "Committed:"
-msgstr "Committato:"
+msgstr "Creata:"
 
 #: lib/App/Sqitch/ItemFormatter.pm:82
 msgid "Planned:  "
