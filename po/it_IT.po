@@ -309,7 +309,7 @@ msgstr "Azione sconosciuta: \"{action}\""
 #, perl-brace-format
 msgid "Cannot assign URI using engine \"{new}\" to engine \"{old}\""
 msgstr ""
-"Non posso assegnare nessun URI usando l'engine da \"{new}\" a \"{old}\""
+"Non posso assegnare nessun URI usando il motore da \"{new}\" a \"{old}\""
 
 #: lib/App/Sqitch/Command/engine.pm:90 lib/App/Sqitch/Command/engine.pm:208
 #: lib/App/Sqitch/Command/target.pm:140 lib/App/Sqitch/Command/target.pm:240
@@ -320,16 +320,16 @@ msgstr "Target sconosciuto: \"{target}\""
 #: lib/App/Sqitch/Command/engine.pm:104
 #, perl-brace-format
 msgid "Engine \"{engine}\" already exists"
-msgstr "L'engine \"{engine}\" esiste già"
+msgstr "Il motore \"{engine}\" esiste già"
 
 #: lib/App/Sqitch/Command/engine.pm:143
 #, perl-brace-format
 msgid "Missing Engine \"{engine}\"; use \"{command}\" to add it"
-msgstr "Engine mancante:\"{engine}\"; usa \"{command}\" per aggiungerlo"
+msgstr "Motore mancante:\"{engine}\"; usa \"{command}\" per aggiungerlo"
 
 #: lib/App/Sqitch/Command/engine.pm:152
 msgid "Cannot unset an engine target"
-msgstr "Non posso invalidare un target di tipo engine"
+msgstr "Non posso invalidare un target di tipo motore"
 
 #: lib/App/Sqitch/Command/engine.pm:174 lib/App/Sqitch/Command/target.pm:131
 #, perl-brace-format
@@ -406,7 +406,7 @@ msgstr ""
 
 #: lib/App/Sqitch/Command/engine.pm:359
 msgid "  - No engines to update"
-msgstr " - Nessun engine da aggiornare"
+msgstr " - Nessun motore da aggiornare"
 
 #: lib/App/Sqitch/Command/engine.pm:366
 #, perl-brace-format
