@@ -6,17 +6,17 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: App-Sqitch 0.9996\n"
-"Report-Msgid-Bugs-To: david@justatheory.com\n"
-"POT-Creation-Date: 2017-10-04 13:34+0200\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2017-10-11 14:16-0400\n"
 "PO-Revision-Date: 2017-10-09 11:43+0200\n"
+"Last-Translator: \n"
 "Language-Team: \n"
+"Language: it_IT\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "X-Generator: Poedit 2.0.1\n"
-"Last-Translator: \n"
-"Language: it_IT\n"
 
 #: lib/App/Sqitch.pm:79
 msgid "Cannot find your name; run sqitch config --user user.name \"YOUR NAME\""
@@ -808,8 +808,7 @@ msgstr "Veifico {destination}"
 
 #: lib/App/Sqitch/Engine.pm:347
 msgid "Nothing to verify (no planned or deployed changes)"
-msgstr ""
-"Niente da verificare (nessuna modifica pianificata o implementata)"
+msgstr "Niente da verificare (nessuna modifica pianificata o implementata)"
 
 #: lib/App/Sqitch/Engine.pm:357
 msgid "There are deployed changes, but none planned!"
@@ -913,8 +912,8 @@ msgid "Change \"{change}\" required by currently deployed change: {changes}"
 msgid_plural ""
 "Change \"{change}\" required by currently deployed changes: {changes}"
 msgstr[0] ""
-"La modifica \"{change}\" è richiesta dalla modifica correntemente implementata: "
-"{changes}"
+"La modifica \"{change}\" è richiesta dalla modifica correntemente "
+"implementata: {changes}"
 msgstr[1] ""
 "La modifica \"{change}\" è richiesta dalle modifiche correntemente "
 "implementate: {changes}"
@@ -966,7 +965,8 @@ msgstr "Aggiorno la modifica legacy e gli ID dei tag in {destination}"
 #, perl-brace-format
 msgid "No registry found in {destination}. Have you ever deployed?"
 msgstr ""
-"Nessun registro trovato in {destination}. E' mai stata fatta una implementazione prima?"
+"Nessun registro trovato in {destination}. E' mai stata fatta una "
+"implementazione prima?"
 
 #: lib/App/Sqitch/Engine.pm:1031
 #, perl-brace-format
@@ -1007,7 +1007,7 @@ msgstr ""
 msgid "From {old} to {new}"
 msgstr "Da {old} a {new}"
 
-#: lib/App/Sqitch/Engine/firebird.pm:204 lib/App/Sqitch/Engine/mysql.pm:248
+#: lib/App/Sqitch/Engine/firebird.pm:204 lib/App/Sqitch/Engine/mysql.pm:258
 #: lib/App/Sqitch/Engine/sqlite.pm:158
 #, perl-brace-format
 msgid "Sqitch database {database} already initialized"
@@ -1042,7 +1042,7 @@ msgstr ""
 "Non trovo Firebirs ISQL: imposta \"engine.firebird.client\" attraverso "
 "\"sqitch config\""
 
-#: lib/App/Sqitch/Engine/mysql.pm:110
+#: lib/App/Sqitch/Engine/mysql.pm:120
 #, perl-brace-format
 msgid ""
 "Sqitch requires {rdbms} {want_version} or higher; this is {have_version}"
@@ -1050,7 +1050,7 @@ msgstr ""
 "Sqitch richiede {rdbms} alla version {want_version} o superiore: questa è la "
 "versione {have_version}"
 
-#: lib/App/Sqitch/Engine/mysql.pm:142
+#: lib/App/Sqitch/Engine/mysql.pm:152
 #, perl-brace-format
 msgid "Database name missing in URI \"{uri}\""
 msgstr "Il nome di database non è specificato nell'URI {uri}"
@@ -1074,7 +1074,7 @@ msgstr "Non posso copiare {file} su {alias}: {error}"
 msgid "Cannot symlink {file} to {alias}: {error}"
 msgstr "Non posso creare un link simbolico da {file} a {alias}: {error}"
 
-#: lib/App/Sqitch/Engine/pg.pm:169 lib/App/Sqitch/Engine/vertica.pm:154
+#: lib/App/Sqitch/Engine/pg.pm:171 lib/App/Sqitch/Engine/vertica.pm:154
 #, perl-brace-format
 msgid "Sqitch schema \"{schema}\" already exists"
 msgstr "Lo schema \"{schema}\" per Sqitch esiste già."

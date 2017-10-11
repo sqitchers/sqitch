@@ -6,9 +6,9 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: App-Sqitch 0.9996\n"
-"Report-Msgid-Bugs-To: david@justatheory.com\n"
-"POT-Creation-Date: 2017-07-17 14:00-0400\n"
+"Project-Id-Version: App-Sqitch 0.9997\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2017-10-11 14:16-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -956,7 +956,7 @@ msgstr ""
 msgid "From {old} to {new}"
 msgstr ""
 
-#: lib/App/Sqitch/Engine/firebird.pm:204 lib/App/Sqitch/Engine/mysql.pm:248
+#: lib/App/Sqitch/Engine/firebird.pm:204 lib/App/Sqitch/Engine/mysql.pm:258
 #: lib/App/Sqitch/Engine/sqlite.pm:158
 #, perl-brace-format
 msgid "Sqitch database {database} already initialized"
@@ -989,13 +989,13 @@ msgid ""
 "config"
 msgstr ""
 
-#: lib/App/Sqitch/Engine/mysql.pm:110
+#: lib/App/Sqitch/Engine/mysql.pm:120
 #, perl-brace-format
 msgid ""
 "Sqitch requires {rdbms} {want_version} or higher; this is {have_version}"
 msgstr ""
 
-#: lib/App/Sqitch/Engine/mysql.pm:142
+#: lib/App/Sqitch/Engine/mysql.pm:152
 #, perl-brace-format
 msgid "Database name missing in URI \"{uri}\""
 msgstr ""
@@ -1019,7 +1019,7 @@ msgstr ""
 msgid "Cannot symlink {file} to {alias}: {error}"
 msgstr ""
 
-#: lib/App/Sqitch/Engine/pg.pm:169 lib/App/Sqitch/Engine/vertica.pm:154
+#: lib/App/Sqitch/Engine/pg.pm:171 lib/App/Sqitch/Engine/vertica.pm:154
 #, perl-brace-format
 msgid "Sqitch schema \"{schema}\" already exists"
 msgstr ""
