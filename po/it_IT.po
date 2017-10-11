@@ -85,7 +85,7 @@ msgstr[1] "Argomenti sconosciuti: {arg}"
 #: lib/App/Sqitch/Command.pm:276
 msgid "Cannot specify both --all and engine, target, or plan arugments"
 msgstr ""
-"Non si puo' specificare contemporaneamente --all e engine, target o plan."
+"Non si può specificare contemporaneamente --all e target, target o plan."
 
 #: lib/App/Sqitch/Command/add.pm:102
 #, perl-brace-format
