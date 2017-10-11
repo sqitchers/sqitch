@@ -1500,7 +1500,7 @@ msgstr "Non posso scrivere un file di piano senza un nome di progetto"
 #: lib/App/Sqitch/Role/TargetConfigCommand.pm:298
 #, perl-brace-format
 msgid "Cannot initialize because {file} already exists and is not a file"
-msgstr "Impossibile inizializzare poiché {file} eisste già e non è un file"
+msgstr "Impossibile inizializzare poiché {file} esiste già e non è un file"
 
 #: lib/App/Sqitch/Role/TargetConfigCommand.pm:309
 #, perl-brace-format
@@ -1515,7 +1515,7 @@ msgstr ""
 msgid ""
 "Cannot initialize because project \"{project}\" already initialized in {file}"
 msgstr ""
-"Impossibile inziializzare poiché il progetto \"{project}\" è già stato "
+"Impossibile inizializzare poiché il progetto \"{project}\" è già stato "
 "inizializzato in {file}"
 
 #: lib/App/Sqitch/Target.pm:76 lib/App/Sqitch/Target.pm:303
