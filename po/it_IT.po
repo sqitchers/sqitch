@@ -1119,7 +1119,7 @@ msgstr "Modifica:"
 
 #: lib/App/Sqitch/ItemFormatter.pm:77
 msgid "Committer:"
-msgstr "Committer:"
+msgstr "Autore:"
 
 #: lib/App/Sqitch/ItemFormatter.pm:78
 #, fuzzy
