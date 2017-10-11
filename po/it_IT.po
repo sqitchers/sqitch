@@ -291,7 +291,7 @@ msgstr ""
 #: lib/App/Sqitch/Command/deploy.pm:118
 #, perl-brace-format
 msgid "Too many changes specified; deploying to \"{change}\""
-msgstr "Troppi cambiamenti specificati: deploy per \"{change}\""
+msgstr "Troppi cambiamenti specificati; implementazione a \"{change}\""
 
 #: lib/App/Sqitch/Command/engine.pm:34 lib/App/Sqitch/Command/engine.pm:184
 #: lib/App/Sqitch/Command/engine.pm:261
@@ -372,7 +372,7 @@ msgstr "Ripristina"
 #: lib/App/Sqitch/Command/engine.pm:283 lib/App/Sqitch/Command/target.pm:261
 #: lib/App/Sqitch/ItemFormatter.pm:61
 msgid "Deploy"
-msgstr "Deploy"
+msgstr "Implementa"
 
 #: lib/App/Sqitch/Command/engine.pm:284 lib/App/Sqitch/Command/target.pm:262
 msgid "Verify"
@@ -648,8 +648,8 @@ msgstr "Niente da implementare (tutto già aggiornato)"
 #: lib/App/Sqitch/Command/status.pm:308 lib/App/Sqitch/Engine.pm:495
 msgid "Undeployed change:"
 msgid_plural "Undeployed changes:"
-msgstr[0] "Modifica rimosse dal deploy:"
-msgstr[1] "Modifiche rimosse dal deploy:"
+msgstr[0] "Modifica rimosse dalla implementazione:"
+msgstr[1] "Modifiche rimosse dalla implementazione:"
 
 #: lib/App/Sqitch/Command/tag.pm:80
 msgid "tag"
@@ -726,7 +726,7 @@ msgstr "{driver} è necessario per gestire {engine}"
 
 #: lib/App/Sqitch/Engine.pm:159
 msgid "Nothing to deploy (empty plan)"
-msgstr "Niente da dployare (piano esecuzione vuoto)"
+msgstr "Niente da implementare (piano di esecuzione vuoto)"
 
 #: lib/App/Sqitch/Engine.pm:163 lib/App/Sqitch/Engine.pm:256
 #: lib/App/Sqitch/Plan.pm:735 lib/App/Sqitch/Plan/ChangeList.pm:155
@@ -746,32 +746,32 @@ msgstr "Aggiungo le tabelle di registro a {destination}"
 
 #: lib/App/Sqitch/Engine.pm:197
 msgid "Cannot deploy to an earlier change; use \"revert\" instead"
-msgstr "Non posso effettuare deploy a una modifica precedente; usa \"revert\"."
+msgstr "Non posso implementare una modifica precedente; usa \"revert\"."
 
 #: lib/App/Sqitch/Engine.pm:205
 #, perl-brace-format
 msgid "Deploying changes through {change} to {destination}"
-msgstr "Eseguo deploy delle modifiche da {change} a {destination}"
+msgstr "Implementazione delle modifiche da {change} a {destination}"
 
 #: lib/App/Sqitch/Engine.pm:209
 #, perl-brace-format
 msgid "Deploying changes to {destination}"
-msgstr "Effettuo deploy modifiche a {destination}"
+msgstr "Implementazione delle modifiche a {destination}"
 
 #: lib/App/Sqitch/Engine.pm:222
 #, perl-brace-format
 msgid "Unknown deployment mode: \"{mode}\""
-msgstr "Modalità di deploy \"{mode}\" sconosciuta"
+msgstr "Modalità di implementazione \"{mode}\" sconosciuta"
 
 #: lib/App/Sqitch/Engine.pm:250
 #, perl-brace-format
 msgid "Change not deployed: \"{change}\""
-msgstr "Modifica non inclusa nel deploy: \"{change}\""
+msgstr "Modifica non implementata: \"{change}\""
 
 #: lib/App/Sqitch/Engine.pm:266
 #, perl-brace-format
 msgid "No changes deployed since: \"{change}\""
-msgstr "Nessuna modifica per cui effettuare deploy da \"{change}\""
+msgstr "Nessuna modifica implementata da: \"{change}\""
 
 #: lib/App/Sqitch/Engine.pm:274
 #, perl-brace-format
@@ -789,7 +789,7 @@ msgstr "Annullo modifiche da {destination} a {change}"
 
 #: lib/App/Sqitch/Engine.pm:293
 msgid "Nothing to revert (nothing deployed)"
-msgstr "Niente da annullare (niente per cui effettuare deploy)"
+msgstr "Niente da annullare (niente da implementare)"
 
 #: lib/App/Sqitch/Engine.pm:299
 #, perl-brace-format
@@ -809,12 +809,11 @@ msgstr "Veifico {destination}"
 #: lib/App/Sqitch/Engine.pm:347
 msgid "Nothing to verify (no planned or deployed changes)"
 msgstr ""
-"Niente da verificare (nessuna modifica pianificata o per cui effettuare "
-"deploy)"
+"Niente da verificare (nessuna modifica pianificata o implementata)"
 
 #: lib/App/Sqitch/Engine.pm:357
 msgid "There are deployed changes, but none planned!"
-msgstr "Ci sono modifiche incluse nel deploy, ma nessuna pianificata!"
+msgstr "Ci sono modifiche implementate, ma nessuna pianificata!"
 
 #: lib/App/Sqitch/Engine.pm:377
 msgid "Verify Summary Report"
@@ -951,7 +950,7 @@ msgstr "Lo schema richiede una riparazione manuale."
 
 #: lib/App/Sqitch/Engine.pm:815 lib/App/Sqitch/Engine.pm:957
 msgid "Deploy failed"
-msgstr "Deploy fallito"
+msgstr "Implementazione fallita"
 
 #: lib/App/Sqitch/Engine.pm:872
 #, perl-brace-format
@@ -967,7 +966,7 @@ msgstr "Aggiorno la modifica legacy e gli ID dei tag in {destination}"
 #, perl-brace-format
 msgid "No registry found in {destination}. Have you ever deployed?"
 msgstr ""
-"Nessun registro trovato in {destination}. E' mai stato fatto un deploy prima?"
+"Nessun registro trovato in {destination}. E' mai stata fatta una implementazione prima?"
 
 #: lib/App/Sqitch/Engine.pm:1031
 #, perl-brace-format
@@ -1099,7 +1098,7 @@ msgstr "Fallito"
 
 #: lib/App/Sqitch/ItemFormatter.pm:68
 msgid "deploy"
-msgstr "deploy"
+msgstr "implementa"
 
 #: lib/App/Sqitch/ItemFormatter.pm:69
 msgid "revert"
