@@ -17,6 +17,9 @@ Revision history for Perl extension App::Sqitch
      - The MySQL engine will now read the username from MySQL configuration
        files. Thanks to Eliot Alter for the bug report (#353).
      - Added Italian translation, with thanks to Luca Ferrari and @BeaData!
+     - Improved multi-value config examples in the `sqitch-config`
+       documentation to be a bit less confusing. Thanks to Emil for reporting
+       where he got confused!
 
 0.9996 2017-07-17T18:33:12Z
      - Fixed an error where Oracle sometimes truncated timestamp formats so
