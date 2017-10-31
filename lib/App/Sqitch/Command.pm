@@ -20,6 +20,7 @@ use constant ENGINES => qw(
     oracle
     firebird
     vertica
+    cassandra
 );
 
 has sqitch => (
