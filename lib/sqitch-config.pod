@@ -314,7 +314,7 @@ new one with
   % sqitch config --replace-all core.fuzzle.clack funk
 
 However, if you only want to replace lines that don't match C<bar>, prepend
-the matching regular expression with an exaclamation point (C<!>), like so:
+the matching regular expression with an exclamation point (C<!>), like so:
 
   % sqitch config --replace-all core.fuzzle.clack yow '!bar'
 
