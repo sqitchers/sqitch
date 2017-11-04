@@ -621,7 +621,7 @@ sub name_for_change_id {
               JOIN $tags t ON c2.change_id = t.change_id
              WHERE c2.committed_at >= c.committed_at
                AND c2.project = c.project
-        ), '@HEAD')
+        ), '\@HEAD')
           FROM $changes c
          WHERE change_id = ?
     }, undef, $change_id)->[0];

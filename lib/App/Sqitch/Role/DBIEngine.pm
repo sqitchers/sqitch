@@ -670,7 +670,7 @@ sub name_for_change_id {
              WHERE c2.committed_at >= c.committed_at
                AND c2.project = c.project
              LIMIT 1
-        ), '@HEAD')
+        ), '\@HEAD')
           FROM $changes c
          WHERE c.change_id = ?
     }, undef, $change_id)->[0];
