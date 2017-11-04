@@ -277,6 +277,15 @@ sub format_name_with_tags {
     return join ' ', $self->format_name, map { $_->format_name } $self->tags;
 }
 
+sub format_tag_qualified_name {
+    my $self = shift;
+    my ($tag) = $self->tags;
+    unless ($tag) {
+        ($tag) = $self->rework_tags or return $self->format_name . '@HEAD';
+    }
+    return join '', $self->format_name, $tag->format_name;
+}
+
 sub format_dependencies {
     my $self = shift;
     my $deps = join(
@@ -565,6 +574,15 @@ deployed.
 
 Returns "deploy" if the change should be deployed, or "revert" if it should be
 reverted.
+
+=head3 C<format_tag_qualified_name>
+
+  my $tag_qualified_name = $change->format_tag_qualified_name;
+
+Returns a string with the change name followed by the next tag in the plan.
+Useful for displaying unambiguous change specifications for reworked changes.
+If there is no tag appearing in the file after the change, the C<@HEAD> will
+be used.
 
 =head3 C<format_name_with_tags>
 

@@ -4,18 +4,29 @@ sqitch-plan - Show planned database changes
 
 =head1 Synopsis
 
-  sqitch [options] plan [<options>]
+  sqitch [options] plan [<options>] [<database>]
 
 =head1 Description
 
-The C<plan> command displays information about planned changes. By default, it
-will show all the changes for the current plan, but you can also search for
-changes matching regular expressions, and limit the results. Of course you
-could just C<cat> your plan file, but this is more fun.
+The C<plan> command displays information about planned changes for a database
+target. By default, it will show all the changes for the plan, but you can
+also search for changes matching regular expressions, and limit the results.
+Of course you could just C<cat> your plan file, but this is more fun.
+
+The C<< <database> >> parameter specifies the database for which the plan
+should be read, and may also be specified as the C<--target> option. It can be
+target name, a URI, an engine name, or plan file path.
 
 =head1 Options
 
 =over
+
+=item C<-t>
+
+=item C<--target>
+
+The target database, the plan for which should be read. This option should be
+the name of a target in the configuration.
 
 =item C<--event>
 

@@ -15,7 +15,7 @@ sqitch-target-usage - Sqitch target usage statement
 =head1 Options
 
     -v, --verbose               be verbose; must be placed before an action
-    --uri        <uri>          dabase URI
+    --uri        <uri>          database URI
     --registry   <registry>     registry schema or database
     --client     <path>         path to engine command-line client
     --plan-file  <file>         path to deployment plan file

@@ -675,8 +675,8 @@ sub run {
         is_deeply all_events($engine), \@event_data,
             'The new change deploy should have been logged';
 
-        is $engine->name_for_change_id($change2->id), 'widgets',
-            'name_for_change_id() should return just the change name';
+        is $engine->name_for_change_id($change2->id), 'widgets@HEAD',
+            'name_for_change_id() should return name with symbolic tag @HEAD';
 
         ok $state = $engine->current_state, 'Get the current state again';
         isa_ok $dt = delete $state->{committed_at}, 'App::Sqitch::DateTime',
@@ -1441,8 +1441,8 @@ sub run {
         # Make sure name_for_change_id() works properly.
         ok $engine->dbh->do(qq{DELETE FROM $tags WHERE project = 'engine'}),
             'Delete the engine project tags';
-        is $engine->name_for_change_id($change2->id), 'widgets',
-            'name_for_change_id() should return "widgets" for its ID';
+        is $engine->name_for_change_id($change2->id), 'widgets@HEAD',
+            'name_for_change_id() should return "widgets@HEAD" for its ID';
         is $engine->name_for_change_id($ext_change2->id), 'outside_in@meta',
             'name_for_change_id() should return "outside_in@meta" for its ID';
 
@@ -1589,19 +1589,19 @@ sub run {
         $mock_dbh->unmock('do');
 
         ######################################################################
+        # Revert and re-deploy all the changes.
+        my @all_changes  = ($change, $change2, $fred, $barney, $ext_change, $ext_change2, $hyper, $ext_change3);
+        ok $engine->log_revert_change($_),
+            'Revert "' . $_->name . '" change' for reverse @all_changes;
+        ok $engine->log_deploy_change($_),
+            'Deploy "' . $_->name . '" change' for @all_changes;
+
         if ($class eq 'App::Sqitch::Engine::pg') {
             # Test _update_ids by old ID; required only for pg, which was the
             # only engine that existed at the time.
             my @proj_changes = ($change, $change2, $fred, $barney, $hyper);
-            my @all_changes  = ($change, $change2, $fred, $barney, $ext_change, $ext_change2, $hyper, $ext_change3);
             my @proj_tags    = ($change->tags, $beta, $gamma);
             my @all_tags     = (@proj_tags, $ext_tag);
-
-            # Let's just revert and re-deploy them all.
-            ok $engine->log_revert_change($_),
-                'Revert "' . $_->name . '" change' for reverse @all_changes;
-            ok $engine->log_deploy_change($_),
-                'Deploy "' . $_->name . '" change' for @all_changes;
 
             my $upd_change = $engine->dbh->prepare(
                 "UPDATE $changes SET change_id = ? WHERE change_id = ?"
@@ -1673,9 +1673,30 @@ sub run {
             $tmp_dir->file( $deploy_file->basename )->copy_to($deploy_file);
         };
 
-        # Make sure that change_id_for() is okay with the dupe.
-        is $engine->change_id_for( change => 'users'), $change->id,
-            'change_id_for() should find the earliest change ID';
+        # Make sure that change_id_for() chokes on the dupe.
+        MOCKVENT: {
+            my $sqitch_mocker = Test::MockModule->new(ref $sqitch);
+            my @args;
+            $sqitch_mocker->mock(vent => sub { shift; push @args => \@_ });
+            throws_ok { $engine->change_id_for( change => 'users') } 'App::Sqitch::X',
+                'Should die on ambiguous change spec';
+            is $@->ident, 'engine', 'Mode should be "engine"';
+            is $@->message, __ 'Change Lookup Failed',
+                'And it should report change lookup failure';
+            is_deeply \@args, [
+                [__x(
+                    'Change "{change}" is ambiguous. Please specify a tag-qualified change:',
+                    change => 'users',
+                )],
+                [ '  * ', $rev_change->format_name . '@HEAD' ],
+                [ '  * ', $change->format_tag_qualified_name ],
+            ], 'Should have vented output for lookup failure';
+        }
+
+        is $engine->change_id_for( change => 'users', tag => 'alpha'), $change->id,
+            'change_id_for() should find the tag-qualified change ID';
+        is $engine->change_id_for( change => 'users', tag => 'HEAD'), $rev_change->id,
+            'change_id_for() should find the reworked change ID @HEAD';
 
         ######################################################################
         # Tag and Rework the change again.
@@ -1698,8 +1719,8 @@ sub run {
         # make sure that change_id_for is still good with things.
         for my $spec (
             [
-                'first instance of change',
-                { change => 'users' },
+                'alpha instance of change',
+                { change => 'users', tag => 'alpha' },
                 $change->id,
             ],
             [

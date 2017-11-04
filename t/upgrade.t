@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 19;
+use Test::More tests => 22;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -66,6 +66,15 @@ ok !$upgrade_called, 'Upgrade should again not have been called';
 is_deeply +MockOutput->get_info, [[__x(
     'Registry {registry} is up-to-date at version {version}',
     registry => 'db:sqlite:sqitch.db',
+    version  => App::Sqitch::Engine->registry_release,
+)]], 'Should get output for up-to-date registry with target';
+
+# Pass in an engine.
+ok $upgrade->execute('sqlite'), 'Execute upgrade with engine';
+ok !$upgrade_called, 'Upgrade should again not have been called';
+is_deeply +MockOutput->get_info, [[__x(
+    'Registry {registry} is up-to-date at version {version}',
+    registry => 'db:sqlite:',
     version  => App::Sqitch::Engine->registry_release,
 )]], 'Should get output for up-to-date registry with target';
 

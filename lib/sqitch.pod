@@ -335,6 +335,8 @@ script templates.
 
 =item C<--quiet>
 
+  sqitch --quiet
+
 Suppress normal output messages. Error messages will still be emitted to
 C<STDERR>. Overrides any value specified by C<--verbose>.
 

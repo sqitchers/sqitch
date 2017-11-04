@@ -445,6 +445,7 @@ bundle.from=gamma
 bundle.tags_only=true
 core.engine=pg
 core.extension=ddl
+core.pager=less -r
 core.top_dir=migrations
 core.uri=https://github.com/theory/sqitch/
 engine.firebird.client=/opt/firebird/bin/isql
@@ -486,6 +487,7 @@ bundle.from=gamma
 bundle.tags_only=true
 core.engine=pg
 core.extension=ddl
+core.pager=less -r
 core.top_dir=migrations
 core.uri=https://github.com/theory/sqitch/
 engine.pg.client=/usr/local/pgsql/bin/psql
@@ -787,6 +789,7 @@ ok $cmd->execute('core\\..+'), 'Call get_regex on core\\..+';
 is_deeply \@emit, [[q{core.engine=funky
 core.extension=ddl
 core.foo=[bar, baz]
+core.pager=less -r
 core.top_dir=migrations
 core.uri=https://github.com/theory/sqitch/}
 ]], 'Should match all core options';

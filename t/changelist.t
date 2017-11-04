@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 257;
+use Test::More tests => 259;
 #use Test::More 'no_plan';
 use Test::NoWarnings;
 use Test::Exception;
@@ -14,6 +14,8 @@ use App::Sqitch::Target;
 use App::Sqitch::Plan;
 use Locale::TextDomain qw(App-Sqitch);
 use Test::MockModule;
+use lib 't/lib';
+use MockOutput;
 
 $ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
 $ENV{SQITCH_USER_CONFIG}   = 'nonexistent.user';
@@ -106,10 +108,16 @@ is $changes->index_of($baz->old_id . '^'), 2, 'Should find baz by old ID^ at 2';
 throws_ok { $changes->index_of('yo') } 'App::Sqitch::X',
     'Should get multiple indexes error looking for index of "yo"';
 is $@->ident, 'plan', 'Multiple indexes error ident should be "plan"';
-is $@->message, __x(
-    'Key {key} at multiple indexes',
-    key => 'yo',
-), 'Multiple indexes message should be correct';
+is $@->message, __ 'Change lookup failed',
+    'Multiple indexes message should be correct';
+is_deeply +MockOutput->get_vent, [
+    [__x(
+        'Change "{change}" is ambiguous. Please specify a tag-qualified change:',
+        change => 'yo',
+    )],
+    [ '  * ', 'yo@HEAD' ],
+    [ '  * ', 'yo@alpha' ],
+], 'Should have output listing tag-qualified changes';
 
 throws_ok { $changes->index_of('yo@howdy') } 'App::Sqitch::X',
     'Should unknown tag error for invalid tag';
@@ -220,10 +228,16 @@ ok $changes->contains('ROOT~'), 'Should contain bar with ROOT~^';
 throws_ok { $changes->get('yo') } 'App::Sqitch::X',
     'Should get multiple indexes error looking for index of "yo"';
 is $@->ident, 'plan', 'Multiple indexes error ident should be "plan"';
-is $@->message, __x(
-    'Key {key} at multiple indexes',
-    key => 'yo',
-), 'Multiple indexes message should be correct';
+is $@->message, __ 'Change lookup failed',
+    'Multiple indexes message should be correct';
+is_deeply +MockOutput->get_vent, [
+    [__x(
+        'Change "{change}" is ambiguous. Please specify a tag-qualified change:',
+        change => 'yo',
+    )],
+    [ '  * ', 'yo@HEAD' ],
+    [ '  * ', 'yo@alpha' ],
+], 'Should have output listing tag-qualified changes';
 
 throws_ok { $changes->get('yo@howdy') } 'App::Sqitch::X',
     'Should unknown tag error for invalid tag';

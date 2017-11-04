@@ -1,5 +1,80 @@
 Revision history for Perl extension App::Sqitch
 
+0.9997
+     - Fixed the Firebird engine to properly detect multiple instances of a
+       change specified to `revert` and `verify`, matching the behavior of
+       displaying tag-qualified alternates added to the other engines in
+       v0.9996.
+     - Fixed test failure on Windows.
+     - Updated the MySQL and PostgreSQL tests to use process-specific database
+       names, to try to avoid conflicts when tests are being run by multiple
+       processes on the same box, as happens with CPAN smoke testing boxes.
+     - Fixed an issue where Sqitch would sometimes truncate the registry
+       version number fetched from Postgres, most likely because the Perl
+       runtime was using 32-bit integers. Fix by casting the version to text
+       in the query, before Perl ever see it. Thanks to Malte Legenhausen for
+       the report (#343).
+     - The MySQL engine will now read the username from MySQL configuration
+       files. Thanks to Eliot Alter for the bug report (#353).
+     - Added Italian translation, with thanks to Luca Ferrari and @BeaData!
+     - Improved multi-value config examples in the `sqitch-config`
+       documentation to be a bit less confusing. Thanks to Emil for reporting
+       where he got confused!
+
+0.9996 2017-07-17T18:33:12Z
+     - Fixed an error where Oracle sometimes truncated timestamp formats so
+       that date parsing failed. Thanks to Johann Wilfling for the report and
+       @nmaqsudov for the solution (#316).
+     - Added pager configuration, prioritizing the new `core.pager`
+       configuration variable over the `$PAGER` environment variable. The new
+       `$SQITCH_PAGER` environment variable trumps all. Thanks to Yati Sagade
+       for the pull request (#329).
+     - Documented the `core.editor` configuration variable.
+     - Updated PostgreSQL registry detection to avoid errors when not running
+       Sqitch as a superuser and the registry schema already exists. Done by
+       looking for the `changes` table in the `pg_tables` view instead of
+       looking for the registry schema in the `pg_namespace` catalog table,
+       and by using `CREATE SCHEMA IF NOT EXISTS` on PostgreSQL 9.3 and
+       higher. Thanks to @djk447 for the pull request (#307).
+     - Updated PostgreSQL registry detection to avoid errors when the `psql`
+       client is newer than the server version. Sqitch now fetches the version
+       from the server instead of parsing it from the client.
+     - Removed `no Moo::sification`, to allow modules to be used by Moose
+       applications. Replaced with tests to make sure Sqitch itself never uses
+       Moose. Thanks to @perigrin for the PR (#332).
+     - Specifying a change before a target name on the command-line no longer
+       ignores the target (#281).
+     - The `--db-*` options are now more consistently applied to a target,
+       including when the target is specified as a URI (#293).
+     - `HEAD` and `ROOT` are now properly recognized as aliases for `@HEAD`
+       and `@ROOT`, when querying the database. This was supposedly done in
+       v0.991, but due to a bug, it wasn't really. Sorry about that.
+     - The `revert` and `verify` commands will now fail if a change is
+       specified and matches multiple changes. This happens when referencing a
+       reworked change only by its name. In this case, Sqitch will emit an
+       error listing properly tag-qualified changes to use. Suggested by Jay
+       Hannah (#312).
+     - Sqitch no longer returns an error when a target name is passed to a
+       command and the default target's plan file does not exist (#324).
+     - Added missing options to the `rework` usage statement. Thanks to Jay
+       Hannah for the PR (#342).
+     - Passing an engine name or plan file as the `<database>` parameter to
+       the `log`, `status`, and `upgrade` commands now works correctly,
+       matching what the documention has said for some time (#324).
+     - Added the `--target` option to the `plan` and `show` commands.
+     - Added the `<database>` parameter to the `plan` command.
+     - Sqitch now loads targets from all config files, not just the local
+       file, when trying to determine if a `<database>` parameter is a plan
+       file name.
+     - Improved the error message when a change is found more than once in a
+       plan, typically a reworked changed referenced only by name. The error
+       will no longer be "Key at multiple indexes", but "Change is ambiguous.
+       Please specify a tag-qualified change:", followed by a list of
+       tag-qualified variants of the change.
+     - Fixed a bug where the verify command would return a database error when
+       it finds no registory. Now it reports that the registry wasn't found in
+       the database.
+
 0.9995 2016-07-27T09:23:55Z
      - Taught the `add` command not to ignore the `--change` option.
      - The `add` command now emits a usage statement when no change name is

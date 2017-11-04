@@ -20,9 +20,10 @@ my $CLASS = 'App::Sqitch::Command::show';
 require_ok $CLASS or die;
 
 isa_ok $CLASS, 'App::Sqitch::Command';
-can_ok $CLASS, qw(execute exists_only);
+can_ok $CLASS, qw(execute exists_only target);
 
 is_deeply [$CLASS->options], [qw(
+    target|t=s
     exists|e!
 )], 'Options should be correct';
 
@@ -155,13 +156,6 @@ ok !$eshow->execute( verify => $change->id ),
     'Should return false for nonexistent file';
 is_deeply +MockOutput->get_emit, [], 'Nothing should have been emitted';
 
-# Now try invalid args.
-my $mock = Test::MockModule->new($CLASS);
-my @usage;
-$mock->mock(usage => sub { shift; @usage = @_; die 'USAGE' });
-throws_ok { $show->execute } qr/USAGE/, 'Should get usage for missing params';
-is_deeply \@usage, [], 'Nothing should have been passed to usage';
-
 # Now an unknown type.
 throws_ok { $show->execute(foo => 'bar') } 'App::Sqitch::X',
     'Should get error for uknown type';
@@ -170,5 +164,26 @@ is $@->message,  __x(
     'Unknown object type "{type}',
     type => 'foo',
 ), 'Should get proper error for unknown type';
+
+# Try specifying a non-default target.
+$sqitch = App::Sqitch->new;
+$sqitch->config->load_file(file 't', 'local.conf');
+my $file = file qw(t plans dependencies.plan);
+my $target = App::Sqitch::Target->new(sqitch => $sqitch, plan_file => $file);
+ok $change = $target->plan->get('add_user'), 'Get a change';
+
+# Set it up.
+isa_ok $show = $CLASS->new(sqitch => $sqitch, target => 'mydb'), $CLASS;
+is $show->target, 'mydb', 'Target should be set';
+ok $show->execute( change => $change->id ), 'Find change by id';
+is_deeply +MockOutput->get_emit, [[ $change->info ]],
+    'The change info should have been emitted';
+
+# Now try invalid args.
+my $mock = Test::MockModule->new($CLASS);
+my @usage;
+$mock->mock(usage => sub { shift; @usage = @_; die 'USAGE' });
+throws_ok { $show->execute } qr/USAGE/, 'Should get usage for missing params';
+is_deeply \@usage, [], 'Nothing should have been passed to usage';
 
 done_testing;

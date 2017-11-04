@@ -12,7 +12,7 @@ use App::Sqitch::Types qw(DBH ArrayRef);
 
 extends 'App::Sqitch::Engine';
 
-our $VERSION = '0.9996';
+our $VERSION = '0.9997';
 
 sub key    { 'vertica' }
 sub name   { 'Vertica' }
@@ -493,7 +493,7 @@ sub name_for_change_id {
                    ROW_NUMBER() OVER (partition by project ORDER BY committed_at) AS rnk
               FROM tags
         )
-        SELECT change || COALESCE(t.tag, '')
+        SELECT change || COALESCE(t.tag, '@HEAD')
           FROM changes c
           LEFT JOIN tag t ON c.project = t.project AND t.committed_at >= c.committed_at
          WHERE change_id = ?

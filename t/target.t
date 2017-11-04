@@ -316,13 +316,13 @@ CONSTRUCTOR: {
     # Let the name be looked up by the engine.
     @get_params = @sect_params = ();
     @get_ret = ('foo', 'db:sqlite:foo');
-    isa_ok $target = $CLASS->new(sqitch => $sqitch), $CLASS,
-        'Engine named target';
+    isa_ok $target = $CLASS->new(sqitch => $sqitch), $CLASS, 'Engine named target';
     is $target->name, 'foo', 'Name should be "foo"';
     is $target->uri, URI::db->new('db:sqlite:foo'), 'URI should be "db:sqlite:foo"';
     is_deeply \@get_params, [[key => 'engine.sqlite.target'], [key => 'target.foo.uri']],
         'Should have requested engine target and target URI from config';
-    is_deeply \@sect_params, [], 'Should not have requested pg section';
+    is_deeply \@sect_params, [[section => 'core.sqlite']],
+        'Should have requested sqlite section';
 
     # Make sure db options and deprecated config variables work.
     local $App::Sqitch::Target::WARNED = 0;
@@ -397,6 +397,25 @@ CONSTRUCTOR: {
     is $target->uri, $uri, 'URI should be tweaked by --db-* options';
     is_deeply +MockOutput->get_warn, [],
         'Should have emitted no warnigns';
+
+    # Options should work, but not config, when URI passsed.
+    $App::Sqitch::Target::WARNED = 0;
+    @sect_ret = ({
+        host     => 'hi.com',
+    });
+    $uri = URI::db->new('db:pg://foo.com/widget');
+    @get_ret = ('db:pg:');
+    @get_params = @sect_params = ();
+    delete $sqitch->{options}->{$_} for qw(engine db_port db_username);
+    $sqitch->options->{db_host} = 'foo.com';
+    $sqitch->options->{db_name} = 'widget';
+    isa_ok $target = $CLASS->new(sqitch => $sqitch, name => 'db:pg:widget'), $CLASS,
+        'URI target';
+    is_deeply \@get_params, [], 'Should have requested no config';
+    is_deeply \@sect_params, [], 'Should have fetched no section';
+    is $target->name, $uri, 'Name should tweaked by --db-* options';
+    is $target->uri, $uri, 'URI should be tweaked by --db-* options';
+    is_deeply +MockOutput->get_warn, [], 'Should have emitted no warnigns';
 }
 
 CONFIG: {

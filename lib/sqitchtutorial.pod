@@ -79,7 +79,7 @@ edited as appropriate.
 By default, Sqitch will read F<sqitch.conf> in the current directory for
 settings. But it will also read F<~/.sqitch/sqitch.conf> for user-specific
 settings. Since PostgreSQL's C<psql> client is not in the path on my system,
-let's go ahead an tell it where to find the client on our computer:
+let's go ahead and tell it where to find the client on our computer:
 
   > sqitch config --user engine.pg.client /opt/local/pgsql/bin/psql
 
@@ -176,7 +176,7 @@ But that's too much work. Do you really want to do something like that after
 every deploy?
 
 Here's where the C<verify> script comes in. Its job is to test that the deploy
-did was it was supposed to. It should do so without regard to any data that
+did what it was supposed to. It should do so without regard to any data that
 might be in the database, and should throw an error if the deploy was not
 successful. In PostgreSQL, the simplest way to do so for non-queryable objects
 such as schemas is to take advantage the
@@ -366,7 +366,7 @@ L<C<git-remote>|http://git-scm.com/docs/git-remote>, allows management of one
 or more named deployment targets. We've just added a target named
 C<flipr_test>, which means we can use the string C<flipr_test> for the target,
 rather than the URI. But since we're doing so much testing, we can also use
-the The L<C<engine>|sqitch-engine> command to tell Sqitch to deploy to the
+the L<C<engine>|sqitch-engine> command to tell Sqitch to deploy to the
 C<flipr_test> target by default:
 
   > sqitch engine add pg flipr_test

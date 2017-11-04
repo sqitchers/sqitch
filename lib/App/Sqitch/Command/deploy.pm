@@ -13,7 +13,7 @@ use List::Util qw(first);
 use namespace::autoclean;
 extends 'App::Sqitch::Command';
 
-our $VERSION = '0.9996';
+our $VERSION = '0.9997';
 
 has target => (
     is  => 'ro',

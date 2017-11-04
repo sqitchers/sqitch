@@ -350,6 +350,11 @@ is $dt->time_zone->name, 'UTC', 'DateTime TZ should be set';
 ##############################################################################
 # Can we do live tests?
 my $dbh;
+
+my $db = '__sqitchtest__' . $$;
+my $reg1 = '__metasqitch' . $$;
+my $reg2 = '__sqitchtest' . $$;
+
 END {
     return unless $dbh;
     $dbh->{Driver}->visit_child_handles(sub {
@@ -358,12 +363,9 @@ END {
     });
 
     return unless $dbh->{Active};
-    $dbh->do("DROP DATABASE IF EXISTS $_") for qw(
-        __sqitchtest__
-        __metasqitch
-        __sqitchtest
-    );
+    $dbh->do("DROP DATABASE IF EXISTS $_") for ($db, $reg1, $reg2);
 }
+
 
 my $err = try {
     $mysql->use_driver;
@@ -383,8 +385,7 @@ my $err = try {
             unless $dbh->{mysql_serverversion} >= 50000;
     }
 
-    $dbh->do('CREATE DATABASE __sqitchtest__');
-    $dbh->do('CREATE DATABASE __sqitchtest');
+    $dbh->do("CREATE DATABASE $db");
     undef;
 } catch {
     eval { $_->message } || $_;
@@ -398,12 +399,12 @@ DBIEngineTest->run(
         plan_file   => Path::Class::file(qw(t engine sqitch.plan))->stringify,
     }],
     target_params     => [
-        registry => '__metasqitch',
-        uri => URI::db->new('db:mysql://root@/__sqitchtest__'),
+        registry => $reg1,
+        uri => URI::db->new("db:mysql://root@/$db"),
     ],
     alt_target_params => [
-        registry => '__sqitchtest',
-        uri => URI::db->new('db:mysql://root@/__sqitchtest__'),
+        registry => $reg2,
+        uri => URI::db->new("db:mysql://root@/$db"),
     ],
     prefix_engine_params => [
         # registry => '__sqitchtest__',
@@ -420,7 +421,7 @@ DBIEngineTest->run(
     engine_err_regex  => qr/^You have an error /,
     init_error        => __x(
         'Sqitch database {database} already initialized',
-        database => '__sqitchtest',
+        database => $reg2,
     ),
     add_second_format => q{date_add(%s, interval 1 second)},
     test_dbh => sub {

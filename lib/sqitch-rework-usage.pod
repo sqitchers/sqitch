@@ -8,8 +8,11 @@ sqitch-rework-usage - Sqitch rework usage statement
 
 =head1 Options
 
-    -r --requires             require change
-    -x --conflicts            declare conflicting change
-    -n --note                 a note describing the change
+    -c --change --change-name   name of the change to rework
+    -r --requires               require change
+    -x --conflicts              declare conflicting change
+    -n --note                   a note describing the change
+    -a --all                    rework the change in all plans in the project
+    -e --edit --open-editor     open change scripts in an editor
+    --no-edit --no-open-editor  do not open the change scripts in an editor
 
-    -e --edit, --open-editor  open change scripts in an editor

@@ -265,26 +265,32 @@ Given a F<./sqitch.conf> like this:
           tags_only = false
           dest_dir  = _build/sql
 
-  ; Revert command settings
-  [core "revert"]
-          set        = foo=bar
-          set        = baz=yo
+  ; Fuzzle command settings
+  [core "fuzzle"]
+          clack        = foo
+          clack        = bar
+          clack        = barzlewidth
 
 You can set the C<tags_only> setting to true with
 
   % sqitch config bundle.tags_only true
 
-The hypothetical C<set> key in the C<core.revert> section might need to set C<foo>
-to "hi" instead of "bar". Here's how to make that change:
+The hypothetical C<clack> key in the C<core.fuzzle> section might need to set
+C<foo> to "hi" instead of "foo". You can make the replacement by passing an
+additional argument to match the old value, which will be evaluated as a
+regular expression. Here's one way to make that change:
 
-  % sqitch config core.revert.set foo=bar foo=hi
+  % sqitch config core.fuzzle.clack hi '^foo$'
 
 To delete the entry for C<bundle.from>, do
 
   % sqitch config --unset bundle.from
 
-If you want to delete an entry for a multivalue setting (like C<core.revert.set>),
-provide a regex matching the value of exactly one line.
+If you want to delete an entry for a multivalue setting (like
+C<core.fuzzle.clack>), provide a regex matching the value of exactly one line.
+This example deletes the "bar" value:
+
+  % sqitch config --unset core.fuzzle.clack '^bar$'
 
 To query the value for a given key, do:
 
@@ -296,29 +302,29 @@ Or:
 
 Or, to query a multivalue setting for only those values that match C</ba/>:
 
-  % sqitch config --get core.revert.set ba
+  % sqitch config --get core.fuzzle.clack ba
 
 If you want to know all the values for a multivalue setting, do:
 
-  % sqitch config --get-all core.revert.set
+  % sqitch config --get-all core.fuzzle.clack
 
-If you like to live dangerously, you can replace all C<core.revert.set> with a
+If you like to live dangerously, you can replace all C<core.fuzzle.clack> with a
 new one with
 
-  % sqitch config --replace-all core.revert.set bring=funk
+  % sqitch config --replace-all core.fuzzle.clack funk
 
-However, if you only want to replace the line without C<baz>, do something
-like this:
+However, if you only want to replace lines that don't match C<bar>, prepend
+the matching regular expression with an exclamation point (C<!>), like so:
 
-  % sqitch config core.revert.set = '!baz'
+  % sqitch config --replace-all core.fuzzle.clack yow '!bar'
 
-To match only values with an exclamation mark, you have to escape them:
+To match only values with an exclamation mark, you have to escape it:
 
-  % sqitch config section.key value '[!]'
+  % sqitch config section.key '[!]'
 
 To add a new setting without altering any of the existing ones, use:
 
-  % sqitch config core.revert.set widget=fred
+  % sqitch config --add core.fuzzle.set widget=fred
 
 =head1 Configuration File
 
@@ -477,6 +483,21 @@ C<sql>.
 An integer determining how verbose Sqitch should be. Defaults to 1. Set to 0
 to silence status messages and to 2 or three to increase verbosity. Error
 message output will not be affected by this property.
+
+=item C<core.pager>
+
+The command to use as a pager program. This overrides the C<PAGER>
+environment variable on UNIX like systems. Both can be overridden by setting
+the C<$SQITCH_PAGER> environment variable. If none of these variables are
+set, Sqitch makes a best-effort search among the commonly installed pager
+programs like C<less> and C<more>.
+
+=item C<core.editor>
+
+The command to use as a editor program. This overrides the C<EDITOR>
+environment variable on UNIX like systems. Both can be overridden by setting
+the C<$SQITCH_EDITOR> environment variable. If none of these variables are
+set, Sqitch defaults to C<notepad.exe> on Windows and C<vi> elsewhere.
 
 =back
 

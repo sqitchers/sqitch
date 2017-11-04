@@ -267,6 +267,7 @@ $sqitch = App::Sqitch->new( options => { engine => 'pg' } );
 $target = App::Sqitch::Target->new( sqitch => $sqitch );
 $pg     = $CLASS->new(sqitch => $sqitch, target => $target);
 my $dbh;
+my $db = '__sqitchtest__' . $$;
 END {
     return unless $dbh;
     $dbh->{Driver}->visit_child_handles(sub {
@@ -274,7 +275,7 @@ END {
         $h->disconnect if $h->{Type} eq 'db' && $h->{Active} && $h ne $dbh;
     });
 
-    $dbh->do('DROP DATABASE __sqitchtest__') if $dbh->{Active};
+    $dbh->do("DROP DATABASE $db") if $dbh->{Active};
 }
 
 my $err = try {
@@ -286,8 +287,8 @@ my $err = try {
         AutoCommit => 1,
     });
     $dbh->do($_) for (
-        'CREATE DATABASE __sqitchtest__',
-        q{ALTER DATABASE __sqitchtest__ SET lc_messages = 'C'},
+        "CREATE DATABASE $db",
+        "ALTER DATABASE $db SET lc_messages = 'C'",
     );
     undef;
 } catch {
@@ -302,11 +303,11 @@ DBIEngineTest->run(
         plan_file   => Path::Class::file(qw(t engine sqitch.plan))->stringify,
     }],
     target_params => [
-        uri => URI::db->new('db:pg://postgres@/__sqitchtest__'),
+        uri => URI::db->new("db:pg://postgres@/$db"),
     ],
     alt_target_params => [
         registry => '__sqitchtest',
-        uri => URI::db->new('db:pg://postgres@/__sqitchtest__'),
+        uri => URI::db->new("db:pg://postgres@/$db"),
     ],
     skip_unless       => sub {
         my $self = shift;

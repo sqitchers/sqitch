@@ -13,7 +13,7 @@ use List::Util qw(first);
 use namespace::autoclean;
 extends 'App::Sqitch::Command';
 
-our $VERSION = '0.9996';
+our $VERSION = '0.9997';
 
 has target => (
     is  => 'ro',
@@ -27,20 +27,21 @@ sub options {
 }
 
 sub execute {
-    my ( $self, $target ) = @_;
+    my $self = shift;
+    my ($targets) = $self->parse_args(
+        target => $self->target,
+        args   => \@_,
+    );
 
-    # Need to set up the target before we do anything else.
-    if (my $t = $self->target // $target) {
-        $self->warn(__x(
-            'Both the --target option and the target argument passed; using {option}',
-            option => $self->target,
-        )) if $target && $self->target;
-        require App::Sqitch::Target;
-        $target = App::Sqitch::Target->new(sqitch => $self->sqitch, name => $t);
-    } else {
-        $target = $self->default_target;
-    }
+    # Warn on multiple targets.
+    my $target = shift @{ $targets };
+    $self->warn(__x(
+        'Too many targets specified; using {target}',
+        target => $target->name,
+    )) if @{ $targets };
+
     my $engine = $target->engine;
+
 
     if ($engine->needs_upgrade) {
         $self->info( __x(

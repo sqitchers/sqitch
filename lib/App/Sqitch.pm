@@ -6,7 +6,6 @@ use 5.010;
 use strict;
 use warnings;
 use utf8;
-no Moo::sification;
 use Getopt::Long;
 use Hash::Merge qw(merge);
 use Path::Class;
@@ -23,7 +22,7 @@ use List::Util qw(first);
 use IPC::System::Simple 1.17 qw(runx capturex $EXITVAL);
 use namespace::autoclean 0.16;
 
-our $VERSION = '0.9996';
+our $VERSION = '0.9997';
 
 BEGIN {
     # Force Locale::TextDomain to encode in UTF-8 and to decode all messages.
@@ -133,6 +132,18 @@ has editor => (
     }
 );
 
+has pager_program => (
+    is      => "ro",
+    lazy    => 1,
+    default => sub {
+        my $self = shift;
+        return
+            $ENV{SQITCH_PAGER}
+         || $self->config->get(key => "core.pager")
+         || $ENV{PAGER};
+    },
+);
+
 has pager => (
     is       => 'ro',
     lazy     => 1,
@@ -186,6 +197,9 @@ sub go {
             config  => $config,
             args    => $cmd_args,
         });
+
+        # IO::Pager respects the PAGER environment variable.
+        local $ENV{PAGER} = $sqitch->pager_program;
 
         # 7. Execute command.
         $command->execute( @{$cmd_args} ) ? 0 : 2;

@@ -15,7 +15,7 @@ use namespace::autoclean;
 
 extends 'App::Sqitch::Engine';
 
-our $VERSION = '0.9996';
+our $VERSION = '0.9997';
 
 sub destination {
     my $self = shift;
@@ -153,13 +153,16 @@ sub _listagg_format {
 
 sub _regex_op { '~' }
 
+sub _version_query { 'SELECT MAX(version)::TEXT FROM releases' }
+
 sub initialized {
     my $self = shift;
     return $self->dbh->selectcol_arrayref(q{
         SELECT EXISTS(
-            SELECT TRUE FROM pg_catalog.pg_namespace WHERE nspname = ?
+            SELECT TRUE FROM pg_catalog.pg_tables
+             WHERE schemaname = ? AND tablename = ?
         )
-    }, undef, $self->registry)->[0];
+    }, undef, $self->registry, 'changes')->[0];
 }
 
 sub initialize {
@@ -176,31 +179,28 @@ sub _run_registry_file {
     my ($self, $file) = @_;
     my $schema = $self->registry;
 
-    # Check the client version.
-    my ($maj, $min);
-    my $opts = '';
-    for ( $self->sqitch->capture( $self->client, '--version' ) ) {
-        if (/PostgreSQL/) {
-            ( $maj, $min ) = split /[.]/ => (split / /)[-1];
-            last;
-        }
-    }
+    # Fetch the client version. 8.4 == 80400
+    my $version =  $self->_probe('-c', 'SHOW server_version_num');
 
     # Is this XC?
-    $opts = ' DISTRIBUTE BY REPLICATION' if $self->_probe('-c', q{
+    my $opts =  $self->_probe('-c', q{
         SELECT count(*)
           FROM pg_catalog.pg_proc p
           JOIN pg_catalog.pg_namespace n ON p.pronamespace = n.oid
          WHERE nspname = 'pg_catalog'
            AND proname = 'pgxc_version';
-    });
+    }) ? ' DISTRIBUTE BY REPLICATION' : '';
 
-    if ($maj < 9) {
-        # Need to write a temp file; no :"registry" variable syntax.
-        ($schema) = $self->dbh->selectrow_array(
-            'SELECT quote_ident(?)', undef, $schema
-        );
-        (my $sql = scalar $file->slurp) =~ s{:"registry"}{$schema}g;
+    if ($version < 90300) {
+        # Need to write a temp file; no CREATE SCHEMA IF NOT EXISTS syntax.
+        (my $sql = scalar $file->slurp) =~ s/SCHEMA IF NOT EXISTS/SCHEMA/;
+        if ($version < 90000) {
+            # Also no :"registry" variable syntax.
+            ($schema) = $self->dbh->selectrow_array(
+                'SELECT quote_ident(?)', undef, $schema
+            );
+            $sql =~ s{:"registry"}{$schema}g;
+        }
         require File::Temp;
         my $fh = File::Temp->new;
         print $fh $sql;

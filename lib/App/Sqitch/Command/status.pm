@@ -13,7 +13,7 @@ use Try::Tiny;
 use namespace::autoclean;
 extends 'App::Sqitch::Command';
 
-our $VERSION = '0.9996';
+our $VERSION = '0.9997';
 
 has target_name => (
     is  => 'ro',
@@ -95,19 +95,20 @@ sub options {
 }
 
 sub execute {
-    my ( $self, $target ) = @_;
+    my $self = shift;
+    my ($targets) = $self->parse_args(
+        target => $self->target_name,
+        args   => \@_,
+    );
 
-    # Need to set up the target before we do anything else.
-    if (my $t = $self->target_name // $target) {
-        $self->warn(__x(
-            'Both the --target option and the target argument passed; using {option}',
-            option => $self->target_name,
-        )) if $target && $self->target_name;
-        require App::Sqitch::Target;
-        $target = App::Sqitch::Target->new(sqitch => $self->sqitch, name => $t);
-    } else {
-        $target = $self->default_target;
-    }
+    # Warn on multiple targets.
+    my $target = shift @{ $targets };
+    $self->warn(__x(
+        'Too many targets specified; connecting to {target}',
+        target => $target->name,
+    )) if @{ $targets };
+
+    # Good to go.
     $self->target($target);
     my $engine = $target->engine;
 

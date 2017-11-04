@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 639;
+use Test::More tests => 645;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -272,6 +272,17 @@ is $@->message, __x(
     destination => $engine->registry_destination,
 ), 'Non-existent registry error message should be correct';
 $engine->seen;
+
+# Make sure it's checked on revert and verify.
+for my $meth (qw(revert verify)) {
+    throws_ok { $engine->$meth } 'App::Sqitch::X', "Should get error from $meth";
+    is $@->ident, 'engine', qq{$meth registry error ident should be "engine"};
+    is $@->message, __x(
+        'No registry found in {destination}. Have you ever deployed?',
+        destination => $engine->registry_destination,
+    ), "$meth registry error message should be correct";
+    $engine->seen;
+}
 
 # Make the registry out-of-date.
 $registry_version = 0.1;
@@ -1784,7 +1795,7 @@ is_deeply $engine->seen, [['change_id_for', {
     change  => undef,
     tag     => undef,
     project => 'sql',
-}]], 'Shoudl have called change_id_for() with change ID';
+}]], 'Should have called change_id_for() with change ID';
 is_deeply +MockOutput->get_info, [], 'Nothing should have been output';
 
 # Revert an undeployed change.
@@ -2542,7 +2553,7 @@ is_deeply $engine->seen, [
         project => 'sql',
         tag => undef,
     } ]
-], 'It should have passed the change name to change_id_for';
+], 'It should have passed the change name and ROOT tag to change_id_for';
 
 # Should get an error when it's in the plan but not the database.
 throws_ok { $engine->_trim_to( 'yep', 'blah', [] ) } 'App::Sqitch::X',
@@ -2714,7 +2725,7 @@ is_deeply $engine->seen, [
         change => undef,
         change_id => undef,
         project => 'sql',
-        tag => '@HEAD',
+        tag => 'HEAD',
     } ],
     [ change_id_offset_from_id => [$changes[2]->id, 0]],
 ], 'Should pass tag @HEAD to change_id_for';
@@ -2749,7 +2760,7 @@ is_deeply $engine->seen, [
         change => undef,
         change_id => undef,
         project => 'sql',
-        tag => '@ROOT',
+        tag => 'ROOT',
     } ],
     [ change_id_offset_from_id => [$changes[2]->id, 0]],
 ], 'Should pass tag @ROOT to change_id_for';

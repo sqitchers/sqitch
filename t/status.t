@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 114;
+use Test::More tests => 120;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -531,13 +531,24 @@ $check_output->();
 is $target_name_arg, 'db:sqlite:', 'Name "db:sqlite:" should have been passed to Target';
 
 # Test with two targets.
-ok $status->execute('whatever'), 'Execute with target attribute and arg';
+ok $status->execute('db:pg:'), 'Execute with target attribute and arg';
 $check_output->();
-is $target_name_arg, 'db:sqlite:', 'Name "db:sqlite:" should have been passed to Target';
+is $target_name_arg, 'db:pg:', 'Name "db:sqlite:" should have been passed to Target';
 is_deeply +MockOutput->get_warn, [[__x(
-    'Both the --target option and the target argument passed; using {option}',
+    'Too many targets specified; connecting to {option}',
     option => $status->target_name,
 )]], 'Should have got warning for two targets';
+
+# Test with a plan file param and no option.
+ok $status = App::Sqitch::Command->load({
+    sqitch  => $sqitch,
+    command => 'status',
+    config  => $config,
+}), 'Create status command with no target option';
+ok $status->execute($file), 'Execute with plan file';
+$check_output->();
+is $target_name_arg, 'db:sqlite:', 'Name "db:sqlite:" should have been passed to Target';
+is_deeply +MockOutput->get_warn, [], 'Should have no warnings';
 
 # Test with unknown plan.
 for my $spec (
