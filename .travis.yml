@@ -7,6 +7,8 @@ perl:
   - "5.18"
   - "5.20"
   - "5.22"
+  - "5.24"
+  - "5.26"
   - "dev"
 #  - "blead" https://github.com/travis-perl/helpers/issues/44
 sudo: required
@@ -20,7 +22,7 @@ env:
 
 matrix:
   include:
-    - perl: "5.22"
+    - perl: "5.26"
       env: COVERAGE=1
   allow_failures:
     - perl: "blead"
