@@ -772,7 +772,7 @@ Looks good. Let's make sure revert works:
   Reverting changes to users from flipr_test
     - userflips .. ok
     - flips ...... ok
-  >  exaplus -q -u sys -p exasol -c localhost:8563 -sql "describe flipr.flips;"
+  > exaplus -q -u sys -p exasol -c localhost:8563 -sql "describe flipr.flips;"
   Error: [42000] table or view FLIPR.FLIPS not found [line 1, column 10] (Session: 1582955242708359302)
   > exaplus -q -u sys -p exasol -c localhost:8563 -sql "describe flipr.userflips;"
   Error: [42000] table or view FLIPR.USERFLIPS not found [line 1, column 10] (Session: 1582955248116468907)
@@ -859,12 +859,17 @@ change. Now let's bundle everything up for release:
 
 Now we can package the F<bundle> directory and distribute it. When it gets
 installed somewhere, users can use Sqitch to deploy to the database. Let's try
-deploying it to another database:
+deploying it to another database. First, start up a new Docker instance on a
+different port:
+
+  > docker run --detach --privileged --stop-timeout 120 -p 127.0.0.1:9999:8888  exasol/docker-db:latest
+
+Now you should be able to deploy to the new database:
 
   > cd bundle
-  > sqitch deploy db:exasol://sys:exasol@db.example.com:8563/flipr?Driver=Exasol
-  Adding registry tables to db:exasol://sys:@db.example.com:8563/flipr?Driver=Exasol
-  Deploying changes to db:exasol://sys:@db.example.com:8563/flipr?Driver=Exasol
+  > sqitch deploy db:exasol://sys:exasol@localhost:9999/?Driver=Exasol
+  Adding registry tables to db:exasol://sys:@localhost:9999/?Driver=Exasol
+  Deploying changes to db:exasol://sys:@localhost:9999/?Driver=Exasol
     + appschema ............... ok
     + users ................... ok
     + flips ................... ok
