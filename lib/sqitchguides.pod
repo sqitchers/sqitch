@@ -21,6 +21,7 @@ The common Sqitch guides are:
   tutorial-oracle     Oracle Tutorial
   tutorial-sqlite     SQLite Tutorial
   tutorial-vertica    Vertica Tutorial
+  tutorial-exasol     Exasol Tutorial
 
 See C<< sqitch help <command> >> or C<< sqitch help <concept> >> to read about
 a specific command or concept.

@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 140;
+use Test::More tests => 144;
 #use Test::More 'no_plan';
 use Test::MockModule;
 use Path::Class;
@@ -34,10 +34,24 @@ can_ok $CLASS, qw(
 );
 
 ##############################################################################
-# Defaults.
-isa_ok my $sqitch = $CLASS->new, $CLASS, 'A new object';
+# Overrides.
+my $config = App::Sqitch::Config->new;
+$config->data({'core.verbosity' => 2});
+isa_ok my $sqitch = $CLASS->new({ config => $config, options => {} }),
+    $CLASS, 'A configured object';
 
-is $sqitch->verbosity, 1, 'verbosity should be 1';
+is $sqitch->verbosity, 2, 'Configured verbosity should override default';
+
+isa_ok $sqitch = $CLASS->new({ config => $config, options => {verbosity => 3} }),
+    $CLASS, 'A configured object';
+
+is $sqitch->verbosity, 3, 'Verbosity option should override configuration';
+
+##############################################################################
+# Defaults.
+isa_ok $sqitch = $CLASS->new, $CLASS, 'A new object';
+
+is $sqitch->verbosity, 1, 'Default verbosity should be 1';
 ok $sqitch->user_name, 'Default user_name should be set from system';
 is $sqitch->user_email, do {
     require Sys::Hostname;

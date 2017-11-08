@@ -20,6 +20,7 @@ use constant ENGINES => qw(
     oracle
     firebird
     vertica
+    exasol
 );
 
 has sqitch => (
@@ -325,6 +326,8 @@ Returns the list of supported engines, currently:
 =item * C<sqlite>
 
 =item * C<vertica>
+
+=item * C<exasol>
 
 =back
 
@@ -721,4 +724,3 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 =cut
-
