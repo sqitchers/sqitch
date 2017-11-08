@@ -2,7 +2,7 @@
 
 =head1 Name
 
-sqitchtutorial-vertica - A tutorial introduction to Sqitch change management on Vertica
+sqitchtutorial-exasol - A tutorial introduction to Sqitch change management on Exasol
 
 =head1 Synopsis
 
@@ -10,76 +10,77 @@ sqitchtutorial-vertica - A tutorial introduction to Sqitch change management on 
 
 =head1 Description
 
-This tutorial explains how to create a sqitch-enabled Vertica project, use a
+This tutorial explains how to create a sqitch-enabled Exasol project, use a
 VCS for deployment planning, and work with other developers to make sure
 changes remain in sync and in the proper order.
 
 We'll start by creating a new project from scratch, a fictional antisocial
 networking site called Flipr. All examples use L<Git|http://git-scm.com/> as
-the VCS and L<Vertica|https://my.vertica.com/> as the storage engine, but for
+the VCS and L<Exasol|https://www.exasol.com/> as the storage engine, but for
 the most part you can substitute other VCSes and database engines in the
 examples as appropriate.
 
-If you'd like to manage an Vertica database, see L<sqitchtutorial>.
+If you'd like to manage a PostgreSQL database, see L<sqitchtutorial>.
 
 If you'd like to manage an SQLite database, see L<sqitchtutorial-sqlite>.
 
 If you'd like to manage an Oracle database, see L<sqitchtutorial-oracle>.
 
-If you'd like to manage an MySQL database, see L<sqitchtutorial-mysql>.
+If you'd like to manage a MySQL database, see L<sqitchtutorial-mysql>.
 
-If you'd like to manage an Firebird database, see L<sqitchtutorial-firebird>.
-
-If you'd like to manage an Exasol database, see L<sqitchtutorial-exasol>.
+If you'd like to manage a Firebird database, see L<sqitchtutorial-firebird>.
 
 =head2 Connection Configuration
 
-Sqitch requires ODBC to connect to the Vertica database. As such, you'll need
-to make sure that the Vertica ODBC driver is properly configured. At its
-simplest, on Unix-like systems, name the driver "Vertica" by adding this entry
-to C<odbcainst.ini> (usually found in C</etc>, C</usr/etc>, or
+Sqitch requires ODBC to connect to the Exasol database. As such, you'll need
+to make sure that the Exasol ODBC driver is properly configured. At its
+simplest, on Unix-like systems, name the driver "Exasol" by adding this entry
+to C<odbcinst.ini> (usually found in C</etc>, C</usr/etc>, or
 C</usr/local/etc>):
 
-  [Vertica]
-  Description = ODBC for Vertica
-  Driver      = /opt/vertica/lib64/libverticaodbc.so
+  [Exasol]
+  Description = ODBC for Exasol
+  Driver      = /opt/EXASOL_ODBC-6.0.4/lib/linux/x86_64/libexaodbc-uo2214lv2.so
 
-And also creating a C<vertica.ini> file in the same directory that contains:
-
-  [Driver]
-  DriverManagerEncoding=UTF-16
-  ODBCInstLib=/usr/lib64/libodbcinst.so
-  ErrorMessagesPath=/opt/vertica/lib64
+Note that you'll need to adjust the path depending on the version of the ODBC
+driver, and where you installed it.
 
 You might also consider naming your database connection by putting an entry in
-C<odbc.ini> (same directory), like so (assuming that Vertica is running on
-your local host):
+C<~/.odbc.ini>, like so (assuming that Exasol is running on your local host):
 
-  [dbadmin]
-  Description = Vertica dbadmin connection
-  Driver = Vertica
-  Database = dbadmin
-  Servername = localhost
-  UserName = dbadmin
-  Password = password
-  Port = 5433
-  Locale = en_US
+  [flipr_test]
+  Driver = Exasol
+  EXAHOST = 127.0.0.1:8563
+  EXAUID = sys
+  EXAPWD = exasol
+
+Putting user and password information here is optional, but probably safer than
+other available options as long as the file is protected (mode 0600) so that
+only you can read it.
+
+Normally, of course, you'd have a separate user per project (and a separate
+ODBC connection defined); the above example is taken from the simplified
+tutorial setup we're using.
 
 See the
-L<Vertica ODBC Documentation|http://my.vertica.com/docs/7.1.x/HTML/index.htm#Authoring/ConnectingToHPVertica/InstallingDrivers/CreatingAnODBCDataSourceNameDSN.htm>
-for details. Specific links:
+L<Exasol downloads|https://www.exasol.com/portal/display/DOWNLOAD/6.0> for
+ODBC drivers, documentation, etc.
 
-=over
+=head2 Database Setup
 
-=item * L<Unix ODBC Configuration|http://my.vertica.com/docs/7.1.x/HTML/index.htm#Authoring/ConnectingToHPVertica/InstallingDrivers/CreatingAnODBCDSNForLinuxSolarisAIXAndHP-UX.htm>
+While installing and configuring an Exasol instance is beyond the scope of this
+tutorial, if you just want to follow along, you can start a Docker instance:
 
-=item * L<Additional Linux ODBC Configuration (C<vertica.ini>)|http://my.vertica.com/docs/7.1.x/HTML/index.htm#Authoring/ConnectingToHPVertica/ClientODBC/AdditionalODBCDriverConfigurationSettings.htm>
+  > docker run --detach --privileged --stop-timeout 120 -p 127.0.0.1:8563:8888  exasol/docker-db:latest
 
-=item * L<Windows ODBC Configuration|http://my.vertica.com/docs/7.1.x/HTML/index.htm#Authoring/ConnectingToHPVertica/InstallingDrivers/CreatingAnODBCDSNForWindowsClients.htm>
+This will make Exasol available at 127.0.0.1 (localhost) on port 8563, as if
+you were running it directly on your machine. You may have to wait for a minute
+until the database finished initializing; you can try connecting with `exaplus`
+to check status.
 
-=item * L<Mac OS X ODBC Configuration|http://my.vertica.com/docs/7.1.x/HTML/index.htm#Authoring/ConnectingToHPVertica/InstallingDrivers/CreatingAnODBCDSNForMacintoshOSXClients.htm>
-
-=back
+See the corresponding L<GitHub repository|https://github.com/EXASOL/docker-db>
+for more information about how to run Exasol using Docker, for example if you
+want your data to persist beyond the lifetime of the container, etc.
 
 =head1 Starting a New Project
 
@@ -87,7 +88,7 @@ Usually the first thing to do when starting a new project is to create a
 source code repository. So let's do that with Git:
 
   > mkdir flipr
-  > cd flipr 
+  > cd flipr
   > git init .
   Initialized empty Git repository in /flipr/.git/
   > touch README.md
@@ -96,14 +97,14 @@ source code repository. So let's do that with Git:
 
 If you're a Git user and want to follow along the history, the repository
 used in these examples is
-L<on GitHub|https://github.com/theory/sqitch-vertica-intro>.
+L<on GitHub|https://github.com/theory/sqitch-exasol-intro>.
 
 Now that we have a repository, let's get started with Sqitch. Every Sqitch
 project must have a name associated with it, and, optionally, a unique URI. We
 recommend including the URI, as it increases the uniqueness of object
 identifiers internally, so let's specify one when we initialize Sqitch:
 
-  > sqitch init flipr --uri https://github.com/theory/sqitch-vertica-intro/ --engine vertica
+  > sqitch init flipr --uri https://github.com/theory/sqitch-exasol-intro/ --engine exasol
   Created sqitch.conf
   Created sqitch.plan
   Created deploy/
@@ -114,26 +115,26 @@ Let's have a look at F<sqitch.conf>:
 
   > cat sqitch.conf
   [core]
-  	engine = vertica
+  	engine = exasol
   	# plan_file = sqitch.plan
   	# top_dir = .
-  # [engine "vertica"]
-  	# target = db:vertica:
+  # [engine "exasol"]
+  	# target = db:exasol:
   	# registry = sqitch
-  	# client = vsql
+  	# client = exaplus
 
-Good, it picked up on the fact that we're creating changes for the Vertica
-engine, thanks to the C<-engine vertica> option, and saved it to the
-file. Furthermore, it wrote a commented-out C<[engine "vertica"]> section with
-all the available Vertica engine-specific settings commented out and ready to
+Good, it picked up on the fact that we're creating changes for the Exasol
+engine, thanks to the C<-engine exasol> option, and saved it to the
+file. Furthermore, it wrote a commented-out C<[engine "exasol"]> section with
+all the available Exasol engine-specific settings commented out and ready to
 be edited as appropriate.
 
 By default, Sqitch will read F<sqitch.conf> in the current directory for
 settings. But it will also read F<~/.sqitch/sqitch.conf> for user-specific
-settings. Since Vertica's C<vsql> client is not in the path on my system,
+settings. Since Exasol's C<exaplus> client is not in the path on my system,
 let's go ahead an tell it where to find the client on our computer:
 
-  > sqitch config --user engine.vertica.client /opt/vertica/bin/vsql
+  > sqitch config --user engine.exasol.client /opt/EXAplus/exaplus
 
 And let's also tell it who we are, since this data will be used in all
 of our projects:
@@ -144,13 +145,13 @@ of our projects:
 Have a look at F<~/.sqitch/sqitch.conf> and you'll see this:
 
   > cat ~/.sqitch/sqitch.conf
-  [engine "vertica"]
-  	client = /opt/vertica/bin/vsql
+  [engine "exasol"]
+  	client = /opt/EXAplus/exaplus
   [user]
   	name = Marge N. O’Vera
   	email = marge@example.com
 
-Which means that Sqitch should be able to find C<vsql> for any project, and
+Which means that Sqitch should be able to find C<exaplus> for any project, and
 that it will always properly identify us when planning and committing changes.
 
 Back to the repository. Have a look at the plan file, F<sqitch.plan>:
@@ -158,8 +159,8 @@ Back to the repository. Have a look at the plan file, F<sqitch.plan>:
   > cat sqitch.plan
   %syntax-version=1.0.0
   %project=flipr
-  %uri=https://github.com/theory/sqitch-vertica-intro/
-  
+  %uri=https://github.com/theory/sqitch-exasol-intro/
+
 
 Note that it has picked up on the name and URI of the app we're building.
 Sqitch uses this data to manage cross-project dependencies. The
@@ -200,16 +201,16 @@ script, so we add this to F<revert/appschema.sql>:
 
 Now we can try deploying this change. We tell Sqitch where to send the change
 via a L<database URI|https://github.com/theory/uri-db/>, assuming the default
-C<dbadmin> database and user and an ODBC driver named C<Vertica> (see
+C<sys> user and an ODBC driver named C<Exasol> (see
 L</Connection Configuration> for details):
 
-  > sqitch deploy db:vertica://dbadmin:password@localhost:5433/dbadmin?Driver=Vertica
-  Adding registry tables to db:vertica://dbadmin:@localhost:5433/dbadmin?Driver=Vertica
-  Deploying changes to db:vertica://dbadmin:@localhost:5433/dbadmin?Driver=Vertica
+  > sqitch deploy db:exasol://sys:exasol@localhost:8563/?Driver=Exasol
+  Adding registry tables to db:exasol://sys:@localhost:8563/?Driver=Exasol
+  Deploying changes to db:exasol://sys:@localhost:8563/?Driver=Exasol
     + appschema .. ok
 
 First Sqitch created registry tables used to track database changes. The
-structure and name of the registry varies between databases (Vertica uses a
+structure and name of the registry varies between databases (Exasol uses a
 schema to namespace its registry, while SQLite and MySQL use separate
 databases). Next, Sqitch deploys changes. We only have one so far; the C<+>
 reinforces the idea that the change is being C<added> to the database.
@@ -217,11 +218,12 @@ reinforces the idea that the change is being C<added> to the database.
 With this change deployed, if you connect to the database, you'll be able to
 see the schema:
 
-  > vsql -U dbadmin -c '\dn flipr'
-        List of schemas
-   Name  |  Owner  | Comment 
-  -------+---------+---------
-   flipr | dbadmin | 
+  > exaplus -q -u sys -p exasol -c localhost:8563 -sql "select schema_name from exa_schemas;"
+
+  SCHEMA_NAME
+  --------------------------------------------------------------------------------------------------------------------------------
+  SQITCH
+  FLIPR
 
 =head2 Trust, But Verify
 
@@ -231,7 +233,7 @@ every deploy?
 Here's where the C<verify> script comes in. Its job is to test that the deploy
 did was it was supposed to. It should do so without regard to any data that
 might be in the database, and should throw an error if the deploy was not
-successful. In Vertica, the simplest way to do so for schema is probably to
+successful. In Exasol, the simplest way to do so for schema is probably to
 simply create an object in the schema. Put this SQL into
 F<verify/appschema.sql>:
 
@@ -243,13 +245,13 @@ doesn't exist. Another handy way to do that is to divide by zero if an object
 doesn't exist. For example, to throw an error when the C<flipr> schema does
 not exist, you could do something like this:
 
-  SELECT 1/COUNT(*) FROM v_catalog.schemata WHERE schema_name = 'flipr';
+  SELECT 1/COUNT(*) FROM exa_schemas WHERE schema_name = 'FLIPR';
 
 Either way, run the C<verify> script with the L<C<verify>|sqitch-verify>
 command:
 
-  > sqitch verify db:vertica://dbadmin:password@localhost:5433/dbadmin?Driver=Vertica
-  Verifying db:vertica://dbadmin:@localhost:5433/dbadmin?Driver=Vertica
+  > sqitch verify db:exasol://sys:exasol@localhost:8563/?Driver=Exasol
+  Verifying db:exasol://sys:@localhost:8563/?Driver=Exasol
     * appschema .. ok
   Verify successful
 
@@ -261,9 +263,10 @@ something that doesn't exist, something like:
 
 Then L<C<verify>|sqitch-verify> again:
 
-  > sqitch verify db:vertica://dbadmin:password@localhost:5433/dbadmin?Driver=Vertica
-  Verifying db:vertica://dbadmin:@localhost:5433/dbadmin?Driver=Vertica
-    * appschema .. vsql:verify/appschema.sql:5: ROLLBACK 4650:  Schema "nonesuch" does not exist
+  > sqitch verify db:exasol://sys:exasol@localhost:8563/?Driver=Exasol
+  Verifying db:exasol://sys:@localhost:8563/?Driver=Exasol
+  * appschema .. Error: [42000] schema NONESUCH not found [line 1, column 40] (Session: 1582884049218108749)
+
   # Verify script "verify/appschema.sql" failed.
   not ok
 
@@ -276,13 +279,14 @@ Then L<C<verify>|sqitch-verify> again:
 It's even nice enough to tell us what the problem is. Or, for the
 divide-by-zero example, change the schema name:
 
-  SELECT 1/COUNT(*) FROM v_catalog.schemata WHERE schema_name = 'nonesuch';
+  SELECT 1/COUNT(*) FROM exa_schemas WHERE schema_name = 'nonesuch';
 
 Then the verify will look something like:
 
-  > sqitch verify db:vertica://dbadmin:password@localhost:5433/dbadmin?Driver=Vertica
-  Verifying db:vertica://dbadmin:@localhost:5433/dbadmin?Driver=Vertica
-    * appschema .. vsql:verify/appschema.sql:5: ERROR 2005:  division by zero
+  > sqitch verify db:exasol://sys:exasol@localhost:8563/?Driver=Exasol
+  Verifying db:exasol://sys:@localhost:8563/?Driver=Exasol
+  * appschema .. Error: [22012] data exception - division by zero (Session: 1582884446489810101)
+
   # Verify script "verify/appschema.sql" failed.
   not ok
 
@@ -303,20 +307,20 @@ For purely informational purposes, we can always see how a deployment was
 recorded via the L<C<status>|sqitch-status> command, which reads the registry
 tables from the database:
 
-  > sqitch status db:vertica://dbadmin:password@localhost:5433/dbadmin?Driver=Vertica
-  # On database db:vertica://dbadmin:@localhost:5433/dbadmin?Driver=Vertica
+  > sqitch status db:exasol://sys:exasol@localhost:8563/?Driver=Exasol
+  # On database db:exasol://sys:@localhost:8563/?Driver=Exasol
   # Project:  flipr
   # Change:   f9759f0ed77964b6a3b6c7aa3b6058b4bb7db764
   # Name:     appschema
   # Deployed: 2014-09-04 15:26:28 -0700
   # By:       Marge N. O’Vera <marge@example.com>
-  # 
+  #
   Nothing to deploy (up-to-date)
 
 Let's make sure that we can revert the change:
 
-  > sqitch revert db:vertica://dbadmin:password@localhost:5433/dbadmin?Driver=Vertica
-  Revert all changes from db:vertica://dbadmin:@localhost:5433/dbadmin?Driver=Vertica? [Yes] 
+  > sqitch revert db:exasol://sys:exasol@localhost:8563/?Driver=Exasol
+  Revert all changes from db:exasol://sys:@localhost:8563/?Driver=Exasol? [Yes]
     - appschema .. ok
 
 The L<C<revert>|sqitch-revert> command first prompts to make sure that we
@@ -325,30 +329,30 @@ pass the C<-y> option to disable the prompt. Also, notice the C<-> before the
 change name in the output, which reinforces that the change is being
 I<removed> from the database. And now the schema should be gone:
 
-  > vsql -U dbadmin -c '\dn flipr'
-      List of schemas
-   Name | Owner | Comment 
-  ------+-------+---------
-  (0 rows)
+> exaplus -q -u sys -p exasol -c localhost:8563 -sql "select schema_name from exa_schemas;"
+
+  SCHEMA_NAME
+  --------------------------------------------------------------------------------------------------------------------------------
+  SQITCH
 
 And the status message should reflect as much:
 
-  > sqitch status db:vertica://dbadmin:password@localhost:5433/dbadmin?Driver=Vertica
-  # On database db:vertica://dbadmin:@localhost:5433/dbadmin?Driver=Vertica
+  > sqitch status db:exasol://sys:exasol@localhost:8563/?Driver=Exasol
+  # On database db:exasol://sys:@localhost:8563/?Driver=Exasol
   No changes deployed
 
 Of course, since nothing is deployed, the L<C<verify>|sqitch-verify> command
 has nothing to verify:
 
-  > sqitch verify db:vertica://dbadmin:password@localhost:5433/dbadmin?Driver=Vertica
-  Verifying db:vertica://dbadmin:@localhost:5433/dbadmin?Driver=Vertica
+  > sqitch verify db:exasol://sys:exasol@localhost:8563/?Driver=Exasol
+  Verifying db:exasol://sys:@localhost:8563/?Driver=Exasol
   No changes deployed
 
 However, we still have a record that the change happened, visible via the
 L<C<log>|sqitch-log> command:
 
-  > sqitch log db:vertica://dbadmin:password@localhost:5433/dbadmin?Driver=Vertica
-  On database db:vertica://dbadmin:@localhost:5433/dbadmin?Driver=Vertica
+  > sqitch log db:exasol://sys:exasol@localhost:8563/?Driver=Exasol
+  On database db:exasol://sys:@localhost:8563/?Driver=Exasol
   Revert f9759f0ed77964b6a3b6c7aa3b6058b4bb7db764
   Name:      appschema
   Committer: Marge N. O’Vera <marge@example.com>
@@ -380,39 +384,40 @@ Cool. Now let's commit it.
 And then deploy again. This time, let's use the C<--verify> option, so that
 the C<verify> script is applied when the change is deployed:
 
-  > sqitch deploy --verify db:vertica://dbadmin:password@localhost:5433/dbadmin?Driver=Vertica
-  Deploying changes to db:vertica://dbadmin:@localhost:5433/dbadmin?Driver=Vertica
+  > sqitch deploy --verify db:exasol://sys:exasol@localhost:8563/?Driver=Exasol
+  Deploying changes to db:exasol://sys:@localhost:8563/?Driver=Exasol
     + appschema .. ok
 
 And now the schema should be back:
 
-  > vsql -U dbadmin -c '\dn flipr'
-        List of schemas
-   Name  |  Owner  | Comment 
-  -------+---------+---------
-   flipr | dbadmin | 
+  > exaplus -q -u sys -p exasol -c localhost:8563 -sql "select schema_name from exa_schemas;"
+
+  SCHEMA_NAME
+  --------------------------------------------------------------------------------------------------------------------------------
+  SQITCH
+  FLIPR
 
 When we look at the status, the deployment will be there:
 
-  > sqitch status db:vertica://dbadmin:password@localhost:5433/dbadmin?Driver=Vertica
-  # On database db:vertica://dbadmin:@localhost:5433/dbadmin?Driver=Vertica
+  > sqitch status db:exasol://sys:exasol@localhost:8563/?Driver=Exasol
+  # On database db:exasol://sys:@localhost:8563/?Driver=Exasol
   # Project:  flipr
-  # Change:   f9759f0ed77964b6a3b6c7aa3b6058b4bb7db764
+  # Change:   fef4c2911ae68aee8f6ea164293a32923dc13b67
   # Name:     appschema
   # Deployed: 2014-09-04 16:37:38 -0700
   # By:       Marge N. O’Vera <marge@example.com>
-  # 
+  #
   Nothing to deploy (up-to-date)
 
 =head1 On Target
 
 I'm getting a little tired of always having to type
-C<db:vertica://dbadmin:password@localhost:5433/dbadmin?Driver=Vertica>, aren't
+C<db:exasol://sys:exasol@localhost:8563/?Driver=Exasol>, aren't
 you? This L<database connection URI|https://github.com/theory/uri-db/> tells
 Sqitch how to connect to the deployment target, but we don't have to keep
 using the URI. We can name the target:
 
-  > sqitch target add flipr_test db:vertica://dbadmin:password@localhost:5433/dbadmin?Driver=Vertica
+  > sqitch target add flipr_test db:exasol://sys:exasol@localhost:8563/?Driver=Exasol
 
 The L<C<target>|sqitch-target> command, inspired by
 L<C<git-remote>|http://git-scm.com/docs/git-remote>, allows management of one
@@ -421,7 +426,7 @@ C<flipr_test>, which means we can use the string C<flipr_test> for the target,
 rather than the URI. But since we're doing so much testing, we can also tell
 Sqitch to deploy to the C<flipr_test> target by default:
 
-  > sqitch engine add vertica flipr_test
+  > sqitch engine add exasol flipr_test
 
 Now we can omit the target argument altogether, unless we need to deploy to
 another database. Which we will, eventually, but at least our examples will be
@@ -434,7 +439,7 @@ simpler from here on in, e.g.:
   # Name:     appschema
   # Deployed: 2014-09-04 16:37:38 -0700
   # By:       Marge N. O’Vera <marge@example.com>
-  # 
+  #
   Nothing to deploy (up-to-date)
 
 Yay, that allows things to be a little more concise. Let's also make sure that
@@ -446,7 +451,7 @@ changes are verified after deploying them:
 We'll see the L<C<rebase>|sqitch-rebase> command a bit later. In the meantime,
 let's commit the new configuration and and make some more changes!
 
-  > git commit -am 'Set default deployment target and always verify.'     
+  > git commit -am 'Set default deployment target and always verify.'
   [master 469779a] Set default deployment target and always verify.
    1 files changed, 8 insertions(+), 0 deletions(-)
 
@@ -469,20 +474,22 @@ idea to be explicit about dependencies.
 Now edit the scripts. When you're done, F<deploy/users.sql> should look like
 this:
 
-  -- Deploy flipr:users                                                                                  to vertica
-  -- requires: appschema                                                                          
+  -- Deploy flipr:users                                                                                  to exasol
+  -- requires: appschema
 
   CREATE TABLE flipr.users (
-      nickname  VARCHAR      PRIMARY KEY,
-      password  VARCHAR      NOT NULL,
+      nickname  VARCHAR(64)  PRIMARY KEY,
+      password  VARCHAR(256) NOT NULL,
       fullname  VARCHAR(256) NOT NULL,
-      twitter   VARCHAR      NOT NULL,
-      timestamp TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+      twitter   VARCHAR(256) NOT NULL,
+      ts        TIMESTAMP WITH LOCAL TIME ZONE DEFAULT NOW() NOT NULL
   );
+
+  COMMIT;
 
 A few things to notice here. On the second line, the dependence on the
 C<appschema> change has been listed. This doesn't do anything, but the default
-C<deploy> Vertica template lists it here for your reference while editing
+C<deploy> Exasol template lists it here for your reference while editing
 the file. Useful, right?
 
 The table itself will be created in the C<flipr> schema. This is why we need
@@ -492,7 +499,7 @@ Now for the verify script. The simplest way to check that the table was
 created and has the expected columns without touching the data? Just select
 from the table with a false C<WHERE> clause. Add this to F<verify/users.sql>:
 
-  SELECT nickname, password, twitter, timestamp
+  SELECT nickname, password, twitter, ts
     FROM flipr.users
    WHERE FALSE;
 
@@ -510,13 +517,15 @@ Couldn't be much simpler, right? Let's deploy this bad boy:
 We know, since verification is enabled, that the table must have been created.
 But for the purposes of visibility, let's have a quick look:
 
-  > vsql -U dbadmin -c '\d flipr.users'
-                                        List of Fields by Tables
-   Schema | Table |   Column    |    Type     | Size | Default | Not Null | Primary Key | Foreign Key 
-  --------+-------+-------------+-------------+------+---------+----------+-------------+-------------
-   flipr  | users | nickname    | varchar(80) |   80 |         | t        | t           | 
-   flipr  | users | password    | varchar(80) |   80 |         | t        | f           | 
-   flipr  | users | "timestamp" | timestamptz |    8 | now()   | t        | f           | 
+  > exaplus -q -u sys -p exasol -c localhost:8563 -sql "describe flipr.users;"
+
+  COLUMN_NAME                                                                                                                      SQL_TYPE                                 NULLABLE DISTRIBUTION_KEY
+  -------------------------------------------------------------------------------------------------------------------------------- ---------------------------------------- -------- ----------------
+  NICKNAME                                                                                                                         VARCHAR(64) UTF8                         FALSE    FALSE
+  PASSWORD                                                                                                                         VARCHAR(256) UTF8                        FALSE    FALSE
+  FULLNAME                                                                                                                         VARCHAR(256) UTF8                        FALSE    FALSE
+  TWITTER                                                                                                                          VARCHAR(256) UTF8                        FALSE    FALSE
+  TS                                                                                                                               TIMESTAMP WITH LOCAL TIME ZONE           FALSE    FALSE
 
 We can also verify all currently deployed changes with the
 L<C<verify>|sqitch-verify> command:
@@ -532,11 +541,11 @@ Now have a look at the status:
   > sqitch status
   # On database flipr_test
   # Project:  flipr
-  # Change:   d647ac8c130a7e0b12c9049789e46afb4a4f6e53
+  # Change:   794a6c78816543909d592e2e9f5c0fade5b47406
   # Name:     users
-  # Deployed: 2014-09-04 16:42:45 -0700
+  # Deployed: 2017-11-02 11:02:40 +0100
   # By:       Marge N. O’Vera <marge@example.com>
-  # 
+  #
   Nothing to deploy (up-to-date)
 
 Success! Let's make sure we can revert the change, as well:
@@ -558,8 +567,8 @@ command).
 Back to the database. The C<users> table should be gone but the C<flipr> schema
 should still be around:
 
-  > vsql -U dbadmin -c '\d flipr.users'
-  Did not find any relation.
+  > exaplus -q -u sys -p exasol -c localhost:8563 -sql "describe flipr.users;"
+  Error: [42000] table or view FLIPR.USERS not found [line 1, column 10] (Session: 1582958508294847446)
 
 The L<C<status>|sqitch-status> command politely informs us that we have
 undeployed changes:
@@ -571,7 +580,7 @@ undeployed changes:
   # Name:     appschema
   # Deployed: 2014-09-04 16:37:38 -0700
   # By:       Marge N. O’Vera <marge@example.com>
-  # 
+  #
   Undeployed change:
     * users
 
@@ -597,6 +606,7 @@ Okay, let's commit and deploy again:
    create mode 100644 deploy/users.sql
    create mode 100644 revert/users.sql
    create mode 100644 verify/users.sql
+  > sqitch deploy
   Deploying changes to flipr_test
     + users .. ok
 
@@ -609,7 +619,7 @@ Looks good. Check the status:
   # Name:     users
   # Deployed: 2014-09-04 17:42:53 -0700
   # By:       Marge N. O’Vera <marge@example.com>
-  # 
+  #
   Nothing to deploy (up-to-date)
 
 Excellent. Let's do some more!
@@ -639,7 +649,7 @@ Now might be a good time to have a look at the deployment plan:
   > cat sqitch.plan
   %syntax-version=1.0.0
   %project=flipr
-  %uri=https://github.com/theory/sqitch-vertica-intro/
+  %uri=https://github.com/theory/sqitch-exasol-intro/
 
   appschema 2014-09-04T18:40:34Z Marge N. O’Vera <marge@example.com> # Add schema for all flipr objects.
   users [appschema] 2014-09-04T23:40:15Z Marge N. O’Vera <marge@example.com> # Creates table to track our users.
@@ -653,56 +663,69 @@ planned the change, and a note.
 Let's write the code for the new changes. Here's what F<deploy/flips.sql>
 should look like:
 
-  -- Deploy flipr:flips to vertica
+  -- Deploy flipr:flips to exasol
   -- requires: appschema
   -- requires: users
-  
+
   CREATE TABLE flipr.flips (
-      id        AUTO_INCREMENT PRIMARY KEY ,
-      nickname  VARCHAR        NOT NULL REFERENCES flipr.users(nickname),
-      body      VARCHAR(180)   NOT NULL DEFAULT '',
-      timestamp TIMESTAMPTZ    NOT NULL DEFAULT clock_timestamp()
+      id        INTEGER        IDENTITY PRIMARY KEY,
+      nickname  VARCHAR(64)    NOT NULL REFERENCES flipr.users(nickname),
+      body      VARCHAR(180)   DEFAULT '' NOT NULL,
+      ts        TIMESTAMP WITH LOCAL TIME ZONE DEFAULT NOW() NOT NULL
   );
+
+  COMMIT;
 
 Here's what F<verify/flips.sql> might look like:
 
-  -- Verify flipr:flips on vertica
-  SELECT id, nickname, body, timestamp
+  -- Verify flipr:flips on exasol
+
+  SELECT id, nickname, body, ts
     FROM flipr.flips
    WHERE FALSE;
 
-We simply take advantage of the fact that C<has_function_privilege()> throws
-an exception if the specified function does not exist.
+  ROLLBACK;
 
 And F<revert/flips.sql> should look something like this:
 
-  -- Revert flipr:flips from vertica
+  -- Revert flipr:flips from exasol
+
   DROP TABLE flipr.flips;
+
+  COMMIT;
 
 Now for C<userflips>; F<deploy/userflips.sql> might look like this:
 
-  -- Deploy flipr:userflips to vertica
+  -- Deploy flipr:userflips to exasol
   -- requires: appschema
   -- requires: users
   -- requires: flips
 
   CREATE OR REPLACE VIEW flipr.userflips AS
-  SELECT f.id, u.nickname, u.fullname, f.body, f.timestamp
+  SELECT f.id, u.nickname, u.fullname, f.body, f.ts
     FROM flipr.users u
     JOIN flipr.flips f ON u.nickname = f.nickname;
 
+  COMMIT;
+
 Use a C<SELECT> statement in F<verify/userflips.sql> again:
 
-  -- Verify flipr:userflips on vertica
-  SELECT id, nickname, fullname, body, timestamp
+  -- Verify flipr:userflips on exasol
+
+  SELECT id, nickname, fullname, body, ts
     FROM flipr.userflips
    WHERE FALSE;
+
+  ROLLBACK;
 
 And of course, its C<revert> script, F<revert/userflips.sql>, should look
 something like:
 
-  -- Revert flipr:userflips from vertica
+  -- Revert flipr:userflips from exasol
+
   DROP VIEW flipr.userflips;
+
+  COMMIT;
 
 Try em out!
 
@@ -714,44 +737,45 @@ Try em out!
 Do we have the new table and view? Of course we do, they were verified. Still,
 have a look:
 
-  > vsql -U dbadmin -c '\dt flipr.flips'
-                 List of tables
-   Schema | Name  | Kind  |  Owner  | Comment 
-  --------+-------+-------+---------+---------
-   flipr  | flips | table | dbadmin | 
+  > exaplus -q -u sys -p exasol -c localhost:8563 -sql "select table_name from exa_all_tables where table_schema = 'FLIPR';"
 
-  > vsql -U dbadmin -c '\dv flipr.userflips'
-                    List of View Fields
-   Schema |   View    |   Column    |     Type     | Size 
-  --------+-----------+-------------+--------------+------
-   flipr  | userflips | id          | int          |    8
-   flipr  | userflips | nickname    | varchar(80)  |   80
-   flipr  | userflips | fullname    | varchar(256) |  256
-   flipr  | userflips | body        | varchar(180) |  180
-   flipr  | userflips | "timestamp" | timestamptz  |    8
+  TABLE_NAME
+  --------------------------------------------------------------------------------------------------------------------------------
+  USERS
+  FLIPS
+
+  > exaplus -q -u sys -p exasol -c localhost:8563 -sql "describe flipr.userflips;"
+
+  COLUMN_NAME                                                                                                                      SQL_TYPE                                 NULLABLE DISTRIBUTION_KEY
+  -------------------------------------------------------------------------------------------------------------------------------- ---------------------------------------- -------- ----------------
+  ID                                                                                                                               DECIMAL(18,0)
+  NICKNAME                                                                                                                         VARCHAR(64) UTF8
+  FULLNAME                                                                                                                         VARCHAR(256) UTF8
+  BODY                                                                                                                             VARCHAR(180) UTF8
+  TS                                                                                                                               TIMESTAMP WITH LOCAL TIME ZONE
 
 And what's the status?
 
-  > sqitch status 
+  > sqitch status
   # On database flipr_test
   # Project:  flipr
   # Change:   d1f998618fb863d93049a724fd0d2b49a29add86
   # Name:     userflips
   # Deployed: 2014-09-04 17:51:21 -0700
   # By:       Marge N. O’Vera <marge@example.com>
-  # 
+  #
   Nothing to deploy (up-to-date)
 
 Looks good. Let's make sure revert works:
 
-  > sqitch revert -y --to @HEAD^
+  > sqitch revert -y --to @HEAD^^
   Reverting changes to users from flipr_test
     - userflips .. ok
     - flips ...... ok
-  >  vsql -U dbadmin -c '\d flipr.flips'
-  Did not find any relation.
-  > vsql -U dbadmin -c '\dv flipr.userflips'
-  No matching relations found.
+  > exaplus -q -u sys -p exasol -c localhost:8563 -sql "describe flipr.flips;"
+  Error: [42000] table or view FLIPR.FLIPS not found [line 1, column 10] (Session: 1582955242708359302)
+  > exaplus -q -u sys -p exasol -c localhost:8563 -sql "describe flipr.userflips;"
+  Error: [42000] table or view FLIPR.USERFLIPS not found [line 1, column 10] (Session: 1582955248116468907)
 
 Note the use of C<@HEAD^^> to specify that the revert be to two changes prior
 the last deployed change. Looks good. Let's do the commit and re-deploy dance:
@@ -766,7 +790,7 @@ the last deployed change. Looks good. Let's do the commit and re-deploy dance:
    create mode 100644 revert/userflips.sql
    create mode 100644 verify/flips.sql
    create mode 100644 verify/userflips.sql
- 
+
   > sqitch deploy
   Deploying changes to flipr_test
     + flips ...... ok
@@ -779,9 +803,9 @@ the last deployed change. Looks good. Let's do the commit and re-deploy dance:
   # Name:     userflips
   # Deployed: 2014-09-04 17:59:34 -0700
   # By:       Marge N. O’Vera <marge@example.com>
-  # 
+  #
   Nothing to deploy (up-to-date)
-  
+
   > sqitch verify
   Verifying flipr_test
     * appschema .. ok
@@ -816,7 +840,7 @@ We can try deploying to make sure the tag gets picked up like so:
   # Tag:      @v1.0.0-dev1
   # Deployed: 2014-09-04 17:59:34 -0700
   # By:       Marge N. O’Vera <marge@example.com>
-  # 
+  #
   Nothing to deploy (up-to-date)
 
 Note the new "Tag" line in the output of C<sqitch status>: no new changes
@@ -835,12 +859,17 @@ change. Now let's bundle everything up for release:
 
 Now we can package the F<bundle> directory and distribute it. When it gets
 installed somewhere, users can use Sqitch to deploy to the database. Let's try
-deploying it to another database:
+deploying it to another database. First, start up a new Docker instance on a
+different port:
+
+  > docker run --detach --privileged --stop-timeout 120 -p 127.0.0.1:9999:8888  exasol/docker-db:latest
+
+Now you should be able to deploy to the new database:
 
   > cd bundle
-  > sqitch deploy db:vertica://dbadmin:password@db.example.com:5433/flipr?Driver=Vertica
-  Adding registry tables to db:vertica://dbadmin:@db.example.com:5433/flipr?Driver=Vertica
-  Deploying changes to db:vertica://dbadmin:@db.example.com:5433/flipr?Driver=Vertica
+  > sqitch deploy db:exasol://sys:exasol@localhost:9999/?Driver=Exasol
+  Adding registry tables to db:exasol://sys:@localhost:9999/?Driver=Exasol
+  Deploying changes to db:exasol://sys:@localhost:9999/?Driver=Exasol
     + appschema ............... ok
     + users ................... ok
     + flips ................... ok
@@ -848,13 +877,6 @@ deploying it to another database:
 
 Notice how the tag on C<userflips> now appears in the deploy output. Nice, eh?
 Now, package it up and ship it!
-
-=head1 Making a Hash of Things
-
-Now that we've got the basics of the app done, let's add a feature. Gotta
-track the hashtags associated with flips, right? Let's add a table for them.
-But since other folks are working on other tasks in the repository, we'll work
-on a branch, so we can all stay out of each other's way. So let's branch:
 
 =head1 Making a Hash of Things
 
@@ -877,7 +899,7 @@ Now we can add a new change to create a table for hashtags.
 You know the drill by now. Add this to F<deploy/hashtags.sql>
 
   CREATE TABLE flipr.hashtags (
-      flip_id   BIGINT  NOT   NULL REFERENCES flipr.Flips(id),
+      flip_id   INTEGER       NOT NULL REFERENCES flipr.flips(id),
       hashtag   VARCHAR(128)  NOT NULL,
       PRIMARY KEY (flip_id, hashtag)
   );
@@ -905,10 +927,10 @@ Look good?
   # Name:     hashtags
   # Deployed: 2014-09-05 10:46:20 -0700
   # By:       Marge N. O’Vera <marge@example.com>
-  # 
+  #
   # Tag:
   #   @v1.0.0-dev1 - 2014-09-05 09:09:38 -0700 - Marge N. O’Vera <marge@example.com>
-  # 
+  #
   Nothing to deploy (up-to-date)
 
 Note the use of C<--show tags> to show all the deployed tags. Make sure we can
@@ -1053,7 +1075,7 @@ Ah, that looks a bit better. Let's have a look at the plan:
   > cat sqitch.plan
   %syntax-version=1.0.0
   %project=flipr
-  %uri=https://github.com/theory/sqitch-vertica-intro/
+  %uri=https://github.com/theory/sqitch-exasol-intro/
 
   appschema 2014-09-04T18:40:34Z Marge N. O’Vera <marge@example.com> # Add schema for all flipr objects.
   users [appschema] 2014-09-04T23:40:15Z Marge N. O’Vera <marge@example.com> # Creates table to track our users.
@@ -1119,7 +1141,7 @@ And double-check our work:
   > cat sqitch.plan
   %syntax-version=1.0.0
   %project=flipr
-  %uri=https://github.com/theory/sqitch-vertica-intro/
+  %uri=https://github.com/theory/sqitch-exasol-intro/
 
   appschema 2014-09-04T18:40:34Z Marge N. O’Vera <marge@example.com> # Add schema for all flipr objects.
   users [appschema] 2014-09-04T23:40:15Z Marge N. O’Vera <marge@example.com> # Creates table to track our users.
@@ -1262,22 +1284,18 @@ properly restores things to how they were after the original deploy script was
 deployed. Or, more simply, it should revert changes back to how they were
 as-of the deployment of F<deploy/userflips@v1.0.0-dev2.sql>.
 
-Fortunately, our function deploy scripts are already idempotent, thanks to the
+Fortunately, our view deploy scripts are already idempotent, thanks to the
 use of the C<OR REPLACE> expression. No matter how many times a deployment
-script is run, the end result will be the same instance of the function, with
+script is run, the end result will be the same instance of the view, with
 no duplicates or errors.
 
 As a result, there is no need to explicitly add changes. So go ahead. Modify
 the script to add the C<twitter> column to the view. Make this change to
 F<deploy/userflips.sql>:
 
-  @@ -4,8 +4,9 @@
- 
-   BEGIN;
- 
   @@ -4,6 +4,6 @@
    -- requires: flips
- 
+
    CREATE OR REPLACE VIEW flipr.userflips AS
   -SELECT f.id, u.nickname, u.fullname, f.body, f.timestamp
   +SELECT f.id, u.nickname, u.fullname, u.twitter, f.body, f.timestamp
@@ -1288,13 +1306,13 @@ Next, modify F<verify/userflips.sql> to check for the C<twitter> column.
 Here's the diff:
 
   @@ -1,6 +1,6 @@
-   -- Verify flipr:userflips on vertica
- 
+   -- Verify flipr:userflips on exasol
+
   -SELECT id, nickname, fullname, body, timestamp
   +SELECT id, nickname, fullname, twitter, body, timestamp
      FROM flipr.userflips
     WHERE FALSE;
- 
+
 Now try a deployment:
 
   > sqitch deploy
@@ -1303,16 +1321,16 @@ Now try a deployment:
 
 So, are the changes deployed?
 
-  > vsql -U dbadmin -c '\dv flipr.userflips'
-                    List of View Fields
-   Schema |   View    |   Column    |     Type     | Size 
-  --------+-----------+-------------+--------------+------
-   flipr  | userflips | id          | int          |    8
-   flipr  | userflips | nickname    | varchar(80)  |   80
-   flipr  | userflips | fullname    | varchar(256) |  256
-   flipr  | userflips | twitter     | varchar(80)  |   80
-   flipr  | userflips | body        | varchar(180) |  180
-   flipr  | userflips | "timestamp" | timestamptz  |    8
+  > exaplus -q -u sys -p exasol -c localhost:8563 -sql "describe flipr.userflips;"
+
+  COLUMN_NAME                                                                                                                      SQL_TYPE                                 NULLABLE DISTRIBUTION_KEY
+  -------------------------------------------------------------------------------------------------------------------------------- ---------------------------------------- -------- ----------------
+  ID                                                                                                                               DECIMAL(18,0)
+  NICKNAME                                                                                                                         VARCHAR(64) UTF8
+  FULLNAME                                                                                                                         VARCHAR(256) UTF8
+  TWITTER                                                                                                                          VARCHAR(256) UTF8
+  BODY                                                                                                                             VARCHAR(180) UTF8
+  TS                                                                                                                               TIMESTAMP WITH LOCAL TIME ZONE
 
 Awesome, the view now includes the C<twitter> column. But can we revert?
 
@@ -1322,16 +1340,15 @@ Awesome, the view now includes the C<twitter> column. But can we revert?
 
 Did that work, is the C<twitter> column gone?
 
-  > vsql -U dbadmin -c '\dv flipr.userflips'
-                    List of View Fields
-   Schema |   View    |   Column    |     Type     | Size 
-  --------+-----------+-------------+--------------+------
-   flipr  | userflips | id          | int          |    8
-   flipr  | userflips | nickname    | varchar(80)  |   80
-   flipr  | userflips | fullname    | varchar(256) |  256
-   flipr  | userflips | twitter     | varchar(80)  |   80
-   flipr  | userflips | body        | varchar(180) |  180
-   flipr  | userflips | "timestamp" | timestamptz  |    8
+  > exaplus -q -u sys -p exasol -c localhost:8563 -sql "describe flipr.userflips;"
+
+  COLUMN_NAME                                                                                                                      SQL_TYPE                                 NULLABLE DISTRIBUTION_KEY
+  -------------------------------------------------------------------------------------------------------------------------------- ---------------------------------------- -------- ----------------
+  ID                                                                                                                               DECIMAL(18,0)
+  NICKNAME                                                                                                                         VARCHAR(64) UTF8
+  FULLNAME                                                                                                                         VARCHAR(256) UTF8
+  BODY                                                                                                                             VARCHAR(180) UTF8
+  TS                                                                                                                               TIMESTAMP WITH LOCAL TIME ZONE
 
 Yes, it works! Sqitch properly finds the original instances of these changes
 in the new script files that include tags.

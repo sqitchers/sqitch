@@ -9,6 +9,14 @@ perl:
   - "5.22"
   - "dev"
 #  - "blead" https://github.com/travis-perl/helpers/issues/44
+sudo: required
+
+services:
+  - docker
+
+env:
+  global:
+    - EXA_URI=db:exasol://sys:exasol@127.0.0.1:8888/?Driver=Exasol
 
 matrix:
   include:
@@ -24,6 +32,17 @@ before_install:
   - cat /etc/default/firebird2.5 | grep ENABLE_FIREBIRD_SERVER
   - sudo service firebird2.5-superclassic start
 
+  - docker pull exasol/docker-db:latest
+  - docker run -d -p 127.0.0.1:8888:8888 --privileged --rm exasol/docker-db:latest
+  - docker ps -a
+  - sudo apt-get install -qq odbcinst unixodbc
+  - cat t/exasol/odbcinst.ini | sudo tee -a /etc/odbcinst.ini
+  - curl -O https://www.exasol.com/support/secure/attachment/55217/EXASOL_ODBC-6.0.4.tar.gz
+  - sudo tar -xvzf EXASOL_ODBC-6.0.4.tar.gz -C /opt
+  - curl -O https://www.exasol.com/support/secure/attachment/55310/EXAplus-6.0.4.tar.gz
+  - sudo tar -xzf EXAplus-6.0.4.tar.gz -C /opt
+  - export PATH=/opt/EXAplus-6.0.4:$PATH
+
   - git clone git://github.com/travis-perl/helpers ~/travis-perl-helpers
   - source ~/travis-perl-helpers/init
   - build-perl
@@ -38,6 +57,9 @@ install:
 
 before_script:
   - coverage-setup
+  - exaplus -c 127.0.0.1:8888 -u sys -p exasol -sql "SELECT current_timestamp;"
+  - perl -e "use DBI; use DBD::ODBC; my \$conn = DBI->connect('dbi:ODBC:EXAHOST=127.0.0.1;EXAPORT=8888;Driver=Exasol','sys','exasol'); print \$conn->selectcol_arrayref('SELECT current_timestamp')->[0];"
+  - ldd -r $(grep libexaodbc /etc/odbcinst.ini|awk '{print $3}')
 
 script:
   - prove -lr -j$(test-jobs) $(test-dirs)
