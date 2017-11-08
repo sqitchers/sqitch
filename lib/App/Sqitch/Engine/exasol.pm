@@ -72,6 +72,7 @@ has _exaplus => (
             '-x',                       # Stop in case of errors
             '-autoCompletion' => 'OFF',
             '-encoding' => 'UTF8',
+            '-autocommit' => 'OFF',
         );
         return \@ret;
     },

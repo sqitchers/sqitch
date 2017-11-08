@@ -69,6 +69,7 @@ my @std_opts = (
     '-x',
     '-autoCompletion' => 'OFF',
     '-encoding' => 'UTF8',
+    '-autocommit' => 'OFF',
 );
 
 is_deeply [$exa->exaplus], [$client, @std_opts],

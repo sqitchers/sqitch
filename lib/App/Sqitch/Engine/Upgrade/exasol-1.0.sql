@@ -15,3 +15,5 @@ COMMENT ON COLUMN &registry..releases.installer_email IS 'Email address of the u
 ALTER TABLE &registry..changes ADD script_hash CHAR(40) NULL;
 UPDATE &registry..changes SET script_hash = change_id;
 COMMENT ON COLUMN &registry..changes.script_hash IS 'Deploy script SHA-1 hash.';
+
+COMMIT;
