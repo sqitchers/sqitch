@@ -469,6 +469,8 @@ this:
       ts        TIMESTAMP WITH LOCAL TIME ZONE DEFAULT NOW() NOT NULL
   );
 
+  COMMIT;
+
 A few things to notice here. On the second line, the dependence on the
 C<appschema> change has been listed. This doesn't do anything, but the default
 C<deploy> Exasol template lists it here for your reference while editing
@@ -656,17 +658,25 @@ should look like:
       ts        TIMESTAMP WITH LOCAL TIME ZONE DEFAULT NOW() NOT NULL
   );
 
+  COMMIT;
+
 Here's what F<verify/flips.sql> might look like:
 
   -- Verify flipr:flips on exasol
+
   SELECT id, nickname, body, ts
     FROM flipr.flips
    WHERE FALSE;
 
+  ROLLBACK;
+
 And F<revert/flips.sql> should look something like this:
 
   -- Revert flipr:flips from exasol
+
   DROP TABLE flipr.flips;
+
+  COMMIT;
 
 Now for C<userflips>; F<deploy/userflips.sql> might look like this:
 
@@ -680,18 +690,26 @@ Now for C<userflips>; F<deploy/userflips.sql> might look like this:
     FROM flipr.users u
     JOIN flipr.flips f ON u.nickname = f.nickname;
 
+  COMMIT;
+
 Use a C<SELECT> statement in F<verify/userflips.sql> again:
 
   -- Verify flipr:userflips on exasol
+
   SELECT id, nickname, fullname, body, ts
     FROM flipr.userflips
    WHERE FALSE;
+
+  ROLLBACK;
 
 And of course, its C<revert> script, F<revert/userflips.sql>, should look
 something like:
 
   -- Revert flipr:userflips from exasol
+
   DROP VIEW flipr.userflips;
+
+  COMMIT;
 
 Try em out!
 
@@ -1253,10 +1271,6 @@ no duplicates or errors.
 As a result, there is no need to explicitly add changes. So go ahead. Modify
 the script to add the C<twitter> column to the view. Make this change to
 F<deploy/userflips.sql>:
-
-  @@ -4,8 +4,9 @@
-
-   BEGIN;
 
   @@ -4,6 +4,6 @@
    -- requires: flips
