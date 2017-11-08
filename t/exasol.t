@@ -11,7 +11,7 @@
 use strict;
 use warnings;
 use 5.010;
-use Test::More tests => 66;
+use Test::More;
 use Test::MockModule;
 use Test::Exception;
 use Locale::TextDomain qw(App-Sqitch);
@@ -51,6 +51,9 @@ isa_ok my $exa = $CLASS->new(
     sqitch => $sqitch,
     target => $target,
 ), $CLASS;
+
+is $exa->key, 'exasol', 'Key should be "exasol"';
+is $exa->name, 'Exasol', 'Name should be "Exasol"';
 
 my $client = 'exaplus' . ($^O eq 'MSWin32' ? '.exe' : '');
 is $exa->client, $client, 'client should default to exaplus';

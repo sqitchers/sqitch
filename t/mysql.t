@@ -36,6 +36,9 @@ my $sqitch = App::Sqitch->new( options => { engine => 'mysql'} );
 my $target = App::Sqitch::Target->new(sqitch => $sqitch);
 isa_ok my $mysql = $CLASS->new(sqitch => $sqitch, target => $target), $CLASS;
 
+is $mysql->key, 'mysql', 'Key should be "mysql"';
+is $mysql->name, 'MySQL', 'Name should be "MySQL"';
+
 my $client = 'mysql' . ($^O eq 'MSWin32' ? '.exe' : '');
 my $uri = URI::db->new('db:mysql:');
 is $mysql->client, $client, 'client should default to mysql';

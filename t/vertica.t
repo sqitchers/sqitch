@@ -52,6 +52,9 @@ isa_ok my $vta = $CLASS->new(
     target => $target,
 ), $CLASS;
 
+is $vta->key, 'vertica', 'Key should be "vertica"';
+is $vta->name, 'Vertica', 'Name should be "Vertica"';
+
 my $client = 'vsql' . ($^O eq 'MSWin32' ? '.exe' : '');
 is $vta->client, $client, 'client should default to vsql';
 is $vta->registry, 'sqitch', 'registry default should be "sqitch"';

@@ -41,8 +41,11 @@ my $target = App::Sqitch::Target->new(
 );
 isa_ok my $pg = $CLASS->new(sqitch => $sqitch, target => $target), $CLASS;
 
+is $pg->key, 'pg', 'Key should be "pg"';
+is $pg->name, 'PostgreSQL', 'Name should be "PostgreSQL"';
+
 my $client = 'psql' . ($^O eq 'MSWin32' ? '.exe' : '');
-is $pg->client, $client, 'client should default to psql';
+is $pg->client, $client, 'client should default to psqle';
 is $pg->registry, 'sqitch', 'registry default should be "sqitch"';
 is $pg->uri, $uri, 'DB URI should be "db:pg:"';
 my $dest_uri = $uri->clone;

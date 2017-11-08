@@ -23,7 +23,7 @@ sub _dt($) {
 }
 
 sub key    { 'exasol' }
-sub name   { 'EXASOL' }
+sub name   { 'Exasol' }
 sub driver { 'DBD::ODBC 1.43' }
 sub default_client { 'exaplus' }
 

@@ -38,6 +38,9 @@ my $target = App::Sqitch::Target->new(
 );
 isa_ok my $sqlite = $CLASS->new(sqitch => $sqitch, target => $target), $CLASS;
 
+is $sqlite->key, 'sqlite', 'Key should be "sqlite"';
+is $sqlite->name, 'SQLite', 'Name should be "SQLite"';
+
 is $sqlite->client, 'sqlite3' . ($^O eq 'MSWin32' ? '.exe' : ''),
     'client should default to sqlite3';
 is $sqlite->uri->dbname, file('foo.db'), 'dbname should be filled in';
