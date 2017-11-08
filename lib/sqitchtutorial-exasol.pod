@@ -202,7 +202,7 @@ reinforces the idea that the change is being C<added> to the database.
 With this change deployed, if you connect to the database, you'll be able to
 see the schema:
 
-  > exaplus -q -u sys -p exasol -c localhost:8563 -sql "select schema_name from exa_schemas;"                                                                                                                                                   2   master 
+  > exaplus -q -u sys -p exasol -c localhost:8563 -sql "select schema_name from exa_schemas;"
 
   SCHEMA_NAME
   --------------------------------------------------------------------------------------------------------------------------------
@@ -313,7 +313,7 @@ pass the C<-y> option to disable the prompt. Also, notice the C<-> before the
 change name in the output, which reinforces that the change is being
 I<removed> from the database. And now the schema should be gone:
 
-> exaplus -q -u sys -p exasol -c localhost:8563 -sql "select schema_name from exa_schemas;"                                                                                                                                                   2   master 
+> exaplus -q -u sys -p exasol -c localhost:8563 -sql "select schema_name from exa_schemas;"
 
   SCHEMA_NAME
   --------------------------------------------------------------------------------------------------------------------------------
@@ -374,7 +374,7 @@ the C<verify> script is applied when the change is deployed:
 
 And now the schema should be back:
 
-  > exaplus -q -u sys -p exasol -c localhost:8563 -sql "select schema_name from exa_schemas;"                                                                           2   master 
+  > exaplus -q -u sys -p exasol -c localhost:8563 -sql "select schema_name from exa_schemas;"
 
   SCHEMA_NAME
   --------------------------------------------------------------------------------------------------------------------------------
@@ -1300,7 +1300,7 @@ Now try a deployment:
 
 So, are the changes deployed?
 
-  > exaplus -q -u sys -p exasol -c localhost:8563 -sql "describe flipr.userflips;"                                                                                                                                                              2   master 
+  > exaplus -q -u sys -p exasol -c localhost:8563 -sql "describe flipr.userflips;"
 
   COLUMN_NAME                                                                                                                      SQL_TYPE                                 NULLABLE DISTRIBUTION_KEY
   -------------------------------------------------------------------------------------------------------------------------------- ---------------------------------------- -------- ----------------
