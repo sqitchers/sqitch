@@ -108,3 +108,8 @@ verifications
 transactional
 disambiguating
 MERCHANTABILITY
+Exasol
+exasol
+exaplus
+sql
+sys

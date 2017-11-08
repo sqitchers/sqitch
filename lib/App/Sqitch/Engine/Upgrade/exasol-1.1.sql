@@ -1,0 +1,2 @@
+-- Nothing to do here.. Exasol doesn't support UNIQUE constraints, except in
+-- the form of PRIMARY KEY.

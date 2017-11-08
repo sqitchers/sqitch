@@ -104,6 +104,8 @@ of a database with Sqitch.
 
 =item * L<Vertica Tutorial|sqitchtutorial-vertica>
 
+=item * L<Exasol Tutorial|sqitchtutorial-exasol>
+
 =back
 
 =item L<PDX.pm Presentation|https://speakerdeck.com/theory/sane-database-change-management-with-sqitch>
@@ -251,6 +253,8 @@ The database engine to use. Supported engines include:
 =item * C<firebird> - L<Firebird|http://www.firebirdsql.org/>
 
 =item * C<vertica> - L<Vertica|https://my.vertica.com/>
+
+=item * C<exasol> - L<Exasol|https://www.exasol.com/>
 
 =back
 
