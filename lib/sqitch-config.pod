@@ -314,7 +314,7 @@ new one with
   % sqitch config --replace-all core.fuzzle.clack funk
 
 However, if you only want to replace lines that don't match C<bar>, prepend
-the matching regular expression with an exaclamation point (C<!>), like so:
+the matching regular expression with an exclamation point (C<!>), like so:
 
   % sqitch config --replace-all core.fuzzle.clack yow '!bar'
 
@@ -448,6 +448,8 @@ The database engine to use. Supported engines include:
 =item * C<firebird> - L<Firebird|http://www.firebirdsql.org/>
 
 =item * C<vertica> - L<Vertica|https://my.vertica.com/>
+
+=item * C<exasol> - L<Exasol|https://www.exasol.com/>
 
 =back
 
@@ -591,6 +593,12 @@ where C<$extension> is the same as that in the C<uri>, if any.
 =item C<engine.vertica.registry>
 
 For the Vertica engine, the C<registry> value identifies the schema for Sqitch
+to use for its own data. No other data should be stored there. Defaults to
+C<sqitch>.
+
+=item C<engine.exasol.registry>
+
+For the Exasol engine, the C<registry> value identifies the schema for Sqitch
 to use for its own data. No other data should be stored there. Defaults to
 C<sqitch>.
 

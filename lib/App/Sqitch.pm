@@ -45,7 +45,8 @@ has verbosity => (
     is       => 'ro',
     lazy     => 1,
     default  => sub {
-        shift->config->get( key => 'core.verbosity' ) // 1;
+        my $self = shift;
+        $self->options->{verbosity} // $self->config->get( key => 'core.verbosity' ) // 1;
     }
 );
 

@@ -31,6 +31,8 @@ includes:
 
 =item * C<vertica>
 
+=item * C<exasol>
+
 =back
 
 Each engine may have a number of properties:
@@ -194,7 +196,7 @@ database for the engine.
 =item C<--registry>
 
   sqitch engine add pg --registry meta
-  
+
 Specifies the name of the database object where Sqitch's state and history
 data is stored. Typically a schema name (as in PostgreSQL and Oracle) or a
 database name (as in SQLite and MySQL). Defaults to C<sqitch>.

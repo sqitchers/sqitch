@@ -48,6 +48,8 @@ include:
 
 =item * C<vertica> - L<Vertica|https://my.vertica.com/>
 
+=item * C<exasol> - L<Exasol|https://www.exasol.com/>
+
 =back
 
 =item C<--top-dir>
@@ -107,7 +109,7 @@ be C<db:$engine:>.
 =item C<--registry>
 
   sqitch init widgets --registry meta
-  
+
 Specifies the name of the database object where Sqitch's state and history
 data is stored. Typically a schema name (as in PostgreSQL and Oracle) or a
 database name (as in SQLite and MySQL). Defaults to C<sqitch>.

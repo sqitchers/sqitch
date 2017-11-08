@@ -1077,6 +1077,10 @@ The MySQL engine.
 
 The Vertica engine.
 
+=item L<App::Sqitch::Engine::exasol>
+
+The Exasol engine.
+
 =back
 
 =head1 Author
