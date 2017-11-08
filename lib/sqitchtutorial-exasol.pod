@@ -66,6 +66,22 @@ See the
 L<Exasol downloads|https://www.exasol.com/portal/display/DOWNLOAD/6.0> for
 ODBC drivers, documentation, etc.
 
+=head2 Database Setup
+
+While installing and configuring an Exasol instance is beyond the scope of this
+tutorial, if you just want to follow along, you can start a Docker instance:
+
+  > docker run --detach --privileged --stop-timeout 120 -p 127.0.0.1:8563:8888  exasol/docker-db:latest
+
+This will make Exasol available at 127.0.0.1 (localhost) on port 8563, as if
+you were running it directly on your machine. You may have to wait for a minute
+until the database finished initializing; you can try connecting with `exaplus`
+to check status.
+
+See the corresponding L<GitHub repository|https://github.com/EXASOL/docker-db>
+for more information about how to run Exasol using Docker, for example if you
+want your data to persist beyond the lifetime of the container, etc.
+
 =head1 Starting a New Project
 
 Usually the first thing to do when starting a new project is to create a
