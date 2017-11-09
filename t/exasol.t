@@ -264,11 +264,8 @@ is_deeply \@capture, ['@"foo/bar.sql"'],
 $mock_sqitch->mock(verbosity => 2);
 ok $exa->run_verify('foo/bar.sql'), 'Verify foo/bar.sql again';
 
-TODO: {
-    local $TODO = "Verify always goes to capture for now";
-    is_deeply \@run, ['@"foo/bar.sql"'],
-        'Verify file should be passed to run() for high verbosity';
-}
+is_deeply \@capture, ['@"foo/bar.sql"'],
+    'Verify file should be passed to run() for high verbosity';
 
 $mock_sqitch->unmock_all;
 $mock_config->unmock_all;
