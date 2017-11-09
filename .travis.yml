@@ -59,9 +59,7 @@ before_install:
   - sudo tar -xzf EXAplus-6.0.4.tar.gz -C /opt
   - export PATH=/opt/EXAplus-6.0.4:$PATH
 
-  # Vertica should be up by now.
-  - vsql -U dbadmin -d docker -c 'SELECT VERSION();'
-
+  # Set up Perl.
   - git clone git://github.com/travis-perl/helpers ~/travis-perl-helpers
   - source ~/travis-perl-helpers/init
   - build-perl
@@ -70,18 +68,19 @@ before_install:
   - cd $BUILD_DIR
 
 install:
-  - cpanm --verbose --no-interactive --no-man-pages --notest Params::Validate DBI File::Which Test::More Test::Exception Time::HiRes
+  - cpanm --verbose --no-interactive --no-man-pages --notest Params::Validate DBI File::Which Test::More Test::Exception Time::HiRes Template
   - cpan-install --deps
   - cpan-install --coverage
 
 before_script:
   - coverage-setup
+  - vsql -U dbadmin -d docker -c 'SELECT VERSION();'
   - exaplus -c 127.0.0.1:8888 -u sys -p exasol -sql "SELECT current_timestamp;"
-  - perl -e "use DBI; use DBD::ODBC; my \$conn = DBI->connect('dbi:ODBC:EXAHOST=127.0.0.1;EXAPORT=8888;Driver=Exasol','sys','exasol'); print \$conn->selectcol_arrayref('SELECT current_timestamp')->[0];"
-  - ldd -r $(grep libexaodbc /etc/odbcinst.ini|awk '{print $3}')
+  # - perl -e "use DBI; use DBD::ODBC; my \$conn = DBI->connect('dbi:ODBC:EXAHOST=127.0.0.1;EXAPORT=8888;Driver=Exasol','sys','exasol'); print \$conn->selectcol_arrayref('SELECT current_timestamp')->[0];"
+  # - ldd -r $(grep libexaodbc /etc/odbcinst.ini|awk '{print $3}')
 
 script:
-  - prove -lor -j$(test-jobs) $(test-dirs)
+  - prove -lr --directives $(test-dirs)
 
 after_success:
   - coverage-report
