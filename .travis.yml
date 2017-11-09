@@ -19,6 +19,7 @@ services:
 env:
   global:
     - EXA_URI=db:exasol://sys:exasol@127.0.0.1:8888/?Driver=Exasol
+    - VSQL_URI=db:vertica://dbadmin@localhost:5433/docker?Driver=Vertica
 
 matrix:
   include:
@@ -28,22 +29,38 @@ matrix:
     - perl: "blead"
 
 before_install:
+  # Install prepreqs.
   - sudo apt-get update -qq
-  - sudo apt-get install -qq gettext firebird2.5-superclassic firebird2.5-dev aspell-en unixodbc-dev
+  - sudo apt-get install -qq gettext aspell-en unixodbc-dev odbcinst unixodbc
+  - cat t/odbc/odbcinst.ini | sudo tee -a /etc/odbcinst.ini
+
+  # Set up Firebird.
+  - sudo apt-get install -qq firebird2.5-superclassic firebird2.5-dev
   - sudo sed /ENABLE_FIREBIRD_SERVER=/s/no/yes/ -i /etc/default/firebird2.5
   - cat /etc/default/firebird2.5 | grep ENABLE_FIREBIRD_SERVER
   - sudo service firebird2.5-superclassic start
 
+  # Set up Vertica.
+  - cat t/odbc/vertica.ini | sudo tee -a /etc/vertica.ini
+  - docker pull cjonesy/docker-vertica:latest
+  - docker run -d -p 5433:5433 --rm sumitchawla/vertica
+  - docker ps -a
+  - curl -O https://my.vertica.com/client_drivers/8.1.x/8.1.1-7/vertica-client-8.1.1-7.x86_64.tar.gz
+  - sudo tar -xzf vertica-client-8.1.1-7.x86_64.tar.gz -C /
+  - export PATH=/opt/vertica/bin:$PATH
+
+  # Set up Exasol.
   - docker pull exasol/docker-db:latest
   - docker run -d -p 127.0.0.1:8888:8888 --privileged --rm exasol/docker-db:latest
   - docker ps -a
-  - sudo apt-get install -qq odbcinst unixodbc
-  - cat t/exasol/odbcinst.ini | sudo tee -a /etc/odbcinst.ini
   - curl -O https://www.exasol.com/support/secure/attachment/55217/EXASOL_ODBC-6.0.4.tar.gz
   - sudo tar -xvzf EXASOL_ODBC-6.0.4.tar.gz -C /opt
   - curl -O https://www.exasol.com/support/secure/attachment/55310/EXAplus-6.0.4.tar.gz
   - sudo tar -xzf EXAplus-6.0.4.tar.gz -C /opt
   - export PATH=/opt/EXAplus-6.0.4:$PATH
+
+  # Vertica should be up by now.
+  - vsql -U dbadmin -d docker -c 'SELECT VERSION();'
 
   - git clone git://github.com/travis-perl/helpers ~/travis-perl-helpers
   - source ~/travis-perl-helpers/init
@@ -64,7 +81,7 @@ before_script:
   - ldd -r $(grep libexaodbc /etc/odbcinst.ini|awk '{print $3}')
 
 script:
-  - prove -lr -j$(test-jobs) $(test-dirs)
+  - prove -lor -j$(test-jobs) $(test-dirs)
 
 after_success:
   - coverage-report
