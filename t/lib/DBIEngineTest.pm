@@ -77,10 +77,11 @@ sub run {
             try {
                 $code->( $engine ) || die 'NO';
             } catch {
+                (my $msg = eval { $_->message } || $_) =~ s/^/# /g;
                 plan skip_all => sprintf(
                     'Unable to live-test %s engine: %s',
                     $class->name,
-                    eval { $_->message } || $_
+                    substr($msg, 2),
                 );
             };
         }

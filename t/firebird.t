@@ -322,11 +322,11 @@ END {
         );
         if (@{$res} > 1) {
             # Do we have more than 1 active connections?
-            warn "    Another active connection detected, can't DROP DATABASE!\n";
+            diag "    Another active connection detected, can't DROP DATABASE!\n";
         }
         else {
             $dbh->func('ib_drop_database')
-                or warn
+                or diag
                 "Error dropping test database '$dbname': $DBI::errstr";
         }
     }
