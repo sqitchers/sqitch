@@ -576,15 +576,15 @@ sub _capture {
 
     require IPC::Run3;
     IPC::Run3::run3(
-        [$self->exaplus], \$conn, \@out, \@errout,
+        [$self->exaplus], \$conn, \@out, \@out,
         { return_if_system_error => 1 },
     );
 
     # EXAplus doesn't always seem to give a useful exit value; we need to match
     # on output as well..
-    if (my $err = $? || "@errout" =~ /^Error:/m ) {
+    if (my $err = $? || grep { /^Error:/m } @out) {
         # Ugh, send everything to STDERR.
-        $self->sqitch->vent((@out, @errout));
+        $self->sqitch->vent(@out);
         hurl io => __x(
             '{command} unexpectedly failed; exit value = {exitval}',
             command => $self->client,
