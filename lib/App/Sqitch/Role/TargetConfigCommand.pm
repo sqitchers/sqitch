@@ -9,6 +9,7 @@ use App::Sqitch::Types qw(HashRef);
 use App::Sqitch::X qw(hurl);
 use Path::Class;
 use Try::Tiny;
+use URI::db;
 use Locale::TextDomain qw(App-Sqitch);
 use List::Util qw(first);
 use File::Path qw(make_path);

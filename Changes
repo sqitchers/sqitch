@@ -21,6 +21,8 @@ Revision history for Perl extension App::Sqitch
        documentation to be a bit less confusing. Thanks to Emil for reporting
        where he got confused!
      - Added the Exasol engine. Thanks to Johan Wärlander for the PR (#362)!
+     - Fixed and issue where URI::db needed to be explicitly loaded. Thanks to
+       Hugh Esco for the report (#370)!
 
 0.9996 2017-07-17T18:33:12Z
      - Fixed an error where Oracle sometimes truncated timestamp formats so
