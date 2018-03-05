@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 645;
+use Test::More tests => 633;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -1755,12 +1755,11 @@ $engine->plan($plan);
 
 # Start with no deployed IDs.
 @deployed_changes = ();
-throws_ok { $engine->revert } 'App::Sqitch::X',
-    'Should get exception for no changes to revert';
-is $@->ident, 'revert', 'Should be a revert exception';
-is $@->message,  __ 'Nothing to revert (nothing deployed)',
-    'Should have notified that there is nothing to revert';
-is $@->exitval, 1, 'Exit val should be 1';
+ok $engine->revert,
+    'Should return success for no changes to revert';
+is_deeply +MockOutput->get_info, [
+    [__ 'Nothing to revert (nothing deployed)']
+], 'Should have notified that there is nothing to revert';
 is_deeply $engine->seen, [
     [deployed_changes => undef],
 ], 'It should only have called deployed_changes()';
@@ -1817,14 +1816,14 @@ is_deeply +MockOutput->get_info, [], 'Nothing should have been output';
 # Revert to a point with no following changes.
 $offset_change = $changes[0];
 push @resolved => $offset_change->id;
-throws_ok { $engine->revert($changes[0]->id) } 'App::Sqitch::X',
-    'Should get error reverting when no subsequent changes';
-is $@->ident, 'revert', 'No subsequent change error ident should be "revert"';
-is $@->exitval, 1, 'No subsequent change error exitval should be 1';
-is $@->message, __x(
-    'No changes deployed since: "{change}"',
-    change => $changes[0]->id,
-), 'No subsequent change error message should be correct';
+ok $engine->revert($changes[0]->id),
+    'Should return success for revert even with no changes';
+is_deeply +MockOutput->get_info, [
+    [__x(
+        'No changes deployed since: "{change}"',
+        change => $changes[0]->id,
+    )]
+], 'No subsequent change error message should be correct';
 
 delete $changes[0]->{_rework_tags}; # For deep comparison.
 is_deeply $engine->seen, [
@@ -1839,12 +1838,11 @@ is_deeply $engine->seen, [
 ], 'Should have called change_id_for and deployed_changes_since';
 
 # Revert with nothing deployed.
-throws_ok { $engine->revert } 'App::Sqitch::X',
-    'Should get error for known but undeployed change';
-is $@->ident, 'revert', 'No changes error should be "revert"';
-is $@->exitval, 1, 'No changes exitval should be 1';
-is $@->message, __ 'Nothing to revert (nothing deployed)',
-    'No changes message should be correct';
+ok $engine->revert,
+    'Should return success for known but undeployed change';
+is_deeply +MockOutput->get_info, [
+    [__ 'Nothing to revert (nothing deployed)']
+], 'No changes message should be correct';
 
 is_deeply $engine->seen, [
     [deployed_changes => undef],
@@ -2926,27 +2924,21 @@ my @verify_changes;
 $mock_engine->mock( _load_changes => sub { @verify_changes });
 
 # First, test with no changes.
-throws_ok { $engine->verify } 'App::Sqitch::X',
-    'Should get error for no deployed changes';
-is $@->ident, 'verify', 'No deployed changes ident should be "verify"';
-is $@->exitval, 1, 'No deployed changes exitval should be 1';
-is $@->message, __ 'No changes deployed',
-    'No deployed changes message should be correct';
+ok $engine->verify,
+    'Should return success for no deployed changes';
 is_deeply +MockOutput->get_info, [
     [__x 'Verifying {destination}', destination => $engine->destination],
+    [__ 'No changes deployed'],
 ], 'Notification of the verify should be emitted';
 
 # Try no changes *and* nothing in the plan.
 my $count = 0;
 $mock_plan->mock(count => sub { $count });
-throws_ok { $engine->verify } 'App::Sqitch::X',
-    'Should get error for no changes';
-is $@->ident, 'verify', 'No changes ident should be "verify"';
-is $@->exitval, 1, 'No changes exitval should be 1';
-is $@->message, __ 'Nothing to verify (no planned or deployed changes)',
-    'No changes message should be correct';
+ok $engine->verify,
+    'Should return success for no changes';
 is_deeply +MockOutput->get_info, [
     [__x 'Verifying {destination}', destination => $engine->destination],
+    [__ 'Nothing to verify (no planned or deployed changes)'],
 ], 'Notification of the verify should be emitted';
 
 # Now return some changes but have nothing in the plan.
