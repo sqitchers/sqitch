@@ -23,9 +23,10 @@ Revision history for Perl extension App::Sqitch
      - Added the Exasol engine. Thanks to Johan Wärlander for the PR (#362)!
      - Fixed and issue where URI::db needed to be explicitly loaded. Thanks to
        Hugh Esco for the report (#370)!
-     - Changed the exit value for rebase and revert from 1 to 0 when there is
-       no work to do. This is to match a shell's expectation of non-zero exit
-       statuses only when a command is unsuccessful. Nothing to do is considered
+     - Changed the exit value for `rebase` and `revert` from 1 to 0 when there
+       is no work to do. This is to match a shell's expectation of non-zero
+       exit statuses only when a command is unsuccessful, as well as the
+       behavior of `deploy` as of v0.995. Nothing to do is considered
        successful (#363).
 
 0.9996 2017-07-17T18:33:12Z
