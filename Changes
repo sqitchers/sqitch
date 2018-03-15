@@ -11,7 +11,7 @@ Revision history for Perl extension App::Sqitch
        processes on the same box, as happens with CPAN smoke testing boxes.
      - Fixed an issue where Sqitch would sometimes truncate the registry
        version number fetched from Postgres, most likely because the Perl
-       runtime was using 32-bit integers. Fix by casting the version to text
+       runtime was using 32-bit integers. Fixed by casting the version to text
        in the query, before Perl ever see it. Thanks to Malte Legenhausen for
        the report (#343).
      - The MySQL engine will now read the username from MySQL configuration
@@ -21,17 +21,18 @@ Revision history for Perl extension App::Sqitch
        documentation to be a bit less confusing. Thanks to Emil for reporting
        where he got confused!
      - Added the Exasol engine. Thanks to Johan Wärlander for the PR (#362)!
-     - Fixed and issue where URI::db needed to be explicitly loaded. Thanks to
+     - Fixed an issue where URI::db needed to be explicitly loaded. Thanks to
        Hugh Esco for the report (#370)!
      - Changed the exit value for `rebase` and `revert` from 1 to 0 when there
-       is no work to do. This is to match a shell's expectation of non-zero
-       exit statuses only when a command is unsuccessful, as well as the
-       behavior of `deploy` as of v0.995. Nothing to do is considered
-       successful. Thanks to Paul Williams for the PR (#374)!
-     - Update `psql` options to use a conninfo string to honour connection
-       parameter key words for pg: targets. It can now take advantage of the
-       connection service file using `db:pg:///?service=$PGSERVICE` as well as
-       other connection parameters. Thanks to Paul Williams for the PR (#375)!
+       is no work to do. This is to match the expectation of non-zero exit
+       statuses only when a command is unsuccessful, as well as the behavior
+       of `deploy` as of v0.995. Nothing to do is considered successful.
+       Thanks to Paul Williams for the PR (#374)!
+     - Update `psql` options to use a conninfo string to honor connection
+       parameter key words for PostgreSQL targets. It can now take advantage
+       of the connection service file using `db:pg:///?service=$PGSERVICE` as
+       well as other connection parameters. Thanks to Paul Williams for the PR
+       (#375)!
 
 0.9996 2017-07-17T18:33:12Z
      - Fixed an error where Oracle sometimes truncated timestamp formats so
