@@ -1,6 +1,6 @@
 Revision history for Perl extension App::Sqitch
 
-0.9997
+0.9997 2018-03-15T21:13:52Z
      - Fixed the Firebird engine to properly detect multiple instances of a
        change specified to `revert` and `verify`, matching the behavior of
        displaying tag-qualified alternates added to the other engines in
