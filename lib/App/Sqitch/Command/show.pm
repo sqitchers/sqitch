@@ -11,7 +11,7 @@ use Moo;
 use App::Sqitch::Types qw(Bool Str);
 extends 'App::Sqitch::Command';
 
-our $VERSION = '0.9997';
+our $VERSION = '0.9998';
 
 has target => (
     is      => 'ro',
