@@ -28,6 +28,10 @@ Revision history for Perl extension App::Sqitch
        exit statuses only when a command is unsuccessful, as well as the
        behavior of `deploy` as of v0.995. Nothing to do is considered
        successful (#363).
+     - Update `psql` options to use a conninfo string to honour connection
+       parameter key words for pg: targets. It can now take advantage of the
+       connection service file using db:pg:///?service=$PGSERVICE as well as
+       other connection parameters.
 
 0.9996 2017-07-17T18:33:12Z
      - Fixed an error where Oracle sometimes truncated timestamp formats so

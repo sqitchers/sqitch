@@ -45,15 +45,26 @@ has _psql => (
         my $self = shift;
         my $uri  = $self->uri;
         my @ret  = ( $self->client );
+
+        my %query_params = $uri->query_params;
+        my @conninfo;
         for my $spec (
-            [ username => $self->username ],
-            [ dbname   => $uri->dbname    ],
-            [ host     => $uri->host      ],
-            [ port     => $uri->_port     ],
+            [ user   => $self->username ],
+            [ dbname => $uri->dbname    ],
+            [ host   => $uri->host      ],
+            [ port   => $uri->_port     ],
+            map { [ $_ => $query_params{$_} ] }
+                sort keys %query_params,
             )
         {
-            push @ret, "--$spec->[0]" => $spec->[1] if $spec->[1];
+            next unless defined $spec->[1] && length $spec->[1];
+            if ($spec->[1] =~ /[ "'\\]/) {
+                $spec->[1] =~ s/([ "'\\])/\\$1/g;
+            }
+            push @conninfo, "$spec->[0]=$spec->[1]";
         }
+
+        push @ret => join ' ', @conninfo if @conninfo;
 
         if (my %vars = $self->variables) {
             push @ret => map {; '--set', "$_=$vars{$_}" } sort keys %vars;

@@ -109,7 +109,7 @@ ENV: {
 # Make sure config settings override defaults.
 my %config = (
     'engine.pg.client'   => '/path/to/psql',
-    'engine.pg.target'   => 'db:pg://localhost/try',
+    'engine.pg.target'   => 'db:pg://localhost/try?sslmode=disable&connect_timeout=5',
     'engine.pg.registry' => 'meta',
 );
 $std_opts[-1] = 'registry=meta';
@@ -119,14 +119,13 @@ $mock_config->mock(get => sub { $config{ $_[2] } });
 $target = App::Sqitch::Target->new( sqitch => $sqitch );
 ok $pg = $CLASS->new(sqitch => $sqitch, target => $target), 'Create another pg';
 is $pg->client, '/path/to/psql', 'client should be as configured';
-is $pg->uri->as_string, 'db:pg://localhost/try',
+is $pg->uri->as_string, 'db:pg://localhost/try?sslmode=disable&connect_timeout=5',
     'uri should be as configured';
 is $pg->registry, 'meta', 'registry should be as configured';
-is_deeply [$pg->psql], [qw(
-    /path/to/psql
-    --dbname   try
-    --host     localhost
-), @std_opts], 'psql command should be configured from URI config';
+is_deeply [$pg->psql], [
+    '/path/to/psql',
+    'dbname=try host=localhost connect_timeout=5 sslmode=disable',
+@std_opts], 'psql command should be configured from URI config';
 
 ##############################################################################
 # Now make sure that (deprecated?) Sqitch options override configurations.
@@ -145,11 +144,10 @@ is $pg->client, '/some/other/psql', 'client should be as optioned';
 is $pg->registry_destination, $pg->destination,
     'registry_destination should be the same as destination';
 is $pg->registry, 'meta', 'registry should still be as configured';
-is_deeply [$pg->psql], [qw(
-    /some/other/psql
-    --dbname   try
-    --host     localhost
-), @std_opts], 'psql command should be as optioned';
+is_deeply [$pg->psql], [
+    '/some/other/psql',
+    'dbname=try host=localhost connect_timeout=5 sslmode=disable',
+@std_opts], 'psql command should be as optioned';
 
 ##############################################################################
 # Test _run(), _capture(), and _spool().
