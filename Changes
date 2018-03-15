@@ -27,11 +27,11 @@ Revision history for Perl extension App::Sqitch
        is no work to do. This is to match a shell's expectation of non-zero
        exit statuses only when a command is unsuccessful, as well as the
        behavior of `deploy` as of v0.995. Nothing to do is considered
-       successful (#363).
+       successful. Thanks to Paul Williams for the PR (#374)!
      - Update `psql` options to use a conninfo string to honour connection
        parameter key words for pg: targets. It can now take advantage of the
-       connection service file using db:pg:///?service=$PGSERVICE as well as
-       other connection parameters.
+       connection service file using `db:pg:///?service=$PGSERVICE` as well as
+       other connection parameters. Thanks to Paul Williams for the PR (#375)!
 
 0.9996 2017-07-17T18:33:12Z
      - Fixed an error where Oracle sometimes truncated timestamp formats so
