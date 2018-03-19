@@ -157,8 +157,13 @@ Git.
 %install
 rm -rf $RPM_BUILD_ROOT
 
-./Build install create_packlist=0
+./Build install
 find $RPM_BUILD_ROOT -depth -type d -exec rmdir {} 2>/dev/null \;
+
+# Grab and tweak the .packlist file.
+find $RPM_BUILD_ROOT -type f -name .packlist -exec mv {} . \;
+perl -i -pe 's/[.]([13](?:pm)?)$/.$1*/g' .packlist
+perl -i -pe "s{^\Q$RPM_BUILD_ROOT}{}g" .packlist
 
 %{_fixperms} $RPM_BUILD_ROOT/*
 
@@ -168,12 +173,9 @@ find $RPM_BUILD_ROOT -depth -type d -exec rmdir {} 2>/dev/null \;
 %clean
 rm -rf $RPM_BUILD_ROOT
 
-%files
+%files -f .packlist
 %defattr(-,root,root,-)
 %doc Changes META.json README.md
-%{perl_vendorlib}/*
-%{_mandir}/man3/*
-%{_bindir}/*
 %config %{etcdir}/*
 
 %package pg
@@ -287,7 +289,7 @@ Sqitch Vertica support.
 * Thu Mar 15 2018 David E. Wheeler <david.wheeler@iovation.com> 0.9997-1
 - Upgrade to v0.9997.
 
-* Wed Jul 29 2017 David E. Wheeler <david.wheeler@iovation.com> 0.9996-2
+* Wed Jul 19 2017 David E. Wheeler <david.wheeler@iovation.com> 0.9996-2
 - Require File::Find and Module::Runtime at build time.
 - Remove Moo::sification.
 
@@ -317,7 +319,7 @@ Sqitch Vertica support.
 - Replace requirement for vertica-client with /opt/vertica/bin/vsql and
   libverticaodbc.so.
 
-* Fri Mar 3 2015 David E. Wheeler <david.wheeler@iovation.com> 0.9991-1
+* Tue Mar 3 2015 David E. Wheeler <david.wheeler@iovation.com> 0.9991-1
 - Upgrade to v0.9991.
 - Reduced required MySQL version to 5.1.
 
