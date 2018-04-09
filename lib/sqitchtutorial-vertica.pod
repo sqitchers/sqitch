@@ -849,6 +849,10 @@ deploying it to another database:
 Notice how the tag on C<userflips> now appears in the deploy output. Nice, eh?
 Now, package it up and ship it!
 
+  > cd ..
+  > mv bundle flipr-v1.0.0-dev1
+  > tar -czf flipr-v1.0.0-dev1.tgz flipr-v1.0.0-dev1
+
 =head1 Making a Hash of Things
 
 Now that we've got the basics of the app done, let's add a feature. Gotta

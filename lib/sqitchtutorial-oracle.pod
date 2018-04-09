@@ -952,6 +952,10 @@ C<flipr_prod>:
 
 Looks much the same as before, eh? Package it up and ship it!
 
+  > cd ..
+  > mv bundle flipr-v1.0.0-dev1
+  > tar -czf flipr-v1.0.0-dev1.tgz flipr-v1.0.0-dev1
+
 =head1 Flip Out
 
 Now that we've got the basics of user management done, let's get to work on
