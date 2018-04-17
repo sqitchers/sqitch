@@ -232,7 +232,7 @@ sub _quote_idents {
     map { $_ eq 'change' ? '"change"' : $_ } @_;
 }
 
-sub _version_query { 'SELECT ROUND(MAX(version), 1) FROM releases' }
+sub _version_query { 'SELECT CAST(ROUND(MAX(version), 1) AS VARCHAR(10)) FROM releases' }
 
 sub initialized {
     my $self = shift;
