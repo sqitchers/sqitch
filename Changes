@@ -3,9 +3,9 @@ Revision history for Perl extension App::Sqitch
 0.9998
      - Fixed an issue where Sqitch would sometimes truncate the registry
        version number fetched from MySQL, most likely because the Perl runtime
-       was using 32-bit integers. Fixed by casting the version to VARCHAR in
-       the query, before Perl ever see it. Thanks to Allen Godfrey David for
-       the report.
+       was using 32-bit integers. Fixed by casting the version to CHAR in the
+       query, before Perl ever see it. Thanks to Allen Godfrey David for the
+       report.
 
 0.9997 2018-03-15T21:13:52Z
      - Fixed the Firebird engine to properly detect multiple instances of a
