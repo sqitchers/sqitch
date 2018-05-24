@@ -80,7 +80,7 @@ Revision history for Perl extension App::Sqitch
        Hannah for the PR (#342).
      - Passing an engine name or plan file as the `<database>` parameter to
        the `log`, `status`, and `upgrade` commands now works correctly,
-       matching what the documention has said for some time (#324).
+       matching what the documentation has said for some time (#324).
      - Added the `--target` option to the `plan` and `show` commands.
      - Added the `<database>` parameter to the `plan` command.
      - Sqitch now loads targets from all config files, not just the local
@@ -92,7 +92,7 @@ Revision history for Perl extension App::Sqitch
        Please specify a tag-qualified change:", followed by a list of
        tag-qualified variants of the change.
      - Fixed a bug where the verify command would return a database error when
-       it finds no registory. Now it reports that the registry wasn't found in
+       it finds no registry. Now it reports that the registry wasn't found in
        the database.
 
 0.9995 2016-07-27T09:23:55Z
@@ -116,7 +116,7 @@ Revision history for Perl extension App::Sqitch
        environment variable still trumps all. Thanks to Jim Nasby for the pull
        request (#296).
      - Added detection of the `$VISUAL` environment variable to Editor
-       selection, prioritzed after the `core.editor` configuration variable
+       selection, prioritized after the `core.editor` configuration variable
        and before the `$EDITOR` environment variable. Thanks to Jim Nasby for
        the pull request (#296).
      - Updated the DateTime code to set the locale via `set_locale()` instead
@@ -147,7 +147,7 @@ Revision history for Perl extension App::Sqitch
        registry can be found. Thanks to Arnaldo Piccinelli for the spot (Issue
        #271).
      - Fixed the search for change IDs in engines to match the search for
-       changes. Specifically, change ID seaerch now properly handles the
+       changes. Specifically, change ID search now properly handles the
        offset characters `~` and `^`. This bug mainly affected the `verify`
        command, but it's good to address the inconsistency, done mainly by
        adding the `find_change_id` and `change_id_offset_from_id` methods to
@@ -247,7 +247,7 @@ Revision history for Perl extension App::Sqitch
 0.9992 2015-05-20T23:51:41Z
      - On PostgreSQL, Sqitch now sets the `client_encoding` parameter to
        `UTF8` for its own connection to the database. This ensures that data
-       sent to and from the databse should always be properly encoded and
+       sent to and from the database should always be properly encoded and
        decoded. Users should still set the proper encodings for change scripts
        as appropriate.
      - Fixed test failures due to path differences on Windows.
@@ -368,14 +368,14 @@ Revision history for Perl extension App::Sqitch
      - Improved MySQL missing table error detection by relying on error codes
        instead of matching a (possibly localized) error string.
      - Made the registry upgrade more transparent when deploying. Sqitch is
-       now is a little more vigilent in checking for things being out-of-date
+       now is a little more vigilant in checking for things being out-of-date
        and updating them.
      - Fixed an issue where the `status` command would return an error when
        run against a an older version of the registry.
      - Fixed a Postgres test failure when DBD::Pg is installed but psql is not
        in the path.
      - Now require Config::GitLike 1.15 to build on Windows in order to avoid
-       test failures when Cwd::abs_path dies on non-existant paths.
+       test failures when Cwd::abs_path dies on non-existent paths.
      - Clarified the behavior of each `deploy` reversion mode with regard to
        deploy script vs. verify script failures, and with the expectation that
        deploy scripts are atomic.
@@ -620,7 +620,7 @@ Revision history for Perl extension App::Sqitch
        that the server was not the right version of MySQL. Thanks to Luke
        Young for the report (Issue #158).
      - Made the `checkit()` MySQL function DETERMINISTIC, to improve
-       compatability with MariaDB. Thanks to Jesse Luehrs for the report
+       compatibility with MariaDB. Thanks to Jesse Luehrs for the report
        (Issue #158).
      - Fixed deployment to PostgreSQL 8.4 so that it no longer chokes on the
        `:tableopts`. Thanks to Justin Hawkins for the report!
@@ -634,7 +634,7 @@ Revision history for Perl extension App::Sqitch
 
 0.991  2014-01-16T23:24:33Z
      - Greatly simplified determining the Firebird ISQL client. It no longer
-       tries so hard to find a full path, but does seach through the path list
+       tries so hard to find a full path, but does search through the path list
        for a likely candidate between fbsql, isql-fb, and isql (or equivalents
        ending in .exe on Windows).
      - Removed a bunch of inappropriately pasted stuff from the Firebird
