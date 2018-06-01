@@ -60,8 +60,7 @@ has _exaplus => (
             [ p => $self->password ],
             [ c => $uri->host && $uri->_port ? $uri->host . ':' . $uri->_port : undef ],
             [ profile => $uri->host ? undef : $uri->dbname ]
-            )
-        {
+        ) {
             push @ret, "-$spec->[0]" => $spec->[1] if $spec->[1];
         }
 

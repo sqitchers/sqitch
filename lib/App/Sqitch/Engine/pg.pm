@@ -55,8 +55,7 @@ has _psql => (
             [ port   => $uri->_port     ],
             map { [ $_ => $query_params{$_} ] }
                 sort keys %query_params,
-            )
-        {
+        ) {
             next unless defined $spec->[1] && length $spec->[1];
             if ($spec->[1] =~ /[ "'\\]/) {
                 $spec->[1] =~ s/([ "'\\])/\\$1/g;

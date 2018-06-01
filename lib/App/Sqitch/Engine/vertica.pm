@@ -52,8 +52,7 @@ has _vsql => (
             [ dbname   => $uri->dbname    ],
             [ host     => $uri->host      ],
             [ port     => $uri->_port     ],
-            )
-        {
+        ) {
             push @ret, "--$spec->[0]" => $spec->[1] if $spec->[1];
         }
 
@@ -61,14 +60,7 @@ has _vsql => (
             push @ret => map {; '--set', "$_=$vars{$_}" } sort keys %vars;
         }
 
-        push @ret => (
-            '--quiet',
-            '--no-vsqlrc',
-            '--no-align',
-            '--tuples-only',
-            '--set' => 'ON_ERROR_STOP=1',
-            '--set' => 'registry=' . $self->registry,
-        );
+        push @ret => $self->_client_opts;
         return \@ret;
     },
 );
