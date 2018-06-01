@@ -103,7 +103,8 @@ has dbh => (
                     try {
                         $dbh->do($_) for (
                             'USE SCHEMA ' . $dbh->quote($self->registry),
-                            "ALTER SESSION SET timestamp_output_format='YYYY-MM-DD HH24:MI:SS'",
+                            'ALTER SESSION SET TIMESTAMP_TYPE_MAPPING=TIMESTAMP_LTZ',
+                            "ALTER SESSION SET TIMESTAMP_OUTPUT_FORMAT='YYYY-MM-DD HH24:MI:SS'",
                             "ALTER SESSION SET TIMEZONE='UTC'",
                         );
                         $dbh->set_err(undef, undef) if $dbh->err;
