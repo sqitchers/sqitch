@@ -198,11 +198,6 @@ sub _no_column_error  {
     return $DBI::state && $DBI::state eq '42703'; # ERRCODE_UNDEFINED_COLUMN
 }
 
-sub _ts2char($) {
-    my $col = shift;
-    return qq{to_char($col AT TIME ZONE 'UTC', '"year":YYYY:"month":MM:"day":DD:"hour":HH24:"minute":MI:"second":SS:"time_zone":"UTC"')};
-}
-
 sub _dt($) {
     require App::Sqitch::DateTime;
     return App::Sqitch::DateTime->new(split /:/ => shift);
