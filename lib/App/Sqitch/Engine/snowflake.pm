@@ -105,7 +105,7 @@ has dbh => (
                     my $dbh = shift;
                     try {
                         $dbh->do($_) for (
-                            'USE SCHEMA ' . $dbh->quote($self->registry),
+                            'USE SCHEMA ' . $self->registry,
                             'ALTER SESSION SET TIMESTAMP_TYPE_MAPPING=TIMESTAMP_LTZ',
                             "ALTER SESSION SET TIMESTAMP_OUTPUT_FORMAT='YYYY-MM-DD HH24:MI:SS'",
                             "ALTER SESSION SET TIMEZONE='UTC'",
@@ -168,7 +168,7 @@ sub initialize {
     ) if $self->initialized;
 
     $self->run_file( file(__FILE__)->dir->file('snowflake.sql') );
-    $self->dbh->do('USE SCHEMA ' . $self->dbh->quote($schema));
+    $self->dbh->do("USE SCHEMA $schema");
     $self->_register_release;
 }
 
@@ -197,7 +197,7 @@ sub _simple_from { ' FROM dual' }
 
 sub run_file {
     my ($self, $file) = @_;
-    $self->_run('--filename' => $file);
+    $self->_run('--option' => 'quiet=true', '--filename' => $file);
 }
 
 sub run_handle {

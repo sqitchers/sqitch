@@ -1,6 +1,6 @@
 CREATE SCHEMA IF NOT EXISTS &registry;
 
-COMMENT ON SCHEMA &registry IS 'Sqitch database deployment metadata v1.0.';
+COMMENT ON SCHEMA &registry IS 'Sqitch database deployment metadata v1.1.';
 
 CREATE TABLE &registry.releases (
     version           FLOAT        PRIMARY KEY,
@@ -41,7 +41,7 @@ CREATE TABLE &registry.changes (
     committer_email TEXT         NOT NULL,
     planned_at      TIMESTAMP_TZ NOT NULL,
     planner_name    TEXT         NOT NULL,
-    planner_email   TEXT         NOT NULL
+    planner_email   TEXT         NOT NULL,
     UNIQUE(project, script_hash)
 );
 
@@ -105,9 +105,10 @@ COMMENT ON COLUMN &registry.dependencies.dependency    IS 'Dependency name.';
 COMMENT ON COLUMN &registry.dependencies.dependency_id IS 'Change ID the dependency resolves to.';
 
 CREATE TABLE &registry.events (
-    event           TEXT        NOT NULL CONSTRAINT events_event_check CHECK (
-        event IN ('deploy', 'revert', 'fail', 'merge')
-    ),
+    event           TEXT        NOT NULL,
+    -- CONSTRAINT events_event_check CHECK (
+    --     event IN ('deploy', 'revert', 'fail', 'merge')
+    -- ),
     change_id       TEXT        NOT NULL,
     change          TEXT        NOT NULL,
     project         TEXT        NOT NULL REFERENCES &registry.projects(project) ON UPDATE CASCADE,
@@ -122,7 +123,7 @@ CREATE TABLE &registry.events (
     planner_name    TEXT        NOT NULL,
     planner_email   TEXT        NOT NULL,
     PRIMARY KEY (change_id, committed_at)
-):tableopts;
+);
 
 COMMENT ON TABLE  &registry.events                 IS 'Contains full history of all deployment events.';
 COMMENT ON COLUMN &registry.events.event           IS 'Type of event.';

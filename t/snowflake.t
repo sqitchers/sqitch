@@ -248,7 +248,7 @@ is_deeply \@capture, [$vta->snowsql, qw(foo bar baz)],
 ##############################################################################
 # Test file and handle running.
 ok $vta->run_file('foo/bar.sql'), 'Run foo/bar.sql';
-is_deeply \@run, [$vta->snowsql, '--filename', 'foo/bar.sql'],
+is_deeply \@run, [$vta->snowsql, '--option' => 'quiet=true', '--filename', 'foo/bar.sql'],
     'File should be passed to run()';
 
 ok $vta->run_handle('FH'), 'Spool a "file handle"';
@@ -262,7 +262,7 @@ is_deeply \@spool, ['FH', $vta->snowsql],
 
 $mock_sqitch->mock(verbosity => 2);
 ok $vta->run_verify('foo/bar.sql'), 'Verify foo/bar.sql again';
-is_deeply \@run, [$vta->snowsql, '--filename', 'foo/bar.sql'],
+is_deeply \@run, [$vta->snowsql, '--option' => 'quiet=true', '--filename', 'foo/bar.sql'],
     'Verifile file should be passed to run() for high verbosity';
 
 $mock_sqitch->unmock_all;

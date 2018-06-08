@@ -3,7 +3,7 @@ BEGIN;
 SET client_min_messages = warning;
 CREATE SCHEMA IF NOT EXISTS :"registry";
 
-COMMENT ON SCHEMA :"registry" IS 'Sqitch database deployment metadata v1.0.';
+COMMENT ON SCHEMA :"registry" IS 'Sqitch database deployment metadata v1.1.';
 
 CREATE TABLE :"registry".releases (
     version         REAL        PRIMARY KEY,
