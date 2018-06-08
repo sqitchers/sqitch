@@ -3,7 +3,7 @@
 # To test against a live Snowflake database, you must set the SNOWSQL_URI environment variable.
 # this is a stanard URI::db URI, and should look something like this:
 #
-#     export SNOWSQL_URI=db:snowflake://dbadmin:password@localhost:5433/dbadmin?Driver=Snowflake
+#     export SNOWSQL_URI=db:snowflake://username:password@accountname.snowflakecomputing.com/dbname?Driver=Snowflake
 #
 # Note that it must include the `?Driver=$driver` bit so that DBD::ODBC loads
 # the proper driver.
@@ -134,7 +134,7 @@ ENV: {
 # Make sure config settings override defaults.
 my %config = (
     'engine.snowflake.client'   => '/path/to/snowsql',
-    'engine.snowflake.target'   => 'db:snowflake://localhost/try',
+    'engine.snowflake.target'   => 'db:snowflake://foo.snowflakecomputing.com/try',
     'engine.snowflake.registry' => 'meta',
 );
 $std_opts[-1] = 'registry=meta';
@@ -145,13 +145,13 @@ $target = App::Sqitch::Target->new( sqitch => $sqitch );
 ok $vta = $CLASS->new(sqitch => $sqitch, target => $target),
     'Create another snowflake';
 is $vta->client, '/path/to/snowsql', 'client should be as configured';
-is $vta->uri->as_string, 'db:snowflake://localhost/try',
+is $vta->uri->as_string, 'db:snowflake://foo.snowflakecomputing.com/try',
     'uri should be as configured';
 is $vta->registry, 'meta', 'registry should be as configured';
 is_deeply [$vta->snowsql], [qw(
     /path/to/snowsql
-    --dbname   try
-    --host     localhost
+    --accountname foo
+    --dbname      try
 ), @std_opts], 'snowsql command should be configured from URI config';
 
 ##############################################################################
@@ -170,8 +170,8 @@ ok $vta = $CLASS->new(sqitch => $sqitch, target => $target),
 is $vta->client, '/some/other/snowsql', 'client should be as optioned';
 is_deeply [$vta->snowsql], [qw(
     /some/other/snowsql
+    --accountname foo
     --dbname   try
-    --host     localhost
 ), @std_opts], 'snowsql command should be as optioned';
 
 ##############################################################################
@@ -300,12 +300,12 @@ END {
     $dbh->{RaiseError} = 0;
     $dbh->{PrintError} = 1;
     $dbh->do($_) for (
-        'DROP SCHEMA sqitch CASCADE',
-        'DROP SCHEMA __sqitchtest CASCADE',
+        'DROP SCHEMA IF EXISTS sqitch CASCADE',
+        'DROP SCHEMA IF EXISTS __sqitchtest CASCADE',
     );
 }
 
-$uri = URI->new($ENV{SNOWSQL_URI} || 'db:dbadmin:password@localhost/dbadmin');
+$uri = URI->new($ENV{SNOWSQL_URI} || 'db:snowflake://username:password@accountname.snowflakecomputing.com/dbname?Driver=Snowflake');
 my $err = try {
     $vta->use_driver;
     $dbh = DBI->connect($uri->dbi_dsn, $uri->user, $uri->password, {
@@ -318,5 +318,34 @@ my $err = try {
     eval { $_->message } || $_;
 };
 
+
+DBIEngineTest->run(
+    class         => $CLASS,
+    sqitch_params => [options => {
+        engine    => 'snowflake',
+        top_dir   => Path::Class::dir(qw(t engine)),
+        plan_file => Path::Class::file(qw(t engine sqitch.plan)),
+    }],
+    target_params     => [ uri => $uri ],
+    alt_target_params => [ uri => $uri, registry => '__sqitchtest' ],
+    skip_unless       => sub {
+        my $self = shift;
+        die $err if $err;
+        # Make sure we have vsql and can connect to the database.
+        $self->sqitch->probe( $self->client, '--version' );
+        $self->_capture('--query' => 'SELECT CURRENT_DATE FROM dual');
+    },
+    engine_err_regex  => qr/\bERROR \d+:/,
+    init_error        => __x(
+        'Sqitch schema "{schema}" already exists',
+        schema => '__sqitchtest',
+    ),
+    test_dbh => sub {
+        my $dbh = shift;
+        # Make sure the sqitch schema is the first in the search path.
+        is $dbh->selectcol_arrayref('SELECT current_schema')->[0],
+            '__sqitchtest', 'The Sqitch schema should be the current schema';
+    },
+);
 
 done_testing;

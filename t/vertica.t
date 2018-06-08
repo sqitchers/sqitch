@@ -295,7 +295,7 @@ END {
     );
 }
 
-$uri = URI->new($ENV{VSQL_URI} || 'db:dbadmin:password@localhost/dbadmin');
+$uri = URI->new($ENV{VSQL_URI} || 'db:vertica://dbadmin:password@localhost/dbadmin');
 my $err = try {
     $vta->use_driver;
     $dbh = DBI->connect($uri->dbi_dsn, $uri->user, $uri->password, {

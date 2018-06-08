@@ -47,11 +47,14 @@ has _snowsql => (
         my $self = shift;
         my $uri  = $self->uri;
         my @ret  = ( $self->client );
+        if (my $h = $uri->host) {
+            (my $account = $h) =~ s/[.].+//;
+            push @ret, '--accountname' => $account;
+        }
+
         for my $spec (
             [ username => $self->username ],
             [ dbname   => $uri->dbname    ],
-            [ host     => $uri->host      ],
-            [ port     => $uri->_port     ],
         ) {
             push @ret, "--$spec->[0]" => $spec->[1] if $spec->[1];
         }
@@ -148,13 +151,11 @@ sub _listagg_format {
 sub initialized {
     my $self = shift;
     return $self->dbh->selectcol_arrayref(q{
-        SELECT EXISTS(
-            SELECT true
-              FROM information_schema.tables
-             WHERE TABLE_CATALOG = current_database()
-               AND TABLE_SCHEMA  = ?
-               AND TABLE_NAME    = ?
-        )
+        SELECT true
+          FROM information_schema.tables
+         WHERE TABLE_CATALOG = current_database()
+           AND TABLE_SCHEMA  = ?
+           AND TABLE_NAME    = ?
     }, undef, $self->registry, 'changes')->[0];
 }
 
@@ -166,7 +167,7 @@ sub initialize {
         schema => $schema
     ) if $self->initialized;
 
-    $self->_run_registry_file( file(__FILE__)->dir->file('snowflake.sql') );
+    $self->run_file( file(__FILE__)->dir->file('snowflake.sql') );
     $self->dbh->do('USE SCHEMA ' . $self->dbh->quote($schema));
     $self->_register_release;
 }
@@ -252,7 +253,6 @@ App::Sqitch::Engine::snowflake - Sqitch Snowflake Engine
 =head1 Description
 
 App::Sqitch::Engine::snowflake provides the Snowflake storage engine for Sqitch.
-It supports Snowflake 6.
 
 =head1 Interface
 

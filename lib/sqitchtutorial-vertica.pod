@@ -37,7 +37,7 @@ If you'd like to manage an Exasol database, see L<sqitchtutorial-exasol>.
 Sqitch requires ODBC to connect to the Vertica database. As such, you'll need
 to make sure that the Vertica ODBC driver is properly configured. At its
 simplest, on Unix-like systems, name the driver "Vertica" by adding this entry
-to C<odbcainst.ini> (usually found in C</etc>, C</usr/etc>, or
+to C<odbcinst.ini> (usually found in C</etc>, C</usr/etc>, or
 C</usr/local/etc>):
 
   [Vertica]
