@@ -33,6 +33,7 @@ BEGIN {
     $ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
     $ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.user';
     $ENV{SQITCH_USER_CONFIG}   = 'nonexistent.sys';
+    $ENV{SNOWSQL_ACCOUNT}      = 'nonesuch';
 }
 
 is_deeply [$CLASS->config_vars], [
@@ -47,24 +48,33 @@ my $target = App::Sqitch::Target->new(
     sqitch => $sqitch,
     uri    => $uri,
 );
-isa_ok my $vta = $CLASS->new(
+
+# Disable config file parsing for the remainder of the tests.
+my $mock_snow = Test::MockModule->new($CLASS);
+$mock_snow->mock(_snowcfg => {});
+
+isa_ok my $snow = $CLASS->new(
     sqitch => $sqitch,
     target => $target,
 ), $CLASS;
 
-is $vta->key, 'snowflake', 'Key should be "snowflake"';
-is $vta->name, 'Snowflake', 'Name should be "Snowflake"';
+is $snow->key, 'snowflake', 'Key should be "snowflake"';
+is $snow->name, 'Snowflake', 'Name should be "Snowflake"';
 
 my $client = 'snowsql' . ($^O eq 'MSWin32' ? '.exe' : '');
-is $vta->client, $client, 'client should default to snowsql';
-is $vta->registry, 'sqitch', 'registry default should be "sqitch"';
-is $vta->uri, $uri, 'DB URI should be "db:snowflake:"';
-my $dest_uri = $uri->clone;
-$dest_uri->dbname($ENV{SNOWFLAKEDATABASE} || $ENV{SNOWFLAKEUSER} || $sqitch->sysuser);
-is $vta->destination, $dest_uri->as_string,
+is $snow->client, $client, 'client should default to snowsql';
+is $snow->registry, 'sqitch', 'registry default should be "sqitch"';
+is $snow->uri, $uri, 'DB URI should be filled in';
+is $snow->destination, $uri->as_string,
     'Destination should fall back on environment variables';
-is $vta->registry_destination, $vta->destination,
+is $snow->registry_destination, $snow->destination,
     'Registry destination should be the same as destination';
+
+my @con_opts = (
+    '--accountname' => $ENV{SNOWSQL_ACCOUNT},
+    '--username' => $snow->username,
+    '--dbname' => $uri->dbname,
+);
 
 my @std_opts = (
     '--noup',
@@ -84,17 +94,18 @@ my @std_opts = (
     '--option' => 'variable_substitution=true',
     '--variable' => 'registry=sqitch',
 );
-is_deeply [$vta->snowsql], [$client, @std_opts],
+is_deeply [$snow->snowsql], [$client, @con_opts, @std_opts],
     'snowsql command should be std opts-only';
 
-isa_ok $vta = $CLASS->new(
+isa_ok $snow = $CLASS->new(
     sqitch => $sqitch,
     target => $target,
 ), $CLASS;
-ok $vta->set_variables(foo => 'baz', whu => 'hi there', yo => 'stellar'),
+ok $snow->set_variables(foo => 'baz', whu => 'hi there', yo => 'stellar'),
     'Set some variables';
-is_deeply [$vta->snowsql], [
+is_deeply [$snow->snowsql], [
     $client,
+    @con_opts,
     '--variable' => 'foo=baz',
     '--variable' => 'whu=hi there',
     '--variable' => 'yo=stellar',
@@ -105,28 +116,28 @@ is_deeply [$vta->snowsql], [
 # Test other configs for the target.
 ENV: {
     # Make sure we override system-set vars.
-    local $ENV{SNOWFLAKEDATABASE};
-    local $ENV{SNOWFLAKEUSER};
-    for my $env (qw(SNOWFLAKEDATABASE SNOWFLAKEUSER)) {
-        my $vta = $CLASS->new(sqitch => $sqitch, target => $target);
+    local $ENV{SNOWSQL_DATABASE};
+    local $ENV{SNOWSQL_USER};
+    for my $env (qw(SNOWSQL_DATABASE SNOWSQL_USER)) {
+        my $snow = $CLASS->new(sqitch => $sqitch, target => $target);
         local $ENV{$env} = "\$ENV=whatever";
-        is $vta->target->name, "db:snowflake:", "Target name should not read \$$env";
-        is $vta->registry_destination, $vta->destination,
+        is $snow->target->name, "db:snowflake:", "Target name should not read \$$env";
+        is $snow->registry_destination, $snow->destination,
             'Meta target should be the same as destination';
     }
 
     my $mocker = Test::MockModule->new('App::Sqitch');
     $mocker->mock(sysuser => 'sysuser=whatever');
-    my $vta = $CLASS->new(sqitch => $sqitch, target => $target);
-    is $vta->target->name, 'db:snowflake:',
+    my $snow = $CLASS->new(sqitch => $sqitch, target => $target);
+    is $snow->target->name, 'db:snowflake:',
         'Target name should not fall back on sysuser';
-    is $vta->registry_destination, $vta->destination,
+    is $snow->registry_destination, $snow->destination,
         'Meta target should be the same as destination';
 
-    $ENV{SNOWFLAKEDATABASE} = 'mydb';
-    $vta = $CLASS->new(sqitch => $sqitch, username => 'hi', target => $target);
-    is $vta->target->name, 'db:snowflake:',  'Target name should be the default';
-    is $vta->registry_destination, $vta->destination,
+    $ENV{SNOWSQL_DATABASE} = 'mydb';
+    $snow = $CLASS->new(sqitch => $sqitch, username => 'hi', target => $target);
+    is $snow->target->name, 'db:snowflake:',  'Target name should be the default';
+    is $snow->registry_destination, $snow->destination,
         'Meta target should be the same as destination';
 }
 
@@ -134,7 +145,7 @@ ENV: {
 # Make sure config settings override defaults.
 my %config = (
     'engine.snowflake.client'   => '/path/to/snowsql',
-    'engine.snowflake.target'   => 'db:snowflake://foo.snowflakecomputing.com/try',
+    'engine.snowflake.target'   => 'db:snowflake://fred@foo/try',
     'engine.snowflake.registry' => 'meta',
 );
 $std_opts[-1] = 'registry=meta';
@@ -142,15 +153,16 @@ my $mock_config = Test::MockModule->new('App::Sqitch::Config');
 $mock_config->mock(get => sub { $config{ $_[2] } });
 
 $target = App::Sqitch::Target->new( sqitch => $sqitch );
-ok $vta = $CLASS->new(sqitch => $sqitch, target => $target),
+ok $snow = $CLASS->new(sqitch => $sqitch, target => $target),
     'Create another snowflake';
-is $vta->client, '/path/to/snowsql', 'client should be as configured';
-is $vta->uri->as_string, 'db:snowflake://foo.snowflakecomputing.com/try',
+is $snow->client, '/path/to/snowsql', 'client should be as configured';
+is $snow->uri->as_string, 'db:snowflake://fred@foo/try',
     'uri should be as configured';
-is $vta->registry, 'meta', 'registry should be as configured';
-is_deeply [$vta->snowsql], [qw(
+is $snow->registry, 'meta', 'registry should be as configured';
+is_deeply [$snow->snowsql], [qw(
     /path/to/snowsql
     --accountname foo
+    --username    fred
     --dbname      try
 ), @std_opts], 'snowsql command should be configured from URI config';
 
@@ -164,21 +176,24 @@ $sqitch = App::Sqitch->new(
 );
 
 $target = App::Sqitch::Target->new( sqitch => $sqitch );
-ok $vta = $CLASS->new(sqitch => $sqitch, target => $target),
+my $exp_pass = 's3cr3t';
+$target->uri->password($exp_pass);
+ok $snow = $CLASS->new(sqitch => $sqitch, target => $target),
     'Create a snowflake with sqitch with options';
 
-is $vta->client, '/some/other/snowsql', 'client should be as optioned';
-is_deeply [$vta->snowsql], [qw(
+is $snow->client, '/some/other/snowsql', 'client should be as optioned';
+is_deeply [$snow->snowsql], [qw(
     /some/other/snowsql
     --accountname foo
-    --dbname   try
+    --username    fred
+    --dbname      try
 ), @std_opts], 'snowsql command should be as optioned';
 
 ##############################################################################
 # Test _run(), _capture(), and _spool().
-can_ok $vta, qw(_run _capture _spool);
+can_ok $snow, qw(_run _capture _spool);
 my $mock_sqitch = Test::MockModule->new('App::Sqitch');
-my (@run, $exp_pass);
+my @run;
 $mock_sqitch->mock(run => sub {
     local $Test::Builder::Level = $Test::Builder::Level + 2;
     shift;
@@ -214,55 +229,53 @@ $mock_sqitch->mock(spool => sub {
     }
 });
 
-$exp_pass = 's3cr3t';
-$target->uri->password($exp_pass);
-ok $vta->_run(qw(foo bar baz)), 'Call _run';
-is_deeply \@run, [$vta->snowsql, qw(foo bar baz)],
+ok $snow->_run(qw(foo bar baz)), 'Call _run';
+is_deeply \@run, [$snow->snowsql, qw(foo bar baz)],
     'Command should be passed to run()';
 
-ok $vta->_spool('FH'), 'Call _spool';
-is_deeply \@spool, ['FH', $vta->snowsql],
+ok $snow->_spool('FH'), 'Call _spool';
+is_deeply \@spool, ['FH', $snow->snowsql],
     'Command should be passed to spool()';
 
-ok $vta->_capture(qw(foo bar baz)), 'Call _capture';
-is_deeply \@capture, [$vta->snowsql, qw(foo bar baz)],
+ok $snow->_capture(qw(foo bar baz)), 'Call _capture';
+is_deeply \@capture, [$snow->snowsql, qw(foo bar baz)],
     'Command should be passed to capture()';
 
 # Without password.
 $target = App::Sqitch::Target->new( sqitch => $sqitch );
-ok $vta = $CLASS->new(sqitch => $sqitch, target => $target),
+ok $snow = $CLASS->new(sqitch => $sqitch, target => $target),
     'Create a snowflake with sqitch with no pw';
 $exp_pass = undef;
-ok $vta->_run(qw(foo bar baz)), 'Call _run again';
-is_deeply \@run, [$vta->snowsql, qw(foo bar baz)],
+ok $snow->_run(qw(foo bar baz)), 'Call _run again';
+is_deeply \@run, [$snow->snowsql, qw(foo bar baz)],
     'Command should be passed to run() again';
 
-ok $vta->_spool('FH'), 'Call _spool again';
-is_deeply \@spool, ['FH', $vta->snowsql],
+ok $snow->_spool('FH'), 'Call _spool again';
+is_deeply \@spool, ['FH', $snow->snowsql],
     'Command should be passed to spool() again';
 
-ok $vta->_capture(qw(foo bar baz)), 'Call _capture again';
-is_deeply \@capture, [$vta->snowsql, qw(foo bar baz)],
+ok $snow->_capture(qw(foo bar baz)), 'Call _capture again';
+is_deeply \@capture, [$snow->snowsql, qw(foo bar baz)],
     'Command should be passed to capture() again';
 
 ##############################################################################
 # Test file and handle running.
-ok $vta->run_file('foo/bar.sql'), 'Run foo/bar.sql';
-is_deeply \@run, [$vta->snowsql, '--option' => 'quiet=true', '--filename', 'foo/bar.sql'],
+ok $snow->run_file('foo/bar.sql'), 'Run foo/bar.sql';
+is_deeply \@run, [$snow->snowsql, '--option' => 'quiet=true', '--filename', 'foo/bar.sql'],
     'File should be passed to run()';
 
-ok $vta->run_handle('FH'), 'Spool a "file handle"';
-is_deeply \@spool, ['FH', $vta->snowsql],
+ok $snow->run_handle('FH'), 'Spool a "file handle"';
+is_deeply \@spool, ['FH', $snow->snowsql],
     'Handle should be passed to spool()';
 
 # Verify should go to capture unless verosity is > 1.
-# ok $vta->run_verify('foo/bar.sql'), 'Verify foo/bar.sql';
-# is_deeply \@capture, [$vta->snowsql, '--filename', 'foo/bar.sql'],
+# ok $snow->run_verify('foo/bar.sql'), 'Verify foo/bar.sql';
+# is_deeply \@capture, [$snow->snowsql, '--filename', 'foo/bar.sql'],
 #     'Verify file should be passed to capture()';
 
 $mock_sqitch->mock(verbosity => 2);
-ok $vta->run_verify('foo/bar.sql'), 'Verify foo/bar.sql again';
-is_deeply \@run, [$vta->snowsql, '--option' => 'quiet=true', '--filename', 'foo/bar.sql'],
+ok $snow->run_verify('foo/bar.sql'), 'Verify foo/bar.sql again';
+is_deeply \@run, [$snow->snowsql, '--option' => 'quiet=true', '--filename', 'foo/bar.sql'],
     'Verifile file should be passed to run() for high verbosity';
 
 $mock_sqitch->unmock_all;
@@ -307,7 +320,7 @@ END {
 
 $uri = URI->new($ENV{SNOWSQL_URI} || 'db:snowflake://username:password@accountname.snowflakecomputing.com/dbname?Driver=Snowflake');
 my $err = try {
-    $vta->use_driver;
+    $snow->use_driver;
     $dbh = DBI->connect($uri->dbi_dsn, $uri->user, $uri->password, {
         PrintError => 0,
         RaiseError => 1,

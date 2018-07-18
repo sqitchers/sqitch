@@ -8,7 +8,7 @@ use DBI;
 use Try::Tiny;
 use App::Sqitch::X qw(hurl);
 use Locale::TextDomain qw(App-Sqitch);
-use App::Sqitch::Types qw(DBH ArrayRef);
+use App::Sqitch::Types qw(DBH ArrayRef HashRef URIDB Str);
 
 extends 'App::Sqitch::Engine';
 
@@ -21,21 +21,12 @@ sub default_client { 'snowsql' }
 
 sub destination {
     my $self = shift;
+    # Just use the target name if it doesn't look like a URI.
+    return $self->target->name if $self->target->name !~ /:/;
 
-    # Just use the target name if it doesn't look like a URI or if the URI
-    # includes the database name.
-    return $self->target->name if $self->target->name !~ /:/
-        || $self->target->uri->dbname;
-
-    # Use the URI sans password, and with the database name added.
+    # Use the URI sans password.
     my $uri = $self->target->uri->clone;
     $uri->password(undef) if $uri->password;
-    $uri->dbname(
-           $ENV{SNOWSQL_DATABASE}
-        || $self->username
-        || $ENV{SNOWSQL_USER}
-        || $self->sqitch->sysuser
-    );
     return $uri->as_string;
 }
 
@@ -47,14 +38,10 @@ has _snowsql => (
         my $self = shift;
         my $uri  = $self->uri;
         my @ret  = ( $self->client );
-        if (my $h = $uri->host) {
-            (my $account = $h) =~ s/[.].+//;
-            push @ret, '--accountname' => $account;
-        }
-
         for my $spec (
-            [ username => $self->username ],
-            [ dbname   => $uri->dbname    ],
+            [ accountname => $self->account ],
+            [ username    => $uri->user     ],
+            [ dbname      => $uri->dbname   ],
         ) {
             push @ret, "--$spec->[0]" => $spec->[1] if $spec->[1];
         }
@@ -70,6 +57,97 @@ has _snowsql => (
 
 sub snowsql { @{ shift->_snowsql } }
 
+has _snowcfg => (
+    is      => 'rw',
+    isa     => HashRef,
+    default => sub {
+        require File::HomeDir;
+        my $hd = File::HomeDir->my_home or return {};
+        require File::Spec;
+        my $fn = File::Spec->catfile($hd, '.snowsql', 'config');
+        return {} unless -e $fn;
+        require Config::GitLike;
+        my $data = Config::GitLike->load_file($fn);
+        my $cfg = {};
+        for my $k (keys %{ $data }) {
+            # We only want the default connections config. No named config.
+            # (For now, anyway; maybe use database as config name laster?)
+            next unless $k =~ /\Aconnections[.]([^.]+)\z/;
+            $cfg->{$1} = $data->{$k};
+        }
+        return $cfg;
+    },
+);
+
+has uri => (
+    is => 'ro',
+    isa => URIDB,
+    default => sub {
+        my $self = shift;
+        my $uri  = $self->SUPER::uri;
+
+        # Set defaults in the URI.
+        $uri->host($self->_host)       if !$uri->host;
+        $uri->port($ENV{SNOWSQL_PORT}) if !$uri->_port && $ENV{SNOWSQL_PORT};
+        $uri->user($self->username)    if !$uri->user;
+        if (!$uri->password && (my $pw = $self->password)) {
+            $uri->password($pw);
+        }
+        $uri->dbname($ENV{SNOWSQL_DATABASE} || $uri->user) if !$uri->dbname;
+        return $uri;
+    },
+);
+
+sub username {
+    my $self = shift;
+    return  $self->SUPER::username
+        || $ENV{SNOWSQL_USER}
+        || $self->_snowcfg->{username}
+        || $self->sqitch->sysuser,
+}
+
+sub password {
+    my $self = shift;
+    return $self->SUPER::password
+        || $self->target->password
+        || $ENV{SNOWSQL_PWD}
+        || $self->_snowcfg->{password};
+}
+
+sub _account {
+    my ($self, $uri) = @_;
+    if (my $host = $uri->host) {
+        # <account_name>.<region_id>.snowflakecomputing.com
+        $host =~ s/[.].+//;
+        return $host;
+    }
+    return $ENV{SNOWSQL_ACCOUNT} || $self->_snowcfg->{accountname} || hurl engine => __(
+        'Cannot determine Snowflake account name'
+    );
+}
+
+sub account {
+    my $self = shift;
+    $self->_account($self->uri);
+}
+
+sub _host {
+    my $self = shift;
+    my $uri = $self->SUPER::uri;
+    if (my $host = $uri->host) {
+        # Allow host to just be account name or account + region.
+        return $host if $host =~ /\.snowflakecomputing\.com$/;
+        return $host . ".snowflakecomputing.com";
+    }
+    return $ENV{SNOWSQL_HOST} || do {
+        join '.', (
+            $self->_account($uri),
+            (grep { $_ } $self->_snowcfg->{region}),
+            'snowflakecomputing.com',
+        );
+    };
+}
+
 has dbh => (
     is      => 'rw',
     isa     => DBH,
@@ -77,19 +155,8 @@ has dbh => (
     default => sub {
         my $self = shift;
         $self->use_driver;
-
-        # Set defaults in the URI.
-        my $target = $self->target;
         my $uri = $self->uri;
-        # https://my.snowflake.com/docs/5.1.6/HTML/index.htm#2736.htm
-        $uri->dbname($ENV{SNOWSQL_DATABASE}) if !$uri->dbname && $ENV{SNOWSQL_DATABASE};
-        $uri->host($ENV{SNOWSQL_HOST})       if !$uri->host   && $ENV{SNOWSQL_HOST};
-        $uri->port($ENV{SNOWSQL_PORT})       if !$uri->_port  && $ENV{SNOWSQL_PORT};
-        $uri->user($ENV{SNOWSQL_USER})       if !$uri->user   && $ENV{SNOWSQL_USER};
-        $uri->password($target->password || $ENV{SNOWSQL_PWD})
-            if !$uri->password && ($target->password || $ENV{SNOWSQL_PWD});
-
-        DBI->connect($uri->dbi_dsn, scalar $uri->user, scalar $uri->password, {
+        DBI->connect($uri->dbi_dsn, $uri->user, $uri->password, {
             PrintError        => 0,
             RaiseError        => 0,
             AutoCommit        => 1,
@@ -110,6 +177,7 @@ has dbh => (
                             "ALTER SESSION SET TIMESTAMP_OUTPUT_FORMAT='YYYY-MM-DD HH24:MI:SS'",
                             "ALTER SESSION SET TIMEZONE='UTC'",
                         );
+                        say $dbh->err;
                         $dbh->set_err(undef, undef) if $dbh->err;
                     };
                     return;
@@ -151,11 +219,13 @@ sub _listagg_format {
 sub initialized {
     my $self = shift;
     return $self->dbh->selectcol_arrayref(q{
-        SELECT true
-          FROM information_schema.tables
-         WHERE TABLE_CATALOG = current_database()
-           AND TABLE_SCHEMA  = ?
-           AND TABLE_NAME    = ?
+        SELECT COUNT(*) > 0 FROM (
+            SELECT true
+              FROM information_schema.tables
+             WHERE TABLE_CATALOG = current_database()
+               AND TABLE_SCHEMA  = ?
+               AND TABLE_NAME    = ?
+        )
     }, undef, $self->registry, 'changes')->[0];
 }
 
@@ -255,6 +325,30 @@ App::Sqitch::Engine::snowflake - Sqitch Snowflake Engine
 App::Sqitch::Engine::snowflake provides the Snowflake storage engine for Sqitch.
 
 =head1 Interface
+
+=head2 Attributes
+
+=head3 C<account>
+
+Returns the Snowflake account name, or an exception if none can be determined.
+Sqitch looks for the account code in this order:
+
+=over
+
+=item 1
+
+In the host name of the target URI.
+
+=item 2
+
+In the C<$SNOWSQL_ACCOUNT> environment variable.
+
+=item 3
+
+In the C<connections.accountname> setting in the
+L<SnowSQL configuration file|https://docs.snowflake.net/manuals/user-guide/snowsql-start.html#configuring-default-connection-settings>.
+
+=back
 
 =head2 Instance Methods
 
