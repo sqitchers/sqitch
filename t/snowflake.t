@@ -349,7 +349,7 @@ DBIEngineTest->run(
         $self->sqitch->probe( $self->client, '--version' );
         $self->_capture('--query' => 'SELECT CURRENT_DATE FROM dual');
     },
-    engine_err_regex  => qr/\bERROR \d+:/,
+    engine_err_regex  => qr/\bSQL\s+compilation\s+error:/,
     init_error        => __x(
         'Sqitch schema "{schema}" already exists',
         schema => '__sqitchtest',

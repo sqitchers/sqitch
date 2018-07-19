@@ -282,6 +282,25 @@ sub _regex_op { 'REGEXP_LIKE' }
 
 sub _simple_from { ' FROM dual' }
 
+
+sub _cid {
+    my ( $self, $ord, $offset, $project ) = @_;
+
+    my $offset_expr = $offset ? " OFFSET $offset" : '';
+    return try {
+        $self->dbh->selectcol_arrayref(qq{
+            SELECT change_id
+              FROM changes
+             WHERE project = ?
+             ORDER BY committed_at $ord
+             LIMIT 1$offset_expr
+        }, undef, $project || $self->plan->project)->[0];
+    } catch {
+        return if $self->_no_table_error && !$self->initialized;
+        die $_;
+    };
+}
+
 sub run_file {
     my ($self, $file) = @_;
     $self->_run('--option' => 'quiet=true', '--filename' => $file);
