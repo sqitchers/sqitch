@@ -25,4 +25,6 @@ ALTER TABLE :"registry".events DROP CONSTRAINT events_event_check;
 ALTER TABLE :"registry".events ADD  CONSTRAINT events_event_check
       CHECK (event IN ('deploy', 'revert', 'fail', 'merge'));
 
+COMMENT ON SCHEMA :"registry" IS 'Sqitch database deployment metadata v1.0.';
+
 COMMIT;

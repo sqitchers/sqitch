@@ -16,4 +16,6 @@ ALTER TABLE &registry..changes ADD script_hash CHAR(40) NULL;
 UPDATE &registry..changes SET script_hash = change_id;
 COMMENT ON COLUMN &registry..changes.script_hash IS 'Deploy script SHA-1 hash.';
 
+COMMENT ON SCHEMA &registry IS 'Sqitch database deployment metadata v1.0.';
+
 COMMIT;
