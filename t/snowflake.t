@@ -3,7 +3,7 @@
 # To test against a live Snowflake database, you must set the SNOWSQL_URI environment variable.
 # this is a stanard URI::db URI, and should look something like this:
 #
-#     export SNOWSQL_URI=db:snowflake://username:password@accountname.snowflakecomputing.com/dbname?Driver=Snowflake
+#     export SNOWSQL_URI=db:snowflake://username:password@accountname/dbname?Driver=Snowflake&warehouse=sqitch
 #
 # Note that it must include the `?Driver=$driver` bit so that DBD::ODBC loads
 # the proper driver.
@@ -93,6 +93,7 @@ my @std_opts = (
     '--option' => 'syntax_style=default',
     '--option' => 'variable_substitution=true',
     '--variable' => 'registry=sqitch',
+    '--variable' => 'warehouse=' . $snow->warehouse,
 );
 is_deeply [$snow->snowsql], [$client, @con_opts, @std_opts],
     'snowsql command should be std opts-only';
@@ -145,10 +146,11 @@ ENV: {
 # Make sure config settings override defaults.
 my %config = (
     'engine.snowflake.client'   => '/path/to/snowsql',
-    'engine.snowflake.target'   => 'db:snowflake://fred@foo/try',
+    'engine.snowflake.target'   => 'db:snowflake://fred@foo/try?warehouse=foo',
     'engine.snowflake.registry' => 'meta',
 );
-$std_opts[-1] = 'registry=meta';
+$std_opts[-3] = 'registry=meta';
+$std_opts[-1] = 'warehouse=foo';
 my $mock_config = Test::MockModule->new('App::Sqitch::Config');
 $mock_config->mock(get => sub { $config{ $_[2] } });
 
@@ -156,8 +158,8 @@ $target = App::Sqitch::Target->new( sqitch => $sqitch );
 ok $snow = $CLASS->new(sqitch => $sqitch, target => $target),
     'Create another snowflake';
 is $snow->client, '/path/to/snowsql', 'client should be as configured';
-is $snow->uri->as_string, 'db:snowflake://fred@foo/try',
-    'uri should be as configured';
+is $snow->uri->as_string, 'db:snowflake://fred@foo/try?warehouse=foo',
+    'Uri should be as configured';
 is $snow->registry, 'meta', 'registry should be as configured';
 is_deeply [$snow->snowsql], [qw(
     /path/to/snowsql
@@ -318,7 +320,7 @@ END {
     );
 }
 
-$uri = URI->new($ENV{SNOWSQL_URI} || 'db:snowflake://username:password@accountname.snowflakecomputing.com/dbname?Driver=Snowflake');
+$uri = URI->new($ENV{SNOWSQL_URI} || 'db:snowflake://accountname/?Driver=Snowflake');
 my $err = try {
     $snow->use_driver;
     $dbh = DBI->connect($uri->dbi_dsn, $uri->user, $uri->password, {
@@ -330,7 +332,6 @@ my $err = try {
 } catch {
     eval { $_->message } || $_;
 };
-
 
 DBIEngineTest->run(
     class         => $CLASS,

@@ -148,6 +148,16 @@ sub _host {
     };
 }
 
+has warehouse => (
+    is      => 'ro',
+    isa     => Str,
+    default => sub {
+        my $uri = shift->uri;
+        require URI::QueryParam;
+        $uri->query_param('warehouse') || 'sqitch';
+    },
+);
+
 has dbh => (
     is      => 'rw',
     isa     => DBH,
@@ -156,6 +166,7 @@ has dbh => (
         my $self = shift;
         $self->use_driver;
         my $uri = $self->uri;
+        my $wh = $self->warehouse;
         DBI->connect($uri->dbi_dsn, $uri->user, $uri->password, {
             PrintError        => 0,
             RaiseError        => 0,
@@ -172,15 +183,19 @@ has dbh => (
                     my $dbh = shift;
                     try {
                         $dbh->do($_) for (
+                            "ALTER WAREHOUSE $wh RESUME IF SUSPENDED",
+                            "USE WAREHOUSE $wh",
                             'USE SCHEMA ' . $self->registry,
                             'ALTER SESSION SET TIMESTAMP_TYPE_MAPPING=TIMESTAMP_LTZ',
                             "ALTER SESSION SET TIMESTAMP_OUTPUT_FORMAT='YYYY-MM-DD HH24:MI:SS'",
                             "ALTER SESSION SET TIMEZONE='UTC'",
                         );
-                        say $dbh->err;
                         $dbh->set_err(undef, undef) if $dbh->err;
                     };
                     return;
+                },
+                disconnect => sub {
+                    shift->do("ALTER WAREHOUSE $wh SUSPEND");
                 },
             },
         });
@@ -207,7 +222,8 @@ sub _client_opts {
         '--option' => 'rowset_size=1000',
         '--option' => 'syntax_style=default',
         '--option' => 'variable_substitution=true',
-        '--variable' => 'registry=' . shift->registry,
+        '--variable' => 'registry=' . $_[0]->registry,
+        '--variable' => 'warehouse=' . $_[0]->warehouse,
     );
 }
 
@@ -279,6 +295,7 @@ sub _run {
     my $self   = shift;
     my $sqitch = $self->sqitch;
     my $pass   = $self->password or return $sqitch->run( $self->snowsql, @_ );
+    # Does not override connection config, alas.
     local $ENV{SNOWSQL_PWD} = $pass;
     return $sqitch->run( $self->snowsql, @_ );
 }
@@ -349,6 +366,13 @@ In the C<connections.accountname> setting in the
 L<SnowSQL configuration file|https://docs.snowflake.net/manuals/user-guide/snowsql-start.html#configuring-default-connection-settings>.
 
 =back
+
+=head3 C<warehouse>
+
+Returns the warehouse to use for all connections. Defaults to the value of the
+C<warehouse> query parameter of the target URI, or else "sqitch". This value
+will be available to all Snowflake change scripts as the C<&warehouse>
+variable.
 
 =head2 Instance Methods
 
