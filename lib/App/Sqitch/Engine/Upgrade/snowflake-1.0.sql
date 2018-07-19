@@ -16,10 +16,12 @@ COMMENT ON COLUMN &registry.releases.installer_email IS 'Email address of the us
 
 -- Add the script_hash column to the changes table. Copy change_id for now.
 ALTER TABLE &registry.changes ADD script_hash TEXT NULL;
+ALTER WAREHOUSE &warehouse RESUME IF SUSPENDED;
+USE WAREHOUSE &warehouse;
 UPDATE &registry.changes SET script_hash = change_id;
-COMMENT ON COLUMN &registry.changes.script_hash IS 'Deploy script SHA-1 hash.';
 ALTER TABLE &registry.changes ADD UNIQUE(script_hash);
+COMMENT ON COLUMN &registry.changes.script_hash IS 'Deploy script SHA-1 hash.';
 
-COMMENT ON SCHEMA &registry IS 'Sqitch database deployment metadata v1.1.';
+COMMENT ON SCHEMA &registry IS 'Sqitch database deployment metadata v1.0.';
 
 COMMIT;

@@ -196,6 +196,7 @@ has dbh => (
                 },
                 disconnect => sub {
                     shift->do("ALTER WAREHOUSE $wh SUSPEND");
+                    return;
                 },
             },
         });
@@ -239,8 +240,8 @@ sub initialized {
             SELECT true
               FROM information_schema.tables
              WHERE TABLE_CATALOG = current_database()
-               AND TABLE_SCHEMA  = ?
-               AND TABLE_NAME    = ?
+               AND TABLE_SCHEMA  = UPPER(?)
+               AND TABLE_NAME    = UPPER(?)
         )
     }, undef, $self->registry, 'changes')->[0];
 }
@@ -259,7 +260,7 @@ sub initialize {
 }
 
 sub _no_table_error  {
-    return $DBI::state && $DBI::state eq '42V01'; # ERRCODE_UNDEFINED_TABLE
+    return $DBI::state && $DBI::state eq '02000'; # ERRCODE_UNDEFINED_TABLE
 }
 
 sub _no_column_error  {
