@@ -295,6 +295,7 @@ sub search_events {
           FROM events e$where
          ORDER BY e.committed_at $dir$limits
     });
+
     $sth->execute(@params);
     return sub {
         my $row = $sth->fetchrow_hashref or return;

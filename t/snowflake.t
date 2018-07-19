@@ -357,8 +357,8 @@ DBIEngineTest->run(
     test_dbh => sub {
         my $dbh = shift;
         # Make sure the sqitch schema is the first in the search path.
-        is $dbh->selectcol_arrayref('SELECT current_schema')->[0],
-            '__sqitchtest', 'The Sqitch schema should be the current schema';
+        is $dbh->selectcol_arrayref('SELECT current_schema()')->[0],
+            '__SQITCHTEST', 'The Sqitch schema should be the current schema';
     },
 );
 
