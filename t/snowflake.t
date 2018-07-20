@@ -287,7 +287,7 @@ $mock_config->unmock_all;
 # Test DateTime formatting stuff.
 ok my $ts2char = $CLASS->can('_ts2char_format'), "$CLASS->can('_ts2char_format')";
 is sprintf($ts2char->(), 'foo'),
-    q{to_varchar(CONVERT_TIMEZONE('UTC', foo), '"year":YYYY:"month":MM:"day":DD:"hour":HH24:"minute":MI:"second":SS:"time_zone":"UTC"')},
+    q{to_varchar(CONVERT_TIMEZONE('UTC', foo), '"year:"YYYY":month:"MM":day:"DD":hour:"HH24":minute:"MI":second:"SS":time_zone:UTC"')},
     '_ts2char_format should work';
 
 ok my $dtfunc = $CLASS->can('_dt'), "$CLASS->can('_dt')";

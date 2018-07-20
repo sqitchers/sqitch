@@ -172,6 +172,7 @@ has dbh => (
             RaiseError        => 0,
             AutoCommit        => 1,
             odbc_utf8_on      => 1,
+            FetchHashKeyName  => 'NAME_lc',
             HandleError       => sub {
                 my ($err, $dbh) = @_;
                 $@ = $err;
@@ -229,21 +230,20 @@ sub _client_opts {
 }
 
 sub _listagg_format {
-    return q{arrayagg(%s)};
-    # return q{listagg(%s, ' ')};
+    return q{listagg(%s, ' ')};
 }
+
+sub _ts_default { 'current_timestamp' }
 
 sub initialized {
     my $self = shift;
     return $self->dbh->selectcol_arrayref(q{
-        SELECT COUNT(*) > 0 FROM (
-            SELECT true
-              FROM information_schema.tables
-             WHERE TABLE_CATALOG = current_database()
-               AND TABLE_SCHEMA  = UPPER(?)
-               AND TABLE_NAME    = UPPER(?)
-        )
-    }, undef, $self->registry, 'changes')->[0];
+        SELECT true
+          FROM information_schema.tables
+         WHERE TABLE_CATALOG = current_database()
+           AND TABLE_SCHEMA  = UPPER(?)
+           AND TABLE_NAME    = UPPER(?)
+     }, undef, $self->registry, 'changes')->[0];
 }
 
 sub initialize {
@@ -268,8 +268,10 @@ sub _no_column_error  {
 }
 
 sub _ts2char_format {
-    qq{to_varchar(CONVERT_TIMEZONE('UTC', %s), '"year":YYYY:"month":MM:"day":DD:"hour":HH24:"minute":MI:"second":SS:"time_zone":"UTC"')};
+    qq{to_varchar(CONVERT_TIMEZONE('UTC', %s), '"year:"YYYY":month:"MM":day:"DD":hour:"HH24":minute:"MI":second:"SS":time_zone:UTC"')};
 }
+
+
 
 sub _char2ts { $_[1]->as_string(format => 'iso') }
 
@@ -299,6 +301,24 @@ sub _cid {
         return if $self->_no_table_error && !$self->initialized;
         die $_;
     };
+}
+
+sub is_deployed_change {
+    my ( $self, $change ) = @_;
+    $self->dbh->selectcol_arrayref(q{
+        SELECT true
+          FROM changes
+         WHERE change_id = ?
+    }, undef, $change->id)->[0];
+}
+
+sub is_deployed_tag {
+    my ( $self, $tag ) = @_;
+    return $self->dbh->selectcol_arrayref(q{
+        SELECT true
+          FROM tags
+         WHERE tag_id = ?
+    }, undef, $tag->id)->[0];
 }
 
 sub run_file {

@@ -599,7 +599,7 @@ sub changes_requiring_change {
             SELECT tag
               FROM changes c2
               JOIN tags ON c2.change_id = tags.change_id
-             WHERE c2.project      = c.project
+             WHERE c2.project       = c.project
                AND c2.committed_at >= c.committed_at
              ORDER BY c2.committed_at
              LIMIT 1
@@ -640,7 +640,6 @@ sub log_new_tags {
     );
 
     my $subselect = 'SELECT ' . $self->_tag_subselect_columns . $self->_simple_from;
-
     $self->dbh->do(
         q{
             INSERT INTO tags (
