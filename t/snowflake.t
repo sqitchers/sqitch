@@ -360,6 +360,8 @@ DBIEngineTest->run(
         is $dbh->selectcol_arrayref('SELECT current_schema()')->[0],
             '__SQITCHTEST', 'The Sqitch schema should be the current schema';
     },
+    add_second_format => 'dateadd(second, 1, %s)',
+
 );
 
 done_testing;
