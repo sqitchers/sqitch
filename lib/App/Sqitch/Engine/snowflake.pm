@@ -321,6 +321,49 @@ sub is_deployed_tag {
     }, undef, $tag->id)->[0];
 }
 
+sub changes_requiring_change {
+    my ( $self, $change ) = @_;
+    # NOTE: Query from DBIEngine doesn't work in Snowflake:
+    #   SQL compilation error: Unsupported subquery type cannot be evaluated (SQL-42601)
+    # Looks like it doesn't yet support correlated subqueries.
+    # https://docs.snowflake.net/manuals/sql-reference/operators-subquery.html
+    # The CTE-based query borrowed from Exasol seems to be fine, however.
+    return @{ $self->dbh->selectall_arrayref(q{
+        WITH tag AS (
+            SELECT tag, committed_at, project,
+                   ROW_NUMBER() OVER (partition by project ORDER BY committed_at) AS rnk
+              FROM tags
+        )
+        SELECT c.change_id, c.project, c.change, t.tag AS asof_tag
+          FROM dependencies d
+          JOIN changes  c ON c.change_id = d.change_id
+          LEFT JOIN tag t ON t.project   = c.project AND t.committed_at >= c.committed_at
+         WHERE d.dependency_id = ?
+           AND (t.rnk IS NULL OR t.rnk = 1)
+    }, { Slice => {} }, $change->id) };
+}
+
+sub name_for_change_id {
+    my ( $self, $change_id ) = @_;
+    # NOTE: Query from DBIEngine doesn't work in Snowflake:
+    #   SQL compilation error: Unsupported subquery type cannot be evaluated (SQL-42601)
+    # Looks like it doesn't yet support correlated subqueries.
+    # https://docs.snowflake.net/manuals/sql-reference/operators-subquery.html
+    # The CTE-based query borrowed from Exasol seems to be fine, however.
+    return $self->dbh->selectcol_arrayref(q{
+        WITH tag AS (
+            SELECT tag, committed_at, project,
+                   ROW_NUMBER() OVER (partition by project ORDER BY committed_at) AS rnk
+              FROM tags
+        )
+        SELECT change || COALESCE(t.tag, '@HEAD')
+          FROM changes c
+          LEFT JOIN tag t ON c.project = t.project AND t.committed_at >= c.committed_at
+         WHERE change_id = ?
+           AND (t.rnk IS NULL OR t.rnk = 1)
+    }, undef, $change_id)->[0];
+}
+
 sub run_file {
     my ($self, $file) = @_;
     $self->_run('--option' => 'quiet=true', '--filename' => $file);
