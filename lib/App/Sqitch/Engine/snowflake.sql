@@ -140,5 +140,3 @@ COMMENT ON COLUMN &registry.events.committer_email IS 'Email address of the user
 COMMENT ON COLUMN &registry.events.planned_at      IS 'Date the event was added to the plan.';
 COMMENT ON COLUMN &registry.events.planner_name    IS 'Name of the user who planed the change.';
 COMMENT ON COLUMN &registry.events.planner_email   IS 'Email address of the user who plan planned the change.';
-
-COMMIT;

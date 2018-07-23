@@ -1,6 +1,3 @@
-BEGIN;
-
-
 CREATE TABLE &registry.releases (
     version           FLOAT        PRIMARY KEY,
     installed_at      TIMESTAMP_TZ NOT NULL DEFAULT current_timestamp,
@@ -23,5 +20,3 @@ ALTER TABLE &registry.changes ADD UNIQUE(script_hash);
 COMMENT ON COLUMN &registry.changes.script_hash IS 'Deploy script SHA-1 hash.';
 
 COMMENT ON SCHEMA &registry IS 'Sqitch database deployment metadata v1.0.';
-
-COMMIT;
