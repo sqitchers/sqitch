@@ -279,10 +279,12 @@ END {
     $dbh->do("DROP DATABASE $db") if $dbh->{Active};
 }
 
+my $pguser = $ENV{PGUSER} || 'postgres';
+
 my $err = try {
     $pg->_capture('--version');
     $pg->use_driver;
-    $dbh = DBI->connect('dbi:Pg:dbname=template1', 'postgres', '', {
+    $dbh = DBI->connect('dbi:Pg:dbname=template1', $pguser, '', {
         PrintError => 0,
         RaiseError => 1,
         AutoCommit => 1,
@@ -304,11 +306,11 @@ DBIEngineTest->run(
         plan_file   => Path::Class::file(qw(t engine sqitch.plan))->stringify,
     }],
     target_params => [
-        uri => URI::db->new("db:pg://postgres@/$db"),
+        uri => URI::db->new("db:pg://$pguser\@/$db"),
     ],
     alt_target_params => [
         registry => '__sqitchtest',
-        uri => URI::db->new("db:pg://postgres@/$db"),
+        uri => URI::db->new("db:pg://$pguser\@/$db"),
     ],
     skip_unless       => sub {
         my $self = shift;

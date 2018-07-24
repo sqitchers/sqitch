@@ -255,19 +255,10 @@ sub search_events {
     # Handle remaining parameters.
     my $limits = '';
     if (exists $p{limit} || exists $p{offset}) {
-        my $lim = delete $p{limit};
-        if ($lim) {
-            $limits = "\n         LIMIT ?";
-            push @params => $lim;
-        }
-        if (my $off = delete $p{offset}) {
-            if (!$lim && ($lim = $self->_limit_default)) {
-                # Some drivers require LIMIT when OFFSET is set.
-                $limits = "\n         LIMIT ?";
-                push @params => $lim;
-            }
-            $limits .= "\n         OFFSET ?";
-            push @params => $off;
+        my ($exprs, $values) = $self->_limit_offset(delete $p{limit}, delete $p{offset});
+        if (@{ $exprs}) {
+            $limits = join "\n         ", '', @{ $exprs };
+            push @params => @{ $values || [] };
         }
     }
 
@@ -303,6 +294,26 @@ sub search_events {
         $row->{planned_at}   = _dt $row->{planned_at};
         return $row;
     };
+}
+
+sub _limit_offset {
+    my ($self, $lim, $off)  = @_;
+    my (@limits, @params);
+
+    if ($lim) {
+        push @limits => 'LIMIT ?';
+        push @params => $lim;
+    }
+    if ($off) {
+        if (!$lim && ($lim = $self->_limit_default)) {
+            # Some drivers require LIMIT when OFFSET is set.
+            push @limits => 'LIMIT ?';
+            push @params => $lim;
+        }
+        push @limits => 'OFFSET ?';
+        push @params => $off;
+    }
+    return \@limits, \@params;
 }
 
 sub registered_projects {

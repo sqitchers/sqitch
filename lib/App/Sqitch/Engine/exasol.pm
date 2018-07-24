@@ -324,7 +324,7 @@ sub initialize {
 
 # Override for special handling of regular the expression operator and
 # LIMIT/OFFSET. Keep for Exasol, as it can't handle OFFSET as parameter in a
-# prepared query..
+# prepared query.
 sub search_events {
     my ( $self, %p ) = @_;
 

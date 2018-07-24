@@ -364,6 +364,14 @@ sub name_for_change_id {
     }, undef, $change_id)->[0];
 }
 
+sub _limit_offset {
+    # LIMIT/OFFSET don't support parameters, alas. So just put them in the query.
+    my ($self, $lim, $off)  = @_;
+    return ['LIMIT ' . ($lim || 0), "OFFSET $off"] if $off;
+    return ["LIMIT $lim"] if $lim;
+    return;
+}
+
 sub run_file {
     my ($self, $file) = @_;
     $self->_run('--option' => 'quiet=true', '--filename' => $file);
