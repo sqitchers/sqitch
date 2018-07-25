@@ -21,6 +21,7 @@ use constant ENGINES => qw(
     firebird
     vertica
     exasol
+    snowflake
 );
 
 has sqitch => (
@@ -328,6 +329,8 @@ Returns the list of supported engines, currently:
 =item * C<vertica>
 
 =item * C<exasol>
+
+=item * C<snowflake>
 
 =back
 

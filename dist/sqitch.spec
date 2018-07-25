@@ -285,6 +285,24 @@ Sqitch Vertica support.
 %files vertica
 # No additional files required.
 
+%package snowflake
+Summary:        Sane database change management for Snowflake
+Group:          Development/Libraries
+Requires:       sqitch >= %{version}
+Requires:       snowflake-odbc
+Requires:       perl(DBI)
+Requires:       perl(DBD::ODBC) >= 1.43
+Provides:       sqitch-snowflake
+
+%description snowflake
+Sqitch provides a simple yet robust interface for database change management.
+The philosophy and functionality is inspired by Git. This package bundles the
+Sqitch Snowflake support. It requires that the snowsql client also be
+installed.
+
+%files snowflake
+# No additional files required.
+
 %changelog
 * Thu Mar 15 2018 David E. Wheeler <david.wheeler@iovation.com> 0.9997-1
 - Upgrade to v0.9997.

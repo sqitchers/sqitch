@@ -451,6 +451,8 @@ The database engine to use. Supported engines include:
 
 =item * C<exasol> - L<Exasol|https://www.exasol.com/>
 
+=item * C<snowflake> - L<Snowflake|https://www.snowflake.net/>
+
 =back
 
 =item C<core.top_dir>
@@ -601,6 +603,12 @@ C<sqitch>.
 For the Exasol engine, the C<registry> value identifies the schema for Sqitch
 to use for its own data. No other data should be stored there. Defaults to
 C<sqitch>.
+
+=item C<engine.snowflake.registry>
+
+For the Snowflake engine, the C<registry> value identifies the schema for
+Sqitch to use for its own data. No other data should be stored there. Defaults
+to C<sqitch>.
 
 =back
 

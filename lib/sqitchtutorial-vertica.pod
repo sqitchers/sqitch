@@ -20,17 +20,19 @@ the VCS and L<Vertica|https://my.vertica.com/> as the storage engine, but for
 the most part you can substitute other VCSes and database engines in the
 examples as appropriate.
 
-If you'd like to manage an Vertica database, see L<sqitchtutorial>.
+If you'd like to manage a PostgreSQL database, see L<sqitchtutorial>.
 
 If you'd like to manage an SQLite database, see L<sqitchtutorial-sqlite>.
 
 If you'd like to manage an Oracle database, see L<sqitchtutorial-oracle>.
 
-If you'd like to manage an MySQL database, see L<sqitchtutorial-mysql>.
+If you'd like to manage a MySQL database, see L<sqitchtutorial-mysql>.
 
-If you'd like to manage an Firebird database, see L<sqitchtutorial-firebird>.
+If you'd like to manage a Firebird database, see L<sqitchtutorial-firebird>.
 
 If you'd like to manage an Exasol database, see L<sqitchtutorial-exasol>.
+
+If you'd like to manage a Snowflake database, see L<sqitchtutorial-snowflake>.
 
 =head2 Connection Configuration
 

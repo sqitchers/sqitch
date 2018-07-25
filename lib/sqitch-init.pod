@@ -50,6 +50,8 @@ include:
 
 =item * C<exasol> - L<Exasol|https://www.exasol.com/>
 
+=item * C<snowflake> - L<Snowflake|https://www.snowflake.net/>
+
 =back
 
 =item C<--top-dir>

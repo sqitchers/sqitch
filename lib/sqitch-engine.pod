@@ -33,6 +33,8 @@ includes:
 
 =item * C<exasol>
 
+=item * C<snowflake>
+
 =back
 
 Each engine may have a number of properties:

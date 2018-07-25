@@ -1092,6 +1092,10 @@ The Vertica engine.
 
 The Exasol engine.
 
+=item L<App::Sqitch::Engine::snowflake>
+
+The Snowflake engine.
+
 =back
 
 =head1 Author

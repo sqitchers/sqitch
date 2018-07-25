@@ -7,7 +7,7 @@ App/Sqitch version 0.9998
 
 [Sqitch](http://sqitch.org/) is a database change management application. It
 currently supports PostgreSQL 8.4+, SQLite 3.7.11+, MySQL 5.0+, Oracle 10g+,
-Firebird 2.0+, Vertica 6.0+ and Exasol 6.0+.
+Firebird 2.0+, Vertica 6.0+, Exasol 6.0+ and Snowflake.
 
 What makes it different from your typical
 [migration](http://guides.rubyonrails.org/migrations.html) approaches? A few
@@ -57,6 +57,8 @@ Want to learn more? The best place to start is in the tutorials:
 * [Introduction to Sqitch on Firebird](lib/sqitchtutorial-firebird.pod)
 * [Introduction to Sqitch on Vertica](lib/sqitchtutorial-vertica.pod)
 * [Introduction to Sqitch on Exasol](lib/sqitchtutorial-exasol.pod)
+* [Introduction to Sqitch on Snowflake](lib/sqitchtutorial-snowflake.pod)
+
 
 There have also been a number of presentations on Sqitch:
 
