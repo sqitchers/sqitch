@@ -6,6 +6,7 @@ use utf8;
 use Path::Class;
 use DBI;
 use Try::Tiny;
+use POSIX;
 use App::Sqitch::X qw(hurl);
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::Types qw(DBH ArrayRef HashRef URIDB Str);
@@ -280,7 +281,7 @@ sub _dt($) {
     return App::Sqitch::DateTime->new(split /:/ => shift);
 }
 
-sub _regex_op { 'REGEXP_LIKE' }
+sub _regex_op { 'REGEXP' }
 
 sub _simple_from { ' FROM dual' }
 
@@ -367,7 +368,7 @@ sub name_for_change_id {
 sub _limit_offset {
     # LIMIT/OFFSET don't support parameters, alas. So just put them in the query.
     my ($self, $lim, $off)  = @_;
-    return ['LIMIT ' . ($lim || 0), "OFFSET $off"] if $off;
+    return ['LIMIT ' . ($lim || POSIX::INT_MAX), "OFFSET $off"] if $off;
     return ["LIMIT $lim"] if $lim;
     return;
 }
