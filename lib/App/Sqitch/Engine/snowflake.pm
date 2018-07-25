@@ -459,6 +459,56 @@ L<SnowSQL configuration file|https://docs.snowflake.net/manuals/user-guide/snows
 
 =back
 
+=head3 username
+
+Returns the snowflake user name. Sqitch looks for the user name in this order:
+
+=over
+
+=item 1
+
+In the target URI.
+
+=item 2
+
+In the C<$SNOWSQL_USER> environment variable.
+
+=item 3
+
+In the C<connections.username> variable from the
+L<SnowSQL config file|https://docs.snowflake.net/manuals/user-guide/snowsql-config.html#snowsql-config-file>.
+
+=item 4
+
+They system username.
+
+=back
+
+=head3 password
+
+Returns the snowflake password. Sqitch looks for the password in this order:
+
+=over
+
+=item 1
+
+In the C<$SQITCH_PASSWORD> environment variable.
+
+=item 2
+
+In the target URI.
+
+=item 3
+
+In the C<$SNOWSQL_PWD> environment variable.
+
+=item 4
+
+In the C<connections.password> variable from the
+L<SnowSQL config file|https://docs.snowflake.net/manuals/user-guide/snowsql-config.html#snowsql-config-file>.
+
+=back
+
 =head3 C<warehouse>
 
 Returns the warehouse to use for all connections. Defaults to the value of the

@@ -113,3 +113,4 @@ exasol
 exaplus
 sql
 sys
+SnowSQL
