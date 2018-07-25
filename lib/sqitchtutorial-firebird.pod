@@ -77,7 +77,7 @@ Let's have a look at F<sqitch.conf>:
   	# client = isql-fb
 
 Good, it picked up on the fact that we're creating changes for the Firebird
-engine, thanks to the C<-engine firebird> option, and saved it to the
+engine, thanks to the C<--engine firebird> option, and saved it to the
 file. Furthermore, it wrote a commented-out C<[engine "firebird"]> section
 with all the available Firebird engine-specific settings commented out and
 ready to be edited as appropriate.

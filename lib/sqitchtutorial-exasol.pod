@@ -128,7 +128,7 @@ Let's have a look at F<sqitch.conf>:
   	# client = exaplus
 
 Good, it picked up on the fact that we're creating changes for the Exasol
-engine, thanks to the C<-engine exasol> option, and saved it to the
+engine, thanks to the C<--engine exasol> option, and saved it to the
 file. Furthermore, it wrote a commented-out C<[engine "exasol"]> section with
 all the available Exasol engine-specific settings commented out and ready to
 be edited as appropriate.

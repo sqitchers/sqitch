@@ -76,7 +76,7 @@ Let's have a look at F<sqitch.conf>:
   	# client = sqlite3
 
 Good, it picked up on the fact that we're creating changes for the SQLite
-engine, thanks to the C<-engine sqlite> option, and saved it to the file.
+engine, thanks to the C<--engine sqlite> option, and saved it to the file.
 Furthermore, it wrote a commented-out C<[engine "sqlite"]> section with all
 the available SQLite engine-specific settings commented out and ready to be
 edited as appropriate.

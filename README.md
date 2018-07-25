@@ -59,7 +59,6 @@ Want to learn more? The best place to start is in the tutorials:
 * [Introduction to Sqitch on Exasol](lib/sqitchtutorial-exasol.pod)
 * [Introduction to Sqitch on Snowflake](lib/sqitchtutorial-snowflake.pod)
 
-
 There have also been a number of presentations on Sqitch:
 
 * [PDX.pm Presentation](https://speakerdeck.com/theory/sane-database-change-management-with-sqitch):

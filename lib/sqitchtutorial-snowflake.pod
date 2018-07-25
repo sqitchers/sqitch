@@ -1,0 +1,183 @@
+=encoding UTF-8
+
+=head1 Name
+
+sqitchtutorial-snowflake - A tutorial introduction to Sqitch change management on Snowflake
+
+=head1 Synopsis
+
+  sqitch *
+
+=head1 Description
+
+This tutorial explains how to create a sqitch-enabled Snowflake project, use a
+VCS for deployment planning, and work with other developers to make sure
+changes remain in sync and in the proper order.
+
+We'll start by creating a new project from scratch, a fictional antisocial
+networking site called Flipr. All examples use L<Git|http://git-scm.com/> as
+the VCS and L<Snowflake|https://www.snowflake.net/> as the storage engine, but
+for the most part you can substitute other VCSes and database engines in the
+examples as appropriate.
+
+If you'd like to manage a PostgreSQL database, see L<sqitchtutorial>.
+
+If you'd like to manage an SQLite database, see L<sqitchtutorial-sqlite>.
+
+If you'd like to manage an Oracle database, see L<sqitchtutorial-oracle>.
+
+If you'd like to manage a MySQL database, see L<sqitchtutorial-mysql>.
+
+If you'd like to manage a Firebird database, see L<sqitchtutorial-firebird>.
+
+If you'd like to manage a Vertica database, see L<sqitchtutorial-vertica>.
+
+If you'd like to manage an Exasol database, see L<sqitchtutorial-exasol>.
+
+=head2 Connection Configuration
+
+Sqitch requires ODBC to connect to the Snowflake database. As such, you'll
+need to make sure that the
+L<Snowflake ODBC driver|https://docs.snowflake.net/manuals/user-guide/odbc.html>
+is installed and properly configured. At its simplest, on Unix-like systems,
+name the driver "Snowflake" by adding this entry to C<odbcinst.ini> (usually
+found in C</etc>, C</usr/etc>, or C</usr/local/etc>):
+
+  [Snowflake]
+  Description = ODBC for Snowflake
+  Driver      = /usr/lib64/snowflake/odbc/lib/libSnowflake.so
+
+Note that you'll need to adjust the path depending on the version of the ODBC
+driver, and where you installed it.
+
+
+See the L<Snowflake ODBC documentation|https://docs.snowflake.net/manuals/user-guide/odbc.html>
+for details on downloading, installling, and configuring ODBC for your
+platform.
+
+=head1 Starting a New Project
+
+Usually the first thing to do when starting a new project is to create a
+source code repository. So let's do that with Git:
+
+  > mkdir flipr
+  > cd flipr
+  > git init .
+  Initialized empty Git repository in /flipr/.git/
+  > touch README.md
+  > git add .
+  > git commit -am 'Initialize project, add README.'
+
+If you're a Git user and want to follow along the history, the repository
+used in these examples is
+L<on GitHub|https://github.com/sqitchers/sqitch-snowflake-intro>.
+
+Now that we have a repository, let's get started with Sqitch. Every Sqitch
+project must have a name associated with it, and, optionally, a unique URI. We
+recommend including the URI, as it increases the uniqueness of object
+identifiers internally, so let's specify one when we initialize Sqitch:
+
+  > sqitch init flipr --uri https://github.com/sqitchers/sqitch-snowflake-intro/ --engine snowflake
+  Created sqitch.conf
+  Created sqitch.plan
+  Created deploy/
+  Created revert/
+  Created verify/
+
+Let's have a look at F<sqitch.conf>:
+
+  > cat sqitch.conf
+  [core]
+  	engine = snowflake
+  	# plan_file = sqitch.plan
+  	# top_dir = .
+  # [engine "snowflake"]
+  	# target = db:snowflake:
+  	# registry = sqitch
+  	# client = snowsql
+
+Good, it picked up on the fact that we're creating changes for the Snowflake
+engine, thanks to the C<--engine snowflake> option, and saved it to the
+file. Furthermore, it wrote a commented-out C<[engine "snowflake"]> section with
+all the available Snowflake engine-specific settings commented out and ready to
+be edited as appropriate.
+
+By default, Sqitch will read F<sqitch.conf> in the current directory for
+settings. But it will also read F<~/.sqitch/sqitch.conf> for user-specific
+settings. Since Snowflake's C<snowsql> client is not in the path on my system,
+let's go ahead an tell it where to find the client on our computer:
+
+  > sqitch config --user engine.snowflake.client /Applications/SnowSQL.app/Contents/MacOS/snowsql
+
+And let's also tell it who we are, since this data will be used in all
+of our projects:
+
+  > sqitch config --user user.name 'Marge N. O’Vera'
+  > sqitch config --user user.email 'marge@example.com'
+
+Have a look at F<~/.sqitch/sqitch.conf> and you'll see this:
+
+  > cat ~/.sqitch/sqitch.conf
+  [engine "snowflake"]
+  	client = /Applications/SnowSQL.app/Contents/MacOS/snowsql
+  [user]
+  	name = Marge N. O’Vera
+  	email = marge@example.com
+
+Which means that Sqitch should be able to find C<snowsql> for any project, and
+that it will always properly identify us when planning and committing changes.
+
+Back to the repository. Have a look at the plan file, F<sqitch.plan>:
+
+  > cat sqitch.plan
+  %syntax-version=1.0.0
+  %project=flipr
+  %uri=https://github.com/sqitchers/sqitch-snowflake-intro/
+
+
+Note that it has picked up on the name and URI of the app we're building.
+Sqitch uses this data to manage cross-project dependencies. The
+C<%syntax-version> pragma is always set by Sqitch, so that it always knows how
+to parse the plan, even if the format changes in the future.
+
+Let's commit these changes and start creating the database changes.
+
+  > git add .
+  > git commit -am 'Initialize Sqitch configuration.'
+  [master b731cc3] Initialize Sqitch configuration.
+   2 files changed, 15 insertions(+)
+   create mode 100644 sqitch.conf
+   create mode 100644 sqitch.plan
+
+=head1 More to Come
+
+Sqitch is a work in progress. Better integration with version control systems
+is planned to make managing idempotent reworkings even easier. Stay tuned.
+
+=head1 Author
+
+David E. Wheeler <david@justatheory.com>
+
+=head1 License
+
+Copyright (c) 2012-2018 iovation Inc.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+=cut

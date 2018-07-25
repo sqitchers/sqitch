@@ -125,7 +125,7 @@ Let's have a look at F<sqitch.conf>:
   	# client = vsql
 
 Good, it picked up on the fact that we're creating changes for the Vertica
-engine, thanks to the C<-engine vertica> option, and saved it to the
+engine, thanks to the C<--engine vertica> option, and saved it to the
 file. Furthermore, it wrote a commented-out C<[engine "vertica"]> section with
 all the available Vertica engine-specific settings commented out and ready to
 be edited as appropriate.

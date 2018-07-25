@@ -118,7 +118,7 @@ Let's have a look at F<sqitch.conf>:
   	# client = sqlplus
 
 Good, it picked up on the fact that we're creating changes for the Oracle
-engine, thanks to the C<-engine oracle> option, and saved it to the file.
+engine, thanks to the C<--engine oracle> option, and saved it to the file.
 Furthermore, it wrote a commented-out C<[engine "oracle"]> section with all
 the available Oracle engine-specific settings commented out and ready to be
 edited as appropriate. This includes the path to
