@@ -151,7 +151,7 @@ script, so we add this to F<revert/appschema.sql>:
   DROP SCHEMA flipr;
 
 Now we can try deploying this change. We tell Sqitch where to send the change
-via a L<database URI|https://github.com/theory/uri-db/>:
+via a L<database URI|https://github.com/libwww-perl/uri-db/>:
 
   > createdb flipr_test
   > sqitch deploy db:pg:flipr_test
@@ -359,7 +359,7 @@ When we look at the status, the deployment will be there:
 =head1 On Target
 
 I'm getting a little tired of always having to type C<db:pg:flipr_test>,
-aren't you? This L<database connection URI|https://github.com/theory/uri-db/>
+aren't you? This L<database connection URI|https://github.com/libwww-perl/uri-db/>
 tells Sqitch how to connect to the deployment target, but we don't have
 to keep using the URI. We can name the target:
 

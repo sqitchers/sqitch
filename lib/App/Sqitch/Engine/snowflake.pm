@@ -88,7 +88,7 @@ has uri => (
         my $uri  = $self->SUPER::uri;
 
         # Set defaults in the URI.
-        $uri->host($self->_host)       if !$uri->host;
+        $uri->host($self->_host);
         $uri->port($ENV{SNOWSQL_PORT}) if !$uri->_port && $ENV{SNOWSQL_PORT};
         $uri->user($self->username)    if !$uri->user;
         if (!$uri->password && (my $pw = $self->password)) {

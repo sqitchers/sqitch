@@ -201,7 +201,7 @@ script, so we add this to F<revert/appschema.sql>:
   DROP SCHEMA flipr;
 
 Now we can try deploying this change. We tell Sqitch where to send the change
-via a L<database URI|https://github.com/theory/uri-db/>, assuming the default
+via a L<database URI|https://github.com/libwww-perl/uri-db/>, assuming the default
 C<dbadmin> database and user and an ODBC driver named C<Vertica> (see
 L</Connection Configuration> for details):
 
@@ -410,7 +410,7 @@ When we look at the status, the deployment will be there:
 
 I'm getting a little tired of always having to type
 C<db:vertica://dbadmin:password@localhost:5433/dbadmin?Driver=Vertica>, aren't
-you? This L<database connection URI|https://github.com/theory/uri-db/> tells
+you? This L<database connection URI|https://github.com/libwww-perl/uri-db/> tells
 Sqitch how to connect to the deployment target, but we don't have to keep
 using the URI. We can name the target:
 

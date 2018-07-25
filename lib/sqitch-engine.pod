@@ -192,7 +192,7 @@ Supported keys are:
 
   sqitch engine add pg --target db:pg:widgets
 
-Specifies the name or L<URI|https://github.com/theory/uri-db/> of the target
+Specifies the name or L<URI|https://github.com/libwww-perl/uri-db/> of the target
 database for the engine.
 
 =item C<--registry>

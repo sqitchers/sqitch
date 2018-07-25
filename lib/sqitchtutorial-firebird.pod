@@ -389,7 +389,7 @@ When we look at the status, the deployment will be there:
 
 I'm getting a little tired of always having to type
 C<db:firebird://sysdba:masterkey@localhost//tmp/flipr_test/flipr.fdb>, aren't
-you? This L<database connection URI|https://github.com/theory/uri-db/> tells
+you? This L<database connection URI|https://github.com/libwww-perl/uri-db/> tells
 Sqitch how to connect to the deployment target, but we don't have to keep
 using the URI. We can name the target:
 

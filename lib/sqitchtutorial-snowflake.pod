@@ -88,13 +88,13 @@ Let's have a look at F<sqitch.conf>:
 
   > cat sqitch.conf
   [core]
-  	engine = snowflake
-  	# plan_file = sqitch.plan
-  	# top_dir = .
+    engine = snowflake
+    # plan_file = sqitch.plan
+    # top_dir = .
   # [engine "snowflake"]
-  	# target = db:snowflake:
-  	# registry = sqitch
-  	# client = snowsql
+    # target = db:snowflake:
+    # registry = sqitch
+    # client = snowsql
 
 Good, it picked up on the fact that we're creating changes for the Snowflake
 engine, thanks to the C<--engine snowflake> option, and saved it to the
@@ -119,10 +119,10 @@ Have a look at F<~/.sqitch/sqitch.conf> and you'll see this:
 
   > cat ~/.sqitch/sqitch.conf
   [engine "snowflake"]
-  	client = /Applications/SnowSQL.app/Contents/MacOS/snowsql
+    client = /Applications/SnowSQL.app/Contents/MacOS/snowsql
   [user]
-  	name = Marge N. O’Vera
-  	email = marge@example.com
+    name = Marge N. O’Vera
+    email = marge@example.com
 
 Which means that Sqitch should be able to find C<snowsql> for any project, and
 that it will always properly identify us when planning and committing changes.
@@ -148,6 +148,163 @@ Let's commit these changes and start creating the database changes.
    2 files changed, 15 insertions(+)
    create mode 100644 sqitch.conf
    create mode 100644 sqitch.plan
+
+=head1 Our First Change
+
+First, our project will need a schema. This creates a nice namespace for all
+of the objects that will be part of the flipr app. Run this command:
+
+  > sqitch add appschema -n 'Add schema for all flipr objects.'
+  Created deploy/appschema.sql
+  Created revert/appschema.sql
+  Created verify/appschema.sql
+  Added "appschema" to sqitch.plan
+
+The L<C<add>|sqitch-add> command adds a database change to the plan and writes
+deploy, revert, and verify scripts that represent the change. Now we edit
+these files. The C<deploy> script's job is to create the schema. So we add
+this to F<deploy/appschema.sql>:
+
+  CREATE SCHEMA flipr;
+
+The C<revert> script's job is to precisely revert the change to the deploy
+script, so we add this to F<revert/appschema.sql>:
+
+  DROP SCHEMA flipr;
+
+Now we can try deploying this change. We tell Sqitch where to send the change
+via a L<database URI|https://github.com/libwww-perl/uri-db/>. Let's say we're
+using the account name C<example>, username C<movera>, database C<flipr>, and
+workspace C<sqitch>, and an ODBC driver named C<Snowflake>
+(see L</Connection Configuration> for details). The URI would be structured
+like this:
+
+  db:snowflake://movera@example/flipr?Driver=Snowflake;warehouse=sqitch
+
+Note that Sqitch requires a workspace in order to record its work in the
+registry. The default workspace is named C<sqitch>, so you can omit it from
+the URI if that's the workspace you want Sqitch to use. Otherwise, specify it
+in the URI. Snowflake also requires a password, which could also be included
+in the URI, but it's best to put it in the C<connections> section of the
+L<F<.snowsql/config> file|https://docs.snowflake.net/manuals/user-guide/snowsql-start.html#configuring-default-connection-settings>. See L<sqitch-passwords> for details.
+
+We just tell Sqitch to use that URI to deploy the change:
+
+  > sqitch deploy db:snowflake://movera@example/flipr?Driver=Snowflake;warehouse=sqitch
+  Adding registry tables to db:snowflake://movera@example/flipr?Driver=Snowflake;warehouse=sqitch
+  Deploying changes to db:snowflake://movera@example/flipr?Driver=Snowflake;warehouse=sqitch
+    + appschema .. ok
+
+First Sqitch created registry tables used to track database changes. The
+structure and name of the registry varies between databases (Snowflake uses a
+schema to namespace its registry, while SQLite and MySQL use separate
+databases). Next, Sqitch deploys changes. We only have one so far; the C<+>
+reinforces the idea that the change is being C<added> to the database.
+
+Note that this process can take quite a bit of time. Sqitch connects to the
+database via ODBC and retains the connection throughout, but the creation of
+the registry and all change scripts run through individual runs of C<snowsql>.
+These connections can be quite slow. So if Sqitch seems hung, just wait; it's
+most likely waiting on Snowflake.
+
+With this change deployed, if you connect to the database, you'll be able to
+see the schema:
+
+  > snowsql --accountname example --username movera --dbname flipr --query 'SHOW TERSE SCHEMAS'
+  * SnowSQL * v1.1.59
+  Type SQL statements or !help
+  +-------------------------------+--------------------+------+---------------+-------------+
+  | created_on                    | name               | kind | database_name | schema_name |
+  |-------------------------------+--------------------+------+---------------+-------------|
+  | 2018-07-25 18:56:30.045 +0000 | FLIPR              | NULL | DWHEELER      | NULL        |
+  | 2018-07-25 19:07:42.351 +0000 | INFORMATION_SCHEMA | NULL | DWHEELER      | NULL        |
+  | 2018-07-25 18:55:57.307 +0000 | SQITCH             | NULL | DWHEELER      | NULL        |
+  +-------------------------------+--------------------+------+---------------+-------------+
+  3 Row(s) produced. Time Elapsed: 0.317s
+
+=head2 Trust, But Verify
+
+But that's too much work. Do you really want to do something like that after
+every deploy?
+
+Here's where the C<verify> script comes in. Its job is to test that the deploy
+did was it was supposed to. It should do so without regard to any data that
+might be in the database, and should throw an error if the deploy was not
+successful. In Snowflake, the simplest way to do so for schema is probably to
+simply create an object in the schema. Put this SQL into
+F<verify/appschema.sql>:
+
+  CREATE TEMPORARY TABLE flipr.verify__ (id INT);
+
+In truth, you can use I<any> query that generates an SQL error if the schema
+doesn't exist. Another handy way to do that is to divide by zero if an object
+doesn't exist. For example, to throw an error when the C<flipr> schema does
+not exist, you could do something like this:
+
+  USE WAREHOUSE &warehouse;
+  SELECT 1/COUNT(*) FROM information_schema.schemata WHERE schema_name = 'FLIPR';
+
+Note the C<USE WAREHOUSE> statement. For scripts that execute queries requiring
+compute resources (typically DML and C<SELECT> statements), we'll need to use a
+L<virtual warehouse|https://docs.snowflake.net/manuals/user-guide/warehouses.html>.
+To use the warehouse that Sqitch itself uses for its registry, you can use the
+C<&warehouse> C<snowsql> variable, as in this example. Sqitch always sets This
+variable for all deploy, revert, and verify script executions.
+
+Now run the C<verify> script with the L<C<verify>|sqitch-verify> command:
+
+  > sqitch verify db:snowflake://movera@example/flipr?Driver=Snowflake;warehouse=sqitch
+  Verifying db:snowflake://movera@example/flipr?Driver=Snowflake;warehouse=sqitch
+    * appschema .. ok
+  Verify successful
+
+Looks good! If you want to make sure that the verify script correctly dies if
+the schema doesn't exist, temporarily change the schema name in the script to
+something that doesn't exist, something like:
+
+  CREATE TEMPORARY TABLE nonesuch.verify__ (id INT);
+
+Then L<C<verify>|sqitch-verify> again:
+
+  > sqitch verify db:snowflake://movera@example/flipr?Driver=Snowflake;warehouse=sqitch
+  Verifying db:snowflake://movera@iovation/flipr?Driver=Snowflake;warehouse=sqitch
+  * appschema ..
+  002003 (02000): SQL compilation error:
+  Schema 'FLIPR.NONESUCH' does not exist.
+  # Verify script "verify/appschema.sql" failed.
+  not ok
+
+  Verify Summary Report
+  ---------------------
+  Changes: 1
+  Errors:  1
+  Verify failed
+
+It's even nice enough to tell us what the problem is. Or, for the
+divide-by-zero example, change the schema name:
+
+  USE WAREHOUSE &warehouse;
+  SELECT 1/COUNT(*) FROM information_schema.schemata WHERE schema_name = 'NONESUCH';
+
+Then the verify will look something like:
+
+  > sqitch verify db:snowflake://movera@example/flipr?Driver=Snowflake;warehouse=sqitch
+  Verifying db:snowflake://movera@iovation/flipr?Driver=Snowflake;warehouse=sqitch
+  * appschema ..
+  100051 (22012): Division by zero
+  # Verify script "verify/appschema.sql" failed.
+  not ok
+
+  Verify Summary Report
+  ---------------------
+  Changes: 1
+  Errors:  1
+  Verify failed
+
+Less useful error output, but enough to alert us that something has gone
+wrong.
+
+Don't forget to change the schema name back before continuing!
 
 =head1 More to Come
 

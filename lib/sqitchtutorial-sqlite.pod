@@ -367,7 +367,7 @@ When we look at the status, the deployment will be there:
 
 I'm getting a little tired of always having to type
 C<db:sqlite:flipr_test.db>, aren't you? This
-L<database connection URI|https://github.com/theory/uri-db/> tells Sqitch how
+L<database connection URI|https://github.com/libwww-perl/uri-db/> tells Sqitch how
 to connect to the deployment target, but we don't have to keep using the URI.
 We can name the target:
 
