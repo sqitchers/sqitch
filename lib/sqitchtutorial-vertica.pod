@@ -205,7 +205,7 @@ via a L<database URI|https://github.com/libwww-perl/uri-db/>, assuming the defau
 C<dbadmin> database and user and an ODBC driver named C<Vertica> (see
 L</Connection Configuration> for details):
 
-  > sqitch deploy db:vertica://dbadmin:password@localhost:5433/dbadmin?Driver=Vertica
+  > sqitch deploy 'db:vertica://dbadmin:password@localhost:5433/dbadmin?Driver=Vertica'
   Adding registry tables to db:vertica://dbadmin:@localhost:5433/dbadmin?Driver=Vertica
   Deploying changes to db:vertica://dbadmin:@localhost:5433/dbadmin?Driver=Vertica
     + appschema .. ok
@@ -250,7 +250,7 @@ not exist, you could do something like this:
 Either way, run the C<verify> script with the L<C<verify>|sqitch-verify>
 command:
 
-  > sqitch verify db:vertica://dbadmin:password@localhost:5433/dbadmin?Driver=Vertica
+  > sqitch verify 'db:vertica://dbadmin:password@localhost:5433/dbadmin?Driver=Vertica'
   Verifying db:vertica://dbadmin:@localhost:5433/dbadmin?Driver=Vertica
     * appschema .. ok
   Verify successful
@@ -263,7 +263,7 @@ something that doesn't exist, something like:
 
 Then L<C<verify>|sqitch-verify> again:
 
-  > sqitch verify db:vertica://dbadmin:password@localhost:5433/dbadmin?Driver=Vertica
+  > sqitch verify 'db:vertica://dbadmin:password@localhost:5433/dbadmin?Driver=Vertica'
   Verifying db:vertica://dbadmin:@localhost:5433/dbadmin?Driver=Vertica
     * appschema .. vsql:verify/appschema.sql:5: ROLLBACK 4650:  Schema "nonesuch" does not exist
   # Verify script "verify/appschema.sql" failed.
@@ -282,7 +282,7 @@ divide-by-zero example, change the schema name:
 
 Then the verify will look something like:
 
-  > sqitch verify db:vertica://dbadmin:password@localhost:5433/dbadmin?Driver=Vertica
+  > sqitch verify 'db:vertica://dbadmin:password@localhost:5433/dbadmin?Driver=Vertica'
   Verifying db:vertica://dbadmin:@localhost:5433/dbadmin?Driver=Vertica
     * appschema .. vsql:verify/appschema.sql:5: ERROR 2005:  division by zero
   # Verify script "verify/appschema.sql" failed.
@@ -305,7 +305,7 @@ For purely informational purposes, we can always see how a deployment was
 recorded via the L<C<status>|sqitch-status> command, which reads the registry
 tables from the database:
 
-  > sqitch status db:vertica://dbadmin:password@localhost:5433/dbadmin?Driver=Vertica
+  > sqitch status 'db:vertica://dbadmin:password@localhost:5433/dbadmin?Driver=Vertica'
   # On database db:vertica://dbadmin:@localhost:5433/dbadmin?Driver=Vertica
   # Project:  flipr
   # Change:   f9759f0ed77964b6a3b6c7aa3b6058b4bb7db764
@@ -317,7 +317,7 @@ tables from the database:
 
 Let's make sure that we can revert the change:
 
-  > sqitch revert db:vertica://dbadmin:password@localhost:5433/dbadmin?Driver=Vertica
+  > sqitch revert 'db:vertica://dbadmin:password@localhost:5433/dbadmin?Driver=Vertica'
   Revert all changes from db:vertica://dbadmin:@localhost:5433/dbadmin?Driver=Vertica? [Yes] 
     - appschema .. ok
 
@@ -335,21 +335,21 @@ I<removed> from the database. And now the schema should be gone:
 
 And the status message should reflect as much:
 
-  > sqitch status db:vertica://dbadmin:password@localhost:5433/dbadmin?Driver=Vertica
+  > sqitch status 'db:vertica://dbadmin:password@localhost:5433/dbadmin?Driver=Vertica'
   # On database db:vertica://dbadmin:@localhost:5433/dbadmin?Driver=Vertica
   No changes deployed
 
 Of course, since nothing is deployed, the L<C<verify>|sqitch-verify> command
 has nothing to verify:
 
-  > sqitch verify db:vertica://dbadmin:password@localhost:5433/dbadmin?Driver=Vertica
+  > sqitch verify 'db:vertica://dbadmin:password@localhost:5433/dbadmin?Driver=Vertica'
   Verifying db:vertica://dbadmin:@localhost:5433/dbadmin?Driver=Vertica
   No changes deployed
 
 However, we still have a record that the change happened, visible via the
 L<C<log>|sqitch-log> command:
 
-  > sqitch log db:vertica://dbadmin:password@localhost:5433/dbadmin?Driver=Vertica
+  > sqitch log 'db:vertica://dbadmin:password@localhost:5433/dbadmin?Driver=Vertica'
   On database db:vertica://dbadmin:@localhost:5433/dbadmin?Driver=Vertica
   Revert f9759f0ed77964b6a3b6c7aa3b6058b4bb7db764
   Name:      appschema
@@ -382,7 +382,7 @@ Cool. Now let's commit it.
 And then deploy again. This time, let's use the C<--verify> option, so that
 the C<verify> script is applied when the change is deployed:
 
-  > sqitch deploy --verify db:vertica://dbadmin:password@localhost:5433/dbadmin?Driver=Vertica
+  > sqitch deploy --verify 'db:vertica://dbadmin:password@localhost:5433/dbadmin?Driver=Vertica'
   Deploying changes to db:vertica://dbadmin:@localhost:5433/dbadmin?Driver=Vertica
     + appschema .. ok
 
@@ -396,7 +396,7 @@ And now the schema should be back:
 
 When we look at the status, the deployment will be there:
 
-  > sqitch status db:vertica://dbadmin:password@localhost:5433/dbadmin?Driver=Vertica
+  > sqitch status 'db:vertica://dbadmin:password@localhost:5433/dbadmin?Driver=Vertica'
   # On database db:vertica://dbadmin:@localhost:5433/dbadmin?Driver=Vertica
   # Project:  flipr
   # Change:   f9759f0ed77964b6a3b6c7aa3b6058b4bb7db764
@@ -409,12 +409,12 @@ When we look at the status, the deployment will be there:
 =head1 On Target
 
 I'm getting a little tired of always having to type
-C<db:vertica://dbadmin:password@localhost:5433/dbadmin?Driver=Vertica>, aren't
+C<'db:vertica://dbadmin:password@localhost:5433/dbadmin?Driver=Vertica'>, aren't
 you? This L<database connection URI|https://github.com/libwww-perl/uri-db/> tells
 Sqitch how to connect to the deployment target, but we don't have to keep
 using the URI. We can name the target:
 
-  > sqitch target add flipr_test db:vertica://dbadmin:password@localhost:5433/dbadmin?Driver=Vertica
+  > sqitch target add flipr_test 'db:vertica://dbadmin:password@localhost:5433/dbadmin?Driver=Vertica'
 
 The L<C<target>|sqitch-target> command, inspired by
 L<C<git-remote>|http://git-scm.com/docs/git-remote>, allows management of one
