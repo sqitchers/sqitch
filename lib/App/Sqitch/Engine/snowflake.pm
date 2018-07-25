@@ -368,9 +368,9 @@ sub name_for_change_id {
 sub _limit_offset {
     # LIMIT/OFFSET don't support parameters, alas. So just put them in the query.
     my ($self, $lim, $off)  = @_;
-    return ['LIMIT ' . ($lim || POSIX::INT_MAX), "OFFSET $off"] if $off;
-    return ["LIMIT $lim"] if $lim;
-    return;
+    return ['LIMIT ' . ($lim || POSIX::INT_MAX), "OFFSET $off"], [] if $off;
+    return ["LIMIT $lim"], [] if $lim;
+    return [], [];
 }
 
 sub run_file {

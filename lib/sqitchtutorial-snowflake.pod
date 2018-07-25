@@ -210,17 +210,16 @@ most likely waiting on Snowflake.
 With this change deployed, if you connect to the database, you'll be able to
 see the schema:
 
-  > snowsql --accountname example --username movera --dbname flipr --query 'SHOW TERSE SCHEMAS'
+  > snowsql --accountname example --username movera --dbname flipr \
+    --query "SHOW TERSE SCHEMAS LIKE 'flipr'"
   * SnowSQL * v1.1.59
   Type SQL statements or !help
-  +-------------------------------+--------------------+------+---------------+-------------+
-  | created_on                    | name               | kind | database_name | schema_name |
-  |-------------------------------+--------------------+------+---------------+-------------|
-  | 2018-07-25 18:56:30.045 +0000 | FLIPR              | NULL | DWHEELER      | NULL        |
-  | 2018-07-25 19:07:42.351 +0000 | INFORMATION_SCHEMA | NULL | DWHEELER      | NULL        |
-  | 2018-07-25 18:55:57.307 +0000 | SQITCH             | NULL | DWHEELER      | NULL        |
-  +-------------------------------+--------------------+------+---------------+-------------+
-  3 Row(s) produced. Time Elapsed: 0.317s
+  +-------------------------------+-------+------+---------------+-------------+
+  | created_on                    | name  | kind | database_name | schema_name |
+  |-------------------------------+-------+------+---------------+-------------|
+  | 2018-07-25 21:12:59.174 +0000 | FLIPR | NULL | DWHEELER      | NULL        |
+  +-------------------------------+-------+------+---------------+-------------+
+  1 Row(s) produced. Time Elapsed: 0.283s
 
 =head2 Trust, But Verify
 
@@ -267,7 +266,7 @@ something that doesn't exist, something like:
 Then L<C<verify>|sqitch-verify> again:
 
   > sqitch verify db:snowflake://movera@example/flipr?Driver=Snowflake;warehouse=sqitch
-  Verifying db:snowflake://movera@iovation/flipr?Driver=Snowflake;warehouse=sqitch
+  Verifying db:snowflake://movera@example/flipr?Driver=Snowflake;warehouse=sqitch
   * appschema ..
   002003 (02000): SQL compilation error:
   Schema 'FLIPR.NONESUCH' does not exist.
@@ -289,7 +288,7 @@ divide-by-zero example, change the schema name:
 Then the verify will look something like:
 
   > sqitch verify db:snowflake://movera@example/flipr?Driver=Snowflake;warehouse=sqitch
-  Verifying db:snowflake://movera@iovation/flipr?Driver=Snowflake;warehouse=sqitch
+  Verifying db:snowflake://movera@example/flipr?Driver=Snowflake;warehouse=sqitch
   * appschema ..
   100051 (22012): Division by zero
   # Verify script "verify/appschema.sql" failed.
@@ -305,6 +304,121 @@ Less useful error output, but enough to alert us that something has gone
 wrong.
 
 Don't forget to change the schema name back before continuing!
+
+=head2 Status, Revert, Log, Repeat
+
+For purely informational purposes, we can always see how a deployment was
+recorded via the L<C<status>|sqitch-status> command, which reads the registry
+tables from the database:
+
+  > sqitch status db:snowflake://movera@example/flipr?Driver=Snowflake;warehouse=sqitch
+  # On database db:snowflake://movera@example/flipr?Driver=Snowflake;warehouse=sqitch
+  # Project:  flipr
+  # Change:   72ff6480c94724d772dae4136420e807688badb8
+  # Name:     appschema
+  # Deployed: 2018-07-25 14:56:32 -0400
+  # By:       Marge N. O’Vera <marge@example.com>
+  #
+  Nothing to deploy (up-to-date)
+
+Let's make sure that we can revert the change:
+
+  > sqitch revert db:snowflake://movera@example/flipr?Driver=Snowflake;warehouse=sqitch
+  Revert all changes from db:snowflake://movera@example/flipr?Driver=Snowflake;warehouse=sqitch? [Yes]
+    - appschema .. ok
+
+The L<C<revert>|sqitch-revert> command first prompts to make sure that we
+really do want to revert. This is to prevent unnecessary accidents. You can
+pass the C<-y> option to disable the prompt. Also, notice the C<-> before the
+change name in the output, which reinforces that the change is being
+I<removed> from the database. And now the schema should be gone:
+
+  > snowsql --accountname example --username movera --dbname flipr \
+    --query "SHOW TERSE SCHEMAS LIKE 'flipr'"
+  * SnowSQL * v1.1.59
+  Type SQL statements or !help
+  +------------+------+------+---------------+-------------+
+  | created_on | name | kind | database_name | schema_name |
+  |------------+------+------+---------------+-------------|
+  +------------+------+------+---------------+-------------+
+  0 Row(s) produced. Time Elapsed: 0.204s
+
+And the status message should reflect as much:
+
+  > sqitch status db:snowflake://movera@example/flipr?Driver=Snowflake;warehouse=sqitch
+  # On database db:snowflake://movera@example/flipr?Driver=Snowflake;warehouse=sqitch
+  No changes deployed
+
+Of course, since nothing is deployed, the L<C<verify>|sqitch-verify> command
+has nothing to verify:
+
+  > sqitch verify db:snowflake://movera@example/flipr?Driver=Snowflake;warehouse=sqitch
+  Verifying db:snowflake://movera@example/flipr?Driver=Snowflake;warehouse=sqitch
+  No changes deployed
+
+However, we still have a record that the change happened, visible via the
+L<C<log>|sqitch-log> command:
+
+  > sqitch log db:snowflake://movera@example/flipr?Driver=Snowflake;warehouse=sqitch
+  On database db:snowflake://movera@example/flipr?Driver=Snowflake;warehouse=sqitch
+  Revert 72ff6480c94724d772dae4136420e807688badb8
+  Name:      appschema
+  Committer: Marge N. O’Vera <marge@example.com>
+  Date:      2018-07-25 16:48:33 -0400
+
+      Add schema for all flipr objects.
+
+  Deploy 72ff6480c94724d772dae4136420e807688badb8
+  Name:      appschema
+  Committer: Marge N. O’Vera <marge@example.com>
+  Date:      2018-07-25 14:56:33 -0400
+
+      Add schema for all flipr objects.
+
+Note that the actions we took are shown in reverse chronological order, with
+the revert first and then the deploy.
+
+Cool. Now let's commit it.
+
+  > git add .
+  > git commit -m 'Add flipr schema.'
+  [master b0c5544] Add flipr schema.
+  4 files changed, 10 insertions(+)
+  create mode 100644 deploy/appschema.sql
+  create mode 100644 revert/appschema.sql
+  create mode 100644 verify/appschema.sql
+
+And then deploy again. This time, let's use the C<--verify> option, so that
+the C<verify> script is applied when the change is deployed:
+
+  > sqitch deploy --verify db:snowflake://movera@example/flipr?Driver=Snowflake;warehouse=sqitch
+  Deploying changes to db:snowflake://movera@example/flipr?Driver=Snowflake;warehouse=sqitch
+    + appschema .. ok
+
+And now the schema should be back:
+
+  > snowsql --accountname example --username movera --dbname flipr \
+    --query "SHOW TERSE SCHEMAS LIKE 'flipr'"
+  * SnowSQL * v1.1.59
+  Type SQL statements or !help
+  +-------------------------------+-------+------+---------------+-------------+
+  | created_on                    | name  | kind | database_name | schema_name |
+  |-------------------------------+-------+------+---------------+-------------|
+  | 2018-07-25 21:12:59.174 +0000 | FLIPR | NULL | DWHEELER      | NULL        |
+  +-------------------------------+-------+------+---------------+-------------+
+  1 Row(s) produced. Time Elapsed: 0.283s
+
+When we look at the status, the deployment will be there:
+
+  > sqitch status db:snowflake://movera@example/flipr?Driver=Snowflake;warehouse=sqitch
+  # On database db:snowflake://movera@example/flipr?Driver=Snowflake;warehouse=sqitch
+  # Project:  flipr
+  # Change:   72ff6480c94724d772dae4136420e807688badb8
+  # Name:     appschema
+  # Deployed: 2018-07-25 17:35:46 -0400
+  # By:       Marge N. O’Vera <marge@example.com>
+  #
+  Nothing to deploy (up-to-date)
 
 =head1 More to Come
 
