@@ -212,8 +212,6 @@ see the schema:
 
   > snowsql --accountname example --username movera --dbname flipr \
     --query "SHOW TERSE SCHEMAS LIKE 'flipr'"
-  * SnowSQL * v1.1.59
-  Type SQL statements or !help
   +-------------------------------+-------+------+---------------+-------------+
   | created_on                    | name  | kind | database_name | schema_name |
   |-------------------------------+-------+------+---------------+-------------|
@@ -335,8 +333,6 @@ I<removed> from the database. And now the schema should be gone:
 
   > snowsql --accountname example --username movera --dbname flipr \
     --query "SHOW TERSE SCHEMAS LIKE 'flipr'"
-  * SnowSQL * v1.1.59
-  Type SQL statements or !help
   +------------+------+------+---------------+-------------+
   | created_on | name | kind | database_name | schema_name |
   |------------+------+------+---------------+-------------|
@@ -399,8 +395,6 @@ And now the schema should be back:
 
   > snowsql --accountname example --username movera --dbname flipr \
     --query "SHOW TERSE SCHEMAS LIKE 'flipr'"
-  * SnowSQL * v1.1.59
-  Type SQL statements or !help
   +-------------------------------+-------+------+---------------+-------------+
   | created_on                    | name  | kind | database_name | schema_name |
   |-------------------------------+-------+------+---------------+-------------|
@@ -465,6 +459,179 @@ let's commit the new configuration and and make some more changes!
   > git commit -am 'Set default deployment target and always verify.'
   [master 09f7f5c] Set default deployment target and always verify.
    1 files changed, 8 insertions(+), 0 deletions(-)
+
+=head1 Deploy with Dependency
+
+Let's add another change, this time to create a table. Our app will need
+users, of course, so we'll create a table for them. First, add the new change:
+
+  > sqitch add users --requires appschema -n 'Creates table to track our users.'
+  Created deploy/users.sql
+  Created revert/users.sql
+  Created verify/users.sql
+  Added "users [appschema]" to sqitch.plan
+
+Note that we're requiring the C<appschema> change as a dependency of the new
+C<users> change. Although that change has already been added to the plan and
+therefore should always be applied before the C<users> change, it's a good
+idea to be explicit about dependencies.
+
+Now edit the scripts. When you're done, F<deploy/users.sql> should look like
+this:
+
+  -- Deploy flipr:users to snowflake
+  -- requires: appschema
+
+  CREATE TABLE flipr.users (
+      nickname  TEXT         PRIMARY KEY,
+      password  TEXT         NOT NULL,
+      timestamp TIMESTAMP_TZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+  );
+
+A few things to notice here. On the second line, the dependence on the
+C<appschema> change has been listed. This doesn't do anything, but the default
+C<deploy> Snowflake template lists it here for your reference while editing
+the file. Useful, right?
+
+The table itself will be created in the C<flipr> schema. This is why we need
+to require the C<appschema> change.
+
+Now for the verify script. The simplest way to check that the table was
+created and has the expected columns without touching the data? Just select
+from the table with a false C<WHERE> clause. Be sure to use a warehouse so
+that the C<SELECT> statement can actually execute. Probably easiest just to
+use the same warehouse that Sqitch itlsef uses. Add this to
+F<verify/users.sql>:
+
+  USE WAREHOUSE &warehouse;
+  SELECT nickname, password, timestamp
+    FROM flipr.users
+  WHERE FALSE;
+
+Now for the revert script: all we have to do is drop the table. Add this to
+F<revert/users.sql>:
+
+  DROP TABLE flipr.users;
+
+Couldn't be much simpler, right? Let's deploy this bad boy:
+
+  > sqitch deploy
+  Deploying changes to flipr_test
+    + users .. ok
+
+We know, since verification is enabled, that the table must have been created.
+But for the purposes of visibility, let's have a quick look:
+
+  > snowsql --accountname example --username movera --dbname flipr \
+    --query "SHOW TERSE TABLES LIKE 'users' IN flipr"
+  +-------------------------------+-------+-------+---------------+-------------+
+  | created_on                    | name  | kind  | database_name | schema_name |
+  |-------------------------------+-------+-------+---------------+-------------|
+  | 2018-07-26 14:03:25.409 +0000 | USERS | TABLE | DWHEELER      | FLIPR       |
+  +-------------------------------+-------+-------+---------------+-------------+
+  1 Row(s) produced. Time Elapsed: 0.318s
+
+We can also verify all currently deployed changes with the
+L<C<verify>|sqitch-verify> command:
+
+  > sqitch verify
+  Verifying flipr_test
+    * appschema .. ok
+    * users ...... ok
+  Verify successful
+
+Now have a look at the status:
+
+  > sqitch status
+  # On database flipr_test
+  # Project:  flipr
+  # Change:   b2f961a0793bd8cfb436d6e590f9b18c8ba909d5
+  # Name:     users
+  # Deployed: 2018-07-26 10:03:31 -0400
+  # By:       Marge N. O’Vera <marge@example.com>
+  #
+  Nothing to deploy (up-to-date)
+
+Success! Let's make sure we can revert the change, as well:
+
+  > sqitch revert --to @HEAD^ -y
+  Reverting changes to appschema from flipr_test
+    - users .. ok
+
+Note that we've used the C<--to> option to specify the change to revert to.
+And what do we revert to? The symbolic tag C<@HEAD>, when passed to
+L<C<revert>|sqitch-revert>, always refers to the last change deployed to the
+database. (For other commands, it refers to the last change in the plan.)
+Appending the caret (C<^>) tells Sqitch to select the change I<prior> to the
+last deployed change. So we revert to C<appschema>, the penultimate change.
+The other potentially useful symbolic tag is C<@ROOT>, which refers to the
+first change deployed to the database (or in the plan, depending on the
+command).
+
+Back to the database. The C<users> table should be gone but the C<flipr> schema
+should still be around:
+
+  > snowsql --accountname example --username movera --dbname flipr \
+    --query "SHOW TERSE TABLES LIKE 'users' IN flipr"
+  +------------+------+------+---------------+-------------+
+  | created_on | name | kind | database_name | schema_name |
+  |------------+------+------+---------------+-------------|
+  +------------+------+------+---------------+-------------+
+  0 Row(s) produced. Time Elapsed: 0.367s
+
+The L<C<status>|sqitch-status> command politely informs us that we have
+undeployed changes:
+
+  > sqitch status
+  # On database flipr_test
+  # Project:  flipr
+  # Change:   72ff6480c94724d772dae4136420e807688badb8
+  # Name:     appschema
+  # Deployed: 2018-07-25 17:35:46 -0400
+  # By:       Marge N. O’Vera <marge@example.com>
+  #
+  Undeployed change:
+    * users
+
+As does the L<C<verify>|sqitch-verify> command:
+
+  > sqitch verify
+  Verifying flipr_test
+    * appschema .. ok
+  Undeployed change:
+    * users
+  Verify successful
+
+Note that the verify is successful, because all currently-deployed changes are
+verified. The list of undeployed changes (just "users" here) reminds us about
+the current state.
+
+Okay, let's commit and deploy again:
+
+  > git add .
+  > git commit -am 'Add users table.'
+  [master b4cc490] Add users table.
+  4 files changed, 18 insertions(+)
+  create mode 100644 deploy/users.sql
+  create mode 100644 revert/users.sql
+  create mode 100644 verify/users.sql
+  > sqitch deploy
+  Deploying changes to flipr_test
+    + users .. ok
+
+Looks good. Check the status:
+
+  > sqitch status
+  # On database flipr_test
+  # Project:  flipr
+  # Change:   b2f961a0793bd8cfb436d6e590f9b18c8ba909d5
+  # Name:     users
+  # Deployed: 2018-07-26 10:16:52 -0400
+  # By:       Marge N. O’Vera <marge@example.com>
+  #
+  Nothing to deploy (up-to-date)
+
+Excellent. Let's do some more!
 
 =head1 More to Come
 
