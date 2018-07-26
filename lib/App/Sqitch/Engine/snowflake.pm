@@ -217,16 +217,30 @@ sub _client_opts {
         '--option' => 'friendly=false',
         '--option' => 'header=false',
         '--option' => 'exit_on_error=true',
-        '--option' => 'output_format=plain',
+        '--option' => 'stop_on_error=true',
+        '--option' => 'output_format=csv',
         '--option' => 'paging=false',
         '--option' => 'timing=false',
         '--option' => 'wrap=false',
-        '--option' => 'results=true',
         '--option' => 'rowset_size=1000',
         '--option' => 'syntax_style=default',
         '--option' => 'variable_substitution=true',
         '--variable' => 'registry=' . $_[0]->registry,
         '--variable' => 'warehouse=' . $_[0]->warehouse,
+    );
+}
+
+sub _quiet_opts {
+    return (
+        '--option' => 'quiet=true',
+        '--option' => 'results=false',
+    );
+}
+
+sub _verbose_opts {
+    return (
+        '--option' => 'quiet=false',
+        '--option' => 'results=true',
     );
 }
 
@@ -375,7 +389,14 @@ sub _limit_offset {
 
 sub run_file {
     my ($self, $file) = @_;
-    $self->_run('--option' => 'quiet=true', '--filename' => $file);
+    $self->_run(_quiet_opts, '--filename' => $file);
+}
+
+sub run_verify {
+    my ($self, $file) = @_;
+    # Suppress STDOUT unless we want extra verbosity.
+    return $self->run_file($file) unless $self->sqitch->verbosity > 1;
+    $self->_run(_verbose_opts, '--filename' => $file);
 }
 
 sub run_handle {
@@ -385,36 +406,50 @@ sub run_handle {
 
 sub _run {
     my $self   = shift;
-    my $sqitch = $self->sqitch;
-    my $pass   = $self->password or return $sqitch->run( $self->snowsql, @_ );
+    my $pass   = $self->password or return $self->_chomprun(@_);
     # Does not override connection config, alas.
     local $ENV{SNOWSQL_PWD} = $pass;
-    return $sqitch->run( $self->snowsql, @_ );
+    return $self->_chomprun(@_);
+}
+
+sub _chomprun {
+    my $self   = shift;
+    my $sqitch = $self->sqitch;
+    my $out = $sqitch->capture( $self->snowsql, @_ );
+    # Emit the output if there's anything other than whitespace.
+    if ($out && $out =~ /\S/ms) {
+        $out =~ s/\n\z//ms;
+        $sqitch->emit_literal($out);
+    }
+    return $sqitch;
 }
 
 sub _capture {
     my $self   = shift;
     my $sqitch = $self->sqitch;
-    my $pass   = $self->password or return $sqitch->capture( $self->snowsql, @_ );
+    my $pass   = $self->password or
+        return $sqitch->capture( $self->snowsql, _verbose_opts, @_ );
     local $ENV{SNOWSQL_PWD} = $pass;
-    return $sqitch->capture( $self->snowsql, @_ );
+    return $sqitch->capture( $self->snowsql, _verbose_opts, @_ );
 }
 
 sub _probe {
     my $self   = shift;
     my $sqitch = $self->sqitch;
-    my $pass   = $self->password or return $sqitch->probe( $self->snowsql, @_ );
+    my $pass   = $self->password or
+        return $sqitch->probe( $self->snowsql, _verbose_opts, @_ );
     local $ENV{SNOWSQL_PWD} = $pass;
-    return $sqitch->probe( $self->snowsql, @_ );
+    return $sqitch->probe( $self->snowsql, _verbose_opts, @_ );
 }
 
 sub _spool {
     my $self   = shift;
     my $fh     = shift;
     my $sqitch = $self->sqitch;
-    my $pass   = $self->password or return $sqitch->spool( $fh, $self->snowsql, @_ );
+    my $pass   = $self->password or
+        return $sqitch->spool( $fh, $self->snowsql, _verbose_opts, @_ );
     local $ENV{SNOWSQL_PWD} = $pass;
-    return $sqitch->spool( $fh, $self->snowsql, @_ );
+    return $sqitch->spool( $fh, $self->snowsql, _verbose_opts, @_ );
 }
 
 1;

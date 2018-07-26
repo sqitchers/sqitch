@@ -84,11 +84,11 @@ my @std_opts = (
     '--option' => 'friendly=false',
     '--option' => 'header=false',
     '--option' => 'exit_on_error=true',
-    '--option' => 'output_format=plain',
+    '--option' => 'stop_on_error=true',
+    '--option' => 'output_format=csv',
     '--option' => 'paging=false',
     '--option' => 'timing=false',
     '--option' => 'wrap=false',
-    '--option' => 'results=true',
     '--option' => 'rowset_size=1000',
     '--option' => 'syntax_style=default',
     '--option' => 'variable_substitution=true',
@@ -158,8 +158,9 @@ $target = App::Sqitch::Target->new( sqitch => $sqitch );
 ok $snow = $CLASS->new(sqitch => $sqitch, target => $target),
     'Create another snowflake';
 is $snow->client, '/path/to/snowsql', 'client should be as configured';
-is $snow->uri->as_string, 'db:snowflake://fred@foo/try?warehouse=foo',
-    'Uri should be as configured';
+is $snow->uri->as_string,
+    'db:snowflake://fred@foo.snowflakecomputing.com/try?warehouse=foo',
+    'URI should be as configured with full domain name';
 is $snow->registry, 'meta', 'registry should be as configured';
 is_deeply [$snow->snowsql], [qw(
     /path/to/snowsql
@@ -195,18 +196,6 @@ is_deeply [$snow->snowsql], [qw(
 # Test _run(), _capture(), and _spool().
 can_ok $snow, qw(_run _capture _spool);
 my $mock_sqitch = Test::MockModule->new('App::Sqitch');
-my @run;
-$mock_sqitch->mock(run => sub {
-    local $Test::Builder::Level = $Test::Builder::Level + 2;
-    shift;
-    @run = @_;
-    if (defined $exp_pass) {
-        is $ENV{SNOWSQL_PWD}, $exp_pass, qq{SNOWSQL_PWD should be "$exp_pass"};
-    } else {
-        ok !exists $ENV{SNOWSQL_PWD}, 'SNOWSQL_PWD should not exist';
-    }
-});
-
 my @capture;
 $mock_sqitch->mock(capture => sub {
     local $Test::Builder::Level = $Test::Builder::Level + 2;
@@ -217,6 +206,7 @@ $mock_sqitch->mock(capture => sub {
     } else {
         ok !exists $ENV{SNOWSQL_PWD}, 'SNOWSQL_PWD should not exist';
     }
+    return;
 });
 
 my @spool;
@@ -232,15 +222,15 @@ $mock_sqitch->mock(spool => sub {
 });
 
 ok $snow->_run(qw(foo bar baz)), 'Call _run';
-is_deeply \@run, [$snow->snowsql, qw(foo bar baz)],
-    'Command should be passed to run()';
+is_deeply \@capture, [$snow->snowsql, qw(foo bar baz)],
+    'Command should be passed to capture()';
 
 ok $snow->_spool('FH'), 'Call _spool';
-is_deeply \@spool, ['FH', $snow->snowsql],
+is_deeply \@spool, ['FH', $snow->snowsql, $snow->_verbose_opts],
     'Command should be passed to spool()';
 
-ok $snow->_capture(qw(foo bar baz)), 'Call _capture';
-is_deeply \@capture, [$snow->snowsql, qw(foo bar baz)],
+lives_ok { $snow->_capture(qw(foo bar baz)) } 'Call _capture';
+is_deeply \@capture, [$snow->snowsql, $snow->_verbose_opts, qw(foo bar baz)],
     'Command should be passed to capture()';
 
 # Without password.
@@ -249,25 +239,25 @@ ok $snow = $CLASS->new(sqitch => $sqitch, target => $target),
     'Create a snowflake with sqitch with no pw';
 $exp_pass = undef;
 ok $snow->_run(qw(foo bar baz)), 'Call _run again';
-is_deeply \@run, [$snow->snowsql, qw(foo bar baz)],
-    'Command should be passed to run() again';
+is_deeply \@capture, [$snow->snowsql, qw(foo bar baz)],
+    'Command should be passed to capture() again';
 
 ok $snow->_spool('FH'), 'Call _spool again';
-is_deeply \@spool, ['FH', $snow->snowsql],
+is_deeply \@spool, ['FH', $snow->snowsql, $snow->_verbose_opts],
     'Command should be passed to spool() again';
 
-ok $snow->_capture(qw(foo bar baz)), 'Call _capture again';
-is_deeply \@capture, [$snow->snowsql, qw(foo bar baz)],
+lives_ok { $snow->_capture(qw(foo bar baz)) } 'Call _capture again';
+is_deeply \@capture, [$snow->snowsql, $snow->_verbose_opts, qw(foo bar baz)],
     'Command should be passed to capture() again';
 
 ##############################################################################
 # Test file and handle running.
 ok $snow->run_file('foo/bar.sql'), 'Run foo/bar.sql';
-is_deeply \@run, [$snow->snowsql, '--option' => 'quiet=true', '--filename', 'foo/bar.sql'],
-    'File should be passed to run()';
+is_deeply \@capture, [$snow->snowsql, $snow->_quiet_opts, '--filename', 'foo/bar.sql'],
+    'File should be passed to capture()';
 
 ok $snow->run_handle('FH'), 'Spool a "file handle"';
-is_deeply \@spool, ['FH', $snow->snowsql],
+is_deeply \@spool, ['FH', $snow->snowsql, $snow->_verbose_opts],
     'Handle should be passed to spool()';
 
 # Verify should go to capture unless verosity is > 1.
@@ -277,7 +267,7 @@ is_deeply \@spool, ['FH', $snow->snowsql],
 
 $mock_sqitch->mock(verbosity => 2);
 ok $snow->run_verify('foo/bar.sql'), 'Verify foo/bar.sql again';
-is_deeply \@run, [$snow->snowsql, '--option' => 'quiet=true', '--filename', 'foo/bar.sql'],
+is_deeply \@capture, [$snow->snowsql, $snow->_verbose_opts, '--filename', 'foo/bar.sql'],
     'Verifile file should be passed to run() for high verbosity';
 
 $mock_sqitch->unmock_all;
