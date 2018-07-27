@@ -967,7 +967,7 @@ Look good?
   # 
   Nothing to deploy (up-to-date)
 
-Note the use of C<--show tags> to show all the deployed tags. Now make it so:
+Note the use of C<--show-tags> to show all the deployed tags. Now make it so:
 
   > git add .
   > git commit -am 'Add flips table.'

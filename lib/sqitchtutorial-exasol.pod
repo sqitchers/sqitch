@@ -941,12 +941,13 @@ Look good?
   #
   Nothing to deploy (up-to-date)
 
-Note the use of C<--show tags> to show all the deployed tags. Make sure we can
+Note the use of C<--show-tags> to show all the deployed tags. Make sure we can
 revert, too:
 
   > sqitch rebase -y --onto @HEAD^
   Reverting changes to userflips @v1.0.0-dev1 from flipr_test
     - hashtags .. ok
+  > sqitch deploy
   Deploying changes to flipr_test
     + hashtags .. ok
 
