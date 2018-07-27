@@ -175,24 +175,26 @@ script, so we add this to F<revert/appschema.sql>:
 Now we can try deploying this change. We tell Sqitch where to send the change
 via a L<database URI|https://github.com/libwww-perl/uri-db/>. Let's say we're
 using the account name C<example>, username C<movera>, database C<flipr>, and
-workspace C<sqitch>, and an ODBC driver named C<Snowflake>
-(see L</Connection Configuration> for details). The URI would be structured
-like this:
+warehouse C<sqitch>, and an ODBC driver named C<Snowflake> (see
+L</Connection Configuration> for details). The URI would be structured like
+this:
 
   db:snowflake://movera@example/flipr?Driver=Snowflake;warehouse=sqitch
 
-Note that Sqitch requires a workspace in order to record its work in the
-registry. The default workspace is named C<sqitch>, so you can omit it from
-the URI if that's the workspace you want Sqitch to use. Otherwise, specify it
-in the URI. Snowflake also requires a password, which could also be included
-in the URI, but it's best to put it in the C<connections> section of the
-L<F<.snowsql/config> file|https://docs.snowflake.net/manuals/user-guide/snowsql-start.html#configuring-default-connection-settings>. See L<sqitch-passwords> for details.
+Note that Sqitch requires a C<warehouse> parameter in order to record its work
+in the registry. The default warehouse is named C<sqitch>, so you can omit it
+from the URI if that's the warehouse you want Sqitch to use (we'll omit it for
+the remainder of this tutorial). Otherwise, specify it in the URI. Snowflake
+also requires a password, which could also be included in the URI, but it's
+best to put it in the C<connections> section of the
+L<F<.snowsql/config> file|https://docs.snowflake.net/manuals/user-guide/snowsql-start.html#configuring-default-connection-settings>.
+See L<sqitch-passwords> for details.
 
 We just tell Sqitch to use that URI to deploy the change:
 
-  > sqitch deploy 'db:snowflake://movera@example/flipr?Driver=Snowflake;warehouse=sqitch'
-  Adding registry tables to db:snowflake://movera@example/flipr?Driver=Snowflake;warehouse=sqitch
-  Deploying changes to db:snowflake://movera@example/flipr?Driver=Snowflake;warehouse=sqitch
+  > sqitch deploy 'db:snowflake://movera@example/flipr?Driver=Snowflake'
+  Adding registry tables to db:snowflake://movera@example/flipr?Driver=Snowflake
+  Deploying changes to db:snowflake://movera@example/flipr?Driver=Snowflake
     + appschema .. ok
 
 First Sqitch created registry tables used to track database changes. The
@@ -210,12 +212,12 @@ most likely waiting on Snowflake.
 With this change deployed, if you connect to the database, you'll be able to
 see the schema:
 
-  > snowsql --accountname example --username movera --dbname flipr \
+  > snowsql --accountname example --username movera --dbname flipr -o friendly=false \
     --query "SHOW TERSE SCHEMAS LIKE 'flipr'"
   +-------------------------------+-------+------+---------------+-------------+
   | created_on                    | name  | kind | database_name | schema_name |
   |-------------------------------+-------+------+---------------+-------------|
-  | 2018-07-25 21:12:59.174 +0000 | FLIPR | NULL | DWHEELER      | NULL        |
+  | 2018-07-27 14:47:22.614 +0000 | FLIPR | NULL | DWHEELER      | NULL        |
   +-------------------------------+-------+------+---------------+-------------+
   1 Row(s) produced. Time Elapsed: 0.283s
 
@@ -241,17 +243,21 @@ not exist, you could do something like this:
   USE WAREHOUSE &warehouse;
   SELECT 1/COUNT(*) FROM information_schema.schemata WHERE schema_name = 'FLIPR';
 
-Note the C<USE WAREHOUSE> statement. For scripts that execute queries requiring
-compute resources (typically DML and C<SELECT> statements), we'll need to use a
+Note the C<USE WAREHOUSE> statementm which is provided in the default Snowflake
+change script templates. For scripts that execute queries requiring compute
+resources (typically DML and C<SELECT> statements), we'll need to use a
 L<virtual warehouse|https://docs.snowflake.net/manuals/user-guide/warehouses.html>.
-To use the warehouse that Sqitch itself uses for its registry, you can use the
-C<&warehouse> C<snowsql> variable, as in this example. Sqitch always sets This
-variable for all deploy, revert, and verify script executions.
+This statement lets the script use the warehouse that Sqitch itself uses for
+its registry, which should be a reasonable default, since Sqitch is 
+already using this warehouse. You can always change it to a different
+warehouse if need be. If not, Sqitch always sets this variable (as well as
+C<&registry> containing the name of the Sqitch registry schema) for all
+deploy, revert, and verify script executions.
 
 Now run the C<verify> script with the L<C<verify>|sqitch-verify> command:
 
-  > sqitch verify 'db:snowflake://movera@example/flipr?Driver=Snowflake;warehouse=sqitch'
-  Verifying db:snowflake://movera@example/flipr?Driver=Snowflake;warehouse=sqitch
+  > sqitch verify 'db:snowflake://movera@example/flipr?Driver=Snowflake'
+  Verifying db:snowflake://movera@example/flipr?Driver=Snowflake
     * appschema .. ok
   Verify successful
 
@@ -263,8 +269,8 @@ something that doesn't exist, something like:
 
 Then L<C<verify>|sqitch-verify> again:
 
-  > sqitch verify 'db:snowflake://movera@example/flipr?Driver=Snowflake;warehouse=sqitch'
-  Verifying db:snowflake://movera@example/flipr?Driver=Snowflake;warehouse=sqitch
+  > sqitch verify 'db:snowflake://movera@example/flipr?Driver=Snowflake'
+  Verifying db:snowflake://movera@example/flipr?Driver=Snowflake
   * appschema ..
   002003 (02000): SQL compilation error:
   Schema 'FLIPR.NONESUCH' does not exist.
@@ -285,8 +291,8 @@ divide-by-zero example, change the schema name:
 
 Then the verify will look something like:
 
-  > sqitch verify 'db:snowflake://movera@example/flipr?Driver=Snowflake;warehouse=sqitch'
-  Verifying db:snowflake://movera@example/flipr?Driver=Snowflake;warehouse=sqitch
+  > sqitch verify 'db:snowflake://movera@example/flipr?Driver=Snowflake'
+  Verifying db:snowflake://movera@example/flipr?Driver=Snowflake
   * appschema ..
   100051 (22012): Division by zero
   # Verify script "verify/appschema.sql" failed.
@@ -309,20 +315,20 @@ For purely informational purposes, we can always see how a deployment was
 recorded via the L<C<status>|sqitch-status> command, which reads the registry
 tables from the database:
 
-  > sqitch status 'db:snowflake://movera@example/flipr?Driver=Snowflake;warehouse=sqitch'
-  # On database db:snowflake://movera@example/flipr?Driver=Snowflake;warehouse=sqitch
+  > sqitch status 'db:snowflake://movera@example/flipr?Driver=Snowflake'
+  # On database db:snowflake://movera@example/flipr?Driver=Snowflake
   # Project:  flipr
-  # Change:   72ff6480c94724d772dae4136420e807688badb8
+  # Change:   5a2ac4ae6801bfe392483ee5912b4e3592cdd57a
   # Name:     appschema
-  # Deployed: 2018-07-25 14:56:32 -0400
+  # Deployed: 2018-07-27 10:47:23 -0400
   # By:       Marge N. O’Vera <marge@example.com>
   #
   Nothing to deploy (up-to-date)
 
 Let's make sure that we can revert the change:
 
-  > sqitch revert 'db:snowflake://movera@example/flipr?Driver=Snowflake;warehouse=sqitch'
-  Revert all changes from db:snowflake://movera@example/flipr?Driver=Snowflake;warehouse=sqitch? [Yes]
+  > sqitch revert 'db:snowflake://movera@example/flipr?Driver=Snowflake'
+  Revert all changes from db:snowflake://movera@example/flipr?Driver=Snowflake? [Yes]
     - appschema .. ok
 
 The L<C<revert>|sqitch-revert> command first prompts to make sure that we
@@ -331,7 +337,7 @@ pass the C<-y> option to disable the prompt. Also, notice the C<-> before the
 change name in the output, which reinforces that the change is being
 I<removed> from the database. And now the schema should be gone:
 
-  > snowsql --accountname example --username movera --dbname flipr \
+  > snowsql --accountname example --username movera --dbname flipr -o friendly=false \
     --query "SHOW TERSE SCHEMAS LIKE 'flipr'"
   +------------+------+------+---------------+-------------+
   | created_on | name | kind | database_name | schema_name |
@@ -341,33 +347,33 @@ I<removed> from the database. And now the schema should be gone:
 
 And the status message should reflect as much:
 
-  > sqitch status 'db:snowflake://movera@example/flipr?Driver=Snowflake;warehouse=sqitch'
-  # On database db:snowflake://movera@example/flipr?Driver=Snowflake;warehouse=sqitch
+  > sqitch status 'db:snowflake://movera@example/flipr?Driver=Snowflake'
+  # On database db:snowflake://movera@example/flipr?Driver=Snowflake
   No changes deployed
 
 Of course, since nothing is deployed, the L<C<verify>|sqitch-verify> command
 has nothing to verify:
 
-  > sqitch verify 'db:snowflake://movera@example/flipr?Driver=Snowflake;warehouse=sqitch'
-  Verifying db:snowflake://movera@example/flipr?Driver=Snowflake;warehouse=sqitch
+  > sqitch verify 'db:snowflake://movera@example/flipr?Driver=Snowflake'
+  Verifying db:snowflake://movera@example/flipr?Driver=Snowflake
   No changes deployed
 
 However, we still have a record that the change happened, visible via the
 L<C<log>|sqitch-log> command:
 
-  > sqitch log 'db:snowflake://movera@example/flipr?Driver=Snowflake;warehouse=sqitch'
-  On database db:snowflake://movera@example/flipr?Driver=Snowflake;warehouse=sqitch
-  Revert 72ff6480c94724d772dae4136420e807688badb8
+  > sqitch log 'db:snowflake://movera@example/flipr?Driver=Snowflake'
+  On database db:snowflake://movera@example/flipr?Driver=Snowflake
+  Revert 5a2ac4ae6801bfe392483ee5912b4e3592cdd57a
   Name:      appschema
   Committer: Marge N. O’Vera <marge@example.com>
-  Date:      2018-07-25 16:48:33 -0400
+  Date:      2018-07-27 10:48:48 -0400
 
       Add schema for all flipr objects.
 
-  Deploy 72ff6480c94724d772dae4136420e807688badb8
+  Deploy 5a2ac4ae6801bfe392483ee5912b4e3592cdd57a
   Name:      appschema
   Committer: Marge N. O’Vera <marge@example.com>
-  Date:      2018-07-25 14:56:33 -0400
+  Date:      2018-07-27 10:47:24 -0400
 
       Add schema for all flipr objects.
 
@@ -378,7 +384,7 @@ Cool. Now let's commit it.
 
   > git add .
   > git commit -m 'Add flipr schema.'
-  [master b0c5544] Add flipr schema.
+  [master 7fd5ace] Add flipr schema.
   4 files changed, 10 insertions(+)
   create mode 100644 deploy/appschema.sql
   create mode 100644 revert/appschema.sql
@@ -387,29 +393,29 @@ Cool. Now let's commit it.
 And then deploy again. This time, let's use the C<--verify> option, so that
 the C<verify> script is applied when the change is deployed:
 
-  > sqitch deploy --verify 'db:snowflake://movera@example/flipr?Driver=Snowflake;warehouse=sqitch'
-  Deploying changes to db:snowflake://movera@example/flipr?Driver=Snowflake;warehouse=sqitch
+  > sqitch deploy --verify 'db:snowflake://movera@example/flipr?Driver=Snowflake'
+  Deploying changes to db:snowflake://movera@example/flipr?Driver=Snowflake
     + appschema .. ok
 
 And now the schema should be back:
 
-  > snowsql --accountname example --username movera --dbname flipr \
+  > snowsql --accountname example --username movera --dbname flipr -o friendly=false \
     --query "SHOW TERSE SCHEMAS LIKE 'flipr'"
   +-------------------------------+-------+------+---------------+-------------+
   | created_on                    | name  | kind | database_name | schema_name |
   |-------------------------------+-------+------+---------------+-------------|
-  | 2018-07-25 21:12:59.174 +0000 | FLIPR | NULL | DWHEELER      | NULL        |
+  | 2018-07-27 14:52:50.116 +0000 | FLIPR | NULL | DWHEELER      | NULL        |
   +-------------------------------+-------+------+---------------+-------------+
   1 Row(s) produced. Time Elapsed: 0.283s
 
 When we look at the status, the deployment will be there:
 
-  > sqitch status 'db:snowflake://movera@example/flipr?Driver=Snowflake;warehouse=sqitch'
-  # On database db:snowflake://movera@example/flipr?Driver=Snowflake;warehouse=sqitch
+  > sqitch status 'db:snowflake://movera@example/flipr?Driver=Snowflake'
+  # On database db:snowflake://movera@example/flipr?Driver=Snowflake
   # Project:  flipr
-  # Change:   72ff6480c94724d772dae4136420e807688badb8
+  # Change:   5a2ac4ae6801bfe392483ee5912b4e3592cdd57a
   # Name:     appschema
-  # Deployed: 2018-07-25 17:35:46 -0400
+  # Deployed: 2018-07-27 10:52:54 -0400
   # By:       Marge N. O’Vera <marge@example.com>
   #
   Nothing to deploy (up-to-date)
@@ -417,12 +423,12 @@ When we look at the status, the deployment will be there:
 =head1 On Target
 
 I'm getting a little tired of always having to type
-C<db:snowflake://movera@example/flipr?Driver=Snowflake;warehouse=sqitch>, aren't you?
+C<db:snowflake://movera@example/flipr?Driver=Snowflake>, aren't you?
 This L<database connection URI|https://github.com/libwww-perl/uri-db/> tells
 Sqitch how to connect to the deployment target, but we don't have to keep
 using the URI. We can name the target:
 
-  > sqitch target add flipr_test 'db:snowflake://movera@example/flipr?Driver=Snowflake;warehouse=sqitch'
+  > sqitch target add flipr_test 'db:snowflake://movera@example/flipr?Driver=Snowflake'
 
 The L<C<target>|sqitch-target> command, inspired by
 L<C<git-remote>|http://git-scm.com/docs/git-remote>, allows management of one
@@ -440,9 +446,9 @@ simpler from here on in, e.g.:
   > sqitch status
   # On database flipr_test
   # Project:  flipr
-  # Change:   72ff6480c94724d772dae4136420e807688badb8
+  # Change:   5a2ac4ae6801bfe392483ee5912b4e3592cdd57a
   # Name:     appschema
-  # Deployed: 2018-07-25 17:35:46 -0400
+  # Deployed: 2018-07-27 10:52:54 -0400
   # By:       Marge N. O’Vera <marge@example.com>
   #
   Nothing to deploy (up-to-date)
@@ -457,7 +463,7 @@ We'll see the L<C<rebase>|sqitch-rebase> command a bit later. In the meantime,
 let's commit the new configuration and and make some more changes!
 
   > git commit -am 'Set default deployment target and always verify.'
-  [master 09f7f5c] Set default deployment target and always verify.
+  [master 3834a8d] Set default deployment target and always verify.
    1 files changed, 8 insertions(+), 0 deletions(-)
 
 =head1 Deploy with Dependency
@@ -482,9 +488,12 @@ this:
   -- Deploy flipr:users to snowflake
   -- requires: appschema
 
+  USE WAREHOUSE &warehouse;
   CREATE TABLE flipr.users (
       nickname  TEXT         PRIMARY KEY,
       password  TEXT         NOT NULL,
+      fullname  TEXT         NOT NULL,
+      twitter   TEXT         NOT NULL,
       timestamp TIMESTAMP_TZ NOT NULL DEFAULT CURRENT_TIMESTAMP
   );
 
@@ -496,15 +505,20 @@ the file. Useful, right?
 The table itself will be created in the C<flipr> schema. This is why we need
 to require the C<appschema> change.
 
+On the fourth line, the C<USE WAREHOUSE> statement was inserted by the default
+Snowflake template. We don't actually need it to create a table, but there's
+no harm in leaving it here.
+
 Now for the verify script. The simplest way to check that the table was
 created and has the expected columns without touching the data? Just select
-from the table with a false C<WHERE> clause. Be sure to use a warehouse so
-that the C<SELECT> statement can actually execute. Probably easiest just to
-use the same warehouse that Sqitch itlsef uses. Add this to
-F<verify/users.sql>:
+from the table with a false C<WHERE> clause. Here the C<USE WAREHOUSE>
+statement is required so that the C<SELECT> statement can actually execute.
+Probably easiest just to leave the defaul, which uses the warehouse that
+Sqitch uses to maintain its registry. Edit F<verify/users.sql> to look like
+this:
 
   USE WAREHOUSE &warehouse;
-  SELECT nickname, password, timestamp
+  SELECT nickname, password, fullname, twitter, timestamp
     FROM flipr.users
   WHERE FALSE;
 
@@ -522,12 +536,12 @@ Couldn't be much simpler, right? Let's deploy this bad boy:
 We know, since verification is enabled, that the table must have been created.
 But for the purposes of visibility, let's have a quick look:
 
-  > snowsql --accountname example --username movera --dbname flipr \
+  > snowsql --accountname example --username movera --dbname flipr -o friendly=false \
     --query "SHOW TERSE TABLES LIKE 'users' IN flipr"
   +-------------------------------+-------+-------+---------------+-------------+
   | created_on                    | name  | kind  | database_name | schema_name |
   |-------------------------------+-------+-------+---------------+-------------|
-  | 2018-07-26 14:03:25.409 +0000 | USERS | TABLE | DWHEELER      | FLIPR       |
+  | 2018-07-27 15:13:21.767 +0000 | USERS | TABLE | DWHEELER      | FLIPR       |
   +-------------------------------+-------+-------+---------------+-------------+
   1 Row(s) produced. Time Elapsed: 0.318s
 
@@ -545,9 +559,9 @@ Now have a look at the status:
   > sqitch status
   # On database flipr_test
   # Project:  flipr
-  # Change:   b2f961a0793bd8cfb436d6e590f9b18c8ba909d5
+  # Change:   d251b2c9b4bc46a4b4db6b7a8a637951484e6f6b
   # Name:     users
-  # Deployed: 2018-07-26 10:03:31 -0400
+  # Deployed: 2018-07-27 11:09:12 -0400
   # By:       Marge N. O’Vera <marge@example.com>
   #
   Nothing to deploy (up-to-date)
@@ -571,7 +585,7 @@ command).
 Back to the database. The C<users> table should be gone but the C<flipr> schema
 should still be around:
 
-  > snowsql --accountname example --username movera --dbname flipr \
+  > snowsql --accountname example --username movera --dbname flipr -o friendly=false \
     --query "SHOW TERSE TABLES LIKE 'users' IN flipr"
   +------------+------+------+---------------+-------------+
   | created_on | name | kind | database_name | schema_name |
@@ -582,12 +596,12 @@ should still be around:
 The L<C<status>|sqitch-status> command politely informs us that we have
 undeployed changes:
 
-  > sqitch status
+
   # On database flipr_test
   # Project:  flipr
-  # Change:   72ff6480c94724d772dae4136420e807688badb8
+  # Change:   5a2ac4ae6801bfe392483ee5912b4e3592cdd57a
   # Name:     appschema
-  # Deployed: 2018-07-25 17:35:46 -0400
+  # Deployed: 2018-07-27 10:52:54 -0400
   # By:       Marge N. O’Vera <marge@example.com>
   #
   Undeployed change:
@@ -610,11 +624,11 @@ Okay, let's commit and deploy again:
 
   > git add .
   > git commit -am 'Add users table.'
-  [master b4cc490] Add users table.
-  4 files changed, 18 insertions(+)
-  create mode 100644 deploy/users.sql
-  create mode 100644 revert/users.sql
-  create mode 100644 verify/users.sql
+  [master 8c16c09] Add users table.
+   4 files changed, 22 insertions(+)
+   create mode 100644 deploy/users.sql
+   create mode 100644 revert/users.sql
+   create mode 100644 verify/users.sql
   > sqitch deploy
   Deploying changes to flipr_test
     + users .. ok
@@ -622,11 +636,10 @@ Okay, let's commit and deploy again:
 Looks good. Check the status:
 
   > sqitch status
-  # On database flipr_test
   # Project:  flipr
-  # Change:   b2f961a0793bd8cfb436d6e590f9b18c8ba909d5
+  # Change:   d251b2c9b4bc46a4b4db6b7a8a637951484e6f6b
   # Name:     users
-  # Deployed: 2018-07-26 10:16:52 -0400
+  # Deployed: 2018-07-27 11:19:30 -0400
   # By:       Marge N. O’Vera <marge@example.com>
   #
   Nothing to deploy (up-to-date)

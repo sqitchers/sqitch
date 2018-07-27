@@ -478,7 +478,7 @@ idea to be explicit about dependencies.
 Now edit the scripts. When you're done, F<deploy/users.sql> should look like
 this:
 
-  -- Deploy flipr:users                                                                                  to exasol
+  -- Deploy flipr:users to exasol
   -- requires: appschema
 
   CREATE TABLE flipr.users (
@@ -503,7 +503,7 @@ Now for the verify script. The simplest way to check that the table was
 created and has the expected columns without touching the data? Just select
 from the table with a false C<WHERE> clause. Add this to F<verify/users.sql>:
 
-  SELECT nickname, password, twitter, ts
+  SELECT nickname, password, fullname, twitter, ts
     FROM flipr.users
    WHERE FALSE;
 
