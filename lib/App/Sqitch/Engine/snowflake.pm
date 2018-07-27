@@ -406,22 +406,14 @@ sub run_handle {
 
 sub _run {
     my $self   = shift;
-    my $pass   = $self->password or return $self->_chomprun(@_);
+    my $sqitch = $self->sqitch;
+    my $pass   = $self->password or
+        # Use capture and emit instead of _run to avoid a wayward newline in
+        # the output.
+        return $sqitch->emit_literal( $sqitch->capture( $self->snowsql, @_ ) );
     # Does not override connection config, alas.
     local $ENV{SNOWSQL_PWD} = $pass;
-    return $self->_chomprun(@_);
-}
-
-sub _chomprun {
-    my $self   = shift;
-    my $sqitch = $self->sqitch;
-    my $out = $sqitch->capture( $self->snowsql, @_ );
-    # Emit the output if there's anything other than whitespace.
-    if ($out && $out =~ /\S/ms) {
-        $out =~ s/\n\z//ms;
-        $sqitch->emit_literal($out);
-    }
-    return $sqitch;
+    return $sqitch->emit_literal( $sqitch->capture( $self->snowsql, @_ ) );
 }
 
 sub _capture {
