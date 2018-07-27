@@ -52,7 +52,7 @@ driver, and where you installed it.
 
 
 See the L<Snowflake ODBC documentation|https://docs.snowflake.net/manuals/user-guide/odbc.html>
-for details on downloading, installling, and configuring ODBC for your
+for details on downloading, installing, and configuring ODBC for your
 platform.
 
 =head1 Starting a New Project
@@ -243,7 +243,7 @@ not exist, you could do something like this:
   USE WAREHOUSE &warehouse;
   SELECT 1/COUNT(*) FROM information_schema.schemata WHERE schema_name = 'FLIPR';
 
-Note the C<USE WAREHOUSE> statementm which is provided in the default Snowflake
+Note the C<USE WAREHOUSE> statement which is provided in the default Snowflake
 change script templates. For scripts that execute queries requiring compute
 resources (typically DML and C<SELECT> statements), we'll need to use a
 L<virtual warehouse|https://docs.snowflake.net/manuals/user-guide/warehouses.html>.
@@ -513,7 +513,7 @@ Now for the verify script. The simplest way to check that the table was
 created and has the expected columns without touching the data? Just select
 from the table with a false C<WHERE> clause. Here the C<USE WAREHOUSE>
 statement is required so that the C<SELECT> statement can actually execute.
-Probably easiest just to leave the defaul, which uses the warehouse that
+Probably easiest just to leave the default, which uses the warehouse that
 Sqitch uses to maintain its registry. Edit F<verify/users.sql> to look like
 this:
 
@@ -595,7 +595,6 @@ should still be around:
 
 The L<C<status>|sqitch-status> command politely informs us that we have
 undeployed changes:
-
 
   # On database flipr_test
   # Project:  flipr
