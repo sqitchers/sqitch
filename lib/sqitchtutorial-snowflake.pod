@@ -836,6 +836,67 @@ the last deployed change. Looks good. Let's do the commit and re-deploy dance:
 
 Great, we're fully up-to-date!
 
+=head1 Ship It!
+
+Let's do a first release of our app. Let's call it C<1.0.0-dev1> Since we want
+to have it go out with deployments tied to the release, let's tag it:
+
+  > sqitch tag v1.0.0-dev1 -n 'Tag v1.0.0-dev1.'
+  Tagged "userflips" with @v1.0.0-dev1
+  > git commit -am 'Tag the database with v1.0.0-dev1.'
+  [master 84ed9db] Tag the database with v1.0.0-dev1.
+   1 files changed, 1 insertion(+)
+  > git tag v1.0.0-dev1 -am 'Tag v1.0.0-dev1'
+
+We can try deploying to make sure the tag gets picked up like so:
+
+  > sqitch deploy
+  Nothing to deploy (up-to-date)
+  > sqitch status
+  # On database flipr_test
+  # Project:  flipr
+  # Change:   73cd50c99de2a8b3eab206c73514afbeb952023c
+  # Name:     userflips
+  # Tag:      @v1.0.0-dev1
+  # Deployed: 2018-07-27 11:38:02 -0400
+  # By:       Marge N. O’Vera <marge@example.com>
+  #
+  Nothing to deploy (up-to-date)
+
+Note the new "Tag" line in the output of C<sqitch status>: no new changes
+needed to be deployed, but Sqitch did deploy the tag on the C<userflips>
+change. Now let's bundle everything up for release:
+
+  > sqitch bundle
+  Bundling into bundle
+  Writing config
+  Writing plan
+  Writing scripts
+    + appschema
+    + users
+    + flips
+    + userflips @v1.0.0-dev1
+
+Now we can package the F<bundle> directory and distribute it. When it gets
+installed somewhere, users can use Sqitch to deploy to the database. Let's try
+deploying it to another database, C<flipr_prod>:
+
+  > cd bundle
+  > sqitch deploy 'db:snowflake://movera@example/flipr_prod?Driver=Snowflake'
+  Adding registry tables to db:snowflake://movera@example/flipr_prod?Driver=Snowflake'
+  Deploying changes to db:snowflake://movera@example/flipr_prod?Driver=Snowflake'
+    + appschema ............... ok
+    + users ................... ok
+    + flips ................... ok
+    + userflips @v1.0.0-dev1 .. ok
+
+Notice how the tag on C<userflips> now appears in the deploy output. Nice, eh?
+Now, package it up and ship it!
+
+  > cd ..
+  > mv bundle flipr-v1.0.0-dev1
+  > tar -czf flipr-v1.0.0-dev1.tgz flipr-v1.0.0-dev1
+
 =head1 More to Come
 
 Sqitch is a work in progress. Better integration with version control systems
