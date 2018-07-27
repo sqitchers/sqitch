@@ -646,6 +646,196 @@ Looks good. Check the status:
 
 Excellent. Let's do some more!
 
+=head1 Add Two at Once
+
+Let's add a couple more changes. Our app will need to store status messages
+from users. Let's call them -- and the table to store them -- "flips". And
+we'll also need a view that lists user names with their flips. Let's add
+changes for them both:
+
+  > sqitch add flips -r appschema -r users -n 'Adds table for storing flips.'
+  Created deploy/flips.sql
+  Created revert/flips.sql
+  Created verify/flips.sql
+  Added "flips [appschema users]" to sqitch.plan
+
+  > sqitch add userflips -r appschema -r users -r flips \
+    -n 'Creates the userflips view.'
+  Created deploy/userflips.sql
+  Created revert/userflips.sql
+  Created verify/userflips.sql
+  Added "userflips [appschema users flips]" to sqitch.plan
+
+Now might be a good time to have a look at the deployment plan:
+
+  > cat sqitch.plan
+  %syntax-version=1.0.0
+  %project=flipr
+  %uri=https://github.com/sqitchers/sqitch-snowflake-intro/
+
+  appschema 2018-07-27T14:27:24Z Marge N. O’Vera <marge@example.com> # Add schema for all flipr objects.
+  users [appschema] 2018-07-27T15:03:56Z Marge N. O’Vera <marge@example.com> # Creates table to track our users.
+  flips [appschema users] 2018-07-27T15:23:41Z Marge N. O’Vera <marge@example.com> # Adds table for storing flips.
+  userflips [appschema users flips] 2018-07-27T15:23:50Z Marge N. O’Vera <marge@example.com> # Creates the userflips view.
+
+Each change appears on a single line with the name of the change, a bracketed
+list of dependencies, a timestamp, the name and email address of the user who
+planned the change, and a note.
+
+Let's write the code for the new changes. Here's what F<deploy/flips.sql>
+should look like:
+
+  -- Deploy flipr:flips to snowflake
+  -- requires: appschema
+  -- requires: users
+
+  USE WAREHOUSE &warehouse;
+  CREATE TABLE flipr.flips (
+      id        INTEGER        PRIMARY KEY,
+      nickname  TEXT           NOT NULL REFERENCES flipr.users(nickname),
+      body      VARCHAR(180)   NOT NULL DEFAULT '',
+      timestamp TIMESTAMP_TZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+  );
+
+Here's what F<verify/flips.sql> might look like:
+
+  -- Verify flipr:flips on snowflake
+
+  USE WAREHOUSE &warehouse;
+  SELECT id, nickname, body, timestamp
+    FROM flipr.flips
+   WHERE FALSE;
+
+And F<revert/flips.sql> should look something like this:
+
+  -- Revert flipr:flips from snowflake
+
+  USE WAREHOUSE &warehouse;
+  DROP TABLE flipr.flips;
+
+Now for C<userflips>; F<deploy/userflips.sql> might look like this:
+
+  -- Deploy flipr:userflips to snowflake
+  -- requires: appschema
+  -- requires: users
+  -- requires: flips
+
+  USE WAREHOUSE &warehouse;
+  CREATE OR REPLACE VIEW flipr.userflips AS
+  SELECT f.id, u.nickname, u.fullname, f.body, f.timestamp
+    FROM flipr.users u
+    JOIN flipr.flips f ON u.nickname = f.nickname;
+
+Use a C<SELECT> statement in F<verify/userflips.sql> again:
+
+  -- Verify flipr:userflips on snowflake
+
+  USE WAREHOUSE &warehouse;
+  SELECT id, nickname, fullname, body, ts
+    FROM flipr.userflips
+   WHERE FALSE;
+
+And of course, its C<revert> script, F<revert/userflips.sql>, should look
+something like:
+
+  -- Revert flipr:userflips from snowflake
+
+  USE WAREHOUSE &warehouse;
+  DROP VIEW flipr.userflips;
+
+Try em out!
+
+  > sqitch deploy
+  Deploying changes to flipr_test
+    + flips ...... ok
+    + userflips .. ok
+
+Do we have the new table and view? Of course we do, they were verified. Still,
+have a look:
+
+  > snowsql --accountname example --username movera --dbname flipr -o friendly=false \
+    --query "SHOW TERSE TABLES LIKE 'flips' IN flipr"
+  +-------------------------------+-------+-------+---------------+-------------+
+  | created_on                    | name  | kind  | database_name | schema_name |
+  |-------------------------------+-------+-------+---------------+-------------|
+  | 2018-07-27 15:31:07.137 +0000 | FLIPS | TABLE | DWHEELER      | FLIPR       |
+  +-------------------------------+-------+-------+---------------+-------------+
+  1 Row(s) produced. Time Elapsed: 0.225s
+
+  > snowsql --accountname example --username movera --dbname flipr -o friendly=false \
+    --query "SHOW TERSE VIEWS LIKE 'userflips' IN flipr"
+  +-------------------------------+-----------+------+---------------+-------------+
+  | created_on                    | name      | kind | database_name | schema_name |
+  |-------------------------------+-----------+------+---------------+-------------|
+  | 2018-07-27 15:29:25.733 +0000 | USERFLIPS | VIEW | DWHEELER      | FLIPR       |
+  +-------------------------------+-----------+------+---------------+-------------+
+  1 Row(s) produced. Time Elapsed: 0.299s
+
+And what's the status?
+
+  > sqitch status
+  # On database flipr_test
+  # Project:  flipr
+  # Change:   73cd50c99de2a8b3eab206c73514afbeb952023c
+  # Name:     userflips
+  # Deployed: 2018-07-27 11:31:24 -0400
+  # By:       Marge N. O’Vera <marge@example.com>
+  #
+  Nothing to deploy (up-to-date)
+
+Looks good. Let's make sure revert works:
+
+  > sqitch revert -y --to @HEAD^^
+  Reverting changes to users from flipr_test
+    - userflips .. ok
+    - flips ...... ok
+
+  > snowsql --accountname example --username movera --dbname flipr -o friendly=false \
+    --query "SHOW TERSE TABLES LIKE 'flips' IN flipr"
+  +------------+------+------+---------------+-------------+
+  | created_on | name | kind | database_name | schema_name |
+  |------------+------+------+---------------+-------------|
+  +------------+------+------+---------------+-------------+
+  0 Row(s) produced. Time Elapsed: 0.306s
+
+Note the use of C<@HEAD^^> to specify that the revert be to two changes prior
+the last deployed change. Looks good. Let's do the commit and re-deploy dance:
+
+  > git add .
+  > git commit -m 'Add flips table and userflips view.'
+  [master b36f48b] Add flips table and userflips view.
+   7 files changed, 43 insertions(+)
+   create mode 100644 deploy/flips.sql
+   create mode 100644 deploy/userflips.sql
+   create mode 100644 revert/flips.sql
+   create mode 100644 revert/userflips.sql
+   create mode 100644 verify/flips.sql
+   create mode 100644 verify/userflips.sql
+
+  > sqitch deploy
+  Deploying changes to flipr_test
+    + flips ...... ok
+    + userflips .. ok
+
+  > sqitch status
+  # Project:  flipr
+  # Change:   73cd50c99de2a8b3eab206c73514afbeb952023c
+  # Name:     userflips
+  # Deployed: 2018-07-27 11:38:02 -0400
+  # By:       Marge N. O’Vera <marge@example.com>
+  #
+  Nothing to deploy (up-to-date)
+
+  > sqitch verify
+  Verifying flipr_test
+    * appschema .. ok
+    * users ...... ok
+    * flips ...... ok
+    * userflips .. ok
+  Verify successful
+
+Great, we're fully up-to-date!
+
 =head1 More to Come
 
 Sqitch is a work in progress. Better integration with version control systems

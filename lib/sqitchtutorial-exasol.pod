@@ -748,7 +748,7 @@ have a look:
   USERS
   FLIPS
 
-  > exaplus -q -u sys -p exasol -c localhost:8563 -sql "describe flipr.userflips;"
+  > exaplus -q -u sys -p exasol -c localhost:8563 -sql "describe flipr.userflips;"
 
   COLUMN_NAME                                                                                                                      SQL_TYPE                                 NULLABLE DISTRIBUTION_KEY
   -------------------------------------------------------------------------------------------------------------------------------- ---------------------------------------- -------- ----------------
@@ -778,7 +778,7 @@ Looks good. Let's make sure revert works:
     - flips ...... ok
   > exaplus -q -u sys -p exasol -c localhost:8563 -sql "describe flipr.flips;"
   Error: [42000] table or view FLIPR.FLIPS not found [line 1, column 10] (Session: 1582955242708359302)
-  > exaplus -q -u sys -p exasol -c localhost:8563 -sql "describe flipr.userflips;"
+  > exaplus -q -u sys -p exasol -c localhost:8563 -sql "describe flipr.userflips;"
   Error: [42000] table or view FLIPR.USERFLIPS not found [line 1, column 10] (Session: 1582955248116468907)
 
 Note the use of C<@HEAD^^> to specify that the revert be to two changes prior
