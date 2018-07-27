@@ -221,6 +221,7 @@ sub _client_opts {
         '--option' => 'output_format=csv',
         '--option' => 'paging=false',
         '--option' => 'timing=false',
+        '--option' => 'results=true', # Suppresses errors if false!
         '--option' => 'wrap=false',
         '--option' => 'rowset_size=1000',
         '--option' => 'syntax_style=default',
@@ -233,14 +234,12 @@ sub _client_opts {
 sub _quiet_opts {
     return (
         '--option' => 'quiet=true',
-        '--option' => 'results=false',
     );
 }
 
 sub _verbose_opts {
     return (
         '--option' => 'quiet=false',
-        '--option' => 'results=true',
     );
 }
 

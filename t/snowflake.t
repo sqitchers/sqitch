@@ -88,6 +88,7 @@ my @std_opts = (
     '--option' => 'output_format=csv',
     '--option' => 'paging=false',
     '--option' => 'timing=false',
+    '--option' => 'results=true',
     '--option' => 'wrap=false',
     '--option' => 'rowset_size=1000',
     '--option' => 'syntax_style=default',
