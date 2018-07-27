@@ -221,7 +221,9 @@ sub _client_opts {
         '--option' => 'output_format=csv',
         '--option' => 'paging=false',
         '--option' => 'timing=false',
-        '--option' => 'results=true', # Suppresses errors if false!
+        # results=false suppresses errors! Bug report:
+        # https://support.snowflake.net/s/case/5000Z000010wm6BQAQ/
+        '--option' => 'results=true',
         '--option' => 'wrap=false',
         '--option' => 'rowset_size=1000',
         '--option' => 'syntax_style=default',
@@ -243,6 +245,12 @@ sub _verbose_opts {
     );
 }
 
+# Not using arrays, but delimited strings that are the default in
+# App::Sqitch::Role::DBIEngine, because:
+# * There is currently no literal syntax for arrays
+#   https://support.snowflake.net/s/case/5000Z000010wXBRQA2/
+# * Scalar variables like the array constructor can't be used in WHERE clauses
+#   https://support.snowflake.net/s/case/5000Z000010wX7yQAE/
 sub _listagg_format {
     return q{listagg(%s, ' ')};
 }
@@ -282,6 +290,9 @@ sub _no_column_error  {
 }
 
 sub _ts2char_format {
+    # The colon has to be inside the quotation marks, because otherwise it
+    # generates wayward single quotation marks. Bug report:
+    # https://support.snowflake.net/s/case/5000Z000010wTkKQAU/
     qq{to_varchar(CONVERT_TIMEZONE('UTC', %s), '"year:"YYYY":month:"MM":day:"DD":hour:"HH24":minute:"MI":second:"SS":time_zone:UTC"')};
 }
 
@@ -294,10 +305,9 @@ sub _dt($) {
     return App::Sqitch::DateTime->new(split /:/ => shift);
 }
 
-sub _regex_op { 'REGEXP' }
+sub _regex_op { 'REGEXP' } # XXX But not used; see regex_expr() below.
 
 sub _simple_from { ' FROM dual' }
-
 
 sub _cid {
     my ( $self, $ord, $offset, $project ) = @_;
@@ -381,9 +391,22 @@ sub name_for_change_id {
 sub _limit_offset {
     # LIMIT/OFFSET don't support parameters, alas. So just put them in the query.
     my ($self, $lim, $off)  = @_;
+    # OFFSET cannot be used without LIMIT, sadly.
+    # https://support.snowflake.net/s/case/5000Z000010wfnWQAQ
+    # https://support.snowflake.net/s/question/0D50Z00008BENO5SAP/
     return ['LIMIT ' . ($lim || POSIX::INT_MAX), "OFFSET $off"], [] if $off;
     return ["LIMIT $lim"], [] if $lim;
     return [], [];
+}
+
+sub _regex_expr {
+    my ( $self, $col, $regex ) = @_;
+    # Snowflake regular expressions are implicitly anchored to match the
+    # entire string. To work around this, issue, we use regexp_substr(), which
+    # is not so anchored, and just check to see that if it returns a string.
+    # https://support.snowflake.net/s/case/5000Z000010wbUSQAY
+    # https://support.snowflake.net/s/question/0D50Z00008C90beSAB/
+    return  "regexp_substr($col, ?) IS NOT NULL", $regex;
 }
 
 sub run_file {

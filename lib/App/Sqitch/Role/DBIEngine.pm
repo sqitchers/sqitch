@@ -228,7 +228,6 @@ sub search_events {
 
     # Limit with regular expressions?
     my (@wheres, @params);
-    my $op = $self->_regex_op;
     for my $spec (
         [ committer => 'e.committer_name' ],
         [ planner   => 'e.planner_name'   ],
@@ -236,8 +235,9 @@ sub search_events {
         [ project   => 'e.project'        ],
     ) {
         my $regex = delete $p{ $spec->[0] } // next;
-        push @wheres => "$spec->[1] $op ?";
-        push @params => $regex;
+        my ($op, $expr) = $self->_regex_expr($spec->[1], $regex);
+        push @wheres => $op;
+        push @params => $expr;
     }
 
     # Match events?
@@ -294,6 +294,12 @@ sub search_events {
         $row->{planned_at}   = _dt $row->{planned_at};
         return $row;
     };
+}
+
+sub _regex_expr {
+    my ( $self, $col, $regex ) = @_;
+    my $op = $self->_regex_op;
+    return "$col $op ?", $regex;
 }
 
 sub _limit_offset {
