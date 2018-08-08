@@ -6,7 +6,6 @@ use utf8;
 use Path::Class;
 use DBI;
 use Try::Tiny;
-use POSIX;
 use App::Sqitch::X qw(hurl);
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::Types qw(DBH ArrayRef HashRef URIDB Str);
@@ -388,13 +387,15 @@ sub name_for_change_id {
     }, undef, $change_id)->[0];
 }
 
+# https://support.snowflake.net/s/question/0D50Z00008BENO5SAP
+sub _limit_default { '4611686018427387903' }
+
 sub _limit_offset {
     # LIMIT/OFFSET don't support parameters, alas. So just put them in the query.
     my ($self, $lim, $off)  = @_;
     # OFFSET cannot be used without LIMIT, sadly.
     # https://support.snowflake.net/s/case/5000Z000010wfnWQAQ
-    # https://support.snowflake.net/s/question/0D50Z00008BENO5SAP/
-    return ['LIMIT ' . ($lim || POSIX::INT_MAX), "OFFSET $off"], [] if $off;
+    return ['LIMIT ' . ($lim || $self->_limit_default), "OFFSET $off"], [] if $off;
     return ["LIMIT $lim"], [] if $lim;
     return [], [];
 }

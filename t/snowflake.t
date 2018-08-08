@@ -3,7 +3,7 @@
 # To test against a live Snowflake database, you must set the SNOWSQL_URI environment variable.
 # this is a stanard URI::db URI, and should look something like this:
 #
-#     export SNOWSQL_URI=db:snowflake://username:password@accountname/dbname?Driver=Snowflake&warehouse=sqitch
+#     export SNOWSQL_URI=db:snowflake://username:password@accountname/dbname?Driver=Snowflake;warehouse=warehouse
 #
 # Note that it must include the `?Driver=$driver` bit so that DBD::ODBC loads
 # the proper driver.
