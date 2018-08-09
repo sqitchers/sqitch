@@ -77,7 +77,7 @@ BuildRequires:  perl(Type::Tiny::XS) >= 0.010
 BuildRequires:  perl(Type::Utils)
 BuildRequires:  perl(Types::Standard)
 BuildRequires:  perl(URI)
-BuildRequires:  perl(URI::db) >= 0.15
+BuildRequires:  perl(URI::db) >= 0.19
 BuildRequires:  perl(User::pwent)
 BuildRequires:  perl(utf8)
 BuildRequires:  perl(warnings)
@@ -133,7 +133,7 @@ Requires:       perl(Type::Tiny::XS) >= 0.010
 Requires:       perl(Type::Utils)
 Requires:       perl(Types::Standard)
 Requires:       perl(URI)
-Requires:       perl(URI::db) >= 0.15
+Requires:       perl(URI::db) >= 0.19
 Requires:       perl(User::pwent)
 Requires:       perl(utf8)
 Requires:       perl(warnings)
