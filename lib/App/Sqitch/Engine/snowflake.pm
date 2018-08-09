@@ -60,14 +60,13 @@ sub snowsql { @{ shift->_snowsql } }
 has _snowcfg => (
     is      => 'rw',
     isa     => HashRef,
+    lazy    => 1,
     default => sub {
         require File::HomeDir;
         my $hd = File::HomeDir->my_home or return {};
-        require File::Spec;
-        my $fn = File::Spec->catfile($hd, '.snowsql', 'config');
+        my $fn = dir $hd, '.snowsql', 'config';
         return {} unless -e $fn;
-        require Config::GitLike;
-        my $data = Config::GitLike->load_file($fn);
+        my $data = App::Sqitch::Config->load_file($fn);
         my $cfg = {};
         for my $k (keys %{ $data }) {
             # We only want the default connections config. No named config.
@@ -87,10 +86,10 @@ has uri => (
         my $uri  = $self->SUPER::uri;
 
         # Set defaults in the URI.
-        $uri->host($self->_host);
+        $uri->host($self->_host($uri));
         $uri->port($ENV{SNOWSQL_PORT}) if !$uri->_port && $ENV{SNOWSQL_PORT};
-        $uri->user($self->username)    if !$uri->user;
-        if (!$uri->password && (my $pw = $self->password)) {
+        $uri->user($self->_username)   if !$uri->user;
+        if (!$uri->password && (my $pw = $self->_password)) {
             $uri->password($pw);
         }
         $uri->dbname($ENV{SNOWSQL_DATABASE} || $uri->user) if !$uri->dbname;
@@ -98,59 +97,54 @@ has uri => (
     },
 );
 
-sub username {
+sub _username {
     my $self = shift;
-    return  $self->SUPER::username
-        || $ENV{SNOWSQL_USER}
+    return $ENV{SNOWSQL_USER}
         || $self->_snowcfg->{username}
-        || $self->sqitch->sysuser,
+        || $self->sqitch->sysuser;
 }
 
-sub password {
+sub _password {
     my $self = shift;
-    return $self->SUPER::password
-        || $self->target->password
-        || $ENV{SNOWSQL_PWD}
-        || $self->_snowcfg->{password};
+    return $ENV{SNOWSQL_PWD} || $self->_snowcfg->{password};
 }
 
-sub _account {
-    my ($self, $uri) = @_;
-    if (my $host = $uri->host) {
-        # <account_name>.<region_id>.snowflakecomputing.com
-        $host =~ s/[.].+//;
-        return $host;
-    }
-    return $ENV{SNOWSQL_ACCOUNT} || $self->_snowcfg->{accountname} || hurl engine => __(
-        'Cannot determine Snowflake account name'
-    );
-}
-
-sub account {
-    my $self = shift;
-    $self->_account($self->uri);
-}
+has account => (
+    is      => 'ro',
+    isa     => Str,
+    lazy    => 1,
+    default => sub {
+        my $self = shift;
+        if (my $host = $self->uri->host) {
+            # <account_name>.<region_id>.snowflakecomputing.com
+            $host =~ s/[.].+//;
+            return $host;
+        }
+        return $ENV{SNOWSQL_ACCOUNT} || $self->_snowcfg->{accountname} || hurl engine => __(
+            'Cannot determine Snowflake account name'
+        );
+    },
+);
 
 sub _host {
-    my $self = shift;
-    my $uri = $self->SUPER::uri;
+    my ($self, $uri) = @_;
     if (my $host = $uri->host) {
         # Allow host to just be account name or account + region.
         return $host if $host =~ /\.snowflakecomputing\.com$/;
         return $host . ".snowflakecomputing.com";
     }
-    return $ENV{SNOWSQL_HOST} || do {
-        join '.', (
-            $self->_account($uri),
-            (grep { $_ } $self->_snowcfg->{region}),
-            'snowflakecomputing.com',
-        );
-    };
+    return $ENV{SNOWSQL_HOST} if $ENV{SNOWSQL_HOST};
+    return join '.', (
+        ($ENV{SNOWSQL_ACCOUNT} || $self->_snowcfg->{accountname}),
+        (grep { $_ } $ENV{SNOWSQL_REGION} || $self->_snowcfg->{region} || ()),
+        'snowflakecomputing.com',
+    );
 }
 
 has warehouse => (
     is      => 'ro',
     isa     => Str,
+    lazy    => 1,
     default => sub {
         my $uri = shift->uri;
         require URI::QueryParam;
@@ -486,6 +480,39 @@ App::Sqitch::Engine::snowflake provides the Snowflake storage engine for Sqitch.
 =head1 Interface
 
 =head2 Attributes
+
+=head3 C<uri>
+
+Returns the Snowflake database URI name. Sqitch looks for the host name in this order:
+
+=over
+
+=item 1
+
+In the host name of the target URI. If that host name does not end in
+C<snowflakecomputing.com>, Sqitch appends it. This lets Snowflake URLs just
+reference the Snowflake account name or the account name and region in URLs.
+
+=item 2
+
+In the C<$SNOWSQL_HOST> environment variable.
+
+=item 3
+
+By concatenating the account name and region, if available, from the
+C<$SNOWSQL_ACCOUNT> environment variable or C<connections.accountname> setting
+in the
+L<SnowSQL configuration file|https://docs.snowflake.net/manuals/user-guide/snowsql-start.html#configuring-default-connection-settings>,
+the C<$SNOWSQL_REGION> or C<connections.region> setting in the
+L<SnowSQL configuration file|https://docs.snowflake.net/manuals/user-guide/snowsql-start.html#configuring-default-connection-settings>,
+and C<snowflakecomputing.com>.
+
+=back
+
+The port defaults to 443, but uses to the C<$SNOWSQL_PORT> environment
+variable if it's set. The database name can also be set via the
+C<$SNOWSQL_DATABAE> environment variable. Other attributes of the URI are set
+from the C<account>, C<username> and C<password> attributes documented below.
 
 =head3 C<account>
 

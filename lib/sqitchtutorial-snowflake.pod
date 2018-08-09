@@ -50,7 +50,6 @@ found in C</etc>, C</usr/etc>, or C</usr/local/etc>):
 Note that you'll need to adjust the path depending on the version of the ODBC
 driver, and where you installed it.
 
-
 See the L<Snowflake ODBC documentation|https://docs.snowflake.net/manuals/user-guide/odbc.html>
 for details on downloading, installing, and configuring ODBC for your
 platform.
@@ -133,7 +132,6 @@ Back to the repository. Have a look at the plan file, F<sqitch.plan>:
   %syntax-version=1.0.0
   %project=flipr
   %uri=https://github.com/sqitchers/sqitch-snowflake-intro/
-
 
 Note that it has picked up on the name and URI of the app we're building.
 Sqitch uses this data to manage cross-project dependencies. The
