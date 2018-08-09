@@ -17,7 +17,7 @@ use Test::Exception;
 use Locale::TextDomain qw(App-Sqitch);
 use Capture::Tiny 0.12 qw(:all);
 use File::Temp 'tempdir';
-use File::Path qw(make_path);
+use Path::Class;
 use Try::Tiny;
 use App::Sqitch;
 use App::Sqitch::Target;
@@ -40,9 +40,9 @@ BEGIN {
 
 # Mock the home directory to prevent reading a user config file.
 require File::HomeDir;
-my $tmp_dir = tempdir CLEANUP => 1;
+my $tmp_dir = dir tempdir CLEANUP => 1;
 my $mock_home = Test::MockModule->new('File::HomeDir');
-$mock_home->mock(my_home => $tmp_dir);
+$mock_home->mock(my_home => $tmp_dir->stringify);
 
 is_deeply [$CLASS->config_vars], [
     target   => 'any',
@@ -205,9 +205,9 @@ ENV: {
 # Make sure we read snowsql config file.
 SNOWSQLCFGFILE: {
     # Create the mock config directory.
-    my $cfgdir = Path::Class::dir($tmp_dir, '.snowsql');
-    make_path $cfgdir;
-    my $cfgfn = Path::Class::file($cfgdir, 'config');
+    my $cfgdir = $tmp_dir->subdir('.snowsql');
+    $cfgdir->mkpath;
+    my $cfgfn = $cfgdir->file('config');
 
     my $cfg = {
         username    => 'jonSnow',
@@ -469,8 +469,8 @@ DBIEngineTest->run(
     class         => $CLASS,
     sqitch_params => [options => {
         engine    => 'snowflake',
-        top_dir   => Path::Class::dir(qw(t engine)),
-        plan_file => Path::Class::file(qw(t engine sqitch.plan)),
+        top_dir   => dir(qw(t engine)),
+        plan_file => file(qw(t engine sqitch.plan)),
     }],
     target_params     => [ uri => $uri ],
     alt_target_params => [ uri => $uri, registry => '__sqitchtest' ],
