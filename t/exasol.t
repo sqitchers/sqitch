@@ -109,7 +109,7 @@ ENV: {
     is $exa->target->name, 'db:exasol:',
         'Target name should NOT fall back on sysuser';
     is $exa->registry_destination, $exa->destination,
-        'Meta target should be the same as destination';
+        'Registry target should be the same as destination';
 }
 
 ##############################################################################

@@ -183,7 +183,7 @@ ENV: {
         local $ENV{$env} = "\$ENV=whatever";
         is $snow->target->name, "db:snowflake:", "Target name should not read \$$env";
         is $snow->registry_destination, $snow->destination,
-            'Meta target should be the same as destination';
+            'Registry target should be the same as destination';
     }
 
     my $mocker = Test::MockModule->new('App::Sqitch');
@@ -192,13 +192,13 @@ ENV: {
     is $snow->target->name, 'db:snowflake:',
         'Target name should not fall back on sysuser';
     is $snow->registry_destination, $snow->destination,
-        'Meta target should be the same as destination';
+        'Registry target should be the same as destination';
 
     $ENV{SNOWSQL_DATABASE} = 'mydb';
     $snow = $CLASS->new(sqitch => $sqitch, username => 'hi', target => $target);
     is $snow->target->name, 'db:snowflake:',  'Target name should be the default';
     is $snow->registry_destination, $snow->destination,
-        'Meta target should be the same as destination';
+        'Registry target should be the same as destination';
 }
 
 ##############################################################################

@@ -102,7 +102,7 @@ ENV: {
         local $ENV{$env} = "\$ENV=whatever";
         is $vta->target->name, "db:vertica:", "Target name should not read \$$env";
         is $vta->registry_destination, $vta->destination,
-            'Meta target should be the same as destination';
+            'Registry target should be the same as destination';
     }
 
     my $mocker = Test::MockModule->new('App::Sqitch');
@@ -111,13 +111,13 @@ ENV: {
     is $vta->target->name, 'db:vertica:',
         'Target name should not fall back on sysuser';
     is $vta->registry_destination, $vta->destination,
-        'Meta target should be the same as destination';
+        'Registry target should be the same as destination';
 
     $ENV{VERTICADATABASE} = 'mydb';
     $vta = $CLASS->new(sqitch => $sqitch, username => 'hi', target => $target);
     is $vta->target->name, 'db:vertica:',  'Target name should be the default';
     is $vta->registry_destination, $vta->destination,
-        'Meta target should be the same as destination';
+        'Registry target should be the same as destination';
 }
 
 ##############################################################################

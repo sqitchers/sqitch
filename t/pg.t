@@ -88,7 +88,7 @@ ENV: {
         local $ENV{$env} = "\$ENV=whatever";
         is $pg->target->uri, "db:pg:", "Target should not read \$$env";
         is $pg->registry_destination, $pg->destination,
-            'Meta target should be the same as destination';
+            'Registry target should be the same as destination';
     }
 
     my $mocker = Test::MockModule->new('App::Sqitch');
@@ -96,13 +96,13 @@ ENV: {
     my $pg = $CLASS->new(sqitch => $sqitch, target => $target);
     is $pg->target->uri, 'db:pg:', 'Target should not fall back on sysuser';
     is $pg->registry_destination, $pg->destination,
-        'Meta target should be the same as destination';
+        'Registry target should be the same as destination';
 
     $ENV{PGDATABASE} = 'mydb';
     $pg = $CLASS->new(sqitch => $sqitch, username => 'hi', target => $target);
     is $pg->target->uri, 'db:pg:',  'Target should be the default';
     is $pg->registry_destination, $pg->destination,
-        'Meta target should be the same as destination';
+        'Registry target should be the same as destination';
 }
 
 ##############################################################################

@@ -48,7 +48,7 @@ is $sqlite->target, $target, 'Target attribute should be specified target';
 is $sqlite->destination, $sqlite->uri->as_string,
     'Destination should be uri stringified';
 is $sqlite->registry_destination, $sqlite->registry_uri->as_string,
-    'Meta target should be registry_uri stringified';
+    'Registry target should be registry_uri stringified';
 
 # Pretend for now that we always have a valid SQLite.
 my $mock_sqitch = Test::MockModule->new(ref $sqitch);
@@ -124,7 +124,7 @@ is $sqlite->destination, 'test',
 is $sqlite->registry_uri->as_string, 'db:sqlite:/path/to/meta.db',
     'registry_uri should fall back on config';
 is $sqlite->registry_destination, $sqlite->registry_uri->as_string,
-    'Meta target should be configured registry_uri stringified';
+    'Registry target should be configured registry_uri stringified';
 
 # Try a registry with an extension and a dbname without.
 %config = (
@@ -143,7 +143,7 @@ is $sqlite->destination, 'test',
 is $sqlite->registry_uri->as_string, 'db:sqlite:/path/to/meta.db',
     'registry_uri should fall back on config wth extension';
 is $sqlite->registry_destination, $sqlite->registry_uri->as_string,
-    'Meta target should be configured registry_uri stringified';
+    'Registry target should be configured registry_uri stringified';
 
 # Also try a registry with no extension and a dbname with.
 %config = (
@@ -162,7 +162,7 @@ is $sqlite->destination, 'noext',
 is $sqlite->registry_uri->as_string, 'db:sqlite:/path/to/registry.db',
     'registry_uri should fall back on config wth extension';
 is $sqlite->registry_destination, $sqlite->registry_uri->as_string,
-    'Meta target should be configured registry_uri stringified';
+    'Registry target should be configured registry_uri stringified';
 
 # Try a registry with an absolute path.
 %config = (
@@ -181,7 +181,7 @@ is $sqlite->destination, 'abs',
 is $sqlite->registry_uri->as_string, 'db:sqlite:/some/other/path.db',
     'registry_uri should fall back on config wth extension';
 is $sqlite->registry_destination, $sqlite->registry_uri->as_string,
-    'Meta target should be configured registry_uri stringified';
+    'Registry target should be configured registry_uri stringified';
 
 ##############################################################################
 # Now make sure that Sqitch options override configurations.
