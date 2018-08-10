@@ -24,7 +24,7 @@ env:
 
 matrix:
   include:
-    - perl: "5.26"
+    - perl: "5.28"
       env: COVERAGE=1
   allow_failures:
     - perl: "blead"
