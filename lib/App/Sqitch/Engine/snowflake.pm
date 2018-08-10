@@ -289,8 +289,6 @@ sub _ts2char_format {
     qq{to_varchar(CONVERT_TIMEZONE('UTC', %s), '"year:"YYYY":month:"MM":day:"DD":hour:"HH24":minute:"MI":second:"SS":time_zone:UTC"')};
 }
 
-
-
 sub _char2ts { $_[1]->as_string(format => 'iso') }
 
 sub _dt($) {
@@ -401,7 +399,7 @@ sub _regex_expr {
     # is not so anchored, and just check to see that if it returns a string.
     # https://support.snowflake.net/s/case/5000Z000010wbUSQAY
     # https://support.snowflake.net/s/question/0D50Z00008C90beSAB/
-    return  "regexp_substr($col, ?) IS NOT NULL", $regex;
+    return "regexp_substr($col, ?) IS NOT NULL", $regex;
 }
 
 sub run_file {

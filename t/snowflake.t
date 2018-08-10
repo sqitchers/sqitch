@@ -22,6 +22,7 @@ use Try::Tiny;
 use App::Sqitch;
 use App::Sqitch::Target;
 use App::Sqitch::Plan;
+use App::Sqitch::DateTime;
 use lib 't/lib';
 use DBIEngineTest;
 
@@ -216,6 +217,9 @@ SNOWSQLCFGFILE: {
         region      => 'Africa',
     };
 
+    # Unset the mock.
+    $mock_snow->unmock('_snowcfg');
+
     # Write out a the config file.
     open my $fh, '>:utf8', $cfgfn or die "Cannot open $cfgfn: $!\n";
     print {$fh} "[connections]\n";
@@ -226,9 +230,6 @@ SNOWSQLCFGFILE: {
     # Add a named connection, which should be ignored.
     print {$fh} "[connections.winner]\nusername = WINNING\n";
     close $fh or die "Cannot close $cfgfn: $!\n";
-
-    # Unset the mock.
-    $mock_snow->unmock('_snowcfg');
 
     # Make sure we read it in.
     my $target = App::Sqitch::Target->new(
@@ -335,7 +336,46 @@ is_deeply [$snow->snowsql], [qw(
 $mock_config->unmock('get');
 
 ##############################################################################
-# Test _run(), _capture(), and _spool().
+# Test SQL helpers.
+is $snow->_listagg_format, q{listagg(%s, ' ')}, 'Should have _listagg_format';
+is $snow->_ts_default, 'current_timestamp', 'Should have _ts_default';
+is $snow->_regex_op, 'REGEXP', 'Should have _regex_op';
+is $snow->_simple_from, ' FROM dual', 'Should have _simple_from';
+is $snow->_limit_default, '4611686018427387903', 'Should have _limit_default';
+
+DBI: {
+    local *DBI::state;
+    ok !$snow->_no_table_error, 'Should have no table error';
+    ok !$snow->_no_column_error, 'Should have no column error';
+    $DBI::state = '02000';
+    ok $snow->_no_table_error, 'Should now have table error';
+    ok !$snow->_no_column_error, 'Still should have no column error';
+    $DBI::state = '42703';
+    ok !$snow->_no_table_error, 'Should again have no table error';
+    ok $snow->_no_column_error, 'Should now have no column error';
+}
+
+is_deeply [$snow->_limit_offset(8, 4)],
+    [['LIMIT 8', 'OFFSET 4'], []],
+    'Should get limit and offset';
+is_deeply [$snow->_limit_offset(0, 2)],
+    [['LIMIT 4611686018427387903', 'OFFSET 2'], []],
+    'Should get limit and offset when offset only';
+is_deeply [$snow->_limit_offset(12, 0)], [['LIMIT 12'], []],
+    'Should get only limit with 0 offset';
+is_deeply [$snow->_limit_offset(12)], [['LIMIT 12'], []],
+    'Should get only limit with noa offset';
+is_deeply [$snow->_limit_offset(0, 0)], [[], []],
+    'Should get no limit or offset for 0s';
+is_deeply [$snow->_limit_offset()], [[], []],
+    'Should get no limit or offset for no args';
+
+is_deeply [$snow->_regex_expr('corn', 'Obama$')],
+    ["regexp_substr(corn, ?) IS NOT NULL", 'Obama$'],
+    'Should use regexp_substr IS NOT NULL for regex expr';
+
+##############################################################################
+# Test _run(), _capture() _spool(), and _probe().
 can_ok $snow, qw(_run _capture _spool);
 my $mock_sqitch = Test::MockModule->new('App::Sqitch');
 my @capture;
@@ -363,6 +403,19 @@ $mock_sqitch->mock(spool => sub {
     }
 });
 
+my @probe;
+$mock_sqitch->mock(probe => sub {
+    local $Test::Builder::Level = $Test::Builder::Level + 2;
+    shift;
+    @probe = @_;
+    if (defined $exp_pass) {
+        is $ENV{SNOWSQL_PWD}, $exp_pass, qq{SNOWSQL_PWD should be "$exp_pass"};
+    } else {
+        ok !exists $ENV{SNOWSQL_PWD}, 'SNOWSQL_PWD should not exist';
+    }
+    return;
+});
+
 ok $snow->_run(qw(foo bar baz)), 'Call _run';
 is_deeply \@capture, [$snow->snowsql, qw(foo bar baz)],
     'Command should be passed to capture()';
@@ -374,6 +427,10 @@ is_deeply \@spool, ['FH', $snow->snowsql, $snow->_verbose_opts],
 lives_ok { $snow->_capture(qw(foo bar baz)) } 'Call _capture';
 is_deeply \@capture, [$snow->snowsql, $snow->_verbose_opts, qw(foo bar baz)],
     'Command should be passed to capture()';
+
+lives_ok { $snow->_probe(qw(foo bar baz)) } 'Call _probe';
+is_deeply \@probe, [$snow->snowsql, $snow->_verbose_opts, qw(foo bar baz)],
+    'Command should be passed to probe()';
 
 # Without password.
 $target = App::Sqitch::Target->new( sqitch => $sqitch );
@@ -391,6 +448,10 @@ is_deeply \@spool, ['FH', $snow->snowsql, $snow->_verbose_opts],
 lives_ok { $snow->_capture(qw(foo bar baz)) } 'Call _capture again';
 is_deeply \@capture, [$snow->snowsql, $snow->_verbose_opts, qw(foo bar baz)],
     'Command should be passed to capture() again';
+
+lives_ok { $snow->_probe(qw(foo bar baz)) } 'Call _probe again';
+is_deeply \@probe, [$snow->snowsql, $snow->_verbose_opts, qw(foo bar baz)],
+    'Command should be passed to probe() again';
 
 ##############################################################################
 # Test file and handle running.
@@ -433,6 +494,10 @@ is $dt->hour,   15, 'DateTime hour should be set';
 is $dt->minute,  7, 'DateTime minute should be set';
 is $dt->second,  1, 'DateTime second should be set';
 is $dt->time_zone->name, 'UTC', 'DateTime TZ should be set';
+
+ok my $now = App::Sqitch::DateTime->now, 'Construct a datetime object';
+is $snow->_char2ts($now), $now->as_string(format => 'iso'),
+    'Should get ISO output from _char2ts';
 
 ##############################################################################
 # Can we do live tests?
