@@ -97,7 +97,9 @@ has uri => (
         $uri->host($self->_host($uri));
         $uri->port($ENV{SNOWSQL_PORT}) if !$uri->_port && $ENV{SNOWSQL_PORT};
         $uri->user($self->_username)   if !$uri->user;
-        if (!$uri->password && (my $pw = $self->_password)) {
+        if ($ENV{SQITCH_PASSWORD}) {
+            $uri->password($ENV{SQITCH_PASSWORD});
+        } elsif (!$uri->password && (my $pw = $self->_password)) {
             $uri->password($pw);
         }
         $uri->dbname($ENV{SNOWSQL_DATABASE} || $uri->user) if !$uri->dbname;
@@ -489,7 +491,8 @@ App::Sqitch::Engine::snowflake provides the Snowflake storage engine for Sqitch.
 
 =head3 C<uri>
 
-Returns the Snowflake database URI name. Sqitch looks for the host name in this order:
+Returns the Snowflake database URI name. It starts with the URI for the target
+and builds out missing parts. Sqitch looks for the host name in this order:
 
 =over
 
@@ -517,7 +520,7 @@ and C<snowflakecomputing.com>.
 
 The port defaults to 443, but uses to the C<$SNOWSQL_PORT> environment
 variable if it's set. The database name can also be set via the
-C<$SNOWSQL_DATABAE> environment variable. Other attributes of the URI are set
+C<$SNOWSQL_DATABASE> environment variable. Other attributes of the URI are set
 from the C<account>, C<username> and C<password> attributes documented below.
 
 =head3 C<account>

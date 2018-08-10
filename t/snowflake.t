@@ -109,6 +109,13 @@ SNOWENV: {
     is $snow->uri, 'db:snowflake://kamala:gimme@egregious.Australia.snowflakecomputing.com:4242/tryme',
         'Should build URI host from account and region environment vars';
     is $snow->account, 'egregious', 'Should read account from environment';
+
+    # SQITCH_PASSWORD has priority.
+    is $target->uri->password, 'gimme', 'Targe URI password should be set';
+    local $ENV{SQITCH_PASSWORD} = 'irule';
+    $snow = $CLASS->new( sqitch => $sqitch, target => $target );
+    is $snow->password, 'irule', 'Should prefer password from SQITCH_PASSWORD';
+    is $target->uri->password, 'irule', 'Targe URI password should be reset';
 }
 
 # Name the target.
