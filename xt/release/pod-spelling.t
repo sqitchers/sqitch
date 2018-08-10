@@ -115,4 +115,3 @@ sql
 sys
 SnowSQL
 DML
-
