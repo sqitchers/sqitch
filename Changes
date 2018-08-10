@@ -8,6 +8,9 @@ Revision history for Perl extension App::Sqitch
        report.
      - Added the Snowflake engine.
      - Now require URI::db v0.19 for Snowflake URI support.
+     - The Vertica and Exasol engines now require DBD::ODBC 1.59, which fixes
+       a Unicode issue. Thanks to Martin J. Evans for the quick fix
+       (perl5-dbi/DBD-ODBC#8)!
 
 0.9997 2018-03-15T21:13:52Z
      - Fixed the Firebird engine to properly detect multiple instances of a

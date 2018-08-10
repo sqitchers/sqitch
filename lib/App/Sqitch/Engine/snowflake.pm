@@ -16,7 +16,7 @@ our $VERSION = '0.9998';
 
 sub key    { 'snowflake' }
 sub name   { 'Snowflake' }
-sub driver { 'DBD::ODBC 1.43' }
+sub driver { 'DBD::ODBC 1.59' }
 sub default_client { 'snowsql' }
 
 sub destination {

@@ -274,7 +274,7 @@ Requires:       sqitch >= %{version}
 Requires:       libverticaodbc.so
 Requires:       /opt/vertica/bin/vsql
 Requires:       perl(DBI)
-Requires:       perl(DBD::ODBC) >= 1.43
+Requires:       perl(DBD::ODBC) >= 1.59
 Provides:       sqitch-vertica
 
 %description vertica
@@ -291,7 +291,7 @@ Group:          Development/Libraries
 Requires:       sqitch >= %{version}
 Requires:       snowflake-odbc
 Requires:       perl(DBI)
-Requires:       perl(DBD::ODBC) >= 1.43
+Requires:       perl(DBD::ODBC) >= 1.59
 Provides:       sqitch-snowflake
 
 %description snowflake
