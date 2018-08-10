@@ -220,24 +220,26 @@ SNOWSQLCFGFILE: {
     # Unset the mock.
     $mock_snow->unmock('_snowcfg');
 
-    # Write out a the config file.
-    open my $fh, '>:utf8', $cfgfn or die "Cannot open $cfgfn: $!\n";
-    print {$fh} "[connections]\n";
-    while (my ($k, $v) = each %{ $cfg }) {
-        print {$fh} "$k = $v\n";
+    for my $qm (q{}, q{'}, q{"}) {
+        # Write out a the config file.
+        open my $fh, '>:utf8', $cfgfn or die "Cannot open $cfgfn: $!\n";
+        print {$fh} "[connections]\n";
+        while (my ($k, $v) = each %{ $cfg }) {
+            print {$fh} "$k = $qm$v$qm\n";
+        }
+
+        # Add a named connection, which should be ignored.
+        print {$fh} "[connections.winner]\nusername = ${qm}WINNING$qm\n";
+        close $fh or die "Cannot close $cfgfn: $!\n";
+
+        # Make sure we read it in.
+        my $target = App::Sqitch::Target->new(
+            name => 'db:snowflake:',
+            sqitch => $sqitch,
+        );
+        my $snow = $CLASS->new( sqitch => $sqitch, target => $target );
+        is_deeply $snow->_snowcfg, $cfg, 'Should have read config from file';
     }
-
-    # Add a named connection, which should be ignored.
-    print {$fh} "[connections.winner]\nusername = WINNING\n";
-    close $fh or die "Cannot close $cfgfn: $!\n";
-
-    # Make sure we read it in.
-    my $target = App::Sqitch::Target->new(
-        name => 'db:snowflake:',
-        sqitch => $sqitch,
-    );
-    my $snow = $CLASS->new( sqitch => $sqitch, target => $target );
-    is_deeply $snow->_snowcfg, $cfg, 'Should have read config from file';
 
     # Reset default mock.
     $mock_snow->mock(_snowcfg => {});

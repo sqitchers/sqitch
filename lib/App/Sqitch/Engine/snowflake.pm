@@ -72,7 +72,15 @@ has _snowcfg => (
             # We only want the default connections config. No named config.
             # (For now, anyway; maybe use database as config name laster?)
             next unless $k =~ /\Aconnections[.]([^.]+)\z/;
-            $cfg->{$1} = $data->{$k};
+            my $key = $1;
+            my $val = $data->{$k};
+            # Apparently snowsql config supports single quotes, while
+            # Config::GitLike does not.
+            # https://support.snowflake.net/s/case/5000Z000010xUYJQA2
+            if ($val =~ s/\A'//) {
+                $val = $data->{$k} unless $val =~ s/'\z//;
+            }
+            $cfg->{$key} = $val;
         }
         return $cfg;
     },
