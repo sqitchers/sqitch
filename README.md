@@ -88,7 +88,6 @@ To install Sqitch from a distribution download, type the following:
 To install Sqitch and all of its dependencies into a single directory named
 `sqtich_bundle`, type:
 
-    cpan Carton
     ./Build bundle --install_base sqitch_bundle
 
 After which, Sqtich can be run from `./sqitch_bundle/bin/sqitch`.
