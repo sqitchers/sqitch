@@ -228,54 +228,40 @@ sub fix_shebang_line {
 sub ACTION_bundle {
     my ($self, @params) = @_;
     my $base = $self->install_base or die "No --install_base specified\n";
-    $self->_runtime_cpanfile;
-    require Carton::CLI;
     SHHH: {
-        local $SIG{__WARN__} = sub {};
-        Carton::CLI->new->cmd_install(
-            '--path'     => $base,
-            '--cpanfile' => 'cpanfile.run',
+        local $SIG{__WARN__} = sub {}; # Menlo has noisy warnings.
+        require Menlo::CLI::Compat;
+        my $app = Menlo::CLI::Compat->new(
+            quiet          => 1,
+            notest         => 1,
+            self_contained => 1,
+            install_types  => [qw(requires recommends)],
+            local_lib      => File::Spec->rel2abs($base),
+            pod2man        => undef,
+            cpanfile_path  => File::Spec->catfile(qw(dist cpanfile)),
+            argv           => ['.'],
         );
+        die "Error installing modules\n" if $app->run;
     }
-    $self->depends_on('install');
-    $self->_add_carton_lib;
+
+    # Delete unneeded files.
+    $self->delete_filetree(File::Spec->catdir($base, qw(lib perl5 Module Build)));
+    $self->delete_filetree(File::Spec->catdir($base, qw(lib perl5 Test)));
+    $self->delete_filetree(File::Spec->catdir($base, qw(bin)));
+    for my $file (@{ $self->rscan_dir($base, qr/[.](?:meta|packlist)$/) }) {
+        $self->delete_filetree($file);
+    }
+    $self->_copy_findbin_script;
 }
 
-sub _runtime_cpanfile {
+sub _copy_findbin_script {
     my $self = shift;
-    return if -e 'cpanfile.run';
-    open my $in, '<', 'cpanfile' or die "Cannot open cpanfile: $!\n";
-    open my $out, '>', 'cpanfile.run' or die "Cannot open cpanfile.run: $!\n";
-    while (<$in>) {
-        print {$out} $_ if /\Are(quire|commend)s\b/;
-    }
-    close $in;
-    close $out;
-}
-
-sub _add_carton_lib {
-    my $self = shift;
-    my $files = $self->find_script_files;
-    return unless keys %{ $files };
     my $bin = $self->install_destination('script');
-    my $lib = File::Spec->rel2abs($self->install_destination('lib'));
-    $lib =~ s/([\\\'])/\\$1/g;
-    foreach my $file (sort keys %{ $files }) {
-        $file = File::Spec->catfile($bin, File::Basename::basename($file));
-        open my $libin , '<', $file or die "Can't process '$file': $!\n";
-        open my $libout, '>', "$file.new" or die "Cannot open '$file.new: $!\n";
-        while (<$libin>) {
-            print {$libout} $_;
-            next unless /^\s*\#!\s*/; # Look for shebang line.
-            print {$libout} "use lib '$lib';\n", <$libin>;
-        }
-        close $libin;
-        close $libout;
-        rename("$file.new", $file)
-            or die "Can't rename $file.new to $file: $!";
-        # $self->make_executable($file);
-        chmod oct(555), $file;
-    }
+    my $script = File::Spec->catfile(qw(t sqitch));
+    my $dest = File::Spec->catfile($bin, 'sqitch');
+    my $result = $self->copy_if_modified($script, $bin, 'flatten') or die 'WTF!';;
+    $self->fix_shebang_line($result) unless $self->is_vmsish;
+    $self->make_executable($result);
 }
 
 1;
