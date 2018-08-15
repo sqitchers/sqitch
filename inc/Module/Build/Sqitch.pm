@@ -6,6 +6,7 @@ use Module::Build 0.35;
 use base 'Module::Build';
 use IO::File ();
 use File::Spec ();
+use File::Basename ();
 use Config ();
 use File::Path ();
 use File::Copy ();
@@ -196,9 +197,9 @@ sub fix_shebang_line {
         my $FIXIN = IO::File->new($file) or die "Can't process '$file': $!";
         local $/ = "\n";
         chomp(my $line = <$FIXIN>);
-        next unless $line =~ s/^\s*\#!\s*//;     # Not a shbang file.
+        next unless $line =~ s/^\s*\#!\s*//;     # Not a shebang file.
 
-        my ($cmd, $arg) = (split(' ', $line, 2), '');
+        my ($cmd, $arg) = (split(' ', $line, 2), ''); 
         next unless $cmd =~ /perl/i && $arg =~ s/ -C\w+//;
 
         # We removed -C; write the file out.
@@ -222,6 +223,59 @@ sub fix_shebang_line {
 
     # Back at it now.
     return $self->SUPER::fix_shebang_line(@_);
+}
+
+sub ACTION_bundle {
+    my ($self, @params) = @_;
+    my $base = $self->install_base or die "No --install_base specified\n";
+    $self->_runtime_cpanfile;
+    require Carton::CLI;
+    SHHH: {
+        local $SIG{__WARN__} = sub {};
+        Carton::CLI->new->cmd_install(
+            '--path'     => $base,
+            '--cpanfile' => 'cpanfile.run',
+        );
+    }
+    $self->depends_on('install');
+    $self->_add_carton_lib;
+}
+
+sub _runtime_cpanfile {
+    my $self = shift;
+    return if -e 'cpanfile.run';
+    open my $in, '<', 'cpanfile' or die "Cannot open cpanfile: $!\n";
+    open my $out, '>', 'cpanfile.run' or die "Cannot open cpanfile.run: $!\n";
+    while (<$in>) {
+        print {$out} $_ if /\Are(quire|commend)s\b/;
+    }
+    close $in;
+    close $out;
+}
+
+sub _add_carton_lib {
+    my $self = shift;
+    my $files = $self->find_script_files;
+    return unless keys %{ $files };
+    my $bin = $self->install_destination('script');
+    my $lib = File::Spec->rel2abs($self->install_destination('lib'));
+    $lib =~ s/([\\\'])/\\$1/g;
+    foreach my $file (sort keys %{ $files }) {
+        $file = File::Spec->catfile($bin, File::Basename::basename($file));
+        open my $libin , '<', $file or die "Can't process '$file': $!\n";
+        open my $libout, '>', "$file.new" or die "Cannot open '$file.new: $!\n";
+        while (<$libin>) {
+            print {$libout} $_;
+            next unless /^\s*\#!\s*/; # Look for shebang line.
+            print {$libout} "use lib '$lib';\n", <$libin>;
+        }
+        close $libin;
+        close $libout;
+        rename("$file.new", $file)
+            or die "Can't rename $file.new to $file: $!";
+        $self->make_executable($file);
+        chmod oct(555), $file;
+    }
 }
 
 1;
