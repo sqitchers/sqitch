@@ -199,7 +199,7 @@ sub fix_shebang_line {
         chomp(my $line = <$FIXIN>);
         next unless $line =~ s/^\s*\#!\s*//;     # Not a shebang file.
 
-        my ($cmd, $arg) = (split(' ', $line, 2), ''); 
+        my ($cmd, $arg) = (split(' ', $line, 2), '');
         next unless $cmd =~ /perl/i && $arg =~ s/ -C\w+//;
 
         # We removed -C; write the file out.
@@ -273,7 +273,7 @@ sub _add_carton_lib {
         close $libout;
         rename("$file.new", $file)
             or die "Can't rename $file.new to $file: $!";
-        $self->make_executable($file);
+        # $self->make_executable($file);
         chmod oct(555), $file;
     }
 }

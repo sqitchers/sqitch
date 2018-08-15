@@ -86,7 +86,7 @@ To install Sqitch from a distribution download, type the following:
     ./Build install
 
 To install Sqitch and all of its dependencies into a single directory named
-`sqtich_bundle`, type:
+`sqitch_bundle`, type:
 
     ./Build bundle --install_base sqitch_bundle
 
