@@ -245,6 +245,9 @@ sub ACTION_bundle {
         die "Error installing modules\n" if $app->run;
     }
 
+    # Install Sqitch.
+    $self->depends_on('install');
+
     # Delete unneeded files.
     $self->delete_filetree(File::Spec->catdir($base, qw(lib perl5 Module Build)));
     $self->delete_filetree(File::Spec->catdir($base, qw(lib perl5 Test)));
@@ -252,6 +255,14 @@ sub ACTION_bundle {
     for my $file (@{ $self->rscan_dir($base, qr/[.](?:meta|packlist)$/) }) {
         $self->delete_filetree($file);
     }
+
+    # Move libraries from lib/perl5 to lib.
+    my $tmp = File::Spec->catdir($base, qw(tmp));
+    File::Copy::move( File::Spec->catdir($base, qw(lib perl5)), $tmp );
+    $self->delete_filetree(File::Spec->catdir($base, qw(lib)));
+    File::Copy::move( $tmp, File::Spec->catdir($base, qw(lib)) );
+
+    # Install sqitch sript using FindBin.
     $self->_copy_findbin_script;
 }
 
@@ -260,7 +271,7 @@ sub _copy_findbin_script {
     my $bin = $self->install_destination('script');
     my $script = File::Spec->catfile(qw(t sqitch));
     my $dest = File::Spec->catfile($bin, 'sqitch');
-    my $result = $self->copy_if_modified($script, $bin, 'flatten') or die 'WTF!';;
+    my $result = $self->copy_if_modified($script, $bin, 'flatten') or return;
     $self->fix_shebang_line($result) unless $self->is_vmsish;
     $self->make_executable($result);
 }
