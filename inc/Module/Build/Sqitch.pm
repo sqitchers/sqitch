@@ -239,6 +239,7 @@ sub ACTION_bundle {
             local_lib      => File::Spec->rel2abs($base),
             pod2man        => undef,
             cpanfile_path  => File::Spec->catfile(qw(dist cpanfile)),
+            installdeps    => 1,
             argv           => ['.'],
         );
         die "Error installing modules\n" if $app->run;
