@@ -12,6 +12,7 @@ use File::Path ();
 use File::Copy ();
 
 __PACKAGE__->add_property($_) for qw(etcdir installed_etcdir);
+__PACKAGE__->add_property(phase => [qw(runtime)]);
 
 sub new {
     my ( $class, %p ) = @_;
@@ -241,6 +242,7 @@ sub ACTION_bundle {
             pod2man        => undef,
             installdeps    => 1,
             argv           => ['.'],
+            _phases        => $self->phase,
         );
         die "Error installing modules\n" if $app->run;
     }
@@ -283,7 +285,7 @@ push @ISA => qw(Menlo::CLI::Compat); # Loaded on-demand by ACTION_bundle.
 # Menlo defaults to config, test, runtime. We just want to bundle runtime.
 sub find_prereqs {
     my ($self, $dist) = @_;
-    $dist->{want_phases} = [qw(runtime)];
+    $dist->{want_phases} = $self->{_phases};
     return $self->SUPER::find_prereqs($dist);
 }
 
