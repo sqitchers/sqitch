@@ -230,15 +230,15 @@ sub ACTION_bundle {
     my $base = $self->install_base or die "No --install_base specified\n";
     SHHH: {
         local $SIG{__WARN__} = sub {}; # Menlo has noisy warnings.
+        local $ENV{PERL_CPANM_OPT}; # Override cpanm options.
         require Menlo::CLI::Compat;
-        my $app = Menlo::CLI::Compat->new(
+        my $app = App::Sqitch::Menlo::CLI->new(
             quiet          => 1,
             notest         => 1,
             self_contained => 1,
             install_types  => [qw(requires recommends)],
             local_lib      => File::Spec->rel2abs($base),
             pod2man        => undef,
-            cpanfile_path  => File::Spec->catfile(qw(dist cpanfile)),
             installdeps    => 1,
             argv           => ['.'],
         );
@@ -262,7 +262,7 @@ sub ACTION_bundle {
     $self->delete_filetree(File::Spec->catdir($base, qw(lib)));
     File::Copy::move( $tmp, File::Spec->catdir($base, qw(lib)) );
 
-    # Install sqitch sript using FindBin.
+    # Install sqitch script using FindBin.
     $self->_copy_findbin_script;
 }
 
@@ -274,6 +274,17 @@ sub _copy_findbin_script {
     my $result = $self->copy_if_modified($script, $bin, 'flatten') or return;
     $self->fix_shebang_line($result) unless $self->is_vmsish;
     $self->make_executable($result);
+}
+
+package App::Sqitch::Menlo::CLI;
+our @ISA;
+push @ISA => qw(Menlo::CLI::Compat); # Loaded on-demand by ACTION_bundle.
+
+# Menlo defaults to config, test, runtime. We just want to bundle runtime.
+sub find_prereqs {
+    my ($self, $dist) = @_;
+    $dist->{want_phases} = [qw(runtime)];
+    return $self->SUPER::find_prereqs($dist);
 }
 
 1;
