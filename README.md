@@ -90,7 +90,21 @@ To install Sqitch and all of its dependencies into a single directory named
 
     ./Build bundle --install_base sqitch_bundle
 
-After which, Sqtich can be run from `./sqitch_bundle/bin/sqitch`.
+After which, Sqtich can be run from `./sqitch_bundle/bin/sqitch`. To include
+support for a feature in the bundle, pass the `--with` (or `-w`) option naming
+the feature:
+
+    ./Build bundle --install_base sqitch_bundle --with postgres -w sqlite
+
+The feature names correspond to the supported engines:
+
+* pg - PostgreSQL support
+* sqlite - SQLite support
+* mysql - MySQL support
+* firebiard - Firebird support
+* oracle - Oracle support
+* vertica - Vertica support
+* exasol - Exasol support
 
 To build from a Git clone, first install
 [Dist::Zilla](https://metacpan.org/module/Dist::Zilla), then use it to install

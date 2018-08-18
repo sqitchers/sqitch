@@ -12,7 +12,6 @@ use File::Path ();
 use File::Copy ();
 
 __PACKAGE__->add_property($_) for qw(etcdir installed_etcdir);
-__PACKAGE__->add_property(phase => [qw(runtime)]);
 
 sub new {
     my ( $class, %p ) = @_;
@@ -28,6 +27,10 @@ sub new {
         $p{requires}{'DateTime::TimeZone::Local::Win32'} = 0;
         $p{build_requires}{'Config::GitLike'} = '1.15';
     }
+    # Add option to determine features to bundle with.
+    $p{get_options} = {
+        'with|w' => { type => '=s@', default => [] },
+    };
     my $self = $class->SUPER::new(%p);
     $self->add_build_element('etc');
     $self->add_build_element('mo');
@@ -242,7 +245,7 @@ sub ACTION_bundle {
             pod2man        => undef,
             installdeps    => 1,
             argv           => ['.'],
-            _phases        => $self->phase,
+            features       => { map { $_ => 1 } @{ $self->args('with') } },
         );
         die "Error installing modules\n" if $app->run;
     }
@@ -285,7 +288,7 @@ push @ISA => qw(Menlo::CLI::Compat); # Loaded on-demand by ACTION_bundle.
 # Menlo defaults to config, test, runtime. We just want to bundle runtime.
 sub find_prereqs {
     my ($self, $dist) = @_;
-    $dist->{want_phases} = $self->{_phases};
+    $dist->{want_phases} = ['runtime'];
     return $self->SUPER::find_prereqs($dist);
 }
 
