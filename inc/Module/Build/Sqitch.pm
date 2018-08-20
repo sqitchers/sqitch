@@ -233,6 +233,8 @@ sub ACTION_bundle {
         local $SIG{__WARN__} = sub {}; # Menlo has noisy warnings.
         local $ENV{PERL_CPANM_OPT}; # Override cpanm options.
         require Menlo::CLI::Compat;
+        my $feat = $self->with || [];
+        $feat = [$feat] unless ref $feat;
         my $app = App::Sqitch::Menlo::CLI->new(
             quiet          => 1,
             notest         => 1,
@@ -242,7 +244,7 @@ sub ACTION_bundle {
             pod2man        => undef,
             installdeps    => 1,
             argv           => ['.'],
-            features       => { map { $_ => 1 } @{ $self->with } },
+            features       => { map { $_ => 1 } @{ $feat } },
         );
         die "Error installing modules\n" if $app->run;
     }
