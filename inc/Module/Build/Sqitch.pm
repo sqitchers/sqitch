@@ -29,7 +29,7 @@ sub new {
     }
     # Add option to determine features to bundle with.
     $p{get_options} = {
-        'with|w' => { type => '=s@', default => [] },
+        'With|W' => { type => '=s@', default => [] },
     };
     my $self = $class->SUPER::new(%p);
     $self->add_build_element('etc');
@@ -236,6 +236,7 @@ sub ACTION_bundle {
         local $SIG{__WARN__} = sub {}; # Menlo has noisy warnings.
         local $ENV{PERL_CPANM_OPT}; # Override cpanm options.
         require Menlo::CLI::Compat;
+        my $feat = $self->args('With') || $self->args('W|With');
         my $app = App::Sqitch::Menlo::CLI->new(
             quiet          => 1,
             notest         => 1,
@@ -245,7 +246,7 @@ sub ACTION_bundle {
             pod2man        => undef,
             installdeps    => 1,
             argv           => ['.'],
-            features       => { map { $_ => 1 } @{ $self->args('with') } },
+            features       => { map { $_ => 1 } @{ $feat } },
         );
         die "Error installing modules\n" if $app->run;
     }
