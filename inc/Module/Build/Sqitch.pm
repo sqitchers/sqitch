@@ -12,6 +12,7 @@ use File::Path ();
 use File::Copy ();
 
 __PACKAGE__->add_property($_) for qw(etcdir installed_etcdir);
+__PACKAGE__->add_property(with => []);
 
 sub new {
     my ( $class, %p ) = @_;
@@ -27,10 +28,6 @@ sub new {
         $p{requires}{'DateTime::TimeZone::Local::Win32'} = 0;
         $p{build_requires}{'Config::GitLike'} = '1.15';
     }
-    # Add option to determine features to bundle with.
-    $p{get_options} = {
-        'With|W' => { type => '=s@', default => [] },
-    };
     my $self = $class->SUPER::new(%p);
     $self->add_build_element('etc');
     $self->add_build_element('mo');
@@ -236,7 +233,6 @@ sub ACTION_bundle {
         local $SIG{__WARN__} = sub {}; # Menlo has noisy warnings.
         local $ENV{PERL_CPANM_OPT}; # Override cpanm options.
         require Menlo::CLI::Compat;
-        my $feat = $self->args('With') || $self->args('W|With');
         my $app = App::Sqitch::Menlo::CLI->new(
             quiet          => 1,
             notest         => 1,
@@ -246,7 +242,7 @@ sub ACTION_bundle {
             pod2man        => undef,
             installdeps    => 1,
             argv           => ['.'],
-            features       => { map { $_ => 1 } @{ $feat } },
+            features       => { map { $_ => 1 } @{ $self->with } },
         );
         die "Error installing modules\n" if $app->run;
     }

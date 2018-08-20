@@ -98,7 +98,7 @@ the feature:
 
 The feature names correspond to the supported engines:
 
-* pg - PostgreSQL support
+* postgres - PostgreSQL support
 * sqlite - SQLite support
 * mysql - MySQL support
 * firebiard - Firebird support
