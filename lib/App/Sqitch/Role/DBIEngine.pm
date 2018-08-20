@@ -228,7 +228,6 @@ sub search_events {
 
     # Limit with regular expressions?
     my (@wheres, @params);
-    my $op = $self->_regex_op;
     for my $spec (
         [ committer => 'e.committer_name' ],
         [ planner   => 'e.planner_name'   ],
@@ -236,8 +235,9 @@ sub search_events {
         [ project   => 'e.project'        ],
     ) {
         my $regex = delete $p{ $spec->[0] } // next;
-        push @wheres => "$spec->[1] $op ?";
-        push @params => $regex;
+        my ($op, $expr) = $self->_regex_expr($spec->[1], $regex);
+        push @wheres => $op;
+        push @params => $expr;
     }
 
     # Match events?
@@ -255,19 +255,10 @@ sub search_events {
     # Handle remaining parameters.
     my $limits = '';
     if (exists $p{limit} || exists $p{offset}) {
-        my $lim = delete $p{limit};
-        if ($lim) {
-            $limits = "\n         LIMIT ?";
-            push @params => $lim;
-        }
-        if (my $off = delete $p{offset}) {
-            if (!$lim && ($lim = $self->_limit_default)) {
-                # Some drivers require LIMIT when OFFSET is set.
-                $limits = "\n         LIMIT ?";
-                push @params => $lim;
-            }
-            $limits .= "\n         OFFSET ?";
-            push @params => $off;
+        my ($exprs, $values) = $self->_limit_offset(delete $p{limit}, delete $p{offset});
+        if (@{ $exprs}) {
+            $limits = join "\n         ", '', @{ $exprs };
+            push @params => @{ $values || [] };
         }
     }
 
@@ -295,6 +286,7 @@ sub search_events {
           FROM events e$where
          ORDER BY e.committed_at $dir$limits
     });
+
     $sth->execute(@params);
     return sub {
         my $row = $sth->fetchrow_hashref or return;
@@ -302,6 +294,32 @@ sub search_events {
         $row->{planned_at}   = _dt $row->{planned_at};
         return $row;
     };
+}
+
+sub _regex_expr {
+    my ( $self, $col, $regex ) = @_;
+    my $op = $self->_regex_op;
+    return "$col $op ?", $regex;
+}
+
+sub _limit_offset {
+    my ($self, $lim, $off)  = @_;
+    my (@limits, @params);
+
+    if ($lim) {
+        push @limits => 'LIMIT ?';
+        push @params => $lim;
+    }
+    if ($off) {
+        if (!$lim && ($lim = $self->_limit_default)) {
+            # Some drivers require LIMIT when OFFSET is set.
+            push @limits => 'LIMIT ?';
+            push @params => $lim;
+        }
+        push @limits => 'OFFSET ?';
+        push @params => $off;
+    }
+    return \@limits, \@params;
 }
 
 sub registered_projects {
@@ -598,7 +616,7 @@ sub changes_requiring_change {
             SELECT tag
               FROM changes c2
               JOIN tags ON c2.change_id = tags.change_id
-             WHERE c2.project      = c.project
+             WHERE c2.project       = c.project
                AND c2.committed_at >= c.committed_at
              ORDER BY c2.committed_at
              LIMIT 1
@@ -639,7 +657,6 @@ sub log_new_tags {
     );
 
     my $subselect = 'SELECT ' . $self->_tag_subselect_columns . $self->_simple_from;
-
     $self->dbh->do(
         q{
             INSERT INTO tags (
@@ -1080,6 +1097,10 @@ The Vertica engine.
 =item L<App::Sqitch::Engine::exasol>
 
 The Exasol engine.
+
+=item L<App::Sqitch::Engine::snowflake>
+
+The Snowflake engine.
 
 =back
 

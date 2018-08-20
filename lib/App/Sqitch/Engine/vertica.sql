@@ -1,6 +1,6 @@
 CREATE SCHEMA :"registry";
 
-COMMENT ON SCHEMA :"registry" IS 'Sqitch database deployment metadata v1.0.';
+COMMENT ON SCHEMA :"registry" IS 'Sqitch database deployment metadata v1.1.';
 
 CREATE TABLE :"registry".releases (
     version         FLOAT          PRIMARY KEY,

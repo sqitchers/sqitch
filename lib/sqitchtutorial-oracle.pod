@@ -21,17 +21,19 @@ storage engine. Note that you will need to set
 L<C<$ORACLE_HOME>|http://www.orafaq.com/wiki/ORACLE_HOME> so that all the
 database connections will work.
 
-If you'd like to manage an PostgreSQL database, see L<sqitchtutorial>.
+If you'd like to manage a PostgreSQL database, see L<sqitchtutorial>.
 
 If you'd like to manage an SQLite database, see L<sqitchtutorial-sqlite>.
 
-If you'd like to manage an MySQL database, see L<sqitchtutorial-mysql>.
+If you'd like to manage a MySQL database, see L<sqitchtutorial-mysql>.
 
-If you'd like to manage an Firebird database, see L<sqitchtutorial-firebird>.
+If you'd like to manage a Firebird database, see L<sqitchtutorial-firebird>.
 
-If you'd like to manage an Vertica database, see L<sqitchtutorial-vertica>.
+If you'd like to manage a Vertica database, see L<sqitchtutorial-vertica>.
 
 If you'd like to manage an Exasol database, see L<sqitchtutorial-exasol>.
+
+If you'd like to manage a Snowflake database, see L<sqitchtutorial-snowflake>.
 
 =head2 VM Configuration
 
@@ -116,7 +118,7 @@ Let's have a look at F<sqitch.conf>:
   	# client = sqlplus
 
 Good, it picked up on the fact that we're creating changes for the Oracle
-engine, thanks to the C<-engine oracle> option, and saved it to the file.
+engine, thanks to the C<--engine oracle> option, and saved it to the file.
 Furthermore, it wrote a commented-out C<[engine "oracle"]> section with all
 the available Oracle engine-specific settings commented out and ready to be
 edited as appropriate. This includes the path to
@@ -417,7 +419,7 @@ When we look at the status, the deployment will be there:
 
 I'm getting a little tired of always having to type
 C<db:oracle://scott:tiger@/flipr_test>, aren't you? This
-L<database connection URI|https://github.com/theory/uri-db/> tells Sqitch how
+L<database connection URI|https://github.com/libwww-perl/uri-db/> tells Sqitch how
 to connect to the deployment target, but we don't have to keep using the URI.
 We can name the target:
 
@@ -1032,7 +1034,7 @@ Look good?
   # 
   Nothing to deploy (up-to-date)
 
-Note the use of C<--show tags> to show all the deployed tags. Now make it so:
+Note the use of C<--show-tags> to show all the deployed tags. Now make it so:
 
   > git add .
   > git commit -am 'Add flips table.'

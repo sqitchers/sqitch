@@ -106,6 +106,8 @@ of a database with Sqitch.
 
 =item * L<Exasol Tutorial|sqitchtutorial-exasol>
 
+=item * L<Snowflake Tutorial|sqitchtutorial-snowflake>
+
 =back
 
 =item L<PDX.pm Presentation|https://speakerdeck.com/theory/sane-database-change-management-with-sqitch>
@@ -255,6 +257,8 @@ The database engine to use. Supported engines include:
 =item * C<vertica> - L<Vertica|https://my.vertica.com/>
 
 =item * C<exasol> - L<Exasol|https://www.exasol.com/>
+
+=item * C<snowflake> - L<Snowflake|https://www.snowflake.net/>
 
 =back
 

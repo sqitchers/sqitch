@@ -24,7 +24,7 @@ sub _dt($) {
 
 sub key    { 'exasol' }
 sub name   { 'Exasol' }
-sub driver { 'DBD::ODBC 1.43' }
+sub driver { 'DBD::ODBC 1.59' }
 sub default_client { 'exaplus' }
 
 BEGIN {
@@ -60,8 +60,7 @@ has _exaplus => (
             [ p => $self->password ],
             [ c => $uri->host && $uri->_port ? $uri->host . ':' . $uri->_port : undef ],
             [ profile => $uri->host ? undef : $uri->dbname ]
-            )
-        {
+        ) {
             push @ret, "-$spec->[0]" => $spec->[1] if $spec->[1];
         }
 
@@ -325,7 +324,7 @@ sub initialize {
 
 # Override for special handling of regular the expression operator and
 # LIMIT/OFFSET. Keep for Exasol, as it can't handle OFFSET as parameter in a
-# prepared query..
+# prepared query.
 sub search_events {
     my ( $self, %p ) = @_;
 

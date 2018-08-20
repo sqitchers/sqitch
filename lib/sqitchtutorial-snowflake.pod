@@ -2,7 +2,7 @@
 
 =head1 Name
 
-sqitchtutorial-exasol - A tutorial introduction to Sqitch change management on Exasol
+sqitchtutorial-snowflake - A tutorial introduction to Sqitch change management on Snowflake
 
 =head1 Synopsis
 
@@ -10,14 +10,14 @@ sqitchtutorial-exasol - A tutorial introduction to Sqitch change management on E
 
 =head1 Description
 
-This tutorial explains how to create a sqitch-enabled Exasol project, use a
+This tutorial explains how to create a sqitch-enabled Snowflake project, use a
 VCS for deployment planning, and work with other developers to make sure
 changes remain in sync and in the proper order.
 
 We'll start by creating a new project from scratch, a fictional antisocial
 networking site called Flipr. All examples use L<Git|http://git-scm.com/> as
-the VCS and L<Exasol|https://www.exasol.com/> as the storage engine, but for
-the most part you can substitute other VCSes and database engines in the
+the VCS and L<Snowflake|https://www.snowflake.net/> as the storage engine, but
+for the most part you can substitute other VCSes and database engines in the
 examples as appropriate.
 
 If you'd like to manage a PostgreSQL database, see L<sqitchtutorial>.
@@ -32,59 +32,27 @@ If you'd like to manage a Firebird database, see L<sqitchtutorial-firebird>.
 
 If you'd like to manage a Vertica database, see L<sqitchtutorial-vertica>.
 
-If you'd like to manage a Snowflake database, see L<sqitchtutorial-snowflake>.
+If you'd like to manage an Exasol database, see L<sqitchtutorial-exasol>.
 
 =head2 Connection Configuration
 
-Sqitch requires ODBC to connect to the Exasol database. As such, you'll need
-to make sure that the Exasol ODBC driver is properly configured. At its
-simplest, on Unix-like systems, name the driver "Exasol" by adding this entry
-to C<odbcinst.ini> (usually found in C</etc>, C</usr/etc>, or
-C</usr/local/etc>):
+Sqitch requires ODBC to connect to the Snowflake database. As such, you'll
+need to make sure that the
+L<Snowflake ODBC driver|https://docs.snowflake.net/manuals/user-guide/odbc.html>
+is installed and properly configured. At its simplest, on Unix-like systems,
+name the driver "Snowflake" by adding this entry to C<odbcinst.ini> (usually
+found in C</etc>, C</usr/etc>, or C</usr/local/etc>):
 
-  [Exasol]
-  Description = ODBC for Exasol
-  Driver      = /opt/EXASOL_ODBC-6.0.4/lib/linux/x86_64/libexaodbc-uo2214lv2.so
+  [Snowflake]
+  Description = ODBC for Snowflake
+  Driver      = /usr/lib64/snowflake/odbc/lib/libSnowflake.so
 
 Note that you'll need to adjust the path depending on the version of the ODBC
 driver, and where you installed it.
 
-You might also consider naming your database connection by putting an entry in
-C<~/.odbc.ini>, like so (assuming that Exasol is running on your local host):
-
-  [flipr_test]
-  Driver = Exasol
-  EXAHOST = 127.0.0.1:8563
-  EXAUID = sys
-  EXAPWD = exasol
-
-Putting user and password information here is optional, but probably safer than
-other available options as long as the file is protected (mode 0600) so that
-only you can read it.
-
-Normally, of course, you'd have a separate user per project (and a separate
-ODBC connection defined); the above example is taken from the simplified
-tutorial setup we're using.
-
-See the
-L<Exasol downloads|https://www.exasol.com/portal/display/DOWNLOAD/6.0> for
-ODBC drivers, documentation, etc.
-
-=head2 Database Setup
-
-While installing and configuring an Exasol instance is beyond the scope of this
-tutorial, if you just want to follow along, you can start a Docker instance:
-
-  > docker run --detach --privileged --stop-timeout 120 -p 127.0.0.1:8563:8888  exasol/docker-db:latest
-
-This will make Exasol available at 127.0.0.1 (localhost) on port 8563, as if
-you were running it directly on your machine. You may have to wait for a minute
-until the database finished initializing; you can try connecting with `exaplus`
-to check status.
-
-See the corresponding L<GitHub repository|https://github.com/EXASOL/docker-db>
-for more information about how to run Exasol using Docker, for example if you
-want your data to persist beyond the lifetime of the container, etc.
+See the L<Snowflake ODBC documentation|https://docs.snowflake.net/manuals/user-guide/odbc.html>
+for details on downloading, installing, and configuring ODBC for your
+platform.
 
 =head1 Starting a New Project
 
@@ -101,14 +69,14 @@ source code repository. So let's do that with Git:
 
 If you're a Git user and want to follow along the history, the repository
 used in these examples is
-L<on GitHub|https://github.com/theory/sqitch-exasol-intro>.
+L<on GitHub|https://github.com/sqitchers/sqitch-snowflake-intro>.
 
 Now that we have a repository, let's get started with Sqitch. Every Sqitch
 project must have a name associated with it, and, optionally, a unique URI. We
 recommend including the URI, as it increases the uniqueness of object
 identifiers internally, so let's specify one when we initialize Sqitch:
 
-  > sqitch init flipr --uri https://github.com/theory/sqitch-exasol-intro/ --engine exasol
+  > sqitch init flipr --uri https://github.com/sqitchers/sqitch-snowflake-intro/ --engine snowflake
   Created sqitch.conf
   Created sqitch.plan
   Created deploy/
@@ -119,26 +87,26 @@ Let's have a look at F<sqitch.conf>:
 
   > cat sqitch.conf
   [core]
-  	engine = exasol
-  	# plan_file = sqitch.plan
-  	# top_dir = .
-  # [engine "exasol"]
-  	# target = db:exasol:
-  	# registry = sqitch
-  	# client = exaplus
+    engine = snowflake
+    # plan_file = sqitch.plan
+    # top_dir = .
+  # [engine "snowflake"]
+    # target = db:snowflake:
+    # registry = sqitch
+    # client = snowsql
 
-Good, it picked up on the fact that we're creating changes for the Exasol
-engine, thanks to the C<--engine exasol> option, and saved it to the
-file. Furthermore, it wrote a commented-out C<[engine "exasol"]> section with
-all the available Exasol engine-specific settings commented out and ready to
+Good, it picked up on the fact that we're creating changes for the Snowflake
+engine, thanks to the C<--engine snowflake> option, and saved it to the
+file. Furthermore, it wrote a commented-out C<[engine "snowflake"]> section with
+all the available Snowflake engine-specific settings commented out and ready to
 be edited as appropriate.
 
 By default, Sqitch will read F<sqitch.conf> in the current directory for
 settings. But it will also read F<~/.sqitch/sqitch.conf> for user-specific
-settings. Since Exasol's C<exaplus> client is not in the path on my system,
+settings. Since Snowflake's C<snowsql> client is not in the path on my system,
 let's go ahead an tell it where to find the client on our computer:
 
-  > sqitch config --user engine.exasol.client /opt/EXAplus/exaplus
+  > sqitch config --user engine.snowflake.client /Applications/SnowSQL.app/Contents/MacOS/snowsql
 
 And let's also tell it who we are, since this data will be used in all
 of our projects:
@@ -149,13 +117,13 @@ of our projects:
 Have a look at F<~/.sqitch/sqitch.conf> and you'll see this:
 
   > cat ~/.sqitch/sqitch.conf
-  [engine "exasol"]
-  	client = /opt/EXAplus/exaplus
+  [engine "snowflake"]
+    client = /Applications/SnowSQL.app/Contents/MacOS/snowsql
   [user]
-  	name = Marge N. O’Vera
-  	email = marge@example.com
+    name = Marge N. O’Vera
+    email = marge@example.com
 
-Which means that Sqitch should be able to find C<exaplus> for any project, and
+Which means that Sqitch should be able to find C<snowsql> for any project, and
 that it will always properly identify us when planning and committing changes.
 
 Back to the repository. Have a look at the plan file, F<sqitch.plan>:
@@ -163,8 +131,7 @@ Back to the repository. Have a look at the plan file, F<sqitch.plan>:
   > cat sqitch.plan
   %syntax-version=1.0.0
   %project=flipr
-  %uri=https://github.com/theory/sqitch-exasol-intro/
-
+  %uri=https://github.com/sqitchers/sqitch-snowflake-intro/
 
 Note that it has picked up on the name and URI of the app we're building.
 Sqitch uses this data to manage cross-project dependencies. The
@@ -175,8 +142,8 @@ Let's commit these changes and start creating the database changes.
 
   > git add .
   > git commit -am 'Initialize Sqitch configuration.'
-  [master a42564d] Initialize Sqitch configuration.
-   2 files changed, 16 insertions(+), 0 deletions(-)
+  [master b731cc3] Initialize Sqitch configuration.
+   2 files changed, 15 insertions(+)
    create mode 100644 sqitch.conf
    create mode 100644 sqitch.plan
 
@@ -204,30 +171,53 @@ script, so we add this to F<revert/appschema.sql>:
   DROP SCHEMA flipr;
 
 Now we can try deploying this change. We tell Sqitch where to send the change
-via a L<database URI|https://github.com/libwww-perl/uri-db/>, assuming the default
-C<sys> user and an ODBC driver named C<Exasol> (see
-L</Connection Configuration> for details):
+via a L<database URI|https://github.com/libwww-perl/uri-db/>. Let's say we're
+using the account name C<example>, username C<movera>, database C<flipr>, and
+warehouse C<sqitch>, and an ODBC driver named C<Snowflake> (see
+L</Connection Configuration> for details). The URI would be structured like
+this:
 
-  > sqitch deploy 'db:exasol://sys:exasol@localhost:8563/?Driver=Exasol'
-  Adding registry tables to db:exasol://sys:@localhost:8563/?Driver=Exasol
-  Deploying changes to db:exasol://sys:@localhost:8563/?Driver=Exasol
+  db:snowflake://movera@example/flipr?Driver=Snowflake;warehouse=sqitch
+
+Note that Sqitch requires a C<warehouse> parameter in order to record its work
+in the registry. The default warehouse is named C<sqitch>, so you can omit it
+from the URI if that's the warehouse you want Sqitch to use (we'll omit it for
+the remainder of this tutorial). Otherwise, specify it in the URI. Snowflake
+also requires a password, which could also be included in the URI, but it's
+best to put it in the C<connections> section of the
+L<F<.snowsql/config> file|https://docs.snowflake.net/manuals/user-guide/snowsql-start.html#configuring-default-connection-settings>.
+See L<sqitch-passwords> for details.
+
+We just tell Sqitch to use that URI to deploy the change:
+
+  > sqitch deploy 'db:snowflake://movera@example/flipr?Driver=Snowflake'
+  Adding registry tables to db:snowflake://movera@example/flipr?Driver=Snowflake
+  Deploying changes to db:snowflake://movera@example/flipr?Driver=Snowflake
     + appschema .. ok
 
 First Sqitch created registry tables used to track database changes. The
-structure and name of the registry varies between databases (Exasol uses a
+structure and name of the registry varies between databases (Snowflake uses a
 schema to namespace its registry, while SQLite and MySQL use separate
 databases). Next, Sqitch deploys changes. We only have one so far; the C<+>
 reinforces the idea that the change is being C<added> to the database.
 
+Note that this process can take quite a bit of time. Sqitch connects to the
+database via ODBC and retains the connection throughout, but the creation of
+the registry and all change scripts run through individual runs of C<snowsql>.
+These connections can be quite slow. So if Sqitch seems hung, just wait; it's
+most likely waiting on Snowflake.
+
 With this change deployed, if you connect to the database, you'll be able to
 see the schema:
 
-  > exaplus -q -u sys -p exasol -c localhost:8563 -sql "select schema_name from exa_schemas;"
-
-  SCHEMA_NAME
-  --------------------------------------------------------------------------------------------------------------------------------
-  SQITCH
-  FLIPR
+  > snowsql --accountname example --username movera --dbname flipr -o friendly=false \
+    --query "SHOW TERSE SCHEMAS LIKE 'flipr'"
+  +-------------------------------+-------+------+---------------+-------------+
+  | created_on                    | name  | kind | database_name | schema_name |
+  |-------------------------------+-------+------+---------------+-------------|
+  | 2018-07-27 14:47:22.614 +0000 | FLIPR | NULL | DWHEELER      | NULL        |
+  +-------------------------------+-------+------+---------------+-------------+
+  1 Row(s) produced. Time Elapsed: 0.283s
 
 =head2 Trust, But Verify
 
@@ -237,25 +227,35 @@ every deploy?
 Here's where the C<verify> script comes in. Its job is to test that the deploy
 did was it was supposed to. It should do so without regard to any data that
 might be in the database, and should throw an error if the deploy was not
-successful. In Exasol, the simplest way to do so for schema is probably to
+successful. In Snowflake, the simplest way to do so for schema is probably to
 simply create an object in the schema. Put this SQL into
 F<verify/appschema.sql>:
 
-  CREATE TABLE flipr.verify__ (id int);
-  DROP   TABLE flipr.verify__;
+  CREATE TEMPORARY TABLE flipr.verify__ (id INT);
 
 In truth, you can use I<any> query that generates an SQL error if the schema
 doesn't exist. Another handy way to do that is to divide by zero if an object
 doesn't exist. For example, to throw an error when the C<flipr> schema does
 not exist, you could do something like this:
 
-  SELECT 1/COUNT(*) FROM exa_schemas WHERE schema_name = 'FLIPR';
+  USE WAREHOUSE &warehouse;
+  SELECT 1/COUNT(*) FROM information_schema.schemata WHERE schema_name = 'FLIPR';
 
-Either way, run the C<verify> script with the L<C<verify>|sqitch-verify>
-command:
+Note the C<USE WAREHOUSE> statement which is provided in the default Snowflake
+change script templates. For scripts that execute queries requiring compute
+resources (typically DML and C<SELECT> statements), we'll need to use a
+L<virtual warehouse|https://docs.snowflake.net/manuals/user-guide/warehouses.html>.
+This statement lets the script use the warehouse that Sqitch itself uses for
+its registry, which should be a reasonable default, since Sqitch is 
+already using this warehouse. You can always change it to a different
+warehouse if need be. If not, Sqitch always sets this variable (as well as
+C<&registry> containing the name of the Sqitch registry schema) for all
+deploy, revert, and verify script executions.
 
-  > sqitch verify 'db:exasol://sys:exasol@localhost:8563/?Driver=Exasol'
-  Verifying db:exasol://sys:@localhost:8563/?Driver=Exasol
+Now run the C<verify> script with the L<C<verify>|sqitch-verify> command:
+
+  > sqitch verify 'db:snowflake://movera@example/flipr?Driver=Snowflake'
+  Verifying db:snowflake://movera@example/flipr?Driver=Snowflake
     * appschema .. ok
   Verify successful
 
@@ -263,14 +263,15 @@ Looks good! If you want to make sure that the verify script correctly dies if
 the schema doesn't exist, temporarily change the schema name in the script to
 something that doesn't exist, something like:
 
-  CREATE TABLE nonesuch.verify__ (id int);
+  CREATE TEMPORARY TABLE nonesuch.verify__ (id INT);
 
 Then L<C<verify>|sqitch-verify> again:
 
-  > sqitch verify 'db:exasol://sys:exasol@localhost:8563/?Driver=Exasol'
-  Verifying db:exasol://sys:@localhost:8563/?Driver=Exasol
-  * appschema .. Error: [42000] schema NONESUCH not found [line 1, column 40] (Session: 1582884049218108749)
-
+  > sqitch verify 'db:snowflake://movera@example/flipr?Driver=Snowflake'
+  Verifying db:snowflake://movera@example/flipr?Driver=Snowflake
+  * appschema ..
+  002003 (02000): SQL compilation error:
+  Schema 'FLIPR.NONESUCH' does not exist.
   # Verify script "verify/appschema.sql" failed.
   not ok
 
@@ -283,14 +284,15 @@ Then L<C<verify>|sqitch-verify> again:
 It's even nice enough to tell us what the problem is. Or, for the
 divide-by-zero example, change the schema name:
 
-  SELECT 1/COUNT(*) FROM exa_schemas WHERE schema_name = 'nonesuch';
+  USE WAREHOUSE &warehouse;
+  SELECT 1/COUNT(*) FROM information_schema.schemata WHERE schema_name = 'NONESUCH';
 
 Then the verify will look something like:
 
-  > sqitch verify 'db:exasol://sys:exasol@localhost:8563/?Driver=Exasol'
-  Verifying db:exasol://sys:@localhost:8563/?Driver=Exasol
-  * appschema .. Error: [22012] data exception - division by zero (Session: 1582884446489810101)
-
+  > sqitch verify 'db:snowflake://movera@example/flipr?Driver=Snowflake'
+  Verifying db:snowflake://movera@example/flipr?Driver=Snowflake
+  * appschema ..
+  100051 (22012): Division by zero
   # Verify script "verify/appschema.sql" failed.
   not ok
 
@@ -311,20 +313,20 @@ For purely informational purposes, we can always see how a deployment was
 recorded via the L<C<status>|sqitch-status> command, which reads the registry
 tables from the database:
 
-  > sqitch status 'db:exasol://sys:exasol@localhost:8563/?Driver=Exasol'
-  # On database db:exasol://sys:@localhost:8563/?Driver=Exasol
+  > sqitch status 'db:snowflake://movera@example/flipr?Driver=Snowflake'
+  # On database db:snowflake://movera@example/flipr?Driver=Snowflake
   # Project:  flipr
-  # Change:   f9759f0ed77964b6a3b6c7aa3b6058b4bb7db764
+  # Change:   5a2ac4ae6801bfe392483ee5912b4e3592cdd57a
   # Name:     appschema
-  # Deployed: 2014-09-04 15:26:28 -0700
+  # Deployed: 2018-07-27 10:47:23 -0400
   # By:       Marge N. O’Vera <marge@example.com>
   #
   Nothing to deploy (up-to-date)
 
 Let's make sure that we can revert the change:
 
-  > sqitch revert 'db:exasol://sys:exasol@localhost:8563/?Driver=Exasol'
-  Revert all changes from db:exasol://sys:@localhost:8563/?Driver=Exasol? [Yes]
+  > sqitch revert 'db:snowflake://movera@example/flipr?Driver=Snowflake'
+  Revert all changes from db:snowflake://movera@example/flipr?Driver=Snowflake? [Yes]
     - appschema .. ok
 
 The L<C<revert>|sqitch-revert> command first prompts to make sure that we
@@ -333,41 +335,43 @@ pass the C<-y> option to disable the prompt. Also, notice the C<-> before the
 change name in the output, which reinforces that the change is being
 I<removed> from the database. And now the schema should be gone:
 
-> exaplus -q -u sys -p exasol -c localhost:8563 -sql "select schema_name from exa_schemas;"
-
-  SCHEMA_NAME
-  --------------------------------------------------------------------------------------------------------------------------------
-  SQITCH
+  > snowsql --accountname example --username movera --dbname flipr -o friendly=false \
+    --query "SHOW TERSE SCHEMAS LIKE 'flipr'"
+  +------------+------+------+---------------+-------------+
+  | created_on | name | kind | database_name | schema_name |
+  |------------+------+------+---------------+-------------|
+  +------------+------+------+---------------+-------------+
+  0 Row(s) produced. Time Elapsed: 0.204s
 
 And the status message should reflect as much:
 
-  > sqitch status 'db:exasol://sys:exasol@localhost:8563/?Driver=Exasol'
-  # On database db:exasol://sys:@localhost:8563/?Driver=Exasol
+  > sqitch status 'db:snowflake://movera@example/flipr?Driver=Snowflake'
+  # On database db:snowflake://movera@example/flipr?Driver=Snowflake
   No changes deployed
 
 Of course, since nothing is deployed, the L<C<verify>|sqitch-verify> command
 has nothing to verify:
 
-  > sqitch verify 'db:exasol://sys:exasol@localhost:8563/?Driver=Exasol'
-  Verifying db:exasol://sys:@localhost:8563/?Driver=Exasol
+  > sqitch verify 'db:snowflake://movera@example/flipr?Driver=Snowflake'
+  Verifying db:snowflake://movera@example/flipr?Driver=Snowflake
   No changes deployed
 
 However, we still have a record that the change happened, visible via the
 L<C<log>|sqitch-log> command:
 
-  > sqitch log 'db:exasol://sys:exasol@localhost:8563/?Driver=Exasol'
-  On database db:exasol://sys:@localhost:8563/?Driver=Exasol
-  Revert f9759f0ed77964b6a3b6c7aa3b6058b4bb7db764
+  > sqitch log 'db:snowflake://movera@example/flipr?Driver=Snowflake'
+  On database db:snowflake://movera@example/flipr?Driver=Snowflake
+  Revert 5a2ac4ae6801bfe392483ee5912b4e3592cdd57a
   Name:      appschema
   Committer: Marge N. O’Vera <marge@example.com>
-  Date:      2014-09-04 16:33:02 -0700
+  Date:      2018-07-27 10:48:48 -0400
 
       Add schema for all flipr objects.
 
-  Deploy f9759f0ed77964b6a3b6c7aa3b6058b4bb7db764
+  Deploy 5a2ac4ae6801bfe392483ee5912b4e3592cdd57a
   Name:      appschema
   Committer: Marge N. O’Vera <marge@example.com>
-  Date:      2014-09-04 15:26:28 -0700
+  Date:      2018-07-27 10:47:24 -0400
 
       Add schema for all flipr objects.
 
@@ -378,37 +382,38 @@ Cool. Now let's commit it.
 
   > git add .
   > git commit -m 'Add flipr schema.'
-  [master 9bee4bd] Add flipr schema.
-   5 files changed, 197 insertions(+), 0 deletions(-)
-   create mode 100644 deploy/appschema.sql
-   create mode 100644 revert/appschema.sql
-   create mode 100644 sqitch.sql
-   create mode 100644 verify/appschema.sql
+  [master 7fd5ace] Add flipr schema.
+  4 files changed, 10 insertions(+)
+  create mode 100644 deploy/appschema.sql
+  create mode 100644 revert/appschema.sql
+  create mode 100644 verify/appschema.sql
 
 And then deploy again. This time, let's use the C<--verify> option, so that
 the C<verify> script is applied when the change is deployed:
 
-  > sqitch deploy --verify 'db:exasol://sys:exasol@localhost:8563/?Driver=Exasol'
-  Deploying changes to db:exasol://sys:@localhost:8563/?Driver=Exasol
+  > sqitch deploy --verify 'db:snowflake://movera@example/flipr?Driver=Snowflake'
+  Deploying changes to db:snowflake://movera@example/flipr?Driver=Snowflake
     + appschema .. ok
 
 And now the schema should be back:
 
-  > exaplus -q -u sys -p exasol -c localhost:8563 -sql "select schema_name from exa_schemas;"
-
-  SCHEMA_NAME
-  --------------------------------------------------------------------------------------------------------------------------------
-  SQITCH
-  FLIPR
+  > snowsql --accountname example --username movera --dbname flipr -o friendly=false \
+    --query "SHOW TERSE SCHEMAS LIKE 'flipr'"
+  +-------------------------------+-------+------+---------------+-------------+
+  | created_on                    | name  | kind | database_name | schema_name |
+  |-------------------------------+-------+------+---------------+-------------|
+  | 2018-07-27 14:52:50.116 +0000 | FLIPR | NULL | DWHEELER      | NULL        |
+  +-------------------------------+-------+------+---------------+-------------+
+  1 Row(s) produced. Time Elapsed: 0.283s
 
 When we look at the status, the deployment will be there:
 
-  > sqitch status 'db:exasol://sys:exasol@localhost:8563/?Driver=Exasol'
-  # On database db:exasol://sys:@localhost:8563/?Driver=Exasol
+  > sqitch status 'db:snowflake://movera@example/flipr?Driver=Snowflake'
+  # On database db:snowflake://movera@example/flipr?Driver=Snowflake
   # Project:  flipr
-  # Change:   fef4c2911ae68aee8f6ea164293a32923dc13b67
+  # Change:   5a2ac4ae6801bfe392483ee5912b4e3592cdd57a
   # Name:     appschema
-  # Deployed: 2014-09-04 16:37:38 -0700
+  # Deployed: 2018-07-27 10:52:54 -0400
   # By:       Marge N. O’Vera <marge@example.com>
   #
   Nothing to deploy (up-to-date)
@@ -416,12 +421,12 @@ When we look at the status, the deployment will be there:
 =head1 On Target
 
 I'm getting a little tired of always having to type
-C<db:exasol://sys:exasol@localhost:8563/?Driver=Exasol>, aren't
-you? This L<database connection URI|https://github.com/libwww-perl/uri-db/> tells
+C<db:snowflake://movera@example/flipr?Driver=Snowflake>, aren't you?
+This L<database connection URI|https://github.com/libwww-perl/uri-db/> tells
 Sqitch how to connect to the deployment target, but we don't have to keep
 using the URI. We can name the target:
 
-  > sqitch target add flipr_test 'db:exasol://sys:exasol@localhost:8563/?Driver=Exasol'
+  > sqitch target add flipr_test 'db:snowflake://movera@example/flipr?Driver=Snowflake'
 
 The L<C<target>|sqitch-target> command, inspired by
 L<C<git-remote>|http://git-scm.com/docs/git-remote>, allows management of one
@@ -430,7 +435,7 @@ C<flipr_test>, which means we can use the string C<flipr_test> for the target,
 rather than the URI. But since we're doing so much testing, we can also tell
 Sqitch to deploy to the C<flipr_test> target by default:
 
-  > sqitch engine add exasol flipr_test
+  > sqitch engine add snowflake flipr_test
 
 Now we can omit the target argument altogether, unless we need to deploy to
 another database. Which we will, eventually, but at least our examples will be
@@ -439,9 +444,9 @@ simpler from here on in, e.g.:
   > sqitch status
   # On database flipr_test
   # Project:  flipr
-  # Change:   f9759f0ed77964b6a3b6c7aa3b6058b4bb7db764
+  # Change:   5a2ac4ae6801bfe392483ee5912b4e3592cdd57a
   # Name:     appschema
-  # Deployed: 2014-09-04 16:37:38 -0700
+  # Deployed: 2018-07-27 10:52:54 -0400
   # By:       Marge N. O’Vera <marge@example.com>
   #
   Nothing to deploy (up-to-date)
@@ -456,7 +461,7 @@ We'll see the L<C<rebase>|sqitch-rebase> command a bit later. In the meantime,
 let's commit the new configuration and and make some more changes!
 
   > git commit -am 'Set default deployment target and always verify.'
-  [master 469779a] Set default deployment target and always verify.
+  [master 3834a8d] Set default deployment target and always verify.
    1 files changed, 8 insertions(+), 0 deletions(-)
 
 =head1 Deploy with Dependency
@@ -478,34 +483,42 @@ idea to be explicit about dependencies.
 Now edit the scripts. When you're done, F<deploy/users.sql> should look like
 this:
 
-  -- Deploy flipr:users to exasol
+  -- Deploy flipr:users to snowflake
   -- requires: appschema
 
+  USE WAREHOUSE &warehouse;
   CREATE TABLE flipr.users (
-      nickname  VARCHAR(64)  PRIMARY KEY,
-      password  VARCHAR(256) NOT NULL,
-      fullname  VARCHAR(256) NOT NULL,
-      twitter   VARCHAR(256) NOT NULL,
-      ts        TIMESTAMP WITH LOCAL TIME ZONE DEFAULT NOW() NOT NULL
+      nickname  TEXT         PRIMARY KEY,
+      password  TEXT         NOT NULL,
+      fullname  TEXT         NOT NULL,
+      twitter   TEXT         NOT NULL,
+      timestamp TIMESTAMP_TZ NOT NULL DEFAULT CURRENT_TIMESTAMP
   );
-
-  COMMIT;
 
 A few things to notice here. On the second line, the dependence on the
 C<appschema> change has been listed. This doesn't do anything, but the default
-C<deploy> Exasol template lists it here for your reference while editing
+C<deploy> Snowflake template lists it here for your reference while editing
 the file. Useful, right?
 
 The table itself will be created in the C<flipr> schema. This is why we need
 to require the C<appschema> change.
 
+On the fourth line, the C<USE WAREHOUSE> statement was inserted by the default
+Snowflake template. We don't actually need it to create a table, but there's
+no harm in leaving it here.
+
 Now for the verify script. The simplest way to check that the table was
 created and has the expected columns without touching the data? Just select
-from the table with a false C<WHERE> clause. Add this to F<verify/users.sql>:
+from the table with a false C<WHERE> clause. Here the C<USE WAREHOUSE>
+statement is required so that the C<SELECT> statement can actually execute.
+Probably easiest just to leave the default, which uses the warehouse that
+Sqitch uses to maintain its registry. Edit F<verify/users.sql> to look like
+this:
 
-  SELECT nickname, password, fullname, twitter, ts
+  USE WAREHOUSE &warehouse;
+  SELECT nickname, password, fullname, twitter, timestamp
     FROM flipr.users
-   WHERE FALSE;
+  WHERE FALSE;
 
 Now for the revert script: all we have to do is drop the table. Add this to
 F<revert/users.sql>:
@@ -521,15 +534,14 @@ Couldn't be much simpler, right? Let's deploy this bad boy:
 We know, since verification is enabled, that the table must have been created.
 But for the purposes of visibility, let's have a quick look:
 
-  > exaplus -q -u sys -p exasol -c localhost:8563 -sql "describe flipr.users;"
-
-  COLUMN_NAME                                                                                                                      SQL_TYPE                                 NULLABLE DISTRIBUTION_KEY
-  -------------------------------------------------------------------------------------------------------------------------------- ---------------------------------------- -------- ----------------
-  NICKNAME                                                                                                                         VARCHAR(64) UTF8                         FALSE    FALSE
-  PASSWORD                                                                                                                         VARCHAR(256) UTF8                        FALSE    FALSE
-  FULLNAME                                                                                                                         VARCHAR(256) UTF8                        FALSE    FALSE
-  TWITTER                                                                                                                          VARCHAR(256) UTF8                        FALSE    FALSE
-  TS                                                                                                                               TIMESTAMP WITH LOCAL TIME ZONE           FALSE    FALSE
+  > snowsql --accountname example --username movera --dbname flipr -o friendly=false \
+    --query "SHOW TERSE TABLES LIKE 'users' IN flipr"
+  +-------------------------------+-------+-------+---------------+-------------+
+  | created_on                    | name  | kind  | database_name | schema_name |
+  |-------------------------------+-------+-------+---------------+-------------|
+  | 2018-07-27 15:13:21.767 +0000 | USERS | TABLE | DWHEELER      | FLIPR       |
+  +-------------------------------+-------+-------+---------------+-------------+
+  1 Row(s) produced. Time Elapsed: 0.318s
 
 We can also verify all currently deployed changes with the
 L<C<verify>|sqitch-verify> command:
@@ -545,9 +557,9 @@ Now have a look at the status:
   > sqitch status
   # On database flipr_test
   # Project:  flipr
-  # Change:   794a6c78816543909d592e2e9f5c0fade5b47406
+  # Change:   d251b2c9b4bc46a4b4db6b7a8a637951484e6f6b
   # Name:     users
-  # Deployed: 2017-11-02 11:02:40 +0100
+  # Deployed: 2018-07-27 11:09:12 -0400
   # By:       Marge N. O’Vera <marge@example.com>
   #
   Nothing to deploy (up-to-date)
@@ -571,18 +583,22 @@ command).
 Back to the database. The C<users> table should be gone but the C<flipr> schema
 should still be around:
 
-  > exaplus -q -u sys -p exasol -c localhost:8563 -sql "describe flipr.users;"
-  Error: [42000] table or view FLIPR.USERS not found [line 1, column 10] (Session: 1582958508294847446)
+  > snowsql --accountname example --username movera --dbname flipr -o friendly=false \
+    --query "SHOW TERSE TABLES LIKE 'users' IN flipr"
+  +------------+------+------+---------------+-------------+
+  | created_on | name | kind | database_name | schema_name |
+  |------------+------+------+---------------+-------------|
+  +------------+------+------+---------------+-------------+
+  0 Row(s) produced. Time Elapsed: 0.367s
 
 The L<C<status>|sqitch-status> command politely informs us that we have
 undeployed changes:
 
-  > sqitch status
   # On database flipr_test
   # Project:  flipr
-  # Change:   f9759f0ed77964b6a3b6c7aa3b6058b4bb7db764
+  # Change:   5a2ac4ae6801bfe392483ee5912b4e3592cdd57a
   # Name:     appschema
-  # Deployed: 2014-09-04 16:37:38 -0700
+  # Deployed: 2018-07-27 10:52:54 -0400
   # By:       Marge N. O’Vera <marge@example.com>
   #
   Undeployed change:
@@ -605,8 +621,8 @@ Okay, let's commit and deploy again:
 
   > git add .
   > git commit -am 'Add users table.'
-  [master c7c24c5] Add users table.
-   4 files changed, 18 insertions(+), 0 deletions(-)
+  [master 8c16c09] Add users table.
+   4 files changed, 22 insertions(+)
    create mode 100644 deploy/users.sql
    create mode 100644 revert/users.sql
    create mode 100644 verify/users.sql
@@ -617,11 +633,10 @@ Okay, let's commit and deploy again:
 Looks good. Check the status:
 
   > sqitch status
-  # On database flipr_test
   # Project:  flipr
-  # Change:   d647ac8c130a7e0b12c9049789e46afb4a4f6e53
+  # Change:   d251b2c9b4bc46a4b4db6b7a8a637951484e6f6b
   # Name:     users
-  # Deployed: 2014-09-04 17:42:53 -0700
+  # Deployed: 2018-07-27 11:19:30 -0400
   # By:       Marge N. O’Vera <marge@example.com>
   #
   Nothing to deploy (up-to-date)
@@ -642,7 +657,7 @@ changes for them both:
   Added "flips [appschema users]" to sqitch.plan
 
   > sqitch add userflips -r appschema -r users -r flips \
-	-n 'Creates the userflips view.'
+    -n 'Creates the userflips view.'
   Created deploy/userflips.sql
   Created revert/userflips.sql
   Created verify/userflips.sql
@@ -653,12 +668,12 @@ Now might be a good time to have a look at the deployment plan:
   > cat sqitch.plan
   %syntax-version=1.0.0
   %project=flipr
-  %uri=https://github.com/theory/sqitch-exasol-intro/
+  %uri=https://github.com/sqitchers/sqitch-snowflake-intro/
 
-  appschema 2014-09-04T18:40:34Z Marge N. O’Vera <marge@example.com> # Add schema for all flipr objects.
-  users [appschema] 2014-09-04T23:40:15Z Marge N. O’Vera <marge@example.com> # Creates table to track our users.
-  flips [appschema users] 2014-09-05T00:16:58Z Marge N. O’Vera <marge@example.com> # Adds table for storing flips.
-  userflips [appschema users flips] 2014-09-05T00:18:43Z Marge N. O’Vera <marge@example.com> # Creates the userflips view.
+  appschema 2018-07-27T14:27:24Z Marge N. O’Vera <marge@example.com> # Add schema for all flipr objects.
+  users [appschema] 2018-07-27T15:03:56Z Marge N. O’Vera <marge@example.com> # Creates table to track our users.
+  flips [appschema users] 2018-07-27T15:23:41Z Marge N. O’Vera <marge@example.com> # Adds table for storing flips.
+  userflips [appschema users flips] 2018-07-27T15:23:50Z Marge N. O’Vera <marge@example.com> # Creates the userflips view.
 
 Each change appears on a single line with the name of the change, a bracketed
 list of dependencies, a timestamp, the name and email address of the user who
@@ -667,69 +682,63 @@ planned the change, and a note.
 Let's write the code for the new changes. Here's what F<deploy/flips.sql>
 should look like:
 
-  -- Deploy flipr:flips to exasol
+  -- Deploy flipr:flips to snowflake
   -- requires: appschema
   -- requires: users
 
+  USE WAREHOUSE &warehouse;
   CREATE TABLE flipr.flips (
-      id        INTEGER        IDENTITY PRIMARY KEY,
-      nickname  VARCHAR(64)    NOT NULL REFERENCES flipr.users(nickname),
-      body      VARCHAR(180)   DEFAULT '' NOT NULL,
-      ts        TIMESTAMP WITH LOCAL TIME ZONE DEFAULT NOW() NOT NULL
+      id        INTEGER        PRIMARY KEY,
+      nickname  TEXT           NOT NULL REFERENCES flipr.users(nickname),
+      body      VARCHAR(180)   NOT NULL DEFAULT '',
+      timestamp TIMESTAMP_TZ NOT NULL DEFAULT CURRENT_TIMESTAMP
   );
-
-  COMMIT;
 
 Here's what F<verify/flips.sql> might look like:
 
-  -- Verify flipr:flips on exasol
+  -- Verify flipr:flips on snowflake
 
-  SELECT id, nickname, body, ts
+  USE WAREHOUSE &warehouse;
+  SELECT id, nickname, body, timestamp
     FROM flipr.flips
    WHERE FALSE;
 
-  ROLLBACK;
-
 And F<revert/flips.sql> should look something like this:
 
-  -- Revert flipr:flips from exasol
+  -- Revert flipr:flips from snowflake
 
+  USE WAREHOUSE &warehouse;
   DROP TABLE flipr.flips;
-
-  COMMIT;
 
 Now for C<userflips>; F<deploy/userflips.sql> might look like this:
 
-  -- Deploy flipr:userflips to exasol
+  -- Deploy flipr:userflips to snowflake
   -- requires: appschema
   -- requires: users
   -- requires: flips
 
+  USE WAREHOUSE &warehouse;
   CREATE OR REPLACE VIEW flipr.userflips AS
-  SELECT f.id, u.nickname, u.fullname, f.body, f.ts
+  SELECT f.id, u.nickname, u.fullname, f.body, f.timestamp
     FROM flipr.users u
     JOIN flipr.flips f ON u.nickname = f.nickname;
 
-  COMMIT;
-
 Use a C<SELECT> statement in F<verify/userflips.sql> again:
 
-  -- Verify flipr:userflips on exasol
+  -- Verify flipr:userflips on snowflake
 
-  SELECT id, nickname, fullname, body, ts
+  USE WAREHOUSE &warehouse;
+  SELECT id, nickname, fullname, body, timestamp
     FROM flipr.userflips
    WHERE FALSE;
-
-  ROLLBACK;
 
 And of course, its C<revert> script, F<revert/userflips.sql>, should look
 something like:
 
-  -- Revert flipr:userflips from exasol
+  -- Revert flipr:userflips from snowflake
 
+  USE WAREHOUSE &warehouse;
   DROP VIEW flipr.userflips;
-
-  COMMIT;
 
 Try em out!
 
@@ -741,31 +750,32 @@ Try em out!
 Do we have the new table and view? Of course we do, they were verified. Still,
 have a look:
 
-  > exaplus -q -u sys -p exasol -c localhost:8563 -sql "select table_name from exa_all_tables where table_schema = 'FLIPR';"
+  > snowsql --accountname example --username movera --dbname flipr -o friendly=false \
+    --query "SHOW TERSE TABLES LIKE 'flips' IN flipr"
+  +-------------------------------+-------+-------+---------------+-------------+
+  | created_on                    | name  | kind  | database_name | schema_name |
+  |-------------------------------+-------+-------+---------------+-------------|
+  | 2018-07-27 15:31:07.137 +0000 | FLIPS | TABLE | DWHEELER      | FLIPR       |
+  +-------------------------------+-------+-------+---------------+-------------+
+  1 Row(s) produced. Time Elapsed: 0.225s
 
-  TABLE_NAME
-  --------------------------------------------------------------------------------------------------------------------------------
-  USERS
-  FLIPS
-
-  > exaplus -q -u sys -p exasol -c localhost:8563 -sql "describe flipr.userflips;"
-
-  COLUMN_NAME                                                                                                                      SQL_TYPE                                 NULLABLE DISTRIBUTION_KEY
-  -------------------------------------------------------------------------------------------------------------------------------- ---------------------------------------- -------- ----------------
-  ID                                                                                                                               DECIMAL(18,0)
-  NICKNAME                                                                                                                         VARCHAR(64) UTF8
-  FULLNAME                                                                                                                         VARCHAR(256) UTF8
-  BODY                                                                                                                             VARCHAR(180) UTF8
-  TS                                                                                                                               TIMESTAMP WITH LOCAL TIME ZONE
+  > snowsql --accountname example --username movera --dbname flipr -o friendly=false \
+    --query "SHOW TERSE VIEWS LIKE 'userflips' IN flipr"
+  +-------------------------------+-----------+------+---------------+-------------+
+  | created_on                    | name      | kind | database_name | schema_name |
+  |-------------------------------+-----------+------+---------------+-------------|
+  | 2018-07-27 15:29:25.733 +0000 | USERFLIPS | VIEW | DWHEELER      | FLIPR       |
+  +-------------------------------+-----------+------+---------------+-------------+
+  1 Row(s) produced. Time Elapsed: 0.299s
 
 And what's the status?
 
   > sqitch status
   # On database flipr_test
   # Project:  flipr
-  # Change:   d1f998618fb863d93049a724fd0d2b49a29add86
+  # Change:   73cd50c99de2a8b3eab206c73514afbeb952023c
   # Name:     userflips
-  # Deployed: 2014-09-04 17:51:21 -0700
+  # Deployed: 2018-07-27 11:31:24 -0400
   # By:       Marge N. O’Vera <marge@example.com>
   #
   Nothing to deploy (up-to-date)
@@ -776,18 +786,22 @@ Looks good. Let's make sure revert works:
   Reverting changes to users from flipr_test
     - userflips .. ok
     - flips ...... ok
-  > exaplus -q -u sys -p exasol -c localhost:8563 -sql "describe flipr.flips;"
-  Error: [42000] table or view FLIPR.FLIPS not found [line 1, column 10] (Session: 1582955242708359302)
-  > exaplus -q -u sys -p exasol -c localhost:8563 -sql "describe flipr.userflips;"
-  Error: [42000] table or view FLIPR.USERFLIPS not found [line 1, column 10] (Session: 1582955248116468907)
+
+  > snowsql --accountname example --username movera --dbname flipr -o friendly=false \
+    --query "SHOW TERSE TABLES LIKE 'flips' IN flipr"
+  +------------+------+------+---------------+-------------+
+  | created_on | name | kind | database_name | schema_name |
+  |------------+------+------+---------------+-------------|
+  +------------+------+------+---------------+-------------+
+  0 Row(s) produced. Time Elapsed: 0.306s
 
 Note the use of C<@HEAD^^> to specify that the revert be to two changes prior
 the last deployed change. Looks good. Let's do the commit and re-deploy dance:
 
   > git add .
   > git commit -m 'Add flips table and userflips view.'
-  [master c40f23f] Add flips table and userflips view.
-   7 files changed, 41 insertions(+), 0 deletions(-)
+  [master b36f48b] Add flips table and userflips view.
+   7 files changed, 43 insertions(+)
    create mode 100644 deploy/flips.sql
    create mode 100644 deploy/userflips.sql
    create mode 100644 revert/flips.sql
@@ -801,11 +815,10 @@ the last deployed change. Looks good. Let's do the commit and re-deploy dance:
     + userflips .. ok
 
   > sqitch status
-  # On database flipr_test
   # Project:  flipr
-  # Change:   d1f998618fb863d93049a724fd0d2b49a29add86
+  # Change:   73cd50c99de2a8b3eab206c73514afbeb952023c
   # Name:     userflips
-  # Deployed: 2014-09-04 17:59:34 -0700
+  # Deployed: 2018-07-27 11:38:02 -0400
   # By:       Marge N. O’Vera <marge@example.com>
   #
   Nothing to deploy (up-to-date)
@@ -828,8 +841,8 @@ to have it go out with deployments tied to the release, let's tag it:
   > sqitch tag v1.0.0-dev1 -n 'Tag v1.0.0-dev1.'
   Tagged "userflips" with @v1.0.0-dev1
   > git commit -am 'Tag the database with v1.0.0-dev1.'
-  [master b07ce3d] Tag the database with v1.0.0-dev1.
-   1 files changed, 1 insertions(+), 0 deletions(-)
+  [master 84ed9db] Tag the database with v1.0.0-dev1.
+   1 files changed, 1 insertion(+)
   > git tag v1.0.0-dev1 -am 'Tag v1.0.0-dev1'
 
 We can try deploying to make sure the tag gets picked up like so:
@@ -839,10 +852,10 @@ We can try deploying to make sure the tag gets picked up like so:
   > sqitch status
   # On database flipr_test
   # Project:  flipr
-  # Change:   d1f998618fb863d93049a724fd0d2b49a29add86
+  # Change:   73cd50c99de2a8b3eab206c73514afbeb952023c
   # Name:     userflips
   # Tag:      @v1.0.0-dev1
-  # Deployed: 2014-09-04 17:59:34 -0700
+  # Deployed: 2018-07-27 11:38:02 -0400
   # By:       Marge N. O’Vera <marge@example.com>
   #
   Nothing to deploy (up-to-date)
@@ -863,17 +876,12 @@ change. Now let's bundle everything up for release:
 
 Now we can package the F<bundle> directory and distribute it. When it gets
 installed somewhere, users can use Sqitch to deploy to the database. Let's try
-deploying it to another database. First, start up a new Docker instance on a
-different port:
-
-  > docker run --detach --privileged --stop-timeout 120 -p 127.0.0.1:9999:8888  exasol/docker-db:latest
-
-Now you should be able to deploy to the new database:
+deploying it to another database, C<flipr_prod>:
 
   > cd bundle
-  > sqitch deploy 'db:exasol://sys:exasol@localhost:9999/?Driver=Exasol'
-  Adding registry tables to db:exasol://sys:@localhost:9999/?Driver=Exasol
-  Deploying changes to db:exasol://sys:@localhost:9999/?Driver=Exasol
+  > sqitch deploy 'db:snowflake://movera@example/flipr_prod?Driver=Snowflake'
+  Adding registry tables to db:snowflake://movera@example/flipr_prod?Driver=Snowflake'
+  Deploying changes to db:snowflake://movera@example/flipr_prod?Driver=Snowflake'
     + appschema ............... ok
     + users ................... ok
     + flips ................... ok
@@ -924,27 +932,27 @@ And give it a whirl:
 
   > sqitch deploy
   Deploying changes to flipr_test
-	+ hashtags .. ok
+    + hashtags .. ok
 
 Look good?
 
   > sqitch status --show-tags
   # On database flipr_test
   # Project:  flipr
-  # Change:   fda6daef73e0ac12252bf6af5f259ccb207d4197
+  # Change:   d750cbeec487841c45715115a31297739fbb4046
   # Name:     hashtags
-  # Deployed: 2014-09-05 10:46:20 -0700
+  # Deployed: 2018-07-27 11:53:02 -0400
   # By:       Marge N. O’Vera <marge@example.com>
-  #
+  # 
   # Tag:
-  #   @v1.0.0-dev1 - 2014-09-05 09:09:38 -0700 - Marge N. O’Vera <marge@example.com>
-  #
+  #   @v1.0.0-dev1 - 2018-07-27 11:41:13 -0400 - Marge N. O’Vera <marge@example.com>
+  # 
   Nothing to deploy (up-to-date)
 
 Note the use of C<--show-tags> to show all the deployed tags. Make sure we can
 revert, too:
 
-  > sqitch rebase -y --onto @HEAD^
+  > sqitch revert -y --onto @HEAD^
   Reverting changes to userflips @v1.0.0-dev1 from flipr_test
     - hashtags .. ok
   > sqitch deploy
@@ -955,8 +963,8 @@ Great! Now make it so:
 
   > git add .
   > git commit -m 'Add hashtags table.'
-  [hashtags d893e9c] Add hashtags table.
-   4 files changed, 18 insertions(+), 0 deletions(-)
+  [hashtags 06a0bf4] Add hashtags table.
+   4 files changed, 19 insertions(+)
    create mode 100644 deploy/hashtags.sql
    create mode 100644 revert/hashtags.sql
    create mode 100644 verify/hashtags.sql
@@ -970,13 +978,13 @@ Let's do it:
   > git checkout master
   Switched to branch 'master'
   > git pull
-  Updating b07ce3d..05d3e5d
+  Updating 84ed9db..31d026c
   Fast-forward
-   deploy/lists.sql |   10 ++++++++++
-   revert/lists.sql |    3 +++
-   sqitch.plan      |    2 ++
-   verify/lists.sql |    5 +++++
-   4 files changed, 20 insertions(+), 0 deletions(-)
+   deploy/lists.sql | 11 +++++++++++
+   revert/lists.sql |  4 ++++
+   sqitch.plan      |  2 ++
+   verify/lists.sql |  6 ++++++
+   4 files changed, 23 insertions(+)
    create mode 100644 deploy/lists.sql
    create mode 100644 revert/lists.sql
    create mode 100644 verify/lists.sql
@@ -1018,7 +1026,7 @@ VCS is not Git.
 So let's restore things to how they were at master:
 
   > git reset --hard HEAD
-  HEAD is now at 05d3e5d Merge branch 'lists'
+  HEAD is now at 31d026c Merge branch 'lists'
 
 That throws out our botched merge. Now let's go back to our branch and rebase
 it on C<master>:
@@ -1029,18 +1037,18 @@ it on C<master>:
   First, rewinding head to replay your work on top of it...
   Applying: Add hashtags table.
   Using index info to reconstruct a base tree...
-  <stdin>:16: new blank line at EOF.
-  +
-  warning: 1 line adds whitespace errors.
+  M	sqitch.plan
   Falling back to patching base and 3-way merge...
   Auto-merging sqitch.plan
   CONFLICT (content): Merge conflict in sqitch.plan
-  Failed to merge in the changes.
+  error: Failed to merge in the changes.
   Patch failed at 0001 Add hashtags table.
+  Use 'git am --show-current-patch' to see the failed patch
 
-  When you have resolved this problem run "git rebase --continue".
-  If you would prefer to skip this patch, instead run "git rebase --skip".
-  To restore the original branch and stop rebasing run "git rebase --abort".
+  Resolve all conflicts manually, mark them as resolved with
+  "git add/rm <conflicted_files>", then run "git rebase --continue".
+  You can instead skip this commit: run "git rebase --skip".
+  To abort and get back to the state before "git rebase", run "git rebase --abort".
 
 Oy, that's kind of a pain. It seems like no matter what we do, we'll need to
 resolve conflicts in that file. Except in Git. Fortunately for us, we can tell
@@ -1063,7 +1071,7 @@ exactly what we need. So let's give it a try. First, back out the botched
 rebase:
 
   > git rebase --abort
-  HEAD is now at d893e9c Add hashtags table.
+  HEAD is now at 06a0bf4 Add hashtags table.
 
 Now add the union merge driver to F<.gitattributes> for F<sqitch.plan>
 and rebase again:
@@ -1073,9 +1081,7 @@ and rebase again:
   First, rewinding head to replay your work on top of it...
   Applying: Add hashtags table.
   Using index info to reconstruct a base tree...
-  <stdin>:16: new blank line at EOF.
-  +
-  warning: 1 line adds whitespace errors.
+  M	sqitch.plan
   Falling back to patching base and 3-way merge...
   Auto-merging sqitch.plan
 
@@ -1084,16 +1090,16 @@ Ah, that looks a bit better. Let's have a look at the plan:
   > cat sqitch.plan
   %syntax-version=1.0.0
   %project=flipr
-  %uri=https://github.com/theory/sqitch-exasol-intro/
+  %uri=https://github.com/sqitchers/sqitch-snowflake-intro/
 
-  appschema 2014-09-04T18:40:34Z Marge N. O’Vera <marge@example.com> # Add schema for all flipr objects.
-  users [appschema] 2014-09-04T23:40:15Z Marge N. O’Vera <marge@example.com> # Creates table to track our users.
-  flips [appschema users] 2014-09-05T00:16:58Z Marge N. O’Vera <marge@example.com> # Adds table for storing flips.
-  userflips [appschema users flips] 2014-09-05T00:18:43Z Marge N. O’Vera <marge@example.com> # Creates the userflips view.
-  @v1.0.0-dev1 2014-09-05T16:04:48Z Marge N. O’Vera <marge@example.com> # Tag v1.0.0-dev1.
+  appschema 2018-07-27T14:27:24Z Marge N. O’Vera <marge@example.com> # Add schema for all flipr objects.
+  users [appschema] 2018-07-27T15:03:56Z Marge N. O’Vera <marge@example.com> # Creates table to track our users.
+  flips [appschema users] 2018-07-27T15:23:41Z Marge N. O’Vera <marge@example.com> # Adds table for storing flips.
+  userflips [appschema users flips] 2018-07-27T15:23:50Z Marge N. O’Vera <marge@example.com> # Creates the userflips view.
+  @v1.0.0-dev1 2018-07-27T15:40:25Z Marge N. O’Vera <marge@example.com> # Tag v1.0.0-dev1.
 
-  lists [appschema users] 2014-09-05T17:33:43Z Marge N. O’Vera <marge@example.com> # Adds table for storing lists.
-  hashtags [appschema flips] 2014-09-05T17:39:53Z Marge N. O’Vera <marge@example.com> # Adds table for storing hashtags.
+  lists [appschema flips] 2018-07-27T16:00:00Z Marge N. O’Vera <marge@example.com> # Adds table for storing lists.
+  hashtags [flips] 2018-07-27T15:51:16Z Marge N. O’Vera <marge@example.com> # Adds table for storing hashtags.
 
 Note that it has appended the changes from the merged "lists" branch, and then
 merged the changes from our "hashtags" branch. Test it to make sure it works
@@ -1122,7 +1128,7 @@ worthwhile to keep that change:
 
   > git add .
   > git commit -m 'Add `.gitattributes` with union merge for `sqitch.plan`.'
-  [hashtags 2f065a3] Add `.gitattributes` with union merge for `sqitch.plan`.
+  [hashtags 86596a9] Add `.gitattributes` with union merge for `sqitch.plan`.
    1 files changed, 1 insertions(+), 0 deletions(-)
    create mode 100644 .gitattributes
 
@@ -1133,13 +1139,13 @@ And now, finally, we can merge into C<master>:
   > git checkout master
   Switched to branch 'master'
   > git merge --no-ff hashtags -m "Merge branch 'hashtags'"
-  Merge made by recursive.
-   .gitattributes      |    1 +
-   deploy/hashtags.sql |   10 ++++++++++
-   revert/hashtags.sql |    3 +++
-   sqitch.plan         |    1 +
-   verify/hashtags.sql |    3 +++
-   5 files changed, 18 insertions(+), 0 deletions(-)
+  Merge made by the 'recursive' strategy.
+   .gitattributes      | 1 +
+   deploy/hashtags.sql | 9 ++++++++++
+   revert/hashtags.sql | 4 ++++
+   sqitch.plan         | 1 +
+   verify/hashtags.sql | 4 ++++
+   5 files changed, 19 insertions(+)
    create mode 100644 .gitattributes
    create mode 100644 deploy/hashtags.sql
    create mode 100644 revert/hashtags.sql
@@ -1150,16 +1156,16 @@ And double-check our work:
   > cat sqitch.plan
   %syntax-version=1.0.0
   %project=flipr
-  %uri=https://github.com/theory/sqitch-exasol-intro/
+  %uri=https://github.com/sqitchers/sqitch-snowflake-intro/
 
-  appschema 2014-09-04T18:40:34Z Marge N. O’Vera <marge@example.com> # Add schema for all flipr objects.
-  users [appschema] 2014-09-04T23:40:15Z Marge N. O’Vera <marge@example.com> # Creates table to track our users.
-  flips [appschema users] 2014-09-05T00:16:58Z Marge N. O’Vera <marge@example.com> # Adds table for storing flips.
-  userflips [appschema users flips] 2014-09-05T00:18:43Z Marge N. O’Vera <marge@example.com> # Creates the userflips view.
-  @v1.0.0-dev1 2014-09-05T16:04:48Z Marge N. O’Vera <marge@example.com> # Tag v1.0.0-dev1.
+  appschema 2018-07-27T14:27:24Z Marge N. O’Vera <marge@example.com> # Add schema for all flipr objects.
+  users [appschema] 2018-07-27T15:03:56Z Marge N. O’Vera <marge@example.com> # Creates table to track our users.
+  flips [appschema users] 2018-07-27T15:23:41Z Marge N. O’Vera <marge@example.com> # Adds table for storing flips.
+  userflips [appschema users flips] 2018-07-27T15:23:50Z Marge N. O’Vera <marge@example.com> # Creates the userflips view.
+  @v1.0.0-dev1 2018-07-27T15:40:25Z Marge N. O’Vera <marge@example.com> # Tag v1.0.0-dev1.
 
-  lists [appschema users] 2014-09-05T17:33:43Z Marge N. O’Vera <marge@example.com> # Adds table for storing lists.
-  hashtags [appschema flips] 2014-09-05T17:39:53Z Marge N. O’Vera <marge@example.com> # Adds table for storing hashtags.
+  lists [appschema flips] 2018-07-27T16:00:00Z Marge N. O’Vera <marge@example.com> # Adds table for storing lists.
+  hashtags [flips] 2018-07-27T15:51:16Z Marge N. O’Vera <marge@example.com> # Adds table for storing hashtags.
 
 Much much better, a nice clean master now. And because it is now identical to
 the "hashtags" branch, we can just carry on. Go ahead and tag it, bundle, and
@@ -1168,8 +1174,8 @@ release:
   > sqitch tag v1.0.0-dev2 -n 'Tag v1.0.0-dev2.'
   Tagged "hashtags" with @v1.0.0-dev2
   > git commit -am 'Tag the database with v1.0.0-dev2.'
-  [master 8a6a73b] Tag the database with v1.0.0-dev2.
-   1 files changed, 1 insertions(+), 0 deletions(-)
+  [master 1c67e0d] Tag the database with v1.0.0-dev2.
+   1 files changed, 1 insertion(+)
   > git tag v1.0.0-dev2 -am 'Tag v1.0.0-dev2'
   > sqitch bundle --dest-dir flipr-1.0.0-dev2
   Bundling into flipr-1.0.0-dev2
@@ -1247,32 +1253,35 @@ L<C<add>|sqitch-add>:
   > sqitch rework userflips -n 'Adds userflips.twitter.'
   Added "userflips [userflips@v1.0.0-dev2]" to sqitch.plan.
   Modify these files as appropriate:
-	* deploy/userflips.sql
-	* revert/userflips.sql
-	* verify/userflips.sql
+    * deploy/userflips.sql
+    * revert/userflips.sql
+    * verify/userflips.sql
 
 Oh, so we can edit those files in place. Nice! How does Sqitch do it? Well, in
 point of fact, it has copied the files to stand in for the previous instance
 of the C<userflips> change, which we can see via C<git status>:
 
   > git status
-  # On branch master
-  # Changed but not updated:
-  #   (use "git add <file>..." to update what will be committed)
-  #   (use "git checkout -- <file>..." to discard changes in working directory)
-  #
-  #	modified:   revert/userflips.sql
-  #	modified:   sqitch.plan
-  #
-  # Untracked files:
-  #   (use "git add <file>..." to include in what will be committed)
-  #
-  #	deploy/userflips@v1.0.0-dev2.sql
-  #	revert/userflips@v1.0.0-dev2.sql
-  #	verify/userflips@v1.0.0-dev2.sql
+  On branch master
+  Your branch is up to date with 'origin/master'.
+
+  Changes not staged for commit:
+    (use "git add <file>..." to update what will be committed)
+    (use "git checkout -- <file>..." to discard changes in working directory)
+
+    modified:   revert/userflips.sql
+    modified:   sqitch.plan
+
+  Untracked files:
+    (use "git add <file>..." to include in what will be committed)
+
+    deploy/userflips@v1.0.0-dev2.sql
+    revert/userflips@v1.0.0-dev2.sql
+    verify/userflips@v1.0.0-dev2.sql
+
   no changes added to commit (use "git add" and/or "git commit -a")
 
-The "untracked files" part of the output is the first thing to notice. They're
+The "Untracked files" part of the output is the first thing to notice. They're
 all named C<userflips@v1.0.0-dev2.sql>. What that means is: "the C<userflips>
 change as it was implemented as of the C<@v1.0.0-dev2> tag." These are copies
 of the original scripts, and thereafter Sqitch will find them when it needs to
@@ -1302,20 +1311,20 @@ As a result, there is no need to explicitly add changes. So go ahead. Modify
 the script to add the C<twitter> column to the view. Make this change to
 F<deploy/userflips.sql>:
 
-  @@ -4,6 +4,6 @@
-   -- requires: flips
-
-   CREATE OR REPLACE VIEW flipr.userflips AS
+  @@ -5,6 +5,6 @@
+  
+  USE WAREHOUSE &warehouse;
+  CREATE OR REPLACE VIEW flipr.userflips AS
   -SELECT f.id, u.nickname, u.fullname, f.body, f.timestamp
-  +SELECT f.id, u.nickname, u.fullname, u.twitter, f.body, f.timestamp
-     FROM flipr.users u
-     JOIN flipr.flips f ON u.nickname = f.nickname;
+  +SELECT SELECT f.id, u.nickname, u.fullname, u.twitter, f.body, f.timestamp
+    FROM flipr.users u
+    JOIN flipr.flips f ON u.nickname = f.nickname;
 
 Next, modify F<verify/userflips.sql> to check for the C<twitter> column.
 Here's the diff:
 
   @@ -1,6 +1,6 @@
-   -- Verify flipr:userflips on exasol
+   -- Verify flipr:userflips on snowflake
 
   -SELECT id, nickname, fullname, body, timestamp
   +SELECT id, nickname, fullname, twitter, body, timestamp
@@ -1326,38 +1335,41 @@ Now try a deployment:
 
   > sqitch deploy
   Deploying changes to flipr_test
-	+ userflips .. ok
+    + userflips .. ok
 
 So, are the changes deployed?
 
-  > exaplus -q -u sys -p exasol -c localhost:8563 -sql "describe flipr.userflips;"
-
-  COLUMN_NAME                                                                                                                      SQL_TYPE                                 NULLABLE DISTRIBUTION_KEY
-  -------------------------------------------------------------------------------------------------------------------------------- ---------------------------------------- -------- ----------------
-  ID                                                                                                                               DECIMAL(18,0)
-  NICKNAME                                                                                                                         VARCHAR(64) UTF8
-  FULLNAME                                                                                                                         VARCHAR(256) UTF8
-  TWITTER                                                                                                                          VARCHAR(256) UTF8
-  BODY                                                                                                                             VARCHAR(180) UTF8
-  TS                                                                                                                               TIMESTAMP WITH LOCAL TIME ZONE
+  > snowsql --accountname example --username movera --dbname flipr -o friendly=false \
+    --query "SHOW VIEWS LIKE 'userflips' IN flipr"
+  +-------------------------------+-----------+----------+---------------+-------------+--------+---------+---------------------------------------------------------------------+-----------+
+  | created_on                    | name      | reserved | database_name | schema_name | owner  | comment | text                                                                | is_secure |
+  |-------------------------------+-----------+----------+---------------+-------------+--------+---------+---------------------------------------------------------------------+-----------|
+  | 2018-07-27 18:19:29.818 +0000 | USERFLIPS |          | DWHEELER      | FLIPR       | SQITCH |         | CREATE OR REPLACE VIEW flipr.userflips AS                           | false     |
+  |                               |           |          |               |             |        |         | SELECT f.id, u.nickname, u.fullname, u.twitter, f.body, f.timestamp |           |
+  |                               |           |          |               |             |        |         |   FROM flipr.users u                                                |           |
+  |                               |           |          |               |             |        |         |   JOIN flipr.flips f ON u.nickname = f.nickname;                    |           |
+  +-------------------------------+-----------+----------+---------------+-------------+--------+---------+---------------------------------------------------------------------+-----------+
+  1 Row(s) produced. Time Elapsed: 0.413s
 
 Awesome, the view now includes the C<twitter> column. But can we revert?
 
   > sqitch revert --to @HEAD^ -y
   Reverting changes to hashtags @v1.0.0-dev2 from flipr_test
-	- userflips .. ok
+    - userflips .. ok
 
 Did that work, is the C<twitter> column gone?
 
-  > exaplus -q -u sys -p exasol -c localhost:8563 -sql "describe flipr.userflips;"
-
-  COLUMN_NAME                                                                                                                      SQL_TYPE                                 NULLABLE DISTRIBUTION_KEY
-  -------------------------------------------------------------------------------------------------------------------------------- ---------------------------------------- -------- ----------------
-  ID                                                                                                                               DECIMAL(18,0)
-  NICKNAME                                                                                                                         VARCHAR(64) UTF8
-  FULLNAME                                                                                                                         VARCHAR(256) UTF8
-  BODY                                                                                                                             VARCHAR(180) UTF8
-  TS                                                                                                                               TIMESTAMP WITH LOCAL TIME ZONE
+  > snowsql --accountname example --username movera --dbname flipr -o friendly=false \
+    --query "SHOW VIEWS LIKE 'userflips' IN flipr"
+  +-------------------------------+-----------+----------+---------------+-------------+--------+---------+----------------------------------------------------------+-----------+
+  | created_on                    | name      | reserved | database_name | schema_name | owner  | comment | text                                                     | is_secure |
+  |-------------------------------+-----------+----------+---------------+-------------+--------+---------+----------------------------------------------------------+-----------|
+  | 2018-07-27 18:50:52.064 +0000 | USERFLIPS |          | DWHEELER      | FLIPR       | SQITCH |         | CREATE OR REPLACE VIEW flipr.userflips AS                | false     |
+  |                               |           |          |               |             |        |         | SELECT f.id, u.nickname, u.fullname, f.body, f.timestamp |           |
+  |                               |           |          |               |             |        |         |   FROM flipr.users u                                     |           |
+  |                               |           |          |               |             |        |         |   JOIN flipr.flips f ON u.nickname = f.nickname;         |           |
+  +-------------------------------+-----------+----------+---------------+-------------+--------+---------+----------------------------------------------------------+-----------+
+  1 Row(s) produced. Time Elapsed: 0.362s
 
 Yes, it works! Sqitch properly finds the original instances of these changes
 in the new script files that include tags.
@@ -1366,8 +1378,8 @@ Excellent. Let's go ahead and commit these changes:
 
   > git add .
   > git commit -m 'Add the twitter column to the userflips view.'
-  [master 95d6dd0] Add the twitter column to the userflips view.
-   7 files changed, 30 insertions(+), 4 deletions(-)
+  [master c004445] Add the twitter column to the userflips view.
+   7 files changed, 31 insertions(+), 4 deletions(-)
    create mode 100644 deploy/userflips@v1.0.0-dev2.sql
    create mode 100644 revert/userflips@v1.0.0-dev2.sql
    create mode 100644 verify/userflips@v1.0.0-dev2.sql

@@ -16,7 +16,7 @@ our $VERSION = '0.9998';
 
 sub key    { 'vertica' }
 sub name   { 'Vertica' }
-sub driver { 'DBD::ODBC 1.43' }
+sub driver { 'DBD::ODBC 1.59' }
 sub default_client { 'vsql' }
 
 sub destination {
@@ -52,8 +52,7 @@ has _vsql => (
             [ dbname   => $uri->dbname    ],
             [ host     => $uri->host      ],
             [ port     => $uri->_port     ],
-            )
-        {
+        ) {
             push @ret, "--$spec->[0]" => $spec->[1] if $spec->[1];
         }
 
@@ -61,14 +60,7 @@ has _vsql => (
             push @ret => map {; '--set', "$_=$vars{$_}" } sort keys %vars;
         }
 
-        push @ret => (
-            '--quiet',
-            '--no-vsqlrc',
-            '--no-align',
-            '--tuples-only',
-            '--set' => 'ON_ERROR_STOP=1',
-            '--set' => 'registry=' . $self->registry,
-        );
+        push @ret => $self->_client_opts;
         return \@ret;
     },
 );
@@ -196,11 +188,6 @@ sub _no_table_error  {
 
 sub _no_column_error  {
     return $DBI::state && $DBI::state eq '42703'; # ERRCODE_UNDEFINED_COLUMN
-}
-
-sub _ts2char($) {
-    my $col = shift;
-    return qq{to_char($col AT TIME ZONE 'UTC', '"year":YYYY:"month":MM:"day":DD:"hour":HH24:"minute":MI:"second":SS:"time_zone":"UTC"')};
 }
 
 sub _dt($) {

@@ -88,7 +88,7 @@ ENV: {
         local $ENV{$env} = "\$ENV=whatever";
         is $pg->target->uri, "db:pg:", "Target should not read \$$env";
         is $pg->registry_destination, $pg->destination,
-            'Meta target should be the same as destination';
+            'Registry target should be the same as destination';
     }
 
     my $mocker = Test::MockModule->new('App::Sqitch');
@@ -96,13 +96,13 @@ ENV: {
     my $pg = $CLASS->new(sqitch => $sqitch, target => $target);
     is $pg->target->uri, 'db:pg:', 'Target should not fall back on sysuser';
     is $pg->registry_destination, $pg->destination,
-        'Meta target should be the same as destination';
+        'Registry target should be the same as destination';
 
     $ENV{PGDATABASE} = 'mydb';
     $pg = $CLASS->new(sqitch => $sqitch, username => 'hi', target => $target);
     is $pg->target->uri, 'db:pg:',  'Target should be the default';
     is $pg->registry_destination, $pg->destination,
-        'Meta target should be the same as destination';
+        'Registry target should be the same as destination';
 }
 
 ##############################################################################
@@ -245,10 +245,10 @@ $mock_config->unmock_all;
 
 ##############################################################################
 # Test DateTime formatting stuff.
-ok my $ts2char = $CLASS->can('_ts2char'), "$CLASS->can('_ts2char')";
-is $ts2char->('foo'),
+ok my $ts2char = $CLASS->can('_ts2char_format'), "$CLASS->can('_ts2char_format')";
+is sprintf($ts2char->(), 'foo'),
     q{to_char(foo AT TIME ZONE 'UTC', '"year":YYYY:"month":MM:"day":DD:"hour":HH24:"minute":MI:"second":SS:"time_zone":"UTC"')},
-    '_ts2char should work';
+    '_ts2char_format should work';
 
 ok my $dtfunc = $CLASS->can('_dt'), "$CLASS->can('_dt')";
 isa_ok my $dt = $dtfunc->(
@@ -279,10 +279,12 @@ END {
     $dbh->do("DROP DATABASE $db") if $dbh->{Active};
 }
 
+my $pguser = $ENV{PGUSER} || 'postgres';
+
 my $err = try {
     $pg->_capture('--version');
     $pg->use_driver;
-    $dbh = DBI->connect('dbi:Pg:dbname=template1', 'postgres', '', {
+    $dbh = DBI->connect('dbi:Pg:dbname=template1', $pguser, '', {
         PrintError => 0,
         RaiseError => 1,
         AutoCommit => 1,
@@ -304,11 +306,11 @@ DBIEngineTest->run(
         plan_file   => Path::Class::file(qw(t engine sqitch.plan))->stringify,
     }],
     target_params => [
-        uri => URI::db->new("db:pg://postgres@/$db"),
+        uri => URI::db->new("db:pg://$pguser\@/$db"),
     ],
     alt_target_params => [
         registry => '__sqitchtest',
-        uri => URI::db->new("db:pg://postgres@/$db"),
+        uri => URI::db->new("db:pg://$pguser\@/$db"),
     ],
     skip_unless       => sub {
         my $self = shift;

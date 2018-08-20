@@ -102,7 +102,7 @@ ENV: {
         local $ENV{$env} = "\$ENV=whatever";
         is $vta->target->name, "db:vertica:", "Target name should not read \$$env";
         is $vta->registry_destination, $vta->destination,
-            'Meta target should be the same as destination';
+            'Registry target should be the same as destination';
     }
 
     my $mocker = Test::MockModule->new('App::Sqitch');
@@ -111,13 +111,13 @@ ENV: {
     is $vta->target->name, 'db:vertica:',
         'Target name should not fall back on sysuser';
     is $vta->registry_destination, $vta->destination,
-        'Meta target should be the same as destination';
+        'Registry target should be the same as destination';
 
     $ENV{VERTICADATABASE} = 'mydb';
     $vta = $CLASS->new(sqitch => $sqitch, username => 'hi', target => $target);
     is $vta->target->name, 'db:vertica:',  'Target name should be the default';
     is $vta->registry_destination, $vta->destination,
-        'Meta target should be the same as destination';
+        'Registry target should be the same as destination';
 }
 
 ##############################################################################
@@ -260,10 +260,10 @@ $mock_config->unmock_all;
 
 ##############################################################################
 # Test DateTime formatting stuff.
-ok my $ts2char = $CLASS->can('_ts2char'), "$CLASS->can('_ts2char')";
-is $ts2char->('foo'),
+ok my $ts2char = $CLASS->can('_ts2char_format'), "$CLASS->can('_ts2char_format')";
+is sprintf($ts2char->(), 'foo'),
     q{to_char(foo AT TIME ZONE 'UTC', '"year":YYYY:"month":MM:"day":DD:"hour":HH24:"minute":MI:"second":SS:"time_zone":"UTC"')},
-    '_ts2char should work';
+    '_ts2char_format should work';
 
 ok my $dtfunc = $CLASS->can('_dt'), "$CLASS->can('_dt')";
 isa_ok my $dt = $dtfunc->(
@@ -295,7 +295,7 @@ END {
     );
 }
 
-$uri = URI->new($ENV{VSQL_URI} || 'db:dbadmin:password@localhost/dbadmin');
+$uri = URI->new($ENV{VSQL_URI} || 'db:vertica://dbadmin:password@localhost/dbadmin');
 my $err = try {
     $vta->use_driver;
     $dbh = DBI->connect($uri->dbi_dsn, $uri->user, $uri->password, {

@@ -18,17 +18,19 @@ We'll start by creating new project from scratch, a fictional antisocial
 networking site called Flipr. All examples use L<Git|http://git-scm.com/> as
 the VCS and L<MySQL|http://dev.mysql.com/> as the storage engine.
 
-If you'd like to manage an PostgreSQL database, see L<sqitchtutorial>.
+If you'd like to manage a PostgreSQL database, see L<sqitchtutorial>.
 
 If you'd like to manage an SQLite database, see L<sqitchtutorial-sqlite>.
 
 If you'd like to manage an Oracle database, see L<sqitchtutorial-oracle>.
 
-If you'd like to manage an Firebird database, see L<sqitchtutorial-firebird>.
+If you'd like to manage a Firebird database, see L<sqitchtutorial-firebird>.
 
-If you'd like to manage an Vertica database, see L<sqitchtutorial-vertica>.
+If you'd like to manage a Vertica database, see L<sqitchtutorial-vertica>.
 
 If you'd like to manage an Exasol database, see L<sqitchtutorial-exasol>.
+
+If you'd like to manage a Snowflake database, see L<sqitchtutorial-snowflake>.
 
 =head1 Starting a New Project
 
@@ -375,7 +377,7 @@ When we look at the status, the deployment will be there:
 
 I'm getting a little tired of always having to type
 C<db:mysql://root@/flipr_test>, aren't you?  This
-L<database connection URI|https://github.com/theory/uri-db/> tells Sqitch how
+L<database connection URI|https://github.com/libwww-perl/uri-db/> tells Sqitch how
 to connect to the deployment target, but we don't have to keep using the URI.
 We can name the target:
 
@@ -965,7 +967,7 @@ Look good?
   # 
   Nothing to deploy (up-to-date)
 
-Note the use of C<--show tags> to show all the deployed tags. Now make it so:
+Note the use of C<--show-tags> to show all the deployed tags. Now make it so:
 
   > git add .
   > git commit -am 'Add flips table.'

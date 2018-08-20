@@ -77,7 +77,7 @@ BuildRequires:  perl(Type::Tiny::XS) >= 0.010
 BuildRequires:  perl(Type::Utils)
 BuildRequires:  perl(Types::Standard)
 BuildRequires:  perl(URI)
-BuildRequires:  perl(URI::db) >= 0.15
+BuildRequires:  perl(URI::db) >= 0.19
 BuildRequires:  perl(User::pwent)
 BuildRequires:  perl(utf8)
 BuildRequires:  perl(warnings)
@@ -133,7 +133,7 @@ Requires:       perl(Type::Tiny::XS) >= 0.010
 Requires:       perl(Type::Utils)
 Requires:       perl(Types::Standard)
 Requires:       perl(URI)
-Requires:       perl(URI::db) >= 0.15
+Requires:       perl(URI::db) >= 0.19
 Requires:       perl(User::pwent)
 Requires:       perl(utf8)
 Requires:       perl(warnings)
@@ -274,7 +274,7 @@ Requires:       sqitch >= %{version}
 Requires:       libverticaodbc.so
 Requires:       /opt/vertica/bin/vsql
 Requires:       perl(DBI)
-Requires:       perl(DBD::ODBC) >= 1.43
+Requires:       perl(DBD::ODBC) >= 1.59
 Provides:       sqitch-vertica
 
 %description vertica
@@ -283,6 +283,24 @@ The philosophy and functionality is inspired by Git. This package bundles the
 Sqitch Vertica support.
 
 %files vertica
+# No additional files required.
+
+%package snowflake
+Summary:        Sane database change management for Snowflake
+Group:          Development/Libraries
+Requires:       sqitch >= %{version}
+Requires:       snowflake-odbc
+Requires:       perl(DBI)
+Requires:       perl(DBD::ODBC) >= 1.59
+Provides:       sqitch-snowflake
+
+%description snowflake
+Sqitch provides a simple yet robust interface for database change management.
+The philosophy and functionality is inspired by Git. This package bundles the
+Sqitch Snowflake support. It requires that the snowsql client also be
+installed.
+
+%files snowflake
 # No additional files required.
 
 %changelog

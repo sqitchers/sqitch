@@ -18,17 +18,19 @@ We'll start by creating new project from scratch, a fictional antisocial
 networking site called Flipr. All examples use L<Git|http://git-scm.com/> as
 the VCS and L<Firebird|http://www.firebirdsql.org/> as the storage engine.
 
-If you'd like to manage an PostgreSQL database, see L<sqitchtutorial>.
+If you'd like to manage a PostgreSQL database, see L<sqitchtutorial>.
 
 If you'd like to manage an SQLite database, see L<sqitchtutorial-sqlite>.
 
 If you'd like to manage an Oracle database, see L<sqitchtutorial-oracle>.
 
-If you'd like to manage an MySQL database, see L<sqitchtutorial-mysql>.
+If you'd like to manage a MySQL database, see L<sqitchtutorial-mysql>.
 
-If you'd like to manage an Vertica database, see L<sqitchtutorial-vertica>.
+If you'd like to manage a Vertica database, see L<sqitchtutorial-vertica>.
 
 If you'd like to manage an Exasol database, see L<sqitchtutorial-exasol>.
+
+If you'd like to manage a Snowflake database, see L<sqitchtutorial-snowflake>.
 
 =head1 Starting a New Project
 
@@ -75,7 +77,7 @@ Let's have a look at F<sqitch.conf>:
   	# client = isql-fb
 
 Good, it picked up on the fact that we're creating changes for the Firebird
-engine, thanks to the C<-engine firebird> option, and saved it to the
+engine, thanks to the C<--engine firebird> option, and saved it to the
 file. Furthermore, it wrote a commented-out C<[engine "firebird"]> section
 with all the available Firebird engine-specific settings commented out and
 ready to be edited as appropriate.
@@ -387,7 +389,7 @@ When we look at the status, the deployment will be there:
 
 I'm getting a little tired of always having to type
 C<db:firebird://sysdba:masterkey@localhost//tmp/flipr_test/flipr.fdb>, aren't
-you? This L<database connection URI|https://github.com/theory/uri-db/> tells
+you? This L<database connection URI|https://github.com/libwww-perl/uri-db/> tells
 Sqitch how to connect to the deployment target, but we don't have to keep
 using the URI. We can name the target:
 
@@ -778,7 +780,7 @@ Look good?
   # 
   Nothing to deploy (up-to-date)
 
-Note the use of C<--show tags> to show all the deployed tags. Now make it so:
+Note the use of C<--show-tags> to show all the deployed tags. Now make it so:
 
   > rm -rf flipr-v1.0.0-dev1*
   > git add .

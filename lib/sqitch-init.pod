@@ -50,6 +50,8 @@ include:
 
 =item * C<exasol> - L<Exasol|https://www.exasol.com/>
 
+=item * C<snowflake> - L<Snowflake|https://www.snowflake.net/>
+
 =back
 
 =item C<--top-dir>
@@ -102,7 +104,7 @@ Supported keys are:
 
   sqitch init widgets --target db:pg:widgets
 
-Specifies the name or L<URI|https://github.com/theory/uri-db/> of the default
+Specifies the name or L<URI|https://github.com/libwww-perl/uri-db/> of the default
 target database. If specified as a name, the default URI for the target will
 be C<db:$engine:>.
 

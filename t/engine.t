@@ -254,7 +254,7 @@ ok $engine = $CLASS->load({
 like $engine->destination, qr{^db:whu://foo:?\@localhost/blah$},
     'Destination should not include password';
 is $engine->registry_destination, $engine->destination,
-    'Meta destination should again be the same as destination';
+    'Registry destination should again be the same as destination';
 
 ##############################################################################
 # Test _check_registry.

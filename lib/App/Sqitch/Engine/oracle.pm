@@ -668,11 +668,6 @@ sub log_revert_change {
     return $self->_log_event( revert => $change, $del_tags, $req, $conf );
 }
 
-sub _ts2char($) {
-    my $col = shift;
-    return qq{to_char($col AT TIME ZONE 'UTC', 'YYYY:MM:DD:HH24:MI:SS')};
-}
-
 sub _no_table_error  {
     return $DBI::err && $DBI::err == 942; # ORA-00942: table or view does not exist
 }

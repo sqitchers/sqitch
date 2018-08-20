@@ -40,7 +40,7 @@ Some examples:
 
 =back
 
-See the L<DB URI Draft|https://github.com/theory/uri-db> for details.
+See the L<DB URI Draft|https://github.com/libwww-perl/uri-db> for details.
 
 =item C<registry>
 
@@ -140,7 +140,7 @@ Be more verbose when listing engines.
 
   sqitch target add devwidgets --uri db:pg:widgets
 
-Specifies the L<URI|https://github.com/theory/uri-db/> of the target database.
+Specifies the L<URI|https://github.com/libwww-perl/uri-db/> of the target database.
 
 =item C<--top-dir>
 

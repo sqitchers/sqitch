@@ -8,7 +8,7 @@ sqitch-configuration - Hierarchical engine and target configuration
 
 The specification of database targets is core to Sqitch database change
 management. A target consists of a
-L<database connection URI|https://github.com/theory/uri-db>, a plan file,
+L<database connection URI|https://github.com/libwww-perl/uri-db>, a plan file,
 change script directories, a registry schema or database name, and the path to
 a database engine command-line client. Sqitch determines the values for these
 attributes via a hierarchical evaluation of the runtime configuration,
@@ -84,7 +84,7 @@ L<C<deploy>|sqitch-deploy> command to deploy changes to a database, these
 variables will be used extensively.
 
 The C<[engine "pg"]> section houses the variables specific to the engine. The
-C<target> defines the default L<database URI|https://github.com/theory/uri-db>
+C<target> defines the default L<database URI|https://github.com/libwww-perl/uri-db>
 for connecting to a PostgreSQL database. As you can see there isn't much here,
 but if you were to distribute this project, it's likely that your users would
 specify a target URI when deploying to their own databases. The C<registry>
@@ -328,7 +328,7 @@ variable for each command:
 =head2 Database Interactions
 
 With either of these two approaches, you can now manage database interactions
-by passing an engine name or a L<database URI|https://github.com/theory/uri-db>
+by passing an engine name or a L<database URI|https://github.com/libwww-perl/uri-db>
 to the database commands. For example, to deploy to a PostgreSQL database
 to the default PostgreSQL database:
 
@@ -589,7 +589,7 @@ including specification of their values and how to set them.
 
 =item C<target>
 
-The target database. May be a L<database URI|https://github.com/theory/uri-db> or
+The target database. May be a L<database URI|https://github.com/libwww-perl/uri-db> or
 a named target managed by the L<C<target>|sqitch-target> commands. On each run,
 its value will be determined by examining each of the following in turn:
 
@@ -614,7 +614,7 @@ its value will be determined by examining each of the following in turn:
 
 =item C<uri>
 
-The L<database URI|https://github.com/theory/uri-db> to which to connect. May
+The L<database URI|https://github.com/libwww-perl/uri-db> to which to connect. May
 only be specified as a target argument or via a named target:
 
 =over
