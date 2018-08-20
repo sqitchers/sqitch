@@ -101,10 +101,11 @@ The feature names correspond to the supported engines:
 * postgres - PostgreSQL support
 * sqlite - SQLite support
 * mysql - MySQL support
-* firebiard - Firebird support
+* firebird - Firebird support
 * oracle - Oracle support
 * vertica - Vertica support
 * exasol - Exasol support
+* snowflake - Snowflake support
 
 To build from a Git clone, first install
 [Dist::Zilla](https://metacpan.org/module/Dist::Zilla), then use it to install
