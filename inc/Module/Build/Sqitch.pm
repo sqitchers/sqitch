@@ -236,7 +236,8 @@ sub ACTION_bundle {
         my $feat = $self->with || [];
         $feat = [$feat] unless ref $feat;
         my $app = App::Sqitch::Menlo::CLI->new(
-            quiet          => 1,
+            quiet          => 0,
+            verbose        => 1,
             notest         => 1,
             self_contained => 1,
             install_types  => [qw(requires recommends)],
