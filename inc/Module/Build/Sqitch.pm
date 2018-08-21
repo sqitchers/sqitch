@@ -246,7 +246,7 @@ sub ACTION_bundle {
             argv           => ['.'],
             features       => { map { $_ => 1 } @{ $feat } },
         );
-        die "Error installing modules\n" if $app->run;
+        die "Error installing modules: $@\n" if $app->run;
     }
 
     # Install Sqitch.
