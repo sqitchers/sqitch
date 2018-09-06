@@ -236,16 +236,16 @@ sub ACTION_bundle {
         my $feat = $self->with || [];
         $feat = [$feat] unless ref $feat;
         my $app = App::Sqitch::Menlo::CLI->new(
-            quiet          => 0,
-            verbose        => 1,
+            quiet          => $self->quiet,
+            verbose        => $self->verbose,
             notest         => 1,
             self_contained => 1,
             install_types  => [qw(requires recommends)],
             local_lib      => File::Spec->rel2abs($base),
             pod2man        => undef,
             installdeps    => 1,
-            argv           => ['.'],
             features       => { map { $_ => 1 } @{ $feat } },
+            argv           => ['.'],
         );
         die "Error installing modules: $@\n" if $app->run;
     }
@@ -290,6 +290,20 @@ sub find_prereqs {
     my ($self, $dist) = @_;
     $dist->{want_phases} = ['runtime'];
     return $self->SUPER::find_prereqs($dist);
+}
+
+sub configure {
+    my $self = shift;
+    my $cmd = $_[0];
+    return $self->SUPER::configure(@_) if ref $cmd ne 'ARRAY';
+    # Always use vendor install dirs. Hack for
+    # https://github.com/miyagawa/cpanminus/issues/581.
+    if ($cmd->[1] eq 'Makefile.PL') {
+        push @{ $cmd } => 'INSTALLDIRS=vendor';
+    } elsif ($cmd->[1] eq 'Build.PL') {
+        push @{ $cmd } => '--installdirs', 'vendor';
+    }
+    return $self->SUPER::configure(@_);
 }
 
 1;
