@@ -52,7 +52,7 @@ is $sqitch->verbosity, 3, 'Verbosity option should override configuration';
 isa_ok $sqitch = $CLASS->new, $CLASS, 'A new object';
 
 is $sqitch->verbosity, 1, 'Default verbosity should be 1';
-is $sqitch->sysuser, $ENV{USER}, "Default user should be system usser";
+ok $sqitch->sysuser, 'Should have default sysuser from system';
 ok $sqitch->user_name, 'Default user_name should be set from system';
 is $sqitch->user_email, do {
     require Sys::Hostname;
