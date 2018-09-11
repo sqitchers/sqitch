@@ -4,7 +4,9 @@ ENV BUILDROOT /work
 
 # Install dependencies.
 WORKDIR $BUILDROOT
-RUN apk add --update build-base curl perl perl-dev gettext openssl openssl-dev tzdata
+RUN apk add --update build-base curl perl perl-dev gettext tzdata \
+    libressl libressl-dev zlib-dev \
+    sqlite postgresql-dev mysql unixodbc-dev
 
 # Set up time zone. https://wiki.alpinelinux.org/wiki/Setting_the_timezone
 RUN cp /usr/share/zoneinfo/UTC /etc/localtime && echo UTC > /etc/timezone && apk del tzdata
@@ -13,20 +15,29 @@ RUN cp /usr/share/zoneinfo/UTC /etc/localtime && echo UTC > /etc/timezone && apk
 RUN curl -sL --compressed https://git.io/cpm > cpm && chmod +x cpm
 RUN ./cpm install -L local --verbose --no-test Module::Build Menlo::CLI::Compat Dist::Zilla
 
-# Copy source, install dzil build depdendencies, build src dir, install tmp dependencies.
+# Copy source, install dzil, build src, install dependencies.
 COPY . .
 ENV PERL5LIB $BUILDROOT/local/lib/perl5
 RUN ./local/bin/dzil authordeps --missing | xargs ./cpm install -L local --verbose --no-test
 RUN ./local/bin/dzil build --in src
 RUN ./cpm install -L local --verbose --no-test --with-recommends --cpanfile src/cpanfile
 
-# Install build/test dependencies, build, test, bundle.
+# XXX Sadly can't use this in the previous command:
+#    --feature sqlite --feature postgres --feature mysql \
+# Because the cpanfile does not have the features. Issue:
+# https://github.com/karenetheridge/Dist-Zilla-Plugin-OptionalFeature/issues/3
+# So we install the necessary engine-specific dependencies.
+# RUN ./cpm install -L local --verbose --no-test DBD::Pg DBD::SQLite DBD::mysql MySQL::Config
+
+# Build, test, bundle.
 WORKDIR $BUILDROOT/src
-RUN perl Build.PL --quiet --install_base /app --etcdir /etc && ./Build test && ./Build bundle
+RUN perl Build.PL --quiet --install_base /app --etcdir /etc \
+    --with sqlite --with postgres --with mysql \
+    && ./Build test && ./Build bundle
 
 # Copy to the final image without all the build stuff.
 FROM alpine:latest
-RUN apk add --update perl tzdata less
+RUN apk add --update perl tzdata less sqlite postgresql-client mysql-client unixodbc
 RUN cp /usr/share/zoneinfo/UTC /etc/localtime && echo UTC > /etc/timezone && apk del tzdata
 COPY --from=sqitch-build /app .
 ENV TERM xterm-256color
