@@ -28,10 +28,27 @@ Path to the system's configuration file. Overrides the default, which is a
 file named C<sqitch.conf> in the directory identified by C<sqitch --etc>. See
 L<sqitch-config> for details.
 
+=item C<SQITCH_USER>
+
+Username to use when connecting to a database, for those database engines that
+support it. Defaults to the system username.
+
 =item C<SQITCH_PASSWORD>
 
 Password to use when connecting to a database, for those database engines that
 support it. See L<sqitch-passwords> for details.
+
+=item C<SQITCH_USER_NAME>
+
+Full name of the current user. Used to identify the user adding a change to a
+plan file or deploying a change. This value is a fallback for when the
+C<user.name> L<sqitch-config> variable is not set.
+
+=item C<SQITCH_USER_EMAIL>
+
+Email address of the current user. Used to identify the user adding a change to
+a plan file or deploying a change. This value is a fallback for when the
+C<user.email> L<sqitch-config> variable is not set.
 
 =item C<SQITCH_EDITOR>
 

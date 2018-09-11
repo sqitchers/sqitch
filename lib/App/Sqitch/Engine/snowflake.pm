@@ -566,7 +566,11 @@ L<SnowSQL config file|https://docs.snowflake.net/manuals/user-guide/snowsql-conf
 
 =item 4
 
-They system username.
+In the C<$SQITCH_USER> environment variable.
+
+=item 5
+
+The system username.
 
 =back
 

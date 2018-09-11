@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 144;
+use Test::More tests => 149;
 #use Test::More 'no_plan';
 use Test::MockModule;
 use Path::Class;
@@ -52,6 +52,7 @@ is $sqitch->verbosity, 3, 'Verbosity option should override configuration';
 isa_ok $sqitch = $CLASS->new, $CLASS, 'A new object';
 
 is $sqitch->verbosity, 1, 'Default verbosity should be 1';
+is $sqitch->sysuser, $ENV{USER}, "Default user should be system usser";
 ok $sqitch->user_name, 'Default user_name should be set from system';
 is $sqitch->user_email, do {
     require Sys::Hostname;
@@ -59,8 +60,27 @@ is $sqitch->user_email, do {
 }, 'Default user_email should be set from system';
 
 ##############################################################################
+# User environment variables.
+ENV: {
+    local $ENV{SQITCH_USER} = "__barack__";
+    local $ENV{SQITCH_USER_NAME} = 'Barack Obama';
+    local $ENV{SQITCH_USER_EMAIL} = 'barack@whitehouse.gov';
+    isa_ok $sqitch = $CLASS->new, $CLASS, 'Another new object';
+    is $sqitch->sysuser, $ENV{SQITCH_USER},
+        "SQITCH_USER should override system user";
+    is $sqitch->user_name, $ENV{SQITCH_USER_NAME},
+        "SQITCH_USER_NAME should override system user name";
+    is $sqitch->user_email, $ENV{SQITCH_USER_EMAIL},
+        "SQITCH_USER_EMAL should override system-derived email";
+}
+
+##############################################################################
 # Test go().
 GO: {
+    local $ENV{SQITCH_USER} = "__barack__";
+    local $ENV{SQITCH_USER_NAME} = 'Barack Obama';
+    local $ENV{SQITCH_USER_EMAIL} = 'barack@whitehouse.gov';
+
     my $mock = Test::MockModule->new('App::Sqitch::Command::help');
     my ($cmd, @params);
     my $ret = 1;
