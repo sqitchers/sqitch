@@ -4,7 +4,8 @@ ENV BUILDROOT /work
 
 # Install dependencies.
 WORKDIR ${BUILDROOT}
-RUN apk add --update build-base curl perl perl-dev gettext openssl openssl-dev
+RUN apk add --update build-base curl perl perl-dev gettext openssl openssl-dev tzdata
+RUN cp /usr/share/zoneinfo/UTC /etc/localtime && echo UTC > /etc/timezone && apk del tzdata
 RUN curl -sL --compressed https://git.io/cpm > cpm && chmod +x cpm
 RUN ./cpm install -L local --verbose --no-test Module::Build Menlo::CLI::Compat Dist::Zilla
 
