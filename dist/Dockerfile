@@ -26,8 +26,9 @@ RUN perl Build.PL --quiet --install_base /app --etcdir /etc && ./Build test && .
 
 # Copy to the final image without all the build stuff.
 FROM alpine:latest
-RUN apk add --update perl tzdata
+RUN apk add --update perl tzdata less
 RUN cp /usr/share/zoneinfo/UTC /etc/localtime && echo UTC > /etc/timezone && apk del tzdata
 COPY --from=sqitch-build /app .
+ENV TERM xterm-256color
 ENTRYPOINT ["/bin/sqitch"]
 CMD ["--help"]
