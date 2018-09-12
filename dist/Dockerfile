@@ -43,7 +43,7 @@ COPY --from=sqitch-build /app .
 COPY --from=sqitch-build /etc /etc/
 
 # Set up environment, entrypoint, and default command.
-ENV TERM xterm-256color
+ENV LESS -R
 ENV HOME /home
 WORKDIR /repo
 ENTRYPOINT ["/bin/sqitch"]
