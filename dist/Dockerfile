@@ -6,7 +6,7 @@ ENV BUILDROOT /work
 WORKDIR $BUILDROOT
 RUN apk add --update build-base curl perl perl-dev gettext tzdata \
     libressl libressl-dev zlib-dev \
-    sqlite postgresql-dev mysql unixodbc-dev
+    sqlite postgresql-dev mariadb-connector-c unixodbc-dev
 
 # Set up time zone. https://wiki.alpinelinux.org/wiki/Setting_the_timezone
 RUN cp /usr/share/zoneinfo/UTC /etc/localtime && echo UTC > /etc/timezone && apk del tzdata
@@ -22,7 +22,7 @@ RUN ./local/bin/dzil authordeps --missing | xargs ./cpm install -L local --verbo
 RUN ./local/bin/dzil build --in src
 
 # Install dependencies. Required for ./Build test below.
-RUN ./cpm install -L local --verbose --no-test --with-recommends --cpanfile src/cpanfile
+RUN ./cpm install -L local --verbose --no-test --with-recommends --cpanfile src/dist/cpanfile
 
 # XXX Sadly can't use this in the previous command:
 #    --feature sqlite --feature postgres --feature mysql \
