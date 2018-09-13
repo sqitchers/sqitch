@@ -6,7 +6,7 @@ ENV BUILDROOT /work
 WORKDIR $BUILDROOT
 RUN apk add --update build-base curl perl perl-dev gettext tzdata \
     libressl libressl-dev zlib-dev \
-    sqlite postgresql-dev mariadb-connector-c unixodbc-dev
+    sqlite postgresql-dev mariadb-connector-c-dev unixodbc-dev
 
 # Set up time zone. https://wiki.alpinelinux.org/wiki/Setting_the_timezone
 RUN cp /usr/share/zoneinfo/UTC /etc/localtime && echo UTC > /etc/timezone && apk del tzdata
@@ -32,12 +32,14 @@ RUN ./cpm install -L local --verbose --no-test --with-recommends --cpanfile src/
 # Build, test, bundle.
 WORKDIR $BUILDROOT/src
 RUN perl Build.PL --quiet --install_base /app --etcdir /etc \
-    --with sqlite --with postgres --with mysql \
+    --with sqlite --with postgres \
     && ./Build test && ./Build bundle
 
 # Copy to the final image without all the build stuff.
 FROM alpine:latest
 RUN apk add --update perl tzdata less sqlite postgresql-client mysql-client unixodbc
+# Termporary workaround to avoid https://github.com/perl5-dbi/DBD-mysql/issues/262.
+RUN apk add perl-dbd-mysql
 RUN cp /usr/share/zoneinfo/UTC /etc/localtime && echo UTC > /etc/timezone && apk del tzdata
 COPY --from=sqitch-build /app .
 COPY --from=sqitch-build /etc /etc/
