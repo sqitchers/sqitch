@@ -13,7 +13,15 @@ RUN apk add --update build-base curl perl perl-dev gettext tzdata \
 # Alas, that means that MySQL 8 may not be supported.
 
 # Set up time zone. https://wiki.alpinelinux.org/wiki/Setting_the_timezone
-RUN cp /usr/share/zoneinfo/UTC /etc/localtime && echo UTC > /etc/timezone && apk del tzdata
+RUN cp /usr/share/zoneinfo/UTC /etc/localtime && echo UTC > /etc/timezone
+
+# Download and move Firebird files in place.
+RUN curl -LO https://github.com/FirebirdSQL/firebird/releases/download/R3_0_3/Firebird-3.0.3.32900-0.amd64.tar.gz \
+    && tar zxf Firebird-3.0.3.32900-0.amd64.tar.gz \
+    && cd Firebird-3.0.3.32900-0.amd64 \
+    && tar zxf buildroot.tar.gz \
+    && mkdir -p /usr/include && mv usr/include/* /usr/include \
+    && mkdir -p /opt && mv opt/firebird /opt/
 
 # Install cpan and build dependencies.
 RUN curl -sL --compressed https://git.io/cpm > cpm && chmod +x cpm
@@ -36,7 +44,7 @@ RUN ./cpm install -L local --verbose --no-test --with-recommends --cpanfile src/
 # Build, test, bundle.
 WORKDIR $BUILDROOT/src
 RUN perl Build.PL --quiet --install_base /app --etcdir /etc \
-    --with sqlite --with postgres \
+    --with sqlite --with postgres --with firebird \
     && ./Build test && ./Build bundle
 
 # Copy to the final image without all the build stuff.
@@ -47,7 +55,7 @@ RUN apk add --udpate perl tzdata less sqlite postgresql-client mysql-client unix
 RUN apk add perl-dbd-mysql
 
 # Set the time zone, clear the cache, and install the bundle.
-RUN cp /usr/share/zoneinfo/UTC /etc/localtime && echo UTC > /etc/timezone && apk del tzdata
+RUN cp /usr/share/zoneinfo/UTC /etc/localtime && echo UTC > /etc/timezone
 RUN rm -rf /var/cache/*
 COPY --from=sqitch-build /app .
 COPY --from=sqitch-build /etc /etc/
