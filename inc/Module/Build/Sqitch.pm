@@ -6,7 +6,6 @@ use Module::Build 0.35;
 use base 'Module::Build';
 use IO::File ();
 use File::Spec ();
-use File::Basename ();
 use Config ();
 use File::Path ();
 use File::Copy ();
@@ -232,10 +231,9 @@ sub ACTION_bundle {
     SHHH: {
         local $SIG{__WARN__} = sub {}; # Menlo has noisy warnings.
         local $ENV{PERL_CPANM_OPT}; # Override cpanm options.
-        require Menlo::CLI::Compat;
         my $feat = $self->with || [];
         $feat = [$feat] unless ref $feat;
-        my $app = App::Sqitch::Menlo::CLI->new(
+        my $app = App::Sqitch::Menlo->new(
             quiet          => $self->quiet,
             verbose        => $self->verbose,
             notest         => 1,
@@ -281,9 +279,14 @@ sub _copy_findbin_script {
     $self->make_executable($result);
 }
 
-package App::Sqitch::Menlo::CLI;
+package App::Sqitch::Menlo;
 our @ISA;
-push @ISA => qw(Menlo::CLI::Compat); # Loaded on-demand by ACTION_bundle.
+push @ISA => qw(Menlo::CLI::Compat);
+
+sub new {
+    require Menlo::CLI::Compat;
+    shift->SUPER::new(@_);
+}
 
 # Menlo defaults to config, test, runtime. We just want to bundle runtime.
 sub find_prereqs {

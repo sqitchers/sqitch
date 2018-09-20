@@ -91,30 +91,30 @@ To install Sqitch and all of its dependencies into a single directory named
     cpan Menlo::CLI::Compat
     ./Build bundle --install_base sqitch_bundle
 
-After which, Sqtich can be run from `./sqitch_bundle/bin/sqitch`. To include
-support for a feature in the bundle, pass the `--with` (or `-w`) option naming
-the feature:
+After which, Sqitch can be run from `./sqitch_bundle/bin/sqitch`. To include
+support for a feature in the bundle, pass the `--with` option naming the
+feature:
 
-    ./Build bundle --install_base sqitch_bundle --with postgres-support -w sqlite-support
+    ./Build bundle --install_base sqitch_bundle --with postgres --with sqlite
 
 The feature names correspond to the supported engines:
 
-*   `--with-postgres-support`:  Support for managing PostgreSQL databases
-*   `--with-sqlite-support`:    Support for managing SQLite databases
-*   `--with-mysql-support`:     Support for managing MySQL databases
-*   `--with-firebird-support`:  Support for managing Firbird databases
-*   `--with-oracle-support`:    Support for managing Oracle databases
-*   `--with-vertica-support`:   Support for managing Vertica databases
-*   `--with-exasol-support`:    Support for managing Exasol databases
-*   `--with-snowflake-support`: Support for managing Snowflake databases
+*   `--with postgres`:  Support for managing PostgreSQL databases
+*   `--with sqlite`:    Support for managing SQLite databases
+*   `--with mysql`:     Support for managing MySQL databases
+*   `--with firebird`:  Support for managing Firebird databases
+*   `--with oracle`:    Support for managing Oracle databases
+*   `--with vertica`:   Support for managing Vertica databases
+*   `--with exasol`:    Support for managing Exasol databases
+*   `--with snowflake`: Support for managing Snowflake databases
 
 To build from a Git clone, first install
 [Dist::Zilla](https://metacpan.org/module/Dist::Zilla), then use it to install
 Sqitch and all dependencies:
 
-    cpan Dist::Zilla
-    dzil authordeps --missing | xargs cpan
-    dzil listdeps --missing | xargs cpan
+    cpanm Dist::Zilla
+    dzil authordeps --missing | cpanm
+    dzil listdeps --missing | cpanm
     dzil install
 
 To run Sqitch directly from the Git clone, execute `t/sqitch`.
