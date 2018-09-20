@@ -231,9 +231,10 @@ sub ACTION_bundle {
     SHHH: {
         local $SIG{__WARN__} = sub {}; # Menlo has noisy warnings.
         local $ENV{PERL_CPANM_OPT}; # Override cpanm options.
+        require Menlo::Sqitch;
         my $feat = $self->with || [];
         $feat = [$feat] unless ref $feat;
-        my $app = App::Sqitch::Menlo->new(
+        my $app = Menlo::Sqitch->new(
             quiet          => $self->quiet,
             verbose        => $self->verbose,
             notest         => 1,
@@ -246,6 +247,7 @@ sub ACTION_bundle {
             argv           => ['.'],
         );
         die "Error installing modules: $@\n" if $app->run;
+        use Data::Dump; ddx $app->{_remove};
     }
 
     # Install Sqitch.
@@ -278,35 +280,3 @@ sub _copy_findbin_script {
     $self->fix_shebang_line($result) unless $self->is_vmsish;
     $self->make_executable($result);
 }
-
-package App::Sqitch::Menlo;
-our @ISA;
-push @ISA => qw(Menlo::CLI::Compat);
-
-sub new {
-    require Menlo::CLI::Compat;
-    shift->SUPER::new(@_);
-}
-
-# Menlo defaults to config, test, runtime. We just want to bundle runtime.
-sub find_prereqs {
-    my ($self, $dist) = @_;
-    $dist->{want_phases} = ['runtime'];
-    return $self->SUPER::find_prereqs($dist);
-}
-
-sub configure {
-    my $self = shift;
-    my $cmd = $_[0];
-    return $self->SUPER::configure(@_) if ref $cmd ne 'ARRAY';
-    # Always use vendor install dirs. Hack for
-    # https://github.com/miyagawa/cpanminus/issues/581.
-    if ($cmd->[1] eq 'Makefile.PL') {
-        push @{ $cmd } => 'INSTALLDIRS=vendor';
-    } elsif ($cmd->[1] eq 'Build.PL') {
-        push @{ $cmd } => '--installdirs', 'vendor';
-    }
-    return $self->SUPER::configure(@_);
-}
-
-1;
