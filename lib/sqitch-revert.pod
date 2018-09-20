@@ -100,7 +100,7 @@ L<C<DEFINE> variables|http://docs.oracle.com/cd/B19306_01/server.102/b14357/ch12
 =item C<[revert.no_prompt]>
 
 A boolean value indicating whether or not to disable the prompt before
-executing the revert. My be overridden by C<-y>.
+executing the revert. May be overridden by C<-y>.
 
 =item C<[revert.prompt_accept]>
 
