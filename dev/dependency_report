@@ -43,6 +43,8 @@ sub run {
         'ExtUtils-Install' => 'ExtUtils::Install',
         'ExtUtils-ParseXS' => 'ExtUtils::ParseXS',
         'Dist-CheckConflicts' => 'Dist::CheckConflicts',
+        'Perl-Tidy' => 'Perl::Tidy',
+        'AppConfig' => 'AppConfig', # Used only by Template Toolkit bin scripts.
     };
     $self->{deps} = { runtime => {}, build => {} };
 

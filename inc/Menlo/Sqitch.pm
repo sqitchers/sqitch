@@ -57,6 +57,7 @@ sub remove_build_dependencies {
 # Data pasted from the report of build-only dependencies by
 # dev/dependency_report.
 __DATA__
+AppConfig
 Archive-Tar
 CGI
 CPAN
@@ -135,6 +136,7 @@ Net-SSLeay
 Number-Compare
 Params-Check
 Parse-PMFile
+Perl-Tidy
 Pod-Coverage
 Readonly
 Safe
