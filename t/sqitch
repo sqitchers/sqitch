@@ -1,4 +1,4 @@
-#!perl -CAS
+#!/usr/bin/env perl -CAS
 
 use POSIX qw(setlocale);
 BEGIN {
