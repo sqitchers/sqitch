@@ -88,7 +88,7 @@ To install Sqitch from a distribution download, type the following:
 To install Sqitch and all of its dependencies into a single directory named
 `sqitch_bundle`, install the Menlo CPAN client and build the bundle:
 
-    cpan Menlo::CLI::Compat
+    cpanm Menlo::CLI::Compat
     ./Build bundle --install_base sqitch_bundle
 
 After which, Sqitch can be run from `./sqitch_bundle/bin/sqitch`. To include
