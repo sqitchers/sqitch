@@ -38,6 +38,7 @@ sub run {
     my $feat = $meta->{optional_features} || {};
     $self->{skipdists} = {
         'Module-Build' => 'Module::Build',
+        'Module-Signature' => 'Module::Signature',
         'ExtUtils-MakeMaker' => 'ExtUtils::MakeMaker',
         'ExtUtils-Manifest' => 'ExtUtils::Manifest',
         'ExtUtils-Install' => 'ExtUtils::Install',

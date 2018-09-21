@@ -128,6 +128,7 @@ Module-CoreList
 Module-Load
 Module-Load-Conditional
 Module-Metadata
+Module-Signature
 Mozilla-CA
 Mozilla-PublicSuffix
 Net-HTTP
