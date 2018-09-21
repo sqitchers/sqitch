@@ -260,25 +260,32 @@ sub ACTION_bundle {
     for my $file (@{ $self->rscan_dir($base, qr/[.](?:meta|packlist)$/) }) {
         $self->delete_filetree($file);
     }
-    # Delete empty directories.
-    File::Find::finddepth(sub{rmdir},$base);
-
-    # Move libraries from lib/perl5 to lib.
-    my $tmp = File::Spec->catdir($base, qw(tmp));
-    File::Copy::move( File::Spec->catdir($base, qw(lib perl5)), $tmp );
-    $self->delete_filetree(File::Spec->catdir($base, qw(lib)));
-    File::Copy::move( $tmp, File::Spec->catdir($base, qw(lib)) );
 
     # Install sqitch script using FindBin.
     $self->_copy_findbin_script;
+
+    # Delete empty directories.
+    File::Find::finddepth(sub{rmdir},$base);
 }
 
 sub _copy_findbin_script {
     my $self = shift;
+    # XXX Switch to lib/perl5.
     my $bin = $self->install_destination('script');
-    my $script = File::Spec->catfile(qw(t sqitch));
+    my $script = File::Spec->catfile(qw(bin sqitch));
     my $dest = File::Spec->catfile($bin, 'sqitch');
     my $result = $self->copy_if_modified($script, $bin, 'flatten') or return;
     $self->fix_shebang_line($result) unless $self->is_vmsish;
+    $self->_set_findbin($result);
     $self->make_executable($result);
+}
+
+sub _set_findbin {
+    my ($self, $file) = @_;
+    local $^I = '';
+    local @ARGV = ($file);
+    while (<>) {
+        s{^BEGIN}{use FindBin;\nuse lib "\$FindBin::Bin/../lib/perl5";\nBEGIN};
+        print;
+    }
 }
