@@ -12,9 +12,9 @@ sub new {
     );
 }
 
-# Menlo defaults to config, test, runtime. We just want to bundle runtime.
 sub find_prereqs {
     my ($self, $dist) = @_;
+    # Menlo defaults to config, test, runtime. We just want to bundle runtime.
     $dist->{want_phases} = ['runtime'];
     return $self->SUPER::find_prereqs($dist);
 }
@@ -43,6 +43,7 @@ sub save_meta {
 }
 
 sub remove_build_dependencies {
+    # Uninstall modules for distributions not actually needed to run Sqitch.
     my $self = shift;
     local $self->{force} = 1;
     my @fail;
@@ -54,6 +55,10 @@ sub remove_build_dependencies {
 
 1;
 
+# List of distirbutions that might be installed but are not actually needed to
+# run Sqitch. Used to track unneeded installs so they can be removed by
+# remove_build_dependencies().
+#
 # Data pasted from the report of build-only dependencies by
 # dev/dependency_report.
 __DATA__
