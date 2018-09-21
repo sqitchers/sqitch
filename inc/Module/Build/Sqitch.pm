@@ -255,7 +255,6 @@ sub ACTION_bundle {
     $self->depends_on('install');
 
     # Delete unneeded files.
-    $self->delete_filetree(File::Spec->catdir($base, qw(lib perl5 Module Build)));
     $self->delete_filetree(File::Spec->catdir($base, qw(lib perl5 Test)));
     $self->delete_filetree(File::Spec->catdir($base, qw(bin)));
     for my $file (@{ $self->rscan_dir($base, qr/[.](?:meta|packlist)$/) }) {
