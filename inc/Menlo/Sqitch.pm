@@ -7,7 +7,7 @@ use base 'Menlo::CLI::Compat';
 sub new {
     shift->SUPER::new(
          @_,
-        _remove => {},
+        _remove   => [],
         _bld_deps => { map { chomp; $_ => 1 } <DATA> },
     );
 }
@@ -38,8 +38,18 @@ sub save_meta {
     my ($module, $dist) = @_;
     # Record if we've installed a build-only dependency.
     my $dname = $dist->{meta}{name};
-    $self->{_remove}{ $dname } = $module if $self->{_bld_deps}{$dname};
+    push @{ $self->{_remove} } => $module if $self->{_bld_deps}{$dname};
     $self->SUPER::save_meta(@_);
+}
+
+sub remove_build_dependencies {
+    my $self = shift;
+    local $self->{force} = 1;
+    my @fail;
+    for my $mod (reverse @{ $self->{_remove} }) {
+        $self->uninstall_module($mod) or push @fail, $mod;
+    }
+    return !@fail;
 }
 
 1;

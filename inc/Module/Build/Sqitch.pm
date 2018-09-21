@@ -247,7 +247,8 @@ sub ACTION_bundle {
             argv           => ['.'],
         );
         die "Error installing modules: $@\n" if $app->run;
-        use Data::Dump; ddx $app->{_remove};
+        die "Error removing build modules: $@\n"
+            unless $app->remove_build_dependencies;
     }
 
     # Install Sqitch.
@@ -260,6 +261,8 @@ sub ACTION_bundle {
     for my $file (@{ $self->rscan_dir($base, qr/[.](?:meta|packlist)$/) }) {
         $self->delete_filetree($file);
     }
+    # Delete empty directories.
+    File::Find::finddepth(sub{rmdir},$base);
 
     # Move libraries from lib/perl5 to lib.
     my $tmp = File::Spec->catdir($base, qw(tmp));
