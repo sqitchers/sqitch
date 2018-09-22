@@ -50,7 +50,7 @@ before_install:
   - docker pull cjonesy/docker-vertica:latest
   - docker run -d -p 5433:5433 --rm sumitchawla/vertica
   - docker ps -a
-  - curl -O https://my.vertica.com/client_drivers/8.1.x/8.1.1-7/vertica-client-8.1.1-7.x86_64.tar.gz
+  - curl -sSLO https://my.vertica.com/client_drivers/8.1.x/8.1.1-7/vertica-client-8.1.1-7.x86_64.tar.gz
   - sudo tar -xzf vertica-client-8.1.1-7.x86_64.tar.gz -C /
   - export PATH=/opt/vertica/bin:$PATH
 
@@ -58,9 +58,9 @@ before_install:
   - docker pull exasol/docker-db:latest
   - docker run -d -p 127.0.0.1:8888:8888 --privileged --rm exasol/docker-db:latest
   - docker ps -a
-  - curl -O https://www.exasol.com/support/secure/attachment/55217/EXASOL_ODBC-6.0.4.tar.gz
+  - curl -sSLO https://www.exasol.com/support/secure/attachment/55217/EXASOL_ODBC-6.0.4.tar.gz
   - sudo tar -xvzf EXASOL_ODBC-6.0.4.tar.gz -C /opt
-  - curl -O https://www.exasol.com/support/secure/attachment/55310/EXAplus-6.0.4.tar.gz
+  - curl -sSLO https://www.exasol.com/support/secure/attachment/55310/EXAplus-6.0.4.tar.gz
   - sudo tar -xzf EXAplus-6.0.4.tar.gz -C /opt
   - export PATH=/opt/EXAplus-6.0.4:$PATH
 
