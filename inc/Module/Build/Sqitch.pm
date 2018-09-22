@@ -189,7 +189,7 @@ sub process_pm_files {
 
 sub fix_shebang_line {
     my $self = shift;
-    # Noting to do before after 5.10.0.
+    # Noting to do after 5.10.0.
     return $self->SUPER::fix_shebang_line(@_) if $] > 5.010000;
 
     # Remove -C from the shebang line.
@@ -228,6 +228,7 @@ sub fix_shebang_line {
 sub ACTION_bundle {
     my ($self, @params) = @_;
     my $base = $self->install_base or die "No --install_base specified\n";
+    # XXX Consider replacing with a Carmel-based solution?
     SHHH: {
         local $SIG{__WARN__} = sub {}; # Menlo has noisy warnings.
         local $ENV{PERL_CPANM_OPT}; # Override cpanm options.
