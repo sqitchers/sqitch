@@ -97,7 +97,7 @@ has user_name => (
             require Encode::Locale;
             return Encode::decode( locale => $name );
         };
-    },
+    }
 );
 
 has user_email => (
