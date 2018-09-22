@@ -37,11 +37,16 @@ Revision history for Perl extension App::Sqitch
        a username and can't find one from other sources (such as a target
        URL), Sqitch has traditionally fallen back on the system username. This
        environment variable can now be used to override the system username.
-     - Added the `$SQITCH_USER_NAME` and `$SQITCH_USER_EMAIL` environment
+     - Added the `$SQITCH_USER_NAME` and `$SQITCH_USER_EMAIL`, environment
+       variables, which take precedence over the values of the `user.name` and
+       `user.email` config variables.
+     - Added they `$SQITCH_ORIG_NAME` and `$SQITCH_ORIG_EMAIL` environment
        variables. Traditionally, when the `user.name` and `user.email` config
-       variables have not been set, Sqitch has attempted to read the system
-       user and host information to derive these values. These new environment
-       variables can now be used to override these system-derived values.
+       variables have not been set, Sqitch has attempted to read the system user
+       and host information to derive these values. These new environment
+       variables can now be used to override these system-derived values. The
+       intention is to allow an originating host to set these values on another
+       host where Sqitch will actually execute.
 
 0.9997 2018-03-15T21:13:52Z
      - Fixed the Firebird engine to properly detect multiple instances of a

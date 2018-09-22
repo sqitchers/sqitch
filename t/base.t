@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 149;
+use Test::More tests => 153;
 #use Test::More 'no_plan';
 use Test::MockModule;
 use Path::Class;
@@ -78,8 +78,8 @@ ENV: {
 # Test go().
 GO: {
     local $ENV{SQITCH_USER} = "__barack__";
-    local $ENV{SQITCH_USER_NAME} = 'Barack Obama';
-    local $ENV{SQITCH_USER_EMAIL} = 'barack@whitehouse.gov';
+    local $ENV{SQITCH_ORIG_NAME} = 'Barack Obama';
+    local $ENV{SQITCH_ORIG_EMAIL} = 'barack@whitehouse.gov';
 
     my $mock = Test::MockModule->new('App::Sqitch::Command::help');
     my ($cmd, @params);
@@ -106,6 +106,16 @@ GO: {
     is $sqitch->user_email, 'michael@example.com',
         'Should have read user email from configuration';
     is_deeply $sqitch->options, { engine => 'sqlite' }, 'Should have options';
+
+    # Make sure USER_NAME and USER_EMAIL take precedence over configuration.
+    local $ENV{SQITCH_USER_NAME} = 'Michelle Obama';
+    local $ENV{SQITCH_USER_EMAIL} = 'michelle@whitehouse.gov';
+    is +App::Sqitch->go, 0, 'Should get 0 from go() again';
+    isa_ok $sqitch = $cmd->sqitch, 'App::Sqitch';
+    is $sqitch->user_name, 'Michelle Obama',
+        'Should have read user name from environment';
+    is $sqitch->user_email, 'michelle@whitehouse.gov',
+        'Should have read user email from environment';
 
     # Now make it die.
     sub puke { App::Sqitch::X->new(@_) } # Ensures we have trace frames.

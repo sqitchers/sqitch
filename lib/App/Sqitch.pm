@@ -77,7 +77,10 @@ has user_name => (
     isa     => UserName,
     default => sub {
         my $self = shift;
-        $self->config->get( key => 'user.name' ) || $ENV{SQITCH_USER_NAME} || do {
+        $ENV{SQITCH_USER_NAME}
+            || $self->config->get( key => 'user.name' )
+            || $ENV{SQITCH_ORIG_NAME}
+        || do {
             my $sysname = $self->sysuser || hurl user => __(
                     'Cannot find your name; run sqitch config --user user.name "YOUR NAME"'
             );
@@ -103,7 +106,10 @@ has user_email => (
     isa     => UserEmail,
     default => sub {
         my $self = shift;
-        $self->config->get( key => 'user.email' ) || $ENV{SQITCH_USER_EMAIL} || do {
+         $ENV{SQITCH_USER_EMAIL}
+            || $self->config->get( key => 'user.email' )
+            || $ENV{SQITCH_ORIG_EMAIL}
+        || do {
             my $sysname = $self->sysuser || hurl user => __(
                 'Cannot infer your email address; run sqitch config --user user.email you@host.com'
             );
