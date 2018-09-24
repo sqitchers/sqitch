@@ -11,6 +11,10 @@ Revision history for Perl extension App::Sqitch
      - The Vertica and Exasol engines now require DBD::ODBC 1.59, which fixes
        a Unicode issue. Thanks to Martin J. Evans for the quick fix
        (perl5-dbi/DBD-ODBC#8)!
+     - Added the `bundle` command to `./Build`. This command installs only the
+       runtime dependencies into the `--install_base` directory. This should
+       simplify building distribution packages, binary installs, Docker images,
+       and the like.
 
 0.9997 2018-03-15T21:13:52Z
      - Fixed the Firebird engine to properly detect multiple instances of a
