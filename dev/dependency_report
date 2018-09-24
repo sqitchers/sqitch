@@ -19,6 +19,7 @@ use utf8;
 
 use HTTP::Tiny;
 use JSON::PP;
+use Getopt::Long;
 
 my $api_uri = 'https://fastapi.metacpan.org/v1';
 eval { HTTP::Tiny::Handle->_assert_ssl };
@@ -29,6 +30,9 @@ sub new {
     return bless {
         dist_for => {},
         http     => HTTP::Tiny->new(agent => __PACKAGE__ . "/$VERSION"),
+        tree     => 1,
+        report   => 1,
+        verbose  => 0,
         @_,
     } => $class;
 }
@@ -49,7 +53,7 @@ sub run {
     };
     $self->{deps} = { runtime => {}, build => {} };
 
-    say 'Mapping dependencies...';
+    say 'Mapping dependencies...' if $self->{verbose};
 
     for my $depends ( $meta->{prereqs}, (map { $_->{prereqs} || {} } values %{ $feat }) ) {
         # Collect build dependencies.
@@ -75,20 +79,22 @@ sub run {
         }
     }
 
-    # Generate the report.
-    my $bld = $self->{deps}{build};
-    my $run = $self->{deps}{runtime};
+    if ($self->{report}) {
+        # Generate the report.
+        my $bld = $self->{deps}{build};
+        my $run = $self->{deps}{runtime};
 
-    # Report build dependencies.
-    say "\nBuild-only dependencies";
-    say "        $_" for sort grep { !$run->{$_} } keys %{ $bld };
+        # Report build dependencies.
+        say "\nBuild-only dependencies";
+        say "        $_" for sort grep { !$run->{$_} } keys %{ $bld };
 
-    # Report runtime dependencies.
-    say "\nRuntime-only dependencies";
-    say "        $_" for sort grep { !$bld->{$_} } keys %{ $run };
+        # Report runtime dependencies.
+        say "\nRuntime-only dependencies";
+        say "        $_" for sort grep { !$bld->{$_} } keys %{ $run };
 
-    say "\nOverlapping dependencies";
-    say "        $_" for sort grep { $bld->{$_} } keys %{ $run };
+        say "\nOverlapping dependencies";
+        say "        $_" for sort grep { $bld->{$_} } keys %{ $run };
+    }
 }
 
 sub report_on {
@@ -103,20 +109,21 @@ sub report_on {
     }
 
     # Return if we've seen it before.
-    print +(' ' x $indent), "$self->{phase}: $dist => $module";
+    my $tree = $self->{tree};
+    print +(' ' x $indent), "$self->{phase}: $dist => $module" if $tree;
     if ( exists $self->{deps}{ $self->{phase} }{$dist} ) {
-        say ' (seen)';
+        say ' (seen)' if $tree;
         return;
     }
 
     # Show skipped build dependencies just the once.
     if ($self->{skipdists}{$dist}) {
         $self->{deps}{build}{$dist} = $self->{skipdists}{$dist};
-        say ' (skipping)';
+        say ' (skipping)' if $tree;
         return;
     }
     $self->{deps}{ $self->{phase} }{$dist} = $module;
-    say '';
+    say '' if $tree;
 
     # Recurse for required or recommended runtime, configure, or build
     # dependencies.
@@ -149,9 +156,21 @@ sub _fetch {
     };
 };
 
+
+my %opts = (
+    tree    => 1,
+    report  => 1,
+    verbose => 1,
+);
+GetOptions(
+    'tree|t!'     => \$opts{tree},
+    'report|r!'   => \$opts{report},
+    'verbose|v+'  => \$opts{verbose},
+);
+
 my $fn = shift || die "Usage: $0 META.josn\n";
 open my $fh, '<:raw', $fn or die "Cannot open $fn: $!\n";
 my $meta = decode_json join '', <$fh>;
 close $fh;
 
-App::Sqitch::PhaseReporter->new->run($meta);
+App::Sqitch::PhaseReporter->new(%opts)->run($meta);
