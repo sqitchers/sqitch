@@ -30,6 +30,9 @@ Revision history for Perl extension App::Sqitch
        violation. Thanks to Eric Bréchemier for the suggestion (#344).
      - Moved the project to its own GitHub organization:
        https://github.com/sqitchers.
+     - Fixed likely cause of Oracle buffer allocation bug when selecting
+       timestamp strings. Thanks to @johannwilfling for the bug report and to
+       @nmaqsudov for the analysis and solution (#316).
 
 0.9997 2018-03-15T21:13:52Z
      - Fixed the Firebird engine to properly detect multiple instances of a

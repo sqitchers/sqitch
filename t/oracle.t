@@ -428,7 +428,7 @@ $mock_ora->unmock_all;
 # Test DateTime formatting stuff.
 ok my $ts2char = $CLASS->can('_ts2char_format'), "$CLASS->can('_ts2char_format')";
 is sprintf($ts2char->(), 'foo'),
-    q{CAST(to_char(foo AT TIME ZONE 'UTC', '"year":YYYY:"month":MM:"day":DD') || to_char(foo AT TIME ZONE 'UTC', ':"hour":HH24:"minute":MI:"second":SS:"time_zone":"UTC"')  AS VARCHAR2(92 char))},
+    q{CAST(to_char(foo AT TIME ZONE 'UTC', '"year":YYYY:"month":MM:"day":DD') AS VARCHAR2(100 byte)) || CAST(to_char(foo AT TIME ZONE 'UTC', ':"hour":HH24:"minute":MI:"second":SS:"time_zone":"UTC"')  AS VARCHAR2(168 byte))},
     '_ts2char_format should work';
 
 ok my $dtfunc = $CLASS->can('_dt'), "$CLASS->can('_dt')";
