@@ -27,6 +27,14 @@ sub new {
         $p{requires}{'DateTime::TimeZone::Local::Win32'} = 0;
         $p{build_requires}{'Config::GitLike'} = '1.15';
     }
+    if (eval { require Hash::Merge; 1 } && $Hash::Merge::VERSION eq '0.298') {
+        warn join "\n", (
+            '**************************************************************',
+            '* You have Hash::Merge $Hash::Merge::VERSION, which is broken.',
+            "**************************************************************\n",
+        );
+        $p{requires}{'Hash::Merge'} = '0.299';
+    }
     my $self = $class->SUPER::new(%p);
     $self->add_build_element('etc');
     $self->add_build_element('mo');

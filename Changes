@@ -15,6 +15,10 @@ Revision history for Perl extension App::Sqitch
        runtime dependencies into the `--install_base` directory. This should
        simplify building distribution packages, binary installs, Docker images,
        and the like.
+     - Added a check for Hash::Merge 0.298 during installation, since that
+       release has a fatal bug that breaks Sqitch. If it's installed, the
+       installer will issue a warning and added v0.299 to its list of
+       dependencies. Thanks to Slaven Rezić for the suggestion (#377).
 
 0.9997 2018-03-15T21:13:52Z
      - Fixed the Firebird engine to properly detect multiple instances of a
