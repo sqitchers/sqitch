@@ -185,12 +185,21 @@ sub initialize {
     $self->_register_release;
 }
 
+sub _psql_major_version {
+    my $self = shift;
+    my $psql_version = $self->sqitch->probe($self->client, '--version');
+    my @parts = split /\s+/, $psql_version;
+    my ($maj) = $parts[-1] =~ /^(\d+)/;
+    return $maj || 0;
+}
+
 sub _run_registry_file {
     my ($self, $file) = @_;
     my $schema = $self->registry;
 
     # Fetch the client version. 8.4 == 80400
     my $version =  $self->_probe('-c', 'SHOW server_version_num');
+    my $psql_maj = $self->_psql_major_version;
 
     # Is this XC?
     my $opts =  $self->_probe('-c', q{
@@ -201,11 +210,14 @@ sub _run_registry_file {
            AND proname = 'pgxc_version';
     }) ? ' DISTRIBUTE BY REPLICATION' : '';
 
-    if ($version < 90300) {
-        # Need to write a temp file; no CREATE SCHEMA IF NOT EXISTS syntax.
-        (my $sql = scalar $file->slurp) =~ s/SCHEMA IF NOT EXISTS/SCHEMA/;
-        if ($version < 90000) {
-            # Also no :"registry" variable syntax.
+    if ($version < 90300 || $psql_maj < 9) {
+        # Need to transform the SQL and write it to a temp file.
+        my $sql = scalar $file->slurp;
+
+        # No CREATE SCHEMA IF NOT EXISTS syntax prior to 9.3.
+        $sql =~ s/SCHEMA IF NOT EXISTS/SCHEMA/ if $version < 90300;
+        if ($psql_maj < 9) {
+            # Also no :"registry" variable syntax prior to psql 9.0.s
             ($schema) = $self->dbh->selectrow_array(
                 'SELECT quote_ident(?)', undef, $schema
             );

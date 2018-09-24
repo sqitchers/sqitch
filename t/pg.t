@@ -263,6 +263,22 @@ is $dt->second,  1, 'DateTime second should be set';
 is $dt->time_zone->name, 'UTC', 'DateTime TZ should be set';
 
 ##############################################################################
+# Test _psql_major_version.
+for my $spec (
+    ['11beta3', 11],
+    ['11.3', 11],
+    ['10', 10],
+    ['9.6.3', 9],
+    ['8.4.2', 8],
+    ['9.0.19', 9],
+) {
+    $mock_sqitch->mock(probe => "psql (PostgreSQL) $spec->[0]");
+    is $pg->_psql_major_version, $spec->[1],
+        "Should find major version $spec->[1] in $spec->[0]";
+}
+$mock_sqitch->unmock('probe');
+
+##############################################################################
 # Can we do live tests?
 $sqitch = App::Sqitch->new( options => { engine => 'pg' } );
 $target = App::Sqitch::Target->new( sqitch => $sqitch );

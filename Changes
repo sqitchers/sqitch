@@ -19,6 +19,12 @@ Revision history for Perl extension App::Sqitch
        release has a fatal bug that breaks Sqitch. If it's installed, the
        installer will issue a warning and added v0.299 to its list of
        dependencies. Thanks to Slaven Rezić for the suggestion (#377).
+     - Fixed the PostgreSQL engine so it properly checks the psql client
+       version to determine whether or not the `:registry` variable is
+       supported. Previously it relied on the server version, which would fail
+       if the server version was greater than 8.4 but the psql client was not.
+       Thanks to multiple folks reporting issues with registry names and
+       search paths (#314).
 
 0.9997 2018-03-15T21:13:52Z
      - Fixed the Firebird engine to properly detect multiple instances of a
