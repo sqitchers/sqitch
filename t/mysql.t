@@ -17,6 +17,9 @@ use DBIEngineTest;
 
 my $CLASS;
 
+my $mm = eval { Test::MockModule->new('MySQL::Config') };
+$mm->mock(parse_defaults => {}) if $mm;
+
 BEGIN {
     $CLASS = 'App::Sqitch::Engine::mysql';
     require_ok $CLASS or die;

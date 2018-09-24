@@ -85,18 +85,39 @@ To install Sqitch from a distribution download, type the following:
     ./Build test
     ./Build install
 
+To install Sqitch and all of its dependencies into a single directory named
+`sqitch_bundle`, install the Menlo CPAN client and build the bundle:
+
+    cpanm Menlo::CLI::Compat
+    ./Build bundle --install_base sqitch_bundle
+
+After which, Sqitch can be run from `./sqitch_bundle/bin/sqitch`. To include
+support for a feature in the bundle, pass the `--with` option naming the
+feature:
+
+    ./Build bundle --install_base sqitch_bundle --with postgres --with sqlite
+
+The feature names correspond to the supported engines:
+
+*   `--with postgres`:  Support for managing PostgreSQL databases
+*   `--with sqlite`:    Support for managing SQLite databases
+*   `--with mysql`:     Support for managing MySQL databases
+*   `--with firebird`:  Support for managing Firebird databases
+*   `--with oracle`:    Support for managing Oracle databases
+*   `--with vertica`:   Support for managing Vertica databases
+*   `--with exasol`:    Support for managing Exasol databases
+*   `--with snowflake`: Support for managing Snowflake databases
+
 To build from a Git clone, first install
 [Dist::Zilla](https://metacpan.org/module/Dist::Zilla), then use it to install
-Sqitch and its dependencies:
+Sqitch and all dependencies:
 
-    cpan Dist::Zilla
+    cpanm Dist::Zilla
+    dzil authordeps --missing | cpanm
+    dzil listdeps --missing | cpanm
     dzil install
 
-To run Sqitch directly from the Git clone execute `t/sqitch`. If you're doing
-development on Sqitch, you will need to install the authoring dependencies, as
-well:
-
-    dzil listdeps | xargs cpan
+To run Sqitch directly from the Git clone, execute `t/sqitch`.
 
 To install Sqitch on a specific platform, including Debian- and RedHat-derived
 Linux distributions and Windows, see the

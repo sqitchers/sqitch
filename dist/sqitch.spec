@@ -37,6 +37,7 @@ BuildRequires:  perl(IPC::Run3)
 BuildRequires:  perl(IPC::System::Simple) >= 1.17
 BuildRequires:  perl(List::Util)
 BuildRequires:  perl(List::MoreUtils)
+BuildRequires:  perl(Locale::Messages)
 BuildRequires:  perl(Locale::TextDomain) >= 1.20
 BuildRequires:  perl(Module::Build) >= 0.35
 BuildRequires:  perl(Module::Runtime)
@@ -104,6 +105,7 @@ Requires:       perl(IPC::Run3)
 Requires:       perl(IPC::System::Simple) >= 1.17
 Requires:       perl(List::Util)
 Requires:       perl(List::MoreUtils)
+Requires:       perl(Locale::Messages)
 Requires:       perl(Locale::TextDomain) >= 1.20
 Requires:       perl(Moo) => 1.002000
 Requires:       perl(Moo::Role)
