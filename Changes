@@ -25,6 +25,9 @@ Revision history for Perl extension App::Sqitch
        if the server version was greater than 8.4 but the psql client was not.
        Thanks to multiple folks reporting issues with registry names and
        search paths (#314).
+     - The plan parser will now complain if a change specifies a duplicate
+       dependency. This should be less confusing than a database unique
+       violation. Thanks to Eric Bréchemier for the suggestion (#344).
 
 0.9997 2018-03-15T21:13:52Z
      - Fixed the Firebird engine to properly detect multiple instances of a

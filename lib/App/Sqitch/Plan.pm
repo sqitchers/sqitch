@@ -410,7 +410,7 @@ sub _parse {
 
             # Got dependencies?
             if (my $deps = $params{dependencies}) {
-                my (@req, @con);
+                my (@req, @con, %seen_dep);
                 for my $depstring (split /[[:blank:]]+/, $deps) {
                     my $dep_params = App::Sqitch::Plan::Depend->parse(
                         $depstring,
@@ -422,6 +422,10 @@ sub _parse {
                         plan => $self,
                         %{ $dep_params },
                     );
+                    # Prevent dupes.
+                    $raise_syntax_error->(
+                        __x( 'Duplicate dependency "{dep}"', dep => $depstring ),
+                    ) if $seen_dep{$depstring}++;
                     if ($dep->conflicts) {
                         push @con => $dep;
                     } else {

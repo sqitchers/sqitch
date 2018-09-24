@@ -466,7 +466,7 @@ sub _verify_changes {
         $errcount += $errs;
     }
 
-    # List off any undeployed changes.
+    # List any undeployed changes.
     for my $idx ($from_idx..$to_idx) {
         next if defined first { $_ == $idx } @seen;
         my $change = $plan->change_at( $idx );
@@ -480,7 +480,7 @@ sub _verify_changes {
         $errcount++;
     }
 
-    # List off any pending changes.
+    # List any pending changes.
     if ($pending && $to_idx < ($plan->count - 1)) {
         if (my @pending = map {
             $plan->change_at($_)
