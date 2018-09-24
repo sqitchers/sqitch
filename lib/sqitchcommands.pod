@@ -41,4 +41,5 @@ The most commonly used sqitch commands are:
   verify     Verify changes to a database
 
 See C<< sqitch help <command> >> or C<< sqitch help <concept> >> to read about
-a specific command or concept.
+a specific command or concept. See C<< sqitch help --guide >> for a list of
+conceptual guides.
