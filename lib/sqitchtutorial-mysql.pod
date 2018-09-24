@@ -49,14 +49,14 @@ source code repository. So let's do that with Git:
    create mode 100644 README.md
 
 If you're a Git user and want to follow along the history, the repository used
-in these examples is L<on GitHub|https://github.com/theory/sqitch-mysql-intro>.
+in these examples is L<on GitHub|https://github.com/sqitchers/sqitch-mysql-intro>.
 
 Now that we have a repository, let's get started with Sqitch. Every Sqitch
 project must have a name associated with it, and, optionally, a unique URI. We
 recommend including the URI, as it increases the uniqueness of object
 identifiers internally, so let's specify one when we initialize Sqitch:
 
-  > sqitch init flipr --uri https://github.com/theory/sqitch-mysql-intro/ --engine mysql
+  > sqitch init flipr --uri https://github.com/sqitchers/sqitch-mysql-intro/ --engine mysql
   Created sqitch.conf
   Created sqitch.plan
   Created deploy/
@@ -113,7 +113,7 @@ Back to the repository. Have a look at the plan file, F<sqitch.plan>:
   > cat sqitch.plan
   %syntax-version=1.0.0
   %project=flipr
-  %uri=https://github.com/theory/sqitch-mysql-intro/
+  %uri=https://github.com/sqitchers/sqitch-mysql-intro/
 
 
 Note that it has picked up on the name and URI of the app we're building.
@@ -615,7 +615,7 @@ Now might be a good time to have a look at the deployment plan:
   > cat sqitch.plan
   %syntax-version=1.0.0
   %project=flipr
-  %uri=https://github.com/theory/sqitch-mysql-intro/
+  %uri=https://github.com/sqitchers/sqitch-mysql-intro/
 
   appuser 2013-12-31T21:04:04Z Marge N. O’Vera <marge@example.com> # Creates a an application user.
   users [appuser] 2013-12-31T21:32:48Z Marge N. O’Vera <marge@example.com> # Creates table to track our users.
@@ -1079,7 +1079,7 @@ And:
 
   COMMIT;
 
-Check the L<example git repository|https://github.com/theory/sqitch-intro> for
+Check the L<example git repository|https://github.com/sqitchers/sqitch-intro> for
 the complete details. Test L<C<deploy>|sqitch-deploy> and
 L<C<revert>|sqitch-revert>, then commit it to the repository. The status
 should end up looking something like this:
@@ -1234,7 +1234,7 @@ Ah, that looks a bit better. Let's have a look at the plan:
   > cat sqitch.plan
   %syntax-version=1.0.0
   %project=flipr
-  %uri=https://github.com/theory/sqitch-mysql-intro/
+  %uri=https://github.com/sqitchers/sqitch-mysql-intro/
 
   appuser 2013-12-31T21:04:04Z Marge N. O’Vera <marge@example.com> # Creates a an application user.
   users [appuser] 2013-12-31T21:32:48Z Marge N. O’Vera <marge@example.com> # Creates table to track our users.
@@ -1322,7 +1322,7 @@ And double-check our work:
   > cat sqitch.plan
   %syntax-version=1.0.0
   %project=flipr
-  %uri=https://github.com/theory/sqitch-mysql-intro/
+  %uri=https://github.com/sqitchers/sqitch-mysql-intro/
 
   appuser 2013-12-31T21:04:04Z Marge N. O’Vera <marge@example.com> # Creates a an application user.
   users [appuser] 2013-12-31T21:32:48Z Marge N. O’Vera <marge@example.com> # Creates table to track our users.

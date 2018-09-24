@@ -635,7 +635,7 @@ cmp_deeply delete $parsed->{pragmas}, {
     syntax_version => App::Sqitch::Plan::SYNTAX_VERSION,
     foo            => 'bar',
     project        => 'pragmata',
-    uri            => 'https://github.com/theory/sqitch/',
+    uri            => 'https://github.com/sqitchers/sqitch/',
     strict         => 1,
 }, 'Should have captured all of the pragmas';
 cmp_deeply $parsed, {
@@ -649,7 +649,7 @@ cmp_deeply $parsed, {
         prag( '', ' ', 'syntax-version', '', '=', '', App::Sqitch::Plan::SYNTAX_VERSION),
         prag( '  ', '', 'foo', ' ', '=', ' ', 'bar', '    ', 'lolz'),
         prag( '', ' ', 'project', '', '=', '', 'pragmata'),
-        prag( '', ' ', 'uri', '', '=', '', 'https://github.com/theory/sqitch/'),
+        prag( '', ' ', 'uri', '', '=', '', 'https://github.com/sqitchers/sqitch/'),
         prag( '', ' ', 'strict'),
         blank(),
         change { name => 'hey' },
@@ -2020,7 +2020,7 @@ is $plan->file, $target->plan_file, 'File should be coopied from Sqitch';
 is $plan->syntax_version, App::Sqitch::Plan::SYNTAX_VERSION,
     'syntax_version should be set';
 is $plan->project, 'pragmata', 'Project should be set';
-is $plan->uri, URI->new('https://github.com/theory/sqitch/'),
+is $plan->uri, URI->new('https://github.com/sqitchers/sqitch/'),
     'Should have URI from pragma';
 isa_ok $plan->uri, 'URI', 'It';
 

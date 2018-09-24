@@ -253,7 +253,7 @@ is $change2->as_string, "  - yo/howdy  [foo bar \@baz !dr_evil] "
     'It should stringify correctly';
 my $mock_plan = Test::MockModule->new(ref $plan);
 $mock_plan->mock(index_of => 0);
-my $uri = URI->new('https://github.com/theory/sqitch/');
+my $uri = URI->new('https://github.com/sqitchers/sqitch/');
 $mock_plan->mock( uri => $uri );
 
 ok !$change2->is_deploy, 'It should not be a deploy change';
@@ -263,7 +263,7 @@ is $change2->since_tag, $tag, 'It should have a since tag';
 is $change2->parent, $change, 'It should have a parent';
 is $change2->old_info, join("\n",
    'project change',
-   'uri https://github.com/theory/sqitch/',
+   'uri https://github.com/sqitchers/sqitch/',
    'change yo/howdy',
    'planner Barack Obama <potus@whitehouse.gov>',
    'date 2012-07-16T17:25:07Z'
@@ -271,7 +271,7 @@ is $change2->old_info, join("\n",
 
 is $change2->info, join("\n",
    'project change',
-   'uri https://github.com/theory/sqitch/',
+   'uri https://github.com/sqitchers/sqitch/',
    'change yo/howdy',
    'parent ' . $change->id,
    'planner Barack Obama <potus@whitehouse.gov>',

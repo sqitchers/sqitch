@@ -212,7 +212,7 @@ chdir $write_dir;
 END { chdir File::Spec->updir }
 my $conf_file = $sqitch->config->local_file;
 
-my $uri = URI->new('https://github.com/theory/sqitch/');
+my $uri = URI->new('https://github.com/sqitchers/sqitch/');
 
 $sqitch = App::Sqitch->new;
 ok $init = $CLASS->new(

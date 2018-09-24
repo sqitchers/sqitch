@@ -49,14 +49,14 @@ source code repository. So let's do that with Git:
    create mode 100644 README.md
 
 If you're a Git user and want to follow along the history, the repository used
-in these examples is L<on GitHub|https://github.com/theory/sqitch-sqlite-intro>.
+in these examples is L<on GitHub|https://github.com/sqitchers/sqitch-sqlite-intro>.
 
 Now that we have a repository, let's get started with Sqitch. Every Sqitch
 project must have a name associated with it, and, optionally, a unique URI. We
 recommend including the URI, as it increases the uniqueness of object
 identifiers internally, so let's specify one when we initialize Sqitch:
 
-  > sqitch init flipr --uri https://github.com/theory/sqitch-sqlite-intro/ --engine sqlite
+  > sqitch init flipr --uri https://github.com/sqitchers/sqitch-sqlite-intro/ --engine sqlite
   Created sqitch.conf
   Created sqitch.plan
   Created deploy/
@@ -111,7 +111,7 @@ Back to the repository. Have a look at the plan file, F<sqitch.plan>:
   > cat sqitch.plan
   %syntax-version=1.0.0
   %project=flipr
-  %uri=https://github.com/theory/sqitch-sqlite-intro/
+  %uri=https://github.com/sqitchers/sqitch-sqlite-intro/
   
 
 Note that it has picked up on the name and URI of the app we're building.
@@ -900,7 +900,7 @@ Ah, that looks a bit better. Let's have a look at the plan:
   > cat sqitch.plan
   %syntax-version=1.0.0
   %project=flipr
-  %uri=https://github.com/theory/sqitch-sqlite-intro/
+  %uri=https://github.com/sqitchers/sqitch-sqlite-intro/
 
   users 2013-12-31T18:06:04Z Marge N. O’Vera <marge@example.com> # Creates table to track our users.
   flips [users] 2013-12-31T19:01:40Z Marge N. O’Vera <marge@example.com> # Adds table for storing flips.
@@ -963,7 +963,7 @@ And double-check our work:
   > cat sqitch.plan
   %syntax-version=1.0.0
   %project=flipr
-  %uri=https://github.com/theory/sqitch-sqlite-intro/
+  %uri=https://github.com/sqitchers/sqitch-sqlite-intro/
 
   users 2013-12-31T18:06:04Z Marge N. O’Vera <marge@example.com> # Creates table to track our users.
   flips [users] 2013-12-31T19:01:40Z Marge N. O’Vera <marge@example.com> # Adds table for storing flips.

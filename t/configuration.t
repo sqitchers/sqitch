@@ -66,7 +66,7 @@ is_deeply $config->get_section(section => 'core'), {
     engine    => "pg",
     extension => "ddl",
     top_dir   => "migrations",
-    uri       => 'https://github.com/theory/sqitch/',
+    uri       => 'https://github.com/sqitchers/sqitch/',
     pager     => "less -r",
 }, 'get_section("core") should work';
 

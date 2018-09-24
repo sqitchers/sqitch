@@ -447,7 +447,7 @@ core.engine=pg
 core.extension=ddl
 core.pager=less -r
 core.top_dir=migrations
-core.uri=https://github.com/theory/sqitch/
+core.uri=https://github.com/sqitchers/sqitch/
 engine.firebird.client=/opt/firebird/bin/isql
 engine.firebird.registry=meta
 engine.mysql.client=/opt/local/mysql/bin/mysql
@@ -489,7 +489,7 @@ core.engine=pg
 core.extension=ddl
 core.pager=less -r
 core.top_dir=migrations
-core.uri=https://github.com/theory/sqitch/
+core.uri=https://github.com/sqitchers/sqitch/
 engine.pg.client=/usr/local/pgsql/bin/psql
 revert.count=2
 revert.revision=1.1
@@ -791,7 +791,7 @@ core.extension=ddl
 core.foo=[bar, baz]
 core.pager=less -r
 core.top_dir=migrations
-core.uri=https://github.com/theory/sqitch/}
+core.uri=https://github.com/sqitchers/sqitch/}
 ]], 'Should match all core options';
 @emit = ();
 

@@ -75,11 +75,11 @@ is $tag->format_planner, join(
 my $ts = $tag->timestamp->as_string;
 is $tag->as_string, "\@foo $ts ". $tag->format_planner,
     'Should as_string to "@foo" + timstamp + planner';
-my $uri = URI->new('https://github.com/theory/sqitch/');
+my $uri = URI->new('https://github.com/sqitchers/sqitch/');
 $mock_plan->mock( uri => $uri );
 is $tag->info, join("\n",
     'project sql',
-    'uri https://github.com/theory/sqitch/',
+    'uri https://github.com/sqitchers/sqitch/',
     'tag @foo',
     'change ' . $change->id,
     'planner ' . $tag->format_planner,
@@ -88,7 +88,7 @@ is $tag->info, join("\n",
 
 is $tag->old_info, join("\n",
     'project sql',
-    'uri https://github.com/theory/sqitch/',
+    'uri https://github.com/sqitchers/sqitch/',
     'tag @foo',
     'change ' . $change->old_id,
     'planner ' . $tag->format_planner,
@@ -136,7 +136,7 @@ is $tag->change, $change, 'Change should be for previous change';
 
 is $tag->info, join("\n",
     'project sql',
-    'uri https://github.com/theory/sqitch/',
+    'uri https://github.com/sqitchers/sqitch/',
     'tag @howdy',
     'change ' . $change->id,
     'planner Barack Obama <potus@whitehouse.gov>',
@@ -153,7 +153,7 @@ is $tag->id, do {
 
 is $tag->old_info, join("\n",
     'project sql',
-    'uri https://github.com/theory/sqitch/',
+    'uri https://github.com/sqitchers/sqitch/',
     'tag @howdy',
     'change ' . $change->old_id,
     'planner Barack Obama <potus@whitehouse.gov>',
@@ -177,7 +177,7 @@ ok $tag = $CLASS->new(
 
 is $tag->info, join("\n",
     'project sql',
-    'uri https://github.com/theory/sqitch/',
+    'uri https://github.com/sqitchers/sqitch/',
     'tag '     . '@阱阪阬',
     'change '  . $change->old_id,
     'planner ' . $tag->format_planner,
@@ -193,7 +193,7 @@ is $tag->id, do {
 
 is $tag->old_info, join("\n",
     'project sql',
-    'uri https://github.com/theory/sqitch/',
+    'uri https://github.com/sqitchers/sqitch/',
     'tag '     . '@阱阪阬',
     'change '  . $change->old_id,
     'planner ' . $tag->format_planner,
