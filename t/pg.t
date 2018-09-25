@@ -124,6 +124,7 @@ is $pg->uri->as_string, 'db:pg://localhost/try?sslmode=disable&connect_timeout=5
 is $pg->registry, 'meta', 'registry should be as configured';
 is_deeply [$pg->psql], [
     '/path/to/psql',
+    '--dbname',
     'dbname=try host=localhost connect_timeout=5 sslmode=disable',
 @std_opts], 'psql command should be configured from URI config';
 
@@ -146,6 +147,7 @@ is $pg->registry_destination, $pg->destination,
 is $pg->registry, 'meta', 'registry should still be as configured';
 is_deeply [$pg->psql], [
     '/some/other/psql',
+    '--dbname',
     'dbname=try host=localhost connect_timeout=5 sslmode=disable',
 @std_opts], 'psql command should be as optioned';
 

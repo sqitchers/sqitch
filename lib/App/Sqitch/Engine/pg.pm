@@ -63,7 +63,7 @@ has _psql => (
             push @conninfo, "$spec->[0]=$spec->[1]";
         }
 
-        push @ret => join ' ', @conninfo if @conninfo;
+        push @ret => '--dbname', join ' ', @conninfo if @conninfo;
 
         if (my %vars = $self->variables) {
             push @ret => map {; '--set', "$_=$vars{$_}" } sort keys %vars;
