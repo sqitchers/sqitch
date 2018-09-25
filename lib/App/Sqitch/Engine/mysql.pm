@@ -314,7 +314,7 @@ sub _regex_op { 'REGEXP' }
 sub _limit_default { '18446744073709551615' }
 
 sub _listagg_format {
-    return q{group_concat(%s SEPARATOR ' ')};
+    return q{GROUP_CONCAT(%s SEPARATOR ' ')};
 }
 
 sub _prepare_to_log {

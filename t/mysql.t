@@ -354,6 +354,72 @@ is $dt->second,  1, 'DateTime second should be set';
 is $dt->time_zone->name, 'UTC', 'DateTime TZ should be set';
 
 ##############################################################################
+# Test SQL helpers.
+is $mysql->_listagg_format, q{GROUP_CONCAT(%s SEPARATOR ' ')}, 'Should have _listagg_format';
+is $mysql->_regex_op, 'REGEXP', 'Should have _regex_op';
+is $mysql->_simple_from, '', 'Should have _simple_from';
+is $mysql->_limit_default, '18446744073709551615', 'Should have _limit_default';
+
+SECS: {
+    my $mock = Test::MockModule->new($CLASS);
+    my $dbh = {mysql_serverinfo => 'foo', mysql_serverversion => 50604};
+    $mock->mock(dbh => $dbh);
+    is $mysql->_ts_default, 'utc_timestamp(6)',
+        'Should have _ts_default with fractional seconds';
+
+    $dbh->{mysql_serverversion} = 50101;
+    my $my51 = $CLASS->new(sqitch => $sqitch, target => $target);
+    is $my51->_ts_default, 'utc_timestamp',
+        'Should have _ts_default without fractional seconds on 5.1';
+
+    $dbh->{mysql_serverversion} = 50604;
+    $dbh->{mysql_serverinfo} = 'Something about MariaDB man';
+    my $maria = $CLASS->new(sqitch => $sqitch, target => $target);
+    is $maria->_ts_default, 'utc_timestamp',
+        'Should have _ts_default without fractional seconds on mariadb';
+}
+
+DBI: {
+    local *DBI::state;
+    local *DBI::err;
+    ok !$mysql->_no_table_error, 'Should have no table error';
+    ok !$mysql->_no_column_error, 'Should have no column error';
+
+    $DBI::state = '42S02';
+    ok $mysql->_no_table_error, 'Should now have table error';
+    ok !$mysql->_no_column_error, 'Still should have no column error';
+
+    $DBI::state = '42000';
+    $DBI::err = '1049';
+    ok $mysql->_no_table_error, 'Should again have table error';
+    ok !$mysql->_no_column_error, 'Still should have no column error';
+
+    $DBI::state = '42S22';
+    $DBI::err = '1054';
+    ok !$mysql->_no_table_error, 'Should again have no table error';
+    ok $mysql->_no_column_error, 'Should now have no column error';
+}
+
+is_deeply [$mysql->_limit_offset(8, 4)],
+    [['LIMIT ?', 'OFFSET ?'], [8, 4]],
+    'Should get limit and offset';
+is_deeply [$mysql->_limit_offset(0, 2)],
+    [['LIMIT ?', 'OFFSET ?'], [18446744073709551615, 2]],
+    'Should get limit and offset when offset only';
+is_deeply [$mysql->_limit_offset(12, 0)], [['LIMIT ?'], [12]],
+    'Should get only limit with 0 offset';
+is_deeply [$mysql->_limit_offset(12)], [['LIMIT ?'], [12]],
+    'Should get only limit with noa offset';
+is_deeply [$mysql->_limit_offset(0, 0)], [[], []],
+    'Should get no limit or offset for 0s';
+is_deeply [$mysql->_limit_offset()], [[], []],
+    'Should get no limit or offset for no args';
+
+is_deeply [$mysql->_regex_expr('corn', 'Obama$')],
+    ['corn REGEXP ?', 'Obama$'],
+    'Should use REGEXP for regex expr';
+
+##############################################################################
 # Can we do live tests?
 my $dbh;
 
