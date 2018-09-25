@@ -442,6 +442,83 @@ is $dt->hour,   15, 'DateTime hour should be set';
 is $dt->minute,  7, 'DateTime minute should be set';
 is $dt->second,  1, 'DateTime second should be set';
 is $dt->time_zone->name, 'UTC', 'DateTime TZ should be set';
+is $CLASS->_char2ts($dt),
+    join(' ', $dt->ymd('-'), $dt->hms(':'), $dt->time_zone->name),
+    'Should have _char2ts';
+
+##############################################################################
+# Test SQL helpers.
+is $ora->_listagg_format, q{CAST(COLLECT(CAST(%s AS VARCHAR2(512))) AS sqitch_array)},
+    'Should have _listagg_format';
+is $ora->_regex_op, 'REGEXP_LIKE(%s, ?)', 'Should have _regex_op';
+is $ora->_simple_from, ' FROM dual', 'Should have _simple_from';
+is $ora->_limit_default, undef, 'Should have _limit_default';
+is $ora->_ts_default, 'current_timestamp', 'Should have _ts_default';
+is $ora->_can_limit, 0, 'Should have _can_limit false';
+
+is $ora->_multi_values(1, 'FOO'), 'SELECT FOO FROM dual',
+    'Should get single expression from _multi_values';
+is $ora->_multi_values(2, 'LOWER(?)'),
+    "SELECT LOWER(?) FROM dual\nUNION ALL SELECT LOWER(?) FROM dual",
+    'Should get double expression from _multi_values';
+is $ora->_multi_values(4, 'X'),
+    "SELECT X FROM dual\nUNION ALL SELECT X FROM dual\nUNION ALL SELECT X FROM dual\nUNION ALL SELECT X FROM dual",
+    'Should get quadrupal expression from _multi_values';
+
+DBI: {
+    local *DBI::err;
+    ok !$ora->_no_table_error, 'Should have no table error';
+    ok !$ora->_no_column_error, 'Should have no column error';
+
+    $DBI::err = 942;
+    ok $ora->_no_table_error, 'Should now have table error';
+    ok !$ora->_no_column_error, 'Still should have no column error';
+
+    $DBI::err = 904;
+    ok !$ora->_no_table_error, 'Should again have no table error';
+    ok $ora->_no_column_error, 'Should now have no column error';
+}
+
+# Test _log_tags_param.
+my $plan = App::Sqitch::Plan->new(
+    sqitch => $sqitch,
+    target => $target,
+    'project' => 'oracle',
+);
+my $change = App::Sqitch::Plan::Change->new(
+    name => 'oracle_test',
+    plan => $plan,
+);
+my @tags = map {
+    App::Sqitch::Plan::Tag->new(
+        plan   => $plan,
+        name   => $_,
+        change => $change,
+    )
+} qw(xxx yyy zzz);
+$change->add_tag($_) for @tags;
+is_deeply $ora->_log_tags_param($change), [qw(@xxx @yyy @zzz)],
+    '_log_tags_param should format tags';
+
+# Test _log_requires_param.
+my @req = map {
+    App::Sqitch::Plan::Depend->new(
+        %{ App::Sqitch::Plan::Depend->parse($_) },
+        plan => $plan,
+    )
+} qw(aaa bbb ccc);
+
+my $mock_change = Test::MockModule->new(ref $change);
+$mock_change->mock(requires => sub { @req });
+is_deeply $ora->_log_requires_param($change), [qw(aaa bbb ccc)],
+    '_log_requires_param should format prereqs';
+
+# Test _log_conflicts_param.
+$mock_change->mock(conflicts => sub { @req });
+is_deeply $ora->_log_conflicts_param($change), [qw(aaa bbb ccc)],
+    '_log_conflicts_param should format prereqs';
+
+$mock_change->unmock_all;
 
 ##############################################################################
 # Can we do live tests?
