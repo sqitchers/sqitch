@@ -236,7 +236,7 @@ sub fix_shebang_line {
 sub ACTION_bundle {
     my ($self, @params) = @_;
     my $base = $self->install_base or die "No --install_base specified\n";
-    # XXX Consider replacing with a Carmel-based solution?
+    # XXX Consider replacing with a Carton or Carmel-based solution?
     SHHH: {
         local $SIG{__WARN__} = sub {}; # Menlo has noisy warnings.
         local $ENV{PERL_CPANM_OPT}; # Override cpanm options.

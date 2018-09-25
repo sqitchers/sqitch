@@ -55,17 +55,19 @@ has sysuser => (
     isa      => Maybe[Str],
     lazy     => 1,
     default  => sub {
-        # Adapted from User.pm.
-        require Encode::Locale;
-        return Encode::decode( locale => getlogin )
-            || Encode::decode( locale => scalar getpwuid( $< ) )
-            || $ENV{ LOGNAME }
-            || $ENV{ USER }
-            || $ENV{ USERNAME }
-            || try {
-                require Win32;
-                Encode::decode( locale => Win32::LoginName() )
-            };
+        $ENV{SQITCH_USER} || do {
+            # Adapted from User.pm.
+            require Encode::Locale;
+            return Encode::decode( locale => getlogin )
+                || Encode::decode( locale => scalar getpwuid( $< ) )
+                || $ENV{ LOGNAME }
+                || $ENV{ USER }
+                || $ENV{ USERNAME }
+                || try {
+                    require Win32;
+                    Encode::decode( locale => Win32::LoginName() )
+                };
+        };
     },
 );
 
@@ -75,7 +77,10 @@ has user_name => (
     isa     => UserName,
     default => sub {
         my $self = shift;
-        $self->config->get( key => 'user.name' ) || do {
+        $ENV{SQITCH_USER_NAME}
+            || $self->config->get( key => 'user.name' )
+            || $ENV{SQITCH_ORIG_NAME}
+        || do {
             my $sysname = $self->sysuser || hurl user => __(
                     'Cannot find your name; run sqitch config --user user.name "YOUR NAME"'
             );
@@ -101,7 +106,10 @@ has user_email => (
     isa     => UserEmail,
     default => sub {
         my $self = shift;
-        $self->config->get( key => 'user.email' ) || do {
+         $ENV{SQITCH_USER_EMAIL}
+            || $self->config->get( key => 'user.email' )
+            || $ENV{SQITCH_ORIG_EMAIL}
+        || do {
             my $sysname = $self->sysuser || hurl user => __(
                 'Cannot infer your email address; run sqitch config --user user.email you@host.com'
             );
