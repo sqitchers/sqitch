@@ -303,6 +303,51 @@ is $exa->_char2ts($dt), '2017-11-06 10:47:35',
     '_char2ts should present timestamp at UTC w/o tz identifier';
 
 ##############################################################################
+# Test SQL helpers.
+is $exa->_listagg_format, q{GROUP_CONCAT(%s SEPARATOR ' ')}, 'Should have _listagg_format';
+is $exa->_ts_default, 'current_timestamp', 'Should have _ts_default';
+is $exa->_regex_op, 'REGEXP_LIKE', 'Should have _regex_op';
+is $exa->_simple_from, ' FROM dual', 'Should have _simple_from';
+is $exa->_limit_default, '18446744073709551611', 'Should have _limit_default';
+
+DBI: {
+    local *DBI::errstr;
+    ok !$exa->_no_table_error, 'Should have no table error';
+    ok !$exa->_no_column_error, 'Should have no column error';
+    $DBI::errstr = 'object foo not found';
+    ok $exa->_no_table_error, 'Should now have table error';
+    ok $exa->_no_column_error, 'Should now have no column error';
+}
+
+is_deeply [$exa->_limit_offset(8, 4)],
+    [['LIMIT 8', 'OFFSET 4'], []],
+    'Should get limit and offset';
+is_deeply [$exa->_limit_offset(0, 2)],
+    [['LIMIT 18446744073709551611', 'OFFSET 2'], []],
+    'Should get limit and offset when offset only';
+is_deeply [$exa->_limit_offset(12, 0)], [['LIMIT 12'], []],
+    'Should get only limit with 0 offset';
+is_deeply [$exa->_limit_offset(12)], [['LIMIT 12'], []],
+    'Should get only limit with noa offset';
+is_deeply [$exa->_limit_offset(0, 0)], [[], []],
+    'Should get no limit or offset for 0s';
+is_deeply [$exa->_limit_offset()], [[], []],
+    'Should get no limit or offset for no args';
+
+is_deeply [$exa->_regex_expr('corn', 'Obama$')],
+    ['corn REGEXP_LIKE ?', '.*Obama$'],
+    'Should use regexp_like and prepend wildcard to regex';
+is_deeply [$exa->_regex_expr('corn', '^Obama')],
+    ['corn REGEXP_LIKE ?', '^Obama.*'],
+    'Should use regexp_like and append wildcard to regex';
+is_deeply [$exa->_regex_expr('corn', '^Obama$')],
+    ['corn REGEXP_LIKE ?', '^Obama$'],
+    'Should not chande regex with both anchors';
+is_deeply [$exa->_regex_expr('corn', 'Obama')],
+    ['corn REGEXP_LIKE ?', '.*Obama.*'],
+    'Should append wildcards to both ends without anchors';
+
+##############################################################################
 # Can we do live tests?
 my $dbh;
 END {

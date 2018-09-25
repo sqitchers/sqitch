@@ -322,99 +322,21 @@ sub initialize {
     $self->_register_release;
 }
 
-# Override for special handling of regular the expression operator and
-# LIMIT/OFFSET. Keep for Exasol, as it can't handle OFFSET as parameter in a
-# prepared query.
-sub search_events {
-    my ( $self, %p ) = @_;
+sub _limit_offset {
+    # LIMIT/OFFSET don't support parameters, alas. So just put them in the query.
+    my ($self, $lim, $off)  = @_;
+    # OFFSET cannot be used without LIMIT, sadly.
+    return ['LIMIT ' . ($lim || $self->_limit_default), "OFFSET $off"], [] if $off;
+    return ["LIMIT $lim"], [] if $lim;
+    return [], [];
+}
 
-    # Determine order direction.
-    my $dir = 'DESC';
-    if (my $d = delete $p{direction}) {
-        $dir = $d =~ /^ASC/i  ? 'ASC'
-             : $d =~ /^DESC/i ? 'DESC'
-             : hurl 'Search direction must be either "ASC" or "DESC"';
-    }
-
-    # Limit with regular expressions?
-    my (@wheres, @params);
+sub _regex_expr {
+    my ( $self, $col, $regex ) = @_;
+    $regex = '.*' . $regex if $regex !~ m{^\^};
+    $regex .= '.*' if $regex !~ m{\$$};
     my $op = $self->_regex_op;
-    for my $spec (
-        [ committer => 'e.committer_name' ],
-        [ planner   => 'e.planner_name'   ],
-        [ change    => 'e.change'         ],
-        [ project   => 'e.project'        ],
-    ) {
-        my $regex = delete $p{ $spec->[0] } // next;
-        if ( $regex !~ m{^\^} ) {
-            $regex = '.*' . $regex;
-        }
-        if ( $regex !~ m{\$$} ) {
-            $regex = $regex . '.*';
-        }
-        push @wheres => "$spec->[1] $op ?";
-        push @params => $regex;
-    }
-
-    # Match events?
-    if (my $e = delete $p{event} ) {
-        my ($in, @vals) = $self->_in_expr( $e );
-        push @wheres => "event $in";
-        push @params => @vals;
-    }
-
-    # Assemble the where clause.
-    my $where = @wheres
-        ? "\n         WHERE " . join( "\n               ", @wheres )
-        : '';
-
-    # Handle remaining parameters.
-    my $limits = '';
-    if (exists $p{limit} || exists $p{offset}) {
-        my $lim = delete $p{limit};
-        if ($lim) {
-            $limits = "\n         LIMIT $lim";
-        }
-        if (my $off = delete $p{offset}) {
-            if (!$lim && ($lim = $self->_limit_default)) {
-                # Some drivers require LIMIT when OFFSET is set.
-                $limits = "\n         LIMIT $lim";
-            }
-            $limits .= "\n         OFFSET $off";
-        }
-    }
-
-    hurl 'Invalid parameters passed to search_events(): '
-        . join ', ', sort keys %p if %p;
-
-    # Prepare, execute, and return.
-    my $cdtcol = sprintf $self->_ts2char_format, 'e.committed_at';
-    my $pdtcol = sprintf $self->_ts2char_format, 'e.planned_at';
-    my $sth = $self->dbh->prepare(qq{
-        SELECT e.event
-             , e.project
-             , e.change_id
-             , e.change
-             , e.note
-             , e.requires
-             , e.conflicts
-             , e.tags
-             , e.committer_name
-             , e.committer_email
-             , $cdtcol AS committed_at
-             , e.planner_name
-             , e.planner_email
-             , $pdtcol AS planned_at
-          FROM events e$where
-         ORDER BY e.committed_at $dir$limits
-    });
-    $sth->execute(@params);
-    return sub {
-        my $row = $sth->fetchrow_hashref or return;
-        $row->{committed_at} = _dt $row->{committed_at};
-        $row->{planned_at}   = _dt $row->{planned_at};
-        return $row;
-    };
+    return "$col $op ?", $regex;
 }
 
 # Override to lock the changes table. This ensures that only one instance of
