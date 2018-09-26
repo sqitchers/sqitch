@@ -2,8 +2,8 @@ App/Sqitch version 0.9998
 =========================
 
 [![CPAN version](https://badge.fury.io/pl/App-Sqitch.svg)](http://badge.fury.io/pl/App-Sqitch)
-[![Build Status](https://travis-ci.org/theory/sqitch.svg)](https://travis-ci.org/theory/sqitch)
-[![Coverage Status](https://coveralls.io/repos/theory/sqitch/badge.svg)](https://coveralls.io/r/theory/sqitch)
+[![Build Status](https://travis-ci.com/sitchers/sqitch.svg)](https://travis-ci.com/sqitchers/sqitch)
+[![Coverage Status](https://coveralls.io/repos/sqitchers/sqitch/badge.svg)](https://coveralls.io/r/sqitchers/sqitch)
 
 [Sqitch](http://sqitch.org/) is a database change management application. It
 currently supports PostgreSQL 8.4+, SQLite 3.7.11+, MySQL 5.0+, Oracle 10g+,
