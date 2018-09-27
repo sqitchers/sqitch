@@ -180,7 +180,7 @@ sub _pod2usage {
         '-verbose'  => 99,
         '-sections' => '(?i:(Usage|Synopsis|Options))',
         '-exitval'  => 2,
-        %params
+        %params,
     );
 }
 

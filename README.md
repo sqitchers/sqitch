@@ -2,7 +2,7 @@ App/Sqitch version 0.9998
 =========================
 
 [![CPAN version](https://badge.fury.io/pl/App-Sqitch.svg)](http://badge.fury.io/pl/App-Sqitch)
-[![Build Status](https://travis-ci.com/sitchers/sqitch.svg)](https://travis-ci.com/sqitchers/sqitch)
+[![Build Status](https://travis-ci.com/sqitchers/sqitch.svg)](https://travis-ci.com/sqitchers/sqitch)
 [![Coverage Status](https://coveralls.io/repos/sqitchers/sqitch/badge.svg)](https://coveralls.io/r/sqitchers/sqitch)
 
 [Sqitch](http://sqitch.org/) is a database change management application. It

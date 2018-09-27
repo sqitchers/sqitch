@@ -47,6 +47,8 @@ Revision history for Perl extension App::Sqitch
        variables can now be used to override these system-derived values. The
        intention is to allow an originating host to set these values on another
        host where Sqitch will actually execute.
+     - Fixed an error triggered by whitespace trailing an engine name in the
+       configuration. Thanks to Jeremy Simkins for the report (#400).
 
 0.9997 2018-03-15T21:13:52Z
      - Fixed the Firebird engine to properly detect multiple instances of a
