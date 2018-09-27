@@ -12,6 +12,7 @@ use File::Copy ();
 
 __PACKAGE__->add_property($_) for qw(etcdir installed_etcdir);
 __PACKAGE__->add_property(with => []);
+__PACKAGE__->add_property(dual_life => 0);
 
 sub new {
     my ( $class, %p ) = @_;
@@ -248,20 +249,32 @@ sub ACTION_bundle {
             verbose        => $self->verbose,
             notest         => 1,
             self_contained => 1,
+            skip_installed => 0,
             install_types  => [qw(requires recommends)],
             local_lib      => File::Spec->rel2abs($base),
             pod2man        => undef,
-            installdeps    => 1,
             features       => { map { $_ => 1 } @{ $feat } },
-            argv           => ['.'],
         );
+
+        if ($self->dual_life) {
+            # Force Install dual-life modules.
+            $app->{argv} = [qw(
+                File::Temp Scalar::Util Pod::Usage  Digest::SHA Pod::Escapes
+                Pod::Find  Getopt::Long Time::HiRes File::Path  List::Util
+                Encode     Pod::Simple  Time::Local parent      IO::File  if
+                Term::ANSIColor
+            )];
+            die "Error installing modules: $@\n" if $app->run;
+        }
+
+        # Install Sqitch and all its required modules.
+        $app->{argv} = ['.'];
         die "Error installing modules: $@\n" if $app->run;
+
+        # Remove unneeded build-time dependencies.
         die "Error removing build modules: $@\n"
             unless $app->remove_build_dependencies;
     }
-
-    # Install Sqitch.
-    $self->depends_on('install');
 
     # Delete unneeded files.
     $self->delete_filetree(File::Spec->catdir($base, qw(lib perl5 Test)));
