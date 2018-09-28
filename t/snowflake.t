@@ -527,6 +527,7 @@ END {
 }
 
 $uri = URI->new($ENV{SNOWSQL_URI} || 'db:snowflake://accountname/?Driver=Snowflake');
+$uri->host($uri->host . ".snowflakecomputing.com") if $uri->host !~ /snoflakecomputing[.]com/;
 my $err = try {
     $snow->use_driver;
     $dbh = DBI->connect($uri->dbi_dsn, $uri->user, $uri->password, {

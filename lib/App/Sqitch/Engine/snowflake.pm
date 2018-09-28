@@ -328,24 +328,6 @@ sub _cid {
     };
 }
 
-sub is_deployed_change {
-    my ( $self, $change ) = @_;
-    $self->dbh->selectcol_arrayref(q{
-        SELECT true
-          FROM changes
-         WHERE change_id = ?
-    }, undef, $change->id)->[0];
-}
-
-sub is_deployed_tag {
-    my ( $self, $tag ) = @_;
-    return $self->dbh->selectcol_arrayref(q{
-        SELECT true
-          FROM tags
-         WHERE tag_id = ?
-    }, undef, $tag->id)->[0];
-}
-
 sub changes_requiring_change {
     my ( $self, $change ) = @_;
     # NOTE: Query from DBIEngine doesn't work in Snowflake:
