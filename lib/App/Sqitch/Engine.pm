@@ -1377,10 +1377,8 @@ The current Sqitch object.
 
 =head3 C<target>
 
-A string identifying the database target.
-
-Returns the name of the target database. This will usually be the name of
-target specified on the command-line, or the default.
+An L<App::Sqitch::Target> object identifying the database target, usually
+derived from the name of target specified on the command-line, or the default.
 
 =head3 C<uri>
 

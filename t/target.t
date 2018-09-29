@@ -88,7 +88,10 @@ is $target->password, $uri->password, 'Password should be from URI';
 
 do {
     isa_ok my $target = $CLASS->new(sqitch => $sqitch), $CLASS;
+    local $ENV{SQITCH_USERNAME} = 'kamala';
     local $ENV{SQITCH_PASSWORD} = 'S3cre7s';
+    is $target->username, $ENV{SQITCH_USERNAME},
+        'Username should be from environment variable';
     is $target->password, $ENV{SQITCH_PASSWORD},
         'Password should be from environment variable';
 };

@@ -39,20 +39,18 @@ Revision history for Perl extension App::Sqitch
      - Changed the way the conninfo string is passed to `psql` to eliminate
        argument ordering problems on Windows. Thanks to @highlowhighlow for
        the report (#384).
-     - Added `$SQITCH_USER` environment variable. In cases where Sqitch needs
-       a username and can't find one from other sources (such as a target
-       URL), Sqitch has traditionally fallen back on the system username. This
-       environment variable can now be used to override the system username.
-     - Added the `$SQITCH_USER_NAME` and `$SQITCH_USER_EMAIL`, environment
+     - Added `$SQITCH_USERNAME` environment variable to complement
+       `$SQITCH_PASSWORD`. It can be used to override the username set in
+       for a target.
+     - Added the `$SQITCH_FULLNAME` and `$SQITCH_EMAIL` environment
        variables, which take precedence over the values of the `user.name` and
        `user.email` config variables.
-     - Added the `$SQITCH_ORIG_NAME` and `$SQITCH_ORIG_EMAIL` environment
-       variables. Traditionally, when the `user.name` and `user.email` config
-       variables have not been set, Sqitch has attempted to read the system
-       user and host information to derive these values. These new environment
-       variables override these system-derived values. The intention is to
-       allow an originating host to set these values on another host where
-       Sqitch will actually execute.
+     - Added the `$SQITCH_ORIG_SYSUSER`, `$SQITCH_ORIG_FULLNAME` and
+       `$SQITCH_ORIG_EMAIL` environment variables. For those situations when
+       Sqitch attempts to read OS data for user information, These new
+       environment variables override these system-derived values. The
+       intention is to allow an originating host to set these values on
+       another host where Sqitch will actually execute.
      - Fixed an error triggered by whitespace trailing an engine name in the
        configuration. Thanks to Jeremy Simkins for the report (#400).
 

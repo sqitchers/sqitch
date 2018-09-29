@@ -28,7 +28,14 @@ has uri      => (
     },
 );
 
-sub username { scalar shift->uri->user }
+has username => (
+    is       => 'ro',
+    isa      => Maybe[Str],
+    lazy    => 1,
+    default => sub {
+        $ENV{SQITCH_USERNAME} || shift->uri->user
+    },
+);
 
 has password => (
     is       => 'ro',
@@ -36,7 +43,7 @@ has password => (
     lazy    => 1,
     default => sub {
         $ENV{SQITCH_PASSWORD} || shift->uri->password
-    }
+    },
 );
 
 has sqitch => (

@@ -97,9 +97,7 @@ has uri => (
         $uri->host($self->_host($uri));
         $uri->port($ENV{SNOWSQL_PORT}) if !$uri->_port && $ENV{SNOWSQL_PORT};
         $uri->user($self->_username)   if !$uri->user;
-        if ($ENV{SQITCH_PASSWORD}) {
-            $uri->password($ENV{SQITCH_PASSWORD});
-        } elsif (!$uri->password && (my $pw = $self->_password)) {
+        if (!$uri->password && (my $pw = $self->_password)) {
             $uri->password($pw);
         }
         $uri->dbname($ENV{SNOWSQL_DATABASE} || $uri->user) if !$uri->dbname;
@@ -109,14 +107,15 @@ has uri => (
 
 sub _username {
     my $self = shift;
-    return $ENV{SNOWSQL_USER}
+    return $ENV{SQITCH_USERNAME}
+        || $ENV{SNOWSQL_USER}
         || $self->_snowcfg->{username}
         || $self->sqitch->sysuser;
 }
 
 sub _password {
     my $self = shift;
-    return $ENV{SNOWSQL_PWD} || $self->_snowcfg->{password};
+    return $ENV{SQITCH_PASSWORD} || $ENV{SNOWSQL_PWD} || $self->_snowcfg->{password};
 }
 
 has account => (
@@ -535,20 +534,20 @@ Returns the snowflake user name. Sqitch looks for the user name in this order:
 
 =item 1
 
-In the target URI.
+In the C<$SQITCH_USERNAME> environment variable.
 
 =item 2
 
-In the C<$SNOWSQL_USER> environment variable.
+In the target URI.
 
 =item 3
 
-In the C<connections.username> variable from the
-L<SnowSQL config file|https://docs.snowflake.net/manuals/user-guide/snowsql-config.html#snowsql-config-file>.
+In the C<$SNOWSQL_USER> environment variable.
 
 =item 4
 
-In the C<$SQITCH_USER> environment variable.
+In the C<connections.username> variable from the
+L<SnowSQL config file|https://docs.snowflake.net/manuals/user-guide/snowsql-config.html#snowsql-config-file>.
 
 =item 5
 

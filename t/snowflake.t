@@ -113,6 +113,8 @@ SNOWENV: {
     # SQITCH_PASSWORD has priority.
     is $target->uri->password, 'gimme', 'Targe URI password should be set';
     local $ENV{SQITCH_PASSWORD} = 'irule';
+    $target = App::Sqitch::Target->new(sqitch => $sqitch, uri => URI->new($uri));
+    is $target->password, 'irule', 'Target password should be from SQITCH_PASSWORD';
     $snow = $CLASS->new( sqitch => $sqitch, target => $target );
     is $snow->password, 'irule', 'Should prefer password from SQITCH_PASSWORD';
     is $target->uri->password, 'irule', 'Targe URI password should be reset';

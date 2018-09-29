@@ -55,7 +55,7 @@ has sysuser => (
     isa      => Maybe[Str],
     lazy     => 1,
     default  => sub {
-        $ENV{SQITCH_USER} || do {
+        $ENV{ SQITCH_ORIG_SYSUSER } || do {
             # Adapted from User.pm.
             require Encode::Locale;
             return Encode::decode( locale => getlogin )
@@ -77,9 +77,9 @@ has user_name => (
     isa     => UserName,
     default => sub {
         my $self = shift;
-        $ENV{SQITCH_USER_NAME}
+        $ENV{ SQITCH_FULLNAME }
             || $self->config->get( key => 'user.name' )
-            || $ENV{SQITCH_ORIG_NAME}
+            || $ENV{ SQITCH_ORIG_FULLNAME }
         || do {
             my $sysname = $self->sysuser || hurl user => __(
                     'Cannot find your name; run sqitch config --user user.name "YOUR NAME"'
@@ -106,9 +106,9 @@ has user_email => (
     isa     => UserEmail,
     default => sub {
         my $self = shift;
-         $ENV{SQITCH_USER_EMAIL}
+         $ENV{ SQITCH_EMAIL }
             || $self->config->get( key => 'user.email' )
-            || $ENV{SQITCH_ORIG_EMAIL}
+            || $ENV{ SQITCH_ORIG_EMAIL }
         || do {
             my $sysname = $self->sysuser || hurl user => __(
                 'Cannot infer your email address; run sqitch config --user user.email you@host.com'
