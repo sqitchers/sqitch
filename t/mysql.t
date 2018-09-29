@@ -62,8 +62,8 @@ my @std_opts = (
 my $mock_sqitch = Test::MockModule->new('App::Sqitch');
 my $warning;
 $mock_sqitch->mock(warn => sub { shift; $warning = [@_] });
-is_deeply [$mysql->mysql], [$client, @std_opts],
-    'mysql command should be std opts-only';
+is_deeply [$mysql->mysql], [$client, '--user', $sqitch->sysuser, @std_opts],
+    'mysql command should be user and std opts-only';
 is_deeply $warning, [__x
     'Database name missing in URI "{uri}"',
      uri => $mysql->uri
@@ -104,11 +104,13 @@ is $mysql->registry_uri->as_string, 'db:mysql://foo.com/meta',
     'Sqitch DB URI should be the same as uri but with DB name "meta"';
 is $mysql->registry_destination, $mysql->registry_uri->as_string,
     'registry_destination should be the sqitch DB URL';
-is_deeply [$mysql->mysql], [qw(
-    /path/to/mysql
-    --database widgets
-    --host     foo.com
-), @std_opts], 'mysql command should be configured';
+is_deeply [$mysql->mysql], [
+    '/path/to/mysql',
+    '--user', $sqitch->sysuser,
+    '--database', 'widgets',
+    '--host',     'foo.com',
+    @std_opts
+], 'mysql command should be configured';
 
 ##############################################################################
 # Make sure URI params get passed through to the client.
@@ -134,6 +136,7 @@ ok $mysql = $CLASS->new(sqitch => $sqitch, target => $target),
     'Create a mysql with query params';
 is_deeply [$mysql->mysql], [qw(
     /path/to/mysql
+), '--user', $sqitch->sysuser, qw(
     --database widgets
     --host     foo.com
 ), @std_opts, qw(
@@ -164,6 +167,7 @@ ok $mysql = $CLASS->new(sqitch => $sqitch, target => $target),
     'Create a mysql with disabled query params';
 is_deeply [$mysql->mysql], [qw(
     /path/to/mysql
+), '--user', $sqitch->sysuser, qw(
     --database widgets
     --host     foo.com
 ), @std_opts, qw(
@@ -192,6 +196,7 @@ is $mysql->registry_destination, 'db:mysql://foo.com/meta',
 is $mysql->registry, 'meta', 'registry should still be as configured';
 is_deeply [$mysql->mysql], [qw(
     /some/other/mysql
+), '--user', $sqitch->sysuser, qw(
     --database widgets
     --host     foo.com
 ), @std_opts], 'mysql command should be as optioned';

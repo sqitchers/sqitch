@@ -74,8 +74,8 @@ my @std_opts = (
     '--set' => 'ON_ERROR_STOP=1',
     '--set' => 'registry=sqitch',
 );
-is_deeply [$vta->vsql], [$client, @std_opts],
-    'vsql command should be std opts-only';
+is_deeply [$vta->vsql], [$client, '--username', $sqitch->sysuser, @std_opts],
+    'vsql command should be username and std opts-only';
 
 isa_ok $vta = $CLASS->new(
     sqitch => $sqitch,
@@ -85,6 +85,7 @@ ok $vta->set_variables(foo => 'baz', whu => 'hi there', yo => 'stellar'),
     'Set some variables';
 is_deeply [$vta->vsql], [
     $client,
+    '--username', $sqitch->sysuser,
     '--set' => 'foo=baz',
     '--set' => 'whu=hi there',
     '--set' => 'yo=stellar',
@@ -138,11 +139,13 @@ is $vta->client, '/path/to/vsql', 'client should be as configured';
 is $vta->uri->as_string, 'db:vertica://localhost/try',
     'uri should be as configured';
 is $vta->registry, 'meta', 'registry should be as configured';
-is_deeply [$vta->vsql], [qw(
-    /path/to/vsql
-    --dbname   try
-    --host     localhost
-), @std_opts], 'vsql command should be configured from URI config';
+is_deeply [$vta->vsql], [
+    '/path/to/vsql',
+    '--username', $sqitch->sysuser,
+    '--dbname',   'try',
+    '--host',     'localhost',
+    @std_opts
+], 'vsql command should be configured from URI config';
 
 ##############################################################################
 # Now make sure that (deprecated?) Sqitch options override configurations.
@@ -158,11 +161,13 @@ ok $vta = $CLASS->new(sqitch => $sqitch, target => $target),
     'Create a vertica with sqitch with options';
 
 is $vta->client, '/some/other/vsql', 'client should be as optioned';
-is_deeply [$vta->vsql], [qw(
-    /some/other/vsql
-    --dbname   try
-    --host     localhost
-), @std_opts], 'vsql command should be as optioned';
+is_deeply [$vta->vsql], [
+    '/some/other/vsql',
+    '--username', $sqitch->sysuser,
+    '--dbname',   'try',
+    '--host',     'localhost',
+    @std_opts
+], 'vsql command should be as optioned';
 
 ##############################################################################
 # Test _run(), _capture(), and _spool().

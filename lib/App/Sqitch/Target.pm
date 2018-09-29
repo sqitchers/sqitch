@@ -33,7 +33,8 @@ has username => (
     isa      => Maybe[Str],
     lazy    => 1,
     default => sub {
-        $ENV{SQITCH_USERNAME} || shift->uri->user
+        my $self = shift;
+        $ENV{SQITCH_USERNAME} || $self->uri->user || $self->sqitch->sysuser;
     },
 );
 

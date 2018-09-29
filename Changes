@@ -53,6 +53,10 @@ Revision history for Perl extension App::Sqitch
        another host where Sqitch will actually execute.
      - Fixed an error triggered by whitespace trailing an engine name in the
        configuration. Thanks to Jeremy Simkins for the report (#400).
+     - All engines that support authentication now fall back on the system
+       username if no username is found in the `$SQITCH_USERNAME` environment
+       variable, the target URI, the configuration, or engine-specific
+       environment variable.
 
 0.9997 2018-03-15T21:13:52Z
      - Fixed the Firebird engine to properly detect multiple instances of a

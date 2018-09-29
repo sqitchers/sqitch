@@ -116,11 +116,12 @@ my @std_opts = qw(-S -L /nolog);
 is_deeply [$ora->sqlplus], [$client, @std_opts],
     'sqlplus command should connect to /nolog';
 
+my $sysuser = $sqitch->sysuser;
 is $ora->_script, join( "\n" => (
     'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF',
     'WHENEVER OSERROR EXIT 9;',
     'WHENEVER SQLERROR EXIT SQL.SQLCODE;',
-    'connect ',
+    "connect $sysuser",
     $ora->_registry_variable,
 ) ), '_script should work';
 
@@ -201,7 +202,7 @@ is $ora->_script('@foo'), join( "\n" => (
     'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF',
     'WHENEVER OSERROR EXIT 9;',
     'WHENEVER SQLERROR EXIT SQL.SQLCODE;',
-    'connect /@"secure_user_tns.tpg"',
+    qq{connect $sysuser@"secure_user_tns.tpg"},
     $ora->_registry_variable,
     '@foo',
 ) ), '_script should assemble connection string with just dbname';
@@ -221,7 +222,7 @@ is $ora->_script('@foo'), join( "\n" => (
     'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF',
     'WHENEVER OSERROR EXIT 9;',
     'WHENEVER SQLERROR EXIT SQL.SQLCODE;',
-    'connect /@"wallet_tns_name"',
+    qq{connect $sysuser@"wallet_tns_name"},
     $ora->_registry_variable,
     '@foo',
 ) ), '_script should assemble connection string with double-slash and dbname';

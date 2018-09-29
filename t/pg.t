@@ -63,14 +63,16 @@ my @std_opts = (
     '--set' => 'ON_ERROR_STOP=1',
     '--set' => 'registry=sqitch',
 );
-is_deeply [$pg->psql], [$client, @std_opts],
-    'psql command should be std opts-only';
+my $sysuser = $sqitch->sysuser;
+is_deeply [$pg->psql], [$client, '--dbname', "user=$sysuser", @std_opts],
+    'psql command should be conninfo, and std opts-only';
 
 isa_ok $pg = $CLASS->new(sqitch => $sqitch, target => $target), $CLASS;
 ok $pg->set_variables(foo => 'baz', whu => 'hi there', yo => 'stellar'),
     'Set some variables';
 is_deeply [$pg->psql], [
     $client,
+    '--dbname', "user=$sysuser",
     '--set' => 'foo=baz',
     '--set' => 'whu=hi there',
     '--set' => 'yo=stellar',
@@ -125,7 +127,7 @@ is $pg->registry, 'meta', 'registry should be as configured';
 is_deeply [$pg->psql], [
     '/path/to/psql',
     '--dbname',
-    'dbname=try host=localhost connect_timeout=5 sslmode=disable',
+    "user=$sysuser dbname=try host=localhost connect_timeout=5 sslmode=disable",
 @std_opts], 'psql command should be configured from URI config';
 
 ##############################################################################
@@ -148,7 +150,7 @@ is $pg->registry, 'meta', 'registry should still be as configured';
 is_deeply [$pg->psql], [
     '/some/other/psql',
     '--dbname',
-    'dbname=try host=localhost connect_timeout=5 sslmode=disable',
+    "user=$sysuser dbname=try host=localhost connect_timeout=5 sslmode=disable",
 @std_opts], 'psql command should be as optioned';
 
 ##############################################################################
