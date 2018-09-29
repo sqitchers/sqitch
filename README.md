@@ -91,13 +91,19 @@ To install Sqitch and all of its dependencies into a single directory named
     cpanm Menlo::CLI::Compat
     ./Build bundle --install_base sqitch_bundle
 
-After which, Sqitch can be run from `./sqitch_bundle/bin/sqitch`. To include
-support for a feature in the bundle, pass the `--with` option naming the
-feature:
+After which, Sqitch can be run from `./sqitch_bundle/bin/sqitch`. By default,
+no modules that are included in the core Perl distrituion are included. To
+require that dual-life modules also be bundled, pass `--dual_life 1`:
+
+    ./Build bundle --install_base sqitch_bundle --dual_life 1
+
+To include support for a feature in the bundle, pass the `--with` option
+naming the feature:
 
     ./Build bundle --install_base sqitch_bundle --with postgres --with sqlite
 
-The feature names correspond to the supported engines:
+The feature names generally correspond to the supported engines. The currently
+supported features are:
 
 *   `--with postgres`:  Support for managing PostgreSQL databases
 *   `--with sqlite`:    Support for managing SQLite databases
@@ -107,6 +113,7 @@ The feature names correspond to the supported engines:
 *   `--with vertica`:   Support for managing Vertica databases
 *   `--with exasol`:    Support for managing Exasol databases
 *   `--with snowflake`: Support for managing Snowflake databases
+*   `--with odbc`:      Include the ODBC driver
 
 To build from a Git clone, first install
 [Dist::Zilla](https://metacpan.org/module/Dist::Zilla), then use it to install

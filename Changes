@@ -15,6 +15,9 @@ Revision history for Perl extension App::Sqitch
        runtime dependencies into the `--install_base` directory. This should
        simplify building distribution packages, binary installs, Docker images,
        and the like.
+     - Added the `--with` option to `./Build`, to require that Sqitch be build
+       with the specified engine. Pass once for each engine. See the READMe
+       for the list of supported engines.
      - Added a check for Hash::Merge 0.298 during installation, since that
        release has a fatal bug that breaks Sqitch. If it's installed, the
        installer will issue a warning and added v0.299 to its list of
@@ -33,6 +36,9 @@ Revision history for Perl extension App::Sqitch
      - Fixed likely cause of Oracle buffer allocation bug when selecting
        timestamp strings. Thanks to @johannwilfling for the bug report and to
        @nmaqsudov for the analysis and solution (#316).
+     - Changed the way the conninfo string is passed to `psql` to eliminate
+       argument ordering problems on Windows. Thanks to @highlowhighlow for
+       the report (#384).
      - Added `$SQITCH_USER` environment variable. In cases where Sqitch needs
        a username and can't find one from other sources (such as a target
        URL), Sqitch has traditionally fallen back on the system username. This
@@ -40,13 +46,13 @@ Revision history for Perl extension App::Sqitch
      - Added the `$SQITCH_USER_NAME` and `$SQITCH_USER_EMAIL`, environment
        variables, which take precedence over the values of the `user.name` and
        `user.email` config variables.
-     - Added they `$SQITCH_ORIG_NAME` and `$SQITCH_ORIG_EMAIL` environment
+     - Added the `$SQITCH_ORIG_NAME` and `$SQITCH_ORIG_EMAIL` environment
        variables. Traditionally, when the `user.name` and `user.email` config
-       variables have not been set, Sqitch has attempted to read the system user
-       and host information to derive these values. These new environment
-       variables can now be used to override these system-derived values. The
-       intention is to allow an originating host to set these values on another
-       host where Sqitch will actually execute.
+       variables have not been set, Sqitch has attempted to read the system
+       user and host information to derive these values. These new environment
+       variables override these system-derived values. The intention is to
+       allow an originating host to set these values on another host where
+       Sqitch will actually execute.
      - Fixed an error triggered by whitespace trailing an engine name in the
        configuration. Thanks to Jeremy Simkins for the report (#400).
 

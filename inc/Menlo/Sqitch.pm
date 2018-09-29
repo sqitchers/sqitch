@@ -6,7 +6,7 @@ use base 'Menlo::CLI::Compat';
 
 sub new {
     shift->SUPER::new(
-         @_,
+        @_,
         _remove   => [],
         _bld_deps => { map { chomp; $_ => 1 } <DATA> },
     );
