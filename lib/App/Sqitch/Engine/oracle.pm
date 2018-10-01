@@ -42,10 +42,13 @@ sub destination {
         || ( $^O eq 'MSWin32' ? $ENV{LOCAL} : undef )
         || $ENV{ORACLE_SID}
         || $self->username
-        || $self->sqitch->sysuser
     );
     return $uri->as_string;
 }
+
+# No username or password defaults.
+sub _def_user { }
+sub _def_pass { }
 
 has _sqlplus => (
     is         => 'ro',

@@ -59,6 +59,9 @@ sub registry_destination {
     return $uri->as_string;
 }
 
+sub _def_user { $ENV{ISC_USER} }
+sub _def_pass { $ENV{ISC_PASSWORD} }
+
 has dbh => (
     is      => 'rw',
     isa     => DBH,

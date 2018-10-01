@@ -60,7 +60,7 @@ is $vta->client, $client, 'client should default to vsql';
 is $vta->registry, 'sqitch', 'registry default should be "sqitch"';
 is $vta->uri, $uri, 'DB URI should be "db:vertica:"';
 my $dest_uri = $uri->clone;
-$dest_uri->dbname($ENV{VERTICADATABASE} || $ENV{VERTICAUSER} || $sqitch->sysuser);
+$dest_uri->dbname($ENV{VSQL_DATABASE} || $ENV{VSQL_USER} || $sqitch->sysuser);
 is $vta->destination, $dest_uri->as_string,
     'Destination should fall back on environment variables';
 is $vta->registry_destination, $vta->destination,
@@ -96,14 +96,19 @@ is_deeply [$vta->vsql], [
 # Test other configs for the target.
 ENV: {
     # Make sure we override system-set vars.
-    local $ENV{VERTICADATABASE};
-    local $ENV{VERTICAUSER};
-    for my $env (qw(VERTICADATABASE VERTICAUSER)) {
+    local $ENV{VSQL_DATABASE};
+    local $ENV{VSQL_USER};
+    local $ENV{VSQL_PASSWORD};
+    for my $env (qw(VSQL_DATABASE VSQL_USER VSQL_PASSWORD)) {
         my $vta = $CLASS->new(sqitch => $sqitch, target => $target);
         local $ENV{$env} = "\$ENV=whatever";
         is $vta->target->name, "db:vertica:", "Target name should not read \$$env";
         is $vta->registry_destination, $vta->destination,
             'Registry target should be the same as destination';
+        is $vta->username, $ENV{VSQL_USER} || $sqitch->sysuser,
+            "Should have username when $env set";
+        is $vta->password, $ENV{VSQL_PASSWORD},
+            "Should have password when $env set";
     }
 
     my $mocker = Test::MockModule->new('App::Sqitch');
@@ -114,7 +119,7 @@ ENV: {
     is $vta->registry_destination, $vta->destination,
         'Registry target should be the same as destination';
 
-    $ENV{VERTICADATABASE} = 'mydb';
+    $ENV{VSQL_DATABASE} = 'mydb';
     $vta = $CLASS->new(sqitch => $sqitch, username => 'hi', target => $target);
     is $vta->target->name, 'db:vertica:',  'Target name should be the default';
     is $vta->registry_destination, $vta->destination,

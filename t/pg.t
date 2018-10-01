@@ -85,12 +85,17 @@ ENV: {
     # Make sure we override system-set vars.
     local $ENV{PGDATABASE};
     local $ENV{PGUSER};
-    for my $env (qw(PGDATABASE PGUSER)) {
+    local $ENV{PGPASSWORD};
+    for my $env (qw(PGDATABASE PGUSER PGPASSWORD)) {
         my $pg = $CLASS->new(sqitch => $sqitch, target => $target);
         local $ENV{$env} = "\$ENV=whatever";
         is $pg->target->uri, "db:pg:", "Target should not read \$$env";
         is $pg->registry_destination, $pg->destination,
             'Registry target should be the same as destination';
+        is $pg->username, $ENV{PGUSER} || $sysuser,
+            "Should have username when $env set";
+        is $pg->password, $ENV{PGPASSWORD},
+            "Should have password when $env set";
     }
 
     my $mocker = Test::MockModule->new('App::Sqitch');

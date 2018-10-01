@@ -75,8 +75,8 @@ my @std_opts = (
     '-autocommit' => 'OFF',
 );
 
-is_deeply [$exa->exaplus], [$client, '-u', $sqitch->sysuser, @std_opts],
-    'exaplus command should be user and std opts-only';
+is_deeply [$exa->exaplus], [$client, @std_opts],
+    'exaplus command should be std opts-only';
 
 is $exa->_script, join( "\n" => (
     'SET FEEDBACK OFF;',

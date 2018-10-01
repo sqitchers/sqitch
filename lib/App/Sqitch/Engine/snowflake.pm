@@ -39,9 +39,9 @@ has _snowsql => (
         my $uri  = $self->uri;
         my @ret  = ( $self->client );
         for my $spec (
-            [ accountname => $self->account ],
-            [ username    => $uri->user     ],
-            [ dbname      => $uri->dbname   ],
+            [ accountname => $self->account  ],
+            [ username    => $self->username ],
+            [ dbname      => $uri->dbname    ],
         ) {
             push @ret, "--$spec->[0]" => $spec->[1] if $spec->[1];
         }
@@ -96,27 +96,15 @@ has uri => (
         # Set defaults in the URI.
         $uri->host($self->_host($uri));
         $uri->port($ENV{SNOWSQL_PORT}) if !$uri->_port && $ENV{SNOWSQL_PORT};
-        $uri->user($self->_username)   if !$uri->user;
-        if (!$uri->password && (my $pw = $self->_password)) {
-            $uri->password($pw);
-        }
-        $uri->dbname($ENV{SNOWSQL_DATABASE} || $uri->user) if !$uri->dbname;
+        $uri->dbname($ENV{SNOWSQL_DATABASE} || $self->username) if !$uri->dbname;
         return $uri;
     },
 );
 
-sub _username {
-    my $self = shift;
-    return $ENV{SQITCH_USERNAME}
-        || $ENV{SNOWSQL_USER}
-        || $self->_snowcfg->{username}
-        || $self->sqitch->sysuser;
+sub _def_user {
+    $ENV{SNOWSQL_USER} || $_[0]->_snowcfg->{username} || $_[0]->sqitch->sysuser
 }
-
-sub _password {
-    my $self = shift;
-    return $ENV{SQITCH_PASSWORD} || $ENV{SNOWSQL_PWD} || $self->_snowcfg->{password};
-}
+sub _def_pass { $ENV{SNOWSQL_PWD} || shift->_snowcfg->{password} }
 
 has account => (
     is      => 'ro',
@@ -170,7 +158,7 @@ has dbh => (
         $self->use_driver;
         my $uri = $self->uri;
         my $wh = $self->warehouse;
-        DBI->connect($uri->dbi_dsn, $uri->user, $uri->password, {
+        DBI->connect($uri->dbi_dsn, $self->username, $self->password, {
             PrintError        => 0,
             RaiseError        => 0,
             AutoCommit        => 1,

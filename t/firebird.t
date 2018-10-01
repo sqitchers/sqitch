@@ -58,6 +58,8 @@ isa_ok my $fb = $CLASS->new(sqitch  => $sqitch, target => $target), $CLASS;
 
 is $fb->key, 'firebird', 'Key should be "firebird"';
 is $fb->name, 'Firebird', 'Name should be "Firebird"';
+is $fb->username, $ENV{ISC_USER}, 'Should have username from environment';
+is $fb->password, $ENV{ISC_PASSWORD}, 'Should have password from environment';
 
 my $have_fb_client;
 if ($have_fb_driver && (my $client = try { $fb->client })) {
@@ -91,6 +93,17 @@ ok $fb->set_variables(foo => 'baz', whu => 'hi there', yo => 'stellar'),
 
 is_deeply([$fb->isql], [$fb->client, @std_opts, $dbname],
           'isql command should be std opts-only') if $have_fb_client;
+
+##############################################################################
+# Make sure environment variables are read.
+ENV: {
+    local $ENV{ISC_USER} = '__kamala__';
+    local $ENV{ISC_PASSWORD} = 'answer the question';
+    ok my $fb = $CLASS->new(sqitch => $sqitch, target => $target),
+        'Create a firebird with environment variables set';
+    is $fb->username, $ENV{ISC_USER}, 'Should have username from environment';
+    is $fb->password, $ENV{ISC_PASSWORD}, 'Should have password from environment';
+}
 
 ##############################################################################
 # Make sure config settings override defaults.

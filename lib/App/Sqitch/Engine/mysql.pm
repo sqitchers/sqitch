@@ -48,15 +48,8 @@ has _mycnf => (
     },
 );
 
-sub username {
-    my $self = shift;
-    return $self->SUPER::username || $self->_mycnf->{user};
-}
-
-sub password {
-    my $self = shift;
-    return $self->SUPER::password || $self->_mycnf->{password};
-}
+sub _def_user { $_[0]->_mycnf->{user} || $_[0]->sqitch->sysuser }
+sub _def_pass { $ENV{MYSQL_PWD} || shift->_mycnf->{password} }
 
 has dbh => (
     is      => 'rw',
@@ -66,7 +59,7 @@ has dbh => (
         my $self = shift;
         $self->use_driver;
         my $uri = $self->registry_uri;
-        my $dbh = DBI->connect($uri->dbi_dsn, scalar $self->username, $self->password, {
+        my $dbh = DBI->connect($uri->dbi_dsn, $self->username, $self->password, {
             PrintError           => 0,
             RaiseError           => 0,
             AutoCommit           => 1,

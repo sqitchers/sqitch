@@ -80,6 +80,16 @@ isa_ok $mysql = $CLASS->new(
 ), $CLASS;
 
 ##############################################################################
+# Make sure MYSQL_PWD is read.
+ENV: {
+    local $ENV{MYSQL_PWD} = '__KAMALA';
+    ok my $mysql = $CLASS->new(sqitch => $sqitch, target => $target),
+        'Create engine with MYSQL_PWD set';
+    is $mysql->password, $ENV{MYSQL_PWD},
+        'Password should be set from environment';
+}
+
+##############################################################################
 # Make sure config settings override defaults.
 my %config = (
     'engine.mysql.client'   => '/path/to/mysql',

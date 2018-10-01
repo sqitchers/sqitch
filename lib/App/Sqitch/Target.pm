@@ -34,7 +34,7 @@ has username => (
     lazy    => 1,
     default => sub {
         my $self = shift;
-        $ENV{SQITCH_USERNAME} || $self->uri->user || $self->sqitch->sysuser;
+        $ENV{SQITCH_USERNAME} || $self->uri->user
     },
 );
 

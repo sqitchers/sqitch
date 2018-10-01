@@ -53,10 +53,17 @@ Revision history for Perl extension App::Sqitch
        another host where Sqitch will actually execute.
      - Fixed an error triggered by whitespace trailing an engine name in the
        configuration. Thanks to Jeremy Simkins for the report (#400).
-     - All engines that support authentication now fall back on the system
-       username if no username is found in the `$SQITCH_USERNAME` environment
-       variable, the target URI, the configuration, or engine-specific
-       environment variable.
+     - Refactored the engine-specific username and password attributes to
+       support a consistent search for values. Sqitch searches first for one
+       of its own environment variables (`$SQITCH_USERNAME` and
+       `$SQITCH_PASSSWORD`), then the target URI, and finally any engine-
+       specific values, which might include additional environment variables,
+       configuration files, the system user, or none at all.
+     - Database engines that implicitly relied on username and/or password
+       environment variables or on the system username now explicitly rely on
+       them. These include the Firebird, MySQL, Postgres, and Vertical
+       engines. This change should exhibit no change in the behavior of these
+       engines.
 
 0.9997 2018-03-15T21:13:52Z
      - Fixed the Firebird engine to properly detect multiple instances of a

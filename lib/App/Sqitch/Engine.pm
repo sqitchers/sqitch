@@ -30,13 +30,34 @@ has target => (
     weak_ref => 1,
     handles => {
         uri         => 'uri',
-        username    => 'username',
-        password    => 'password',
         client      => 'client',
         registry    => 'registry',
         destination => 'name',
     }
 );
+
+has username => (
+    is      => 'ro',
+    isa     => Maybe[Str],
+    lazy    => 1,
+    default => sub {
+        my $self = shift;
+        $self->target->username || $self->_def_user
+    },
+);
+
+has password => (
+    is      => 'ro',
+    isa     => Maybe[Str],
+    lazy    => 1,
+    default => sub {
+        my $self = shift;
+        $self->target->password || $self->_def_pass
+    },
+);
+
+sub _def_user { }
+sub _def_pass { }
 
 sub registry_destination { shift->destination }
 
@@ -1420,6 +1441,62 @@ A hash of engine client variables to be set. May be set and retrieved as a
 list.
 
 =head2 Instance Methods
+
+=head3 C<username>
+
+  my $username = $engine->username;
+
+The username to use to connect to the database, for engines that require
+authentication. The username is looked up in the following places, returning
+the first to have a value:
+
+=over
+
+=item 1.
+
+The C<$SQITCH_USERNAME> environment variable.
+
+=item 2.
+
+The username from the target URI.
+
+=item 3.
+
+An engine-specific default password, which may be derived from an environment
+variable, engine configuration file, the system user, or none at all.
+
+=back
+
+See L<sqitch-passwords> for details and best practices for Sqitch engine
+authentication.
+
+=head3 C<password>
+
+  my $password = $engine->password;
+
+The password to use to connect to the database, for engines that require
+authentication. The password is looked up in the following places, returning
+the first to have a value:
+
+=over
+
+=item 1.
+
+The C<$SQITCH_PASSWORD> environment variable.
+
+=item 2.
+
+The password from the target URI.
+
+=item 3.
+
+An engine-specific default password, which may be derived from an environment
+variable, engine configuration file, or none at all.
+
+=back
+
+See L<sqitch-passwords> for details and best practices for Sqitch engine
+authentication.
 
 =head3 C<registry_destination>
 

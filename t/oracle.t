@@ -104,7 +104,6 @@ $dest_uri->dbname(
         $ENV{TWO_TASK}
     || ($^O eq 'MSWin32' ? $ENV{LOCAL} : undef)
     || $ENV{ORACLE_SID}
-    || $sqitch->sysuser
 );
 is $ora->target->name, $ora->uri, 'Target name should be the uri stringified';
 is $ora->destination, $dest_uri->as_string,
@@ -116,12 +115,11 @@ my @std_opts = qw(-S -L /nolog);
 is_deeply [$ora->sqlplus], [$client, @std_opts],
     'sqlplus command should connect to /nolog';
 
-my $sysuser = $sqitch->sysuser;
 is $ora->_script, join( "\n" => (
     'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF',
     'WHENEVER OSERROR EXIT 9;',
     'WHENEVER SQLERROR EXIT SQL.SQLCODE;',
-    "connect $sysuser",
+    'connect ',
     $ora->_registry_variable,
 ) ), '_script should work';
 
@@ -202,7 +200,7 @@ is $ora->_script('@foo'), join( "\n" => (
     'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF',
     'WHENEVER OSERROR EXIT 9;',
     'WHENEVER SQLERROR EXIT SQL.SQLCODE;',
-    qq{connect $sysuser@"secure_user_tns.tpg"},
+    'connect /@"secure_user_tns.tpg"',
     $ora->_registry_variable,
     '@foo',
 ) ), '_script should assemble connection string with just dbname';
@@ -222,7 +220,7 @@ is $ora->_script('@foo'), join( "\n" => (
     'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF',
     'WHENEVER OSERROR EXIT 9;',
     'WHENEVER SQLERROR EXIT SQL.SQLCODE;',
-    qq{connect $sysuser@"wallet_tns_name"},
+    'connect /@"wallet_tns_name"',
     $ora->_registry_variable,
     '@foo',
 ) ), '_script should assemble connection string with double-slash and dbname';
@@ -243,16 +241,6 @@ ENV: {
         is $ora->registry_destination, $ora->destination,
            'Registry destination should be the same as destination';
     }
-
-    my $mocker = Test::MockModule->new('App::Sqitch');
-    $mocker->mock(sysuser => 'sysuser=whatever');
-    my $ora = $CLASS->new(sqitch => $sqitch, target => $target);
-    is $ora->target->name, 'db:oracle:',
-        'Target name should not fall back on sysuser';
-    is $ora->destination, 'db:oracle:sysuser=whatever',
-        'Destination should fall back on sysuser';
-    is $ora->registry_destination, $ora->destination,
-        'Registry destination should be the same as destination';
 
     $ENV{TWO_TASK} = 'mydb';
     $ora = $CLASS->new(sqitch => $sqitch, username => 'hi', target => $target);

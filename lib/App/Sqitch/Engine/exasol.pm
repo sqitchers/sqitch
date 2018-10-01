@@ -46,6 +46,10 @@ sub destination {
     return $uri->as_string;
 }
 
+# No username or password defaults.
+sub _def_user { }
+sub _def_pass { }
+
 has _exaplus => (
     is         => 'ro',
     isa        => ArrayRef,

@@ -28,14 +28,12 @@ sub destination {
     # Use the URI sans password, and with the database name added.
     my $uri = $self->target->uri->clone;
     $uri->password(undef) if $uri->password;
-    $uri->dbname(
-        $ENV{PGDATABASE}
-        || $self->username
-        || $ENV{PGUSER}
-        || $self->sqitch->sysuser
-    );
+    $uri->dbname( $ENV{PGDATABASE} || $self->username );
     return $uri->as_string;
 }
+
+sub _def_user { $ENV{PGUSER} || shift->sqitch->sysuser }
+sub _def_pass { $ENV{PGPASSWORD} }
 
 has _psql => (
     is         => 'ro',
@@ -103,7 +101,7 @@ has dbh => (
 
         my $uri = $self->uri;
         local $ENV{PGCLIENTENCODING} = 'UTF8';
-        DBI->connect($uri->dbi_dsn, scalar $self->username, scalar $self->password, {
+        DBI->connect($uri->dbi_dsn, $self->username, $self->password, {
             PrintError        => 0,
             RaiseError        => 0,
             AutoCommit        => 1,

@@ -83,7 +83,7 @@ is $target->plan->file, $target->plan_file,
     'Plan file should be copied from Target';
 my $uri = $target->uri;
 is $target->dsn, $uri->dbi_dsn, 'DSN should be from URI';
-is $target->username, $sqitch->sysuser, 'Username should be from system';
+is $target->username, $uri->user, 'Username should be from URI';
 is $target->password, $uri->password, 'Password should be from URI';
 
 do {
@@ -233,7 +233,7 @@ CONSTRUCTOR: {
     is $target->plan->file, $target->plan_file,
         'Plan file should be copied from Target';
     is $target->dsn, '', 'DSN should be empty';
-    is $target->username, $sqitch->sysuser, 'Username should be from system';
+    is $target->username, undef, 'Username should be undef';
     is $target->password, undef, 'Password should be undef';
 
     # Try passing a proper URI via the name.

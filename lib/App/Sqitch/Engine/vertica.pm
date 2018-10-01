@@ -30,14 +30,13 @@ sub destination {
     # Use the URI sans password, and with the database name added.
     my $uri = $self->target->uri->clone;
     $uri->password(undef) if $uri->password;
-    $uri->dbname(
-           $ENV{VSQL_DATABASE}
-        || $self->username
-        || $ENV{VSQL_USER}
-        || $self->sqitch->sysuser
-    );
+    $uri->dbname( $ENV{VSQL_DATABASE} || $self->username );
     return $uri->as_string;
 }
+
+
+sub _def_user { $ENV{VSQL_USER} || shift->sqitch->sysuser }
+sub _def_pass { $ENV{VSQL_PASSWORD} }
 
 has _vsql => (
     is         => 'ro',
@@ -79,14 +78,11 @@ has dbh => (
         my $target = $self->target;
         my $uri = $self->uri;
         # https://my.vertica.com/docs/5.1.6/HTML/index.htm#2736.htm
-        $uri->dbname($ENV{VSQL_DATABASE})   if !$uri->dbname   && $ENV{VSQL_DATABASE};
-        $uri->host($ENV{VSQL_HOST})         if !$uri->host     && $ENV{VSQL_HOST};
-        $uri->port($ENV{VSQL_PORT})         if !$uri->_port    && $ENV{VSQL_PORT};
-        $uri->user($ENV{VSQL_USER})         if !$uri->user     && $ENV{VSQL_USER};
-        $uri->password($target->password || $ENV{VSQL_PASSWORD})
-            if !$uri->password && ($target->password || $ENV{VSQL_PASSWORD});
+        $uri->dbname($ENV{VSQL_DATABASE}) if !$uri->dbname   && $ENV{VSQL_DATABASE};
+        $uri->host($ENV{VSQL_HOST})       if !$uri->host     && $ENV{VSQL_HOST};
+        $uri->port($ENV{VSQL_PORT})       if !$uri->_port    && $ENV{VSQL_PORT};
 
-        DBI->connect($uri->dbi_dsn, scalar $uri->user, scalar $uri->password, {
+        DBI->connect($uri->dbi_dsn, $self->username, $self->password, {
             PrintError        => 0,
             RaiseError        => 0,
             AutoCommit        => 1,

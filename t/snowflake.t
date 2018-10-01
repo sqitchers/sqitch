@@ -77,8 +77,8 @@ my $client = 'snowsql' . ($^O eq 'MSWin32' ? '.exe' : '');
 is $snow->client, $client, 'client should default to snowsql';
 
 is $snow->registry, 'sqitch', 'Registry default should be "sqitch"';
-my $exp_uri = sprintf 'db:snowflake://%s@%s.snowflakecomputing.com/%s',
-    $sqitch->sysuser, $ENV{SNOWSQL_ACCOUNT}, $sqitch->sysuser;
+my $exp_uri = sprintf 'db:snowflake://%s.snowflakecomputing.com/%s',
+    $ENV{SNOWSQL_ACCOUNT}, $sqitch->sysuser;
 is $snow->uri, $exp_uri, 'DB URI should be filled in';
 is $snow->destination, $exp_uri, 'Destination should be URI string';
 is $snow->registry_destination, $snow->destination,
@@ -96,7 +96,7 @@ SNOWENV: {
 
     my $target = App::Sqitch::Target->new(sqitch => $sqitch, uri => URI->new($uri));
     my $snow = $CLASS->new( sqitch => $sqitch, target => $target );
-    is $snow->uri, 'db:snowflake://kamala:gimme@test.snowflake.com:4242/tryme',
+    is $snow->uri, 'db:snowflake://test.snowflake.com:4242/tryme',
         'Should build URI from environment';
     is $snow->username, 'kamala', 'Should read username from environment';
     is $snow->password, 'gimme', 'Should read password from environment';
@@ -106,18 +106,16 @@ SNOWENV: {
     $target = App::Sqitch::Target->new(sqitch => $sqitch, uri => URI->new($uri));
     delete $ENV{SNOWSQL_HOST};
     $snow = $CLASS->new( sqitch => $sqitch, target => $target );
-    is $snow->uri, 'db:snowflake://kamala:gimme@egregious.Australia.snowflakecomputing.com:4242/tryme',
+    is $snow->uri, 'db:snowflake://egregious.Australia.snowflakecomputing.com:4242/tryme',
         'Should build URI host from account and region environment vars';
     is $snow->account, 'egregious', 'Should read account from environment';
 
     # SQITCH_PASSWORD has priority.
-    is $target->uri->password, 'gimme', 'Targe URI password should be set';
     local $ENV{SQITCH_PASSWORD} = 'irule';
     $target = App::Sqitch::Target->new(sqitch => $sqitch, uri => URI->new($uri));
     is $target->password, 'irule', 'Target password should be from SQITCH_PASSWORD';
     $snow = $CLASS->new( sqitch => $sqitch, target => $target );
     is $snow->password, 'irule', 'Should prefer password from SQITCH_PASSWORD';
-    is $target->uri->password, 'irule', 'Targe URI password should be reset';
 }
 
 # Name the target.
