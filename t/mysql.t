@@ -26,7 +26,7 @@ BEGIN {
     $ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
     $ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.user';
     $ENV{SQITCH_USER_CONFIG}   = 'nonexistent.sys';}
-    delete $ENV{MYSQL_PWD};
+    delete $ENV{$_} for qw(MYSQL_PWD MYSQL_HOST MYSQL_TCP_PORT);
 
 
 is_deeply [$CLASS->config_vars], [
@@ -80,13 +80,17 @@ isa_ok $mysql = $CLASS->new(
 ), $CLASS;
 
 ##############################################################################
-# Make sure MYSQL_PWD is read.
+# Make sure environment variables are read.
 ENV: {
     local $ENV{MYSQL_PWD} = '__KAMALA';
+    local $ENV{MYSQL_HOST} = 'sqitch.sql';
+    local $ENV{MYSQL_TCP_PORT} = 11238;
     ok my $mysql = $CLASS->new(sqitch => $sqitch, target => $target),
         'Create engine with MYSQL_PWD set';
     is $mysql->password, $ENV{MYSQL_PWD},
         'Password should be set from environment';
+    is $mysql->uri->host, $ENV{MYSQL_HOST}, 'URI should reflect MYSQL_HOST';
+    is $mysql->uri->port, $ENV{MYSQL_TCP_PORT}, 'URI should reflect MYSQL_TCP_PORT';
 }
 
 ##############################################################################

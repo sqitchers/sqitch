@@ -145,7 +145,7 @@ has warehouse => (
     default => sub {
         my $uri = shift->uri;
         require URI::QueryParam;
-        $uri->query_param('warehouse') || 'sqitch';
+        $uri->query_param('warehouse') || $ENV{SNOWSQL_WAREHOUSE} || 'sqitch';
     },
 );
 

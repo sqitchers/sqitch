@@ -18,6 +18,19 @@ extends 'App::Sqitch::Engine';
 
 our $VERSION = '0.9998';
 
+has uri => (
+    is       => 'ro',
+    isa      => URIDB,
+    lazy     => 1,
+    default  => sub {
+        my $self = shift;
+        my $uri = $self->SUPER::uri;
+        $uri->host($ENV{MYSQL_HOST})     if !$uri->host  && $ENV{MYSQL_HOST};
+        $uri->port($ENV{MYSQL_TCP_PORT}) if !$uri->_port && $ENV{MYSQL_TCP_PORT};
+        return $uri;
+    },
+);
+
 has registry_uri => (
     is       => 'ro',
     isa      => URIDB,

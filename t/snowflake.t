@@ -89,6 +89,7 @@ SNOWENV: {
     local $ENV{SNOWSQL_USER} = 'kamala';
     local $ENV{SNOWSQL_PWD} = 'gimme';
     local $ENV{SNOWSQL_REGION} = 'Australia';
+    local $ENV{SNOWSQL_WAREHOUSE} = 'madrigal';
     local $ENV{SNOWSQL_ACCOUNT} = 'egregious';
     local $ENV{SNOWSQL_HOST} = 'test.snowflake.com';
     local $ENV{SNOWSQL_PORT} = 4242;
@@ -101,6 +102,7 @@ SNOWENV: {
     is $snow->username, 'kamala', 'Should read username from environment';
     is $snow->password, 'gimme', 'Should read password from environment';
     is $snow->account, 'test', 'Should read account from host';
+    is $snow->warehouse, 'madrigal', 'Should read warehouse from environment';
 
     # Delete host.
     $target = App::Sqitch::Target->new(sqitch => $sqitch, uri => URI->new($uri));

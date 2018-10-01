@@ -64,6 +64,10 @@ Revision history for Perl extension App::Sqitch
        them. These include the Firebird, MySQL, Postgres, and Vertical
        engines. This change should exhibit no change in the behavior of these
        engines.
+     - Added support for the `$MYSQL_HOST` and `$MYSQL_TCP_PORT` environment
+       variables to the MySQL engine.
+     - Documented all supported engine-specific environment variables in the
+       sqitch-environment guide.
 
 0.9997 2018-03-15T21:13:52Z
      - Fixed the Firebird engine to properly detect multiple instances of a
