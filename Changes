@@ -16,17 +16,17 @@ Revision history for Perl extension App::Sqitch
        simplify building distribution packages, binary installs, Docker images,
        and the like.
      - Added the `--with` option to `./Build`, to require that Sqitch be build
-       with the specified engine. Pass once for each engine. See the READMe
+       with the specified engine. Pass once for each engine. See the README
        for the list of supported engines.
      - Added a check for Hash::Merge 0.298 during installation, since that
        release has a fatal bug that breaks Sqitch. If it's installed, the
        installer will issue a warning and added v0.299 to its list of
        dependencies. Thanks to Slaven Rezić for the suggestion (#377).
-     - Fixed the PostgreSQL engine so it properly checks the psql client
+     - Fixed the PostgreSQL engine so it properly checks the `psql` client
        version to determine whether or not the `:registry` variable is
        supported. Previously it relied on the server version, which would fail
-       if the server version was greater than 8.4 but the psql client was not.
-       Thanks to multiple folks reporting issues with registry names and
+       if the server version was greater than 8.4 but the `psql` client was
+       not. Thanks to multiple folks reporting issues with registry names and
        search paths (#314).
      - The plan parser will now complain if a change specifies a duplicate
        dependency. This should be less confusing than a database unique
@@ -68,6 +68,8 @@ Revision history for Perl extension App::Sqitch
        variables to the MySQL engine.
      - Documented all supported engine-specific environment variables in the
        sqitch-environment guide.
+     - Renamed the sqitch-passwords guide to sqitch-authentication and added a
+       section on username specification.
 
 0.9997 2018-03-15T21:13:52Z
      - Fixed the Firebird engine to properly detect multiple instances of a

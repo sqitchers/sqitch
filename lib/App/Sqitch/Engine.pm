@@ -1467,7 +1467,7 @@ variable, engine configuration file, the system user, or none at all.
 
 =back
 
-See L<sqitch-passwords> for details and best practices for Sqitch engine
+See L<sqitch-authentication> for details and best practices for Sqitch engine
 authentication.
 
 =head3 C<password>
@@ -1495,7 +1495,7 @@ variable, engine configuration file, or none at all.
 
 =back
 
-See L<sqitch-passwords> for details and best practices for Sqitch engine
+See L<sqitch-authentication> for details and best practices for Sqitch engine
 authentication.
 
 =head3 C<registry_destination>

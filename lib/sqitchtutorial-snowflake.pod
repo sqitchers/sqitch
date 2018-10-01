@@ -186,7 +186,7 @@ the remainder of this tutorial). Otherwise, specify it in the URI. Snowflake
 also requires a password, which could also be included in the URI, but it's
 best to put it in the C<connections> section of the
 L<F<.snowsql/config> file|https://docs.snowflake.net/manuals/user-guide/snowsql-start.html#configuring-default-connection-settings>.
-See L<sqitch-passwords> for details.
+See L<sqitch-authentication> for details.
 
 We just tell Sqitch to use that URI to deploy the change:
 

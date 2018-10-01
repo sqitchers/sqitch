@@ -34,13 +34,13 @@ L<sqitch-config> for details.
 
 Username to use when connecting to a database, for those database engines that
 support authentication. Overrides values stored in a target URI or the
-configuration file. See L<sqitch-passwords> for details.
+configuration file. See L<sqitch-authentication> for details.
 
 =item C<SQITCH_PASSWORD>
 
 Password to use when connecting to a database, for those database engines that
 support authentication. Overrides values stored in a target URI or the
-configuration file. See L<sqitch-passwords> for details.
+configuration file. See L<sqitch-authentication> for details.
 
 =item C<SQITCH_FULLNAME>
 
@@ -313,7 +313,7 @@ parameter.
 
 =item * L<sqitch-config>
 
-=item * L<sqitch-passwords>
+=item * L<sqitch-authentication>
 
 =back
 

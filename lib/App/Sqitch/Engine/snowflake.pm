@@ -571,9 +571,9 @@ L<SnowSQL config file|https://docs.snowflake.net/manuals/user-guide/snowsql-conf
 =head3 C<warehouse>
 
 Returns the warehouse to use for all connections. Defaults to the value of the
-C<warehouse> query parameter of the target URI, or else "sqitch". This value
-will be available to all Snowflake change scripts as the C<&warehouse>
-variable.
+C<warehouse> query parameter of the target URI, the C<$SNOWSQL_WAREHOUSE>
+environment variable, or else "sqitch". This value will be available to all
+Snowflake change scripts as the C<&warehouse> variable.
 
 =head2 Instance Methods
 
