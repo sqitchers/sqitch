@@ -9,12 +9,12 @@
 # Tests can be run against the Developer Days VM with a bit of configuration.
 # Download the VM from:
 #
-#   http://www.oracle.com/technetwork/database/enterprise-edition/databaseappdev-vm-161299.html
+#   https://www.oracle.com/technetwork/database/enterprise-edition/databaseappdev-vm-161299.html
 #
 # Once the VM is imported into VirtualBox and started, login with the username
 # "oracle" and the password "oracle". Then, in VirtualBox, go to Settings ->
 # Network, select the NAT adapter, and add two port forwarding rules
-# (http://barrymcgillin.blogspot.com/2011/12/using-oracle-developer-days-virtualbox.html):
+# (https://barrymcgillin.blogspot.com/2011/12/using-oracle-developer-days-virtualbox.html):
 #
 #   Host Port | Guest Port
 #  -----------+------------
@@ -31,7 +31,7 @@
 #    ORA-21561: OID generation failed
 #
 # Make sure that your computer's hostname is on the localhost line of
-# /etc/hosts (http://sourceforge.net/p/tora/discussion/52737/thread/f68b89ad/):
+# /etc/hosts (https://sourceforge.net/p/tora/discussion/52737/thread/f68b89ad/):
 #
 #     > hostname
 #     stickywicket

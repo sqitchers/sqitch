@@ -210,7 +210,7 @@ sub run {
         MOCKPROJECT: {
             my $plan_mocker = Test::MockModule->new(ref $target->plan );
             $plan_mocker->mock(project => 'groovy');
-            $plan_mocker->mock(uri     => 'http://example.com/');
+            $plan_mocker->mock(uri     => 'https://example.com/');
             ok $engine->register_project, 'Register a second project';
         }
 
@@ -220,14 +220,14 @@ sub run {
             'SELECT project, uri, creator_name, creator_email FROM projects ORDER BY created_at'
         ), [
             ['engine', undef, $sqitch->user_name, $sqitch->user_email],
-            ['groovy', 'http://example.com/', $sqitch->user_name, $sqitch->user_email],
+            ['groovy', 'https://example.com/', $sqitch->user_name, $sqitch->user_email],
         ], 'Both projects should now be registered';
 
         # Try to register with a different URI.
         MOCKURI: {
             my $plan_mocker = Test::MockModule->new(ref $target->plan );
             my $plan_proj = 'engine';
-            my $plan_uri = 'http://example.net/';
+            my $plan_uri = 'https://example.net/';
             $plan_mocker->mock(project => sub { $plan_proj });
             $plan_mocker->mock(uri => sub { $plan_uri });
             throws_ok { $engine->register_project } 'App::Sqitch::X',
@@ -248,7 +248,7 @@ sub run {
                 'Cannot register "{project}" with URI {uri}: already exists with URI {reg_uri}',
                 project => 'groovy',
                 uri     => $plan_uri,
-                reg_uri => 'http://example.com/',
+                reg_uri => 'https://example.com/',
             ), 'Different URI error message should be correct';
 
             # Try with a NULL project URI.
@@ -259,11 +259,11 @@ sub run {
             is $@->message, __x(
                 'Cannot register "{project}" without URI: already exists with URI {uri}',
                 project => 'groovy',
-                uri     => 'http://example.com/',
+                uri     => 'https://example.com/',
             ), 'NULL plan uri error message should be correct';
 
             # It should succeed when the name and URI are the same.
-            $plan_uri = 'http://example.com/';
+            $plan_uri = 'https://example.com/';
             ok $engine->register_project, 'Register "groovy" again';
             is_deeply [ $engine->registered_projects ], ['engine', 'groovy'],
                 'Should still have two registered projects';
@@ -271,7 +271,7 @@ sub run {
                 'SELECT project, uri, creator_name, creator_email FROM projects ORDER BY created_at'
             ), [
                 ['engine', undef, $sqitch->user_name, $sqitch->user_email],
-                ['groovy', 'http://example.com/', $sqitch->user_name, $sqitch->user_email],
+                ['groovy', 'https://example.com/', $sqitch->user_name, $sqitch->user_email],
             ], 'Both projects should still be registered';
 
             # Now try the same URI but a different name.

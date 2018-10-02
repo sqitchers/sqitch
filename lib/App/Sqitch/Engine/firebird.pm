@@ -126,7 +126,7 @@ has tz_offset => (
     isa      => Maybe[Int],
     lazy     => 1,
     default => sub {
-        # From: http://stackoverflow.com/questions/2143528/whats-the-best-way-to-get-the-utc-offset-in-perl
+        # From: https://stackoverflow.com/questions/2143528/whats-the-best-way-to-get-the-utc-offset-in-perl
         my @t = localtime(time);
         my $gmt_offset_in_seconds = timegm(@t) - timelocal(@t);
         my $offset = -($gmt_offset_in_seconds / 3600);

@@ -15,10 +15,10 @@ VCS for deployment planning, and work with other developers to make sure
 changes remain in sync and in the proper order.
 
 We'll start by creating new project from scratch, a fictional antisocial
-networking site called Flipr. All examples use L<Git|http://git-scm.com/> as
-the VCS and L<Oracle|http://www.oracle.com/us/products/database/> as the
+networking site called Flipr. All examples use L<Git|https://git-scm.com/> as
+the VCS and L<Oracle|https://www.oracle.com/us/products/database/> as the
 storage engine. Note that you will need to set
-L<C<$ORACLE_HOME>|http://www.orafaq.com/wiki/ORACLE_HOME> so that all the
+L<C<$ORACLE_HOME>|https://www.orafaq.com/wiki/ORACLE_HOME> so that all the
 database connections will work.
 
 If you'd like to manage a PostgreSQL database, see L<sqitchtutorial>.
@@ -122,7 +122,7 @@ engine, thanks to the C<--engine oracle> option, and saved it to the file.
 Furthermore, it wrote a commented-out C<[engine "oracle"]> section with all
 the available Oracle engine-specific settings commented out and ready to be
 edited as appropriate. This includes the path to
-L<SQL*Plus|http://www.orafaq.com/wiki/SQL*Plus> in my C<$ORACLE_HOME>.
+L<SQL*Plus|https://www.orafaq.com/wiki/SQL*Plus> in my C<$ORACLE_HOME>.
 
 By default, Sqitch will read F<sqitch.conf> in the current directory for
 settings. But it will also read F<~/.sqitch/sqitch.conf> for user-specific
@@ -189,7 +189,7 @@ script, so we add this to F<revert/appschema.sql>:
 
 Now we can try deploying this change. We'll assume you have an Oracle SID
 named C<flipr_test> set up in your
-C<F<TNSNAMES.ORA>|http://www.orafaq.com/wiki/Tnsnames.ora> file:
+C<F<TNSNAMES.ORA>|https://www.orafaq.com/wiki/Tnsnames.ora> file:
 
   > sqitch deploy db:oracle://scott:tiger@/flipr_test
   Adding registry tables to db:oracle://scott:@/flipr_test
@@ -426,7 +426,7 @@ We can name the target:
   > sqitch target add flipr_test db:oracle://scott:tiger@/flipr_test
 
 The L<C<target>|sqitch-target> command, inspired by
-L<C<git-remote>|http://git-scm.com/docs/git-remote>, allows management of one
+L<C<git-remote>|https://git-scm.com/docs/git-remote>, allows management of one
 or more named deployment targets. We've just added a target named
 C<flipr_test>, which means we can use the string C<flipr_test> for the target,
 rather than the URI. But since we're doing so much testing, we can also tell
@@ -713,7 +713,7 @@ F<deploy/insert_user.sql> should look like:
 
 The C<DECLARE> PL/SQL block is to catch compilation warnings, which are not
 normally fatal. It's admittedly
-L<a bit convoluted|http://stackoverflow.com/a/16429231/79202>, but ensures that
+L<a bit convoluted|https://stackoverflow.com/a/16429231/79202>, but ensures that
 errors propagate and a broken function get dropped.
 
 Here's what F<verify/insert_user.sql> might look like:
@@ -1254,7 +1254,7 @@ resolve conflicts in that file. Except in Git. Fortunately for us, we can tell
 Git to resolve conflicts in F<sqitch.plan> differently. Because we only ever
 append lines to the file, we can have it use the "union" merge driver, which,
 according to L<its
-docs|http://git-scm.com/docs/gitattributes#_built-in_merge_drivers>:
+docs|https://git-scm.com/docs/gitattributes#_built-in_merge_drivers>:
 
 =over
 
@@ -1531,7 +1531,7 @@ improved encryption. But how to deploy the changes to C<insert_user()> and
 C<change_pass()>?
 
 Normally, modifying functions in database changes is a
-L<PITA|http://www.urbandictionary.com/define.php?term=pita>. You have to make
+L<PITA|https://www.urbandictionary.com/define.php?term=pita>. You have to make
 changes like these:
 
 =over
@@ -1624,7 +1624,7 @@ F<deploy/insert_user.sql> and F<revert/insert_user.sql> are identical. This is
 on the assumption that the deploy script will be changed (we're reworking it,
 remember?), and that the revert script should actually change things back to
 how they were before. Of course, the original deploy script may not be
-L<idempotent|http://en.wikipedia.org/wiki/Idempotence> -- that is, able to be
+L<idempotent|https://en.wikipedia.org/wiki/Idempotence> -- that is, able to be
 applied multiple times without changing the result beyond the initial
 application. If it's not, you will likely need to modify it so that it
 properly restores things to how they were after the original deploy script was
@@ -1771,7 +1771,7 @@ in the new script files that include tags.
 But what about the verify script? How can we verify that the functions have
 been modified to use C<crypt()>? I think the simplest thing to do is to
 examine the body of the function by querying the
-L<C<all_source>|http://docs.oracle.com/cd/B19306_01/server.102/b14237/statviews_2063.htm>
+L<C<all_source>|https://docs.oracle.com/cd/B19306_01/server.102/b14237/statviews_2063.htm>
 view. So the C<insert_user> verify script looks like this:
 
   -- Verify flipr:insert_user on oracle

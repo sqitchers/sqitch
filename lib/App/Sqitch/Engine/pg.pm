@@ -122,7 +122,7 @@ has dbh => (
                             'SET search_path = ?',
                             undef, $self->registry
                         );
-                        # http://www.nntp.perl.org/group/perl.dbi.dev/2013/11/msg7622.html
+                        # https://www.nntp.perl.org/group/perl.dbi.dev/2013/11/msg7622.html
                         $dbh->set_err(undef, undef) if $dbh->err;
                     };
                     return;

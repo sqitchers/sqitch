@@ -15,8 +15,8 @@ VCS for deployment planning, and work with other developers to make sure
 changes remain in sync and in the proper order.
 
 We'll start by creating new project from scratch, a fictional antisocial
-networking site called Flipr. All examples use L<Git|http://git-scm.com/> as
-the VCS and L<SQLite|http://www.sqlite.org/> as the storage engine.
+networking site called Flipr. All examples use L<Git|https://git-scm.com/> as
+the VCS and L<SQLite|https://www.sqlite.org/> as the storage engine.
 
 If you'd like to manage a PostgreSQL database, see L<sqitchtutorial>.
 
@@ -192,7 +192,7 @@ changes. The registry is separate from the database to which the C<users>
 change was deployed; by default, its name is C<sqitch.$suffix>, where
 C<$suffix> is the same as the suffix on the target database, if any. It lives
 in the same directory as the target database. This will be useful if you use
-the SQLite L<C<ATTACHDATABASE>|http://www.sqlite.org/lang_attach.html> command
+the SQLite L<C<ATTACHDATABASE>|https://www.sqlite.org/lang_attach.html> command
 to manage multiple database files in a single project. In that case, you will
 want to use the same file for all the databases. Keep them all in the same
 directory with the same suffix and you get just that with the default sqitch
@@ -374,7 +374,7 @@ We can name the target:
   > sqitch target add flipr_test db:sqlite:flipr_test.db
 
 The L<C<target>|sqitch-target> command, inspired by
-L<C<git-remote>|http://git-scm.com/docs/git-remote>, allows management of one
+L<C<git-remote>|https://git-scm.com/docs/git-remote>, allows management of one
 or more named deployment targets. We've just added a target named
 C<flipr_test>, which means we can use the string C<flipr_test> for the target,
 rather than the URI. But since we're doing so much testing, we can also tell
@@ -866,7 +866,7 @@ resolve conflicts in that file. Except in Git. Fortunately for us, we can tell
 Git to resolve conflicts in F<sqitch.plan> differently. Because we only ever
 append lines to the file, we can have it use the "union" merge driver, which,
 according to L<its
-docs|http://git-scm.com/docs/gitattributes#_built-in_merge_drivers>:
+docs|https://git-scm.com/docs/gitattributes#_built-in_merge_drivers>:
 
 =over
 
@@ -1008,7 +1008,7 @@ demands. The upshot is that we need to update the C<userflips> view, which is
 used for the feature in question, to include the Twitter user names.
 
 Normally, modifying views in database changes is a
-L<PITA|http://www.urbandictionary.com/define.php?term=pita>. You have to make
+L<PITA|https://www.urbandictionary.com/define.php?term=pita>. You have to make
 changes like these:
 
 =over
@@ -1100,7 +1100,7 @@ F<deploy/userflips.sql> and F<revert/userflips.sql> are identical. This is on
 the assumption that the deploy script will be changed (we're reworking it,
 remember?), and that the revert script should actually change things back to
 how they were before. Of course, the original deploy script won't be
-L<idempotent|http://en.wikipedia.org/wiki/Idempotence> -- that is, able to be
+L<idempotent|https://en.wikipedia.org/wiki/Idempotence> -- that is, able to be
 applied multiple times without changing the result beyond the initial
 application. It could be if SQLite supported C<CREATE OR REPLACE VIEW>, but
 since it doesn't, we will have to edit the script to drop the view before

@@ -182,7 +182,7 @@ C<extract> from a completely different Sqitch project named C<utilities>:
 
 Add a change that uses the C<createtable> templates to generate the scripts,
 as well as variables to be used in that template (See
-L<http://theory.so/sqitch/2013/09/06/sqitch-templating/> for a custom template
+L<https://justatheory.com/2013/09/sqitch-templating/> for a custom template
 tutorial):
 
   sqitch add corp_widgets --template createtable \

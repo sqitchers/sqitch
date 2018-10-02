@@ -70,6 +70,9 @@ Revision history for Perl extension App::Sqitch
        sqitch-environment guide.
      - Renamed the sqitch-passwords guide to sqitch-authentication and added a
        section on username specification.
+     - Updated all URLs to use the https scheme. Only exceptions are tt2.org,
+       which doesn't support TLS, and conferences.embarcadero.com, which
+       appears to be down.
 
 0.9997 2018-03-15T21:13:52Z
      - Fixed the Firebird engine to properly detect multiple instances of a

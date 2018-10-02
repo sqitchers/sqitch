@@ -9,7 +9,7 @@ sqitch-checkout - Revert, checkout another VCS branch, and re-deploy changes
 =head1 Description
 
 Checkout another branch in your project's VCS (such as
-L<git|http://git-scm.org/>), while performing the necessary database changes
+L<git|https://git-scm.org/>), while performing the necessary database changes
 to update your database for the new branch.
 
 More specifically, the C<checkout> command compares the plan in the current
@@ -125,11 +125,11 @@ C<revert.variables> to override C<deploy.variables>.
 
 These variables are useful if your database engine supports variables in
 scripts, such as PostgreSQL's
-L<C<psql> variables|http://www.postgresql.org/docs/current/static/app-psql.html#APP-PSQL-INTERPOLATION>,
+L<C<psql> variables|https://www.postgresql.org/docs/current/static/app-psql.html#APP-PSQL-INTERPOLATION>,
 Vertica's
-L<C<vsql> variables|http://my.vertica.com/docs/7.1.x/HTML/index.htm#Authoring/ConnectingToHPVertica/vsql/Variables.htm>,
+L<C<vsql> variables|https://my.vertica.com/docs/7.1.x/HTML/index.htm#Authoring/ConnectingToHPVertica/vsql/Variables.htm>,
 and SQL*Plus's
-L<C<DEFINE> variables|http://docs.oracle.com/cd/B19306_01/server.102/b14357/ch12017.htm>.
+L<C<DEFINE> variables|https://docs.oracle.com/cd/B19306_01/server.102/b14357/ch12017.htm>.
 
 =item C<checkout.verify>
 

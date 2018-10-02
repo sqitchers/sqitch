@@ -112,7 +112,7 @@ has dbh => (
                     if (my $schema = $self->registry) {
                         try {
                             $dbh->do("ALTER SESSION SET CURRENT_SCHEMA = $schema");
-                            # http://www.nntp.perl.org/group/perl.dbi.dev/2013/11/msg7622.html
+                            # https://www.nntp.perl.org/group/perl.dbi.dev/2013/11/msg7622.html
                             $dbh->set_err(undef, undef) if $dbh->err;
                         };
                     }
@@ -152,7 +152,7 @@ sub _char2ts {
 }
 
 sub _listagg_format {
-    # http://stackoverflow.com/q/16313631/79202
+    # https://stackoverflow.com/q/16313631/79202
     return q{CAST(COLLECT(CAST(%s AS VARCHAR2(512))) AS sqitch_array)};
 }
 
@@ -434,7 +434,7 @@ sub _registry_variable {
     my $schema = $self->registry;
     return $schema ? ("DEFINE registry=$schema") : (
         # Select the current schema into &registry.
-        # http://www.orafaq.com/node/515
+        # https://www.orafaq.com/node/515
         'COLUMN sname for a30 new_value registry',
         q{SELECT SYS_CONTEXT('USERENV', 'SESSION_SCHEMA') AS sname FROM DUAL;},
     );

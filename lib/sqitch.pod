@@ -25,10 +25,10 @@ engine, application framework, or your development environment.
 =item Native scripting
 
 Changes are implemented as scripts native to your selected database engine.
-Writing a L<PostgreSQL|http://postgresql.org/> application? Write SQL scripts
-for L<C<psql>|http://www.postgresql.org/docs/current/static/app-psql.html>.
-Writing an L<Oracle|http://www.oracle.com/us/products/database/>-backed app?
-Write SQL scripts for L<SQL*Plus|http://www.orafaq.com/wiki/SQL*Plus>.
+Writing a L<PostgreSQL|https://postgresql.org/> application? Write SQL scripts
+for L<C<psql>|https://www.postgresql.org/docs/current/static/app-psql.html>.
+Writing an L<Oracle|https://www.oracle.com/us/products/database/>-backed app?
+Write SQL scripts for L<SQL*Plus|https://www.orafaq.com/wiki/SQL*Plus>.
 
 =begin comment
 
@@ -74,7 +74,7 @@ changes in the proper order.
 
 If you're using a VCS to track your changes, you don't have to duplicate
 entire change scripts for simple changes. As long as the changes are
-L<idempotent|http://en.wikipedia.org/wiki/Idempotence>, you can change
+L<idempotent|https://en.wikipedia.org/wiki/Idempotence>, you can change
 your code directly, and Sqitch will know it needs to be updated.
 
 =end comment
@@ -122,8 +122,8 @@ PostgreSQL Users Group in September, 2012.
 
 =item L<Agile Database Development|https://speakerdeck.com/theory/agile-database-development-2ed>
 
-Three-hour tutorial session on using L<Git|http://git-scm.org/>, test-driven
-development with L<pgTAP|http://pgtap.org>, and change management with Sqitch.
+Three-hour tutorial session on using L<Git|https://git-scm.org/>, test-driven
+development with L<pgTAP|https://pgtap.org>, and change management with Sqitch.
 
 =back
 
@@ -244,15 +244,15 @@ The database engine to use. Supported engines include:
 
 =over
 
-=item * C<pg> - L<PostgreSQL|http://postgresql.org/> and L<Postgres-XC|http://sourceforge.net/>
+=item * C<pg> - L<PostgreSQL|https://postgresql.org/> and L<Postgres-XC|https://sourceforge.net/projects/postgres-xc//>
 
-=item * C<sqlite> - L<SQLite|http://sqlite.org/>
+=item * C<sqlite> - L<SQLite|https://sqlite.org/>
 
-=item * C<oracle> - L<Oracle|http://www.oracle.com/us/products/database/>
+=item * C<oracle> - L<Oracle|https://www.oracle.com/us/products/database/>
 
-=item * C<mysql> - L<MySQL|http://dev.mysql.com/> and L<MariaDB|https://mariadb.com/>
+=item * C<mysql> - L<MySQL|https://dev.mysql.com/> and L<MariaDB|https://mariadb.com/>
 
-=item * C<firebird> - L<Firebird|http://www.firebirdsql.org/>
+=item * C<firebird> - L<Firebird|https://www.firebirdsql.org/>
 
 =item * C<vertica> - L<Vertica|https://my.vertica.com/>
 
@@ -512,15 +512,15 @@ The original design for Sqitch was sketched out in a number of blog posts:
 
 =item *
 
-L<Simple SQL Change Management|http://justatheory.com/computers/databases/simple-sql-change-management.html>
+L<Simple SQL Change Management|https://justatheory.com/computers/databases/simple-sql-change-management.html>
 
 =item *
 
-L<VCS-Enabled SQL Change Management|http://justatheory.com/computers/databases/vcs-sql-change-management.html>
+L<VCS-Enabled SQL Change Management|https://justatheory.com/computers/databases/vcs-sql-change-management.html>
 
 =item *
 
-L<SQL Change Management Sans Duplication|http://justatheory.com/computers/databases/sql-change-management-sans-redundancy.html>
+L<SQL Change Management Sans Duplication|https://justatheory.com/computers/databases/sql-change-management-sans-redundancy.html>
 
 =back
 
@@ -528,9 +528,9 @@ Other tools that do database change management include:
 
 =over
 
-=item L<Rails migrations|http://guides.rubyonrails.org/migrations.html>
+=item L<Rails migrations|https://guides.rubyonrails.org/migrations.html>
 
-Numbered migrations for L<Ruby on Rails|http://rubyonrails.org/>.
+Numbered migrations for L<Ruby on Rails|https://rubyonrails.org/>.
 
 =item L<Module::Build::DB>
 
@@ -541,10 +541,10 @@ system. Does not support reversion.
 
 Numbered migrations in pure SQL.
 
-=item L<Versioning|http://www.depesz.com/2010/08/22/versioning/>
+=item L<Versioning|https://www.depesz.com/2010/08/22/versioning/>
 
 PostgreSQL-specific dependency-tracking solution by
-L<depesz|http://www.depesz.com/>.
+L<depesz|https://www.depesz.com/>.
 
 =back
 

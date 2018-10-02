@@ -100,7 +100,7 @@ has dbh => (
                         $dbh->do(
                             'SET search_path = ' . $dbh->quote($self->registry)
                         );
-                        # http://www.nntp.perl.org/group/perl.dbi.dev/2013/11/msg7622.html
+                        # https://www.nntp.perl.org/group/perl.dbi.dev/2013/11/msg7622.html
                         $dbh->set_err(undef, undef) if $dbh->err;
                     };
                     return;

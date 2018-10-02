@@ -125,7 +125,7 @@ has dbh => (
                     if (my $schema = $self->registry) {
                         try {
                             $dbh->do("OPEN SCHEMA $schema");
-                            # http://www.nntp.perl.org/group/perl.dbi.dev/2013/11/msg7622.html
+                            # https://www.nntp.perl.org/group/perl.dbi.dev/2013/11/msg7622.html
                             $dbh->set_err(undef, undef) if $dbh->err;
                         };
                     }
@@ -478,7 +478,7 @@ sub _script {
         (map {; (my $v = $vars{$_}) =~ s/'/''/g; qq{DEFINE $_='$v';} } sort keys %vars),
         $self->_registry_variable,
         # Just 'map { s/;?$/;/r } ...' doesn't work in earlier Perl versions;
-        # see: http://www.perlmonks.org/index.pl?node_id=1048579
+        # see: https://www.perlmonks.org/index.pl?node_id=1048579
         map { (my $foo=$_) =~ s/;?$/;/; $foo } @_
     );
 }

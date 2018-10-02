@@ -179,6 +179,12 @@ Required to point to the Oracle home directory, and contain both the SQL*Plus
 client and the shared libraries with which the Perl Oracle driver was
 compiled.
 
+=item C<TNS_ADMIN>
+
+The directory in which the Oracle networking interface will find its configuration
+files, notably F<tnsnames.ora>. Defaults to C<$ORACLE HOME/network/admin> if not
+set.
+
 =item C<TWO_TASK>
 
 The name of the Oracle database to connect to. Superseded by the target URI.

@@ -4,8 +4,8 @@ Release:        1%{?dist}
 Summary:        Sane database change management
 License:        MIT
 Group:          Development/Libraries
-URL:            http://sqitch.org/
-Source0:        http://www.cpan.org/modules/by-module/App/App-Sqitch-%{version}.tar.gz
+URL:            https://sqitch.org/
+Source0:        https://www.cpan.org/modules/by-module/App/App-Sqitch-%{version}.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 BuildArch:      noarch
 BuildRequires:  perl >= 1:v5.10.0

@@ -720,7 +720,7 @@ MISSINGARGS: {
 # Test URI validation.
 for my $val (
     'rock',
-    'http://www.google.com/',
+    'https://www.google.com/',
 ) {
     my $uri = URI->new($val);
     throws_ok {

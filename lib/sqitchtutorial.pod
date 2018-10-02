@@ -15,8 +15,8 @@ a VCS for deployment planning, and work with other developers to make sure
 changes remain in sync and in the proper order.
 
 We'll start by creating a new project from scratch, a fictional antisocial
-networking site called Flipr. All examples use L<Git|http://git-scm.com/> as
-the VCS and L<PostgreSQL|http://www.postgresql.org/> as the storage engine,
+networking site called Flipr. All examples use L<Git|https://git-scm.com/> as
+the VCS and L<PostgreSQL|https://www.postgresql.org/> as the storage engine,
 but for the most part you can substitute other VCSes and database engines in
 the examples as appropriate.
 
@@ -184,7 +184,7 @@ did what it was supposed to. It should do so without regard to any data that
 might be in the database, and should throw an error if the deploy was not
 successful. In PostgreSQL, the simplest way to do so for non-queryable objects
 such as schemas is to take advantage the
-L<access privilege inquiry functions|http://www.postgresql.org/docs/current/static/functions-info.html#FUNCTIONS-INFO-ACCESS-TABLE>.
+L<access privilege inquiry functions|https://www.postgresql.org/docs/current/static/functions-info.html#FUNCTIONS-INFO-ACCESS-TABLE>.
 These functions conveniently throw exceptions if the object being inquired
 does not exist. For our new schema, C<has_schema_privilege()> will do very
 nicely. Put this query into F<verify/appschema.sql>:
@@ -366,7 +366,7 @@ to keep using the URI. We can name the target:
   > sqitch target add flipr_test db:pg:flipr_test
 
 The L<C<target>|sqitch-target> command, inspired by
-L<C<git-remote>|http://git-scm.com/docs/git-remote>, allows management of one
+L<C<git-remote>|https://git-scm.com/docs/git-remote>, allows management of one
 or more named deployment targets. We've just added a target named
 C<flipr_test>, which means we can use the string C<flipr_test> for the target,
 rather than the URI. But since we're doing so much testing, we can also use
@@ -1127,7 +1127,7 @@ resolve conflicts in that file. Except in Git. Fortunately for us, we can tell
 Git to resolve conflicts in F<sqitch.plan> differently. Because we only ever
 append lines to the file, we can have it use the "union" merge driver, which,
 according to L<its
-docs|http://git-scm.com/docs/gitattributes#_built-in_merge_drivers>:
+docs|https://git-scm.com/docs/gitattributes#_built-in_merge_drivers>:
 
 =over
 
@@ -1323,7 +1323,7 @@ a great idea. So we need to modify the C<insert_user()> and C<change_pass()>
 functions to fix that. How?
 
 We'll use
-L<C<pgcrypto>|http://www.postgresql.org/docs/current/static/pgcrypto.html>'s
+L<C<pgcrypto>|https://www.postgresql.org/docs/current/static/pgcrypto.html>'s
 C<crypt()> function to encrypt passwords with a salt, so that they're all
 unique. We just add a change to add C<pgcrypto> to the database, and then we
 can use it. The deploy script should be:
@@ -1359,7 +1359,7 @@ Now we can use C<pgcrypto>. But how to deploy the changes to C<insert_user()>
 and C<change_pass()>?
 
 Normally, modifying functions in database changes is a
-L<PITA|http://www.urbandictionary.com/define.php?term=pita>. You have to make
+L<PITA|https://www.urbandictionary.com/define.php?term=pita>. You have to make
 changes like these:
 
 =over
@@ -1448,7 +1448,7 @@ F<deploy/insert_user.sql> and F<revert/insert_user.sql> are identical. This is
 on the assumption that the deploy script will be changed (we're reworking it,
 remember?), and that the revert script should actually change things back to
 how they were before. Of course, the original deploy script may not be
-L<idempotent|http://en.wikipedia.org/wiki/Idempotence> -- that is, able to be
+L<idempotent|https://en.wikipedia.org/wiki/Idempotence> -- that is, able to be
 applied multiple times without changing the result beyond the initial
 application. If it's not, you will likely need to modify it so that it
 properly restores things to how they were after the original deploy script was
@@ -1559,7 +1559,7 @@ in the new script files that include tags.
 But what about the verify script? How can we verify that the functions have
 been modified to use C<crypt()>? I think the simplest thing to do is to
 examine the body of the function, using
-L<C<pg_get_functiondef()>|http://www.postgresql.org/docs/9.2/static/functions-info.html#FUNCTIONS-INFO-CATALOG-TABLE>. So the C<insert_user> verify script looks like this:
+L<C<pg_get_functiondef()>|https://www.postgresql.org/docs/9.2/static/functions-info.html#FUNCTIONS-INFO-CATALOG-TABLE>. So the C<insert_user> verify script looks like this:
 
   -- Verify flipr:insert_user on pg
 

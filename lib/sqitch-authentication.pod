@@ -112,39 +112,39 @@ systems. Some examples:
 =item PostgreSQL
 
 PostgreSQL supports a number of
-L<authentication methods|http://www.postgresql.org/docs/current/static/auth-methods.html>,
-including the passwordless L<SSL certificate|http://www.postgresql.org/docs/current/static/auth-methods.html#AUTH-CERT>, L<GSSAPI|http://www.postgresql.org/docs/current/static/auth-methods.html#GSSAPI-AUTH>, and, for local connections,
-L<peer authentication|http://www.postgresql.org/docs/current/static/auth-methods.html#AUTH-PEER>.
+L<authentication methods|https://www.postgresql.org/docs/current/static/auth-methods.html>,
+including the passwordless L<SSL certificate|https://www.postgresql.org/docs/current/static/auth-methods.html#AUTH-CERT>, L<GSSAPI|https://www.postgresql.org/docs/current/static/auth-methods.html#GSSAPI-AUTH>, and, for local connections,
+L<peer authentication|https://www.postgresql.org/docs/current/static/auth-methods.html#AUTH-PEER>.
 
 =item MySQL
 
 MySQL supports a number of
-L<authentication methods|http://dev.mysql.com/doc/internals/en/authentication-method.html>,
-plus L<SSL authentication|http://dev.mysql.com/doc/internals/en/ssl.html>.
+L<authentication methods|https://dev.mysql.com/doc/internals/en/authentication-method.html>,
+plus L<SSL authentication|https://dev.mysql.com/doc/internals/en/ssl.html>.
 
 =item Oracle
 
 Oracle supports a number of
-L<authentication methods|http://docs.oracle.com/cd/B19306_01/network.102/b14266/authmeth.htm#BABCGGEB>,
+L<authentication methods|https://docs.oracle.com/cd/B19306_01/network.102/b14266/authmeth.htm#BABCGGEB>,
 including
-L<SSL authentication|http://docs.oracle.com/cd/B19306_01/network.102/b14266/authmeth.htm#i1009722>,
-L<third-party authentication|http://docs.oracle.com/cd/B19306_01/network.102/b14266/authmeth.htm#i1009853>,
+L<SSL authentication|https://docs.oracle.com/cd/B19306_01/network.102/b14266/authmeth.htm#i1009722>,
+L<third-party authentication|https://docs.oracle.com/cd/B19306_01/network.102/b14266/authmeth.htm#i1009853>,
 and, for local connections,
-L<OS authentication|http://docs.oracle.com/cd/B19306_01/network.102/b14266/authmeth.htm#i1007520>.
+L<OS authentication|https://docs.oracle.com/cd/B19306_01/network.102/b14266/authmeth.htm#i1007520>.
 
 =item Vertica
 
 Vertica supports a number of
-L<authentication methods|http://my.vertica.com/docs/7.1.x/HTML/index.htm#Authoring/AdministratorsGuide/Security/ClientAuth/SupportedClientAuthenticationMethods.htm>
-including the passwordless L<TLS authentication|http://my.vertica.com/docs/7.1.x/HTML/index.htm#Authoring/AdministratorsGuide/Security/ClientAuth/ConfiguringTLSAuthentication.htm>,
-L<GSS authentication|http://my.vertica.com/docs/7.1.x/HTML/index.htm#Authoring/AdministratorsGuide/Security/ClientAuth/Kerberos/ImplementingKerberosAuthentication.htm>,
+L<authentication methods|https://my.vertica.com/docs/7.1.x/HTML/index.htm#Authoring/AdministratorsGuide/Security/ClientAuth/SupportedClientAuthenticationMethods.htm>
+including the passwordless L<TLS authentication|https://my.vertica.com/docs/7.1.x/HTML/index.htm#Authoring/AdministratorsGuide/Security/ClientAuth/ConfiguringTLSAuthentication.htm>,
+L<GSS authentication|https://my.vertica.com/docs/7.1.x/HTML/index.htm#Authoring/AdministratorsGuide/Security/ClientAuth/Kerberos/ImplementingKerberosAuthentication.htm>,
 and, for local connections,
-L<ident authentication|http://my.vertica.com/docs/7.1.x/HTML/index.htm#Authoring/AdministratorsGuide/Security/ClientAuth/ConfiguringIdentAuthentication.htm>.
+L<ident authentication|https://my.vertica.com/docs/7.1.x/HTML/index.htm#Authoring/AdministratorsGuide/Security/ClientAuth/ConfiguringIdentAuthentication.htm>.
 
 =item Firebird
 
 Firebird supports passwordless authentication only via
-L<trusted authentication|http://www.firebirdsql.org/manual/qsg2-config.html>
+L<trusted authentication|https://www.firebirdsql.org/manual/qsg2-config.html>
 for local connections.
 
 =item Exasol
@@ -171,7 +171,7 @@ the feature. Here's how the database engines supported by Sqitch shake out:
 =item PostgreSQL
 
 PostgreSQL will use a
-L<F<.pgpass> file|http://www.postgresql.org/docs/current/static/libpq-pgpass.html> in the
+L<F<.pgpass> file|https://www.postgresql.org/docs/current/static/libpq-pgpass.html> in the
 user's home directory to or referenced by the C<$PGPASSFILE> environment
 variable. This file must limit access only to the current user (C<0600>) and
 contains lines specify authentication rules as follows:
@@ -190,12 +190,12 @@ sections, in that order.
 =item Oracle
 
 Oracle supports
-L<password file|http://docs.oracle.com/cd/B28359_01/server.111/b28310/dba007.htm#ADMIN10241>
+L<password file|https://docs.oracle.com/cd/B28359_01/server.111/b28310/dba007.htm#ADMIN10241>
 created with the C<ORAPWD> utility to authenticate C<SYSDBA> and C<SYSOPER>
 users, but B<Sqitch is unable to take advantage of this functionality.> Neither can
-one L<embed a username and password|http://stackoverflow.com/q/7183513/79202>
+one L<embed a username and password|https://stackoverflow.com/q/7183513/79202>
 into a
-L<F<tnsnames.ora>|http://docs.oracle.com/cd/B28359_01/network.111/b28317/tnsnames.htm#NETRF007>
+L<F<tnsnames.ora>|https://docs.oracle.com/cd/B28359_01/network.111/b28317/tnsnames.htm#NETRF007>
 file.
 
 =item Vertica
