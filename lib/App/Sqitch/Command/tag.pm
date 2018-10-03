@@ -13,7 +13,7 @@ use namespace::autoclean;
 
 extends 'App::Sqitch::Command';
 
-our $VERSION = '0.9998';
+our $VERSION = '0.9999';
 
 has tag_name => (
     is  => 'ro',

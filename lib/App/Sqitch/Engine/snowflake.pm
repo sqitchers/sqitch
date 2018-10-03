@@ -12,7 +12,7 @@ use App::Sqitch::Types qw(DBH ArrayRef HashRef URIDB Str);
 
 extends 'App::Sqitch::Engine';
 
-our $VERSION = '0.9998';
+our $VERSION = '0.9999';
 
 sub key    { 'snowflake' }
 sub name   { 'Snowflake' }
