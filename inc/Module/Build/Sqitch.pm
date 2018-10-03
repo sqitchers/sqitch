@@ -319,7 +319,7 @@ sub _set_findbin {
     local $^I = '';
     local @ARGV = ($file);
     while (<>) {
-        s{^BEGIN}{use FindBin;\nuse lib "\$FindBin::Bin/../lib/perl5";\nBEGIN};
+        s{^BEGIN}{use FindBin;\nuse lib "\$FindBin::RealBin/../lib/perl5";\nBEGIN};
         print;
     }
 }
