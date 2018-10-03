@@ -244,6 +244,7 @@ sub fix_shebang_line {
 sub ACTION_bundle {
     my ($self, @params) = @_;
     my $base = $self->install_base or die "No --install_base specified\n";
+
     # XXX Consider replacing with a Carton or Carmel-based solution?
     SHHH: {
         local $SIG{__WARN__} = sub {}; # Menlo has noisy warnings.
@@ -274,14 +275,18 @@ sub ACTION_bundle {
             die "Error installing modules: $@\n" if $app->run;
         }
 
-        # Install Sqitch and all its required modules.
+        # Install required modules, but not Sqitch itself.
         $app->{argv} = ['.'];
+        $app->{installdeps} = 1;
         die "Error installing modules: $@\n" if $app->run;
 
         # Remove unneeded build-time dependencies.
         die "Error removing build modules: $@\n"
             unless $app->remove_build_dependencies;
     }
+
+    # Install Sqitch. Required to intall man pages.
+    $self->depends_on('install');
 
     # Delete unneeded files.
     $self->delete_filetree(File::Spec->catdir($base, qw(lib perl5 Test)));
