@@ -1,6 +1,6 @@
 Revision history for Perl extension App::Sqitch
 
-0.9998
+0.9998 2018-10-03T20:53:58Z
      - Fixed an issue where Sqitch would sometimes truncate the registry
        version number fetched from MySQL, most likely because the Perl runtime
        was using 32-bit integers. Fixed by casting the version to CHAR in the
