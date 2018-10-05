@@ -423,7 +423,7 @@ is_deeply [$mysql->_limit_offset(8, 4)],
     [['LIMIT ?', 'OFFSET ?'], [8, 4]],
     'Should get limit and offset';
 is_deeply [$mysql->_limit_offset(0, 2)],
-    [['LIMIT ?', 'OFFSET ?'], [18446744073709551615, 2]],
+    [['LIMIT ?', 'OFFSET ?'], ['18446744073709551615', 2]],
     'Should get limit and offset when offset only';
 is_deeply [$mysql->_limit_offset(12, 0)], [['LIMIT ?'], [12]],
     'Should get only limit with 0 offset';
