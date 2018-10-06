@@ -290,7 +290,7 @@ throws_ok { $engine->_check_registry } 'App::Sqitch::X',
     'Should get error for out-of-date registry';
 is $@->ident, 'engine', 'Out-of-date registry error ident should be "engine"';
 is $@->message, __x(
-    'Registry is at version {old} but latest is {new}. Please run the "upgrade" conmand',
+    'Registry is at version {old} but latest is {new}. Please run the "upgrade" command',
     old => 0.1,
     new => $engine->registry_release,
 ), 'Out-of-date registry error message should be correct';

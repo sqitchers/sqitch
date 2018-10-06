@@ -981,7 +981,7 @@ msgstr ""
 #, perl-brace-format
 msgid ""
 "Registry is at version {old} but latest is {new}. Please run the \"upgrade\" "
-"conmand"
+"command"
 msgstr ""
 "La versione di registro è {old} ma {new} è la più recente conosciuta. Per "
 "favore esegui il comando \"upgrade\"."

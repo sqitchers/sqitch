@@ -956,7 +956,7 @@ msgstr ""
 #, perl-brace-format
 msgid ""
 "Registry is at version {old} but latest is {new}. Please run the \"upgrade\" "
-"conmand"
+"command"
 msgstr ""
 
 #: lib/App/Sqitch/Engine.pm:1067
