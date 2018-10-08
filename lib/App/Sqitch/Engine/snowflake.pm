@@ -96,7 +96,11 @@ has uri => (
         # Set defaults in the URI.
         $uri->host($self->_host($uri));
         $uri->port($ENV{SNOWSQL_PORT}) if !$uri->_port && $ENV{SNOWSQL_PORT};
-        $uri->dbname($ENV{SNOWSQL_DATABASE} || $self->username) if !$uri->dbname;
+        $uri->dbname(
+            $ENV{SNOWSQL_DATABASE}
+            || $self->_snowcfg->{dbname}
+            || $self->username
+        ) if !$uri->dbname;
         return $uri;
     },
 );
@@ -104,6 +108,7 @@ has uri => (
 sub _def_user {
     $ENV{SNOWSQL_USER} || $_[0]->_snowcfg->{username} || $_[0]->sqitch->sysuser
 }
+
 sub _def_pass { $ENV{SNOWSQL_PWD} || shift->_snowcfg->{password} }
 
 has account => (
@@ -143,9 +148,13 @@ has warehouse => (
     isa     => Str,
     lazy    => 1,
     default => sub {
-        my $uri = shift->uri;
+        my $self = shift;
+        my $uri = $self->uri;
         require URI::QueryParam;
-        $uri->query_param('warehouse') || $ENV{SNOWSQL_WAREHOUSE} || 'sqitch';
+        $uri->query_param('warehouse')
+            || $ENV{SNOWSQL_WAREHOUSE}
+            || $self->_snowcfg->{warehousename}
+            || 'sqitch';
     },
 );
 
@@ -488,9 +497,32 @@ and C<snowflakecomputing.com>.
 =back
 
 The port defaults to 443, but uses to the C<$SNOWSQL_PORT> environment
-variable if it's set. The database name can also be set via the
-C<$SNOWSQL_DATABASE> environment variable. Other attributes of the URI are set
-from the C<account>, C<username> and C<password> attributes documented below.
+variable if it's set. The database name is determined by the following methods:
+
+=over
+
+=item 1.
+
+The path par t of the database URI.
+
+=item 2.
+
+The C<$SNOWSQL_DATABASE> environment variable.
+
+=item 3.
+
+In the C<connections.dbname> setting in the
+L<SnowSQL configuration file|https://docs.snowflake.net/manuals/user-guide/snowsql-start.html#configuring-default-connection-settings>.
+
+=item 4.
+
+If sqitch finds no value in the above places, it falls back on the system
+username.
+
+=back
+
+Other attributes of the URI are set from the C<account>, C<username> and
+C<password> attributes documented below.
 
 =head3 C<account>
 
@@ -570,10 +602,31 @@ L<SnowSQL config file|https://docs.snowflake.net/manuals/user-guide/snowsql-conf
 
 =head3 C<warehouse>
 
-Returns the warehouse to use for all connections. Defaults to the value of the
-C<warehouse> query parameter of the target URI, the C<$SNOWSQL_WAREHOUSE>
-environment variable, or else "sqitch". This value will be available to all
-Snowflake change scripts as the C<&warehouse> variable.
+Returns the warehouse to use for all connections. This value will be available
+to all Snowflake change scripts as the C<&warehouse> variable. Sqitch looks
+for the warehouse in this order:
+
+=over
+
+=item 1
+
+In the C<warehouse> query parameter of the target URI
+
+=item 2
+
+In the C<$SNOWSQL_WAREHOUSE> environment variable.
+
+=item 3
+
+In the C<connections.warehousename> variable from the
+L<SnowSQL config file|https://docs.snowflake.net/manuals/user-guide/snowsql-config.html#snowsql-config-file>.
+
+=item 4
+
+If none of the above are found, it falls back on the hard-coded value
+"sqitch".
+
+=back
 
 =head2 Instance Methods
 

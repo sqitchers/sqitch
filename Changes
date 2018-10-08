@@ -1,6 +1,12 @@
 Revision history for Perl extension App::Sqitch
 
 0.9999
+     - Fixed a test failure with the MySQL max limit value, mostly exhibited
+       on BSD platforms.
+     - The Snowflake engine now consults the `connections.warehousename` and
+       `connections.dbname` variables in the SnowSQL configuration file
+       (`~/.snowsql/config`) before falling back on the hard-coded warehouse
+       name "sqitch" and using the system username as the database name.
 
 0.9998 2018-10-03T20:53:58Z
      - Fixed an issue where Sqitch would sometimes truncate the registry

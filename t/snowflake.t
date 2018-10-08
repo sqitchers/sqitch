@@ -220,10 +220,12 @@ SNOWSQLCFGFILE: {
     my $cfgfn = $cfgdir->file('config');
 
     my $cfg = {
-        username    => 'jonSnow',
-        password    => 'winter is cøming',
-        accountname => 'golem',
-        region      => 'Africa',
+        username      => 'jonSnow',
+        password      => 'winter is cøming',
+        accountname   => 'golem',
+        region        => 'Africa',
+        warehousename => 'LaBries',
+        dbname        => 'dolphin',
     };
 
     # Unset the mock.
@@ -266,9 +268,11 @@ SNOWSQLCFG: {
 
     # Read config.
     $mock_snow->mock(_snowcfg => {
-        username => 'jon_snow',
-        password => 'let me in',
-        accountname => 'flipr',
+        username      => 'jon_snow',
+        password      => 'let me in',
+        accountname   => 'flipr',
+        warehousename => 'Waterbed',
+        dbname        => 'monkey',
     });
     my $snow = $CLASS->new( sqitch => $sqitch, target => $target );
     is $snow->username, 'jon_snow',
@@ -277,6 +281,10 @@ SNOWSQLCFG: {
         'Should read password fron snowsql config file';
     is $snow->account, 'flipr',
         'Should read accountname fron snowsql config file';
+    is $snow->uri->dbname, 'monkey',
+        'Should read dbname from snowsql config file';
+    is $snow->warehouse, 'Waterbed',
+        'Should read warehousename fron snowsql config file';
     is $snow->uri->host, 'flipr.snowflakecomputing.com',
         'Should derive host name from config file accounte name';
 
