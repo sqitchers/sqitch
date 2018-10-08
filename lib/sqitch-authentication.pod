@@ -263,7 +263,7 @@ An example:
   password = fistula postmark bag
   dbname = reporting
 
-The five variables that Sqitch currently reads are:
+The variables that Sqitch currently reads are:
 
 =over
 
