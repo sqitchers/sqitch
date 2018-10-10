@@ -1049,7 +1049,7 @@ sub _check_registry {
     ) if $newver < $oldver;
 
     hurl engine => __x(
-        'Registry is at version {old} but latest is {new}. Please run the "upgrade" conmand',
+        'Registry is at version {old} but latest is {new}. Please run the "upgrade" command',
         old => $oldver,
         new => $newver,
     ) if $newver > $oldver;
