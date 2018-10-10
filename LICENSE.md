@@ -1,3 +1,5 @@
+The MIT License (MIT)
+
 This software is Copyright (c) 2012-2018 by iovation Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
