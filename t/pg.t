@@ -64,7 +64,7 @@ my @std_opts = (
     '--set' => 'registry=sqitch',
 );
 my $sysuser = $sqitch->sysuser;
-is_deeply [$pg->psql], [$client, '--dbname', "user=$sysuser", @std_opts],
+is_deeply [$pg->psql], [$client, @std_opts],
     'psql command should be conninfo, and std opts-only';
 
 isa_ok $pg = $CLASS->new(sqitch => $sqitch, target => $target), $CLASS;
@@ -72,7 +72,6 @@ ok $pg->set_variables(foo => 'baz', whu => 'hi there', yo => 'stellar'),
     'Set some variables';
 is_deeply [$pg->psql], [
     $client,
-    '--dbname', "user=$sysuser",
     '--set' => 'foo=baz',
     '--set' => 'whu=hi there',
     '--set' => 'yo=stellar',
@@ -84,18 +83,12 @@ is_deeply [$pg->psql], [
 ENV: {
     # Make sure we override system-set vars.
     local $ENV{PGDATABASE};
-    local $ENV{PGUSER};
-    local $ENV{PGPASSWORD};
     for my $env (qw(PGDATABASE PGUSER PGPASSWORD)) {
         my $pg = $CLASS->new(sqitch => $sqitch, target => $target);
         local $ENV{$env} = "\$ENV=whatever";
         is $pg->target->uri, "db:pg:", "Target should not read \$$env";
         is $pg->registry_destination, $pg->destination,
             'Registry target should be the same as destination';
-        is $pg->username, $ENV{PGUSER} || $sysuser,
-            "Should have username when $env set";
-        is $pg->password, $ENV{PGPASSWORD},
-            "Should have password when $env set";
     }
 
     my $mocker = Test::MockModule->new('App::Sqitch');
@@ -132,7 +125,7 @@ is $pg->registry, 'meta', 'registry should be as configured';
 is_deeply [$pg->psql], [
     '/path/to/psql',
     '--dbname',
-    "user=$sysuser dbname=try host=localhost connect_timeout=5 sslmode=disable",
+    "dbname=try host=localhost connect_timeout=5 sslmode=disable",
 @std_opts], 'psql command should be configured from URI config';
 
 ##############################################################################
@@ -155,7 +148,7 @@ is $pg->registry, 'meta', 'registry should still be as configured';
 is_deeply [$pg->psql], [
     '/some/other/psql',
     '--dbname',
-    "user=$sysuser dbname=try host=localhost connect_timeout=5 sslmode=disable",
+    "dbname=try host=localhost connect_timeout=5 sslmode=disable",
 @std_opts], 'psql command should be as optioned';
 
 ##############################################################################

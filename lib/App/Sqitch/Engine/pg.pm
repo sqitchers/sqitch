@@ -28,12 +28,22 @@ sub destination {
     # Use the URI sans password, and with the database name added.
     my $uri = $self->target->uri->clone;
     $uri->password(undef) if $uri->password;
-    $uri->dbname( $ENV{PGDATABASE} || $self->username );
+    $uri->dbname(
+        $ENV{PGDATABASE}
+        || $self->username
+        || $ENV{PGUSER}
+        || $self->sqitch->sysuser
+    );
     return $uri->as_string;
 }
 
-sub _def_user { $ENV{PGUSER} || shift->sqitch->sysuser }
-sub _def_pass { $ENV{PGPASSWORD} }
+# DBD::pg and psql use fallbacks consistently, thanks to libpq. These include
+# environment variables, system info (username), the password file, and the
+# connection service file. Best for us not to second-guess these values,
+# though we admittedly try when setting the database name in the destination
+# URI for unnamed targets a few lines up from here.
+sub _def_user { }
+sub _def_pass { }
 
 has _psql => (
     is         => 'ro',
