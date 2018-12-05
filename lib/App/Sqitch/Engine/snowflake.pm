@@ -77,6 +77,7 @@ has _snowcfg => (
             # Apparently snowsql config supports single quotes, while
             # Config::GitLike does not.
             # https://support.snowflake.net/s/case/5000Z000010xUYJQA2
+            # https://docs.snowflake.net/manuals/user-guide/snowsql-config.html#snowsql-config-file
             if ($val =~ s/\A'//) {
                 $val = $data->{$k} unless $val =~ s/'\z//;
             }
