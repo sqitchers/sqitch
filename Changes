@@ -12,6 +12,13 @@ Revision history for Perl extension App::Sqitch
        since libpq does all that automatically, and collects data from other
        sources that we did not (e.g., the password and connection service
        files). Thanks to Tom Bloor for the report (issue #410).
+     - Changed dependency validation to prevent an error when a change required
+       from a different project has been reworked. Previously, when a when
+       requiring a change such as `foo:greeble`, Sqitch would raise an error if
+       `foo:greeble` was reworked, suggesting that the dependency be
+       tag-qualified to eliminate ambiguity. Now reworked dependencies may be
+       required without tag-qualification, though tag-qualification should still
+       be specified if functionality as of a particular tag is required.
 
 0.9998 2018-10-03T20:53:58Z
      - Fixed an issue where Sqitch would sometimes truncate the registry

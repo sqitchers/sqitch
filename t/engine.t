@@ -2117,6 +2117,7 @@ PLANOK: {
             change    => $dep->change,
             tag       => $dep->tag,
             project   => $dep->project,
+            first     => 1,
         }],
     ], 'Should have passed dependency params to change_id_for()';
 }
@@ -2281,12 +2282,14 @@ CHECK_DEPLOY_DEPEND: {
             change    => 'foo',
             tag       => undef,
             project   => 'sql',
+            first     => 1,
         } ],
         [ change_id_for => {
             change_id => undef,
             change    => 'bar',
             tag       => undef,
             project   => 'sql',
+            first     => 1,
         } ],
     ], 'Should have called change_id_for() twice';
     is_deeply [ map { $_->resolved_id } @conflicts ], [undef, undef],
@@ -2313,18 +2316,21 @@ CHECK_DEPLOY_DEPEND: {
             change    => 'users',
             tag       => undef,
             project   => 'sql',
+            first     => 1,
         } ],
         [ change_id_for => {
             change_id => undef,
             change    => 'foo',
             tag       => undef,
             project   => 'sql',
+            first     => 1,
         } ],
         [ change_id_for => {
             change_id => undef,
             change    => 'bar',
             tag       => undef,
             project   => 'sql',
+            first     => 1,
         } ],
     ], 'Should have called change_id_for() twice';
     is_deeply [ map { $_->resolved_id } @conflicts ], [undef, undef],
@@ -2359,12 +2365,14 @@ CHECK_DEPLOY_DEPEND: {
             change    => 'foo',
             tag       => undef,
             project   => 'sql',
+            first     => 1,
         } ],
         [ change_id_for => {
             change_id => undef,
             change    => 'bar',
             tag       => undef,
             project   => 'sql',
+            first     => 1,
         } ],
     ], 'Should have called check_requires';
     is_deeply [ map { $_->resolved_id } @requires ], [undef, undef],
@@ -2399,36 +2407,42 @@ CHECK_DEPLOY_DEPEND: {
             change    => 'widgets',
             tag       => undef,
             project   => 'sql',
+            first     => 1,
         } ],
         [ change_id_for => {
             change_id => undef,
             change    => 'users',
             tag       => undef,
             project   => 'sql',
+            first     => 1,
         } ],
         [ change_id_for => {
             change_id => undef,
             change    => 'foo',
             tag       => undef,
             project   => 'sql',
+            first     => 1,
         } ],
         [ change_id_for => {
             change_id => undef,
             change    => 'bar',
             tag       => undef,
             project   => 'sql',
+            first     => 1,
         } ],
         [ change_id_for => {
             change_id => undef,
             change    => 'foo',
             tag       => undef,
             project   => 'sql',
+            first     => 1,
         } ],
         [ change_id_for => {
             change_id => undef,
             change    => 'bar',
             tag       => undef,
             project   => 'sql',
+            first     => 1,
         } ],
     ], 'Should have called check_requires';
     is_deeply [ map { $_->resolved_id } @requires ], [undef, undef],

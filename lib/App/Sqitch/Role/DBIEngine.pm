@@ -928,6 +928,7 @@ sub change_id_for {
         }, undef, $project, $change);
 
         # Return the ID.
+        return $ids->[0] if $p{first};
         return $self->_handle_lookup_index($change, $ids);
     }
 

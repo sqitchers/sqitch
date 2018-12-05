@@ -650,11 +650,13 @@ sub change_id_for_depend {
           || defined $dep->change
           || defined $dep->tag;
 
+    # Return the first one.
     return $self->change_id_for(
         change_id => $dep->id,
         change    => $dep->change,
         tag       => $dep->tag,
         project   => $dep->project,
+        first     => 1,
     );
 }
 
@@ -1898,33 +1900,38 @@ re-deployed.
   say $engine->change_id_for(
       change  => $change_name,
       tag     => $tag_name,
-      offset  => $offset,
       project => $project,
-);
+  );
 
-Searches the database for the change with the specified name, tag, and offset.
-Throws an exception if the key matches more than one changes. Returns C<undef>
-if it matches no changes. The parameters are as follows:
+Searches the database for the change with the specified name, tag, project,
+or ID. Returns C<undef> if it matches no changes. If it matches more than one
+chagne, it returns the earliest deployed change if the C<first> parameter is
+passed; otherwise it rhrows an exception The parameters are as follows:
 
 =over
 
 =item C<change>
 
-The name of a change. Required unless C<tag> is passed.
+The name of a change. Required unless C<tag> or C<change_id> is passed.
+
+=item C<change_id>
+
+The ID of a change. Required unless C<tag> or C<change> is passed. Useful
+to determine whether an ID in a plan has been deployed to the database.
 
 =item C<tag>
 
 The name of a tag. Required unless C<change> is passed.
 
-=item C<offset>
-
-The number of changes offset from the change found by the tag and/or change
-name. May be positive or negative to mean later or earlier changes,
-respectively. Defaults to 0.
-
 =item C<project>
 
 The name of the project to search. Defaults to the current project.
+
+=item C<first>
+
+Return the earliest deployed change ID if the search matches more than one
+change. If false or not passed and more than one change is found, an
+exception will be thrown.
 
 =back
 
