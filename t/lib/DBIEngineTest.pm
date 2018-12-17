@@ -1686,6 +1686,11 @@ sub run {
                 [ '  * ', $rev_change->format_name . '@HEAD' ],
                 [ '  * ', $change->format_tag_qualified_name ],
             ], 'Should have vented output for lookup failure';
+
+            # But it should work okay if we ask for the first ID.
+            ok my $id = $engine->change_id_for(change => 'users', first => 1),
+                'Should get ID for first of ambiguous change spec';
+            is $id, $change->id, 'Should now have first change id';
         }
 
         is $engine->change_id_for( change => 'users', tag => 'alpha'), $change->id,
