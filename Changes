@@ -3,10 +3,11 @@ Revision history for Perl extension App::Sqitch
 0.9999
      - Fixed a test failure with the MySQL max limit value, mostly exhibited
        on BSD platforms.
-     - The Snowflake engine now consults the `connections.warehousename` and
-       `connections.dbname` variables in the SnowSQL configuration file
-       (`~/.snowsql/config`) before falling back on the hard-coded warehouse
-       name "sqitch" and using the system username as the database name.
+     - The Snowflake engine now consults the `connections.warehousename`,
+       `connections.dbname`, and `connections.rolename` variables in the
+       SnowSQL configuration file (`~/.snowsql/config`) before falling back on
+       the hard-coded warehouse name "sqitch" and using the system username as
+       the database name and no default for the role.
      - Removed fallback in the PostgreSQL engine on the `$PGUSER` and
        `$PGPASSWORD` environnment variables, as well as the system username,
        since libpq does all that automatically, and collects data from other

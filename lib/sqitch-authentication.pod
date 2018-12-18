@@ -261,6 +261,7 @@ An example:
   warehousename = compute
   username = frank
   password = fistula postmark bag
+  rolename = ACCOUNTADMIN
   dbname = reporting
 
 The variables that Sqitch currently reads are:
@@ -272,6 +273,8 @@ The variables that Sqitch currently reads are:
 =item C<connections.username>
 
 =item C<connections.password>
+
+=item C<connections.rolename>
 
 =item C<connections.region>
 

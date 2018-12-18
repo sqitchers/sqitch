@@ -225,6 +225,7 @@ SNOWSQLCFGFILE: {
         accountname   => 'golem',
         region        => 'Africa',
         warehousename => 'LaBries',
+        rolename      => 'ACCOUNTADMIN',
         dbname        => 'dolphin',
     };
 
@@ -271,6 +272,7 @@ SNOWSQLCFG: {
         username      => 'jon_snow',
         password      => 'let me in',
         accountname   => 'flipr',
+        rolename      => 'SYSADMIN',
         warehousename => 'Waterbed',
         dbname        => 'monkey',
     });
@@ -285,6 +287,8 @@ SNOWSQLCFG: {
         'Should read dbname from snowsql config file';
     is $snow->warehouse, 'Waterbed',
         'Should read warehousename fron snowsql config file';
+    is $snow->role, 'SYSADMIN',
+        'Should read rolename fron snowsql config file';
     is $snow->uri->host, 'flipr.snowflakecomputing.com',
         'Should derive host name from config file accounte name';
 
@@ -296,7 +300,7 @@ SNOWSQLCFG: {
 # Make sure config settings override defaults.
 my %config = (
     'engine.snowflake.client'   => '/path/to/snowsql',
-    'engine.snowflake.target'   => 'db:snowflake://fred:hi@foo/try?warehouse=foo',
+    'engine.snowflake.target'   => 'db:snowflake://fred:hi@foo/try?warehouse=foo;role=yup',
     'engine.snowflake.registry' => 'meta',
 );
 $std_opts[-3] = 'registry=meta';
@@ -312,12 +316,13 @@ is $snow->account, 'foo', 'Should extract account from URI';
 is $snow->username, 'fred', 'Should extract username from URI';
 is $snow->password, 'hi', 'Should extract password from URI';
 is $snow->warehouse, 'foo', 'Should extract warehouse from URI';
+is $snow->role, 'yup', 'Should extract role from URI';
 is $snow->registry, 'meta', 'registry should be as configured';
 is $snow->uri->as_string,
-    'db:snowflake://fred:hi@foo.snowflakecomputing.com/try?warehouse=foo',
+    'db:snowflake://fred:hi@foo.snowflakecomputing.com/try?warehouse=foo;role=yup',
     'URI should be as configured with full domain name';
 is $snow->destination,
-    'db:snowflake://fred:@foo.snowflakecomputing.com/try?warehouse=foo',
+    'db:snowflake://fred:@foo.snowflakecomputing.com/try?warehouse=foo;role=yup',
     'Destination should omit password';
 
 is $snow->client, '/path/to/snowsql', 'client should be as configured';
@@ -326,6 +331,7 @@ is_deeply [$snow->snowsql], [qw(
     --accountname foo
     --username    fred
     --dbname      try
+    --rolename    yup
 ), @std_opts], 'snowsql command should be configured from URI config';
 
 
@@ -350,6 +356,7 @@ is_deeply [$snow->snowsql], [qw(
     --accountname foo
     --username    fred
     --dbname      try
+    --rolename    yup
 ), @std_opts], 'snowsql command should be as optioned';
 
 $mock_config->unmock('get');

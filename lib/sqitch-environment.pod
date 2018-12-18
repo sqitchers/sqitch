@@ -286,6 +286,11 @@ C<$SQITCH_USERNAME> and the target URI username.
 The password to use to connect to the server. Superseded by
 C<$SQITCH_PASSWORD> and the target URI password.
 
+=item C<SNOWSQL_ROLE>
+
+The role to use when connecting to the server. Superseded by the target URI
+database C<role> query parameter.
+
 =item C<SNOWSQL_HOST>
 
 The PostgreSQL server host to connect to. Superseded by the target URI host

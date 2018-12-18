@@ -42,6 +42,7 @@ has _snowsql => (
             [ accountname => $self->account  ],
             [ username    => $self->username ],
             [ dbname      => $uri->dbname    ],
+            [ rolename    => $self->role     ],
         ) {
             push @ret, "--$spec->[0]" => $spec->[1] if $spec->[1];
         }
@@ -159,6 +160,21 @@ has warehouse => (
     },
 );
 
+has role => (
+    is      => 'ro',
+    isa     => Str,
+    lazy    => 1,
+    default => sub {
+        my $self = shift;
+        my $uri = $self->uri;
+        require URI::QueryParam;
+        $uri->query_param('role')
+            || $ENV{SNOWSQL_ROLE}
+            || $self->_snowcfg->{rolename}
+            || '';
+    },
+);
+
 has dbh => (
     is      => 'rw',
     isa     => DBH,
@@ -168,6 +184,7 @@ has dbh => (
         $self->use_driver;
         my $uri = $self->uri;
         my $wh = $self->warehouse;
+        my $role = $self->role;
         DBI->connect($uri->dbi_dsn, $self->username, $self->password, {
             PrintError        => 0,
             RaiseError        => 0,
@@ -185,6 +202,7 @@ has dbh => (
                     my $dbh = shift;
                     try {
                         $dbh->do($_) for (
+                            ($role ? ("USE ROLE $role") : ()),
                             "ALTER WAREHOUSE $wh RESUME IF SUSPENDED",
                             "USE WAREHOUSE $wh",
                             'USE SCHEMA ' . $self->registry,
@@ -626,6 +644,32 @@ L<SnowSQL config file|https://docs.snowflake.net/manuals/user-guide/snowsql-conf
 
 If none of the above are found, it falls back on the hard-coded value
 "sqitch".
+
+=back
+
+=head3 C<role>
+
+Returns the role to use for all connections. Sqitch looks for the role in this
+order:
+
+=over
+
+=item 1
+
+In the C<role> query parameter of the target URI
+
+=item 2
+
+In the C<$SNOWSQL_ROLE> environment variable.
+
+=item 3
+
+In the C<connections.rolename> variable from the
+L<SnowSQL config file|https://docs.snowflake.net/manuals/user-guide/snowsql-config.html#snowsql-config-file>.
+
+=item 4
+
+If none of the above are found, no role will be set.
 
 =back
 
