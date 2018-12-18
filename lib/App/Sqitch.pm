@@ -358,7 +358,7 @@ sub run {
         ( my $msg = shift ) =~ s/\s+at\s+.+/\n/ms;
         die $msg;
     };
-    runx @_;
+    runx $^O eq 'MSWin32' ? ( shift, $self->quote_shell(@_) ) : @_;
     return $self;
 }
 
