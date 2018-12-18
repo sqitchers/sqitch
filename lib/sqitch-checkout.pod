@@ -128,8 +128,12 @@ scripts, such as PostgreSQL's
 L<C<psql> variables|https://www.postgresql.org/docs/current/static/app-psql.html#APP-PSQL-INTERPOLATION>,
 Vertica's
 L<C<vsql> variables|https://my.vertica.com/docs/7.1.x/HTML/index.htm#Authoring/ConnectingToHPVertica/vsql/Variables.htm>,
-and SQL*Plus's
-L<C<DEFINE> variables|https://docs.oracle.com/cd/B19306_01/server.102/b14357/ch12017.htm>.
+MySQL's
+L<user variables|https://dev.mysql.com/doc/refman/5.6/en/user-variables.html>,
+SQL*Plus's
+L<C<DEFINE> variables|https://docs.oracle.com/cd/B19306_01/server.102/b14357/ch12017.htm>,
+and Snowflake's
+L<SnowSQL variables|https://docs.snowflake.net/manuals/user-guide/snowsql-use.html#using-variables>.
 
 =item C<checkout.verify>
 
