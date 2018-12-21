@@ -214,6 +214,7 @@ User who adds a change to the plan.
   -u --db-user    USER      Database user name.
   -h --db-host    HOST      Database server host name.
   -p --db-port    PORT      Database server port number.
+  -C --directory  DIR       Change to directory before performing any actions.
      --top-dir    DIR       Path to directory with plan and scripts.
      --etc-path             Print path to etc directory and exit.
      --quiet                Quiet mode with non-error output suppressed.
@@ -324,6 +325,20 @@ option can be used to override the host name in a target.
 Port number to connect to. Does not apply to all engines.In general,
 L<targets|sqitch-target> and URIs are preferred, but this option can be used
 to override the port in a target.
+
+=item C<-C>
+
+=item C<--directory>
+
+  sqitch --directory dbproject
+  sqitch -C dbcheckout
+
+Change to the specified directory before performing any actions. Effectively the
+same as:
+
+  (cd somedir && sqitch ...)
+
+But a bit friendlier when managing multiple projects.
 
 =item C<--top-dir>
 

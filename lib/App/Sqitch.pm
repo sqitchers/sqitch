@@ -239,6 +239,7 @@ sub _core_opts {
         plan-file|f=s
         engine=s
         registry=s
+        directory|C=s
         client|db-client=s
         db-name|d=s
         db-username|db-user|u=s
@@ -313,6 +314,15 @@ sub _parse_core_opts {
     if ( $opts{etc_path} ) {
         say App::Sqitch::Config->class->system_dir;
         exit;
+    }
+
+    # Handle --directory
+    if ( my $dir = delete $opts{directory} ) {
+        chdir $dir or hurl fs => __x(
+            'Cannot change to directory {directory}: {error}',
+            directory => $dir,
+            error   => $!,
+        );
     }
 
     # Convert files and dirs to objects.

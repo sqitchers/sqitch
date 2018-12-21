@@ -3,14 +3,27 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 26;
+use Test::More tests => 35;
 #use Test::More 'no_plan';
 use Test::MockModule;
+use Test::Exception;
 use Capture::Tiny 0.12 ':all';
+use Locale::TextDomain qw(App-Sqitch);
 
 $ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
 $ENV{SQITCH_USER_CONFIG}   = 'nonexistent.user';
 $ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
+
+my ($catch_chdir, $chdir_to, $chdir_fail);
+BEGIN {
+    $catch_chdir = 0;
+    # Stub out chdir.
+    *CORE::GLOBAL::chdir = sub {
+        return CORE::chdir(@_) unless $catch_chdir;
+        $chdir_to = shift;
+        return !$chdir_fail;
+    };
+}
 
 my $CLASS;
 
@@ -174,4 +187,29 @@ USAGE: {
         '-exitval'  => 2,
         'foo'       => 'bar',
     }, 'Proper args should have been passed to Pod::Usage';
+}
+
+# Test --directory.
+$catch_chdir = 1;
+ok $opts = $CLASS->_parse_core_opts(['--directory', 'foo/bar']),
+    'Parse --directory';
+is $chdir_to, 'foo/bar', 'Should have changed to foo/bar';
+is_deeply $opts, {}, 'Should have preserved no opts';
+
+ok $opts = $CLASS->_parse_core_opts(['-C', 'hi crampus']), 'Parse -C';
+is $chdir_to, 'hi crampus', 'Should have changed to hi cramus';
+is_deeply $opts, {}, 'Should have preserved no opts';
+
+# Make sure it fails properly.
+CHDIE: {
+    local $! = 9;
+    $chdir_fail = 1;
+    throws_ok { $CLASS->_parse_core_opts(['-C', 'nonesuch']) }
+        'App::Sqitch::X', 'Should get error when chdir fails';
+    is $@->ident, 'fs', 'Error ident should be "fs"';
+    is $@->message, __x(
+        'Cannot change to directory {directory}: {error}',
+        directory => 'nonesuch',
+        error     => 'Bad file descriptor',
+    ), 'Error message should be correct';
 }
