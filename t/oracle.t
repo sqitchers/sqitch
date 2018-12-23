@@ -86,7 +86,7 @@ isa_ok my $ora = $CLASS->new(sqitch => $sqitch, target => $target), $CLASS;
 is $ora->key, 'oracle', 'Key should be "oracle"';
 is $ora->name, 'Oracle', 'Name should be "Oracle"';
 
-my $client = 'sqlplus' . ($^O eq 'MSWin32' ? '.exe' : '');
+my $client = 'sqlplus' . (App::Sqitch::ISWIN ? '.exe' : '');
 is $ora->client, $client, 'client should default to sqlplus';
 ORACLE_HOME: {
     local $ENV{ORACLE_HOME} = '/foo/bar';
@@ -102,7 +102,7 @@ is $ora->uri, 'db:oracle:', 'Default URI should be "db:oracle"';
 my $dest_uri = $ora->uri->clone;
 $dest_uri->dbname(
         $ENV{TWO_TASK}
-    || ($^O eq 'MSWin32' ? $ENV{LOCAL} : undef)
+    || (App::Sqitch::ISWIN ? $ENV{LOCAL} : undef)
     || $ENV{ORACLE_SID}
 );
 is $ora->target->name, $ora->uri, 'Target name should be the uri stringified';
@@ -372,7 +372,7 @@ WIN32: {
     $file = $tmpdir->file('"foo$bar".sql');
     my $mock_file = Test::MockModule->new(ref $file);
     # Windows doesn't like the quotation marks, so prevent it from writing.
-    $mock_file->mock(copy_to => 1) if $^O eq 'MSWin32';
+    $mock_file->mock(copy_to => 1) if App::Sqitch::ISWIN;
     is $ora->_file_for_script($file), $tmpdir->file('""foo_bar"".sql'),
         'File with special char and quotes should be aliased';
 }
@@ -511,7 +511,7 @@ $mock_change->unmock_all;
 
 ##############################################################################
 # Can we do live tests?
-if ($^O eq 'MSWin32' && eval { require Win32::API}) {
+if (App::Sqitch::ISWIN && eval { require Win32::API}) {
     # Call kernel32.SetErrorMode(SEM_FAILCRITICALERRORS):
     # "The system does not display the critical-error-handler message box.
     # Instead, the system sends the error to the calling process." and

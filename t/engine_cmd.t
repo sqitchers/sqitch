@@ -37,7 +37,7 @@ File::Copy::copy file(qw(t engine sqitch.plan))->stringify, "$tmp_dir"
     or die "Cannot copy t/engine/sqitch.plan to $tmp_dir: $!\n";
 chdir $tmp_dir;
 $ENV{SQITCH_CONFIG} = 'engine.conf';
-my $psql = 'psql' . ($^O eq 'MSWin32' ? '.exe' : '');
+my $psql = 'psql' . (App::Sqitch::ISWIN ? '.exe' : '');
 
 ##############################################################################
 # Load an engine command and test the basics.

@@ -21,6 +21,7 @@ use Try::Tiny;
 use List::Util qw(first);
 use IPC::System::Simple 1.17 qw(runx capturex $EXITVAL);
 use namespace::autoclean 0.16;
+use constant ISWIN => $^O eq 'MSWin32';
 
 our $VERSION = '0.9999';
 
@@ -84,7 +85,7 @@ has user_name => (
             my $sysname = $self->sysuser || hurl user => __(
                     'Cannot find your name; run sqitch config --user user.name "YOUR NAME"'
             );
-            if ($^O eq 'MSWin32') {
+            if (ISWIN) {
                 try { require Win32API::Net } || return $sysname;
                 Win32API::Net::UserGetInfo( "", $sysname, 10, my $info = {} );
                 return $sysname unless $info->{fullName};
@@ -137,7 +138,7 @@ has editor => (
           || shift->config->get( key => 'core.editor' )
           || $ENV{VISUAL}
           || $ENV{EDITOR}
-          || ( $^O eq 'MSWin32' ? 'notepad.exe' : 'vi' );
+          || ( ISWIN ? 'notepad.exe' : 'vi' );
     }
 );
 
@@ -368,6 +369,8 @@ sub run {
         ( my $msg = shift ) =~ s/\s+at\s+.+/\n/ms;
         die $msg;
     };
+    runx ( shift, $self->quote_shell(@_) )
+        if ISWIN && IPC::System::Simple->VERSION <= 1.25;
     runx @_;
     return $self;
 }
@@ -384,13 +387,12 @@ sub shell {
 
 sub quote_shell {
     my $self = shift;
-    if ($^O eq 'MSWin32') {
+    if (ISWIN) {
         require Win32::ShellQuote;
         return Win32::ShellQuote::quote_native(@_);
-    } else {
-        require String::ShellQuote;
-        return String::ShellQuote::shell_quote(@_);
     }
+    require String::ShellQuote;
+    return String::ShellQuote::shell_quote(@_);
 }
 
 sub capture {
@@ -399,6 +401,8 @@ sub capture {
         ( my $msg = shift ) =~ s/\s+at\s+.+/\n/ms;
         die $msg;
     };
+    return capturex ( shift, $self->quote_shell(@_) )
+        if ISWIN && IPC::System::Simple->VERSION <= 1.25;
     capturex @_;
 }
 
@@ -476,7 +480,7 @@ sub spool {
     my ($self, $fh) = (shift, shift);
     local $SIG{__WARN__} = sub { }; # Silence warning.
     my $pipe;
-    if ($^O eq 'MSWin32') {
+    if (ISWIN) {
         no warnings;
         open $pipe, '|' . $self->quote_shell(@_) or hurl io => __x(
             'Cannot exec {command}: {error}',

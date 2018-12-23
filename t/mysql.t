@@ -42,7 +42,7 @@ isa_ok my $mysql = $CLASS->new(sqitch => $sqitch, target => $target), $CLASS;
 is $mysql->key, 'mysql', 'Key should be "mysql"';
 is $mysql->name, 'MySQL', 'Name should be "MySQL"';
 
-my $client = 'mysql' . ($^O eq 'MSWin32' ? '.exe' : '');
+my $client = 'mysql' . (App::Sqitch::ISWIN ? '.exe' : '');
 my $uri = URI::db->new('db:mysql:');
 is $mysql->client, $client, 'client should default to mysql';
 is $mysql->registry, 'sqitch', 'registry default should be "sqitch"';
@@ -54,7 +54,7 @@ is $mysql->registry_destination, 'db:mysql:sqitch',
     'registry_destination should be the same as registry_uri';
 
 my @std_opts = (
-    ($^O eq 'MSWin32' ? () : '--skip-pager' ),
+    (App::Sqitch::ISWIN ? () : '--skip-pager' ),
     '--silent',
     '--skip-column-names',
     '--skip-line-numbers',

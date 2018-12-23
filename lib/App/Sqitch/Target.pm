@@ -120,7 +120,7 @@ has client => (
         my $self = shift;
         $self->_fetch('client') || do {
             my $client = $self->engine->default_client;
-            return $client if $^O ne 'MSWin32';
+            return $client unless App::Sqitch::ISWIN;
             return $client if $client =~ /[.](?:exe|bat)$/;
             return $client . '.exe';
         };

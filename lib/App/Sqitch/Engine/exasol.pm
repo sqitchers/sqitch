@@ -391,7 +391,7 @@ sub _file_for_script {
         );
     }
 
-    if ($^O eq 'MSWin32') {
+    if (App::Sqitch::ISWIN) {
         # Copy it.
         $file->copy_to($alias) or hurl exasol => __x(
             'Cannot copy {file} to {alias}: {error}',

@@ -870,7 +870,7 @@ sub log_deploy_change {
 
 sub default_client {
     my $self   = shift;
-    my $ext    = $^O eq 'MSWin32' || $^O eq 'cygwin' ? '.exe' : '';
+    my $ext    = App::Sqitch::ISWIN || $^O eq 'cygwin' ? '.exe' : '';
 
     # Create a script to run.
     require File::Temp;
@@ -893,7 +893,7 @@ sub default_client {
         my $loops = 0;
         for my $dir (File::Spec->path) {
             my $path = file $dir, $try;
-            $path = Win32::GetShortPathName($path) if $^O eq 'MSWin32';
+            $path = Win32::GetShortPathName($path) if App::Sqitch::ISWIN;
             if (-f $path && -x $path) {
                 if (try { App::Sqitch->probe($path, @opts) =~ /Firebird/ } ) {
                     # Restore STDERR and return.

@@ -23,6 +23,11 @@ Revision history for Perl extension App::Sqitch
      - Added the `--directory`/`-C` option to specify a directory to change to
        before executing any Sqitch commands. Thansk to Thomas Sibley for the
        suggestion (#411).
+     - Added a workaround for the shell quoting issue on Windows. Applies to
+       IPC::System::Simple 1.29 and lower. See
+       https://github.com/pjf/ipc-system-simple/pull/29 for details (#413).
+     - Switched to using a constant internally to optimize windows-specific
+       code paths at compile time.
 
 0.9998 2018-10-03T20:53:58Z
      - Fixed an issue where Sqitch would sometimes truncate the registry

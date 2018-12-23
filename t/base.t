@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 156;
+use Test::More tests => 155;
 #use Test::More 'no_plan';
 use Test::MockModule;
 use Path::Class;
@@ -188,13 +188,12 @@ EDITOR: {
     delete $ENV{SQITCH_CONFIG};
     delete $ENV{VISUAL};
     delete $ENV{EDITOR};
-    local $^O = 'NotWin32';
     $sqitch = App::Sqitch->new;
-    is $sqitch->editor, 'vi', 'editor fall back on vi when not Windows';
-
-    $^O = 'MSWin32';
-    $sqitch = App::Sqitch->new;
-    is $sqitch->editor, 'notepad.exe', 'editor fall back on notepad on Windows';
+    if (App::Sqitch::ISWIN) {
+        is $sqitch->editor, 'notepad.exe', 'editor fall back on notepad on Windows';
+    } else {
+        is $sqitch->editor, 'vi', 'editor fall back on vi when not Windows';
+    }
 }
 
 ##############################################################################
@@ -398,7 +397,7 @@ like $stderr, qr/OMGWTF/, 'The die script should have its STDERR unmolested';
 ##############################################################################
 # Test quote_shell().
 my $quoter = do {
-    if ($^O eq 'MSWin32') {
+    if (App::Sqitch::ISWIN) {
         require Win32::ShellQuote;
          \&Win32::ShellQuote::quote_native;
     } else {

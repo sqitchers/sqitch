@@ -73,7 +73,7 @@ is $snow->key, 'snowflake', 'Key should be "snowflake"';
 is $snow->name, 'Snowflake', 'Name should be "Snowflake"';
 is $snow->driver, 'DBD::ODBC 1.59', 'Driver should be DBD::ODBC';
 is $snow->default_client, 'snowsql', 'Default client should be snowsql';
-my $client = 'snowsql' . ($^O eq 'MSWin32' ? '.exe' : '');
+my $client = 'snowsql' . (App::Sqitch::ISWIN ? '.exe' : '');
 is $snow->client, $client, 'client should default to snowsql';
 
 is $snow->registry, 'sqitch', 'Registry default should be "sqitch"';

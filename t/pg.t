@@ -44,7 +44,7 @@ isa_ok my $pg = $CLASS->new(sqitch => $sqitch, target => $target), $CLASS;
 is $pg->key, 'pg', 'Key should be "pg"';
 is $pg->name, 'PostgreSQL', 'Name should be "PostgreSQL"';
 
-my $client = 'psql' . ($^O eq 'MSWin32' ? '.exe' : '');
+my $client = 'psql' . (App::Sqitch::ISWIN ? '.exe' : '');
 is $pg->client, $client, 'client should default to psqle';
 is $pg->registry, 'sqitch', 'registry default should be "sqitch"';
 is $pg->uri, $uri, 'DB URI should be "db:pg:"';

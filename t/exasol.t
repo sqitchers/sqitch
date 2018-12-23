@@ -55,7 +55,7 @@ isa_ok my $exa = $CLASS->new(
 is $exa->key, 'exasol', 'Key should be "exasol"';
 is $exa->name, 'Exasol', 'Name should be "Exasol"';
 
-my $client = 'exaplus' . ($^O eq 'MSWin32' ? '.exe' : '');
+my $client = 'exaplus' . (App::Sqitch::ISWIN ? '.exe' : '');
 is $exa->client, $client, 'client should default to exaplus';
 is $exa->registry, 'sqitch', 'registry default should be "sqitch"';
 is $exa->uri, $uri, 'DB URI should be "db:exasol:"';
@@ -229,7 +229,7 @@ WIN32: {
     $file = $tmpdir->file('"foo$bar".sql');
     my $mock_file = Test::MockModule->new(ref $file);
     # Windows doesn't like the quotation marks, so prevent it from writing.
-    $mock_file->mock(copy_to => 1) if $^O eq 'MSWin32';
+    $mock_file->mock(copy_to => 1) if App::Sqitch::ISWIN;
     is $exa->_file_for_script($file), $tmpdir->file('""foo_bar"".sql'),
         'File with special char and quotes should be aliased';
 }

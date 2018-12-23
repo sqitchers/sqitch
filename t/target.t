@@ -59,7 +59,7 @@ isa_ok $target->engine, 'App::Sqitch::Engine::sqlite', 'Engine';
 is $target->registry, $target->engine->default_registry,
     'Should have default registry';
 my $client = $target->engine->default_client;
-$client .= '.exe' if $^O eq 'MSWin32' && $client !~ /[.](?:exe|bat)$/;
+$client .= '.exe' if App::Sqitch::ISWIN && $client !~ /[.](?:exe|bat)$/;
 is $target->client, $client, 'Should have default client';
 is $target->top_dir, dir, 'Should have default top_dir';
 is $target->deploy_dir, $target->top_dir->subdir('deploy'),

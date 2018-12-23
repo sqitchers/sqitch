@@ -240,7 +240,7 @@ sub run_upgrade {
 sub _read {
     my $self = shift;
     my $cmd = '.read ' . $self->dbh->quote(shift);
-    return $cmd if $^O ne 'MSWin32';
+    return $cmd if App::Sqitch::ISWIN;
     return $self->sqitch->quote_shell($cmd);
 }
 

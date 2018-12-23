@@ -176,7 +176,7 @@ has _mysql => (
 
         # Options to keep things quiet.
         push @ret => (
-            ($^O eq 'MSWin32' ? () : '--skip-pager' ),
+            (App::Sqitch::ISWIN ? () : '--skip-pager' ),
             '--silent',
             '--skip-column-names',
             '--skip-line-numbers',

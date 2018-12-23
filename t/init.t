@@ -19,7 +19,7 @@ use URI;
 use lib 't/lib';
 use MockOutput;
 
-my $exe_ext = $^O eq 'MSWin32' ? '.exe' : '';
+my $exe_ext = App::Sqitch::ISWIN ? '.exe' : '';
 
 my $CLASS;
 

@@ -25,7 +25,7 @@ has client => (
     default  => sub {
         my $sqitch = shift->sqitch;
         return $sqitch->config->get( key => 'core.vcs.client' )
-            || 'git' . ( $^O eq 'MSWin32' ? '.exe' : '' );
+            || 'git' . ( App::Sqitch::ISWIN ? '.exe' : '' );
     },
 );
 

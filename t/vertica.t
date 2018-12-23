@@ -55,7 +55,7 @@ isa_ok my $vta = $CLASS->new(
 is $vta->key, 'vertica', 'Key should be "vertica"';
 is $vta->name, 'Vertica', 'Name should be "Vertica"';
 
-my $client = 'vsql' . ($^O eq 'MSWin32' ? '.exe' : '');
+my $client = 'vsql' . (App::Sqitch::ISWIN ? '.exe' : '');
 is $vta->client, $client, 'client should default to vsql';
 is $vta->registry, 'sqitch', 'registry default should be "sqitch"';
 is $vta->uri, $uri, 'DB URI should be "db:vertica:"';

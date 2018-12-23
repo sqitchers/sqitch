@@ -41,7 +41,7 @@ isa_ok my $sqlite = $CLASS->new(sqitch => $sqitch, target => $target), $CLASS;
 is $sqlite->key, 'sqlite', 'Key should be "sqlite"';
 is $sqlite->name, 'SQLite', 'Name should be "SQLite"';
 
-is $sqlite->client, 'sqlite3' . ($^O eq 'MSWin32' ? '.exe' : ''),
+is $sqlite->client, 'sqlite3' . (App::Sqitch::ISWIN ? '.exe' : ''),
     'client should default to sqlite3';
 is $sqlite->uri->dbname, file('foo.db'), 'dbname should be filled in';
 is $sqlite->target, $target, 'Target attribute should be specified target';
@@ -212,7 +212,7 @@ $target = App::Sqitch::Target->new(
 ok $sqlite = $CLASS->new(sqitch => $sqitch, target => $target ),
     'Instantiate with a temporary database file';
 can_ok $sqlite, qw(_read);
-my $quote = $^O eq 'MSWin32' ? sub { $sqitch->quote_shell(shift) } : sub { shift };
+my $quote = App::Sqitch::ISWIN ? sub { $sqitch->quote_shell(shift) } : sub { shift };
 SKIP: {
     skip 'DBD::SQLite not available', 3 unless $have_sqlite;
     is $sqlite->_read('foo'), $quote->(q{.read 'foo'}), '_read() should work';

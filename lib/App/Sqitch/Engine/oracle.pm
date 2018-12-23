@@ -39,7 +39,7 @@ sub destination {
     $uri->password(undef) if $uri->password;
     $uri->dbname(
            $ENV{TWO_TASK}
-        || ( $^O eq 'MSWin32' ? $ENV{LOCAL} : undef )
+        || ( App::Sqitch::ISWIN ? $ENV{LOCAL} : undef )
         || $ENV{ORACLE_SID}
         || $self->username
     );
@@ -579,7 +579,7 @@ sub _file_for_script {
         );
     }
 
-    if ($^O eq 'MSWin32') {
+    if (App::Sqitch::ISWIN) {
         # Copy it.
         $file->copy_to($alias) or hurl oracle => __x(
             'Cannot copy {file} to {alias}: {error}',
