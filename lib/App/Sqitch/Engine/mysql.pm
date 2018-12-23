@@ -182,6 +182,15 @@ has _mysql => (
             '--skip-line-numbers',
         );
 
+        # Get Maria to abort properly on error.
+        my $vinfo = try { $self->sqitch->probe($self->client, '--version') } || '';
+        if ($vinfo =~ /mariadb/i) {
+            my ($version) = $vinfo =~ /Ver\s(\S+)/;
+            my ($maj, undef, $pat) = split /[.]/ => $version;
+            push @ret => '--abort-source-on-error'
+                if $maj > 5 || ($maj == 5 && $pat >= 66);
+        }
+
         # Add relevant query args.
         if (my @p = $uri->query_params) {
             my %option_for = (

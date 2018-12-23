@@ -28,6 +28,12 @@ Revision history for Perl extension App::Sqitch
        https://github.com/pjf/ipc-system-simple/pull/29 for details (#413).
      - Switched to using a constant internally to optimize windows-specific
        code paths at compile time.
+     - Fixed an issue with the MariaDB client where a deploy, revert, or
+       verify failure was not properly propagated to Sqitch. Sqitch now passes
+       `--abort-source-on-error` to the Maria `mysql` client to ensure that
+       SQL errors cause the client to abort with an error so that Sqitch can
+       properly handle it. Thanks to @mvgrimes for the original report and,
+       years later, the fix (#209).
 
 0.9998 2018-10-03T20:53:58Z
      - Fixed an issue where Sqitch would sometimes truncate the registry
