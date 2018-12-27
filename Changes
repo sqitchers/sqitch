@@ -34,6 +34,8 @@ Revision history for Perl extension App::Sqitch
        SQL errors cause the client to abort with an error so that Sqitch can
        properly handle it. Thanks to @mvgrimes for the original report and,
        years later, the fix (#209).
+     - When `deploy` detects undeployed dependencies, it now eliminates
+       duplicates before listing them in the error message.
 
 0.9998 2018-10-03T20:53:58Z
      - Fixed an issue where Sqitch would sometimes truncate the registry

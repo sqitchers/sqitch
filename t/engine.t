@@ -2338,7 +2338,7 @@ CHECK_DEPLOY_DEPEND: {
 
     ##########################################################################
     # Die on missing dependencies.
-    my @requires = $make_deps->( 0, qw(foo bar) );
+    my @requires = $make_deps->( 0, qw(foo bar foo) );
     $change = App::Sqitch::Plan::Change->new(
         name      => 'blah',
         plan      => $target->plan,
@@ -2357,7 +2357,7 @@ CHECK_DEPLOY_DEPEND: {
         'Missing required changes: {changes}',
         scalar 2,
         changes => 'foo bar',
-    ), 'Should have localized message missing dependencies';
+    ), 'Should have localized message missing dependencies without dupes';
 
     is_deeply $engine->seen, [
         [ change_id_for => {
@@ -2374,8 +2374,15 @@ CHECK_DEPLOY_DEPEND: {
             project   => 'sql',
             first     => 1,
         } ],
+        [ change_id_for => {
+            change_id => undef,
+            change    => 'foo',
+            tag       => undef,
+            project   => 'sql',
+            first     => 1,
+        } ],
     ], 'Should have called check_requires';
-    is_deeply [ map { $_->resolved_id } @requires ], [undef, undef],
+    is_deeply [ map { $_->resolved_id } @requires ], [undef, undef, undef],
         'Missing requirements should not have resolved';
 
     # Make sure we see both conflict and prereq failures.
@@ -2444,8 +2451,15 @@ CHECK_DEPLOY_DEPEND: {
             project   => 'sql',
             first     => 1,
         } ],
+        [ change_id_for => {
+            change_id => undef,
+            change    => 'foo',
+            tag       => undef,
+            project   => 'sql',
+            first     => 1,
+        } ],
     ], 'Should have called check_requires';
-    is_deeply [ map { $_->resolved_id } @requires ], [undef, undef],
+    is_deeply [ map { $_->resolved_id } @requires ], [undef, undef, undef],
         'Missing requirements should not have resolved';
 }
 
