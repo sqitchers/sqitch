@@ -63,22 +63,15 @@ sub add {
         target => $name
     ) if $config->get( key => "$key.uri");
 
-    my @vars = ({
+    # Put together the URI and other config variables.
+    my $vars = $self->config_params($key);
+    unshift @{ $vars } => {
         key   => "$key.uri",
         value => URI::db->new($uri, 'db:')->as_string,
-    });
-
-    # Add the other properties.
-    my $props = $self->properties;
-    while (my ($prop, $val) = each %{ $props } ) {
-        push @vars => {
-            key   => "$key.$prop",
-            value => $val,
-        } if $prop ne 'uri';
-    }
+    };
 
     # Make it so.
-    $config->group_set( $config->local_file, \@vars );
+    $config->group_set( $config->local_file, $vars );
     my $target = $self->config_target(name => $name);
     $self->write_plan(target => $target);
     $self->make_directories_for( $target );
@@ -99,16 +92,8 @@ sub alter {
         command => "add $target " . ($props->{uri} || '$uri'),
     ) unless $config->get( key => "target.$target.uri");
 
-    my @vars;
-    while (my ($prop, $val) = each %{ $props } ) {
-        push @vars => {
-            key   => "$key.$prop",
-            value => $val,
-        };
-    }
-
     # Make it so.
-    $config->group_set( $config->local_file, \@vars );
+    $config->group_set( $config->local_file, $self->config_params($key) );
     $self->make_directories_for( $self->config_target(name => $target) );
 }
 
@@ -232,6 +217,19 @@ sub _rename {
             target => $old,
         );
     };
+    VARS: {
+        # No idea why this needs to be in its own block but the try{} below
+        # never executes without it.
+        try {
+            $config->rename_section(
+                from     => "target.$old.variables",
+                ($new ? (to => "target.$new.variables") : ()),
+                filename => $config->local_file,
+            );
+        } catch {
+            die $_ unless /No such section/;
+        }
+    }
     return $self;
 }
 
@@ -252,6 +250,7 @@ sub show {
         deploy       => '  ' . __ 'Deploy',
         verify       => '  ' . __ 'Verify',
         reworked     => '  ' . __ 'Reworked',
+        variables    => '  ' . __ 'Variables',
     );
 
     my $len = max map { length } values %label_for;
@@ -283,6 +282,11 @@ sub show {
         $self->emit('    ', $label_for{deploy}, $target->reworked_deploy_dir);
         $self->emit('    ', $label_for{revert}, $target->reworked_revert_dir);
         $self->emit('    ', $label_for{verify}, $target->reworked_verify_dir);
+        my $vars = $target->variables;
+        if (%{ $vars }) {
+            $self->emit('    ', $label_for{variables});
+            $self->emit("  $_ => $vars->{$_}") for sort { lc $a cmp lc $b } keys %{ $vars };
+        }
     }
 
     return $self;

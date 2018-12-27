@@ -71,6 +71,7 @@ is_deeply [$CLASS->options], [qw(
     extension=s
     top-dir=s
     dir|d=s%
+    set|s=s%
 )], 'Options should be correct';
 
 warning_is {

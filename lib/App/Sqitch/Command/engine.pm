@@ -96,23 +96,15 @@ sub add {
         engine => $engine
     ) if $config->get( key => "$key.target");
 
-    # Set up the target.
-    my @vars = ({
+    # Set up the target and other config variables.
+    my $vars = $self->config_params($key);
+    unshift @{ $vars } => {
         key   => "$key.target",
         value => $self->_target($engine, $target) || "db:$engine:",
-    });
-
-    # Add the other properties.
-    my $props = $self->properties;
-    while (my ($prop, $val) = each %{ $props } ) {
-        push @vars => {
-            key   => "$key.$prop",
-            value => $val,
-        } if $prop ne 'target';
-    }
+    };
 
     # Make it so.
-    $config->group_set( $config->local_file, \@vars );
+    $config->group_set( $config->local_file, $vars );
     $target = $self->config_target(
         name   => $target,
         engine => $engine,
@@ -136,21 +128,14 @@ sub alter {
         command => "add $engine " . ($props->{target} || "db:$engine:"),
     ) unless $config->get( key => "engine.$engine.target");
 
-    my @vars;
-    while (my ($prop, $val) = each %{ $props } ) {
-        if ($prop eq 'target') {
-            $val = $self->_target($engine, $val) or hurl engine => __(
-                'Cannot unset an engine target'
-            );
-        }
-        push @vars => {
-            key   => "$key.$prop",
-            value => $val,
-        };
+    if (my $targ = $props->{target}) {
+        $props->{target} = $self->_target($engine, $targ) or hurl engine => __(
+            'Cannot unset an engine target'
+        );
     }
 
     # Make it so.
-    $config->group_set( $config->local_file, \@vars );
+    $config->group_set( $config->local_file, $self->config_params($key) );
     $self->make_directories_for( $self->config_target( engine => $engine) );
 }
 
