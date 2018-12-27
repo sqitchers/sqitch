@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 155;
+use Test::More tests => 159;
 #use Test::More 'no_plan';
 use Test::MockModule;
 use Path::Class;
@@ -204,11 +204,22 @@ EDITOR: {
 # - PAGER environment variable.
 #
 PAGER_PROGRAM: {
+    # Ignore warnings while loading IO::Pager.
+    { local $SIG{__WARN__}; require IO::Pager }
+
+    # Mock the IO::Pager constructor.
+    my $mock_pager = Test::MockModule->new('IO::Pager');
+    $mock_pager->mock(new => sub { return bless => {} => 'IO::Pager' });
+
+    # No pager if no TTY.
+    my $pager_class = -t *STDOUT ? 'IO::Pager' : 'IO::Handle';
     {
         local $ENV{SQITCH_PAGER};
         local $ENV{PAGER} = "morez";
         my $sqitch = App::Sqitch->new;
-        is $sqitch->pager_program, "morez", "pager program should be picked up from PAGER when SQITCH_PAGER and core.pager are not set";
+        is $sqitch->pager_program, "morez",
+            "pager program should be picked up from PAGER when SQITCH_PAGER and core.pager are not set";
+        isa_ok $sqitch->pager, $pager_class, 'morez pager';
     }
 
     {
@@ -217,6 +228,7 @@ PAGER_PROGRAM: {
 
         my $sqitch = App::Sqitch->new;
         is $sqitch->pager_program, "less -myway", "SQITCH_PAGER should take precedence over PAGER";
+        isa_ok $sqitch->pager, $pager_class, 'less -myway';
     }
 
     {
@@ -225,7 +237,9 @@ PAGER_PROGRAM: {
         local $ENV{SQITCH_CONFIG} = File::Spec->catfile(qw/t sqitch.conf/);
 
         my $sqitch = App::Sqitch->new;
-        is $sqitch->pager_program, "less -r", "`core.pager' setting should take precedence over PAGER when SQITCH_PAGER is not set.";
+        is $sqitch->pager_program, "less -r",
+            "`core.pager' setting should take precedence over PAGER when SQITCH_PAGER is not set.";
+        isa_ok $sqitch->pager, $pager_class, 'morezz pager';
     }
 
     {
@@ -233,8 +247,11 @@ PAGER_PROGRAM: {
         local $ENV{PAGER}         = "more -dontcare";
         local $ENV{SQITCH_CONFIG} = File::Spec->catfile(qw/t sqitch.conf/);
 
-        my $sqitch = App::Sqitch->new;
-        is $sqitch->pager_program, "less -rules", "SQITCH_PAGER should take precedence over both PAGER and the `core.pager' setting.";
+        # Should always get IO::Handle with --no-pager.
+        my $sqitch = App::Sqitch->new(options => {no_pager => 1});
+        is $sqitch->pager_program, "less -rules",
+            "SQITCH_PAGER should take precedence over both PAGER and the `core.pager' setting.";
+        isa_ok $sqitch->pager, 'IO::Handle', 'less -rules';
     }
 }
 

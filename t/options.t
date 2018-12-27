@@ -124,6 +124,7 @@ my $opts = $CLASS->_parse_core_opts([
     '--verify-dir' => 'tst',
     '--extension'  => 'ext',
     '--verbose', '--verbose',
+    '--no-pager',
 ]);
 
 is_deeply $opts, {
@@ -141,6 +142,7 @@ is_deeply $opts, {
     verify_dir  => 'tst',
     extension   => 'ext',
     verbosity   => 2,
+    no_pager    => 1,
 }, 'Should parse lots of options';
 
 for my $dir (qw(

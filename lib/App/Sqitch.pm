@@ -167,7 +167,7 @@ has pager => (
         binmode $fh, ':utf8_strict';
 
         # Just return if no pager is wanted or there is no TTY.
-        return $fh if shift->options->{no_pager} || !(-t STDOUT);
+        return $fh if shift->options->{no_pager} || !(-t *STDOUT);
 
         # Load IO::Pager and tie the handle to it.
         eval "use IO::Pager 0.34"; die $@ if $@;
