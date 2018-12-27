@@ -101,6 +101,12 @@ has reverse => (
     default => 0,
 );
 
+has headers => (
+    is      => 'ro',
+    isa     => Bool,
+    default => 1,
+);
+
 has format => (
     is       => 'ro',
     isa      => Str,
@@ -129,6 +135,7 @@ sub options {
         no-color
         abbrev=i
         oneline
+        headers!
     );
 }
 
@@ -217,9 +224,11 @@ sub execute {
     # Send the results.
     my $formatter = $self->formatter;
     my $format    = $self->format;
-    $self->page( '# ', __x 'Project: {project}', project => $plan->project );
-    $self->page( '# ', __x 'File:    {file}', file => $plan->file );
-    $self->page('');
+    if ($self->headers) {
+        $self->page( '# ', __x 'Project: {project}', project => $plan->project );
+        $self->page( '# ', __x 'File:    {file}', file => $plan->file );
+        $self->page('');
+    }
     while ( my $change = $iter->() ) {
         $self->page( $formatter->format( $format, {
             event         => $change->is_deploy ? 'deploy' : 'revert',
@@ -285,6 +294,10 @@ Maximum number of entries to display.
 =head3 C<reverse>
 
 Reverse the usual order of the display of entries.
+
+=head3 C<headers>
+
+Output headers. Defaults to true.
 
 =head3 C<skip>
 

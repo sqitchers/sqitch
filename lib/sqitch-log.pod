@@ -154,6 +154,14 @@ Output the events in reverse order.
 
 Do not output the events in reverse order. 
 
+=item C<--headers>
+
+Output headers describing target. Enabled by default.
+
+=item C<--no-headers>
+
+Do not output headers describing target.
+
 =item C<--color>
 
 Show colored output. The value may be one of:

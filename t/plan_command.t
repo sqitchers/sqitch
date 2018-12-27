@@ -49,6 +49,7 @@ can_ok $cmd, qw(
     options
     execute
     configure
+    headers
 );
 
 is_deeply [$CLASS->options], [qw(
@@ -65,6 +66,7 @@ is_deeply [$CLASS->options], [qw(
     no-color
     abbrev=i
     oneline
+   headers!
 )], 'Options should be correct';
 
 ##############################################################################
@@ -606,6 +608,7 @@ isa_ok $cmd = $CLASS->new(
     max_count         => 10,
     skip              => 5,
     reverse           => 1,
+    headers           => 0,
 ), $CLASS, 'plan with attributes';
 
 ok $cmd->execute, 'Execute plan with attributes';
@@ -633,12 +636,9 @@ my $fmt_params2 = {
 };
 
 is_deeply +MockOutput->get_page, [
-    ['# ', __x 'Project: {project}', project => $plan->project ],
-    ['# ', __x 'File:    {file}', file => $plan->file ],
-    [''],
     [ $cmd->formatter->format( $cmd->format, $fmt_params  ) ],
     [ $cmd->formatter->format( $cmd->format, $fmt_params2 ) ],
-], 'Both events should have been paged';
+], 'Both events should have been paged without headers';
 
 # Make sure we catch bad format codes.
 isa_ok $cmd = $CLASS->new(

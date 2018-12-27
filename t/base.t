@@ -205,7 +205,7 @@ EDITOR: {
 #
 PAGER_PROGRAM: {
     # Ignore warnings while loading IO::Pager.
-    { local $SIG{__WARN__}; require IO::Pager }
+    { local $SIG{__WARN__} = sub {}; require IO::Pager }
 
     # Mock the IO::Pager constructor.
     my $mock_pager = Test::MockModule->new('IO::Pager');

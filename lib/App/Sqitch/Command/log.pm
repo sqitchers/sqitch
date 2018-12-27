@@ -111,6 +111,12 @@ has reverse => (
     default => 0,
 );
 
+has headers => (
+    is      => 'ro',
+    isa     => Bool,
+    default => 1,
+);
+
 has format => (
     is       => 'ro',
     isa      => Str,
@@ -140,6 +146,7 @@ sub options {
         no-color
         abbrev=i
         oneline
+        headers!
     );
 }
 
@@ -240,7 +247,8 @@ sub execute {
     # Send the results.
     my $formatter = $self->formatter;
     my $format    = $self->format;
-    $self->page( __x 'On database {db}', db => $engine->destination );
+    $self->page( __x 'On database {db}', db => $engine->destination )
+        if $self->headers;
     while ( my $change = $iter->() ) {
         $self->page( $formatter->format( $format, $change ) );
     }
@@ -298,6 +306,10 @@ Maximum number of entries to display.
 =head3 C<reverse>
 
 Reverse the usual order of the display of entries.
+
+=head3 C<headers>
+
+Output headers. Defaults to true.
 
 =head3 C<skip>
 

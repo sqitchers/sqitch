@@ -51,6 +51,7 @@ can_ok $log, qw(
     options
     execute
     configure
+    headers
 );
 
 is_deeply [$CLASS->options], [qw(
@@ -68,6 +69,7 @@ is_deeply [$CLASS->options], [qw(
     no-color
     abbrev=i
     oneline
+    headers!
 )], 'Options should be correct';
 
 ##############################################################################
@@ -698,8 +700,6 @@ is_deeply +MockOutput->get_page, [
     [ $log->formatter->format( $log->format, $event ) ],
 ], 'The change should have been paged';
 
-
-
 # Set attributes and add more events.
 my $event2 = {
     event           => 'revert',
@@ -722,6 +722,7 @@ isa_ok $log = $CLASS->new(
     max_count         => 10,
     skip              => 5,
     reverse           => 1,
+    headers           => 0,
 ), $CLASS, 'log with attributes';
 
 $target_name_arg = '_blah';
@@ -738,10 +739,9 @@ is_deeply $search_args, [
 ], 'All params should have been passed to search_events';
 
 is_deeply +MockOutput->get_page, [
-    [__x 'On database {db}', db => 'flipr'],
     [ $log->formatter->format( $log->format, $event ) ],
     [ $log->formatter->format( $log->format, $event2 ) ],
-], 'Both changes should have been paged';
+], 'Both changes should have been paged with no headers';
 
 # Make sure we get a warning when both the option and the arg are specified.
 push @events => {}, $event;

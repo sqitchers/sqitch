@@ -27,3 +27,5 @@ Formatting
     --no-color                       never use ANSI colors
     --abbrev                         abbreviate change IDs
     --oneline                        shorthand for --format oneline --abbrev 6
+    --headers                        show headers for the target
+    --no-headers                     don't show target headers
