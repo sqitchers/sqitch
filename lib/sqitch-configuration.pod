@@ -327,10 +327,10 @@ variable for each command:
 
 =head2 Database Interactions
 
-With either of these two approaches, you can now manage database interactions
-by passing an engine name or a L<database URI|https://github.com/libwww-perl/uri-db>
-to the database commands. For example, to deploy to a PostgreSQL database
-to the default PostgreSQL database:
+With either of these two approaches, you can manage database interactions by
+passing an engine name or a L<database URI|https://github.com/libwww-perl/uri-db>
+to the database commands. For example, to deploy to a PostgreSQL database to
+the default PostgreSQL database:
 
   sqitch deploy pg
 
