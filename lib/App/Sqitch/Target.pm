@@ -94,7 +94,7 @@ has variables => (
             map { %{ $config->get_section( section => "$_.variables" ) || {} } } (
                 'target.' . $self->name,
                 'engine.' . $self->engine_key,
-                'core.variables',
+                'core',
             )
         };
     },
