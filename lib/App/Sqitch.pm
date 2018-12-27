@@ -158,26 +158,20 @@ has pager => (
     is       => 'ro',
     lazy     => 1,
     isa      => declare('Pager', where {
-        # IO::Pager annoyingly just returns the file handle if there is no TTY.
-        eval { $_->isa('IO::Pager') || $_->isa('IO::Handle') } || ref $_ eq 'GLOB'
+        eval { $_->isa('IO::Pager') || $_->isa('IO::Handle') }
     }),
     default  => sub {
-        require IO::Pager;
-        # https://rt.cpan.org/Ticket/Display.html?id=78270
-        eval q{
-            sub IO::Pager::say {
-                my $self = shift;
-                CORE::say {$self->{real_fh}} @_ or die "Could not print to PAGER: $!\n";
-            }
-        } unless IO::Pager->can('say');
+        # Dupe and configure STDOUT.
+        require IO::Handle;
+        my $fh = IO::Handle->new_from_fd(*STDOUT, 'w');
+        binmode $fh, ':utf8_strict';
 
-        my $fh = IO::Pager->new(\*STDOUT);
-        if (eval { $fh->isa('IO::Pager') }) {
-            $fh->binmode(':utf8_strict');
-        } else {
-            binmode $fh, ':utf8_strict';
-        }
-        $fh;
+        # Just return if no pager is wanted or there is no TTY.
+        return $fh if shift->options->{no_pager} || !(-t STDOUT);
+
+        # Load IO::Pager and tie the handle to it.
+        eval "use IO::Pager 0.34"; die $@ if $@;
+        return IO::Pager->new($fh, ':utf8_strict');
     },
 );
 
@@ -252,6 +246,7 @@ sub _core_opts {
         verify-dir|test-dir=s
         extension=s
         etc-path
+        no-pager
         quiet
         verbose|v+
         help

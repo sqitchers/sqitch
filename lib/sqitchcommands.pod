@@ -13,7 +13,7 @@ sqitchcommands - List of common sqitch commands
 
   sqitch [--plan-file <file>] [--directory <path>] [--engine <engine>]
          [--top-dir <dir> ] [--extension <ext>] [--registry <registry>]
-         [--etc-path] [--quiet] [--verbose] [--version] [--directory <path>]
+         [--etc-path] [--no-pager] [--quiet] [--verbose] [--version]
          <command> [<command-options>] [<args>]
 
 =head1 Common Commands

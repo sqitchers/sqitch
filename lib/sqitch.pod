@@ -217,6 +217,7 @@ User who adds a change to the plan.
   -C --directory  DIR       Change to directory before performing any actions.
      --top-dir    DIR       Path to directory with plan and scripts.
      --etc-path             Print path to etc directory and exit.
+     --no-pager             Do not pipe output into a pager.
      --quiet                Quiet mode with non-error output suppressed.
   -v --verbose              Increment verbosity.
      --version              Print version number and exit.
@@ -355,6 +356,13 @@ Defaults to C<.>.
 Print out the path to the Sqitch F<etc> directory and exit. This is the
 directory where the system-wide configuration file lives, as well as change
 script templates.
+
+=item C<--no-pager>
+
+  sqitch --no-pager
+
+Do not pipe GitSqitch output into a pager. Currently limited to the C<log>
+and C<plan> commands.
 
 =item C<--quiet>
 

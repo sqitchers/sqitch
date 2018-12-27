@@ -36,6 +36,9 @@ Revision history for Perl extension App::Sqitch
        years later, the fix (#209).
      - When `deploy` detects undeployed dependencies, it now eliminates
        duplicates before listing them in the error message.
+     - Now requiring IO::Pager v0.34 or later for its more consistent
+       interface.
+     - Added the `--no-pager` option to disable the pager (#414).
 
 0.9998 2018-10-03T20:53:58Z
      - Fixed an issue where Sqitch would sometimes truncate the registry

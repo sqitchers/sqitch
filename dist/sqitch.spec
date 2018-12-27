@@ -32,7 +32,7 @@ BuildRequires:  perl(File::Spec)
 BuildRequires:  perl(File::Temp)
 BuildRequires:  perl(Getopt::Long)
 BuildRequires:  perl(Hash::Merge)
-BuildRequires:  perl(IO::Pager)
+BuildRequires:  perl(IO::Pager) >= 0.34
 BuildRequires:  perl(IPC::Run3)
 BuildRequires:  perl(IPC::System::Simple) >= 1.17
 BuildRequires:  perl(List::Util)
@@ -100,7 +100,7 @@ Requires:       perl(File::Path)
 Requires:       perl(File::Temp)
 Requires:       perl(Getopt::Long)
 Requires:       perl(Hash::Merge)
-Requires:       perl(IO::Pager)
+Requires:       perl(IO::Pager) >= 0.34
 Requires:       perl(IPC::Run3)
 Requires:       perl(IPC::System::Simple) >= 1.17
 Requires:       perl(List::Util)

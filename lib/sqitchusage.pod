@@ -25,6 +25,7 @@ sqitchusage - Sqitch usage statement
   -p --db-port    PORT      Database server port number.
      --top-dir    DIR       Path to directory with plan and scripts.
      --etc-path             Print the path to the etc directory and exit.
+     --no-pager             Do not pipe output into a pager.
      --quiet                Quiet mode with non-error output suppressed.
   -v --verbose              Increment verbosity.
      --version              Print the version number and exit.
