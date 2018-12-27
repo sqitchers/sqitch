@@ -39,6 +39,11 @@ Revision history for Perl extension App::Sqitch
      - Now requiring IO::Pager v0.34 or later for its more consistent
        interface.
      - Added the `--no-pager` option to disable the pager (#414).
+     - Added notes about createing databases to the tutorials. Thanks to Dave
+       Rolsky for the prompt (#315).
+     - Added a status messsage to tell the user when the registry is being
+       updated, rather than just show each individual update. Thanks to Ben
+       Hutton for the suggestion (#276).
 
 0.9998 2018-10-03T20:53:58Z
      - Fixed an issue where Sqitch would sometimes truncate the registry

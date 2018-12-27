@@ -1088,6 +1088,11 @@ sub upgrade_registry {
     ) unless @scripts && $scripts[-1]->[0] == $newver;
 
     # Run the upgrades.
+    $sqitch->info(__x(
+        'Upgrading the Sqitch registry from {old} to {new}',
+        old => $oldver,
+        new => $newver,
+    ));
     for my $script (@scripts) {
         my ($version, $file) = @{ $script };
         $sqitch->info('  * ' . __x(

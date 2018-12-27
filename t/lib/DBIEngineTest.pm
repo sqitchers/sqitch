@@ -118,7 +118,11 @@ sub run {
             my @args;
             $sqitch_mocker->mock(info => sub { shift; push @args => @_ });
             ok $engine->upgrade_registry, 'Upgrade the registry';
-            is_deeply \@args, ['  * ' . __x(
+            is_deeply \@args, [__x(
+                'Upgrading the Sqitch registry from {old} to {new}',
+                old => 0,
+                new => '1.1',
+            ), '  * ' . __x(
                 'From {old} to {new}',
                 old => 0,
                 new => '1.0',
