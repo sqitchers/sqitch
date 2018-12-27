@@ -176,9 +176,14 @@ script, so we edit this to F<revert/appuser.sql> to look like this:
 
   COMMIT;
 
-Now we can try deploying this change:
+Now we can try deploying this change. First, we need to create a database
+to deploy to:
 
   > mysql -u root --execute 'CREATE DATABASE flipr_test'
+
+Now we tell Sqitch where to send the change via a
+L<database URI|https://github.com/libwww-perl/uri-db/>:
+
   > sqitch deploy db:mysql://root@/flipr_test
   Deploying changes to db:mysql://root@/flipr_test
     + appuser .. ok

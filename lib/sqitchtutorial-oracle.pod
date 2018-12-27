@@ -187,9 +187,14 @@ script, so we add this to F<revert/appschema.sql>:
 
   DROP USER flipr;
 
-Now we can try deploying this change. We'll assume you have an Oracle SID
-named C<flipr_test> set up in your
-C<F<TNSNAMES.ORA>|https://www.orafaq.com/wiki/Tnsnames.ora> file:
+Now we can try deploying this change. Before going any further, you might
+need to
+L<create the database|https://docs.oracle.com/cd/B28359_01/server.111/b28310/create001.htm#ADMIN11068>
+and configure the SID. Assuming you have an Oracle SID named C<flipr_test> set
+up in your C<F<TNSNAMES.ORA>|https://www.orafaq.com/wiki/Tnsnames.ora> file,
+tell Sqitch where to send the change via a
+L<database URI|https://github.com/libwww-perl/uri-db/>:
+
 
   > sqitch deploy db:oracle://scott:tiger@/flipr_test
   Adding registry tables to db:oracle://scott:@/flipr_test

@@ -192,7 +192,9 @@ script, so we edit this to F<revert/users.sql> to look like this:
 
   COMMIT;
 
-Now we can try deploying this change:
+Now we can try deploying this change. We tell Sqitch where to send the change
+via a L<database URI|https://github.com/libwww-perl/uri-db/>. Here we've
+specified a database file, F</tmp/flipr_test/flipr.fdb>:
 
   > sqitch deploy db:firebird://sysdba:masterkey@localhost//tmp/flipr_test/flipr.fdb
   Adding registry tables to db:firebird://sysdba:@localhost//tmp/flipr_test/sqitch.fdb
@@ -205,7 +207,19 @@ change was deployed; by default, its name is C<sqitch.$suffix>, where
 C<$suffix> is the same as the suffix on the target database, if any. It lives
 in the same directory as the target database, which means that one registry
 database is used for all the databases with the same suffix in a single
-directory.
+directory. In this case, we should end up with two databases:
+
+=over
+
+=item * F</tmp/flipr_test/sqitch.fdb>
+
+The Sqitch registry database.
+
+=item * F</tmp/flipr_test/flipr.fdb>
+
+The database Sqitch manages.
+
+=back
 
 Next, Sqitch deploys changes to the target database. We only have one change
 so far; the C<+> reinforces the idea that the change is being I<added> to the
