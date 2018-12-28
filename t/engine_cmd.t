@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 286;
+use Test::More tests => 297;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -91,7 +91,7 @@ is_deeply $CLASS->configure({ foo => 'bar'}), { properties => {} },
     'configure() should ignore config file';
 
 # Check default property values.
-ok my $conf = $CLASS->configure({}, {
+ok my $conf = $CLASS->configure($config, {
     top_dir             => 'top',
     plan_file           => 'my.plan',
     registry            => 'bats',
@@ -107,22 +107,30 @@ ok my $conf = $CLASS->configure({}, {
         reworked_revert => 'rrev',
         reworked_verify => 'rver',
     },
+    set => {
+        foo => 'bar',
+        prefix => 'x_',
+    },
 }), 'Get full config';
 
 is_deeply $conf->{properties}, {
-        top_dir             => 'top',
-        plan_file           => 'my.plan',
-        registry            => 'bats',
-        client              => 'cli',
-        extension           => 'ddl',
-        target              => 'db:pg:foo',
-        deploy_dir          => 'dep',
-        revert_dir          => 'rev',
-        verify_dir          => 'ver',
-        reworked_dir        => 'wrk',
-        reworked_deploy_dir => 'rdep',
-        reworked_revert_dir => 'rrev',
-        reworked_verify_dir => 'rver',
+    top_dir             => 'top',
+    plan_file           => 'my.plan',
+    registry            => 'bats',
+    client              => 'cli',
+    extension           => 'ddl',
+    target              => 'db:pg:foo',
+    deploy_dir          => 'dep',
+    revert_dir          => 'rev',
+    verify_dir          => 'ver',
+    reworked_dir        => 'wrk',
+    reworked_deploy_dir => 'rdep',
+    reworked_revert_dir => 'rrev',
+    reworked_verify_dir => 'rver',
+    variables => {
+        foo => 'bar',
+        prefix => 'x_',
+    },
 }, 'Should have properties';
 isa_ok $conf->{properties}{$_}, 'Path::Class::File', "$_ file attribute" for qw(
     plan_file
@@ -207,9 +215,11 @@ for my $key (qw(
     verify_dir
     extension
 )) {
-    is $config->get(key => "engine.test.$key"), undef,
-        qq{Engine "test" should have no $key set};
+    is $config->get(key => "engine.vertica.$key"), undef,
+        qq{Engine "vertica" should have no $key set};
 }
+is_deeply $config->get_section(section => 'engine.vertica.variables'), {},
+    qq{Engine "vertica" should have no variables set};
 
 # Should die on target that doesn't match the engine.
 isa_ok $cmd = $CLASS->new({
@@ -238,6 +248,7 @@ my %props = (
     reworked_dir        => dir('r'),
     reworked_deploy_dir => dir('r/d'),
     extension           => 'ddl',
+    variables           => { ay => 'first', Bee => 'second' },
 );
 isa_ok $cmd = $CLASS->new({
     sqitch     => $sqitch,
@@ -250,8 +261,13 @@ dir_exists_ok dir $_ for qw(top/deploy top/revert top/verify r/d r/revert r/veri
 file_exists_ok 'my.plan';
 $config->load;
 while (my ($k, $v) = each %props) {
-    is $config->get(key => "engine.firebird.$k"), $v,
-        qq{Engine "firebird" should have $k set};
+    if ($k ne 'variables') {
+        is $config->get(key => "engine.firebird.$k"), $v,
+            qq{Engine "firebird" should have $k set};
+    } else {
+        is_deeply $config->get_section(section => "engine.firebird.$k"), $v,
+            qq{Engine "firebird" should have $k};
+    }
 }
 
 ##############################################################################
@@ -301,6 +317,7 @@ is $@->message, __x(
     reworked_dir        => dir('fb/r'),
     reworked_deploy_dir => dir('fb/r/d'),
     extension           => 'fbsql',
+    variables           => { ay => 'x', ceee => 'third' },
 );
 isa_ok $cmd = $CLASS->new({
     sqitch     => $sqitch,
@@ -309,8 +326,14 @@ isa_ok $cmd = $CLASS->new({
 ok $cmd->alter('firebird'), 'Alter engine "firebird"';
 $config->load;
 while (my ($k, $v) = each %props) {
-    is $config->get(key => "engine.firebird.$k"), $v,
-        qq{Engine "firebird" should have $k set};
+    if ($k ne 'variables') {
+        is $config->get(key => "engine.firebird.$k"), $v,
+            qq{Engine "firebird" should have $k set};
+    } else {
+        $v->{Bee} = 'second';
+        is_deeply $config->get_section(section => "engine.firebird.$k"), $v,
+            qq{Engine "firebird" should have $k};
+    }
 }
 
 # Try changing the top directory.
@@ -399,7 +422,7 @@ is $@->message, __x(
 ##############################################################################
 # Test other set_* methods
 for my $key (keys %props) {
-    next if $key =~ /^reworked/;
+    next if $key =~ /^(?:reworked|variables)/;
     my $meth = "set_$key";
     MISSINGARGS: {
         # Test handling of no name.
@@ -458,6 +481,29 @@ ok $cmd->remove('mysql'), 'Remove';
 $config->load;
 is $config->get(key => "engine.mysql.target"), undef,
     qq{Engine "mysql" should now be gone};
+is_deeply $config->get_section(section => "engine.mysql.variables"), {},
+    qq{Engine "mysql" should have no variables};
+
+# Create it again with variables.
+isa_ok $cmd = $CLASS->new({
+    sqitch => $sqitch,
+    properties => { variables => { x => 1} },
+}), $CLASS, 'Engein with variables';
+ok $cmd->add('mysql', 'db:mysql:'), 'Add engine "mysql"';
+$config->load;
+is $config->get(key => "engine.mysql.target"), 'db:mysql:',
+    qq{Engine "mysql" should be back};
+is_deeply $config->get_section(section => "engine.mysql.variables"), { x => 1},
+    qq{Engine "mysql" should have variables};
+
+# Remoce it again.
+ok $cmd->remove('mysql'), 'Remove';
+$config->load;
+is $config->get(key => "engine.mysql.target"), undef,
+    qq{Engine "mysql" should be gone again};
+is_deeply $config->get_section(section => "engine.mysql.variables"), {},
+    qq{Engine "mysql" should have no variables};
+
 
 ##############################################################################
 # Test show.
@@ -543,7 +589,10 @@ is_deeply +MockOutput->get_emit, [
     ['    ', '  Deploy:      ', dir 'fb/r/d'],
     ['    ', '  Revert:      ', dir 'fb/r/revert'],
     ['    ', '  Verify:      ', dir 'fb/r/verify'],
-    ['    ', 'No Variables'],
+    ['    ', 'Variables:'],
+    ['  ay:   x'],
+    ['  Bee:  second'],
+    ['  ceee: third'],
 ], 'All three engines should have been shown';
 
 ##############################################################################

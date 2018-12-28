@@ -238,13 +238,17 @@ sub remove {
             engine => $engine,
         );
     };
-    try {
-        $config->rename_section(
-            from     => "engine.$engine.variables",
-            filename => $config->local_file,
-        );
-    } catch {
-        die $_ unless /No such section/;
+    VARS: {
+        # No idea why this needs to be in its own block but the try{} below
+        # never executes without it.
+        try {
+            $config->rename_section(
+                from     => "engine.$engine.variables",
+                filename => $config->local_file,
+            );
+        } catch {
+            die $_ unless /No such section/;
+        }
     }
     return $self;
 }

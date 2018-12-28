@@ -108,7 +108,7 @@ ok my $conf = $CLASS->configure($config, {
     set => {
         foo => 'bar',
         prefix => 'x_',
-    }
+    },
 }), 'Get full config';
 
 is_deeply $conf->{properties}, {
@@ -316,7 +316,7 @@ my %props = (
     reworked_dir        => dir('r'),
     reworked_deploy_dir => dir('r/d'),
     extension           => 'ddl',
-    variables           => { ay => 'first', bee => 'second' },
+    variables           => { ay => 'first', Bee => 'second' },
 );
 isa_ok $cmd = $CLASS->new({
     sqitch     => $sqitch,
@@ -404,7 +404,7 @@ while (my ($k, $v) = each %props) {
         is $config->get(key => "target.withall.$k"), $v,
             qq{Target "withall" should have $k set};
     } else {
-        $v->{bee} = 'second';
+        $v->{Bee} = 'second';
         is_deeply $config->get_section(section => "target.withall.$k"), $v,
             qq{Target "withall" should have merged $k set};
     }
@@ -702,7 +702,7 @@ is_deeply +MockOutput->get_emit, [
     ['    ', '  Verify:      ', dir qw(fb r verify)],
     ['    ', 'Variables:'],
     ['  ay:   x'],
-    ['  bee:  second'],
+    ['  Bee:  second'],
     ['  ceee: third'],
 ], 'The "withall" target should have been shown with variables';
 
