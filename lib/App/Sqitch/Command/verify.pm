@@ -36,13 +36,7 @@ has variables => (
     is       => 'ro',
     isa      => HashRef,
     lazy     => 1,
-    default  => sub {
-        my $cfg = shift->sqitch->config;
-        return {
-            %{ $cfg->get_section( section => 'deploy.variables' ) },
-            %{ $cfg->get_section( section => 'verify.variables' ) },
-        };
-    },
+    default  => sub { {} },
 );
 
 sub options {
@@ -78,15 +72,22 @@ sub configure {
     }
 
     if ( my $vars = $opt->{set} ) {
-        # Merge with config.
-        $params{variables} = {
-            %{ $config->get_section( section => 'deploy.variables' ) },
-            %{ $config->get_section( section => 'verify.variables' ) },
-            %{ $vars },
-        };
+        $params{variables} = $vars;
     }
 
     return \%params;
+}
+
+sub _collect_vars {
+    my ($self, $target) = @_;
+    my $cfg = $self->sqitch->config;
+    return (
+        %{ $cfg->get_section(section => 'core.variables') },
+        %{ $cfg->get_section(section => 'deploy.variables') },
+        %{ $cfg->get_section(section => 'verify.variables') },
+        %{ $target->variables }, # includes engine
+        %{ $self->variables },   # --set
+    );
 }
 
 sub execute {
@@ -114,7 +115,7 @@ sub execute {
 
     # Now get to work.
     my $engine = $target->engine;
-    if (my %v = %{ $self->variables }) { $engine->set_variables(%v) }
+    $engine->set_variables( $self->_collect_vars($target) );
     $engine->verify($from, $to);
     return $self;
 }

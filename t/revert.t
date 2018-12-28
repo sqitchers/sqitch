@@ -228,7 +228,9 @@ $config->replace(
     'core.plan_file' => file(qw(t sql sqitch.plan))->stringify,
 );
 $revert = $CLASS->new( sqitch => $sqitch, no_prompt => 1);
+
 ##############################################################################
+# Test execution.
 # Mock the engine interface.
 my $mock_engine = Test::MockModule->new('App::Sqitch::Engine::sqlite');
 my @args;
