@@ -92,9 +92,8 @@ has variables => (
         my $config = $self->sqitch->config;
         return {
             map { %{ $config->get_section( section => "$_.variables" ) || {} } } (
-                'target.' . $self->name,
                 'engine.' . $self->engine_key,
-                'core',
+                'target.' . $self->name,
             )
         };
     },
@@ -785,15 +784,16 @@ these options, in this order:
 
 =over
 
-=item * C<--set>
-
 =item * C<target.$name.variables>
 
 =item * C<engine.$engine.variables>
 
-=item * C<core.variables>
-
 =back
+
+The C<core.variables> configuration is not read, because command-specific
+configurations, such as C<deploy.variables> and C<revert.variables> take
+priority. The command themselves therefore pass them to the engine in the
+proper priority order.
 
 =head3 C<engine_key>
 
