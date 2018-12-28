@@ -485,6 +485,7 @@ is_deeply +MockOutput->get_emit, [
     ['    ', '  Deploy:      ', 'deploy'],
     ['    ', '  Revert:      ', 'revert'],
     ['    ', '  Verify:      ', 'verify'],
+    ['    ', 'No Variables'],
 ], 'The full "sqlite" engine should have been shown';
 
 # Try multiples.
@@ -508,6 +509,7 @@ is_deeply +MockOutput->get_emit, [
     ['    ', '  Deploy:      ', 'deploy'],
     ['    ', '  Revert:      ', 'revert'],
     ['    ', '  Verify:      ', 'verify'],
+    ['    ', 'No Variables'],
     ['* vertica'],
     ['    ', 'Target:        ', 'db:vertica:'],
     ['    ', 'Registry:      ', 'sqitch'],
@@ -524,6 +526,7 @@ is_deeply +MockOutput->get_emit, [
     ['    ', '  Deploy:      ', 'deploy'],
     ['    ', '  Revert:      ', 'revert'],
     ['    ', '  Verify:      ', 'verify'],
+    ['    ', 'No Variables'],
     ['* firebird'],
     ['    ', 'Target:        ', 'db:firebird:bar'],
     ['    ', 'Registry:      ', 'migrations'],
@@ -540,6 +543,7 @@ is_deeply +MockOutput->get_emit, [
     ['    ', '  Deploy:      ', dir 'fb/r/d'],
     ['    ', '  Revert:      ', dir 'fb/r/revert'],
     ['    ', '  Verify:      ', dir 'fb/r/verify'],
+    ['    ', 'No Variables'],
 ], 'All three engines should have been shown';
 
 ##############################################################################

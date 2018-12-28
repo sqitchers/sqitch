@@ -238,6 +238,14 @@ sub remove {
             engine => $engine,
         );
     };
+    try {
+        $config->rename_section(
+            from     => "engine.$engine.variables",
+            filename => $config->local_file,
+        );
+    } catch {
+        die $_ unless /No such section/;
+    }
     return $self;
 }
 
@@ -267,6 +275,8 @@ sub show {
     # Header labels.
     $label_for{script_dirs} = __('Script Directories') . ':';
     $label_for{reworked_dirs} = __('Reworked Script Directories') . ':';
+    $label_for{variables} = __('Variables') . ':';
+    $label_for{no_variables} = __('No Variables');
 
     require App::Sqitch::Target;
     for my $engine (@names) {
@@ -291,6 +301,17 @@ sub show {
         $self->emit('    ', $label_for{deploy}, $target->reworked_deploy_dir);
         $self->emit('    ', $label_for{revert}, $target->reworked_revert_dir);
         $self->emit('    ', $label_for{verify}, $target->reworked_verify_dir);
+        my $vars = $target->variables;
+        if (%{ $vars }) {
+            my $len = max map { length } values %{ $vars };
+            $len--;
+            $_ .= ': ' . ' ' x ($len - length $_) for keys %{ $vars };
+            $self->emit('    ', $label_for{variables});
+            $self->emit("  $_:" . (' ' x ($len - length $_)) . $vars->{$_})
+                for sort { lc $a cmp lc $b } keys %{ $vars };
+        } else {
+            $self->emit('    ', $label_for{no_variables});
+        }
     }
 
     return $self;
