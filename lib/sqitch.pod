@@ -248,8 +248,8 @@ script templates.
 
   sqitch --no-pager
 
-Do not pipe GitSqitch output into a pager. Currently limited to the C<log>
-and C<plan> commands.
+Do not pipe Sqitch output into a pager. Currently limited to the C<log> and
+C<plan> commands.
 
 =item C<--quiet>
 

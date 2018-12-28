@@ -492,12 +492,12 @@ Creates the list of directories on the file system. Directories that already
 exist are skipped. Messages are sent to C<info()> for each directory, and an
 error is thrown on the first to fail.
 
-=item C<config_params>
+=head3 C<config_params>
 
   my @params = $cmd->config_params($key);
 
-Returns a list of params to pass to the L<App::Sqitch::Config> C<set> method,
-built up from the C<properties>.
+Returns a list of parameters to pass to the L<App::Sqitch::Config> C<set>
+method, built up from the C<properties>.
 
 =head1 See Also
 
