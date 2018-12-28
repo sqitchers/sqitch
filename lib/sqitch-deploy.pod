@@ -89,8 +89,8 @@ Don't verify each change. This is the default.
 
 Set a variable name and value for use by the database engine client, if it
 supports variables. The format must be C<name=value>, e.g.,
-C<--set defuser='Homer Simpson'>. Overrides any values loaded from the
-C<deploy.variables> configuration.
+C<--set defuser='Homer Simpson'>. Overrides any values loaded from
+L</configuration Variables>.
 
 =item C<--log-only>
 
@@ -198,6 +198,23 @@ SQL*Plus's
 L<C<DEFINE> variables|https://docs.oracle.com/cd/B19306_01/server.102/b14357/ch12017.htm>,
 and Snowflake's
 L<SnowSQL variables|https://docs.snowflake.net/manuals/user-guide/snowsql-use.html#using-variables>.
+
+May be overridden by C<--set> or target and engine configuration. Variables
+are merged in the following priority order:
+
+=over
+
+=item C<--set>
+
+=item C<target.$target.variables>
+
+=item C<engine.$engine.variables>
+
+=item C<deploy.variables>
+
+=item C<core.variables>
+
+=back
 
 =back
 

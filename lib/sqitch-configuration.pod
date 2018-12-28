@@ -813,6 +813,10 @@ To set variables, specify them via the following:
   sqitch deploy --set $key=$val -s $key2=$val2
   sqitch revert --set $key=$val -s $key2=$val2
   sqitch verify --set $key=$val -s $key2=$val2
+  sqitch rework --set $key=$val -s $key2=$val2
+  sqitch rework --set-deploy $key=$val --set-revert $key=$val
+  sqitch checkout --set $key=$val -s $key2=$val2
+  sqitch checkout --set-deploy $key=$val --set-revert $key=$val
 
 =item C<target.$target.variables>
 
@@ -823,6 +827,12 @@ To set variables, specify them via the following:
 
   sqitch engine add $engine --set $key=$val -s $key2=$val2
   sqitch engine alter $engine --set $key=$val -s $key2=$val2
+
+=item C<$command.variables>
+
+  sqitch config deploy.variables.$key $val
+  sqitch config revert.variables.$key $val
+  sqitch config verify.variables.$key $val
 
 =item C<core.variables>
 

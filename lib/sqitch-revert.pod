@@ -60,8 +60,8 @@ L<sqitchchanges> for the various ways in which changes can be specified.
 
 Set a variable name and value for use by the database engine client, if it
 supports variables. The format must be C<name=value>, e.g.,
-C<--set defuser='Homer Simpson'>. Overrides any values loaded from the
-C<deploy.variables> or C<revert.variables> configurations.
+C<--set defuser='Homer Simpson'>. Overrides any values loaded from
+L</configuration Variables>.
 
 =item C<--log-only>
 
@@ -156,8 +156,8 @@ configuration values. Defaults to F<$top_dir/sqitch.plan>.
 
 A section defining database client variables. The C<deploy.variables>
 configuration is read from the C<deploy> command configuration, on the
-assumption that the values will generally be the same. If they're not, use
-C<revert.variables> to override C<deploy.variables>.
+assumption that the values will generally be the same on revert. If they're
+not, use C<revert.variables> to override C<deploy.variables>.
 
 These variables are useful if your database engine supports variables in
 scripts, such as PostgreSQL's
@@ -170,6 +170,25 @@ SQL*Plus's
 L<C<DEFINE> variables|https://docs.oracle.com/cd/B19306_01/server.102/b14357/ch12017.htm>,
 and Snowflake's
 L<SnowSQL variables|https://docs.snowflake.net/manuals/user-guide/snowsql-use.html#using-variables>.
+
+May be overridden by C<--set> or target and engine configuration. Variables
+are merged in the following priority order:
+
+=over
+
+=item C<--set>
+
+=item C<target.$target.variables>
+
+=item C<engine.$engine.variables>
+
+=item C<revert.variables>
+
+=item C<deploy.variables>
+
+=item C<core.variables>
+
+=back
 
 =item C<[revert.no_prompt]>
 

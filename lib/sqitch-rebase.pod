@@ -105,8 +105,8 @@ Don't verify each change. This is the default.
 
 Set a variable name and value for use by the database engine client, if it
 supports variables. The format must be C<name=value>, e.g.,
-C<--set defuser='Homer Simpson'>. Overrides any values loaded from the
-C<deploy.variables> or C<revert.variables> configurations.
+C<--set defuser='Homer Simpson'>. Overrides any values loaded from
+L</configuration Variables>.
 
 =item C<-e>
 
@@ -114,8 +114,8 @@ C<deploy.variables> or C<revert.variables> configurations.
 
 Set a variable name and value for use by the database engine client when
 deploying, if it supports variables. The format must be C<name=value>, e.g.,
-C<--set defuser='Homer Simpson'>. Overrides any values from C<--set> or loaded
-from the C<deploy.variables> configuration.
+C<--set defuser='Homer Simpson'>. Overrides any values from C<--set> or values
+loaded from L</configuration Variables>.
 
 =item C<-r>
 
@@ -123,8 +123,8 @@ from the C<deploy.variables> configuration.
 
 Sets a variable name to be used by the database engine client during when
 reverting, if it supports variables. The format must be C<name=value>, e.g.,
-C<--set defuser='Homer Simpson'>. Overrides any values from C<--set> or loaded
-from the C<deploy.variables> and C<revert.variables> configurations.
+C<--set defuser='Homer Simpson'>. Overrides any values from C<--set> or values
+loaded from L</configuration Variables>.
 
 =item C<--log-only>
 
@@ -217,22 +217,57 @@ configuration values. Defaults to F<$top_dir/sqitch.plan>.
 
 =item C<[revert.variables]>
 
-A section defining database client variables. The C<deploy.variables>
-configuration is read from the C<deploy> command configuration, on the
-assumption that the values will generally be the same. If they're not, use
-C<revert.variables> to override C<deploy.variables>.
+A section defining database client variables. These variables are useful if
+your database engine supports variables in scripts, such as PostgreSQL's
+L<C<psql>
+variables|https://www.postgresql.org/docs/current/static/app-psql.html#APP-PSQL-INTERPOLATION>,
+Vertica's L<C<vsql>
+variables|https://my.vertica.com/docs/7.1.x/HTML/index.htm#Authoring/ConnectingToHPVertica/vsql/Variables.htm>,
+MySQL's L<user
+variables|https://dev.mysql.com/doc/refman/5.6/en/user-variables.html>,
+SQL*Plus's L<C<DEFINE>
+variables|https://docs.oracle.com/cd/B19306_01/server.102/b14357/ch12017.htm>,
+and Snowflake's L<SnowSQL
+variables|https://docs.snowflake.net/manuals/user-guide/snowsql-use.html#using-variables>.
 
-These variables are Useful if your database engine supports variables in
-scripts, such as PostgreSQL's
-L<C<psql> variables|https://www.postgresql.org/docs/current/static/app-psql.html#APP-PSQL-INTERPOLATION>,
-Vertica's
-L<C<vsql> variables|https://my.vertica.com/docs/7.1.x/HTML/index.htm#Authoring/ConnectingToHPVertica/vsql/Variables.htm>,
-MySQL's
-L<user variables|https://dev.mysql.com/doc/refman/5.6/en/user-variables.html>,
-SQL*Plus's
-L<C<DEFINE> variables|https://docs.oracle.com/cd/B19306_01/server.102/b14357/ch12017.htm>,
-and Snowflake's
-L<SnowSQL variables|https://docs.snowflake.net/manuals/user-guide/snowsql-use.html#using-variables>.
+May be overridden by C<--set>, C<--set-deploy>, C<--set-revert>, or target and
+engine configuration. Variables are merged in the following priority order:
+
+=over
+
+=item C<--set-revert>
+
+Used only while reverting changes.
+
+=item C<--set-deploy>
+
+Used only while reverting changes.
+
+=item C<--set>
+
+Used while reverting and deploying changes.
+
+=item C<target.$target.variables>
+
+Used while reverting and deploying changes.
+
+=item C<engine.$engine.variables>
+
+Used while reverting and deploying changes.
+
+=item C<revert.variables>
+
+Used only while reverting changes.
+
+=item C<deploy.variables>
+
+Used while reverting and deploying changes.
+
+=item C<core.variables>
+
+Used while reverting and deploying changes.
+
+=back
 
 =item C<rebase.verify>
 

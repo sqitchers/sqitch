@@ -60,6 +60,11 @@ Revision history for Perl extension App::Sqitch
      - Refactored config handling in tests to use a custom subclass of
        App::Sqitch::Config instead of various mocks, temporary files, and the
        like.
+     - The verify command now reads `deploy.variables`, and individual
+       `verify.variables override `deploy.variables`, on the assumption that
+       the verify variables in general ought to be the same as the deploy
+       variables. This makes `verify` variable configuration consistent with
+       `revert` variable configuration.
      [Options Unification]
      - Added the `--chdir`/`--cd`/`-C` option to specify a directory to change
        to before executing any Sqitch commands. Thanks to Thomas Sibley for

@@ -48,10 +48,10 @@ has variables => (
     isa      => HashRef,
     lazy     => 1,
     default  => sub {
-        my $self = shift;
+        my $cfg = shift->sqitch->config;
         return {
-            %{ $self->sqitch->config->get_section( section => 'deploy.variables' ) },
-            %{ $self->sqitch->config->get_section( section => 'revert.variables' ) },
+            %{ $cfg->get_section( section => 'deploy.variables' ) },
+            %{ $cfg->get_section( section => 'revert.variables' ) },
         };
     },
 );

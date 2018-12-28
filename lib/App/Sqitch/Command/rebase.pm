@@ -99,7 +99,7 @@ sub execute {
         die $_ if ! eval { $_->isa('App::Sqitch::X') }
             || $_->exitval > 1
             || $_->ident eq 'revert:confirm';
-        # Emit notice of non-fatal errors (e.g., nothign to revert).
+        # Emit notice of non-fatal errors (e.g., nothing to revert).
         $self->info($_->message)
     };
 

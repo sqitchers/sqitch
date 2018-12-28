@@ -37,7 +37,11 @@ has variables => (
     isa      => HashRef,
     lazy     => 1,
     default  => sub {
-        shift->sqitch->config->get_section( section => 'verify.variables' );
+        my $cfg = shift->sqitch->config;
+        return {
+            %{ $cfg->get_section( section => 'deploy.variables' ) },
+            %{ $cfg->get_section( section => 'verify.variables' ) },
+        };
     },
 );
 
@@ -76,7 +80,8 @@ sub configure {
     if ( my $vars = $opt->{set} ) {
         # Merge with config.
         $params{variables} = {
-            %{ $config->get_section( section => 'verify.variables' ) || {} },
+            %{ $config->get_section( section => 'deploy.variables' ) },
+            %{ $config->get_section( section => 'verify.variables' ) },
             %{ $vars },
         };
     }

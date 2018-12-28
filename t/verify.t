@@ -103,6 +103,20 @@ CONFIG: {
     isa_ok my $verify = $CLASS->new(sqitch => $sqitch), $CLASS;
     is_deeply $verify->variables, { foo => 'bar', hi => 21 },
         'Should pick up variables from configuration';
+
+    # Try merging with verify.variables, too.
+    $config->update('verify.variables' => { hi => 42 });
+    is_deeply $CLASS->configure($config, {
+        set  => { yo => 'stellar' },
+    }), {
+         _params  => [],
+         _cx      => [],
+        variables => { foo => 'bar', yo => 'stellar', hi => 42 },
+    }, 'Should have merged --set, verify, verify';
+
+    isa_ok $verify = $CLASS->new(sqitch => $sqitch), $CLASS;
+    is_deeply $verify->variables, { foo => 'bar', hi => 42 },
+        'Should pick up variables from configuration';
 }
 
 ##############################################################################
