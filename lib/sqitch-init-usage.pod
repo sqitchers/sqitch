@@ -18,3 +18,4 @@ sqitch-init-usage - Sqitch init usage statement
     --client     <path>         path to engine command-line client
     --extension  <ext>          change script file name extension
     --dir        <name>=<path>  path to named directory
+    -s --set     <key=value>    set a database client variable

@@ -180,6 +180,7 @@ show you:
         Deploy:      pg/deploy
         Revert:      pg/revert
         Verify:      pg/verify
+      No Variables
 
 The C<show> action nicely presents the result of the fully-evaluated
 configuration, even though only the top directory and client have been set.
@@ -223,6 +224,7 @@ now added to the configuration file:
         Deploy:      sqlite/deploy
         Revert:      sqlite/revert
         Verify:      sqlite/verify
+      No Variables
 
 Good, everything's in the right place. Start adding changes to the SQLite plan
 by passing the engine name to the C<add> command:
@@ -275,6 +277,7 @@ PostgreSQL directory:
         Deploy:      pg/deploy
         Revert:      pg/revert
         Verify:      pg/verify
+      No Variables
 
 Good, it's now using F<./sqitch.plan>. Now let's start the SQLite project.
 Since we're going to use the same plan, we'll need to port all the scripts
@@ -300,6 +303,7 @@ use the shared plan file:
         Deploy:      sqlite/deploy
         Revert:      sqlite/revert
         Verify:      sqlite/verify
+      No Variables
 
 Looks good! Now port all the scripts in the F<sqlite> directory from
 PostgreSQL to SQLite and you're ready to go.
@@ -399,6 +403,7 @@ the URI. Thus the configuration all comes together:
         Deploy:      pg/deploy
         Revert:      pg/revert
         Verify:      pg/verify
+      No Variables
   * prod-standby
       URI:           db:pg://sqitch@db2.example.com/widgets
       Registry:      sqitch
@@ -415,6 +420,7 @@ the URI. Thus the configuration all comes together:
         Deploy:      pg/deploy
         Revert:      pg/revert
         Verify:      pg/verify
+      No Variables
 
 Note the use of the shared plan and the F<pg> directory for scripts. We can
 add a target for our SQLite database, too. Maybe it's used for development?
@@ -437,6 +443,7 @@ add a target for our SQLite database, too. Maybe it's used for development?
         Deploy:      sqlite/deploy
         Revert:      sqlite/revert
         Verify:      sqlite/verify
+      No Variables
 
 Now deploying any of these databases is as simple as specifying the target
 name when executing the L<C<deploy>|sqitch-deploy> command (assuming the
@@ -487,6 +494,7 @@ Then add targets for the specific servers and plans:
         Deploy:      pg/deploy
         Revert:      pg/revert
         Verify:      pg/verify
+      No Variables
 
 Now, any management of the C<prod-billing> target will use the F<target.plan>
 plan file. Want to add changes to that plan? specify the plan file. Here's
@@ -780,6 +788,47 @@ following:
 
   sqitch init $project --extension $extension
   sqitch config core.extension $extension
+
+=back
+
+=item C<variables>
+
+Database client variables. Useful if your database engine
+supports variables in scripts, such as PostgreSQL's
+L<C<psql> variables|https://www.postgresql.org/docs/current/static/app-psql.html#APP-PSQL-INTERPOLATION>,
+Vertica's
+L<C<vsql> variables|https://my.vertica.com/docs/7.1.x/HTML/index.htm#Authoring/ConnectingToHPVertica/vsql/Variables.htm>
+MySQL's
+L<user variables|https://dev.mysql.com/doc/refman/5.6/en/user-variables.html>,
+SQL*Plus's
+L<C<DEFINE> variables|https://docs.oracle.com/cd/B19306_01/server.102/b14357/ch12017.htm>,
+and Snowflake's
+L<SnowSQL variables|https://docs.snowflake.net/manuals/user-guide/snowsql-use.html#using-variables>.
+To set variables, specify them via the following:
+
+=over
+
+=item Command variable option
+
+  sqitch deploy --set $key=$val -s $key2=$val2
+  sqitch revert --set $key=$val -s $key2=$val2
+  sqitch verify --set $key=$val -s $key2=$val2
+
+=item C<target.$target.variables>
+
+  sqitch target add $target --set $key=$val -s $key2=$val2
+  sqitch target alter $target --set $key=$val -s $key2=$val2
+
+=item C<engine.$engine.variables>
+
+  sqitch engine add $engine --set $key=$val -s $key2=$val2
+  sqitch engine alter $engine --set $key=$val -s $key2=$val2
+
+=item C<core.variables>
+
+  sqitch init $project --set $key=$val -s $key2=$val2
+  sqitch config core.variables.$key $val
+  sqitch config core.variables.$key2 $val2
 
 =back
 
