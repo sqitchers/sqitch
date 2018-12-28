@@ -104,24 +104,32 @@ ok my $conf = $CLASS->configure({}, {
         reworked_revert => 'rrev',
         reworked_verify => 'rver',
     },
+    set => {
+        foo => 'bar',
+        prefix => 'x_',
+    },
 }), 'Get full config';
 
 isa_ok $conf->{uri}, 'URI', 'uri propertiy';
 is_deeply $conf->{properties}, {
-        engine              => 'pg',
-        top_dir             => 'top',
-        plan_file           => 'my.plan',
-        registry            => 'bats',
-        client              => 'cli',
-        extension           => 'ddl',
-        target              => 'db:pg:foo',
-        deploy_dir          => 'dep',
-        revert_dir          => 'rev',
-        verify_dir          => 'ver',
-        reworked_dir        => 'wrk',
-        reworked_deploy_dir => 'rdep',
-        reworked_revert_dir => 'rrev',
-        reworked_verify_dir => 'rver',
+    engine              => 'pg',
+    top_dir             => 'top',
+    plan_file           => 'my.plan',
+    registry            => 'bats',
+    client              => 'cli',
+    extension           => 'ddl',
+    target              => 'db:pg:foo',
+    deploy_dir          => 'dep',
+    revert_dir          => 'rev',
+    verify_dir          => 'ver',
+    reworked_dir        => 'wrk',
+    reworked_deploy_dir => 'rdep',
+    reworked_revert_dir => 'rrev',
+    reworked_verify_dir => 'rver',
+    variables => {
+        foo    => 'bar',
+        prefix => 'x_',
+    },
 }, 'Should have properties';
 isa_ok $conf->{properties}{$_}, 'Path::Class::File', "$_ file attribute" for qw(
     plan_file
@@ -348,6 +356,7 @@ ok $init = $CLASS->new(
         reworked_deploy_dir => dir('rdep'),
         reworked_revert_dir => dir('rrev'),
         reworked_verify_dir => dir('rtst'),
+        variables           => { ay => 'first', Bee => 'second' },
     }
 ), 'Create new init with sqitch non-default attributes';
 
@@ -367,6 +376,8 @@ is_deeply $config->data_from($conf_file), {
     'core.reworked_verify_dir' => 'rtst',
     'core.extension'           => 'ddl',
     'core.engine'              => 'sqlite',
+    'core.variables.ay'        => 'first',
+    'core.variables.bee'       => 'second',
     'engine.sqlite.registry'   => 'bats',
     'engine.sqlite.client'     => 'cli',
     'engine.sqlite.target'     => 'db:sqlite:foo',
