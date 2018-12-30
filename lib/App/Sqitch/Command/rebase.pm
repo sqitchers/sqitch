@@ -91,7 +91,7 @@ sub execute {
     $engine->log_only( $self->log_only );
 
     # Revert.
-    if (my %v = %{ $self->revert_variables }) { $engine->set_variables(%v) }
+    $engine->set_variables( $self->_collect_revert_vars($target) );
     try {
         $engine->revert( $onto );
     } catch {
@@ -104,7 +104,7 @@ sub execute {
     };
 
     # Deploy.
-    if (my %v = %{ $self->deploy_variables }) { $engine->set_variables(%v) }
+    $engine->set_variables( $self->_collect_deploy_vars($target) );
     $engine->deploy( $upto, $self->mode );
     return $self;
 }

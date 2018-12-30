@@ -241,7 +241,7 @@ Used only while reverting changes.
 
 =item C<--set-deploy>
 
-Used only while reverting changes.
+Used only while deploying changes.
 
 =item C<--set>
 

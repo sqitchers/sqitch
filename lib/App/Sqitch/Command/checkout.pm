@@ -98,7 +98,7 @@ sub execute {
     ));
 
     # Revert to the last common change.
-    if (my %v = %{ $self->revert_variables }) { $engine->set_variables(%v) }
+    $engine->set_variables( $self->_collect_revert_vars($target) );
     $engine->plan( $from_plan );
     try {
         $engine->revert( $last_common_change->id );
@@ -116,7 +116,7 @@ sub execute {
     $sqitch->run($git, 'checkout', $branch);
 
     # Deploy!
-    if (my %v = %{ $self->deploy_variables}) { $engine->set_variables(%v) }
+    $engine->set_variables( $self->_collect_deploy_vars($target) );
     $engine->plan( $to_plan );
     $engine->deploy( undef, $self->mode);
     return $self;
