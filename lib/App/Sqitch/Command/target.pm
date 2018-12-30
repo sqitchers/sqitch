@@ -217,19 +217,15 @@ sub _rename {
             target => $old,
         );
     };
-    VARS: {
-        # No idea why this needs to be in its own block but the try{} below
-        # never executes without it.
-        try {
-            $config->rename_section(
-                from     => "target.$old.variables",
-                ($new ? (to => "target.$new.variables") : ()),
-                filename => $config->local_file,
-            );
-        } catch {
-            die $_ unless /No such section/;
-        }
-    }
+    try {
+        $config->rename_section(
+            from     => "target.$old.variables",
+            ($new ? (to => "target.$new.variables") : ()),
+            filename => $config->local_file,
+        );
+    } catch {
+        die $_ unless /No such section/;
+    };
     return $self;
 }
 
