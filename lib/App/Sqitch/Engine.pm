@@ -130,7 +130,7 @@ sub load {
 
     # Load the engine class.
     my $ekey = $target->engine_key or hurl engine => __(
-        'No engine specified; use --engine or set core.engine'
+        'No engine specified; specify via target or core.engine'
     );
 
     my $pkg = __PACKAGE__ . '::' . $target->engine_key;
@@ -142,7 +142,7 @@ sub driver { shift->key }
 
 sub key {
     my $class = ref $_[0] || shift;
-    hurl engine => __ 'No engine specified; use --engine or set core.engine'
+    hurl engine => __ 'No engine specified; specify via target or core.engine'
         if $class eq __PACKAGE__;
     my $pkg = quotemeta __PACKAGE__;
     $class =~ s/^$pkg\:://;

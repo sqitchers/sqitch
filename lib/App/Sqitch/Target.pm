@@ -257,7 +257,7 @@ sub BUILDARGS {
                 $ekey = $config->get(
                     key => 'core.engine'
                 ) or hurl target => __(
-                    'No engine specified; use --engine or set core.engine'
+                    'No engine specified; specify via target or core.engine'
                 );
                 $ekey =~ s/\s+$//;
             }

@@ -186,7 +186,7 @@ ok $engine = $CLASS->new({ sqitch => $sqitch, target => $target }),
 throws_ok { $engine->name } 'App::Sqitch::X',
     'Should get error from base engine name';
 is $@->ident, 'engine', 'Name error ident should be "engine"';
-is $@->message, __('No engine specified; use --engine or set core.engine'),
+is $@->message, __('No engine specified; specify via target or core.engine'),
     'Name error message should be correct';
 
 ok $engine = App::Sqitch::Engine::whu->new({sqitch => $sqitch, target => $target}),

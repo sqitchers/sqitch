@@ -487,6 +487,7 @@ my $verify_file = file qw(test-add verify widgets_table.sql);
 my $plan = $add->default_target->plan;
 is $plan->get('widgets_table'), undef, 'Should not have "widgets_table" in plan';
 dir_not_exists_ok +File::Spec->catdir('test-add', $_) for qw(deploy revert verify);
+
 ok $add->execute('widgets_table'), 'Add change "widgets_table"';
 isa_ok my $change = $plan->get('widgets_table'), 'App::Sqitch::Plan::Change',
     'Added change';

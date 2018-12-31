@@ -210,7 +210,15 @@ sub parse_args {
     my $sqitch = $self->sqitch;
     my $config = $sqitch->config;
     require App::Sqitch::Target;
-    my $target = App::Sqitch::Target->new( sqitch => $sqitch, name => $p{target} );
+    my $deftarget_err;
+    my $target = try {
+        App::Sqitch::Target->new( sqitch => $sqitch, name => $p{target} )
+    } catch {
+        # Die if a target was specified; otherwise hang onto the error
+        # in case we fall back on this target later.
+        die $_ if $p{target};
+        $deftarget_err = $_;
+    }
     my (%seen, %target_for);
 
     my %rec = map { $_ => [] } qw(targets unknown);
@@ -253,10 +261,6 @@ sub parse_args {
         }
     }
 
-    # Make sure we have the default target if none was specified.
-    push @{ $rec{targets} } => $target
-        if $target && !$p{no_default} && !@{ $rec{targets} };
-
     # Replace missing names with unknown values.
     my @names = map { $_ || shift @{ $rec{unknown} } } @{ $p{names} || [] };
 
@@ -283,7 +287,10 @@ sub parse_args {
         my $key = $self->command . '.all';
         @targets = $self->sqitch->config->get(key => $key, as => 'bool')
             ? App::Sqitch::Target->all_targets( sqitch => $sqitch )
-            : ($self->default_target);
+            : do {
+                die $deftarget_err if $deftarget_err;
+                ($self->default_target)
+            }
     }
 
     return (@names, \@targets, $rec{changes});
@@ -525,11 +532,6 @@ instead be included in either the C<targets> array -- if it's recognized as a
 target -- or used to set names to return. Any remaining are considered
 unknown arguments and will result in an exception.
 
-=item C<no_default>
-
-If true, no default target will be returned, even if no other targets are
-found. See below for details.
-
 =back
 
 If a target parameter is passed, it will always be instantiated and returned
@@ -537,12 +539,12 @@ as the first item in the "target" array, and arguments recognized as changes
 in the plan associated with that target will be returned as changes.
 
 If no target is passed or appears in the arguments, a default target will be
-instantiated based on the command-line options and configuration -- unless the
-C<no_default> parameter is true. Unlike the target returned by
-C<default_target>, this target B<must> have an associated engine specified by
-the C<--engine> option or configuration. This is on the assumption that it
-will be used by commands that require an engine to do their work. Of course,
-any changes must be recognized from the plan associated with this target.
+instantiated based on the command-line options and configuration. Unlike the
+target returned by C<default_target>, this target B<must> have an associated
+engine specified by the C<--engine> option or configuration. This is on the
+assumption that it will be used by commands that require an engine to do their
+work. Of course, any changes must be recognized from the plan associated with
+this target.
 
 Changes are only recognized if they're found in the plan of the target that
 precedes them. If no target precedes them, the target specified by the

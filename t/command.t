@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 166;
+use Test::More tests => 167;
 #use Test::More 'no_plan';
 use Test::NoWarnings;
 use List::Util qw(first);
@@ -118,6 +118,7 @@ ok my $cmd = $CLASS->load({
 }), 'Load a "whu" command';
 isa_ok $cmd, 'App::Sqitch::Command::whu';
 is $cmd->sqitch, $sqitch, 'The sqitch attribute should be set';
+is $cmd->command, 'whu', 'The command method should return "whu"';
 
 $cmock->mock(get_section => {foo => 'hi'});
 
@@ -319,7 +320,11 @@ ARGS: {
         top_dir   => dir(qw(t sql))->stringify
     }), 'Load Sqitch with config and plan';
 
-    ok my $cmd = $CLASS->new({ sqitch => $sqitch }), 'Load cmd with config and plan';
+    ok my $cmd = $CLASS->load({
+        sqitch => $sqitch,
+        config => $config,
+        command => 'whu',
+    }), 'Load cmd with config and plan';
     my $parsem = sub {
         my @ret = $cmd->parse_args(@_);
         # Targets are always second to last.
@@ -340,7 +345,7 @@ ARGS: {
         'Parsing no args should return default target';
     throws_ok { $parsem->( args => ['foo'] ) } 'App::Sqitch::X',
         'Single unknown arg raise an error';
-    is $@->ident, '', 'Unknown error ident should be ""';
+    is $@->ident, 'whu', 'Unknown error ident should be "whu"';
     is $@->message, $msg->('foo'), 'Unknown error message should be correct';
     is_deeply $parsem->( args => ['hey'] ), [['devdb'], ['hey']],
         'Single change should be recognized as change';
@@ -368,12 +373,12 @@ ARGS: {
     throws_ok {
         $parsem->(args => ['yuck', 'hey', 'devdb'], names => ['hi']);
     } 'App::Sqitch::X', 'Should get an error with name and unknown';
-    is $@->ident, '', 'Unknown error ident should be ""';
+    is $@->ident, 'whu', 'Unknown error ident should be "whu"';
     is $@->message, $msg->('yuck'), 'Unknown error message should be correct';
     throws_ok {
         $parsem->(args => ['yuck', 'hey', 'devdb', 'foo'], names => ['hi']);
     } 'App::Sqitch::X', 'Should get an error with name and two unknowns';
-    is $@->ident, '', 'Two unknowns error ident should be ""';
+    is $@->ident, 'whu', 'Two unknowns error ident should be "whu"';
     is $@->message, $msg->('yuck', 'foo'),
         'Two unknowns error message should be correct';
 
@@ -382,7 +387,11 @@ ARGS: {
         engine  => 'sqlite',
         top_dir => dir(qw(t sql))->stringify
     }), 'Load Sqitch with config';
-    ok $cmd = $CLASS->new({ sqitch => $sqitch }), 'Load cmd with config';
+    ok $cmd = $CLASS->load({
+        sqitch => $sqitch,
+        command => 'whu',
+        config => $config,
+    }), 'Load cmd with config';
     is_deeply $parsem->(args => ['mydb', 'add_user']),
         [['mydb'], ['add_user']],
         'Change following target should be recognized from target plan';
@@ -396,7 +405,7 @@ ARGS: {
     throws_ok {
         $parsem->(target => 'devdb', args => ['hey'])
     } 'App::Sqitch::X', 'Change unknown to passed target should error';
-    is $@->ident, '', 'Change unknown error ident should be ""';
+    is $@->ident, 'whu', 'Change unknown error ident should be "whu"';
     is $@->message, $msg->('hey'),
         'Change unknown error message should be correct';
 
@@ -406,7 +415,7 @@ ARGS: {
     throws_ok {
         $parsem->(args => ['widgets', 'mydb', 'foo', '@beta']);
     } 'App::Sqitch::X', 'Change seen after target should error if not in that target';
-    is $@->ident, '', 'Change after target error ident should be ""';
+    is $@->ident, 'whu', 'Change after target error ident should be "whu"';
     is $@->message, $msg->('foo', '@beta'),
         'Change after target error message should be correct';
 

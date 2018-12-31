@@ -201,7 +201,7 @@ CONSTRUCTOR: {
         'Should have error for no engine or target';
     is $@->ident, 'target', 'Should have target ident';
     is $@->message, __(
-        'No engine specified; use --engine or set core.engine'
+        'No engine specified; specify via target or core.engine',
     ), 'Should have message about no specified engine';
 
     # Try with engine-less URI.
@@ -220,7 +220,7 @@ CONSTRUCTOR: {
         'Should get exception for no engine';
     is $@->ident, 'engine', 'Should have engine ident';
     is $@->message, __(
-        'No engine specified; use --engine or set core.engine'
+        'No engine specified; specify via target or core.engine',
     ), 'Should have message about no engine';
 
     is $target->top_dir, dir, 'Should have default top_dir';
