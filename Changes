@@ -44,6 +44,9 @@ Revision history for Perl extension App::Sqitch
      - Added a status messsage to tell the user when the registry is being
        updated, rather than just show each individual update. Thanks to Ben
        Hutton for the suggestion (#276).
+     - Added support for a `$SQITCH_TARGET` environment variable, which takes
+       precedence over all other target specifications except for command-line
+       options and arguments. Thanks to @mvgrimes for the suggestion (#203).
 
 0.9998 2018-10-03T20:53:58Z
      - Fixed an issue where Sqitch would sometimes truncate the registry

@@ -137,6 +137,17 @@ is $target->dsn, $uri->dbi_dsn, 'DSN should be from URI';
 is $target->username, $uri->user, 'Username should be from URI';
 is $target->password, $uri->password, 'Password should be from URI';
 
+# Set the URI via SQITCH_TARGET.
+ENV: {
+    local $ENV{SQITCH_TARGET} = 'db:pg:';
+    isa_ok my $target = $CLASS->new(sqitch => $sqitch), $CLASS,
+        'Target from environment';
+    is $target->name, 'db:pg:', 'Name should be set';
+    is $target->uri, 'db:pg:', 'URI should be set';
+    is $target->engine_key, 'pg', 'Engine key should be "pg"';
+    isa_ok $target->engine, 'App::Sqitch::Engine::pg', 'Engine';
+}
+
 # Set up a config.
 CONSTRUCTOR: {
     my $mock = Test::MockModule->new('App::Sqitch::Config');
@@ -326,6 +337,19 @@ CONSTRUCTOR: {
         'Should have requested engine target and target URI from config';
     is_deeply \@sect_params, [[section => 'core.sqlite']],
         'Should have requested sqlite section';
+
+    # Let the name come from the environment.
+    ENV: {
+        @get_params = @sect_params = ();
+        @get_ret = ('db:sqlite:bar');
+        local $ENV{SQITCH_TARGET} = 'bar';
+        isa_ok $target = $CLASS->new(sqitch => $sqitch), $CLASS, 'Environment-named target';
+        is $target->name, 'bar', 'Name should be "bar"';
+        is $target->uri, URI::db->new('db:sqlite:bar'), 'URI should be "db:sqlite:bar"';
+        is_deeply \@get_params, [[key => 'target.bar.uri']],
+            'Should have requested target URI from config';
+        is_deeply \@sect_params, [], 'Should have requested no sections';
+    }
 
     # Make sure db options and deprecated config variables work.
     local $App::Sqitch::Target::WARNED = 0;

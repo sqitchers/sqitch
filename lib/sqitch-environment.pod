@@ -30,17 +30,22 @@ Path to the system's configuration file. Overrides the default, which is a
 file named C<sqitch.conf> in the directory identified by C<sqitch --etc>. See
 L<sqitch-config> for details.
 
+=item C<SQITCH_TARGET>
+
+The name or URI of the database target to connect to. Overrides values stored
+in the configuration. See L<sqitch-authentication> for details.
+
 =item C<SQITCH_USERNAME>
 
 Username to use when connecting to a database, for those database engines that
 support authentication. Overrides values stored in a target URI or the
-configuration file. See L<sqitch-authentication> for details.
+configuration. See L<sqitch-authentication> for details.
 
 =item C<SQITCH_PASSWORD>
 
 Password to use when connecting to a database, for those database engines that
 support authentication. Overrides values stored in a target URI or the
-configuration file. See L<sqitch-authentication> for details.
+configuration. See L<sqitch-authentication> for details.
 
 =item C<SQITCH_FULLNAME>
 

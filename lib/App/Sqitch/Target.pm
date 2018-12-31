@@ -217,7 +217,7 @@ sub BUILDARGS {
 
     # Fetch params. URI can come from passed name.
     my $sqitch = $p->{sqitch} or return $p;
-    my $name   = $p->{name} || '';
+    my $name   = $p->{name} || $ENV{SQITCH_TARGET} || '';
     my $uri    = $p->{uri};
 
     # If we have a URI up-front, it's all good.
@@ -276,6 +276,7 @@ sub BUILDARGS {
         $name  = $p->{name} = undef;
         $merge ||= 1; # At least merge options.
     } else {
+        $p->{name} = $name;
         # Well then, there had better be a config with a URI.
         $uri = $config->get( key => "target.$name.uri" ) or do {
             # Die on no section or no URI.

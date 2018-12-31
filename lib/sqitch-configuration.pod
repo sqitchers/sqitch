@@ -600,6 +600,11 @@ its value will be determined by examining each of the following in turn:
   sqitch deploy $target
   sqitch revert --target $target
 
+=item C<$SQITCH_TARGET> environment variable
+
+  env SQITCH_TARGET=$target sqitch deploy
+  env SQITCH_TARGET=$target sqitch revert
+
 =item C<engine.$engine.target>
 
   sqitch init $project --engine $engine --target $target
@@ -622,7 +627,12 @@ only be specified as a target argument or via a named target:
 =item Command target argument or option
 
   sqitch deploy $uri
-  sqitch revert --target uri
+  sqitch revert --target $uri
+
+=item C<$SQITCH_TARGET> environment variable
+
+  env SQITCH_TARGET=$uri sqitch deploy
+  env SQITCH_TARGET=$uri sqitch revert
 
 =item C<target.$target.uri>
 
