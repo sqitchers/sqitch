@@ -33,7 +33,7 @@ L<sqitch-config> for details.
 =item C<SQITCH_TARGET>
 
 The name or URI of the database target to connect to. Overrides values stored
-in the configuration. See L<sqitch-authentication> for details.
+in the configuration, but not command-line options or arguments.
 
 =item C<SQITCH_USERNAME>
 
