@@ -288,8 +288,9 @@ sub parse_args {
         @targets = $self->sqitch->config->get(key => $key, as => 'bool')
             ? App::Sqitch::Target->all_targets( sqitch => $sqitch )
             : do {
+                # Fall back on the default unless it's invalid.
                 die $deftarget_err if $deftarget_err;
-                ($self->default_target)
+                ($target)
             }
     }
 
@@ -485,9 +486,9 @@ commands that don't need to load the engine.
   );
 
 Examines each argument to determine whether it's a known change spec or
-identifies a target. Unrecognized arguments will replace false values in the
-C<names> array reference. Any remaining unknown arguments will trigger an
-error.
+identifies a target or engine. Unrecognized arguments will replace false
+values in the C<names> array reference. Any remaining unknown arguments will
+trigger an error.
 
 Returns a list consisting all the desired names, followed by an array
 reference of target objects and an array reference of change specs.

@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 81;
+use Test::More tests => 83;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -87,12 +87,23 @@ $tag_mocker->mock(request_note => sub {
     $self->note;
 });
 
+my $reload = sub {
+    my $plan = shift;
+    $plan->_plan( $plan->load);
+    delete $plan->{$_} for qw(_changes _lines project uri);
+    1;
+};
+
 my $plan = $tag->default_target->plan;
 ok $plan->add( name => 'foo' ), 'Add change "foo"';
+$plan->write_to( $plan->file );
 
+# Tag it.
+isa_ok $tag = App::Sqitch::Command::tag->new({ sqitch => $sqitch }),
+    $CLASS, 'new tag command';
 ok $tag->execute('alpha'), 'Tag @alpha';
+ok $reload->($plan), 'Reload plan';
 is $plan->get('@alpha')->name, 'foo', 'Should have tagged "foo"';
-ok $plan->load, 'Reload plan';
 is $plan->get('@alpha')->name, 'foo', 'New tag should have been written';
 is [$plan->tags]->[-1]->note, '', 'New tag should have empty note';
 is_deeply \%request_params, { for => __ 'tag' }, 'Should have requested a note';
@@ -115,6 +126,7 @@ is_deeply \%request_params, { for => __ 'tag' }, 'Should have requested a note';
 
 # Add a tag.
 ok $plan->tag( name => '@beta' ), 'Add tag @beta';
+$plan->write_to( $plan->file );
 ok $tag->execute, 'Execute with no arg again';
 is_deeply +MockOutput->get_info, [
     ['@alpha'],
@@ -133,7 +145,7 @@ $plan = $tag->default_target->plan;
 ok $tag->execute, 'Tag @gamma';
 is $plan->get('@gamma')->name, 'foo', 'Gamma tag should be on change "foo"';
 is [$plan->tags]->[-1]->note, "hello\n\nthere", 'Gamma tag should have note';
-ok $plan->load, 'Reload plan';
+ok $reload->($plan), 'Reload plan';
 is $plan->get('@gamma')->name, 'foo', 'Gamma tag should have been written';
 is [$plan->tags]->[-1]->note, "hello\n\nthere", 'Written tag should have note';
 is_deeply \%request_params, { for => __ 'tag' }, 'Should have requested a note';
@@ -156,9 +168,11 @@ $plan = $tag->default_target->plan;
 
 ok $plan->add( name => 'bar' ), 'Add change "bar"';
 ok $plan->add( name => 'baz' ), 'Add change "baz"';
+$plan->write_to( $plan->file );
 ok $tag->execute('delta', 'bar'), 'Tag change "bar" with @delta';
+ok $reload->($plan), 'Reload plan';
 is $plan->get('@delta')->name, 'bar', 'Should have tagged "bar"';
-ok $plan->load, 'Reload plan';
+ok $reload->($plan), 'Reload plan';
 is $plan->get('@delta')->name, 'bar', 'New tag should have been written';
 is [$plan->tags]->[-1]->note, 'here we go', 'New tag should have the proper note';
 is_deeply \%request_params, { for => __ 'tag' }, 'Should have requested a note';
@@ -182,7 +196,7 @@ $plan = $tag->default_target->plan;
 
 ok $tag->execute('zeta'), 'Tag change "bar" with @zeta';
 is $plan->get('@zeta')->name, 'bar', 'Should have tagged "bar" with @zeta';
-ok $plan->load, 'Reload plan';
+ok $reload->($plan), 'Reload plan';
 is $plan->get('@zeta')->name, 'bar', 'Tag @zeta should have been written';
 is [$plan->tags]->[-1]->note, 'here we go', 'Tag @zeta should have the proper note';
 is_deeply \%request_params, { for => __ 'tag' }, 'Should have requested a note';

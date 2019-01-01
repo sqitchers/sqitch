@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 232;
+use Test::More tests => 231;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Target;
@@ -480,6 +480,13 @@ $change_mocker->mock(request_note => sub {
     return $self->note;
 });
 
+# Set up a function to force the reload of the plan.
+my $reload = sub {
+    my $plan = shift;
+    $plan->_plan( $plan->load);
+    delete $plan->{$_} for qw(_changes _lines project uri);
+};
+
 my $deploy_file = file qw(test-add deploy widgets_table.sql);
 my $revert_file = file qw(test-add revert widgets_table.sql);
 my $verify_file = file qw(test-add verify widgets_table.sql);
@@ -487,8 +494,12 @@ my $verify_file = file qw(test-add verify widgets_table.sql);
 my $plan = $add->default_target->plan;
 is $plan->get('widgets_table'), undef, 'Should not have "widgets_table" in plan';
 dir_not_exists_ok +File::Spec->catdir('test-add', $_) for qw(deploy revert verify);
-
 ok $add->execute('widgets_table'), 'Add change "widgets_table"';
+
+# Reload the plan.
+$reload->($plan);
+
+# Make sure the change was written to the plan file.
 isa_ok my $change = $plan->get('widgets_table'), 'App::Sqitch::Plan::Change',
     'Added change';
 is $change->name, 'widgets_table', 'Change name should be set';
@@ -515,11 +526,6 @@ is_deeply +MockOutput->get_info, [
         file   => $target->plan_file,
     ],
 ], 'Info should have reported file creation';
-
-# Relod the plan file to make sure change is written to it.
-$plan->load;
-isa_ok $change = $plan->get('widgets_table'), 'App::Sqitch::Plan::Change',
-    'Added change in reloaded plan';
 
 # Make sure conflicts are avoided and conflicts and requires are respected.
 ok $add = $CLASS->new(
@@ -625,6 +631,11 @@ MOCKSHELL: {
     my $plan = $add->default_target->plan;
     is $plan->get('open_editor'), undef, 'Should not have "open_editor" in plan';
     ok $add->execute('open_editor'), 'Add change "open_editor"';
+
+    # Instantiate fresh target and plan to force the file to be re-read.
+    $target = App::Sqitch::Target->new(sqitch => $sqitch);
+    $plan = App::Sqitch::Plan->new( sqitch => $sqitch, target => $target );
+
     isa_ok my $change = $plan->get('open_editor'), 'App::Sqitch::Plan::Change',
         'Added change';
     is $change->name, 'open_editor', 'Change name should be set';
@@ -697,7 +708,7 @@ EXTRAS: {
     ], 'Info should have reported file creation';
 
     # Relod the plan file to make sure change is written to it.
-    $plan->load;
+    $reload->($plan);
     isa_ok $change = $plan->get('custom_script'), 'App::Sqitch::Plan::Change',
         'Added change in reloaded plan';
 }
