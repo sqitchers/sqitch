@@ -56,8 +56,10 @@ Revision history for Perl extension App::Sqitch
        Command. It also greatly reduces the need for the core `--engine`
        option, which was previously required to work around this issue.
      - Now that deriving the engine from arguments is always supported, the
-       error when no engine can be determined has been updated to suggest setting
-       the engine via the target.
+       error when no engine can be determined has no longer mentions
+       `--engine` and instead suggests setting the engine via the target.
+     - Fixed an issue with command argument parsing so that it truly never
+       returns a target without an engine specified, as documented.
 
 0.9998 2018-10-03T20:53:58Z
      - Fixed an issue where Sqitch would sometimes truncate the registry
