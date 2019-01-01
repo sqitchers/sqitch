@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 167;
+use Test::More tests => 177;
 #use Test::More 'no_plan';
 use Test::NoWarnings;
 use List::Util qw(first);
@@ -434,11 +434,53 @@ ARGS: {
     is_deeply $parsem->(args => ['sqlite']), [['devdb'], []],
         'Should resolve engine "sqlite" file to its target';
 
+    # Try a bad target.
+    throws_ok {
+        $parsem->(args => [target => 'db:']);
+    } 'App::Sqitch::X', 'Bad target should trigger error';
+    is $@->ident, 'target', 'Bad target error ident should be "target"';
+    is $@->message, __x(
+        'No engine specified by URI {uri}; URI must start with "db:$engine:"',
+        uri => 'db:',
+    ), 'Should have bad target error message';
+
     # Make sure we don't get an error when the default target has no plan file.
-    my $mock_target = Test::MockModule->new('App::Sqitch::Target');
-    $mock_target->mock(plan_file => file 'no-such-file.txt');
-    is_deeply $parsem->( args => ['devdb'] ),  [['devdb'], []],
-        'Should recognize target when default target has no plan file';
+    NOPLAN: {
+        my $mock_target = Test::MockModule->new('App::Sqitch::Target');
+        $mock_target->mock(plan_file => file 'no-such-file.txt');
+        is_deeply $parsem->( args => ['devdb'] ),  [['devdb'], []],
+            'Should recognize target when default target has no plan file';
+    }
+
+    # Make sure we get an error when no engine is specified.
+    NOENGINE: {
+        local $ENV{SQITCH_CONFIG} = 'nonexistent.conf';
+        ok $sqitch = App::Sqitch->new(options => {
+            plan_file => file(qw(t plans multi.plan))->stringify,
+            top_dir   => dir(qw(t sql))->stringify
+        }), 'Load Sqitch without engine';
+
+        my $config = App::Sqitch::Config->new;
+        ok $cmd = $CLASS->load({
+            sqitch => $sqitch,
+            config => $config,
+            command => 'whu',
+        }), 'Load cmd without engine';
+        throws_ok { $parsem->() } 'App::Sqitch::X',
+            'Should have error for no engine or target';
+        is $@->ident, 'target', 'Should have target ident';
+        is $@->message, __(
+            'No engine specified; specify via target or core.engine',
+        ), 'Should have message about no specified engine';
+
+        # But it should be okay if we pass an engine or valid target.
+        is_deeply $parsem->(args => ['pg']),
+            [['db:pg:'], []],
+            'Engine arg should override core target error';
+        is_deeply $parsem->(args => ['db:sqlite:foo']),
+            [['db:sqlite:foo'], []],
+            'Target arg should override core target error';
+    }
 }
 
 ##############################################################################

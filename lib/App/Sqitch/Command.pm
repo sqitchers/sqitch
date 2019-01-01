@@ -219,7 +219,8 @@ sub parse_args {
         # Die if a target was specified; otherwise keep the error for later.
         die $_ if $p{target};
         $deftarget_err = $_;
-    }
+        undef;
+    };
 
     # Set up the default results.
     my (%seen, %target_for);
