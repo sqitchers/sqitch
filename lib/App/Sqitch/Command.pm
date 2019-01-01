@@ -209,18 +209,20 @@ sub parse_args {
     my ($self, %p) = @_;
     my $sqitch = $self->sqitch;
     my $config = $sqitch->config;
+
+    # Load the specified or default target.
     require App::Sqitch::Target;
     my $deftarget_err;
     my $target = try {
         App::Sqitch::Target->new( sqitch => $sqitch, name => $p{target} )
     } catch {
-        # Die if a target was specified; otherwise hang onto the error
-        # in case we fall back on this target later.
+        # Die if a target was specified; otherwise keep the error for later.
         die $_ if $p{target};
         $deftarget_err = $_;
     }
-    my (%seen, %target_for);
 
+    # Set up the default results.
+    my (%seen, %target_for);
     my %rec = map { $_ => [] } qw(targets unknown);
     $rec{changes} = [] unless $p{no_changes};
     if ($p{target}) {
@@ -228,6 +230,7 @@ sub parse_args {
         $seen{$target->name}++;
     }
 
+    # Iterate over the argsx to look for changes, engines, plans, or targets.
     my %engines = map { $_ => 1 } ENGINES;
     for my $arg (@{ $p{args} }) {
         if ( !$p{no_changes} && $target && -e $target->plan_file && $target->plan->contains($arg) ) {
