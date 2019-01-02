@@ -510,7 +510,7 @@ DBIEngineTest->run(
     skip_unless       => sub {
         my $self = shift;
         die $err if $err;
-        # Make sure we have psql and can connect to the database.
+        # Make sure we have mysql and can connect to the database.
         $self->sqitch->probe( $self->client, '--version' );
         $self->_capture('--execute' => 'SELECT version()');
     },
