@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 186;
+use Test::More tests => 184;
 #use Test::More 'no_plan';
 use Test::MockModule;
 use Test::Exception;
@@ -167,9 +167,6 @@ my $opts = $CLASS->_parse_core_opts([
     '--db-host'    => 'local',
     '--db-port'    => 2020,
     '--top-dir'    => 'ddl',
-    '--deploy-dir' => 'dep',
-    '--revert-dir' => 'rev',
-    '--verify-dir' => 'tst',
     '--extension'  => 'ext',
     '--verbose', '--verbose',
     '--no-pager',
@@ -185,22 +182,13 @@ is_deeply $opts, {
     db_host     => 'local',
     db_port     => 2020,
     top_dir     => 'ddl',
-    deploy_dir  => 'dep',
-    revert_dir  => 'rev',
-    verify_dir  => 'tst',
     extension   => 'ext',
     verbosity   => 2,
     no_pager    => 1,
 }, 'Should parse lots of options';
 
-for my $dir (qw(
-    top_dir
-    deploy_dir
-    revert_dir
-    verify_dir
-)) {
-    isa_ok $opts->{$dir}, 'Path::Class::Dir', $dir;
-}
+isa_ok $opts->{plan_file}, 'Path::Class::File', 'plan_file';
+isa_ok $opts->{top_dir}, 'Path::Class::Dir', 'top_dir';
 
 # Make sure --quiet trumps --verbose.
 is_deeply $CLASS->_parse_core_opts([

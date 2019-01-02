@@ -73,6 +73,10 @@ Revision history for Perl extension App::Sqitch
        command or use the `--opt=val` syntax instead of `--opt val`, so that
        Sqitch doesn't think `val` is the command. Even in that case, it will
        keep searching the rest of the arguments to find a valid command.
+     - Removed the core `--deploy-dir`, `--revert-dir`, and `--verify-dir`
+       options, which have been deprecated and triggering an error message
+       since v0.9993. The `--dir` option to the `init`, `engine`, and `target`
+       commands remains the favored interface for specifying script directories.
 
 0.9998 2018-10-03T20:53:58Z
      - Fixed an issue where Sqitch would sometimes truncate the registry
@@ -342,7 +346,7 @@ Revision history for Perl extension App::Sqitch
        command, which is a bit more natural. It also means that the
        `--registry` and `--client` options of the `target` are no longer
        deprecated.
-     - The `init` command on longer writes out commented values for the
+     - The `init` command no longer writes out commented values for the
        `deploy_dir`, `revert_dir`, or `verify_dir` settings. I think these
        settings are not commonly used, and it would start to get crowded if we
        also added their "reworked" variants, which will be used still less.
