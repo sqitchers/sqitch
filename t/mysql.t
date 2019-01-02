@@ -59,6 +59,14 @@ my @std_opts = (
     '--skip-column-names',
     '--skip-line-numbers',
 );
+my $vinfo = try { $sqitch->probe($mysql->client, '--version') } || '';
+if ($vinfo =~ /mariadb/i) {
+    my ($version) = $vinfo =~ /Ver\s(\S+)/;
+    my ($maj, undef, $pat) = split /[.]/ => $version;
+    push @std_opts => '--abort-source-on-error'
+        if $maj > 5 || ($maj == 5 && $pat >= 66);
+}
+
 my $mock_sqitch = Test::MockModule->new('App::Sqitch');
 my $warning;
 $mock_sqitch->mock(warn => sub { shift; $warning = [@_] });
@@ -104,7 +112,8 @@ my $mock_config = Test::MockModule->new('App::Sqitch::Config');
 $mock_config->mock(get => sub { $config{ $_[2] } });
 my $mysql_version = 'mysql  Ver 15.1 Distrib 10.0.15-MariaDB';
 $mock_sqitch->mock(probe => sub { $mysql_version });
-push @std_opts => '--abort-source-on-error';
+push @std_opts => '--abort-source-on-error'
+    unless $std_opts[-1] eq '--abort-source-on-error';
 
 $target = App::Sqitch::Target->new(sqitch => $sqitch);
 ok $mysql = $CLASS->new(sqitch => $sqitch, target => $target),
