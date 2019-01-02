@@ -86,43 +86,48 @@ sub command {
     return $class;
 }
 
-sub load {
-    my ( $class, $p ) = @_;
-    my $sqitch = $p->{sqitch};
+sub class_for {
+    my ( $class, $sqitch, $cmd ) = @_;
 
-    # We should have a command.
-    $class->usage unless $p->{command};
-    ( my $cmd = $p->{command} ) =~ s/-/_/g;
+    $cmd =~ s/-/_/g;
 
     # Load the command class.
     my $pkg = __PACKAGE__ . "::$cmd";
-    try {
-        eval "require $pkg" or die $@;
-    }
-    catch {
+    eval "require $pkg; 1" or do {
         # Emit the original error for debugging.
-        $sqitch->debug($_);
-
-        # Suggest help if it's not a valid command.
-        hurl {
-            ident   => 'command',
-            exitval => 1,
-            message => __x(
-                '"{command}" is not a valid command',
-                command => $cmd,
-            ),
-        };
+        $sqitch->debug($@);
+        return undef;
     };
+    return $pkg;
+}
+
+sub load {
+    my ( $class, $p ) = @_;
+    # We should have a command.
+    my $cmd = delete $p->{command} or $class->usage;
+    my $pkg = $class->class_for($p->{sqitch}, $cmd) or hurl {
+        ident   => 'command',
+        exitval => 1,
+        message => __x(
+            '"{command}" is not a valid command',
+            command => $cmd,
+        ),
+    };
+    $pkg->create($p);
+}
+
+sub create {
+    my ( $class, $p ) = @_;
 
     # Merge the command-line options and configuration parameters
-    my $params = $pkg->configure(
+    my $params = $class->configure(
         $p->{config},
-        $pkg->_parse_opts( $p->{args} )
+        $class->_parse_opts( $p->{args} )
     );
 
     # Instantiate and return the command.
-    $params->{sqitch} = $sqitch;
-    return $pkg->new($params);
+    $params->{sqitch} = $p->{sqitch};
+    return $class->new($params);
 }
 
 sub configure {
@@ -389,6 +394,15 @@ keys, and then merges the configuration values with the options, with the
 command-line options taking priority. You may wish to override this method to
 do something different.
 
+=head3 C<class_for>
+
+  my $subclass = App::Sqitch::Command->subclass_for($sqitch, $cmd_name);
+
+This method attempts to load the subclass of App::Sqitch::Commmand that
+corresponds to the command name. Returns C<undef> and sends errors to the
+C<debug> method of the <$sqitch> object if no such subclass can
+be loaded.
+
 =head2 Constructors
 
 =head3 C<load>
@@ -396,10 +410,10 @@ do something different.
   my $cmd = App::Sqitch::Command->load( \%params );
 
 A factory method for instantiating Sqitch commands. It loads the subclass for
-the specified command, uses the options returned by C<options> to parse
-command-line options, calls C<configure> to merge configuration with the
-options, and finally calls C<new> with the resulting hash. Supported parameters
-are:
+the specified command and calls C<create> to instantiate and return an
+instance of the subclass. Sends error messages to the C<debug> method of the
+C<sqitch> parameter and throws an exception if the subclass does not exist or
+cannot be loaded. Supported parameters are:
 
 =over
 
@@ -421,6 +435,22 @@ The name of the command to be executed.
 An array reference of command-line arguments passed to the command.
 
 =back
+
+=head3 C<create>
+
+  my $pkg = App::Sqitch::Command->class_for( $sqitch, $cmd_name )
+      or die "No such command $cmd_name";
+  my $cmd = $pkg->create({
+      sqitch => $sqitch,
+      config => $config,
+      args   => \@ARGV,
+  });
+
+Creates and returns a new object for a subclass of App::Sqitch::Command. It
+parses options from the C<args> parameter, calls C<configure> to merge
+configuration with the options, and finally calls C<new> with the resulting
+hash. Supported parameters are the same as for C<load> except for the
+C<command> parameter, which will be ignored.
 
 =head3 C<new>
 

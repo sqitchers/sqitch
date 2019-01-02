@@ -66,6 +66,13 @@ Revision history for Perl extension App::Sqitch
      - Added aesthetically offensive attempt at another fix for Oracle 10g
        buffer allocation bug when selecting timestamp strings on. Thanks to
        @johannwilfling for the hack (#316).
+     - Changed command-line parsing to allow core and command options to
+       appear anywhere on the line. Previously, core options had to come
+       before the command name, and command options after. The only caveat is
+       that command options that take arguments should either appear after the
+       command or use the `--opt=val` syntax instead of `--opt val`, so that
+       Sqitch doesn't think `val` is the command. Even in that case, it will
+       keep searching the rest of the arguments to find a valid command.
 
 0.9998 2018-10-03T20:53:58Z
      - Fixed an issue where Sqitch would sometimes truncate the registry

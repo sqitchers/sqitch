@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 178;
+use Test::More tests => 191;
 #use Test::More 'no_plan';
 use Test::NoWarnings;
 use List::Util qw(first);
@@ -40,6 +40,8 @@ BEGIN {
 
 can_ok $CLASS, qw(
     load
+    class_for
+    create
     new
     options
     configure
@@ -105,6 +107,26 @@ is_deeply $subclass->configure($config, {foo => 'yo'}), {foo => 'yo'},
 is_deeply $subclass->configure($config, {'foo_bar' => 'yo'}),
     {foo => 'hi', foo_bar => 'yo'},
     'Options keys should have dashes changed to underscores';
+
+##############################################################################
+# Test class_for().
+is $CLASS->class_for($sqitch, 'whu'), 'App::Sqitch::Command::whu',
+    'Should find class for "whu"';
+is $CLASS->class_for($sqitch, 'wah-hoo'), 'App::Sqitch::Command::wah_hoo',
+    'Should find class for "wah-hoo"';
+is $CLASS->class_for($sqitch, 'help'), 'App::Sqitch::Command::help',
+    'Should find class for "help"';
+
+# Make sure it logs debugging for unkonwn classes.
+DEBUG: {
+    my $smock = Test::MockModule->new('App::Sqitch');
+    my $debug;
+    $smock->mock(debug => sub { $debug = $_[1] });
+    is $CLASS->class_for($sqitch, '_nonesuch'), undef,
+        'Should find no class for "_nonesush"';
+    like $debug, qr{^Can't locate App/Sqitch/Command/_nonesuch\.pm in \@INC},
+        'Should have sent error to debug';
+}
 
 ##############################################################################
 # Test load().
@@ -177,7 +199,7 @@ ok $cmd = $CLASS->load({
     sqitch  => $sqitch,
     config  => $config,
     args    => ['--feathers' => 'no']
-}), 'Load a "whu" command with "--feathers" optin';
+}), 'Load a "whu" command with "--feathers" option';
 is $cmd->feathers, 'no', 'The "feathers" attribute should be set';
 
 # Test command with a dash in its name.
@@ -188,6 +210,37 @@ ok $cmd = $CLASS->load({
 }), 'Load a "wah-hoo" command';
 isa_ok $cmd, "$CLASS\::wah_hoo", 'It';
 is $cmd->command, 'wah-hoo', 'command() should return hyphenated name';
+
+##############################################################################
+# Test create().
+my $pkg = $CLASS . '::whu';
+$config->replace;
+ok $cmd = $pkg->create({
+    sqitch => $sqitch,
+    config => $config,
+    args   => []
+}), 'Create a "whu" command';
+isa_ok $cmd, 'App::Sqitch::Command::whu';
+is $cmd->sqitch, $sqitch, 'The sqitch attribute should be set';
+is $cmd->command, 'whu', 'The command method should return "whu"';
+
+# Test config merging.
+$config->update('whu.foo' => 'hi');
+ok $cmd = $pkg->create({
+    sqitch => $sqitch,
+    config => $config,
+    args   => []
+}), 'Create a "whu" command with "foo" config';
+is $cmd->foo, 'hi', 'The "foo" attribute should be set';
+
+# Test options processing.
+$config->update('whu.feathers' => 'yes');
+ok $cmd = $pkg->create({
+    sqitch => $sqitch,
+    config => $config,
+    args   => ['--feathers' => 'no']
+}), 'Create a "whu" command with "--feathers" option';
+is $cmd->feathers, 'no', 'The "feathers" attribute should be set';
 
 ##############################################################################
 # Test default_target.

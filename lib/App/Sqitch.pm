@@ -177,36 +177,33 @@ has pager => (
 
 sub go {
     my $class = shift;
+    my @args = @ARGV;
 
-    # 1. Split command and options.
-    my ( $core_args, $cmd, $cmd_args ) = $class->_split_args(@ARGV);
+    # 1. Parse core options.
+    my $opts = $class->_parse_core_opts(\@args);
 
-    # 2. Parse core options.
-    my $opts = $class->_parse_core_opts($core_args);
-
-    # 3. If there is no command, emit help that lists commands.
-    $class->_pod2usage('sqitchcommands') unless $cmd;
-
-    # 4. Load config.
+    # 2. Load config.
     my $config = App::Sqitch::Config->new;
 
-    # 5. Instantiate Sqitch.
+    # 3. Instantiate Sqitch.
     my $sqitch = $class->new({ options => $opts, config  => $config });
 
+    # 4. Find the command.
+    my $cmd = $sqitch->_find_cmd(\@args);
+
+    # 5. Instantiate the command object.
+    my $command = $cmd->create({
+        sqitch => $sqitch,
+        config => $config,
+        args   => \@args,
+    });
+
+    # IO::Pager respects the PAGER environment variable.
+    local $ENV{PAGER} = $sqitch->pager_program;
+
+    # 6. Execute command.
     return try {
-        # 6. Instantiate the command object.
-        my $command = App::Sqitch::Command->load({
-            sqitch  => $sqitch,
-            command => $cmd,
-            config  => $config,
-            args    => $cmd_args,
-        });
-
-        # IO::Pager respects the PAGER environment variable.
-        local $ENV{PAGER} = $sqitch->pager_program;
-
-        # 7. Execute command.
-        $command->execute( @{$cmd_args} ) ? 0 : 2;
+        $command->execute( @args ) ? 0 : 2;
     } catch {
         # Just bail for unknown exceptions.
         $sqitch->vent($_) && return 2 unless eval { $_->isa('App::Sqitch::X') };
@@ -230,6 +227,7 @@ sub go {
 }
 
 sub _core_opts {
+    # Add to regex in _find_cmd when options moved from here to command.
     return qw(
         plan-file|f=s
         engine=s
@@ -253,27 +251,6 @@ sub _core_opts {
         man
         version
     );
-}
-
-sub _split_args {
-    my ( $self, @args ) = @_;
-
-    my $cmd_at  = 0;
-    my $add_one = sub { $cmd_at++ };
-    my $add_two = sub { $cmd_at += 2 };
-
-    Getopt::Long::GetOptionsFromArray(
-        # remove bundled options, or we lose track of our position.
-        [map { /^-([^-]{2,})/ ? '-' . substr $1, -1 : $_ } @args],
-        # Halt processing on on first non-option, which will be the command.
-        '<>' => sub { die '!FINISH' },
-        # Count how many args we've processed until we die.
-        map { $_ => m/=/ ? $add_two : $add_one } $self->_core_opts
-    ) or $self->_pod2usage('sqitchusage', '-verbose' => 99 );
-
-    # Splice the command and its options out of the arguments.
-    my ( $cmd, @cmd_opts ) = splice @args, $cmd_at;
-    return \@args, $cmd, \@cmd_opts;
 }
 
 sub _parse_core_opts {
@@ -348,6 +325,31 @@ sub _parse_core_opts {
     $opts{verbosity} = 0 if delete $opts{quiet};
     delete $opts{$_} for grep { !defined $opts{$_} } keys %opts;
     return \%opts;
+}
+
+sub _find_cmd {
+    my ( $self, $args ) = @_;
+    my (@tried, $prev);
+    for (my $i = 0; $i <= $#$args; $i++) {
+        my $arg = $args->[$i] or next;
+        if ($arg =~ /^-/) {
+            last if $arg eq '--';
+            # Skip the next argument if this looks like a legacy option.
+            $i++ if $arg =~ /^(?:-[duhp])|(?:--(?:db-\w+|client|engine|extension))$/;
+            next;
+        }
+        push @tried => $arg;
+        my $cmd = try { App::Sqitch::Command->class_for($self, $arg) } or next;
+        splice @{ $args }, $i, 1;
+        return $cmd;
+    }
+
+    # No valid command found. Report those we tried.
+    $self->vent(__x(
+        '"{command}" is not a valid command',
+        command => $_,
+    )) for @tried;
+    $self->_pod2usage('sqitchcommands');
 }
 
 sub _pod2usage {

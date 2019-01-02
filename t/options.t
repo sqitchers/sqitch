@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 35;
+use Test::More tests => 186;
 #use Test::More 'no_plan';
 use Test::MockModule;
 use Test::Exception;
@@ -31,54 +31,104 @@ BEGIN {
 }
 
 ##############################################################################
-# Test _split_args.
-can_ok $CLASS, '_split_args';
+# Test _find_cmd.
+can_ok $CLASS, '_find_cmd';
 
-is_deeply [ $CLASS->_split_args('help') ], [[], 'help', []],
-    'Split on command-only';
-
-is_deeply [ $CLASS->_split_args('--help', 'help') ], [
-    ['--help'],
-    'help',
-    [],
-], 'Split on core option plus command';
-
-is_deeply [ $CLASS->_split_args('--help', 'help', '--foo') ], [
-    ['--help'],
-    'help',
-    ['--foo'],
-], 'Split on core option plus command plus command option';
-
-is_deeply [ $CLASS->_split_args('--plan-file', 'foo', 'help', '--foo') ], [
-    ['--plan-file', 'foo'],
-    'help',
-    ['--foo'],
-], 'Option with arg should work';
-
-is_deeply [$CLASS->_split_args(qw(
-    --plan-file
-    foo
-    help
-    --foo
-))], [
-    ['--plan-file', 'foo'],
-    'help',
-    ['--foo'],
-], 'Option with arg should work';
-
-is_deeply [ $CLASS->_split_args('--help') ], [['--help'], undef, []],
-    'Should handle no command';
-
-is_deeply [ $CLASS->_split_args('-vvv', 'deploy') ],
-    [['-vvv'], 'deploy', []],
-    'Spliting args when using bundling should work';
-
-# Make sure an invalid option is caught.
-INVALID: {
+CMD: {
+    # Mock output methods.
     my $mocker = Test::MockModule->new($CLASS);
-    $mocker->mock(_pod2usage => sub {  pass '_pod2usage should be called' });
-    is capture_stderr { $CLASS->_split_args('--foo', 'foo', 'help', '--bar') },
-        "Unknown option: foo\n", 'Should exit for invalid option';
+    my $pod;
+    $mocker->mock(_pod2usage => sub { $pod = $_[1]; undef });
+    my @vent;
+    $mocker->mock(vent => sub { shift; push @vent => \@_ });
+
+    # Try no args.
+    my @args = ();
+    is $CLASS->_find_cmd(\@args), undef, 'Should find no command for no args';
+    is $pod, 'sqitchcommands', 'Should have passed "sqitchcommands" to _pod2usage';
+    is_deeply \@vent, [], 'Should have vented nothing';
+    ($pod, @vent) = ();
+
+    # Try an invalid command.
+    @args = qw(barf);
+    is $CLASS->_find_cmd(\@args), undef, 'Should find no command for invalid command';
+    is $pod, 'sqitchcommands', 'Should have passed "sqitchcommands" to _pod2usage';
+    is_deeply \@vent, [
+        [__x '"{command}" is not a valid command',  command => 'barf'],
+    ], 'Should have vented an invalid command message';
+    ($pod, @vent) = ();
+
+    # Obvious options should be ignored.
+    for my $opt (qw(
+        --foo
+        --client=psql
+        -R
+        -X=yup
+    )) {
+        @args = ($opt, 'crack');
+        is $CLASS->_find_cmd(\@args), undef,
+            "Should find no command with option $opt";
+        is $pod, 'sqitchcommands', 'Should have passed "sqitchcommands" to _pod2usage';
+        is_deeply \@vent, [
+            [__x '"{command}" is not a valid command',  command => 'crack'],
+        ], qq{Should not have reported $opt as invalid command};
+        ($pod, @vent) = ();
+    }
+
+    # Legacy options should be ignored.
+    for my $opt (qw(
+        --engine
+        --client --db-client
+        --db-name -d
+        --db-username -db-user -u
+        --db-host -h
+        --db-port -p
+        --extension
+    )) {
+        @args = ($opt, 'deploy');
+        is $CLASS->_find_cmd(\@args), undef,
+            "Should find no command after legacy option $opt";
+        is $pod, 'sqitchcommands', 'Should have passed "sqitchcommands" to _pod2usage';
+        is_deeply \@vent, [], qq{Should have emitted no message with "$opt deploy"};
+        ($pod, @vent) = ();
+
+        # But it should find a valid command after that.
+        @args = ($opt, qw(deploy tag -x));
+        is $CLASS->_find_cmd(\@args), 'App::Sqitch::Command::tag',
+            qq{"Should find valid command after "$opt deploy"};
+        is $pod, undef, 'Should not have called _pod2usage';
+        is_deeply \@vent, [], 'Should have vented nothing';
+        is_deeply \@args, [$opt, qw(deploy -x)],
+            qq{Should have removed valid command after "$opt deploy"};
+    }
+
+    # Lone -- should cancel processing.
+    @args = ('--', 'tag');
+    is $CLASS->_find_cmd(\@args), undef, 'Should find no command after --';
+    is $pod, 'sqitchcommands', 'Should have passed "sqitchcommands" to _pod2usage';
+    is_deeply \@vent, [], 'Should have vented nothing';
+    ($pod, @vent) = ();
+
+    # Valid command should be removed from args.
+    for my $cmd (qw(bundle config help plan show tag)) {
+        @args = (qw(--foo=bar -xy), $cmd, qw(--quack back -x y -z));
+        my $class = "App::Sqitch::Command::$cmd";
+
+        is $CLASS->_find_cmd(\@args), $class, qq{Should find class for "$cmd"};
+        is $pod, undef, 'Should not have called _pod2usage';
+        is_deeply \@vent, [], 'Should have vented nothing';
+        is_deeply \@args, [qw(--foo=bar -xy --quack back -x y -z)],
+            qq{Should have removed "$cmd" from args};
+        ($pod, @vent) = ();
+
+        @args = (qw(--foo=bar), $cmd, qw(verify -x));
+        is $CLASS->_find_cmd(\@args), $class, qq{Should find class for "$cmd" again};
+        is $pod, undef, 'Should not have called _pod2usage';
+        is_deeply \@vent, [], 'Should have vented nothing';
+        is_deeply \@args, [qw(--foo=bar verify -x)],
+            qq{Should have left subsequent valid command after "$cmd" in args};
+        ($pod, @vent) = ();
+    }
 }
 
 ##############################################################################
