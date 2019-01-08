@@ -16,11 +16,8 @@ use App::Sqitch::DateTime;
 use Encode;
 use lib 't/lib';
 use MockOutput;
+use TestConfig;
 use LC;
-
-$ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
-$ENV{SQITCH_USER_CONFIG}   = 'nonexistent.user';
-$ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
 
 my $CLASS = 'App::Sqitch::ItemFormatter';
 require_ok $CLASS;

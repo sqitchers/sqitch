@@ -19,6 +19,7 @@ use File::Path qw(make_path remove_tree);
 use App::Sqitch::DateTime;
 use lib 't/lib';
 use MockOutput;
+use TestConfig;
 
 my $CLASS;
 
@@ -26,10 +27,6 @@ BEGIN {
     $CLASS = 'App::Sqitch::Plan';
     use_ok $CLASS or die;
 }
-
-$ENV{SQITCH_CONFIG} = 'nonexistent.conf';
-$ENV{SQITCH_USER_CONFIG} = 'nonexistent.user';
-$ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
 
 can_ok $CLASS, qw(
     sqitch
@@ -46,7 +43,8 @@ can_ok $CLASS, qw(
     open_script
 );
 
-my $sqitch = App::Sqitch->new( options => { engine => 'sqlite' });
+my $config = TestConfig->new('core.engine' => 'sqlite');
+my $sqitch = App::Sqitch->new( config => $config );
 my $target = App::Sqitch::Target->new( sqitch => $sqitch );
 isa_ok my $plan = App::Sqitch::Plan->new(sqitch => $sqitch, target => $target),
     $CLASS;
