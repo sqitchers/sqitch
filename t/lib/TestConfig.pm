@@ -31,11 +31,12 @@ sub new {
     return $self;
 }
 
-# Pass in key/value pairs to set the data. Existing values are not removed.
-# Keys should be "$section.$name". Values can be scalars, arrays, or hashes.
-# Scalars are simply set as-is. Arrays are set as multiple values for the key.
-# Hashes have each of their keys appended as "$section.$name.$key", with the
-# values assigned as-is. Existing keys will be replaced with the new values.
+# Pass in key/value pairs to set the data. Does not clear existing data. Keys
+# should be "$section.$name". Values can be scalars, arrays, or hashes.
+# Scalars are simply set as-is, unless the value is `undef`, in which case the
+# key is deleted. Arrays are set as multiple values for the key. Hashes have
+# each of their keys appended as "$section.$name.$key", with the values
+# assigned as-is. Existing keys will be replaced with the new values.
 #
 #   my $config->update(
 #      'core.engine'      => 'sqlite',
@@ -53,14 +54,21 @@ sub update {
     while (my ($k, $v) = each %p) {
         my $ref = ref $v;
         if ($ref eq '') {
-            $k =~ s/[.]([^.]+)$//;
-            $self->define(@args, section => $k, name => $1, value => $v);
+            if (defined $v) {
+                $k =~ s/[.]([^.]+)$//;
+                $self->define(@args, section => $k, name => $1, value => $v);
+            } else {
+                $self->set_multiple( $k, 0 ) if $self->is_multiple( $k );
+                $k = lc $k;
+                delete $_->{$k} for ($self->origins, $self->data, $self->casing);
+            }
         } elsif ($ref eq 'HASH') {
             $self->define(@args, section => $k, name => $_, value => $v->{$_} )
                 for keys %{ $v };
         } elsif ($ref eq 'ARRAY') {
             $k =~ s/[.]([^.]+)$//;
-            $self->define(@args, section => $k, name => $1, value => $_) for @{ $v }
+            $self->define(@args, section => $k, name => $1, value => $_)
+                for @{ $v };
         } else {
             require Carp;
             Carp::confess("Cannot set config value of type $ref");
@@ -68,6 +76,16 @@ sub update {
     }
 }
 
+# Like update(), but replaces all existing data with new data.
+sub replace {
+    my $self = shift;
+    $self->data({});
+    $self->multiple({});
+    $self->origins({});
+    $self->casing({});
+    $self->config_files([]);
+    $self->update(@_);
+}
 
 # Creates and returns a new TestConfig, which inherits from
 # App::Sqitch::Config. Parameters specify files to load using the keys "local",

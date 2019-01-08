@@ -97,8 +97,7 @@ CONFIG: {
         'Should pick up variables from configuration';
 
     # Make sure we can override prompting.
-    $config = TestConfig->new(
-        'core.engine'          => 'sqlite',
+    $config->update(
         'revert.no_prompt'     => 1,
         'revert.prompt_accept' => 0,
     );

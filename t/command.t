@@ -108,7 +108,6 @@ is_deeply $subclass->configure($config, {'foo_bar' => 'yo'}),
 
 ##############################################################################
 # Test load().
-$config = TestConfig->new;
 ok $sqitch = App::Sqitch->new(config => $config), 'Load a sqitch object';
 ok my $cmd = $CLASS->load({
     command => 'whu',

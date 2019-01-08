@@ -395,8 +395,7 @@ is_deeply [$snow->_regex_expr('corn', 'Obama$')],
 
 ##############################################################################
 # Test _run(), _capture() _spool(), and _probe().
-$config = TestConfig->new('core.engine' => 'snowflake');
-$sqitch = App::Sqitch->new(config => $config);
+$config->replace('core.engine' => 'snowflake');
 can_ok $snow, qw(_run _capture _spool);
 my $mock_sqitch = Test::MockModule->new('App::Sqitch');
 my @capture;

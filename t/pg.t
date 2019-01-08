@@ -275,7 +275,7 @@ $mock_sqitch->unmock('probe');
 
 ##############################################################################
 # Can we do live tests?
-$config = TestConfig->new('core.engine' => 'pg');
+$config->replace('core.engine' => 'pg');
 $sqitch = App::Sqitch->new(config => $config);
 $target = App::Sqitch::Target->new( sqitch => $sqitch );
 $pg     = $CLASS->new(sqitch => $sqitch, target => $target);

@@ -47,7 +47,7 @@ is $sqitch->verbosity, 3, 'Verbosity option should override configuration';
 
 ##############################################################################
 # Defaults.
-$config = TestConfig->new;
+$config->replace;
 isa_ok $sqitch = $CLASS->new(config => $config), $CLASS, 'A new object';
 
 is $sqitch->verbosity, 1, 'Default verbosity should be 1';
@@ -192,7 +192,7 @@ EDITOR: {
     delete $ENV{SQITCH_EDITOR};
     delete $ENV{VISUAL};
     delete $ENV{EDITOR};
-    $config = TestConfig->new;
+    $config->replace;
     $sqitch = App::Sqitch->new(config => $config);
     if (App::Sqitch::ISWIN) {
         is $sqitch->editor, 'notepad.exe', 'editor fall back on notepad on Windows';

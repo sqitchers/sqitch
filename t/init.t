@@ -359,7 +359,7 @@ is_deeply $config->data_from($conf_file), {
 ##############################################################################
 # Now get it to write core.sqlite stuff with main options.
 unlink $conf_file;
-$config = TestConfig->new('core.engine' => 'sqlite');
+$config->replace('core.engine' => 'sqlite');
 $sqitch = App::Sqitch->new(
     config => $config,
     options => {
@@ -433,7 +433,7 @@ USERCONF: {
 ##############################################################################
 # Now get it to write engine.pg stuff.
 unlink $conf_file;
-$config = TestConfig->new;
+$config->replace;
 $sqitch = App::Sqitch->new(
     config => $config,
     options => { client => '/to/psql' },

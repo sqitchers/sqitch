@@ -200,8 +200,6 @@ is_deeply [$sqlite->sqlite3],
 ##############################################################################
 # Test _read().
 my $db_name = $tmp_dir->file('sqitch.db');
-$config = TestConfig->new('core.engine' => 'sqlite');
-$sqitch = App::Sqitch->new(config => $config);
 $target = App::Sqitch::Target->new(
     sqitch => $sqitch,
     uri    => URI->new("db:sqlite:$db_name")

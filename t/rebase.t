@@ -187,7 +187,7 @@ CONFIG: {
         'Should pick up revert variables from configuration';
 
     # Make sure we can override mode, prompting, and verify.
-    $config = TestConfig->new(
+    $config->replace(
         'core.engine'          => 'sqlite',
         'revert.no_prompt'     => 1,
         'revert.prompt_accept' => 0,
@@ -215,12 +215,11 @@ CONFIG: {
         mode          => 'change',
     }, 'Should have false no_prompt, verify, and true prompt_accept from rebase config';
 
-    $config = TestConfig->new(
-        'core.engine'          => 'sqlite',
-        'revert.no_prompt'     => 1,
-        'revert.prompt_accept' => 0,
-        'deploy.verify'        => 1,
-        'deploy.mode'          => 'tag',
+    $config->update(
+        'revert.no_prompt'     => undef,
+        'revert.prompt_accept' => undef,
+        'rebase.verify'        => undef,
+        'rebase.mode'          => undef,
         'rebase.no_prompt'     => 1,
         'rebase.prompt_accept' => 0,
     );
@@ -236,14 +235,11 @@ CONFIG: {
         { no_prompt => 0, verify => 0, mode => 'all', prompt_accept => 0 },
         'Should have no_prompt, prompt_accept false and mode all again';
 
-    $config = TestConfig->new(
-        'core.engine'          => 'sqlite',
-        'revert.no_prompt'     => 1,
-        'revert.prompt_accept' => 0,
-        'deploy.verify'        => 1,
-        'deploy.mode'          => 'tag',
+    $config->update(
         'revert.no_prompt'     => 0,
         'revert.prompt_accept' => 1,
+        'rebase.no_prompt'     => undef,
+        'rebase.prompt_accept' => undef,
     );
     is_deeply $CLASS->configure($config, {}), {
         no_prompt     => 0,

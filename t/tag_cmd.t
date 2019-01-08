@@ -208,7 +208,7 @@ is_deeply +MockOutput->get_info, [
 
 ##############################################################################
 # Let's deal with multiple engines.
-$config = TestConfig->new(
+$config->replace(
     'core.engine'           => 'sqlite',
     'engine.pg.top_dir'     => 'pg',
     'engine.sqlite.top_dir' => 'sqlite',
@@ -253,7 +253,7 @@ $dir->file("$_.plan")->spew(
     "%project=tag\n\n${_}_change 2012-07-16T17:25:07Z Hi <hi\@foo.com>\n"
 ) for qw(pg sqlite);
 
-$config = TestConfig->new(
+$config->replace(
     'core.engine'             => 'pg',
     'core.to_dir'             => $dir->stringify,
     'engine.pg.plan_file'     => $pg,
@@ -309,7 +309,7 @@ is_deeply +MockOutput->get_info, [
 ], 'The shoot info message should the sqlite plan getting tagged';
 
 # Without --all or tag.all, we should just get the default target.
-$config = TestConfig->new(
+$config->replace(
     'core.engine'             => 'pg',
     'core.to_dir'             => $dir->stringify,
     'engine.pg.plan_file'     => $pg,

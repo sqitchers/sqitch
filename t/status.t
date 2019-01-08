@@ -159,7 +159,7 @@ is $@->message, __x(
     format => 'nonesuch',
 ), 'Invalid date format error message should be correct';
 
-$config = TestConfig->new(
+$config->replace(
     'status.show_changes' => 1,
     'status.show_tags'   => 0,
 );
@@ -257,7 +257,7 @@ $engine_mocker->mock(current_changes => sub {
     planner_email   => 'anna@example.com',
     planned_at      => $dt->clone->subtract( hours => 4 ),
 });
-$config = TestConfig->new('core.engine' => 'sqlite');
+$config->replace('core.engine' => 'sqlite');
 $sqitch = App::Sqitch->new(config => $config);
 ok $status = App::Sqitch::Command->load({
     sqitch  => $sqitch,

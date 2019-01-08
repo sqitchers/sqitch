@@ -152,7 +152,7 @@ CONSTRUCTOR: {
         get => sub { my $c = shift; push @get_params => \@_; $orig_get->($c, @_); }
     );
     $orig_get = $mock->original('get');
-    my $config = TestConfig->new;
+    $config->replace;
 
     # Pass neither, but rely on the engine in the Sqitch object.
     my $sqitch = App::Sqitch->new(config => $config, options => { engine => 'sqlite'});
@@ -197,8 +197,7 @@ CONSTRUCTOR: {
     ), 'Should have message about no engine-less URI';
 
     # Try it with no configured core engine or target.
-    $config = TestConfig->new;
-    $sqitch = App::Sqitch->new(config => $config);
+    $config->replace;
     throws_ok { $CLASS->new(sqitch => $sqitch) } 'App::Sqitch::X',
         'Should have error for no engine or target';
     is $@->ident, 'target', 'Should have target ident';
@@ -309,8 +308,7 @@ CONSTRUCTOR: {
 
     # Let the name section exist, but without a URI.
     @get_params = @sect_params = ();
-    $config = TestConfig->new('target.foo.bar' => 1);
-    $sqitch = App::Sqitch->new(config => $config);
+    $config->replace('target.foo.bar' => 1);
     throws_ok { $CLASS->new(sqitch => $sqitch, name => 'foo') } 'App::Sqitch::X',
         'Should have exception for URL-less named target';
     is $@->ident, 'target', 'URL-less target error ident should be "target"';
@@ -325,7 +323,7 @@ CONSTRUCTOR: {
 
     # Now give it a URI.
     @get_params = @sect_params = ();
-    $config = TestConfig->new( 'target.foo.uri' => 'db:pg:foo');
+    $config->replace( 'target.foo.uri' => 'db:pg:foo');
     $sqitch = App::Sqitch->new(config => $config);
     isa_ok $target = $CLASS->new(sqitch => $sqitch, name => 'foo'), $CLASS,
         'Named target';
@@ -355,8 +353,7 @@ CONSTRUCTOR: {
     # Let the name come from the environment.
     ENV: {
         @get_params = @sect_params = ();
-        $config = TestConfig->new('target.bar.uri' => 'db:sqlite:bar');
-        $sqitch = App::Sqitch->new(config => $config);
+        $config->replace('target.bar.uri' => 'db:sqlite:bar');
         local $ENV{SQITCH_TARGET} = 'bar';
         isa_ok $target = $CLASS->new(sqitch => $sqitch), $CLASS, 'Environment-named target';
         is $target->name, 'bar', 'Name should be "bar"';
@@ -368,7 +365,7 @@ CONSTRUCTOR: {
 
     # Make sure db options and deprecated config variables work.
     local $App::Sqitch::Target::WARNED = 0;
-    $config = TestConfig->new(
+    $config->replace(
         'core.engine'      => 'pg',
         'core.pg.host'     => 'hi.com',
         'core.pg.port'     => 5432,
@@ -376,7 +373,6 @@ CONSTRUCTOR: {
         'core.pg.password' => 'ouch',
         'core.pg.db_name'  => 'sharks',
     );
-    $sqitch = App::Sqitch->new(config => $config);
     @get_params = @sect_params = ();
     $uri = URI::db->new('db:pg://bob:ouch@hi.com:5432/sharks');
     isa_ok $target = $CLASS->new(sqitch => $sqitch), $CLASS, 'Pg target';
@@ -450,7 +446,7 @@ CONSTRUCTOR: {
 CONFIG: {
     # Look at how attributes are populated from options, config.
     my $opts = {};
-    my $config = TestConfig->new(
+    $config->replace(
         'core.engine'              => 'pg',
         'core.registry'            => 'myreg',
         'core.client'              => 'pgsql',
