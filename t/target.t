@@ -7,7 +7,6 @@ use Test::More;
 use App::Sqitch;
 use Path::Class qw(dir file);
 use Test::Exception;
-use Test::MockModule;
 use Locale::TextDomain qw(App-Sqitch);
 use lib 't/lib';
 use MockOutput;

@@ -9,7 +9,6 @@ use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
 use Test::NoWarnings;
 use Test::Exception;
-use Test::MockModule;
 use Path::Class;
 use Term::ANSIColor qw(color);
 use App::Sqitch::DateTime;
