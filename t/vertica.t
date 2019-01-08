@@ -22,6 +22,7 @@ use App::Sqitch::Target;
 use App::Sqitch::Plan;
 use lib 't/lib';
 use DBIEngineTest;
+use TestConfig;
 
 my $CLASS;
 
@@ -30,9 +31,6 @@ delete $ENV{"VSQL_$_"} for qw(USER PASSWORD DATABASE HOST PORT);
 BEGIN {
     $CLASS = 'App::Sqitch::Engine::vertica';
     require_ok $CLASS or die;
-    $ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
-    $ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.user';
-    $ENV{SQITCH_USER_CONFIG}   = 'nonexistent.sys';
 }
 
 is_deeply [$CLASS->config_vars], [
@@ -42,7 +40,8 @@ is_deeply [$CLASS->config_vars], [
 ], 'config_vars should return three vars';
 
 my $uri = URI::db->new('db:vertica:');
-my $sqitch = App::Sqitch->new(options => { engine => 'vertica' });
+my $config = TestConfig->new('core.engine' => 'vertica');
+my $sqitch = App::Sqitch->new(config => $config);
 my $target = App::Sqitch::Target->new(
     sqitch => $sqitch,
     uri    => $uri,
@@ -128,14 +127,12 @@ ENV: {
 
 ##############################################################################
 # Make sure config settings override defaults.
-my %config = (
+$config->update(
     'engine.vertica.client'   => '/path/to/vsql',
     'engine.vertica.target'   => 'db:vertica://localhost/try',
     'engine.vertica.registry' => 'meta',
 );
 $std_opts[-1] = 'registry=meta';
-my $mock_config = Test::MockModule->new('App::Sqitch::Config');
-$mock_config->mock(get => sub { $config{ $_[2] } });
 
 $target = App::Sqitch::Target->new( sqitch => $sqitch );
 ok $vta = $CLASS->new(sqitch => $sqitch, target => $target),
@@ -155,10 +152,8 @@ is_deeply [$vta->vsql], [
 ##############################################################################
 # Now make sure that (deprecated?) Sqitch options override configurations.
 $sqitch = App::Sqitch->new(
-    options => {
-        engine     => 'vertica',
-        client     => '/some/other/vsql',
-    },
+    config  => $config,
+    options => { client => '/some/other/vsql' },
 );
 
 $target = App::Sqitch::Target->new( sqitch => $sqitch );
@@ -266,7 +261,6 @@ is_deeply \@run, [$vta->vsql, '--file', 'foo/bar.sql'],
     'Verifile file should be passed to run() for high verbosity';
 
 $mock_sqitch->unmock_all;
-$mock_config->unmock_all;
 
 ##############################################################################
 # Test DateTime formatting stuff.
@@ -320,11 +314,13 @@ my $err = try {
 
 DBIEngineTest->run(
     class         => $CLASS,
-    sqitch_params => [options => {
-        engine    => 'vertica',
-        top_dir   => Path::Class::dir(qw(t engine)),
-        plan_file => Path::Class::file(qw(t engine sqitch.plan)),
-    }],
+    sqitch_params => [
+        config => TestConfig->new('core.engine' => 'vertica'),
+        options => {
+            top_dir   => Path::Class::dir(qw(t engine)),
+            plan_file => Path::Class::file(qw(t engine sqitch.plan)),
+        },
+    ],
     target_params     => [ uri => $uri ],
     alt_target_params => [ uri => $uri, registry => '__sqitchtest' ],
     skip_unless       => sub {

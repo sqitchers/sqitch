@@ -14,6 +14,7 @@ use Locale::TextDomain qw(App-Sqitch);
 use File::Temp 'tempdir';
 use lib 't/lib';
 use DBIEngineTest;
+use TestConfig;
 
 my $CLASS;
 
@@ -23,11 +24,8 @@ $mm->mock(parse_defaults => {}) if $mm;
 BEGIN {
     $CLASS = 'App::Sqitch::Engine::mysql';
     require_ok $CLASS or die;
-    $ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
-    $ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.user';
-    $ENV{SQITCH_USER_CONFIG}   = 'nonexistent.sys';}
     delete $ENV{$_} for qw(MYSQL_PWD MYSQL_HOST MYSQL_TCP_PORT);
-
+}
 
 is_deeply [$CLASS->config_vars], [
     target   => 'any',
@@ -35,7 +33,8 @@ is_deeply [$CLASS->config_vars], [
     client   => 'any',
 ], 'config_vars should return three vars';
 
-my $sqitch = App::Sqitch->new( options => { engine => 'mysql'} );
+my $config = TestConfig->new('core.engine' => 'mysql');
+my $sqitch = App::Sqitch->new(config => $config);
 my $target = App::Sqitch::Target->new(sqitch => $sqitch);
 isa_ok my $mysql = $CLASS->new(sqitch => $sqitch, target => $target), $CLASS;
 
@@ -103,13 +102,11 @@ ENV: {
 
 ##############################################################################
 # Make sure config settings override defaults.
-my %config = (
+$config->update(
     'engine.mysql.client'   => '/path/to/mysql',
     'engine.mysql.target'   => 'db:mysql://foo.com/widgets',
     'engine.mysql.registry' => 'meta',
 );
-my $mock_config = Test::MockModule->new('App::Sqitch::Config');
-$mock_config->mock(get => sub { $config{ $_[2] } });
 my $mysql_version = 'mysql  Ver 15.1 Distrib 10.0.15-MariaDB';
 $mock_sqitch->mock(probe => sub { $mysql_version });
 push @std_opts => '--abort-source-on-error'
@@ -201,10 +198,8 @@ is_deeply [$mysql->mysql], [qw(
 ##############################################################################
 # Now make sure that Sqitch options override configurations.
 $sqitch = App::Sqitch->new(
-    options => {
-        engine   => 'mysql',
-        client   => '/some/other/mysql',
-    },
+    config => $config,
+    options => { client   => '/some/other/mysql' },
 );
 
 $target = App::Sqitch::Target->new(sqitch => $sqitch);
@@ -361,7 +356,6 @@ is_deeply \@capture, [$mysql->mysql, '--execute', "${set}source foo/bar.sql"],
 
 $mysql->clear_variables;
 $mock_sqitch->unmock_all;
-$mock_config->unmock_all;
 
 ##############################################################################
 # Test DateTime formatting stuff.
@@ -494,11 +488,13 @@ my $err = try {
 
 DBIEngineTest->run(
     class         => $CLASS,
-    sqitch_params => [options => {
-        engine      => 'mysql',
-        top_dir     => Path::Class::dir(qw(t engine))->stringify,
-        plan_file   => Path::Class::file(qw(t engine sqitch.plan))->stringify,
-    }],
+    sqitch_params => [
+        config => TestConfig->new('core.engine' => 'mysql'),
+        options => {
+            top_dir     => Path::Class::dir(qw(t engine))->stringify,
+            plan_file   => Path::Class::file(qw(t engine sqitch.plan))->stringify,
+        },
+    ],
     target_params     => [
         registry => $reg1,
         uri => URI::db->new("db:mysql://root@/$db"),

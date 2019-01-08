@@ -4,6 +4,14 @@ use warnings;
 use base 'App::Sqitch::Config';
 use Path::Class;
 
+BEGIN {
+    # Circumvent Config::Gitlike bug on Windows.
+    # https://rt.cpan.org/Ticket/Display.html?id=96670
+    if (!$ENV{HOME} && Config::GitLike->VERSION < 1.15) {
+        $ENV{HOME} = '~';
+    }
+}
+
 # Creates and returns a new TestConfig, which inherits from
 # App::Sqitch::Config. Sets nonexistant values for the file locations and
 # calls update() on remaining args.
@@ -27,7 +35,7 @@ sub new {
 # Keys should be "$section.$name". Values can be scalars, arrays, or hashes.
 # Scalars are simply set as-is. Arrays are set as multiple values for the key.
 # Hashes have each of their keys appended as "$section.$name.$key", with the
-# values assigned as-is.
+# values assigned as-is. Existing keys will be replaced with the new values.
 #
 #   my $config->update(
 #      'core.engine'      => 'sqlite',
@@ -39,18 +47,20 @@ sub update {
     my $self = shift;
     my %p = @_ or return;
     $self->data({}) unless $self->is_loaded;
+    # Set a unique origin to be sure to override any previous values for each key.
+    my @args = (origin => ('update_' . ++$self->{__update}));
 
     while (my ($k, $v) = each %p) {
         my $ref = ref $v;
         if ($ref eq '') {
             $k =~ s/[.]([^.]+)$//;
-            $self->define(origin => '', section => $k, name => $1, value => $v);
+            $self->define(@args, section => $k, name => $1, value => $v);
         } elsif ($ref eq 'HASH') {
-            $self->define(origin => '', section => $k, name => $_, value => $v->{$_} )
+            $self->define(@args, section => $k, name => $_, value => $v->{$_} )
                 for keys %{ $v };
         } elsif ($ref eq 'ARRAY') {
             $k =~ s/[.]([^.]+)$//;
-            $self->define(origin => '', section => $k, name => $1, value => $_) for @{ $v }
+            $self->define(@args, section => $k, name => $1, value => $_) for @{ $v }
         } else {
             require Carp;
             Carp::confess("Cannot set config value of type $ref");

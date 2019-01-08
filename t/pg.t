@@ -14,18 +14,15 @@ use App::Sqitch::Target;
 use App::Sqitch::Plan;
 use lib 't/lib';
 use DBIEngineTest;
+use TestConfig;
 
 my $CLASS;
 
 BEGIN {
     $CLASS = 'App::Sqitch::Engine::pg';
     require_ok $CLASS or die;
-    $ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
-    $ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.user';
-    $ENV{SQITCH_USER_CONFIG}   = 'nonexistent.sys';
     delete $ENV{PGPASSWORD};
 }
-
 
 is_deeply [$CLASS->config_vars], [
     target   => 'any',
@@ -34,7 +31,8 @@ is_deeply [$CLASS->config_vars], [
 ], 'config_vars should return three vars';
 
 my $uri = URI::db->new('db:pg:');
-my $sqitch = App::Sqitch->new(options => { engine => 'pg' });
+my $config = TestConfig->new('core.engine' => 'pg');
+my $sqitch = App::Sqitch->new(config => $config);
 my $target = App::Sqitch::Target->new(
     sqitch => $sqitch,
     uri    => $uri,
@@ -107,14 +105,12 @@ ENV: {
 
 ##############################################################################
 # Make sure config settings override defaults.
-my %config = (
+$config->update(
     'engine.pg.client'   => '/path/to/psql',
     'engine.pg.target'   => 'db:pg://localhost/try?sslmode=disable&connect_timeout=5',
     'engine.pg.registry' => 'meta',
 );
 $std_opts[-1] = 'registry=meta';
-my $mock_config = Test::MockModule->new('App::Sqitch::Config');
-$mock_config->mock(get => sub { $config{ $_[2] } });
 
 $target = App::Sqitch::Target->new( sqitch => $sqitch );
 ok $pg = $CLASS->new(sqitch => $sqitch, target => $target), 'Create another pg';
@@ -131,10 +127,8 @@ is_deeply [$pg->psql], [
 ##############################################################################
 # Now make sure that (deprecated?) Sqitch options override configurations.
 $sqitch = App::Sqitch->new(
-    options => {
-        engine => 'pg',
-        client => '/some/other/psql',
-    }
+    config => $config,
+    options => { client => '/some/other/psql' },
 );
 
 $target = App::Sqitch::Target->new( sqitch => $sqitch );
@@ -243,7 +237,6 @@ is_deeply \@run, [$pg->psql, '--file', 'foo/bar.sql'],
     'Verifile file should be passed to run() for high verbosity';
 
 $mock_sqitch->unmock_all;
-$mock_config->unmock_all;
 
 ##############################################################################
 # Test DateTime formatting stuff.
@@ -282,7 +275,8 @@ $mock_sqitch->unmock('probe');
 
 ##############################################################################
 # Can we do live tests?
-$sqitch = App::Sqitch->new( options => { engine => 'pg' } );
+$config = TestConfig->new('core.engine' => 'pg');
+$sqitch = App::Sqitch->new(config => $config);
 $target = App::Sqitch::Target->new( sqitch => $sqitch );
 $pg     = $CLASS->new(sqitch => $sqitch, target => $target);
 my $dbh;
@@ -318,11 +312,13 @@ my $err = try {
 
 DBIEngineTest->run(
     class         => $CLASS,
-    sqitch_params => [options => {
-        engine     => 'pg',
-        top_dir     => Path::Class::dir(qw(t engine))->stringify,
-        plan_file   => Path::Class::file(qw(t engine sqitch.plan))->stringify,
-    }],
+    sqitch_params => [
+        config => $config,
+        options => {
+            top_dir     => Path::Class::dir(qw(t engine))->stringify,
+            plan_file   => Path::Class::file(qw(t engine sqitch.plan))->stringify,
+        },
+    ],
     target_params => [
         uri => URI::db->new("db:pg://$pguser\@/$db"),
     ],
