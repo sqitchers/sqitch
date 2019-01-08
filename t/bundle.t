@@ -466,17 +466,10 @@ file_exists_ok $_ for ($conf_file, @engine);
 file_not_exists_ok $_ for @sql;
 
 # Make sure it works with bundle.all set, as well.
-my $cmock = Test::MockModule->new('App::Sqitch::Config');
-my $get;
-$cmock->mock( get => sub {
-    return 1 if $_[2] eq 'bundle.all';
-    return $get->(@_);
-});
-$get = $cmock->original('get');
+$config->update('bundle.all' => 1);
 remove_tree $multidir->stringify;
 ok $bundle->execute, qq{Execute with bundle.all config};
 file_exists_ok $_ for ($conf_file, @engine, @sql);
-$cmock->unmock_all;
 
 # Try limiting it in various ways.
 for my $spec (

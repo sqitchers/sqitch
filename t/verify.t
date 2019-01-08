@@ -11,13 +11,10 @@ use Test::Exception;
 use Locale::TextDomain qw(App-Sqitch);
 use lib 't/lib';
 use MockOutput;
+use TestConfig;
 
 my $CLASS = 'App::Sqitch::Command::verify';
 require_ok $CLASS or die;
-
-$ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
-$ENV{SQITCH_USER_CONFIG}   = 'nonexistent.user';
-$ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
 
 isa_ok $CLASS, 'App::Sqitch::Command';
 can_ok $CLASS, qw(
@@ -39,14 +36,14 @@ is_deeply [$CLASS->options], [qw(
     set|s=s%
 )], 'Options should be correct';
 
+my $config = TestConfig->new('core.engine' => 'sqlite');
 my $sqitch = App::Sqitch->new(
+    config => $config,
     options => {
-        engine    => 'sqlite',
         plan_file => file(qw(t sql sqitch.plan))->stringify,
         top_dir   => dir(qw(t sql))->stringify,
     },
 );
-my $config = $sqitch->config;
 
 # Test configure().
 is_deeply $CLASS->configure($config, {}), {
@@ -63,20 +60,9 @@ is_deeply $CLASS->configure($config, {
 }, 'Should have changes and variables from options';
 
 CONFIG: {
-    my $mock_config = Test::MockModule->new(ref $config);
-    my %config_vals;
-    $mock_config->mock(get => sub {
-        my ($self, %p) = @_;
-        return $config_vals{ $p{key} };
-    });
-    $mock_config->mock(get_section => sub {
-        my ($self, %p) = @_;
-        return $config_vals{ $p{section} };
-    });
-    %config_vals = (
+    my $config = TestConfig->new(
         'verify.variables' => { foo => 'bar', hi => 21 },
     );
-
     is_deeply $CLASS->configure($config, {}), {},
         'Should have no config if no options';
 
@@ -89,6 +75,7 @@ CONFIG: {
         variables => { foo => 'yo', yo => 'stellar', hi => 21 },
     }, 'Should have merged variables';
 
+    my $sqitch = App::Sqitch->new(config => $config);
     isa_ok my $verify = $CLASS->new(sqitch => $sqitch), $CLASS;
     is_deeply $verify->variables, { foo => 'bar', hi => 21 },
         'Should pick up variables from configuration';
