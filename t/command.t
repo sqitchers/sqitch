@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 170;
+use Test::More tests => 178;
 #use Test::More 'no_plan';
 use Test::NoWarnings;
 use List::Util qw(first);
@@ -198,7 +198,18 @@ isa_ok my $target = $cmd->default_target, 'App::Sqitch::Target',
 is $target->name, 'db:', 'Default target name should be "db:"';
 is $target->uri, URI->new('db:'), 'Default target URI should be "db:"';
 
+# Track what gets passed to Config->get().
+my (@get_expect, $orig_get);
+my $cmock = TestConfig->mock(get => sub {
+    my $self = shift;
+    my $exp = shift @get_expect;
+    is_deeply \@_, [key => $exp], "Should try to fetch $exp";
+    $orig_get->($self, @_);
+});
+$orig_get = $cmock->original('get');
+
 # Make sure the core.engine config option gets used.
+@get_expect = ('core.engine', 'core.target', 'core.engine', 'engine.sqlite.target', 'core.sqlite.target');
 $config->update('core.engine' => 'sqlite');
 ok $cmd = $CLASS->new({ sqitch => $sqitch }), "Create an $CLASS object";
 isa_ok $target = $cmd->default_target, 'App::Sqitch::Target',
@@ -207,6 +218,7 @@ is $target->name, 'db:sqlite:', 'Default target name should be "db:sqlite:"';
 is $target->uri, URI->new('db:sqlite:'), 'Default target URI should be "db:sqlite:"';
 
 # Make sure --engine is higher precedence.
+@get_expect = ('engine.pg.target', 'core.pg.target');
 $sqitch->options->{engine} = 'pg';
 ok $cmd = $CLASS->new({ sqitch => $sqitch }), "Create an $CLASS object";
 isa_ok $target = $cmd->default_target, 'App::Sqitch::Target',
@@ -215,6 +227,7 @@ is $target->name, 'db:pg:', 'Default target name should be "db:pg:"';
 is $target->uri, URI->new('db:pg:'), 'Default target URI should be "db:pg:"';
 
 # We should get stuff from the engine section of the config.
+@get_expect = ('engine.pg.target');
 $config->update('engine.pg.target' => 'db:pg:foo');
 ok $cmd = $CLASS->new({ sqitch => $sqitch }), "Create an $CLASS object";
 isa_ok $target = $cmd->default_target, 'App::Sqitch::Target',
@@ -224,6 +237,7 @@ is $target->uri, URI->new('db:pg:foo'), 'Default target URI should be "db:pg:foo
 
 # Cleanup.
 delete $sqitch->options->{engine};
+$cmock->unmock('get');
 
 ##############################################################################
 # Test command and execute.
