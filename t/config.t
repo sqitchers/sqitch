@@ -10,22 +10,23 @@ use Test::Exception;
 use Test::NoWarnings;
 use Path::Class;
 use File::Path qw(remove_tree);
+use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
+use lib 't/lib';
+use TestConfig;
 
 my $CLASS;
 BEGIN {
-    $CLASS = 'App::Sqitch';
+    $CLASS = 'App::Sqitch::Command::config';
     use_ok $CLASS or die;
 }
 
-# protect against user's environment variables
-delete @ENV{qw( SQITCH_CONFIG SQITCH_USER_CONFIG SQITCH_SYSTEM_CONFIG )};
-
-ok my $sqitch = App::Sqitch->new, 'Load a sqitch object';
+my $config = TestConfig->new;
+ok my $sqitch = App::Sqitch->new(config => $config), 'Load a sqitch object';
 isa_ok my $cmd = App::Sqitch::Command->load({
     sqitch  => $sqitch,
     command => 'config',
-    config  => $sqitch->config,
+    config  => $config,
 }), 'App::Sqitch::Command::config', 'Config command';
 
 isa_ok $cmd, 'App::Sqitch::Command', 'Config command';
@@ -60,35 +61,35 @@ my @usage;
 $mock->mock(usage => sub { shift; @usage = @_; die 'USAGE' });
 
 # Test for multiple config file specifications.
-throws_ok { App::Sqitch::Command::config->configure( $sqitch->config, {
+throws_ok { $CLASS->configure( $sqitch->config, {
     user    => 1,
     system  => 1,
 }) } qr/USAGE/, 'Construct with user and system';
 is_deeply \@usage, ['Only one config file at a time.'],
     'Should get error for multiple config files';
 
-throws_ok { App::Sqitch::Command::config->configure( $sqitch->config, {
+throws_ok { $CLASS->configure( $sqitch->config, {
     user  => 1,
     local => 1,
 }) } qr/USAGE/, 'Construct with user and local';
 is_deeply \@usage, ['Only one config file at a time.'],
     'Should get error for multiple config files';
 
-throws_ok { App::Sqitch::Command::config->configure( $sqitch->config, {
+throws_ok { $CLASS->configure( $sqitch->config, {
     file   => 't/sqitch.ini',
     system => 1,
 })} qr/USAGE/, 'Construct with file and system';
 is_deeply \@usage, ['Only one config file at a time.'],
     'Should get another error for multiple config files';
 
-throws_ok { App::Sqitch::Command::config->configure( $sqitch->config, {
+throws_ok { $CLASS->configure( $sqitch->config, {
     file   => 't/sqitch.ini',
     user   => 1,
 })} qr/USAGE/, 'Construct with file and user';
 is_deeply \@usage, ['Only one config file at a time.'],
     'Should get a third error for multiple config files';
 
-throws_ok { App::Sqitch::Command::config->configure( $sqitch->config, {
+throws_ok { $CLASS->configure( $sqitch->config, {
     file   => 't/sqitch.ini',
     user   => 1,
     system => 1,
@@ -97,14 +98,14 @@ is_deeply \@usage, ['Only one config file at a time.'],
     'Should get one last error for multiple config files';
 
 # Test for multiple type specifications.
-throws_ok { App::Sqitch::Command::config->configure( $sqitch->config, {
+throws_ok { $CLASS->configure( $sqitch->config, {
     bool   => 1,
     num    => 1,
 }) } qr/USAGE/, 'Construct with bool and num';
 is_deeply \@usage, ['Only one type at a time.'],
     'Should get error for multiple types';
 
-throws_ok { App::Sqitch::Command::config->configure( $sqitch->config, {
+throws_ok { $CLASS->configure( $sqitch->config, {
     sqitch => $sqitch,
     int    => 1,
     num    => 1,
@@ -112,14 +113,14 @@ throws_ok { App::Sqitch::Command::config->configure( $sqitch->config, {
 is_deeply \@usage, ['Only one type at a time.'],
     'Should get another error for multiple types';
 
-throws_ok { App::Sqitch::Command::config->configure( $sqitch->config, {
+throws_ok { $CLASS->configure( $sqitch->config, {
     int    => 1,
     bool   => 1,
 })} qr/USAGE/, 'Construct with int and bool';
 is_deeply \@usage, ['Only one type at a time.'],
     'Should get a third error for multiple types';
 
-throws_ok { App::Sqitch::Command::config->configure( $sqitch->config, {
+throws_ok { $CLASS->configure( $sqitch->config, {
     int    => 1,
     bool   => 1,
     num    => 1,
@@ -143,7 +144,7 @@ for my $spec (
     [qw(edit list remove_section)],
     [qw(edit list remove_section rename_section)],
 ) {
-    throws_ok { App::Sqitch::Command::config->configure( $sqitch->config, {
+    throws_ok { $CLASS->configure( $sqitch->config, {
         map { $_ => 1 } @{ $spec }
     })} qr/USAGE/, 'Construct with ' . join ' & ' => @{ $spec };
     is_deeply \@usage, ['Only one action at a time.'],
@@ -158,21 +159,21 @@ is $cmd->action, undef, 'Default action should be undef';
 is $cmd->context, undef, 'Default context should be undef';
 
 # Test local file name.
-is_deeply App::Sqitch::Command::config->configure( $sqitch->config, {
+is_deeply $CLASS->configure( $sqitch->config, {
     local    => 1,
 }), {
     context => 'local',
 }, 'Local context should be local';
 
 # Test user file name.
-is_deeply App::Sqitch::Command::config->configure( $sqitch->config, {
+is_deeply $CLASS->configure( $sqitch->config, {
     user    => 1,
 }), {
     context => 'user',
 }, 'User context should be user';
 
 # Test system file name.
-is_deeply App::Sqitch::Command::config->configure( $sqitch->config, {
+is_deeply $CLASS->configure( $sqitch->config, {
     system    => 1,
 }), {
     context => 'system',
@@ -188,7 +189,7 @@ my @get;
 $mock->mock(get => sub { shift; @get = @_; return 1 });
 my @get_all;
 $mock->mock(get_all => sub { shift; @get_all = @_; return 1 });
-ok $cmd = App::Sqitch::Command::config->new({
+ok $cmd = $CLASS->new({
     sqitch  => $sqitch,
     context => 'system',
 }), 'Create config set command';
@@ -198,7 +199,7 @@ is_deeply \@set, [qw(foo bar)], 'The set method should have been called';
 ok $cmd->execute(qw(foo)), 'Execute the get command';
 is_deeply \@get, [qw(foo)], 'The get method should have been called';
 
-ok $cmd = App::Sqitch::Command::config->new({
+ok $cmd = $CLASS->new({
     sqitch  => $sqitch,
     action  => 'get_all',
 }), 'Create config get_all command';
@@ -210,11 +211,11 @@ $mock->unmock(qw(set get get_all));
 ##############################################################################
 # Test get().
 chdir 't';
-$ENV{SQITCH_USER_CONFIG} = 'user.conf';
-$sqitch->config->load;
+$config = TestConfig->from(local => 'sqitch.conf', user => 'user.conf');
+$sqitch = App::Sqitch->new(config => $config);
 my @emit;
 $mock->mock(emit => sub { shift; push @emit => [@_] });
-ok $cmd = App::Sqitch::Command::config->new({
+ok $cmd = $CLASS->new({
     sqitch  => $sqitch,
     action  => 'get',
 }), 'Create config get command';
@@ -241,7 +242,7 @@ is_deeply \@usage, ['Wrong number of arguments.'],
     'And the invalid get key should trigger a usage message';
 
 # Make sure int data type works.
-ok $cmd = App::Sqitch::Command::config->new({
+ok $cmd = $CLASS->new({
     sqitch  => $sqitch,
     action  => 'get',
     type    => 'int',
@@ -262,7 +263,7 @@ throws_ok { $cmd->execute('bundle.tags_only') } 'App::Sqitch::X',
 is $@->ident, 'config', 'Int cast exception ident should be "config"';
 
 # Make sure num data type works.
-ok $cmd = App::Sqitch::Command::config->new({
+ok $cmd = $CLASS->new({
     sqitch  => $sqitch,
     action  => 'get',
     type    => 'num',
@@ -283,7 +284,7 @@ throws_ok { $cmd->execute('bundle.tags_only') } 'App::Sqitch::X',
 is $@->ident, 'config', 'Num cast exception ident should be "config"';
 
 # Make sure bool data type works.
-ok $cmd = App::Sqitch::Command::config->new({
+ok $cmd = $CLASS->new({
     sqitch  => $sqitch,
     action  => 'get',
     type    => 'bool',
@@ -302,7 +303,7 @@ is_deeply \@emit, [['true']],
 @emit = ();
 
 # Make sure bool-or-int data type works.
-ok $cmd = App::Sqitch::Command::config->new({
+ok $cmd = $CLASS->new({
     sqitch  => $sqitch,
     action  => 'get',
     type    => 'bool-or-int',
@@ -326,9 +327,9 @@ is_deeply \@emit, [['true']],
 chdir File::Spec->updir;
 
 CONTEXT: {
-    local $ENV{SQITCH_SYSTEM_CONFIG} = file qw(t sqitch.conf);
-    $sqitch->config->load;
-    ok $cmd = App::Sqitch::Command::config->new({
+    my $config = TestConfig->from(system => file qw(t sqitch.conf));
+    $sqitch = App::Sqitch->new(config => $config);
+    ok $cmd = $CLASS->new({
         sqitch  => $sqitch,
         context => 'system',
         action  => 'get',
@@ -349,9 +350,12 @@ CONTEXT: {
     is $@->exitval, 1, 'Error exitval should be 1';
     is_deeply \@emit, [], 'Nothing should have been emitted';
 
-    local $ENV{SQITCH_USER_CONFIG} = file qw(t user.conf);
-    $sqitch->config->load;
-    ok $cmd = App::Sqitch::Command::config->new({
+    $config = TestConfig->from(
+        system => file(qw(t sqitch.conf)),
+        user   => file(qw(t user.conf)),
+    );
+    $sqitch = App::Sqitch->new(config => $config);
+    ok $cmd = $CLASS->new({
         sqitch  => $sqitch,
         context => 'user',
         action  => 'get',
@@ -367,9 +371,14 @@ CONTEXT: {
         'Should have emitted the user engine.pg.client';
     @emit = ();
 
-    local $ENV{SQITCH_CONFIG} = file qw(t local.conf);
+    $config = TestConfig->from(
+        system => file(qw(t sqitch.conf)),
+        user   => file(qw(t user.conf)),
+        local  => file(qw(t local.conf)),
+    );
     $sqitch->config->load;
-    ok $cmd = App::Sqitch::Command::config->new({
+    $sqitch = App::Sqitch->new(config => $config);
+    ok $cmd = $CLASS->new({
         sqitch  => $sqitch,
         context => 'local',
         action  => 'get',
@@ -387,9 +396,9 @@ CONTEXT: {
 
 CONTEXT: {
     # What happens when there is no config file?
-    local $ENV{SQITCH_SYSTEM_CONFIG} = 'NONEXISTENT';
-    $sqitch->config->load;
-    ok $cmd = App::Sqitch::Command::config->new({
+    my $config = TestConfig->new;
+    $sqitch = App::Sqitch->new(config => $config);
+    ok $cmd = $CLASS->new({
         sqitch  => $sqitch,
         context => 'system',
         action  => 'get',
@@ -401,8 +410,7 @@ CONTEXT: {
     is $@->message, '', 'Error Message should be empty';
     is $@->exitval, 1, 'Error exitval should be 1';
 
-    local $ENV{SQITCH_USER_CONFIG} = 'NONEXISTENT';
-    ok $cmd = App::Sqitch::Command::config->new({
+    ok $cmd = $CLASS->new({
         sqitch  => $sqitch,
         context => 'user',
         action  => 'get',
@@ -414,8 +422,7 @@ CONTEXT: {
     is $@->message, '', 'Error Message should be empty';
     is $@->exitval, 1, 'Error exitval should be 1';
 
-    local $ENV{SQITCH_CONFIG} = 'NONEXISTENT';
-    ok $cmd = App::Sqitch::Command::config->new({
+    ok $cmd = $CLASS->new({
         sqitch  => $sqitch,
         context => 'local',
         action  => 'get',
@@ -430,11 +437,13 @@ CONTEXT: {
 
 ##############################################################################
 # Test list().
-local $ENV{SQITCH_SYSTEM_CONFIG} = file qw(t sqitch.conf);
-local $ENV{SQITCH_USER_CONFIG} = file qw(t user.conf);
-local $ENV{SQITCH_CONFIG} = file qw(t local.conf);
-$sqitch->config->load;
-ok $cmd = App::Sqitch::Command::config->new({
+$config = TestConfig->from(
+    system => file(qw(t sqitch.conf)),
+    user   => file(qw(t user.conf)),
+    local  => file(qw(t local.conf)),
+);
+$sqitch = App::Sqitch->new(config => $config);
+ok $cmd = $CLASS->new({
     sqitch  => $sqitch,
     action  => 'list',
 }), 'Create config list command';
@@ -471,11 +480,9 @@ user.name=Michael Stonebraker
 @emit = ();
 
 CONTEXT: {
-    local $ENV{SQITCH_SYSTEM_CONFIG} = file qw(t sqitch.conf);
-    local $ENV{SQITCH_USER_CONFIG} = undef;
-    local $ENV{SQITCH_CONFIG} = undef;
-    $sqitch->config->load;
-    ok $cmd = App::Sqitch::Command::config->new({
+    $config = TestConfig->from(system => file qw(t sqitch.conf) );
+    $sqitch = App::Sqitch->new(config => $config);
+    ok $cmd = $CLASS->new({
         sqitch  => $sqitch,
         context => 'system',
         action  => 'list',
@@ -498,9 +505,12 @@ revert.to=gamma
     ]], 'Should have emitted the system config list';
     @emit = ();
 
-    $ENV{SQITCH_USER_CONFIG} = file qw(t user.conf);
-    $sqitch->config->load;
-    ok $cmd = App::Sqitch::Command::config->new({
+    $config = TestConfig->from(
+        system => file(qw(t sqitch.conf)),
+        user   => file(qw(t user.conf)),
+    );
+    $sqitch = App::Sqitch->new(config => $config);
+    ok $cmd = $CLASS->new({
         sqitch  => $sqitch,
         context => 'user',
         action  => 'list',
@@ -523,9 +533,13 @@ user.name=Michael Stonebraker
     ]],  'Should only have emitted the user config list';
     @emit = ();
 
-    $ENV{SQITCH_CONFIG} = file qw(t local.conf);
-    $sqitch->config->load;
-    ok $cmd = App::Sqitch::Command::config->new({
+    $config = TestConfig->from(
+        system => file(qw(t sqitch.conf)),
+        user   => file(qw(t user.conf)),
+        local  => file(qw(t local.conf)),
+    );
+    $sqitch = App::Sqitch->new(config => $config);
+    ok $cmd = $CLASS->new({
         sqitch  => $sqitch,
         context => 'local',
         action  => 'list',
@@ -543,27 +557,24 @@ target.mydb.uri=db:pg:mydb
     @emit = ();
 }
 
-CONTEXT: {
-    # What happens when there is no config file?
-    local $ENV{SQITCH_SYSTEM_CONFIG} = 'NONEXISTENT';
-    local $ENV{SQITCH_USER_CONFIG} = undef;
-    ok $cmd = App::Sqitch::Command::config->new({
-        sqitch  => $sqitch,
-        context => 'system',
-        action  => 'list',
-    }), 'Create system config list command with no file';
-    ok $cmd->execute, 'List the system config';
-    is_deeply \@emit, [], 'Nothing should have been emitted';
+# What happens when there is no config file?
+$config = TestConfig->from;
+$sqitch = App::Sqitch->new(config => $config);
+ok $cmd = $CLASS->new({
+    sqitch  => $sqitch,
+    context => 'system',
+    action  => 'list',
+}), 'Create system config list command with no file';
+ok $cmd->execute, 'List the system config';
+is_deeply \@emit, [], 'Nothing should have been emitted';
 
-    $ENV{SQITCH_USER_CONFIG} = 'NONEXISTENT';
-    ok $cmd = App::Sqitch::Command::config->new({
-        sqitch  => $sqitch,
-        context => 'user',
-        action  => 'list',
-    }), 'Create user config list command with no file';
-    ok $cmd->execute, 'List the user config';
-    is_deeply \@emit, [], 'Nothing should have been emitted';
-}
+ok $cmd = $CLASS->new({
+    sqitch  => $sqitch,
+    context => 'user',
+    action  => 'list',
+}), 'Create user config list command with no file';
+ok $cmd->execute, 'List the user config';
+is_deeply \@emit, [], 'Nothing should have been emitted';
 
 ##############################################################################
 # Test set().
@@ -571,7 +582,7 @@ my $file = 'testconfig.conf';
 $mock->mock(file => $file);
 END { unlink $file }
 
-ok $cmd = App::Sqitch::Command::config->new({
+ok $cmd = $CLASS->new({
     sqitch  => $sqitch,
 }), 'Create system config set command';
 ok $cmd->execute('core.foo' => 'bar'), 'Write core.foo';
@@ -606,7 +617,7 @@ is_deeply \@usage, ['Wrong number of arguments.'],
 
 ##############################################################################
 # Test add().
-ok $cmd = App::Sqitch::Command::config->new({
+ok $cmd = $CLASS->new({
     sqitch  => $sqitch,
     action  => 'add',
 }), 'Create system config add command';
@@ -632,10 +643,9 @@ is_deeply \@usage, ['Wrong number of arguments.'],
 
 ##############################################################################
 # Test get with regex.
-delete $ENV{SQITCH_CONFIG};
-$ENV{SQITCH_USER_CONFIG} = $file;
-$sqitch->config->load;
-ok $cmd = App::Sqitch::Command::config->new({
+$config = TestConfig->from(user => $file);
+$sqitch = App::Sqitch->new(config => $config);
+ok $cmd = $CLASS->new({
     sqitch  => $sqitch,
     action  => 'get',
 }), 'Create system config add command';
@@ -657,7 +667,7 @@ is_deeply \@emit, [], 'Nothing should have been emitted';
 ##############################################################################
 # Test get_all().
 @emit = ();
-ok $cmd = App::Sqitch::Command::config->new({
+ok $cmd = $CLASS->new({
     sqitch  => $sqitch,
     action  => 'get_all',
 }), 'Create system config get_all command';
@@ -697,7 +707,9 @@ is_deeply \@usage, ['Wrong number of arguments.'],
     'And the invalid get_all key should trigger a usage message';
 
 # Make sure int data type works.
-ok $cmd = App::Sqitch::Command::config->new({
+$config = TestConfig->from(local => file qw(t sqitch.conf));
+$sqitch = App::Sqitch->new(config => $config);
+ok $cmd = $CLASS->new({
     sqitch  => $sqitch,
     action  => 'get_all',
     type    => 'int',
@@ -718,7 +730,7 @@ throws_ok { $cmd->execute('bundle.tags_only') } 'App::Sqitch::X',
 is $@->ident, 'config', 'Int cast exception ident should be "config"';
 
 # Make sure num data type works.
-ok $cmd = App::Sqitch::Command::config->new({
+ok $cmd = $CLASS->new({
     sqitch  => $sqitch,
     action  => 'get_all',
     type    => 'num',
@@ -739,7 +751,7 @@ throws_ok { $cmd->execute('bundle.tags_only') } 'App::Sqitch::X',
 is $@->ident, 'config', 'Num cast exception ident should be "config"';
 
 # Make sure bool data type works.
-ok $cmd = App::Sqitch::Command::config->new({
+ok $cmd = $CLASS->new({
     sqitch  => $sqitch,
     action  => 'get_all',
     type    => 'bool',
@@ -758,7 +770,7 @@ is_deeply \@emit, [[$Config::GitLike::VERSION > 1.08 ? 'true' : 1]],
 @emit = ();
 
 # Make sure bool-or-int data type works.
-ok $cmd = App::Sqitch::Command::config->new({
+ok $cmd = $CLASS->new({
     sqitch  => $sqitch,
     action  => 'get_all',
     type    => 'bool-or-int',
@@ -781,7 +793,9 @@ is_deeply \@emit, [[$Config::GitLike::VERSION > 1.08 ? 'true' : 1]],
 
 ##############################################################################
 # Test get_regex().
-ok $cmd = App::Sqitch::Command::config->new({
+$config = TestConfig->from(local => $file, user => file qw(t sqitch.conf));
+$sqitch = App::Sqitch->new(config => $config);
+ok $cmd = $CLASS->new({
     sqitch  => $sqitch,
     action  => 'get_regex',
 }), 'Create system config get_regex command';
@@ -823,7 +837,7 @@ is_deeply \@usage, ['Wrong number of arguments.'],
     'And the invalid get_regex key should trigger a usage message';
 
 # Make sure int data type works.
-ok $cmd = App::Sqitch::Command::config->new({
+ok $cmd = $CLASS->new({
     sqitch  => $sqitch,
     action  => 'get_regex',
     type    => 'int',
@@ -844,7 +858,7 @@ throws_ok { $cmd->execute('bundle.tags_only') } 'App::Sqitch::X',
 is $@->ident, 'config', 'Int cast exception ident should be "config"';
 
 # Make sure num data type works.
-ok $cmd = App::Sqitch::Command::config->new({
+ok $cmd = $CLASS->new({
     sqitch  => $sqitch,
     action  => 'get_regex',
     type    => 'num',
@@ -865,7 +879,7 @@ throws_ok { $cmd->execute('bundle.tags_only') } 'App::Sqitch::X',
 is $@->ident, 'config', 'Num cast exception ident should be "config"';
 
 # Make sure bool data type works.
-ok $cmd = App::Sqitch::Command::config->new({
+ok $cmd = $CLASS->new({
     sqitch  => $sqitch,
     action  => 'get_regex',
     type    => 'bool',
@@ -884,7 +898,7 @@ is_deeply \@emit, [['bundle.tags_only=' . ($Config::GitLike::VERSION > 1.08 ? 't
 @emit = ();
 
 # Make sure int data type works.
-ok $cmd = App::Sqitch::Command::config->new({
+ok $cmd = $CLASS->new({
     sqitch  => $sqitch,
     action  => 'get_regex',
     type    => 'bool-or-int',
@@ -907,7 +921,7 @@ is_deeply \@emit, [['bundle.tags_only=' . ($Config::GitLike::VERSION > 1.08 ? 't
 
 ##############################################################################
 # Test unset().
-ok $cmd = App::Sqitch::Command::config->new({
+ok $cmd = $CLASS->new({
     sqitch  => $sqitch,
     action  => 'unset',
 }), 'Create system config unset command';
@@ -943,7 +957,7 @@ is_deeply \@usage, ['Wrong number of arguments.'],
 
 ##############################################################################
 # Test unset_all().
-ok $cmd = App::Sqitch::Command::config->new({
+ok $cmd = $CLASS->new({
     sqitch  => $sqitch,
     action  => 'unset_all',
 }), 'Create system config unset_all command';
@@ -972,7 +986,7 @@ is_deeply \@usage, ['Wrong number of arguments.'],
 
 ##############################################################################
 # Test replace_all.
-ok $cmd = App::Sqitch::Command::config->new({
+ok $cmd = $CLASS->new({
     sqitch  => $sqitch,
     action  => 'replace_all',
 }), 'Create system config replace_all command';
@@ -1002,7 +1016,7 @@ $cmd->unset('core.foo', 'ba');
 
 ##############################################################################
 # Test rename_section().
-ok $cmd = App::Sqitch::Command::config->new({
+ok $cmd = $CLASS->new({
     sqitch  => $sqitch,
     action  => 'rename_section',
 }), 'Create system config rename_section command';
@@ -1031,7 +1045,7 @@ is $@->message, __ 'No such section!',
 
 ##############################################################################
 # Test remove_section().
-ok $cmd = App::Sqitch::Command::config->new({
+ok $cmd = $CLASS->new({
     sqitch  => $sqitch,
     action  => 'remove_section',
 }), 'Create system config remove_section command';
@@ -1072,7 +1086,7 @@ is $@->message, __('Cannot overwrite multiple values with a single value'),
 my $shell;
 my $ret = 1;
 $mock->mock(shell => sub { $shell = $_[1]; return $ret });
-ok $cmd = App::Sqitch::Command::config->new({
+ok $cmd = $CLASS->new({
     sqitch  => $sqitch,
     action  => 'edit',
 }), 'Create system config edit command';
@@ -1086,7 +1100,7 @@ my $path = file qw(t config.tmp test.conf);
 $mock->mock(file => $path);
 END { remove_tree +File::Spec->catdir(qw(t config.tmp)) }
 ok $sqitch = App::Sqitch->new, 'Load a new sqitch object';
-ok $cmd = App::Sqitch::Command::config->new({
+ok $cmd = $CLASS->new({
     sqitch  => $sqitch,
 }), 'Create system config set command with subdirectory config file path';
 ok $cmd->execute('my.foo', 'hi'), 'Set "my.foo" in subdirectory config file';
