@@ -185,7 +185,6 @@ sub options {
 # Override to convert multiple vars to an array.
 sub _parse_opts {
     my ( $class, $args ) = @_;
-    return {} unless $args && @{$args};
 
     my (%opts, %vars);
     Getopt::Long::Configure(qw(bundling no_pass_through));
@@ -306,6 +305,8 @@ sub configure {
 
 sub execute {
     my $self = shift;
+    $self->usage unless @_ || $self->change_name;
+
     my ($name, $targets) = $self->parse_args(
         names      => [$self->change_name],
         all        => $self->all,

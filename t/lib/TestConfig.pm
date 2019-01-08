@@ -2,6 +2,7 @@ package TestConfig;
 use strict;
 use warnings;
 use base 'App::Sqitch::Config';
+use Path::Class;
 
 # Creates and returns a new TestConfig, which inherits from
 # App::Sqitch::Config. Sets nonexistant values for the file locations and
@@ -98,13 +99,13 @@ sub mock {
 }
 
 # Returns the test local file.
-sub local_file  { $_[0]->{test_local_file}  }
+sub local_file  { file $_[0]->{test_local_file}  }
 
 # Returns the test user file.
-sub user_file   { $_[0]->{test_user_file}   }
+sub user_file   { file $_[0]->{test_user_file}   }
 
 # Returns the test system file.
-sub system_file { $_[0]->{test_system_file} }
+sub system_file { file $_[0]->{test_system_file} }
 
 # Overrides the parent implementation to load only the local file, to avoid
 # inadvertent loading of configuration files in parent directories. Unlikely

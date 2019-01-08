@@ -16,10 +16,7 @@ use File::Path qw(make_path remove_tree);
 use Test::NoWarnings;
 use lib 't/lib';
 use MockOutput;
-
-$ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
-$ENV{SQITCH_USER_CONFIG}   = 'nonexistent.user';
-$ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
+use TestConfig;
 
 my $CLASS = 'App::Sqitch::Command::bundle';
 
@@ -72,9 +69,10 @@ is_deeply $CLASS->configure($config, {from => 'HERE', to => 'THERE'}), {
 }, '--from and --to should be passed through configure';
 
 chdir 't';
-$ENV{SQITCH_CONFIG} = 'sqitch.conf';
+$config= TestConfig->from(local => 'sqitch.conf');
 END { remove_tree 'bundle' if -d 'bundle' }
 ok $sqitch = App::Sqitch->new(
+    config  => $config,
     options => { top_dir => dir('sql')->stringify },
 ), 'Load a sqitch object with top_dir';
 $config = $sqitch->config;
@@ -437,14 +435,14 @@ my @engine = (
 my $conf_file = $multidir->file('multiplan.conf'),;
 file_not_exists_ok $_ for ($conf_file, @sql, @engine);
 
-local $ENV{SQITCH_CONFIG} = 'multiplan.conf';
-$sqitch = App::Sqitch->new;
+$config = TestConfig->from(local => 'multiplan.conf');
+$sqitch = App::Sqitch->new(config => $config);
 isa_ok $bundle = $CLASS->new(
     sqitch  => $sqitch,
-    config  => $sqitch->config,
+    config  => $config,
     all     => 1,
     dest_dir => dir '_build',
-), $CLASS, 'all xmultiplan bundle command';
+), $CLASS, 'all multiplan bundle command';
 ok $bundle->execute, 'Execute multi-target bundle!';
 file_exists_ok $_ for ($conf_file, @sql, @engine);
 

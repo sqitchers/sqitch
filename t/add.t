@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 231;
+use Test::More tests => 233;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Target;
@@ -35,6 +35,7 @@ isa_ok my $add = App::Sqitch::Command->load({
     sqitch  => $sqitch,
     command => 'add',
     config  => $config,
+    args    => [],
 }), $CLASS, 'add command';
 my $target = $add->default_target;
 
@@ -222,7 +223,8 @@ is_deeply $add->note, [], 'Notes should be an arrayref';
 is_deeply $add->variables, {}, 'Varibles should be a hashref';
 is $add->template_directory, undef, 'Default dir should be undef';
 is $add->template_name, undef, 'Default temlate_name should be undef';
-is_deeply $add->with_scripts, {}, 'Default with_scripts should be empty';
+is_deeply $add->with_scripts, { map { $_ => 1} qw(deploy revert verify) },
+    'Default with_scripts should be all true';
 is_deeply $add->templates, {}, 'Default templates should be empty';
 
 ##############################################################################
@@ -608,6 +610,12 @@ USAGE: {
     throws_ok { $add->execute } qr/USAGE/,
         'No name arg or option should yield usage';
     is_deeply \@args, [$add], 'No args should be passed to usage';
+
+    # Should be true when no engine is specified, either.
+    $add = $CLASS->new(sqitch => App::Sqitch->new(config => TestConfig->new));
+    throws_ok { $add->execute } qr/USAGE/,
+        'No name arg or option should yield usage';
+    is_deeply \@args, [$add], 'No args should be passed to usage';
 }
 
 # Make sure --open-editor works
@@ -944,7 +952,9 @@ ONETOP: {
 # Test options parsing.
 can_ok $CLASS, 'options', '_parse_opts';
 ok $add = $CLASS->new({ sqitch => $sqitch }), "Create a $CLASS object again";
-is_deeply $add->_parse_opts, {}, 'Base _parse_opts should return an empty hash';
+is_deeply $add->_parse_opts([]),
+    { with_scripts => { map { $_ => 1} qw(deploy revert verify) } },
+    'Base _parse_opts should return the script config';
 
 is_deeply $add->_parse_opts([1]), {
     with_scripts => { deploy => 1, verify => 1, revert => 1 },
