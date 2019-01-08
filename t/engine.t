@@ -19,6 +19,7 @@ use App::Sqitch::DateTime;
 use List::Util qw(max);
 use lib 't/lib';
 use MockOutput;
+use TestConfig;
 
 my $CLASS;
 
@@ -28,7 +29,6 @@ BEGIN {
     delete $ENV{PGDATABASE};
     delete $ENV{PGUSER};
     delete $ENV{USER};
-    $ENV{SQITCH_CONFIG} = 'nonexistent.conf';
 }
 
 can_ok $CLASS, qw(load new name no_prompt run_deploy run_revert run_verify uri);
@@ -98,7 +98,9 @@ ENGINE: {
     sub registry_version { $registry_version }
 }
 
+my $config = TestConfig->new('core.engine' => 'sqlite');
 ok my $sqitch = App::Sqitch->new(
+    config => $config,
     options => {
         engine    => 'sqlite',
         top_dir   => dir(qw(t sql))->stringify,
@@ -832,8 +834,8 @@ chdir 't';
 my $plan_file = file qw(sql sqitch.plan);
 my $sqitch_old = $sqitch; # Hang on to this because $change does not retain it.
 $sqitch = App::Sqitch->new(
+    config => $config,
     options => {
-        engine    => 'sqlite',
         plan_file => $plan_file->stringify,
         top_dir   => 'sql',
     },
@@ -1167,10 +1169,9 @@ NOSTEPS: {
     $fh->close or die "Error closing $plan_file: $!";
     END { $plan_file->remove }
     my $sqitch = App::Sqitch->new(
-        _engine => 'sqlite',
+        config => $config,
         plan_file => $plan_file,
         options => {
-            engine => 'sqlite',
             plan_file => $plan_file->stringify,
         }
     );
