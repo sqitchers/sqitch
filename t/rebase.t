@@ -12,13 +12,10 @@ use Test::MockModule;
 use Test::Exception;
 use lib 't/lib';
 use MockOutput;
+use TestConfig;
 
 my $CLASS = 'App::Sqitch::Command::rebase';
 require_ok $CLASS or die;
-
-$ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
-$ENV{SQITCH_USER_CONFIG}   = 'nonexistent.user';
-$ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
 
 isa_ok $CLASS, 'App::Sqitch::Command';
 can_ok $CLASS, qw(
@@ -49,15 +46,14 @@ is_deeply [$CLASS->options], [qw(
     y
 )], 'Options should be correct';
 
+my $config = TestConfig->new('core.engine' => 'sqlite');
 my $sqitch = App::Sqitch->new(
+    config  => $config,
     options => {
-        engine    => 'sqlite',
         plan_file => file(qw(t sql sqitch.plan))->stringify,
         top_dir   => dir(qw(t sql))->stringify,
     }
 );
-
-my $config = $sqitch->config;
 
 # Test configure().
 is_deeply $CLASS->configure($config, {}),
@@ -141,17 +137,8 @@ is_deeply $CLASS->configure($config, {
 }, 'set_revert should merge with set_deploy';
 
 CONFIG: {
-    my $mock_config = Test::MockModule->new(ref $config);
-    my %config_vals;
-    $mock_config->mock(get => sub {
-        my ($self, %p) = @_;
-        return $config_vals{ $p{key} };
-    });
-    $mock_config->mock(get_section => sub {
-        my ($self, %p) = @_;
-        return $config_vals{ $p{section} } || {};
-    });
-    %config_vals = (
+    my $config = TestConfig->new(
+        'core.engine'      => 'sqlite',
         'deploy.variables' => { foo => 'bar', hi => 21 },
     );
 
@@ -179,7 +166,7 @@ CONFIG: {
     )]], 'Should get warning for deprecated --onto-target';
 
     # Try merging with rebase.variables, too.
-    $config_vals{'revert.variables'} = { hi => 42 };
+    $config->update('revert.variables' => { hi => 42 });
     is_deeply $CLASS->configure($config, {
         set  => { yo => 'stellar' },
     }), {
@@ -191,6 +178,7 @@ CONFIG: {
         revert_variables => { foo => 'bar', yo => 'stellar', hi => 42 },
     }, 'Should have merged --set, deploy, rebase';
 
+    my $sqitch = App::Sqitch->new(config => $config);
     isa_ok my $rebase = $CLASS->new(sqitch => $sqitch), $CLASS;
     is_deeply $rebase->deploy_variables, { foo => 'bar', hi => 21 },
         'Should pick up deploy variables from configuration';
@@ -199,7 +187,8 @@ CONFIG: {
         'Should pick up revert variables from configuration';
 
     # Make sure we can override mode, prompting, and verify.
-    %config_vals = (
+    $config = TestConfig->new(
+        'core.engine'          => 'sqlite',
         'revert.no_prompt'     => 1,
         'revert.prompt_accept' => 0,
         'deploy.verify'        => 1,
@@ -213,10 +202,12 @@ CONFIG: {
     }, 'Should have no_prompt true';
 
     # Rebase option takes precendence
-    $config_vals{'rebase.no_prompt'}     = 0;
-    $config_vals{'rebase.prompt_accept'} = 1;
-    $config_vals{'rebase.verify'}        = 0;
-    $config_vals{'rebase.mode'}          = 'change';
+    $config->update(
+        'rebase.no_prompt'     => 0,
+        'rebase.prompt_accept' => 1,
+        'rebase.verify'        => 0,
+        'rebase.mode'          => 'change',
+    );
     is_deeply $CLASS->configure($config, {}), {
         no_prompt     => 0,
         prompt_accept => 1,
@@ -224,12 +215,15 @@ CONFIG: {
         mode          => 'change',
     }, 'Should have false no_prompt, verify, and true prompt_accept from rebase config';
 
-    delete $config_vals{'revert.no_prompt'};
-    delete $config_vals{'revert.prompt_accept'};
-    delete $config_vals{'rebase.verify'};
-    delete $config_vals{'rebase.mode'};
-    $config_vals{'rebase.no_prompt'} = 1;
-    $config_vals{'rebase.prompt_accept'} = 0;
+    $config = TestConfig->new(
+        'core.engine'          => 'sqlite',
+        'revert.no_prompt'     => 1,
+        'revert.prompt_accept' => 0,
+        'deploy.verify'        => 1,
+        'deploy.mode'          => 'tag',
+        'rebase.no_prompt'     => 1,
+        'rebase.prompt_accept' => 0,
+    );
     is_deeply $CLASS->configure($config, {}), {
         no_prompt     => 1,
         prompt_accept => 0,
@@ -237,16 +231,20 @@ CONFIG: {
         mode          => 'tag',
     }, 'Should have true no_prompt, verify, and false prompt_accept from rebase from deploy';
 
-
     # But option should override.
     is_deeply $CLASS->configure($config, {y => 0, verify => 0, mode => 'all'}),
         { no_prompt => 0, verify => 0, mode => 'all', prompt_accept => 0 },
         'Should have no_prompt, prompt_accept false and mode all again';
 
-    $config_vals{'revert.no_prompt'} = 0;
-    $config_vals{'revert.prompt_accept'} = 1;
-    delete $config_vals{'rebase.no_prompt'};
-    delete $config_vals{'rebase.prompt_accept'};
+    $config = TestConfig->new(
+        'core.engine'          => 'sqlite',
+        'revert.no_prompt'     => 1,
+        'revert.prompt_accept' => 0,
+        'deploy.verify'        => 1,
+        'deploy.mode'          => 'tag',
+        'revert.no_prompt'     => 0,
+        'revert.prompt_accept' => 1,
+    );
     is_deeply $CLASS->configure($config, {}), {
         no_prompt     => 0,
         prompt_accept => 1,

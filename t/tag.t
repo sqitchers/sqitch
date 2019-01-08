@@ -14,6 +14,8 @@ use App::Sqitch::Plan;
 use Test::MockModule;
 use Digest::SHA;
 use URI;
+use lib 't/lib';
+use TestConfig;
 
 my $CLASS;
 
@@ -23,7 +25,6 @@ BEGIN {
     delete $ENV{PGDATABASE};
     delete $ENV{PGUSER};
     delete $ENV{USER};
-    $ENV{SQITCH_CONFIG} = 'nonexistent.conf';
 }
 
 can_ok $CLASS, qw(
@@ -42,10 +43,11 @@ can_ok $CLASS, qw(
     format_planner
 );
 
-my $sqitch = App::Sqitch->new(options => {
-    engine  => 'sqlite',
-    top_dir => dir(qw(t sql))->stringify,
-});
+my $config = TestConfig->new('core.engine' => 'sqlite');
+my $sqitch = App::Sqitch->new(
+    config  => $config,
+    options => { top_dir => dir(qw(t sql))->stringify },
+);
 my $target = App::Sqitch::Target->new(sqitch => $sqitch);
 my $plan   = App::Sqitch::Plan->new(sqitch => $sqitch, target => $target);
 my $change = App::Sqitch::Plan::Change->new( plan => $plan, name => 'roles' );

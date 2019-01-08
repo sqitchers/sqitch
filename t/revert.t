@@ -11,13 +11,10 @@ use Test::Exception;
 use Locale::TextDomain qw(App-Sqitch);
 use lib 't/lib';
 use MockOutput;
+use TestConfig;
 
 my $CLASS = 'App::Sqitch::Command::revert';
 require_ok $CLASS or die;
-
-$ENV{SQITCH_CONFIG} = 'nonexistent.conf';
-$ENV{SQITCH_USER_CONFIG} = 'nonexistent.user';
-$ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
 
 isa_ok $CLASS, 'App::Sqitch::Command';
 can_ok $CLASS, qw(
@@ -40,15 +37,14 @@ is_deeply [$CLASS->options], [qw(
     y
 )], 'Options should be correct';
 
+my $config = TestConfig->new('core.engine' => 'sqlite');
 my $sqitch = App::Sqitch->new(
+    config  => $config,
     options => {
-        engine    => 'sqlite',
         plan_file => file(qw(t sql sqitch.plan))->stringify,
         top_dir   => dir(qw(t sql))->stringify,
     },
 );
-
-my $config = $sqitch->config;
 
 # Test configure().
 is_deeply $CLASS->configure($config, {}), { no_prompt => 0, prompt_accept => 1 },
@@ -64,17 +60,8 @@ is_deeply $CLASS->configure($config, {
 }, 'Should have set option';
 
 CONFIG: {
-    my $mock_config = Test::MockModule->new(ref $config);
-    my %config_vals;
-    $mock_config->mock(get => sub {
-        my ($self, %p) = @_;
-        return $config_vals{ $p{key} };
-    });
-    $mock_config->mock(get_section => sub {
-        my ($self, %p) = @_;
-        return $config_vals{ $p{section} } || {};
-    });
-    %config_vals = (
+    my $config = TestConfig->new(
+        'core.engine'      => 'sqlite',
         'deploy.variables' => { foo => 'bar', hi => 21 },
     );
 
@@ -95,7 +82,7 @@ CONFIG: {
     }, 'Should have merged variables';
 
     # Try merging with revert.variables, too.
-    $config_vals{'revert.variables'} = { hi => 42 };
+    $config->update('revert.variables' => { hi => 42 });
     is_deeply $CLASS->configure($config, {
         set  => { yo => 'stellar' },
     }), {
@@ -104,12 +91,17 @@ CONFIG: {
         variables     => { foo => 'bar', yo => 'stellar', hi => 42 },
     }, 'Should have merged --set, deploy, revert';
 
+    my $sqitch = App::Sqitch->new(config => $config);
     isa_ok my $revert = $CLASS->new(sqitch => $sqitch), $CLASS;
     is_deeply $revert->variables, { foo => 'bar', hi => 42 },
         'Should pick up variables from configuration';
 
     # Make sure we can override prompting.
-    %config_vals = ('revert.no_prompt' => 1, 'revert.prompt_accept' => 0);
+    $config = TestConfig->new(
+        'core.engine'          => 'sqlite',
+        'revert.no_prompt'     => 1,
+        'revert.prompt_accept' => 0,
+    );
     is_deeply $CLASS->configure($config, {}), { no_prompt => 1, prompt_accept => 0 },
         'Should have no_prompt true, prompt_accept false';
 
@@ -117,7 +109,10 @@ CONFIG: {
     is_deeply $CLASS->configure($config, {y => 0}), { no_prompt => 0, prompt_accept => 0 },
         'Should have no_prompt false again';
 
-    %config_vals = ('revert.no_prompt' => 0, 'revert.prompt_accept' => 1);
+    $config->update(
+        'revert.no_prompt'     => 0,
+        'revert.prompt_accept' => 1,
+    );
     is_deeply $CLASS->configure($config, {}), { no_prompt => 0, prompt_accept => 1 },
         'Should have no_prompt false for false config';
 

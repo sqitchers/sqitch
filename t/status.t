@@ -13,21 +13,18 @@ use Test::MockModule;
 use Path::Class;
 use lib 't/lib';
 use MockOutput;
+use TestConfig;
 
 my $CLASS = 'App::Sqitch::Command::status';
 require_ok $CLASS;
 
-$ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
-$ENV{SQITCH_USER_CONFIG}   = 'nonexistent.user';
-$ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
-
+my $config = TestConfig->new('core.engine' => 'sqlite');
 ok my $sqitch = App::Sqitch->new(
+    config  => $config,
     options => {
-        engine  => 'sqlite',
         top_dir => Path::Class::Dir->new('test-status'),
     },
 ), 'Load a sqitch object';
-my $config = $sqitch->config;
 isa_ok my $status = App::Sqitch::Command->load({
     sqitch  => $sqitch,
     command => 'status',
@@ -150,11 +147,9 @@ is $status->target_name, 'foo', 'Should have target "foo"';
 
 ##############################################################################
 # Test configure().
-my $cmock = Test::MockModule->new('App::Sqitch::Config');
 is_deeply $CLASS->configure($config, {}), {},
     'Should get empty hash for no config or options';
-my @vals = ('nonesuch');
-$cmock->mock( get => sub { shift @vals } );
+$config->update('status.date_format' => 'nonesuch');
 throws_ok { $CLASS->configure($config, {}), {} } 'App::Sqitch::X',
     'Should get error for invalid date format in config';
 is $@->ident, 'datetime',
@@ -164,12 +159,14 @@ is $@->message, __x(
     format => 'nonesuch',
 ), 'Invalid date format error message should be correct';
 
-@vals = (undef, 1, 0);
+$config = TestConfig->new(
+    'status.show_changes' => 1,
+    'status.show_tags'   => 0,
+);
 is_deeply $CLASS->configure($config, {}), {
     show_changes => 1,
     show_tags    => 0,
 }, 'Should get bool values set from config';
-$cmock->unmock_all;
 
 throws_ok { $CLASS->configure($config, { date_format => 'non'}), {} }
     'App::Sqitch::X',
@@ -260,7 +257,8 @@ $engine_mocker->mock(current_changes => sub {
     planner_email   => 'anna@example.com',
     planned_at      => $dt->clone->subtract( hours => 4 ),
 });
-$sqitch = App::Sqitch->new(options => { engine  => 'sqlite' });
+$config = TestConfig->new('core.engine' => 'sqlite');
+$sqitch = App::Sqitch->new(config => $config);
 ok $status = App::Sqitch::Command->load({
     sqitch  => $sqitch,
     command => 'status',
@@ -430,7 +428,8 @@ $sqitch = App::Sqitch->new(options => {
 ok $status = App::Sqitch::Command->load({
     sqitch  => $sqitch,
     command => 'status',
-    config  => $config,}), 'Create status command with actual plan command';
+    config  => $config,
+}), 'Create status command with actual plan command';
 $status->target($target = $status->default_target);
 my @changes = $target->plan->changes;
 
