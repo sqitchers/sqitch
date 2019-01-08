@@ -586,17 +586,17 @@ ok $cmd = $CLASS->new({
     sqitch  => $sqitch,
 }), 'Create system config set command';
 ok $cmd->execute('core.foo' => 'bar'), 'Write core.foo';
-is_deeply read_config($cmd->file), {'core.foo' => 'bar' },
+is_deeply $config->data_from($cmd->file), {'core.foo' => 'bar' },
     'The property should have been written';
 
 # Write another property.
 ok $cmd->execute('core.engine' => 'funky'), 'Write core.engine';
-is_deeply read_config($cmd->file), {'core.foo' => 'bar', 'core.engine' => 'funky' },
+is_deeply $config->data_from($cmd->file), {'core.foo' => 'bar', 'core.engine' => 'funky' },
     'Both settings should be saved';
 
 # Write a sub-propery.
 ok $cmd->execute('engine.pg.user' => 'theory'), 'Write engine.pg.user';
-is_deeply read_config($cmd->file), {
+is_deeply $config->data_from($cmd->file), {
     'core.foo'     => 'bar',
     'core.engine'  => 'funky',
     'engine.pg.user' => 'theory',
@@ -622,7 +622,7 @@ ok $cmd = $CLASS->new({
     action  => 'add',
 }), 'Create system config add command';
 ok $cmd->execute('core.foo' => 'baz'), 'Add to core.foo';
-is_deeply read_config($cmd->file), {
+is_deeply $config->data_from($cmd->file), {
     'core.foo'     => ['bar', 'baz'],
     'core.engine'  => 'funky',
     'engine.pg.user' => 'theory',
@@ -927,12 +927,12 @@ ok $cmd = $CLASS->new({
 }), 'Create system config unset command';
 
 ok $cmd->execute('engine.pg.user'), 'Unset engine.pg.user';
-is_deeply read_config($cmd->file), {
+is_deeply $config->data_from($cmd->file), {
     'core.foo'    => ['bar', 'baz'],
     'core.engine' => 'funky',
 }, 'engine.pg.user should be gone';
 ok $cmd->execute('core.engine'), 'Unset core.engine';
-is_deeply read_config($cmd->file), {
+is_deeply $config->data_from($cmd->file), {
     'core.foo'  => ['bar', 'baz'],
 }, 'core.engine should have been removed';
 
@@ -943,7 +943,7 @@ is $@->message, __ 'Cannot unset key with multiple values',
     'And it should have the proper error message';
 
 ok $cmd->execute('core.foo', 'z$'), 'Unset core.foo with a regex';
-is_deeply read_config($cmd->file), {
+is_deeply $config->data_from($cmd->file), {
     'core.foo' => 'bar',
 }, 'The core.foo "baz" value should have been removed';
 
@@ -964,7 +964,7 @@ ok $cmd = $CLASS->new({
 
 $cmd->add('core.foo', 'baz');
 ok $cmd->execute('core.foo'), 'unset_all core.foo';
-is_deeply read_config($cmd->file), {}, 'core.foo should have been removed';
+is_deeply $config->data_from($cmd->file), {}, 'core.foo should have been removed';
 
 # Test handling of multiple value.
 $cmd->add('core.foo', 'bar');
@@ -972,7 +972,7 @@ $cmd->add('core.foo', 'baz');
 $cmd->add('core.foo', 'yo');
 
 ok $cmd->execute('core.foo', '^ba'), 'unset_all core.foo with regex';
-is_deeply read_config($cmd->file), {
+is_deeply $config->data_from($cmd->file), {
     'core.foo' => 'yo',
 }, 'core.foo should have one value left';
 
@@ -996,7 +996,7 @@ $cmd->add('core.bar', 'baz');
 $cmd->add('core.bar', 'yo');
 
 ok $cmd->execute('core.bar', 'hi'), 'Replace all core.bar';
-is_deeply read_config($cmd->file), {
+is_deeply $config->data_from($cmd->file), {
     'core.bar' => 'hi',
     'core.foo' => 'yo',
 }, 'core.bar should have all its values with one value';
@@ -1005,7 +1005,7 @@ $cmd->add('core.foo', 'bar');
 $cmd->add('core.foo', 'baz');
 ok $cmd->execute('core.foo', 'ba', '^ba'), 'Replace all core.bar matching /^ba/';
 
-is_deeply read_config($cmd->file), {
+is_deeply $config->data_from($cmd->file), {
     'core.bar' => 'hi',
     'core.foo' => ['yo', 'ba'],
 }, 'core.foo should have had the matching values replaced';
@@ -1021,7 +1021,7 @@ ok $cmd = $CLASS->new({
     action  => 'rename_section',
 }), 'Create system config rename_section command';
 ok $cmd->execute('core', 'funk'), 'Rename "core" to "funk"';
-is_deeply read_config($cmd->file), {
+is_deeply $config->data_from($cmd->file), {
     'funk.foo' => 'yo',
 }, 'core.foo should have become funk.foo';
 
@@ -1050,7 +1050,7 @@ ok $cmd = $CLASS->new({
     action  => 'remove_section',
 }), 'Create system config remove_section command';
 ok $cmd->execute('funk'), 'Remove "func" section';
-is_deeply read_config($cmd->file), {},
+is_deeply $config->data_from($cmd->file), {},
     'The "funk" section should be gone';
 
 throws_ok { $cmd->execute() } qr/USAGE/, 'Should fail with no name';
@@ -1104,11 +1104,5 @@ ok $cmd = $CLASS->new({
     sqitch  => $sqitch,
 }), 'Create system config set command with subdirectory config file path';
 ok $cmd->execute('my.foo', 'hi'), 'Set "my.foo" in subdirectory config file';
-is_deeply read_config($cmd->file), {'my.foo' => 'hi' },
+is_deeply $config->data_from($cmd->file), {'my.foo' => 'hi' },
     'The file should have been written';
-
-sub read_config {
-    my $conf = App::Sqitch::Config->new;
-    $conf->load_file(shift);
-    $conf->data;
-}

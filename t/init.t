@@ -18,6 +18,7 @@ use File::Path qw(remove_tree make_path);
 use URI;
 use lib 't/lib';
 use MockOutput;
+use TestConfig;
 
 my $exe_ext = App::Sqitch::ISWIN ? '.exe' : '';
 
@@ -31,19 +32,11 @@ BEGIN {
 isa_ok $CLASS, 'App::Sqitch::Command', $CLASS;
 chdir 't';
 
-sub read_config($) {
-    my $conf = App::Sqitch::Config->new;
-    $conf->load_file(shift);
-    $conf->data;
-}
-
-$ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
-$ENV{SQITCH_USER_CONFIG}   = 'nonexistent.user';
-$ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
-
 ##############################################################################
 # Test options and configuration.
+my $config = TestConfig->new;
 my $sqitch = App::Sqitch->new(
+    config => $config,
     options => { top_dir => dir('init.mkdir') },
 );
 
@@ -77,7 +70,7 @@ is_deeply $CLASS->configure({}, { uri => 'https://example.com' }), {
     uri        => URI->new('https://example.com'),
     properties => {},
 }, 'Should accept a URI in options';
-ok my $config = $CLASS->configure({}, {
+ok my $conf = $CLASS->configure({}, {
     uri                 => 'https://example.com',
     engine              => 'pg',
     top_dir             => 'top',
@@ -97,8 +90,8 @@ ok my $config = $CLASS->configure({}, {
     },
 }), 'Get full config';
 
-isa_ok $config->{uri}, 'URI', 'uri propertiy';
-is_deeply $config->{properties}, {
+isa_ok $conf->{uri}, 'URI', 'uri propertiy';
+is_deeply $conf->{properties}, {
         engine              => 'pg',
         top_dir             => 'top',
         plan_file           => 'my.plan',
@@ -114,10 +107,10 @@ is_deeply $config->{properties}, {
         reworked_revert_dir => 'rrev',
         reworked_verify_dir => 'rver',
 }, 'Should have properties';
-isa_ok $config->{properties}{$_}, 'Path::Class::File', "$_ file attribute" for qw(
+isa_ok $conf->{properties}{$_}, 'Path::Class::File', "$_ file attribute" for qw(
     plan_file
 );
-isa_ok $config->{properties}{$_}, 'Path::Class::Dir', "$_ directory attribute" for (
+isa_ok $conf->{properties}{$_}, 'Path::Class::Dir', "$_ directory attribute" for (
     'top_dir',
     'reworked_dir',
     map { ($_, "reworked_$_") } qw(deploy_dir revert_dir verify_dir)
@@ -203,6 +196,7 @@ FSERR: {
 
 ##############################################################################
 # Test write_config().
+$sqitch = App::Sqitch->new(config => $config);
 can_ok $init, 'write_config';
 
 my $write_dir = 'init.write';
@@ -214,7 +208,6 @@ my $conf_file = $sqitch->config->local_file;
 
 my $uri = URI->new('https://github.com/sqitchers/sqitch/');
 
-$sqitch = App::Sqitch->new;
 ok $init = $CLASS->new(
     sqitch  => $sqitch,
 ), 'Another init object';
@@ -224,7 +217,7 @@ $target = $init->default_target;
 # Write empty config.
 ok $init->write_config, 'Write the config';
 file_exists_ok $conf_file;
-is_deeply read_config $conf_file, {
+is_deeply $config->data_from($conf_file), {
 }, 'The configuration file should have no variables';
 is_deeply +MockOutput->get_info, [
     [__x 'Created {file}', file => $conf_file]
@@ -242,13 +235,13 @@ file_contents_like $conf_file, qr{\Q[core]
 unlink $conf_file;
 
 # Set two options.
-$sqitch = App::Sqitch->new;
+$sqitch = App::Sqitch->new(config => $config);
 ok $init = $CLASS->new( sqitch => $sqitch,  properties => { extension => 'foo' } ),
     'Another init object';
 $target = $init->default_target;
 ok $init->write_config, 'Write the config';
 file_exists_ok $conf_file;
-is_deeply read_config $conf_file, {
+is_deeply $config->data_from($conf_file), {
     'core.extension' => 'foo',
 }, 'The configuration should have been written with the one setting';
 is_deeply +MockOutput->get_info, [
@@ -263,7 +256,7 @@ file_contents_like $conf_file, qr{
 
 # Go again.
 ok $init->write_config, 'Write the config again';
-is_deeply read_config $conf_file, {
+is_deeply $config->data_from($conf_file), {
     'core.extension' => 'foo',
 }, 'The configuration should be unchanged';
 is_deeply +MockOutput->get_info, [
@@ -272,14 +265,14 @@ is_deeply +MockOutput->get_info, [
 USERCONF: {
     # Delete the file and write with a user config loaded.
     unlink $conf_file;
-    local $ENV{SQITCH_USER_CONFIG} = file +File::Spec->updir, 'user.conf';
-    my $sqitch = App::Sqitch->new;
+    my $config = TestConfig->from( user => file +File::Spec->updir, 'user.conf' );
+    my $sqitch = App::Sqitch->new(config => $config);
     ok my $init = $CLASS->new( sqitch => $sqitch, properties => { extension => 'foo' }),
         'Make an init object with user config';
     file_not_exists_ok $conf_file;
     ok $init->write_config, 'Write the config with a user conf';
     file_exists_ok $conf_file;
-    is_deeply read_config $conf_file, {
+    is_deeply $config->data_from($conf_file), {
         'core.extension' => 'foo',
     }, 'The configuration should just have core.top_dir';
     is_deeply +MockOutput->get_info, [
@@ -295,15 +288,15 @@ USERCONF: {
 SYSTEMCONF: {
     # Delete the file and write with a system config loaded.
     unlink $conf_file;
-    local $ENV{SQITCH_SYSTEM_CONFIG} = file +File::Spec->updir, 'sqitch.conf';
-    my $sqitch = App::Sqitch->new;
+    my $config = TestConfig->from( system => file +File::Spec->updir, 'sqitch.conf' );
+    my $sqitch = App::Sqitch->new(config => $config);
     ok my $init = $CLASS->new( sqitch => $sqitch, properties => { extension => 'foo' } ),
         'Make an init object with system config';
     ok $target = $init->default_target, 'Get target';
     file_not_exists_ok $conf_file;
     ok $init->write_config, 'Write the config with a system conf';
     file_exists_ok $conf_file;
-    is_deeply read_config $conf_file, {
+    is_deeply $config->data_from($conf_file), {
         'core.extension' => 'foo',
         'core.engine' => 'pg',
     }, 'The configuration should have local and system config' or diag $conf_file->slurp;
@@ -321,7 +314,7 @@ SYSTEMCONF: {
 ##############################################################################
 # Now get it to write a bunch of other stuff.
 unlink $conf_file;
-$sqitch = App::Sqitch->new;
+$sqitch = App::Sqitch->new(config => $config);
 
 ok $init = $CLASS->new(
     sqitch              => $sqitch,
@@ -347,7 +340,7 @@ is_deeply +MockOutput->get_info, [
     [__x 'Created {file}', file => $conf_file]
 ], 'The creation should be sent to info once more';
 
-is_deeply read_config $conf_file, {
+is_deeply $config->data_from($conf_file), {
     'core.top_dir'             => 'top',
     'core.plan_file'           => 'my.plan',
     'core.deploy_dir'          => 'dep',
@@ -366,23 +359,24 @@ is_deeply read_config $conf_file, {
 ##############################################################################
 # Now get it to write core.sqlite stuff with main options.
 unlink $conf_file;
+$config = TestConfig->new('core.engine' => 'sqlite');
 $sqitch = App::Sqitch->new(
+    config => $config,
     options => {
-        engine => 'sqlite',
-        client => '/to/sqlite3',
+        client   => '/to/sqlite3',
         registry => 'foo',
-        target  => 'bar',
+        target   => 'bar',
     },
 );
 
-ok $init = $CLASS->new( sqitch => $sqitch ),
+ok $init = $CLASS->new( sqitch => $sqitch, properties => { engine => 'sqlite' } ),
     'Create new init with sqitch with non-default engine attributes';
 ok $init->write_config, 'Write the config with engine attrs';
 is_deeply +MockOutput->get_info, [
     [__x 'Created {file}', file => $conf_file]
 ], 'The creation should be sent to info yet again';
 
-is_deeply read_config $conf_file, {
+is_deeply $config->data_from($conf_file), {
     'core.engine'            => 'sqlite',
     'engine.sqlite.client'   => '/to/sqlite3',
     'engine.sqlite.registry' => 'foo',
@@ -392,14 +386,14 @@ is_deeply read_config $conf_file, {
 
 # Try it with no options.
 unlink $conf_file;
-$sqitch = App::Sqitch->new(options => { engine => 'sqlite' });
-ok $init = $CLASS->new( sqitch => $sqitch ),
+$sqitch = App::Sqitch->new(config => $config);
+ok $init = $CLASS->new( sqitch => $sqitch, properties => { engine => 'sqlite' } ),
     'Create new init with sqitch with default engine attributes';
 ok $init->write_config, 'Write the config with engine attrs';
 is_deeply +MockOutput->get_info, [
     [__x 'Created {file}', file => $conf_file]
 ], 'The creation should be sent to info again again';
-is_deeply read_config $conf_file, {
+is_deeply $config->data_from($conf_file), {
     'core.engine' => 'sqlite',
 }, 'The configuration should have been written with only the engine var';
 
@@ -413,8 +407,9 @@ file_contents_like $conf_file, qr{^\Q# [engine "sqlite"]
 USERCONF: {
     # Delete the file and write with a user config loaded.
     unlink $conf_file;
-    local $ENV{SQITCH_USER_CONFIG} = file +File::Spec->updir, 'user.conf';
-    my $sqitch = App::Sqitch->new(options => { engine => 'sqlite' });
+    my $config = TestConfig->from( user => file +File::Spec->updir, 'user.conf' );
+    $config->update('core.engine' => 'sqlite');
+    my $sqitch = App::Sqitch->new(config => $config);
     ok my $init = $CLASS->new( sqitch => $sqitch ),
         'Make an init with sqlite and user config';
     file_not_exists_ok $conf_file;
@@ -423,7 +418,7 @@ USERCONF: {
         [__x 'Created {file}', file => $conf_file]
     ], 'The creation should be sent to info once more';
 
-    is_deeply read_config $conf_file, {
+    is_deeply $config->data_from($conf_file), {
         'core.engine'         => 'sqlite',
     }, 'New config should have been written with sqlite values';
 
@@ -438,21 +433,20 @@ USERCONF: {
 ##############################################################################
 # Now get it to write engine.pg stuff.
 unlink $conf_file;
+$config = TestConfig->new;
 $sqitch = App::Sqitch->new(
-    options => {
-        engine     => 'pg',
-        client      => '/to/psql',
-    },
+    config => $config,
+    options => { client => '/to/psql' },
 );
 
-ok $init = $CLASS->new( sqitch => $sqitch ),
+ok $init = $CLASS->new( sqitch => $sqitch, properties => { engine => 'pg' } ),
     'Create new init with sqitch with more non-default engine attributes';
 ok $init->write_config, 'Write the config with more engine attrs';
 is_deeply +MockOutput->get_info, [
     [__x 'Created {file}', file => $conf_file]
 ], 'The creation should be sent to info one more time';
 
-is_deeply read_config $conf_file, {
+is_deeply $config->data_from($conf_file), {
     'core.engine'    => 'pg',
     'engine.pg.client' => '/to/psql',
 }, 'The configuration should have been written with client values' or diag $conf_file->slurp;
@@ -462,14 +456,14 @@ file_contents_like $conf_file, qr/^\t# registry = sqitch\n/m,
 
 # Try it with no config or options.
 unlink $conf_file;
-$sqitch = App::Sqitch->new(options => { engine => 'pg' });
-ok $init = $CLASS->new( sqitch => $sqitch ),
+$sqitch = App::Sqitch->new(config => $config);
+ok $init = $CLASS->new( sqitch => $sqitch, properties => { engine => 'pg' } ),
     'Create new init with sqitch with default engine attributes';
 ok $init->write_config, 'Write the config with engine attrs';
 is_deeply +MockOutput->get_info, [
     [__x 'Created {file}', file => $conf_file]
 ], 'The creation should be sent to info again again again';
-is_deeply read_config $conf_file, {
+is_deeply $config->data_from($conf_file), {
     'core.engine' => 'pg',
 }, 'The configuration should have been written with only the engine var' or diag $conf_file->slurp;
 
@@ -482,8 +476,9 @@ file_contents_like $conf_file, qr{^\Q# [engine "pg"]
 USERCONF: {
     # Delete the file and write with a user config loaded.
     unlink $conf_file;
-    local $ENV{SQITCH_USER_CONFIG} = file +File::Spec->updir, 'user.conf';
-    my $sqitch = App::Sqitch->new(options => { engine => 'pg' });
+    my $config = TestConfig->from( user => file +File::Spec->updir, 'user.conf' );
+    $config->update('core.engine' => 'pg');
+    my $sqitch = App::Sqitch->new(config => $config);
     ok my $init = $CLASS->new( sqitch  => $sqitch ),
         'Make an init with pg and user config';
     file_not_exists_ok $conf_file;
@@ -492,7 +487,7 @@ USERCONF: {
         [__x 'Created {file}', file => $conf_file]
     ], 'The pg config creation should be sent to info';
 
-    is_deeply read_config $conf_file, {
+    is_deeply $config->data_from($conf_file), {
         'core.engine'      => 'pg',
     }, 'The configuration should have been written with pg options' or diag $conf_file->slurp;
 
@@ -506,7 +501,7 @@ USERCONF: {
 ##############################################################################
 # Test write_plan().
 can_ok $init, 'write_plan';
-$target = $init->default_target;
+$target = $init->config_target;
 $plan_file = $target->plan_file;
 file_not_exists_ok $plan_file, 'Plan file should not yet exist';
 ok $init->write_plan( project => 'nada' ), 'Write the plan file';
@@ -555,7 +550,10 @@ file_contents_like $plan_file, qr/testing 1, 2, 3/,
 
 # Make sure a URI gets written, if present.
 $plan_file->remove;
-$sqitch = App::Sqitch->new(options => { top_dir => dir('plan.dir') });
+$sqitch = App::Sqitch->new(
+    config  => $config,
+    options => { top_dir => dir('plan.dir') },
+);
 END { remove_tree dir('plan.dir')->stringify };
 ok $init = $CLASS->new(
     sqitch => $sqitch,

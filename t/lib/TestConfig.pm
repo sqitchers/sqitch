@@ -13,7 +13,7 @@ BEGIN {
 }
 
 # Creates and returns a new TestConfig, which inherits from
-# App::Sqitch::Config. Sets nonexistant values for the file locations and
+# App::Sqitch::Config. Sets nonexistent values for the file locations and
 # calls update() on remaining args.
 #
 #   my $config = TestConfig->new(
@@ -24,14 +24,14 @@ BEGIN {
 #  );
 sub new {
     my $self = shift->SUPER::new;
-    $self->{test_local_file}  = 'nonexistant.local';
-    $self->{test_user_file}   = 'nonexistant.user';
-    $self->{test_system_file} = 'nonexistant.system';
+    $self->{test_local_file}  = 'nonexistent.local';
+    $self->{test_user_file}   = 'nonexistent.user';
+    $self->{test_system_file} = 'nonexistent.system';
     $self->update(@_);
     return $self;
 }
 
-# Pass in key/value pairs to set the data. Existinf values are not removed.
+# Pass in key/value pairs to set the data. Existing values are not removed.
 # Keys should be "$section.$name". Values can be scalars, arrays, or hashes.
 # Scalars are simply set as-is. Arrays are set as multiple values for the key.
 # Hashes have each of their keys appended as "$section.$name.$key", with the
@@ -70,8 +70,8 @@ sub update {
 
 
 # Creates and returns a new TestConfig, which inherits from
-# App::Sqitch::Config. Parmeters specify files to load using the keys "local",
-# "user", and "system". Any file not specified will be set to a nonexistant
+# App::Sqitch::Config. Parameters specify files to load using the keys "local",
+# "user", and "system". Any file not specified will be set to a nonexistent
 # value. Once the files are set, the data is loaded from the files and the
 # TestObject returned.
 #
@@ -84,7 +84,7 @@ sub from {
     my ($class, %p) = @_;
     my $self = shift->SUPER::new;
     for my $level (qw(local user system)) {
-        $self->{"test_${level}_file"} = $p{$level} || "nonexistant.$level";
+        $self->{"test_${level}_file"} = $p{$level} || "nonexistent.$level";
     }
     $self->load;
     return $self;
@@ -119,11 +119,20 @@ sub system_file { file $_[0]->{test_system_file} }
 
 # Overrides the parent implementation to load only the local file, to avoid
 # inadvertent loading of configuration files in parent directories. Unlikely
-# to be calle directly by tests.
+# to be called directly by tests.
 sub load_dirs   {
     my $self = shift;
     # Exclude files in parent directories.
     $self->load_file($self->local_file);
+}
+
+# Parses the specified configuration file and returns a hash reference. May be
+# called as either a class or instance method; in neither case is the data
+# stored anywhere other than the returned hash reference.
+sub data_from {
+    my $conf = shift->SUPER::new;
+    $conf->load_file(shift);
+    $conf->data;
 }
 
 1;
