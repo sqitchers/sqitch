@@ -16,17 +16,14 @@ use Locale::TextDomain qw(App-Sqitch);
 use Test::MockModule;
 use lib 't/lib';
 use MockOutput;
-
-$ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
-$ENV{SQITCH_USER_CONFIG}   = 'nonexistent.user';
-$ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
+use TestConfig;
 
 BEGIN { require_ok 'App::Sqitch::Plan::ChangeList' or die }
 
-my $sqitch = App::Sqitch->new(options => {
-    engine => 'sqlite',
-    top_dir => dir(qw(t sql))->stringify,
-});
+my $sqitch = App::Sqitch->new(
+    config  => TestConfig->new('core.engine' => 'sqlite'),
+    options => { top_dir => dir(qw(t sql))->stringify },
+);
 my $target = App::Sqitch::Target->new(sqitch => $sqitch);
 my $plan   = App::Sqitch::Plan->new(sqitch => $sqitch, target => $target);
 

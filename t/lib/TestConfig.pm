@@ -44,13 +44,13 @@ sub update {
         my $ref = ref $v;
         if ($ref eq '') {
             $k =~ s/[.]([^.]+)$//;
-            $self->define(section => $k, name => $1, value => $v);
+            $self->define(origin => '', section => $k, name => $1, value => $v);
         } elsif ($ref eq 'HASH') {
-            $self->define(section => $k, name => $_, value => $v->{$_} )
+            $self->define(origin => '', section => $k, name => $_, value => $v->{$_} )
                 for keys %{ $v };
         } elsif ($ref eq 'ARRAY') {
             $k =~ s/[.]([^.]+)$//;
-            $self->define(section => $k, name => $1, value => $_) for @{ $v }
+            $self->define(origin => '', section => $k, name => $1, value => $_) for @{ $v }
         } else {
             require Carp;
             Carp::confess("Cannot set config value of type $ref");
