@@ -4,7 +4,7 @@ sqitch-checkout-usage - Sqitch checkout usage statement
 
 =head1 Usage
 
-  sqitch [options] checkout [checkout options] [<database>] <branch>
+  sqitch checkout [options] [<database>] <branch>
 
 =head1 Options
 
@@ -12,8 +12,14 @@ sqitch-checkout-usage - Sqitch checkout usage statement
        --mode <mode>             deploy failure reversion mode (all, tag, or change)
        --verify                  run verify scripts after deploying each change
        --no-verify               do not run verify scripts
-    -s --set <key=value>         set a database client variable
+    -s --set        <key=value>  set a database client variable
     -r --set-revert <key=value>  set a database client revert variable
-    -r --set-deploy <key=value>  set a database client deploy variable
+    -d --set-deploy <key=value>  set a database client deploy variable
        --log-only                log changes without running them
     -y                           disable the prompt before reverting
+       --registry   <registry>   registry schema or database
+       --db-client  <path>       path to the engine command-line client
+    -d --db-name    <name>       database name
+    -u --db-user    <user>       database user name
+    -h --db-host    <host>       database server host name
+    -p --db-port    <port>       database server port number

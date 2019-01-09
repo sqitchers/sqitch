@@ -39,12 +39,12 @@ ok $CLASS->does($ROLE), "$CLASS does $ROLE";
 is_deeply [$CLASS->options], [qw(
     foo
     quack|k=s
+    registry=s
+    client|db-client=s
     db-name|d=s
     db-user|db-username|u=s
     db-host|h=s
     db-port|p=i
-    registry=s
-    client|db-client=s
 )], 'Options should include connection options';
 
 ##############################################################################

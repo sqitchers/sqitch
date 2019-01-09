@@ -20,12 +20,12 @@ has _params => (
 around options => sub {
     my $orig = shift;
     return $orig->(@_), qw(
+        registry=s
+        client|db-client=s
         db-name|d=s
         db-user|db-username|u=s
         db-host|h=s
         db-port|p=i
-        registry=s
-        client|db-client=s
     );
 };
 
