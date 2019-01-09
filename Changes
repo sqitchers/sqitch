@@ -60,6 +60,9 @@ Revision history for Perl extension App::Sqitch
        `--engine` and instead suggests setting the engine via the target.
      - Fixed an issue with command argument parsing so that it truly never
        returns a target without an engine specified, as documented.
+     - Refactored config handling in tests to use a custom subclass of
+       App::Sqitch::Config instead of various mocks, temporary files, and the
+       like.
 
 0.9998 2018-10-03T20:53:58Z
      - Fixed an issue where Sqitch would sometimes truncate the registry
