@@ -613,7 +613,7 @@ followed by named targets, then engine targets.
 
   my $target = App::Sqitch::Target->new( $cmd->target_params );
 
-Returns a list of paramters suitable for passing to the C<new> or
+Returns a list of parameters suitable for passing to the C<new> or
 C<all_targets> constructors of App::Sqitch::Target.
 
 =head3 C<run>
