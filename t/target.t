@@ -9,7 +9,6 @@ use Path::Class qw(dir file);
 use Test::Exception;
 use Locale::TextDomain qw(App-Sqitch);
 use lib 't/lib';
-use MockOutput;
 use TestConfig;
 
 my $CLASS;
@@ -360,6 +359,56 @@ CONSTRUCTOR: {
             'Should have requested target URI from config';
         is_deeply \@sect_params, [], 'Should have requested no sections';
     }
+
+    # Make sure uri params work.
+    @get_params = @sect_params = ();
+    $config->replace('core.engine' => 'pg');
+    $uri = URI::db->new('db:pg://fred@foo.com:12245/widget');
+    isa_ok $target = $CLASS->new(
+        sqitch => $sqitch,
+        host   => 'foo.com',
+        port   => 12245,
+        user   => 'fred',
+        dbname => 'widget',
+    ), $CLASS, 'URI-munged target';
+    is_deeply \@sect_params, [], 'Should have requested no section';
+    like $target->name, qr{db:pg://fred:?\@foo.com:12245/widget},
+        'Name should be passwordless stringified URI';
+    is $target->uri, $uri, 'URI should be tweaked by URI params';
+
+    # URI params should work when URI read from target config.
+    $uri = URI::db->new('db:pg://foo.com/widget');
+    @get_params = @sect_params = ();
+    $sqitch->options->{db_host} = 'foo.com';
+    $sqitch->options->{db_name} = 'widget';
+    $config->update('target.foo.uri' => 'db:pg:');
+    isa_ok $target = $CLASS->new(
+        sqitch => $sqitch,
+        name   => 'foo',
+        host   => 'foo.com',
+        dbname => 'widget',
+    ), $CLASS, 'Foo target';
+    is_deeply \@get_params, [ [key => 'target.foo.uri' ]],
+        'Should have requested target URI';
+    is_deeply \@sect_params, [], 'Should have fetched no section';
+    is $target->name, 'foo', 'Name should be as passed';
+    is $target->uri, $uri, 'URI should be tweaked by URI params';
+
+    # URI params should work when URI passsed.
+    $uri = URI::db->new('db:pg://foo.com/widget');
+    @get_params = @sect_params = ();
+    $sqitch->options->{db_host} = 'foo.com';
+    $sqitch->options->{db_name} = 'widget';
+    isa_ok $target = $CLASS->new(
+        sqitch => $sqitch,
+        name   => 'db:pg:widget',
+        host   => 'foo.com',
+        dbname => 'widget',
+    ), $CLASS, 'URI target';
+    is_deeply \@get_params, [], 'Should have requested no config';
+    is_deeply \@sect_params, [], 'Should have fetched no section';
+    is $target->name, $uri, 'Name should tweaked by URI params';
+    is $target->uri, $uri, 'URI should be tweaked by URI params';
 }
 
 CONFIG: {

@@ -4,7 +4,7 @@ use 5.010;
 use Moo;
 use strict;
 use warnings;
-use App::Sqitch::Types qw(Maybe URIDB Str Dir Engine Sqitch File Plan Bool);
+use App::Sqitch::Types qw(Maybe URIDB Str Dir Engine Sqitch File Plan);
 use App::Sqitch::X qw(hurl);
 use Locale::TextDomain qw(App-Sqitch);
 use Path::Class qw(dir file);
@@ -275,6 +275,11 @@ sub BUILDARGS {
         uri => $uri->as_string,
     );
 
+    # Override with optional parameters.
+    for my $attr (qw(user host port dbname)) {
+        $uri->$attr(delete $p->{$attr}) if exists $p->{$attr};
+    }
+
     unless ($name) {
         # Set the name.
         if ($uri->password) {
@@ -404,6 +409,40 @@ As a general rule, then, pass either a target name or URI string in the
 C<name> parameter, and Sqitch will do its best to find all the relevant target
 information. And if there is no name or URI, it will try to construct a
 reasonable default from the command-line options or engine configuration.
+
+All Target attributes may be passed as parameters to C<new()>. In addition,
+C<new()> accepts a few non-attribute parameters that may be used to override
+parts of the connection URI. They are:
+
+=over
+
+=item * C<user>
+
+=item * C<host>
+
+=item * C<port>
+
+=item * C<dbname>
+
+=back
+
+For example, if the the named target had its URI configured as
+C<db:pg://fred@example.com/work>, The C<uri> would be set as such by:
+
+  my $target = App::Sqitch::Target->new(sqitch => $sqitch, name => 'work');
+  say $target->uri;
+
+However, passing the URI parameters like this:
+
+  my $target = App::Sqitch::Target->new(
+      sqitch => $sqitch,
+      name => 'work',
+      user => 'bill',
+      port => 1212,
+  );
+  say $target->uri;
+
+Sets the URI to C<db:pg://bill@example.com:1212/work>.
 
 =head3 C<all_targets>
 

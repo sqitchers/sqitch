@@ -81,6 +81,8 @@ Revision history for Perl extension App::Sqitch
      - Removed support for reading the `core.$engine` configuration, which has
        been deprecated with warnings since 0.997. The `sqitch engine
        update-config` action remains in place.
+     - Added the URI-overridding parameters `user`, `host`, `port`, and
+       `dbname` to App::Sqitch::Target.
 
 0.9998 2018-10-03T20:53:58Z
      - Fixed an issue where Sqitch would sometimes truncate the registry

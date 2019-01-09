@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 191;
+use Test::More tests => 189;
 #use Test::More 'no_plan';
 use Test::NoWarnings;
 use List::Util qw(first);
