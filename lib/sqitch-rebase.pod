@@ -135,6 +135,69 @@ running the deploy and revert scripts.
 
 Disable the prompt that normally asks whether or not to execute the revert.
 
+=item C<--registry>
+
+  sqitch checkout --registry registry
+
+The name of the Sqitch registry schema or database in which sqitch stores its
+own data.
+
+=item C<--db-client>
+
+=item C<--client>
+
+  sqitch checkout --client /usr/local/pgsql/bin/psql
+
+Path to the command-line client for the database engine. Defaults to a client
+in the current path named appropriately for the database engine.
+
+=item C<-d>
+
+=item C<--db-name>
+
+  sqitch checkout --db-name widgets
+  sqitch checkout -d bricolage
+
+Name of the database. In general, L<targets|sqitch-target> and URIs are
+preferred, but this option can be used to override the database name in a
+target.
+
+=item C<-u>
+
+=item C<--db-user>
+
+=item C<--db-username>
+
+  sqitch checkout --db-username root
+  sqitch checkout --db-user postgres
+  sqitch checkout -u Mom
+
+User name to use when connecting to the database. Does not apply to all
+engines. In general, L<targets|sqitch-target> and URIs are preferred, but this
+option can be used to override the user name in a target.
+
+=item C<-h>
+
+=item C<--db-host>
+
+  sqitch --db-host db.example.com
+  sqitch -h appdb.example.net
+
+Host name to use when connecting to the database. Does not apply to all
+engines. In general, L<targets|sqitch-target> and URIs are preferred, but this
+option can be used to override the host name in a target.
+
+=item C<-p>
+
+=item C<--db-port>
+
+  sqitch checkout --db-port 7654
+  sqitch checkout -p 5431
+
+Port number to connect to. Does not apply to all engines. In general,
+L<targets|sqitch-target> and URIs are preferred, but this option can be used
+to override the port in a target.
+
 =back
 
 =head1 Configuration Variables

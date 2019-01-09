@@ -10,6 +10,7 @@ use App::Sqitch::X qw(hurl);
 use Locale::TextDomain qw(App-Sqitch);
 use Test::MockModule;
 use Test::Exception;
+use Test::Warn;
 use lib 't/lib';
 use MockOutput;
 use TestConfig;
@@ -29,13 +30,23 @@ can_ok $CLASS, qw(
     execute
     deploy_variables
     revert_variables
+    does
 );
+
+ok $CLASS->does("App::Sqitch::Role::$_"), "$CLASS does $_"
+    for qw(RevertDeployCommand ConnectingCommand);
 
 is_deeply [$CLASS->options], [qw(
     onto-change|onto=s
     upto-change|upto=s
     onto-target=s
     upto-target=s
+    registry=s
+    client|db-client=s
+    db-name|d=s
+    db-user|db-username|u=s
+    db-host|h=s
+    db-port|p=i
     target|t=s
     mode=s
     verify!
@@ -45,6 +56,13 @@ is_deeply [$CLASS->options], [qw(
     log-only
     y
 )], 'Options should be correct';
+
+warning_is {
+    Getopt::Long::Configure(qw(bundling pass_through));
+    ok Getopt::Long::GetOptionsFromArray(
+        [], {}, App::Sqitch->_core_opts, $CLASS->options,
+    ), 'Should parse options';
+} undef, 'Options should not conflict with core options';
 
 my $config = TestConfig->new('core.engine' => 'sqlite');
 my $sqitch = App::Sqitch->new(
@@ -56,9 +74,13 @@ my $sqitch = App::Sqitch->new(
 );
 
 # Test configure().
-is_deeply $CLASS->configure($config, {}),
-    { no_prompt => 0, verify => 0, mode => 'all', prompt_accept => 1 },
-    'Should have empty default configuration with no config or opts';
+is_deeply $CLASS->configure($config, {}), {
+    no_prompt     => 0,
+    verify        => 0,
+    mode          => 'all',
+    prompt_accept => 1,
+    _params       => [],
+}, 'Should have empty default configuration with no config or opts';
 
 is_deeply $CLASS->configure($config, {
     set  => { foo => 'bar' },
@@ -69,6 +91,7 @@ is_deeply $CLASS->configure($config, {
     mode             => 'all',
     deploy_variables => { foo => 'bar' },
     revert_variables => { foo => 'bar' },
+    _params          => [],
 }, 'Should have set option';
 
 is_deeply $CLASS->configure($config, {
@@ -84,6 +107,7 @@ is_deeply $CLASS->configure($config, {
     deploy_variables => { foo => 'bar' },
     verify           => 1,
     log_only         => 1,
+    _params          => [],
 }, 'Should have mode, deploy_variables, verify, no_prompt, and log_only';
 
 is_deeply $CLASS->configure($config, {
@@ -95,6 +119,7 @@ is_deeply $CLASS->configure($config, {
     prompt_accept    => 1,
     verify           => 0,
     revert_variables => { foo => 'bar' },
+    _params          => [],
 }, 'Should have set_revert option and no_prompt false';
 
 is_deeply $CLASS->configure($config, {
@@ -108,6 +133,7 @@ is_deeply $CLASS->configure($config, {
     verify           => 0,
     deploy_variables => { foo => 'dep', hi => 'you' },
     revert_variables => { foo => 'rev', hi => 'me' },
+    _params          => [],
 }, 'set_deploy and set_revert should overrid set';
 
 is_deeply $CLASS->configure($config, {
@@ -121,6 +147,7 @@ is_deeply $CLASS->configure($config, {
     verify           => 0,
     deploy_variables => { foo => 'bar', hi => 'you' },
     revert_variables => { foo => 'bar', hi => 'me' },
+    _params          => [],
 }, 'set_deploy and set_revert should merge with set';
 
 is_deeply $CLASS->configure($config, {
@@ -134,6 +161,7 @@ is_deeply $CLASS->configure($config, {
     verify           => 0,
     deploy_variables => { foo => 'bar', hi => 'you' },
     revert_variables => { foo => 'bar', hi => 'you', my => 'yo' },
+    _params          => [],
 }, 'set_revert should merge with set_deploy';
 
 CONFIG: {
@@ -142,9 +170,13 @@ CONFIG: {
         'deploy.variables' => { foo => 'bar', hi => 21 },
     );
 
-    is_deeply $CLASS->configure($config, {}),
-        {no_prompt => 0, verify => 0, mode => 'all', prompt_accept => 1},
-        'Should have deploy configuration';
+    is_deeply $CLASS->configure($config, {}), {
+        no_prompt     => 0,
+        verify        => 0,
+        mode          => 'all',
+        prompt_accept => 1,
+        _params       => [],
+    }, 'Should have deploy configuration';
 
     # Try merging.
     is_deeply $CLASS->configure($config, {
@@ -158,6 +190,7 @@ CONFIG: {
         deploy_variables => { foo => 'yo', yo => 'stellar', hi => 21 },
         revert_variables => { foo => 'yo', yo => 'stellar', hi => 21 },
         onto_change      => 'whu',
+        _params          => [],
     }, 'Should have merged variables';
     is_deeply +MockOutput->get_warn, [[__x(
         'Option --{old} has been deprecated; use --{new} instead',
@@ -176,6 +209,7 @@ CONFIG: {
         verify           => 0,
         deploy_variables => { foo => 'bar', yo => 'stellar', hi => 21 },
         revert_variables => { foo => 'bar', yo => 'stellar', hi => 42 },
+        _params          => [],
     }, 'Should have merged --set, deploy, rebase';
 
     my $sqitch = App::Sqitch->new(config => $config);
@@ -199,6 +233,7 @@ CONFIG: {
         prompt_accept => 0,
         verify        => 1,
         mode          => 'tag',
+        _params       => [],
     }, 'Should have no_prompt true';
 
     # Rebase option takes precendence
@@ -213,6 +248,7 @@ CONFIG: {
         prompt_accept => 1,
         verify        => 0,
         mode          => 'change',
+        _params       => [],
     }, 'Should have false no_prompt, verify, and true prompt_accept from rebase config';
 
     $config->update(
@@ -228,12 +264,17 @@ CONFIG: {
         prompt_accept => 0,
         verify        => 1,
         mode          => 'tag',
+        _params       => [],
     }, 'Should have true no_prompt, verify, and false prompt_accept from rebase from deploy';
 
     # But option should override.
-    is_deeply $CLASS->configure($config, {y => 0, verify => 0, mode => 'all'}),
-        { no_prompt => 0, verify => 0, mode => 'all', prompt_accept => 0 },
-        'Should have no_prompt, prompt_accept false and mode all again';
+    is_deeply $CLASS->configure($config, {y => 0, verify => 0, mode => 'all'}), {
+        no_prompt     => 0,
+        verify        => 0,
+        mode          => 'all',
+        prompt_accept => 0,
+        _params       => [],
+    }, 'Should have no_prompt, prompt_accept false and mode all again';
 
     $config->update(
         'revert.no_prompt'     => 0,
@@ -246,6 +287,7 @@ CONFIG: {
         prompt_accept => 1,
         verify        => 1,
         mode          => 'tag',
+        _params       => [],
     }, 'Should have no_prompt false and prompt_accept true for revert config';
 
     is_deeply $CLASS->configure($config, {y => 1}), {
@@ -253,6 +295,7 @@ CONFIG: {
         prompt_accept => 1,
         verify        => 1,
         mode          => 'tag',
+        _params       => [],
     }, 'Should have no_prompt true with -y';
 }
 

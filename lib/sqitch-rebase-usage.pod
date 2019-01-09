@@ -19,3 +19,9 @@ sqitch-rebase-usage - Sqitch rebase usage statement
     -e --set-deploy <key=value>       set a database client deploy variable
        --log-only                     log changes without running them
     -y                                disable the prompt before reverting
+       --registry   <registry>        registry schema or database
+       --db-client  <path>            path to the engine command-line client
+    -d --db-name    <name>            database name
+    -u --db-user    <user>            database user name
+    -h --db-host    <host>            database server host name
+    -p --db-port    <port>            database server port number

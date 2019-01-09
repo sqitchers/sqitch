@@ -35,6 +35,12 @@ ok $CLASS->does("App::Sqitch::Role::$_"), "$CLASS does $_"
     for qw(RevertDeployCommand ConnectingCommand);
 
 is_deeply [$CLASS->options], [qw(
+    registry=s
+    client|db-client=s
+    db-name|d=s
+    db-user|db-username|u=s
+    db-host|h=s
+    db-port|p=i
     target|t=s
     mode=s
     verify!
@@ -43,12 +49,6 @@ is_deeply [$CLASS->options], [qw(
     set-revert|r=s%
     log-only
     y
-    registry=s
-    client|db-client=s
-    db-name|d=s
-    db-user|db-username|u=s
-    db-host|h=s
-    db-port|p=i
 )], 'Options should be correct';
 
 warning_is {
@@ -57,7 +57,6 @@ warning_is {
         [], {}, App::Sqitch->_core_opts, $CLASS->options,
     ), 'Should parse options';
 } undef, 'Options should not conflict with core options';
-
 
 ok my $sqitch = App::Sqitch->new(
     config  => TestConfig->new('core.engine' => 'sqlite'),
