@@ -5,10 +5,8 @@ use Test::More;
 use Test::Exception;
 use Try::Tiny;
 use Path::Class;
-
-$ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
-$ENV{SQITCH_USER_CONFIG}   = 'nonexistent.user';
-$ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
+use lib 't/lib';
+use TestConfig;
 
 my $CLASS;
 BEGIN {

@@ -16,14 +16,7 @@ use Path::Class;
 use File::Temp 'tempdir';
 use lib 't/lib';
 use MockOutput;
-
-$ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
-$ENV{SQITCH_USER_CONFIG}   = 'nonexistent.user';
-$ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
-
-# Circumvent Config::Gitlike bug on Windows.
-# https://rt.cpan.org/Ticket/Display.html?id=96670
-$ENV{HOME} ||= '~';
+use TestConfig;
 
 my $CLASS = 'App::Sqitch::Command::target';
 
@@ -36,13 +29,13 @@ File::Copy::copy file(qw(t target.conf))->stringify, "$tmp_dir"
 File::Copy::copy file(qw(t engine sqitch.plan))->stringify, "$tmp_dir"
     or die "Cannot copy t/engine/sqitch.plan to $tmp_dir: $!\n";
 chdir $tmp_dir;
-$ENV{SQITCH_CONFIG} = 'target.conf';
 my $psql = 'psql' . (App::Sqitch::ISWIN ? '.exe' : '');
 
 ##############################################################################
 # Load a target command and test the basics.
-ok my $sqitch = App::Sqitch->new, 'Load a sqitch sqitch object';
-my $config = $sqitch->config;
+my $config = TestConfig->from(local => 'target.conf');
+ok my $sqitch = App::Sqitch->new(config => $config),
+    'Load a sqitch sqitch object';
 isa_ok my $cmd = App::Sqitch::Command->load({
     sqitch  => $sqitch,
     command => 'target',

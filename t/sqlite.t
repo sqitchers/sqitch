@@ -14,15 +14,13 @@ use Locale::TextDomain qw(App-Sqitch);
 use File::Temp 'tempdir';
 use lib 't/lib';
 use DBIEngineTest;
+use TestConfig;
 
 my $CLASS;
 
 BEGIN {
     $CLASS = 'App::Sqitch::Engine::sqlite';
     require_ok $CLASS or die;
-    $ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
-    $ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.user';
-    $ENV{SQITCH_USER_CONFIG}   = 'nonexistent.sys';
 }
 
 is_deeply [$CLASS->config_vars], [
@@ -31,7 +29,8 @@ is_deeply [$CLASS->config_vars], [
     client   => 'any',
 ], 'config_vars should return three vars';
 
-my $sqitch = App::Sqitch->new;
+my $config = TestConfig->new('core.engine' => 'sqlite');
+my $sqitch = App::Sqitch->new(config => $config);
 my $target = App::Sqitch::Target->new(
     sqitch => $sqitch,
     uri   => URI->new('db:sqlite:foo.db'),
@@ -69,7 +68,6 @@ is_deeply [$sqlite->sqlite3], [$sqlite->client, @std_opts, $sqlite->uri->dbname]
 # Make sure we get an error for no database name.
 my $tmp_dir = Path::Class::dir( tempdir CLEANUP => 1 );
 my $have_sqlite = try { $sqlite->use_driver };
-$sqitch = App::Sqitch->new( _engine => 'sqlite', options => {engine => 'sqlite'} );
 if ($have_sqlite) {
     # We have DBD::SQLite.
     # Find out if it's built with SQLite >= 3.7.11.
@@ -103,14 +101,12 @@ if ($have_sqlite) {
 
 ##############################################################################
 # Make sure config settings override defaults.
-my %config = (
+$config->update(
     'engine.sqlite.client'   => '/path/to/sqlite3',
     'engine.sqlite.target'   => 'test',
     'engine.sqlite.registry' => 'meta',
     'target.test.uri'        => 'db:sqlite:/path/to/sqlite.db',
 );
-my $mock_config = Test::MockModule->new('App::Sqitch::Config');
-$mock_config->mock(get => sub { $config{ $_[2] } });
 $target = ref($target)->new( sqitch => $sqitch );
 ok $sqlite = $CLASS->new(sqitch => $sqitch, target => $target),
     'Create another sqlite';
@@ -127,7 +123,7 @@ is $sqlite->registry_destination, $sqlite->registry_uri->as_string,
     'Registry target should be configured registry_uri stringified';
 
 # Try a registry with an extension and a dbname without.
-%config = (
+$config->update(
     'engine.sqlite.registry' => 'meta.db',
     'engine.sqlite.target'   => 'test',
     'target.test.uri'        => 'db:sqlite:/path/to/sqitch',
@@ -146,7 +142,7 @@ is $sqlite->registry_destination, $sqlite->registry_uri->as_string,
     'Registry target should be configured registry_uri stringified';
 
 # Also try a registry with no extension and a dbname with.
-%config = (
+$config->update(
     'engine.sqlite.registry' => 'registry',
     'engine.sqlite.target'   => 'noext',
     'target.noext.uri'       => 'db:sqlite:/path/to/sqitch.db',
@@ -165,7 +161,7 @@ is $sqlite->registry_destination, $sqlite->registry_uri->as_string,
     'Registry target should be configured registry_uri stringified';
 
 # Try a registry with an absolute path.
-%config = (
+$config->update(
     'engine.sqlite.registry' => '/some/other/path.db',
     'engine.sqlite.target'   => 'abs',
     'target.abs.uri'         => 'db:sqlite:/path/to/sqitch.db',
@@ -185,11 +181,13 @@ is $sqlite->registry_destination, $sqlite->registry_uri->as_string,
 
 ##############################################################################
 # Now make sure that Sqitch options override configurations.
-$sqitch = App::Sqitch->new( options => {
-    engine   => 'sqlite',
-    client   => 'foo/bar',
-    registry => 'reg',
-});
+$sqitch = App::Sqitch->new(
+    config => $config,
+    options => {
+        client   => 'foo/bar',
+        registry => 'reg',
+    },
+);
 $target = ref($target)->new( sqitch => $sqitch );
 ok $sqlite = $CLASS->new(sqitch => $sqitch, target => $target),
     'Create sqlite with sqitch with --client and --target';
@@ -199,12 +197,9 @@ is_deeply [$sqlite->sqlite3],
     [$sqlite->client, @std_opts, $sqlite->uri->dbname],
     'sqlite3 command should have option values';
 
-$mock_config->unmock_all;
-
 ##############################################################################
 # Test _read().
 my $db_name = $tmp_dir->file('sqitch.db');
-$sqitch = App::Sqitch->new(_engine => 'sqlite');
 $target = App::Sqitch::Target->new(
     sqitch => $sqitch,
     uri    => URI->new("db:sqlite:$db_name")
@@ -350,11 +345,13 @@ END {
 
 DBIEngineTest->run(
     class         => $CLASS,
-    sqitch_params => [options => {
-        top_dir   => Path::Class::dir(qw(t engine))->stringify,
-        plan_file => Path::Class::file(qw(t engine sqitch.plan))->stringify,
-        engine   => 'sqlite',
-    }],
+    sqitch_params => [
+        config  => TestConfig->new('core.engine' => 'sqlite'),
+        options => {
+            top_dir   => Path::Class::dir(qw(t engine))->stringify,
+            plan_file => Path::Class::file(qw(t engine sqitch.plan))->stringify,
+        },
+    ],
     target_params => [ uri => URI->new("db:sqlite:$db_name") ],
     alt_target_params => [
         registry => 'sqitchtest',

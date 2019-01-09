@@ -9,10 +9,8 @@ use Test::MockModule;
 use Test::Exception;
 use Capture::Tiny 0.12 ':all';
 use Locale::TextDomain qw(App-Sqitch);
-
-$ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
-$ENV{SQITCH_USER_CONFIG}   = 'nonexistent.user';
-$ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
+use lib 't/lib';
+use TestConfig;
 
 my ($catch_chdir, $chdir_to, $chdir_fail);
 BEGIN {

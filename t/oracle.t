@@ -61,15 +61,13 @@ use App::Sqitch::Target;
 use App::Sqitch::Plan;
 use lib 't/lib';
 use DBIEngineTest;
+use TestConfig;
 
 my $CLASS;
 
 BEGIN {
     $CLASS = 'App::Sqitch::Engine::oracle';
     require_ok $CLASS or die;
-    $ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
-    $ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.user';
-    $ENV{SQITCH_USER_CONFIG}   = 'nonexistent.sys';
     delete $ENV{ORACLE_HOME};
 }
 
@@ -79,7 +77,8 @@ is_deeply [$CLASS->config_vars], [
     client   => 'any',
 ], 'config_vars should return three vars';
 
-my $sqitch = App::Sqitch->new(options => { engine => 'oracle' });
+my $config = TestConfig->new('core.engine' => 'oracle');
+my $sqitch = App::Sqitch->new(config => $config);
 my $target = App::Sqitch::Target->new(sqitch => $sqitch);
 isa_ok my $ora = $CLASS->new(sqitch => $sqitch, target => $target), $CLASS;
 
@@ -253,13 +252,11 @@ ENV: {
 
 ##############################################################################
 # Make sure config settings override defaults.
-my %config = (
+$config->update(
     'engine.oracle.client'   => '/path/to/sqlplus',
     'engine.oracle.target'   => 'db:oracle://bob:hi@db.net:12/howdy',
     'engine.oracle.registry' => 'meta',
 );
-my $mock_config = Test::MockModule->new('App::Sqitch::Config');
-$mock_config->mock(get => sub { $config{ $_[2] } });
 $target = App::Sqitch::Target->new(sqitch => $sqitch);
 ok $ora = $CLASS->new(sqitch => $sqitch, target => $target),
     'Create another ora';
@@ -277,7 +274,7 @@ is $ora->registry, 'meta', 'registry should be as configured';
 is_deeply [$ora->sqlplus], ['/path/to/sqlplus', @std_opts],
     'sqlplus command should be configured';
 
-%config = (
+$config->update(
     'engine.oracle.client'   => '/path/to/sqlplus',
     'engine.oracle.registry' => 'meta',
 );
@@ -293,10 +290,8 @@ is_deeply [$ora->sqlplus], ['/path/to/sqlplus', @std_opts],
 ##############################################################################
 # Now make sure that Sqitch options override configurations.
 $sqitch = App::Sqitch->new(
-    options => {
-        engine => 'oracle',
-        client => '/some/other/sqlplus',
-    },
+    config => $config,
+    options => { client => '/some/other/sqlplus' },
 );
 
 $target = App::Sqitch::Target->new(sqitch => $sqitch);
@@ -410,7 +405,6 @@ is_deeply \@run, ['@"foo/bar.sql"'],
     'Verifile file should be passed to run() for high verbosity';
 
 $mock_sqitch->unmock_all;
-$mock_config->unmock_all;
 $mock_ora->unmock_all;
 
 ##############################################################################
@@ -569,11 +563,13 @@ $uri->password($pass);
 # $uri->dbname( $ENV{TWO_TASK} || $ENV{LOCAL} || $ENV{ORACLE_SID} );
 DBIEngineTest->run(
     class         => $CLASS,
-    sqitch_params => [options => {
-        engine    => 'oracle',
-        top_dir   => Path::Class::dir(qw(t engine)),
-        plan_file => Path::Class::file(qw(t engine sqitch.plan)),
-    }],
+    sqitch_params => [
+        config => TestConfig->new('core.engine' => 'oracle'),
+        options => {
+            top_dir   => Path::Class::dir(qw(t engine)),
+            plan_file => Path::Class::file(qw(t engine sqitch.plan)),
+        },
+    ],
     target_params     => [ uri => $uri ],
     alt_target_params => [ uri => $uri, registry => 'oe' ],
     skip_unless       => sub {

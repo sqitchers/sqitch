@@ -13,21 +13,16 @@ use Path::Class qw(file dir);
 use File::Path qw(make_path remove_tree);
 use lib 't/lib';
 use MockOutput;
-
-$ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
-$ENV{SQITCH_USER_CONFIG}   = 'nonexistent.user';
-$ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
+use TestConfig;
 
 my $CLASS = 'App::Sqitch::Command::tag';
 
 my $dir = dir 'test-tag_cmd';
+my $config = TestConfig->new('core.engine' => 'sqlite');
 ok my $sqitch = App::Sqitch->new(
-    options => {
-        engine => 'sqlite',
-        top_dir => $dir->stringify,
-    },
+    config  => $config,
+    options => { top_dir => $dir->stringify },
 ), 'Load a sqitch sqitch object';
-my $config = $sqitch->config;
 isa_ok my $tag = App::Sqitch::Command->load({
     sqitch  => $sqitch,
     command => 'tag',
@@ -51,9 +46,11 @@ is_deeply [$CLASS->options], [qw(
 
 ##############################################################################
 # Test configure().
-my $cmock = Test::MockModule->new('App::Sqitch::Config');
-my (@vals, @params);
-$cmock->mock( get => sub { shift; push @params, \@_; shift @vals } );
+my (@params, $orig_get);
+my $cmock = TestConfig->mock(
+    get => sub { my $c = shift; push @params, \@_; $orig_get->($c, @_) },
+);
+$orig_get = $cmock->original('get');
 
 is_deeply $CLASS->configure($config, {}), {},
     'Should get empty hash for no config or options';
@@ -68,7 +65,6 @@ is_deeply $CLASS->configure(
 
 is_deeply \@params, [], 'Should not have fetched boolean tag.all config';
 @params = ();
-
 $cmock->unmock_all;
 
 ##############################################################################
@@ -212,24 +208,16 @@ is_deeply +MockOutput->get_info, [
 
 ##############################################################################
 # Let's deal with multiple engines.
-my $conf = $dir->file('sqitch.conf');
-$conf->spew(join "\n",
-    '[core]',
-    'engine = pg',
-    '[engine "pg"]',
-    'top_dir = pg',
-    '[engine "sqlite"]',
-    'top_dir = sqlite',
-    '[engine "mysql"]',
-    'top_dir = mysql',
+$config->replace(
+    'core.engine'           => 'sqlite',
+    'engine.pg.top_dir'     => 'pg',
+    'engine.sqlite.top_dir' => 'sqlite',
+    'engine.mysql.top_dir'  => 'mysql',
 );
 
-local $ENV{SQITCH_CONFIG} = $conf->stringify;
 ok $sqitch = App::Sqitch->new(
-    options => {
-        engine => 'sqlite',
-        top_dir => $dir->stringify,
-    },
+    config  => $config,
+    options => { top_dir => $dir->stringify },
 ), 'Load another sqitch sqitch object';
 
 isa_ok $tag = App::Sqitch::Command::tag->new({
@@ -261,35 +249,24 @@ is $@->message, __(
 # Great. Now try two plans!
 (my $pg = $dir->file('pg.plan')->stringify) =~ s{\\}{\\\\}g;
 (my $sqlite = $dir->file('sqlite.plan')->stringify) =~ s{\\}{\\\\}g;
-$conf->spew(join "\n",
-    '[core]',
-    'engine = pg',
-    "top_dir = $dir",
-    '[engine "pg"]',
-    "plan_file = $pg",
-    '[engine "sqlite"]',
-    "plan_file = $sqlite",
-);
-
 $dir->file("$_.plan")->spew(
     "%project=tag\n\n${_}_change 2012-07-16T17:25:07Z Hi <hi\@foo.com>\n"
 ) for qw(pg sqlite);
 
-ok $sqitch = App::Sqitch->new,
+$config->replace(
+    'core.engine'             => 'pg',
+    'core.to_dir'             => $dir->stringify,
+    'engine.pg.plan_file'     => $pg,
+    'engine.sqlite.plan_file' => $sqlite,
+    'tag.all'                 => 1,
+);
+ok $sqitch = App::Sqitch->new(config => $config),
     'Load another sqitch sqitch object';
-
-# Mock getting tag.all.
-my $get;
-$cmock->mock( get => sub {
-    return 1 if $_[2] eq 'tag.all';
-    return $get->(@_);
-});
-$get = $cmock->original('get');
-
 isa_ok $tag = App::Sqitch::Command::tag->new({
     sqitch => $sqitch,
     note   => ['here we go again'],
 }), $CLASS, 'yet another tag command';
+
 ok $tag->execute('dubdub'), 'Tag with @dubdub';
 my @targets = App::Sqitch::Target->all_targets(sqitch => $sqitch);
 is @targets, 2, 'Should have two targets';
@@ -331,9 +308,14 @@ is_deeply +MockOutput->get_info, [
     ],
 ], 'The shoot info message should the sqlite plan getting tagged';
 
-$cmock->unmock_all;
-
 # Without --all or tag.all, we should just get the default target.
+$config->replace(
+    'core.engine'             => 'pg',
+    'core.to_dir'             => $dir->stringify,
+    'engine.pg.plan_file'     => $pg,
+    'engine.sqlite.plan_file' => $sqlite,
+);
+$sqitch = App::Sqitch->new(config => $config);
 isa_ok $tag = App::Sqitch::Command::tag->new({
     sqitch => $sqitch,
     note   => ['here we go again'],

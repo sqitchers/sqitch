@@ -4,14 +4,12 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 177;
+use Test::More tests => 178;
 #use Test::More 'no_plan';
 use Test::NoWarnings;
 use List::Util qw(first);
-
-$ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
-$ENV{SQITCH_USER_CONFIG}   = 'nonexistent.user';
-$ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
+use lib 't/lib';
+use TestConfig;
 
 my $catch_exit;
 BEGIN {
@@ -76,7 +74,8 @@ COMMAND: {
     $INC{'App/Sqitch/Command/wah_hoo.pm'} = __FILE__;
 }
 
-ok my $sqitch = App::Sqitch->new, 'Load a sqitch sqitch object';
+my $config = TestConfig->new;
+ok my $sqitch = App::Sqitch->new(config => $config), 'Load a sqitch object';
 
 ##############################################################################
 # Test new().
@@ -95,21 +94,21 @@ isa_ok $CLASS->new({sqitch => $sqitch}), $CLASS;
 
 ##############################################################################
 # Test configure.
-my $config = App::Sqitch::Config->new;
-my $cmock = Test::MockModule->new('App::Sqitch::Config');
-is_deeply $CLASS->configure($config, {}), {},
+my $subclass = 'App::Sqitch::Command::whu';
+is_deeply $subclass->configure($config, {}), {},
     'Should get empty hash for no config or options';
-$cmock->mock(get_section => {foo => 'hi'});
-is_deeply $CLASS->configure($config, {}), {foo => 'hi'},
+$config->update('whu.foo' => 'hi');
+is_deeply $subclass->configure($config, {}), {foo => 'hi'},
     'Should get config with no options';
-is_deeply $CLASS->configure($config, {foo => 'yo'}), {foo => 'yo'},
+is_deeply $subclass->configure($config, {foo => 'yo'}), {foo => 'yo'},
     'Options should override config';
-is_deeply $CLASS->configure($config, {'foo_bar' => 'yo'}), {foo => 'hi', foo_bar => 'yo'},
+is_deeply $subclass->configure($config, {'foo_bar' => 'yo'}),
+    {foo => 'hi', foo_bar => 'yo'},
     'Options keys should have dashes changed to underscores';
 
 ##############################################################################
 # Test load().
-$cmock->mock(get_section => {});
+ok $sqitch = App::Sqitch->new(config => $config), 'Load a sqitch object';
 ok my $cmd = $CLASS->load({
     command => 'whu',
     sqitch  => $sqitch,
@@ -120,8 +119,7 @@ isa_ok $cmd, 'App::Sqitch::Command::whu';
 is $cmd->sqitch, $sqitch, 'The sqitch attribute should be set';
 is $cmd->command, 'whu', 'The command method should return "whu"';
 
-$cmock->mock(get_section => {foo => 'hi'});
-
+$config->update('whu.foo' => 'hi');
 ok $cmd = $CLASS->load({
     command => 'whu',
     sqitch  => $sqitch,
@@ -173,7 +171,7 @@ is $@->message, __x(
 is $@->exitval, 1, 'Broken command should yield exitval of 1';
 
 # Test options processing.
-$cmock->mock(get_section => {foo => 'hi', feathers => 'yes'});
+$config->update('whu.feathers' => 'yes');
 ok $cmd = $CLASS->load({
     command => 'whu',
     sqitch  => $sqitch,
@@ -193,33 +191,35 @@ is $cmd->command, 'wah-hoo', 'command() should return hyphenated name';
 
 ##############################################################################
 # Test default_target.
-ok $cmd = $CLASS->new({ sqitch => $sqitch }), "Create a $CLASS object";
+ok $cmd = $CLASS->new({ sqitch => $sqitch }), "Create an $CLASS object";
 isa_ok my $target = $cmd->default_target, 'App::Sqitch::Target',
     'default target';
 is $target->name, 'db:', 'Default target name should be "db:"';
 is $target->uri, URI->new('db:'), 'Default target URI should be "db:"';
 
-# Make sure the core.engine config option gets used.
-my @get_ret;
-my @get_expect;
-$cmock->mock(get => sub {
+# Track what gets passed to Config->get().
+my (@get_expect, $orig_get);
+my $cmock = TestConfig->mock(get => sub {
     my $self = shift;
     my $exp = shift @get_expect;
     is_deeply \@_, [key => $exp], "Should try to fetch $exp";
-    return shift @get_ret;
+    $orig_get->($self, @_);
 });
-@get_ret = ('sqlite', undef, 'sqlite');
+$orig_get = $cmock->original('get');
+
+# Make sure the core.engine config option gets used.
 @get_expect = ('core.engine', 'core.target', 'core.engine', 'engine.sqlite.target', 'core.sqlite.target');
-ok $cmd = $CLASS->new({ sqitch => $sqitch }), "Create a $CLASS object";
+$config->update('core.engine' => 'sqlite');
+ok $cmd = $CLASS->new({ sqitch => $sqitch }), "Create an $CLASS object";
 isa_ok $target = $cmd->default_target, 'App::Sqitch::Target',
     'default target';
 is $target->name, 'db:sqlite:', 'Default target name should be "db:sqlite:"';
 is $target->uri, URI->new('db:sqlite:'), 'Default target URI should be "db:sqlite:"';
 
 # Make sure --engine is higher precedence.
-$sqitch->options->{engine} = 'pg';
 @get_expect = ('engine.pg.target', 'core.pg.target');
-ok $cmd = $CLASS->new({ sqitch => $sqitch }), "Create a $CLASS object";
+$sqitch->options->{engine} = 'pg';
+ok $cmd = $CLASS->new({ sqitch => $sqitch }), "Create an $CLASS object";
 isa_ok $target = $cmd->default_target, 'App::Sqitch::Target',
     'default target';
 is $target->name, 'db:pg:', 'Default target name should be "db:pg:"';
@@ -227,8 +227,8 @@ is $target->uri, URI->new('db:pg:'), 'Default target URI should be "db:pg:"';
 
 # We should get stuff from the engine section of the config.
 @get_expect = ('engine.pg.target');
-@get_ret = ('db:pg:foo');
-ok $cmd = $CLASS->new({ sqitch => $sqitch }), "Create a $CLASS object";
+$config->update('engine.pg.target' => 'db:pg:foo');
+ok $cmd = $CLASS->new({ sqitch => $sqitch }), "Create an $CLASS object";
 isa_ok $target = $cmd->default_target, 'App::Sqitch::Target',
     'default target';
 is $target->name, 'db:pg:foo', 'Default target name should be "db:pg:foo"';
@@ -241,7 +241,7 @@ $cmock->unmock('get');
 ##############################################################################
 # Test command and execute.
 can_ok $CLASS, 'execute';
-ok $cmd = $CLASS->new({ sqitch => $sqitch }), "Create a $CLASS object";
+ok $cmd = $CLASS->new({ sqitch => $sqitch }), "Create an $CLASS object";
 is $CLASS->command, '', 'Base class command should be ""';
 is $cmd->command, '', 'Base object command should be ""';
 throws_ok { $cmd->execute } 'App::Sqitch::X',
@@ -263,7 +263,7 @@ is $@->message, "The execute() method has not been overridden in $CLASS\::whu",
 ##############################################################################
 # Test options parsing.
 can_ok $CLASS, 'options', '_parse_opts';
-ok $cmd = $CLASS->new({ sqitch => $sqitch }), "Create a $CLASS object again";
+ok $cmd = $CLASS->new({ sqitch => $sqitch }), "Create an $CLASS object again";
 is_deeply $cmd->_parse_opts, {}, 'Base _parse_opts should return an empty hash';
 
 ok $cmd = App::Sqitch::Command::whu->new({sqitch => $sqitch}),
@@ -313,12 +313,15 @@ PARSEOPTSERR: {
 ##############################################################################
 # Test argument parsing.
 ARGS: {
-    local $ENV{SQITCH_CONFIG} = file qw(t local.conf);
-    ok $sqitch = App::Sqitch->new(options => {
-        engine    => 'sqlite',
-        plan_file => file(qw(t plans multi.plan))->stringify,
-        top_dir   => dir(qw(t sql))->stringify
-    }), 'Load Sqitch with config and plan';
+    my $config = TestConfig->from(local => file qw(t local.conf) );
+    $config->update('core.engine' => 'sqlite');
+    ok $sqitch = App::Sqitch->new(
+        config => $config,
+        options => {
+            plan_file => file(qw(t plans multi.plan))->stringify,
+            top_dir   => dir(qw(t sql))->stringify
+        },
+    ), 'Load Sqitch with config and plan';
 
     ok my $cmd = $CLASS->load({
         sqitch => $sqitch,
@@ -383,10 +386,10 @@ ARGS: {
         'Two unknowns error message should be correct';
 
     # Make sure changes are found in previously-passed target.
-    ok $sqitch = App::Sqitch->new(options => {
-        engine  => 'sqlite',
-        top_dir => dir(qw(t sql))->stringify
-    }), 'Load Sqitch with config';
+    ok $sqitch = App::Sqitch->new(
+        config => $config,
+        options => { top_dir => dir(qw(t sql))->stringify },
+    ), 'Load Sqitch with config';
     ok $cmd = $CLASS->load({
         sqitch => $sqitch,
         command => 'whu',
@@ -409,11 +412,11 @@ ARGS: {
     is $@->message, $msg->('hey'),
         'Change unknown error message should be correct';
 
-    is_deeply $parsem->(args => ['widgets', '@beta']),
+    is_deeply $parsem->(args => ['sqlite', 'widgets', '@beta']),
         [['devdb'], ['widgets', '@beta']],
         'Should get known changes from default target (t/sql/sqitch.plan)';
     throws_ok {
-        $parsem->(args => ['widgets', 'mydb', 'foo', '@beta']);
+        $parsem->(args => ['sqlite', 'widgets', 'mydb', 'foo', '@beta']);
     } 'App::Sqitch::X', 'Change seen after target should error if not in that target';
     is $@->ident, 'whu', 'Change after target error ident should be "whu"';
     is $@->message, $msg->('foo', '@beta'),
@@ -454,13 +457,15 @@ ARGS: {
 
     # Make sure we get an error when no engine is specified.
     NOENGINE: {
-        local $ENV{SQITCH_CONFIG} = 'nonexistent.conf';
-        ok $sqitch = App::Sqitch->new(options => {
-            plan_file => file(qw(t plans multi.plan))->stringify,
-            top_dir   => dir(qw(t sql))->stringify
-        }), 'Load Sqitch without engine';
+        my $config = TestConfig->new;
+        ok $sqitch = App::Sqitch->new(
+            config => $config,
+            options => {
+                plan_file => file(qw(t plans multi.plan))->stringify,
+                top_dir   => dir(qw(t sql))->stringify,
+            },
+        ), 'Load Sqitch without engine';
 
-        my $config = App::Sqitch::Config->new;
         ok $cmd = $CLASS->load({
             sqitch => $sqitch,
             config => $config,

@@ -15,10 +15,8 @@ use App::Sqitch::Plan;
 use Test::MockModule;
 use Test::File;
 use Test::File::Contents 0.20;
-
-$ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
-$ENV{SQITCH_USER_CONFIG}   = 'nonexistent.user';
-$ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
+use lib 't/lib';
+use TestConfig;
 
 my $CLASS;
 
@@ -37,7 +35,8 @@ can_ok $CLASS, qw(
     note_prompt
 );
 
-my $sqitch = App::Sqitch->new(options => { engine => 'sqlite'});
+my $config = TestConfig->new('core.engine' => 'sqlite');
+my $sqitch = App::Sqitch->new(config => $config);
 my $target = App::Sqitch::Target->new(sqitch => $sqitch);
 my $plan   = App::Sqitch::Plan->new(sqitch => $sqitch, target => $target);
 isa_ok my $blank = $CLASS->new(

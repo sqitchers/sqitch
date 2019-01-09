@@ -13,21 +13,16 @@ use Test::MockModule;
 use Path::Class;
 use lib 't/lib';
 use MockOutput;
+use TestConfig;
 
 my $CLASS = 'App::Sqitch::Command::upgrade';
 require_ok $CLASS;
 
-$ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
-$ENV{SQITCH_USER_CONFIG}   = 'nonexistent.user';
-$ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
-
+my $config = TestConfig->new('core.engine' => 'sqlite');
 ok my $sqitch = App::Sqitch->new(
-    options => {
-        engine  => 'sqlite',
-        top_dir => Path::Class::Dir->new('test-upgrade'),
-    },
+    config => $config,
+    options => { top_dir => Path::Class::Dir->new('test-upgrade') },
 ), 'Load a sqitch object';
-my $config = $sqitch->config;
 isa_ok my $upgrade = App::Sqitch::Command->load({
     sqitch  => $sqitch,
     command => 'upgrade',

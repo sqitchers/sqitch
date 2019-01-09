@@ -22,6 +22,7 @@ use App::Sqitch::Target;
 use App::Sqitch::Plan;
 use lib 't/lib';
 use DBIEngineTest;
+use TestConfig;
 
 my $CLASS;
 
@@ -30,9 +31,6 @@ delete $ENV{"VSQL_$_"} for qw(USER PASSWORD DATABASE HOST PORT);
 BEGIN {
     $CLASS = 'App::Sqitch::Engine::exasol';
     require_ok $CLASS or die;
-    $ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
-    $ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.user';
-    $ENV{SQITCH_USER_CONFIG}   = 'nonexistent.sys';
 }
 
 is_deeply [$CLASS->config_vars], [
@@ -42,7 +40,8 @@ is_deeply [$CLASS->config_vars], [
 ], 'config_vars should return three vars';
 
 my $uri = URI::db->new('db:exasol:');
-my $sqitch = App::Sqitch->new(options => { engine => 'exasol' });
+my $config = TestConfig->new('core.engine' => 'exasol');
+my $sqitch = App::Sqitch->new(config => $config);
 my $target = App::Sqitch::Target->new(
     sqitch => $sqitch,
     uri    => $uri,
@@ -114,13 +113,11 @@ ENV: {
 
 ##############################################################################
 # Make sure config settings override defaults.
-my %config = (
+$config->update(
     'engine.exasol.client'   => '/path/to/exaplus',
     'engine.exasol.target'   => 'db:exasol://me:myself@localhost:4444',
     'engine.exasol.registry' => 'meta',
 );
-my $mock_config = Test::MockModule->new('App::Sqitch::Config');
-$mock_config->mock(get => sub { $config{ $_[2] } });
 
 $target = App::Sqitch::Target->new( sqitch => $sqitch );
 ok $exa = $CLASS->new(sqitch => $sqitch, target => $target),
@@ -147,10 +144,8 @@ is $exa->_script, join( "\n" => (
 ##############################################################################
 # Now make sure that (deprecated?) Sqitch options override configurations.
 $sqitch = App::Sqitch->new(
-    options => {
-        engine     => 'exasol',
-        client     => '/some/other/exaplus',
-    },
+    config => $config,
+    options => { client => '/some/other/exaplus' },
 );
 
 $target = App::Sqitch::Target->new( sqitch => $sqitch );
@@ -268,7 +263,6 @@ is_deeply \@capture, ['@"foo/bar.sql"'],
     'Verify file should be passed to run() for high verbosity';
 
 $mock_sqitch->unmock_all;
-$mock_config->unmock_all;
 $mock_exa->unmock_all;
 
 ##############################################################################
@@ -380,11 +374,13 @@ my $err = try {
 
 DBIEngineTest->run(
     class         => $CLASS,
-    sqitch_params => [options => {
-        engine    => 'exasol',
-        top_dir   => Path::Class::dir(qw(t engine)),
-        plan_file => Path::Class::file(qw(t engine sqitch.plan)),
-    }],
+    sqitch_params => [
+        config  => TestConfig->new('core.engine' => 'exasol'),
+        options => {
+            top_dir   => Path::Class::dir(qw(t engine)),
+            plan_file => Path::Class::file(qw(t engine sqitch.plan)),
+        },
+    ],
     target_params     => [ uri => $uri ],
     alt_target_params => [ uri => $uri, registry => 'sqitchtest' ],
     skip_unless       => sub {

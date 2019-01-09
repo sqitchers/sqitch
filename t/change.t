@@ -19,6 +19,8 @@ use File::Path qw(make_path remove_tree);
 use Digest::SHA;
 use Test::MockModule;
 use URI;
+use lib 't/lib';
+use TestConfig;
 
 my $CLASS;
 
@@ -26,10 +28,6 @@ BEGIN {
     $CLASS = 'App::Sqitch::Plan::Change';
     require_ok $CLASS or die;
 }
-
-$ENV{SQITCH_CONFIG} = 'nonexistent.conf';
-$ENV{SQITCH_USER_CONFIG} = 'nonexistent.user';
-$ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
 
 can_ok $CLASS, qw(
     name
@@ -70,10 +68,10 @@ can_ok $CLASS, qw(
     note_prompt
 );
 
-my $sqitch = App::Sqitch->new( options => {
-    engine => 'sqlite',
-    top_dir => dir('test-change')->stringify,
-});
+my $sqitch = App::Sqitch->new(
+    config => TestConfig->new('core.engine' => 'sqlite'),
+    options => { top_dir => dir('test-change')->stringify },
+);
 my $target = App::Sqitch::Target->new(
     sqitch => $sqitch,
     reworked_dir => dir('test-change/reworked'),
@@ -374,11 +372,13 @@ is $fh->getline, "-- verify it, baby\n", 'It should be the verify file';
 ##############################################################################
 # Test the requires/conflicts params.
 my $file = file qw(t plans multi.plan);
-my $sqitch2 = App::Sqitch->new(options => {
-    engine    => 'sqlite',
-    top_dir   => dir('test-change')->stringify,
-    plan_file => $file->stringify,
-});
+my $sqitch2 = App::Sqitch->new(
+    config => TestConfig->new('core.engine' => 'sqlite'),
+    options => {
+        top_dir   => dir('test-change')->stringify,
+        plan_file => $file->stringify,
+    },
+);
 my $target2 = App::Sqitch::Target->new(sqitch => $sqitch2);
 my $plan2 = $target2->plan;
 ok $change2 = $CLASS->new(

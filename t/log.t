@@ -15,24 +15,21 @@ use Term::ANSIColor qw(color);
 use Encode;
 use lib 't/lib';
 use MockOutput;
+use TestConfig;
 use LC;
-
-$ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
-$ENV{SQITCH_USER_CONFIG}   = 'nonexistent.user';
-$ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
 
 my $CLASS = 'App::Sqitch::Command::log';
 require_ok $CLASS;
 
 my $plan_file = Path::Class::File->new('t/sql/sqitch.plan')->stringify;
+my $config = TestConfig->new('core.engine' => 'sqlite');
 ok my $sqitch = App::Sqitch->new(
+    config => $config,
     options => {
-        engine    => 'sqlite',
         top_dir   => Path::Class::Dir->new('test-log')->stringify,
         plan_file => $plan_file,
     },
 ), 'Load a sqitch sqitch object';
-my $config = $sqitch->config;
 isa_ok my $log = App::Sqitch::Command->load({
     sqitch  => $sqitch,
     command => 'log',
@@ -83,14 +80,13 @@ is $log->target, 'foo', 'Should have target "foo"';
 
 ##############################################################################
 # Test configure().
-my $cmock = Test::MockModule->new('App::Sqitch::Config');
-
-# Test date_format validation.
 my $configured = $CLASS->configure($config, {});
 isa_ok delete $configured->{formatter}, 'App::Sqitch::ItemFormatter', 'Formatter';
 is_deeply $configured, {},
     'Should get empty hash for no config or options';
-$cmock->mock( get => 'nonesuch' );
+
+# Test date_format validation.
+$config->update('log.date_format' => 'nonesuch');
 throws_ok { $CLASS->configure($config, {}), {} } 'App::Sqitch::X',
     'Should get error for invalid date format in config';
 is $@->ident, 'datetime',
@@ -99,7 +95,6 @@ is $@->message, __x(
     'Unknown date format "{format}"',
     format => 'nonesuch',
 ), 'Invalid date format error message should be correct';
-$cmock->unmock_all;
 
 throws_ok { $CLASS->configure($config, { date_format => 'non'}), {} }
     'App::Sqitch::X',
@@ -112,11 +107,7 @@ is $@->message, __x(
 ), 'Invalid date format error message should be correct';
 
 # Test format validation.
-$cmock->mock( get => sub {
-    my ($self, %p) = @_;
-    return 'nonesuch' if $p{key} eq 'log.format';
-    return undef;
-});
+$config = TestConfig->new('log.format' => 'nonesuch');
 throws_ok { $CLASS->configure($config, {}), {} } 'App::Sqitch::X',
     'Should get error for invalid format in config';
 is $@->ident, 'log',
@@ -125,7 +116,6 @@ is $@->message, __x(
     'Unknown log format "{format}"',
     format => 'nonesuch',
 ), 'Invalid format error message should be correct';
-$cmock->unmock_all;
 
 throws_ok { $CLASS->configure($config, { format => 'non'}), {} }
     'App::Sqitch::X',
@@ -138,6 +128,7 @@ is $@->message, __x(
 ), 'Invalid format error message should be correct';
 
 # Test color configuration.
+$config = TestConfig->new;
 $configured = $CLASS->configure( $config, { no_color => 1 } );
 is $configured->{formatter}->color, 'never',
     'Configuration should respect --no-color, setting "never"';
@@ -152,66 +143,50 @@ $configured = $CLASS->configure( $config, { oneline => 1, format => 'format:foo'
 is $configured->{format}, 'foo', '--oneline should not override --format';
 is $configured->{formatter}{abbrev}, 5, '--oneline should not overrride --abbrev';
 
-my $config_color = 'auto';
-$cmock->mock( get => sub {
-    my ($self, %p) = @_;
-    return $config_color if $p{key} eq 'log.color';
-    return undef;
-});
-
-my $log_config = {};
-$cmock->mock( get_section => sub { $log_config } );
-
+$config->update('log.color' => 'auto');
 $configured = $CLASS->configure( $config, { no_color => 1 } );
 
 is $configured->{formatter}->color, 'never',
     'Configuration should respect --no-color even when configure is set';
 
 NEVER: {
-    $config_color = 'never';
-    $log_config = { color => $config_color };
-    my $configured = $CLASS->configure( $config, $log_config );
+    my $configured = $CLASS->configure( $config, { color => 'never' } );
     is $configured->{formatter}->color, 'never',
         'Configuration should respect color option';
 
     # Try it with config.
-    $log_config = { color => $config_color };
+    $config->update('log.color' => 'never');
     $configured = $CLASS->configure( $config, {} );
     is $configured->{formatter}->color, 'never',
         'Configuration should respect color config';
 }
 
 ALWAYS: {
-    $config_color = 'always';
-    $log_config = { color => $config_color };
-    my $configured = $CLASS->configure( $config, $log_config );
+    my $configured = $CLASS->configure( $config, { color => 'always' } );
     is_deeply $configured->{formatter}->color, 'always',
         'Configuration should respect color option';
 
     # Try it with config.
-    $log_config = { color => $config_color };
+    $config->update('log.color' => 'always');
     $configured = $CLASS->configure( $config, {} );
     is_deeply $configured->{formatter}->color, 'always',
         'Configuration should respect color config';
 }
 
 AUTO: {
-    $config_color = 'auto';
-    $log_config = { color => $config_color };
     for my $enabled (0, 1) {
-        my $configured = $CLASS->configure( $config, $log_config );
+        $config->update('log.color' => 'always');
+        my $configured = $CLASS->configure( $config, { color => 'auto' } );
         is_deeply $configured->{formatter}->color, 'auto',
             'Configuration should respect color option';
 
         # Try it with config.
-        $log_config = { color => $config_color };
+        $config->update('log.color' => 'auto');
         $configured = $CLASS->configure( $config, {} );
         is_deeply $configured->{formatter}->color, 'auto',
             'Configuration should respect color config';
     }
 }
-
-$cmock->unmock_all;
 
 ###############################################################################
 # Test named formats.

@@ -25,6 +25,7 @@ use App::Sqitch::Plan;
 use App::Sqitch::DateTime;
 use lib 't/lib';
 use DBIEngineTest;
+use TestConfig;
 
 my $CLASS;
 
@@ -33,9 +34,6 @@ delete $ENV{"SNOWSQL_$_"} for qw(USER PASSWORD DATABASE HOST PORT);
 BEGIN {
     $CLASS = 'App::Sqitch::Engine::snowflake';
     require_ok $CLASS or die;
-    $ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
-    $ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.user';
-    $ENV{SQITCH_USER_CONFIG}   = 'nonexistent.sys';
     $ENV{SNOWSQL_ACCOUNT}      = 'nonesuch';
 }
 
@@ -52,7 +50,8 @@ is_deeply [$CLASS->config_vars], [
 ], 'config_vars should return three vars';
 
 my $uri = 'db:snowflake:';
-my $sqitch = App::Sqitch->new(options => { engine => 'snowflake' });
+my $config = TestConfig->new('core.engine' => 'snowflake');
+my $sqitch = App::Sqitch->new(config => $config);
 my $target = App::Sqitch::Target->new(
     sqitch => $sqitch,
     uri    => URI::db->new($uri),
@@ -298,15 +297,13 @@ SNOWSQLCFG: {
 
 ##############################################################################
 # Make sure config settings override defaults.
-my %config = (
+$config->update(
     'engine.snowflake.client'   => '/path/to/snowsql',
     'engine.snowflake.target'   => 'db:snowflake://fred:hi@foo/try?warehouse=foo;role=yup',
     'engine.snowflake.registry' => 'meta',
 );
 $std_opts[-3] = 'registry=meta';
 $std_opts[-1] = 'warehouse=foo';
-my $mock_config = Test::MockModule->new('App::Sqitch::Config');
-$mock_config->mock(get => sub { $config{ $_[2] } });
 
 $target = App::Sqitch::Target->new( sqitch => $sqitch );
 ok $snow = $CLASS->new(sqitch => $sqitch, target => $target),
@@ -338,10 +335,8 @@ is_deeply [$snow->snowsql], [qw(
 ##############################################################################
 # Now make sure that (deprecated?) Sqitch options override configurations.
 $sqitch = App::Sqitch->new(
-    options => {
-        engine     => 'snowflake',
-        client     => '/some/other/snowsql',
-    },
+    config => $config,
+    options => { client => '/some/other/snowsql' },
 );
 
 $target = App::Sqitch::Target->new( sqitch => $sqitch );
@@ -358,8 +353,6 @@ is_deeply [$snow->snowsql], [qw(
     --dbname      try
     --rolename    yup
 ), @std_opts], 'snowsql command should be as optioned';
-
-$mock_config->unmock('get');
 
 ##############################################################################
 # Test SQL helpers.
@@ -402,6 +395,7 @@ is_deeply [$snow->_regex_expr('corn', 'Obama$')],
 
 ##############################################################################
 # Test _run(), _capture() _spool(), and _probe().
+$config->replace('core.engine' => 'snowflake');
 can_ok $snow, qw(_run _capture _spool);
 my $mock_sqitch = Test::MockModule->new('App::Sqitch');
 my @capture;
@@ -500,7 +494,6 @@ is_deeply \@capture, [$snow->snowsql, $snow->_verbose_opts, '--filename', 'foo/b
     'Verifile file should be passed to run() for high verbosity';
 
 $mock_sqitch->unmock_all;
-$mock_config->unmock_all;
 
 ##############################################################################
 # Test DateTime formatting stuff.
@@ -559,11 +552,13 @@ my $err = try {
 
 DBIEngineTest->run(
     class         => $CLASS,
-    sqitch_params => [options => {
-        engine    => 'snowflake',
-        top_dir   => dir(qw(t engine)),
-        plan_file => file(qw(t engine sqitch.plan)),
-    }],
+    sqitch_params => [
+        config => TestConfig->new('core.engine' => 'pg'),
+        options => {
+            top_dir   => dir(qw(t engine)),
+            plan_file => file(qw(t engine sqitch.plan)),
+        },
+    ],
     target_params     => [ uri => $uri ],
     alt_target_params => [ uri => $uri, registry => '__sqitchtest' ],
     skip_unless       => sub {

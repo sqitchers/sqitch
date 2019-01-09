@@ -13,13 +13,10 @@ use Test::MockModule;
 use Test::Exception;
 use lib 't/lib';
 use MockOutput;
+use TestConfig;
 
 my $CLASS = 'App::Sqitch::Command::checkout';
 require_ok $CLASS or die;
-
-$ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
-$ENV{SQITCH_USER_CONFIG}   = 'nonexistent.user';
-$ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
 
 isa_ok $CLASS, 'App::Sqitch::Command';
 can_ok $CLASS, qw(
@@ -44,10 +41,10 @@ is_deeply [$CLASS->options], [qw(
 )], 'Options should be correct';
 
 ok my $sqitch = App::Sqitch->new(
+    config  => TestConfig->new('core.engine' => 'sqlite'),
     options => {
         plan_file => file(qw(t sql sqitch.plan))->stringify,
         top_dir   => dir(qw(t sql))->stringify,
-        engine    => 'sqlite',
     },
 ), 'Load a sqitch object';
 

@@ -11,16 +11,14 @@ use Test::NoWarnings;
 use Capture::Tiny 0.12 qw(:all);
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X 'hurl';
+use lib 't/lib';
+use TestConfig;
 
 my $CLASS;
 BEGIN {
     $CLASS = 'App::Sqitch';
     use_ok $CLASS or die;
 }
-
-$ENV{SQITCH_CONFIG} = 'nonexistent.conf';
-$ENV{SQITCH_USER_CONFIG} = 'nonexistent.user';
-$ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
 
 can_ok $CLASS, qw(
     go
@@ -35,7 +33,7 @@ can_ok $CLASS, qw(
 
 ##############################################################################
 # Overrides.
-my $config = App::Sqitch::Config->new;
+my $config = TestConfig->new;
 $config->data({'core.verbosity' => 2});
 isa_ok my $sqitch = $CLASS->new({ config => $config, options => {} }),
     $CLASS, 'A configured object';
@@ -49,7 +47,8 @@ is $sqitch->verbosity, 3, 'Verbosity option should override configuration';
 
 ##############################################################################
 # Defaults.
-isa_ok $sqitch = $CLASS->new, $CLASS, 'A new object';
+$config->replace;
+isa_ok $sqitch = $CLASS->new(config => $config), $CLASS, 'A new object';
 
 is $sqitch->verbosity, 1, 'Default verbosity should be 1';
 ok $sqitch->sysuser, 'Should have default sysuser from system';
@@ -66,7 +65,7 @@ ENV: {
     local $ENV{SQITCH_ORIG_SYSUSER} = "__kamala__";
     local $ENV{SQITCH_ORIG_FULLNAME} = 'Kamala Harris';
     local $ENV{SQITCH_ORIG_EMAIL} = 'kamala@whitehouse.gov';
-    isa_ok $sqitch = $CLASS->new, $CLASS, 'Another new object';
+    isa_ok $sqitch = $CLASS->new(config => $config), $CLASS, 'Another new object';
     is $sqitch->sysuser, $ENV{SQITCH_ORIG_SYSUSER},
         "SQITCH_ORIG_SYSUER should override system username";
     is $sqitch->user_name, $ENV{SQITCH_ORIG_FULLNAME},
@@ -96,8 +95,15 @@ GO: {
     my $ret = 1;
     $mock->mock(execute => sub { ($cmd, @params) = @_; $ret });
     chdir 't';
-    local $ENV{SQITCH_CONFIG} = 'sqitch.conf';
-    local $ENV{SQITCH_USER_CONFIG} = 'user.conf';
+
+    my $config = TestConfig->from(
+        local => 'sqitch.conf',
+        user  => 'user.conf',
+    );
+
+    my $mocker = Test::MockModule->new('App::Sqitch::Config');
+    $mocker->mock(new => $config);
+
     local @ARGV = qw(--engine sqlite help config);
     is +App::Sqitch->go, 0, 'Should get 0 from go()';
 
@@ -106,7 +112,7 @@ GO: {
 
     isa_ok my $sqitch = $cmd->sqitch, 'App::Sqitch';
     is $sqitch->options->{engine}, 'sqlite', 'Should have collected --engine';
-    ok my $config = $sqitch->config, 'Get the Sqitch config';
+    ok $config = $sqitch->config, 'Get the Sqitch config';
     is $config->get(key => 'engine.pg.client'), '/usr/local/pgsql/bin/psql',
         'Should have local config overriding user';
     is $config->get(key => 'engine.pg.registry'), 'meta',
@@ -165,30 +171,29 @@ EDITOR: {
     local $ENV{VISUAL};
 
     local $ENV{EDITOR} = 'edd';
-    my $sqitch = App::Sqitch->new;
+    my $sqitch = App::Sqitch->new(config => $config);
     is $sqitch->editor, 'edd', 'editor should use $EDITOR';
 
     local $ENV{VISUAL} = 'gvim';
-    $sqitch = App::Sqitch->new;
+    $sqitch = App::Sqitch->new(config => $config);
     is $sqitch->editor, 'gvim', 'editor should prefer $VISUAL over $EDITOR';
 
-    local $ENV{SQITCH_CONFIG} = File::Spec->catfile(qw(t editor.conf));
-    my $config = App::Sqitch::Config->new;
-    $sqitch = App::Sqitch->new;
+    my $config = TestConfig->from(local => 'editor.conf');
+    $sqitch = App::Sqitch->new(config => $config);
     is $sqitch->editor, 'config_specified_editor', 'editor should prefer core.editor over $VISUAL';
 
     local $ENV{SQITCH_EDITOR} = 'vimz';
-    $sqitch = App::Sqitch->new;
+    $sqitch = App::Sqitch->new(config => $config);
     is $sqitch->editor, 'vimz', 'editor should prefer $SQITCH_EDITOR over $VISUAL';
 
     $sqitch = App::Sqitch->new({editor => 'emacz' });
     is $sqitch->editor, 'emacz', 'editor should use use parameter regardless of environment';
 
     delete $ENV{SQITCH_EDITOR};
-    delete $ENV{SQITCH_CONFIG};
     delete $ENV{VISUAL};
     delete $ENV{EDITOR};
-    $sqitch = App::Sqitch->new;
+    $config->replace;
+    $sqitch = App::Sqitch->new(config => $config);
     if (App::Sqitch::ISWIN) {
         is $sqitch->editor, 'notepad.exe', 'editor fall back on notepad on Windows';
     } else {
@@ -216,7 +221,7 @@ PAGER_PROGRAM: {
     {
         local $ENV{SQITCH_PAGER};
         local $ENV{PAGER} = "morez";
-        my $sqitch = App::Sqitch->new;
+        my $sqitch = App::Sqitch->new(config => $config);
         is $sqitch->pager_program, "morez",
             "pager program should be picked up from PAGER when SQITCH_PAGER and core.pager are not set";
         isa_ok $sqitch->pager, $pager_class, 'morez pager';
@@ -234,9 +239,9 @@ PAGER_PROGRAM: {
     {
         local $ENV{SQITCH_PAGER};
         local $ENV{PAGER}         = "morezz";
-        local $ENV{SQITCH_CONFIG} = File::Spec->catfile(qw/t sqitch.conf/);
 
-        my $sqitch = App::Sqitch->new;
+        my $config = TestConfig->from(local => 'sqitch.conf');
+        my $sqitch = App::Sqitch->new(config => $config);
         is $sqitch->pager_program, "less -r",
             "`core.pager' setting should take precedence over PAGER when SQITCH_PAGER is not set.";
         isa_ok $sqitch->pager, $pager_class, 'morezz pager';
@@ -245,10 +250,10 @@ PAGER_PROGRAM: {
     {
         local $ENV{SQITCH_PAGER}  = "less -rules";
         local $ENV{PAGER}         = "more -dontcare";
-        local $ENV{SQITCH_CONFIG} = File::Spec->catfile(qw/t sqitch.conf/);
 
         # Should always get IO::Handle with --no-pager.
-        my $sqitch = App::Sqitch->new(options => {no_pager => 1});
+        my $config = TestConfig->from(local => 'sqitch.conf');
+        my $sqitch = App::Sqitch->new(config => $config, options => {no_pager => 1});
         is $sqitch->pager_program, "less -rules",
             "SQITCH_PAGER should take precedence over both PAGER and the `core.pager' setting.";
         isa_ok $sqitch->pager, 'IO::Handle', 'less -rules';

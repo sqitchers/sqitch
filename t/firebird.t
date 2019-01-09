@@ -17,6 +17,7 @@ use File::Spec::Functions;
 use File::Temp 'tempdir';
 use lib 't/lib';
 use DBIEngineTest;
+use TestConfig;
 
 my $CLASS;
 my $user;
@@ -31,10 +32,6 @@ try { require DBD::Firebird; } catch { $have_fb_driver = 0; };
 BEGIN {
     $CLASS = 'App::Sqitch::Engine::firebird';
     require_ok $CLASS or die;
-    $ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
-    $ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.user';
-    $ENV{SQITCH_USER_CONFIG}   = 'nonexistent.sys';
-
     $user = $ENV{ISC_USER}     || $ENV{DBI_USER} || 'SYSDBA';
     $pass = $ENV{ISC_PASSWORD} || $ENV{DBI_PASS} || 'masterkey';
 
@@ -49,7 +46,8 @@ is_deeply [$CLASS->config_vars], [
     client   => 'any',
 ], 'config_vars should return three vars';
 
-my $sqitch = App::Sqitch->new(options => { engine => 'firebird' });
+my $config = TestConfig->new('core.engine' => 'firebird');
+my $sqitch = App::Sqitch->new(config => $config);
 my $target = App::Sqitch::Target->new(
     sqitch => $sqitch,
     uri    => URI->new('db:firebird:foo.fdb'),
@@ -107,14 +105,11 @@ ENV: {
 
 ##############################################################################
 # Make sure config settings override defaults.
-my %config = (
+$config->update(
     'engine.firebird.client'   => '/path/to/isql',
     'engine.firebird.target'   => 'db:firebird://freddy:s3cr3t@db.example.com:1234/widgets',
     'engine.firebird.registry' => 'meta',
 );
-my $mock_config = Test::MockModule->new('App::Sqitch::Config');
-$mock_config->mock(get => sub { $config{ $_[2] } });
-$sqitch = App::Sqitch->new(options => { engine => 'firebird' });
 $target = App::Sqitch::Target->new(sqitch => $sqitch);
 ok $fb = $CLASS->new(sqitch => $sqitch, target => $target), 'Create another firebird';
 
@@ -133,11 +128,13 @@ is_deeply [$fb->isql], [(
 
 ##############################################################################
 # Now make sure that Sqitch options override configurations.
-$sqitch = App::Sqitch->new(options => {
-    engine   => 'firebird',
-    client   => '/some/other/isql',
-    registry => 'meta',
-});
+$sqitch = App::Sqitch->new(
+    config => $config,
+    options => {
+        client   => '/some/other/isql',
+        registry => 'meta',
+    },
+);
 $target = App::Sqitch::Target->new(sqitch => $sqitch);
 
 ok $fb = $CLASS->new(sqitch => $sqitch, target => $target),
@@ -274,7 +271,6 @@ is_deeply \@run, [$fb->isql, '-input', 'foo/bar.sql'],
     'Verify file should be passed to run() for high verbosity';
 
 $mock_sqitch->unmock_all;
-$mock_config->unmock_all;
 
 ##############################################################################
 # Test DateTime formatting stuff.
@@ -364,11 +360,13 @@ my $err = try {
 my $uri = URI::db->new("db:firebird://$user:$pass\@localhost/$dbpath");
 DBIEngineTest->run(
     class         => $CLASS,
-    sqitch_params => [options => {
-        _engine     => 'firebird',
-        top_dir     => Path::Class::dir(qw(t engine))->stringify,
-        plan_file   => Path::Class::file(qw(t engine sqitch.plan))->stringify,
-    }],
+    sqitch_params => [
+        config  => TestConfig->new('core.engine' => 'exasol'),
+        options => {
+            top_dir     => Path::Class::dir(qw(t engine))->stringify,
+            plan_file   => Path::Class::file(qw(t engine sqitch.plan))->stringify,
+        },
+    ],
     target_params     => [ uri => $uri, registry => catfile($tmpdir, '__metasqitch') ],
     alt_target_params => [ uri => $uri, registry => catfile($tmpdir, '__sqitchtest') ],
 
