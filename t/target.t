@@ -159,7 +159,7 @@ CONSTRUCTOR: {
     isa_ok my $target = $CLASS->new(sqitch => $sqitch), $CLASS, 'Default target';
     is $target->name, 'db:sqlite:', 'Name should be "db:sqlite:"';
     is $target->uri, URI::db->new('db:sqlite:'), 'URI should be "db:sqlite:"';
-    is_deeply \@get_params, [[key => 'engine.sqlite.target'],[key => 'core.sqlite.target']],
+    is_deeply \@get_params, [[key => 'engine.sqlite.target']],
         'Should have tried to get engine target';
 
     # Try with just core.engine.
@@ -173,7 +173,6 @@ CONSTRUCTOR: {
         [key => 'core.target'],
         [key => 'core.engine'],
         [key => 'engine.mysql.target'],
-        [key => 'core.mysql.target'],
     ], 'Should have tried to get core.target, core.engine and then the target';
 
     # Try with no engine option but a name that looks like a URI.
@@ -347,8 +346,7 @@ CONSTRUCTOR: {
         [key => 'core.target'],
         [key => 'target.foo.uri']
     ], 'Should have requested engine target and target URI from config';
-    is_deeply \@sect_params, [[section => 'core.sqlite']],
-        'Should have requested sqlite section';
+    is_deeply \@sect_params, [], 'Should have requested no section';
 
     # Let the name come from the environment.
     ENV: {
@@ -362,85 +360,6 @@ CONSTRUCTOR: {
             'Should have requested target URI from config';
         is_deeply \@sect_params, [], 'Should have requested no sections';
     }
-
-    # Make sure db options and deprecated config variables work.
-    local $App::Sqitch::Target::WARNED = 0;
-    $config->replace(
-        'core.engine'      => 'pg',
-        'core.pg.host'     => 'hi.com',
-        'core.pg.port'     => 5432,
-        'core.pg.username' => 'bob',
-        'core.pg.password' => 'ouch',
-        'core.pg.db_name'  => 'sharks',
-    );
-    @get_params = @sect_params = ();
-    $uri = URI::db->new('db:pg://bob:ouch@hi.com:5432/sharks');
-    isa_ok $target = $CLASS->new(sqitch => $sqitch), $CLASS, 'Pg target';
-    is_deeply \@sect_params, [ [section => 'core.pg' ], [section => 'engine.pg' ]],
-        'Should have requested core and engine pg sections';
-    like $target->name, qr{db:pg://bob:?\@hi.com:5432/sharks},
-        'Name should be passwordless stringified URI';
-    is $target->uri, $uri, 'URI should be tweaked by config* options';
-    is_deeply +MockOutput->get_warn, [[__x(
-        "The core.{engine} config has been deprecated in favor of engine.{engine}.\nRun '{sqitch} engine update-config' to update your configurations.",
-        engine => 'pg',
-        sqitch => $0,
-    )]], 'Should have warned on deprecated config options';
-
-    # Make sure --db-* options work.
-    $App::Sqitch::Target::WARNED = 0;
-    @get_params = @sect_params = ();
-    $uri = URI::db->new('db:pg://fred:ouch@foo.com:12245/widget');
-    $sqitch->options->{db_host}     = 'foo.com';
-    $sqitch->options->{db_port}     = 12245;
-    $sqitch->options->{db_username} = 'fred';
-    $sqitch->options->{db_name}     = 'widget';
-    isa_ok $target = $CLASS->new(sqitch => $sqitch), $CLASS, 'Postgres target';
-    is_deeply \@sect_params, [ [section => 'core.pg' ], [section => 'engine.pg' ] ],
-        'Should have requested sqlite core and engine sections';
-    like $target->name, qr{db:pg://fred:?\@foo.com:12245/widget},
-        'Name should be passwordless stringified URI';
-    is $target->uri, $uri, 'URI should be tweaked by --db-* options';
-    is_deeply +MockOutput->get_warn, [
-        [__x(
-            "The core.{engine} config has been deprecated in favor of engine.{engine}.\nRun '{sqitch} engine update-config' to update your configurations.",
-            engine => 'pg',
-            sqitch => $0,
-        )],
-    ], 'Should have warned on deprecated config';
-
-    # Options should work, but not config, when URI read from target config.
-    $App::Sqitch::Target::WARNED = 0;
-    $uri = URI::db->new('db:pg://foo.com/widget');
-    @get_params = @sect_params = ();
-    delete $sqitch->{options}->{$_} for qw(engine db_port db_username);
-    $sqitch->options->{db_host} = 'foo.com';
-    $sqitch->options->{db_name} = 'widget';
-    $config->update('target.foo.uri' => 'db:pg:');
-    isa_ok $target = $CLASS->new(sqitch => $sqitch, name => 'foo'), $CLASS,
-        'Foo target';
-    is_deeply \@get_params, [ [key => 'target.foo.uri' ]],
-        'Should have requested target URI';
-    is_deeply \@sect_params, [], 'Should have fetched no section';
-    is $target->name, 'foo', 'Name should be as passed';
-    is $target->uri, $uri, 'URI should be tweaked by --db-* options';
-    is_deeply +MockOutput->get_warn, [],
-        'Should have emitted no warnigns';
-
-    # Options should work, but not config, when URI passsed.
-    $App::Sqitch::Target::WARNED = 0;
-    $uri = URI::db->new('db:pg://foo.com/widget');
-    @get_params = @sect_params = ();
-    delete $sqitch->{options}->{$_} for qw(engine db_port db_username);
-    $sqitch->options->{db_host} = 'foo.com';
-    $sqitch->options->{db_name} = 'widget';
-    isa_ok $target = $CLASS->new(sqitch => $sqitch, name => 'db:pg:widget'), $CLASS,
-        'URI target';
-    is_deeply \@get_params, [], 'Should have requested no config';
-    is_deeply \@sect_params, [], 'Should have fetched no section';
-    is $target->name, $uri, 'Name should tweaked by --db-* options';
-    is $target->uri, $uri, 'URI should be tweaked by --db-* options';
-    is_deeply +MockOutput->get_warn, [], 'Should have emitted no warnigns';
 }
 
 CONFIG: {

@@ -67,28 +67,6 @@ has engine => (
     },
 );
 
-# TODO: core.$engine is deprecated. Remove this workaround and warning
-# when it is removed.
-our $WARNED  = $ENV{HARNESS_ACTIVE};
-sub _engine_var {
-    my ($self, $config, $ekey, $akey) = @_;
-    return unless $ekey;
-    if (my $val = $config->get( key => "engine.$ekey.$akey" )) {
-        return $val;
-    }
-
-    # Look for the deprecated config section.
-    my $val = $config->get( key => "core.$ekey.$akey" ) or return;
-    return $val if $WARNED;
-    App::Sqitch->warn(__x(
-        "The core.{engine} config has been deprecated in favor of engine.{engine}.\nRun '{sqitch} engine update-config' to update your configurations.",
-        engine => $ekey,
-        sqitch => $0,
-    ));
-    $WARNED = 1;
-    return $val;
-}
-
 sub _fetch {
     my ($self, $key) = @_;
     my $sqitch = $self->sqitch;
@@ -98,8 +76,10 @@ sub _fetch {
 
     my $config = $sqitch->config;
     return $config->get( key => "target." . $self->name . ".$key" )
-        || $self->_engine_var($config, scalar $self->engine_key, $key)
-        || $config->get( key => "core.$key");
+        || do {
+            my $ekey = $self->engine_key;
+            $ekey ? $config->get( key => "engine.$ekey.$key") : ();
+        } || $config->get( key => "core.$key");
 }
 
 has registry => (
@@ -233,9 +213,7 @@ sub BUILDARGS {
         return $p;
     }
 
-    # XXX $merge for deprecated config.
-    # Can also move $ekey just to block below when deprecated merge is removed.
-    my ($ekey, $merge);
+    my $ekey;
     my $config = $sqitch->config;
 
     # If no name, try to find one.
@@ -247,8 +225,7 @@ sub BUILDARGS {
             unless ($ekey) {
                 # No --engine, look for core target.
                 if ( $uri = $config->get( key => 'core.target' ) ) {
-                    # We got core.target. Merge all deprecated stuff.
-                    $merge = 2;
+                    # We got core.target.
                     $p->{name} = $name = $uri;
                     last NAME;
                 }
@@ -263,8 +240,7 @@ sub BUILDARGS {
             }
 
             # Find the name in the engine config, or fall back on a simple URI.
-            $uri = $class->_engine_var($config, $ekey, 'target') || "db:$ekey:";
-            $merge = 2; # Merge all deprecated stuff.
+            $uri = $config->get( key => "engine.$ekey.target" ) || "db:$ekey:";
             $p->{name} = $name = $uri;
         }
     }
@@ -274,7 +250,6 @@ sub BUILDARGS {
         # The name is a URI.
         $uri = $name;
         $name  = $p->{name} = undef;
-        $merge ||= 1; # At least merge options.
     } else {
         $p->{name} = $name;
         # Well then, there had better be a config with a URI.
@@ -291,7 +266,6 @@ sub BUILDARGS {
                 target => $name,
             );
         };
-        $merge ||= 1; # At least merge options.
     }
 
     # Instantiate the URI.
@@ -300,52 +274,6 @@ sub BUILDARGS {
         'No engine specified by URI {uri}; URI must start with "db:$engine:"',
         uri => $uri->as_string,
     );
-
-    if ($merge) {
-        # Override parts with deprecated command-line options and config.
-        my $opts    = $sqitch->options;
-        my $econfig = $merge > 1
-            ? $sqitch->config->get_section(section => "core.$ekey") || {}
-            : {};
-
-        if (%{ $econfig } && !%{ $sqitch->config->get_section(section => "engine.$ekey") || {} }) {
-            App::Sqitch->warn(__x(
-                "The core.{engine} config has been deprecated in favor of engine.{engine}.\nRun '{sqitch} engine update-config' to update your configurations.",
-                engine => $ekey,
-                sqitch => $0,
-            )) unless $WARNED;
-            $WARNED = 1;
-        }
-
-        if (my $host = $opts->{db_host}) {
-            $uri->host($host);
-        } elsif ($host = $econfig->{host}) {
-            $uri->host($host) if $merge > 1;
-        }
-
-        if (my $port = $opts->{db_port}) {
-            $uri->port($port);
-        } elsif ($port = $econfig->{port}) {
-            $uri->port($port) if $merge > 1;
-        }
-
-        if (my $user = $opts->{db_username}) {
-            $uri->user($user);
-        } elsif ($user = $econfig->{username}) {
-            $uri->user($user) if $merge > 1;
-        }
-
-        if (my $pass = $econfig->{password}) {
-            $uri->password($pass) if $merge > 1;
-        }
-
-        if (my $db = $opts->{db_name}) {
-            $uri->dbname($db);
-        } elsif ($db = $econfig->{db_name}) {
-            $uri->dbname($db) if $merge > 1;
-        }
-
-    }
 
     unless ($name) {
         # Set the name.

@@ -230,16 +230,14 @@ sub _core_opts {
     # Add to regex in _find_cmd when options moved from here to command.
     return qw(
         plan-file|f=s
+        directory|C=s
+
         engine=s
         registry=s
-        directory|C=s
         client|db-client=s
-        db-name|d=s
-        db-username|db-user|u=s
-        db-host|h=s
-        db-port|p=i
-        top-dir|dir=s
         extension=s
+
+        top-dir|dir=s
         etc-path
         no-pager
         quiet

@@ -3,8 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 184;
-#use Test::More 'no_plan';
+use Test::More;
 use Test::MockModule;
 use Test::Exception;
 use Capture::Tiny 0.12 ':all';
@@ -79,10 +78,6 @@ CMD: {
     for my $opt (qw(
         --engine
         --client --db-client
-        --db-name -d
-        --db-username -db-user -u
-        --db-host -h
-        --db-port -p
         --extension
     )) {
         @args = ($opt, 'deploy');
@@ -162,10 +157,6 @@ my $opts = $CLASS->_parse_core_opts([
     '--engine'     => 'pg',
     '--registry'   => 'reg',
     '--client'     => 'psql',
-    '--db-name'    => 'try',
-    '--db-user'    => 'bob',
-    '--db-host'    => 'local',
-    '--db-port'    => 2020,
     '--top-dir'    => 'ddl',
     '--extension'  => 'ext',
     '--verbose', '--verbose',
@@ -177,10 +168,6 @@ is_deeply $opts, {
     engine      => 'pg',
     registry    => 'reg',
     client      => 'psql',
-    db_name     => 'try',
-    db_username => 'bob',
-    db_host     => 'local',
-    db_port     => 2020,
     top_dir     => 'ddl',
     extension   => 'ext',
     verbosity   => 2,
@@ -198,17 +185,9 @@ is_deeply $CLASS->_parse_core_opts([
 ##############################################################################
 # Try short options.
 is_deeply $CLASS->_parse_core_opts([
-  '-d' => 'mydb',
-  '-u' => 'fred',
-  '-h' => 'db1',
-  '-p' => 5431,
   '-f' => 'foo.plan',
   '-vvv',
 ]), {
-    db_name     => 'mydb',
-    db_username => 'fred',
-    db_host     => 'db1',
-    db_port     => 5431,
     verbosity   => 3,
     plan_file   => 'foo.plan',
 }, 'Short options should work';
@@ -251,3 +230,5 @@ CHDIE: {
         error     => 'Bad file descriptor',
     ), 'Error message should be correct';
 }
+
+done_testing;

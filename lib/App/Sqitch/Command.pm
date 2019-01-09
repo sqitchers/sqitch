@@ -209,7 +209,6 @@ sub usage {
     );
 }
 
-
 sub parse_args {
     my ($self, %p) = @_;
     my $sqitch = $self->sqitch;
