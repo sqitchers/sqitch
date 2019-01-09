@@ -89,8 +89,8 @@ is $status->project, 'foo', 'Should have project "foo"';
 
 # Look up the project in the database.
 ok $sqitch = App::Sqitch->new(
+    config => $config,
     options => {
-        engine  => 'sqlite',
         top_dir => Path::Class::Dir->new('test-status')->stringify,
     },
 ), 'Load a sqitch object with SQLite';
@@ -421,10 +421,10 @@ is_deeply +MockOutput->get_comment, [
 ##############################################################################
 # Test emit_status().
 my $file = file qw(t plans multi.plan);
-$sqitch = App::Sqitch->new(options => {
-    plan_file => $file->stringify,
-    engine  => 'sqlite',
-});
+$sqitch = App::Sqitch->new(
+    config => $config,
+    options => { plan_file => $file->stringify },
+);
 ok $status = App::Sqitch::Command->load({
     sqitch  => $sqitch,
     command => 'status',
@@ -518,7 +518,7 @@ ok $status->execute('db:sqlite:'), 'Execute with target arg';
 $check_output->();
 is $target_name_arg, 'db:sqlite:', 'Name "db:sqlite:" should have been passed to Target';
 
-# Pass the database in an option.
+# Pass the target in an option.
 ok $status = App::Sqitch::Command->load({
     sqitch  => $sqitch,
     command => 'status',

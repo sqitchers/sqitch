@@ -102,7 +102,6 @@ my $config = TestConfig->new('core.engine' => 'sqlite');
 ok my $sqitch = App::Sqitch->new(
     config => $config,
     options => {
-        engine    => 'sqlite',
         top_dir   => dir(qw(t sql))->stringify,
         plan_file => file(qw(t plans multi.plan))->stringify,
     }

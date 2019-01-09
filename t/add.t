@@ -22,12 +22,11 @@ use TestConfig;
 
 my $CLASS = 'App::Sqitch::Command::add';
 
-my $config = TestConfig->new;
+my $config = TestConfig->new('core.engine' => 'pg');
 ok my $sqitch = App::Sqitch->new(
     config => $config,
     options => {
         top_dir => dir('test-add')->stringify,
-        engine => 'pg',
     }
 ), 'Load a sqitch sqitch object';
 
