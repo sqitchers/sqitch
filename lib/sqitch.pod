@@ -6,7 +6,7 @@ sqitch - Sane database change management
 
 =head1 Synopsis
 
-  sqitch [<options>] <command> [<command-options>] [<args>]
+  sqitch <command> [<options>] [<command-options>] [<args>]
 
 =head1 Description
 
@@ -208,8 +208,6 @@ User who adds a change to the plan.
 
   -f --plan-file  FILE      Path to a deployment plan file.
      --engine     ENGINE    Database engine.
-     --registry   REGISTRY  Registry schema or database.
-     --db-client  PATH      Path to engine command-line client.
   -C --directory  DIR       Change to directory before performing any actions.
      --top-dir    DIR       Path to directory with plan and scripts.
      --etc-path             Print path to etc directory and exit.
@@ -259,22 +257,6 @@ The database engine to use. Supported engines include:
 =item * C<snowflake> - L<Snowflake|https://www.snowflake.net/>
 
 =back
-
-=item C<--registry>
-
-  sqitch --registry registry
-
-The name of the Sqitch registry schema or database. Sqitch will store its own
-data here.
-
-=item C<--db-client>
-
-=item C<--client>
-
-  sqitch --client /usr/local/pgsql/bin/psql
-
-Path to the command-line client for the database engine. Defaults to a client
-in the current path named appropriately for the specified engine.
 
 =item C<-C>
 

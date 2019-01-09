@@ -11,14 +11,12 @@ sqitchusage - Sqitch usage statement
 
 =head1 Usage
 
-  sqitch [<options>] <command> [<command-options>] [<args>]
+  sqitch <command> [<options>] [<command-options>] [<args>]
 
 =head1 Options
 
   -f --plan-file  FILE      Path to a deployment plan file.
      --engine     ENGINE    Database engine.
-     --registry   REGISTRY  Registry schema or database.
-     --db-client  PATH      Path to the engine command-line client.
      --top-dir    DIR       Path to directory with plan and scripts.
      --etc-path             Print the path to the etc directory and exit.
      --no-pager             Do not pipe output into a pager.

@@ -11,6 +11,7 @@ use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use Test::MockModule;
 use Test::Exception;
+use Test::Warn;
 use lib 't/lib';
 use MockOutput;
 use TestConfig;
@@ -49,6 +50,14 @@ is_deeply [$CLASS->options], [qw(
     db-host|h=s
     db-port|p=i
 )], 'Options should be correct';
+
+warning_is {
+    Getopt::Long::Configure(qw(bundling pass_through));
+    ok Getopt::Long::GetOptionsFromArray(
+        [], {}, App::Sqitch->_core_opts, $CLASS->options,
+    ), 'Should parse options';
+} undef, 'Options should not conflict with core options';
+
 
 ok my $sqitch = App::Sqitch->new(
     config  => TestConfig->new('core.engine' => 'sqlite'),

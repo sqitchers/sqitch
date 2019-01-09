@@ -89,6 +89,8 @@ Revision history for Perl extension App::Sqitch
      - Changed the alias for the `--set-deploy` option on the `rebase` and
        `checkout` commands from `-d` to `-e` to prevent a conflict with the
        `-d` alias for `--db-name`.
+     - Removed the `--registry` `--client`, and `--extension` core options.
+       They are still provided by the commands that need them.
 
 0.9998 2018-10-03T20:53:58Z
      - Fixed an issue where Sqitch would sometimes truncate the registry

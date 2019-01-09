@@ -155,10 +155,7 @@ $mock->mock(warn => undef);
 my $opts = $CLASS->_parse_core_opts([
     '--plan-file'  => 'plan.txt',
     '--engine'     => 'pg',
-    '--registry'   => 'reg',
-    '--client'     => 'psql',
     '--top-dir'    => 'ddl',
-    '--extension'  => 'ext',
     '--verbose', '--verbose',
     '--no-pager',
 ]);
@@ -166,10 +163,7 @@ my $opts = $CLASS->_parse_core_opts([
 is_deeply $opts, {
     plan_file   => 'plan.txt',
     engine      => 'pg',
-    registry    => 'reg',
-    client      => 'psql',
     top_dir     => 'ddl',
-    extension   => 'ext',
     verbosity   => 2,
     no_pager    => 1,
 }, 'Should parse lots of options';

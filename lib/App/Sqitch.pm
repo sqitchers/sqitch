@@ -233,9 +233,6 @@ sub _core_opts {
         directory|C=s
 
         engine=s
-        registry=s
-        client|db-client=s
-        extension=s
 
         top-dir|dir=s
         etc-path
