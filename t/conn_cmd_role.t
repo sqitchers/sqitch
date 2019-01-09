@@ -33,6 +33,9 @@ COMMAND: {
 }
 
 my $CLASS = 'App::Sqitch::Command::click';
+can_ok $CLASS, 'does';
+ok $CLASS->does($ROLE), "$CLASS does $ROLE";
+
 is_deeply [$CLASS->options], [qw(
     foo
     quack|k=s
