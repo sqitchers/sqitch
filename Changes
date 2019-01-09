@@ -76,7 +76,11 @@ Revision history for Perl extension App::Sqitch
      - Removed the core `--deploy-dir`, `--revert-dir`, and `--verify-dir`
        options, which have been deprecated and triggering an error message
        since v0.9993. The `--dir` option to the `init`, `engine`, and `target`
-       commands remains the favored interface for specifying script directories.
+       commands remains the favored interface for specifying script
+       directories.
+     - Removed support for reading the `core.$engine` configuration, which has
+       been deprecated with warnings since 0.997. The `sqitch engine
+       update-config` action remains in place.
 
 0.9998 2018-10-03T20:53:58Z
      - Fixed an issue where Sqitch would sometimes truncate the registry
