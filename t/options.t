@@ -179,11 +179,13 @@ is_deeply $CLASS->_parse_core_opts([
 ##############################################################################
 # Try short options.
 is_deeply $CLASS->_parse_core_opts([
-  '-f' => 'foo.plan',
-  '-vvv',
+    '-P' => 'foo.plan',
+    '-D' => 'top',
+  '-VVV',
 ]), {
-    verbosity   => 3,
-    plan_file   => 'foo.plan',
+    verbosity => 3,
+    plan_file => 'foo.plan',
+    top_dir   => 'top',
 }, 'Short options should work';
 
 USAGE: {

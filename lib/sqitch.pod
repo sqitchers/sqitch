@@ -206,14 +206,14 @@ User who adds a change to the plan.
 
 =head1 Options
 
-  -f --plan-file  FILE      Path to a deployment plan file.
+  -P --plan-file  FILE      Path to a deployment plan file.
      --engine     ENGINE    Database engine.
   -C --directory  DIR       Change to directory before performing any actions.
-     --top-dir    DIR       Path to directory with plan and scripts.
+  -D --top-dir    DIR       Path to directory with plan and scripts.
      --etc-path             Print path to etc directory and exit.
      --no-pager             Do not pipe output into a pager.
      --quiet                Quiet mode with non-error output suppressed.
-  -v --verbose              Increment verbosity.
+  -V --verbose              Increment verbosity.
      --version              Print version number and exit.
      --help                 Show a list of commands and exit.
      --man                  Print introductory documentation and exit.
@@ -222,12 +222,12 @@ User who adds a change to the plan.
 
 =over
 
-=item C<-f>
+=item C<-P>
 
 =item C<--plan-file>
 
   sqitch --plan-file plan.txt
-  sqitch -f main.plan
+  sqitch -P main.plan
 
 Path to the deployment plan file. Defaults to F<$top_dir/sqitch.plan>. See
 L</Plan File> for a description of its structure.
@@ -274,7 +274,10 @@ But a bit friendlier when managing multiple projects.
 
 =item C<--top-dir>
 
+=item C<-C>
+
   sqitch --top-dir migrations/
+  sqitch -D migrations/
 
 Path to directory containing deploy, revert, and verify scripts. It should
 contain subdirectories named C<deploy>, C<revert>, and (optionally) C<verify>.
@@ -302,12 +305,12 @@ and C<plan> commands.
 Suppress normal output messages. Error messages will still be emitted to
 C<STDERR>. Overrides any value specified by C<--verbose>.
 
-=item C<-v>
+=item C<-V>
 
 =item C<--verbose>
 
   sqitch --verbose
-  sqitch -vvv
+  sqitch -VVV
 
 Pass multiple times to specify a value between 0 and 3 to determine how
 verbose Sqitch should be. Unless C<--quiet> is specified, the default is 1,
@@ -326,8 +329,6 @@ Outputs a brief description all known Sqitch commands and exits.
   sqitch --man
 
 Outputs this documentation and exits.
-
-=item C<-V>
 
 =item C<--version>
 

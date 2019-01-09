@@ -229,16 +229,16 @@ sub go {
 sub _core_opts {
     # Add to regex in _find_cmd when options moved from here to command.
     return qw(
-        plan-file|f=s
+        plan-file|P=s
         directory|C=s
+        top-dir|D=s
 
         engine=s
 
-        top-dir=s
-        etc-pat
+        etc-path
         no-pager
         quiet
-        verbose|v+
+        verbose|V+
         help
         man
         version
