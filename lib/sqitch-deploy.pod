@@ -4,9 +4,9 @@ sqitch-deploy - Deploy changes to a database
 
 =head1 Synopsis
 
-  sqitch [options] deploy [<database>]
-  sqitch [options] deploy [<database>] <change>
-  sqitch [options] deploy [<database>] --to-change <change>
+  sqitch deploy [options] [<database>]
+  sqitch deploy [options] [<database>] <change>
+  sqitch deploy [options] [<database>] --to-change <change>
 
 =head1 Description
 
@@ -98,6 +98,69 @@ Log the changes as if they were deployed, but without actually running the
 deploy scripts. Useful for an existing database that is being converted to
 Sqitch, and you need to log changes as deployed because they have been
 deployed by other means in the past.
+
+=item C<--registry>
+
+  sqitch deploy --registry registry
+
+The name of the Sqitch registry schema or database in which sqitch stores its
+own data.
+
+=item C<--db-client>
+
+=item C<--client>
+
+  sqitch deploy --client /usr/local/pgsql/bin/psql
+
+Path to the command-line client for the database engine. Defaults to a client
+in the current path named appropriately for the database engine.
+
+=item C<-d>
+
+=item C<--db-name>
+
+  sqitch deploy --db-name widgets
+  sqitch deploy -d bricolage
+
+Name of the database. In general, L<targets|sqitch-target> and URIs are
+preferred, but this option can be used to override the database name in a
+target.
+
+=item C<-u>
+
+=item C<--db-user>
+
+=item C<--db-username>
+
+  sqitch deploy --db-username root
+  sqitch deploy --db-user postgres
+  sqitch deploy -u Mom
+
+User name to use when connecting to the database. Does not apply to all
+engines. In general, L<targets|sqitch-target> and URIs are preferred, but this
+option can be used to override the user name in a target.
+
+=item C<-h>
+
+=item C<--db-host>
+
+  sqitch --db-host db.example.com
+  sqitch -h appdb.example.net
+
+Host name to use when connecting to the database. Does not apply to all
+engines. In general, L<targets|sqitch-target> and URIs are preferred, but this
+option can be used to override the host name in a target.
+
+=item C<-p>
+
+=item C<--db-port>
+
+  sqitch deploy --db-port 7654
+  sqitch deploy -p 5431
+
+Port number to connect to. Does not apply to all engines. In general,
+L<targets|sqitch-target> and URIs are preferred, but this option can be used
+to override the port in a target.
 
 =back
 
