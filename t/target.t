@@ -395,15 +395,16 @@ CONSTRUCTOR: {
     is $target->uri, $uri, 'URI should be tweaked by URI params';
 
     # URI params should work when URI passsed.
-    $uri = URI::db->new('db:pg://foo.com/widget');
+    $uri = URI::db->new('db:pg://:1919/');
     @get_params = @sect_params = ();
     $sqitch->options->{db_host} = 'foo.com';
     $sqitch->options->{db_name} = 'widget';
     isa_ok $target = $CLASS->new(
         sqitch => $sqitch,
         name   => 'db:pg:widget',
-        host   => 'foo.com',
-        dbname => 'widget',
+        host   => '',
+        dbname => '',
+        port   => 1919,
     ), $CLASS, 'URI target';
     is_deeply \@get_params, [], 'Should have requested no config';
     is_deeply \@sect_params, [], 'Should have fetched no section';

@@ -34,12 +34,12 @@ around configure => sub {
 
     # Grab the options we're responsible for.
     my @params = (
-        ( $opt->{db_user}  ? ('user',    => delete $opt->{db_user})  : () ),
-        ( $opt->{db_host}  ? ('host',    => delete $opt->{db_host})  : () ),
-        ( $opt->{db_port}  ? ('port',    => delete $opt->{db_port})  : () ),
-        ( $opt->{db_name}  ? ('dbname'   => delete $opt->{db_name})  : () ),
-        ( $opt->{registry} ? ('registry' => delete $opt->{registry}) : () ),
-        ( $opt->{client}   ? ('client'   => delete $opt->{client})   : () ),
+        (exists $opt->{db_user}  ? ('user',    => delete $opt->{db_user})  : ()),
+        (exists $opt->{db_host}  ? ('host',    => delete $opt->{db_host})  : ()),
+        (exists $opt->{db_port}  ? ('port',    => delete $opt->{db_port})  : ()),
+        (exists $opt->{db_name}  ? ('dbname'   => delete $opt->{db_name})  : ()),
+        (exists $opt->{registry} ? ('registry' => delete $opt->{registry}) : ()),
+        (exists $opt->{client}   ? ('client'   => delete $opt->{client})   : ()),
     );
 
     # Let the command take care of its options.

@@ -61,6 +61,22 @@ is_deeply $CLASS->configure($config, $opts), { _params => \@params },
     'Should get no dbname for --db-name';
 
 $opts = {
+    db_user  => '',
+    db_host  => undef,
+    db_port  => 0,
+    db_name  => '',
+};
+@params = (
+    user     => '',
+    host     => undef,
+    port     => 0,
+    dbname   => '',
+);
+
+is_deeply $CLASS->configure($config, $opts),  { _params => \@params },
+    'Should collect existing but false params';
+
+$opts = {
     db_user  => 'theory',
     db_host  => 'justatheory.com',
     db_port  => 9876,
