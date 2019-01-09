@@ -4,11 +4,17 @@ sqitch-verify-usage - Sqitch verify usage statement
 
 =head1 Usage
 
-  sqitch [options] verify [verify options] [<database>]
+  sqitch verify [<options>] [<database>]
 
 =head1 Options
 
-    -t --target <target>       database to which to connect
-       --from-change <change>  verify from change
-       --to-change   <change>  verify to change
-    -s --set <key=value>       set a database client variable
+    -t --target      <target>     database to which to connect
+       --from-change <change>     verify from change
+       --to-change   <change>     verify to change
+    -s --set         <key=value>  set a database client variable
+       --registry    <registry>   registry schema or database
+       --db-client   <path>       path to the engine command-line client
+    -d --db-name     <name>       database name
+    -u --db-user     <user>       database user name
+    -h --db-host     <host>       database server host name
+    -p --db-port     <port>       database server port number

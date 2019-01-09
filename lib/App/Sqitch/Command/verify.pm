@@ -11,6 +11,7 @@ use Locale::TextDomain qw(App-Sqitch);
 use List::Util qw(first);
 use namespace::autoclean;
 extends 'App::Sqitch::Command';
+with 'App::Sqitch::Role::ConnectingCommand';
 
 our $VERSION = '0.9999';
 

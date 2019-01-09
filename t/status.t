@@ -3,12 +3,13 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 120;
+use Test::More tests => 123;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
 use Test::NoWarnings;
 use Test::Exception;
+use Test::Warn;
 use Test::MockModule;
 use Path::Class;
 use lib 't/lib';
@@ -43,7 +44,11 @@ can_ok $status, qw(
     emit_changes
     emit_tags
     emit_status
+    does
 );
+
+ok $CLASS->does("App::Sqitch::Role::ConnectingCommand"),
+    "$CLASS does ConnectingCommand";
 
 is_deeply [ $CLASS->options ], [qw(
     project=s
@@ -51,7 +56,20 @@ is_deeply [ $CLASS->options ], [qw(
     show-tags
     show-changes
     date-format|date=s
+    registry=s
+    client|db-client=s
+    db-name|d=s
+    db-user|db-username|u=s
+    db-host|h=s
+    db-port|p=i
 )], 'Options should be correct';
+
+warning_is {
+    Getopt::Long::Configure(qw(bundling pass_through));
+    ok Getopt::Long::GetOptionsFromArray(
+        [], {}, App::Sqitch->_core_opts, $CLASS->options,
+    ), 'Should parse options';
+} undef, 'Options should not conflict with core options';
 
 my $engine_mocker = Test::MockModule->new('App::Sqitch::Engine::sqlite');
 my @projs;
@@ -147,7 +165,7 @@ is $status->target_name, 'foo', 'Should have target "foo"';
 
 ##############################################################################
 # Test configure().
-is_deeply $CLASS->configure($config, {}), {},
+is_deeply $CLASS->configure($config, {}), {_params => []},
     'Should get empty hash for no config or options';
 $config->update('status.date_format' => 'nonesuch');
 throws_ok { $CLASS->configure($config, {}), {} } 'App::Sqitch::X',
@@ -166,6 +184,7 @@ $config->replace(
 is_deeply $CLASS->configure($config, {}), {
     show_changes => 1,
     show_tags    => 0,
+    _params      => [],
 }, 'Should get bool values set from config';
 
 throws_ok { $CLASS->configure($config, { date_format => 'non'}), {} }

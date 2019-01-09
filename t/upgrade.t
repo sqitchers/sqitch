@@ -3,12 +3,13 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 22;
+use Test::More tests => 25;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
 use Test::NoWarnings;
 use Test::Exception;
+use Test::Warn;
 use Test::MockModule;
 use Path::Class;
 use lib 't/lib';
@@ -34,11 +35,28 @@ can_ok $upgrade, qw(
     options
     execute
     configure
+    does
 );
+
+ok $CLASS->does("App::Sqitch::Role::ConnectingCommand"),
+    "$CLASS does ConnectingCommand";
 
 is_deeply [ $CLASS->options ], [qw(
     target|t=s
+    registry=s
+    client|db-client=s
+    db-name|d=s
+    db-user|db-username|u=s
+    db-host|h=s
+    db-port|p=i
 )], 'Options should be correct';
+
+warning_is {
+    Getopt::Long::Configure(qw(bundling pass_through));
+    ok Getopt::Long::GetOptionsFromArray(
+        [], {}, App::Sqitch->_core_opts, $CLASS->options,
+    ), 'Should parse options';
+} undef, 'Options should not conflict with core options';
 
 # Start with the engine up-to-date.
 my $engine_mocker = Test::MockModule->new('App::Sqitch::Engine::sqlite');
