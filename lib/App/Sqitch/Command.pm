@@ -61,8 +61,9 @@ has default_target => (
     isa     => Target,
     lazy    => 1,
     default => sub {
-        my $sqitch = shift->sqitch;
-        my @params = (sqitch => $sqitch);
+        my $self = shift;
+        my $sqitch = $self->sqitch;
+        my @params = $self->target_params;
         unless (
                $sqitch->options->{engine}
             || $sqitch->config->get(key => 'core.engine')
@@ -70,7 +71,7 @@ has default_target => (
         ) {
             # No specified engine, so specify an engineless URI.
             require URI::db;
-            push @params, uri => URI::db->new('db:');
+            unshift @params, uri => URI::db->new('db:');
         }
         require App::Sqitch::Target;
         return App::Sqitch::Target->new(@params);
@@ -209,16 +210,20 @@ sub usage {
     );
 }
 
+sub target_params {
+    return (sqitch => shift->sqitch);
+}
+
 sub parse_args {
     my ($self, %p) = @_;
-    my $sqitch = $self->sqitch;
-    my $config = $sqitch->config;
+    my $config = $self->sqitch->config;
+    my @params = $self->target_params;
 
     # Load the specified or default target.
     require App::Sqitch::Target;
     my $deftarget_err;
     my $target = try {
-        App::Sqitch::Target->new( sqitch => $sqitch, name => $p{target} )
+        App::Sqitch::Target->new( @params, name => $p{target} )
     } catch {
         # Die if a target was specified; otherwise keep the error for later.
         die $_ if $p{target};
@@ -243,18 +248,18 @@ sub parse_args {
             push @{ $rec{changes} } => $arg;
         } elsif ($config->get( key => "target.$arg.uri") || URI->new($arg)->isa('URI::db')) {
             # A target. Instantiate and keep for subsequente change searches.
-            $target = App::Sqitch::Target->new( sqitch => $sqitch, name => $arg );
+            $target = App::Sqitch::Target->new( @params, name => $arg );
             push @{ $rec{targets} } => $target unless $seen{$target->name}++;
         } elsif ($engines{$arg}) {
             # An engine. Add its target.
             my $name = $config->get(key => "engine.$arg.target") || "db:$arg:";
-            $target = App::Sqitch::Target->new( sqitch => $sqitch, name => $name );
+            $target = App::Sqitch::Target->new( @params, name => $name );
             push @{ $rec{targets} } => $target unless $seen{$target->name}++;
         } elsif (-e $arg) {
             # Maybe it's a plan file?
             %target_for = map {
                 $_->plan_file => $_
-            } reverse App::Sqitch::Target->all_targets(sqitch => $sqitch) unless %target_for;
+            } reverse App::Sqitch::Target->all_targets(@params) unless %target_for;
             if ($target_for{$arg}) {
                 # It *is* a plan file.
                 $target = $target_for{$arg};
@@ -289,12 +294,12 @@ sub parse_args {
         hurl $self->command => __(
             'Cannot specify both --all and engine, target, or plan arugments'
         ) if @targets;
-        @targets = App::Sqitch::Target->all_targets( sqitch => $sqitch );
+        @targets = App::Sqitch::Target->all_targets(@params );
     } elsif (!@targets) {
         # Use all if tag.all is set, otherwise just the default.
         my $key = $self->command . '.all';
         @targets = $self->sqitch->config->get(key => $key, as => 'bool')
-            ? App::Sqitch::Target->all_targets( sqitch => $sqitch )
+            ? App::Sqitch::Target->all_targets(@params )
             : do {
                 # Fall back on the default unless it's invalid.
                 die $deftarget_err if $deftarget_err;
@@ -603,6 +608,13 @@ In the case of plan files, C<parse_args()> will return the first target it
 finds for that plan file, even if multiple targets use the same plan file. The
 order of precedence for this determination is the default project target,
 followed by named targets, then engine targets.
+
+=head3 C<target_params>
+
+  my $target = App::Sqitch::Target->new( $cmd->target_params );
+
+Returns a list of paramters suitable for passing to the C<new> or
+C<all_targets> constructors of App::Sqitch::Target.
 
 =head3 C<run>
 

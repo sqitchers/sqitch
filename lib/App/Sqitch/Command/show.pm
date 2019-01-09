@@ -43,7 +43,7 @@ sub execute {
     $self->usage unless $type && $key;
 
     my $target = $self->target ? App::Sqitch::Target->new(
-        sqitch => $self->sqitch,
+        $self->target_params,
         name   => $self->target,
     ) : $self->default_target;
     my $plan = $target->plan;

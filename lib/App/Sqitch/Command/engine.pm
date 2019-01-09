@@ -295,7 +295,7 @@ sub show {
     require App::Sqitch::Target;
     for my $engine (@names) {
         my $target = App::Sqitch::Target->new(
-            sqitch => $sqitch,
+            $self->target_params,
             name   => $config->get(key => "engine.$engine.target") || "db:$engine",
         );
 

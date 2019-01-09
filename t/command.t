@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 189;
+use Test::More tests => 190;
 #use Test::More 'no_plan';
 use Test::NoWarnings;
 use List::Util qw(first);
@@ -49,6 +49,7 @@ can_ok $CLASS, qw(
     prompt
     ask_y_n
     parse_args
+    target_params
     default_target
 );
 
@@ -362,6 +363,11 @@ PARSEOPTSERR: {
         'Should get warning for unknown option when there are no options';
     is_deeply \@args, [$cmd], 'Should call _pod2usage on no options parse failure';
 }
+
+##############################################################################
+# Test target_params.
+is_deeply [$cmd->target_params], [sqitch => $sqitch],
+    'Should get sqitch param from target_params';
 
 ##############################################################################
 # Test argument parsing.

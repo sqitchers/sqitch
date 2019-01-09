@@ -273,7 +273,7 @@ sub show {
     require App::Sqitch::Target;
     for my $name (@names) {
         my $target = App::Sqitch::Target->new(
-            sqitch => $sqitch,
+            $self->target_params,
             name   => $name,
         );
         $self->emit("* $name");
