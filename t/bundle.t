@@ -3,12 +3,13 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 304;
+use Test::More tests => 306;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Path::Class;
 use Test::Exception;
 use Test::Dir;
+use Test::Warn;
 use Test::File qw(file_exists_ok file_not_exists_ok);
 use Test::File::Contents;
 use Locale::TextDomain qw(App-Sqitch);
@@ -44,11 +45,18 @@ can_ok $CLASS, qw(
 );
 
 is_deeply [$CLASS->options], [qw(
-    dest-dir|dir=s
+    dest-dir=s
     all|a!
     from=s
     to=s
 )], 'Should have dest_dir option';
+
+warning_is {
+    Getopt::Long::Configure(qw(bundling pass_through));
+    ok Getopt::Long::GetOptionsFromArray(
+        [], {}, App::Sqitch->_core_opts, $CLASS->options,
+    ), 'Should parse options';
+} undef, 'Options should not conflict with core options';
 
 is $bundle->dest_dir, dir('bundle'),
     'Default dest_dir should be bundle/';

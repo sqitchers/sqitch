@@ -81,7 +81,7 @@ Revision history for Perl extension App::Sqitch
      - Removed support for reading the `core.$engine` configuration, which has
        been deprecated with warnings since 0.997. The `sqitch engine
        update-config` action remains in place.
-     - Added the URI-overridding parameters `user`, `host`, `port`, and
+     - Added the URI-overriding parameters `user`, `host`, `port`, and
        `dbname` to App::Sqitch::Target.
      - Added support for attributes to be passed to the App::Sqitch::Target
        `all_targets` method. Such attributes will be set on all returned
@@ -91,6 +91,9 @@ Revision history for Perl extension App::Sqitch
        `-d` alias for `--db-name`.
      - Removed the `--registry` `--client`, and `--extension` core options.
        They are still provided by the commands that need them.
+     - Removed the undocumented `--dir` alias for `--dest-dir` from the
+       `bundle` command to prevent a conflict with the core `--dir` alias for
+       `--top-dir`.
 
 0.9998 2018-10-03T20:53:58Z
      - Fixed an issue where Sqitch would sometimes truncate the registry

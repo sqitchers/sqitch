@@ -61,7 +61,7 @@ sub dest_dirs_for {
 
 sub options {
     return qw(
-        dest-dir|dir=s
+        dest-dir=s
         all|a!
         from=s
         to=s

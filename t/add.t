@@ -3,13 +3,14 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 233;
+use Test::More tests => 235;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Target;
 use Locale::TextDomain qw(App-Sqitch);
 use Path::Class;
 use Test::Exception;
+use Test::Warn;
 use Test::Dir;
 use File::Temp 'tempdir';
 use Test::File qw(file_not_exists_ok file_exists_ok);
@@ -86,6 +87,13 @@ is_deeply [$CLASS->options], [qw(
     revert!
     verify!
 )], 'Options should be set up';
+
+warning_is {
+    Getopt::Long::Configure(qw(bundling pass_through));
+    ok Getopt::Long::GetOptionsFromArray(
+        [], {}, App::Sqitch->_core_opts, $CLASS->options,
+    ), 'Should parse options';
+} undef, 'Options should not conflict with core options';
 
 sub contents_of ($) {
     my $file = shift;
