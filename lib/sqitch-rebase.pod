@@ -108,7 +108,7 @@ supports variables. The format must be C<name=value>, e.g.,
 C<--set defuser='Homer Simpson'>. Overrides any values loaded from the
 C<deploy.variables> or C<revert.variables> configurations.
 
-=item C<-d>
+=item C<-e>
 
 =item C<--set-deploy>
 

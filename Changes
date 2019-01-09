@@ -84,7 +84,11 @@ Revision history for Perl extension App::Sqitch
      - Added the URI-overridding parameters `user`, `host`, `port`, and
        `dbname` to App::Sqitch::Target.
      - Added support for attributes to be passed to the App::Sqitch::Target
-       `all_targets` method. Such attributes will be set on all returned targets.
+       `all_targets` method. Such attributes will be set on all returned
+       targets.
+     - Changed the alias for the `--set-deploy` option on the `rebase` and
+       `checkout` commands from `-d` to `-e` to prevent a conflict with the
+       `-d` alias for `--db-name`.
 
 0.9998 2018-10-03T20:53:58Z
      - Fixed an issue where Sqitch would sometimes truncate the registry

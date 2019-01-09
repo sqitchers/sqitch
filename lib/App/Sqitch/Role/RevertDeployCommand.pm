@@ -85,7 +85,7 @@ around options => sub {
         mode=s
         verify!
         set|s=s%
-        set-deploy|d=s%
+        set-deploy|e=s%
         set-revert|r=s%
         log-only
         y
