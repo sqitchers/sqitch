@@ -45,7 +45,7 @@ can_ok $CLASS, qw(
 );
 
 is_deeply [$CLASS->options], [qw(
-    dest-dir=s
+    dest-dir|dir=s
     all|a!
     from=s
     to=s

@@ -234,8 +234,8 @@ sub _core_opts {
 
         engine=s
 
-        top-dir|dir=s
-        etc-path
+        top-dir=s
+        etc-pat
         no-pager
         quiet
         verbose|v+

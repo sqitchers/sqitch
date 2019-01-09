@@ -91,9 +91,8 @@ Revision history for Perl extension App::Sqitch
        `-d` alias for `--db-name`.
      - Removed the `--registry` `--client`, and `--extension` core options.
        They are still provided by the commands that need them.
-     - Removed the undocumented `--dir` alias for `--dest-dir` from the
-       `bundle` command to prevent a conflict with the core `--dir` alias for
-       `--top-dir`.
+     - Removed the undocumented `--dir` alias for `--top-dir` to prevent a
+       conflict with the `bundle` command's alias for `--dest-dir`.
 
 0.9998 2018-10-03T20:53:58Z
      - Fixed an issue where Sqitch would sometimes truncate the registry

@@ -51,6 +51,8 @@ any way documented on L<sqitchchanges>. See L</Examples> for examples.
 
 =item C<--dest-dir>
 
+=item C<--dir>
+
 The name of the directory in which to bundle the project. The configuration
 file will be created in this directory, and all top, deploy, revert, and
 verify directories will be created relative to it. Defaults to F<bundle>.

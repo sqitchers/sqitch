@@ -4,10 +4,10 @@ sqitch-bundle-usage - Sqitch bundle usage statement
 
 =head1 Usage
 
-  sqitch [options] bundle [bundle options] [<engine>] [<plan>] [<target>]
+  sqitch bundle [<options>] [<engine>] [<plan>] [<target>]
 
 =head1 Options
 
-    --dest-dir  destination directory to which to copy files
-    --from      change from which to start bundling
-    --to        change to which to end bundling
+    --dest-dir --dir  destination directory to which to copy files
+    --from            change from which to start bundling
+    --to              change to which to end bundling
