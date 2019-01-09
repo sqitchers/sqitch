@@ -659,8 +659,22 @@ ALL: {
     $sqitch = App::Sqitch->new(config => $config);
     ok @targets = $CLASS->all_targets(sqitch => $sqitch), 'Load all engine conf targets';
     is @targets, 3, 'Should have three engine conf targets';
-    is_deeply [ sort map { $_->name } @targets ], [qw(db:mysql://root@/foo db:pg:try widgets)],
+    is_deeply [ sort map { $_->name } @targets ],
+        [qw(db:mysql://root@/foo db:pg:try widgets)],
         'Should have the engine and target targets';
+
+    # Make sure parameters are set on all targets.
+    ok @targets = $CLASS->all_targets(
+        sqitch => $sqitch,
+        registry => 'quack',
+        dbname   => 'w00t',
+    ), 'Overload all engine conf targets';
+    is @targets, 3, 'Should again have three engine conf targets';
+    is_deeply [ sort map { $_->uri->as_string } @targets ],
+        [qw(db:mysql://root@/w00t db:pg:w00t db:sqlite:w00t)],
+        'Should have set dbname on all target URIs';
+    is_deeply [ map { $_->registry } @targets ], [('quack') x 3],
+        'Should have set the registry on all targets.';
 }
 
 done_testing;

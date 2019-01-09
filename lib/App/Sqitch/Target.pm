@@ -298,7 +298,7 @@ sub BUILDARGS {
 sub all_targets {
     my ($class, %p) = @_;
     my $sqitch = $p{sqitch} or hurl 'Missing required argument: sqitch';
-    my $config = $p{config} || $sqitch->config;
+    my $config = delete $p{config} || $sqitch->config;
     my (@targets, %seen);
     my %dump = $config->dump;
 
@@ -309,20 +309,20 @@ sub all_targets {
             $dump{"engine.$engine.target"} || "db:$engine:";
         }
     };
-    push @targets => $seen{$core} = $class->new(sqitch => $sqitch, name => $core)
+    push @targets => $seen{$core} = $class->new(%p, name => $core)
         if $core;
 
     # Next, load named targets.
     for my $key (keys %dump) {
         next if $key !~ /^target[.]([^.]+)[.]uri$/;
-        push @targets => $seen{$1} = $class->new(sqitch => $sqitch, name => $1)
+        push @targets => $seen{$1} = $class->new(%p, name => $1)
             unless $seen{$1};
     }
 
     # Now, load the engine targets.
     while ( my ($key, $val) = each %dump ) {
         next if $key !~ /^engine[.]([^.]+)[.]target$/;
-        push @targets => $seen{$val} = $class->new(sqitch => $sqitch, name => $val)
+        push @targets => $seen{$val} = $class->new(%p, name => $val)
             unless $seen{$val};
         $seen{$1} = $seen{$val};
     }
@@ -333,7 +333,7 @@ sub all_targets {
         $engine =~ s/\s+$//;
         next if $seen{$engine}++;
         my $uri = URI->new("db:$engine:");
-        push @targets => $seen{$uri} = $class->new(sqitch => $sqitch, uri => $uri)
+        push @targets => $seen{$uri} = $class->new(%p, uri => $uri)
             unless $seen{$uri};
     }
 
@@ -449,20 +449,9 @@ Sets the URI to C<db:pg://bill@example.com:1212/work>.
 Returns a list of all the targets defined by the local Sqitch configuration
 file. Done by examining the configuration object to find all defined targets
 and engines, as well as the default "core" target. Duplicates are removed and
-the list returned. This method takes two parameters:
-
-=over
-
-=item * C<sqitch>
-
-An L<App::Sqitch> object. Required.
-
-=item * C<config>
-
-An L<App::Sqitch::Config> object. If not passed, the object stored in the
-Sqitch object's C<config> attribute will be used.
-
-=back
+the list returned. This method takes the same parameters as C<new>; only
+C<sqitch> is required. All other parameters will be set on all of the returned
+targets.
 
 =head2 Accessors
 
