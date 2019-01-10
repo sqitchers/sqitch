@@ -23,13 +23,12 @@ use TestConfig;
 
 my $CLASS = 'App::Sqitch::Command::add';
 
-my $config = TestConfig->new('core.engine' => 'pg');
-ok my $sqitch = App::Sqitch->new(
-    config => $config,
-    options => {
-        top_dir => dir('test-add')->stringify,
-    }
-), 'Load a sqitch sqitch object';
+my $config = TestConfig->new(
+    'core.engine' => 'pg',
+    'core.top_dir' => dir('test-add')->stringify,
+);
+ok my $sqitch = App::Sqitch->new(config => $config),
+    'Load a sqitch sqitch object';
 
 isa_ok my $add = App::Sqitch::Command->load({
     sqitch  => $sqitch,
@@ -262,10 +261,9 @@ READCONFIG: {
     my $config = TestConfig->from(
         local => file('t/templates.conf')->stringify
     );
-    ok my $sqitch = App::Sqitch->new(
-        config  => $config,
-        options => { top_dir => dir('test-add')->stringify },
-    ), 'Load another sqitch sqitch object';
+    $config->update('core.top_dir' => dir('test-add')->stringify);
+    ok my $sqitch = App::Sqitch->new(config  => $config),
+        'Load another sqitch sqitch object';
     ok $add = $CLASS->new(sqitch => $sqitch),
         'Create add with template config';
     is_deeply $add->_config_templates($config), {

@@ -339,17 +339,9 @@ END {
 }
 
 DBIEngineTest->run(
-    class         => $CLASS,
-    sqitch_params => [
-        config  => TestConfig->new('core.engine' => 'exasol'),
-        options => {
-            top_dir     => Path::Class::dir(qw(t engine))->stringify,
-            plan_file   => Path::Class::file(qw(t engine sqitch.plan))->stringify,
-        },
-    ],
+    class             => $CLASS,
     target_params     => [ uri => $uri, registry => catfile($data_dir, '__metasqitch') ],
     alt_target_params => [ uri => $uri, registry => catfile($data_dir, '__sqitchtest') ],
-
     skip_unless => sub {
         my $self = shift;
         die $err if $err;

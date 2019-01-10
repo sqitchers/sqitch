@@ -98,14 +98,13 @@ ENGINE: {
     sub registry_version { $registry_version }
 }
 
-my $config = TestConfig->new('core.engine' => 'sqlite');
-ok my $sqitch = App::Sqitch->new(
-    config => $config,
-    options => {
-        top_dir   => dir(qw(t sql))->stringify,
-        plan_file => file(qw(t plans multi.plan))->stringify,
-    }
-), 'Load a sqitch sqitch object';
+my $config = TestConfig->new(
+    'core.engine' => 'sqlite',
+    'core.top_dir'   => dir(qw(t sql))->stringify,
+    'core.plan_file' => file(qw(t plans multi.plan))->stringify,
+);
+ok my $sqitch = App::Sqitch->new(config => $config),
+    'Load a sqitch sqitch object';
 
 my $mock_engine = Test::MockModule->new($CLASS);
 
@@ -832,13 +831,11 @@ $record_work = 0;
 chdir 't';
 my $plan_file = file qw(sql sqitch.plan);
 my $sqitch_old = $sqitch; # Hang on to this because $change does not retain it.
-$sqitch = App::Sqitch->new(
-    config => $config,
-    options => {
-        plan_file => $plan_file->stringify,
-        top_dir   => 'sql',
-    },
+$config->update(
+    'core.top_dir'   => 'sql',
+    'core.plan_file' => $plan_file->stringify,
 );
+$sqitch = App::Sqitch->new(config => $config);
 $target = App::Sqitch::Target->new( sqitch => $sqitch );
 $change = App::Sqitch::Plan::Change->new( name => 'foo', plan => $target->plan );
 ok $engine = App::Sqitch::Engine::whu->new( sqitch => $sqitch, target => $target ),
@@ -1167,13 +1164,8 @@ NOSTEPS: {
     say $fh '%project=empty';
     $fh->close or die "Error closing $plan_file: $!";
     END { $plan_file->remove }
-    my $sqitch = App::Sqitch->new(
-        config => $config,
-        plan_file => $plan_file,
-        options => {
-            plan_file => $plan_file->stringify,
-        }
-    );
+    $config->update('core.plan_file' => $plan_file->stringify);
+    my $sqitch = App::Sqitch->new(config => $config);
     my $target = App::Sqitch::Target->new(sqitch => $sqitch );
     ok my $engine = App::Sqitch::Engine::whu->new(
         sqitch => $sqitch,

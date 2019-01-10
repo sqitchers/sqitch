@@ -132,23 +132,6 @@ sub BUILD {
         ) unless first { $engine eq $_ } App::Sqitch::Command::ENGINES;
 
     }
-
-    # Copy core options.
-    my $opts = $self->sqitch->options;
-    for my $name (qw(
-        top_dir
-        plan_file
-        engine
-        registry
-        client
-        target
-        extension
-        deploy_dir
-        revert_dir
-        verify_dir
-    )) {
-        $props->{$name} ||= $opts->{$name} if exists $opts->{$name};
-    }
 }
 
 sub config_target {

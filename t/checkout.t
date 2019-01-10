@@ -59,11 +59,11 @@ warning_is {
 } undef, 'Options should not conflict with core options';
 
 ok my $sqitch = App::Sqitch->new(
-    config  => TestConfig->new('core.engine' => 'sqlite'),
-    options => {
-        plan_file => file(qw(t sql sqitch.plan))->stringify,
-        top_dir   => dir(qw(t sql))->stringify,
-    },
+    config  => TestConfig->new(
+        'core.engine'    => 'sqlite',
+        'core.plan_file' => file(qw(t sql sqitch.plan))->stringify,
+        'core.top_dir'   => dir(qw(t sql))->stringify,
+    ),
 ), 'Load a sqitch object';
 
 my $config = $sqitch->config;

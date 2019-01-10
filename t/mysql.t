@@ -471,14 +471,7 @@ my $err = try {
 };
 
 DBIEngineTest->run(
-    class         => $CLASS,
-    sqitch_params => [
-        config => TestConfig->new('core.engine' => 'mysql'),
-        options => {
-            top_dir     => Path::Class::dir(qw(t engine))->stringify,
-            plan_file   => Path::Class::file(qw(t engine sqitch.plan))->stringify,
-        },
-    ],
+    class             => $CLASS,
     target_params     => [ registry => $reg1, uri => $uri ],
     alt_target_params => [ registry => $reg2, uri => $uri ],
     skip_unless       => sub {

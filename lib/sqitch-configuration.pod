@@ -713,7 +713,7 @@ you need a custom directory, specify it via the following:
 
 =item C<--top-dir>
 
-  sqitch --top-dir $top_dir
+  sqitch $command --top-dir $top_dir
 
 =item C<target.$target.top_dir>
 
@@ -741,7 +741,7 @@ If you need a different file, specify it via the following:
 
 =item C<--plan-file>
 
-  sqitch --plan-file $plan_file
+  sqitch $command --plan-file $plan_file
 
 =item C<target.$target.plan_file>
 

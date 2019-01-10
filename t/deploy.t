@@ -57,14 +57,12 @@ warning_is {
     ), 'Should parse options';
 } undef, 'Options should not conflict with core options';
 
-my $config = TestConfig->new('core.engine' => 'sqlite');
-my $sqitch = App::Sqitch->new(
-    config => $config,
-    options => {
-        plan_file => file(qw(t sql sqitch.plan))->stringify,
-        top_dir   => dir(qw(t sql))->stringify,
-    },
+my $config = TestConfig->new(
+    'core.engine'    => 'sqlite',
+    'core.plan_file' => file(qw(t sql sqitch.plan))->stringify,
+    'core.top_dir'   => dir(qw(t sql))->stringify,
 );
+my $sqitch = App::Sqitch->new(config => $config);
 
 # Test configure().
 is_deeply $CLASS->configure($config, {}), {

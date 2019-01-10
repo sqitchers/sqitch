@@ -30,8 +30,6 @@ BEGIN {
 }
 
 is_deeply [$CLASS->_core_opts], [qw(
-    plan-file|P=s
-    top-dir|D=s
     chdir|cd|C=s
     etc-path
     no-pager
@@ -143,21 +141,14 @@ $mock->mock(warn => undef);
 ##############################################################################
 # Try lots of options.
 my $opts = $CLASS->_parse_core_opts([
-    '--plan-file'  => 'plan.txt',
-    '--top-dir'    => 'ddl',
     '--verbose', '--verbose',
     '--no-pager',
 ]);
 
 is_deeply $opts, {
-    plan_file   => 'plan.txt',
-    top_dir     => 'ddl',
     verbosity   => 2,
     no_pager    => 1,
 }, 'Should parse lots of options';
-
-isa_ok $opts->{plan_file}, 'Path::Class::File', 'plan_file';
-isa_ok $opts->{top_dir}, 'Path::Class::Dir', 'top_dir';
 
 # Make sure --quiet trumps --verbose.
 is_deeply $CLASS->_parse_core_opts([
@@ -167,13 +158,9 @@ is_deeply $CLASS->_parse_core_opts([
 ##############################################################################
 # Try short options.
 is_deeply $CLASS->_parse_core_opts([
-    '-P' => 'foo.plan',
-    '-D' => 'top',
   '-VVV',
 ]), {
     verbosity => 3,
-    plan_file => 'foo.plan',
-    top_dir   => 'top',
 }, 'Short options should work';
 
 USAGE: {

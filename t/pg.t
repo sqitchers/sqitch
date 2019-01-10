@@ -292,13 +292,6 @@ my $err = try {
 DBIEngineTest->run(
     class         => $CLASS,
     version_query => 'SELECT version()',
-    sqitch_params => [
-        config => $config,
-        options => {
-            top_dir     => Path::Class::dir(qw(t engine))->stringify,
-            plan_file   => Path::Class::file(qw(t engine sqitch.plan))->stringify,
-        },
-    ],
     target_params => [
         uri => URI::db->new("db:pg://$pguser\@/$db"),
     ],

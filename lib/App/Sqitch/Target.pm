@@ -112,7 +112,7 @@ has plan_file => (
     lazy     => 1,
     default => sub {
         my $self = shift;
-        if (my $f = $self->_options->{plan_file} || $self->_fetch('plan_file') ) {
+        if ( my $f = $self->_fetch('plan_file') ) {
             return file $f;
         }
         return $self->top_dir->file('sqitch.plan')->cleanup;
@@ -138,7 +138,7 @@ has top_dir => (
     lazy    => 1,
     default => sub {
         my $self = shift;
-        dir $self->_options->{top_dir} || $self->_fetch('top_dir') || ();
+        dir $self->_fetch('top_dir') || ();
     },
 );
 
@@ -300,7 +300,7 @@ sub all_targets {
 
     # First, load the default target.
     my $core = $dump{'core.target'} || do {
-        if ( my $engine = $sqitch->options->{engine} || $dump{'core.engine'} ) {
+        if ( my $engine = $dump{'core.engine'} ) {
             $engine =~ s/\s+$//;
             $dump{"engine.$engine.target"} || "db:$engine:";
         }

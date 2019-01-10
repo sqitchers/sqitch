@@ -33,16 +33,12 @@ warning_is {
 } undef, 'Options should not conflict with core options';
 
 my $config = TestConfig->new(
-    'core.engine'        => 'pg',
+    'core.engine'       => 'pg',
+    'core.plan_file'    => file(qw(t engine sqitch.plan))->stringify,
+    'core.top_dir'      => dir(qw(t engine))->stringify,
     'core.reworked_dir' => dir(qw(t engine reworked))->stringify,
 );
-my $sqitch = App::Sqitch->new(
-    config  => $config,
-    options => {
-        plan_file => file(qw(t engine sqitch.plan))->stringify,
-        top_dir   => dir(qw(t engine))->stringify,
-    },
-);
+my $sqitch = App::Sqitch->new(config => $config);
 
 isa_ok my $show = $CLASS->new(sqitch => $sqitch), $CLASS;
 ok !$show->exists_only, 'exists_only should be false by default';

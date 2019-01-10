@@ -370,14 +370,13 @@ is_deeply [$cmd->target_params], [sqitch => $sqitch],
 # Test argument parsing.
 ARGS: {
     my $config = TestConfig->from(local => file qw(t local.conf) );
-    $config->update('core.engine' => 'sqlite');
-    ok $sqitch = App::Sqitch->new(
-        config => $config,
-        options => {
-            plan_file => file(qw(t plans multi.plan))->stringify,
-            top_dir   => dir(qw(t sql))->stringify
-        },
-    ), 'Load Sqitch with config and plan';
+    $config->update(
+        'core.engine'    => 'sqlite',
+        'core.plan_file' => file(qw(t plans multi.plan))->stringify,
+        'core.top_dir'   => dir(qw(t sql))->stringify
+    );
+    ok $sqitch = App::Sqitch->new(config => $config),
+        'Load Sqitch with config and plan';
 
     ok my $cmd = $CLASS->load({
         sqitch => $sqitch,
@@ -416,7 +415,7 @@ ARGS: {
         'Target and change should be recognized';
     is_deeply $parsem->(args => ['hey', 'devdb']), [['devdb'], ['hey']],
         'Change and target should be recognized';
-    is_deeply $parsem->(args => ['mydb', 'hey']), [['mydb'], ['hey']],
+    is_deeply $parsem->(args => ['mydb', 'users']), [['mydb'], ['users']],
         'Alternate Target and change should be recognized';
     is_deeply $parsem->(args => ['hey', 'mydb']), [['mydb'], ['hey']],
         'Change and alternate target should be recognized';
@@ -442,10 +441,9 @@ ARGS: {
         'Two unknowns error message should be correct';
 
     # Make sure changes are found in previously-passed target.
-    ok $sqitch = App::Sqitch->new(
-        config => $config,
-        options => { top_dir => dir(qw(t sql))->stringify },
-    ), 'Load Sqitch with config';
+    $config->update('core.top_dir' => dir(qw(t sql))->stringify);
+    ok $sqitch = App::Sqitch->new(config => $config),
+        'Load Sqitch with config';
     ok $cmd = $CLASS->load({
         sqitch => $sqitch,
         command => 'whu',
@@ -462,12 +460,13 @@ ARGS: {
          [['devdb', 'mydb'], []],
         'Passed and specified targets should always be returned';
     throws_ok {
-        $parsem->(target => 'devdb', args => ['hey'])
+        $parsem->(target => 'devdb', args => ['users'])
     } 'App::Sqitch::X', 'Change unknown to passed target should error';
     is $@->ident, 'whu', 'Change unknown error ident should be "whu"';
-    is $@->message, $msg->('hey'),
+    is $@->message, $msg->('users'),
         'Change unknown error message should be correct';
 
+    $config->update('core.plan_file' => undef);
     is_deeply $parsem->(args => ['sqlite', 'widgets', '@beta']),
         [['devdb'], ['widgets', '@beta']],
         'Should get known changes from default target (t/sql/sqitch.plan)';
@@ -513,14 +512,12 @@ ARGS: {
 
     # Make sure we get an error when no engine is specified.
     NOENGINE: {
-        my $config = TestConfig->new;
-        ok $sqitch = App::Sqitch->new(
-            config => $config,
-            options => {
-                plan_file => file(qw(t plans multi.plan))->stringify,
-                top_dir   => dir(qw(t sql))->stringify,
-            },
-        ), 'Load Sqitch without engine';
+        my $config = TestConfig->new(
+            'core.plan_file' => file(qw(t plans multi.plan))->stringify,
+            'core.top_dir'   => dir(qw(t sql))->stringify,
+        );
+        ok $sqitch = App::Sqitch->new(config => $config),
+            'Load Sqitch without engine';
 
         ok $cmd = $CLASS->load({
             sqitch => $sqitch,

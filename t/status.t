@@ -19,13 +19,12 @@ use TestConfig;
 my $CLASS = 'App::Sqitch::Command::status';
 require_ok $CLASS;
 
-my $config = TestConfig->new('core.engine' => 'sqlite');
-ok my $sqitch = App::Sqitch->new(
-    config  => $config,
-    options => {
-        top_dir => Path::Class::Dir->new('test-status'),
-    },
-), 'Load a sqitch object';
+my $config = TestConfig->new(
+    'core.engine'    => 'sqlite',
+    'core.top_dir'   => 'test-status',
+);
+ok my $sqitch = App::Sqitch->new(config  => $config),
+    'Load a sqitch object';
 isa_ok my $status = App::Sqitch::Command->load({
     sqitch  => $sqitch,
     command => 'status',
@@ -106,12 +105,8 @@ isa_ok $status = $CLASS->new(
 is $status->project, 'foo', 'Should have project "foo"';
 
 # Look up the project in the database.
-ok $sqitch = App::Sqitch->new(
-    config => $config,
-    options => {
-        top_dir => Path::Class::Dir->new('test-status')->stringify,
-    },
-), 'Load a sqitch object with SQLite';
+ok $sqitch = App::Sqitch->new( config => $config),
+    'Load a sqitch object with SQLite';
 
 ok $status = $CLASS->new(sqitch => $sqitch), 'Create another status command';
 $status->target($status->default_target);
@@ -145,9 +140,10 @@ is $status->project, 'status', 'Should find single project';
 $engine_mocker->unmock_all;
 
 # Fall back on plan project name.
-ok $sqitch = App::Sqitch->new(
-    options => { top_dir => Path::Class::Dir->new(qw(t sql))->stringify },
-), 'Load another sqitch object';
+
+ok $sqitch = App::Sqitch->new(config => TestConfig->new(
+    'core.top_dir' => dir(qw(t sql))->stringify,
+));
 
 isa_ok $status = $CLASS->new( sqitch => $sqitch ), $CLASS,
     'another status command';
@@ -440,10 +436,8 @@ is_deeply +MockOutput->get_comment, [
 ##############################################################################
 # Test emit_status().
 my $file = file qw(t plans multi.plan);
-$sqitch = App::Sqitch->new(
-    config => $config,
-    options => { plan_file => $file->stringify },
-);
+$config->update('core.plan_file' => $file->stringify);
+$sqitch = App::Sqitch->new(config => $config);
 ok $status = App::Sqitch::Command->load({
     sqitch  => $sqitch,
     command => 'status',

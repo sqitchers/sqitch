@@ -63,6 +63,11 @@ sub run {
             @sqitch_params,
             user_name  => $user1_name,
             user_email => $user1_email,
+            config => TestConfig->new(
+                'core.engine'    => $class->key,
+                'core.top_dir'   => dir(qw(t engine))->stringify,
+                'core.plan_file' => file(qw(t engine sqitch.plan))->stringify,
+            )
         );
         my $target = App::Sqitch::Target->new(
             sqitch => $sqitch,

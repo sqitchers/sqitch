@@ -553,22 +553,6 @@ CONFIG: {
     is $target->reworked_verify_dir, 'fooverr', 'Reworked verify dir should be "fooverr"';
     isa_ok $target->reworked_verify_dir, 'Path::Class::Dir', 'Reworked verify dir';
     is $target->extension, 'fooddl', 'Extension should be "fooddl"';
-
-    # Add command-line options.
-    $opts->{plan_file}           = 'opt.plan';
-    $opts->{top_dir}             = 'top.dir';
-    $target = $CLASS->new(
-        sqitch => $sqitch,
-        name   => 'foo',
-        uri    => URI::db->new('db:pg:foo'),
-    );
-
-    is $target->plan_file, 'opt.plan', 'Plan file should be "opt.plan"';
-    isa_ok $target->plan_file, 'Path::Class::File', 'Plan file';
-    isa_ok $plan = $target->plan, 'App::Sqitch::Plan', 'Plan';
-    is $plan->file, $target->plan_file, 'Plan should use target plan file';
-    is $target->top_dir, 'top.dir', 'Top dir should be "top.dir"';
-    isa_ok $target->top_dir, 'Path::Class::Dir', 'Top dir';
 }
 
 sub _load($) {

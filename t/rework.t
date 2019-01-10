@@ -22,13 +22,11 @@ use TestConfig;
 my $CLASS = 'App::Sqitch::Command::rework';
 my $test_dir = dir 'test-rework';
 
-my $config = TestConfig->new('core.engine' => 'sqlite');
-ok my $sqitch = App::Sqitch->new(
-    config  => $config,
-    options => {
-        top_dir => $test_dir->stringify,
-    },
-), 'Load a sqitch sqitch object';
+my $config = TestConfig->new(
+    'core.engine'  => 'sqlite',
+    'core.top_dir' => $test_dir->stringify,
+);
+ok my $sqitch = App::Sqitch->new(config  => $config), 'Load a sqitch object';
 
 isa_ok my $rework = App::Sqitch::Command->load({
     sqitch  => $sqitch,

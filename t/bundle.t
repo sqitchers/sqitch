@@ -78,11 +78,10 @@ is_deeply $CLASS->configure($config, {from => 'HERE', to => 'THERE'}), {
 
 chdir 't';
 $config= TestConfig->from(local => 'sqitch.conf');
+$config->update('core.top_dir' => dir('sql')->stringify);
 END { remove_tree 'bundle' if -d 'bundle' }
-ok $sqitch = App::Sqitch->new(
-    config  => $config,
-    options => { top_dir => dir('sql')->stringify },
-), 'Load a sqitch object with top_dir';
+ok $sqitch = App::Sqitch->new(config  => $config),
+    'Load a sqitch object with top_dir';
 $config = $sqitch->config;
 my $dir = dir qw(_build sql);
 is_deeply $CLASS->configure($config, {}), {
@@ -108,11 +107,12 @@ for my $sub (qw(deploy revert verify)) {
 }
 
 # Try engine project.
-$config->update('core.reworked_dir' =>  dir(qw(engine reworked))->stringify);
-ok $sqitch = App::Sqitch->new(
-    config => $config,
-    options => { top_dir => dir('engine')->stringify },
-), 'Load a sqitch object with engine top_dir';
+$config->update(
+    'core.top_dir'      =>  dir('engine')->stringify,
+    'core.reworked_dir' =>  dir(qw(engine reworked))->stringify,
+);
+ok $sqitch = App::Sqitch->new(config => $config),
+    'Load a sqitch object with engine top_dir';
 isa_ok $bundle = App::Sqitch::Command->load({
     sqitch  => $sqitch,
     command => 'bundle',

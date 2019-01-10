@@ -293,15 +293,8 @@ my $err = try {
 };
 
 DBIEngineTest->run(
-    class         => $CLASS,
-    version_query => 'SELECT version()',
-    sqitch_params => [
-        config => TestConfig->new('core.engine' => 'vertica'),
-        options => {
-            top_dir   => Path::Class::dir(qw(t engine)),
-            plan_file => Path::Class::file(qw(t engine sqitch.plan)),
-        },
-    ],
+    class             => $CLASS,
+    version_query     => 'SELECT version()',
     target_params     => [ uri => $uri ],
     alt_target_params => [ uri => $uri, registry => '__sqitchtest' ],
     skip_unless       => sub {

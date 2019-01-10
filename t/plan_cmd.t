@@ -22,14 +22,13 @@ use LC;
 my $CLASS = 'App::Sqitch::Command::plan';
 require_ok $CLASS;
 
-my $config = TestConfig->new('core.engine' => 'sqlite');
-ok my $sqitch = App::Sqitch->new(
-    config => $config,
-    options => {
-        top_dir   => Path::Class::Dir->new('test-plan_command')->stringify,
-        plan_file => file(qw(t sql sqitch.plan))->stringify,
-    },
-), 'Load a sqitch sqitch object';
+my $config = TestConfig->new(
+    'core.engine'    => 'sqlite',
+    'core.top_dir'   => dir('test-plan_cmd')->stringify,
+    'core.plan_file' => file(qw(t sql sqitch.plan))->stringify,
+);
+ok my $sqitch = App::Sqitch->new(config => $config),
+    'Load a sqitch sqitch object';
 isa_ok my $cmd = App::Sqitch::Command->load({
     sqitch  => $sqitch,
     command => 'plan',

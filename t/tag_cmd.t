@@ -19,11 +19,12 @@ use TestConfig;
 my $CLASS = 'App::Sqitch::Command::tag';
 
 my $dir = dir 'test-tag_cmd';
-my $config = TestConfig->new('core.engine' => 'sqlite');
-ok my $sqitch = App::Sqitch->new(
-    config  => $config,
-    options => { top_dir => $dir->stringify },
-), 'Load a sqitch sqitch object';
+my $config = TestConfig->new(
+    'core.engine' => 'sqlite',
+    'core.top_dir' => $dir->stringify,
+);
+ok my $sqitch = App::Sqitch->new(config => $config),
+    'Load a sqitch sqitch object';
 isa_ok my $tag = App::Sqitch::Command->load({
     sqitch  => $sqitch,
     command => 'tag',
@@ -217,16 +218,14 @@ is_deeply +MockOutput->get_info, [
 ##############################################################################
 # Let's deal with multiple engines.
 $config->replace(
-    'core.engine'           => 'sqlite',
-    'engine.pg.top_dir'     => 'pg',
-    'engine.sqlite.top_dir' => 'sqlite',
-    'engine.mysql.top_dir'  => 'mysql',
+    'core.engine'             => 'sqlite',
+    'engine.pg.plan_file'     => $plan->file->stringify,
+    'engine.sqlite.plan_file' => $plan->file->stringify,
+    'engine.mysql.plan_file'  => $plan->file->stringify,
 );
 
-ok $sqitch = App::Sqitch->new(
-    config  => $config,
-    options => { top_dir => $dir->stringify },
-), 'Load another sqitch sqitch object';
+ok $sqitch = App::Sqitch->new(config => $config),
+    'Load another sqitch sqitch object';
 
 isa_ok $tag = App::Sqitch::Command::tag->new({
     sqitch => $sqitch,
@@ -263,7 +262,7 @@ $dir->file("$_.plan")->spew(
 
 $config->replace(
     'core.engine'             => 'pg',
-    'core.to_dir'             => $dir->stringify,
+    'core.top_dir'            => $dir->stringify,
     'engine.pg.plan_file'     => $pg,
     'engine.sqlite.plan_file' => $sqlite,
     'tag.all'                 => 1,
