@@ -8,6 +8,8 @@ use Moo::Role;
 use Path::Class;
 use App::Sqitch::Types qw(ArrayRef);
 
+our $VERSION = '0.9999';
+
 requires 'options';
 requires 'configure';
 requires 'target_params';

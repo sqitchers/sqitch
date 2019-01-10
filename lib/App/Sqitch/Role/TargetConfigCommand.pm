@@ -16,6 +16,8 @@ use File::Path qw(make_path);
 use namespace::autoclean;
 use constant extra_target_keys => ();
 
+our $VERSION = '0.9999';
+
 requires 'command';
 requires 'options';
 requires 'configure';

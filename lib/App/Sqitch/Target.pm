@@ -11,6 +11,8 @@ use Path::Class qw(dir file);
 use URI::db;
 use namespace::autoclean;
 
+our $VERSION = '0.9999';
+
 has name => (
     is       => 'ro',
     isa      => Str,
