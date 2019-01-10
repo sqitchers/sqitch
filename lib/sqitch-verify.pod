@@ -4,10 +4,10 @@ sqitch-verify - Verify deployed database changes
 
 =head1 Synopsis
 
-  sqitch [options] verify [<database>]
-  sqitch [options] verify --from-change <change>
-  sqitch [options] verify --to-change <change>
-  sqitch [options] verify --from-change <change> --to-change <change>
+  sqitch verify [options] [<database>]
+  sqitch verify [options] --from-change <change>
+  sqitch verify [options] --to-change <change>
+  sqitch verify [options] --from-change <change> --to-change <change>
 
 =head1 Description
 

@@ -4,7 +4,7 @@ sqitch-bundle-usage - Sqitch bundle usage statement
 
 =head1 Usage
 
-  sqitch bundle [<options>] [<engine>] [<plan>] [<target>]
+  sqitch bundle [options] [<engine>] [<plan>] [<target>]
 
 =head1 Options
 

@@ -11,7 +11,7 @@ sqitchusage - Sqitch usage statement
 
 =head1 Usage
 
-  sqitch <command> [<options>] [<command-options>] [<args>]
+  sqitch <command> [options] [command-options] [args]
 
 =head1 Options
 

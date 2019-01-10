@@ -11,9 +11,8 @@ sqitchcommands - List of common sqitch commands
 
 =head1 Usage
 
-  sqitch [--chdir <path>] [--no-pager] [--quiet] [--verbose]
-         [--etc-path] [--help] [--man] [--version]
-         <command> [<command-options>] [<args>]
+  sqitch [--etc-path | --help | --man | --version]
+  sqitch <command> [--chdir <path>] [--no-pager] [--quiet] [--verbose] [<args>]
 
 =head1 Common Commands
 

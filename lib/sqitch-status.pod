@@ -4,7 +4,7 @@ sqitch-status - Show the current deployment status of a database
 
 =head1 Synopsis
 
-  sqitch status [<options>] [<database>]
+  sqitch status [options] [<database>]
 
 =head1 Description
 

@@ -4,7 +4,7 @@ sqitch-upgrade - Upgrade the registry to the current version
 
 =head1 Synopsis
 
-  sqitch upgrade [<options>] [<database>]
+  sqitch upgrade [options] [<database>]
 
 =head1 Description
 

@@ -4,12 +4,12 @@ sqitch-rebase - Revert and redeploy database changes
 
 =head1 Synopsis
 
-  sqitch [options] rebase [<database>]
-  sqitch [options] rebase [<database>] --onto-change <change>
-  sqitch [options] rebase [<database>] --onto-change <change> --upto-change <change>
-  sqitch [options] rebase [<database>] <change>
-  sqitch [options] rebase [<database>] <change> --upto-change <change>
-  sqitch [options] rebase [<database>] <change> <change>
+  sqitch rebase [options] [<database>]
+  sqitch rebase [options] [<database>] --onto-change <change>
+  sqitch rebase [options] [<database>] --onto-change <change> --upto-change <change>
+  sqitch rebase [options] [<database>] <change>
+  sqitch rebase [options] [<database>] <change> --upto-change <change>
+  sqitch rebase [options] [<database>] <change> <change>
 
 =head1 Description
 

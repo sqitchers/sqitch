@@ -4,7 +4,7 @@ sqitch-show-usage - Sqitch show usage statement
 
 =head1 Usage
 
-  sqitch show [<options>] <type> <object>
+  sqitch show [options] <type> <object>
 
 C<< <type> >> can be one of: change, tag, deploy, revert, verify
 

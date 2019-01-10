@@ -6,7 +6,7 @@ sqitch - Sane database change management
 
 =head1 Synopsis
 
-  sqitch <command> [<options>] [<command-options>] [<args>]
+  sqitch <command> [options] [command-options] [args]
 
 =head1 Description
 

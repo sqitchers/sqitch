@@ -4,7 +4,7 @@ sqitch-plan - Show planned database changes
 
 =head1 Synopsis
 
-  sqitch [options] plan [<options>] [<database>]
+  sqitch plan [options] [<database>]
 
 =head1 Description
 

@@ -4,9 +4,9 @@ sqitch-revert - Revert changes to a database
 
 =head1 Synopsis
 
-  sqitch [options] revert [<database>]
-  sqitch [options] revert [<database>] <change>
-  sqitch [options] revert [<database>] --to-change <change>
+  sqitch revert [options] [<database>]
+  sqitch revert [options] [<database>] <change>
+  sqitch revert [options] [<database>] --to-change <change>
 
 =head1 Description
 
