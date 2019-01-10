@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 282;
+use Test::More tests => 283;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -55,10 +55,13 @@ can_ok $cmd, qw(
     rm
     show
     update_config
+    does
 );
 
+ok $CLASS->does("App::Sqitch::Role::TargetConfigCommand"),
+    "$CLASS does TargetConfigCommand";
+
 is_deeply [$CLASS->options], [qw(
-    verbose|v+
     target=s
     plan-file=s
     registry=s
@@ -73,8 +76,7 @@ is_deeply $CLASS->configure({}, {}), { properties => {}},
     'Default config should contain empty properties';
 
 # Make sure configure ignores config file.
-is_deeply $CLASS->configure({ foo => 'bar'}, { verbose => 1 }),
-    { verbose => 1, properties => {} },
+is_deeply $CLASS->configure({ foo => 'bar'}), { properties => {} },
     'configure() should ignore config file';
 
 ok my $conf = $CLASS->configure({}, {
@@ -145,8 +147,9 @@ is_deeply +MockOutput->get_emit, [['mysql'], ['pg'], ['sqlite']],
     'The list of engines should have been output';
 
 # Make it verbose.
-isa_ok $cmd = $CLASS->new({ sqitch => $sqitch, verbose => 1 }),
-    $CLASS, 'Verbose engine';
+isa_ok $cmd = $CLASS->new({
+    sqitch => App::Sqitch->new( config => $config, options => { verbosity => 1 })
+}), $CLASS, 'Verbose engine';
 ok $cmd->list, 'Run verbose list()';
 is_deeply +MockOutput->get_emit, [
     ["mysql\tdb:mysql://root@/foo"],

@@ -55,10 +55,13 @@ can_ok $cmd, qw(
     rename
     rm
     show
+    does
 );
 
+ok $CLASS->does("App::Sqitch::Role::TargetConfigCommand"),
+    "$CLASS does TargetConfigCommand";
+
 is_deeply [$CLASS->options], [qw(
-    verbose|v+
     uri=s
     plan-file=s
     registry=s
@@ -69,12 +72,10 @@ is_deeply [$CLASS->options], [qw(
 )], 'Options should be correct';
 
 # Check default property values.
-is $cmd->verbose,  0,     'Default verbosity should be 0';
 is_deeply $cmd->properties, {}, 'Default properties should be empty';
 
 # Make sure configure ignores config file.
-is_deeply $CLASS->configure({ foo => 'bar'}, { verbose => 2 }),
-    { verbose => 2, properties => {} },
+is_deeply $CLASS->configure({ foo => 'bar'}, {}), { properties => {} },
     'configure() should ignore config file';
 
 ok my $conf = $CLASS->configure({}, {
@@ -145,8 +146,9 @@ is_deeply +MockOutput->get_emit, [['dev'], ['prod'], ['qa']],
     'The list of targets should have been output';
 
 # Make it verbose.
-isa_ok $cmd = $CLASS->new({ sqitch => $sqitch, verbose => 1 }),
-    $CLASS, 'Verbose target';
+isa_ok $cmd = $CLASS->new({
+    sqitch => App::Sqitch->new( config => $config, options => { verbosity => 1 })
+}), $CLASS, 'Verbose engine';
 ok $cmd->list, 'Run verbose list()';
 is_deeply +MockOutput->get_emit, [
     ["dev\tdb:pg:widgets"],

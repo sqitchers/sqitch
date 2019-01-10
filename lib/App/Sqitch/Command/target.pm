@@ -20,18 +20,8 @@ with 'App::Sqitch::Role::TargetConfigCommand';
 
 our $VERSION = '0.9999';
 
-has verbose => (
-    is      => 'ro',
-    isa     => Int,
-    default => 0,
-);
-
-sub options { qw(verbose|v+) }
-
 sub configure {
-    my ( $class, $config, $options ) = @_;
     # No config; target config is actually targets.
-    return { verbose => $options->{verbose} } if exists $options->{verbose};
     return {};
 }
 
@@ -51,7 +41,8 @@ sub list {
     my $sqitch  = $self->sqitch;
     my %targets = $sqitch->config->get_regexp(key => qr/^target[.][^.]+[.]uri$/);
 
-    my $format = $self->verbose ? "%1\$s\t%2\$s" : '%1$s';
+    # Make it verbose if --verbose was passed at all.
+    my $format = $sqitch->options->{verbosity} ? "%1\$s\t%2\$s" : '%1$s';
     for my $key (sort keys %targets) {
         my ($target) = $key =~ /target[.]([^.]+)/;
         $sqitch->emit(sprintf $format, $target, $targets{$key});

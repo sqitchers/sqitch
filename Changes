@@ -100,6 +100,9 @@ Revision history for Perl extension App::Sqitch
      - Removed the deprecated core `--engine` option. The `init` command still
        supports it, while other commands are able to parse the engine name as
        an argument, e.g., `sqitch deploy mysql`.
+     - Removed the `--verbose` option from the `engine` and `target` commands.
+       They now respect the core `--verbose` option, so should continue to
+       work as before.
 
 0.9998 2018-10-03T20:53:58Z
      - Fixed an issue where Sqitch would sometimes truncate the registry

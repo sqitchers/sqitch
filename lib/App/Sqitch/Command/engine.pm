@@ -20,14 +20,6 @@ with 'App::Sqitch::Role::TargetConfigCommand';
 
 our $VERSION = '0.9999';
 
-has verbose => (
-    is      => 'ro',
-    isa     => Int,
-    default => 0,
-);
-
-sub options { qw(verbose|v+) }
-
 sub _chk_engine($) {
     my $engine = shift;
     hurl engine => __x(
@@ -36,9 +28,7 @@ sub _chk_engine($) {
 }
 
 sub configure {
-    my ( $class, $config, $options ) = @_;
     # No config; engine config is actually engines.
-    return { verbose => $options->{verbose} } if exists $options->{verbose};
     return {};
 }
 
@@ -60,7 +50,8 @@ sub list {
     my $rx = join '|' => App::Sqitch::Command::ENGINES;
     my %engines = $sqitch->config->get_regexp(key => qr/^engine[.](?:$rx)[.]target$/);
 
-    my $format = $self->verbose ? "%1\$s\t%2\$s" : '%1$s';
+    # Make it verbose if --verbose was passed at all.
+    my $format = $sqitch->options->{verbosity} ? "%1\$s\t%2\$s" : '%1$s';
     for my $key (sort keys %engines) {
         my ($engine) = $key =~ /engine[.]([^.]+)/;
         $sqitch->emit(sprintf $format, $engine, $engines{$key})
@@ -462,10 +453,6 @@ Returns a list of additional option keys to be specified via options.
 =head3 C<properties>
 
 Hash of property values to set.
-
-=head3 C<verbose>
-
-Verbosity.
 
 =head3 C<execute>
 
