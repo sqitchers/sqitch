@@ -65,7 +65,7 @@ ok $CLASS->does("App::Sqitch::Role::TargetConfigCommand"),
 
 is_deeply [$CLASS->options], [qw(
     target=s
-    plan-file=s
+    plan-file|f=s
     registry=s
     client=s
     extension=s
