@@ -82,7 +82,7 @@ sub write_config {
     my $props  = $self->properties;
     my $target = $self->config_target;
 
-    # Write the engine from --engine, engine=engine, or core.engine.
+    # Write the engine from --engine or core.engine.
     my $ekey   = $props->{engine} || $target->engine_key;
     if ($ekey) {
         push @vars => {

@@ -136,7 +136,7 @@ isa_ok $CLASS->new({sqitch => $sqitch, target => $target}), $CLASS, 'Engine';
 
 ##############################################################################
 # Test load().
-$sqitch->options->{engine} = 'whu';
+$config->update('core.engine' => 'whu');
 $target = App::Sqitch::Target->new( sqitch => $sqitch );
 ok my $engine = $CLASS->load({
     sqitch => $sqitch,

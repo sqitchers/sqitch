@@ -151,15 +151,18 @@ CONSTRUCTOR: {
         get => sub { my $c = shift; push @get_params => \@_; $orig_get->($c, @_); }
     );
     $orig_get = $mock->original('get');
-    $config->replace;
+    $config->replace('core.engine' => 'sqlite');
 
     # Pass neither, but rely on the engine in the Sqitch object.
-    my $sqitch = App::Sqitch->new(config => $config, options => { engine => 'sqlite'});
+    my $sqitch = App::Sqitch->new(config => $config);
     isa_ok my $target = $CLASS->new(sqitch => $sqitch), $CLASS, 'Default target';
     is $target->name, 'db:sqlite:', 'Name should be "db:sqlite:"';
     is $target->uri, URI::db->new('db:sqlite:'), 'URI should be "db:sqlite:"';
-    is_deeply \@get_params, [[key => 'engine.sqlite.target']],
-        'Should have tried to get engine target';
+    is_deeply \@get_params, [
+        [key => 'core.target'],
+        [key => 'core.engine'],
+        [key => 'engine.sqlite.target'],
+    ], 'Should have tried to get engine target';
 
     # Try with just core.engine.
     delete $sqitch->options->{engine};

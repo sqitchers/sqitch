@@ -570,7 +570,7 @@ is_deeply +MockOutput->get_warn, [], 'Should have no warnings';
 
 # Test with unknown plan.
 for my $spec (
-    [ 'specified', App::Sqitch->new( options => { engine => 'sqlite' }) ],
+    [ 'specified', App::Sqitch->new(config => $config) ],
     [ 'external', $sqitch ],
 ) {
     my ( $desc, $sqitch ) = @{ $spec };

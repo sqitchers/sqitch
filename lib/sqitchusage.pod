@@ -17,7 +17,6 @@ sqitchusage - Sqitch usage statement
 
   -P --plan-file  <file>    Path to a deployment plan file.
   -C --directory  <dir>     Change to directory before performing any actions.
-     --engine     <engine>  Database engine.
   -D --top-dir    <dir>     Path to directory with plan and scripts.
      --etc-path             Print the path to the etc directory and exit.
      --no-pager             Do not pipe output into a pager.

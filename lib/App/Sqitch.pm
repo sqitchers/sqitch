@@ -232,9 +232,6 @@ sub _core_opts {
         plan-file|P=s
         directory|C=s
         top-dir|D=s
-
-        engine=s
-
         etc-path
         no-pager
         quiet
@@ -686,20 +683,6 @@ Runs a system command and waits for it to finish. Throws an exception on
 error. Does not use the shell, so arguments must be passed as a list. Use
 C<shell> to run a command and its arguments as a single string.
 
-=head3 C<engine>
-
-  my $engine = $sqitch->engine(@params);
-
-Creates and returns an engine of the appropriate subclass. Pass in additional
-parameters to be passed through to the engine constructor.
-
-=head2 C<config_for_target>
-
-  my $config = $sqitch->config_for_target($target);
-
-Returns a hash reference representing the configuration for the specified
-target name or URI. The supported keys in the hash reference are:
-
 =over
 
 =item C<target>
@@ -722,32 +705,6 @@ If the C<$target> argument looks like a database URI, it will simply returned
 in the hash reference. If the C<$target> argument corresponds to a target
 configuration key, the target configuration will be returned, with the C<uri>
 value a upgraded to a L<URI> object. Otherwise returns C<undef>.
-
-=head2 C<engine_key>
-
-  my $key = $sqitch->engine_key;
-  my $key = $sqitch->engine_key($uri);
-
-Returns the key name of the engine. If C<--engine> was specified, its value
-will be used. If the C<$uri> argument is passed and is a L<URI::db> object,
-the key will be derived from its database driver. Otherwise, the value
-specified for the C<core.engine> variable will be used.
-
-=head2 C<config_for_target_strict>
-
-  my $config = $sqitch->config_for_target_strict($target);
-
-Like C<config_for_target>, but throws an exception if C<$target> is not a URL,
-does not correspond to a target configuration section, or does not include a
-C<uri> key. Otherwise returns the target configuration.
-
-=head3 C<engine_for_target>
-
-  my $engine = $sqitch->engine_for($target);
-
-Like C<config_for_target_strict>, but returns an L<App::Sqitch::Engine>
-object. If C<$target> is not defined or is empty, an engine will be returned
-for the default target.
 
 =head3 C<shell>
 
@@ -878,7 +835,7 @@ the message while C<page_literal> does not. Meant to be used to send a lot of
 data to the user at once, such as when display the results of searching the
 event log:
 
-  $iter = $sqitch->engine->search_events;
+  $iter = $engine->search_events;
   while ( my $change = $iter->() ) {
       $sqitch->page(join ' - ', @{ $change }{ qw(change_id event change) });
   }

@@ -74,29 +74,6 @@ CMD: {
         ($pod, @vent) = ();
     }
 
-    # Legacy options should be ignored.
-    for my $opt (qw(
-        --engine
-        --client --db-client
-        --extension
-    )) {
-        @args = ($opt, 'deploy');
-        is $CLASS->_find_cmd(\@args), undef,
-            "Should find no command after legacy option $opt";
-        is $pod, 'sqitchcommands', 'Should have passed "sqitchcommands" to _pod2usage';
-        is_deeply \@vent, [], qq{Should have emitted no message with "$opt deploy"};
-        ($pod, @vent) = ();
-
-        # But it should find a valid command after that.
-        @args = ($opt, qw(deploy tag -x));
-        is $CLASS->_find_cmd(\@args), 'App::Sqitch::Command::tag',
-            qq{"Should find valid command after "$opt deploy"};
-        is $pod, undef, 'Should not have called _pod2usage';
-        is_deeply \@vent, [], 'Should have vented nothing';
-        is_deeply \@args, [$opt, qw(deploy -x)],
-            qq{Should have removed valid command after "$opt deploy"};
-    }
-
     # Lone -- should cancel processing.
     @args = ('--', 'tag');
     is $CLASS->_find_cmd(\@args), undef, 'Should find no command after --';
@@ -154,7 +131,6 @@ $mock->mock(warn => undef);
 # Try lots of options.
 my $opts = $CLASS->_parse_core_opts([
     '--plan-file'  => 'plan.txt',
-    '--engine'     => 'pg',
     '--top-dir'    => 'ddl',
     '--verbose', '--verbose',
     '--no-pager',
@@ -162,7 +138,6 @@ my $opts = $CLASS->_parse_core_opts([
 
 is_deeply $opts, {
     plan_file   => 'plan.txt',
-    engine      => 'pg',
     top_dir     => 'ddl',
     verbosity   => 2,
     no_pager    => 1,

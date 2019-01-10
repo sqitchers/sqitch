@@ -743,6 +743,6 @@ throws_ok {
 is $@->ident, 'target', 'Unknown engine URI error ident should be "target"';
 is $@->message, __x(
     'Unknown engine "{engine}" in URI "{uri}"',
-    uri => $uri,
+    uri    => $uri,
     engine => 'nonesuch',
 ), 'Unknown engine URI error message should be correct';

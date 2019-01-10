@@ -36,9 +36,6 @@ or plan file names as arguments. See L</Examples> for examples.
 
 =back
 
-You can also pass the core C<--engine> option to limit the bundle to the plan
-for a single engine.
-
 The bundle command also allows you to limit bundled changes to a subset of
 those in a plan. When bundling a single plan, use the C<--from> and/or C<--to>
 options to do the limiting. When using multiple plans, specify the changes

@@ -220,24 +220,20 @@ sub BUILDARGS {
     if (!$name) {
         # There are a couple of places to look for a name.
         NAME: {
-            # Look for an engine key.
-            $ekey = $sqitch->options->{engine};
-            unless ($ekey) {
-                # No --engine, look for core target.
-                if ( $uri = $config->get( key => 'core.target' ) ) {
-                    # We got core.target.
-                    $p->{name} = $name = $uri;
-                    last NAME;
-                }
-
-                # No core target, look for an engine key.
-                $ekey = $config->get(
-                    key => 'core.engine'
-                ) or hurl target => __(
-                    'No engine specified; specify via target or core.engine'
-                );
-                $ekey =~ s/\s+$//;
+            # Look for core target.
+            if ( $uri = $config->get( key => 'core.target' ) ) {
+                # We got core.target.
+                $p->{name} = $name = $uri;
+                last NAME;
             }
+
+            # No core target, look for an engine key.
+            $ekey = $config->get(
+                key => 'core.engine'
+            ) or hurl target => __(
+                'No engine specified; specify via target or core.engine'
+            );
+            $ekey =~ s/\s+$//;
 
             # Find the name in the engine config, or fall back on a simple URI.
             $uri = $config->get( key => "engine.$ekey.target" ) || "db:$ekey:";
@@ -386,8 +382,9 @@ the following steps:
 
 =item *
 
-If there is no name, get the engine key from C<--engine> or the C<core.engine>
-configuration option. If no key can be determined, an exception will be thrown.
+If there is no name, get the engine key from or the C<core.engine>
++configuration option. If no key can be determined, an exception will be
+thrown.
 
 =item *
 

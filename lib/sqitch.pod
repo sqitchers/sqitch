@@ -207,7 +207,6 @@ User who adds a change to the plan.
 =head1 Options
 
   -P --plan-file  FILE      Path to a deployment plan file.
-     --engine     ENGINE    Database engine.
   -C --directory  DIR       Change to directory before performing any actions.
   -D --top-dir    DIR       Path to directory with plan and scripts.
      --etc-path             Print path to etc directory and exit.
@@ -231,32 +230,6 @@ User who adds a change to the plan.
 
 Path to the deployment plan file. Defaults to F<$top_dir/sqitch.plan>. See
 L</Plan File> for a description of its structure.
-
-=item C<--engine>
-
-  sqitch --engine pg
-
-The database engine to use. Supported engines include:
-
-=over
-
-=item * C<pg> - L<PostgreSQL|https://postgresql.org/> and L<Postgres-XC|https://sourceforge.net/projects/postgres-xc//>
-
-=item * C<sqlite> - L<SQLite|https://sqlite.org/>
-
-=item * C<oracle> - L<Oracle|https://www.oracle.com/us/products/database/>
-
-=item * C<mysql> - L<MySQL|https://dev.mysql.com/> and L<MariaDB|https://mariadb.com/>
-
-=item * C<firebird> - L<Firebird|https://www.firebirdsql.org/>
-
-=item * C<vertica> - L<Vertica|https://my.vertica.com/>
-
-=item * C<exasol> - L<Exasol|https://www.exasol.com/>
-
-=item * C<snowflake> - L<Snowflake|https://www.snowflake.net/>
-
-=back
 
 =item C<-C>
 

@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 159;
+use Test::More tests => 158;
 #use Test::More 'no_plan';
 use Test::MockModule;
 use Path::Class;
@@ -104,14 +104,13 @@ GO: {
     my $mocker = Test::MockModule->new('App::Sqitch::Config');
     $mocker->mock(new => $config);
 
-    local @ARGV = qw(--engine sqlite help config);
+    local @ARGV = qw(help config);
     is +App::Sqitch->go, 0, 'Should get 0 from go()';
 
     isa_ok $cmd, 'App::Sqitch::Command::help', 'Command';
     is_deeply \@params, ['config'], 'Extra args should be passed to execute';
 
     isa_ok my $sqitch = $cmd->sqitch, 'App::Sqitch';
-    is $sqitch->options->{engine}, 'sqlite', 'Should have collected --engine';
     ok $config = $sqitch->config, 'Get the Sqitch config';
     is $config->get(key => 'engine.pg.client'), '/usr/local/pgsql/bin/psql',
         'Should have local config overriding user';
@@ -121,7 +120,7 @@ GO: {
         'Should have read user name from configuration';
     is $sqitch->user_email, 'michael@example.com',
         'Should have read user email from configuration';
-    is_deeply $sqitch->options, { engine => 'sqlite' }, 'Should have options';
+    is_deeply $sqitch->options, { }, 'Should have no options';
 
     # Make sure USER_NAME and USER_EMAIL take precedence over configuration.
     local $ENV{SQITCH_FULLNAME} = 'Michelle Obama';

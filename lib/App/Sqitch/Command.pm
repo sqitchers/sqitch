@@ -65,8 +65,7 @@ has default_target => (
         my $sqitch = $self->sqitch;
         my @params = $self->target_params;
         unless (
-               $sqitch->options->{engine}
-            || $sqitch->config->get(key => 'core.engine')
+               $sqitch->config->get(key => 'core.engine')
             || $sqitch->config->get(key => 'core.target')
         ) {
             # No specified engine, so specify an engineless URI.
@@ -508,12 +507,11 @@ This method returns the default target. It should only be used by commands
 that don't use a C<parse_args()> to find and load a target.
 
 This method should always return a target option, never C<undef>. If the
-C<--engine> option or C<core.engine> configuration option has been set, then
-the target will support that engine. In the latter case, if
-C<engine.$engine.target> is set, that value will be used. Otherwise, the
-returned target will have a URI of C<db:> and no associated engine; the
-C<engine> method will throw an exception. This behavior should be fine for
-commands that don't need to load the engine.
+C<core.engine> configuration option has been set, then the target will support
+that engine. In the latter case, if C<engine.$engine.target> is set, that
+value will be used. Otherwise, the returned target will have a URI of C<db:>
+and no associated engine; the C<engine> method will throw an exception. This
+behavior should be fine for commands that don't need to load the engine.
 
 =head3 C<parse_args>
 
@@ -580,10 +578,9 @@ in the plan associated with that target will be returned as changes.
 If no target is passed or appears in the arguments, a default target will be
 instantiated based on the command-line options and configuration. Unlike the
 target returned by C<default_target>, this target B<must> have an associated
-engine specified by the C<--engine> option or configuration. This is on the
-assumption that it will be used by commands that require an engine to do their
-work. Of course, any changes must be recognized from the plan associated with
-this target.
+engine specified by the configuration. This is on the assumption that it will
+be used by commands that require an engine to do their work. Of course, any
+changes must be recognized from the plan associated with this target.
 
 Changes are only recognized if they're found in the plan of the target that
 precedes them. If no target precedes them, the target specified by the
@@ -699,7 +696,7 @@ which case it I<is> sent to C<STDOUT>. Meant to be used to send a lot of data
 to the user at once, such as when display the results of searching the event
 log:
 
-  $iter = $sqitch->engine->search_events;
+  $iter = $engine->search_events;
   while ( my $change = $iter->() ) {
       $cmd->page(join ' - ', @{ $change }{ qw(change_id event change) });
   }
