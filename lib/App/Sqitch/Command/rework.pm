@@ -12,6 +12,7 @@ use App::Sqitch::Types qw(Str ArrayRef Bool Maybe);
 use namespace::autoclean;
 
 extends 'App::Sqitch::Command';
+with 'App::Sqitch::Role::ContextCommand';
 
 our $VERSION = '0.9999';
 

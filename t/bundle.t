@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 305;
+use Test::More tests => 306;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Path::Class;
@@ -42,13 +42,19 @@ can_ok $CLASS, qw(
     bundle_scripts
     _mkpath
     _copy_if_modified
+    does
 );
+
+ok $CLASS->does("App::Sqitch::Role::ContextCommand"),
+    "$CLASS does ContextCommand";
 
 is_deeply [$CLASS->options], [qw(
     dest-dir|dir=s
     all|a!
     from=s
     to=s
+    plan-file|f=s
+    top-dir=s
 )], 'Should have dest_dir option';
 
 warning_is {
@@ -66,14 +72,17 @@ is $bundle->dest_top_dir($bundle->default_target), dir('bundle'),
 
 ##############################################################################
 # Test configure().
-is_deeply $CLASS->configure($config, {}), {}, 'Default config should be empty';
+is_deeply $CLASS->configure($config, {}), {_cx => []},
+    'Default config should be empty';
 is_deeply $CLASS->configure($config, {dest_dir => 'whu'}), {
-    dest_dir => dir 'whu',
+    dest_dir => dir('whu'),
+    _cx      => [],
 }, '--dest_dir should be converted to a path object by configure()';
 
 is_deeply $CLASS->configure($config, {from => 'HERE', to => 'THERE'}), {
     from => 'HERE',
     to   => 'THERE',
+    _cx  => [],
 }, '--from and --to should be passed through configure';
 
 chdir 't';
@@ -86,6 +95,7 @@ $config = $sqitch->config;
 my $dir = dir qw(_build sql);
 is_deeply $CLASS->configure($config, {}), {
     dest_dir => $dir,
+    _cx      => [],
 }, 'bundle.dest_dir config should be converted to a path object by configure()';
 
 ##############################################################################

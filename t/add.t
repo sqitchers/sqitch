@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 235;
+use Test::More tests => 236;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Target;
@@ -64,7 +64,11 @@ can_ok $CLASS, qw(
     all_templates
     _slurp
     _add
+    does
 );
+
+ok $CLASS->does("App::Sqitch::Role::ContextCommand"),
+    "$CLASS does ContextCommand";
 
 is_deeply [$CLASS->options], [qw(
     change-name|change|c=s
@@ -85,6 +89,8 @@ is_deeply [$CLASS->options], [qw(
     deploy!
     revert!
     verify!
+    plan-file|f=s
+    top-dir=s
 )], 'Options should be set up';
 
 warning_is {
@@ -107,6 +113,7 @@ is_deeply $CLASS->configure($config, {}, $sqitch), {
     requires  => [],
     conflicts => [],
     note      => [],
+    _cx       => [],
 }, 'Should have default configuration with no config or opts';
 
 is_deeply $CLASS->configure($config, {
@@ -117,12 +124,14 @@ is_deeply $CLASS->configure($config, {
     requires  => [qw(foo bar)],
     conflicts => ['baz'],
     note      => [qw(hellow there)],
+    _cx       => [],
 }, 'Should have get requires and conflicts options';
 
 is_deeply $CLASS->configure($config, { template_directory => 't' }), {
     requires  => [],
     conflicts => [],
     note      => [],
+    _cx       => [],
     template_directory => dir('t'),
 }, 'Should set up template directory option';
 
@@ -130,6 +139,7 @@ is_deeply $CLASS->configure($config, { change_name => 'blog' }), {
     requires  => [],
     conflicts => [],
     note      => [],
+    _cx       => [],
     change_name => 'blog',
 }, 'Should set up change name option';
 
@@ -155,6 +165,7 @@ is_deeply $CLASS->configure($config, { template_name => 'foo' }), {
     requires  => [],
     conflicts => [],
     note      => [],
+    _cx       => [],
     template_name => 'foo',
 }, 'Should set up template name option';
 
@@ -172,6 +183,7 @@ is_deeply $CLASS->configure($config, {
     requires  => [],
     conflicts => [],
     note      => [],
+    _cx       => [],
     with_scripts => { deploy => 1, revert => 1, verify => 0 },
     templates => {
         deploy => file('etc/templates/deploy/pg.tmpl'),
@@ -193,6 +205,7 @@ CONFIG: {
         requires  => [],
         conflicts => [],
         note      => [],
+        _cx       => [],
     }, 'Variables should by default not be loaded from config';
 
     is_deeply $CLASS->configure($config, {set => { yo => 'dawg' }}), {
@@ -201,6 +214,7 @@ CONFIG: {
         requires  => [],
         conflicts => [],
         note      => [],
+        _cx       => [],
         variables => {
             foo => 'bar',
             baz => [qw(hi there you)],
@@ -214,6 +228,7 @@ CONFIG: {
         requires  => [],
         conflicts => [],
         note      => [],
+        _cx       => [],
         variables => {
             foo => 'ick',
             baz => [qw(hi there you)],

@@ -8,6 +8,8 @@ sqitch-bundle-usage - Sqitch bundle usage statement
 
 =head1 Options
 
-    --dest-dir --dir  destination directory to which to copy files
-    --from            change from which to start bundling
-    --to              change to which to end bundling
+    --dest-dir --dir <dir>   destination directory to which to copy files
+    --from                   change from which to start bundling
+    --to                     change to which to end bundling
+    --plan-file      <file>  path to a deployment plan file
+    --top-dir        <dir>   path to directory with plan and scripts

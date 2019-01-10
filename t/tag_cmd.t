@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 85;
+use Test::More tests => 86;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -37,13 +37,19 @@ can_ok $CLASS, qw(
     configure
     note
     execute
+    does
 );
+
+ok $CLASS->does("App::Sqitch::Role::ContextCommand"),
+    "$CLASS does ContextCommand";
 
 is_deeply [$CLASS->options], [qw(
     tag-name|tag|t=s
     change-name|change|c=s
     all|a!
     note|n|m=s@
+    plan-file|f=s
+    top-dir=s
 )], 'Should have note option';
 
 warning_is {
@@ -61,15 +67,15 @@ my $cmock = TestConfig->mock(
 );
 $orig_get = $cmock->original('get');
 
-is_deeply $CLASS->configure($config, {}), {},
+is_deeply $CLASS->configure($config, {}), { _cx => [] },
     'Should get empty hash for no config or options';
 is_deeply \@params, [], 'Should not have fetched boolean tag.all config';
 @params = ();
 is_deeply $CLASS->configure(
     $config,
-    { tag_name => 'foo', change_name => 'bar', all => 1}
+    { tag_name => 'foo', change_name => 'bar', all => 1 }
 ),
-    { tag_name => 'foo', change_name => 'bar', all => 1 },
+    { tag_name => 'foo', change_name => 'bar', all => 1, _cx => [] },
     'Should get populated hash for no all options';
 
 is_deeply \@params, [], 'Should not have fetched boolean tag.all config';

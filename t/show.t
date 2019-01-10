@@ -18,11 +18,16 @@ my $CLASS = 'App::Sqitch::Command::show';
 require_ok $CLASS or die;
 
 isa_ok $CLASS, 'App::Sqitch::Command';
-can_ok $CLASS, qw(execute exists_only target);
+can_ok $CLASS, qw(execute exists_only target does);
+
+ok $CLASS->does("App::Sqitch::Role::ContextCommand"),
+    "$CLASS does ContextCommand";
 
 is_deeply [$CLASS->options], [qw(
     target|t=s
     exists|e!
+    plan-file|f=s
+    top-dir=s
 )], 'Options should be correct';
 
 warning_is {
@@ -49,10 +54,11 @@ ok $eshow->exists_only, 'exists_only should be set';
 
 ##############################################################################
 # Test configure().
-is_deeply $CLASS->configure($config, {}), {},
+is_deeply $CLASS->configure($config, {}), {_cx => []},
     'Should get empty hash for no config or options';
 
-is_deeply $CLASS->configure($config, {exists => 1}), { exists_only => 1 },
+is_deeply $CLASS->configure($config, {exists => 1}),
+    { exists_only => 1, _cx => [] },
     'Should get exists_only => 1 for exist in options';
 
 ##############################################################################

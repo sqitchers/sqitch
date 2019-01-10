@@ -9,7 +9,9 @@ use App::Sqitch::X qw(hurl);
 use List::Util qw(first);
 use Moo;
 use App::Sqitch::Types qw(Bool Str);
+
 extends 'App::Sqitch::Command';
+with 'App::Sqitch::Role::ContextCommand';
 
 our $VERSION = '0.9999';
 

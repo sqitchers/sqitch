@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 233;
+use Test::More tests => 234;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -51,7 +51,11 @@ can_ok $CLASS, qw(
     conflicts
     note
     execute
+    does
 );
+
+ok $CLASS->does("App::Sqitch::Role::ContextCommand"),
+    "$CLASS does ContextCommand";
 
 is_deeply [$CLASS->options], [qw(
     change-name|change|c=s
@@ -60,6 +64,8 @@ is_deeply [$CLASS->options], [qw(
     all|a!
     note|n|m=s@
     open-editor|edit|e!
+    plan-file|f=s
+    top-dir=s
 )], 'Options should be set up';
 
 warning_is {
@@ -71,7 +77,7 @@ warning_is {
 
 ##############################################################################
 # Test configure().
-is_deeply $CLASS->configure($config, {}), {},
+is_deeply $CLASS->configure($config, {}), { _cx => [] },
     'Should have default configuration with no config or opts';
 
 is_deeply $CLASS->configure($config, {
@@ -82,12 +88,14 @@ is_deeply $CLASS->configure($config, {
     requires  => [qw(foo bar)],
     conflicts => ['baz'],
     note      => [qw(hi there)],
+    _cx       => [],
 }, 'Should have get requires, conflicts, and note options';
 
 # open_editor handling
 CONFIG: {
     my $config = TestConfig->from(local => File::Spec->catfile(qw(t rework.conf)));
-    is_deeply $CLASS->configure($config, {}), {}, 'Grabs nothing from config';
+    is_deeply $CLASS->configure($config, {}), { _cx => []},
+        'Grabs nothing from config';
 
     ok my $sqitch = App::Sqitch->new(config => $config), 'Load Sqitch project';
     isa_ok my $rework = App::Sqitch::Command->load({

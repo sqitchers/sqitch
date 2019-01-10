@@ -1,13 +1,13 @@
-=head1 Name
+'=head1 Name
 
 sqitch-bundle - Bundle a Sqitch project for distribution
 
 =head1 Synopsis
 
-  sqitch [options] bundle
-  sqitch [options] bundle --dest-dir widgets-1.0.0
-  sqitch [options] bundle --all
-  sqitch [options] bundle pg mysql
+  sqitch bundle [options
+  sqitch bundle --dest-dir widgets-1.0.0
+  sqitch bundle --all
+  sqitch bundle pg mysql
 
 =head1 Description
 
@@ -77,6 +77,16 @@ with target, engine, or plan file name arguments; doing so will result in an
 error. Useful for multi-plan projects that should have all the plans bundled
 together. Overrides the value of the C<bundle.all> configuration; use
 C<--no-all> to override a true C<bundle.all> configuration.
+
+=item C<--plan-file>
+
+Path to the deployment plan file. Overrides target, engine, and core
+configuration values. Defaults to F<$top_dir/sqitch.plan>.
+
+=item C<--top-dir>
+
+Path to directory containing the plan file. Overrides target, engine, and core
+configuration values. Defaults to C<.>.
 
 =back
 

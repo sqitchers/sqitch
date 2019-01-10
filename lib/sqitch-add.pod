@@ -4,10 +4,10 @@ sqitch-add - Add a database change to plans
 
 =head1 Synopsis
 
-  sqitch [options] add widgets
-  sqitch [options] add blankets --all
-  sqitch [options] add --change sprockets pg sql
-  sqitch [options] add slinkies --require sprockets --set schema=industry
+  sqitch add widgets [options
+  sqitch add blankets --all
+  sqitch add --change sprockets pg sql
+  sqitch add slinkies --require sprockets --set schema=industry
 
 =head1 Description
 
@@ -158,6 +158,16 @@ Open the generated change scripts in an editor.
 
 Do not open the change scripts in an editor. Useful when L<C<add.open_editor>>
 is true.
+
+=item C<--plan-file>
+
+Path to the deployment plan file. Overrides target, engine, and core
+configuration values. Defaults to F<$top_dir/sqitch.plan>.
+
+=item C<--top-dir>
+
+Path to directory containing the plan file. Overrides target, engine, and core
+configuration values. Defaults to C<.>.
 
 =back
 
