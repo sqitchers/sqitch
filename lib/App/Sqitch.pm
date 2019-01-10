@@ -230,12 +230,13 @@ sub _core_opts {
     # Add to regex in _find_cmd when options moved from here to command.
     return qw(
         plan-file|P=s
-        chdir|cd|C=s
         top-dir|D=s
+
+        chdir|cd|C=s
         etc-path
         no-pager
         quiet
-        verbose|V+
+        verbose|V|v+
         help
         man
         version

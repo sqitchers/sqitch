@@ -29,6 +29,19 @@ BEGIN {
     use_ok $CLASS or die;
 }
 
+is_deeply [$CLASS->_core_opts], [qw(
+    plan-file|P=s
+    top-dir|D=s
+    chdir|cd|C=s
+    etc-path
+    no-pager
+    quiet
+    verbose|V|v+
+    help
+    man
+    version
+)], 'Options should be correct';
+
 ##############################################################################
 # Test _find_cmd.
 can_ok $CLASS, '_find_cmd';
