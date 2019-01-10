@@ -7,6 +7,7 @@ use Test::More;
 use App::Sqitch;
 use Path::Class;
 use Test::Exception;
+use Test::Warn;
 use Locale::TextDomain qw(App-Sqitch);
 use Test::MockModule;
 use lib 't/lib';
@@ -23,6 +24,13 @@ is_deeply [$CLASS->options], [qw(
     target|t=s
     exists|e!
 )], 'Options should be correct';
+
+warning_is {
+    Getopt::Long::Configure(qw(bundling pass_through));
+    ok Getopt::Long::GetOptionsFromArray(
+        [], {}, App::Sqitch->_core_opts, $CLASS->options,
+    ), 'Should parse options';
+} undef, 'Options should not conflict with core options';
 
 my $config = TestConfig->new(
     'core.engine'        => 'pg',

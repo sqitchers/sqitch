@@ -3,11 +3,12 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 231;
+use Test::More tests => 233;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
 use Test::Exception;
+use Test::Warn;
 use App::Sqitch::Command::add;
 use Path::Class;
 use Test::File qw(file_not_exists_ok file_exists_ok);
@@ -62,6 +63,13 @@ is_deeply [$CLASS->options], [qw(
     note|n|m=s@
     open-editor|edit|e!
 )], 'Options should be set up';
+
+warning_is {
+    Getopt::Long::Configure(qw(bundling pass_through));
+    ok Getopt::Long::GetOptionsFromArray(
+        [], {}, App::Sqitch->_core_opts, $CLASS->options,
+    ), 'Should parse options';
+} undef, 'Options should not conflict with core options';
 
 ##############################################################################
 # Test configure().

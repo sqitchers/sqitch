@@ -3,12 +3,13 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 227;
+use Test::More tests => 229;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
 use Test::NoWarnings;
 use Test::Exception;
+use Test::Warn;
 use Test::MockModule;
 use Path::Class;
 use Term::ANSIColor qw(color);
@@ -65,6 +66,13 @@ is_deeply [$CLASS->options], [qw(
     oneline
    headers!
 )], 'Options should be correct';
+
+warning_is {
+    Getopt::Long::Configure(qw(bundling pass_through));
+    ok Getopt::Long::GetOptionsFromArray(
+        [], {}, App::Sqitch->_core_opts, $CLASS->options,
+    ), 'Should parse options';
+} undef, 'Options should not conflict with core options';
 
 ##############################################################################
 # Test configure().

@@ -3,11 +3,12 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 83;
+use Test::More tests => 85;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
 use Test::Exception;
+use Test::Warn;
 use Test::NoWarnings;
 use Path::Class qw(file dir);
 use File::Path qw(make_path remove_tree);
@@ -43,6 +44,13 @@ is_deeply [$CLASS->options], [qw(
     all|a!
     note|n|m=s@
 )], 'Should have note option';
+
+warning_is {
+    Getopt::Long::Configure(qw(bundling pass_through));
+    ok Getopt::Long::GetOptionsFromArray(
+        [], {}, App::Sqitch->_core_opts, $CLASS->options,
+    ), 'Should parse options';
+} undef, 'Options should not conflict with core options';
 
 ##############################################################################
 # Test configure().

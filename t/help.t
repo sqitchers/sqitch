@@ -45,7 +45,6 @@ warning_is {
     ), 'Should parse options';
 } undef, 'Options should not conflict with core options';
 
-
 my $mock = Test::MockModule->new($CLASS);
 my @args;
 $mock->mock(_pod2usage => sub { @args = @_} );
