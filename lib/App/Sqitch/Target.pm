@@ -51,6 +51,10 @@ has sqitch => (
     is       => 'ro',
     isa      => Sqitch,
     required => 1,
+    handles  => {
+        _config  => 'config',
+        _options => 'options',
+    },
 );
 
 has engine => (
@@ -69,12 +73,7 @@ has engine => (
 
 sub _fetch {
     my ($self, $key) = @_;
-    my $sqitch = $self->sqitch;
-    if (my $val = $sqitch->options->{$key}) {
-        return $val;
-    }
-
-    my $config = $sqitch->config;
+    my $config = $self->_config;
     return $config->get( key => "target." . $self->name . ".$key" )
         || do {
             my $ekey = $self->engine_key;
@@ -113,7 +112,7 @@ has plan_file => (
     lazy     => 1,
     default => sub {
         my $self = shift;
-        if (my $f = $self->_fetch('plan_file') ) {
+        if (my $f = $self->_options->{plan_file} || $self->_fetch('plan_file') ) {
             return file $f;
         }
         return $self->top_dir->file('sqitch.plan')->cleanup;
@@ -138,7 +137,8 @@ has top_dir => (
     isa     => Dir,
     lazy    => 1,
     default => sub {
-        dir shift->_fetch('top_dir') || ();
+        my $self = shift;
+        dir $self->_options->{top_dir} || $self->_fetch('top_dir') || ();
     },
 );
 

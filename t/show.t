@@ -24,13 +24,15 @@ is_deeply [$CLASS->options], [qw(
     exists|e!
 )], 'Options should be correct';
 
-my $config = TestConfig->new('core.engine' => 'pg');
+my $config = TestConfig->new(
+    'core.engine'        => 'pg',
+    'core.reworked_dir' => dir(qw(t engine reworked))->stringify,
+);
 my $sqitch = App::Sqitch->new(
     config  => $config,
     options => {
-        plan_file    => file(qw(t engine sqitch.plan))->stringify,
-        top_dir      => dir(qw(t engine))->stringify,
-        reworked_dir => dir(qw(t engine reworked))->stringify,
+        plan_file => file(qw(t engine sqitch.plan))->stringify,
+        top_dir   => dir(qw(t engine))->stringify,
     },
 );
 

@@ -555,47 +555,20 @@ CONFIG: {
     is $target->extension, 'fooddl', 'Extension should be "fooddl"';
 
     # Add command-line options.
-    $opts->{registry}            = 'optreg';
-    $opts->{client}              = 'optcli';
     $opts->{plan_file}           = 'opt.plan';
     $opts->{top_dir}             = 'top.dir';
-    $opts->{deploy_dir}          = 'dep.dir';
-    $opts->{revert_dir}          = 'rev.dir';
-    $opts->{verify_dir}          = 'ver.dir';
-    $opts->{reworked_dir}        = 'wrk.dir';
-    $opts->{reworked_deploy_dir} = 'rdep.dir';
-    $opts->{reworked_revert_dir} = 'rrev.dir';
-    $opts->{reworked_verify_dir} = 'rver.dir';
-    $opts->{extension}           = 'opt';
     $target = $CLASS->new(
         sqitch => $sqitch,
         name   => 'foo',
         uri    => URI::db->new('db:pg:foo'),
     );
 
-    is $target->registry, 'optreg', 'Registry should be "optreg"';
-    is $target->client, 'optcli', 'Client should be "optcli"';
     is $target->plan_file, 'opt.plan', 'Plan file should be "opt.plan"';
     isa_ok $target->plan_file, 'Path::Class::File', 'Plan file';
     isa_ok $plan = $target->plan, 'App::Sqitch::Plan', 'Plan';
     is $plan->file, $target->plan_file, 'Plan should use target plan file';
     is $target->top_dir, 'top.dir', 'Top dir should be "top.dir"';
     isa_ok $target->top_dir, 'Path::Class::Dir', 'Top dir';
-    is $target->deploy_dir, 'dep.dir', 'Deploy dir should be "dep.dir"';
-    isa_ok $target->deploy_dir, 'Path::Class::Dir', 'Deploy dir';
-    is $target->revert_dir, 'rev.dir', 'Revert dir should be "rev.dir"';
-    isa_ok $target->revert_dir, 'Path::Class::Dir', 'Revert dir';
-    is $target->verify_dir, 'ver.dir', 'Verify dir should be "ver.dir"';
-    isa_ok $target->verify_dir, 'Path::Class::Dir', 'Verify dir';
-    is $target->reworked_dir, 'wrk.dir', 'Reworked dir should be "wrk.dir"';
-    isa_ok $target->reworked_dir, 'Path::Class::Dir', 'Reworked dir';
-    is $target->reworked_deploy_dir, 'rdep.dir', 'Reworked deploy dir should be "rdep.dir"';
-    isa_ok $target->reworked_deploy_dir, 'Path::Class::Dir', 'Reworked deploy dir';
-    is $target->reworked_revert_dir, 'rrev.dir', 'Reworked revert dir should be "rrev.dir"';
-    isa_ok $target->reworked_revert_dir, 'Path::Class::Dir', 'Reworked revert dir';
-    is $target->reworked_verify_dir, 'rver.dir', 'Reworked verify dir should be "rver.dir"';
-    isa_ok $target->reworked_verify_dir, 'Path::Class::Dir', 'Reworked verify dir';
-    is $target->extension, 'opt', 'Extension should be "opt"';
 }
 
 sub _load($) {

@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 306;
+use Test::More tests => 305;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Path::Class;
@@ -108,11 +108,10 @@ for my $sub (qw(deploy revert verify)) {
 }
 
 # Try engine project.
+$config->update('core.reworked_dir' =>  dir(qw(engine reworked))->stringify);
 ok $sqitch = App::Sqitch->new(
-    options => {
-        top_dir      => dir('engine')->stringify,
-        reworked_dir => dir(qw(engine reworked))->stringify,
- },
+    config => $config,
+    options => { top_dir => dir('engine')->stringify },
 ), 'Load a sqitch object with engine top_dir';
 isa_ok $bundle = App::Sqitch::Command->load({
     sqitch  => $sqitch,
@@ -322,13 +321,7 @@ my @scripts = (
     $dir_for->{revert}->file('users.sql'),
 );
 file_not_exists_ok $_ for @scripts;
-ok $sqitch = App::Sqitch->new(
-    options => {
-        extension => 'sql',
-        top_dir   => dir('engine')->stringify,
-        reworked_dir => dir(qw(engine reworked))->stringify,
-    },
-), 'Load engine sqitch object';
+$config->update( 'core.extension'   => 'sql');
 isa_ok $bundle = App::Sqitch::Command->load({
     sqitch  => $sqitch,
     command => 'bundle',

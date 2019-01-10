@@ -202,31 +202,6 @@ is_deeply [$mysql->mysql], [qw(
 )], 'mysql command should not have disabled param options';
 
 ##############################################################################
-# Now make sure that Sqitch options override configurations.
-$sqitch = App::Sqitch->new(
-    config => $config,
-    options => { client   => '/some/other/mysql' },
-);
-
-$target = App::Sqitch::Target->new(sqitch => $sqitch);
-ok $mysql = $CLASS->new(sqitch => $sqitch, target => $target),
-    'Create a mysql with sqitch with options';
-
-is $mysql->client, '/some/other/mysql', 'client should be as optioned';
-is $mysql->registry, 'meta', 'registry should be as configured';
-is $mysql->registry_uri->as_string, 'db:mysql://foo.com/meta',
-    'Sqitch DB URI should be the same as uri but with DB name "meta"';
-is $mysql->registry_destination, 'db:mysql://foo.com/meta',
-    'registry_destination should be the sqitch DB URL sans password';
-is $mysql->registry, 'meta', 'registry should still be as configured';
-is_deeply [$mysql->mysql], [qw(
-    /some/other/mysql
-), '--user', $sqitch->sysuser, qw(
-    --database widgets
-    --host     foo.com
-), @std_opts], 'mysql command should be as optioned';
-
-##############################################################################
 # Test _run(), _capture(), and _spool().
 can_ok $mysql, qw(_run _capture _spool);
 my (@run, $exp_pass);
