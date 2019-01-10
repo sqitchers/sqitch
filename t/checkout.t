@@ -32,9 +32,11 @@ can_ok $CLASS, qw(
 );
 
 ok $CLASS->does("App::Sqitch::Role::$_"), "$CLASS does $_"
-    for qw(RevertDeployCommand ConnectingCommand);
+    for qw(RevertDeployCommand ConnectingCommand ContextCommand);
 
 is_deeply [$CLASS->options], [qw(
+    plan-file|f=s
+    top-dir=s
     registry=s
     client|db-client=s
     db-name|d=s
@@ -75,6 +77,7 @@ is_deeply $CLASS->configure($config, {}), {
     verify        => 0,
     mode          => 'all',
     _params       => [],
+    _cx           => [],
 }, 'Check default configuration';
 
 is_deeply $CLASS->configure($config, {
@@ -87,8 +90,8 @@ is_deeply $CLASS->configure($config, {
     deploy_variables => { foo => 'bar' },
     revert_variables => { foo => 'bar' },
     _params       => [],
+    _cx           => [],
 }, 'Should have set option';
-
 
 is_deeply $CLASS->configure($config, {
     y           => 1,
@@ -103,7 +106,8 @@ is_deeply $CLASS->configure($config, {
     deploy_variables => { foo => 'bar' },
     verify           => 1,
     log_only         => 1,
-    _params       => [],
+    _params          => [],
+    _cx              => [],
 }, 'Should have mode, deploy_variables, verify, no_prompt, and log_only';
 
 is_deeply $CLASS->configure($config, {
@@ -115,7 +119,8 @@ is_deeply $CLASS->configure($config, {
     prompt_accept    => 1,
     verify           => 0,
     revert_variables => { foo => 'bar' },
-    _params       => [],
+    _params          => [],
+    _cx              => [],
 }, 'Should have set_revert option and no_prompt false';
 
 is_deeply $CLASS->configure($config, {
@@ -129,7 +134,8 @@ is_deeply $CLASS->configure($config, {
     verify           => 0,
     deploy_variables => { foo => 'dep', hi => 'you' },
     revert_variables => { foo => 'rev', hi => 'me' },
-    _params       => [],
+    _params          => [],
+    _cx              => [],
 }, 'set_deploy and set_revert should overrid set';
 
 is_deeply $CLASS->configure($config, {
@@ -143,7 +149,8 @@ is_deeply $CLASS->configure($config, {
     verify           => 0,
     deploy_variables => { foo => 'bar', hi => 'you' },
     revert_variables => { foo => 'bar', hi => 'me' },
-    _params       => [],
+    _params          => [],
+    _cx              => [],
 }, 'set_deploy and set_revert should merge with set';
 
 is_deeply $CLASS->configure($config, {
@@ -157,7 +164,8 @@ is_deeply $CLASS->configure($config, {
     verify           => 0,
     deploy_variables => { foo => 'bar', hi => 'you' },
     revert_variables => { foo => 'bar', hi => 'you', my => 'yo' },
-    _params       => [],
+    _params          => [],
+    _cx              => [],
 }, 'set_revert should merge with set_deploy';
 
 CONFIG: {
@@ -181,6 +189,7 @@ CONFIG: {
         verify        => 0,
         mode          => 'all',
         _params       => [],
+        _cx           => [],
     }, 'Should have deploy configuration';
 
     # Try merging.
@@ -194,6 +203,7 @@ CONFIG: {
         deploy_variables => { foo => 'yo', yo => 'stellar', hi => 21 },
         revert_variables => { foo => 'yo', yo => 'stellar', hi => 21 },
         _params          => [],
+        _cx              => [],
     }, 'Should have merged variables';
 
     # Try merging with checkout.variables, too.
@@ -208,6 +218,7 @@ CONFIG: {
         deploy_variables => { foo => 'bar', yo => 'stellar', hi => 21 },
         revert_variables => { foo => 'bar', yo => 'stellar', hi => 42 },
         _params          => [],
+        _cx              => [],
     }, 'Should have merged --set, deploy, checkout';
 
     isa_ok my $checkout = $CLASS->new(sqitch => $sqitch), $CLASS;
@@ -230,6 +241,7 @@ CONFIG: {
         verify        => 1,
         mode          => 'tag',
         _params       => [],
+        _cx           => [],
     }, 'Should have no_prompt and prompt_accept from revert config';
 
     # Checkout option takes precendence
@@ -243,6 +255,7 @@ CONFIG: {
         verify        => 0,
         mode          => 'change',
         _params       => [],
+        _cx           => [],
     }, 'Should have false log_only, verify, true prompt_accept from checkout config';
 
     delete $config_vals{'revert.no_prompt'};
@@ -256,6 +269,7 @@ CONFIG: {
         verify        => 1,
         mode          => 'tag',
         _params       => [],
+        _cx           => [],
     }, 'Should have log_only, prompt_accept true from checkout and verify from deploy';
 
     # But option should override.
@@ -265,6 +279,7 @@ CONFIG: {
         mode          => 'all',
         prompt_accept => 1,
         _params       => [],
+        _cx           => [],
     }, 'Should have log_only false and mode all again';
 
     $config_vals{'checkout.no_prompt'} = 0;
@@ -275,6 +290,7 @@ CONFIG: {
         verify        => 1,
         mode          => 'tag',
         _params       => [],
+        _cx           => [],
     }, 'Should have log_only false for false config';
 
     is_deeply $CLASS->configure($config, {y => 1}), {
@@ -283,6 +299,7 @@ CONFIG: {
         verify        => 1,
         mode          => 'tag',
         _params       => [],
+        _cx           => [],
     }, 'Should have no_prompt true with -y';
 }
 

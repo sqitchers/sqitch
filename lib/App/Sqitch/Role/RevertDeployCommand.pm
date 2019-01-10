@@ -14,6 +14,7 @@ requires 'command';
 requires 'options';
 requires 'configure';
 
+with 'App::Sqitch::Role::ContextCommand';
 with 'App::Sqitch::Role::ConnectingCommand';
 
 our $VERSION = '0.9999';

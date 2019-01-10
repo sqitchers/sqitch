@@ -11,7 +11,9 @@ use App::Sqitch::Types qw(Str Bool Target);
 use List::Util qw(max);
 use Try::Tiny;
 use namespace::autoclean;
+
 extends 'App::Sqitch::Command';
+with 'App::Sqitch::Role::ContextCommand';
 with 'App::Sqitch::Role::ConnectingCommand';
 
 our $VERSION = '0.9999';

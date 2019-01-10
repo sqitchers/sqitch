@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 123;
+use Test::More tests => 124;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -20,8 +20,8 @@ my $CLASS = 'App::Sqitch::Command::status';
 require_ok $CLASS;
 
 my $config = TestConfig->new(
-    'core.engine'    => 'sqlite',
-    'core.top_dir'   => 'test-status',
+    'core.engine'  => 'sqlite',
+    'core.top_dir' => 'test-status',
 );
 ok my $sqitch = App::Sqitch->new(config  => $config),
     'Load a sqitch object';
@@ -46,8 +46,8 @@ can_ok $status, qw(
     does
 );
 
-ok $CLASS->does("App::Sqitch::Role::ConnectingCommand"),
-    "$CLASS does ConnectingCommand";
+ok $CLASS->does("App::Sqitch::Role::$_"), "$CLASS does $_"
+    for qw(ContextCommand ConnectingCommand);
 
 is_deeply [ $CLASS->options ], [qw(
     project=s
@@ -55,6 +55,8 @@ is_deeply [ $CLASS->options ], [qw(
     show-tags
     show-changes
     date-format|date=s
+    plan-file|f=s
+    top-dir=s
     registry=s
     client|db-client=s
     db-name|d=s
@@ -161,7 +163,7 @@ is $status->target_name, 'foo', 'Should have target "foo"';
 
 ##############################################################################
 # Test configure().
-is_deeply $CLASS->configure($config, {}), {_params => []},
+is_deeply $CLASS->configure($config, {}), {_params => [], _cx => []},
     'Should get empty hash for no config or options';
 $config->update('status.date_format' => 'nonesuch');
 throws_ok { $CLASS->configure($config, {}), {} } 'App::Sqitch::X',
@@ -181,6 +183,7 @@ is_deeply $CLASS->configure($config, {}), {
     show_changes => 1,
     show_tags    => 0,
     _params      => [],
+    _cx          => [],
 }, 'Should get bool values set from config';
 
 throws_ok { $CLASS->configure($config, { date_format => 'non'}), {} }

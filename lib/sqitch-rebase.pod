@@ -180,8 +180,8 @@ option can be used to override the user name in a target.
 
 =item C<--db-host>
 
-  sqitch --db-host db.example.com
-  sqitch -h appdb.example.net
+  sqitch rebase --db-host db.example.com
+  sqitch rebase -h appdb.example.net
 
 Host name to use when connecting to the database. Does not apply to all
 engines. In general, L<targets|sqitch-target> and URIs are preferred, but this
@@ -197,6 +197,20 @@ option can be used to override the host name in a target.
 Port number to connect to. Does not apply to all engines. In general,
 L<targets|sqitch-target> and URIs are preferred, but this option can be used
 to override the port in a target.
+
+=item C<--plan-file>
+
+  sqitch rebase --plan-file my.plan
+
+Path to the deployment plan file. Overrides target, engine, and core
+configuration values. Defaults to F<$top_dir/sqitch.plan>.
+
+=item C<--top-dir>
+
+  sqitch rebase --top-dir db/sql
+
+Path to directory containing the plan file. Overrides target, engine, and core
+configuration values. Defaults to C<.>.
 
 =back
 

@@ -31,8 +31,8 @@ can_ok $CLASS, qw(
     does
 );
 
-ok $CLASS->does("App::Sqitch::Role::ConnectingCommand"),
-    "$CLASS does ConnectingCommand";
+ok $CLASS->does("App::Sqitch::Role::$_"), "$CLASS does $_"
+    for qw(ContextCommand ConnectingCommand);
 
 is_deeply [$CLASS->options], [qw(
     target|t=s
@@ -42,6 +42,8 @@ is_deeply [$CLASS->options], [qw(
     log-only
     verify!
     to-target=s
+    plan-file|f=s
+    top-dir=s
     registry=s
     client|db-client=s
     db-name|d=s
@@ -70,6 +72,7 @@ is_deeply $CLASS->configure($config, {}), {
     verify   => 0,
     log_only => 0,
     _params  => [],
+    _cx      => [],
 }, 'Should have default configuration with no config or opts';
 
 is_deeply $CLASS->configure($config, {
@@ -78,12 +81,14 @@ is_deeply $CLASS->configure($config, {
     log_only => 1,
     set  => { foo => 'bar' },
     _params  => [],
+    _cx      => [],
 }), {
     mode      => 'tag',
     verify    => 1,
     log_only  => 1,
     variables => { foo => 'bar' },
     _params   => [],
+    _cx      => [],
 }, 'Should have mode, verify, set, and log-only options';
 
 CONFIG: {
@@ -98,6 +103,7 @@ CONFIG: {
         verify   => 1,
         log_only => 0,
         _params  => [],
+        _cx      => [],
     }, 'Should have mode and verify configuration';
 
     # Try merging.
@@ -113,6 +119,7 @@ CONFIG: {
         log_only  => 0,
         variables => { foo => 'yo', yo => 'stellar', hi => 21 },
         _params   => [],
+        _cx      => [],
     }, 'Should have merged variables';
 
     isa_ok my $deploy = $CLASS->new(

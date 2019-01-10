@@ -29,8 +29,8 @@ can_ok $CLASS, qw(
     does
 );
 
-ok $CLASS->does("App::Sqitch::Role::ConnectingCommand"),
-    "$CLASS does ConnectingCommand";
+ok $CLASS->does("App::Sqitch::Role::$_"), "$CLASS does $_"
+    for qw(ContextCommand ConnectingCommand);
 
 is_deeply [$CLASS->options], [qw(
     target|t=s
@@ -39,6 +39,8 @@ is_deeply [$CLASS->options], [qw(
     from-target=s
     to-target=s
     set|s=s%
+    plan-file|f=s
+    top-dir=s
     registry=s
     client|db-client=s
     db-name|d=s
@@ -64,6 +66,7 @@ my $sqitch = App::Sqitch->new(config => $config);
 # Test configure().
 is_deeply $CLASS->configure($config, {}), {
     _params => [],
+    _cx     => [],
 }, 'Should have default configuration with no config or opts';
 
 is_deeply $CLASS->configure($config, {
@@ -75,13 +78,14 @@ is_deeply $CLASS->configure($config, {
     to_change   => 'bar',
     variables   => { foo => 'bar' },
     _params     => [],
+    _cx         => [],
 }, 'Should have changes and variables from options';
 
 CONFIG: {
     my $config = TestConfig->new(
         'verify.variables' => { foo => 'bar', hi => 21 },
     );
-    is_deeply $CLASS->configure($config, {}), { _params => [] },
+    is_deeply $CLASS->configure($config, {}), { _params => [], _cx => [] },
         'Should have no config if no options';
 
     # Try merging.
@@ -92,6 +96,7 @@ CONFIG: {
         to_change => 'whu',
         variables => { foo => 'yo', yo => 'stellar', hi => 21 },
         _params     => [],
+        _cx         => [],
     }, 'Should have merged variables';
 
     my $sqitch = App::Sqitch->new(config => $config);

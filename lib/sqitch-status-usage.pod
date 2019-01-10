@@ -19,3 +19,5 @@ sqitch-status-usage - Sqitch status usage statement
     -u --db-user    <user>     database user name
     -h --db-host    <host>     database server host name
     -p --db-port    <port>     database server port number
+       --plan-file  <file>     path to a deployment plan file
+       --top-dir    <dir>      path to directory with plan and scripts
