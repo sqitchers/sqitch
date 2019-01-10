@@ -5,6 +5,7 @@ use warnings;
 use 5.010;
 use utf8;
 use Test::More;
+use Path::Class;
 use App::Sqitch;
 use lib 't/lib';
 use TestConfig;
@@ -12,7 +13,7 @@ use TestConfig;
 my $ROLE;
 
 BEGIN {
-    $ROLE = 'App::Sqitch::Role::ConnectingCommand';
+    $ROLE = 'App::Sqitch::Role::ContextCommand';
     use_ok $ROLE or die;
 }
 
@@ -39,62 +40,40 @@ ok $CLASS->does($ROLE), "$CLASS does $ROLE";
 is_deeply [$CLASS->options], [qw(
     foo
     quack|k=s
-    registry=s
-    client|db-client=s
-    db-name|d=s
-    db-user|db-username|u=s
-    db-host|h=s
-    db-port|p=i
-)], 'Options should include connection options';
+    plan-file|f=s
+    top-dir=s
+)], 'Options should include context options';
 
 ##############################################################################
 # Test configure.
 my $opts = {};
 my $config = TestConfig->new;
-my @params;
-is_deeply $CLASS->configure($config, $opts), { _params => \@params },
+is_deeply $CLASS->configure($config, $opts), { _cx => [] },
     'Should get no params for no options';
 
-$opts->{db_name} = 'disco';
-push @params => dbname => 'disco';
-is_deeply $CLASS->configure($config, $opts), { _params => \@params },
-    'Should get dbname for --db-name';
+$opts = {
+    top_dir => '',
+    plan_file => '0',
+};
+is_deeply $CLASS->configure($config, $opts), { _cx => [] },
+    'Should get no params for empty options';
+
+$opts = { top_dir => 't' };
+my @params = ( top_dir => dir 't');
+is_deeply $CLASS->configure($config, $opts), { _cx => \@params },
+    'Should get top_dir';
 
 $opts = {
-    db_user  => '',
-    db_host  => undef,
-    db_port  => 0,
-    db_name  => '',
+    top_dir   => 'lib',
+    plan_file => 'README.md',
+    quack     => 'woof',
 };
 @params = (
-    user     => '',
-    host     => undef,
-    port     => 0,
-    dbname   => '',
-);
-
-is_deeply $CLASS->configure($config, $opts),  { _params => \@params },
-    'Should collect existing but false params';
-
-$opts = {
-    db_user  => 'theory',
-    db_host  => 'justatheory.com',
-    db_port  => 9876,
-    db_name  => 'funk',
-    registry => 'crickets',
-    client   => '/bin/true',
-    quack    => 'woof',
-};
-@params = (
-    user     => 'theory',
-    host     => 'justatheory.com',
-    port     => 9876,
-    dbname   => 'funk',
-    registry => 'crickets',
-    client   => '/bin/true',
+    top_dir   => dir('lib'),
+    plan_file => file('README.md'),
 );
 is_deeply $CLASS->configure($config, $opts),
-    { _params => \@params, quack => 'woof' },
+    { _cx => \@params, quack => 'woof' },
     'Should collect params';
 
 ##############################################################################
@@ -103,10 +82,10 @@ my $sqitch = App::Sqitch->new(config => $config);
 isa_ok my $cmd = $CLASS->new(
     sqitch => $sqitch,
     quack  => 'beep',
-    _params => \@params,
+    _cx => \@params,
 ), $CLASS;
 
 is_deeply [$cmd->target_params], [sqitch => $sqitch, @params],
-    'Should get connection params from target_params';
+    'Should get context params from target_params';
 
 done_testing;

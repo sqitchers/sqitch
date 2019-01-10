@@ -1,17 +1,18 @@
-package App::Sqitch::Role::ConnectingCommand;
+package App::Sqitch::Role::ContextCommand;
 
 use 5.010;
 use strict;
 use warnings;
 use utf8;
 use Moo::Role;
+use Path::Class;
 use App::Sqitch::Types qw(ArrayRef);
 
 requires 'options';
 requires 'configure';
 requires 'target_params';
 
-has _params => (
+has _cx => (
     is  => 'ro',
     isa => ArrayRef,
     default => sub { [] },
@@ -20,39 +21,31 @@ has _params => (
 around options => sub {
     my $orig = shift;
     return $orig->(@_), qw(
-        registry=s
-        client|db-client=s
-        db-name|d=s
-        db-user|db-username|u=s
-        db-host|h=s
-        db-port|p=i
+        plan-file|f=s
+        top-dir=s
     );
 };
 
 around configure => sub {
     my ( $orig, $class, $config, $opt ) = @_;
 
-    # Grab the options we're responsible for.
-    my @params = (
-        (exists $opt->{db_user}  ? ('user',    => delete $opt->{db_user})  : ()),
-        (exists $opt->{db_host}  ? ('host',    => delete $opt->{db_host})  : ()),
-        (exists $opt->{db_port}  ? ('port',    => delete $opt->{db_port})  : ()),
-        (exists $opt->{db_name}  ? ('dbname'   => delete $opt->{db_name})  : ()),
-        (exists $opt->{registry} ? ('registry' => delete $opt->{registry}) : ()),
-        (exists $opt->{client}   ? ('client'   => delete $opt->{client})   : ()),
+    # Grab the target params.
+    my @cx = (
+        do { my $f = delete $opt->{top_dir};   $f ? ( top_dir   => dir($f))  : () },
+        do { my $f = delete $opt->{plan_file}; $f ? ( plan_file => file($f)) : () },
     );
 
     # Let the command take care of its options.
     my $params = $class->$orig($config, $opt);
 
     # Hang on to the target parameters.
-    $params->{_params} = \@params;
+    $params->{_cx} = \@cx;
     return $params;
 };
 
 around target_params => sub {
     my ($orig, $self) = (shift, shift);
-    return $self->$orig(@_), @{ $self->_params };
+    return $self->$orig(@_), @{ $self->_cx };
 };
 
 1;
@@ -61,18 +54,18 @@ __END__
 
 =head1 Name
 
-App::Sqitch::Role::ConnectingCommand - A command that connects to a target
+App::Sqitch::Role::ContextCommand - A command that needs to know where things are
 
 =head1 Synopsis
 
-  package App::Sqitch::Command::deploy;
+  package App::Sqitch::Command::add;
   extends 'App::Sqitch::Command';
-  with 'App::Sqitch::Role::ConnectingCommand';
+  with 'App::Sqitch::Role::ContextCommand';
 
 =head1 Description
 
 This role encapsulates the options and target parameters required by commands
-that connect to a database target.
+that need to know where to find project files.
 
 =head1 Interface
 
@@ -80,9 +73,9 @@ that connect to a database target.
 
 =head3 C<options>
 
-  my @opts = App::Sqitch::Command::deploy->options;
+  my @opts = App::Sqitch::Command::add->options;
 
-Adds database connection options.
+Adds contextual options C<--plan-file> and C<--top-dir>.
 
 =head3 C<configure>
 
@@ -94,21 +87,22 @@ Configures the options used for target parameters.
 
 Returns a list of parameters to be passed to App::Sqitch::Target's C<new>
 and C<all_targets> methods.
+
 =head1 See Also
 
 =over
+
+=item L<App::Sqitch::Command::add>
+
+The C<add> command adds changes to the the plan and change scripts to the project.
 
 =item L<App::Sqitch::Command::deploy>
 
 The C<deploy> command deploys changes to a database.
 
-=item L<App::Sqitch::Command::revert>
+=item L<App::Sqitch::Command::bundle>
 
-The C<revert> command reverts changes from a database.
-
-=item L<App::Sqitch::Command::log>
-
-The C<log> command shows the event log for a database.
+The C<bundle> command bundles Sqitch changes for distribution.
 
 =back
 
