@@ -3,11 +3,12 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 283;
+use Test::More tests => 286;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
 use Test::Exception;
+use Test::Warn;
 use Test::Dir;
 use Test::File qw(file_not_exists_ok file_exists_ok);
 use Test::NoWarnings;
@@ -41,6 +42,7 @@ isa_ok my $cmd = App::Sqitch::Command->load({
     command => 'engine',
     config  => $config,
 }), $CLASS, 'Engine command';
+isa_ok $cmd, 'App::Sqitch::Command', 'Engine command';
 
 can_ok $cmd, qw(
     options
@@ -71,7 +73,15 @@ is_deeply [$CLASS->options], [qw(
     dir|d=s%
 )], 'Options should be correct';
 
-# Check default property values.
+warning_is {
+    Getopt::Long::Configure(qw(bundling pass_through));
+    ok Getopt::Long::GetOptionsFromArray(
+        [], {}, App::Sqitch->_core_opts, $CLASS->options,
+    ), 'Should parse options';
+} undef, 'Options should not conflict with core options';
+
+##############################################################################
+# Test configure().
 is_deeply $CLASS->configure({}, {}), { properties => {}},
     'Default config should contain empty properties';
 
@@ -79,6 +89,7 @@ is_deeply $CLASS->configure({}, {}), { properties => {}},
 is_deeply $CLASS->configure({ foo => 'bar'}), { properties => {} },
     'configure() should ignore config file';
 
+# Check default property values.
 ok my $conf = $CLASS->configure({}, {
     top_dir             => 'top',
     plan_file           => 'my.plan',

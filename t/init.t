@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 183;
+use Test::More tests => 186;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -12,6 +12,7 @@ use Path::Class;
 use Test::Dir;
 use Test::File qw(file_not_exists_ok file_exists_ok);
 use Test::Exception;
+use Test::Warn;
 use Test::File::Contents;
 use Test::NoWarnings;
 use File::Path qw(remove_tree make_path);
@@ -43,7 +44,8 @@ isa_ok my $init = $CLASS->new(
         top_dir      => dir('init.mkdir'),
         reworked_dir => dir('init.mkdir/reworked'),
     },
-), $CLASS, 'New init object';
+), $CLASS, 'Init command';
+isa_ok $init, 'App::Sqitch::Command', 'Init commmand';
 
 can_ok $init, qw(
     uri
@@ -64,6 +66,15 @@ is_deeply [$init->options], [qw(
     dir|d=s%
 )], 'Options should be correct';
 
+warning_is {
+    Getopt::Long::Configure(qw(bundling pass_through));
+    ok Getopt::Long::GetOptionsFromArray(
+        [], {}, App::Sqitch->_core_opts, $CLASS->options,
+    ), 'Should parse options';
+} undef, 'Options should not conflict with core options';
+
+##############################################################################
+# Test configure().
 is_deeply $CLASS->configure({}, {}), { properties => {}},
     'Default config should contain empty properties';
 is_deeply $CLASS->configure({}, { uri => 'https://example.com' }), {
