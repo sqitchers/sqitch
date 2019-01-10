@@ -230,7 +230,7 @@ sub _core_opts {
     # Add to regex in _find_cmd when options moved from here to command.
     return qw(
         plan-file|P=s
-        directory|C=s
+        chdir|cd|C=s
         top-dir|D=s
         etc-path
         no-pager
@@ -278,8 +278,8 @@ sub _parse_core_opts {
         exit;
     }
 
-    # Handle --directory
-    if ( my $dir = delete $opts{directory} ) {
+    # Handle --chdir
+    if ( my $dir = delete $opts{chdir} ) {
         chdir $dir or hurl fs => __x(
             'Cannot change to directory {directory}: {error}',
             directory => $dir,

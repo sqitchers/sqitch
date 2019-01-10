@@ -16,7 +16,7 @@ sqitchusage - Sqitch usage statement
 =head1 Options
 
   -P --plan-file  <file>    Path to a deployment plan file.
-  -C --directory  <dir>     Change to directory before performing any actions.
+  -C --chdir --cd <dir>     Change to directory before performing any actions.
   -D --top-dir    <dir>     Path to directory with plan and scripts.
      --etc-path             Print the path to the etc directory and exit.
      --no-pager             Do not pipe output into a pager.

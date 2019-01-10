@@ -11,7 +11,7 @@ sqitchcommands - List of common sqitch commands
 
 =head1 Usage
 
-  sqitch [--plan-file <file>] [--directory <path>] [--top-dir <dir> ]
+  sqitch [--plan-file <file>] [--chdir <path>] [--top-dir <dir> ]
          [--etc-path] [--no-pager] [--quiet] [--verbose] [--version]
          <command> [<command-options>] [<args>]
 

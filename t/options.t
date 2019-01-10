@@ -177,11 +177,15 @@ USAGE: {
     }, 'Proper args should have been passed to Pod::Usage';
 }
 
-# Test --directory.
+# Test --chdir.
 $catch_chdir = 1;
-ok $opts = $CLASS->_parse_core_opts(['--directory', 'foo/bar']),
-    'Parse --directory';
+ok $opts = $CLASS->_parse_core_opts(['--chdir', 'foo/bar']),
+    'Parse --chdir';
 is $chdir_to, 'foo/bar', 'Should have changed to foo/bar';
+is_deeply $opts, {}, 'Should have preserved no opts';
+
+ok $opts = $CLASS->_parse_core_opts(['--cd', 'go/dir']), 'Parse --cd';
+is $chdir_to, 'go/dir', 'Should have changed to go/dir';
 is_deeply $opts, {}, 'Should have preserved no opts';
 
 ok $opts = $CLASS->_parse_core_opts(['-C', 'hi crampus']), 'Parse -C';

@@ -20,9 +20,9 @@ Revision history for Perl extension App::Sqitch
        tag-qualified to eliminate ambiguity. Now reworked dependencies may be
        required without tag-qualification, though tag-qualification should still
        be specified if functionality as of a particular tag is required.
-     - Added the `--directory`/`-C` option to specify a directory to change to
-       before executing any Sqitch commands. Thansk to Thomas Sibley for the
-       suggestion (#411).
+     - Added the `--chdir`/`--cd`/`-C` option to specify a directory to change
+       to before executing any Sqitch commands. Thansk to Thomas Sibley for
+       the suggestion (#411).
      - Added a workaround for the shell quoting issue on Windows. Applies to
        IPC::System::Simple 1.29 and lower. See
        https://github.com/pjf/ipc-system-simple/pull/29 for details (#413).

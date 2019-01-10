@@ -207,7 +207,7 @@ User who adds a change to the plan.
 =head1 Options
 
   -P --plan-file  FILE      Path to a deployment plan file.
-  -C --directory  DIR       Change to directory before performing any actions.
+  -C --chdir --cd DIR       Change to directory before performing any actions.
   -D --top-dir    DIR       Path to directory with plan and scripts.
      --etc-path             Print path to etc directory and exit.
      --no-pager             Do not pipe output into a pager.
@@ -231,11 +231,14 @@ User who adds a change to the plan.
 Path to the deployment plan file. Defaults to F<$top_dir/sqitch.plan>. See
 L</Plan File> for a description of its structure.
 
+=item C<--chdir>
+
+=item C<--cd>
+
 =item C<-C>
 
-=item C<--directory>
-
-  sqitch --directory dbproject
+  sqitch --chdir dbproject
+  sqitch --cd /usr/local/somedb
   sqitch -C dbcheckout
 
 Change to the specified directory before performing any actions. Effectively the
@@ -247,7 +250,7 @@ But a bit friendlier when managing multiple projects.
 
 =item C<--top-dir>
 
-=item C<-C>
+=item C<-D>
 
   sqitch --top-dir migrations/
   sqitch -D migrations/
