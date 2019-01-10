@@ -3,11 +3,12 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 15;
+use Test::More tests => 20;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
 use Test::Exception;
+use Test::Warn;
 use Config;
 use File::Spec;
 use Test::MockModule;
@@ -19,11 +20,31 @@ my $CLASS = 'App::Sqitch::Command::help';
 
 ok my $sqitch = App::Sqitch->new, 'Load a sqitch sqitch object';
 my $config = TestConfig->new;
+
 isa_ok my $help = App::Sqitch::Command->load({
     sqitch  => $sqitch,
     command => 'help',
     config  => $config,
 }), $CLASS, 'Load help command';
+isa_ok $help, 'App::Sqitch::Command', 'Help command';
+
+can_ok $help, qw(
+    options
+    execute
+    find_and_show
+);
+
+is_deeply [$CLASS->options], [qw(
+    guide|g
+)], 'Options should be correct';
+
+warning_is {
+    Getopt::Long::Configure(qw(bundling pass_through));
+    ok Getopt::Long::GetOptionsFromArray(
+        [], {}, App::Sqitch->_core_opts, $CLASS->options,
+    ), 'Should parse options';
+} undef, 'Options should not conflict with core options';
+
 
 my $mock = Test::MockModule->new($CLASS);
 my @args;

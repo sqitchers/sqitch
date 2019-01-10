@@ -2,12 +2,13 @@
 
 use strict;
 use warnings;
-use Test::More tests => 344;
+use Test::More tests => 346;
 #use Test::More 'no_plan';
 use File::Spec;
 use Test::MockModule;
 use Test::Exception;
 use Test::NoWarnings;
+use Test::Warn;
 use Path::Class;
 use File::Path qw(remove_tree);
 use App::Sqitch;
@@ -53,6 +54,13 @@ is_deeply [$cmd->options], [qw(
     list|l
     edit|e
 )], 'Options should be configured';
+
+warning_is {
+    Getopt::Long::Configure(qw(bundling pass_through));
+    ok Getopt::Long::GetOptionsFromArray(
+        [], {}, App::Sqitch->_core_opts, $CLASS->options,
+    ), 'Should parse options';
+} undef, 'Options should not conflict with core options';
 
 ##############################################################################
 # Test configure errors.
