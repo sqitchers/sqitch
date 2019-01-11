@@ -652,7 +652,7 @@ can specify it via the following:
 
 =item C<--client>
 
-  sqitch --client $client deploy
+  sqitch deploy --client $client
 
 =item C<target.$target.client>
 
@@ -684,7 +684,7 @@ the following:
 
 =item C<--registry>
 
-  sqitch --registry $registry
+  sqitch deploy --registry $registry
 
 =item C<target.$target.registry>
 
