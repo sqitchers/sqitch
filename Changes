@@ -56,17 +56,13 @@ Revision history for Perl extension App::Sqitch
        `--engine` and instead suggests setting the engine via the target.
      - Fixed an issue with command argument parsing so that it truly never
        returns a target without an engine specified, as documented.
+     - Removed documentation for methods that don't exist.
      - Refactored config handling in tests to use a custom subclass of
        App::Sqitch::Config instead of various mocks, temporary files, and the
        like.
-     - Added the URI-overriding parameters `user`, `host`, `port`, and
-       `dbname` to App::Sqitch::Target.
-     - Added support for attributes to be passed to the App::Sqitch::Target
-       `all_targets` method. Such attributes will be set on all returned
-       targets.
-     [Options Unifiction]
+     [Options Unification]
      - Added the `--chdir`/`--cd`/`-C` option to specify a directory to change
-       to before executing any Sqitch commands. Thansk to Thomas Sibley for
+       to before executing any Sqitch commands. Thanks to Thomas Sibley for
        the suggestion (#411).
      - Added the `--no-pager` option to disable the pager (#414).
      - Changed command-line parsing to allow core and command options to
@@ -77,7 +73,7 @@ Revision history for Perl extension App::Sqitch
        that Sqitch doesn't think `val` is the command. Even in that case, it
        will keep searching the rest of the arguments to find a valid command.
        However, to minimize this challenge, the documentation now suggest
-       and demonstrates putting all options after the commnd, like so:
+       and demonstrates putting all options after the command, like so:
        `sqitch [command] [options].
      - Simplified and clarified the distinction between core and command
        options by removing all options from the core except those that affect
@@ -90,8 +86,8 @@ Revision history for Perl extension App::Sqitch
        *    --version           Print the version number and exit
        *    --help              Show a list of commands and exit
        *    --man               Print the introductory documentation and exit
-     - Relatedly, single-letter core options will now always be uppercase,
-       while singler-letter command options will be lowercase. As such, `-V`
+     - Belatedly, single-letter core options will now always be uppercase,
+       while single-letter command options will be lowercase. As such, `-V`
        has been added as an alias for `--version`, although `-v` remains for
        now, undocumented. It may be removed in the future should a compelling
        use for `-v` in a command be discovered.
@@ -103,7 +99,7 @@ Revision history for Perl extension App::Sqitch
          (and their aliases) have been moved to the checkout, deploy, log,
          rebase, revert, status, upgrade, and verify commands.
        * --plan-file and --top-dir (and their aliases) have been moved to the
-         add, bundle, checkout, deploy,r ebase, revert, rework, show, status,
+         add, bundle, checkout, deploy, rebase, revert, rework, show, status,
          tag, and verify commands. They were already supported by the init,
          engine, and target commands.
      - Because some command options conflicted with core options, a few options
@@ -112,11 +108,13 @@ Revision history for Perl extension App::Sqitch
          been removed, but no visible change should be apparent, since those
          commands now read the core `--verbose` option.
        * The undocumented `--dir` alias for `--top-dir` has been removed, as
-         it conflicted with the option of the same name but different meanbing
+         it conflicted with the option of the same name but different meaning
          in the `init`, `engine`, and `target` commands.
        * The `-d` alias for `--set-deploy` in the `rebase` and `checkout`
          commands has been changed to `-e` so as not to conflict with the `-d`
          alias for `--db-name`.
+       * Added tests for all commands to ensure none of their options conflict
+         with core options. Will help prevent conflicts in the future.
      [Removed Features]
      - Removed the core `--deploy-dir`, `--revert-dir`, and `--verify-dir`
        options, which have been deprecated and triggering warnings since
@@ -130,7 +128,43 @@ Revision history for Perl extension App::Sqitch
      - Removed support for reading the `core.$engine` configuration, which has
        been deprecated with warnings since 0.997. The `sqitch engine
        update-config` action remains available to update old configurations.
-
+     [API Changes]
+     - Added the URI-overriding parameters `user`, `host`, `port`, and
+       `dbname` to App::Sqitch::Target so that command options can be used
+       to easily set them.
+     - Added support for passing attribute parameters to the `all_targets`
+       group constructor on App::Sqitch::Target, so that command-line options
+       can be used to assign attributes to all targets read from the
+       configuration.
+     - Added support for attributes to be passed to the App::Sqitch::Target
+       `all_targets` method. Such attributes will be set on all returned
+       targets.
+     - Aded `target_params` method to App::Sqitch::Command and updated all
+       commands to use it when constructing targets. This allows commands to
+       easily add options for parameters to be passed to the Target
+       constructors, as required for the options unification documented above.
+     - Added the `class_for` method to App::Sqitch::Command so that the new
+       options parser described below can load a command class without
+       instantiating an instance. Useful for searching command-line arguments
+       for a command name.
+     - Added the `create` constructor to App::Sqitch::Command to let Sqitch
+       instantiate an instance of a command with arguments once it finds one
+       via `class_for`.
+     - Added the ConnectingCommand role to abstract handling command options
+       for connecting to a database.
+     - Added the ContextCommand role to abstract handling command options for
+       finding and top directory.
+     - Removed the C<verbosity> attribute from App::Sqitch::Command::engine
+       and App::Sqitch::Command::target, since the option is no longer needed.
+     - Removed the copying of core options from the target class and
+       TargetConfigCommand role, since the attributes fetched from there are
+       no longer core options, but provided as attribute parameters to the
+       constructors by commands.
+     - Removed documentation for the optional `config` parameter to the
+       `all_targets` constructor of App::Sqitch::Target, since it was never
+       used by Sqitch. It always fetched the config from the required `sqitch`
+       parameter. Support for the `config` parameter has not been removed,
+       since third-parties might use it.
 
 0.9998 2018-10-03T20:53:58Z
      - Fixed an issue where Sqitch would sometimes truncate the registry
