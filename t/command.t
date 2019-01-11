@@ -721,5 +721,5 @@ like capture_stderr {
 
 like capture_stderr {
     throws_ok { $cmd->usage('Invalid whozit') } qr/EXITED: 2/
-}, qr/\Qsqitch <command> [<options>] [<command-options>] [<args>]/,
+}, qr/\Qsqitch <command> [options] [command-options] [args]/,
     'usage should prefer sqitch-$command-usage';

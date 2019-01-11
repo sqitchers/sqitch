@@ -12,6 +12,7 @@ use Type::Utils qw(class_type);
 use App::Sqitch::ItemFormatter;
 use namespace::autoclean;
 use Try::Tiny;
+
 extends 'App::Sqitch::Command';
 with 'App::Sqitch::Role::ConnectingCommand';
 

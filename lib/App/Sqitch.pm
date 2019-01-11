@@ -227,7 +227,6 @@ sub go {
 }
 
 sub _core_opts {
-    # Add to regex in _find_cmd when options moved from here to command.
     return qw(
         chdir|cd|C=s
         etc-path
@@ -303,8 +302,10 @@ sub _find_cmd {
         my $arg = $args->[$i] or next;
         if ($arg =~ /^-/) {
             last if $arg eq '--';
-            # Skip the next argument if this looks like a legacy option.
-            $i++ if $arg =~ /^(?:-[duhp])|(?:--(?:db-\w+|client|engine|extension))$/;
+            # Skip the next argument if this looks like a legacy option. There
+            # shouldn't be many since we now recommend putting options after
+            # the command. XXX Remove at some future date.
+            $i++ if $arg =~ /^(?:-[duhp])|(?:--(?:db-\w+|client|engine|extension|plan-file|registry|top-dir))$/;
             next;
         }
         push @tried => $arg;
