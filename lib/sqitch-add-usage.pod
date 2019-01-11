@@ -22,5 +22,5 @@ sqitch-add-usage - Sqitch add usage statement
        --with    [script]     create named script
        --without [script]     do not create named script
     -e --edit, --open-editor  open change scripts in an editor
-       --plan-file  <file>    path to a deployment plan file
+    -f --plan-file  <file>    path to a deployment plan file
        --top-dir    <dir>     path to directory with plan and scripts

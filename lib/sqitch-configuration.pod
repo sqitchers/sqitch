@@ -741,6 +741,8 @@ If you need a different file, specify it via the following:
 
 =item C<--plan-file>
 
+=item C<-f>
+
   sqitch $command --plan-file $plan_file
 
 =item C<target.$target.plan_file>

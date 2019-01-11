@@ -161,6 +161,8 @@ is true.
 
 =item C<--plan-file>
 
+=item C<-f>
+
 Path to the deployment plan file. Overrides target, engine, and core
 configuration values. Defaults to F<$top_dir/sqitch.plan>.
 

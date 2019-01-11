@@ -12,5 +12,5 @@ sqitch-tag-usage - Sqitch tag usage statement
     -c --change     <change>  name of the change to tag
     -a --all                  tag all project plans
     -n --note       <note>    a note describing the tag
-       --plan-file  <file>    path to a deployment plan file
+    -f --plan-file  <file>    path to a deployment plan file
        --top-dir    <dir>     path to directory with plan and scripts

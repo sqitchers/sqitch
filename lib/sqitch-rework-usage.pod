@@ -15,6 +15,6 @@ sqitch-rework-usage - Sqitch rework usage statement
     -a --all                           rework the change in all plans in the project
     -e --edit --open-editor            open change scripts in an editor
        --no-edit --no-open-editor      do not open the change scripts in an editor
-       --plan-file            <file>   path to a deployment plan file
+    -f --plan-file            <file>   path to a deployment plan file
        --top-dir              <dir>    path to directory with plan and scripts
 

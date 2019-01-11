@@ -155,6 +155,8 @@ to override the port in a target.
 
 =item C<--plan-file>
 
+=item C<-f>
+
   sqitch verify --plan-file my.plan
 
 Path to the deployment plan file. Overrides target, engine, and core

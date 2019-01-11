@@ -63,6 +63,8 @@ deployment plan file and the change script directories.
 
 =item C<--plan-file>
 
+=item C<-f>
+
   sqitch init widgets --plan-file my.plan
 
 Specifies the path to the deployment plan file. Defaults to
@@ -142,6 +144,8 @@ Sets the C<core.engine> configuration variable.
 Sets the C<core.top_dir> configuration variable.
 
 =item C<--plan-file>
+
+=item C<-f>
 
 Sets the C<core.plan_file> configuration variable.
 
