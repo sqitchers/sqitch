@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 186;
+use Test::More tests => 187;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -52,7 +52,11 @@ can_ok $init, qw(
     properties
     options
     configure
+    does
 );
+
+ok $CLASS->does("App::Sqitch::Role::TargetConfigCommand"),
+    "$CLASS does TargetConfigCommand";
 
 is_deeply [$init->options], [qw(
     uri=s

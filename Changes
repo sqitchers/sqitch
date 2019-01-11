@@ -20,9 +20,6 @@ Revision history for Perl extension App::Sqitch
        tag-qualified to eliminate ambiguity. Now reworked dependencies may be
        required without tag-qualification, though tag-qualification should still
        be specified if functionality as of a particular tag is required.
-     - Added the `--chdir`/`--cd`/`-C` option to specify a directory to change
-       to before executing any Sqitch commands. Thansk to Thomas Sibley for
-       the suggestion (#411).
      - Added a workaround for the shell quoting issue on Windows. Applies to
        IPC::System::Simple 1.29 and lower. See
        https://github.com/pjf/ipc-system-simple/pull/29 for details (#413).
@@ -38,7 +35,6 @@ Revision history for Perl extension App::Sqitch
        duplicates before listing them in the error message.
      - Now requiring IO::Pager v0.34 or later for its more consistent
        interface.
-     - Added the `--no-pager` option to disable the pager (#414).
      - Added notes about createing databases to the tutorials. Thanks to Dave
        Rolsky for the prompt (#315).
      - Added a status messsage to tell the user when the registry is being
@@ -63,47 +59,78 @@ Revision history for Perl extension App::Sqitch
      - Refactored config handling in tests to use a custom subclass of
        App::Sqitch::Config instead of various mocks, temporary files, and the
        like.
-     - Added aesthetically offensive attempt at another fix for Oracle 10g
-       buffer allocation bug when selecting timestamp strings on. Thanks to
-       @johannwilfling for the hack (#316).
-     - Changed command-line parsing to allow core and command options to
-       appear anywhere on the line. Previously, core options had to come
-       before the command name, and command options after. The only caveat is
-       that command options that take arguments should either appear after the
-       command or use the `--opt=val` syntax instead of `--opt val`, so that
-       Sqitch doesn't think `val` is the command. Even in that case, it will
-       keep searching the rest of the arguments to find a valid command.
-     - Removed the core `--deploy-dir`, `--revert-dir`, and `--verify-dir`
-       options, which have been deprecated and triggering an error message
-       since v0.9993. The `--dir` option to the `init`, `engine`, and `target`
-       commands remains the favored interface for specifying script
-       directories.
-     - Removed support for reading the `core.$engine` configuration, which has
-       been deprecated with warnings since 0.997. The `sqitch engine
-       update-config` action remains in place.
      - Added the URI-overriding parameters `user`, `host`, `port`, and
        `dbname` to App::Sqitch::Target.
      - Added support for attributes to be passed to the App::Sqitch::Target
        `all_targets` method. Such attributes will be set on all returned
        targets.
-     - Changed the alias for the `--set-deploy` option on the `rebase` and
-       `checkout` commands from `-d` to `-e` to prevent a conflict with the
-       `-d` alias for `--db-name`.
-     - Removed the `--registry` `--client`, and `--extension` core options.
-       They are still provided by the commands that need them.
-     - Replaced the undocumented `--dir` alias for `--top-dir` with `-D` to
-       prevent a conflict with the `bundle` command's alias for `--dest-dir`.
-     - Changed the alias for the core `--plan-file` option from `-f` to `-P`
-       to prevent conflicts with command options.
-     - Added `-V` as an alias for the core `--verbose` option so that all core
-       option single-letter aliases are uppercase. The `-v` option still
-       exists, but is no longer documented, and may be removed in the future.
+     [Options Unifiction]
+     - Added the `--chdir`/`--cd`/`-C` option to specify a directory to change
+       to before executing any Sqitch commands. Thansk to Thomas Sibley for
+       the suggestion (#411).
+     - Added the `--no-pager` option to disable the pager (#414).
+     - Changed command-line parsing to allow core and command options to
+       appear anywhere on the line Previously, core options had to come
+       before the command name, and command options after. No more. The caveat
+       is that command options that take arguments should either appear after
+       the command or use the `--opt=val` syntax instead of `--opt val`, so
+       that Sqitch doesn't think `val` is the command. Even in that case, it
+       will keep searching the rest of the arguments to find a valid command.
+       However, to minimize this challenge, the documentation now suggest
+       and demonstrates putting all options after the commnd, like so:
+       `sqitch [command] [options].
+     - Simplified and clarified the distinction between core and command
+       options by removing all options from the core except those that affect
+       output and runtime context. The core options are:
+       * -C --chdir --cd <dir>  Change to directory before performing any actions
+       *    --etc-path          Print the path to the etc directory and exit
+       *    --no-pager          Do not pipe output into a pager
+       *    --quiet             Quiet mode with non-error output suppressed
+       * -V --verbose           Increment verbosity
+       *    --version           Print the version number and exit
+       *    --help              Show a list of commands and exit
+       *    --man               Print the introductory documentation and exit
+     - Relatedly, single-letter core options will now always be uppercase,
+       while singler-letter command options will be lowercase. As such, `-V`
+       has been added as an alias for `--version`, although `-v` remains for
+       now, undocumented. It may be removed in the future should a compelling
+       use for `-v` in a command be discovered.
+     - All other options have been moved to the commands the affect. Their use
+       should remain mostly unchanged now that command options are parsed from
+       anywhere on the command-line, although we recommend that all options
+       come after commands. The options were moved as follows:
+       * --registry, --client, --db-name, --db-user, --db-host, and --db-port
+         (and their aliases) have been moved to the checkout, deploy, log,
+         rebase, revert, status, upgrade, and verify commands.
+       * --plan-file and --top-dir (and their aliases) have been moved to the
+         add, bundle, checkout, deploy,r ebase, revert, rework, show, status,
+         tag, and verify commands. They were already supported by the init,
+         engine, and target commands.
+     - Because some command options conflicted with core options, a few options
+       have been removed altogether, including:
+       * The `--verbose` option on the `--engine` and `--target` commands has
+         been removed, but no visible change should be apparent, since those
+         commands now read the core `--verbose` option.
+       * The undocumented `--dir` alias for `--top-dir` has been removed, as
+         it conflicted with the option of the same name but different meanbing
+         in the `init`, `engine`, and `target` commands.
+       * The `-d` alias for `--set-deploy` in the `rebase` and `checkout`
+         commands has been changed to `-e` so as not to conflict with the `-d`
+         alias for `--db-name`.
+     [Removed Features]
+     - Removed the core `--deploy-dir`, `--revert-dir`, and `--verify-dir`
+       options, which have been deprecated and triggering warnings since
+       v0.9993. The `--dir` option to the `init`, `engine`, and `target`
+       commands remains the favored interface for specifying script
+       directories.
      - Removed the deprecated core `--engine` option. The `init` command still
        supports it, while other commands are able to parse the engine name as
-       an argument, e.g., `sqitch deploy mysql`.
-     - Removed the `--verbose` option from the `engine` and `target` commands.
-       They now respect the core `--verbose` option, so should continue to
-       work as before.
+       an argument, e.g., `sqitch deploy mysql`, or implicitly as part of a
+       target, as in `sqitch revert db:pg:tryme'.
+     - Removed support for reading the `core.$engine` configuration, which has
+       been deprecated with warnings since 0.997. The `sqitch engine
+       update-config` action remains available to update old configurations.
+
 
 0.9998 2018-10-03T20:53:58Z
      - Fixed an issue where Sqitch would sometimes truncate the registry

@@ -284,10 +284,6 @@ sub _parse_core_opts {
         );
     }
 
-    # Convert files and dirs to objects.
-    $opts{top_dir}   = dir   $opts{top_dir} if defined $opts{top_dir};
-    $opts{plan_file} = file $opts{plan_file} if defined $opts{plan_file};
-
     # Normalize the options (remove undefs) and return.
     $opts{verbosity} = delete $opts{verbose};
     $opts{verbosity} = 0 if delete $opts{quiet};

@@ -15,11 +15,11 @@ sqitchusage - Sqitch usage statement
 
 =head1 Options
 
-  -C --chdir --cd <dir>  Change to directory before performing any actions.
-     --etc-path          Print the path to the etc directory and exit.
-     --no-pager          Do not pipe output into a pager.
-     --quiet             Quiet mode with non-error output suppressed.
-  -V --verbose           Increment verbosity.
-     --version           Print the version number and exit.
-     --help              Show a list of commands and exit.
-     --man               Print the introductory documentation and exit.
+  -C --chdir --cd <dir>  Change to directory before performing any actions
+     --etc-path          Print the path to the etc directory and exit
+     --no-pager          Do not pipe output into a pager
+     --quiet             Quiet mode with non-error output suppressed
+  -V --verbose           Increment verbosity
+     --version           Print the version number and exit
+     --help              Show a list of commands and exit
+     --man               Print the introductory documentation and exit
