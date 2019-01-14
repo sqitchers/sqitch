@@ -364,8 +364,10 @@ sub run {
         ( my $msg = shift ) =~ s/\s+at\s+.+/\n/ms;
         die $msg;
     };
-    runx ( shift, $self->quote_shell(@_) )
-        if ISWIN && IPC::System::Simple->VERSION <= 1.25;
+    if (ISWIN && IPC::System::Simple->VERSION <= 1.25) {
+        runx ( shift, $self->quote_shell(@_) );
+        return $self;
+    }
     runx @_;
     return $self;
 }
