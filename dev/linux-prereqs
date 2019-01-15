@@ -1,0 +1,11 @@
+#!/bin/bash
+
+sudo apt-get update -qq
+sudo apt-get install -qq libicu-dev gettext aspell-en software-properties-common
+cat t/odbc/odbcinst.ini | sudo tee -a /etc/odbcinst.ini
+git clone git://github.com/travis-perl/helpers ~/travis-perl-helpers
+source ~/travis-perl-helpers/init
+build-perl
+perl -V
+build-dist
+cd $BUILD_DIR

@@ -1,107 +1,43 @@
 language: perl
 perl:
-  - "5.10"
-  - "5.12"
-  - "5.14"
-  - "5.16"
-  - "5.18"
-  - "5.20"
-  - "5.22"
-  - "5.24"
-  - "5.26"
   - "5.28"
-#  - "dev"
-#  - "blead" https://github.com/travis-perl/helpers/issues/44
-sudo: required
-
+  - "5.26"
+  - "5.24"
+  - "5.22"
+  - "5.20"
+  - "5.18"
+  - "5.16"
+  - "5.14"
+  - "5.12"
+  - "5.10"
 services:
   - docker
-
-env:
-  global:
-    - EXA_URI=db:exasol://sys:exasol@127.0.0.1:8888/?Driver=Exasol
-    - VSQL_URI=db:vertica://dbadmin@localhost:5433/docker?Driver=Vertica
-
-matrix:
-  include:
-    - perl: "5.28"
-      env: COVERAGE=1
-  allow_failures:
-    - perl: "blead"
-
 before_install:
-  # Install prepreqs.
-  - sudo apt-get update -qq
-  - sudo apt-get install -qq libicu-dev gettext aspell-en unixodbc-dev odbcinst unixodbc software-properties-common
-  - cat t/odbc/odbcinst.ini | sudo tee -a /etc/odbcinst.ini
-
-  # Set up Firebird. https://help.ubuntu.com/community/Firebird3.0
-  - sudo add-apt-repository -y ppa:mapopa/firebird3.0
-  - sudo apt-get update -qq
-  - sudo apt-get install -qq firebird3.0-server firebird-dev
-  - sudo dpkg-reconfigure firebird3.0-server
-  # XXX Something prevents Firebird from starting; permission issue?
-  # XXX https://groups.google.com/forum/#!topic/linux.debian.bugs.dist/VfrKd1CPeZE
-  - sudo -u firebird /usr/sbin/fbguard -daemon -forever -pidfile /var/run/firebird3.0/firebird.pid
-  - sudo chmod a+r /etc/firebird/3.0/SYSDBA.password
-  - . /etc/firebird/3.0/SYSDBA.password
-  - export ISC_PASSWORD
-
-  # Set up Vertica.
-  - cat t/odbc/vertica.ini | sudo tee -a /etc/vertica.ini
-  - docker pull cjonesy/docker-vertica:latest
-  - docker run -d -p 5433:5433 --rm sumitchawla/vertica
-  - docker ps -a
-  - curl -sSLO --insecure https://my.vertica.com/client_drivers/8.1.x/8.1.1-7/vertica-client-8.1.1-7.x86_64.tar.gz
-  - sudo tar -xzf vertica-client-8.1.1-7.x86_64.tar.gz -C /
-  - export PATH=/opt/vertica/bin:$PATH
-
-  # Set up Exasol.
-  - docker pull exasol/docker-db:latest
-  - docker run -d -p 127.0.0.1:8888:8888 --privileged --rm exasol/docker-db:latest
-  - docker ps -a
-  - curl -sSLO https://www.exasol.com/support/secure/attachment/55217/EXASOL_ODBC-6.0.4.tar.gz
-  - sudo tar -xvzf EXASOL_ODBC-6.0.4.tar.gz -C /opt
-  - curl -sSLO https://www.exasol.com/support/secure/attachment/55310/EXAplus-6.0.4.tar.gz
-  - sudo tar -xzf EXAplus-6.0.4.tar.gz -C /opt
-  - export PATH=/opt/EXAplus-6.0.4:$PATH
-
-  # Set up Perl.
-  - git clone git://github.com/travis-perl/helpers ~/travis-perl-helpers
-  - source ~/travis-perl-helpers/init
-  - build-perl
-  - perl -V
-  - build-dist
-  - cd $BUILD_DIR
-
+  - source dev/linux-prereqs
 install:
-  - cpanm --verbose --no-interactive --no-man-pages --notest Params::Validate DBI File::Which Test::More Test::Exception Time::HiRes Template
   - cpan-install --deps
-  - cpan-install --coverage
-
-before_script:
-  - coverage-setup
-  - vsql -U dbadmin -d docker -c 'SELECT VERSION();'
-  - exaplus -c 127.0.0.1:8888 -u sys -p exasol -sql "SELECT current_timestamp;"
-  # - perl -e "use DBI; use DBD::ODBC; my \$conn = DBI->connect('dbi:ODBC:EXAHOST=127.0.0.1;EXAPORT=8888;Driver=Exasol','sys','exasol'); print \$conn->selectcol_arrayref('SELECT current_timestamp')->[0];"
-  # - ldd -r $(grep libexaodbc /etc/odbcinst.ini|awk '{print $3}')
-
 script:
   - prove -lr --directives --comments $(test-dirs)
 
-after_success:
-  - coverage-report
-
-notifications:
-  email: false
-  irc:
-    channels:
-      - "irc.freenode.net#sqitch"
-    on_success: change
-    on_failure: always
-
 jobs:
   include:
+    - stage: Coverage
+      env: COVERAGE=1
+      before_install:
+        - source dev/linux-vertica
+        - source dev/linux-exasol
+        - source dev/linux-firebird
+        - source dev/linux-prereqs
+        - cpan-install --deps
+        - cpan-install --coverage
+      before_script:
+        - coverage-setup
+      script:
+        - prove -lr --directives --comments $(test-dirs)
+        # - prove -lv t/sqlite.t t/pg.t t/mysql.t t/vertica.t t/exasol.t t/firebird.t t/oracle.t t/snowflake.t
+      after_success:
+        - coverage-report
+
     - stage: Windows
       os: windows
       language: shell
