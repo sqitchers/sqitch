@@ -82,10 +82,14 @@ sub run {
                     'Unable to live-test %s engine: %s',
                     $class->name,
                     substr($msg, 2),
-                );
-            };
+                ) unless $ENV{'LIVE_' . uc $engine->key . '_REQUIRED'};
+                fail 'Connect to ' . $class->name;
+                diag substr $msg, 2;
+            } or return;
         }
-
+        if (my $q = $p{version_query}) {
+            diag 'Connected to ', $engine->dbh->selectcol_arrayref($q)->[0];
+        }
         ok $engine, 'Engine instantiated';
 
         ok !$engine->initialized, 'Database should not yet be initialized';

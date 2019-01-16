@@ -569,6 +569,7 @@ $uri->password($pass);
 # $uri->dbname( $ENV{TWO_TASK} || $ENV{LOCAL} || $ENV{ORACLE_SID} );
 DBIEngineTest->run(
     class         => $CLASS,
+    version_query => q{SELECT * FROM v$version WHERE banner LIKE 'Oracle%'},
     sqitch_params => [
         config => TestConfig->new('core.engine' => 'oracle'),
         options => {

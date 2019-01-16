@@ -1,0 +1,24 @@
+#!/bin/bash
+
+if [ $PGVERSION = 'system' ]; then
+    exit
+fi
+
+# Derived from https://gist.github.com/petere/6023944
+set -ex
+wget https://gist.githubusercontent.com/petere/5893799/raw/apt.postgresql.org.sh
+sudo sh ./apt.postgresql.org.sh
+sudo apt-get update -qq
+packages="postgresql-$PGVERSION postgresql-server-dev-$PGVERSION postgresql-common"
+
+# stop all existing instances (because of https://github.com/travis-ci/travis-cookbooks/pull/221)
+sudo service postgresql stop
+# and make sure they don't come back
+echo 'exit 0' | sudo tee /etc/init.d/postgresql
+sudo chmod a+x /etc/init.d/postgresql
+
+sudo apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" install $packages
+
+sudo pg_createcluster --start $PGVERSION test -p 55435 -- -A trust
+export PG_CONFIG=/usr/lib/postgresql/$PGVERSION/bin/pg_config
+export PGPORT=55435

@@ -345,6 +345,7 @@ END {
 
 DBIEngineTest->run(
     class         => $CLASS,
+    version_query => q{select 'SQLite ' || sqlite_version()},
     sqitch_params => [
         config  => TestConfig->new('core.engine' => 'sqlite'),
         options => {

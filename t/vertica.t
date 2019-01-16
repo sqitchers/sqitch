@@ -314,6 +314,7 @@ my $err = try {
 
 DBIEngineTest->run(
     class         => $CLASS,
+    version_query => 'SELECT version()',
     sqitch_params => [
         config => TestConfig->new('core.engine' => 'vertica'),
         options => {

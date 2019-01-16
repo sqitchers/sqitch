@@ -552,6 +552,7 @@ my $err = try {
 
 DBIEngineTest->run(
     class         => $CLASS,
+    version_query => q{SELECT 'Snowflake ' || CURRENT_VERSION()},
     sqitch_params => [
         config => TestConfig->new('core.engine' => 'pg'),
         options => {

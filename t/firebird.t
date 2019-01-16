@@ -391,6 +391,10 @@ DBIEngineTest->run(
     add_second_format => q{dateadd(1 second to %s)},
     test_dbh => sub {
         my $dbh = shift;
+        diag 'Connected to ', $dbh->selectcol_arrayref(q{
+            SELECT rdb$get_context('SYSTEM', 'ENGINE_VERSION')
+              FROM rdb$database
+        })->[0];
         # Check the session configuration...
         # To try: https://www.firebirdsql.org/refdocs/langrefupd21-intfunc-get_context.html
     },

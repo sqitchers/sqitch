@@ -508,7 +508,8 @@ DBIEngineTest->run(
         die $err if $err;
         # Make sure we have mysql and can connect to the database.
         $self->sqitch->probe( $self->client, '--version' );
-        $self->_capture('--execute' => 'SELECT version()');
+        diag 'Connected to MySQL ' . $self->_capture('--execute' => 'SELECT version()');
+        1;
     },
     engine_err_regex  => qr/^You have an error /,
     init_error        => __x(

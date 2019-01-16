@@ -1,4 +1,5 @@
 language: perl
+stage: 🐪 Perl
 perl:
   - "5.28"
   - "5.26"
@@ -10,8 +11,6 @@ perl:
   - "5.14"
   - "5.12"
   - "5.10"
-services:
-  - docker
 before_install:
   - source dev/linux-prereqs
 install:
@@ -21,24 +20,7 @@ script:
 
 jobs:
   include:
-    - stage: Coverage
-      env: COVERAGE=1
-      before_install:
-        - source dev/linux-vertica
-        - source dev/linux-exasol
-        - source dev/linux-firebird
-        - source dev/linux-prereqs
-        - cpan-install --deps
-        - cpan-install --coverage
-      before_script:
-        - coverage-setup
-      script:
-        - prove -lr --directives --comments $(test-dirs)
-        # - prove -lv t/sqlite.t t/pg.t t/mysql.t t/vertica.t t/exasol.t t/firebird.t t/oracle.t t/snowflake.t
-      after_success:
-        - coverage-report
-
-    - stage: Windows
+    - stage: 🍓 Windows
       os: windows
       language: shell
       before_install:
@@ -51,3 +33,51 @@ jobs:
       script:
         # No prove: https://rt.cpan.org/Public/Bug/Display.html?id=128221
         - ./dev/prove -lr t
+
+    - stage: 📈 Coverage
+      if: branch = master
+      services: docker
+      env: COVERAGE=1
+      before_install:
+        - source dev/linux-vertica
+        - source dev/linux-exasol
+        - source dev/linux-firebird
+        - source dev/linux-prereqs
+        - cpan-install --deps
+        - cpan-install --coverage
+      before_script:
+        - coverage-setup
+      script:
+        - export LIVE_PG_REQUIRED=1 LIVE_MYSQL_REQUIRED=1 LIVE_SQLITE_REQUIRED=1 LIVE_VERTICA_REQUIRED=1 LIVE_EXASOL_REQUIRED=1 LIVE_FIREBIRD_REQUIRED=1
+        - prove -lr --directives --comments $(test-dirs)
+        # - prove -lv t/sqlite.t t/pg.t t/mysql.t t/vertica.t t/exasol.t t/firebird.t t/oracle.t t/snowflake.t
+      after_success:
+        - coverage-report
+
+    - &postgres
+      if: branch = master
+      stage: 🐘 Postgres
+      env: PGVERSION=11
+      before_install:
+        - source dev/linux-postgres
+        - source dev/linux-prereqs
+      script:
+        - LIVE_PG_REQUIRED=1 prove -lr --directives --comments t/pg.t
+    - <<: *postgres
+      env: PGVERSION=10
+    - <<: *postgres
+      env: PGVERSION=9.6
+    - <<: *postgres
+      env: PGVERSION=9.5
+    - <<: *postgres
+      env: PGVERSION=9.4
+    - <<: *postgres
+      env: PGVERSION=9.3
+    - <<: *postgres
+      env: PGVERSION=9.2
+    - <<: *postgres
+      env: PGVERSION=9.1
+    - <<: *postgres
+      env: PGVERSION=9.0
+    - <<: *postgres
+      env: PGVERSION=8.4
