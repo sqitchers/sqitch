@@ -1,5 +1,11 @@
 #!/usr/bin/perl -w
 
+# To test against a live MySQL database, you must set the MYSQL_URI environment variable.
+# this is a stanard URI::db URI, and should look something like this:
+#
+#     export MYSQL_URI=db:mysql://root:password@localhost:3306/information_schema
+#
+
 use strict;
 use warnings;
 use 5.010;
@@ -462,9 +468,11 @@ END {
 }
 
 
+$uri = URI->new($ENV{MYSQL_URI} || 'db:mysql://root@/information_schema');
+$uri->dbname('information_schema') unless $uri->dbname;
 my $err = try {
     $mysql->use_driver;
-    $dbh = DBI->connect('dbi:mysql:database=information_schema', 'root', '', {
+    $dbh = DBI->connect($uri->dbi_dsn, $uri->user, $uri->password, {
         PrintError => 0,
         RaiseError => 1,
         AutoCommit => 1,
@@ -481,6 +489,7 @@ my $err = try {
     }
 
     $dbh->do("CREATE DATABASE $db");
+    $uri->dbname($db);
     undef;
 } catch {
     eval { $_->message } || $_;
@@ -495,14 +504,8 @@ DBIEngineTest->run(
             plan_file   => Path::Class::file(qw(t engine sqitch.plan))->stringify,
         },
     ],
-    target_params     => [
-        registry => $reg1,
-        uri => URI::db->new("db:mysql://root@/$db"),
-    ],
-    alt_target_params => [
-        registry => $reg2,
-        uri => URI::db->new("db:mysql://root@/$db"),
-    ],
+    target_params     => [ registry => $reg1, uri => $uri ],
+    alt_target_params => [ registry => $reg2, uri => $uri ],
     skip_unless       => sub {
         my $self = shift;
         die $err if $err;

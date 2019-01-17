@@ -5,7 +5,7 @@ if [ $PGVERSION = 'system' ]; then
 fi
 
 # Derived from https://gist.github.com/petere/6023944
-set -ex
+set -e
 wget https://gist.githubusercontent.com/petere/5893799/raw/apt.postgresql.org.sh
 sudo sh ./apt.postgresql.org.sh
 sudo apt-get update -qq

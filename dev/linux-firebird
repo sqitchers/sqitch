@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 # Set up Firebird. https://help.ubuntu.com/community/Firebird3.0
 sudo add-apt-repository -y ppa:mapopa/firebird3.0
 sudo apt-get update -qq

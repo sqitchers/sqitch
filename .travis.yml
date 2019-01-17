@@ -55,8 +55,8 @@ jobs:
         - coverage-report
 
     - &postgres
-      if: branch = master
       stage: 🐘 Postgres
+      if: branch = master
       env: PGVERSION=11
       before_install:
         - source dev/linux-postgres
@@ -81,3 +81,32 @@ jobs:
       env: PGVERSION=9.0
     - <<: *postgres
       env: PGVERSION=8.4
+
+    - &mysql
+      stage: 🐬 MySQL
+      if: branch = master
+      services: docker
+      env: MYSQLVERSION=mysql:8.0
+      before_install:
+        - source dev/linux-mysql
+        - source dev/linux-prereqs
+      script:
+        - LIVE_MYSQL_REQUIRED=1 prove -lr --directives --comments t/mysql.t
+    - <<: *mysql
+      env: MYSQLVERSION=mysql:5.7
+    - <<: *mysql
+      env: MYSQLVERSION=mysql:5.6
+    - <<: *mysql
+      env: MYSQLVERSION=mysql:5.5
+    - <<: *mysql
+      env: MYSQLVERSION=mariadb:10.4
+    - <<: *mysql
+      env: MYSQLVERSION=mariadb:10.3
+    - <<: *mysql
+      env: MYSQLVERSION=mariadb:10.2
+    - <<: *mysql
+      env: MYSQLVERSION=mariadb:10.1
+    - <<: *mysql
+      env: MYSQLVERSION=mariadb:10.0
+    - <<: *mysql
+      env: MYSQLVERSION=mariadb:5.5
