@@ -20,7 +20,7 @@ script:
 
 jobs:
   include:
-    # - stage: 🍓 Windows
+    - stage: 🍓 Windows
       os: windows
       language: shell
       before_install:
