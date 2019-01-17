@@ -20,7 +20,7 @@ script:
 
 jobs:
   include:
-    - stage: 🍓 Windows
+    # - stage: 🍓 Windows
       os: windows
       language: shell
       before_install:
@@ -57,56 +57,86 @@ jobs:
     - &postgres
       stage: 🐘 Postgres
       if: branch = master
-      env: PGVERSION=11
+      env: POSTGRES=11
       before_install:
         - source dev/linux-postgres
         - source dev/linux-prereqs
       script:
         - LIVE_PG_REQUIRED=1 prove -lr --directives --comments t/pg.t
     - <<: *postgres
-      env: PGVERSION=10
+      env: POSTGRES=10
     - <<: *postgres
-      env: PGVERSION=9.6
+      env: POSTGRES=9.6
     - <<: *postgres
-      env: PGVERSION=9.5
+      env: POSTGRES=9.5
     - <<: *postgres
-      env: PGVERSION=9.4
+      env: POSTGRES=9.4
     - <<: *postgres
-      env: PGVERSION=9.3
+      env: POSTGRES=9.3
     - <<: *postgres
-      env: PGVERSION=9.2
+      env: POSTGRES=9.2
     - <<: *postgres
-      env: PGVERSION=9.1
+      env: POSTGRES=9.1
     - <<: *postgres
-      env: PGVERSION=9.0
+      env: POSTGRES=9.0
     - <<: *postgres
-      env: PGVERSION=8.4
+      env: POSTGRES=8.4
 
     - &mysql
       stage: 🐬 MySQL
       if: branch = master
       services: docker
-      env: MYSQLVERSION=mysql:8.0
+      env: MYSQL=mysql:8.0
       before_install:
         - source dev/linux-mysql
         - source dev/linux-prereqs
       script:
         - LIVE_MYSQL_REQUIRED=1 prove -lr --directives --comments t/mysql.t
     - <<: *mysql
-      env: MYSQLVERSION=mysql:5.7
+      env: MYSQL=mysql:5.7
     - <<: *mysql
-      env: MYSQLVERSION=mysql:5.6
+      env: MYSQL=mysql:5.6
     - <<: *mysql
-      env: MYSQLVERSION=mysql:5.5
+      env: MYSQL=mysql:5.5
     - <<: *mysql
-      env: MYSQLVERSION=mariadb:10.4
+      env: MYSQL=mariadb:10.4
     - <<: *mysql
-      env: MYSQLVERSION=mariadb:10.3
+      env: MYSQL=mariadb:10.3
     - <<: *mysql
-      env: MYSQLVERSION=mariadb:10.2
+      env: MYSQL=mariadb:10.2
     - <<: *mysql
-      env: MYSQLVERSION=mariadb:10.1
+      env: MYSQL=mariadb:10.1
     - <<: *mysql
-      env: MYSQLVERSION=mariadb:10.0
+      env: MYSQL=mariadb:10.0
     - <<: *mysql
-      env: MYSQLVERSION=mariadb:5.5
+      env: MYSQL=mariadb:5.5
+
+    - &vertica
+      stage: 🔺 Vertica
+      if: branch = master
+      env: VERTICA=9.1.1-0
+      before_install:
+        - source dev/linux-vertica
+        - source dev/linux-prereqs
+      script:
+        - LIVE_VERTICA_REQUIRED=1 prove -lr --directives --comments t/vertica.t
+    - <<: *vertica
+      env: VERTICA=8.1.1-0
+    - <<: *vertica
+      env: VERTICA=8.0.0-0
+    - <<: *vertica
+      env: VERTICA=7.2.3-18
+    - <<: *vertica
+      env: VERTICA=7.1.2-21
+
+    - &exasol
+      stage: ☀️ Exasol
+      if: branch = master
+      env: EXASOL=6.1.0-d1
+      before_install:
+        - source dev/linux-exasol
+        - source dev/linux-prereqs
+      script:
+        - LIVE_EXASOL_REQUIRED=1 prove -lr --directives --comments t/exasol.t
+    - <<: *exasol
+      env: EXASOL=6.0.12-d1
