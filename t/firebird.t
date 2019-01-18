@@ -1,6 +1,10 @@
 #!/usr/bin/perl -w
 #
-# Made after sqlite.t and mysql.t
+# To test against a live Firebird database, you must set the FIREBIRD_URI environment variable.
+# this is a stanard URI::db URI, and should look something like this:
+#
+#     export FIREBIRD_URI=db:firebird://sysdba:password@localhost//path/to/test.db
+#
 #
 use strict;
 use warnings;
@@ -13,6 +17,7 @@ use Path::Class;
 use Try::Tiny;
 use Test::Exception;
 use Locale::TextDomain qw(App-Sqitch);
+use File::Basename qw(dirname);
 use File::Spec::Functions;
 use File::Temp 'tempdir';
 use lib 't/lib';
@@ -20,8 +25,7 @@ use DBIEngineTest;
 use TestConfig;
 
 my $CLASS;
-my $user;
-my $pass;
+my $uri;
 my $tmpdir;
 my $have_fb_driver = 1; # assume DBD::Firebird is installed and so is Firebird
 my $live_testing   = 0;
@@ -32,12 +36,13 @@ try { require DBD::Firebird; } catch { $have_fb_driver = 0; };
 BEGIN {
     $CLASS = 'App::Sqitch::Engine::firebird';
     require_ok $CLASS or die;
-    $user = $ENV{ISC_USER}     || $ENV{DBI_USER} || 'SYSDBA';
-    $pass = $ENV{ISC_PASSWORD} || $ENV{DBI_PASS} || 'masterkey';
-
+    $uri = URI->new($ENV{FIREBIRD_URI} || do {
+        my $user = $ENV{ISC_USER}     || $ENV{DBI_USER} || 'SYSDBA';
+        my $pass = $ENV{ISC_PASSWORD} || $ENV{DBI_PASS} || 'masterkey';
+        "db:firebird://$user:$pass@/"
+    });
+    delete $ENV{$_} for qw(ISC_USER ISC_PASSWORD);
     $tmpdir = File::Spec->tmpdir();
-
-    delete $ENV{ISC_PASSWORD};
 }
 
 is_deeply [$CLASS->config_vars], [
@@ -298,66 +303,60 @@ is $dt->time_zone->name, 'UTC', 'DateTime TZ should be set';
 
 ##############################################################################
 # Can we do live tests?
-
-END {
-    return unless $live_testing;
-    return unless $have_fb_driver;
-
-    foreach my $dbname (qw{__sqitchtest__ __sqitchtest __metasqitch}) {
-        my $dbpath = catfile($tmpdir, $dbname);
-        next unless -f $dbpath;
-        my $dsn = qq{dbi:Firebird:dbname=$dbpath;host=localhost;port=3050};
-        $dsn .= q{;ib_dialect=3;ib_charset=UTF8};
-
-        my $dbh = DBI->connect(
-            $dsn, $user, $pass,
-            {   FetchHashKeyName => 'NAME_lc',
-                AutoCommit       => 1,
-                RaiseError       => 0,
-                PrintError       => 0,
-            }
-        ) or die $DBI::errstr;
-
-        $dbh->{Driver}->visit_child_handles(
-            sub {
-                my $h = shift;
-                $h->disconnect
-                    if $h->{Type} eq 'db' && $h->{Active} && $h ne $dbh;
-            }
-        );
-
-        my $res = $dbh->selectall_arrayref(
-            q{ SELECT MON$USER FROM MON$ATTACHMENTS }
-        );
-        if (@{$res} > 1) {
-            # Do we have more than 1 active connections?
-            diag "    Another active connection detected, can't DROP DATABASE!\n";
-        }
-        else {
-            $dbh->func('ib_drop_database')
-                or diag
-                "Error dropping test database '$dbname': $DBI::errstr";
-        }
-    }
-}
-
-my $dbpath = catfile($tmpdir, '__sqitchtest__');
+my ($data_dir, @cleanup) = ($tmpdir);
 my $err = try {
-    require DBD::Firebird;
-    DBD::Firebird->create_database(
-        {   db_path       => $dbpath,
-            user          => $user,
-            password      => $pass,
+    return unless $have_fb_driver;
+    if ($uri->dbname) {
+        # Try to connect.
+        DBI->connect($uri->dbi_dsn, $uri->user, $uri->password, {
+            PrintError => 0,
+            RaiseError => 1,
+            AutoCommit => 1,
+        });
+        $data_dir = dirname $uri->dbname; # Assumes local OS semantics.
+    } else {
+        # Assume we're running locally and create the database.
+        my $dbpath = catfile($tmpdir, '__sqitchtest__');
+        $data_dir = $tmpdir;
+        $uri->dbname($dbpath);
+        DBD::Firebird->create_database({
+            db_path       => $dbpath,
+            user          => $uri->user,
+            password      => $uri->password,
             character_set => 'UTF8',
             page_size     => 16384,
-        }
-    );
-    undef;
+        });
+        @cleanup = ($dbpath);
+    }
+    push @cleanup => map { catfile $data_dir, $_ } qw(__sqitchtest __metasqitch);
+    return undef;
 } catch {
     eval { $_->message } || $_;
 };
 
-my $uri = URI::db->new("db:firebird://$user:$pass\@localhost/$dbpath");
+END {
+    foreach my $dbname (@cleanup) {
+        $uri->dbname($dbname);
+        my $dsn = $uri->dbi_dsn . q{;ib_dialect=3;ib_charset=UTF8};
+        my $dbh = DBI->connect($dsn, $uri->user, $uri->password, {
+            FetchHashKeyName => 'NAME_lc',
+            AutoCommit       => 1,
+            RaiseError       => 0,
+            PrintError       => 0,
+        }) or die $DBI::errstr;
+
+        # Disconnect any other database handles.
+        $dbh->{Driver}->visit_child_handles(sub {
+            my $h = shift;
+            $h->disconnect if $h->{Type} eq 'db' && $h->{Active} && $h ne $dbh;
+        });
+
+        # Kill all other connections.
+        $dbh->do('DELETE FROM MON$ATTACHMENTS WHERE MON$ATTACHMENT_ID <> CURRENT_CONNECTION');
+        $dbh->func('ib_drop_database') or diag "Cannot drop '$dbname': $DBI::errstr";
+    }
+}
+
 DBIEngineTest->run(
     class         => $CLASS,
     sqitch_params => [
@@ -367,8 +366,8 @@ DBIEngineTest->run(
             plan_file   => Path::Class::file(qw(t engine sqitch.plan))->stringify,
         },
     ],
-    target_params     => [ uri => $uri, registry => catfile($tmpdir, '__metasqitch') ],
-    alt_target_params => [ uri => $uri, registry => catfile($tmpdir, '__sqitchtest') ],
+    target_params     => [ uri => $uri, registry => catfile($data_dir, '__metasqitch') ],
+    alt_target_params => [ uri => $uri, registry => catfile($data_dir, '__sqitchtest') ],
 
     skip_unless => sub {
         my $self = shift;
@@ -386,7 +385,7 @@ DBIEngineTest->run(
     engine_err_regex  => qr/\QDynamic SQL Error\E/xms,
     init_error        => __x(
         'Sqitch database {database} already initialized',
-        database => catfile($tmpdir, '__sqitchtest'),
+        database =>catfile($data_dir, '__sqitchtest'),
     ),
     add_second_format => q{dateadd(1 second to %s)},
     test_dbh => sub {

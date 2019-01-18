@@ -82,6 +82,8 @@ jobs:
     - <<: *postgres
       env: POSTGRES=8.4
 
+    # https://hub.docker.com/_/mysql
+    # https://hub.docker.com/_/mariadb
     - &mysql
       stage: 🐬 MySQL
       if: branch = master
@@ -111,6 +113,7 @@ jobs:
     - <<: *mysql
       env: MYSQL=mariadb:5.5
 
+    # https://hub.docker.com/r/cjonesy/docker-vertica/tags
     - &vertica
       stage: 🔺 Vertica
       if: branch = master
@@ -129,6 +132,7 @@ jobs:
     - <<: *vertica
       env: VERTICA=7.1.2-21
 
+    # https://hub.docker.com/r/exasol/docker-db/tags
     - &exasol
       stage: ☀️ Exasol
       if: branch = master
@@ -140,3 +144,42 @@ jobs:
         - LIVE_EXASOL_REQUIRED=1 prove -lr --directives --comments t/exasol.t
     - <<: *exasol
       env: EXASOL=6.0.12-d1
+
+    # https://hub.docker.com/r/jacobalberty/firebird/tags
+    - &firebird
+      stage: 🔥 Firebird
+      if: branch = master
+      env: FIREBIRD=3.0
+      before_install:
+        - source dev/linux-firebird
+        - source dev/linux-prereqs
+      script:
+        - LIVE_FIREBIRD_REQUIRED=1 prove -lr --directives --comments t/firebird.t
+    - <<: *firebird
+      env: FIREBIRD=2.5-ss
+    - <<: *firebird
+      env: FIREBIRD=2.5-sc
+
+    - stage: ❄️ Snowflake
+      if: branch = master
+      before_install:
+        - source dev/linux-snowflake
+        - source dev/linux-prereqs
+      script:
+        - LIVE_SNOWFLAKE_REQUIRED=1 prove -lr --directives --comments t/snowflake.t
+
+    - &oracle
+      stage: 🔮 Oracle
+      if: branch = master
+      env: ORACLE=18c
+      before_install:
+        - source dev/linux-oracle
+        - source dev/linux-prereqs
+      script:
+        - LIVE_ORACLE_REQUIRED=1 prove -lr --directives --comments t/oracle.t
+
+  fast_finish: true
+  allow_failures:
+    - env: FIREBIRD=2.5-ss # https://github.com/jacobalberty/firebird-docker/issues/33
+    - stage: ❄️ Snowflake
+    - stage: 🔮 Oracle

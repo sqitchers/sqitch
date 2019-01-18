@@ -34,7 +34,7 @@ delete $ENV{"SNOWSQL_$_"} for qw(USER PASSWORD DATABASE HOST PORT);
 BEGIN {
     $CLASS = 'App::Sqitch::Engine::snowflake';
     require_ok $CLASS or die;
-    $ENV{SNOWSQL_ACCOUNT}      = 'nonesuch';
+    $ENV{SNOWSQL_ACCOUNT} = 'nonesuch';
 }
 
 # Mock the home directory to prevent reading a user config file.
