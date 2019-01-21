@@ -164,7 +164,7 @@ jobs:
       # No support for live Snowflake testing, can't download the ODBC driver
       # except through the web interface. So just run if the branch looks like
       # it's relevant to Snowflake.
-      if: branch =~ /snow(?:flake|sql)/i
+      if: branch =~ /snow(?:flake|sql)/
       before_install:
         - source dev/linux-snowflake
         - source dev/linux-prereqs
@@ -176,7 +176,7 @@ jobs:
       # stuff or run an Oracle server on Travis. So just run if the branch looks
       # ilke it's relevant to Oracle.
       stage: 🔮 Oracle
-      if: branch =~ /or(?:acle|cl)/i
+      if: branch =~ /or(?:acle|cl)/
       env: ORACLE=18c
       before_install:
         - source dev/linux-oracle
