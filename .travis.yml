@@ -161,7 +161,10 @@ jobs:
       env: FIREBIRD=2.5-sc
 
     - stage: ❄️ Snowflake
-      if: branch = master
+      # No support for live Snowflake testing, can't download the ODBC driver
+      # except through the web interface. So just run if the branch looks like
+      # it's relevant to Snowflake.
+      if: branch =~ /snow(?:flake|sql)/i
       before_install:
         - source dev/linux-snowflake
         - source dev/linux-prereqs
@@ -169,8 +172,11 @@ jobs:
         - LIVE_SNOWFLAKE_REQUIRED=1 prove -lr --directives --comments t/snowflake.t
 
     - &oracle
+      # No support for live Oracle testing, can't download the instantclient
+      # stuff or run an Oracle server on Travis. So just run if the branch looks
+      # ilke it's relevant to Oracle.
       stage: 🔮 Oracle
-      if: branch = master
+      if: branch =~ /or(?:acle|cl)/i
       env: ORACLE=18c
       before_install:
         - source dev/linux-oracle

@@ -869,8 +869,8 @@ sub log_deploy_change {
 }
 
 sub default_client {
-    my $self   = shift;
-    my $ext    = App::Sqitch::ISWIN || $^O eq 'cygwin' ? '.exe' : '';
+    my $self = shift;
+    my $ext  = App::Sqitch::ISWIN || $^O eq 'cygwin' ? '.exe' : '';
 
     # Create a script to run.
     require File::Temp;

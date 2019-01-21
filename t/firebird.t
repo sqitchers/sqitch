@@ -28,7 +28,6 @@ my $CLASS;
 my $uri;
 my $tmpdir;
 my $have_fb_driver = 1; # assume DBD::Firebird is installed and so is Firebird
-my $live_testing   = 0;
 
 # Is DBD::Firebird realy installed?
 try { require DBD::Firebird; } catch { $have_fb_driver = 0; };
@@ -302,17 +301,12 @@ is $dt->second,  1, 'DateTime second should be set';
 is $dt->time_zone->name, 'UTC', 'DateTime TZ should be set';
 
 ##############################################################################
+
 # Can we do live tests?
-my ($data_dir, @cleanup) = ($tmpdir);
+my ($data_dir, $fb_version, @cleanup) = ($tmpdir);
 my $err = try {
     return unless $have_fb_driver;
     if ($uri->dbname) {
-        # Try to connect.
-        DBI->connect($uri->dbi_dsn, $uri->user, $uri->password, {
-            PrintError => 0,
-            RaiseError => 1,
-            AutoCommit => 1,
-        });
         $data_dir = dirname $uri->dbname; # Assumes local OS semantics.
     } else {
         # Assume we're running locally and create the database.
@@ -328,6 +322,16 @@ my $err = try {
         });
         @cleanup = ($dbpath);
     }
+    # Try to connect.
+    my $dbh = DBI->connect($uri->dbi_dsn, $uri->user, $uri->password, {
+        PrintError => 0,
+        RaiseError => 1,
+        AutoCommit => 1,
+    });
+    $fb_version = $dbh->selectcol_arrayref(q{
+        SELECT rdb$get_context('SYSTEM', 'ENGINE_VERSION')
+          FROM rdb$database
+      })->[0];
     push @cleanup => map { catfile $data_dir, $_ } qw(__sqitchtest __metasqitch);
     return undef;
 } catch {
@@ -335,6 +339,7 @@ my $err = try {
 };
 
 END {
+    return if $ENV{CI}; # No need to clean up under Travis.
     foreach my $dbname (@cleanup) {
         $uri->dbname($dbname);
         my $dsn = $uri->dbi_dsn . q{;ib_dialect=3;ib_charset=UTF8};
@@ -380,22 +385,27 @@ DBIEngineTest->run(
         return 0 unless $cmd_echo =~ m{Firebird}ims;
         # Skip if no DBD::Firebird.
         return 0 unless $have_fb_driver;
-        $live_testing = 1;
+        diag "Connected to Firebird $fb_version" if $fb_version;
+        return 1;
     },
     engine_err_regex  => qr/\QDynamic SQL Error\E/xms,
     init_error        => __x(
         'Sqitch database {database} already initialized',
-        database =>catfile($data_dir, '__sqitchtest'),
+        database => catfile($data_dir, '__sqitchtest'),
     ),
     add_second_format => q{dateadd(1 second to %s)},
     test_dbh => sub {
         my $dbh = shift;
-        diag 'Connected to Firebird ', $dbh->selectcol_arrayref(q{
-            SELECT rdb$get_context('SYSTEM', 'ENGINE_VERSION')
-              FROM rdb$database
-        })->[0];
         # Check the session configuration...
         # To try: https://www.firebirdsql.org/refdocs/langrefupd21-intfunc-get_context.html
+        is(
+            $dbh->selectcol_arrayref(q{
+                SELECT rdb$get_context('SYSTEM', 'DB_NAME')
+                  FROM rdb$database
+            })->[0],
+            catfile($data_dir, '__sqitchtest'),
+            'The Sqitch db should be the current db'
+        );
     },
 );
 
