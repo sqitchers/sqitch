@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [ $POSTGRES = 'system' ]; then
+if [ ${POSTGRES:=system} = 'system' ]; then
     exit
 fi
 

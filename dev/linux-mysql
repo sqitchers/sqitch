@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [ $MYSQL = 'system' ]; then
+if [ ${MYSQL:=system} = 'system' ]; then
     exit
 fi
 

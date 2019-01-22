@@ -39,9 +39,14 @@ jobs:
       services: docker
       env: COVERAGE=1
       before_install:
-        - source dev/linux-vertica
         - source dev/linux-exasol
         - source dev/linux-firebird
+        - source dev/linux-mysql
+        - source dev/linux-oracle
+        - source dev/linux-postgres
+        - source dev/linux-snowflake
+        - source dev/linux-sqlite
+        - source dev/linux-vertica
         - source dev/linux-prereqs
         - cpan-install --deps
         - cpan-install --coverage
@@ -81,6 +86,55 @@ jobs:
       env: POSTGRES=9.0
     - <<: *postgres
       env: POSTGRES=8.4
+
+    # https://sqlite.org/chronology.html
+    - &sqlite
+      stage: 💡 SQLite
+      # if: branch = master
+      env: SQLITE=3.26.0
+      before_install:
+        - source dev/linux-sqlite
+        - source dev/linux-prereqs
+      script:
+        - LIVE_SQLITE_REQUIRED=1 prove -lr --directives --comments t/sqlite.t
+    - <<: *sqlite
+      env: SQLITE=3.25.3
+    - <<: *sqlite
+      env: SQLITE=3.24.0
+    - <<: *sqlite
+      env: SQLITE=3.23.1
+    - <<: *sqlite
+      env: SQLITE=3.22.0
+    - <<: *sqlite
+      env: SQLITE=3.21.0
+    - <<: *sqlite
+      env: SQLITE=3.20.1
+    - <<: *sqlite
+      env: SQLITE=3.19.3
+    - <<: *sqlite
+      env: SQLITE=3.18.0
+    - <<: *sqlite
+      env: SQLITE=3.17.0
+    - <<: *sqlite
+      env: SQLITE=3.16.2
+    - <<: *sqlite
+      env: SQLITE=3.15.2
+    - <<: *sqlite
+      env: SQLITE=3.14.2
+    - <<: *sqlite
+      env: SQLITE=3.13.0
+    - <<: *sqlite
+      env: SQLITE=3.12.2
+    - <<: *sqlite
+      env: SQLITE=3.11.1
+    - <<: *sqlite
+      env: SQLITE=3.10.2
+    - <<: *sqlite
+      env: SQLITE=3.9.2
+    - <<: *sqlite
+      env: SQLITE=3.8.11.1
+    - <<: *sqlite
+      env: SQLITE=3.7.17
 
     # https://hub.docker.com/_/mysql
     # https://hub.docker.com/_/mariadb
@@ -143,7 +197,7 @@ jobs:
       script:
         - LIVE_EXASOL_REQUIRED=1 prove -lr --directives --comments t/exasol.t
     - <<: *exasol
-      env: EXASOL=6.0.12-d1
+      env: EXASOL=6.0.13-d1
 
     # https://hub.docker.com/r/jacobalberty/firebird/tags
     - &firebird

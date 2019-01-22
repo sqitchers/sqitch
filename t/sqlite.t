@@ -369,6 +369,13 @@ DBIEngineTest->run(
         my @v = split /[.]/ => $version;
         die "SQLite >= 3.7.11 required; DBD::SQLite built with $version\n"
             unless $v[0] > 3 || ($v[0] == 3 && ($v[1] > 7 || ($v[1] == 7 && $v[2] >= 11)));
+
+        $version =  (split / / => $self->sqitch->probe( $self->client, '-version' ))[0];
+        @v = split /[.]/ => $version;
+            die "SQLite >= 3.3.9 required; CLI is $version\n"
+            unless $v[0] > 3 || ($v[0] == 3 && ($v[1] > 3 || ($v[1] == 3 && $v[2] >= 9)));
+        diag "Detected SQLite CLI $version";
+        return 1;
     },
     engine_err_regex  => qr/^near "blah": syntax error/,
     init_error        =>  __x(
