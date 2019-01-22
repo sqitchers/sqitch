@@ -12,4 +12,3 @@ sqitch-bundle-usage - Sqitch bundle usage statement
     --from                   change from which to start bundling
     --to                     change to which to end bundling
  -f --plan-file      <file>  path to a deployment plan file
-    --top-dir        <dir>   path to directory with plan and scripts

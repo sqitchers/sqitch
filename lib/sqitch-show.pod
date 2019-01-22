@@ -63,11 +63,6 @@ and is a valid object.
 Path to the deployment plan file. Overrides target, engine, and core
 configuration values. Defaults to F<$top_dir/sqitch.plan>.
 
-=item C<--top-dir>
-
-Path to directory containing the plan file. Overrides target, engine, and core
-configuration values. Defaults to C<.>.
-
 =back
 
 =head2 Examples

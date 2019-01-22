@@ -13,4 +13,3 @@ sqitch-tag-usage - Sqitch tag usage statement
     -a --all                  tag all project plans
     -n --note       <note>    a note describing the tag
     -f --plan-file  <file>    path to a deployment plan file
-       --top-dir    <dir>     path to directory with plan and scripts

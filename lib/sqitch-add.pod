@@ -20,10 +20,8 @@ single user by creating templates in F<~/.sqitch/templates/> See L</Templates>
 for details.
 
 The paths and extensions of the generated scripts depend on the configuration
-of Sqitch targets, engines, and the core. They can also be overridden by the
-use of the core C<--top-dir>, and C<--plan-file> options. You probably don't
-want to often use any of those, but should define alternatives on a per-engine
-or per-target basis. See L<sqitch-configuration> for details.
+of Sqitch targets, engines, and the core. See L<sqitch-configuration> for
+details.
 
 Note that the name of the new change must adhere to the rules as defined in
 L<sqitchchanges>.
@@ -166,11 +164,6 @@ is true.
 Path to the deployment plan file. Overrides target, engine, and core
 configuration values. Defaults to F<$top_dir/sqitch.plan>.
 
-=item C<--top-dir>
-
-Path to directory containing the plan file. Overrides target, engine, and core
-configuration values. Defaults to C<.>.
-
 =back
 
 =head1 Examples
@@ -264,8 +257,9 @@ when you add a new change like so:
 
   sqitch add schema -n 'Creates schema'
 
-Sqitch will use the C<pg.tmpl> files to create the following files in
-C<--top-dir>:
+Sqitch will use the C<pg.tmpl> files to create the following files in the
+top directory configured for the projet (See L<sqitch-configuration> for
+details).
 
   deploy/schema.sql
   revert/schema.sql
@@ -278,7 +272,8 @@ C<--template> option, like so:
   sqitch add user_table --template create_table -n 'Create user table'
 
 Sqitch will use the C<create_table.tmpl> files to create the following files
-in C<--top-dir>:
+in the top directory configured for the projet (See L<sqitch-configuration>
+for details).
 
   deploy/user_table.sql
   revert/user_table.sql

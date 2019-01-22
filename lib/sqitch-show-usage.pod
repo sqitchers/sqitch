@@ -13,4 +13,3 @@ C<< <type> >> can be one of: change, tag, deploy, revert, verify
     -t --target    <target>  database target specifying the plan
     -e --exists              suppress output, exit 0 when object exists
     -f --plan-file  <file>   path to a deployment plan file
-       --top-dir    <dir>    path to directory with plan and scripts

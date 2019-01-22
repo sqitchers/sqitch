@@ -1,4 +1,4 @@
-'=head1 Name
+=head1 Name
 
 sqitch-bundle - Bundle a Sqitch project for distribution
 
@@ -84,11 +84,6 @@ C<--no-all> to override a true C<bundle.all> configuration.
 
 Path to the deployment plan file. Overrides target, engine, and core
 configuration values. Defaults to F<$top_dir/sqitch.plan>.
-
-=item C<--top-dir>
-
-Path to directory containing the plan file. Overrides target, engine, and core
-configuration values. Defaults to C<.>.
 
 =back
 

@@ -711,10 +711,6 @@ you need a custom directory, specify it via the following:
 
 =over
 
-=item C<--top-dir>
-
-  sqitch $command --top-dir $top_dir
-
 =item C<target.$target.top_dir>
 
   sqitch target add $target --top-dir $top_dir
