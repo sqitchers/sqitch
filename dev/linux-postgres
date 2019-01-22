@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if [ ${POSTGRES:=system} = 'system' ]; then
-    exit
+    return
 fi
 
 # Derived from https://gist.github.com/petere/6023944

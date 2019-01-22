@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if [ ${MYSQL:=system} = 'system' ]; then
-    exit
+    return
 fi
 
 # Derived from https://github.com/PyMySQL/PyMySQL/blob/master/.travis/initializedb.sh

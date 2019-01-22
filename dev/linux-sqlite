@@ -3,7 +3,7 @@
 set -e
 
 if [[ ${SQLITE:=system} = 'system' ]]; then
-    exit
+    return
 fi
 
 DIR=$(pwd)
