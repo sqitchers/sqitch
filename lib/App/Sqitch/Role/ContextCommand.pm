@@ -7,12 +7,14 @@ use utf8;
 use Moo::Role;
 use Path::Class;
 use App::Sqitch::Types qw(ArrayRef);
+use Locale::TextDomain qw(App-Sqitch); # XXX Until deprecation removed below.
 
 our $VERSION = '0.9999';
 
 requires 'options';
 requires 'configure';
 requires 'target_params';
+requires 'command'; # XXX Until deprecation removed below.
 
 has _cx => (
     is  => 'ro',
@@ -30,6 +32,11 @@ around options => sub {
 
 around configure => sub {
     my ( $orig, $class, $config, $opt ) = @_;
+
+    App::Sqitch->warn(__x(
+        "  Option --top-dir is deprecated for {command} and other non-configuration commands.\n  Use --chdir instead.",
+        command => $class->command,
+    )) if $opt->{top_dir};
 
     # Grab the target params.
     my @cx = (

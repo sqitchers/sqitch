@@ -116,6 +116,7 @@ Revision history for Perl extension App::Sqitch
        * Added tests for all commands to ensure none of their options conflict
          with core options. Will help prevent conflicts in the future.
      [Removed Features]
+     - Derecated the `--top-dir` option in favor of `--chdir`.
      - Removed the core `--deploy-dir`, `--revert-dir`, and `--verify-dir`
        options, which have been deprecated and triggering warnings since
        v0.9993. The `--dir` option to the `init`, `engine`, and `target`
