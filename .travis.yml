@@ -90,7 +90,7 @@ jobs:
     # https://sqlite.org/chronology.html
     - &sqlite
       stage: 💡 SQLite
-      # if: branch = master
+      if: branch = master
       env: SQLITE=3.26.0
       before_install:
         - source dev/linux-sqlite
