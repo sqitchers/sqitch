@@ -30,20 +30,6 @@ sub last_change { return shift->{list}[ -1 ] }
 # Like [:punct:], but excluding _. Copied from perlrecharclass.
 my $punct = q{-!"#$%&'()*+,./:;<=>?@[\\]^`{|}~};
 
-# XXX Deprecated. Delete dbsymtag when @LAST and @FIRST are removed.
-# Consult 4eb1096c when removing.
-sub _dbsymtag($) {
-    # Return LAST or FIRST if it is a DB symbolic tag.
-    $_[0] =~ /\A[@]?((?:LA|FIR)ST)(?:(?<![$punct])([~^])(?:(\2)|(\d+))?)?\z/ or return;
-    my $t = $1;
-    App::Sqitch->warn(__x(
-        'The @{old} symbolic tag has been deprecated; use @{new} instead',
-        old => $t,
-        new => $t eq 'LAST' ? 'HEAD' : 'ROOT',
-    ));
-    return $t;
-}
-
 sub _offset($) {
     # Look for symbolic references.
     if ( $_[0] =~ s{(?<![$punct])([~^])(?:(\1)|(\d+))?\z}{} ) {
@@ -55,31 +41,11 @@ sub _offset($) {
     }
 }
 
-sub _lookup {
-    my ( $self, $key ) = @_;
-    my $symtag = _dbsymtag $key or return $self->{lookup}{$key};
-    # XXX The rest of this only applies to the deprecated @FIRST & @LAST tags.
-    my $change = $self->{list}[0] || return undef;
-    my $engine = $change->plan->target->engine;
-    my $offset = _offset $key;
-    $key = do {
-        if ($symtag eq 'LAST') {
-            # Nothing comes after the last change.
-            $offset > 0 ? undef : $engine->latest_change_id(abs $offset);
-        } else {
-            # Nothing comes before the first change.
-            $offset < 0 ? undef : $engine->earliest_change_id($offset);
-        }
-    } || return undef;
-
-    return $self->{lookup}{$key};
-}
-
 sub index_of {
     my ( $self, $key ) = @_;
 
     # Look for non-deployed symbolic references.
-    if ( !_dbsymtag($key) && ( my $offset = _offset $key ) ) {
+    if ( my $offset = _offset $key ) {
         my $idx = $self->_index_of( $key ) // return undef;
         $idx += $offset;
         return $idx < 0 ? undef : $idx > $#{ $self->{list} } ? undef : $idx;
@@ -95,14 +61,14 @@ sub _index_of {
 
     if ($change eq '') {
         # Just want the change with the associated tag.
-        my $idx = $self->_lookup('@' . $tag ) or return undef;
+        my $idx = $self->{lookup}{'@' . $tag} or return undef;
         return $idx->[0];
     }
 
-    my $idx = $self->_lookup($change) or return undef;
+    my $idx = $self->{lookup}{$change} or return undef;
     if (defined $tag) {
         # Wanted for a change as of a specific tag.
-        my $tag_idx = $self->_lookup( '@' . $tag ) or hurl plan => __x(
+        my $tag_idx = $self->{lookup}{'@' . $tag} or hurl plan => __x(
             'Unknown tag "{tag}"',
             tag => '@' . $tag,
         );
@@ -134,7 +100,7 @@ sub first_index_of {
     my ( $self, $key, $since ) = @_;
 
     # Look for non-deployed symbolic references.
-    if ( !_dbsymtag $key && ( my $offset = _offset $key ) ) {
+    if ( my $offset = _offset $key ) {
         my $idx = $self->_first_index_of( $key, $since ) // return undef;
         $idx += $offset;
         return $idx < 0 ? undef : $idx > $#{ $self->{list} } ? undef : $idx;
@@ -147,7 +113,7 @@ sub _first_index_of {
     my ( $self, $change, $since ) = @_;
 
     # Just return the first index if no tag.
-    my $idx = $self->_lookup($change) or return undef;
+    my $idx = $self->{lookup}{$change} or return undef;
     return $idx->[0] unless defined $since;
 
     # Find the tag index.

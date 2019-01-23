@@ -441,25 +441,8 @@ for my $name (
 }
 is sorted, 26, 'Should have sorted changes 18 times';
 
-# Try a plan with reserved tag name @HEAD.
-$file = file qw(t plans reserved-tag.plan);
-$fh = $file->open('<:utf8_strict');
-throws_ok { $plan->_parse($file, $fh) } 'App::Sqitch::X',
-    'Should die on plan with reserved tag "@HEAD"';
-is $@->ident, 'parse', '@HEAD exception should have ident "plan"';
-is $@->message, __x(
-    'Syntax error in {file} at line {lineno}: {error}',
-    file => $file,
-    lineno => 7,
-    error => __x(
-        '"{name}" is a reserved name',
-        name => '@HEAD',
-    ),
-), 'And the @HEAD error message should be correct';
-is sorted, 1, 'Should have sorted changes once';
-
 # Try planning with other reserved names.
-for my $reserved (qw(ROOT FIRST LAST)) {
+for my $reserved (qw(HEAD ROOT)) {
     my $root = $prags . '@' . $reserved . " $tsnp";
     $file = file qw(t plans), "$reserved.plan";
     $fh = IO::File->new(\$root, '<:utf8_strict');
@@ -1296,7 +1279,7 @@ for my $name (@bad_names, 'foo#bar') {
 }
 
 # Validate reserved names.
-for my $reserved (qw(HEAD ROOT FIRST LAST)) {
+for my $reserved (qw(HEAD ROOT)) {
     throws_ok { $plan->tag( name => $reserved ) } 'App::Sqitch::X',
         qq{Should get error for reserved tag "$reserved"};
     is $@->ident, 'plan', qq{Reserved tag "$reserved" error ident should be "plan"};
@@ -1417,7 +1400,7 @@ for my $name (@bad_names) {
 }
 
 # Try a reserved name.
-for my $reserved (qw(HEAD ROOT FIRST LAST)) {
+for my $reserved (qw(HEAD ROOT)) {
     throws_ok { $plan->add( name => $reserved ) } 'App::Sqitch::X',
         qq{Should get error for reserved name "$reserved"};
     is $@->ident, 'plan', qq{Reserved name "$reserved" error ident should be "plan"};

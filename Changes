@@ -173,6 +173,8 @@ Revision history for Perl extension App::Sqitch
 	     `add.verify_template` configuration settings. They have been deprecated
 	     with warnings in favor of the `add.templates` configuration section
        since v0.990.
+     - Formally the `@FIRST` and `@LAST` symbolic tags, which have been
+       deprecated with warnings since 0.997.
 
      [API Changes]
      - Added the URI-overriding parameters `user`, `host`, `port`, and

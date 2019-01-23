@@ -1256,18 +1256,8 @@ sub run {
                 $change->id,
             ],
             [
-                'FIRST',
-                { tag => 'FIRST' },
-                $change->id,
-            ],
-            [
                 'HEAD',
                 { tag => 'HEAD' },
-                $barney->id,
-            ],
-            [
-                'LAST',
-                { tag => 'LAST' },
                 $barney->id,
             ],
             [

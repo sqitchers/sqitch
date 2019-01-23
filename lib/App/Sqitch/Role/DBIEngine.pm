@@ -897,11 +897,10 @@ sub change_id_for {
     if ( my $change = $p{change} ) {
         if ( my $tag = $p{tag} ) {
             # There is nothing before the first tag.
-            return undef if $tag eq 'ROOT' || $tag eq 'FIRST';
+            return undef if $tag eq 'ROOT';
 
             # Find closest to the end for @HEAD.
-            return $self->_cid_head($project, $change)
-                if $tag eq 'HEAD' || $tag eq 'LAST';
+            return $self->_cid_head($project, $change) if $tag eq 'HEAD';
 
             # Find by change name and following tag.
             my $limit = $self->_can_limit ? "\n                 LIMIT 1" : '';
@@ -934,12 +933,10 @@ sub change_id_for {
 
     if ( my $tag = $p{tag} ) {
         # Just return the latest for @HEAD.
-        return $self->_cid('DESC', 0, $project)
-            if $tag eq 'HEAD' || $tag eq 'LAST';
+        return $self->_cid('DESC', 0, $project) if $tag eq 'HEAD';
 
         # Just return the earliest for @ROOT.
-        return $self->_cid('ASC', 0, $project)
-            if $tag eq 'ROOT' || $tag eq 'FIRST';
+        return $self->_cid('ASC', 0, $project) if $tag eq 'ROOT';
 
         # Find by tag name.
         return $dbh->selectcol_arrayref(q{
