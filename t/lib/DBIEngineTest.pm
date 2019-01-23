@@ -93,7 +93,7 @@ sub run {
             } or return;
         }
         if (my $q = $p{version_query}) {
-            diag 'Connected to ', $engine->dbh->selectcol_arrayref($q)->[0];
+            say '# Connected to ', $engine->dbh->selectcol_arrayref($q)->[0];
         }
         ok $engine, 'Engine instantiated';
 
