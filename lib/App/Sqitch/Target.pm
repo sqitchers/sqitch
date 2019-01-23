@@ -4,7 +4,7 @@ use 5.010;
 use Moo;
 use strict;
 use warnings;
-use App::Sqitch::Types qw(Maybe URIDB Str Dir Engine Sqitch File Plan);
+use App::Sqitch::Types qw(Maybe URIDB Str Dir Engine Sqitch File Plan HashRef);
 use App::Sqitch::X qw(hurl);
 use Locale::TextDomain qw(App-Sqitch);
 use Path::Class qw(dir file);
@@ -82,6 +82,22 @@ sub _fetch {
             $ekey ? $config->get( key => "engine.$ekey.$key") : ();
         } || $config->get( key => "core.$key");
 }
+
+has variables => (
+    is      => 'rw',
+    isa     => HashRef[Str],
+    lazy    => 1,
+    default => sub {
+        my $self = shift;
+        my $config = $self->sqitch->config;
+        return {
+            map { %{ $config->get_section( section => "$_.variables" ) || {} } } (
+                'engine.' . $self->engine_key,
+                'target.' . $self->name,
+            )
+        };
+    },
+);
 
 has registry => (
     is  => 'ro',
@@ -758,6 +774,26 @@ The value comes from one of these options, searched in this order:
 =item * C<"sql">
 
 =back
+
+=head3 C<variables>
+
+  my $variables = $target->variables;
+
+The database variables to use in change scripts. The value are merged from
+these options, in this order:
+
+=over
+
+=item * C<target.$name.variables>
+
+=item * C<engine.$engine.variables>
+
+=back
+
+The C<core.variables> configuration is not read, because command-specific
+configurations, such as C<deploy.variables> and C<revert.variables> take
+priority. The command themselves therefore pass them to the engine in the
+proper priority order.
 
 =head3 C<engine_key>
 

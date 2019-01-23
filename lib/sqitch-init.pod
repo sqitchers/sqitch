@@ -190,6 +190,14 @@ passed.
 Sets the C<engine.$engine.client> configuration variable if C<--engine> is
 also passed.
 
+=item C<-s>
+
+=item C<--set>
+
+Set a variable name and value for use by the database engine client, if it
+supports variables. The format must be C<name=value>, e.g.,
+C<--set defuser='Homer Simpson'>. Variables are set in C<core.variables>.
+
 =back
 
 As a general rule, you likely won't need any of these options except for

@@ -868,6 +868,14 @@ message or if the optional default value does not begin with "y" or "n". As
 with C<prompt()> an exception will be thrown if Sqitch is running unattended
 and there is no default.
 
+=head2 Constants
+
+=head3 C<ISWIN>
+
+  my $app = 'sqitch' . ( ISWIN ? '.bat' : '' );
+
+True when Sqitch is running on Windows, and false when it's not.
+
 =head1 Author
 
 David E. Wheeler <david@justatheory.com>

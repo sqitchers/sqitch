@@ -91,7 +91,7 @@ sub execute {
     $engine->log_only( $self->log_only );
 
     # Revert.
-    if (my %v = %{ $self->revert_variables }) { $engine->set_variables(%v) }
+    $engine->set_variables( $self->_collect_revert_vars($target) );
     try {
         $engine->revert( $onto );
     } catch {
@@ -99,12 +99,12 @@ sub execute {
         die $_ if ! eval { $_->isa('App::Sqitch::X') }
             || $_->exitval > 1
             || $_->ident eq 'revert:confirm';
-        # Emit notice of non-fatal errors (e.g., nothign to revert).
+        # Emit notice of non-fatal errors (e.g., nothing to revert).
         $self->info($_->message)
     };
 
     # Deploy.
-    if (my %v = %{ $self->deploy_variables }) { $engine->set_variables(%v) }
+    $engine->set_variables( $self->_collect_deploy_vars($target) );
     $engine->deploy( $upto, $self->mode );
     return $self;
 }

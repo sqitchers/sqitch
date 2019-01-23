@@ -8,6 +8,7 @@ use App::Sqitch;
 use Path::Class qw(dir file);
 use Test::Exception;
 use Locale::TextDomain qw(App-Sqitch);
+use List::Util qw(first);
 use lib 't/lib';
 use TestConfig;
 
@@ -43,6 +44,7 @@ can_ok $target, qw(
     reworked_revert_dir
     reworked_verify_dir
     extension
+    variables
 );
 
 # Look at default values.
@@ -81,6 +83,7 @@ my $uri = $target->uri;
 is $target->dsn, $uri->dbi_dsn, 'DSN should be from URI';
 is $target->username, $uri->user, 'Username should be from URI';
 is $target->password, $uri->password, 'Password should be from URI';
+is_deeply $target->variables, {}, 'Variables should be empty';
 
 do {
     isa_ok my $target = $CLASS->new(sqitch => $sqitch), $CLASS;
@@ -104,6 +107,7 @@ isa_ok $target = $CLASS->new(
     sqitch => $sqitch,
     name   => 'foo',
     uri    => $uri,
+    variables => {a => 1},
 ), $CLASS, 'Target with name and URI';
 
 is $target->name, 'foo', 'Name should be "foo"';
@@ -118,6 +122,7 @@ do {
     local $ENV{SQITCH_PASSWORD} = 'lolz';
     is $target->password, 'lolz', 'Password should be from environment';
 };
+is_deeply $target->variables, {a => 1}, 'Variables should be set';
 
 # Pass a URI but no name.
 isa_ok $target = $CLASS->new(
@@ -463,6 +468,7 @@ CONFIG: {
     is $target->reworked_verify_dir, 'rver', 'Reworked verify dir should be "rver"';
     isa_ok $target->reworked_verify_dir, 'Path::Class::Dir', 'Reworked verify dir';
     is $target->extension, 'ddl', 'Extension should be "ddl"';
+    is_deeply $target->variables, {}, 'Should have no variables';
 
     # Add engine config.
     $config->update(
@@ -478,6 +484,7 @@ CONFIG: {
         'engine.pg.reworked_revert_dir' => 'pgrrev',
         'engine.pg.reworked_verify_dir' => 'pgrver',
         'engine.pg.extension'           => 'pgddl',
+        'engine.pg.variables'           => { x => 'ex', y => 'why', z => 'zee' },
     );
     $target = $CLASS->new(
         sqitch => $sqitch,
@@ -508,6 +515,8 @@ CONFIG: {
     is $target->reworked_verify_dir, 'pgrver', 'Reworked verify dir should be "pgrver"';
     isa_ok $target->reworked_verify_dir, 'Path::Class::Dir', 'Reworked verify dir';
     is $target->extension, 'pgddl', 'Extension should be "pgddl"';
+    is_deeply $target->variables, {x => 'ex', y => 'why', z => 'zee'},
+        'Variables should be read from engine.variables';
 
     # Add target config.
     $config->update(
@@ -523,6 +532,7 @@ CONFIG: {
         'target.foo.reworked_revert_dir' => 'foorevr',
         'target.foo.reworked_verify_dir' => 'fooverr',
         'target.foo.extension'           => 'fooddl',
+        'engine.pg.variables'            => { z => 'zie',  a => 'ay' },
     );
     $target = $CLASS->new(
         sqitch => $sqitch,
@@ -553,6 +563,8 @@ CONFIG: {
     is $target->reworked_verify_dir, 'fooverr', 'Reworked verify dir should be "fooverr"';
     isa_ok $target->reworked_verify_dir, 'Path::Class::Dir', 'Reworked verify dir';
     is $target->extension, 'fooddl', 'Extension should be "fooddl"';
+    is_deeply $target->variables, {x => 'ex', y => 'why', z => 'zie', a => 'ay'},
+        'Variables should be read from engine., and target.variables';
 }
 
 sub _load($) {
@@ -568,7 +580,7 @@ ALL: {
     ok my @targets = $CLASS->all_targets(sqitch => $sqitch), 'Load all targets';
     is @targets, 1, 'Should have one target';
     is $targets[0]->name, 'db:pg:',
-        'It should be the generic core enginetarget';
+        'It should be the generic core engine target';
 
     # Now load one with a core target defined.
     $config = TestConfig->from(local => file qw(t core_target.conf) );
@@ -577,6 +589,7 @@ ALL: {
         'Load all targets with core target config';
     is @targets, 1, 'Should again have one target';
     is $targets[0]->name, 'db:pg:whatever', 'It should be the named target';
+    is_deeply $targets[0]->variables, {}, 'It should have no variables';
 
     # Try it with both engine and target defined.
     $sqitch->config->load_file(file 't', 'core.conf');
@@ -584,6 +597,7 @@ ALL: {
         'Load all targets with core engine and target config';
     is @targets, 1, 'Should still have one target';
     is $targets[0]->name, 'db:pg:whatever', 'It should again be the named target';
+    is_deeply $targets[0]->variables, {}, 'It should have no variables';
 
     # Great, now let's load one with some engines in it.
     $config = TestConfig->from(local => file qw(t user.conf) );
@@ -596,6 +610,9 @@ ALL: {
         'db:pg://postgres@localhost/thingies',
         'db:sqlite:my.db',
     ], 'Should have all the engine targets';
+    my $mysql = first { $_->name eq 'db:mysql:' } @targets;
+    is_deeply $mysql->variables, {prefix => 'foo_'},
+        'MySQL target should have engine variables';
 
     # Load one with targets.
     $config = TestConfig->from(local => file qw(t target.conf) );
@@ -606,7 +623,7 @@ ALL: {
     is_deeply [ sort map { $_->name } @targets ], [qw(db:pg: dev prod qa)],
         'Should have the core target plus the named targets';
 
-    # Load one with engins and targets.
+    # Load one with engines and targets.
     $config = TestConfig->from(local => file qw(t local.conf) );
     $sqitch = App::Sqitch->new(config => $config);
     ok @targets = $CLASS->all_targets(sqitch => $sqitch), 'Load all local conf targets';

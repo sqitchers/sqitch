@@ -22,3 +22,4 @@ sqitch-engine-usage - Sqitch engine usage statement
     --top-dir    <dir>          path to directory with plan and scripts
     --extension  <ext>          change script file name extension
     --dir        <name>=<path>  path to named directory
+    -s --set     <key=value>    set a database client variable

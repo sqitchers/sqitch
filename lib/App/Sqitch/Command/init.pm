@@ -127,6 +127,14 @@ sub write_config {
             if defined $props->{$attr};
     }
 
+    # Add variables.
+    if (my $vars = $props->{variables}) {
+        push @vars => map {{
+            key   => "core.variables.$_",
+            value => $vars->{$_},
+        }} keys %{ $vars };
+    }
+
     # Emit them.
     if (@vars) {
         $config->group_set( $file => \@vars );

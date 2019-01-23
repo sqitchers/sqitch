@@ -54,9 +54,7 @@ has variables => (
     is       => 'ro',
     isa      => HashRef,
     lazy     => 1,
-    default  => sub {
-        shift->sqitch->config->get_section( section => 'deploy.variables' );
-    },
+    default  => sub { {} },
 );
 
 sub options {
@@ -91,14 +89,21 @@ sub configure {
     }
 
     if ( my $vars = $opt->{set} ) {
-        # Merge with config.
-        $params{variables} = {
-            %{ $config->get_section( section => 'deploy.variables' ) || {} },
-            %{ $vars },
-        };
+        $params{variables} = $vars;
     }
 
     return \%params;
+}
+
+sub _collect_vars {
+    my ($self, $target) = @_;
+    my $cfg = $self->sqitch->config;
+    return (
+        %{ $cfg->get_section(section => 'core.variables') },
+        %{ $cfg->get_section(section => 'deploy.variables') },
+        %{ $target->variables }, # includes engine
+        %{ $self->variables },   # --set
+    );
 }
 
 sub execute {
@@ -126,7 +131,7 @@ sub execute {
     my $engine = $target->engine;
     $engine->with_verify( $self->verify );
     $engine->log_only( $self->log_only );
-    if (my %v = %{ $self->variables }) { $engine->set_variables(%v) }
+    $engine->set_variables( $self->_collect_vars($target) );
     $engine->deploy( $change, $self->mode );
     return $self;
 }

@@ -40,6 +40,7 @@ around options => sub {
         extension=s
         top-dir=s
         dir|d=s%
+        set|s=s%
     );
 };
 
@@ -98,6 +99,11 @@ around configure => sub {
                 dirs => join(__ ', ', sort @unknown),
             );
         }
+    }
+
+    # Copy variables.
+    if ( my $vars = $opt->{set} ) {
+        $props->{variables} = $vars;
     }
 
     # All done.
@@ -328,6 +334,25 @@ sub write_plan {
     return $self;
 }
 
+sub config_params {
+    my ($self, $key) = @_;
+    my @vars;
+    while (my ($prop, $val) = each %{ $self->properties } ) {
+        if (ref $val eq 'HASH') {
+            push @vars => map {{
+                key   => "$key.$prop.$_",
+                value => $val->{$_},
+            }} keys %{ $val };
+        } else {
+            push @vars => {
+                key   => "$key.$prop",
+                value => $val,
+            };
+        }
+    }
+    return \@vars;
+}
+
 1;
 
 __END__
@@ -466,6 +491,13 @@ not been passed as options.
 Creates the list of directories on the file system. Directories that already
 exist are skipped. Messages are sent to C<info()> for each directory, and an
 error is thrown on the first to fail.
+
+=head3 C<config_params>
+
+  my @params = $cmd->config_params($key);
+
+Returns a list of parameters to pass to the L<App::Sqitch::Config> C<set>
+method, built up from the C<properties>.
 
 =head1 See Also
 

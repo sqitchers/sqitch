@@ -9,7 +9,7 @@ Revision history for Perl extension App::Sqitch
        the hard-coded warehouse name "sqitch" and using the system username as
        the database name and no default for the role.
      - Removed fallback in the PostgreSQL engine on the `$PGUSER` and
-       `$PGPASSWORD` environnment variables, as well as the system username,
+       `$PGPASSWORD` environnement variables, as well as the system username,
        since libpq does all that automatically, and collects data from other
        sources that we did not (e.g., the password and connection service
        files). Thanks to Tom Bloor for the report (issue #410).
@@ -35,9 +35,9 @@ Revision history for Perl extension App::Sqitch
        duplicates before listing them in the error message.
      - Now requiring IO::Pager v0.34 or later for its more consistent
        interface.
-     - Added notes about createing databases to the tutorials. Thanks to Dave
+     - Added notes about creating databases to the tutorials. Thanks to Dave
        Rolsky for the prompt (#315).
-     - Added a status messsage to tell the user when the registry is being
+     - Added a status message to tell the user when the registry is being
        updated, rather than just show each individual update. Thanks to Ben
        Hutton for the suggestion (#276).
      - Added support for a `$SQITCH_TARGET` environment variable, which takes
@@ -47,7 +47,7 @@ Revision history for Perl extension App::Sqitch
        fail when `core.engine` isn't set unless no targets are found. This
        lets engines be determined strictly from command-line arguments --
        derived from targets, or just listed on their own -- whether or not
-       `core.engine` is set. This chagnge eliminates the need for the
+       `core.engine` is set. This change eliminates the need for the
        `no_default` parameter to the `parse_args()` method of App::Sqitch
        Command. It also greatly reduces the need for the core `--engine`
        option, which was previously required to work around this issue.
@@ -60,6 +60,32 @@ Revision history for Perl extension App::Sqitch
      - Refactored config handling in tests to use a custom subclass of
        App::Sqitch::Config instead of various mocks, temporary files, and the
        like.
+     [Target Variables]
+     - The verify command now reads `deploy.variables`, and individual
+       `verify.variables override `deploy.variables`, on the assumption that
+       the verify variables in general ought to be the same as the deploy
+       variables. This makes `verify` variable configuration consistent with
+       `revert` variable configuration.
+     - Variables set via the `--set-deploy` option on the `rebase` and
+       `checkout` no longer apply to both reverts and deploys, but only
+       deploys. Use the `--set` option to apply a variable to both reverts and
+       deploys.
+     - Added support for core, engine, and target variable configuration. The
+       simplest way to use them is via the `--set` option on the `init`,
+       `engine`, and `target` commands. These commands allow the configuration
+       of database client variables for specific engines and targets, as well
+       as defaults that apply to all change execution commands (`deploy`,
+       `revert`, `verify`, `rebase`, and `checkout`). The commands merge the
+       variables from each level in this priority order:
+       * `--set-deploy` and `--set-revert` options on `rebase` and `checkout`.
+       * `--set` option
+       * `target.$target.variables`
+       * `engine.$engine.variables`
+       * `deploy.variables`, `revert.variables`, and `verify.variables`
+       * `core.variables`
+       See `sqitch-configuration` for general documentation of of the hierarchy
+       for merging variables and the documentation for each command for
+       specifics.
      [Options Unification]
      - Added the `--chdir`/`--cd`/`-C` option to specify a directory to change
        to before executing any Sqitch commands. Thanks to Thomas Sibley for
