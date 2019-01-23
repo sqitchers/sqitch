@@ -66,7 +66,7 @@ Revision history for Perl extension App::Sqitch
        the suggestion (#411).
      - Added the `--no-pager` option to disable the pager (#414).
      - Changed command-line parsing to allow core and command options to
-       appear anywhere on the line Previously, core options had to come
+       appear anywhere on the line. Previously, core options had to come
        before the command name, and command options after. No more. The caveat
        is that command options that take arguments should either appear after
        the command or use the `--opt=val` syntax instead of `--opt val`, so
@@ -91,17 +91,17 @@ Revision history for Perl extension App::Sqitch
        has been added as an alias for `--version`, although `-v` remains for
        now, undocumented. It may be removed in the future should a compelling
        use for `-v` in a command be discovered.
-     - All other options have been moved to the commands the affect. Their use
+     - All other options have been moved to the commands they affect. Their use
        should remain mostly unchanged now that command options are parsed from
        anywhere on the command-line, although we recommend that all options
        come after commands. The options were moved as follows:
        * --registry, --client, --db-name, --db-user, --db-host, and --db-port
          (and their aliases) have been moved to the checkout, deploy, log,
          rebase, revert, status, upgrade, and verify commands.
-       * --plan-file and --top-dir (and their aliases) have been moved to the
-         add, bundle, checkout, deploy, rebase, revert, rework, show, status,
-         tag, and verify commands. They were already supported by the init,
-         engine, and target commands.
+       * --plan-file and --top-dir have been moved to the add, bundle,
+         checkout, deploy, rebase, revert, rework, show, status, tag, and
+         verify commands. They were already supported by the init, engine,
+         and target commands.
      - Because some command options conflicted with core options, a few options
        have been removed altogether, including:
        * The `--verbose` option on the `--engine` and `--target` commands has
@@ -116,7 +116,10 @@ Revision history for Perl extension App::Sqitch
        * Added tests for all commands to ensure none of their options conflict
          with core options. Will help prevent conflicts in the future.
      [Removed Features]
-     - Derecated the `--top-dir` option in favor of `--chdir`.
+     - Deprecated the `--top-dir` option in favor of `--chdir`, except when
+       used for configuration in the init, engine, and target commands. Use
+       of the deprecated option will trigger a warning that recommends
+       using `--chdir` instead.
      - Removed the core `--deploy-dir`, `--revert-dir`, and `--verify-dir`
        options, which have been deprecated and triggering warnings since
        v0.9993. The `--dir` option to the `init`, `engine`, and `target`
@@ -124,11 +127,12 @@ Revision history for Perl extension App::Sqitch
        directories.
      - Removed the deprecated core `--engine` option. The `init` command still
        supports it, while other commands are able to parse the engine name as
-       an argument, e.g., `sqitch deploy mysql`, or implicitly as part of a
-       target, as in `sqitch revert db:pg:tryme'.
+       an argument — e.g., `sqitch deploy mysql` — or implicitly as part of a
+       target, as in `sqitch revert db:pg:tryme`.
      - Removed support for reading the `core.$engine` configuration, which has
-       been deprecated with warnings since 0.997. The `sqitch engine
-       update-config` action remains available to update old configurations.
+       been deprecated with warnings in favor of `engine.$engine` since 0.997.
+       The `sqitch engine update-config` action remains available to update old
+       configurations.
      [API Changes]
      - Added the URI-overriding parameters `user`, `host`, `port`, and
        `dbname` to App::Sqitch::Target so that command options can be used
@@ -137,15 +141,12 @@ Revision history for Perl extension App::Sqitch
        group constructor on App::Sqitch::Target, so that command-line options
        can be used to assign attributes to all targets read from the
        configuration.
-     - Added support for attributes to be passed to the App::Sqitch::Target
-       `all_targets` method. Such attributes will be set on all returned
-       targets.
-     - Aded `target_params` method to App::Sqitch::Command and updated all
+     - Aded the `target_params` method to App::Sqitch::Command and updated all
        commands to use it when constructing targets. This allows commands to
        easily add options for parameters to be passed to the Target
        constructors, as required for the options unification documented above.
      - Added the `class_for` method to App::Sqitch::Command so that the new
-       options parser described below can load a command class without
+       options parser described above can load a command class without
        instantiating an instance. Useful for searching command-line arguments
        for a command name.
      - Added the `create` constructor to App::Sqitch::Command to let Sqitch
@@ -154,9 +155,11 @@ Revision history for Perl extension App::Sqitch
      - Added the ConnectingCommand role to abstract handling command options
        for connecting to a database.
      - Added the ContextCommand role to abstract handling command options for
-       finding and top directory.
-     - Removed the C<verbosity> attribute from App::Sqitch::Command::engine
+       the location of the plan file and top directory. This is also where
+       use of the deprecated form of `--top-dir` triggers a warning.
+     - Removed the `verbosity` attribute from App::Sqitch::Command::engine
        and App::Sqitch::Command::target, since the option is no longer needed.
+       These commands now rely on the core `--verbose` option.
      - Removed the copying of core options from the target class and
        TargetConfigCommand role, since the attributes fetched from there are
        no longer core options, but provided as attribute parameters to the
