@@ -43,7 +43,6 @@ is_deeply [$CLASS->options], [qw(
     set|s=s%
     log-only
     verify!
-    to-target=s
     plan-file|f=s
     top-dir=s
     registry=s

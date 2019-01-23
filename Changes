@@ -175,6 +175,10 @@ Revision history for Perl extension App::Sqitch
        since v0.990.
      - Formally the `@FIRST` and `@LAST` symbolic tags, which have been
        deprecated with warnings since 0.997.
+     - Removed the command-specific options with the string "target" in them,
+       such as `--to-target`, `--upto-target`, which have been deprecated
+       with warnings in in favor of options containing the string "change",
+       such as `--to-change` and `--upto-change`, since v0.997.
 
      [API Changes]
      - Added the URI-overriding parameters `user`, `host`, `port`, and

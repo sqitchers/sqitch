@@ -54,7 +54,6 @@ sub options {
     return qw(
         target|t=s
         to-change|to|change=s
-        to-target=s
         set|s=s%
         log-only
         y
@@ -69,15 +68,6 @@ sub configure {
         log_only
         target
     );
-
-    # Deprecated option.
-    if ( exists $opt->{to_target}  ) {
-        # Deprecated option.
-        App::Sqitch->warn(
-            __ 'The --to-target and --target option has been deprecated; use --to-change instead.'
-        );
-        $params{to_change} ||= $opt->{to_target};
-    }
 
     if ( my $vars = $opt->{set} ) {
         $params{variables} = $vars

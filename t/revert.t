@@ -37,7 +37,6 @@ ok $CLASS->does("App::Sqitch::Role::$_"), "$CLASS does $_"
 is_deeply [$CLASS->options], [qw(
     target|t=s
     to-change|to|change=s
-    to-target=s
     set|s=s%
     log-only
     y
