@@ -35,9 +35,9 @@ Revision history for Perl extension App::Sqitch
        duplicates before listing them in the error message.
      - Now requiring IO::Pager v0.34 or later for its more consistent
        interface.
-     - Added notes about createing databases to the tutorials. Thanks to Dave
+     - Added notes about creating databases to the tutorials. Thanks to Dave
        Rolsky for the prompt (#315).
-     - Added a status messsage to tell the user when the registry is being
+     - Added a status message to tell the user when the registry is being
        updated, rather than just show each individual update. Thanks to Ben
        Hutton for the suggestion (#276).
      - Added support for a `$SQITCH_TARGET` environment variable, which takes
@@ -69,6 +69,22 @@ Revision history for Perl extension App::Sqitch
        `checkout` no longer apply to both reverts and deploys, but only
        deploys. Use the `--set` option to apply a variable to both reverts and
        deploys.
+     - Added support for core, engine, and target variable configuration. The
+       simplest way to use them is via the `--set` option on the `init`,
+       `engine`, and `target` commands. These allow the configuration of
+       database client variables for specific engines and targets, as well as
+       defaults that apply to all change execution commands (`deploy`,
+       `revert`, `verify`, `rebase`, and `checkout`). The commands merge the
+       variables from each level in this priority order:
+       * `--set-deploy` and `--set-revert` options on `rebase` and `checkout`.
+       * `--set` option
+       * `target.$target.variables`
+       * `engine.$engine.variables`
+       * `deploy.variables`, `revert.variables`, and `verify.variables`
+       * `core.variables`
+       See `sqitch-configuration` for general documentation of of the hierarchy
+       for merging variables and the documentation for each command for
+       specifics.
      [Options Unification]
      - Added the `--chdir`/`--cd`/`-C` option to specify a directory to change
        to before executing any Sqitch commands. Thanks to Thomas Sibley for
