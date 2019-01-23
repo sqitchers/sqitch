@@ -60,6 +60,7 @@ Revision history for Perl extension App::Sqitch
      - Refactored config handling in tests to use a custom subclass of
        App::Sqitch::Config instead of various mocks, temporary files, and the
        like.
+
      [Target Variables]
      - The verify command now reads `deploy.variables`, and individual
        `verify.variables override `deploy.variables`, on the assumption that
@@ -86,6 +87,7 @@ Revision history for Perl extension App::Sqitch
        See `sqitch-configuration` for general documentation of of the hierarchy
        for merging variables and the documentation for each command for
        specifics.
+
      [Options Unification]
      - Added the `--chdir`/`--cd`/`-C` option to specify a directory to change
        to before executing any Sqitch commands. Thanks to Thomas Sibley for
@@ -141,6 +143,7 @@ Revision history for Perl extension App::Sqitch
          alias for `--db-name`.
        * Added tests for all commands to ensure none of their options conflict
          with core options. Will help prevent conflicts in the future.
+
      [Removed Features]
      - Deprecated the `--top-dir` option in favor of `--chdir`, except when
        used for configuration in the init, engine, and target commands. Use
@@ -159,6 +162,18 @@ Revision history for Perl extension App::Sqitch
        been deprecated with warnings in favor of `engine.$engine` since 0.997.
        The `sqitch engine update-config` action remains available to update old
        configurations.
+     - Removed the `--deploy`, `--revert`, and `--verify` options on the `add`
+       command, as well as their `--no-*` variants. They have been deprecated
+       with warnings in favor of the `--with` and `--without` options since
+       v0.990.
+     - Removed the `--deploy-template`, `--revert-template`, and
+       `--verify-template` options to the `add` command. They have been
+	     deprecated with warnings in favor of the `--use` option since v0.990.
+     - Removed the `add.deploy_template`, `add.revert_template`, and
+	     `add.verify_template` configuration settings. They have been deprecated
+	     with warnings in favor of the `add.templates` configuration section
+       since v0.990.
+
      [API Changes]
      - Added the URI-overriding parameters `user`, `host`, `port`, and
        `dbname` to App::Sqitch::Target so that command options can be used

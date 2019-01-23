@@ -116,14 +116,6 @@ sub _config_templates {
     my ($self, $config) = @_;
     my $tmpl = $config->get_section( section => 'add.templates' );
     $_ = _check_script $_ for values %{ $tmpl };
-
-    # Get legacy config.
-    for my $script (qw(deploy revert verify)) {
-        next if $tmpl->{$script};
-        if (my $file = $config->get( key => "add.$script\_template")) {
-            $tmpl->{$script} = _check_script $file;
-        }
-    }
     return $tmpl;
 }
 
@@ -172,15 +164,7 @@ sub options {
         without=s@
         use=s%
         open-editor|edit|e!
-
-        deploy-template=s
-        revert-template=s
-        verify-template=s
-        deploy!
-        revert!
-        verify!
     );
-    # Those last six are deprecated.
 }
 
 # Override to convert multiple vars to an array.
@@ -212,34 +196,10 @@ sub _parse_opts {
 
     # Merge with and without.
     $opts{with_scripts} = {
-        ( map {
-            if (exists $opts{$_}) {
-                App::Sqitch->warn(__x(
-                    'Option --{opt} has been deprecated; use "--{with} {val}" instead',
-                    opt  => $_,
-                    with => $opts{$_} ? 'with' : 'without',
-                    val  => $_
-                ));
-            }
-            $_ => delete $opts{$_} // 1;
-        } qw(deploy revert verify) ),
+        ( map { $_ => 1 } qw(deploy revert verify) ),
         ( map { $_ => 1 } @{ delete $opts{with}    || [] } ),
         ( map { $_ => 0 } @{ delete $opts{without} || [] } ),
     };
-
-    # Merge deprecated use options.
-    for my $script (qw(deploy revert verify)) {
-        next unless exists $opts{"$script\_template"};
-        $opts{use} ||= {};
-        $opts{use}{$script} = delete $opts{"$script\_template"};
-        App::Sqitch->warn(__x(
-            'Option --{opt} has been deprecated; use "--use {key}={val}" instead',
-            opt => "$script-template",
-            key => $script,
-            val => $opts{use}{$script},
-        ));
-    }
-
     return \%opts;
 }
 
