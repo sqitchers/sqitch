@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 348;
+use Test::More tests => 351;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -89,6 +89,7 @@ is_deeply $cmd->properties, {}, 'Default properties should be empty';
 is_deeply $CLASS->configure({ foo => 'bar'}, {}), { properties => {} },
     'configure() should ignore config file';
 
+# Check default property values.
 ok my $conf = $CLASS->configure($config, {
     top_dir             => 'top',
     plan_file           => 'my.plan',

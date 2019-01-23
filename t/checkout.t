@@ -29,6 +29,8 @@ can_ok $CLASS, qw(
     execute
     deploy_variables
     revert_variables
+    _collect_deploy_vars
+    _collect_revert_vars
     does
 );
 
@@ -171,10 +173,6 @@ is_deeply $CLASS->configure($config, {
 }, 'set_revert should merge with set_deploy';
 
 CONFIG: {
-    my $config = TestConfig->new(
-        'deploy.variables' => { foo => 'bar', hi => 21 },
-    );
-
     is_deeply $CLASS->configure($config, {}), {
         no_prompt     => 0,
         prompt_accept => 1,

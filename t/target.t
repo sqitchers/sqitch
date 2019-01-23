@@ -623,7 +623,7 @@ ALL: {
     is_deeply [ sort map { $_->name } @targets ], [qw(db:pg: dev prod qa)],
         'Should have the core target plus the named targets';
 
-    # Load one with engins and targets.
+    # Load one with engines and targets.
     $config = TestConfig->from(local => file qw(t local.conf) );
     $sqitch = App::Sqitch->new(config => $config);
     ok @targets = $CLASS->all_targets(sqitch => $sqitch), 'Load all local conf targets';
